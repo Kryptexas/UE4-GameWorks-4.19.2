@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Collision.h: Common collision code.
@@ -194,7 +194,7 @@ FORCEINLINE bool LineCheckWithTriangle(FHitResult& Result,const FVector& V1,cons
 		return false;
 	}
 
-	Result.Normal = ((V3-V2)^(V2-V1)).SafeNormal();
+	Result.Normal = ((V3-V2)^(V2-V1)).GetSafeNormal();
 	Result.Time = ((V1 - Start)|Result.Normal) / (Result.Normal|Direction);
 
 	return true;

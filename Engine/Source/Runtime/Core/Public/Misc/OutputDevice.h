@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -234,8 +234,13 @@ namespace ELogTimes
 {
 	enum Type
 	{
+		// Do not display log timestamps
 		None,
+
+		// Display log timestamps in UTC
 		UTC,
+
+		// Display log timestamps in seconds elapsed since GStartTime
 		SinceGStartTime
 	};
 }
@@ -412,6 +417,7 @@ struct CORE_API FDebug
 	{
 		if( bExpressionResult == 0 )
 		{
+			FPlatformMisc::DebugBreak();
 			EnsureFailed( Expr, File, Line, Msg );
 		}
 	

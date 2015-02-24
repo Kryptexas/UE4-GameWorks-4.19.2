@@ -1,9 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "SlateBasics.h"
 #include "AudioDevice.h"
 #include "Scalability.h"
+#include "GameFramework/GameUserSettings.h"
+#include "Engine/GameEngine.h"
 
 extern EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode);
 
@@ -192,11 +194,6 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 	bool bIsDirty = IsDirty();
 	EWindowMode::Type NewWindowMode = GetFullscreenMode();
 
-	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode")); 
-		CVar->Set(NewWindowMode, ECVF_SetByGameSetting);
-	}
-
 	// Update vsync cvar
 	{
 		static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.VSync")); 
@@ -214,20 +211,18 @@ void UGameUserSettings::ApplyNonResolutionSettings()
 
 void UGameUserSettings::ApplyResolutionSettings(bool bCheckForCommandLineOverrides)
 {
+#if UE_SERVER
+	return;
+#endif
+
 	ValidateSettings();
 
 	EWindowMode::Type NewFullscreenMode = GetFullscreenMode();
-
-	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode"));
-		CVar->Set(NewFullscreenMode, ECVF_SetByGameSetting);
-	}
 
 	// Request a resolution change
 	RequestResolutionChange(ResolutionSizeX, ResolutionSizeY, NewFullscreenMode, bCheckForCommandLineOverrides);
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
 
-	SaveSettings();
 }
 
 void UGameUserSettings::ApplySettings(bool bCheckForCommandLineOverrides)
@@ -235,6 +230,7 @@ void UGameUserSettings::ApplySettings(bool bCheckForCommandLineOverrides)
 	ApplyResolutionSettings(bCheckForCommandLineOverrides);
 	ApplyNonResolutionSettings();
 
+	SaveSettings();
 	UE_LOG(LogConsoleResponse, Display, TEXT(""));
 }
 
@@ -271,18 +267,13 @@ void UGameUserSettings::RequestResolutionChange(int32 InResolutionX, int32 InRes
 		UGameEngine::ConditionallyOverrideSettings(InResolutionX, InResolutionY, InWindowMode);
 	}
 
-
-	{
-		static IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode"));
-		CVar->Set(InWindowMode, ECVF_SetByGameSetting);
-	}
 	FSystemResolution::RequestResolutionChange(InResolutionX, InResolutionY, InWindowMode);
 }
 
 void UGameUserSettings::SaveSettings()
 {
-	SaveConfig(CPF_Config, *GGameUserSettingsIni);
 	Scalability::SaveState(GGameUserSettingsIni);
+	SaveConfig(CPF_Config, *GGameUserSettingsIni);
 }
 
 void UGameUserSettings::LoadConfigIni( bool bForceReload/*=false*/ )
@@ -330,11 +321,6 @@ void UGameUserSettings::PreloadResolutionSettings()
 			ResolutionY = DisplayMetrics.PrimaryDisplayHeight;
 		}
 #endif
-	}
-
-	{
-		static auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.FullScreenMode")); 
-		CVar->Set((int32)WindowMode, ECVF_SetByGameSetting);
 	}
 
 	RequestResolutionChange(ResolutionX, ResolutionY, WindowMode);

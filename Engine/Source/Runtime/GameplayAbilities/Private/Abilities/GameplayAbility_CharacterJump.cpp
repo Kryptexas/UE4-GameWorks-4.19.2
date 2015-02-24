@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/GameplayAbility_CharacterJump.h"
@@ -18,8 +18,8 @@ UGameplayAbility_CharacterJump::UGameplayAbility_CharacterJump(const FObjectInit
 
 void UGameplayAbility_CharacterJump::ActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
 {
-	if (ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Authority ||
-		ActivationInfo.ActivationMode == EGameplayAbilityActivationMode::Predicting)
+	
+	if (HasAuthorityOrPredictionKey(ActorInfo, &ActivationInfo))
 	{
 		if (!CommitAbility(Handle, ActorInfo, ActivationInfo))
 		{
@@ -39,9 +39,9 @@ void UGameplayAbility_CharacterJump::InputReleased(const FGameplayAbilitySpecHan
 	}
 }
 
-bool UGameplayAbility_CharacterJump::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo) const
+bool UGameplayAbility_CharacterJump::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, OUT FGameplayTagContainer* OptionalRelevantTags) const
 {
-	if (!Super::CanActivateAbility(Handle, ActorInfo))
+	if (!Super::CanActivateAbility(Handle, ActorInfo, OptionalRelevantTags))
 	{
 		return false;
 	}

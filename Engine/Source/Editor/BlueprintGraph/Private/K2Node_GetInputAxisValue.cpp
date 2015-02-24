@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_GetInputAxisValue.h"
@@ -49,6 +49,11 @@ FText UK2Node_GetInputAxisValue::GetNodeTitle(ENodeTitleType::Type TitleType) co
 	}
 
 	return CachedNodeTitle;
+}
+
+FString UK2Node_GetInputAxisValue::GetKeywords() const
+{
+	return TEXT("Get");
 }
 
 FText UK2Node_GetInputAxisValue::GetTooltipText() const

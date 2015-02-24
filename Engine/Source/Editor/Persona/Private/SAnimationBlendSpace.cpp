@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -10,6 +10,7 @@
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "ScopedTransaction.h"
 #include "SNotificationList.h"
+#include "Animation/BlendSpaceBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlendSpace, Log, All);
 
@@ -73,7 +74,7 @@ struct FGridSpaceConverter
 	}
 
 	/** Local Widget Space -> Curve Input domain. */
-	FVector ScreenToInput(const FVector2D & Screen) const
+	FVector ScreenToInput(const FVector2D& Screen) const
 	{
 		FVector Output = MinInput;
 		FVector2D LocalScreen = Screen - ScreenMin;
@@ -321,7 +322,7 @@ bool FDelaunayTriangleGenerator::FlipTriangles(int32 I, int32 J)
 	return Flipped;
 }
 
-void FDelaunayTriangleGenerator::AddTriangle(FTriangle & newTriangle, bool bCheckHalfEdge/*=true*/)
+void FDelaunayTriangleGenerator::AddTriangle(FTriangle& newTriangle, bool bCheckHalfEdge/*=true*/)
 {
 	// see if it's same vertices
 	for (int32 I=0;I<TriangleList.Num(); ++I)
@@ -341,7 +342,7 @@ void FDelaunayTriangleGenerator::AddTriangle(FTriangle & newTriangle, bool bChec
 	TriangleList.Add(new FTriangle(newTriangle));
 }
 
-int32 FDelaunayTriangleGenerator::GenerateTriangles(TArray<FPoint> & PointList, const int32 TotalNum)
+int32 FDelaunayTriangleGenerator::GenerateTriangles(TArray<FPoint>& PointList, const int32 TotalNum)
 {
 	if (TotalNum < BLENDSPACE_MINSAMPLE)
 	{
@@ -443,7 +444,7 @@ int32 FDelaunayTriangleGenerator::GenerateTriangles(TArray<FPoint> & PointList, 
 * 
 * @return	true if successfully found the triangle this point is within
 */
-bool FBlendSpaceGrid::FindTriangleThisPointBelongsTo(const FVector& TestPoint, FVector& OutBaryCentricCoords, FTriangle * & OutTriangle, const TArray<FTriangle*> & TriangleList) const
+bool FBlendSpaceGrid::FindTriangleThisPointBelongsTo(const FVector& TestPoint, FVector& OutBaryCentricCoords, FTriangle*& OutTriangle, const TArray<FTriangle*>& TriangleList) const
 {
 	// sort triangle by distance to TestPoint
 	TArray<FSortByDistance> SortedTriangles;
@@ -523,7 +524,7 @@ bool FBlendSpaceGrid::FindTriangleThisPointBelongsTo(const FVector& TestPoint, F
 * @param	SamplePoints		: Sample Point List
 * @param	TriangleList		: List of triangles
 */
-void FBlendSpaceGrid::GenerateGridElements(const TArray<FPoint>& SamplePoints, const TArray<FTriangle*> & TriangleList)
+void FBlendSpaceGrid::GenerateGridElements(const TArray<FPoint>& SamplePoints, const TArray<FTriangle*>& TriangleList)
 {
 	check ( GridNum.X > 0 && GridNum.Y > 0 );
 	check ( GridDim.IsValid );
@@ -552,7 +553,7 @@ void FBlendSpaceGrid::GenerateGridElements(const TArray<FPoint>& SamplePoints, c
 		for (int32 J=0; J<GridSizeY; ++J)
 		{
 			FTriangle * SelectedTriangle = NULL;
-			FEditorElement & Ele = Elements[ I*GridSizeY + J ];
+			FEditorElement& Ele = Elements[ I*GridSizeY + J ];
 
 			PointPos = GetPosFromIndex(I, J);
 			if ( FindTriangleThisPointBelongsTo(PointPos, Weights, SelectedTriangle, TriangleList) )
@@ -710,7 +711,7 @@ TOptional<FVector2D> SBlendSpaceGridWidget::GetWidgetPosFromEditorPos(const FVec
 	return OutWidgetPos;
 }
 
-TOptional<FVector> SBlendSpaceGridWidget::GetEditorPosFromWidgetPos(const FVector2D & WidgetPos, const FSlateRect& WindowRect) const
+TOptional<FVector> SBlendSpaceGridWidget::GetEditorPosFromWidgetPos(const FVector2D& WidgetPos, const FSlateRect& WindowRect) const
 {
 	TOptional<FVector> OutGridPos;
 
@@ -775,8 +776,8 @@ void SBlendSpaceGridWidget::ResampleData()
 		Generator.Triangulate();
 
 		// once triangulated, generated grid
-		const TArray<FPoint> & Points = Generator.GetSamplePointList();
-		const TArray<FTriangle*> & Triangles = Generator.GetTriangleList();
+		const TArray<FPoint>& Points = Generator.GetSamplePointList();
+		const TArray<FTriangle*>& Triangles = Generator.GetTriangleList();
 		BlendSpaceGrid.GenerateGridElements(Points, Triangles );
 
 		// now fill up grid elements in BlendSpace using this Element information
@@ -791,7 +792,7 @@ void SBlendSpaceGridWidget::ResampleData()
 
 		if (Triangles.Num() > 0 )
 		{
-			const TArray<FEditorElement> & GridElements = BlendSpaceGrid.GetElements();
+			const TArray<FEditorElement>& GridElements = BlendSpaceGrid.GetElements();
 			BlendSpace->FillupGridElements(SamplePoints, GridElements);
 		}
 	}
@@ -815,7 +816,7 @@ void SBlendSpaceGridWidget::Construct(const FArguments& InArgs)
 	CachedGridIndices = FIntPoint::NoneValue;
 }
 
-void SBlendSpaceGridWidget::DrawHighlightGrid(const FVector2D & LeftTopPos, const FVector2D & RightBottomPos, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
+void SBlendSpaceGridWidget::DrawHighlightGrid(const FVector2D& LeftTopPos, const FVector2D& RightBottomPos, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
 {
 	FVector2D DrawSize = RightBottomPos - LeftTopPos;
 	FVector2D Pos = LeftTopPos;
@@ -966,13 +967,13 @@ int32 SBlendSpaceGridWidget::OnPaint( const FPaintArgs& Args, const FGeometry& A
 				}
 			}
 			FText ToolTipMessage = GetToolTipText(GridPos, Seqs, Weights);
-			DrawToolTip( MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor(255, 255, 255), OutDrawElements, TooltipLayer);
+			DrawToolTip( MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor::White, OutDrawElements, TooltipLayer);
 		}
 		else if ( Elements.Num() > 0 )
 		{
 			// consolidate all samples and sort them, so that we can handle from biggest weight to smallest
 			TArray<FBlendSampleData> SampleDataList;
-			const TArray<struct FBlendSample> & SampleData = BlendSpace->GetBlendSamples();
+			const TArray<struct FBlendSample>& SampleData = BlendSpace->GetBlendSamples();
 
 			// if no sample data is found, return 
 			if (BlendSpace->GetSamplesFromBlendInput(LastValidMouseEditorPoint, SampleDataList))
@@ -1001,7 +1002,7 @@ int32 SBlendSpaceGridWidget::OnPaint( const FPaintArgs& Args, const FGeometry& A
 					ToolTipMessage = GetToolTipText(LastValidMouseEditorPoint, Seqs, Weights);
 				}
 
-				DrawToolTip( MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor(255, 255, 255), OutDrawElements, TooltipLayer);
+				DrawToolTip(MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor::White, OutDrawElements, TooltipLayer);
 			}
 
 			if (bPreviewOn)
@@ -1019,12 +1020,12 @@ int32 SBlendSpaceGridWidget::OnPaint( const FPaintArgs& Args, const FGeometry& A
 			UAnimSequence * Seq = CachedSamples[HighlightedSampleIndex].Animation;
 			const FText Sequence = (Seq)? FText::FromString( Seq->GetName() ) : LOCTEXT("None", "None");
 			const FText ToolTipMessage = FText::Format( LOCTEXT("Sequence", "{0}\nSequence ({1})"), GetInputText(LastValidMouseEditorPoint), Sequence );
-			DrawToolTip( MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor(255, 255, 255), OutDrawElements, TooltipLayer);
+			DrawToolTip(MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor::White, OutDrawElements, TooltipLayer);
 		}
 	}
 
 	// draw triangles
-	const TArray<FTriangle*> & TriangleList = Generator.GetTriangleList();
+	const TArray<FTriangle*>& TriangleList = Generator.GetTriangleList();
 	// now I'd like to get all triangles all 4 points are available
 	TArray<FTriangle*> NewTriangles;
 	if ( TriangleList.Num() > 0 )
@@ -1418,10 +1419,16 @@ void SBlendSpaceEditor::UpdateBlendParameters()
 		ParameterYName = TEXT("Y");
 	}
 
-	ParameterX_Min->SetText(FString::Printf(TEXT("%s[%0.2f]"), *ParameterXName, BlendParamX.Min));
-	ParameterX_Max->SetText(FString::Printf(TEXT("%s[%0.2f]"), *ParameterXName, BlendParamX.Max));
-	ParameterY_Min->SetText(FString::Printf(TEXT("%s\n[%0.2f]"), *ParameterYName, BlendParamY.Min));
-	ParameterY_Max->SetText(FString::Printf(TEXT("%s\n[%0.2f]"), *ParameterYName, BlendParamY.Max));
+	static const FNumberFormattingOptions FormatOptions = FNumberFormattingOptions()
+		.SetMinimumFractionalDigits(2)
+		.SetMaximumFractionalDigits(2);
+	static const FText XMinMaxFmt = FText::FromString(TEXT("{0}[{1}]"));
+	static const FText YMinMaxFmt = FText::FromString(TEXT("{0}\n[{1}]"));
+
+	ParameterX_Min->SetText(FText::Format(XMinMaxFmt, FText::FromString(ParameterXName), FText::AsNumber(BlendParamX.Min, &FormatOptions)));
+	ParameterX_Max->SetText(FText::Format(XMinMaxFmt, FText::FromString(ParameterXName), FText::AsNumber(BlendParamX.Max, &FormatOptions)));
+	ParameterY_Min->SetText(FText::Format(YMinMaxFmt, FText::FromString(ParameterYName), FText::AsNumber(BlendParamY.Min, &FormatOptions)));
+	ParameterY_Max->SetText(FText::Format(YMinMaxFmt, FText::FromString(ParameterYName), FText::AsNumber(BlendParamY.Max, &FormatOptions)));
 
 	BlendSpaceWidget->ResampleData();
 }
@@ -1452,7 +1459,7 @@ FVector UnnormalizeGridPos(const FBox& GridDim, const FVector& NormalizedGridPos
 /** 
 * Get Min/Max windows position from Grid Pos
 */
-bool SBlendSpaceGridWidget::GetMinMaxFromGridPos(FVector GridPos, FVector2D & WindowLeftTop, FVector2D & WindowRightBottom, const FSlateRect& WindowRect) const
+bool SBlendSpaceGridWidget::GetMinMaxFromGridPos(FVector GridPos, FVector2D& WindowLeftTop, FVector2D& WindowRightBottom, const FSlateRect& WindowRect) const
 {
 	// grid 5 means, indexing from 0 - 5 to have 5 grids. 
 	const FBox& GridDim = BlendSpaceGrid.GetGridDim();

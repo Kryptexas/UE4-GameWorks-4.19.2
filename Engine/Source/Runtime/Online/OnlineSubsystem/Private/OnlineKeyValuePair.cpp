@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemPrivatePCH.h"
 #include "OnlineKeyValuePair.h"
+#include "Json.h"
 
 /**
  * Copy constructor. Copies the other into this object
@@ -452,6 +453,139 @@ bool FVariantData::FromString(const FString& NewValue)
 		}
 	}
 	return false;
+}
+
+TSharedRef<class FJsonObject> FVariantData::ToJson() const
+{
+	TSharedRef<FJsonObject> JsonObject(new FJsonObject());
+
+	const TCHAR* TypeStr = TEXT("Type");
+	const TCHAR* ValueStr = TEXT("Value");
+
+	JsonObject->SetStringField(TypeStr, EOnlineKeyValuePairDataType::ToString(Type));
+	
+	switch (Type)
+	{
+		case EOnlineKeyValuePairDataType::Int32:
+		{
+			int32 Value;
+			GetValue(Value);
+			JsonObject->SetNumberField(ValueStr, (double)Value);
+			break;
+		}
+		case EOnlineKeyValuePairDataType::Float:
+		{
+			float Value;
+			GetValue(Value);
+			JsonObject->SetNumberField(ValueStr, (double)Value);
+			break;
+		}
+		case EOnlineKeyValuePairDataType::String:
+		{
+			FString Value;
+			GetValue(Value);
+			JsonObject->SetStringField(ValueStr, Value);
+			break;
+		}
+		case EOnlineKeyValuePairDataType::Bool:
+		{
+			bool Value;
+			GetValue(Value);
+			JsonObject->SetBoolField(ValueStr, Value);
+			break;
+		}
+		case EOnlineKeyValuePairDataType::Int64:
+		{
+			JsonObject->SetStringField(ValueStr, ToString());
+			break;
+		}
+		case EOnlineKeyValuePairDataType::Double:
+		{
+			double Value;
+			GetValue(Value);
+			JsonObject->SetNumberField(ValueStr, (double)Value);
+			break;
+		}
+		case EOnlineKeyValuePairDataType::Empty:
+		case EOnlineKeyValuePairDataType::Blob:
+		default:
+		{
+			JsonObject->SetStringField(ValueStr, FString());
+			break;
+		}	
+	};
+
+	return JsonObject;
+}
+
+bool FVariantData::FromJson(const TSharedRef<FJsonObject>& JsonObject)
+{
+	bool bResult = false;
+
+	const TCHAR* TypeStr = TEXT("Type");
+	const TCHAR* ValueStr = TEXT("Value");
+
+	FString VariantTypeStr;
+	if (JsonObject->TryGetStringField(TypeStr, VariantTypeStr) &&
+		!VariantTypeStr.IsEmpty())
+	{
+		if (VariantTypeStr.Equals(EOnlineKeyValuePairDataType::ToString(EOnlineKeyValuePairDataType::Int32)))
+		{
+			int32 Value;
+			if (JsonObject->TryGetNumberField(ValueStr, Value))
+			{
+				SetValue(Value);
+				bResult = true;
+			}
+		}
+		else if (VariantTypeStr.Equals(EOnlineKeyValuePairDataType::ToString(EOnlineKeyValuePairDataType::Float)))
+		{
+			double Value;
+			if (JsonObject->TryGetNumberField(ValueStr, Value))
+			{
+				SetValue((float)Value);
+				bResult = true;
+			}
+		}
+		else if (VariantTypeStr.Equals(EOnlineKeyValuePairDataType::ToString(EOnlineKeyValuePairDataType::String)))
+		{
+			FString Value;
+			if (JsonObject->TryGetStringField(ValueStr, Value))
+			{
+				SetValue(Value);
+				bResult = true;
+			}
+		}
+		else if (VariantTypeStr.Equals(EOnlineKeyValuePairDataType::ToString(EOnlineKeyValuePairDataType::Bool)))
+		{
+			bool Value;
+			if (JsonObject->TryGetBoolField(ValueStr, Value))
+			{
+				SetValue(Value);
+				bResult = true;
+			}
+		}
+		else if (VariantTypeStr.Equals(EOnlineKeyValuePairDataType::ToString(EOnlineKeyValuePairDataType::Int64)))
+		{
+			FString Value;
+			if (JsonObject->TryGetStringField(ValueStr, Value))
+			{
+				Type = EOnlineKeyValuePairDataType::Int64;
+				bResult = FromString(Value);
+			}
+		}
+		else if (VariantTypeStr.Equals(EOnlineKeyValuePairDataType::ToString(EOnlineKeyValuePairDataType::Double)))
+		{
+			double Value;
+			if (JsonObject->TryGetNumberField(ValueStr, Value))
+			{
+				SetValue(Value);
+				bResult = true;
+			}
+		}
+	}
+
+	return bResult;
 }
 
 /**

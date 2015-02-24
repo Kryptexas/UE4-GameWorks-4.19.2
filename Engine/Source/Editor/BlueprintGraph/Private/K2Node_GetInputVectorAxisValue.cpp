@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_GetInputVectorAxisValue.h"
@@ -17,6 +17,11 @@ void UK2Node_GetInputVectorAxisValue::Initialize(const FKey AxisKey)
 {
 	InputAxisKey = AxisKey;
 	SetFromFunction(AActor::StaticClass()->FindFunctionByName(TEXT("GetInputVectorAxisValue")));
+}
+
+FString UK2Node_GetInputVectorAxisValue::GetKeywords() const
+{
+	return TEXT("Get");
 }
 
 FText UK2Node_GetInputVectorAxisValue::GetTooltipText() const

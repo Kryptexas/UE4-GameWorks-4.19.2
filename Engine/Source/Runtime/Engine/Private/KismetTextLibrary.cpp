@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Kismet/KismetTextLibrary.h"
@@ -199,19 +199,19 @@ FText UKismetTextLibrary::AsPercent_Float(float Value, TEnumAsByte<ERoundingMode
 
 FText UKismetTextLibrary::AsDate_DateTime(const FDateTime& InDateTime)
 {
-	return FText::AsDate(InDateTime);
+	return FText::AsDate(InDateTime, EDateTimeStyle::Default, TEXT("Unknown"));
 }
 
 
 FText UKismetTextLibrary::AsDateTime_DateTime(const FDateTime& InDateTime)
 {
-	return FText::AsDateTime(InDateTime);
+	return FText::AsDateTime(InDateTime, EDateTimeStyle::Default, EDateTimeStyle::Default, TEXT("Unknown"));
 }
 
 
 FText UKismetTextLibrary::AsTime_DateTime(const FDateTime& InDateTime)
 {
-	return FText::AsTime(InDateTime);
+	return FText::AsTime(InDateTime, EDateTimeStyle::Default, TEXT("Unknown"));
 }
 
 

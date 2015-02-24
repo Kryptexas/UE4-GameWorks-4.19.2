@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // TrueTypeFontFactory
@@ -42,6 +42,7 @@ class UNREALED_API UTrueTypeFontFactory : public UTextureFactory, public FReimpo
 	virtual bool CanReimport( UObject* Obj, TArray<FString>& OutFilenames ) override;
 	virtual void SetReimportPaths( UObject* Obj, const TArray<FString>& NewReimportPaths ) override;
 	virtual EReimportResult::Type Reimport( UObject* Obj ) override;
+	virtual int32 GetPriority() const override;
 	// End FReimportHandler interface
 
 	/** Creates the import options structure for this font */

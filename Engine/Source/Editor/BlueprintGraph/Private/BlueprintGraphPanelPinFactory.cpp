@@ -1,8 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintGraphPanelPinFactory.h"
 #include "K2Node_GetDataTableRow.h"
 #include "SGraphPinNameList.h"
+#include "SGraphPinDataTableRowName.h"
 #include "K2Node_CallFunction.h"
 	
 TSharedPtr<class SGraphPin> FBlueprintGraphPanelPinFactory::CreatePin(class UEdGraphPin* InPin) const
@@ -37,21 +38,9 @@ TSharedPtr<class SGraphPin> FBlueprintGraphPanelPinFactory::CreatePin(class UEdG
 		{
 			if (DataTablePin && DataTablePin->DefaultObject != nullptr && DataTablePin->LinkedTo.Num() == 0)
 			{
-				if (DataTablePin->DefaultObject->IsA(UDataTable::StaticClass()))
+				if (auto DataTable = Cast<UDataTable>(DataTablePin->DefaultObject))
 				{
-					UDataTable* DataTable = (UDataTable*)DataTablePin->DefaultObject;
-					if (DataTable)
-					{
-						TArray<TSharedPtr<FName>> RowNames;
-						/** Extract all the row names from the RowMap */
-						for (TMap<FName, uint8*>::TConstIterator Iterator(DataTable->RowMap); Iterator; ++Iterator)
-						{
-							/** Create a simple array of the row names */
-							TSharedPtr<FName> RowNameItem = MakeShareable(new FName(Iterator.Key()));
-							RowNames.Add(RowNameItem);
-						}
-						return SNew(SGraphPinNameList, InPin, RowNames);
-					}
+					return SNew(SGraphPinDataTableRowName, InPin, DataTable);
 				}
 				if (DataTablePin->DefaultObject->IsA(UCurveTable::StaticClass()))
 				{

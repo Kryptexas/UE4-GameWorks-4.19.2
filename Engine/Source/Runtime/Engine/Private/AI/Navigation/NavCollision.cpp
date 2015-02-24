@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavCollision.h"
@@ -48,8 +48,7 @@ public:
 class FDerivedDataNavCollisionCooker : public FDerivedDataPluginInterface
 {
 private:
-
-	class UNavCollision* NavCollisionInstance;
+	UNavCollision* NavCollisionInstance;
 	UObject* CollisionDataProvider;
 	FName Format;
 	FGuid DataGuid;
@@ -207,7 +206,7 @@ void UNavCollision::ClearCollision()
 	bHasConvexGeometry = false;
 }
 
-void UNavCollision::GetNavigationModifier(struct FCompositeNavModifier& Modifier, const FTransform& LocalToWorld) const
+void UNavCollision::GetNavigationModifier(FCompositeNavModifier& Modifier, const FTransform& LocalToWorld)
 {
 	const TSubclassOf<UNavArea> UseAreaClass = AreaClass ? AreaClass : UNavigationSystem::GetDefaultObstacleArea();
 
@@ -231,6 +230,12 @@ void UNavCollision::GetNavigationModifier(struct FCompositeNavModifier& Modifier
 		FAreaNavModifier AreaMod(BoxCollision[i].Extent, BoxToWorld, UseAreaClass);
 		AreaMod.SetIncludeAgentHeight(true);
 		Modifier.Add(AreaMod);
+	}
+
+	// rebuild collision data if needed
+	if (!bHasConvexGeometry)
+	{
+		bHasConvexGeometry = GatherCollision();
 	}
 
 	if (ConvexCollision.VertexBuffer.Num() > 0)
@@ -297,7 +302,7 @@ void DrawBoxHelper(FPrimitiveDrawInterface* PDI, const FMatrix& ElemTM, const FV
 	}
 }
 
-void UNavCollision::DrawSimpleGeom(class FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FColor Color)
+void UNavCollision::DrawSimpleGeom(FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FColor Color)
 {
 	const FMatrix ParentTM = Transform.ToMatrixWithScale();
 	for (int32 i = 0; i < CylinderCollision.Num(); i++)

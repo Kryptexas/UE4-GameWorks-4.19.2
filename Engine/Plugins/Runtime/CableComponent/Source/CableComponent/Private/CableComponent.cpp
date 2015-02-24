@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. 
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved. 
 
 #include "CableComponentPluginPrivatePCH.h"
 #include "DynamicMeshBuilder.h"
@@ -164,14 +164,14 @@ public:
 			// Find direction of cable at this point, by averaging previous and next points
 			const int32 PrevIndex = FMath::Max(0, PointIdx-1);
 			const int32 NextIndex = FMath::Min(PointIdx+1, NumPoints-1);
-			const FVector ForwardDir = (InPoints[NextIndex] - InPoints[PrevIndex]).SafeNormal();
+			const FVector ForwardDir = (InPoints[NextIndex] - InPoints[PrevIndex]).GetSafeNormal();
 
 			// Find a side vector at this point
 			const FVector WorldUp(0,0,1);
-			const FVector RightDir = (WorldUp ^ ForwardDir).SafeNormal();
+			const FVector RightDir = (WorldUp ^ ForwardDir).GetSafeNormal();
 
 			// Find an up vector
-			const FVector UpDir = (ForwardDir ^ RightDir).SafeNormal();
+			const FVector UpDir = (ForwardDir ^ RightDir).GetSafeNormal();
 
 			// Generate a ring of verts
 			for(int32 VertIdx = 0; VertIdx<NumRingVerts; VertIdx++)
@@ -294,50 +294,6 @@ public:
 #endif
 			}
 		}
-	}
-
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-	{
-		QUICK_SCOPE_CYCLE_COUNTER( STAT_CableSceneProxy_DrawDynamicElements );
-
-		const bool bWireframe = AllowDebugViewmodes() && View->Family->EngineShowFlags.Wireframe;
-
-		FColoredMaterialRenderProxy WireframeMaterialInstance(
-			GEngine->WireframeMaterial ? GEngine->WireframeMaterial->GetRenderProxy(IsSelected()) : NULL,
-			FLinearColor(0, 0.5f, 1.f)
-			);
-
-		FMaterialRenderProxy* MaterialProxy = NULL;
-		if(bWireframe)
-		{
-			MaterialProxy = &WireframeMaterialInstance;
-		}
-		else
-		{
-			MaterialProxy = Material->GetRenderProxy(IsSelected());
-		}
-
-		// Draw the mesh.
-		FMeshBatch Mesh;
-		FMeshBatchElement& BatchElement = Mesh.Elements[0];
-		BatchElement.IndexBuffer = &IndexBuffer;
-		Mesh.bWireframe = bWireframe;
-		Mesh.VertexFactory = &VertexFactory;
-		Mesh.MaterialRenderProxy = MaterialProxy;
-		BatchElement.PrimitiveUniformBuffer = CreatePrimitiveUniformBufferImmediate(GetLocalToWorld(), GetBounds(), GetLocalBounds(), true, UseEditorDepthTest());
-		BatchElement.FirstIndex = 0;
-		BatchElement.NumPrimitives = GetRequiredIndexCount()/3;
-		BatchElement.MinVertexIndex = 0;
-		BatchElement.MaxVertexIndex = GetRequiredVertexCount();
-		Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
-		Mesh.Type = PT_TriangleList;
-		Mesh.DepthPriorityGroup = SDPG_World;
-		PDI->DrawMesh(Mesh);
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		// Render bounds
-		RenderBounds(PDI, View->Family->EngineShowFlags, GetBounds(), IsSelected());
-#endif
 	}
 
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)

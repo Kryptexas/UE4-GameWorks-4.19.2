@@ -1,20 +1,20 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SPropertyEditorAsset.h"
-#include "SPropertyEditorNewAsset.h"
 #include "PropertyNode.h"
 #include "PropertyEditor.h"
 #include "AssetThumbnail.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "Runtime/AssetRegistry/Public/AssetData.h"
-#include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 #include "PropertyHandleImpl.h"
 #include "DelegateFilter.h"
 #include "Developer/AssetTools/Public/AssetToolsModule.h"
 #include "SAssetDropTarget.h"
 #include "AssetRegistryModule.h"
 #include "Particles/ParticleSystem.h"
+#include "Engine/Selection.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
@@ -192,6 +192,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 				.ButtonStyle( FEditorStyle::Get(), "PropertyEditor.AssetComboStyle" )
 				.ForegroundColor(FEditorStyle::GetColor("PropertyEditor.AssetName.ColorAndOpacity"))
 				.OnGetMenuContent( this, &SPropertyEditorAsset::OnGetMenuContent )
+				.OnMenuOpenChanged( this, &SPropertyEditorAsset::OnMenuOpenChanged )
 				.ContentPadding(2.0f)
 				.ButtonContent()
 				[
@@ -325,12 +326,9 @@ TSharedRef<SWidget> SPropertyEditorAsset::OnGetMenuContent()
 
 	if(bIsActor)
 	{
-		TSharedPtr<SceneOutliner::FOutlinerFilters> ActorFilters = MakeShareable( new SceneOutliner::FOutlinerFilters );
-		ActorFilters->Add( MakeShareable( new TDelegateFilter< const AActor* const >( TDelegateFilter< const AActor* const >::FPredicate::CreateSP( this, &SPropertyEditorAsset::IsFilteredActor ) ) ) );
-
 		return PropertyCustomizationHelpers::MakeActorPickerWithMenu(Cast<AActor>(Value.Object),
 																	 bAllowClear,
-																	 ActorFilters,
+																	 FOnShouldFilterActor::CreateSP( this, &SPropertyEditorAsset::IsFilteredActor ),
 																	 FOnActorSelected::CreateSP( this, &SPropertyEditorAsset::OnActorSelected),
 																	 FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::CloseComboButton ),
 																	 FSimpleDelegate::CreateSP( this, &SPropertyEditorAsset::OnUse ) );
@@ -347,6 +345,14 @@ TSharedRef<SWidget> SPropertyEditorAsset::OnGetMenuContent()
 	}
 }
 
+void SPropertyEditorAsset::OnMenuOpenChanged(bool bOpen)
+{
+	if ( bOpen == false )
+	{
+		AssetComboButton->SetMenuContent(SNullWidget::NullWidget);
+	}
+}
+
 bool SPropertyEditorAsset::IsFilteredActor( const AActor* const Actor ) const
 {
 	return Actor->IsA( ObjectClass );
@@ -357,12 +363,12 @@ void SPropertyEditorAsset::CloseComboButton()
 	AssetComboButton->SetIsOpen(false);
 }
 
-FString SPropertyEditorAsset::OnGetAssetName() const
+FText SPropertyEditorAsset::OnGetAssetName() const
 {
 	FObjectOrAssetData Value; 
 	FPropertyAccess::Result Result = GetValue( Value );
 
-	FString Name = LOCTEXT("None", "None").ToString();
+	FText Name = LOCTEXT("None", "None");
 	if( Result == FPropertyAccess::Success )
 	{
 		if(Value.Object != NULL)
@@ -370,64 +376,63 @@ FString SPropertyEditorAsset::OnGetAssetName() const
 			if( bIsActor )
 			{
 				AActor* Actor = CastChecked<AActor>(Value.Object);
-				Name = Actor->GetActorLabel();
+				Name = FText::FromString(Actor->GetActorLabel());
 			}
 			else
 			{
-				Name = Value.Object->GetName();
+				Name = FText::FromString(Value.Object->GetName());
 			}
 		}
 		else if( Value.AssetData.IsValid() )
 		{
-			Name = FString( Value.AssetData.AssetName.ToString() );
+			Name = FText::FromName(Value.AssetData.AssetName);
 		}
 	}
 	else if( Result == FPropertyAccess::MultipleValues )
 	{
-		Name = LOCTEXT("MultipleValues", "Multiple Values").ToString();
+		Name = LOCTEXT("MultipleValues", "Multiple Values");
 	}
 
 	return Name;
 }
 
-FString SPropertyEditorAsset::OnGetAssetClassName() const
+FText SPropertyEditorAsset::OnGetAssetClassName() const
 {
 	UClass* Class = GetDisplayedClass();
 	if(Class)
 	{
-		return Class->GetName();
+		return FText::FromString(Class->GetName());
 	}
-	return FString();
+	return FText::GetEmpty();
 }
 
-FString SPropertyEditorAsset::OnGetToolTip() const
+FText SPropertyEditorAsset::OnGetToolTip() const
 {
 	FObjectOrAssetData Value; 
 	FPropertyAccess::Result Result = GetValue( Value );
 
-	FString ToolTip;
+	FText ToolTip = FText::GetEmpty();
 
 	if( Result == FPropertyAccess::Success )
 	{
 		if(Value.Object != NULL && !bIsActor )
 		{
 			// Display the package name which is a valid path to the object without redundant information
-			ToolTip = Value.Object->GetOutermost()->GetName();
+			ToolTip = FText::FromString(Value.Object->GetOutermost()->GetName());
 		}
 		else if( Value.AssetData.IsValid() )
 		{
-			ToolTip = Value.AssetData.PackageName.ToString();
+			ToolTip = FText::FromName(Value.AssetData.PackageName);
 		}
 	}
 	else if( Result == FPropertyAccess::MultipleValues )
 	{
-		ToolTip = LOCTEXT("MultipleValues", "Multiple Values").ToString();
+		ToolTip = LOCTEXT("MultipleValues", "Multiple Values");
 	}
-
 
 	if( ToolTip.IsEmpty() )
 	{
-		ToolTip = ObjectPath.Get();
+		ToolTip = FText::FromString(ObjectPath.Get());
 	}
 
 	return ToolTip;

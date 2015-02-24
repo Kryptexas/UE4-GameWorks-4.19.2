@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "HAL/Platform.h"
@@ -23,7 +23,7 @@ struct CORE_API FParse
 	/** Parses a uint32. */
 	static bool Value( const TCHAR* Stream, const TCHAR* Match, uint32& Value );
 	/** Parses a globally unique identifier. */
-	static bool Value( const TCHAR* Stream, const TCHAR* Match, class FGuid& Guid );
+	static bool Value( const TCHAR* Stream, const TCHAR* Match, struct FGuid& Guid );
 	/** Parses a string from a text string. */
 	static bool Value( const TCHAR* Stream, const TCHAR* Match, TCHAR* Value, int32 MaxLen, bool bShouldStopOnComma=true );
 	/** Parses a byte. */

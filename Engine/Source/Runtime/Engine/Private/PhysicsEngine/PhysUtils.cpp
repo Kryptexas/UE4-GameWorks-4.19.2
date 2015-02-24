@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*============================================================================
 	Karma Integration Support
@@ -213,6 +213,17 @@ void FCollisionResponseContainer::SetAllChannels(ECollisionResponse NewResponse)
 	for(int32 i=0; i<ARRAY_COUNT(EnumArray); i++)
 	{
 		EnumArray[i] = NewResponse;
+	}
+}
+
+void FCollisionResponseContainer::ReplaceChannels(ECollisionResponse OldResponse, ECollisionResponse NewResponse)
+{
+	for (int32 i = 0; i < ARRAY_COUNT(EnumArray); i++)
+	{
+		if(EnumArray[i] == OldResponse)
+		{
+			EnumArray[i] = NewResponse;
+		}
 	}
 }
 

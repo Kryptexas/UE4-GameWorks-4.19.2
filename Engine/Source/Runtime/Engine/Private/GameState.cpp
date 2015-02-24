@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GameState.cpp: GameState C++ code.
@@ -6,6 +6,9 @@
 
 #include "EnginePrivate.h"
 #include "Net/UnrealNetwork.h"
+#include "GameFramework/GameState.h"
+#include "GameFramework/PlayerState.h"
+#include "GameFramework/GameMode.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameState, Log, All);
 
@@ -45,14 +48,14 @@ void AGameState::DefaultTimer()
 		++ElapsedTime;
 	}
 
-	GetWorldTimerManager().SetTimer(this, &AGameState::DefaultTimer, GetWorldSettings()->GetEffectiveTimeDilation(), true);
+	GetWorldTimerManager().SetTimer(TimerHandle_DefaultTimer, this, &AGameState::DefaultTimer, GetWorldSettings()->GetEffectiveTimeDilation(), true);
 }
 
 void AGameState::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	GetWorldTimerManager().SetTimer(this, &AGameState::DefaultTimer, GetWorldSettings()->GetEffectiveTimeDilation(), true);
+	GetWorldTimerManager().SetTimer(TimerHandle_DefaultTimer, this, &AGameState::DefaultTimer, GetWorldSettings()->GetEffectiveTimeDilation(), true);
 
 	UWorld* World = GetWorld();
 	World->GameState = this;

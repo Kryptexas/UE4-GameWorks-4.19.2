@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidTargetPlatform.h: Declares the FAndroidTargetPlatform class.
@@ -184,7 +184,10 @@ private:
 
 	// Holds a delegate to be invoked when the widget ticks.
 	FTickerDelegate TickDelegate;
-	
+
+	// Handle to the registered TickDelegate.
+	FDelegateHandle TickDelegateHandle;
+
 	// Pointer to the device detection handler that grabs device ids in another thread
 	IAndroidDeviceDetection* DeviceDetection;
 

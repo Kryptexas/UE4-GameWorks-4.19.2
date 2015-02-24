@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "RenderCore.h"
@@ -106,6 +106,9 @@ FPixelFormatInfo	GPixelFormats[PF_MAX] =
 	{ TEXT("ASTC_8x8"),			8,			8,			1,			16,			4,				0,				0,				PF_ASTC_8x8			},
 	{ TEXT("ASTC_10x10"),		10,			10,			1,			16,			4,				0,				0,				PF_ASTC_10x10		},
 	{ TEXT("ASTC_12x12"),		12,			12,			1,			16,			4,				0,				0,				PF_ASTC_12x12		},
+
+	{ TEXT("BC6H"),				4,			4,			1,			16,			3,				0,				1,				PF_BC6H				},
+	{ TEXT("BC7"),				4,			4,			1,			16,			4,				0,				1,				PF_BC7				},
 };
 
 static struct FValidatePixelFormats
@@ -244,7 +247,7 @@ public:
 	 */
 	virtual void InitRHI() override
 	{
-		if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+		if (GetFeatureLevel() >= ERHIFeatureLevel::ES3_1)
 		{
 			// Create the texture.
 			FBlackVolumeTextureResourceBulkDataInterface BlackTextureBulkData;
@@ -458,7 +461,7 @@ private:
 class FWhiteTextureCube : public FSolidColorTextureCube
 {
 public:
-	FWhiteTextureCube(): FSolidColorTextureCube(FColor(255,255,255)) {}
+	FWhiteTextureCube() : FSolidColorTextureCube(FColor::White) {}
 };
 FTexture* GWhiteTextureCube = new TGlobalResource<FWhiteTextureCube>;
 
@@ -466,7 +469,7 @@ FTexture* GWhiteTextureCube = new TGlobalResource<FWhiteTextureCube>;
 class FBlackTextureCube : public FSolidColorTextureCube
 {
 public:
-	FBlackTextureCube(): FSolidColorTextureCube(FColor(0,0,0)) {}
+	FBlackTextureCube(): FSolidColorTextureCube(FColor::Black) {}
 };
 FTexture* GBlackTextureCube = new TGlobalResource<FBlackTextureCube>;
 
@@ -513,7 +516,7 @@ public:
 FTexture* GBlackCubeArrayTexture = new TGlobalResource<FBlackCubeArrayTexture>;
 
 /*
- 	3 XYZ packed in 4 bytes. (11:11:10 for X:Y:Z)
+	3 XYZ packed in 4 bytes. (11:11:10 for X:Y:Z)
 */
 
 /**

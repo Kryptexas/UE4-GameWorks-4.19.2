@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,6 +38,11 @@ protected:
 	 * The priority to run the thread at
 	 */
 	EThreadPriority ThreadPriority;
+
+	/**
+	 * The CPU Mask to indicate which CPUs the thread will run on.
+	 */
+	uint64 ThreadAffinityMask;
 
 	/**
 	* ID set during thread creation
@@ -184,6 +189,9 @@ protected:
 		// cache the thread ID for this thread (defined by the platform)
 		ThisThread->ThreadID = FPlatformTLS::GetCurrentThreadId();
 
+		// set the affinity.  This function sets affinity on the current thread, so don't call in the Create function which will trash the main thread affinity.
+		FPlatformProcess::SetThreadAffinityMask(ThisThread->ThreadAffinityMask);		
+
 		// run the thread!
 		ThisThread->PreRun();
 		ThisThread->Run();
@@ -216,33 +224,7 @@ protected:
 	 * The real thread entry point. It calls the Init/Run/Exit methods on
 	 * the runnable object
 	 */
-	uint32 Run()
-	{
-		ThreadIsRunning = true;
-		// Assume we'll fail init
-		uint32 ExitCode = 1;
-		check(Runnable);
-
-		// Initialize the runnable object
-		if (Runnable->Init() == true)
-		{
-			// Initialization has completed, release the sync event
-			ThreadInitSyncEvent->Trigger();
-			// Now run the task that needs to be done
-			ExitCode = Runnable->Run();
-			// Allow any allocated resources to be cleaned up
-			Runnable->Exit();
-		}
-		else
-		{
-			// Initialization has failed, release the sync event
-			ThreadInitSyncEvent->Trigger();
-		}
-
-		// Clean ourselves up without waiting
-		ThreadIsRunning = false;
-		return ExitCode;
-	}
+	uint32 Run();
 
 public:
 	FRunnableThreadPThread()
@@ -250,6 +232,7 @@ public:
 		, Runnable(NULL)
 		, ThreadInitSyncEvent(NULL)
 		, ThreadPriority(TPri_Normal)
+		, ThreadAffinityMask(FPlatformAffinity::GetNoAffinityMask())
 		, ThreadID(0)
 		, ThreadIsRunning(false)
 	{
@@ -340,6 +323,8 @@ protected:
 		ThreadInitSyncEvent	= FPlatformProcess::CreateSynchEvent(true);
 		// A name for the thread in for debug purposes. _ThreadProc will set it.
 		ThreadName = InThreadName ? InThreadName : TEXT("Unnamed UE4");
+		ThreadAffinityMask = InThreadAffinityMask;
+
 		// Create the new thread
 		bool ThreadCreated = SpinPthread(&Thread, GetThreadEntryPoint(), InStackSize, this);
 		// If it fails, clear all the vars
@@ -351,10 +336,7 @@ protected:
 			ThreadInitSyncEvent->Wait((uint32)-1); // infinite wait
 
 			// set the priority
-			SetThreadPriority(InThreadPri);
-
-			// set the affinity
-			FPlatformProcess::SetThreadAffinityMask( InThreadAffinityMask );
+			SetThreadPriority(InThreadPri);			
 		}
 		else // If it fails, clear all the vars
 		{

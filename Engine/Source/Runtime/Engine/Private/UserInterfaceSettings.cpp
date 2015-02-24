@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PlayerInput.cpp: Unreal input system.
@@ -10,8 +10,19 @@
 
 
 UUserInterfaceSettings::UUserInterfaceSettings(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
+	: Super(ObjectInitializer),
+	  RenderFocusRule(ERenderFocusRule::NavigationOnly)
 {
+}
+
+void UUserInterfaceSettings::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	if ( HasAnyFlags(RF_ClassDefaultObject) == false )
+	{
+		LoadCursors();
+	}
 }
 
 float UUserInterfaceSettings::GetDPIScaleBasedOnSize(FIntPoint Size) const
@@ -46,6 +57,25 @@ float UUserInterfaceSettings::GetDPIScaleBasedOnSize(FIntPoint Size) const
 	}
 
 	return FMath::Max(Scale, 0.01f);
+}
+
+void UUserInterfaceSettings::LoadCursors()
+{
+	TArray<UObject*> LoadedClasses;
+	LoadedClasses.Add(DefaultCursor.TryLoad());
+	LoadedClasses.Add(TextEditBeamCursor.TryLoad());
+	LoadedClasses.Add(CrosshairsCursor.TryLoad());
+	LoadedClasses.Add(GrabHandCursor.TryLoad());
+	LoadedClasses.Add(GrabHandClosedCursor.TryLoad());
+	LoadedClasses.Add(SlashedCircleCursor.TryLoad());
+
+	for ( UObject* Cursor : LoadedClasses )
+	{
+		if ( Cursor )
+		{
+			CursorClasses.Add(Cursor);
+		}
+	}
 }
 
 #if WITH_EDITOR

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -98,10 +98,10 @@ private:
 	const FSlateBrush* GetPreserveScaleRatioImage() const;
 
 	/** Gets the checked value of the preserve scale ratio option */
-	ESlateCheckBoxState::Type IsPreserveScaleRatioChecked() const;
+	ECheckBoxState IsPreserveScaleRatioChecked() const;
 
 	/** Called when the user toggles preserve ratio. */
-	void OnPreserveScaleRatioToggled(ESlateCheckBoxState::Type NewState, TWeakPtr<IPropertyHandle> PropertyHandle);
+	void OnPreserveScaleRatioToggled(ECheckBoxState NewState, TWeakPtr<IPropertyHandle> PropertyHandle);
 
 private:
 	/** Called when a value starts to be changed by a slider */

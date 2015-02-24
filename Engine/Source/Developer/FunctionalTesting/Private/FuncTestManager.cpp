@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FunctionalTestingPrivatePCH.h"
 #include "Engine/World.h"
@@ -13,6 +13,11 @@ void FFuncTestManager::SetScript(class UFunctionalTestingManager* NewScript)
 bool FFuncTestManager::IsRunning() const 
 { 
 	return TestScript.IsValid() && TestScript->IsRunning();
+}
+
+bool FFuncTestManager::IsFinished() const
+{
+	return TestScript.IsValid() && TestScript->IsFinished();
 }
 
 void FFuncTestManager::SetLooping(const bool bLoop)

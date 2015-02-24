@@ -1,7 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "SInviteItem.h"
+#include "SFriendsToolTip.h"
+#include "SFriendsList.h"
 #include "FriendViewModel.h"
 
 #define LOCTEXT_NAMESPACE "SInviteItem"
@@ -18,82 +20,80 @@ public:
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Left)
-			.AutoWidth()
+			SNew(SButton)
+			.ButtonStyle(&FriendStyle.FriendListItemButtonSimpleStyle)
+			.ContentPadding(9.0f)
 			[
-				SNew(SImage)
-				.Image(&FriendStyle.FriendImageBrush)
-			]
-			+ SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Left)
-			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(3)
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Left)
+				.Padding(10, 0)
+				.AutoWidth()
 				[
-					SNew(STextBlock)
-					.Text(ViewModel->GetFriendName())
+					SNew(SImage)
+					.Image(&FriendStyle.FriendImageBrush)
 				]
-				+ SVerticalBox::Slot()
-				.AutoHeight()
+				+ SHorizontalBox::Slot()
+				.VAlign(VAlign_Fill)
+				.HAlign(HAlign_Fill)
+				.Padding(0, 3, 0, 0)
 				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.Padding(3)
-					.AutoWidth()
+					SNew(SOverlay)
+					+ SOverlay::Slot()
+					.HAlign(HAlign_Left)
+					.VAlign(VAlign_Top)
 					[
-						SNew(SButton)
-						.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-						.ContentPadding(FMargin(15.0f, 0.f))
-						.OnClicked(this, &SInviteItemImpl::PerformAction, EFriendActionType::AcceptFriendRequest)
-						[
-							SNew(STextBlock)
-							.ColorAndOpacity(FLinearColor::White)
-							.Font(FriendStyle.FriendsFontStyleSmall)
-							.Text(EFriendActionType::ToText(EFriendActionType::AcceptFriendRequest))
-						]
+						SNew(STextBlock)
+						.Font(FriendStyle.FriendsFontStyleBold)
+						.ColorAndOpacity(FriendStyle.DefaultFontColor)
+						.Text(ViewModel->GetFriendName())
 					]
-					+ SHorizontalBox::Slot()
-					.Padding(3)
-					.AutoWidth()
+					+ SOverlay::Slot()
+					.HAlign(HAlign_Right)
+					.VAlign(VAlign_Bottom)
+					.Padding(0, 0, 5, 0)
 					[
-						SNew(SButton)
-						.ContentPadding(FMargin(15.0f, 0.f))
-						.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-						.OnClicked(this, &SInviteItemImpl::PerformAction, EFriendActionType::IgnoreFriendRequest)
-						[
-							SNew(STextBlock)
-							.ColorAndOpacity(FLinearColor::White)
-							.Font(FriendStyle.FriendsFontStyleSmall)
-							.Text(EFriendActionType::ToText(EFriendActionType::IgnoreFriendRequest))
-						]
-					]
-					+ SHorizontalBox::Slot()
-					.Padding(3)
-					.AutoWidth()
-					[
-						SNew(SButton)
-						.ContentPadding(FMargin(15.0f, 0.f))
-						.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-						.OnClicked(this, &SInviteItemImpl::PerformAction, EFriendActionType::BlockFriend)
-						[
-							SNew(STextBlock)
-							.ColorAndOpacity(FLinearColor::White)
-							.Font(FriendStyle.FriendsFontStyleSmall)
-							.Text(EFriendActionType::ToText(EFriendActionType::BlockFriend))
-						]
+						SAssignNew(OptionContainer, SUniformGridPanel)
 					]
 				]
 			]
 		]);
+
+		CreateOptions();
 	}
 
 private:
+
+	void CreateOptions()
+	{
+		TArray<EFriendActionType::Type> Actions;
+		ViewModel->EnumerateActions(Actions);
+
+		for(const auto& FriendAction : Actions)
+		{
+			OptionContainer->AddSlot(OptionContainer->GetChildren()->Num(), 0)
+			[
+				SNew(SBox)
+				.Padding(5)
+				[
+					SNew(SButton)
+					.ToolTip(FriendAction == EFriendActionType::JoinGame ? CreateJoingGameToolTip() : NULL)
+					.IsEnabled(this, &SInviteItemImpl::IsActionEnabled, FriendAction)
+					.OnClicked(this, &SInviteItemImpl::PerformAction, FriendAction)
+					.ButtonStyle(SFriendsList::GetActionButtonStyle(FriendStyle, EFriendActionType::ToActionLevel(FriendAction)))
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					[
+						SNew(STextBlock)
+						.ColorAndOpacity(FriendStyle.DefaultFontColor)
+						.Font(FriendStyle.FriendsFontStyleSmallBold)
+						.Text(EFriendActionType::ToText(FriendAction))
+					]
+				]
+			];
+		}
+	}
 
 	FReply PerformAction(EFriendActionType::Type FriendAction)
 	{
@@ -101,9 +101,27 @@ private:
 		return FReply::Handled();
 	}
 
+	bool IsActionEnabled(EFriendActionType::Type FriendAction) const
+	{
+		return ViewModel->CanPerformAction(FriendAction);
+	}
+
+	TSharedPtr<SToolTip> CreateJoingGameToolTip()
+	{
+		if(!ViewModel->CanPerformAction(EFriendActionType::JoinGame))
+		{
+			return SNew(SFriendsToolTip)
+			.DisplayText(ViewModel->GetJoinGameDisallowReason())
+			.FriendStyle(&FriendStyle);
+		}
+		return nullptr;
+	}
+
+
 private:
 	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;
+	TSharedPtr<SUniformGridPanel> OptionContainer;
 	TSharedPtr<FFriendViewModel> ViewModel;
 };
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SkeletalControlNodeDetails.h"
@@ -32,7 +32,7 @@ void FSkeletalControlNodeDetails::CustomizeDetails(class IDetailLayoutBuilder& D
 void FSkeletalControlNodeDetails::OnGenerateElementForPropertyPin(TSharedRef<IPropertyHandle> ElementProperty, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder )
 {
 	TSharedPtr<IPropertyHandle> PropertyNameHandle = ElementProperty->GetChildHandle("PropertyFriendlyName");
-	FString PropertyFriendlyName(TEXT("Invalid"));
+	FText PropertyFriendlyName(LOCTEXT("Invalid", "Invalid"));
 	 
 	if (PropertyNameHandle.IsValid())
 	{
@@ -41,14 +41,14 @@ void FSkeletalControlNodeDetails::OnGenerateElementForPropertyPin(TSharedRef<IPr
 		{
 		case FPropertyAccess::Success:
 			{
-				PropertyFriendlyName = DisplayFriendlyName;
+				PropertyFriendlyName = FText::FromString(DisplayFriendlyName);
 
 				//DetailBuilder.EditCategory
 				//DisplayNameAsName
 			}
 			break;
 		case FPropertyAccess::MultipleValues:
-			ChildrenBuilder.AddChildContent( TEXT("") ) 
+			ChildrenBuilder.AddChildContent( FText::GetEmpty() ) 
 			[
 				 SNew(STextBlock).Text(LOCTEXT("OnlyWorksInSingleSelectMode", "Multiple types selected"))
 			];

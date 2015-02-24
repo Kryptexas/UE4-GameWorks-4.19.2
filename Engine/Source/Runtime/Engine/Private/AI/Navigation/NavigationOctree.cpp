@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "NavigationOctree.h"
@@ -84,6 +84,14 @@ void FNavigationOctree::AppendToNode(const FOctreeElementId& Id, INavRelevantInt
 	AddElement(Data);
 }
 
+void FNavigationOctree::UpdateNode(const FOctreeElementId& Id, const FBox& NewBounds)
+{
+	FNavigationOctreeElement ElementCopy = GetElementById(Id);
+	RemoveElement(Id);
+	ElementCopy.Bounds = NewBounds;
+	AddElement(ElementCopy);
+}
+
 void FNavigationOctree::RemoveNode(const FOctreeElementId& Id)
 {
 	FNavigationOctreeElement& Data = GetElementById(Id);
@@ -92,6 +100,11 @@ void FNavigationOctree::RemoveNode(const FOctreeElementId& Id)
 	DEC_MEMORY_STAT_BY(STAT_Navigation_CollisionTreeMemory, ElementMemory);
 
 	RemoveElement(Id);
+}
+
+bool FNavigationRelevantData::HasPerInstanceTransforms() const
+{
+	return NavDataPerInstanceTransformDelegate.IsBound();
 }
 
 bool FNavigationRelevantData::IsMatchingFilter(const FNavigationOctreeFilter& Filter) const

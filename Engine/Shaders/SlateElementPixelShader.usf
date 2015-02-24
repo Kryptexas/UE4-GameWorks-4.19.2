@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "Common.usf"
@@ -51,7 +51,7 @@ struct VertexOut
 float4 GetMaterialColor( VertexOut InVertex, float2 UV )
 {
 	FMaterialPixelParameters Parameters = MakeInitializedMaterialPixelParameters();
-	CalcMaterialParameters(Parameters, true, InVertex.Position);
+	CalcMaterialParameters(Parameters, InVertex.Position, true, InVertex.Position);
 
 #if NUM_MATERIAL_TEXCOORDS == 1
 	Parameters.TexCoords[0] = UV;

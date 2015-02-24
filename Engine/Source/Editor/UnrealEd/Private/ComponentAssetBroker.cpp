@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "ComponentAssetBroker.h"
@@ -9,6 +9,11 @@
 #include "Particles/ParticleSystemComponent.h"
 
 #include "Engine/DestructibleMesh.h"
+#include "Components/DestructibleComponent.h"
+#include "Sound/SoundBase.h"
+#include "Engine/StaticMesh.h"
+#include "Components/AudioComponent.h"
+#include "Components/ChildActorComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FStaticMeshComponentBroker
@@ -210,10 +215,17 @@ public:
 	{
 		if (UChildActorComponent* ChildActorComp = Cast<UChildActorComponent>(InComponent))
 		{
-			UBlueprint* BP = Cast<UBlueprint>(InAsset);
-			if (BP != NULL)
+			UClass* Class = Cast<UClass>(InAsset);
+			if (Class == nullptr)
 			{
-				ChildActorComp->ChildActorClass = TSubclassOf<AActor>(*(BP->GeneratedClass));
+				if (UBlueprint* BP = Cast<UBlueprint>(InAsset))
+				{
+					Class = *(BP->GeneratedClass);
+				}
+			}
+			if (Class && Class->IsChildOf<AActor>())
+			{
+				ChildActorComp->ChildActorClass = Class;
 				return true;
 			}
 		}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,6 +12,6 @@ class IStructureDetailsView
 public:
 	virtual TSharedPtr<class SWidget> GetWidget() = 0;
 
-	virtual void SetStructureData(TSharedPtr<struct FStructOnScope> StructData) = 0;
+	virtual void SetStructureData(TSharedPtr<class FStructOnScope> StructData) = 0;
 	virtual FOnFinishedChangingProperties& GetOnFinishedChangingPropertiesDelegate() = 0;
 };

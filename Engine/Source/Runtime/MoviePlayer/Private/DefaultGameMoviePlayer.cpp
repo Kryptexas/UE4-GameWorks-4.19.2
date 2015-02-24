@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MoviePlayer.h"
 
@@ -29,8 +29,8 @@ TSharedPtr<FDefaultGameMoviePlayer> FDefaultGameMoviePlayer::Get()
 FDefaultGameMoviePlayer::FDefaultGameMoviePlayer()
 	: FTickableObjectRenderThread(false)
 	, SyncMechanism(NULL)
-	, MovieStreamingIsDone(0)
-	, LoadingIsDone(0)
+	, MovieStreamingIsDone(1)
+	, LoadingIsDone(1)
 	, bUserCalledFinish(false)
 	, LoadingScreenAttributes()
 	, LastPlayTime(0.0)
@@ -169,12 +169,10 @@ void FDefaultGameMoviePlayer::SetupLoadingScreen(const FLoadingScreenAttributes&
 bool FDefaultGameMoviePlayer::PlayMovie()
 {
 	bool bBeganPlaying = false;
+
 	if (LoadingScreenIsPrepared() && !IsMovieCurrentlyPlaying() && FPlatformMisc::NumberOfCores() > 1)
 	{
 		check(LoadingScreenAttributes.IsValid());
-
-		MovieStreamingIsDone.Set(MovieStreamingIsPrepared() ? 0 : 1);
-		LoadingIsDone.Set(0);
 		bUserCalledFinish = false;
 		
 		LastPlayTime = FPlatformTime::Seconds();
@@ -186,7 +184,10 @@ bool FDefaultGameMoviePlayer::PlayMovie()
 		}
         if (bInitialized)
         {
-            LoadingScreenWidgetHolder->SetContent(LoadingScreenAttributes.WidgetLoadingScreen.IsValid() ? LoadingScreenAttributes.WidgetLoadingScreen.ToSharedRef() : SNullWidget::NullWidget);
+			MovieStreamingIsDone.Set(MovieStreamingIsPrepared() ? 0 : 1);
+			LoadingIsDone.Set(0);
+			
+			LoadingScreenWidgetHolder->SetContent(LoadingScreenAttributes.WidgetLoadingScreen.IsValid() ? LoadingScreenAttributes.WidgetLoadingScreen.ToSharedRef() : SNullWidget::NullWidget);
             LoadingScreenWindowPtr.Pin()->SetContent(LoadingScreenContents.ToSharedRef());
 		
             SyncMechanism = new FSlateLoadingSynchronizationMechanism();
@@ -212,9 +213,12 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 
 	if (LoadingScreenIsPrepared() && ( IsMovieCurrentlyPlaying() || !bEnforceMinimumTime ) )
 	{
-		SyncMechanism->DestroySlateThread();
-		delete SyncMechanism;
-		SyncMechanism = NULL;
+		if (SyncMechanism)
+		{
+			SyncMechanism->DestroySlateThread();
+			delete SyncMechanism;
+			SyncMechanism = NULL;
+		}
 
 		if( !bEnforceMinimumTime )
 		{
@@ -222,23 +226,30 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 		}
 		
 		const bool bAutoCompleteWhenLoadingCompletes = LoadingScreenAttributes.bAutoCompleteWhenLoadingCompletes;
-	
+
+		FSlateApplication& SlateApp = FSlateApplication::Get();
+
 		// Continue to wait until the user calls finish (if enabled) or when loading completes or the minimum enforced time (if any) has been reached.
 		while ( !bUserCalledFinish && ( (!bEnforceMinimumTime && !IsMovieStreamingFinished() && !bAutoCompleteWhenLoadingCompletes ) || ( bEnforceMinimumTime &&  (FPlatformTime::Seconds() - LastPlayTime) < LoadingScreenAttributes.MinimumLoadingScreenDisplayTime ) ) )
 		{
 			if (FSlateApplication::IsInitialized())
 			{
 				// Break out of the loop if the main window is closed during the movie.
-				if ( !FSlateApplication::Get().GetActiveTopLevelWindow().IsValid() )
+				if ( !LoadingScreenWindowPtr.IsValid() )
 				{
 					break;
 				}
 
 				FPlatformMisc::PumpMessages(true);
-				FSlateApplication::Get().Tick();
-				
+
+				SlateApp.PollGameDeviceState();
+				// Gives widgets a chance to process any accumulated input
+				SlateApp.FinishedInputThisFrame();
+
+				SlateApp.Tick();
+
 				// Synchronize the game thread and the render thread so that the render thread doesn't get too far behind.
-				FSlateApplication::Get().GetRenderer()->Sync();
+				SlateApp.GetRenderer()->Sync();
 			}
 		}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -15,7 +15,7 @@ public class ContentBrowser : ModuleRules
                 "MainFrame",
 				"SourceControl",
 				"SourceControlWindows",
-                "ReferenceViewer"
+                "ReferenceViewer",
 			}
 		);
 
@@ -26,6 +26,7 @@ public class ContentBrowser : ModuleRules
 				"CoreUObject",
                 "InputCore",
 				"Engine",
+				"GameProjectGeneration",
 				"Slate",
 				"SlateCore",
                 "EditorStyle",
@@ -34,7 +35,8 @@ public class ContentBrowser : ModuleRules
 				"WorkspaceMenuStructure",
 				"UnrealEd",
 				"EditorWidgets",
-				"Projects"
+				"Projects",
+				"AddContentDialog"
 			}
 		);
 

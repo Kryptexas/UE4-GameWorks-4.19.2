@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -211,14 +211,195 @@ public:
  * code desired.  The other main restriction is that each SNode instance must have a unique UObject* associated
  * with it.
  */
+namespace ENodeZone
+{
+	enum Type
+	{
+		TopLeft,
+		TopCenter,
+		TopRight,
+
+		Left,
+		Center,
+		Right,
+
+		BottomLeft,
+		BottomCenter,
+		BottomRight,
+
+		Count
+	};
+}
+
 class GRAPHEDITOR_API SNodePanel : public SPanel
 {
 public:
-	class SNode : public SBorder
+
+	class SNode : public SPanel
 	{
 	public:
 
+		/** A slot that support alignment of content and padding and z-order */
+		class FNodeSlot : public TSlotBase<FNodeSlot>
+		{
+		public:
+			FNodeSlot()
+				: TSlotBase<FNodeSlot>()
+				, HAlignment(HAlign_Fill)
+				, VAlignment(VAlign_Fill)
+				, SlotPadding(0.0f)
+				, Offset( FVector2D::ZeroVector )
+				, AllowScale( true )
+			{ }
+
+			FNodeSlot& HAlign( EHorizontalAlignment InHAlignment )
+			{
+				HAlignment = InHAlignment;
+				return *this;
+			}
+
+			FNodeSlot& VAlign( EVerticalAlignment InVAlignment )
+			{
+				VAlignment = InVAlignment;
+				return *this;
+			}
+
+			FNodeSlot& Padding( const TAttribute<FMargin> InPadding )
+			{
+				SlotPadding = InPadding;
+				return *this;
+			}
+
+			FNodeSlot& SlotOffset( const TAttribute<FVector2D> InOffset )
+			{
+				Offset = InOffset;
+				return *this;
+			}
+
+			FNodeSlot& SlotSize( const TAttribute<FVector2D> InSize )
+			{
+				Size = InSize;
+				return *this;
+			}
+
+			FNodeSlot& AllowScaling( const TAttribute<bool> InAllowScale )
+			{
+				AllowScale = InAllowScale;
+				return *this;
+			}
+
+		public:
+
+			/** The child widget contained in this slot. */
+			ENodeZone::Type Zone;
+			EHorizontalAlignment HAlignment;
+			EVerticalAlignment VAlignment;
+			TAttribute<FMargin> SlotPadding;
+			TAttribute<FVector2D> Offset;
+			TAttribute<FVector2D> Size;
+			TAttribute<bool> AllowScale;
+		};
+
 		typedef TSet<TWeakPtr<SNodePanel::SNode>> FNodeSet;
+
+		// SPanel Interface
+		virtual FChildren* GetChildren() override
+		{
+			return &Children;
+		}
+
+		virtual FVector2D ComputeDesiredSize() const override
+		{
+			for( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
+			{
+				if( Children[ ChildIndex ].Zone == ENodeZone::Center )
+				{
+					const FNodeSlot& CenterZone = Children[ ChildIndex ];
+					const EVisibility ChildVisibility = CenterZone.GetWidget()->GetVisibility();
+					if( ChildVisibility != EVisibility::Collapsed )
+					{
+						return ( CenterZone.GetWidget()->GetDesiredSize() + CenterZone.SlotPadding.Get().GetDesiredSize() ) * DesiredSizeScale.Get();
+					}
+				}
+			}
+			return FVector2D::ZeroVector;
+		}
+
+		virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override
+		{
+			for( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
+			{
+				const FNodeSlot& CurChild = Children[ChildIndex];
+				const EVisibility ChildVisibility = CurChild.GetWidget()->GetVisibility();
+				if ( ArrangedChildren.Accepts(ChildVisibility) )
+				{
+					const FMargin SlotPadding(CurChild.SlotPadding.Get());
+					const float GeometryScale = CurChild.AllowScale.Get() ? 1.f : 1.f / AllottedGeometry.Scale;
+					FVector2D Size;
+
+					if( CurChild.Size.IsSet() )
+					{
+						Size = CurChild.Size.Get();
+					}
+					else
+					{
+						AlignmentArrangeResult XResult = AlignChild<Orient_Horizontal>(AllottedGeometry.Size.X, CurChild, SlotPadding);
+						AlignmentArrangeResult YResult = AlignChild<Orient_Vertical>(AllottedGeometry.Size.Y, CurChild, SlotPadding);
+						Size = FVector2D( XResult.Size, YResult.Size );
+					}
+					const FArrangedWidget ChildGeom = 
+					AllottedGeometry.MakeChild(
+						CurChild.GetWidget(),
+						CurChild.Offset.Get(),
+						Size,
+						GeometryScale
+					);
+					ArrangedChildren.AddWidget( ChildVisibility, ChildGeom );
+				}
+			}
+		}
+
+		virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
+		{
+			FArrangedChildren ArrangedChildren( EVisibility::Visible );
+			{
+				ArrangeChildren( AllottedGeometry, ArrangedChildren );
+			}
+
+			int32 MaxLayerId = LayerId;
+			for( int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ++ChildIndex )
+			{
+				const FArrangedWidget& CurWidget = ArrangedChildren[ ChildIndex ];
+				FSlateRect ChildClipRect = MyClippingRect.IntersectionWith(CurWidget.Geometry.GetClippingRect());
+
+				if( ChildClipRect.GetSize().Size() > 0 )
+				{
+					const FSlateRect ClipRect = Children[ ChildIndex ].Zone == ENodeZone::Center ? ChildClipRect : MyClippingRect;
+					const int32 CurWidgetsMaxLayerId = CurWidget.Widget->Paint( Args.WithNewParent( this ), CurWidget.Geometry, ClipRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled( bParentEnabled ));
+					MaxLayerId = FMath::Max( MaxLayerId, CurWidgetsMaxLayerId );
+				}
+			}
+			return MaxLayerId;
+		}
+		// End of SPanel Interface
+
+		FNodeSlot& GetOrAddSlot( const ENodeZone::Type SlotId )
+		{
+			// Return existing
+			for( int32 ChildIndex = 0; ChildIndex < Children.Num(); ++ChildIndex )
+			{
+				if( Children[ ChildIndex ].Zone == SlotId )
+				{
+					return Children[ ChildIndex ];
+				}
+			}
+			// Add Zone
+			FNodeSlot& NewSlot = *new FNodeSlot();
+			NewSlot.Zone = SlotId;
+			Children.Add( &NewSlot );
+
+			return NewSlot;
+		}
 
 		/**
 		* @param NewPosition	The Node should be relocated to this position in the graph panel
@@ -301,12 +482,51 @@ public:
 			return GetDesiredSize();
 		}
 
+		// Returns node sort depth, defaults to and is generally 0 for most nodes
+		virtual int32 GetSortDepth() const { return 0; }
+
+		// Node Sort Operator
+		bool operator < ( const SNodePanel::SNode& NodeIn ) const
+		{
+			return GetSortDepth() < NodeIn.GetSortDepth();
+		}
+
 	protected:
 		SNode()
+		: BorderImage( FCoreStyle::Get().GetBrush( "NoBorder" ) )
+		, BorderBackgroundColor( FEditorStyle::GetColor("Graph.ForegroundColor"))
+		, DesiredSizeScale(FVector2D(1,1))
 		{
-			BorderImage = FEditorStyle::GetBrush("NoBorder");
-			ForegroundColor = FEditorStyle::GetColor("Graph.ForegroundColor");
 		}
+
+	protected:
+
+		// SBorder Begin
+		TAttribute<const FSlateBrush*> BorderImage;
+		TAttribute<FSlateColor> BorderBackgroundColor;
+		TAttribute<FVector2D> DesiredSizeScale;
+		/** Whether or not to show the disabled effect when this border is disabled */
+		TAttribute<bool> ShowDisabledEffect;
+		/** Mouse event handlers */
+		FPointerEventHandler MouseButtonDownHandler;
+		FPointerEventHandler MouseButtonUpHandler;
+		FPointerEventHandler MouseMoveHandler;
+		FPointerEventHandler MouseDoubleClickHandler;
+		// SBorder End
+
+		// SPanel Begin
+		/** The layout scale to apply to this widget's contents; useful for animation. */
+		TAttribute<FVector2D> ContentScale;
+		/** The color and opacity to apply to this widget and all its descendants. */
+		TAttribute<FLinearColor> ColorAndOpacity;
+		/** Optional foreground color that will be inherited by all of this widget's contents */
+		TAttribute<FSlateColor> ForegroundColor;
+		// SPanel End
+
+	private:
+
+		TPanelChildren<FNodeSlot> Children;
+
 	};
 
 	SNodePanel();
@@ -384,6 +604,9 @@ public:
 	/** Returns if the panel has been panned or zoomed since the last update */
 	bool HasMoved() const;
 
+	/** Returns all the panel children rather than only visible */
+	FChildren* GetAllChildren();
+
 protected:
 	/** Initialize members */
 	void Construct();
@@ -440,9 +663,6 @@ protected:
 
 	/** Add a slot to the CanvasPanel dynamically */
 	virtual void AddGraphNode(const TSharedRef<SNode>& NodeToAdd);
-
-	/** Add a node widget to the back of the panel */
-	virtual void AddGraphNodeToBack(const TSharedRef<SNode>& NodeToAdd);
 
 	/** Remove all nodes from the panel */
 	virtual void RemoveAllNodes();

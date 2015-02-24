@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,6 +10,7 @@ public:
 	SLATE_END_ARGS()
 
 	SAssetDialog();
+	virtual ~SAssetDialog();
 
 	virtual void Construct(const FArguments& InArgs, const FSharedAssetDialogConfig& InConfig);
 
@@ -22,6 +23,9 @@ public:
 	/** Sets the delegate handler for when a save operation is committed */
 	void SetOnObjectPathChosenForSave(const FOnObjectPathChosenForSave& InOnObjectPathChosenForSave);
 
+	/** Sets the delegate handler for when the dialog is closed or cancelled */
+	void SetOnAssetDialogCancelled(const FOnAssetDialogCancelled& InOnAssetDialogCancelled);
+
 private:
 
 	/** Moves keyboard focus to the name box if this is a save dialog */
@@ -30,6 +34,9 @@ private:
 	/** Gets the name to display in the asset name box */
 	FText GetAssetNameText() const;
 
+	/** Gets the name to display in the path text block */
+	FText GetPathNameText() const;
+
 	/** Fired when the asset name box text is commited */
 	void OnAssetNameTextCommited(const FText& InText, ETextCommit::Type InCommitType);
 
@@ -37,7 +44,7 @@ private:
 	EVisibility GetNameErrorLabelVisibility() const;
 
 	/** Gets the text to display in the name error label */
-	FString GetNameErrorLabelText() const;
+	FText GetNameErrorLabelText() const;
 
 	/** Handler for when a path is selected in the path view */
 	void HandlePathSelected(const FString& NewPath);
@@ -100,11 +107,17 @@ private:
 	/** Fired when an object path was chosen for save. Only fired in save dialogs. */
 	FOnObjectPathChosenForSave OnObjectPathChosenForSave;
 
+	/** Fired when the asset dialog is cancelled or closed */
+	FOnAssetDialogCancelled OnAssetDialogCancelled;
+
 	/** The assets that are currently selected in the asset picker */
 	TArray<FAssetData> CurrentlySelectedAssets;
 
 	/** The name box. Only used in save dialogs. */
 	TSharedPtr<SEditableTextBox> NameEditableText;
+
+	/** The path box. */
+	TSharedPtr<STextBlock> PathText;
 
 	/** The object path of the asset to save. Only used in save dialogs. */
 	FString CurrentlySelectedPath;
@@ -123,4 +136,7 @@ private:
 
 	/** Used to focus the name box after opening the dialog */
 	bool bPendingFocusNextFrame;
+
+	/** Used to specify that valid assets were chosen */
+	bool bValidAssetsChosen;
 };

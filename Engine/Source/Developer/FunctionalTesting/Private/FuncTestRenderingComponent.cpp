@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FunctionalTestingPrivatePCH.h"
 //#include "PrimitiveViewRelevance.h"
@@ -13,10 +13,6 @@ public:
 	/** Initialization constructor. */
 	FFTestRenderingSceneProxy(const UFuncTestRenderingComponent* InComponent)
 		: FPrimitiveSceneProxy(InComponent)
-	{
-	}
-
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
 	{
 	}
 

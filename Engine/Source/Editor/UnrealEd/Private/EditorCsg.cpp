@@ -1,10 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
 #include "SurfaceIterators.h"
 #include "BSPOps.h"
 #include "ActorEditorUtils.h"
+#include "Engine/Polys.h"
+#include "EngineUtils.h"
+#include "Engine/Brush.h"
+#include "Engine/Selection.h"
 
 // Globals:
 static TArray<uint8*> GFlags1;

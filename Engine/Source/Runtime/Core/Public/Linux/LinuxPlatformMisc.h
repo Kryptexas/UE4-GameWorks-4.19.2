@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -33,6 +33,15 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 		}
 	}
 #endif // !UE_BUILD_SHIPPING
+
+	/** Break into debugger. Returning false allows this function to be used in conditionals. */
+	FORCEINLINE static bool DebugBreakReturningFalse()
+	{
+#if !UE_BUILD_SHIPPING
+		DebugBreak();
+#endif
+		return false;
+	}
 
 	static void PumpMessages(bool bFromMainLoop);
 	static uint32 GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings );
@@ -101,9 +110,14 @@ struct CORE_API FLinuxPlatformMisc : public FGenericPlatformMisc
 	}
 
 	/**
-	 * Linux-specific function initializing video (and not only) subsystem.
+	 * Initializes video (and not only) subsystem.
 	 */
 	static bool PlatformInitMultimedia();
+
+	/**
+	 * Returns whether the program has been started remotely (e.g. over SSH)
+	 */
+	static bool HasBeenStartedRemotely();
 };
 
 typedef FLinuxPlatformMisc FPlatformMisc;

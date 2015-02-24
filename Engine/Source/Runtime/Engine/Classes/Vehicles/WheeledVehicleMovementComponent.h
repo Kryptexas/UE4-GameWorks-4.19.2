@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "GameFramework/PawnMovementComponent.h"
@@ -84,7 +84,7 @@ struct FTireShaderOutput
  * Vehicle-specific wheel setup
  */
 USTRUCT()
-struct FWheelSetup
+struct ENGINE_API FWheelSetup
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -104,7 +104,7 @@ struct FWheelSetup
 };
 
 USTRUCT()
-struct FReplicatedVehicleState
+struct ENGINE_API FReplicatedVehicleState
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -130,7 +130,7 @@ struct FReplicatedVehicleState
 };
 
 USTRUCT()
-struct FVehicleInputRate
+struct ENGINE_API FVehicleInputRate
 {
 	GENERATED_USTRUCT_BODY()
 

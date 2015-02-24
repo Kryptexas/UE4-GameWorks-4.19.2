@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -102,6 +102,9 @@ private:
 
 	// Holds a delegate to be invoked when the server ticks.
 	FTickerDelegate TickDelegate;
+
+	// Handle to the registered TickDelegate.
+	FDelegateHandle TickDelegateHandle;
 
 	// The time since the last message was received from the Slate Remote application.
 	float TimeSinceLastPing;

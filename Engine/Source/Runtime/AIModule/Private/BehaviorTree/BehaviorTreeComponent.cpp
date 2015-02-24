@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/BehaviorTree.h"
@@ -13,7 +13,9 @@
 // UBehaviorTreeComponent
 //----------------------------------------------------------------------//
 
-UBehaviorTreeComponent::UBehaviorTreeComponent(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+UBehaviorTreeComponent::UBehaviorTreeComponent(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
+	, SearchData(*this)
 {
 	ActiveInstanceIdx = 0;
 	bLoopExecution = false;
@@ -23,8 +25,6 @@ UBehaviorTreeComponent::UBehaviorTreeComponent(const FObjectInitializer& ObjectI
 	bWantsInitializeComponent = true; 
 	bIsRunning = false;
 	bIsPaused = false;
-	
-	SearchData.OwnerComp = this;
 }
 
 void UBehaviorTreeComponent::BeginDestroy()
@@ -32,7 +32,7 @@ void UBehaviorTreeComponent::BeginDestroy()
 	UBehaviorTreeManager* BTManager = UBehaviorTreeManager::GetCurrent(GetWorld());
 	if (BTManager)
 	{
-		BTManager->RemoveActiveComponent(this);
+		BTManager->RemoveActiveComponent(*this);
 	}
 
 	RemoveAllInstances();
@@ -134,7 +134,7 @@ bool UBehaviorTreeComponent::StartTree(UBehaviorTree& Asset, EBTExecutionMode::T
 	UBehaviorTreeManager* BTManager = UBehaviorTreeManager::GetCurrent(GetWorld());
 	if (BTManager)
 	{
-		BTManager->AddActiveComponent(this);
+		BTManager->AddActiveComponent(*this);
 	}
 
 	// push new instance
@@ -155,11 +155,11 @@ void UBehaviorTreeComponent::StopTree()
 			const UBTAuxiliaryNode* AuxNode = InstanceInfo.ActiveAuxNodes[AuxIndex];
 			check(AuxNode != NULL);
 			uint8* NodeMemory = AuxNode->GetNodeMemory<uint8>(InstanceInfo);
-			AuxNode->WrappedOnCeaseRelevant(this, NodeMemory);
+			AuxNode->WrappedOnCeaseRelevant(*this, NodeMemory);
 		}
 
 		// clear instance
-		InstanceStack[InstanceIndex].Cleanup(this, EBTMemoryClear::StoreSubtree);
+		InstanceStack[InstanceIndex].Cleanup(*this, EBTMemoryClear::StoreSubtree);
 	}
 
 	InstanceStack.Reset();
@@ -214,7 +214,7 @@ void UBehaviorTreeComponent::OnTaskFinished(const UBTTaskNode* TaskNode, EBTNode
 	uint8* ParentMemory = ParentNode->GetNodeMemory<uint8>(InstanceStack[TaskInstanceIdx]);
 
 	const bool bWasWaitingForAbort = bWaitingForAbortingTasks;
-	ParentNode->ConditionalNotifyChildExecution(this, ParentMemory, TaskNode, TaskResult);
+	ParentNode->ConditionalNotifyChildExecution(*this, ParentMemory, *TaskNode, TaskResult);
 	
 	if (TaskResult != EBTNodeResult::InProgress)
 	{
@@ -235,6 +235,13 @@ void UBehaviorTreeComponent::OnTaskFinished(const UBTTaskNode* TaskNode, EBTNode
 			{
 				RequestExecution(TaskResult);
 			}
+		}
+		else if (TaskResult == EBTNodeResult::Aborted && InstanceStack[TaskInstanceIdx].ActiveNode == TaskNode)
+		{
+			// active instance may be already changed when getting back from AbortCurrentTask 
+			// (e.g. new task is higher on stack)
+
+			InstanceStack[TaskInstanceIdx].ActiveNodeType = EBTActiveNode::InactiveTask;
 		}
 
 		// update state of aborting tasks after currently finished one was set to Inactive
@@ -329,7 +336,7 @@ bool UBehaviorTreeComponent::IsAuxNodeActive(const UBTAuxiliaryNode* AuxNode) co
 			if (AuxNode->IsInstanced() && TestAuxNode && TestAuxNode->GetExecutionIndex() == AuxExecutionIndex)
 			{
 				const uint8* NodeMemory = TestAuxNode->GetNodeMemory<uint8>(InstanceInfo);
-				UBTNode* NodeInstance = TestAuxNode->GetNodeInstance(this, (uint8*)NodeMemory);
+				UBTNode* NodeInstance = TestAuxNode->GetNodeInstance(*this, (uint8*)NodeMemory);
 
 				if (NodeInstance == AuxNode)
 				{
@@ -520,9 +527,8 @@ void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int
 	ExecutionIdx.ExecutionIndex = RequestedBy->GetExecutionIndex();
 	uint16 LastExecutionIndex = MAX_uint16;
 
-	if (bSwitchToHigherPriority)
+	if (bSwitchToHigherPriority && RequestedByChildIndex >= 0)
 	{
-		RequestedByChildIndex = FMath::Max(0, RequestedByChildIndex);
 		ExecutionIdx.ExecutionIndex = RequestedOn->GetChildExecutionIndex(RequestedByChildIndex, EBTChildIndex::FirstNode);
 		
 		// first index outside allowed range		
@@ -563,7 +569,7 @@ void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int
 	{
 		// check if decorators allow execution on requesting link
 		const bool bShouldCheckDecorators = (RequestedByChildIndex >= 0);
-		const bool bCanExecute = !bShouldCheckDecorators || RequestedOn->DoDecoratorsAllowExecution(this, InstanceIdx, RequestedByChildIndex);
+		const bool bCanExecute = !bShouldCheckDecorators || RequestedOn->DoDecoratorsAllowExecution(*this, InstanceIdx, RequestedByChildIndex);
 		if (!bCanExecute)
 		{
 			UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("> skip: decorators are not allowing execution"));
@@ -581,7 +587,7 @@ void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int
 				(ActiveInstance.ActiveNodeType == EBTActiveNode::Composite) ? (UBTCompositeNode*)ActiveInstance.ActiveNode :
 				ActiveInstance.ActiveNode->GetParentNode();
 
-			CurrentInstanceIdx = InstanceStack.Num() - 1;
+			CurrentInstanceIdx = ActiveInstanceIdx;
 		}
 
 		if (ExecutionRequest.ExecuteNode != RequestedOn)
@@ -592,12 +598,34 @@ void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int
 			FindCommonParent(InstanceStack, KnownInstances, RequestedOn, InstanceIdx, CurrentNode, CurrentInstanceIdx, CommonParent, CommonInstanceIdx);
 
 			// check decorators between common parent and restart parent
-			// it's always on the same stack level, because only tasks can push new subtrees
+			int32 ItInstanceIdx = InstanceIdx;
 			for (UBTCompositeNode* It = RequestedOn; It && It != CommonParent;)
 			{
 				UBTCompositeNode* ParentNode = It->GetParentNode();
-				const int32 ChildIdx = ParentNode->GetChildIndex(It);
-				const bool bCanExecuteTest = ParentNode->DoDecoratorsAllowExecution(this, CommonInstanceIdx, ChildIdx);
+				int32 ChildIdx = INDEX_NONE;
+
+				if (ParentNode == nullptr)
+				{
+					// move up the tree stack
+					if (ItInstanceIdx > 0)
+					{
+						ItInstanceIdx--;
+						UBTNode* SubtreeTaskNode = InstanceStack[ItInstanceIdx].ActiveNode;
+						ParentNode = SubtreeTaskNode->GetParentNode();
+						ChildIdx = ParentNode->GetChildIndex(*SubtreeTaskNode);
+					}
+					else
+					{
+						// something went wrong...
+						break;
+					}
+				}
+				else
+				{
+					ChildIdx = ParentNode->GetChildIndex(*It);
+				}
+
+				const bool bCanExecuteTest = ParentNode->DoDecoratorsAllowExecution(*this, ItInstanceIdx, ChildIdx);
 				if (!bCanExecuteTest)
 				{
 					UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("> skip: decorators are not allowing execution"));
@@ -619,7 +647,7 @@ void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int
 			(RequestedOn->Children[RequestedByChildIndex].DecoratorOps.Num() > 0) &&
 			RequestedBy->IsA(UBTDecorator::StaticClass());
 
-		const bool bCanExecute = bShouldCheckDecorators && RequestedOn->DoDecoratorsAllowExecution(this, InstanceIdx, RequestedByChildIndex);
+		const bool bCanExecute = bShouldCheckDecorators && RequestedOn->DoDecoratorsAllowExecution(*this, InstanceIdx, RequestedByChildIndex);
 		if (bCanExecute)
 		{
 			UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("> skip: decorators are still allowing execution"));
@@ -706,12 +734,12 @@ void UBehaviorTreeComponent::ApplySearchUpdates(const TArray<FBehaviorTreeSearch
 			if (UpdateInfo.Mode == EBTNodeUpdateMode::Remove)
 			{
 				UpdateInstance.ActiveAuxNodes.RemoveSingleSwap(UpdateInfo.AuxNode);
-				UpdateInfo.AuxNode->WrappedOnCeaseRelevant(this, NodeMemory);
+				UpdateInfo.AuxNode->WrappedOnCeaseRelevant(*this, NodeMemory);
 			}
 			else
 			{
 				UpdateInstance.ActiveAuxNodes.Add(UpdateInfo.AuxNode);
-				UpdateInfo.AuxNode->WrappedOnBecomeRelevant(this, NodeMemory);
+				UpdateInfo.AuxNode->WrappedOnBecomeRelevant(*this, NodeMemory);
 			}
 		}
 		else if (UpdateInfo.TaskNode)
@@ -722,7 +750,7 @@ void UBehaviorTreeComponent::ApplySearchUpdates(const TArray<FBehaviorTreeSearch
 				UnregisterMessageObserversFrom(UpdateInfo.TaskNode);
 
 				uint8* NodeMemory = (uint8*)UpdateNode->GetNodeMemory<uint8>(UpdateInstance);
-				EBTNodeResult::Type NodeResult = UpdateInfo.TaskNode->AbortTask(this, NodeMemory);
+				EBTNodeResult::Type NodeResult = UpdateInfo.TaskNode->AbortTask(*this, NodeMemory);
 
 				UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("Parallel task aborted: %s (%s)"),
 					*UBehaviorTreeTypes::DescribeNodeHelper(UpdateInfo.TaskNode),
@@ -802,14 +830,14 @@ void UBehaviorTreeComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 		{
 			const UBTAuxiliaryNode* AuxNode = InstanceInfo.ActiveAuxNodes[AuxIndex];
 			uint8* NodeMemory = AuxNode->GetNodeMemory<uint8>(InstanceInfo);
-			AuxNode->WrappedTickNode(this, NodeMemory, DeltaTime);
+			AuxNode->WrappedTickNode(*this, NodeMemory, DeltaTime);
 		}
 
 		for (int32 TaskIndex = 0; TaskIndex < InstanceInfo.ParallelTasks.Num(); TaskIndex++)
 		{
 			const UBTTaskNode* ParallelTask = InstanceInfo.ParallelTasks[TaskIndex].TaskNode;
 			uint8* NodeMemory = ParallelTask->GetNodeMemory<uint8>(InstanceInfo);
-			ParallelTask->WrappedTickTask(this, NodeMemory, DeltaTime);
+			ParallelTask->WrappedTickTask(*this, NodeMemory, DeltaTime);
 		}
 	}
 
@@ -820,7 +848,7 @@ void UBehaviorTreeComponent::TickComponent(float DeltaTime, enum ELevelTick Tick
 	{
 		UBTTaskNode* ActiveTask = (UBTTaskNode*)ActiveInstance.ActiveNode;
 		uint8* NodeMemory = ActiveTask->GetNodeMemory<uint8>(ActiveInstance);
-		ActiveTask->WrappedTickTask(this, NodeMemory, DeltaTime);
+		ActiveTask->WrappedTickTask(*this, NodeMemory, DeltaTime);
 	}
 }
 
@@ -882,8 +910,11 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 		// additional operations for restarting:
 		if (!ExecutionRequest.bTryNextChild)
 		{
-			// mark all decorators less important than current search start for removal
-			UnregisterAuxNodesUpTo(ExecutionRequest.SearchStart);
+			// mark all decorators less important than current search start node for removal
+			// (all from first node on branch with search start)
+			const int32 StartNodeIdx = ExecutionRequest.ExecuteNode->GetBranchExecutionIndex(ExecutionRequest.SearchStart.ExecutionIndex) - 1;
+			const FBTNodeIndex DeactivateIdx(ExecutionRequest.ExecuteInstanceIdx, FMath::Max(StartNodeIdx, 0));
+			UnregisterAuxNodesUpTo(DeactivateIdx);
 
 			// reactivate top search node, so it could use search range correctly
 			BT_SEARCHLOG(SearchData, Verbose, TEXT("Reactivate node: %s [restart]"), *UBehaviorTreeTypes::DescribeNodeHelper(TestNode));
@@ -941,7 +972,7 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 
 				if (TestNode)
 				{
-					TestNode->OnChildDeactivation(SearchData, ChildNode, NodeResult);
+					TestNode->OnChildDeactivation(SearchData, *ChildNode, NodeResult);
 				}
 			}
 			else
@@ -1020,7 +1051,7 @@ void UBehaviorTreeComponent::ProcessPendingExecution()
 	{
 		for (int32 InstanceIndex = ActiveInstanceIdx + 1; InstanceIndex < InstanceStack.Num(); InstanceIndex++)
 		{
-			InstanceStack[InstanceIndex].Cleanup(this, EBTMemoryClear::StoreSubtree);
+			InstanceStack[InstanceIndex].Cleanup(*this, EBTMemoryClear::StoreSubtree);
 		}
 
 		InstanceStack.SetNum(ActiveInstanceIdx + 1);
@@ -1054,7 +1085,7 @@ bool UBehaviorTreeComponent::DeactivateUpTo(UBTCompositeNode* Node, uint16 NodeI
 		UBTCompositeNode* NotifyParent = DeactivatedChild->GetParentNode();
 		if (NotifyParent)
 		{
-			NotifyParent->OnChildDeactivation(SearchData, DeactivatedChild, NodeResult);
+			NotifyParent->OnChildDeactivation(SearchData, *DeactivatedChild, NodeResult);
 
 			BT_SEARCHLOG(SearchData, Verbose, TEXT("Deactivate node: %s"), *UBehaviorTreeTypes::DescribeNodeHelper(DeactivatedChild));
 			StoreDebuggerSearchStep(DeactivatedChild, ActiveInstanceIdx, NodeResult);
@@ -1079,7 +1110,7 @@ bool UBehaviorTreeComponent::DeactivateUpTo(UBTCompositeNode* Node, uint16 NodeI
 			if (ActiveInstanceIdx == 0)
 			{
 				BT_SEARCHLOG(SearchData, Error, TEXT("Execution path does NOT contain common parent node, restarting tree! AI:%s"),
-					*GetNameSafe(SearchData.OwnerComp->GetOwner()));
+					*GetNameSafe(SearchData.OwnerComp.GetOwner()));
 
 				RestartTree();
 				return false;
@@ -1131,8 +1162,9 @@ void UBehaviorTreeComponent::ExecuteTask(UBTTaskNode* TaskNode)
 	uint16 InstanceIdx = ActiveInstanceIdx;
 
 	uint8* NodeMemory = (uint8*)(TaskNode->GetNodeMemory<uint8>(ActiveInstance));
-	EBTNodeResult::Type TaskResult = TaskNode->WrappedExecuteTask(this, NodeMemory);
+	EBTNodeResult::Type TaskResult = TaskNode->WrappedExecuteTask(*this, NodeMemory);
 
+	// pass task finished if wasn't already notified (FinishLatentTask)
 	const UBTNode* ActiveNodeAfterExecution = GetActiveNode();
 	if (ActiveNodeAfterExecution == TaskNode)
 	{
@@ -1145,23 +1177,26 @@ void UBehaviorTreeComponent::ExecuteTask(UBTTaskNode* TaskNode)
 
 void UBehaviorTreeComponent::AbortCurrentTask()
 {
-	FBehaviorTreeInstance& ActiveInstance = InstanceStack.Last();
-	UBTTaskNode* ActiveTask = (UBTTaskNode*)ActiveInstance.ActiveNode;
+	const int32 CurrentInstanceIdx = InstanceStack.Num() - 1;
+	FBehaviorTreeInstance& CurrentInstance = InstanceStack[CurrentInstanceIdx];
+	CurrentInstance.ActiveNodeType = EBTActiveNode::AbortingTask;
+
+	UBTTaskNode* CurrentTask = (UBTTaskNode*)CurrentInstance.ActiveNode;
 
 	// remove all observers before requesting abort
-	UnregisterMessageObserversFrom(ActiveTask);
+	UnregisterMessageObserversFrom(CurrentTask);
 
-	UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("Abort task: %s"), *UBehaviorTreeTypes::DescribeNodeHelper(ActiveTask));
+	UE_VLOG(GetOwner(), LogBehaviorTree, Log, TEXT("Abort task: %s"), *UBehaviorTreeTypes::DescribeNodeHelper(CurrentTask));
 
 	// abort task using current state of tree
-	uint8* NodeMemory = (uint8*)(ActiveTask->GetNodeMemory<uint8>(ActiveInstance));
-	EBTNodeResult::Type TaskResult = ActiveTask->WrappedAbortTask(this, NodeMemory);
+	uint8* NodeMemory = (uint8*)(CurrentTask->GetNodeMemory<uint8>(CurrentInstance));
+	EBTNodeResult::Type TaskResult = CurrentTask->WrappedAbortTask(*this, NodeMemory);
 
-	const UBTNode* ActiveNodeAfterAbort = GetActiveNode();
-	if (ActiveNodeAfterAbort == ActiveTask)
+	// pass task finished if wasn't already notified (FinishLatentAbort)
+	if (CurrentInstance.ActiveNodeType == EBTActiveNode::AbortingTask &&
+		CurrentInstanceIdx == (InstanceStack.Num() - 1))
 	{
-		ActiveInstance.ActiveNodeType = EBTActiveNode::AbortingTask;
-		OnTaskFinished(ActiveTask, TaskResult);
+		OnTaskFinished(CurrentTask, TaskResult);
 	}
 }
 
@@ -1320,9 +1355,9 @@ bool UBehaviorTreeComponent::PushInstance(UBehaviorTree& TreeAsset)
 	if (ActiveParent)
 	{
 		uint8* ParentMemory = GetNodeMemory((UBTNode*)ActiveParent, InstanceStack.Num() - 1);
-		int32 ChildIdx = ActiveParent->GetChildIndex(ActiveNode);
+		int32 ChildIdx = ActiveNode ? ActiveParent->GetChildIndex(*ActiveNode) : INDEX_NONE;
 
-		const bool bIsAllowed = ActiveParent->CanPushSubtree(this, ParentMemory, ChildIdx);
+		const bool bIsAllowed = ActiveParent->CanPushSubtree(*this, ParentMemory, ChildIdx);
 		if (!bIsAllowed)
 		{
 			UE_VLOG(GetOwner(), LogBehaviorTree, Warning, TEXT("Failed to execute tree %s: parent of active node does not allow it! (%s)"),
@@ -1354,8 +1389,8 @@ bool UBehaviorTreeComponent::PushInstance(UBehaviorTree& TreeAsset)
 		}
 
 		NewInstance.InstanceMemory = InstanceInfo.InstanceMemory;
-		NewInstance.Initialize(this, RootNode, NodeInstanceIndex, bFirstTime ? EBTMemoryInit::Initialize : EBTMemoryInit::RestoreSubtree);
-		NewInstance.InjectNodes(this, RootNode, NodeInstanceIndex);
+		NewInstance.Initialize(*this, *RootNode, NodeInstanceIndex, bFirstTime ? EBTMemoryInit::Initialize : EBTMemoryInit::RestoreSubtree);
+		NewInstance.InjectNodes(*this, *RootNode, NodeInstanceIndex);
 
 		INC_DWORD_STAT(STAT_AI_BehaviorTree_NumInstances);
 		InstanceStack.Push(NewInstance);
@@ -1368,10 +1403,10 @@ bool UBehaviorTreeComponent::PushInstance(UBehaviorTree& TreeAsset)
 			uint8* NodeMemory = (uint8*)ServiceNode->GetNodeMemory<uint8>(InstanceStack[ActiveInstanceIdx]);
 
 			InstanceStack[ActiveInstanceIdx].ActiveAuxNodes.Add(ServiceNode);
-			ServiceNode->WrappedOnBecomeRelevant(this, NodeMemory);
+			ServiceNode->WrappedOnBecomeRelevant(*this, NodeMemory);
 		}
 
-		FBehaviorTreeDelegates::OnTreeStarted.Broadcast(this, &TreeAsset);
+		FBehaviorTreeDelegates::OnTreeStarted.Broadcast(*this, TreeAsset);
 
 		// start new task
 		RequestExecution(RootNode, ActiveInstanceIdx, RootNode, 0, EBTNodeResult::InProgress);
@@ -1505,7 +1540,7 @@ void UBehaviorTreeComponent::RemoveAllInstances()
 		DummyInstance.InstanceIdIndex = Idx;
 		DummyInstance.RootNode = Info.RootNode;
 
-		DummyInstance.Cleanup(this, EBTMemoryClear::Destroy);
+		DummyInstance.Cleanup(*this, EBTMemoryClear::Destroy);
 
 		DummyInstance.InstanceMemory.Reset();
 	}
@@ -1551,7 +1586,7 @@ FString UBehaviorTreeComponent::GetDebugInfoString() const
 		while (Node)
 		{
 			uint8* NodeMemory = (uint8*)(Node->GetNodeMemory<uint8>(InstanceData));
-			NodeTrace = FString::Printf(TEXT("  %s\n"), *Node->GetRuntimeDescription(this, NodeMemory, EBTDescriptionVerbosity::Basic)) + NodeTrace;
+			NodeTrace = FString::Printf(TEXT("  %s\n"), *Node->GetRuntimeDescription(*this, NodeMemory, EBTDescriptionVerbosity::Basic)) + NodeTrace;
 			Node = Node->GetParentNode();
 		}
 
@@ -1634,7 +1669,7 @@ void UBehaviorTreeComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) con
 		while (Node)
 		{
 			uint8* NodeMemory = (uint8*)(Node->GetNodeMemory<uint8>(InstanceInfo));
-			Descriptions.Add(Node->GetRuntimeDescription(this, NodeMemory, EBTDescriptionVerbosity::Detailed));
+			Descriptions.Add(Node->GetRuntimeDescription(*this, NodeMemory, EBTDescriptionVerbosity::Detailed));
 		
 			Node = Node->GetParentNode();
 		}
@@ -1847,7 +1882,7 @@ void UBehaviorTreeComponent::StoreDebuggerRuntimeValues(TArray<FString>& Runtime
 		uint8* NodeMemory = (uint8*)Node->GetNodeMemory<uint8>(InstanceInfo);
 
 		RuntimeValues.Reset();
-		Node->DescribeRuntimeValues(this, NodeMemory, EBTDescriptionVerbosity::Basic, RuntimeValues);
+		Node->DescribeRuntimeValues(*this, NodeMemory, EBTDescriptionVerbosity::Basic, RuntimeValues);
 
 		FString ComposedDesc;
 		for (int32 ValueIndex = 0; ValueIndex < RuntimeValues.Num(); ValueIndex++)
@@ -1875,7 +1910,7 @@ void UBehaviorTreeComponent::UpdateDebuggerAfterExecution(const UBTTaskNode* Tas
 	TArray<FString> RuntimeValues;
 	const FBehaviorTreeInstance& InstanceToUpdate = InstanceStack[InstanceIdx];
 	uint8* NodeMemory = (uint8*)TaskNode->GetNodeMemory<uint8>(InstanceToUpdate);
-	TaskNode->DescribeRuntimeValues(this, NodeMemory, EBTDescriptionVerbosity::Basic, RuntimeValues);
+	TaskNode->DescribeRuntimeValues(*this, NodeMemory, EBTDescriptionVerbosity::Basic, RuntimeValues);
 
 	FString ComposedDesc;
 	for (int32 ValueIndex = 0; ValueIndex < RuntimeValues.Num(); ValueIndex++)
@@ -1890,7 +1925,15 @@ void UBehaviorTreeComponent::UpdateDebuggerAfterExecution(const UBTTaskNode* Tas
 
 	// accessing RuntimeDesc should never be out of bounds (active task MUST be part of active instance)
 	const uint16& ExecutionIndex = TaskNode->GetExecutionIndex();
-	CurrentStep.InstanceStack[InstanceIdx].RuntimeDesc[ExecutionIndex] = ComposedDesc;
+	if (CurrentStep.InstanceStack[InstanceIdx].RuntimeDesc.IsValidIndex(ExecutionIndex))
+	{
+		CurrentStep.InstanceStack[InstanceIdx].RuntimeDesc[ExecutionIndex] = ComposedDesc;
+	}
+	else
+	{
+		UE_VLOG(GetOwner(), LogBehaviorTree, Error, TEXT("Incomplete debugger data! No runtime description for executed task, instance %d has only %d entries!"),
+			InstanceIdx, CurrentStep.InstanceStack[InstanceIdx].RuntimeDesc.Num());
+	}
 #endif
 }
 

@@ -1,12 +1,15 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalMeshMerge.cpp: Unreal skeletal mesh merging implementation.
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Animation/Skeleton.h"
 #include "RawIndexBuffer.h"
 #include "SkeletalMeshMerge.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "Animation/Skeleton.h"
 
 /*-----------------------------------------------------------------------------
 	FSkeletalMeshMerge
@@ -60,108 +63,66 @@ FSkeletalMeshMerge::FSkeletalMeshMerge(USkeletalMesh* InMergeMesh,
 */
 bool FSkeletalMeshMerge::DoMerge(TArray<FRefPoseOverride>* RefPoseOverrides /* = nullptr */)
 {
-	bool Result=true;
-	FSkeletalMeshResource* SkelMeshResource = MergeMesh->GetImportedResource();
+	MergeSkeleton(RefPoseOverrides);
 
-	if( SkelMeshResource->LODModels.Num() > 0 )
+	return FinalizeMesh();
+}
+
+void FSkeletalMeshMerge::MergeSkeleton(const TArray<FRefPoseOverride>* RefPoseOverrides /* = nullptr */)
+{
+	// Build the reference skeleton & sockets.
+
+	BuildReferenceSkeleton(SrcMeshList, NewRefSkeleton);
+	BuildSockets(SrcMeshList);
+
+	// Override the reference bone poses & sockets, if specified.
+
+	if (RefPoseOverrides)
 	{
-		// Release the mesh's render resources.
-		MergeMesh->ReleaseResources();
-		// This will block for the resources to be released on the render thread
-		MergeMesh->ReleaseResourcesFence.Wait();
+		OverrideReferenceSkeletonPose(*RefPoseOverrides, NewRefSkeleton);
+		OverrideMergedSockets(*RefPoseOverrides);
 	}
-	// force 16 bit UVs if supported on hardware
-	MergeMesh->bUseFullPrecisionUVs = GVertexElementTypeSupport.IsSupported(VET_Half2) ? false : true;
 
-	// find common max num of LODs available in the list of source meshes
-	int32 MaxNumLODs = INDEX_NONE;
-	bool bMaxNumLODsInit=true;
-	NewRefSkeleton.Empty();
+	// Assign new referencer skeleton.
+
+	MergeMesh->RefSkeleton = NewRefSkeleton;
+}
+
+bool FSkeletalMeshMerge::FinalizeMesh()
+{
+	bool Result = true;
+
+	// Find the common maximum number of LODs available in the list of source meshes.
+
+	int32 MaxNumLODs = CalculateLodCount(SrcMeshList);
+
+	if (MaxNumLODs == -1)
+	{
+		UE_LOG(LogSkeletalMesh, Warning, TEXT("FSkeletalMeshMerge: Invalid source mesh list"));
+		return false;
+	}
+
+	ReleaseResources(MaxNumLODs);
+
+	// Create a mapping from each input mesh bone to bones in the merged mesh.
 
 	SrcMeshInfo.Empty();
 	SrcMeshInfo.AddZeroed(SrcMeshList.Num());
-	for( int32 MeshIdx=0; MeshIdx < SrcMeshList.Num(); MeshIdx++ )
+
+	for (int32 MeshIdx = 0; MeshIdx < SrcMeshList.Num(); MeshIdx++)
 	{
 		USkeletalMesh* SrcMesh = SrcMeshList[MeshIdx];
-		if( SrcMesh )
+		if (SrcMesh)
 		{
-			if( SrcMesh->bHasVertexColors )
+			if (SrcMesh->bHasVertexColors)
 			{
 				MergeMesh->bHasVertexColors = true;
 			}
 
-			if( bMaxNumLODsInit )
-			{
-				// initialize
-				MaxNumLODs = SrcMesh->LODInfo.Num();
-				bMaxNumLODsInit=false;
-			}
-			else
-			{
-				// keep track of the smallest number of LODs 
-				MaxNumLODs = FMath::Max<int32>( MaxNumLODs, SrcMesh->LODInfo.Num() );
-			}
-
-			// Initialise new RefSkeleton with first supplied mesh.
-			if(NewRefSkeleton.GetNum() == 0)
-			{
-				NewRefSkeleton = SrcMesh->RefSkeleton;
-			}
-			// For subsequent ones, add any missing bones.
-			else
-			{			
-				for(int32 i=0; i<SrcMesh->RefSkeleton.GetNum(); i++)
-				{
-					FName SrcBoneName = SrcMesh->RefSkeleton.GetBoneName(i);
-					int32 DestBoneIndex = NewRefSkeleton.FindBoneIndex(SrcBoneName);
-					// If it's not present, we add it just after its parent.
-					if( DestBoneIndex == INDEX_NONE )
-					{
-						check(i != 0); // Must have at least root shared between each mesh!
-						int32 ParentBoneIndex = SrcMesh->RefSkeleton.GetParentIndex(i);
-						FName ParentBoneName = SrcMesh->RefSkeleton.GetBoneName(ParentBoneIndex);
-						int32 DestParentIndex = NewRefSkeleton.FindBoneIndex(ParentBoneName);
-						check(DestParentIndex != INDEX_NONE); // Shouldn't be any way we are missing the parent - parents are always before children				
-
-						FMeshBoneInfo NewMeshBoneInfo = SrcMesh->RefSkeleton.GetRefBoneInfo()[i];
-						NewMeshBoneInfo.ParentIndex = DestParentIndex;
-
-						/*
-						// Bone insertion -should- work, but there appears to be a bug with re-mapping the bones.
-						// For now, append new bones to the end until it's fixed so the meshes don't completely break.
-						int32 NewBoneIndex = DestParentIndex+1;
-						NewRefSkeleton.Insert(NewBoneIndex, NewMeshBoneInfo, SrcMesh->RefSkeleton.GetRefBonePose()[i]);
-						*/
-						
-						NewRefSkeleton.Add(NewMeshBoneInfo, SrcMesh->RefSkeleton.GetRefBonePose()[i]);
-					}
-				}
-			}
-		}
-	}
-
-	// Override the reference bone poses with those from a specific USkeletalMesh.
-	if (RefPoseOverrides)
-	{
-		OverrideReferenceSkeletonPose(*RefPoseOverrides, NewRefSkeleton);
-	}
-
-	// Now decrease the number of LODs we are going to make based on StripTopLODs - but make sure there is at least one
-	if(MaxNumLODs != INDEX_NONE)
-	{
-		MaxNumLODs = FMath::Max(MaxNumLODs - StripTopLODs, 1);
-	}
-
-	// Now new RefSkeleton is complete, create mapping from each input mesh bones to bones in the destination mesh.
-	for( int32 MeshIdx=0; MeshIdx < SrcMeshList.Num(); MeshIdx++ )
-	{
-		USkeletalMesh* SrcMesh = SrcMeshList[MeshIdx];
-		if(SrcMesh)
-		{
 			FMergeMeshInfo& MeshInfo = SrcMeshInfo[MeshIdx];
 			MeshInfo.SrcToDestRefSkeletonMap.AddUninitialized(SrcMesh->RefSkeleton.GetNum());
 
-			for(int32 i=0; i<SrcMesh->RefSkeleton.GetNum(); i++)
+			for (int32 i = 0; i < SrcMesh->RefSkeleton.GetNum(); i++)
 			{
 				FName SrcBoneName = SrcMesh->RefSkeleton.GetBoneName(i);
 				int32 DestBoneIndex = NewRefSkeleton.FindBoneIndex(SrcBoneName);
@@ -172,79 +133,71 @@ bool FSkeletalMeshMerge::DoMerge(TArray<FRefPoseOverride>* RefPoseOverrides /* =
 	}
 
 	// If things are going ok so far...
-	if(Result)
+	if (Result)
 	{
-		if( MaxNumLODs == INDEX_NONE )
-		{
-			UE_LOG(LogSkeletalMesh, Warning, TEXT("FSkeletalMeshMerge: Invalid source mesh list") );
-			Result = false;
-		}
-		else
-		{
-			// initialize merge mesh
-			MergeMesh->LODInfo.Empty(MaxNumLODs);
-			SkelMeshResource->LODModels.Empty(MaxNumLODs);
-			MergeMesh->Materials.Empty();
+		FSkeletalMeshResource* SkelMeshResource = MergeMesh->GetImportedResource();
 
-			// Array of per-lod number of UV sets
-			TArray<uint32> PerLODNumUVSets;
-			TArray<bool> PerLODExtraBoneInfluences;
-			PerLODNumUVSets.AddZeroed( MaxNumLODs );
-			PerLODExtraBoneInfluences.AddZeroed(MaxNumLODs);
+		// force 16 bit UVs if supported on hardware
+		MergeMesh->bUseFullPrecisionUVs = GVertexElementTypeSupport.IsSupported(VET_Half2) ? false : true;
 
-			// Get the number of UV sets for each LOD.
-			for( int32 MeshIdx=0; MeshIdx < SrcMeshList.Num(); MeshIdx++ )
+		// Array of per-lod number of UV sets
+		TArray<uint32> PerLODNumUVSets;
+		TArray<bool> PerLODExtraBoneInfluences;
+		PerLODNumUVSets.AddZeroed(MaxNumLODs);
+		PerLODExtraBoneInfluences.AddZeroed(MaxNumLODs);
+
+		// Get the number of UV sets for each LOD.
+		for (int32 MeshIdx = 0; MeshIdx < SrcMeshList.Num(); MeshIdx++)
+		{
+			USkeletalMesh* SrcSkelMesh = SrcMeshList[MeshIdx];
+			FSkeletalMeshResource* SrcResource = SrcSkelMesh->GetImportedResource();
+
+			for (int32 LODIdx = 0; LODIdx < MaxNumLODs; LODIdx++)
 			{
-				USkeletalMesh* SrcSkelMesh = SrcMeshList[MeshIdx];
-				FSkeletalMeshResource* SrcResource = SrcSkelMesh->GetImportedResource();
-				
-				for( int32 LODIdx=0; LODIdx < MaxNumLODs; LODIdx++ )
+				if (SrcResource->LODModels.IsValidIndex(LODIdx))
 				{
-					if( SrcResource->LODModels.IsValidIndex( LODIdx ) )
-					{
-						uint32& NumUVSets = PerLODNumUVSets[ LODIdx ];
-						NumUVSets = FMath::Max( NumUVSets, SrcResource->LODModels[ LODIdx ].NumTexCoords );
+					uint32& NumUVSets = PerLODNumUVSets[LODIdx];
+					NumUVSets = FMath::Max(NumUVSets, SrcResource->LODModels[LODIdx].NumTexCoords);
 
-						PerLODExtraBoneInfluences[LODIdx] |= SrcResource->LODModels[ LODIdx ].DoChunksNeedExtraBoneInfluences();
-					}
+					PerLODExtraBoneInfluences[LODIdx] |= SrcResource->LODModels[LODIdx].DoChunksNeedExtraBoneInfluences();
 				}
 			}
+		}
 
-			// process each LOD for the new merged mesh
-			for( int32 LODIdx=0; LODIdx < MaxNumLODs; LODIdx++ )
+		// process each LOD for the new merged mesh
+		for (int32 LODIdx = 0; LODIdx < MaxNumLODs; LODIdx++)
+		{
+			if (!MergeMesh->bUseFullPrecisionUVs)
 			{
-				if( !MergeMesh->bUseFullPrecisionUVs )
+				if (PerLODExtraBoneInfluences[LODIdx])
 				{
-					if (PerLODExtraBoneInfluences[LODIdx])
-					{
-						GENERATE_LOD_MODEL(TGPUSkinVertexFloat16Uvs, PerLODNumUVSets[LODIdx], true);
-					}
-					else
-					{
-						GENERATE_LOD_MODEL(TGPUSkinVertexFloat16Uvs, PerLODNumUVSets[LODIdx], false);
-					}
+					GENERATE_LOD_MODEL(TGPUSkinVertexFloat16Uvs, PerLODNumUVSets[LODIdx], true);
 				}
 				else
 				{
-					if (PerLODExtraBoneInfluences[LODIdx])
-					{
-						GENERATE_LOD_MODEL(TGPUSkinVertexFloat32Uvs, PerLODNumUVSets[LODIdx], true);
-					}
-					else
-					{
-						GENERATE_LOD_MODEL(TGPUSkinVertexFloat32Uvs, PerLODNumUVSets[LODIdx], false);
-					}
+					GENERATE_LOD_MODEL(TGPUSkinVertexFloat16Uvs, PerLODNumUVSets[LODIdx], false);
 				}
 			}
-			// update the merge skel mesh entries
-			if( !ProcessMergeMesh() )
+			else
 			{
-				Result = false;
+				if (PerLODExtraBoneInfluences[LODIdx])
+				{
+					GENERATE_LOD_MODEL(TGPUSkinVertexFloat32Uvs, PerLODNumUVSets[LODIdx], true);
+				}
+				else
+				{
+					GENERATE_LOD_MODEL(TGPUSkinVertexFloat32Uvs, PerLODNumUVSets[LODIdx], false);
+				}
 			}
-
-			// Reinitialize the mesh's render resources.
-			MergeMesh->InitResources();
 		}
+		// update the merge skel mesh entries
+		if (!ProcessMergeMesh())
+		{
+			Result = false;
+		}
+
+		// Reinitialize the mesh's render resources.
+		MergeMesh->InitResources();
 	}
 
 	return Result;
@@ -614,6 +567,7 @@ void FSkeletalMeshMerge::GenerateLODModel( int32 LODIdx )
 
 	// sort required bone array in strictly increasing order
 	MergeLODModel.RequiredBones.Sort();
+	MergeLODModel.ActiveBoneIndices.Sort();
 
 	// copy the new vertices and indices to the vertex buffer for the new model
 	MergeLODModel.VertexBufferGPUSkin.SetUseFullPrecisionUVs(MergeMesh->bUseFullPrecisionUVs);
@@ -649,9 +603,6 @@ bool FSkeletalMeshMerge::ProcessMergeMesh()
 	// copy settings and bone info from src meshes
 	bool bNeedsInit=true;
 
-	// Assign new ref skeleton
-	MergeMesh->RefSkeleton = NewRefSkeleton;
-
 	MergeMesh->SkelMirrorTable.Empty();
 
 	for( int32 MeshIdx=0; MeshIdx < SrcMeshList.Num(); MeshIdx++ )
@@ -659,37 +610,18 @@ bool FSkeletalMeshMerge::ProcessMergeMesh()
 		USkeletalMesh* SrcMesh = SrcMeshList[MeshIdx];
 		if( SrcMesh )
 		{
-			TArray<USkeletalMeshSocket*>& SrcSockets = SrcMesh->GetMeshOnlySocketList();
-			TArray<USkeletalMeshSocket*>& MergeSockets = MergeMesh->GetMeshOnlySocketList();
-
 			if( bNeedsInit )
 			{
-				MergeMesh->RefBasesInvMatrix = SrcMesh->RefBasesInvMatrix;
-
 				// initialize the merged mesh with the first src mesh entry used
 				MergeMesh->Bounds = SrcMesh->Bounds;
 				MergeMesh->SkelMirrorAxis = SrcMesh->SkelMirrorAxis;
 				MergeMesh->SkelMirrorFlipAxis = SrcMesh->SkelMirrorFlipAxis;
-
-				MergeSockets.AddZeroed(SrcSockets.Num());
-				for( int32 SocketIdx=0; SocketIdx < SrcSockets.Num(); SocketIdx++ )
-				{
-					USkeletalMeshSocket* DupSocket = CastChecked<USkeletalMeshSocket>(StaticDuplicateObject( SrcSockets[SocketIdx], MergeMesh, TEXT("None") ));
-					MergeSockets[SocketIdx] = DupSocket;
-				}
 
 				// only initialize once
 				bNeedsInit = false;
 			}
 			else
 			{
-				// merge sockets USkeletalMesh::Sockets
-				for( int32 SocketIdx=0; SocketIdx < SrcSockets.Num(); SocketIdx++ )
-				{
-					USkeletalMeshSocket* DupSocket = CastChecked<USkeletalMeshSocket>(StaticDuplicateObject( SrcSockets[SocketIdx], MergeMesh, TEXT("None") ));
-					MergeSockets.AddUnique( DupSocket );
-				}
-
 				// add bounds
 				MergeMesh->Bounds = MergeMesh->Bounds + SrcMesh->Bounds;
 			}			
@@ -701,6 +633,90 @@ bool FSkeletalMeshMerge::ProcessMergeMesh()
 	MergeMesh->CalculateInvRefMatrices();
 
 	return Result;
+}
+
+int32 FSkeletalMeshMerge::CalculateLodCount(const TArray<USkeletalMesh*>& SourceMeshList) const
+{
+	int32 LodCount = INT_MAX;
+
+	for (int32 i = 0, MeshCount = SourceMeshList.Num(); i < MeshCount; ++i)
+	{
+		USkeletalMesh* SourceMesh = SourceMeshList[i];
+
+		if (SourceMesh)
+		{
+			LodCount = FMath::Min<int32>(LodCount, SourceMesh->LODInfo.Num());
+		}
+	}
+
+	if (LodCount == INT_MAX)
+	{
+		return -1;
+	}
+
+	// Decrease the number of LODs we are going to make based on StripTopLODs.
+	// But, make sure there is at least one.
+
+	LodCount -= StripTopLODs;
+	LodCount = FMath::Min(LodCount, 1);
+	
+	return LodCount;
+}
+
+void FSkeletalMeshMerge::BuildReferenceSkeleton(const TArray<USkeletalMesh*>& SourceMeshList, FReferenceSkeleton& RefSkeleton)
+{
+	RefSkeleton.Empty();
+
+	// Iterate through all the source mesh reference skeletons and compose the merged reference skeleton.
+
+	for (int32 MeshIndex = 0; MeshIndex < SourceMeshList.Num(); ++MeshIndex)
+	{
+		USkeletalMesh* SourceMesh = SourceMeshList[MeshIndex];
+
+		if (!SourceMesh)
+		{
+			continue;
+		}
+
+		// Initialise new RefSkeleton with first mesh.
+
+		if (RefSkeleton.GetNum() == 0)
+		{
+			RefSkeleton = SourceMesh->RefSkeleton;
+			continue;
+		}
+
+		// For subsequent meshes, add any missing bones.
+
+		for (int32 i = 1; i < SourceMesh->RefSkeleton.GetNum(); ++i)
+		{
+			FName SourceBoneName = SourceMesh->RefSkeleton.GetBoneName(i);
+			int32 TargetBoneIndex = RefSkeleton.FindBoneIndex(SourceBoneName);
+
+			// If the source bone is present in the new RefSkeleton, we skip it.
+
+			if (TargetBoneIndex != INDEX_NONE)
+			{
+				continue;
+			}
+
+			// Add the source bone to the RefSkeleton.
+
+			int32 SourceParentIndex = SourceMesh->RefSkeleton.GetParentIndex(i);
+			FName SourceParentName = SourceMesh->RefSkeleton.GetBoneName(SourceParentIndex);
+			int32 TargetParentIndex = RefSkeleton.FindBoneIndex(SourceParentName);
+
+			if (TargetParentIndex == INDEX_NONE)
+			{
+				continue;
+			}
+
+			FMeshBoneInfo MeshBoneInfo = SourceMesh->RefSkeleton.GetRefBoneInfo()[i];
+			MeshBoneInfo.ParentIndex = TargetParentIndex;
+
+			RefSkeleton.Add(MeshBoneInfo, SourceMesh->RefSkeleton.GetRefBonePose()[i]);
+		}
+	}
 }
 
 void FSkeletalMeshMerge::OverrideReferenceSkeletonPose(const TArray<FRefPoseOverride>& PoseOverrides, FReferenceSkeleton& TargetSkeleton)
@@ -745,8 +761,154 @@ bool FSkeletalMeshMerge::OverrideReferenceBonePose(int32 SourceBoneIndex, const 
 	{
 		const FTransform& SourceBoneTransform = SourceSkeleton.GetRefBonePose()[SourceBoneIndex];
 		TargetSkeleton.UpdateRefPoseTransform(TargetBoneIndex, SourceBoneTransform);
+
 		return true;
 	}
 
 	return false;
+}
+
+void FSkeletalMeshMerge::ReleaseResources(int32 Slack)
+{
+	FSkeletalMeshResource* Resource = MergeMesh->GetImportedResource();
+
+	MergeMesh->ReleaseResources();
+	MergeMesh->ReleaseResourcesFence.Wait();
+
+	Resource->LODModels.Empty(Slack);
+	MergeMesh->LODInfo.Empty(Slack);
+	MergeMesh->Materials.Empty();
+}
+
+bool FSkeletalMeshMerge::AddSocket(const USkeletalMeshSocket* Socket)
+{
+	TArray<USkeletalMeshSocket*>& SocketList = MergeMesh->GetMeshOnlySocketList();
+
+	for (int32 i = 0, SocketCount = SocketList.Num(); i < SocketCount; ++i)
+	{
+		if (SocketList[i]->SocketName == Socket->SocketName)
+		{
+			return false;
+		}
+	}
+
+	USkeletalMeshSocket* NewSocket = CastChecked<USkeletalMeshSocket>(StaticDuplicateObject(Socket, MergeMesh, TEXT("None")));
+	SocketList.Add(NewSocket);
+
+	return true;
+}
+
+void FSkeletalMeshMerge::AddSockets(const TArray<USkeletalMeshSocket*>& SocketList)
+{
+	for (int32 i = 0, SocketCount = SocketList.Num(); i < SocketCount; ++i)
+	{
+		USkeletalMeshSocket* Socket = SocketList[i];
+		AddSocket(Socket);
+	}
+}
+
+void FSkeletalMeshMerge::BuildSockets(const TArray<USkeletalMesh*>& SourceMeshList)
+{
+	MergeMesh->GetMeshOnlySocketList().Empty();
+
+	// Iterate through the all the source MESH sockets, only adding the new sockets.
+
+	for (int32 MeshIndex = 0, MeshCount = SourceMeshList.Num(); MeshIndex < MeshCount; ++MeshIndex)
+	{
+		USkeletalMesh* SourceMesh = SourceMeshList[MeshIndex];
+
+		if (!SourceMesh)
+		{
+			continue;
+		}
+
+		const TArray<USkeletalMeshSocket*>& MeshSocketList = SourceMesh->GetMeshOnlySocketList();
+		AddSockets(MeshSocketList);
+	}
+
+	// Iterate through the all the source SKELETON sockets, only adding the new sockets.
+
+	for (int32 MeshIndex = 0, MeshCount = SourceMeshList.Num(); MeshIndex < MeshCount; ++MeshIndex)
+	{
+		USkeletalMesh* SourceMesh = SourceMeshList[MeshIndex];
+
+		if (!SourceMesh)
+		{
+			continue;
+		}
+
+		const TArray<USkeletalMeshSocket*>& SkeletonSocketList = SourceMesh->Skeleton->Sockets;
+		AddSockets(SkeletonSocketList);
+	}
+}
+
+void FSkeletalMeshMerge::OverrideSocket(const USkeletalMeshSocket* SourceSocket)
+{
+	TArray<USkeletalMeshSocket*>& SocketList = MergeMesh->GetMeshOnlySocketList();
+
+	for (int32 i = 0, SocketCount = SocketList.Num(); i < SocketCount; ++i)
+	{
+		USkeletalMeshSocket* TargetSocket = SocketList[i];
+
+		if (TargetSocket->SocketName == SourceSocket->SocketName)
+		{
+			TargetSocket->BoneName = SourceSocket->BoneName;
+			TargetSocket->RelativeLocation = SourceSocket->RelativeLocation;
+			TargetSocket->RelativeRotation = SourceSocket->RelativeRotation;
+			TargetSocket->RelativeScale = SourceSocket->RelativeScale;
+		}
+	}
+}
+
+void FSkeletalMeshMerge::OverrideBoneSockets(const FName& BoneName, const TArray<USkeletalMeshSocket*>& SourceSocketList)
+{
+	for (int32 i = 0, SourceSocketCount = SourceSocketList.Num(); i < SourceSocketCount; ++i)
+	{
+		const USkeletalMeshSocket* SourceSocket = SourceSocketList[i];
+
+		if (SourceSocket->BoneName == BoneName)
+		{
+			OverrideSocket(SourceSocket);
+		}
+	}
+}
+
+void FSkeletalMeshMerge::OverrideMergedSockets(const TArray<FRefPoseOverride>& PoseOverrides)
+{
+	for (int32 i = 0, PoseMax = PoseOverrides.Num(); i < PoseMax; ++i)
+	{
+		const FRefPoseOverride& PoseOverride = PoseOverrides[i];
+		const FReferenceSkeleton& SourceSkeleton = PoseOverride.SkeletalMesh->RefSkeleton;
+
+		const TArray<USkeletalMeshSocket*>& SkeletonSocketList = PoseOverride.SkeletalMesh->Skeleton->Sockets;
+		const TArray<USkeletalMeshSocket*>& MeshSocketList = const_cast<USkeletalMesh*>(PoseOverride.SkeletalMesh)->GetMeshOnlySocketList();
+
+		for (int32 j = 0, BoneMax = PoseOverride.BoneNames.Num(); j < BoneMax; ++j)
+		{
+			const FName& BoneName = PoseOverride.BoneNames[j];
+			int32 SourceBoneIndex = SourceSkeleton.FindBoneIndex(BoneName);
+
+			if (SourceBoneIndex != INDEX_NONE)
+			{
+				OverrideBoneSockets(BoneName, SkeletonSocketList);
+				OverrideBoneSockets(BoneName, MeshSocketList);
+
+				bool bOverrideChildren = PoseOverride.OverrideChildren[j];
+
+				if (bOverrideChildren)
+				{
+					for (int32 ChildBoneIndex = SourceBoneIndex + 1; ChildBoneIndex < SourceSkeleton.GetNum(); ++ChildBoneIndex)
+					{
+						if (SourceSkeleton.BoneIsChildOf(ChildBoneIndex, SourceBoneIndex))
+						{
+							FName ChildBoneName = SourceSkeleton.GetBoneName(ChildBoneIndex);
+
+							OverrideBoneSockets(ChildBoneName, SkeletonSocketList);
+							OverrideBoneSockets(ChildBoneName, MeshSocketList);
+						}
+					}
+				}
+			}
+		}
+	}
 }

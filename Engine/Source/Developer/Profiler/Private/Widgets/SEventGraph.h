@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -71,8 +71,8 @@ public:
 	(
 		const EEventPropertyIndex::Type InIndex,
 		const FName InSearchID,
-		const FString InShortName,
-		const FString InDescription,
+		const FText InShortName,
+		const FText InDescription,
 		const bool bInCanBeHidden,
 		const bool bInIsVisible,
 		const bool bInCanBeSorted,
@@ -84,8 +84,8 @@ public:
 		: Index( InIndex )
 		, ID( FEventGraphSample::GetEventPropertyByIndex(InIndex).Name )
 		, SearchID( InSearchID )
-		, ShortName( InShortName )
-		, Description( InDescription )
+		, ShortName( MoveTemp(InShortName) )
+		, Description( MoveTemp(InDescription) )
 		, bCanBeHidden( bInCanBeHidden )
 		, bIsVisible( bInIsVisible )
 		, bCanBeSorted( bInCanBeSorted )
@@ -106,10 +106,10 @@ public:
 	FName SearchID;
 
 	/** Short name of the column, displayed in the event graph header. */
-	FString ShortName;
+	FText ShortName;
 
 	/** Long name of the column, displayed in the column tooltip. */
-	FString Description;
+	FText Description;
 
 	/** Whether this column can be hidden. */
 	bool bCanBeHidden;
@@ -247,11 +247,11 @@ protected:
 	void TreeView_Refresh();
 	void SetTreeItemsForViewMode( const EEventGraphViewModes::Type NewViewMode, EEventGraphTypes::Type NewEventGraphType );
 
-	void EventGraphViewMode_OnCheckStateChanged( ESlateCheckBoxState::Type NewRadioState, const EEventGraphViewModes::Type InViewMode );
-	ESlateCheckBoxState::Type EventGraphViewMode_IsChecked( const EEventGraphViewModes::Type InViewMode ) const;
+	void EventGraphViewMode_OnCheckStateChanged( ECheckBoxState NewRadioState, const EEventGraphViewModes::Type InViewMode );
+	ECheckBoxState EventGraphViewMode_IsChecked( const EEventGraphViewModes::Type InViewMode ) const;
 
-	void EventGraphType_OnCheckStateChanged( ESlateCheckBoxState::Type NewRadioState, const EEventGraphTypes::Type NewEventGraphType );
-	ESlateCheckBoxState::Type EventGraphType_IsChecked( const EEventGraphTypes::Type InEventGraphType ) const;
+	void EventGraphType_OnCheckStateChanged( ECheckBoxState NewRadioState, const EEventGraphTypes::Type NewEventGraphType );
+	ECheckBoxState EventGraphType_IsChecked( const EEventGraphTypes::Type InEventGraphType ) const;
 	bool EventGraphType_IsEnabled( const EEventGraphTypes::Type InEventGraphType ) const;
 
 	void FilteringSearchBox_OnTextChanged( const FText& InFilterText );
@@ -262,7 +262,7 @@ protected:
 	void EventGraph_BuildViewColumnMenu( FMenuBuilder& MenuBuilder );
 
 	FReply ExpandHotPath_OnClicked();
-	void HighlightHotPath_OnCheckStateChanged( ESlateCheckBoxState::Type InState );
+	void HighlightHotPath_OnCheckStateChanged( ECheckBoxState InState );
 
 	void InitializeAndShowHeaderColumns();
 	void TreeViewHeaderRow_OnSortModeChanged( const EColumnSortPriority::Type SortPriority, const FName& ColumnID, const EColumnSortMode::Type SortMode );
@@ -483,9 +483,9 @@ public:
 	}
 		
 protected:
-	void HistoryList_GoTo_ExecuteRadioState( ESlateCheckBoxState::Type NewRadioState, int32 StateIndex )
+	void HistoryList_GoTo_ExecuteRadioState( ECheckBoxState NewRadioState, int32 StateIndex )
 	{
-		if( NewRadioState == ESlateCheckBoxState::Checked )
+		if( NewRadioState == ECheckBoxState::Checked )
 		{
 			HistoryList_GoTo_Execute( StateIndex );
 		}
@@ -494,9 +494,9 @@ protected:
 	/** Handles FExecuteAction for HistoryList_GoTo. */
 	void HistoryList_GoTo_Execute( int32 StateIndex );
 
-	ESlateCheckBoxState::Type HistoryList_GoTo_IsCheckedRadioState( int32 StateIndex ) const
+	ECheckBoxState HistoryList_GoTo_IsCheckedRadioState( int32 StateIndex ) const
 	{
-		return HistoryList_GoTo_IsChecked( StateIndex ) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return HistoryList_GoTo_IsChecked( StateIndex ) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	/** Handles FIsActionChecked for HistoryList_GoTo. */

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "DockingPrivate.h"
@@ -468,6 +468,10 @@ void FTabManager::SetMenuMultiBox(const TSharedPtr< FMultiBox >& NewMenuMutliBox
 	{
 		UpdateMainMenu(false);
 	}
+	else
+	{
+		FSlateMacMenu::UpdateWithMultiBox(nullptr);
+	}
 #endif
 }
 
@@ -757,7 +761,6 @@ void FTabManager::PopulateTabSpawnerMenu_Helper( FMenuBuilder& PopulateMe, FPopu
 	}
 }
 
-
 void FTabManager::MakeSpawnerMenuEntry( FMenuBuilder &PopulateMe, const TSharedPtr<FTabSpawnerEntry> &SpawnerNode ) 
 {
 	auto CanExecuteMenuEntry = [](TAttribute<ETabSpawnerMenuType::Type> InMenuType) -> bool
@@ -859,7 +862,6 @@ void FTabManager::DrawAttention( const TSharedRef<SDockTab>& TabToHighlight )
 	TabToHighlight->FlashTab();
 }
 
-
 void FTabManager::InsertNewDocumentTab( FName PlaceholderId, ESearchPreference::Type SearchPreference, const TSharedRef<SDockTab>& UnmanagedTab )
 {
 	InsertDocumentTab(PlaceholderId, SearchPreference, UnmanagedTab, true);
@@ -869,7 +871,6 @@ void FTabManager::RestoreDocumentTab( FName PlaceholderId, ESearchPreference::Ty
 {
 	InsertDocumentTab(PlaceholderId, SearchPreference, UnmanagedTab, false);
 }
-
 
 TSharedRef<SDockTab> FTabManager::InvokeTab( const FTabId& TabId )
 {
@@ -916,7 +917,11 @@ TSharedRef<SDockTab> FTabManager::InvokeTab_Internal( const FTabId& TabId )
 
 		if ( ExistingTab.IsValid() )
 		{
-			DrawAttention( ExistingTab.ToSharedRef() );
+			if ( !ExistingTab->IsActive() )
+			{
+				// Draw attention to this tab if it didn't already have focus
+				DrawAttention( ExistingTab.ToSharedRef() );
+			}
 			return ExistingTab.ToSharedRef();
 		}
 	}
@@ -1031,7 +1036,6 @@ FTabManager::FTabManager( const TSharedPtr<SDockTab>& InOwnerTab, const TSharedR
 	LocalWorkspaceMenuRoot = FWorkspaceItem::NewGroup(LOCTEXT("LocalWorkspaceRoot", "Local Workspace Root"));
 }
 
-
 TSharedRef<SDockingArea> FTabManager::RestoreArea( const TSharedRef<FArea>& AreaToRestore, const TSharedPtr<SWindow>& InParentWindow, const bool bEmbedTitleAreaContent  )
 {
 	TSharedRef<SDockingNode> RestoredNode = RestoreArea_Helper( AreaToRestore, InParentWindow, bEmbedTitleAreaContent );	
@@ -1145,8 +1149,6 @@ TSharedRef<SDockingNode> FTabManager::RestoreArea_Helper( const TSharedRef<FLayo
 			RestoreSplitterContent( NodeAsArea.ToSharedRef(), NewDockAreaWidget.ToSharedRef(), ParentWindow );
 		}
 		
-		
-
 		return NewDockAreaWidget.ToSharedRef();
 	}
 	else if ( NodeAsSplitter.IsValid() ) 
@@ -1167,8 +1169,6 @@ TSharedRef<SDockingNode> FTabManager::RestoreArea_Helper( const TSharedRef<FLayo
 	}
 }
 
-
-
 void FTabManager::RestoreSplitterContent( const TSharedRef<FSplitter>& SplitterNode, const TSharedRef<SDockingSplitter>& SplitterWidget, const TSharedPtr<SWindow>& ParentWindow )
 {
 	// Restore the contents of this splitter.
@@ -1182,6 +1182,11 @@ void FTabManager::RestoreSplitterContent( const TSharedRef<FSplitter>& SplitterN
 	}
 }
 
+bool FTabManager::CanSpawnTab(FName TabId)
+{
+	TSharedPtr<FTabSpawnerEntry> Spawner = FindTabSpawnerFor(TabId);
+	return Spawner.IsValid();
+}
 
 bool FTabManager::IsValidTabForSpawning( const FTab& SomeTab ) const
 {
@@ -1189,7 +1194,6 @@ bool FTabManager::IsValidTabForSpawning( const FTab& SomeTab ) const
 	TSharedRef<FTabSpawnerEntry>* NomadSpawner = NomadTabSpawner->Find( SomeTab.TabId.TabType );
 	return ( !NomadSpawner || !NomadSpawner->Get().IsSoleTabInstanceSpawned() );
 }
-
 
 TSharedRef<SDockTab> FTabManager::SpawnTab( const FTabId& TabId, const TSharedPtr<SWindow>& ParentWindow )
 {
@@ -1234,8 +1238,6 @@ TSharedRef<SDockTab> FTabManager::SpawnTab( const FTabId& TabId, const TSharedPt
 	return NewTabWidget.ToSharedRef();
 }
 
-
-
 TSharedPtr<SDockTab> FTabManager::FindExistingLiveTab( const FTabId& TabId ) const
 {
 	for ( int32 AreaIndex = 0; AreaIndex < DockAreas.Num(); ++AreaIndex )
@@ -1256,7 +1258,6 @@ TSharedPtr<SDockTab> FTabManager::FindExistingLiveTab( const FTabId& TabId ) con
 
 	return TSharedPtr<SDockTab>();
 }
-
 
 TSharedPtr<class SDockingTabStack> FTabManager::FindTabInLiveAreas( const FTabMatcher& TabMatcher ) const
 {
@@ -1557,26 +1558,35 @@ const TSharedRef<FGlobalTabmanager>& FGlobalTabmanager::Get()
 	return Instance;
 }
 
-void FGlobalTabmanager::OnActiveTabChanged_Subscribe( const FOnActiveTabChanged::FDelegate& InDelegate )
+FDelegateHandle FGlobalTabmanager::OnActiveTabChanged_Subscribe( const FOnActiveTabChanged::FDelegate& InDelegate )
 {
-	OnActiveTabChanged.Add( InDelegate );
+	return OnActiveTabChanged.Add( InDelegate );
 }
-
-
 
 void FGlobalTabmanager::OnActiveTabChanged_Unsubscribe( const FOnActiveTabChanged::FDelegate& InDelegate )
 {
-	OnActiveTabChanged.Remove( InDelegate );
+	OnActiveTabChanged.DEPRECATED_Remove( InDelegate );
 }
 
+void FGlobalTabmanager::OnActiveTabChanged_Unsubscribe( FDelegateHandle Handle )
+{
+	OnActiveTabChanged.Remove( Handle );
+}
 
+FDelegateHandle FGlobalTabmanager::OnTabForegrounded_Subscribe(const FOnActiveTabChanged::FDelegate& InDelegate)
+{
+	return TabForegrounded.Add(InDelegate);
+}
+
+void FGlobalTabmanager::OnTabForegrounded_Unsubscribe(FDelegateHandle Handle)
+{
+	TabForegrounded.Remove(Handle);
+}
 
 TSharedPtr<class SDockTab> FGlobalTabmanager::GetActiveTab() const
 {
 	return ActiveTabPtr.Pin();
 }
-
-
 
 void FGlobalTabmanager::SetActiveTab( const TSharedPtr<class SDockTab>& NewActiveTab )
 {
@@ -1646,17 +1656,26 @@ bool FGlobalTabmanager::CanCloseManager( const TSet< TSharedRef<SDockTab> >& Tab
 	}
 
 	return bCanCloseManager;
+}
 
+TSharedPtr<SDockTab> FGlobalTabmanager::GetMajorTabForTabManager(const TSharedRef<FTabManager>& ChildManager)
+{
+	const int32 MajorTabIndex = SubTabManagers.IndexOfByPredicate(FindByManager(ChildManager));
+	if ( MajorTabIndex != INDEX_NONE )
+	{
+		return SubTabManagers[MajorTabIndex].MajorTab.Pin();
+	}
+
+	return TSharedPtr<SDockTab>();
 }
 
 void FGlobalTabmanager::DrawAttentionToTabManager( const TSharedRef<FTabManager>& ChildManager )
 {
-	const int32 MajorTabIndex = SubTabManagers.IndexOfByPredicate(FindByManager(ChildManager));
-	if (MajorTabIndex != INDEX_NONE)
+	TSharedPtr<SDockTab> Tab = GetMajorTabForTabManager(ChildManager);
+	if ( Tab.IsValid() )
 	{
-		this->DrawAttention( SubTabManagers[MajorTabIndex].MajorTab.Pin().ToSharedRef() );
+		this->DrawAttention(Tab.ToSharedRef());
 	}
-	
 }
 
 TSharedRef<FTabManager> FGlobalTabmanager::NewTabManager( const TSharedRef<SDockTab>& InOwnerTab )
@@ -1756,6 +1775,8 @@ void FGlobalTabmanager::OnTabForegrounded( const TSharedPtr<SDockTab>& NewForegr
 			BackgroundedTabManager->GetPrivateApi().HideWindows();
 		}
 	}
+
+	TabForegrounded.Broadcast(NewForegroundTab, BackgroundedTab);
 }
 
 void FGlobalTabmanager::OnTabRelocated( const TSharedRef<SDockTab>& RelocatedTab, const TSharedPtr<SWindow>& NewOwnerWindow )

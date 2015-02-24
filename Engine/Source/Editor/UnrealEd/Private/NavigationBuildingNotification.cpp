@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "MainFrame.h"
@@ -7,6 +7,7 @@
 #include "NavigationBuildingNotification.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 void FNavigationBuildingNotificationImpl::BuildStarted()
 {

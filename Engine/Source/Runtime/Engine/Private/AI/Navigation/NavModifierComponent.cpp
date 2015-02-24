@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "AI/NavigationModifier.h"
@@ -22,7 +22,7 @@ void UNavModifierComponent::CalcBounds()
 	}
 }
 
-void UNavModifierComponent::GetNavigationData(struct FNavigationRelevantData& Data) const
+void UNavModifierComponent::GetNavigationData(FNavigationRelevantData& Data) const
 {
 	Data.Modifiers.Add(FAreaNavModifier(Bounds, FTransform::Identity, AreaClass));
 }

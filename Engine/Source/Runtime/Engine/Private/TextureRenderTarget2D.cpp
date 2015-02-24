@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TextureRenderTarget2D.cpp: UTextureRenderTarget2D implementation
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/TextureRenderTarget2D.h"
 
 /*-----------------------------------------------------------------------------
 	UTextureRenderTarget2D

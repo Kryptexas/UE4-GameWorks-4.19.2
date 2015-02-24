@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MeshPaintPrivatePCH.h"
 
@@ -28,6 +28,12 @@
 #include "Runtime/Engine/Classes/PhysicsEngine/BodySetup.h"
 #include "SMeshPaint.h"
 #include "ComponentReregisterContext.h"
+#include "CanvasTypes.h"
+#include "Engine/Selection.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "EngineUtils.h"
+#include "Engine/StaticMeshActor.h"
+#include "Materials/MaterialInstanceConstant.h"
 
 #define LOCTEXT_NAMESPACE "MeshPaint_Mode"
 
@@ -145,9 +151,8 @@ void FEdModeMeshPaint::Enter()
 	
 	if (!Toolkit.IsValid())
 	{
-		auto ToolkitHost = FModuleManager::LoadModuleChecked< FLevelEditorModule >( "LevelEditor" ).GetFirstLevelEditor();
 		Toolkit = MakeShareable(new FMeshPaintToolKit);
-		Toolkit->Init(ToolkitHost);
+		Toolkit->Init(Owner->GetToolkitHost());
 	}
 
 	// Change the engine to draw selected objects without a color boost, but unselected objects will
@@ -1439,7 +1444,7 @@ void FEdModeMeshPaint::PaintMeshVertices(
 						bool bConvertSRGB = false;
 						FColor FillColor = Params.BrushColor.ToFColor(bConvertSRGB);
 						// Original mesh didn't have any colors, so just use a default color
-						InstanceMeshLODInfo->OverrideVertexColors->InitFromSingleColor(FColor(255, 255, 255), LODModel.GetNumVertices());
+						InstanceMeshLODInfo->OverrideVertexColors->InitFromSingleColor(FColor::White, LODModel.GetNumVertices());
 					}
 
 				}
@@ -1590,7 +1595,7 @@ void FEdModeMeshPaint::PaintMeshVertices(
 					}
 
 					// Check to see if the triangle is front facing
-					FVector TriangleNormal = ( TriVertices[ 1 ] - TriVertices[ 0 ] ^ TriVertices[ 2 ] - TriVertices[ 0 ] ).SafeNormal();
+					FVector TriangleNormal = ( TriVertices[ 1 ] - TriVertices[ 0 ] ^ TriVertices[ 2 ] - TriVertices[ 0 ] ).GetSafeNormal();
 					const float SignedPlaneDist = FVector::PointPlaneDist( ComponentSpaceCameraPosition, TriVertices[ 0 ], TriangleNormal );
 					if( !bOnlyFrontFacing || SignedPlaneDist < 0.0f )
 					{
@@ -1826,7 +1831,7 @@ void FEdModeMeshPaint::PaintMeshTexture( UStaticMeshComponent* StaticMeshCompone
 		{
 			// Check to see if the triangle is front facing
 			FMeshTriangle const& CurrentTri = TriIt.GetCurrentElement();
-			FVector TriangleNormal = ( CurrentTri.Vertices[ 1 ] - CurrentTri.Vertices[ 0 ] ^ CurrentTri.Vertices[ 2 ] - CurrentTri.Vertices[ 0 ] ).SafeNormal();
+			FVector TriangleNormal = ( CurrentTri.Vertices[ 1 ] - CurrentTri.Vertices[ 0 ] ^ CurrentTri.Vertices[ 2 ] - CurrentTri.Vertices[ 0 ] ).GetSafeNormal();
 			const float SignedPlaneDist = FVector::PointPlaneDist( ComponentSpaceCameraPosition, CurrentTri.Vertices[ 0 ], TriangleNormal );
 			if( !bOnlyFrontFacing || SignedPlaneDist < 0.0f )
 			{
@@ -3665,7 +3670,7 @@ void FEdModeMeshPaint::CopyInstanceVertexColors()
 			{
 				if( StaticMeshComponent )
 				{
-					FPerComponentVertexColorData& PerComponentData = CopiedColorsByComponent[CopiedColorsByComponent.Add(FPerComponentVertexColorData(StaticMeshComponent->StaticMesh, StaticMeshComponent->GetSerializedComponentIndex()))];
+					FPerComponentVertexColorData& PerComponentData = CopiedColorsByComponent[CopiedColorsByComponent.Add(FPerComponentVertexColorData(StaticMeshComponent->StaticMesh, StaticMeshComponent->GetBlueprintCreatedComponentIndex()))];
 
 					int32 NumLODs = StaticMeshComponent->StaticMesh->GetNumLODs();
 					for( int32 CurLODIndex = 0; CurLODIndex < NumLODs; ++CurLODIndex )
@@ -3708,8 +3713,8 @@ void FEdModeMeshPaint::CopyInstanceVertexColors()
 								// mismatched or empty color buffer - just use white
 								for( uint32 VertexIndex = 0; VertexIndex < NumPosVertices; VertexIndex++ )
 								{
-									LodColorData.ColorsByIndex.Add( FColor(255,255,255,255) );
-									LodColorData.ColorsByPosition.Add( PosBuffer->VertexPosition( VertexIndex ), FColor(255,255,255,255) );
+									LodColorData.ColorsByIndex.Add( FColor::White );
+									LodColorData.ColorsByPosition.Add( PosBuffer->VertexPosition( VertexIndex ), FColor::White );
 								}
 							}
 						}
@@ -3754,12 +3759,12 @@ void FEdModeMeshPaint::PasteInstanceVertexColors()
 					}
 
 					// attempt to find a matching component in our clipboard data
-					const int32 SerializedComponentIndex = StaticMeshComponent->GetSerializedComponentIndex();
+					const int32 BlueprintCreatedComponentIndex = StaticMeshComponent->GetBlueprintCreatedComponentIndex();
 					FPerComponentVertexColorData* FoundColors = NULL;
 					for(auto& CopiedColors : CopiedColorsByComponent)
 					{
 						if(CopiedColors.OriginalMesh.Get() == StaticMeshComponent->StaticMesh &&
-							CopiedColors.ComponentIndex == SerializedComponentIndex)
+							CopiedColors.ComponentIndex == BlueprintCreatedComponentIndex)
 						{
 							FoundColors = &CopiedColors;
 							break;
@@ -3791,7 +3796,7 @@ void FEdModeMeshPaint::PasteInstanceVertexColors()
 
 								for (int32 TargetVertIdx = 0; TargetVertIdx < LodRenderData.GetNumVertices(); TargetVertIdx++)
 								{
-									ReOrderedColors[TargetVertIdx] = FColor(255,255,255,255);
+									ReOrderedColors[TargetVertIdx] = FColor::White;
 								}
 							}
 							else if (LodRenderData.GetNumVertices() == FoundColors->PerLODVertexColorData[CurLODIndex].ColorsByIndex.Num())
@@ -3819,7 +3824,7 @@ void FEdModeMeshPaint::PasteInstanceVertexColors()
 									else
 									{
 										// A matching color for this vertex could not be found. Make this vertex white
-										ReOrderedColors[TargetVertIdx] = FColor(255,255,255,255);
+										ReOrderedColors[TargetVertIdx] = FColor::White;
 									}
 								}
 							}

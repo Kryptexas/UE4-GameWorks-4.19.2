@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
 
@@ -32,6 +32,10 @@
 #include "LandscapeSplinesComponent.h"
 #include "Foliage/InstancedFoliageActor.h"
 #include "ComponentReregisterContext.h"
+#include "Engine/Selection.h"
+#include "LandscapeGizmoActiveActor.h"
+#include "EngineUtils.h"
+#include "Engine/Light.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -114,7 +118,7 @@ void ALandscape::SplitHeightmap(ULandscapeComponent* Comp, bool bMoveToCurrentLe
 			MipSubsectionSizeQuads = ((MipSubsectionSizeQuads + 1) >> 1) - 1;
 		}
 
-		Comp->HeightmapScaleBias = FVector4(1.f / (float)HeightmapSizeU, 1.f / (float)HeightmapSizeV, 0.f, 0.f);
+		Comp->HeightmapScaleBias = FVector4(1.0f / (float)HeightmapSizeU, 1.0f / (float)HeightmapSizeV, 0.0f, 0.0f);
 		Comp->HeightmapTexture = HeightmapTexture;
 
 		if (Comp->MaterialInstance)
@@ -158,10 +162,7 @@ FEdModeLandscape::FEdModeLandscape()
 	, LandscapeRenderAddCollision(nullptr)
 	, CachedLandscapeMaterial(nullptr)
 	, bToolActive(false)
-	, GizmoMaterial(nullptr)
 {
-	GizmoMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EditorLandscapeResources/GizmoMaterial.GizmoMaterial"), NULL, LOAD_None, NULL);
-
 	GLayerDebugColorMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EditorLandscapeResources/LayerVisMaterial.LayerVisMaterial"), NULL, LOAD_None, NULL);
 	GSelectionColorMaterial = LoadObject<UMaterialInstanceConstant>(NULL, TEXT("/Engine/EditorLandscapeResources/SelectBrushMaterial_Selected.SelectBrushMaterial_Selected"), NULL, LOAD_None, NULL);
 	GSelectionRegionMaterial = LoadObject<UMaterialInstanceConstant>(NULL, TEXT("/Engine/EditorLandscapeResources/SelectBrushMaterial_SelectedRegion.SelectBrushMaterial_SelectedRegion"), NULL, LOAD_None, NULL);
@@ -236,7 +237,6 @@ void FEdModeLandscape::AddReferencedObjects(FReferenceCollector& Collector)
 
 	Collector.AddReferencedObject(UISettings);
 
-	Collector.AddReferencedObject(GizmoMaterial);
 	Collector.AddReferencedObject(GLayerDebugColorMaterial);
 	Collector.AddReferencedObject(GSelectionColorMaterial);
 	Collector.AddReferencedObject(GSelectionRegionMaterial);
@@ -317,8 +317,8 @@ void FEdModeLandscape::Enter()
 	UpdateLandscapeList();
 	UpdateTargetList();
 
-	FEditorSupportDelegates::WorldChange.AddRaw(this, &FEdModeLandscape::OnWorldChange);
-	UMaterial::OnMaterialCompilationFinished().AddRaw(this, &FEdModeLandscape::OnMaterialCompilationFinished);
+	OnWorldChangeDelegateHandle                 = FEditorSupportDelegates::WorldChange.AddRaw(this, &FEdModeLandscape::OnWorldChange);
+	OnMaterialCompilationFinishedDelegateHandle = UMaterial::OnMaterialCompilationFinished().AddRaw(this, &FEdModeLandscape::OnMaterialCompilationFinished);
 
 	if (CurrentGizmoActor.IsValid())
 	{
@@ -350,7 +350,7 @@ void FEdModeLandscape::Enter()
 			uint8* TexData = CurrentGizmoActor->GizmoTexture->Source.LockMip(0);
 			FMemory::Memset(TexData, 0, SquaredDataTex*sizeof(uint8));
 			// Restore Sampled Data if exist...
-			if (CurrentGizmoActor->CachedScaleXY > 0.f)
+			if (CurrentGizmoActor->CachedScaleXY > 0.0f)
 			{
 				int32 SizeX = FMath::CeilToInt(CurrentGizmoActor->CachedWidth / CurrentGizmoActor->CachedScaleXY);
 				int32 SizeY = FMath::CeilToInt(CurrentGizmoActor->CachedHeight / CurrentGizmoActor->CachedScaleXY);
@@ -425,10 +425,8 @@ void FEdModeLandscape::Enter()
 	// Create the landscape editor window
 	if (!Toolkit.IsValid())
 	{
-		// @todo: Remove this assumption when we make modes per level editor instead of global
-		auto ToolkitHost = FModuleManager::LoadModuleChecked< FLevelEditorModule >("LevelEditor").GetFirstLevelEditor();
 		Toolkit = MakeShareable(new FLandscapeToolKit);
-		Toolkit->Init(ToolkitHost);
+		Toolkit->Init(Owner->GetToolkitHost());
 	}
 
 	// Force real-time viewports.  We'll back up the current viewport state so we can restore it when the
@@ -448,8 +446,8 @@ void FEdModeLandscape::Enter()
 /** FEdMode: Called when the mode is exited */
 void FEdModeLandscape::Exit()
 {
-	FEditorSupportDelegates::WorldChange.RemoveRaw(this, &FEdModeLandscape::OnWorldChange);
-	UMaterial::OnMaterialCompilationFinished().RemoveRaw(this, &FEdModeLandscape::OnMaterialCompilationFinished);
+	FEditorSupportDelegates::WorldChange.Remove(OnWorldChangeDelegateHandle);
+	UMaterial::OnMaterialCompilationFinished().Remove(OnMaterialCompilationFinishedDelegateHandle);
 
 	// Restore real-time viewport state if we changed it
 	const bool bWantRealTime = false;
@@ -548,7 +546,7 @@ void FEdModeLandscape::Tick(FEditorViewportClient* ViewportClient, float DeltaTi
 			}
 		}
 
-		if (CurrentTool && CurrentTool)
+		if (CurrentTool)
 		{
 			CurrentTool->Tick(ViewportClient, DeltaTime);
 		}
@@ -569,7 +567,7 @@ bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewpor
 {
 	if (bToolActive && !Viewport->KeyState(EKeys::LeftMouseButton))
 	{
-		if (CurrentTool && CurrentTool)
+		if (CurrentTool)
 		{
 			CurrentTool->EndTool(ViewportClient);
 			bToolActive = false;
@@ -584,9 +582,9 @@ bool FEdModeLandscape::MouseMove(FEditorViewportClient* ViewportClient, FViewpor
 	bool Result = false;
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
-		if (CurrentTool && CurrentTool)
+		if (CurrentTool)
 		{
-			Result = CurrentTool && CurrentTool->MouseMove(ViewportClient, Viewport, MouseX, MouseY);
+			Result = CurrentTool->MouseMove(ViewportClient, Viewport, MouseX, MouseY);
 			//ViewportClient->Invalidate( false, false );
 		}
 	}
@@ -658,7 +656,7 @@ namespace
 		}
 
 		FVector BaryCentric = FMath::ComputeBaryCentric2D(IntersectPoint, A, B, C);
-		if (BaryCentric.X > 0.f && BaryCentric.Y > 0.f && BaryCentric.Z > 0.f)
+		if (BaryCentric.X > 0.0f && BaryCentric.Y > 0.0f && BaryCentric.Z > 0.0f)
 		{
 			return true;
 		}
@@ -739,9 +737,9 @@ bool FEdModeLandscape::LandscapeMouseTrace(FEditorViewportClient* ViewportClient
 		FVector IntersectPoint;
 		LandscapeRenderAddCollision = NULL;
 		// Need to optimize collision for AddLandscapeComponent...?
-		for (auto It = CurrentToolTarget.LandscapeInfo->XYtoAddCollisionMap.CreateIterator(); It; ++It)
+		for (auto& XYToAddCollisionPair : CurrentToolTarget.LandscapeInfo->XYtoAddCollisionMap)
 		{
-			FLandscapeAddCollision& AddCollision = It.Value();
+			FLandscapeAddCollision& AddCollision = XYToAddCollisionPair.Value;
 			// Triangle 1
 			bCollided = RayIntersectTriangle(Start, End, AddCollision.Corners[0], AddCollision.Corners[3], AddCollision.Corners[1], IntersectPoint);
 			if (bCollided)
@@ -1147,9 +1145,13 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 	else
 	{
 		// Override Key Input for Selection Brush
-		if (CurrentBrush && CurrentBrush->InputKey(ViewportClient, Viewport, Key, Event) == true)
+		if (CurrentBrush)
 		{
-			return true;
+			TOptional<bool> BrushKeyOverride = CurrentBrush->InputKey(ViewportClient, Viewport, Key, Event);
+			if (BrushKeyOverride.IsSet())
+			{
+				return BrushKeyOverride.GetValue();
+			}
 		}
 
 		if (CurrentTool && CurrentTool->InputKey(ViewportClient, Viewport, Key, Event) == true)
@@ -1157,11 +1159,26 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			return true;
 		}
 
+		// Require Ctrl or not as per user preference
+		ELandscapeFoliageEditorControlType LandscapeEditorControlType = GetDefault<ULevelEditorViewportSettings>()->LandscapeEditorControlType;
+
+		// HACK - Splines tool has not yet been updated to support not using ctrl
+		if (CurrentBrush->GetBrushType() == ELandscapeBrushType::Splines)
+		{
+			LandscapeEditorControlType = ELandscapeFoliageEditorControlType::RequireCtrl;
+		}
+
 		if (Key == EKeys::LeftMouseButton && Event == IE_Pressed)
 		{
 			// Only activate tool if we're not already moving the camera and we're not trying to drag a transform widget
 			// Not using "if (!ViewportClient->IsMovingCamera())" because it's wrong in ortho viewports :D
-			if (!Viewport->KeyState(EKeys::MiddleMouseButton) && !Viewport->KeyState(EKeys::RightMouseButton) && !IsAltDown(Viewport) && ViewportClient->GetCurrentWidgetAxis() == EAxisList::None)
+			bool bMovingCamera = Viewport->KeyState(EKeys::MiddleMouseButton) || Viewport->KeyState(EKeys::RightMouseButton) || IsAltDown(Viewport);
+
+			if ((Viewport->IsPenActive() && Viewport->GetTabletPressure() > 0.0f) ||
+				(!bMovingCamera && ViewportClient->GetCurrentWidgetAxis() == EAxisList::None &&
+					((LandscapeEditorControlType == ELandscapeFoliageEditorControlType::IgnoreCtrl) ||
+					 (LandscapeEditorControlType == ELandscapeFoliageEditorControlType::RequireCtrl   && IsCtrlDown(Viewport)) ||
+					 (LandscapeEditorControlType == ELandscapeFoliageEditorControlType::RequireNoCtrl && !IsCtrlDown(Viewport)))))
 			{
 				if (CurrentTool && (CurrentTool->GetSupportedTargetTypes() == ELandscapeToolTargetTypeMask::NA || CurrentToolTarget.TargetType != ELandscapeToolTargetType::Invalid))
 				{
@@ -1189,7 +1206,8 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			}
 		}
 
-		if (Key == EKeys::LeftMouseButton)
+		if (Key == EKeys::LeftMouseButton ||
+			(LandscapeEditorControlType == ELandscapeFoliageEditorControlType::RequireCtrl && (Key == EKeys::LeftControl || Key == EKeys::RightControl)))
 		{
 			if (Event == IE_Released && CurrentTool && bToolActive)
 			{
@@ -1204,7 +1222,7 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 		// Change Brush Size
 		if ((Event == IE_Pressed || Event == IE_Repeat) && (Key == EKeys::LeftBracket || Key == EKeys::RightBracket))
 		{
-			if (CurrentBrush->GetBrushType() == FLandscapeBrush::BT_Component)
+			if (CurrentBrush->GetBrushType() == ELandscapeBrushType::Component)
 			{
 				int32 Radius = UISettings->BrushComponentSize;
 				if (Key == EKeys::LeftBracket)
@@ -1221,31 +1239,31 @@ bool FEdModeLandscape::InputKey(FEditorViewportClient* ViewportClient, FViewport
 			else
 			{
 				float Radius = UISettings->BrushRadius;
-				float SliderMin = 0.f;
-				float SliderMax = 8192.f;
+				float SliderMin = 0.0f;
+				float SliderMax = 8192.0f;
 				float LogPosition = FMath::Clamp(Radius / SliderMax, 0.0f, 1.0f);
-				float Diff = 0.05f; //6.f / SliderMax;
+				float Diff = 0.05f; //6.0f / SliderMax;
 				if (Key == EKeys::LeftBracket)
 				{
 					Diff = -Diff;
 				}
 
-				float NewValue = Radius*(1.f + Diff);
+				float NewValue = Radius*(1.0f + Diff);
 
 				if (Key == EKeys::LeftBracket)
 				{
-					NewValue = FMath::Min(NewValue, Radius - 1.f);
+					NewValue = FMath::Min(NewValue, Radius - 1.0f);
 				}
 				else
 				{
-					NewValue = FMath::Max(NewValue, Radius + 1.f);
+					NewValue = FMath::Max(NewValue, Radius + 1.0f);
 				}
 
 				NewValue = (int32)FMath::Clamp(NewValue, SliderMin, SliderMax);
 				// convert from Exp scale to linear scale
 				//float LinearPosition = 1.0f - FMath::Pow(1.0f - LogPosition, 1.0f / 3.0f);
-				//LinearPosition = FMath::Clamp(LinearPosition + Diff, 0.f, 1.f);
-				//float NewValue = FMath::Clamp((1.0f - FMath::Pow(1.0f - LinearPosition, 3.f)) * SliderMax, SliderMin, SliderMax);
+				//LinearPosition = FMath::Clamp(LinearPosition + Diff, 0.0f, 1.0f);
+				//float NewValue = FMath::Clamp((1.0f - FMath::Pow(1.0f - LinearPosition, 3.0f)) * SliderMax, SliderMin, SliderMax);
 				//float NewValue = FMath::Clamp((SliderMax - SliderMin) * LinearPosition + SliderMin, SliderMin, SliderMax);
 
 				UISettings->BrushRadius = NewValue;
@@ -1633,7 +1651,7 @@ int32 FEdModeLandscape::UpdateLandscapeList()
 		for (auto It = GetLandscapeInfoMap(GetWorld()).Map.CreateIterator(); It; ++It)
 		{
 			ULandscapeInfo* LandscapeInfo = It.Value();
-			if (LandscapeInfo)
+			if (LandscapeInfo && !LandscapeInfo->IsPendingKill())
 			{
 				if (CurrentToolTarget.LandscapeInfo == LandscapeInfo)
 				{
@@ -1831,7 +1849,7 @@ void FEdModeLandscape::Render(const FSceneView* View, FViewport* Viewport, FPrim
 			const TArray<uint16>& ImportHeights = UISettings->GetImportLandscapeData();
 			if (ImportHeights.Num() != 0)
 			{
-				const float InvQuadsPerComponent = 1.f / (float)QuadsPerComponent;
+				const float InvQuadsPerComponent = 1.0f / (float)QuadsPerComponent;
 				const int32 SizeX = ComponentCountX * QuadsPerComponent + 1;
 				const int32 SizeY = ComponentCountY * QuadsPerComponent + 1;
 				const int32 ImportSizeX = UISettings->ImportLandscape_Width;
@@ -1853,10 +1871,10 @@ void FEdModeLandscape::Render(const FSceneView* View, FViewport* Viewport, FPrim
 						const int32 X1 = (ComponentX + 1) * QuadsPerComponent;
 						const int32 ImportX0 = FMath::Clamp<int32>(X0 - OffsetX, 0, ImportSizeX - 1);
 						const int32 ImportX1 = FMath::Clamp<int32>(X1 - OffsetX, 0, ImportSizeX - 1);
-						const float Z00 = ((float)ImportHeights[ImportX0 + ImportY0 * ImportSizeX] - 32768.f) * LANDSCAPE_ZSCALE;
-						const float Z01 = ((float)ImportHeights[ImportX0 + ImportY1 * ImportSizeX] - 32768.f) * LANDSCAPE_ZSCALE;
-						const float Z10 = ((float)ImportHeights[ImportX1 + ImportY0 * ImportSizeX] - 32768.f) * LANDSCAPE_ZSCALE;
-						const float Z11 = ((float)ImportHeights[ImportX1 + ImportY1 * ImportSizeX] - 32768.f) * LANDSCAPE_ZSCALE;
+						const float Z00 = ((float)ImportHeights[ImportX0 + ImportY0 * ImportSizeX] - 32768.0f) * LANDSCAPE_ZSCALE;
+						const float Z01 = ((float)ImportHeights[ImportX0 + ImportY1 * ImportSizeX] - 32768.0f) * LANDSCAPE_ZSCALE;
+						const float Z10 = ((float)ImportHeights[ImportX1 + ImportY0 * ImportSizeX] - 32768.0f) * LANDSCAPE_ZSCALE;
+						const float Z11 = ((float)ImportHeights[ImportX1 + ImportY1 * ImportSizeX] - 32768.0f) * LANDSCAPE_ZSCALE;
 
 						if (ComponentX == 0)
 						{
@@ -2018,41 +2036,8 @@ void FEdModeLandscape::Render(const FSceneView* View, FViewport* Viewport, FPrim
 		PDI->DrawLine(LandscapeRenderAddCollision->Corners[3], LandscapeRenderAddCollision->Corners[0], FColor(0, 255, 128), SDPG_Foreground);
 	}
 
-	if (!GIsGizmoDragging && GLandscapeEditRenderMode & ELandscapeEditRenderMode::Gizmo && CurrentToolTarget.LandscapeInfo.IsValid() && CurrentGizmoActor.IsValid() && CurrentGizmoActor->TargetLandscapeInfo)
-	{
-		FDynamicMeshBuilder MeshBuilder;
-
-		for (int32 i = 0; i < 8; ++i)
-		{
-			MeshBuilder.AddVertex(CurrentGizmoActor->FrustumVerts[i], FVector2D(0, 0), FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), FColor(255, 255, 255));
-		}
-
-		// Upper box.
-		MeshBuilder.AddTriangle(0, 2, 1);
-		MeshBuilder.AddTriangle(0, 3, 2);
-		// Lower box.
-		MeshBuilder.AddTriangle(4, 6, 5);
-		MeshBuilder.AddTriangle(4, 7, 6);
-		// Others
-		MeshBuilder.AddTriangle(1, 4, 0);
-		MeshBuilder.AddTriangle(1, 5, 4);
-
-		MeshBuilder.AddTriangle(3, 6, 2);
-		MeshBuilder.AddTriangle(3, 7, 6);
-
-		MeshBuilder.AddTriangle(2, 5, 1);
-		MeshBuilder.AddTriangle(2, 6, 5);
-
-		MeshBuilder.AddTriangle(0, 7, 3);
-		MeshBuilder.AddTriangle(0, 4, 7);
-
-		PDI->SetHitProxy(new HTranslucentActor(CurrentGizmoActor.Get(), NULL));
-		MeshBuilder.Draw(PDI, FMatrix::Identity, GizmoMaterial->GetRenderProxy(false), SDPG_World, true);
-		PDI->SetHitProxy(NULL);
-	}
-
 	// Override Rendering for Splines Tool
-	if (CurrentTool && CurrentTool)
+	if (CurrentTool)
 	{
 		CurrentTool->Render(View, Viewport, PDI);
 	}
@@ -2090,7 +2075,7 @@ EAxisList::Type FEdModeLandscape::GetWidgetAxisToDraw(FWidget::EWidgetMode InWid
 	if (NewLandscapePreviewMode == ENewLandscapePreviewMode::None)
 	{
 		// Override Widget for Splines Tool
-		if (CurrentTool && CurrentTool)
+		if (CurrentTool)
 		{
 			return CurrentTool->GetWidgetAxisToDraw(InWidgetMode);
 		}
@@ -2129,7 +2114,7 @@ FVector FEdModeLandscape::GetWidgetLocation() const
 	}
 
 	// Override Widget for Splines Tool
-	if (CurrentTool && CurrentTool)
+	if (CurrentTool)
 	{
 		return CurrentTool->GetWidgetLocation();
 	}
@@ -2146,7 +2131,7 @@ bool FEdModeLandscape::GetCustomDrawingCoordinateSystem(FMatrix& InMatrix, void*
 	}
 
 	// Override Widget for Splines Tool
-	if (CurrentTool && CurrentTool)
+	if (CurrentTool)
 	{
 		InMatrix = CurrentTool->GetWidgetRotation();
 		return true;
@@ -2248,12 +2233,17 @@ void FEdModeLandscape::ActorSelectionChangeNotify()
 		break;
 		}
 		}
-		*/
+	*/
 }
 
 void FEdModeLandscape::ActorMoveNotify()
 {
 	//GUnrealEd->UpdateFloatingPropertyWindows();
+}
+
+void FEdModeLandscape::PostUndo()
+{
+	OnWorldChange();
 }
 
 /** Forces all level editor viewports to realtime mode */
@@ -2430,6 +2420,7 @@ void FEdModeLandscape::ImportData(const FLandscapeTargetListInfo& TargetInfo, co
 			else
 			{
 				// I would love to deprecate the raw/r8/r16 support for landscape, r16 doesn't even handle endianness issues...
+				RawData = &Data;
 			}
 
 			if (TargetInfo.TargetType == ELandscapeToolTargetType::Heightmap)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "OnlineDelegateMacros.h"
@@ -45,8 +45,26 @@ typedef FOnQueryForAvailablePurchasesComplete::FDelegate FOnQueryForAvailablePur
  * @param SessionName the name of the session the that has transitioned to started
  * @param bWasSuccessful true if the async action completed without error, false if there was an error
  */
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInAppPurchaseComplete, EInAppPurchaseState::Type, const IPlatformPurchaseReceipt*);
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnInAppPurchaseComplete, EInAppPurchaseState::Type);
 typedef FOnInAppPurchaseComplete::FDelegate FOnInAppPurchaseCompleteDelegate;
+
+
+/**
+ * Micro-transaction request information
+ */
+USTRUCT(BlueprintType)
+struct FInAppPurchaseProductRequest
+{
+	GENERATED_USTRUCT_BODY()
+
+	// The unique product identifier that matches the one from your targeted store.
+	UPROPERTY(BlueprintReadWrite, Category = ProductInfo)
+	FString ProductIdentifier;
+
+	// Flag to determine whether this is a consumable purchase, or not.
+	UPROPERTY(BlueprintReadWrite, Category = ProductInfo)
+	bool bIsConsumable;
+};
 
 
 /**
@@ -72,6 +90,10 @@ struct FInAppPurchaseProductInfo
 	// The localized display price name
 	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)
 	FString DisplayPrice;
+
+	// The localized display price name
+	UPROPERTY(BlueprintReadOnly, Category = ProductInfo)
+	FString ReceiptData;
 };
 
 
@@ -149,10 +171,10 @@ public:
 	 *
 	 * @return - whether a purchase request was sent
 	 */
-	virtual bool BeginPurchase(const FString& ProductId, FOnlineInAppPurchaseTransactionRef& InReadObject) = 0;
+	virtual bool BeginPurchase(const FInAppPurchaseProductRequest& ProductRequest, FOnlineInAppPurchaseTransactionRef& InReadObject) = 0;
 	
 	/**
 	 * Delegate which is executed when a Purchase completes
 	 */
-	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnInAppPurchaseComplete, EInAppPurchaseState::Type, const IPlatformPurchaseReceipt*);
+	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnInAppPurchaseComplete, EInAppPurchaseState::Type);
 };

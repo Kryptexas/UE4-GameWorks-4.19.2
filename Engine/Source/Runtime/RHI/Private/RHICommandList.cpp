@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "RHI.h"
@@ -17,7 +17,7 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("Immed. Command count"), STAT_ImmedCmdListCount,
 Requirements for RHI thread
 * Microresources (those in RHIStaticStates.h) need to be able to be created by any thread at any time and be able to work with a radically simplified rhi resource lifecycle. CreateSamplerState, CreateRasterizerState, CreateDepthStencilState, CreateBlendState
 * CreateUniformBuffer needs to be threadsafe
-* GetRenderQueryResult should be threadsafe, if not, then PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult should be 1
+* GetRenderQueryResult should be threadsafe
 * AdvanceFrameForGetViewportBackBuffer needs be added as an RHI method and this needs to work with GetViewportBackBuffer to give the render thread the right back buffer even though many commands relating to the beginning and end of the frame are queued.
 * ResetRenderQuery does not exist; this stuff should be done in BeginQuery
 
@@ -38,7 +38,7 @@ static TAutoConsoleVariable<int32> CVarRHICmdBypass(
 static TAutoConsoleVariable<int32> CVarRHICmdUseParallelAlgorithms(
 	TEXT("r.RHICmdUseParallelAlgorithms"),
 	1,
-	TEXT("True to use parallel algorithms. Ignored if r.RHICmdBypass is 1.\n"));
+	TEXT("True to use parallel algorithms. Ignored if r.RHICmdBypass is 1."));
 
 TAutoConsoleVariable<int32> CVarRHICmdWidth(
 	TEXT("r.RHICmdWidth"), 
@@ -49,11 +49,11 @@ TAutoConsoleVariable<int32> CVarRHICmdWidth(
 static TAutoConsoleVariable<int32> CVarRHICmdUseDeferredContexts(
 	TEXT("r.RHICmdUseDeferredContexts"),
 	1,
-	TEXT("True to use deferred contexts to parallelize command list execution.\n"));
+	TEXT("True to use deferred contexts to parallelize command list execution."));
 static TAutoConsoleVariable<int32> CVarRHIDeferredContextWidth(
 	TEXT("r.RHIDeferredContextWidth"),
 	99999,
-	TEXT("Number of pieces to break a parallel translate task into. A very large number is one task per original cmd list.\n"));
+	TEXT("Number of pieces to break a parallel translate task into. A very large number is one task per original cmd list."));
 #endif
 
 RHI_API FRHICommandListExecutor GRHICommandList;
@@ -81,6 +81,7 @@ struct FRHICommandStat : public FRHICommand<FRHICommandStat>
 	}
 };
 
+bool FRHICommandListImmediate::bFlushedGlobal = false;
 void FRHICommandListImmediate::SetCurrentStat(TStatId Stat)
 {
 	new (AllocCommand<FRHICommandStat>()) FRHICommandStat(Stat);

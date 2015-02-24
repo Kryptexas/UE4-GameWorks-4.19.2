@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -15,7 +15,7 @@ class UMaterialExpressionFunctionOutput : public UMaterialExpression
 	FString OutputName;
 
 	/** The output's description, which will be used as a tooltip on the connector in function call expressions that use this function. */
-	UPROPERTY(EditAnywhere, Category=MaterialExpressionFunctionOutput)
+	UPROPERTY(EditAnywhere, Category=MaterialExpressionFunctionOutput, meta=(MultiLine=true))
 	FString Description;
 
 	/** Controls where the output is displayed relative to the other outputs. */

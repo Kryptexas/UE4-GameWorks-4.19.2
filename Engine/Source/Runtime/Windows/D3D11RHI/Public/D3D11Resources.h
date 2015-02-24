@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11Resources.h: D3D resource RHI definitions.
@@ -579,9 +579,6 @@ public:
 		QueryType(InQueryType)
 	{}
 
-#if PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
-	~FD3D11OcclusionQuery();
-#endif
 };
 
 /** Updates tracked stats for a buffer. */

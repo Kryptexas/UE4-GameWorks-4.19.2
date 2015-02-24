@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AnimationTransitionSchema.generated.h"
@@ -14,6 +14,7 @@ class UAnimationTransitionSchema : public UEdGraphSchema_K2
 	virtual void CreateDefaultNodesForGraph(UEdGraph& Graph) const override;
 	virtual bool CanDuplicateGraph(UEdGraph* InSourceGraph) const override { return false; }
 	virtual void GetGraphDisplayInformation(const UEdGraph& Graph, /*out*/ FGraphDisplayInfo& DisplayInfo) const;
+	virtual bool DoesSupportEventDispatcher() const	override {	return false; }
 	// End UEdGraphSchema interface.
 
 private:

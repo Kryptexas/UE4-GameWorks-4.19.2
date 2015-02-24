@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowProjectionPixelShader.usf: Pixel shader for projecting a shadow depth buffer onto the scene.
@@ -102,7 +102,7 @@ void Main(
 	#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 
 		BRANCH
-		if (InGBufferData.ShadingModelID == SHADINGMODELID_SUBSURFACE || InGBufferData.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN)
+		if (IsSubsurfaceModel(InGBufferData.ShadingModelID))
 		{
 			// Derive density from a heuristic using opacity, tweaked for useful falloff ranges and to give a linear depth falloff with opacity
 			float Density = -.05f * log(1 - min(InGBufferData.Opacity, .999f));

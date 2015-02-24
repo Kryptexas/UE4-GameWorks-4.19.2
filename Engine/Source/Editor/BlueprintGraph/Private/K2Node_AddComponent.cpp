@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -40,11 +40,11 @@ void UK2Node_AddComponent::AllocatePinsForExposedVariables()
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 
 	const UActorComponent* TemplateComponent = GetTemplateFromNode();
-	const UClass* ComponentClass = TemplateComponent ? TemplateComponent->GetClass() : NULL;
+	const UClass* ComponentClass = TemplateComponent ? TemplateComponent->GetClass() : nullptr;
 
-	if(ComponentClass)
+	if (ComponentClass != nullptr)
 	{
-		const UObject* ClassDefaultObject = ComponentClass ? ComponentClass->ClassDefaultObject : NULL;
+		const UObject* ClassDefaultObject = ComponentClass ? ComponentClass->ClassDefaultObject : nullptr;
 
 		for (TFieldIterator<UProperty> PropertyIt(ComponentClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
@@ -58,23 +58,35 @@ void UK2Node_AddComponent::AllocatePinsForExposedVariables()
 				FEdGraphPinType PinType;
 				K2Schema->ConvertPropertyToPinType(Property, /*out*/ PinType);	
 				const bool bIsUnique = (NULL == FindPin(Property->GetName()));
-				if(K2Schema->FindSetVariableByNameFunction(PinType) && bIsUnique)
+				if (K2Schema->FindSetVariableByNameFunction(PinType) && bIsUnique)
 				{
 					UEdGraphPin* Pin = CreatePin(EGPD_Input, TEXT(""), TEXT(""), NULL, false, false, Property->GetName());
 					Pin->PinType = PinType;
 					bHasExposedVariable = true;
 
-					if (ClassDefaultObject && K2Schema->PinDefaultValueIsEditable(*Pin))
+					if ((ClassDefaultObject != nullptr) && K2Schema->PinDefaultValueIsEditable(*Pin))
 					{
 						FString DefaultValueAsString;
 						const bool bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(Property, reinterpret_cast<const uint8*>(ClassDefaultObject), DefaultValueAsString);
 						check(bDefaultValueSet);
 						K2Schema->TrySetDefaultValue(*Pin, DefaultValueAsString);
 					}
+
+					// Copy tooltip from the property.
+					K2Schema->ConstructBasicPinTooltip(*Pin, Property->GetToolTipText(), Pin->PinToolTip);
 				}
 			}
 		}
 	}
+
+	// Hide transform and attachment pins if it is not a scene component
+	const bool bHideTransformPins = (ComponentClass != nullptr) ? !ComponentClass->IsChildOf(USceneComponent::StaticClass()) : false;
+
+	UEdGraphPin* ManualAttachmentPin = GetManualAttachmentPin();
+	ManualAttachmentPin->bHidden = bHideTransformPins;
+
+	UEdGraphPin* TransformPin = GetRelativeTransformPin();
+	TransformPin->bHidden = bHideTransformPins;
 }
 
 const UClass* UK2Node_AddComponent::GetSpawnedType() const
@@ -236,8 +248,7 @@ void UK2Node_AddComponent::PostPasteNode()
 		{
 			ensure(NULL != Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass));
 			// Create a new template object and update the template pin to point to it
-			UActorComponent* NewTemplate = ConstructObject<UActorComponent>(ComponentClass, Blueprint->GeneratedClass);
-			NewTemplate->SetFlags(RF_ArchetypeObject);
+			UActorComponent* NewTemplate = ConstructObject<UActorComponent>(ComponentClass, Blueprint->GeneratedClass, NAME_None, RF_ArchetypeObject|RF_Public);
 			Blueprint->ComponentTemplates.Add(NewTemplate);
 
 			TemplateNamePin->DefaultValue = NewTemplate->GetName();
@@ -278,56 +289,58 @@ void UK2Node_AddComponent::PostPasteNode()
 
 FText UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
+	FText CachedAssetTitle;
+	FText CachedNodeTitle;
 	UEdGraphPin* TemplateNamePin = GetTemplateNamePin();
-	if (CachedNodeTitle.IsOutOfDate() && (TemplateNamePin != NULL))
+	if (TemplateNamePin != nullptr)
 	{
 		FString TemplateName = TemplateNamePin->DefaultValue;
 		UBlueprint* Blueprint = GetBlueprint();
-		UActorComponent* SourceTemplate = Blueprint->FindTemplateByName(FName(*TemplateName));
-		if(SourceTemplate)
+
+		if (UActorComponent* SourceTemplate = Blueprint->FindTemplateByName(FName(*TemplateName)))
 		{
-			UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(SourceTemplate);
-			USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>(SourceTemplate);
-			UParticleSystemComponent* PSysComp = Cast<UParticleSystemComponent>(SourceTemplate);
+			CachedNodeTitle = SourceTemplate->GetClass()->GetDisplayNameText();
+
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("ComponentType"), SourceTemplate->GetClass()->GetDisplayNameText());
+			CachedNodeTitle = FText::Format(LOCTEXT("AddClass", "Add {ComponentType}"), Args);
+
 			UChildActorComponent* SubActorComp = Cast<UChildActorComponent>(SourceTemplate);
 
-			if(StaticMeshComp != NULL && StaticMeshComp->StaticMesh != NULL)
+			if (const UObject* AssociatedAsset = SourceTemplate->AdditionalStatObject())
 			{
 				FFormatNamedArguments Args;
-				Args.Add(TEXT("StaticMeshName"), FText::FromString(StaticMeshComp->StaticMesh->GetName()));
-				CachedNodeTitle = FText::Format(LOCTEXT("AddStaticMesh", "Add StaticMesh {StaticMeshName}"), Args);
+				Args.Add(TEXT("AssetType"), AssociatedAsset->GetClass()->GetDisplayNameText());
+				Args.Add(TEXT("AssetName"), FText::FromString(AssociatedAsset->GetName()));
+				CachedAssetTitle = FText::Format(LOCTEXT("AddComponentAssetDescription", "{AssetType} {AssetName}"), Args);
 			}
-			else if(SkelMeshComp != NULL && SkelMeshComp->SkeletalMesh != NULL)
+			else if ((SubActorComp != nullptr) && (SubActorComp->ChildActorClass != nullptr))
 			{
 				FFormatNamedArguments Args;
-				Args.Add(TEXT("SkeletalMeshName"), FText::FromString(SkelMeshComp->SkeletalMesh->GetName()));
-				CachedNodeTitle = FText::Format(LOCTEXT("AddSkeletalMesh", "Add SkeletalMesh {SkeletalMeshName}"), Args);
-			}
-			else if(PSysComp != NULL && PSysComp->Template != NULL)
-			{
-				FFormatNamedArguments Args;
-				Args.Add(TEXT("ParticleSystemName"), FText::FromString(PSysComp->Template->GetName()));
-				CachedNodeTitle = FText::Format(LOCTEXT("AddParticleSystem", "Add ParticleSystem {ParticleSystemName}"), Args);
-			}
-			else if (SubActorComp && SubActorComp->ChildActorClass)
-			{
-				FFormatNamedArguments Args;
-				Args.Add(TEXT("ComponentClassName"), FText::FromString(SubActorComp->ChildActorClass->GetName()));
-				CachedNodeTitle = FText::Format(LOCTEXT("AddChildActorComponent", "Add ChildActorComponent {ComponentClassName}"), Args);
+				Args.Add(TEXT("ComponentClassName"), SubActorComp->ChildActorClass->GetDisplayNameText());
+				CachedAssetTitle = FText::Format(LOCTEXT("AddChildActorComponent", "Actor Class {ComponentClassName}"), Args);
 			}
 			else
 			{
-				FFormatNamedArguments Args;
-				Args.Add(TEXT("ClassName"), FText::FromString(SourceTemplate->GetClass()->GetName()));
-				CachedNodeTitle = FText::Format(LOCTEXT("AddClass", "Add {ClassName}"), Args);
+				CachedAssetTitle = FText::GetEmpty();
 			}
 		}
 	}
 
-	// FText::Format() is slow, so we cache the title to save on performance
-	if (!CachedNodeTitle.IsOutOfDate())
+	if (!CachedNodeTitle.IsEmpty())
 	{
-		return CachedNodeTitle;
+		if (TitleType == ENodeTitleType::FullTitle)
+		{
+			return FText::Format(LOCTEXT("FullAddComponentTitle", "{0}\n{1}"), CachedNodeTitle, CachedAssetTitle);
+		}
+		else if (!CachedAssetTitle.IsEmpty())
+		{
+			return FText::Format(LOCTEXT("ShortAddComponentTitle", "{0} [{1}]"), CachedNodeTitle, CachedAssetTitle);
+		}
+		else
+		{
+			return CachedNodeTitle;
+		}
 	}
 	return Super::GetNodeTitle(TitleType);
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,7 +25,7 @@ public:
 	 */
 	void InitSequencerAssetEditor( const EToolkitMode::Type Mode, const FSequencerViewParams& InViewParams, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UMovieScene* InRootMovieScene, const TArray<FOnCreateTrackEditor>& TrackEditorDelegates, bool bEditWithinLevelEditor );
 
-	TSharedRef<ISequencer> GetSequencerInterface() const override { return Sequencer.ToSharedRef(); }
+	TSharedRef<ISequencer> GetSequencerInterface() const override;
 
 	/** IToolkit interface */
 	virtual FName GetToolkitFName() const override;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,20 +7,23 @@
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "EQSTestingPawn.generated.h"
 
+class UEnvQuery;
+class UEQSRenderingComponent;
+
 /** this class is abstract even though it's perfectly functional on its own.
  *	The reason is to stop it from showing as valid player pawn type when configuring 
  *	project's game mode. */
-UCLASS(abstract, hidecategories=(Advanced, Attachment, Collision, Mesh, Animation, Clothing, Physics, Rendering, Lighting, Activation, CharacterMovement, AgentPhysics, Avoidance, MovementComponent, Velocity, Shape, Camera, Input, Layers, SkeletalMesh, Optimization, Pawn))
+UCLASS(abstract, hidecategories=(Advanced, Attachment, Collision, Mesh, Animation, Clothing, Physics, Rendering, Lighting, Activation, CharacterMovement, AgentPhysics, Avoidance, MovementComponent, Velocity, Shape, Camera, Input, Layers, SkeletalMesh, Optimization, Pawn, Replication, Actor))
 class AIMODULE_API AEQSTestingPawn : public ACharacter, public IEQSQueryResultSourceInterface
 {
 	GENERATED_UCLASS_BODY()
 	
 	UPROPERTY(Category=EQS, EditAnywhere)
-	class UEnvQuery* QueryTemplate;
+	UEnvQuery* QueryTemplate;
 
 	/** optional parameters for query */
 	UPROPERTY(Category=EQS, EditAnywhere)
-	TArray<struct FEnvNamedValue> QueryParams;
+	TArray<FEnvNamedValue> QueryParams;
 
 	UPROPERTY(Category=EQS, EditAnywhere)
 	float TimeLimitPerStep;
@@ -48,12 +51,12 @@ class AIMODULE_API AEQSTestingPawn : public ACharacter, public IEQSQueryResultSo
 private_subobject:
 	/** Editor Preview */
 	DEPRECATED_FORGAME(4.6, "EdRenderComp should not be accessed directly, please use GetEdRenderComp() function instead. EdRenderComp will soon be private and your code will not compile.")
-	UPROPERTY()
-	class UEQSRenderingComponent* EdRenderComp;
+	UPROPERTY(Transient)
+	UEQSRenderingComponent* EdRenderComp;
 #endif // WITH_EDITORONLY_DATA
 
 protected:
-	TSharedPtr<struct FEnvQueryInstance> QueryInstance;
+	TSharedPtr<FEnvQueryInstance> QueryInstance;
 
 	TArray<FEnvQueryInstance> StepResults;
 
@@ -68,8 +71,8 @@ public:
 #endif // WITH_EDITOR
 
 	// IEQSQueryResultSourceInterface start
-	virtual const struct FEnvQueryResult* GetQueryResult() const override;
-	virtual const struct FEnvQueryInstance* GetQueryInstance() const  override;
+	virtual const FEnvQueryResult* GetQueryResult() const override;
+	virtual const FEnvQueryInstance* GetQueryInstance() const  override;
 
 	virtual bool GetShouldDebugDrawLabels() const override { return bDrawLabels; }
 	virtual bool GetShouldDrawFailedItems() const override{ return bDrawFailedItems; }
@@ -88,6 +91,6 @@ protected:
 public:
 #if WITH_EDITORONLY_DATA
 	/** Returns EdRenderComp subobject **/
-	class UEQSRenderingComponent* GetEdRenderComp();
+	UEQSRenderingComponent* GetEdRenderComp();
 #endif
 };

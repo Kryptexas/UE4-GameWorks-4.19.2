@@ -1,11 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticBoundShaderState.h: Static bound shader state definitions.
 =============================================================================*/
 
-#ifndef __STATICBOUNDSHADERSTATE_H__
-#define __STATICBOUNDSHADERSTATE_H__
+#pragma once
+
+#include "RenderResource.h"
+#include "Shader.h"
 
 /**
  * FGlobalBoundShaderState
@@ -110,5 +112,3 @@ ENGINE_API void SetGlobalBoundShaderState(
 	FShader* PixelShader,
 	FShader* GeometryShader = nullptr
 	);
-
-#endif

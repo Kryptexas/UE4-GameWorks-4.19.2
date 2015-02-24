@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "MovieScene.h"
@@ -24,6 +24,9 @@
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
 #include "Runtime/MovieSceneCoreTypes/Classes/MovieSceneShotSection.h"
 #include "Runtime/Engine/Public/AudioDecompress.h"
+#include "Sound/SoundBase.h"
+#include "Sound/SoundWave.h"
+#include "Sound/SoundCue.h"
 
 
 namespace AnimatableAudioEditorConstants

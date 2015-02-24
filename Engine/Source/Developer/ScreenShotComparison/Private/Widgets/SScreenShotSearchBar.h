@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SScreenShotSearchBar.h: Declares the SScreenShotSearchBar class.
@@ -30,7 +30,7 @@ protected:
 	 *
 	 * @return The platform string.
 	 */
-	FString GetPlatformString() const;
+	FText GetPlatformString() const;
 
 	/**
 	 * Set the view filter based on the input from the search box

@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InGameAdvertising.cpp: Base implementation for ingame advertising management
 =============================================================================*/ 
 
 #include "EnginePrivate.h"
+#include "Engine/InGameAdManager.h"
 
 UInGameAdManager::UInGameAdManager(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

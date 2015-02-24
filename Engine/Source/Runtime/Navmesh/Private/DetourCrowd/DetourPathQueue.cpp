@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -111,7 +111,9 @@ void dtPathQueue::update(const int maxIters)
 			m_queueHead++;
 			continue;
 		}
-		
+
+		m_navquery->updateLinkFilter(q.linkFilter.Get());
+
 		// Handle query start.
 		if (q.status == 0)
 		{
@@ -138,7 +140,7 @@ void dtPathQueue::update(const int maxIters)
 
 dtPathQueueRef dtPathQueue::request(dtPolyRef startRef, dtPolyRef endRef,
 									const float* startPos, const float* endPos,
-									const dtQueryFilter* filter)
+									const dtQueryFilter* filter, TSharedPtr<dtQuerySpecialLinkFilter> linkFilter)
 {
 	// Find empty slot
 	int slot = -1;
@@ -167,6 +169,7 @@ dtPathQueueRef dtPathQueue::request(dtPolyRef startRef, dtPolyRef endRef,
 	q.status = 0;
 	q.npath = 0;
 	q.filter = filter;
+	q.linkFilter = linkFilter;
 	q.keepAlive = 0;
 	
 	return ref;

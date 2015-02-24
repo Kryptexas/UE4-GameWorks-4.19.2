@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -81,4 +81,14 @@ public class UnrealLightmassTarget : TargetRules
         SeparateNode = false;
         return true;
     }
+	public override List<UnrealTargetPlatform> GUBP_ToolPlatforms(UnrealTargetPlatform InHostPlatform)
+	{
+		List<UnrealTargetPlatform> PlatformList = new List<UnrealTargetPlatform>();
+		PlatformList.Add(InHostPlatform);
+		if(InHostPlatform == UnrealTargetPlatform.Win64)
+		{
+			PlatformList.Add(UnrealTargetPlatform.Linux);			
+		}
+		return PlatformList;
+	}
 }

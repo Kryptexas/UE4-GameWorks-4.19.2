@@ -1,7 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "IBreakIterator.h"
+#include "TextRunRenderer.h"
+#include "TextLineHighlight.h"
+#include "ILineHighlighter.h"
 #include "TextLayout.generated.h"
 
 #define TEXT_LAYOUT_DEBUG 0

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,14 +15,11 @@ namespace EGameplayTagMatchType
 }
 
 UENUM(BlueprintType)
-namespace EGameplayContainerMatchType
+enum class EGameplayContainerMatchType : uint8
 {
-	enum Type
-	{
-		Any,	//	Means the filter is populated by any tag matches in this container.
-		All,	//	Means the filter is only populated if all of the tags in this container match.
-	};
-}
+	Any,	//	Means the filter is populated by any tag matches in this container.
+	All		//	Means the filter is only populated if all of the tags in this container match.
+};
 
 USTRUCT(BlueprintType)
 struct GAMEPLAYTAGS_API FGameplayTag
@@ -197,7 +194,7 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	virtual void RemoveTag(FGameplayTag TagToRemove);
 
 	/** Remove all tags from the container */
-	virtual void RemoveAllTags();
+	virtual void RemoveAllTags(int32 Slack=0);
 
 	/**
 	 * Serialize the tag container
@@ -221,6 +218,12 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 	/** Returns human readable Tag list */
 	FString ToString() const;
 
+	/** Returns abbreviated human readable Tag list without parens or property names */
+	FString ToStringSimple() const;
+
+	// Returns human readable description of what match is being looked for on the readable tag list.
+	FText ToMatchingText(EGameplayContainerMatchType MatchType, bool bInvertCondition) const;
+
 	/** Creates a const iterator for the contents of this array */
 	TArray<FGameplayTag>::TConstIterator CreateConstIterator() const
 	{
@@ -237,6 +240,8 @@ struct GAMEPLAYTAGS_API FGameplayTagContainer
 		return GameplayTags.Num() > 0 ? GameplayTags.Last() : FGameplayTag();
 	}
 
+	/** An empty Gameplay Tag Container */
+	static const FGameplayTagContainer EmptyContainer;
 
 protected:
 	/**
@@ -249,7 +254,7 @@ protected:
 	*
 	* @return Returns true if ContainerMatchType is Any and any of the tags in OtherContainer match the tags in this or ContainerMatchType is All and all of the tags in OtherContainer match at least one tag in this. Returns false otherwise.
 	*/
-	bool DoesTagContainerMatch(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType, TEnumAsByte<EGameplayContainerMatchType::Type> ContainerMatchType) const;
+	bool DoesTagContainerMatch(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType, EGameplayContainerMatchType ContainerMatchType) const;
 
 
 private:

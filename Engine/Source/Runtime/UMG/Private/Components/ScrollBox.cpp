@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -15,7 +15,7 @@ UScrollBox::UScrollBox(const FObjectInitializer& ObjectInitializer)
 	Orientation = Orient_Vertical;
 
 	SScrollBox::FArguments Defaults;
-	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
+	Visiblity_DEPRECATED = Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
 
 	WidgetStyle = *Defaults._Style;
 	WidgetBarStyle = *Defaults._ScrollBarStyle;
@@ -63,6 +63,7 @@ TSharedRef<SWidget> UScrollBox::RebuildWidget()
 {
 	MyScrollBox = SNew(SScrollBox)
 		.Style(&WidgetStyle)
+		.ScrollBarStyle(&WidgetBarStyle)
 		.Orientation(Orientation);
 
 	for ( UPanelSlot* Slot : Slots )
@@ -93,6 +94,22 @@ void UScrollBox::SetScrollOffset(float NewScrollOffset)
 	if ( MyScrollBox.IsValid() )
 	{
 		MyScrollBox->SetScrollOffset(NewScrollOffset);
+	}
+}
+
+void UScrollBox::ScrollToStart()
+{
+	if ( MyScrollBox.IsValid() )
+	{
+		MyScrollBox->ScrollToStart();
+	}
+}
+
+void UScrollBox::ScrollToEnd()
+{
+	if ( MyScrollBox.IsValid() )
+	{
+		MyScrollBox->ScrollToEnd();
 	}
 }
 

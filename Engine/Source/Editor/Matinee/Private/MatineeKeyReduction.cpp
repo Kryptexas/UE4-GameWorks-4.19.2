@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MatineeModule.h"
 #include "Matinee/MatineeActor.h"
@@ -44,7 +44,7 @@ public:
 private:
 
 	void SetTolerance(int32 InTolerance) { Tolerance = InTolerance; }
-	void ToggleFullInterval(ESlateCheckBoxState::Type CheckState) { FullInterval = (CheckState == ESlateCheckBoxState::Checked); }
+	void ToggleFullInterval(ECheckBoxState CheckState) { FullInterval = (CheckState == ECheckBoxState::Checked); }
 	void SetIntervalStart(float InStart) { IntervalStart = InStart; }
 	void SetIntervalEnd(float InEnd) { IntervalEnd = InEnd; }
 

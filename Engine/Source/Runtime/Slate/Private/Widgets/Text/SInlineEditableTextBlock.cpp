@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "SInlineEditableTextBlock.h"
@@ -83,6 +83,7 @@ void SInlineEditableTextBlock::EnterEditingMode()
 					TextBox.ToSharedRef()
 				];
 
+			WidgetToFocus = FSlateApplication::Get().GetKeyboardFocusedWidget();
 			FSlateApplication::Get().SetKeyboardFocus(TextBox, EFocusCause::SetDirectly);
 
 			TextBlock->SetVisibility(EVisibility::Collapsed);
@@ -99,6 +100,17 @@ void SInlineEditableTextBlock::ExitEditingMode()
 
 	// Clear the error so it will vanish.
 	TextBox->SetError( FText::GetEmpty() );
+
+	// Restore the original widget focus
+	TSharedPtr<SWidget> WidgetToFocusPin = WidgetToFocus.Pin();
+	if(WidgetToFocusPin.IsValid())
+	{
+		FSlateApplication::Get().SetKeyboardFocus(WidgetToFocusPin, EFocusCause::SetDirectly);
+	}
+	else
+	{
+		FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
+	}
 }
 
 bool SInlineEditableTextBlock::IsInEditMode() const
@@ -118,6 +130,11 @@ void SInlineEditableTextBlock::SetText( const FString& InText )
 	Text = FText::FromString( InText );
 	TextBlock->SetText( Text );
 	TextBox->SetText( Text );
+}
+
+void SInlineEditableTextBlock::SetWrapTextAt( const TAttribute<float>& InWrapTextAt )
+{
+	TextBlock->SetWrapTextAt( InWrapTextAt );
 }
 
 FReply SInlineEditableTextBlock::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )

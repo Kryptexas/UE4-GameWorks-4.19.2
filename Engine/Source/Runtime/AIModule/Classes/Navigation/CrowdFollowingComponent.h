@@ -1,10 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AI/Navigation/NavigationAvoidanceTypes.h"
 #include "Navigation/CrowdAgentInterface.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "CrowdFollowingComponent.generated.h"
+
+class INavLinkCustomInterface;
+class UCharacterMovementComponent; 
+class UCrowdManager;
 
 namespace ECrowdAvoidanceQuality
 {
@@ -40,9 +44,10 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	virtual void ResumeMove(FAIRequestID RequestID = FAIRequestID::CurrentRequest) override;
 	virtual FVector GetMoveFocus(bool bAllowStrafe) const override;
 	virtual void OnLanded() override;
-	virtual void FinishUsingCustomLink(class INavLinkCustomInterface* CustomNavLink) override;
+	virtual void FinishUsingCustomLink(INavLinkCustomInterface* CustomNavLink) override;
 	virtual void OnPathFinished(EPathFollowingResult::Type Result) override;
 	virtual void OnPathUpdated() override;
+	virtual void OnPathfindingQuery(FPathFindingQuery& Query) override;
 	virtual int32 GetCurrentPathElement() const override { return LastPathPolyIndex; }
 	// PathFollowingComponent END
 
@@ -73,13 +78,25 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	void SetCrowdAvoidanceQuality(ECrowdAvoidanceQuality::Type Quality, bool bUpdateAgent = true);
 
 	FORCEINLINE bool IsCrowdSimulationEnabled() const { return bEnableCrowdSimulation; }
-	FORCEINLINE bool IsCrowdAnticipateTurnsEnabled() const { return bEnableAnticipateTurns && !bSuspendCrowdSimulation; }
-	FORCEINLINE bool IsCrowdObstacleAvoidanceEnabled() const { return bEnableObstacleAvoidance && !bSuspendCrowdSimulation; }
-	FORCEINLINE bool IsCrowdSeparationEnabled() const { return bEnableSeparation && !bSuspendCrowdSimulation; }
+	FORCEINLINE bool IsCrowdSimulatioSuspended() const { return bSuspendCrowdSimulation; }
+	FORCEINLINE bool IsCrowdAnticipateTurnsEnabled() const { return bEnableAnticipateTurns; }
+	FORCEINLINE bool IsCrowdObstacleAvoidanceEnabled() const { return bEnableObstacleAvoidance; }
+	FORCEINLINE bool IsCrowdSeparationEnabled() const { return bEnableSeparation; }
 	FORCEINLINE bool IsCrowdOptimizeVisibilityEnabled() const { return bEnableOptimizeVisibility; /** don't check suspend here! */ }
-	FORCEINLINE bool IsCrowdOptimizeTopologyEnabled() const { return bEnableOptimizeTopology && !bSuspendCrowdSimulation; }
+	FORCEINLINE bool IsCrowdOptimizeTopologyEnabled() const { return bEnableOptimizeTopology; }
 	FORCEINLINE bool IsCrowdPathOffsetEnabled() const { return bEnablePathOffset; }
 	FORCEINLINE bool IsCrowdSlowdownAtGoalEnabled() const { return bEnableSlowdownAtGoal; }
+
+	FORCEINLINE bool IsCrowdSimulationActive() const { return IsCrowdSimulationEnabled() && !IsCrowdSimulatioSuspended(); }
+	/** checks if bEnableAnticipateTurns is set to true, and if crowd simulation is not suspended */
+	FORCEINLINE bool IsCrowdAnticipateTurnsActive() const { return IsCrowdAnticipateTurnsEnabled() && !IsCrowdSimulatioSuspended(); }
+	/** checks if bEnableObstacleAvoidance is set to true, and if crowd simulation is not suspended */
+	FORCEINLINE bool IsCrowdObstacleAvoidanceActive() const { return IsCrowdObstacleAvoidanceEnabled() && !IsCrowdSimulatioSuspended(); }
+	/** checks if bEnableSeparation is set to true, and if crowd simulation is not suspended */
+	FORCEINLINE bool IsCrowdSeparationActive() const { return IsCrowdSeparationEnabled() && !IsCrowdSimulatioSuspended(); }
+	/** checks if bEnableOptimizeTopology is set to true, and if crowd simulation is not suspended */
+	FORCEINLINE bool IsCrowdOptimizeTopologyActive() const { return IsCrowdOptimizeTopologyEnabled() && !IsCrowdSimulatioSuspended(); }
+
 	FORCEINLINE float GetCrowdSeparationWeight() const { return SeparationWeight; }
 	FORCEINLINE float GetCrowdCollisionQueryRange() const { return CollisionQueryRange; }
 	FORCEINLINE float GetCrowdPathOptimizationRange() const { return PathOptimizationRange; }
@@ -96,7 +113,7 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 protected:
 
 	UPROPERTY(transient)
-	class UCharacterMovementComponent* CharacterMovement;
+	UCharacterMovementComponent* CharacterMovement;
 
 	/** Group mask for this agent */
 	UPROPERTY(Category = "Avoidance", EditAnywhere, BlueprintReadOnly, AdvancedDisplay)
@@ -167,5 +184,5 @@ protected:
 	bool HasMovedDuringPause() const;
 	void UpdateCachedDirections(const FVector& NewVelocity, const FVector& NextPathCorner, bool bTraversingLink);
 
-	friend class UCrowdManager;
+	friend UCrowdManager;
 };

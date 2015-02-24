@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SimpleElementPixelShader.hlsl: Pixel shader for drawing simple elements.
@@ -10,6 +10,7 @@
 #define USE_IES_PROFILE 1
 #include "IESLightProfilesCommon.usf"
 
+#define ENABLE_EDITOR_COMPOSITING (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || ES2_EMULATION)
 
 Texture2D InTexture;
 SamplerState InTextureSampler;
@@ -34,18 +35,23 @@ MaterialFloat4 ColourTexture2DSample(Texture2D Tex, SamplerState Sampler, float2
 	return Sample;
 }
 
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+#if ENABLE_EDITOR_COMPOSITING
 
 void PerformEditorCompositingDepthTest(float4 SvPosition)
 {
-	bool bIsPerspective = (View.ViewToClip._m33 < 1.0f);
-	// Using SV_Position because manual interpolation fails in precision for the editor grid.
-	float SceneDepthDeviceZ = SceneDepthTextureNonMS.Load(int3(SvPosition.xy, 0)).r;
+	// depth test manually if compositing editor primitives
+	FLATTEN
+	if (bEnableEditorPrimitiveDepthTest)
+	{
+		bool bIsPerspective = (View.ViewToClip._m33 < 1.0f);
+		// Using SV_Position because manual interpolation fails in precision for the editor grid.
+		float SceneDepthDeviceZ = SceneDepthTextureNonMS.Load(int3(SvPosition.xy, 0)).r;
 
-	float InterpolatedDeviceZ = SvPosition.z;
+		float InterpolatedDeviceZ = SvPosition.z;
 
-	// This is for a reversed Z depth buffer.
-	clip(InterpolatedDeviceZ - SceneDepthDeviceZ);
+		// This is for a reversed Z depth buffer.
+		clip(InterpolatedDeviceZ - SceneDepthDeviceZ);
+	}
 }
 
 #endif
@@ -57,17 +63,14 @@ void Main(
 	out float4 OutColor : SV_Target0
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	,out float4 OutWorldNormal : SV_Target1 
+#endif
+#if ENABLE_EDITOR_COMPOSITING
 	,in float4 SvPosition : SV_Position
 #endif
 	)
 {
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
-	// depth test manually if compositing editor primitives
-	FLATTEN
-	if (bEnableEditorPrimitiveDepthTest)
-	{
-		PerformEditorCompositingDepthTest(SvPosition);
-	}
+#if ENABLE_EDITOR_COMPOSITING
+	PerformEditorCompositingDepthTest(SvPosition);
 #endif
 	 
 	float4 BaseColor = ColourTexture2DSample(InTexture, InTextureSampler,TextureCoordinate);
@@ -88,17 +91,14 @@ void AlphaOnlyMain(
 	out float4 OutColor : SV_Target0
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	,out float4 OutWorldNormal : SV_Target1 
+#endif
+#if ENABLE_EDITOR_COMPOSITING
 	,in float4 SvPosition : SV_Position
 #endif
 	)
 {
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
-	// depth test manually if compositing editor primitives
-	FLATTEN
-	if (bEnableEditorPrimitiveDepthTest)
-	{
-		PerformEditorCompositingDepthTest(SvPosition);
-	}
+#if ENABLE_EDITOR_COMPOSITING
+	PerformEditorCompositingDepthTest(SvPosition);
 #endif
 	
 	float4 TmpColor = Color;
@@ -122,19 +122,16 @@ void GammaMain(
 	in float4 Color : TEXCOORD1,
 	in float4 InHitProxyId : TEXCOORD2,			// needed to have d3ddebug warning supressed (VS and PS signatures with SV_Position
 	out float4 OutColor : SV_Target0
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+#if ENABLE_EDITOR_COMPOSITING
 	,in float4 SvPosition : SV_Position
+#endif
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	,out float4 OutWorldNormal : SV_Target1
 #endif
 	)
 {
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
-	// depth test manually if compositing editor primitives
-	FLATTEN
-	if (bEnableEditorPrimitiveDepthTest)
-	{
-		PerformEditorCompositingDepthTest(SvPosition);
-	}
+#if ENABLE_EDITOR_COMPOSITING
+	PerformEditorCompositingDepthTest(SvPosition);
 #endif
 
 	float4 BaseColor = ColourTexture2DSample(InTexture, InTextureSampler,TextureCoordinate);
@@ -158,19 +155,16 @@ void GammaAlphaOnlyMain(
 	in float4 Color : TEXCOORD1,
 	in float4 InHitProxyId : TEXCOORD2,			// needed to have d3ddebug warning supressed (VS and PS signatures with SV_Position
 	out float4 OutColor : SV_Target0
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+#if ENABLE_EDITOR_COMPOSITING
 	,in float4 SvPosition : SV_Position
+#endif
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	,out float4 OutWorldNormal : SV_Target1
 #endif
 	)
 {
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
-	// depth test manually if compositing editor primitives
-	FLATTEN
-	if (bEnableEditorPrimitiveDepthTest)
-	{
-		PerformEditorCompositingDepthTest(SvPosition);
-	}
+#if ENABLE_EDITOR_COMPOSITING
+	PerformEditorCompositingDepthTest(SvPosition);
 #endif
 
 	float4 TmpColor = Color;
@@ -195,19 +189,16 @@ void GammaMaskedMain(
 	in float4 Color : TEXCOORD1,
 	in float4 HitProxyId : TEXCOORD2,
 	out float4 OutColor : SV_Target0
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+#if ENABLE_EDITOR_COMPOSITING
 	,in float4 SvPosition : SV_Position
+#endif
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
 	,out float4 OutWorldNormal : SV_Target1
 #endif
 	)
 {
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
-	// depth test manually if compositing editor primitives
-	FLATTEN
-	if (bEnableEditorPrimitiveDepthTest)
-	{
-		PerformEditorCompositingDepthTest(SvPosition);
-	}
+#if ENABLE_EDITOR_COMPOSITING
+	PerformEditorCompositingDepthTest(SvPosition);
 #endif
 
 	float4 BaseColor = ColourTexture2DSample(InTexture, InTextureSampler,TextureCoordinate);

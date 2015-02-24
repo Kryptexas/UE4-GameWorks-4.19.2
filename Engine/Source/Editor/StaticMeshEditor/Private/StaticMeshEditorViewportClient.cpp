@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "StaticMeshEditorModule.h"
 #include "StaticMeshEditorActions.h"
@@ -23,6 +23,12 @@
 #if WITH_PHYSX
 #include "Editor/UnrealEd/Private/EditorPhysXSupport.h"
 #endif
+#include "CanvasTypes.h"
+#include "Engine/AssetUserData.h"
+#include "Engine/StaticMeshSocket.h"
+#include "CanvasItem.h"
+#include "Engine/Canvas.h"
+#include "Engine/TextureCube.h"
 
 #define LOCTEXT_NAMESPACE "FStaticMeshEditorViewportClient"
 
@@ -40,7 +46,7 @@ namespace {
 }
 
 FStaticMeshEditorViewportClient::FStaticMeshEditorViewportClient(TWeakPtr<IStaticMeshEditor> InStaticMeshEditor, TWeakPtr<SStaticMeshEditorViewport> InStaticMeshEditorViewport, FPreviewScene& InPreviewScene, UStaticMesh* InPreviewStaticMesh, UStaticMeshComponent* InPreviewStaticMeshComponent)
-	: FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)
+	: FEditorViewportClient(nullptr, &InPreviewScene)
 	, StaticMeshEditorPtr(InStaticMeshEditor)
 	, StaticMeshEditorViewportPtr(InStaticMeshEditorViewport)
 {
@@ -406,6 +412,9 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 
 	if (bShowCollision && StaticMesh->BodySetup)
 	{
+		// Ensure physics mesh is created before we try and draw it
+		StaticMesh->BodySetup->CreatePhysicsMeshes();
+
 		const FColor SelectedColor(149, 223, 157);
 		const FColor UnselectedColor(157, 149, 223);
 
@@ -521,17 +530,17 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 
 			if( bDrawNormals )
 			{
-				PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Normal ).SafeNormal() * Len, FLinearColor( 0.0f, 1.0f, 0.0f), SDPG_World );
+				PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Normal ).GetSafeNormal() * Len, FLinearColor( 0.0f, 1.0f, 0.0f), SDPG_World );
 			}
 
 			if( bDrawTangents )
 			{
-				PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Tangent ).SafeNormal() * Len, FLinearColor( 1.0f, 0.0f, 0.0f), SDPG_World );
+				PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Tangent ).GetSafeNormal() * Len, FLinearColor( 1.0f, 0.0f, 0.0f), SDPG_World );
 			}
 
 			if( bDrawBinormals )
 			{
-				PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Binormal ).SafeNormal() * Len, FLinearColor( 0.0f, 0.0f, 1.0f), SDPG_World );
+				PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Binormal ).GetSafeNormal() * Len, FLinearColor( 0.0f, 0.0f, 1.0f), SDPG_World );
 			}
 		}	
 	}
@@ -909,7 +918,7 @@ void FStaticMeshEditorViewportClient::ProcessClick(class FSceneView& InView, cla
 						// Compute the per-triangle normal
 						const FVector BA = A - B;
 						const FVector CA = A - C;
-						const FVector TriangleNormal = (CA ^ BA).SafeNormal();
+						const FVector TriangleNormal = (CA ^ BA).GetSafeNormal();
 
 						// Transform the view position from world to component space
 						const FVector ComponentSpaceViewOrigin = StaticMeshComponent->ComponentToWorld.InverseTransformPosition( View->ViewMatrices.ViewOrigin);
@@ -1083,11 +1092,15 @@ void FStaticMeshEditorViewportClient::PerspectiveCameraMoved()
 	FEditorViewportClient::PerspectiveCameraMoved();
 
 	// The static mesh editor saves the camera position in terms of an orbit camera, so ensure 
-	// that orbit mode is enabled before we store the current transform information
+	// that orbit mode is enabled before we store the current transform information.
+	// ToggleOrbitCamera affects the stored camera location, and information is lost in the transformation,
+	// so remember the current position here so it can be restored afterwards.
 	const bool bWasOrbit = bUsingOrbitCamera;
+	const FVector OldCameraLocation = GetViewLocation();
+	const FRotator OldCameraRotation = GetViewRotation();
 	ToggleOrbitCamera(true);
 
-	const FVector OrbitPoint = ViewTransform.GetLookAt();
+	const FVector OrbitPoint = GetLookAtLocation();
 	const FVector OrbitZoom = GetViewLocation() - OrbitPoint;
 	StaticMesh->EditorCameraPosition = FAssetEditorOrbitCameraPosition(
 		OrbitPoint,
@@ -1096,6 +1109,8 @@ void FStaticMeshEditorViewportClient::PerspectiveCameraMoved()
 		);
 
 	ToggleOrbitCamera(bWasOrbit);
+	SetViewLocation(OldCameraLocation);
+	SetViewRotation(OldCameraRotation);
 }
 
 void FStaticMeshEditorViewportClient::SetPreviewMesh(UStaticMesh* InStaticMesh, UStaticMeshComponent* InStaticMeshComponent)

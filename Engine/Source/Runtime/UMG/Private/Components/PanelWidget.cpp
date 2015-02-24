@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -76,10 +76,15 @@ bool UPanelWidget::RemoveChildAt(int32 Index)
 		Slot->Content->Slot = nullptr;
 	}
 
-	Slot->Parent = nullptr;
 	Slots.RemoveAt(Index);
 
 	OnSlotRemoved(Slot);
+
+	Slot->Parent = nullptr;
+	Slot->Content = nullptr;
+
+	const bool bReleaseChildren = true;
+	Slot->ReleaseSlateResources(bReleaseChildren);
 
 	return true;
 }
@@ -136,6 +141,17 @@ bool UPanelWidget::ReplaceChildAt(int32 Index, UWidget* Content)
 }
 
 #if WITH_EDITOR
+
+bool UPanelWidget::ReplaceChild(UWidget* CurrentChild, UWidget* NewChild)
+{
+	int32 Index = GetChildIndex(CurrentChild);
+	if ( Index != -1 )
+	{
+		return ReplaceChildAt(Index, NewChild);
+	}
+
+	return false;
+}
 
 UPanelSlot* UPanelWidget::InsertChildAt(int32 Index, UWidget* Content)
 {

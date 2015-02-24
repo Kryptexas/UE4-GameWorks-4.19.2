@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -44,6 +44,9 @@ class UDataTable : public UObject
 	virtual void FinishDestroy() override;
 	virtual void Serialize( FArchive& Ar ) override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+#if WITH_EDITORONLY_DATA
+	ENGINE_API virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
+#endif
 	// End  UObject interface
 
 	// Begin UDataTable interface
@@ -89,7 +92,7 @@ class UDataTable : public UObject
 	/** Returns the column property where PropertyName matches the name of the column property. Returns NULL if no match is found or the match is not a supported table property */
 	ENGINE_API UProperty* FindTableProperty(const FName& PropertyName) const;
 
-	void* FindRowUnchecked(FName RowName, bool MustExist=false) const
+	uint8* FindRowUnchecked(FName RowName, bool MustExist=false) const
 	{
 		if(RowStruct == NULL)
 		{
@@ -110,7 +113,7 @@ class UDataTable : public UObject
 			return NULL;
 		}
 
-		void* RowData = *RowDataPtr;
+		uint8* RowData = *RowDataPtr;
 		check(RowData);
 
 		return RowData;
@@ -119,7 +122,9 @@ class UDataTable : public UObject
 	/** Empty the table info (will not clear RowStruct) */
 	ENGINE_API void EmptyTable();
 
-#if WITH_EDITOR || HACK_HEADER_GENERATOR
+	ENGINE_API TArray<FName> GetRowNames() const;
+
+#if WITH_EDITOR
 
 private:
 	//when RowStruct is being modified, row data is stored serialized with tags
@@ -159,7 +164,7 @@ public:
 
 	/** Get array for each row in the table. The first row is the titles*/
 	ENGINE_API TArray< TArray<FString> > GetTableData() const;
-#endif //WITH_EDITOR || HACK_HEADER_GENERATOR
+#endif //WITH_EDITOR
 
 	ENGINE_API static FString AssignStringToProperty(const FString& InString, const UProperty* InProp, uint8* InData);
 

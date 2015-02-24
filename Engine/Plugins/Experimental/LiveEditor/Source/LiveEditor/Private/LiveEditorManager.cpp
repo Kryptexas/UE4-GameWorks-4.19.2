@@ -1,3 +1,4 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LiveEditorPrivatePCH.h"
 #include "LiveEditorManager.h"
@@ -606,7 +607,8 @@ void FLiveEditorManager::InjectNewBlueprintEditor( const TWeakPtr<FBlueprintEdit
 
 void FLiveEditorManager::CreateLiveEditorWorld()
 {
-	LiveEditorWorld = new UWorld(FObjectInitializer(),FURL(NULL));
+	LiveEditorWorld = NewObject<UWorld>();
+	LiveEditorWorld->SetFlags(RF_Transactional);
 	LiveEditorWorld->WorldType = EWorldType::Preview;
 	
 	bool bTransactional = false;

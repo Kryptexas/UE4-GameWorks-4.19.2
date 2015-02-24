@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "GameplayAbilityWorldReticle.h"
@@ -14,8 +14,7 @@ class AGameplayAbilityWorldReticle_ActorVisualization : public AGameplayAbilityW
 	GENERATED_UCLASS_BODY()
 
 public:
-
-	void InitializeReticleVisualizationInformation(AActor* VisualizationActor, UMaterialInterface *VisualizationMaterial);
+	void InitializeReticleVisualizationInformation(AGameplayAbilityTargetActor* InTargetingActor, AActor* VisualizationActor, UMaterialInterface *VisualizationMaterial);
 
 private:
 	/** Hardcoded collision component, so other objects don't think they can collide with the visualization actor */

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -245,6 +245,11 @@ FVector2D SNodePanel::ComputeDesiredSize() const
 FChildren* SNodePanel::GetChildren()
 {
 	return &VisibleChildren;
+}
+
+FChildren* SNodePanel::GetAllChildren()
+{
+	return &Children;
 }
 
 float SNodePanel::GetZoomAmount() const
@@ -849,11 +854,7 @@ FReply SNodePanel::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerE
 					OnSpawnNodeByShortcut.Execute(LastKeyGestureDetected, PanelCoordToGraphCoord(  MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() ) ));
 				}
 
-				LastKeyGestureDetected.Key = EKeys::Invalid;
-				LastKeyGestureDetected.bAlt = false;
-				LastKeyGestureDetected.bCtrl = false;
-				LastKeyGestureDetected.bShift = false;
-				LastKeyGestureDetected.bCmd = false;
+				LastKeyGestureDetected = FInputGesture();
 			}
 		}
 		else if ( Marquee.IsValid() )
@@ -918,11 +919,7 @@ FReply SNodePanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKe
 {
 	if( IsEditable.Get() )
 	{
-		LastKeyGestureDetected.Key = InKeyEvent.GetKey();
-		LastKeyGestureDetected.bAlt = InKeyEvent.IsAltDown();
-		LastKeyGestureDetected.bCtrl = InKeyEvent.IsControlDown();
-		LastKeyGestureDetected.bShift = InKeyEvent.IsShiftDown();
-		LastKeyGestureDetected.bCmd = InKeyEvent.IsCommandDown();
+		LastKeyGestureDetected = FInputGesture(InKeyEvent.GetKey(), EModifierKey::FromBools(InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), InKeyEvent.IsShiftDown(), InKeyEvent.IsCommandDown()));
 	}
 
 	return FReply::Unhandled();
@@ -932,11 +929,7 @@ FReply SNodePanel::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyE
 {
 	if(LastKeyGestureDetected.Key == InKeyEvent.GetKey())
 	{
-		LastKeyGestureDetected.Key = EKeys::Invalid;
-		LastKeyGestureDetected.bAlt = false;
-		LastKeyGestureDetected.bCtrl = false;
-		LastKeyGestureDetected.bShift = false;
-		LastKeyGestureDetected.bCmd = false;
+		LastKeyGestureDetected = FInputGesture();
 	}
 
 	return FReply::Unhandled();
@@ -944,11 +937,7 @@ FReply SNodePanel::OnKeyUp( const FGeometry& MyGeometry, const FKeyEvent& InKeyE
 
 void SNodePanel::OnFocusLost( const FFocusEvent& InFocusEvent )
 {
-	LastKeyGestureDetected.Key = EKeys::Invalid;
-	LastKeyGestureDetected.bAlt = false;
-	LastKeyGestureDetected.bCtrl = false;
-	LastKeyGestureDetected.bShift = false;
-	LastKeyGestureDetected.bCmd = false;
+	LastKeyGestureDetected = FInputGesture();
 }
 
 FReply SNodePanel::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent )
@@ -1077,14 +1066,6 @@ void SNodePanel::AddGraphNode( const TSharedRef<SNodePanel::SNode>& NodeToAdd )
 	NodeToWidgetLookup.Add( NodeToAdd->GetObjectBeingDisplayed(), NodeToAdd );
 }
 
-/** Add a node in the 'back plane' of the panel */
-void SNodePanel::AddGraphNodeToBack( const TSharedRef<SNodePanel::SNode>& NodeToAdd )
-{
-	// add into the back plane
-	Children.Insert( NodeToAdd, 0 );
-	NodeToWidgetLookup.Add( NodeToAdd->GetObjectBeingDisplayed(), NodeToAdd );
-}
-
 /** Remove all nodes from the panel */
 void SNodePanel::RemoveAllNodes()
 {
@@ -1103,6 +1084,15 @@ void SNodePanel::PopulateVisibleChildren(const FGeometry& AllottedGeometry)
 		{
 			VisibleChildren.Add(SomeChild);
 		}
+	}
+	// Depth Sort Nodes
+	if( VisibleChildren.Num() > 0 )
+	{
+		struct SNodeLessThanSort
+		{
+			FORCEINLINE bool operator()(const TSharedRef<SNodePanel::SNode>& A, const TSharedRef<SNodePanel::SNode>& B) const { return A.Get() < B.Get(); }
+		};
+		VisibleChildren.Sort( SNodeLessThanSort() );
 	}
 }
 

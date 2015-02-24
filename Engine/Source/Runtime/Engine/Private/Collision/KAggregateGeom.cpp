@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysCollision.cpp: Skeletal mesh collision code
@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Collision.h"
+#include "Engine/Polys.h"
 
 #define MIN_HULL_VERT_DISTANCE		(0.1f)
 #define MIN_HULL_VALID_DIMENSION	(0.5f)
@@ -106,6 +107,13 @@ void FKAggregateGeom::CalcBoxSphereBounds(FBoxSphereBounds& Output, const FTrans
 		// Push the resulting AABB and sphere into the output
 		AABB.GetCenterAndExtents(Output.Origin, Output.BoxExtent);
 		Output.SphereRadius = FMath::Sqrt(RadiusSquared);
+	}
+	else if ((SphereElems.Num() == 1) && (SphylElems.Num() == 0) && (BoxElems.Num() == 0) && (ConvexElems.Num() == 0))
+	{
+		// For bounds that only consist of a single sphere,
+		// we can be certain the box extents are the same as its radius
+		AABB.GetCenterAndExtents(Output.Origin, Output.BoxExtent);
+		Output.SphereRadius = Output.BoxExtent.X;
 	}
 	else
 	{

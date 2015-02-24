@@ -1,9 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "IDocumentation.h"
 #include "KismetEditorUtilities.h"
+#include "GameFramework/GameMode.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "FGameModeInfoCustomizer"
 
@@ -63,12 +65,16 @@ public:
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			[
-				SNew(SClassPropertyEntryBox)
-				.AllowNone(bAllowNone)
-				.MetaClass(MetaClass)
-				.IsEnabled(this, &FGameModeInfoCustomizer::AllowModifyGameMode)
-				.SelectedClass(this, &FGameModeInfoCustomizer::OnGetDefaultClass, DefaultClassPropertyName)
-				.OnSetClass(FOnSetClass::CreateSP(this, &FGameModeInfoCustomizer::OnSetDefaultClass, DefaultClassPropertyName))
+				SNew(SBox)
+				.WidthOverride(125)
+				[
+					SNew(SClassPropertyEntryBox)
+					.AllowNone(bAllowNone)
+					.MetaClass(MetaClass)
+					.IsEnabled(this, &FGameModeInfoCustomizer::AllowModifyGameMode)
+					.SelectedClass(this, &FGameModeInfoCustomizer::OnGetDefaultClass, DefaultClassPropertyName)
+					.OnSetClass(FOnSetClass::CreateSP(this, &FGameModeInfoCustomizer::OnSetDefaultClass, DefaultClassPropertyName))
+				]
 			]
 			+SHorizontalBox::Slot()
 			.AutoWidth()
@@ -116,11 +122,15 @@ public:
 			+SHorizontalBox::Slot()
 			.AutoWidth()
 			[
-				SNew(SClassPropertyEntryBox)
-				.AllowNone(bAllowNone)
-				.MetaClass(AGameMode::StaticClass())
-				.SelectedClass(this, &FGameModeInfoCustomizer::GetCurrentGameModeClass)
-				.OnSetClass(FOnSetClass::CreateSP(this, &FGameModeInfoCustomizer::SetCurrentGameModeClass))
+				SNew(SBox)
+				.WidthOverride(125)
+				[
+					SNew(SClassPropertyEntryBox)
+					.AllowNone(bAllowNone)
+					.MetaClass(AGameMode::StaticClass())
+					.SelectedClass(this, &FGameModeInfoCustomizer::GetCurrentGameModeClass)
+					.OnSetClass(FOnSetClass::CreateSP(this, &FGameModeInfoCustomizer::SetCurrentGameModeClass))
+				]
 			]
 
 			+SHorizontalBox::Slot()
@@ -141,7 +151,7 @@ public:
 		];
 
 		static FName SelectedGameModeDetailsName(TEXT("SelectedGameModeDetails"));		
-		IDetailGroup& Group = CategoryBuilder.AddGroup(SelectedGameModeDetailsName, LOCTEXT("SelectedGameModeDetails", "Selected GameMode").ToString());
+		IDetailGroup& Group = CategoryBuilder.AddGroup(SelectedGameModeDetailsName, LOCTEXT("SelectedGameModeDetails", "Selected GameMode"));
 
 
 		// Then add rows to show key properties and let you edit them
@@ -166,11 +176,6 @@ public:
 		ConstructorHelpers::StripObjectClass(StrippedClassName);
 
 		const UClass* GameModeClass = FindObject<UClass>(ANY_PACKAGE, *StrippedClassName);
-		if (!GameModeClass)
-		{
-			GameModeClass = LoadObject<UClass>(NULL, *ClassName);
-		}
-
 		return GameModeClass;
 	}
 

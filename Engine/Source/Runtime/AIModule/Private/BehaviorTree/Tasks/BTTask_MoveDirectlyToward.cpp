@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -19,11 +19,11 @@ UBTTask_MoveDirectlyToward::UBTTask_MoveDirectlyToward(const FObjectInitializer&
 	BlackboardKey.AddVectorFilter(this);
 }
 
-EBTNodeResult::Type UBTTask_MoveDirectlyToward::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_MoveDirectlyToward::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	const UBlackboardComponent* MyBlackboard = OwnerComp->GetBlackboardComponent();
-	FBTMoveDirectlyTowardMemory* MyMemory = (FBTMoveDirectlyTowardMemory*)NodeMemory;
-	AAIController* MyController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;
+	const UBlackboardComponent* MyBlackboard = OwnerComp.GetBlackboardComponent();
+	FBTMoveDirectlyTowardMemory* MyMemory = reinterpret_cast<FBTMoveDirectlyTowardMemory*>(NodeMemory);
+	AAIController* MyController = OwnerComp.GetAIOwner();
 	EBTNodeResult::Type NodeResult = EBTNodeResult::Failed;
 
 	if (MyController && MyBlackboard)
@@ -32,7 +32,7 @@ EBTNodeResult::Type UBTTask_MoveDirectlyToward::ExecuteTask(UBehaviorTreeCompone
 
 		if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
 		{
-			UObject* KeyValue = MyBlackboard->GetValueAsObject(BlackboardKey.GetSelectedKeyID());
+			UObject* KeyValue = MyBlackboard->GetValue<UBlackboardKeyType_Object>(BlackboardKey.GetSelectedKeyID());
 			AActor* TargetActor = Cast<AActor>(KeyValue);
 			if (TargetActor)
 			{
@@ -43,7 +43,7 @@ EBTNodeResult::Type UBTTask_MoveDirectlyToward::ExecuteTask(UBehaviorTreeCompone
 		}
 		else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())
 		{
-			const FVector TargetLocation = MyBlackboard->GetValueAsVector(BlackboardKey.GetSelectedKeyID());
+			const FVector TargetLocation = MyBlackboard->GetValue<UBlackboardKeyType_Vector>(BlackboardKey.GetSelectedKeyID());
 			RequestResult = MyController->MoveToLocation(TargetLocation, AcceptableRadius, /*bStopOnOverlap=*/true, /*bUsePathfinding=*/false, /*bProjectDestinationToNavigation=*/bProjectVectorGoalToNavigation, bAllowStrafe);
 		}
 
@@ -65,10 +65,10 @@ EBTNodeResult::Type UBTTask_MoveDirectlyToward::ExecuteTask(UBehaviorTreeCompone
 	return NodeResult;
 }
 
-EBTNodeResult::Type UBTTask_MoveDirectlyToward::AbortTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_MoveDirectlyToward::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	FBTMoveDirectlyTowardMemory* MyMemory = (FBTMoveDirectlyTowardMemory*)NodeMemory;
-	AAIController* MyController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;
+	FBTMoveDirectlyTowardMemory* MyMemory = reinterpret_cast<FBTMoveDirectlyTowardMemory*>(NodeMemory);
+	AAIController* MyController = OwnerComp.GetAIOwner();
 
 	if (MyController && MyController->GetPathFollowingComponent())
 	{
@@ -90,12 +90,12 @@ FString UBTTask_MoveDirectlyToward::GetStaticDescription() const
 	return FString::Printf(TEXT("%s: %s"), *Super::GetStaticDescription(), *KeyDesc);
 }
 
-void UBTTask_MoveDirectlyToward::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTTask_MoveDirectlyToward::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 
-	const UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
-	FBTMoveDirectlyTowardMemory* MyMemory = (FBTMoveDirectlyTowardMemory*)NodeMemory;
+	const UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+	FBTMoveDirectlyTowardMemory* MyMemory = reinterpret_cast<FBTMoveDirectlyTowardMemory*>(NodeMemory);
 
 	if (MyMemory->MoveRequestID && BlackboardComp)
 	{

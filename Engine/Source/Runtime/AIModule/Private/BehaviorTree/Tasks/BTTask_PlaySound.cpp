@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "SoundDefinitions.h"
@@ -11,9 +11,9 @@ UBTTask_PlaySound::UBTTask_PlaySound(const FObjectInitializer& ObjectInitializer
 	NodeName = "PlaySound";
 }
 
-EBTNodeResult::Type UBTTask_PlaySound::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_PlaySound::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	const AAIController* MyController = OwnerComp ? Cast<AAIController>(OwnerComp->GetOwner()) : NULL;
+	const AAIController* MyController = OwnerComp.GetAIOwner();
 
 	UAudioComponent* AC = NULL;
 	if (SoundToPlay && MyController)

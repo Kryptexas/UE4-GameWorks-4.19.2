@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DestructibleComponent.cpp: UDestructibleComponent methods.
@@ -15,6 +15,11 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "PhysicsEngine/DestructibleActor.h"
 #include "Engine/DestructibleMesh.h"
+#include "Components/DestructibleComponent.h"
+#include "NavigationSystemHelpers.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/DamageType.h"
 
 UDestructibleComponent::UDestructibleComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -28,8 +33,7 @@ UDestructibleComponent::UDestructibleComponent(const FObjectInitializer& ObjectI
 
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::EvenIfNotCollidable;
 
-	BodyInstance.bUseAsyncScene = true;
-	BodyInstance.bEnableCollision_DEPRECATED = true;
+	BodyInstance.SetUseAsyncScene(true);
 	static FName CollisionProfileName(TEXT("Destructible"));
 	SetCollisionProfileName(CollisionProfileName);
 
@@ -38,6 +42,8 @@ UDestructibleComponent::UDestructibleComponent(const FObjectInitializer& ObjectI
 	bMultiBodyOverlap = true;
 
 	LargeChunkThreshold = 25.f;
+
+	SetSpaceBaseDoubleBuffering(false);
 }
 
 void UDestructibleComponent::Serialize(FArchive& Ar)
@@ -245,7 +251,7 @@ void UDestructibleComponent::CreatePhysicsState()
 
 	// Passing AssetInstanceID = 0 so we'll have self-collision
 	AActor* Owner = GetOwner();
-	CreateShapeFilterData(MoveChannel, (Owner ? Owner->GetUniqueID() : 0), CollResponse, 0, 0, PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, TheDestructibleMesh->DefaultDestructibleParameters.DamageParameters.bEnableImpactDamage, false);
+	CreateShapeFilterData(MoveChannel, GetUniqueID(), CollResponse, 0, 0, PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, TheDestructibleMesh->DefaultDestructibleParameters.DamageParameters.bEnableImpactDamage, false);
 
 	// Build filterData variations for complex and simple
 	PSimFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision;
@@ -919,7 +925,7 @@ void UDestructibleComponent::SetChunksWorldTM(const TArray<FUpdateChunksInfo>& U
 		const FQuat BoneRotation = InvRotation*WorldRotation;
 		const FVector BoneTranslation = InvRotation.RotateVector(WorldTranslation - ComponentToWorld.GetTranslation()) / ComponentToWorld.GetScale3D();
 
-		SpaceBases[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
+		GetEditableSpaceBases()[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
 	}
 
 	// Mark the transform as dirty, so the bounds are updated and sent to the render thread
@@ -927,6 +933,9 @@ void UDestructibleComponent::SetChunksWorldTM(const TArray<FUpdateChunksInfo>& U
 
 	// New bone positions need to be sent to render thread
 	MarkRenderDynamicDataDirty();
+
+	//Update bone visibilty and flip the editable space base buffer
+	FlipEditableSpaceBases();
 }
 
 void UDestructibleComponent::SetChunkWorldRT( int32 ChunkIndex, const FQuat& WorldRotation, const FVector& WorldTranslation )
@@ -949,7 +958,7 @@ void UDestructibleComponent::SetChunkWorldRT( int32 ChunkIndex, const FQuat& Wor
 	// More optimal form of the above
 	const FQuat BoneRotation = ComponentToWorld.GetRotation().Inverse()*WorldRotation;
 	const FVector BoneTranslation = ComponentToWorld.GetRotation().Inverse().RotateVector(WorldTranslation - ComponentToWorld.GetTranslation())/ComponentToWorld.GetScale3D();
-	SpaceBases[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
+	GetEditableSpaceBases()[BoneIndex] = FTransform(BoneRotation, BoneTranslation);
 #endif
 }
 
@@ -958,7 +967,7 @@ void UDestructibleComponent::ApplyDamage(float DamageAmount, const FVector& HitL
 #if WITH_APEX
 	if (ApexDestructibleActor != NULL)
 	{
-		const FVector& NormalizedImpactDir = ImpulseDir.SafeNormal();
+		const FVector& NormalizedImpactDir = ImpulseDir.GetSafeNormal();
 
 		// Transfer damage information to the APEX NxDestructibleActor interface
 		ApexDestructibleActor->applyDamage(DamageAmount, ImpulseStrength, U2PVector( HitLocation ), U2PVector( ImpulseDir ));
@@ -1188,7 +1197,24 @@ void UDestructibleComponent::ResetFakeBodyInstance( FFakeBodyInstanceState& Prev
 	BodyInstance.RigidActorAsync = PrevState.ActorAsync;
 	BodyInstance.InstanceBodyIndex = PrevState.InstanceIndex;
 }
+
 #endif
+
+void UDestructibleComponent::SetEnableGravity(bool bGravityEnabled)
+{
+	Super::SetEnableGravity(bGravityEnabled);
+	
+#if WITH_APEX
+	for (FDestructibleChunkInfo& ChunkInfo : ChunkInfos)
+	 {
+		physx::PxRigidDynamic* Actor = ChunkInfo.Actor;
+		if (Actor)
+		{
+			Actor->setActorFlag(PxActorFlag::eDISABLE_GRAVITY, !bGravityEnabled);
+		}
+	}
+#endif //WITH_APEX
+}
 
 FBodyInstance* UDestructibleComponent::GetBodyInstance( FName BoneName /*= NAME_None*/, bool) const
 {
@@ -1234,7 +1260,7 @@ void UDestructibleComponent::SetCollisionResponseForActor(PxRigidDynamic* Actor,
 		bool bLargeChunk = IsChunkLarge(ChunkIdx);
 		const FCollisionResponse& ColResponse = bLargeChunk ? LargeChunkCollisionResponse : SmallChunkCollisionResponse;
 		//TODO: we currently assume chunks will not have impact damage as it's very expensive. Should look into exposing this a bit more
-		CreateShapeFilterData(MoveChannel, (Owner ? Owner->GetUniqueID() : 0), ColResponse.GetResponseContainer(), 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, false, false);
+		CreateShapeFilterData(MoveChannel, GetUniqueID(), ColResponse.GetResponseContainer(), 0, ChunkIdxToBoneIdx(ChunkIdx), PQueryFilterData, PSimFilterData, BodyInstance.bUseCCD, false, false);
 		
 		PQueryFilterData.word3 |= EPDF_SimpleCollision | EPDF_ComplexCollision;
 

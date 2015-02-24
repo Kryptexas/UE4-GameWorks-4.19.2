@@ -224,6 +224,8 @@
     <Compile Include="System\BuildHostPlatform.cs" />
     <Compile Include="System\FlatCPPIncludeDepencencyCache.cs" />
     <Compile Include="System\Distcc.cs" />
+    <Compile Include="System\CMakefileGenerator.cs" />
+    <Compile Include="System\QMakefileGenerator.cs" />
     <Compile Include="System\ModuleProcessingException.cs" />
     <Compile Include="System\MakefileGenerator.cs" />
     <Compile Include="System\SNDBS.cs" />

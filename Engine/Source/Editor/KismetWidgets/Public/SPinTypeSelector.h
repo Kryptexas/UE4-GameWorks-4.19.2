@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -83,8 +83,8 @@ protected:
 	TAttribute<FOptionalSize>	TreeViewHeight;
 
 	/** Array checkbox support functions */
-	ESlateCheckBoxState::Type IsArrayChecked() const;
-	void OnArrayCheckStateChanged(ESlateCheckBoxState::Type NewState);
+	ECheckBoxState IsArrayChecked() const;
+	void OnArrayCheckStateChanged(ECheckBoxState NewState);
 
 	/** Array containing the unfiltered list of all supported types this pin could possibly have */
 	TArray<FPinTypeTreeItem>		TypeTreeRoot;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnClass.cpp: Object class implementation.
@@ -7,52 +7,12 @@
 #include "CoreUObjectPrivate.h"
 #include "PropertyTag.h"
 #include "HotReloadInterface.h"
+#include "LinkerPlaceholderClass.h"
+#include "StructScriptLoader.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogScriptSerialization, Log, All);
 DEFINE_LOG_CATEGORY(LogScriptSerialization);
 DEFINE_LOG_CATEGORY(LogClass);
-
-
-/*----------------------------------------------------------------------------
-	FArchiveScriptReferenceCollector.
-----------------------------------------------------------------------------*/
-
-class FArchiveScriptReferenceCollector : public FArchiveUObject
-{
-public:
-	/**
-	 * Constructor
-	 *
-	 * @param	InObjectArray			Array to add object references to
-	 */
-	FArchiveScriptReferenceCollector( TArray<UObject*>& InObjectArray )
-	:	ObjectArray( InObjectArray )
-	{
-		ArIsObjectReferenceCollector = true;
-		ArIsPersistent = false;
-		ArIgnoreArchetypeRef = false;
-	}
-protected:
-	/** 
-	 * UObject serialize operator implementation
-	 *
-	 * @param Object	reference to Object reference
-	 * @return reference to instance of this class
-	 */
-	FArchive& operator<<( UObject*& Object )
-	{
-		// Avoid duplicate entries.
-		if ( Object != NULL && !ObjectArray.Contains(Object) )
-		{
-			check( Object->IsValidLowLevel() );
-			ObjectArray.Add( Object );
-		}
-		return *this;
-	}
-
-	/** Stored reference to array of objects we add object references to */
-	TArray<UObject*>&		ObjectArray;
-};
 
 //////////////////////////////////////////////////////////////////////////
 // FPropertySpecifier
@@ -195,14 +155,24 @@ struct FDisplayNameHelper
 {
 	static FString Get(const UObject& Object)
 	{
-		FString Name = Object.GetName();
 		const UClass* Class = dynamic_cast<const UClass*>(&Object);
 		if (Class && !Class->HasAnyClassFlags(CLASS_Native))
 		{
+			FString Name = Object.GetName();
 			Name.RemoveFromEnd(TEXT("_C"));
 			Name.RemoveFromStart(TEXT("SKEL_"));
+			return Name;
 		}
-		return Name;
+
+		if (auto Property = dynamic_cast<const UProperty*>(&Object))
+		{
+			if (auto OwnerStruct = Property->GetOwnerStruct())
+			{
+				return OwnerStruct->PropertyNameToDisplayName(Property->GetFName());
+			}
+		}
+
+		return Object.GetName();
 	}
 };
 
@@ -241,12 +211,32 @@ FText UField::GetDisplayNameText() const
  *
  * @return The tooltip for this object.
  */
-FText UField::GetToolTipText() const
+FText UField::GetToolTipText(bool bShortTooltip) const
 {
+	bool bFoundShortTooltip = false;
+	static const FName NAME_Tooltip(TEXT("Tooltip"));
+	static const FName NAME_ShortTooltip(TEXT("ShortTooltip"));
 	FText LocalizedToolTip;
-	FString NativeToolTip = GetMetaData( TEXT("Tooltip") );
+	FString NativeToolTip;
+	
+	if (bShortTooltip)
+	{
+		NativeToolTip = GetMetaData(NAME_ShortTooltip);
+		if (NativeToolTip.IsEmpty())
+		{
+			NativeToolTip = GetMetaData(NAME_Tooltip);
+		}
+		else
+		{
+			bFoundShortTooltip = true;
+		}
+	}
+	else
+	{
+		NativeToolTip = GetMetaData(NAME_Tooltip);
+	}
 
-	static const FString Namespace = TEXT("UObjectToolTips");
+	const FString Namespace = bFoundShortTooltip ? TEXT("UObjectShortTooltips") : TEXT("UObjectToolTips");
 	const FString Key = GetFullGroupName(true) + TEXT(".") + GetName();
 	if ( !(FText::FindText( Namespace, Key, /*OUT*/LocalizedToolTip )) || *FTextInspector::GetSourceString(LocalizedToolTip) != NativeToolTip)
 	{
@@ -602,8 +592,7 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 
 				for( UField* Field=Children; Field && Field->GetOuter()==this; Field=Field->Next )
 				{
-					UProperty* Property = dynamic_cast<UProperty*>( Field );
-					check(Property);
+					UProperty* Property = CastChecked<UProperty>( Field );
 					ColorComponentEntries[ColorComponentIndex++] = Property;
 				}
 				check( ColorComponentIndex == 4 );
@@ -659,6 +648,58 @@ void UStruct::Link(FArchive& Ar, bool bRelinkExistingProperties)
 	*PropertyLinkPtr = NULL;
 	*DestructorLinkPtr = NULL;
 	*RefLinkPtr = NULL;
+}
+
+void UStruct::InitializeStruct(void* InDest, int32 ArrayDim/* = 1*/) const
+{
+	uint8 *Dest = (uint8*)InDest;
+	check(Dest);
+
+	int32 Stride = GetStructureSize();
+
+	//@todo UE4 optimize
+	FMemory::Memzero(Dest, 1 * Stride);
+
+	bool bHitBase = false;
+	for (UProperty* Property = PropertyLink; Property && !bHitBase; Property = Property->PropertyLinkNext)
+	{
+		if (!Property->IsInContainer(0))
+		{
+			for (int32 ArrayIndex = 0; ArrayIndex < 1; ArrayIndex++)
+			{
+				Property->InitializeValue_InContainer(Dest + ArrayIndex * Stride);
+			}
+		}
+		else
+		{
+			bHitBase = true;
+		}
+	}
+}
+
+void UStruct::DestroyStruct(void* Dest, int32 ArrayDim) const
+{
+	uint8 *Data = (uint8*)Dest;
+	int32 Stride = GetStructureSize();
+
+	bool bHitBase = false;
+	for (UProperty* P = DestructorLink; P  && !bHitBase; P = P->DestructorLinkNext)
+	{
+		if (!P->IsInContainer(0))
+		{
+			if (!P->HasAnyPropertyFlags(CPF_NoDestructor))
+			{
+				for ( int32 ArrayIndex = 0; ArrayIndex < ArrayDim; ArrayIndex++ )
+				{
+					P->DestroyValue_InContainer(Data + ArrayIndex * Stride);
+				}
+			}
+		}
+		else
+		{
+			bHitBase = true;
+		}
+	}
 }
 
 //
@@ -751,6 +792,11 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			Ar << Tag;
 			if( Tag.Name == NAME_None )
 			{
+				break;
+			}
+			if (!Tag.Name.IsValid())
+			{
+				UE_LOG(LogClass, Warning, TEXT("Invalid tag name: struct '%s', archive '%s'"), *GetName(), *Ar.GetArchiveName());
 				break;
 			}
 
@@ -906,20 +952,6 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				AdvanceProperty = true;
 				continue; 
 			}
-			else if( Ar.UE4Ver() < VER_UE4_BLUEPRINT_PROPERTYFLAGS_SIZE_CHANGE && Tag.Type == NAME_IntProperty && Property->GetID() == NAME_UInt64Property)
-			{
-				// PropertyFlag on Blueprints changes from int32 uint64
-				int32 PreviousValue;
-
-				// de-serialize the previous value
-				Ar << PreviousValue;
-
-				// now copy the value into the object's address space
-				CastChecked<UUInt64Property>(Property)->SetPropertyValue_InContainer(Data, PreviousValue, Tag.ArrayIndex);
-				AdvanceProperty = true;
-				continue;
-
-			}
 			else if ( Tag.Type == NAME_ByteProperty && Property->GetID() == NAME_IntProperty )
 			{
 				// this property's data was saved as a uint8, but the property has been changed to an int32.  Since there is no loss of data
@@ -1013,9 +1045,9 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				AdvanceProperty = true;
 				continue; 
 			}
-			else if( dynamic_cast<UStructProperty*>(Property) && dynamic_cast<UStructProperty*>(Property)->Struct && (Tag.Type != Property->GetID() || (Tag.Type == NAME_StructProperty && Tag.StructName != dynamic_cast<UStructProperty*>(Property)->Struct->GetFName())) && (dynamic_cast<UStructProperty*>(Property)->Struct->StructFlags & STRUCT_SerializeFromMismatchedTag))
+			else if( dynamic_cast<UStructProperty*>(Property) && static_cast<UStructProperty*>(Property)->Struct && (Tag.Type != Property->GetID() || (Tag.Type == NAME_StructProperty && Tag.StructName != static_cast<UStructProperty*>(Property)->Struct->GetFName())) && (static_cast<UStructProperty*>(Property)->Struct->StructFlags & STRUCT_SerializeFromMismatchedTag))
 			{
-				UScriptStruct::ICppStructOps* CppStructOps = dynamic_cast<UStructProperty*>(Property)->Struct->GetCppStructOps();
+				UScriptStruct::ICppStructOps* CppStructOps = static_cast<UStructProperty*>(Property)->Struct->GetCppStructOps();
 				check(CppStructOps && CppStructOps->HasSerializeFromMismatchedTag()); // else should not have STRUCT_SerializeFromMismatchedTag
 				void* DestAddress = Property->ContainerPtrToValuePtr<void>(Data, Tag.ArrayIndex);  
 				if (CppStructOps->SerializeFromMismatchedTag(Tag, Ar, DestAddress))
@@ -1032,9 +1064,9 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 			{
 				UE_LOG(LogClass, Warning, TEXT("Type mismatch in %s of %s - Previous (%s) Current(%s) for package:  %s"), *Tag.Name.ToString(), *GetName(), *Tag.Type.ToString(), *Property->GetID().ToString(), *Ar.GetArchiveName() );
 			}
-			else if( Tag.Type == NAME_ArrayProperty && Tag.InnerType != NAME_None && Tag.InnerType != dynamic_cast<UArrayProperty&>(*Property).Inner->GetID() )
+			else if( Tag.Type == NAME_ArrayProperty && Tag.InnerType != NAME_None && Tag.InnerType != CastChecked<UArrayProperty>(Property)->Inner->GetID() )
 			{
-				UArrayProperty* ArrayProperty = dynamic_cast<UArrayProperty*>(Property);
+				UArrayProperty* ArrayProperty = static_cast<UArrayProperty*>(Property);
 				void* ArrayPropertyData = ArrayProperty->ContainerPtrToValuePtr<void>(Data);
 
 				int32 ElementCount = 0;
@@ -1063,7 +1095,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 						FText Text;  
 						Ar << Text;
 						FString String = FTextInspector::GetSourceString(Text) ? *FTextInspector::GetSourceString(Text) : TEXT("");
-						CastChecked<UStrProperty>(ArrayProperty->Inner)->SetPropertyValue(ScriptArrayHelper.GetRawPtr(i), String);
+						static_cast<UStrProperty*>(ArrayProperty->Inner)->SetPropertyValue(ScriptArrayHelper.GetRawPtr(i), String);
 						AdvanceProperty = true;
 					}
 					continue; 
@@ -1247,103 +1279,56 @@ void UStruct::Serialize( FArchive& Ar )
 	Super::Serialize( Ar );
 
 	Ar << SuperStruct;
-
-	if (Ar.UE4Ver() < VER_UE4_CONSOLIDATE_HEADER_PARSER_ONLY_PROPERTIES)
-	{
-		UTextBuffer* ScriptText;
-		Ar << ScriptText;
-	}
-
 	Ar << Children;
 
-	if (Ar.UE4Ver() < VER_UE4_CONSOLIDATE_HEADER_PARSER_ONLY_PROPERTIES)
+	if (Ar.IsLoading())
 	{
-		UTextBuffer* CppText = NULL;
-		Ar << CppText;
+		FStructScriptLoader ScriptLoadHelper(/*TargetScriptContainer =*/this, Ar);
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+		bool const bAllowDeferredScriptSerialization = true;
+#else  // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+		bool const bAllowDeferredScriptSerialization = false;
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
-		int32 Line = 0;
-		Ar << Line;
+		// NOTE: if bAllowDeferredScriptSerialization is set to true, then this
+		//       could temporarily skip script serialization (as it could 
+		//       introduce unwanted dependency loads at this time)
+		ScriptLoadHelper.LoadStructWithScript(this, Ar, bAllowDeferredScriptSerialization);
 
-		int32 TextPos = 0;
-		Ar << TextPos;
-	}
-
-	// Script code.
-	// Skip serialization if we're duplicating classes for reinstancing, since we only need the memory layout
-	int32 ScriptBytecodeSize = !GIsDuplicatingClassForReinstancing ? Script.Num() : 0;
-	int32 ScriptStorageSize = 0;
-	int32 ScriptStorageSizeOffset = 0;
-	if ( Ar.IsLoading() )
-	{
-		Ar << ScriptBytecodeSize;
-		Ar << ScriptStorageSize;
-
-		Script.Empty( ScriptBytecodeSize );
-		Script.AddUninitialized( ScriptBytecodeSize );
-	}
-
-	// Ensure that last byte in script code is EX_EndOfScript to work around script debugger implementation.
-	else if( Ar.IsSaving() )
-	{
-		Ar << ScriptBytecodeSize;
-
-		// drop a zero here.  will seek back later and re-write it when we know it
-		ScriptStorageSizeOffset = Ar.Tell();
-		Ar << ScriptStorageSize;
-	}
-
-	// If we're duplicating for reinstancing, we only need memory layout, and cyclic dependencies within object literals can potentially cause problems, so do not serialize bytecode
-	if( !GIsDuplicatingClassForReinstancing )
-	{
-		// no bytecode patch for this struct - serialize normally [i.e. from disk]
-		int32 iCode = 0;
-		int32 const BytecodeStartOffset = Ar.Tell();
-
-		if (Ar.IsPersistent() && Ar.GetLinker())
+		if (!dynamic_cast<UClass*>(this) && !(Ar.GetPortFlags() & PPF_Duplicate)) // classes are linked in the UClass serializer, which just called me
 		{
-			if (Ar.IsLoading())
-			{
-				// make sure this is a ULinkerLoad
-				ULinkerLoad* LinkerLoad = CastChecked<ULinkerLoad>(Ar.GetLinker());
+			// Link the properties.
+			Link(Ar, true);
+		}
+	}
+	else
+	{
+		int32 ScriptBytecodeSize = Script.Num();
+		int32 ScriptStorageSizeOffset = INDEX_NONE;
 
-				// preload the bytecode
-				TArray<uint8> TempScript;
-				TempScript.AddUninitialized(ScriptStorageSize);
-				int32 ScriptStart = Ar.Tell();
-				Ar.Serialize(TempScript.GetData(), ScriptStorageSize);
-				const int32 ScriptEnd = Ar.Tell();
+		if (Ar.IsSaving())
+		{
+			Ar << ScriptBytecodeSize;
 
-				bool bSkipByteCodeSerialization = false;
-#if WITH_EDITOR
-				static const FBoolConfigValueHelper SkipByteCodeHelper(TEXT("StructSerialization"), TEXT("SkipByteCodeSerialization"));
-				bSkipByteCodeSerialization = SkipByteCodeHelper;
-#endif // WITH_EDITOR
-				if (bSkipByteCodeSerialization || (Ar.UE4Ver() < VER_MIN_SCRIPTVM_UE4) || (Ar.LicenseeUE4Ver() < VER_MIN_SCRIPTVM_LICENSEEUE4))
-				{
-					// Discard the bytecode as it's too old and might cause serialization errors
-					ScriptStorageSize = 0;
-					ScriptBytecodeSize = 0;
-					TempScript.Empty();
-					Script.Empty();
-				}
-				else
-				{
-					Ar.Seek(ScriptStart); // seek back and load it again
-					// now, use the linker to load the byte code, but reading from memory
-					while( iCode < ScriptBytecodeSize )
-					{	
-						SerializeExpr( iCode, Ar );
-					}
-					ensure(Ar.Tell() == ScriptEnd);
-				}
-				// and update the SHA (does nothing if not currently calculating SHA)
-				LinkerLoad->UpdateScriptSHAKey(TempScript);
-			}
-			else
+			int32 ScriptStorageSize = 0;
+			// drop a zero here.  will seek back later and re-write it when we know it
+			ScriptStorageSizeOffset = Ar.Tell();
+			Ar << ScriptStorageSize;
+		}
+
+		// Skip serialization if we're duplicating classes for reinstancing, since we only need the memory layout
+		if (!GIsDuplicatingClassForReinstancing)
+		{
+
+			// no bytecode patch for this struct - serialize normally [i.e. from disk]
+			int32 iCode = 0;
+			int32 const BytecodeStartOffset = Ar.Tell();
+
+			if (Ar.IsPersistent() && Ar.GetLinker())
 			{
 				// make sure this is a ULinkerSave
 				ULinkerSave* LinkerSave = CastChecked<ULinkerSave>(Ar.GetLinker());
-			
+
 				// remember how we were saving
 				FArchive* SavedSaver = LinkerSave->Saver;
 
@@ -1353,9 +1338,9 @@ void UStruct::Serialize( FArchive& Ar )
 				LinkerSave->Saver = &MemWriter;
 
 				// now, use the linker to save the byte code, but writing to memory
-				while( iCode < ScriptBytecodeSize )
-				{	
-					SerializeExpr( iCode, Ar );
+				while (iCode < ScriptBytecodeSize)
+				{
+					SerializeExpr(iCode, Ar);
 				}
 
 				// restore the saver
@@ -1367,54 +1352,32 @@ void UStruct::Serialize( FArchive& Ar )
 				// and update the SHA (does nothing if not currently calculating SHA)
 				LinkerSave->UpdateScriptSHAKey(TempScript);
 			}
-		}
-		else
-		{
-			while( iCode < ScriptBytecodeSize )
-			{	
-				SerializeExpr( iCode, Ar );
-			}
-		}
-
-		if( iCode != ScriptBytecodeSize )
-		{	
-			UE_LOG(LogClass, Fatal, TEXT("Script serialization mismatch: Got %i, expected %i"), iCode, ScriptBytecodeSize );
-		}
-
-		if (Ar.IsSaving())
-		{
-			int32 const BytecodeEndOffset = Ar.Tell();
-
-			// go back and write on-disk size
-			Ar.Seek(ScriptStorageSizeOffset);
-			ScriptStorageSize = BytecodeEndOffset - BytecodeStartOffset;
-			Ar << ScriptStorageSize;
-
-			// back to where we were
-			Ar.Seek(BytecodeEndOffset);
-		}
-		if( Ar.IsLoading() )
-		{
-			// Collect references to objects embedded in script and store them in easily accessible array. This is skipped if
-			// the struct is disregarded for GC as the references won't be of any use.
-			ScriptObjectReferences.Empty();
-			if( !GUObjectArray.IsDisregardForGC(this) )
+			else
 			{
-				FArchiveScriptReferenceCollector ObjectReferenceCollector( ScriptObjectReferences );
-
-				int32 iCode2 = 0;
-				while( iCode2 < Script.Num() )
-				{	
-					SerializeExpr( iCode2, ObjectReferenceCollector );
+				while (iCode < ScriptBytecodeSize)
+				{
+					SerializeExpr(iCode, Ar);
 				}
 			}
-		}	
-	}
 
-	if (Ar.IsLoading() && !dynamic_cast<UClass*>(this) && !(Ar.GetPortFlags() & PPF_Duplicate)) // classes are linked in the UClass serializer, which just called me
-	{
-		// Link the properties.
-		Link( Ar, true );
+			if (iCode != ScriptBytecodeSize)
+			{
+				UE_LOG(LogClass, Fatal, TEXT("Script serialization mismatch: Got %i, expected %i"), iCode, ScriptBytecodeSize);
+			}
+
+			if (Ar.IsSaving())
+			{
+				int32 const BytecodeEndOffset = Ar.Tell();
+
+				// go back and write on-disk size
+				Ar.Seek(ScriptStorageSizeOffset);
+				int32 ScriptStorageSize = BytecodeEndOffset - BytecodeStartOffset;
+				Ar << ScriptStorageSize;
+
+				// back to where we were
+				Ar.Seek(BytecodeEndOffset);
+			}
+		} // if !GIsDuplicatingClassForReinstancing
 	}
 }
 
@@ -1501,6 +1464,37 @@ bool UStruct::GetStringMetaDataHierarchical(const FName& Key, FString* OutValue)
 }
 
 #endif
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	/**
+	 * If we're loading, then the value of the script's UObject* expression 
+	 * could be pointing at a ULinkerPlaceholderClass (used by the linker to 
+	 * fight cyclic dependency issues on load). So here, if that's the case, we
+	 * have the placeholder track this ref (so it'll replace it once the real 
+	 * class is loaded).
+	 * 
+	 * @param  ScriptPtr    Reference to the point in the bytecode buffer, where a UObject* has been stored (for us to check).
+	 */
+	static void HandlePlaceholderScriptRef(ScriptPointerType& ScriptPtr)
+	{
+		UObject*& ExprPtrRef = (UObject*&)ScriptPtr;
+		if (ULinkerPlaceholderClass* PlaceholderObj = Cast<ULinkerPlaceholderClass>(ExprPtrRef)) \
+		{
+			PlaceholderObj->AddReferencingScriptExpr((ULinkerPlaceholderClass**)(&ExprPtrRef));
+		}
+	}
+
+	#define FIXUP_EXPR_OBJECT_POINTER(Type) \
+	{ \
+		if (!Ar.IsSaving()) \
+		{ \
+			int32 const ExprIndex = iCode - sizeof(ScriptPointerType); \
+			ScriptPointerType& ScriptPtr = (ScriptPointerType&)Script[ExprIndex]; \
+			HandlePlaceholderScriptRef(ScriptPtr); \
+		} \
+	}
+#endif // #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
 //
 // Serialize an expression to an archive.
 // Returns expression token.
@@ -1518,6 +1512,7 @@ EExprToken UStruct::SerializeExpr( int32& iCode, FArchive& Ar )
 #undef XFER_FUNC_POINTER
 #undef XFER_FUNC_NAME
 #undef XFER_PROP_POINTER
+#undef FIXUP_EXPR_OBJECT_POINTER
 }
 
 void UStruct::InstanceSubobjectTemplates( void* Data, void const* DefaultData, UStruct* DefaultStruct, UObject* Owner, FObjectInstancingGraph* InstanceGraph )
@@ -2162,8 +2157,7 @@ void UScriptStruct::CopyScriptStruct(void* InDest, void const* InSrc, int32 Arra
 	}
 }
 
-
-void UScriptStruct::InitializeScriptStruct(void* InDest, int32 ArrayDim) const
+void UScriptStruct::InitializeStruct(void* InDest, int32 ArrayDim) const
 {
 	uint8 *Dest = (uint8*)InDest;
 	check(Dest);
@@ -2256,7 +2250,7 @@ void UScriptStruct::ClearScriptStruct(void* Dest, int32 ArrayDim) const
 
 }
 
-void UScriptStruct::DestroyScriptStruct(void* Dest, int32 ArrayDim) const
+void UScriptStruct::DestroyStruct(void* Dest, int32 ArrayDim) const
 {
 	if (StructFlags & (STRUCT_IsPlainOldData | STRUCT_NoDestructor))
 	{
@@ -2479,7 +2473,7 @@ UObject* UClass::CreateDefaultObject()
 		if ( (ParentDefaultObject != NULL) || (this == UObject::StaticClass()) )
 		{
 			// If this is a class that can be regenerated, it is potentially not completely loaded.  Preload and Link here to ensure we properly zero memory and read in properties for the CDO
-			if( (ClassGeneratedBy != NULL) && (PropertyLink == NULL) && !GIsDuplicatingClassForReinstancing)
+			if( HasAnyClassFlags(CLASS_CompiledFromBlueprint) && (PropertyLink == NULL) && !GIsDuplicatingClassForReinstancing)
 			{
 				ULinkerLoad* ClassLinker = GetLinker();
 				if( ClassLinker )
@@ -2774,6 +2768,25 @@ FString UClass::GetDesc()
 	return GetName();
 }
 
+void UClass::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	Super::GetAssetRegistryTags(OutTags);
+
+#if WITH_EDITOR
+	static const FName ParentClassFName = "ParentClass";
+	const UClass* const ParentClass = GetSuperClass();
+	OutTags.Add( FAssetRegistryTag(ParentClassFName, ((ParentClass) ? ParentClass->GetFName() : NAME_None).ToString(), FAssetRegistryTag::TT_Alphabetical) );
+
+	static const FName ModuleNameFName = "ModuleName";
+	const UPackage* const ClassPackage = GetOuterUPackage();
+	OutTags.Add( FAssetRegistryTag(ModuleNameFName, ((ClassPackage) ? FPackageName::GetShortFName(ClassPackage->GetFName()) : NAME_None).ToString(), FAssetRegistryTag::TT_Alphabetical) );
+
+	static const FName ModuleRelativePathFName = "ModuleRelativePath";
+	const FString& ClassModuleRelativeIncludePath = GetMetaData(ModuleRelativePathFName);
+	OutTags.Add( FAssetRegistryTag(ModuleRelativePathFName, ClassModuleRelativeIncludePath, FAssetRegistryTag::TT_Alphabetical) );
+#endif
+}
+
 void UClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 {
 	check(!bRelinkExistingProperties || !(ClassFlags & CLASS_Intrinsic));
@@ -2901,12 +2914,6 @@ void UClass::Serialize( FArchive& Ar )
 	Ar << ClassWithin;
 	Ar << ClassConfigName;
 
-	if (Ar.UE4Ver() < VER_UE4_STOPPED_SERIALIZING_COMPONENTNAMETODEFAULTOBJECTMAP)
-	{
-		TArray<UObject*> ComponentNameToDefaultObjectMapSerialized;
-		Ar << ComponentNameToDefaultObjectMapSerialized;
-	}
-
 	int32 NumInterfaces = 0;
 	int64 InterfacesStart = 0L;
 	if(Ar.IsLoading())
@@ -2979,36 +2986,8 @@ void UClass::Serialize( FArchive& Ar )
 		Ar << Interfaces;
 	}
 
-	if( Ar.UE4Ver() < VER_UE4_DONTSORTCATEGORIES_REMOVED )
-	{
-		TArray<FName> DeprecatedDontSortCategories;
-		Ar << DeprecatedDontSortCategories;
-	}
-
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_CATEGORY_MOVED_TO_METADATA)
-	{
-		TArray<FName> TempHideCategories;
-		TArray<FName> TempAutoExpandCategories;
-		TArray<FName> TempAutoCollapseCategories;
-		Ar << TempHideCategories;
-		Ar << TempAutoExpandCategories;
-		Ar << TempAutoCollapseCategories;
-	}
-
 	bool bDeprecatedForceScriptOrder = false;
 	Ar << bDeprecatedForceScriptOrder;
-
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_CATEGORY_MOVED_TO_METADATA)
-	{
-		TArray<FName> TempClassGroupNames;
-		Ar << TempClassGroupNames;
-	}
-
-	if( Ar.UE4Ver() < VER_UE4_CONSOLIDATE_HEADER_PARSER_ONLY_PROPERTIES )
-	{
-		FString ClassHeaderFilename;
-		Ar << ClassHeaderFilename;
-	}
 
 	FName Dummy = NAME_None;
 	Ar << Dummy;
@@ -3031,19 +3010,41 @@ void UClass::Serialize( FArchive& Ar )
 	{
 		check((Ar.GetPortFlags() & PPF_Duplicate) || (GetStructureSize() >= sizeof(UObject)));
 		check(!GetSuperClass() || !GetSuperClass()->HasAnyFlags(RF_NeedLoad));
+		
+		// record the current CDO, as it stands, so we can compare against it 
+		// after we've serialized in the new CDO (to detect if, as a side-effect
+		// of the serialization, a different CDO was generated)
 		UObject* const OldCDO = ClassDefaultObject;
-		UObject* TempClassDefaultObject = NULL;
-		Ar << TempClassDefaultObject;
-		// we need to avoid a case, when while class regeneration a different CDO is set, and now we set it to an stale one (ttp#343166)
+
+		// serialize in the CDO, but first store it here (in a temporary var) so
+		// we can check to see if it should be the authoritative CDO (a newer 
+		// CDO could be generated as a side-effect of this serialization)
+		//
+		// @TODO: for USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING, do we need to 
+		//        defer this serialization (should we just save off the tagged
+		//        serialization data for later use)?
+		UObject* PerspectiveNewCDO = NULL;
+		Ar << PerspectiveNewCDO;
+
+		// Blueprint class regeneration could cause the class's CDO to be set.
+		// The CDO (<<) serialization call (above) probably will invoke class 
+		// regeneration, and as a side-effect the CDO could already be set by 
+		// the time it returns. So we only want to set the CDO here (to what was 
+		// serialized in) if it hasn't already changed (else, the serialized
+		// version could be stale). See: TTP #343166
 		if (ClassDefaultObject == OldCDO)
 		{
-			ClassDefaultObject = TempClassDefaultObject;
+			ClassDefaultObject = PerspectiveNewCDO;
 		}
-		else if (TempClassDefaultObject != ClassDefaultObject)
+		// if we reach this point, then the CDO was regenerated as a side-effect
+		// of the serialization... let's log if the regenerated CDO (what's 
+		// already been set) is not the same as what was returned from the 
+		// serialization (could mean the CDO was regenerated multiple times?)
+		else if (PerspectiveNewCDO != ClassDefaultObject)
 		{
 			UE_LOG(LogClass, Log, TEXT("CDO was changed while class serialization.\n\tOld: '%s'\n\tSerialized: '%s'\n\tActual: '%s'")
 				, OldCDO ? *OldCDO->GetFullName() : TEXT("NULL")
-				, TempClassDefaultObject ? *TempClassDefaultObject->GetFullName() : TEXT("NULL")
+				, PerspectiveNewCDO ? *PerspectiveNewCDO->GetFullName() : TEXT("NULL")
 				, ClassDefaultObject ? *ClassDefaultObject->GetFullName() : TEXT("NULL"));
 		}
 		ClassUnique = 0;
@@ -3116,12 +3117,6 @@ bool UClass::ImplementsInterface( const class UClass* SomeInterface ) const
  */
 void UClass::SerializeDefaultObject(UObject* Object, FArchive& Ar)
 {
-	if (Ar.UE4Ver() < VER_UE4_REMOVE_NET_INDEX && (!(Ar.GetPortFlags() & PPF_Duplicate)))
-	{
-		int32 OldNetIndex = 0;
-		Ar << OldNetIndex;
-	}
-
 	// tell the archive that it's allowed to load data for transient properties
 	Ar.StartSerializingDefaults();
 
@@ -3147,17 +3142,7 @@ void UClass::SerializeDefaultObject(UObject* Object, FArchive& Ar)
 FArchive& operator<<(FArchive& Ar, FImplementedInterface& A)
 {
 	Ar << A.Class;
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_NO_INTERFACE_PROPERTY)
-	{
-		UObject* Junk = NULL;
-		Ar << Junk;
-		check(!Junk); // these should be exclusively K2, which should not have an associated property
-		A.PointerOffset = 0;
-	}
-	else
-	{
-		Ar << A.PointerOffset;
-	}
+	Ar << A.PointerOffset;
 	Ar << A.bImplementedByK2;
 
 	return Ar;

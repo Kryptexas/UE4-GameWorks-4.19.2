@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -25,7 +25,7 @@ bool FAISystemExec::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar)
 		return false;
 	}
 
-	UAISystem* AISys = UAISystem::GetCurrent(Inworld);	
+	UAISystem* AISys = UAISystem::GetCurrent(*Inworld);	
 	bool bHandled = false;
 
 	if (AISys != NULL)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -105,3 +105,9 @@ const FPlatformUserId PLATFORMUSERID_NONE = INDEX_NONE;
 // helpers to turn an preprocessor token into a real string (see UBT_COMPILED_PLATFORM)
 #define PREPROCESSOR_TO_STRING_INNER(x) #x
 #define PREPROCESSOR_TO_STRING(x) PREPROCESSOR_TO_STRING_INNER(x)
+
+#define PREPROCESSOR_JOIN_INNER(x, y) x##y
+#define PREPROCESSOR_JOIN(x, y) PREPROCESSOR_JOIN_INNER(x, y)
+
+// When passed to pragma message will result in clickable warning in VS
+#define WARNING_LOCATION __FILE__ "(" PREPROCESSOR_TO_STRING(__LINE__) ")"

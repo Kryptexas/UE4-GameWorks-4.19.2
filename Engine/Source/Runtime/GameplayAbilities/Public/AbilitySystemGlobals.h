@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,6 +14,7 @@ struct FGameplayAbilityActorInfo;
 struct FGameplayEffectContext;
 struct FGameplayTag;
 struct FAttributeSetInitter;
+struct FGameplayEffectSpec;
 
 /** Holds global data for the skill system. Can be configured per project via config file */
 UCLASS(config=Game)
@@ -55,6 +56,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	UDataTable* GetGlobalAttributeMetaDataTable();
 
+	static void DeriveGameplayCueTagFromAssetName(FString AssetName, FGameplayTag& GameplayCueTag, FName& GameplayCueName);
+
 	bool IsAbilitySystemGlobalsInitialized()
 	{
 		return GlobalAttributeSetInitter.IsValid();
@@ -72,7 +75,7 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	static UAbilitySystemGlobals& Get();
 
-	static UAbilitySystemComponent* GetAbilitySystemComponentFromActor(AActor* Actor, bool LookForComponent=true);
+	static UAbilitySystemComponent* GetAbilitySystemComponentFromActor(AActor* Actor, bool LookForComponent=false);
 
 	/** Should allocate a project specific AbilityActorInfo struct. Caller is responsible for deallocation */
 	virtual FGameplayAbilityActorInfo * AllocAbilityActorInfo() const;
@@ -86,9 +89,12 @@ class GAMEPLAYABILITIES_API UAbilitySystemGlobals : public UObject
 
 	virtual UGameplayCueManager* GetGameplayCueManager();
 
+	virtual void GlobalPreGameplayEffectSpecApply(FGameplayEffectSpec& Spec, UAbilitySystemComponent* AbilitySystemComponent);
+
 protected:
 
-	virtual void InitAtributeDefaults();
+	virtual void InitAttributeDefaults();
+	virtual void ReloadAttributeDefaults();
 	virtual void AllocAttributeSetInitter();
 
 private:

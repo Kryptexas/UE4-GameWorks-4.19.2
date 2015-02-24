@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Array.h: Dynamic array definitions.
@@ -1442,11 +1442,14 @@ public:
 		}
 		ArrayNum -= Count;
 
-		const int32 NewArrayMax = AllocatorInstance.CalculateSlack(ArrayNum, ArrayMax, sizeof(ElementType));
-		if (NewArrayMax != ArrayMax && bAllowShrinking)
+		if (bAllowShrinking)
 		{
-			ArrayMax = NewArrayMax;
-			AllocatorInstance.ResizeAllocation(ArrayNum, ArrayMax, sizeof(ElementType));
+			const int32 NewArrayMax = AllocatorInstance.CalculateSlack(ArrayNum, ArrayMax, sizeof(ElementType));
+			if (NewArrayMax != ArrayMax)
+			{
+				ArrayMax = NewArrayMax;
+				AllocatorInstance.ResizeAllocation(ArrayNum, ArrayMax, sizeof(ElementType));
+			}
 		}
 	}
 
@@ -1483,11 +1486,14 @@ public:
 		}
 		ArrayNum -= Count;
 
-		const int32 NewArrayMax = AllocatorInstance.CalculateSlack(ArrayNum, ArrayMax, sizeof(ElementType));
-		if (NewArrayMax != ArrayMax && bAllowShrinking)
+		if (bAllowShrinking)
 		{
-			ArrayMax = NewArrayMax;
-			AllocatorInstance.ResizeAllocation(ArrayNum, ArrayMax, sizeof(ElementType));
+			const int32 NewArrayMax = AllocatorInstance.CalculateSlack(ArrayNum, ArrayMax, sizeof(ElementType));
+			if (NewArrayMax != ArrayMax)
+			{
+				ArrayMax = NewArrayMax;
+				AllocatorInstance.ResizeAllocation(ArrayNum, ArrayMax, sizeof(ElementType));
+			}
 		}
 	}
 
@@ -1986,7 +1992,7 @@ public:
 	 *
 	 * @returns The number of items removed. For RemoveSingleItem, this is always either 0 or 1.
 	 */
-	int32 RemoveSingleSwap(const ElementType& Item)
+	int32 RemoveSingleSwap(const ElementType& Item, bool bAllowShrinking = true)
 	{
 		int32 Index = Find(Item);
 		if (Index == INDEX_NONE)
@@ -1994,7 +2000,7 @@ public:
 			return 0;
 		}
 
-		RemoveAtSwap(Index);
+		RemoveAtSwap(Index, 1, bAllowShrinking);
 
 		// Removed one item
 		return 1;
@@ -2261,18 +2267,22 @@ public:
 	 *
 	 * @param InIntem Item to be added.
 	 * @param Predicate Predicate class instance.
+	 *
+	 * @return The index of the new element.
 	 */
 	template <class PREDICATE_CLASS>
-	void HeapPush(const ElementType& InItem, const PREDICATE_CLASS& Predicate)
+	int32 HeapPush(const ElementType& InItem, const PREDICATE_CLASS& Predicate)
 	{
 		// Add at the end, then sift up
 		Add(InItem);
 		TDereferenceWrapper<ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
-		SiftUp(0, Num() - 1, PredicateWrapper);
+		int32 Result = SiftUp(0, Num() - 1, PredicateWrapper);
 
 #if DEBUG_HEAP
 		VerifyHeap(PredicateWrapper);
 #endif
+
+		return Result;
 	}
 
 	/** 
@@ -2280,10 +2290,12 @@ public:
 	 * template type.
 	 *
 	 * @param InIntem Item to be added.
+	 *
+	 * @return The index of the new element.
 	 */
-	void HeapPush(const ElementType& InItem)
+	int32 HeapPush(const ElementType& InItem)
 	{
-		HeapPush(InItem, TLess<ElementType>());
+		return HeapPush(InItem, TLess<ElementType>());
 	}
 
 	/** 
@@ -2398,7 +2410,7 @@ public:
 
 		TDereferenceWrapper< ElementType, PREDICATE_CLASS> PredicateWrapper(Predicate);
 		SiftDown(Index, Num(), PredicateWrapper);
-		SiftUp(0, Index, PredicateWrapper);
+		SiftUp(0, FMath::Min(Index, Num() - 1), PredicateWrapper);
 
 #if DEBUG_HEAP
 		VerifyHeap(PredicateWrapper);
@@ -2498,6 +2510,7 @@ private:
 		return (Index - 1) / 2;
 	}
 
+private:
 	/**
 	 * Fixes a possible violation of order property between node at Index and a child.
 	 *
@@ -2520,15 +2533,13 @@ private:
 				MinChildIndex = Predicate(Heap[LeftChildIndex], Heap[RightChildIndex]) ? LeftChildIndex : RightChildIndex;
 			}
 
-			if (Predicate(Heap[MinChildIndex], Heap[Index]))
-			{
-				Exchange(Heap[Index], Heap[MinChildIndex]);
-				Index = MinChildIndex;
-			}
-			else
+			if (!Predicate(Heap[MinChildIndex], Heap[Index]))
 			{
 				break;
 			}
+
+			Exchange(Heap[Index], Heap[MinChildIndex]);
+			Index = MinChildIndex;
 		}
 	}
 
@@ -2538,25 +2549,26 @@ private:
 	 * @param RootIndex How far to go up?
 	 * @param NodeIndex Node index.
 	 * @param Predicate Predicate class instance.
+	 *
+	 * @return The new index of the node that was at NodeIndex
 	 */
 	template <class PREDICATE_CLASS>
-	FORCEINLINE void SiftUp(int32 RootIndex, const int32 NodeIndex, const PREDICATE_CLASS& Predicate)
+	FORCEINLINE int32 SiftUp(int32 RootIndex, int32 NodeIndex, const PREDICATE_CLASS& Predicate)
 	{
 		ElementType* Heap = GetData();
-		int32 Index = FMath::Min(NodeIndex, Num() - 1);
-		while (Index > RootIndex)
+		while (NodeIndex > RootIndex)
 		{
-			int32 ParentIndex = HeapGetParentIndex(Index);
-			if (Predicate(Heap[Index], Heap[ParentIndex]))
-			{
-				Exchange(Heap[Index], Heap[ParentIndex]);
-				Index = ParentIndex;
-			}
-			else
+			int32 ParentIndex = HeapGetParentIndex(NodeIndex);
+			if (!Predicate(Heap[NodeIndex], Heap[ParentIndex]))
 			{
 				break;
 			}
+
+			Exchange(Heap[NodeIndex], Heap[ParentIndex]);
+			NodeIndex = ParentIndex;
 		}
+
+		return NodeIndex;
 	}
 };
 
@@ -3238,7 +3250,7 @@ public:
 	 */
 	uint32 GetAllocatedSize() const
 	{
-		return Array.Max() * (sizeof(T)+sizeof(T*));
+		return Array.Max() * sizeof(T*) + Array.Num() * sizeof(T);
 	}
 
 	// Iterators

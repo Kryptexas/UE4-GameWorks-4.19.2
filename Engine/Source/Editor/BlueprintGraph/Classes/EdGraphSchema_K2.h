@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EdGraph/EdGraphSchema.h"
@@ -56,8 +56,17 @@ public:
 	/** If true, the class will be usable as a base for blueprints */
 	static const FName MD_IsBlueprintBase;
 	
-	/** A listing of classes that this class is accessible from (and only those classes, if present) */
+	/** A listing of classes that this class is accessible from (and only those classes, if present).  Note that this determines the GRAPH CONTEXTS in which the node cannot be placed (e.g. right click menu, palette), and does NOT control menus when dragging off of a context pin (i.e. contextual drag) */
 	static const FName MD_RestrictedToClasses;
+
+	/// [ClassMetadata] Used for Actor and Component classes. If the native class cannot tick, Blueprint generated classes based this Actor or Component can have bCanEverTick flag overridden even if bCanBlueprintsTickByDefault is false.
+	static const FName MD_ChildCanTick;
+
+	/// [ClassMetadata] Used for Actor and Component classes. If the native class cannot tick, Blueprint generated classes based this Actor or Component can never tick even if bCanBlueprintsTickByDefault is true.
+	static const FName MD_ChildCannotTick;
+
+	/// [ClassMetadata] Used to make the first subclass of a class ignore all inherited showCategories and hideCategories commands
+	static const FName MD_IgnoreCategoryKeywordsInSubclasses;
 
 	//    function metadata
 	/** Specifies a UFUNCTION as Kismet protected, which can only be called from itself */
@@ -244,6 +253,7 @@ class BLUEPRINTGRAPH_API UEdGraphSchema_K2 : public UEdGraphSchema
 	static const FString PC_Text;
 	static const FString PC_Struct;    // SubCategoryObject is the ScriptStruct of the struct passed thru this pin, 'self' is not a valid SubCategory. DefaultObject should always be empty, the DefaultValue string may be used for supported structs.
 	static const FString PC_Wildcard;    // Special matching rules are imposed by the node itself
+	static const FString PC_Enum;    // SubCategoryObject is the UEnum object passed thru this pin
 
 	// Common PinType.PinSubCategory values
 	static const FString PSC_Self;    // Category=PC_Object or PC_Class, indicates the class being compiled
@@ -387,7 +397,7 @@ public:
 	virtual bool ShouldHidePinDefaultValue(UEdGraphPin* Pin) const override;
 	virtual bool ShouldShowAssetPickerForPin(UEdGraphPin* Pin) const override;
 	virtual FLinearColor GetPinTypeColor(const FEdGraphPinType& PinType) const override;
-	virtual FString GetPinDisplayName(const UEdGraphPin* Pin) const override;
+	virtual FText GetPinDisplayName(const UEdGraphPin* Pin) const override;
 	virtual void ConstructBasicPinTooltip(const UEdGraphPin& Pin, const FText& PinDescription, FString& TooltipOut) const override;
 	virtual EGraphType GetGraphType(const UEdGraph* TestEdGraph) const override;
 	virtual bool IsTitleBarPin(const UEdGraphPin& Pin) const override;
@@ -414,6 +424,14 @@ public:
 	virtual void SplitPin(UEdGraphPin* Pin) const override;
 	virtual void RecombinePin(UEdGraphPin* Pin) const override;
 	// End EdGraphSchema Interface
+
+	/**
+	 *
+	 *	Determine if this graph supports event dispatcher
+	 * 
+	 *	@return True if this schema supports Event Dispatcher 
+	 */
+	virtual bool DoesSupportEventDispatcher() const { return true; }
 
 	/**
 	* Configure the supplied variable node based on the supplied info
@@ -481,6 +499,23 @@ public:
 	 * @return	true if this is a composite graph
 	 */
 	bool IsCompositeGraph(const UEdGraph* TestEdGraph) const;
+
+	/**
+	 * Checks to see if the specified graph is a const function graph
+	 *
+	 * @param	TestEdGraph		Graph to test
+	 * @param	bOutIsEnforcingConstCorrectness (Optional) Whether or not this graph is enforcing const correctness during compilation
+	 * @return	true if this is a const function graph
+	 */
+	bool IsConstFunctionGraph(const UEdGraph* TestEdGraph, bool* bOutIsEnforcingConstCorrectness = nullptr) const;
+
+	/**
+	 * Checks to see if the specified graph is a static function graph
+	 *
+	 * @param	TestEdGraph		Graph to test
+	 * @return	true if this is a const function graph
+	 */
+	bool IsStaticFunctionGraph(const UEdGraph* TestEdGraph) const;
 
 	/**
 	 * Checks to see if a pin is an execution pin.
@@ -610,7 +645,7 @@ public:
 	UFunction* GetCallableParentFunction(UFunction* Function) const;
 
 	/** Whether or not the specified actor is a valid target for bound events and literal references (in the right level, not a builder brush, etc */
-	bool IsActorValidForLevelScriptRefs(const AActor* TestActor, const ULevelScriptBlueprint* Blueprint) const;
+	bool IsActorValidForLevelScriptRefs(const AActor* TestActor, const UBlueprint* Blueprint) const;
 
 	/** 
 	 *	Generate a list of replaceable nodes for context menu based on the editor's current selection 
@@ -680,13 +715,13 @@ public:
 	 * Determine if a function has a parameter of a specific type.
 	 *
 	 * @param	InFunction	  	The function to search.
-	 * @param	CallingContext  The blueprint that you're looking to call the function from (some functions hide different pins depending on the blueprint they're in)
+	 * @param	InGraph			The graph that you're looking to call the function from (some functions hide different pins depending on the graph they're in)
 	 * @param	DesiredPinType	The type that at least one function parameter needs to be.
 	 * @param	bWantOutput   	The direction that the parameter needs to be.
 	 *
 	 * @return	true if at least one parameter is of the correct type and direction.
 	 */
-	bool FunctionHasParamOfType(const UFunction* InFunction, UBlueprint const* CallingContext, const FEdGraphPinType& DesiredPinType, bool bWantOutput) const;
+	bool FunctionHasParamOfType(const UFunction* InFunction, UEdGraph const* InGraph, const FEdGraphPinType& DesiredPinType, bool bWantOutput) const;
 
 	/**
 	 * Add the specified flags to the function entry node of the graph, to make sure they get compiled in to the generated function
@@ -802,14 +837,6 @@ public:
 	bool DoesTypeHaveSubtypes( const FString& FriendlyTypeName ) const;
 
 	/**
-	 * Gets a list of variable subtypes that are valid for the specified type
-	 *
-	 * @param	Type			The type to grab subtypes for
-	 * @param	SubtypesList	(out) Upon return, this will be a list of valid subtype objects for the specified type
-	 */
-	void GetVariableSubtypes(const FString& Type, TArray<UObject*>& SubtypesList) const;
-
-	/**
 	 * Returns true if the types and directions of two pins are schema compatible. Handles
 	 * outputting a more derived type to an input pin expecting a less derived type.
 	 *
@@ -906,18 +933,17 @@ public:
 	bool DoesGraphSupportImpureFunctions(const UEdGraph* InGraph) const;
 
 	/**
-	 * Checks to see if the passed in function is valid in the class
+	 * Checks to see if the passed in function is valid in the graph for the current class
 	 *
 	 * @param	InClass  			Class being checked to see if the function is valid for
 	 * @param	InFunction			Function being checked
 	 * @param	InDestGraph			Graph we will be using action for (may be NULL)
 	 * @param	InFunctionTypes		Combination of EFunctionType to indicate types of functions accepted
-	 * @param	bInShowInherited	Allows for inherited functions
 	 * @param	bInCalledForEach	Call for each element in an array (a node accepts array)
 	 * @param	InTargetInfo		Allows spawning nodes which also create a target variable as well
 	 * @param	OutReason			Allows callers to receive a localized string containing more detail when the function is determined to be invalid (optional)
 	 */
-	bool CanFunctionBeUsedInClass(const UClass* InClass, UFunction* InFunction, const UEdGraph* InDestGraph, uint32 InFunctionTypes, bool bInShowInherited, bool bInCalledForEach, const FFunctionTargetInfo& InTargetInfo, FText* OutReason = nullptr) const;
+	bool CanFunctionBeUsedInGraph(const UClass* InClass, const UFunction* InFunction, const UEdGraph* InDestGraph, uint32 InFunctionTypes, bool bInCalledForEach, const FFunctionTargetInfo& InTargetInfo, FText* OutReason = nullptr) const;
 
 	/**
 	 * Makes connections into/or out of the gateway node, connect directly to the associated networks on the opposite side of the tunnel

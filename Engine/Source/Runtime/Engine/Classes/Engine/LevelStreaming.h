@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "LatentActions.h"
@@ -188,19 +188,17 @@ class ULevelStreaming : public UObject
 	 * so the code needs to return true an appropriate amount of time before it is 
 	 * needed.
 	 *
-	 * @param ViewLocation	Location of the viewer
 	 * @return true if level should be loaded/ streamed in, false otherwise
 	 */
-	virtual bool ShouldBeLoaded( const FVector& ViewLocation );
+	virtual bool ShouldBeLoaded();
 
 	/**
 	 * Return whether this level should be visible/ associated with the world if it is
 	 * loaded.
 	 * 
-	 * @param ViewLocation	Location of the viewer
 	 * @return true if the level should be visible, false otherwise
 	 */
-	virtual bool ShouldBeVisible( const FVector& ViewLocation );
+	virtual bool ShouldBeVisible();
 
 	virtual bool ShouldBeAlwaysLoaded() const { return false; }
 	
@@ -314,7 +312,7 @@ private:
 	 *
 	 * @param LevelPackage	Loaded level package
 	 */
-	void AsyncLevelLoadComplete( const FString& PackageName, UPackage* LevelPackage );
+	void AsyncLevelLoadComplete( const FName& PackageName, UPackage* LevelPackage );
 
 	/** Pointer to Level object if currently loaded/ streamed in.																*/
 	UPROPERTY(transient)

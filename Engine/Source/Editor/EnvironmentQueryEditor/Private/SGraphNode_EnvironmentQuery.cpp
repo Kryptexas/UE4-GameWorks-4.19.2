@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnvironmentQueryEditorPrivatePCH.h"
@@ -187,7 +187,7 @@ void SGraphNode_EnvironmentQuery::UpdateGraphNode()
 	TSharedPtr<SNodeTitle> NodeTitle = SNew(SNodeTitle, GraphNode);
 
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
-	this->ChildSlot
+	this->GetOrAddSlot( ENodeZone::Center )
 		.HAlign(HAlign_Fill)
 		.VAlign(VAlign_Center)
 		[
@@ -515,18 +515,18 @@ EVisibility SGraphNode_EnvironmentQuery::GetTestToggleVisibility() const
 	return MyTestNode ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-ESlateCheckBoxState::Type SGraphNode_EnvironmentQuery::IsTestToggleChecked() const
+ECheckBoxState SGraphNode_EnvironmentQuery::IsTestToggleChecked() const
 {
 	UEnvironmentQueryGraphNode_Test* MyTestNode = Cast<UEnvironmentQueryGraphNode_Test>(GraphNode);
-	return MyTestNode && MyTestNode->bTestEnabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return MyTestNode && MyTestNode->bTestEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SGraphNode_EnvironmentQuery::OnTestToggleChanged(ESlateCheckBoxState::Type NewState)
+void SGraphNode_EnvironmentQuery::OnTestToggleChanged(ECheckBoxState NewState)
 {
 	UEnvironmentQueryGraphNode_Test* MyTestNode = Cast<UEnvironmentQueryGraphNode_Test>(GraphNode);
 	if (MyTestNode)
 	{
-		MyTestNode->bTestEnabled = (NewState == ESlateCheckBoxState::Checked);
+		MyTestNode->bTestEnabled = (NewState == ECheckBoxState::Checked);
 		
 		if (MyTestNode->ParentNode)
 		{
@@ -667,10 +667,10 @@ TSharedPtr<SToolTip> SGraphNode_EnvironmentQuery::GetComplexTooltip()
 	return NULL;
 }
 
-FString SGraphNode_EnvironmentQuery::GetPreviewCornerText() const
+FText SGraphNode_EnvironmentQuery::GetPreviewCornerText() const
 {
 	UEnvironmentQueryGraphNode* StateNode = CastChecked<UEnvironmentQueryGraphNode>(GraphNode);
-	return FString(TEXT("Test CornerText"));
+	return FText::FromString(TEXT("Test CornerText"));
 }
 
 const FSlateBrush* SGraphNode_EnvironmentQuery::GetNameIcon() const

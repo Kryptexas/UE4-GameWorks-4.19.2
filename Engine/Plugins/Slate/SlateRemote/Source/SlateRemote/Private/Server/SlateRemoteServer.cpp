@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateRemotePrivatePCH.h"
 
@@ -42,7 +42,7 @@ bool FSlateRemoteServer::StartServer( const FIPv4Endpoint& ServerEndpoint )
 	}
 
 	TickDelegate = FTickerDelegate::CreateRaw(this, &FSlateRemoteServer::HandleTicker);
-	FTicker::GetCoreTicker().AddTicker(TickDelegate, 0.0f);
+	TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate, 0.0f);
 
 	return true;
 }
@@ -50,7 +50,7 @@ bool FSlateRemoteServer::StartServer( const FIPv4Endpoint& ServerEndpoint )
 
 void FSlateRemoteServer::StopServer( )
 {
-	FTicker::GetCoreTicker().RemoveTicker(TickDelegate);
+	FTicker::GetCoreTicker().RemoveTicker(TickDelegateHandle);
 
 	if (ServerSocket != nullptr)
 	{

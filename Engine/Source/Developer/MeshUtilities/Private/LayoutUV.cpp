@@ -1,10 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MeshUtilitiesPrivate.h"
 #include "LayoutUV.h"
 #include "DisjointSet.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogLayoutUV, Log, All);
+DEFINE_LOG_CATEGORY_STATIC(LogLayoutUV, Warning, All);
 
 #define CHART_JOINING	1
 
@@ -278,6 +278,13 @@ void FLayoutUV::FindCharts( const TMultiMap<int32,int32>& OverlappingCorners )
 						// FIXME
 						if( bMirrored )
 							continue;
+
+						if( ChartA.Join[ Side ^ 0 ] != -1 ||
+							ChartB.Join[ Side ^ 1 ] != -1 )
+						{
+							// Already joined with something else
+							continue;
+						}
 
 						uint32 Sign = Side & 1;
 						uint32 Axis = Side >> 1;

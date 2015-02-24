@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "CoreUObjectPrivate.h"
@@ -638,11 +638,17 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 				// Number of elements in array.
 				Ar << ElementCount;
 
-				// Make sure bulk data is loaded.
-				MakeSureBulkDataIsLoaded();
+				// Don't attempt to load or serialize BulkData if the current size is 0.
+				// This could be a newly constructed BulkData that has not yet been loaded, 
+				// and allocating 0 bytes now will cause a crash when we load.
+				if (GetBulkDataSize() > 0)
+				{
+					// Make sure bulk data is loaded.
+					MakeSureBulkDataIsLoaded();
 
-				// Serialize bulk data.
-				SerializeBulkData( Ar, BulkData );
+					// Serialize bulk data.
+					SerializeBulkData(Ar, BulkData);
+				}
 			}
 		}
 	}
@@ -675,19 +681,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 			// Size on disk, which in the case of compression is != GetBulkDataSize()
 			Ar << BulkDataSizeOnDisk;
 			
-			// Read the Offset in file
-			if (Ar.UE4Ver() < VER_UE4_BULKDATA_AT_LARGE_OFFSETS)
-			{
-				// legacy fallback to read 32bit integer
-				int32 LegacyOffset = 0;
-				Ar << LegacyOffset;
-
-				BulkDataOffsetInFile = LegacyOffset;
-			}
-			else
-			{
-				Ar << BulkDataOffsetInFile;
-			}
+			Ar << BulkDataOffsetInFile;
 
 			// fix up the file offset 
 			if (Owner != NULL && Owner->GetLinker())

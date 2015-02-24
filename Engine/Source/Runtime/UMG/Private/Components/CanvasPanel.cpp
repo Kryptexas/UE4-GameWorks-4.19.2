@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -13,7 +13,7 @@ UCanvasPanel::UCanvasPanel(const FObjectInitializer& ObjectInitializer)
 	bIsVariable = false;
 
 	SConstraintCanvas::FArguments Defaults;
-	Visiblity = UWidget::ConvertRuntimeToSerializedVisiblity(Defaults._Visibility.Get());
+	Visiblity_DEPRECATED = Visibility = UWidget::ConvertRuntimeToSerializedVisibility(Defaults._Visibility.Get());
 }
 
 void UCanvasPanel::ReleaseSlateResources(bool bReleaseChildren)
@@ -66,6 +66,11 @@ TSharedRef<SWidget> UCanvasPanel::RebuildWidget()
 	return BuildDesignTimeWidget( MyCanvas.ToSharedRef() );
 }
 
+UCanvasPanelSlot* UCanvasPanel::AddChildToCanvas(UWidget* Content)
+{
+	return Cast<UCanvasPanelSlot>( Super::AddChild(Content) );
+}
+
 TSharedPtr<SConstraintCanvas> UCanvasPanel::GetCanvasWidget() const
 {
 	return MyCanvas;
@@ -79,7 +84,7 @@ bool UCanvasPanel::GetGeometryForSlot(int32 SlotIndex, FGeometry& ArrangedGeomet
 
 bool UCanvasPanel::GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& ArrangedGeometry) const
 {
-	if ( Slot->Content == NULL )
+	if ( Slot->Content == nullptr )
 	{
 		return false;
 	}
@@ -92,7 +97,7 @@ bool UCanvasPanel::GetGeometryForSlot(UCanvasPanelSlot* Slot, FGeometry& Arrange
 
 		for ( int32 ChildIndex = 0; ChildIndex < ArrangedChildren.Num(); ChildIndex++ )
 		{
-			if ( ArrangedChildren[ChildIndex].Widget == Slot->Content->TakeWidget() )
+			if ( ArrangedChildren[ChildIndex].Widget == Slot->Content->GetCachedWidget() )
 			{
 				ArrangedGeometry = ArrangedChildren[ChildIndex].Geometry;
 				return true;

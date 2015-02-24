@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -177,7 +177,7 @@ class UMaterialInstance : public UMaterialInterface
 	/** Flag to detect cycles in the material instance graph. */
 	uint32 ReentrantFlag:1;
 
-	/** Defines if SubsurfaceProfile from tis instance is used or it uses the parent one. */
+	/** Defines if SubsurfaceProfile from this instance is used or it uses the parent one. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = MaterialInstance)
 	uint32 bOverrideSubsurfaceProfile:1;
 
@@ -201,10 +201,10 @@ class UMaterialInstance : public UMaterialInterface
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialInstance)
 	TArray<struct FVectorParameterValue> VectorParameterValues;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialInstance)
-	bool bOverrideBaseProperties;
+	UPROPERTY()
+	bool bOverrideBaseProperties_DEPRECATED;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialInstance, meta=(editcondition = "bOverrideBaseProperties"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=MaterialInstance)
 	struct FMaterialInstanceBasePropertyOverrides BasePropertyOverrides;
 
 	/** 
@@ -277,23 +277,19 @@ public:
 	virtual ENGINE_API bool GetRefractionSettings(float& OutBiasValue) const override;
 	ENGINE_API virtual void ForceRecompileForRendering() override;
 	
-	ENGINE_API virtual float GetOpacityMaskClipValue_Internal() const;
-	ENGINE_API virtual EBlendMode GetBlendMode_Internal() const;
-	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
-	ENGINE_API virtual bool IsTwoSided_Internal() const;
-	ENGINE_API virtual bool IsMasked_Internal() const;
-	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const;
+	ENGINE_API virtual float GetOpacityMaskClipValue(bool bIsGameThread=IsInGameThread()) const;
+	ENGINE_API virtual EBlendMode GetBlendMode(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual EMaterialShadingModel GetShadingModel(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual bool IsTwoSided(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual bool IsMasked(bool bIsGameThread = IsInGameThread()) const;
 
-	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
-	ENGINE_API virtual bool GetOpacityMaskClipValueOverride(float& OutResult) const;
-	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
-	ENGINE_API virtual bool GetBlendModeOverride(EBlendMode& OutResult) const;
-	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
-	ENGINE_API virtual bool GetShadingModelOverride(EMaterialShadingModel& OutResult) const;
-	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
-	ENGINE_API virtual bool IsTwoSidedOverride(bool& OutResult) const;
-	/** Returns true and sets Result if the property was overridden in the instance. Otherwise, returns false and the base material property should be used. */
-	ENGINE_API virtual bool IsMaskedOverride(bool& OutResult) const;
+	ENGINE_API float RenderThread_GetOpacityMaskClipValue() const;
+	ENGINE_API EBlendMode RenderThread_GetBlendMode() const;
+	ENGINE_API EMaterialShadingModel RenderThread_GetShadingModel() const;
+	ENGINE_API bool RenderThread_IsTwoSided() const;
+	ENGINE_API bool RenderThread_IsMasked() const;
+	
+	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const;
 
 	/** Checks to see if an input property should be active, based on the state of the material */
 	ENGINE_API virtual bool IsPropertyActive(EMaterialProperty InProperty) const;
@@ -333,6 +329,8 @@ public:
 	 */
 	ENGINE_API void InitStaticPermutation();
 
+	ENGINE_API void UpdateOverridableBaseProperties();
+
 	/** 
 	 * Cache resource shaders for rendering on the given shader platform. 
 	 * If a matching shader map is not found in memory or the DDC, a new one will be compiled.
@@ -340,9 +338,6 @@ public:
 	 * Note: This modifies material variables used for rendering and is assumed to be called within a FMaterialUpdateContext!
 	 */
 	void CacheResourceShadersForCooking(EShaderPlatform ShaderPlatform, TArray<FMaterialResource*>& OutCachedMaterialResources);
-
-	/** Builds a FMaterialShaderMapId to represent this material instance for the given platform and quality level. */
-	ENGINE_API void GetMaterialResourceId(EShaderPlatform ShaderPlatform, EMaterialQualityLevel::Type QualityLevel, FMaterialShaderMapId& OutId);
 
 	/** 
 	 * Gathers actively used shader maps from all material resources used by this material instance
@@ -358,6 +353,7 @@ public:
 	void GetAllStaticSwitchParameterValues(TArray<FStaticTerrainLayerWeightParameter> &TerrainLayerWeightParameters, UMaterial* ParentMaterial);
 
 	void GetBasePropertyOverridesHash(FSHAHash& OutHash)const;
+	bool HasOverridenBaseProperties()const;
 
 	// For all materials instances, UMaterialInstance::CacheResourceShadersForRendering
 	static void AllMaterialsCacheResourceShadersForRendering();
@@ -406,9 +402,6 @@ protected:
 
 	/** Initialize the material instance's resources. */
 	ENGINE_API void InitResources();
-
-	/** Builds a FMaterialShaderMapId for the material instance. */
-	void GetMaterialResourceId(const FMaterialResource* Resource, EShaderPlatform ShaderPlatform, const FStaticParameterSet& CompositedStaticParameters, FMaterialShaderMapId& OutId);
 
 	/** 
 	 * Cache resource shaders for rendering on the given shader platform. 

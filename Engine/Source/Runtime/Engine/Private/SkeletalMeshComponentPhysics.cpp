@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
@@ -30,6 +30,8 @@
 #endif// #if WITH_APEX_CLOTHING
 
 #endif//#if WITH_APEX
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponentPhysics"
 
@@ -693,8 +695,12 @@ void USkeletalMeshComponent::SetPhysMaterialOverride(UPhysicalMaterial* NewPhysM
 	}
 }
 
+DEFINE_STAT(STAT_InitArticulated);
+
 void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 {
+	SCOPE_CYCLE_COUNTER(STAT_InitArticulated);
+
 	UPhysicsAsset* const PhysicsAsset = GetPhysicsAsset();
 
 	if(PhysScene == NULL || PhysicsAsset == NULL || SkeletalMesh == NULL)
@@ -734,15 +740,19 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	uint32 SkelMeshCompID = GetUniqueID();
 	PhysScene->DeferredAddCollisionDisableTable(SkelMeshCompID, &PhysicsAsset->CollisionDisableTable);
 
-	if(Aggregate == NULL && Bodies.Num() > AggregatePhysicsAssetThreshold)
+	int32 NumBodies = PhysicsAsset->BodySetup.Num();
+	if(Aggregate == NULL && NumBodies > RagdollAggregateThreshold && NumBodies <= AggregateMaxSize)
 	{
-		Aggregate = GPhysXSDK->createAggregate(AggregateMaxSize, true);
+		Aggregate = GPhysXSDK->createAggregate(PhysicsAsset->BodySetup.Num(), true);
+	}
+	else if(Aggregate && NumBodies > AggregateMaxSize)
+	{
+		UE_LOG(LogSkeletalMesh, Log, TEXT("USkeletalMeshComponent::InitArticulated : Too many bodies to create aggregate, Max: %u, This: %d"), AggregateMaxSize, NumBodies);
 	}
 #endif //WITH_PHYSX
 
 	// Create all the bodies.
 	check(Bodies.Num() == 0);
-	int32 NumBodies = PhysicsAsset->BodySetup.Num();
 	Bodies.AddZeroed(NumBodies);
 	for(int32 i=0; i<NumBodies; i++)
 	{
@@ -796,6 +806,23 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 		// Get the scene type from the SkeletalMeshComponent's BodyInstance
 		const uint32 SceneType = BodyInstance.UseAsyncScene() ? PST_Async : PST_Sync;
 		PhysScene->GetPhysXScene(SceneType)->addAggregate(*Aggregate);
+
+		// If we've used an aggregate, InitBody would not be able to set awake status as we *must* have a scene
+		// to do that, so we reconcile this here.
+		AActor* Owner = GetOwner();
+		bool bShouldSleep = !BodyInstance.bStartAwake && (Owner && Owner->GetVelocity().SizeSquared() <= KINDA_SMALL_NUMBER);
+
+		for(FBodyInstance* Body : Bodies)
+		{
+			// Creates a DOF constraint if necessary for the body - also requires the scene to exist within the actor
+			Body->CreateDOFLock();
+
+			// Set to sleep if necessary
+			if(bShouldSleep)
+			{
+				Body->GetPxRigidDynamic()->putToSleep();
+			}
+		}
 	}
 #endif //WITH_PHYSX
 
@@ -861,14 +888,9 @@ void USkeletalMeshComponent::TermArticulated()
 	{
 		check( Bodies[i] );
 		Bodies[i]->TermBody();
-	}
-	
-	for(int32 i=0; i<Bodies.Num(); i++)
-	{
-		check( Bodies[i] );
 		delete Bodies[i];
 	}
-
+	
 	Bodies.Empty();
 
 #if WITH_PHYSX
@@ -1271,7 +1293,7 @@ void USkeletalMeshComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 	// Always send new transform to physics
 	if(bPhysicsStateCreated && !bSkipPhysicsMove )
 	{
-		UpdateKinematicBonesToPhysics(false, false, true);
+		UpdateKinematicBonesToPhysics(GetSpaceBases(), false, false, true);
 	}
 
 #if WITH_APEX_CLOTHING
@@ -1313,6 +1335,8 @@ void USkeletalMeshComponent::DestroyPhysicsState()
 {
 	if (bEnablePerPolyCollision == false)
 	{
+		UnWeldFromParent();
+		UnWeldChildren();
 		TermArticulated();
 	}
 
@@ -1852,11 +1876,14 @@ bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>
 	const FTransform WorldToComponent(ComponentToWorld.Inverse());
 	const FCollisionResponseParams ResponseParams(GetCollisionResponseToChannels());
 
+	FComponentQueryParams ParamsWithSelf = Params;
+	ParamsWithSelf.AddIgnoredComponent(this);
+
 	bool bHaveBlockingHit = false;
 	for (const FBodyInstance* Body : Bodies)
 	{
 		checkSlow(Body);
-		if (Body->OverlapMulti(/*inout*/ OutOverlaps, World, &WorldToComponent, Pos, Rot, TestChannel, Params, ResponseParams, ObjectQueryParams))
+		if (Body->OverlapMulti(OutOverlaps, World, &WorldToComponent, Pos, Rot, TestChannel, ParamsWithSelf, ResponseParams, ObjectQueryParams))
 		{
 			bHaveBlockingHit = true;
 		}
@@ -1867,6 +1894,13 @@ bool USkeletalMeshComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>
 
 
 #if WITH_APEX_CLOTHING
+
+// convert a bone name from APEX stype to FBX style
+static FName GetConvertedBoneName(NxClothingAsset* ApexClothingAsset, int32 BoneIndex)
+{
+	return *FString(ApexClothingAsset->getBoneName(BoneIndex)).Replace(TEXT(" "), TEXT("-"));
+}
+
 void USkeletalMeshComponent::AddClothingBounds(FBoxSphereBounds& InOutBounds) const
 {
 	int32 NumAssets = ClothingActors.Num();
@@ -1967,7 +2001,7 @@ void USkeletalMeshComponent::ValidateClothingActors()
  * APEX clothing actor is created from APEX clothing asset for cloth simulation 
  * If this is invalid, re-create actor , but if valid ,just skip to create
 */
-bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FClothingAssetWrapper> ClothingAssetWrapper, TArray<FVector>* BlendedDelta)
+bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, physx::apex::NxClothingAsset* ClothingAsset, TArray<FVector>* BlendedDelta)
 {	
 	int32 NumActors = ClothingActors.Num();
 	int32 ActorIndex = -1;
@@ -1995,7 +2029,6 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FC
 		ActorIndex = ClothingActors.AddZeroed();
 	}
 	 
-	NxClothingAsset* ClothingAsset = ClothingAssetWrapper->GetAsset();
 	// Get the (singleton!) default actor descriptor.
 	NxParameterized::Interface* ActorDesc = ClothingAsset->getDefaultActorDesc();
 	PX_ASSERT(ActorDesc != NULL);
@@ -2088,7 +2121,7 @@ bool USkeletalMeshComponent::CreateClothingActor(int32 AssetIndex, TSharedPtr<FC
 	}
 
 	//set parent pointer to verify later whether became invalid or not
-	ClothingActors[ActorIndex].ParentClothingAsset = ClothingAssetWrapper;
+	ClothingActors[ActorIndex].ParentClothingAsset = ClothingAsset;
 
 	// budget is millisecond units
 	ScenePtr->setLODResourceBudget(100); // for temporary, 100ms
@@ -2137,7 +2170,7 @@ void USkeletalMeshComponent::SetClothingLOD(int32 LODIndex)
 				}
 			}
 
-			int32 NumClothLODs = Actor.ParentClothingAsset->GetAsset()->getNumGraphicalLodLevels();
+			int32 NumClothLODs = Actor.ParentClothingAsset->getNumGraphicalLodLevels();
 
 			// decide whether should enable or disable
 			if (!IsMappedClothLOD || (LODIndex >= NumClothLODs))
@@ -2560,7 +2593,7 @@ void USkeletalMeshComponent::FindClothCollisions(TArray<FApexClothCollisionVolum
 				continue;
 			}
 
-			FName BoneName = Asset.ApexClothingAsset->GetConvertedBoneName(Collision.BoneIndex);
+			FName BoneName = GetConvertedBoneName(Asset.ApexClothingAsset, Collision.BoneIndex);
 
 			int32 BoneIndex = GetBoneIndex(BoneName);
 
@@ -3034,6 +3067,7 @@ void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 	// if physics is disabled on dedicated server, no reason to be here. 
 	if (!bEnablePhysicsOnDedicatedServer && IsRunningDedicatedServer())
 	{
+		FlipEditableSpaceBases();
 		return;
 	}
 
@@ -3050,9 +3084,15 @@ void USkeletalMeshComponent::PreClothTick(float DeltaTime)
 	// and run this if that is true or rendered
 	// that will at least reduce the chance of mismatch
 	// generally if you move your actor position, this has to happen to approximately match their bounds
-	if (Bodies.Num() > 0 && IsRegistered())
+	bool bShouldBlendPhys = ShouldBlendPhysicsBones() || bBlendPhysics;
+	if (bShouldBlendPhys)
 	{
-		BlendInPhysics();
+		if (IsRegistered())
+		{
+			BlendInPhysics();
+		}
+		// If we aren't blending we will have already flipped this
+		FlipEditableSpaceBases();
 	}
 
 	//TODO: move this into pre physics tick
@@ -3174,7 +3214,7 @@ void USkeletalMeshComponent::ChangeClothMorphTargetMapping(FClothMorphTargetData
 				ClothOriginalPosArray[Index] = U2PVector(MorphData.OriginPos[Index]);
 			}
 
-			NxClothingAsset* ClothingAsset = Asset.ApexClothingAsset->GetAsset();
+			NxClothingAsset* ClothingAsset = Asset.ApexClothingAsset;
 			float Epsilon = 0.0f;
 			uint32 NumMapped = ClothingAsset->prepareMorphTargetMapping(ClothOriginalPosArray.GetData(), NumOriginPos, Epsilon);
 
@@ -3283,7 +3323,7 @@ void USkeletalMeshComponent::PrepareClothMorphTargets()
 			{
 				if (ClothOriginalPosArray[AssetIdx].Num() > 0)
 				{
-					NxClothingAsset* ClothingAsset = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetAsset();
+					NxClothingAsset* ClothingAsset = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset;
 					float Epsilon = 0.0f;
 					uint32 NumMapped = ClothingAsset->prepareMorphTargetMapping(ClothOriginalPosArray[AssetIdx].GetData(), ClothOriginalPosArray[AssetIdx].Num(), Epsilon);
 
@@ -3425,14 +3465,9 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 		return;
 	}
 
-	TArray<FTransform>* BoneTransforms = &SpaceBases;
+	const TArray<FTransform>& BoneTransforms = MasterPoseComponent.IsValid() ? MasterPoseComponent.Get()->GetSpaceBases() : GetSpaceBases();
 
-	if(MasterPoseComponent.IsValid())
-	{
-		BoneTransforms = &(MasterPoseComponent.Get()->SpaceBases);
-	}
-
-	if(BoneTransforms->Num() == 0)
+	if(BoneTransforms.Num() == 0)
 	{
 		return;
 	}
@@ -3456,7 +3491,7 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 
 		TArray<physx::PxMat44> BoneMatrices;
 
-		NxClothingAsset* ClothingAsset = ClothingActors[ActorIdx].ParentClothingAsset->GetAsset();
+		NxClothingAsset* ClothingAsset = ClothingActors[ActorIdx].ParentClothingAsset;
 
 		uint32 NumUsedBones = ClothingAsset->getNumUsedBones();
 
@@ -3465,7 +3500,7 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 
 		for(uint32 Index=0; Index < NumUsedBones; Index++)
 		{
-		   FName BoneName = ClothingActors[ActorIdx].ParentClothingAsset->GetConvertedBoneName(Index);
+			FName BoneName = GetConvertedBoneName(ClothingActors[ActorIdx].ParentClothingAsset, Index);
 
 		   int32 BoneIndex = GetBoneIndex(BoneName);
 
@@ -3479,7 +3514,7 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
  
 					// If ParentBoneIndex is valid, grab matrix from MasterPoseComponent.
 					if( MasterBoneIndex != INDEX_NONE && 
-						MasterBoneIndex < MasterPoseComponent->SpaceBases.Num())
+						MasterBoneIndex < MasterPoseComponent->GetNumSpaceBases())
 					{
 						BoneIndex = MasterBoneIndex;
 					}
@@ -3488,7 +3523,7 @@ void USkeletalMeshComponent::UpdateClothState(float DeltaTime)
 
 		   if(BoneIndex != INDEX_NONE)
 		   {
-			   BoneMatrices[Index] = U2PMatrix((*BoneTransforms)[BoneIndex].ToMatrixWithScale());
+			   BoneMatrices[Index] = U2PMatrix(BoneTransforms[BoneIndex].ToMatrixWithScale());
 		   }
 		   else
 		   {
@@ -3517,15 +3552,15 @@ void USkeletalMeshComponent::GetClothRootBoneMatrix(int32 AssetIndex, FMatrix& O
 {
 	if (IsValidClothingActor(AssetIndex))
 	{
-		TSharedPtr<FClothingAssetWrapper> Asset = ClothingActors[AssetIndex].ParentClothingAsset;
+		NxClothingAsset* Asset = ClothingActors[AssetIndex].ParentClothingAsset;
 
-		check(Asset.IsValid());
+		check(Asset);
 
-		const NxParameterized::Interface* AssetParams = Asset->GetAsset()->getAssetNxParameterized();
+		const NxParameterized::Interface* AssetParams = Asset->getAssetNxParameterized();
 		uint32 InternalRootBoneIndex;
 		verify(NxParameterized::getParamU32(*AssetParams, "rootBoneIndex", InternalRootBoneIndex));
 		check(InternalRootBoneIndex >= 0);
-		FName BoneName = Asset->GetConvertedBoneName(InternalRootBoneIndex);
+		FName BoneName = GetConvertedBoneName(Asset, InternalRootBoneIndex);
 		int32 BoneIndex = GetBoneIndex(BoneName);
 		check(BoneIndex >= 0);
 		OutRootBoneMatrix = GetBoneMatrix(BoneIndex);
@@ -3697,6 +3732,11 @@ bool USkeletalMeshComponent::IsValidClothingActor(int32 ActorIndex) const
 {
 #if WITH_APEX_CLOTHING
 
+	if (!SkeletalMesh)
+	{
+		return false;
+	}
+
 	//false if ActorIndex is out-range
 	if(ActorIndex >= SkeletalMesh->ClothingAssets.Num()
 	|| ActorIndex >= ClothingActors.Num())
@@ -3705,7 +3745,7 @@ bool USkeletalMeshComponent::IsValidClothingActor(int32 ActorIndex) const
 	}
 
 	if(ClothingActors[ActorIndex].ApexClothingActor
-	&& SkeletalMesh->ClothingAssets[ActorIndex].ApexClothingAsset->IsValid())
+	&& ClothingActors[ActorIndex].ParentClothingAsset == SkeletalMesh->ClothingAssets[ActorIndex].ApexClothingAsset)
 	{
 		return true;
 	}
@@ -4062,7 +4102,7 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 				continue;
 			}
 
-			FName BoneName = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetConvertedBoneName(Collision.BoneIndex);
+			FName BoneName = GetConvertedBoneName(SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset, Collision.BoneIndex);
 			
 			int32 BoneIndex = GetBoneIndex(BoneName);
 
@@ -4121,7 +4161,7 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 
 		for(int32 PlaneIdx=0; PlaneIdx < NumPlanes; PlaneIdx++)
 		{
-			FName BoneName = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetConvertedBoneName(BonePlanes[PlaneIdx].BoneIndex);
+			FName BoneName = GetConvertedBoneName(SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset, BonePlanes[PlaneIdx].BoneIndex);
 
 			int32 BoneIndex = GetBoneIndex(BoneName);
 
@@ -4159,7 +4199,7 @@ void USkeletalMeshComponent::DrawClothingCollisionVolumes(FPrimitiveDrawInterfac
 				continue;
 			}
 
-			FName BoneName = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetConvertedBoneName(Spheres[i].BoneIndex);
+			FName BoneName = GetConvertedBoneName(SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset, Spheres[i].BoneIndex);
 
 			int32 BoneIndex = GetBoneIndex(BoneName);
 
@@ -4336,7 +4376,7 @@ void USkeletalMeshComponent::LoadClothingVisualizationInfo(int32 AssetIndex)
 
 
 	FClothingAssetData& AssetData = SkeletalMesh->ClothingAssets[AssetIndex];
-	NxClothingAsset* ApexClothingAsset = AssetData.ApexClothingAsset->GetAsset();
+	NxClothingAsset* ApexClothingAsset = AssetData.ApexClothingAsset;
 	const NxParameterized::Interface* AssetParams = ApexClothingAsset->getAssetNxParameterized();
 
 	int32 NumPhysicalLODs;
@@ -4718,7 +4758,7 @@ void USkeletalMeshComponent::DrawClothingPhysicalMeshWire(FPrimitiveDrawInterfac
 						{
 							uint16 ApexBoneIndex = VisualInfo.ClothPhysicalMeshBoneWeightsInfo[FixedVertIdx].Indices[BoneWeightIdx];
 
-							FName BoneName = SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset->GetConvertedBoneName(ApexBoneIndex);
+							FName BoneName = GetConvertedBoneName(SkeletalMesh->ClothingAssets[AssetIdx].ApexClothingAsset, ApexBoneIndex);
 
 							int32 BoneIndex = GetBoneIndex(BoneName);
 
@@ -4803,6 +4843,19 @@ void USkeletalMeshComponent::DrawClothingPhysicalMeshWire(FPrimitiveDrawInterfac
 #endif // #if WITH_APEX_CLOTHING
 }
 
+void USkeletalMeshComponent::SetAllMassScale(float InMassScale)
+{
+	// Apply mass scale to each child body
+	for(FBodyInstance* BI : Bodies)
+	{
+		if (BI->IsValidBodyInstance())
+		{
+			BI->SetMassScale(InMassScale);
+		}
+	}
+}
+
+
 float USkeletalMeshComponent::GetMass() const
 {
 	float Mass = 0.0f;
@@ -4882,12 +4935,6 @@ FTransform USkeletalMeshComponent::GetComponentTransformFromBodyInstance(FBodyIn
 {
 	// undo root transform so that it only moves according to what actor itself suppose to move
 	FTransform BodyTransform = UseBI->GetUnrealWorldTransform();
-	if (RootBodyData.BoneIndex != INDEX_NONE)
-	{
-		FTransform RootTransform(SpaceBases[RootBodyData.BoneIndex]);
-		return RootTransform.GetRelativeTransformReverse(BodyTransform);
-	}
-
-	return BodyTransform;
+	return RootBodyData.TransformToRoot * BodyTransform;
 }
 #undef LOCTEXT_NAMESPACE

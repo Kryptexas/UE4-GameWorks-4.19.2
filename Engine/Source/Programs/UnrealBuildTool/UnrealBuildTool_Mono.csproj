@@ -179,6 +179,8 @@
     <Compile Include="System\ModuleProcessingException.cs" />
     <Compile Include="System\VCSolutionOptions.cs" />
     <Compile Include="System\Distcc.cs" />
+    <Compile Include="System\CMakefileGenerator.cs" />
+    <Compile Include="System\QMakefileGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include="Microsoft.Net.Client.3.5">

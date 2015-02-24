@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/GameplayAbility_Montage.h"
@@ -30,7 +30,9 @@ void UGameplayAbility_Montage::ActivateAbility(const FGameplayAbilitySpecHandle 
 		TArray<FActiveGameplayEffectHandle>	AppliedEffects;
 
 		// Apply GameplayEffects
-		for (const UGameplayEffect* Effect : GameplayEffectsWhileAnimating)
+		TArray<const UGameplayEffect*> Effects;
+		GetGameplayEffectsWhileAnimating(Effects);
+		for (const UGameplayEffect* Effect : Effects)
 		{
 			FActiveGameplayEffectHandle Handle = ActorInfo->AbilitySystemComponent->ApplyGameplayEffectToSelf(Effect, 1.f, GetEffectContext(ActorInfo));
 			if (Handle.IsValid())
@@ -61,5 +63,42 @@ void UGameplayAbility_Montage::OnMontageEnded(UAnimMontage* Montage, bool bInter
 		{
 			AbilitySystemComponent->RemoveActiveGameplayEffect(Handle);
 		}
+	}
+}
+
+void UGameplayAbility_Montage::GetGameplayEffectsWhileAnimating(TArray<const UGameplayEffect*>& OutEffects) const
+{
+	OutEffects.Append(GameplayEffectsWhileAnimating);
+
+	for ( TSubclassOf<UGameplayEffect> EffectClass : GameplayEffectClassesWhileAnimating )
+	{
+		if ( EffectClass )
+		{
+			OutEffects.Add(EffectClass->GetDefaultObject<UGameplayEffect>());
+		}
+	}
+}
+
+void UGameplayAbility_Montage::ConvertDeprecatedGameplayEffectReferencesToBlueprintReferences(UGameplayEffect* OldGE, TSubclassOf<UGameplayEffect> NewGEClass)
+{
+	Super::ConvertDeprecatedGameplayEffectReferencesToBlueprintReferences(OldGE, NewGEClass);
+
+	bool bChangedSomething = false;
+
+	for ( int32 GEIdx = GameplayEffectsWhileAnimating.Num() - 1; GEIdx >= 0; --GEIdx )
+	{
+		const UGameplayEffect* Effect = GameplayEffectsWhileAnimating[GEIdx];
+		if ( Effect && Effect == OldGE )
+		{
+			GameplayEffectClassesWhileAnimating.Add(NewGEClass);
+			GameplayEffectsWhileAnimating.RemoveAt(GEIdx);
+
+			bChangedSomething = true;
+		}
+	}
+
+	if (bChangedSomething)
+	{
+		MarkPackageDirty();
 	}
 }

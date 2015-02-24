@@ -1,8 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-// Do not remove this header guard! It ensures that DelegateCombinations.h can only be included from here.
-#ifndef __Delegate_h__
-#define __Delegate_h__
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -301,7 +297,10 @@ class DynamicMulticastDelegateName : public FUNC_DECLARE_DYNAMIC_DELEGATE_BASE(T
 
 /*********************************************************************************************************************/
 
+#define DELEGATE_DEPRECATED(message) DEPRECATED(4.7, message)
+
 // We define this as a guard to prevent DelegateSignatureImpl.inl being included outside of this file
+#define __Delegate_h__
 #define FUNC_INCLUDING_INLINE_IMPL
 
 #ifndef UE_BUILD_DOCS
@@ -315,15 +314,15 @@ class DynamicMulticastDelegateName : public FUNC_DECLARE_DYNAMIC_DELEGATE_BASE(T
 	#endif
 #endif
 
+// No longer allowed to include DelegateSignatureImpl.inl
+#undef FUNC_INCLUDING_INLINE_IMPL
+#undef __Delegate_h__
 
 /*********************************************************************************************************************/
 
 #define DECLARE_DERIVED_EVENT( OwningType, BaseTypeEvent, EventName ) \
 	class EventName : public BaseTypeEvent { friend class OwningType; };
 
-
-// No longer allowed to include DelegateSignatureImpl.inl
-#undef FUNC_INCLUDING_INLINE_IMPL
 
 // Undefine temporary macros
 #undef FUNC_COMBINE_ACTUAL
@@ -332,6 +331,3 @@ class DynamicMulticastDelegateName : public FUNC_DECLARE_DYNAMIC_DELEGATE_BASE(T
 // Simple delegate used by various utilities such as timers
 DECLARE_DELEGATE( FSimpleDelegate );
 DECLARE_MULTICAST_DELEGATE( FSimpleMulticastDelegate );
-
-
-#endif		// __Delegate_h__

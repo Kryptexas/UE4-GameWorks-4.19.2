@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessMobile.cpp: Uber post for mobile implementation.
@@ -171,7 +171,7 @@ void FRCPassPostProcessBloomSetupES2::Process(FRenderingCompositePassContext& Co
 	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessBloomSetup);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
-
+	FIntPoint PrePostSourceViewportSize = PrePostSourceViewportRect.Size();
 	uint32 DstX = FMath::Max(1, PrePostSourceViewportSize.X/4);
 	uint32 DstY = FMath::Max(1, PrePostSourceViewportSize.Y/4);
 
@@ -193,7 +193,7 @@ void FRCPassPostProcessBloomSetupES2::Process(FRenderingCompositePassContext& Co
 		//	uint32 ScaleFactor = View.ViewRect.Width() / SrcSize.X;
 		//	SrcRect = View.ViewRect / ScaleFactor;
 		// TODO: This won't work with scaled views.
-		SrcRect = View.ViewRect;
+		SrcRect = PrePostSourceViewportRect;
 	}
 	else
 	{
@@ -243,8 +243,8 @@ FPooledRenderTargetDesc FRCPassPostProcessBloomSetupES2::ComputeOutputDesc(EPass
 	Ret.bForceSeparateTargetAndShaderResource = false;
 	Ret.Format = PF_FloatRGBA;
 	Ret.NumSamples = 1;
-	Ret.Extent.X = FMath::Max(1, PrePostSourceViewportSize.X/4);
-	Ret.Extent.Y = FMath::Max(1, PrePostSourceViewportSize.Y/4);
+	Ret.Extent.X = FMath::Max(1, PrePostSourceViewportRect.Width() / 4);
+	Ret.Extent.Y = FMath::Max(1, PrePostSourceViewportRect.Height() / 4);
 	Ret.DebugName = TEXT("BloomSetup");
 	return Ret;
 }
@@ -1955,7 +1955,7 @@ void FRCPassPostProcessDofDownES2::Process(FRenderingCompositePassContext& Conte
 	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessDofDown);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
-
+	FIntPoint PrePostSourceViewportSize = PrePostSourceViewportRect.Size();
 	uint32 DstX = FMath::Max(1, PrePostSourceViewportSize.X/2);
 	uint32 DstY = FMath::Max(1, PrePostSourceViewportSize.Y/2);
 
@@ -1977,7 +1977,7 @@ void FRCPassPostProcessDofDownES2::Process(FRenderingCompositePassContext& Conte
 		//	uint32 ScaleFactor = View.ViewRect.Width() / SrcSize.X;
 		//	SrcRect = View.ViewRect / ScaleFactor;
 		// TODO: This won't work with scaled views.
-		SrcRect = View.ViewRect;
+		SrcRect = PrePostSourceViewportRect;
 	}
 	else
 	{
@@ -2027,6 +2027,7 @@ FPooledRenderTargetDesc FRCPassPostProcessDofDownES2::ComputeOutputDesc(EPassOut
 	Ret.bForceSeparateTargetAndShaderResource = false;
 	Ret.Format = PF_FloatRGBA;
 	Ret.NumSamples = 1;
+	FIntPoint PrePostSourceViewportSize = PrePostSourceViewportRect.Size();
 	Ret.Extent.X = FMath::Max(1, PrePostSourceViewportSize.X/2);
 	Ret.Extent.Y = FMath::Max(1, PrePostSourceViewportSize.Y/2);
 	Ret.DebugName = TEXT("DofDown");
@@ -2739,24 +2740,20 @@ void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 	SCOPED_DRAW_EVENT(Context.RHICmdList, PostProcessAa);
 
 	const FPooledRenderTargetDesc* InputDesc = GetInputDesc(ePId_Input0);
-	FIntPoint SrcSize = InputDesc->Extent;
-
-	uint32 DstX = FMath::Max(1, PrePostSourceViewportSize.X);
-	uint32 DstY = FMath::Max(1, PrePostSourceViewportSize.Y);
-
-	FIntRect DstRect;
-	DstRect.Min.X = 0;
-	DstRect.Min.Y = 0;
-	DstRect.Max.X = DstX;
-	DstRect.Max.Y = DstY;
-
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
+	const FPooledRenderTargetDesc& OutputDesc = PassOutputs[0].RenderTargetDesc;
+
+	const FIntPoint& SrcSize = InputDesc->Extent;
+	const FIntPoint& DestSize = OutputDesc.Extent;
+
+	check(SrcSize == DestSize);
+
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());	
 
 	// is optimized away if possible (RT size=view size, )
 	Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
 
-	Context.SetViewportAndCallRHI(0, 0, 0.0f, DstX, DstY, 1.0f );
+	Context.SetViewportAndCallRHI(0, 0, 0.0f, DestSize.X, DestSize.Y, 1.0f);
 
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
@@ -2764,21 +2761,47 @@ void FRCPassPostProcessAaES2::Process(FRenderingCompositePassContext& Context)
 
 	SetShader(Context);
 
-	FIntPoint SrcDstSize = PrePostSourceViewportSize;
+	const FIntRect& ViewRect = Context.View.UnscaledViewRect; // Simple upscaling, ES2 post process does not currently have a specific upscaling pass.
+	float XPos = ViewRect.Min.X;
+	float YPos = ViewRect.Min.Y;
+	float Width = ViewRect.Width();
+	float Height = ViewRect.Height();
+
 	TShaderMapRef<FPostProcessAaVS_ES2> VertexShader(Context.GetShaderMap());
 
 	DrawRectangle(
 		Context.RHICmdList,
-		0, 0,
-		DstX, DstY,
-		0, 0,
-		DstX, DstY,
-		SrcDstSize,
+		XPos, YPos,
+		Width, Height,
+		XPos, YPos,
+		Width, Height,
+		DestSize,
 		SrcSize,
 		*VertexShader,
 		EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
+
+	auto& View = Context.View;
+	if (FSceneRenderer::ShouldCompositeEditorPrimitives(View))
+	{
+		// Remove jitter (ensures editor prims are stable.)
+		View.ViewMatrices.ProjMatrix.M[2][0] = 0.0f;
+		View.ViewMatrices.ProjMatrix.M[2][1] = 0.0f;
+
+		// Compute the view projection matrix and its inverse.
+		View.ViewProjectionMatrix = View.ViewMatrices.ViewMatrix * View.ViewMatrices.ProjMatrix;
+		View.InvViewProjectionMatrix = View.ViewMatrices.GetInvProjMatrix() * View.InvViewMatrix;
+
+		/** The view transform, starting from world-space points translated by -ViewOrigin. */
+		FMatrix TranslatedViewMatrix = FTranslationMatrix(-View.ViewMatrices.PreViewTranslation) * View.ViewMatrices.ViewMatrix;
+
+		// Compute a transform from view origin centered world-space to clip space.
+		View.ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * View.ViewMatrices.ProjMatrix;
+		View.ViewMatrices.InvTranslatedViewProjectionMatrix = View.ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
+
+		View.InitRHIResources(nullptr);
+	}
 }
 
 FPooledRenderTargetDesc FRCPassPostProcessAaES2::ComputeOutputDesc(EPassOutputId InPassOutputId) const
@@ -2792,9 +2815,8 @@ FPooledRenderTargetDesc FRCPassPostProcessAaES2::ComputeOutputDesc(EPassOutputId
 	Ret.bForceSeparateTargetAndShaderResource = false;
 	Ret.Format = PF_B8G8R8A8;
 	Ret.NumSamples = 1;
-	Ret.Extent.X = FMath::Max(1, PrePostSourceViewportSize.X);
-	Ret.Extent.Y = FMath::Max(1, PrePostSourceViewportSize.Y);
 	Ret.DebugName = TEXT("Aa");
+	Ret.Extent = PassInputs[0].GetOutput()->RenderTargetDesc.Extent;
 	return Ret;
 }
 

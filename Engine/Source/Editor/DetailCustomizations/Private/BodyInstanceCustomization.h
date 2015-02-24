@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,14 +30,14 @@ private:
 	// Profile combo related
 	TSharedRef<SWidget> MakeCollisionProfileComboWidget( TSharedPtr<FString> InItem );
 	void OnCollisionProfileChanged( TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo, IDetailGroup* CollisionGroup );
-	FString GetCollisionProfileComboBoxContent() const;
-	FString GetCollisionProfileComboBoxToolTip() const;
+	FText GetCollisionProfileComboBoxContent() const;
+	FText GetCollisionProfileComboBoxToolTip() const;
 	void OnCollisionProfileComboOpening();
 
 	// Movement channel related
 	TSharedRef<SWidget> MakeObjectTypeComboWidget( TSharedPtr<FString> InItem );
 	void OnObjectTypeChanged( TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo  );
-	FString GetObjectTypeComboBoxContent() const;
+	FText GetObjectTypeComboBoxContent() const;
 	int32 InitializeObjectTypeComboList();
 
 	// set to default for profile setting
@@ -48,11 +48,11 @@ private:
 	EVisibility ShouldShowResetToDefaultResponse(int32 ValidIndex) const;
 
 	// collision channel check boxes
-	void OnCollisionChannelChanged(ESlateCheckBoxState::Type InNewValue, int32 ValidIndex, ECollisionResponse InCollisionResponse);
-	ESlateCheckBoxState::Type IsCollisionChannelChecked( int32 ValidIndex, ECollisionResponse InCollisionResponse) const;
+	void OnCollisionChannelChanged(ECheckBoxState InNewValue, int32 ValidIndex, ECollisionResponse InCollisionResponse);
+	ECheckBoxState IsCollisionChannelChecked( int32 ValidIndex, ECollisionResponse InCollisionResponse) const;
 	// all collision channel check boxes
-	void OnAllCollisionChannelChanged(ESlateCheckBoxState::Type InNewValue, ECollisionResponse InCollisionResponse);
-	ESlateCheckBoxState::Type IsAllCollisionChannelChecked( ECollisionResponse InCollisionResponse) const;
+	void OnAllCollisionChannelChanged(ECheckBoxState InNewValue, ECollisionResponse InCollisionResponse);
+	ECheckBoxState IsAllCollisionChannelChecked( ECollisionResponse InCollisionResponse) const;
 
 	// should show custom prop
 	bool ShouldEnableCustomCollisionSetup() const;

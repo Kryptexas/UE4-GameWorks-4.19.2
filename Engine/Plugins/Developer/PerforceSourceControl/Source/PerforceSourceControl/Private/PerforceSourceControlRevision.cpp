@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PerforceSourceControlPrivatePCH.h"
 #include "PerforceSourceControlRevision.h"
@@ -214,6 +214,11 @@ const FString& FPerforceSourceControlRevision::GetFilename() const
 int32 FPerforceSourceControlRevision::GetRevisionNumber() const
 {
 	return RevisionNumber;
+}
+
+const FString& FPerforceSourceControlRevision::GetRevision() const
+{
+	return Revision;
 }
 
 const FString& FPerforceSourceControlRevision::GetDescription() const

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -422,11 +422,11 @@ public:
 	/**
 	 * Platform specific function for adding a named event that can be viewed in PIX
 	 */
-	FORCEINLINE static void BeginNamedEvent(const class FColor& Color,const TCHAR* Text)
+	FORCEINLINE static void BeginNamedEvent(const struct FColor& Color,const TCHAR* Text)
 	{
 	}
 
-	FORCEINLINE static void BeginNamedEvent(const class FColor& Color,const ANSICHAR* Text)
+	FORCEINLINE static void BeginNamedEvent(const struct FColor& Color,const ANSICHAR* Text)
 	{
 	}
 
@@ -515,7 +515,7 @@ public:
 	static void ClipboardPaste(class FString& Dest);
 
 	/** Create a new globally unique identifier. **/
-	static void CreateGuid(class FGuid& Result);
+	static void CreateGuid(struct FGuid& Result);
 
 	/** 
 	 * Show a message box if possible, otherwise print a message and return the default
@@ -680,10 +680,11 @@ public:
 	 *
 	 * @param ComandType OS hint as to the type of command 
 	 * @param Command the command to execute
+	 * @param CommandLine the commands to pass to the executable
 	 *
 	 * @return whether the command was successful or not
 	 */
-	static bool OsExecute(const TCHAR* CommandType, const TCHAR* Command)
+	static bool OsExecute(const TCHAR* CommandType, const TCHAR* Command, const TCHAR* CommandLine = NULL)
 	{
 		return false;
 	}
@@ -818,19 +819,29 @@ public:
 	static bool IsRunningOnBattery();
 
 	/**
-	 * Get (or create) the unique ID used to identify this computer
+	 * Get (or create) the unique ID used to identify this computer.
+	 * This is sort of a misnomer, as there will actually be one per user account on the operating system.
+	 * This is NOT based on a machine fingerprint.
 	 */
 	static FGuid GetMachineId();
 
 	/**
-	 * Get the Epic account ID for the user who last used the Launcher
+	 * Get the Epic account ID for the user who last used the Launcher.
+	 * @return an empty string if the account ID was not present or it failed to read it for any reason.
 	 */
 	static FString GetEpicAccountId();
 
 	/**
 	 * Set the Epic account ID for the user who last used the Launcher
+	 * @return true if the account ID was set successfully, false if something failed and it was not set.
 	 */
-	static void SetEpicAccountId( const FString& AccountId );
+	static bool SetEpicAccountId( const FString& AccountId );
+
+	/**
+	 * Gets a globally unique ID the represents a particular operating system install.
+	 * @returns an opaque string representing the ID, or an empty string if the platform doesn't support one.
+	 */
+	static FString GetOperatingSystemId();
 
 	/** 
 	 * Get a string description of the mode the engine was running in.

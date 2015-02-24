@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Components/ActorComponent.h"
 #include "Engine/EngineTypes.h"
 #include "RHIDefinitions.h"
+#include "ComponentInstanceDataCache.h" // for FActorComponentInstanceData
 #include "SceneComponent.generated.h"
 
 /** Overlap info consisting of the primitive and the body that is overlapping */
@@ -76,16 +77,23 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPhysicsVolumeChanged, class APhysic
  * Useful as a 'dummy' component in the hierarchy to offset others.
  * @see [Scene Components](https://docs.unrealengine.com/latest/INT/Programming/UnrealArchitecture/Actors/Components/index.html#scenecomponents)
  */
-UCLASS(ClassGroup=Utility, BlueprintType, HideCategories=(Trigger, PhysicsVolume), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Utility, Common), BlueprintType, hideCategories=(Trigger, PhysicsVolume), meta=(BlueprintSpawnableComponent, IgnoreCategoryKeywordsInSubclasses, ShortTooltip="A Scene Component is a component that has a scene transform and can be attached to other scene components."))
 class ENGINE_API USceneComponent : public UActorComponent
 {
 	GENERATED_BODY()
 public:
 
+	/** The name to use for the default scene root variable */
+	static const FName& GetDefaultSceneRootVariableName();
+
 	/**
-	 * Default UObject constructor.
+	 * UObject constructor that takes an ObjectInitializer
 	 */
-	USceneComponent(const FObjectInitializer& ObjectInitializer);
+	USceneComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+public:
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Current transform of this component, relative to the world */
 	FTransform ComponentToWorld;
@@ -145,8 +153,17 @@ protected:
 	// Transient flag that temporarily disables UpdateOverlaps within DetachFromParent().
 	uint32 bDisableDetachmentUpdateOverlaps:1;
 
-public:
+#if WITH_EDITORONLY_DATA
+protected:
+	/** Editor only component used to display the sprite so as to be able to see the location of the Audio Component  */
+	class UBillboardComponent* SpriteComponent;
 
+public:
+	UPROPERTY()
+	uint32 bVisualizeComponent:1;
+#endif
+
+public:
 	/** How often this component is allowed to move, used to make various optimizations. Only safe to set in constructor, use SetMobility() during runtime. */
 	UPROPERTY(Category=Mobility, EditAnywhere, BlueprintReadOnly)
 	TEnumAsByte<EComponentMobility::Type> Mobility;
@@ -182,9 +199,6 @@ public:
 	TEnumAsByte<enum EDetailMode> DetailMode;
 
 private:
-
-	UPROPERTY()
-	float RelativeScale_DEPRECATED;
 
 	bool NetUpdateTransform;
 
@@ -366,11 +380,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Components")
 	int32 GetNumChildrenComponents() const;
 
-	/** Gets the number of attached children components */
+	/** Gets the attached child component at the specified location */
 	UFUNCTION(BlueprintCallable, Category="Components")
 	class USceneComponent* GetChildComponent(int32 ChildIndex) const;
 
-	/** Gets the number of attached children components */
+	/** 
+	 * Gets all the attached child components
+	 * @param bIncludeAllDescendants Whether to include all descendants in the list of children (i.e. grandchildren, great grandchildren, etc.)
+	 * @param Children The list of attached child components
+	 */
 	UFUNCTION(BlueprintCallable, Category="Components")
 	void GetChildrenComponents(bool bIncludeAllDescendants, TArray<USceneComponent*>& Children) const;
 
@@ -491,20 +509,24 @@ public:
 
 public:
 	/** Delegate that will be called when PhysicsVolume has been changed **/
-	UPROPERTY(BlueprintAssignable, Category=PhysicsVolume)
+	UPROPERTY(BlueprintAssignable, Category=PhysicsVolume, meta=(DisplayName="Physics Volume Changed"))
 	FPhysicsVolumeChanged PhysicsVolumeChangedDelegate;
 
 	// Begin ActorComponent interface
 	virtual void OnRegister() override;
 	virtual void UpdateComponentToWorld(bool bSkipPhysicsMove = false) override final;
+	virtual void DestroyComponent(bool bPromoteChildren = false) override;
 	virtual void OnComponentDestroyed() override;
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
+	virtual class FActorComponentInstanceData* GetComponentInstanceData() const override;
+	virtual FName GetComponentInstanceDataType() const override;
 	// End ActorComponent interface
 
 	// Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostInterpChange(UProperty* PropertyThatChanged) override;
 	virtual void BeginDestroy() override;
+	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject Interface
 
 protected:
@@ -783,6 +805,23 @@ protected:
 	void UpdateNavigationData();
 };
 
+/** 
+ *  Component instance cached data base class for scene components. 
+ *  Stores a list of instance components attached to the 
+ */
+class ENGINE_API FSceneComponentInstanceData : public FActorComponentInstanceData
+{
+public:
+	FSceneComponentInstanceData(const USceneComponent* SourceComponent);
+			
+	virtual ~FSceneComponentInstanceData()
+	{}
+
+	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override;
+	virtual void FindAndReplaceInstances(const TMap<UObject*, UObject*>& OldToNewInstanceMap) override;
+
+	TArray<USceneComponent*> AttachedInstanceComponents;
+};
 
 
 /**

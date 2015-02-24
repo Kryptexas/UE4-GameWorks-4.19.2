@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,7 +18,7 @@ public:
 
 		SLATE_ARGUMENT( UFbxImportUI*, ImportUI )
 		SLATE_ARGUMENT( TSharedPtr<SWindow>, WidgetWindow )
-		SLATE_ARGUMENT( FString, FullPath )
+		SLATE_ARGUMENT( FText, FullPath )
 		SLATE_ARGUMENT( TOptional<EFBXImportType>, ForcedImportType )
 		SLATE_ARGUMENT( bool, IsObjFormat )
 	SLATE_END_ARGS()

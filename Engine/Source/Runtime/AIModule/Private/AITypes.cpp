@@ -1,19 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "AITypes.h"
-
-//----------------------------------------------------------------------//
-// FAIResourceId
-//----------------------------------------------------------------------//
-uint32 FAIResourceID::NextAvailableID = 0;
 
 //----------------------------------------------------------------------//
 // FAIResourceLock
 //----------------------------------------------------------------------//
 FAIResourceLock::FAIResourceLock()
 {
-	FMemory::MemZero(Locks);
+	Locks = 0;
 }
 
 void FAIResourceLock::ForceClearAllLocks()
@@ -21,15 +16,15 @@ void FAIResourceLock::ForceClearAllLocks()
 	FMemory::MemZero(Locks);
 }
 
-FString FAIResourceLock::GetLockSourceName() const
+FString FAIResourceLock::GetLockPriorityName() const
 {
-	const static UEnum* SourceEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAILockSource"));
+	const static UEnum* SourceEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAIRequestPriority"));
 
 	FString LockNames;
 
-	for (int32 LockLevel = 0; LockLevel < int32(EAILockSource::MAX); ++LockLevel)
+	for (int32 LockLevel = 0; LockLevel < int32(EAIRequestPriority::MAX); ++LockLevel)
 	{
-		if (Locks[LockLevel])
+		if (IsLocked() && IsLockedBy(EAIRequestPriority::Type(LockLevel)))
 		{
 			LockNames += FString::Printf(TEXT("%s, "), *SourceEnum->GetEnumName(LockLevel));
 		}
@@ -37,6 +32,70 @@ FString FAIResourceLock::GetLockSourceName() const
 
 	return LockNames;
 }
+
+//----------------------------------------------------------------------//
+// FAIResources
+//----------------------------------------------------------------------//
+
+namespace FAIResources
+{
+	const FAIResourceID InvalidResource;
+	const FAIResourceID Movement = FAIResourceID(TEXT("Movement"));
+	const FAIResourceID Logic = FAIResourceID(TEXT("Logic"));
+	const FAIResourceID Perception = FAIResourceID(TEXT("Perception"));
+
+	TArray<FAIResourceID> ResourceIDs;
+
+	void RegisterResource(const FAIResourceID& Resource)
+	{
+		if (FAIResourceID::GetSize() - FAIResources::ResourceIDs.Num() > 0)
+		{
+			ResourceIDs.AddZeroed(FAIResourceID::GetSize() - FAIResources::ResourceIDs.Num());
+		}
+		ResourceIDs[Resource.Index] = Resource;
+	}
+
+	const FAIResourceID& GetResource(int32 ResourceIndex)
+	{
+		return ResourceIDs.IsValidIndex(ResourceIndex) ? ResourceIDs[ResourceIndex] : InvalidResource;
+	}
+
+	int32 GetResourcesCount()
+	{ 
+		return ResourceIDs.Num(); 
+	}
+
+	FString GetSetDescription(FAIResourcesSet ResourceSet)
+	{
+		if (ResourceSet.IsEmpty() == false)
+		{
+			FString Description;
+
+			for (uint8 Index = 0; Index < uint8(ResourceIDs.Num()); ++Index)
+			{
+				if (ResourceSet.ContainsResourceIndex(Index))
+				{
+					Description += ResourceIDs[Index].Name.ToString();
+					Description += TEXT(", ");
+				}
+			}
+
+			return Description;
+		}
+
+		return TEXT("(empty)");
+	}
+}
+
+static struct FAIResourceSetup
+{
+	FAIResourceSetup()
+	{
+		FAIResources::RegisterResource(FAIResources::Movement);
+		FAIResources::RegisterResource(FAIResources::Logic);
+		FAIResources::RegisterResource(FAIResources::Perception);
+	}
+} ResourceSetup;
 
 //----------------------------------------------------------------------//
 // FAIRequestID

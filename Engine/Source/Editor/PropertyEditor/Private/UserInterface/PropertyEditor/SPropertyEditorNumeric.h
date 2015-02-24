@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "PropertyEditorConstants.h"
@@ -69,7 +69,7 @@ public:
 
 		if (ClampMin >= ClampMax && (ClampMinString.Len() || ClampMaxString.Len()))
 		{
-			UE_LOG(LogPropertyNode, Warning, TEXT("Clamp Min (%s) >= Clamp Max (%s) for Ranged Numeric"), *ClampMinString, *ClampMaxString);
+			UE_LOG(LogPropertyNode, Warning, TEXT("Clamp Min (%s) >= Clamp Max (%s) for Ranged Numeric property %s"), *ClampMinString, *ClampMaxString, *Property->GetPathName());
 		}
 
 		const NumericType ActualUIMin = FMath::Max(UIMin, ClampMin);
@@ -80,9 +80,9 @@ public:
 		TOptional<NumericType> SliderMinValue = (UIMinString.Len()) ? ActualUIMin : TOptional<NumericType>();
 		TOptional<NumericType> SliderMaxValue = (UIMaxString.Len()) ? ActualUIMax : TOptional<NumericType>();
 
-		if (ActualUIMin >= ActualUIMax && (MetaUIMinString.Len() || MetaUIMaxString.Len()))
+		if ((ActualUIMin >= ActualUIMax) && (SliderMinValue.IsSet() && SliderMaxValue.IsSet()))
 		{
-			UE_LOG(LogPropertyNode, Warning, TEXT("UI Min (%s) >= UI Max (%s) for Ranged Numeric"), *UIMinString, *UIMaxString);
+			UE_LOG(LogPropertyNode, Warning, TEXT("UI Min (%s) >= UI Max (%s) for Ranged Numeric property %s"), *UIMinString, *UIMaxString, *Property->GetPathName());
 		}
 
 		FObjectPropertyNode* ObjectPropertyNode = PropertyNode->FindObjectItemParent();
@@ -102,7 +102,7 @@ public:
 				.MaxSliderValue(SliderMaxValue)
 				.SliderExponent(SliderExponent)
 				.Delta(Delta)
-				.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values").ToString())
+				.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values"))
 				.OnValueChanged(this, &SPropertyEditorNumeric<NumericType>::OnValueChanged)
 				.OnValueCommitted(this, &SPropertyEditorNumeric<NumericType>::OnValueCommitted)
 				.OnBeginSliderMovement(this, &SPropertyEditorNumeric<NumericType>::OnBeginSliderMovement)
@@ -231,12 +231,12 @@ private:
 	{
 		bIsUsingSlider = true;
 
-		GEditor->BeginTransaction( TEXT("PropertyEditor"), FText::Format( NSLOCTEXT("PropertyEditor", "SetNumericPropertyTransaction", "Edit {0}"), FText::FromString( PropertyEditor->GetDisplayName() ) ), PropertyEditor->GetPropertyHandle()->GetProperty() );
+		GEditor->BeginTransaction( TEXT("PropertyEditor"), FText::Format( NSLOCTEXT("PropertyEditor", "SetNumericPropertyTransaction", "Edit {0}"), PropertyEditor->GetDisplayName() ), PropertyEditor->GetPropertyHandle()->GetProperty() );
 	}
 
 
 	/**
-	 * Called when the slider stops moving.  We end the previously created transation
+	 * Called when the slider stops moving.  We end the previously created transaction
 	 */
 	void OnEndSliderMovement( NumericType NewValue )
 	{

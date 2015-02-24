@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ComponentVisualizersPrivatePCH.h"
 #include "SensingComponentVisualizer.h"
@@ -30,7 +30,7 @@ void FSensingComponentVisualizer::DrawVisualization(const UActorComponent* Compo
 			if (Senses->SightRadius > 0.0f)
 			{
 				TArray<FVector> Verts;
-				DrawWireCone(PDI, Transform, Senses->SightRadius, Senses->GetPeripheralVisionAngle(), 10, FColor::Green, SDPG_World, Verts);
+				DrawWireCone(PDI, Verts, Transform, Senses->SightRadius, Senses->GetPeripheralVisionAngle(), 10, FColor::Green, SDPG_World);
 			}
 		}
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,25 +18,24 @@ public:
 protected:
 
 	/** cached name, value pairs of enums that may change available options based on other options. */
-	struct FStringIntPair
+	struct FTextIntPair
 	{
-		FString Str;
+		FText Text;
 		int32 Int;
 
-		FStringIntPair() {}
-		FStringIntPair(FString InStr, int32 InInt) : Str(InStr), Int(InInt) {}
+		FTextIntPair() {}
+		FTextIntPair(FText InText, int32 InInt) : Text(InText), Int(InInt) {}
 	};
 
-	TSharedPtr<IPropertyHandle> ConditionHandle;
 	TSharedPtr<IPropertyHandle> FilterTypeHandle;
 	TSharedPtr<IPropertyHandle> ScoreEquationHandle;
 	TSharedPtr<IPropertyHandle> TestPurposeHandle;
 	TSharedPtr<IPropertyHandle> ClampMinTypeHandle;
 	TSharedPtr<IPropertyHandle> ClampMaxTypeHandle;
-	TSharedPtr<IPropertyHandle> ScoreClampingMinHandle;
-	TSharedPtr<IPropertyHandle> FloatFilterMinHandle;
-	TSharedPtr<IPropertyHandle> ScoreClampingMaxHandle;
-	TSharedPtr<IPropertyHandle> FloatFilterMaxHandle;
+	TSharedPtr<IPropertyHandle> ScoreClampMinHandle;
+	TSharedPtr<IPropertyHandle> FloatValueMinHandle;
+	TSharedPtr<IPropertyHandle> ScoreClampMaxHandle;
+	TSharedPtr<IPropertyHandle> FloatValueMaxHandle;
 	TSharedPtr<IPropertyHandle> ScoreHandle;
 
 	bool IsFiltering() const;
@@ -45,21 +44,18 @@ protected:
 	bool UsesFilterMin() const;
 	bool UsesFilterMax() const;
 
-	void BuildConditionValues();
-	void OnConditionComboChange(int32 Index);
-	TSharedRef<SWidget> OnGetConditionContent();
-	FString GetCurrentConditionDesc() const;
-	FString GetCurrentFilterTestDesc() const;
-	FString GetScoreEquationInfo() const;
+	FText GetCurrentFilterTestDesc() const;
+	FText GetScoreEquationInfo() const;
 
  	EVisibility GetScoreVisibility() const;
+	EVisibility GetClampingVisibility() const;
 
 	TSharedRef<SWidget> OnGetFilterTestContent();
 	void BuildFilterTestValues();
 
 	void BuildScoreEquationValues();
 	TSharedRef<SWidget> OnGetEquationValuesContent();
-	FString GetEquationValuesDesc() const;
+	FText GetEquationValuesDesc() const;
 	void OnScoreEquationChange(int32 Index);
 
 	void OnFilterTestChange(int32 Index);
@@ -67,10 +63,10 @@ protected:
 	void OnClampMaxTestChange(int32 Index);
 
 	TSharedRef<SWidget> OnGetClampMaxTypeContent();
-	FString GetClampMaxTypeDesc() const;
+	FText GetClampMaxTypeDesc() const;
 
 	TSharedRef<SWidget> OnGetClampMinTypeContent();
-	FString GetClampMinTypeDesc() const;
+	FText GetClampMinTypeDesc() const;
 
 	bool IsMatchingBoolValue() const;
 
@@ -84,30 +80,28 @@ protected:
 	EVisibility GetFloatScoreVisibility() const;
 	
 	EVisibility GetTestPreviewVisibility() const;
-	EVisibility GetVisibilityOfFloatFilterMin() const;
-	EVisibility GetVisibilityOfFloatFilterMax() const;
-	EVisibility GetVisibilityOfFilterMinForScoreClamping() const;
-	EVisibility GetVisibilityOfFilterMaxForScoreClamping() const;
-	EVisibility GetBoolFilterVisibilityForScoring() const;
-	EVisibility GetBoolFilterVisibility() const;
-	EVisibility GetDiscardFailedVisibility() const;
-	EVisibility GetVisibilityOfScoreClampingMinimum() const;
-	EVisibility GetVisibilityOfScoreClampingMaximum() const;
+	EVisibility GetVisibilityOfFloatValueMin() const;
+	EVisibility GetVisibilityOfFloatValueMax() const;
+	EVisibility GetVisibilityOfValueMinForScoreClamping() const;
+	EVisibility GetVisibilityOfValueMaxForScoreClamping() const;
+	EVisibility GetBoolValueVisibilityForScoring() const;
+	EVisibility GetBoolValueVisibility() const;
+	EVisibility GetVisibilityOfScoreClampMinimum() const;
+	EVisibility GetVisibilityOfScoreClampMaximum() const;
 
-	void BuildScoreClampingTypeValues(bool bBuildMinValues, TArray<FStringIntPair>& ClampTypeValues) const;
+	void BuildScoreClampingTypeValues(bool bBuildMinValues, TArray<FTextIntPair>& ClampTypeValues) const;
 	
 	void UpdateTestFunctionPreview() const;
 	void FillEquationSamples(uint8 EquationType, bool bInversed, TArray<float>& Samples) const;
 	TSharedPtr<STestFunctionWidget> PreviewWidget;
 
-	TArray<FStringIntPair> ConditionValues;
 
-	TArray<FStringIntPair> FilterTestValues;
+	TArray<FTextIntPair> FilterTestValues;
 
-	TArray<FStringIntPair> ClampMinTypeValues;
-	TArray<FStringIntPair> ClampMaxTypeValues;
+	TArray<FTextIntPair> ClampMinTypeValues;
+	TArray<FTextIntPair> ClampMaxTypeValues;
 
-	TArray<FStringIntPair> ScoreEquationValues;
+	TArray<FTextIntPair> ScoreEquationValues;
 
 	TWeakObjectPtr<UObject> MyTest;
 

@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Engine/ObjectLibrary.h"
+#include "AssetTypeActions_Base.h"
 
 class FAssetTypeActions_ObjectLibrary : public FAssetTypeActions_Base
 {

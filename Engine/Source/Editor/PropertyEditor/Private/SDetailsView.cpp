@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PropertyEditorPrivatePCH.h"
@@ -47,17 +47,14 @@ void SDetailsView::Construct(const FArguments& InArgs)
 	ColumnSizeData.RightColumnWidth = TAttribute<float>( this, &SDetailsView::OnGetRightColumnWidth );
 	ColumnSizeData.OnWidthChanged = SSplitter::FOnSlotResized::CreateSP( this, &SDetailsView::OnSetColumnWidth );
 
-	TSharedRef<SScrollBar> ExternalScrollbar = 
-		SNew(SScrollBar)
-		.AlwaysShowScrollbar( true );
+	// We want the scrollbar to always be visible when objects are selected, but not when there is no selection - however:
+	//  - We can't use AlwaysShowScrollbar for this, as this will also show the scrollbar when nothing is selected
+	//  - We can't use the Visibility construction parameter, as it gets translated into user visibility and can hide the scrollbar even when objects are selected
+	// We instead have to explicitly set the visibility after the scrollbar has been constructed to get the exact behavior we want
+	TSharedRef<SScrollBar> ExternalScrollbar = SNew(SScrollBar);
+	ExternalScrollbar->SetVisibility( TAttribute<EVisibility>( this, &SDetailsView::GetScrollBarVisibility ) );
 
 		FMenuBuilder DetailViewOptions( true, NULL );
-
-		FUIAction ShowOnlyModifiedAction( 
-			FExecuteAction::CreateSP( this, &SDetailsView::OnShowOnlyModifiedClicked ),
-			FCanExecuteAction(),
-			FIsActionChecked::CreateSP( this, &SDetailsView::IsShowOnlyModifiedChecked )
-		);
 
 		if (DetailsViewArgs.bShowModifiedPropertiesOption)
 		{
@@ -65,7 +62,11 @@ void SDetailsView::Construct(const FArguments& InArgs)
 				LOCTEXT("ShowOnlyModified", "Show Only Modified Properties"),
 				LOCTEXT("ShowOnlyModified_ToolTip", "Displays only properties which have been changed from their default"),
 				FSlateIcon(),
-				ShowOnlyModifiedAction,
+				FUIAction( 
+					FExecuteAction::CreateSP( this, &SDetailsView::OnShowOnlyModifiedClicked ),
+					FCanExecuteAction(),
+					FIsActionChecked::CreateSP( this, &SDetailsView::IsShowOnlyModifiedChecked )
+				),
 				NAME_None,
 				EUserInterfaceActionType::ToggleButton 
 			);
@@ -87,17 +88,28 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			);
 		}
 
-		FUIAction ShowAllAdvancedAction( 
-			FExecuteAction::CreateSP( this, &SDetailsView::OnShowAllAdvancedClicked ),
-			FCanExecuteAction(),
-			FIsActionChecked::CreateSP( this, &SDetailsView::IsShowAllAdvancedChecked )
-		);
-
 		DetailViewOptions.AddMenuEntry(
 			LOCTEXT("ShowAllAdvanced", "Show All Advanced Details"),
 			LOCTEXT("ShowAllAdvanced_ToolTip", "Shows all advanced detail sections in each category"),
 			FSlateIcon(),
-			ShowAllAdvancedAction,
+			FUIAction( 
+			FExecuteAction::CreateSP( this, &SDetailsView::OnShowAllAdvancedClicked ),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateSP( this, &SDetailsView::IsShowAllAdvancedChecked )
+				),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton 
+		);
+
+		DetailViewOptions.AddMenuEntry(
+			LOCTEXT("ShowAllChildrenIfCategoryMatches", "Show Child On Category Match"),
+			LOCTEXT("ShowAllChildrenIfCategoryMatches_ToolTip", "Shows children if their category matches the search criteria"),
+			FSlateIcon(),
+			FUIAction( 
+				FExecuteAction::CreateSP( this, &SDetailsView::OnShowAllChildrenIfCategoryMatchesClicked ),
+				FCanExecuteAction(),
+				FIsActionChecked::CreateSP( this, &SDetailsView::IsShowAllChildrenIfCategoryMatchesChecked )
+			),
 			NAME_None,
 			EUserInterfaceActionType::ToggleButton 
 			);
@@ -107,13 +119,14 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			LOCTEXT("CollapseAll_ToolTip", "Collapses all root level categories"),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(this, &SDetailsView::SetRootExpansionStates, /*bExpanded=*/false, /*bRecurse=*/false )));
+
 		DetailViewOptions.AddMenuEntry(
 			LOCTEXT("ExpandAll", "Expand All Categories"),
 			LOCTEXT("ExpandAll_ToolTip", "Expands all root level categories"),
 			FSlateIcon(),
 			FUIAction(FExecuteAction::CreateSP(this, &SDetailsView::SetRootExpansionStates, /*bExpanded=*/true, /*bRecurse=*/false )));
 
-	TSharedRef<SHorizontalBox> FilterRow = SNew( SHorizontalBox )
+	FilterRow = SNew( SHorizontalBox )
 		.Visibility( this, &SDetailsView::GetFilterBoxVisibility )
 		+SHorizontalBox::Slot()
 		.FillWidth( 1 )
@@ -162,50 +175,62 @@ void SDetailsView::Construct(const FArguments& InArgs)
 			];
 	}
 
+	// Create the name area which does not change when selection changes
+	SAssignNew(NameArea, SDetailNameArea, &SelectedObjects)
+		// the name area is only for actors
+		.Visibility(this, &SDetailsView::GetActorNameAreaVisibility)
+		.OnLockButtonClicked(this, &SDetailsView::OnLockButtonClicked)
+		.IsLocked(this, &SDetailsView::IsLocked)
+		.ShowLockButton(DetailsViewArgs.bLockable)
+		.ShowActorLabel(DetailsViewArgs.bShowActorLabel)
+		// only show the selection tip if we're not selecting objects
+		.SelectionTip(!DetailsViewArgs.bHideSelectionTip);
+
+	TSharedRef<SVerticalBox> VerticalBox = SNew(SVerticalBox);
+
+	if( !DetailsViewArgs.bCustomNameAreaLocation )
+	{
+		VerticalBox->AddSlot()
+		.AutoHeight()
+		.Padding(0.0f, 0.0f, 0.0f, 4.0f)
+		[
+			NameArea.ToSharedRef()
+		];
+	}
+
+	if( !DetailsViewArgs.bCustomFilterAreaLocation )
+	{
+		VerticalBox->AddSlot()
+		.AutoHeight()
+		.Padding(0.0f, 0.0f, 0.0f, 2.0f)
+		[
+			FilterRow.ToSharedRef()
+		];
+	}
+
+	VerticalBox->AddSlot()
+	.FillHeight(1)
+	.Padding(0)
+	[
+		SNew(SOverlay)
+		+ SOverlay::Slot()
+		[
+			ConstructTreeView(ExternalScrollbar)
+		]
+		+ SOverlay::Slot()
+		.HAlign(HAlign_Right)
+		[
+			SNew(SBox)
+			.WidthOverride(16.0f)
+			[
+				ExternalScrollbar
+			]
+		]
+	];
 
 	ChildSlot
 	[
-		SNew( SVerticalBox )
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding( 0.0f, 0.0f, 0.0f, 4.0f )
-		[
-			// Create the name area which does not change when selection changes
-			SAssignNew( NameArea, SDetailNameArea, &SelectedObjects )
-			// the name area is only for actors
-			.Visibility( this, &SDetailsView::GetActorNameAreaVisibility  )
-			.OnLockButtonClicked( this, &SDetailsView::OnLockButtonClicked )
-			.IsLocked( this, &SDetailsView::IsLocked )
-			.ShowLockButton( DetailsViewArgs.bLockable )
-			.ShowActorLabel( DetailsViewArgs.bShowActorLabel )
-			// only show the selection tip if we're not selecting objects
-			.SelectionTip( !DetailsViewArgs.bHideSelectionTip )
-		]
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding( 0.0f, 0.0f, 0.0f, 2.0f )
-		[
-			FilterRow
-		]
-		+ SVerticalBox::Slot()
-		.FillHeight(1)
-		.Padding(0)
-		[
-			SNew( SHorizontalBox )
-			+ SHorizontalBox::Slot()
-			[
-				ConstructTreeView( ExternalScrollbar )
-			]
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				SNew( SBox )
-				.WidthOverride( 16.0f )
-				[
-					ExternalScrollbar
-				]
-			]
-		]
+		VerticalBox
 	];
 }
 
@@ -235,8 +260,14 @@ FReply SDetailsView::OnOpenRawPropertyEditorClicked()
 
 EVisibility SDetailsView::GetActorNameAreaVisibility() const
 {
-	const bool bVisible = !DetailsViewArgs.bHideActorNameArea && !bViewingClassDefaultObject;
+	const bool bVisible = DetailsViewArgs.NameAreaSettings != FDetailsViewArgs::HideNameArea && !bViewingClassDefaultObject;
 	return bVisible ? EVisibility::Visible : EVisibility::Collapsed; 
+}
+
+EVisibility SDetailsView::GetScrollBarVisibility() const
+{
+	const bool bHasObjects = RootPropertyNode.IsValid() && RootPropertyNode->GetObjectBaseClass() && RootPropertyNode->GetNumObjects();
+	return bHasObjects ? EVisibility::Visible : EVisibility::Collapsed; 
 }
 
 void SDetailsView::ForceRefresh()
@@ -257,9 +288,9 @@ void SDetailsView::ForceRefresh()
 }
 
 
-void SDetailsView::SetObjects( const TArray<UObject*>& InObjects, bool bForceRefresh/* = false*/ )
+void SDetailsView::SetObjects( const TArray<UObject*>& InObjects, bool bForceRefresh/* = false*/, bool bOverrideLock/* = false*/ )
 {
-	if( !IsLocked() )
+	if (!IsLocked() || bOverrideLock)
 	{
 		TArray< TWeakObjectPtr< UObject > > ObjectWeakPtrs;
 		
@@ -275,9 +306,9 @@ void SDetailsView::SetObjects( const TArray<UObject*>& InObjects, bool bForceRef
 	}
 }
 
-void SDetailsView::SetObjects( const TArray< TWeakObjectPtr< UObject > >& InObjects, bool bForceRefresh/* = false*/ )
+void SDetailsView::SetObjects( const TArray< TWeakObjectPtr< UObject > >& InObjects, bool bForceRefresh/* = false*/, bool bOverrideLock/* = false*/ )
 {
-	if( !IsLocked() )
+	if (!IsLocked() || bOverrideLock)
 	{
 		if( bForceRefresh || ShouldSetNewObjects( InObjects ) )
 		{
@@ -294,10 +325,42 @@ void SDetailsView::SetObject( UObject* InObject, bool bForceRefresh )
 	SetObjects( ObjectWeakPtrs, bForceRefresh );
 }
 
+void SDetailsView::RemoveInvalidObjects()
+{
+	TArray< TWeakObjectPtr< UObject > > ResetArray;
+
+	bool bAllFound = true;
+	for (TPropObjectIterator Itor(RootPropertyNode->ObjectIterator()); Itor; ++Itor)
+	{
+		TWeakObjectPtr<UObject> Object = *Itor;
+
+		if( Object.IsValid() && !Object->IsPendingKill() )
+		{
+			ResetArray.Add(Object);
+		}
+		else
+		{
+			bAllFound = false;
+		}
+	}
+
+	if (!bAllFound)
+	{
+		SetObjectArrayPrivate(ResetArray);
+	}
+}
+
 bool SDetailsView::ShouldSetNewObjects( const TArray< TWeakObjectPtr< UObject > >& InObjects ) const
 {
 	bool bShouldSetObjects = false;
-	if( InObjects.Num() != RootPropertyNode->GetNumObjects() )
+
+	const bool bHadBSPBrushSelected = SelectedActorInfo.bHaveBSPBrush;
+	if( bHadBSPBrushSelected == true )
+	{
+		// If a BSP brush was selected we need to refresh because surface could have been selected and the object set not updated
+		bShouldSetObjects = true;
+	}
+	else if( InObjects.Num() != RootPropertyNode->GetNumObjects() )
 	{
 		// If the object arrys differ in size then at least one object is different so we must reset
 		bShouldSetObjects = true;
@@ -367,13 +430,13 @@ void SDetailsView::SetObjectArrayPrivate( const TArray< TWeakObjectPtr< UObject 
 	}
 
 	// Selection changed, refresh the detail area
-	if ( DetailsViewArgs.bObjectsUseNameArea )
+	if ( DetailsViewArgs.NameAreaSettings != FDetailsViewArgs::ActorsUseNameArea && DetailsViewArgs.NameAreaSettings != FDetailsViewArgs::ComponentsAndActorsUseNameArea )
 	{
 		NameArea->Refresh( SelectedObjects );
 	}
 	else
 	{
-		NameArea->Refresh( SelectedActors );
+		NameArea->Refresh( SelectedActors, SelectedObjects, DetailsViewArgs.NameAreaSettings );
 	}
 	
 	// When selection changes rebuild information about the selection
@@ -493,39 +556,6 @@ void SDetailsView::RemoveDeletedObjects( const TArray<UObject*>& DeletedObjects 
 	}
 }
 
-/**
- * Removes actors from the property nodes object array which are no longer available
- * 
- * @param ValidActors	The list of actors which are still valid
- */
-void SDetailsView::RemoveInvalidActors( const TSet<AActor*>& ValidActors )
-{
-	TArray< TWeakObjectPtr< UObject > > ResetArray;
-
-	bool bAllFound = true;
-	for ( TPropObjectIterator Itor( RootPropertyNode->ObjectIterator() ); Itor; ++Itor )
-	{
-		AActor* Actor = Cast<AActor>( Itor->Get() );
-
-		bool bFound = ValidActors.Contains( Actor );
-
-		// If the selected actor no longer exists, remove it from the property window.
-		if( bFound )
-		{
-			ResetArray.Add(Actor);
-		}
-		else
-		{
-			bAllFound = false;
-		}
-	}
-
-	if ( !bAllFound ) 
-	{
-		SetObjectArrayPrivate( ResetArray );
-	}
-}
-
 /** Called before during SetObjectArray before we change the objects being observed */
 void SDetailsView::PreSetObject()
 {
@@ -616,7 +646,7 @@ void SDetailsView::UnregisterInstancedCustomPropertyLayout( UClass* Class )
 	InstancedClassToDetailLayoutMap.Remove( Class );
 }
 
-void SDetailsView::AddExternalRootPropertyNode( TSharedRef<FObjectPropertyNode> ExternalRootNode )
+void SDetailsView::AddExternalRootPropertyNode( TSharedRef<FPropertyNode> ExternalRootNode )
 {
 	ExternalRootPropertyNodes.Add( ExternalRootNode );
 }
@@ -629,6 +659,18 @@ bool SDetailsView::IsCategoryHiddenByClass( FName CategoryName ) const
 bool SDetailsView::IsConnected() const
 {
 	return RootPropertyNode.IsValid() && (RootPropertyNode->GetNumObjects() > 0);
+}
+
+const FSlateBrush* SDetailsView::OnGetLockButtonImageResource() const
+{
+	if (bIsLocked)
+	{
+		return FEditorStyle::GetBrush(TEXT("PropertyWindow.Locked"));
+	}
+	else
+	{
+		return FEditorStyle::GetBrush(TEXT("PropertyWindow.Unlocked"));
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

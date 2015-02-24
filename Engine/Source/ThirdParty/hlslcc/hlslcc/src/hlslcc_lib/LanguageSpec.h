@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -47,6 +47,8 @@ enum
 	IR_INTRINSIC_RETURNS_BOOL = 0x0800,
 	// The intrinsic returns a boolean vector. Pass thru types result in true.
 	IR_INTRINSIC_RETURNS_BOOL_TRUE = 0x1000,
+	// The intrinsic returns void.
+	IR_INTRINSIC_RETURNS_VOID = 0x2000,
 };
 
 extern void make_intrinsic_genType(

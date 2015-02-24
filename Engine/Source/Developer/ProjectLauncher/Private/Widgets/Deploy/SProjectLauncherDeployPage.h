@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,7 +34,7 @@ public:
 private:
 
 	// Callback for getting the content text of the 'Deployment Mode' combo button.
-	FString HandleDeploymentModeComboButtonContentText( ) const;
+	FText HandleDeploymentModeComboButtonContentText( ) const;
 
 	// Callback for clicking an item in the 'Deployment Mode' menu.
 	void HandleDeploymentModeMenuEntryClicked( ELauncherProfileDeploymentModes::Type DeploymentMode );

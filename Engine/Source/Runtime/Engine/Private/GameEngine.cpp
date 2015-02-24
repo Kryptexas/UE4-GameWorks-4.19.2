@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GameEngine.cpp: Unreal game engine.
@@ -17,6 +17,7 @@
 #include "Engine/GameInstance.h"
 #include "Engine/RendererSettings.h"
 #include "Engine/UserInterfaceSettings.h"
+#include "GeneralProjectSettings.h"
 #include "AVIWriter.h"
 
 #include "SlateBasics.h"
@@ -31,8 +32,11 @@
 #include "RendererInterface.h"
 #include "HotReloadInterface.h"
 #include "SDPIScaler.h"
-
-DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
+#include "Components/SkyLightComponent.h"
+#include "Components/ReflectionCaptureComponent.h"
+#include "Engine/GameEngine.h"
+#include "GameFramework/GameUserSettings.h"
+#include "GameFramework/GameMode.h"
 
 ENGINE_API bool GDisallowNetworkTravel = false;
 
@@ -58,31 +62,6 @@ static FAutoConsoleCommand GDumpDrawListStatsCmd(
 	FConsoleCommandWithArgsDelegate::CreateStatic(&RunSynthBenchmark)
 	);
 
-
-int32 GetBoundFullScreenModeCVar()
-{
-	if (GEngine && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
-	{
-		// For HMD, Fullscreen mode should be always 0 (normal fullscreen).
-		return 0;
-	}
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode")); 
-
-	if (FPlatformProperties::SupportsWindowedMode())
-	{
-		int32 Value = CVar->GetValueOnGameThread();
-
-		if (Value >= 0 && Value < EWindowMode::NumWindowModes)
-		{
-			return Value;
-		}
-	}
-
-	// every other value behaves like 0
-	return 0;
-}
-
-// depending on WindowMode and the console variable r.FullScreenMode
 EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode)
 {
 	if (FPlatformProperties::SupportsWindowedMode())
@@ -115,6 +94,7 @@ void UGameEngine::CreateGameViewportWidget( UGameViewportClient* GameViewportCli
 			// Render directly to the window backbuffer unless capturing a movie or getting screenshots
 			// @todo TEMP
 			.RenderDirectlyToWindow( !GEngine->bStartWithMatineeCapture && GIsDumpingMovie == 0 )
+			.EnableStereoRendering(true)
 			[
 				SNew(SDPIScaler)
 				.DPIScale(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(this, &UGameEngine::GetGameViewportDPIScale, GameViewportClient)))
@@ -188,7 +168,9 @@ void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& Resol
 	else if (FParse::Param(FCommandLine::Get(),TEXT("FullScreen")))
 	{
 		// -FullScreen
-		WindowMode = EWindowMode::Fullscreen;
+		auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode"));
+		check(CVar);
+		WindowMode = CVar->GetValueOnGameThread() == 0 ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
 	}
 
 	//fullscreen is always supported, but don't allow windowed mode on platforms that dont' support it.
@@ -281,6 +263,7 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 	Args.Add( TEXT("RHIName"), FText::FromName( LegacyShaderPlatformToShaderFormat( GMaxRHIShaderPlatform ) ) );
 
 	const FText AppName = FText::Format( NSLOCTEXT("UnrealEd", "GameWindowTitle", "{GameName} ({PlatformArchitecture}-bit, {RHIName})"), Args );
+	const FText WindowTitleOverride = GetDefault<UGeneralProjectSettings>()->ProjectDisplayedTitle;
 
 	// Allow optional winX/winY parameters to set initial window position
 	EAutoCenter::Type AutoCenterType = EAutoCenter::PrimaryWorkArea;
@@ -293,7 +276,7 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 
 	TSharedRef<SWindow> Window = SNew(SWindow)
 	.ClientSize(FVector2D( ResX, ResY ))
-	.Title( AppName )
+	.Title(WindowTitleOverride.IsEmpty() ? AppName : WindowTitleOverride)
 	.AutoCenter(AutoCenterType)
 	.ScreenPosition(FVector2D(WinX, WinY))
 	.FocusWhenFirstShown(true)
@@ -318,7 +301,7 @@ TSharedRef<SWindow> UGameEngine::CreateGameWindow()
 
 void UGameEngine::SwitchGameWindowToUseGameViewport()
 {
-	if ( ensure(GameViewportWindow.IsValid()) && GameViewportWindow.Pin()->GetContent() != GameViewportWidget )
+	if (GameViewportWindow.IsValid() && GameViewportWindow.Pin()->GetContent() != GameViewportWidget)
 	{
 		if( !GameViewportWidget.IsValid() )
 		{
@@ -395,13 +378,15 @@ UEngine::UEngine(const FObjectInitializer& ObjectInitializer)
 	SelectionHighlightIntensityBillboards = 0.25f;
 
 	bUseSound = true;
-	bEditorAnalyticsEnabled = true;
+
 	bHardwareSurveyEnabled = true;
 	bPendingHardwareSurveyResults = false;
 	bIsInitialized = false;
 
 	BeginStreamingPauseDelegate = NULL;
 	EndStreamingPauseDelegate = NULL;
+
+	bCanBlueprintsTickByDefault = true;
 }
 
 void UGameEngine::Init(IEngineLoop* InEngineLoop)
@@ -520,7 +505,7 @@ void UGameEngine::PreExit()
 
 			World->GetGameInstance()->Shutdown();
 
-			World->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Visibility );
+			World->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 			World->CleanupWorld();
 		}
 	}
@@ -894,45 +879,9 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		}
 
 		// Block on async loading if requested.
-		if( Context.World()->bRequestedBlockOnAsyncLoading )
+		if (Context.World()->bRequestedBlockOnAsyncLoading)
 		{
-			// Only perform work if there is anything to do. This ensures we are not syncronizing with the GPU
-			// and suspending the device needlessly.
-			bool bWorkToDo = IsAsyncLoading();
-			if (!bWorkToDo)
-			{
-				Context.World()->UpdateLevelStreaming();
-				bWorkToDo = Context.World()->IsVisibilityRequestPending();
-			}
-			if (bWorkToDo)
-			{
-				// tell clients to do the same so they don't fall behind
-				for( FConstPlayerControllerIterator Iterator = Context.World()->GetPlayerControllerIterator(); Iterator; ++Iterator )
-				{
-					APlayerController* PlayerController = *Iterator;
-					UNetConnection* Conn = Cast<UNetConnection>(PlayerController->Player);
-					if (Conn != NULL && Conn->GetUChildConnection() == NULL)
-					{
-						// call the event to replicate the call
-						PlayerController->ClientSetBlockOnAsyncLoading();
-						// flush the connection to make sure it gets sent immediately
-						Conn->FlushNet(true);
-					}
-				}
-
-				if( GameViewport && BeginStreamingPauseDelegate && BeginStreamingPauseDelegate->IsBound() )
-				{
-					BeginStreamingPauseDelegate->Execute( GameViewport->Viewport );
-				}	
-
-				// Flushes level streaming requests, blocking till completion.
-				Context.World()->FlushLevelStreaming();
-
-				if( EndStreamingPauseDelegate && EndStreamingPauseDelegate->IsBound() )
-				{
-					EndStreamingPauseDelegate->Execute( );
-				}	
-			}
+			BlockTillLevelStreamingCompleted(Context.World());
 			Context.World()->bRequestedBlockOnAsyncLoading = false;
 		}
 

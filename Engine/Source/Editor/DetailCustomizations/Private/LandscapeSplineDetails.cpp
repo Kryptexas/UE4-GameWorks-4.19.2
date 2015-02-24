@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "LandscapeSplineDetails.h"
@@ -14,9 +14,9 @@ TSharedRef<IDetailCustomization> FLandscapeSplineDetails::MakeInstance()
 
 void FLandscapeSplineDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
-	IDetailCategoryBuilder& LandscapeSplineCategory = DetailBuilder.EditCategory( "LandscapeSpline", TEXT(""), ECategoryPriority::Transform );
+	IDetailCategoryBuilder& LandscapeSplineCategory = DetailBuilder.EditCategory( "LandscapeSpline", FText::GetEmpty(), ECategoryPriority::Transform );
 
-	LandscapeSplineCategory.AddCustomRow( TEXT("") )
+	LandscapeSplineCategory.AddCustomRow( FText::GetEmpty() )
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -45,7 +45,7 @@ void FLandscapeSplineDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuil
 		]
 	];
 
-	LandscapeSplineCategory.AddCustomRow( TEXT("") )
+	LandscapeSplineCategory.AddCustomRow( FText::GetEmpty() )
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()

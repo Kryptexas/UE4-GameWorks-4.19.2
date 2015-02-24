@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,7 +18,7 @@ class APawn;
 class UAnimationAsset;
 class UCanvas;
 class UWorld;
-class FTransform;
+struct FTransform;
 class FDebugDisplayInfo;
 
 DECLARE_DELEGATE_TwoParams(FOnMontageEnded, UAnimMontage*, bool /*bInterrupted*/)
@@ -549,6 +549,7 @@ public:
 
 	//@TODO: Better comments
 	virtual void EvaluateAnimation(struct FPoseContext& Output);
+	virtual void PostAnimEvaluation() {}
 
 	void InitializeAnimation();
 	void UpdateAnimation(float DeltaSeconds);
@@ -632,6 +633,7 @@ public:
 
 	/** Trigger AnimNotifies **/
 	void TriggerAnimNotifies(float DeltaSeconds);
+	void TriggerSingleAnimNotify(const FAnimNotifyEvent* AnimNotifyEvent);
 
 	/** Add curve float data using a curve Uid, the name of the curve will be resolved from the skeleton **/
 	void AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value, int32 CurveTypeFlags);

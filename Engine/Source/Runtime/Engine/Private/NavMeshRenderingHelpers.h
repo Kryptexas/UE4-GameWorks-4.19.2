@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "DebugRenderSceneProxy.h"
 #include "Debug/DebugDrawService.h"
@@ -57,7 +57,6 @@ struct FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneProxyData, E
 		NavMeshGeometry.OffMeshSegments.Reset();
 		for (int32 Index=0; Index < RECAST_MAX_AREAS; Index++)
 			NavMeshGeometry.OffMeshSegmentAreas[Index].Reset();
-		BatchedElements.Clear();
 		TileEdgeLines.Reset();
 		NavMeshEdgeLines.Reset();
 		NavLinkLines.Reset();
@@ -78,7 +77,6 @@ struct FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneProxyData, E
 	}
 
 	FRecastDebugGeometry NavMeshGeometry;
-	FBatchedElements BatchedElements;
 
 	TArray<FDebugRenderSceneProxy::FDebugLine> TileEdgeLines;
 	TArray<FDebugRenderSceneProxy::FDebugLine> NavMeshEdgeLines;
@@ -86,7 +84,7 @@ struct FNavMeshSceneProxyData : public TSharedFromThis<FNavMeshSceneProxyData, E
 	TArray<FDebugRenderSceneProxy::FDebugLine> ClusterLinkLines;
 
 	TArray<int32> PathCollidingGeomIndices;
-	TNavStatArray<FVector> PathCollidingGeomVerts;
+	TArray<FDynamicMeshVertex> PathCollidingGeomVerts;
 
 	TArray<FBoxCenterAndExtent>	OctreeBounds;
 		
@@ -276,7 +274,8 @@ public:
 			return;
 		}
 
-		MeshColors.Reserve(NumberOfMeshes);
+		MeshColors.Reserve(NumberOfMeshes + (ProxyData.bDrawPathCollidingGeometry && ProxyData.PathCollidingGeomVerts.Num() > 0 ? 1 : 0));
+		MeshBatchElements.Reserve(NumberOfMeshes);
 		const FMaterialRenderProxy* ParentMaterial = GEngine->DebugMeshMaterial->GetRenderProxy(false);
 		for (int32 Index = 0; Index < NumberOfMeshes; ++Index)
 		{
@@ -284,7 +283,7 @@ public:
 
 			FMeshBatchElement Element;
 			Element.FirstIndex = IndexBuffer.Indices.Num();
-			Element.NumPrimitives = CurrentMeshBuilder.Indices.Num() / 3;
+			Element.NumPrimitives = FMath::FloorToInt(CurrentMeshBuilder.Indices.Num() / 3);
 			Element.MinVertexIndex = VertexBuffer.Vertices.Num();
 			Element.MaxVertexIndex = Element.MinVertexIndex + CurrentMeshBuilder.Vertices.Num() - 1;
 			Element.IndexBuffer = &IndexBuffer;
@@ -296,28 +295,9 @@ public:
 			IndexBuffer.Indices.Append( CurrentMeshBuilder.Indices );
 		}
 
-		if (ProxyData.bDrawPathCollidingGeometry && ProxyData.PathCollidingGeomVerts.Num() > 0)
-		{
-			FMeshBatchElement Element;
-			Element.FirstIndex = IndexBuffer.Indices.Num();
-			Element.MinVertexIndex = VertexBuffer.Vertices.Num();
-			Element.IndexBuffer = &IndexBuffer;
-
-			for (const auto& CurrentLoc : ProxyData.PathCollidingGeomVerts)
-			{
-				VertexBuffer.Vertices.Add(FDynamicMeshVertex(CurrentLoc));
-			}
-			IndexBuffer.Indices.Append(ProxyData.PathCollidingGeomIndices);
-
-			Element.NumPrimitives = ProxyData.PathCollidingGeomIndices.Num() / 3;
-			Element.MaxVertexIndex = VertexBuffer.Vertices.Num() - 1;
-			MeshBatchElements.Add(Element);
-
-			MeshColors.Add(FColoredMaterialRenderProxy(ParentMaterial, NavMeshRenderColor_PathCollidingGeom));
-		}
+		MeshColors.Add(FColoredMaterialRenderProxy(ParentMaterial, NavMeshRenderColor_PathCollidingGeom));
 
 		VertexFactory.Init(&VertexBuffer);
-
 		BeginInitResource(&IndexBuffer);
 		BeginInitResource(&VertexBuffer);
 		BeginInitResource(&VertexFactory);
@@ -328,6 +308,7 @@ public:
 		VertexBuffer.ReleaseResource();
 		IndexBuffer.ReleaseResource();
 		VertexFactory.ReleaseResource();
+
 		ProxyData.Reset();
 	}
 
@@ -335,14 +316,14 @@ public:
 	void RegisterDebugDrawDelgate()
 	{
 		DebugTextDrawingDelegate = FDebugDrawDelegate::CreateRaw(this, &FRecastRenderingSceneProxy::DrawDebugLabels);
-		UDebugDrawService::Register(TEXT("Navigation"), DebugTextDrawingDelegate);
+		DebugTextDrawingDelegateHandle = UDebugDrawService::Register(TEXT("Navigation"), DebugTextDrawingDelegate);
 	}
 
 	void UnregisterDebugDrawDelgate()
 	{
 		if (DebugTextDrawingDelegate.IsBound())
 		{
-			UDebugDrawService::Unregister(DebugTextDrawingDelegate);
+			UDebugDrawService::Unregister(DebugTextDrawingDelegateHandle);
 		}
 	}
 
@@ -379,142 +360,6 @@ public:
 			PDI->DrawLine(Center + FVector(-Box.X, -Box.Y, Box.Z), Center + FVector(-Box.X, -Box.Y, -Box.Z), Color, SDPG_World);
 			PDI->DrawLine(Center + FVector(-Box.X, Box.Y, Box.Z), Center + FVector(-Box.X, Box.Y, -Box.Z), Color, SDPG_World);
 		}
-	}
-
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
-	{
-		QUICK_SCOPE_CYCLE_COUNTER( STAT_RecastRenderingSceneProxy_DrawDynamicElements );
-
-		const bool bVisible = !!View->Family->EngineShowFlags.Navigation || bForceRendering;
-		if (!ProxyData.bEnableDrawing || !bVisible) //check if we have any data to render
-		{
-			return;
-		}
-
-		ProxyData.bSkipDistanceCheck = GIsEditor && (GEngine->GetDebugLocalPlayer() == NULL);
-
-		FVector const PosX(1.f,0,0);
-		FVector const PosY(0,1.f,0);
-		FVector const PosZ(0,0,1.f);
-
-		const TArray<FVector>& MeshVerts = ProxyData.NavMeshGeometry.MeshVerts;
-
-		// Draw Mesh
-		for (int32 Index = 0; Index < ProxyData.MeshBuilders.Num(); ++Index)
-		{
-			const FColoredMaterialRenderProxy *MeshColorInstance = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), ProxyData.MeshBuilders[Index].ClusterColor);						
-			FDynamicMeshBuilder	MeshBuilder;
-			MeshBuilder.AddVertices( ProxyData.MeshBuilders[Index].Vertices );
-			MeshBuilder.AddTriangles( ProxyData.MeshBuilders[Index].Indices );
-			MeshBuilder.Draw(PDI, FMatrix::Identity, MeshColorInstance, GetDepthPriorityGroup(View));
-		}
-		
-		for (int32 Index = 0; Index < ProxyData.OctreeBounds.Num(); ++Index)
-		{
-			FBoxCenterAndExtent& Bounds = ProxyData.OctreeBounds[Index];
-			DrawDebugBox(PDI, Bounds.Center, Bounds.Extent, FColor::White);
-		}
-		
-		FHitProxyId HitProxyId;
-		FBatchedElements BatchedElements;
-		int32 Num = ProxyData.NavMeshEdgeLines.Num();
-		for (int32 Index = 0; Index < Num; ++Index)
-		{
-			const FDebugLine &Line = ProxyData.NavMeshEdgeLines[Index];
-			if( LineInView(Line.Start,Line.End,View,false) )
-			{
-				if (LineInCorrectDistance(Line.Start,Line.End,View))
-				{
-					BatchedElements.AddLine(Line.Start, Line.End, Line.Color,HitProxyId,NavMeshEdges_LineThickness, 0, true);
-				}
-				else if (GIsEditor)
-				{
-					BatchedElements.AddLine(Line.Start, Line.End, Line.Color,HitProxyId,DefaultEdges_LineThickness, 0, true);
-				}
-			}
-		}
-
-		Num = ProxyData.ClusterLinkLines.Num();
-		for (int32 Index = 0; Index < Num; ++Index)
-		{
-			const FDebugLine &Line = ProxyData.ClusterLinkLines[Index];
-			if( LineInView(Line.Start,Line.End,View,false) )
-			{
-				if (LineInCorrectDistance(Line.Start,Line.End,View))
-				{
-					BatchedElements.AddLine(Line.Start, Line.End, Line.Color,HitProxyId,ClusterLinkLines_LineThickness, 0, true);
-				}
-				else if (GIsEditor)
-				{
-					BatchedElements.AddLine(Line.Start, Line.End, Line.Color, HitProxyId, DefaultEdges_LineThickness, 0, true);
-				}
-			}
-		}
-
-		Num = ProxyData.TileEdgeLines.Num();
-		for (int32 Index = 0; Index < Num; ++Index)
-		{
-			const FDebugLine &Line = ProxyData.TileEdgeLines[Index];
-			if( LineInView(Line.Start,Line.End,View,false) )
-			{
-				if (LineInCorrectDistance(Line.Start,Line.End,View))
-				{
-					BatchedElements.AddLine(Line.Start, Line.End, Line.Color,HitProxyId,PolyEdges_LineThickness, 0, true);
-				}
-				else if (GIsEditor)
-				{
-					BatchedElements.AddLine(Line.Start, Line.End, Line.Color, HitProxyId, DefaultEdges_LineThickness, 0, true);
-				}
-			}
-		}
-
-		Num = ProxyData.NavLinkLines.Num();
-		for (int32 Index = 0; Index < Num; ++Index)
-		{
-			const FDebugLine &Line = ProxyData.NavLinkLines[Index];
-			if( LineInView(Line.Start,Line.End,View,false) )
-			{
-				if (LineInCorrectDistance(Line.Start,Line.End,View))
-				{
-					BatchedElements.AddLine(Line.Start, Line.End, Line.Color,HitProxyId,LinkLines_LineThickness, 0, true);
-				}
-				else if (GIsEditor)
-				{
-					BatchedElements.AddLine(Line.Start, Line.End, Line.Color, HitProxyId, DefaultEdges_LineThickness, 0, true);
-				}
-			}
-		}
-
-		const bool bNeedToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(View->GetShaderPlatform());
-		const FTexture2DRHIRef DepthTexture;
-		const auto FeatureLevel = View->GetFeatureLevel();
-			
-		FRHICommandListImmediate& RHICmdList = FRHICommandListExecutor::GetImmediateCommandList();
-		BatchedElements.Draw(
-			RHICmdList,
-			FeatureLevel,
-			bNeedToSwitchVerticalAxis,
-			View->ViewProjectionMatrix,
-			View->ViewRect.Width(),
-			View->ViewRect.Height(),
-			View->Family->EngineShowFlags.HitProxies,
-			1.0f,
-			View,
-			DepthTexture
-			);
-
-		ProxyData.BatchedElements.Draw(
-			RHICmdList,
-			FeatureLevel,
-			bNeedToSwitchVerticalAxis,
-			View->ViewProjectionMatrix,
-			View->ViewRect.Width(),
-			View->ViewRect.Height(),
-			View->Family->EngineShowFlags.HitProxies,
-			1.0f,
-			View,
-			DepthTexture
-			);
 	}
 
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
@@ -567,6 +412,15 @@ public:
 					Mesh.DepthPriorityGroup = SDPG_World;
 					Mesh.bCanApplyViewModeOverrides = false;
 					Collector.AddMesh(ViewIndex, Mesh);
+				}
+
+				if (ProxyData.PathCollidingGeomIndices.Num() > 2)
+				{
+					FDynamicMeshBuilder MeshBuilder;
+					MeshBuilder.AddVertices(ProxyData.PathCollidingGeomVerts);
+					MeshBuilder.AddTriangles(ProxyData.PathCollidingGeomIndices);
+
+					MeshBuilder.GetMesh(FMatrix::Identity, &MeshColors[MeshBatchElements.Num()], SDPG_World, false, false, ViewIndex, Collector);
 				}
 
 				int32 Num = ProxyData.NavMeshEdgeLines.Num();
@@ -716,7 +570,7 @@ public:
 			+ ProxyData.TileEdgeLines.GetAllocatedSize() + ProxyData.NavMeshEdgeLines.GetAllocatedSize() + ProxyData.NavLinkLines.GetAllocatedSize()
 			+ ProxyData.PathCollidingGeomIndices.GetAllocatedSize() + ProxyData.PathCollidingGeomVerts.GetAllocatedSize()
 			+ ProxyData.DebugLabels.GetAllocatedSize() + ProxyData.ClusterLinkLines.GetAllocatedSize() + ProxyData.MeshBuilders.GetAllocatedSize()
-			+ ProxyData.BatchedElements.GetAllocatedSize() + IndexBuffer.Indices.GetAllocatedSize() + VertexBuffer.Vertices.GetAllocatedSize() + MeshColors.GetAllocatedSize() + MeshBatchElements.GetAllocatedSize());
+			+ IndexBuffer.Indices.GetAllocatedSize() + VertexBuffer.Vertices.GetAllocatedSize() + MeshColors.GetAllocatedSize() + MeshBatchElements.GetAllocatedSize());
 	}
 
 private:
@@ -725,33 +579,33 @@ private:
 	FNavMeshIndexBuffer IndexBuffer;
 	FNavMeshVertexBuffer VertexBuffer;
 	FNavMeshVertexFactory VertexFactory;
+
 	TArray <FColoredMaterialRenderProxy> MeshColors;
 	TArray<FMeshBatchElement> MeshBatchElements;
 
 	FDebugDrawDelegate DebugTextDrawingDelegate;
+	FDelegateHandle DebugTextDrawingDelegateHandle;
 	TWeakObjectPtr<UNavMeshRenderingComponent> RenderingComponent;
 	uint32 bRequestedData : 1;
 	uint32 bForceRendering : 1;
 };
 #endif // WITH_RECAST
 
-FORCEINLINE void AppendGeometry(TNavStatArray<FVector>& OutVertexBuffer, TArray<int32>& OutIndexBuffer,
+FORCEINLINE void AppendGeometry(TArray<FVector>& OutVertexBuffer, TArray<int32>& OutIndexBuffer,
 								const float* Coords, int32 NumVerts, const int32* Faces, int32 NumFaces)
 {
 	const int32 VertIndexBase = OutVertexBuffer.Num();
-	for (int32 VertIdx = 0; VertIdx < NumVerts; ++VertIdx)
+	for (int32 VertIdx = 0; VertIdx < NumVerts*3; VertIdx+=3)
 	{
-		OutVertexBuffer.Add(Recast2UnrealPoint(&Coords[VertIdx * 3]));
+		OutVertexBuffer.Add(Recast2UnrealPoint(&Coords[VertIdx]));
 	}
 
 	const int32 FirstNewFaceVertexIndex = OutIndexBuffer.Num();
-	OutIndexBuffer.AddUninitialized(NumFaces * 3);
-	int32* DestFaceVertIndex = OutIndexBuffer.GetData() + FirstNewFaceVertexIndex;
-	const int32* SrcFaceVertIndex = Faces;
-	// copy with offset
-	for (int32 Index = 0; Index < NumFaces * 3; ++Index, ++DestFaceVertIndex, ++SrcFaceVertIndex)
+	const uint32 NumIndices = NumFaces * 3;
+	OutIndexBuffer.AddUninitialized(NumIndices);
+	for (uint32 Index = 0; Index < NumIndices; ++Index)
 	{
-		*DestFaceVertIndex = *SrcFaceVertIndex + VertIndexBase;
+		OutIndexBuffer[FirstNewFaceVertexIndex + Index] = VertIndexBase + Faces[Index];
 	}
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "XCodeSourceCodeAccessPrivatePCH.h"
 #include "XCodeSourceCodeAccessor.h"
@@ -182,6 +182,11 @@ bool FXCodeSourceCodeAccessor::OpenSourceFiles(const TArray<FString>& AbsoluteSo
 	}
 
 	return true;
+}
+
+bool FXCodeSourceCodeAccessor::AddSourceFiles(const TArray<FString>& AbsoluteSourcePaths, const TArray<FString>& AvailableModules)
+{
+	return false;
 }
 
 bool FXCodeSourceCodeAccessor::SaveAllOpenDocuments() const

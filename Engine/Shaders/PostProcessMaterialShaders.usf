@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessMaterialShaders.usf: Shaders for rendering post process materials
@@ -19,6 +19,7 @@ void MainVS(
 
 void MainPS(
 	in float4 ScreenPosition : TEXCOORD0,
+	in float4 SvPosition : SV_Position,
 	out float4 OutColor : SV_Target0
 	)
 {
@@ -41,7 +42,7 @@ void MainPS(
 	float3 WorldPosition = ScreenVector * SceneDepth;
 
 	// fill out other related material parameters
-	CalcMaterialParameters(Parameters, true, float4(WorldPosition, 1));
+	CalcMaterialParameters(Parameters, SvPosition, true, float4(WorldPosition, 1));
 	Parameters.ScreenPosition = ScreenPosition;
 
 	// Grab emissive colour as output

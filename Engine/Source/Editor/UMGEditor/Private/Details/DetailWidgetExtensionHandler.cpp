@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 #include "DetailWidgetExtensionHandler.h"
@@ -14,6 +14,15 @@ bool FDetailWidgetExtensionHandler::IsPropertyExtenable(const UClass* InObjectCl
 	// TODO UMG make this work for multiple widgets.
 	if ( InPropertyHandle.GetNumOuterObjects() == 1 )
 	{
+		TArray<UObject*> Objects;
+		InPropertyHandle.GetOuterObjects(Objects);
+
+		// We don't allow bindings on the CDO.
+		if ( Objects[0]->HasAnyFlags(RF_ClassDefaultObject) )
+		{
+			return false;
+		}
+
 		UProperty* Property = InPropertyHandle.GetProperty();
 		FString DelegateName = Property->GetName() + "Delegate";
 
@@ -45,5 +54,6 @@ TSharedRef<SWidget> FDetailWidgetExtensionHandler::GenerateExtensionWidget(const
 		return SNullWidget::NullWidget;
 	}
 
-	return SNew(SPropertyBinding, BlueprintEditor.Pin().ToSharedRef(), DelegateProperty, InPropertyHandle.ToSharedRef());
+	return SNew(SPropertyBinding, BlueprintEditor.Pin().ToSharedRef(), DelegateProperty, InPropertyHandle.ToSharedRef())
+		.GeneratePureBindings(true);
 }

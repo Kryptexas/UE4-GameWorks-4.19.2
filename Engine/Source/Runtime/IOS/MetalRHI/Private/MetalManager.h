@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -42,7 +42,7 @@ struct FPipelineShadow
 	MTLRenderPipelineColorAttachmentDescriptor* RenderTargets[MaxMetalRenderTargets];
 	MTLPixelFormat DepthTargetFormat;
 	MTLPixelFormat StencilTargetFormat;
-    uint32 SampleCount;
+	uint32 SampleCount;
 
 	// running hash of the pipeline state
 	uint64 Hash;
@@ -70,6 +70,7 @@ public:
 	static FMetalManager* Get();
 	static id<MTLDevice> GetDevice();
 	static id<MTLRenderCommandEncoder> GetContext();
+	static id<MTLComputeCommandEncoder> GetComputeContext();
 	static void ReleaseObject(id Object);
 	
 	/** RHIBeginScene helper */
@@ -136,6 +137,7 @@ public:
 	}
 
 	void SubmitCommandBufferAndWait();
+	void SubmitComputeCommandBufferAndWait();
 
 	void SetRasterizerState(const FRasterizerStateInitializerRHI& State);
 
@@ -158,7 +160,8 @@ public:
 	void CreateAutoreleasePool();
 	void DrainAutoreleasePool();
 
-
+	void SetComputeShader(FComputeShaderRHIParamRef InComputeShader) { CurrentComputeShader = InComputeShader; }
+	void Dispatch(uint32 ThreadGroupCountX, uint32 ThreadGroupCountY, uint32 ThreadGroupCountZ);
 
 protected:
 	FMetalManager();
@@ -189,7 +192,8 @@ protected:
 	dispatch_semaphore_t CommandBufferSemaphore;
 
 	id<MTLRenderCommandEncoder> CurrentContext;
-	
+	id<MTLComputeCommandEncoder> CurrentComputeContext;
+
 	struct FRenderTargetViewInfo
 	{
 		uint32 MipIndex;
@@ -228,11 +232,13 @@ protected:
 	
 	class FMetalShaderParameterCache*	ShaderParameters;
 
+	FComputeShaderRHIParamRef CurrentComputeShader;
+
 	// the running pipeline state descriptor object
 	FPipelineShadow Pipeline;
 
 	MTLRenderPipelineDescriptor* CurrentPipelineDescriptor;
-	// a parellel descriptor for no depth buffer (since we can't reset the depth format to invalid YET)
+	// a parallel descriptor for no depth buffer (since we can't reset the depth format to invalid YET)
 	MTLRenderPipelineDescriptor* CurrentPipelineDescriptor2;
 	
 
@@ -270,9 +276,9 @@ protected:
 	void CommitNonComputeShaderConstants();
 
 private:
-    
-    /** Event for coordinating pausing of render thread to keep inline with the ios display link. */
-    FEvent* FrameReadyEvent;
+	
+	/** Event for coordinating pausing of render thread to keep inline with the ios display link. */
+	FEvent* FrameReadyEvent;
 };
 
 // Stats

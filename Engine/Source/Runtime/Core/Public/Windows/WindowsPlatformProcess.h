@@ -1,13 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-
-/*=============================================================================================
-	WindowsPlatformProcess.h: Windows platform Process functions
-==============================================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "GenericPlatform/GenericPlatformProcess.h"
 #include "Windows/WindowsSystemIncludes.h"
+
 
 /** Windows implementation of the process handle. */
 #if PLATFORM_WINDOWS && defined(__clang__)	// @todo clang: Clang on Windows has a bug with non-type template arguments
@@ -42,10 +39,12 @@ public:
 	}
 };
 
+
 /**
-* Windows implementation of the Process OS functions
+* Windows implementation of the Process OS functions.
 **/
-struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
+struct CORE_API FWindowsPlatformProcess
+	: public FGenericPlatformProcess
 {
 	/**
 	 * Windows representation of a interprocess semaphore
@@ -71,7 +70,9 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 		HANDLE			Semaphore;
 	};
 
-	// Begin FGenericPlatformProcess interface
+public:
+
+	// FGenericPlatformProcess interface
 
 	static void* GetDllHandle( const TCHAR* Filename );
 	static void FreeDllHandle( void* DllHandle );
@@ -85,6 +86,7 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 	static void SetThreadAffinityMask( uint64 AffinityMask );
 	static const TCHAR* BaseDir();
 	static const TCHAR* UserDir();
+	static const TCHAR* UserTempDir();
 	static const TCHAR* UserSettingsDir();
 	static const TCHAR* ApplicationSettingsDir();
 	static const TCHAR* ComputerName();
@@ -122,23 +124,23 @@ struct CORE_API FWindowsPlatformProcess : public FGenericPlatformProcess
 	static bool DeleteInterprocessSynchObject(FSemaphore * Object);
 	static bool Daemonize();
 
-	// End FGenericPlatformProcess interface
-
 protected:
 
 	/**
 	 * Reads from a collection of anonymous pipes.
 	 *
-	 * @param OutStrings - Will hold the read data.
-	 * @param InPipes - The pipes to read from.
-	 * @param PipeCount - The number of pipes.
+	 * @param OutStrings Will hold the read data.
+	 * @param InPipes The pipes to read from.
+	 * @param PipeCount The number of pipes.
 	 */
 	static void ReadFromPipes(FString* OutStrings[], HANDLE InPipes[], int32 PipeCount);
 
-
 private:
 
-	// Since Windows can only have one directory at a time, this stack is used to reset the previous DllDirectory
+	/**
+	 * Since Windows can only have one directory at a time,
+	 * this stack is used to reset the previous DllDirectory.
+	 */
 	static TArray<FString> DllDirectoryStack;
 };
 
@@ -146,4 +148,5 @@ private:
 typedef FWindowsPlatformProcess FPlatformProcess;
 
 #include "WindowsCriticalSection.h"
+
 typedef FWindowsCriticalSection FCriticalSection;

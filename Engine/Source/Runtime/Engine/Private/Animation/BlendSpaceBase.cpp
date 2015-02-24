@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BlendSpaceBase.cpp: Base class for blend space objects
@@ -24,34 +24,6 @@ void UBlendSpaceBase::PostLoad()
 	Super::PostLoad();
 
 	ValidateSampleData();
-
-	if ( GetLinkerUE4Version() < VER_UE4_ADDITIVE_TYPE_CHANGE )
-	{
-		// PostLoad isn't guaranteed to be called before getting here
-		// for all SampleData, so make sure you fix them up
-		for (int32 I=0; I<SampleData.Num(); ++I)
-		{
-			if ( SampleData[I].Animation )
-			{
-				SampleData[I].Animation->FixAdditiveType();
-			}
-		}
-
-#if WITH_EDITORONLY_DATA
-		if ( IsValidAdditive() && PreviewBasePose == NULL )
-		{
-			for (int32 I=0; I<SampleData.Num(); ++I)
-			{
-				if ( SampleData[I].Animation && SampleData[I].Animation->RefPoseSeq )
-				{
-					PreviewBasePose = SampleData[I].Animation->RefPoseSeq;
-					MarkPackageDirty();
-					break;
-				}
-			}
-		}
-#endif // WITH_EDITORONLY_DATA
-	}
 
 	InitializePerBoneBlend();
 }

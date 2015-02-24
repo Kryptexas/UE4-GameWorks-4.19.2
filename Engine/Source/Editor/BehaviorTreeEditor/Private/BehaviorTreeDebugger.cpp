@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BehaviorTree/BehaviorTree.h"
@@ -53,7 +53,7 @@ void FBehaviorTreeDebugger::CacheRootNode()
 	}
 }
 
-void FBehaviorTreeDebugger::Setup(class UBehaviorTree* InTreeAsset, TSharedRef<FBehaviorTreeEditor> InEditorOwner)
+void FBehaviorTreeDebugger::Setup(UBehaviorTree* InTreeAsset, TSharedRef<FBehaviorTreeEditor> InEditorOwner)
 {
 	EditorOwner = InEditorOwner;
 	TreeAsset = InTreeAsset;
@@ -251,19 +251,19 @@ void FBehaviorTreeDebugger::OnAIDebugSelected(const APawn* Pawn)
 	}
 }
 
-void FBehaviorTreeDebugger::OnTreeStarted(const class UBehaviorTreeComponent* OwnerComp, const class UBehaviorTree* InTreeAsset)
+void FBehaviorTreeDebugger::OnTreeStarted(const UBehaviorTreeComponent& OwnerComp, const UBehaviorTree& InTreeAsset)
 {
 	// start debugging if tree asset matches, and no other actor was selected
-	if (!TreeInstance.IsValid() && TreeAsset && TreeAsset == InTreeAsset)
+	if (!TreeInstance.IsValid() && TreeAsset && TreeAsset == &InTreeAsset)
 	{
 		ClearDebuggerState();
-		TreeInstance = OwnerComp;
+		TreeInstance = &OwnerComp;
 
 		UpdateDebuggerViewOnInstanceChange();
 	}
 
 	// update known instances
-	TWeakObjectPtr<UBehaviorTreeComponent> KnownComp = (UBehaviorTreeComponent*)OwnerComp;
+	TWeakObjectPtr<UBehaviorTreeComponent> KnownComp = const_cast<UBehaviorTreeComponent*>(&OwnerComp);
 	KnownInstances.AddUnique(KnownComp);
 }
 
@@ -611,12 +611,12 @@ void FBehaviorTreeDebugger::CollectBreakpointsFromAsset(class UBehaviorTreeGraph
 	}
 }
 
-int32 FBehaviorTreeDebugger::FindMatchingDebuggerStack(class UBehaviorTreeComponent* TestInstance) const
+int32 FBehaviorTreeDebugger::FindMatchingDebuggerStack(UBehaviorTreeComponent& TestInstance) const
 {
 #if USE_BEHAVIORTREE_DEBUGGER
-	if (TestInstance && TestInstance->DebuggerSteps.Num())
+	if (TestInstance.DebuggerSteps.Num())
 	{
-		const FBehaviorTreeExecutionStep& StepInfo = TestInstance->DebuggerSteps.Last();
+		const FBehaviorTreeExecutionStep& StepInfo = TestInstance.DebuggerSteps.Last();
 		for (int32 i = 0; i < StepInfo.InstanceStack.Num(); i++)
 		{
 			if (StepInfo.InstanceStack[i].TreeAsset == TreeAsset)
@@ -630,9 +630,9 @@ int32 FBehaviorTreeDebugger::FindMatchingDebuggerStack(class UBehaviorTreeCompon
 	return INDEX_NONE;
 }
 
-class UBehaviorTreeComponent* FBehaviorTreeDebugger::FindInstanceInActor(AActor* TestActor)
+UBehaviorTreeComponent* FBehaviorTreeDebugger::FindInstanceInActor(AActor* TestActor)
 {
-	class UBehaviorTreeComponent* FoundInstance = NULL;
+	UBehaviorTreeComponent* FoundInstance = NULL;
 	if (TestActor)
 	{
 		APawn* TestPawn = Cast<APawn>(TestActor);
@@ -691,19 +691,22 @@ void FBehaviorTreeDebugger::FindMatchingTreeInstance()
 	for (FActorIterator It(GEditor->PlayWorld); It; ++It)
 	{
 		AActor* TestActor = *It;
-		UBehaviorTreeComponent* TestComp = TestActor ? TestActor->FindComponentByClass<UBehaviorTreeComponent>() : NULL;
+		UBehaviorTreeComponent* TestComp = TestActor ? TestActor->FindComponentByClass<UBehaviorTreeComponent>() : nullptr;
 
-		KnownInstances.Add(TestComp);
-
-		const int32 MatchingIdx = FindMatchingDebuggerStack(TestComp);
-		if (MatchingIdx != INDEX_NONE)
+		if (TestComp)
 		{
-			MatchingComp = TestComp;
+			KnownInstances.Add(TestComp);
 
-			if (TestActor->IsSelected())
+			const int32 MatchingIdx = FindMatchingDebuggerStack(*TestComp);
+			if (MatchingIdx != INDEX_NONE)
 			{
-				TreeInstance = TestComp;
-				return;
+				MatchingComp = TestComp;
+
+				if (TestActor->IsSelected())
+				{
+					TreeInstance = TestComp;
+					return;
+				}
 			}
 		}
 	}
@@ -1075,26 +1078,25 @@ float FBehaviorTreeDebugger::GetTimeStamp(bool bUseCurrentState) const
 
 FString FBehaviorTreeDebugger::GetDebuggedInstanceDesc() const
 {
-	return TreeInstance.IsValid() ? 
-		DescribeInstance(TreeInstance.Get()) :
-		NSLOCTEXT("BlueprintEditor", "DebugActorNothingSelected", "No debug object selected").ToString();
+	UBehaviorTreeComponent* BTComponent = TreeInstance.Get();
+	return BTComponent ? DescribeInstance(*BTComponent) : NSLOCTEXT("BlueprintEditor", "DebugActorNothingSelected", "No debug object selected").ToString();
 }
 
-FString FBehaviorTreeDebugger::DescribeInstance(class UBehaviorTreeComponent* InstanceToDescribe) const
+FString FBehaviorTreeDebugger::DescribeInstance(UBehaviorTreeComponent& InstanceToDescribe) const
 {
 	FString ActorDesc;
-	if (InstanceToDescribe && InstanceToDescribe->GetOwner())
+	if (InstanceToDescribe.GetOwner())
 	{
-		AController* TestController = Cast<AController>(InstanceToDescribe->GetOwner());
+		AController* TestController = Cast<AController>(InstanceToDescribe.GetOwner());
 		ActorDesc = TestController ?
 			TestController->GetName() :
-			InstanceToDescribe->GetOwner()->GetActorLabel();
+			InstanceToDescribe.GetOwner()->GetActorLabel();
 	}
 
 	return ActorDesc;
 }
 
-void FBehaviorTreeDebugger::OnInstanceSelectedInDropdown(class UBehaviorTreeComponent* SelectedInstance)
+void FBehaviorTreeDebugger::OnInstanceSelectedInDropdown(UBehaviorTreeComponent* SelectedInstance)
 {
 	if (SelectedInstance)
 	{
@@ -1126,7 +1128,7 @@ void FBehaviorTreeDebugger::OnInstanceSelectedInDropdown(class UBehaviorTreeComp
 	}
 }
 
-void FBehaviorTreeDebugger::GetMatchingInstances(TArray<class UBehaviorTreeComponent*>& MatchingInstances)
+void FBehaviorTreeDebugger::GetMatchingInstances(TArray<UBehaviorTreeComponent*>& MatchingInstances)
 {
 	for (int32 i = KnownInstances.Num() - 1; i >= 0; i--)
 	{
@@ -1137,7 +1139,7 @@ void FBehaviorTreeDebugger::GetMatchingInstances(TArray<class UBehaviorTreeCompo
 			continue;
 		}
 
-		const int32 StackIdx = FindMatchingDebuggerStack(TestInstance);
+		const int32 StackIdx = FindMatchingDebuggerStack(*TestInstance);
 		if (StackIdx != INDEX_NONE)
 		{
 			MatchingInstances.Add(TestInstance);
@@ -1237,14 +1239,14 @@ void FBehaviorTreeDebugger::UpdateAvailableActions()
 			StepForwardIntoIdx = ActiveStepIndex + 1;
 		}
 
-		class UBehaviorTree* CurTree = CurStepInfo.InstanceStack.IsValidIndex(DebuggerInstanceIndex) ?
+		UBehaviorTree* CurTree = CurStepInfo.InstanceStack.IsValidIndex(DebuggerInstanceIndex) ?
 			CurStepInfo.InstanceStack[DebuggerInstanceIndex].TreeAsset : NULL;
 		const int32 CurStepInstances = DebuggerInstanceIndex + 1;
 
 		for (int32 TestStepIndex = ActiveStepIndex - 1; TestStepIndex >= 0; TestStepIndex--)
 		{
 			const FBehaviorTreeExecutionStep& TestStepInfo = TreeInstance->DebuggerSteps[TestStepIndex];
-			class UBehaviorTree* TestTree = NULL;
+			UBehaviorTree* TestTree = NULL;
 			const int32 TestStepInstances = GetNumActiveInstances(TestStepInfo, TestTree);
 
 			if (TestStepInstances < CurStepInstances ||
@@ -1267,7 +1269,7 @@ void FBehaviorTreeDebugger::UpdateAvailableActions()
 		for (int32 TestStepIndex = ActiveStepIndex + 1; TestStepIndex < TreeInstance->DebuggerSteps.Num(); TestStepIndex++)
 		{
 			const FBehaviorTreeExecutionStep& TestStepInfo = TreeInstance->DebuggerSteps[TestStepIndex];
-			class UBehaviorTree* TestTree = NULL;
+			UBehaviorTree* TestTree = NULL;
 			int32 TestStepInstances = GetNumActiveInstances(TestStepInfo, TestTree);
 
 			if (TestStepInstances < CurStepInstances ||
@@ -1292,7 +1294,7 @@ void FBehaviorTreeDebugger::UpdateAvailableActions()
 			for (int32 TestStepIndex = ActiveStepIndex + 1; TestStepIndex < TreeInstance->DebuggerSteps.Num(); TestStepIndex++)
 			{
 				const FBehaviorTreeExecutionStep& TestStepInfo = TreeInstance->DebuggerSteps[TestStepIndex];
-				class UBehaviorTree* TestTree = NULL;
+				UBehaviorTree* TestTree = NULL;
 				int32 TestStepInstances = GetNumActiveInstances(TestStepInfo, TestTree);
 
 				if (TestStepInstances < CurStepInstances ||

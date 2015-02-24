@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AppFrameworkPrivatePCH.h"
 #include "SColorThemes.h"
@@ -296,12 +296,25 @@ void SThemeColorBlock::Construct(const FArguments& InArgs )
 			.Padding(FMargin(1.0f))
 			.ToolTip(ColorTooltip)
 			[
-				SNew(SColorBlock)
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				[
+					SNew(SColorBlock)
+					.Color(this, &SThemeColorBlock::GetColor)
+					.ColorIsHSV(true)
+					.IgnoreAlpha(true)
+					.ShowBackgroundForAlpha(false)
+					.UseSRGB(bUseSRGB)
+				]
+				+ SHorizontalBox::Slot()
+				[
+					SNew(SColorBlock)
 					.Color(this, &SThemeColorBlock::GetColor)
 					.ColorIsHSV(true)
 					.IgnoreAlpha(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SThemeColorBlock::OnReadIgnoreAlpha)))
 					.ShowBackgroundForAlpha(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &SThemeColorBlock::OnReadShowBackgroundForAlpha)))
 					.UseSRGB(bUseSRGB)
+				]
 			]
 	];
 }
@@ -614,12 +627,12 @@ void SThemeColorBlocksBar::DestroyPlaceholders()
 
 void SThemeColorBlocksBar::RemoveRefreshCallback()
 {
-	ColorTheme.Get()->OnRefresh().Remove(RefreshCallback);
+	ColorTheme.Get()->OnRefresh().Remove(RefreshCallbackHandle);
 }
 
 void SThemeColorBlocksBar::AddRefreshCallback()
 {
-	ColorTheme.Get()->OnRefresh().Add(RefreshCallback);
+	RefreshCallbackHandle = ColorTheme.Get()->OnRefresh().Add(RefreshCallback);
 }
 
 void SThemeColorBlocksBar::Refresh()
@@ -668,7 +681,7 @@ void SThemeColorBlocksBar::Construct(const FArguments& InArgs)
 
 	DestroyPlaceholders();
 
-	if (InArgs._EmptyText.Len() > 0)
+	if (!InArgs._EmptyText.IsEmpty())
 	{
 		EmptyHintTextBlock = SNew(SBorder)
 			.Padding(1.0f)
@@ -718,7 +731,7 @@ void SColorThemeBar::Construct(const FArguments& InArgs)
 							.ColorTheme(InArgs._ColorTheme)
 							.ShowTrashCallback(ShowTrashCallback)
 							.HideTrashCallback(HideTrashCallback)
-							.EmptyText(NSLOCTEXT("ColorThemesViewer", "NoColorsText", "No Colors Added Yet").ToString())
+							.EmptyText(NSLOCTEXT("ColorThemesViewer", "NoColorsText", "No Colors Added Yet"))
 							.UseSRGB(bUseSRGB)
 							.UseAlpha(bUseAlpha)
 					]

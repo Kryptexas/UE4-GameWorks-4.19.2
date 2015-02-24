@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+ * Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
  */
 
 using System;
@@ -40,7 +40,9 @@ namespace iPhonePackager
         bool UninstallIPAOnDevice(string ApplicationIdentifier);
         ConnectedDeviceInfo [] EnumerateConnectedDevices();
         bool InstallIPAOnDevice(string IPAPath);
+		bool InstallFilesOnDevice(string BundleIdentifier, string ManifestFile);
 		bool BackupDocumentsDirectory(string BundleIdentifier, string DestinationDocumentsDirectory);
+		bool BackupFiles(string BundleIdentifier, string[] Files);
 		bool ListApplications();
 	}
 }

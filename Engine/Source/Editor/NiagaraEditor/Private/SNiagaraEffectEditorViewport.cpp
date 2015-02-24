@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraEditorPrivatePCH.h"
 #include "NiagaraEditorModule.h"
@@ -11,6 +11,7 @@
 #include "Components/NiagaraComponent.h"
 #include "Engine/NiagaraEffect.h"
 #include "SDockTab.h"
+#include "Engine/TextureCube.h"
 
 /** Viewport Client for the preview viewport */
 class FNiagaraEffectEditorViewportClient : public FEditorViewportClient
@@ -34,7 +35,7 @@ private:
 };
 
 FNiagaraEffectEditorViewportClient::FNiagaraEffectEditorViewportClient(TWeakPtr<INiagaraEffectEditor> InEffectEditor, FPreviewScene& InPreviewScene)
-: FEditorViewportClient( GLevelEditorModeTools(), &InPreviewScene )
+: FEditorViewportClient( nullptr, &InPreviewScene )
 , EffectEditorPtr(InEffectEditor)
 {
 	// Setup defaults for the common draw helper.
@@ -141,7 +142,7 @@ void SNiagaraEffectEditorViewport::Tick(const FGeometry& AllottedGeometry, const
 
 
 
-void SNiagaraEffectEditorViewport::SetPreviewEffect(UNiagaraEffect *InPreviewEffect)
+void SNiagaraEffectEditorViewport::SetPreviewEffect(FNiagaraEffectInstance *InPreviewEffect)
 {
 	check( PreviewComponent );
 
@@ -149,9 +150,12 @@ void SNiagaraEffectEditorViewport::SetPreviewEffect(UNiagaraEffect *InPreviewEff
 	PreviewScene.RemoveComponent(PreviewComponent);
 	PreviewScene.AddComponent(PreviewComponent, Transform);
 
-	FComponentReregisterContext ReregisterContext(PreviewComponent);
-	PreviewComponent->Effect = InPreviewEffect;
-	PreviewComponent->Effect->Init(PreviewComponent);
+	{
+		FComponentReregisterContext ReregisterContext(PreviewComponent);
+	}
+
+	PreviewComponent->SetEffectInstance(InPreviewEffect);
+	PreviewComponent->GetEffectInstance()->Init(PreviewComponent);
 }
 
 

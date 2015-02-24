@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
  
 #pragma once
 #include "NameTypes.h"
@@ -6,6 +6,7 @@
 #include "SharedPointer.h"
 #include "SlateEnums.h"
 #include "SCompoundWidget.h"
+#include "SComboBox.h"
 //#include "UnrealString.h"
 
 /**
@@ -72,9 +73,9 @@ private:
 	void OnSelectionChanged(TSharedPtr<FName> Selection, ESelectInfo::Type SelectInfo);
 
 	/** Helper method to get the text for a given item in the combo box */
-	FString GetSelectedNameLabel() const;
+	FText GetSelectedNameLabel() const;
 
-	FString GetItemNameLabel(TSharedPtr<FName> StringItem) const;
+	FText GetItemNameLabel(TSharedPtr<FName> StringItem) const;
 
 private:
 

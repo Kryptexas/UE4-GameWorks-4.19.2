@@ -1,13 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-
-/*=============================================================================================
-	WindowsPlatformMisc.h: Windows platform misc functions
-==============================================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "GenericPlatform/GenericPlatformMisc.h"
 #include "Windows/WindowsHWrapper.h"
+
 
 /** Helper struct used to get the string version of the Windows version. */
 struct FWindowsOSVersionHelper
@@ -23,10 +20,12 @@ struct FWindowsOSVersionHelper
 	static int32 GetOSVersions( FString& out_OSVersion, FString& out_OSSubVersion );
 };
 
+
 /**
 * Windows implementation of the misc OS functions
 **/
-struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
+struct CORE_API FWindowsPlatformMisc
+	: public FGenericPlatformMisc
 {
 	static void PlatformPreInit();
 	static void PlatformInit();
@@ -52,6 +51,16 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	}
 #endif
 
+
+	/** Break into debugger. Returning false allows this function to be used in conditionals. */
+	FORCEINLINE static bool DebugBreakReturningFalse()
+	{
+#if !UE_BUILD_SHIPPING
+		DebugBreak();
+#endif
+		return false;
+	}
+
 	static void PumpMessages(bool bFromMainLoop);
 	static uint32 GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings );
 	static uint32 GetCharKeyMap(uint16* KeyCodes, FString* KeyNames, uint32 MaxMappings);
@@ -61,7 +70,7 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
 	static void ClipboardCopy(const TCHAR* Str);
 	static void ClipboardPaste(class FString& Dest);
-	static void CreateGuid(class FGuid& Result);
+	static void CreateGuid(struct FGuid& Result);
 	static EAppReturnType::Type MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption );
 	static void PreventScreenSaver();
 	static bool CommandLineCommands();
@@ -87,10 +96,11 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	 *
 	 * @param ComandType OS hint as to the type of command 
 	 * @param Command the command to execute
+	 * @param CommandLine the commands to pass to the executable
 	 *
 	 * @return whether the command was successful or not
 	 */
-	static bool OsExecute(const TCHAR* CommandType, const TCHAR* Command);
+	static bool OsExecute(const TCHAR* CommandType, const TCHAR* Command, const TCHAR* CommandLine = NULL);
 
 	/**
 	 * Searches for a window that matches the window name or the title starts with a particular text. When
@@ -213,6 +223,13 @@ struct CORE_API FWindowsPlatformMisc : public FGenericPlatformMisc
 	 * Returns whether the platform is running on battery power or not.
 	 */
 	static bool IsRunningOnBattery();
+
+	/**
+	 * Gets a globally unique ID the represents a particular operating system install.
+	 */
+	static FString GetOperatingSystemId();
+
 };
+
 
 typedef FWindowsPlatformMisc FPlatformMisc;

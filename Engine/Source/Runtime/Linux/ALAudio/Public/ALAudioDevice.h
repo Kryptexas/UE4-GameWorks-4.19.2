@@ -1,6 +1,7 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 /*=============================================================================
 	ALAudioDevice.h: Unreal OpenAL audio interface object.
-	Copyright 1998-2012 Epic Games, Inc. All Rights Reserved.
 =============================================================================*/
 
 #pragma  once 

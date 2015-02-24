@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,12 +26,8 @@ public:
 
 private:
 
-	/**
-	 * Allocates a widget for this type of MultiBlock.  Override this in derived classes.
-	 *
-	 * @return  MultiBlock widget object
-	 */
-	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const;
+	/** FMultiBlock private interface */
+	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const override;
 
 
 private:

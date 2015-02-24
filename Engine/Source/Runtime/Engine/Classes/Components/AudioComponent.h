@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -39,9 +39,6 @@ struct FAudioComponentParam
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AudioComponentParam)
 	int32 IntParam;
 
-	UPROPERTY()
-	class UDEPRECATED_SoundNodeWave* WaveParam_DEPRECATED;
-
 	// Value of the parameter when used as a sound wave
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AudioComponentParam)
 	class USoundWave* SoundWaveParam;
@@ -51,7 +48,6 @@ struct FAudioComponentParam
 		: FloatParam(0)
 		, BoolParam(false)
 		, IntParam(0)
-		, WaveParam_DEPRECATED(NULL)
 		, SoundWaveParam(NULL)
 	{
 	}
@@ -80,10 +76,6 @@ class ENGINE_API UAudioComponent : public USceneComponent
 	/** Optional sound group this AudioComponent belongs to */
 	UPROPERTY(EditAnywhere, Category=Sound, AdvancedDisplay)
 	USoundClass* SoundClassOverride;
-
-	/** Auto start this component on creation */
-	UPROPERTY()
-	uint32 bAutoPlay_DEPRECATED:1;
 
 	/** Auto destroy this component on completion */
 	UPROPERTY()
@@ -265,9 +257,6 @@ public:
 	/** Whether or not this sound class forces sounds to the center channel */
 	uint32 bCenterChannelOnly:1;
 
-	/** Whether or not the audio component should display an icon in the editor */
-	uint32 bVisualizeComponent:1;
-
 	/** Used by the subtitle manager to prioritize subtitles wave instances spawned by this component. */
 	float SubtitlePriority;
 
@@ -275,7 +264,6 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
-	virtual void PostLoad() override;
 	virtual FString GetDetailedInfoInternal() const override;
 	// End UObject interface.
 
@@ -301,10 +289,6 @@ public:
 private:
 	
 #if WITH_EDITORONLY_DATA
-	/** Editor only component used to display the sprite so as to be able to see the location of the Audio Component  */
-	UPROPERTY(transient)
-	class UBillboardComponent* SpriteComponent;
-
 	/** Utility function that updates which texture is displayed on the sprite dependent on the properties of the Audio Component. */
 	void UpdateSpriteTexture();
 #endif

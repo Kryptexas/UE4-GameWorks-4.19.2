@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //
 // Base class of a network driver attached to an active or pending level.
@@ -151,10 +151,6 @@ public:
 	UPROPERTY(Config)
 	float ConnectionTimeout;
 
-	/** Requires engine version to match exactly in order to connect. Else fall back to GEngineMinNetVersion check */
-	UPROPERTY(Config)
-	bool RequireEngineVersionMatch;
-
 	/** Connection to the server (this net driver is a client) */
 	UPROPERTY()
 	class UNetConnection* ServerConnection;
@@ -300,6 +296,11 @@ public:
 	TSharedPtr<FRepLayout>		GetStructRepLayout( UStruct * Struct );
 
 	TSet< TWeakPtr< FObjectReplicator > > UnmappedReplicators;
+
+	/** Handles to various registered delegates */
+	FDelegateHandle TickDispatchDelegateHandle;
+	FDelegateHandle TickFlushDelegateHandle;
+	FDelegateHandle PostTickFlushDelegateHandle;
 
 	/**
 	* Updates the standby cheat information and
@@ -536,9 +537,9 @@ protected:
 	ENGINE_API void	AddClientConnection(UNetConnection * NewConnection);
 
 	/** Register all TickDispatch, TickFlush, PostTickFlush to tick in World */
-	ENGINE_API void RegisterTickEvents(class UWorld* InWorld) const;
+	ENGINE_API void RegisterTickEvents(class UWorld* InWorld);
 	/** Unregister all TickDispatch, TickFlush, PostTickFlush to tick in World */
-	ENGINE_API void UnregisterTickEvents(class UWorld* InWorld) const;
+	ENGINE_API void UnregisterTickEvents(class UWorld* InWorld);
 	/** Returns true if this actor is considered to be in a loaded level */
-	bool IsLevelInitializedForActor(class AActor* InActor, class UNetConnection* InConnection);
+	bool IsLevelInitializedForActor(const AActor* InActor, const UNetConnection* InConnection) const;
 };

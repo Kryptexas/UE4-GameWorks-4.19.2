@@ -1,8 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-#include "TickableAttributeSetInterface.generated.h"
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "TickableAttributeSetInterface.generated.h"
 
 /** Interface for actors which can be "spotted" by a player */
 UINTERFACE()

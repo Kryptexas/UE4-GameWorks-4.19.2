@@ -1,6 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-// HlslLexer.h - Interface for scanning & tokenizing hlsl
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
+/*=============================================================================
+	HlslLexer.h - Interface for scanning & tokenizing hlsl.
+=============================================================================*/
+
+#pragma once
 
 namespace CrossCompiler
 {
@@ -11,10 +15,15 @@ namespace CrossCompiler
 
 		// Math
 		Plus,
+		PlusEqual,
 		Minus,
+		MinusEqual,
 		Times,
+		TimesEqual,
 		Div,
+		DivEqual,
 		Mod,
+		ModEqual,
 		LeftParenthesis,
 		RightParenthesis,
 
@@ -29,22 +38,36 @@ namespace CrossCompiler
 		OrOr,
 
 		// Bit
+		LowerLower,
+		LowerLowerEqual,
+		GreaterGreater,
+		GreaterGreaterEqual,
 		And,
+		AndEqual,
 		Or,
+		OrEqual,
+		Xor,
+		XorEqual,
 		Not,
 		Neg,
-		Xor,
 
 		// Statements
 		Equal,
-		LeftBracket,
-		RightBracket,
+		LeftBrace,
+		RightBrace,
 		Semicolon,
 		If,
+		Else,
 		For,
 		While,
 		Do,
 		Return,
+		Switch,
+		Case,
+		Break,
+		Default,
+		Continue,
+		Goto,
 
 		// Unary
 		PlusPlus,
@@ -53,6 +76,7 @@ namespace CrossCompiler
 		// Types
 		Void,
 		Const,
+
 		Bool,
 		Bool1,
 		Bool2,
@@ -74,6 +98,7 @@ namespace CrossCompiler
 		Bool2x4,
 		Bool3x4,
 		Bool4x4,
+
 		Int,
 		Int1,
 		Int2,
@@ -95,6 +120,7 @@ namespace CrossCompiler
 		Int2x4,
 		Int3x4,
 		Int4x4,
+
 		Uint,
 		Uint1,
 		Uint2,
@@ -116,6 +142,7 @@ namespace CrossCompiler
 		Uint2x4,
 		Uint3x4,
 		Uint4x4,
+
 		Half,
 		Half1,
 		Half2,
@@ -137,6 +164,7 @@ namespace CrossCompiler
 		Half2x4,
 		Half3x4,
 		Half4x4,
+
 		Float,
 		Float1,
 		Float2,
@@ -158,27 +186,30 @@ namespace CrossCompiler
 		Float2x4,
 		Float3x4,
 		Float4x4,
+
 		Texture,
 		Texture1D,
 		Texture1DArray,
 		Texture2D,
 		Texture2DArray,
+		Texture2DMS,
+		Texture2DMSArray,
 		Texture3D,
 		TextureCube,
 		TextureCubeArray,
+
 		Sampler,
 		Sampler1D,
 		Sampler2D,
 		Sampler3D,
 		SamplerCube,
 		SamplerState,
-		SampleComparisonState,
+		SamplerComparisonState,
+
 		Buffer,
 		AppendStructuredBuffer,
 		ByteAddressBuffer,
 		ConsumeStructuredBuffer,
-		InputPatch,
-		OutputPatch,
 		RWBuffer,
 		RWByteAddressBuffer,
 		RWStructuredBuffer,
@@ -188,6 +219,8 @@ namespace CrossCompiler
 		RWTexture2DArray,
 		RWTexture3D,
 		StructuredBuffer,
+		InputPatch,
+		OutputPatch,
 
 		// Modifiers
 		In,
@@ -196,10 +229,6 @@ namespace CrossCompiler
 		Static,
 
 		// Misc
-		Identifier,
-		UnsignedInteger,
-		FloatNumber,
-
 		LeftSquareBracket,
 		RightSquareBracket,
 		Question,
@@ -209,19 +238,77 @@ namespace CrossCompiler
 		Struct,
 		CBuffer,
 		GroupShared,
+		NoInterpolation,
+		RowMajor,
+
+		Identifier,
+		UnsignedIntegerConstant,
+		FloatConstant,
+		BoolConstant,
+		StringConstant,	// C-style "string"
 	};
 
-	class SHADERCOMPILERCOMMON_API FHlslScanner
+	struct FSourceInfo
+	{
+		FString* Filename;
+		int32 Line;
+		int32 Column;
+
+		FSourceInfo() : Filename(nullptr), Line(0), Column(0) {}
+	};
+
+	struct FHlslToken
+	{
+		EHlslToken Token;
+		FString String;
+		uint32 UnsignedInteger;
+		float Float;
+
+		FSourceInfo SourceInfo;
+
+		explicit FHlslToken(const FString& Identifier) : Token(EHlslToken::Identifier), String(Identifier), UnsignedInteger(0), Float(0) { }
+		explicit FHlslToken(EHlslToken InToken, const FString& Identifier) : Token(InToken), String(Identifier), UnsignedInteger(0), Float(0) { }
+		explicit FHlslToken(uint32 InUnsignedInteger) : Token(EHlslToken::UnsignedIntegerConstant), UnsignedInteger(InUnsignedInteger), Float(0) { }
+		explicit FHlslToken(float InFloat) : Token(EHlslToken::FloatConstant), UnsignedInteger(0), Float(InFloat) { }
+		explicit FHlslToken(bool bInValue) : Token(EHlslToken::BoolConstant), UnsignedInteger(bInValue ? 1 : 0), Float(0) { }
+	};
+
+	class FHlslScanner
 	{
 	public:
 		FHlslScanner();
 		virtual ~FHlslScanner();
 
-		void Lex(const FString& String);
+		// Processing
+		bool Lex(const FString& String, const FString& Filename);
 		void Dump();
 
+		// Iterating after Processing
+		uint32 GetCurrentTokenIndex() const
+		{
+			return CurrentToken;
+		}
+
+		void SetCurrentTokenIndex(uint32 NewToken);
+
+		bool HasMoreTokens() const;
+		bool MatchToken(EHlslToken InToken);
+		const FHlslToken* PeekToken(uint32 LookAhead = 0) const;
+		const FHlslToken* GetCurrentToken() const;
+		const FHlslToken* GetCurrentTokenAndAdvance();
+		void Advance() {++CurrentToken;}
+
+		void SourceError(const FString& Error);
+
 	private:
-		struct FHlslScannerData; 
-		FHlslScannerData* Data;
+		TArray<FHlslToken> Tokens;
+		void AddToken(const FHlslToken& Token, const struct FTokenizer& Tokenizer);
+
+		uint32 CurrentToken;
+
+		// Tokens point their source filenames here
+		TIndirectArray<FString> SourceFilenames;
+
+		void Clear(const FString& Filename);
 	};
 }

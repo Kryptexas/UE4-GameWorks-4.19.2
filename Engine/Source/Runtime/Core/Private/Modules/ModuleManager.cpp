@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "ModuleManager.h"
@@ -746,7 +746,13 @@ FString FModuleManager::GetModuleFilename(FName ModuleName) const
 
 void FModuleManager::SetModuleFilename(FName ModuleName, const FString& Filename)
 {
-	Modules.FindChecked(ModuleName)->Filename = Filename;
+	auto& Module = Modules.FindChecked(ModuleName);
+	Module->Filename = Filename;
+	// If it's a new module then also update its OriginalFilename
+	if (Module->OriginalFilename.IsEmpty())
+	{
+		Module->OriginalFilename = Filename;
+	}
 }
 
 
@@ -871,7 +877,7 @@ void FModuleManager::UnloadOrAbandonModuleWithCallback( const FName InModuleName
 	}
 	else
 	{
-		Ar.Logf( TEXT( "Modile being reloaded does not support dynamic unloading -- abandoning existing loaded module so that we can load the recompiled version!" ) );
+		Ar.Logf( TEXT( "Module being reloaded does not support dynamic unloading -- abandoning existing loaded module so that we can load the recompiled version!" ) );
 		AbandonModule( InModuleName );
 	}
 }
@@ -976,6 +982,14 @@ void FModuleManager::SetGameBinariesDirectory(const TCHAR* InDirectory)
 #endif
 }
 
+FString FModuleManager::GetGameBinariesDirectory() const
+{
+	if (GameBinariesDirectories.Num())
+	{
+		return GameBinariesDirectories[0];
+	}
+	return FString();
+}
 
 bool FModuleManager::DoesLoadedModuleHaveUObjects( const FName ModuleName )
 {
@@ -985,29 +999,4 @@ bool FModuleManager::DoesLoadedModuleHaveUObjects( const FName ModuleName )
 	}
 
 	return false;
-}
-
-const ANSICHAR* (*GEnumAutoStartupModuleName)(int32 Index) = nullptr;
-
-void FModuleManager::InitializeAutoStartupModules()
-{
-	TArray<FString> Modules;
-	GetAutoStartupModuleList(Modules);
-
-	for (auto ModuleName : Modules)
-	{
-		LoadModuleChecked<IModuleInterface>(*ModuleName);
-	}
-}
-
-void FModuleManager::GetAutoStartupModuleList(TArray<FString>& OutModules) const
-{
-	checkf(GEnumAutoStartupModuleName != nullptr, TEXT("This callback should be set by the target binary."));
-
-	const ANSICHAR* NamePtr = nullptr;
-	int32 Index = 0;
-	while ((NamePtr = GEnumAutoStartupModuleName(Index++)) != nullptr)
-	{
-		OutModules.Add(FString(NamePtr));
-	}
 }

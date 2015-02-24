@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -443,7 +443,7 @@ namespace UnrealBuildTool
             return false;
         }
 
-        public static void RegisterAllUBTClasses()
+        public static void RegisterAllUBTClasses(bool bSkipBuildPlatforms = false)
         {
             // Find and register all tool chains and build platforms that are present
             Assembly UBTAssembly = Assembly.GetExecutingAssembly();
@@ -453,16 +453,19 @@ namespace UnrealBuildTool
 
                 List<System.Type> ProjectGeneratorList = new List<System.Type>();
                 var AllTypes = UBTAssembly.GetTypes();
-                // register all build platforms first, since they implement SDK-switching logic that can set environment variables
-                foreach (var CheckType in AllTypes)
+                if (!bSkipBuildPlatforms)
                 {
-                    if (CheckType.IsClass && !CheckType.IsAbstract)
+                    // register all build platforms first, since they implement SDK-switching logic that can set environment variables
+                    foreach (var CheckType in AllTypes)
                     {
-                        if (Utils.ImplementsInterface<IUEBuildPlatform>(CheckType))
+                        if (CheckType.IsClass && !CheckType.IsAbstract)
                         {
-                            Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
-                            var TempInst = (UEBuildPlatform)(UBTAssembly.CreateInstance(CheckType.FullName, true));
-                            TempInst.RegisterBuildPlatform();
+                            if (Utils.ImplementsInterface<IUEBuildPlatform>(CheckType))
+                            {
+                                Log.TraceVerbose("    Registering build platform: {0}", CheckType.ToString());
+                                var TempInst = (UEBuildPlatform)(UBTAssembly.CreateInstance(CheckType.FullName, true));
+                                TempInst.RegisterBuildPlatform();
+                            }
                         }
                     }
                 }
@@ -541,8 +544,16 @@ namespace UnrealBuildTool
             }
             else if (LowercaseArg.StartsWith("-project="))
             {
-                UProjectFile = InArg.Substring(9);
-                bSetupProject = true;
+				if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Linux) 
+				{
+					UProjectFile = InArg.Substring(9).Trim(new Char[] { ' ', '"', '\'' });
+				}
+				else 
+				{
+					UProjectFile = InArg.Substring(9);
+				}
+
+				bSetupProject = true;
             }
             else if (LowercaseArg.EndsWith(".uproject"))
             {
@@ -759,6 +770,8 @@ namespace UnrealBuildTool
                     var bGenerateVCProjectFiles = false;
                     var bGenerateXcodeProjectFiles = false;
                     var bGenerateMakefiles = false;
+					var bGenerateCMakefiles = false;
+					var bGenerateQMakefiles = false;
                     var bValidPlatformsOnly = false;
                     var bSpecificModulesOnly = false;
 
@@ -788,7 +801,8 @@ namespace UnrealBuildTool
                     {
                         string LowercaseArg = Arg.ToLowerInvariant();
                         const string OnlyPlatformSpecificForArg = "-onlyplatformspecificfor=";
-
+						const string UCAUsageThresholdString = "-ucausagethreshold=";
+						const string UCAModuleToAnalyzeString = "-ucamoduletoanalyze=";
                         if (ParseRocketCommandlineArg(Arg, ref GameName))
                         {
                             // Already handled at startup. Calling now just to properly set the game name
@@ -818,6 +832,16 @@ namespace UnrealBuildTool
                             bGenerateMakefiles = true;
                             ProjectFileGenerator.bGenerateProjectFiles = true;
                         }
+						else if (LowercaseArg.StartsWith("-cmakefile"))
+						{
+							bGenerateCMakefiles = true;
+							ProjectFileGenerator.bGenerateProjectFiles = true;
+						}
+						else if (LowercaseArg.StartsWith("-qmakefile"))
+						{
+							bGenerateQMakefiles = true;
+							ProjectFileGenerator.bGenerateProjectFiles = true;
+						}
                         else if (LowercaseArg.StartsWith("-projectfile"))
                         {
                             bGenerateVCProjectFiles = true;
@@ -835,10 +859,6 @@ namespace UnrealBuildTool
                         else if (LowercaseArg == "development" || LowercaseArg == "debug" || LowercaseArg == "shipping" || LowercaseArg == "test" || LowercaseArg == "debuggame")
                         {
                             //ConfigName = Arg;
-                        }
-                        else if (LowercaseArg == "-obbinapk")
-                        {
-                            UEBuildConfiguration.bOBBinAPK = true;
                         }
                         else if (LowercaseArg == "-modulewithsuffix")
                         {
@@ -955,6 +975,23 @@ namespace UnrealBuildTool
 						{
 							UEBuildConfiguration.bSkipLinkingWhenNothingToCompile = true;
 						}
+						else if (LowercaseArg == "-nocef3")
+						{
+							UEBuildConfiguration.bCompileCEF3 = false;
+						}
+						else if (LowercaseArg == "-rununrealcodeanalyzer")
+						{
+							BuildConfiguration.bRunUnrealCodeAnalyzer = true;
+						}
+						else if (LowercaseArg.StartsWith(UCAUsageThresholdString))
+						{
+							string UCAUsageThresholdValue = LowercaseArg.Substring(UCAUsageThresholdString.Length);
+							BuildConfiguration.UCAUsageThreshold = float.Parse(UCAUsageThresholdValue.Replace(',', '.'), System.Globalization.CultureInfo.InvariantCulture);
+						}
+						else if (LowercaseArg.StartsWith(UCAModuleToAnalyzeString))
+						{
+							BuildConfiguration.UCAModuleToAnalyze = LowercaseArg.Substring(UCAModuleToAnalyzeString.Length).Trim();
+						}
                         else if (CheckPlatform.ToString().ToLowerInvariant() == LowercaseArg)
                         {
                             // It's the platform set...
@@ -983,7 +1020,13 @@ namespace UnrealBuildTool
                         throw new BuildException( "UnrealBuildTool: At least one of either IsGatheringBuild or IsAssemblingBuild must be true.  Did you pass '-NoGather' with '-NoAssemble'?" );
                     }
 
+					if (BuildConfiguration.bRunUnrealCodeAnalyzer && (BuildConfiguration.UCAModuleToAnalyze == null || BuildConfiguration.UCAModuleToAnalyze.Length == 0))
+					{
+						throw new BuildException("When running UnrealCodeAnalyzer, please specify module to analyze in UCAModuleToAnalyze field in BuildConfiguration.xml");
+					}
+
                     // Send an event with basic usage dimensions
+                    // [RCL] 2014-11-03 FIXME: this is incorrect since we can have more than one action
                     Telemetry.SendEvent("CommonAttributes.2",
                         // @todo No platform independent way to do processor speed and count. Defer for now. Mono actually has ways to do this but needs to be tested.
                         "ProcessorCount", Environment.ProcessorCount.ToString(),
@@ -997,11 +1040,15 @@ namespace UnrealBuildTool
                                 ? "GenerateXcodeProjectFiles" 
                                 : bRunCopyrightVerification
                                     ? "RunCopyrightVerification"
-                                        : bGenerateMakefiles
+                                    : bGenerateMakefiles
                                         ? "GenerateMakefiles"
-                                            : bValidatePlatforms 
-                                                ? "ValidatePlatfomrs"
-                                                : "Build",
+										: bGenerateCMakefiles
+										    ? "GenerateCMakeFiles"
+											: bGenerateQMakefiles
+											    ? "GenerateQMakefiles"
+												: bValidatePlatforms 
+                                                    ? "ValidatePlatfomrs"
+                                                	: "Build",
                         "Platform", CheckPlatform.ToString(),
                         "Configuration", CheckConfiguration.ToString(),
                         "IsRocket", bRunningRocket.ToString(),
@@ -1034,7 +1081,7 @@ namespace UnrealBuildTool
                         JunkDeleter.DeleteJunk();
                     }
 
-                    if (bGenerateVCProjectFiles || bGenerateXcodeProjectFiles || bGenerateMakefiles)
+					if (bGenerateVCProjectFiles || bGenerateXcodeProjectFiles || bGenerateMakefiles || bGenerateCMakefiles || bGenerateQMakefiles)
                     {
                         bool bGenerationSuccess = true;
                         if (bGenerateVCProjectFiles)
@@ -1049,6 +1096,14 @@ namespace UnrealBuildTool
                         {
                             bGenerationSuccess &= GenerateProjectFiles(new MakefileGenerator(), Arguments);
                         }
+						if (bGenerateCMakefiles)
+						{
+							bGenerationSuccess &= GenerateProjectFiles(new CMakefileGenerator(), Arguments);
+						}
+						if (bGenerateQMakefiles)
+						{
+							bGenerationSuccess &= GenerateProjectFiles(new QMakefileGenerator(), Arguments);
+						}
 
                         if(!bGenerationSuccess)
                         {
@@ -1177,9 +1232,8 @@ namespace UnrealBuildTool
             // Print some performance info
             Log.TraceVerbose("Execution time: {0}", (DateTime.UtcNow - StartTime - MutexWaitTime).TotalSeconds);
 
-            return (int) Result;
+            return (int)Result; 
         }
-
 
         /// <summary>
         /// Generates project files.  Can also be used to generate projects "in memory", to allow for building
@@ -1310,12 +1364,11 @@ namespace UnrealBuildTool
                     ResetConfiguration = UnrealTargetConfiguration.Development;
                 }
             }
-            var BuildPlatform = UEBuildPlatform.GetBuildPlatform(ResetPlatform);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(ResetPlatform);
+			BuildPlatform.ResetBuildConfiguration(ResetPlatform, ResetConfiguration);
 
             // now that we have the platform, we can set the intermediate path to include the platform/architecture name
             BuildConfiguration.PlatformIntermediateFolder = Path.Combine(BuildConfiguration.BaseIntermediateFolder, ResetPlatform.ToString(), BuildPlatform.GetActiveArchitecture());
-
-            BuildPlatform.ResetBuildConfiguration(ResetPlatform, ResetConfiguration);
 
             string ExecutorName = "Unknown";
             ECompilationResult BuildResult = ECompilationResult.Succeeded;
@@ -1810,6 +1863,12 @@ namespace UnrealBuildTool
 		/// <returns></returns>
 		private static bool ShouldDoHotReload(UEBuildTarget Target)
 		{
+			if (UnrealBuildTool.CommandLineContains("-NoHotReloadFromIDE"))
+			{
+				// Hot reload disabled through command line, possibly running from UAT
+				return false;
+			}
+
 			bool bIsRunning = false;
 			if (!ProjectFileGenerator.bGenerateProjectFiles && !UEBuildConfiguration.bGenerateManifest && Target.TargetType == TargetRules.TargetType.Editor)
 			{

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*===========================================================================
 	ErrorChecking.cpp
@@ -15,6 +15,8 @@
 #include "GameFramework/DefaultPhysicsVolume.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "Engine/Light.h"
+#include "Engine/Note.h"
+#include "Engine/Polys.h"
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
 

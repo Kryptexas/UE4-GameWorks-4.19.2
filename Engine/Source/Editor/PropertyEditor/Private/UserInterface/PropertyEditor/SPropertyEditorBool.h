@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 class SPropertyEditorBool : public SCompoundWidget
@@ -23,9 +23,9 @@ private:
 
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent );
 
-	ESlateCheckBoxState::Type OnGetCheckState() const;
+	ECheckBoxState OnGetCheckState() const;
 
-	void OnCheckStateChanged( ESlateCheckBoxState::Type InNewState );
+	void OnCheckStateChanged( ECheckBoxState InNewState );
 
 	/** @return True if the property can be edited */
 	bool CanEdit() const;

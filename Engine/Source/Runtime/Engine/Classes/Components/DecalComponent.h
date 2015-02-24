@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+#include "TimerManager.h"
 #include "DecalComponent.generated.h"
 
 class FDeferredDecalProxy;
@@ -9,8 +10,8 @@ class FDeferredDecalProxy;
 /** 
  * A material that is rendered onto the surface of a mesh. A kind of 'bumper sticker' for a model.
  */
-UCLASS(hidecategories=(Collision, Object, Physics, SceneComponent, Activation, "Components|Activation", Mobility), ClassGroup=Rendering, MinimalAPI, meta=(BlueprintSpawnableComponent))
-class UDecalComponent : public USceneComponent
+UCLASS(hidecategories=(Collision, Object, Physics, SceneComponent, Activation, "Components|Activation", Mobility), ClassGroup=Rendering, meta=(BlueprintSpawnableComponent))
+class ENGINE_API UDecalComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
 
@@ -28,15 +29,15 @@ class UDecalComponent : public USceneComponent
 
 	/** Sets the sort order for the decal component. Higher values draw later (on top). This will force the decal to reattach */
 	UFUNCTION(BlueprintCallable, Category = "Rendering|Components|Decal")
-	ENGINE_API void SetSortOrder(int32 Value);
+	void SetSortOrder(int32 Value);
 
 	/** setting decal material on decal component. This will force the decal to reattach */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Decal")
-	ENGINE_API void SetDecalMaterial(class UMaterialInterface* NewDecalMaterial);
+	void SetDecalMaterial(class UMaterialInterface* NewDecalMaterial);
 
 	/** Accessor for decal material */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Decal")
-	ENGINE_API class UMaterialInterface* GetDecalMaterial() const;
+	class UMaterialInterface* GetDecalMaterial() const;
 
 	/** Utility to allocate a new Dynamic Material Instance, set its parent to the currently applied material, and assign it */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Decal")
@@ -50,10 +51,19 @@ public:
 	/**
 	 * Pushes new selection state to the render thread primitive proxy
 	 */
-	ENGINE_API void PushSelectionToProxy();
+	void PushSelectionToProxy();
 
+protected:
+	/** Handle for efficient management of DestroyDecalComponent timer */
+	FTimerHandle TimerHandle_DestroyDecalComponent;
 
+	/** Called when the life span of the decal has been exceeded */
+	void LifeSpanCallback();
+
+public:
 	
+	void SetLifeSpan(const float LifeSpan);
+
 	/**
 	 * Retrieves the materials used in this component
 	 *
@@ -88,5 +98,6 @@ public:
 	// Begin USceneComponent Interface
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	// End USceneComponent Interface
+
 };
 

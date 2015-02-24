@@ -1,13 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+#include "LightComponent.h"
 #include "PointLightComponent.generated.h"
 
 /**
  * A light component which emits light from a single point equally in all directions.
  */
-UCLASS(ClassGroup=Lights, hidecategories=(Object, LightShafts), editinlinenew, meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup=(Lights,Common), hidecategories=(Object, LightShafts), editinlinenew, meta=(BlueprintSpawnableComponent))
 class ENGINE_API UPointLightComponent : public ULightComponent
 {
 	GENERATED_UCLASS_BODY()

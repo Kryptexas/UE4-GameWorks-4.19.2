@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -21,7 +21,7 @@ bool UEnvQueryItemType_ActorBase::StoreInBlackboard(FBlackboardKeySelector& KeyS
 	if (!bStored && KeySelector.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
 	{
 		UObject* MyObject = GetActor(RawData);
-		Blackboard->SetValueAsObject(KeySelector.GetSelectedKeyID(), MyObject);
+		Blackboard->SetValue<UBlackboardKeyType_Object>(KeySelector.GetSelectedKeyID(), MyObject);
 
 		bStored = true;
 	}

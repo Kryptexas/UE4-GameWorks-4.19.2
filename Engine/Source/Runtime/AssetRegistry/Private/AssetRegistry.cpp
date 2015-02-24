@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "AssetRegistryPCH.h"
@@ -84,7 +84,9 @@ FAssetRegistry::FAssetRegistry()
 			{
 				const FString& RootPath = *RootPathIt;
 				const FString& ContentFolder = FPackageName::LongPackageNameToFilename( RootPath );
-				DirectoryWatcher->RegisterDirectoryChangedCallback( ContentFolder, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged));
+				FDelegateHandle NewHandle;
+				DirectoryWatcher->RegisterDirectoryChangedCallback_Handle( ContentFolder, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged), NewHandle);
+				OnDirectoryChangedDelegateHandles.Add(ContentFolder, NewHandle);
 			}
 		}
 	}
@@ -167,6 +169,9 @@ FAssetRegistry::~FAssetRegistry()
 	CachedAssetsByClass.Empty();
 	CachedAssetsByTag.Empty();
 	CachedDependsNodes.Empty();
+#if WITH_EDITORONLY_DATA
+	CachedAssetsBySourceFileName.Empty();
+#endif
 
 	// Stop listening for content mount point events
 	FPackageName::OnContentPathMounted().RemoveAll( this );
@@ -190,7 +195,8 @@ FAssetRegistry::~FAssetRegistry()
 				{
 					const FString& RootPath = *RootPathIt;
 					const FString& ContentFolder = FPackageName::LongPackageNameToFilename( RootPath );
-					DirectoryWatcher->UnregisterDirectoryChangedCallback( ContentFolder, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged));
+					DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle( ContentFolder, OnDirectoryChangedDelegateHandles.FindRef(ContentFolder));
+					OnDirectoryChangedDelegateHandles.Remove(ContentFolder);
 				}
 			}
 		}
@@ -325,60 +331,52 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 			FilterObjectPaths.Add(Filter.ObjectPaths[ObjectPathIdx]);
 		}
 
-		// Iterate over all in-memory assets to find the ones that pass the filter components
-		for (FObjectIterator ObjIt; ObjIt; ++ObjIt)
+		auto FilterInMemoryObjectLambda = [&](const UObject* Obj)
 		{
-			if ( ObjIt->IsAsset() )
+			if ( Obj->IsAsset() )
 			{
-				UPackage* InMemoryPackage = ObjIt->GetOutermost();
+				UPackage* InMemoryPackage = Obj->GetOutermost();
 
 				static const bool bUsingWorldAssets = FAssetRegistry::IsUsingWorldAssets();
 				// Skip assets in map packages... unless we are showing world assets
 				if ( InMemoryPackage->ContainsMap() && !bUsingWorldAssets )
 				{
-					continue;
+					return;
 				}
 
 				// Skip assets that were loaded for diffing
 				if ( InMemoryPackage->PackageFlags & PKG_ForDiffing )
 				{
-					continue;
+					return;
 				}
 
 				// add it to in-memory object list for later merge
-				const FName ObjectPath = FName(*ObjIt->GetPathName());
+				const FName ObjectPath = FName(*Obj->GetPathName());
 				InMemoryObjectPaths.Add(ObjectPath);
-			
+
 				// Package name
 				const FName PackageName = InMemoryPackage->GetFName();
 				if ( NumFilterPackageNames && !FilterPackageNames.Contains(PackageName) )
 				{
-					continue;
+					return;
 				}
 
 				// Object Path
 				if ( NumFilterObjectPaths && !FilterObjectPaths.Contains(ObjectPath) )
 				{
-					continue;
+					return;
 				}
 
 				// Package path
 				const FName PackagePath = FName(*FPackageName::GetLongPackagePath(InMemoryPackage->GetName()));
 				if ( NumFilterPackagePaths && !FilterPackagePaths.Contains(PackagePath) )
 				{
-					continue;
-				}
-
-				// Asset class
-				const FName AssetClassName = ObjIt->GetClass()->GetFName();
-				if ( NumFilterClasses && !FilterClassNames.Contains(AssetClassName) )
-				{
-					continue;
+					return;
 				}
 
 				// Tags and values
 				TArray<UObject::FAssetRegistryTag> ObjectTags;
-				ObjIt->GetAssetRegistryTags(ObjectTags);
+				Obj->GetAssetRegistryTags(ObjectTags);
 				if ( Filter.TagsAndValues.Num() )
 				{
 					bool bMatch = false;
@@ -395,7 +393,7 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 								{
 									bMatch = true;
 								}
-							
+
 								break;
 							}
 						}
@@ -408,14 +406,14 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 
 					if (!bMatch)
 					{
-						continue;
+						return;
 					}
 				}
 
 				// Find the group names
 				FString GroupNamesStr;
 				FString AssetNameStr;
-				ObjIt->GetPathName(InMemoryPackage).Split(TEXT("."), &GroupNamesStr, &AssetNameStr, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
+				Obj->GetPathName(InMemoryPackage).Split(TEXT("."), &GroupNamesStr, &AssetNameStr, ESearchCase::CaseSensitive, ESearchDir::FromEnd);
 
 				TMap<FName, FString> TagMap;
 				for ( auto TagIt = ObjectTags.CreateConstIterator(); TagIt; ++TagIt )
@@ -424,12 +422,36 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 				}
 
 				// This asset is in memory and passes all filters
-				FAssetData* AssetData = new (OutAssetData) FAssetData(PackageName, PackagePath, FName(*GroupNamesStr), ObjIt->GetFName(), AssetClassName, TagMap, InMemoryPackage->GetChunkIDs());
+				FAssetData* AssetData = new (OutAssetData) FAssetData(PackageName, PackagePath, FName(*GroupNamesStr), Obj->GetFName(), Obj->GetClass()->GetFName(), TagMap, InMemoryPackage->GetChunkIDs());
+			}
+		};
+
+		// Iterate over all in-memory assets to find the ones that pass the filter components
+		if(NumFilterClasses)
+		{
+			TArray<UObject*> InMemoryObjects;
+			for (auto ClassNameIt = FilterClassNames.CreateConstIterator(); ClassNameIt; ++ClassNameIt)
+			{
+				UClass* Class = FindObjectFast<UClass>(nullptr, *ClassNameIt->ToString(), false, true, RF_NoFlags);
+				if(Class != nullptr)
+				{
+					GetObjectsOfClass(Class, InMemoryObjects, false, RF_NoFlags);
+				}
+			}
+
+			for (auto ObjIt = InMemoryObjects.CreateConstIterator(); ObjIt; ++ObjIt)
+			{
+				FilterInMemoryObjectLambda(*ObjIt);
+			}
+		}
+		else
+		{
+			for (FObjectIterator ObjIt; ObjIt; ++ObjIt)
+			{
+				FilterInMemoryObjectLambda(*ObjIt);
 			}
 		}
 	}
-
-
 
 	// Now add cached (unloaded) assets
 	// Form a set of assets matched by each filter
@@ -529,6 +551,21 @@ bool FAssetRegistry::GetAssets(const FARFilter& Filter, TArray<FAssetData>& OutA
 			}
 		}
 	}
+
+#if WITH_EDITORONLY_DATA
+	// Asset source file filter
+	if ( GIsEditor && Filter.SourceFilenames.Num() )
+	{
+		for (const auto& Filename : Filter.SourceFilenames)
+		{
+			const auto* Assets = CachedAssetsBySourceFileName.Find(Filename);
+			if (Assets)
+			{
+				DiskFilterSets.Add(*Assets);
+			}
+		}
+	}
+#endif
 
 	// If we have any filter sets, add the assets which are contained in the sets to OutAssetData
 	if ( DiskFilterSets.Num() > 0 )
@@ -1607,6 +1644,15 @@ void FAssetRegistry::AddAssetData(FAssetData* AssetData)
 
 		auto& TagAssets = CachedAssetsByTag.FindOrAdd(Key);
 		TagAssets.Add(AssetData);
+
+#if WITH_EDITORONLY_DATA
+		// Don't check FName number so we still accumulate them even if there are multiple
+		if (GIsEditor && TagIt.Key().IsEqual(UObject::SourceFileTagName(), ENameCase::IgnoreCase, false))
+		{
+			auto& SourceFiles = CachedAssetsBySourceFileName.FindOrAdd(*FPaths::GetCleanFilename(TagIt.Value()));
+			SourceFiles.Add(AssetData);
+		}
+#endif
 	}
 
 	// Notify subscribers
@@ -1684,12 +1730,23 @@ void FAssetRegistry::UpdateAssetData(FAssetData* AssetData, const FAssetData& Ne
 	// Update Tags
 	if (bTagsChanged)
 	{
+		const FName& SourceFileTagName = UObject::SourceFileTagName();
+
 		for (TMap<FName, FString>::TConstIterator TagIt(AssetData->TagsAndValues); TagIt; ++TagIt)
 		{
 			const FName FNameKey = TagIt.Key();
 			auto OldTagAssets = CachedAssetsByTag.Find(FNameKey);
 
 			OldTagAssets->Remove(AssetData);
+
+#if WITH_EDITORONLY_DATA
+			// Don't check FName number so we still remove them even if there are multiple
+			if (GIsEditor && TagIt.Key().IsEqual(SourceFileTagName, ENameCase::IgnoreCase, false))
+			{
+				auto* SourceFiles = CachedAssetsBySourceFileName.Find(*FPaths::GetCleanFilename(TagIt.Value()));
+				SourceFiles->Remove(AssetData);
+			}
+#endif
 		}
 
 		for (TMap<FName, FString>::TConstIterator TagIt(NewAssetData.TagsAndValues); TagIt; ++TagIt)
@@ -1698,6 +1755,15 @@ void FAssetRegistry::UpdateAssetData(FAssetData* AssetData, const FAssetData& Ne
 			auto& NewTagAssets = CachedAssetsByTag.FindOrAdd(FNameKey);
 
 			NewTagAssets.Add(AssetData);
+
+#if WITH_EDITORONLY_DATA
+			// Don't check FName number so we still add them even if there are multiple
+			if (GIsEditor && TagIt.Key().IsEqual(SourceFileTagName, ENameCase::IgnoreCase, false))
+			{
+				auto& SourceFiles = CachedAssetsBySourceFileName.FindOrAdd(*FPaths::GetCleanFilename(TagIt.Value()));
+				SourceFiles.Add(AssetData);
+			}
+#endif
 		}
 	}
 
@@ -1756,10 +1822,21 @@ bool FAssetRegistry::RemoveAssetData(FAssetData* AssetData)
 		OldPathAssets->Remove(AssetData);
 		OldClassAssets->Remove(AssetData);
 
+		const FName& SourceFileTagName = UObject::SourceFileTagName();
 		for (TMap<FName, FString>::TConstIterator TagIt(AssetData->TagsAndValues); TagIt; ++TagIt)
 		{
 			auto OldTagAssets = CachedAssetsByTag.Find(TagIt.Key());
 			OldTagAssets->Remove(AssetData);
+
+
+#if WITH_EDITORONLY_DATA
+			// Don't check FName number so we still remove them even if there are multiple
+			if (GIsEditor && TagIt.Key().IsEqual(SourceFileTagName, ENameCase::IgnoreCase, false))
+			{
+				auto* SourceFiles = CachedAssetsBySourceFileName.Find(*FPaths::GetCleanFilename(TagIt.Value()));
+				SourceFiles->Remove(AssetData);
+			}
+#endif
 		}
 
 		// We need to update the cached dependencies references cache so that they know we no
@@ -1906,7 +1983,7 @@ void FAssetRegistry::OnContentPathMounted( const FString& InAssetPath, const FSt
 		{
 			// If the path doesn't exist on disk, make it so the watcher will work.
 			IFileManager::Get().MakeDirectory(*FileSystemPath);
-			DirectoryWatcher->RegisterDirectoryChangedCallback( FileSystemPath, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged));
+			DirectoryWatcher->RegisterDirectoryChangedCallback_Handle( FileSystemPath, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged), OnContentPathMountedOnDirectoryChangedDelegateHandle);
 		}
 	}
 #endif // WITH_EDITOR
@@ -1960,7 +2037,7 @@ void FAssetRegistry::OnContentPathDismounted(const FString& InAssetPath, const F
 		IDirectoryWatcher* DirectoryWatcher = DirectoryWatcherModule.Get();
 		if (DirectoryWatcher)
 		{
-			DirectoryWatcher->UnregisterDirectoryChangedCallback(FileSystemPath, IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FAssetRegistry::OnDirectoryChanged));
+			DirectoryWatcher->UnregisterDirectoryChangedCallback_Handle(FileSystemPath, OnContentPathMountedOnDirectoryChangedDelegateHandle);
 		}
 	}
 #endif // WITH_EDITOR

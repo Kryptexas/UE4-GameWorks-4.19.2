@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ContentBrowserPCH.h"
 #include "SAssetDialog.h"
@@ -10,7 +10,16 @@ SAssetDialog::SAssetDialog()
 	, ExistingAssetPolicy(ESaveAssetDialogExistingAssetPolicy::Disallow)
 	, bLastInputValidityCheckSuccessful(false)
 	, bPendingFocusNextFrame(true)
+	, bValidAssetsChosen(false)
 {
+}
+
+SAssetDialog::~SAssetDialog()
+{
+	if (!bValidAssetsChosen)
+	{
+		OnAssetDialogCancelled.ExecuteIfBound();
+	}
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -33,7 +42,6 @@ void SAssetDialog::Construct(const FArguments& InArgs, const FSharedAssetDialogC
 	AssetPickerConfig.Filter.PackagePaths.Add(FName(*DefaultPath));
 	AssetPickerConfig.bAllowDragging = false;
 	AssetPickerConfig.InitialAssetViewType = EAssetViewType::Tile;
-	AssetPickerConfig.ThumbnailScale = 0.125;
 	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateSP(this, &SAssetDialog::OnAssetSelected);
 	AssetPickerConfig.OnAssetsActivated = FOnAssetsActivated::CreateSP(this, &SAssetDialog::OnAssetsActivated);
 	AssetPickerConfig.SetFilterDelegates.Add(&SetFilterDelegate);
@@ -129,24 +137,39 @@ void SAssetDialog::Construct(const FArguments& InArgs, const FSharedAssetDialogC
 		];
 	}
 
-	// Buttons and asset name
-	TSharedRef<SHorizontalBox> ButtonsAndNameBox = SNew(SHorizontalBox);
+	TSharedRef<SVerticalBox> LabelsBox = SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.FillHeight(1)
+		.VAlign(VAlign_Center)
+		.Padding(0, 2, 0, 2)
+		[
+			SNew(STextBlock).Text(LOCTEXT("PathBoxLabel", "Path:"))
+		];
 
-	if ( bIncludeNameBox )
+	TSharedRef<SVerticalBox> ContentBox = SNew(SVerticalBox)
+		+ SVerticalBox::Slot()
+		.FillHeight(1)
+		.VAlign(VAlign_Center)
+		.Padding(0, 2, 0, 2)
+		[
+			SAssignNew(PathText, STextBlock)
+			.Text(this, &SAssetDialog::GetPathNameText)
+		];
+
+	if (bIncludeNameBox)
 	{
-		ButtonsAndNameBox->AddSlot()
-			.AutoWidth()
-			.HAlign(HAlign_Right)
+		LabelsBox->AddSlot()
+			.FillHeight(1)
 			.VAlign(VAlign_Center)
-			.Padding(80, 3, 4, 3)
+			.Padding(0, 2, 0, 2)
 			[
 				SNew(STextBlock).Text(LOCTEXT("NameBoxLabel", "Name:"))
 			];
 
-		ButtonsAndNameBox->AddSlot()
-			.FillWidth(1)
+		ContentBox->AddSlot()
+			.FillHeight(1)
 			.VAlign(VAlign_Center)
-			.Padding(4, 3)
+			.Padding(0, 2, 0, 2)
 			[
 				SAssignNew(NameEditableText, SEditableTextBox)
 				.Text(this, &SAssetDialog::GetAssetNameText)
@@ -156,37 +179,51 @@ void SAssetDialog::Construct(const FArguments& InArgs, const FSharedAssetDialogC
 			];
 	}
 
-	ButtonsAndNameBox->AddSlot()
+	// Buttons and asset name
+	TSharedRef<SHorizontalBox> ButtonsAndNameBox = SNew(SHorizontalBox)
+		+ SHorizontalBox::Slot()
 		.AutoWidth()
-		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Right)
+		.VAlign(VAlign_Bottom)
+		.Padding(bIncludeNameBox ? 80 : 4, 20, 4, 3)
+		[
+			LabelsBox
+		]
+		+ SHorizontalBox::Slot()
+		.FillWidth(1)
+		.VAlign(VAlign_Bottom)
+		.Padding(4, 3)
+		[
+			ContentBox
+		]
+		+ SHorizontalBox::Slot()
+		.AutoWidth()
+		.VAlign(VAlign_Bottom)
 		.Padding(4, 3)
 		[
 			SNew(SButton)
 			.Text(ConfirmButtonText)
+			.ContentPadding(FMargin(8, 2, 8, 2))
 			.IsEnabled(this, &SAssetDialog::IsConfirmButtonEnabled)
 			.OnClicked(this, &SAssetDialog::OnConfirmClicked)
-		];
-
-	ButtonsAndNameBox->AddSlot()
+		]
+		+ SHorizontalBox::Slot()
 		.AutoWidth()
-		.VAlign(VAlign_Center)
+		.VAlign(VAlign_Bottom)
 		.Padding(4, 3)
 		[
 			SNew(SButton)
+			.ContentPadding(FMargin(8, 2, 8, 2))
 			.Text(LOCTEXT("AssetDialogCancelButton", "Cancel"))
 			.OnClicked(this, &SAssetDialog::OnCancelClicked)
 		];
 
 	MainVerticalBox->AddSlot()
 		.AutoHeight()
-		.HAlign(bIncludeNameBox ? HAlign_Fill : HAlign_Right)
-		.Padding(8, 2, 8, 4)
+		.HAlign(HAlign_Fill)
+		.Padding(0)
 		[
-			SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
-			[
-				ButtonsAndNameBox
-			]
+			ButtonsAndNameBox
 		];
 
 	ChildSlot
@@ -228,6 +265,11 @@ void SAssetDialog::SetOnObjectPathChosenForSave(const FOnObjectPathChosenForSave
 	OnObjectPathChosenForSave = InOnObjectPathChosenForSave;
 }
 
+void SAssetDialog::SetOnAssetDialogCancelled(const FOnAssetDialogCancelled& InOnAssetDialogCancelled)
+{
+	OnAssetDialogCancelled = InOnAssetDialogCancelled;
+}
+
 void SAssetDialog::FocusNameBox()
 {
 	if ( NameEditableText.IsValid() )
@@ -239,6 +281,11 @@ void SAssetDialog::FocusNameBox()
 FText SAssetDialog::GetAssetNameText() const
 {
 	return FText::FromString(CurrentlyEnteredAssetName);
+}
+
+FText SAssetDialog::GetPathNameText() const
+{
+	return FText::FromString(CurrentlySelectedPath);
 }
 
 void SAssetDialog::OnAssetNameTextCommited(const FText& InText, ETextCommit::Type InCommitType)
@@ -256,14 +303,14 @@ EVisibility SAssetDialog::GetNameErrorLabelVisibility() const
 	return GetNameErrorLabelText().IsEmpty() ? EVisibility::Hidden : EVisibility::Visible;
 }
 
-FString SAssetDialog::GetNameErrorLabelText() const
+FText SAssetDialog::GetNameErrorLabelText() const
 {
 	if (!bLastInputValidityCheckSuccessful)
 	{
-		return LastInputValidityErrorText.ToString();
+		return LastInputValidityErrorText;
 	}
 
-	return TEXT("");
+	return FText::GetEmpty();
 }
 
 void SAssetDialog::HandlePathSelected(const FString& NewPath)
@@ -434,6 +481,7 @@ void SAssetDialog::ChooseAssetsForOpen(const TArray<FAssetData>& SelectedAssets)
 	{
 		if (SelectedAssets.Num() > 0)
 		{
+			bValidAssetsChosen = true;
 			OnAssetsChosenForOpen.ExecuteIfBound(SelectedAssets);
 			CloseDialog();
 		}
@@ -469,6 +517,7 @@ void SAssetDialog::CommitObjectPathForSave()
 
 			if ( bProceedWithSave )
 			{
+				bValidAssetsChosen = true;
 				OnObjectPathChosenForSave.ExecuteIfBound(ObjectPath);
 				CloseDialog();
 			}

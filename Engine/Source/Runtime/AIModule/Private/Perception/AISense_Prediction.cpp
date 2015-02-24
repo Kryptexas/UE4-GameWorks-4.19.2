@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Perception/AISense_Prediction.h"
@@ -6,6 +6,8 @@
 UAISense_Prediction::UAISense_Prediction(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
+	DebugName = TEXT("Prediction");
+	DebugDrawColor = FColorList::Grey;
 }
 
 float UAISense_Prediction::Update()
@@ -30,7 +32,7 @@ float UAISense_Prediction::Update()
 					// calculate the prediction here:
 					const FVector PredictedLocation = Event.PredictedActor->GetActorLocation() + Event.PredictedActor->GetVelocity() * Event.TimeToPredict;
 
-					Listener.RegisterStimulus(Event.PredictedActor, FAIStimulus(GetSenseIndex(), 1.f, PredictedLocation, Listener.CachedLocation));
+					Listener.RegisterStimulus(Event.PredictedActor, FAIStimulus(*this, 1.f, PredictedLocation, Listener.CachedLocation));
 				}
 			}
 		}

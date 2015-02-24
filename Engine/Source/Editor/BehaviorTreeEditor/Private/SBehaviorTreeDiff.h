@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "Developer/AssetTools/Public/IAssetTypeActions.h"
@@ -41,7 +41,7 @@ private:
 		 * Returns title for this panel
 		 * @return The Title
 		 */
-		FString GetTitle() const;
+		FText GetTitle() const;
 
 		/** 
 		 * Called when user hits keyboard shortcut to copy nodes

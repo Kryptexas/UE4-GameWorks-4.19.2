@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -42,15 +42,12 @@ public:
 
 	/** FMultiBlock interface */
 	virtual void CreateMenuEntry(class FMenuBuilder& MenuBuilder) const override;
+	virtual bool HasIcon() const override;
 
 private:
 
-	/**
-	 * Allocates a widget for this type of MultiBlock.  Override this in derived classes.
-	 *
-	 * @return  MultiBlock widget object
-	 */
-	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const;
+	/** FMultiBlock private interface */
+	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const override;
 
 private:
 
@@ -127,14 +124,14 @@ protected:
 	/**
 	 * Called by Slate when this tool bar check box button is toggled
 	 */
-	void OnCheckStateChanged( const ESlateCheckBoxState::Type NewCheckedState );
+	void OnCheckStateChanged( const ECheckBoxState NewCheckedState );
 
 	/**
 	 * Called by slate to determine if this button should appear checked
 	 *
-	 * @return ESlateCheckBoxState::Checked if it should be checked, ESlateCheckBoxState::Unchecked if not.
+	 * @return ECheckBoxState::Checked if it should be checked, ECheckBoxState::Unchecked if not.
 	 */
-	ESlateCheckBoxState::Type OnIsChecked() const;
+	ECheckBoxState OnIsChecked() const;
 
 	/**
 	 * Called by Slate to determine if this button is enabled

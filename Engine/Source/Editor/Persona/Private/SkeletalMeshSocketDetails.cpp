@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PersonaPrivatePCH.h"
 #include "SkeletalMeshSocketDetails.h"
@@ -11,6 +11,7 @@
 #include "IDetailsView.h"
 #include "Persona.h"
 #include "AssetSearchBoxUtilPersona.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 TSharedRef<IDetailCustomization> FSkeletalMeshSocketDetails::MakeInstance()
 {
@@ -21,7 +22,7 @@ void FSkeletalMeshSocketDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 {
 	TargetSocket = NULL;
 
-	IDetailCategoryBuilder& SocketCategory = DetailBuilder.EditCategory( TEXT("SkeletalMeshSocket"), TEXT(""), ECategoryPriority::TypeSpecific );
+	IDetailCategoryBuilder& SocketCategory = DetailBuilder.EditCategory( TEXT("SkeletalMeshSocket"), FText::GetEmpty(), ECategoryPriority::TypeSpecific );
 
 	SocketNameProperty = DetailBuilder.GetProperty( TEXT("SocketName") );
 	if( SocketNameProperty.IsValid() && SocketNameProperty->GetProperty() )
@@ -38,7 +39,7 @@ void FSkeletalMeshSocketDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 		}
 
 		// get the currently chosen bone/socket, if any
-		const FString PropertyName = SocketNameProperty->GetPropertyDisplayName();
+		const FText PropertyName = SocketNameProperty->GetPropertyDisplayName();
 		FString CurValue;
 		SocketNameProperty->GetValue(CurValue);
 		if( CurValue == FString("None") )

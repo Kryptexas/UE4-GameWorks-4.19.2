@@ -1,10 +1,19 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "TextureEditorPrivatePCH.h"
 #include "Factories.h"
 #include "ISettingsModule.h"
 #include "SDockTab.h"
 #include "SNumericEntryBox.h"
+#include "Engine/TextureCube.h"
+#include "Engine/TextureRenderTarget.h"
+#include "Engine/TextureRenderTargetCube.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/Texture2D.h"
+#include "SystemSettings.h"
+#include "Engine/LightMapTexture2D.h"
+#include "Engine/ShadowMapTexture2D.h"
+#include "Engine/Texture2DDynamic.h"
 
 #define LOCTEXT_NAMESPACE "FTextureEditorToolkit"
 
@@ -902,15 +911,15 @@ bool FTextureEditorToolkit::HandleGreenChannelActionIsChecked( ) const
 }
 
 
-void FTextureEditorToolkit::HandleMipLevelCheckBoxCheckedStateChanged( ESlateCheckBoxState::Type InNewState )
+void FTextureEditorToolkit::HandleMipLevelCheckBoxCheckedStateChanged( ECheckBoxState InNewState )
 {
-	bUseSpecifiedMipLevel = InNewState == ESlateCheckBoxState::Checked;
+	bUseSpecifiedMipLevel = InNewState == ECheckBoxState::Checked;
 }
 
 
-ESlateCheckBoxState::Type FTextureEditorToolkit::HandleMipLevelCheckBoxIsChecked( ) const
+ECheckBoxState FTextureEditorToolkit::HandleMipLevelCheckBoxIsChecked( ) const
 {
-	return GetUseSpecifiedMip() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return GetUseSpecifiedMip() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 
@@ -975,7 +984,7 @@ bool FTextureEditorToolkit::HandleRedChannelActionIsChecked( ) const
 
 bool FTextureEditorToolkit::HandleReimportActionCanExecute( ) const
 {
-	if (Texture->IsA<ULightMapTexture2D>() || Texture->IsA<UShadowMapTexture2D>() || Texture->IsA<UTexture2DDynamic>())
+	if (Texture->IsA<ULightMapTexture2D>() || Texture->IsA<UShadowMapTexture2D>() || Texture->IsA<UTexture2DDynamic>() || Texture->IsA<UTextureRenderTarget>())
 	{
 		return false;
 	}

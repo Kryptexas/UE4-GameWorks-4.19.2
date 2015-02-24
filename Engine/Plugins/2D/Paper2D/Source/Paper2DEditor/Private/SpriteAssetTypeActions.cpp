@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 
@@ -20,7 +20,7 @@ FText FSpriteAssetTypeActions::GetName() const
 
 FColor FSpriteAssetTypeActions::GetTypeColor() const
 {
-	return FColor(0, 255, 255);
+	return FColor::Cyan;
 }
 
 UClass* FSpriteAssetTypeActions::GetSupportedClass() const

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __REFERENCEDASSETSBROWSER_H__
@@ -183,6 +183,9 @@ protected:
 	 * The object graph for the assets referenced by the currently selected actors.
 	 */
 	ObjectReferenceGraph ReferenceGraph;
+
+	/** Handle to the registered OnEditorMapChange delegate. */
+	FDelegateHandle OnEditorMapChangeDelegateHandle;
 };
 
 #endif // __REFERENCEDASSETSBROWSER_H__

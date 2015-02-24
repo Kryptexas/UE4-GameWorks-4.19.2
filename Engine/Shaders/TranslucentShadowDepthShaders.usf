@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #define SPHERICAL_OPACITY_FOR_SHADOW_DEPTHS 1
 
@@ -72,13 +72,13 @@ float TranslInvMaxSubjectDepth;
 /** Pixel shader used to accumulate layer opacities in different channels based on the first translucent layer's depth. */
 void MainOpacityPS( 
 	FTranslucencyShadowDepthVSToPS Inputs,
-	float4 ScreenPosition: SV_POSITION,
+	in float4 SvPosition : SV_Position,
 	out float4 OutColor0 : SV_Target0,
 	out float4 OutColor1 : SV_Target1
 	)
 {
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Inputs.FactoryInterpolants, Inputs.PixelPosition);
-	CalcMaterialParameters(MaterialParameters, 1, Inputs.PixelPosition);
+	CalcMaterialParameters(MaterialParameters, SvPosition, 1, Inputs.PixelPosition);
 	
 	// Evaluate the mask for translucent materials
 	GetMaterialClippingShadowDepth(MaterialParameters);

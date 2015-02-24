@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ClassViewerPrivatePCH.h"
 
@@ -32,6 +32,8 @@
 #include "SourceCodeNavigation.h"
 #include "HotReloadInterface.h"
 #include "SSearchBox.h"
+
+#include "SListViewSelectorDropdownMenu.h"
 
 #define LOCTEXT_NAMESPACE "SClassViewer"
 
@@ -368,7 +370,7 @@ public:
 	 *
 	 *	@return The parent node.
 	 */
-	TSharedPtr< FClassViewerNode > FindParent(const TSharedPtr< FClassViewerNode >& InRootNode, const FString& InParentClassname, const UClass* InParentClass);
+	TSharedPtr< FClassViewerNode > FindParent(const TSharedPtr< FClassViewerNode >& InRootNode, FName InParentClassname, const UClass* InParentClass);
 
 	/** Updates the Class of a node. Uses the generated class package name to find the node.
 	 *	@param InGeneratedClassPackageName			The name of the generated class package to find the node for.
@@ -426,6 +428,11 @@ private:
 private:
 	/** The "Object" class node that is used as a rooting point for the Class Viewer. */
 	TSharedPtr< FClassViewerNode > ObjectClassRoot;
+
+	/** Handles to various registered RequestPopulateClassHierarchy delegates */
+	FDelegateHandle OnFilesLoadedRequestPopulateClassHierarchyDelegateHandle;
+	FDelegateHandle OnBlueprintCompiledRequestPopulateClassHierarchyDelegateHandle;
+	FDelegateHandle OnClassPackageLoadedOrUnloadedRequestPopulateClassHierarchyDelegateHandle;
 };
 
 namespace ClassViewer
@@ -442,6 +449,9 @@ namespace ClassViewer
 
 		/** true if the Class Hierarchy should be populated. */
 		static bool bPopulateClassHierarchy;
+
+		/** The currently selected path */
+		static FString NewBlueprintPath;
 
 		/** The cached filename we will use to create a new Blueprint */
 		static FString NewBlueprintFilename;
@@ -930,7 +940,7 @@ namespace ClassViewer
 			static FText MakeFullPathLabel()
 			{
 				FFormatNamedArguments Arguments;
-				Arguments.Add(TEXT("FullPath"), FText::FromString( NewBlueprintFilename ) );
+				Arguments.Add(TEXT("FullPath"), FText::FromString( NewBlueprintPath / NewBlueprintFilename ) );
 				return FText::Format( LOCTEXT( "PickNewBlueprintCreateLabel", "Create {FullPath}" ), Arguments );
 			}
 
@@ -941,13 +951,13 @@ namespace ClassViewer
 			*/
 			static void CreateBlueprintClicked(UClass* InCreationClass)
 			{
-				if(FPaths::GetBaseFilename(NewBlueprintFilename).IsEmpty())
+				if (!CanCreateBlueprint())
 				{
 					FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("PickNewBlueprintInvalidName", "Invalid name for Blueprint."));
 				}
 				else
 				{
-					CreateBlueprint(FText::FromString(NewBlueprintFilename), InCreationClass);
+					CreateBlueprint(FText::FromString(NewBlueprintPath / NewBlueprintFilename), InCreationClass);
 				}
 			}
 
@@ -958,7 +968,7 @@ namespace ClassViewer
 			*/
 			static void FilenameChanged(const FText& InFileName)
 			{
-				NewBlueprintFilename = FPaths::GetPath(NewBlueprintFilename) / InFileName.ToString();
+				NewBlueprintFilename = FText::TrimPrecedingAndTrailing(InFileName).ToString();
 			}
 
 			/**
@@ -968,7 +978,7 @@ namespace ClassViewer
 			*/
 			static void PathSelected(const FString& InPathName)
 			{
-				NewBlueprintFilename = InPathName / FPaths::GetBaseFilename(NewBlueprintFilename);
+				NewBlueprintPath = InPathName;
 			}
 
 			/**
@@ -976,7 +986,7 @@ namespace ClassViewer
 			*/
 			static bool CanCreateBlueprint()
 			{
-				return !FPaths::GetBaseFilename(NewBlueprintFilename).IsEmpty();
+				return !NewBlueprintFilename.IsEmpty() && FName(*NewBlueprintFilename).IsValidXName(INVALID_OBJECTNAME_CHARACTERS INVALID_LONGPACKAGE_CHARACTERS);
 			}
 
 			/**
@@ -990,13 +1000,14 @@ namespace ClassViewer
 			{
 				if (CommitInfo == ETextCommit::OnEnter)
 				{
-					if(InBlueprintName.IsEmpty())
+					NewBlueprintFilename = FText::TrimPrecedingAndTrailing(InBlueprintName).ToString();
+					if (!CanCreateBlueprint())
 					{
 						FMessageDialog::Open( EAppMsgType::Ok, LOCTEXT("PickNewBlueprintInvalidName", "Invalid name for Blueprint."));
 					}
 					else
 					{
-						CreateBlueprint(FText::FromString(NewBlueprintFilename), InCreationClass);
+						CreateBlueprint(FText::FromString(NewBlueprintPath / NewBlueprintFilename), InCreationClass);
 					}
 				}
 			}
@@ -1009,7 +1020,7 @@ namespace ClassViewer
 			static TSharedRef<SWidget> MakeBlueprintNameWidget(UClass* InCreationClass)
 			{
 				return SNew(SEditableTextBox)
-					.Text(FText::FromString(FPaths::GetBaseFilename(NewBlueprintFilename)))
+					.Text(FText::FromString(NewBlueprintFilename))
 					.SelectAllTextWhenFocused(true)
 					.OnTextCommitted(FOnTextCommitted::CreateStatic(&BlueprintNameEntry::CreateBlueprintCommited, InCreationClass))
 					.OnTextChanged(FOnTextChanged::CreateStatic(&BlueprintNameEntry::FilenameChanged));
@@ -1025,7 +1036,7 @@ namespace ClassViewer
 				FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
 
 				FPathPickerConfig PathPickerConfig;
-				PathPickerConfig.DefaultPath = NewBlueprintFilename;
+				PathPickerConfig.DefaultPath = NewBlueprintPath;
 				PathPickerConfig.bFocusSearchBoxWhenOpened = false;
 				PathPickerConfig.OnPathSelected = FOnPathSelected::CreateStatic(&BlueprintNameEntry::PathSelected);
 
@@ -1063,20 +1074,21 @@ namespace ClassViewer
 			else
 			{
 				// Reset cached filename
-				NewBlueprintFilename = TEXT("/Game");
+				NewBlueprintPath = TEXT("/Game");
 				if(IFileManager::Get().DirectoryExists(*(FPaths::GameContentDir() / TEXT("Blueprints"))))
 				{
-					NewBlueprintFilename /= TEXT("Blueprints");
+					NewBlueprintPath /= TEXT("Blueprints");
 				}
 				else
 				{
-					NewBlueprintFilename /= TEXT("Unsorted");
+					NewBlueprintPath /= TEXT("Unsorted");
 				}
-				NewBlueprintFilename /= TEXT("MyBlueprint");
+
+				NewBlueprintFilename = TEXT("MyBlueprint");
 
 				MenuBuilder.AddMenuEntry(
 					TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic(&BlueprintNameEntry::MakeFullPathLabel)), 
-						LOCTEXT("PickNewBlueprintTooltip_Create", "Create new Blueprint"),
+						LOCTEXT("PickNewBlueprintTooltip_Create", "Create new Blueprint Class"),
 						FSlateIcon(), 
 						FUIAction(
 							FExecuteAction::CreateStatic( &BlueprintNameEntry::CreateBlueprintClicked, InCreationClass ),
@@ -1084,11 +1096,11 @@ namespace ClassViewer
 						)
 					);
 
-				MenuBuilder.BeginSection( NAME_None, LOCTEXT("PickNewBlueprintFilename", "Blueprint Filename") );
+				MenuBuilder.BeginSection( NAME_None, LOCTEXT("PickNewBlueprintFilename", "Blueprint Class Filename") );
 				MenuBuilder.AddWidget( BlueprintNameEntry::MakeBlueprintNameWidget(InCreationClass), FText::GetEmpty() );
 				MenuBuilder.EndSection();
 
-				MenuBuilder.BeginSection( NAME_None, LOCTEXT("PickNewBlueprintPath", "Blueprint Path") );
+				MenuBuilder.BeginSection( NAME_None, LOCTEXT("PickNewBlueprintPath", "Blueprint Class Path") );
 				MenuBuilder.AddWidget( BlueprintNameEntry::MakeBlueprintPathWidget(), FText::GetEmpty() );
 				MenuBuilder.EndSection();
 			}
@@ -1099,11 +1111,11 @@ namespace ClassViewer
 		{
 			if(InCreationClass->HasAnyClassFlags(CLASS_Deprecated))
 			{
-				return LOCTEXT("ClassViewerMenuCreateDeprecatedBlueprint_Tooltip", "Blueprint class is deprecated!");
+				return LOCTEXT("ClassViewerMenuCreateDeprecatedBlueprint_Tooltip", "Class is deprecated!");
 			}
 			else
 			{
-				return LOCTEXT("ClassViewerMenuCreateBlueprint_Tooltip", "Creates a Blueprint using this class as a base.");
+				return LOCTEXT("ClassViewerMenuCreateBlueprint_Tooltip", "Creates a Blueprint Class using this class as a base.");
 			}
 		}
 
@@ -1120,25 +1132,11 @@ namespace ClassViewer
 		 */
 		static void OpenCreateCPlusPlusClassWizard(UClass* InCreationClass)
 		{
-			TSharedRef<SWindow> AddCodeWindow =
-				SNew(SWindow)
-				.Title(LOCTEXT( "AddCodeWindowHeader", "Add Code"))
-				.ClientSize( FVector2D(1280, 720) )
-				.SizingRule( ESizingRule::FixedSize )
-				.SupportsMinimize(false) 
-				.SupportsMaximize(false);
-
-			AddCodeWindow->SetContent( FGameProjectGenerationModule::Get().CreateNewClassDialog(InCreationClass) );
-
-			TSharedPtr<SWindow> ParentWindow = FGlobalTabmanager::Get()->GetRootWindow();
-			if (ParentWindow.IsValid())
-			{
-				FSlateApplication::Get().AddWindowAsNativeChild(AddCodeWindow, ParentWindow.ToSharedRef());
-			}
-			else
-			{
-				FSlateApplication::Get().AddWindow(AddCodeWindow);
-			}
+			FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog(
+				FAddToProjectConfig()
+				.ParentClass(InCreationClass)
+				.ParentWindow(FGlobalTabmanager::Get()->GetRootWindow())
+			);
 		}
 
 		/**
@@ -1272,7 +1270,7 @@ namespace ClassViewer
 DECLARE_DELEGATE_OneParam( FOnClassItemDoubleClickDelegate, TSharedPtr<FClassViewerNode> );
 
 /** The item used for visualizing the class in the tree. */
-class SClassItem : public STableRow< TSharedPtr<FString> >
+class SClassItem : public SComboRow< TSharedPtr<FString> >
 {
 public:
 	
@@ -1381,7 +1379,7 @@ public:
 				.VAlign(VAlign_Center)
 				[
 					SNew( STextBlock )
-						.Text( *ClassName.Get() )
+						.Text( FText::FromString(*ClassName.Get()) )
 						.HighlightText(*InArgs._HighlightText)
 						.ColorAndOpacity( this, &SClassItem::GetTextColor)
 						.ToolTip(Local::GetToolTip(AssociatedNode))
@@ -1488,7 +1486,7 @@ private:
 						TAttribute<FText> DynamicTooltipAttribute = TAttribute<FText>::Create(DynamicTooltipGetter);
 
 						MenuBuilder.AddSubMenu(
-							LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Blueprint"), 
+							LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Blueprint Class"), 
 							DynamicTooltipAttribute, 
 							FNewMenuDelegate::CreateStatic( &ClassViewer::Helpers::OpenCreateBlueprintMenu, Class ),
 							FUIAction(
@@ -1507,7 +1505,7 @@ private:
 					MenuBuilder.BeginSection("ClassViewerDropDownHasBlueprint");
 					{
 						FUIAction Action( FExecuteAction::CreateStatic( &ClassViewer::Helpers::OpenBlueprintTool, ClassViewer::Helpers::GetBlueprint(Class) ) );
-						MenuBuilder.AddMenuEntry(LOCTEXT("ClassViewerMenuEditBlueprint", "Edit Blueprint..."), LOCTEXT("ClassViewerMenuEditBlueprint_Tooltip", "Open the Blueprint in the editor."), FSlateIcon(), Action);
+						MenuBuilder.AddMenuEntry(LOCTEXT("ClassViewerMenuEditBlueprint", "Edit Blueprint Class..."), LOCTEXT("ClassViewerMenuEditBlueprint_Tooltip", "Open the Blueprint Class in the editor."), FSlateIcon(), Action);
 					}
 					MenuBuilder.EndSection();
 
@@ -1585,7 +1583,7 @@ FClassHierarchy::FClassHierarchy()
 {
 	// Register with the Asset Registry to be informed when it is done loading up files.
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	AssetRegistryModule.Get().OnFilesLoaded().AddStatic( ClassViewer::Helpers::RequestPopulateClassHierarchy );
+	OnFilesLoadedRequestPopulateClassHierarchyDelegateHandle = AssetRegistryModule.Get().OnFilesLoaded().AddStatic( ClassViewer::Helpers::RequestPopulateClassHierarchy );
 	AssetRegistryModule.Get().OnAssetAdded().AddRaw( this, &FClassHierarchy::AddAsset);
 	AssetRegistryModule.Get().OnAssetRemoved().AddRaw( this, &FClassHierarchy::RemoveAsset );
 
@@ -1594,8 +1592,8 @@ FClassHierarchy::FClassHierarchy()
 	HotReloadSupport.OnHotReload().AddRaw( this, &FClassHierarchy::OnHotReload );
 
 	// Register to have Populate called when a Blueprint is compiled.
-	GEditor->OnBlueprintCompiled().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
-	GEditor->OnClassPackageLoadedOrUnloaded().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
+	OnBlueprintCompiledRequestPopulateClassHierarchyDelegateHandle            = GEditor->OnBlueprintCompiled().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
+	OnClassPackageLoadedOrUnloadedRequestPopulateClassHierarchyDelegateHandle = GEditor->OnClassPackageLoadedOrUnloaded().AddStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
 
 	FModuleManager::Get().OnModulesChanged().AddStatic(&OnModulesChanged);
 }
@@ -1606,7 +1604,7 @@ FClassHierarchy::~FClassHierarchy()
 	if( FModuleManager::Get().IsModuleLoaded( TEXT("AssetRegistry") ) )
 	{
 		FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-		AssetRegistryModule.Get().OnFilesLoaded().RemoveStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
+		AssetRegistryModule.Get().OnFilesLoaded().Remove(OnFilesLoadedRequestPopulateClassHierarchyDelegateHandle);
 		AssetRegistryModule.Get().OnAssetAdded().RemoveAll( this );
 		AssetRegistryModule.Get().OnAssetRemoved().RemoveAll( this );
 
@@ -1615,8 +1613,8 @@ FClassHierarchy::~FClassHierarchy()
 		HotReloadSupport.OnHotReload().RemoveAll( this );
 
 		// Unregister to have Populate called when a Blueprint is compiled.
-		GEditor->OnBlueprintCompiled().RemoveStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
-		GEditor->OnClassPackageLoadedOrUnloaded().RemoveStatic(ClassViewer::Helpers::RequestPopulateClassHierarchy);
+		GEditor->OnBlueprintCompiled().Remove(OnBlueprintCompiledRequestPopulateClassHierarchyDelegateHandle);
+		GEditor->OnClassPackageLoadedOrUnloaded().Remove(OnClassPackageLoadedOrUnloadedRequestPopulateClassHierarchyDelegateHandle);
 	}
 
 	FModuleManager::Get().OnModulesChanged().RemoveAll(this);
@@ -1641,7 +1639,7 @@ static TSharedPtr< FClassViewerNode > CreateNodeForClass(UClass* Class, const TM
 
 		if ( GeneratedClassnamePtr )
 		{
-			NewNode->GeneratedClassname = *GeneratedClassnamePtr;
+			NewNode->GeneratedClassname = FName(**GeneratedClassnamePtr);
 		}
 	}
 
@@ -1712,7 +1710,7 @@ void FClassHierarchy::AddChildren_NoFilter( TSharedPtr< FClassViewerNode >& InOu
 	}
 }
 
-TSharedPtr< FClassViewerNode > FClassHierarchy::FindParent(const TSharedPtr< FClassViewerNode >& InRootNode, const FString& InParentClassname, const UClass* InParentClass)
+TSharedPtr< FClassViewerNode > FClassHierarchy::FindParent(const TSharedPtr< FClassViewerNode >& InRootNode, FName InParentClassname, const UClass* InParentClass)
 {
 	// Check if the current node is the parent classname that is being searched for.
 	if(InRootNode->GeneratedClassname == InParentClassname)
@@ -1821,37 +1819,40 @@ void FClassHierarchy::RemoveAsset(const FAssetData& InRemovedAssetData)
 
 void FClassHierarchy::AddAsset(const FAssetData& InAddedAssetData)
 {
-	// Grab the asset class, it will be checked for being a blueprint.
-	UClass* Asset = FindObject<UClass>(ANY_PACKAGE, *InAddedAssetData.AssetClass.ToString());
-	
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	if(Asset->IsChildOf(UBlueprint::StaticClass()) &&  !AssetRegistryModule.Get().IsLoadingAssets())
+	if ( !AssetRegistryModule.Get().IsLoadingAssets() )
 	{
-		// Make sure that the node does not already exist. There is a bit of double adding going on at times and this prevents it.
-		if(!FindNodeByGeneratedClassPackageName(ObjectClassRoot, InAddedAssetData.PackageName.ToString()).IsValid())
+		TArray<FName> AncestorClassNames;
+		AssetRegistryModule.Get().GetAncestorClassNames(InAddedAssetData.AssetClass, AncestorClassNames);
+
+		if( AncestorClassNames.Contains(UBlueprintCore::StaticClass()->GetFName()) )
 		{
-			TSharedPtr< FClassViewerNode > NewNode;
-			LoadUnloadedTagData(NewNode, InAddedAssetData);
-
-			// Find the blueprint if it's loaded.
-			FindClass(NewNode);
-
-			// Resolve the parent's class name locally and use it to find the parent's class.
-			FString ParentClassName = NewNode->ParentClassname;
-			UObject* Outer(NULL);
-			ResolveName(Outer, ParentClassName, false, false);
-
-			UClass* ParentClass = FindObject<UClass>(ANY_PACKAGE, *ParentClassName);
-			TSharedPtr< FClassViewerNode > ParentNode = FindParent(ObjectClassRoot, NewNode->ParentClassname, ParentClass); 
-			if(ParentNode.IsValid())
+			// Make sure that the node does not already exist. There is a bit of double adding going on at times and this prevents it.
+			if(!FindNodeByGeneratedClassPackageName(ObjectClassRoot, InAddedAssetData.PackageName.ToString()).IsValid())
 			{
-				ParentNode->AddChild(NewNode);
-				
-				// Make sure the children are properly sorted.
-				SortChildren(ObjectClassRoot);
+				TSharedPtr< FClassViewerNode > NewNode;
+				LoadUnloadedTagData(NewNode, InAddedAssetData);
 
-				// All Viewers must repopulate.
-				ClassViewer::Helpers::RefreshAll();
+				// Find the blueprint if it's loaded.
+				FindClass(NewNode);
+
+				// Resolve the parent's class name locally and use it to find the parent's class.
+				FString ParentClassName = NewNode->ParentClassname.ToString();
+				UObject* Outer(NULL);
+				ResolveName(Outer, ParentClassName, false, false);
+
+				UClass* ParentClass = FindObject<UClass>(ANY_PACKAGE, *ParentClassName);
+				TSharedPtr< FClassViewerNode > ParentNode = FindParent(ObjectClassRoot, NewNode->ParentClassname, ParentClass); 
+				if(ParentNode.IsValid())
+				{
+					ParentNode->AddChild(NewNode);
+				
+					// Make sure the children are properly sorted.
+					SortChildren(ObjectClassRoot);
+
+					// All Viewers must repopulate.
+					ClassViewer::Helpers::RefreshAll();
+				}
 			}
 		}
 	}
@@ -1946,15 +1947,15 @@ void FClassHierarchy::LoadUnloadedTagData(TSharedPtr<FClassViewerNode>& InOutCla
 
 	InOutClassViewerNode->GeneratedClassPackage = GeneratedClassPackage;
 
-	InOutClassViewerNode->ParentClassname.Empty();
+	InOutClassViewerNode->ParentClassname = NAME_None;
 	if(ParentClassname)
 	{
-		InOutClassViewerNode->ParentClassname = *ParentClassname;
+		InOutClassViewerNode->ParentClassname = FName(**ParentClassname);
 	}
 
 	if(GeneratedClassname)
 	{
-		InOutClassViewerNode->GeneratedClassname = *GeneratedClassname;
+		InOutClassViewerNode->GeneratedClassname = FName(**GeneratedClassname);
 	}
 
 	if(BlueprintType && *BlueprintType == TEXT("BPType_Normal"))
@@ -2004,10 +2005,10 @@ void FClassHierarchy::PopulateClassHierarchy()
 	// Second pass to link them to parents.
 	for (int32 CurrentNodeIdx = 0; CurrentNodeIdx < RootLevelClasses.Num(); ++CurrentNodeIdx)
 	{
-		if(!RootLevelClasses[CurrentNodeIdx]->ParentClassname.IsEmpty())
+		if(RootLevelClasses[CurrentNodeIdx]->ParentClassname != NAME_None)
 		{
 			// Resolve the parent's class name locally and use it to find the parent's class.
-			FString ParentClassName = RootLevelClasses[CurrentNodeIdx]->ParentClassname;
+			FString ParentClassName = RootLevelClasses[CurrentNodeIdx]->ParentClassname.ToString();
 			UObject* Outer(NULL);
 			ResolveName(Outer, ParentClassName, false, false);
 			const UClass* ParentClass = FindObject<UClass>(ANY_PACKAGE, *ParentClassName);
@@ -2097,71 +2098,105 @@ void SClassViewer::Construct(const FArguments& InArgs, const FClassViewerInitial
 		OnContextMenuOpening = FOnContextMenuOpening::CreateSP(this, &SClassViewer::BuildMenuWidget);
 	}
 
-	
-	this->ChildSlot
+	// Holds the bulk of the class viewer's sub-widgets, to be added to the widget after construction
+	TSharedPtr< SWidget > ClassViewerContent;
+
+	SAssignNew(ClassViewerContent, SVerticalBox)
+	+SVerticalBox::Slot()
+	.AutoHeight()
 	[
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			MenuBarBuilder.MakeWidget()
-		]
+		MenuBarBuilder.MakeWidget()
+	]
 
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding( 1.0f, 0.0f, 1.0f, 0.0f )
+	+SVerticalBox::Slot()
+	.AutoHeight()
+	.Padding( 1.0f, 0.0f, 1.0f, 0.0f )
+	[
+		SNew(SHorizontalBox)
+		+SHorizontalBox::Slot()
+		.AutoWidth()
+		.VAlign(VAlign_Center)
 		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign(VAlign_Center)
+			SNew(STextBlock)
+			.Visibility(bHasTitle ? EVisibility::Visible : EVisibility::Collapsed)
+			.ColorAndOpacity(FEditorStyle::GetColor("MultiboxHookColor"))
+			.Text(InitOptions.ViewerTitleString)
+		]
+	]
+	+SVerticalBox::Slot()
+	.AutoHeight()
+	[
+		SAssignNew(SearchBox, SSearchBox)
+			.OnTextChanged( this, &SClassViewer::OnFilterTextChanged )
+			.OnTextCommitted( this, &SClassViewer::OnFilterTextCommitted )
+	]
+
+	+SVerticalBox::Slot()
+	.AutoHeight()
+	[
+		SNew(SSeparator)
+			.Visibility(HeaderVisibility)
+	]
+
+	+SVerticalBox::Slot()
+	.FillHeight(1.0f)
+	[
+		SNew(SOverlay)
+
+		+SOverlay::Slot()
+		.HAlign(HAlign_Fill)
+		.VAlign(VAlign_Fill)
+		[
+			SNew(SVerticalBox)
+
+			+SVerticalBox::Slot()
+			.FillHeight(1.0f)
 			[
-				SNew(STextBlock)
-				.Visibility(bHasTitle ? EVisibility::Visible : EVisibility::Collapsed)
-				.ColorAndOpacity(FEditorStyle::GetColor("MultiboxHookColor"))
-				.Text(InitOptions.ViewerTitleString)
-			]
-		]
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SAssignNew(SearchBox, SSearchBox)
-				.OnTextChanged( this, &SClassViewer::OnFilterTextChanged )
-				.OnTextCommitted( this, &SClassViewer::OnFilterTextCommitted )
-		]
-
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		[
-			SNew(SSeparator)
-				.Visibility(HeaderVisibility)
-		]
-
-		+SVerticalBox::Slot()
-		.FillHeight(1.0f)
-		[
-			SNew(SOverlay)
-
-			+SOverlay::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Fill)
-			[
-				SNew(SVerticalBox)
-
-				+SVerticalBox::Slot()
-				.FillHeight(1.0f)
-				[
-					SAssignNew(ClassTree, STreeView<TSharedPtr< FClassViewerNode > >)
-					.Visibility(InitOptions.DisplayMode == EClassViewerDisplayMode::TreeView ? EVisibility::Visible : EVisibility::Collapsed)
+				SAssignNew(ClassTree, STreeView<TSharedPtr< FClassViewerNode > >)
+				.Visibility(InitOptions.DisplayMode == EClassViewerDisplayMode::TreeView ? EVisibility::Visible : EVisibility::Collapsed)
 	
+				.SelectionMode(ESelectionMode::Single)
+
+				.TreeItemsSource( &RootTreeItems )
+				// Called to child items for any given parent item
+				.OnGetChildren( this, &SClassViewer::OnGetChildrenForClassViewerTree )
+
+				// Called to handle recursively expanding/collapsing items
+				.OnSetExpansionRecursive(this, &SClassViewer::SetAllExpansionStates_Helper )
+
+				// Generates the actual widget for a tree item
+				.OnGenerateRow( this, &SClassViewer::OnGenerateRowForClassViewer ) 
+
+				// Generates the right click menu.
+				.OnContextMenuOpening( OnContextMenuOpening )
+
+				// Find out when the user selects something in the tree
+				.OnSelectionChanged( this, &SClassViewer::OnClassViewerSelectionChanged )
+
+				// Called when the expansion state of an item changes
+				.OnExpansionChanged( this, &SClassViewer::OnClassViewerExpansionChanged )
+
+				// Allow for some spacing between items with a larger item height.
+				.ItemHeight(20.0f)
+
+				.HeaderRow
+				(
+					SNew(SHeaderRow)
+					.Visibility(EVisibility::Collapsed)
+					+ SHeaderRow::Column(TEXT("Class"))
+					.DefaultLabel(NSLOCTEXT("ClassViewer", "Class", "Class"))
+				)
+			]
+
+			+SVerticalBox::Slot()
+			.FillHeight(1.0f)
+			[
+				SAssignNew(ClassList, SListView<TSharedPtr< FClassViewerNode > >)
+					.Visibility(InitOptions.DisplayMode == EClassViewerDisplayMode::ListView ? EVisibility::Visible : EVisibility::Collapsed)
+
 					.SelectionMode(ESelectionMode::Single)
 
-					.TreeItemsSource( &RootTreeItems )
-					// Called to child items for any given parent item
-					.OnGetChildren( this, &SClassViewer::OnGetChildrenForClassViewerTree )
-
-					// Called to handle recursively expanding/collapsing items
-					.OnSetExpansionRecursive(this, &SClassViewer::SetAllExpansionStates_Helper )
+					.ListItemsSource( &RootTreeItems )
 
 					// Generates the actual widget for a tree item
 					.OnGenerateRow( this, &SClassViewer::OnGenerateRowForClassViewer ) 
@@ -2171,9 +2206,6 @@ void SClassViewer::Construct(const FArguments& InArgs, const FClassViewerInitial
 
 					// Find out when the user selects something in the tree
 					.OnSelectionChanged( this, &SClassViewer::OnClassViewerSelectionChanged )
-
-					// Called when the expansion state of an item changes
-					.OnExpansionChanged( this, &SClassViewer::OnClassViewerExpansionChanged )
 
 					// Allow for some spacing between items with a larger item height.
 					.ItemHeight(20.0f)
@@ -2185,51 +2217,39 @@ void SClassViewer::Construct(const FArguments& InArgs, const FClassViewerInitial
 						+ SHeaderRow::Column(TEXT("Class"))
 						.DefaultLabel(NSLOCTEXT("ClassViewer", "Class", "Class"))
 					)
-				]
 
-				+SVerticalBox::Slot()
-				.FillHeight(1.0f)
-				[
-					SAssignNew(ClassList, SListView<TSharedPtr< FClassViewerNode > >)
-						.Visibility(InitOptions.DisplayMode == EClassViewerDisplayMode::ListView ? EVisibility::Visible : EVisibility::Collapsed)
-
-						.SelectionMode(ESelectionMode::Single)
-
-						.ListItemsSource( &RootTreeItems )
-
-						// Generates the actual widget for a tree item
-						.OnGenerateRow( this, &SClassViewer::OnGenerateRowForClassViewer ) 
-
-						// Generates the right click menu.
-						.OnContextMenuOpening( OnContextMenuOpening )
-
-						// Find out when the user selects something in the tree
-						.OnSelectionChanged( this, &SClassViewer::OnClassViewerSelectionChanged )
-
-						// Allow for some spacing between items with a larger item height.
-						.ItemHeight(20.0f)
-
-						.HeaderRow
-						(
-							SNew(SHeaderRow)
-							.Visibility(EVisibility::Collapsed)
-							+ SHeaderRow::Column(TEXT("Class"))
-							.DefaultLabel(NSLOCTEXT("ClassViewer", "Class", "Class"))
-						)
-
-				]
-			]
-
-			+SOverlay::Slot()
-			.HAlign(HAlign_Fill)
-			.VAlign(VAlign_Bottom)
-			.Padding(FMargin(24, 0, 24, 0))
-			[
-				// Asset discovery indicator
-				AssetDiscoveryIndicator
 			]
 		]
+
+		+SOverlay::Slot()
+		.HAlign(HAlign_Fill)
+		.VAlign(VAlign_Bottom)
+		.Padding(FMargin(24, 0, 24, 0))
+		[
+			// Asset discovery indicator
+			AssetDiscoveryIndicator
+		]
 	];
+
+	// When using a class picker in list-view mode, the widget will auto-focus the search box
+	// and allow the up and down arrow keys to navigate and enter to pick without using the mouse ever
+	if ( InitOptions.Mode == EClassViewerMode::ClassPicker && InitOptions.DisplayMode == EClassViewerDisplayMode::ListView )
+	{
+		this->ChildSlot
+			[
+				SNew(SListViewSelectorDropdownMenu<TSharedPtr<FClassViewerNode>>, SearchBox, ClassList)
+				[
+					ClassViewerContent.ToSharedRef()
+				]
+			];
+	}
+	else
+	{
+		this->ChildSlot
+			[
+				ClassViewerContent.ToSharedRef()
+			];
+	}
 
 	// Construct the class hierarchy.
 	ClassViewer::Helpers::ConstructClassHierarchy();
@@ -2271,6 +2291,12 @@ void SClassViewer::OnGetChildrenForClassViewerTree( TSharedPtr<FClassViewerNode>
 
 void SClassViewer::OnClassViewerSelectionChanged( TSharedPtr<FClassViewerNode> Item, ESelectInfo::Type SelectInfo )
 {
+	// Do not act on selection change when it is for navigation
+	if(SelectInfo == ESelectInfo::OnNavigation)
+	{
+		return;
+	}
+
 	// Sometimes the item is not valid anymore due to filtering.
 	if(Item.IsValid() == false || Item->IsRestricted())
 	{
@@ -2286,7 +2312,7 @@ void SClassViewer::OnClassViewerSelectionChanged( TSharedPtr<FClassViewerNode> I
 	{
 		UClass* Class = Item->Class.Get();
 
-		// If the class is not NULL and UnloadedBlueprintData is valid then attempt to load it. UnloadedBlueprintData is invalid in the case of a "None" item.
+		// If the class is NULL and UnloadedBlueprintData is valid then attempt to load it. UnloadedBlueprintData is invalid in the case of a "None" item.
 		if ( bEnableClassDynamicLoading && !Class && Item->UnloadedBlueprintData.IsValid() )
 		{
 			ClassViewer::Helpers::LoadClass( Item );
@@ -2374,7 +2400,7 @@ TSharedPtr< SWidget > SClassViewer::BuildMenuWidget()
 			TAttribute<FText> DynamicTooltipAttribute = TAttribute<FText>::Create(DynamicTooltipGetter);
 
 			MenuBuilder.AddSubMenu(
-				LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Blueprint"), 
+				LOCTEXT("ClassViewerMenuCreateBlueprint", "Create Blueprint Class"), 
 				DynamicTooltipAttribute, 
 				FNewMenuDelegate::CreateStatic( &ClassViewer::Helpers::OpenCreateBlueprintMenu, RightClickClass ),
 				FUIAction(
@@ -2391,7 +2417,7 @@ TSharedPtr< SWidget > SClassViewer::BuildMenuWidget()
 			MenuBuilder.BeginSection("ClassViewerHasBlueprint");
 			{
 				FUIAction Action( FExecuteAction::CreateRaw( this, &SClassViewer::OnOpenBlueprintTool ) );
-				MenuBuilder.AddMenuEntry(LOCTEXT("ClassViewerMenuEditBlueprint", "Edit Blueprint..."), LOCTEXT("ClassViewerMenuEditBlueprint_Tooltip", "Open the Blueprint in the editor."), FSlateIcon(), Action);
+				MenuBuilder.AddMenuEntry(LOCTEXT("ClassViewerMenuEditBlueprint", "Edit Blueprint Class..."), LOCTEXT("ClassViewerMenuEditBlueprint_Tooltip", "Open the Blueprint Class in the editor."), FSlateIcon(), Action);
 			}
 			MenuBuilder.EndSection();
 
@@ -2435,7 +2461,7 @@ TSharedRef< ITableRow > SClassViewer::OnGenerateRowForClassViewer( TSharedPtr<FC
 
 	if ( !Item->GeneratedClassPackage.IsEmpty() )
 	{
-		ReturnRow->SetToolTipText(TAttribute<FString>(Item->GeneratedClassPackage));
+		ReturnRow->SetToolTipText(FText::FromString(Item->GeneratedClassPackage));
 	}
 
 	// Expand the item if needed.
@@ -2596,10 +2622,11 @@ void SClassViewer::OnFilterTextCommitted(const FText& InText, ETextCommit::Type 
 				FirstSelected = SelectedList[0];
 				Class = FirstSelected->Class.Get();
 
-				// If the class is not NULL and UnloadedBlueprintData is valid then attempt to load it. UnloadedBlueprintData is invalid in the case of a "None" item.
-				if ( bEnableClassDynamicLoading && Class && FirstSelected->UnloadedBlueprintData.IsValid())
+				// If the class is NULL and UnloadedBlueprintData is valid then attempt to load it. UnloadedBlueprintData is invalid in the case of a "None" item.
+				if ( bEnableClassDynamicLoading && Class == nullptr && FirstSelected->UnloadedBlueprintData.IsValid())
 				{
 					ClassViewer::Helpers::LoadClass(FirstSelected);
+					Class = FirstSelected->Class.Get();
 				}
 
 				// Check if the item passes the filter, parent items might be displayed but filtered out and thus not desired to be selected.
@@ -2676,7 +2703,7 @@ void SClassViewer::FillFilterEntries( FMenuBuilder& MenuBuilder )
 
 	MenuBuilder.BeginSection("ClassViewerFilterEntries2");
 	{
-		MenuBuilder.AddMenuEntry( LOCTEXT("BlueprintsOnly", "Blueprint Bases Only"), LOCTEXT( "BlueprinsOnly_Tooltip", "Filter the Class Viewer to show only base blueprint classes." ), FSlateIcon(), FUIAction(FExecuteAction::CreateRaw(this, &SClassViewer::MenuBlueprintBasesOnly_Execute), FCanExecuteAction::CreateRaw(this, &SClassViewer::Menu_CanExecute), FIsActionChecked::CreateRaw(this, &SClassViewer::MenuBlueprintBasesOnly_IsChecked)), NAME_None, EUserInterfaceActionType::Check );
+		MenuBuilder.AddMenuEntry( LOCTEXT("BlueprintsOnly", "Blueprint Class Bases Only"), LOCTEXT( "BlueprinsOnly_Tooltip", "Filter the Class Viewer to show only base blueprint classes." ), FSlateIcon(), FUIAction(FExecuteAction::CreateRaw(this, &SClassViewer::MenuBlueprintBasesOnly_Execute), FCanExecuteAction::CreateRaw(this, &SClassViewer::Menu_CanExecute), FIsActionChecked::CreateRaw(this, &SClassViewer::MenuBlueprintBasesOnly_IsChecked)), NAME_None, EUserInterfaceActionType::Check );
 	}
 	MenuBuilder.EndSection();
 }
@@ -2958,6 +2985,11 @@ void SClassViewer::Tick( const FGeometry& AllottedGeometry, const double InCurre
 		SetExpansionStatesInTree(RootTreeItems[0]);
 		bPendingSetExpansionStates = false;
 	}
+}
+
+bool SClassViewer::IsClassAllowed(const UClass* InClass) const
+{
+	return ClassViewer::Helpers::IsClassAllowed(InitOptions, InClass);
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1,11 +1,24 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Tickable.h"
 #include "CrowdManager.generated.h"
 
+class UWorld;
 struct FNavMeshPath;
+class ANavigationData;
 class UCrowdFollowingComponent;
+class ICrowdAgentInterface;
+class UCrowdManager;
+#if WITH_RECAST
+struct dtQuerySpecialLinkFilter;
+struct dtCrowdAgentParams;
+class dtCrowd;
+struct dtCrowdAgent;
+struct dtCrowdAgentDebugInfo;
+class dtObstacleAvoidanceDebugData;
+#endif
+
 /**
  *  Crowd manager is responsible for handling crowds using Detour (Recast library)
  *
@@ -101,7 +114,7 @@ struct AIMODULE_API FCrowdAgentData
 {
 #if WITH_RECAST
 	/** special filter for checking offmesh links */
-	struct dtQuerySpecialLinkFilter* LinkFilter;
+	TSharedPtr<dtQuerySpecialLinkFilter> LinkFilter;
 #endif
 
 	/** poly ref that agent is standing on from previous update */
@@ -119,12 +132,7 @@ struct AIMODULE_API FCrowdAgentData
 	/** if set, agent wants path optimizations */
 	uint32 bWantsPathOptimization : 1;
 
-	FCrowdAgentData() :
-#if WITH_RECAST
-		LinkFilter(0),
-#endif
-		PrevPoly(0), AgentIndex(-1), PathOptRemainingTime(0), bIsSimulated(false), bWantsPathOptimization(false)
-	{}
+	FCrowdAgentData() :	PrevPoly(0), AgentIndex(-1), PathOptRemainingTime(0), bIsSimulated(false), bWantsPathOptimization(false) {}
 
 	bool IsValid() const { return AgentIndex >= 0; }
 	void ClearFilter();
@@ -132,7 +140,7 @@ struct AIMODULE_API FCrowdAgentData
 
 struct FCrowdTickHelper : FTickableGameObject
 {
-	TWeakObjectPtr<class UCrowdManager> Owner;
+	TWeakObjectPtr<UCrowdManager> Owner;
 
 	FCrowdTickHelper() : Owner(NULL) {}
 	virtual void Tick(float DeltaTime);
@@ -142,7 +150,7 @@ struct FCrowdTickHelper : FTickableGameObject
 	virtual TStatId GetStatId() const;
 };
 
-UCLASS()
+UCLASS(config = Engine, defaultconfig)
 class AIMODULE_API UCrowdManager : public UObject
 {
 	GENERATED_UCLASS_BODY()
@@ -151,19 +159,19 @@ class AIMODULE_API UCrowdManager : public UObject
 	virtual void BeginDestroy() override;
 
 	/** adds new agent to crowd */
-	void RegisterAgent(const class ICrowdAgentInterface* Agent);
+	void RegisterAgent(ICrowdAgentInterface* Agent);
 
 	/** removes agent from crowd */
-	void UnregisterAgent(const class ICrowdAgentInterface* Agent);
+	void UnregisterAgent(const ICrowdAgentInterface* Agent);
 
 	/** updates agent data */
-	void UpdateAgentParams(const class ICrowdAgentInterface* Agent) const;
+	void UpdateAgentParams(const ICrowdAgentInterface* Agent) const;
 
 	/** refresh agent state */
-	void UpdateAgentState(const class ICrowdAgentInterface* Agent) const;
+	void UpdateAgentState(const ICrowdAgentInterface* Agent) const;
 
 	/** update agent after using custom link */
-	void OnAgentFinishedCustomLink(const class ICrowdAgentInterface* Agent) const;
+	void OnAgentFinishedCustomLink(const ICrowdAgentInterface* Agent) const;
 
 	/** sets move target for crowd agent (only for fully simulated) */
 	bool SetAgentMoveTarget(const UCrowdFollowingComponent* AgentComponent, const FVector& MoveTarget, TSharedPtr<const FNavigationQueryFilter> Filter) const;
@@ -184,11 +192,14 @@ class AIMODULE_API UCrowdManager : public UObject
 	void ResumeAgent(const UCrowdFollowingComponent* AgentComponent, bool bForceReplanPath = true) const;
 
 	/** check if object is a valid crowd agent */
-	bool IsAgentValid(const class UCrowdFollowingComponent* AgentComponent) const;
-	bool IsAgentValid(const class ICrowdAgentInterface* Agent) const;
+	bool IsAgentValid(const UCrowdFollowingComponent* AgentComponent) const;
+	bool IsAgentValid(const ICrowdAgentInterface* Agent) const;
 
 	/** returns number of nearby agents */
-	int32 GetNumNearbyAgents(const class ICrowdAgentInterface* Agent) const;
+	int32 GetNumNearbyAgents(const ICrowdAgentInterface* Agent) const;
+
+	/** returns a list of locations of nearby agents */
+	int32 GetNearbyAgentLocations(const ICrowdAgentInterface* Agent, TArray<FVector>& OutLocations) const;
 
 	/** reads existing avoidance config or returns false */
 	bool GetAvoidanceConfig(int32 Idx, FCrowdAvoidanceConfig& Data) const;
@@ -214,61 +225,61 @@ class AIMODULE_API UCrowdManager : public UObject
 	/** notify called when detour navmesh is changed */
 	void OnNavMeshUpdate();
 
-	class UWorld* GetWorld() const;
+	UWorld* GetWorld() const;
 
-	static UCrowdManager* GetCurrent(class UObject* WorldContextObject);
-	static UCrowdManager* GetCurrent(class UWorld* World);
+	static UCrowdManager* GetCurrent(UObject* WorldContextObject);
+	static UCrowdManager* GetCurrent(UWorld* World);
 
 protected:
 
 	UPROPERTY(transient)
-	class ANavigationData* MyNavData;
+	ANavigationData* MyNavData;
 
 	/** obstacle avoidance params */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	TArray<FCrowdAvoidanceConfig> AvoidanceConfig;
 
 	/** obstacle avoidance params */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	TArray<FCrowdAvoidanceSamplingPattern> SamplingPatterns;
 
 	/** max number of agents supported by crowd */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	int32 MaxAgents;
 
 	/** max radius of agent that can be added to crowd */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	float MaxAgentRadius;
 
 	/** max number of neighbor agents for velocity avoidance */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	int32 MaxAvoidedAgents;
 
 	/** max number of wall segments for velocity avoidance */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	int32 MaxAvoidedWalls;
 
 	/** how often should agents check their position after moving off navmesh? */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	float NavmeshCheckInterval;
 
 	/** how often should agents try to optimize their paths? */
-	UPROPERTY(EditAnywhere, Category=Config)
+	UPROPERTY(config, EditAnywhere, Category = Config)
 	float PathOptimizationInterval;
 
 	uint32 bPruneStartedOffmeshConnections : 1;
 	uint32 bSingleAreaVisibilityOptimization : 1;
 
 	/** agents registered in crowd manager */
-	TMap<const class ICrowdAgentInterface*, FCrowdAgentData> ActiveAgents;
+	TMap<ICrowdAgentInterface*, FCrowdAgentData> ActiveAgents;
 
 #if WITH_RECAST
 	/** crowd manager */
-	class dtCrowd* DetourCrowd;
+	dtCrowd* DetourCrowd;
 
 	/** debug data */
-	struct dtCrowdAgentDebugInfo* DetourAgentDebug;
-	class dtObstacleAvoidanceDebugData* DetourAvoidanceDebug;
+	dtCrowdAgentDebugInfo* DetourAgentDebug;
+	dtObstacleAvoidanceDebugData* DetourAvoidanceDebug;
 #endif
 
 #if WITH_EDITOR
@@ -285,30 +296,30 @@ protected:
 	virtual void PostProximityUpdate();
 
 #if WITH_RECAST
-	void AddAgent(const class ICrowdAgentInterface* Agent, FCrowdAgentData& AgentData) const;
-	void RemoveAgent(const class ICrowdAgentInterface* Agent, FCrowdAgentData* AgentData) const;
-	void GetAgentParams(const class ICrowdAgentInterface* Agent, struct dtCrowdAgentParams* AgentParams) const;
+	void AddAgent(const ICrowdAgentInterface* Agent, FCrowdAgentData& AgentData) const;
+	void RemoveAgent(const ICrowdAgentInterface* Agent, FCrowdAgentData* AgentData) const;
+	void GetAgentParams(const ICrowdAgentInterface* Agent, dtCrowdAgentParams& AgentParams) const;
 
 	/** prepare agent for next step of simulation */
-	void PrepareAgentStep(const class ICrowdAgentInterface* Agent, FCrowdAgentData& AgentData, float DeltaTime) const;
+	void PrepareAgentStep(const ICrowdAgentInterface* Agent, FCrowdAgentData& AgentData, float DeltaTime) const;
 
 	/** pass new velocity to movement components */
-	void ApplyVelocity(const UCrowdFollowingComponent* AgentComponent, int32 AgentIndex) const;
+	void ApplyVelocity(UCrowdFollowingComponent* AgentComponent, int32 AgentIndex) const;
 
 	/** check changes in crowd simulation and adjust UE specific properties (smart links, poly updates) */
 	void UpdateAgentPaths();
 
 	/** switch debugger to object selected in PIE */
-	void UpdateSelectedDebug(const class ICrowdAgentInterface* Agent, int32 AgentIndex) const;
+	void UpdateSelectedDebug(const ICrowdAgentInterface* Agent, int32 AgentIndex) const;
 
 	void CreateCrowdManager();
 	void DestroyCrowdManager();
 
-	void DrawDebugCorners(const struct dtCrowdAgent* CrowdAgent) const;
-	void DrawDebugCollisionSegments(const struct dtCrowdAgent* CrowdAgent) const;
-	void DrawDebugPath(const struct dtCrowdAgent* CrowdAgent) const;
-	void DrawDebugVelocityObstacles(const struct dtCrowdAgent* CrowdAgent) const;
-	void DrawDebugPathOptimization(const struct dtCrowdAgent* CrowdAgent) const;
-	void DrawDebugNeighbors(const struct dtCrowdAgent* CrowdAgent) const;
+	void DrawDebugCorners(const dtCrowdAgent* CrowdAgent) const;
+	void DrawDebugCollisionSegments(const dtCrowdAgent* CrowdAgent) const;
+	void DrawDebugPath(const dtCrowdAgent* CrowdAgent) const;
+	void DrawDebugVelocityObstacles(const dtCrowdAgent* CrowdAgent) const;
+	void DrawDebugPathOptimization(const dtCrowdAgent* CrowdAgent) const;
+	void DrawDebugNeighbors(const dtCrowdAgent* CrowdAgent) const;
 #endif
 };

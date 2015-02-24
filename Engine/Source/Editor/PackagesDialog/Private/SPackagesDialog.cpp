@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PackagesDialog.h"
@@ -119,7 +119,7 @@ void SPackagesDialog::Construct(const FArguments& InArgs)
 
 	HeaderRowWidget->AddColumn(
 		SHeaderRow::Column( SPackagesDialogDefs::ColumnID_FileLabel )
-		.DefaultLabel( LOCTEXT("FileColumnLabel", "File" ).ToString() )
+		.DefaultLabel( LOCTEXT("FileColumnLabel", "File" ) )
 		.SortMode( this, &SPackagesDialog::GetColumnSortMode, SPackagesDialogDefs::ColumnID_FileLabel )
 		.OnSort( this, &SPackagesDialog::OnColumnSortModeChanged )
 		.FillWidth( 7.0f )
@@ -127,7 +127,7 @@ void SPackagesDialog::Construct(const FArguments& InArgs)
 
 	HeaderRowWidget->AddColumn(
 		SHeaderRow::Column( SPackagesDialogDefs::ColumnID_TypeLabel )
-		.DefaultLabel( LOCTEXT("TypeColumnLabel", "Type" ).ToString() )
+		.DefaultLabel( LOCTEXT("TypeColumnLabel", "Type" ) )
 		.SortMode( this, &SPackagesDialog::GetColumnSortMode, SPackagesDialogDefs::ColumnID_TypeLabel )
 		.OnSort( this, &SPackagesDialog::OnColumnSortModeChanged )
 		.FillWidth( 2.0f )
@@ -242,11 +242,11 @@ EDialogReturnType SPackagesDialog::GetReturnType(OUT TArray<UPackage*>& OutCheck
 		for( int32 ItemIndex = 0; ItemIndex < Items.Num(); ++ItemIndex)
 		{
 			FPackageItem& item = *Items[ItemIndex];
-			if(item.GetState() == ESlateCheckBoxState::Checked)
+			if(item.GetState() == ECheckBoxState::Checked)
 			{
 				OutCheckedPackages.Add(item.GetPackage());
 			}
-			else if(item.GetState() == ESlateCheckBoxState::Unchecked)
+			else if(item.GetState() == ECheckBoxState::Unchecked)
 			{
 				OutUncheckedPackages.Add(item.GetPackage());
 			}
@@ -283,11 +283,11 @@ void SPackagesDialog::RefreshButtons()
 	for( int32 ItemIndex = 0; ItemIndex < Items.Num(); ++ItemIndex)
 	{
 		FPackageItem& item = *Items[ItemIndex];
-		if(item.GetState() == ESlateCheckBoxState::Checked)
+		if(item.GetState() == ECheckBoxState::Checked)
 		{
 			CheckedItems++;
 		}
-		else if(item.GetState() == ESlateCheckBoxState::Unchecked)
+		else if(item.GetState() == ECheckBoxState::Unchecked)
 		{
 			UncheckedItems++;
 		}
@@ -380,7 +380,7 @@ TSharedRef<SWidget> SPackagesDialog::GenerateWidgetForItemAndColumn( TSharedPtr<
 			.Padding(RowPadding)
 			[
 				SNew(STextBlock)
-				.Text(PackageName)
+				.Text(FText::FromString(PackageName))
 				.IsEnabled(!Item->IsDisabled())
 			];
 	}
@@ -391,7 +391,7 @@ TSharedRef<SWidget> SPackagesDialog::GenerateWidgetForItemAndColumn( TSharedPtr<
 			.Padding(RowPadding)
 			[
 				SNew(STextBlock)
-				.Text(PackageType)
+				.Text(FText::FromString(PackageType))
 				.IsEnabled(!Item->IsDisabled())
 				.ColorAndOpacity(PackageColor)
 			];
@@ -463,48 +463,48 @@ TArray< TSharedPtr<FPackageItem> > SPackagesDialog::GetSelectedItems( bool bAllI
 	return SelectedItems;
 }
 
-ESlateCheckBoxState::Type SPackagesDialog::GetToggleSelectedState() const
+ECheckBoxState SPackagesDialog::GetToggleSelectedState() const
 {
 	//default to a Checked state
-	ESlateCheckBoxState::Type PendingState = ESlateCheckBoxState::Checked;
+	ECheckBoxState PendingState = ECheckBoxState::Checked;
 
 	TArray< TSharedPtr<FPackageItem> > SelectedItems = GetSelectedItems( true );
 
 	//Iterate through the list of selected packages
 	for ( auto SelectedItem = SelectedItems.CreateConstIterator(); SelectedItem; ++SelectedItem )
 	{
-		if ( SelectedItem->Get()->GetState() == ESlateCheckBoxState::Unchecked )
+		if ( SelectedItem->Get()->GetState() == ECheckBoxState::Unchecked )
 		{
 			//if any package in the selection is Unchecked, then represent the entire set of highlighted packages as Unchecked,
 			//so that the first (user) toggle of ToggleSelectedCheckBox consistently Checks all highlighted packages
-			PendingState = ESlateCheckBoxState::Unchecked;
+			PendingState = ECheckBoxState::Unchecked;
 		}
 	}
 
 	return PendingState;
 }
 
-void SPackagesDialog::OnToggleSelectedCheckBox(ESlateCheckBoxState::Type InNewState)
+void SPackagesDialog::OnToggleSelectedCheckBox(ECheckBoxState InNewState)
 {
 	TArray< TSharedPtr<FPackageItem> > SelectedItems = GetSelectedItems( true );
 
 	for ( auto SelectedItem = SelectedItems.CreateConstIterator(); SelectedItem; ++SelectedItem )
 	{
 		FPackageItem *item = (*SelectedItem).Get();
-		if (InNewState == ESlateCheckBoxState::Checked)
+		if (InNewState == ECheckBoxState::Checked)
 		{
 			if(item->IsDisabled())
 			{
-				item->SetState(ESlateCheckBoxState::Undetermined);
+				item->SetState(ECheckBoxState::Undetermined);
 			}
 			else
 			{
-				item->SetState(ESlateCheckBoxState::Checked);
+				item->SetState(ECheckBoxState::Checked);
 			}
 		}
 		else
 		{
-			item->SetState(ESlateCheckBoxState::Unchecked);
+			item->SetState(ECheckBoxState::Unchecked);
 		}
 	}
 
@@ -553,7 +553,7 @@ void SPackagesDialog::PopulateIgnoreForSaveItems( const TSet<FString>& InIgnoreP
 	{
 		const FString& ItemName = (*ItItem)->GetName();
 
-		const ESlateCheckBoxState::Type CheckedStatus = (InIgnorePackages.Find(ItemName) != NULL) ? ESlateCheckBoxState::Unchecked : ESlateCheckBoxState::Checked;
+		const ECheckBoxState CheckedStatus = (InIgnorePackages.Find(ItemName) != NULL) ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
 
 		if (!(*ItItem)->IsDisabled())
 		{
@@ -566,7 +566,7 @@ void SPackagesDialog::PopulateIgnoreForSaveArray( OUT TSet<FString>& InOutIgnore
 {
 	for( auto ItItem=Items.CreateConstIterator(); ItItem; ++ItItem )
 	{
-		if((*ItItem)->GetState()==ESlateCheckBoxState::Unchecked)
+		if((*ItItem)->GetState()==ECheckBoxState::Unchecked)
 		{
 			InOutIgnorePackages.Add( (*ItItem)->GetName() );
 		}

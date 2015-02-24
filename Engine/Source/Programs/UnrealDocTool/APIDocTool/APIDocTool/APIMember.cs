@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -328,6 +328,38 @@ namespace APIDocTool
 			{
 				Writer.EnterSection("references", "References");
 				Writer.WriteList(Items);
+				Writer.LeaveSection();
+			}
+		}
+
+		public void WriteSnippetSection(UdnWriter Writer, List<string> SnippetLines)
+		{
+			if (SnippetLines != null)
+			{
+				Writer.EnterSection("snippets", "Snippets");
+				Writer.EnterRegion("simplecode");
+				foreach (string SnippetLine in SnippetLines)
+				{
+					StringBuilder OutputLine = new StringBuilder();
+					for (int Idx = 0; Idx < SnippetLine.Length; Idx++)
+					{
+						if (SnippetLine[Idx] == ' ')
+						{
+							OutputLine.Append("&nbsp;");
+						}
+						else if (SnippetLine[Idx] == '\t')
+						{
+							OutputLine.Append("&nbsp;&nbsp;&nbsp;&nbsp;");
+						}
+						else
+						{
+							OutputLine.Append(Markdown.EscapeText(SnippetLine.Substring(Idx)));
+							break;
+						}
+					}
+					Writer.WriteLine(OutputLine.ToString() + "  ");
+				}
+				Writer.LeaveRegion();
 				Writer.LeaveSection();
 			}
 		}

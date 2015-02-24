@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLDevice.cpp: OpenGL device RHI implementation.
@@ -127,6 +127,9 @@ FOpenGLContextState& FOpenGLDynamicRHI::GetContextStateForCurrentContext()
 	}
 }
 
+// Ignore functions from RHIMethods.h when parsing documentation; Doxygen's preprocessor can't parse the declaration, so spews warnings for the definitions.
+#if !UE_BUILD_DOCS
+
 void FOpenGLDynamicRHI::RHIBeginFrame()
 {
 	RHIPrivateBeginFrame();
@@ -170,10 +173,17 @@ void FOpenGLDynamicRHI::RHIEndScene()
 	ResourceTableFrameCounter = INDEX_NONE;
 }
 
+#endif
+
 bool GDisableOpenGLDebugOutput = false;
 
-#if defined(GL_ARB_debug_output) || defined(GL_KHR_debug)
+// workaround for HTML5. 
+#if PLATFORM_HTML5
+#undef GL_ARB_debug_output
+#undef GL_KHR_debug
+#endif 
 
+#if defined(GL_ARB_debug_output) || defined(GL_KHR_debug)
 /**
  * Map GL_DEBUG_SOURCE_*_ARB to a human-readable string.
  */
@@ -429,7 +439,7 @@ void InitDebugContext()
 		bDebugOutputInitialized = (glGetError() == GL_NO_ERROR);
 	}
 #endif // GL_AMD_debug_output
-	if (!bDebugOutputInitialized)
+	if (!bDebugOutputInitialized && !PLATFORM_MAC)
 	{
 		UE_LOG(LogRHI,Warning,TEXT("OpenGL debug output extension not supported!"));
 	}
@@ -650,7 +660,6 @@ static void InitRHICapabilitiesForGL()
 
 	GSupportsVolumeTextureRendering = FOpenGL::SupportsVolumeTextureRendering();
 	GSupportsRenderDepthTargetableShaderResources = true;
-	GSupportsVertexTextureFetch = true;
 	GSupportsRenderTargetFormat_PF_G8 = true;
 	GSupportsSeparateRenderTargetBlendState = FOpenGL::SupportsSeparateAlphaBlend();
 	GSupportsDepthBoundsTest = FOpenGL::SupportsDepthBoundsTest();
@@ -658,13 +667,11 @@ static void InitRHICapabilitiesForGL()
 	GSupportsRenderTargetFormat_PF_FloatRGBA = FOpenGL::SupportsColorBufferHalfFloat();
 
 	GSupportsShaderFramebufferFetch = FOpenGL::SupportsShaderFramebufferFetch();
-	GPixelCenterOffset = 0.0f;
 	GMaxShadowDepthBufferSizeX = FMath::Min<int32>(Value_GL_MAX_RENDERBUFFER_SIZE, 4096); // Limit to the D3D11 max.
 	GMaxShadowDepthBufferSizeY = FMath::Min<int32>(Value_GL_MAX_RENDERBUFFER_SIZE, 4096);
-	GSupportsVertexInstancing = true;
 	GHardwareHiddenSurfaceRemoval = FOpenGL::HasHardwareHiddenSurfaceRemoval();
 
-	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2) ? GRHIShaderPlatform_DEPRECATED : SP_OPENGL_PCES2;
+	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES2] = (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2) ? GMaxRHIShaderPlatform : SP_OPENGL_PCES2;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::ES3_1] = SP_NumPlatforms;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = PLATFORM_MAC ? SP_OPENGL_SM4_MAC : SP_OPENGL_SM4;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = OPENGL_ES31 ? SP_OPENGL_ES31_EXT : SP_OPENGL_SM5;
@@ -693,13 +700,14 @@ static void InitRHICapabilitiesForGL()
 	}
 
 	GLenum DepthFormat = FOpenGL::GetDepthFormat();
+	GLenum ShadowDepthFormat = FOpenGL::GetShadowDepthFormat();
 
 	// Initialize the platform pixel format map.					InternalFormat				InternalFormatSRGB		Format				Type							bCompressed		bBGRA
 	SetupTextureFormat( PF_Unknown,				FOpenGLTextureFormat( ));
 	SetupTextureFormat( PF_A32B32G32R32F,		FOpenGLTextureFormat( GL_RGBA32F,				GL_NONE,				GL_RGBA,			GL_FLOAT,						false,			false));
 	SetupTextureFormat( PF_UYVY,				FOpenGLTextureFormat( ));
 	//@todo: ES2 requires GL_OES_depth_texture extension to support depth textures of any kind.
-	SetupTextureFormat( PF_ShadowDepth,			FOpenGLTextureFormat( DepthFormat,				GL_NONE,				GL_DEPTH_COMPONENT,	GL_UNSIGNED_INT,				false,			false));
+	SetupTextureFormat( PF_ShadowDepth,			FOpenGLTextureFormat( ShadowDepthFormat,		GL_NONE,				GL_DEPTH_COMPONENT,	GL_UNSIGNED_INT,				false,			false));
 	SetupTextureFormat( PF_D24,					FOpenGLTextureFormat( DepthFormat,				GL_NONE,				GL_DEPTH_COMPONENT,	GL_UNSIGNED_INT,				false,			false));
 	SetupTextureFormat( PF_A16B16G16R16,		FOpenGLTextureFormat( GL_RGBA16,				GL_RGBA16,				GL_RGBA,			GL_UNSIGNED_SHORT,				false,			false));
 	SetupTextureFormat( PF_A1,					FOpenGLTextureFormat( ));
@@ -722,6 +730,7 @@ static void InitRHICapabilitiesForGL()
 		SetupTextureFormat( PF_V8U8,			FOpenGLTextureFormat( GL_RG8_SNORM,				GL_NONE,				GL_RG,			GL_BYTE,							false,	false));
 		SetupTextureFormat( PF_R8G8,			FOpenGLTextureFormat( GL_RG8,					GL_NONE,				GL_RG,			GL_UNSIGNED_BYTE,					false,	false));
 		SetupTextureFormat( PF_BC5,				FOpenGLTextureFormat( GL_COMPRESSED_RG_RGTC2,	GL_COMPRESSED_RG_RGTC2,	GL_RG,			GL_UNSIGNED_BYTE,					true,	false));
+		SetupTextureFormat( PF_BC4,				FOpenGLTextureFormat( GL_COMPRESSED_RED_RGTC1,	GL_COMPRESSED_RED_RGTC1,	GL_RED,			GL_UNSIGNED_BYTE,					true,	false));
 		SetupTextureFormat( PF_A8,				FOpenGLTextureFormat( GL_R8,					GL_NONE,				GL_RED,			GL_UNSIGNED_BYTE,					false,	false));
 		SetupTextureFormat( PF_R32_UINT,		FOpenGLTextureFormat( GL_R32UI,					GL_NONE,				GL_RED_INTEGER,	GL_UNSIGNED_INT,					false,	false));
 		SetupTextureFormat( PF_R32_SINT,		FOpenGLTextureFormat( GL_R32I,					GL_NONE,				GL_RED_INTEGER,	GL_INT,								false,	false));
@@ -934,7 +943,7 @@ static bool VerifyCompiledShader(GLuint Shader, const ANSICHAR* GlslCode, bool I
 static void CheckTextureCubeLodSupport()
 {
 #if PLATFORM_ANDROID
-	if (IsES2Platform(GRHIShaderPlatform_DEPRECATED))
+	if (IsES2Platform(GMaxRHIShaderPlatform))
 	{
 		UE_LOG(LogRHI, Display, TEXT("Testing for shader compiler compatibility"));
 		// This code creates a sample program and finds out which hacks are required to compile it
@@ -1011,7 +1020,20 @@ static void CheckTextureCubeLodSupport()
 			// we are done
 			return;
 		}
-		
+
+		FOpenGL::bRequiresDontEmitPrecisionForTextureSamplers = true;
+		FOpenGL::bRequiresTextureCubeLodEXTToTextureCubeLodDefine = true;
+
+		// try both hacks
+		PixelShader = (FOpenGLPixelShader*)(RHICreatePixelShader(Code).GetReference());
+
+		if (VerifyCompiledShader(PixelShader->Resource, TestFragmentProgram, false))
+		{
+			UE_LOG(LogRHI, Warning, TEXT("Enabling shader compiler hack to redefine textureCubeLodEXT to textureCubeLod and remove precision modifiers"));
+			// we are done
+			return;
+		}
+
 		UE_LOG(LogRHI, Warning, TEXT("Unable to find a test shader that compiles try running anyway"));
 	}
 #endif
@@ -1174,6 +1196,9 @@ void FOpenGLDynamicRHI::UnregisterQuery( FOpenGLRenderQuery* Query )
 	Queries.RemoveSingleSwap(Query);
 }
 
+// Ignore functions from RHIMethods.h when parsing documentation; Doxygen's preprocessor can't parse the declaration, so spews warnings for the definitions.
+#if !UE_BUILD_DOCS
+
 void FOpenGLDynamicRHI::RHIAutomaticCacheFlushAfterComputeShader(bool bEnable)
 {
 	// Nothing to do here...
@@ -1183,6 +1208,8 @@ void FOpenGLDynamicRHI::RHIFlushComputeShaderCache()
 {
 	// Nothing to do here...
 }
+
+#endif
 
 void* FOpenGLDynamicRHI::RHIGetNativeDevice()
 {

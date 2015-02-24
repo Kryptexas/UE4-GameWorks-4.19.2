@@ -1,11 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "IScriptPlugin.h"
 #include "CoreUObject.h"
 #include "ModuleManager.h"
 #include "Engine.h"
-#include "ScriptComponent.h"
+#include "ScriptPluginComponent.h"
 #include "ScriptContext.h"
 #include "ScriptContextComponent.h"
 #include "ScriptTestActor.h"

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "AutomationEditorCommon.h"
@@ -11,7 +11,57 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "Engine/DestructibleMesh.h"
 #include "FileManagerGeneric.h"
+#include "GameFramework/WorldSettings.h"
+#include "Animation/AimOffsetBlendSpace.h"
+#include "Animation/AimOffsetBlendSpace1D.h"
+#include "Animation/AnimBlueprint.h"
+#include "Animation/AnimMontage.h"
+#include "Animation/AnimSequence.h"
+#include "Animation/BlendSpace.h"
+#include "Animation/BlendSpace1D.h"
+#include "Engine/Blueprint.h"
+#include "Sound/DialogueVoice.h"
+#include "Sound/DialogueWave.h"
+#include "Engine/Font.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialFunction.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "Materials/MaterialParameterCollection.h"
+#include "Particles/ParticleSystem.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "Sound/ReverbEffect.h"
+#include "Engine/SkeletalMesh.h"
+#include "Animation/Skeleton.h"
+#include "Slate/SlateBrushAsset.h"
+#include "SlateWidgetStyleAsset.h"
+#include "Sound/SoundAttenuation.h"
+#include "Sound/SoundClass.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundMix.h"
+#include "Sound/SoundWave.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/SubsurfaceProfile.h"
+#include "Engine/Texture.h"
+#include "Engine/Texture2D.h"
+#include "Engine/TextureCube.h"
+#include "Engine/TextureRenderTarget.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/World.h"
+#include "AssetSelection.h"
 
+#include "Interfaces/ILauncherDeviceGroup.h"
+#include "LauncherServices.h"
+#include "TargetDeviceServices.h"
+#include "Editor/EditorEngine.h"
+#include "PlatformInfo.h"
+
+#include "CookOnTheSide/CookOnTheFlyServer.h"
+#include "Interfaces/ILauncherProfile.h"
+#include "LightingBuildOptions.h"
+
+#define COOK_TIMEOUT 3600
 
 DEFINE_LOG_CATEGORY_STATIC(LogAutomationEditorCommon, Log, All);
 
@@ -27,14 +77,14 @@ namespace AutomationEditorCommonUtils
 		const FString Filename = FPaths::ConvertRelativePathToFull(PackagePath);
 		FString EngineFileName = Filename;
 		FString GameFileName = Filename;
-		if (FPaths::MakePathRelativeTo(EngineFileName, *FPaths::EngineContentDir()) && !FPaths::IsRelative(EngineFileName))
+		if (FPaths::MakePathRelativeTo(EngineFileName, *FPaths::EngineContentDir()) && !EngineFileName.Contains(TEXT("../")))
 		{
 			const FString ShortName = FPaths::GetBaseFilename(EngineFileName);
 			const FString PathName = FPaths::GetPath(EngineFileName);
 			const FString AssetName = FString::Printf(TEXT("/Engine/%s/%s.%s"), *PathName, *ShortName, *ShortName);
 			return AssetName;
 		}
-		else if (FPaths::MakePathRelativeTo(GameFileName, *FPaths::GameContentDir()) && !FPaths::IsRelative(GameFileName))
+		else if (FPaths::MakePathRelativeTo(GameFileName, *FPaths::GameContentDir()) && !GameFileName.Contains(TEXT("../")))
 		{
 			const FString ShortName = FPaths::GetBaseFilename(GameFileName);
 			const FString PathName = FPaths::GetPath(GameFileName);
@@ -393,6 +443,65 @@ namespace AutomationEditorCommonUtils
 		}
 		return true;
 	}
+
+
+	void GetLaunchOnDeviceID(FString& OutDeviceID, const FString& InMapName)
+	{
+		UAutomationTestSettings const* AutomationTestSettings = GetDefault<UAutomationTestSettings>();
+		check(AutomationTestSettings);
+
+		OutDeviceID = "None";
+
+		FString LaunchOnDeviceId;
+		for (auto LaunchIter = AutomationTestSettings->LaunchOnSettings.CreateConstIterator(); LaunchIter; LaunchIter++)
+		{
+			FString LaunchOnSettings = LaunchIter->DeviceID;
+			FString LaunchOnMap = FPaths::GetBaseFilename(LaunchIter->LaunchOnTestmap.FilePath);
+			if (LaunchOnMap.Equals(InMapName))
+			{
+				// shared devices section
+				TSharedPtr<ITargetDeviceServicesModule> TargetDeviceServicesModule = StaticCastSharedPtr<ITargetDeviceServicesModule>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
+				// for each platform...
+				TArray<ITargetDeviceProxyPtr> DeviceProxies;
+				TargetDeviceServicesModule->GetDeviceProxyManager()->GetProxies(FName(*LaunchOnSettings), true, DeviceProxies);
+				// for each proxy...
+				for (auto DeviceProxyIt = DeviceProxies.CreateIterator(); DeviceProxyIt; ++DeviceProxyIt)
+				{
+					ITargetDeviceProxyPtr DeviceProxy = *DeviceProxyIt;
+					if (DeviceProxy->IsConnected())
+					{
+						OutDeviceID = DeviceProxy->GetTargetDeviceId((FName)*LaunchOnSettings);
+						break;
+					}
+				}
+			}
+		}
+	}
+
+	void GetLaunchOnDeviceID(FString& OutDeviceID, const FString& InMapName, const FString& InDeviceName)
+	{
+		UAutomationTestSettings const* AutomationTestSettings = GetDefault<UAutomationTestSettings>();
+		check(AutomationTestSettings);
+
+		//Output device name will default to "None".
+		OutDeviceID = "None";
+
+		// shared devices section
+		TSharedPtr<ITargetDeviceServicesModule> TargetDeviceServicesModule = StaticCastSharedPtr<ITargetDeviceServicesModule>(FModuleManager::Get().LoadModule(TEXT("TargetDeviceServices")));
+		// for each platform...
+		TArray<ITargetDeviceProxyPtr> DeviceProxies;
+		TargetDeviceServicesModule->GetDeviceProxyManager()->GetProxies(FName(*InDeviceName), true, DeviceProxies);
+		// for each proxy...
+		for (auto DeviceProxyIt = DeviceProxies.CreateIterator(); DeviceProxyIt; ++DeviceProxyIt)
+		{
+			ITargetDeviceProxyPtr DeviceProxy = *DeviceProxyIt;
+			if (DeviceProxy->IsConnected())
+			{
+				OutDeviceID = DeviceProxy->GetTargetDeviceId((FName)*InDeviceName);
+				break;
+			}
+		}
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////
@@ -550,6 +659,128 @@ bool FChangeViewportToFirstAvailableBookmarkCommand::Update()
 	}
 	return true;
 }
+
+/**
+* Latent command that adds a static mesh to the worlds origin.
+*/
+bool FAddStaticMeshCommand::Update()
+{
+	//Gather assets.
+	UObject* Cube = (UStaticMesh*)StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/Engine/EngineMeshes/Cube.Cube"), NULL, LOAD_None, NULL);
+	//Add Cube mesh to the world
+	AStaticMeshActor* StaticMesh = Cast<AStaticMeshActor>(FActorFactoryAssetProxy::AddActorForAsset(Cube));
+	StaticMesh->TeleportTo(FVector(0.0f, 0.0f, 0.0f), FRotator(0, 0, 0));
+	StaticMesh->SetActorRelativeScale3D(FVector(1.0f, 1.0f, 1.0f));
+
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("Static Mesh cube has been added to 0, 0, 0."))
+
+		return true;
+}
+
+/**
+* Latent command that builds lighting for the current level.
+*/
+bool FBuildLightingCommand::Update()
+{
+	//If we are running with -NullRHI then we have to skip this step.
+	if (GUsingNullRHI)
+	{
+		UE_LOG(LogEditorAutomationTests, Warning, TEXT("SKIPPED Build Lighting Step.  You're currently running with -NullRHI."));
+		return true;
+	}
+
+	if (GUnrealEd->WarnIfLightingBuildIsCurrentlyRunning())
+	{
+		UE_LOG(LogEditorAutomationTests, Warning, TEXT("Lighting is already being built."));
+		return true;
+	}
+
+	FLightingBuildOptions LightingBuildOptions;
+
+	// Retrieve settings from ini.
+	GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("OnlyBuildSelected"), LightingBuildOptions.bOnlyBuildSelected, GEditorUserSettingsIni);
+	GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("OnlyBuildCurrentLevel"), LightingBuildOptions.bOnlyBuildCurrentLevel, GEditorUserSettingsIni);
+	GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("OnlyBuildSelectedLevels"), LightingBuildOptions.bOnlyBuildSelectedLevels, GEditorUserSettingsIni);
+	GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("OnlyBuildVisibility"), LightingBuildOptions.bOnlyBuildVisibility, GEditorUserSettingsIni);
+	GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("UseErrorColoring"), LightingBuildOptions.bUseErrorColoring, GEditorUserSettingsIni);
+	GConfig->GetBool(TEXT("LightingBuildOptions"), TEXT("ShowLightingBuildInfo"), LightingBuildOptions.bShowLightingBuildInfo, GEditorUserSettingsIni);
+	int32 QualityLevel;
+	GConfig->GetInt(TEXT("LightingBuildOptions"), TEXT("QualityLevel"), QualityLevel, GEditorUserSettingsIni);
+	QualityLevel = FMath::Clamp<int32>(QualityLevel, Quality_Preview, Quality_Production);
+	LightingBuildOptions.QualityLevel = Quality_Production;
+
+	UE_LOG(LogEditorAutomationTests, Log, TEXT("Building lighting in Production Quality."));
+	GUnrealEd->BuildLighting(LightingBuildOptions);
+
+	return true;
+}
+
+
+bool FSaveLevelCommand::Update()
+{
+	if (!GUnrealEd->IsLightingBuildCurrentlyExporting() && !GUnrealEd->IsLightingBuildCurrentlyRunning())
+	{
+		UWorld* World = GEditor->GetEditorWorldContext().World();
+		ULevel* Level = World->GetCurrentLevel();
+		MapName += TEXT("_Copy.umap");
+		FString TempMapLocation = FPaths::Combine(*FPaths::GameContentDir(), TEXT("Maps"), TEXT("Automation_TEMP"), *MapName);
+		FEditorFileUtils::SaveLevel(Level, TempMapLocation);
+
+		return true;
+	}
+	return false;
+}
+
+bool FLaunchOnCommand::Update()
+{
+	GUnrealEd->AutomationPlayUsingLauncher(InLauncherDeviceID);
+	return true;
+}
+
+bool FWaitToFinishCookByTheBookCommand::Update()
+{
+	if (!GUnrealEd->CookServer->IsCookByTheBookRunning())
+	{
+		if (GUnrealEd->IsCookByTheBookInEditorFinished())
+		{
+			UE_LOG(LogEditorAutomationTests, Log, TEXT("The cook by the book operation has finished."));
+		}
+		return true;
+	}
+	else if ((FPlatformTime::Seconds() - StartTime) == COOK_TIMEOUT)
+	{
+		GUnrealEd->CancelCookByTheBookInEditor();
+		UE_LOG(LogEditorAutomationTests, Error, TEXT("It has been an hour or more since the cook has started."));
+		return false;
+	}
+	return false;
+}
+
+bool FDeleteDirCommand::Update()
+{
+	FString FullFolderPath = FPaths::ConvertRelativePathToFull(*InFolderLocation);
+	if (IFileManager::Get().DirectoryExists(*FullFolderPath))
+	{
+		IFileManager::Get().DeleteDirectory(*FullFolderPath, false, true);
+	}
+	return true;
+}
+
+bool FWaitToFinishBuildDeployCommand::Update()
+{
+	if (GEditor->LauncherWorker->GetStatus() == ELauncherWorkerStatus::Completed)
+	{
+		UE_LOG(LogEditorAutomationTests, Log, TEXT("The build game and deploy operation has finished."));
+		return true;
+	}
+	else if (GEditor->LauncherWorker->GetStatus() == ELauncherWorkerStatus::Canceled || GEditor->LauncherWorker->GetStatus() == ELauncherWorkerStatus::Canceling)
+	{
+		UE_LOG(LogEditorAutomationTests, Warning, TEXT("The build was canceled."));
+		return true;
+	}
+	return false;
+}
+
 //////////////////////////////////////////////////////////////////////
 //Find Asset Commands
 
@@ -591,7 +822,6 @@ void FEditorAutomationTestUtilities::CollectTestsByClass(UClass * Class, TArray<
 void FEditorAutomationTestUtilities::CollectGameContentTestsByClass(UClass * Class, bool bRecursiveClass, TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands)
 {
 	//Setting the Asset Registry
-
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 
 	//Variable setups
@@ -676,60 +906,86 @@ void FEditorAutomationTestUtilities::CollectMiscGameContentTestsByClass(TArray<F
 	ExcludeClassesList.Add(UWorld::StaticClass()->GetFName());
 
 	//Generating the list of assets.
-	//This list isn't expected to have anything that may be obtained with another function.
 	//This list is being filtered by the game folder and class type.  The results are placed into the ObjectList variable.
 	AssetFilter.PackagePaths.Add("/Game");
 	AssetFilter.bRecursivePaths = true;
 	AssetRegistryModule.Get().GetAssets(AssetFilter, ObjectList);
-	
-	//if (ObjectList.Num() < 25000)
-	//{
 
-		//Loop through the list of assets, make their path full and a string, then add them to the test.
-		for (auto ObjIter = ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
+	//Loop through the list of assets, make their path full and a string, then add them to the test.
+	for (auto ObjIter = ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
+	{
+		const FAssetData& Asset = *ObjIter;
+		//First we check if the class is valid.  If not then we move onto the next object.
+		if (Asset.GetClass() != NULL)
 		{
-			const FAssetData& Asset = *ObjIter;
-			//First we check if the class is valid.  If not then we move onto the next object.
-			if (Asset.GetClass() != NULL)
+			//Variable that holds the class FName for the current asset iteration.
+			FName AssetClassFName = Asset.GetClass()->GetFName();
+
+			//Counter used to keep track for the following for loop.
+			float ExcludedClassesCounter = 1;
+
+			for (auto ExcludeIter = ExcludeClassesList.CreateConstIterator(); ExcludeIter; ++ExcludeIter)
 			{
-				//Variable that holds the class FName for the current asset iteration.
-				FName AssetClassFName = Asset.GetClass()->GetFName();
+				FName ExludedName = *ExcludeIter;
 
-				//Counter used to keep track for the following for loop.
-				float ExcludedClassesCounter = 1;
-
-				for (auto ExcludeIter = ExcludeClassesList.CreateConstIterator(); ExcludeIter; ++ExcludeIter)
+				//If the classes are the same then we don't want this asset. So we move onto the next one instead.
+				if (AssetClassFName == ExludedName)
 				{
-					FName ExludedName = *ExcludeIter;
-
-					//If the classes are the same then we don't want this asset. So we move onto the next one instead.
-					if (AssetClassFName == ExludedName)
-					{
-						break;
-					}
-
-					//We run out of class names in our Excluded list then we want the current ObjectList asset.
-					if ((ExcludedClassesCounter + 1) > ExcludeClassesList.Num())
-					{
-						FString Filename = Asset.ObjectPath.ToString();
-						//convert to full paths
-						Filename = FPackageName::LongPackageNameToFilename(Filename);
-
-						if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
-						{
-							FString BeautifiedFilename = Asset.AssetName.ToString();
-							OutBeautifiedNames.Add(BeautifiedFilename);
-							OutTestCommands.Add(Asset.ObjectPath.ToString());
-						}
-
-						break;
-					}
-
-					//increment the counter.
-					ExcludedClassesCounter++;
+					break;
 				}
+
+				//We run out of class names in our Excluded list then we want the current ObjectList asset.
+				if ((ExcludedClassesCounter + 1) > ExcludeClassesList.Num())
+				{
+					FString Filename = Asset.ObjectPath.ToString();
+					//convert to full paths
+					Filename = FPackageName::LongPackageNameToFilename(Filename);
+
+					if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+					{
+						FString BeautifiedFilename = Asset.AssetName.ToString();
+						OutBeautifiedNames.Add(BeautifiedFilename);
+						OutTestCommands.Add(Asset.ObjectPath.ToString());
+					}
+
+					break;
+				}
+				ExcludedClassesCounter++;
 			}
 		}
-	//}
+	}
 }
 
+/**
+* Generates a list of assets from the GAME by a specific type.
+*/
+void FEditorAutomationTestUtilities::CollectGameContentByClass(const UClass * Class, bool bRecursiveClass, TArray<FString>& OutAssetList)
+{
+	//Setting the Asset Registry
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+
+	//Variable setups
+	TArray<FAssetData> ObjectList;
+	FARFilter AssetFilter;
+
+	//Generating the list of assets.
+	//This list is being filtered by the game folder and class type.  The results are placed into the ObjectList variable.
+	AssetFilter.ClassNames.Add(Class->GetFName());
+	AssetFilter.PackagePaths.Add("/Game");
+	AssetFilter.bRecursiveClasses = bRecursiveClass;
+	AssetFilter.bRecursivePaths = true;
+	AssetRegistryModule.Get().GetAssets(AssetFilter, ObjectList);
+
+	//Loop through the list of assets, make their path full and a string, then add them to the test.
+	for (auto ObjIter = ObjectList.CreateConstIterator(); ObjIter; ++ObjIter)
+	{
+		const FAssetData& Asset = *ObjIter;
+		FString Filename = Asset.ObjectPath.ToString();
+		//convert to full paths
+		Filename = FPackageName::LongPackageNameToFilename(Filename);
+		if (FAutomationTestFramework::GetInstance().ShouldTestContent(Filename))
+		{
+			OutAssetList.Add(Asset.ObjectPath.ToString());
+		}
+	}
+}

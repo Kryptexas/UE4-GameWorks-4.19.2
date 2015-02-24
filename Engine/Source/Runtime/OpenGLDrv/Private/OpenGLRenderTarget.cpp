@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLRenderTarget.cpp: OpenGL render target implementation.
@@ -297,6 +297,9 @@ void FOpenGLDynamicRHI::PurgeFramebufferFromCaches( GLuint Framebuffer )
 	}
 }
 
+// Ignore functions from RHIMethods.h when parsing documentation; Doxygen's preprocessor can't parse the declaration, so spews warnings for the definitions.
+#if !UE_BUILD_DOCS
+
 void FOpenGLDynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTextureRHI, FTextureRHIParamRef DestTextureRHI, bool bKeepOriginalSurface, const FResolveParams& ResolveParams)
 {
 	if(!SourceTextureRHI || !DestTextureRHI)
@@ -431,6 +434,8 @@ void FOpenGLDynamicRHI::RHICopyToResolveTarget(FTextureRHIParamRef SourceTexture
 	{
 	}
 }
+
+#endif
 
 void FOpenGLDynamicRHI::ReadSurfaceDataRaw(FOpenGLContextState& ContextState, FTextureRHIParamRef TextureRHI,FIntRect Rect,TArray<uint8>& OutData, FReadSurfaceDataFlags InFlags)
 {
@@ -696,6 +701,9 @@ void FOpenGLDynamicRHI::ReadSurfaceDataRaw(FOpenGLContextState& ContextState, FT
 	ContextState.Framebuffer = (GLuint)-1;
 }
 
+// Ignore functions from RHIMethods.h when parsing documentation; Doxygen's preprocessor can't parse the declaration, so spews warnings for the definitions.
+#if !UE_BUILD_DOCS
+
 void FOpenGLDynamicRHI::RHIReadSurfaceData(FTextureRHIParamRef TextureRHI,FIntRect Rect,TArray<FColor>& OutData, FReadSurfaceDataFlags InFlags)
 {
 	TArray<uint8> Temp;
@@ -784,6 +792,7 @@ void FOpenGLDynamicRHI::RHIReadSurfaceFloatData(FTextureRHIParamRef TextureRHI,F
 		TArray<FLinearColor> FloatData;
 		// 4 float components per texel (RGBA)
 		FloatData.AddUninitialized(SizeX * SizeY);
+		FMemory::Memzero(FloatData.GetData(),SizeX * SizeY*sizeof(FLinearColor));
 		glReadPixels(Rect.Min.X, Rect.Min.Y, SizeX, SizeY, GL_RGBA, GL_FLOAT, FloatData.GetData());
 		FLinearColor* FloatDataPtr = FloatData.GetData();
 		for (uint32 Index = 0; Index < SizeX * SizeY; ++Index, ++FloatDataPtr)
@@ -861,6 +870,8 @@ void FOpenGLDynamicRHI::RHIRead3DSurfaceFloatData(FTextureRHIParamRef TextureRHI
 	FOpenGL::DeleteTextures( 1, &TempTexture );
 	ContextState.Framebuffer = (GLuint)-1;
 }
+
+#endif
 
 void FOpenGLDynamicRHI::BindPendingFramebuffer( FOpenGLContextState& ContextState )
 {

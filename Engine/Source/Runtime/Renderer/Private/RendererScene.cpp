@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Scene.cpp: Scene manager implementation.
@@ -13,6 +13,7 @@
 #include "EngineModule.h"
 #include "PrecomputedLightVolume.h"
 #include "FXSystem.h"
+#include "DistanceFieldLightingShared.h"
 
 // Enable this define to do slow checks for components being added to the wrong
 // world's scene, when using PIE. This can happen if a PIE component is reattached
@@ -73,6 +74,110 @@ FSceneViewState::FSceneViewState()
 	ShadowOcclusionQueryMaps.Empty(NumBufferedFrames);
 	ShadowOcclusionQueryMaps.AddZeroed(NumBufferedFrames);	
 #endif
+}
+
+FDistanceFieldSceneData::FDistanceFieldSceneData() 
+	: NumObjectsInBuffer(0)
+	, ObjectBuffers(NULL)
+	, AtlasGeneration(0)
+{
+
+}
+
+FDistanceFieldSceneData::~FDistanceFieldSceneData() 
+{
+	delete ObjectBuffers;
+}
+
+void FDistanceFieldSceneData::AddPrimitive(FPrimitiveSceneInfo* InPrimitive)
+{
+	const FPrimitiveSceneProxy* Proxy = InPrimitive->Proxy;
+
+	if (Proxy->CastsDynamicShadow()
+		&& Proxy->AffectsDistanceFieldLighting())
+	{
+		if (Proxy->SupportsHeightfieldRepresentation())
+		{
+			HeightfieldPrimitives.Add(InPrimitive);
+		}
+
+		if (Proxy->SupportsDistanceFieldRepresentation())
+		{
+			checkSlow(!PendingAddOperations.Contains(InPrimitive));
+			checkSlow(!PendingUpdateOperations.Contains(InPrimitive));
+			PendingAddOperations.Add(InPrimitive);
+		}
+	}
+}
+
+void FDistanceFieldSceneData::UpdatePrimitive(FPrimitiveSceneInfo* InPrimitive)
+{
+	const FPrimitiveSceneProxy* Proxy = InPrimitive->Proxy;
+
+	if (Proxy->CastsDynamicShadow() 
+		&& Proxy->AffectsDistanceFieldLighting()
+		&& Proxy->SupportsDistanceFieldRepresentation() 
+		&& !PendingAddOperations.Contains(InPrimitive)
+		// This can happen when the primitive fails to allocate from the SDF atlas
+		&& InPrimitive->DistanceFieldInstanceIndices.Num() > 0)
+	{
+		PendingUpdateOperations.Add(InPrimitive);
+	}
+}
+
+void FDistanceFieldSceneData::RemovePrimitive(FPrimitiveSceneInfo* InPrimitive)
+{
+	const FPrimitiveSceneProxy* Proxy = InPrimitive->Proxy;
+
+	if (Proxy->SupportsDistanceFieldRepresentation() && Proxy->AffectsDistanceFieldLighting())
+	{
+		PendingAddOperations.Remove(InPrimitive);
+		PendingUpdateOperations.Remove(InPrimitive);
+
+		for (int32 InstanceIndex = 0; InstanceIndex < InPrimitive->DistanceFieldInstanceIndices.Num(); InstanceIndex++)
+		{
+			int32 RemoveIndex = InPrimitive->DistanceFieldInstanceIndices[InstanceIndex];
+
+			// Sanity check that scales poorly
+			if (PendingRemoveOperations.Num() < 1000)
+			{
+				checkSlow(!PendingRemoveOperations.Contains(RemoveIndex));
+			}
+			
+			PendingRemoveOperations.Add(RemoveIndex);
+		}
+
+		InPrimitive->DistanceFieldInstanceIndices.Empty();
+	}
+
+	if (Proxy->SupportsHeightfieldRepresentation() && Proxy->AffectsDistanceFieldLighting())
+	{
+		HeightfieldPrimitives.Remove(InPrimitive);
+	}
+}
+
+void FDistanceFieldSceneData::Release()
+{
+	if (ObjectBuffers)
+	{
+		ObjectBuffers->Release();
+	}
+}
+
+void FDistanceFieldSceneData::VerifyIntegrity()
+{
+	check(NumObjectsInBuffer == PrimitiveInstanceMapping.Num());
+
+	for (int32 PrimitiveInstanceIndex = 0; PrimitiveInstanceIndex < PrimitiveInstanceMapping.Num(); PrimitiveInstanceIndex++)
+	{
+		const FPrimitiveAndInstance& PrimitiveAndInstance = PrimitiveInstanceMapping[PrimitiveInstanceIndex];
+
+		check(PrimitiveAndInstance.Primitive && PrimitiveAndInstance.Primitive->DistanceFieldInstanceIndices.Num() > 0);
+		check(PrimitiveAndInstance.Primitive->DistanceFieldInstanceIndices.IsValidIndex(PrimitiveAndInstance.InstanceIndex));
+
+		const int32 InstanceIndex = PrimitiveAndInstance.Primitive->DistanceFieldInstanceIndices[PrimitiveAndInstance.InstanceIndex];
+		check(InstanceIndex == PrimitiveInstanceIndex);
+	}
 }
 
 /**
@@ -172,6 +277,8 @@ void FScene::AddPrimitiveSceneInfo_RenderThread(FRHICommandListImmediate& RHICmd
 
 	// Add the primitive to the scene.
 	PrimitiveSceneInfo->AddToScene(RHICmdList, true);
+
+	DistanceFieldSceneData.AddPrimitive(PrimitiveSceneInfo);
 }
 
 /**
@@ -264,6 +371,7 @@ FScene::~FScene()
 
 	ReflectionSceneData.CubemapArray.ReleaseResource();
 	IndirectLightingCache.ReleaseResource();
+	DistanceFieldSceneData.Release();
 
 	if (SurfaceCacheResources)
 	{
@@ -390,6 +498,8 @@ void FScene::UpdatePrimitiveTransform_RenderThread(FRHICommandListImmediate& RHI
 	// Update the primitive transform.
 	PrimitiveSceneProxy->SetTransform(LocalToWorld, WorldBounds, LocalBounds, OwnerPosition);
 
+	DistanceFieldSceneData.UpdatePrimitive(PrimitiveSceneProxy->GetPrimitiveSceneInfo());
+
 	// If the primitive has static mesh elements, it should have returned true from ShouldRecreateProxyOnUpdateTransform!
 	check(!(bUpdateStaticDrawLists && PrimitiveSceneProxy->GetPrimitiveSceneInfo()->StaticMeshes.Num()));
 
@@ -419,7 +529,7 @@ void FScene::UpdatePrimitiveTransform(UPrimitiveComponent* Primitive)
 	// If the root component of an actor is being moved, update all the actor position of the other components sharing that actor
 	if (Owner && Owner->GetRootComponent() == Primitive)
 	{
-		TArray<UPrimitiveComponent*> Components;
+		TInlineComponentArray<UPrimitiveComponent*> Components;
 		Owner->GetComponents(Components);
 		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 		{
@@ -578,6 +688,8 @@ void FScene::RemovePrimitiveSceneInfo_RenderThread(FPrimitiveSceneInfo* Primitiv
 
 	// Remove the primitive from the scene.
 	PrimitiveSceneInfo->RemoveFromScene(true);
+
+	DistanceFieldSceneData.RemovePrimitive(PrimitiveSceneInfo);
 
 	// free the primitive scene proxy.
 	delete PrimitiveSceneInfo->Proxy;
@@ -1648,8 +1760,12 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmed
 		BasePassForForwardShadingLowQualityLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
 		BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
 		BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
+		BasePassForForwardShadingDirectionalLightAndSHDirectionalIndirectDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
+		BasePassForForwardShadingDirectionalLightAndSHDirectionalCSMIndirectDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
 		BasePassForForwardShadingMovableDirectionalLightDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
 		BasePassForForwardShadingMovableDirectionalLightCSMDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
+		BasePassForForwardShadingMovableDirectionalLightLightmapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
+		BasePassForForwardShadingMovableDirectionalLightCSMLightmapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
 	}
 
 	PositionOnlyDepthDrawList.GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
@@ -1861,6 +1977,10 @@ void FScene::DumpStaticMeshDrawListStats() const
 	DUMP_DRAW_LIST(BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[EBasePass_Masked]);
 	DUMP_DRAW_LIST(BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[EBasePass_Default]);
 	DUMP_DRAW_LIST(BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[EBasePass_Masked]);
+	DUMP_DRAW_LIST(BasePassForForwardShadingDirectionalLightAndSHDirectionalIndirectDrawList[EBasePass_Default]);
+	DUMP_DRAW_LIST(BasePassForForwardShadingDirectionalLightAndSHDirectionalIndirectDrawList[EBasePass_Masked]);
+	DUMP_DRAW_LIST(BasePassForForwardShadingDirectionalLightAndSHDirectionalCSMIndirectDrawList[EBasePass_Default]);
+	DUMP_DRAW_LIST(BasePassForForwardShadingDirectionalLightAndSHDirectionalCSMIndirectDrawList[EBasePass_Masked]);
 	DUMP_DRAW_LIST(BasePassForForwardShadingMovableDirectionalLightDrawList[EBasePass_Default]);
 	DUMP_DRAW_LIST(BasePassForForwardShadingMovableDirectionalLightDrawList[EBasePass_Masked]);
 	DUMP_DRAW_LIST(BasePassForForwardShadingMovableDirectionalLightCSMDrawList[EBasePass_Default]);
@@ -2029,9 +2149,14 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	StaticMeshDrawListApplyWorldOffset(WholeSceneShadowDepthDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingNoLightMapDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingLowQualityLightMapDrawList, InOffset);
+	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList, InOffset);
+	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingDirectionalLightAndSHDirectionalIndirectDrawList, InOffset);
+	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingDirectionalLightAndSHDirectionalCSMIndirectDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingMovableDirectionalLightDrawList, InOffset);
 	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingMovableDirectionalLightCSMDrawList, InOffset);
+	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingMovableDirectionalLightLightmapDrawList, InOffset);
+	StaticMeshDrawListApplyWorldOffset(BasePassForForwardShadingMovableDirectionalLightCSMLightmapDrawList, InOffset);
 
 	// Motion blur 
 	MotionBlurInfoData.ApplyOffset(InOffset);
@@ -2307,6 +2432,18 @@ TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FSimpleDirectionalLi
 }
 
 template<>
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FSimpleDirectionalLightAndSHDirectionalIndirectPolicy> >& FScene::GetForwardShadingBasePassDrawList<FSimpleDirectionalLightAndSHDirectionalIndirectPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassForForwardShadingDirectionalLightAndSHDirectionalIndirectDrawList[DrawType];
+}
+
+template<>
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy> >& FScene::GetForwardShadingBasePassDrawList<FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassForForwardShadingDirectionalLightAndSHDirectionalCSMIndirectDrawList[DrawType];
+}
+
+template<>
 TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightLightingPolicy> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightLightingPolicy>(EBasePassDrawListType DrawType)
 {
 	return BasePassForForwardShadingMovableDirectionalLightDrawList[DrawType];
@@ -2318,13 +2455,24 @@ TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalL
 	return BasePassForForwardShadingMovableDirectionalLightCSMDrawList[DrawType];
 }
 
+template<>
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightWithLightmapLightingPolicy> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightWithLightmapLightingPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassForForwardShadingMovableDirectionalLightLightmapDrawList[DrawType];
+}
+
+template<>
+TStaticMeshDrawList<TBasePassForForwardShadingDrawingPolicy<FMovableDirectionalLightCSMWithLightmapLightingPolicy> >& FScene::GetForwardShadingBasePassDrawList<FMovableDirectionalLightCSMWithLightmapLightingPolicy>(EBasePassDrawListType DrawType)
+{
+	return BasePassForForwardShadingMovableDirectionalLightCSMLightmapDrawList[DrawType];
+}
+
 /*-----------------------------------------------------------------------------
 	MotionBlurInfoData
 -----------------------------------------------------------------------------*/
 
 FMotionBlurInfoData::FMotionBlurInfoData()
-	: CacheUpdateCount(0)
-	, bShouldClearMotionBlurInfo(false)
+	: bShouldClearMotionBlurInfo(false)
 {
 
 }
@@ -2411,7 +2559,7 @@ void FMotionBlurInfoData::RestoreForPausedMotionBlur()
 
 void FMotionBlurInfoData::UpdateMotionBlurCache(FScene* InScene)
 {
-	check(IsInRenderingThread());
+	check(InScene && IsInRenderingThread());
 
 	if (InScene->GetFeatureLevel() >= ERHIFeatureLevel::SM4)
 	{

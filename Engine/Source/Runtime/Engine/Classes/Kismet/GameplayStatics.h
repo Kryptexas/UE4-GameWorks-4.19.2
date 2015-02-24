@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Engine/LatentActionManager.h"
@@ -319,10 +319,6 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Audio", meta=(AdvancedDisplay = "2", UnsafeDuringActorConstruction = "true"))
 	static class UAudioComponent* PlayDialogueAttached(class UDialogueWave* Dialogue, const struct FDialogueContext& Context, class USceneComponent* AttachToComponent, FName AttachPointName = NAME_None, FVector Location = FVector(ForceInit), EAttachLocation::Type LocationType = EAttachLocation::KeepRelativeOffset, bool bStopWhenAttachedToDestroyed = false, float VolumeMultiplier = 1.f, float PitchMultiplier = 1.f, float StartTime = 0.f, class USoundAttenuation* AttenuationSettings = NULL);
 
-	/** DEPRECATED - Use GameplayStatics.PlaySoundAtLocation or GameplayStatics.PlaySoundAttached instead. */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext="WorldContextObject", DeprecatedFunction, DeprecationMessage="Use GameplayStatics.PlaySoundAtLocation or GameplayStatics.PlaySoundAttached instead."))
-	static void PlaySound(UObject* WorldContextObject, class USoundCue* InSoundCue, class USceneComponent* AttachComponent, FName AttachName=NAME_None, bool bFollow=false, float VolumeMultiplier=1.f, float PitchMultiplier=1.f);
-
 	// --- Audio Functions ----------------------------
 	/** Set the sound mix of the audio system for special EQing **/
 	UFUNCTION(BlueprintCallable, Category="Audio")
@@ -339,10 +335,6 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	/** Clear all sound mix modifiers from the audio system **/
 	UFUNCTION(BlueprintCallable, Category="Audio")
 	static void ClearSoundMixModifiers();
-
-	/** DEPRECATED - Use SetSoundMix that specifies SoundMix asset directly instead of by name. */
-	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, DeprecationMessage="Use SetSoundMix that specifies SoundMix asset directly instead of by name.", FriendlyName = "SetSoundModeByName"))
-	static void SetSoundMode(FName SoundModeName);
 
 	/** Activates a Reverb Effect without the need for a volume
 	 * @param ReverbEffect Reverb Effect to use

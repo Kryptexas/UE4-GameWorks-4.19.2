@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -40,6 +40,17 @@
 #include "Engine/DestructibleMesh.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
+#include "Engine/Polys.h"
+#include "Engine/Selection.h"
+#include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/PointLightComponent.h"
+#include "PhysicsEngine/RadialForceComponent.h"
+#include "Components/SphereComponent.h"
+#include "Engine/StaticMeshActor.h"
+#include "EngineUtils.h"
+#include "LevelEditor.h"
+#include "ComponentEditorUtils.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogUnrealEdSrv, Log, All);
@@ -551,25 +562,28 @@ bool UUnrealEdEngine::HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, 
 					{
 						// Fix level inconsistency for landscape component and collision component
 						ULandscapeHeightfieldCollisionComponent* Collision = Comp->CollisionComponent.Get();
-						if (Collision && Comp->GetLandscapeProxy()->GetLevel() != Collision->GetLandscapeProxy()->GetLevel())
+						if (Collision != nullptr)
 						{
-							ALandscapeProxy* FromProxy = Collision->GetLandscapeProxy();
-							ALandscapeProxy* DestProxy = Comp->GetLandscapeProxy();
-							// From MoveToLevelTool
-							FromProxy->CollisionComponents.Remove(Collision);
-							Collision->UnregisterComponent();
-							Collision->DetachFromParent(true);
-							Collision->Rename(NULL, DestProxy);
-							DestProxy->CollisionComponents.Add(Collision);
-							Collision->AttachTo( DestProxy->GetRootComponent(), NAME_None, EAttachLocation::KeepWorldPosition );
-							SelectProxies.Add(FromProxy);
-							SelectProxies.Add(DestProxy);
-						}
+							if (Comp->GetLandscapeProxy()->GetLevel() != Collision->GetLandscapeProxy()->GetLevel())
+							{
+								ALandscapeProxy* FromProxy = Collision->GetLandscapeProxy();
+								ALandscapeProxy* DestProxy = Comp->GetLandscapeProxy();
+								// From MoveToLevelTool
+								FromProxy->CollisionComponents.Remove(Collision);
+								Collision->UnregisterComponent();
+								Collision->DetachFromParent(true);
+								Collision->Rename(NULL, DestProxy);
+								DestProxy->CollisionComponents.Add(Collision);
+								Collision->AttachTo( DestProxy->GetRootComponent(), NAME_None, EAttachLocation::KeepWorldPosition );
+								SelectProxies.Add(FromProxy);
+								SelectProxies.Add(DestProxy);
+							}
 
-						// Fix Dominant Layer Data
-						if (bHasPhysicalMaterial && Collision->DominantLayerData.GetBulkDataSize() == 0)
-						{
-							Comp->UpdateCollisionLayerData();
+							// Fix Dominant Layer Data
+							if (bHasPhysicalMaterial && Collision->DominantLayerData.GetBulkDataSize() == 0)
+							{
+								Comp->UpdateCollisionLayerData();
+							}
 						}
 					}
 				}
@@ -625,6 +639,19 @@ bool UUnrealEdEngine::HandleRecreateLandscapeCollisionCommand(const TCHAR* Str, 
 		{
 			ULandscapeInfo* Info = It.Value();
 			Info->RecreateCollisionComponents();
+		}
+	}
+	return true;
+}
+
+bool UUnrealEdEngine::HandleRemoveLandscapeXYOffsetsCommand(const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld)
+{
+	if (!PlayWorld && InWorld && InWorld->GetWorldSettings())
+	{
+		for (auto It = GetLandscapeInfoMap(InWorld).Map.CreateIterator(); It; ++It)
+		{
+			ULandscapeInfo* Info = It.Value();
+			Info->RemoveXYOffsets();
 		}
 	}
 	return true;
@@ -793,13 +820,6 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		return Exec_Actor( InWorld, Str, Ar );
 	}
 	//------------------------------------------------------------------------------------
-	// SKELETALMESH: SkeletalMesh-related functions
-	//
-	else if(FParse::Command(&Str, TEXT("SKELETALMESH")))
-	{
-		return Exec_SkeletalMesh(Str, Ar);
-	}
-	//------------------------------------------------------------------------------------
 	// MODE management (Global EDITOR mode):
 	//
 	else if( FParse::Command(&Str,TEXT("MODE")) )
@@ -840,6 +860,12 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		// InWorld above is the PIE world if PIE is active, but this is specifically an editor command
 		UWorld* World = GetEditorWorldContext().World();
 		return HandleRecreateLandscapeCollisionCommand(Str, Ar, World);
+	}
+	else if (FParse::Command(&Str, TEXT("RemoveLandscapeXYOffsets")))
+	{
+		// InWorld above is the PIE world if PIE is active, but this is specifically an editor command
+		UWorld* World = GetEditorWorldContext().World();
+		return HandleRemoveLandscapeXYOffsetsCommand(Str, Ar, World);
 	}
 #endif // WITH_EDITOR
 	else if( FParse::Command(&Str, TEXT("CONVERTMATINEES")) )
@@ -1562,37 +1588,56 @@ bool UUnrealEdEngine::DoDirtyPackagesNeedCheckout() const
 
 bool UUnrealEdEngine::Exec_Edit( UWorld* InWorld, const TCHAR* Str, FOutputDevice& Ar )
 {
+	const bool bComponentsSelected = GetSelectedComponentCount() > 0;
+
 	if( FParse::Command(&Str,TEXT("CUT")) )
 	{
-		TArray<FEdMode*> ActiveModes; 
-		GLevelEditorModeTools().GetActiveModes( ActiveModes );
-		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
+		TArray<FEdMode*> ActiveModes;
+		GLevelEditorModeTools().GetActiveModes(ActiveModes);
+		for (int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex)
 		{
 			if (ActiveModes[ModeIndex]->ProcessEditCut())
 			{
 				return true;
 			}
 		}
-		CopySelectedActorsToClipboard( InWorld, true );
+
+		if (bComponentsSelected)
+		{
+			edactCopySelected(InWorld);
+			edactDeleteSelected(InWorld);
+		}
+		else
+		{
+			CopySelectedActorsToClipboard(InWorld, true);
+		}
 	}
 	else if( FParse::Command(&Str,TEXT("COPY")) )
 	{
-		TArray<FEdMode*> ActiveModes; 
-		GLevelEditorModeTools().GetActiveModes( ActiveModes );
-		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
+		TArray<FEdMode*> ActiveModes;
+		GLevelEditorModeTools().GetActiveModes(ActiveModes);
+		for (int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex)
 		{
 			if (ActiveModes[ModeIndex]->ProcessEditCopy())
 			{
 				return true;
 			}
 		}
-		CopySelectedActorsToClipboard( InWorld, false );
+
+		if (bComponentsSelected)
+		{
+			edactCopySelected(InWorld);
+		}
+		else
+		{
+			CopySelectedActorsToClipboard(InWorld, false);
+		}
 	}
 	else if( FParse::Command(&Str,TEXT("PASTE")) )
 	{
-		TArray<FEdMode*> ActiveModes; 
-		GLevelEditorModeTools().GetActiveModes( ActiveModes );
-		for( int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex )
+		TArray<FEdMode*> ActiveModes;
+		GLevelEditorModeTools().GetActiveModes(ActiveModes);
+		for (int32 ModeIndex = 0; ModeIndex < ActiveModes.Num(); ++ModeIndex)
 		{
 			if (ActiveModes[ModeIndex]->ProcessEditPaste())
 			{
@@ -1600,27 +1645,35 @@ bool UUnrealEdEngine::Exec_Edit( UWorld* InWorld, const TCHAR* Str, FOutputDevic
 			}
 		}
 
-		// How should this paste be handled
-		EPasteTo PasteTo = PT_OriginalLocation;
-		FText TransDescription = NSLOCTEXT("UnrealEd", "Paste", "Paste");
-		if( FParse::Value( Str, TEXT("TO="), TempStr, 15 ) )
+		if (bComponentsSelected)
 		{
-			if( !FCString::Strcmp( TempStr, TEXT("HERE") ) )
+			const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "PasteComponents", "Paste Components"));
+			edactPasteSelected(InWorld, false, false, true);
+		}
+		else
+		{
+			// How should this paste be handled
+			EPasteTo PasteTo = PT_OriginalLocation;
+			FText TransDescription = NSLOCTEXT("UnrealEd", "Paste", "Paste");
+			if (FParse::Value(Str, TEXT("TO="), TempStr, 15))
 			{
-				PasteTo = PT_Here;
-				TransDescription = NSLOCTEXT("UnrealEd", "PasteHere", "Paste Here");
-			}
-			else
-			{
-				if( !FCString::Strcmp( TempStr, TEXT("ORIGIN") ) )
+				if (!FCString::Strcmp(TempStr, TEXT("HERE")))
 				{
-					PasteTo = PT_WorldOrigin;
-					TransDescription = NSLOCTEXT("UnrealEd", "PasteToWorldOrigin", "Paste To World Origin");
+					PasteTo = PT_Here;
+					TransDescription = NSLOCTEXT("UnrealEd", "PasteHere", "Paste Here");
+				}
+				else
+				{
+					if (!FCString::Strcmp(TempStr, TEXT("ORIGIN")))
+					{
+						PasteTo = PT_WorldOrigin;
+						TransDescription = NSLOCTEXT("UnrealEd", "PasteToWorldOrigin", "Paste To World Origin");
+					}
 				}
 			}
-		}
 
-		PasteSelectedActorsFromClipboard( InWorld, TransDescription, PasteTo );
+			PasteSelectedActorsFromClipboard(InWorld, TransDescription, PasteTo);
+		}
 	}
 
 	return false;
@@ -1767,7 +1820,7 @@ TArray<FPoly*> GetSelectedPolygons()
 		checkSlow( Actor->IsA(AActor::StaticClass()) );
 		FTransform ActorToWorld = Actor->ActorToWorld();
 		
-		TArray<UStaticMeshComponent*> StaticMeshComponents;
+		TInlineComponentArray<UStaticMeshComponent*> StaticMeshComponents;
 		Actor->GetComponents(StaticMeshComponents);
 
 		for(int32 j=0; j<StaticMeshComponents.Num(); j++)
@@ -1912,7 +1965,7 @@ FPoly* CreateHugeTrianglePolygonOnPlane( const FPlane* InPlane )
 	// Using the plane normal, get 2 good axis vectors
 
 	FVector A, B;
-	InPlane->SafeNormal().FindBestAxisVectors( A, B );
+	InPlane->GetSafeNormal().FindBestAxisVectors( A, B );
 
 	// Create 4 vertices from the plane origin and the 2 axis generated above
 
@@ -1941,49 +1994,6 @@ FPoly* CreateHugeTrianglePolygonOnPlane( const FPlane* InPlane )
 	}
 
 	return Triangle;
-}
-
-bool UUnrealEdEngine::Exec_SkeletalMesh( const TCHAR* Str, FOutputDevice& Ar )
-{
-	//This command sets the offset and orientation for all skeletal meshes within the set of currently selected packages
-	if(FParse::Command(&Str, TEXT("CHARBITS"))) //SKELETALMESH CHARBITS
-	{
-		FVector Offset = FVector::ZeroVector;
-		FRotator Orientation = FRotator::ZeroRotator;
-		bool bHasOffset = GetFVECTOR(Str, TEXT("OFFSET="), Offset);
-		
-		TCHAR TempChars[80];
-		bool bHasOrientation = GetSUBSTRING(Str, TEXT("ORIENTATION="), TempChars, 80);
-		
-		//If orientation is present do custom parsing to allow for a proper conversion from a floating point representation of degress
-		//to its integer representation in FRotator. GetFROTATOR() does not allow us to do this.
-		if(bHasOrientation)
-		{
-			float Value = 0.0f;
-			
-			if(FParse::Value(TempChars, TEXT("YAW="), Value))
-			{
-				Value = FMath::Fmod(Value, 360.0f); //Make sure it's in the range 0-360
-				Orientation.Yaw = Value;
-			}
-
-			if(FParse::Value(TempChars, TEXT("PITCH="), Value))
-			{
-				Value = FMath::Fmod(Value, 360.0f); //Make sure it's in the range 0-360
-				Orientation.Pitch = Value;
-			}
-
-			if(FParse::Value(TempChars, TEXT("ROLL="), Value))
-			{
-				Value = FMath::Fmod(Value, 360.0f); //Make sure it's in the range 0-360
-				Orientation.Roll = Value;
-			}
-		}
-
-		return true;
-	}
-
-	return false;
 }
 
 bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevice& Ar )
@@ -2117,7 +2127,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 				{
 					FPlane* plane = SplitterPlanes[x];
 
-					if( plane->SafeNormal().Equals( SplittingPlane->SafeNormal(), NormalTolerance ) )
+					if( plane->GetSafeNormal().Equals( SplittingPlane->GetSafeNormal(), NormalTolerance ) )
 					{
 						bAddPlaneToList = false;
 						break;
@@ -2126,15 +2136,15 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 
 				// As a final test, make sure that this planes normal falls within the normal limits that were defined
 
-				if( FMath::Abs( SplittingPlane->SafeNormal().X ) > NormalLimits.X )
+				if( FMath::Abs( SplittingPlane->GetSafeNormal().X ) > NormalLimits.X )
 				{
 					bAddPlaneToList = false;
 				}
-				if( FMath::Abs( SplittingPlane->SafeNormal().Y ) > NormalLimits.Y )
+				if( FMath::Abs( SplittingPlane->GetSafeNormal().Y ) > NormalLimits.Y )
 				{
 					bAddPlaneToList = false;
 				}
-				if( FMath::Abs( SplittingPlane->SafeNormal().Z ) > NormalLimits.Z )
+				if( FMath::Abs( SplittingPlane->GetSafeNormal().Z ) > NormalLimits.Z )
 				{
 					bAddPlaneToList = false;
 				}
@@ -2173,7 +2183,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 				poly = &(*BuilderBrushPolys)[bp];
 
 				FPoly Front, Back;
-				int res = poly->SplitWithPlane( FVector( plane->X, plane->Y, plane->Z ) * plane->W, plane->SafeNormal(), &Front, &Back, true );
+				int res = poly->SplitWithPlane( FVector( plane->X, plane->Y, plane->Z ) * plane->W, plane->GetSafeNormal(), &Front, &Back, true );
 				switch( res )
 				{
 					// Ignore these results.  We don't want them.
@@ -2224,7 +2234,7 @@ bool UUnrealEdEngine::Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevi
 						plane = new FPlane( poly->Vertices[0], poly->Vertices[1], poly->Vertices[2] );
 
 						FPoly Front, Back;
-						int res = CappingPoly->SplitWithPlane( FVector( plane->X, plane->Y, plane->Z ) * plane->W, plane->SafeNormal(), &Front, &Back, true );
+						int res = CappingPoly->SplitWithPlane( FVector( plane->X, plane->Y, plane->Z ) * plane->W, plane->GetSafeNormal(), &Front, &Back, true );
 						switch( res )
 						{
 							case SP_Split:

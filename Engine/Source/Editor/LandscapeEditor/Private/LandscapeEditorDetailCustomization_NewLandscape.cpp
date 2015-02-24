@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "LandscapeEdMode.h"
@@ -52,7 +52,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 
 	IDetailCategoryBuilder& NewLandscapeCategory = DetailBuilder.EditCategory("New Landscape");
 
-	NewLandscapeCategory.AddCustomRow("")
+	NewLandscapeCategory.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SUniformGridPanel)
 		.SlotPadding(FMargin(10, 2))
@@ -133,7 +133,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 		]
 	];
 
-	NewLandscapeCategory.AddCustomRow("Heightmap Resolution")
+	NewLandscapeCategory.AddCustomRow(LOCTEXT("HeightmapResolution", "Heightmap Resolution"))
 	.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateStatic(&GetVisibilityOnlyInNewLandscapeMode, ENewLandscapePreviewMode::ImportLandscape)))
 	.NameContent()
 	[
@@ -166,7 +166,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 	TSharedRef<IPropertyHandle> PropertyHandle_Material = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, NewLandscape_Material));
 	NewLandscapeCategory.AddProperty(PropertyHandle_Material);
 
-	NewLandscapeCategory.AddCustomRow("Layers")
+	NewLandscapeCategory.AddCustomRow(LOCTEXT("LayersLabel", "Layers"))
 	.Visibility(TAttribute<EVisibility>(this, &FLandscapeEditorDetailCustomization_NewLandscape::GetMaterialTipVisibility))
 	[
 		SNew(SHorizontalBox)
@@ -331,7 +331,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 		[
 			SNew(STextBlock)
 			.Font(DetailBuilder.GetDetailFont())
-			.Text(FString().AppendChar(0xD7)) // Multiply sign
+			.Text(FText::FromString(FString().AppendChar(0xD7))) // Multiply sign
 		]
 		+ SHorizontalBox::Slot()
 		.FillWidth(1)
@@ -351,7 +351,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 		]
 	];
 
-	NewLandscapeCategory.AddCustomRow("Overall Resolution")
+	NewLandscapeCategory.AddCustomRow(LOCTEXT("Resolution", "Overall Resolution"))
 	.RowTag("LandscapeEditor.OverallResolution")
 	.NameContent()
 	[
@@ -390,7 +390,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 		[
 			SNew(STextBlock)
 			.Font(DetailBuilder.GetDetailFont())
-			.Text(FString().AppendChar(0xD7)) // Multiply sign
+			.Text(FText::FromString(FString().AppendChar(0xD7))) // Multiply sign
 		]
 		+ SHorizontalBox::Slot()
 		.FillWidth(1)
@@ -410,7 +410,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 		]
 	];
 
-	NewLandscapeCategory.AddCustomRow("Total Components")
+	NewLandscapeCategory.AddCustomRow(LOCTEXT("TotalComponents", "Total Components"))
 	.RowTag("LandscapeEditor.TotalComponents")
 	.NameContent()
 	[
@@ -436,7 +436,7 @@ void FLandscapeEditorDetailCustomization_NewLandscape::CustomizeDetails(IDetailL
 		]
 	];
 
-	NewLandscapeCategory.AddCustomRow("")
+	NewLandscapeCategory.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -726,22 +726,22 @@ EVisibility FLandscapeEditorDetailCustomization_NewLandscape::GetVisibilityOnlyI
 	return EVisibility::Collapsed;
 }
 
-ESlateCheckBoxState::Type FLandscapeEditorDetailCustomization_NewLandscape::NewLandscapeModeIsChecked(ENewLandscapePreviewMode::Type value) const
+ECheckBoxState FLandscapeEditorDetailCustomization_NewLandscape::NewLandscapeModeIsChecked(ENewLandscapePreviewMode::Type value) const
 {
 	FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 	if (LandscapeEdMode != NULL)
 	{
 		if (LandscapeEdMode->NewLandscapePreviewMode == value)
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 	}
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void FLandscapeEditorDetailCustomization_NewLandscape::OnNewLandscapeModeChanged(ESlateCheckBoxState::Type NewCheckedState, ENewLandscapePreviewMode::Type value)
+void FLandscapeEditorDetailCustomization_NewLandscape::OnNewLandscapeModeChanged(ECheckBoxState NewCheckedState, ENewLandscapePreviewMode::Type value)
 {
-	if (NewCheckedState == ESlateCheckBoxState::Checked)
+	if (NewCheckedState == ECheckBoxState::Checked)
 	{
 		FEdModeLandscape* LandscapeEdMode = GetEditorMode();
 		if (LandscapeEdMode != NULL)
@@ -1377,7 +1377,7 @@ void FLandscapeEditorStructCustomization_FLandscapeImportLayer::CustomizeChildre
 	Result = PropertyHandle_ThumbnailMIC->GetValue(ThumbnailMIC);
 	checkSlow(Result == FPropertyAccess::Success);
 
-	ChildBuilder.AddChildContent(LayerNameText.ToString())
+	ChildBuilder.AddChildContent(LayerNameText)
 	.NameContent()
 	[
 		SNew(SHorizontalBox)

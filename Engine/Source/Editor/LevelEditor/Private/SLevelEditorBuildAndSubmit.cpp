@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelEditor.h"
 #include "ISourceControlModule.h"
@@ -51,12 +51,12 @@ public:
 				[
 					SNew(SCheckBox)
 					.OnCheckStateChanged(this, &SPackageItem::OnCheckStateChanged)
-					.IsChecked(Item->Selected ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+					.IsChecked(Item->Selected ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 					[
 						SNew(STextBlock)
 						.Font(FEditorStyle::GetFontStyle("BuildAndSubmit.NormalFont"))
-						.Text(Item->Name)
-						.ToolTipText(Item->Name)
+						.Text(FText::FromString(Item->Name))
+						.ToolTipText(FText::FromString(Item->Name))
 					]
 				];
 		}
@@ -113,9 +113,9 @@ public:
 
 private:
 	/** User clicked the check box on this item - set the item struct's selected flag to match */
-	void OnCheckStateChanged( const ESlateCheckBoxState::Type NewCheckedState )
+	void OnCheckStateChanged( const ECheckBoxState NewCheckedState )
 	{
-		Item->Selected = (NewCheckedState == ESlateCheckBoxState::Checked);
+		Item->Selected = (NewCheckedState == ECheckBoxState::Checked);
 	}
 
 	/** the item that this row represents */
@@ -126,7 +126,7 @@ SLevelEditorBuildAndSubmit::~SLevelEditorBuildAndSubmit()
 {
 	UPackage::PackageDirtyStateChangedEvent.RemoveAll(this);
 
-	ISourceControlModule::Get().GetProvider().UnregisterSourceControlStateChanged(FSourceControlStateChanged::FDelegate::CreateRaw(this, &SLevelEditorBuildAndSubmit::OnSourceControlStateChanged));
+	ISourceControlModule::Get().GetProvider().UnregisterSourceControlStateChanged_Handle(OnSourceControlStateChangedDelegateHandle);
 }
 
 void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSharedRef< class ILevelEditor >& OwningLevelEditor )
@@ -242,7 +242,7 @@ void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSha
 				.Padding(2)
 				[
 					SAssignNew(AddFilesToSCBox, SCheckBox)
-					.IsChecked(ESlateCheckBoxState::Checked)
+					.IsChecked(ECheckBoxState::Checked)
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("AddFilesButtonLabel", "Add Files to Source Control if Necessary"))
@@ -276,7 +276,7 @@ void SLevelEditorBuildAndSubmit::Construct( const FArguments& InArgs, const TSha
 
 	UpdatePackagesList();
 
-	ISourceControlModule::Get().GetProvider().RegisterSourceControlStateChanged(FSourceControlStateChanged::FDelegate::CreateRaw(this, &SLevelEditorBuildAndSubmit::OnSourceControlStateChanged));
+	OnSourceControlStateChangedDelegateHandle = ISourceControlModule::Get().GetProvider().RegisterSourceControlStateChanged_Handle(FSourceControlStateChanged::FDelegate::CreateRaw(this, &SLevelEditorBuildAndSubmit::OnSourceControlStateChanged));
 
 	UPackage::PackageDirtyStateChangedEvent.AddRaw(this, &SLevelEditorBuildAndSubmit::OnEditorPackageModified);
 }
@@ -432,7 +432,7 @@ void SLevelEditorBuildAndSubmit::OnShowHideExtraPackagesSection(bool bIsExpanded
 	}
 }
 
-void SLevelEditorBuildAndSubmit::OnShowPackagesNotInSCBoxChanged(ESlateCheckBoxState::Type InNewState)
+void SLevelEditorBuildAndSubmit::OnShowPackagesNotInSCBoxChanged(ECheckBoxState InNewState)
 {
 	if (bIsExtraPackagesSectionExpanded)
 	{

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  * To render text in the 3d world (quads with UV assignment to render text with material support).
@@ -8,7 +8,7 @@
 
 #include "TextRenderActor.generated.h"
 
-UCLASS(MinimalAPI, hidecategories=(Collision, Attachment, Actor))
+UCLASS(MinimalAPI, ComponentWrapperClass, hideCategories = (Collision, Attachment, Actor))
 class ATextRenderActor : public AActor
 {
 	GENERATED_UCLASS_BODY()

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -138,7 +138,7 @@ struct FAssetPickerConfig
 	FAssetPickerConfig()
 		: SelectionMode( ESelectionMode::Multi )
 		, ThumbnailLabel( EThumbnailLabel::ClassName )
-		, ThumbnailScale(0.25f) // A reasonable scale
+		, ThumbnailScale(0.1f)
 		, InitialAssetViewType(EAssetViewType::Tile)
 		, bFocusSearchBoxWhenOpened(true)
 		, bAllowNullSelection(false)
@@ -176,12 +176,16 @@ struct FPathPickerConfig
 	/** If false, the context menu will not open when an item is right clicked */
 	bool bAllowContextMenu;
 
+	/** If true, will allow class folders to be shown in the picker */
+	bool bAllowClassesFolder;
+
 	/** If true, will add the path specified in DefaultPath to the tree if it doesn't exist already */
 	bool bAddDefaultPath;
 
 	FPathPickerConfig()
 		: bFocusSearchBoxWhenOpened(true)
 		, bAllowContextMenu(true)
+		, bAllowClassesFolder(false)
 		, bAddDefaultPath(false)
 	{}
 };
@@ -307,8 +311,9 @@ public:
 	 *
 	 * @param OpenAssetConfig				A struct containing details about how the open asset dialog should behave
 	 * @param OnAssetsChosenForOpen			A delegate that is fired when assets are chosen and the open button is pressed
+	 * @param OnAssetDialogCancelled		A delegate that is fired when the asset dialog is closed or cancelled
 	 */
-	virtual void CreateOpenAssetDialog(const FOpenAssetDialogConfig& OpenAssetConfig, const FOnAssetsChosenForOpen& OnAssetsChosenForOpen) = 0;
+	virtual void CreateOpenAssetDialog(const FOpenAssetDialogConfig& OpenAssetConfig, const FOnAssetsChosenForOpen& OnAssetsChosenForOpen, const FOnAssetDialogCancelled& OnAssetDialogCancelled) = 0;
 
 	/**
 	 * Opens the Open Asset dialog in a modal window
@@ -323,8 +328,9 @@ public:
 	 *
 	 * @param SaveAssetConfig				A struct containing details about how the save asset dialog should behave
 	 * @param OnAssetNameChosenForSave		A delegate that is fired when an object path is chosen and the save button is pressed
+	 * @param OnAssetDialogCancelled		A delegate that is fired when the asset dialog is closed or cancelled
 	 */
-	virtual void CreateSaveAssetDialog(const FSaveAssetDialogConfig& SaveAssetConfig, const FOnObjectPathChosenForSave& OnAssetNameChosenForSave) = 0;
+	virtual void CreateSaveAssetDialog(const FSaveAssetDialogConfig& SaveAssetConfig, const FOnObjectPathChosenForSave& OnAssetNameChosenForSave, const FOnAssetDialogCancelled& OnAssetDialogCancelled) = 0;
 
 	/**
 	 * Opens the Save Asset dialog in a modal window

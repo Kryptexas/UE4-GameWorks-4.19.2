@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Runtime/Engine/Classes/Debug/LogVisualizerCameraController.h"
 #include "Runtime/Engine/Classes/Debug/LogVisualizerHUD.h"
 #include "Runtime/Engine/Classes/Kismet/GameplayStatics.h"
+#include "GameFramework/PlayerInput.h"
 
 
 //----------------------------------------------------------------------//

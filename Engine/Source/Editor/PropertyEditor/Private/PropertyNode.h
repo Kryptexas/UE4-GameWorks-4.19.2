@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -405,22 +405,22 @@ public:
 	/**
 	 * Sets the display name override to use instead of the display name
 	 */
-	virtual void SetDisplayNameOverride( const FString& InDisplayNameOverride ) {}
+	virtual void SetDisplayNameOverride( const FText& InDisplayNameOverride ) {}
 
 	/**
 	 * @return The formatted display name for the property in this node                                                              
 	 */
-	virtual FString GetDisplayName() const { return FString(); }
+	virtual FText GetDisplayName() const { return FText::GetEmpty(); }
 
 	/**
 	 * Sets the tooltip override to use instead of the property tooltip
 	 */
-	virtual void SetToolTipOverride( const FString& InToolTipOverride ) {}
+	virtual void SetToolTipOverride( const FText& InToolTipOverride ) {}
 
 	/**
 	 * @return The tooltip for the property in this node                                                              
 	 */
-	virtual FString GetToolTipText() const { return FString(); }
+	virtual FText GetToolTipText() const { return FText::GetEmpty(); }
 
 	/**
 	 * If there is a property, sees if it matches.  Otherwise sees if the entire parent structure matches
@@ -465,6 +465,8 @@ public:
 	 */
 	void PropagateArrayPropertyChange( UObject* ModifiedObject, const FString& OriginalArrayContent,
 									   EPropertyArrayChangeType::Type ChangeType, int32 Index);
+
+	static void AdditionalInitializationUDS(UProperty* Property, uint8* RawPtr);
 
 	/** Broadcasts when a property value changes */
 	DECLARE_EVENT( FPropertyNode, FPropertyValueChangedEvent );

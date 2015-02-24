@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "MacCursor.h"
@@ -172,6 +172,7 @@ void FMacCursor::SetPosition( const int32 X, const int32 Y )
 void FMacCursor::SetType( const EMouseCursor::Type InNewCursor )
 {
 	check( InNewCursor < EMouseCursor::TotalCursorCount );
+	CurrentType = InNewCursor;
 	CurrentCursor = CursorHandles[InNewCursor];
 	if( CurrentCursor )
 	{

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -39,12 +39,13 @@ private:
 
 	TSharedRef<SWidget> MakeRetargetSourceComboWidget( TSharedPtr<FString> InItem );
 	void OnRetargetSourceChanged( TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo  );
-	FString GetRetargetSourceComboBoxContent() const;
-	FString GetRetargetSourceComboBoxToolTip() const;
+	FText GetRetargetSourceComboBoxContent() const;
+	FText GetRetargetSourceComboBoxToolTip() const;
 	void OnRetargetSourceComboOpening();
 	TSharedPtr<FString> GetRetargetSourceString(FName RetargetSourceName) const;
 
 	USkeleton::FOnRetargetSourceChanged OnDelegateRetargetSourceChanged;
+	FDelegateHandle OnDelegateRetargetSourceChangedDelegateHandle;
 	void RegisterRetargetSourceChanged();
 	void DelegateRetargetSourceChanged();
 };

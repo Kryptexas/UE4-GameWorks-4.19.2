@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -13,10 +13,6 @@ class UPhysicsThrusterComponent : public USceneComponent
 {
 	GENERATED_UCLASS_BODY()
 
-	/** If thrust should be applied at the moment. */
-	UPROPERTY()
-	uint32 bThrustEnabled_DEPRECATED:1;
-
 	/** Strength of thrust force applied to the base object. */
 	UPROPERTY(BlueprintReadWrite, interp, Category=Physics)
 	float ThrustStrength;
@@ -24,10 +20,6 @@ class UPhysicsThrusterComponent : public USceneComponent
 	// Begin UActorComponent Interface
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	// End UActorComponent Interface
-
-	// Begin UObject interface.
-	virtual void PostLoad() override;
-	// End UObject interface.
 };
 
 

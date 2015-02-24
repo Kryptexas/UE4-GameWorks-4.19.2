@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrecomputedLightVolume.cpp: Implementation of a precomputed light volume.
@@ -12,21 +12,7 @@ FArchive& operator<<(FArchive& Ar, FVolumeLightingSample& Sample)
 {
 	Ar << Sample.Position;
 	Ar << Sample.Radius;
-
-	if (Ar.UE4Ver() < VER_UE4_CHANGED_VOLUME_SAMPLE_FORMAT)
-	{
-		uint8 Temp = 0;
-		FColor Temp2(0, 0, 0, 0);
-
-		Ar << Temp << Temp;
-		Ar << Temp << Temp;
-		Ar << Temp2 << Temp2 << Temp2;
-		Ar << Temp;
-	}
-	else
-	{
-		Ar << Sample.Lighting;
-	}
+	Ar << Sample.Lighting;
 
 	if (Ar.UE4Ver() >= VER_UE4_SKY_BENT_NORMAL)
 	{
@@ -236,6 +222,7 @@ void FPrecomputedLightVolume::AddToScene(FSceneInterface* Scene)
 	if (bInitialized && Scene)
 	{
 		Scene->AddPrecomputedLightVolume(this);
+		OctreeForRendering = AllowHighQualityLightmaps(Scene->GetFeatureLevel()) ? &HighQualityLightmapOctree : &LowQualityLightmapOctree;
 	}
 }
 

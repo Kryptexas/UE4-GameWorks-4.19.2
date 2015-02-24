@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealString.h: Dynamic string definitions.  This needed to be 
@@ -1427,6 +1427,52 @@ FORCEINLINE uint32 GetTypeHash( const FString& S )
 	return FCrc::Strihash_DEPRECATED(*S);
 }
 
+/** 
+ * Convert an array of bytes to a TCHAR
+ * @param In byte array values to convert
+ * @param Count number of bytes to convert
+ * @return Valid string representing bytes.
+ */
+inline FString BytesToString(const uint8* In, int32 Count)
+{
+	FString Result;
+	Result.Empty(Count);
+
+	while (Count)
+	{
+		// Put the byte into an int16 and add 1 to it, this keeps anything from being put into the string as a null terminator
+		int16 Value = *In;
+		Value += 1;
+
+		Result += TCHAR(Value);
+
+		++In;
+		Count--;
+	}
+	return Result;
+}
+
+/** 
+ * Convert FString of bytes into the byte array.
+ * @param String		The FString of byte values
+ * @param OutBytes		Ptr to memory must be preallocated large enough
+ * @param MaxBufferSize	Max buffer size of the OutBytes array, to prevent overflow
+ * @return	The number of bytes copied
+ */
+inline int32 StringToBytes( const FString& String, uint8* OutBytes, int32 MaxBufferSize )
+{
+	int32 NumBytes = 0;
+	const TCHAR* CharPos = *String;
+
+	while( *CharPos && NumBytes < MaxBufferSize)
+	{
+		OutBytes[ NumBytes ] = (int8)(*CharPos - 1);
+		CharPos++;
+		++NumBytes;
+	}
+	return NumBytes - 1;
+}
+
 /** @return Char value of Nibble */
 inline TCHAR NibbleToTChar(uint8 Num)
 {
@@ -1699,7 +1745,7 @@ public:
 	}
 	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) override
 	{
-		*this += (TCHAR*)InData;
+		FString::operator+=((TCHAR*)InData);
 		if(bAutoEmitLineTerminator)
 		{
 			*this += LINE_TERMINATOR;
@@ -1751,6 +1797,11 @@ public:
 	#endif
 
 #endif
+	// Make += operator virtual.
+	virtual FString& operator+=(const FString& Other)
+	{
+		return FString::operator+=(Other);
+	}
 };
 
 //
@@ -1767,25 +1818,48 @@ public:
 	,	LineCount(0)
 	{}
 
-	virtual void Serialize( const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category ) override
+	virtual void Serialize(const TCHAR* InData, ELogVerbosity::Type Verbosity, const class FName& Category) override
 	{
 		Super::Serialize(InData, Verbosity, Category);
 		int32 TermLength = FCString::Strlen(LINE_TERMINATOR);
-		for(;;)
+		for (;;)
 		{
 			InData = FCString::Strstr(InData, LINE_TERMINATOR);
-			if( !InData )
+			if (!InData)
 			{
 				break;
 			}
 			LineCount++;
 			InData += TermLength;
-		} while(InData);
+		} while (InData);
 
-		if(bAutoEmitLineTerminator)
+		if (bAutoEmitLineTerminator)
 		{
 			LineCount++;
 		}
+	}
+
+	/**
+	 * Appends other FStringOutputDeviceCountLines object to this one.
+	 */
+	virtual FStringOutputDeviceCountLines& operator+=(const FStringOutputDeviceCountLines& Other)
+	{
+		FString::operator+=(Other);
+
+		LineCount += Other.GetLineCount();
+
+		return *this;
+	}
+
+	/**
+	 * Appends other FString (as well as it's specializations like FStringOutputDevice)
+	 * object to this.
+	 */
+	virtual FString& operator+=(const FString& Other) override
+	{
+		Log(Other);
+
+		return *this;
 	}
 
 	int32 GetLineCount() const

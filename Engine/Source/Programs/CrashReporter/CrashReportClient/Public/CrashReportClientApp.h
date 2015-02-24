@@ -1,8 +1,6 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-//#define DO_LOCAL_TESTING 1
 
 #define CRASH_REPORT_UNATTENDED_ONLY			PLATFORM_LINUX
 

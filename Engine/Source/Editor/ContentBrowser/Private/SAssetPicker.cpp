@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ContentBrowserPCH.h"
 #include "GenericCommands.h"
@@ -414,14 +414,14 @@ FText SAssetPicker::GetShowOtherDevelopersToolTip() const
 	}
 }
 
-void SAssetPicker::HandleShowOtherDevelopersCheckStateChanged( ESlateCheckBoxState::Type InCheckboxState )
+void SAssetPicker::HandleShowOtherDevelopersCheckStateChanged( ECheckBoxState InCheckboxState )
 {
-	OtherDevelopersFilter->SetShowOtherDeveloperAssets( InCheckboxState == ESlateCheckBoxState::Checked );
+	OtherDevelopersFilter->SetShowOtherDeveloperAssets( InCheckboxState == ECheckBoxState::Checked );
 }
 
-ESlateCheckBoxState::Type SAssetPicker::GetShowOtherDevelopersCheckState() const
+ECheckBoxState SAssetPicker::GetShowOtherDevelopersCheckState() const
 {
-	return OtherDevelopersFilter->GetShowOtherDeveloperAssets() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return OtherDevelopersFilter->GetShowOtherDeveloperAssets() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SAssetPicker::OnRenameRequested() const

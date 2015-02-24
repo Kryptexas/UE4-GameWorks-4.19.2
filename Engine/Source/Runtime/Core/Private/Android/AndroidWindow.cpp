@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 
@@ -7,6 +7,9 @@
 #include <android/native_window_jni.h>
 #include <jni.h>
 
+// Cached calculated screen resolution
+static int32 WindowWidth = -1;
+static int32 WindowHeight = -1;
 
 FAndroidWindow::~FAndroidWindow()
 {
@@ -18,7 +21,7 @@ TSharedRef<FAndroidWindow> FAndroidWindow::Make()
 	return MakeShareable( new FAndroidWindow() );
 }
 
-FAndroidWindow::FAndroidWindow():Window(NULL)
+FAndroidWindow::FAndroidWindow() :Window(NULL)
 {
 }
 
@@ -67,6 +70,18 @@ int32 FAndroidWindow::GetDepthBufferPreference()
 
 FPlatformRect FAndroidWindow::GetScreenRect()
 {
+	// since orientation and resolution won't change on Android, use cached results if valid
+	if (WindowWidth > 8)
+	{
+		FPlatformRect ScreenRect;
+		ScreenRect.Left = 0;
+		ScreenRect.Top = 0;
+		ScreenRect.Right = WindowWidth;
+		ScreenRect.Bottom = WindowHeight;
+
+		return ScreenRect;
+	}
+
 	// currently hardcoding resolution
 
 	ANativeWindow* Window = (ANativeWindow*)FPlatformMisc::GetHardwareWindow();
@@ -87,6 +102,9 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 
 	if (bMobileHDR32bpp)
 	{
+		const int32 OldMaxWidth = MaxWidth;
+		const int32 OldMaxHeight = MaxHeight;
+
 		if (GAndroidIsPortrait)
 		{
 			MaxHeight = FPlatformMath::Min(MaxHeight,1024);
@@ -97,6 +115,8 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 			MaxWidth = FPlatformMath::Min(MaxWidth,1024);
 			MaxHeight = MaxWidth / AspectRatio;
 		}
+
+		UE_LOG(LogAndroid, Log, TEXT("Limiting MaxWidth=%d and MaxHeight=%d due to bMobileHDR32bpp (was %dx%d)"), MaxWidth, MaxHeight, OldMaxWidth, OldMaxHeight);
 	}
 
 	// CSF is a multiplier to 1280x720
@@ -109,6 +129,7 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 	{
 		Width = MaxWidth;
 		Height = MaxHeight;
+		UE_LOG(LogAndroid, Log, TEXT("Setting Width=%d and Height=%d (requested scale = 0 = auto)"), Width, Height);
 	}
 	else
 	{
@@ -127,6 +148,8 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 		// clamp to native resolution
 		Width = FPlatformMath::Min(Width, MaxWidth);
 		Height = FPlatformMath::Min(Height, MaxHeight);
+
+		UE_LOG(LogAndroid, Log, TEXT("Setting Width=%d and Height=%d (requested scale = %f)"), Width, Height, RequestedContentScaleFactor);
 	}
 
 	FPlatformRect ScreenRect;
@@ -134,6 +157,10 @@ FPlatformRect FAndroidWindow::GetScreenRect()
 	ScreenRect.Top = 0;
 	ScreenRect.Right = Width;
 	ScreenRect.Bottom = Height;
+
+	// save for future calls
+	WindowWidth = Width;
+	WindowHeight = Height;
 
 	return ScreenRect;
 }

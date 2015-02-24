@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,10 +9,14 @@
 #include <msctf.h>
 #include "COMPointer.h"
 
+
 class FTextStoreACP;
 class FWindowsTextInputMethodSystem;
 
-class FTSFActivationProxy : public ITfInputProcessorProfileActivationSink, public ITfActiveLanguageProfileNotifySink
+
+class FTSFActivationProxy
+	: public ITfInputProcessorProfileActivationSink
+	, public ITfActiveLanguageProfileNotifySink
 {
 public:
 	FTSFActivationProxy(FWindowsTextInputMethodSystem* InOwner) 
@@ -20,12 +24,10 @@ public:
 		, TSFLanguageCookie(TF_INVALID_COOKIE)
 		, Owner(InOwner)
 		, ReferenceCount(1)
-	{
-	}
+	{ }
 
 	virtual ~FTSFActivationProxy()
-	{
-	}
+	{ }
 
 	// IUnknown Interface Begin
 	STDMETHODIMP QueryInterface(REFIID riid, void **ppvObj) override;
@@ -42,39 +44,48 @@ public:
 	// ITfActiveLanguageProfileNotifySink Interface End
 
 public:
+
 	DWORD TSFProfileCookie;
 	DWORD TSFLanguageCookie;
 
 private:
+
 	FWindowsTextInputMethodSystem* Owner;
 
 	// Reference count for IUnknown Implementation
 	ULONG ReferenceCount;
 };
 
-class FWindowsTextInputMethodSystem : public ITextInputMethodSystem
+
+class FWindowsTextInputMethodSystem
+	: public ITextInputMethodSystem
 {
 	friend class FTSFActivationProxy;
 
 public:
+
 	virtual ~FWindowsTextInputMethodSystem() {}
 
 	bool Initialize();
 	void Terminate();
 
-	// ITextInputMethodSystem Interface Begin
+	int32 ProcessMessage(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam);
+
+public:
+
+	// ITextInputMethodSystem interface
+
 	virtual void ApplyDefaults(const TSharedRef<FGenericWindow>& InWindow) override;
 	virtual TSharedPtr<ITextInputMethodChangeNotifier> RegisterContext(const TSharedRef<ITextInputMethodContext>& Context) override;
 	virtual void UnregisterContext(const TSharedRef<ITextInputMethodContext>& Context) override;
 	virtual void ActivateContext(const TSharedRef<ITextInputMethodContext>& Context) override;
 	virtual void DeactivateContext(const TSharedRef<ITextInputMethodContext>& Context) override;
 	virtual bool IsActiveContext(const TSharedRef<ITextInputMethodContext>& Context) const override;
-	// ITextInputMethodSystem Interface End
-
-	int32 ProcessMessage(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam);
 
 private:
+
 	// IMM Implementation
+
 	bool InitializeIMM();
 	void UpdateIMMProperty(HKL KeyboardLatoutHandle);
 	bool ShouldDrawIMMCompositionString() const;
@@ -84,14 +95,15 @@ private:
 	void CancelIMMComposition();
 
 	// TSF Implementation
+
 	bool InitializeTSF();
-
 	void OnIMEActivationStateChanged(const bool bIsEnabled);
-
 	void ClearStaleWindowHandles();
 
 private:
+
 	TSharedPtr<ITextInputMethodContext> ActiveContext;
+
 	enum class EAPI
 	{
 		Unknown,
@@ -130,6 +142,7 @@ private:
 			uint32 CompositionLength;
 		} IMMContext;
 	};
+
 	TMap< TWeakPtr<ITextInputMethodContext>, FInternalContext > ContextToInternalContextMap;
 
 	// IMM Implementation
@@ -138,5 +151,6 @@ private:
 
 	TSet<TWeakPtr<FGenericWindow>> KnownWindows;
 };
+
 
 #include "HideWindowsPlatformTypes.h"

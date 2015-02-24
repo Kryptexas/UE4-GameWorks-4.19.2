@@ -1,9 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
 #include "Collision.h"
 #include "CollisionDebugDrawingPublic.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 #if WITH_BOX2D
 #include "../PhysicsEngine2D/Box2DIntegration.h"
@@ -173,14 +175,13 @@ FRaycastHelperBox2D_Base::EResponse FRaycastHelperBox2D_Base::CalcQueryHitType(b
 		Result = ResponseNone;
 	}
 
-	// Check to see if the actor ultimately owning the fixture should be ignored
+	// Check to see if the component ultimately owning the fixture should be ignored
 	if (Result != ResponseNone)
 	{
 		FBodyInstance* OwnerBodyInstance = static_cast<FBodyInstance*>(Fixture->GetBody()->GetUserData());
 		UPrimitiveComponent* OwnerComponent = OwnerBodyInstance->OwnerComponent.Get();
-		AActor* Owner = OwnerComponent ? OwnerComponent->GetOwner() : nullptr;
-
-		if ((Owner != nullptr) && Params.IgnoreActors.Contains(Owner->GetUniqueID()))
+		
+		if ((OwnerComponent != nullptr) && Params.IgnoreComponents.Contains(OwnerComponent->GetUniqueID()))
 		{
 			Result = ResponseNone;
 		}
@@ -204,7 +205,7 @@ public:
 
 		if (ResponseMode != ResponseNone)
 		{
-			ProcessHit(Fixture, Fraction, FPhysicsIntegration2D::ConvertBoxVectorToUnreal(Normal).SafeNormal(), ResponseMode);
+			ProcessHit(Fixture, Fraction, FPhysicsIntegration2D::ConvertBoxVectorToUnreal(Normal).GetSafeNormal(), ResponseMode);
 		}
 
 		switch (ResponseMode)
@@ -273,7 +274,7 @@ protected:
 			PointQueryStartTime = FPhysicsIntegration2D::ConvertUnrealVectorToPerpendicularDistance(Start);
 			const float PointQueryEndTime = FPhysicsIntegration2D::ConvertUnrealVectorToPerpendicularDistance(End);
 			PointQueryScaleFactor = 1.0f / (PointQueryEndTime - PointQueryStartTime);
-			PointQueryNormal = (Start - End).SafeNormal();
+			PointQueryNormal = (Start - End).GetSafeNormal();
 
 			// Run the query
 			b2AABB QueryBox;
@@ -475,7 +476,7 @@ private:
 #define VERIFY_GEOMSWEEPSINGLE 0
 #define VERIFY_GEOMSWEEPMULTI 0
 
-static float DebugLineLifetime = 2.f;
+float DebugLineLifetime = 2.f;
 
 /** 
  * Type of query for object type or trace type
@@ -529,14 +530,6 @@ PxSceneQueryHitType::Enum FPxQueryFilterCallback::CalcQueryHitType(const PxFilte
 		if (QuerierChannel == ECC_OverlapAll_Deprecated)
 		{
 			return PxSceneQueryHitType::eTOUCH;
-		}
-		else if (QuerierChannel == ECC_OverlapAllDynamic_Deprecated)
-		{
-			return bStaticShape ? PxSceneQueryHitType::eNONE : PxSceneQueryHitType::eTOUCH;
-		}
-		else if (QuerierChannel == ECC_OverlapAllStatic_Deprecated)
-		{
-			return !bStaticShape ? PxSceneQueryHitType::eNONE : PxSceneQueryHitType::eTOUCH;
 		}
 		// @todo delete once we fix up object/trace APIs to work separate
 
@@ -593,7 +586,7 @@ PxSceneQueryHitType::Enum FPxQueryFilterCallback::preFilter(const PxFilterData& 
 #endif // ENABLE_PREFILTER_LOGGING
 
 	// See if we are ignoring the actor this shape belongs to (word0 of shape filterdata is actorID)
-	if(IgnoreActors.Contains(ShapeFilter.word0))
+	if(IgnoreComponents.Contains(ShapeFilter.word0))
 	{
 		//UE_LOG(LogTemp, Log, TEXT("Ignoring Actor: %d"), ShapeFilter.word0);
 		return (PrefilterReturnValue = PxSceneQueryHitType::eNONE);
@@ -788,7 +781,7 @@ bool RaycastTest(const UWorld* World, const FVector Start, const FVector End, EC
 			PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
 			PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
 			PxSceneQueryFlags POutputFlags = PxHitFlags();
-			FPxQueryFilterCallback PQueryCallback(Params.IgnoreActors);
+			FPxQueryFilterCallback PQueryCallback(Params.IgnoreComponents);
 			PQueryCallback.bSingleQuery = true;
 
 			FPhysScene* PhysScene = World->GetPhysicsScene();
@@ -860,7 +853,7 @@ bool RaycastSingle(const UWorld* World, struct FHitResult& OutHit, const FVector
 			PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
 			PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
 			PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::ePOSITION | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE | PxSceneQueryFlag::eMTD;
-			FPxQueryFilterCallback PQueryCallback(Params.IgnoreActors);
+			FPxQueryFilterCallback PQueryCallback(Params.IgnoreComponents);
 			PQueryCallback.bSingleQuery = true; // this needs to be set for raycastSingle so we return eNONE instead of eTOUCH
 
 			PxVec3 PStart = U2PVector(Start);
@@ -964,7 +957,7 @@ bool RaycastMulti(const UWorld* World, TArray<struct FHitResult>& OutHits, const
 		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, true);
 		PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
 		PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::ePOSITION | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE | PxSceneQueryFlag::eMTD;
-		FPxQueryFilterCallback PQueryCallback(Params.IgnoreActors);
+		FPxQueryFilterCallback PQueryCallback(Params.IgnoreComponents);
 
 		// Create buffer for hits. Note: memory is not initialized (for perf reasons), since API does not require it.
 		TTypeCompatibleBytes<PxRaycastHit> RawPHits[HIT_BUFFER_SIZE];
@@ -1124,7 +1117,7 @@ bool GeomSweepTest(const UWorld* World, const struct FCollisionShape& CollisionS
 		PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER | PxSceneQueryFilterFlag::ePOSTFILTER);
 		PxSceneQueryFlags POutputFlags; 
 
-		FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.IgnoreActors);
+		FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.IgnoreComponents);
 		PQueryCallbackSweep.DiscardInitialOverlaps = !Params.bFindInitialOverlaps;
 		PQueryCallbackSweep.bSingleQuery = true;
 
@@ -1196,7 +1189,7 @@ bool GeomSweepSingle(const UWorld* World, const struct FCollisionShape& Collisio
 		//UE_LOG(LogCollision, Log, TEXT("PFilter: %x %x %x %x"), PFilter.word0, PFilter.word1, PFilter.word2, PFilter.word3);
 		PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
 		PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::ePOSITION | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE | PxSceneQueryFlag::eMTD;
-		FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.IgnoreActors);
+		FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.IgnoreComponents);
 		PQueryCallbackSweep.bSingleQuery = true; //LOC_MOD need to do this to return eNONE instead of eTOUCH for r
 		PQueryCallbackSweep.DiscardInitialOverlaps = !Params.bFindInitialOverlaps;	
 
@@ -1299,7 +1292,7 @@ bool GeomSweepMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const Px
 	PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, true);
 	PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER | PxSceneQueryFilterFlag::ePOSTFILTER);
 	PxSceneQueryFlags POutputFlags = PxSceneQueryFlag::ePOSITION | PxSceneQueryFlag::eNORMAL | PxSceneQueryFlag::eDISTANCE | PxSceneQueryFlag::eMTD;
-	FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.IgnoreActors);
+	FPxQueryFilterCallbackSweep PQueryCallbackSweep(Params.IgnoreComponents);
 	PQueryCallbackSweep.DiscardInitialOverlaps = !Params.bFindInitialOverlaps;
 
 	const FVector Delta = End - Start;
@@ -1476,7 +1469,7 @@ bool GeomOverlapTest(const UWorld* World, const struct FCollisionShape& Collisio
 	// Create filter data used to filter collisions
 	PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
 	PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
-	FPxQueryFilterCallback PQueryCallback(Params.IgnoreActors);
+	FPxQueryFilterCallback PQueryCallback(Params.IgnoreComponents);
 
 	PxOverlapHit POverlapResult;
 	bool bHit = false;
@@ -1550,7 +1543,7 @@ bool GeomOverlapSingle(const UWorld* World, const struct FCollisionShape& Collis
 	// Create filter data used to filter collisions
 	PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, false);
 	PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
-	FPxQueryFilterCallback PQueryCallback(Params.IgnoreActors);
+	FPxQueryFilterCallback PQueryCallback(Params.IgnoreComponents);
 
 	// Enable scene locks, in case they are required
 	FPhysScene* PhysScene = World->GetPhysicsScene();
@@ -1610,6 +1603,7 @@ bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const 
 {
 	SCOPE_CYCLE_COUNTER(STAT_Collision_GeomOverlapMultiple);
 	bool bHaveBlockingHit = false;
+	PxScene* LockedScenes[] = { nullptr, nullptr, nullptr };
 
 	// overlapMultiple only supports sphere/capsule/box 
 	if (PGeom.getType()==PxGeometryType::eSPHERE || PGeom.getType()==PxGeometryType::eCAPSULE || PGeom.getType()==PxGeometryType::eBOX || PGeom.getType()==PxGeometryType::eCONVEXMESH )
@@ -1617,13 +1611,14 @@ bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const 
 		// Create filter data used to filter collisions
 		PxFilterData PFilter = CreateQueryFilterData(TraceChannel, Params.bTraceComplex, ResponseParams.CollisionResponse, ObjectParams, true);
 		PxSceneQueryFilterData PQueryFilterData(PFilter, PxSceneQueryFilterFlag::eSTATIC | PxSceneQueryFilterFlag::eDYNAMIC | PxSceneQueryFilterFlag::ePREFILTER);
-		FPxQueryFilterCallback PQueryCallback(Params.IgnoreActors);
+		FPxQueryFilterCallback PQueryCallback(Params.IgnoreComponents);
 
 		// Enable scene locks, in case they are required
 		FPhysScene* PhysScene = World->GetPhysicsScene();
 		PxScene* SyncScene = PhysScene->GetPhysXScene(PST_Sync);
 
-		SCOPED_SCENE_READ_LOCK(SyncScene);
+		SCENE_LOCK_READ(SyncScene);		//we can't use scoped because we later do a conversion which depends on these results and it should all be atomic
+		LockedScenes[PST_Sync] = SyncScene;
 
 		// Create buffer for hits. Note: memory is not initialized (for perf reasons), since API does not require it.
 		TTypeCompatibleBytes<PxOverlapHit> RawPOverlapArray[OVERLAP_BUFFER_SIZE];
@@ -1645,7 +1640,8 @@ bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const 
 		if (Params.bTraceAsyncScene && PhysScene->HasAsyncScene())
 		{		
 			PxScene* AsyncScene = PhysScene->GetPhysXScene(PST_Async);
-			SCOPED_SCENE_READ_LOCK(AsyncScene);
+			SCENE_LOCK_READ(AsyncScene);			//we can't use scoped because we later do a conversion which depends on these results and it should all be atomic
+			LockedScenes[PST_Async] = AsyncScene;
 
 			// Write into the same PHits buffer
 			PxOverlapHit* PAsyncOverlapArray = POverlapArray + NumHits;
@@ -1671,6 +1667,11 @@ bool GeomOverlapMulti_PhysX(const UWorld* World, const PxGeometry& PGeom, const 
 			bHaveBlockingHit = ConvertOverlapResults(NumHits, POverlapArray, PFilter, OutOverlaps);
 		}
 
+		for (PxScene* LockedScene : LockedScenes)
+		{
+			SCENE_UNLOCK_READ(LockedScene);
+		}
+		
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 		if ((World->DebugDrawTraceTag != NAME_None) && (World->DebugDrawTraceTag == Params.TraceTag))
 		{

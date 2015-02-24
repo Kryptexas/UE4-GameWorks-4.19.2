@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
 #include "CrashReportClientUnattended.h"
@@ -6,11 +6,9 @@
 FCrashReportClientUnattended::FCrashReportClientUnattended(const FPlatformErrorReport& ErrorReport)
 	: Uploader(GServerIP)
 {
-	Uploader.BeginUpload(ErrorReport);
-
 	// Prevent uploader waiting for a diagnosis file
-	Uploader.LocalDiagnosisSkipped();
-
+	Uploader.LocalDiagnosisSkipped();	
+	Uploader.BeginUpload(ErrorReport);
 	StartTicker();
 }
 

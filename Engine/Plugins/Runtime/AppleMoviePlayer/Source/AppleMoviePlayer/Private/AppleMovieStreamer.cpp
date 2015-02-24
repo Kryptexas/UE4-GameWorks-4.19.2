@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AppleMoviePlayerPrivatePCH.h"
 
@@ -452,10 +452,10 @@ bool FAVPlayerMovieStreamer::CheckForNextFrameAndCopy()
             check( TextureData->GetRawBytesPtr() != NULL );
         }
 
-        check( TextureData->GetStride() > 0 );
+        check( TextureData->GetBytesPerPixel() > 0 );
         
         // Copy the video data
-        uint32 Len = TextureData->GetStride() * SrcHeight;
+        uint32 Len = TextureData->GetBytesPerPixel() * SrcHeight;
         check( Len > 0 );
         FMemory::Memcpy(TextureData->GetRawBytesPtr(), pVideoData, Len);
 

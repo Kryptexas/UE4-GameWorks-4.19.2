@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "SlateBasics.h"
 
 /**
  * Delegate type for getting a page's enabled state.
@@ -137,25 +138,46 @@ public:
 public:
 
 	SLATE_BEGIN_ARGS(SWizard)
-		: _CanFinish(true)
+		: _ButtonStyle(&FCoreStyle::Get().GetWidgetStyle<FButtonStyle>("Button"))
+		, _CancelButtonStyle(&FCoreStyle::Get().GetWidgetStyle<FButtonStyle>("Button"))
+		, _FinishButtonStyle(&FCoreStyle::Get().GetWidgetStyle<FButtonStyle>("Button"))
+		, _ButtonTextStyle(&FCoreStyle::Get().GetWidgetStyle< FTextBlockStyle >("NormalText"))
+		, _ForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
+		, _CanFinish(true)
 		, _FinishButtonText(NSLOCTEXT("SWizard", "DefaultFinishButtonText", "Finish"))
 		, _FinishButtonToolTip(NSLOCTEXT("SWizard", "DefaultFinishButtonTooltip", "Finish the wizard"))
 		, _InitialPageIndex(0)
 		, _DesiredSize(FVector2D(0, 0))
 		, _ShowPageList(true)
 		, _ShowCancelButton(true)
+		, _PageFooter()
 	{ }
 
 		SLATE_SUPPORTS_SLOT_WITH_ARGS(FWizardPage)
+
+		/** The button style used by next and back. */
+		SLATE_STYLE_ARGUMENT(FButtonStyle, ButtonStyle)
+
+		/** The button style used by the cancel button. */
+		SLATE_STYLE_ARGUMENT(FButtonStyle, CancelButtonStyle)
+
+		/** The button style used by the finish button. */
+		SLATE_STYLE_ARGUMENT(FButtonStyle, FinishButtonStyle)
+
+		/** The text style used by the buttons. */
+		SLATE_STYLE_ARGUMENT(FTextBlockStyle, ButtonTextStyle)
+
+		/** The text style used by the buttons. */
+		SLATE_ARGUMENT(FSlateColor, ForegroundColor)
 
 		/** Holds a flag indicating whether the 'Finish' button is enabled. */
 		SLATE_ATTRIBUTE(bool, CanFinish)
 
 		/** Holds the label text of the wizard's 'Finish' button. */
-		SLATE_TEXT_ATTRIBUTE(FinishButtonText)
+		SLATE_ATTRIBUTE(FText, FinishButtonText)
 
 		/** Holds the tool tip text of the wizard's 'Finish' button. */
-		SLATE_TEXT_ATTRIBUTE(FinishButtonToolTip)
+		SLATE_ATTRIBUTE(FText, FinishButtonToolTip)
 
 		/** Holds the index of the initial page to be displayed (0 = default). */
 		SLATE_ATTRIBUTE(int32, InitialPageIndex)
@@ -183,6 +205,9 @@ public:
 
 		/** Holds a flag indicating whether the cancel button should be shown (default = true). */
 		SLATE_ARGUMENT(bool, ShowCancelButton)
+
+		/** Holds an optional widget containing the contents to place above the buttons for all wizard pages */
+		SLATE_NAMED_SLOT(FArguments, PageFooter)
 
 	SLATE_END_ARGS()
 
@@ -263,10 +288,10 @@ private:
 	EVisibility HandleNextButtonVisibility() const;
 
 	// Callback for getting the checked state of a page button.
-	void HandlePageButtonCheckStateChanged( ESlateCheckBoxState::Type NewState, int32 PageIndex );
+	void HandlePageButtonCheckStateChanged( ECheckBoxState NewState, int32 PageIndex );
 
 	// Callback for clicking a page button.
-	ESlateCheckBoxState::Type HandlePageButtonIsChecked( int32 PageIndex ) const;
+	ECheckBoxState HandlePageButtonIsChecked( int32 PageIndex ) const;
 
 	// Callback for getting the enabled state of a page button.
 	bool HandlePageButtonIsEnabled( int32 PageIndex ) const;

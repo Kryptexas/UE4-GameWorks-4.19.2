@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectBaseUtility.cpp: Unreal UObject functions that only depend on UObjectBase
@@ -116,9 +116,7 @@ UPackage* UObjectBaseUtility::GetOutermost() const
 		UObject* Outer = Top->GetOuter();
 		if (!Outer)
 		{
-			UPackage* Result = dynamic_cast<UPackage*>(Top);
-			check(Result);
-			return Result;
+			return CastChecked<UPackage>(Top);
 		}
 		Top = Outer;
 	}

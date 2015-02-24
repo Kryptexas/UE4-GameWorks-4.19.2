@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AttributeSet.h"
@@ -6,9 +6,15 @@
 #include "HAL/OutputDevices.h"
 #include "AbilitySystemGlobals.h"
 
-#include "ComponentReregisterContext.h"	
+#include "ComponentReregisterContext.h"
 
-void FGameplayAttribute::SetNumericValueChecked(const float NewValue, class UAttributeSet* Dest) const
+FGameplayAttribute::FGameplayAttribute(UProperty *NewProperty)
+{
+	// Only numeric properties are allowed right now
+	Attribute = Cast<UNumericProperty>(NewProperty);
+}
+
+void FGameplayAttribute::SetNumericValueChecked(float NewValue, class UAttributeSet* Dest) const
 {
 	UNumericProperty *NumericProperty = CastChecked<UNumericProperty>(Attribute);
 	void* ValuePtr = NumericProperty->ContainerPtrToValuePtr<void>(Dest);
@@ -21,6 +27,11 @@ float FGameplayAttribute::GetNumericValueChecked(const UAttributeSet* Src) const
 	UNumericProperty* NumericProperty = CastChecked<UNumericProperty>(Attribute);
 	const void* ValuePtr = NumericProperty->ContainerPtrToValuePtr<void>(Src);
 	return NumericProperty->GetFloatingPointPropertyValue(ValuePtr);
+}
+
+bool FGameplayAttribute::IsSystemAttribute() const
+{
+	return GetAttributeSetClass()->IsChildOf(UAbilitySystemComponent::StaticClass());
 }
 
 UAttributeSet::UAttributeSet(const FObjectInitializer& ObjectInitializer)
@@ -93,6 +104,19 @@ void UAttributeSet::PrintDebug()
 	
 }
 
+void UAttributeSet::PreNetReceive()
+{
+	// During the scope of this entire actor's network update, we need to lock our attribute aggregators.
+	FScopedAggregatorOnDirtyBatch::BeginNetReceiveLock();
+}
+	
+void UAttributeSet::PostNetReceive()
+{
+	// Once we are done receiving properties, we can unlock the attribute aggregators and flag them that the 
+	// current property values are from the server.
+	FScopedAggregatorOnDirtyBatch::EndNetReceiveLock();
+}
+
 FAttributeMetaData::FAttributeMetaData()
 	: MinValue(0.f)
 	, MaxValue(1.f)
@@ -100,54 +124,24 @@ FAttributeMetaData::FAttributeMetaData()
 
 }
 
-void FScalableFloat::FinalizeCurveData(const FGlobalCurveDataOverride *GlobalOverrides)
-{
-	static const FString ContextString = TEXT("FScalableFloat::FinalizeCurveData");
-
-	// We are a static value, so do nothing.
-	if (Curve.RowName == NAME_None)
-	{
-		return;
-	}
-
-	// Tied to an explicit table, so bind now.
-	if (Curve.CurveTable != NULL)
-	{
-		FinalCurve = Curve.GetCurve(ContextString);
-		return;
-	}
-
-	// We have overrides
-	if (GlobalOverrides)
-	{
-		for (UCurveTable* OverrideTable : GlobalOverrides->Overrides)
-		{
-			FinalCurve = OverrideTable->FindCurve(Curve.RowName, ContextString, false);
-			if (FinalCurve)
-			{
-				return;
-			}
-		}
-	}
-
-	// Look at global defaults
-	const UCurveTable* GlobalTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalCurveTable();
-	if (GlobalTable)
-	{
-		FinalCurve = GlobalTable->FindCurve(Curve.RowName, ContextString, false);
-	}
-
-	if (!FinalCurve)
-	{
-		ABILITY_LOG(Warning, TEXT("Unable to find RowName: %s for FScalableFloat."), *Curve.RowName.ToString());
-	}
-}
-
 float FScalableFloat::GetValueAtLevel(float Level) const
 {
-	if (FinalCurve)
+	if (Curve.CurveTable != nullptr)
 	{
-		return Value * FinalCurve->Eval(Level);
+		if (FinalCurve == nullptr)
+		{
+			static const FString ContextString = TEXT("FScalableFloat::FinalizeCurveData");
+			FinalCurve = Curve.GetCurve(ContextString);
+		}
+
+		if (FinalCurve != nullptr)
+		{
+			return Value * FinalCurve->Eval(Level);
+		}
+		else
+		{
+			ABILITY_LOG(Error, TEXT("Unable to find RowName: %s for FScalableFloat."), *Curve.RowName.ToString());
+		}
 	}
 
 	return Value;
@@ -321,20 +315,20 @@ void FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* Abi
 		}
 	}
 
-	if (!Collection->LevelData.IsValidIndex(Level))
+	if (!Collection->LevelData.IsValidIndex(Level - 1))
 	{
 		// We could eventually extrapolate values outside of the max defined levels
 		ABILITY_LOG(Warning, TEXT("Attribute defaults for Level %d are not defined! Skipping"), Level);
 		return;
 	}
 
-	const FAttributeSetDefaults& SetDefaults = Collection->LevelData[Level];
+	const FAttributeSetDefaults& SetDefaults = Collection->LevelData[Level - 1];
 	for (const UAttributeSet* Set : AbilitySystemComponent->SpawnedAttributes)
 	{
 		const FAttributeDefaultValueList* DefaultDataList = SetDefaults.DataMap.Find(Set->GetClass());
 		if (DefaultDataList)
 		{
-			ABILITY_LOG(Warning, TEXT("Initializing Set %s"), *Set->GetName());
+			ABILITY_LOG(Log, TEXT("Initializing Set %s"), *Set->GetName());
 
 			for (auto& DataPair : DefaultDataList->List)
 			{
@@ -343,7 +337,7 @@ void FAttributeSetInitter::InitAttributeSetDefaults(UAbilitySystemComponent* Abi
 				if (Set->ShouldInitProperty(bInitialInit, DataPair.Property))
 				{
 					FGameplayAttribute AttributeToModify(DataPair.Property);
-					AbilitySystemComponent->SetNumericAttribute(AttributeToModify, DataPair.Value);
+					AbilitySystemComponent->SetNumericAttributeBase(AttributeToModify, DataPair.Value);
 				}
 			}
 		}		

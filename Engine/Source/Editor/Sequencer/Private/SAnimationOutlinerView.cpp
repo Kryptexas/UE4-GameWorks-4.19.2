@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 
@@ -6,7 +6,7 @@
 #include "ScopedTransaction.h"
 #include "Sequencer.h"
 #include "MovieScene.h"
-
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "AnimationOutliner"
 

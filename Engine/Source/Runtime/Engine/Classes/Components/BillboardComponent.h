@@ -1,8 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 #include "BillboardComponent.generated.h"
+
+struct FEngineShowFlags;
+struct FConvexVolume;
 
 /** 
  * A 2d texture that will be rendered always facing the camera.
@@ -62,6 +65,10 @@ class UBillboardComponent : public UPrimitiveComponent
 	// Begin UPrimitiveComponent Interface
 	virtual FPrimitiveSceneProxy* CreateSceneProxy() override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
+#if WITH_EDITOR
+	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
+	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
+#endif
 	// End UPrimitiveComponent Interface
 
 #if WITH_EDITORONLY_DATA

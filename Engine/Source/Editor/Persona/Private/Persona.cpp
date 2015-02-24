@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -68,6 +68,8 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 
+#include "Editor/KismetWidgets/Public/SSingleObjectDetailsPanel.h"
+
 #define LOCTEXT_NAMESPACE "FPersona"
 
 /////////////////////////////////////////////////////
@@ -79,6 +81,68 @@ struct FLocalCharEditorCallbacks
 	{
 		return FText::FromString( Object->GetName() );
 	}
+};
+
+/////////////////////////////////////////////////////
+// SPersonaPreviewPropertyEditor
+
+class SPersonaPreviewPropertyEditor : public SSingleObjectDetailsPanel
+{
+public:
+	SLATE_BEGIN_ARGS(SPersonaPreviewPropertyEditor) {}
+	SLATE_END_ARGS()
+
+private:
+	// Pointer back to owning Persona editor instance (the keeper of state)
+	TWeakPtr<FPersona> PersonaPtr;
+public:
+	void Construct(const FArguments& InArgs, TSharedPtr<FPersona> InPersona)
+	{
+		PersonaPtr = InPersona;
+
+		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments(), /*bAutomaticallyObserveViaGetObjectToObserve*/ true, /*bAllowSearch*/ true);
+
+		PropertyView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateStatic([] { return !GIntraFrameDebuggingGameThread; }));
+	}
+
+	// SSingleObjectDetailsPanel interface
+	virtual UObject* GetObjectToObserve() const override
+	{
+		if (UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->GetPreviewMeshComponent())
+		{
+			if (PreviewComponent->AnimScriptInstance != nullptr)
+			{
+				return PreviewComponent->AnimScriptInstance;
+			}
+		}
+
+		return nullptr;
+	}
+
+	virtual TSharedRef<SWidget> PopulateSlot(TSharedRef<SWidget> PropertyEditorWidget) override
+	{
+		return SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(0.f, 8.f, 0.f, 0.f)
+			[
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush("Persona.PreviewPropertiesWarning"))
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("AnimBlueprintEditPreviewText", "Changes to preview options are not saved in the asset."))
+					.Font(FEditorStyle::GetFontStyle("PropertyWindow.NormalFont"))
+					.ShadowColorAndOpacity(FLinearColor::Black.CopyWithNewOpacity(0.3f))
+					.ShadowOffset(FVector2D::UnitVector)
+				]
+			]
+			+SVerticalBox::Slot()
+			.FillHeight(1)
+			[
+				PropertyEditorWidget
+			];
+	}
+	// End of SSingleObjectDetailsPanel interface
 };
 
 //////////////////////////////////////////////////////
@@ -187,9 +251,13 @@ FPersona::FPersona()
 {
 	// Register to be notified when properties are edited
 	OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FPersona::OnPropertyChanged);
-	FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
+	OnPropertyChangedHandleDelegateHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
 
 	GEditor->OnBlueprintPreCompile().AddRaw(this, &FPersona::OnBlueprintPreCompile);
+
+	//Temporary fix for missing attached assets - MDW
+	PreviewScene.GetWorld()->GetWorldSettings()->SetIsTemporarilyHiddenInEditor(false);
+
 }
 
 FPersona::~FPersona()
@@ -210,7 +278,7 @@ FPersona::~FPersona()
 		Viewport.Pin()->CleanupPersonaReferences();
 	}
 
-	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandle);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandleDelegateHandle);
 
 	if(PreviewComponent)
 	{
@@ -353,7 +421,7 @@ TSharedPtr<SDockTab> FPersona::OpenNewAnimationDocumentTab(UObject* InAnimAsset)
 
 		if(SequenceBrowser.IsValid())
 		{
-			UAnimationAsset * NewAsset = CastChecked<UAnimationAsset>(InAnimAsset);
+			UAnimationAsset* NewAsset = CastChecked<UAnimationAsset>(InAnimAsset);
 			SequenceBrowser.Pin()->SelectAsset(NewAsset);
 		}
 	}
@@ -542,7 +610,7 @@ void FPersona::ExtendMenu()
 	AddMenuExtender(PersonaModule->GetMenuExtensibilityManager()->GetAllExtenders(GetToolkitCommands(), GetEditingObjects()));
 }
 
-void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, USkeleton* InitSkeleton, UAnimBlueprint* InitAnimBlueprint, UAnimationAsset* InitAnimationAsset, class USkeletalMesh * InitMesh)
+void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, USkeleton* InitSkeleton, UAnimBlueprint* InitAnimBlueprint, UAnimationAsset* InitAnimationAsset, class USkeletalMesh* InitMesh)
 {
 	FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FPersona::OnPostReimport);
 
@@ -667,7 +735,7 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	}
 	else if (InitAnimationAsset != NULL)
 	{
-		USkeletalMesh * AssetMesh = InitAnimationAsset->GetPreviewMesh();
+		USkeletalMesh* AssetMesh = InitAnimationAsset->GetPreviewMesh();
 		if (AssetMesh)
 		{
 			SetPreviewMesh(AssetMesh);
@@ -678,7 +746,7 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	if (!bSetMesh && TargetSkeleton)
 	{
 		//If no preview mesh set, just find the first mesh that uses this skeleton
-		USkeletalMesh * PreviewMesh = TargetSkeleton->GetPreviewMesh(true);
+		USkeletalMesh* PreviewMesh = TargetSkeleton->GetPreviewMesh(true);
 		if ( PreviewMesh )
 		{
 			SetPreviewMesh( PreviewMesh );
@@ -731,15 +799,117 @@ void FPersona::InitPersona(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	
 }
 	
+void FPersona::CreateAnimation(const TArray<UObject*> NewAssets, int32 Option) 
+{
+	bool bResult = true;
+	if (NewAssets.Num() > 0)
+	{
+		USkeletalMeshComponent* MeshComponent = GetPreviewMeshComponent();
+		UAnimSequence* Sequence = Cast<UAnimSequence> (GetPreviewAnimationAsset());
+
+		for (auto NewAsset : NewAssets)
+		{
+			UAnimSequence* NewAnimSequence = Cast<UAnimSequence>(NewAsset);
+			if (NewAnimSequence)
+			{
+				switch (Option)
+				{
+				case 0:
+					bResult &= NewAnimSequence->CreateAnimation(MeshComponent->SkeletalMesh);
+					break;
+				case 1:
+					bResult &= NewAnimSequence->CreateAnimation(MeshComponent);
+					break;
+				case 2:
+					bResult &= NewAnimSequence->CreateAnimation(Sequence);
+					break;
+				}
+			}
+		}
+
+		// if it contains error, warn them
+		if (bResult)
+		{
+			OnAssetCreated(NewAssets);
+
+			// if it created based on current mesh component, 
+			if (Option == 1)
+			{
+				PreviewComponent->PreviewInstance->ResetModifiedBone();
+			}
+		}
+		else
+		{
+			// give warning
+		}
+	}
+}
+
+void FPersona::FillCreateAnimationMenu(FMenuBuilder& MenuBuilder) const
+{
+	TArray<TWeakObjectPtr<USkeleton>> Skeletons;
+
+	Skeletons.Add(TargetSkeleton);
+
+	// create rig
+	MenuBuilder.BeginSection("CreateAnimationSubMenu", LOCTEXT("CreateAnimationSubMenuHeading", "Create Animation"));
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("CreateAnimation_RefPose", "From Reference Pose"),
+			LOCTEXT("CreateAnimation_RefPose_Tooltip", "Create Animation from reference pose."),
+			FSlateIcon(),
+			FUIAction(
+			FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Skeletons, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FPersona::CreateAnimation, 0), false),
+			FCanExecuteAction()
+			)
+			);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("CreateAnimation_CurrentPose", "From Current Pose"),
+			LOCTEXT("CreateAnimation_CurrentPose_Tooltip", "Create Animation from current pose."),
+			FSlateIcon(),
+			FUIAction(
+			FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Skeletons, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FPersona::CreateAnimation, 1), false),
+			FCanExecuteAction()
+			)
+			);
+
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("CreateAnimation_CurrentAnimation", "From Current Animation"),
+			LOCTEXT("CreateAnimation_CurrentAnimation_Tooltip", "Create Animation from current animation."),
+			FSlateIcon(),
+			FUIAction(
+			FExecuteAction::CreateStatic(&AnimationEditorUtils::ExecuteNewAnimAsset<UAnimSequenceFactory, UAnimSequence>, Skeletons, FString("_Sequence"), FAnimAssetCreated::CreateSP(this, &FPersona::CreateAnimation, 2), false),
+			FCanExecuteAction::CreateSP(this, &FPersona::HasValidAnimationSequencePlaying)
+			)
+			);
+	}
+	MenuBuilder.EndSection();
+}
+
 TSharedRef< SWidget > FPersona::GenerateCreateAssetMenu( USkeleton* Skeleton ) const
 {
 	const bool bShouldCloseWindowAfterMenuSelection = true;
 	FMenuBuilder MenuBuilder(bShouldCloseWindowAfterMenuSelection, NULL);
 
+	// Create Animation menu
+	MenuBuilder.BeginSection("CreateAnimation", LOCTEXT("CreateAnimationMenuHeading", "Animation"));
+	{
+		// create menu
+		MenuBuilder.AddSubMenu(
+				LOCTEXT("CreateAnimationSubmenu", "Create Animation"),
+				LOCTEXT("CreateAnimationSubmenu_ToolTip", "Create Animation for this skeleton"),
+				FNewMenuDelegate::CreateSP(this, &FPersona::FillCreateAnimationMenu),
+				false,
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.AssetActions.CreateAnimAsset")
+				);
+	}
+	MenuBuilder.EndSection();
+
 	TArray<TWeakObjectPtr<USkeleton>> Skeletons;
-	
+
 	Skeletons.Add(Skeleton);
-	
+
 	AnimationEditorUtils::FillCreateAssetMenu(MenuBuilder, Skeletons, FAnimAssetCreated::CreateSP(this, &FPersona::OnAssetCreated), false);
 
 	return MenuBuilder.MakeWidget();
@@ -813,6 +983,13 @@ void FPersona::ExtendDefaultPersonaToolbar()
 				}
 
 				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ApplyCompression, NAME_None, LOCTEXT("Toolbar_ApplyCompression", "Compression"));
+			}
+			ToolbarBuilder.EndSection();
+
+			ToolbarBuilder.BeginSection("Editing");
+			{
+				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().SetKey, NAME_None, LOCTEXT("Toolbar_SetKey", "Key"));
+				ToolbarBuilder.AddToolBarButton(FPersonaCommands::Get().ApplyAnimation, NAME_None, LOCTEXT("Toolbar_ApplyAnimation", "Apply"));
 			}
 			ToolbarBuilder.EndSection();
 		}
@@ -918,14 +1095,14 @@ void FPersona::SetPreviewVertexAnim(UVertexAnimation* VertexAnim)
 	}
 }
 
-void FPersona::UpdateSelectionDetails(UObject* Object, const FString& ForcedTitle)
+void FPersona::UpdateSelectionDetails(UObject* Object, const FText& ForcedTitle)
 {
 	Inspector->ShowDetailsForSingleObject(Object, SKismetInspector::FShowDetailsOptions(ForcedTitle));
 }
 
 void FPersona::SetDetailObject(UObject* Obj)
 {
-	FString ForcedTitle = (Obj != NULL) ? *Obj->GetName() : FString();
+	FText ForcedTitle = (Obj != NULL) ? FText::FromString(Obj->GetName()) : FText::GetEmpty();
 	UpdateSelectionDetails(Obj, ForcedTitle);
 }
 
@@ -1032,6 +1209,20 @@ void FPersona::CreateDefaultCommands()
 		FIsActionButtonVisible::CreateSP(this, &FPersona::IsInPersonaMode, FPersonaModes::AnimationEditMode)
 		);
 
+	ToolkitCommands->MapAction(FPersonaCommands::Get().SetKey,
+		FExecuteAction::CreateSP(this, &FPersona::OnSetKey),
+		FCanExecuteAction::CreateSP(this, &FPersona::CanSetKey),
+		FIsActionChecked(),
+		FIsActionButtonVisible::CreateSP(this, &FPersona::IsInPersonaMode, FPersonaModes::AnimationEditMode)
+		);
+
+	ToolkitCommands->MapAction(FPersonaCommands::Get().ApplyAnimation,
+			FExecuteAction::CreateSP(this, &FPersona::OnBakeAnimation),
+			FCanExecuteAction::CreateSP(this, &FPersona::CanBakeAnimation),
+			FIsActionChecked(),
+			FIsActionButtonVisible::CreateSP(this, &FPersona::IsInPersonaMode, FPersonaModes::AnimationEditMode)
+			);
+
 	ToolkitCommands->MapAction(FPersonaCommands::Get().ExportToFBX,
 		FExecuteAction::CreateSP(this, &FPersona::OnExportToFBX),
 		FCanExecuteAction::CreateSP(this, &FPersona::HasValidAnimationSequencePlaying),
@@ -1117,22 +1308,6 @@ void FPersona::CreateDefaultCommands()
 		FIsActionChecked(),
 		FIsActionButtonVisible::CreateSP(this, &FPersona::IsInPersonaMode, FPersonaModes::AnimationEditMode)
 		);
-}
-
-void FPersona::StartEditingDefaults(bool bAutoFocus, bool bForceRefresh)
-{
-	FBlueprintEditor::StartEditingDefaults(bAutoFocus, bForceRefresh);
-	if (PreviewComponent != NULL)
-	{
-		if (PreviewComponent->AnimScriptInstance != NULL)
-		{
-			PreviewEditor->ShowDetailsForSingleObject(PreviewComponent->AnimScriptInstance, SKismetInspector::FShowDetailsOptions(TEXT("Preview settings")));
-		}
-	}
-	if (bAutoFocus)
-	{
-		TabManager->InvokeTab(FPersonaTabs::AnimBlueprintDefaultsEditorID);
-	}
 }
 
 bool FPersona::CanSelectBone() const
@@ -1235,7 +1410,7 @@ void FPersona::OnConvertToSequenceEvaluator()
 	{
 		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
 		{
-			UAnimGraphNode_SequencePlayer * OldNode = Cast<UAnimGraphNode_SequencePlayer>(*NodeIter);
+			UAnimGraphNode_SequencePlayer* OldNode = Cast<UAnimGraphNode_SequencePlayer>(*NodeIter);
 
 			// see if sequence player
 			if ( OldNode && OldNode->Node.Sequence )
@@ -1286,7 +1461,7 @@ void FPersona::OnConvertToSequencePlayer()
 	{
 		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
 		{
-			UAnimGraphNode_SequenceEvaluator * OldNode = Cast<UAnimGraphNode_SequenceEvaluator>(*NodeIter);
+			UAnimGraphNode_SequenceEvaluator* OldNode = Cast<UAnimGraphNode_SequenceEvaluator>(*NodeIter);
 
 			// see if sequence player
 			if ( OldNode && OldNode->Node.Sequence )
@@ -1337,7 +1512,7 @@ void FPersona::OnConvertToBlendSpaceEvaluator()
 	{
 		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
 		{
-			UAnimGraphNode_BlendSpacePlayer * OldNode = Cast<UAnimGraphNode_BlendSpacePlayer>(*NodeIter);
+			UAnimGraphNode_BlendSpacePlayer* OldNode = Cast<UAnimGraphNode_BlendSpacePlayer>(*NodeIter);
 
 			// see if sequence player
 			if ( OldNode && OldNode->Node.BlendSpace )
@@ -1404,7 +1579,7 @@ void FPersona::OnConvertToBlendSpacePlayer()
 	{
 		for (auto NodeIter = SelectedNodes.CreateIterator(); NodeIter; ++NodeIter)
 		{
-			UAnimGraphNode_BlendSpaceEvaluator * OldNode = Cast<UAnimGraphNode_BlendSpaceEvaluator>(*NodeIter);
+			UAnimGraphNode_BlendSpaceEvaluator* OldNode = Cast<UAnimGraphNode_BlendSpaceEvaluator>(*NodeIter);
 
 			// see if sequence player
 			if ( OldNode && OldNode->Node.BlendSpace )
@@ -1518,11 +1693,12 @@ void FPersona::Compile()
 			GetBlueprintObj()->SetObjectBeingDebugged(PreviewComponent->AnimScriptInstance);
 		}
 	}
-}
 
-FString FPersona::GetDefaultEditorTitle()
-{
-	return NSLOCTEXT("Kismet", "PreviewParamatersTabTitle", "Preview Parameters").ToString();
+	// calls PostCompile to copy proper values between anim nodes
+	if (Viewport.IsValid())
+	{
+		Viewport.Pin()->GetAnimationViewportClient()->PostCompile();
+	}
 }
 
 FName FPersona::GetToolkitContextFName() const
@@ -1713,6 +1889,15 @@ void FPersona::OnPropertyChanged(UObject* ObjectBeingModified, FPropertyChangedE
 	//@TODO: Should we still do this?
 }
 
+void FPersona::RefreshPreviewInstanceTrackCurves()
+{
+	// need to refresh the preview mesh
+	if(PreviewComponent->PreviewInstance)
+	{
+		PreviewComponent->PreviewInstance->RefreshCurveBoneControllers();
+	}
+}
+
 void FPersona::PostUndo(bool bSuccess)
 {
 	DocumentManager->RefreshAllTabs();
@@ -1721,6 +1906,8 @@ void FPersona::PostUndo(bool bSuccess)
 
 	// PostUndo broadcast
 	OnPostUndo.Broadcast();	
+
+	RefreshPreviewInstanceTrackCurves();
 
 	// clear up preview anim notify states
 	// animnotify states are saved in AnimInstance
@@ -1731,10 +1918,10 @@ void FPersona::PostUndo(bool bSuccess)
 
 void FPersona::ClearupPreviewMeshAnimNotifyStates()
 {
-	USkeletalMeshComponent * PreviewMeshComponent = GetPreviewMeshComponent();
+	USkeletalMeshComponent* PreviewMeshComponent = GetPreviewMeshComponent();
 	if ( PreviewMeshComponent )
 	{
-		UAnimInstance * AnimInstantace = PreviewMeshComponent->GetAnimInstance();
+		UAnimInstance* AnimInstantace = PreviewMeshComponent->GetAnimInstance();
 
 		if (AnimInstantace)
 		{
@@ -1768,25 +1955,7 @@ void FPersona::CreateDefaultTabContents(const TArray<UBlueprint*>& InBlueprints)
 {
 	FBlueprintEditor::CreateDefaultTabContents(InBlueprints);
 
-	UBlueprint* InBlueprint = InBlueprints.Num() == 1 ? InBlueprints[0] : NULL;
-
-	// Cache off whether or not this is an interface, since it is used to govern multiple widget's behavior
-	const bool bIsInterface = (InBlueprint && InBlueprint->BlueprintType == BPTYPE_Interface);
-
-	const bool bShowPublicView = false;
-	const bool bHideNameArea = true;
-
-	PreviewEditor = 
-		SNew(SKismetInspector)
-		. Kismet2(SharedThis(this))
-		. ViewIdentifier(FName("PersonaPreview"))
-		. SetNotifyHook(false)
-		. IsEnabled(!bIsInterface)
-		. ShowPublicViewControl(bShowPublicView)
-		. ShowTitleArea(false)
-		. HideNameArea(bHideNameArea)
-		. IsPropertyEditingEnabledDelegate( FIsPropertyEditingEnabled::CreateSP(this, &FPersona::IsPropertyEditingEnabled) )
-		. OnFinishedChangingProperties( FOnFinishedChangingProperties::FDelegate::CreateSP( this, &FPersona::OnFinishedChangingProperties ) );
+	PreviewEditor = SNew(SPersonaPreviewPropertyEditor, SharedThis(this));
 }
 
 FGraphAppearanceInfo FPersona::GetGraphAppearance() const
@@ -1795,7 +1964,7 @@ FGraphAppearanceInfo FPersona::GetGraphAppearance() const
 
 	if ( GetBlueprintObj()->IsA(UAnimBlueprint::StaticClass()) )
 	{
-		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Animation", "ANIMATION").ToString();
+		AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText_Animation", "ANIMATION");
 	}
 
 	return AppearanceInfo;
@@ -1910,7 +2079,18 @@ void FPersona::ClearSelectedSocket()
 
 void FPersona::ClearSelectedWindActor()
 {
-	Viewport.Pin()->GetAnimationViewportClient()->ClearSelectedWindActor();
+	if (Viewport.IsValid())
+	{
+		Viewport.Pin()->GetAnimationViewportClient()->ClearSelectedWindActor();
+	}
+}
+
+void FPersona::ClearSelectedAnimGraphNode()
+{
+	if(Viewport.IsValid())
+	{
+		Viewport.Pin()->GetAnimationViewportClient()->ClearSelectedAnimGraphNode();
+	}
 }
 
 void FPersona::RenameSocket( USkeletalMeshSocket* Socket, const FName& NewSocketName )
@@ -2253,6 +2433,7 @@ void FPersona::DeselectAll()
 	ClearSelectedBones();
 	ClearSelectedSocket();
 	ClearSelectedWindActor();
+	ClearSelectedAnimGraphNode();
 
 	OnAllDeselected.Broadcast();
 }
@@ -2262,7 +2443,7 @@ FReply FPersona::OnClickEditMesh()
 	USkeletalMesh* PreviewMesh = TargetSkeleton->GetPreviewMesh();
 	if(PreviewMesh)
 	{
-		UpdateSelectionDetails(PreviewMesh, *PreviewMesh->GetName());
+		UpdateSelectionDetails(PreviewMesh, FText::FromString(PreviewMesh->GetName()));
 	}
 	return FReply::Handled();
 }
@@ -2405,9 +2586,47 @@ void FPersona::RecordAnimation()
 	}
 }
 
+void FPersona::OnSetKeyCompleted()
+{
+	OnTrackCurvesChanged.Broadcast();
+}
+
+bool FPersona::CanSetKey() const
+{
+	return ( HasValidAnimationSequencePlaying() && PreviewComponent->BonesOfInterest.Num() > 0);
+}
+
+void FPersona::OnSetKey()
+{
+	UAnimSequence* AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
+	if (AnimSequence)
+	{
+		UDebugSkelMeshComponent* Component = GetPreviewMeshComponent();
+		Component->PreviewInstance->SetKey(FSimpleDelegate::CreateSP(this, &FPersona::OnSetKeyCompleted));
+	}
+}
+
+bool FPersona::CanBakeAnimation() const
+{
+	UAnimSequence* AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
+	// ideally would be great if we can only show if something changed
+	return (AnimSequence && AnimSequence->DoesNeedRebake());
+}
+
+void FPersona::OnBakeAnimation()
+{
+	UAnimSequence* AnimSequence = Cast<UAnimSequence>(GetAnimationAssetBeingEdited());
+	if(AnimSequence)
+	{
+		UDebugSkelMeshComponent* Component = GetPreviewMeshComponent();
+		// now bake
+		Component->PreviewInstance->BakeAnimation();
+	}
+}
+
 void FPersona::OnApplyCompression()
 {
-	UAnimSequence * AnimSequence = Cast<UAnimSequence> (GetPreviewAnimationAsset());
+	UAnimSequence* AnimSequence = Cast<UAnimSequence> (GetPreviewAnimationAsset());
 
 	if (AnimSequence)
 	{
@@ -2419,7 +2638,7 @@ void FPersona::OnApplyCompression()
 
 void FPersona::OnExportToFBX()
 {
-	UAnimSequence * AnimSequence = Cast<UAnimSequence>(GetPreviewAnimationAsset());
+	UAnimSequence* AnimSequence = Cast<UAnimSequence>(GetPreviewAnimationAsset());
 
 	if(AnimSequence)
 	{
@@ -2431,7 +2650,7 @@ void FPersona::OnExportToFBX()
 
 void FPersona::OnAddLoopingInterpolation()
 {
-	UAnimSequence * AnimSequence = Cast<UAnimSequence>(GetPreviewAnimationAsset());
+	UAnimSequence* AnimSequence = Cast<UAnimSequence>(GetPreviewAnimationAsset());
 
 	if(AnimSequence)
 	{
@@ -2441,19 +2660,19 @@ void FPersona::OnAddLoopingInterpolation()
 	}
 }
 
-void FPersona::ApplyCompression(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences)
+void FPersona::ApplyCompression(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences)
 {
 	FDlgAnimCompression AnimCompressionDialog(AnimSequences);
 	AnimCompressionDialog.ShowModal();
 }
 
-void FPersona::ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences)
+void FPersona::ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences)
 {
 	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
 
 	if(DesktopPlatform)
 	{
-		USkeletalMesh * PreviewMesh = GetPreviewMeshComponent()->SkeletalMesh;
+		USkeletalMesh* PreviewMesh = GetPreviewMeshComponent()->SkeletalMesh;
 		if(PreviewMesh == NULL)
 		{
 			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("ExportToFBXExportMissingPreviewMesh", "ERROR: Missing preview mesh"));
@@ -2581,7 +2800,7 @@ void FPersona::ExportToFBX(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences
 	}
 }
 
-void FPersona::AddLoopingInterpolation(TArray<TWeakObjectPtr<UAnimSequence>> & AnimSequences)
+void FPersona::AddLoopingInterpolation(TArray<TWeakObjectPtr<UAnimSequence>>& AnimSequences)
 {
 	FText WarningMessage = LOCTEXT("AddLoopiingInterpolation", "This will add an extra first frame at the end of the animation to create a better looping interpolation. This action cannot be undone. Would you like to proceed?");
 
@@ -2598,7 +2817,7 @@ void FPersona::AddLoopingInterpolation(TArray<TWeakObjectPtr<UAnimSequence>> & A
 
 bool FPersona::HasValidAnimationSequencePlaying() const
 {
-	UAnimSequence * AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
+	UAnimSequence* AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
 	
 	return (AnimSequence != NULL);
 }
@@ -2768,13 +2987,13 @@ bool FPersona::IsEditable(UEdGraph* InGraph) const
 	return bEditable;
 }
 
-FString FPersona::GetGraphDecorationString(UEdGraph* InGraph) const
+FText FPersona::GetGraphDecorationString(UEdGraph* InGraph) const
 {
 	if (!IsGraphInCurrentBlueprint(InGraph))
 	{
-		return LOCTEXT("PersonaExternalGraphDecoration", " Parent Graph Preview").ToString();
+		return LOCTEXT("PersonaExternalGraphDecoration", " Parent Graph Preview");
 	}
-	return TEXT("");
+	return FText::GetEmpty();
 }
 
 void FPersona::ValidatePreviewAttachedAssets(USkeletalMesh* PreviewSkeletalMesh)
@@ -2861,7 +3080,7 @@ void FPersona::OnReimportMesh()
 void FPersona::OnReimportAnimation()
 {
 	// Reimport the asset
-	UAnimSequence * AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
+	UAnimSequence* AnimSequence = Cast<UAnimSequence> (GetAnimationAssetBeingEdited());
 	if (AnimSequence)
 	{
 		FReimportManager::Instance()->Reimport(AnimSequence, true);

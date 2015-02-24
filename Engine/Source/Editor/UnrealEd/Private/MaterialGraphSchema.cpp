@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialGraphSchema.cpp
@@ -18,6 +18,7 @@
 #include "MaterialEditorUtilities.h"
 #include "GraphEditorActions.h"
 #include "AssetRegistryModule.h"
+#include "Materials/MaterialParameterCollection.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphSchema"
 
@@ -719,7 +720,7 @@ void UMaterialGraphSchema::GetMaterialFunctionActions(FGraphActionMenuBuilder& A
 					const FString LibraryCategoriesString = AssetData.TagsAndValues.FindRef("LibraryCategories");
 					if ( !LibraryCategoriesString.IsEmpty() )
 					{
-						UArrayProperty* LibraryCategoriesProperty = FindFieldChecked<UArrayProperty>(UMaterialFunction::StaticClass(), TEXT("LibraryCategories"));
+						UArrayProperty* LibraryCategoriesProperty = FindFieldChecked<UArrayProperty>(UMaterialFunction::StaticClass(), GET_MEMBER_NAME_CHECKED(UMaterialFunction, LibraryCategories));
 						uint8* DestAddr = (uint8*)(&LibraryCategories);
 						LibraryCategoriesProperty->ImportText(*LibraryCategoriesString, DestAddr, PPF_None, NULL, GWarn);
 					}

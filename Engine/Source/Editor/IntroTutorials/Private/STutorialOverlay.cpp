@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "IntroTutorialsPrivatePCH.h"
 #include "STutorialOverlay.h"
@@ -54,6 +54,8 @@ void STutorialOverlay::Construct(const FArguments& InArgs, UEditorTutorial* InTu
 					.IsNextEnabled(InArgs._IsNextEnabled)
 					.IsStandalone(InArgs._IsStandalone)
 					.WrapTextAt(600.0f)
+					.NextButtonText(InStage->NextButtonText)
+					.BackButtonText(InStage->BackButtonText)
 				]
 			];
 		}
@@ -83,10 +85,9 @@ void STutorialOverlay::Construct(const FArguments& InArgs, UEditorTutorial* InTu
 						.WrapTextAt(WidgetContent.ContentWidth)
 						.Anchor(WidgetContent.WidgetAnchor)
 						.AllowNonWidgetContent(InArgs._AllowNonWidgetContent)
-						.OnWasWidgetDrawn(InArgs._OnWasWidgetDrawn)
-						.NextButtonText(InStage->NextButtonText);
+						.OnWasWidgetDrawn(InArgs._OnWasWidgetDrawn);
 					
-					PerformWidgetInteractions(WidgetContent); 					
+					PerformWidgetInteractions(InTutorial, WidgetContent); 					
 
 					OverlayCanvas->AddSlot()
 						.Position(TAttribute<FVector2D>::Create(TAttribute<FVector2D>::FGetter::CreateSP(ContentWidget.Get(), &STutorialContent::GetPosition)))
@@ -175,69 +176,65 @@ int32 STutorialOverlay::TraverseWidgets(TSharedRef<SWidget> InWidget, const FGeo
 	return LayerId;
 }
 
-void STutorialOverlay::PerformWidgetInteractions(const FTutorialWidgetContent &WidgetContent)
+void STutorialOverlay::PerformWidgetInteractions(UEditorTutorial* InTutorial, const FTutorialWidgetContent &WidgetContent)
 {
 	// Open any browser we need too
-	OpenBrowserForWidgetAnchor(WidgetContent);
+	OpenBrowserForWidgetAnchor(InTutorial, WidgetContent);
 
 	FocusOnAnyBlueprintNodes(WidgetContent);
 }
 
-void STutorialOverlay::OpenBrowserForWidgetAnchor(const FTutorialWidgetContent &WidgetContent)
+void STutorialOverlay::OpenBrowserForWidgetAnchor(UEditorTutorial* InTutorial, const FTutorialWidgetContent &WidgetContent)
 {
-	//bool bTabOpened = false;
-	TSharedPtr<FTabManager> TabManager;
-	TArray<FString> AssetPaths;
-	FString Name;
-
-	// Try looking for the object via the ID first
-	Name = WidgetContent.WidgetAnchor.WrapperIdentifier.ToString();
-	AssetPaths.Add(Name);
-	// Opening the editor will force the object to be loaded if it exists
-	FAssetEditorManager::Get().OpenEditorsForAssets(AssetPaths);
-	UObject* AssetObject = FindObject<UObject>(ANY_PACKAGE, *Name);
-	IAssetEditorInstance* AssetEditor = FAssetEditorManager::Get().FindEditorForAsset(AssetObject, false);
-	// If we now have a valid asset editor get its tabmanager - we will use this to open/focus a tab if there is one
-	if (AssetEditor != nullptr)
+	if(!WidgetContent.WidgetAnchor.TabToFocusOrOpen.IsEmpty())
 	{
-		FAssetEditorToolkit* ToolkitEditor = static_cast<FAssetEditorToolkit*>(FAssetEditorManager::Get().FindEditorForAsset(AssetObject, false));
-		if ((ToolkitEditor != nullptr) && (WidgetContent.WidgetAnchor.TabToFocusOrOpen.IsEmpty() == false))
-		{
-			TabManager = ToolkitEditor->GetTabManager();
-		}
-	}
+		IAssetEditorInstance* AssetEditor = nullptr;
 
-	// If we don't have a valid tab manager we should now check to see if we can find a blueprint relevant to this node and open the editor for that (Then try to get the tabmanager from that)
-	if (TabManager.IsValid() == false)
-	{
-		// Remove the prefix from the name
-		AssetPaths.Empty();
-		int32 Space = WidgetContent.WidgetAnchor.OuterName.Find(TEXT(" "));
-		Name = WidgetContent.WidgetAnchor.OuterName.RightChop(Space + 1);
-		AssetPaths.Add(Name);
-		FAssetEditorManager::Get().OpenEditorsForAssets(AssetPaths);
-		UObject* Blueprint = FindObject<UObject>(ANY_PACKAGE, *Name);
-
-		// If we found a blueprint
-		if (Blueprint != nullptr)
+		// Check to see if we can find a blueprint relevant to this node and open the editor for that (Then try to get the tabmanager from that)
+		if(WidgetContent.WidgetAnchor.OuterName.Len() > 0)
 		{
-			IBlueprintEditor* BlueprintEditor = (FBlueprintEditor*)FAssetEditorManager::Get().FindEditorForAsset(Blueprint, false);
-			if ((BlueprintEditor != nullptr) && (WidgetContent.WidgetAnchor.TabToFocusOrOpen.IsEmpty() == false))
+			// Remove the prefix from the name
+			int32 Space = WidgetContent.WidgetAnchor.OuterName.Find(TEXT(" "));
+			FString Name = WidgetContent.WidgetAnchor.OuterName.RightChop(Space + 1);
+			TArray<FString> AssetPaths;
+			AssetPaths.Add(Name);
+			FAssetEditorManager::Get().OpenEditorsForAssets(AssetPaths);
+			UObject* Blueprint = FindObject<UObject>(ANY_PACKAGE, *Name);
+
+			// If we found a blueprint
+			if(Blueprint != nullptr)
 			{
-				TabManager = BlueprintEditor->GetTabManager();
+				IAssetEditorInstance* PotentialAssetEditor = FAssetEditorManager::Get().FindEditorForAsset(Blueprint, false);
+				if(PotentialAssetEditor != nullptr)
+				{
+					AssetEditor = PotentialAssetEditor;
+				}
 			}
 		}
-	}
 
-	// Invoke any tab
-	if (WidgetContent.WidgetAnchor.TabToFocusOrOpen.IsEmpty() == false)
-	{
-		if (TabManager.IsValid() == true)
+		// If we haven't found a tab manager, next check the asset editor that we reference in this tutorial, if any
+		if(AssetEditor == nullptr)
 		{
-			TSharedRef<SDockTab> IT = TabManager->InvokeTab(FTabId(*WidgetContent.WidgetAnchor.TabToFocusOrOpen));
+			// Try looking for the object that this tutorial references (it should already be loaded by this tutorial if it exists).
+			UObject* AssetObject = InTutorial->AssetToUse.ResolveObject();
+			if(AssetObject != nullptr)
+			{
+				IAssetEditorInstance* PotentialAssetEditor = FAssetEditorManager::Get().FindEditorForAsset(AssetObject, false);
+				if(PotentialAssetEditor != nullptr)
+				{
+					AssetEditor = PotentialAssetEditor;
+				}
+			}
+		}
+
+		// Invoke any tab
+		if(AssetEditor != nullptr)
+		{
+			AssetEditor->InvokeTab(FTabId(*WidgetContent.WidgetAnchor.TabToFocusOrOpen));
 		}
 		else
 		{
+			// fallback to trying the main level editor tab manager
 			FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 			TSharedPtr<FTabManager> LevelEditorTabManager = LevelEditorModule.GetLevelEditorTabManager();
 			LevelEditorTabManager->InvokeTab(FName(*WidgetContent.WidgetAnchor.TabToFocusOrOpen));
@@ -251,7 +248,9 @@ void STutorialOverlay::FocusOnAnyBlueprintNodes(const FTutorialWidgetContent &Wi
 	{
 		return;
 	}
-	FString Name = WidgetContent.WidgetAnchor.OuterName;
+	
+	const FString Name = WidgetContent.WidgetAnchor.OuterName;
+	const FName ObjectPath = WidgetContent.WidgetAnchor.WrapperIdentifier;
 	int32 NameIndex;
 	Name.FindLastChar(TEXT('.'), NameIndex);
 	FString BlueprintName = Name.RightChop(NameIndex + 1);
@@ -266,6 +265,40 @@ void STutorialOverlay::FocusOnAnyBlueprintNodes(const FTutorialWidgetContent &Wi
 		if (UEdGraphNode* GraphNode = FBlueprintEditorUtils::GetNodeByGUID(Blueprint, NodeGuid))
 		{
 			FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(GraphNode, false);
+		}
+	}
+	else if ( !ObjectPath.IsNone() )
+	{
+		// if we didn't have a blueprint object to focus on, try it with a regular one
+		UObject* FocusObject = FindObject<UObject>(ANY_PACKAGE, *ObjectPath.ToString());
+		// If we didn't find it, maybe it just hasn't been loaded yet
+		if( FocusObject == nullptr )
+		{
+			FocusObject = LoadObject<UObject>(nullptr, *ObjectPath.ToString(),nullptr, LOAD_FindIfFail);
+		}
+		// If we found an asset redirector, we need to follow it
+		UObjectRedirector* Redir = dynamic_cast<UObjectRedirector*>(FocusObject);
+		if (Redir)
+		{
+			FocusObject = Redir->DestinationObject;
+		}
+
+		// If we failed to find the object, it may be a class that has been redirected
+		if (!FocusObject)
+		{
+			const FString ObjectName = FPackageName::ObjectPathToObjectName(ObjectPath.ToString());
+			const FName RedirectedObjectName = ULinkerLoad::FindNewNameForClass(*ObjectName, false);
+			if (!RedirectedObjectName.IsNone())
+			{
+				FocusObject = FindObject<UClass>(ANY_PACKAGE, *RedirectedObjectName.ToString());
+			}
+		}
+
+		if (FocusObject)
+		{
+			TArray< UObject* > Objects;
+			Objects.Add(FocusObject);
+			GEditor->SyncBrowserToObjects(Objects);
 		}
 	}
 }

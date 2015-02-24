@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessTestImage.cpp: Post processing TestImage implementation.
@@ -60,7 +60,7 @@ public:
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 
 		{
-			uint32 FrameNumberValue = Context.View.FrameNumber;
+			uint32 FrameNumberValue = Context.View.Family->FrameNumber;
 			SetShaderValue(Context.RHICmdList, ShaderRHI, FrameNumber, FrameNumberValue);
 		}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "IntroTutorialsPrivatePCH.h"
 #include "EditorTutorialDetailsCustomization.h"
@@ -31,9 +31,9 @@ void FEditorTutorialDetailsCustomization::CustomizeDetails( IDetailLayoutBuilder
 	check(Objects.Num() > 0);
 	UEditorTutorial* Tutorial = CastChecked<UEditorTutorial>(Objects[0].Get());
 
-	IDetailCategoryBuilder& CategoryBuilder = DetailLayout.EditCategory(TEXT("Testing"), LOCTEXT("TestingSection", "Testing").ToString(), ECategoryPriority::Important);
+	IDetailCategoryBuilder& CategoryBuilder = DetailLayout.EditCategory(TEXT("Testing"), LOCTEXT("TestingSection", "Testing"), ECategoryPriority::Important);
 
-	CategoryBuilder.AddCustomRow(TEXT("Launch"))
+	CategoryBuilder.AddCustomRow(LOCTEXT("LaunchButtonLabel", "Launch"))
 	.WholeRowContent()
 	.VAlign(VAlign_Center)
 	.HAlign(HAlign_Left)

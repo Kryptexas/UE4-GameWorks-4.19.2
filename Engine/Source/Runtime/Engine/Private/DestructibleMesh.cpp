@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DestructibleMesh.cpp: UDestructibleMesh methods.
@@ -10,10 +10,12 @@
 #include "Engine/DestructibleMesh.h"
 #include "Engine/DestructibleFractureSettings.h"
 #include "PhysicsEngine/PhysXSupport.h"
+#include "EditorFramework/AssetImportData.h"
 
 #if WITH_APEX && WITH_EDITOR
 #include "ApexDestructibleAssetImport.h"
 #endif
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 DEFINE_LOG_CATEGORY(LogDestructible)
 
@@ -30,14 +32,6 @@ void UDestructibleMesh::PostLoad()
 	CreateBodySetup();
 
 	// Fix location of destructible physical material
-	if (GetLinker() && (GetLinker()->UE4Ver() < VER_UE4_DESTRUCTIBLE_MESH_BODYSETUP_HOLDS_PHYSICAL_MATERIAL))
-	{
-		if (BodySetup != NULL)
-		{
-			BodySetup->PhysMaterial = DestructiblePhysicalMaterial_DEPRECATED;
-		}
-	}
-
 #if WITH_APEX
 	// destructible mesh needs to re-evaluate the number of max gpu bone count for each chunk
 	// we'll have to rechunk if that exceeds project setting
@@ -172,47 +166,6 @@ void UDestructibleMesh::Serialize(FArchive& Ar)
 			// Release our temporary objects
 			Serializer->release();
 			GApexSDK->releaseMemoryReadStream( *Stream );
-
-			// Fix chunk bounds which were not transformed upon import before version VER_UE4_NX_DESTRUCTIBLE_ASSET_CHUNK_BOUNDS_FIX
-			if (ApexDestructibleAsset != NULL && Ar.UE4Ver() < VER_UE4_NX_DESTRUCTIBLE_ASSET_CHUNK_BOUNDS_FIX)
-			{
-				// Name buffer used for parameterized array element lookup
-				char ArrayElementName[1024];
-
-				// Get the NxParameterized interface to the asset
-				NxParameterized::Interface* AssetParams = const_cast<NxParameterized::Interface*>(ApexDestructibleAsset->getAssetNxParameterized());
-				if (AssetParams != NULL)
-				{
-					/* render mesh asset (bounding boxes only) */
-					const physx::PxMat33 Basis = physx::PxMat33::createDiagonal(physx::PxVec3(1.0f, -1.0f, 1.0f));
-					NxParameterized::Interface* RenderMeshAssetParams;
-					const bool bFoundRMA = NxParameterized::getParamRef(*AssetParams, "renderMeshAsset", RenderMeshAssetParams);
-					check(bFoundRMA);
-					if (bFoundRMA)
-					{
-						physx::PxI32 PartBoundsCount;
-						const bool bFoundBounds = NxParameterized::getParamArraySize(*RenderMeshAssetParams, "partBounds", PartBoundsCount);
-						check(bFoundBounds);
-						if (bFoundBounds)
-						{
-							for (physx::PxI32 i = 0; i < PartBoundsCount; ++i)
-							{
-								FCStringAnsi::Sprintf( ArrayElementName, "partBounds[%d]", i );
-								NxParameterized::Handle PartBoundsHandle(*RenderMeshAssetParams);
-								bool bFoundBoundsHandle = NxParameterized::findParam(*RenderMeshAssetParams, ArrayElementName, PartBoundsHandle) != NULL;
-								check(bFoundBoundsHandle);
-								if (bFoundBoundsHandle)
-								{
-									physx::PxBounds3 PartBounds;
-									PartBoundsHandle.getParamBounds3( PartBounds );
-									PartBounds = physx::PxBounds3::transformSafe(Basis, PartBounds);
-									PartBoundsHandle.setParamBounds3( PartBounds );
-								}
-							}
-						}
-					}
-				}
-			}
 #endif
 		}
 	}

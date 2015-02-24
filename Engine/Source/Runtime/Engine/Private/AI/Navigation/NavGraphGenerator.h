@@ -1,8 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
 #include "AI/NavDataGenerator.h"
+
+class ANavigationGraph;
 
 /**
  * Class that handles generation of the ANavigationGraph data
@@ -10,7 +12,7 @@
 class FNavGraphGenerator : public FNavDataGenerator
 {
 public:
-	FNavGraphGenerator(class ANavigationGraph* InDestNavGraph);
+	FNavGraphGenerator(ANavigationGraph* InDestNavGraph);
 	virtual ~FNavGraphGenerator();
 
 private:
@@ -36,7 +38,7 @@ private:
 
 	FCriticalSection GraphChangingLock;
 
-	class ANavigationGraph* DestNavGraph;
+	ANavigationGraph* DestNavGraph;
 
 	uint32 bInitialized:1;
 };

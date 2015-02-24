@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "StatsPage.h"
@@ -87,7 +87,7 @@ private:
 	bool AreStatsDisplayed( TSharedRef< class IStatsPage > StatsPage ) const;
 
 	/** Get the label for the filter combo button */
-	FString OnGetFilterComboButtonLabel() const;
+	FText OnGetFilterComboButtonLabel() const;
 
 	/** 
 	 * Set the currently displayed object set 

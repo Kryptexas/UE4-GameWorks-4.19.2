@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -97,6 +97,20 @@ public:
 
 	void SetScrollOffset( float NewScrollOffset );
 
+	void ScrollToStart();
+
+	void ScrollToEnd();
+
+	/** 
+	 * Attempt to scroll a widget into view, will safely handle non-descendant widgets 
+	 *
+	 * @param MyGeometry   The geometry of this widget.
+	 * @param WidgetToFind The widget whose geometry we wish to discover.
+	 * @param InAnimateScroll	Whether or not to animate the scroll
+	 * @return true if descendant
+	 */
+	bool ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll = true);
+
 	/** Get the current orientation of the scrollbox. */
 	EOrientation GetOrientation();
 
@@ -161,6 +175,7 @@ private:
 	 *
 	 * @param AllottedGeometry  The geometry allotted for this SScrollBox by the parent
 	 * @param ScrollAmount      
+	 * @param InAnimateScroll	Whether or not to animate the scroll
 	 * @return Whether or not the scroll was fully handled
 	 */
 	bool ScrollBy( const FGeometry& AllottedGeometry, float ScrollAmount, bool InAnimateScroll = true );
@@ -212,6 +227,9 @@ private:
 
 	/** Style resource for the scrollbar */
 	const FScrollBarStyle* ScrollBarStyle;
+
+	/** If true, will scroll to the end next Tick */
+	bool bScrollToEnd;
 };
 
 

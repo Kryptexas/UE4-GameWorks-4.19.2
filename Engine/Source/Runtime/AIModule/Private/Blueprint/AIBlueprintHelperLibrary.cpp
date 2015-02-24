@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Engine/Blueprint.h"
@@ -18,7 +18,7 @@ UAIAsyncTaskBlueprintProxy::UAIAsyncTaskBlueprintProxy(const FObjectInitializer&
 	MyWorld = Cast<UWorld>(GetOuter());
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
-		UAISystem* const AISystem = MyWorld.IsValid() ? UAISystem::GetCurrent(MyWorld.Get()) : NULL;
+		UAISystem* const AISystem = UAISystem::GetCurrentSafe(MyWorld.Get());
 		if (AISystem)
 		{
 			AISystem->AddReferenceFromProxyObject(this);
@@ -41,7 +41,7 @@ void UAIAsyncTaskBlueprintProxy::OnMoveCompleted(FAIRequestID RequestID, EPathFo
 			OnFail.Broadcast(MovementResult);
 		}
 
-		UAISystem* const AISystem = MyWorld.IsValid() ? UAISystem::GetCurrent(MyWorld.Get()) : NULL;
+		UAISystem* const AISystem = UAISystem::GetCurrentSafe(MyWorld.Get());
 		if (AISystem)
 		{
 			AISystem->RemoveReferenceToProxyObject(this);
@@ -52,7 +52,7 @@ void UAIAsyncTaskBlueprintProxy::OnMoveCompleted(FAIRequestID RequestID, EPathFo
 void UAIAsyncTaskBlueprintProxy::OnNoPath()
 {
 	OnFail.Broadcast(EPathFollowingResult::Aborted);
-	UAISystem* const AISystem = MyWorld.IsValid() ? UAISystem::GetCurrent(MyWorld.Get()) : NULL;
+	UAISystem* const AISystem = UAISystem::GetCurrentSafe(MyWorld.Get());
 	if (AISystem)
 	{
 		AISystem->RemoveReferenceToProxyObject(this);
@@ -61,7 +61,7 @@ void UAIAsyncTaskBlueprintProxy::OnNoPath()
 
 void UAIAsyncTaskBlueprintProxy::BeginDestroy()
 {
-	UAISystem* const AISystem = MyWorld.IsValid() ? UAISystem::GetCurrent(MyWorld.Get()) : NULL;
+	UAISystem* const AISystem = UAISystem::GetCurrentSafe(MyWorld.Get());
 	if (AISystem)
 	{
 		AISystem->RemoveReferenceToProxyObject(this);
@@ -91,16 +91,23 @@ UAIAsyncTaskBlueprintProxy* UAIBlueprintHelperLibrary::CreateMoveToProxyObject(U
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 		MyObj = NewObject<UAIAsyncTaskBlueprintProxy>(World);
-		FNavPathSharedPtr Path = TargetActor ? AIController->FindPath(TargetActor, true) : AIController->FindPath(Destination, true);
-		if (Path.IsValid())
+
+		FPathFindingQuery Query;
+		const bool bValidQuery = AIController->PreparePathfinding(Query, Destination, TargetActor, true);
+
+		if (bValidQuery)
 		{
-			MyObj->AIController = AIController;
-			MyObj->AIController->ReceiveMoveCompleted.AddDynamic(MyObj, &UAIAsyncTaskBlueprintProxy::OnMoveCompleted);
-			MyObj->MoveRequestId = MyObj->AIController->RequestMove(Path, TargetActor, AcceptanceRadius, bStopOnOverlap);
-		}
-		else
-		{
-			World->GetTimerManager().SetTimer(MyObj, &UAIAsyncTaskBlueprintProxy::OnNoPath, 0.1, false);
+			const FAIRequestID RequestID = AIController->RequestPathAndMove(Query, TargetActor, AcceptanceRadius, bStopOnOverlap, NULL);
+			if (RequestID.IsValid())
+			{
+				MyObj->AIController = AIController;
+				MyObj->AIController->ReceiveMoveCompleted.AddDynamic(MyObj, &UAIAsyncTaskBlueprintProxy::OnMoveCompleted);
+				MyObj->MoveRequestId = RequestID;
+			}
+			else
+			{
+				World->GetTimerManager().SetTimer(MyObj->TimerHandle_OnNoPath, MyObj, &UAIAsyncTaskBlueprintProxy::OnNoPath, 0.1f, false);
+			}
 		}
 	}
 	return MyObj;
@@ -144,6 +151,16 @@ APawn* UAIBlueprintHelperLibrary::SpawnAIFromClass(UObject* WorldContextObject, 
 	return NewPawn;
 }
 
+AAIController* UAIBlueprintHelperLibrary::GetAIController(AActor* ControlledActor)
+{
+	APawn* AsPawn = Cast<APawn>(ControlledActor);
+	if (AsPawn != nullptr)
+	{
+		return Cast<AAIController>(AsPawn->GetController());
+	}
+	return Cast<AAIController>(ControlledActor);
+}
+
 UBlackboardComponent* UAIBlueprintHelperLibrary::GetBlackboard(AActor* Target)
 {
 	UBlackboardComponent* BlackboardComp = nullptr;
@@ -180,11 +197,11 @@ void UAIBlueprintHelperLibrary::LockAIResourcesWithAnimation(UAnimInstance* Anim
 		{
 			if (bLockMovement && OwningAI->GetPathFollowingComponent())
 			{
-				OwningAI->GetPathFollowingComponent()->LockResource(EAILockSource::Animation);
+				OwningAI->GetPathFollowingComponent()->LockResource(EAIRequestPriority::HardScript);
 			}
 			if (LockAILogic && OwningAI->BrainComponent)
 			{
-				OwningAI->BrainComponent->LockResource(EAILockSource::Animation);
+				OwningAI->BrainComponent->LockResource(EAIRequestPriority::HardScript);
 			}
 		}
 	}
@@ -205,12 +222,27 @@ void UAIBlueprintHelperLibrary::UnlockAIResourcesWithAnimation(UAnimInstance* An
 		{
 			if (bUnlockMovement && OwningAI->GetPathFollowingComponent())
 			{
-				OwningAI->GetPathFollowingComponent()->ClearResourceLock(EAILockSource::Animation);
+				OwningAI->GetPathFollowingComponent()->ClearResourceLock(EAIRequestPriority::HardScript);
 			}
 			if (UnlockAILogic && OwningAI->BrainComponent)
 			{
-				OwningAI->BrainComponent->ClearResourceLock(EAILockSource::Animation);
+				OwningAI->BrainComponent->ClearResourceLock(EAIRequestPriority::HardScript);
 			}
 		}
 	}
+}
+
+bool UAIBlueprintHelperLibrary::IsValidAILocation(FVector Location)
+{
+	return FAISystem::IsValidLocation(Location);
+}
+
+bool UAIBlueprintHelperLibrary::IsValidAIDirection(FVector DirectionVector)
+{
+	return FAISystem::IsValidDirection(DirectionVector);
+}
+
+bool UAIBlueprintHelperLibrary::IsValidAIRotation(FRotator Rotation)
+{
+	return FAISystem::IsValidRotation(Rotation);
 }

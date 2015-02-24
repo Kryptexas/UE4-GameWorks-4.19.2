@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateBasics.h"
 #include "TaskGraphInterfaces.h"
@@ -35,7 +35,7 @@ TSharedRef< SWidget > SEventItem::GenerateWidgetForColumn( const FName& ColumnNa
 		.AutoWidth()
 		[
 			SNew( STextBlock )
-			.Text( EventName )
+			.Text( FText::FromString(EventName) )
 		];
 	}
 	else if( ColumnName == SEventsTree::NAME_DurationColumn )
@@ -47,7 +47,7 @@ TSharedRef< SWidget > SEventItem::GenerateWidgetForColumn( const FName& ColumnNa
 	{
 		return
 		SNew( STextBlock )
-		. Text(FString::Printf( *LOCTEXT("UnsupportedColumn", "Unsupported Column: %s").ToString(), *(ColumnName.ToString()) ) );
+		. Text(FText::Format( LOCTEXT("UnsupportedColumnFmt", "Unsupported Column: {0}"), FText::FromName(ColumnName) ) );
 	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -167,7 +167,7 @@ void SEventsTree::Construct( const FArguments& InArgs )
 					]
 
 					+ SHeaderRow::Column( NAME_DurationColumn )
-					.DefaultLabel( TAttribute< FString >::Create( TAttribute< FString >::FGetter::CreateSP( this, &SEventsTree::GetDurationColumnTitle ) ) ) 
+					.DefaultLabel( this, &SEventsTree::GetDurationColumnTitle ) 
 					.SortMode( TAttribute< EColumnSortMode::Type >::Create( TAttribute< EColumnSortMode::Type >::FGetter::CreateSP( this, &SEventsTree::GetColumnSortMode, NAME_DurationColumn ) ) )
 					.OnSort( FOnSortModeChanged::CreateSP( this, &SEventsTree::OnColumnSortModeChanged ) )
 					.MenuContent()
@@ -191,11 +191,11 @@ EColumnSortMode::Type SEventsTree::GetColumnSortMode( const FName ColumnId )
 	return SortMode;
 }
 
-FString SEventsTree::GetDurationColumnTitle() const
+FText SEventsTree::GetDurationColumnTitle() const
 {
 	static const FText Units[] = { NSLOCTEXT("TaskGraph", "microseconds", "microseconds"), NSLOCTEXT("TaskGraph", "milliseconds", "ms"), NSLOCTEXT("TaskGraph", "seconds", "s") };
 
-	return FText::Format( NSLOCTEXT("TaskGraph", "ColumnDurationValue", "Duration ({0})"), Units[ DurationUnits ] ).ToString();
+	return FText::Format( NSLOCTEXT("TaskGraph", "ColumnDurationValue", "Duration ({0})"), Units[ DurationUnits ] );
 }
 
 void ClearEventsSelection( TArray< TSharedPtr< FVisualizerEvent > >& Events )

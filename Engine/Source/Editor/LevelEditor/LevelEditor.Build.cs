@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -9,11 +9,11 @@ public class LevelEditor : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"AssetTools",
-				"Kismet",
 				"MainFrame",
                 "PlacementMode",
 				"ReferenceViewer",
-                "IntroTutorials"
+                "IntroTutorials",
+                "AppFramework"
 			}
 		);
 
@@ -40,6 +40,7 @@ public class LevelEditor : ModuleRules
 				"MessageLog",
 				"NewsFeed",
                 "SourceControl",
+                "SourceControlWindows",
                 "StatsViewer",
 				"UnrealEd", 
 				"RenderCore",
@@ -52,6 +53,10 @@ public class LevelEditor : ModuleRules
 				"TargetPlatform",
 				"EngineSettings",
 				"PropertyEditor",
+				"WebBrowser",
+                "Persona",
+                "Kismet",
+				"KismetWidgets"
 			}
 		);
 

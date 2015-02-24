@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AudioVolume.cpp: Used to affect audio settings in the game and editor.
@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "AudioDevice.h"
+#include "Components/BrushComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "Sound/ReverbEffect.h"
 
@@ -119,11 +120,23 @@ void FReverbSettings::PostSerialize(const FArchive& Ar)
 	}
 }
 
+bool FInteriorSettings::operator==(const FInteriorSettings& Other) const
+{
+	return (Other.bIsWorldSettings == bIsWorldSettings)
+		&& (Other.ExteriorVolume == ExteriorVolume) && (Other.ExteriorTime == ExteriorTime)
+		&& (Other.ExteriorLPF == ExteriorLPF) && (Other.ExteriorLPFTime == ExteriorLPFTime)
+		&& (Other.InteriorVolume == InteriorVolume) && (Other.InteriorTime == InteriorTime)
+		&& (Other.InteriorLPF == InteriorLPF) && (Other.InteriorLPFTime == InteriorLPFTime);
+}
+
+bool FInteriorSettings::operator!=(const FInteriorSettings& Other) const
+{
+	return !(*this == Other);
+}
+
 AAudioVolume::AAudioVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = false;
-
 	GetBrushComponent()->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	GetBrushComponent()->bAlwaysCreatePhysicsState = true;
 

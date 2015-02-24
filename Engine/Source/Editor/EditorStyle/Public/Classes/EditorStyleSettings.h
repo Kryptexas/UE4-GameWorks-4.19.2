@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -74,6 +74,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=UserInterface, AdvancedDisplay)
 	uint32 bExpandConfigurationMenus:1;
 
+	/** The display mode for timestamps in the output log */
+	UPROPERTY(EditAnywhere, config, Category=UserInterface)
+	TEnumAsByte<ELogTimes::Type> LogTimestampMode;
+
 public:
 
 	/**
@@ -84,6 +88,8 @@ public:
 	DECLARE_EVENT_OneParam(UEditorStyleSettings, FSettingChangedEvent, FName /*PropertyName*/);
 	FSettingChangedEvent& OnSettingChanged( ) { return SettingChangedEvent; }
 
+	/** @return A subdued version of the users selection color (for use with inactive selection)*/
+	FLinearColor GetSubduedSelectionColor() const;
 protected:
 
 	// UObject overrides

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LiveEditorPrivatePCH.h"
 #include "LiveEditorDevice.h"
@@ -6,6 +6,8 @@
 #include "LiveEditorWizardBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LiveEditorDeviceSetupWindow, Log, All);
+
+#define LOCTEXT_NAMESPACE "LiveEditorWizard"
 
 void SLiveEditorWizardWindow::Construct(const FArguments& InArgs)
 {
@@ -30,7 +32,7 @@ void SLiveEditorWizardWindow::Construct(const FArguments& InArgs)
 			.Padding( 2.0f )
 			[
 				SNew( STextBlock )
-				.Text( FString(TEXT("No Content")) )
+				.Text( LOCTEXT("NoContent", "No Content") )
 				.ColorAndOpacity( FLinearColor::White )
 			]
 		]
@@ -46,7 +48,7 @@ void SLiveEditorWizardWindow::Construct(const FArguments& InArgs)
 			.HAlign(HAlign_Right)
 			[
 				SNew( SButton )
-				.Text( FString(TEXT("Cancel")) )
+				.Text( LOCTEXT("Cancel", "Cancel") )
 				.Visibility( this, &SLiveEditorWizardWindow::ShowCancelButton )
 				.OnClicked( this, &SLiveEditorWizardWindow::OnCancelClicked )
 			]
@@ -67,7 +69,7 @@ void SLiveEditorWizardWindow::Activated()
 	GenerateStateContent();
 }
 
-FString SLiveEditorWizardWindow::GetTitle() const
+FText SLiveEditorWizardWindow::GetTitle() const
 {
 	FLiveEditorWizardBase *Wizard = FLiveEditorManager::Get().GetActiveWizard();
 	check( Wizard != NULL );
@@ -85,12 +87,12 @@ void SLiveEditorWizardWindow::GenerateStateContent()
 	{
 		DynamicContentPane.Get()->SetContent(
 			SNew( STextBlock )
-			.Text( FString(TEXT("No Content")) )
+			.Text( LOCTEXT("NoContent", "No Content") )
 			.ColorAndOpacity( FLinearColor::White ) );
 	}
 }
 
-FString SLiveEditorWizardWindow::GetButtonText() const
+FText SLiveEditorWizardWindow::GetButtonText() const
 {
 	FLiveEditorWizardBase *Wizard = FLiveEditorManager::Get().GetActiveWizard();
 	check( Wizard != NULL );
@@ -129,3 +131,5 @@ FReply SLiveEditorWizardWindow::OnButtonClicked()
 	GenerateStateContent();
 	return FReply::Handled();
 }
+
+#undef LOCTEXT_NAMESPACE

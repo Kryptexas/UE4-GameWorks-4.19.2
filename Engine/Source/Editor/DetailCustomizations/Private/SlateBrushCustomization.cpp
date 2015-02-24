@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SlateBrushCustomization.h"
@@ -399,26 +399,26 @@ private:
 	/**
 	 * Return the text for the specified horizontal alignment
 	 */
-	FString MakeHorizontalAlignmentComboText( EHorizontalAlignment Alignment ) const
+	FText MakeHorizontalAlignmentComboText( EHorizontalAlignment Alignment ) const
 	{
-		FString AlignmentText;
+		FText AlignmentText;
 	
 		switch( Alignment )
 		{
 			case EHorizontalAlignment::HAlign_Fill:
-				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentFill", "Fill" ).ToString();
+				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentFill", "Fill" );
 				break;
 	
 			case EHorizontalAlignment::HAlign_Left:
-				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentLeft", "Left" ).ToString();
+				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentLeft", "Left" );
 				break;
 	
 			case EHorizontalAlignment::HAlign_Center:
-				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentCenter", "Center" ).ToString();
+				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentCenter", "Center" );
 				break;
 	
 			case EHorizontalAlignment::HAlign_Right:
-				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentRight", "Right" ).ToString();
+				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentRight", "Right" );
 				break;
 		}
 	
@@ -428,26 +428,26 @@ private:
 	/**
 	 * Return the text for the specified vertical alignment
 	 */
-	FString MakeVerticalAlignmentComboText( EVerticalAlignment Alignment ) const
+	FText MakeVerticalAlignmentComboText( EVerticalAlignment Alignment ) const
 	{
-		FString AlignmentText;
+		FText AlignmentText;
 	
 		switch( Alignment )
 		{
 			case EVerticalAlignment::VAlign_Fill:
-				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentFill", "Fill" ).ToString();
+				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentFill", "Fill" );
 				break;
 	
 			case EVerticalAlignment::VAlign_Top:
-				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentTop", "Top" ).ToString();
+				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentTop", "Top" );
 				break;
 	
 			case EVerticalAlignment::VAlign_Center:
-				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentCenter", "Center" ).ToString();
+				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentCenter", "Center" );
 				break;
 	
 			case EVerticalAlignment::VAlign_Bottom:
-				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentBottom", "Bottom" ).ToString();
+				AlignmentText = NSLOCTEXT( "UnrealEd", "AlignmentBottom", "Bottom" );
 				break;
 		}
 	
@@ -457,26 +457,26 @@ private:
 	/**
 	 * Return the tooltip text for the specified horizontal alignment
 	 */
-	FString MakeHorizontalAlignmentComboToolTipText( EHorizontalAlignment Alignment ) const
+	FText MakeHorizontalAlignmentComboToolTipText( EHorizontalAlignment Alignment ) const
 	{
-		FString ToolTipText;
+		FText ToolTipText;
 	
 		switch( Alignment )
 		{
 			case EHorizontalAlignment::HAlign_Fill:
-				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentFillToolTip", "The image will fill the preview" ).ToString();
+				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentFillToolTip", "The image will fill the preview" );
 				break;
 	
 			case EHorizontalAlignment::HAlign_Left:
-				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentLeftToolTip", "The image will be aligned to the left of the preview" ).ToString();
+				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentLeftToolTip", "The image will be aligned to the left of the preview" );
 				break;
 	
 			case EHorizontalAlignment::HAlign_Center:
-				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentCenterToolTip", "The image will be positioned in the centre of the preview" ).ToString();
+				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentCenterToolTip", "The image will be positioned in the centre of the preview" );
 				break;
 	
 			case EHorizontalAlignment::HAlign_Right:
-				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentRightToolTip", "The image will be aligned from the right of the preview" ).ToString();
+				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentRightToolTip", "The image will be aligned from the right of the preview" );
 				break;
 		}
 	
@@ -486,26 +486,26 @@ private:
 	/**
 	 * Return the tooltip text for the specified vertical alignment
 	 */
-	FString MakeVerticalAlignmentComboToolTipText( EVerticalAlignment Alignment ) const
+	FText MakeVerticalAlignmentComboToolTipText( EVerticalAlignment Alignment ) const
 	{
-		FString ToolTipText;
+		FText ToolTipText;
 	
 		switch( Alignment )
 		{
 			case EVerticalAlignment::VAlign_Fill:
-				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentFillToolTip", "The image will fill the preview" ).ToString();
+				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentFillToolTip", "The image will fill the preview" );
 				break;
 	
 			case EVerticalAlignment::VAlign_Top:
-				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentTopToolTip", "The image will be aligned to the top of the preview" ).ToString();
+				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentTopToolTip", "The image will be aligned to the top of the preview" );
 				break;
 	
 			case EVerticalAlignment::VAlign_Center:
-				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentCenterToolTip", "The image will be positioned in the centre of the preview" ).ToString();
+				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentCenterToolTip", "The image will be positioned in the centre of the preview" );
 				break;
 	
 			case EVerticalAlignment::VAlign_Bottom:
-				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentBottomToolTip", "The image will be aligned from the bottom of the preview" ).ToString();
+				ToolTipText = NSLOCTEXT( "UnrealEd", "AlignmentBottomToolTip", "The image will be aligned from the bottom of the preview" );
 				break;
 		}
 	
@@ -539,7 +539,7 @@ private:
 	/**
 	 * Get the horizontal alignment combo box content text
 	 */
-	FString GetHorizontalAlignmentComboBoxContent() const
+	FText GetHorizontalAlignmentComboBoxContent() const
 	{
 		return MakeHorizontalAlignmentComboText( HorizontalAlignment );
 	}
@@ -547,7 +547,7 @@ private:
 	/**
 	 * Get the vertical alignment combo box content text
 	 */
-	FString GetVerticalAlignmentComboBoxContent() const
+	FText GetVerticalAlignmentComboBoxContent() const
 	{
 		return MakeVerticalAlignmentComboText( VerticalAlignment );
 	}
@@ -555,7 +555,7 @@ private:
 	/**
 	 * Get the horizontal alignment combo box content tooltip text
 	 */
-	FString GetHorizontalAlignmentComboBoxContentToolTip() const
+	FText GetHorizontalAlignmentComboBoxContentToolTip() const
 	{
 		return MakeHorizontalAlignmentComboToolTipText( HorizontalAlignment );
 	}
@@ -563,7 +563,7 @@ private:
 	/**
 	 * Get the vertical alignment combo box content tooltip text
 	 */
-	FString GetVerticalAlignmentComboBoxContentToolTip() const
+	FText GetVerticalAlignmentComboBoxContentToolTip() const
 	{
 		return MakeVerticalAlignmentComboToolTipText( VerticalAlignment );
 	}
@@ -1208,7 +1208,7 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 	TSharedPtr<IPropertyHandle> TintProperty = StructPropertyHandle->GetChildHandle( TEXT("TintColor") );
 	TSharedPtr<IPropertyHandle> ResourceObjectProperty = StructPropertyHandle->GetChildHandle( TEXT("ResourceObject") );
 	
-	StructBuilder.AddChildContent( NSLOCTEXT( "SlateBrushCustomization", "ResourceObjectFilterString", "Resource" ).ToString() )
+	StructBuilder.AddChildContent( NSLOCTEXT( "SlateBrushCustomization", "ResourceObjectFilterString", "Resource" ) )
 	.NameContent()
 	[
 		ResourceObjectProperty->CreatePropertyNameWidget()
@@ -1248,13 +1248,13 @@ void FSlateBrushStructCustomization::CustomizeChildren( TSharedRef<IPropertyHand
 				.ResourceObjectProperty(ResourceObjectProperty)
 				.SlateBrush(Brush);
 
-			IDetailGroup& PreviewGroup = StructBuilder.AddChildGroup(TEXT("Preview"), TEXT(""));
+			IDetailGroup& PreviewGroup = StructBuilder.AddChildGroup(TEXT("Preview"), FText::GetEmpty());
 
 			PreviewGroup
 				.HeaderRow()
 				.NameContent()
 				[
-					StructPropertyHandle->CreatePropertyNameWidget(NSLOCTEXT("UnrealEd", "Preview", "Preview").ToString(), TEXT( "" ), false)
+					StructPropertyHandle->CreatePropertyNameWidget(NSLOCTEXT("UnrealEd", "Preview", "Preview"), FText::GetEmpty(), false)
 				]
 			.ValueContent()
 				.MinDesiredWidth(1)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Components/Visual.h"
@@ -19,18 +19,6 @@ public:
 	class UWidget* Content;
 	
 	bool IsDesignTime() const;
-
-	virtual void SetDesiredPosition(FVector2D InPosition);
-
-	virtual void SetDesiredSize(FVector2D InSize);
-
-	virtual void Resize(const FVector2D& Direction, const FVector2D& Amount);
-
-	virtual bool CanResize(const FVector2D& Direction) const;
-
-	virtual void MoveTo(const FVector2D& Location);
-
-	virtual bool CanMove() const;
 
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 

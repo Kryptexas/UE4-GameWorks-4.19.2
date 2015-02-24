@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
 #include "GenericPlatformContext.h"
@@ -77,6 +77,25 @@ FCrashDescription::FCrashDescription( FString WERXMLFilepath ) :
 				BuildVersion = BuildVersionNode->GetContent();
 				EngineVersionComponents++;
 			}
+
+			/*const FXmlNode* Parameter8Node = ProblemSignaturesNode->FindChildNode( TEXT( "Parameter8" ) );
+			if( Parameter8Node )
+			{
+				const FString Parameter8Value = Parameter8Node->GetContent();
+
+				TArray<FString> ParsedParameters8;
+				Parameter8Value.ParseIntoArray( &ParsedParameters8, TEXT( "!" ), false );
+
+				if( ParsedParameters8.Num() > 1 )
+				{
+					CommandLine = ParsedParameters8[1];
+				}
+
+				if( ParsedParameters8.Num() > 2 )
+				{
+					ErrorMessage.Add( ParsedParameters8[2] );
+				}
+			}*/
 
 			const FXmlNode* Parameter9Node = ProblemSignaturesNode->FindChildNode( TEXT( "Parameter9" ) );
 			if( Parameter9Node )

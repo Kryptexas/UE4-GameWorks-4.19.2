@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 /*=============================================================================================
 	MacPlatformSplash.h: Mac platform splash screen...
 ==============================================================================================*/
@@ -27,6 +27,11 @@ struct CORE_API FMacPlatformSplash : public FGenericPlatformSplash
 	 * @param	InText		Text to display
 	 */
 	static void SetSplashText( const SplashTextType::Type InType, const TCHAR* InText );
+
+	/**
+	 * Return whether the splash screen is being shown or not
+	 */
+	static bool IsShown();
 };
 
 typedef FMacPlatformSplash FPlatformSplash;

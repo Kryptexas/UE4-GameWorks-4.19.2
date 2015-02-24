@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "MemoryMisc.h"
@@ -52,6 +52,17 @@ static FCurrentFrameCalls& GetCurrentFrameCalls()
 	static FCurrentFrameCalls CurrentFrameCalls;
 	return CurrentFrameCalls;
 }
+
+void FMalloc::InitializeStatsMetadata()
+{
+	// Initialize stats metadata here instead of UpdateStats.
+	// Mostly to avoid dead-lock when stats malloc profiler is enabled.
+	GET_STATFNAME(STAT_MallocCalls);
+	GET_STATFNAME(STAT_ReallocCalls);
+	GET_STATFNAME(STAT_FreeCalls);
+	GET_STATFNAME(STAT_TotalAllocatorCalls);
+}
+
 
 void FMalloc::UpdateStats()
 {

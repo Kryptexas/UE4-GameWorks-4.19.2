@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,7 +24,9 @@ namespace CCT
 		FString OutputFile;
 		EBackend BackEnd;
 		bool bRunCPP;
-		//bool bCPPOnly;
+		bool bUseNew;
+		bool bList;
+		bool bPreprocessOnly;
 
 		FRunInfo();
 		bool Setup(const FString& InOptions, const TArray<FString>& InSwitches);

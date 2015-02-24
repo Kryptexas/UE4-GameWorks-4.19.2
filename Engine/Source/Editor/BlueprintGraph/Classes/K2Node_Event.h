@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -36,6 +36,10 @@ class UK2Node_Event : public UK2Node_EditablePinBase
 	UPROPERTY()
 	uint32 FunctionFlags;
 
+	// UObject interface
+	BLUEPRINTGRAPH_API virtual void Serialize(FArchive& Ar) override;
+	// End of UObject interface
+
 	// Begin UEdGraphNode interface
 	BLUEPRINTGRAPH_API virtual void AllocateDefaultPins() override;
 	BLUEPRINTGRAPH_API virtual FText GetTooltipText() const override;
@@ -53,7 +57,7 @@ class UK2Node_Event : public UK2Node_EditablePinBase
 
 	// Begin UK2Node interface
 	virtual bool DrawNodeAsEntry() const override { return true; }
-	virtual bool NodeCausesStructuralBlueprintChange() const override { return true; }
+	BLUEPRINTGRAPH_API virtual bool NodeCausesStructuralBlueprintChange() const override;
 	BLUEPRINTGRAPH_API virtual void GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const override;
 	BLUEPRINTGRAPH_API virtual void ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const override;
 	BLUEPRINTGRAPH_API virtual void PinConnectionListChanged(UEdGraphPin* Pin) override;
@@ -71,7 +75,7 @@ class UK2Node_Event : public UK2Node_EditablePinBase
 	BLUEPRINTGRAPH_API virtual bool IsFunctionEntryCompatible(const class UK2Node_FunctionEntry* EntryNode) const;
 	
 	UFunction* FindEventSignatureFunction();
-	BLUEPRINTGRAPH_API void UpdateDelegatePin();
+	BLUEPRINTGRAPH_API void UpdateDelegatePin(bool bSilent = false);
 	BLUEPRINTGRAPH_API FName GetFunctionName() const;
 	BLUEPRINTGRAPH_API virtual bool IsUsedByAuthorityOnlyDelegate() const { return false; }
 	BLUEPRINTGRAPH_API virtual bool IsCosmeticTickEvent() const;

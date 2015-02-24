@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -6,19 +6,12 @@ using System.Text;
 using System.Diagnostics;
 using System.IO;
 using System.Xml;
+using System.Linq;
 
 namespace UnrealBuildTool
 {
 	class AndroidPlatform : UEBuildPlatform
 	{
-		/// <summary>
-		/// Android settings.
-		/// </summary>
-		[XmlConfig]
-		public static string AndroidNdkApiTarget = "android-19";
-		[XmlConfig]
-		public static string AndroidSdkApiTarget = "latest";
-
 		// The current architecture - affects everything about how UBT operates on Android
 		public override string GetActiveArchitecture()
 		{
@@ -64,6 +57,77 @@ namespace UnrealBuildTool
         private bool HasAnySDK()
         {
             string NDKPath = Environment.GetEnvironmentVariable("NDKROOT");
+/* Don't check for existence of env vars, always set them from the .ini values if they exist
+//			bool bNeedsNDKPath = string.IsNullOrEmpty(NDKPath);
+//			bool bNeedsAndroidHome = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANDROID_HOME"));
+//			bool bNeedsAntHome = string.IsNullOrEmpty(Environment.GetEnvironmentVariable("ANT_HOME"));
+ //           if((bNeedsNDKPath || bNeedsAndroidHome || bNeedsAntHome))
+ */
+            {
+                var configCacheIni = new ConfigCacheIni("Engine", null);
+                var AndroidEnv = new Dictionary<string, string>();
+
+                Dictionary<string, string> EnvVarNames = new Dictionary<string,string> { 
+                                                         {"ANDROID_HOME", "SDKPath"}, 
+                                                         {"NDKROOT", "NDKPath"}, 
+                                                         {"ANT_HOME", "ANTPath"},
+                                                         {"JAVA_HOME", "JavaPath"}
+                                                         };
+
+                string path;
+                foreach(var kvp in EnvVarNames)
+                {
+                    if (configCacheIni.GetPath("/Script/AndroidPlatformEditor.AndroidSDKSettings", kvp.Value, out path) && !string.IsNullOrEmpty(path))
+                    {
+//                        Log.TraceWarning("Adding {0} from ini as {1} to {2}", kvp.Value, path, kvp.Key);
+                        AndroidEnv.Add(kvp.Key, path);
+                    }
+                    else
+                    {
+                        var envValue = Environment.GetEnvironmentVariable(kvp.Key);
+                        if(!String.IsNullOrEmpty(envValue))
+                        {
+//                            Log.TraceWarning("Adding {0} from env as {1}", kvp.Key, envValue);
+                            AndroidEnv.Add(kvp.Key, envValue);
+                        }
+                    }
+                }
+
+                // If we are on Mono and we are still missing a key then go and find it from the .bash_profile
+                if (Utils.IsRunningOnMono && !EnvVarNames.All(s => AndroidEnv.ContainsKey(s.Key)))
+                {
+                    string BashProfilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), ".bash_profile");
+                    if (File.Exists(BashProfilePath))
+                    {
+                        string[] BashProfileContents = File.ReadAllLines(BashProfilePath);
+                        foreach (string Line in BashProfileContents)
+                        {
+                            foreach (var kvp in EnvVarNames)
+                            {
+                                if (AndroidEnv.ContainsKey(kvp.Key))
+                                {
+                                    continue;
+                                }
+
+                                if (Line.StartsWith("export " + kvp.Key + "="))
+                                {
+                                    string PathVar = Line.Split('=')[1].Replace("\"", "");
+                                    AndroidEnv.Add(kvp.Key, PathVar);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // Set for the process
+                foreach (var kvp in AndroidEnv)
+                {
+                    Environment.SetEnvironmentVariable(kvp.Key, kvp.Value);
+                }
+
+                // See if we have an NDK path now...
+                AndroidEnv.TryGetValue("NDKROOT", out NDKPath);
+            }
 
             // we don't have an NDKROOT specified
             if (String.IsNullOrEmpty(NDKPath))
@@ -74,9 +138,9 @@ namespace UnrealBuildTool
             NDKPath = NDKPath.Replace("\"", "");
 
             // need a supported llvm
-            if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.5")) && 
-				!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.3")) &&
-				!Directory.Exists(Path.Combine(NDKPath, @"toolchains\llvm-3.1")))
+            if (!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.5")) && 
+				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.3")) &&
+				!Directory.Exists(Path.Combine(NDKPath, @"toolchains/llvm-3.1")))
             {
                 return false;
             }
@@ -102,7 +166,7 @@ namespace UnrealBuildTool
 
 		protected override void RegisterBuildPlatformInternal()
 		{
-			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == SDKStatus.Valid))
+			if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == SDKStatus.Valid) || Environment.GetEnvironmentVariable("IsBuildMachine") == "1")
 			{
 				bool bRegisterBuildPlatform = true;
 
@@ -223,7 +287,7 @@ namespace UnrealBuildTool
 
 		public override void ModifyNewlyLoadedModule(UEBuildModule InModule, TargetInfo Target)
 		{
-			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64))
+			if ((Target.Platform == UnrealTargetPlatform.Win32) || (Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Mac))
 			{
 				bool bBuildShaderFormats = UEBuildConfiguration.bForceBuildShaderFormats;
 				if (!UEBuildConfiguration.bBuildRequiresCookedData)
@@ -232,25 +296,25 @@ namespace UnrealBuildTool
 					{
 						if (UEBuildConfiguration.bBuildDeveloperTools)
 						{
-                            InModule.AddPlatformSpecificDynamicallyLoadedModule("AndroidTargetPlatform");
+							InModule.AddPlatformSpecificDynamicallyLoadedModule("AndroidTargetPlatform");
 							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_PVRTCTargetPlatform");
 							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ATCTargetPlatform");
 							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_DXTTargetPlatform");
-                            InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC1TargetPlatform");
-                            InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC2TargetPlatform");
-//                            InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_GL4TargetPlatform");
-							// @todo es31: Put this back in for ES31 support
-							// ES31 code is in, but it's not fully supported in UE4 4.5, so for now we need to disable the targetplatform as it will confuse people greatly
-							// InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
+							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC1TargetPlatform");
+							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC2TargetPlatform");
+							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
+							// @todo gl4android				
+							// InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_GL4TargetPlatform");
                         }
 					}
 					else if (InModule.ToString() == "TargetPlatform")
 					{
 						bBuildShaderFormats = true;
-                        InModule.AddDynamicallyLoadedModule("TextureFormatPVR");
+						InModule.AddDynamicallyLoadedModule("TextureFormatPVR");
 						InModule.AddDynamicallyLoadedModule("TextureFormatDXT");
-                        InModule.AddPlatformSpecificDynamicallyLoadedModule("TextureFormatAndroid");    // ATITC, ETC1 and ETC2
-                        if (UEBuildConfiguration.bBuildDeveloperTools)
+						InModule.AddDynamicallyLoadedModule("TextureFormatASTC");
+						InModule.AddPlatformSpecificDynamicallyLoadedModule("TextureFormatAndroid");    // ATITC, ETC1 and ETC2
+						if (UEBuildConfiguration.bBuildDeveloperTools)
 						{
 							//InModule.AddDynamicallyLoadedModule("AudioFormatADPCM");	//@todo android: android audio
 						}
@@ -260,16 +324,15 @@ namespace UnrealBuildTool
 				// allow standalone tools to use targetplatform modules, without needing Engine
 				if (UEBuildConfiguration.bForceBuildTargetPlatforms)
 				{
-                    InModule.AddPlatformSpecificDynamicallyLoadedModule("AndroidTargetPlatform");
+					InModule.AddPlatformSpecificDynamicallyLoadedModule("AndroidTargetPlatform");
 					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_PVRTCTargetPlatform");
 					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ATCTargetPlatform");
 					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_DXTTargetPlatform");
-                    InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC1TargetPlatform");
-                    InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC2TargetPlatform");
-//                    InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_GL4TargetPlatform");
-					// @todo es31: Put this back in for ES31 support
-					// ES31 code is in, but it's not fully supported in UE4 4.5, so for now we need to disable the targetplatform as it will confuse people greatly
-					// InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
+					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC1TargetPlatform");
+					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC2TargetPlatform");
+					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
+					// @todo gl4android				
+					// InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_GL4TargetPlatform");
                 }
 
 				if (bBuildShaderFormats)
@@ -286,7 +349,7 @@ namespace UnrealBuildTool
 			NDKPath = NDKPath.Replace("\"", "");
 
 			string GccVersion = "4.8";
-			if (!Directory.Exists(Path.Combine(NDKPath, @"sources\cxx-stl\gnu-libstdc++\4.8")))
+			if (!Directory.Exists(Path.Combine(NDKPath, @"sources/cxx-stl/gnu-libstdc++/4.8")))
 			{
 				GccVersion = "4.6";
 			}

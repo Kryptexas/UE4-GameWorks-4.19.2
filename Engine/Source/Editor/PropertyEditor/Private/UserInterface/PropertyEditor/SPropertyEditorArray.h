@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "PropertyEditor.h"
@@ -21,7 +21,7 @@ public:
 	{
 		PropertyEditor = InPropertyEditor;
 
-		TAttribute<FString> TextAttr;
+		TAttribute<FText> TextAttr;
 		if( PropertyEditorHelpers::IsStaticArray( *InPropertyEditor->GetPropertyNode() ) )
 		{
 			// Static arrays need special case handling for their values
@@ -57,9 +57,9 @@ public:
 		OutMaxDesiredWidth = 130.0f;
 	}
 private:
-	FString GetArrayTextValue() const
+	FText GetArrayTextValue() const
 	{
-		return FString::Printf( *LOCTEXT("NumArrayItems", "%d elements").ToString() , PropertyEditor->GetPropertyNode()->GetNumChildNodes() );
+		return FText::Format( LOCTEXT("NumArrayItemsFmt", "{0} elements"), FText::AsNumber(PropertyEditor->GetPropertyNode()->GetNumChildNodes()) );
 	}
 
 	/** @return True if the property can be edited */

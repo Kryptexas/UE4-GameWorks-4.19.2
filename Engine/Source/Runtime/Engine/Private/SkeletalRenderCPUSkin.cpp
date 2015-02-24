@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalRenderCPUSkin.cpp: CPU skinned skeletal mesh rendering code.
@@ -419,17 +419,17 @@ void FSkeletalMeshObjectCPUSkin::DrawVertexElements(FPrimitiveDrawInterface* PDI
 
 		if( bDrawNormals )
 		{
-			PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( (FVector)(Normal) ).SafeNormal() * Len, FLinearColor( 0.0f, 1.0f, 0.0f), SDPG_World );
+			PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( (FVector)(Normal) ).GetSafeNormal() * Len, FLinearColor( 0.0f, 1.0f, 0.0f), SDPG_World );
 		}
 
 		if( bDrawTangents )
 		{
-			PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Tangent ).SafeNormal() * Len, FLinearColor( 1.0f, 0.0f, 0.0f), SDPG_World );
+			PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Tangent ).GetSafeNormal() * Len, FLinearColor( 1.0f, 0.0f, 0.0f), SDPG_World );
 		}
 
 		if( bDrawBinormals )
 		{
-			PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Binormal ).SafeNormal() * Len, FLinearColor( 0.0f, 0.0f, 1.0f), SDPG_World );
+			PDI->DrawLine( WorldPos, WorldPos+LocalToWorldInverseTranspose.TransformVector( Binormal ).GetSafeNormal() * Len, FLinearColor( 0.0f, 0.0f, 1.0f), SDPG_World );
 		}
 	}
 }
@@ -452,7 +452,7 @@ FDynamicSkelMeshObjectDataCPUSkin::FDynamicSkelMeshObjectDataCPUSkin(
 	UpdateCustomLeftRightVectors( CustomLeftRightVectors, InMeshComponent, InSkeletalMeshResource, LODIndex );
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	MeshSpaceBases = InMeshComponent->SpaceBases;
+	MeshSpaceBases = InMeshComponent->GetSpaceBases();
 #endif
 }
 
@@ -488,9 +488,11 @@ uint32 InitEvalInfos(const TArray<FActiveVertexAnim>& ActiveVertexAnims, int32 L
 		FVertexAnimEvalInfo NewInfo;
 
 		const FActiveVertexAnim& ActiveAnim = ActiveVertexAnims[AnimIdx];
+		const float ActiveAnimAbsVertexWeight = FMath::Abs(ActiveAnim.Weight);
+
 		if( ActiveAnim.VertAnim != NULL &&
-			ActiveAnim.Weight >= MinVertexAnimBlendWeight && 
-			ActiveAnim.Weight <= MaxVertexAnimBlendWeight &&				
+			ActiveAnimAbsVertexWeight >= MinVertexAnimBlendWeight &&
+			ActiveAnimAbsVertexWeight <= MaxVertexAnimBlendWeight &&
 			ActiveAnim.VertAnim->HasDataForLOD(LODIndex) )
 		{
 			// start at the first vertex since they affect base mesh verts in ascending order
@@ -558,7 +560,7 @@ FORCEINLINE void ApplyMorphBlend( VertexType& DestVertex, const FVertexAnimDelta
 	// Save W before = operator. That overwrites W to be 127.
 	uint8 W = DestVertex.TangentZ.Vector.W;
 	// add normal offset. can only apply normal deltas up to a weight of 1
-	DestVertex.TangentZ = FVector(FVector(DestVertex.TangentZ) + SrcMorph.TangentZDelta * FMath::Min(Weight,1.0f)).UnsafeNormal();
+	DestVertex.TangentZ = FVector(FVector(DestVertex.TangentZ) + SrcMorph.TangentZDelta * FMath::Min(Weight,1.0f)).GetUnsafeNormal();
 	// Recover W
 	DestVertex.TangentZ.Vector.W = W;
 } 

@@ -1,8 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __DLGREFERENCETREE_H__
 #define __DLGREFERENCETREE_H__
+
+#include "Engine/Polys.h"
 
 /**
  * A struct representing a node in the reference graph

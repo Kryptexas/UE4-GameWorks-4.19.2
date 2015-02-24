@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PhATModule.h"
 #include "AssetSelection.h"
@@ -26,7 +26,12 @@
 #include "EngineAnalytics.h"
 #include "Runtime/Analytics/Analytics/Public/Interfaces/IAnalyticsProvider.h"
 #include "SDockTab.h"
-
+#include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "Engine/Selection.h"
+#include "Engine/StaticMesh.h"
+#include "EngineLogs.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 DEFINE_LOG_CATEGORY(LogPhAT);
 #define LOCTEXT_NAMESPACE "PhAT"
 
@@ -846,6 +851,17 @@ void FPhAT::ExtendToolbar()
 				ToolbarBuilder.AddWidget(PhATAnimation);
 			}
 			ToolbarBuilder.EndSection();
+
+			ToolbarBuilder.BeginSection("PhATRecord");
+			{
+				ToolbarBuilder.AddToolBarButton(Commands.RecordAnimation,
+											NAME_None,
+											 TAttribute<FText>(Phat, &FPhAT::GetRecordStatusLabel),
+											 TAttribute<FText>(Phat, &FPhAT::GetRecordStatusTooltip),
+											 TAttribute<FSlateIcon>(Phat, &FPhAT::GetRecordStatusImage),
+											 NAME_None);
+			}
+			ToolbarBuilder.EndSection();
 		}
 	};
 
@@ -1357,6 +1373,15 @@ void FPhAT::BindCommands()
 		FExecuteAction::CreateSP(this, &FPhAT::Mirror),
 		FCanExecuteAction::CreateSP(this, &FPhAT::IsNotSimulation)
 		);
+
+	// record animation
+	ToolkitCommands->MapAction(
+		Commands.RecordAnimation,
+		FExecuteAction::CreateSP(this, &FPhAT::RecordAnimation),
+		FCanExecuteAction::CreateSP(this, &FPhAT::IsRecordAvailable),
+		FIsActionChecked(),
+		FIsActionButtonVisible()
+		);
 }
 
 void FPhAT::Mirror()
@@ -1410,7 +1435,7 @@ TSharedRef<ITableRow> FPhAT::OnGenerateRowForTree(FTreeElemPtr Item, const TShar
 	[
 		SNew(STextBlock)
 		.Font((*Item).bBold? FEditorStyle::GetFontStyle("BoldFont"): FEditorStyle::GetFontStyle("NormalFont"))
-		.Text((*Item).Name.ToString())
+		.Text(FText::FromName((*Item).Name))
 	];
 }
 
@@ -1979,6 +2004,32 @@ void FPhAT::AddNewPrimitive(EKCollisionPrimitiveType InPrimitiveType, bool bCopy
 					SphylElem->Length = BodySetup->AggGeom.SphylElems[SharedData->GetSelectedBody()->PrimitiveIndex].Length;
 					SphylElem->Radius = BodySetup->AggGeom.SphylElems[SharedData->GetSelectedBody()->PrimitiveIndex].Radius;
 				}
+			}
+			else if (PrimitiveType == KPT_Convex)
+			{
+				check(bCopySelected); //only support copying for Convex primitive, as there is no default vertex data
+
+				NewPrimIndex = BodySetup->AggGeom.ConvexElems.Add(FKConvexElem());
+				NewSelection[i].PrimitiveType = KPT_Convex;
+				NewSelection[i].PrimitiveIndex = NewPrimIndex;
+				FKConvexElem* ConvexElem = &BodySetup->AggGeom.ConvexElems[NewPrimIndex];
+
+				ConvexElem->SetTransform(BodySetup->AggGeom.ConvexElems[SharedData->GetSelectedBody()->PrimitiveIndex].GetTransform());
+
+				// Copy all of the vertices of the convex element
+				for (FVector v : BodySetup->AggGeom.ConvexElems[SharedData->GetSelectedBody()->PrimitiveIndex].VertexData)
+				{
+					v.X += PhAT::DuplicateXOffset;
+					ConvexElem->VertexData.Add(v);
+				}
+				ConvexElem->UpdateElemBox();
+
+				BodySetup->InvalidatePhysicsData();
+				BodySetup->CreatePhysicsMeshes();
+			}
+			else
+			{
+				check(0);  //unrecognized primitive type
 			}
 		}
 	} // ScopedTransaction
@@ -2986,7 +3037,6 @@ TSharedRef<SWidget> FPhAT::BuildStaticMeshAssetPicker()
 	AssetPickerConfig.OnAssetDoubleClicked = FOnAssetDoubleClicked::CreateSP(this, &FPhAT::OnAssetSelectedFromStaticMeshAssetPicker);
 	AssetPickerConfig.bAllowNullSelection = true;
 	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
-	AssetPickerConfig.ThumbnailScale = 0.0f;
 	AssetPickerConfig.bFocusSearchBoxWhenOpened = true;
 	AssetPickerConfig.bShowBottomToolbar = false;
 	AssetPickerConfig.SelectionMode = ESelectionMode::Single;
@@ -3012,9 +3062,8 @@ TSharedRef<SWidget> FPhAT::BuildHierarchyFilterMenu()
 	return MenuBuilder.MakeWidget();
 }
 
-FString FPhAT::GetHierarchyFilter() const
+FText FPhAT::GetHierarchyFilter() const
 {
-
 	FText FilterMenuText;
 
 	switch (HierarchyFilterMode)
@@ -3031,7 +3080,7 @@ FString FPhAT::GetHierarchyFilter() const
 		break;
 	}
 
-	return FilterMenuText.ToString();
+	return FilterMenuText;
 
 }
 
@@ -3053,7 +3102,7 @@ void FPhAT::OnAssetSelectedFromStaticMeshAssetPicker( const FAssetData& AssetDat
 	
 		UStaticMesh* SM = Cast<UStaticMesh>(AssetData.GetAsset());
 
-		if (SM && SM->BodySetup && SM->BodySetup->AggGeom.ConvexElems.Num() > 0)
+		if (SM && SM->BodySetup && SM->BodySetup->AggGeom.GetElementCount() > 0)
 		{
 			BaseSetup->AddCollisionFrom(SM->BodySetup);
 
@@ -3188,4 +3237,89 @@ void FPhAT::OnAddPhatRecord(const FString& Action, bool bRecordSimulate, bool bR
 		FEngineAnalytics::GetProvider().RecordEvent(EventString, Attribs);
 	}
 }
+
+// only during simulation
+bool FPhAT::IsRecordAvailable() const
+{
+	// make sure mesh exists
+	return (SharedData->EditorSkelComp && SharedData->EditorSkelComp->SkeletalMesh/* && SharedData->bRunningSimulation */);
+}
+
+FSlateIcon FPhAT::GetRecordStatusImage() const
+{
+	if(SharedData->Recorder.InRecording())
+	{
+		return FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.StopRecordAnimation");
+	}
+
+	return FSlateIcon(FEditorStyle::GetStyleSetName(), "Persona.StartRecordAnimation");
+}
+
+FText FPhAT::GetRecordMenuLabel() const
+{
+	if(SharedData->Recorder.InRecording())
+	{
+		return LOCTEXT("Persona_StopRecordAnimationMenuLabel", "Stop Record Animation");
+	}
+
+	return LOCTEXT("Persona_StartRecordAnimationLabel", "Start Record Animation");
+}
+
+FText FPhAT::GetRecordStatusLabel() const
+{
+	if(SharedData->Recorder.InRecording())
+	{
+		return LOCTEXT("Persona_StopRecordAnimationLabel", "Stop");
+	}
+
+	return LOCTEXT("Persona_StartRecordAnimationLabel", "Record");
+}
+
+FText FPhAT::GetRecordStatusTooltip() const
+{
+	if(SharedData->Recorder.InRecording())
+	{
+		return LOCTEXT("Persona_StopRecordAnimation", "Stop Record Animation");
+	}
+
+	return LOCTEXT("Persona_StartRecordAnimation", "Start Record Animation");
+}
+
+void FPhAT::RecordAnimation()
+{
+	if(!SharedData->EditorSkelComp || !SharedData->EditorSkelComp->SkeletalMesh)
+	{
+		// error
+		return;
+	}
+
+	if(SharedData->Recorder.InRecording())
+	{
+		UAnimSequence * AnimSeq = SharedData->Recorder.StopRecord(true);
+
+		// open the asset?
+		if (AnimSeq)
+		{
+			TArray<UObject*> ObjectsToSync;
+			ObjectsToSync.Add(AnimSeq);
+
+			FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+			ContentBrowserModule.Get().SyncBrowserToAssets(ObjectsToSync, true);
+		}
+	}
+	else
+	{
+		SharedData->Recorder.TriggerRecordAnimation(SharedData->EditorSkelComp);
+	}
+}
+
+void FPhAT::Tick(float DeltaTime)
+{
+}
+
+TStatId FPhAT::GetStatId() const
+{
+	RETURN_QUICK_DECLARE_CYCLE_STAT(FPhAT, STATGROUP_Tickables);
+}
+
 #undef LOCTEXT_NAMESPACE

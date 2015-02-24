@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -49,6 +49,10 @@ protected:
 	/** Vertex color to apply to the frames */
 	UPROPERTY(BlueprintReadOnly, Interp, Category=Sprite)
 	FLinearColor SpriteColor;
+
+	/** The cached body setup */
+	UPROPERTY(Transient)
+	UBodySetup* CachedBodySetup;
 
 public:
 	/** Event called whenever a non-looping flipbook finishes playing (either reaching the beginning or the end, depending on the play direction) */
@@ -149,6 +153,7 @@ protected:
 	UPaperSprite* GetSpriteAtCachedIndex() const;
 
 	void TickFlipbook(float DeltaTime);
+	void FlipbookChangedPhysicsState();
 
 public:
 	// UObject interface
@@ -169,6 +174,7 @@ public:
 
 	// USceneComponent interface
 	virtual bool HasAnySockets() const override;
+	virtual bool DoesSocketExist(FName InSocketName) const override;
 	virtual FTransform GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace = RTS_World) const override;
 	virtual void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const override;
 	// End of USceneComponent interface
@@ -181,6 +187,7 @@ public:
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
 	virtual void GetStreamingTextureInfo(TArray<FStreamingTexturePrimitiveInfo>& OutStreamingTextures) const override;
 	virtual int32 GetNumMaterials() const override;
+	virtual UBodySetup* GetBodySetup() override;
 	// End of UPrimitiveComponent interface
 };
 

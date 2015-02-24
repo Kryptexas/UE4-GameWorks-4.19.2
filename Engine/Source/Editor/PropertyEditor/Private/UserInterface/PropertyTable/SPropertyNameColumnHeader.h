@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "SColumnHeader.h"
@@ -61,7 +61,7 @@ class SPropertyNameColumnHeader : public SColumnHeader
 				.Padding( FMargin( 2, 0, 2, 0 ) )
 				[
 					SNew( STextBlock )
-					.Text( PropertyName )
+					.Text( FText::FromString(PropertyName) )
 					.ColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f))
 				]
 			];

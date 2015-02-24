@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Json.h"
 #include "CsvParser.h"
 #include "Engine/DataTable.h"
+#include "Engine/UserDefinedStruct.h"
 
 DEFINE_LOG_CATEGORY(LogDataTable);
 
@@ -115,7 +116,7 @@ void UDataTable::LoadStructData(FArchive& Ar)
 
 		// Load row data
 		uint8* RowData = (uint8*)FMemory::Malloc(LoadUsingStruct->PropertiesSize);
-		LoadUsingStruct->InitializeScriptStruct(RowData);
+		LoadUsingStruct->InitializeStruct(RowData);
 		// And be sure to call DestroyScriptStruct later
 		LoadUsingStruct->SerializeTaggedProperties(Ar, RowData, LoadUsingStruct, NULL);
 
@@ -150,6 +151,15 @@ void UDataTable::Serialize( FArchive& Ar )
 {
 	Super::Serialize(Ar); // When loading, this should load our RowStruct!	
 
+	if (RowStruct && RowStruct->HasAnyFlags(RF_NeedLoad))
+	{
+		auto RowStructLinker = RowStruct->GetLinker();
+		if (RowStructLinker)
+		{
+			RowStructLinker->Preload(RowStruct);
+		}
+	}
+
 	if(Ar.IsLoading())
 	{
 		LoadStructData(Ar);
@@ -181,9 +191,9 @@ void UDataTable::AddReferencedObjects(UObject* InThis, FReferenceCollector& Coll
 		}
 	}
 
-#if WITH_EDITOR || HACK_HEADER_GENERATOR
+#if WITH_EDITOR
 	Collector.AddReferencedObjects(This->TemporarilyReferencedObjects);
-#endif //WITH_EDITOR || HACK_HEADER_GENERATOR
+#endif //WITH_EDITOR
 
 	Super::AddReferencedObjects( This, Collector );
 }
@@ -196,6 +206,15 @@ void UDataTable::FinishDestroy()
 		EmptyTable(); // Free memory when UObject goes away
 	}
 }
+
+#if WITH_EDITORONLY_DATA
+void UDataTable::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), ImportPath, FAssetRegistryTag::TT_Hidden) );
+
+	Super::GetAssetRegistryTags(OutTags);
+}
+#endif
 
 void UDataTable::EmptyTable()
 {
@@ -210,7 +229,7 @@ void UDataTable::EmptyTable()
 	for (auto RowIt = RowMap.CreateIterator(); RowIt; ++RowIt)
 	{
 		uint8* RowData = RowIt.Value();
-		LoadUsingStruct->DestroyScriptStruct(RowData);
+		LoadUsingStruct->DestroyStruct(RowData);
 		FMemory::Free(RowData);
 	}
 
@@ -239,7 +258,7 @@ UProperty* UDataTable::FindTableProperty(const FName& PropertyName) const
 	return Property;
 }
 
-#if WITH_EDITOR || HACK_HEADER_GENERATOR
+#if WITH_EDITOR
 
 struct FPropertyDisplayNameHelper
 {
@@ -569,7 +588,7 @@ TArray<FString> UDataTable::CreateTableFromCSVString(const FString& InString)
 
 		// Allocate data to store information, using UScriptStruct to know its size
 		uint8* RowData = (uint8*)FMemory::Malloc(RowStruct->PropertiesSize);
-		RowStruct->InitializeScriptStruct(RowData);
+		RowStruct->InitializeStruct(RowData);
 		// And be sure to call DestroyScriptStruct later
 
 #if WITH_EDITOR
@@ -669,4 +688,11 @@ TArray< TArray<FString> > UDataTable::GetTableData() const
 
 }
 
-#endif //WITH_EDITOR || HACK_HEADER_GENERATOR
+#endif //WITH_EDITOR
+
+TArray<FName> UDataTable::GetRowNames() const
+{
+	TArray<FName> Keys;
+	RowMap.GetKeys(Keys);
+	return Keys;
+}

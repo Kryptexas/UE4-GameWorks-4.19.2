@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorBuildUtils.cpp: Utilities for building in the editor
@@ -17,6 +17,9 @@
 #include "MainFrame.h"
 #include "AssetToolsModule.h"
 #include "MessageLog.h"
+#include "Engine/LevelStreaming.h"
+#include "GameFramework/WorldSettings.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorBuildUtils, Log, All);
 

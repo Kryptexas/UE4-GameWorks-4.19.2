@@ -1,9 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LaunchPrivatePCH.h"
-#include "SDL/SDL.h"
-#if !PLATFORM_HTML5_WIN32
-	#include "SDL/SDL_image.h"
+#include <SDL.h>
+#if PLATFORM_HTML5_BROWSER
 	#include <emscripten.h>
 #else
 	// SDL defines main to be SDL_main and expects you to use SDLmain.  We don't.
@@ -58,9 +57,7 @@ int main(int argc, char* argv[])
 
 #if PLATFORM_HTML5_WIN32
 	// load the delay load DLLs
-
 	HTML5Win32::LoadANGLE(TCHAR_TO_ANSI(*FPaths::EngineDir())); 
-	HTML5Win32::LoadSDLDLL(TCHAR_TO_ANSI(*FPaths::EngineDir())); 
 	HTML5Win32::LoadPhysXDLL (TCHAR_TO_ANSI(*FPaths::EngineDir()));  
 	HTML5Win32::LoadOpenAL(TCHAR_TO_ANSI(*FPaths::EngineDir()));
 	

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
 #include "BlueprintEditorCommands.h"
@@ -40,6 +40,7 @@ void SBlueprintEditorSelectedDebugObjectWidget::Construct(const FArguments& InAr
 	LastObjectObserved = DebugObjects[0];
 
 	DebugWorldsComboBox = SNew(STextComboBox)
+		.ButtonStyle(FEditorStyle::Get(), "FlatButton.Light")
 		.ToolTip(IDocumentation::Get()->CreateToolTip(
 		LOCTEXT("BlueprintDebugWorldTooltip", "Select a world to debug"),
 		nullptr,
@@ -52,6 +53,7 @@ void SBlueprintEditorSelectedDebugObjectWidget::Construct(const FArguments& InAr
 		.OnSelectionChanged(this, &SBlueprintEditorSelectedDebugObjectWidget::DebugWorldSelectionChanged);
 
 	DebugObjectsComboBox = SNew(STextComboBox)
+		.ButtonStyle(FEditorStyle::Get(), "FlatButton.Light")
 		.ToolTip(IDocumentation::Get()->CreateToolTip(
 		LOCTEXT("BlueprintDebugObjectTooltip", "Select an object to debug"),
 		nullptr,
@@ -238,12 +240,7 @@ void SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugWorldNames(bool bRe
 	DebugWorlds.Add(nullptr);
 	DebugWorldNames.Add(MakeShareable(new FString(GetDebugAllWorldsString())));
 
-	UWorld* PreviewWorld = nullptr;
-	TSharedPtr<SSCSEditorViewport> PreviewViewportPtr = BlueprintEditor.Pin()->GetSCSViewport();
-	if (PreviewViewportPtr.IsValid())
-	{
-		PreviewWorld = PreviewViewportPtr->GetPreviewScene().GetWorld();
-	}
+	UWorld* PreviewWorld = BlueprintEditor.Pin()->GetPreviewScene()->GetWorld();
 
 	for (TObjectIterator<UWorld> It; It; ++It)
 	{
@@ -358,19 +355,23 @@ void SBlueprintEditorSelectedDebugObjectWidget::GenerateDebugObjectNames(bool bR
 	if (DebugWorldsComboBox.IsValid())
 	{
 		TSharedPtr<FString> CurrentWorldSelection = DebugWorldsComboBox->GetSelectedItem();
-		int32 SelectedIndex = DebugWorldNames.Find(CurrentWorldSelection);
+		int32 SelectedIndex = INDEX_NONE;
+		for (int32 WorldIdx = 0; WorldIdx < DebugWorldNames.Num(); ++WorldIdx)
+		{
+			if (DebugWorldNames[WorldIdx].IsValid() && CurrentWorldSelection.IsValid()
+				&& (*DebugWorldNames[WorldIdx] == *CurrentWorldSelection))
+			{
+				SelectedIndex = WorldIdx;
+				break;
+			}
+		}
 		if (SelectedIndex > 0 && DebugWorldNames.IsValidIndex(SelectedIndex))
 		{
 			DebugWorld = DebugWorlds[SelectedIndex].Get();
 		}
 	}
 
-	UWorld* PreviewWorld = nullptr;
-	TSharedPtr<SSCSEditorViewport> PreviewViewportPtr = BlueprintEditor.Pin()->GetSCSViewport();
-	if (PreviewViewportPtr.IsValid())
-	{
-		PreviewWorld = PreviewViewportPtr->GetPreviewScene().GetWorld();
-	}
+	UWorld* PreviewWorld = BlueprintEditor.Pin()->GetPreviewScene()->GetWorld();
 
 	for (TObjectIterator<UObject> It; It; ++It)
 	{

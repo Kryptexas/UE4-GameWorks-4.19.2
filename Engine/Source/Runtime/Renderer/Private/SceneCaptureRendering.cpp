@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	
@@ -230,7 +230,7 @@ FSceneRenderer* FScene::CreateSceneRenderer( USceneCaptureComponent* SceneCaptur
 
 	View->StartFinalPostprocessSettings(ViewLocation);
 	View->OverridePostProcessSettings(*PostProcessSettings, PostProcessBlendWeight);
-	View->EndFinalPostprocessSettings();
+	View->EndFinalPostprocessSettings(ViewInitOptions);
 
 	return FSceneRenderer::CreateSceneRenderer(&ViewFamily, NULL);
 }

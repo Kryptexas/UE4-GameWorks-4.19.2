@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LandscapeVertexFactory.usf: Landscape vertex factory.
@@ -6,19 +6,28 @@
 
 #include "VertexFactoryCommon.usf"
 
-#define TERRAIN_ZSCALE				(1.0f/128.0f)
-
 #define ES2_MAXLOD	5
 
 // Set by FLightMapTexturePolicy
 float4 LightMapCoordinateScaleBias;
 float4 ShadowMapCoordinateScaleBias;
 
-// Vertex shader
-float4 LodBias; 
+/* SM4+:
+   x = unused
+   y = unused
+   z = Heightmap texture LOD difference from current LOD to highest LOD
+   w = XYOffset texture LOD difference from current LOD to highest LOD
 
-/* x = LOD
-   y = convert current LOD coordinates into highest LOD coordinates
+   ES2 / ES3.1:
+   x = unused
+   y = unused
+   z = TexCoordOffset.x
+   w = TexCoordOffset.y
+*/
+float4 LodBias;
+
+/* x = current LOD
+   y = unused
    z = SectionSizeQuads in current LOD
    w = 1/SectionSizeQuads in current LOD
 */
@@ -421,6 +430,73 @@ float2 GetShadowMapCoordinate(FVertexFactoryInterpolantsVSToPS Interpolants)
 }
 #endif
 
+float CalcLOD(float2 xy, float2 Subsection)
+{
+	// LOD value based on Barycentric coordinate
+
+	float4 L0 = float4(xy.y, xy.x, (1 - xy.x), (1 - xy.y)) * 2;
+
+	float4 LODCalculated4;
+	if (Subsection.y > 0.5f)
+	{
+		if (Subsection.x > 0.5f)
+		{
+			float SectionLod = SectionLods.w;
+			LODCalculated4 = L0 * SectionLod + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[3];
+		}
+		else
+		{
+			float SectionLod = SectionLods.z;
+			LODCalculated4 = L0 * SectionLod + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[2];
+		}
+	}
+	else
+	{
+		if (Subsection.x > 0.5f)
+		{
+			float SectionLod = SectionLods.y;
+			LODCalculated4 = L0 * SectionLod + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[1];
+		}
+		else
+		{
+			float SectionLod = SectionLods.x;
+			LODCalculated4 = L0 * SectionLod + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[0];
+		}
+	}
+
+	// Find which quadrant of the subsection we're in - top, left, right or bottom.
+	// 0 --------- 1 X  1 ----- 2  1          1 
+	//   | \ 0 / |        \   /    | \      / | 
+	//   | 1 + 2 |          0      |  0    0  |      0       
+	//   | / 3 \ |                 | /      \ |    /   \     
+	// 2 --------- 3               2          2  1 ----- 2   
+	float LODCalculated;
+	if ((xy.x + xy.y) > 1)
+	{
+		if (xy.x < xy.y)
+		{
+			LODCalculated = LODCalculated4.w;
+		}
+		else
+		{
+			LODCalculated = LODCalculated4.z;
+		}
+	}
+	else
+	{
+		if (xy.x < xy.y)
+		{
+			LODCalculated = LODCalculated4.y;
+		}
+		else
+		{
+			LODCalculated = LODCalculated4.x;
+		}
+	}
+
+	return LODCalculated;
+}
+
 FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput Input)
 {
 	FVertexFactoryIntermediates Intermediates;
@@ -434,101 +510,28 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 	Intermediates.InputPosition.zw = SubXY;
 #endif
 
-
-	// LOD value based on Barycentric coordinate
 	float2 xy = Intermediates.InputPosition.xy * LodValues.w;
-	float4 L0 = float4( xy.y, xy.x, (1-xy.x), (1-xy.y) ) * 2;
 
-
-	// Which subsection we're rendering (x/y encoded in Intermediates.InputPosition.z/w)
-	float SectionLod;
-	float4 LODCalculated4;
-	if( Intermediates.InputPosition.w > 0.5f )
-	{
-		if( Intermediates.InputPosition.z > 0.5f )
-		{
-			SectionLod = SectionLods.w;
-			LODCalculated4 = L0 * SectionLod + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[3];
-		}
-		else
-		{
-			SectionLod = SectionLods.z;
-			LODCalculated4 = L0 * SectionLod + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[2];
-		}
-	}
-	else
-	{
-		if( Intermediates.InputPosition.z > 0.5f )
-		{
-			SectionLod = SectionLods.y;
-			LODCalculated4 = L0 * SectionLod + (float4(1,1,1,1)-L0) * NeighborSectionLod[1];
-		}
-		else
-		{
-			SectionLod = SectionLods.x;
-			LODCalculated4 = L0 * SectionLod + (float4(1, 1, 1, 1) - L0) * NeighborSectionLod[0];
-		}
-	}
-
-	// Find which quadrant of the subsection we're in - top, left, right or bottom.
-	// 0 --------- 1 X  1 ----- 2  1          1 
-	//   | \ 0 / |        \   /    | \      / | 
-	//   | 1 + 2 |          0      |  0    0  |      0       
-	//   | / 3 \ |                 | /      \ |    /   \     
-	// 2 --------- 3               2          2  1 ----- 2   
-	float LODCalculated;
-	if( LodValues.z < (Intermediates.InputPosition.x + Intermediates.InputPosition.y) )
-	{
-		if( Intermediates.InputPosition.x < Intermediates.InputPosition.y) 
-		{
-			LODCalculated = LODCalculated4.w;
-		}
-		else
-		{
-			LODCalculated = LODCalculated4.z;
-		}
-	}
-	else
-	{
-		if( Intermediates.InputPosition.x < Intermediates.InputPosition.y) 
-		{
-			LODCalculated = LODCalculated4.y;
-		}
-		else
-		{
-			LODCalculated = LODCalculated4.x;
-		}
-	}
+	float LODCalculated = CalcLOD(xy, Intermediates.InputPosition.zw);
 
 	float LodValue = floor(LODCalculated);
 	float MorphAlpha = frac(LODCalculated);
 
-	if (LodValues.x < 1.0f)
-	{
-		MorphAlpha = saturate((MorphAlpha - LodBias.x) * (LodValue+1) * 2.f);
-	}
-	else
-	{
-		MorphAlpha = saturate((MorphAlpha - LodBias.x) * LodBias.y);
-	}
-
 	// Base to Actual LOD, Base to Next LOD
 	float2 CoordTranslate = float2( LandscapeParameters.SubsectionSizeVertsLayerUVPan.x * pow(2, -LodValue) - 1, max(LandscapeParameters.SubsectionSizeVertsLayerUVPan.x * pow(2, -LodValue-1), 2) - 1 ) * LandscapeParameters.SubsectionSizeVertsLayerUVPan.y;
 
-	// Position for current LOD in base LOD units
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
-	float2 InputPositionLODBase = Intermediates.InputPosition.xy * LodValues.y;
-#else
-	float2 InputPositionLODBase = Intermediates.InputPosition.xy;
-#endif
-
-	// Position for actual LOD in base LOD units
-	float2 ActualLODCoordsInt = floor( InputPositionLODBase * CoordTranslate.x + float2(0.5,0.5) );
+	// InputPositionLODAdjusted : Position for actual LOD in base LOD units
+	float2 ActualLODCoordsInt = floor(Intermediates.InputPosition.xy * pow(2, -(LodValue - LodValues.x)));
 	float2 InputPositionLODAdjusted = ActualLODCoordsInt / CoordTranslate.x;
 
-	// Position for next LOD in base LOD units
-	float2 NextLODCoordsInt = floor( InputPositionLODBase * CoordTranslate.y + float2(0.5,0.5) );
+	// InputPositionNextLOD : Position for next LOD in base LOD units
+	float2 NextLODCoordsInt = floor(ActualLODCoordsInt * 0.5);
 	float2 InputPositionNextLOD = NextLODCoordsInt / CoordTranslate.y;
+
+	// Adjust MorphAlpha based on actual LOD - Improves multi-LOD transitions
+	//xy = ActualLODCoordsInt / (LandscapeParameters.SubsectionSizeVertsLayerUVPan.x * pow(2, -LodValue) - 1);
+	//LODCalculated = CalcLOD(xy, Intermediates.InputPosition.zw);
+	//MorphAlpha = saturate(LODCalculated - LodValue);
 
 	// Get the height and normal XY for current and next LOD out of the textures
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
@@ -588,7 +591,7 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates(FVertexFactoryInput In
 #endif
 
 
-#if LANDSCAPE_XYOFFSET
+#if LANDSCAPE_XYOFFSET // FEATURE_LEVEL >= FEATURE_LEVEL_SM4 only
 	float2 SampleCoords2 = float2(InputPositionLODAdjusted * LandscapeParameters.WeightmapUVScaleBias.xy + LandscapeParameters.WeightmapUVScaleBias.zw + Intermediates.InputPosition.zw * LandscapeParameters.SubsectionOffsetParams.zz);
 	float4 OffsetValue = Texture2DSampleLevel( XYOffsetmapTexture, XYOffsetmapTextureSampler, SampleCoords2, LodValue-LodBias.w );
 	float2 SampleCoordsNextLOD2 = float2(InputPositionNextLOD * LandscapeParameters.WeightmapUVScaleBias.xy + LandscapeParameters.WeightmapUVScaleBias.zw + Intermediates.InputPosition.zw * LandscapeParameters.SubsectionOffsetParams.zz);

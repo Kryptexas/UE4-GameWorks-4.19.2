@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -50,10 +50,10 @@ protected:
 private:
 
 	// Handles getting the text for the project combo button.
-	FString HandleProjectComboButtonText( ) const;
+	FText HandleProjectComboButtonText( ) const;
 
 	// Handles getting the tooltip for the project combo button.
-	FString HandleProjectComboButtonToolTip( ) const;
+	FText HandleProjectComboButtonToolTip( ) const;
 
 	// Handles clicking the "any project" option.
 	void HandleAnyProjectClicked(FString ProjectPath);

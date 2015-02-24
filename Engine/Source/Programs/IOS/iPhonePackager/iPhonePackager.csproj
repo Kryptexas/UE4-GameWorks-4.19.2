@@ -140,6 +140,7 @@
     <Compile Include="SlowProgressDialog.designer.cs">
       <DependentUpon>SlowProgressDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="SSHCommandHelper.cs" />
     <Compile Include="ToolsHub.cs">
       <SubType>Form</SubType>
     </Compile>

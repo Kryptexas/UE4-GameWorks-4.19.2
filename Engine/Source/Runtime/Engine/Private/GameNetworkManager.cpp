@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GameNetworkManager.cpp: AGameNetworkMAnager C++ code.
@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "GameFramework/GameNetworkManager.h"
+#include "GameFramework/GameMode.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameNetworkManager, Log, All);
 
@@ -72,7 +73,7 @@ void AGameNetworkManager::UpdateNetSpeeds(bool bIsLanMatch)
 
 	if ( GetWorld()->TimeSeconds - LastNetSpeedUpdateTime < 1.0f )
 	{
-		GetWorldTimerManager().SetTimer(this, &AGameNetworkManager::UpdateNetSpeedsTimer, 1.0f);
+		GetWorldTimerManager().SetTimer(TimerHandle_UpdateNetSpeedsTimer, this, &AGameNetworkManager::UpdateNetSpeedsTimer, 1.0f);
 		return;
 	}
 

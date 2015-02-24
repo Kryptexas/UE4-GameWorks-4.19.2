@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "LayoutUtils.h"
@@ -156,6 +156,7 @@ void SScrollBox::Construct( const FArguments& InArgs )
 	SoftwareCursorPosition = FVector2D::ZeroVector;
 	OnUserScrolled = InArgs._OnUserScrolled;
 	Orientation = InArgs._Orientation;
+	bScrollToEnd = false;
 
 	if (InArgs._ExternalScrollbar.IsValid())
 	{
@@ -347,6 +348,44 @@ float SScrollBox::GetScrollOffset()
 void SScrollBox::SetScrollOffset( float NewScrollOffset )
 {
 	DesiredScrollOffset = NewScrollOffset;
+	bScrollToEnd = false;
+}
+
+void SScrollBox::ScrollToStart()
+{
+	SetScrollOffset(0);
+}
+
+void SScrollBox::ScrollToEnd()
+{
+	bScrollToEnd = true;
+}
+
+bool SScrollBox::ScrollDescendantIntoView(const FGeometry& MyGeometry, const TSharedPtr<SWidget>& WidgetToFind, bool InAnimateScroll)
+{
+	// We need to safely find the one WidgetToFind among our descendants.
+	TSet< TSharedRef<SWidget> > WidgetsToFind;
+	{
+		WidgetsToFind.Add( WidgetToFind.ToSharedRef() );
+	}
+	TMap<TSharedRef<SWidget>, FArrangedWidget> Result;
+
+	FindChildGeometries( MyGeometry, WidgetsToFind, Result );
+
+	FArrangedWidget* WidgetGeometry = Result.Find( WidgetToFind.ToSharedRef() );
+	if ( ensureMsg( WidgetGeometry, TEXT("Unable to scroll to descendant as it's not a child of the scrollbox") ) )
+	{
+		// Clear any existing scroll offset, since we're working with absolute positions
+		SetScrollOffset(0);
+
+		// Calculate how much we would need to scroll to bring this to the top/left of the scroll box
+		const float WidgetPosition = GetScrollComponentFromVector(WidgetGeometry->Geometry.AbsolutePosition);
+		const float MyPosition = GetScrollComponentFromVector(MyGeometry.AbsolutePosition);
+		const float ScrollOffset = WidgetPosition - MyPosition;
+		ScrollBy(MyGeometry, ScrollOffset, InAnimateScroll);
+		return true;
+	}
+	return false;
 }
 
 EOrientation SScrollBox::GetOrientation()
@@ -406,6 +445,12 @@ void SScrollBox::Tick( const FGeometry& AllottedGeometry, const double InCurrent
 	const FGeometry ScrollPanelGeometry = FindChildGeometry( AllottedGeometry, ScrollPanel.ToSharedRef() );
 	
 	const float ContentSize = GetScrollComponentFromVector(ScrollPanel->GetDesiredSize());
+
+	if ( bScrollToEnd )
+	{
+		DesiredScrollOffset = ContentSize;
+		bScrollToEnd = false;
+	}
 
 	// If this scroll box has no size, do not compute a view fraction because it will be wrong and causes pop in when the size is available
 	const float ViewFraction = GetScrollComponentFromVector(AllottedGeometry.Size) > 0 ? GetScrollComponentFromVector(ScrollPanelGeometry.Size) / ContentSize : 1;

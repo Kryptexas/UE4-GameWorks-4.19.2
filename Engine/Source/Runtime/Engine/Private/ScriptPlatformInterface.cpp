@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScriptPlatformInterface.cpp: Base functionality for the various script accessible platform-interface code
@@ -9,6 +9,7 @@
 #include "Engine/MicroTransactionBase.h"
 #include "Engine/PlatformInterfaceWebResponse.h"
 #include "Engine/TwitterIntegrationBase.h"
+#include "Engine/InGameAdManager.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogScriptPlatformInterface, Log, All);
 

@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+class ISlateAtlasProvider;
 
 /**
  * Represents a new texture that has been loaded but no resource created for it
@@ -47,6 +49,11 @@ public:
 	 * Returns a texture associated with the passed in name.  Should return nullptr if not found 
 	 */
 	virtual FSlateShaderResourceProxy* GetShaderResource( const FSlateBrush& InBrush ) = 0;
+
+	/**
+	 * Returns the way to access the texture atlas information from this resource manager
+	 */
+	virtual ISlateAtlasProvider* GetTextureAtlasProvider() = 0;
 
 protected:
 

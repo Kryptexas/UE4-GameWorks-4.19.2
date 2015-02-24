@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,7 +12,7 @@
  * The first parameter is the engine instance that was checked or unchecked.
  * The second parameter is the new checked state.
  */
-DECLARE_DELEGATE_TwoParams(FOnSessionInstanceCheckStateChanged, const ISessionInstanceInfoPtr&, ESlateCheckBoxState::Type)
+DECLARE_DELEGATE_TwoParams(FOnSessionInstanceCheckStateChanged, const ISessionInstanceInfoPtr&, ECheckBoxState)
 
 
 /**
@@ -88,7 +88,7 @@ public:
 						[
 							SNew(STextBlock)
 								.Font(FEditorStyle::GetFontStyle("BoldFont"))
-								.Text(InstanceInfo->GetInstanceName())							
+								.Text(FText::FromString(InstanceInfo->GetInstanceName()))
 						]
 				];
 		}
@@ -171,9 +171,9 @@ private:
 	}
 
 	/** Callback for getting the instance's current level. */
-	FString HandleLevelColumnText() const
+	FText HandleLevelColumnText() const
 	{
-		return InstanceInfo->GetCurrentLevel();
+		return FText::FromString(InstanceInfo->GetCurrentLevel());
 	}
 
 	/** Callback for getting the text in the 'Status' column. */

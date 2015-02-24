@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneRenderTargets.h: Scene render target definitions.
@@ -115,6 +115,9 @@ protected:
 		bCustomDepthIsValid(false),
 		bPreshadowCacheNewlyAllocated(false),
 		GBufferRefCount(0),
+		LargestDesiredSizeThisFrame( 0, 0 ),
+		LargestDesiredSizeLastFrame( 0, 0 ),
+		ThisFrameNumber( 0 ),
 		BufferSize(0, 0), 
 		SmallColorDepthDownsampleFactor(2),
 		bLightAttenuationEnabled(true),
@@ -379,6 +382,7 @@ public:
 	FIntPoint GetShadowDepthTextureResolution() const;
 	FIntPoint GetPreShadowCacheTextureResolution() const;
 	FIntPoint GetTranslucentShadowDepthTextureResolution() const;
+	int32 GetTranslucentShadowDownsampleFactor() const { return 2; }
 
 	/** Returns the size of the RSM buffer, taking into account platform limitations and game specific resolution limits. */
 	FIntPoint GetReflectiveShadowMapTextureResolution() const;
@@ -512,6 +516,12 @@ private:
 	/** used by AdjustGBufferRefCount */
 	int32 GBufferRefCount;
 
+	/** as we might get multiple BufferSize requests each frame for SceneCaptures and we want to avoid reallocations we can only go as low as the largest request */
+	FIntPoint LargestDesiredSizeThisFrame;
+	FIntPoint LargestDesiredSizeLastFrame;
+	/** to detect when LargestDesiredSizeThisFrame is outdated */
+	uint32 ThisFrameNumber;
+
 	/**
 	 * Takes the requested buffer size and quantizes it to an appropriate size for the rest of the
 	 * rendering pipeline. Currently ensures that sizes are multiples of 8 so that they can safely
@@ -542,7 +552,7 @@ private:
 	void AllocateCommonDepthTargets();
 
 	/** Determine the appropriate render target dimensions. */
-	FIntPoint ComputeDesiredSize(const FSceneViewFamily& ViewFamily) const;
+	FIntPoint ComputeDesiredSize(const FSceneViewFamily& ViewFamily);
 
 	void AllocSceneColor();
 

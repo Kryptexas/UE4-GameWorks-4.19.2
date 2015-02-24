@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "AnimStateNodeDetails.h"
@@ -15,10 +15,10 @@ TSharedRef<IDetailCustomization> FAnimStateNodeDetails::MakeInstance()
 
 void FAnimStateNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
-	IDetailCategoryBuilder& SegmentCategory = DetailBuilder.EditCategory("Animation State", TEXT("Animation State") );
+	IDetailCategoryBuilder& SegmentCategory = DetailBuilder.EditCategory("Animation State", LOCTEXT("AnimationStateCategoryTitle", "Animation State") );
 
 	{
-		SegmentCategory.AddCustomRow( TEXT("Entered State Event") )
+		SegmentCategory.AddCustomRow( LOCTEXT("EnteredAnimationStateEventLabel", "Entered State Event") )
 		[
 			SNew( STextBlock )
 			.Text( LOCTEXT("EnteredAnimationStateEventLabel", "Entered State Event") )
@@ -29,7 +29,7 @@ void FAnimStateNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilde
 
 
 	{
-		SegmentCategory.AddCustomRow( TEXT("Left State Event") )
+		SegmentCategory.AddCustomRow( LOCTEXT("ExitedAnimationStateEventLabel", "Left State Event") )
 		[
 			SNew( STextBlock )
 			.Text( LOCTEXT("ExitedAnimationStateEventLabel", "Left State Event")  )
@@ -40,7 +40,7 @@ void FAnimStateNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilde
 
 	{
 
-		SegmentCategory.AddCustomRow( TEXT("Fully Blended State Event") )
+		SegmentCategory.AddCustomRow( LOCTEXT("FullyBlendedAnimationStateEventLabel", "Fully Blended State Event") )
 		[
 			SNew( STextBlock )
 			.Text( LOCTEXT("FullyBlendedAnimationStateEventLabel", "Fully Blended State Event") )

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
 #include "PaperSpriteActor.h"
@@ -19,6 +19,8 @@ APaperSpriteActor::APaperSpriteActor(const FObjectInitializer& ObjectInitializer
 #if WITH_EDITOR
 bool APaperSpriteActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
+	Super::GetReferencedContentObjects(Objects);
+
 	if (UPaperSprite* SourceSprite = RenderComponent->GetSprite())
 	{
 		Objects.Add(SourceSprite);

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Movement component updates position of associated PrimitiveComponent during its tick.
@@ -12,6 +12,7 @@
 struct FCollisionQueryParams;
 struct FCollisionResponseParams;
 struct FCollisionShape;
+class USceneComponent;
 
 /**
  * Setting that controls behavior when movement is restricted to a 2D plane defined by a specific axis/normal,
@@ -50,10 +51,16 @@ class ENGINE_API UMovementComponent : public UActorComponent
 	/**
 	 * The component we move and update.
 	 * If this is null at startup and bAutoRegisterUpdatedComponent is true, the owning Actor's root component will automatically be set as our UpdatedComponent at startup.
-	 * @see bAutoRegisterUpdatedComponent, SetUpdatedComponent()
+	 * @see bAutoRegisterUpdatedComponent, SetUpdatedComponent(), UpdatedPrimitive
 	 */
-	UPROPERTY(BlueprintReadOnly, Category=MovementComponent)
-	UPrimitiveComponent* UpdatedComponent;
+	UPROPERTY(BlueprintReadOnly, DuplicateTransient, Category=MovementComponent)
+	USceneComponent* UpdatedComponent;
+
+	/**
+	 * UpdatedComponent, cast as a UPrimitiveComponent. May be invalid if UpdatedComponent was null or not a UPrimitiveComponent.
+	 */
+	UPROPERTY(BlueprintReadOnly, DuplicateTransient, Category=MovementComponent)
+	UPrimitiveComponent* UpdatedPrimitive;
 
 	/**
 	 * Flags that control the behavior of calls to MoveComponent() on our UpdatedComponent.
@@ -131,6 +138,7 @@ public:
 	uint32 bAutoRegisterUpdatedComponent:1;
 
 	// Begin ActorComponent interface 
+	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void RegisterComponentTickFunctions(bool bRegister) override;
 	virtual void PostLoad() override;
 
@@ -205,7 +213,7 @@ public:
 
 	/** Assign the component we move and update. */
 	UFUNCTION(BlueprintCallable, Category="Components|Movement")
-	virtual void SetUpdatedComponent(class UPrimitiveComponent* NewUpdatedComponent);
+	virtual void SetUpdatedComponent(USceneComponent* NewUpdatedComponent);
 
 	/** return true if it's in PhysicsVolume with water flag **/
 	virtual bool IsInWater() const;

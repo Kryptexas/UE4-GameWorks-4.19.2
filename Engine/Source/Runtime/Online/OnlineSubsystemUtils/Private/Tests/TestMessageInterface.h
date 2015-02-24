@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,6 +24,11 @@ private:
 	FOnSendMessageCompleteDelegate OnSendMessageCompleteDelegate;
 	/** Delegate to use for deleting messages for a user */
 	FOnDeleteMessageCompleteDelegate OnDeleteMessageCompleteDelegate;
+
+	FDelegateHandle OnEnumerateMessagesCompleteDelegateHandle;
+	FDelegateHandle OnReadMessageCompleteDelegateHandle;
+	FDelegateHandle OnSendMessageCompleteDelegateHandle;
+	FDelegateHandle OnDeleteMessageCompleteDelegateHandle;
 
 	/** true to enable message enumeration */
 	bool bEnumerateMessages;

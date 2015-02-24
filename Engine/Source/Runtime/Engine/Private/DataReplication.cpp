@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DataChannel.cpp: Unreal datachannel implementation.
@@ -26,7 +26,13 @@ public:
 			UScriptStruct::ICppStructOps* CppStructOps = Struct->GetCppStructOps();
 			check(CppStructOps); // else should not have STRUCT_NetSerializeNative
 			check(!Struct->InheritedCppStructOps()); // else should not have STRUCT_NetSerializeNative
-			if (!CppStructOps->NetSerialize(Ar, Map, bHasUnmapped, Data))
+			bool bSuccess = true;
+			if (!CppStructOps->NetSerialize(Ar, Map, bSuccess, Data))
+			{
+				bHasUnmapped = true;
+			}
+
+			if (!bSuccess)
 			{
 				UE_LOG(LogNet, Warning, TEXT("NetSerializeStruct: Native NetSerialize %s failed."), *Struct->GetFullName());
 			}
@@ -41,7 +47,7 @@ public:
 	UNetDriver * Driver;
 };
 
-static bool IsCustomDeltaProperty( UProperty * Property )
+bool IsCustomDeltaProperty( UProperty * Property )
 {
 	UStructProperty * StructProperty = Cast< UStructProperty >( Property );
 
@@ -1047,9 +1053,12 @@ void FObjectReplicator::QueueRemoteFunctionBunch( UFunction* Func, FOutBunch &Bu
 	
 	if (++RemoteFuncInfo[InfoIdx].Calls > 2)
 	{
-		UE_LOG(LogNet, Log, TEXT("Too many calls to RPC %s within a single netupdate. Skipping. %s"), *Func->GetName(), *GetObject()->GetName() );
+		UE_LOG(LogNet, Log, TEXT("Too many calls to RPC %s within a single netupdate. Skipping. %s.  LastCallTime: %.2f. CurrentTime: %.2f. LastRelevantTime: %.2f. LastUpdateTime: %.2f "), 
+			*Func->GetName(), *GetObject()->GetName(), RemoteFuncInfo[InfoIdx].LastCallTime, OwningChannel->Connection->Driver->Time, OwningChannel->RelevantTime, OwningChannel->LastUpdateTime );
 		return;
 	}
+	
+	RemoteFuncInfo[InfoIdx].LastCallTime = OwningChannel->Connection->Driver->Time;
 
 	if (RemoteFunctions == NULL)
 	{
@@ -1057,6 +1066,21 @@ void FObjectReplicator::QueueRemoteFunctionBunch( UFunction* Func, FOutBunch &Bu
 	}
 
 	RemoteFunctions->SerializeBits( Bunch.GetData(), Bunch.GetNumBits() );
+
+	if ( Connection != NULL && Connection->PackageMap != NULL )
+	{
+		UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >( Connection->PackageMap );
+
+		// We need to copy over any info that was obtained on the package map during serialization, and remember it until we actually call SendBunch
+		if ( PackageMapClient->GetMustBeMappedGuidsInLastBunch().Num() )
+		{
+			OwningChannel->QueuedMustBeMappedGuidsInLastBunch.Append( PackageMapClient->GetMustBeMappedGuidsInLastBunch() );
+			PackageMapClient->GetMustBeMappedGuidsInLastBunch().Empty();
+		}
+
+		// Copy over any exported bunches
+		PackageMapClient->AppendExportBunches( OwningChannel->QueuedExportBunches );
+	}
 }
 
 bool FObjectReplicator::ReadyForDormancy(bool suppressLogs)
@@ -1112,6 +1136,12 @@ void FObjectReplicator::UpdateUnmappedObjects( bool & bOutHasMoreUnmapped )
 	if ( Object == NULL || Object->IsPendingKill() )
 	{
 		bOutHasMoreUnmapped = false;
+		return;
+	}
+
+	if ( Connection->State == USOCK_Closed )
+	{
+		UE_LOG( LogNet, Warning, TEXT( "FObjectReplicator::UpdateUnmappedObjects: Connection->State == USOCK_Closed" ) );
 		return;
 	}
 

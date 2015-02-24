@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -37,6 +37,9 @@ public class PropertyEditor : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"MainFrame",
+                "AssetRegistry",
+                "AssetTools",
+                "ContentBrowser"
 			}
 		);
 
@@ -59,6 +62,7 @@ public class PropertyEditor : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
                 "AssetRegistry",
+                "AssetTools",
 				"ContentBrowser",
 				"Documentation",
 				"MainFrame",

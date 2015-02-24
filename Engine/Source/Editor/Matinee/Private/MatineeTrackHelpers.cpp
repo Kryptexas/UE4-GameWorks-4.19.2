@@ -1,5 +1,4 @@
-
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MatineeModule.h"
 #include "Matinee.h"
@@ -24,6 +23,8 @@
 #include "Matinee/MatineeAnimInterface.h"
 #include "STextComboPopup.h"
 #include "STextEntryPopup.h"
+#include "Engine/Selection.h"
+#include "Sound/SoundBase.h"
 
 #define LOCTEXT_NAMESPACE "MatineeTrackHelpers"
 
@@ -217,7 +218,7 @@ bool UMatineeTrackAnimControlHelper::PreCreateKeyframe( UInterpTrack *Track, flo
 
 	USkeletalMeshComponent * SkelMeshComp = NULL;
 
-	TArray<USkeletalMeshComponent*> SkeletalMeshComponents;
+	TInlineComponentArray<USkeletalMeshComponent*> SkeletalMeshComponents;
 	Actor->GetComponents(SkeletalMeshComponents);
 
 	for (int32 I=0; I<SkeletalMeshComponents.Num(); ++I)
@@ -252,7 +253,6 @@ bool UMatineeTrackAnimControlHelper::PreCreateKeyframe( UInterpTrack *Track, flo
 			AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateUObject( this, &UMatineeTrackAnimControlHelper::OnAddKeyTextEntry, Mode->InterpEd, Track );
 			AssetPickerConfig.bAllowNullSelection = false;
 			AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
-			AssetPickerConfig.ThumbnailScale = 0.0f;
 
 			// Filter config
 			AssetPickerConfig.Filter.ClassNames.Add(UAnimSequence::StaticClass()->GetFName());
@@ -343,7 +343,7 @@ bool UMatineeTrackDirectorHelper::PreCreateKeyframe( UInterpTrack *Track, float 
 
 		TSharedRef<STextComboPopup> TextEntryPopup =
 			SNew(STextComboPopup)
-			.Label(NSLOCTEXT("Matinee.Popups", "NewCut", "Cut to Group...").ToString())
+			.Label(NSLOCTEXT("Matinee.Popups", "NewCut", "Cut to Group..."))
 			.TextOptions(GroupNames)
 			.OnTextChosen_UObject(this, &UMatineeTrackDirectorHelper::OnAddKeyTextEntry, Mode->InterpEd, Track);
 
@@ -399,7 +399,7 @@ bool UMatineeTrackEventHelper::PreCreateKeyframe( UInterpTrack *Track, float Key
 	check(Mode->InterpEd != NULL);
 	TSharedRef<STextEntryPopup> TextEntryPopup = 
 		SNew(STextEntryPopup)
-		.Label(NSLOCTEXT("Matinee.Popups", "NewEventName", "New Event Name").ToString())
+		.Label(NSLOCTEXT("Matinee.Popups", "NewEventName", "New Event Name"))
 		.DefaultText(FText::FromString(TEXT("Event")))
 		.OnTextCommitted_UObject(this, &UMatineeTrackEventHelper::OnAddKeyTextEntry, (IMatineeBase*)Mode->InterpEd, Track)
 		.SelectAllTextWhenFocused(true)
@@ -783,7 +783,7 @@ bool UMatineeTrackToggleHelper::PreCreateKeyframe( UInterpTrack *Track, float Ke
 
 	TSharedRef<STextComboPopup> TextEntryPopup = 
 		SNew(STextComboPopup)
-		.Label(NSLOCTEXT("Matinee.Popups", "ToggleAction", "Toggle Action").ToString())
+		.Label(NSLOCTEXT("Matinee.Popups", "ToggleAction", "Toggle Action"))
 		.TextOptions(PropStrings)
 		.OnTextChosen_UObject(this, &UMatineeTrackToggleHelper::OnAddKeyTextEntry, InterpEd, Track)
 		;
@@ -1136,7 +1136,7 @@ bool UMatineeTrackVisibilityHelper::PreCreateKeyframe( UInterpTrack *Track, floa
 
 	TSharedRef<STextComboPopup> TextEntryPopup = 
 		SNew(STextComboPopup)
-		.Label(NSLOCTEXT("Matinee.Popups", "VisibilityAction", "Visibility Action").ToString())
+		.Label(NSLOCTEXT("Matinee.Popups", "VisibilityAction", "Visibility Action"))
 		.TextOptions(PropStrings)
 		.OnTextChosen_UObject(this, &UMatineeTrackVisibilityHelper::OnAddKeyTextEntry, Mode->InterpEd, Track)
 		;

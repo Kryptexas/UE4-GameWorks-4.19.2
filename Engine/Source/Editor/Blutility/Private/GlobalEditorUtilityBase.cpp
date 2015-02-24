@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlutilityPrivatePCH.h"
 #include "GlobalEditorUtilityBase.h"
@@ -6,6 +6,7 @@
 #include "ContentBrowserModule.h"
 #include "AssetData.h"
 #include "AssetToolsModule.h"
+#include "Engine/Selection.h"
 
 /////////////////////////////////////////////////////
 
@@ -105,6 +106,12 @@ void UGlobalEditorUtilityBase::ClearActorSelectionSet()
 	bDirtiedSelectionSet = true;
 }
 
+void UGlobalEditorUtilityBase::SelectNothing()
+{
+	GEditor->SelectNone(true, true, false);
+	bDirtiedSelectionSet = true;
+}
+
 void UGlobalEditorUtilityBase::SetActorSelectionState(AActor* Actor, bool bShouldBeSelected)
 {
 	GEditor->SelectActor(Actor, bShouldBeSelected, /*bNotify=*/ false);
@@ -143,4 +150,13 @@ void UGlobalEditorUtilityBase::RenameAsset(UObject* Asset, const FString& NewNam
 	new (AssetsAndNames) FAssetRenameData(Asset, PackagePath, NewName);
 
 	AssetToolsModule.Get().RenameAssets(AssetsAndNames);
+}
+
+AActor* UGlobalEditorUtilityBase::GetActorReference(FString PathToActor)
+{
+#if WITH_EDITOR
+	return Cast<AActor>(StaticFindObject(AActor::StaticClass(), GEditor->GetEditorWorldContext().World(), *PathToActor, false));
+#else
+	return nullptr;
+#endif //WITH_EDITOR
 }

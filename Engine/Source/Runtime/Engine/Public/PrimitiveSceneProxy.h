@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrimitiveSceneProxy.h: Primitive scene proxy definition.
@@ -111,9 +111,10 @@ public:
 	/**
 	 * Updates selection for the primitive proxy. This simply sends a message to the rendering thread to call SetSelection_RenderThread.
 	 * This is called in the game thread as selection is toggled.
-	 * @param bInSelected - true if the parent actor is selected in the editor
+	 * @param bInParentSelected - true if the parent actor is selected in the editor
+ 	 * @param bInIndividuallySelected - true if the component is selected in the editor directly
 	 */
-	void SetSelection_GameThread(const bool bInSelected);
+	void SetSelection_GameThread(const bool bInParentSelected, const bool bInIndividuallySelected=false);
 
 	/**
 	 * Updates hover state for the primitive proxy. This simply sends a message to the rendering thread to call SetHovered_RenderThread.
@@ -154,25 +155,6 @@ public:
 	 */
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) {}
 
-	/**
-	 * Draws the primitive's dynamic elements.  This is called from the rendering thread for each frame of each view.
-	 * The dynamic elements will only be rendered if GetViewRelevance declares dynamic relevance.
-	 * Called in the rendering thread.
-	 * @param PDI - The interface which receives the primitive elements.
-	 * @param View - The view which is being rendered.
-	 */
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) {}
-
-	/**
-	 * Draws the primitive's dynamic elements.  This is called from the rendering thread for each frame of each view.
-	 * The dynamic elements will only be rendered if GetViewRelevance declares dynamic relevance.
-	 * Called in the rendering thread.
-	 * @param PDI - The interface which receives the primitive elements.
-	 * @param View - The view which is being rendered.
-	 * @param Flags - Optional flags
-	 */
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View, uint32 DrawDynamicFlags ) { DrawDynamicElements( PDI, View ); }
-
 	/** 
 	 * Gathers the primitive's dynamic mesh elements.  This will only be called if GetViewRelevance declares dynamic relevance.
 	 * This is called from the rendering thread for each set of views that might be rendered.  
@@ -195,16 +177,6 @@ public:
 	 */
 	ENGINE_API virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View);
 
-	/**
-	 *	Called during InitViews for view processing on scene proxies before rendering them
-	 *  Only called for primitives that are visible and have bDynamicRelevance
-	 *
-	 *	@param	ViewFamily		The ViewFamily to pre-render for
-	 *	@param	VisibilityMap	A BitArray that indicates whether the primitive was visible in that view (index)
-	 *	@param	FrameNumber		The frame number of this pre-render
-	 */
-	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) {}
-
 	/** Callback from the renderer to gather simple lights that this proxy wants renderered. */
 	virtual void GatherSimpleLights(const FSceneViewFamily& ViewFamily, FSimpleLightArray& OutParticleLights) const {}
 
@@ -224,13 +196,20 @@ public:
 		bShadowMapped = false;
 	}
 
-	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane) const 
+	virtual void GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, TArray<FMatrix>& ObjectLocalToWorldTransforms) const 
 	{
 		LocalVolumeBounds = FBox(0);
 		OutBlockMin = FIntVector(-1, -1, -1);
 		OutBlockSize = FIntVector(0, 0, 0);
 		bOutBuiltAsIfTwoSided = false;
 		bMeshWasPlane = false;
+	}
+
+	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, FVector4& OutHeightfieldScaleBias, FVector4& OutMinMaxUV)
+	{
+		OutHeightmapTexture = NULL;
+		OutHeightfieldScaleBias = FVector4(0, 0, 0, 0);
+		OutMinMaxUV = FVector4(0, 0, 0, 0);
 	}
 
 	/**
@@ -341,7 +320,9 @@ public:
 	inline bool IsOftenMoving() const { return bOftenMoving; }
 	inline bool IsStatic() const { return bStatic; }
 	inline bool IsSelectable() const { return bSelectable; }
-	inline bool IsSelected() const { return bSelected; }
+	inline bool IsParentSelected() const { return bParentSelected; }
+	inline bool IsIndividuallySelected() const { return bIndividuallySelected; }
+	inline bool IsSelected() const { return IsParentSelected() || IsIndividuallySelected(); }
 	inline bool ShouldRenderCustomDepth() const { return bRenderCustomDepth; }
 	inline bool ShouldRenderInMainPass() const { return bRenderInMainPass; }
 	inline bool IsCollisionEnabled() const { return bCollisionEnabled; }
@@ -353,6 +334,7 @@ public:
 	inline bool CastsStaticShadow() const { return bCastStaticShadow; }
 	inline bool CastsDynamicShadow() const { return bCastDynamicShadow; }
 	inline bool AffectsDynamicIndirectLighting() const { return bAffectDynamicIndirectLighting; }
+	inline bool AffectsDistanceFieldLighting() const { return bAffectDistanceFieldLighting; }
 	inline float GetLpvBiasMultiplier() const { return LpvBiasMultiplier; }
 	inline EIndirectLightingCacheQuality GetIndirectLightingCacheQuality() const { return IndirectLightingCacheQuality; }
 	inline bool CastsVolumetricTranslucentShadow() const { return bCastVolumetricTranslucentShadow; }
@@ -373,6 +355,8 @@ public:
 	inline bool HasValidSettingsForStaticLighting() const { return bHasValidSettingsForStaticLighting; }
 	inline bool AlwaysHasVelocity() const { return bAlwaysHasVelocity; }
 	inline bool UseEditorDepthTest() const { return bUseEditorDepthTest; }
+	inline bool SupportsDistanceFieldRepresentation() const { return bSupportsDistanceFieldRepresentation; }
+	inline bool SupportsHeightfieldRepresentation() const { return bSupportsHeightfieldRepresentation; }
 	inline bool TreatAsBackgroundForOcclusion() const { return bTreatAsBackgroundForOcclusion; }
 #if WITH_EDITOR
 	inline int32 GetNumUncachedStaticLightingInteractions() { return NumUncachedStaticLightingInteractions; }
@@ -458,7 +442,10 @@ private:
 	uint32 bOwnerNoSee : 1;
 	uint32 bStatic : 1;
 	uint32 bOftenMoving : 1;
-	uint32 bSelected : 1;
+	/** Parent Actor is selected */
+	uint32 bParentSelected : 1;
+	/** Component is selected directly */
+	uint32 bIndividuallySelected : 1;
 	
 	/** true if the mouse is currently hovered over this primitive in a level viewport */
 	uint32 bHovered : 1;
@@ -513,6 +500,8 @@ protected:
 	/** True if the primitive casts Reflective Shadow Map shadows (meaning it affects Light Propagation Volumes). */
 	uint32 bAffectDynamicIndirectLighting : 1;
 
+	uint32 bAffectDistanceFieldLighting : 1;
+
 	/** True if the primitive casts static shadows. */
 	uint32 bCastStaticShadow : 1;
 
@@ -553,6 +542,12 @@ protected:
 
 	/** Whether editor compositing depth testing should be used for this primitive.  Only matters for primitives with bUseEditorCompositing. */
 	uint32 bUseEditorDepthTest : 1;
+
+	/** Whether the primitive type supports a distance field representation.  Does not mean the primitive has a valid representation. */
+	uint32 bSupportsDistanceFieldRepresentation : 1;
+
+	/** Whether the primitive implements GetHeightfieldRepresentation() */
+	uint32 bSupportsHeightfieldRepresentation : 1;
 
 private:
 
@@ -670,7 +665,7 @@ private:
 
 protected:
 	/** Updates selection for the primitive proxy. This is called in the rendering thread by SetSelection_GameThread. */
-	void SetSelection_RenderThread(const bool bInSelected);
+	void SetSelection_RenderThread(const bool bInParentSelected, const bool bInIndividuallySelected);
 
 	/** Updates hover state for the primitive proxy. This is called in the rendering thread by SetHovered_GameThread. */
 	void SetHovered_RenderThread(const bool bInHovered);

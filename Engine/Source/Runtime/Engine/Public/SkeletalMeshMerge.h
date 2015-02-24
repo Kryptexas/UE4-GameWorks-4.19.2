@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalMeshMerge.h: Merging of unreal skeletal mesh objects.
@@ -13,7 +13,7 @@ FSkeletalMeshMerge
 struct FRefPoseOverride
 {
 	/** The skeletal mesh that contains the reference pose. */
-	USkeletalMesh* SkeletalMesh;
+	const USkeletalMesh* SkeletalMesh;
 
 	/** The names of the bones to override. */
 	TArray<FName> BoneNames;
@@ -45,7 +45,7 @@ struct FSkelMeshMergeSectionMapping
 };
 
 /** 
-* Utility for merging a list of skeletal meshes into a single mesh
+* Utility for merging a list of skeletal meshes into a single mesh.
 */
 class ENGINE_API FSkeletalMeshMerge
 {
@@ -65,16 +65,32 @@ public:
 		);
 
 	/**
-	* Merge/Composite the list of source meshes onto the merge one
-	* @return true if succeeded
-	*/
+	 * Merge/Composite skeleton and meshes together from the list of source meshes.
+	 * @param RefPoseOverrides - An optional override for the merged skeleton's reference pose.
+	 * @return true if succeeded
+	 */
 	bool DoMerge(TArray<FRefPoseOverride>* RefPoseOverrides = nullptr);
+
+	/**
+	 * Create the 'MergedMesh' reference skeleton from the skeletons in the 'SrcMeshList'.
+	 * Use when the reference skeleton is needed prior to finalizing the merged meshes (do not use with DoMerge()).
+	 * @param RefPoseOverrides - An optional override for the merged skeleton's reference pose.
+	 */
+	void MergeSkeleton(const TArray<FRefPoseOverride>* RefPoseOverrides = nullptr);
+
+	/**
+	 * Creates the merged mesh from the 'SrcMeshList' (note, this should only be called after MergeSkeleton()).
+ 	 * Use when the reference skeleton is needed prior to finalizing the merged meshes (do not use with DoMerge()).
+	 * @return 'true' if successful; 'false' otherwise.
+	 */
+	bool FinalizeMesh();
 
 private:
 	/** Destination merged mesh */
 	USkeletalMesh* MergeMesh;
+	
 	/** Array of source skeletal meshes  */
-	const TArray<USkeletalMesh*>& SrcMeshList;
+	TArray<USkeletalMesh*> SrcMeshList;
 
 	/** Number of high LODs to remove from input meshes. */
 	int32 StripTopLODs;
@@ -168,6 +184,16 @@ private:
 	bool ProcessMergeMesh();
 
 	/**
+	 * Returns the number of LODs that can be supported by the meshes in 'SourceMeshList'.
+	 */
+	int32 CalculateLodCount(const TArray<USkeletalMesh*>& SourceMeshList) const;
+
+	/**
+	 * Builds a new 'RefSkeleton' from the reference skeletons in the 'SourceMeshList'.
+	 */
+	static void BuildReferenceSkeleton(const TArray<USkeletalMesh*>& SourceMeshList, FReferenceSkeleton& RefSkeleton);
+
+	/**
 	 * Overrides the 'TargetSkeleton' bone poses with the bone poses specified in the 'PoseOverrides' array.
 	 */
 	static void OverrideReferenceSkeletonPose(const TArray<FRefPoseOverride>& PoseOverrides, FReferenceSkeleton& TargetSkeleton);
@@ -177,4 +203,42 @@ private:
 	 * @return 'true' if the override was successful; 'false' otherwise.
 	 */
 	static bool OverrideReferenceBonePose(int32 SourceBoneIndex, const FReferenceSkeleton& SourceSkeleton, FReferenceSkeleton& TargetSkeleton);
+
+	/**
+	 * Releases any resources the 'MergeMesh' is currently holding.
+	 */
+	void ReleaseResources(int32 Slack = 0);
+
+	/**
+	 * Copies and adds the 'Socket' to the 'MergeMesh' only if the socket does not already exist on the merged mesh.
+	 * @return 'true' if the socket is added; 'false' otherwise.
+	 */
+	bool AddSocket(const USkeletalMeshSocket* Socket);
+
+	/**
+	 * Adds only the new sockets from the 'SocketList' to the 'MergeMesh'.
+	 */
+	void AddSockets(const TArray<USkeletalMeshSocket*>& SocketList);
+
+	/**
+	 * Builds a new 'SocketList' from the sockets in the 'SourceMeshList'.
+	 */
+	void BuildSockets(const TArray<USkeletalMesh*>& SourceMeshList);
+
+	//void OverrideSockets(const TArray<FRefPoseOverride>& PoseOverrides);
+
+	/**
+	 * Override the corresponding 'MergeMesh' socket with 'SourceSocket'.
+	 */
+	void OverrideSocket(const USkeletalMeshSocket* SourceSocket);
+
+	/**
+	 * Overrides the sockets attached to 'BoneName' with the corresponding socket in the 'SourceSocketList'.
+	 */
+	void OverrideBoneSockets(const FName& BoneName, const TArray<USkeletalMeshSocket*>& SourceSocketList);
+
+	/**
+	 * Overrides the sockets of overridden bones.
+	 */
+	void OverrideMergedSockets(const TArray<FRefPoseOverride>& PoseOverrides);
 };

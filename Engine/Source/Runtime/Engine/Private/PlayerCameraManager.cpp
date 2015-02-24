@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
@@ -9,6 +9,9 @@
 #include "Camera/CameraActor.h"
 #include "Camera/CameraAnim.h"
 #include "Camera/CameraAnimInst.h"
+#include "Camera/CameraComponent.h"
+#include "Camera/CameraModifier_CameraShake.h"
+#include "GameFramework/PlayerState.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPlayerCameraManager, Log, All);
 

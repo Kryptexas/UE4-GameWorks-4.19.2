@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 
 #include "Engine/WorldComposition.h"
@@ -266,12 +266,8 @@ void FTileLODEntryDetailsCustomization::CustomizeChildren(TSharedRef<IPropertyHa
 		GET_MEMBER_NAME_CHECKED(FTileLODEntryDetails, Distance)
 		);
 	
-	TSharedPtr<IPropertyHandle> DetailsPercentage = StructPropertyHandle->GetChildHandle(
-		GET_MEMBER_NAME_CHECKED(FTileLODEntryDetails, DetailsPercentage)
-		);
-	
-	TSharedPtr<IPropertyHandle> MaxDeviation = StructPropertyHandle->GetChildHandle(
-		GET_MEMBER_NAME_CHECKED(FTileLODEntryDetails, MaxDeviation)
+	TSharedPtr<IPropertyHandle> SimplificationDetails = StructPropertyHandle->GetChildHandle(
+		GET_MEMBER_NAME_CHECKED(FTileLODEntryDetails, SimplificationDetails)
 		);
 
 	ChildBuilder.AddChildProperty(LODIndexHandle.ToSharedRef())
@@ -279,12 +275,9 @@ void FTileLODEntryDetailsCustomization::CustomizeChildren(TSharedRef<IPropertyHa
 
 	ChildBuilder.AddChildProperty(DistanceProperty.ToSharedRef())
 		.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FTileLODEntryDetailsCustomization::IsLODDistanceEnabled)));
-	// Reduction settings available if editor supports LOD levels generation
-	ChildBuilder.AddChildProperty(DetailsPercentage.ToSharedRef())
+	
+	ChildBuilder.AddChildProperty(SimplificationDetails.ToSharedRef())
 		.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FTileLODEntryDetailsCustomization::IsGenerateTileEnabled)));
-	// Useless now
-	ChildBuilder.AddChildProperty(MaxDeviation.ToSharedRef())
-		.Visibility(EVisibility::Hidden);
 }
 
 FReply FTileLODEntryDetailsCustomization::OnGenerateTile()

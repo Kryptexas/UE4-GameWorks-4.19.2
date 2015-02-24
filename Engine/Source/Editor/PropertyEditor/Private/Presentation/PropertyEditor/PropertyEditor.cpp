@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "PropertyEditorConstants.h"
@@ -52,7 +52,7 @@ FPropertyEditor::FPropertyEditor( const TSharedRef<FPropertyNode>& InPropertyNod
 }
 
 
-FString FPropertyEditor::GetDisplayName() const
+FText FPropertyEditor::GetDisplayName() const
 {
 	FCategoryPropertyNode* CategoryNode = PropertyNode->AsCategoryNode();
 	FItemPropertyNode* ItemPropertyNode = PropertyNode->AsItemPropertyNode();
@@ -69,12 +69,13 @@ FString FPropertyEditor::GetDisplayName() const
 	{
 		FString DisplayName;
 		PropertyNode->GetQualifiedName( DisplayName, true );
-
-		return DisplayName;
+		return FText::FromString(DisplayName);
 	}
+
+	return FText::GetEmpty();
 }
 
-FString FPropertyEditor::GetToolTipText() const
+FText FPropertyEditor::GetToolTipText() const
 {
 	return PropertyNode->GetToolTipText();
 }
@@ -370,7 +371,7 @@ void FPropertyEditor::OnGetActorFiltersForSceneOutliner( TSharedPtr<SceneOutline
 {
 	struct Local
 	{
-		static bool IsFilteredActor( const AActor* const Actor, TSharedRef<FPropertyEditor> PropertyEditor )
+		static bool IsFilteredActor( const AActor* Actor, TSharedRef<FPropertyEditor> PropertyEditor )
 		{
 			const TSharedRef<FPropertyNode> PropertyNode = PropertyEditor->GetPropertyNode();
 			UProperty* NodeProperty = PropertyNode->GetProperty();
@@ -384,7 +385,7 @@ void FPropertyEditor::OnGetActorFiltersForSceneOutliner( TSharedPtr<SceneOutline
 		}
 	};
 
-	OutFilters->Add( MakeShareable( new TDelegateFilter< const AActor* const >( TDelegateFilter< const AActor* const >::FPredicate::CreateStatic( &Local::IsFilteredActor, AsShared() ) ) ) );
+	OutFilters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateStatic( &Local::IsFilteredActor, AsShared() ) );
 }
 
 void FPropertyEditor::OnResetToDefault()

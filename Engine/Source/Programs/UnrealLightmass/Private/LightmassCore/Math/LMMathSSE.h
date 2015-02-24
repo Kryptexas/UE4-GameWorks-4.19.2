@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -82,6 +82,7 @@ static const VectorRegister SSE_SIGN_MASK = MakeVectorRegister( (uint32)SIGN_BIT
 #undef VectorStoreFloat3
 #undef VectorStoreFloat1
 #undef VectorReplicate
+#undef VectorAbs
 #undef VectorNegate
 #undef VectorSwizzle
 #undef VectorLoadByte4Reverse

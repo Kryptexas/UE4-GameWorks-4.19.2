@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "SVirtualJoystick.h"
@@ -181,7 +181,7 @@ FReply SVirtualJoystick::OnTouchStarted(const FGeometry& MyGeometry, const FPoin
 
 					if (HandleTouch(ControlIndex, LocalCoord, MyGeometry.Size)) // Never fail!
 					{
-						return FReply::Handled();
+						return FReply::Handled().CaptureMouse(SharedThis(this));
 					}
 				}
 				else
@@ -248,7 +248,8 @@ FReply SVirtualJoystick::OnTouchEnded(const FGeometry& MyGeometry, const FPointe
 				Control.bNeedUpdatedCenter = false;
 				return FReply::Unhandled();
 			}
-			return FReply::Handled();
+
+			return FReply::Handled().ReleaseMouseCapture();
 		}
 	}
 
@@ -359,7 +360,7 @@ void SVirtualJoystick::Tick( const FGeometry& AllottedGeometry, const double InC
 			// now pass the fake joystick events to the game
 			// Assume that joystick size is all equal
 			float JoysticInputSize = Control.ThumbPosition.Size() * 2.f / Control.VisualSize.X;
-			FVector2D NormalizedOffset = Control.ThumbPosition.SafeNormal() * Control.InputScale * JoysticInputSize;
+			FVector2D NormalizedOffset = Control.ThumbPosition.GetSafeNormal() * Control.InputScale * JoysticInputSize;
 			EControllerButtons::Type XAxis = ControlIndex == 0 ? EControllerButtons::LeftAnalogX : EControllerButtons::RightAnalogX;
 			EControllerButtons::Type YAxis = ControlIndex == 0 ? EControllerButtons::LeftAnalogY : EControllerButtons::RightAnalogY;
 

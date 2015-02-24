@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/Console.h"
@@ -13,7 +13,7 @@
 #include "SoundDefinitions.h"
 #include "OnlineSubsystemUtils.h"
 #include "IHeadMountedDisplay.h"
-#include "IForceFeedbackSystem.h"
+#include "IInputInterface.h"
 #include "SlateBasics.h"
 #include "GameFramework/TouchInterface.h"
 #include "DisplayDebugHelpers.h"
@@ -25,9 +25,16 @@
 #include "ContentStreaming.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "Camera/CameraActor.h"
-#include "GenericPlatform/IForceFeedbackSystem.h"
 #include "Engine/InputDelegateBinding.h"
 #include "SVirtualJoystick.h"
+#include "GameFramework/LocalMessage.h"
+#include "GameFramework/PlayerStart.h"
+#include "GameFramework/CheatManager.h"
+#include "GameFramework/InputSettings.h"
+#include "GameFramework/PlayerState.h"
+#include "GameFramework/GameState.h"
+#include "GameFramework/GameMode.h"
+#include "Engine/ChildConnection.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerController);
 
@@ -40,7 +47,7 @@ const float RetryServerCheckSpectatorThrottleTime = 0.25f;
 
 APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, SlateOperations(FReply::Unhandled())
+	, SlateOperations(new FReply( FReply::Unhandled() ))
 {
 	NetPriority = 3.0f;
 	CheatClass = UCheatManager::StaticClass();
@@ -212,7 +219,7 @@ void APlayerController::ClientFlushLevelStreaming_Implementation()
 	if (GEngine->ShouldCommitPendingMapChange(GetWorld()))
 	{
 		// request level streaming be flushed next frame
-		GetWorld()->UpdateLevelStreaming(NULL);
+		GetWorld()->UpdateLevelStreaming();
 		GetWorld()->bRequestedBlockOnAsyncLoading = true;
 		// request GC as soon as possible to remove any unloaded levels from memory
 		GetWorld()->ForceGarbageCollection();
@@ -365,7 +372,7 @@ FString APlayerController::ConsoleCommand(const FString& Cmd,bool bWriteToLog)
 
 void APlayerController::CleanUpAudioComponents()
 {
-	TArray<UAudioComponent*> Components;
+	TInlineComponentArray<UAudioComponent*> Components;
 	GetComponents(Components);
 
 	for(int32 CompIndex = 0; CompIndex < Components.Num(); CompIndex++)
@@ -856,7 +863,8 @@ void APlayerController::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 
 void APlayerController::GetPlayerViewPoint( FVector& out_Location, FRotator& out_Rotation ) const
 {
-	if (PlayerCameraManager != NULL)
+	if (PlayerCameraManager != NULL && 
+		PlayerCameraManager->CameraCache.TimeStamp > 0.f) // Whether camera was updated at least once)
 	{
 		PlayerCameraManager->GetCameraViewPoint(out_Location, out_Rotation);
 	}
@@ -1031,10 +1039,19 @@ void APlayerController::CreateTouchInterface()
 			Cast<ULocalPlayer>(Player)->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
 		}
 
-		// load what the game wants to show at startup
-		FStringAssetReference DefaultTouchInterfaceName = GetDefault<UInputSettings>()->DefaultTouchInterface;
+		if (CurrentTouchInterface == nullptr)
+		{
+			// load what the game wants to show at startup
+			FStringAssetReference DefaultTouchInterfaceName = GetDefault<UInputSettings>()->DefaultTouchInterface;
 
-		if (DefaultTouchInterfaceName.IsValid())
+			if (DefaultTouchInterfaceName.IsValid())
+			{
+				// activate this interface if we have it
+				CurrentTouchInterface = LoadObject<UTouchInterface>(NULL, *DefaultTouchInterfaceName.ToString());
+			}
+		}
+
+		if (CurrentTouchInterface)
 		{
 			// create the joystick 
 			VirtualJoystick = SNew(SVirtualJoystick);
@@ -1042,12 +1059,7 @@ void APlayerController::CreateTouchInterface()
 			// add it to the player's viewport
 			LocalPlayer->ViewportClient->AddViewportWidgetContent(VirtualJoystick.ToSharedRef());
 
-			// activate this interface if we have it
-			UTouchInterface* DefaultTouchInterface = LoadObject<UTouchInterface>(NULL, *DefaultTouchInterfaceName.ToString());
-			if (DefaultTouchInterface != NULL)
-			{
-				ActivateTouchInterface(DefaultTouchInterface);
-			}
+			ActivateTouchInterface(CurrentTouchInterface);
 		}
 	}
 }
@@ -1056,10 +1068,9 @@ void APlayerController::CleanupGameViewport()
 {
 	ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
 
-	if (LocalPlayer && LocalPlayer->ViewportClient && VirtualJoystick.IsValid())
+	if (VirtualJoystick.IsValid())
 	{
-		LocalPlayer->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
-		VirtualJoystick = NULL;
+		ActivateTouchInterface(nullptr);
 	}
 }
 
@@ -1119,7 +1130,7 @@ void APlayerController::UnFreeze() {}
 
 bool APlayerController::IsFrozen()
 {
-	return GetWorldTimerManager().IsTimerActive(this, &APlayerController::UnFreeze);
+	return GetWorldTimerManager().IsTimerActive(TimerHandle_UnFreeze);
 }
 
 void APlayerController::ServerAcknowledgePossession_Implementation(APawn* P)
@@ -1325,14 +1336,14 @@ void APlayerController::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		if (VirtualJoystick.IsValid())
 		{
-			LocalPlayer->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
+			ActivateTouchInterface(nullptr);
 		}
 
 		// Stop any force feedback effects that may be active
-		IForceFeedbackSystem* ForceFeedbackSystem = FSlateApplication::Get().GetForceFeedbackSystem();
-		if (ForceFeedbackSystem)
+		IInputInterface* InputInterface = FSlateApplication::Get().GetInputInterface();
+		if (InputInterface)
 		{
-			ForceFeedbackSystem->SetChannelValues(LocalPlayer->ControllerId, FForceFeedbackValues());
+			InputInterface->SetForceFeedbackChannelValues(LocalPlayer->GetControllerId(), FForceFeedbackValues());
 		}
 	}
 
@@ -1596,14 +1607,17 @@ bool APlayerController::SetPause( bool bPause, FCanUnpause CanUnpauseDelegate)
 	if (GetNetMode() != NM_Client)
 	{
 		AGameMode* const GameMode = GetWorld()->GetAuthGameMode();
-		if (bPause)
+		if (GameMode != nullptr)
 		{
-			// Pause gamepad rumbling too if needed
-			bResult = GameMode->SetPause(this, CanUnpauseDelegate);
-		}
-		else
-		{
-			GameMode->ClearPause();
+			if (bPause)
+			{
+				// Pause gamepad rumbling too if needed
+				bResult = GameMode->SetPause(this, CanUnpauseDelegate);
+			}
+			else
+			{
+				GameMode->ClearPause();
+			}
 		}
 	}
 	return bResult;
@@ -2298,13 +2312,10 @@ void APlayerController::BuildInputStack(TArray<UInputComponent*>& InputStack)
 			}
 
 			// See if there is another InputComponent that was added to the Pawn's components array (possibly by script).
-			TArray<UInputComponent*> Components;
-			ControlledPawn->GetComponents(Components);
-
-			for (int32 i=0; i < Components.Num(); i++)
+			for (UActorComponent* ActorComponent : ControlledPawn->GetComponents())
 			{
-				UInputComponent* PawnInputComponent = Components[i];
-				if (PawnInputComponent != ControlledPawn->InputComponent)
+				UInputComponent* PawnInputComponent = Cast<UInputComponent>(ActorComponent);
+				if (PawnInputComponent && PawnInputComponent != ControlledPawn->InputComponent)
 				{
 					InputStack.Push(PawnInputComponent);
 				}
@@ -2337,6 +2348,10 @@ void APlayerController::BuildInputStack(TArray<UInputComponent*>& InputStack)
 		if (IC)
 		{
 			InputStack.Push(IC);
+		}
+		else
+		{
+			CurrentInputStack.RemoveAt(Idx--);
 		}
 	}
 }
@@ -2484,12 +2499,44 @@ void APlayerController::GetAudioListenerPosition(FVector& OutLocation, FVector& 
 {
 	FVector ViewLocation;
 	FRotator ViewRotation;
-	GetPlayerViewPoint(ViewLocation, ViewRotation);
+
+	if (bOverrideAudioListener)
+	{
+		if (AudioListenerComponent != nullptr)
+		{
+			ViewRotation = AudioListenerComponent->GetComponentRotation() + AudioListenerRotationOverride;
+			ViewLocation = AudioListenerComponent->GetComponentLocation() + ViewRotation.RotateVector(AudioListenerLocationOverride);
+		}
+		else
+		{
+			ViewLocation = AudioListenerLocationOverride;
+			ViewRotation = AudioListenerRotationOverride;
+		}
+	}
+	else
+	{
+		GetPlayerViewPoint(ViewLocation, ViewRotation);
+	}
+
 	const FRotationTranslationMatrix ViewRotationMatrix(ViewRotation, ViewLocation);
 
 	OutLocation = ViewLocation;
 	OutFrontDir = ViewRotationMatrix.GetUnitAxis( EAxis::X );
 	OutRightDir = ViewRotationMatrix.GetUnitAxis( EAxis::Y );
+}
+
+void APlayerController::SetAudioListenerOverride(USceneComponent* AttachedComponent, FVector Location, FRotator Rotation)
+{
+	bOverrideAudioListener = true;
+	AudioListenerComponent = AttachedComponent;
+	AudioListenerLocationOverride = Location;
+	AudioListenerRotationOverride = Rotation;
+}
+
+void APlayerController::ClearAudioListenerOverride()
+{
+	bOverrideAudioListener = false;
+	AudioListenerComponent = nullptr;
 }
 
 bool APlayerController::ServerCheckClientPossession_Validate()
@@ -2742,11 +2789,6 @@ void APlayerController::ClientIgnoreLookInput_Implementation(bool bIgnore)
 	SetIgnoreLookInput(bIgnore);
 }
 
-void APlayerController::ClientNotifyRejectedAbilityConfirmation_Implementation(int32 InputID)
-{
-	//TODO: Hook UI notification here. Might be good to include a cooldown on this.
-}
-
 
 void APlayerController::DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos)
 {
@@ -2883,7 +2925,7 @@ void APlayerController::ClientPrepareMapChange_Implementation(FName LevelName, b
 	if (bFirst)
 	{
 		PendingMapChangeLevelNames.Empty();
-		GetWorldTimerManager().ClearTimer( this, &APlayerController::DelayedPrepareMapChange );
+		GetWorldTimerManager().ClearTimer(TimerHandle_DelayedPrepareMapChange);
 	}
 	PendingMapChangeLevelNames.Add(LevelName);
 	if (bLast)
@@ -2897,7 +2939,7 @@ void APlayerController::DelayedPrepareMapChange()
 	if (GetWorld()->IsPreparingMapChange())
 	{
 		// we must wait for the previous one to complete
-		GetWorldTimerManager().SetTimer( this, &APlayerController::DelayedPrepareMapChange, 0.01f );
+		GetWorldTimerManager().SetTimer(TimerHandle_DelayedPrepareMapChange, this, &APlayerController::DelayedPrepareMapChange, 0.01f );
 	}
 	else
 	{
@@ -2908,9 +2950,9 @@ void APlayerController::DelayedPrepareMapChange()
 
 void APlayerController::ClientCommitMapChange_Implementation()
 {
-	if (GetWorldTimerManager().IsTimerActive(this, &APlayerController::DelayedPrepareMapChange))
+	if (GetWorldTimerManager().IsTimerActive(TimerHandle_DelayedPrepareMapChange))
 	{
-		GetWorldTimerManager().SetTimer(this, &APlayerController::ClientCommitMapChange, 0.01f);
+		GetWorldTimerManager().SetTimer(TimerHandle_ClientCommitMapChange, this, &APlayerController::ClientCommitMapChange, 0.01f);
 	}
 	else
 	{
@@ -3002,11 +3044,11 @@ void APlayerController::ToggleSpeaking(bool bSpeaking)
 		{
 			if (bSpeaking)
 			{
-				VoiceInt->StartNetworkedVoice(LP->ControllerId);
+				VoiceInt->StartNetworkedVoice(LP->GetControllerId());
 			}
 			else
 			{
-				VoiceInt->StopNetworkedVoice(LP->ControllerId);
+				VoiceInt->StopNetworkedVoice(LP->GetControllerId());
 			}
 		}
 	}
@@ -3495,10 +3537,10 @@ void APlayerController::ProcessForceFeedback(const float DeltaTime, const bool b
 		}
 	}
 
-	IForceFeedbackSystem* ForceFeedbackSystem = FSlateApplication::Get().GetForceFeedbackSystem();
-	if (ForceFeedbackSystem)
+	IInputInterface* InputInterface = FSlateApplication::Get().GetInputInterface();
+	if (InputInterface)
 	{
-		ForceFeedbackSystem->SetChannelValues(CastChecked<ULocalPlayer>(Player)->ControllerId, (bForceFeedbackEnabled ? ForceFeedbackValues : FForceFeedbackValues()));
+		InputInterface->SetForceFeedbackChannelValues(CastChecked<ULocalPlayer>(Player)->GetControllerId(), (bForceFeedbackEnabled ? ForceFeedbackValues : FForceFeedbackValues()));
 	}
 }
 
@@ -3788,7 +3830,7 @@ void APlayerController::TickActor( float DeltaSeconds, ELevelTick TickType, FAct
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
-bool APlayerController::IsNetRelevantFor(APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation)
+bool APlayerController::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* Viewer, const FVector& SrcLocation) const
 {
 	return ( this==RealViewer );
 }
@@ -4038,7 +4080,7 @@ void APlayerController::BeginInactiveState()
 	AGameState const* const GameState = GetWorld()->GameState;
 
 	float const MinRespawnDelay = ((GameState != NULL) && (GameState->GameModeClass != NULL)) ? GetDefault<AGameMode>(GameState->GameModeClass)->MinRespawnDelay : 1.0f;
-	GetWorldTimerManager().SetTimer(this, &APlayerController::UnFreeze, MinRespawnDelay);
+	GetWorldTimerManager().SetTimer(TimerHandle_UnFreeze, this, &APlayerController::UnFreeze, MinRespawnDelay);
 }
 
 void APlayerController::EndInactiveState()
@@ -4058,7 +4100,26 @@ void APlayerController::PushInputComponent(UInputComponent* InputComponent)
 {
 	if (InputComponent)
 	{
-		CurrentInputStack.Push(InputComponent);
+		bool bPushed = false;
+		CurrentInputStack.RemoveSingle(InputComponent);
+		for (int32 Index = CurrentInputStack.Num() - 1; Index >= 0; --Index)
+		{
+			UInputComponent* IC = CurrentInputStack[Index].Get();
+			if (IC == nullptr)
+			{
+				CurrentInputStack.RemoveAt(Index);
+			}
+			else if (IC->Priority <= InputComponent->Priority)
+			{
+				CurrentInputStack.Insert(InputComponent, Index + 1);
+				bPushed = true;
+				break;
+			}
+		}
+		if (!bPushed)
+		{
+			CurrentInputStack.Insert(InputComponent, 0);
+		}
 	}
 }
 
@@ -4068,19 +4129,7 @@ bool APlayerController::PopInputComponent(UInputComponent* InputComponent)
 	{
 		if (CurrentInputStack.RemoveSingle(InputComponent) > 0)
 		{
-			for (FInputAxisBinding& AxisBinding : InputComponent->AxisBindings)
-			{
-				AxisBinding.AxisValue = 0.f;
-			}
-			for (FInputAxisKeyBinding& AxisKeyBinding : InputComponent->AxisKeyBindings)
-			{
-				AxisKeyBinding.AxisValue = 0.f;
-			}
-			for (FInputVectorAxisBinding& VectorAxisBinding : InputComponent->VectorAxisBindings)
-			{
-				VectorAxisBinding.AxisValue = FVector::ZeroVector;
-			}
-
+			InputComponent->ClearBindingValues();
 			return true;
 		}
 	}
@@ -4251,11 +4300,27 @@ void APlayerController::DisableInput(class APlayerController* PlayerController)
 
 void APlayerController::ActivateTouchInterface(UTouchInterface* NewTouchInterface)
 {
+	CurrentTouchInterface = NewTouchInterface;
 	if(NewTouchInterface)
 	{
-		NewTouchInterface->Activate(VirtualJoystick);
+		if (!VirtualJoystick.IsValid())
+		{
+			CreateTouchInterface();
+		}
+		else
+		{
+			NewTouchInterface->Activate(VirtualJoystick);
+		}
 	}
-	CurrentTouchInterface = NewTouchInterface;
+	else if (VirtualJoystick.IsValid())
+	{
+		ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(Player);
+		if (LocalPlayer && LocalPlayer->ViewportClient)
+		{
+			LocalPlayer->ViewportClient->RemoveViewportWidgetContent(VirtualJoystick.ToSharedRef());
+		}
+		VirtualJoystick = NULL;
+	}
 }
 
 void APlayerController::SetVirtualJoystickVisibility(bool bVisible)
@@ -4331,7 +4396,7 @@ void APlayerController::SetInputMode(const FInputModeDataBase& InData)
 	UGameViewportClient* GameViewportClient = GetWorld()->GetGameViewport();
 	if (GameViewportClient != nullptr)
 	{
-		InData.ApplyInputMode(SlateOperations, *GameViewportClient);
+		InData.ApplyInputMode(*SlateOperations, *GameViewportClient);
 	}
 }
 
@@ -4353,7 +4418,7 @@ void APlayerController::BuildHiddenComponentList(const FVector& ViewLocation, TS
 		AActor* HiddenActor = HiddenActors[ActorIndex];
 		if (HiddenActor != NULL)
 		{
-			TArray<UPrimitiveComponent*> Components;
+			TInlineComponentArray<UPrimitiveComponent*> Components;
 			HiddenActor->GetComponents(Components);
 
 			for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)

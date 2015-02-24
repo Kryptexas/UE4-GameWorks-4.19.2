@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TriggerActors.cpp: Trigger implementation
@@ -9,6 +9,9 @@
 #include "Engine/TriggerCapsule.h"
 #include "Engine/TriggerSphere.h"
 #include "Net/UnrealNetwork.h"
+#include "Components/BoxComponent.h"
+#include "Components/SphereComponent.h"
+#include "Components/CapsuleComponent.h"
 namespace
 {
 	static const FColor TriggerBaseColor(100, 255, 100, 255);
@@ -19,7 +22,6 @@ ATriggerCapsule::ATriggerCapsule(const FObjectInitializer& ObjectInitializer)
 	UCapsuleComponent* CapsuleCollisionComponent = CastChecked<UCapsuleComponent>(GetCollisionComponent());
 	CapsuleCollisionComponent->ShapeColor = TriggerBaseColor;
 	CapsuleCollisionComponent->InitCapsuleSize(+40.0f, +80.0f);
-	CapsuleCollisionComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 	static FName CollisionProfileName(TEXT("Trigger"));
 	CapsuleCollisionComponent->SetCollisionProfileName(CollisionProfileName);
 
@@ -88,7 +90,6 @@ ATriggerBox::ATriggerBox(const FObjectInitializer& ObjectInitializer)
 
 	BoxCollisionComponent->ShapeColor = TriggerBaseColor;
 	BoxCollisionComponent->InitBoxExtent(FVector(40.0f, 40.0f, 40.0f));
-	BoxCollisionComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 
 	static FName CollisionProfileName(TEXT("Trigger"));
 	BoxCollisionComponent->SetCollisionProfileName(CollisionProfileName);
@@ -132,7 +133,6 @@ ATriggerSphere::ATriggerSphere(const FObjectInitializer& ObjectInitializer)
 
 	SphereCollisionComponent->ShapeColor = TriggerBaseColor;
 	SphereCollisionComponent->InitSphereRadius(+40.0f);
-	SphereCollisionComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 	static FName CollisionProfileName(TEXT("Trigger"));
 	SphereCollisionComponent->SetCollisionProfileName(CollisionProfileName);
 

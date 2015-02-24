@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMeshActorBase.cpp: Static mesh actor base class implementation.
@@ -111,6 +111,8 @@ void AStaticMeshActor::PostEditChangeChainProperty(FPropertyChangedChainEvent& P
 
 bool AStaticMeshActor::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 {
+	Super::GetReferencedContentObjects(Objects);
+
 	if (StaticMeshComponent && StaticMeshComponent->StaticMesh)
 	{
 		Objects.Add(StaticMeshComponent->StaticMesh);

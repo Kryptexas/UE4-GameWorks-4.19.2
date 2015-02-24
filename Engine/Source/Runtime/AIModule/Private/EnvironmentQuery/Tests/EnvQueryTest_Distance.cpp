@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Querier.h"
@@ -32,23 +32,11 @@ UEnvQueryTest_Distance::UEnvQueryTest_Distance(const FObjectInitializer& ObjectI
 
 void UEnvQueryTest_Distance::RunTest(FEnvQueryInstance& QueryInstance) const
 {
-// 	float ThresholdValue = 0.0f;
-// 	if (!QueryInstance.GetParamValue(FloatFilter, ThresholdValue, TEXT("FloatFilter")))
-// 	{
-// 		return;
-// 	}
+	FloatValueMin.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	float MinThresholdValue = FloatValueMin.GetValue();
 
-	float MinThresholdValue = 0.0f;
-	if (!QueryInstance.GetParamValue(FloatFilterMin, MinThresholdValue, TEXT("FloatFilterMin")))
-	{
-		return;
-	}
-
-	float MaxThresholdValue = 0.0f;
-	if (!QueryInstance.GetParamValue(FloatFilterMax, MaxThresholdValue, TEXT("FloatFilterMax")))
-	{
-		return;
-	}
+	FloatValueMax.BindData(QueryInstance.Owner.Get(), QueryInstance.QueryID);
+	float MaxThresholdValue = FloatValueMax.GetValue();
 
 	// don't support context Item here, it doesn't make any sense
 	TArray<FVector> ContextLocations;

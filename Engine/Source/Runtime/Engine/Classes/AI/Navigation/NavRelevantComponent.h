@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Components/ActorComponent.h"
@@ -23,7 +23,7 @@ class ENGINE_API UNavRelevantComponent : public UActorComponent, public INavRele
 
 	virtual void CalcBounds();
 
-	UFUNCTION(BlueprintCallable, Category="Navigation")
+	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
 	void SetNavigationRelevancy(bool bRelevant);
 
 	/** force refresh in navigation octree */

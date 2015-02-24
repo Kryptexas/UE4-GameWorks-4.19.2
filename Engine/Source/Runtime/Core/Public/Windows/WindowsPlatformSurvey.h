@@ -1,22 +1,21 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-
-/*=============================================================================================
-	WindowsPlatformSurvey.h: Microsoft Windows platform hardware-survey classes
-==============================================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "GenericPlatform/GenericPlatformSurvey.h"
 
+
 /**
-* Windows implementation of FGenericPlatformSurvey
-**/
-struct CORE_API FWindowsPlatformSurvey : public FGenericPlatformSurvey
+ * Windows implementation of FGenericPlatformSurvey.
+ */
+struct CORE_API FWindowsPlatformSurvey
+	: public FGenericPlatformSurvey
 {
 	/** Start, or check on, the hardware survey */
 	static bool GetSurveyResults( FHardwareSurveyResults& OutResults, bool bWait = false );
 
 private:
+
 	/** Start run the hardware survey now but return immediately without waiting for results **/
 	static void BeginSurveyHardware();
 
@@ -61,5 +60,6 @@ private:
 	static double SurveyStartTimeSeconds;
 	static FHardwareSurveyResults Results;
 };
+
 
 typedef FWindowsPlatformSurvey FPlatformSurvey;

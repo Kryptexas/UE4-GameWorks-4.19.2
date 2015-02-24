@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PreviewScene.cpp: Preview scene implementation.
@@ -7,16 +7,18 @@
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
 #include "PreviewScene.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/LineBatchComponent.h"
 
 FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 	: PreviewWorld(NULL)
 	, bForceAllUsedMipsResident(CVS.bForceMipsResident)
 {
-	PreviewWorld = new UWorld(FObjectInitializer(),FURL(NULL));
+	PreviewWorld = NewObject<UWorld>();
 	PreviewWorld->WorldType = EWorldType::Preview;
-	if (!CVS.bTransactional)
+	if (CVS.bTransactional)
 	{
-		PreviewWorld->ClearFlags(RF_Transactional);
+		PreviewWorld->SetFlags(RF_Transactional);
 	}
 
 	FWorldContext& WorldContext = GEngine->CreateNewWorldContext(EWorldType::Preview);
@@ -26,6 +28,8 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 										.AllowAudioPlayback(CVS.bAllowAudioPlayback)
 										.CreatePhysicsScene(CVS.bCreatePhysicsScene)
 										.RequiresHitProxies(false)
+										.CreateNavigation(false)
+										.CreateAISystem(false)
 										.ShouldSimulatePhysics(CVS.bShouldSimulatePhysics)
 										.SetTransactional(CVS.bTransactional));
 	PreviewWorld->InitializeActorsForPlay(FURL());
@@ -34,7 +38,7 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 
 	DirectionalLight = ConstructObject<UDirectionalLightComponent>(UDirectionalLightComponent::StaticClass());
 	DirectionalLight->Intensity = CVS.LightBrightness;
-	DirectionalLight->LightColor = FColor(255,255,255);
+	DirectionalLight->LightColor = FColor::White;
 	AddComponent(DirectionalLight, FTransform(CVS.LightRotation));
 
 	LineBatcher = ConstructObject<ULineBatchComponent>(ULineBatchComponent::StaticClass());

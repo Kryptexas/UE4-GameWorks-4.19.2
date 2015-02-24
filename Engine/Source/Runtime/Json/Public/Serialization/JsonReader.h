@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -132,9 +132,9 @@ public:
 		return ReadUntilMatching(EJsonNotation::ArrayEnd);
 	}
 
-	FORCEINLINE const FString& GetIdentifier() const { return Identifier; }
+	FORCEINLINE virtual const FString& GetIdentifier() const { return Identifier; }
 
-	FORCEINLINE const FString& GetValueAsString() const 
+	FORCEINLINE virtual  const FString& GetValueAsString() const 
 	{ 
 		check(CurrentToken == EJsonToken::String);
 		return StringValue;
@@ -785,7 +785,7 @@ public:
 		}
 	}
 
-private:
+protected:
 
 	/**
 	 * Parses a string containing Json information.
@@ -807,7 +807,7 @@ private:
 		Stream = Reader;
 	}
 
-private:
+protected:
 
 	const FString Content;
 	FBufferReader* Reader;

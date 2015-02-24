@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 BuildPatchCompactifier.cpp: Implements the classes that clean up chunk and file
@@ -18,10 +18,10 @@ namespace BuildDataCompactifierDefs
 /* Constructors
 *****************************************************************************/
 
-FBuildDataCompactifier::FBuildDataCompactifier(const FString& CloudDir, const bool bPreview, const bool bTouchOnly)
+FBuildDataCompactifier::FBuildDataCompactifier(const FString& CloudDir, const bool bPreview, const bool bNoPatchDelete)
 	: CloudDir(CloudDir)
 	, bPreview(bPreview)
-	, bTouchOnly(bTouchOnly)
+	, bNoPatchDelete(bNoPatchDelete)
 {
 
 }
@@ -29,15 +29,15 @@ FBuildDataCompactifier::FBuildDataCompactifier(const FString& CloudDir, const bo
 /* Public static methods
 *****************************************************************************/
 
-bool FBuildDataCompactifier::CompactifyCloudDirectory(const FString& CloudDir, const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview, const bool bTouchOnly)
+bool FBuildDataCompactifier::CompactifyCloudDirectory(const FString& CloudDir, const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview, const bool bNoPatchDelete)
 {
-	FBuildDataCompactifier Compactifier(CloudDir, bPreview, bTouchOnly);
+	FBuildDataCompactifier Compactifier(CloudDir, bPreview, bNoPatchDelete);
 	return Compactifier.Compactify(ManifestsToKeep, DataAgeThreshold);
 }
 
-bool FBuildDataCompactifier::CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview, const bool bTouchOnly)
+bool FBuildDataCompactifier::CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview, const bool bNoPatchDelete)
 {
-	return CompactifyCloudDirectory(FBuildPatchServicesModule::GetCloudDirectory(), ManifestsToKeep, DataAgeThreshold, bPreview, bTouchOnly);
+	return CompactifyCloudDirectory(FBuildPatchServicesModule::GetCloudDirectory(), ManifestsToKeep, DataAgeThreshold, bPreview, bNoPatchDelete);
 }
 
 /* Private methods
@@ -45,7 +45,7 @@ bool FBuildDataCompactifier::CompactifyCloudDirectory(const TArray<FString>& Man
 
 bool FBuildDataCompactifier::Compactify(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold) const
 {
-	GLog->Logf(TEXT("Running Compactify on %s%s"), *CloudDir, bPreview ? TEXT(". Preview mode. NO action will be taken.") : bTouchOnly ? TEXT(". TouchOnly mode. NO patch data will be deleted.") : TEXT(""));
+	GLog->Logf(TEXT("Running Compactify on %s%s"), *CloudDir, bPreview ? TEXT(". Preview mode. NO action will be taken.") : bNoPatchDelete ? TEXT(". NoPatchDelete mode. NO patch data will be deleted.") : TEXT(""));
 	if (ManifestsToKeep.Num() > 0)
 	{
 		GLog->Logf(TEXT("Preserving manifest files: %s"), *FString::Join(ManifestsToKeep, TEXT(", ")));
@@ -211,7 +211,14 @@ bool FBuildDataCompactifier::Compactify(const TArray<FString>& ManifestsToKeep, 
 	{
 		GLog->Logf(TEXT("Of these, %u (totalling %s) were not chunk/manifest files."), NonPatchFilesProcessed, *HumanReadableSize(NonPatchBytesProcessed));
 	}
-	GLog->Logf(TEXT("Compactify deleted %u chunk/manifest files totalling %s."), FilesDeleted, *HumanReadableSize(BytesDeleted));
+	if (bNoPatchDelete)
+	{
+		GLog->Logf(TEXT("Compactify skipped deleting %u unreferenced chunk/manifest files (totalling %s) due to -nopatchdelete being specified."), FilesDeleted, *HumanReadableSize(BytesDeleted));
+	}
+	else
+	{
+		GLog->Logf(TEXT("Compactify deleted %u chunk/manifest files totalling %s."), FilesDeleted, *HumanReadableSize(BytesDeleted));
+	}
 	GLog->Logf(TEXT("Compactify touched %u chunk files totalling %s."), FilesTouched, *HumanReadableSize(BytesTouched));
 	if (TouchFailureCount > 0)
 	{
@@ -223,11 +230,13 @@ bool FBuildDataCompactifier::Compactify(const TArray<FString>& ManifestsToKeep, 
 
 void FBuildDataCompactifier::DeleteFile(const FString& FilePath) const
 {
-	GLog->Logf(TEXT("Deleting file %s"), *FilePath);
-	if (!bPreview && !bTouchOnly)
+	FString LogMsg = FString::Printf(TEXT("Deprecated data %s"), *FilePath);
+	if (!bNoPatchDelete && !bPreview)
 	{
+		LogMsg = LogMsg.Append(TEXT(" ... deleted"));
 		IFileManager::Get().Delete(*FilePath);
 	}
+	GLog->Logf(*LogMsg);
 }
 
 void FBuildDataCompactifier::EnumerateManifests(TArray<FString>& OutManifests) const
@@ -262,13 +271,13 @@ bool FBuildDataCompactifier::DeleteNonReferencedManifests(TArray<FString>& AllMa
 	{
 		if (!ManifestsToKeep.Contains(Manifest))
 		{
-			GLog->Logf(TEXT("Deleting manifest file %s"), *Manifest);
+			FString LogMsg = FString::Printf(TEXT("Found deleteable manifest file %s"), *Manifest);
 			FString ManifestPath = CloudDir / Manifest;
 
 			DeletedManifests.Add(Manifest);
 			BytesDeleted += IFileManager::Get().FileSize(*ManifestPath);
 
-			if (!bPreview && !bTouchOnly)
+			if (!bPreview && !bNoPatchDelete)
 			{
 				IFileManager::Get().Delete(*ManifestPath);
 				if (FPaths::FileExists(ManifestPath))
@@ -277,7 +286,9 @@ bool FBuildDataCompactifier::DeleteNonReferencedManifests(TArray<FString>& AllMa
 					GLog->Logf(ELogVerbosity::Error, TEXT("Compactify could not delete manifest file %s"), *Manifest);
 					return false;
 				}
+				LogMsg.Append(TEXT(" ... deleted"));
 			}
+			GLog->Logf(*LogMsg);
 		}
 	}
 

@@ -1,35 +1,27 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-
+#include "GameplayEffectTypes.h"
 #include "GameplayEffectCalculation.generated.h"
 
 struct FGameplayEffectSpec;
-struct FGameplayEffectAttributeCaptureDefinition;
-
 class UAbilitySystemComponent;
 
-UCLASS(abstract)
+/** Abstract base for specialized gameplay effect calculations; Capable of specifing attribute captures */
+UCLASS(BlueprintType, Blueprintable, Abstract)
 class GAMEPLAYABILITIES_API UGameplayEffectCalculation : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual void Execute(FGameplayEffectSpec& Spec, int32 ExecutionIdx, UAbilitySystemComponent* TargetAbilitySystemComponent) const;
+public:
 
-	virtual void GetCaptureDefinitions(OUT TArray<FGameplayEffectAttributeCaptureDefinition>& Definitions) const;
+	/** Simple accessor to capture definitions for attributes */
+	virtual const TArray<FGameplayEffectAttributeCaptureDefinition>& GetAttributeCaptureDefinitions() const;
+
+protected:
+
+	/** Attributes to capture that are relevant to the calculation */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Attributes)
+	TArray<FGameplayEffectAttributeCaptureDefinition> RelevantAttributesToCapture;
 };
-
-// yuck?
-
-#define GE_REQ_SRC(SET, PROP, SNAPSHOT) \
-{ \
-	static UProperty* ThisProperty = FindFieldChecked<UProperty>(SET::StaticClass(), GET_MEMBER_NAME_CHECKED(SET, PROP)); \
-	Definitions.Add(FGameplayEffectAttributeCaptureDefinition(FGameplayAttribute(ThisProperty), EGameplayEffectAttributeCaptureSource::Source, SNAPSHOT)); \
-}
-
-#define GE_REQ_TARGET(SET, PROP, SNAPSHOT) \
-{ \
-	static UProperty* ThisProperty = FindFieldChecked<UProperty>(SET::StaticClass(), GET_MEMBER_NAME_CHECKED(SET, PROP)); \
-	Definitions.Add(FGameplayEffectAttributeCaptureDefinition(FGameplayAttribute(ThisProperty), EGameplayEffectAttributeCaptureSource::Target, SNAPSHOT)); \
-}

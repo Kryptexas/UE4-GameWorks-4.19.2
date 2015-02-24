@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -189,7 +189,9 @@ namespace UnrealBuildTool
 			IntermediateDirectoryPath = Path.GetDirectoryName(NMakeOutputPath) + "/../../Intermediate/Android/APK";
 
 			// string for <OverrideAPKPath>
-			string APKPath = Path.ChangeExtension(NMakeOutputPath, ".apk");
+			string APKPath = Path.Combine(
+				Path.GetDirectoryName(NMakeOutputPath),
+				Path.GetFileNameWithoutExtension(NMakeOutputPath) + "-armv7-es2.apk");
 
 			// string for <BuildXmlPath> and <AndroidManifestPath>
 			string BuildXmlPath = IntermediateDirectoryPath;

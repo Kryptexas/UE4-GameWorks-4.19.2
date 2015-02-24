@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 
@@ -227,6 +227,25 @@ void UInputComponent::RemoveActionBinding( const int32 BindingIndex )
 	}
 }
 
+void UInputComponent::ClearBindingValues()
+{
+	for (FInputAxisBinding& AxisBinding : AxisBindings)
+	{
+		AxisBinding.AxisValue = 0.f;
+	}
+	for (FInputAxisKeyBinding& AxisKeyBinding : AxisKeyBindings)
+	{
+		AxisKeyBinding.AxisValue = 0.f;
+	}
+	for (FInputVectorAxisBinding& VectorAxisBinding : VectorAxisBindings)
+	{
+		VectorAxisBinding.AxisValue = FVector::ZeroVector;
+	}
+	for (FInputGestureBinding& GestureBinding : GestureBindings)
+	{
+		GestureBinding.GestureValue = 0.f;
+	}
+}
 
 /* Deprecated functions (needed for Blueprints)
  *****************************************************************************/

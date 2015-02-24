@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UExporter.cpp: Exporter class implementation.
@@ -7,6 +7,7 @@
 // Engine includes.
 #include "EnginePrivate.h"
 #include "Model.h"
+#include "UnrealExporter.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogExporter, Log, All);
 
@@ -642,7 +643,7 @@ void UExporter::ExportObjectInner(const FExportObjectInnerContext* Context, UObj
 			// Export anything extra for the components. Used for instanced foliage.
 			// This is done after the actor properties so these are set when regenerating the extra data objects.
 			TArray<UActorComponent*> Components;
-			Actor->GetComponents(Components);
+			Actor->GetComponents<UActorComponent, FDefaultAllocator>(Components);
 			ExportComponentExtra(Context, Components, Ar, PortFlags);
 		}
 	}
@@ -892,7 +893,7 @@ FString DumpComponentsToString(UObject *Object)
 
 
 
-void DumpObject(const TCHAR *Label, UObject* Object)
+void DumpObject(const TCHAR* Label, UObject* Object)
 {
 	FString const ExportedText = DumpObjectToString(Object);
 	UE_LOG(LogExporter, Display, TEXT("%s"), Label);

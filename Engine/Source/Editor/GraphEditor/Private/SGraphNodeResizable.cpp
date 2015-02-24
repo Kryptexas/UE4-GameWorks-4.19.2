@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -34,7 +34,7 @@ void SGraphNodeResizable::OnMouseEnter( const FGeometry& MyGeometry, const FPoin
 	{
 		FVector2D LocalMouseCoordinates = MyGeometry.AbsoluteToLocal( MouseEvent.GetScreenSpacePosition() );
 		MouseZone = FindMouseZone(LocalMouseCoordinates);
-		SCompoundWidget::OnMouseEnter( MyGeometry, MouseEvent );
+		SNodePanel::SNode::OnMouseEnter( MyGeometry, MouseEvent );
 	}
 }
 
@@ -44,7 +44,7 @@ void SGraphNodeResizable::OnMouseLeave( const FPointerEvent& MouseEvent )
 	{
 		// Reset our mouse zone
 		MouseZone = CRWZ_NotInWindow;
-		SCompoundWidget::OnMouseLeave( MouseEvent );
+		SNodePanel::SNode::OnMouseLeave( MouseEvent );
 	}
 }
 

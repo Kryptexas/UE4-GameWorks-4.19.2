@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightMap.cpp: Light-map implementation.
@@ -8,6 +8,7 @@
 #include "TargetPlatform.h"
 #include "StaticLighting.h"
 #include "LightMap.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLightMap, Log, All);
 
@@ -247,8 +248,7 @@ struct FLightMapAllocation
 	{
 		if (InstanceIndex >= 0)
 		{
-			UInstancedStaticMeshComponent* Component = dynamic_cast<UInstancedStaticMeshComponent*>(Primitive);
-			check(Component);
+			UInstancedStaticMeshComponent* Component = CastChecked<UInstancedStaticMeshComponent>(Primitive);
 
 			// TODO: We currently only support one LOD of static lighting in foliage
 			// Need to create per-LOD instance data to fix that
@@ -812,7 +812,7 @@ void FLightMapPendingTexture::StartEncoding()
 
 	if (bNeedsSkyOcclusionTexture)
 	{
-		ULightMapTexture2D* Texture = new(Outer, GetSkyOcclusionTextureName(GLightmapCounter)) ULightMapTexture2D(FObjectInitializer());
+		auto Texture = NewNamedObject<ULightMapTexture2D>(Outer, GetSkyOcclusionTextureName(GLightmapCounter));
 		SkyOcclusionTexture = Texture;
 
 		Texture->Source.Init2DWithMipChain(GetSizeX(), GetSizeY(), TSF_BGRA8);
@@ -911,7 +911,7 @@ void FLightMapPendingTexture::StartEncoding()
 		}
 
 		// Create the light-map texture for this coefficient.
-		ULightMapTexture2D* Texture = new(Outer, GetLightmapName(GLightmapCounter, CoefficientIndex)) ULightMapTexture2D(FObjectInitializer());
+		auto Texture = NewNamedObject<ULightMapTexture2D>(Outer, GetLightmapName(GLightmapCounter, CoefficientIndex));
 		Textures[CoefficientIndex] = Texture;
 		Texture->Source.Init2DWithMipChain(GetSizeX(), GetSizeY() * 2, TSF_BGRA8);	// Top/bottom atlased
 		Texture->MipGenSettings = TMGS_LeaveExistingMips;
@@ -999,11 +999,11 @@ void FLightMapPendingTexture::StartEncoding()
 							X == Allocation->MappedRect.Min.X+1 || Y == Allocation->MappedRect.Min.Y+1 ||
 							X == Allocation->MappedRect.Max.X-2 || Y == Allocation->MappedRect.Max.Y-2 )
 						{
-							DestColor = FColor(255,0,0);
+							DestColor = FColor::Red;
 						}
 						else
 						{
-							DestColor = FColor(0,255,0);
+							DestColor = FColor::Green;
 						}
 #else
 						DestColor.R = SourceCoefficients.Coefficients[CoefficientIndex][0];
@@ -1621,42 +1621,16 @@ void FLightMap2D::Serialize(FArchive& Ar)
 {
 	FLightMap::Serialize(Ar);
 
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_SH_LIGHTMAPS)
+	if( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_LOW_QUALITY_DIRECTIONAL_LIGHTMAPS )
 	{
 		for(uint32 CoefficientIndex = 0;CoefficientIndex < 3;CoefficientIndex++)
 		{
 			ULightMapTexture2D* Dummy = NULL;
 			Ar << Dummy;
-			FVector Dummy2;
-			Ar << Dummy2;
-		}
-	}
-	else if( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_LIGHTMAP_COMPRESSION )
-	{
-		for( uint32 CoefficientIndex = 0; CoefficientIndex < 5; CoefficientIndex++ )
-		{
-			ULightMapTexture2D* Dummy = NULL;
-			Ar << Dummy;
-			FVector Dummy2;
+			FVector4 Dummy2;
 			Ar << Dummy2;
 			Ar << Dummy2;
 		}
-	}
-	else if( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_LOW_QUALITY_DIRECTIONAL_LIGHTMAPS )
-	{
-		for(uint32 CoefficientIndex = 0;CoefficientIndex < 3;CoefficientIndex++)
-		{
-			Ar << Textures[CoefficientIndex];
-			Ar << ScaleVectors[CoefficientIndex];
-			Ar << AddVectors[CoefficientIndex];
-		}
-
-		ScaleVectors[0].W *= 11.5f;
-		AddVectors[0].W = ( AddVectors[0].W - 0.5f ) * 11.5f;
-
-		ScaleVectors[1] *= FVector4( -0.325735f, 0.325735f, -0.325735f, 0.0f );
-		AddVectors[1] *= FVector4( -0.325735f, 0.325735f, -0.325735f, 0.0f );
-		AddVectors[1].W = 0.282095f;
 	}
 	else if( Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_COMBINED_LIGHTMAP_TEXTURES )
 	{
@@ -1764,32 +1738,13 @@ void FLegacyLightMap1D::Serialize(FArchive& Ar)
 
 	DirectionalSamples.Serialize( Ar, Owner );
 
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_SH_LIGHTMAPS)
+	for (int32 ElementIndex = 0; ElementIndex < 5; ElementIndex++)
 	{
-		for (int32 ElementIndex = 0; ElementIndex < 3; ElementIndex++)
-		{
-			FVector Dummy;
-			Ar << Dummy;
-		}
-	}
-	else
-	{
-		for (int32 ElementIndex = 0; ElementIndex < 5; ElementIndex++)
-		{
-			FVector Dummy;
-			Ar << Dummy;
-		}
+		FVector Dummy;
+		Ar << Dummy;
 	}
 
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_SH_LIGHTMAPS)
-	{
-		TQuantizedLightSampleBulkData<FLegacyQuantizedSimpleLightSample> Dummy;
-		Dummy.Serialize(Ar, Owner);
-	}
-	else
-	{
-		SimpleSamples.Serialize( Ar, Owner );
-	}
+	SimpleSamples.Serialize( Ar, Owner );
 }
 
 /*-----------------------------------------------------------------------------
@@ -1863,6 +1818,10 @@ FArchive& operator<<(FArchive& Ar,FLightMap*& R)
 		else if(LightMapType == FLightMap::LMT_2D)
 		{
 			R = new FLightMap2D();
+		}
+		else
+		{
+			R = NULL;
 		}
 	}
 

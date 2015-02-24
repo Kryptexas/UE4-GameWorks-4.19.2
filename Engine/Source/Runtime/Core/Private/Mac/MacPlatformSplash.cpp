@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "Misc/App.h"
@@ -238,17 +238,20 @@ void FMacPlatformSplash::Show()
 
 				// Set version info
 				{
-#if PLATFORM_64BITS
-					//These are invariant strings so they don't need to be localized
-					const FText PlatformBits = FText::FromString( TEXT( "64" ) );
-#else	//PLATFORM_64BITS
-					const FText PlatformBits = FText::FromString( TEXT( "32" ) );
-#endif	//PLATFORM_64BITS
-
 					const FText Version = FText::FromString( GEngineVersion.ToString( FEngineBuildSettings::IsPerforceBuild() ? EVersionComponent::Branch : EVersionComponent::Patch ) );
 
-					FText VersionInfo = FText::Format( NSLOCTEXT("UnrealEd", "UnrealEdTitleWithVersion_F", "Unreal Editor - {0} ({1}-bit) [Version {2}]" ), GameName, PlatformBits, Version );
-					FText AppName =     FText::Format( NSLOCTEXT("UnrealEd", "UnrealEdTitle_F",            "Unreal Editor - {0} ({1}-bit)" ), GameName, PlatformBits );
+					FText VersionInfo;
+					FText AppName;
+					if( GameName.IsEmpty() )
+					{
+						VersionInfo = FText::Format( NSLOCTEXT( "UnrealEd", "UnrealEdTitleWithVersionNoGameName_F", "Unreal Editor {0}" ), Version );
+						AppName = NSLOCTEXT( "UnrealEd", "UnrealEdTitleNoGameName_F", "Unreal Editor" );
+					}
+					else
+					{
+						VersionInfo = FText::Format( NSLOCTEXT( "UnrealEd", "UnrealEdTitleWithVersion_F", "Unreal Editor {0}  -  {1}" ), Version, GameName );
+						AppName = FText::Format( NSLOCTEXT( "UnrealEd", "UnrealEdTitle_F", "Unreal Editor - {0}" ), GameName );
+					}
 
 					StartSetSplashText( SplashTextType::VersionInfo1, VersionInfo );
 
@@ -258,7 +261,7 @@ void FMacPlatformSplash::Show()
 
 				// Display copyright information in editor splash screen
 				{
-					const FText CopyrightInfo = NSLOCTEXT( "UnrealEd", "SplashScreen_CopyrightInfo", "Copyright \x00a9 1998-2014   Epic Games, Inc.   All rights reserved." );
+					const FText CopyrightInfo = NSLOCTEXT( "UnrealEd", "SplashScreen_CopyrightInfo", "Copyright \x00a9 1998-2015   Epic Games, Inc.   All rights reserved." );
 					StartSetSplashText( SplashTextType::CopyrightInfo, CopyrightInfo );
 				}
 			}
@@ -349,6 +352,11 @@ void FMacPlatformSplash::Hide()
 
 		FPlatformMisc::PumpMessages(true);
 	}
+}
+
+bool FMacPlatformSplash::IsShown()
+{
+	return (GSplashWindow != NULL);
 }
 
 void FMacPlatformSplash::SetSplashText(const SplashTextType::Type InType, const TCHAR* InText)

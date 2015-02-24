@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Color.cpp: 
@@ -8,7 +8,6 @@
 #include "Distributions/DistributionFloatParticleParameter.h"
 #include "Distributions/DistributionVectorParticleParameter.h"
 #include "ParticleDefinitions.h"
-#include "../DistributionHelpers.h"
 #include "Particles/Color/ParticleModuleColor.h"
 #include "Particles/Color/ParticleModuleColorBase.h"
 #include "Particles/Color/ParticleModuleColorOverLife.h"
@@ -19,6 +18,8 @@
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Distributions/DistributionVectorConstantCurve.h"
+#include "Engine/InterpCurveEdSetup.h"
+#include "Distributions/DistributionFloatConstantCurve.h"
 
 UParticleModuleColorBase::UParticleModuleColorBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -65,17 +66,6 @@ void UParticleModuleColor::PostInitProperties()
 		InitializeDefaults();
 	}
 }
-
-void UParticleModuleColor::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(StartColor.Distribution, TEXT("DistributionStartColor"), FVector::ZeroVector);
-		FDistributionHelpers::RestoreDefaultConstant(StartAlpha.Distribution, TEXT("DistributionStartAlpha"), 1.0f);
-	}
-}
-
 
 void UParticleModuleColor::CompileModule( FParticleEmitterBuildInfo& EmitterInfo )
 {
@@ -160,7 +150,7 @@ void UParticleModuleColor::Spawn(FParticleEmitterInstance* Owner, int32 Offset, 
 }
 
 
-void UParticleModuleColor::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
+void UParticleModuleColor::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
 {
 	SPAWN_INIT;
 	{
@@ -255,15 +245,6 @@ void UParticleModuleColorOverLife::PostInitProperties()
 		UDistributionFloatConstant* DistributionAlphaOverLife = NewNamedObject<UDistributionFloatConstant>(this, TEXT("DistributionAlphaOverLife"));
 		DistributionAlphaOverLife->Constant = 1.0f;
 		AlphaOverLife.Distribution = DistributionAlphaOverLife;
-	}
-}
-
-void UParticleModuleColorOverLife::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(AlphaOverLife.Distribution, TEXT("DistributionAlphaOverLife"), 1.0f);
 	}
 }
 
@@ -512,16 +493,6 @@ void UParticleModuleColorScaleOverLife::PostInitProperties()
 		InitializeDefaults();
 	}
 }
-
-void UParticleModuleColorScaleOverLife::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(AlphaScaleOverLife.Distribution, TEXT("DistributionAlphaScaleOverLife"), 1.0f);
-	}
-}
-
 
 void UParticleModuleColorScaleOverLife::CompileModule( FParticleEmitterBuildInfo& EmitterInfo )
 {

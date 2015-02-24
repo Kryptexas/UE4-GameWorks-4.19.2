@@ -1,10 +1,12 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "FriendsViewModel.h"
 #include "FriendViewModel.h"
 #include "FriendsStatusViewModel.h"
+#include "FriendsUserSettingsViewModel.h"
 #include "FriendListViewModel.h"
+#include "FriendsUserViewModel.h"
 
 class FFriendsViewModelImpl
 	: public FFriendsViewModel
@@ -21,9 +23,19 @@ public:
 		bIsPerformingAction = !bIsPerformingAction;
 	}
 
+	virtual TSharedRef< class FFriendsUserViewModel > GetUserViewModel() override
+	{
+		return FFriendsUserViewModelFactory::Create(FriendsAndChatManager.Pin().ToSharedRef());
+	}
+
 	virtual TSharedRef< FFriendsStatusViewModel > GetStatusViewModel() override
 	{
 		return FFriendsStatusViewModelFactory::Create(FriendsAndChatManager.Pin().ToSharedRef());
+	}
+
+	virtual TSharedRef< FFriendsUserSettingsViewModel > GetUserSettingsViewModel() override
+	{
+		return FFriendsUserSettingsViewModelFactory::Create(FriendsAndChatManager.Pin().ToSharedRef());
 	}
 
 	virtual TSharedRef< FFriendListViewModel > GetFriendListViewModel(EFriendsDisplayLists::Type ListType) override
@@ -45,9 +57,6 @@ public:
 	}
 
 private:
-	void Initialize()
-	{
-	}
 
 	void Uninitialize()
 	{
@@ -78,7 +87,5 @@ TSharedRef< FFriendsViewModel > FFriendsViewModelFactory::Create(
 	)
 {
 	TSharedRef< FFriendsViewModelImpl > ViewModel(new FFriendsViewModelImpl(FriendsAndChatManager));
-	ViewModel->Initialize();
-
 	return ViewModel;
 }

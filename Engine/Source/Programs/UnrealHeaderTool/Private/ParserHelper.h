@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "ClassMaps.h"
@@ -889,8 +889,12 @@ struct FFuncInfo
 	FString		MarshallAndCallName;
 	/** Name of the actual implementation **/
 	FString		CppImplName;
+	/** Cached info whether CppImplName ends with _Implementation suffix to avoid string comparisons. **/
+	bool		bCppImplNameEndsWith_Implementation;
 	/** Name of the actual validation implementation **/
 	FString		CppValidationImplName;
+	/** Cached info whether CppValidationImplName ends with _Validate suffix to avoid string comparisons. **/
+	bool		bCppValidationImplNameEndsWith_Validate;
 	/** Name for callback-style names **/
 	FString		UnMarshallAndCallName;
 	/** Identifier for an RPC call to a platform service */
@@ -907,7 +911,9 @@ struct FFuncInfo
 	,	FunctionFlags       (0)
 	,	FunctionExportFlags (0)
 	,	ExpectParms		    (0)
-	,	FunctionReference   (NULL)
+	,	FunctionReference(NULL)
+	,	bCppImplNameEndsWith_Implementation(false)
+	,	bCppValidationImplNameEndsWith_Validate(false)
 	,	RPCId               (0)
 	,	RPCResponseId       (0)
 	,	bSealedEvent        (false)
@@ -918,6 +924,8 @@ struct FFuncInfo
 	,	FunctionExportFlags(Other.FunctionExportFlags)
 	,	ExpectParms		(Other.ExpectParms)
 	,	FunctionReference(Other.FunctionReference)
+	,	bCppImplNameEndsWith_Implementation(Other.bCppImplNameEndsWith_Implementation)
+	,	bCppValidationImplNameEndsWith_Validate(Other.bCppValidationImplNameEndsWith_Validate)
 	,	RPCId(Other.RPCId)
 	,	RPCResponseId(Other.RPCResponseId)
 	{
@@ -961,9 +969,11 @@ struct FFuncInfo
 			else
 			{
 				CppImplName = FunctionReference->GetName() + TEXT("_Implementation");
+				bCppImplNameEndsWith_Implementation = true;
 				if (FunctionReference->HasAllFunctionFlags(FUNC_NetValidate))
 				{
 					CppValidationImplName = FunctionReference->GetName() + TEXT("_Validate");
+					bCppValidationImplNameEndsWith_Validate = true;
 				}
 			}
 		}
@@ -977,6 +987,7 @@ struct FFuncInfo
 		{
 			MarshallAndCallName = FunctionName;
 			CppImplName = FunctionReference->GetName() + TEXT("_Implementation");
+			bCppImplNameEndsWith_Implementation = true;
 		}
 	}
 };

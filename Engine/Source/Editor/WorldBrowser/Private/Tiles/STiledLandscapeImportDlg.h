@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 /////////////////////////////////////////////////////
@@ -11,8 +11,9 @@ public:
 	/** */		
 	struct FTileImportConfiguration
 	{
-		int32 Resolution;
+		int64 ImportFileSize;
 		
+		int32 SizeX;
 		int32 NumComponents;
 		int32 NumSectionsPerComponent;
 		int32 NumQuadsPerSection;
@@ -72,11 +73,11 @@ private:
 	FText GetWeightmapCountText(TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData) const; 
 
 	/** */
-	ESlateCheckBoxState::Type GetLayerBlendState(TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData) const;
-	void OnLayerBlendStateChanged(ESlateCheckBoxState::Type NewState, TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData);
+	ECheckBoxState GetLayerBlendState(TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData) const;
+	void OnLayerBlendStateChanged(ECheckBoxState NewState, TSharedPtr<FTiledLandscapeImportSettings::LandscapeLayerSettings> InLayerData);
 
 	/** */
-	void SetPossibleConfigurationsForResolution(int32 TargetResolutuion);
+	int32 SetPossibleConfigurationsForFileSize(int64 InFileSize);
 	
 	/** */
 	void GenerateAllPossibleTileConfigurations();
@@ -90,6 +91,9 @@ private:
 private:
 	/** */
 	bool bShouldImport;
+
+	/** */
+	mutable FText StatusMessage;
 	
 	/** */
 	TSharedPtr<SWindow> ParentWindow;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Class.h: UClass definition.
@@ -82,9 +82,11 @@ class COREUOBJECT_API UField : public UObject
 	/**
 	 * Finds the localized tooltip or native tooltip as a fallback.
 	 *
+	 * @param bShortTooltip Look for a shorter version of the tooltip (falls back to the long tooltip if none was specified)
+	 *
 	 * @return The tooltip for this object.
 	 */
-	FText GetToolTipText() const;
+	FText GetToolTipText(bool bShortTooltip = false) const;
 
 	/**
 	 * Determines if the property has any metadata associated with the key
@@ -303,6 +305,23 @@ public:
 
 	virtual void SerializeTaggedProperties( FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad=NULL) const;
 
+	/**
+	 * Initialize a struct over uninitialized memory. This may be done by calling the native constructor or individually initializing properties
+	 *
+	 * @param	Dest		Pointer to memory to initialize
+	 * @param	ArrayDim	Number of elements in the array
+	 * @param	Stride		Stride of the array, If this default (0), then we will pull the size from the struct
+	 */
+	virtual void InitializeStruct(void* Dest, int32 ArrayDim = 1) const;
+	/**
+	 * Destroy a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
+	 *
+	 * @param	Dest		Pointer to memory to destory
+	 * @param	ArrayDim	Number of elements in the array
+	 * @param	Stride		Stride of the array. If this default (0), then we will pull the size from the struct
+	 */
+	virtual void DestroyStruct(void* Dest, int32 ArrayDim = 1) const;
+
 #if WITH_EDITOR
 private:
 	virtual UProperty* CustomFindProperty(const FName Name) const { return NULL; };
@@ -370,6 +389,11 @@ public:
 	{
 		Child->Next = Children;
 		Children = Child;
+	}
+
+	virtual FString PropertyNameToDisplayName(FName Name) const 
+	{ 
+		return Name.ToString(); 
 	}
 
 #if WITH_EDITOR
@@ -981,6 +1005,8 @@ public:
 
 	// UStruct interface.
 	virtual COREUOBJECT_API void Link(FArchive& Ar, bool bRelinkExistingProperties) override;
+	virtual COREUOBJECT_API void InitializeStruct(void* Dest, int32 ArrayDim = 1) const override;
+	virtual COREUOBJECT_API void DestroyStruct(void* Dest, int32 ArrayDim = 1) const override;
 	// End of UStruct interface.
 
 	/** Stash a CppStructOps for future use 
@@ -1058,14 +1084,6 @@ public:
 	 */
 	COREUOBJECT_API void CopyScriptStruct(void* Dest, void const* Src, int32 ArrayDim = 1) const;
 	/**
-	 * Initialize a struct over uninitialized memory. This may be done by calling the native constructor or individually initializing properties
-	 *
-	 * @param	Dest		Pointer to memory to initialize
-	 * @param	ArrayDim	Number of elements in the array
-	 * @param	Stride		Stride of the array, If this default (0), then we will pull the size from the struct
-	 */
-	COREUOBJECT_API void InitializeScriptStruct(void* Dest, int32 ArrayDim = 1) const;
-	/**
 	 * Reintialize a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
 	 *
 	 * @param	Dest		Pointer to memory to reinitialize
@@ -1073,52 +1091,43 @@ public:
 	 * @param	Stride		Stride of the array, only relevant if there more than one element. If this default (0), then we will pull the size from the struct
 	 */
 	void ClearScriptStruct(void* Dest, int32 ArrayDim = 1) const;
-	/**
-	 * Destroy a struct in memory. This may be done by calling the native destructor and then the constructor or individually reinitializing properties
-	 *
-	 * @param	Dest		Pointer to memory to destory
-	 * @param	ArrayDim	Number of elements in the array
-	 * @param	Stride		Stride of the array. If this default (0), then we will pull the size from the struct
-	 */
-	COREUOBJECT_API void DestroyScriptStruct(void* Dest, int32 ArrayDim = 1) const;
 
 	virtual COREUOBJECT_API void RecursivelyPreload();
 };
 
-struct FStructOnScope
+class FStructOnScope
 {
-private:
-	TWeakObjectPtr<const UScriptStruct> ScriptStruct;
+protected:
+	TWeakObjectPtr<const UStruct> ScriptStruct;
 	uint8* SampleStructMemory;
 
-	FStructOnScope(const FStructOnScope&);
-	FStructOnScope& operator=(const FStructOnScope&);
+	FStructOnScope() : SampleStructMemory(NULL) {}
 
 public:
-	FStructOnScope(const UScriptStruct* InScriptStruct)
+	FStructOnScope(const UStruct* InScriptStruct)
 		: ScriptStruct(InScriptStruct)
 		, SampleStructMemory(NULL)
 	{
 		if (ScriptStruct.IsValid())
 		{
 			SampleStructMemory = (uint8*)FMemory::Malloc(ScriptStruct->GetStructureSize());
-			ScriptStruct.Get()->InitializeScriptStruct(SampleStructMemory);
+			ScriptStruct.Get()->InitializeStruct(SampleStructMemory);
 		}
 	}
 
-	uint8* GetStructMemory() { return SampleStructMemory; }
+	virtual uint8* GetStructMemory() { return SampleStructMemory; }
 
-	const uint8* GetStructMemory() const { return SampleStructMemory; }
+	virtual const uint8* GetStructMemory() const { return SampleStructMemory; }
 
-	const UScriptStruct* GetStruct() const { return ScriptStruct.Get(); }
+	virtual const UStruct* GetStruct() const { return ScriptStruct.Get(); }
 
-	bool IsValid() const { return ScriptStruct.IsValid() && SampleStructMemory; }
+	virtual bool IsValid() const { return ScriptStruct.IsValid() && SampleStructMemory; }
 
-	void Destroy()
+	virtual void Destroy()
 	{
 		if (ScriptStruct.IsValid() && SampleStructMemory)
 		{
-			ScriptStruct.Get()->DestroyScriptStruct(SampleStructMemory);
+			ScriptStruct.Get()->DestroyStruct(SampleStructMemory);
 			ScriptStruct = NULL;
 		}
 
@@ -1129,10 +1138,14 @@ public:
 		}
 	}
 
-	~FStructOnScope()
+	virtual ~FStructOnScope()
 	{
 		Destroy();
 	}
+
+private:
+	FStructOnScope(const FStructOnScope&);
+	FStructOnScope& operator=(const FStructOnScope&);
 };
 
 /*-----------------------------------------------------------------------------
@@ -1898,6 +1911,7 @@ public:
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	virtual FRestoreForUObjectOverwrite* GetRestoreForUObjectOverwrite() override;
 	virtual FString GetDesc() override;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 	virtual bool IsAsset() const override { return false; }
 	// End of UObject interface.
 
@@ -1960,7 +1974,7 @@ public:
 		return NULL;
 	}
 
-	virtual void CreatePersistentUberGraphFrame(UObject* Obj) const
+	virtual void CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty = false) const
 	{
 	}
 
@@ -2166,6 +2180,24 @@ public:
 	 */
 	virtual bool HasProperty(UProperty* InProperty) const;
 
+	virtual UObject* FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const { return nullptr; }
+
+	/**
+	 * On save, we order a package's exports in class dependency order (so that
+	 * on load, we create the class dependencies before we create the class).  
+	 * More often than not, the class doesn't require any non-struct objects 
+	 * before it is created/serialized (only super-classes, and its UField 
+	 * members, see FExportReferenceSorter::operator<<() for reference). 
+	 * However, in some special occasions, there might be an export that we 
+	 * would like force loaded prior to the class's serialization (like  
+	 * component templates for blueprint classes). This function returns a list
+	 * of those non-struct dependencies, so that FExportReferenceSorter knows to 
+	 * prioritize them earlier in the ExportMap.
+	 * 
+	 * @param  DependenciesOut	Will be filled with a list of dependencies that need to be created before this class is recreated (on load).
+	 */
+	virtual void GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut) {}
+
 private:
 	// This signature intentionally hides the method declared in UObjectBaseUtility to make it private.
 	// Call IsChildOf instead; Hidden because calling IsA on a class almost always indicates an error where the caller should use IsChildOf.
@@ -2195,7 +2227,6 @@ protected:
 	 **/
 	virtual UObject* CreateDefaultObject();
 };
-
 
 /**
  * Helper template to call the default constructor for a class

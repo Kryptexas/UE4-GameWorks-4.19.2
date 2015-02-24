@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -70,16 +70,19 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A parsed callstack.</returns>
 		public CallStackContainer GetCallStack( Crash CurrentCrash )
 		{
-			string Key = CacheKeyPrefix + CallstackKeyPrefix + CurrentCrash.Id;
-			CallStackContainer CallStack = ( CallStackContainer )CacheInstance[Key];
-			if( CallStack == null )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + CurrentCrash.Id + ")" ) )
 			{
-				CallStack = new CallStackContainer( CurrentCrash );
-				CallStack.bDisplayFunctionNames = true;
-				CacheInstance.Insert( Key, CallStack );
-			}
+				string Key = CacheKeyPrefix + CallstackKeyPrefix + CurrentCrash.Id;
+				CallStackContainer CallStack = (CallStackContainer)CacheInstance[Key];
+				if( CallStack == null )
+				{
+					CallStack = new CallStackContainer( CurrentCrash );
+					CallStack.bDisplayFunctionNames = true;
+					CacheInstance.Insert( Key, CallStack );
+				}
 
-			return CallStack;
+				return CallStack;
+			}
 		}
 
 		/// <summary>
@@ -90,17 +93,20 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A list of crashes between the start and end dates.</returns>
 		public List<Crash> GetCrashes( DateTime DateFrom, DateTime DateTo )
 		{
-			string Key = CacheKeyPrefix + DateFrom + DateTo;
-			List<Crash> Data = ( List<Crash> )CacheInstance[Key];
-			if( Data == null )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-				IQueryable<Crash> DataQuery = LocalCrashRepository.ListAll();
-				DataQuery = LocalCrashRepository.FilterByDate( DataQuery, DateFrom, DateTo );
-				Data = DataQuery.ToList();
-				CacheInstance.Insert( Key, Data );
-			}
+				string Key = CacheKeyPrefix + DateFrom + DateTo;
+				List<Crash> Data = (List<Crash>)CacheInstance[Key];
+				if( Data == null )
+				{
+					IQueryable<Crash> DataQuery = LocalCrashRepository.ListAll();
+					DataQuery = LocalCrashRepository.FilterByDate( DataQuery, DateFrom, DateTo );
+					Data = DataQuery.ToList();
+					CacheInstance.Insert( Key, Data );
+				}
 
-			return Data;
+				return Data;
+			}
 		}
 
 		/// <summary>
@@ -110,26 +116,29 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A list of function names.</returns>
 		public List<string> GetFunctionCalls( string Pattern )
 		{
-			string Key = CacheKeyPrefix + FunctionCallKeyPrefix + Pattern;
-			List<string> FunctionCalls = ( List<string> )CacheInstance[Key];
-			if( FunctionCalls == null )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Count=" + CacheInstance.Count + ")" ) )
 			{
-				string[] Ids = Pattern.Split( "+".ToCharArray() );
-				List<int> IdList = new List<int>();
-				foreach( string id in Ids )
+				string Key = CacheKeyPrefix + FunctionCallKeyPrefix + Pattern;
+				List<string> FunctionCalls = (List<string>)CacheInstance[Key];
+				if( FunctionCalls == null )
 				{
-					int i;
-					if( int.TryParse( id, out i ) )
+					string[] Ids = Pattern.Split( "+".ToCharArray() );
+					List<int> IdList = new List<int>();
+					foreach( string id in Ids )
 					{
-						IdList.Add( i );
+						int i;
+						if( int.TryParse( id, out i ) )
+						{
+							IdList.Add( i );
+						}
 					}
+
+					FunctionCalls = BuggRepositoryInstance.GetFunctionCalls( IdList );
+					CacheInstance.Insert( Key, FunctionCalls );
 				}
 
-				FunctionCalls = BuggRepositoryInstance.GetFunctionCalls( IdList );
-				CacheInstance.Insert( Key, FunctionCalls );
+				return FunctionCalls;
 			}
-
-			return FunctionCalls;
 		}
 	}
 }

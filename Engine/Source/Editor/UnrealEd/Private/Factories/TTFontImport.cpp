@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TTFontImport.cpp: True-type Font Importing
@@ -7,6 +7,7 @@
 #include "Factories.h"
 #include "Editor/MainFrame/Public/MainFrame.h"
 #include "DesktopPlatformModule.h"
+#include "Engine/Font.h"
 
 #ifndef WITH_FREETYPE
 	#define WITH_FREETYPE	0
@@ -29,6 +30,7 @@ namespace TTFConstants
 #include FT_FREETYPE_H
 #include FT_GLYPH_H
 #endif // USE_FREETYPE
+#include "Engine/FontImportOptions.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTTFontImport, Log, All);
 
@@ -42,7 +44,7 @@ UTrueTypeFontFactory::UTrueTypeFontFactory(const FObjectInitializer& ObjectIniti
 	bCreateNew = true;
 	bEditorImport = false;
 	bEditAfterNew = true;
-	AutoPriority = -1;
+	ImportPriority = -1;
 	LODGroup = TEXTUREGROUP_UI;
 }
 
@@ -151,7 +153,7 @@ UObject* UTrueTypeFontFactory::FactoryCreateNew(
 	}
 
 	// Create font and its texture.
-	UFont* Font = new( InParent, Name, Flags )UFont(FObjectInitializer());
+	auto Font = NewNamedObject<UFont>(InParent, Name, Flags);
 	
 	if (ImportOptions->Data.bUseDistanceFieldAlpha)
 	{
@@ -222,6 +224,11 @@ EReimportResult::Type UTrueTypeFontFactory::Reimport( UObject* InObject )
 	}
 
 	return bSuccess ? EReimportResult::Succeeded : EReimportResult::Failed;
+}
+
+int32 UTrueTypeFontFactory::GetPriority() const
+{
+	return ImportPriority;
 }
 
 
@@ -770,7 +777,7 @@ UTexture2D* UTrueTypeFontFactory::CreateTextureFromDC( UFont* Font, HDC dc, int3
 	}
 
 	// Create texture for page.
-	UTexture2D* Texture = new(Font, *TextureString)UTexture2D(FObjectInitializer());
+	auto Texture = NewNamedObject<UTexture2D>(Font, *TextureString);
 
 	// note RF_Public because font textures can be referenced directly by material expressions
 	Texture->SetFlags(RF_Public);
@@ -1667,7 +1674,7 @@ UTexture2D* UTrueTypeFontFactory::CreateTextureFromBitmap( UFont* Font, uint8* B
 	}
 
 	// Create texture for page.
-	UTexture2D* Texture = new(Font, *TextureString)UTexture2D(FObjectInitializer());
+	UTexture2D* Texture = NewNamedObject<UTexture2D>(Font, *TextureString);
 
 	// note RF_Public because font textures can be referenced directly by material expressions
 	Texture->SetFlags(RF_Public);

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "MultiBox.h"
@@ -131,6 +131,21 @@ FMenuEntryBlock::FMenuEntryBlock( const FName& InExtensionHook, const FUIAction&
 void FMenuEntryBlock::CreateMenuEntry(FMenuBuilder& InMenuBuilder) const
 {
 	InMenuBuilder.AddSubMenu(LabelOverride.Get(), ToolTipOverride.Get(), EntryBuilder, false, IconOverride);	
+}
+
+
+bool FMenuEntryBlock::HasIcon() const
+{
+	const FSlateIcon ActionIcon = GetAction().IsValid() ? GetAction()->GetIcon() : FSlateIcon();
+	const FSlateIcon& ActualIcon = !IconOverride.IsSet() ? ActionIcon : IconOverride;
+
+	if (ActualIcon.IsSet())
+	{
+		const FSlateBrush* IconBrush = ActualIcon.GetIcon();
+		return IconBrush->GetResourceName() != NAME_None;
+	}
+
+	return false;
 }
 
 
@@ -304,6 +319,24 @@ TSharedRef< SWidget > SMenuEntryBlock::BuildMenuEntryWidget( const FMenuEntryBui
 			IconWidget =
 				SNew( SImage )
 				.Image( IconBrush );
+		}
+	}
+
+	if (bSectionContainsIcons && (IconWidget == SNullWidget::NullWidget))
+	{
+		// Section should have icons but this entry does not, which is inconsistent with our menu policy (either all or none of menu items in a section should have an icon)
+		if (FMultiBoxSettings::DisplayMultiboxHooks.Get())
+		{
+			IconWidget = SNew(SColorBlock)
+				.Color(FColorList::Magenta)
+				.Size(FVector2D(MultiBoxConstants::MenuIconSize, MultiBoxConstants::MenuIconSize))
+				.ToolTipText(NSLOCTEXT("SMenuEntryBlock", "MissingIconInMenu", "This menu entry is missing an icon and should be fixed (consistency within each section is required, either every entry in the section has an icon or no entries have an icon)"));
+		}
+		else
+		{
+			// This will silently pad the offending items
+			// 	IconWidget = SNew(SSpacer)
+			// 		.Size(FVector2D(MultiBoxConstants::MenuIconSize, MultiBoxConstants::MenuIconSize));
 		}
 	}
 
@@ -915,7 +948,7 @@ bool SMenuEntryBlock::IsEnabled() const
 /**
  * Called by Slate when this menu entry check box button is toggled
  */
-void SMenuEntryBlock::OnCheckStateChanged( const ESlateCheckBoxState::Type NewCheckedState )
+void SMenuEntryBlock::OnCheckStateChanged( const ECheckBoxState NewCheckedState )
 {
 	// The check box was clicked
 	const bool bCheckBoxClicked = true;
@@ -925,9 +958,9 @@ void SMenuEntryBlock::OnCheckStateChanged( const ESlateCheckBoxState::Type NewCh
 /**
  * Called by slate to determine if this menu entry should appear checked
  *
- * @return ESlateCheckBoxState::Checked if it should be checked, ESlateCheckBoxState::Unchecked if not.
+ * @return ECheckBoxState::Checked if it should be checked, ECheckBoxState::Unchecked if not.
  */
-ESlateCheckBoxState::Type SMenuEntryBlock::IsChecked() const
+ECheckBoxState SMenuEntryBlock::IsChecked() const
 {
 	TSharedPtr< const FUICommandList > ActionList = MultiBlock->GetActionList();
 	TSharedPtr< const FUICommandInfo > Action = MultiBlock->GetAction();
@@ -944,12 +977,12 @@ ESlateCheckBoxState::Type SMenuEntryBlock::IsChecked() const
 		bIsChecked = DirectActions.IsChecked();
 	}
 
-	return bIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 const FSlateBrush* SMenuEntryBlock::OnGetCheckImage() const
 {
-	return IsChecked() == ESlateCheckBoxState::Checked ? CheckedImage : UncheckedImage;
+	return IsChecked() == ECheckBoxState::Checked ? CheckedImage : UncheckedImage;
 }
 
 /**
@@ -1184,7 +1217,8 @@ FSlateColor SMenuEntryBlock::TintOnHover() const
 		TSharedPtr<SMultiBoxWidget> MultiBoxWidget = OwnerMultiBoxWidget.Pin();
 		const ISlateStyle* const StyleSet = MultiBoxWidget->GetStyleSet();
 
-		return StyleSet->GetSlateColor("SelectionColor");
+		static const FName SelectionColorName("SelectionColor");
+		return StyleSet->GetSlateColor(SelectionColorName);
 	}
 	else
 	{
@@ -1216,8 +1250,8 @@ const FSlateBrush* SMenuEntryBlock::GetCheckBoxImageBrushFromStyle(const FCheckB
 {
 	switch (IsChecked())
 	{
-	case ESlateCheckBoxState::Checked: return &Style->CheckedImage;
-	case ESlateCheckBoxState::Unchecked: return &Style->UncheckedImage;
+	case ECheckBoxState::Checked: return &Style->CheckedImage;
+	case ECheckBoxState::Unchecked: return &Style->UncheckedImage;
 	default: return &Style->UndeterminedImage;
 	}
 }

@@ -1,21 +1,23 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
 #include "HittestGrid.h"
 
-FPaintArgs::FPaintArgs( const TSharedRef<SWidget>& Parent, FHittestGrid& InHittestGrid, FVector2D InWindowOffset )
+FPaintArgs::FPaintArgs( const TSharedRef<SWidget>& Parent, FHittestGrid& InHittestGrid, FVector2D InWindowOffset, double InCurrentTime, float InDeltaTime )
 : ParentPtr(Parent)
 , Grid(InHittestGrid)
 , LastHittestIndex(INDEX_NONE)
 , LastRecordedVisibility( EVisibility::Visible )
 , WindowOffset(InWindowOffset)
+, CurrentTime(InCurrentTime)
+, DeltaTime(InDeltaTime)
 {
 }
 
 
 FPaintArgs FPaintArgs::WithNewParent( const SWidget* Parent ) const
 {
-	FPaintArgs Args = FPaintArgs( const_cast<SWidget*>(Parent)->AsShared(), this->Grid, this->WindowOffset );
+	FPaintArgs Args = FPaintArgs( const_cast<SWidget*>(Parent)->AsShared(), this->Grid, this->WindowOffset, this->CurrentTime, this->DeltaTime );
 	Args.LastHittestIndex = this->LastHittestIndex;
 	Args.LastRecordedVisibility = this->LastRecordedVisibility;
 	return Args;

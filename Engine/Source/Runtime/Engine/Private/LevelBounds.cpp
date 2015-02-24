@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/LevelBounds.h"
+#include "Components/BoxComponent.h"
 
 // Default size of the box (scale)
 static const FVector DefaultLevelSize = FVector(1000.f);
@@ -19,7 +20,6 @@ ALevelBounds::ALevelBounds(const FObjectInitializer& ObjectInitializer)
 	BoxComponent->bDrawOnlyIfSelected = true;
 	BoxComponent->bUseAttachParentBound = false;
 	BoxComponent->bUseEditorCompositing = true;
-	BoxComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 	BoxComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	BoxComponent->InitBoxExtent(FVector(0.5f, 0.5f, 0.5f));
 	
@@ -194,10 +194,10 @@ void ALevelBounds::SubscribeToUpdateEvents()
 {
 	if (bSubscribedToEvents == false && GIsEditor && !GetWorld()->IsPlayInEditor())
 	{
-		GetWorldTimerManager().SetTimer(this, &ALevelBounds::OnTimerTick, 1, true);
-		GEngine->OnActorMoved().AddUObject(this, &ALevelBounds::OnLevelActorMoved);
-		GEngine->OnLevelActorDeleted().AddUObject(this, &ALevelBounds::OnLevelActorAddedRemoved);
-		GEngine->OnLevelActorAdded().AddUObject(this, &ALevelBounds::OnLevelActorAddedRemoved);
+		GetWorldTimerManager().SetTimer(TimerHandle_OnTimerTick, this, &ALevelBounds::OnTimerTick, 1.f, true);
+		OnLevelActorMovedDelegateHandle   = GEngine->OnActorMoved       ().AddUObject(this, &ALevelBounds::OnLevelActorMoved);
+		OnLevelActorDeletedDelegateHandle = GEngine->OnLevelActorDeleted().AddUObject(this, &ALevelBounds::OnLevelActorAddedRemoved);
+		OnLevelActorAddedDelegateHandle   = GEngine->OnLevelActorAdded  ().AddUObject(this, &ALevelBounds::OnLevelActorAddedRemoved);
 		
 		bSubscribedToEvents = true;
 	}
@@ -209,11 +209,11 @@ void ALevelBounds::UnsubscribeFromUpdateEvents()
 	{
 		if (GetWorld())
 		{
-			GetWorldTimerManager().ClearTimer(this, &ALevelBounds::OnTimerTick);
+			GetWorldTimerManager().ClearTimer(TimerHandle_OnTimerTick);
 		}
-		GEngine->OnActorMoved().RemoveUObject(this, &ALevelBounds::OnLevelActorMoved);
-		GEngine->OnLevelActorDeleted().RemoveUObject(this, &ALevelBounds::OnLevelActorAddedRemoved);
-		GEngine->OnLevelActorAdded().RemoveUObject(this, &ALevelBounds::OnLevelActorAddedRemoved);
+		GEngine->OnActorMoved       ().Remove(OnLevelActorMovedDelegateHandle);
+		GEngine->OnLevelActorDeleted().Remove(OnLevelActorDeletedDelegateHandle);
+		GEngine->OnLevelActorAdded  ().Remove(OnLevelActorAddedDelegateHandle);
 
 		bSubscribedToEvents = false;
 	}

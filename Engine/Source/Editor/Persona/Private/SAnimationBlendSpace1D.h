@@ -1,9 +1,12 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "SAnimationBlendSpaceBase.h"
 #include "Sorting.h"
+#include "Animation/BlendSpace1D.h"
+
+struct FEditorElement;
 
 //////////////////////////////////////////////////////////////////////////
 // SAnimationBlendSpace1D
@@ -128,7 +131,7 @@ public:
 	 * Mapping function between WidgetPos and GridPos
 	 */
 	virtual TOptional<FVector2D>	GetWidgetPosFromEditorPos(const FVector& EditorPos, const FSlateRect& WindowRect) const override;
-	virtual TOptional<FVector>		GetEditorPosFromWidgetPos(const FVector2D & WidgetPos, const FSlateRect& WindowRect) const override;
+	virtual TOptional<FVector>		GetEditorPosFromWidgetPos(const FVector2D& WidgetPos, const FSlateRect& WindowRect) const override;
 
 	/**
 	 * Snaps a position in editor space to the editor grid
@@ -183,8 +186,8 @@ private:
 	void OnBlendSpaceParamtersChanged();
 
 	/** Handle display editor vertically checkbox */
-	ESlateCheckBoxState::Type IsEditorDisplayedVertically() const;
-	void OnChangeDisplayedVertically( ESlateCheckBoxState::Type NewValue );
+	ECheckBoxState IsEditorDisplayedVertically() const;
+	void OnChangeDisplayedVertically( ECheckBoxState NewValue );
 
 	/** Get the blend space object we are editing cast to 1D */
 	UBlendSpace1D* GetBlendSpace() {return Cast<UBlendSpace1D>(BlendSpace);}
@@ -208,5 +211,8 @@ private:
 
 	/** Cache which orientation we have built our editor panel in */
 	bool bCachedDisplayVerticalValue;
+
+	/** Handle to the registered OnPropertyChangedHandle delegate */
+	FDelegateHandle OnPropertyChangedHandleDelegateHandle;
 };
 

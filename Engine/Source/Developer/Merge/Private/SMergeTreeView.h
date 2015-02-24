@@ -1,12 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "BlueprintMergeData.h"
-#include "IDiffControl.h"
 #include "SCSDiff.h"
 
 class SMergeTreeView	: public SCompoundWidget
-						, public IDiffControl
 {
 public:
 	virtual ~SMergeTreeView() {}
@@ -15,15 +13,15 @@ public:
 	{}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments InArgs, const FBlueprintMergeData& InData);
+	void Construct(	const FArguments InArgs
+					, const FBlueprintMergeData& InData
+					, FOnMergeNodeSelected SelectionCallback
+					, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutTreeEntries
+					, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutRealDifferences
+					, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutConflicts);
 private:
-	/** Implementation of IDiffControl: */
-	void NextDiff() override;
-	void PrevDiff() override;
-	bool HasNextDifference() const override;
-	bool HasPrevDifference() const override;
+	void HighlightDifference( FSCSIdentifier VarName, FPropertySoftPath Property );
 
-	void HighlightCurrentDifference();
 	FSCSDiff& GetRemoteView();
 	FSCSDiff& GetBaseView();
 	FSCSDiff& GetLocalView();
@@ -31,6 +29,9 @@ private:
 	FBlueprintMergeData Data;
 	TArray< FSCSDiff > SCSViews;
 
-	TArray< FSCSDiffEntry > DifferingProperties;
+	FSCSDiffRoot MergeConflicts;
+	int CurrentMergeConflict;
+
+	FSCSDiffRoot DifferingProperties;
 	int CurrentDifference;
 };

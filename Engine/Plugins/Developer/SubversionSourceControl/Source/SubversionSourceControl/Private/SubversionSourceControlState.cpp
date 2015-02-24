@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SubversionSourceControlPrivatePCH.h"
 #include "SubversionSourceControlState.h"
@@ -23,6 +23,19 @@ TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FSubversionSourceC
 		if((*Iter)->GetRevisionNumber() == RevisionNumber)
 		{
 			return *Iter;
+		}
+	}
+
+	return NULL;
+}
+
+TSharedPtr<class ISourceControlRevision, ESPMode::ThreadSafe> FSubversionSourceControlState::FindHistoryRevision(const FString& InRevision) const
+{
+	for(const auto& Revision : History)
+	{
+		if(Revision->GetRevision() == InRevision)
+		{
+			return Revision;
 		}
 	}
 

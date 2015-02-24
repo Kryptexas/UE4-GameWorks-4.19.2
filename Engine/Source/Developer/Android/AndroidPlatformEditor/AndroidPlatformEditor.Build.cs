@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -17,10 +17,14 @@ public class AndroidPlatformEditor : ModuleRules
 				"Slate",
 				"SlateCore",
 				"EditorStyle",
+                "EditorWidgets",
+                "DesktopWidgets",
 				"PropertyEditor",
 				"SharedSettingsWidgets",
 				"SourceControl",
 				"AndroidRuntimeSettings",
+                "AndroidDeviceDetection",
+                "TargetPlatform"
 			}
 		);
 

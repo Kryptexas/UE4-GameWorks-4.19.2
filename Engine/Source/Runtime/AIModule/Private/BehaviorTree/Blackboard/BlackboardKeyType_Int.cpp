@@ -1,7 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Int.h"
+
+const UBlackboardKeyType_Int::FDataType UBlackboardKeyType_Int::InvalidValue = UBlackboardKeyType_Int::FDataType(0);
 
 UBlackboardKeyType_Int::UBlackboardKeyType_Int(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 #include "DesignerCommands.h"
@@ -68,12 +68,12 @@ TSharedRef< SWidget > SDesignerToolBar::MakeToolBar(const TSharedPtr< FExtender 
 	return ToolbarBuilder.MakeWidget();
 }
 
-ESlateCheckBoxState::Type SDesignerToolBar::IsLocationGridSnapChecked() const
+ECheckBoxState SDesignerToolBar::IsLocationGridSnapChecked() const
 {
-	return GetDefault<UWidgetDesignerSettings>()->GridSnapEnabled ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return GetDefault<UWidgetDesignerSettings>()->GridSnapEnabled ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SDesignerToolBar::HandleToggleLocationGridSnap(ESlateCheckBoxState::Type InState)
+void SDesignerToolBar::HandleToggleLocationGridSnap(ECheckBoxState InState)
 {
 	UWidgetDesignerSettings* ViewportSettings = GetMutableDefault<UWidgetDesignerSettings>();
 	ViewportSettings->GridSnapEnabled = !ViewportSettings->GridSnapEnabled;

@@ -1,8 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ComponentVisualizersPrivatePCH.h"
 
 #include "SpotLightComponentVisualizer.h"
+#include "Components/SpotLightComponent.h"
 
 
 void FSpotLightComponentVisualizer::DrawVisualization( const UActorComponent* Component, const FSceneView* View, FPrimitiveDrawInterface* PDI )

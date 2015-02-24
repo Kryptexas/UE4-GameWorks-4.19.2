@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -72,7 +72,7 @@ private:
 	float				GetSegmentLength(int32 AnimSegmentIndex) const;
 	float				GetSegmentStartPos(int32 AnimSegmentIndex) const;
 	FString				GetAnimSegmentName(int32 AnimSegmentIndex) const;
-	FString				GetAnimSegmentDetailedInfo(int32 AnimSegmentIndex) const;
+	FText				GetAnimSegmentDetailedInfo(int32 AnimSegmentIndex) const;
 
 	void				SetSegmentStartPos(float NewStartPos, int32 AnimSegmentIndex);
 	void				OnSegmentDropped(int32 AnimSegmentIndex);

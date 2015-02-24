@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "KismetWidgetsPrivatePCH.h"
 #include "SKismetLinearExpression.h"
@@ -254,7 +254,7 @@ TSharedRef<SWidget> SKismetLinearExpression::MakePinWidget(const UEdGraphPin* Pi
 		// Input pins with no links are displayed as their literals
 		return SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), TEXT("KismetExpression.LiteralValue") )
-			.Text(Pin->GetDefaultAsString());
+			.Text(FText::FromString(Pin->GetDefaultAsString()));
 	}
 	else
 	{

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SProfilerWindow.cpp: Implements the SProfilerWindow class.
@@ -340,7 +340,7 @@ void SProfilerWindow::ManageEventGraphTab( const FGuid ProfilerInstanceID, const
 			.AutoWidth()
 			[
 				SNew(STextBlock)
-				.Text( TabName )
+				.Text( FText::FromString(TabName) )
 			]
 		];
 

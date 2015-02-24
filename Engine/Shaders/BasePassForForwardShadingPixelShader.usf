@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BasePassForForwardShadingPixelShader.usf: Base pass pixel shader used with forward shading
@@ -56,13 +56,50 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 }
 #endif
 
+#if EDITOR_PRIMITIVE_MATERIAL
+bool bEnableEditorPrimitiveDepthTest;
+// depth in the red channel in DeviceZ
+Texture2D		FilteredSceneDepthTexture;
+SamplerState	FilteredSceneDepthTextureSampler;
+#endif
+
+
+#if EDITOR_PRIMITIVE_MATERIAL && (ES2_EMULATION)
+// @return 0:translucent..1:opaque
+float ClipForEditorPrimitives(FMaterialPixelParameters MaterialParameters)
+{
+	float Ret = 1;
+
+	// Depth test manually if compositing editor primitives since the depth buffer is different (MSAA only)
+	BRANCH
+		if (bEnableEditorPrimitiveDepthTest)
+		{
+			bool bIsPerspective = (View.ViewToClip._m33 < 1.0f);
+
+			// dejitter the sample position and make a filtered lookup - for planes this allows to reconstruct a much less jittery depth comparison function, it however doesn't fix silhuetes
+			float DeviceZ = Texture2DSampleLevel(FilteredSceneDepthTexture, FilteredSceneDepthTextureSampler, (MaterialParameters.SVPosition.xy - View.TemporalAAParams.zw) * View.ViewSizeAndSceneTexelSize.zw, 0).r;
+
+			float PixelDeviceZ = MaterialParameters.SVPosition.z;
+
+			// Soft Bias with DeviceZ for best quality
+			const float DeviceDepthFade = 0.00005f;
+
+			// 0.5f is to bias around the actual value, 1 or 0 are another option
+			Ret = saturate(0.5f - (DeviceZ - PixelDeviceZ) / DeviceDepthFade);
+		}
+
+	// Note: multiple returns cause strange HLSL compiler error for CV_Coverage in later code
+	return Ret;
+}
+#endif
+
 half4 IndirectLightingSHCoefficients[3]; 
 half DirectionalLightShadowing;
 
 void Main( 
 	FVertexFactoryInterpolantsVSToPS Interpolants,
 	FForwardShadingBasePassInterpolantsVSToPS BasePassInterpolants,
-		in half4 SvPosition	: SV_Position,
+	in float4 SvPosition : SV_Position,
 	OPTIONAL_IsFrontFace,
 	out half4 OutColor	: SV_Target0
 	)
@@ -73,7 +110,7 @@ void Main(
 #endif
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, BasePassInterpolants.PixelPosition);
 
-	CalcMaterialParameters(MaterialParameters, bIsFrontFace, BasePassInterpolants.PixelPosition
+	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace, BasePassInterpolants.PixelPosition
 #if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 		, BasePassInterpolants.PixelPositionExcludingWPO
 #endif
@@ -81,16 +118,6 @@ void Main(
 	  
 	//Clip if the blend mode requires it.
 	GetMaterialCoverageAndClipping(MaterialParameters);	
-
-	//@mw todo:
-	//Go over with Brian to determine the proper defines to wrap it and test cases to fix it.
-#if !(GL3_PROFILE || GL4_PROFILE || COMPILER_GLSL_ES2 || COMPILER_GLSL || METAL_PROFILE)
-	float2 PixelPos = SvPosition - View.ViewRectMin.xy;	
-	MaterialParameters.ScreenPosition.xy = ( PixelPos / View.ViewSizeAndSceneTexelSize.xy - 0.5 ) * float2(2,-2);
-	MaterialParameters.ScreenPosition.zw = SvPosition.zw;
-	
-	MaterialParameters.ScreenPosition.xyz *= MaterialParameters.ScreenPosition.w;
-#endif
 
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
 	// Store the results in local variables and reuse instead of calling the functions multiple times.
@@ -187,7 +214,7 @@ void Main(
 			Settings.ProjectionDepthBiasParameters = 0;
 						
 			float4 ShadowPosition;	
-#if MAX_FORWARD_SHADOWCASCADES == 2			
+	#if MAX_FORWARD_SHADOWCASCADES == 2			
 			{				
 				if (MaterialParameters.ScreenPosition.w >= View.DirectionalLightShadowDistances.x)
 				{
@@ -198,23 +225,23 @@ void Main(
 					ShadowPosition = mul(float4(MaterialParameters.ScreenPosition.xyw, 1), View.DirectionalLightScreenToShadow[0]);
 				}
 			}
-#else			
+	#else			
 			{
 				ShadowPosition = mul(float4(MaterialParameters.ScreenPosition.xyw, 1), View.DirectionalLightScreenToShadow[0]);				
 			}
-#endif
+	#endif
 
 			// Clamp pixel depth in light space for shadowing opaque, because areas of the shadow depth buffer that weren't rendered to will have been cleared to 1
 			// We want to force the shadow comparison to result in 'unshadowed' in that case, regardless of whether the pixel being shaded is in front or behind that plane
 			float LightSpacePixelDepthForOpaque = min(ShadowPosition.z, 0.99999f);
 			Settings.SceneDepth = LightSpacePixelDepthForOpaque;
 
-#if 0
+	#if 0
 			half ShadowMap = Manual1x1PCF(ShadowPosition.xy, Settings);
-#else
+	#else
 			half ShadowMap = Manual2x2PCF(ShadowPosition.xy, Settings);
-#endif
-			Shadow = min(Shadow, ShadowMap);
+	#endif
+			Shadow = ShadowMap;
 		}
 #endif
 
@@ -247,6 +274,10 @@ void Main(
 #else
 	VertexFog = BasePassInterpolants.VertexFog;
 #endif
+#endif
+
+#if !MATERIAL_SHADINGMODEL_UNLIT && ES2_EMULATION
+	Color = lerp(Color, DiffuseColor + SpecularColor, View.UnlitViewmodeMask);
 #endif
 
 	#if MATERIALBLENDING_TRANSLUCENT
@@ -286,5 +317,16 @@ void Main(
 			// To enable editor runtime change without recompile, PC always eats the HdrMosaic() cost.
 			OutColor.rgb = View.HdrMosaic ? HdrMosaic(OutColor.rgb, SvPosition.xy) : OutColor.rgb;
 		#endif
+	#endif
+
+	// Editor primitive depth testing
+	#if EDITOR_PRIMITIVE_MATERIAL && (ES2_EMULATION)
+		#if MATERIALBLENDING_MASKED
+			// some material might have a opacity value
+			OutColor.a = GetMaterialMaskInputRaw(MaterialParameters);
+		#endif
+		// we output premultiplied alpha to we have to darken all 4 channels
+		OutColor *= ClipForEditorPrimitives(MaterialParameters);
+		clip(OutColor.a - GetMaterialOpacityMaskClipValue());
 	#endif
 }

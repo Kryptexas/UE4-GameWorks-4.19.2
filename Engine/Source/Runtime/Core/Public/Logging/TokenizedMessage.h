@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -473,13 +473,13 @@ DECLARE_DELEGATE(FOnActionTokenExecuted);
 class FActionToken
 	: public IMessageToken
 {
+public:
+
 	/** Factory method, tokens can only be constructed as shared refs */
 	CORE_API static TSharedRef<FActionToken> Create( const FText& ActionName, const FText& ActionDescription, const FOnActionTokenExecuted& Action )
 	{
 		return MakeShareable(new FActionToken(ActionName, ActionDescription, Action));
 	}
-
-public:
 
 	/** Executes the assigned action delegate. */
 	void ExecuteAction( )

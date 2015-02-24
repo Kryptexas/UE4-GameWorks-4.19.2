@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Perception/AISense_Team.h"
@@ -20,7 +20,8 @@ FAITeamStimulusEvent::FAITeamStimulusEvent(AActor* InBroadcaster, AActor* InEnem
 UAISense_Team::UAISense_Team(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
-	
+	DebugName = TEXT("Team");
+	DebugDrawColor = FColor::Blue;
 }
 
 float UAISense_Team::Update()
@@ -31,7 +32,7 @@ float UAISense_Team::Update()
 	{
 		FPerceptionListener& Listener = ListenerIt->Value;
 
-		if (Listener.HasSense(GetSenseIndex()) == false)
+		if (Listener.HasSense(GetSenseID()) == false)
 		{
 			// skip listeners not interested in this sense
 			continue;
@@ -48,7 +49,7 @@ float UAISense_Team::Update()
 				continue;
 			}
 			
-			Listener.RegisterStimulus(Event.Enemy, FAIStimulus(GetSenseIndex(), 1.f, Event.LastKnowLocation, Event.GetBroadcastLocation(), FAIStimulus::SensingSucceeded, Event.InformationAge));
+			Listener.RegisterStimulus(Event.Enemy, FAIStimulus(*this, 1.f, Event.LastKnowLocation, Event.GetBroadcastLocation(), FAIStimulus::SensingSucceeded).SetStimulusAge(Event.InformationAge));
 		}
 	}
 

@@ -1,10 +1,12 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __KismetEditorUtilities_h__
 #define __KismetEditorUtilities_h__
 
 #pragma once
+
+#include "Engine/Blueprint.h"
 
 class UBlueprintGeneratedClass;
 
@@ -28,6 +30,42 @@ public:
 	 */
 	static UBlueprint* CreateBlueprint(UClass* ParentClass, UObject* Outer, const FName NewBPName, enum EBlueprintType BlueprintType, TSubclassOf<UBlueprint> BlueprintClassType, TSubclassOf<UBlueprintGeneratedClass> BlueprintGeneratedClassType, FName CallingContext = NAME_None);
 
+	/** 
+	 * Event that's broadcast anytime a blueprint is unloaded, and becomes 
+	 * invalid (with calls to ReloadBlueprint(), for example).
+	 */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnBlueprintUnloaded, UBlueprint*);
+	static FOnBlueprintUnloaded OnBlueprintUnloaded;
+
+	/** 
+	 * Unloads the supplied Blueprint (marking it pending-kill, and removing it 
+	 * from its outer package). Then proceeds to reload from disk.
+	 *
+	 * @param  TargetBlueprint	The Blueprint you want to unload and replace.
+	 * @return The freshly loaded Blueprint (replacing the, now invalid, input).
+	 */
+	static UBlueprint* ReloadBlueprint(UBlueprint* TargetBlueprint);
+
+	/** 
+	 * Unloads the specified Blueprint (marking it pending-kill, and removing it 
+	 * from its outer package). Then proceeds to replace all references with a
+	 * copy of the one passed.
+	 *
+	 * @param  Target		The Blueprint you want to unload and replace.
+	 * @param  Replacement	The Blueprint you cloned and used to replace Target.
+	 * @return The duplicated replacement Blueprint.
+	 */
+	static UBlueprint* ReplaceBlueprint(UBlueprint* Target, UBlueprint const* Replacement);
+
+	/** 
+	 * Determines if the specified blueprint is referenced currently in the undo 
+	 * buffer.
+	 *
+	 * @param  Blueprint	The Blueprint you want to query about.
+	 * @return True if the Blueprint is saved in the undo buffer, false if not.
+	 */
+	static bool IsReferencedByUndoBuffer(UBlueprint* Blueprint);
+
 	/** Create the correct event graphs for this blueprint */
 	static void CreateDefaultEventGraphs(UBlueprint* Blueprint);
 
@@ -48,6 +86,9 @@ public:
 	/** @return true is it's possible to create a blueprint from the specified class */
 	static bool CanCreateBlueprintOfClass(const UClass* Class);
 
+	/** Take a list of components that belong to a single Actor and add them to a blueprint as SCSNodes */
+	static void AddComponentsToBlueprint(UBlueprint* Blueprint, const TArray<UActorComponent*>& Components, bool bHarvesting = false, class USCS_Node* OptionalNewRootNode = nullptr);
+
 	/** 
 	 * Take an Actor and generate a blueprint based on it. Uses the Actors type as the parent class. 
 	 * @param Path					The path to use when creating the package for the new blueprint
@@ -55,7 +96,17 @@ public:
 	 * @param bReplaceActor			If true, replace the actor in the scene with one based on the created blueprint
 	 * @return The blueprint created from the actor
 	 */
-	static UBlueprint* CreateBlueprintFromActor(const FString& Path, UObject* Actor, bool bReplaceActor );
+	static UBlueprint* CreateBlueprintFromActor(const FString& Path, AActor* Actor, bool bReplaceActor );
+
+	/** 
+	 * Take an Actor and generate a blueprint based on it. Uses the Actors type as the parent class. 
+	 * @param BlueprintName			The name to use for the Blueprint
+	 * @param Outer					The outer object to create the blueprint within
+	 * @param Actor					The actor to use as the template for the blueprint
+	 * @param bReplaceActor			If true, replace the actor in the scene with one based on the created blueprint
+	 * @return The blueprint created from the actor
+	 */
+	static UBlueprint* CreateBlueprintFromActor(const FName BlueprintName, UObject* Outer, AActor* Actor, bool bReplaceActor );
 
 	/** 
 	 * Take a list of Actors and generate a blueprint  by harvesting the components they have. Uses AActor as parent class type as the parent class. 
@@ -100,7 +151,10 @@ public:
 	static void CreateNewBoundEventForActor(AActor* Actor, FName EventName);
 
 	/** Create a new event node in the  blueprint, for the supplied component, event name and blueprint */
-	static void CreateNewBoundEventForComponent(UActorComponent* Component, FName EventName, UBlueprint* Blueprint, UObjectProperty* ComponentProperty);
+	static void CreateNewBoundEventForComponent(UObject* Component, FName EventName, UBlueprint* Blueprint, UObjectProperty* ComponentProperty);
+
+	/** Create a new event node in the  blueprint, for the supplied class, event name and blueprint */
+	static void CreateNewBoundEventForClass(UClass* Class, FName EventName, UBlueprint* Blueprint, UObjectProperty* ComponentProperty);
 
 	/** Can we paste to this graph? */
 	static bool CanPasteNodes(const class UEdGraph* Graph);
@@ -157,6 +211,19 @@ public:
 	 * @param	OutTags			Array to add tags to
 	 */
 	static void AddInterfaceTags(const UBlueprint* Blueprint, TArray<UObject::FAssetRegistryTag>& OutTags);
+
+	/**
+	 * Add a default event node to the graph, this node will also be in a disabled state and will spawn
+	 * with a call to it's parent if available
+	 *
+	 * @param InBlueprint		Blueprint this event will be a part of
+	 * @param InGraph			The graph to spawn the event node in
+	 * @param InEventName		The name of the event function
+	 * @param InEventClass		The class this event can be found in
+	 * @param InNodePosY		Optional Y-position to spawn the node at to easily spawn in a line
+	 * @return					The K2Node_Event will be returned
+	 */
+	static class UK2Node_Event* AddDefaultEventNode(UBlueprint* InBlueprint, UEdGraph* InGraph, FName InEventName, UClass* InEventClass, int32 InNodePosY = 0);
 
 private:
 	/** Stores whether we are already listening for kismet clicks */

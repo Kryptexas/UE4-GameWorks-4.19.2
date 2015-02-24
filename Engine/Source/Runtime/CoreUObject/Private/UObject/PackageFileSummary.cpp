@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "EngineVersion.h"
@@ -35,58 +35,47 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 		 *
 		 * Lower 16 bits stores the UE3 engine version
 		 * Upper 16 bits stores the UE4/licensee version
-		 * For newer packages this is -3 (-2 indicates presence of enum-based custom versions, -3 indicates guid-based custom versions).
+		 * For newer packages this is -5
+		 *		-2 indicates presence of enum-based custom versions
+		 *		-3 indicates guid-based custom versions
+		 *		-4 indicates removal of the UE3 version. Packages saved with this ID cannot be loaded in older engine versions 
+		 *      -5 indicates the replacement of writing out the "UE3 version" so older versions of engine can gracefully fail to open newer packages
 		 */
-		int32 LegacyFileVersion = -3;
+		int32 LegacyFileVersion = -5;
 		Ar << LegacyFileVersion;
 
 		if (Ar.IsLoading())
 		{
 			if (LegacyFileVersion < 0) // means we have modern version numbers
 			{
-				check(!Sum.bHadLegacyVersionNumbers); // should have been set by the constructor
-				Ar << Sum.FileVersionUE3;
+				if (LegacyFileVersion != -4)
+				{
+					int32 LegacyUE3Version = 0;
+					Ar << LegacyUE3Version;
+				}
 				Ar << Sum.FileVersionUE4;
 				Ar << Sum.FileVersionLicenseeUE4;
-				if ((Sum.GetFileVersionUE4() >= VER_UE4_READD_COOKER) &&
-					(Sum.GetFileVersionUE4() < VER_UE4_COOKED_PACKAGE_VERSION_IS_PACKAGE_VERSION))
-				{
-					int32 DummyValue;
-					Ar << DummyValue;	// was Sum.PackageCookedVersion;
-					Ar << DummyValue;	// was Sum.PackageCookedLicenseeVersion;
-				}
 
 				if (LegacyFileVersion <= -2)
 				{
 					Sum.CustomVersionContainer.Serialize(Ar, (LegacyFileVersion == -2) ? ECustomVersionSerializationFormat::Enums : ECustomVersionSerializationFormat::Guids);
 				}
+
+				if (!Sum.FileVersionUE4 && !Sum.FileVersionLicenseeUE4)
+				{
+					// this file is unversioned, remember that, then use current versions
+					Sum.bUnversioned = true;
+					Sum.FileVersionUE4 = GPackageFileUE4Version;
+					Sum.FileVersionLicenseeUE4 = GPackageFileLicenseeUE4Version;
+
+					Sum.CustomVersionContainer = FCustomVersionContainer::GetRegistered();
+				}
 			}
 			else
 			{
-				Sum.bHadLegacyVersionNumbers = true;
-				Sum.FileVersionUE3 = (LegacyFileVersion & 0xffff);
-
+				// This is probably an old UE3 file, make sure that the linker will fail to load with it.
 				Sum.FileVersionUE4 = 0;
 				Sum.FileVersionLicenseeUE4 = 0;
-				static const bool AllEpicUE4PackagesHaveBeenResavedWithNewVersionScheme = true;
-				if (AllEpicUE4PackagesHaveBeenResavedWithNewVersionScheme)
-				{
-					Sum.FileVersionLicenseeUE4 = ((LegacyFileVersion >> 16) & 0xffff);
-				}
-				else
-				{
-					Sum.FileVersionUE4 = ((LegacyFileVersion >> 16) & 0xffff);
-				}
-			}
-			if (!Sum.FileVersionUE3 && !Sum.FileVersionUE4 && !Sum.FileVersionLicenseeUE4)
-			{
-				// this file is unversioned, remember that, then use current versions
-				Sum.bUnversioned = true;
-				Sum.FileVersionUE3 = VER_LAST_ENGINE_UE3;
-				Sum.FileVersionUE4 = GPackageFileUE4Version;
-				Sum.FileVersionLicenseeUE4 = GPackageFileLicenseeUE4Version;
-
-				Sum.CustomVersionContainer = FCustomVersionContainer::GetRegistered();
 			}
 		}
 		else
@@ -94,16 +83,18 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 			if (Sum.bUnversioned)
 			{
 				int32 Zero = 0;
-				Ar << Zero;
-				Ar << Zero;
-				Ar << Zero;
+				Ar << Zero; // LegacyUE3version
+				Ar << Zero; // VersionUE4
+				Ar << Zero; // VersionLicenseeUE4
 
 				FCustomVersionContainer NoCustomVersions;
 				NoCustomVersions.Serialize(Ar);
 			}
 			else
 			{
-				Ar << Sum.FileVersionUE3;
+				// Must write out the last UE3 engine version, so that older versions identify it as new
+				int32 LegacyUE3Version = 864;
+				Ar << LegacyUE3Version;
 				Ar << Sum.FileVersionUE4;
 				Ar << Sum.FileVersionLicenseeUE4;
 
@@ -123,7 +114,7 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 		Ar << Sum.ImportCount   << Sum.ImportOffset;
 		Ar << Sum.DependsOffset;
 
-		if (Ar.IsLoading() && (Sum.FileVersionUE3 < VER_MIN_ENGINE_UE3 || Sum.FileVersionUE4 < VER_UE4_OLDEST_LOADABLE_PACKAGE || Sum.FileVersionUE4 > GPackageFileUE4Version))
+		if (Ar.IsLoading() && (Sum.FileVersionUE4 < VER_UE4_OLDEST_LOADABLE_PACKAGE || Sum.FileVersionUE4 > GPackageFileUE4Version))
 		{
 			return Ar; // we can't safely load more than this because the below was different in older files.
 		}
@@ -183,19 +174,8 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 		check(!"this can't serialize successfully");
 #endif		// WITH_ENGINE
 
-		if( Sum.GetFileVersionUE4() >= VER_UE4_ASSET_REGISTRY_TAGS )
-		{
-			Ar << Sum.AssetRegistryDataOffset;
-		}
-
-		if ( Sum.GetFileVersionUE4() >= VER_UE4_SUMMARY_HAS_BULKDATA_OFFSET)
-		{
-			Ar << Sum.BulkDataStartOffset;
-		}
-		else
-		{
-			Sum.BulkDataStartOffset = 0;
-		}
+		Ar << Sum.AssetRegistryDataOffset;
+		Ar << Sum.BulkDataStartOffset;
 		
 		if (Sum.GetFileVersionUE4() >= VER_UE4_WORLD_LEVEL_INFO)
 		{

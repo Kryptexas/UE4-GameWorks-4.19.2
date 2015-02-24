@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "AI/NavigationModifier.h"
@@ -12,7 +12,7 @@ ANavModifierVolume::ANavModifierVolume(const FObjectInitializer& ObjectInitializ
 {
 }
 
-void ANavModifierVolume::GetNavigationData(struct FNavigationRelevantData& Data) const
+void ANavModifierVolume::GetNavigationData(FNavigationRelevantData& Data) const
 {
 	if (Brush && AreaClass && AreaClass != UNavigationSystem::GetDefaultWalkableArea())
 	{

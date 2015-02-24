@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,16 +14,14 @@
 	const FString SubsystemName;
 	/** The online interface to use for testing */
 	IOnlineSubsystem* OnlineSub;
-	/** Delegate to use for reading the friends list */
-	FOnReadFriendsListCompleteDelegate OnReadFriendsCompleteDelegate;
-	/** Delegate when invites accepted */
-	FOnAcceptInviteCompleteDelegate OnAcceptInviteCompleteDelegate;
-	/** Delegate when invites have been sent */
-	FOnSendInviteCompleteDelegate OnSendInviteCompleteDelegate;
 	/** Delegate to use for deleting a friend entry */
 	FOnDeleteFriendCompleteDelegate OnDeleteFriendCompleteDelegate;
-	/** Delegate to use for deleting the friends list */
-	FOnDeleteFriendsListCompleteDelegate OnDeleteFriendsListCompleteDelegate;
+	/** Delegate to use for querying for recent players */
+	FOnQueryRecentPlayersCompleteDelegate OnQueryRecentPlayersCompleteDelegate;
+
+	/** Handles to the above delegates */
+	FDelegateHandle OnDeleteFriendCompleteDelegateHandle;
+	FDelegateHandle OnQueryRecentPlayersCompleteDelegateHandle;
 
 	/** Default name of friends list for running tests */
 	FString FriendsListName;
@@ -44,6 +42,8 @@
 	bool bDeleteFriends;
 	/** true to delete the test friends list */
 	bool bDeleteFriendsList;
+	/** true to query for recent players */
+	bool bQueryRecentPlayers;
 
 	/** Hidden on purpose */
 	FTestFriendsInterface()
@@ -70,6 +70,15 @@
 	 * @param ErrorStr string representing the error condition
 	 */
 	void OnReadFriendsComplete(int32 LocalPlayer, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr);
+
+	/**
+	 * Delegate used when the query for recent players has completed
+	 *
+	 * @param UserId the id of the user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param Error string representing the error condition
+	 */
+	void OnQueryRecentPlayersComplete(const FUniqueNetId& UserId, bool bWasSuccessful, const FString& ErrorStr);
 
 	/**
 	 * Delegate used when an invite accept request has completed
@@ -129,6 +138,7 @@
 		, bSendInvites(true)
 		, bDeleteFriends(true)
 		, bDeleteFriendsList(false)
+		, bQueryRecentPlayers(true)
 	{
 	}
 

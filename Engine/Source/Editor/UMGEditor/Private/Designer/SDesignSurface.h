@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -100,6 +100,7 @@ protected:
 
 	FVector2D ZoomTargetTopLeft;
 	FVector2D ZoomTargetBottomRight;
+	FVector2D ZoomToFitPadding;
 
 	/** Does the user need to press Control in order to over-zoom. */
 	bool bRequireControlToOverZoom;

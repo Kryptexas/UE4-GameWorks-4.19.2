@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "TextureCompressorPrivatePCH.h"
 
@@ -1116,7 +1116,7 @@ static void GenerateAngularFilteredMips(TArray<FImage>& InOutMipChain, int32 Num
 ------------------------------------------------------------------------------*/
 
 /**
- * Adjusts the colors of the image using the specified settings (alpha channel will not be modified.)
+ * Adjusts the colors of the image using the specified settings
  *
  * @param	Image		Image to adjust
  * @param	InParams	Color adjustment parameters
@@ -1589,7 +1589,7 @@ static void NormalizeMip(FImage& InOutMip)
 
 		FVector Normal = FVector(Color.R * 2.0f - 1.0f, Color.G * 2.0f - 1.0f, Color.B * 2.0f - 1.0f);
 
-		Normal = Normal.SafeNormal();
+		Normal = Normal.GetSafeNormal();
 
 		Color = FLinearColor(Normal.X * 0.5f + 0.5f, Normal.Y * 0.5f + 0.5f, Normal.Z * 0.5f + 0.5f, Color.A);
 	}
@@ -1767,9 +1767,10 @@ private:
 
 		OutMipChain.Empty(NumOutputMips);
 		// Copy over base mips.
-		int32 CopyCount = FMath::Min(NumOutputMips - StartMip, SourceMips.Num());
-		check(StartMip <= SourceMips.Num());
-		for (int32 MipIndex = StartMip; MipIndex < CopyCount; ++MipIndex)
+		check(StartMip < SourceMips.Num());
+		int32 CopyCount = SourceMips.Num() - StartMip;
+
+		for (int32 MipIndex = StartMip; MipIndex < StartMip + CopyCount; ++MipIndex)
 		{
 			const FImage& Image = SourceMips[MipIndex];
 			const int32 SrcWidth = Image.SizeX;

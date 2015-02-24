@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,11 +23,14 @@ public:
 	// also provides interface
 	bool TriggerRecordAnimation(USkeletalMeshComponent * Component);
 	void StartRecord(USkeletalMeshComponent * Component, UAnimSequence * InAnimationObject);
-	void StopRecord(bool bShowMessage);
+	UAnimSequence * StopRecord(bool bShowMessage);
 	void UpdateRecord(USkeletalMeshComponent * Component, float DeltaTime);
-	const UAnimSequence* GetAnimationObject() const { return AnimationObject; }
+	UAnimSequence* GetAnimationObject() const { return AnimationObject; }
 	bool InRecording() const { return AnimationObject != NULL; }
 	float GetTimeRecorded() const { return TimePassed; }
+
+	// If true, it will record root to include LocalToWorld
+	bool bRecordLocalToWorld;
 
 private:
 	void Record( USkeletalMeshComponent * Component, TArray<FTransform> SpacesBases, int32 FrameToAdd );

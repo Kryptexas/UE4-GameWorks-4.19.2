@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ArchiveUObject.h: Implements the FArchive class and related types for UObjects
@@ -925,18 +925,6 @@ private:
 	EObjectFlags							ApplyFlags;
 
 	/**
-	 * A pointer to source package, i.e. to the package the object being
-	 * duplicated is comming from.
-	 */
-	UPackage								*SourcePackage;
-
-	/**
-	 * A pointer to destination package, i.e. to the package the new object
-	 * should be created in.
-	 */
-	UPackage								*DestPackage;
-
-	/**
 	 * This is used to prevent object & component instancing resulting from the calls to StaticConstructObject(); instancing subobjects and components is pointless,
 	 * since we do that manually and replace the current value with our manually created object anyway.
 	 */
@@ -1002,10 +990,11 @@ public:
 	 * Returns a pointer to the duplicate of a given object, creating the duplicate object if necessary.
 	 * 
 	 * @param	Object	the object to find a duplicate for
+	 * @param	bCreateIfMissing Create the duplicated object if it's missing.
 	 *
 	 * @return	a pointer to the duplicate of the specified object
 	 */
-	UObject* GetDuplicatedObject(UObject* Object);
+	UObject* GetDuplicatedObject(UObject* Object, bool bCreateIfMissing = true);
 
 	/**
 	 * Constructor
@@ -1213,6 +1202,64 @@ protected:
 	 * should be set to null
 	 */
 	bool bNullPrivateReferences;
+};
+
+/*----------------------------------------------------------------------------
+FArchiveReplaceOrClearExternalReferences.
+----------------------------------------------------------------------------*/
+/**
+* Identical to FArchiveReplaceObjectRef, but for references to private objects
+* in other packages we clear the reference instead of preserving it (unless it
+* makes it into the replacement map)
+*/
+template< class T >
+class FArchiveReplaceOrClearExternalReferences : public FArchiveReplaceObjectRef<T>
+{
+	typedef FArchiveReplaceObjectRef<T> TSuper;
+public:
+	FArchiveReplaceOrClearExternalReferences
+		( UObject* InSearchObject
+		, const TMap<T*, T*>& InReplacementMap
+		, UPackage* InDestPackage
+		, bool bDelayStart = false )
+		: TSuper(InSearchObject, InReplacementMap, false, false, false, true)
+		, DestPackage(InDestPackage)
+	{
+		if (!bDelayStart)
+		{
+			this->SerializeSearchObject();
+		}
+	}
+
+	FArchive& operator<<(UObject*& Obj)
+	{
+		UObject* Resolved = Obj;
+		TSuper::operator<<(Resolved);
+		// if Resolved is a private object in another package just clear the reference:
+		if (Resolved)
+		{
+			UObject* Outermost = Resolved->GetOutermost();
+			if (Outermost)
+			{
+				UPackage* ObjPackage = dynamic_cast<UPackage*>(Outermost);
+				if (ObjPackage)
+				{
+					if (ObjPackage != Obj && 
+						DestPackage != ObjPackage && 
+						!Obj->HasAnyFlags(RF_Public))
+					{
+						Resolved = nullptr;
+					}
+				}
+			}
+		}
+		Obj = Resolved;
+		return *this;
+	}
+
+protected:
+	/** Package that we are loading into, references to private objects in other packages will be cleared */
+	UPackage* DestPackage;
 };
 
 /*----------------------------------------------------------------------------

@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Components/Visual.h"
 #include "SlateWrapperTypes.h"
 #include "WidgetTransform.h"
+#include "DynamicPropertyPath.h"
 
 #include "Widget.generated.h"
 
@@ -35,17 +36,15 @@ public:
 	DECLARE_DYNAMIC_DELEGATE_RetVal(float, FGetFloat);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(int32, FGetInt32);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FText, FGetText);
-	DECLARE_DYNAMIC_DELEGATE_RetVal(FVector2D, FGetVector2D);
-	DECLARE_DYNAMIC_DELEGATE_RetVal(FVector, FGetVector);
-	//DECLARE_DYNAMIC_DELEGATE_RetVal(FVector4, FGetVector4);
-	DECLARE_DYNAMIC_DELEGATE_RetVal(FMargin, FGetMargin);
+	//DECLARE_DYNAMIC_DELEGATE_RetVal(FVector2D, FGetVector2D);
+	//DECLARE_DYNAMIC_DELEGATE_RetVal(FVector, FGetVector);
+	//DECLARE_DYNAMIC_DELEGATE_RetVal(FMargin, FGetMargin);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FSlateColor, FGetSlateColor);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FLinearColor, FGetLinearColor);
-	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility::Type, FGetSlateVisibility);
-	DECLARE_DYNAMIC_DELEGATE_RetVal(EMouseCursor::Type, FGetMouseCursor);
-	DECLARE_DYNAMIC_DELEGATE_RetVal(USlateBrushAsset*, FGetSlateBrushAsset);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(FSlateBrush, FGetSlateBrush);
-	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateCheckBoxState::Type, FGetCheckBoxState);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(ESlateVisibility, FGetSlateVisibility);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(EMouseCursor::Type, FGetMouseCursor);
+	DECLARE_DYNAMIC_DELEGATE_RetVal(ECheckBoxState, FGetCheckBoxState);
 	DECLARE_DYNAMIC_DELEGATE_RetVal(UWidget*, FGetContent);
 
 	DECLARE_DYNAMIC_DELEGATE_RetVal_OneParam(UWidget*, FGenerateWidgetForString, FString, Item);
@@ -89,12 +88,16 @@ public:
 	FGetText ToolTipTextDelegate;
 
 	/** The visibility of the widget */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior)
-	TEnumAsByte<ESlateVisibility::Type> Visiblity;
+	UPROPERTY()
+	TEnumAsByte<ESlateVisibility> Visiblity_DEPRECATED;
+
+	/** The visibility of the widget */
+	UPROPERTY(EditDefaultsOnly, Category=Behavior)
+	ESlateVisibility Visibility;
 
 	/** A bindable delegate for Visibility */
 	UPROPERTY()
-	FGetSlateVisibility VisiblityDelegate;
+	FGetSlateVisibility VisibilityDelegate;
 
 	/** The cursor to show when the mouse is over the widget */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior, AdvancedDisplay)
@@ -125,7 +128,17 @@ public:
 	UPROPERTY()
 	bool bHiddenInDesigner;
 
+	/** Stores the design time flag setting if the widget is expanded inside the designer */
+	UPROPERTY()
+	bool bExpandedInDesigner;
+
+	/** Stores a reference to the asset responsible for this widgets construction. */
+	UPROPERTY(Transient)
+	UObject* WidgetGeneratedBy;
+
 #endif
+
+public:
 
 	/** */
 	UFUNCTION(BlueprintCallable, Category="Widget|Transform")
@@ -169,11 +182,11 @@ public:
 
 	/** Gets the current visibility of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	TEnumAsByte<ESlateVisibility::Type> GetVisibility();
+	ESlateVisibility GetVisibility() const;
 
 	/** Sets the visibility of the widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	void SetVisibility(TEnumAsByte<ESlateVisibility::Type> InVisibility);
+	void SetVisibility(ESlateVisibility InVisibility);
 
 	/** Gets if the button is currently being hovered by the mouse */
 	UFUNCTION(BlueprintCallable, Category="Widget")
@@ -257,6 +270,22 @@ public:
 	 * @return true if this widget is a child of the PossibleParent
 	 */
 	bool IsChildOf(UWidget* PossibleParent);
+
+	///**
+	// * Allows binding to properties of other objects at runtime.
+	// */
+	//UFUNCTION(BlueprintCallable, Category="Widget")
+	//bool BindProperty(const FName& DestinationProperty, UObject* SourceObject, const FName& SourceProperty);
+
+	/**  */
+	bool AddBinding(UDelegateProperty* DelegateProperty, UObject* SourceObject, const FDynamicPropertyPath& BindingPath);
+
+	static TSubclassOf<class UPropertyBinding> FindBinderClassForDestination(UProperty* Property);
+
+	// Begin UObject
+	virtual UWorld* GetWorld() const override;
+	virtual void PostLoad() override;
+	// End UObject
 	
 #if WITH_EDITOR
 	/** Is the label generated or provided by the user? */
@@ -307,8 +336,8 @@ public:
 
 	// Utility methods
 	//@TODO UMG: Should move elsewhere
-	static EVisibility ConvertSerializedVisibilityToRuntime(ESlateVisibility::Type Input);
-	static ESlateVisibility::Type ConvertRuntimeToSerializedVisiblity(const EVisibility& Input);
+	static EVisibility ConvertSerializedVisibilityToRuntime(ESlateVisibility Input);
+	static ESlateVisibility ConvertRuntimeToSerializedVisibility(const EVisibility& Input);
 
 	static FSizeParam ConvertSerializedSizeParamToRuntime(const FSlateChildSize& Input);
 
@@ -317,8 +346,14 @@ public:
 	static UWidget* FindChildContainingDescendant(UWidget* Root, UWidget* Descendant);
 
 protected:
+	virtual void OnBindingChanged(const FName& Property);
+
+protected:
 	/** Function implemented by all subclasses of UWidget is called when the underlying SWidget needs to be constructed. */
 	virtual TSharedRef<SWidget> RebuildWidget();
+
+	/** Function called after the underlying SWidget is constructed. */
+	virtual void OnWidgetRebuilt();
 	
 	TSharedRef<SWidget> BuildDesignTimeWidget(TSharedRef<SWidget> WrapWidget);
 
@@ -327,9 +362,9 @@ protected:
 protected:
 	//TODO UMG Consider moving conversion functions into another class.
 	// Conversion functions
-	EVisibility ConvertVisibility(TAttribute<ESlateVisibility::Type> SerializedType) const
+	EVisibility ConvertVisibility(TAttribute<ESlateVisibility> SerializedType) const
 	{
-		ESlateVisibility::Type SlateVisibility = SerializedType.Get();
+		ESlateVisibility SlateVisibility = SerializedType.Get();
 		return ConvertSerializedVisibilityToRuntime(SlateVisibility);
 	}
 
@@ -353,4 +388,10 @@ protected:
 	/** Is this widget being displayed on a designer surface */
 	UPROPERTY(Transient)
 	bool bDesignTime;
+
+	/** Native property bindings. */
+	UPROPERTY(Transient)
+	TArray<class UPropertyBinding*> NativeBindings;
+
+	static TArray<TSubclassOf<UPropertyBinding>> BinderClasses;
 };

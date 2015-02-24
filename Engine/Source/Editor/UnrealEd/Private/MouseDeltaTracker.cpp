@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -7,6 +7,7 @@
 #include "DragTool_Measure.h"
 #include "DragTool_FrustumSelect.h"
 #include "SnappingUtils.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "MouseDeltaTracker"
 
@@ -50,8 +51,8 @@ void FMouseDeltaTracker::DetermineCurrentAxis(FEditorViewportClient* InViewportC
 
 	const bool bIsRotateObjectMode = InViewportClient->IsOrtho() && ControlDown && RightMouseButtonDown;
 	// Ctrl + LEFT/RIGHT mouse button acts the same as dragging the most appropriate widget handle.
-	if( (!InViewportClient->ShouldOrbitCamera() && bIsRotateObjectMode ) || (!bIsRotateObjectMode && ControlDown && !AltDown ) &&
-		(LeftMouseButtonDown || RightMouseButtonDown) )
+	if( (!InViewportClient->ShouldOrbitCamera() && bIsRotateObjectMode ) || ((!bIsRotateObjectMode && ControlDown && !AltDown ) &&
+		(LeftMouseButtonDown || RightMouseButtonDown)) )
 	{
 		// Only try to pick an axis if we're not dragging by widget handle.
 		if ( InViewportClient->GetCurrentWidgetAxis() == EAxisList::None )

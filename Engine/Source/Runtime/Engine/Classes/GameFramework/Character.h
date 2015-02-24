@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "GameFramework/Pawn.h"
@@ -196,17 +196,17 @@ typedef FBasedMovementInfo FRepRelativeMovement;
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Pawn/Character/
  */ 
 
-UCLASS(abstract, config=Game, BlueprintType, hidecategories=("Pawn|Character|InternalEvents"))
+UCLASS(config=Game, BlueprintType, hideCategories=("Pawn|Character|InternalEvents"), meta=(ShortTooltip="A character is a type of Pawn that includes the ability to walk around."))
 class ENGINE_API ACharacter : public APawn
 {
 	GENERATED_BODY()
 public:
-
 	/**
 	 * Default UObject constructor.
 	 */
-	ACharacter(const FObjectInitializer& ObjectInitializer);
+	ACharacter(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
+	void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 private_subobject:
 	/** The main skeletal mesh associated with this Character (optional sub-object). */
 	DEPRECATED_FORGAME(4.6, "Mesh should not be accessed directly, please use GetMesh() function instead. Mesh will soon be private and your code will not compile.")
@@ -287,6 +287,10 @@ public:
 
 	/** @return Desired translation offset of mesh. */
 	const FVector& GetBaseTranslationOffset() const { return BaseTranslationOffset; }
+
+	// Begin INavAgentInterface Interface
+	virtual FVector GetNavAgentLocation() const override;
+	// End INavAgentInterface Interface
 
 	/** Default crouched eye height */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
@@ -397,7 +401,7 @@ public:
 	/**
 	 * Check if the character can jump in the current state.
 	 *
-	 * The default implementation may be overridden or extended by implementing the custom CanJump event.
+	 * The default implementation may be overridden or extended by implementing the custom CanJump event in Blueprints. 
 	 * 
 	 * @Return Whether the character can jump in the current state. 
 	 */
@@ -414,11 +418,13 @@ protected:
 	 * As well as returning true when on the ground, it also returns true when GetMaxJumpTime is more
 	 * than zero and IsJumping returns true.
 	 * 
+	 *
 	 * @Return Whether the character can jump in the current state. 
 	 */
 
 	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character|InternalEvents", meta=(FriendlyName="CanJump"))
 	bool CanJumpInternal() const;
+	virtual bool CanJumpInternal_Implementation() const;
 
 public:
 
@@ -472,6 +478,7 @@ public:
 	/** Event fired when the character has just started jumping */
 	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
 	void OnJumped();
+	void OnJumped_Implementation();
 
 	/** Called when the character's movement enters falling */
 	virtual void Falling() {}
@@ -506,6 +513,7 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, Category="Pawn|Character")
 	void OnWalkingOffLedge();
+	virtual void OnWalkingOffLedge_Implementation();
 
 	/** Called when pawn's movement is blocked
 		@PARAM Impact describes the blocking hit. */
@@ -629,12 +637,15 @@ public:
 
 	UFUNCTION(reliable, client)
 	void ClientCheatWalk();
+	void ClientCheatWalk_Implementation();
 
 	UFUNCTION(reliable, client)
 	void ClientCheatFly();
+	void ClientCheatFly_Implementation();
 
 	UFUNCTION(reliable, client)
 	void ClientCheatGhost();
+	void ClientCheatGhost_Implementation();
 
 	// Root Motion
 public:

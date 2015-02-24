@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,10 +6,29 @@ class FFriendsStatusViewModel
 	: public TSharedFromThis<FFriendsStatusViewModel>
 {
 public:
+	/** Struct that maps EOnlinePresenceStates to loc strings for display */
+	struct FOnlineState
+	{
+		/** Flag that determines which EOnlinePresenceStates are shown in the UI for the user to select */
+		bool bIsDisplayed;
+
+		/** The localized diaply text for this EOnlinePresenceStates */
+		FText DisplayText;
+
+		/** The state the which this struct refers */
+		EOnlinePresenceState::Type State;
+
+		FOnlineState(bool InIsDisplayed, FText InDisplayText, EOnlinePresenceState::Type InState)
+			: bIsDisplayed(InIsDisplayed)
+			, DisplayText(InDisplayText)
+			, State(InState)
+		{}
+	};
+
 	virtual ~FFriendsStatusViewModel() {}
-	virtual bool GetOnlineStatus() const = 0;
-	virtual void SetOnlineStatus( const bool bOnlineStatus) = 0;
-	virtual TArray<TSharedRef<FText> > GetStatusList() const = 0;
+	virtual EOnlinePresenceState::Type GetOnlineStatus() const = 0;
+	virtual void SetOnlineStatus(EOnlinePresenceState::Type OnlineState) = 0;
+	virtual const TArray<FOnlineState>& GetStatusList() const = 0;
 	virtual FText GetStatusText() const = 0;
 };
 

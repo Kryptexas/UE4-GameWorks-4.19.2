@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnvironmentQueryEditorPrivatePCH.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
@@ -72,8 +72,8 @@ void FEnvironmentQueryConnectionDrawingPolicy::Internal_DrawLineWithArrow(const 
 	const float LineSeparationAmount = 4.5f;
 
 	const FVector2D DeltaPos = EndAnchorPoint - StartAnchorPoint;
-	const FVector2D UnitDelta = DeltaPos.SafeNormal();
-	const FVector2D Normal = FVector2D(DeltaPos.Y, -DeltaPos.X).SafeNormal();
+	const FVector2D UnitDelta = DeltaPos.GetSafeNormal();
+	const FVector2D Normal = FVector2D(DeltaPos.Y, -DeltaPos.X).GetSafeNormal();
 
 	// Come up with the final start/end points
 	const FVector2D DirectionBias = Normal * LineSeparationAmount;
@@ -122,7 +122,7 @@ void FEnvironmentQueryConnectionDrawingPolicy::DrawConnection(int32 LayerId, con
 	const FVector2D& P1 = End;
 
 	const FVector2D Delta = End-Start;
-	const FVector2D NormDelta = Delta.SafeNormal();
+	const FVector2D NormDelta = Delta.GetSafeNormal();
 
 	const FVector2D P0Tangent = NormDelta;
 	const FVector2D P1Tangent = NormDelta;

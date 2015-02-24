@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 
@@ -17,7 +17,7 @@ FText FAtlasAssetTypeActions::GetName() const
 
 FColor FAtlasAssetTypeActions::GetTypeColor() const
 {
-	return FColor(0, 255, 255);
+	return FColor::Cyan;
 }
 
 UClass* FAtlasAssetTypeActions::GetSupportedClass() const

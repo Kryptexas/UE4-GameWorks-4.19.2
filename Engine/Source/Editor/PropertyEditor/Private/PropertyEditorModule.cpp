@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PropertyEditorPrivatePCH.h"
@@ -23,6 +23,8 @@
 #include "PropertyTableConstants.h"
 #include "SStructureDetailsView.h"
 #include "SColorPicker.h"
+#include "EngineUtils.h"
+#include "Engine/UserDefinedStruct.h"
 
 
 IMPLEMENT_MODULE( FPropertyEditorModule, PropertyEditor );
@@ -505,22 +507,11 @@ void FPropertyEditorModule::UpdatePropertyViews( const TArray<UObject*>& NewObje
 			{
 				if( !DetailViewPin->IsLocked() )
 				{
-					DetailViewPin->SetObjects( NewObjectList, true );
+					DetailViewPin->SetObjects(NewObjectList, true);
 				}
 				else
 				{
-					if( ValidObjects.Num() == 0 )
-					{
-						// Populate the valid objects list only once
-						UWorld* IteratorWorld = GWorld;
-						for( FActorIterator It(IteratorWorld); It; ++It )
-						{
-							ValidObjects.Add( *It );
-						}
-					}
-
-					// If the property window is locked make sure all the actors still exist
-					DetailViewPin->RemoveInvalidActors( ValidObjects );
+					DetailViewPin->RemoveInvalidObjects();
 				}
 			}
 		}
@@ -662,7 +653,7 @@ FPropertyTypeLayoutCallback FPropertyEditorModule::GetPropertyTypeCustomization(
 	return FPropertyTypeLayoutCallback();
 }
 
-TSharedRef<class IStructureDetailsView> FPropertyEditorModule::CreateStructureDetailView(const FDetailsViewArgs& DetailsViewArgs, TSharedPtr<FStructOnScope> StructData, bool bShowObjects, const FString& CustomName)
+TSharedRef<class IStructureDetailsView> FPropertyEditorModule::CreateStructureDetailView(const FDetailsViewArgs& DetailsViewArgs, TSharedPtr<FStructOnScope> StructData, bool bShowObjects, const FText& CustomName)
 {
 	TSharedRef<SStructureDetailsView> DetailView =
 		SNew(SStructureDetailsView)

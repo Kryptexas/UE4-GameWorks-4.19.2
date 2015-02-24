@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,6 +14,8 @@ public:
 	virtual void RunAllTestsOnMap(bool bClearLog, bool bRunLooped) override;
 	
 	virtual bool IsRunning() const override;
+
+	virtual bool IsFinished() const override;
 	
 	virtual void SetScript(class UFunctionalTestingManager* NewScript) override;
 

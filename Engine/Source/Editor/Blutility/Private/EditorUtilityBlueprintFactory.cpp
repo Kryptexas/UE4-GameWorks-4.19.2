@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlutilityPrivatePCH.h"
 #include "ClassViewerModule.h"
@@ -6,6 +6,7 @@
 #include "BlutilityClasses.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/SClassPickerDialog.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 class FBlutilityBlueprintFactoryFilter : public IClassViewerFilter
 {

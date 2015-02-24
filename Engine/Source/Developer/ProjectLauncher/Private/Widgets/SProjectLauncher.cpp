@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ProjectLauncherPrivatePCH.h"
 #include "SWidgetSwitcher.h"
@@ -183,7 +183,7 @@ void SProjectLauncher::Construct( const FArguments& InArgs, const TSharedRef<SDo
 								[
 									SNew(SImage)
 									.Image(FCoreStyle::Get().GetBrush("EditableComboBox.Add"))
-									.ColorAndOpacity(FSlateColor::UseForeground())
+									.ColorAndOpacity(FSlateColor(FLinearColor::White))
 								]
 							]
 						]
@@ -243,14 +243,14 @@ void SProjectLauncher::FillWindowMenu( FMenuBuilder& MenuBuilder, TSharedRef<FWo
 /* SProjectLauncher callbacks
 *****************************************************************************/
 
-void SProjectLauncher::OnAdvancedChanged(const ESlateCheckBoxState::Type NewCheckedState)
+void SProjectLauncher::OnAdvancedChanged(const ECheckBoxState NewCheckedState)
 {
-	bAdvanced = (NewCheckedState == ESlateCheckBoxState::Checked);
+	bAdvanced = (NewCheckedState == ECheckBoxState::Checked);
 }
 
-ESlateCheckBoxState::Type SProjectLauncher::OnIsAdvanced() const
+ECheckBoxState SProjectLauncher::OnIsAdvanced() const
 {
-	return (bAdvanced) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (bAdvanced) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 const FSlateBrush* SProjectLauncher::GetAdvancedToggleBrush() const

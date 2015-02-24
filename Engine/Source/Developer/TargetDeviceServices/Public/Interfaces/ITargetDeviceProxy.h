@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -239,6 +239,13 @@ public:
 	 * @return true if the device is being shared, false otherwise.
 	 */
 	virtual bool IsShared() const = 0;
+
+	/**
+	 * Gets the name of the operating system on the device.
+	 *
+	 * @return true if the device is being shared, false otherwise.
+	 */
+	virtual const FString& GetOperatingSystemName() const = 0;
 
 public:
 

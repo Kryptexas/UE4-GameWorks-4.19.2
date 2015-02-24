@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RepLayout.cpp: Unreal replication layout implementation.
@@ -23,8 +23,6 @@ FAutoConsoleVariable CVarDoReplicationContextString( TEXT( "net.ContextDebug" ),
 #define USE_CUSTOM_COMPARE
 
 //#define ENABLE_SUPER_CHECKSUMS
-
-//#pragma optimize("", off)
 
 #ifdef USE_CUSTOM_COMPARE
 static FORCEINLINE bool CompareBool( const FRepLayoutCmd& Cmd, const void* A, const void* B )
@@ -264,34 +262,54 @@ public:
 
 	void ProcessDataArrayElements_r( TStackState& StackState, const FRepLayoutCmd& Cmd )
 	{
-		for ( int32 i = 0; i < StackState.DataArray->Num(); i++ )
+		const int32 NumDataArrayElements	= StackState.DataArray		? StackState.DataArray->Num()	: 0;
+		const int32 NumShadowArrayElements	= StackState.ShadowArray	? StackState.ShadowArray->Num() : 0;
+
+		// Loop using the number of elements in data array
+		for ( int32 i = 0; i < NumDataArrayElements; i++ )
 		{
 			const int32 ElementOffset = i * Cmd.ElementSize;
-			ProcessCmds_r( StackState, StackState.ShadowBaseData + ElementOffset, StackState.BaseData + ElementOffset );
+
+			uint8* Data			= StackState.BaseData + ElementOffset;
+			uint8* ShadowData	= i < NumShadowArrayElements ? ( StackState.ShadowBaseData + ElementOffset ) : NULL;	// ShadowArray might be smaller than DataArray
+
+			ProcessCmds_r( StackState, ShadowData, Data );
 		}
 	}
 
 	void ProcessShadowArrayElements_r( TStackState& StackState, const FRepLayoutCmd& Cmd )
 	{
-		for ( int32 i = 0; i < StackState.ShadowArray->Num(); i++ )
+		const int32 NumDataArrayElements	= StackState.DataArray		? StackState.DataArray->Num()	: 0;
+		const int32 NumShadowArrayElements	= StackState.ShadowArray	? StackState.ShadowArray->Num() : 0;
+
+		// Loop using the number of elements in shadow array
+		for ( int32 i = 0; i < NumShadowArrayElements; i++ )
 		{
 			const int32 ElementOffset = i * Cmd.ElementSize;
-			ProcessCmds_r( StackState, StackState.ShadowBaseData + ElementOffset, StackState.BaseData + ElementOffset );
+
+			uint8* Data			= i < NumDataArrayElements ? ( StackState.BaseData + ElementOffset ) : NULL;	// DataArray might be smaller than ShadowArray
+			uint8* ShadowData	= StackState.ShadowBaseData + ElementOffset;
+
+			ProcessCmds_r( StackState, ShadowData, Data );
 		}
 	}
 
 	void ProcessArrayCmd_r( TStackState & PrevStackState, const FRepLayoutCmd& Cmd, const int32 CmdIndex, uint8* RESTRICT ShadowData, uint8* RESTRICT Data )
 	{
+		check( ShadowData != NULL || Data != NULL );
+
 		FScriptArray* ShadowArray	= (FScriptArray*)ShadowData;
 		FScriptArray* DataArray		= (FScriptArray*)Data;
 
-		TStackState StackState( CmdIndex + 1, Cmd.EndCmd - 1, ShadowArray, DataArray, (uint8*)ShadowArray->GetData(), (uint8*)DataArray->GetData() );
+		TStackState StackState( CmdIndex + 1, Cmd.EndCmd - 1, ShadowArray, DataArray, ShadowArray ? (uint8*)ShadowArray->GetData() : NULL, DataArray ? (uint8*)DataArray->GetData() : NULL );
 
 		static_cast< TImpl* >( this )->ProcessArrayCmd_r( PrevStackState, StackState, Cmd, CmdIndex, ShadowData, Data );
 	}
 
 	void ProcessCmds_r( TStackState& StackState, uint8* RESTRICT ShadowData, uint8* RESTRICT Data )
 	{
+		check( ShadowData != NULL || Data != NULL );
+
 		for ( int32 CmdIndex = StackState.CmdStart; CmdIndex < StackState.CmdEnd; CmdIndex++ )
 		{
 			const FRepLayoutCmd& Cmd = Cmds[ CmdIndex ];
@@ -302,7 +320,7 @@ public:
 			{
 				if ( static_cast< TImpl* >( this )->ShouldProcessNextCmd() )
 				{
-					ProcessArrayCmd_r( StackState, Cmd, CmdIndex, ShadowData + Cmd.Offset, Data + Cmd.Offset );
+					ProcessArrayCmd_r( StackState, Cmd, CmdIndex, ShadowData ? ( ShadowData + Cmd.Offset ) : NULL, Data ? ( Data + Cmd.Offset ) : NULL );
 				}
 				CmdIndex = Cmd.EndCmd - 1;	// Jump past children of this array (-1 for ++ in for loop)
 			}
@@ -811,6 +829,8 @@ void FRepLayout::UpdateChangelistHistory( FRepState * RepState, UClass * ObjectC
 
 	// Remove any tiling in the history markers to keep them from wrapping over time
 	const int32 NewHistoryCount	= RepState->HistoryEnd - RepState->HistoryStart;
+
+	check( NewHistoryCount <= FRepState::MAX_CHANGE_HISTORY );
 
 	RepState->HistoryStart	= RepState->HistoryStart % FRepState::MAX_CHANGE_HISTORY;
 	RepState->HistoryEnd	= RepState->HistoryStart + NewHistoryCount;
@@ -1603,7 +1623,7 @@ public:
 		DirtyList2( InDirty2 ), 
 		DirtyListIndex1( 0 ),
 		DirtyListIndex2( 0 ),
-		Handle( 0 ),
+		CurrentHandle( 0 ),
 		bDirtyValid1( true ),
 		bDirtyValid2( true ),
 		MergedDirtyList( OutMergedDirty ),
@@ -1615,10 +1635,12 @@ public:
 
 	SHOULD_PROCESS_NEXT_CMD() 
 	{ 
-		Handle++;
+		CurrentHandle++;
 
-		bLastDirty1Matches = bDirtyValid1 && DirtyList1[DirtyListIndex1] == Handle;
-		bLastDirty2Matches = bDirtyValid2 && DirtyList2[DirtyListIndex2] == Handle;
+		check( CurrentHandle != 0 );
+
+		bLastDirty1Matches = bDirtyValid1 && DirtyList1[DirtyListIndex1] == CurrentHandle;
+		bLastDirty2Matches = bDirtyValid2 && DirtyList2[DirtyListIndex2] == CurrentHandle;
 
 		return bLastDirty1Matches || bLastDirty2Matches;
 	}
@@ -1633,7 +1655,7 @@ public:
 		const bool bDirty2Matches = bLastDirty2Matches;
 
 		// This will be a new merged dirty entry
-		MergedDirtyList.Add( Handle );
+		MergedDirtyList.Add( CurrentHandle );
 
 		const int32 OriginalMergedDirtyListIndex = MergedDirtyList.AddUninitialized();
 		check( OriginalMergedDirtyListIndex == MergedDirtyList.Num() - 1 );
@@ -1663,14 +1685,14 @@ public:
 		const int32 OldDirtyListIndex1 = DirtyListIndex1;
 		const int32 OldDirtyListIndex2 = DirtyListIndex2;
 
-		const int32 OldHandle = Handle;
-		Handle = 0;
+		const int32 OldHandle = CurrentHandle;
+		CurrentHandle = 0;
 
 		// Process the array elements
 		ProcessDataArrayElements_r( StackState, Cmd );
 
 		// Restore the handle
-		Handle = OldHandle;
+		CurrentHandle = OldHandle;
 
 		if ( bDirty1Matches )
 		{
@@ -1703,7 +1725,7 @@ public:
 		check( bLastDirty1Matches || bLastDirty2Matches )
 
 		// This will be a new merged dirty entry
-		MergedDirtyList.Add( Handle );
+		MergedDirtyList.Add( CurrentHandle );
 
 		// Advance matching dirty indices
 		if ( bLastDirty1Matches )
@@ -1722,7 +1744,7 @@ public:
 
 	int32					DirtyListIndex1;
 	int32					DirtyListIndex2;
-	uint16					Handle;
+	uint16					CurrentHandle;
 
 	bool					bDirtyValid1;
 	bool					bDirtyValid2;
@@ -1739,16 +1761,16 @@ void FRepLayout::MergeDirtyList( FRepState * RepState, const void* RESTRICT Data
 
 	MergedDirty.Empty();
 
-	FMergeDirtyListImpl ReceivePropertiesImpl( Dirty1, Dirty2, MergedDirty, Parents, Cmds );
+	FMergeDirtyListImpl MergePropertiesImpl( Dirty1, Dirty2, MergedDirty, Parents, Cmds );
 
 	// Even though one of these can be empty, we need to send the single one through, so we can prune it to the current shape of the tree
-	ReceivePropertiesImpl.bDirtyValid1 = Dirty1.Num() > 0;
-	ReceivePropertiesImpl.bDirtyValid2 = Dirty2.Num() > 0;
+	MergePropertiesImpl.bDirtyValid1 = Dirty1.Num() > 0;
+	MergePropertiesImpl.bDirtyValid2 = Dirty2.Num() > 0;
 
 	// Merge lists
-	ReceivePropertiesImpl.ProcessCmds( RepState, (uint8*)Data );
+	MergePropertiesImpl.ProcessCmds( RepState, (uint8*)Data );
 
-	ReceivePropertiesImpl.MergedDirtyList.Add( 0 );
+	MergePropertiesImpl.MergedDirtyList.Add( 0 );
 }
 
 void FRepLayout::SanityCheckChangeList_DynamicArray_r( 
@@ -1978,7 +2000,7 @@ void FRepLayout::AddPropertyCmd( UProperty * Property, int32 Offset, int32 Relat
 		}
 		else
 		{
-			UE_LOG( LogNet, Verbose, TEXT( "AddPropertyCmd: Falling back to default type for property [%s]" ), *Cmd.Property->GetFullName() );
+			UE_LOG( LogNet, VeryVerbose, TEXT( "AddPropertyCmd: Falling back to default type for property [%s]" ), *Cmd.Property->GetFullName() );
 		}
 	}
 	else if ( Property->IsA( UBoolProperty::StaticClass() ) )
@@ -2132,17 +2154,7 @@ uint16 FRepLayout::AddParentProperty( UProperty * Property, int32 ArrayIndex )
 	return Parents.Add( FRepParentCmd( Property, ArrayIndex ) );
 }
 
-static bool IsCustomDeltaProperty( UProperty * Property )
-{
-	UStructProperty * StructProperty = Cast< UStructProperty >( Property );
-
-	if ( StructProperty != NULL && StructProperty->Struct->StructFlags & STRUCT_NetDeltaSerializeNative )
-	{
-		return true;
-	}
-
-	return false;
-}
+extern bool IsCustomDeltaProperty( UProperty * Property );
 
 void FRepLayout::InitFromObjectClass( UClass * InObjectClass )
 {
@@ -2452,7 +2464,13 @@ void FRepLayout::ReceivePropertiesForRPC( UObject* Object, UFunction * Function,
 
 	for ( int32 i = 0; i < Parents.Num(); i++ )
 	{
-		if ( Cast<UBoolProperty>( Parents[i].Property ) || Reader.ReadBit() ) 
+		if ( Parents[i].ArrayIndex == 0 && ( Parents[i].Property->PropertyFlags & CPF_ZeroConstructor ) == 0 )
+		{
+			// If this property needs to be constructed, make sure we do that
+			Parents[i].Property->InitializeValue( (uint8*)Data + Cmds[ Parents[i].CmdStart ].Offset );
+		}
+
+		if ( Cast<UBoolProperty>( Parents[i].Property ) || Reader.ReadBit() )
 		{
 			bool bHasUnmapped = false;
 

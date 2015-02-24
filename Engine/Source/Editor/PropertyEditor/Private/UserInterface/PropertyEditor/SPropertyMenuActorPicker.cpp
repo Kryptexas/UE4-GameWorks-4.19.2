@@ -1,10 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SPropertyMenuActorPicker.h"
 #include "AssetRegistryModule.h"
 #include "DelegateFilter.h"
-#include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
+#include "Editor/SceneOutliner/Public/SceneOutliner.h"
 #include "PropertyEditorAssetConstants.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
@@ -13,7 +13,7 @@ void SPropertyMenuActorPicker::Construct( const FArguments& InArgs )
 {
 	CurrentActor = InArgs._InitialActor;
 	bAllowClear = InArgs._AllowClear;
-	ActorFilters = InArgs._ActorFilters;
+	ActorFilter = InArgs._ActorFilter;
 	OnSet = InArgs._OnSet;
 	OnClose = InArgs._OnClose;
 	OnUseSelected = InArgs._OnUseSelected;
@@ -71,9 +71,9 @@ void SPropertyMenuActorPicker::Construct( const FArguments& InArgs )
 
 		FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::Get().LoadModuleChecked<FSceneOutlinerModule>(TEXT("SceneOutliner"));
 
-		FSceneOutlinerInitializationOptions InitOptions;
+		SceneOutliner::FInitializationOptions InitOptions;
 		InitOptions.Mode = ESceneOutlinerMode::ActorPicker;
-		InitOptions.Filters = ActorFilters;
+		InitOptions.Filters->AddFilterPredicate(ActorFilter);
 		InitOptions.bFocusSearchBoxWhenOpened = true;
 		
 		MenuContent =
@@ -135,7 +135,7 @@ void SPropertyMenuActorPicker::OnPaste()
 	else
 	{
 		AActor* Actor = LoadObject<AActor>(NULL, *DestPath);
-		if(Actor && (!ActorFilters.IsValid() || ActorFilters->PassesAllFilters(Actor)))
+		if(Actor && (ActorFilter.IsBound() || ActorFilter.Execute(Actor)))
 		{
 			SetValue(Actor);
 		}

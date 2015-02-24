@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "PropertyHandleImpl.h"
@@ -10,7 +10,8 @@
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "IPropertyUtilities.h"
 #include "PropertyEditor.h"
-#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
+#include "Engine/Selection.h"
+#include "Engine/UserDefinedStruct.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogPropertyView, Log, All);
 
@@ -51,7 +52,7 @@ FPropertyAccess::Result FPropertyValueImpl::GetPropertyValueString( FString& Out
 	FReadAddressList ReadAddresses;
 	bool bAllValuesTheSame = InPropertyNode->GetReadAddress( !!InPropertyNode->HasNodeFlags(EPropertyNodeFlags::SingleSelectOnly), ReadAddresses, false, true );
 
-	if( ReadAddresses.Num() > 0 && bAllValuesTheSame || ReadAddresses.Num() == 1 ) 
+	if( (ReadAddresses.Num() > 0 && bAllValuesTheSame) || ReadAddresses.Num() == 1 ) 
 	{
 		ValueAddress = ReadAddresses.GetAddress(0);
 
@@ -230,7 +231,7 @@ bool FPropertyValueImpl::SendTextToObjectProperty( const FString& Text, EPropert
 
 		// If more than one object is selected, an empty field indicates their values for this property differ.
 		// Don't send it to the objects value in this case (if we did, they would all get set to None which isn't good).
-		if (!ParentNode || ParentNode->GetInstancesNum() > 1 && !Text.Len())
+		if ((!ParentNode || ParentNode->GetInstancesNum() > 1) && !Text.Len())
 		{
 			return false;
 		}
@@ -337,8 +338,7 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 			if (Cur.BaseAddress == NULL)
 			{
 				//Fully abort this procedure.  The data has changed out from under the object
-				check(false);
-				Result = FPropertyAccess::Fail;;
+				Result = FPropertyAccess::Fail;
 				break;
 			}
 
@@ -377,7 +377,7 @@ FPropertyAccess::Result FPropertyValueImpl::ImportText( const TArray<FObjectBase
 					// Begin a transaction only if we need to call PreChange
 					if (GEditor && bTransactable)
 					{
-						GEditor->BeginTransaction(TEXT("PropertyEditor"), FText::Format(NSLOCTEXT("PropertyEditor", "EditPropertyTransaction", "Edit {0}"), FText::FromString(InPropertyNode->GetDisplayName())), NodeProperty);
+						GEditor->BeginTransaction(TEXT("PropertyEditor"), FText::Format(NSLOCTEXT("PropertyEditor", "EditPropertyTransaction", "Edit {0}"), InPropertyNode->GetDisplayName()), NodeProperty);
 					}
 				}
 
@@ -843,7 +843,7 @@ FPropertyAccess::Result FPropertyValueImpl::OnUseSelected()
 					// Warn that some object assignments failed.
 					FMessageDialog::Open( EAppMsgType::Ok, FText::Format(
 						NSLOCTEXT("UnrealEd", "ObjectAssignmentsFailed", "Failed to assign {0} to the {1} property, see log for details."),
-						FText::FromString(SelectedObject->GetPathName()), FText::FromString(PropertyNodePin->GetDisplayName())) );
+						FText::FromString(SelectedObject->GetPathName()), PropertyNodePin->GetDisplayName()) );
 				}
 				else
 				{
@@ -1086,14 +1086,7 @@ void FPropertyValueImpl::AddChild()
 
 					FScriptArrayHelper	ArrayHelper(Array,Addr);
 					const int32 ArrayIndex = ArrayHelper.AddValue();
-
-					if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Array->Inner))
-					{
-						if(!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<const UUserDefinedStruct>(StructProperty->Struct), ArrayHelper.GetRawPtr(ArrayIndex)))
-						{
-							UE_LOG(LogPropertyNode, Warning, TEXT("MakeStructureDefaultValue parsing error. Property: %s "), *StructProperty->GetName());
-						}
-					}
+					FPropertyNode::AdditionalInitializationUDS(Array->Inner, ArrayHelper.GetRawPtr(ArrayIndex));
 					
 					ArrayIndicesPerObject[i].Add(NodeProperty->GetName(), ArrayIndex);
 				}
@@ -1239,7 +1232,9 @@ void FPropertyValueImpl::InsertChild( TSharedPtr<FPropertyNode> ChildNodeToInser
 			}
 		}
 
-		ArrayHelper.InsertValues(Index, 1 );	
+		ArrayHelper.InsertValues(Index, 1 );
+
+		FPropertyNode::AdditionalInitializationUDS(ArrayProperty->Inner, ArrayHelper.GetRawPtr(Index));
 
 		//set up indices for the coming events
 		TArray< TMap<FString,int32> > ArrayIndicesPerObject;
@@ -1430,9 +1425,9 @@ bool FPropertyValueImpl::HasValidProperty() const
 	return PropertyNode.IsValid();
 }
 
-FString FPropertyValueImpl::GetDisplayName() const
+FText FPropertyValueImpl::GetDisplayName() const
 {
-	return PropertyNode.IsValid() ? PropertyNode.Pin()->GetDisplayName() : TEXT("");
+	return PropertyNode.IsValid() ? PropertyNode.Pin()->GetDisplayName() : FText::GetEmpty();
 }
 
 #define IMPLEMENT_PROPERTY_ACCESSOR( ValueType ) \
@@ -1470,7 +1465,7 @@ bool FPropertyHandleBase::IsValidHandle() const
 	return Implementation->HasValidProperty();
 }
 
-FString FPropertyHandleBase::GetPropertyDisplayName() const
+FText FPropertyHandleBase::GetPropertyDisplayName() const
 {
 	return Implementation->GetDisplayName();
 }
@@ -1518,16 +1513,16 @@ FString FPropertyHandleBase::GeneratePathToProperty() const
 
 }
 
-TSharedRef<SWidget> FPropertyHandleBase::CreatePropertyNameWidget( const FString& NameOverride, const FString& ToolTipOverride, bool bDisplayResetToDefault, bool bDisplayText, bool bDisplayThumbnail ) const
+TSharedRef<SWidget> FPropertyHandleBase::CreatePropertyNameWidget( const FText& NameOverride, const FText& ToolTipOverride, bool bDisplayResetToDefault, bool bDisplayText, bool bDisplayThumbnail ) const
 {
 	if( Implementation.IsValid() && Implementation->GetPropertyNode().IsValid() )
 	{
-		if( NameOverride.Len() > 0 )
+		if( !NameOverride.IsEmpty() )
 		{
 			Implementation->GetPropertyNode()->SetDisplayNameOverride( NameOverride );
 		}
 
-		if( ToolTipOverride.Len() > 0 )
+		if( !ToolTipOverride.IsEmpty() )
 		{
 			Implementation->GetPropertyNode()->SetToolTipOverride( ToolTipOverride );
 		}
@@ -1766,7 +1761,7 @@ UClass* FPropertyHandleBase::GetClassMetaData(const FName& Key) const
 	return (MetaDataProperty) ? MetaDataProperty->GetClassMetaData(Key) : nullptr;
 }
 
-FString FPropertyHandleBase::GetToolTipText() const
+FText FPropertyHandleBase::GetToolTipText() const
 {
 	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
 	if( PropertyNode.IsValid() )
@@ -1774,10 +1769,10 @@ FString FPropertyHandleBase::GetToolTipText() const
 		return PropertyNode->GetToolTipText();
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
-void FPropertyHandleBase::SetToolTipText( const FString& ToolTip )
+void FPropertyHandleBase::SetToolTipText( const FText& ToolTip )
 {
 	TSharedPtr<FPropertyNode> PropertyNode = Implementation->GetPropertyNode();
 	if (PropertyNode.IsValid())
@@ -1844,7 +1839,7 @@ FPropertyAccess::Result FPropertyHandleBase::GetPerObjectValues( TArray<FString>
 	return Result;
 }
 
-bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& OutOptionStrings, TArray< TSharedPtr<FString> >& OutToolTips, TArray<bool>& OutRestrictedItems)
+bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& OutOptionStrings, TArray< FText >& OutToolTips, TArray<bool>& OutRestrictedItems)
 {
 	UProperty* Property = GetProperty();
 
@@ -1899,9 +1894,8 @@ bool FPropertyHandleBase::GeneratePossibleValues(TArray< TSharedPtr<FString> >& 
 				TSharedPtr< FString > EnumStr( new FString( EnumValueName ) );
 				OutOptionStrings.Add( EnumStr );
 
-				FString EnumValueToolTip = bIsRestricted ? RestrictionTooltip.ToString() : Enum->GetToolTipText(EnumIndex).ToString();
-				TSharedPtr< FString > ToolTipStr( new FString( EnumValueToolTip ) );
-				OutToolTips.Add( ToolTipStr );
+				FText EnumValueToolTip = bIsRestricted ? RestrictionTooltip : Enum->GetToolTipText(EnumIndex);
+				OutToolTips.Add( EnumValueToolTip );
 			}
 		}
 	}

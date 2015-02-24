@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "LevelsPrivatePCH.h"
 
 #include "Matinee/MatineeActor.h"
@@ -14,6 +14,11 @@
 #include "ISourceControlModule.h"
 #include "ISourceControlRevision.h"
 #include "SourceControlWindows.h"
+#include "Engine/LevelStreamingKismet.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/Selection.h"
+#include "Engine/LevelStreamingVolume.h"
+#include "Engine/LevelStreamingAlwaysLoaded.h"
 
 #define LOCTEXT_NAMESPACE "LevelsView"
 
@@ -1344,10 +1349,10 @@ void FLevelCollectionViewModel::OnSCCDiffAgainstDepot()
 							FRevisionInfo OldRevision;
 							OldRevision.Changelist = Revision->GetCheckInIdentifier();
 							OldRevision.Date = Revision->GetDate();
-							OldRevision.Revision = Revision->GetRevisionNumber();
+							OldRevision.Revision = Revision->GetRevision();
 
 							FRevisionInfo NewRevision; 
-							NewRevision.Revision = -1;
+							NewRevision.Revision = TEXT("");
 
 							// Dump assets to temp text files
 							FString OldTextFilename = AssetToolsModule.Get().DumpAssetToTempFile(OldPackage);
@@ -1400,9 +1405,14 @@ void FLevelCollectionViewModel::AddExistingLevel(bool bRemoveInvalidSelectedLeve
 {
 	if ( UEditorEngine::IsUsingWorldAssets() )
 	{
-		FEditorFileUtils::FOnLevelsChosen LevelsChosenDelegate = FEditorFileUtils::FOnLevelsChosen::CreateSP(this, &FLevelCollectionViewModel::HandleAddExistingLevelSelected, bRemoveInvalidSelectedLevelsAfter);
-		const bool bAllowMultipleSelection = true;
-		FEditorFileUtils::OpenLevelPickingDialog(LevelsChosenDelegate, bAllowMultipleSelection);
+		if (!bAssetDialogOpen)
+		{
+			bAssetDialogOpen = true;
+			FEditorFileUtils::FOnLevelsChosen LevelsChosenDelegate = FEditorFileUtils::FOnLevelsChosen::CreateSP(this, &FLevelCollectionViewModel::HandleAddExistingLevelSelected, bRemoveInvalidSelectedLevelsAfter);
+			FEditorFileUtils::FOnLevelPickingCancelled DialogCancelledDelegate = FEditorFileUtils::FOnLevelPickingCancelled::CreateSP(this, &FLevelCollectionViewModel::HandleAddExistingLevelCancelled);
+			const bool bAllowMultipleSelection = true;
+			FEditorFileUtils::OpenLevelPickingDialog(LevelsChosenDelegate, DialogCancelledDelegate, bAllowMultipleSelection);
+		}
 	}
 	else
 	{
@@ -1486,6 +1496,7 @@ void FLevelCollectionViewModel::AddExistingLevel(bool bRemoveInvalidSelectedLeve
 
 void FLevelCollectionViewModel::HandleAddExistingLevelSelected(const TArray<FAssetData>& SelectedAssets, bool bRemoveInvalidSelectedLevelsAfter)
 {
+	bAssetDialogOpen = false;
 	TArray<FString> PackageNames;
 	for (const auto& AssetData : SelectedAssets)
 	{
@@ -1498,6 +1509,11 @@ void FLevelCollectionViewModel::HandleAddExistingLevelSelected(const TArray<FAss
 	{
 		RemoveInvalidSelectedLevels_Executed();
 	}
+}
+
+void FLevelCollectionViewModel::HandleAddExistingLevelCancelled()
+{
+	bAssetDialogOpen = false;
 }
 
 void FLevelCollectionViewModel::AddSelectedActorsToNewLevel_Executed()

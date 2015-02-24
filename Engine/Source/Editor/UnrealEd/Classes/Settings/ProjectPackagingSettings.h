@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -67,16 +67,20 @@ public:
 	 * If disabled, only modified files will be built, which can improve iteration time.
 	 * Unless you iterate on packaging, we recommend full rebuilds when packaging.
 	 */
-	UPROPERTY(config, EditAnywhere, Category=Project, AdvancedDisplay)
+	UPROPERTY(config, EditAnywhere, Category=Project)
 	bool FullRebuild;
 
 	/**
 	 * If enabled, a distribution build will be created and the shipping configuration will be used
-	 * If disabled, an development build will be created
+	 * If disabled, a development build will be created
 	 * Distribution builds are for publishing to the App Store
 	 */
-	UPROPERTY(config, EditAnywhere, Category=Project, AdvancedDisplay)
+	UPROPERTY(config, EditAnywhere, Category=Project)
 	bool ForDistribution;
+
+	/** If enabled, debug files will be included in the packaged game */
+	UPROPERTY(config, EditAnywhere, Category=Project)
+	bool IncludeDebugFiles;
 
 	/** If enabled, all content will be put into a single .pak file instead of many individual files (default = enabled). */
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
@@ -93,9 +97,12 @@ public:
 	UPROPERTY(config, EditAnywhere, Category=Packaging)
 	bool IncludePrerequisites;
 
-	/** If enabled, on Android platforms, .pak files are placed inside the APK. */
-	UPROPERTY(config, EditAnywhere, Category = Packaging, meta = (DisplayName = "Package .pak in APK"))
-	bool UseOBB_InAPK;
+	/**
+	 * Specifies whether to include the crash reporter in the packaged project. 
+	 * This is included by default for Blueprint based projects, but can optionally be disabled.
+	 */
+	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay)
+	bool IncludeCrashReporter;
 
 	/** Predefined sets of culture whose internationalization data should be packaged. */
 	UPROPERTY(config, EditAnywhere, Category=Packaging, AdvancedDisplay, meta=(DisplayName="Internationalization Support"))

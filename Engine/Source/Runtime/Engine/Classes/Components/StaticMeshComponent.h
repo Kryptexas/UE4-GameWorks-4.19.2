@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,6 +12,8 @@ class FColorVertexBuffer;
 class UStaticMesh;
 class FStaticMeshStaticLightingMesh;
 class ULightComponent;
+struct FEngineShowFlags;
+struct FConvexVolume;
 
 /** Cached vertex information at the time the mesh was painted. */
 USTRUCT()
@@ -253,12 +255,9 @@ public:
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
 #endif
-	virtual FComponentInstanceDataBase* GetComponentInstanceData() const override;
+	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
 	virtual FName GetComponentInstanceDataType() const override;
-	virtual void ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData) override;
 	// End UActorComponent interface.
-
-
 
 	// Begin UPrimitiveComponent interface.
 	virtual int32 GetNumMaterials() const override;
@@ -288,8 +287,15 @@ public:
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
 
 	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const;
+#if WITH_EDITOR
+	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
+	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
+#endif
 	// End UPrimitiveComponent interface.
 
+	// Begin UMeshComponent interface
+	virtual TArray<class UMaterialInterface*> GetMaterials() const override;
+	// End UMeshComponent interface
 	/**
 	 *	Returns true if the component uses texture lightmaps
 	 *
@@ -434,8 +440,10 @@ public:
 	/** Returns the wireframe color to use for this component. */
 	FColor GetWireframeColor() const;
 
-	/** Get this components index in its parents serialized components array (used for matching instance data) */
-	int32 GetSerializedComponentIndex() const;
+	/** Get this components index in its parents blueprint created components array (used for matching instance data) */
+	int32 GetBlueprintCreatedComponentIndex() const;
+
+	void ApplyComponentInstanceData(class FStaticMeshComponentInstanceData* ComponentInstanceData);
 };
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StatsFile.cpp: Implements stats file related functionality.
@@ -437,7 +437,8 @@ void FStatsWriteFile::NewFrame( int64 TargetFrame )
 {
 	SCOPE_CYCLE_COUNTER( STAT_StreamFile );
 
-	// Currently raw stat files are limited to 120 frames.
+	// @TODO yrx 2014-11-25 Add stat startfile -num=number of frames to capture
+	/*
 	enum
 	{
 		MAX_NUM_RAWFRAMES = 120,
@@ -455,6 +456,7 @@ void FStatsWriteFile::NewFrame( int64 TargetFrame )
 			return;
 		}
 	}
+	}*/
 
 	WriteFrame( TargetFrame );
 	SendTask();
@@ -486,13 +488,13 @@ bool FStatsWriteFile::IsValid() const
 void FStatsWriteFile::AddNewFrameDelegate()
 {
 	FStatsThreadState const& Stats = FStatsThreadState::GetLocalState();
-	Stats.NewFrameDelegate.AddThreadSafeSP( this->AsShared(), &FStatsWriteFile::NewFrame );
+	NewFrameDelegateHandle = Stats.NewFrameDelegate.AddThreadSafeSP( this->AsShared(), &FStatsWriteFile::NewFrame );
 }
 
 void FStatsWriteFile::RemoveNewFrameDelegate()
 {
 	FStatsThreadState const& Stats = FStatsThreadState::GetLocalState();
-	Stats.NewFrameDelegate.RemoveThreadSafeSP( this->AsShared(), &FStatsWriteFile::NewFrame );
+	Stats.NewFrameDelegate.Remove( NewFrameDelegateHandle );
 }
 
 /*-----------------------------------------------------------------------------

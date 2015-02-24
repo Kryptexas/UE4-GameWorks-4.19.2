@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	ParticleModuleAccelerationDrag: Drag coefficient.
@@ -25,7 +25,6 @@ class UParticleModuleAccelerationDrag : public UParticleModuleAccelerationBase
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void PostInitProperties() override;
-	virtual void Serialize(FArchive& Ar) override;
 	//End UObject Interface
 
 	//Begin UParticleModule Interface

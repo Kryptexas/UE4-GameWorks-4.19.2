@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,16 +27,7 @@ public:
 	// End of FViewportClient interface
 
 	// FEditorViewportClient interface
-	virtual void UpdateMouseDelta() override;
-	virtual void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) override;
-	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad) override;
-	virtual bool InputWidgetDelta(FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale) override;
-	virtual void TrackingStarted(const struct FInputEventState& InInputState, bool bIsDragging, bool bNudge) override;
-	virtual void TrackingStopped() override;
-	virtual FWidget::EWidgetMode GetWidgetMode() const override;
-	virtual FVector GetWidgetLocation() const;
-	virtual FMatrix GetWidgetCoordSystem() const;
-	virtual ECoordSystem GetWidgetCoordSystemSpace() const;
+	virtual FLinearColor GetBackgroundColor() const override;
 	// End of FEditorViewportClient interface
 
 	void ToggleShowPivot() { bShowPivot = !bShowPivot; Invalidate(); }
@@ -50,6 +41,9 @@ public:
 
 	// Invalidate any references to the tile map being edited; it has changed
 	void NotifyTileMapBeingEditedHasChanged();
+
+	// Note: Has to be delayed due to an unfortunate init ordering
+	void ActivateEditMode();
 private:
 	// The preview scene
 	FPreviewScene OwnedPreviewScene;
@@ -58,7 +52,7 @@ private:
 	TWeakPtr<FTileMapEditor> TileMapEditorPtr;
 
 	// Render component for the tile map being edited
-	UPaperTileMapRenderComponent* RenderTileMapComponent;
+	UPaperTileMapComponent* RenderTileMapComponent;
 
 	// Widget mode
 	FWidget::EWidgetMode WidgetMode;

@@ -1,14 +1,16 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Brush.cpp: Brush Actor implementation
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/Polys.h"
 #include "Net/UnrealNetwork.h"
 #include "Model.h"
 #include "Engine/BrushBuilder.h"
 #include "ActorEditorUtils.h"
+#include "Components/BrushComponent.h"
 
 #if WITH_EDITOR
 /** Define static delegate */
@@ -31,6 +33,7 @@ ABrush::ABrush(const FObjectInitializer& ObjectInitializer)
 	bHidden = true;
 	bNotForClientOrServer = false;
 	bCanBeDamaged = false;
+	bCollideWhenPlacing = true;
 }
 
 #if WITH_EDITOR
@@ -163,19 +166,6 @@ void ABrush::SetPrePivot( const FVector& InPrePivot )
 void ABrush::PostLoad()
 {
 	Super::PostLoad();
-
-	if( GetLinkerUE4Version() < VER_UE4_FIX_BSP_BRUSH_TYPE && BrushType == Brush_Default )
-	{
-		ECsgOper Oper = CsgOper_DEPRECATED;
-		if( Oper == CSG_Add )
-		{
-			BrushType = Brush_Add;
-		}
-		else if( Oper == CSG_Subtract )
-		{
-			BrushType = Brush_Subtract;
-		}
-	}
 
 #if WITH_EDITOR
 	if (BrushBuilder && BrushBuilder->GetOuter() != this)

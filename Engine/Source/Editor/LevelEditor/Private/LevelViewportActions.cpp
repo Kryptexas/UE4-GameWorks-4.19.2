@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "LevelEditor.h"
@@ -6,6 +6,7 @@
 #include "EditorShowFlags.h"
 #include "StatsData.h"
 #include "BufferVisualizationData.h"
+#include "GameFramework/WorldSettings.h"
 
 #define LOCTEXT_NAMESPACE "LevelViewportActions"
 
@@ -23,7 +24,6 @@ FLevelViewportCommands::~FLevelViewportCommands()
 PRAGMA_DISABLE_OPTIMIZATION
 void FLevelViewportCommands::RegisterCommands()
 {
-	
 	UI_COMMAND( ToggleMaximize, "Maximize Viewport", "Toggles the Maximize state of the current viewport", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 	UI_COMMAND( ToggleGameView, "Game View", "Toggles game view.  Game view shows the scene as it appears in game", EUserInterfaceActionType::ToggleButton, FInputGesture( EKeys::G ) );
 	UI_COMMAND( ToggleImmersive, "Immersive Mode", "Switches this viewport between immersive mode and regular mode", EUserInterfaceActionType::ToggleButton, FInputGesture( EKeys::F11 ) );
@@ -137,7 +137,7 @@ void FLevelViewportCommands::RegisterCommands()
 		UI_COMMAND( HideAllVolumes, "Hide All Volumes", "Hides all volumes", EUserInterfaceActionType::Button, FInputGesture() );
 
 		TArray< UClass* > VolumeClasses;
-		GUnrealEd->GetSortedVolumeClasses( &VolumeClasses );
+		UUnrealEdEngine::GetSortedVolumeClasses(&VolumeClasses);
 
 		for( int32 VolumeClassIndex = 0; VolumeClassIndex < VolumeClasses.Num(); ++VolumeClassIndex )
 		{
@@ -174,7 +174,7 @@ void FLevelViewportCommands::RegisterCommands()
 		// get all the known layers
 		// Get a fresh list as GUnrealEd->SortedSpriteInfo may not yet be built.
 		TArray<FSpriteCategoryInfo> SortedSpriteInfo;
-		GUnrealEd->MakeSortedSpriteInfo(SortedSpriteInfo);
+		UUnrealEdEngine::MakeSortedSpriteInfo(SortedSpriteInfo);
 
 		FString SpritePrefix = TEXT("ShowSprite_");
 		for( int32 InfoIndex = 0; InfoIndex < SortedSpriteInfo.Num(); ++InfoIndex )

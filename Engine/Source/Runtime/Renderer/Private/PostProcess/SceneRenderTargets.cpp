@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneRenderTargets.cpp: Scene render target implementation.
@@ -41,17 +41,6 @@ static TAutoConsoleVariable<int32> CVarSceneTargetsResizingMethod(
 	ECVF_RenderThreadSafe
 	);
 
-static TAutoConsoleVariable<int32> CVarSceneCaptureResizingMethod(
-	TEXT("r.SceneCaptureResizeMethod"),
-	0,
-	TEXT("Control the scene render target resize method for scene captures:\n")
-	TEXT("(This value is only used in game mode and on windowing platforms.)\n")
-	TEXT("0: All scene capture renders are limited to screen resolution or smaller. (Default - prevents allocation when requested dimensions are too large.)\n")
-	TEXT("1: Allows scene capture targets to expand to encompass the dimensions requested.\n")
-	TEXT("   (large sizes could cause stalling without 'r.SceneRenderTargetResizeMethod 2'. Out of memory issues can occur if size is too large)"),
-	ECVF_RenderThreadSafe
-	);
-
 static TAutoConsoleVariable<int32> CVarOptimizeForUAVPerformance(
 	TEXT("r.OptimizeForUAVPerformance"),
 	0,
@@ -77,7 +66,7 @@ static TAutoConsoleVariable<int32> CVarMobileMSAA(
 	TEXT("Use MSAA instead of Temporal AA on mobile:\n")
 	TEXT("1: Use Temporal AA (MSAA disabled)\n")
 	TEXT("2: Use 2x MSAA (Temporal AA disabled)\n")
-	TEXT("4: Use 4x MSAA (Temporal AA disabled)\n"),
+	TEXT("4: Use 4x MSAA (Temporal AA disabled)"),
 	ECVF_RenderThreadSafe
 	);
 
@@ -116,7 +105,7 @@ inline const TCHAR* GetSceneColorTargetName(FSceneRenderTargets::EShadingPath Sh
 	return SceneColorNames[(uint32)ShadingPath];
 }
 
-FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFamily) const
+FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFamily)
 {
 	// Don't expose Clamped to the cvar since you need to at least grow to the initial state.
 	enum ESizingMethods { RequestedSize, ScreenRes, Grow, VisibleSizingMethodsCount, Clamped };
@@ -149,62 +138,63 @@ FIntPoint FSceneRenderTargets::ComputeDesiredSize(const FSceneViewFamily& ViewFa
 		SceneTargetsSizingMethod = (ESizingMethods) FMath::Clamp(CVarSceneTargetsResizingMethod.GetValueOnRenderThread(), 0, (int32)VisibleSizingMethodsCount);
 	}
 
-	if (bIsSceneCapture)
-	{
-		// In general, we don't want scenecapture to grow our buffers, because depending on the cvar for our game, we may not recover that memory.  This can be changed if necessary.
-		// However, in the editor a user might have a small editor window, but be capturing cubemaps or other dynamic assets for data distribution, 
-		// in which case we need to grow for correctness.
-		// We also don't want to reallocate all our buffers for a temporary use case like a capture.  So we just clamp the biggest capture size to the currently available buffers.
-		if (GIsEditor)
-		{
-			SceneTargetsSizingMethod = Grow;
-		}
-		else
-		{
-			SceneTargetsSizingMethod = Clamped;
-			int32 CaptureTargetSizeMethod = CVarSceneCaptureResizingMethod.GetValueOnRenderThread();
-			if (FPlatformProperties::SupportsWindowedMode() && CaptureTargetSizeMethod == 1)
-			{
-				SceneTargetsSizingMethod = Grow;
-			}
-		}
-	}
-	else if(bIsReflectionCapture)
-	{
-		// reflection captures are low in resolution usually 128, they should not cause the BufferSize to be larger than needed (larger than ScreenSize)
-//		check(ViewFamily.FamilySizeX <= 256);
-//		check(ViewFamily.FamilySizeY <= 256);
-
-		// this can cause a reallocation during startup if the reflections are updated before the SceneRenderTarget have been allocated with the proper Screen size.
-		// This results in one log printout and some extra minor cost memory and performance cost.
-		// On XBoxOn it can cause different ESRam allocation (Rare, only if Reflection Capture wasn't cooked)
-		SceneTargetsSizingMethod = Grow;
-	}
+	FIntPoint DesiredBufferSize = FIntPoint::ZeroValue;
 
 	switch (SceneTargetsSizingMethod)
 	{
 		case RequestedSize:
-			return FIntPoint(ViewFamily.FamilySizeX, ViewFamily.FamilySizeY);
+			DesiredBufferSize = FIntPoint(ViewFamily.FamilySizeX, ViewFamily.FamilySizeY);
+			break;
+
 		case ScreenRes:
-			return FIntPoint(GSystemResolution.ResX, GSystemResolution.ResY);
+			DesiredBufferSize = FIntPoint(GSystemResolution.ResX, GSystemResolution.ResY);
+			break;
+
 		case Grow:
-			return FIntPoint(FMath::Max((uint32)GetBufferSizeXY().X, ViewFamily.FamilySizeX),
+			DesiredBufferSize = FIntPoint(FMath::Max((uint32)GetBufferSizeXY().X, ViewFamily.FamilySizeX),
 					FMath::Max((uint32)GetBufferSizeXY().Y, ViewFamily.FamilySizeY));
+			break;
+
 		case Clamped:
 			if (((uint32)BufferSize.X < ViewFamily.FamilySizeX) || ((uint32)BufferSize.Y < ViewFamily.FamilySizeY))
 			{
 				UE_LOG(LogRenderer, Warning, TEXT("Capture target size: %ux%u clamped to %ux%u."), ViewFamily.FamilySizeX, ViewFamily.FamilySizeY, BufferSize.X, BufferSize.Y);
 			}
-			return FIntPoint(GetBufferSizeXY().X, GetBufferSizeXY().Y);
+			DesiredBufferSize = FIntPoint(GetBufferSizeXY().X, GetBufferSizeXY().Y);
+			break;
+
 		default:
 			checkNoEntry();
-			return FIntPoint::ZeroValue;
 	}
+
+
+	// we want to shrink the buffer but as we can have multiple scenecaptures per frame we have to delay that a frame to get all size requests
+	{
+		// this allows The BufferSize to not grow below the SceneCapture requests (happen before scene rendering, in the same frame with a Grow request)
+		LargestDesiredSizeThisFrame = LargestDesiredSizeThisFrame.ComponentMax(DesiredBufferSize);
+
+		uint32 FrameNumber = ViewFamily.FrameNumber;
+
+		// this could be refined to be some time or multiple frame if we have SceneCaptures not running each frame any more
+		if(ThisFrameNumber != FrameNumber)
+		{
+			// this allows the BufferSize to shrink each frame (in game)
+			ThisFrameNumber = FrameNumber;
+			LargestDesiredSizeLastFrame = LargestDesiredSizeThisFrame;
+			LargestDesiredSizeThisFrame = FIntPoint(0, 0);
+		}
+
+		DesiredBufferSize = DesiredBufferSize.ComponentMax(LargestDesiredSizeLastFrame);
+	}
+
+	return DesiredBufferSize;
 }
 
 void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
+	// ViewFamily setup wasn't complete
+	check(ViewFamily.FrameNumber != UINT_MAX);
 
 	// If feature level has changed, release all previously allocated targets to the pool. If feature level has changed but
 	const auto NewFeatureLevel = ViewFamily.Scene->GetFeatureLevel();
@@ -277,7 +267,7 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 		// Reinitialize the render targets for the given size.
 		SetBufferSize(DesiredBufferSize.X, DesiredBufferSize.Y);
 
-		UE_LOG(LogRenderer, Warning, TEXT("Reallocating scene render targets to support %ux%u."), BufferSize.X, BufferSize.Y);
+		UE_LOG(LogRenderer, Warning, TEXT("Reallocating scene render targets to support %ux%u (Frame:%u)."), BufferSize.X, BufferSize.Y, ViewFamily.FrameNumber);
 
 		UpdateRHI();
 	}
@@ -659,15 +649,19 @@ TRefCountPtr<IPooledRenderTarget>& FSceneRenderTargets::GetLightAttenuation()
 
 void FSceneRenderTargets::AdjustGBufferRefCount(int Delta)
 { 
-	GBufferRefCount += Delta; 
 	
-	if(Delta > 0 && GBufferRefCount == 1)
+	if(Delta > 0 && GBufferRefCount == 0)
 	{
 		AllocGBufferTargets();
 	}
-	else if(GBufferRefCount == 0)
+	else
 	{
-		ReleaseGBufferTargets();
+		GBufferRefCount += Delta;
+
+		if (GBufferRefCount == 0)
+		{
+			ReleaseGBufferTargets();
+		}
 	}
 }
 
@@ -1227,6 +1221,12 @@ void FSceneRenderTargets::AllocateReflectionTargets()
 		if (!ReflectionBrightnessTarget)
 		{
 			bool bSupportsR32Float = CurrentFeatureLevel > ERHIFeatureLevel::ES2;
+			//@todo: FScene::UpdateSkyCaptureContents() is called before FSceneRenderTargets::AllocateRenderTargets()
+			// so CurrentFeatureLevel == ERHIFeatureLevel::Num and that crashes OpenGL ES2 as R32F is not valid
+			if (CurrentFeatureLevel == ERHIFeatureLevel::Num)
+			{
+				bSupportsR32Float = GMaxRHIFeatureLevel > ERHIFeatureLevel::ES2;
+			}
 			int32 ReflectionBrightnessIndex = bSupportsR32Float ? 0 : 1;
 			EPixelFormat BrightnessFormat = bSupportsR32Float ? PF_R32_FLOAT : PF_FloatRGBA;
 			FPooledRenderTargetDesc Desc3(FPooledRenderTargetDesc::Create2DDesc(FIntPoint(1, 1), BrightnessFormat, TexCreate_None, TexCreate_RenderTargetable, false));
@@ -1502,7 +1502,7 @@ void FSceneRenderTargets::ReleaseDynamicRHI()
 /** Returns the size of the shadow depth buffer, taking into account platform limitations and game specific resolution limits. */
 FIntPoint FSceneRenderTargets::GetShadowDepthTextureResolution() const
 {
-	int32 MaxShadowRes = GetCachedScalabilityCVars().MaxShadowResolution;
+	int32 MaxShadowRes = CurrentMaxShadowResolution;
 	const FIntPoint ShadowBufferResolution(
 			FMath::Clamp(MaxShadowRes,1,GMaxShadowDepthBufferSizeX),
 			FMath::Clamp(MaxShadowRes,1,GMaxShadowDepthBufferSizeY));
@@ -1527,7 +1527,9 @@ FIntPoint FSceneRenderTargets::GetPreShadowCacheTextureResolution() const
 
 FIntPoint FSceneRenderTargets::GetTranslucentShadowDepthTextureResolution() const
 {
-	const FIntPoint ShadowDepthResolution = GetShadowDepthTextureResolution();
+	FIntPoint ShadowDepthResolution = GetShadowDepthTextureResolution();
+	ShadowDepthResolution.X = FMath::Max<int32>(ShadowDepthResolution.X / GetTranslucentShadowDownsampleFactor(), 1);
+	ShadowDepthResolution.Y = FMath::Max<int32>(ShadowDepthResolution.Y / GetTranslucentShadowDownsampleFactor(), 1);
 	return ShadowDepthResolution;
 }
 
@@ -1887,7 +1889,7 @@ void FDeferredPixelShaderParameters::Set(FRHICommandList& RHICmdList, const Shad
 		}
 
 		// if there is no custom depth it's better to have the far distance there
-		IPooledRenderTarget* CustomDepth = GSceneRenderTargets.bCustomDepthIsValid ? GSceneRenderTargets.CustomDepth : 0;
+		IPooledRenderTarget* CustomDepth = GSceneRenderTargets.bCustomDepthIsValid ? GSceneRenderTargets.CustomDepth.GetReference() : 0;
 		if(!CustomDepth)
 		{
 			CustomDepth = GSystemTextures.BlackDummy;

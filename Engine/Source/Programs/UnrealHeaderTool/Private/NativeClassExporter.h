@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,7 +35,6 @@ class FModuleClasses;
 struct FNativeClassHeaderGenerator
 {
 private:
-
 	FClass*				CurrentClass;
 	TArray<FClass*>		Classes;
 	FString				API;
@@ -55,15 +54,19 @@ private:
 	FStringOutputDevice FriendText;
 	FStringOutputDevice	GeneratedPackageCPP;
 	FStringOutputDevice	GeneratedHeaderText;
+	FStringOutputDevice	GeneratedHeaderTextBeforeForwardDeclarations;
+	FStringOutputDevice	GeneratedForwardDeclarations;
     /** output generated for a .proto file */
 	FStringOutputDevice GeneratedProtoText;
 	/** output generated for a mcp .java file */
 	FStringOutputDevice GeneratedMCPText;
 	FStringOutputDevice	PrologMacroCalls;
 	FStringOutputDevice	InClassMacroCalls;
+	FStringOutputDevice	InClassNoPureDeclsMacroCalls;
 	FStringOutputDevice	StandardUObjectConstructorsMacroCall;
 	FStringOutputDevice	EnhancedUObjectConstructorsMacroCall;
 	FStringOutputDevice	AllConstructors;
+	FStringOutputDevice StaticChecks;
 
 	/** Generated function implementations that belong in the cpp file, split into multiple files base on line count **/
 	TArray<FStringOutputDeviceCountLines> GeneratedFunctionBodyTextSplit;
@@ -100,10 +103,18 @@ private:
 	/** If true, any change in the generated headers will result in UHT failure. */
 	bool bFailIfGeneratedCodeChanges;
 
+	/** All properties that need to be forward declared. */
+	TArray<UProperty*>	ForwardDeclarations;
+
 	// This exists because it makes debugging much easier on VC2010, since the visualizers can't properly understand templates with templated args
 	struct HeaderDependents : TArray<const FString*>
 	{
 	};
+
+	/**
+	 * Gets generated function text device.
+	 */
+	FStringOutputDevice& GetGeneratedFunctionTextDevice();
 
 	/**
 	 * Sorts the list of header files being exported from a package according to their dependency on each other.
@@ -358,6 +369,16 @@ private:
 	void ExportNativeFunctionHeader( const FFuncInfo& FunctionData, FStringOutputDevice& HeaderOutput, EExportFunctionType::Type FunctionType, EExportFunctionHeaderStyle::Type FunctionHeaderStyle, const TCHAR* ExtraParam = NULL );
 
 	/**
+	* Exports checks if function exists
+	*
+	* @param	FunctionData			Data representing the function to export.
+	* @param	CheckClasses			Where to write the member check classes.
+	* @param	StaticChecks			Where to write the static asserts throwing errors when function doesn't exist.
+	* @param	ClassName				Name of currently parsed class.
+	*/
+	void ExportFunctionChecks(const FFuncInfo& FunctionData, FStringOutputDevice& CheckClasses, FStringOutputDevice& StaticChecks, const FString& ClassName);
+
+	/**
 	 * Exports the native stubs for the list of functions specified
 	 * 
 	 * @param	NativeFunctions	the functions to export
@@ -476,4 +497,20 @@ public:
 
 	// Constructor
 	FNativeClassHeaderGenerator( UPackage* InPackage, FClasses& AllClasses, bool InAllowSaveExportedHeaders );
+
+	/**
+	 * Gets string with function return type.
+	 * 
+	 * @param Function Function to get return type of.
+	 * @return FString with function return type.
+	 */
+	FString GetFunctionReturnString(UFunction* Function);
+
+	/**
+	* Gets string with function parameters (with names).
+	*
+	* @param Function Function to get parameters of.
+	* @return FString with function parameters.
+	*/
+	FString GetFunctionParameterString(UFunction* Function);
 };

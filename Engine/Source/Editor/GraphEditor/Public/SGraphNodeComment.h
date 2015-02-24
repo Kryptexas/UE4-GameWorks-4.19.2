@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,6 +10,7 @@ public:
 
 	// Begin SWidget Interface
 	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent ) override;
+	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
 	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
@@ -19,6 +20,7 @@ public:
 	virtual const FSlateBrush* GetShadowBrush(bool bSelected) const override;
 	virtual void GetOverlayBrushes(bool bSelected, const FVector2D WidgetSize, TArray<FOverlayBrushInfo>& Brushes) const;
 	virtual bool ShouldAllowCulling() const override { return false; }
+	virtual int32 GetSortDepth() const override;
 	// End SNodePanel::SNode interface
 
 	// Begin SPanel Interface
@@ -27,7 +29,8 @@ public:
 
 	// Begin SGraphNode Interface
 	virtual bool IsNameReadOnly() const override;
-	// ENd SGraphNode Interface
+	virtual FSlateColor GetCommentColor() const override { return GetCommentBodyColor(); }
+	// End SGraphNode Interface
 
 	void Construct( const FArguments& InArgs, UEdGraphNode* InNode );
 
@@ -43,7 +46,6 @@ public:
 protected:
 	// SGraphNode Interface
 	virtual void UpdateGraphNode() override;
-	virtual bool ShouldScaleNodeComment()const override;
 	virtual void PopulateMetaTag(class FGraphNodeMetaData* TagMeta) const override;
 
 	/**

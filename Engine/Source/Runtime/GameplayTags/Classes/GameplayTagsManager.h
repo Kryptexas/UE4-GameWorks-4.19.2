@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -234,6 +234,10 @@ class GAMEPLAYTAGS_API UGameplayTagsManager : public UObject
 	 */
 	bool GameplayTagsMatch(const FGameplayTag& GameplayTagOne, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeOne, const FGameplayTag& GameplayTagTwo, TEnumAsByte<EGameplayTagMatchType::Type> MatchTypeTwo) const;
 
+	/** Event for when assets are added to the registry */
+	DECLARE_EVENT(UGameplayTagsManager, FGameplayTagTreeChanged);
+	virtual FGameplayTagTreeChanged& OnGameplayTagTreeChanged() { return GameplayTagTreeChangedEvent; }
+
 	/** Returns true if we should import tags from UGameplayTagsSettings objects (configured by INI files) */
 	static bool ShouldImportTagsFromINI();
 
@@ -278,6 +282,9 @@ private:
 	/** Holds all of the valid gameplay-related tags that can be applied to assets */
 	UPROPERTY()
 	TArray<UDataTable*> GameplayTagTables;
+
+	/** The delegate to execute when the tag tree changes */
+	FGameplayTagTreeChanged GameplayTagTreeChangedEvent;
 
 #if WITH_EDITOR
 	/** Flag to say if we have registered the ObjectReimport, this is needed as use of Tags manager can happen before Editor is ready*/

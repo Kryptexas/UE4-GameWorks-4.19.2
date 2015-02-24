@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -84,6 +84,10 @@ struct FSplineMeshParams
 
 };
 
+/** 
+ *	A Spline Mesh Component is a derivation of a Static Mesh Component which can be deformed using a spline. Only a start and end position (and tangent) can be specified.  
+ *	@see https://docs.unrealengine.com/latest/INT/Resources/ContentExamples/Blueprint_Splines
+ */
 UCLASS(ClassGroup=Rendering, hidecategories=(Physics), meta=(BlueprintSpawnableComponent))
 class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInterface_CollisionDataProvider
 {
@@ -244,6 +248,14 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	/** Set the forward axis */
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
 	void SetForwardAxis(ESplineMeshAxis::Type InForwardAxis);
+
+	/** Get the spline up direction */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	FVector GetSplineUpDir() const;
+
+	/** Set the spline up direction */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetSplineUpDir(const FVector& InSplineUpDir);
 
 	// Destroys the body setup, used to clear collision if the mesh goes missing
 	void DestroyBodySetup();

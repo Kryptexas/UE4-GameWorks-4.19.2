@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  * LevelStreamingKismet
@@ -8,6 +8,7 @@
  */
 
 #pragma once
+#include "LevelStreaming.h"
 #include "LevelStreamingKismet.generated.h"
 
 UCLASS(MinimalAPI, BlueprintType)
@@ -28,8 +29,8 @@ class ULevelStreamingKismet : public ULevelStreaming
 	// End UObject Interface
 
 	// Begin ULevelStreaming Interface
-	virtual bool ShouldBeLoaded( const FVector& ViewLocation ) override;
-	virtual bool ShouldBeVisible( const FVector& ViewLocation ) override;
+	virtual bool ShouldBeLoaded() override;
+	virtual bool ShouldBeVisible() override;
 	// End ULevelStreaming Interface
 };
 

@@ -1,8 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GeometryModePrivatePCH.h"
 #include "EditorGeometry.h"
+#include "Engine/Polys.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorGeometry, Log, All);
 

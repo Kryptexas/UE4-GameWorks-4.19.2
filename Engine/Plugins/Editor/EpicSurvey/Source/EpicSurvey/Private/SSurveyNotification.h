@@ -1,4 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
+
 #include "EpicSurvey.h"
 
 #define LOCTEXT_NAMESPACE "EpicSurvey"
@@ -88,7 +91,8 @@ private:
 
 	FSlateColor GetInvertedForegroundIfHovered() const
 	{
-		return this->IsHovered() ? FEditorStyle::GetSlateColor( "InvertedForeground" ) : FSlateColor::UseForeground();
+		static const FName InvertedForeground("InvertedForeground");
+		return this->IsHovered() ? FEditorStyle::GetSlateColor( InvertedForeground ) : FSlateColor::UseForeground();
 	}
 
 	FSlateColor GetPinColorAndOpacity() const

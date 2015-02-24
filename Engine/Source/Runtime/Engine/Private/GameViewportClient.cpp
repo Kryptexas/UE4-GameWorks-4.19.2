@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/Console.h"
@@ -23,6 +23,16 @@
 #include "Runtime/GameLiveStreaming/Public/IGameLiveStreaming.h"
 #include "BufferVisualizationData.h"
 #include "RendererInterface.h"
+#include "GameFramework/InputSettings.h"
+#include "Components/LineBatchComponent.h"
+#include "Debug/DebugDrawService.h"
+#include "Components/BrushComponent.h"
+#include "Engine/GameEngine.h"
+#include "UserWidget.h"
+#include "GameFramework/GameUserSettings.h"
+#include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
+
+#define LOCTEXT_NAMESPACE "GameViewport"
 
 /** This variable allows forcing full screen of the first player controller viewport, even if there are multiple controllers plugged in and no cinematic playing. */
 bool GForceFullscreen = false;
@@ -34,13 +44,14 @@ extern ENGINE_API UPrimitiveComponent* GDebugSelectedComponent;
 /** The lightmap used by the currently selected component, if it's a static mesh component. */
 extern ENGINE_API class FLightMap2D* GDebugSelectedLightmap;
 
-extern int32 GetBoundFullScreenModeCVar();
-
 /** Delegate called at the end of the frame when a screenshot is captured */
 FOnScreenshotCaptured UGameViewportClient::ScreenshotCapturedDelegate;
 
 /** A list of all the stat names which are enabled for this viewport (static so they persist between runs) */
 TArray<FString> UGameViewportClient::EnabledStats;
+
+/** The number of GameViewportClients which have enabled 'show collision' */
+int32 UGameViewportClient::NumViewportsShowingCollision = 0;
 
 /** Those sound stat flags which are enabled on this viewport */
 FViewportClient::ESoundShowFlags::Type UGameViewportClient::SoundShowFlags = FViewportClient::ESoundShowFlags::Disabled;
@@ -137,6 +148,12 @@ UGameViewportClient::UGameViewportClient(const FObjectInitializer& ObjectInitial
 
 UGameViewportClient::~UGameViewportClient()
 {
+	if (EngineShowFlags.Collision)
+	{
+		EngineShowFlags.Collision = false;
+		ToggleShowCollision();
+	}
+
 	FCoreDelegates::StatCheckEnabled.RemoveAll(this);
 	FCoreDelegates::StatEnabled.RemoveAll(this);
 	FCoreDelegates::StatDisabled.RemoveAll(this);
@@ -210,6 +227,16 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 
 	// remember our game instance
 	GameInstance = OwningGameInstance;
+
+	// Create the cursor Widgets
+	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
+
+	AddCursor(EMouseCursor::Default, UISettings->DefaultCursor);
+	AddCursor(EMouseCursor::TextEditBeam, UISettings->TextEditBeamCursor);
+	AddCursor(EMouseCursor::Crosshairs, UISettings->CrosshairsCursor);
+	AddCursor(EMouseCursor::GrabHand, UISettings->GrabHandCursor);
+	AddCursor(EMouseCursor::GrabHandClosed, UISettings->GrabHandClosedCursor);
+	AddCursor(EMouseCursor::SlashedCircle, UISettings->SlashedCircleCursor);
 }
 
 UWorld* UGameViewportClient::GetWorld() const
@@ -479,7 +506,7 @@ bool UGameViewportClient::RequiresUncapturedAxisInput() const
 }
 
 
-EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X, int32 Y )
+EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X, int32 Y)
 {
 	bool bIsPlayingMovie = false;//GetMoviePlayer()->IsMovieCurrentlyPlaying();
 
@@ -506,7 +533,7 @@ EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X
 
 #endif
 
-	if (!InViewport->HasMouseCapture() || !InViewport->HasFocus() || (ViewportConsole && ViewportConsole->ConsoleActive()))
+	if ((!InViewport->HasMouseCapture() && !InViewport->HasFocus()) || (ViewportConsole && ViewportConsole->ConsoleActive()))
 	{
 		return EMouseCursor::Default;
 	}
@@ -523,6 +550,35 @@ EMouseCursor::Type UGameViewportClient::GetCursor(FViewport* InViewport, int32 X
 	return FViewportClient::GetCursor(InViewport, X, Y);
 }
 
+void UGameViewportClient::AddCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass)
+{
+	if ( CursorClass.IsValid() )
+	{
+		UClass* Class = CursorClass.TryLoadClass<UUserWidget>();
+		if ( Class )
+		{
+			UUserWidget* UserWidget = CreateWidget<UUserWidget>(GetGameInstance(), Class);
+			if ( ensure(UserWidget) )
+			{
+				CursorWidgets.Add(Cursor, UserWidget->TakeWidget());
+			}
+		}
+		else
+		{
+			FMessageLog("PIE").Error(FText::Format(LOCTEXT("CursorClassNotFoundFormat", "The cursor class '{0}' was not found, check your custom cursor settings."), FText::FromString(CursorClass.ToString())));
+		}
+	}
+}
+
+TOptional<TSharedRef<SWidget>> UGameViewportClient::MapCursor(FViewport* Viewport, const FCursorReply& CursorReply)
+{
+	const TSharedRef<SWidget>* CursorWidgetPtr = CursorWidgets.Find(CursorReply.GetCursorType());
+	if (CursorWidgetPtr != nullptr)
+	{
+		return *CursorWidgetPtr;
+	}
+	return TOptional<TSharedRef<SWidget>>();
+}
 
 void UGameViewportClient::SetDropDetail(float DeltaSeconds)
 {
@@ -676,7 +732,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	DebugCanvasObject->Canvas = DebugCanvas;	
 	DebugCanvasObject->Init(InViewport->GetSizeXY().X, InViewport->GetSizeXY().Y, NULL);
 
-	const bool bScaledToRenderTarget = GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D();
+	const bool bScaledToRenderTarget = GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport);
 	if (bScaledToRenderTarget)
 	{
 		// Allow HMD to modify screen settings
@@ -739,7 +795,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		.SetRealtimeUpdate(true));
 
 	// Allow HMD to modify the view later, just before rendering
-	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
+	if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D(InViewport))
 	{
 		ISceneViewExtension* HmdViewExt = GEngine->HMDDevice->GetViewExtension();
 		if (HmdViewExt)
@@ -768,7 +824,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 			ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(PlayerController->Player);
 			if (LocalPlayer)
 			{
-				const bool bEnableStereo = GEngine->IsStereoscopic3D();
+				const bool bEnableStereo = GEngine->IsStereoscopic3D(InViewport);
 				int32 NumViews = bEnableStereo ? 2 : 1;
 
 				for( int i = 0; i < NumViews; ++i )
@@ -841,7 +897,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 								FReverbSettings PlayerReverbSettings;
 								FInteriorSettings PlayerInteriorSettings;
-								class AAudioVolume* PlayerAudioVolume = GetWorld()->GetAudioSettings( ViewLocation, &PlayerReverbSettings, &PlayerInteriorSettings );
+								class AAudioVolume* PlayerAudioVolume = GetWorld()->GetAudioSettings( Location, &PlayerReverbSettings, &PlayerInteriorSettings );
 
 								if (AudioVolume == nullptr || (PlayerAudioVolume != nullptr && PlayerAudioVolume->Priority > AudioVolume->Priority))
 								{
@@ -870,7 +926,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 	}
 
 	// Update level streaming.
-	GetWorld()->UpdateLevelStreaming( &ViewFamily );
+	GetWorld()->UpdateLevelStreaming();
 
 	// Draw the player views.
 	if (!bDisableWorldRendering && !bUIDisableWorldRendering && PlayerViewMap.Num() > 0)
@@ -990,7 +1046,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 							DebugCanvasObject->SceneView = View;
 							PlayerController->MyHUD->SetCanvas(CanvasObject, DebugCanvasObject);
-							if (GEngine->IsStereoscopic3D())
+							if (GEngine->IsStereoscopic3D(InViewport))
 							{
 								check(GEngine->StereoRenderingDevice.IsValid());
 								GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_LEFT_EYE, SceneCanvas, CanvasObject, Viewport);
@@ -1065,7 +1121,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		// Render the console.
 		if (ViewportConsole)
 		{
-			if (GEngine->IsStereoscopic3D())
+			if (GEngine->IsStereoscopic3D(InViewport))
 			{
 				GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_LEFT_EYE, DebugCanvas, DebugCanvasObject, Viewport);
 				ViewportConsole->PostRender_Console(DebugCanvasObject);
@@ -1112,7 +1168,7 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 		}
 	}
 
-	if (GEngine->IsStereoscopic3D())
+	if (GEngine->IsStereoscopic3D(InViewport))
 	{
 		GEngine->StereoRenderingDevice->PushViewportCanvas(eSSP_LEFT_EYE, DebugCanvas, DebugCanvasObject, InViewport);
 		DrawStatsHUD(GetWorld(), InViewport, DebugCanvas, DebugCanvasObject, DebugProperties, PlayerCameraLocation, PlayerCameraRotation);
@@ -1229,6 +1285,17 @@ void UGameViewportClient::Precache()
 	}
 }
 
+TOptional<bool> UGameViewportClient::QueryShowFocus(const EFocusCause InFocusCause) const
+{
+	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
+	if ((UISettings->RenderFocusRule == ERenderFocusRule::NonPointer && InFocusCause == EFocusCause::Mouse) ||
+		(UISettings->RenderFocusRule == ERenderFocusRule::NavigationOnly && InFocusCause != EFocusCause::Navigation))
+	{
+		return false;
+	}
+	return true;
+}
+
 void UGameViewportClient::LostFocus(FViewport* InViewport)
 {
 	// We need to reset some key inputs, since keyup events will sometimes not be processed (such as going into immersive/maximized mode).  
@@ -1237,14 +1304,14 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 	if (World)
 	{
 		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
-	{
-			APlayerController* const PlayerController = *Iterator;
-		if (PlayerController)
 		{
-			PlayerController->FlushPressedKeys();
+			APlayerController* const PlayerController = *Iterator;
+			if (PlayerController)
+			{
+				PlayerController->FlushPressedKeys();
+			}
 		}
 	}
-}
 }
 
 void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
@@ -1312,13 +1379,13 @@ void UGameViewportClient::PeekNetworkFailureMessages(UWorld *InWorld, UNetDriver
 void UGameViewportClient::SSSwapControllers()
 {
 #if !UE_BUILD_SHIPPING
-	int32 TmpControllerID = GetOuterUEngine()->GetFirstGamePlayer(this)->ControllerId;
+	const int32 TmpControllerID = GetOuterUEngine()->GetFirstGamePlayer(this)->GetControllerId();
 
 	for (int32 Idx=0; Idx<GetOuterUEngine()->GetNumGamePlayers(this)-1; ++Idx)
 	{
-		GetOuterUEngine()->GetGamePlayer(this, Idx)->ControllerId = GetOuterUEngine()->GetGamePlayer(this, Idx+1)->ControllerId;
+		GetOuterUEngine()->GetGamePlayer(this, Idx)->SetControllerId(GetOuterUEngine()->GetGamePlayer(this, Idx+1)->GetControllerId());
 	}
-	GetOuterUEngine()->GetGamePlayer(this, GetOuterUEngine()->GetNumGamePlayers(this)-1)->ControllerId = TmpControllerID;
+	GetOuterUEngine()->GetGamePlayer(this, GetOuterUEngine()->GetNumGamePlayers(this)-1)->SetControllerId(TmpControllerID);
 #endif
 }
 
@@ -1794,6 +1861,8 @@ void UGameViewportClient::RemoveViewportWidgetContent( TSharedRef<SWidget> Viewp
 
 void UGameViewportClient::RemoveAllViewportWidgets()
 {
+	CursorWidgets.Empty();
+
 	TSharedPtr< SOverlay > PinnedViewportOverlayWidget( ViewportOverlayWidget.Pin() );
 	if( PinnedViewportOverlayWidget.IsValid() )
 	{
@@ -1962,6 +2031,26 @@ bool UGameViewportClient::HandleForceFullscreenCommand( const TCHAR* Cmd, FOutpu
 	return true;
 }
 
+/** Contains the previous state of a primitive before turning on collision visibility */
+struct CollVisibilityState
+{
+	bool bHiddenInGame;
+	bool bVisible;
+
+	CollVisibilityState(bool InHidden, bool InVisible) :
+		bHiddenInGame(InHidden),
+		bVisible(InVisible)
+	{
+	}
+};
+
+typedef TMap<TWeakObjectPtr<UPrimitiveComponent>, CollVisibilityState> CollisionComponentVisibilityMap;
+CollisionComponentVisibilityMap& GetCollisionComponentVisibilityMap()
+{
+	static CollisionComponentVisibilityMap Mapping;
+	return Mapping;
+}
+
 bool UGameViewportClient::HandleShowCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
 #if UE_BUILD_SHIPPING
@@ -2028,135 +2117,58 @@ bool UGameViewportClient::HandleShowCommand( const TCHAR* Cmd, FOutputDevice& Ar
 			bool bIsACollisionFlag = FEngineShowFlags::IsNameThere(Cmd, TEXT("Collision"));
 
 			if(bCanBeToggled)
+			{
+				bool bOldState = EngineShowFlags.GetSingleFlag(FlagIndex);
+
+				EngineShowFlags.SetSingleFlag(FlagIndex, !bOldState);
+
+				if(FEngineShowFlags::IsNameThere(Cmd, TEXT("Navigation,Cover")))
 				{
-					bool bOldState = EngineShowFlags.GetSingleFlag(FlagIndex);
-
-					if(bIsACollisionFlag && !bOldState)
-					{
-						// we only want one active at a time
-						EngineShowFlags.Collision = 0;
-					}
-
-					EngineShowFlags.SetSingleFlag(FlagIndex, !bOldState);
-
-					if(FEngineShowFlags::IsNameThere(Cmd, TEXT("Navigation,Cover")))
-					{
-						VerifyPathRenderingComponents();
-					}
+					VerifyPathRenderingComponents();
+				}
 					
-					if(FEngineShowFlags::IsNameThere(Cmd, TEXT("Volumes")))
+				if(FEngineShowFlags::IsNameThere(Cmd, TEXT("Volumes")))
+				{
+					// TODO: Investigate why this is doesn't appear to work
+					if (AllowDebugViewmodes())
 					{
-						if (AllowDebugViewmodes())
+						// Iterate over all brushes
+						for( TObjectIterator<UBrushComponent> It; It; ++It )
 						{
-							// Iterate over all brushes
-							for( TObjectIterator<UBrushComponent> It; It; ++It )
+							UBrushComponent* BrushComponent = *It;
+							AVolume* Owner = Cast<AVolume>( BrushComponent->GetOwner() );
+
+							// Only bother with volume brushes that belong to the world's scene
+							if( Owner && BrushComponent->GetScene() == GetWorld()->Scene )
 							{
-								UBrushComponent* BrushComponent = *It;
-								AVolume* Owner = Cast<AVolume>( BrushComponent->GetOwner() );
+								// We're expecting this to be in the game at this point
+								check( Owner->GetWorld()->IsGameWorld() );
 
-								// Only bother with volume brushes that belong to the world's scene
-								if( Owner && BrushComponent->GetScene() == GetWorld()->Scene )
+								// Toggle visibility of this volume
+								if( BrushComponent->IsVisible() )
 								{
-									// We're expecting this to be in the game at this point
-									check( Owner->GetWorld()->IsGameWorld() );
-
-									// Toggle visibility of this volume
-									if( BrushComponent->IsVisible() )
-									{
-										Owner->bHidden = true;
-										BrushComponent->SetVisibility( false );
-									}
-									else
-									{
-										Owner->bHidden = false;
-										BrushComponent->SetVisibility( true );
-									}
+									Owner->bHidden = true;
+									BrushComponent->SetVisibility( false );
+								}
+								else
+								{
+									Owner->bHidden = false;
+									BrushComponent->SetVisibility( true );
 								}
 							}
 						}
-						else
-						{
-							Ar.Logf(TEXT("Debug viewmodes not allowed on consoles by default.  See AllowDebugViewmodes()."));
-						}
+					}
+					else
+					{
+						Ar.Logf(TEXT("Debug viewmodes not allowed on consoles by default.  See AllowDebugViewmodes()."));
 					}
 				}
+			}
 
 			if(bIsACollisionFlag)
 			{
-				// special case: for the Engine.Collision flag, we need to un-hide any primitive components that collide so their collision geometry gets rendered
-
-				/** Contains the previous state of a primitive before turning on collision visibility */
-				struct CollVisibilityState
-				{
-					bool bHiddenInGame;
-					bool bVisible;
-
-					CollVisibilityState(bool InHidden, bool InVisible) :
-					bHiddenInGame(InHidden),
-						bVisible(InVisible)
-					{
-					}
-				};
-
-				static TMap< TWeakObjectPtr<UPrimitiveComponent>, CollVisibilityState> Mapping;
-
-				{
-					// Restore state to any object touched above
-					for (TMap< TWeakObjectPtr<UPrimitiveComponent>, CollVisibilityState>::TIterator It(Mapping); It; ++It)
-					{
-						TWeakObjectPtr<UPrimitiveComponent>& PrimitiveComponent = It.Key();
-						if (PrimitiveComponent.IsValid())
-						{
-							const CollVisibilityState& VisState = It.Value();
-							PrimitiveComponent->SetHiddenInGame(VisState.bHiddenInGame);
-							PrimitiveComponent->SetVisibility(VisState.bVisible);
-						}
-					}
-					Mapping.Empty();
-				}
-
-				if (EngineShowFlags.Collision)
-					{
-						for (TObjectIterator<UPrimitiveComponent> It; It; ++It)
-						{
-							UPrimitiveComponent* PrimitiveComponent = *It;
-							if( !PrimitiveComponent->IsVisible() && PrimitiveComponent->IsCollisionEnabled() && PrimitiveComponent->GetScene() == GetWorld()->Scene )
-							{
-								check( PrimitiveComponent->GetOwner() && PrimitiveComponent->GetOwner()->GetWorld() && PrimitiveComponent->GetOwner()->GetWorld()->IsGameWorld() );
-								
-								// Save state before modifying the collision visibility
-								Mapping.Add(PrimitiveComponent, CollVisibilityState(PrimitiveComponent->bHiddenInGame, PrimitiveComponent->bVisible));
-								PrimitiveComponent->SetHiddenInGame(false);
-								PrimitiveComponent->SetVisibility(true);
-							}
-						}
-					}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-				if( EngineShowFlags.Collision )
-				{
-					for (FLocalPlayerIterator It((UEngine*)GetOuter(), InWorld); It; ++It)
-					{
-						APlayerController* PC = It->PlayerController;
-						if( PC != NULL && PC->GetPawn() != NULL )
-						{
-							PC->ClientMessage( FString::Printf(TEXT("!!!! Player Pawn %s Collision Info !!!!"), *PC->GetPawn()->GetName()) );
-							if (PC->GetPawn()->GetMovementBase())
-							{
-								PC->ClientMessage( FString::Printf(TEXT("Base %s"), *PC->GetPawn()->GetMovementBase()->GetName() ));
-							}
-							TArray<AActor*> Touching;
-							PC->GetPawn()->GetOverlappingActors(Touching);
-							for( int32 i = 0; i < Touching.Num(); i++ )
-							{
-								PC->ClientMessage( FString::Printf(TEXT("Touching %d: %s"), i, *Touching[i]->GetName() ));
-							}
-						}
-					}
-				}
-#endif
+				ToggleShowCollision();
 			}
-
 
 			return true;
 		}
@@ -2197,6 +2209,108 @@ bool UGameViewportClient::HandleShowCommand( const TCHAR* Cmd, FOutputDevice& Ar
 	}
 
 	return true;
+}
+
+TOptional<EPopupMethod> UGameViewportClient::OnQueryPopupMethod() const
+{
+	return EPopupMethod::UseCurrentWindow;
+}
+
+void UGameViewportClient::ToggleShowCollision()
+{
+	// special case: for the Engine.Collision flag, we need to un-hide any primitive components that collide so their collision geometry gets rendered
+	const bool bIsShowingCollision = EngineShowFlags.Collision;
+
+	if (bIsShowingCollision)
+	{
+		NumViewportsShowingCollision++;
+		ShowCollisionOnSpawnedActorsDelegateHandle = GetWorld()->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateUObject(this, &UGameViewportClient::ShowCollisionOnSpawnedActors));
+	}
+	else
+	{
+		NumViewportsShowingCollision--;
+		check(NumViewportsShowingCollision >= 0);
+		GetWorld()->RemoveOnActorSpawnedHandler(ShowCollisionOnSpawnedActorsDelegateHandle);
+	}
+
+	CollisionComponentVisibilityMap& Mapping = GetCollisionComponentVisibilityMap();
+
+	// Restore state to any object in the map above
+	for (CollisionComponentVisibilityMap::TIterator It(Mapping); It; ++It)
+	{
+		TWeakObjectPtr<UPrimitiveComponent>& PrimitiveComponent = It.Key();
+		if (PrimitiveComponent.IsValid())
+		{
+			const CollVisibilityState& VisState = It.Value();
+			PrimitiveComponent->SetHiddenInGame(VisState.bHiddenInGame);
+			PrimitiveComponent->SetVisibility(VisState.bVisible);
+		}
+	}
+	Mapping.Empty();
+
+	if (NumViewportsShowingCollision > 0)
+	{
+		for (TObjectIterator<UPrimitiveComponent> It; It; ++It)
+		{
+			UPrimitiveComponent* PrimitiveComponent = *It;
+			if (!PrimitiveComponent->IsVisible() && PrimitiveComponent->IsCollisionEnabled() && PrimitiveComponent->GetScene() == GetWorld()->Scene)
+			{
+				if (PrimitiveComponent->GetOwner() && PrimitiveComponent->GetOwner()->GetWorld() && PrimitiveComponent->GetOwner()->GetWorld()->IsGameWorld())
+				{
+					// Save state before modifying the collision visibility
+					Mapping.Add(PrimitiveComponent, CollVisibilityState(PrimitiveComponent->bHiddenInGame, PrimitiveComponent->bVisible));
+					PrimitiveComponent->SetHiddenInGame(false);
+					PrimitiveComponent->SetVisibility(true);
+				}
+			}
+		}
+	}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	if (EngineShowFlags.Collision)
+	{
+		for (FLocalPlayerIterator It((UEngine*)GetOuter(), GetWorld()); It; ++It)
+		{
+			APlayerController* PC = It->PlayerController;
+			if (PC != NULL && PC->GetPawn() != NULL)
+			{
+				PC->ClientMessage(FString::Printf(TEXT("!!!! Player Pawn %s Collision Info !!!!"), *PC->GetPawn()->GetName()));
+				if (PC->GetPawn()->GetMovementBase())
+				{
+					PC->ClientMessage(FString::Printf(TEXT("Base %s"), *PC->GetPawn()->GetMovementBase()->GetName()));
+				}
+				TArray<AActor*> Touching;
+				PC->GetPawn()->GetOverlappingActors(Touching);
+				for (int32 i = 0; i < Touching.Num(); i++)
+				{
+					PC->ClientMessage(FString::Printf(TEXT("Touching %d: %s"), i, *Touching[i]->GetName()));
+				}
+			}
+		}
+	}
+#endif
+}
+
+void UGameViewportClient::ShowCollisionOnSpawnedActors(AActor* Actor)
+{
+	CollisionComponentVisibilityMap& Mapping = GetCollisionComponentVisibilityMap();
+
+	TInlineComponentArray<UPrimitiveComponent*> Components;
+	check(Actor != nullptr);
+	Actor->GetComponents(Components);
+
+	for (auto Component : Components)
+	{
+		if (!Mapping.Contains(Component) && !Component->IsVisible() && Component->IsCollisionEnabled() && Component->GetScene() == GetWorld()->Scene)
+		{
+			check(Component->GetOwner() && Component->GetOwner()->GetWorld() && Component->GetOwner()->GetWorld()->IsGameWorld());
+
+			// Save state before modifying the collision visibility
+			Mapping.Add(Component, CollVisibilityState(Component->bHiddenInGame, Component->bVisible));
+			Component->SetHiddenInGame(false);
+			Component->SetVisibility(true);
+		}
+	}
 }
 
 bool UGameViewportClient::HandleShowLayerCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
@@ -2457,7 +2571,9 @@ bool UGameViewportClient::SetDisplayConfiguration(const FIntPoint* Dimensions, E
 
 bool UGameViewportClient::HandleToggleFullscreenCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 {
-	auto FullScreenMode = GetBoundFullScreenModeCVar() == 0 ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
+	auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.FullScreenMode"));
+	check(CVar);
+	auto FullScreenMode = CVar->GetValueOnGameThread() == 0 ? EWindowMode::Fullscreen : EWindowMode::WindowedFullscreen;
 	FullScreenMode = Viewport->IsFullscreen() ? EWindowMode::Windowed : FullScreenMode;
 	if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDEnabled())
 	{
@@ -2545,7 +2661,8 @@ bool UGameViewportClient::HandleScreenshotCommand( const TCHAR* Cmd, FOutputDevi
 	if(Viewport)
 	{
 		const bool bShowUI = FParse::Command(&Cmd, TEXT("SHOWUI"));
-		//		FScreenshotRequest::RequestScreenshot( bShowUI, TEXT("png") );
+
+//		FScreenshotRequest::RequestScreenshot( bShowUI, TEXT("png") );
 		// PNG is disabled for now as it breaks "shot" command in game, see UE-5780 
 		FScreenshotRequest::RequestScreenshot( bShowUI, TEXT("bmp") );
 
@@ -2899,3 +3016,4 @@ void UGameViewportClient::HandleViewportStatDisableAll(const bool bInAnyViewport
 	}
 }
 
+#undef LOCTEXT_NAMESPACE

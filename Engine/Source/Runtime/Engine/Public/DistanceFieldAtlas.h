@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldAtlas.h
@@ -41,6 +41,11 @@ public:
 
 	FIntVector GetAllocationSize() const;
 
+	int32 GetAllocationVolume() const
+	{
+		return GetAllocationSize().X * GetAllocationSize().Y * GetAllocationSize().Z;
+	}
+
 	bool IsValidDistanceFieldVolume() const;
 
 private:
@@ -75,6 +80,8 @@ public:
 	/** Reallocates the volume texture if necessary and uploads new allocations. */
 	ENGINE_API void UpdateAllocations();
 
+	int32 GetGeneration() const { return Generation; }
+
 	EPixelFormat Format;
 	FTexture3DRHIRef VolumeTextureRHI;
 
@@ -87,6 +94,9 @@ private:
 
 	/** Allocations that have already been added, stored in case we need to realloc. */
 	TArray<FDistanceFieldVolumeTexture*> CurrentAllocations;
+
+	/** Incremented when the atlas is reallocated, so dependencies know to update. */
+	int32 Generation;
 };
 
 extern ENGINE_API TGlobalResource<FDistanceFieldVolumeTextureAtlas> GDistanceFieldVolumeTextureAtlas;

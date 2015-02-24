@@ -1,9 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
 #include "MouseDeltaTracker.h"
-
+#include "Materials/MaterialInstanceDynamic.h"
+#include "Engine/Selection.h"
+#include "GameFramework/WorldSettings.h"
 
 static TAutoConsoleVariable<int32> CVarEditorNewLevelGrid(
 	TEXT("r.Editor.NewLevelGrid"),
@@ -111,16 +113,16 @@ static void GetAxisColors(FLinearColor Out[3], bool b3D)
 
 void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* PDI)
 {
-	if (LevelGridMaterial->IsCompilingOrHadCompileError(View->GetFeatureLevel()) || LevelGridMaterial2->IsCompilingOrHadCompileError(View->GetFeatureLevel()))
+	bool bUseTextureSolution = CVarEditorNewLevelGrid.GetValueOnGameThread() > 1;
+	UMaterial* GridMaterial = bUseTextureSolution ? LevelGridMaterial2 : LevelGridMaterial;
+	UMaterialInstanceDynamic* MaterialInst = bUseTextureSolution ? LevelGridMaterialInst2 : LevelGridMaterialInst;
+
+	if (GridMaterial->IsCompilingOrHadCompileError(View->GetFeatureLevel()))
 	{
 		// The material would appear to be black (because we don't use a MaterialDomain but a UsageFlag - we should change that).
 		// Here we rather want to hide it.
 		return;
 	}
-
-	bool bUseTextureSolution = CVarEditorNewLevelGrid.GetValueOnGameThread() > 1;
-
-	UMaterialInstanceDynamic *MaterialInst = bUseTextureSolution ? LevelGridMaterialInst2 : LevelGridMaterialInst;
 
 	if(!MaterialInst)
 	{
@@ -307,31 +309,24 @@ void FGridWidget::DrawNewGrid(const FSceneView* View, FPrimitiveDrawInterface* P
 FEditorCommonDrawHelper.
 ------------------------------------------------------------------------------*/
 FEditorCommonDrawHelper::FEditorCommonDrawHelper()
-	: GridWidget(0)
+	: bDrawGrid(true)
+	, bDrawPivot(true)
+	, bDrawBaseInfo(true)
+	, bDrawWorldBox(false)
+	, bDrawKillZ(false)
+	, AxesLineThickness(0.0f)
+	, GridColorAxis(70, 70, 70)
+	, GridColorMajor(40, 40, 40)
+	, GridColorMinor(20, 20, 20)
+	, PerspectiveGridSize(HALF_WORLD_MAX1)
+	, PivotColor(FColor::Red)
+	, PivotSize(0.02f)
+	, NumCells(64)
+	, BaseBoxColor(FColor::Green)
+	, DepthPriorityGroup(SDPG_World)
+	, GridDepthBias(0.000001f)
+	, GridWidget(nullptr)
 {
-	bDrawGrid = true;
-	bDrawPivot = true;
-	bDrawBaseInfo = true;
-	AxesLineThickness = 0.f;
-
-	GridColorAxis = FColor(70, 70, 70);
-	GridColorMajor = FColor(40, 40, 40);
-	GridColorMinor = FColor(20, 20, 20);
-
-	PerspectiveGridSize = HALF_WORLD_MAX1;
-	NumCells = 64;
-
-	bDrawWorldBox = false;
-	bDrawKillZ = false;
-
-	PivotColor = FColor(255,0,0);
-	PivotSize = 0.02f;
-
-	BaseBoxColor = FColor(0,255,0);
-
-	DepthPriorityGroup=SDPG_World;
-
-	GridDepthBias = 0.000001;
 }
 
 FEditorCommonDrawHelper::~FEditorCommonDrawHelper()
@@ -485,8 +480,8 @@ void FEditorCommonDrawHelper::DrawOldGrid(const FSceneView* View,FPrimitiveDrawI
 		{
 			float KillZ = GWorld->GetWorldSettings()->KillZ;
 
-			PDI->DrawLine( FVector(-HALF_WORLD_MAX,0,KillZ), FVector(HALF_WORLD_MAX,0,KillZ), FColor(255,0,0), SDPG_Foreground );
-			PDI->DrawLine( FVector(0,-HALF_WORLD_MAX,KillZ), FVector(0,HALF_WORLD_MAX,KillZ), FColor(255,0,0), SDPG_Foreground );
+			PDI->DrawLine(FVector(-HALF_WORLD_MAX, 0, KillZ), FVector(HALF_WORLD_MAX, 0, KillZ), FColor::Red, SDPG_Foreground);
+			PDI->DrawLine(FVector(0, -HALF_WORLD_MAX, KillZ), FVector(0, HALF_WORLD_MAX, KillZ), FColor::Red, SDPG_Foreground);
 		}
 	}
 

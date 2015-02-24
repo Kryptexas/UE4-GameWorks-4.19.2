@@ -1,36 +1,56 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "Tickable.h"
 #include "AIPerceptionTypes.h"
 #include "AIPerceptionSystem.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAIPerception, Warning, All);
 
-class UAISense;
-class UAIPerceptionComponent;
-
 /**
  *	By design checks perception between hostile teams
  */
-UCLASS(ClassGroup=AI, config=Game)
-class AIMODULE_API UAIPerceptionSystem : public UObject
+UCLASS(ClassGroup=AI, config=Game, defaultconfig)
+class AIMODULE_API UAIPerceptionSystem : public UObject, public FTickableGameObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 	
+public:
+
+	UAIPerceptionSystem(const FObjectInitializer& ObjectInitializer);
+
+	// We need to implement GetWorld() so that any EQS-related blueprints (such as blueprint contexts) can implement
+	// GetWorld() and so provide access to blueprint nodes using hidden WorldContextObject parameters.
+	virtual UWorld* GetWorld() const;
+
+	/** [FTickableGameObject] tick function */
+	virtual void Tick(float DeltaTime) override;
+
+	/** [FTickableGameObject] always tick, unless it's the default object */
+	virtual bool IsTickable() const override { return HasAnyFlags(RF_ClassDefaultObject) == false; }
+
+	/** [FTickableGameObject] tick stats */
+	virtual TStatId GetStatId() const override;
+
 protected:	
 	AIPerception::FListenerMap ListenerContainer;
 
 	UPROPERTY()
 	TArray<UAISense*> Senses;
 
-	UPROPERTY(config)
+	UPROPERTY(config, EditAnywhere, Category = Perception)
 	float PerceptionAgingRate;
+
+	/** gets set to true if as as result of stimuli aging (that's done outside of Tick, on timer)
+	 *	one of listeners requires an update. The update, as usual is tone in Tick where 
+	 *	bSomeListenersNeedUpdateDueToStimuliAging gets reset to false */
+	uint32 bSomeListenersNeedUpdateDueToStimuliAging : 1;
 
 	struct FDelayedStimulus
 	{
 		float DeliveryTimestamp;
-		uint32 ListenerId;
+		FPerceptionListenerID ListenerId;
 		TWeakObjectPtr<AActor> Instigator;
 		FAIStimulus Stimulus;
 	};
@@ -39,33 +59,35 @@ protected:
 
 	struct FPerceptionSourceRegistration
 	{
-		FAISenseId SenseId;
+		FAISenseID SenseID;
 		TWeakObjectPtr<AActor> Source;
 
-		FPerceptionSourceRegistration(FAISenseId InSenseId, AActor* SourceActor)
-			: SenseId(InSenseId), Source(SourceActor)
+		FPerceptionSourceRegistration(FAISenseID InSenseID, AActor* SourceActor)
+			: SenseID(InSenseID), Source(SourceActor)
 		{}
 	};
 	TArray<FPerceptionSourceRegistration> SourcesToRegister;
-
-	/** Primary tick function */
-	/*UPROPERTY()
-	struct FActorTickFunction PrimaryActorTick;*/
 
 public:
 	/** UObject begin */
 	virtual void PostInitProperties() override;
 	/* UObject end */
 
+	FORCEINLINE bool IsSenseInstantiated(const FAISenseID& SenseID) const { return SenseID.IsValid() && Senses.IsValidIndex(SenseID) && Senses[SenseID] != nullptr; }
+
 	/** Registers listener if not registered */
-	void UpdateListener(UAIPerceptionComponent* Listener);
-	void UnregisterListener(UAIPerceptionComponent* Listener);
+	void UpdateListener(UAIPerceptionComponent& Listener);
+	void UnregisterListener(UAIPerceptionComponent& Listener);
 
 	template<typename FEventClass>
 	void OnEvent(const FEventClass& Event)
 	{
-		check(Senses[FEventClass::FSenseClass::GetSenseIndex()]);
-		((typename FEventClass::FSenseClass*)Senses[FEventClass::FSenseClass::GetSenseIndex()])->RegisterEvent(Event);
+		const FAISenseID SenseID = UAISense::GetSenseID<typename FEventClass::FSenseClass>();
+		if (Senses.IsValidIndex(SenseID) && Senses[SenseID] != nullptr)
+		{
+			((typename FEventClass::FSenseClass*)Senses[SenseID])->RegisterEvent(Event);
+		}
+		// otherwise there's no one interested in this event, skip it.
 	}
 
 	template<typename FEventClass>
@@ -78,18 +100,33 @@ public:
 		}
 	}
 
-	/** requests registration of a given actor as a perception data source for specified sense */
-	void RegisterSource(FAISenseId SenseIndex, AActor& SourceActor);
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
+	void ReportEvent(UAISenseEvent* PerceptionEvent);
 
-	void ManagerTick(float DeltaSeconds);
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (WorldContext = "WorldContext"))
+	static void ReportPerceptionEvent(UObject* WorldContext, UAISenseEvent* PerceptionEvent);
+	
+	template<typename FSenseClass>
+	void RegisterSource(AActor& SourceActor);
 
-	void RegisterDelayedStimulus(uint32 ListenerId, float Delay, AActor* Instigator, const FAIStimulus& Stimulus);
+	void RegisterDelayedStimulus(FPerceptionListenerID ListenerId, float Delay, AActor* Instigator, const FAIStimulus& Stimulus);
 
 	static UAIPerceptionSystem* GetCurrent(UObject* WorldContextObject);
 
 	static void MakeNoiseImpl(AActor* NoiseMaker, float Loudness, APawn* NoiseInstigator, const FVector& NoiseLocation);
 
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception", meta = (WorldContext = "WorldContext"))
+	static bool RegisterPerceptionStimuliSource(UObject* WorldContext, TSubclassOf<UAISense> Sense, AActor* Target);
+
+	void RegisterSenseClass(TSubclassOf<UAISense> SenseClass);
+
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
+	static TSubclassOf<UAISense> GetSenseClassForStimulus(UObject* WorldContext, const FAIStimulus& Stimulus);
+	
 protected:
+	/** requests registration of a given actor as a perception data source for specified sense */
+	void RegisterSource(FAISenseID SenseID, AActor& SourceActor);
+
 	enum EDelayedStimulusSorting 
 	{
 		RequiresSorting,
@@ -109,7 +146,37 @@ protected:
 	FORCEINLINE AIPerception::FListenerMap& GetListenersMap() { return ListenerContainer; }
 
 private:
-	uint32 NextFreeListenerId;
 	/** cached world's timestamp */
 	float CurrentTime;
+
+public:
+
+#if !UE_BUILD_SHIPPING
+	//----------------------------------------------------------------------//
+	// DEBUG
+	//----------------------------------------------------------------------//
+	TArray<FColor> DebugSenseColors;
+	FString PerceptionDebugLegend;	// describes which color means what
+
+	FColor GetSenseDebugColor(FAISenseID SenseID) const;
+	FString GetSenseName(FAISenseID SenseID) const;
+	FString GetPerceptionDebugLegend() const { return PerceptionDebugLegend; }
+#endif 
+
+private:
+	FTimerHandle AgeStimuliTimerHandle;
 };
+
+//////////////////////////////////////////////////////////////////////////
+template<typename FSenseClass>
+void UAIPerceptionSystem::RegisterSource(AActor& SourceActor)
+{
+	FAISenseID SenseID = UAISense::GetSenseID<FSenseClass>();
+	if (IsSenseInstantiated(SenseID) == false)
+	{
+		RegisterSenseClass(FSenseClass::StaticClass());
+		SenseID = UAISense::GetSenseID<FSenseClass>();
+		check(SenseID.IsValid());
+	}
+	RegisterSource(SenseID, SourceActor);
+}

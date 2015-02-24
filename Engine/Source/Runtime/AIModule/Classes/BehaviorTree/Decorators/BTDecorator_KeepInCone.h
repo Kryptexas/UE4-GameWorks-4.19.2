@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "BehaviorTree/BTDecorator.h"
@@ -26,11 +26,11 @@ class AIMODULE_API UBTDecorator_KeepInCone : public UBTDecorator
 	
 	/** blackboard key selector */
 	UPROPERTY(EditAnywhere, Category=Blackboard)
-	struct FBlackboardKeySelector ConeOrigin;
+	FBlackboardKeySelector ConeOrigin;
 
 	/** blackboard key selector */
 	UPROPERTY(EditAnywhere, Category=Blackboard)
-	struct FBlackboardKeySelector Observed;
+	FBlackboardKeySelector Observed;
 
 	// deprecated, set value of ConeOrigin on initialization
 	UPROPERTY()
@@ -44,7 +44,7 @@ class AIMODULE_API UBTDecorator_KeepInCone : public UBTDecorator
 
 	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
 	virtual uint16 GetInstanceMemorySize() const override;
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
 	virtual FString GetStaticDescription() const override;
 
 #if WITH_EDITOR
@@ -53,8 +53,8 @@ class AIMODULE_API UBTDecorator_KeepInCone : public UBTDecorator
 
 protected:
 
-	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
-	virtual void TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+	virtual void OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
-	bool CalculateCurrentDirection(const UBehaviorTreeComponent* OwnerComp, FVector& Direction) const;
+	bool CalculateCurrentDirection(const UBehaviorTreeComponent& OwnerComp, FVector& Direction) const;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -27,7 +27,7 @@ class UK2Node_InputKey : public UK2Node
 	UPROPERTY(EditAnywhere, Category="Input")
 	uint32 bOverrideParentBinding:1;
 
-	// Does this binding require the control key to be held
+	// Does this binding require the control key on PC or the command key on Mac to be held
 	UPROPERTY(EditAnywhere, Category="Modifier")
 	uint32 bControl:1;
 
@@ -39,12 +39,13 @@ class UK2Node_InputKey : public UK2Node
 	UPROPERTY(EditAnywhere, Category="Modifier")
 	uint32 bShift:1;
 
-	// Does this binding require the command key to be held
+	// Does this binding require the windows key on PC or the control key on Mac to be held
 	UPROPERTY(EditAnywhere, Category="Modifier")
 	uint32 bCommand:1;
 
 	// Begin UObject interface
 	virtual void PostLoad() override;
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 	// End UObject interface
 
 	// Begin UK2Node interface.

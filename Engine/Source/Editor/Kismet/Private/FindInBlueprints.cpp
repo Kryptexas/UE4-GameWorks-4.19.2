@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "BlueprintEditorPrivatePCH.h"
 #include "BlueprintEditorCommands.h"
 #include "BlueprintEditor.h"
@@ -117,15 +117,14 @@ namespace FindInBlueprintsHelpers
 		}
 
 		TSharedPtr< FJsonObject > JsonObject = NULL;
-		TSharedRef< TJsonReader<> > Reader = TJsonReaderFactory<TCHAR>::Create( InBuffer );
-		FJsonSerializer::Deserialize( Reader, JsonObject );
+		JsonObject = FFindInBlueprintSearchManager::ConvertJsonStringToObject(InBuffer);
 
 		if(JsonObject.IsValid())
 		{
-			if(JsonObject->HasField(FFindInBlueprintSearchManager::ConvertFTextToHexString(FFindInBlueprintSearchTags::FiB_Properties)))
+			if(JsonObject->HasField(FFindInBlueprintSearchTags::FiB_Properties.ToString()))
 			{
 				// Pulls out all properties (variables) for this Blueprint
-				TArray<TSharedPtr< FJsonValue > > PropertyList = JsonObject->GetArrayField(FFindInBlueprintSearchManager::ConvertFTextToHexString(FFindInBlueprintSearchTags::FiB_Properties));
+				TArray<TSharedPtr< FJsonValue > > PropertyList = JsonObject->GetArrayField(FFindInBlueprintSearchTags::FiB_Properties.ToString());
 				for( TSharedPtr< FJsonValue > PropertyValue : PropertyList )
 				{
 					FSearchResult Result(new FFindInBlueprintsProperty(FText::GetEmpty(), OutBlueprintCategory) );
@@ -137,10 +136,33 @@ namespace FindInBlueprintsHelpers
 				}
 			}
 
-			ExtractGraph(JsonObject, FFindInBlueprintSearchManager::ConvertFTextToHexString(FFindInBlueprintSearchTags::FiB_Functions), InTokens, EGraphType::GT_Function, OutBlueprintCategory);
-			ExtractGraph(JsonObject, FFindInBlueprintSearchManager::ConvertFTextToHexString(FFindInBlueprintSearchTags::FiB_Macros), InTokens, EGraphType::GT_Macro, OutBlueprintCategory);
-			ExtractGraph(JsonObject, FFindInBlueprintSearchManager::ConvertFTextToHexString(FFindInBlueprintSearchTags::FiB_UberGraphs), InTokens, EGraphType::GT_Ubergraph, OutBlueprintCategory);
-			ExtractGraph(JsonObject, FFindInBlueprintSearchManager::ConvertFTextToHexString(FFindInBlueprintSearchTags::FiB_SubGraphs), InTokens, EGraphType::GT_Ubergraph, OutBlueprintCategory);
+			ExtractGraph(JsonObject, FFindInBlueprintSearchTags::FiB_Functions.ToString(), InTokens, EGraphType::GT_Function, OutBlueprintCategory);
+			ExtractGraph(JsonObject, FFindInBlueprintSearchTags::FiB_Macros.ToString(), InTokens, EGraphType::GT_Macro, OutBlueprintCategory);
+			ExtractGraph(JsonObject, FFindInBlueprintSearchTags::FiB_UberGraphs.ToString(), InTokens, EGraphType::GT_Ubergraph, OutBlueprintCategory);
+			ExtractGraph(JsonObject, FFindInBlueprintSearchTags::FiB_SubGraphs.ToString(), InTokens, EGraphType::GT_Ubergraph, OutBlueprintCategory);
+
+			if(JsonObject->HasField(FFindInBlueprintSearchTags::FiB_Components.ToString()))
+			{
+				FSearchResult ComponentsResult(new FFindInBlueprintsResult(FFindInBlueprintSearchTags::FiB_Components, OutBlueprintCategory) );
+
+				// Pulls out all properties (variables) for this Blueprint
+				TArray<TSharedPtr< FJsonValue > > ComponentList = JsonObject->GetArrayField(FFindInBlueprintSearchTags::FiB_Components.ToString());
+				for( TSharedPtr< FJsonValue > ComponentValue : ComponentList )
+				{
+					FSearchResult Result(new FFindInBlueprintsProperty(FText::GetEmpty(), ComponentsResult) );
+
+					if( Result->ExtractContent(ComponentValue->AsObject(), InTokens) )
+					{
+						ComponentsResult->Children.Add(Result);
+					}
+				}
+
+				// Only add the component list category if there were components
+				if(ComponentsResult->Children.Num())
+				{
+					OutBlueprintCategory->Children.Add(ComponentsResult);
+				}
+			}
 		}
 	}
 
@@ -254,7 +276,7 @@ bool FFindInBlueprintsResult::ExtractJsonValue(const TArray<FString>& InTokens, 
 		{
 			if(Array[ArrayIdx]->Type == EJson::String)
 			{
-				bArrayHasMatches |= ParseSearchInfo(InTokens, FString::FromInt(ArrayIdx), FFindInBlueprintSearchManager::ConvertHexStringToFText(Array[ArrayIdx]->AsString()), ArrayHeader);
+				bArrayHasMatches |= ParseSearchInfo(InTokens, FString::FromInt(ArrayIdx), FText::FromString(Array[ArrayIdx]->AsString()), ArrayHeader);
 			}
 			else
 			{
@@ -282,7 +304,7 @@ bool FFindInBlueprintsResult::ExtractJsonValue(const TArray<FString>& InTokens, 
 	}
 	else if(InValue->Type == EJson::String)
 	{
-		bMatchesSearchResults |= ParseSearchInfo(InTokens, InKey.ToString(), FFindInBlueprintSearchManager::ConvertHexStringToFText(InValue->AsString()), ParentResultPtr);
+		bMatchesSearchResults |= ParseSearchInfo(InTokens, InKey.ToString(), FText::FromString(InValue->AsString()), ParentResultPtr);
 	}
 	else
 	{
@@ -300,14 +322,14 @@ bool FFindInBlueprintsResult::ExtractContent(TSharedPtr< FJsonObject > InJsonNod
 
 	for( auto MapValues : InJsonNode->Values )
 	{
-		bMatchesSearchResults |= ExtractJsonValue(InTokens, FFindInBlueprintSearchManager::ConvertHexStringToFText(MapValues.Key), MapValues.Value, ParentResultPtr);
+		bMatchesSearchResults |= ExtractJsonValue(InTokens, FText::FromString(MapValues.Key), MapValues.Value, ParentResultPtr);
 	}
 	return bMatchesSearchResults;
 }
 
-FString FFindInBlueprintsResult::GetCategory() const
+FText FFindInBlueprintsResult::GetCategory() const
 {
-	return FString();
+	return FText::GetEmpty();
 }
 
 TSharedRef<SWidget> FFindInBlueprintsResult::CreateIcon() const
@@ -328,14 +350,31 @@ FString FFindInBlueprintsResult::GetCommentText() const
 
 UBlueprint* FFindInBlueprintsResult::GetParentBlueprint() const
 {
+	UBlueprint* ResultBlueprint = nullptr;
 	if (Parent.IsValid())
 	{
-		return Parent.Pin()->GetParentBlueprint();
+		ResultBlueprint = Parent.Pin()->GetParentBlueprint();
 	}
 	else
 	{
-		return Cast<UBlueprint>(StaticLoadObject(UBlueprint::StaticClass(), NULL, *DisplayText.ToString()));
+		GIsEditorLoadingPackage = true;
+		UObject* Object = LoadObject<UObject>(NULL, *DisplayText.ToString(), NULL, 0, NULL); //StaticLoadObject(UObject::StaticClass(), NULL, *DisplayText.ToString());
+		GIsEditorLoadingPackage = false;
+
+		if(UBlueprint* BlueprintObj = Cast<UBlueprint>(Object))
+		{
+			ResultBlueprint = BlueprintObj;
+		}
+		else if(UWorld* WorldObj = Cast<UWorld>(Object))
+		{
+			if(WorldObj->PersistentLevel)
+			{
+				ResultBlueprint = Cast<UBlueprint>((UObject*)WorldObj->PersistentLevel->GetLevelScriptBlueprint(true));
+			}
+		}
+
 	}
+	return ResultBlueprint;
 }
 
 void FFindInBlueprintsResult::ExpandAllChildren( TSharedPtr< STreeView< TSharedPtr< FFindInBlueprintsResult > > > InTreeView )
@@ -350,9 +389,9 @@ void FFindInBlueprintsResult::ExpandAllChildren( TSharedPtr< STreeView< TSharedP
 	}
 }
 
-FString FFindInBlueprintsResult::GetDisplayString() const
+FText FFindInBlueprintsResult::GetDisplayString() const
 {
-	return DisplayText.ToString();
+	return DisplayText;
 }
 
 //////////////////////////////////////////////////////////
@@ -440,17 +479,17 @@ bool FFindInBlueprintsGraphNode::ExtractContent(TSharedPtr< FJsonObject > InJson
 {
 	// Very important to get the schema first, other bits of data depend on it
 	FString SchemaName;
-	TSharedPtr< FJsonValue > SchemaNameValue = InJsonNode->GetField< EJson::String >(FFindInBlueprintSearchManager::ConvertFTextToHexString(FFindInBlueprintSearchTags::FiB_SchemaName));
+	TSharedPtr< FJsonValue > SchemaNameValue = InJsonNode->GetField< EJson::String >(FFindInBlueprintSearchTags::FiB_SchemaName.ToString());
 	if(SchemaNameValue.IsValid())
 	{
-		SchemaName = FFindInBlueprintSearchManager::ConvertHexStringToFText(SchemaNameValue->AsString()).ToString();
+		SchemaName = SchemaNameValue->AsString();
 	}
 
 	bool bMatchesSearchResults = false;
 
 	for( auto MapValues : InJsonNode->Values )
 	{
-		FText Key = FFindInBlueprintSearchManager::ConvertHexStringToFText(MapValues.Key);
+		FText Key = FText::FromString(MapValues.Key);
 
 		if(Key.CompareTo(FFindInBlueprintSearchTags::FiB_Pins) == 0)
 		{
@@ -474,36 +513,36 @@ bool FFindInBlueprintsGraphNode::ExtractContent(TSharedPtr< FJsonObject > InJson
 		}
 		else
 		{
-			bMatchesSearchResults |= ExtractJsonValue(InTokens, FFindInBlueprintSearchManager::ConvertHexStringToFText(MapValues.Key), MapValues.Value, SharedThis( this ));
+			bMatchesSearchResults |= ExtractJsonValue(InTokens, FText::FromString(MapValues.Key), MapValues.Value, SharedThis( this ));
 		}
 	}
 	return bMatchesSearchResults;
 }
 
-FString FFindInBlueprintsGraphNode::GetCategory() const
+FText FFindInBlueprintsGraphNode::GetCategory() const
 {
 	if(Class == UK2Node_CallFunction::StaticClass())
 	{
-		return LOCTEXT("CallFuctionCat", "Function Call").ToString();
+		return LOCTEXT("CallFuctionCat", "Function Call");
 	}
 	else if(Class == UK2Node_MacroInstance::StaticClass())
 	{
-		return LOCTEXT("MacroCategory", "Macro").ToString();
+		return LOCTEXT("MacroCategory", "Macro");
 	}
 	else if(Class == UK2Node_Event::StaticClass())
 	{
-		return LOCTEXT("EventCat", "Event").ToString();
+		return LOCTEXT("EventCat", "Event");
 	}
 	else if(Class == UK2Node_VariableGet::StaticClass())
 	{
-		return LOCTEXT("VariableGetCategory", "Variable Get").ToString();
+		return LOCTEXT("VariableGetCategory", "Variable Get");
 	}
 	else if(Class == UK2Node_VariableSet::StaticClass())
 	{
-		return LOCTEXT("VariableSetCategory", "Variable Set").ToString();
+		return LOCTEXT("VariableSetCategory", "Variable Set");
 	}
 
-	return LOCTEXT("NodeCategory", "Node").ToString();
+	return LOCTEXT("NodeCategory", "Node");
 }
 
 void FFindInBlueprintsGraphNode::FinalizeSearchData()
@@ -545,7 +584,7 @@ TSharedRef<SWidget> FFindInBlueprintsPin::CreateIcon() const
 	return 	SNew(SImage)
 		.Image(Brush)
 		.ColorAndOpacity(IconColor)
-		.ToolTipText(FindInBlueprintsHelpers::GetPinTypeAsString(PinType) );
+		.ToolTipText(FText::FromString(FindInBlueprintsHelpers::GetPinTypeAsString(PinType)));
 }
 
 bool FFindInBlueprintsPin::ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent)
@@ -559,8 +598,11 @@ bool FFindInBlueprintsPin::ParseSearchInfo(const TArray<FString> &InTokens, FStr
 	}
 	else if(FindInBlueprintsHelpers::ParsePinType(InKey, InValue, PinType, PinSubCategory))
 	{
-		// PinType information is not searchable
-		bMatchesTokens = false;
+		// For pins, the only information in the Pin Type we care about is the object class, so return false if the Key is not that
+		if(InKey != FFindInBlueprintSearchTags::FiB_ObjectClass.ToString())
+		{
+			return false;
+		}
 	}
 	else
 	{
@@ -573,9 +615,9 @@ bool FFindInBlueprintsPin::ParseSearchInfo(const TArray<FString> &InTokens, FStr
 	return bMatchesTokens;
 }
 
-FString FFindInBlueprintsPin::GetCategory() const
+FText FFindInBlueprintsPin::GetCategory() const
 {
-	return LOCTEXT("PinCategory", "Pin").ToString();
+	return LOCTEXT("PinCategory", "Pin");
 }
 
 void FFindInBlueprintsPin::FinalizeSearchData()
@@ -609,6 +651,7 @@ void FFindInBlueprintsPin::FinalizeSearchData()
 
 FFindInBlueprintsProperty::FFindInBlueprintsProperty(const FText& InValue, TSharedPtr<FFindInBlueprintsResult> InParent)
 	: FFindInBlueprintsResult(InValue, InParent)
+	, bIsSCSComponent(false)
 {
 }
 
@@ -621,7 +664,7 @@ TSharedRef<SWidget> FFindInBlueprintsProperty::CreateIcon() const
 	return 	SNew(SImage)
 		.Image(Brush)
 		.ColorAndOpacity(IconColor)
-		.ToolTipText( FindInBlueprintsHelpers::GetPinTypeAsString(PinType) );
+		.ToolTipText( FText::FromString(FindInBlueprintsHelpers::GetPinTypeAsString(PinType)) );
 }
 
 bool FFindInBlueprintsProperty::ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent)
@@ -634,7 +677,18 @@ bool FFindInBlueprintsProperty::ParseSearchInfo(const TArray<FString> &InTokens,
 	}
 	else if(FindInBlueprintsHelpers::ParsePinType(InKey, InValue, PinType, PinSubCategory))
 	{
-		// Do not need to do anything
+		// For properties, we care about all the information in the pin type, except whether its a reference or an array
+		if(InKey == FFindInBlueprintSearchTags::FiB_IsArray.ToString() || InKey == FFindInBlueprintSearchTags::FiB_IsReference.ToString())
+		{
+			return false;
+		}
+	}
+	else if(InKey == FFindInBlueprintSearchTags::FiB_IsSCSComponent.ToString())
+	{
+		bIsSCSComponent = true;
+
+		// This value is not searchable
+		bMatchesTokens = false;
 	}
 	else
 	{
@@ -647,9 +701,13 @@ bool FFindInBlueprintsProperty::ParseSearchInfo(const TArray<FString> &InTokens,
 	return bMatchesTokens;
 }
 
-FString FFindInBlueprintsProperty::GetCategory() const
+FText FFindInBlueprintsProperty::GetCategory() const
 {
-	return LOCTEXT("Variable", "Variable").ToString();
+	if(bIsSCSComponent)
+	{
+		return LOCTEXT("Component", "Component");
+	}
+	return LOCTEXT("Variable", "Variable");
 }
 
 void FFindInBlueprintsProperty::FinalizeSearchData()
@@ -724,7 +782,7 @@ bool FFindInBlueprintsGraph::ExtractContent(TSharedPtr< FJsonObject > InJsonNode
 
 	for( auto MapValues : InJsonNode->Values )
 	{
-		FText Key = FFindInBlueprintSearchManager::ConvertHexStringToFText(MapValues.Key);
+		FText Key = FText::FromString(MapValues.Key);
 
 		if(Key.CompareTo(FFindInBlueprintSearchTags::FiB_Nodes) == 0)
 		{
@@ -763,7 +821,7 @@ bool FFindInBlueprintsGraph::ExtractContent(TSharedPtr< FJsonObject > InJsonNode
 		}
 		else
 		{
-			bMatchesSearchResults |= ExtractJsonValue( InTokens, FFindInBlueprintSearchManager::ConvertHexStringToFText(MapValues.Key), MapValues.Value, SharedThis( this ) );
+			bMatchesSearchResults |= ExtractJsonValue( InTokens, FText::FromString(MapValues.Key), MapValues.Value, SharedThis( this ) );
 		}
 	}
 	return bMatchesSearchResults;
@@ -788,17 +846,17 @@ bool FFindInBlueprintsGraph::ParseSearchInfo(const TArray<FString> &InTokens, FS
 	return bMatchesTokens;
 }
 
-FString FFindInBlueprintsGraph::GetCategory() const
+FText FFindInBlueprintsGraph::GetCategory() const
 {
 	if(GraphType == GT_Function)
 	{
-		return LOCTEXT("FunctionGraphCategory", "Function").ToString();
+		return LOCTEXT("FunctionGraphCategory", "Function");
 	}
 	else if(GraphType == GT_Macro)
 	{
-		return LOCTEXT("MacroGraphCategory", "Macro").ToString();
+		return LOCTEXT("MacroGraphCategory", "Macro");
 	}
-	return LOCTEXT("GraphCategory", "Graph").ToString();
+	return LOCTEXT("GraphCategory", "Graph");
 }
 
 ////////////////////////////////////
@@ -999,7 +1057,7 @@ void SFindInBlueprints::Construct( const FArguments& InArgs, TSharedPtr<FBluepri
 				[
 					SNew(STextBlock)
 					.Font( FEditorStyle::GetFontStyle("AssetDiscoveryIndicator.DiscovertingAssetsFont") )
-					.Text( LOCTEXT("SearchResults", "Searching...").ToString() )
+					.Text( LOCTEXT("SearchResults", "Searching...") )
 					.Visibility(this, &SFindInBlueprints::GetSearchbarVisiblity)
 				]
 
@@ -1013,115 +1071,6 @@ void SFindInBlueprints::Construct( const FArguments& InArgs, TSharedPtr<FBluepri
 				]
 			]
 		];
-}
-
-void SFindInBlueprints::ConditionallyAddCacheBar()
-{
-	// Do not add a second cache bar and do not add it when there are no uncached Blueprints
-	if(FFindInBlueprintSearchManager::Get().GetNumberUncachedBlueprints() > 0)
-	{
-		if(MainVerticalBox.IsValid() && !CacheBarSlot.IsValid())
-		{
-			MainVerticalBox.Pin()->AddSlot()
-				.AutoHeight()
-				[
-					SAssignNew(CacheBarSlot, SBorder)
-					.Visibility( this, &SFindInBlueprints::GetCachingBarVisibility )
-					.BorderBackgroundColor( this, &SFindInBlueprints::GetCachingBarColor )
-					.BorderImage( FCoreStyle::Get().GetBrush("ErrorReporting.Box") )
-					.Padding( FMargin(3,1) )
-					[
-						SNew(SVerticalBox)
-
-						+SVerticalBox::Slot()
-							.AutoHeight()
-						[
-							SNew(SHorizontalBox)
-							+SHorizontalBox::Slot()
-							.VAlign(EVerticalAlignment::VAlign_Center)
-							.AutoWidth()
-							[
-								SNew(STextBlock)
-								.Text(this, &SFindInBlueprints::GetUncachedBlueprintWarningText)
-								.ColorAndOpacity( FCoreStyle::Get().GetColor("ErrorReporting.ForegroundColor") )
-							]
-
-							// Cache All button
-							+SHorizontalBox::Slot()
-								.AutoWidth()
-								.VAlign(EVerticalAlignment::VAlign_Center)
-								.Padding(6.0f, 2.0f, 4.0f, 2.0f)
-								[
-									SNew(SButton)
-									.Text(LOCTEXT("IndexAllBlueprints", "Index All"))
-									.OnClicked( this, &SFindInBlueprints::OnCacheAllBlueprints )
-									.Visibility( this, &SFindInBlueprints::GetCacheAllButtonVisibility )
-									.ToolTip(IDocumentation::Get()->CreateToolTip(
-										LOCTEXT("IndexAlLBlueprints_Tooltip", "Loads all non-indexed Blueprints and stores the data with the DDC. This can be a very slow process, feel free to cancel it whenever and benefit from the Blueprints it indexes."),
-										NULL,
-										TEXT("Shared/Editors/BlueprintEditor"),
-										TEXT("FindInBlueprint_IndexAll")))
-								]
-
-							// Cache progress bar
-							+SHorizontalBox::Slot()
-								.FillWidth(1.0f)
-								.Padding(4.0f, 2.0f, 4.0f, 2.0f)
-								[
-									SNew(SProgressBar)
-									.Percent( this, &SFindInBlueprints::GetPercentCompleteCache )
-									.Visibility( this, &SFindInBlueprints::GetCachingProgressBarVisiblity )
-								]
-
-							// Cancel button
-							+SHorizontalBox::Slot()
-								.AutoWidth()
-								.Padding(4.0f, 2.0f, 0.0f, 2.0f)
-								[
-									SNew(SButton)
-									.Text(LOCTEXT("CancelCacheAll", "Cancel"))
-									.OnClicked( this, &SFindInBlueprints::OnCancelCacheAll )
-									.Visibility( this, &SFindInBlueprints::GetCachingProgressBarVisiblity )
-									.ToolTipText( LOCTEXT("CancelCacheAll_Tooltip", "Stops the caching process from where ever it is, can be started back up where it left off when needed.") )
-								]
-
-							// "X" to remove the bar
-							+SHorizontalBox::Slot()
-								.HAlign(HAlign_Right)
-								[
-									SNew(SButton)
-									.ButtonStyle( FCoreStyle::Get(), "NoBorder" )
-									.ContentPadding(0)
-									.HAlign(HAlign_Center)
-									.VAlign(VAlign_Center)
-									.OnClicked( this, &SFindInBlueprints::OnRemoveCacheBar )
-									.ForegroundColor( FSlateColor::UseForeground() )
-									[
-										SNew(SImage)
-										.Image( FCoreStyle::Get().GetBrush("EditableComboBox.Delete") )
-										.ColorAndOpacity( FSlateColor::UseForeground() )
-									]
-								]
-						]
-
-						+SVerticalBox::Slot()
-							.AutoHeight()
-							.Padding(8.0f, 0.0f, 0.0f, 2.0f)
-						[
-							SNew(STextBlock)
-							.Text(this, &SFindInBlueprints::GetCurrentCacheBlueprintName)
-							.Visibility( this, &SFindInBlueprints::GetCachingBlueprintNameVisiblity )
-							.ColorAndOpacity( FCoreStyle::Get().GetColor("ErrorReporting.ForegroundColor") )
-						]
-					]
-				];
-		}
-	}
-	else
-	{
-		// Because there are no uncached Blueprints, remove the bar
-		OnRemoveCacheBar();
-	}
 }
 
 FReply SFindInBlueprints::OnRemoveCacheBar()
@@ -1175,9 +1124,6 @@ void SFindInBlueprints::Tick( const FGeometry& AllottedGeometry, const double In
 				TreeView->RequestTreeRefresh();
 			}
 
-			// Add the cache bar if needed.
-			ConditionallyAddCacheBar();
-
 			StreamSearch->EnsureCompletion();
 			StreamSearch.Reset();
 		}
@@ -1215,7 +1161,16 @@ void SFindInBlueprints::FocusForUse(bool bSetFindWithinBlueprint, FString NewSea
 		// Select the first result
 		if (bSelectFirstResult && ItemsFound.Num())
 		{
-			TreeView->SetSelection(ItemsFound[0]);
+			auto ItemToFocusOn = ItemsFound[0];
+
+			// We want the first childmost item to select, as that is the item that is most-likely to be what was searched for (parents being graphs).
+			// Will fail back upward as neccessary to focus on a focusable item
+			while(ItemToFocusOn->Children.Num())
+			{
+				ItemToFocusOn = ItemToFocusOn->Children[0];
+			}
+			TreeView->SetSelection(ItemToFocusOn);
+			ItemToFocusOn->OnClick();
 		}
 	}
 }
@@ -1233,14 +1188,14 @@ void SFindInBlueprints::OnSearchTextCommitted( const FText& Text, ETextCommit::T
 	}
 }
 
-void SFindInBlueprints::OnFindModeChanged(ESlateCheckBoxState::Type CheckState)
+void SFindInBlueprints::OnFindModeChanged(ECheckBoxState CheckState)
 {
-	bIsInFindWithinBlueprintMode = CheckState == ESlateCheckBoxState::Checked;
+	bIsInFindWithinBlueprintMode = CheckState == ECheckBoxState::Checked;
 }
 
-ESlateCheckBoxState::Type SFindInBlueprints::OnGetFindModeChecked() const
+ECheckBoxState SFindInBlueprints::OnGetFindModeChecked() const
 {
-	return bIsInFindWithinBlueprintMode ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bIsInFindWithinBlueprintMode ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 void SFindInBlueprints::InitiateSearch()
@@ -1324,6 +1279,7 @@ void SFindInBlueprints::MatchTokensWithinBlueprint(const TArray<FString>& Tokens
 	{
 		// Insert a fake result to inform user if none found
 		ItemsFound.Add(FSearchResult(new FFindInBlueprintsResult(LOCTEXT("BlueprintSearchNoResults", "No Results found"))));
+		HighlightText = FText::GetEmpty();
 		TreeView->RequestTreeRefresh();
 	}
 	else
@@ -1367,29 +1323,27 @@ TSharedRef<ITableRow> SFindInBlueprints::OnGenerateRow( FSearchResult InItem, co
 				[
 					SNew(STextBlock)
 					.Text(InItem.Get(), &FFindInBlueprintsResult::GetDisplayString)
-					.ToolTipText(LOCTEXT("BlueprintCatSearchToolTip", "Blueprint").ToString())
+					.ToolTipText(LOCTEXT("BlueprintCatSearchToolTip", "Blueprint"))
 				]
 			];
 	}
 	else // Functions/Event/Pin widget
 	{
-		FString CommentText;
+		FText CommentText = FText::GetEmpty();
 
 		if(!InItem->GetCommentText().IsEmpty())
 		{
 			FFormatNamedArguments Args;
 			Args.Add(TEXT("Comment"), FText::FromString(InItem->GetCommentText()));
 
-			CommentText = FText::Format(LOCTEXT("NodeComment", "Node Comment:[{Comment}]"), Args).ToString();
+			CommentText = FText::Format(LOCTEXT("NodeComment", "Node Comment:[{Comment}]"), Args);
 		}
 
-		FString Tooltip;
-
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("Category"), FText::FromString(InItem->GetCategory()));
+		Args.Add(TEXT("Category"), InItem->GetCategory());
 		Args.Add(TEXT("DisplayTitle"), InItem->DisplayText);
 
-		Tooltip = FText::Format(LOCTEXT("BlueprintResultSearchToolTip", "{Category} : {DisplayTitle}"), Args).ToString();
+		FText Tooltip = FText::Format(LOCTEXT("BlueprintResultSearchToolTip", "{Category} : {DisplayTitle}"), Args);
 
 		return SNew( STableRow< TSharedPtr<FFindInBlueprintsResult> >, OwnerTable )
 			[
@@ -1452,100 +1406,6 @@ EVisibility SFindInBlueprints::GetSearchbarVisiblity() const
 	return StreamSearch.IsValid()? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-FReply SFindInBlueprints::OnCacheAllBlueprints()
-{
-	FFindInBlueprintSearchManager::Get().CacheAllUncachedBlueprints(SharedThis(this));
-	return FReply::Handled();
-}
-
-FReply SFindInBlueprints::OnCancelCacheAll()
-{
-	FFindInBlueprintSearchManager::Get().CancelCacheAll();
-
-	// Resubmit the last search
-	OnSearchTextCommitted(SearchTextField->GetText(), ETextCommit::OnEnter);
-
-	return FReply::Handled();
-}
-
-int32 SFindInBlueprints::GetCurrentCacheIndex() const
-{
-	return FFindInBlueprintSearchManager::Get().GetCurrentCacheIndex();
-}
-
-TOptional<float> SFindInBlueprints::GetPercentCompleteCache() const
-{
-	return FFindInBlueprintSearchManager::Get().GetCacheProgress();
-}
-
-EVisibility SFindInBlueprints::GetCachingProgressBarVisiblity() const
-{
-	return IsCacheInProgress()? EVisibility::Visible : EVisibility::Hidden;
-}
-
-EVisibility SFindInBlueprints::GetCacheAllButtonVisibility() const
-{
-	return IsCacheInProgress()? EVisibility::Collapsed : EVisibility::Visible;
-}
-
-EVisibility SFindInBlueprints::GetCachingBarVisibility() const
-{
-	return (FFindInBlueprintSearchManager::Get().GetNumberUncachedBlueprints() > 0)? EVisibility::Visible : EVisibility::Collapsed;
-}
-
-EVisibility SFindInBlueprints::GetCachingBlueprintNameVisiblity() const
-{
-	return IsCacheInProgress()? EVisibility::Visible : EVisibility::Collapsed;
-}
-
-bool SFindInBlueprints::IsCacheInProgress() const
-{
-	return FFindInBlueprintSearchManager::Get().IsCacheInProgress();
-}
-
-FSlateColor SFindInBlueprints::GetCachingBarColor() const
-{
-	// The caching bar's default color is a darkish red
-	FSlateColor ReturnColor = FSlateColor(FLinearColor(0.4f, 0.0f, 0.0f));
-	if(IsCacheInProgress())
-	{
-		// It turns yellow when in progress
-		ReturnColor = FSlateColor(FLinearColor(0.4f, 0.4f, 0.0f));
-	}
-	return ReturnColor;
-}
-
-FText SFindInBlueprints::GetUncachedBlueprintWarningText() const
-{
-	FFormatNamedArguments Args;
-	Args.Add(TEXT("Count"), FFindInBlueprintSearchManager::Get().GetNumberUncachedBlueprints());
-
-	FText ReturnDisplayText;
-	if(IsCacheInProgress())
-	{
-		Args.Add(TEXT("CurrentIndex"), FFindInBlueprintSearchManager::Get().GetCurrentCacheIndex());
-
-		ReturnDisplayText = FText::Format(LOCTEXT("CachingBlueprints", "Indexing Blueprints... {CurrentIndex}/{Count}"), Args);
-	}
-	else
-	{
-		ReturnDisplayText = FText::Format(LOCTEXT("UncachedBlueprints", "Search incomplete. {Count} Blueprints are not indexed!"), Args);
-	}
-
-	return ReturnDisplayText;
-}
-
-FText SFindInBlueprints::GetCurrentCacheBlueprintName() const
-{
-	return FText::FromString(FFindInBlueprintSearchManager::Get().GetCurrentCacheBlueprintName());
-}
-
-void SFindInBlueprints::OnCacheComplete()
-{
-	// Resubmit the last search, which will also remove the bar if needed
-	OnSearchTextCommitted(SearchTextField->GetText(), ETextCommit::OnEnter);
-}
-
 TSharedPtr<SWidget> SFindInBlueprints::OnContextMenuOpening()
 {
 	const bool bShouldCloseWindowAfterMenuSelection = true;
@@ -1594,7 +1454,7 @@ void SFindInBlueprints::OnCopyAction()
 		}
 
 		// Add the display string
-		SelectedText += SelectedItem->GetDisplayString();
+		SelectedText += SelectedItem->GetDisplayString().ToString();
 
 		// If there is a comment, add two indents and then the comment
 		FString CommentText = SelectedItem->GetCommentText();

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "BigInt.h"
@@ -9,6 +9,11 @@ static int32 GSRandSeed;
 void FGenericPlatformMath::SRandInit( int32 Seed ) 
 {
 	GSRandSeed = Seed; 
+}
+
+int32 FGenericPlatformMath::GetRandSeed()
+{
+	return GSRandSeed;
 }
 
 float FGenericPlatformMath::SRand() 

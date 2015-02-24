@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,6 +20,9 @@ struct ITutorialListEntry
 
 	/** Get the string representation of this item's title */
 	virtual FString GetTitleString() const = 0;
+
+	/** Get a priority value to override alphabetical sorting */
+	virtual int32 GetSortOrder() const = 0;
 
 	/** 
 	 * Sort this entry against another entry

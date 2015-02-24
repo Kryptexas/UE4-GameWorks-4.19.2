@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,10 +7,10 @@
 
 struct FProjectLauncherMessage
 {
-	FString Message;
+	FText Message;
 	ELogVerbosity::Type Verbosity;
 
-	FProjectLauncherMessage(const FString& NewMessage, ELogVerbosity::Type InVerbosity)
+	FProjectLauncherMessage(const FText& NewMessage, ELogVerbosity::Type InVerbosity)
 		: Message(NewMessage)
 		, Verbosity(InVerbosity)
 	{ }

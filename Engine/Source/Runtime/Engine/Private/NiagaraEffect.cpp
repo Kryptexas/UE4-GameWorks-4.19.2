@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/NiagaraEffect.h"
@@ -8,39 +8,66 @@
 UNiagaraEffect::UNiagaraEffect(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
-
 }
 
 
 
-TSharedPtr<FNiagaraSimulation> UNiagaraEffect::AddEmitter()
+FNiagaraEmitterProperties *UNiagaraEffect::AddEmitterProperties()
 {
-	FNiagaraEmitterProperties Props;
+	FNiagaraEmitterProperties *Props = new FNiagaraEmitterProperties();
 	EmitterProps.Add(Props);
-
-	TSharedPtr<FNiagaraSimulation> Sim = MakeShareable(new FNiagaraSimulation(&EmitterProps.Top()));
-
-	Sim->SetRenderModuleType(RMT_Sprites, Component->GetWorld()->FeatureLevel);
-	Emitters.Add(Sim);
-
-	FNiagaraSceneProxy *SceneProxy = static_cast<FNiagaraSceneProxy*>(Component->SceneProxy);
-	SceneProxy->UpdateEffectRenderers(this);
-
-	return Sim;
+	return Props;
 }
 
 
+
+void UNiagaraEffect::CreateEffectRendererProps(TSharedPtr<FNiagaraSimulation> Sim)
+{
+	UClass *RendererProps = Sim->GetEffectRenderer()->GetPropertiesClass();
+	if (RendererProps)
+	{
+		Sim->GetProperties()->RendererProperties = ConstructObject<UNiagaraEffectRendererProperties>(RendererProps, this);
+	}
+	else
+	{
+		Sim->GetProperties()->RendererProperties = nullptr;
+	}
+}
 
 
 void UNiagaraEffect::PostLoad()
 {
 	Super::PostLoad();
-
-	Emitters.Empty();
-
-	for (FNiagaraEmitterProperties &Props : EmitterProps)
+	EmitterProps.Empty();
+	for (FNiagaraEmitterProperties &Props : EmitterPropsSerialized)
 	{
-		FNiagaraSimulation *Sim = new FNiagaraSimulation(&Props);
-		Emitters.Add(MakeShareable(Sim));
+		FNiagaraEmitterProperties *NewProps = new FNiagaraEmitterProperties(Props);
+		EmitterProps.Add(NewProps);
 	}
+}
+
+
+void UNiagaraEffect::PreSave()
+{
+	EmitterPropsSerialized.Empty();
+	for (FNiagaraEmitterProperties *Props : EmitterProps)
+	{
+		EmitterPropsSerialized.Add(*Props);
+	}
+}
+
+
+
+
+TSharedPtr<FNiagaraSimulation> FNiagaraEffectInstance::AddEmitter(FNiagaraEmitterProperties *Properties)
+{
+	FNiagaraSimulation *SimPtr = new FNiagaraSimulation(Properties);
+	TSharedPtr<FNiagaraSimulation> Sim = MakeShareable(SimPtr);
+
+	Sim->SetRenderModuleType(RMT_Sprites, Component->GetWorld()->FeatureLevel);
+	Emitters.Add(Sim);
+	FNiagaraSceneProxy *SceneProxy = static_cast<FNiagaraSceneProxy*>(Component->SceneProxy);
+	SceneProxy->UpdateEffectRenderers(this);
+
+	return Sim;
 }

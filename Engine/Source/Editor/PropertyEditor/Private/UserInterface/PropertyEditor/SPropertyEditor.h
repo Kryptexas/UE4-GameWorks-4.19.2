@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "PropertyEditor.h"
@@ -26,7 +26,7 @@ public:
 				// Make a read only text box so that copy still works
 				SNew( SEditableTextBox )
 				.Text( InPropertyEditor, &FPropertyEditor::GetValueAsText )
-				.ToolTipText( InPropertyEditor, &FPropertyEditor::GetValueAsString )
+				.ToolTipText( InPropertyEditor, &FPropertyEditor::GetValueAsText )
 				.Font( InArgs._Font )
 				.IsReadOnly( true )
 			];

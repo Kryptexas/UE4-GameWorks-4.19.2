@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "GameplayTagAssetInterface.h"
 #include "AttributeSet.h"
 #include "GameplayPrediction.h"
+#include "AbilitySystemLog.h"
 #include "GameplayEffectTypes.generated.h"
 
 #define SKILL_SYSTEM_AGGREGATOR_DEBUG 1
@@ -43,7 +44,6 @@ namespace EGameplayModOp
 
 		// Other
 		Override 			UMETA(DisplayName="Override"),	// This should always be the first non numeric ModOp
-		Callback			UMETA(DisplayName="Custom"),
 
 		// This must always be at the end
 		Max					UMETA(DisplayName="Invalid")
@@ -82,6 +82,13 @@ namespace EGameplayEffectStackingPolicy
 	};
 }
 
+/** Enumeration for options of where to capture gameplay attributes from for gameplay effects */
+UENUM()
+enum class EGameplayEffectAttributeCaptureSource : uint8
+{
+	Source,	// Source (caster) of the gameplay effect
+	Target	// Target (recipient) of the gameplay effect
+};
 
 /**
  * This handle is required for things outside of FActiveGameplayEffectsContainer to refer to a specific active GameplayEffect
@@ -89,7 +96,7 @@ namespace EGameplayEffectStackingPolicy
  *	through a handle. a pointer or index into the active list is not sufficient.
  */
 USTRUCT(BlueprintType)
-struct FActiveGameplayEffectHandle
+struct GAMEPLAYABILITIES_API FActiveGameplayEffectHandle
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -113,6 +120,9 @@ struct FActiveGameplayEffectHandle
 	static FActiveGameplayEffectHandle GenerateNewHandle(UAbilitySystemComponent* OwningComponent);
 
 	UAbilitySystemComponent* GetOwningAbilitySystemComponent();
+	const UAbilitySystemComponent* GetOwningAbilitySystemComponent() const;
+
+	void RemoveFromGlobalMap();
 
 	bool operator==(const FActiveGameplayEffectHandle& Other) const
 	{
@@ -140,6 +150,96 @@ private:
 	int32 Handle;
 };
 
+USTRUCT()
+struct FGameplayModifierEvaluatedData
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayModifierEvaluatedData()
+		: Attribute()
+		, ModifierOp(EGameplayModOp::Additive)
+		, Magnitude(0.f)
+		, IsValid(false)
+	{
+	}
+
+	FGameplayModifierEvaluatedData(const FGameplayAttribute& InAttribute, TEnumAsByte<EGameplayModOp::Type> InModOp, float InMagnitude, FActiveGameplayEffectHandle InHandle = FActiveGameplayEffectHandle())
+		: Attribute(InAttribute)
+		, ModifierOp(InModOp)
+		, Magnitude(InMagnitude)
+		, Handle(InHandle)
+		, IsValid(true)
+	{
+	}
+
+	UPROPERTY()
+	FGameplayAttribute Attribute;
+
+	/** The numeric operation of this modifier: Override, Add, Multiply, etc  */
+	UPROPERTY()
+	TEnumAsByte<EGameplayModOp::Type> ModifierOp;
+
+	UPROPERTY()
+	float Magnitude;
+
+	/** Handle of the active gameplay effect that originated us. Will be invalid in many cases */
+	UPROPERTY()
+	FActiveGameplayEffectHandle	Handle;
+
+	UPROPERTY()
+	bool IsValid;
+
+	FString ToSimpleString() const
+	{
+		return FString::Printf(TEXT("%s %s EvalMag: %f"), *Attribute.GetName(), *EGameplayModOpToString(ModifierOp), Magnitude);
+	}
+};
+
+/** Struct defining gameplay attribute capture options for gameplay effects */
+USTRUCT()
+struct GAMEPLAYABILITIES_API FGameplayEffectAttributeCaptureDefinition
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayEffectAttributeCaptureDefinition()
+	{
+
+	}
+
+	FGameplayEffectAttributeCaptureDefinition(FGameplayAttribute InAttribute, EGameplayEffectAttributeCaptureSource InSource, bool InSnapshot)
+		: AttributeToCapture(InAttribute), AttributeSource(InSource), bSnapshot(InSnapshot)
+	{
+
+	}
+
+	/** Gameplay attribute to capture */
+	UPROPERTY(EditDefaultsOnly, Category=Capture)
+	FGameplayAttribute AttributeToCapture;
+
+	/** Source of the gameplay attribute */
+	UPROPERTY(EditDefaultsOnly, Category=Capture)
+	EGameplayEffectAttributeCaptureSource AttributeSource;
+
+	/** Whether the attribute should be snapshotted or not */
+	UPROPERTY(EditDefaultsOnly, Category=Capture)
+	bool bSnapshot;
+
+	/** Equality/Inequality operators */
+	bool operator==(const FGameplayEffectAttributeCaptureDefinition& Other) const;
+	bool operator!=(const FGameplayEffectAttributeCaptureDefinition& Other) const;
+
+	/**
+	 * Get type hash for the capture definition; Implemented to allow usage in TMap
+	 *
+	 * @param CaptureDef Capture definition to get the type hash of
+	 */
+	friend uint32 GetTypeHash(const FGameplayEffectAttributeCaptureDefinition& CaptureDef)
+	{
+		return FCrc::MemCrc32(&CaptureDef, sizeof(FGameplayEffectAttributeCaptureDefinition));
+	}
+
+	FString ToSimpleString() const;
+};
 
 /**
  * FGameplayEffectContext
@@ -172,14 +272,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	}
 
 	/** Returns the list of gameplay tags applicable to this effect, defaults to the owner's tags */
-	virtual void GetOwnedGameplayTags(OUT FGameplayTagContainer &TagContainer) const
-	{
-		IGameplayTagAssetInterface* TagInterface = Cast<IGameplayTagAssetInterface>(Instigator);
-		if (TagInterface)
-		{
-			TagInterface->GetOwnedGameplayTags(TagContainer);
-		}
-	}
+	virtual void GetOwnedGameplayTags(OUT FGameplayTagContainer &TagContainer) const;
 
 	/** Sets the instigator and effect causer. Instigator is who owns the ability that spawned this, EffectCauser is the actor that is the physical source of the effect, such as a weapon. They can be the same. */
 	virtual void AddInstigator(class AActor *InInstigator, class AActor *InEffectCauser);
@@ -187,7 +280,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	/** Returns the immediate instigator that applied this effect */
 	virtual AActor* GetInstigator() const
 	{
-		return Instigator;
+		return Instigator.Get();
 	}
 
 	/** Returns the ability system component of the instigator of this effect */
@@ -199,13 +292,13 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	/** Returns the physical actor tied to the application of this effect */
 	virtual AActor* GetEffectCauser() const
 	{
-		return EffectCauser;
+		return EffectCauser.Get();
 	}
 
 	/** Should always return the original instigator that started the whole chain. Subclasses can override what this does */
 	virtual AActor* GetOriginalInstigator() const
 	{
-		return Instigator;
+		return Instigator.Get();
 	}
 
 	/** Returns the ability system component of the instigator that started the whole chain */
@@ -214,7 +307,14 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 		return InstigatorAbilitySystemComponent;
 	}
 
+	virtual void AddActors(TArray<TWeakObjectPtr<AActor>> InActor, bool bReset = false);
+
 	virtual void AddHitResult(const FHitResult InHitResult, bool bReset = false);
+
+	virtual const TArray<TWeakObjectPtr<AActor>> GetActors() const
+	{
+		return Actors;
+	}
 
 	virtual const FHitResult* GetHitResult() const
 	{
@@ -239,7 +339,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 
 	virtual FString ToString() const
 	{
-		return Instigator ? Instigator->GetName() : FString(TEXT("NONE"));
+		return Instigator.IsValid() ? Instigator->GetName() : FString(TEXT("NONE"));
 	}
 
 	virtual UScriptStruct* GetScriptStruct() const
@@ -252,6 +352,7 @@ struct GAMEPLAYABILITIES_API FGameplayEffectContext
 	{
 		FGameplayEffectContext* NewContext = new FGameplayEffectContext();
 		*NewContext = *this;
+		NewContext->AddActors(Actors);
 		if (GetHitResult())
 		{
 			// Does a deep copy of the hit result
@@ -268,15 +369,18 @@ protected:
 
 	/** Instigator actor, the actor that owns the ability system component */
 	UPROPERTY()
-	AActor* Instigator;
+	TWeakObjectPtr<AActor> Instigator;
 
 	/** The physical actor that actually did the damage, can be a weapon or projectile */
 	UPROPERTY()
-	AActor* EffectCauser;
+	TWeakObjectPtr<AActor> EffectCauser;
 
 	/** The ability system component that's bound to instigator */
 	UPROPERTY(NotReplicated)
 	UAbilitySystemComponent* InstigatorAbilitySystemComponent;
+
+	UPROPERTY()
+	TArray<TWeakObjectPtr<AActor>> Actors;
 
 	/** Trace information - may be NULL in many cases */
 	TSharedPtr<FHitResult>	HitResult;
@@ -311,7 +415,7 @@ struct FGameplayEffectContextHandle
 	}
 
 	/** Constructs from an existing context, should be allocated by new */
-	FGameplayEffectContextHandle(FGameplayEffectContext* DataPtr)
+	explicit FGameplayEffectContextHandle(FGameplayEffectContext* DataPtr)
 	{
 		Data = TSharedPtr<FGameplayEffectContext>(DataPtr);
 	}
@@ -333,6 +437,11 @@ struct FGameplayEffectContextHandle
 	}
 
 	FGameplayEffectContext* Get()
+	{
+		return IsValid() ? Data.Get() : NULL;
+	}
+
+	const FGameplayEffectContext* Get() const
 	{
 		return IsValid() ? Data.Get() : NULL;
 	}
@@ -415,12 +524,25 @@ struct FGameplayEffectContextHandle
 		return false;
 	}
 
+	void AddActors(TArray<TWeakObjectPtr<AActor>> InActors, bool bReset = false)
+	{
+		if (IsValid())
+		{
+			Data->AddActors(InActors, bReset);
+		}
+	}
+
 	void AddHitResult(const FHitResult InHitResult, bool bReset = false)
 	{
 		if (IsValid())
 		{
 			Data->AddHitResult(InHitResult, bReset);
 		}
+	}
+
+	TArray<TWeakObjectPtr<AActor>> GetActors()
+	{
+		return Data->GetActors();
 	}
 
 	const FHitResult* GetHitResult() const
@@ -555,11 +677,11 @@ namespace EGameplayCueEvent
 
 DECLARE_DELEGATE_OneParam(FOnGameplayAttributeEffectExecuted, struct FGameplayModifierEvaluatedData&);
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayEffectTagCountChanged, const FGameplayTag, int32 );
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayEffectTagCountChanged, const FGameplayTag, int32);
 
 DECLARE_MULTICAST_DELEGATE(FOnActiveGameplayEffectRemoved);
 
-DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayAttributeChange, float ,const FGameplayEffectModCallbackData*);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnGameplayAttributeChange, float, const FGameplayEffectModCallbackData*);
 
 DECLARE_DELEGATE_RetVal(FGameplayTagContainer, FGetGameplayTags);
 
@@ -567,38 +689,97 @@ DECLARE_DELEGATE_RetVal_OneParam(FOnGameplayEffectTagCountChanged&, FRegisterGam
 
 // -----------------------------------------------------------
 
-/** 
- *	Structure that contains a counted set of GameplayTags. Can optionally include parent tags
- *	
+/**
+ * Struct that tracks the number/count of tag applications within it. Explicitly tracks the tags added or removed,
+ * while simultaneously tracking the count of parent tags as well. Events/delegates are fired whenever the tag counts
+ * of any tag (explicit or parent) are modified.
  */
 struct FGameplayTagCountContainer
 {
+	// Constructor
 	FGameplayTagCountContainer()
-	: TagContainerType(EGameplayTagMatchType::Explicit)
-	{ }
+	{}
 
-	FGameplayTagCountContainer(EGameplayTagMatchType::Type InTagContainerType)
-	: TagContainerType(InTagContainerType)
-	{ }
+	/**
+	 * Check if the count container has a gameplay tag that matches against the specified tag (expands to include parents of asset tags)
+	 * 
+	 * @param TagToCheck	Tag to check for a match
+	 * 
+	 * @return True if the count container has a gameplay tag that matches, false if not
+	 */
+	bool HasMatchingGameplayTag(FGameplayTag TagToCheck) const;
 
-	bool HasMatchingGameplayTag(FGameplayTag TagToCheck, EGameplayTagMatchType::Type TagMatchType) const;
-	bool HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, EGameplayTagMatchType::Type TagMatchType, bool bCountEmptyAsMatch = true) const;
-	bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, EGameplayTagMatchType::Type TagMatchType, bool bCountEmptyAsMatch = true) const;
-	void UpdateTagMap(const struct FGameplayTagContainer& Container, int32 CountDelta);
-	void UpdateTagMap(const struct FGameplayTag& Tag, int32 CountDelta);
+	/**
+	 * Check if the count container has gameplay tags that matches against all of the specified tags (expands to include parents of asset tags)
+	 * 
+	 * @param TagContainer			Tag container to check for a match
+	 * @param bCountEmptyAsMatch	If true, the parameter tag container will count as matching, even if it's empty
+	 * 
+	 * @return True if the count container matches all of the gameplay tags
+	 */
+	bool HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const;
+	
+	/**
+	 * Check if the count container has gameplay tags that matches against any of the specified tags (expands to include parents of asset tags)
+	 * 
+	 * @param TagContainer			Tag container to check for a match
+	 * @param bCountEmptyAsMatch	If true, the parameter tag container will count as matching, even if it's empty
+	 * 
+	 * @return True if the count container matches any of the gameplay tags
+	 */
+	bool HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch = true) const;
+	
+	/**
+	 * Update the specified container of tags by the specified delta, potentially causing an additional or removal from the explicit tag list
+	 * 
+	 * @param Container		Container of tags to update
+	 * @param CountDelta	Delta of the tag count to apply
+	 */
+	void UpdateTagCount(const FGameplayTagContainer& Container, int32 CountDelta);
+	
+	/**
+	 * Update the specified tag by the specified delta, potentially causing an additional or removal from the explicit tag list
+	 * 
+	 * @param Tag			Tag to update
+	 * @param CountDelta	Delta of the tag count to apply
+	 */
+	void UpdateTagCount(const FGameplayTag& Tag, int32 CountDelta);
 
-	TMap<struct FGameplayTag, FOnGameplayEffectTagCountChanged> GameplayTagEventMap;
-	TMap<struct FGameplayTag, int32> GameplayTagCountMap;
+	/**
+	 * Return delegate that can be bound to for when the specific tag's count changes to or off of zero
+	 *
+	 * @param Tag	Tag to get a delegate for
+	 * 
+	 * @return Delegate for when the specified tag's count changes to or off of zero
+	 */
+	FOnGameplayEffectTagCountChanged& RegisterGameplayTagEvent(const FGameplayTag& Tag);
+	
+	/**
+	 * Return delegate that can be bound to for when the any tag's count changes to or off of zero
+	 * 
+	 * @return Delegate for when any tag's count changes to or off of zero
+	 */
+	FOnGameplayEffectTagCountChanged& RegisterGenericGameplayEvent();
 
-	/** This is called when any tag is added new or removed completely (going too or from 0 count). Not called for other count increases (e.g, going from 2-3 count) */
-	FOnGameplayEffectTagCountChanged	OnAnyTagChangeDelegate;
-
-	EGameplayTagMatchType::Type TagContainerType;
+	/** Simple accessor to the explicit gameplay tag list */
+	const FGameplayTagContainer& GetExplicitGameplayTags() const;
 
 private:
 
-	// Fixme: This may not be adding tag parents correctly. The TagContainer version of this function properly adds parent tags
-	void UpdateTagMap_Internal(const struct FGameplayTag& Tag, int32 CountDelta);
+	/** Map of tag to delegate that will be fired when the count for the key tag changes to or away from zero */
+	TMap<FGameplayTag, FOnGameplayEffectTagCountChanged> GameplayTagEventMap;
+
+	/** Map of tag to active count of that tag */
+	TMap<FGameplayTag, int32> GameplayTagCountMap;
+
+	/** Delegate fired whenever any tag's count changes to or away from zero */
+	FOnGameplayEffectTagCountChanged OnAnyTagChangeDelegate;
+
+	/** Container of tags that were explicitly added */
+	FGameplayTagContainer ExplicitTags;
+
+	/** Internal helper function to adjust the explicit tag list & corresponding maps/delegates/etc. as necessary */
+	void UpdateTagMap_Internal(const FGameplayTag& Tag, int32 CountDelta);
 };
 
 // -----------------------------------------------------------
@@ -617,7 +798,103 @@ struct FGameplayTagRequirements
 	UPROPERTY(EditDefaultsOnly, Category = GameplayModifier)
 	FGameplayTagContainer IgnoreTags;
 
-	bool	RequirementsMet(FGameplayTagContainer Container) const;
+	bool	RequirementsMet(const FGameplayTagContainer& Container) const;
+	bool	IsEmpty() const;
 
 	static FGetGameplayTags	SnapshotTags(FGetGameplayTags TagDelegate);
+
+	FString ToString() const;
+};
+
+USTRUCT()
+struct GAMEPLAYABILITIES_API FTagContainerAggregator
+{
+	GENERATED_USTRUCT_BODY()
+
+	FTagContainerAggregator() : CacheIsValid(false) {}
+
+	FGameplayTagContainer& GetActorTags();
+	const FGameplayTagContainer& GetActorTags() const;
+
+	FGameplayTagContainer& GetSpecTags();
+	const FGameplayTagContainer& GetSpecTags() const;
+
+
+
+	const FGameplayTagContainer* GetAggregatedTags() const;
+
+private:
+
+	UPROPERTY()
+	FGameplayTagContainer CapturedActorTags;
+
+	UPROPERTY()
+	FGameplayTagContainer CapturedSpecTags;
+
+	UPROPERTY()
+	FGameplayTagContainer ScopedTags;
+
+	mutable FGameplayTagContainer CachedAggregator;
+	mutable bool CacheIsValid;
+};
+
+
+/** Allows blueprints to generate a GameplayEffectSpec once and then reference it by handle, to apply it multiple times/multiple targets. */
+USTRUCT(BlueprintType)
+struct GAMEPLAYABILITIES_API FGameplayEffectSpecHandle
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayEffectSpecHandle() { }
+	FGameplayEffectSpecHandle(FGameplayEffectSpec* DataPtr)
+		: Data(DataPtr)
+	{
+
+	}
+
+	TSharedPtr<FGameplayEffectSpec>	Data;
+
+	bool IsValidCache;
+
+	void Clear()
+	{
+		Data.Reset();
+	}
+
+	bool IsValid() const
+	{
+		return Data.IsValid();
+	}
+
+	bool NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
+	{
+		ABILITY_LOG(Fatal, TEXT("FGameplayEffectSpecHandle should not be NetSerialized"));
+		return false;
+	}
+
+	/** Comparison operator */
+	bool operator==(FGameplayEffectSpecHandle const& Other) const
+	{
+		// Both invalid structs or both valid and Pointer compare (???) // deep comparison equality
+		bool bBothValid = IsValid() && Other.IsValid();
+		bool bBothInvalid = !IsValid() && !Other.IsValid();
+		return (bBothInvalid || (bBothValid && (Data.Get() == Other.Data.Get())));
+	}
+
+	/** Comparison operator */
+	bool operator!=(FGameplayEffectSpecHandle const& Other) const
+	{
+		return !(FGameplayEffectSpecHandle::operator==(Other));
+	}
+};
+
+template<>
+struct TStructOpsTypeTraits<FGameplayEffectSpecHandle> : public TStructOpsTypeTraitsBase
+{
+	enum
+	{
+		WithCopy = true,		// Necessary so that TSharedPtr<FGameplayAbilityTargetData> Data is copied around
+		WithNetSerializer = true,
+		WithIdenticalViaEquality = true,
+	};
 };

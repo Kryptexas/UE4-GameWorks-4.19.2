@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "GameFramework/PawnMovementComponent.h"
@@ -9,7 +9,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogPawnMovementComponent, Log, All);
 //----------------------------------------------------------------------//
 // UPawnMovementComponent
 //----------------------------------------------------------------------//
-void UPawnMovementComponent::SetUpdatedComponent(UPrimitiveComponent* NewUpdatedComponent)
+void UPawnMovementComponent::SetUpdatedComponent(USceneComponent* NewUpdatedComponent)
 {
 	if (NewUpdatedComponent)
 	{

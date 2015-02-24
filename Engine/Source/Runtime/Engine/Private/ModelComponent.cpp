@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ModelComponent.cpp: Model component implementation
@@ -8,6 +8,8 @@
 #include "Model.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
+#include "Components/ModelComponent.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 FModelElement::FModelElement(UModelComponent* InComponent,UMaterialInterface* InMaterial):
 	Component(InComponent),
@@ -41,10 +43,7 @@ FModelElement::~FModelElement()
 FArchive& operator<<(FArchive& Ar,FModelElement& Element)
 {
 	Ar << Element.LightMap;
-	if( Ar.UE4Ver() >= VER_UE4_PRECOMPUTED_SHADOW_MAPS_BSP )
-	{
-		Ar << Element.ShadowMap;
-	}
+	Ar << Element.ShadowMap;
 	
 	Ar << (UObject*&)Element.Component << (UObject*&)Element.Material << Element.Nodes;
 	Ar << Element.IrrelevantLights;
@@ -63,14 +62,14 @@ UModelComponent::UModelComponent(const FObjectInitializer& ObjectInitializer)
 }
 
 #if WITH_EDITOR
-UModelComponent::UModelComponent(const FObjectInitializer& ObjectInitializer,UModel* InModel,uint16 InComponentIndex,uint32 MaskedSurfaceFlags,const TArray<uint16>& InNodes):
-	UPrimitiveComponent(ObjectInitializer),
-	Model(InModel),
-	ComponentIndex(InComponentIndex),
-	Nodes(InNodes)
+void UModelComponent::InitializeModelComponent(UModel* InModel, uint16 InComponentIndex, uint32 MaskedSurfaceFlags, const TArray<uint16>& InNodes)
 {
+	Model = InModel;
+	ComponentIndex = InComponentIndex;
+	Nodes = InNodes;
+
 	// Model components are transacted.
-	SetFlags( RF_Transactional );
+	SetFlags(RF_Transactional);
 
 	GenerateElements(true);
 
@@ -529,6 +528,8 @@ void UModelComponent::InvalidateCollisionData()
 bool UModelComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionData* CollisionData, bool InUseAllTriData)
 {
 	check(Model);
+	int32 nBadArea = 0;
+	const float AreaThreshold = UPhysicsSettings::Get()->TriangleMeshTriangleMinAreaThreshold;
 
 	const int32 NumVerts = Model->VertexBuffer.Vertices.Num();
 	CollisionData->Vertices.AddUninitialized(NumVerts);
@@ -550,9 +551,31 @@ bool UModelComponent::GetPhysicsTriMeshData(struct FTriMeshCollisionData* Collis
 			Triangle.v1 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx*3) + 1];
 			Triangle.v2 = IndexBuffer->Indices[Element.FirstIndex + (TriIdx*3) + 2];
 
+			if (AreaThreshold >= 0.f)
+			{
+				const FVector V0 = Model->VertexBuffer.Vertices[Triangle.v0].Position;
+				const FVector V1 = Model->VertexBuffer.Vertices[Triangle.v1].Position;
+				const FVector V2 = Model->VertexBuffer.Vertices[Triangle.v2].Position;
+
+				const FVector V01 = (V1 - V0);
+				const FVector V02 = (V2 - V0);
+				const FVector Cross = FVector::CrossProduct(V01, V02);
+				const float Area = Cross.Size() * 0.5f;
+				if (Area <= AreaThreshold)
+				{
+					nBadArea++;
+					continue;
+				}
+			}
+
 			CollisionData->Indices.Add(Triangle);
 			CollisionData->MaterialIndices.Add(ElementIndex);
 		}
+	}
+
+	if (nBadArea > 0)
+	{
+		UE_LOG(LogPhysics, Log, TEXT("Cooking removed %d triangle%s with area <= %f (%s)"), nBadArea, (nBadArea > 1 ? TEXT("s") : TEXT("")), AreaThreshold, *GetPathName(GetOuter()));
 	}
 
 	CollisionData->bFlipNormals = true;

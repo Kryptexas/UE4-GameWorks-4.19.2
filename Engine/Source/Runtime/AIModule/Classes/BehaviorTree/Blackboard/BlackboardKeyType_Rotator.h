@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "BlackboardKeyType_Rotator.generated.h"
 
@@ -6,6 +6,9 @@ UCLASS(EditInlineNew, meta=(DisplayName="Rotator"))
 class AIMODULE_API UBlackboardKeyType_Rotator : public UBlackboardKeyType
 {
 	GENERATED_UCLASS_BODY()
+	
+	typedef FRotator FDataType; 
+	static const FDataType InvalidValue;
 
 	static FRotator GetValue(const uint8* RawData);
 	static bool SetValue(uint8* RawData, const FRotator& Value);

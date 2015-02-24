@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -43,7 +43,6 @@ public class UnrealFrontendTarget : TargetRules
 		UEBuildConfiguration.bBuildEditor = false;
 		UEBuildConfiguration.bCompileAgainstEngine = false;
 		UEBuildConfiguration.bCompileAgainstCoreUObject = true;
-		UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 		UEBuildConfiguration.bForceBuildTargetPlatforms = true;
 		UEBuildConfiguration.bCompileWithStatsWithoutEngine = true;
 		UEBuildConfiguration.bCompileWithPluginSupport = true;

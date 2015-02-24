@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "ModuleManager.h"
@@ -176,19 +176,22 @@ private:
 		SelectedLayerViewModel->RemoveActors( Actors );
 	}
 
-	TSharedRef< ISceneOutlinerColumn > CreateCustomLayerColumn( const TWeakPtr< ISceneOutliner >& SceneOutliner ) const
+	TSharedRef< ISceneOutlinerColumn > CreateCustomLayerColumn( ISceneOutliner& SceneOutliner ) const
 	{
 		return MakeShareable( new FSceneOutlinerLayerContentsColumn( SelectedLayerViewModel.ToSharedRef() ) );
 	}
 
 	FSlateColor GetInvertedForegroundIfHovered() const
 	{
-		return ( ToggleModeButton.IsValid() && ( ToggleModeButton->IsHovered() || ToggleModeButton->IsPressed() ) ) ? FEditorStyle::GetSlateColor( "InvertedForeground" ) : FSlateColor::UseForeground();
+		static const FName InvertedForegroundName("InvertedForeground");
+		return ( ToggleModeButton.IsValid() && ( ToggleModeButton->IsHovered() || ToggleModeButton->IsPressed() ) ) ? FEditorStyle::GetSlateColor(InvertedForegroundName): FSlateColor::UseForeground();
 	}
 
 	const FSlateBrush* GetToggleModeButtonImageBrush() const
 	{
-		return ( Mode == ELayerBrowserMode::Layers ) ? FEditorStyle::GetBrush( "LayerBrowser.ExploreLayerContents" ) : FEditorStyle::GetBrush( "LayerBrowser.ReturnToLayersList" );
+		static const FName ExploreLayerContents("LayerBrowser.ExploreLayerContents");
+		static const FName ReturnToLayersList("LayerBrowser.ReturnToLayersList");
+		return ( Mode == ELayerBrowserMode::Layers ) ? FEditorStyle::GetBrush( ExploreLayerContents ) : FEditorStyle::GetBrush( ReturnToLayersList );
 	}
 
 	FText GetLayerContentsHeaderText() const;

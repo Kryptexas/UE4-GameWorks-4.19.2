@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "EdGraph/EdGraph.h"
@@ -42,9 +42,12 @@ FGraphNodeContextMenuBuilder::FGraphNodeContextMenuBuilder(const UEdGraph* InGra
 UEdGraphNode::UEdGraphNode(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, AdvancedPinDisplay(ENodeAdvancedPins::NoPins)
+	, bIsNodeEnabled(true)
 {
 
 #if WITH_EDITORONLY_DATA
+	bCommentBubblePinned = false;
+	bCommentBubbleVisible = false;
 	bCanResizeNode = false;
 #endif // WITH_EDITORONLY_DATA
 }
@@ -102,9 +105,10 @@ UEdGraphPin* UEdGraphNode::FindPinChecked(const FString& PinName) const
 void UEdGraphNode::DiscardPin(UEdGraphPin* Pin)
 {
 	check( Pin );
-
+	
 	Modify();
 	Pins.Remove( Pin );
+	Pin->BreakAllPinLinks();
 }
 
 void UEdGraphNode::BreakAllNodeLinks()
@@ -237,11 +241,7 @@ void UEdGraphNode::PostLoad()
 	// Create Guid if not present (and not CDO)
 	if(!NodeGuid.IsValid() && !IsTemplate() && GetLinker() && GetLinker()->IsPersistent() && GetLinker()->IsLoading())
 	{
-		// _Should_ have a guid on all nodes after this version
-		if(GetLinkerUE4Version() >= VER_UE4_ADD_EDGRAPHNODE_GUID)
-		{
-			UE_LOG(LogBlueprint, Warning, TEXT("Node '%s' missing NodeGuid."), *GetPathName());
-		}
+		UE_LOG(LogBlueprint, Warning, TEXT("Node '%s' missing NodeGuid."), *GetPathName());
 
 		// Generate new one
 		CreateNewGuid();
@@ -252,6 +252,11 @@ void UEdGraphNode::PostLoad()
 	{
 		// Generate new one
 		CreateNewGuid();
+	}
+	// Moving to the new style comments requires conversion to preserve previous state
+	if(GetLinkerUE4Version() < VER_UE4_GRAPH_INTERACTIVE_COMMENTBUBBLES)
+	{
+		bCommentBubbleVisible = !NodeComment.IsEmpty();
 	}
 }
 
@@ -311,7 +316,7 @@ UObject* UEdGraphNode::GetJumpTargetForDoubleClick() const
 	return NULL;
 }
 
-FString UEdGraphNode::GetPinDisplayName(const UEdGraphPin* Pin) const
+FText UEdGraphNode::GetPinDisplayName(const UEdGraphPin* Pin) const
 {
 	return GetSchema()->GetPinDisplayName(Pin);
 }
@@ -342,6 +347,12 @@ void UEdGraphNode::AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutT
 	OutTaggedMetaData.Add(FSearchTagDataPair(FFindInBlueprintSearchTags::FiB_Comment, FText::FromString(NodeComment)));
 }
 
+void UEdGraphNode::OnUpdateCommentText( const FString& NewComment )
+{
+	const FScopedTransaction Transaction( LOCTEXT( "CommentCommitted", "Comment Changed" ) );
+	Modify();
+	NodeComment	= NewComment;
+}
 
 #endif	//#if WITH_EDITOR
 

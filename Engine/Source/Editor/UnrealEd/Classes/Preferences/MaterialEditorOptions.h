@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -26,10 +26,6 @@ class UNREALED_API UMaterialEditorOptions : public UObject
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	uint32 bHideUnusedConnectors:1;
 
-	/** If true, draw connections with splines.  If false, use straight lines. */
-	UPROPERTY(config)
-	uint32 bDrawCurves_DEPRECATED:1;
-
 	/** If true, the 3D material preview viewport updates in realtime. */
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	uint32 bRealtimeMaterialViewport:1;
@@ -45,10 +41,6 @@ class UNREALED_API UMaterialEditorOptions : public UObject
 	/** If true, always refresh all expression previews. */
 	UPROPERTY(EditAnywhere, config, Category=Options)
 	uint32 bAlwaysRefreshAllPreviews:1;
-
-	/** If true, use expression categorized menus. */
-	UPROPERTY(config)
-	uint32 bUseSortedMenus_DEPRECATED:1;
 
 	/** If false, use expression categorized menus. */
 	UPROPERTY(EditAnywhere, config, Category=Options)

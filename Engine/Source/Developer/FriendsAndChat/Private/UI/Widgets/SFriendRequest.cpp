@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "SFriendRequest.h"
@@ -54,7 +54,7 @@ public:
 				[
 					SNew(SButton)
 					.HAlign(HAlign_Center)
-					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+					.ButtonStyle(&FriendStyle.FriendGeneralButtonStyle)
 					.OnClicked(this, &SFriendRequestImpl::HandleActionButtonClicked, true)
 					[
 						SNew(STextBlock)
@@ -67,7 +67,7 @@ public:
 				[
 					SNew(SButton)
 					.HAlign(HAlign_Center)
-					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
+					.ButtonStyle(&FriendStyle.FriendGeneralButtonStyle)
 					.OnClicked(this, &SFriendRequestImpl::HandleActionButtonClicked, false)
 					[
 						SNew(STextBlock)

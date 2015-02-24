@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 
@@ -31,6 +31,25 @@ namespace ESearchDir
 	{
 		FromStart,
 		FromEnd,
+	};
+}
+
+/**
+ * Enum that defines how the log times are to be displayed (mirrored from OutputDevice.h).
+ */
+UENUM()
+namespace ELogTimes
+{
+	enum Type
+	{
+		// Do not display log timestamps
+		None UMETA(DisplayName = "None"),
+
+		// Display log timestamps in UTC
+		UTC UMETA(DisplayName = "UTC"),
+
+		// Display log timestamps in seconds elapsed since GStartTime
+		SinceGStartTime UMETA(DisplayName = "Time since application start"),
 	};
 }
 
@@ -133,6 +152,8 @@ enum EPixelFormat
 	PF_ASTC_8x8,	// 2.00 bpp
 	PF_ASTC_10x10,	// 1.28 bpp
 	PF_ASTC_12x12,	// 0.89 bpp
+	PF_BC6H,
+	PF_BC7,
 	PF_MAX,
 };
 
@@ -190,16 +211,16 @@ USTRUCT(immutable, noexport, BlueprintType)
 struct FGuid
 {
 	UPROPERTY(EditAnywhere, SaveGame, Category=Guid)
-	uint32 A;
+	int32 A;
 
 	UPROPERTY(EditAnywhere, SaveGame, Category=Guid)
-	uint32 B;
+	int32 B;
 
 	UPROPERTY(EditAnywhere, SaveGame, Category=Guid)
-	uint32 C;
+	int32 C;
 
 	UPROPERTY(EditAnywhere, SaveGame, Category=Guid)
-	uint32 D;
+	int32 D;
 };
 
 // A unique identifier for networking objects
@@ -701,13 +722,14 @@ struct FTransform
  * Thread-safe RNG.
  * The full C++ class is located here: Engine\Source\Runtime\Core\Public\Math\RandomStream.h
  */
-USTRUCT(noexport, BlueprintType)
+USTRUCT(noexport, BlueprintType, meta = (HasNativeMake = "Engine.KismetMathLibrary.MakeRandomStream", HasNativeBreak = "Engine.KismetMathLibrary.BreakRandomStream"))
 struct FRandomStream
 {
 public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=RandomStream, SaveGame)
 	int32 InitialSeed;
-
+	
+	UPROPERTY()
 	int32 Seed;
 };
 
@@ -824,6 +846,30 @@ struct FInt32Range
 
 	UPROPERTY(EditAnywhere, Category = Range)
 	FInt32RangeBound UpperBound;
+};
+
+// A float interval
+
+USTRUCT(noexport)
+struct FFloatInterval
+{
+	UPROPERTY(EditAnywhere, Category=Interval)
+	float Min;
+
+	UPROPERTY(EditAnywhere, Category=Interval)
+	float Max;
+};
+
+// An int32 interval
+
+USTRUCT(noexport)
+struct FInt32Interval
+{
+	UPROPERTY(EditAnywhere, Category=Interval)
+	int32 Min;
+
+	UPROPERTY(EditAnywhere, Category=Interval)
+	int32 Max;
 };
 
 //=============================================================================

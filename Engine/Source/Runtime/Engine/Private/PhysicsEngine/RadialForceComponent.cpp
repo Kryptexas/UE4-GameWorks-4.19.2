@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "GameFramework/MovementComponent.h"
 #include "Net/UnrealNetwork.h"
 #include "PhysicsEngine/RadialForceComponent.h"
 #include "PhysicsEngine/RadialForceActor.h"
+#include "Components/DestructibleComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // RADIALFORCECOMPONENT
@@ -56,7 +57,7 @@ void URadialForceComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 				AActor* PokeOwner = PokeComp->GetOwner();
 				if(PokeOwner)
 				{
-					TArray<UMovementComponent*> MovementComponents;
+					TInlineComponentArray<UMovementComponent*> MovementComponents;
 					PokeOwner->GetComponents<UMovementComponent>(MovementComponents);
 					for(const auto& MovementComponent : MovementComponents)
 					{
@@ -76,11 +77,6 @@ void URadialForceComponent::PostLoad()
 {
 	Super::PostLoad();
 
-	if (GetLinkerUE4Version() < VER_UE4_CONFORM_COMPONENT_ACTIVATE_FLAG)
-	{
-		bAutoActivate = bForceEnabled_DEPRECATED;
-	}
-
 	UpdateCollisionObjectQueryParams();
 }
 
@@ -94,6 +90,13 @@ void URadialForceComponent::FireImpulse()
 
 	FCollisionQueryParams Params(FireImpulseOverlapName, false);
 	Params.bTraceAsyncScene = true; // want to hurt stuff in async scene
+
+	// Ignore owner actor if desired
+	if (bIgnoreOwningActor)
+	{
+		Params.AddIgnoredActor(GetOwner());
+	}
+
 	GetWorld()->OverlapMulti(Overlaps, Origin, FQuat::Identity, FCollisionShape::MakeSphere(Radius), Params, CollisionObjectQueryParams);
 
 	// Iterate over each and apply an impulse
@@ -116,7 +119,7 @@ void URadialForceComponent::FireImpulse()
 			PokeComp->AddRadialImpulse( Origin, Radius, ImpulseStrength, Falloff, bImpulseVelChange );
 
 			// see if this is a target for a movement component
-			TArray<UMovementComponent*> MovementComponents;
+			TInlineComponentArray<UMovementComponent*> MovementComponents;
 			PokeComp->GetOwner()->GetComponents<UMovementComponent>(MovementComponents);
 			for(const auto& MovementComponent : MovementComponents)
 			{

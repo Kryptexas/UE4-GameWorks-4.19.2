@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -13,7 +13,6 @@
 #include "PlatformFeatures.h"
 #include "SaveGameSystem.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogEngineAutomationTests, Log, All);
 
 namespace
 {
@@ -337,22 +336,6 @@ bool FSaveGameTest::RunTest(const FString& Parameters)
 }
 
 /**
- * Latent command to load a map in game
- */
-DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FLoadGameMapCommand, FString, MapName);
-
-bool FLoadGameMapCommand::Update()
-{
-	check(GEngine->GetWorldContexts().Num() == 1);
-	check(GEngine->GetWorldContexts()[0].WorldType == EWorldType::Game);
-
-	UE_LOG(LogEngineAutomationTests, Log, TEXT("Loading Map Now. '%s'"), *MapName);
-	GEngine->Exec(GEngine->GetWorldContexts()[0].World(), *FString::Printf(TEXT("Open %s"), *MapName));
-	return true;
-}
-
-
-/**
  * Automation test to load a map and capture FPS performance charts
  */
 IMPLEMENT_COMPLEX_AUTOMATION_TEST(FCinematicFPSPerfTest, "Maps.Cinematic FPS Perf Capture", (EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_NonNullRHI));
@@ -439,6 +422,32 @@ bool FCinematicFPSPerfTest::RunTest(const FString& Parameters)
 	ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(60.0f));
 	ADD_LATENT_AUTOMATION_COMMAND(FExecWorldStringLatentCommand(TEXT("StopFPSChart")));
 	ADD_LATENT_AUTOMATION_COMMAND(FEngineWaitLatentCommand(1.0f));
+
+	return true;
+}
+
+
+IMPLEMENT_SIMPLE_AUTOMATION_TEST(FLogTypesTest, "Automation Framework.Logging Test", EAutomationTestFlags::ATF_None)
+
+bool FLogTypesTest::RunTest(const FString& Parameters)
+{
+	UE_LOG(LogEngineAutomationTests, Log, TEXT("This 'Log' log is created using the UE_LOG Macro"));
+	UE_LOG(LogEngineAutomationTests, Display, TEXT("This 'Display' log is created using the UE_LOG Macro"));
+
+	ExecutionInfo.LogItems.Add(TEXT("This was added to the ExecutionInfo.LogItems"));
+	ExecutionInfo.Errors.Add(TEXT("This was added to the ExecutionInfo.Error."));
+	if (ExecutionInfo.Errors.Last().Contains(TEXT("This was added to the ExecutionInfo.Error.")))
+	{
+		UE_LOG(LogEngineAutomationTests, Display, TEXT("ExecutionInfo.Error has the correct info when used."));
+		ExecutionInfo.Errors.Empty();
+	}
+
+	ExecutionInfo.Warnings.Add(TEXT("This was added to the ExecutionInfo.Warnings"));
+	if (ExecutionInfo.Warnings.Last().Contains(TEXT("This was added to the ExecutionInfo.Warnings")))
+	{
+		UE_LOG(LogEngineAutomationTests, Display, TEXT("ExecutionInfo.Warnings has the correct info when used."));
+		ExecutionInfo.Warnings.Empty();
+	}
 
 	return true;
 }

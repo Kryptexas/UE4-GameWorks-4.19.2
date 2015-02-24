@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "Paper2DEditorModule.h"
@@ -75,6 +75,7 @@ private:
 	TSharedPtr<IComponentAssetBroker> PaperTileMapBroker;
 
 	FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate OnPropertyChangedHandle;
+	FDelegateHandle OnPropertyChangedHandleDelegateHandle;
 
 public:
 	virtual void StartupModule() override
@@ -106,13 +107,14 @@ public:
 		FComponentAssetBrokerage::RegisterBroker(PaperFlipbookBroker, UPaperFlipbookComponent::StaticClass(), true, true);
 
 		PaperTileMapBroker = MakeShareable(new FPaperTileMapAssetBroker);
-		FComponentAssetBrokerage::RegisterBroker(PaperTileMapBroker, UPaperTileMapRenderComponent::StaticClass(), true, true);
+		FComponentAssetBrokerage::RegisterBroker(PaperTileMapBroker, UPaperTileMapComponent::StaticClass(), true, true);
 
 		// Register the details customizations
 		{
 			FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-			PropertyModule.RegisterCustomClassLayout("PaperTileMapRenderComponent", FOnGetDetailCustomizationInstance::CreateStatic(&FPaperTileMapDetailsCustomization::MakeInstance));
-			PropertyModule.RegisterCustomClassLayout("PaperSprite", FOnGetDetailCustomizationInstance::CreateStatic(&FSpriteDetailsCustomization::MakeInstance));
+			PropertyModule.RegisterCustomClassLayout(UPaperTileMapComponent::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FPaperTileMapDetailsCustomization::MakeInstance));
+			PropertyModule.RegisterCustomClassLayout(UPaperTileMap::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FPaperTileMapDetailsCustomization::MakeInstance));
+			PropertyModule.RegisterCustomClassLayout(UPaperSprite::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateStatic(&FSpriteDetailsCustomization::MakeInstance));
 
 			//@TODO: Struct registration should happen using ::StaticStruct, not by string!!!
 			//PropertyModule.RegisterCustomPropertyTypeLayout( "SpritePolygonCollection", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FSpritePolygonCollectionCustomization::MakeInstance ) );
@@ -122,7 +124,7 @@ public:
 
 		// Register to be notified when properties are edited
 		OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &FPaper2DEditor::OnPropertyChanged);
-		FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
+		OnPropertyChangedHandleDelegateHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
 
 		// Register the thumbnail renderers
 		UThumbnailManager::Get().RegisterCustomRenderer(UPaperSprite::StaticClass(), UPaperSpriteThumbnailRenderer::StaticClass());
@@ -131,7 +133,11 @@ public:
 		//@TODO: PAPER2D: UThumbnailManager::Get().RegisterCustomRenderer(UPaperTileMap::StaticClass(), UPaperTileMapThumbnailRenderer::StaticClass());
 
 		// Register the editor modes
-		UpdateTileMapEditorModeInstallation();
+		FEditorModeRegistry::Get().RegisterMode<FEdModeTileMap>(
+			FEdModeTileMap::EM_TileMap,
+			LOCTEXT("TileMapEditMode", "Tile Map Editor"),
+			FSlateIcon(),
+			false);
 
 		// Integrate Paper2D actions associated with existing engine types (e.g., Texture2D) into the content browser
 		FPaperContentBrowserExtensions::InstallHooks();
@@ -167,7 +173,7 @@ public:
 			UThumbnailManager::Get().UnregisterCustomRenderer(UPaperFlipbook::StaticClass());
 
 			// Unregister the property modification handler
-			FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandle);
+			FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandleDelegateHandle);
 		}
 
 		// Unregister the details customization
@@ -206,7 +212,7 @@ private:
 		}
 		else if (UPaperRuntimeSettings* Settings = Cast<UPaperRuntimeSettings>(ObjectBeingModified))
 		{
-			UpdateTileMapEditorModeInstallation();
+			// Handle changes to experimental flags here
 		}
 	}
 
@@ -227,25 +233,6 @@ private:
 		if (ISettingsModule* SettingsModule = FModuleManager::GetModulePtr<ISettingsModule>("Settings"))
 		{
 			SettingsModule->UnregisterSettings("Project", "Plugins", "Paper2D");
-		}
-	}
-
-	// Installs or uninstalls the tile map editing mode depending on settings
-	void UpdateTileMapEditorModeInstallation()
-	{
-		const bool bAlreadyRegistered = FEditorModeRegistry::Get().GetFactoryMap().Contains(FEdModeTileMap::EM_TileMap);
-		const bool bShouldBeRegistered = GetDefault<UPaperRuntimeSettings>()->bEnableTileMapEditing;
-		if (bAlreadyRegistered && !bShouldBeRegistered)
-		{
-			FEditorModeRegistry::Get().UnregisterMode(FEdModeTileMap::EM_TileMap);
-		}
-		else if (!bAlreadyRegistered && bShouldBeRegistered)
-		{
-			FEditorModeRegistry::Get().RegisterMode<FEdModeTileMap>(
-				FEdModeTileMap::EM_TileMap,
-				LOCTEXT("TileMapEditMode", "Tile Map Editor"),
-				FSlateIcon(),
-				true);
 		}
 	}
 };

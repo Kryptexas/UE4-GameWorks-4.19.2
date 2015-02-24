@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11Device.cpp: D3D device RHI implementation.
@@ -663,6 +663,7 @@ void FD3D11DynamicRHI::InitD3DDevice()
 		FHardwareInfo::RegisterHardwareInfo( NAME_RHI, TEXT( "D3D11" ) );
 
 		GRHISupportsTextureStreaming = true;
+		GRHISupportsFirstInstance = true;
 
 		// Set the RHI initialized flag.
 		GIsRHIInitialized = true;

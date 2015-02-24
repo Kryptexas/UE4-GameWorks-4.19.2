@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticLightingExport.cpp: Static lighting export implementations.
@@ -14,6 +14,10 @@
 #include "LandscapeComponent.h"
 
 #include "Lightmass/Lightmass.h"
+#include "Lightmass/LightmappedSurfaceCollection.h"
+
+#include "Materials/MaterialInstanceConstant.h"
+
 
 // Doxygen cannot parse these definitions correctly since the declaration is in a header from a different module
 #if !UE_BUILD_DOCS

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SkeletalMeshComponentDetails.h"
@@ -6,6 +6,8 @@
 #include "AssetData.h"
 #include "Editor/ClassViewer/Public/ClassViewerModule.h"
 #include "Editor/ClassViewer/Public/ClassViewerFilter.h"
+#include "Engine/Selection.h"
+#include "Animation/AnimBlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "SkeletalMeshComponentDetails"
 
@@ -53,12 +55,12 @@ void FSkeletalMeshComponentDetails::CustomizeDetails(IDetailLayoutBuilder& Detai
 	{
 		CurrentDetailBuilder = &DetailBuilder;
 	}
-	DetailBuilder.EditCategory("SkeletalMesh", TEXT(""), ECategoryPriority::TypeSpecific);
-	DetailBuilder.EditCategory("Materials", TEXT(""), ECategoryPriority::TypeSpecific);
-	DetailBuilder.EditCategory("Physics", TEXT(""), ECategoryPriority::TypeSpecific);
+	DetailBuilder.EditCategory("SkeletalMesh", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
+	DetailBuilder.EditCategory("Materials", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
+	DetailBuilder.EditCategory("Physics", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
 	DetailBuilder.HideProperty("bCastStaticShadow", UPrimitiveComponent::StaticClass());
 	DetailBuilder.HideProperty("bLightAsIfStatic", UPrimitiveComponent::StaticClass());
-	DetailBuilder.EditCategory("Animation", TEXT(""), ECategoryPriority::Important);
+	DetailBuilder.EditCategory("Animation", FText::GetEmpty(), ECategoryPriority::Important);
 
 	OnSkeletalMeshPropertyChanged = USkeletalMeshComponent::FOnSkeletalMeshPropertyChanged::CreateSP(this, &FSkeletalMeshComponentDetails::SkeletalMeshPropertyChanged);
 
@@ -112,7 +114,7 @@ void FSkeletalMeshComponentDetails::UpdateAnimationCategory( IDetailLayoutBuilde
 		SelectedSkeletonName = FString::Printf(TEXT("%s'%s'"), *Skeleton->GetClass()->GetName(), *Skeleton->GetPathName());
 	}
 
-	IDetailCategoryBuilder& AnimationCategory = DetailBuilder.EditCategory("Animation", TEXT(""), ECategoryPriority::Important);
+	IDetailCategoryBuilder& AnimationCategory = DetailBuilder.EditCategory("Animation", FText::GetEmpty(), ECategoryPriority::Important);
 
 	// Force the mode switcher to be first
 	AnimationModeHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(USkeletalMeshComponent, AnimationMode));
@@ -277,7 +279,7 @@ void FSkeletalMeshComponentDetails::RegisterSkeletalMeshPropertyChanged(TWeakObj
 {
 	if(Mesh.IsValid() && OnSkeletalMeshPropertyChanged.IsBound())
 	{
-		Mesh->RegisterOnSkeletalMeshPropertyChanged(OnSkeletalMeshPropertyChanged);
+		OnSkeletalMeshPropertyChangedDelegateHandles.Add(Mesh.Get(), Mesh->RegisterOnSkeletalMeshPropertyChanged(OnSkeletalMeshPropertyChanged));
 	}
 }
 
@@ -285,7 +287,8 @@ void FSkeletalMeshComponentDetails::UnregisterSkeletalMeshPropertyChanged(TWeakO
 {
 	if(Mesh.IsValid())
 	{
-		Mesh->UnregisterOnSkeletalMeshPropertyChanged(OnSkeletalMeshPropertyChanged);
+		Mesh->UnregisterOnSkeletalMeshPropertyChanged(OnSkeletalMeshPropertyChangedDelegateHandles.FindRef(Mesh.Get()));
+		OnSkeletalMeshPropertyChangedDelegateHandles.Remove(Mesh.Get());
 	}
 }
 
@@ -295,7 +298,8 @@ void FSkeletalMeshComponentDetails::UnregisterAllMeshPropertyChangedCallers()
 	{
 		if(USkeletalMeshComponent* Mesh = Cast<USkeletalMeshComponent>(MeshIter->Get()))
 		{
-			Mesh->UnregisterOnSkeletalMeshPropertyChanged(OnSkeletalMeshPropertyChanged);
+			Mesh->UnregisterOnSkeletalMeshPropertyChanged(OnSkeletalMeshPropertyChangedDelegateHandles.FindRef(Mesh));
+			OnSkeletalMeshPropertyChangedDelegateHandles.Remove(Mesh);
 		}
 	}
 }
@@ -329,7 +333,7 @@ TSharedRef<SWidget> FSkeletalMeshComponentDetails::GetClassPickerMenuContent()
 		];
 }
 
-FString FSkeletalMeshComponentDetails::GetSelectedAnimBlueprintName() const
+FText FSkeletalMeshComponentDetails::GetSelectedAnimBlueprintName() const
 {
 	check(AnimationBlueprintHandle->IsValidHandle());
 
@@ -337,11 +341,11 @@ FString FSkeletalMeshComponentDetails::GetSelectedAnimBlueprintName() const
 	AnimationBlueprintHandle->GetValue(Object);
 	if(Object)
 	{
-		return Object->GetName();
+		return FText::FromString(Object->GetName());
 	}
 	else
 	{
-		return FString(TEXT("None"));
+		return LOCTEXT("None", "None");
 	}
 }
 

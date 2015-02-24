@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AI/Navigation/NavigationData.h"
@@ -39,6 +39,8 @@ class UNavArea;
 class UNavigationSystem;
 class URecastNavMeshDataChunk;
 struct FAreaNavModifier;
+struct FNavigationQueryFilter;
+struct FRecastAreaNavModifierElement;
 
 UENUM()
 namespace ERecastPartitioning
@@ -91,7 +93,7 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	FORCEINLINE void SetWantsPathCorridor(const bool bNewWantsPathCorridor) { bWantsPathCorridor = bNewWantsPathCorridor; }
 	FORCEINLINE bool WantsPathCorridor() const { return bWantsPathCorridor; }
 	
-	FORCEINLINE const TArray<FNavigationPortalEdge>* GetPathCorridorEdges() const { return bCorridorEdgesGenerated ? &PathCorridorEdges : GeneratePathCorridorEdges(); }
+	FORCEINLINE const TArray<FNavigationPortalEdge>& GetPathCorridorEdges() const { return bCorridorEdgesGenerated ? PathCorridorEdges : GeneratePathCorridorEdges(); }
 	FORCEINLINE void SetPathCorridorEdges(const TArray<FNavigationPortalEdge>& InPathCorridorEdges) { PathCorridorEdges = InPathCorridorEdges; bCorridorEdgesGenerated = true; }
 
 	FORCEINLINE void OnPathCorridorUpdated() { bCorridorEdgesGenerated = false; }
@@ -143,6 +145,13 @@ struct ENGINE_API FNavMeshPath : public FNavigationPath
 	bool IsPathSegmentANavLink(const int32 PathSegmentStartIndex) const;
 
 	virtual bool DoesIntersectBox(const FBox& Box, uint32 StartingIndex = 0, int32* IntersectingSegmentIndex = NULL) const override;
+	virtual bool DoesIntersectBox(const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex = 0, int32* IntersectingSegmentIndex = NULL) const override;
+	/** retrieves normalized direction vector to given path segment. If path is not string pulled navigation corridor is being used */
+	virtual FVector GetSegmentDirection(uint32 SegmentEndIndex) const override;
+
+private:
+	bool DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex) const;
+public:
 
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const override;
@@ -163,7 +172,7 @@ protected:
 	/** it's only const to be callable in const environment. It's not supposed to be called directly externally anyway,
 	 *	just as part of retrieving corridor on demand or generating it in internal processes. It fills a mutable
 	 *	array. */
-	const TArray<FNavigationPortalEdge>* GeneratePathCorridorEdges() const;
+	const TArray<FNavigationPortalEdge>& GeneratePathCorridorEdges() const;
 
 public:
 	
@@ -436,6 +445,9 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	UPROPERTY(config)
 	uint32 bDistinctlyDrawTilesBeingBuilt:1;
 
+	UPROPERTY(EditAnywhere, Category = Display)
+	uint32 bDrawNavMesh : 1;
+
 	/** vertical offset added to navmesh's debug representation for better readability */
 	UPROPERTY(EditAnywhere, Category=Display, config)
 	float DrawOffset;
@@ -457,11 +469,11 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	float TileSizeUU;
 
 	/** horizontal size of voxelization cell */
-	UPROPERTY(EditAnywhere, Category=Generation, config, meta=(ClampMin = "1.0"))
+	UPROPERTY(EditAnywhere, Category = Generation, config, meta = (ClampMin = "1.0", ClampMax = "1024.0"))
 	float CellSize;
 
 	/** vertical size of voxelization cell */
-	UPROPERTY(EditAnywhere, Category=Generation, config, meta=(ClampMin = "1.0"))
+	UPROPERTY(EditAnywhere, Category = Generation, config, meta = (ClampMin = "1.0", ClampMax = "1024.0"))
 	float CellHeight;
 
 	/** Radius of smallest agent to traverse this navmesh */
@@ -491,7 +503,7 @@ class ENGINE_API ARecastNavMesh : public ANavigationData
 	float MergeRegionSize;
 
 	/** How much navigable shapes can get simplified - the higher the value the more freedom */
-	UPROPERTY(EditAnywhere, Category=Generation, config)
+	UPROPERTY(EditAnywhere, Category = Generation, config, meta = (ClampMin = "0.0"))
 	float MaxSimplificationError;
 
 	/** navmesh draw distance in game (always visible in editor) */
@@ -621,6 +633,7 @@ public:
 
 	// Begin UObject Interface
 	virtual void PostInitProperties() override;
+	virtual void PostLoad() override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;	
 
 #if WITH_EDITOR
@@ -741,7 +754,7 @@ public:
 	void SetDefaultForbiddenFlags(uint16 ForbiddenAreaFlags);
 
 	/** Area sort function */
-	virtual void SortAreasForGenerator(TArray<FAreaNavModifier>& Areas) const;
+	virtual void SortAreasForGenerator(TArray<FRecastAreaNavModifierElement>& Areas) const;
 
 	//----------------------------------------------------------------------//
 	// Custom navigation links
@@ -773,6 +786,9 @@ public:
 
 	/** Returns nearest navmesh polygon to Loc, or INVALID_NAVMESHREF if Loc is not on the navmesh. */
 	NavNodeRef FindNearestPoly(FVector const& Loc, FVector const& Extent, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const;
+
+	/** Finds the distance to the closest wall, limited to MaxDistance */
+	float FindDistanceToWall(const FVector& StartLoc, TSharedPtr<const FNavigationQueryFilter> Filter = nullptr, float MaxDistance = FLT_MAX) const;
 
 	/** Retrieves center of the specified polygon. Returns false on error. */
 	bool GetPolyCenter(NavNodeRef PolyID, FVector& OutCenter) const;
@@ -842,9 +858,6 @@ public:
 
 	/** Runs A* pathfinding on navmesh and collect data for every step */
 	int32 DebugPathfinding(const FPathFindingQuery& Query, TArray<FRecastDebugPathfindingStep>& Steps);
-
-	/** Checks whether this instance of navmesh supports given Agent type */
-	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const override;
 
 	static const FRecastQueryFilter* GetNamedFilter(ERecastNamedFilter::Type FilterType);
 	FORCEINLINE static FNavPolyFlags GetNavLinkFlag() { return NavLinkFlag; }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -54,6 +54,14 @@ public:
 	 * @param	AbsoluteSourcePaths		Array of paths to files to open
 	 */
 	virtual bool OpenSourceFiles(const TArray<FString>& AbsoluteSourcePaths) = 0;
+
+	/**
+	 * Add a group of source files to the current solution/project/workspace
+	 * @param	AbsoluteSourcePaths		Array of paths to files to open
+	 * @param	AvailableModules		Array of known module locations (.Build.cs files) - you can get this from calling FSourceCodeNavigation::GetSourceFileDatabase().GetModuleNames() if in the editor
+	 * @return true if the files could be added, false otherwise
+	 */
+	virtual bool AddSourceFiles(const TArray<FString>& AbsoluteSourcePaths, const TArray<FString>& AvailableModules) = 0;
 
 	/**
 	 * Saves all open code documents if they need to be saved.

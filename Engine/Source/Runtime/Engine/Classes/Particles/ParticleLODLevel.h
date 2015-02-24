@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  *	ParticleLODLevel
@@ -7,6 +7,8 @@
 
 #pragma once
 #include "ParticleLODLevel.generated.h"
+
+class UInterpCurveEdSetup;
 
 UCLASS(collapsecategories, hidecategories=Object, editinlinenew, MinimalAPI)
 class UParticleLODLevel : public UObject

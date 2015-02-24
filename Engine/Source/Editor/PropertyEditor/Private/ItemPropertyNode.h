@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,22 +31,22 @@ public:
 	virtual FItemPropertyNode* AsItemPropertyNode() override { return this; }
 
 	/** Display name override to use instead of the property name */
-	void SetDisplayNameOverride( const FString& InDisplayNameOverride ) override;
+	void SetDisplayNameOverride( const FText& InDisplayNameOverride ) override;
 
 	/**
 	 * @return The formatted display name for the property in this node                                                              
 	 */
-	FString GetDisplayName() const override;
+	virtual FText GetDisplayName() const override;
 
 	/**
 	 * Sets the tooltip override to use instead of the property tooltip
 	 */
-	virtual void SetToolTipOverride( const FString& InToolTipOverride ) override;
+	virtual void SetToolTipOverride( const FText& InToolTipOverride ) override;
 
 	/**
 	 * @return The tooltip for the property in this node                                                              
 	 */
-	virtual FString GetToolTipText() const override;
+	virtual FText GetToolTipText() const override;
 
 protected:
 	/**
@@ -61,7 +61,7 @@ protected:
 
 private:
 	/** Display name override to use instead of the property name */
-	FString DisplayNameOverride;
+	FText DisplayNameOverride;
 	/** Tooltip override to use instead of the property tooltip */
-	FString ToolTipOverride;
+	FText ToolTipOverride;
 };

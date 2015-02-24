@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -72,10 +72,10 @@ public:
 	FString GeneratedClassPackage;
 
 	/** Used to examine the classname, retrieved from meta data for the package. */
-	FString GeneratedClassname;
+	FName GeneratedClassname;
 
 	/** Used to find the parent of this class, retrieved from meta data for the package. */
-	FString ParentClassname;
+	FName ParentClassname;
 
 	/** Used to load up the class if it is unloaded. */
 	FString AssetName;

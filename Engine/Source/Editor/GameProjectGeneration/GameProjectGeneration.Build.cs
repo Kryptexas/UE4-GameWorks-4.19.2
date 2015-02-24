@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -32,7 +32,8 @@ public class GameProjectGeneration : ModuleRules
  				"TargetPlatform",
 				"UnrealEd",
 				"DesktopPlatform",
-                "HardwareTargeting"
+                "HardwareTargeting",
+                "AssetRegistry"
 			}
 		);
 

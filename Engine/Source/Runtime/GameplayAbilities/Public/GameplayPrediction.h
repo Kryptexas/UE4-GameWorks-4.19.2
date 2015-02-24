@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -304,7 +304,7 @@ struct GAMEPLAYABILITIES_API FPredictionKey
 	bool bIsStale;
 
 	/** Construct a new prediction key with no dependancies */
-	static FPredictionKey CreateNewPredictionKey();
+	static FPredictionKey CreateNewPredictionKey(class UAbilitySystemComponent*);
 
 	/** Create a new dependant prediction key: keep our existing base or use the current key as the base. */
 	void GenerateDependantPredictionKey();
@@ -335,6 +335,11 @@ struct GAMEPLAYABILITIES_API FPredictionKey
 	bool WasReceived() const
 	{
 		return PredictiveConnection != nullptr;
+	}
+
+	bool WasLocallyGenerated() const
+	{
+		return Current > 0 && PredictiveConnection == nullptr;
 	}
 
 	bool DependsOn(KeyType Key)
@@ -439,13 +444,13 @@ class UGameplayAbility;
  *	A structure for allowing scoped prediction windows.
  */
 
-struct FScopedPredictionWindow
+struct GAMEPLAYABILITIES_API FScopedPredictionWindow
 {
 	/** To be called on server when a new prediction key is received from the client (In an RPC). */
 	FScopedPredictionWindow(UAbilitySystemComponent* AbilitySystemComponent, FPredictionKey InPredictionKey);
 
 	/** To be called in the callsite where the predictive code will take place. This generates a new PredictionKey and acts as a synchonization point between client and server for that key.  */
-	FScopedPredictionWindow(UGameplayAbility* GameplayAbilityInstance);
+	FScopedPredictionWindow(UAbilitySystemComponent* AbilitySystemComponent, bool CanGenerateNewKey=true);
 
 	~FScopedPredictionWindow();
 
@@ -454,8 +459,7 @@ struct FScopedPredictionWindow
 private:
 
 	TWeakObjectPtr<UAbilitySystemComponent> Owner;
-	TWeakObjectPtr<UGameplayAbility> Ability;
-
-	int8 ClientPrevActivationMode;
 	bool ClearScopedPredictionKey;
+	bool SetReplicatedPredictionKey;
+	FPredictionKey RestoreKey;
 };

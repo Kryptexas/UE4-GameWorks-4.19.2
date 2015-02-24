@@ -1,12 +1,60 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Perception/AISense_Damage.h"
+#include "Perception/AISenseEvent_Damage.h"
 
+//----------------------------------------------------------------------//
+// 
+//----------------------------------------------------------------------//
+FAIDamageEvent::FAIDamageEvent()
+	: Amount(1.f), Location(FAISystem::InvalidLocation), HitLocation(FAISystem::InvalidLocation)
+	, DamagedActor(nullptr), Instigator(nullptr)
+{}
+
+FAIDamageEvent::FAIDamageEvent(AActor* InDamagedActor, AActor* InInstigator, float DamageAmount, const FVector& EventLocation, const FVector& InHitLocation)
+	: Amount(DamageAmount), Location(EventLocation), HitLocation(InHitLocation), DamagedActor(InDamagedActor), Instigator(InInstigator)
+{
+	Compile();
+}
+
+void FAIDamageEvent::Compile()
+{
+	if (DamagedActor == nullptr)
+	{
+		// nothing to do here, this event is invalid
+		return;
+	}
+
+	const bool bHitLocationValid = FAISystem::IsValidLocation(HitLocation);
+	const bool bEventLocationValid = FAISystem::IsValidLocation(Location);
+
+	if (bHitLocationValid != bEventLocationValid)
+	{
+		if (bHitLocationValid)
+		{
+			HitLocation = Location;
+		}
+		else
+		{
+			Location = HitLocation;
+		}
+	}
+	// both invalid
+	else if ((bHitLocationValid || bEventLocationValid) == false)
+	{
+		HitLocation = Location = DamagedActor->GetActorLocation();
+	}
+
+}
+//----------------------------------------------------------------------//
+// 
+//----------------------------------------------------------------------//
 UAISense_Damage::UAISense_Damage(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
-	
+	DebugName = TEXT("Damage");
+	DebugDrawColor = FColor::Red;
 }
 
 float UAISense_Damage::Update()
@@ -26,7 +74,7 @@ float UAISense_Damage::Update()
 				// this has to succeed, will assert a failure
 				FPerceptionListener& Listener = ListenersMap[PerceptionComponent->GetListenerId()];
 
-				Listener.RegisterStimulus(Event.Instigator, FAIStimulus(GetSenseIndex(), Event.Amount, Event.Location, Event.HitLocation));
+				Listener.RegisterStimulus(Event.Instigator, FAIStimulus(*this, Event.Amount, Event.Location, Event.HitLocation));
 			}
 		}
 	}
@@ -39,7 +87,20 @@ float UAISense_Damage::Update()
 
 void UAISense_Damage::RegisterEvent(const FAIDamageEvent& Event)
 {
-	RegisteredEvents.Add(Event);
+	if (Event.IsValid())
+	{
+		RegisteredEvents.Add(Event);
 
-	RequestImmediateUpdate();
+		RequestImmediateUpdate();
+	}
+}
+
+void UAISense_Damage::RegisterWrappedEvent(UAISenseEvent& PerceptionEvent)
+{
+	UAISenseEvent_Damage* DamageEvent = Cast<UAISenseEvent_Damage>(&PerceptionEvent);
+	ensure(DamageEvent);
+	if (DamageEvent)
+	{
+		RegisterEvent(DamageEvent->GetDamageEvent());
+	}
 }

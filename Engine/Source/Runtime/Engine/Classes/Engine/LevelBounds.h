@@ -1,5 +1,6 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
+#include "TimerManager.h"
 #include "LevelBounds.generated.h"
 
 /**
@@ -46,6 +47,10 @@ class ALevelBounds : public AActor
 	ENGINE_API void UpdateLevelBoundsImmediately();
 	
 private:
+	
+	/** Handle for efficient management of OnTimerTick timer */
+	FTimerHandle TimerHandle_OnTimerTick;
+
 	/** Updates this actor bounding box by summing all level actors bounding boxes  */
 	void UpdateLevelBounds();
 
@@ -75,6 +80,11 @@ private:
 
 	/** True when there are no actors contributing to the bounds and we are currently using the default bounds instead */
 	bool bUsingDefaultBounds;
+
+	/** Handles to various registered delegates */
+	FDelegateHandle OnLevelActorMovedDelegateHandle;
+	FDelegateHandle OnLevelActorDeletedDelegateHandle;
+	FDelegateHandle OnLevelActorAddedDelegateHandle;
 #endif
 };
 

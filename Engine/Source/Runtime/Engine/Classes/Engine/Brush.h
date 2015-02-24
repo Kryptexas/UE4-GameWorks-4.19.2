@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // The brush class.
@@ -76,10 +76,6 @@ UCLASS(hidecategories=(Object, Collision, Display, Rendering, Physics, Input, Bl
 class ENGINE_API ABrush : public AActor
 {
 	GENERATED_UCLASS_BODY()
-
-	/** CSG operation performed in editor. */
-	UPROPERTY()
-	TEnumAsByte<enum ECsgOper> CsgOper_DEPRECATED;
 
 	/** Type of brush */
 	UPROPERTY(EditAnywhere, Category=Brush)

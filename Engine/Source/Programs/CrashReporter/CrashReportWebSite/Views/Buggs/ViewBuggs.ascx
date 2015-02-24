@@ -1,4 +1,4 @@
-﻿<%-- // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. --%>
+﻿<%-- // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved. --%>
 
 <%@ Control Language="C#" Inherits="System.Web.Mvc.ViewUserControl<BuggsViewModel>" %>
 <%@ Import Namespace="Tools.CrashReporter.CrashReportWebSite.Models" %>
@@ -51,96 +51,108 @@
 		<th style='width: 12em;'><%=Url.TableHeader( "FixedCL#", "FixedChangeList", Model )%></th>
 		<th style='width: 12em;'><%=Url.TableHeader( "TTPID", "TTPID", Model )%></th>
 	</tr>
-	<%try
-	 {
-		 foreach( Bugg CurrentBugg in Model.Results )
-		{
-			string BuggRowColor = "grey";
-			string BuggColorDescription = "Incoming CrashGroup";
-
-			if( string.IsNullOrWhiteSpace( CurrentBugg.FixedChangeList ) && string.IsNullOrWhiteSpace( CurrentBugg.TTPID ) )
+	<%
+		using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+		{ 
+			try
 			{
-				BuggRowColor = "#FFFF88"; // yellow
-				BuggColorDescription = "This CrashGroup has not been fixed or assigned a TTP";
-			}
+				foreach( Bugg CurrentBugg in Model.Results )
+				{
+					using( FScopedLogTimer LogTimer2 = new FScopedLogTimer( "CurrentBugg" + "(" + CurrentBugg.Id + ")" ) )
+					{ 
+						string BuggRowColor = "grey";
+						string BuggColorDescription = "Incoming CrashGroup";
 
-			if( !string.IsNullOrWhiteSpace( CurrentBugg.TTPID ) && string.IsNullOrWhiteSpace( CurrentBugg.FixedChangeList ) )
-			{
-				BuggRowColor = "#D01F3C"; // red
-				BuggColorDescription = "This CrashGroup has  been assigned a TTP: " + CurrentBugg.TTPID + " but has not been fixed.";
-			}
+						if( string.IsNullOrWhiteSpace( CurrentBugg.FixedChangeList ) && string.IsNullOrWhiteSpace( CurrentBugg.TTPID ) )
+						{
+							BuggRowColor = "#FFFF88"; // yellow
+							BuggColorDescription = "This CrashGroup has not been fixed or assigned a TTP";
+						}
 
-			if( CurrentBugg.Status == "Coder" )
-			{
-				BuggRowColor = "#D01F3C"; // red
-				BuggColorDescription = "This CrashGroup status has been set to Coder";
-			}
-			if( CurrentBugg.Status == "Tester" )
-			 {
-				 BuggRowColor = "#5C87B2"; // blue
-				 BuggColorDescription = "This CrashGroup status has been set to Tester";
-			 }
-			if( !string.IsNullOrWhiteSpace( CurrentBugg.FixedChangeList ) )
-			 {
-				 // Green
-				 BuggRowColor = "#008C00"; //green
-				 BuggColorDescription = "This CrashGroup has been fixed in CL# " + CurrentBugg.FixedChangeList;
-			 }
-			%>
+						if( !string.IsNullOrWhiteSpace( CurrentBugg.TTPID ) && string.IsNullOrWhiteSpace( CurrentBugg.FixedChangeList ) )
+						{
+							BuggRowColor = "#D01F3C"; // red
+							BuggColorDescription = "This CrashGroup has  been assigned a TTP: " + CurrentBugg.TTPID + " but has not been fixed.";
+						}
 
-			<tr class='BuggRow'>
-				<td class="BuggTd" style="background-color: <%=BuggRowColor %>;" title="<%=BuggColorDescription %>"></td>
-				<td class="Id"><%=Html.ActionLink( CurrentBugg.Id.ToString(), "Show", new { controller = "Buggs", id = CurrentBugg.Id }, null )%></td>
-				<td><%=CurrentBugg.BuildVersion%></td>
-				<td><%=CurrentBugg.CrashesInTimeFrame%></td>
-				<td><%=CurrentBugg.TimeOfLastCrash%></td>
-				<td><%=CurrentBugg.TimeOfFirstCrash%></td>
-				<td><%=CurrentBugg.NumberOfCrashes%> </td>
-				<td><%=CurrentBugg.NumberOfUsers%></td>
-					<td class="CallStack"  >
-						<div>
-							<div id='Div1' class='TrimmedCallStackBox'>
+						if( CurrentBugg.Status == "Coder" )
+						{
+							BuggRowColor = "#D01F3C"; // red
+							BuggColorDescription = "This CrashGroup status has been set to Coder";
+						}
+						if( CurrentBugg.Status == "Tester" )
+						{
+							BuggRowColor = "#5C87B2"; // blue
+							BuggColorDescription = "This CrashGroup status has been set to Tester";
+						}
+						if( !string.IsNullOrWhiteSpace( CurrentBugg.FixedChangeList ) )
+						{
+							// Green
+							BuggRowColor = "#008C00"; //green
+							BuggColorDescription = "This CrashGroup has been fixed in CL# " + CurrentBugg.FixedChangeList;
+						}
+	%>
+
+		<tr class='BuggRow'>
+			<td class="BuggTd" style="background-color: <%=BuggRowColor %>;" title="<%=BuggColorDescription %>"></td>
+			<td class="Id"><%=Html.ActionLink( CurrentBugg.Id.ToString(), "Show", new { controller = "Buggs", id = CurrentBugg.Id }, null )%></td>
+			<td><%=CurrentBugg.BuildVersion%></td>
+			<td><%=CurrentBugg.CrashesInTimeFrame%></td>
+			<td><%=CurrentBugg.TimeOfLastCrash%></td>
+			<td><%=CurrentBugg.TimeOfFirstCrash%></td>
+			<td><%=CurrentBugg.NumberOfCrashes%> </td>
+			<td><%=CurrentBugg.NumberOfUsers%></td>
+			<td class="CallStack">
+				<div>
+					<div id='Div1' class='TrimmedCallStackBox'>
 								<%
-								var FunctionCalls = CurrentBugg.GetFunctionCalls( 20 );
-								int i = 0;
-								foreach( string FunctionCall in FunctionCalls )
-								{
-									string FunctionCallDisplay = FunctionCall;
-									if( FunctionCall.Length > 45 )
-									{
-										FunctionCallDisplay = FunctionCall.Substring( 0, 45 );
-									}%>
-									<span class="FunctionName">
-										<%=Url.CallStackSearchLink( Html.Encode( FunctionCallDisplay ), Model )%>
-									</span><br />
-									<%
-									i++;
-									if( i > 3 )
-									{
-										break;
-									}
-								} %>
-							</div>
-							<a class='FullCallStackTrigger'><span class='FullCallStackTriggerText'>Full Callstack</span>
-								<div id='<%=CurrentBugg.Id %>-FullCallStackBox' class='FullCallStackBox'>
-									<%foreach( string FunctionCall in FunctionCalls )
-									  {%>
-										<span class="FunctionName">
-											<%=Html.Encode( FunctionCall )%>
-										</span><br />
-									<%} %>
-								</div>
-							</a>
+						var FunctionCalls = CurrentBugg.GetFunctionCalls();
+						int i = 0;
+						foreach( string FunctionCall in FunctionCalls )
+						{
+							string FunctionCallDisplay = FunctionCall;
+							if( FunctionCall.Length > 45 )
+							{
+								FunctionCallDisplay = FunctionCall.Substring( 0, 45 );
+							}%>
+								<span class="FunctionName">
+									<%=Url.CallStackSearchLink( Html.Encode( FunctionCallDisplay ), Model )%>
+								</span>
+								<br />
+								<%
+												i++;
+												if( i > 3 )
+												{
+													break;
+												}
+											} %>
+					</div>
+					<a class='FullCallStackTrigger'><span class='FullCallStackTriggerText'>Full Callstack</span>
+						<div id='<%=CurrentBugg.Id %>-FullCallStackBox' class='FullCallStackBox'>
+							<%foreach( string FunctionCall in FunctionCalls )
+							{%>
+							<span class="FunctionName">
+								<%=Html.Encode( FunctionCall )%>
+							</span>
+							<br />
+							<%} %>
 						</div>
-					</td> 
-					<td><%=CurrentBugg.Status%></td>
-					<td><%=CurrentBugg.FixedChangeList%></td>
-					<td><%=CurrentBugg.TTPID%></td>
+					</a>
+				</div>
+			</td>
+			<td><%=CurrentBugg.Status%></td>
+			<td><%=CurrentBugg.FixedChangeList%></td>
+			<td><%=CurrentBugg.TTPID%></td>
+		</tr>
+	<%				}
+				}
+			}
+			catch
+			{%>
+				<tr>
+					<td colspan="9">No Results Found. Please try adjusting your search. Or contact support.</td>
 				</tr>
-		<%} %>
-	<% }
-	catch
-	{%> 
-		<tr><td colspan="9">No Results Found. Please try adjusting your search. Or contact support.</td></tr>
-	<%} %>
+		<%	} 
+		}
+		%>
 </table>

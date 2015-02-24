@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,6 +9,11 @@ struct KISMET_API FFindInBlueprintSearchTags
 {
 	/** Properties tag, for Blueprint variables */
 	static const FText FiB_Properties;
+
+	/** Components tags */
+	static const FText FiB_Components;
+	static const FText FiB_IsSCSComponent;
+	/** End Components tags */
 
 	/** Nodes tag */
 	static const FText FiB_Nodes;
@@ -65,7 +70,7 @@ struct KISMET_API FFindInBlueprintSearchTags
 struct FSearchData
 {
 	/** The Blueprint this search data points to, if available */
-	UBlueprint* Blueprint;
+	TWeakObjectPtr<UBlueprint> Blueprint;
 
 	/** The full Blueprint path this search data is associated with */
 	FString BlueprintPath;
@@ -153,48 +158,23 @@ public:
 	/**
 	 * Query for a single, specific Blueprint's search block
 	 *
-	 * @param InBlueprint		The Blueprint to search for
-	 * @return					The search block
+	 * @param InBlueprint				The Blueprint to search for
+	 * @param bInRebuildSearchData		When TRUE the search data will be freshly collected
+	 * @return							The search block
 	 */
-	FString QuerySingleBlueprint(UBlueprint* InBlueprint);
-
-	/** Returns the number of uncached Blueprints */
-	int32 GetNumberUncachedBlueprints() const { return UncachedBlueprints.Num(); };
-
-	/**
-	 * Starts caching all uncached Blueprints at a rate of 1 per tick
-	 *
-	 * @param InSourceWidget		The source FindInBlueprints widget, this widget will be informed when caching is complete
-	 */
-	void CacheAllUncachedBlueprints(TWeakPtr< class SFindInBlueprints > InSourceWidget);
-
-	/** Stops the caching process where it currently is at, the rest can be continued later */
-	void CancelCacheAll();
-
-	/** Returns the current index in the caching */
-	int32 GetCurrentCacheIndex() const;
-
-	/** Returns the name of the current Blueprint being cached */
-	FString GetCurrentCacheBlueprintName() const;
-
-	/** Returns the progress complete on the caching */
-	float GetCacheProgress() const;
-
-	/**
-	 * Callback to note that Blueprint caching is complete
-	 *
-	 * @param InNumberCached		The number of Blueprints cached, to be chopped off the existing array so the rest (if any) can be finished later
-	 */
-	void FinishedCachingBlueprints(int32 InNumberCached);
-
-	/** Returns TRUE if Blueprints are being cached. */
-	bool IsCacheInProgress() const;
+	FString QuerySingleBlueprint(UBlueprint* InBlueprint, bool bInRebuildSearchData = true);
 
 	/** Converts a string of hex characters, previously converted by ConvertFTextToHexString, to an FText. */
 	static FText ConvertHexStringToFText(FString InHexString);
 
 	/** Serializes an FText to memory and converts the memory into a string of hex characters */
 	static FString ConvertFTextToHexString(FText InValue);
+
+	/** Serializes an FString to memory and converts the memory into a string of hex characters */
+	static FString ConvertFStringToHexString(FString InValue);
+
+	static TSharedPtr< class FJsonObject > ConvertJsonStringToObject(FString InJsonString);
+
 private:
 	/** Initializes the FiB manager */
 	void Initialize();
@@ -256,12 +236,6 @@ protected:
 
 	/** Because we are unable to query for the module on another thread, cache it for use later */
 	class FAssetRegistryModule* AssetRegistryModule;
-
-	/** Blueprint paths that have not been cached for searching due to lack of data, this means that they are either older Blueprints, or the DDC cannot find the data */
-	TArray<FName> UncachedBlueprints;
-
-	/** Tickable object that does the caching of uncached Blueprints at a rate of once per tick */
-	class FCacheAllBlueprintsTickableObject* CachingObject;
 
 	/** A list of all the FindInBlueprints widgets that need to be informed that caching is complete */
 	TArray< TWeakPtr<class SFindInBlueprints> > OnCachingCompleteCallbackWidgets;

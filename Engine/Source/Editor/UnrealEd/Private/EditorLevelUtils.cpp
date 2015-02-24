@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorLevelUtils.cpp: Editor-specific level management routines
@@ -20,6 +20,11 @@
 #include "PackageTools.h"
 
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
+#include "Engine/LevelStreamingVolume.h"
+#include "Engine/LevelStreaming.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/Selection.h"
+#include "Components/ModelComponent.h"
 
 DEFINE_LOG_CATEGORY(LogLevelTools);
 
@@ -403,6 +408,7 @@ namespace EditorLevelUtils
 			{
 				MakeLevelCurrent(OwningWorld->PersistentLevel);
 			}
+
 
 			EditorDestroyLevel(InLevel);
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "LevelEditor.h"
@@ -16,7 +16,6 @@
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
 #include "Editor/MainFrame/Public/MainFrame.h"
-#include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
 #include "Editor/UnrealEd/Private/GeomFitUtils.h"
 #include "Editor/UnrealEd/Public/BSPOps.h"
 #include "Editor/LevelEditor/Public/DlgDeltaTransform.h"
@@ -44,14 +43,26 @@
 #include "ReferenceViewer.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
 #include "EditorClassUtils.h"
+#include "ComponentEditorUtils.h"
 
 #include "EditorActorFolders.h"
 #include "ActorPickerMode.h"
 #include "EngineBuildSettings.h"
 #include "HotReloadInterface.h"
 #include "ISourceControlModule.h"
+#include "SourceControlWindows.h"
 #include "NotificationManager.h"
 #include "SNotificationList.h"
+#include "Engine/Selection.h"
+#include "EngineUtils.h"
+#include "Engine/StaticMeshActor.h"
+#include "Engine/Polys.h"
+#include "Components/LightComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/Light.h"
+#include "Animation/SkeletalMeshActor.h"
+#include "Editor/Persona/Public/AnimationRecorder.h"
+#include "Editor/KismetWidgets/Public/CreateBlueprintFromActorDialog.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LevelEditorActions, Log, All);
 
@@ -104,7 +115,7 @@ bool FLevelEditorActionCallbacks::DefaultCanExecuteAction()
 
 void FLevelEditorActionCallbacks::BrowseDocumentation()
 {
-	IDocumentation::Get()->OpenHome();
+	IDocumentation::Get()->OpenHome(FDocumentationSourceInfo(TEXT("help_menu")));
 }
 
 void FLevelEditorActionCallbacks::BrowseAPIReference()
@@ -463,6 +474,9 @@ bool FLevelEditorActionCallbacks::IsMaterialQualityLevelChecked( EMaterialQualit
 
 void FLevelEditorActionCallbacks::SetFeatureLevelPreview(ERHIFeatureLevel::Type InPreviewFeatureLevel)
 {
+	// Record this feature level as we want to use it for all subsequent level creation and loading
+	GEditor->DefaultWorldFeatureLevel = InPreviewFeatureLevel;
+
 	GetWorld()->ChangeFeatureLevel(InPreviewFeatureLevel);
 
 	// Update any currently running PIE sessions.
@@ -744,26 +758,26 @@ bool FLevelEditorActionCallbacks::IsLightingDensityRenderGrayscaleChecked()
 	return GEngine->bRenderLightMapDensityGrayscale;
 }
 
-void FLevelEditorActionCallbacks::SetLightingResolutionStaticMeshes( ESlateCheckBoxState::Type NewCheckedState )
+void FLevelEditorActionCallbacks::SetLightingResolutionStaticMeshes( ECheckBoxState NewCheckedState )
 {
 	FLightmapResRatioAdjustSettings& Settings = FLightmapResRatioAdjustSettings::Get();
-	Settings.bStaticMeshes = ( NewCheckedState == ESlateCheckBoxState::Checked );
+	Settings.bStaticMeshes = ( NewCheckedState == ECheckBoxState::Checked );
 }
 
-ESlateCheckBoxState::Type FLevelEditorActionCallbacks::IsLightingResolutionStaticMeshesChecked()
+ECheckBoxState FLevelEditorActionCallbacks::IsLightingResolutionStaticMeshesChecked()
 {
-	return ( FLightmapResRatioAdjustSettings::Get().bStaticMeshes ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked );
+	return ( FLightmapResRatioAdjustSettings::Get().bStaticMeshes ? ECheckBoxState::Checked : ECheckBoxState::Unchecked );
 }
 
-void FLevelEditorActionCallbacks::SetLightingResolutionBSPSurfaces( ESlateCheckBoxState::Type NewCheckedState )
+void FLevelEditorActionCallbacks::SetLightingResolutionBSPSurfaces( ECheckBoxState NewCheckedState )
 {
 	FLightmapResRatioAdjustSettings& Settings = FLightmapResRatioAdjustSettings::Get();
-	Settings.bBSPSurfaces = ( NewCheckedState == ESlateCheckBoxState::Checked );
+	Settings.bBSPSurfaces = ( NewCheckedState == ECheckBoxState::Checked );
 }
 
-ESlateCheckBoxState::Type FLevelEditorActionCallbacks::IsLightingResolutionBSPSurfacesChecked()
+ECheckBoxState FLevelEditorActionCallbacks::IsLightingResolutionBSPSurfacesChecked()
 {
-	return ( FLightmapResRatioAdjustSettings::Get().bBSPSurfaces ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked );
+	return ( FLightmapResRatioAdjustSettings::Get().bBSPSurfaces ? ECheckBoxState::Checked : ECheckBoxState::Unchecked );
 }
 
 void FLevelEditorActionCallbacks::SetLightingResolutionLevel( FLightmapResRatioAdjustSettings::AdjustLevels NewLevel )
@@ -892,23 +906,15 @@ bool FLevelEditorActionCallbacks::CanShowSourceCodeActions()
 	return HotReloadSupport.IsAnyGameModuleLoaded();
 }
 
-void FLevelEditorActionCallbacks::RecompileLevelEditor_Clicked()
-{
-	GEngine->DeferredCommands.Add( TEXT( "Module Recompile LevelEditor" ) );
-}
-
-void FLevelEditorActionCallbacks::ReloadLevelEditor_Clicked()
-{
-	GEngine->DeferredCommands.Add( TEXT( "Module Reload LevelEditor" ) );
-}
-
 void FLevelEditorActionCallbacks::RecompileGameCode_Clicked()
 {
 	// Don't allow a recompile while already compiling!
 	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
 	if( !HotReloadSupport.IsCurrentlyCompiling() )
 	{
-		HotReloadSupport.DoHotReloadFromEditor();
+		// Don't wait -- we want compiling to happen asynchronously
+		const bool bWaitForCompletion = false;
+		HotReloadSupport.DoHotReloadFromEditor(bWaitForCompletion);
 	}
 }
 
@@ -920,12 +926,53 @@ bool FLevelEditorActionCallbacks::Recompile_CanExecute()
 	return !HotReloadSupport.IsCurrentlyCompiling() && !(GEngineVersion.IsPromotedBuild() && FEngineBuildSettings::IsPerforceBuild());
 }
 
-bool FLevelEditorActionCallbacks::Reload_CanExecute()
+void FLevelEditorActionCallbacks::ConnectToSourceControl_Clicked()
 {
-	// We're not able to reload if a compile is already in progress!
-	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>(HotReloadModule);
-	return !HotReloadSupport.IsCurrentlyCompiling();
+	// Show login window regardless of current status - its useful as a shortcut to change settings.
+	ISourceControlModule& SourceControlModule = ISourceControlModule::Get();
+	SourceControlModule.ShowLoginDialog(FSourceControlLoginClosed(), ELoginWindowMode::Modeless, EOnLoginWindowStartup::PreserveProvider);
 }
+
+bool FLevelEditorActionCallbacks::CheckOutModifiedFiles_CanExecute()
+{
+	ISourceControlModule& SourceControlModule = ISourceControlModule::Get();
+	if (ISourceControlModule::Get().IsEnabled() &&
+		ISourceControlModule::Get().GetProvider().IsAvailable())
+	{
+		TArray<UPackage*> PackagesToSave;
+		FEditorFileUtils::GetDirtyWorldPackages(PackagesToSave);
+		FEditorFileUtils::GetDirtyContentPackages(PackagesToSave);
+
+		return PackagesToSave.Num() > 0;
+	}
+
+	return false;
+}
+
+void FLevelEditorActionCallbacks::CheckOutModifiedFiles_Clicked()
+{
+	TArray<UPackage*> PackagesToSave;
+	FEditorFileUtils::GetDirtyWorldPackages(PackagesToSave);
+	FEditorFileUtils::GetDirtyContentPackages(PackagesToSave);
+
+	const bool bCheckDirty = true;
+	const bool bPromptUserToSave = false;
+	FEditorFileUtils::PromptForCheckoutAndSave(PackagesToSave, bCheckDirty, bPromptUserToSave);
+}
+
+bool FLevelEditorActionCallbacks::SubmitToSourceControl_CanExecute()
+{
+	ISourceControlModule& SourceControlModule = ISourceControlModule::Get();
+	return ISourceControlModule::Get().IsEnabled() &&
+		   ISourceControlModule::Get().GetProvider().IsAvailable() &&
+		   FSourceControlWindows::CanChoosePackagesToCheckIn();
+}
+
+void FLevelEditorActionCallbacks::SubmitToSourceControl_Clicked()
+{
+	FSourceControlWindows::ChoosePackagesToCheckIn();
+}
+
 
 void FLevelEditorActionCallbacks::GoToCodeForActor_Clicked()
 {
@@ -949,7 +996,7 @@ void FLevelEditorActionCallbacks::GoToDocsForActor_Clicked()
 		FString DocumentationLink = FEditorClassUtils::GetDocumentationLink(SelectedActorInfo.SelectionClass);
 		if (!DocumentationLink.IsEmpty())
 		{
-			IDocumentation::Get()->Open( DocumentationLink );
+			IDocumentation::Get()->Open( DocumentationLink, FDocumentationSourceInfo(TEXT("rightclick_viewdoc")) );
 		}
 	}
 }
@@ -996,7 +1043,8 @@ void FLevelEditorActionCallbacks::EditAsset_Clicked( const EToolkitMode::Type To
 	if( GEditor->GetSelectedActorCount() > 0 )
 	{
 		TArray< UObject* > ReferencedAssets;
-		GEditor->GetReferencedAssetsForEditorSelection( ReferencedAssets );
+		const bool bIgnoreOtherAssetsIfBPReferenced = true;
+		GEditor->GetReferencedAssetsForEditorSelection( ReferencedAssets, bIgnoreOtherAssetsIfBPReferenced );
 
 		bool bShouldOpenEditors = (ReferencedAssets.Num() == 1);
 
@@ -1088,6 +1136,54 @@ void FLevelEditorActionCallbacks::CreateNewOutlinerFolder_Clicked()
 	FActorFolders::Get().CreateFolderContainingSelection(*GetWorld(), NewFolderName);
 }
 
+void FLevelEditorActionCallbacks::GoHere_Clicked( const FVector* Point )
+{
+	if( GCurrentLevelEditingViewportClient )
+	{
+		FVector ZoomToPoint;
+		if( !Point )
+		{
+			FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
+				GCurrentLevelEditingViewportClient->Viewport,
+				GCurrentLevelEditingViewportClient->GetWorld()->Scene,
+				GCurrentLevelEditingViewportClient->EngineShowFlags)
+				.SetRealtimeUpdate(true));
+
+
+			FSceneView* SceneView = GCurrentLevelEditingViewportClient->CalcSceneView(&ViewFamily);
+
+			if(SceneView)
+			{
+				FIntPoint MousePosition;
+				FVector WorldOrigin;
+				FVector WorldDirection;
+				GCurrentLevelEditingViewportClient->Viewport->GetMousePos(MousePosition);
+
+				SceneView->DeprojectFVector2D(MousePosition, WorldOrigin, WorldDirection);
+
+				FHitResult HitResult;
+
+				static FName FocusOnPoint = FName(TEXT("FocusOnPoint"));
+				FCollisionQueryParams LineParams(FocusOnPoint, true);
+
+				if(GCurrentLevelEditingViewportClient->GetWorld()->LineTraceSingle(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HALF_WORLD_MAX, LineParams, FCollisionObjectQueryParams(ECC_WorldStatic)))
+				{
+					ZoomToPoint = HitResult.ImpactPoint;
+				}
+			}
+		}
+		else
+		{
+			ZoomToPoint = *Point;
+		}
+
+		const float PushOutSize = 500;
+		FBox BoundingBox(ZoomToPoint-PushOutSize, ZoomToPoint+PushOutSize);
+
+		GCurrentLevelEditingViewportClient->FocusViewportOnBox(BoundingBox);
+	}
+}
+
 bool FLevelEditorActionCallbacks::LockActorMovement_IsChecked()
 {
 	return GEditor->HasLockedActors();
@@ -1174,7 +1270,7 @@ AActor* FLevelEditorActionCallbacks::ReplaceActors( UActorFactory* ActorFactory,
 	if( ActorFactory->CanCreateActorFrom( AssetData, ErrorMessage ) )
 	{
 		// Replace all selected actors with actors created from the specified factory
-		GEditor->ReplaceSelectedActors( ActorFactory, AssetData, NULL );
+		GEditor->ReplaceSelectedActors( ActorFactory, AssetData );
 
 		if ( IPlacementModeModule::IsAvailable() )
 		{
@@ -1214,12 +1310,12 @@ void FLevelEditorActionCallbacks::ReplaceActorsFromClass_Clicked( UClass* ActorC
 			if( ActorFactory->CanCreateActorFrom( TargetAssetData, ErrorMessage ) )
 			{
 				// Replace all selected actors with actors created from the specified factory
-				GEditor->ReplaceSelectedActors( ActorFactory, TargetAssetData, NULL );
+				GEditor->ReplaceSelectedActors( ActorFactory, TargetAssetData );
 			}	
 			else if ( ActorFactory->CanCreateActorFrom( NoAssetData, UnusedErrorMessage ) )
 			{
 				// Replace all selected actors with actors created from the specified factory
-				GEditor->ReplaceSelectedActors( ActorFactory, NoAssetData, NULL );
+				GEditor->ReplaceSelectedActors( ActorFactory, NoAssetData );
 			}
 			else
 			{
@@ -1256,7 +1352,25 @@ bool FLevelEditorActionCallbacks::Duplicate_CanExecute()
 			return false;
 		}
 	}
-	return GUnrealEd->CanCopySelectedActorsToClipboard( GetWorld() );	// If we can copy, we can duplicate
+	
+	// If we can copy, we can duplicate
+	bool bCanCopy = false;
+	if (GEditor->GetSelectedComponentCount() > 0)
+	{
+		TArray<UActorComponent*> SelectedComponents;
+		for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
+		{
+			SelectedComponents.Add(CastChecked<UActorComponent>(*It));
+		}
+
+		bCanCopy = FComponentEditorUtils::CanCopyComponents(SelectedComponents);
+	}
+	else
+	{
+		bCanCopy = GUnrealEd->CanCopySelectedActorsToClipboard(GetWorld());
+	}
+
+	return bCanCopy;
 }
 
 bool FLevelEditorActionCallbacks::Delete_CanExecute()
@@ -1275,21 +1389,60 @@ bool FLevelEditorActionCallbacks::Delete_CanExecute()
 			return false;
 		}
 	}
-	return GUnrealEd->CanDeleteSelectedActors( GetWorld(), true, false );
+
+	bool bCanDelete = false;
+	if (GEditor->GetSelectedComponentCount() > 0)
+	{
+		TArray<UActorComponent*> SelectedComponents;
+		for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
+		{
+			SelectedComponents.Add(CastChecked<UActorComponent>(*It));
+		}
+
+		bCanDelete = FComponentEditorUtils::CanDeleteComponents(SelectedComponents);
+	}
+	else
+	{
+		bCanDelete = GUnrealEd->CanDeleteSelectedActors(GetWorld(), true, false);
+	}
+
+	return bCanDelete;
 }
 
 void FLevelEditorActionCallbacks::Rename_Execute()
 {
-	AActor* Actor = Cast<AActor>( *GEditor->GetSelectedActorIterator() );
-	if(Actor)
+	UActorComponent* Component = Cast<UActorComponent>(*GEditor->GetSelectedComponentIterator());
+	if (Component)
 	{
-		GEditor->BroadcastLevelActorRequestRename(Actor);
+		GEditor->BroadcastLevelComponentRequestRename(Component);
+	}
+	else
+	{
+		AActor* Actor = Cast<AActor>(*GEditor->GetSelectedActorIterator());
+		if (Actor)
+		{
+			GEditor->BroadcastLevelActorRequestRename(Actor);
+		}
 	}
 }
 
 bool FLevelEditorActionCallbacks::Rename_CanExecute()
 {
-	return GEditor->GetSelectedActorCount() == 1;
+	bool bCanRename = false;
+	if (GEditor->GetSelectedComponentCount() == 1)
+	{
+		if (UActorComponent* ComponentToRename = GEditor->GetSelectedComponents()->GetTop<UActorComponent>())
+		{
+			// We can't edit non-instance components or the default scene root
+			bCanRename = ComponentToRename->CreationMethod == EComponentCreationMethod::Instance && ComponentToRename->GetFName() != USceneComponent::GetDefaultSceneRootVariableName();
+		}
+	}
+	else
+	{
+		bCanRename = GEditor->GetSelectedActorCount() == 1;
+	}
+
+	return bCanRename;
 }
 
 bool FLevelEditorActionCallbacks::Cut_CanExecute()
@@ -1308,7 +1461,26 @@ bool FLevelEditorActionCallbacks::Cut_CanExecute()
 			return false;
 		}
 	}
-	return GUnrealEd->CanCopySelectedActorsToClipboard( GetWorld() );	// If we can copy, we can cut
+
+	bool bCanCut = false;
+	if (GEditor->GetSelectedComponentCount() > 0)
+	{
+		// Make sure the components can be copied and deleted
+		TArray<UActorComponent*> SelectedComponents;
+		for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
+		{
+			SelectedComponents.Add(CastChecked<UActorComponent>(*It));
+		}
+
+		bCanCut = FComponentEditorUtils::CanCopyComponents(SelectedComponents) && FComponentEditorUtils::CanDeleteComponents(SelectedComponents);
+	}
+	else
+	{
+		// For actors, if we can copy, we can cut
+		bCanCut = GUnrealEd->CanCopySelectedActorsToClipboard(GetWorld());
+	}
+
+	return bCanCut;
 }
 
 bool FLevelEditorActionCallbacks::Copy_CanExecute()
@@ -1327,7 +1499,24 @@ bool FLevelEditorActionCallbacks::Copy_CanExecute()
 			return false;
 		}
 	}
-	return GUnrealEd->CanCopySelectedActorsToClipboard( GetWorld() );
+
+	bool bCanCopy = false;
+	if (GEditor->GetSelectedComponentCount() > 0)
+	{
+		TArray<UActorComponent*> SelectedComponents;
+		for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
+		{
+			SelectedComponents.Add(CastChecked<UActorComponent>(*It));
+		}
+
+		bCanCopy = FComponentEditorUtils::CanCopyComponents(SelectedComponents);
+	}
+	else
+	{
+		bCanCopy = GUnrealEd->CanCopySelectedActorsToClipboard(GetWorld());
+	}
+
+	return bCanCopy;
 }
 
 bool FLevelEditorActionCallbacks::Paste_CanExecute()
@@ -1346,7 +1535,20 @@ bool FLevelEditorActionCallbacks::Paste_CanExecute()
 			return false;
 		}
 	}
-	return GUnrealEd->CanPasteSelectedActorsFromClipboard( GetWorld() );
+
+	bool bCanPaste = false;
+	if (GEditor->GetSelectedComponentCount() > 0)
+	{
+		check(GEditor->GetSelectedActorCount() == 1);
+		auto SelectedActor = CastChecked<AActor>(*GEditor->GetSelectedActorIterator());
+		bCanPaste = FComponentEditorUtils::CanPasteComponents(SelectedActor->GetRootComponent());
+	}
+	else
+	{
+		bCanPaste = GUnrealEd->CanPasteSelectedActorsFromClipboard(GetWorld());
+	}
+
+	return bCanPaste;
 }
 
 bool FLevelEditorActionCallbacks::PasteHere_CanExecute()
@@ -1362,6 +1564,20 @@ void FLevelEditorActionCallbacks::ExecuteExecCommand( FString Command )
 void FLevelEditorActionCallbacks::OnSelectAllActorsOfClass( bool bArchetype )
 {
 	GEditor->SelectAllActorsWithClass( bArchetype );
+}
+
+void FLevelEditorActionCallbacks::OnSelectComponentOwnerActor()
+{
+	auto ComponentOwner = Cast<AActor>(*GEditor->GetSelectedActorIterator());
+	check(ComponentOwner);
+
+	GEditor->SelectNone(true, true, false);
+	GEditor->SelectActor(ComponentOwner, true, true, true);
+}
+
+bool FLevelEditorActionCallbacks::CanSelectComponentOwnerActor()
+{
+	return GEditor->GetSelectedComponentCount() > 0;
 }
 
 void FLevelEditorActionCallbacks::OnSelectAllActorsControlledByMatinee()
@@ -1417,7 +1633,7 @@ void FLevelEditorActionCallbacks::OnSelectStationaryLightsExceedingOverlap()
 	{
 		AActor* Actor = *It;
 
-		TArray<ULightComponent*> Components;
+		TInlineComponentArray<ULightComponent*> Components;
 		Actor->GetComponents(Components);
 
 		for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
@@ -1538,6 +1754,75 @@ bool FLevelEditorActionCallbacks::ScaleGridSnap_IsChecked()
 	return GetDefault<ULevelEditorViewportSettings>()->SnapScaleEnabled;
 }
 
+bool FLevelEditorActionCallbacks::SaveAnimationFromSkeletalMeshComponent(AActor * EditorActor, AActor * SimActor, TArray<class USkeletalMeshComponent*> & OutEditorComponents)
+{
+	// currently blueprint actors don't work because their property can't get copied over. 
+	if (Cast<UBlueprintGeneratedClass>(EditorActor->GetClass()) != nullptr)
+	{
+		return false;
+	}
+
+	// find all skel components
+	TInlineComponentArray<class USkeletalMeshComponent *> SimSkelComponents;
+	SimActor->GetComponents<USkeletalMeshComponent>(SimSkelComponents);
+
+	if(SimSkelComponents.Num() > 0)
+	{
+		// see if simulating, 
+		bool bSimulating = false;
+		for (auto & Comp : SimSkelComponents)
+		{
+			bSimulating |= (Comp->SkeletalMesh && Comp->SkeletalMesh->Skeleton && Comp->IsSimulatingPhysics());
+		}
+
+		// if any of them are legitimately simulating
+		if (bSimulating)
+		{
+			// ask users if you'd like to make an animation
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("ActorName"), FText::FromString(GetNameSafe(EditorActor)));
+			FText AskQuestion = FText::Format(LOCTEXT("KeepSimulationChanges_AskSaveAnimation", "Would you like to save animations from simulation for {ActorName} actor"), Args);
+			if(EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, AskQuestion))
+			{
+				for (auto & Comp : SimSkelComponents)
+				{
+					if (Comp->SkeletalMesh && Comp->SkeletalMesh->Skeleton && Comp->IsSimulatingPhysics())
+					{
+						// now record to animation
+						FAnimationRecorder Recorder;
+						if(Recorder.TriggerRecordAnimation(Comp))
+						{
+							class UAnimSequence * Sequence = Recorder.GetAnimationObject();
+							if(Sequence)
+							{
+								Recorder.StopRecord(false);
+								Comp->SetAnimationMode(EAnimationMode::AnimationSingleNode);
+								Comp->AnimationData.AnimToPlay = Sequence;
+								Comp->SetAnimation(Sequence);
+								Comp->SetSimulatePhysics(false);
+
+								// add the matching component to EditorCompoennts
+								class USkeletalMeshComponent * MatchingComponent = Cast<USkeletalMeshComponent>(EditorUtilities::FindMatchingComponentInstance(Comp, EditorActor));
+								if (MatchingComponent)
+								{
+									OutEditorComponents.Add(MatchingComponent);
+								}
+								else
+								{
+									UE_LOG( LevelEditorActions, Warning, TEXT("Matching component could not be found %s(%s)"), *GetNameSafe(Comp), *GetNameSafe(EditorActor) );
+								}
+							}
+						}
+					}
+				}
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
 
 void FLevelEditorActionCallbacks::OnKeepSimulationChanges()
 {
@@ -1554,6 +1839,8 @@ void FLevelEditorActionCallbacks::OnKeepSimulationChanges()
 		{
 			const FScopedTransaction Transaction( NSLOCTEXT( "LevelEditorCommands", "KeepSimulationChanges", "Keep Simulation Changes" ) );
 
+			TArray<class USkeletalMeshComponent*> ComponentsToReinitialize;
+
 			for( auto ActorIt( GEditor->GetSelectedActorIterator() ); ActorIt; ++ActorIt )
 			{
 				auto* SimWorldActor = CastChecked<AActor>( *ActorIt );
@@ -1562,12 +1849,15 @@ void FLevelEditorActionCallbacks::OnKeepSimulationChanges()
 				AActor* EditorWorldActor = EditorUtilities::GetEditorWorldCounterpartActor( SimWorldActor );
 				if( EditorWorldActor != NULL )
 				{
+					SaveAnimationFromSkeletalMeshComponent(EditorWorldActor, SimWorldActor, ComponentsToReinitialize);
+
 					// We only want to copy CPF_Edit properties back, or properties that are set through editor manipulation
 					// NOTE: This needs to match what we're doing in the BuildSelectedActorInfo() function
 					const auto CopyOptions = ( EditorUtilities::ECopyOptions::Type )(
 						EditorUtilities::ECopyOptions::CallPostEditChangeProperty |
 						EditorUtilities::ECopyOptions::CallPostEditMove |
-						EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties );
+						EditorUtilities::ECopyOptions::OnlyCopyEditOrInterpProperties |
+						EditorUtilities::ECopyOptions::FilterBlueprintReadOnly);
 					const int32 CopiedPropertyCount = EditorUtilities::CopyActorProperties( SimWorldActor, EditorWorldActor, CopyOptions );
 
 					if( CopiedPropertyCount > 0 )
@@ -1579,6 +1869,15 @@ void FLevelEditorActionCallbacks::OnKeepSimulationChanges()
 						{
 							FirstUpdatedActorLabel = EditorWorldActor->GetActorLabel();
 						}
+					}
+				}
+
+				// need to reinitialize animation
+				for (auto MeshComp : ComponentsToReinitialize)
+				{
+					if(MeshComp->SkeletalMesh)
+					{
+						MeshComp->InitAnim(true);
 					}
 				}
 			}
@@ -1691,7 +1990,7 @@ void FLevelEditorActionCallbacks::OpenMarketplace()
 		{
 			EventAttributes.Add(FAnalyticsEventAttribute(TEXT("OpenSucceeded"), TEXT("FALSE")));
 
-			if (EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("InstallMarketplacePrompt", "The Marketplace requires the Unreal Engine Launcher, which does not seem to be installed on your computer. Would you like to install it now?")))
+			if (EAppReturnType::Yes == FMessageDialog::Open(EAppMsgType::YesNo, LOCTEXT("InstallMarketplacePrompt", "The Marketplace requires the Epic Games Launcher, which does not seem to be installed on your computer. Would you like to install it now?")))
 			{
 				if (!DesktopPlatform->OpenLauncher(true, TEXT("-OpenMarket")))
 				{
@@ -1756,9 +2055,9 @@ void FLevelEditorActionCallbacks::OpenLevelBlueprint( TWeakPtr< SLevelEditor > L
 	}
 }
 
-void FLevelEditorActionCallbacks::CreateClassBlueprint()
+void FLevelEditorActionCallbacks::CreateBlankBlueprintClass()
 {
-	// Use the BlueprintFactory to allow the user to pick a parent class for the new class Blueprint
+	// Use the BlueprintFactory to allow the user to pick a parent class for the new Blueprint class
 	UBlueprintFactory* NewFactory = Cast<UBlueprintFactory>(ConstructObject<UFactory>( UBlueprintFactory::StaticClass() ));
 	FEditorDelegates::OnConfigureNewAssetProperties.Broadcast(NewFactory);
 	if ( NewFactory->ConfigureProperties() )
@@ -1766,7 +2065,7 @@ void FLevelEditorActionCallbacks::CreateClassBlueprint()
 		UClass* SelectedClass = NewFactory->ParentClass;
 
 		// Now help the user pick a path and name for the new Blueprint
-		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateClassBlueprint_Title", "Create Class Blueprint"), SelectedClass);
+		UBlueprint* Blueprint = FKismetEditorUtilities::CreateBlueprintFromClass(NSLOCTEXT("LevelEditorCommands", "CreateBlankBlueprintClass_Title", "Create Blank Blueprint Class"), SelectedClass);
 
 		if( Blueprint )
 		{
@@ -1777,6 +2076,28 @@ void FLevelEditorActionCallbacks::CreateClassBlueprint()
 				bOpenWorldCentric ? EToolkitMode::WorldCentric : EToolkitMode::Standalone);
 		}
 	}
+}
+
+bool FLevelEditorActionCallbacks::CanHarvestSelectedActorsIntoBlueprintClass()
+{
+	return GEditor->GetSelectedActorCount() > 0;
+}
+
+void FLevelEditorActionCallbacks::HarvestSelectedActorsIntoBlueprintClass()
+{
+	const bool bHarvest = true;
+	FCreateBlueprintFromActorDialog::OpenDialog(bHarvest);
+}
+
+bool FLevelEditorActionCallbacks::CanSubclassSelectedActorIntoBlueprintClass()
+{
+	return GEditor->GetSelectedActorCount() == 1;
+}
+
+void FLevelEditorActionCallbacks::SubclassSelectedActorIntoBlueprintClass()
+{
+	const bool bHarvest = false;
+	FCreateBlueprintFromActorDialog::OpenDialog(bHarvest);
 }
 
 void FLevelEditorActionCallbacks::CheckOutProjectSettingsConfig( )
@@ -1960,14 +2281,14 @@ bool FLevelEditorActionCallbacks::OnIsLevelStreamingVolumePrevisEnabled()
 	return GetDefault<ULevelEditorViewportSettings>()->bLevelStreamingVolumePrevis;
 }
 
-FString FLevelEditorActionCallbacks::GetAudioVolumeToolTip()
+FText FLevelEditorActionCallbacks::GetAudioVolumeToolTip()
 {
 	if ( !GEditor->IsRealTimeAudioMuted() )
 	{
 		const float Volume = GEditor->GetRealTimeAudioVolume() * 100.0f;
-		return FString::Printf( TEXT( "%.0f" ), Volume );
+		return FText::AsNumber( FMath::RoundToInt(Volume) );
 	}
-	return NSLOCTEXT("UnrealEd", "Muted", "Muted" ).ToString();
+	return NSLOCTEXT("UnrealEd", "Muted", "Muted" );
 }
 
 float FLevelEditorActionCallbacks::GetAudioVolume()
@@ -2018,14 +2339,17 @@ bool FLevelEditorActionCallbacks::OnIsVertexSnapEnabled()
 	return GetDefault<ULevelEditorViewportSettings>()->bSnapVertices;
 }
 
-FString FLevelEditorActionCallbacks::GetActorSnapTooltip()
+FText FLevelEditorActionCallbacks::GetActorSnapTooltip()
 {
 	// If the setting is enabled, return the distance, otherwise say disabled
 	if ( FSnappingUtils::IsSnapToActorEnabled() )
 	{
-		return FString::Printf( TEXT( "%.2f" ), FSnappingUtils::GetActorSnapDistance() );
+		static const FNumberFormattingOptions FormatOptions = FNumberFormattingOptions()
+			.SetMinimumFractionalDigits(2)
+			.SetMaximumFractionalDigits(2);
+		return FText::AsNumber( FSnappingUtils::GetActorSnapDistance(), &FormatOptions );
 	}
-	return NSLOCTEXT("UnrealEd", "Disabled", "Disabled" ).ToString();
+	return NSLOCTEXT("UnrealEd", "Disabled", "Disabled" );
 }
 
 float FLevelEditorActionCallbacks::GetActorSnapSetting()
@@ -2226,10 +2550,10 @@ void FLevelEditorActionCallbacks::MoveActorTo_Clicked( const bool InAlign, const
 	GEditor->RebuildAlteredBSP(); // Update the Bsp of any levels containing a modified brush
 }
 
-void FLevelEditorActionCallbacks::SnapActorToFloor_Clicked( bool InAlign, bool InUseLineTrace, bool InUseBounds, bool InUsePivot )
+void FLevelEditorActionCallbacks::SnapToFloor_Clicked( bool InAlign, bool InUseLineTrace, bool InUseBounds, bool InUsePivot )
 {
 	const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SnapActorsToFloor", "Snap Actors To Floor") );
-	SnapActorTo_Clicked( InAlign, InUseLineTrace, InUseBounds, InUsePivot );
+	SnapTo_Clicked( InAlign, InUseLineTrace, InUseBounds, InUsePivot );
 }
 
 void FLevelEditorActionCallbacks::SnapActorToActor_Clicked( bool InAlign, bool InUseLineTrace, bool InUseBounds, bool InUsePivot )
@@ -2238,41 +2562,73 @@ void FLevelEditorActionCallbacks::SnapActorToActor_Clicked( bool InAlign, bool I
 	if( Actor )
 	{
 		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "SnapActorsToActor", "Snap Actors To Actor") );
-		SnapActorTo_Clicked( InAlign, InUseLineTrace, InUseBounds, InUsePivot, Actor );
+		SnapTo_Clicked( InAlign, InUseLineTrace, InUseBounds, InUsePivot, Actor );
 	}
 }
 
-void FLevelEditorActionCallbacks::SnapActorTo_Clicked( const bool InAlign, const bool InUseLineTrace, const bool InUseBounds, const bool InUsePivot, const AActor* InDestination/* = NULL*/ )
+void FLevelEditorActionCallbacks::SnapTo_Clicked( const bool InAlign, const bool InUseLineTrace, const bool InUseBounds, const bool InUsePivot, AActor* InDestination )
 {
 	// Fires ULevel::LevelDirtiedEvent when falling out of scope.
 	FScopedLevelDirtied		LevelDirtyCallback;
 
-	for ( FSelectionIterator It( GEditor->GetSelectedActorIterator() ) ; It ; ++It )
+	bool bSnappedComponents = false;
+	if( GEditor->GetSelectedComponentCount() > 0 )
 	{
-		AActor* Actor = Cast<AActor>( *It );
-		checkSlow( Actor->IsA(AActor::StaticClass()) );
+		for(FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
+		{
+			USceneComponent* SceneComponent = Cast<USceneComponent>(*It);
+			if(SceneComponent)
+			{
+				SceneComponent->Modify();
+				AActor* ActorOwner = SceneComponent->GetOwner();
+				bSnappedComponents = true;
+				if(ActorOwner)
+				{
+					ActorOwner->Modify();
+					GEditor->SnapObjectTo(FActorOrComponent(SceneComponent), InAlign, InUseLineTrace, InUseBounds, InUsePivot, FActorOrComponent(InDestination));
+					ActorOwner->InvalidateLightingCache();
+					ActorOwner->UpdateComponentTransforms();
 
-		Actor->Modify();
-		GEditor->SnapActorTo(Actor,InAlign,InUseLineTrace,InUseBounds,InUsePivot,InDestination);
-		Actor->InvalidateLightingCache();
-		Actor->UpdateComponentTransforms();
+					LevelDirtyCallback.Request();
+				}
+			}
+		}
 
-		Actor->MarkPackageDirty();
-		LevelDirtyCallback.Request();
+		USceneComponent* LastComp = GEditor->GetSelectedComponents()->GetBottom<USceneComponent>();
+
+		GEditor->SetPivot(LastComp->GetComponentLocation(), false, true);
 	}
 
-	AActor* Actor = GEditor->GetSelectedActors()->GetBottom<AActor>();
-	if( Actor )
+	if( !bSnappedComponents )
 	{
-		GEditor->SetPivot( Actor->GetActorLocation(), false, true );
-
-		if( GEditor->bGroupingActive ) 
+		for(FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 		{
-			// set group pivot for the root-most group
-			AGroupActor* ActorGroupRoot = AGroupActor::GetRootForActor(Actor, true, true);
-			if(ActorGroupRoot)
+			AActor* Actor = Cast<AActor>(*It);
+			if(Actor)
 			{
-				ActorGroupRoot->CenterGroupLocation();
+				Actor->Modify();
+				GEditor->SnapObjectTo(FActorOrComponent(Actor), InAlign, InUseLineTrace, InUseBounds, InUsePivot, FActorOrComponent(InDestination));
+				Actor->InvalidateLightingCache();
+				Actor->UpdateComponentTransforms();
+
+				LevelDirtyCallback.Request();
+			}
+		}
+
+
+		AActor* Actor = GEditor->GetSelectedActors()->GetBottom<AActor>();
+		if(Actor)
+		{
+			GEditor->SetPivot(Actor->GetActorLocation(), false, true);
+
+			if(GEditor->bGroupingActive)
+			{
+				// set group pivot for the root-most group
+				AGroupActor* ActorGroupRoot = AGroupActor::GetRootForActor(Actor, true, true);
+				if(ActorGroupRoot)
+				{
+					ActorGroupRoot->CenterGroupLocation();
+				}
 			}
 		}
 	}
@@ -2348,7 +2704,8 @@ void FLevelEditorActionCallbacks::OnSaveBrushAsCollision()
 
 		// Copy the current builder brush into a temp model.
 		// We keep no reference to this, so it will be GC'd at some point.
-		UModel* TempModel = new UModel(FObjectInitializer(), NULL, 1);
+		UModel* TempModel = NewObject<UModel>();
+		TempModel->Initialize(nullptr, 1);
 		TempModel->Polys->Element.AssignButKeepOwner(BuilderModel->Polys->Element);
 
 		// Now transform each poly into local space for the selected static mesh.
@@ -2510,19 +2867,15 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( TextureStats, "Open Texture Stats", "Opens the Texture Stats viewer", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( MapCheck, "Open Map Check", "Checks map for errors", EUserInterfaceActionType::Button, FInputGesture() );
 
-	FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>("LevelEditor");
-	if (LevelEditorModule.CanBeRecompiled())
-	{
-		UI_COMMAND( RecompileLevelEditor, "Recompile Level Editor", "Recompiles and reloads C++ code for the Level Editor on the fly", EUserInterfaceActionType::Button, FInputGesture() );
-		UI_COMMAND( ReloadLevelEditor, "Reload Level Editor", "Reloads C++ code for the Level Editor on the fly", EUserInterfaceActionType::Button, FInputGesture() );
-	}
-
 	UI_COMMAND( RecompileGameCode, "Recompile Game Code", "Recompiles and reloads C++ code for game systems on the fly", EUserInterfaceActionType::Button, FInputGesture( EKeys::P, EModifierKey::Alt | EModifierKey::Control | EModifierKey::Shift ) );
 
 	UI_COMMAND( EditAsset, "Edit Asset", "Edits the asset associated with the selected actor", EUserInterfaceActionType::Button, FInputGesture( EKeys::E, EModifierKey::Control ) );
 	UI_COMMAND( EditAssetNoConfirmMultiple, "Edit Asset", "Edits the asset associated with the selected actor", EUserInterfaceActionType::Button, FInputGesture( EKeys::E, EModifierKey::Control | EModifierKey::Shift ) );
 
-	UI_COMMAND( SnapCameraToActor, "Snap View to Actor", "Snaps the view to the selected actors", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( GoHere, "Go Here", "Moves the camera to the current mouse position", EUserInterfaceActionType::Button, FInputGesture() );
+
+	UI_COMMAND( SnapCameraToObject, "Snap View to Object", "Snaps the view to the selected object", EUserInterfaceActionType::Button, FInputGesture() );
+
 	UI_COMMAND( GoToCodeForActor, "Go to C++ Code for Actor", "Opens a code editing IDE and navigates to the source file associated with the seleced actor", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( GoToDocsForActor, "Go to Documentation for Actor", "Opens documentation for the Actor in the default web browser", EUserInterfaceActionType::Button, FInputGesture() );
 
@@ -2531,8 +2884,8 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( SnapOriginToGrid, "Snap Origin to Grid", "Snaps the actor to the nearest grid location at its origin", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::End ) );
 	UI_COMMAND( SnapOriginToGridPerActor, "Snap Origin to Grid Per Actor", "Snaps each selected actor separately to the nearest grid location at its origin", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( AlignOriginToGrid, "Align Origin to Grid", "Aligns the actor to the nearest grid location at its origin", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( SnapToFloor, "Snap to Floor", "Snaps the actor to the floor below it", EUserInterfaceActionType::Button, FInputGesture( EKeys::End ) );
-	UI_COMMAND( AlignToFloor, "Align to Floor", "Aligns the actor with the floor", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( SnapToFloor, "Snap to Floor", "Snaps the actor or component to the floor below it", EUserInterfaceActionType::Button, FInputGesture( EKeys::End ) );
+	UI_COMMAND( AlignToFloor, "Align to Floor", "Aligns the actor or component with the floor", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( SnapPivotToFloor, "Snap Pivot to Floor", "Snaps the actor to the floor at its pivot point", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Alt, EKeys::End ) );	
 	UI_COMMAND( AlignPivotToFloor, "Align Pivot to Floor", "Aligns the actor with the floor at its pivot point", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( SnapBottomCenterBoundsToFloor, "Snap Bottom Center Bounds to Floor", "Snaps the actor to the floor at its bottom center bounds", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Shift, EKeys::End ) );
@@ -2606,6 +2959,7 @@ void FLevelEditorCommands::RegisterCommands()
 
 	UI_COMMAND( SelectAllActorsOfSameClass, "Select All Actors of Same Class", "Selects all the actors that have the same class", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Shift|EModifierKey::Control, EKeys::A) );
 	UI_COMMAND( SelectAllActorsOfSameClassWithArchetype, "Select All Actors with Same Archetype", "Selects all the actors of the same class that have the same archetype", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( SelectComponentOwnerActor, "Select Component Owner", "Select the actor that owns the currently selected component(s)", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( SelectRelevantLights, "Select Relevant Lights", "Select all lights relevant to the current selection", EUserInterfaceActionType::Button, FInputGesture() ); 
 	UI_COMMAND( SelectStaticMeshesOfSameClass, "Select All Using Selected Static Meshes (Selected Actor Types)", "Selects all actors with the same static mesh and actor class as the selection", EUserInterfaceActionType::Button, FInputGesture() ); 
 	UI_COMMAND( SelectStaticMeshesAllClasses, "Select All Using Selected Static Meshes (All Actor Types)", "Selects all actors with the same static mesh as the selection", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Shift, EKeys::E ) ); 
@@ -2674,7 +3028,9 @@ void FLevelEditorCommands::RegisterCommands()
 
 	UI_COMMAND( OpenLevelBlueprint, "Open Level Blueprint", "Edit the Level Blueprint for the current level", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( CheckOutProjectSettingsConfig, "Check Out", "Checks out the project settings config file so the game mode can be set.", EUserInterfaceActionType::Button, FInputGesture() );
-	UI_COMMAND( CreateClassBlueprint, "New Class Blueprint...", "Create a new Class Blueprint", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND( CreateBlankBlueprintClass, "New Empty Blueprint Class...", "Create a new Blueprint Class", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( ConvertSelectionToBlueprintViaHarvest, "Convert Selected Components to Blueprint Class...", "Replace all of the selected actors with a new Blueprint Class based on Actor that contains the components", EUserInterfaceActionType::Button, FInputGesture() );
+	UI_COMMAND( ConvertSelectionToBlueprintViaSubclass, "Convert Selected Actor to Blueprint Class...", "Replace the selected actor with a new Blueprint subclass based on the class of the selected Actor", EUserInterfaceActionType::Button, FInputGesture() );
 
 	UI_COMMAND( ShowTransformWidget, "Show Transform Widget", "Toggles the visibility of the transform widgets", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 	UI_COMMAND( AllowTranslucentSelection, "Allow Translucent Selection", "Allows translucent objects to be selected", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::T) );
@@ -2716,6 +3072,27 @@ void FLevelEditorCommands::RegisterCommands()
 	UI_COMMAND( MaterialQualityLevel_Low, "Low", "Sets material quality in the scene to low.", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( MaterialQualityLevel_High, "High", "Sets material quality in the scene to high.", EUserInterfaceActionType::RadioButton, FInputGesture() );
 
+	UI_COMMAND( ConnectToSourceControl, "Connect to Source Control...", "Opens a dialog to connect to source control.", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND( ChangeSourceControlSettings, "Change Source Control Settings...", "Opens a dialog to change source control settings.", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND( CheckOutModifiedFiles, "Check Out Modified Files...", "Opens a dialog to check out any assets which have been modified.", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND( SubmitToSourceControl, "Submit to Source Control...", "Opens a dialog with check in options for content and levels.", EUserInterfaceActionType::Button, FInputGesture());
+
+	static const FText FeatureLevelLabels[ERHIFeatureLevel::Num] = 
+	{
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewType_ES2", "Mobile / HTML5"),
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewType_ES3", "High-End Mobile"),
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewType_SM4", "Shader Model 4"),
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewType_SM5", "Shader Model 5"),
+	};
+
+	static const FText FeatureLevelToolTips[ERHIFeatureLevel::Num] = 
+	{
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip_ES2", "OpenGLES 2"),
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip_ES3", "OpenGLES 3"),
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip_SM4", "DirectX 10, OpenGL 3.3+"),
+		NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip_SM5", "DirectX 11, OpenGL 4.3+, PS4, XB1"),
+	};
+
 	for (int32 i = 0; i < ERHIFeatureLevel::Num; ++i)
 	{
 		FName Name;
@@ -2725,8 +3102,8 @@ void FLevelEditorCommands::RegisterCommands()
 			FUICommandInfoDecl(
 			this->AsShared(),
 			Name,
-			FText::FromName(Name),
-			FText::Format(NSLOCTEXT("LevelEditorCommands", "FeatureLevelPreviewTooltip", "Preview scenes using feature level {0}"), FText::FromName(Name)))
+			FeatureLevelLabels[i],
+			FeatureLevelToolTips[i])
 			.UserInterfaceType(EUserInterfaceActionType::RadioButton)
 			.DefaultGesture(FInputGesture());
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LaunchPrivatePCH.h"
 #include "ExceptionHandling.h"
@@ -184,7 +184,7 @@ void EngineCrashHandler(const FGenericCrashContext& GenericContext)
 #if UE_BUILD_DEBUG
 	if( true && !GAlwaysReportCrash )
 #else
-	if( FPlatformMisc::IsDebuggerPresent() && !GAlwaysReportCrash )
+	if( bIsBuildMachine || ( FPlatformMisc::IsDebuggerPresent() && !GAlwaysReportCrash ) )
 #endif
 	{
 		// Don't use exception handling when a debugger is attached to exactly trap the crash. This does NOT check

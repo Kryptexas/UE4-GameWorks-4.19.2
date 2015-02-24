@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,20 +17,11 @@
 #include "FriendsAndChat.h"
 #include "Online.h"
 #include "OnlineSubsystem.h"
-#include "OnlineSubsystemMcp.h"
 #include "OnlineFriendsInterface.h"
-#include "OnlineAccountMappingMcp.h"
 #include "OnlineUserInterface.h"
 #include "OnlineMessageInterface.h"
-#include "FriendListItems.h"
-
-/* Private UI includes
-*****************************************************************************/
-
-#include "SFriendsItem.h"
-#include "SFriendsListContextMenu.h"
-#include "SChatWindow.h"
-#include "SFriendItem.h"
+#include "OnlinePresenceInterface.h"
+#include "FriendItem.h"
 
 /* Private Class includes
 *****************************************************************************/

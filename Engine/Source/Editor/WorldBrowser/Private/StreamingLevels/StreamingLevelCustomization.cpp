@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
@@ -13,6 +13,9 @@
 #include "StreamingLevelCustomization.h"
 #include "StreamingLevelEdMode.h"
 #include "SNumericEntryBox.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/LevelStreamingVolume.h"
+#include "AssetData.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -41,7 +44,7 @@ void FStreamingLevelCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
 	LevelRotationProperty = LevelTransformProperty->GetChildHandle("Rotation");
 
 	// Add Position property
-	LevelStreamingCategory.AddCustomRow(LOCTEXT("Position", "Position").ToString())
+	LevelStreamingCategory.AddCustomRow(LOCTEXT("Position", "Position"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -65,7 +68,7 @@ void FStreamingLevelCustomization::CustomizeDetails(IDetailLayoutBuilder& Detail
 
 	
 	// Add Yaw Rotation property
-	LevelStreamingCategory.AddCustomRow(LOCTEXT("Rotation", "Rotation").ToString())
+	LevelStreamingCategory.AddCustomRow(LOCTEXT("Rotation", "Rotation"))
 		.NameContent()
 		[
 			SNew(STextBlock)

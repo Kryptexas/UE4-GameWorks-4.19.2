@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -135,9 +135,10 @@ private:
 	uint32 bIsSelected:1;
 	
 public:
-	
+#if WITH_EDITORONLY_DATA
 	UPROPERTY(transient)
 	UTexture2D* TrackIcon;
+#endif // WITH_EDITORONLY_DATA
 
 	/** If true, the  AActor  this track is working on will have BeginAnimControl/FinishAnimControl called on it. */
 	UPROPERTY()
@@ -319,8 +320,10 @@ public:
 	 */
 	virtual const FString	GetSlateHelperClassName() const;
 
+#if WITH_EDITORONLY_DATA
 	/** @return	The icon to draw for this track in Matinee. */
 	virtual class UTexture2D* GetTrackIcon() const;
+#endif // WITH_EDITORONLY_DATA
 
 	/** @return  true if this track type works with static actors; false, otherwise. */
 	virtual bool AllowStaticActors() { return false; }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 #include "SWidgetDetailsView.h"
@@ -38,10 +38,7 @@ void SWidgetDetailsView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetB
 	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
 	FNotifyHook* NotifyHook = this;
-	FDetailsViewArgs DetailsViewArgs( /*bUpdateFromSelection=*/ false, /*bLockable=*/ false, /*bAllowSearch=*/ true, /*bObjectsUseNameArea=*/ true, /*bHideSelectionTip=*/ true, /*InNotifyHook=*/ NotifyHook, /*InSearchInitialKeyFocus=*/ false, /*InViewIdentifier=*/ NAME_None);
-
-	// We hide the actor name area because we're providing our own.
-	DetailsViewArgs.bHideActorNameArea = true;
+	FDetailsViewArgs DetailsViewArgs( /*bUpdateFromSelection=*/ false, /*bLockable=*/ false, /*bAllowSearch=*/ true, FDetailsViewArgs::HideNameArea, /*bHideSelectionTip=*/ true, /*InNotifyHook=*/ NotifyHook, /*InSearchInitialKeyFocus=*/ false, /*InViewIdentifier=*/ NAME_None);
 
 	PropertyView = EditModule.CreateDetailView(DetailsViewArgs);
 
@@ -149,6 +146,9 @@ void SWidgetDetailsView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetB
 	BlueprintEditor.Pin()->OnSelectedWidgetsChanged.AddRaw(this, &SWidgetDetailsView::OnEditorSelectionChanged);
 
 	RegisterCustomizations();
+	
+	// Refresh the selection in the details panel.
+	OnEditorSelectionChanged();
 }
 
 SWidgetDetailsView::~SWidgetDetailsView()
@@ -193,6 +193,11 @@ void SWidgetDetailsView::RegisterCustomizations()
 void SWidgetDetailsView::OnEditorSelectionChanging()
 {
 	ClearFocusIfOwned();
+
+	// We force the destruction of the currently monitored object when selection is about to change, to ensure all migrations occur
+	// immediately.
+	SelectedObjects.Empty();
+	PropertyView->SetObjects(SelectedObjects);
 }
 
 void SWidgetDetailsView::OnEditorSelectionChanged()
@@ -357,9 +362,15 @@ bool SWidgetDetailsView::HandleVerifyNameTextChanged(const FText& InText, FText&
 {
 	if ( SelectedObjects.Num() == 1 )
 	{
-		UWidget* PreviewWidget = Cast<UWidget>(SelectedObjects[0].Get());
-
 		FString NewName = InText.ToString();
+
+		if (NewName.IsEmpty())
+		{
+			OutErrorMessage = LOCTEXT("EmptyWidgetName", "Empty Widget Name");
+			return false;
+		}
+
+		UWidget* PreviewWidget = Cast<UWidget>(SelectedObjects[0].Get());
 
 		UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 		UWidget* TemplateWidget = Blueprint->WidgetTree->FindWidget( FName(*NewName) );
@@ -413,24 +424,29 @@ void SWidgetDetailsView::HandleNameTextCommitted(const FText& Text, ETextCommit:
 			}
 		}
 		IsReentrant = false;
+
+		if (CommitType == ETextCommit::OnUserMovedFocus || CommitType == ETextCommit::OnCleared)
+		{
+			NameTextBox->SetError(FText::GetEmpty());
+		}
 	}
 }
 
-ESlateCheckBoxState::Type SWidgetDetailsView::GetIsVariable() const
+ECheckBoxState SWidgetDetailsView::GetIsVariable() const
 {
 	if ( SelectedObjects.Num() == 1 )
 	{
 		UWidget* Widget = Cast<UWidget>(SelectedObjects[0].Get());
 		if ( Widget )
 		{
-			return Widget->bIsVariable ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return Widget->bIsVariable ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void SWidgetDetailsView::HandleIsVariableChanged(ESlateCheckBoxState::Type CheckState)
+void SWidgetDetailsView::HandleIsVariableChanged(ECheckBoxState CheckState)
 {
 	if ( SelectedObjects.Num() == 1 )
 	{
@@ -449,7 +465,7 @@ void SWidgetDetailsView::HandleIsVariableChanged(ESlateCheckBoxState::Type Check
 			Template->Modify();
 			Preview->Modify();
 
-			Template->bIsVariable = Preview->bIsVariable = CheckState == ESlateCheckBoxState::Checked ? true : false;
+			Template->bIsVariable = Preview->bIsVariable = CheckState == ECheckBoxState::Checked ? true : false;
 
 			// Refresh references and flush editors
 			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);

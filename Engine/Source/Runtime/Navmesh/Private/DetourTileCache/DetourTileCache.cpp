@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -695,7 +695,7 @@ dtStatus dtTileCache::buildNavMeshTile(const dtCompressedTileRef ref, dtNavMesh*
 	bc.lmesh = dtAllocTileCachePolyMesh(m_talloc);
 	if (!bc.lmesh)
 		return status;
-	status = dtBuildTileCachePolyMesh(m_talloc, *bc.lcset, *bc.lmesh);
+	status = dtBuildTileCachePolyMesh(m_talloc, 0, *bc.lcset, *bc.lmesh);
 	if (dtStatusFailed(status))
 		return status;
 	

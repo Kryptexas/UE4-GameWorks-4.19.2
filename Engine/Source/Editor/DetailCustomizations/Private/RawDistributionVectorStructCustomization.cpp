@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "RawDistributionVectorStructCustomization.h"
@@ -323,7 +323,7 @@ TSharedRef<SWidget> FReplaceVectorWithLinearColorBuilder::CreateColorWidget(cons
 
 void FReplaceVectorWithLinearColorBuilder::AddColorChildProperty(const TSharedPtr<IPropertyHandle>& StructHandle, const FText& Text, int32 ElementIndex, IDetailChildrenBuilder& ChildrenBuilder)
 {
-	ChildrenBuilder.AddChildContent(TEXT("Color"))
+	ChildrenBuilder.AddChildContent(LOCTEXT("Color", "Color"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -342,8 +342,6 @@ void FReplaceVectorWithLinearColorBuilder::AddColorChildProperty(const TSharedPt
 			.OnBeginSliderMovement(this, &FReplaceVectorWithLinearColorBuilder::OnBeginSliderMovement)
 			.OnEndSliderMovement(this, &FReplaceVectorWithLinearColorBuilder::OnEndSliderMovement)
 			.AllowSpin(true)
-			.MinValue(0.0f)
-			.MaxValue(1.0f)
 			.MinSliderValue(0.0f)
 			.MaxSliderValue(1.0f)
 		];
@@ -492,8 +490,8 @@ TSharedRef<IPropertyTypeCustomization> FRawDistributionVectorStructCustomization
 void FRawDistributionVectorStructCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	const bool bDisplayResetToDefault = false;
-	const FString DisplayNameOverride = TEXT("");
-	const FString DisplayToolTipOverride = TEXT("");
+	const FText DisplayNameOverride = FText::GetEmpty();
+	const FText DisplayToolTipOverride = FText::GetEmpty();
 
 	HeaderRow
 	.NameContent()

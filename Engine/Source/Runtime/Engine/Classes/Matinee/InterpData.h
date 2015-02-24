@@ -1,34 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 #include "InterpData.generated.h"
 
-USTRUCT()
-struct FAnimSetBakeAndPruneStatus
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Name of the anim set referenced in Matinee */
-	UPROPERTY(Category=AnimSetBakeAndPruneStatus, VisibleAnywhere, BlueprintReadWrite)
-	FString AnimSetName;
-
-	/** If true, the animation is in a GroupAnimSets array, but is unused */
-	UPROPERTY(Category=AnimSetBakeAndPruneStatus, VisibleAnywhere, BlueprintReadWrite)
-	uint32 bReferencedButUnused:1;
-
-	/** If true, skip BakeAndPrune on this anim set during cooking */
-	UPROPERTY(EditAnywhere, Category=AnimSetBakeAndPruneStatus)
-	uint32 bSkipBakeAndPrune:1;
-
-
-	FAnimSetBakeAndPruneStatus()
-		: bReferencedButUnused(false)
-		, bSkipBakeAndPrune(false)
-	{
-	}
-
-};
 
 /**
  * Interpolation data, containing keyframe tracks, event tracks etc.
@@ -82,10 +57,6 @@ class UInterpData : public UObject
 	UPROPERTY(EditAnywhere, Category=InterpData)
 	uint32 bShouldBakeAndPrune:1;
 
-	/** AnimSets referenced by this matinee, and whether to allow bake and prune on them during cooking. */
-	UPROPERTY(EditAnywhere, editfixedsize, Category=InterpData)
-	TArray<struct FAnimSetBakeAndPruneStatus> BakeAndPruneStatus;
-
 	/** Cached version of the director group, if any, for easy access while in game */
 	UPROPERTY(transient)
 	class UInterpGroupDirector* CachedDirectorGroup;
@@ -121,9 +92,6 @@ class UInterpData : public UObject
 	/** Update the AllEventNames array */
 	ENGINE_API void UpdateEventNames();
 
-#if WITH_EDITOR
-	void UpdateBakeAndPruneStatus();
-#endif
 #if WITH_EDITORONLY_DATA
 	void CreateDefaultFilters();
 #endif

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PersonaPrivatePCH.h"
 #include "K2Node.h"
@@ -242,7 +242,7 @@ void FAnimGraphNodeDetails::AbortDisplayOfAllNodes(TArray< TWeakObjectPtr<UObjec
 {
 	// Display a warning message
 	IDetailCategoryBuilder& ErrorCategory = DetailBuilder.EditCategory("Animation Nodes");
-	ErrorCategory.AddCustomRow( LOCTEXT("ErrorRow", "Error").ToString() )
+	ErrorCategory.AddCustomRow( LOCTEXT("ErrorRow", "Error") )
 	[
 		SNew(STextBlock)
 		.Text(LOCTEXT("MultiSelectNotSupported", "Multiple nodes selected"))
@@ -468,7 +468,7 @@ void FBoneReferenceCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 		[
 			SNew(SBoneSelectionWidget)
 			.Skeleton(TargetSkeleton)
-			.Tooltip(FText::FromString(StructPropertyHandle->GetToolTipText()))
+			.Tooltip(StructPropertyHandle->GetToolTipText())
 			.OnBoneSelectionChanged(this, &FBoneReferenceCustomization::OnBoneSelectionChanged)
 			.OnGetSelectedBone(this, &FBoneReferenceCustomization::GetSelectedBone)
 		];
@@ -545,7 +545,7 @@ void FAnimGraphParentPlayerDetails::CustomizeDetails(class IDetailLayoutBuilder&
 		(*ExistingGraphEntry)->Children.Add(NodeEntry);
 	}
 
-	FDetailWidgetRow& Row = Category.AddCustomRow("");
+	FDetailWidgetRow& Row = Category.AddCustomRow(FText::GetEmpty());
 	TSharedRef<STreeView<TSharedPtr<FPlayerTreeViewEntry>>> TreeView = SNew(STreeView<TSharedPtr<FPlayerTreeViewEntry>>)
 		.SelectionMode(ESelectionMode::None)
 		.OnGenerateRow(this, &FAnimGraphParentPlayerDetails::OnGenerateRow)
@@ -556,11 +556,11 @@ void FAnimGraphParentPlayerDetails::CustomizeDetails(class IDetailLayoutBuilder&
 			SNew(SHeaderRow)
 			+SHeaderRow::Column(FName("Name"))
 			.FillWidth(0.5f)
-			.DefaultLabel(LOCTEXT("ParentPlayer_NameCol", "Name").ToString())
+			.DefaultLabel(LOCTEXT("ParentPlayer_NameCol", "Name"))
 
 			+SHeaderRow::Column(FName("Asset"))
 			.FillWidth(0.5f)
-			.DefaultLabel(LOCTEXT("ParentPlayer_AssetCol", "Asset").ToString())
+			.DefaultLabel(LOCTEXT("ParentPlayer_AssetCol", "Asset"))
 		);
 
 	// Expand top level (blueprint) entries so the panel seems less empty
@@ -793,7 +793,7 @@ void FPlayerTreeViewEntry::GenerateNameWidget(TSharedPtr<SHorizontalBox> Box)
 		[
 			SNew(STextBlock)
 			.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 10))
-			.Text(EntryName)
+			.Text(FText::FromString(EntryName))
 		];
 }
 

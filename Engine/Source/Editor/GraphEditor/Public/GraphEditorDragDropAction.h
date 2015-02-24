@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "DragAndDrop.h"
 
 // Base class for drag-drop actions that pass into the graph editor and perform an action when dropped
 class GRAPHEDITOR_API FGraphEditorDragDropAction : public FDragDropOperation
@@ -25,10 +27,13 @@ public:
 	virtual void OnDragBegin(const TSharedRef<class SGraphPin>& InPin) {}
 	// End of interface to override
 	
-protected:
+	virtual bool IsSupportedBySchema(const class UEdGraphSchema* Schema) const { return true; }
+
+	bool HasFeedbackMessage();
 	void SetFeedbackMessage(const TSharedPtr<SWidget>& Message);
 	void SetSimpleFeedbackMessage(const FSlateBrush* Icon, const FSlateColor& IconColor, const FText& Message);
 
+protected:
 	UEdGraphPin* GetHoveredPin() const;
 	UEdGraphNode* GetHoveredNode() const;
 	UEdGraph* GetHoveredGraph() const;

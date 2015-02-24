@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "WindowsCursor.h"
@@ -147,6 +147,7 @@ void FWindowsCursor::SetType( const EMouseCursor::Type InNewCursor )
 {
 	// NOTE: Watch out for contention with FWindowsViewport::UpdateMouseCursor
 	checkf( InNewCursor < EMouseCursor::TotalCursorCount, TEXT("Invalid cursor(%d) supplied"), InNewCursor );
+	CurrentType = InNewCursor;
 	::SetCursor( CursorHandles[ InNewCursor ] );
 }
 

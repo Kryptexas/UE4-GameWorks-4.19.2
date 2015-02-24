@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "Toolkits/AssetEditorToolkit.h"
+#include "TimerManager.h"
 
 class FPropertyEditorToolkit : public FAssetEditorToolkit
 {
@@ -89,7 +90,7 @@ private:
 
 	/** Animation sequence to pulse the pin image */
 	FCurveSequence PinSequence;
-	FTimerDelegate TickPinColorDelegate;
+	FTimerHandle TimerHandle_TickPinColor;
 	FSlateColor PinColor;
 	TArray< TWeakPtr<IPropertyTreeRow> > PinRows;
 

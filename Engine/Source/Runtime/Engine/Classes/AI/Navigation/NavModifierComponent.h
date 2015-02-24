@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,7 +17,7 @@ class UNavModifierComponent : public UNavRelevantComponent
 	TSubclassOf<UNavArea> AreaClass;
 
 	virtual void CalcBounds() override;
-	virtual void GetNavigationData(struct FNavigationRelevantData& Data) const override;
+	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
 
 protected:
 	FVector ObstacleExtent;

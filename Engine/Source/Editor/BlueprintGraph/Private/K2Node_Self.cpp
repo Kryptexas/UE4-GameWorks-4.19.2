@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -73,12 +73,11 @@ FNodeHandlingFunctor* UK2Node_Self::CreateNodeHandler(FKismetCompilerContext& Co
 void UK2Node_Self::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
 {
 	Super::ValidateNodeDuringCompilation(MessageLog);
-	const UBlueprint* Blueprint = GetBlueprint();
-	const UClass* MyClass = Blueprint ? Blueprint->GeneratedClass : NULL;
-	const bool bValidClass = !MyClass || !MyClass->IsChildOf(UBlueprintFunctionLibrary::StaticClass());
-	if (!bValidClass)
+
+	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+	if(Schema->IsStaticFunctionGraph(GetGraph()))
 	{
-		MessageLog.Warning(*NSLOCTEXT("K2Node", "InvalidSelfNode", "Self node @@ cannot be used in static library.").ToString(), this);
+		MessageLog.Warning(*NSLOCTEXT("K2Node", "InvalidSelfNode", "Self node @@ cannot be used in a static function.").ToString(), this);
 	}
 }
 

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Engine/FontImportOptions.h"
@@ -236,6 +236,9 @@ public:
 	virtual void Serialize( FArchive& Ar ) override;
 	virtual void PostLoad() override;
 	virtual bool IsLocalizedResource() override;
+#if WITH_EDITORONLY_DATA
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
+#endif
 	// End UObject interface
 
 	/**

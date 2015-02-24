@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalVertexBuffer.cpp: Metal vertex buffer RHI implementation.
@@ -20,13 +20,6 @@ FMetalVertexBuffer::FMetalVertexBuffer(uint32 InSize, uint32 InUsage)
 	}
 	else
 	{
-		// reduce some churn in the ZeroStride buffer hack
-		if (InSize <= 16)
-		{
-			InSize = 128 * 1024;
-		}
-//		NSLog(@"Allocating %d byte vertex buffer", InSize);
-		
 		Buffer = [FMetalManager::GetDevice() newBufferWithLength:InSize options:BUFFER_CACHE_MODE];
 		Offset = 0;
 	}

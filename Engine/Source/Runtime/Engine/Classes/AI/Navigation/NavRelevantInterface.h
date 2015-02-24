@@ -1,8 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Interface.h"
 #include "NavRelevantInterface.generated.h"
+
+struct FNavigationRelevantData;
 
 UINTERFACE(MinimalAPI, meta=(CannotImplementInterfaceInBlueprint))
 class UNavRelevantInterface : public UInterface
@@ -15,7 +17,7 @@ class INavRelevantInterface
 	GENERATED_IINTERFACE_BODY()
 
 	/** Prepare navigation modifiers */
-	virtual void GetNavigationData(struct FNavigationRelevantData& Data) const {}
+	virtual void GetNavigationData(FNavigationRelevantData& Data) const {}
 
 	/** Get bounds for navigation octree */
 	virtual FBox GetNavigationBounds() const { return FBox(0); }

@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using MarkdownSharp.Preprocessor;
 
 namespace MarkdownSharp.EpicMarkdown.PathProviders

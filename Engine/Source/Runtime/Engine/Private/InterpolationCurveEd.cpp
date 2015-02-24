@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InterpolationCurveEd.cpp: Implementation of CurveEdInterface for various track types.
@@ -84,15 +84,15 @@ FColor UInterpTrackMove::GetSubCurveButtonColor(int32 SubCurveIndex, bool bIsSub
 	{
 	case 0:
 		// Red
-		ButtonColor = bIsSubCurveHidden ? FColor(32, 0,  0) : FColor(255, 0, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor::Red;
 		break;
 	case 1:
 		// Green
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor(0, 255, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor::Green;
 		break;
 	case 2:
 		// Blue
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor(0, 0, 255);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor::Blue;
 		break;
 	case 3:
 		// Dark red
@@ -208,11 +208,11 @@ FColor UInterpTrackMove::GetKeyColor(int32 SubIndex, int32 KeyIndex, const FColo
 	check( KeyIndex >= 0 && KeyIndex < PosTrack.Points.Num() );
 
 	if(SubIndex == CalcSubIndex(true,0))
-		return FColor(255,0,0);
+		return FColor::Red;
 	else if(SubIndex == CalcSubIndex(true,1))
-		return FColor(0,255,0);
+		return FColor::Green;
 	else if(SubIndex == CalcSubIndex(true,2))
-		return FColor(0,0,255);
+		return FColor::Blue;
 	else if(SubIndex == CalcSubIndex(false,0))
 		return FColor(255,128,128);
 	else if(SubIndex == CalcSubIndex(false,1))
@@ -222,7 +222,7 @@ FColor UInterpTrackMove::GetKeyColor(int32 SubIndex, int32 KeyIndex, const FColo
 	else
 	{
 		check(0);
-		return FColor(0,0,0);
+		return FColor::Black;
 	}
 }
 
@@ -452,15 +452,15 @@ FColor UInterpTrackMoveAxis::GetSubCurveButtonColor( int32 SubCurveIndex, bool b
 	{
 	case AXIS_TranslationX:
 	case AXIS_RotationX:
-		ButtonColor = bIsSubCurveHidden ? FColor(32,0,0) : FColor(255,0,0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32,0,0) : FColor::Red;
 		break;
 	case AXIS_TranslationY:
 	case AXIS_RotationY:
-		ButtonColor = bIsSubCurveHidden ? FColor(0,32,0) : FColor(0,255,0);
+		ButtonColor = bIsSubCurveHidden ? FColor(0,32,0) : FColor::Green;
 		break;
 	case AXIS_TranslationZ:
 	case AXIS_RotationZ:
-		ButtonColor = bIsSubCurveHidden ? FColor(0,0,32) : FColor(0,0,255);
+		ButtonColor = bIsSubCurveHidden ? FColor(0,0,32) : FColor::Blue;
 		break;
 	default:
 		checkf(false, TEXT("Invalid axis") );
@@ -480,13 +480,13 @@ FColor UInterpTrackMoveAxis::GetKeyColor( int32 SubIndex, int32 KeyIndex, const 
 	switch( MoveAxis )
 	{
 	case AXIS_TranslationX:
-		KeyColor = FColor(255,0,0);
+		KeyColor = FColor::Red;
 		break;
 	case AXIS_TranslationY:
-		KeyColor = FColor(0,255,0);
+		KeyColor = FColor::Green;
 		break;
 	case AXIS_TranslationZ:
-		KeyColor = FColor(0,0,255);
+		KeyColor = FColor::Blue;
 		break;
 	case AXIS_RotationX:
 		KeyColor = FColor(255,128,128);
@@ -539,10 +539,12 @@ int32 UInterpTrackMoveAxis::SetKeyIn( int32 KeyIndex, float NewInVal )
 	return NewIndex;
 }
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackMoveAxis::GetTrackIcon() const
 {
 	return NULL;
 }
+#endif // WITH_EDITORONLY_DATA
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackFloatBase
@@ -683,15 +685,15 @@ FColor UInterpTrackVectorBase::GetSubCurveButtonColor(int32 SubCurveIndex, bool 
 	{
 	case 0:
 		// Red
-		ButtonColor = bIsSubCurveHidden ? FColor(32, 0,  0) : FColor(255, 0, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor::Red;
 		break;
 	case 1:
 		// Green
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor(0, 255, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor::Green;
 		break;
 	case 2:
 		// Blue
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor(0, 0, 255);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor::Blue;
 		break;
 	default:
 		// A bad sub-curve index was given. 
@@ -749,12 +751,18 @@ FColor UInterpTrackVectorBase::GetKeyColor(int32 SubIndex, int32 KeyIndex, const
 	check( SubIndex >= 0 && SubIndex < 3);
 	check( KeyIndex >= 0 && KeyIndex < VectorTrack.Points.Num() );
 
-	if(SubIndex == 0)
-		return FColor(255,0,0);
-	else if(SubIndex == 1)
-		return FColor(0,255,0);
+	if (SubIndex == 0)
+	{
+		return FColor::Red;
+	}
+	else if (SubIndex == 1)
+	{
+		return FColor::Green;
+	}
 	else
-		return FColor(0,0,255);
+	{
+		return FColor::Blue;
+	}
 }
 
 EInterpCurveMode UInterpTrackVectorBase::GetKeyInterpMode(int32 KeyIndex) const
@@ -895,19 +903,18 @@ FColor UInterpTrackLinearColorBase::GetSubCurveButtonColor(int32 SubCurveIndex, 
 	{
 	case 0:
 		// Red
-		ButtonColor = bIsSubCurveHidden ? FColor(32, 0,  0) : FColor(255, 0, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32, 0,  0) : FColor::Red;
 		break;
 	case 1:
 		// Green
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor(0, 255, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor::Green;
 		break;
 	case 2:
 		// Blue
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor(0, 0, 255);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor::Blue;
 		break;
 	case 3:
-		// Dark red
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 0) : FColor(255, 255, 255);
+		ButtonColor = bIsSubCurveHidden ? FColor::Black : FColor::White;
 		break;
 	default:
 		// A bad sub-curve index was given. 
@@ -967,14 +974,22 @@ FColor UInterpTrackLinearColorBase::GetKeyColor(int32 SubIndex, int32 KeyIndex, 
 	check( SubIndex >= 0 && SubIndex < 4);
 	check( KeyIndex >= 0 && KeyIndex < LinearColorTrack.Points.Num() );
 
-	if(SubIndex == 0)
-		return FColor(255,0,0);
-	else if(SubIndex == 1)
-		return FColor(0,255,0);
-	else if(SubIndex == 2)
-		return FColor(0,0,255);
+	if (SubIndex == 0)
+	{
+		return FColor::Red;
+	}
+	else if (SubIndex == 1)
+	{
+		return FColor::Green;
+	}
+	else if (SubIndex == 2)
+	{
+		return FColor::Blue;
+	}
 	else
-		return FColor(255,255,255);
+	{
+		return FColor::White;
+	}
 }
 
 EInterpCurveMode UInterpTrackLinearColorBase::GetKeyInterpMode(int32 KeyIndex) const

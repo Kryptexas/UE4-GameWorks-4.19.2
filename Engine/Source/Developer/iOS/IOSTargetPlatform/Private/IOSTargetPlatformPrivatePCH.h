@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSTargetPlatformPrivatePCH.h: Pre-compiled header file for the IOSTargetPlatform module.
@@ -16,14 +16,14 @@
 #include "LaunchDaemonMessages.h"
 #include "Messaging.h"
 #include "TargetDeviceServices.h"
-#include "TargetPlatform.h"
-#include "TargetPlatformBase.h"
 #include "IOSPlatformProperties.h"
 
 #if WITH_ENGINE
 	#include "Engine.h"
-	//#include "TextureCompressorModule.h"
 #endif
+
+#include "TargetPlatform.h"
+#include "TargetPlatformBase.h"
 
 
 /* Private includes

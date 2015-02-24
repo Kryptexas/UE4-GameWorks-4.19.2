@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "LinuxWindow.h"
@@ -82,11 +82,21 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	{
 		WindowStyle |= SDL_WINDOW_BORDERLESS;
 
-		if ( !Definition->AppearsInTaskbar )
+		if (Definition->IsTopmostWindow)
 		{
-			WindowStyle |= SDL_WINDOW_UTILITY;
-		}		
+			WindowStyle |= SDL_WINDOW_ALWAYS_ON_TOP;
+		}
+
+		if (!Definition->AppearsInTaskbar)
+		{
+			WindowStyle |= SDL_WINDOW_SKIP_TASKBAR;
+		}
 	}
+
+	if (Definition->AcceptsInput)
+	{
+		WindowStyle |= SDL_WINDOW_ACCEPTS_INPUT;
+	} 
 
 	if ( Definition->HasSizingFrame )
 	{
@@ -97,6 +107,11 @@ void FLinuxWindow::Initialize( FLinuxApplication* const Application, const TShar
 	//	the size of the window you input is the sizeof the client.
 	HWnd = SDL_CreateWindow( TCHAR_TO_ANSI( *Definition->Title ), X, Y, ClientWidth, ClientHeight, WindowStyle  );
 	SDL_SetWindowHitTest( HWnd, FLinuxWindow::HitTest, this );
+
+	if (InParent.IsValid())
+	{
+		SDL_SetWindowModalFor(HWnd, InParent->GetHWnd());
+	}
 
 	VirtualWidth  = ClientWidth;
 	VirtualHeight = ClientHeight;
@@ -175,7 +190,15 @@ void FLinuxWindow::MoveWindowTo( int32 X, int32 Y )
  */
 void FLinuxWindow::BringToFront( bool bForce )
 {
-	SDL_RaiseWindow( HWnd );
+	if (bForce)
+	{
+		SDL_RaiseWindow(HWnd);
+	}
+	else
+	{
+		// FIXME: we don't bring it to front here now
+		SDL_ShowWindow(HWnd);
+	}
 }
 
 /** Native windows should implement this function by asking the OS to destroy OS-specific resource associated with the window (e.g. Win32 window handle) */
@@ -256,53 +279,21 @@ static void _GetBestFullscreenResolution( SDL_HWindow hWnd, int32 *pWidth, int32
 	*pHeight = BestHeight;
 }
 
-
-static void _SetBestFullscreenDisplayMode( SDL_HWindow hWnd, int32 *pWidth, int32 *pHeight )
-{
-	SDL_DisplayMode dsp_mode;
-
-	dsp_mode.w = *pWidth;
-	dsp_mode.h = *pHeight;
-	dsp_mode.format = SDL_PIXELFORMAT_ARGB8888;
-	dsp_mode.refresh_rate = 60;
-	dsp_mode.driverdata = NULL;
-
-	_GetBestFullscreenResolution( hWnd, &dsp_mode.w, &dsp_mode.h );
-	SDL_SetWindowDisplayMode( hWnd, &dsp_mode );
-
-	*pWidth  = dsp_mode.w;
-	*pHeight = dsp_mode.h;
-}
-
 void FLinuxWindow::ReshapeWindow( int32 NewX, int32 NewY, int32 NewWidth, int32 NewHeight )
 {
-	int32 closest_w = NewWidth;
-	int32 closest_h = NewHeight;
-
 	switch( WindowMode )
 	{
+		// Fullscreen and WindowedFullscreen both use SDL_WINDOW_FULLSCREEN_DESKTOP now
+		//  and code elsewhere handles the backbufer blit properly. This solves several
+		//  problems that actual mode switches cause, and a GPU scales better than your
+		//  cheap LCD display anyhow.
 		case EWindowMode::Fullscreen:
-		{
-			SDL_SetWindowFullscreen( HWnd, 0 );
-			_GetBestFullscreenResolution( HWnd, &closest_w, &closest_h );
-			SDL_SetWindowSize( HWnd, closest_w, closest_h );
-
-			_SetBestFullscreenDisplayMode( HWnd, &closest_w, &closest_h );
-			SDL_SetWindowFullscreen( HWnd, SDL_WINDOW_FULLSCREEN );
-
-			bWasFullscreen = true;
-
-		}	break;
-
 		case EWindowMode::WindowedFullscreen:
 		{
 			SDL_SetWindowFullscreen( HWnd, 0 );
-			SDL_SetWindowPosition( HWnd, 0, 0 );
-			_SetBestFullscreenDisplayMode( HWnd, &closest_w, &closest_h );
+			SDL_SetWindowSize( HWnd, NewWidth, NewHeight );
 			SDL_SetWindowFullscreen( HWnd, SDL_WINDOW_FULLSCREEN_DESKTOP );
-
 			bWasFullscreen = true;
-
 		}	break;
 
 		case EWindowMode::Windowed:
@@ -336,49 +327,34 @@ void FLinuxWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 {
 	if( NewWindowMode != WindowMode )
 	{
-		SDL_DisplayMode dsp_mode;
-		int32 closest_w;
-		int32 closest_h;
-
-		closest_w = VirtualWidth;
-		closest_h = VirtualHeight;
-
 		switch( NewWindowMode )
 		{
+			// Fullscreen and WindowedFullscreen both use SDL_WINDOW_FULLSCREEN_DESKTOP now
+			//  and code elsewhere handles the backbufer blit properly. This solves several
+			//  problems that actual mode switches cause, and a GPU scales better than your
+			//  cheap LCD display anyhow.
 			case EWindowMode::Fullscreen:
-			{
-				if ( bWasFullscreen != true )
-				{
-					SDL_SetWindowPosition( HWnd, 0, 0 );
-					_SetBestFullscreenDisplayMode( HWnd, &closest_w, &closest_h );
-
-					SDL_SetWindowFullscreen( HWnd, SDL_WINDOW_FULLSCREEN );
-					SDL_SetWindowGrab( HWnd, SDL_TRUE );
-
-					bWasFullscreen = true;
-				}
-
-			}	break;
-
 			case EWindowMode::WindowedFullscreen:
 			{
 				if ( bWasFullscreen != true )
 				{
-					SDL_SetWindowPosition( HWnd, 0, 0 );
-
-					_SetBestFullscreenDisplayMode( HWnd, &closest_w, &closest_h );
+					SDL_SetWindowSize( HWnd, VirtualWidth, VirtualHeight );
 					SDL_SetWindowFullscreen( HWnd, SDL_WINDOW_FULLSCREEN_DESKTOP );
-
 					bWasFullscreen = true;
 				}
-
 			}	break;
 
 			case EWindowMode::Windowed:
 			{
+				// when going back to windowed from desktop, make window smaller (but not too small),
+				// since some too smart window managers (Compiz) will maximize the window if it's set to desktop size.
+				// @FIXME: [RCL] 2015-02-10: this is a hack.
+				int SmallerWidth = FMath::Max(100, VirtualWidth - 100);
+				int SmallerHeight = FMath::Max(100, VirtualHeight - 100);
+				SDL_SetWindowSize(HWnd, SmallerWidth, SmallerHeight);
+
 				SDL_SetWindowFullscreen( HWnd, 0 );
 				SDL_SetWindowBordered( HWnd, SDL_TRUE );
-				SDL_SetWindowSize( HWnd, VirtualWidth, VirtualHeight );
 
 				SDL_SetWindowGrab( HWnd, SDL_FALSE );
 
@@ -473,7 +449,7 @@ bool FLinuxWindow::GetRestoredDimensions(int32& X, int32& Y, int32& Width, int32
 /** Sets focus on the native window */
 void FLinuxWindow::SetWindowFocus()
 {
-	SDL_RaiseWindow( HWnd );
+	SDL_SetWindowActive( HWnd );
 }
 
 /**

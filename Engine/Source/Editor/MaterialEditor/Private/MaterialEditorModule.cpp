@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "MaterialEditorModule.h"
@@ -7,6 +7,7 @@
 #include "MaterialEditorUtilities.h"
 #include "MaterialInstanceEditor.h"
 #include "ModuleManager.h"
+#include "Materials/MaterialInstance.h"
 
 const FName MaterialEditorAppIdentifier = FName(TEXT("MaterialEditorApp"));
 const FName MaterialInstanceEditorAppIdentifier = FName(TEXT("MaterialInstanceEditorApp"));
@@ -68,7 +69,7 @@ public:
 		return NewMaterialInstanceEditor;
 	}
 	
-	virtual void GetVisibleMaterialParameters(const class UMaterial* Material, class UMaterialInstance* MaterialInstance, TArray<class FGuid>& VisibleExpressions)
+	virtual void GetVisibleMaterialParameters(const class UMaterial* Material, class UMaterialInstance* MaterialInstance, TArray<struct FGuid>& VisibleExpressions)
 	{
 		FMaterialEditorUtilities::GetVisibleMaterialParameters(Material, MaterialInstance, VisibleExpressions);
 	}

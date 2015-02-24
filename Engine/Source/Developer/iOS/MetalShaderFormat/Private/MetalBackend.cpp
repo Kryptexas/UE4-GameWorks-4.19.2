@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 // .
 
 #include "MetalShaderFormat.h"
@@ -19,6 +19,13 @@
 #if !PLATFORM_WINDOWS
 #define _strdup strdup
 #endif
+
+#define GROUP_MEMORY_BARRIER					"GroupMemoryBarrier"
+#define GROUP_MEMORY_BARRIER_WITH_GROUP_SYNC	"GroupMemoryBarrierWithGroupSync"
+#define DEVICE_MEMORY_BARRIER					"DeviceMemoryBarrier"
+#define DEVICE_MEMORY_BARRIER_WITH_GROUP_SYNC	"DeviceMemoryBarrierWithGroupSync"
+#define ALL_MEMORY_BARRIER						"AllMemoryBarrier"
+#define ALL_MEMORY_BARRIER_WITH_GROUP_SYNC		"AllMemoryBarrierWithGroupSync"
 
 /**
  * This table must match the ir_expression_operation enum.
@@ -340,12 +347,10 @@ protected:
 	exec_list sampler_variables;
 	exec_list image_variables;
 
-	/** Data tied globally to the shader via attributes */
-	int wg_size_x;
-	int wg_size_y;
-	int wg_size_z;
-
-	glsl_tessellation_info tessellation;
+	/** Attribute [numthreads(X,Y,Z)] */
+	int32 NumThreadsX;
+	int32 NumThreadsY;
+	int32 NumThreadsZ;
 
 	/** Track global instructions. */
 	struct global_ir : public exec_node
@@ -367,7 +372,7 @@ protected:
 	exec_list used_md_arrays;
 
 	// Code generation flags
-	bool bIsVS;
+	_mesa_glsl_parser_targets Frequency;
 
 	FBuffers& Buffers;
 
@@ -404,6 +409,9 @@ protected:
 	// Use packed_ prefix when printing out structs
 	bool bUsePacked;
 
+	// Do we need to add #include <compute_shaders>
+	bool bNeedsComputeInclude;
+
 	/**
 	 * Return true if the type is a multi-dimensional array. Also, track the
 	 * array.
@@ -417,8 +425,10 @@ protected:
 			{
 				md_array_entry* entry = (md_array_entry*)iter.get();
 				if (entry->type == type)
+				{
 					return true;
 				}
+			}
 			md_array_entry* entry = new(mem_ctx) md_array_entry();
 			entry->type = type;
 			used_md_arrays.push_tail(entry);
@@ -457,7 +467,7 @@ protected:
 	/**
 	 * Add tabs/spaces for the current indentation level.
 	 */
-	void indent(void)
+	void indent()
 	{
 		for (int i = 0; i < indentation; i++)
 		{
@@ -489,7 +499,13 @@ protected:
 	{
 		if (t->base_type == GLSL_TYPE_ARRAY)
 		{
+			bool bPrevPacked = bUsePacked;
+			if (t->element_type()->is_vector() && t->element_type()->vector_elements == 3)
+			{
+				bUsePacked = false;
+			}
 			print_base_type(t->fields.array);
+			bUsePacked = bPrevPacked;
 		}
 		else if (t->base_type == GLSL_TYPE_INPUTPATCH)
 		{
@@ -516,10 +532,14 @@ protected:
 			check(t->inner_type);
 			print_base_type(t->inner_type);
 		}
+		else if (t->base_type == GLSL_TYPE_IMAGE)
+		{
+			// Do nothing...
+		}
 		else
 		{
 			check(t->HlslName);
-			if (/*!bIsFunctionSig &&*/ bUsePacked && t->is_vector() && t->vector_elements < 4)
+			if (bUsePacked && t->is_vector() && t->vector_elements < 4)
 			{
 				ralloc_asprintf_append(buffer, "packed_%s", t->HlslName);
 			}
@@ -617,10 +637,6 @@ protected:
 		}
 		else
 		{
-			int layout_bits =
-				(var->origin_upper_left ? 0x1 : 0) |
-				(var->pixel_center_integer ? 0x2 : 0);
-
 			if (scope_depth == 0 &&
 			   ((var->mode == ir_var_in) || (var->mode == ir_var_out)) && 
 			   var->is_interface_block)
@@ -629,7 +645,23 @@ protected:
 			}
 			else if (var->type->is_image())
 			{
-				check(0);
+				auto* PtrType = var->type->is_array() ? var->type->element_type() : var->type;
+				check(!PtrType->is_array() && PtrType->inner_type);
+
+				// Buffer
+				int BufferIndex = Buffers.GetIndex(var);
+				check(BufferIndex >= 0);
+				ralloc_asprintf_append(
+					buffer,
+					"device "
+					);
+				print_type_pre(PtrType->inner_type);
+				ralloc_asprintf_append(buffer, " *%s", unique_name(var));
+				print_type_post(PtrType->inner_type);
+				ralloc_asprintf_append(
+					buffer,
+					" [[ buffer(%d) ]]", BufferIndex
+					);
 			}
 			else
 			{
@@ -776,6 +808,10 @@ protected:
 				}
 				else
 				{
+					if (var->mode == ir_var_shared)
+					{
+						ralloc_asprintf_append(buffer, "threadgroup ");
+					}
 					print_type_pre(var->type);
 					ralloc_asprintf_append(buffer, " %s", unique_name(var));
 					print_type_post(var->type);
@@ -840,14 +876,12 @@ protected:
 			indentation--;
 		}
 
-		//grab the global attributes
+		// Copy the global attributes
 		if (sig->is_main)
 		{
-			wg_size_x = sig->wg_size_x;
-			wg_size_y = sig->wg_size_y;
-			wg_size_z = sig->wg_size_z;
-
-			tessellation = sig->tessellation;
+			NumThreadsX = sig->wg_size_x;
+			NumThreadsY = sig->wg_size_y;
+			NumThreadsZ = sig->wg_size_z;
 		}
 
 		indentation++;
@@ -875,7 +909,21 @@ protected:
 				indent();
 				if (sig->is_main)
 				{
-					ralloc_asprintf_append(buffer, "%s ", bIsVS ? "vertex" : "fragment");
+					switch (Frequency)
+					{
+					case vertex_shader:
+						ralloc_asprintf_append(buffer, "vertex ");
+						break;
+					case fragment_shader:
+						ralloc_asprintf_append(buffer, "fragment ");
+						break;
+					case compute_shader:
+						ralloc_asprintf_append(buffer, "kernel ");
+						break;
+					default:
+						check(0);
+						break;
+					}
 				}
 
 				sig->accept(this);
@@ -949,6 +997,15 @@ protected:
 		{
 			ralloc_asprintf_append(buffer, "ERRROR_MulMatrix()");
 			check(0);
+		}
+		else if (op == ir_ternop_clamp && expr->type->base_type == GLSL_TYPE_FLOAT)
+		{
+			ralloc_asprintf_append(buffer, "precise::%s", MetalExpressionTable[op][0]);
+			for (int i = 0; i < numOps; ++i)
+			{
+				expr->operands[i]->accept(this);
+				ralloc_asprintf_append(buffer, MetalExpressionTable[op][i+1]);
+			}
 		}
 		else if (numOps < 4)
 		{
@@ -1170,7 +1227,7 @@ protected:
 		};
 		const char* int_cast[] =
 		{
-			"int", "ivec2", "ivec3", "ivec4"
+			"int", "int2", "int3", "int4"
 		};
 		const int dst_elements = deref->type->vector_elements;
 		const int src_elements = (src) ? src->type->vector_elements : 1;
@@ -1182,21 +1239,19 @@ protected:
 		{
 			if ( src == NULL )
 			{
-				ralloc_asprintf_append( buffer, "imageLoad( " );
 				deref->image->accept(this);
-				ralloc_asprintf_append(buffer, ", ");
+				ralloc_asprintf_append( buffer, "[" );
 				deref->image_index->accept(this);
-				ralloc_asprintf_append(buffer, ").%s", swizzle[dst_elements-1]);
+				ralloc_asprintf_append(buffer, "]"/*.%s, swizzle[dst_elements - 1]*/);
 			}
 			else
 			{
-				ralloc_asprintf_append( buffer, "imageStore( " );
 				deref->image->accept(this);
-				ralloc_asprintf_append(buffer, ", ");
+				ralloc_asprintf_append( buffer, "[" );
 				deref->image_index->accept(this);
-				ralloc_asprintf_append(buffer, ", ");
+				ralloc_asprintf_append( buffer, "] = " );
 				src->accept(this);
-				ralloc_asprintf_append(buffer, ".%s)", expand[src_elements-1]);
+				ralloc_asprintf_append(buffer, ""/*".%s", expand[src_elements - 1]*/);
 			}
 		}
 		else if ( deref->op == ir_image_dimensions)
@@ -1432,7 +1487,37 @@ protected:
 			call->return_deref->accept(this);
 			ralloc_asprintf_append(buffer, " = ");
 		}
-		ralloc_asprintf_append(buffer, "%s(", call->callee_name());
+		else
+		{
+			//@todo-rco: Fix this properly
+			if (!strcmp(call->callee_name(), GROUP_MEMORY_BARRIER) || !strcmp(call->callee_name(), GROUP_MEMORY_BARRIER_WITH_GROUP_SYNC))
+			{
+				bNeedsComputeInclude = true;
+				ralloc_asprintf_append(buffer, "threadgroup_barrier(mem_flags::mem_threadgroup)");
+				return;
+			}
+			else if (!strcmp(call->callee_name(), DEVICE_MEMORY_BARRIER) || !strcmp(call->callee_name(), DEVICE_MEMORY_BARRIER_WITH_GROUP_SYNC))
+			{
+				bNeedsComputeInclude = true;
+				ralloc_asprintf_append(buffer, "threadgroup_barrier(mem_flags::mem_device)");
+				return;
+			}
+			else if (!strcmp(call->callee_name(), ALL_MEMORY_BARRIER) || !strcmp(call->callee_name(), ALL_MEMORY_BARRIER_WITH_GROUP_SYNC))
+			{
+				bNeedsComputeInclude = true;
+				ralloc_asprintf_append(buffer, "threadgroup_barrier(mem_flags::mem_device_and_threadgroup)");
+				return;
+			}
+		}
+
+		if (!strcmp(call->callee_name(), "packHalf2x16"))
+		{
+			ralloc_asprintf_append(buffer, "pack_float_to_snorm2x16(");
+		}
+		else
+		{
+			ralloc_asprintf_append(buffer, "%s(", call->callee_name());
+		}
 		bool bPrintComma = false;
 		foreach_iter(exec_list_iterator, iter, *call)
 		{
@@ -1906,6 +1991,8 @@ protected:
 			if (hash_table_find(used_uniform_blocks, block->name))
 			{
 				const char* block_name = block->name;
+				check(0);
+/*
 				if (state->has_packed_uniforms)
 				{
 					block_name = ralloc_asprintf(mem_ctx, "%sb%u",
@@ -1925,7 +2012,7 @@ protected:
 					ralloc_asprintf_append(buffer, ";\n");
 				}
 				ralloc_asprintf_append(buffer, "};\n\n");
-
+*/
 				num_used_blocks++;
 			}
 		}
@@ -2285,7 +2372,7 @@ protected:
 				if (Buffers.Buffers[i])
 				{
 					auto* Var = Buffers.Buffers[i]->as_variable();
-					if (!Var->semantic && !Var->type->is_sampler())
+					if (!Var->semantic && !Var->type->is_sampler() && !Var->type->is_image())
 					{
 						ralloc_asprintf_append(buffer, "%s%s(%d)",
 							bFirst ? "// @UniformBlocks: " : ",",
@@ -2348,32 +2435,19 @@ protected:
 				ralloc_asprintf_append(buffer, "\n");
 			}
 		}
-	}
 
-	/**
-	 * Print the layout directives for this shader.
-	 */
-	void print_layout(_mesa_glsl_parse_state *state)
-	{
-		if (state->target == compute_shader )
+		if (Frequency == compute_shader)
 		{
-			ralloc_asprintf_append(buffer, "layout( local_size_x = %d, "
-				"local_size_y = %d, local_size_z = %d ) in;\n", wg_size_x,
-				wg_size_y, wg_size_z );
-		}
-
-		if(state->target == tessellation_evaluation_shader || state->target == tessellation_control_shader)
-		{
-			check(0);
+			ralloc_asprintf_append(buffer, "// @NumThreads: %d, %d, %d\n", this->NumThreadsX, this->NumThreadsY, this->NumThreadsZ);
 		}
 	}
 
 public:
 
 	/** Constructor. */
-	FGenerateMetalVisitor(_mesa_glsl_parse_state* InParseState, bool bInIsVS, FBuffers& InBuffers)
+	FGenerateMetalVisitor(_mesa_glsl_parse_state* InParseState, _mesa_glsl_parser_targets InFrequency, FBuffers& InBuffers)
 		: ParseState(InParseState)
-		, bIsVS(bInIsVS)
+		, Frequency(InFrequency)
 		, Buffers(InBuffers)
 		, buffer(0)
 		, indentation(0)
@@ -2386,6 +2460,7 @@ public:
 		, loop_count(0)
 		, bStageInEmitted(false)
 		, bUsePacked(false)
+		, bNeedsComputeInclude(false)
 	{
 		printable_names = hash_table_ctor(32, hash_table_pointer_hash, hash_table_pointer_compare);
 		used_structures = hash_table_ctor(128, hash_table_pointer_hash, hash_table_pointer_compare);
@@ -2428,15 +2503,11 @@ public:
 		print_signature(ParseState);
 		buffer = 0;
 
-		char* layout = ralloc_asprintf(mem_ctx, "");
-		buffer = &layout;
-		print_layout(ParseState);
-		buffer = 0;
 		char* full_buffer = ralloc_asprintf(
 			ParseState,
-			"// Compiled by HLSLCC\n%s\n#include <metal_stdlib>\nusing namespace metal;\n\n%s%s%s",
+			"// Compiled by HLSLCC\n%s\n#include <metal_stdlib>\n%s\nusing namespace metal;\n\n%s%s",
 			signature,
-			layout,
+			bNeedsComputeInclude ? "#include <metal_compute>" : "",
 			decl_buffer,
 			code_buffer
 			);
@@ -2450,7 +2521,7 @@ char* FMetalCodeBackend::GenerateCode(exec_list* ir, _mesa_glsl_parse_state* sta
 {
 	// We'll need this Buffers info for the [[buffer()]] index
 	FBuffers Buffers;
-	FGenerateMetalVisitor visitor(state, (state->target == vertex_shader), Buffers);
+	FGenerateMetalVisitor visitor(state, state->target, Buffers);
 
 	// At this point, all inputs and outputs are global uniforms, no structures.
 
@@ -2605,6 +2676,9 @@ bool FMetalCodeBackend::GenerateMain(EHlslShaderFrequency Frequency, const char*
 	// Call the original EntryPoint
 	MainSig->body.push_tail(new(ParseState) ir_call(EntryPointSig, EntryPointReturn, &ArgInstructions));
 	MainSig->body.append_list(&PostCallInstructions);
+	MainSig->wg_size_x = EntryPointSig->wg_size_x;
+	MainSig->wg_size_y = EntryPointSig->wg_size_y;
+	MainSig->wg_size_z = EntryPointSig->wg_size_z;
 
 	// Generate the Main() function
 	auto* MainFunction = new(ParseState)ir_function("Main");
@@ -2644,7 +2718,7 @@ void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, 
 		}
 
 		const auto* ReturnType = glsl_type::get_instance(GLSL_TYPE_HALF, 4, 1);
-		ir_function* Func = new(State)ir_function(FRAMEBUFFER_FETCH_MRT);
+		ir_function* Func = new(State) ir_function(FRAMEBUFFER_FETCH_MRT);
 		ir_function_signature* Sig = new(State) ir_function_signature(ReturnType);
 		//Sig->is_builtin = true;
 		Sig->is_defined = true;
@@ -2678,5 +2752,15 @@ void FMetalLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, 
 
 		State->symbols->add_global_function(Func);
 		ir->push_tail(Func);
+	}
+
+	// Memory sync/barriers
+	{
+		make_intrinsic_genType(ir, State, GROUP_MEMORY_BARRIER, ir_invalid_opcode, 0, 0, 0, 0);
+		make_intrinsic_genType(ir, State, GROUP_MEMORY_BARRIER_WITH_GROUP_SYNC, ir_invalid_opcode, 0, 0, 0, 0);
+		make_intrinsic_genType(ir, State, DEVICE_MEMORY_BARRIER, ir_invalid_opcode, 0, 0, 0, 0);
+		make_intrinsic_genType(ir, State, DEVICE_MEMORY_BARRIER_WITH_GROUP_SYNC, ir_invalid_opcode, 0, 0, 0, 0);
+		make_intrinsic_genType(ir, State, ALL_MEMORY_BARRIER, ir_invalid_opcode, 0, 0, 0, 0);
+		make_intrinsic_genType(ir, State, ALL_MEMORY_BARRIER_WITH_GROUP_SYNC, ir_invalid_opcode, 0, 0, 0, 0);
 	}
 }

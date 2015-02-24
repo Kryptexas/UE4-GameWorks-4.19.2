@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Controller.cpp: 
@@ -10,12 +10,15 @@
 #include "NetworkingDistanceConstants.h"
 #include "VisualLogger/VisualLogger.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/GameMode.h"
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
 // @todo this is here only due to circular dependency to AIModule. To be removed
 #include "Navigation/PathFollowingComponent.h"
-#include "Navigation/NavigationComponent.h"
+
+#include "GameFramework/PlayerState.h"
+#include "Components/CapsuleComponent.h"
 
 DEFINE_LOG_CATEGORY(LogPath);
 
@@ -528,9 +531,9 @@ APawn* AController::K2_GetPawn() const
 	return GetPawn();
 }
 
-const FNavAgentProperties* AController::GetNavAgentProperties() const
+const FNavAgentProperties& AController::GetNavAgentPropertiesRef() const
 {
-	return Pawn && Pawn->GetMovementComponent() ? Pawn->GetMovementComponent()->GetNavAgentProperties() : NULL;
+	return Pawn && Pawn->GetMovementComponent() ? Pawn->GetMovementComponent()->GetNavAgentPropertiesRef() : FNavAgentProperties::DefaultProperties;
 }
 
 FVector AController::GetNavAgentLocation() const
@@ -553,13 +556,6 @@ bool AController::ShouldPostponePathUpdates() const
 
 void AController::UpdateNavigationComponents()
 {
-	UNavigationComponent* PathFindingComp = FindComponentByClass<UNavigationComponent>();
-	if (PathFindingComp != NULL)
-	{
-		PathFindingComp->OnNavAgentChanged();
-		PathFindingComp->UpdateCachedComponents();
-	}
-
 	UPathFollowingComponent* PathFollowingComp = FindComponentByClass<UPathFollowingComponent>();
 	if (PathFollowingComp != NULL)
 	{
@@ -567,20 +563,14 @@ void AController::UpdateNavigationComponents()
 	}
 }
 
-void AController::InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp)
+void AController::InitNavigationControl(UPathFollowingComponent*& PathFollowingComp)
 {
-	PathFindingComp = FindComponentByClass<UNavigationComponent>();
-	if (PathFindingComp == NULL)
-	{
-		PathFindingComp = NewObject<UNavigationComponent>(this);
-		PathFindingComp->RegisterComponentWithWorld(GetWorld());
-	}
-
 	PathFollowingComp = FindComponentByClass<UPathFollowingComponent>();
 	if (PathFollowingComp == NULL)
 	{
 		PathFollowingComp = NewObject<UPathFollowingComponent>(this);
 		PathFollowingComp->RegisterComponentWithWorld(GetWorld());
+		PathFollowingComp->Initialize();
 	}
 }
 

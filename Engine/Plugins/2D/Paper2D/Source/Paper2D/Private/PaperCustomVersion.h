@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -42,6 +42,9 @@ struct FPaperCustomVersion
 
 		// Add default BodyInstance setup in the sprite asset
 		AddDefaultCollisionProfileInSpriteAsset = 11,
+		
+		// Add source texture size
+		AddSourceTextureSize = 12,
 
 		// -----<new versions can be added above this line>-------------------------------------------------
 		VersionPlusOne,

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -16,15 +16,28 @@ void SObjectWidget::Construct(const FArguments& InArgs, UUserWidget* InWidgetObj
 
 SObjectWidget::~SObjectWidget(void)
 {
+	ResetWidget();
+}
+
+void SObjectWidget::ResetWidget()
+{
 	if ( UObjectInitialized() && WidgetObject )
 	{
 		// NOTE: When the SObjectWidget gets released we know that the User Widget has
 		// been removed from the slate widget hierarchy.  When this occurs, we need to 
-		// immediately release all slate widget widgets to deletion from taking n-frames
-		// due to widget nesting.
+		// immediately release all slate widget widgets to prevent deletion from taking
+		// n-frames due to widget nesting.
 		const bool bReleaseChildren = true;
 		WidgetObject->ReleaseSlateResources(bReleaseChildren);
+
+		WidgetObject = nullptr;
 	}
+
+	// Remove slate widget from our container
+	ChildSlot
+	[
+		SNullWidget::NullWidget
+	];
 }
 
 void SObjectWidget::AddReferencedObjects(FReferenceCollector& Collector)
@@ -34,6 +47,16 @@ void SObjectWidget::AddReferencedObjects(FReferenceCollector& Collector)
 
 void SObjectWidget::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
 {
+#if WITH_EDITOR
+	if ( GIsRoutingPostLoad )
+	{
+		// In editor builds streamed in data can cause PostLoad to be called on objects, when this is happening
+		// Slate Tick can and will Occur due to a Slow Task dialog being launched.  In order to prevent UMG ticking
+		// when this is true, we ignore Slate ticks when GIsRoutingPostLoad is true in editor builds.
+		return;
+	}
+#endif
+
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
 		return WidgetObject->NativeTick(AllottedGeometry, InDeltaTime);
@@ -42,11 +65,21 @@ void SObjectWidget::Tick(const FGeometry& AllottedGeometry, const double InCurre
 
 int32 SObjectWidget::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
+#if WITH_EDITOR
+	if ( GIsRoutingPostLoad )
+	{
+		// In editor builds streamed in data can cause PostLoad to be called on objects, when this is happening
+		// Slate painting can and will Occur due to a Slow Task dialog being launched.  In order to prevent UMG painting
+		// when this is true, we ignore Slate painting when GIsRoutingPostLoad is true in editor builds.
+		return LayerId;
+	}
+#endif
+
 	int32 MaxLayer = SCompoundWidget::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
 
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
-		FPaintContext Context(AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+		FPaintContext Context(AllottedGeometry, MyClippingRect, OutDrawElements, MaxLayer, InWidgetStyle, bParentEnabled);
 		WidgetObject->OnPaint(Context);
 		
 		return FMath::Max(MaxLayer, Context.MaxLayer);
@@ -140,6 +173,8 @@ FReply SObjectWidget::OnAnalogValueChanged(const FGeometry& MyGeometry, const FA
 
 FReply SObjectWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	SCompoundWidget::OnMouseButtonDown(MyGeometry, MouseEvent);
+
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
 		return WidgetObject->OnMouseButtonDown(MyGeometry, MouseEvent).NativeReply;
@@ -150,6 +185,8 @@ FReply SObjectWidget::OnMouseButtonDown(const FGeometry& MyGeometry, const FPoin
 
 FReply SObjectWidget::OnPreviewMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	SCompoundWidget::OnPreviewMouseButtonDown(MyGeometry, MouseEvent);
+
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
 		return WidgetObject->OnPreviewMouseButtonDown(MyGeometry, MouseEvent).NativeReply;
@@ -160,6 +197,8 @@ FReply SObjectWidget::OnPreviewMouseButtonDown(const FGeometry& MyGeometry, cons
 
 FReply SObjectWidget::OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
 {
+	SCompoundWidget::OnMouseButtonUp(MyGeometry, MouseEvent);
+
 	if ( WidgetObject && !WidgetObject->IsDesignTime() )
 	{
 		return WidgetObject->OnMouseButtonUp(MyGeometry, MouseEvent).NativeReply;

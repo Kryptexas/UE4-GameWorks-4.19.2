@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -55,7 +55,7 @@ public:
 				.Padding(FMargin(6.0, 2.0))
 				[
 					SNew(STextBlock)
-						.Text(*PlatformName)			
+						.Text(FText::FromString(*PlatformName))
 				];
 		}
 
@@ -65,13 +65,13 @@ public:
 private:
 
 	// Callback for changing the checked state of the check box.
-	void HandleCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState )
+	void HandleCheckBoxCheckStateChanged( ECheckBoxState NewState )
 	{
 		ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 		if (SelectedProfile.IsValid())
 		{
-			if (NewState == ESlateCheckBoxState::Checked)
+			if (NewState == ECheckBoxState::Checked)
 			{
 				SelectedProfile->AddCookedPlatform(*PlatformName);
 			}
@@ -83,7 +83,7 @@ private:
 	}
 
 	// Callback for determining the checked state of the check box.
-	ESlateCheckBoxState::Type HandleCheckBoxIsChecked( ) const
+	ECheckBoxState HandleCheckBoxIsChecked( ) const
 	{
 		ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -92,11 +92,11 @@ private:
 			SelectedProfile->IsValidForLaunch();
 			if (SelectedProfile->GetCookedPlatforms().Contains(*PlatformName))
 			{
-				return ESlateCheckBoxState::Checked;
+				return ECheckBoxState::Checked;
 			}
 		}
 
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 
 private:

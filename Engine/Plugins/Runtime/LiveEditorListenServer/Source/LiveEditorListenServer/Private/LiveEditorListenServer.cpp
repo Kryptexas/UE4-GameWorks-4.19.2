@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LiveEditorListenServerPrivatePCH.h"
 #include "Networking.h"
@@ -76,9 +76,9 @@ namespace nLiveEditorListenServer
 					//FString ComponentName = ComponentPropertyName.LeftChop(SplitIndex);
 					ComponentPropertyName = ComponentPropertyName.RightChop(SplitIndex+1);
 
-					TArray<UActorComponent*> ActorComponents;
+					TInlineComponentArray<UActorComponent*> ActorComponents;
 					AsActor->GetComponents(ActorComponents);
-					for ( TArray<UActorComponent*>::TIterator ComponentIt(ActorComponents); ComponentIt && !Prop; ++ComponentIt )
+					for ( auto ComponentIt = ActorComponents.CreateIterator(); ComponentIt && !Prop; ++ComponentIt )
 					{
 						UActorComponent *Component = *ComponentIt;
 						check( Component != NULL );

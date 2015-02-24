@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DebugRenderSceneProxy.h: Useful scene proxy for rendering non performance-critical information.
@@ -10,13 +10,19 @@
 #define _INC_DEBUGRENDERSCENEPROXY
 
 #include "PrimitiveSceneProxy.h"
+#include "DynamicMeshBuilder.h"
 
 DECLARE_DELEGATE_TwoParams(FDebugDrawDelegate, class UCanvas*, class APlayerController*);
 
 class FDebugRenderSceneProxy : public FPrimitiveSceneProxy
 {
 public:
-
+	enum EDrawType
+	{
+		SolidMesh = 0,
+		WireMesh = 1,
+		SolidAndWireMeshes = 2,
+	};
 	ENGINE_API FDebugRenderSceneProxy(const UPrimitiveComponent* InComponent);
 	// FPrimitiveSceneProxy interface.
 
@@ -26,8 +32,6 @@ public:
 	 * @param	PDI - draw interface to render to
 	 * @param	View - current view
 	 */
-	ENGINE_API virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View);
-
 	ENGINE_API virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 
 	/**
@@ -63,14 +67,16 @@ public:
 	/** Struct to hold info about lines to render. */
 	struct FDebugLine
 	{
-		FDebugLine(const FVector &InStart, const FVector &InEnd, const FColor &InColor) : 
+		FDebugLine(const FVector &InStart, const FVector &InEnd, const FColor &InColor, float InThickness = 0) :
 		Start(InStart),
 		End(InEnd),
-		Color(InColor) {}
+		Color(InColor),
+		Thickness(InThickness) {}
 
 		FVector Start;
 		FVector End;
 		FColor Color;
+		float Thickness;
 	};
 
 	/** Struct to hold info about boxes to render. */
@@ -152,7 +158,7 @@ public:
 
 		float Radius;
 		FVector Location;
-		FLinearColor Color;
+		FColor Color;
 	};
 
 	/** Struct to hold info about texts to render using 3d coordinates */
@@ -169,19 +175,68 @@ public:
 		FLinearColor Color;
 	};
 
-	TArray<FWireCylinder>	Cylinders;
-	TArray<FArrowLine>		ArrowLines;
-	TArray<FWireStar>		Stars;
-	TArray<FDashedLine>		DashedLines;
-	TArray<FDebugLine>		Lines;
-	TArray<FDebugBox>		WireBoxes;
-	TArray<FSphere> SolidSpheres;
+	struct FCone
+	{
+		FCone() {}
+		FCone(const FMatrix& InConeToWorld, const float InAngle1, const float InAngle2, const FLinearColor& InColor) :
+			ConeToWorld(InConeToWorld),
+			Angle1(InAngle1),
+			Angle2(InAngle2),
+			Color(InColor) {}
+
+		FMatrix ConeToWorld;
+		float Angle1;
+		float Angle2;
+		FColor Color;
+	};
+
+	struct FMesh
+	{
+		TArray<FDynamicMeshVertex>	Vertices;
+		TArray <int32> Indices;
+		FColor Color;
+	};
+
+	struct FCapsule
+	{
+		FCapsule() {}
+		FCapsule(const FVector& InLocation, const float& InRadius, const FVector& x, const FVector& y, const FVector &z, const float& InHalfHeight, const FLinearColor& InColor)
+			: Radius(InRadius)
+			, Location(InLocation)
+			, Color(InColor)
+			, HalfHeight(InHalfHeight)
+			, X(x)
+			, Y(y)
+			, Z(z)
+		{
+
+		}
+
+		float Radius;
+		FVector Location; //Center pointer of the base of the cylinder.
+		FColor Color;
+		float HalfHeight;
+		FVector X, Y, Z; //X, Y, and Z alignment axes to draw along.
+	};
+
+	TArray<FDebugLine> Lines;
+	TArray<FDashedLine>	DashedLines;
+	TArray<FArrowLine> ArrowLines;
+	TArray<FWireCylinder> Cylinders;
+	TArray<FWireStar> Stars;
+	TArray<FDebugBox> Boxes;
+	TArray<FSphere> Spheres;
 	TArray<FText3d> Texts;
+	TArray<FCone> Cones;
+	TArray<FMesh> Meshes;
+	TArray<FCapsule> Capsles;
 
 	uint32 ViewFlagIndex;
 	FString ViewFlagName;
 	float TextWithoutShadowDistance;
 	FDebugDrawDelegate DebugTextDrawingDelegate;
+	FDelegateHandle DebugTextDrawingDelegateHandle;
+	EDrawType DrawType;
 };
 
 #endif

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ObjectTools.h: Object-related utilities
@@ -487,6 +487,15 @@ namespace ObjectTools
 	UNREALED_API bool IsAssetValidForPlacing(UWorld* InWorld, const FString& ObjectPath);
 
 	/**
+	 * Determines if the class is placeable in a world.
+	 *
+	 * @param InClass	Class to test.
+	 * 
+	 * @return true if the class can be placed in the world.
+	 */
+	UNREALED_API bool IsClassValidForPlacing(const UClass* InClass);
+
+	/**
 	 * Determines if a given class is a redirector.
 	 *
 	 * @param Class	The class
@@ -494,6 +503,15 @@ namespace ObjectTools
 	 * @return true if the class is a redirector, otherwise false.
 	 */
 	UNREALED_API bool IsClassRedirector( const UClass* Class );
+
+	/**
+	 * Determines if an array of objects are valid for replace
+	 *
+	 * @param InProposedObjects	The objects to check.
+	 * 
+	 * @return true if all objects are not a restricted type for replacement.
+	 */
+	UNREALED_API bool AreObjectsValidForReplace( const TArray<UObject*>& InProposedObjects );
 
 	/**
 	 * Determines if an array of objects are all of interchangeable types.

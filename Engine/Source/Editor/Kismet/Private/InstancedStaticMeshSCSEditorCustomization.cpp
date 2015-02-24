@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
 #include "InstancedStaticMeshSCSEditorCustomization.h"
 #include "BlueprintEditorModule.h"
 #include "InstancedFoliage.h"
+#include "Components/InstancedStaticMeshComponent.h"
 
 TSharedRef<ISCSEditorCustomization> FInstancedStaticMeshSCSEditorCustomization::MakeInstance(TSharedRef< IBlueprintEditor > InBlueprintEditor)
 {

@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SlateSoundCustomization.h"
+#include "Sound/SoundBase.h"
 
 TSharedRef<IPropertyTypeCustomization> FSlateSoundStructCustomization::MakeInstance() 
 {

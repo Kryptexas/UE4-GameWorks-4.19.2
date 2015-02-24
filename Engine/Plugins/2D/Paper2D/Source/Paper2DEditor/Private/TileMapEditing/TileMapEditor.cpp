@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "TileMapEditor.h"
@@ -14,6 +14,7 @@
 #include "Paper2DEditorModule.h"
 #include "STileMapEditorViewportToolbar.h"
 #include "SDockTab.h"
+#include "EdModeTileMap.h"
 
 #define LOCTEXT_NAMESPACE "TileMapEditor"
 
@@ -28,12 +29,14 @@ struct FTileMapEditorTabs
 	// Tab identifiers
 	static const FName DetailsID;
 	static const FName ViewportID;
+	static const FName ToolboxHostID;
 };
 
 //////////////////////////////////////////////////////////////////////////
 
 const FName FTileMapEditorTabs::DetailsID(TEXT("Details"));
 const FName FTileMapEditorTabs::ViewportID(TEXT("Viewport"));
+const FName FTileMapEditorTabs::ToolboxHostID(TEXT("Toolbox"));
 
 //////////////////////////////////////////////////////////////////////////
 // STileMapEditorViewport
@@ -63,6 +66,11 @@ public:
 	void NotifyTileMapBeingEditedHasChanged()
 	{
 		EditorViewportClient->NotifyTileMapBeingEditedHasChanged();
+	}
+
+	void ActivateEditMode()
+	{
+		EditorViewportClient->ActivateEditMode();
 	}
 private:
 	// Pointer back to owning tile map editor instance (the keeper of state)
@@ -217,6 +225,19 @@ TSharedRef<SDockTab> FTileMapEditor::SpawnTab_Viewport(const FSpawnTabArgs& Args
 		];
 }
 
+TSharedRef<SDockTab> FTileMapEditor::SpawnTab_ToolboxHost(const FSpawnTabArgs& Args)
+{
+	TSharedPtr<FTileMapEditor> TileMapEditorPtr = SharedThis(this);
+
+	// Spawn the tab
+	return SNew(SDockTab)
+		.Icon(FEditorStyle::GetBrush("LevelEditor.Tabs.Modes"))
+		.Label(LOCTEXT("ToolboxHost_Title", "Toolbox"))
+		[
+			ToolboxPtr.ToSharedRef()
+		];
+}
+
 TSharedRef<SDockTab> FTileMapEditor::SpawnTab_Details(const FSpawnTabArgs& Args)
 {
 	TSharedPtr<FTileMapEditor> TileMapEditorPtr = SharedThis(this);
@@ -242,6 +263,11 @@ void FTileMapEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& Ta
 		.SetGroup(WorkspaceMenuCategoryRef)
 		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports"));
 
+	TabManager->RegisterTabSpawner(FTileMapEditorTabs::ToolboxHostID, FOnSpawnTab::CreateSP(this, &FTileMapEditor::SpawnTab_ToolboxHost))
+		.SetDisplayName(LOCTEXT("ToolboxHostLabel", "Toolbox"))
+		.SetGroup(WorkspaceMenuCategoryRef)
+		.SetIcon(FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Modes"));
+
 	TabManager->RegisterTabSpawner(FTileMapEditorTabs::DetailsID, FOnSpawnTab::CreateSP(this, &FTileMapEditor::SpawnTab_Details))
 		.SetDisplayName(LOCTEXT("DetailsTabLabel", "Details"))
 		.SetGroup(WorkspaceMenuCategoryRef)
@@ -253,6 +279,7 @@ void FTileMapEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& 
 	FAssetEditorToolkit::UnregisterTabSpawners(TabManager);
 
 	TabManager->UnregisterTabSpawner(FTileMapEditorTabs::ViewportID);
+	TabManager->UnregisterTabSpawner(FTileMapEditorTabs::ToolboxHostID);
 	TabManager->UnregisterTabSpawner(FTileMapEditorTabs::DetailsID);
 }
 
@@ -266,9 +293,12 @@ void FTileMapEditor::InitTileMapEditor(const EToolkitMode::Type Mode, const TSha
 	BindCommands();
 
 	ViewportPtr = SNew(STileMapEditorViewport, SharedThis(this));
+	ToolboxPtr = SNew(SBorder)
+		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+		.Padding(0.f);
 
 	// Default layout
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_TileMapEditor_Layout_v1")
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout("Standalone_TileMapEditor_Layout_v2")
 		->AddArea
 		(
 			FTabManager::NewPrimaryArea()
@@ -285,6 +315,13 @@ void FTileMapEditor::InitTileMapEditor(const EToolkitMode::Type Mode, const TSha
 				FTabManager::NewSplitter()
 				->SetOrientation(Orient_Horizontal)
 				->SetSizeCoefficient(0.9f)
+				->Split
+				(
+					FTabManager::NewStack()
+					->SetSizeCoefficient(0.3f)
+					->SetHideTabWell(true)
+					->AddTab(FTileMapEditorTabs::ToolboxHostID, ETabState::OpenedTab)
+				)
 				->Split
 				(
 					FTabManager::NewStack()
@@ -307,8 +344,11 @@ void FTileMapEditor::InitTileMapEditor(const EToolkitMode::Type Mode, const TSha
 			)
 		);
 
-	// Initialize the asset editor and spawn nothing (dummy layout)
+	// Initialize the asset editor and spawn the layout above
 	InitAssetEditor(Mode, InitToolkitHost, TileMapEditorAppName, StandaloneDefaultLayout, /*bCreateDefaultStandaloneMenu=*/ true, /*bCreateDefaultToolbar=*/ true, InitTileMap);
+
+	// Activate the edit mode
+	ViewportPtr->ActivateEditMode();
 
 	// Extend things
 	ExtendMenu();
@@ -366,6 +406,41 @@ FString FTileMapEditor::GetWorldCentricTabPrefix() const
 FString FTileMapEditor::GetDocumentationLink() const
 {
 	return TEXT("Engine/Paper2D/TileMapEditor");
+}
+
+void FTileMapEditor::OnToolkitHostingStarted(const TSharedRef< class IToolkit >& Toolkit)
+{
+	TSharedPtr<SWidget> InlineContent = Toolkit->GetInlineContent();
+	if (InlineContent.IsValid())
+	{
+		ToolboxPtr->SetContent(InlineContent.ToSharedRef());
+	}
+}
+
+void FTileMapEditor::OnToolkitHostingFinished(const TSharedRef< class IToolkit >& Toolkit)
+{
+	ToolboxPtr->SetContent(SNullWidget::NullWidget);
+
+	//@TODO: MODETOOLS: How to handle multiple ed modes at once in a standalone asset editor?
+#if 0
+	bool FoundAnotherToolkit = false;
+	const TArray< TSharedPtr< IToolkit > >& HostedToolkits = LevelEditor.Pin()->GetHostedToolkits();
+	for (auto HostedToolkitIt = HostedToolkits.CreateConstIterator(); HostedToolkitIt; ++HostedToolkitIt)
+	{
+		if ((*HostedToolkitIt) != Toolkit)
+		{
+			UpdateInlineContent((*HostedToolkitIt)->GetInlineContent());
+			FoundAnotherToolkit = true;
+			break;
+		}
+	}
+
+	if (!FoundAnotherToolkit)
+	{
+		UpdateInlineContent(SNullWidget::NullWidget);
+	}
+
+#endif
 }
 
 FLinearColor FTileMapEditor::GetWorldCentricTabColorScale() const
@@ -432,7 +507,7 @@ void FTileMapEditor::ExtendToolbar()
 
 void FTileMapEditor::SetTileMapBeingEdited(UPaperTileMap* NewTileMap)
 {
-	if ((NewTileMap != TileMapBeingEdited) && (NewTileMap != NULL))
+	if ((NewTileMap != TileMapBeingEdited) && (NewTileMap != nullptr))
 	{
 		UPaperTileMap* OldTileMap = TileMapBeingEdited;
 		TileMapBeingEdited = NewTileMap;

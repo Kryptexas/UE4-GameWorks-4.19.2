@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,7 +15,7 @@ class SLATE_API FSlateMacMenu
 {
 public:
 
-	static void UpdateWithMultiBox(const TSharedRef<FMultiBox>& MultiBox);
+	static void UpdateWithMultiBox(const TSharedPtr<FMultiBox> MultiBox);
 	static void UpdateMenu(FMacMenu* Menu);
 	static void UpdateCachedState();
 	static void ExecuteMenuItemAction(const TSharedRef<const FMenuEntryBlock>& Block);

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -113,7 +113,7 @@ protected:
 							[
 								MakeMapMenu(PropertyHandle)
 							]
-							.ToolTipText(LOCTEXT("AvailableMapsButtonTooltip", "Pick from the list of available maps").ToString())
+							.ToolTipText(LOCTEXT("AvailableMapsButtonTooltip", "Pick from the list of available maps"))
 					]
 			];
 	}
@@ -210,7 +210,9 @@ private:
 		{
 			if (Value.IsEmpty() || IsValidMapName(Value))
 			{
-				return FEditorStyle::GetSlateColor("InvertedForeground");
+				static const FName InvertedForegroundName("InvertedForeground");
+
+				return FEditorStyle::GetSlateColor(InvertedForegroundName);
 			}
 		}
 

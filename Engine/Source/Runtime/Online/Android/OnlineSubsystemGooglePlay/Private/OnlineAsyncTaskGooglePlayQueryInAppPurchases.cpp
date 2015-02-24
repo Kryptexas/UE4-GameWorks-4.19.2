@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemGooglePlayPrivatePCH.h"
 #include "OnlineAsyncTaskGooglePlayQueryInAppPurchases.h"
@@ -10,7 +10,7 @@ FOnlineAsyncTaskGooglePlayQueryInAppPurchases::FOnlineAsyncTaskGooglePlayQueryIn
 	: FOnlineAsyncTaskBasic(InSubsystem)
 	, ProductIds(InProductIds)
 	, IsConsumableFlags(InIsConsumableFlags)
-
+	, bWasRequestSent(false)
 {
 }
 
@@ -39,10 +39,15 @@ void FOnlineAsyncTaskGooglePlayQueryInAppPurchases::TriggerDelegates()
 
 void FOnlineAsyncTaskGooglePlayQueryInAppPurchases::Tick()
 {
-	UE_LOG(LogOnline, Display, TEXT("FOnlineAsyncTaskGooglePlayQueryInAppPurchases::Tick"));
-	bWasSuccessful = false;
+//	UE_LOG(LogOnline, Display, TEXT("FOnlineAsyncTaskGooglePlayQueryInAppPurchases::Tick"));
 
-	extern bool AndroidThunkCpp_Iap_QueryInAppPurchases(const TArray<FString>&, const TArray<bool>&);
-	AndroidThunkCpp_Iap_QueryInAppPurchases(ProductIds, IsConsumableFlags);
+	if (!bWasRequestSent)
+	{
+		extern bool AndroidThunkCpp_Iap_QueryInAppPurchases(const TArray<FString>&, const TArray<bool>&);
+		AndroidThunkCpp_Iap_QueryInAppPurchases(ProductIds, IsConsumableFlags);
+
+		bWasRequestSent = true;
+	}
+
 }
 

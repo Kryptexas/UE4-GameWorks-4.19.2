@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "HardwareTargetingPrivatePCH.h"
 #include "HardwareTargetingModule.h"
@@ -44,7 +44,7 @@ struct FMetaSettingGatherer
 
 			if (!bReadOnly)
 			{
-				FPropertyChangedEvent ChangeEvent(Property, false, EPropertyChangeType::ValueSet);
+				FPropertyChangedEvent ChangeEvent(Property, EPropertyChangeType::ValueSet);
 				SettingsObject->PostEditChangeProperty(ChangeEvent);
 			}
 			else

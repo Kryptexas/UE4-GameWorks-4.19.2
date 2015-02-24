@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -7,12 +7,15 @@
 #include "AssetRegistryModule.h"
 #include "ScopedTransaction.h"
 #include "SSearchBox.h"
+#include "Animation/VertexAnim/MorphTarget.h"
 
 #define LOCTEXT_NAMESPACE "SMorphTargetViewer"
 
 static const FName ColumnId_MorphTargetNameLabel( "MorphTargetName" );
 static const FName ColumnID_MorphTargetWeightLabel( "Weight" );
 static const FName ColumnID_MorphTargetVertCountLabel( "NumberOfVerts" );
+
+const float MaxMorphWeight = 5.f;
 
 //////////////////////////////////////////////////////////////////////////
 // SMorphTargetListRow
@@ -101,7 +104,7 @@ TSharedRef< SWidget > SMorphTargetListRow::GenerateWidgetForColumn( const FName&
 			.VAlign( VAlign_Center )
 			[
 				SNew( STextBlock )
-				.Text( Item->Name.ToString() )
+				.Text( FText::FromName(Item->Name) )
 				.HighlightText( MorphTargetViewer->GetFilterText() )
 			];
 	}
@@ -117,8 +120,10 @@ TSharedRef< SWidget > SMorphTargetListRow::GenerateWidgetForColumn( const FName&
 			.VAlign( VAlign_Center )
 			[
 				SNew( SSpinBox<float> )
-				.MinValue(0.00f)
-				.MaxValue(1.0f)
+				.MinSliderValue(-1.f)
+				.MaxSliderValue(1.f)
+				.MinValue(-MaxMorphWeight)
+				.MaxValue(MaxMorphWeight)
 				.Value( this, &SMorphTargetListRow::GetWeight )
 				.OnValueChanged( this, &SMorphTargetListRow::OnMorphTargetWeightChanged )
 			];
@@ -140,7 +145,7 @@ TSharedRef< SWidget > SMorphTargetListRow::GenerateWidgetForColumn( const FName&
 					.HAlign(HAlign_Right)
 					[
 						SNew(STextBlock)
-						.Text(FString::FromInt(Item->NumberOfVerts))
+						.Text(FText::AsNumber(Item->NumberOfVerts))
 						.HighlightText(MorphTargetViewer->GetFilterText())
 					]
 				];
@@ -168,7 +173,7 @@ void SMorphTargetListRow::OnMorphTargetWeightChanged( float NewWeight )
 
 		if ( RowItem != Item ) // Don't do "this" row again if it's selected
 		{
-			RowItem->Weight = FMath::Clamp( RowItem->Weight + Delta, 0.0f, 1.0f );
+			RowItem->Weight = FMath::Clamp(RowItem->Weight + Delta, -MaxMorphWeight, MaxMorphWeight);
 			MorphTargetViewer->AddMorphTargetOverride( RowItem->Name, RowItem->Weight );
 		}
 	}
@@ -230,13 +235,13 @@ void SMorphTargetViewer::Construct(const FArguments& InArgs)
 			(
 				SNew( SHeaderRow )
 				+ SHeaderRow::Column( ColumnId_MorphTargetNameLabel )
-				.DefaultLabel( LOCTEXT( "MorphTargetNameLabel", "Morph Target Name" ).ToString() )
+				.DefaultLabel( LOCTEXT( "MorphTargetNameLabel", "Morph Target Name" ) )
 
 				+ SHeaderRow::Column( ColumnID_MorphTargetWeightLabel )
-				.DefaultLabel( LOCTEXT( "MorphTargetWeightLabel", "Weight" ).ToString() )
+				.DefaultLabel( LOCTEXT( "MorphTargetWeightLabel", "Weight" ) )
 
-				+ SHeaderRow::Column(ColumnID_MorphTargetVertCountLabel)
-				.DefaultLabel(LOCTEXT("MorphTargetVertCountLabel", "Vert Count").ToString())
+				+ SHeaderRow::Column( ColumnID_MorphTargetVertCountLabel )
+				.DefaultLabel( LOCTEXT("MorphTargetVertCountLabel", "Vert Count") )
 			)
 		]
 	];

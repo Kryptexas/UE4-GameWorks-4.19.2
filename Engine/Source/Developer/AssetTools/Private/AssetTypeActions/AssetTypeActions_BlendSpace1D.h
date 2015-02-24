@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Animation/BlendSpace1D.h"
+#include "AssetTypeActions_AnimationAsset.h"
 
 class FAssetTypeActions_BlendSpace1D : public FAssetTypeActions_AnimationAsset
 {

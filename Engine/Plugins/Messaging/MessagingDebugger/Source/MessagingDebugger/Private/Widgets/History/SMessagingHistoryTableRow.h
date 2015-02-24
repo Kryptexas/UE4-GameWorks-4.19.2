@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -113,7 +113,7 @@ public:
 					SNew(STextBlock)
 						.ColorAndOpacity(this, &SMessagingHistoryTableRow::HandleTextColorAndOpacity)
 						.HighlightText(HighlightText)
-						.Text(MessageInfo->Context->GetMessageType().ToString())
+						.Text(FText::FromName(MessageInfo->Context->GetMessageType()))
 				];
 		}
 		else if (ColumnName == "Recipients")

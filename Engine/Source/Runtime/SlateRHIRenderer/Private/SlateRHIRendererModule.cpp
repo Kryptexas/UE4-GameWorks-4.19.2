@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateRHIRendererPrivatePCH.h"
 #include "Slate3DRenderer.h"
@@ -8,12 +8,18 @@ class FSlateRHIFontAtlasFactory : public ISlateFontAtlasFactory
 public:
 	FSlateRHIFontAtlasFactory()
 	{
-		/** Size of each font texture, width and height */
-		AtlasSize = 1024;
-		if (!GIsEditor && GConfig)
+		if (GIsEditor)
 		{
-			GConfig->GetInt(TEXT("SlateRenderer"), TEXT("FontAtlasSize"), AtlasSize, GEngineIni);
-			AtlasSize = FMath::Clamp(AtlasSize, 0, 2048);
+			AtlasSize = 2048;
+		}
+		else
+		{
+			AtlasSize = 1024;
+			if (GConfig)
+			{
+				GConfig->GetInt(TEXT("SlateRenderer"), TEXT("FontAtlasSize"), AtlasSize, GEngineIni);
+				AtlasSize = FMath::Clamp(AtlasSize, 0, 2048);
+			}
 		}
 	}
 
@@ -21,12 +27,18 @@ public:
 	{
 	}
 
+	virtual FIntPoint GetAtlasSize() const override
+	{
+		return FIntPoint(AtlasSize, AtlasSize);
+	}
 
 	virtual TSharedRef<FSlateFontAtlas> CreateFontAtlas() const override
 	{
 		return MakeShareable(new FSlateFontAtlasRHI(AtlasSize, AtlasSize));
 	}
+
 private:
+	/** Size of each font texture, width and height */
 	int32 AtlasSize;
 };
 

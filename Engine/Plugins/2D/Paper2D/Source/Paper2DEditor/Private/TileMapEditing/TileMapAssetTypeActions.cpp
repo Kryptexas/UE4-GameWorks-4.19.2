@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 
@@ -17,7 +17,7 @@ FText FTileMapAssetTypeActions::GetName() const
 
 FColor FTileMapAssetTypeActions::GetTypeColor() const
 {
-	return FColor(0, 255, 255);
+	return FColorList::BrightGold;
 }
 
 UClass* FTileMapAssetTypeActions::GetSupportedClass() const

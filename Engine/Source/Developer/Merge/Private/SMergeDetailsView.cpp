@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MergePrivatePCH.h"
 
@@ -7,7 +7,12 @@
 #include "SBlueprintDiff.h"
 #include "SMergeDetailsView.h"
 
-void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMergeData& InData )
+void SMergeDetailsView::Construct(const FArguments InArgs
+	, const FBlueprintMergeData& InData
+	, FOnMergeNodeSelected SelectionCallback
+	, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutTreeEntries
+	, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutRealDifferences
+	, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutConflicts)
 {
 	Data = InData;
 	CurrentMergeConflict = INDEX_NONE;
@@ -16,10 +21,23 @@ void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMerge
 	const UObject* BaseCDO = DiffUtils::GetCDO(InData.BlueprintBase);
 	const UObject* LocalCDO = DiffUtils::GetCDO(InData.BlueprintLocal);
 
+	TArray<FSingleObjectDiffEntry> RemoteDifferences;
+	DiffUtils::CompareUnrelatedObjects(BaseCDO, RemoteCDO, RemoteDifferences);
+	TArray<FSingleObjectDiffEntry> LocalDifferences;
+	DiffUtils::CompareUnrelatedObjects(BaseCDO, LocalCDO, LocalDifferences);
+
+	const auto GetPropertyNames = []( const TArray<FSingleObjectDiffEntry>& FromDifferences, TArray<FPropertySoftPath>& OutNames )
+	{
+		for( const auto& Entry : FromDifferences )
+		{
+			OutNames.Push(Entry.Identifier);
+		}
+	};
+
 	TArray<FPropertySoftPath> RemoteDifferingProperties;
-	DiffUtils::CompareUnrelatedObjects(BaseCDO, RemoteCDO, RemoteDifferingProperties);
+	GetPropertyNames( RemoteDifferences, RemoteDifferingProperties );
 	TArray<FPropertySoftPath> LocalDifferingProperties;
-	DiffUtils::CompareUnrelatedObjects(BaseCDO, LocalCDO, LocalDifferingProperties);
+	GetPropertyNames(LocalDifferences, LocalDifferingProperties);
 
 	FPropertySoftPathSet RemoteDifferingPropertiesSet(RemoteDifferingProperties);
 	FPropertySoftPathSet LocalDifferingPropertiesSet(LocalDifferingProperties);
@@ -47,19 +65,19 @@ void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMerge
 		}
 	};
 
-	// EMergeParticipant::MERGE_PARTICIPANT_REMOTE
+	// EMergeParticipant::Remote
 	{
 		DetailsViews.Add(
 			FDetailsDiff(RemoteCDO, DiffUtils::ResolveAll( RemoteCDO, RemoteDifferingProperties), FDetailsDiff::FOnDisplayedPropertiesChanged() )
 		);
 	}
-	// EMergeParticipant::MERGE_PARTICIPANT_BASE
+	// EMergeParticipant::Base
 	{
 		DetailsViews.Add(
 			FDetailsDiff(BaseCDO, DiffUtils::ResolveAll( BaseCDO, BaseDifferingPropertiesSet.Array()), FDetailsDiff::FOnDisplayedPropertiesChanged())
 		);
 	}
-	// EMergeParticipant::MERGE_PARTICIPANT_LOCAL
+	// EMergeParticipant::Local
 	{
 		DetailsViews.Add(
 			FDetailsDiff(LocalCDO, DiffUtils::ResolveAll( LocalCDO, LocalDifferingProperties), FDetailsDiff::FOnDisplayedPropertiesChanged())
@@ -69,27 +87,167 @@ void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMerge
 	TArray<FPropertySoftPath> RemoteVisibleProperties = GetRemoteDetails().GetDisplayedProperties();
 	TArray<FPropertySoftPath> BaseVisibleProperties = GetBaseDetails().GetDisplayedProperties();
 	TArray<FPropertySoftPath> LocalVisibleProperties = GetLocalDetails().GetDisplayedProperties();
-	if (BaseCDO)
+	int IterRemote = 0;
+	int IterBase = 0;
+	int IterLocal = 0;
+
+	bool bDoneRemote = IterRemote == RemoteVisibleProperties.Num();
+	bool bDoneBase = IterBase == BaseVisibleProperties.Num();
+	bool bDoneLocal = IterLocal == LocalVisibleProperties.Num();
+
+	bool bAnyConflict = false;
+
+	struct FDiffPair
 	{
-		for (const auto& Property : BaseVisibleProperties)
+		FPropertySoftPath Identifier;
+		FText Label;
+		bool bConflicted;
+	};
+
+	const auto ProcessPotentialDifference = []( const FPropertySoftPath& PropertyIdentifier
+											, TArray<FSingleObjectDiffEntry> const& RemoteDifferences
+											, TArray<FSingleObjectDiffEntry> const& LocalDifferences
+											, TArray< FDiffPair >& OutProcessedDifferences
+											, bool& bOutAnyConflict )
+	{
+		const FText RemoteLabel = NSLOCTEXT("SMergeDetailsView", "RemoteLabel", "Remote");
+		const FText LocalLabel = NSLOCTEXT("SMergeDetailsView", "LocalLabel", "Local");
+
+		const auto FindDiffering = [](TArray< FSingleObjectDiffEntry > const& InDifferences, const FPropertySoftPath& PropertyIdentifier) -> const FSingleObjectDiffEntry*
 		{
-			AddPropertiesOrdered(Property, BaseDifferingPropertiesSet, DifferingProperties);
+			for (const auto& Difference : InDifferences)
+			{
+				if (Difference.Identifier == PropertyIdentifier)
+				{
+					return &Difference;
+				}
+			}
+			return nullptr;
+		};
+
+		const FSingleObjectDiffEntry* RemoteDiffering = FindDiffering(RemoteDifferences, PropertyIdentifier);
+		const FSingleObjectDiffEntry* LocalDiffering = FindDiffering(LocalDifferences, PropertyIdentifier);
+		if (RemoteDiffering && LocalDiffering)
+		{
+			// conflicting change:
+			bOutAnyConflict = true;
+
+			FText Label1 = DiffViewUtils::PropertyDiffMessage(*RemoteDiffering, RemoteLabel);
+			FText Label2 = DiffViewUtils::PropertyDiffMessage(*LocalDiffering, LocalLabel);
+			FText FinalLabel = FText::Format(NSLOCTEXT("SMergeDetailsView", "PropertyConflict", "Conflict: {0} and {1}"), Label1, Label2);
+
+			FDiffPair Difference = { RemoteDiffering->Identifier, FinalLabel, true };
+			OutProcessedDifferences.Push(Difference);
+		}
+		else if (RemoteDiffering)
+		{
+			FText Label = DiffViewUtils::PropertyDiffMessage(*RemoteDiffering, RemoteLabel);
+			FDiffPair Difference = { RemoteDiffering->Identifier,  Label, false };
+			OutProcessedDifferences.Push(Difference);
+		}
+		else if (LocalDiffering)
+		{
+			FText Label = DiffViewUtils::PropertyDiffMessage(*LocalDiffering, LocalLabel);
+			FDiffPair Difference = { LocalDiffering->Identifier, Label, false };
+			OutProcessedDifferences.Push(Difference);
+		}
+	};
+
+	TArray< FDiffPair > OrderedDifferences;
+	while( !bDoneRemote || !bDoneBase || !bDoneLocal )
+	{
+		bool bLocalMatchesBase = !bDoneLocal && !bDoneBase && BaseVisibleProperties[IterBase] == LocalVisibleProperties[IterLocal];
+		bool bRemoteMatchesBase = !bDoneRemote && !bDoneBase && BaseVisibleProperties[IterBase] == RemoteVisibleProperties[IterRemote];
+
+		if( (bRemoteMatchesBase && bLocalMatchesBase) ||
+			(bDoneLocal && bRemoteMatchesBase ) ||
+			(bDoneRemote && bLocalMatchesBase ) )
+		{
+			ProcessPotentialDifference(BaseVisibleProperties[IterBase], RemoteDifferences, LocalDifferences, OrderedDifferences, bAnyConflict );
+			AddPropertiesOrdered(BaseVisibleProperties[IterBase], BaseDifferingPropertiesSet, DifferingProperties);
+
+			if (!bDoneLocal)
+			{
+				++IterLocal;
+			}
+			if (!bDoneRemote)
+			{
+				++IterRemote;
+			}
+			if(!bDoneBase )
+			{
+				++IterBase;
+			}
+		}
+		else if ( !bDoneRemote && !bRemoteMatchesBase )
+		{
+			ProcessPotentialDifference(RemoteVisibleProperties[IterRemote], RemoteDifferences, LocalDifferences, OrderedDifferences, bAnyConflict);
+			AddPropertiesOrdered(RemoteVisibleProperties[IterRemote], RemoteDifferingPropertiesSet, DifferingProperties);
+			++IterRemote;
+		}
+		else if( !bDoneLocal && !bLocalMatchesBase )
+		{
+			ProcessPotentialDifference(LocalVisibleProperties[IterLocal], RemoteDifferences, LocalDifferences, OrderedDifferences, bAnyConflict);
+			AddPropertiesOrdered(LocalVisibleProperties[IterLocal], LocalDifferingPropertiesSet, DifferingProperties);
+			++IterLocal;
+		}
+		else if( bDoneLocal && bDoneRemote && !bDoneBase )
+		{
+			++IterBase;
+		}
+
+		bDoneRemote = IterRemote == RemoteVisibleProperties.Num();
+		bDoneBase = IterBase == BaseVisibleProperties.Num();
+		bDoneLocal = IterLocal == LocalVisibleProperties.Num();
+	}
+
+	TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> > Children;
+	if( OrderedDifferences.Num() == 0 )
+	{
+		Children.Push( FBlueprintDifferenceTreeEntry::NoDifferencesEntry() );
+	}
+	else
+	{
+		const auto CreateDetailsMergeWidget = [](FDiffPair Entry) -> TSharedRef<SWidget>
+		{
+			return SNew(STextBlock)
+				.Text(Entry.Label)
+				.ColorAndOpacity(Entry.bConflicted ? DiffViewUtils::Conflicting() : DiffViewUtils::Differs());
+		};
+
+		const auto FocusDetailsDifferenceEntry = []( FPropertySoftPath PropertyIdentifier, SMergeDetailsView* Parent, FOnMergeNodeSelected SelectionCallback )
+		{
+			SelectionCallback.ExecuteIfBound();
+			Parent->HighlightDifference(PropertyIdentifier);
+		};
+
+		for( const auto Difference : OrderedDifferences )
+		{
+			auto Entry = TSharedPtr<FBlueprintDifferenceTreeEntry>(
+				new FBlueprintDifferenceTreeEntry(
+					FOnDiffEntryFocused::CreateStatic(FocusDetailsDifferenceEntry, Difference.Identifier, this, SelectionCallback)
+					, FGenerateDiffEntryWidget::CreateStatic(CreateDetailsMergeWidget, Difference)
+					, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >()
+				)
+			);
+			Children.Push(Entry);
+			OutRealDifferences.Push(Entry);
+			if( Difference.bConflicted )
+			{
+				OutConflicts.Push(Entry);
+			}
 		}
 	}
-	if (RemoteCDO)
+
+	const auto ForwardSelection = [](FOnMergeNodeSelected SelectionCallback)
 	{
-		for (const auto& Property : RemoteVisibleProperties)
-		{
-			AddPropertiesOrdered(Property, RemoteDifferingPropertiesSet, DifferingProperties);
-		}
-	}
-	if (LocalCDO)
-	{
-		for (const auto& Property : LocalVisibleProperties)
-		{
-			AddPropertiesOrdered(Property, LocalDifferingPropertiesSet, DifferingProperties);
-		}
-	}
+		// This allows the owning control to focus the correct tab (or do whatever else it likes):
+		SelectionCallback.ExecuteIfBound();
+	};
+
+	TSharedPtr<FBlueprintDifferenceTreeEntry> Category = FBlueprintDifferenceTreeEntry::CreateDefaultsCategoryEntryForMerge(FOnDiffEntryFocused::CreateStatic(ForwardSelection, SelectionCallback), Children, RemoteDifferences.Num() != 0, LocalDifferences.Num() != 0, bAnyConflict);
+	OutTreeEntries.Push(Category);
+
 	CurrentDifference = -1;
 
 	ChildSlot[
@@ -109,102 +267,26 @@ void SMergeDetailsView::Construct(const FArguments InArgs, const FBlueprintMerge
 	];
 }
 
-void SMergeDetailsView::NextDiff()
+void SMergeDetailsView::HighlightDifference(FPropertySoftPath Path)
 {
-	if (DifferingProperties.Num() == 0)
-	{
-		return;
-	}
-
-	CurrentDifference = (CurrentDifference + 1) % DifferingProperties.Num();
-
-	HighlightCurrentDifference();
-}
-
-void SMergeDetailsView::PrevDiff()
-{
-	if (DifferingProperties.Num() == 0)
-	{
-		return;
-	}
-
-	--CurrentDifference;
-	if (CurrentDifference < 0)
-	{
-		CurrentDifference = DifferingProperties.Num() - 1;
-	}
-
-	HighlightCurrentDifference();
-}
-
-void SMergeDetailsView::HighlightCurrentDifference()
-{
-	for( auto& DetailDiff : DetailsViews )
-	{
-		DetailDiff.HighlightProperty(DifferingProperties[CurrentDifference]);
-	}
-}
-
-bool SMergeDetailsView::HasNextDifference() const
-{
-	return DifferingProperties.IsValidIndex( CurrentDifference + 1 );
-}
-
-bool SMergeDetailsView::HasPrevDifference() const
-{
-	return DifferingProperties.IsValidIndex(CurrentDifference - 1);
-}
-
-void SMergeDetailsView::HighlightNextConflict()
-{
-	if (CurrentMergeConflict + 1 < MergeConflicts.Num())
-	{
-		++CurrentMergeConflict;
-	}
 	for (auto& DetailDiff : DetailsViews)
 	{
-		DetailDiff.HighlightProperty(MergeConflicts[CurrentMergeConflict]);
+		DetailDiff.HighlightProperty(Path);
 	}
-}
-
-void SMergeDetailsView::HighlightPrevConflict()
-{
-	if (CurrentMergeConflict - 1 >= 0)
-	{
-		--CurrentMergeConflict;
-	}
-	for (auto& DetailDiff : DetailsViews)
-	{
-		DetailDiff.HighlightProperty(MergeConflicts[CurrentMergeConflict]);
-	}
-}
-
-bool SMergeDetailsView::HasNextConflict() const
-{
-	// return true if we have one conflict so that users can reselect the conflict if they desire. If we 
-	// return false when we already have selected this one and only conflict then there will be no way
-	// to reselect it if the user wants to.
-	return MergeConflicts.Num() != 0 && (MergeConflicts.Num() == 1 || CurrentMergeConflict < MergeConflicts.Num());
-}
-
-bool SMergeDetailsView::HasPrevConflict() const
-{
-	// note in HasNextConflict applies here as well.
-	return MergeConflicts.Num() == 1 || CurrentMergeConflict > 0;
 }
 
 FDetailsDiff& SMergeDetailsView::GetRemoteDetails()
 {
-	return DetailsViews[EMergeParticipant::MERGE_PARTICIPANT_REMOTE];
+	return DetailsViews[EMergeParticipant::Remote];
 }
 
 FDetailsDiff& SMergeDetailsView::GetBaseDetails()
 {
-	return DetailsViews[EMergeParticipant::MERGE_PARTICIPANT_BASE];
+	return DetailsViews[EMergeParticipant::Base];
 }
 
 FDetailsDiff& SMergeDetailsView::GetLocalDetails()
 {
-	return DetailsViews[EMergeParticipant::MERGE_PARTICIPANT_LOCAL];
+	return DetailsViews[EMergeParticipant::Local];
 }
 

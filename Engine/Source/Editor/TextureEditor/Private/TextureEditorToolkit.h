@@ -1,8 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Toolkits/AssetEditorToolkit.h"
+#include "EditorUndoClient.h"
 
 
 /**
@@ -165,10 +166,10 @@ private:
 	bool HandleGreenChannelActionIsChecked( ) const;
 
 	// Callback for changing the checked state of the MipMap check box.
-	void HandleMipLevelCheckBoxCheckedStateChanged( ESlateCheckBoxState::Type InNewState );
+	void HandleMipLevelCheckBoxCheckedStateChanged( ECheckBoxState InNewState );
 
 	// Callback for getting the checked state of the MipMap check box.
-	ESlateCheckBoxState::Type HandleMipLevelCheckBoxIsChecked( ) const;
+	ECheckBoxState HandleMipLevelCheckBoxIsChecked( ) const;
 
 	// Callback for determining whether the MipMap check box is enabled.
 	bool HandleMipLevelCheckBoxIsEnabled( ) const;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RendererSupport.cpp: Central place for various rendering functionality that exists in Engine
@@ -19,7 +19,7 @@
 void ClearReferencesToRendererModuleClasses(
 	TMap<UWorld*, bool>& WorldsToUpdate, 
 	TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData,
-	TScopedPointer<TArray<uint8> >& GlobalShaderData,
+	FGlobalShaderBackupData& GlobalShaderBackup,
 	TMap<FShaderType*, FString>& ShaderTypeNames,
 	TMap<FVertexFactoryType*, FString>& VertexFactoryTypeNames)
 {
@@ -48,13 +48,13 @@ void ClearReferencesToRendererModuleClasses(
 			World->Scene = NULL;
 		}
 	}
-
-	// Save off shaders by serializing them into memory, and remove all shader map references to FShaders
-	GlobalShaderData = TScopedPointer<TArray<uint8> >(BackupGlobalShaderMap(GRHIShaderPlatform_DEPRECATED));
+		
+	// For each feature level save off its shaders by serializing them into memory, and remove all shader map references to FShaders
+	BackupGlobalShaderMap(GlobalShaderBackup);
 	UMaterial::BackupMaterialShadersToMemory(ShaderMapToSerializedShaderData);
 
 	// Verify no FShaders still in memory
-	for(TLinkedList<FShaderType*>::TIterator It(FShaderType::GetTypeList()); It; It.Next())
+	for (TLinkedList<FShaderType*>::TIterator It(FShaderType::GetTypeList()); It; It.Next())
 	{
 		FShaderType* ShaderType = *It;
 		check(ShaderType->GetNumShaders() == 0);
@@ -95,7 +95,9 @@ void RecompileRendererModule()
 		bool bCompiledSuccessfully = false;
 		do 
 		{
-			bCompiledSuccessfully = HotReload->RecompileModule(RendererModuleName, false, *GLog);
+			const bool bForceCodeProject = false;
+			const bool bFailIfGeneratedCodeChanges = true;
+			bCompiledSuccessfully = HotReload->RecompileModule(RendererModuleName, false, *GLog, bFailIfGeneratedCodeChanges, bForceCodeProject);
 
 			if (!bCompiledSuccessfully)
 			{
@@ -116,7 +118,7 @@ void RecompileRendererModule()
 void RestoreReferencesToRendererModuleClasses(
 	const TMap<UWorld*, bool>& WorldsToUpdate, 
 	const TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData,
-	const TScopedPointer<TArray<uint8> >& GlobalShaderData,
+	const FGlobalShaderBackupData& GlobalShaderBackup,
 	const TMap<FShaderType*, FString>& ShaderTypeNames,
 	const TMap<FVertexFactoryType*, FString>& VertexFactoryTypeNames)
 {
@@ -145,9 +147,18 @@ void RestoreReferencesToRendererModuleClasses(
 
 	// Restore FShaders from the serialized memory blobs
 	// Shader maps may still not be complete after this due to code changes picked up in the recompile
-	RestoreGlobalShaderMap(GRHIShaderPlatform_DEPRECATED, *GlobalShaderData);
-	UMaterial::RestoreMaterialShadersFromMemory(GRHIShaderPlatform_DEPRECATED, ShaderMapToSerializedShaderData);
-	FMaterialShaderMap::FixupShaderTypes(GRHIShaderPlatform_DEPRECATED, ShaderTypeNames, VertexFactoryTypeNames);
+	RestoreGlobalShaderMap(GlobalShaderBackup);
+	UMaterial::RestoreMaterialShadersFromMemory(ShaderMapToSerializedShaderData);
+
+	for (int32 i = (int32)ERHIFeatureLevel::ES2; i < (int32)ERHIFeatureLevel::Num; ++i)
+	{
+		if (GlobalShaderBackup.FeatureLevelShaderData[i] != nullptr)
+		{
+			EShaderPlatform ShaderPlatform = GetFeatureLevelShaderPlatform((ERHIFeatureLevel::Type)i);
+			check(ShaderPlatform < EShaderPlatform::SP_NumPlatforms);
+			FMaterialShaderMap::FixupShaderTypes(ShaderPlatform, ShaderTypeNames, VertexFactoryTypeNames);
+		}
+	}
 
 	TArray<FShaderType*> OutdatedShaderTypes;
 	TArray<const FVertexFactoryType*> OutdatedFactoryTypes;
@@ -156,7 +167,8 @@ void RestoreReferencesToRendererModuleClasses(
 	// Recompile any missing shaders
 	UMaterialInterface::IterateOverActiveFeatureLevels([&](ERHIFeatureLevel::Type FeatureLevel) 
 	{
-		auto ShaderPlatform = GShaderPlatformForFeatureLevel[FeatureLevel];
+		auto ShaderPlatform = GetFeatureLevelShaderPlatform(FeatureLevel);
+		check(ShaderPlatform < EShaderPlatform::SP_NumPlatforms);
 		BeginRecompileGlobalShaders(OutdatedShaderTypes, ShaderPlatform);
 		UMaterial::UpdateMaterialShaders(OutdatedShaderTypes, OutdatedFactoryTypes, ShaderPlatform);
 	});
@@ -187,11 +199,11 @@ void RecompileRenderer(const TArray<FString>& Args)
 
 		TMap<UWorld*, bool> WorldsToUpdate;
 		TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > > ShaderMapToSerializedShaderData;
-		TScopedPointer<TArray<uint8> > GlobalShaderData;
+		FGlobalShaderBackupData GlobalShaderBackup;
 		TMap<FShaderType*, FString> ShaderTypeNames;
 		TMap<FVertexFactoryType*, FString> VertexFactoryTypeNames;
 
-		ClearReferencesToRendererModuleClasses(WorldsToUpdate, ShaderMapToSerializedShaderData, GlobalShaderData, ShaderTypeNames, VertexFactoryTypeNames);
+		ClearReferencesToRendererModuleClasses(WorldsToUpdate, ShaderMapToSerializedShaderData, GlobalShaderBackup, ShaderTypeNames, VertexFactoryTypeNames);
 
 		EndShutdownTime = FPlatformTime::Seconds();
 		UE_LOG(LogShaders, Warning, TEXT("Shutdown complete %.1fs"),(float)(EndShutdownTime - StartTime));
@@ -201,7 +213,7 @@ void RecompileRenderer(const TArray<FString>& Args)
 		EndRecompileTime = FPlatformTime::Seconds();
 		UE_LOG(LogShaders, Warning, TEXT("Recompile complete %.1fs"),(float)(EndRecompileTime - EndShutdownTime));
 
-		RestoreReferencesToRendererModuleClasses(WorldsToUpdate, ShaderMapToSerializedShaderData, GlobalShaderData, ShaderTypeNames, VertexFactoryTypeNames);
+		RestoreReferencesToRendererModuleClasses(WorldsToUpdate, ShaderMapToSerializedShaderData, GlobalShaderBackup, ShaderTypeNames, VertexFactoryTypeNames);
 	}
 
 #if WITH_EDITOR

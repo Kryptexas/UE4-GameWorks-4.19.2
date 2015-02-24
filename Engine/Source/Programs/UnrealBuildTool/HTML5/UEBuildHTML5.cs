@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -48,6 +48,8 @@ namespace UnrealBuildTool
 		 */
 		protected override string GetRequiredSDKString()
 		{
+			if (HTML5SDKInfo.IsSDKVersionOverridden())
+				return HTML5SDKInfo.OverriddenSDKVersion();
 			return ExpectedSDKVersion;
 		}
 
@@ -80,15 +82,22 @@ namespace UnrealBuildTool
 			{
 				return SDKStatus.Invalid;
             }
+			if (!HTML5SDKInfo.IsSDKInstalled())
+			{
+				return SDKStatus.Invalid;
+			}
             try
             {
-                if (HTML5SDKInfo.EmscriptenVersion().Contains(ExpectedSDKVersion))
+                int InstalledVersion = Convert.ToInt32(HTML5SDKInfo.EmscriptenVersion().Replace(".","")); 
+                int RequiredVersion = Convert.ToInt32(GetRequiredSDKString().Replace(".","")); 
+
+                if (InstalledVersion >= RequiredVersion)
                 {
                     return SDKStatus.Valid;
                 }
                 else
                 {
-                    Console.WriteLine("EMSCRIPTEN sdk " + HTML5SDKInfo.EmscriptenVersion() + " found which is unsupported, Please install version " + ExpectedSDKVersion);
+					Console.WriteLine("EMSCRIPTEN sdk " + HTML5SDKInfo.EmscriptenVersion() + " found which is older than " + RequiredVersion + " Please install the latest emscripten SDK");
                     return SDKStatus.Invalid;
                 }
             }
@@ -108,12 +117,6 @@ namespace UnrealBuildTool
          */
         protected override void RegisterBuildPlatformInternal()
         {
-            //@todo.Rocket: Add platform support
-            if (UnrealBuildTool.RunningRocket() || UnrealBuildTool.BuildingRocket())
-            {
-                return;
-            }
-
             // Make sure the SDK is installed
             if ((ProjectFileGenerator.bGenerateProjectFiles == true) || (HasRequiredSDKsInstalled() == SDKStatus.Valid))
             {

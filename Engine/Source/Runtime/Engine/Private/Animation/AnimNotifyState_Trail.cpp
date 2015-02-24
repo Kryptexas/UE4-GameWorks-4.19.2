@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Animation/AnimNotifies/AnimNotifyState_Trail.h"
@@ -50,6 +50,12 @@ void UAnimNotifyState_Trail::NotifyBegin(class USkeletalMeshComponent * MeshComp
 	if (WidthScaleCurve != NAME_None && AnimInst)
 	{
 		Width = AnimInst->GetCurveValue(WidthScaleCurve);
+	}
+
+	UParticleSystem* ParticleSystemTemplate = OverridePSTemplate(MeshComp, Animation);
+	if (ParticleSystemTemplate == nullptr)
+	{
+		ParticleSystemTemplate = PSTemplate;
 	}
 
 	bool bFoundExistingTrail = false;

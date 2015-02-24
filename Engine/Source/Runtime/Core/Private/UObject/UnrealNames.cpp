@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 
@@ -356,12 +356,26 @@ int32							FName::NumWideNames;
  */
 FName::FName( const WIDECHAR* Name, EFindName FindType, bool )
 {
-	Init(Name, NAME_NO_NUMBER_INTERNAL, FindType);
+	if (Name)
+	{
+		Init(Name, NAME_NO_NUMBER_INTERNAL, FindType);
+	}
+	else
+	{
+		*this = FName(NAME_None);
+	}
 }
 
 FName::FName( const ANSICHAR* Name, EFindName FindType, bool )
 {
-	Init(Name, NAME_NO_NUMBER_INTERNAL, FindType);
+	if (Name)
+	{
+		Init(Name, NAME_NO_NUMBER_INTERNAL, FindType);
+	}
+	else
+	{
+		*this = FName(NAME_None);
+	}
 }
 
 /**
@@ -750,14 +764,8 @@ void FName::StaticInit()
 	{
 		// Register all hardcoded names.
 		#define REGISTER_NAME(num,namestr) FName Temp_##namestr(EName(num), TEXT(#namestr));
-		#ifdef _UNREAL_NAMES_H_
-		#undef _UNREAL_NAMES_H_
-		#define _RECOVER_UNREAL_NAMES_H_
-		#endif
-		#include "UObject/UnrealNames.h"
-		#ifdef _RECOVER_UNREAL_NAMES_H_
-		#define _UNREAL_NAMES_H_
-		#endif
+		#include "UObject/UnrealNames.inl"
+		#undef REGISTER_NAME
 	}
 
 #if DO_CHECK
@@ -801,6 +809,10 @@ void FName::StaticInit()
 		}
 	}
 #endif
+
+	// Initialize stats metadata.
+	// We need to do here, after all hardcoded names have been initialized.
+	GMalloc->InitializeStatsMetadata();
 }
 
 bool& FName::GetIsInitialized()
@@ -916,6 +928,7 @@ void FName::AutoTest()
 	const FName AutoTest1Find("autoTEST_1", EFindName::FNAME_Find);
 	const FName AutoTest_2(TEXT("AutoTest_2"));
 	const FName AutoTestB_2(TEXT("AutoTestB_2"));
+	const FName NullName(static_cast<ANSICHAR*>(nullptr));
 
 	check(AutoTest_1 != AutoTest_2);
 	check(AutoTest_1 == autoTest_1);
@@ -932,6 +945,7 @@ void FName::AutoTest()
 	check(*AutoTestB_2.GetPlainNameString() != *AutoTest_2.GetPlainNameString());
 	check(AutoTestB_2.GetNumber() == AutoTest_2.GetNumber());
 	check(autoTest_1.GetNumber() != AutoTest_2.GetNumber());
+	check(NullName.IsNone());
 }
 
 /*-----------------------------------------------------------------------------

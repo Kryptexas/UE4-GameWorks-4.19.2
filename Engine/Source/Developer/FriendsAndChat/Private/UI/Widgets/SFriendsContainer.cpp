@@ -1,12 +1,17 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "FriendsViewModel.h"
+#include "FriendListViewModel.h"
+#include "SFriendUserHeader.h"
 #include "SFriendsList.h"
 #include "SFriendsListContainer.h"
 #include "SFriendsContainer.h"
 #include "SFriendRequest.h"
 #include "SFriendsStatus.h"
+#include "SFriendsUserSettings.h"
+#include "SFriendsToolTip.h"
+#include "FriendListViewModel.h"
 
 #define LOCTEXT_NAMESPACE "SFriendsContainer"
 
@@ -20,37 +25,12 @@ public:
 	void Construct(const FArguments& InArgs, const TSharedRef<FFriendsViewModel>& ViewModel)
 	{
 		this->ViewModel = ViewModel;
-		// Dragable bar for the Friends list
-		class SDraggableBar : public SBox
-		{
-			SLATE_BEGIN_ARGS(SDraggableBar)
-			{}
-			SLATE_DEFAULT_SLOT(FArguments, Content)
-			SLATE_END_ARGS()
-			void Construct( const FArguments& InArgs )
-			{
-				SBox::Construct(
-					SBox::FArguments()
-					.Padding( 12.f )
-					[
-						InArgs._Content.Widget
-					]
-				);
-				this->Cursor = EMouseCursor::CardinalCross;
-			}
-
-			virtual EWindowZone::Type GetWindowZoneOverride() const override
-			{
-				return EWindowZone::TitleBar;
-			}
-		};
-
 		FriendStyle = *InArgs._FriendStyle;
-		OnCloseClicked = InArgs._OnCloseClicked;
-		OnMinimizeClicked = InArgs._OnMinimizeClicked;
 
-		EVisibility MinimizeButtonVisibility = OnMinimizeClicked.IsBound() ? EVisibility::Visible : EVisibility::Collapsed;
-		EVisibility CloseButtonVisibility = OnCloseClicked.IsBound() ? EVisibility::Visible : EVisibility::Collapsed;
+		for (int32 ListIndex = 0; ListIndex < EFriendsDisplayLists::MAX_None; ListIndex++)
+		{
+			ListViewModels.Add(ViewModel->GetFriendListViewModel((EFriendsDisplayLists::Type)ListIndex));
+		}
 
 		// Set up titles
 		const FText SearchStringLabel = LOCTEXT( "FriendList_SearchLabel", "[Enter Display Name]" );
@@ -63,167 +43,189 @@ public:
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			.VAlign(VAlign_Top)
-			[
-				SNew(SOverlay)
-				.Visibility(MinimizeButtonVisibility)
-				+SOverlay::Slot()
-				.VAlign( VAlign_Top )
-				.HAlign( HAlign_Fill )
-				[
-					SNew( SBorder )
-					.BorderImage(&FriendStyle.TitleBarBrush)
-					.BorderBackgroundColor(FLinearColor::White)
-					[
-						SNew(SDraggableBar)
-					]
-				]
-				+SOverlay::Slot()
-				.VAlign( VAlign_Top )
-				.HAlign( HAlign_Right )
-				[
-					SNew( SHorizontalBox )
-					+SHorizontalBox::Slot()
-					.HAlign( HAlign_Right )
-					.AutoWidth()
-					.Padding( 5.0f )
-					[
-						SNew( SButton )
-						.Visibility( MinimizeButtonVisibility )
-						.IsFocusable( false )
-						.ContentPadding( 0 )
-						.Cursor( EMouseCursor::Default )
-						.ButtonStyle( &FriendStyle.MinimizeButtonStyle )
-						.OnClicked(this, &SFriendsContainerImpl::MinimizeButton_OnClicked)
-					]
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding( 5.0f )
-					[
-						SNew( SButton )
-						.Visibility( CloseButtonVisibility )
-						.IsFocusable( false )
-						.ContentPadding( 0 )
-						.Cursor( EMouseCursor::Default )
-						.ButtonStyle(  &FriendStyle.CloseButtonStyle  )
-						.OnClicked( this, &SFriendsContainerImpl::CloseButton_OnClicked )
-					]
-				]
-			]
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.Padding(FMargin(0,5))
-			.VAlign(VAlign_Fill)
 			.HAlign(HAlign_Fill)
 			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				.Padding(5)
+				SNew(SBorder)
+				.Padding(FriendStyle.UserHeaderPadding)
+				.BorderImage(&FriendStyle.Background)
+				.Visibility(FriendStyle.HasUserHeader ? EVisibility::Visible : EVisibility::Collapsed)
 				[
-					SNew(STextBlock)
-					.Font(FriendStyle.FriendsFontStyle)
-					.Text(FText::FromString("Social"))
-				]
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Center)
-				.AutoWidth()
-				[
-					SNew(SSpacer)
-					.Size(FVector2D(100,0))
-				]
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Left)
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(SFriendsStatus, ViewModel->GetStatusViewModel())
-					.FriendStyle(&FriendStyle)
-					.Method(MenuMethod)
-				]
-				+ SHorizontalBox::Slot()
-				[
-					SNew(SSpacer)
-				]
-				+ SHorizontalBox::Slot()
-				.HAlign(HAlign_Right)
-				.VAlign(VAlign_Center)
-				.AutoWidth()
-				[
-					SNew(SButton)
-				]
-			]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Top)
-			[
-				SNew(SSeparator)
-				.Orientation(Orient_Horizontal)
-			]
-			+SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Top)
-			[
-				SNew(SHorizontalBox)
-				.Visibility(this, &SFriendsContainerImpl::FriendsDisplayVisibility)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.VAlign(VAlign_Center)
-				[
-					SNew(SButton)
-					.ButtonStyle(&FriendStyle.FriendListActionButtonStyle)
-					.OnClicked(this, &SFriendsContainerImpl::HandleActionButtonClicked)
+					SNew(SBox)
+					.WidthOverride(FriendStyle.FriendsListWidth)
 					[
-						SNew(STextBlock)
-						.ColorAndOpacity(FLinearColor::White)
-						.Font(FriendStyle.FriendsFontStyle)
-						.Text(FText::FromString("Add"))
+						SNew(SFriendUserHeader, ViewModel->GetUserViewModel())
+						.FriendStyle(&FriendStyle)
 					]
 				]
-				+ SHorizontalBox::Slot()
-				.VAlign(VAlign_Center)
-				.Padding(FMargin(5,0))
-				[
-					SNew(SEditableTextBox)
-					.HintText(LOCTEXT("FriendsListSearch", "Search"))
-				]
 			]
 			+ SVerticalBox::Slot()
-			.Padding(FMargin(0,5))
+			.AutoHeight()
+			.VAlign(VAlign_Top)
+			.HAlign(HAlign_Fill)
 			[
 				SNew(SBorder)
-				.Visibility(this, &SFriendsContainerImpl::FriendsDisplayVisibility)
+				.Padding(FriendStyle.BorderPadding)
+				.BorderImage(&FriendStyle.FriendContainerHeader)
 				[
-					SNew(SScrollBox)
-					+SScrollBox::Slot()
+					SNew(SBox)
+					.WidthOverride(FriendStyle.FriendsListWidth)
+					.HeightOverride(FriendStyle.StatusButtonSize.Y)
 					[
-						SAssignNew(FriendsDisplayContainer, SVerticalBox)
+						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						[
+							SNew(SFriendsStatus, ViewModel->GetStatusViewModel())
+							.FriendStyle(&FriendStyle)
+							.Method(MenuMethod)
+						]
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.FillWidth(1)
+						.Padding(4, 0, 0, 0)
+						[
+							SNew(SBorder)
+							.Visibility(this, &SFriendsContainerImpl::AddFriendBoxVisibility)
+							.BorderImage(&FriendStyle.AddFriendEditBorder)
+							.VAlign(VAlign_Center)
+							.HAlign(HAlign_Fill)
+							[
+								SAssignNew(FriendNameTextBox, SEditableTextBox)
+								.HintText(LOCTEXT("AddFriendHint", "Add friend by account name or email"))
+								.Style(&FriendStyle.AddFriendEditableTextStyle)
+								.OnTextCommitted(this, &SFriendsContainerImpl::HandleFriendEntered)
+							]
+						]
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						.Padding(4, 0, 0, 0)
+						[
+							SNew(SButton)
+							.ToolTip(CreateAddFriendToolTip())
+							.ButtonStyle(&FriendStyle.AddFriendButtonStyle)
+							.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
+							.Visibility(this, &SFriendsContainerImpl::AddFriendActionVisibility)
+							.ContentPadding(0)
+							.Cursor(EMouseCursor::Hand)
+							[
+								SNew(SBox)
+								.HAlign(HAlign_Center)
+								.VAlign(VAlign_Center)
+								.WidthOverride(FriendStyle.StatusButtonSize.Y)
+								.HeightOverride(FriendStyle.StatusButtonSize.Y)
+								[
+									SNew(SImage)
+									.Image(&FriendStyle.AddFriendButtonContentBrush)
+								]
+							]
+						]
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						.Padding(4, 0, 0, 0)
+						[
+							SNew(SButton)
+							.ButtonStyle(&FriendStyle.AddFriendCloseButtonStyle)
+							.Visibility(this, &SFriendsContainerImpl::AddFriendCloseActionVisibility)
+							.ContentPadding(0)
+							.Cursor(EMouseCursor::Hand)
+							[
+								SNew(SBox)
+								.WidthOverride(FriendStyle.StatusButtonSize.Y)
+								.HeightOverride(FriendStyle.StatusButtonSize.Y)
+							]
+						]
 					]
 				]
 			]
 			+ SVerticalBox::Slot()
+			.HAlign(HAlign_Center)
 			.AutoHeight()
-			.VAlign(VAlign_Top)
 			[
-				SAssignNew(ActionDisplayContainer, SVerticalBox)
-				.Visibility(this, &SFriendsContainerImpl::ActionDisplayVisibility)
+				SNew(SBorder)
+				.Padding(FriendStyle.BorderPadding)
+				.BorderImage(&FriendStyle.FriendsContainerBackground)
+				.Visibility(FFriendsAndChatManager::Get()->HasPermission(TEXT("fortnite:play")) ? EVisibility::Visible : EVisibility::Collapsed)
+				[
+					SNew(SButton)
+					.ButtonStyle(&FriendStyle.GlobalChatButtonStyle)
+					.OnClicked(this, &SFriendsContainerImpl::OnGlobalChatButtonClicked)
+				]
+			]
+			+ SVerticalBox::Slot()
+			[
+				SNew(SBorder)
+				.Padding(FriendStyle.BorderPadding)
+				.BorderImage(&FriendStyle.FriendsContainerBackground)
+				[
+					SNew(SScrollBox)
+					.ScrollBarStyle(&FriendStyle.ScrollBarStyle)
+					.ScrollBarThickness(FVector2D(4, 4))
+					+ SScrollBox::Slot()
+					.HAlign(HAlign_Center)
+					.Padding(10)
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("NoFriendsNotice", "Press the Plus Button to add friends."))
+						.Font(FriendStyle.FriendsFontStyleBold)
+						.ColorAndOpacity(FLinearColor::White)
+						.Visibility(this, &SFriendsContainerImpl::NoFriendsNoticeVisibility)
+					]
+					+SScrollBox::Slot()
+					[
+						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::GameInviteDisplay].ToSharedRef())
+						.FriendStyle(&FriendStyle)
+						.Method(MenuMethod)
+					]
+					+SScrollBox::Slot()
+					[
+						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::FriendRequestsDisplay].ToSharedRef())
+						.FriendStyle(&FriendStyle)
+						.Method(MenuMethod)
+					]
+					+SScrollBox::Slot()
+					[
+						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::DefaultDisplay].ToSharedRef())
+						.FriendStyle(&FriendStyle)
+						.Method(MenuMethod)
+					]
+					+SScrollBox::Slot()
+					[
+						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::RecentPlayersDisplay].ToSharedRef())
+						.FriendStyle(&FriendStyle)
+						.Method(MenuMethod)
+					]
+					+SScrollBox::Slot()
+					[
+						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::OutgoingFriendInvitesDisplay].ToSharedRef())
+						.FriendStyle(&FriendStyle)
+						.Method(MenuMethod)
+					]
+				]
 			]
 		]);
-
-		GenerateActionDisplay();
-		GenerateFriendsDisplay();
 	}
 
 private:
 
-	FReply SearchFriend_OnClicked()
+	TSharedPtr<SToolTip> CreateAddFriendToolTip()
 	{
-		if ( FriendNameTextBox.IsValid() )
+		const FText AddFriendToolTipText = LOCTEXT( "FriendContain_AddFriendToolTip", "Add friend by account name or email" );
+		return SNew(SFriendsToolTip)
+		.DisplayText(AddFriendToolTipText)
+		.FriendStyle(&FriendStyle);
+	}
+
+	FReply HandleAddFriendButtonClicked()
+	{
+		FriendNameTextBox->SetText(FText::GetEmpty());
+		ViewModel->PerformAction();
+		if (ViewModel->IsPerformingAction())
 		{
-			FFriendsAndChatManager::Get()->RequestFriend( FriendNameTextBox->GetText() );
+			FSlateApplication::Get().SetKeyboardFocus(FriendNameTextBox, EFocusCause::SetDirectly);
 		}
-		FriendNameTextBox->SetText( FText::GetEmpty() );
 		return FReply::Handled();
 	}
 
@@ -231,88 +233,51 @@ private:
 	{
 		if (CommitInfo == ETextCommit::OnEnter)
 		{
-			SearchFriend_OnClicked();
+			ViewModel->RequestFriend(CommentText);
 		}
-	}
-
-	FReply CloseButton_OnClicked()
-	{
-		if ( OnCloseClicked.IsBound() )
+		
+		if (ViewModel->IsPerformingAction())
 		{
-			OnCloseClicked.Execute();
+			ViewModel->PerformAction();
 		}
-		return FReply::Handled();
 	}
 
-	FReply MinimizeButton_OnClicked()
+	EVisibility AddFriendBoxVisibility() const
 	{
-		if (OnMinimizeClicked.IsBound())
-		{
-			OnMinimizeClicked.Execute();
-		}
-		return FReply::Handled();
+		return ViewModel->IsPerformingAction() ? EVisibility::Visible : EVisibility::Hidden;
 	}
 
-	EVisibility FriendsDisplayVisibility() const
-	{
-		return ViewModel->IsPerformingAction() ? EVisibility::Collapsed : EVisibility::Visible;
-	}
-
-	EVisibility ActionDisplayVisibility() const
+	EVisibility AddFriendCloseActionVisibility() const
 	{
 		return ViewModel->IsPerformingAction() ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
-	void GenerateActionDisplay()
+	EVisibility AddFriendActionVisibility() const
 	{
-		ActionDisplayContainer->ClearChildren();
-		ActionDisplayContainer->AddSlot()
-		.AutoHeight()
-		.VAlign(VAlign_Top)
-		[
-			SNew(SFriendRequest, ViewModel.ToSharedRef())
-			.FriendStyle(&FriendStyle)
-		];
+		return ViewModel->IsPerformingAction() ? EVisibility::Collapsed : EVisibility::Visible;
 	}
 
-	void GenerateFriendsDisplay()
+	EVisibility NoFriendsNoticeVisibility() const
 	{
-		FriendsDisplayContainer->ClearChildren();
-		FriendsDisplayContainer->AddSlot()
-		.AutoHeight()
-		.VAlign(VAlign_Top)
-		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Top)
-			[
-				SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::DefaultDisplay))
-				.FriendStyle(&FriendStyle)
-				.Method(MenuMethod)
-			]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Top)
-			[
-				SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::RecentPlayersDisplay))
-				.FriendStyle(&FriendStyle)
-				.Method(MenuMethod)
-			]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
-			.VAlign(VAlign_Top)
-			[
-				SNew(SFriendsListContainer, ViewModel->GetFriendListViewModel(EFriendsDisplayLists::FriendRequestsDisplay))
-				.FriendStyle(&FriendStyle)
-				.Method(MenuMethod)
-			]
-		];
+		for (auto& ListViewModel : ListViewModels)
+		{
+			if (ListViewModel->GetListVisibility() == EVisibility::Visible)
+			{
+				return EVisibility::Collapsed;
+			}
+		}
+		return EVisibility::Visible;
 	}
 
-	FReply HandleActionButtonClicked() const
+	FReply OnGlobalChatButtonClicked()
 	{
-		ViewModel->PerformAction();
+		FFriendsAndChatManager::Get()->JoinPublicChatRoom(TEXT("Fortnite"));
+		FFriendsAndChatManager::Get()->OpenGlobalChat();
+		return FReply::Handled();
+	}
+
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override
+	{
 		return FReply::Handled();
 	}
 
@@ -321,29 +286,23 @@ private:
 	// Holds the Friends List view model
 	TSharedPtr<FFriendsViewModel> ViewModel;
 
+	// Holds the Friends Sub-List view models
+	TArray<TSharedPtr<FFriendListViewModel>> ListViewModels;
+
 	// Holds the menu method - Full screen requires use owning window or crashes.
-	SMenuAnchor::EMethod MenuMethod;
+	EPopupMethod MenuMethod;
 
 	/** Holds the list of friends. */
-	TArray< TSharedPtr< FFriendStuct > > FriendsList;
+	TArray< TSharedPtr< IFriendItem > > FriendsList;
 
 	/** Holds the list of outgoing invites. */
-	TArray< TSharedPtr< FFriendStuct > > OutgoingFriendsList;
+	TArray< TSharedPtr< IFriendItem > > OutgoingFriendsList;
 
 	/** Holds the tree view of the Friends list. */
-	TSharedPtr< SListView< TSharedPtr< FFriendStuct > > > FriendsListView;
+	TSharedPtr< SListView< TSharedPtr< IFriendItem > > > FriendsListView;
 
 	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;
-
-	/** Holds the delegate for when the close button is clicked. */
-	FOnClicked OnCloseClicked;
-
-	/** Holds the delegate for when the minimize button is clicked. */
-	FOnClicked OnMinimizeClicked;
-
-	/** Holds the text box used to enter the name of friend to search for. */
-	TSharedPtr< SEditableTextBox > FriendNameTextBox;
 
 	/** Holds the recent players check box. */
 	TSharedPtr< SCheckBox > RecentPlayersButton;
@@ -354,13 +313,9 @@ private:
 	/** Holds the default friends check box. */
 	TSharedPtr< SCheckBox > DefaultPlayersButton;
 
-	/** Holds the default list name. */
-	EFriendsDisplayLists::Type CurrentList;
+	// Holds the Friends add text box
+	TSharedPtr< SEditableTextBox > FriendNameTextBox;
 
-	/** Holds the friends list display box. */
-	TSharedPtr< SVerticalBox > FriendsDisplayContainer;
-
-	TSharedPtr< SVerticalBox > ActionDisplayContainer;
 };
 
 TSharedRef<SFriendsContainer> SFriendsContainer::New()

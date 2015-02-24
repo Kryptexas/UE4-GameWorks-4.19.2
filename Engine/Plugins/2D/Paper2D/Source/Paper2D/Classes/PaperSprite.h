@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -74,6 +74,11 @@ protected:
 	// This texture is rotated in the atlas
 	UPROPERTY(Category=Sprite, EditAnywhere, AdvancedDisplay)
 	bool bRotatedInSourceImage;
+
+	// Dimension of the texture when this sprite was created
+	// Used when the sprite is resized at some point
+	UPROPERTY(Category=Sprite, EditAnywhere, AdvancedDisplay)
+	FVector2D SourceTextureDimension;
 #endif
 
 	// The source texture that the sprite comes from
@@ -172,7 +177,6 @@ public:
 
 	// World space WRT the sprite editor *only*
 	FVector ConvertTextureSpaceToWorldSpace(const FVector2D& SourcePoint) const;
-	//FVector ConvertTextureSpaceToWorldSpace(const FVector& SourcePoint) const;
 	FTransform GetPivotToWorld() const;
 
 	// Returns the raw pivot position (ignoring pixel snapping)
@@ -180,6 +184,10 @@ public:
 
 	// Returns the current pivot position in texture space
 	FVector2D GetPivotPosition() const;
+
+	// Rescale properties to handle source texture size change
+	void RescaleSpriteData(const UTexture2D* Texture);
+	bool NeedRescaleSpriteData();
 
 	void RebuildCollisionData();
 	void RebuildRenderData();
@@ -205,13 +213,32 @@ public:
 	void SetRotated(bool bRotated);
 	void SetPivotMode(ESpritePivotMode::Type PivotMode, FVector2D CustomTextureSpacePivot);
 	
+	// Returns the Origin within SourceImage, prior to atlasing
+	FVector2D GetOriginInSourceImageBeforeTrimming() const { return OriginInSourceImageBeforeTrimming; }
+
+	// Returns the Dimensions of SourceImage prior to trimming
+	FVector2D GetSourceImageDimensionBeforeTrimming() const { return SourceImageDimensionBeforeTrimming; }
+
+	// Returns true if this sprite is trimmed from the original texture, meaning that the source image
+	// dimensions and origin in the source image may not be the same as the final results for the sprite
+	// (empty alpha=0 pixels were trimmed from the exterior region)
+	bool IsTrimmedInSourceImage() const { return bTrimmedInSourceImage; }
+
+	// This texture is rotated in the atlas
 	bool IsRotatedInSourceImage() const { return bRotatedInSourceImage; }
+
 	ESpritePivotMode::Type GetPivotMode(FVector2D& OutCustomTextureSpacePivot) const { OutCustomTextureSpacePivot = CustomPivotPoint; return PivotMode; }
 
 
 	FVector2D GetSourceUV() const { return SourceUV; }
 	FVector2D GetSourceSize() const { return SourceDimension; }
 	UTexture2D* GetSourceTexture() const { return SourceTexture; }
+#endif
+
+#if WITH_EDITOR
+	bool bRegisteredObjectReimport;
+	// Called via delegate when an object is re-imported in the editor
+	void OnObjectReimported(UObject* InObject);
 #endif
 
 	// Return the scaling factor between pixels and Unreal units (cm)

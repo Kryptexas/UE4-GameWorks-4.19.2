@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Interfaces/Interface_CollisionDataProvider.h"
@@ -109,51 +109,15 @@ struct FStaticMeshOptimizationSettings
 	/** Serialization for FStaticMeshOptimizationSettings. */
 	inline friend FArchive& operator<<( FArchive& Ar, FStaticMeshOptimizationSettings& Settings )
 	{
-		if( Ar.UE4Ver() < VER_UE4_ADDED_EXTRA_MESH_OPTIMIZATION_SETTINGS )
-		{
-			Ar << Settings.MaxDeviationPercentage;
-
-			//Remap Importance Settings
-			Ar << Settings.SilhouetteImportance;
-			Ar << Settings.TextureImportance;
-
-			//IL_Normal was previously the first enum value. We add the new index of IL_Normal to correctly offset the old values.
-			Settings.SilhouetteImportance += IL_Normal;
-			Settings.TextureImportance += IL_Normal;
-
-			//Remap NormalMode enum value to new threshold variable.
-			uint8 NormalMode;
-			Ar << NormalMode;
-
-			const float NormalThresholdTable[] =
-			{
-				60.0f, // Recompute
-				80.0f, // Recompute (Smooth)
-				45.0f  // Recompute (Hard)
-			};
-
-			if( NormalMode == NM_PreserveSmoothingGroups)
-			{
-				Settings.bRecalcNormals = false;
-			}
-			else
-			{
-				Settings.bRecalcNormals = true;
-				Settings.NormalsThreshold = NormalThresholdTable[NormalMode];
-			}
-		}
-		else
-		{
-			Ar << Settings.ReductionMethod;
-			Ar << Settings.MaxDeviationPercentage;
-			Ar << Settings.NumOfTrianglesPercentage;
-			Ar << Settings.SilhouetteImportance;
-			Ar << Settings.TextureImportance;
-			Ar << Settings.ShadingImportance;
-			Ar << Settings.bRecalcNormals;
-			Ar << Settings.NormalsThreshold;
-			Ar << Settings.WeldingThreshold;
-		}
+		Ar << Settings.ReductionMethod;
+		Ar << Settings.MaxDeviationPercentage;
+		Ar << Settings.NumOfTrianglesPercentage;
+		Ar << Settings.SilhouetteImportance;
+		Ar << Settings.TextureImportance;
+		Ar << Settings.ShadingImportance;
+		Ar << Settings.bRecalcNormals;
+		Ar << Settings.NormalsThreshold;
+		Ar << Settings.WeldingThreshold;
 
 		return Ar;
 	}
@@ -371,10 +335,6 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY(EditAnywhere, transient, duplicatetransient, Instanced, Category = StaticMesh)
 	class UBodySetup* BodySetup;
 
-	// Artist-accessible options.
-	UPROPERTY()
-	uint32 UseFullPrecisionUVs_DEPRECATED:1;
-
 	/** True if mesh should use a less-conservative method of mip LOD texture factor computation.
 		requires mesh to be resaved to take effect as algorithm is applied on save. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=StaticMesh, meta=(ToolTip="If true, use a less-conservative method of mip LOD texture factor computation.  Requires mesh to be resaved to take effect as algorithm is applied on save"))
@@ -436,7 +396,7 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	FAssetEditorOrbitCameraPosition EditorCameraPosition;
 
 	/** If the user has modified collision in any way or has custom collision imported. Used for determining if to auto generate collision on import */
-	UPROPERTY()
+	UPROPERTY(EditAnywhere, Category = Collision)
 	bool bCustomizedCollision;
 
 #endif // WITH_EDITORONLY_DATA
@@ -650,11 +610,6 @@ public:
 	ENGINE_API static void GetLODGroupsDisplayNames(TArray<FText>& OutLODGroupsDisplayNames);
 
 private:
-	/**
-	 * Serializes in legacy source data and constructs the necessary source models.
-	 */
-	void SerializeLegacySouceData(class FArchive& Ar, const struct FBoxSphereBounds& LegacyBounds);
-
 	/**
 	 * Converts legacy LODDistance in the source models to Display Factor
 	 */

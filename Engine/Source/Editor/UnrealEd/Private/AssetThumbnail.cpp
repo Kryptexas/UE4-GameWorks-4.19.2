@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "AssetThumbnail.h"
@@ -18,11 +18,12 @@ public:
 		, _AllowFadeIn(false)
 		, _ForceGenericThumbnail(false)
 		, _AllowHintText(true)
+		, _AllowAssetSpecificThumbnailOverlay(false)
 		, _Label(EThumbnailLabel::ClassName)
 		, _HighlightedText(FText::GetEmpty())
 		, _HintColorAndOpacity(FLinearColor(0.0f, 0.0f, 0.0f, 0.0f))
 		, _ClassThumbnailBrushOverride(NAME_None)
-		, _ShowClassBackground( true )
+		, _AssetTypeColorOverride()
 		{}
 
 		SLATE_ARGUMENT( FName, Style )
@@ -31,11 +32,12 @@ public:
 		SLATE_ARGUMENT( bool, AllowFadeIn )
 		SLATE_ARGUMENT( bool, ForceGenericThumbnail )
 		SLATE_ARGUMENT( bool, AllowHintText )
+		SLATE_ARGUMENT( bool, AllowAssetSpecificThumbnailOverlay )
 		SLATE_ARGUMENT( EThumbnailLabel::Type, Label )
 		SLATE_ATTRIBUTE( FText, HighlightedText )
 		SLATE_ATTRIBUTE( FLinearColor, HintColorAndOpacity )
 		SLATE_ARGUMENT( FName, ClassThumbnailBrushOverride )
-		SLATE_ARGUMENT( bool, ShowClassBackground )
+		SLATE_ARGUMENT( TOptional<FLinearColor>, AssetTypeColorOverride )
 
 	SLATE_END_ARGS()
 
@@ -46,8 +48,7 @@ public:
 		HighlightedText = InArgs._HighlightedText;
 		Label = InArgs._Label;
 		HintColorAndOpacity = InArgs._HintColorAndOpacity;
-		AllowHintText = InArgs._AllowHintText;
-		ShowClassBackground = InArgs._ShowClassBackground;
+		bAllowHintText = InArgs._AllowHintText;
 
 		AssetThumbnail = InArgs._AssetThumbnail;
 		bHasRenderedThumbnail = false;
@@ -60,71 +61,62 @@ public:
 
 		UClass* Class = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetClass.ToString());
 		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
-		TWeakPtr<IAssetTypeActions> AssetTypeActions;
+		TSharedPtr<IAssetTypeActions> AssetTypeActions;
 		if ( Class != NULL )
 		{
-			AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(Class);
+			AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(Class).Pin();
 		}
 
 		AssetColor = FLinearColor::White;
-		if ( AssetTypeActions.IsValid() )
+		if( InArgs._AssetTypeColorOverride.IsSet() )
 		{
-			AssetColor = AssetTypeActions.Pin()->GetTypeColor();
+			AssetColor = InArgs._AssetTypeColorOverride.GetValue();
+		}
+		else if ( AssetTypeActions.IsValid() )
+		{
+			AssetColor = AssetTypeActions->GetTypeColor();
 		}
 
 		TSharedRef<SOverlay> OverlayWidget = SNew(SOverlay);
 
-		FName Substyle;
-		if ( Class == UClass::StaticClass() )
-		{
-			Substyle = FName(".ClassBackground");
-			ClassAssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetName.ToString());
-		}
-		else if(AssetTypeActions.IsValid())
-		{
-			Substyle = FName(".AssetBackground");
-		}
-		const FName BackgroundBrushName( *(Style.ToString() + Substyle.ToString()) );
+		UpdateThumbnailClass(AssetData.AssetName, Class);
 
 		ClassThumbnailBrushOverride = InArgs._ClassThumbnailBrushOverride;
-
-		OverlayWidget->AddSlot()
-		[
-			SNew(SBorder)
-			.BorderImage( this, &SAssetThumbnail::GetBackgroundBrush )
-			.BorderBackgroundColor( this, &SAssetThumbnail::GetAssetColor )
-			.Padding( GenericThumbnailBorderPadding )
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Center)
-			.Visibility(this, &SAssetThumbnail::GetClassThumbnailVisibility)
-			[
-				SNew( SImage )
-				.Image( this, &SAssetThumbnail::GetClassThumbnailBrush )
-			]
-		];
 
 		// The generic representation of the thumbnail, for use before the rendered version, if it exists
 		OverlayWidget->AddSlot()
 		[
 			SNew(SBorder)
-			.BorderImage( this, &SAssetThumbnail::GetBackgroundBrush )
-			.BorderBackgroundColor( this, &SAssetThumbnail::GetAssetColor )
-			.Padding( GenericThumbnailBorderPadding )
-			.VAlign(VAlign_Center) .HAlign(HAlign_Center)
+			.BorderImage(GetAssetBackgroundBrush())
+			.BorderBackgroundColor(AssetColor.CopyWithNewOpacity(0.3f))
+			.Padding(GenericThumbnailBorderPadding)
+			.VAlign(VAlign_Center)
+			.HAlign(HAlign_Center)
 			.Visibility(this, &SAssetThumbnail::GetGenericThumbnailVisibility)
 			[
-				SAssignNew(LabelTextBlock, STextBlock)
-				.Text( GetLabelText() )
-				.Font( GetTextFont() )
-				.ColorAndOpacity( FEditorStyle::GetColor(Style, ".ColorAndOpacity") )
-				.ShadowOffset( FEditorStyle::GetVector(Style, ".ShadowOffset") )
-				.ShadowColorAndOpacity( FEditorStyle::GetColor(Style, ".ShadowColorAndOpacity") )
-				.WrapTextAt(this, &SAssetThumbnail::GetTextWrapWidth)
-				.HighlightText( HighlightedText )
+				SNew(SOverlay)
+
+				+SOverlay::Slot()
+				[
+					SAssignNew(GenericLabelTextBlock, STextBlock)
+					.Text(GetLabelText())
+					.Font(GetTextFont())
+					.Justification(ETextJustify::Center)
+					.ColorAndOpacity(FEditorStyle::GetColor(Style, ".ColorAndOpacity"))
+					.ShadowOffset(FEditorStyle::GetVector(Style, ".ShadowOffset"))
+					.ShadowColorAndOpacity( FEditorStyle::GetColor(Style, ".ShadowColorAndOpacity"))
+					.HighlightText(HighlightedText)
+				]
+
+				+SOverlay::Slot()
+				[
+					SAssignNew(GenericThumbnailImage, SImage)
+					.Image(this, &SAssetThumbnail::GetClassThumbnailBrush)
+				]
 			]
 		];
 
-		if ( InArgs._ThumbnailPool.IsValid() && !InArgs._ForceGenericThumbnail && Class != UClass::StaticClass() )
+		if ( InArgs._ThumbnailPool.IsValid() && !InArgs._ForceGenericThumbnail )
 		{
 			ViewportFadeAnimation = FCurveSequence();
 			ViewportFadeCurve = ViewportFadeAnimation.AddCurve(0.f, 0.25f, ECurveEaseFunction::QuadOut);
@@ -148,56 +140,122 @@ public:
 			// The viewport for the rendered thumbnail, if it exists
 			OverlayWidget->AddSlot()
 			[
-				SNew(SBorder)
+				SAssignNew(RenderedThumbnailWidget, SBorder)
 				.Padding(0)
 				.BorderImage(FEditorStyle::GetBrush("NoBrush"))
 				.ColorAndOpacity(this, &SAssetThumbnail::GetViewportColorAndOpacity)
-				.Visibility(this, &SAssetThumbnail::GetViewportVisibility)
 				[
 					Viewport.ToSharedRef()
 				]
 			];
 		}
 
-		OverlayWidget->AddSlot()
-		.HAlign( HAlign_Center )
-		.VAlign( VAlign_Top )
-		.Padding(FMargin(2,2,2,2))
-		[
-			SNew(SBorder)
-			.BorderImage( FEditorStyle::GetBrush( Style, ".HintBackground" ) )
-			.BorderBackgroundColor( this, &SAssetThumbnail::GetHintBackgroundColor) //Adjust the opacity of the border itself
-			.ColorAndOpacity( HintColorAndOpacity ) //adjusts the opacity of the contents of the border
-			.Visibility( this, &SAssetThumbnail::GetHintTextVisibility )
-			.Padding(0)
+		if( ThumbnailClass.Get() && bIsClassType )
+		{
+			OverlayWidget->AddSlot()
+			.VAlign(VAlign_Bottom)
+			.HAlign(HAlign_Right)
+			.Padding(TAttribute<FMargin>(this, &SAssetThumbnail::GetClassIconPadding))
 			[
-				SAssignNew( HintTextBlock, STextBlock )
-				.Text( GetLabelText() )
-				.Font( GetHintTextFont() )
-				.ColorAndOpacity( FEditorStyle::GetColor( Style, ".HintColorAndOpacity" ) )
-				.ShadowOffset( FEditorStyle::GetVector( Style, ".HintShadowOffset" ) )
-				.ShadowColorAndOpacity( FEditorStyle::GetColor( Style, ".HintShadowColorAndOpacity" ) )
-				.WrapTextAt(this, &SAssetThumbnail::GetTextWrapWidth)
-				.HighlightText( HighlightedText )
-			]
-		];
+				SAssignNew(ClassIconWidget, SBorder)
+				.BorderImage(FEditorStyle::GetNoBrush())
+				[
+					SNew(SImage)
+					.Image(this, &SAssetThumbnail::GetClassIconBrush)
+				]
+			];
+		}
 
-		// The asset color strip, only visible when the rendered viewport is
+		if( bAllowHintText )
+		{
+			OverlayWidget->AddSlot()
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Top)
+				.Padding(FMargin(2, 2, 2, 2))
+				[
+					SNew(SBorder)
+					.BorderImage(FEditorStyle::GetBrush(Style, ".HintBackground"))
+					.BorderBackgroundColor(this, &SAssetThumbnail::GetHintBackgroundColor) //Adjust the opacity of the border itself
+					.ColorAndOpacity(HintColorAndOpacity) //adjusts the opacity of the contents of the border
+					.Visibility(this, &SAssetThumbnail::GetHintTextVisibility)
+					.Padding(0)
+					[
+						SAssignNew(HintTextBlock, STextBlock)
+						.Text(GetLabelText())
+						.Font(GetHintTextFont())
+						.ColorAndOpacity(FEditorStyle::GetColor(Style, ".HintColorAndOpacity"))
+						.ShadowOffset(FEditorStyle::GetVector(Style, ".HintShadowOffset"))
+						.ShadowColorAndOpacity(FEditorStyle::GetColor(Style, ".HintShadowColorAndOpacity"))
+						.HighlightText(HighlightedText)
+					]
+				];
+		}
+
+		// The asset color strip
 		OverlayWidget->AddSlot()
 		.HAlign(HAlign_Fill)
 		.VAlign(VAlign_Bottom)
 		[
-			SNew(SBorder)
+			SAssignNew(AssetColorStripWidget, SBorder)
 			.BorderImage(FEditorStyle::GetBrush("WhiteBrush"))
 			.BorderBackgroundColor(AssetColor)
-			.Visibility(this, &SAssetThumbnail::GetViewportVisibility)
 			.Padding(this, &SAssetThumbnail::GetAssetColorStripPadding)
 		];
+
+		if( InArgs._AllowAssetSpecificThumbnailOverlay && AssetTypeActions.IsValid() )
+		{
+			// Does the asset provide an additional thumbnail overlay?
+			TSharedPtr<SWidget> AssetSpecificThumbnailOverlay = AssetTypeActions->GetThumbnailOverlay(AssetData);
+			if( AssetSpecificThumbnailOverlay.IsValid() )
+			{
+				OverlayWidget->AddSlot()
+				[
+					AssetSpecificThumbnailOverlay.ToSharedRef()
+				];
+			}
+		}
 
 		ChildSlot
 		[
 			OverlayWidget
 		];
+
+		UpdateThumbnailVisibilities();
+
+	}
+
+	void UpdateThumbnailClass(const FName& InAssetName, UClass* InAssetClass)
+	{
+		ThumbnailClass = InAssetClass;
+		bIsClassType = false;
+
+		if( InAssetClass == UClass::StaticClass() )
+		{
+			ThumbnailClass = FindObject<UClass>(ANY_PACKAGE, *InAssetName.ToString());
+			bIsClassType = true;
+		}
+		else if( InAssetClass == UBlueprint::StaticClass() )
+		{
+			static const FName NativeParentClassTag = "NativeParentClass";
+			static const FName ParentClassTag = "ParentClass";
+
+			// We need to use the asset data to get the parent class as the blueprint may not be loaded
+			const FAssetData& AssetData = AssetThumbnail->GetAssetData();
+			const FString* ParentClassNamePtr = AssetData.TagsAndValues.Find(NativeParentClassTag);
+			if(!ParentClassNamePtr)
+			{
+				ParentClassNamePtr = AssetData.TagsAndValues.Find(ParentClassTag);
+			}
+			if(ParentClassNamePtr && !ParentClassNamePtr->IsEmpty())
+			{
+				UObject* Outer = nullptr;
+				FString ParentClassName = *ParentClassNamePtr;
+				ResolveName(Outer, ParentClassName, false, false);
+				ThumbnailClass = FindObject<UClass>(ANY_PACKAGE, *ParentClassName);
+			}
+
+			bIsClassType = true;
+		}
 	}
 
 	FSlateColor GetHintBackgroundColor() const
@@ -227,14 +285,16 @@ public:
 			WidthLastFrame = AllottedGeometry.Size.X;
 
 			// The width changed, update the font
-			if ( LabelTextBlock.IsValid() )
+			if ( GenericLabelTextBlock.IsValid() )
 			{
-				LabelTextBlock->SetFont( GetTextFont() );
+				GenericLabelTextBlock->SetFont( GetTextFont() );
+				GenericLabelTextBlock->SetWrapTextAt( GetTextWrapWidth() );
 			}
 
 			if ( HintTextBlock.IsValid() )
 			{
 				HintTextBlock->SetFont( GetHintTextFont() );
+				HintTextBlock->SetWrapTextAt( GetTextWrapWidth() );
 			}
 		}
 	}
@@ -242,9 +302,9 @@ public:
 private:
 	void OnAssetDataChanged()
 	{
-		if ( LabelTextBlock.IsValid() )
+		if ( GenericLabelTextBlock.IsValid() )
 		{
-			LabelTextBlock->SetText( GetLabelText() );
+			GenericLabelTextBlock->SetText( GetLabelText() );
 		}
 
 		if ( HintTextBlock.IsValid() )
@@ -278,16 +338,15 @@ private:
 			AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(Class);
 		}
 
-		if (Class == UClass::StaticClass())
-		{
-			ClassAssetClass = FindObject<UClass>(ANY_PACKAGE, *AssetData.AssetName.ToString());
-		}
+		UpdateThumbnailClass(AssetData.AssetName, Class);
 
 		AssetColor = FLinearColor(1.f, 1.f, 1.f, 1.f);
 		if ( AssetTypeActions.IsValid() )
 		{
 			AssetColor = AssetTypeActions.Pin()->GetTypeColor();
 		}
+
+		UpdateThumbnailVisibilities();
 	}
 
 	FSlateFontInfo GetTextFont() const
@@ -305,26 +364,16 @@ private:
 		return WidthLastFrame - GenericThumbnailBorderPadding * 2.f;
 	}
 
-	const FSlateBrush* GetBackgroundBrush() const
+	const FSlateBrush* GetAssetBackgroundBrush() const
 	{
-		const FAssetData& AssetData = AssetThumbnail->GetAssetData();
-		FName Substyle;
-		if ( AssetData.AssetClass == UClass::StaticClass()->GetFName() )
-		{
-			Substyle = FName(".ClassBackground");
-		}
-		else
-		{
-			Substyle = FName(".AssetBackground");
-		}
-
-		const FName BackgroundBrushName( *(Style.ToString() + Substyle.ToString()) );
+		const FName BackgroundBrushName( *(Style.ToString() + TEXT(".AssetBackground")) );
 		return FEditorStyle::GetBrush(BackgroundBrushName);
 	}
 
-	FSlateColor GetAssetColor() const
+	const FSlateBrush* GetClassBackgroundBrush() const
 	{
-		return AssetColor;
+		const FName BackgroundBrushName( *(Style.ToString() + TEXT(".ClassBackground")) );
+		return FEditorStyle::GetBrush(BackgroundBrushName);
 	}
 
 	FSlateColor GetViewportBorderColorAndOpacity() const
@@ -342,10 +391,15 @@ private:
 		return bHasRenderedThumbnail ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
+	float GetAssetColorStripHeight() const
+	{
+		// The strip is 2.5% the height of the thumbnail, but at least 3 units tall
+		return FMath::Max(FMath::CeilToFloat(WidthLastFrame*0.025f), 3.0f);
+	}
+
 	FMargin GetAssetColorStripPadding() const
 	{
-		// The strip is 2.5% the height of the thumbnail
-		const float Height = FMath::CeilToFloat(WidthLastFrame*0.025f);
+		const float Height = GetAssetColorStripHeight();
 		return FMargin(0,Height,0,0);
 	}
 
@@ -353,7 +407,10 @@ private:
 	{
 		if (ClassThumbnailBrushOverride.IsNone())
 		{
-			return FClassIconFinder::FindThumbnailForClass(ClassAssetClass.Get());
+			// For non-class types, use the default based upon the actual asset class
+			// This has the side effect of not showing a class icon for assets that don't have a proper thumbnail image available
+			const FName DefaultThumbnail = (bIsClassType) ? NAME_None : FName(*FString::Printf(TEXT("ClassThumbnail.%s"), *AssetThumbnail->GetAssetData().AssetClass.ToString()));
+			return FClassIconFinder::FindThumbnailForClass(ThumbnailClass.Get(), DefaultThumbnail);
 		}
 		else
 		{
@@ -366,13 +423,10 @@ private:
 
 	EVisibility GetClassThumbnailVisibility() const
 	{
-		const FSlateBrush* ClassThumbnailBrush = GetClassThumbnailBrush();
-		if(!bHasRenderedThumbnail && ClassThumbnailBrush)
+		if(!bHasRenderedThumbnail)
 		{
-			const FAssetData& AssetData = AssetThumbnail->GetAssetData();
-			FString AssetClass = AssetData.AssetClass.ToString();
-			UClass* Class = FindObjectSafe<UClass>(ANY_PACKAGE, *AssetClass);
-			if(Class == UClass::StaticClass())
+			const FSlateBrush* ClassThumbnailBrush = GetClassThumbnailBrush();
+			if( ClassThumbnailBrush && ThumbnailClass.Get() )
 			{
 				return EVisibility::Visible;
 			}
@@ -383,12 +437,23 @@ private:
 
 	EVisibility GetGenericThumbnailVisibility() const
 	{
-		return (GetClassThumbnailVisibility() == EVisibility::Visible || (bHasRenderedThumbnail && ViewportFadeAnimation.IsAtEnd())) ? EVisibility::Collapsed : EVisibility::Visible;
+		return (bHasRenderedThumbnail && ViewportFadeAnimation.IsAtEnd()) ? EVisibility::Collapsed : EVisibility::Visible;
+	}
+
+	const FSlateBrush* GetClassIconBrush() const
+	{
+		return FClassIconFinder::FindIconForClass(ThumbnailClass.Get());
+	}
+
+	FMargin GetClassIconPadding() const
+	{
+		const float Height = GetAssetColorStripHeight();
+		return FMargin(0,0,0,Height);
 	}
 
 	EVisibility GetHintTextVisibility() const
 	{
-		if ( AllowHintText && ( bHasRenderedThumbnail || !LabelTextBlock.IsValid() ) && HintColorAndOpacity.Get().A > 0 )
+		if ( bAllowHintText && ( bHasRenderedThumbnail || !GenericLabelTextBlock.IsValid() ) && HintColorAndOpacity.Get().A > 0 )
 		{
 			return EVisibility::Visible;
 		}
@@ -400,7 +465,7 @@ private:
 	{
 		if ( !bHasRenderedThumbnail && AssetData == AssetThumbnail->GetAssetData() && ShouldRender() )
 		{
-			bHasRenderedThumbnail = true;
+			OnRenderedThumbnailChanged( true );
 			ViewportFadeAnimation.Play();
 		}
 	}
@@ -409,7 +474,7 @@ private:
 	{
 		if ( bHasRenderedThumbnail && AssetData == AssetThumbnail->GetAssetData() )
 		{
-			bHasRenderedThumbnail = false;
+			OnRenderedThumbnailChanged( false );
 		}
 	}
 
@@ -480,7 +545,7 @@ private:
 		return false;
 	}
 
-	FString GetLabelText() const
+	FText GetLabelText() const
 	{
 		if ( Label == EThumbnailLabel::ClassName )
 		{
@@ -491,10 +556,10 @@ private:
 			return GetAssetDisplayName();
 		}
 
-		return FString();
+		return FText::GetEmpty();
 	}
 
-	FString GetDisplayNameForClass( UClass* Class ) const
+	FText GetDisplayNameForClass( UClass* Class ) const
 	{
 		FText ClassDisplayName;
 		if ( Class )
@@ -512,10 +577,10 @@ private:
 			}
 		}
 
-		return ClassDisplayName.ToString();
+		return ClassDisplayName;
 	}
 
-	FString GetAssetClassDisplayName() const
+	FText GetAssetClassDisplayName() const
 	{
 		const FAssetData& AssetData = AssetThumbnail->GetAssetData();
 		FString AssetClass = AssetData.AssetClass.ToString();
@@ -526,10 +591,10 @@ private:
 			return GetDisplayNameForClass( Class );
 		}
 
-		return AssetClass;
+		return FText::FromString(AssetClass);
 	}
 
-	FString GetAssetDisplayName() const
+	FText GetAssetDisplayName() const
 	{
 		const FAssetData& AssetData = AssetThumbnail->GetAssetData();
 
@@ -539,12 +604,47 @@ private:
 			return GetDisplayNameForClass( Class );
 		}
 
-		return AssetData.AssetName.ToString();
+		return FText::FromName(AssetData.AssetName);
+	}
+
+	void OnRenderedThumbnailChanged( bool bInHasRenderedThumbnail )
+	{
+		bHasRenderedThumbnail = bInHasRenderedThumbnail;
+
+		UpdateThumbnailVisibilities();
+	}
+
+	void UpdateThumbnailVisibilities()
+	{
+		// Either the generic label or thumbnail should be shown, but not both at once
+		const EVisibility ClassThumbnailVisibility = GetClassThumbnailVisibility();
+		if( GenericThumbnailImage.IsValid() )
+		{
+			GenericThumbnailImage->SetVisibility( ClassThumbnailVisibility );
+		}
+		if( GenericLabelTextBlock.IsValid() )
+		{
+			GenericLabelTextBlock->SetVisibility( (ClassThumbnailVisibility == EVisibility::Visible) ? EVisibility::Collapsed : EVisibility::Visible );
+		}
+
+		const EVisibility ViewportVisibility = GetViewportVisibility();
+		if( RenderedThumbnailWidget.IsValid() )
+		{
+			RenderedThumbnailWidget->SetVisibility( ViewportVisibility );
+			if( ClassIconWidget.IsValid() )
+			{
+				ClassIconWidget->SetVisibility( ViewportVisibility );
+			}
+		}
 	}
 
 private:
-	TSharedPtr<STextBlock> LabelTextBlock;
+	TSharedPtr<STextBlock> GenericLabelTextBlock;
 	TSharedPtr<STextBlock> HintTextBlock;
+	TSharedPtr<SImage> GenericThumbnailImage;
+	TSharedPtr<SBorder> ClassIconWidget;
+	TSharedPtr<SBorder> RenderedThumbnailWidget;
+	TSharedPtr<SBorder> AssetColorStripWidget;
 	TSharedPtr<FAssetThumbnail> AssetThumbnail;
 	FCurveSequence ViewportFadeAnimation;
 	FCurveHandle ViewportFadeCurve;
@@ -558,14 +658,14 @@ private:
 	EThumbnailLabel::Type Label;
 
 	TAttribute< FLinearColor > HintColorAndOpacity;
-	bool AllowHintText;
-
-	bool ShowClassBackground;
+	bool bAllowHintText;
 
 	/** The name of the thumbnail which should be used instead of the class thumbnail. */
 	FName ClassThumbnailBrushOverride;
-	/** The class instance for assets which represent a class. */
-	TWeakObjectPtr<UClass> ClassAssetClass;
+	/** The class to use when finding the thumbnail. */
+	TWeakObjectPtr<UClass> ThumbnailClass;
+	/** Are we showing a class type? (UClass, UBlueprint) */
+	bool bIsClassType;
 };
 
 
@@ -668,28 +768,21 @@ void FAssetThumbnail::SetAsset( const FAssetData& InAssetData )
 	AssetDataChangedEvent.Broadcast();
 }
 
-TSharedRef<SWidget> FAssetThumbnail::MakeThumbnailWidget(
-	bool bAllowFadeIn,
-	bool bForceGenericThumbnail,
-	EThumbnailLabel::Type ThumbnailLabel,
-	const TAttribute< FText >& HighlightedText,
-	const TAttribute< FLinearColor >& HintColorAndOpacity,
-	bool AllowHintText,
-	FName ClassThumbnailBrushOverride,
-	bool ShowClassBackground )
+TSharedRef<SWidget> FAssetThumbnail::MakeThumbnailWidget( const FAssetThumbnailConfig& InConfig )
 {
 	return
 		SNew(SAssetThumbnail)
 		.AssetThumbnail( SharedThis(this) )
-		.ThumbnailPool(ThumbnailPool.Pin())
-		.AllowFadeIn(bAllowFadeIn)
-		.ForceGenericThumbnail(bForceGenericThumbnail)
-		.Label( ThumbnailLabel )
-		.HighlightedText( HighlightedText )
-		.HintColorAndOpacity( HintColorAndOpacity )
-		.AllowHintText( AllowHintText )
-		.ClassThumbnailBrushOverride( ClassThumbnailBrushOverride )
-		.ShowClassBackground( ShowClassBackground );
+		.ThumbnailPool( ThumbnailPool.Pin() )
+		.AllowFadeIn( InConfig.bAllowFadeIn )
+		.ForceGenericThumbnail( InConfig.bForceGenericThumbnail )
+		.Label( InConfig.ThumbnailLabel )
+		.HighlightedText( InConfig.HighlightedText )
+		.HintColorAndOpacity( InConfig.HintColorAndOpacity )
+		.AllowHintText( InConfig.bAllowHintText )
+		.ClassThumbnailBrushOverride( InConfig.ClassThumbnailBrushOverride )
+		.AllowAssetSpecificThumbnailOverlay( InConfig.bAllowAssetSpecificThumbnailOverlay )
+		.AssetTypeColorOverride( InConfig.AssetTypeColorOverride );
 }
 
 void FAssetThumbnail::RefreshThumbnail()

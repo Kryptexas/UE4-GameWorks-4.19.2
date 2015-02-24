@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -119,6 +119,9 @@ public:
 	virtual bool OnVisualizeTooltip( const TSharedPtr<SWidget>& TooltipContent ) override;
 
 protected:
+	/** Used by OnDragEnter, OnDragOver, and OnDrop to check and update the validity of the drag operation */
+	bool ValidateDragDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) const;
+
 	/** Handles starting a name change */
 	virtual void HandleBeginNameChange( const FText& OriginalText );
 
@@ -153,7 +156,7 @@ protected:
 	EVisibility GetCheckedOutByOtherTextVisibility() const;
 
 	/** Gets the text for the checked out by other text block in the tooltip */
-	FString GetCheckedOutByOtherText() const;
+	FText GetCheckedOutByOtherText() const;
 
 	/** Helper function for CreateToolTipWidget. Gets the user description for the asset, if it exists. */
 	FText GetAssetUserDescription() const;
@@ -182,6 +185,8 @@ protected:
 	/** Delegate handler for when source control state changes */
 	void HandleSourceControlStateChanged();
 
+	/** Returns the width at which the name label will wrap the name */
+	virtual float GetNameTextWrapWidth() const { return 0.0f; }
 protected:
 
 	TSharedPtr< SInlineEditableTextBlock > InlineRenameWidget;
@@ -455,7 +460,10 @@ public:
 	/** Handles committing a name change */
 	virtual void OnAssetDataChanged() override;
 
-private:
+protected:
+	/** SAssetViewItem interface */
+	virtual float GetNameTextWrapWidth() const override { return LastGeometry.Size.X - 2.f; }
+
 	/** Returns the size of the thumbnail box widget */
 	FOptionalSize GetThumbnailBoxSize() const;
 
@@ -464,9 +472,6 @@ private:
 
 	/** Returns the size of the source control state box widget */
 	FOptionalSize GetSCCImageSize() const;
-
-	/** Returns the width at which the name label will wrap the name */
-	float GetNameTextWrapWidth() const;
 
 private:
 	/** The handle to the thumbnail that this item is rendering */

@@ -1,5 +1,9 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 #include "LiveEditorPrivatePCH.h"
 #include "LiveEditorConnectionWindow.h"
+
+#define LOCTEXT_NAMESPACE "LiveEditorConnection"
 
 class SConnectionDetailWindow : public SCompoundWidget
 {
@@ -22,8 +26,8 @@ public:
 			.Padding(2.0f)
 			[
 				SNew( SButton )
-				.Text( FString(TEXT("Disconnect")) )
-				.ToolTipText( FString(TEXT("Disconnect from this IP")) )
+				.Text( LOCTEXT("Disconnect", "Disconnect") )
+				.ToolTipText( LOCTEXT("DisconnectTooltip", "Disconnect from this IP") )
 				.OnClicked( this, &SConnectionDetailWindow::OnDisconnect )
 			]
 			+SHorizontalBox::Slot()
@@ -43,10 +47,10 @@ public:
 		return FReply::Handled();
 	}
 
-	FString GetConnectionInfo() const
+	FText GetConnectionInfo() const
 	{
 		check( ConnectionInfo.IsValid() );
-		return *ConnectionInfo.Get();
+		return FText::FromString(*ConnectionInfo.Get());
 	}
 
 private:
@@ -69,8 +73,8 @@ void SLiveEditorConnectionWindow::Construct(const FArguments& InArgs)
 			.Padding(2.0f)
 			[
 				SNew( SButton )
-				.Text( FString(TEXT("Connect")) )
-				.ToolTipText( FString(TEXT("Connect to this IP for Remote LiveEditing")) )
+				.Text( LOCTEXT("Connect", "Connect") )
+				.ToolTipText( LOCTEXT("ConnectTooltip", "Connect to this IP for Remote LiveEditing") )
 				.OnClicked( this, &SLiveEditorConnectionWindow::OnConnect )
 			]
 			+SHorizontalBox::Slot()
@@ -83,7 +87,7 @@ void SLiveEditorConnectionWindow::Construct(const FArguments& InArgs)
 					SNew(SEditableTextBox)
 					.SelectAllTextWhenFocused(true)
 					.Text(this, &SLiveEditorConnectionWindow::GetNewHostText)
-					.ToolTipText( FString(TEXT("The host IP you would like to connect to for LiveEditing. Usage xxx.xxx.xxx.xxx (no port)")) )
+					.ToolTipText( LOCTEXT("HostnameTooltip", "The host IP you would like to connect to for LiveEditing. Usage xxx.xxx.xxx.xxx (no port)") )
 					.OnTextCommitted(this, &SLiveEditorConnectionWindow::OnNewHostTextCommited)
 					.OnTextChanged(this, &SLiveEditorConnectionWindow::OnNewHostTextCommited, ETextCommit::Default)
 				]
@@ -137,7 +141,7 @@ void SLiveEditorConnectionWindow::DisconnectFrom( const FString &IPAddress )
 
 FText SLiveEditorConnectionWindow::GetNewHostText() const
 {
-	return ( NewConnectionString != FString(TEXT("")) )? FText::FromString(NewConnectionString) : FText::FromString(FString(TEXT("Enter IP")));
+	return ( !NewConnectionString.IsEmpty() )? FText::FromString(NewConnectionString) : LOCTEXT("EnterIP", "Enter IP");
 }
 
 void SLiveEditorConnectionWindow::OnNewHostTextCommited(const FText& InText, ETextCommit::Type InCommitType)
@@ -152,3 +156,5 @@ void SLiveEditorConnectionWindow::RefreshConnections()
 		ConnectionListView->RequestListRefresh();
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

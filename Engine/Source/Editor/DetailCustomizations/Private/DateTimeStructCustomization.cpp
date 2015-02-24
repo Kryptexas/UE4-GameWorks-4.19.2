@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "DateTimeStructCustomization.h"
@@ -48,7 +48,8 @@ FSlateColor FDateTimeStructCustomization::HandleTextBoxForegroundColor( ) const
 {
 	if (InputValid)
 	{
-		return FEditorStyle::GetSlateColor("InvertedForeground");
+		static const FName InvertedForegroundName("InvertedForeground");
+		return FEditorStyle::GetSlateColor(InvertedForegroundName);
 	}
 
 	return FLinearColor::Red;
@@ -79,16 +80,19 @@ void FDateTimeStructCustomization::HandleTextBoxTextChanged( const FText& NewTex
 void FDateTimeStructCustomization::HandleTextBoxTextCommited( const FText& NewText, ETextCommit::Type CommitInfo )
 {
 	FDateTime ParsedDateTime;
-								
-	if (FDateTime::Parse(NewText.ToString(), ParsedDateTime))
+		
+	InputValid = FDateTime::Parse(NewText.ToString(), ParsedDateTime);
+	if (InputValid && PropertyHandle.IsValid())
 	{
 		TArray<void*> RawData;
 		PropertyHandle->AccessRawData(RawData);
 
+		PropertyHandle->NotifyPreChange();
 		for (auto RawDataInstance : RawData)
 		{
 			*(FDateTime*)RawDataInstance = ParsedDateTime;
 		}
+		PropertyHandle->NotifyPostChange();
 	}
 }
 

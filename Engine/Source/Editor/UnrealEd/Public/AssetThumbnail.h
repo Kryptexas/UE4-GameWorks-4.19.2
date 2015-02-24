@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -15,6 +15,33 @@ namespace EThumbnailLabel
 		ClassName,
 		AssetName,
 	};
+};
+
+/** A struct containing details about how the asset thumbnail should behave */
+struct FAssetThumbnailConfig
+{
+	FAssetThumbnailConfig()
+		: bAllowFadeIn( false )
+		, bForceGenericThumbnail( false )
+		, bAllowHintText( true )
+		, bAllowAssetSpecificThumbnailOverlay( false )
+		, ClassThumbnailBrushOverride( NAME_None )
+		, ThumbnailLabel( EThumbnailLabel::ClassName )
+		, HighlightedText( FText::GetEmpty() )
+		, HintColorAndOpacity( FLinearColor( 0.0f, 0.0f, 0.0f, 0.0f ) )
+		, AssetTypeColorOverride()
+	{
+	}
+
+	bool bAllowFadeIn;
+	bool bForceGenericThumbnail;
+	bool bAllowHintText;
+	bool bAllowAssetSpecificThumbnailOverlay;
+	FName ClassThumbnailBrushOverride;
+	EThumbnailLabel::Type ThumbnailLabel;
+	TAttribute< FText > HighlightedText;
+	TAttribute< FLinearColor > HintColorAndOpacity;
+	TOptional< FLinearColor > AssetTypeColorOverride;
 };
 
 /**
@@ -75,15 +102,7 @@ public:
 	/**
 	 * @return A slate widget representing this thumbnail
 	 */
-	UNREALED_API TSharedRef<SWidget> MakeThumbnailWidget(
-		bool bAllowFadeIn = false,
-		bool bForceGenericThumbnail = false,
-		EThumbnailLabel::Type ThumbnailLabel = EThumbnailLabel::ClassName,
-		const TAttribute< FText >& HighlightedText = TAttribute< FText >( FText::GetEmpty() ),
-		const TAttribute< FLinearColor >& HintColorAndOpacity = FLinearColor( 0.0f, 0.0f, 0.0f, 0.0f ),
-		bool AllowHintText = true,
-		FName ClassThumbnailBrushOverride = NAME_None,
-		bool ShowBackground = true);
+	UNREALED_API TSharedRef<SWidget> MakeThumbnailWidget( const FAssetThumbnailConfig& InConfig = FAssetThumbnailConfig() );
 
 	/** Re-renders this thumbnail */
 	UNREALED_API void RefreshThumbnail();

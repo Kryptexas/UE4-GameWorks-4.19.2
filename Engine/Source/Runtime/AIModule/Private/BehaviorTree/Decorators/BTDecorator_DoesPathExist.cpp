@@ -1,10 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #if WITH_RECAST
 #include "AI/Navigation/RecastNavMesh.h"
 #endif // WITH_RECAST
-#include "Navigation/NavigationComponent.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/Decorators/BTDecorator_DoesPathExist.h"
 
@@ -42,9 +41,9 @@ void UBTDecorator_DoesPathExist::InitializeFromAsset(UBehaviorTree& Asset)
 	BlackboardKeyB.CacheSelectedKey(BBAsset);
 }
 
-bool UBTDecorator_DoesPathExist::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const 
+bool UBTDecorator_DoesPathExist::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
-	const UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
+	const UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (BlackboardComp == NULL)
 	{
 		return false;
@@ -57,11 +56,11 @@ bool UBTDecorator_DoesPathExist::CalculateRawConditionValue(UBehaviorTreeCompone
 	
 	bool bHasPath = false;
 
-	const UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerComp->GetWorld());
+	const UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(OwnerComp.GetWorld());
 	if (NavSys && bHasPointA && bHasPointB)
 	{
-		const AAIController* AIOwner = OwnerComp->GetAIOwner();
-		const ANavigationData* NavData = AIOwner && AIOwner->GetNavComponent() ? AIOwner->GetNavComponent()->GetNavData() : NULL;
+		const AAIController* AIOwner = OwnerComp.GetAIOwner();
+		const ANavigationData* NavData = AIOwner ? NavSys->GetNavDataForProps(AIOwner->GetNavAgentPropertiesRef()) : NULL;
 		TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(NavData, FilterClass);
 
 		if (PathQueryType == EPathExistanceQueryType::NavmeshRaycast2D)

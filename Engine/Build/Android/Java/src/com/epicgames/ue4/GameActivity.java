@@ -39,6 +39,7 @@ import android.view.ViewConfiguration;
 import android.view.ViewGroup.LayoutParams;
 import android.view.ViewGroup.MarginLayoutParams;
 import android.view.WindowManager;
+import android.view.Window;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 
@@ -64,7 +65,6 @@ import com.epicgames.ue4.GooglePlayLicensing;
 
 // TODO: use the resources from the UE4 lib project once we've got the packager up and running
 //import com.epicgames.ue4.R;
-import com.epicgames.ue4.JavaBuildSettings;
 
 //Extending NativeActivity so that this Java class is instantiated
 //from the beginning of the program.  This will allow the user
@@ -80,7 +80,7 @@ public class GameActivity extends NativeActivity
 {
 	public static Logger Log = new Logger("UE4");
 	
-	GameActivity _activity;
+	static GameActivity _activity;
 
 	// Console
 	AlertDialog consoleAlert;
@@ -94,6 +94,9 @@ public class GameActivity extends NativeActivity
 	AlertDialog virtualKeyboardAlert;
 	EditText virtualKeyboardInputBox;
 
+	// default the PackageDataInsideApk to an invalid value to make sure we don't get it too early
+	private static int PackageDataInsideApkValue = -1;
+	
 	/** AssetManger reference - populated on start up and used when the OBB is packed into the APK */
 	private AssetManager			AssetManagerReference;
 	
@@ -125,6 +128,20 @@ public class GameActivity extends NativeActivity
 	/** Unique ID to identify Google Play Services error dialog */
 	private static final int PLAY_SERVICES_DIALOG_ID = 1;
 
+	/** Access singleton activity for game. **/
+	public static GameActivity Get()
+	{
+		return _activity;
+	}
+	
+	/**
+	Get the SDK level of the OS we are running in.
+	We do this instead of accessing the SDK_INT
+	with JNI from C++ as the new ART runtime seems to have
+	problems dynamically finding/loading static inner classes.
+	*/
+	public static final int ANDROID_BUILD_VERSION = android.os.Build.VERSION.SDK_INT;
+	
 	private StoreHelper IapStoreHelper;
 
 	@Override
@@ -170,6 +187,25 @@ public class GameActivity extends NativeActivity
 		}
 
 		_activity = this;
+		
+/*
+		// Turn on and unlock screen.. Assumption is that this
+		// will only really have an effect when for debug launching
+		// as otherwise the screen is already unlocked.
+		this.getWindow().addFlags(
+			WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON |
+//			WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
+			WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
+		// On some devices we can also unlock a key-locked screen by disabling the
+		// keylock guard. To be safe we only do this on < Android 3.2. As the API
+		// is deprecated from 3.2 onward.
+		if (ANDROID_BUILD_VERSION < 13)
+		{
+			android.app.KeyguardManager keyman = (android.app.KeyguardManager)getSystemService(KEYGUARD_SERVICE);
+			android.app.KeyguardManager.KeyguardLock keylock = keyman.newKeyguardLock("Unlock");
+			keylock.disableKeyguard();
+		}
+*/
 
 		// tell Android that we want volume controls to change the media volume, aka music
 		setVolumeControlStream(AudioManager.STREAM_MUSIC);
@@ -239,12 +275,29 @@ public class GameActivity extends NativeActivity
 			{
 				DepthBufferPreference = bundle.getInt("com.epicgames.ue4.GameActivity.DepthBufferPreference");
 				Log.debug( "Found DepthBufferPreference = " + DepthBufferPreference);
-			} else {
+			}
+			else
+			{
 				Log.debug( "Did not find DepthBufferPreference, using default.");
 			}
-		} catch (NameNotFoundException e) {
+
+			if (bundle.containsKey("com.epicgames.ue4.GameActivity.bPackageDataInsideApk"))
+			{
+				PackageDataInsideApkValue = bundle.getBoolean("com.epicgames.ue4.GameActivity.bPackageDataInsideApk") ? 1 : 0;
+				Log.debug( "Found bPackageDataInsideApk = " + PackageDataInsideApkValue);
+			}
+			else
+			{
+				PackageDataInsideApkValue = 0;
+				Log.debug( "Did not find bPackageDataInsideApk, using default.");
+			}
+		}
+		catch (NameNotFoundException e)
+		{
 			Log.debug( "Failed to load meta-data: NameNotFound: " + e.getMessage());
-		} catch (NullPointerException e) {
+		}
+		catch (NullPointerException e)
+		{
 			Log.debug( "Failed to load meta-data: NullPointer: " + e.getMessage());
 		}
 
@@ -468,14 +521,32 @@ public class GameActivity extends NativeActivity
 		}
 	}
 
-	public void AndroidThunkJava_Vibrate(long Duration)
+	private class VibrateRunnable implements Runnable {
+		private int duration;
+		private Vibrator vibrator;
+
+		VibrateRunnable(final int Duration, final Vibrator vibrator)
+		{
+			this.duration = Duration;
+			this.vibrator = vibrator;
+		}
+		public void run ()
+		{
+			if (duration < 1)
+			{
+				vibrator.cancel();
+			} else {
+				vibrator.vibrate(duration);
+			}
+		}
+	}
+
+	public void AndroidThunkJava_Vibrate(int Duration)
 	{
 		Vibrator vibrator = (Vibrator)getSystemService(VIBRATOR_SERVICE);
-		if (Duration < 1)
+		if (vibrator != null)
 		{
-			vibrator.cancel();
-		} else {
-			vibrator.vibrate(Duration);
+			_activity.runOnUiThread(new VibrateRunnable(Duration, vibrator));
 		}
 	}
 
@@ -727,7 +798,8 @@ public class GameActivity extends NativeActivity
 
 	public static boolean isOBBInAPK()
 	{
-		return JavaBuildSettings.PackageType.AMAZON == JavaBuildSettings.PACKAGING;
+		Log.debug("Asking if osOBBInAPK? " + (PackageDataInsideApkValue == 1));
+		return PackageDataInsideApkValue == 1;
 	}
 
 	public void AndroidThunkJava_Minimize()
@@ -766,7 +838,7 @@ public class GameActivity extends NativeActivity
 
 		for ( String fontdir : fontdirs )
         {
-			Log.debug(fontdir);
+//			Log.debug(fontdir);
             File dir = new File( fontdir );
 
 			if(dir.exists())
@@ -825,6 +897,27 @@ public class GameActivity extends NativeActivity
 		}
 		return bTriggeredQuery;
 	}
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent data)
+	{
+		if( IapStoreHelper != null )
+		{
+			if(!IapStoreHelper.onActivityResult(requestCode, resultCode, data))
+			{
+				super.onActivityResult(requestCode, resultCode, data);
+			}
+			else
+			{
+				Log.debug("[JAVA] - Store Helper handled onActivityResult");
+			}
+		}
+		else
+		{
+			super.onActivityResult(requestCode, resultCode, data);
+		}
+		nativeOnActivityResult(this, requestCode, resultCode, data);
+	}
 	
 	public boolean AndroidThunkJava_IapBeginPurchase(String ProductId, boolean bConsumable)
 	{
@@ -864,15 +957,13 @@ public class GameActivity extends NativeActivity
 
 	public native void nativeConsoleCommand(String commandString);
 	public native void nativeVirtualKeyboardResult(boolean update, String contents);
-	
-	public native boolean nativeIsGooglePlayEnabled();
 
 	public native void nativeInitHMDs();
 
 	public native void nativeResumeMainInit();
-	
-	public native void nativeCompletedConnection(int playerID, int errorCode);
 
+	public native void nativeOnActivityResult(GameActivity activity, int requestCode, int resultCode, Intent data);
+	
 	static
 	{
 		System.loadLibrary("gnustl_shared");

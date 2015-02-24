@@ -1,6 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "TextureEditorPrivatePCH.h"
+#include "CanvasTypes.h"
+#include "CanvasItem.h"
+#include "Engine/TextureCube.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/TextureRenderTargetCube.h"
 
 
 /* FTextureEditorViewportClient structors
@@ -189,12 +194,12 @@ void FTextureEditorViewportClient::ModifyCheckerboardTextureColors()
 }
 
 
-FString FTextureEditorViewportClient::GetDisplayedResolution() const
+FText FTextureEditorViewportClient::GetDisplayedResolution() const
 {
 	uint32 Height = 1;
 	uint32 Width = 1;
 	TextureEditorPtr.Pin()->CalculateTextureDimensions(Width, Height);
-	return FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Displayed", "Displayed: {0}x{1}"), FText::AsNumber( FMath::Max((uint32)1, Width) ), FText::AsNumber( FMath::Max((uint32)1, Height)) ).ToString();
+	return FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Displayed", "Displayed: {0}x{1}"), FText::AsNumber( FMath::Max((uint32)1, Width) ), FText::AsNumber( FMath::Max((uint32)1, Height)) );
 }
 
 

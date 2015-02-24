@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 
@@ -48,6 +48,8 @@ void UK2Node_ActorBoundEvent::ReconstructNode()
 	// Ensure that we try to update the delegate we're bound to if its moved
 	GetTargetDelegate();
 
+	CachedNodeTitle.MarkDirty();
+
 	Super::ReconstructNode();
 }
 
@@ -67,8 +69,10 @@ void UK2Node_ActorBoundEvent::DestroyNode()
 				Delegate.BindUFunction(LSA, CustomFunctionName);
 				
 				// Attempt to remove it from the target's MC delegate
-				FMulticastScriptDelegate* TargetDelegate = GetTargetDelegate();
-				TargetDelegate->Remove(Delegate);
+				if (FMulticastScriptDelegate* TargetDelegate = GetTargetDelegate())
+				{
+					TargetDelegate->Remove(Delegate);
+				}				
 			}
 		}
 		
@@ -138,7 +142,7 @@ void UK2Node_ActorBoundEvent::InitializeActorBoundEventParams(AActor* InEventOwn
 		EventOwner = InEventOwner;
 		DelegatePropertyName = InDelegateProperty->GetFName();
 		EventSignatureName = InDelegateProperty->SignatureFunction->GetFName();
-		EventSignatureClass = CastChecked<UClass>(InDelegateProperty->SignatureFunction->GetOuter());
+		EventSignatureClass = CastChecked<UClass>(InDelegateProperty->SignatureFunction->GetOuter())->GetAuthoritativeClass();
 		CustomFunctionName = FName( *FString::Printf(TEXT("BndEvt__%s_%s_%s"), *InEventOwner->GetName(), *GetName(), *EventSignatureName.ToString()) );
 		bOverrideFunction = false;
 		bInternalEvent = true;

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -54,7 +54,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 		/// <summary>The user supplied parameters.</summary>
 		public FormCollection FormCollection { get; set; }
+
 		/// <summary>The set of statuses a crash could have its status set to.</summary>
 		public IEnumerable<string> SetStatus { get { return new List<string>( new string[] { "Unset", "Reviewed", "New", "Coder", "EngineQA", "GameQA" } ); } }
+
+		/// <summary> The real user name, displayed only for searches. </summary>
+		public string RealUserName { get; set; }
 	}
 }

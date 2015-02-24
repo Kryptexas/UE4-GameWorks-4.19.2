@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -360,13 +360,6 @@ public:
 	/** Auto set tangents for any 'auto' keys in curve */
 	void AutoSetTangents(float Tension = 0.f);
 
-	// Legacy conversion
-
-	/** Util to convert from legacy FInterpCurveFloat */
-	static void ConvertInterpCurveFloat(const FInterpCurveFloat& InCurve, FRichCurve& OutCurve);
-	/** Util to convert from legacy FInterpCurveVector */
-	static void ConvertInterpCurveVector(const FInterpCurveVector& InCurve, FRichCurve OutCurves[3]);
-
 	/** Determine if two RichCurves are the same */
 	bool operator == (const FRichCurve& Curve) const;
 private:
@@ -439,6 +432,9 @@ public:
 
 	/** @return True if the curve has any alpha keys */
 	virtual bool HasAnyAlphaKeys() const { return false; }
+
+	/** Validates that a previously retrieved curve is still valid for editing. */
+	virtual bool IsValidCurve(FRichCurveEditInfo CurveInfo) = 0;
 };
 
 
@@ -486,6 +482,8 @@ public:
 	virtual void ModifyOwner() override;
 	virtual void MakeTransactional() override;
 	virtual void OnCurveChanged() override;
+
+	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo ) { return false; };
 	// End FCurveOwnerInterface
 
 	// Begin UCurveBase interface
@@ -501,6 +499,12 @@ public:
 
 	// End UCurveBase interface
 
+	// Begin UObject interface
+#if WITH_EDITORONLY_DATA
+	/** Override to ensure we write out the asset import data */
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
+#endif
+	// End UObject interface
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "ClassIconFinder.h"
@@ -15,13 +15,19 @@ public:
 
 	SLATE_BEGIN_ARGS(SPlacementAssetEntry)
 		: _LabelOverride()
+		, _AlwaysUseGenericThumbnail(false)
 	{}
 	
 	/** Highlight this text in the text block */
 	SLATE_ATTRIBUTE(FText, HighlightText)
 
 	SLATE_ARGUMENT(FText, LabelOverride)
-	
+
+	SLATE_ARGUMENT(FName, ClassThumbnailBrushOverride)
+
+	SLATE_ARGUMENT(bool, AlwaysUseGenericThumbnail)
+
+	SLATE_ARGUMENT(TOptional<FLinearColor>, AssetTypeColorOverride)
 	SLATE_END_ARGS()
 
 	void Construct(const FArguments& InArgs, UActorFactory* InFactory, const FAssetData& InAsset);
@@ -66,10 +72,10 @@ private:
 	const FSlateBrush* PlacementGroupBorderImage( int32 PlacementGroupIndex ) const;
 
 	// When the tab is clicked we adjust the check state, so that the right style is displayed.
-	void OnPlacementTabChanged( ESlateCheckBoxState::Type NewState, int32 PlacementGroupIndex );
+	void OnPlacementTabChanged( ECheckBoxState NewState, int32 PlacementGroupIndex );
 
 	// Gets the tab 'active' state, so that we can show the active style
-	ESlateCheckBoxState::Type GetPlacementTabCheckedState( int32 PlacementGroupIndex ) const;
+	ECheckBoxState GetPlacementTabCheckedState( int32 PlacementGroupIndex ) const;
 
 	// Create the standard panel displayed when no search is being performed.
 	TSharedRef< SWidget > CreateStandardPanel();

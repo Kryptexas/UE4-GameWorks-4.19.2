@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
@@ -24,7 +24,7 @@ UNavAreaMeta_SwitchByAgent::UNavAreaMeta_SwitchByAgent(const FObjectInitializer&
 	Agent15Area = UNavArea_Default::StaticClass();
 }
 
-TSubclassOf<UNavArea> UNavAreaMeta_SwitchByAgent::PickAreaClass(const class AActor* Actor, const FNavAgentProperties& NavAgent) const
+TSubclassOf<UNavArea> UNavAreaMeta_SwitchByAgent::PickAreaClass(const AActor* Actor, const FNavAgentProperties& NavAgent) const
 {
 	const int8 AgentIndex = GetNavAgentIndex(NavAgent);
 	TSubclassOf<UNavArea> UseAreaClass = NULL;

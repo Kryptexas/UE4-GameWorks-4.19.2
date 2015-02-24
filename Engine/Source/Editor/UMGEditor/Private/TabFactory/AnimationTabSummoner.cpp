@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 
@@ -15,6 +15,7 @@
 #include "WidgetBlueprint.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Misc/TextFilter.h"
+#include "Editor/UnrealEd/Public/Kismet2/Kismet2NameValidators.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -98,11 +99,24 @@ private:
 
 		FString NewName = InText.ToString();
 
-		UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
-		if( Animation->GetName() != NewName && FindObject<UWidgetAnimation>( Blueprint, *NewName, true ) )
+		if ( Animation->GetName() != NewName )
 		{
-			OutErrorMessage = LOCTEXT("ExistingMovieSceneError", "An animation with this name already exists");
-			return false;
+			UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
+			if ( FindObject<UWidgetAnimation>(Blueprint, *NewName, true) )
+			{
+				OutErrorMessage = LOCTEXT("ExistingMovieSceneError", "An animation with this name already exists");
+				return false;
+			}
+
+			FKismetNameValidator Validator(Blueprint);
+			EValidatorResult ValidationResult = Validator.IsValid(NewName);
+
+			if ( ValidationResult != EValidatorResult::Ok )
+			{
+				FString ErrorString = FKismetNameValidator::GetErrorString(NewName, ValidationResult);
+				OutErrorMessage = FText::FromString(ErrorString);
+				return false;
+			}
 		}
 
 		return true;

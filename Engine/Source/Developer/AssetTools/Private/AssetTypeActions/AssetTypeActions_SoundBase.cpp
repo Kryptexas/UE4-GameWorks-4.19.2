@@ -1,9 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetToolsPrivatePCH.h"
 #include "Editor/UnrealEd/Public/Dialogs/DlgSoundWaveOptions.h"
 #include "Editor/SoundCueEditor/Public/SoundCueEditorModule.h"
 #include "SoundDefinitions.h"
+#include "Sound/SoundBase.h"
+#include "Components/AudioComponent.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

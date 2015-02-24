@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
@@ -138,8 +138,9 @@ public:
 	
 	bool operator==( const FPortableObjectEntry& Other ) 
 	{ 
-		//@TODO: Reference materials are not fully clear if the MsgIdPlural member needs to match for equality.  This seems logical so we do it here.
-		return ( MsgId == Other.MsgId && MsgIdPlural == Other.MsgIdPlural && MsgCtxt == Other.MsgCtxt ); 
+		return ( MsgId.Equals(Other.MsgId, ESearchCase::CaseSensitive) &&
+				MsgIdPlural.Equals(Other.MsgIdPlural, ESearchCase::CaseSensitive) &&
+				MsgCtxt.Equals(Other.MsgCtxt, ESearchCase::IgnoreCase) ); 
 	}
 	
 	/**

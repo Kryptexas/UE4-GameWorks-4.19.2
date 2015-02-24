@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "stdafx.h"
@@ -133,7 +133,7 @@ void FStaticLightingSystem::CalculateVolumeDistanceFieldWorkRange(int32 ZIndex)
 
 					if (Intersection.bIntersects)
 					{
-						if ((i == 0 && FMath::Abs(Intersection.IntersectionVertex.WorldTangentZ.Z) >= .707f || i == 1 && FMath::Abs(Intersection.IntersectionVertex.WorldTangentZ.Z) < .707f))
+						if ((i == 0 && FMath::Abs(Intersection.IntersectionVertex.WorldTangentZ.Z) >= .707f) || (i == 1 && FMath::Abs(Intersection.IntersectionVertex.WorldTangentZ.Z) < .707f))
 						{
 							Hit[i]++;
 							if (Dot3(Ray.Direction, Intersection.IntersectionVertex.WorldTangentZ) < 0)

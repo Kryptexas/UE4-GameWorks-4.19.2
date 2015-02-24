@@ -1,8 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GeometryModePrivatePCH.h"
 #include "DynamicMeshBuilder.h"
-
+#include "Engine/Selection.h"
 
 IMPLEMENT_MODULE( FGeometryModeModule, GeometryMode );
 
@@ -80,7 +80,11 @@ bool FEdModeGeometry::GetCustomDrawingCoordinateSystem( FMatrix& InMatrix, void*
 
 	if( InData )
 	{
-		InMatrix = FRotationMatrix( ((FGeomBase*)InData)->GetNormal().Rotation() );
+		FGeomBase* GeomBase = static_cast<FGeomBase*>(InData);
+		FGeomObject* GeomObject = GeomBase->GetParentObject();
+		check(GeomObject != nullptr);
+		ABrush* Brush = GeomObject->GetActualBrush();
+		InMatrix = FRotationMatrix(GeomBase->GetNormal().Rotation()) * FRotationMatrix(Brush->GetActorRotation());
 	}
 	else
 	{
@@ -94,7 +98,12 @@ bool FEdModeGeometry::GetCustomDrawingCoordinateSystem( FMatrix& InMatrix, void*
 
 			if( go->SelectionOrder.Num() )
 			{
-				InMatrix = FRotationMatrix( go->SelectionOrder[ go->SelectionOrder.Num()-1 ]->GetWidgetRotation() );
+				FGeomBase* GeomBase = go->SelectionOrder[go->SelectionOrder.Num() - 1];
+				check(GeomBase != nullptr);
+				FGeomObject* GeomObject = GeomBase->GetParentObject();
+				check(GeomObject != nullptr);
+				ABrush* Brush = GeomObject->GetActualBrush();
+				InMatrix = FRotationMatrix( go->SelectionOrder[ go->SelectionOrder.Num()-1 ]->GetWidgetRotation() ) * FRotationMatrix(Brush->GetActorRotation());
 				return 1;
 			}
 		}
@@ -119,10 +128,8 @@ void FEdModeGeometry::Enter()
 	
 	if (!Toolkit.IsValid())
 	{
-		// @todo: Remove this assumption when we make modes per level editor instead of global
-		auto ToolkitHost = FModuleManager::LoadModuleChecked< FLevelEditorModule >( "LevelEditor" ).GetFirstLevelEditor();
 		Toolkit = MakeShareable(new FGeometryMode);
-		Toolkit->Init(ToolkitHost);
+		Toolkit->Init(Owner->GetToolkitHost());
 	}
 
 	GetFromSource();
@@ -520,12 +527,12 @@ void FEdModeGeometry::RenderPoly( const FSceneView* View, FViewport* Viewport, F
 				}
 
 				// Draw Polygon Triangles
-				const int32 VertexOffset = MeshBuilder.AddVertex(Verts[0], FVector2D::ZeroVector, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(Verts[1], FVector2D::ZeroVector, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
+				const int32 VertexOffset = MeshBuilder.AddVertex(Verts[0], FVector2D::ZeroVector, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor::White);
+				MeshBuilder.AddVertex(Verts[1], FVector2D::ZeroVector, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor::White);
 
 				for( int32 VertIdx = 2 ; VertIdx < Verts.Num() ; ++VertIdx )
 				{
-					MeshBuilder.AddVertex(Verts[VertIdx], FVector2D::ZeroVector, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
+					MeshBuilder.AddVertex(Verts[VertIdx], FVector2D::ZeroVector, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor::White);
 					MeshBuilder.AddTriangle( VertexOffset + VertIdx - 1, VertexOffset, VertexOffset + VertIdx);
 				}
 

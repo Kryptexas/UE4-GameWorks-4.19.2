@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PropertyEditorPrivatePCH.h"
@@ -284,16 +284,16 @@ void FItemPropertyNode::InitChildNodes()
 	}
 }
 
-void FItemPropertyNode::SetDisplayNameOverride( const FString& InDisplayNameOverride )
+void FItemPropertyNode::SetDisplayNameOverride( const FText& InDisplayNameOverride )
 {
 	DisplayNameOverride = InDisplayNameOverride;
 }
 
-FString FItemPropertyNode::GetDisplayName() const
+FText FItemPropertyNode::GetDisplayName() const
 {
-	FString FinalDisplayName;
+	FText FinalDisplayName;
 
-	if( DisplayNameOverride.Len() > 0 )
+	if( !DisplayNameOverride.IsEmpty() )
 	{
 		FinalDisplayName = DisplayNameOverride;
 	}
@@ -306,8 +306,8 @@ FString FItemPropertyNode::GetDisplayName() const
 			if ( FPropertySettings::Get().ShowFriendlyPropertyNames() )
 			{
 				//We are in "readable display name mode"../ Make a nice name
-				FinalDisplayName = PropertyPtr->GetDisplayNameText().ToString();
-				if ( FinalDisplayName.Len() == 0 )
+				FinalDisplayName = PropertyPtr->GetDisplayNameText();
+				if ( FinalDisplayName.IsEmpty() )
 				{
 					FString PropertyDisplayName;
 					bool bIsBoolProperty = Cast<const UBoolProperty>(PropertyPtr) != NULL;
@@ -340,12 +340,12 @@ FString FItemPropertyNode::GetDisplayName() const
 						PropertyDisplayName = FName::NameToDisplayString( PropertyDisplayName, bIsBoolProperty );
 					}
 
-					FinalDisplayName = PropertyDisplayName;
+					FinalDisplayName = FText::FromString( PropertyDisplayName );
 				}
 			}
 			else
 			{
-				FinalDisplayName =  PropertyPtr->GetName();
+				FinalDisplayName =  FText::FromString( PropertyPtr->GetName() );
 			}
 		}
 		else
@@ -360,29 +360,29 @@ FString FItemPropertyNode::GetDisplayName() const
 			// This item is a member of an array, its display name is its index 
 			if ( PropertyPtr == NULL || ArraySizeEnum == NULL )
 			{
-				FinalDisplayName = *FString::Printf(TEXT("%i"), GetArrayIndex() );
+				FinalDisplayName = FText::AsNumber( GetArrayIndex() );
 			}
 			else
 			{
-				FinalDisplayName = *FString::Printf(TEXT("%s"), *ArraySizeEnum->GetEnumName(GetArrayIndex()));
+				FString TempDisplayName = ArraySizeEnum->GetEnumName(GetArrayIndex());
 				//fixup the display name if we have displayname metadata
-				AdjustEnumPropDisplayName(ArraySizeEnum, FinalDisplayName);
+				AdjustEnumPropDisplayName(ArraySizeEnum, TempDisplayName);
+				FinalDisplayName = FText::FromString(TempDisplayName); // todo: should this be using ArraySizeEnum->GetEnumText?
 			}
 		}
 	}
 	
 	return FinalDisplayName;
-
 }
 
-void FItemPropertyNode::SetToolTipOverride( const FString& InToolTipOverride )
+void FItemPropertyNode::SetToolTipOverride( const FText& InToolTipOverride )
 {
 	ToolTipOverride = InToolTipOverride;
 }
 
-FString FItemPropertyNode::GetToolTipText() const
+FText FItemPropertyNode::GetToolTipText() const
 {
-	if(ToolTipOverride.Len() > 0)
+	if(!ToolTipOverride.IsEmpty())
 	{
 		return ToolTipOverride;
 	}

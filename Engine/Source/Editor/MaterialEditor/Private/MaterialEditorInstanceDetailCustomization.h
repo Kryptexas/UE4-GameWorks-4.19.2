@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -45,7 +45,7 @@ private:
 	bool IsOverriddenExpression(class UDEditorParameterValue* Parameter);
 
 	/** Gets the expression description of this parameter from the the base material */
-	FString GetParameterExpressionDescription(class UDEditorParameterValue* Parameter) const;
+	FText GetParameterExpressionDescription(class UDEditorParameterValue* Parameter) const;
 
 	/**
 	 * Called when a parameter is overridden;
@@ -63,6 +63,22 @@ private:
 
 	/** Returns true if the refraction options should be displayed */
 	EVisibility ShouldShowSubsurfaceProfile() const;
+
+	
+	//Functions supporting BasePropertyOverrides
+
+	/** Creates all the base property override widgets. */
+	void CreateBasePropertyOverrideWidgets(IDetailLayoutBuilder& DetailLayout);
+
+	bool OverrideOpacityClipMaskValueEnabled() const;
+	bool OverrideBlendModeEnabled() const;
+	bool OverrideShadingModelEnabled() const;
+	bool OverrideTwoSidedEnabled() const;
+	void OnOverrideOpacityClipMaskValueChanged(bool NewValue);
+	void OnOverrideBlendModeChanged(bool NewValue);
+	void OnOverrideShadingModelChanged(bool NewValue);
+	void OnOverrideTwoSidedChanged(bool NewValue);
+
 
 private:
 	/** Object that stores all of the possible parameters we can edit */

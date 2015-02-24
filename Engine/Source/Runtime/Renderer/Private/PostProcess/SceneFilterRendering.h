@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneFilterRendering.h: Filter rendering definitions.
@@ -152,6 +152,26 @@ private:
 	FShaderParameter				GammaColorScaleAndInverse;
 	FShaderParameter				GammaOverlayColor;
 	FShaderParameter				RenderTargetExtent;
+};
+
+
+class FTesselatedScreenRectangleIndexBuffer : public FIndexBuffer
+{
+public:
+
+	// if one of those constants change, UpscaleVS needs to be recompiled
+
+	// number of quads in x
+	static const uint32 Width = 32;		// used for CylindricalProjection (smaller FOV could do less tessellation)
+	// number of quads in y
+	static const uint32 Height = 20;	// to minimize distortion we also tessellate in Y but a perspective distortion could do that with fewer triangles.
+
+	/** Initialize the RHI for this rendering resource */
+	void InitRHI() override;
+
+	uint32 NumVertices() const;
+
+	uint32 NumPrimitives() const;
 };
 
 #endif

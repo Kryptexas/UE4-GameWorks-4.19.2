@@ -1,35 +1,35 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-
-/*=============================================================================================
-	WindowsPlatformMemory.h: Windows platform memory functions
-==============================================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "GenericPlatform/GenericPlatformMemory.h"
 #include "Windows/WindowsSystemIncludes.h"
+
 
 /**
  *	Windows implementation of the FGenericPlatformMemoryStats.
  *	At this moment it's just the same as the FGenericPlatformMemoryStats.
  *	Can be extended as shown in the following example.
  */
-struct FPlatformMemoryStats : public FGenericPlatformMemoryStats
+struct FPlatformMemoryStats
+	: public FGenericPlatformMemoryStats
 {
 	/** Default constructor, clears all variables. */
 	FPlatformMemoryStats()
 		: FGenericPlatformMemoryStats()
-		, WindowsSpecificMemoryStat( 0 )
-	{}
+		, WindowsSpecificMemoryStat(0)
+	{ }
 
 	/** Memory stat specific only for Windows. */
 	SIZE_T WindowsSpecificMemoryStat;
 };
 
+
 /**
 * Windows implementation of the memory OS functions
 **/
-struct CORE_API FWindowsPlatformMemory : public FGenericPlatformMemory
+struct CORE_API FWindowsPlatformMemory
+	: public FGenericPlatformMemory
 {
 	enum EMemoryCounterRegion
 	{
@@ -74,5 +74,6 @@ struct CORE_API FWindowsPlatformMemory : public FGenericPlatformMemory
 	static bool UnmapNamedSharedMemoryRegion(FSharedMemoryRegion * MemoryRegion);
 	// End FGenericPlatformMemory interface
 };
+
 
 typedef FWindowsPlatformMemory FPlatformMemory;

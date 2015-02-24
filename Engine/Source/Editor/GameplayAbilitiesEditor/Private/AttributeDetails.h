@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -75,9 +75,9 @@ private:
 
 	TSharedRef<SWidget> GetListContent();
 	void OnSelectionChanged(TSharedPtr<FString> SelectedItem, ESelectInfo::Type SelectInfo);
-	FString GetRowNameComboBoxContentText() const;
+	FText GetRowNameComboBoxContentText() const;
 	FText GetRowValuePreviewLabel() const;
-	FString GetRowValuePreviewText() const;
+	FText GetRowValuePreviewText() const;
 	TSharedRef<ITableRow> HandleRowNameComboBoxGenarateWidget(TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void OnFilterTextChanged(const FText& InFilterText);
 

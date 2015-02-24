@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "GlobalEditorCommonCommands.h"
@@ -25,12 +25,12 @@ public:
 		FAssetPickerConfig AssetPickerConfig;
 		AssetPickerConfig.OnAssetDoubleClicked = FOnAssetSelected::CreateSP(this, &SGlobalOpenAssetDialog::OnAssetSelectedFromPicker);
 		AssetPickerConfig.OnAssetEnterPressed = FOnAssetEnterPressed::CreateSP(this, &SGlobalOpenAssetDialog::OnPressedEnterOnAssetsInPicker);
-		AssetPickerConfig.ThumbnailScale = 0.0f;
 		AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
 		AssetPickerConfig.bAllowNullSelection = false;
 		AssetPickerConfig.bShowBottomToolbar = true;
 		AssetPickerConfig.bAutohideSearchBar = false;
 		AssetPickerConfig.bCanShowClasses = false;
+		AssetPickerConfig.SaveSettingsName = TEXT("GlobalAssetPicker");
 
 		ChildSlot
 		[

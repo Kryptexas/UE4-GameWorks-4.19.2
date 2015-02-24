@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompilerMisc.cpp
@@ -15,6 +15,10 @@
 #include "DefaultValueHelper.h"
 
 #define LOCTEXT_NAMESPACE "KismetCompiler"
+
+DECLARE_CYCLE_STAT(TEXT("Choose Terminal Scope"), EKismetCompilerStats_ChooseTerminalScope, STATGROUP_KismetCompiler);
+DECLARE_CYCLE_STAT(TEXT("Resolve compiled statements"), EKismetCompilerStats_ResolveCompiledStatements, STATGROUP_KismetCompiler );
+
 
 //////////////////////////////////////////////////////////////////////////
 // FKismetCompilerUtilities
@@ -614,13 +618,12 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 
 	FName ValidatedPropertyName = PropertyName;
 
-	// Check to see if there's already a property on this scope, and throw an internal compiler error if so
+	// Check to see if there's already a object on this scope with the same name, and throw an internal compiler error if so
 	// If this happens, it breaks the property link, which causes stack corruption and hard-to-track errors, so better to fail at this point
 	{
-		UProperty* ExistingProperty = FindObject<UProperty>(Scope, *PropertyName.ToString(), false);
-		if( ExistingProperty )
+		if (UObject* ExistingObject = FindObject<UObject>(Scope, *PropertyName.ToString(), false))
 		{
-			MessageLog.Error(*FString::Printf(TEXT("Internal Compiler Error:  Duplicate property %s on scope %s"), *PropertyName.ToString(), (Scope ? *Scope->GetName() : TEXT("None"))));
+			MessageLog.Error(*FString::Printf(TEXT("Internal Compiler Error:  Tried to create a property %s in scope %s, but another object of type %s already already exists there."), *PropertyName.ToString(), (Scope ? *Scope->GetName() : TEXT("None"))), *ExistingObject->GetFullName(Scope));
 
 			// Find a free name, so we can still create the property to make it easier to spot the duplicates, and avoid crashing
 			uint32 Counter = 0;
@@ -628,7 +631,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 			do 
 			{
 				TestNameString = PropertyName.ToString() + FString::Printf(TEXT("_ERROR_DUPLICATE_%d"), Counter++);
-			} while (FindObject<UProperty>(Scope, *TestNameString, false) != NULL);
+			} while (FindObject<UObject>(Scope, *TestNameString, false) != NULL);
 
 			ValidatedPropertyName = FName(*TestNameString);
 		}
@@ -663,7 +666,10 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 			if (SubType->HasAnyClassFlags(CLASS_Interface))
 			{
 				UInterfaceProperty* NewPropertyObj = NewNamedObject<UInterfaceProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
-				NewPropertyObj->InterfaceClass = SubType;
+				// we want to use this setter function instead of setting the 
+				// InterfaceClass member directly, because it properly handles  
+				// placeholder classes (classes that are stubbed in during load)
+				NewPropertyObj->SetInterfaceClass(SubType);
 				NewProperty = NewPropertyObj;
 			}
 			else
@@ -678,7 +684,10 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 				{
 					NewPropertyObj = NewNamedObject<UObjectProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 				}
-				NewPropertyObj->PropertyClass = SubType;
+				// we want to use this setter function instead of setting the 
+				// PropertyClass member directly, because it properly handles  
+				// placeholder classes (classes that are stubbed in during load)
+				NewPropertyObj->SetPropertyClass(SubType);
 				NewProperty = NewPropertyObj;
 			}
 		}
@@ -726,7 +735,10 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 		if (SubType != NULL)
 		{
 			UClassProperty* NewPropertyClass = NewNamedObject<UClassProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
-			NewPropertyClass->MetaClass = SubType;
+			// we want to use this setter function instead of setting the 
+			// MetaClass member directly, because it properly handles  
+			// placeholder classes (classes that are stubbed in during load)
+			NewPropertyClass->SetMetaClass(SubType);
 			NewPropertyClass->PropertyClass = UClass::StaticClass();
 			NewProperty = NewPropertyClass;
 		}
@@ -833,7 +845,7 @@ void FNodeHandlingFunctor::ResolveAndRegisterScopedTerm(FKismetFunctionContext& 
 		{
 			Term->bIsLocal = true;
 		}
-		else if (BoundProperty->HasAnyPropertyFlags(CPF_BlueprintReadOnly) || Context.IsConstFunction())
+		else if (BoundProperty->HasAnyPropertyFlags(CPF_BlueprintReadOnly) || (Context.IsConstFunction() && Context.NewClass->IsChildOf(SearchScope)))
 		{
 			// Read-only variables and variables in const classes are both const
 			Term->bIsConst = true;
@@ -999,12 +1011,14 @@ FKismetFunctionContext::FKismetFunctionContext(FCompilerResultsLog& InMessageLog
 	, bCannotBeCalledFromOtherKismet(false)
 	, bIsInterfaceStub(false)
 	, bIsConstFunction(false)
+	, bEnforceConstCorrectness(false)
 	// only need debug-data when running in the editor app:
 	, bCreateDebugData(GIsEditor && !IsRunningCommandlet())
 	, bIsSimpleStubGraphWithNoParams(false)
 	, NetFlags(0)
 	, SourceEventFromStubGraph(NULL)
 	, bGeneratingCpp(bInGeneratingCpp)
+	, bUseFlowStack(true)
 {
 	NetNameMap = new FNetNameMapping();
 	bAllocatedNetNameMap = true;
@@ -1048,6 +1062,243 @@ int32 FKismetFunctionContext::GetContextUniqueID()
 {
 	static int32 UUIDCounter = 1;
 	return UUIDCounter++;
+}
+
+void FKismetFunctionContext::MergeAdjacentStates()
+{
+	for (int32 ExecIndex = 0; ExecIndex < LinearExecutionList.Num(); ++ExecIndex)
+	{
+		// if the last statement in current node jumps to the first statement in next node, then it's redundant
+		const auto CurrentNode = LinearExecutionList[ExecIndex];
+		auto CurStatementList = StatementsPerNode.Find(CurrentNode);
+		const bool CurrentNodeIsValid = CurrentNode && CurStatementList && CurStatementList->Num();
+		const auto LastStatementInCurrentNode = CurrentNodeIsValid ? CurStatementList->Last() : NULL;
+
+		if (LastStatementInCurrentNode
+			&& LastStatementInCurrentNode->TargetLabel
+			&& (LastStatementInCurrentNode->Type == KCST_UnconditionalGoto)
+			&& !LastStatementInCurrentNode->bIsJumpTarget)
+		{
+			const auto NextNodeIndex = ExecIndex + 1;
+			const auto NextNode = LinearExecutionList.IsValidIndex(NextNodeIndex) ? LinearExecutionList[NextNodeIndex] : NULL;
+			const auto NextNodeStatements = StatementsPerNode.Find(NextNode);
+			const bool bNextNodeValid = NextNode && NextNodeStatements && NextNodeStatements->Num();
+			const auto FirstStatementInNextNode = bNextNodeValid ? (*NextNodeStatements)[0] : NULL;
+			if (FirstStatementInNextNode == LastStatementInCurrentNode->TargetLabel)
+			{
+				CurStatementList->RemoveAt(CurStatementList->Num() - 1);
+			}
+		}
+	}
+
+	// Remove unnecessary GotoReturn statements
+	// if it's last statement generated by last node (in LinearExecution) then it can be removed
+	const auto LastExecutedNode = LinearExecutionList.Num() ? LinearExecutionList.Last() : NULL;
+	TArray<FBlueprintCompiledStatement*>* StatementList = StatementsPerNode.Find(LastExecutedNode);
+	FBlueprintCompiledStatement* LastStatementInLastNode = (StatementList && StatementList->Num()) ? StatementList->Last() : NULL;
+	if (LastStatementInLastNode && (KCST_GotoReturn == LastStatementInLastNode->Type) && !LastStatementInLastNode->bIsJumpTarget)
+	{
+		StatementList->RemoveAt(StatementList->Num() - 1);
+	}
+}
+
+struct FGotoMapUtils
+{
+	static bool IsUberGraphEventStatement(const FBlueprintCompiledStatement* GotoStatement)
+	{
+		return GotoStatement
+			&& (GotoStatement->Type == KCST_CallFunction) 
+			&& (GotoStatement->UbergraphCallIndex == 0);
+	}
+
+	static UEdGraphNode* TargetNodeFromPin(const FBlueprintCompiledStatement* GotoStatement, const UEdGraphPin* ExecNet)
+	{
+		UEdGraphNode* TargetNode = NULL;
+		if (ExecNet && GotoStatement)
+		{
+			if (IsUberGraphEventStatement(GotoStatement))
+			{
+				TargetNode = ExecNet->GetOwningNode();
+			}
+			else if (ExecNet->LinkedTo.Num() > 0)
+			{
+				TargetNode = ExecNet->LinkedTo[0]->GetOwningNode();
+			}
+		}
+		return TargetNode;
+	}
+
+	static UEdGraphNode* TargetNodeFromMap(const FBlueprintCompiledStatement* GotoStatement, const TMap< FBlueprintCompiledStatement*, UEdGraphPin* >& GotoFixupRequestMap)
+	{
+		auto ExecNetPtr = GotoFixupRequestMap.Find(GotoStatement);
+		auto ExecNet = ExecNetPtr ? *ExecNetPtr : NULL;
+		return TargetNodeFromPin(GotoStatement, ExecNet);
+	}
+};
+
+void FKismetFunctionContext::ResolveGotoFixups()
+{
+	if (bCreateDebugData)
+	{
+		// if we're debugging, go through an insert a wire trace before  
+		// every "goto" statement so we can trace what execution pin a node
+		// was executed from
+		for (auto GotoIt = GotoFixupRequestMap.CreateIterator(); GotoIt; ++GotoIt)
+		{
+			FBlueprintCompiledStatement* GotoStatement = GotoIt.Key();
+			if (FGotoMapUtils::IsUberGraphEventStatement(GotoStatement))
+			{
+				continue;
+			}
+
+			InsertWireTrace(GotoIt.Key(), GotoIt.Value());
+		}
+	}
+
+	// Resolve the remaining fixups
+	for (auto GotoIt = GotoFixupRequestMap.CreateIterator(); GotoIt; ++GotoIt)
+	{
+		FBlueprintCompiledStatement* GotoStatement = GotoIt.Key();
+		const UEdGraphPin* ExecNet = GotoIt.Value();
+		const UEdGraphNode* TargetNode = FGotoMapUtils::TargetNodeFromPin(GotoStatement, ExecNet);
+
+		if (TargetNode == NULL)
+		{
+			// If Execution Flow Stack isn't necessary, then use GotoReturn instead EndOfThread.
+			// EndOfThread pops Execution Flow Stack, GotoReturn dosen't.
+			GotoStatement->Type = bUseFlowStack
+				? ((GotoStatement->Type == KCST_GotoIfNot) ? KCST_EndOfThreadIfNot : KCST_EndOfThread)
+				: ((GotoStatement->Type == KCST_GotoIfNot) ? KCST_GotoReturnIfNot : KCST_GotoReturn);
+		}
+		else
+		{
+			// Try to resolve the goto
+			TArray<FBlueprintCompiledStatement*>* StatementList = StatementsPerNode.Find(TargetNode);
+
+			if ((StatementList == NULL) || (StatementList->Num() == 0))
+			{
+				MessageLog.Error(TEXT("Statement tried to pass control flow to a node @@ that generates no code"), TargetNode);
+				GotoStatement->Type = KCST_CompileError;
+			}
+			else
+			{
+				// Wire up the jump target and notify the target that it is targeted
+				FBlueprintCompiledStatement& FirstStatement = *((*StatementList)[0]);
+				GotoStatement->TargetLabel = &FirstStatement;
+				FirstStatement.bIsJumpTarget = true;
+			}
+		}
+	}
+
+	// Clear out the pending fixup map
+	GotoFixupRequestMap.Empty();
+
+	//@TODO: Remove any wire debug sites where the next statement is a stack pop
+}
+
+void FKismetFunctionContext::FinalSortLinearExecList()
+{
+	auto K2Schema = CastChecked<UEdGraphSchema_K2>(Schema);
+	LinearExecutionList.RemoveAllSwap([&](UEdGraphNode* CurrentNode)
+	{
+		auto CurStatementList = StatementsPerNode.Find(CurrentNode);
+		return !(CurrentNode && CurStatementList && CurStatementList->Num());
+	});
+
+	TSet<UEdGraphNode*> UnsortedExecutionSet(LinearExecutionList);
+	LinearExecutionList.Empty();
+	TArray<UEdGraphNode*> SortedLinearExecutionList;
+
+	check(EntryPoint);
+	SortedLinearExecutionList.Push(EntryPoint);
+	UnsortedExecutionSet.Remove(EntryPoint);
+
+	TSet<UEdGraphNode*> NodesToStartNextChain;
+
+	while (UnsortedExecutionSet.Num())
+	{
+		UEdGraphNode* NextNode = NULL;
+
+		// get last state target
+		const auto CurrentNode = SortedLinearExecutionList.Last();
+		const auto CurStatementList = StatementsPerNode.Find(CurrentNode);
+		const bool CurrentNodeIsValid = CurrentNode && CurStatementList && CurStatementList->Num();
+		const auto LastStatementInCurrentNode = CurrentNodeIsValid ? CurStatementList->Last() : NULL;
+
+		// Find next element in current chain
+		if (LastStatementInCurrentNode && (LastStatementInCurrentNode->Type == KCST_UnconditionalGoto))
+		{
+			auto TargetNode = FGotoMapUtils::TargetNodeFromMap(LastStatementInCurrentNode, GotoFixupRequestMap);
+			NextNode = UnsortedExecutionSet.Remove(TargetNode) ? TargetNode : NULL;
+		}
+
+		if (CurrentNode)
+		{
+			for (auto Pin : CurrentNode->Pins)
+			{
+				if (Pin && (EEdGraphPinDirection::EGPD_Output == Pin->Direction) && K2Schema->IsExecPin(*Pin) && Pin->LinkedTo.Num())
+				{
+					for (auto Link : Pin->LinkedTo)
+					{
+						auto LinkedNode = Link->GetOwningNodeUnchecked();
+						if (LinkedNode && (LinkedNode != NextNode) && UnsortedExecutionSet.Contains(LinkedNode))
+						{
+							NodesToStartNextChain.Add(LinkedNode);
+						}
+					}
+				}
+			}
+		}
+
+		// Start next chain if the current is done
+		while (NodesToStartNextChain.Num() && !NextNode)
+		{
+			auto Iter = NodesToStartNextChain.CreateIterator();
+			NextNode = UnsortedExecutionSet.Remove(*Iter) ? *Iter : NULL;
+			Iter.RemoveCurrent();
+		}
+
+		if (!NextNode)
+		{
+			auto Iter = UnsortedExecutionSet.CreateIterator();
+			NextNode = *Iter;
+			Iter.RemoveCurrent();
+		}
+
+		check(NextNode);
+		SortedLinearExecutionList.Push(NextNode);
+	}
+
+	LinearExecutionList = SortedLinearExecutionList;
+}
+
+void FKismetFunctionContext::ResolveStatements()
+{
+	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ResolveCompiledStatements);
+	FinalSortLinearExecList();
+
+	static const FBoolConfigValueHelper OptimizeExecutionFlowStack(TEXT("Kismet"), TEXT("bOptimizeExecutionFlowStack"), GEngineIni);
+	if (OptimizeExecutionFlowStack)
+	{
+		const bool bFlowStackIsRequired = AllGeneratedStatements.ContainsByPredicate(
+			[](const FBlueprintCompiledStatement* Statement)
+		{
+			return Statement && (
+				(Statement->Type == KCST_EndOfThreadIfNot) ||
+				(Statement->Type == KCST_EndOfThread) ||
+				(Statement->Type == KCST_PushState));
+		});
+
+		bUseFlowStack = bFlowStackIsRequired;
+	}
+
+	ResolveGotoFixups();
+
+	static const FBoolConfigValueHelper OptimizeAdjacentStates(TEXT("Kismet"), TEXT("bOptimizeAdjacentStates"), GEngineIni);
+	if (OptimizeAdjacentStates)
+	{
+		MergeAdjacentStates();
+	}
 }
 
 struct FEventGraphUtils

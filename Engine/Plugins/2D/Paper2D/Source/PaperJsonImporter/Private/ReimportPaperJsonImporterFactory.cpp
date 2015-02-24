@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PaperJsonImporterPrivatePCH.h"
 #include "ReimportPaperJsonImporterFactory.h"
@@ -57,7 +57,7 @@ EReimportResult::Type UReimportPaperJsonImporterFactory::Reimport(UObject* Obj)
 	ExistingTexture = SpriteSheet->Texture;
 
 	EReimportResult::Type Result = EReimportResult::Failed;
-	if (UFactory::StaticImportObject(SpriteSheet->GetClass(), SpriteSheet->GetOuter(), *SpriteSheet->GetName(), RF_Public | RF_Standalone, *Filename, NULL, this))
+	if (UFactory::StaticImportObject(SpriteSheet->GetClass(), SpriteSheet->GetOuter(), *SpriteSheet->GetName(), RF_Public | RF_Standalone, *Filename, nullptr, this))
 	{
 		UE_LOG(LogPaperJsonImporter, Log, TEXT("Imported successfully"));
 		// Try to find the outer package so we can dirty it up
@@ -78,6 +78,11 @@ EReimportResult::Type UReimportPaperJsonImporterFactory::Reimport(UObject* Obj)
 	}
 
 	return Result;
+}
+
+int32 UReimportPaperJsonImporterFactory::GetPriority() const
+{
+	return ImportPriority;
 }
 
 #undef LOCTEXT_NAMESPACE

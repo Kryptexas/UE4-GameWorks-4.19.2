@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
 
@@ -8,7 +8,7 @@
 APaperTileMapActor::APaperTileMapActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	RenderComponent = ObjectInitializer.CreateDefaultSubobject<UPaperTileMapRenderComponent>(this, TEXT("RenderComponent"));
+	RenderComponent = ObjectInitializer.CreateDefaultSubobject<UPaperTileMapComponent>(this, TEXT("RenderComponent"));
 
 	RootComponent = RenderComponent;
 }
@@ -16,6 +16,8 @@ APaperTileMapActor::APaperTileMapActor(const FObjectInitializer& ObjectInitializ
 #if WITH_EDITOR
 bool APaperTileMapActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
+	Super::GetReferencedContentObjects(Objects);
+
 	if (const UObject* Asset = RenderComponent->AdditionalStatObject())
 	{
 		Objects.Add(const_cast<UObject*>(Asset));

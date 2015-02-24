@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 /*=============================================================================
 	HLSLMaterialTranslator.h: Translates material expressions into HLSL code.
 =============================================================================*/
@@ -21,6 +21,7 @@
 #include "MaterialCompiler.h"
 #include "MaterialUniformExpressions.h"
 #include "ParameterCollection.h"
+#include "Materials/MaterialParameterCollection.h"
 
 /** @return the number of components in a vector type. */
 uint32 GetNumComponents(EMaterialValueType Type)
@@ -47,6 +48,19 @@ EMaterialValueType GetVectorType(uint32 NumComponents)
 		case 4: return MCT_Float4;
 		default: return MCT_Unknown;
 	};
+}
+
+static inline int32 SwizzleComponentToIndex(TCHAR Component)
+{
+	switch (Component)
+	{
+	case TCHAR('x'): case TCHAR('X'): case TCHAR('r'): case TCHAR('R'): return 0;
+	case TCHAR('y'): case TCHAR('Y'): case TCHAR('g'): case TCHAR('G'): return 1;
+	case TCHAR('z'): case TCHAR('Z'): case TCHAR('b'): case TCHAR('B'): return 2;
+	case TCHAR('w'): case TCHAR('W'): case TCHAR('a'): case TCHAR('A'): return 3;
+	default:
+		return -1;
+	}
 }
 
 struct FShaderCodeChunk
@@ -340,7 +354,7 @@ public:
 			EMaterialShadingModel MaterialShadingModel = Material->GetShadingModel();
 
 			if (Material->GetMaterialDomain() == MD_Surface
-				&& (MaterialShadingModel == MSM_Subsurface || MaterialShadingModel == MSM_PreintegratedSkin || MaterialShadingModel == MSM_SubsurfaceProfile))
+				&& IsSubsurfaceShadingModel(MaterialShadingModel))
 			{
 				// Note we don't test for the blend mode as you can have a translucent material using the subsurface shading model
 
@@ -480,6 +494,19 @@ public:
 				ResourcesString += CustomExpressionImplementations[ExpressionIndex] + "\r\n\r\n";
 			}
 
+			// Per frame expressions
+			{
+				for (int32 Index = 0, Num = MaterialCompilationOutput.UniformExpressionSet.PerFrameUniformScalarExpressions.Num(); Index < Num; ++Index)
+				{
+					ResourcesString += FString::Printf(TEXT("float UE_Material_PerFrameScalarExpression%u;"), Index) + "\r\n\r\n";
+				}
+
+				for (int32 Index = 0, Num = MaterialCompilationOutput.UniformExpressionSet.PerFrameUniformVectorExpressions.Num(); Index < Num; ++Index)
+				{
+					ResourcesString += FString::Printf(TEXT("float4 UE_Material_PerFrameVectorExpression%u;"), Index) + "\r\n\r\n";
+				}
+			}
+
 			for(uint32 PropertyId = 0; PropertyId < MP_MAX; ++PropertyId)
 			{
 				if(PropertyId == MP_MaterialAttributes )
@@ -525,13 +552,6 @@ public:
 			MaterialTemplateLineNumber += 3;
 
 			MaterialCompilationOutput.UniformExpressionSet.SetParameterCollections(ParameterCollections);
-
-/* test
-			if(MaterialShadingModel == MSM_SubsurfaceProfile)
-			{
-				MaterialCompilationOutput.UniformExpressionSet.SetCompileInSubsurfaceProfile();
-			}
-*/
 
 			// Create the material uniform buffer struct.
 			MaterialCompilationOutput.UniformExpressionSet.CreateBufferStruct();
@@ -710,7 +730,7 @@ protected:
 
 		checkf(Index >= 0 && Index < CodeChunks[MaterialProperty][ShaderFrequency].Num(), TEXT("Index %d/%d, Platform=%d"), Index, CodeChunks[MaterialProperty][ShaderFrequency].Num(), Platform);
 		const FShaderCodeChunk& CodeChunk = CodeChunks[MaterialProperty][ShaderFrequency][Index];
-		if(CodeChunk.UniformExpression && CodeChunk.UniformExpression->IsConstant() || CodeChunk.bInline)
+		if((CodeChunk.UniformExpression && CodeChunk.UniformExpression->IsConstant()) || CodeChunk.bInline)
 		{
 			// Constant uniform expressions and code chunks which are marked to be inlined are accessed via Definition
 			return CodeChunk.Definition;
@@ -763,15 +783,15 @@ protected:
 			check(!CodeChunks[InProperty][InFrequency][Index].UniformExpression || CodeChunks[InProperty][InFrequency][Index].UniformExpression->IsConstant());
 			if (CodeChunks[InProperty][InFrequency][Index].UniformExpression && CodeChunks[InProperty][InFrequency][Index].UniformExpression->IsConstant())
 			{
-					// Handle a constant uniform expression being the only code chunk hooked up to a material input
-					const FShaderCodeChunk& CodeChunk = CodeChunks[InProperty][InFrequency][Index];
+				// Handle a constant uniform expression being the only code chunk hooked up to a material input
+				const FShaderCodeChunk& CodeChunk = CodeChunks[InProperty][InFrequency][Index];
 				OutValue = CodeChunk.Definition;
-				}
-				else
-				{
-					const FShaderCodeChunk& CodeChunk = CodeChunks[InProperty][InFrequency][Index];
-					// Combine the definition lines and the return statement
-					check(CodeChunk.bInline || CodeChunk.SymbolName.Len() > 0);
+			}
+			else
+			{
+				const FShaderCodeChunk& CodeChunk = CodeChunks[InProperty][InFrequency][Index];
+				// Combine the definition lines and the return statement
+				check(CodeChunk.bInline || CodeChunk.SymbolName.Len() > 0);
 				OutDefinitions = GetDefinitions(InProperty, InFrequency);
 				OutValue = CodeChunk.bInline ? CodeChunk.Definition : CodeChunk.SymbolName;
 			}
@@ -1006,9 +1026,9 @@ protected:
 			}
 		}
 
-		int32		BufferSize		= 256;
+		int32	BufferSize		= 256;
 		TCHAR*	FormattedCode	= NULL;
-		int32		Result			= -1;
+		int32	Result			= -1;
 
 		while(Result == -1)
 		{
@@ -1047,14 +1067,21 @@ protected:
 		TCHAR FormattedCode[MAX_SPRINTF]=TEXT("");
 		if(CodeChunk.Type == MCT_Float)
 		{
-			const static TCHAR IndexToMask[] = {'x', 'y', 'z', 'w'};
-			const int32 ScalarInputIndex = MaterialCompilationOutput.UniformExpressionSet.UniformScalarExpressions.AddUnique(CodeChunk.UniformExpression);
-			// Update the above FMemory::Malloc if this FCString::Sprintf grows in size, e.g. %s, ...
-			FCString::Sprintf(FormattedCode, TEXT("Material.ScalarExpressions[%u].%c"), ScalarInputIndex / 4, IndexToMask[ScalarInputIndex % 4]);
+			if (CodeChunk.UniformExpression->IsChangingPerFrame())
+			{
+				const int32 ScalarInputIndex = MaterialCompilationOutput.UniformExpressionSet.PerFrameUniformScalarExpressions.AddUnique(CodeChunk.UniformExpression);
+				FCString::Sprintf(FormattedCode, TEXT("UE_Material_PerFrameScalarExpression%u"), ScalarInputIndex);
+			}
+			else
+			{
+				const static TCHAR IndexToMask[] = {'x', 'y', 'z', 'w'};
+				const int32 ScalarInputIndex = MaterialCompilationOutput.UniformExpressionSet.UniformScalarExpressions.AddUnique(CodeChunk.UniformExpression);
+				// Update the above FMemory::Malloc if this FCString::Sprintf grows in size, e.g. %s, ...
+				FCString::Sprintf(FormattedCode, TEXT("Material.ScalarExpressions[%u].%c"), ScalarInputIndex / 4, IndexToMask[ScalarInputIndex % 4]);
+			}
 		}
 		else if(CodeChunk.Type & MCT_Float)
 		{
-			const int32 VectorInputIndex = MaterialCompilationOutput.UniformExpressionSet.UniformVectorExpressions.AddUnique(CodeChunk.UniformExpression);
 			const TCHAR* Mask;
 			switch(CodeChunk.Type)
 			{
@@ -1065,10 +1092,20 @@ protected:
 			default: Mask = TEXT(""); break;
 			};
 
-			FCString::Sprintf(FormattedCode, TEXT("Material.VectorExpressions[%u]%s"), VectorInputIndex, Mask);
+			if (CodeChunk.UniformExpression->IsChangingPerFrame())
+			{
+				const int32 VectorInputIndex = MaterialCompilationOutput.UniformExpressionSet.PerFrameUniformVectorExpressions.AddUnique(CodeChunk.UniformExpression);
+				FCString::Sprintf(FormattedCode, TEXT("UE_Material_PerFrameVectorExpression%u%s"), VectorInputIndex, Mask);
+			}
+			else
+			{
+				const int32 VectorInputIndex = MaterialCompilationOutput.UniformExpressionSet.UniformVectorExpressions.AddUnique(CodeChunk.UniformExpression);
+				FCString::Sprintf(FormattedCode, TEXT("Material.VectorExpressions[%u]%s"), VectorInputIndex, Mask);
+			}
 		}
 		else if(CodeChunk.Type & MCT_Texture)
 		{
+			check(!CodeChunk.UniformExpression->IsChangingPerFrame());
 			int32 TextureInputIndex = INDEX_NONE;
 			const TCHAR* BaseName = TEXT("");
 			switch(CodeChunk.Type)
@@ -1539,14 +1576,44 @@ protected:
 		return AddUniformExpression(new FMaterialUniformExpressionConstant(FLinearColor(X,Y,Z,W),MCT_Float4),MCT_Float4,TEXT("MaterialFloat4(%0.8f,%0.8f,%0.8f,%0.8f)"),X,Y,Z,W);
 	}
 
-	virtual int32 GameTime() override
+	virtual int32 GameTime(bool bPeriodic, float Period) override
 	{
-		return AddInlinedCodeChunk(MCT_Float, TEXT("View.GameTime"));
+		if (!bPeriodic)
+		{
+			return AddInlinedCodeChunk(MCT_Float, TEXT("View.GameTime"));
+		}
+		else if (Period == 0.0f)
+		{
+			return Constant(0.0f);
+		}
+
+		return AddUniformExpression(
+			new FMaterialUniformExpressionFmod(
+				new FMaterialUniformExpressionTime(),
+				new FMaterialUniformExpressionConstant(FLinearColor(Period, Period, Period, Period), MCT_Float)
+				),
+			MCT_Float, TEXT("")
+			);
 	}
 
-	virtual int32 RealTime() override
+	virtual int32 RealTime(bool bPeriodic, float Period) override
 	{
-		return AddInlinedCodeChunk(MCT_Float, TEXT("View.RealTime"));
+		if (!bPeriodic)
+		{
+			return AddInlinedCodeChunk(MCT_Float, TEXT("View.RealTime"));
+		}
+		else if (Period == 0.0f)
+		{
+			return Constant(0.0f);
+		}
+
+		return AddUniformExpression(
+			new FMaterialUniformExpressionFmod(
+				new FMaterialUniformExpressionRealTime(),
+				new FMaterialUniformExpressionConstant(FLinearColor(Period, Period, Period, Period), MCT_Float)
+				),
+			MCT_Float, TEXT("")
+			);
 	}
 
 	virtual int32 PeriodicHint(int32 PeriodicCode) override
@@ -2870,10 +2937,10 @@ protected:
 
 		EMaterialValueType	VectorType = GetParameterType(Vector);
 
-		if(	A && (VectorType & MCT_Float) < MCT_Float4 ||
-			B && (VectorType & MCT_Float) < MCT_Float3 ||
-			G && (VectorType & MCT_Float) < MCT_Float2 ||
-			R && (VectorType & MCT_Float) < MCT_Float1)
+		if(	(A && (VectorType & MCT_Float) < MCT_Float4) ||
+			(B && (VectorType & MCT_Float) < MCT_Float3) ||
+			(G && (VectorType & MCT_Float) < MCT_Float2) ||
+			(R && (VectorType & MCT_Float) < MCT_Float1))
 		{
 			return Errorf(TEXT("Not enough components in (%s: %s) for component mask %u%u%u%u"),*GetParameterCode(Vector),DescribeType(GetParameterType(Vector)),R,G,B,A);
 		}
@@ -2889,15 +2956,36 @@ protected:
 			return Errorf(TEXT("Couldn't determine result type of component mask %u%u%u%u"),R,G,B,A);
 		};
 
-		return AddInlinedCodeChunk(
-			ResultType,
-			TEXT("%s.%s%s%s%s"),
-			*GetParameterCode(Vector),
+		FString MaskString = FString::Printf(TEXT("%s%s%s%s"),
 			R ? TEXT("r") : TEXT(""),
 			// If VectorType is set to MCT_Float which means it could be any of the float types, assume it is a float1
 			G ? (VectorType == MCT_Float ? TEXT("r") : TEXT("g")) : TEXT(""),
 			B ? (VectorType == MCT_Float ? TEXT("r") : TEXT("b")) : TEXT(""),
 			A ? (VectorType == MCT_Float ? TEXT("r") : TEXT("a")) : TEXT("")
+			);
+
+		auto* Expression = GetParameterUniformExpression(Vector);
+		if (Expression)
+		{
+			int8 Mask[4] = {-1, -1, -1, -1};
+			for (int32 Index = 0; Index < MaskString.Len(); ++Index)
+			{
+				Mask[Index] = SwizzleComponentToIndex(MaskString[Index]);
+			}
+			return AddUniformExpression(
+				new FMaterialUniformExpressionComponentSwizzle(Expression, Mask[0], Mask[1], Mask[2], Mask[3]),
+				ResultType,
+				TEXT("%s.%s"),
+				*GetParameterCode(Vector),
+				*MaskString
+				);
+		}
+
+		return AddInlinedCodeChunk(
+			ResultType,
+			TEXT("%s.%s"),
+			*GetParameterCode(Vector),
+			*MaskString
 			);
 	}
 

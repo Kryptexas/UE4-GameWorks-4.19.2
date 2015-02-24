@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -42,10 +42,10 @@ private:
 	TSharedRef<ITableRow> HandleAddressListGenerateRow( FMessageTracerAddressInfoPtr AddressInfo, const TSharedRef<STableViewBase>& OwnerTable );
 
 	/** Callback for getting the number of received messages. */
-	FString HandleEndpointDetailsReceivedMessagesText() const;
+	FText HandleEndpointDetailsReceivedMessagesText() const;
 
 	/** Callback for getting the number of sent messages. */
-	FString HandleEndpointDetailsSentMessagesText() const;
+	FText HandleEndpointDetailsSentMessagesText() const;
 
 private:
 

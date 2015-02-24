@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "CrossCompilerTool.h"
@@ -12,7 +12,10 @@ namespace CCT
 		InputFile(""),
 		OutputFile(""),
 		BackEnd(BE_Invalid),
-		bRunCPP(true)
+		bRunCPP(true),
+		bUseNew(false),
+		bList(false),
+		bPreprocessOnly(false)
 	{
 	}
 
@@ -23,7 +26,7 @@ namespace CCT
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\tOptions:"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-o=file\tOutput filename"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-entry=function\tMain entry point (defaults to Main())"));
-		//UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-cpp\tOnly run C preprocessor"));
+		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-cpp\tOnly run C preprocessor"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-nocpp\tDo not run C preprocessor"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\tProfiles:"));
 		UE_LOG(LogCrossCompilerTool, Display, TEXT("\t\t\t-vs\tCompile as a Vertex Shader"));
@@ -242,6 +245,18 @@ namespace CCT
 			else if (Switch.StartsWith(TEXT("nocpp")))
 			{
 				bRunCPP = false;
+			}
+			else if (Switch.StartsWith(TEXT("cpp")))
+			{
+				bPreprocessOnly = true;
+			}
+			else if (Switch.StartsWith(TEXT("new")))
+			{
+				bUseNew = true;
+			}
+			else if (Switch.StartsWith(TEXT("list")))
+			{
+				bList = true;
 			}
 		}
 

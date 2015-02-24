@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 #include "SHierarchyViewItem.h"
@@ -99,7 +99,7 @@ void FHierarchyWidgetDragDropOp::OnDrop(bool bDropWasHandled, const FPointerEven
 
 //////////////////////////////////////////////////////////////////////////
 
-FReply ProcessHierarchyDragDrop(const FDragDropEvent& DragDropEvent, bool bIsDrop, UWidgetBlueprint* Blueprint, FWidgetReference TargetItem)
+FReply ProcessHierarchyDragDrop(const FDragDropEvent& DragDropEvent, bool bIsDrop, TSharedPtr<FWidgetBlueprintEditor> BlueprintEditor, UWidgetBlueprint* Blueprint, FWidgetReference TargetItem)
 {
 	// Is this a drag/drop op to create a new widget in the tree?
 	TSharedPtr<FWidgetTemplateDragDropOp> TemplateDragDropOp = DragDropEvent.GetOperationAs<FWidgetTemplateDragDropOp>();
@@ -200,8 +200,12 @@ FReply ProcessHierarchyDragDrop(const FDragDropEvent& DragDropEvent, bool bIsDro
 
 				// Import the old slot properties
 				FWidgetBlueprintEditorUtils::ImportPropertiesFromText(NewSlot, HierarchyDragDropOp->ExportedSlotProperties);
-				NewSlot->SetDesiredPosition(FVector2D::ZeroVector);
 				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+
+				TSet<FWidgetReference> SelectedTemplates;
+				SelectedTemplates.Add(BlueprintEditor->GetReferenceFromTemplate(TemplateWidget));
+
+				BlueprintEditor->SelectWidgets(SelectedTemplates, false);
 			}
 
 			return FReply::Handled();
@@ -383,14 +387,14 @@ FReply FHierarchyRoot::OnDragOver(const FGeometry& MyGeometry, const FDragDropEv
 {
 	UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 	bool bIsDrop = false;
-	return ProcessHierarchyDragDrop(DragDropEvent, bIsDrop, Blueprint, FWidgetReference());
+	return ProcessHierarchyDragDrop(DragDropEvent, bIsDrop, BlueprintEditor.Pin(), Blueprint, FWidgetReference());
 }
 
 FReply FHierarchyRoot::HandleDrop(FDragDropEvent const& DragDropEvent)
 {
 	UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 	bool bIsDrop = true;
-	return ProcessHierarchyDragDrop(DragDropEvent, bIsDrop, Blueprint, FWidgetReference());
+	return ProcessHierarchyDragDrop(DragDropEvent, bIsDrop, BlueprintEditor.Pin(), Blueprint, FWidgetReference());
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -416,7 +420,7 @@ FName FNamedSlotModel::GetUniqueName() const
 
 FText FNamedSlotModel::GetText() const
 {
-	if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Item.GetPreview()) )
+	if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Item.GetTemplate()) )
 	{
 		TSet<FWidgetReference> SelectedWidgets;
 		if ( UWidget* SlotContent = NamedSlotHost->GetContentForSlot(SlotName) )
@@ -519,6 +523,11 @@ FReply FNamedSlotModel::HandleDrop(FDragDropEvent const& DragDropEvent)
 				UWidget* Widget = TemplateDragDropOp->Template->Create(Blueprint->WidgetTree);
 				NamedSlotHost->SetContentForSlot(SlotName, Widget);
 				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+
+				TSet<FWidgetReference> SelectedTemplates;
+				SelectedTemplates.Add(BlueprintEditor.Pin()->GetReferenceFromTemplate(Widget));
+
+				BlueprintEditor.Pin()->SelectWidgets(SelectedTemplates, false);
 			}
 
 			return FReply::Handled();
@@ -643,7 +652,7 @@ FReply FHierarchyWidget::OnDragOver(const FGeometry& MyGeometry, const FDragDrop
 	{
 		bool bIsDrop = false;
 		UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
-		return ProcessHierarchyDragDrop(DragDropEvent, bIsDrop, Blueprint, Item);
+		return ProcessHierarchyDragDrop(DragDropEvent, bIsDrop, BlueprintEditor.Pin(), Blueprint, Item);
 	}
 
 	return FReply::Unhandled();
@@ -675,12 +684,18 @@ FReply FHierarchyWidget::HandleDrop(const FDragDropEvent& DragDropEvent)
 {
 	UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 	bool bIsDrop = true;
-	return ProcessHierarchyDragDrop(DragDropEvent, bIsDrop, Blueprint, Item);
+	return ProcessHierarchyDragDrop(DragDropEvent, bIsDrop, BlueprintEditor.Pin(), Blueprint, Item);
 }
 
 bool FHierarchyWidget::OnVerifyNameTextChanged(const FText& InText, FText& OutErrorMessage)
 {
 	FString NewName = InText.ToString();
+
+	if (NewName.IsEmpty())
+	{
+		OutErrorMessage = LOCTEXT("EmptyWidgetName", "Empty Widget Name");
+		return false;
+	}
 
 	UWidgetBlueprint* Blueprint = BlueprintEditor.Pin()->GetWidgetBlueprintObj();
 	UWidget* ExistingTemplate = Blueprint->WidgetTree->FindWidget( FName(*NewName) );
@@ -688,7 +703,7 @@ bool FHierarchyWidget::OnVerifyNameTextChanged(const FText& InText, FText& OutEr
 	bool bIsSameWidget = false;
 	if ( ExistingTemplate != NULL )
 	{
-		if ( Item.GetTemplate() == ExistingTemplate )
+		if ( Item.GetTemplate() != ExistingTemplate )
 		{
 			OutErrorMessage = LOCTEXT("ExistingWidgetName", "Existing Widget Name");
 			return false;
@@ -722,7 +737,7 @@ void FHierarchyWidget::GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Childr
 	TSharedPtr<FWidgetBlueprintEditor> BPEd = BlueprintEditor.Pin();
 
 	// Check for named slots
-	if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Item.GetPreview()) )
+	if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Item.GetTemplate()) )
 	{
 		TArray<FName> SlotNames;
 		NamedSlotHost->GetSlotNames(SlotNames);
@@ -860,7 +875,14 @@ bool SHierarchyViewItem::OnVerifyNameTextChanged(const FText& InText, FText& Out
 
 void SHierarchyViewItem::OnNameTextCommited(const FText& InText, ETextCommit::Type CommitInfo)
 {
-	return Model->OnNameTextCommited(InText, CommitInfo);
+	// The model can return nice names "Border_53" becomes [Border] in some cases
+	// This check makes sure we don't rename the object internally to that nice name.
+	// Most common case would be the user enters edit mode by accident then just moves focus away.
+	if (Model->GetText().EqualToCaseIgnored(InText))
+	{
+		return;
+	}
+	Model->OnNameTextCommited(InText, CommitInfo);
 }
 
 FSlateFontInfo SHierarchyViewItem::GetItemFont() const

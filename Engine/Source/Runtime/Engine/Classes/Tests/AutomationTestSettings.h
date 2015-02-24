@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AutomationTestSettings.h: Declares the UAutomationTestSettings class.
@@ -292,6 +292,23 @@ struct FEditorMapPerformanceTestDefinition
 };
 
 /**
+* Holds settings for the editor Launch On With Map Iterations test.
+*/
+USTRUCT()
+struct FLaunchOnTestSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	/** Map to be used for the Launch On test **/
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "umap"))
+	FFilePath LaunchOnTestmap;
+
+	/** Device to be used **/
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (ToolTip = "This is the device to be used for launch on. Example: WindowsNoEditor, Android, IOS, Linux"))
+	FString DeviceID;
+};
+
+/**
  * Implements the Editor's user settings.
  */
 UCLASS(config=Engine)
@@ -355,7 +372,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = Automation)
 	TArray<FEditorImportExportTestDefinition> ImportExportTestDefinitions;
 
-
-
+	/**
+	* The map and device type to be used for the editor Launch On With Map Iterations test.
+	*/
+	UPROPERTY(config, EditAnywhere, Category = Automation, meta = (FilePathFilter = "umap"))
+	TArray<FLaunchOnTestSettings> LaunchOnSettings;
 
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintFunctionNodeSpawner.h"
@@ -10,6 +10,13 @@
 #include "EditorCategoryUtils.h"	// for BuildCategoryString()
 #include "ObjectEditorUtils.h"		// for IsFunctionHiddenFromClass()
 #include "BlueprintNodeSpawnerUtils.h" // for GetBindingClass()
+#include "K2Node_Literal.h"
+#include "K2Node_CallFunctionOnMember.h"
+#include "K2Node_CommutativeAssociativeBinaryOperator.h"
+#include "K2Node_CallMaterialParameterCollectionFunction.h"
+#include "K2Node_CallDataTableFunction.h"
+#include "K2Node_CallArrayFunction.h"
+#include "K2Node_VariableGet.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintFunctionNodeSpawner"
 
@@ -322,8 +329,16 @@ FBlueprintActionUiSpec UBlueprintFunctionNodeSpawner::GetUiSpec(FBlueprintAction
 
 		if (!TargetClass->IsChildOf(FunctionClass))
 		{
-			MenuSignature.Category = FEditorCategoryUtils::BuildCategoryString( FCommonEditorCategory::Class, 
-				FText::FromString(FunctionClass->GetDisplayNameText().ToString()) );
+			// When there are no bindings set, functions need to be categorized into a category "Class" to help reduce clutter in the tree root
+			if(Bindings.Num() == 0)
+			{
+				MenuSignature.Category = FEditorCategoryUtils::BuildCategoryString( FCommonEditorCategory::Class, 
+					FText::FromString(FunctionClass->GetDisplayNameText().ToString()) );
+			}
+			else
+			{
+				MenuSignature.Category = FText::FromString(FunctionClass->GetDisplayNameText().ToString());
+			}
 		}
 	}
 

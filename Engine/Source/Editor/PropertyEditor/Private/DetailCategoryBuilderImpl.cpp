@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "DetailCategoryBuilderImpl.h"
@@ -18,6 +18,7 @@
 #include "DetailPropertyRow.h"
 #include "DetailGroup.h"
 #include "DetailCustomBuilderRow.h"
+#include "StructurePropertyNode.h"
 
 namespace DetailLayoutConstants
 {
@@ -101,7 +102,7 @@ FDetailCategoryImpl::~FDetailCategoryImpl()
 }
 
 
-FDetailWidgetRow& FDetailCategoryImpl::AddCustomRow( const FString& FilterString, bool bForAdvanced )
+FDetailWidgetRow& FDetailCategoryImpl::AddCustomRow( const FText& FilterString, bool bForAdvanced )
 {
 	FDetailLayoutCustomization NewCustomization;
 	NewCustomization.WidgetDecl = MakeShareable( new FDetailWidgetRow );
@@ -121,7 +122,7 @@ void FDetailCategoryImpl::AddCustomBuilder( TSharedRef<IDetailCustomNodeBuilder>
 	AddCustomLayout( NewCustomization, bForAdvanced );
 }
 
-IDetailGroup& FDetailCategoryImpl::AddGroup( FName GroupName, const FString& LocalizedDisplayName, bool bForAdvanced, bool bStartExpanded )
+IDetailGroup& FDetailCategoryImpl::AddGroup( FName GroupName, const FText& LocalizedDisplayName, bool bForAdvanced, bool bStartExpanded )
 {
 	FDetailLayoutCustomization NewCustomization;
 	NewCustomization.DetailGroup = MakeShareable( new FDetailGroup( GroupName, AsShared(), LocalizedDisplayName, bStartExpanded ) );
@@ -309,6 +310,60 @@ IDetailPropertyRow* FDetailCategoryImpl::AddExternalProperty( const TArray<UObje
 	return NULL;
 }
 
+IDetailPropertyRow* FDetailCategoryImpl::AddExternalProperty( TSharedPtr<FStructOnScope> StructData, FName PropertyName, EPropertyLocation::Type Location/* = EPropertyLocation::Default*/ )
+{
+	TSharedPtr<FStructurePropertyNode> RootPropertyNode( new FStructurePropertyNode );
+
+	//SET
+	RootPropertyNode->SetStructure(StructData);
+
+	FPropertyNodeInitParams InitParams;
+	InitParams.ParentNode = NULL;
+	InitParams.Property = NULL;
+	InitParams.ArrayOffset = 0;
+	InitParams.ArrayIndex = INDEX_NONE;
+	InitParams.bAllowChildren = true;
+	InitParams.bForceHiddenPropertyVisibility = FPropertySettings::Get().ShowHiddenProperties();
+	InitParams.bCreateCategoryNodes = false;
+
+	RootPropertyNode->InitNode(InitParams);
+
+	if( RootPropertyNode.IsValid() )
+	{
+		RootPropertyNode->RebuildChildren();
+
+		FDetailLayoutCustomization NewCustomization;
+
+		for(int32 ChildIdx = 0; ChildIdx < RootPropertyNode->GetNumChildNodes(); ++ChildIdx)
+		{
+			TSharedPtr< FPropertyNode > PropertyNode = RootPropertyNode->GetChildNode(ChildIdx);
+			if(UProperty* Property = PropertyNode->GetProperty())
+			{
+				if(Property->GetFName() == PropertyName)
+				{
+					NewCustomization.PropertyRow = MakeShareable( new FDetailPropertyRow( PropertyNode, AsShared(), RootPropertyNode ) );
+					break;
+				}
+			}
+		}
+
+		bool bForAdvanced = false;
+		if( Location == EPropertyLocation::Advanced )
+		{
+			// Force advanced
+			bForAdvanced = true;
+		}
+
+		DetailLayoutBuilder.Pin()->AddExternalRootPropertyNode( RootPropertyNode.ToSharedRef() );
+
+		AddCustomLayout( NewCustomization, bForAdvanced );
+
+		return NewCustomization.PropertyRow.Get();
+	}
+
+	return NULL;
+}
+
 void FDetailCategoryImpl::AddPropertyNode( TSharedRef<FPropertyNode> PropertyNode, FName InstanceName )
 {
 	FDetailLayoutCustomization NewCustomization;
@@ -439,7 +494,7 @@ bool FDetailCategoryImpl::ContainsOnlyAdvanced() const
 	return SimpleChildNodes.Num() == 0 && AdvancedChildNodes.Num() > 0;
 }
 
-void FDetailCategoryImpl::SetDisplayName( FName InCategoryName, const FString& LocalizedNameOverride )
+void FDetailCategoryImpl::SetDisplayName( FName InCategoryName, const FText& LocalizedNameOverride )
 {
 	if( !LocalizedNameOverride.IsEmpty() )
 	{
@@ -467,11 +522,11 @@ void FDetailCategoryImpl::SetDisplayName( FName InCategoryName, const FString& L
 
 		if ( FoundText )
 		{
-			DisplayName = DisplayNameText.ToString();
+			DisplayName = DisplayNameText;
 		}
 		else
 		{
-			DisplayName = SourceCategoryStr;
+			DisplayName = FText::FromString( SourceCategoryStr );
 		}
 	}
 }

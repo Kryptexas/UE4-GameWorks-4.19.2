@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DepthRendering.cpp: Depth rendering implementation.
@@ -254,6 +254,7 @@ FPositionOnlyDepthDrawingPolicy::FPositionOnlyDepthDrawingPolicy(
 	FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,false,bIsTwoSided,bIsWireframe)
 {
 	VertexShader = InMaterialResource.GetShader<TDepthOnlyVS<true> >(InVertexFactory->GetType());
+	bUsePositionOnlyVS = true;
 }
 
 void FPositionOnlyDepthDrawingPolicy::SetSharedState(FRHICommandList& RHICmdList, const FSceneView* View, const ContextDataType PolicyContext) const
@@ -387,7 +388,7 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 
 	//Do a per-FMeshBatch check on top of the proxy check in RenderPrePass to handle the case where a proxy that is relevant 
 	//to the depth only pass has to submit multiple FMeshElements but only some of them should be used as occluders.
-	if (Mesh.bUseAsOccluder)
+	if (Mesh.bUseAsOccluder || DrawingContext.DepthDrawingMode == DDM_AllOpaque)
 	{
 		const FMaterialRenderProxy* MaterialRenderProxy = Mesh.MaterialRenderProxy;
 		const FMaterial* Material = MaterialRenderProxy->GetMaterial(View.GetFeatureLevel());
@@ -430,6 +431,8 @@ bool FDepthDrawingPolicyFactory::DrawMesh(
 
 			switch(DrawingContext.DepthDrawingMode)
 			{
+			case DDM_AllOpaque:
+				break;
 			case DDM_AllOccluders: 
 				break;
 			case DDM_NonMaskedOnly: 
@@ -524,9 +527,4 @@ bool FDepthDrawingPolicyFactory::DrawStaticMesh(
 		);
 
 	return bDirty;
-}
-
-bool FDepthDrawingPolicyFactory::IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
-{
-	return IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
 }

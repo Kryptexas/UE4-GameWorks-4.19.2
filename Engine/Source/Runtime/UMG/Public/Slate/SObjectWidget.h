@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,6 +23,8 @@ class SObjectWidget : public SCompoundWidget, public FGCObject
 	virtual ~SObjectWidget(void);
 
 	void Construct(const FArguments& InArgs, UUserWidget* InWidgetObject);
+
+	void ResetWidget();
 
 	// FGCObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;

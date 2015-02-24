@@ -1,9 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "SFriendsList.h"
 #include "FriendsViewModel.h"
+#include "FriendViewModel.h"
 #include "FriendListViewModel.h"
+#include "SFriendItem.h"
 
 #define LOCTEXT_NAMESPACE "SFriendsList"
 
@@ -23,7 +25,7 @@ public:
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
-			SAssignNew(Contents, SBorder)
+			SAssignNew(FriendsContents, SVerticalBox)
 		]);
 
 		RefreshFriendsList();
@@ -32,10 +34,7 @@ public:
 private:
 	void RefreshFriendsList()
 	{
-		Contents->ClearContent();
-
-		TSharedPtr<SVerticalBox> FriendsContents;
-		SAssignNew(FriendsContents, SVerticalBox);
+		FriendsContents->ClearChildren();
 
 		for(const auto& OnlineFriend : ViewModel->GetFriendsList())
 		{
@@ -48,21 +47,47 @@ private:
 				.Method(MenuMethod)
 			];
 		}
-
-		Contents->SetContent(FriendsContents.ToSharedRef());
 	}
 
 private:
 	/** Holds the style to use when making the widget. */
 	FFriendsAndChatStyle FriendStyle;
 	TSharedPtr<FFriendListViewModel> ViewModel;
-	TSharedPtr<SBorder> Contents;
-	SMenuAnchor::EMethod MenuMethod;
+	TSharedPtr<SVerticalBox> FriendsContents;
+	EPopupMethod MenuMethod;
 };
 
 TSharedRef<SFriendsList> SFriendsList::New()
 {
 	return MakeShareable(new SFriendsListImpl());
+}
+
+const FButtonStyle* SFriendsList::GetActionButtonStyle(const FFriendsAndChatStyle& FriendStyle, EFriendActionLevel ActionLevel)
+{
+	switch (ActionLevel)
+	{
+		case EFriendActionLevel::Critical:
+			return &FriendStyle.FriendListCriticalButtonStyle;
+		case EFriendActionLevel::Emphasis:
+			return &FriendStyle.FriendListEmphasisButtonStyle;
+		case EFriendActionLevel::Action:
+		default:
+			return &FriendStyle.FriendListActionButtonStyle;
+	}
+}
+
+FSlateColor SFriendsList::GetActionButtonFontColor(const FFriendsAndChatStyle& FriendStyle, EFriendActionLevel ActionLevel)
+{
+	switch (ActionLevel)
+	{
+	case EFriendActionLevel::Critical:
+		return FSlateColor(FriendStyle.FriendListCriticalFontColor);
+	case EFriendActionLevel::Emphasis:
+		return FSlateColor(FriendStyle.FriendListEmphasisFontColor);
+	case EFriendActionLevel::Action:
+	default:
+		return FSlateColor(FriendStyle.FriendListActionFontColor);
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AutomationWindowPrivatePCH.h"
 
@@ -16,7 +16,7 @@ AutomationPresetRef FAutomationTestPresetManager::AddNewPreset( )
 }
 
 
-AutomationPresetRef FAutomationTestPresetManager::AddNewPreset( const FString& PresetName, const TArray<FString>& SelectedTests )
+AutomationPresetRef FAutomationTestPresetManager::AddNewPreset( const FText& PresetName, const TArray<FString>& SelectedTests )
 {
 	AutomationPresetRef NewPreset = AddNewPreset();
 	NewPreset->SetPresetName(PresetName);

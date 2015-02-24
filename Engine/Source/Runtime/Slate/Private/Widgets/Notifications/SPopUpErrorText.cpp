@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
@@ -7,7 +7,6 @@ void SPopupErrorText::Construct( const FArguments& InArgs )
 {
 	SComboButton::Construct( SComboButton::FArguments()
 		.ComboButtonStyle( FCoreStyle::Get(), "MessageLogListingComboButton" )
-		.Method( InArgs._ShowInNewWindow ? SMenuAnchor::CreateNewWindow : SMenuAnchor::UseCurrentWindow )
 		.HasDownArrow(false)
 		.ContentPadding(0)
 		.ButtonContent()

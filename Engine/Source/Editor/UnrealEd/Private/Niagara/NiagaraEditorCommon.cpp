@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
@@ -21,6 +21,9 @@ void FNiagaraOpInfo::Init()
 	FName Y(TEXT("Y"));	FText YText = NSLOCTEXT("NiagaraOpInfo", "Second Vector Component", "Y");
 	FName Z(TEXT("Z"));	FText ZText = NSLOCTEXT("NiagaraOpInfo", "Third Vector Component", "Z");
 	FName W(TEXT("W"));	FText WText = NSLOCTEXT("NiagaraOpInfo", "Fourth Vector Component", "W");
+	
+	FText MinText = NSLOCTEXT("NiagaraOpInfo", "Min", "Min");
+	FText MaxText = NSLOCTEXT("NiagaraOpInfo", "Max", "Max");
 
 	TMap<FName, FNiagaraOpInfo>& OpInfos = GetOpInfoMap();
 
@@ -252,9 +255,9 @@ void FNiagaraOpInfo::Init()
 	Op->Name = Clamp;
 	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "Clamp Name", "Clamp");
 	Op->Description = NSLOCTEXT("NiagaraOpInfo", "Clamp Desc", "Clamp");
-	Op->Inputs.Add(FNiagaraOpInOutInfo(A, ENiagaraDataType::Vector, AText, AText, DefaultStr_VecZero));
-	Op->Inputs.Add(FNiagaraOpInOutInfo(B, ENiagaraDataType::Vector, BText, BText, DefaultStr_VecOne));
-	Op->Inputs.Add(FNiagaraOpInOutInfo(C, ENiagaraDataType::Vector, CText, CText, DefaultStr_VecOne));
+	Op->Inputs.Add(FNiagaraOpInOutInfo(X, ENiagaraDataType::Vector, XText, XText, DefaultStr_VecZero));
+	Op->Inputs.Add(FNiagaraOpInOutInfo(Min, ENiagaraDataType::Vector, MinText, MinText, DefaultStr_VecOne));
+	Op->Inputs.Add(FNiagaraOpInOutInfo(Max, ENiagaraDataType::Vector, MaxText, MaxText, DefaultStr_VecOne));
 	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, ENiagaraDataType::Vector, ResultText, ResultText, DefaultStr_VecOne));
 	Op->OpDelegate.BindStatic(&INiagaraCompiler::Clamp);
 
@@ -262,8 +265,8 @@ void FNiagaraOpInfo::Init()
 	Op->Name = Min;
 	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "Min Name", "Min");
 	Op->Description = NSLOCTEXT("NiagaraOpInfo", "Min Desc", "Min");
-	Op->Inputs.Add(FNiagaraOpInOutInfo(A, ENiagaraDataType::Vector, AText, AText, DefaultStr_VecZero));
-	Op->Inputs.Add(FNiagaraOpInOutInfo(B, ENiagaraDataType::Vector, BText, BText, DefaultStr_VecOne));
+	Op->Inputs.Add(FNiagaraOpInOutInfo(X, ENiagaraDataType::Vector, XText, XText, DefaultStr_VecZero));
+	Op->Inputs.Add(FNiagaraOpInOutInfo(Min, ENiagaraDataType::Vector, MinText, MinText, DefaultStr_VecOne));
 	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, ENiagaraDataType::Vector, ResultText, ResultText, DefaultStr_VecOne));
 	Op->OpDelegate.BindStatic(&INiagaraCompiler::Min);
 
@@ -271,8 +274,8 @@ void FNiagaraOpInfo::Init()
 	Op->Name = Max;
 	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "Max Name", "Max");
 	Op->Description = NSLOCTEXT("NiagaraOpInfo", "Max Desc", "Max");
-	Op->Inputs.Add(FNiagaraOpInOutInfo(A, ENiagaraDataType::Vector, AText, AText, DefaultStr_VecZero));
-	Op->Inputs.Add(FNiagaraOpInOutInfo(B, ENiagaraDataType::Vector, BText, BText, DefaultStr_VecOne));
+	Op->Inputs.Add(FNiagaraOpInOutInfo(X, ENiagaraDataType::Vector, XText, XText, DefaultStr_VecZero));
+	Op->Inputs.Add(FNiagaraOpInOutInfo(Max, ENiagaraDataType::Vector, MaxText, MaxText, DefaultStr_VecOne));
 	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, ENiagaraDataType::Vector, ResultText, ResultText, DefaultStr_VecOne));
 	Op->OpDelegate.BindStatic(&INiagaraCompiler::Max);
 
@@ -298,7 +301,6 @@ void FNiagaraOpInfo::Init()
 	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "Step Name", "Step");
 	Op->Description = NSLOCTEXT("NiagaraOpInfo", "Step Desc", "Step");
 	Op->Inputs.Add(FNiagaraOpInOutInfo(A, ENiagaraDataType::Vector, AText, AText, DefaultStr_VecOne));
-	Op->Inputs.Add(FNiagaraOpInOutInfo(B, ENiagaraDataType::Vector, BText, BText, DefaultStr_VecOne));
 	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, ENiagaraDataType::Vector, ResultText, ResultText, DefaultStr_VecOne));
 	Op->OpDelegate.BindStatic(&INiagaraCompiler::Step);
 
@@ -343,14 +345,6 @@ void FNiagaraOpInfo::Init()
 	Op->Inputs.Add(FNiagaraOpInOutInfo(A, ENiagaraDataType::Vector, AText, AText, DefaultStr_VecOne));
 	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, ENiagaraDataType::Vector, ResultText, ResultText, DefaultStr_VecOne));
 	Op->OpDelegate.BindStatic(&INiagaraCompiler::Length);
-
-	Op = &OpInfos.Add(Sin4);
-	Op->Name = Sin4;
-	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "Sin4 Name", "Sin4");
-	Op->Description = NSLOCTEXT("NiagaraOpInfo", "Sin4 Desc", "Sin4");
-	Op->Inputs.Add(FNiagaraOpInOutInfo(A, ENiagaraDataType::Vector, AText, AText, DefaultStr_VecZero));
-	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, ENiagaraDataType::Vector, ResultText, ResultText, DefaultStr_VecZero));
-	Op->OpDelegate.BindStatic(&INiagaraCompiler::Sin4);
 
 	Op = &OpInfos.Add(Noise);
 	Op->Name = Noise;
@@ -515,7 +509,17 @@ void FNiagaraOpInfo::Init()
 	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, ENiagaraDataType::Matrix, ResultText, ResultText, DefaultStr_VecOne));
 	Op->OpDelegate.BindStatic(&INiagaraCompiler::Inverse);
 
-#define NiagaraOp(OpName) if (GetOpInfo(OpName) == NULL)\
+
+	Op = &OpInfos.Add(LessThan);
+	Op->Name = LessThan;
+	Op->FriendlyName = NSLOCTEXT("NiagaraOpInfo", "LessThan Name", "A Less Than B");
+	Op->Description = NSLOCTEXT("NiagaraOpInfo", "LessThan Desc", "Result = 1 if A<B, 0 otherwise");
+	Op->Inputs.Add(FNiagaraOpInOutInfo(A, ENiagaraDataType::Vector, AText, AText, DefaultStr_VecOne));
+	Op->Inputs.Add(FNiagaraOpInOutInfo(B, ENiagaraDataType::Vector, BText, BText, DefaultStr_VecOne));
+	Op->Outputs.Add(FNiagaraOpInOutInfo(Result, ENiagaraDataType::Vector, ResultText, ResultText, DefaultStr_VecOne));
+	Op->OpDelegate.BindStatic(&INiagaraCompiler::LessThan);
+
+	#define NiagaraOp(OpName) if (GetOpInfo(OpName) == NULL)\
 	{\
 	UE_LOG(LogNiagaraCompiler, Fatal, TEXT("Couldn't find info for \"%s\". Have you added it to the NiagaraOpList but not provided the extra information in FNiagaraOpInfo::Init() ?"), TEXT(#OpName)); \
 	}

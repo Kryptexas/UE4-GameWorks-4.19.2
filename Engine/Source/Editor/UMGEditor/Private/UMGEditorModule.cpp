@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 
@@ -21,12 +21,13 @@
 
 const FName UMGEditorAppIdentifier = FName(TEXT("UMGEditorApp"));
 
-class FUMGEditorModule : public IUMGEditorModule
+class FUMGEditorModule : public IUMGEditorModule, public IBlueprintCompiler
 {
 public:
 	/** Constructor, set up console commands and variables **/
 	FUMGEditorModule()
 	{
+		ReRegister = nullptr;
 	}
 
 	/** Called right after the module DLL has been loaded and the module object has been created */
@@ -34,16 +35,17 @@ public:
 	{
 		FModuleManager::LoadModuleChecked<IUMGModule>("UMG");
 
-		FDesignerCommands::Register();
+		if (GIsEditor)
+		{
+			FDesignerCommands::Register();
+		}
 
 		MenuExtensibilityManager = MakeShareable(new FExtensibilityManager());
 		ToolBarExtensibilityManager = MakeShareable(new FExtensibilityManager());
 
 		// Register widget blueprint compiler we do this no matter what.
 		IKismetCompilerInterface& KismetCompilerModule = FModuleManager::LoadModuleChecked<IKismetCompilerInterface>("KismetCompiler");
-		FBlueprintCompileDelegate sd;
-		sd.BindRaw(this, &FUMGEditorModule::CompileWidgetBlueprint);
-		KismetCompilerModule.GetCompilers().Add(sd);
+		KismetCompilerModule.GetCompilers().Add(this);
 
 		// Register asset types
 		IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
@@ -51,8 +53,8 @@ public:
 
 		// Register with the sequencer module that we provide auto-key handlers.
 		ISequencerModule& SequencerModule = FModuleManager::Get().LoadModuleChecked<ISequencerModule>("Sequencer");
-		SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&FMarginTrackEditor::CreateTrackEditor));
-		SequencerModule.RegisterTrackEditor(FOnCreateTrackEditor::CreateStatic(&F2DTransformTrackEditor::CreateTrackEditor));
+		MarginTrackEditorCreateTrackEditorHandle    = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&FMarginTrackEditor::CreateTrackEditor));
+		TransformTrackEditorCreateTrackEditorHandle = SequencerModule.RegisterTrackEditor_Handle(FOnCreateTrackEditor::CreateStatic(&F2DTransformTrackEditor::CreateTrackEditor));
 	}
 
 	/** Called before the module is unloaded, right before the module object is destroyed. */
@@ -73,20 +75,38 @@ public:
 		CreatedAssetTypeActions.Empty();
 	}
 
-	FReply CompileWidgetBlueprint(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded)
+	bool CanCompile(const UBlueprint* Blueprint)
 	{
-		if ( UWidgetBlueprint* WidgetBlueprint = Cast<UWidgetBlueprint>(Blueprint) )
-		{
-			TComponentReregisterContext<UWidgetComponent> ComponentReregisterContext;
+		return Cast<UWidgetBlueprint>(Blueprint) != nullptr;
+	}
 
+	void PreCompile(UBlueprint* Blueprint)
+	{
+		ReRegister = new TComponentReregisterContext<UWidgetComponent>();
+	}
+
+	void Compile(UBlueprint* Blueprint, const FKismetCompilerOptions& CompileOptions, FCompilerResultsLog& Results, TArray<UObject*>* ObjLoaded)
+	{
+		if ( UWidgetBlueprint* WidgetBlueprint = CastChecked<UWidgetBlueprint>(Blueprint) )
+		{
 			FWidgetBlueprintCompiler Compiler(WidgetBlueprint, Results, CompileOptions, ObjLoaded);
 			Compiler.Compile();
 			check(Compiler.NewClass);
-
-			return FReply::Handled();
 		}
+	}
 
-		return FReply::Unhandled();
+	void PostCompile(UBlueprint* Blueprint)
+	{
+		if (ReRegister)
+		{
+			delete ReRegister;
+			ReRegister = nullptr;
+		}
+		
+		if ( GIsEditor && GEditor )
+		{
+			GEditor->RedrawAllViewports(true);
+		}
 	}
 
 	/** Gets the extensibility managers for outside entities to extend gui page editor's menus and toolbars */
@@ -104,8 +124,13 @@ private:
 	TSharedPtr<FExtensibilityManager> MenuExtensibilityManager;
 	TSharedPtr<FExtensibilityManager> ToolBarExtensibilityManager;
 
+	FDelegateHandle MarginTrackEditorCreateTrackEditorHandle;
+	FDelegateHandle TransformTrackEditorCreateTrackEditorHandle;
+
 	/** All created asset type actions.  Cached here so that we can unregister it during shutdown. */
 	TArray< TSharedPtr<IAssetTypeActions> > CreatedAssetTypeActions;
+
+	TComponentReregisterContext<UWidgetComponent>* ReRegister;
 };
 
 IMPLEMENT_MODULE(FUMGEditorModule, UMGEditor);

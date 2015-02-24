@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
 
@@ -21,6 +21,8 @@ APaperTerrainActor::APaperTerrainActor(const FObjectInitializer& ObjectInitializ
 #if WITH_EDITOR
 bool APaperTerrainActor::GetReferencedContentObjects(TArray<UObject*>& Objects) const
 {
+	Super::GetReferencedContentObjects(Objects);
+
 	if (RenderComponent->TerrainMaterial != nullptr)
 	{
 		Objects.Add(RenderComponent->TerrainMaterial);

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -115,7 +115,7 @@ protected:
 
 	// Arrays of combo box data: list items, and tooltips
 	TArray< TSharedPtr<FString> > ComboBoxList;
-	TArray< TSharedPtr<FString> > ComboBoxToolTips;
+	TArray< FText > ComboBoxToolTips;
 
 	// Flags whether the slider is being moved at the moment on any of our widgets
 	bool bIsUsingSlider;

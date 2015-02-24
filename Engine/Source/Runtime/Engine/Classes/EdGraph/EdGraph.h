@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "BlueprintUtilities.h"
@@ -98,10 +98,14 @@ public:
 	const class UEdGraphSchema* GetSchema() const;
 
 	/** Add a listener for OnGraphChanged events */
-	void AddOnGraphChangedHandler( const FOnGraphChanged::FDelegate& InHandler );
+	FDelegateHandle AddOnGraphChangedHandler( const FOnGraphChanged::FDelegate& InHandler );
 
 	/** Remove a listener for OnGraphChanged events */
+	DELEGATE_DEPRECATED("This overload of RemoveOnGraphChangedHandler is deprecated, instead pass the result of AddOnGraphChangedHandler.")
 	void RemoveOnGraphChangedHandler( const FOnGraphChanged::FDelegate& InHandler );
+
+	/** Remove a listener for OnGraphChanged events */
+	void RemoveOnGraphChangedHandler( FDelegateHandle Handle );
 
 #if WITH_EDITORONLY_DATA
 	// Begin UObject interface
@@ -147,8 +151,9 @@ public:
 	 * Move all nodes from this graph to another graph
 	 * @param DestinationGraph	The graph to move the nodes too 
 	 * @param bIsLoading		If true, the node move is occurring during a blueprint load
+	 * @param bInIsCompiling	TRUE if the function is being called during compilation, this will eliminate some nodes that will not be compiled
 	 */
-	void MoveNodesToAnotherGraph(UEdGraph* DestinationGraph, bool bIsLoading);
+	void MoveNodesToAnotherGraph(UEdGraph* DestinationGraph, bool bIsLoading, bool bInIsCompiling = false);
 
 	/** Finds all the nodes of a given minimum type in the graph */
 	template<class MinRequiredType, class ArrayElementType>
@@ -185,10 +190,14 @@ public:
 	void NotifyPostChange( const FPropertyChangedEvent& PropertyChangedEvent, const FString& PropertyName );
 
 	/** Add a delegate listening for property change notifications */
-	void AddPropertyChangedNotifier(const FOnPropertyChanged::FDelegate& InDelegate );
+	FDelegateHandle AddPropertyChangedNotifier(const FOnPropertyChanged::FDelegate& InDelegate );
 
 	/** Remove a delegate listening for property changed notifications */
+	DELEGATE_DEPRECATED("This overload of RemovePropertyChangedNotifier is deprecated, instead pass the result of AddPropertyChangedNotifier.")
 	void RemovePropertyChangedNotifier(const FOnPropertyChanged::FDelegate& InDelegate );
+
+	/** Remove a delegate listening for property changed notifications */
+	void RemovePropertyChangedNotifier(FDelegateHandle InHandle );
 #endif
 
 protected:

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CurveAssetEditorPrivatePCH.h"
 
@@ -8,6 +8,9 @@
 //#include "Toolkits/IToolkitHost.h"
 #include "WorkspaceMenuStructureModule.h"
 #include "SDockTab.h"
+#include "Curves/CurveVector.h"
+#include "Curves/CurveLinearColor.h"
+#include "Curves/CurveFloat.h"
 
 #define LOCTEXT_NAMESPACE "CurveAssetEditor"
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "stdafx.h"
 #include "MonteCarlo.h"
@@ -15,11 +15,11 @@ void GenerateCoordinateSystem(const FVector4& ZAxis, FVector4& XAxis, FVector4& 
 	if (XAxisCandidate.SizeSquared3() < KINDA_SMALL_NUMBER)
 	{
 		// The vector was nearly equal to the Y axis, use the X axis instead
-		XAxis = (ZAxis ^ FVector4(1,0,0)).UnsafeNormal3();
+		XAxis = (ZAxis ^ FVector4(1,0,0)).GetUnsafeNormal3();
 	}
 	else
 	{
-		XAxis = XAxisCandidate.UnsafeNormal3();
+		XAxis = XAxisCandidate.GetUnsafeNormal3();
 	}
 
 	YAxis = ZAxis ^ XAxis;
@@ -29,7 +29,7 @@ void GenerateCoordinateSystem(const FVector4& ZAxis, FVector4& XAxis, FVector4& 
 /** Generates a pseudo-random unit vector, uniformly distributed over all directions. */
 FVector4 GetUnitVector(FLMRandomStream& RandomStream)
 {
-	return GetUnitPosition(RandomStream).UnsafeNormal3();
+	return GetUnitPosition(RandomStream).GetUnsafeNormal3();
 }
 
 /** Generates a pseudo-random position inside the unit sphere, uniformly distributed over the volume of the sphere. */
@@ -99,15 +99,15 @@ FVector4 GetModifiedPhongSpecularVector(FLMRandomStream& RandomStream, const FVe
 		const FVector4 GeneratedSpecularTangentVector(FMath::Cos(Phi) * SinTheta, FMath::Sin(Phi) * SinTheta, FMath::Cos(Alpha));
 
 		// Generate the X and Y axes of the coordinate space whose Z is the perfect specular direction
-		FVector4 SpecularTangentX = (TangentSpecularDirection ^ FVector4(0,1,0)).UnsafeNormal3();
+		FVector4 SpecularTangentX = (TangentSpecularDirection ^ FVector4(0,1,0)).GetUnsafeNormal3();
 		if (SpecularTangentX.SizeSquared3() < KINDA_SMALL_NUMBER)
 		{
 			// The specular direction was nearly equal to the Y axis, use the X axis instead
-			SpecularTangentX = (TangentSpecularDirection ^ FVector4(1,0,0)).UnsafeNormal3();
+			SpecularTangentX = (TangentSpecularDirection ^ FVector4(1,0,0)).GetUnsafeNormal3();
 		}
 		else
 		{
-			SpecularTangentX = SpecularTangentX.UnsafeNormal3();
+			SpecularTangentX = SpecularTangentX.GetUnsafeNormal3();
 		}
 		const FVector4 SpecularTangentY = TangentSpecularDirection ^ SpecularTangentX;
 

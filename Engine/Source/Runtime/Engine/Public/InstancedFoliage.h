@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InstancedFoliage.h: Instanced foliage type definitions.
@@ -10,6 +10,7 @@
 // Forward declarations.
 //
 class UInstancedStaticMeshComponent;
+class UHierarchicalInstancedStaticMeshComponent;
 class AInstancedFoliageActor;
 class UFoliageType;
 struct FFoliageInstanceHash;
@@ -19,9 +20,10 @@ struct FFoliageInstanceHash;
  */
 enum EFoliageInstanceFlags
 {
-	FOLIAGE_AlignToNormal = 0x00000001,
-	FOLIAGE_NoRandomYaw   = 0x00000002,
-	FOLIAGE_Readjusted    = 0x00000004,
+	FOLIAGE_AlignToNormal	= 0x00000001,
+	FOLIAGE_NoRandomYaw		= 0x00000002,
+	FOLIAGE_Readjusted		= 0x00000004,
+	FOLIAGE_InstanceDeleted	= 0x00000008,	// Used only for migration from pre-HierarchicalISM foliage.
 };
 
 /**
@@ -51,12 +53,10 @@ struct FFoliageInstancePlacementInfo
  */
 struct FFoliageInstance : public FFoliageInstancePlacementInfo
 {
-	UPrimitiveComponent* Base;
-	int32 ClusterIndex;	// -1/INDEX_NONE if this instance is invalid and its array slot can be reused.
+	UActorComponent* Base;
 
 	FFoliageInstance()
-		: Base(NULL)
-		, ClusterIndex(INDEX_NONE)
+	: Base(NULL)
 	{}
 
 
@@ -94,27 +94,6 @@ struct FFoliageInstance : public FFoliageInstancePlacementInfo
 		PreAlignRotation = Rotation;
 		Rotation = FRotator(FQuat(AlignRotation) * FQuat(Rotation));
 	}
-};
-
-/**
- *	FFoliageInstanceCluster - render info for a cluster of meshes
- */
-struct FFoliageInstanceCluster
-{
-	UInstancedStaticMeshComponent* ClusterComponent;
-	FBoxSphereBounds Bounds;
-
-#if WITH_EDITORONLY_DATA
-	TArray<int32> InstanceIndices;	// index into editor editor Instances array
-#endif
-
-	FFoliageInstanceCluster()
-	{}
-	FFoliageInstanceCluster(UInstancedStaticMeshComponent* InClusterComponent, const FBoxSphereBounds& InBounds)
-		: ClusterComponent(InClusterComponent)
-		, Bounds(InBounds)
-	{}
-	friend FArchive& operator<<(FArchive& Ar, FFoliageInstanceCluster& Cluster);
 };
 
 /**
@@ -172,10 +151,12 @@ struct FFoliageComponentHashInfo
  */
 struct FFoliageMeshInfo
 {
-	// Cluster allocation data and pointers to components
-	TArray<FFoliageInstanceCluster> InstanceClusters;
+	UHierarchicalInstancedStaticMeshComponent* Component;
 
 #if WITH_EDITORONLY_DATA
+	// Allows us to detect if FoliageType was updated while this level wasn't loaded
+	FGuid FoliageTypeUpdateGuid;
+
 	// Editor-only placed instances
 	TArray<FFoliageInstance> Instances;
 
@@ -185,11 +166,8 @@ struct FFoliageMeshInfo
 	// Transient, editor-only set of instances per component
 	TMap<UActorComponent*, FFoliageComponentHashInfo> ComponentHash;
 
-	// Transient, editor-only list of free instance slots.
-	TArray<int32> FreeInstanceIndices;
-
 	// Transient, editor-only list of selected instances.
-	TArray<int32> SelectedIndices;
+	TSet<int32> SelectedIndices;
 #endif
 
 	ENGINE_API FFoliageMeshInfo();
@@ -199,12 +177,12 @@ struct FFoliageMeshInfo
 
 	FFoliageMeshInfo(FFoliageMeshInfo&& Other)
 		// even VC++2013 doesn't support "=default" on move constructors
-		: InstanceClusters(MoveTemp(Other.InstanceClusters))
+		: Component(Other.Component)
 #if WITH_EDITORONLY_DATA
+		, FoliageTypeUpdateGuid(MoveTemp(Other.FoliageTypeUpdateGuid))
 		, Instances(MoveTemp(Other.Instances))
 		, InstanceHash(MoveTemp(Other.InstanceHash))
 		, ComponentHash(MoveTemp(Other.ComponentHash))
-		, FreeInstanceIndices(MoveTemp(Other.FreeInstanceIndices))
 		, SelectedIndices(MoveTemp(Other.SelectedIndices))
 #endif
 	{ }
@@ -212,12 +190,12 @@ struct FFoliageMeshInfo
 	FFoliageMeshInfo& operator=(FFoliageMeshInfo&& Other)
 		// even VC++2013 doesn't support "=default" on move assignment
 	{
-		InstanceClusters = MoveTemp(Other.InstanceClusters);
+		Component = Other.Component;
 #if WITH_EDITORONLY_DATA
+		FoliageTypeUpdateGuid = MoveTemp(Other.FoliageTypeUpdateGuid);
 		Instances = MoveTemp(Other.Instances);
 		InstanceHash = MoveTemp(Other.InstanceHash);
 		ComponentHash = MoveTemp(Other.ComponentHash);
-		FreeInstanceIndices = MoveTemp(Other.FreeInstanceIndices);
 		SelectedIndices = MoveTemp(Other.SelectedIndices);
 #endif
 
@@ -237,8 +215,9 @@ struct FFoliageMeshInfo
 
 	// Destroy existing clusters and reassign all instances to new clusters
 	ENGINE_API void ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliageType* InSettings);
-	// Update settings in the clusters based on the current settings (eg culling distance, collision, ...)
-	//ENGINE_API void UpdateClusterSettings(AInstancedFoliageActor* InIFA);
+
+	ENGINE_API void ReapplyInstancesToComponent();
+
 	ENGINE_API void SelectInstances(AInstancedFoliageActor* InIFA, bool bSelect, TArray<int32>& Instances);
 
 	// Get the number of placed instances

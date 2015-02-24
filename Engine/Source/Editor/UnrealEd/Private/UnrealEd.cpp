@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealEd.cpp: UnrealEd package file
@@ -21,6 +21,7 @@
 #include "AssetEditorManager.h"
 
 #include "EditorActorFolders.h"
+#include "UnrealEngine.h"
 
 UUnrealEdEngine* GUnrealEd;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AppFrameworkPrivatePCH.h"
 #include "STableViewTesting.h"
@@ -6,6 +6,29 @@
 
 #define LOCTEXT_NAMESPACE "STableViewTesting"
 
+class FTestData;
+
+/** Simple DragDropOperation for reordering items in this example's lists and trees. */
+class FTableViewDragDrop : public FDragDropOperation
+{
+public:
+	DRAG_DROP_OPERATOR_TYPE(FTableViewDragDrop, FDragDropOperation);
+
+	static TSharedRef<FTableViewDragDrop> New(const TSharedRef<FTestData>& InTestData)
+	{
+		return MakeShareable(new FTableViewDragDrop(InTestData));
+	}
+
+	const TSharedRef<FTestData>& GetDraggedItem() const { return TestData; }
+
+private:
+	FTableViewDragDrop(const TSharedRef<FTestData>& InTestData)
+	: TestData( InTestData )
+	{
+	}
+
+	TSharedRef<FTestData> TestData;
+};
 
 /**
  * A data item with which we can test lists and trees.
@@ -17,6 +40,71 @@ class FTestData
 		static TSharedRef<FTestData> Make( const FText& ChildName )
 		{
 			return MakeShareable( new FTestData( ChildName, MakeRandomItemHeight() ) );
+		}
+
+		/**
+		 * Recursively look for `ItemToRemove` in `RemoveFrom` and any of the descendants, and remove `ItemToRemove`.
+		 * @return true when successful.
+		 */
+		static bool RemoveRecursive(TArray< TSharedPtr< FTestData > >& RemoveFrom, const TSharedPtr<FTestData>& ItemToRemove)
+		{
+			const int32 ItemIndex = RemoveFrom.Find(ItemToRemove);
+			if (ItemIndex != INDEX_NONE)
+			{
+				RemoveFrom.RemoveAt(ItemIndex);
+				return true;
+			}
+
+			// Did not successfully remove an item. Try all the children.
+			for (int32 ItemIndex = 0; ItemIndex < RemoveFrom.Num(); ++ItemIndex)
+			{
+				if (RemoveRecursive(RemoveFrom[ItemIndex]->Children, ItemToRemove))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		/**
+		 * Recursively look for `TargetItem` in `InsertInto` and any of the descendants.
+		 * Insert `ItemToInsert` relative to the target.
+		 * Relative positioning dictated by `RelativeLocation`.
+		 *
+		 * @return true when successful.
+		 */
+		static bool InsertRecursive(TArray< TSharedPtr< FTestData > >& InsertInto, const TSharedRef<FTestData>& ItemToInsert, const TSharedRef<FTestData>& TargetItem, EItemDropZone RelativeLocation)
+		{
+			const int32 TargetIndex = InsertInto.Find(TargetItem);
+			if (TargetIndex != INDEX_NONE)
+			{
+				if (RelativeLocation == EItemDropZone::AboveItem)
+				{
+					InsertInto.Insert(ItemToInsert, TargetIndex);
+				}
+				else if (RelativeLocation == EItemDropZone::BelowItem)
+				{
+					InsertInto.Insert(ItemToInsert, TargetIndex + 1);
+				}
+				else
+				{
+					ensure(RelativeLocation == EItemDropZone::OntoItem);
+					InsertInto[TargetIndex]->Children.Insert(ItemToInsert, 0);
+				}				
+				return true;
+			}
+
+			// Did not successfully remove an item. Try all the children.
+			for (int32 ItemIndex = 0; ItemIndex < InsertInto.Num(); ++ItemIndex)
+			{
+				if (InsertRecursive(InsertInto[ItemIndex]->Children, ItemToInsert, TargetItem, RelativeLocation))
+				{
+					return true;
+				}
+			}
+
+			return false;
 		}
 
 		static float MakeRandomItemHeight()
@@ -243,7 +331,10 @@ public:
 		: _ItemToEdit()
 		{}
 
-		SLATE_ARGUMENT( TSharedPtr<FTestData>, ItemToEdit )
+		SLATE_EVENT(FOnCanAcceptDrop, OnCanAcceptDrop)
+		SLATE_EVENT(FOnAcceptDrop, OnAcceptDrop)
+		SLATE_EVENT(FOnDragDetected, OnDragDetected)
+		SLATE_ARGUMENT(TSharedPtr<FTestData>, ItemToEdit)
 
 	SLATE_END_ARGS()
 	
@@ -340,7 +431,12 @@ public:
 	{
 		ItemToEdit = InArgs._ItemToEdit;
 		
-		FSuperRowType::Construct( FSuperRowType::FArguments().Padding(1), InOwnerTableView );	
+		FSuperRowType::Construct( FSuperRowType::FArguments()
+			.OnCanAcceptDrop(InArgs._OnCanAcceptDrop)
+			.OnAcceptDrop(InArgs._OnAcceptDrop)
+			.OnDragDetected(InArgs._OnDragDetected)
+			.Padding(1)
+		, InOwnerTableView);
 	}
 	
 	void SpawnContextMenu( const FVector2D& SpawnLocation )
@@ -410,6 +506,8 @@ private:
 	TSharedPtr<FTestData> ItemToEdit;
 };
 
+
+
 /**
  * An Item Editor used by tile view testing.
  * It visualizes a string and edits its contents.
@@ -422,7 +520,10 @@ public:
 		: _ItemToEdit()
 		{}
 
-		SLATE_ARGUMENT( TSharedPtr<FTestData>, ItemToEdit )
+		SLATE_EVENT(FOnCanAcceptDrop, OnCanAcceptDrop)
+		SLATE_EVENT(FOnAcceptDrop, OnAcceptDrop)
+		SLATE_EVENT(FOnDragDetected, OnDragDetected)
+		SLATE_ARGUMENT(TSharedPtr<FTestData>, ItemToEdit)
 
 	SLATE_END_ARGS()
 	
@@ -433,11 +534,12 @@ public:
 	 */
 	void Construct( const FArguments& InArgs, const TSharedRef<STableViewBase>& InOwnerTableView )
 	{
-		STableRow<TSharedPtr<FTestData> >::ConstructInternal(
-			STableRow::FArguments()
-				.ShowSelection(true),
-			InOwnerTableView
-		);
+		STableRow<TSharedPtr<FTestData> >::ConstructInternal( STableRow::FArguments()
+			.OnCanAcceptDrop(InArgs._OnCanAcceptDrop)
+			.OnAcceptDrop(InArgs._OnAcceptDrop)
+			.OnDragDetected(InArgs._OnDragDetected)
+			.ShowSelection(true)
+		, InOwnerTableView);
 
 		ItemToEdit = InArgs._ItemToEdit;
 
@@ -674,13 +776,15 @@ public:
 			+SVerticalBox::Slot()
 			.FillHeight(1)
 			[
-				SNew(SBox) .HeightOverride(500.0f)
+				SNew(SBox)
+				.HeightOverride(500.0f)
 				[
 					SNew( SSplitter )
 					+ SSplitter::Slot()
 					. Value(1)
 					[
 						SNew(SBorder)
+						.BorderImage(FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder"))
 						[
 							SNew(SHorizontalBox)
 							+SHorizontalBox::Slot()
@@ -728,6 +832,7 @@ public:
 					. Value(1)
 					[
 						SNew(SBorder)
+						.BorderImage(FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder"))
 						[
 							// The tile view being tested
 							SAssignNew( TileViewBeingTested, STileView< TSharedPtr<FTestData> > )
@@ -749,6 +854,7 @@ public:
 					. Value(1)
 					[
 						SNew(SBorder)
+						.BorderImage(FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder"))
 						[
 							// The TreeView being tested; mostly identical to ListView except for OnGetChildren
 							SAssignNew( TreeBeingTested, STreeView< TSharedPtr<FTestData> > )
@@ -792,13 +898,52 @@ public:
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 	STableViewTesting()
-	: TotalItems( 125 )
+	: TotalItems( 5000 )
 	, ScrollToIndex( 0 )
 	{
 	}
 	
 protected:
 	
+	FReply OnDragDetected_Handler(const FGeometry&, const FPointerEvent&, TWeakPtr<FTestData> TestData)
+	{
+		return FReply::Handled().BeginDragDrop(FTableViewDragDrop::New(TestData.Pin().ToSharedRef()));
+	}
+
+
+	TOptional<EItemDropZone> OnCanAcceptDrop_Handler(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, TSharedPtr<FTestData> TargetItem)
+	{
+		TSharedPtr<FTableViewDragDrop> DragDropOperation = DragDropEvent.GetOperationAs<FTableViewDragDrop>();
+		if (DragDropOperation.IsValid())
+		{
+			return DropZone;
+		}
+		else
+		{
+			return TOptional<EItemDropZone>();
+		}
+	}
+
+
+	FReply OnAcceptDrop_Handler(const FDragDropEvent& DragDropEvent, EItemDropZone DropZone, TSharedPtr<FTestData> TargetItem)
+	{
+		TSharedPtr<FTableViewDragDrop> DragDropOperation = DragDropEvent.GetOperationAs<FTableViewDragDrop>();
+		if (DragDropOperation.IsValid())
+		{
+			const TSharedRef<FTestData>& ItemBeingDragged = DragDropOperation->GetDraggedItem();
+			FTestData::RemoveRecursive(Items, ItemBeingDragged);
+			FTestData::InsertRecursive(Items, ItemBeingDragged, TargetItem.ToSharedRef(), DropZone);
+			this->ListBeingTested->RequestListRefresh();
+			this->TreeBeingTested->RequestTreeRefresh();
+			this->TileViewBeingTested->RequestListRefresh();
+			return FReply::Handled();
+		}
+		else
+		{
+			return FReply::Unhandled();
+		}		
+	}
+
 	TSharedPtr<SWidget> GetListContextMenu()
 	{
 		return 
@@ -985,7 +1130,17 @@ protected:
 	{
 		return
 			SNew( SItemEditor, OwnerTable )
-			. ItemToEdit( InItem );
+			// Triggered when a user is attempting to drag, so initiate a DragDropOperation.
+			.OnDragDetected(this, &STableViewTesting::OnDragDetected_Handler, TWeakPtr<FTestData>(InItem))
+
+			// Given a hovered drop zone (above, onto, or below) respond with a zone where we would actually drop the item.
+			// Respond with an un-set TOptional<EItemDropZone> if we cannot drop here at all.
+			.OnCanAcceptDrop(this, &STableViewTesting::OnCanAcceptDrop_Handler)
+
+			// Actually perform the drop into the given drop zone.
+			.OnAcceptDrop(this, &STableViewTesting::OnAcceptDrop_Handler)
+
+			.ItemToEdit( InItem );
 	}
 
 
@@ -996,7 +1151,10 @@ protected:
 	{
 		return
 			SNew( STileItemEditor, OwnerTable )
-			. ItemToEdit( InItem );
+			.OnCanAcceptDrop(this, &STableViewTesting::OnCanAcceptDrop_Handler)
+			.OnAcceptDrop(this, &STableViewTesting::OnAcceptDrop_Handler)
+			.OnDragDetected(this, &STableViewTesting::OnDragDetected_Handler, TWeakPtr<FTestData>(InItem))
+			.ItemToEdit( InItem );
 	}
 	
 	
@@ -1007,7 +1165,10 @@ protected:
 	{
 		return
 			SNew( SItemEditor, OwnerTable )
-			. ItemToEdit( InItem );
+			.OnCanAcceptDrop( this, &STableViewTesting::OnCanAcceptDrop_Handler )
+			.OnAcceptDrop( this, &STableViewTesting::OnAcceptDrop_Handler )
+			.OnDragDetected(this, &STableViewTesting::OnDragDetected_Handler, TWeakPtr<FTestData>(InItem))
+			.ItemToEdit( InItem );
 	}
 	
 	/** Given a data item populate the OutChildren array with the item's children. */

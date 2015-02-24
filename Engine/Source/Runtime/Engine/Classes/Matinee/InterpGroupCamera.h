@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -68,13 +68,6 @@ class UInterpGroupCamera : public UInterpGroup
 	/** When compress, tolerance option **/
 	UPROPERTY(EditAnywhere, Category=InterpGroupCamera)
 	float CompressTolerance;
-
-
-	// Begin UOBject Interface
-#if WITH_EDITOR
-	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
-#endif // WITH_EDITOR
-	// End UOBject Interface
 };
 
 

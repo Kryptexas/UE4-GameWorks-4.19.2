@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "IPropertyTableColumn.h"
@@ -56,12 +56,12 @@ protected:
 
 		if( Object.IsValid() )
 		{
-			ToolTip = SNew( SToolTip ).Text( Object->GetName() );
+			ToolTip = SNew( SToolTip ).Text( FText::FromString(Object->GetName()) );
 		}
 		else if ( PropertyPath.IsValid() && PropertyPath->GetNumProperties() > 0 )
 		{
 			UProperty* Property = PropertyPath->GetLeafMostProperty().Property.Get();
-			const FText ToolTipText = FText::FromString( PropertyEditorHelpers::GetToolTipText( Property ) );
+			const FText ToolTipText = PropertyEditorHelpers::GetToolTipText( Property );
 			const FString DocumentationLink = PropertyEditorHelpers::GetDocumentationLink( Property );
 			const FString DocumentationExcerptName = PropertyEditorHelpers::GetDocumentationExcerptName( Property );
 			ToolTip = IDocumentation::Get()->CreateToolTip( ToolTipText, NULL, DocumentationLink, DocumentationExcerptName );
@@ -99,7 +99,7 @@ protected:
 			[
 				SNew( STextBlock )
 				.Font( FEditorStyle::GetFontStyle( TextFontStyle ) )
-				.Text( DisplayNamePieces[ Index ] )
+				.Text( FText::FromString(DisplayNamePieces[ Index ]) )
 			];
 
 			if ( Index < DisplayNamePieces.Num() - 1 )

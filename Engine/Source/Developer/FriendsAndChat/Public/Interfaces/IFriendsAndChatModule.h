@@ -1,12 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-
-/** Delegate type for FriendsList updated. */
-DECLARE_MULTICAST_DELEGATE_OneParam( FOnFriendsNotification, const FFriendsAndChatMessageRef& )
 DECLARE_DELEGATE_RetVal(bool, FFriendsSystemReady )
-
 
 /**
  * Interface for the Friends and chat manager.
@@ -27,68 +23,7 @@ public:
 		return FModuleManager::LoadModuleChecked<IFriendsAndChatModule>("FriendsAndChat");
 	}
 
-	/**
-	 * Checks to see if this module is loaded and ready.  It is only valid to call Get() if IsAvailable() returns true.
-	 *
-	 * @return True if the module is loaded and ready to use
-	 */
-	static inline bool IsAvailable()
-	{
-		if (FModuleManager::Get().IsModuleLoaded("FriendsAndChat"))
-		{
-			return true;
-		}
-		return false;
-	}
-
-	/**
-	 * Initialization function.
-	 *
-	 * @param bAllowLaunchGame Can this app launch a game directly. CP cannot
-	 */
-	virtual void Init( bool bAllowLaunchGame = true ) = 0;
-
-	/**
-	 * Returns a delegate that is executed when we receive a Friends List notification.
-	 *
-	 * @return The delegate.
-	 */
-	 virtual FOnFriendsNotification& OnFriendsListNotification() = 0;
-
-	/**
-	 * Create the friends list widget.
-	 *
-	 * @param ParentWindow The parent window to add the widget
-	 * @param InStyle The style to use to create the widgets
-	 */
-	virtual void CreateFriendsListWidget( TSharedPtr< const SWidget > ParentWidget, const struct FFriendsAndChatStyle* InStyle ) = 0;
-
-	/**
-	 * Create the a friends list widget without a container.
-	 * @param InStyle The style to use to create the widgets.
-	 * @return The Friends List widget.
-	 */
-	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const struct FFriendsAndChatStyle* InStyle ) = 0;
-
-	/**
-	 * Set that we are in a session, so can send join game requests.
-	 *
-	 * @param bInSession If we are in a session.
-	 */
-	virtual void SetInSession( bool bInSession ) = 0;
-
-	/**
-	 * Callback for if a notification failed. Will resend later.
-	 *
-	 * @param NetID The original caller ID.
-	 */
-	virtual void SetUnhandledNotification( TSharedRef< FUniqueNetId > NetID ) = 0;
-
-	/** Clear game invites. */
-	virtual void ClearGameInvites() = 0;
-
-	/** Log out and kill the friends list window. */
-	virtual void Logout() = 0;
+	virtual TSharedRef<IFriendsAndChatManager> GetFriendsAndChatManager() = 0;
 
 public:
 

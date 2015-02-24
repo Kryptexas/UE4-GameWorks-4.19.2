@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnParticleComponent.cpp: Particle component implementation.
@@ -48,6 +48,9 @@
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Particles/ParticleSystemReplay.h"
+#include "Distributions/DistributionFloatConstantCurve.h"
+#include "Engine/InterpCurveEdSetup.h"
+#include "GameFramework/GameState.h"
 
 
 #define LOCTEXT_NAMESPACE "ParticleComponents"
@@ -356,7 +359,7 @@ void AEmitter::PostInitializeComponents()
 	// Set Notification Delegate
 	if (ParticleSystemComponent)
 	{
-		ParticleSystemComponent->OnSystemFinished.AddDynamic( this, &AEmitter::OnParticleSystemFinished );
+		ParticleSystemComponent->OnSystemFinished.AddUniqueDynamic( this, &AEmitter::OnParticleSystemFinished );
 		bCurrentlyActive = ParticleSystemComponent->bAutoActivate;
 	}
 
@@ -463,6 +466,8 @@ void AEmitter::SetMaterialParameter(FName ParameterName, UMaterialInterface* Par
 
 bool AEmitter::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 {
+	Super::GetReferencedContentObjects(Objects);
+
 	if (ParticleSystemComponent->Template)
 	{
 		Objects.Add(ParticleSystemComponent->Template);
@@ -952,8 +957,9 @@ bool UParticleLODLevel::IsModuleEditable(UParticleModule* InModule)
 	UParticleEmitter implementation.
 -----------------------------------------------------------------------------*/
 UParticleEmitter::UParticleEmitter(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer),
-	QualityLevelSpawnRateScale(1.0f)
+	: Super(ObjectInitializer)
+	, QualityLevelSpawnRateScale(1.0f)
+	, bDisabledLODsKeepEmitterAlive(false)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -1780,6 +1786,19 @@ void UParticleEmitter::Build()
 	}
 }
 
+bool UParticleEmitter::HasAnyEnabledLODs()const
+{
+	for (UParticleLODLevel* LodLevel : LODLevels)
+	{
+		if (LodLevel && LodLevel->bEnabled)
+		{
+			return true;
+		}
+	}
+	
+	return false;
+}
+
 /*-----------------------------------------------------------------------------
 	UParticleSpriteEmitter implementation.
 -----------------------------------------------------------------------------*/
@@ -1962,7 +1981,6 @@ UParticleSystem::UParticleSystem(const FObjectInitializer& ObjectInitializer)
 	UpdateTime_Delta = 1.0f/60.0f;
 	WarmupTime = 0.0f;
 	WarmupTickRate = 0.0f;
-	bLit_DEPRECATED = true;
 #if WITH_EDITORONLY_DATA
 	EditorLODSetting = 0;
 #endif // WITH_EDITORONLY_DATA
@@ -2035,11 +2053,14 @@ void UParticleSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 {
 	UpdateTime_Delta = 1.0f / UpdateTime_FPS;
 
+	//If the property is NULL then we don't really know what's happened. 
+	//Could well be a module change, requiring all instances to be destroyed and recreated.
+	bool bEmptyInstances = PropertyChangedEvent.Property == NULL;
 	for (TObjectIterator<UParticleSystemComponent> It;It;++It)
 	{
 		if (It->Template == this)
 		{
-			It->UpdateInstances();
+			It->UpdateInstances(bEmptyInstances);
 		}
 	}
 
@@ -2086,9 +2107,6 @@ void UParticleSystem::PreSave()
 void UParticleSystem::PostLoad()
 {
 	Super::PostLoad();
-
-	//@todo. Put this in a better place??
-	bool bHadDeprecatedEmitters = false;
 
 	// Remove any old emitters
 	bHasPhysics = false;
@@ -2144,11 +2162,6 @@ void UParticleSystem::PostLoad()
 		}
 	}
 
-	if ((bHadDeprecatedEmitters || (GetLinker() && (GetLinker()->UE3Ver() < 204))) && CurveEdSetup)
-	{
-		CurveEdSetup->ResetTabs();
-	}
-
 	if (LODSettings.Num() == 0)
 	{
 		if (Emitters.Num() > 0)
@@ -2185,7 +2198,6 @@ void UParticleSystem::PostLoad()
 	}
 
 #if WITH_EDITOR
-//	if (GetLinker() && (GetLinker()->UE3Ver() < VER_PARTICLE_LOD_DISTANCE_FIXUP))
 	// Due to there still being some ways that LODLevel counts get mismatched,
 	// when loading in the editor LOD levels will always be checked and fixed
 	// up... This can be removed once all the edge cases that lead to the
@@ -2915,7 +2927,6 @@ UParticleSystemComponent::UParticleSystemComponent(const FObjectInitializer& Obj
 #if WITH_EDITORONLY_DATA
 	EditorDetailMode = -1;
 #endif // WITH_EDITORONLY_DATA
-	BodyInstance.bEnableCollision_DEPRECATED = false;
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	bGenerateOverlapEvents = false;
 
@@ -4163,7 +4174,7 @@ void UParticleSystemComponent::InitParticles()
 					// Must have a slot for each emitter instance - even if it's NULL.
 					// This is so the indexing works correctly.
 					UParticleEmitter* Emitter = Template->Emitters[Idx];
-					if (Emitter && Emitter->DetailMode <= GlobalDetailMode)
+					if (Emitter && Emitter->DetailMode <= GlobalDetailMode && Emitter->HasAnyEnabledLODs())
 					{
 						EmitterInstances.Add(Emitter->CreateInstance(this));
 					}
@@ -4725,12 +4736,12 @@ void UParticleSystemComponent::ResetToDefaults()
 	}
 }
 
-void UParticleSystemComponent::UpdateInstances()
+void UParticleSystemComponent::UpdateInstances(bool bEmptyInstances)
 {
 	if (GIsEditor && IsRegistered())
 	{
 		ForceAsyncWorkCompletion(STALL);
-		ResetParticles();
+		ResetParticles(bEmptyInstances);
 
 		InitializeSystem();
 		if (bAutoActivate)
@@ -4890,6 +4901,14 @@ bool UParticleSystemComponent::HasCompleted()
 					{
 						bHasCompleted = false;
 					}
+				}
+			}
+			else
+			{
+				UParticleEmitter* Em = CastChecked<UParticleEmitter>(Instance->CurrentLODLevel->GetOuter());
+				if (Em && Em->bDisabledLODsKeepEmitterAlive)
+				{
+					bHasCompleted = false;
 				}
 			}
 		}

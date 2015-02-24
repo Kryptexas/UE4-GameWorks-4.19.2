@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TranslucentLighting.cpp: Translucent lighting implementation.
@@ -39,7 +39,7 @@ float GTranslucentVolumeFOVSnapFactor = 10;
 static FAutoConsoleVariableRef CTranslucentVolumeFOVSnapFactor(
 	TEXT("r.TranslucentVolumeFOVSnapFactor"),
 	GTranslucentVolumeFOVSnapFactor,
-	TEXT("FOV will be snapped to a factor of this before computing volume bounds. "),
+	TEXT("FOV will be snapped to a factor of this before computing volume bounds."),
 	ECVF_Cheat | ECVF_RenderThreadSafe
 	);
 
@@ -479,11 +479,6 @@ public:
 
 		return bDirty;
 	}
-
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
-	{ 
-		return !IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
-	}
 };
 
 /** Renders shadow maps for translucent primitives. */
@@ -567,23 +562,14 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 			CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One,
 			CW_RGBA, BO_Add, BF_One, BF_One, BO_Add, BF_One, BF_One>::GetRHI());
 
-		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
-
 		FTranslucencyShadowDepthDrawingPolicyFactory::ContextType DrawingContext(this,bDirectionalLight);
 
-		if (bUseGetMeshElements)
+		for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicSubjectTranslucentMeshElements.Num(); MeshBatchIndex++)
 		{
-			FShadowDepthDrawingPolicyFactory::ContextType Context(this);
-
-			for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicSubjectTranslucentMeshElements.Num(); MeshBatchIndex++)
-			{
-				const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicSubjectTranslucentMeshElements[MeshBatchIndex];
-				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-				FTranslucencyShadowDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *FoundView, DrawingContext, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-			}
+			const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicSubjectTranslucentMeshElements[MeshBatchIndex];
+			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+			FTranslucencyShadowDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *FoundView, DrawingContext, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 		}
-
-		TDynamicPrimitiveDrawer<FTranslucencyShadowDepthDrawingPolicyFactory> OpacityDrawer(RHICmdList, FoundView, DrawingContext, true);
 
 		for (int32 PrimitiveIndex = 0; PrimitiveIndex < SubjectTranslucentPrimitives.Num(); PrimitiveIndex++)
 		{
@@ -597,27 +583,18 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 				ViewRelevance = PrimitiveSceneInfo->Proxy->GetViewRelevance(FoundView);
 			}
 
-			if(ViewRelevance.bDrawRelevance)
+			if (ViewRelevance.bDrawRelevance && ViewRelevance.bStaticRelevance)
 			{
-				if (!bUseGetMeshElements && ViewRelevance.bDynamicRelevance)
+				for (int32 MeshIndex = 0; MeshIndex < PrimitiveSceneInfo->StaticMeshes.Num(); MeshIndex++)
 				{
-					OpacityDrawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-					PrimitiveSceneInfo->Proxy->DrawDynamicElements(&OpacityDrawer, FoundView);
-				}
-
-				if (ViewRelevance.bStaticRelevance)
-				{
-					for (int32 MeshIndex = 0; MeshIndex < PrimitiveSceneInfo->StaticMeshes.Num(); MeshIndex++)
-					{
-						FTranslucencyShadowDepthDrawingPolicyFactory::DrawStaticMesh(
-							RHICmdList, 
-							*FoundView,
-							DrawingContext,
-							PrimitiveSceneInfo->StaticMeshes[MeshIndex],
-							true,
-							PrimitiveSceneInfo->Proxy,
-							FHitProxyId());
-					}
+					FTranslucencyShadowDepthDrawingPolicyFactory::DrawStaticMesh(
+						RHICmdList, 
+						*FoundView,
+						DrawingContext,
+						PrimitiveSceneInfo->StaticMeshes[MeshIndex],
+						true,
+						PrimitiveSceneInfo->Proxy,
+						FHitProxyId());
 				}
 			}
 		}
@@ -1185,7 +1162,7 @@ void FDeferredShadingSceneRenderer::InjectAmbientCubemapTranslucentVolumeLightin
 	//@todo - support multiple views
 	const FViewInfo& View = Views[0];
 
-	if (GUseTranslucentLightingVolumes && View.FinalPostProcessSettings.ContributingCubemaps.Num() && !IsSimpleDynamicLightingEnabled())
+	if (GUseTranslucentLightingVolumes && GSupportsVolumeTextureRendering && View.FinalPostProcessSettings.ContributingCubemaps.Num() && !IsSimpleDynamicLightingEnabled())
 	{
 		SCOPED_DRAW_EVENT(RHICmdList, InjectAmbientCubemapTranslucentVolumeLighting);
 

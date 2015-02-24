@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
  
 #include "SlatePrivatePCH.h"
 
@@ -256,19 +256,25 @@ void SScrollBar::Construct(const FArguments& InArgs)
 
 	EHorizontalAlignment HorizontalAlignment;
 	EVerticalAlignment VerticalAlignment;
-	const FSlateBrush* Brush;
+	const FSlateBrush* BackgroundBrush;
+	const FSlateBrush* TopBrush;
+	const FSlateBrush* BottomBrush;
 
 	if(Orientation == Orient_Vertical)
 	{
 		HorizontalAlignment = HAlign_Center;
 		VerticalAlignment = VAlign_Fill;
-		Brush = &InArgs._Style->VerticalBackgroundImage;
+		BackgroundBrush = &InArgs._Style->VerticalBackgroundImage;
+		TopBrush = &InArgs._Style->VerticalTopSlotImage;
+		BottomBrush = &InArgs._Style->VerticalBottomSlotImage;
 	}
 	else
 	{
 		HorizontalAlignment = HAlign_Fill;
 		VerticalAlignment = VAlign_Center;
-		Brush = &InArgs._Style->HorizontalBackgroundImage;
+		BackgroundBrush = &InArgs._Style->HorizontalBackgroundImage;
+		TopBrush = &InArgs._Style->HorizontalTopSlotImage;
+		BottomBrush = &InArgs._Style->HorizontalBottomSlotImage;
 	}
 
 	SBorder::Construct( SBorder::FArguments()
@@ -281,37 +287,44 @@ void SScrollBar::Construct(const FArguments& InArgs)
 			+ SVerticalBox::Slot()
 			.FillHeight( 1 )
 			[
-				SAssignNew(Track, SScrollBarTrack)
-				.Orientation(InArgs._Orientation)
-				.TopSlot()
+				SNew(SBorder)
+				.BorderImage(BackgroundBrush)
+				.HAlign(HorizontalAlignment)
+				.VAlign(VerticalAlignment)
+				.Padding(0)
 				[
-					SNew(SBox)
-					.HAlign(HorizontalAlignment)
-					.VAlign(VerticalAlignment)
+					SAssignNew(Track, SScrollBarTrack)
+					.Orientation(InArgs._Orientation)
+					.TopSlot()
 					[
-						SNew(SImage)
-						.Image(Brush)
+						SNew(SBox)
+						.HAlign(HorizontalAlignment)
+						.VAlign(VerticalAlignment)
+						[
+							SNew(SImage)
+							.Image(TopBrush)
+						]
 					]
-				]
-				.ThumbSlot()
-				[
-					SAssignNew(DragThumb, SBorder)
-					.BorderImage( this, &SScrollBar::GetDragThumbImage )
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
+					.ThumbSlot()
 					[
-						SAssignNew(ThicknessSpacer, SSpacer)
-						.Size(InArgs._Thickness)
+						SAssignNew(DragThumb, SBorder)
+						.BorderImage( this, &SScrollBar::GetDragThumbImage )
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						[
+							SAssignNew(ThicknessSpacer, SSpacer)
+							.Size(InArgs._Thickness)
+						]
 					]
-				]
-				.BottomSlot()
-				[
-					SNew(SBox)
-					.HAlign(HorizontalAlignment)
-					.VAlign(VerticalAlignment)
+					.BottomSlot()
 					[
-						SNew(SImage)
-						.Image(Brush)
+						SNew(SBox)
+						.HAlign(HorizontalAlignment)
+						.VAlign(VerticalAlignment)
+						[
+							SNew(SImage)
+							.Image(BottomBrush)
+						]
 					]
 				]
 			]

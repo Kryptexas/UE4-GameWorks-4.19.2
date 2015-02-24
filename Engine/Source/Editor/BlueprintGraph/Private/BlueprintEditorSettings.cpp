@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintEditorSettings.h"
@@ -9,13 +9,17 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& Obj
 	: Super(ObjectInitializer)
 	// Style Settings
 	, bDrawMidpointArrowsInBlueprints(false)
-	// UX Settings
 	, bShowGraphInstructionText(true)
+	// Workflow Settings
 	, bUseTargetContextForNodeMenu(true)
 	, bExposeAllMemberComponentFunctions(true)
 	, bShowContextualFavorites(false)
 	, bFlattenFavoritesMenus(true)
-	, bUseLegacyMenuingSystem(false)
+	, bFavorPureCastNodes(false)
+	, bForceLegacyMenuingSystem(false)
+	, bShowViewportOnSimulate(false)
+	, bShowInheritedVariables(false)
+	, bShowEmptySections(true)
 	// Compiler Settings
 	, SaveOnCompile(SoC_Never)
 	, bJumpToNodeErrors(false)

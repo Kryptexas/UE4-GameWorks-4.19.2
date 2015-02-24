@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CascadeModule.h"
 #include "Cascade.h"
@@ -17,10 +17,13 @@
 #include "Particles/ParticleSpriteEmitter.h"
 #include "Particles/ParticleSystem.h"
 #include "SColorPicker.h"
+#include "CanvasTypes.h"
+#include "Engine/Font.h"
+#include "Engine/StaticMesh.h"
 
 
 FCascadeEmitterCanvasClient::FCascadeEmitterCanvasClient(TWeakPtr<FCascade> InCascade, TWeakPtr<SCascadeEmitterCanvas> InCascadeViewport)
-	: FEditorViewportClient(GLevelEditorModeTools())
+	: FEditorViewportClient(nullptr)
 	, CascadePtr(InCascade)
 	, CascadeViewportPtr(InCascadeViewport)
 	, EmitterWidth(180)

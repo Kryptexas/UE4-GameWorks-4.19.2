@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -7,6 +7,8 @@
 /*-----------------------------------------------------------------------------
 	USoundNode helper macros. 
 -----------------------------------------------------------------------------*/
+
+struct FActiveSound;
 
 #define DECLARE_SOUNDNODE_ELEMENT(Type,Name)													\
 	Type& Name = *((Type*)(Payload));															\
@@ -49,14 +51,6 @@ class ENGINE_API USoundNode : public UObject
 	TArray<class USoundNode*> ChildNodes;
 
 #if WITH_EDITORONLY_DATA
-	/** X position of node in the editor, so old UEdGraphNode data not lost.*/
-	UPROPERTY()
-	int32 NodePosX_DEPRECATED;
-
-	/** Y position of node in the editor, so old UEdGraphNode data not lost. */
-	UPROPERTY()
-	int32 NodePosY_DEPRECATED;
-
 	/** Node's Graph representation, used to get position. */
 	class USoundCueGraphNode*	GraphNode;
 #endif

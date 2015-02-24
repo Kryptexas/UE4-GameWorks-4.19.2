@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlutilityPrivatePCH.h"
 #include "BlutilityDetailsPanel.h"
@@ -68,20 +68,20 @@ void FEditorUtilityInstanceDetails::CustomizeDetails(IDetailLayoutBuilder& Detai
 		const APlacedEditorUtilityBase* PlacedActorCDO = Cast<const APlacedEditorUtilityBase>(Class->GetDefaultObject());
 		if (PlacedActorCDO)
 		{
-			ActionsCategory.AddCustomRow( PlacedActorCDO->HelpText )
+			ActionsCategory.AddCustomRow( FText::FromString(PlacedActorCDO->HelpText) )
 			[
 				SNew(STextBlock)
-				.Text(PlacedActorCDO->HelpText)
+				.Text(FText::FromString(PlacedActorCDO->HelpText))
 			];
 		}
 		
 		const UGlobalEditorUtilityBase* GlobalBlutilityCDO = Cast<const UGlobalEditorUtilityBase>(Class->GetDefaultObject());
 		if (GlobalBlutilityCDO)
 		{
-			ActionsCategory.AddCustomRow( GlobalBlutilityCDO->HelpText )
+			ActionsCategory.AddCustomRow( FText::FromString(GlobalBlutilityCDO->HelpText) )
 			[
 				SNew(STextBlock)
-				.Text(GlobalBlutilityCDO->HelpText)
+				.Text(FText::FromString(GlobalBlutilityCDO->HelpText))
 			];
 		}
 
@@ -98,13 +98,13 @@ void FEditorUtilityInstanceDetails::CustomizeDetails(IDetailLayoutBuilder& Detai
 			{
 				++NumButtons;
 
-				const FString ButtonCaption = FName::NameToDisplayString(*Function->GetName(), false);
+				const FText ButtonCaption = FText::FromString(FName::NameToDisplayString(*Function->GetName(), false));
 
 				//@TODO: Expose the code in UK2Node_CallFunction::GetUserFacingFunctionName / etc...
-				FString Tooltip = Function->GetToolTipText().ToString();
+				FText Tooltip = Function->GetToolTipText();
 				if (Tooltip.IsEmpty())
 				{
-					Tooltip = Function->GetName();
+					Tooltip = FText::FromString(Function->GetName());
 				}
 
 				TWeakObjectPtr<UFunction> WeakFunctionPtr(Function);
@@ -122,7 +122,7 @@ void FEditorUtilityInstanceDetails::CustomizeDetails(IDetailLayoutBuilder& Detai
 
 		if (NumButtons > 0)
 		{
-			ActionsCategory.AddCustomRow(TEXT(""))
+			ActionsCategory.AddCustomRow(FText::GetEmpty())
 			[
 				WrapBox
 			];

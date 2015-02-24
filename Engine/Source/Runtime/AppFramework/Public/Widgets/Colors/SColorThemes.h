@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -243,7 +243,7 @@ public:
 		SLATE_EVENT(FSimpleDelegate, HideTrashCallback)
 		
 		/** Specify what the bar should display when no colors are present */
-		SLATE_TEXT_ARGUMENT(EmptyText)
+		SLATE_ARGUMENT(FText, EmptyText)
 
 		/** Whether to display sRGB color */
 		SLATE_ATTRIBUTE(bool, UseSRGB)
@@ -389,6 +389,9 @@ private:
 	
 	/** Callback to pass to the Color Theme. Holds a handle to this bar's Refresh method */
 	FSimpleDelegate RefreshCallback;
+
+	/** Handle to the registered RefreshCallback delegate */
+	FDelegateHandle RefreshCallbackHandle;
 
 	/** Callback to pass down to the FColorDragDrop for it to show the trash */
 	FSimpleDelegate ShowTrashCallback;

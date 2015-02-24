@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistortionRendering.cpp: Distortion rendering implementation.
@@ -572,8 +572,6 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
-
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* Material, ERHIFeatureLevel::Type InFeatureLevel);
 };
 
 /**
@@ -677,13 +675,6 @@ bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::DrawStaticMesh(
 	}
 }
 
-template<typename DistortMeshPolicy>
-bool TDistortionMeshDrawingPolicyFactory<DistortMeshPolicy>::IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
-{
-	// Non-distorted materials are ignored when rendering distortion.
-	return MaterialRenderProxy && !MaterialRenderProxy->GetMaterial(InFeatureLevel)->IsDistorted();
-}
-
 /*-----------------------------------------------------------------------------
 	FDistortionPrimSet
 -----------------------------------------------------------------------------*/
@@ -703,45 +694,23 @@ bool FDistortionPrimSet::DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmd
 
 	if( Prims.Num() )
 	{
-		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
-
-		// For drawing scene prims with dynamic relevance.
-		TDynamicPrimitiveDrawer<TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy> > Drawer(
-			RHICmdList,
-			&View,
-			bInitializeOffsets,
-			false // Distortion is rendered post fog.
-			);
-
 		// Draw sorted scene prims
 		for( int32 PrimIdx=0; PrimIdx < Prims.Num(); PrimIdx++ )
 		{
 			FPrimitiveSceneProxy* PrimitiveSceneProxy = Prims[PrimIdx];
 			const FPrimitiveViewRelevance& ViewRelevance = View.PrimitiveViewRelevanceMap[PrimitiveSceneProxy->GetPrimitiveSceneInfo()->GetIndex()];
 
-			if (bUseGetMeshElements)
+			TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy>::ContextType Context(bInitializeOffsets);
+
+			for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
 			{
-				TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy>::ContextType Context(bInitializeOffsets);
+				const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
 
-				for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+				if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneProxy)
 				{
-					const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
-
-					if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneProxy)
-					{
-						const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-						TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy>::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, false, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-					}
+					const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+					bDirty |= TDistortionMeshDrawingPolicyFactory<FDistortMeshAccumulatePolicy>::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, false, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 				}
-			}
-			// Render dynamic scene prim
-			else if( ViewRelevance.bDynamicRelevance )
-			{				
-				Drawer.SetPrimitive(PrimitiveSceneProxy);
-				PrimitiveSceneProxy->DrawDynamicElements(
-					&Drawer,
-					&View
-					);
 			}
 
 			// Render static scene prim
@@ -769,8 +738,6 @@ bool FDistortionPrimSet::DrawAccumulatedOffsets(FRHICommandListImmediate& RHICmd
 				}
 			}
 		}
-		// Mark dirty if dynamic drawer rendered
-		bDirty |= Drawer.IsDirty();
 	}
 	return bDirty;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 
@@ -92,7 +92,7 @@ void FPropertyTable::CreateColorPickerWindow( const TSharedRef< class FPropertyE
 
 void FPropertyTable::EnqueueDeferredAction( FSimpleDelegate DeferredAction )
 {
-	DeferredActions.AddUnique( DeferredAction );
+	DeferredActions.Add( DeferredAction );
 }
 
 TSharedPtr<class FAssetThumbnailPool> FPropertyTable::GetThumbnailPool() const

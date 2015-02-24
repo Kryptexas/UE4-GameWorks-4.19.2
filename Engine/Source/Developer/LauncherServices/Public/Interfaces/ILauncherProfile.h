@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,7 +20,10 @@ namespace ELauncherProfileCookModes
 		OnTheFly,
 
 		/** Cook by the book in the editor process space */
-		ByTheBookInEditor
+		ByTheBookInEditor,
+
+		/** Cook on the fly in the editor process space */
+		OnTheFlyInEditor,
 	};
 }
 
@@ -555,6 +558,14 @@ public:
 	 * @see SetBuildGame
 	 */
 	virtual bool IsBuilding() const = 0;
+    
+	/**
+	 * Checks whether UAT should be built.
+	 *
+	 * @return true if building UAT, false otherwise.
+	 * @see SetBuildGame
+	 */
+	virtual bool IsBuildingUAT() const = 0;
 
 	/**
 	 * Checks whether incremental cooking is enabled.
@@ -571,6 +582,14 @@ public:
 	 * @see SetUnversionedCooking
 	 */
 	virtual bool IsCookingUnversioned( ) const = 0;
+
+	/**
+	 * Checks whether incremental deployment is enabled.
+	 *
+	 * @return true if deploying incrementally, false otherwise.
+	 * @see SetIncrementalDeploying
+	 */
+	virtual bool IsDeployingIncrementally( ) const = 0;
 
 	/**
 	 * Checks whether the file server's console window should be hidden.
@@ -716,6 +735,14 @@ public:
 	virtual void SetBuildGame( bool Build ) = 0;
 
 	/**
+	 * Sets whether to build UAT.
+	 *
+	 * @param Build Whether UAT should be built.
+	 * @see IsBuilding
+	 */
+	virtual void SetBuildUAT( bool Build ) = 0;
+
+	/**
 	 * Sets the build configuration.
 	 *
 	 * @param ConfigurationName The build configuration name to set.
@@ -794,6 +821,14 @@ public:
 	 * @see IsCookingIncrementally
 	 */
 	virtual void SetIncrementalCooking( bool Incremental ) = 0;
+
+	/**
+	 * Sets incremental deploying.
+	 *
+	 * @param Incremental Whether deploying should be incremental.
+	 * @see IsDeployingIncrementally
+	 */
+	virtual void SetIncrementalDeploying( bool Incremental ) = 0;
 
 	/**
 	 * Sets the launch mode.

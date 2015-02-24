@@ -1,8 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-
+#include "SlateCore.h"
 #include "LevelEditorPlaySettings.generated.h"
 
 
@@ -57,6 +57,9 @@ enum EPlayModeType
 
 	/** Runs in a new process. */
 	PlayMode_InNewProcess,
+
+	/** Runs in VR. */
+	PlayMode_InVR,
 
 	/** Simulates in viewport without possessing the player */
 	PlayMode_Simulate,
@@ -131,6 +134,10 @@ public:
 	/** Location on screen to anchor the mouse control label when in PIE mode. */
 	UPROPERTY(config, EditAnywhere, Category=PlayInEditor)
 	TEnumAsByte<ELabelAnchorMode> MouseControlLabelPosition;
+
+	/** Should Play-in-Viewport respect HMD orientations (default = false) */
+	UPROPERTY(config, EditAnywhere, Category = PlayInEditor, meta = (ToolTip = "Whether or not HMD orientation should be used when playing in viewport"))
+	bool ViewportGetsHMDControl;
 
 	/** Whether to automatically recompile blueprints on PIE */
 	UPROPERTY(config, EditAnywhere, Category=PlayInEditor, meta=(ToolTip="Automatically recompile blueprints used by the current level when initiating a Play In Editor session"))

@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkyLightingShared.usf
@@ -20,8 +20,9 @@ Texture2D BentNormalAOTexture;
 SamplerState BentNormalAOSampler;
 
 float ApplyBentNormalAO;
+float InvSkySpecularOcclusionStrength;
 
-float GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVector, float Roughness)
+float GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVector, float Roughness, bool bTwoSidedFoliage)
 {
 	float Visibility = 1;
 
@@ -29,14 +30,23 @@ float GetDistanceFieldAOSpecularOcclusion(float2 ScreenUV, float3 ReflectionVect
 	if (ApplyBentNormalAO > 0)
 	{
 		float3 BentNormalAO = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, ScreenUV, 0).xyz;
-		float ReflectionConeAngle = Roughness * PI;
 		float BentNormalLength = length(BentNormalAO);
-		float UnoccludedAngle = BentNormalLength * PI;
-		float AngleBetween = acos(dot(BentNormalAO, ReflectionVector) / max(BentNormalLength, .001f));
-		Visibility = ApproximateConeConeIntersection(ReflectionConeAngle, UnoccludedAngle, AngleBetween);
 
-		// Can't rely on the direction of the bent normal when close to fully occluded, lerp to shadowed
-		Visibility = lerp(0, Visibility, saturate((UnoccludedAngle - .1f) / .2f));
+		BRANCH
+		if (bTwoSidedFoliage)
+		{
+			Visibility = BentNormalLength;
+		}
+		else
+		{
+			float ReflectionConeAngle = Roughness * PI;
+			float UnoccludedAngle = BentNormalLength * PI * InvSkySpecularOcclusionStrength;
+			float AngleBetween = acos(dot(BentNormalAO, ReflectionVector) / max(BentNormalLength, .001f));
+			Visibility = ApproximateConeConeIntersection(ReflectionConeAngle, UnoccludedAngle, AngleBetween);
+
+			// Can't rely on the direction of the bent normal when close to fully occluded, lerp to shadowed
+			Visibility = lerp(0, Visibility, saturate((UnoccludedAngle - .1f) / .2f));
+		}
 	}
 
 	return Visibility;

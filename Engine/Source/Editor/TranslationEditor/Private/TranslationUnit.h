@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "TranslationUnit.generated.h"
@@ -77,6 +77,10 @@ public:
 	/** If this Translation Unit had a different translation before import, it will be stored here */
 	UPROPERTY(Category=Translation, EditAnywhere)
 	FString TranslationBeforeImport;
+
+	/** Optional: Which Locres File this translation is in */
+	UPROPERTY(Category = Translation, EditAnywhere)
+	FString LocresPath;
 
 	/**
 	* Returns an event delegate that is executed when a property has changed.

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "EdGraphNode_Comment.h"
@@ -24,8 +24,11 @@ UEdGraphNode_Comment::UEdGraphNode_Comment(const FObjectInitializer& ObjectIniti
 	bColorCommentBubble = false;
 	MoveMode = ECommentBoxMode::GroupMovement;
 
+	bCommentBubblePinned = true;
+	bCommentBubbleVisible = true;
 	bCanResizeNode = true;
 	bCanRenameNode = true;
+	CommentDepth = -1;
 }
 
 void UEdGraphNode_Comment::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector) 
@@ -88,9 +91,9 @@ FText UEdGraphNode_Comment::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return FText::FromString(NodeComment);
 }
 
-FString UEdGraphNode_Comment::GetPinNameOverride(const UEdGraphPin& Pin) const
+FText UEdGraphNode_Comment::GetPinNameOverride(const UEdGraphPin& Pin) const
 {
-	return GetNodeTitle(ENodeTitleType::ListView).ToString();
+	return GetNodeTitle(ENodeTitleType::ListView);
 }
 
 FLinearColor UEdGraphNode_Comment::GetNodeCommentColor() const
@@ -112,6 +115,10 @@ void UEdGraphNode_Comment::ResizeNode(const FVector2D& NewSize)
 
 void UEdGraphNode_Comment::AddNodeUnderComment(UObject* Object)
 {
+	if( UEdGraphNode_Comment* ChildComment = Cast<UEdGraphNode_Comment>(Object))
+	{
+		CommentDepth = FMath::Min( CommentDepth, ChildComment->CommentDepth - 1 );
+	}
 	NodesUnderComment.Add(Object);
 }
 

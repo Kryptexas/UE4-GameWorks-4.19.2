@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "MainFramePrivatePCH.h"
@@ -7,6 +7,8 @@
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "GenericCommands.h"
+#include "EngineBuildSettings.h"
+#include "SourceCodeNavigation.h"
 
 
 #define LOCTEXT_NAMESPACE "MainFrameActions"
@@ -61,7 +63,7 @@ void FMainFrameCommands::RegisterCommands()
 	ActionList->MapAction( OpenProject, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::NewProject, true, false), DefaultExecuteAction );
 
 	UI_COMMAND( AddCodeToProject, "Add Code to Project...", "Adds C++ code to the project. The code can only be compiled if you have an appropriate C++ compiler installed.", EUserInterfaceActionType::Button, FInputGesture() );
-	ActionList->MapAction( AddCodeToProject, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::AddCodeToProject ), FCanExecuteAction::CreateStatic( &FSourceCodeNavigation::IsCompilerAvailable ) );
+	ActionList->MapAction( AddCodeToProject, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::AddCodeToProject ));
 
 	UI_COMMAND( RefreshCodeProject, "Refresh code project", "Refreshes your C++ code project.", EUserInterfaceActionType::Button, FInputGesture() );
 	ActionList->MapAction( RefreshCodeProject, FExecuteAction::CreateStatic( &FMainFrameActionCallbacks::RefreshCodeProject ), DefaultExecuteAction );
@@ -163,16 +165,6 @@ FReply FMainFrameActionCallbacks::OnUnhandledKeyDownEvent(const FKeyEvent& InKey
 	{
 		return FReply::Handled();
 	}
-	else if( GEditor && GEditor->PlayWorld && InKeyEvent.GetKey() == EKeys::Escape )
-	{
-		FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked< FLevelEditorModule >(TEXT("LevelEditor"));
-		if( LevelEditor.GetLevelEditorTab()->IsForeground()  )
-		{
-			// Escape that gets this far should end the play map if we have one
-			// We have to do this here because nothing else has focus and escape should always end the active PIE session.
-			GEditor->RequestEndPlayMap();
-		}
-	}
 	return FReply::Unhandled();
 }
 
@@ -192,166 +184,14 @@ void FMainFrameActionCallbacks::ChoosePackagesToSave()
 	FEditorFileUtils::SaveDirtyPackages( bPromptUserToSave, bSaveMapPackages, bSaveContentPackages, bFastSave, bNotifyNoPackagesSaved );
 }
 
-void FMainFrameActionCallbacks::ChoosePackagesToCheckInCompleted(TArray<UPackage*> LoadedPackages, TArray<FString> PackageNames)
-{
-	if (ChoosePackagesToCheckInNotification.IsValid())
-	{
-		ChoosePackagesToCheckInNotification.Pin()->ExpireAndFadeout();
-	}
-	ChoosePackagesToCheckInNotification.Reset();
-	
-	check(PackageNames.Num() > 0);
-
-	// Prompt the user to ask if they would like to first save any dirty packages they are trying to check-in
-	const FEditorFileUtils::EPromptReturnCode UserResponse = FEditorFileUtils::PromptForCheckoutAndSave( LoadedPackages, true, true );
-
-	// If the user elected to save dirty packages, but one or more of the packages failed to save properly OR if the user
-	// canceled out of the prompt, don't follow through on the check-in process
-	const bool bShouldProceed = ( UserResponse == FEditorFileUtils::EPromptReturnCode::PR_Success || UserResponse == FEditorFileUtils::EPromptReturnCode::PR_Declined );
-	if ( bShouldProceed )
-	{
-		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
-		FSourceControlWindows::PromptForCheckin(PackageNames);
-	}
-	else
-	{
-		// If a failure occurred, alert the user that the check-in was aborted. This warning shouldn't be necessary if the user cancelled
-		// from the dialog, because they obviously intended to cancel the whole operation.
-		if ( UserResponse == FEditorFileUtils::EPromptReturnCode::PR_Failure )
-		{
-			FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "SCC_Checkin_Aborted", "Check-in aborted as a result of save failure.") );
-		}
-	}
-}
-
-void FMainFrameActionCallbacks::ChoosePackagesToCheckInCancelled(FSourceControlOperationRef InOperation)
-{
-	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-	SourceControlProvider.CancelOperation(InOperation);
-
-	if (ChoosePackagesToCheckInNotification.IsValid())
-	{
-		ChoosePackagesToCheckInNotification.Pin()->ExpireAndFadeout();
-	}
-	ChoosePackagesToCheckInNotification.Reset();
-}
-
-void FMainFrameActionCallbacks::ChoosePackagesToCheckInCallback(const FSourceControlOperationRef& InOperation, ECommandResult::Type InResult)
-{
-	if (ChoosePackagesToCheckInNotification.IsValid())
-	{
-		ChoosePackagesToCheckInNotification.Pin()->ExpireAndFadeout();
-	}
-	ChoosePackagesToCheckInNotification.Reset();
-
-	if(InResult == ECommandResult::Succeeded)
-	{
-		// Get a list of all the checked out packages
-		int32 NumSelectedNames = 0;
-		int32 NumSelectedPackages = 0;
-		TArray<FString> PackageNames;
-		TArray<UPackage*> LoadedPackages;
-		TMap<FString, FSourceControlStatePtr> PackageStates;
-		FEditorFileUtils::FindAllSubmittablePackageFiles( PackageStates, true );
-		for (TMap<FString, FSourceControlStatePtr>::TConstIterator PackageIter(PackageStates); PackageIter; ++PackageIter)
-		{
-			const FString Filename = *PackageIter.Key();
-			const FString PackageName = FPackageName::FilenameToLongPackageName(Filename);
-			const FSourceControlStatePtr CurPackageSCCState = PackageIter.Value();
-				
-			UPackage* Package = FindPackage(NULL, *PackageName);
-
-			// Put pre-selected items at the start of the list
-			if (CurPackageSCCState.IsValid() && CurPackageSCCState->IsSourceControlled())
-			{
-				if (Package != NULL)
-				{
-					LoadedPackages.Insert(Package, NumSelectedPackages++);
-				}
-				PackageNames.Insert(PackageName, NumSelectedNames++);
-			}
-			else
-			{
-				if (Package != NULL)
-				{
-					LoadedPackages.Add(Package);
-				}
-				PackageNames.Add(PackageName);
-			}
-		}
-
-		if ( PackageNames.Num() > 0 )
-		{
-			ChoosePackagesToCheckInCompleted(LoadedPackages, PackageNames);
-		}
-		else
-		{
-			FMessageLog EditorErrors("EditorErrors");
-			EditorErrors.Warning(LOCTEXT( "NoAssetsToCheckIn", "No assets to check in!"));
-			EditorErrors.Notify();
-		}
-	}
-	else if(InResult == ECommandResult::Failed)
-	{
-		FMessageLog EditorErrors("EditorErrors");
-		EditorErrors.Warning(LOCTEXT( "CheckInOperationFailed", "Failed checking source control status!"));
-		EditorErrors.Notify();
-	}
-}
-
 void FMainFrameActionCallbacks::ChoosePackagesToCheckIn()
 {
-	if ( ISourceControlModule::Get().IsEnabled() )
-	{
-		if( ISourceControlModule::Get().GetProvider().IsAvailable() )
-		{
-			// make sure we update the SCC status of all packages (this could take a long time, so we will run it as a background task)
-			TArray<FString> Packages;
-			FEditorFileUtils::FindAllPackageFiles(Packages);
-			
-			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-			FSourceControlOperationRef Operation = ISourceControlOperation::Create<FUpdateStatus>();
-			SourceControlProvider.Execute(Operation, SourceControlHelpers::PackageFilenames(Packages), EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateStatic(&FMainFrameActionCallbacks::ChoosePackagesToCheckInCallback));
-
-			if (ChoosePackagesToCheckInNotification.IsValid())
-			{
-				ChoosePackagesToCheckInNotification.Pin()->ExpireAndFadeout();
-			}
-
-			FNotificationInfo Info(LOCTEXT("ChooseAssetsToCheckInIndicator", "Checking for assets to check in..."));
-			Info.bFireAndForget = false;
-			Info.ExpireDuration = 0.0f;
-			Info.FadeOutDuration = 1.0f;
-
-			if(SourceControlProvider.CanCancelOperation(Operation))
-			{
-				Info.ButtonDetails.Add(FNotificationButtonInfo(
-					LOCTEXT("ChoosePackagesToCheckIn_CancelButton", "Cancel"), 
-					LOCTEXT("ChoosePackagesToCheckIn_CancelButtonTooltip", "Cancel the check in operation."), 
-					FSimpleDelegate::CreateStatic(&FMainFrameActionCallbacks::ChoosePackagesToCheckInCancelled, Operation)
-					));
-			}
-
-			ChoosePackagesToCheckInNotification = FSlateNotificationManager::Get().AddNotification(Info);
-
-			if (ChoosePackagesToCheckInNotification.IsValid())
-			{
-				ChoosePackagesToCheckInNotification.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
-			}
-		}
-		else
-		{
-			FMessageLog EditorErrors("EditorErrors");
-			EditorErrors.Warning(LOCTEXT( "NoSCCConnection", "No connection to source control available!"))
-				->AddToken(FDocumentationToken::Create(TEXT("Engine/UI/SourceControl")));
-			EditorErrors.Notify();
-		}
-	}
+	FSourceControlWindows::ChoosePackagesToCheckIn();
 }
 
 bool FMainFrameActionCallbacks::CanChoosePackagesToCheckIn()
 {
-	return !ChoosePackagesToCheckInNotification.IsValid();
+	return FSourceControlWindows::CanChoosePackagesToCheckIn();
 }
 
 void FMainFrameActionCallbacks::ConnectToSourceControl()
@@ -430,7 +270,27 @@ void FMainFrameActionCallbacks::AddCodeToProject()
 	FGameProjectGenerationModule::Get().OpenAddCodeToProjectDialog();
 }
 
-void FMainFrameActionCallbacks::CookContent( const FName InPlatformInfoName )
+/**
+ * Gets compilation flags for UAT for this system.
+ */
+const TCHAR* GetUATCompilationFlags()
+{
+	return FRocketSupport::IsRocket() || !FSourceCodeNavigation::IsCompilerAvailable()
+		? TEXT("-nocompile")
+		: TEXT("-nocompileeditor");
+}
+
+/**
+ * Gets -nocodeproject flag for UAT if it's needed.
+ */
+const TCHAR* GetUATNoCodeProjectFlag()
+{
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	// If there is no game module loaded, source code is not available.
+	return !HotReloadSupport.IsAnyGameModuleLoaded() ? TEXT(" -nocodeproject") : TEXT("");
+}
+
+void FMainFrameActionCallbacks::CookContent(const FName InPlatformInfoName)
 {
 	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(InPlatformInfoName);
 	check(PlatformInfo);
@@ -449,20 +309,16 @@ void FMainFrameActionCallbacks::CookContent( const FName InPlatformInfoName )
 		return;
 	}
 
-	if (PlatformInfo->TargetPlatformName == FName("MacNoEditor"))
-	{
-		OptionalParams += TEXT(" -targetplatform=Mac");
-	}
-	else if (PlatformInfo->TargetPlatformName == FName("LinuxNoEditor"))
-	{
-		OptionalParams += TEXT(" -targetplatform=Linux");
-	}
-
 	// Append any extra UAT flags specified for this platform flavor
 	if (!PlatformInfo->UATCommandLine.IsEmpty())
 	{
 		OptionalParams += TEXT(" ");
 		OptionalParams += PlatformInfo->UATCommandLine;
+	}
+	else
+	{
+		OptionalParams += TEXT(" -targetplatform=");
+		OptionalParams += *PlatformInfo->TargetPlatformName.ToString();
 	}
 
 	const bool bRunningDebug = FParse::Param(FCommandLine::Get(), TEXT("debug"));
@@ -473,11 +329,12 @@ void FMainFrameActionCallbacks::CookContent( const FName InPlatformInfoName )
 	}
 
 	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s -nop4 -project=\"%s\" -cook -allmaps -%s -ue4exe=%s %s"),
-		FRocketSupport::IsRocket() ? TEXT("-rocket -nocompile") : TEXT("-nocompileeditor"),
+	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s%s%s -nop4 -project=\"%s\" -cook -allmaps -ue4exe=%s %s"),
+		FRocketSupport::IsRocket() ? TEXT("-rocket ") : TEXT(""),
+		GetUATCompilationFlags(),
+		GetUATNoCodeProjectFlag(),
 		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
 		*ProjectPath,
-		*PlatformInfo->TargetPlatformName.ToString(),
 		*FUnrealEdMisc::Get().GetExecutableForCommandlets(),
 		*OptionalParams
 	);
@@ -516,11 +373,19 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	// does the project have any code?
 	FGameProjectGenerationModule& GameProjectModule = FModuleManager::LoadModuleChecked<FGameProjectGenerationModule>(TEXT("GameProjectGeneration"));
 	bool bProjectHasCode = GameProjectModule.Get().ProjectHasCodeFiles();
+	bool bContentProjectCanBeBuilt = false;
+	if (!bProjectHasCode && !FRocketSupport::IsRocket())
+	{
+		TArray<FString> OutProjectCodeFilenames;
+		IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *(FPaths::EngineDir() + TEXT("Source/")), TEXT("*.h"), true, false, false);
+		IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *(FPaths::EngineDir() + TEXT("Source/")), TEXT("*.cpp"), true, false, false);
+		bContentProjectCanBeBuilt = (OutProjectCodeFilenames.Num() > 0);
+	}
 
 	const PlatformInfo::FPlatformInfo* const PlatformInfo = PlatformInfo::FindPlatformInfo(InPlatformInfoName);
 	check(PlatformInfo);
 
-	if (PlatformInfo->SDKStatus == PlatformInfo::EPlatformSDKStatus::NotInstalled)
+	if (PlatformInfo->SDKStatus == PlatformInfo::EPlatformSDKStatus::NotInstalled || (bProjectHasCode && PlatformInfo->bUsesHostCompiler && !FSourceCodeNavigation::IsCompilerAvailable()))
 	{
 		IMainFrameModule& MainFrameModule = FModuleManager::GetModuleChecked<IMainFrameModule>(TEXT("MainFrame"));
 		MainFrameModule.BroadcastMainFrameSDKNotInstalled(PlatformInfo->TargetPlatformName.ToString(), PlatformInfo->SDKTutorial);
@@ -578,8 +443,7 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("IOSNotSupported", "Sorry, launching on a device is currently not supported for code-based iOS projects. This feature will be available in a future release.") );
 				UnrecoverableError = true;
 			}
-
-			if ((Result & ETargetPlatformReadyStatus::CodeUnsupported) != 0)
+			else if ((Result & ETargetPlatformReadyStatus::PluginsUnsupported) != 0)
 			{
 				FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("IOSNotSupported", "Sorry, launching on a device is currently not supported for content based projects with third-party plugins. This feature will be available in a future release.") );
 				UnrecoverableError = true;
@@ -650,13 +514,19 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += TEXT(" -distribution");
 	}
 
-	if (PlatformInfo->TargetPlatformName == FName("MacNoEditor"))
+	if (!PackagingSettings->IncludeDebugFiles)
 	{
-		OptionalParams += TEXT(" -targetplatform=Mac");
+		OptionalParams += TEXT(" -nodebuginfo");
 	}
-	else if (PlatformInfo->TargetPlatformName == FName("LinuxNoEditor"))
+
+	if (PlatformInfo->TargetPlatformName == FName("WindowsNoEditor") && PlatformInfo->PlatformFlavor == TEXT("Win32"))
 	{
-		OptionalParams += TEXT(" -targetplatform=Linux");
+		FString MinumumSupportedWindowsOS;
+		GConfig->GetString(TEXT("/Script/WindowsTargetPlatform.WindowsTargetSettings"), TEXT("MinimumOSVersion"), MinumumSupportedWindowsOS, GEngineIni);
+		if (MinumumSupportedWindowsOS == TEXT("MSOS_XP"))
+		{
+			OptionalParams += TEXT(" -OverrideMinimumOS=WinXP");
+		}
 	}
 
 	// Append any extra UAT flags specified for this platform flavor
@@ -665,11 +535,22 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 		OptionalParams += TEXT(" ");
 		OptionalParams += PlatformInfo->UATCommandLine;
 	}
+	else
+	{
+		OptionalParams += TEXT(" -targetplatform=");
+		OptionalParams += *PlatformInfo->TargetPlatformName.ToString();
+	}
 
 	// only build if the project has code that might need to be built
 	if (bProjectHasCode && FSourceCodeNavigation::IsCompilerAvailable())
 	{
 		OptionalParams += TEXT(" -build");
+	}
+
+	// we can include the crash reporter for any non-code projects or internal builds (we don't have the symbols to interpret external builds of code-based projects)
+	if (PackagingSettings->IncludeCrashReporter && (!bProjectHasCode || FEngineBuildSettings::IsInternalBuild()))
+	{
+		OptionalParams += TEXT(" -CrashReporter");
 	}
 
 	FString ExecutableName = FPlatformProcess::ExecutableName(false);
@@ -696,12 +577,13 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 	Configuration = Configuration.Replace(TEXT("PPBC_"), TEXT(""));
 
 	FString ProjectPath = FPaths::IsProjectFilePathSet() ? FPaths::ConvertRelativePathToFull(FPaths::GetProjectFilePath()) : FPaths::RootDir() / FApp::GetGameName() / FApp::GetGameName() + TEXT(".uproject");
-	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s -nop4 -project=\"%s\" -cook -allmaps -CrashReporter -stage -archive -archivedirectory=\"%s\" -package -%s -clientconfig=%s -ue4exe=%s %s -utf8output"),
-		FRocketSupport::IsRocket() ? TEXT( "-rocket -nocompile" ) : TEXT( "-nocompileeditor" ),
+	FString CommandLine = FString::Printf(TEXT("BuildCookRun %s%s%s%s -nop4 -project=\"%s\" -cook -allmaps -stage -archive -archivedirectory=\"%s\" -package -clientconfig=%s -ue4exe=%s %s -utf8output"),
+		FRocketSupport::IsRocket() ? TEXT("-rocket ") : TEXT(""),
+		GetUATCompilationFlags(),
+		GetUATNoCodeProjectFlag(),
 		FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""),
 		*ProjectPath,
 		*PackagingSettings->StagingDirectory.Path,
-		*PlatformInfo->TargetPlatformName.ToString(),
 		*Configuration,
 		*ExecutableName,
 		*OptionalParams
@@ -1271,6 +1153,7 @@ void FMainFrameActionCallbacks::HandleUatProcessCanceled( TWeakPtr<SNotification
 }
 
 
+DECLARE_CYCLE_STAT(TEXT("Requesting FMainFrameActionCallbacks::HandleUatProcessCompleted message dialog to present the error message"), STAT_FMainFrameActionCallbacks_HandleUatProcessCompleted_DialogMessage, STATGROUP_TaskGraphTasks);
 void FMainFrameActionCallbacks::HandleUatProcessCompleted( int32 ReturnCode, TWeakPtr<SNotificationItem> NotificationItemPtr, FText PlatformDisplayName, FText TaskName, EventData Event )
 {
 	FFormatNamedArguments Arguments;
@@ -1303,6 +1186,18 @@ void FMainFrameActionCallbacks::HandleUatProcessCompleted( int32 ReturnCode, TWe
 		ParamArray.Add(FAnalyticsEventAttribute(TEXT("Time"), FPlatformTime::Seconds() - Event.StartTime));
 		FEditorAnalytics::ReportEvent(Event.EventName + TEXT(".Failed"), PlatformDisplayName.ToString(), Event.bProjectHasCode, ReturnCode, ParamArray);
 
+		// Present a message dialog if we want the error message to be prominent.
+		if (FEditorAnalytics::ShouldElevateMessageThroughDialog(ReturnCode))
+		{
+			FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+				FSimpleDelegateGraphTask::FDelegate::CreateLambda([=](){
+					FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(FEditorAnalytics::TranslateErrorCode(ReturnCode)));
+				}),
+				GET_STATID(STAT_FMainFrameActionCallbacks_HandleUatProcessCompleted_DialogMessage),
+				nullptr,
+				ENamedThreads::GameThread
+			);
+		}
 //		FMessageLog("PackagingResults").Info(FText::Format(LOCTEXT("UatProcessFailedMessageLog", "{TaskName} for {Platform} failed"), Arguments));
 	}
 }

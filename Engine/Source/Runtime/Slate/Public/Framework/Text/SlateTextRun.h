@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #if WITH_FANCY_TEXT
@@ -48,7 +48,7 @@ public:
 
 	virtual ERunAttributes GetRunAttributes() const override;
 
-private:
+protected:
 
 	FSlateTextRun( const FRunInfo& InRunInfo, const TSharedRef< const FString >& InText, const FTextBlockStyle& InStyle );
 
@@ -56,7 +56,7 @@ private:
 
 	FSlateTextRun( const FSlateTextRun& Run );
 
-private:
+protected:
 
 	FRunInfo RunInfo;
 	TSharedRef< const FString > Text;

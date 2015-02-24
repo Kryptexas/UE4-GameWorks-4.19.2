@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,8 +9,8 @@ public:
 	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
 
 	/** IPropertyTypeCustomization interface */
-	virtual void CustomizeHeader(TSharedRef<class IPropertyHandle> StructPropertyHandle, class FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
-	virtual void CustomizeChildren(TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils) override;
+	virtual void CustomizeHeader(TSharedRef<class IPropertyHandle> InStructPropertyHandle, class FDetailWidgetRow& InHeaderRow, IPropertyTypeCustomizationUtils& InStructCustomizationUtils) override;
+	virtual void CustomizeChildren(TSharedRef<class IPropertyHandle> InStructPropertyHandle, class IDetailChildrenBuilder& InStructBuilder, IPropertyTypeCustomizationUtils& InStructCustomizationUtils) override;
 
 protected:
 	/** Called to filter out invalid font assets */
@@ -37,8 +37,12 @@ protected:
 	/** Get the name of the currently active font entry (may not be the selected entry if the entry is set to use "None") */
 	FName GetActiveFontEntry() const;
 
-	/** Array of FSlateFontInfo instances this customization is currently editing */
-	TArray<FSlateFontInfo*> SlateFontInfoStructs;
+	/** Get the array of FSlateFontInfo instances this customization is currently editing */
+	TArray<FSlateFontInfo*> GetFontInfoBeingEdited();
+	TArray<const FSlateFontInfo*> GetFontInfoBeingEdited() const;
+
+	/** Handle to the struct property being edited */
+	TSharedPtr<IPropertyHandle> StructPropertyHandle;
 
 	/** Handle to the "FontObject" property being edited */
 	TSharedPtr<IPropertyHandle> FontObjectProperty;

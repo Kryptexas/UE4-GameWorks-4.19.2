@@ -1,8 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "LevelUtils.h"
 #include "LocalVertexFactory.h"
+#include "Components/MaterialBillboardComponent.h"
 
 /** A material sprite vertex. */
 struct FMaterialSpriteVertex
@@ -179,8 +180,8 @@ public:
 						for(uint32 VertexIndex = 0;VertexIndex < 4;++VertexIndex)
 						{
 							VertexArray.Vertices[VertexIndex].Color = Color;
-							VertexArray.Vertices[VertexIndex].TangentX = FPackedNormal(LocalCameraRight.SafeNormal());
-							VertexArray.Vertices[VertexIndex].TangentZ = FPackedNormal(-LocalCameraForward.SafeNormal());
+							VertexArray.Vertices[VertexIndex].TangentX = FPackedNormal(LocalCameraRight.GetSafeNormal());
+							VertexArray.Vertices[VertexIndex].TangentZ = FPackedNormal(-LocalCameraForward.GetSafeNormal());
 						}
 
 						// Set up the sprite vertex positions and texture coordinates.
@@ -229,114 +230,6 @@ public:
 		}
 	}
 
-	// FPrimitiveSceneProxy interface.
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-	{
-		QUICK_SCOPE_CYCLE_COUNTER( STAT_MaterialSpriteSceneProxy_DrawDynamicElements );
-
-		const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
-		// Determine the position of the source
-		const FVector SourcePosition = GetLocalToWorld().GetOrigin();
-		const FVector CameraToSource = View->ViewMatrices.ViewOrigin - SourcePosition;
-		const float DistanceToSource = CameraToSource.Size();
-
-		const FVector CameraUp      = -View->InvViewProjectionMatrix.TransformVector(FVector(1.0f,0.0f,0.0f));
-		const FVector CameraRight   = -View->InvViewProjectionMatrix.TransformVector(FVector(0.0f,1.0f,0.0f));
-		const FVector CameraForward = -View->InvViewProjectionMatrix.TransformVector(FVector(0.0f,0.0f,1.0f));
-		const FMatrix WorldToLocal = GetLocalToWorld().InverseFast();
-		const FVector LocalCameraUp = WorldToLocal.TransformVector(CameraUp);
-		const FVector LocalCameraRight = WorldToLocal.TransformVector(CameraRight);
-		const FVector LocalCameraForward = WorldToLocal.TransformVector(CameraForward);
-
-		// Draw the elements ordered so the last is on top of the first.
-		for(int32 ElementIndex = 0;ElementIndex < Elements.Num();++ElementIndex)
-		{
-			const FMaterialSpriteElement& Element = Elements[ElementIndex];
-			if(Element.Material)
-			{
-				// Evaluate the size of the sprite.
-				float SizeX = Element.BaseSizeX;
-				float SizeY = Element.BaseSizeY;
-				if(Element.DistanceToSizeCurve)
-				{
-					const float SizeFactor = Element.DistanceToSizeCurve->GetFloatValue(DistanceToSource);
-					SizeX *= SizeFactor;
-					SizeY *= SizeFactor;
-				}
-						
-				// Convert the size into world-space.
-				const float W = View->ViewProjectionMatrix.TransformPosition(SourcePosition).W;
-				const float AspectRatio = CameraRight.Size() / CameraUp.Size();
-				const float WorldSizeX = Element.bSizeIsInScreenSpace ? (SizeX               * W) : (SizeX / CameraRight.Size());
-				const float WorldSizeY = Element.bSizeIsInScreenSpace ? (SizeY * AspectRatio * W) : (SizeY / CameraUp.Size());
-			
-				// Evaluate the color/opacity of the sprite.
-				FLinearColor Color = BaseColor;
-				if(Element.DistanceToOpacityCurve)
-				{
-					Color.A *= Element.DistanceToOpacityCurve->GetFloatValue(DistanceToSource);
-				}
-
-				// Set up the sprite vertex attributes that are constant across the sprite.
-				FMaterialSpriteVertex Vertices[4];
-				for(uint32 VertexIndex = 0;VertexIndex < 4;++VertexIndex)
-				{
-					Vertices[VertexIndex].Color = Color;
-					Vertices[VertexIndex].TangentX = FPackedNormal(LocalCameraRight.SafeNormal());
-					Vertices[VertexIndex].TangentZ = FPackedNormal(-LocalCameraForward.SafeNormal());
-				}
-
-				// Set up the sprite vertex positions and texture coordinates.
-				Vertices[0].Position  = -WorldSizeX * LocalCameraRight + +WorldSizeY * LocalCameraUp;
-				Vertices[0].TexCoords = FVector2D(0,0);
-				Vertices[1].Position  = +WorldSizeX * LocalCameraRight + +WorldSizeY * LocalCameraUp;
-				Vertices[1].TexCoords = FVector2D(1,0);
-				Vertices[2].Position  = -WorldSizeX * LocalCameraRight + -WorldSizeY * LocalCameraUp;
-				Vertices[2].TexCoords = FVector2D(0,1);
-				Vertices[3].Position  = +WorldSizeX * LocalCameraRight + -WorldSizeY * LocalCameraUp;
-				Vertices[3].TexCoords = FVector2D(1,1);
-			
-				// Set up the FMeshElement.
-				FMeshBatch Mesh;
-				Mesh.UseDynamicData      = true;
-				Mesh.DynamicVertexData   = Vertices;
-				Mesh.DynamicVertexStride = sizeof(FMaterialSpriteVertex);
-
-				Mesh.VertexFactory           = &GMaterialSpriteVertexFactory;
-				Mesh.MaterialRenderProxy     = Element.Material->GetRenderProxy((View->Family->EngineShowFlags.Selection) && IsSelected(),IsHovered());
-				Mesh.LCI                     = NULL;
-				Mesh.ReverseCulling          = IsLocalToWorldDeterminantNegative() ? true : false;
-				Mesh.CastShadow              = false;
-				Mesh.DepthPriorityGroup      = (ESceneDepthPriorityGroup)GetDepthPriorityGroup(View);
-				Mesh.Type                    = PT_TriangleStrip;
-				Mesh.bDisableBackfaceCulling = true;
-
-				// Set up the FMeshBatchElement.
-				FMeshBatchElement& BatchElement = Mesh.Elements[0];
-				BatchElement.IndexBuffer            = NULL;
-				BatchElement.DynamicIndexData       = NULL;
-				BatchElement.DynamicIndexStride     = 0;
-				BatchElement.FirstIndex             = 0;
-				BatchElement.MinVertexIndex         = 0;
-				BatchElement.MaxVertexIndex         = 3;
-				BatchElement.PrimitiveUniformBuffer = GetUniformBuffer();
-				BatchElement.NumPrimitives          = 2;
-
-				// Draw the sprite.
-				DrawRichMesh(
-					PDI, 
-					Mesh, 
-					FLinearColor(1.0f, 0.0f, 0.0f),
-					LevelColor,
-					PropertyColor,
-					this,
-					IsSelected(),
-					bIsWireframe
-					);
-			}
-		}
-	}
-
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
 	{
 		bool bVisible = View->Family->EngineShowFlags.BillboardSprites;
@@ -360,8 +253,6 @@ private:
 UMaterialBillboardComponent::UMaterialBillboardComponent(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
-	BodyInstance.bEnableCollision_DEPRECATED = false;
-
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 }
 

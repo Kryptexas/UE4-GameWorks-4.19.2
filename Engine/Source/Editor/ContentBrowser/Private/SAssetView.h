@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,7 +18,7 @@ public:
 		, _ThumbnailLabel( EThumbnailLabel::ClassName )
 		, _AllowThumbnailHintLabel(true)
 		, _InitialViewType(EAssetViewType::Tile)
-		, _ThumbnailScale(0.25f) // A reasonable scale
+		, _ThumbnailScale(0.1f)
 		, _ShowBottomToolbar(true)
 		, _AllowThumbnailEditMode(false)
 		, _CanShowClasses(true)
@@ -247,6 +247,12 @@ public:
 
 private:
 
+	/** @return the thumbnail scale setting path to use when looking up the setting in an ini. */
+	FString GetThumbnailScaleSettingPath(const FString& SettingsString) const;
+
+	/** @return the view type setting path to use when looking up the setting in an ini. */
+	FString GetCurrentViewTypeSettingPath(const FString& SettingsString) const;
+
 	/** Calculates a new filler scale used to adjust the thumbnails to fill empty space. */
 	void CalculateFillScale( const FGeometry& AllottedGeometry );
 
@@ -309,6 +315,9 @@ private:
 
 	/** Handler for when an asset's property has changed */
 	void OnObjectPropertyChanged(UObject* Asset, FPropertyChangedEvent& PropertyChangedEvent);
+
+	/** Called when the class hierarchy is updated due to the available modules changing */
+	void OnClassHierarchyUpdated();
 
 	/** Handler for when any frontend filters have been changed */
 	void OnFrontendFiltersChanged();
@@ -463,7 +472,7 @@ private:
 	FReply EndThumbnailEditModeClicked();
 
 	/** Gets the text for the asset count label */
-	FString GetAssetCountText() const;
+	FText GetAssetCountText() const;
 
 	/** Gets the visibility of the Thumbnail Edit Mode label */
 	EVisibility GetEditModeLabelVisibility() const;

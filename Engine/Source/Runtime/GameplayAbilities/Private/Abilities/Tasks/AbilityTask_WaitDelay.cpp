@@ -1,3 +1,4 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitDelay.h"
@@ -20,7 +21,10 @@ void UAbilityTask_WaitDelay::Activate()
 {
 	UWorld* World = GetWorld();
 	TimeStarted = World->GetTimeSeconds();
-	World->GetTimerManager().SetTimer(this, &UAbilityTask_WaitDelay::OnTimeFinish, Time, false);
+
+	// Use a dummy timer handle as we don't need to store it for later but we don't need to look for something to clear
+	FTimerHandle TimerHandle;
+	World->GetTimerManager().SetTimer(TimerHandle, this, &UAbilityTask_WaitDelay::OnTimeFinish, Time, false);
 }
 
 void UAbilityTask_WaitDelay::OnDestroy(bool AbilityEnded)
@@ -31,10 +35,11 @@ void UAbilityTask_WaitDelay::OnDestroy(bool AbilityEnded)
 void UAbilityTask_WaitDelay::OnTimeFinish()
 {
 	OnFinish.Broadcast();
+	EndTask();
 }
 
 FString UAbilityTask_WaitDelay::GetDebugString() const
 {
-	float TimeLeft = GetWorld()->GetTimeSeconds() - TimeStarted;
+	float TimeLeft = Time - GetWorld()->TimeSince(TimeStarted);
 	return FString::Printf(TEXT("WaitDelay. Time: %.2f. TimeLeft: %.2f"), Time, TimeLeft);
 }

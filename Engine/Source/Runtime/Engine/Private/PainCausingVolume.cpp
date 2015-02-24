@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "GameFramework/PainCausingVolume.h"
+#include "GameFramework/DamageType.h"
 
 APainCausingVolume::APainCausingVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -36,9 +37,9 @@ void APainCausingVolume::ActorEnteredVolume(AActor* Other)
 	}
 
 	// Start timer if none is active
-	if (!GetWorldTimerManager().IsTimerActive(this, &APainCausingVolume::PainTimer))
+	if (!GetWorldTimerManager().IsTimerActive(TimerHandle_PainTimer))
 	{
-		GetWorldTimerManager().SetTimer(this, &APainCausingVolume::PainTimer, PainInterval, true);
+		GetWorldTimerManager().SetTimer(TimerHandle_PainTimer, this, &APainCausingVolume::PainTimer, PainInterval, true);
 	}
 }
 
@@ -65,7 +66,7 @@ void APainCausingVolume::PainTimer()
 		// Stop timer if nothing is overlapping us
 		if (TouchingActors.Num() == 0)
 		{
-			GetWorldTimerManager().ClearTimer(this, &APainCausingVolume::PainTimer);
+			GetWorldTimerManager().ClearTimer(TimerHandle_PainTimer);
 		}
 	}
 }

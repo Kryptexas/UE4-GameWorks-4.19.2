@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "WindowsApplication.h"
@@ -211,8 +211,11 @@ void XInputInterface::SendControllerEvents()
  				// apply force feedback
  				XINPUT_VIBRATION VibrationState;
  
- 				VibrationState.wLeftMotorSpeed = ( ::WORD ) ( ControllerState.ForceFeedback.LeftLarge * 65535.0f );
- 				VibrationState.wRightMotorSpeed = ( ::WORD ) ( ControllerState.ForceFeedback.RightSmall * 65535.0f );
+				const float LargeValue = (ControllerState.ForceFeedback.LeftLarge > ControllerState.ForceFeedback.RightLarge ? ControllerState.ForceFeedback.LeftLarge : ControllerState.ForceFeedback.RightLarge);
+				const float SmallValue = (ControllerState.ForceFeedback.LeftSmall > ControllerState.ForceFeedback.RightSmall ? ControllerState.ForceFeedback.LeftSmall : ControllerState.ForceFeedback.RightSmall);
+
+				VibrationState.wLeftMotorSpeed = ( ::WORD ) ( LargeValue * 65535.0f );
+ 				VibrationState.wRightMotorSpeed = ( ::WORD ) ( SmallValue * 65535.0f );
  
 				XInputSetState( ( ::DWORD ) ControllerState.ControllerId, &VibrationState );			
 			}
@@ -236,19 +239,19 @@ void XInputInterface::SetChannelValue( const int32 ControllerId, const FForceFee
 	{
 		switch( ChannelType )
 		{
-			case FF_CHANNEL_LEFT_LARGE:
+			case FForceFeedbackChannelType::LEFT_LARGE:
 				ControllerState.ForceFeedback.LeftLarge = Value;
 				break;
 
-			case FF_CHANNEL_LEFT_SMALL:
+			case FForceFeedbackChannelType::LEFT_SMALL:
 				ControllerState.ForceFeedback.LeftSmall = Value;
 				break;
 
-			case FF_CHANNEL_RIGHT_LARGE:
+			case FForceFeedbackChannelType::RIGHT_LARGE:
 				ControllerState.ForceFeedback.RightLarge = Value;
 				break;
 
-			case FF_CHANNEL_RIGHT_SMALL:
+			case FForceFeedbackChannelType::RIGHT_SMALL:
 				ControllerState.ForceFeedback.RightSmall = Value;
 				break;
 		}

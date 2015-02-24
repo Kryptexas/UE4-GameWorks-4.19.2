@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "ModuleManager.h"
@@ -19,17 +19,11 @@ void FTestFriendsInterface::Test(UWorld* InWorld, const TArray<FString>& Invites
 		}
 
 		// Add our delegate for the async call
-		OnReadFriendsCompleteDelegate = FOnReadFriendsListCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnReadFriendsComplete);
-		OnAcceptInviteCompleteDelegate = FOnAcceptInviteCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnAcceptInviteComplete);
-		OnSendInviteCompleteDelegate = FOnSendInviteCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnSendInviteComplete);
 		OnDeleteFriendCompleteDelegate = FOnDeleteFriendCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnDeleteFriendComplete);
-		OnDeleteFriendsListCompleteDelegate = FOnDeleteFriendsListCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnDeleteFriendsListComplete);
+		OnQueryRecentPlayersCompleteDelegate = FOnQueryRecentPlayersCompleteDelegate::CreateRaw(this, &FTestFriendsInterface::OnQueryRecentPlayersComplete);
 
-		OnlineSub->GetFriendsInterface()->AddOnReadFriendsListCompleteDelegate(0, OnReadFriendsCompleteDelegate);
-		OnlineSub->GetFriendsInterface()->AddOnAcceptInviteCompleteDelegate(0, OnAcceptInviteCompleteDelegate);
-		OnlineSub->GetFriendsInterface()->AddOnSendInviteCompleteDelegate(0, OnSendInviteCompleteDelegate);
-		OnlineSub->GetFriendsInterface()->AddOnDeleteFriendCompleteDelegate(0, OnDeleteFriendCompleteDelegate);
-		OnlineSub->GetFriendsInterface()->AddOnDeleteFriendsListCompleteDelegate(0, OnDeleteFriendsListCompleteDelegate);
+		OnDeleteFriendCompleteDelegateHandle       = OnlineSub->GetFriendsInterface()->AddOnDeleteFriendCompleteDelegate_Handle      (0, OnDeleteFriendCompleteDelegate);
+		OnQueryRecentPlayersCompleteDelegateHandle = OnlineSub->GetFriendsInterface()->AddOnQueryRecentPlayersCompleteDelegate_Handle(OnQueryRecentPlayersCompleteDelegate);
 
 		// list of pending users to send invites to
 		for (int32 Idx=0; Idx < Invites.Num(); Idx++)
@@ -57,15 +51,27 @@ void FTestFriendsInterface::StartNextTest()
 {
 	if (bReadFriendsList)
 	{
-		OnlineSub->GetFriendsInterface()->ReadFriendsList(0, FriendsListName);
+		FOnReadFriendsListComplete Delegate = FOnReadFriendsListComplete::CreateRaw(this, &FTestFriendsInterface::OnReadFriendsComplete);
+		OnlineSub->GetFriendsInterface()->ReadFriendsList(0, FriendsListName, Delegate);
+	}
+	else if (bQueryRecentPlayers)
+	{
+		if (OnlineSub->GetIdentityInterface().IsValid() &&
+			OnlineSub->GetIdentityInterface()->GetUniquePlayerId(0).IsValid())
+		{
+			OnlineSub->GetFriendsInterface()->QueryRecentPlayers(*OnlineSub->GetIdentityInterface()->GetUniquePlayerId(0));
+		}
+		bQueryRecentPlayers = false;
 	}
 	else if (bAcceptInvites && InvitesToAccept.Num() > 0)
 	{
-		OnlineSub->GetFriendsInterface()->AcceptInvite(0, *InvitesToAccept[0], FriendsListName);
+		FOnAcceptInviteComplete Delegate = FOnAcceptInviteComplete::CreateRaw(this, &FTestFriendsInterface::OnAcceptInviteComplete);
+		OnlineSub->GetFriendsInterface()->AcceptInvite(0, *InvitesToAccept[0], FriendsListName, Delegate);
 	}
 	else if (bSendInvites && InvitesToSend.Num() > 0)
 	{
-		OnlineSub->GetFriendsInterface()->SendInvite(0, *InvitesToSend[0], FriendsListName);
+		FOnSendInviteComplete OnSendInviteCompleteDelegate = FOnSendInviteComplete::CreateRaw(this, &FTestFriendsInterface::OnSendInviteComplete);
+		OnlineSub->GetFriendsInterface()->SendInvite(0, *InvitesToSend[0], FriendsListName, OnSendInviteCompleteDelegate);
 	}
 	else if (bDeleteFriends && FriendsToDelete.Num() > 0)
 	{
@@ -73,7 +79,8 @@ void FTestFriendsInterface::StartNextTest()
 	}
 	else if (bDeleteFriendsList)
 	{
-		OnlineSub->GetFriendsInterface()->DeleteFriendsList(0, FriendsListName);
+		FOnDeleteFriendsListComplete Delegate = FOnDeleteFriendsListComplete::CreateRaw(this, &FTestFriendsInterface::OnDeleteFriendsListComplete);
+		OnlineSub->GetFriendsInterface()->DeleteFriendsList(0, FriendsListName, Delegate);
 	}
 	else
 	{
@@ -88,11 +95,8 @@ void FTestFriendsInterface::FinishTest()
 		OnlineSub->GetFriendsInterface().IsValid())
 	{
 		// Clear delegates for the various async calls
-		OnlineSub->GetFriendsInterface()->ClearOnReadFriendsListCompleteDelegate(0, OnReadFriendsCompleteDelegate);
-		OnlineSub->GetFriendsInterface()->ClearOnAcceptInviteCompleteDelegate(0, OnAcceptInviteCompleteDelegate);
-		OnlineSub->GetFriendsInterface()->ClearOnSendInviteCompleteDelegate(0, OnSendInviteCompleteDelegate);
-		OnlineSub->GetFriendsInterface()->ClearOnDeleteFriendCompleteDelegate(0, OnDeleteFriendCompleteDelegate);
-		OnlineSub->GetFriendsInterface()->ClearOnDeleteFriendsListCompleteDelegate(0, OnDeleteFriendsListCompleteDelegate);
+		OnlineSub->GetFriendsInterface()->ClearOnDeleteFriendCompleteDelegate_Handle      (0, OnDeleteFriendCompleteDelegateHandle);
+		OnlineSub->GetFriendsInterface()->ClearOnQueryRecentPlayersCompleteDelegate_Handle(OnQueryRecentPlayersCompleteDelegateHandle);
 	}
 	delete this;
 }
@@ -100,7 +104,7 @@ void FTestFriendsInterface::FinishTest()
 void FTestFriendsInterface::OnReadFriendsComplete(int32 LocalPlayer, bool bWasSuccessful, const FString& ListName, const FString& ErrorStr)
 {
 	UE_LOG(LogOnline, Log,
-		TEXT("ReadFriendsList() for player (%d) was success=%d"), LocalPlayer, bWasSuccessful);
+		TEXT("ReadFriendsList() for player (%d) was success=%d error=%s"), LocalPlayer, bWasSuccessful, *ErrorStr);
 
 	if (bWasSuccessful)
 	{
@@ -156,6 +160,37 @@ void FTestFriendsInterface::OnReadFriendsComplete(int32 LocalPlayer, bool bWasSu
 	
 	// done with this part of the test
 	bReadFriendsList = false;
+	// kick off next test
+	StartNextTest();
+}
+
+void FTestFriendsInterface::OnQueryRecentPlayersComplete(const FUniqueNetId& UserId, bool bWasSuccessful, const FString& ErrorStr)
+{
+	UE_LOG(LogOnline, Log,
+		TEXT("QueryRecentPlayers() for player (%s) was success=%d error=%s"), *UserId.ToDebugString(), bWasSuccessful, *ErrorStr);
+
+	if (bWasSuccessful)
+	{
+		TArray< TSharedRef<FOnlineRecentPlayer> > Players;
+		// Grab the friends data so we can print it out
+		if (OnlineSub->GetFriendsInterface()->GetRecentPlayers(UserId, Players))
+		{
+			UE_LOG(LogOnline, Log,
+				TEXT("GetRecentPlayers returned %d players"), Players.Num());
+
+			// Log each friend's data out
+			for (auto RecentPlayer : Players)
+			{
+				UE_LOG(LogOnline, Log,
+					TEXT("\t%s has unique id (%s)"), *RecentPlayer->GetDisplayName(), *RecentPlayer->GetUserId()->ToDebugString());
+				UE_LOG(LogOnline, Log,
+					TEXT("\t LastSeen (%s)"), *RecentPlayer->GetLastSeen().ToString());
+			}
+		}
+	}
+
+	// done with this part of the test
+	bQueryRecentPlayers = false;
 	// kick off next test
 	StartNextTest();
 }

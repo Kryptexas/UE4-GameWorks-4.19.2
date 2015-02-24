@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AndroidRuntimeSettingsPrivatePCH.h"
 
@@ -21,6 +21,12 @@ void UAndroidRuntimeSettings::PostEditChangeProperty(struct FPropertyChangedEven
 	if (!bBuildForArmV7 && !bBuildForX86)// && !bBuildForArm64 && !bBuildForX8664)
 	{
 		bBuildForArmV7 = true;
+	}
+
+	// Ensure that at least one GPU architecture is supported
+	if (!bBuildForES2 && !bBuildForES31)
+	{
+		bBuildForES2 = true;
 	}
 }
 #endif

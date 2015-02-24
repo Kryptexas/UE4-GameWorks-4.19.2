@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "LevelEditor.h"
@@ -19,14 +19,12 @@
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/ExportTextDragDropOp.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/BrushBuilderDragDropOp.h"
-#include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
-#include "Editor/SceneOutliner/Public/ISceneOutlinerColumn.h"
+#include "Editor/SceneOutliner/Public/SceneOutliner.h"
 #include "ScopedTransaction.h"
 #include "LevelUtils.h"
 #include "HighresScreenshotUI.h"
 #include "SCaptureRegionWidget.h"
 #include "ISettingsModule.h"
-#include "SceneOutlinerTreeItems.h"
 #include "BufferVisualizationData.h"
 #include "EditorViewportCommands.h"
 #include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
@@ -35,6 +33,13 @@
 #include "SDPIScaler.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "SLevelViewportControlsPopup.h"
+#include "Camera/CameraActor.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/LocalPlayer.h"
+#include "Engine/Selection.h"
+#include "GameFramework/PlayerInput.h"
+#include "GameFramework/PlayerController.h"
 
 static const FName LevelEditorName("LevelEditor");
 
@@ -192,6 +197,15 @@ void SLevelViewport::ConstructViewportOverlayContent()
 	.HAlign(HAlign_Right)
 	[
 		SAssignNew( ActorPreviewHorizontalBox, SHorizontalBox )
+	];
+
+	ViewportOverlay->AddSlot(SlotIndex)
+	.VAlign(VAlign_Bottom)
+	.HAlign(HAlign_Left)
+	.Padding(5.0f)
+	[
+		SNew(SLevelViewportControlsPopup)
+		.Visibility(this, &SLevelViewport::GetViewportControlsVisibility)
 	];
 
 	ViewportOverlay->AddSlot( SlotIndex )
@@ -432,7 +446,7 @@ void SLevelViewport::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEv
 		{
 			if ( HandleDragObjects(MyGeometry, DragDropEvent) )
 			{
-				if ( HandlePlaceDraggedObjects(DragDropEvent, /*bCreateDropPreview=*/true) )
+				if ( HandlePlaceDraggedObjects(MyGeometry, DragDropEvent, /*bCreateDropPreview=*/true) )
 				{
 					DragDropEvent.GetOperation()->SetDecoratorVisibility(false);
 				}
@@ -448,8 +462,9 @@ void SLevelViewport::OnDragLeave( const FDragDropEvent& DragDropEvent )
 	if ( LevelViewportClient->HasDropPreviewActors() )
 	{
 		LevelViewportClient->DestroyDropPreviewActors();
-		DragDropEvent.GetOperation()->SetDecoratorVisibility(true);
 	}
+
+	DragDropEvent.GetOperation()->SetDecoratorVisibility(true);
 }
 
 bool SLevelViewport::HandleDragObjects(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent)
@@ -572,7 +587,7 @@ FReply SLevelViewport::OnDragOver( const FGeometry& MyGeometry, const FDragDropE
 	return FReply::Unhandled();
 }
 
-bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEvent, bool bCreateDropPreview)
+bool SLevelViewport::HandlePlaceDraggedObjects(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, bool bCreateDropPreview)
 {
 	bool bAllAssetWereLoaded = false;
 	bool bValidDrop = false;
@@ -580,6 +595,12 @@ bool SLevelViewport::HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEve
 
 	TSharedPtr< FDragDropOperation > Operation = DragDropEvent.GetOperation();
 	if (!Operation.IsValid())
+	{
+		return false;
+	}
+
+	// Don't handle the placement if we couldn't handle the drag
+	if (!HandleDragObjects(MyGeometry, DragDropEvent))
 	{
 		return false;
 	}
@@ -787,7 +808,7 @@ FReply SLevelViewport::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent
 
 	if (CurrentLevel && !FLevelUtils::IsLevelLocked(CurrentLevel))
 	{
-		return HandlePlaceDraggedObjects(DragDropEvent, /*bCreateDropPreview=*/false) ? FReply::Handled() : FReply::Unhandled();
+		return HandlePlaceDraggedObjects(MyGeometry, DragDropEvent, /*bCreateDropPreview=*/false) ? FReply::Handled() : FReply::Unhandled();
 	}
 	else
 	{
@@ -809,8 +830,10 @@ void SLevelViewport::Tick( const FGeometry& AllottedGeometry, const double InCur
 
 	// When we have focus we update the 'Allow Throttling' option in slate to be disabled so that interactions in the
 	// viewport with Slate widgets that are part of the game, don't throttle.
-	if ( bPIEContainsFocus != bContainsFocus )
+	if ( GEditor->PlayWorld != nullptr && bPIEContainsFocus != bContainsFocus )
 	{
+		// We can arrive at this point before creating throttling manager (which registers the cvar), so create it explicitly.
+		static const FSlateThrottleManager & ThrottleManager = FSlateThrottleManager::Get();
 		static IConsoleVariable* AllowThrottling = IConsoleManager::Get().FindConsoleVariable(TEXT("Slate.bAllowThrottling"));
 		check(AllowThrottling);
 
@@ -933,10 +956,23 @@ void SLevelViewport::OnMapChanged( UWorld* World, EMapChangeType::Type MapChange
 	
 			ResetNewLevelViewFlags();
 
-			LevelViewportClient->SetInitialViewTransform(
-				World->EditorViews[LevelViewportClient->ViewportType].CamPosition,
-				World->EditorViews[LevelViewportClient->ViewportType].CamRotation,
-				World->EditorViews[LevelViewportClient->ViewportType].CamOrthoZoom );
+			bool bInitializedOrthoViewport = false;
+			for (int32 ViewportType = 0; ViewportType < LVT_MAX; ViewportType++)
+			{
+				if (ViewportType == LVT_Perspective || !bInitializedOrthoViewport)
+				{
+					LevelViewportClient->SetInitialViewTransform(
+						static_cast<ELevelViewportType>(ViewportType),
+						World->EditorViews[ViewportType].CamPosition,
+						World->EditorViews[ViewportType].CamRotation,
+						World->EditorViews[ViewportType].CamOrthoZoom);
+
+					if (ViewportType != LVT_Perspective)
+					{
+						bInitializedOrthoViewport = true;
+					}
+				}
+			}
 		}
 		else if( MapChangeType == EMapChangeType::SaveMap )
 		{
@@ -1299,7 +1335,7 @@ void SLevelViewport::BindShowCommands( FUICommandList& CommandList )
 
 		// Get all known volume classes
 		TArray< UClass* > VolumeClasses;
-		GUnrealEd->GetSortedVolumeClasses( &VolumeClasses );
+		UUnrealEdEngine::GetSortedVolumeClasses(&VolumeClasses);
 
 		for( int32 VolumeClassIndex = 0; VolumeClassIndex < VolumeClasses.Num(); ++VolumeClassIndex )
 		{
@@ -1695,15 +1731,6 @@ bool SLevelViewport::IsBufferVisualizationModeSelected( FName InName ) const
 	return LevelViewportClient->IsViewModeEnabled( VMI_VisualizeBuffer ) && LevelViewportClient->CurrentBufferVisualizationMode == InName;	
 }
 
-void SLevelViewport::ToggleShowFlag( uint32 EngineShowFlagIndex )
-{
-	bool bOldState = LevelViewportClient->EngineShowFlags.GetSingleFlag(EngineShowFlagIndex);
-	LevelViewportClient->EngineShowFlags.SetSingleFlag(EngineShowFlagIndex, !bOldState);
-
-	// Invalidate clients which aren't real-time so we see the changes
-	LevelViewportClient->Invalidate();
-}
-
 void SLevelViewport::OnToggleAllVolumeActors( bool bVisible )
 {
 	// Reinitialize the volume actor visibility flags to the new state.  All volumes should be visible if "Show All" was selected and hidden if it was not selected.
@@ -1718,7 +1745,7 @@ void SLevelViewport::OnToggleAllVolumeActors( bool bVisible )
 void SLevelViewport::ToggleShowVolumeClass( int32 VolumeID )
 {
 	TArray< UClass* > VolumeClasses;
-	GUnrealEd->GetSortedVolumeClasses( &VolumeClasses );
+	UUnrealEdEngine::GetSortedVolumeClasses(&VolumeClasses);
 
 	// Get the corresponding volume class for the clicked menu item.
 	UClass *SelectedVolumeClass = VolumeClasses[ VolumeID ];
@@ -1825,16 +1852,6 @@ void SLevelViewport::OnToggleAllStatCommands( bool bVisible )
 	}
 }
 
-void SLevelViewport::ToggleStatCommand(FString CommandName)
-{
-	GEngine->ExecEngineStat(GetWorld(), LevelViewportClient.Get(), *CommandName);
-}
-
-bool SLevelViewport::IsShowFlagEnabled( uint32 EngineShowFlagIndex ) const
-{
-	return LevelViewportClient->EngineShowFlags.GetSingleFlag(EngineShowFlagIndex);
-}
-
 void SLevelViewport::OnUseDefaultShowFlags(bool bUseSavedDefaults)
 {
 	// cache off the current viewmode as it gets trashed when applying FEngineShowFlags()
@@ -1876,6 +1893,14 @@ void SLevelViewport::OnUseDefaultShowFlags(bool bUseSavedDefaults)
 	// re-apply the cached viewmode, as it was trashed with FEngineShowFlags()
 	ApplyViewMode(CachedViewMode, LevelViewportClient->IsPerspective(), LevelViewportClient->EngineShowFlags);
 	ApplyViewMode(CachedViewMode, LevelViewportClient->IsPerspective(), LevelViewportClient->LastEngineShowFlags);
+
+	// set volume / layer / sprite visibility defaults
+	if (!bUseSavedDefaults)
+	{
+		LevelViewportClient->InitializeVisibilityFlags();
+		GUnrealEd->UpdateVolumeActorVisibility(NULL, LevelViewportClient.Get());
+		GEditor->Layers->UpdatePerViewVisibility(LevelViewportClient.Get());
+	}
 
 	LevelViewportClient->Invalidate();
 }
@@ -1939,7 +1964,7 @@ FLevelEditorViewportInstanceSettings SLevelViewport::LoadLegacyConfigFromIni(con
 	{
 		int32 ViewportTypeAsInt = ViewportInstanceSettings.ViewportType;
 		GConfig->GetInt(*IniSection, *(ConfigKey + TEXT(".Type")), ViewportTypeAsInt, GEditorUserSettingsIni);
-		ViewportInstanceSettings.ViewportType = (ViewportTypeAsInt == -1) ? LVT_None : static_cast<ELevelViewportType>(ViewportTypeAsInt); // LVT_None used to be -1
+		ViewportInstanceSettings.ViewportType = (ViewportTypeAsInt == -1 || ViewportTypeAsInt == 255) ? LVT_None : static_cast<ELevelViewportType>(ViewportTypeAsInt); // LVT_None used to be -1 or 255
 
 		if(ViewportInstanceSettings.ViewportType == LVT_None)
 		{
@@ -2178,7 +2203,7 @@ float SLevelViewport::GetActorLockSceneOutlinerColumnWidth()
 	return 18.0f;	// 16.0f for the icons and 2.0f padding
 }
 
-TSharedRef< ISceneOutlinerColumn > SLevelViewport::CreateActorLockSceneOutlinerColumn( const TWeakPtr< ISceneOutliner >& SceneOutliner ) const
+TSharedRef< ISceneOutlinerColumn > SLevelViewport::CreateActorLockSceneOutlinerColumn( ISceneOutliner& SceneOutliner ) const
 {
 	/**
 	 * A custom column for the SceneOutliner which shows whether an actor is locked to a viewport
@@ -2209,39 +2234,52 @@ TSharedRef< ISceneOutlinerColumn > SLevelViewport::CreateActorLockSceneOutlinerC
 		virtual SHeaderRow::FColumn::FArguments ConstructHeaderRowColumn() override
 		{
 			return SHeaderRow::Column( GetColumnID() )
+				.FixedWidth(SLevelViewport::GetActorLockSceneOutlinerColumnWidth())
 				[
 					SNew( SSpacer )
 				];
 		}
 
-		virtual const TSharedRef< SWidget > ConstructRowWidget( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem ) override
+		virtual const TSharedRef< SWidget > ConstructRowWidget( SceneOutliner::FTreeItemRef TreeItem, const STableRow<SceneOutliner::FTreeItemPtr>& InRow ) override
 		{
-			if (TreeItem->Type == SceneOutliner::TOutlinerTreeItem::Actor)
+			struct FConstructWidget : SceneOutliner::FColumnGenerator
 			{
-				bool bLocked = Viewport->IsActorLocked(StaticCastSharedRef<SceneOutliner::TOutlinerActorTreeItem>(TreeItem)->Actor);
+				const SLevelViewport* Viewport;
+				FConstructWidget(const SLevelViewport* InViewport) : Viewport(InViewport) {}
 
-				return SNew(SBox)
-					.WidthOverride(SLevelViewport::GetActorLockSceneOutlinerColumnWidth())
-					.Padding(FMargin(2.0f, 0.0f, 0.0f, 0.0f))
-					[
-						SNew(SImage)
-						.Image(FEditorStyle::GetBrush(bLocked ? "PropertyWindow.Locked" : "PropertyWindow.Unlocked"))
-						.ColorAndOpacity(bLocked ? FLinearColor::White : FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))
-					];
+				virtual TSharedRef<SWidget> GenerateWidget(SceneOutliner::FActorTreeItem& ActorItem) const override
+				{
+					AActor* Actor = ActorItem.Actor.Get();
+					if (!Actor)
+					{
+						return SNullWidget::NullWidget;
+					}
+
+					const bool bLocked = Viewport->IsActorLocked(Actor);
+
+					return SNew(SBox)
+						.WidthOverride(SLevelViewport::GetActorLockSceneOutlinerColumnWidth())
+						.Padding(FMargin(2.0f, 0.0f, 0.0f, 0.0f))
+						[
+							SNew(SImage)
+							.Image(FEditorStyle::GetBrush(bLocked ? "PropertyWindow.Locked" : "PropertyWindow.Unlocked"))
+							.ColorAndOpacity(bLocked ? FLinearColor::White : FLinearColor(1.0f, 1.0f, 1.0f, 0.5f))
+						];	
+				}
+			};
+
+			FConstructWidget Visitor(Viewport);
+			TreeItem->Visit(Visitor);
+
+			if (Visitor.Widget.IsValid())
+			{
+				return Visitor.Widget.ToSharedRef();	
 			}
 			else
 			{
 				return SNullWidget::NullWidget;
 			}
 		}
-
-		virtual bool ProvidesSearchStrings() { return false; }
-
-		virtual void PopulateActorSearchStrings( const AActor* const InActor, OUT TArray< FString >& OutSearchStrings ) const override {}
-	
-		virtual bool SupportsSorting() const override { return false; }
-
-		virtual void SortItems(TArray<TSharedPtr<SceneOutliner::TOutlinerTreeItem>>& RootItems, const EColumnSortMode::Type SortMode) const override {}
 
 		// End ISceneOutlinerColumn Implementation
 		//////////////////////////////////////////////////////////////////////////
@@ -2458,7 +2496,7 @@ private:
 	FSlateColor GetBorderColorAndOpacity() const;
 
 	/** @return Gets the name of the preview actor.*/
-	FString OnReadText() const;
+	FText OnReadText() const;
 
 	/** @return Gets the Width of the preview viewport.*/
 	FOptionalSize OnReadWidth() const;
@@ -2763,7 +2801,8 @@ FSlateColor SActorPreview::GetBorderColorAndOpacity() const
 
 	if (HighlightSequence.IsPlaying())
 	{
-		const FLinearColor SelectionColor = FEditorStyle::Get().GetSlateColor("SelectionColor").GetSpecifiedColor().CopyWithNewOpacity(0.5f);
+		static const FName SelectionColorName("SelectionColor");
+		const FLinearColor SelectionColor = FEditorStyle::Get().GetSlateColor(SelectionColorName).GetSpecifiedColor().CopyWithNewOpacity(0.5f);
 		
 		const float Interp = FMath::Sin(HighlightSequence.GetLerp()*6*PI) / 2 + 1;
 		Color = FMath::Lerp(SelectionColor, Color, Interp);
@@ -2772,15 +2811,15 @@ FSlateColor SActorPreview::GetBorderColorAndOpacity() const
 	return Color;
 }
 
-FString SActorPreview::OnReadText() const
+FText SActorPreview::OnReadText() const
 {
 	if( PreviewActorPtr.IsValid() )
 	{
-		return PreviewActorPtr.Get()->GetActorLabel();
+		return FText::FromString(PreviewActorPtr.Get()->GetActorLabel());
 	}
 	else
 	{
-		return TEXT("");
+		return FText::GetEmpty();
 	}
 }
 
@@ -3122,33 +3161,37 @@ FText SLevelViewport::GetCurrentLevelText( bool bDrawOnlyLabel ) const
 	FText LabelName;
 	FText CurrentLevelName;
 
-	if( (&GetLevelViewportClient() == GCurrentLevelEditingViewportClient) && GetWorld() && GetWorld()->GetCurrentLevel() != NULL )
+	
+	if( ActiveViewport.IsValid() && (&GetLevelViewportClient() == GCurrentLevelEditingViewportClient) && GetWorld() && GetWorld()->GetCurrentLevel() != nullptr )
 	{
-		if( bDrawOnlyLabel )
+		if( ActiveViewport->GetPlayInEditorIsSimulate() || !ActiveViewport->GetClient()->GetWorld()->IsGameWorld() )
 		{
-			LabelName = LOCTEXT("CurrentLevelLabel", "Level:");
-		}
-		else
-		{
-			// Get the level name (without the number at the end)
-			FText ActualLevelName = FText::FromString( FPackageName::GetShortFName( GetWorld()->GetCurrentLevel()->GetOutermost()->GetFName() ).GetPlainNameString() );
-
-			if( GetWorld()->GetCurrentLevel() == GetWorld()->PersistentLevel )
+			if(bDrawOnlyLabel)
 			{
-				FFormatNamedArguments Args;
-				Args.Add( TEXT("ActualLevelName"), ActualLevelName );
-				CurrentLevelName = FText::Format( LOCTEXT("LevelName", "{0} (Persistent)"), ActualLevelName );
+				LabelName = LOCTEXT("CurrentLevelLabel", "Level:");
 			}
 			else
 			{
-				CurrentLevelName = ActualLevelName;
+				// Get the level name (without the number at the end)
+				FText ActualLevelName = FText::FromString(FPackageName::GetShortFName(GetWorld()->GetCurrentLevel()->GetOutermost()->GetFName()).GetPlainNameString());
+
+				if(GetWorld()->GetCurrentLevel() == GetWorld()->PersistentLevel)
+				{
+					FFormatNamedArguments Args;
+					Args.Add(TEXT("ActualLevelName"), ActualLevelName);
+					CurrentLevelName = FText::Format(LOCTEXT("LevelName", "{0} (Persistent)"), ActualLevelName);
+				}
+				else
+				{
+					CurrentLevelName = ActualLevelName;
+				}
+			}
+
+			if(bDrawOnlyLabel)
+			{
+				return LabelName;
 			}
 		}
-	}
-
-	if( bDrawOnlyLabel )
-	{
-		return LabelName;
 	}
 
 	return CurrentLevelName;
@@ -3174,6 +3217,13 @@ EVisibility SLevelViewport::GetCurrentFeatureLevelPreviewTextVisibility() const
 	{
 		return EVisibility::Collapsed;
 	}
+}
+
+EVisibility SLevelViewport::GetViewportControlsVisibility() const
+{
+	// Do not show the controls if this viewport has a play in editor session
+	// or is not the current viewport
+	return (&GetLevelViewportClient() == GCurrentLevelEditingViewportClient && !IsPlayInEditorViewportActive()) ? OnGetViewportContentVisibility() : EVisibility::Collapsed;
 }
 
 void SLevelViewport::OnSetViewportConfiguration(FName ConfigurationName)
@@ -3286,7 +3336,9 @@ EVisibility SLevelViewport::GetMouseCaptureLabelVisibility() const
 
 FLinearColor SLevelViewport::GetMouseCaptureLabelColorAndOpacity() const
 {
-	FSlateColor SlateColor = FEditorStyle::GetSlateColor("DefaultForeground");
+	static const FName DefaultForegroundName("DefaultForeground");
+
+	FSlateColor SlateColor = FEditorStyle::GetSlateColor(DefaultForegroundName);
 	FLinearColor Col = SlateColor.IsColorSpecified() ? SlateColor.GetSpecifiedColor() : FLinearColor::White; 
 
 	float Alpha = 0.0f;
@@ -3317,10 +3369,7 @@ FText SLevelViewport::GetMouseCaptureLabelText() const
 			if (TargetPlayer && TargetPlayer->PlayerController && TargetPlayer->PlayerController->PlayerInput)
 			{
 				FKeyBind Binding = TargetPlayer->PlayerController->PlayerInput->GetExecBind(TEXT("ShowMouseCursor"));
-				Gesture.Key = Binding.Key;
-				Gesture.bAlt = Binding.Alt;
-				Gesture.bCtrl = Binding.Control;
-				Gesture.bShift = Binding.Shift;
+				Gesture = FInputGesture(Binding.Key, EModifierKey::FromBools(Binding.Control, Binding.Alt, Binding.Shift, Binding.Cmd));
 				bInitedGesture = true;
 			}
 		}

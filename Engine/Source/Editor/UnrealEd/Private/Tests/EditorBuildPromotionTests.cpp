@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
@@ -358,7 +358,7 @@ namespace EditorBuildPromotionTestUtils
 			FSlateApplication::Get().SetKeyboardFocus(FocusWidget.ToSharedRef(), EFocusCause::SetDirectly);
 
 			//Send the command
-			FModifierKeysState ModifierKeys(InGesture.bShift, false, InGesture.bCtrl, false, InGesture.bAlt, false, InGesture.bCmd, false, false);
+			FModifierKeysState ModifierKeys(InGesture.NeedsShift(), false, InGesture.NeedsControl(), false, InGesture.NeedsAlt(), false, InGesture.NeedsCommand(), false, false);
 			FKeyEvent KeyEvent(InGesture.Key, ModifierKeys, 0/*UserIndex*/, false, 0, 0);
 			FSlateApplication::Get().ProcessKeyDownEvent(KeyEvent);
 			FSlateApplication::Get().ProcessKeyUpEvent(KeyEvent);
@@ -600,8 +600,7 @@ namespace EditorBuildPromotionTestUtils
 
 			ensure(NULL != Cast<UBlueprintGeneratedClass>(InBlueprint->GeneratedClass));
 			// Then create a new template object, and add to array in
-			UActorComponent* NewTemplate = ConstructObject<UActorComponent>(ComponentClass, InBlueprint->GeneratedClass);
-			NewTemplate->SetFlags(RF_ArchetypeObject);
+			UActorComponent* NewTemplate = ConstructObject<UActorComponent>(ComponentClass, InBlueprint->GeneratedClass, NAME_None, RF_ArchetypeObject|RF_Public);
 			InBlueprint->ComponentTemplates.Add(NewTemplate);
 
 			// Set the name of the template as the default for the TemplateName param
@@ -2389,18 +2388,18 @@ namespace BuildPromotionTestHelper
 			IMPORT_ASSET_WITH_FACTORY(UFbxFactory, UStaticMesh, ReimportStaticMesh, ReimportMesh, );
 
 			//Blend Shape Mesh
-			IMPORT_ASSET_WITH_FACTORY(UFbxFactory, USkeletalMesh, BlendShapeMesh, BlendShape, FactoryInst->ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh;);
+			IMPORT_ASSET_WITH_FACTORY(UFbxFactory, USkeletalMesh, BlendShapeMesh, BlendShape, FactoryInst->ImportUI->MeshTypeToImport = FBXIT_SkeletalMesh;);
 
 			//Morph Mesh
-			IMPORT_ASSET_WITH_FACTORY(UFbxFactory, USkeletalMesh, MorphMesh, MorphAndMorphAnim, FactoryInst->ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh;);
+			IMPORT_ASSET_WITH_FACTORY(UFbxFactory, USkeletalMesh, MorphMesh, MorphAndMorphAnim, FactoryInst->ImportUI->MeshTypeToImport = FBXIT_SkeletalMesh;);
 
 			//Skeletal Mesh
-			IMPORT_ASSET_WITH_FACTORY(UFbxFactory, USkeletalMesh, SkeletalMesh, SkeletalMesh_Test, FactoryInst->ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh;);
+			IMPORT_ASSET_WITH_FACTORY(UFbxFactory, USkeletalMesh, SkeletalMesh, SkeletalMesh_Test, FactoryInst->ImportUI->MeshTypeToImport = FBXIT_SkeletalMesh;);
 
 			if (SkeletalMesh_Test)
 			{
 				//Animation
-				IMPORT_ASSET_WITH_FACTORY(UFbxFactory, UAnimSequence, Animation, AnimationTest, FactoryInst->ImportUI->MeshTypeToImport == FBXIT_Animation; FactoryInst->ImportUI->Skeleton = SkeletalMesh_Test->Skeleton;);
+				IMPORT_ASSET_WITH_FACTORY(UFbxFactory, UAnimSequence, Animation, AnimationTest, FactoryInst->ImportUI->MeshTypeToImport = FBXIT_Animation; FactoryInst->ImportUI->Skeleton = SkeletalMesh_Test->Skeleton;);
 			}
 			else
 			{

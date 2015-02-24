@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "Runtime/Online/OnlineSubsystem/Public/Interfaces/OnlineLeaderboardInterface.h"
@@ -41,6 +41,9 @@ private:
 private:
 	/** Delegate called when a leaderboard has been successfully flushed */
 	FOnLeaderboardFlushCompleteDelegate LeaderboardFlushCompleteDelegate;
+
+	/** OnLeaderboardFlushComplete delegate handle */
+	FDelegateHandle LeaderboardFlushCompleteDelegateHandle;
 
 	/** Did we fail immediately? */
 	bool bFailedToEvenSubmit;

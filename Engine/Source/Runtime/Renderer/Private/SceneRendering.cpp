@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneRendering.cpp: Scene rendering.
@@ -289,8 +289,8 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	const FVector4 ScreenPositionScaleBias(
 		ViewRect.Width() * InvBufferSizeX / +2.0f,
 		ViewRect.Height() * InvBufferSizeY / (-2.0f * GProjectionSignY),
-		(ViewRect.Height() / 2.0f + GPixelCenterOffset + ViewRect.Min.Y) * InvBufferSizeY,
-		(ViewRect.Width() / 2.0f + GPixelCenterOffset + ViewRect.Min.X) * InvBufferSizeX
+		(ViewRect.Height() / 2.0f + ViewRect.Min.Y) * InvBufferSizeY,
+		(ViewRect.Width() / 2.0f + ViewRect.Min.X) * InvBufferSizeX
 		);
 	
 	const bool bIsUnlitView = !Family->EngineShowFlags.Lighting;
@@ -488,7 +488,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	ViewUniformShaderParameters.GameTime = Family->CurrentWorldTime;
 	ViewUniformShaderParameters.RealTime = Family->CurrentRealTime;
 	ViewUniformShaderParameters.Random = FMath::Rand();
-	ViewUniformShaderParameters.FrameNumber = FrameNumber;
+	ViewUniformShaderParameters.FrameNumber = Family->FrameNumber;
 
 	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DiffuseFromCaptures"));
 	const bool bUseLightmaps = CVar->GetInt() == 0;
@@ -687,9 +687,11 @@ FSceneRenderer::FSceneRenderer(const FSceneViewFamily* InViewFamily,FHitProxyCon
 :	Scene(InViewFamily->Scene ? InViewFamily->Scene->GetRenderScene() : NULL)
 ,	ViewFamily(*InViewFamily)
 ,	bUsedPrecomputedVisibility(false)
-,	FrameNumber(GFrameNumber)
 {
 	check(Scene != NULL);
+
+	check(IsInGameThread());
+	ViewFamily.FrameNumber = GFrameNumber;
 
 	// Copy the individual views.
 	bool bAnyViewIsLocked = false;
@@ -819,70 +821,72 @@ void FSceneRenderer::RenderFinish(FRHICommandListImmediate& RHICmdList)
 	
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	{
+		bool bShowPrecomputedVisibilityWarning = false;
+		static const auto* CVarPrecomputedVisibilityWarning = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PrecomputedVisibilityWarning"));
+		if (CVarPrecomputedVisibilityWarning && CVarPrecomputedVisibilityWarning->GetValueOnRenderThread() == 1)
+		{
+			bShowPrecomputedVisibilityWarning = !bUsedPrecomputedVisibility;
+		}
+
 		for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 		{	
-			SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 			FViewInfo& View = Views[ViewIndex];
-
-			bool bShowPrecomputedVisibilityWarning = false;
-			static const auto* CVarPrecomputedVisibilityWarning = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.PrecomputedVisibilityWarning"));
-			if (CVarPrecomputedVisibilityWarning && CVarPrecomputedVisibilityWarning->GetValueOnRenderThread() == 1)
+			if (!View.bIsReflectionCapture && !View.bIsSceneCapture )
 			{
-				bShowPrecomputedVisibilityWarning = !bUsedPrecomputedVisibility;
-			}
-
-			// display a message saying we're frozen
-			FSceneViewState* ViewState = (FSceneViewState*)View.State;
-			bool bViewParentOrFrozen = ViewState && (ViewState->HasViewParent() || ViewState->bIsFrozen);
-			bool bLocked = View.bIsLocked;
-			if (bViewParentOrFrozen || bShowPrecomputedVisibilityWarning || bLocked)
-			{
-				// this is a helper class for FCanvas to be able to get screen size
-				class FRenderTargetTemp : public FRenderTarget
+				SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
+				// display a message saying we're frozen
+				FSceneViewState* ViewState = (FSceneViewState*)View.State;
+				bool bViewParentOrFrozen = ViewState && (ViewState->HasViewParent() || ViewState->bIsFrozen);
+				bool bLocked = View.bIsLocked;
+				if (bViewParentOrFrozen || bShowPrecomputedVisibilityWarning || bLocked)
 				{
-				public:
-					FViewInfo& View;
-
-					FRenderTargetTemp(FViewInfo& InView) : View(InView)
+					// this is a helper class for FCanvas to be able to get screen size
+					class FRenderTargetTemp : public FRenderTarget
 					{
+					public:
+						FViewInfo& View;
+
+						FRenderTargetTemp(FViewInfo& InView) : View(InView)
+						{
+						}
+						virtual FIntPoint GetSizeXY() const
+						{
+							return View.ViewRect.Size();
+						};
+						virtual const FTexture2DRHIRef& GetRenderTargetTexture() const
+						{
+							return View.Family->RenderTarget->GetRenderTargetTexture();
+						}
+					} TempRenderTarget(View);
+
+					// create a temporary FCanvas object with the temp render target
+					// so it can get the screen size
+					int32 Y = 130;
+					FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime, FeatureLevel);
+					if (bViewParentOrFrozen)
+					{
+						const FText StateText =
+							ViewState->bIsFrozen ?
+							NSLOCTEXT("SceneRendering", "RenderingFrozen", "Rendering frozen...")
+							:
+							NSLOCTEXT("SceneRendering", "OcclusionChild", "Occlusion Child");
+						Canvas.DrawShadowedText(10, Y, StateText, GetStatsFont(), FLinearColor(0.8, 1.0, 0.2, 1.0));
+						Y += 14;
 					}
-					virtual FIntPoint GetSizeXY() const
+					if (bShowPrecomputedVisibilityWarning)
 					{
-						return View.ViewRect.Size();
-					};
-					virtual const FTexture2DRHIRef& GetRenderTargetTexture() const
-					{
-						return View.Family->RenderTarget->GetRenderTargetTexture();
+						const FText Message = NSLOCTEXT("Renderer", "NoPrecomputedVisibility", "NO PRECOMPUTED VISIBILITY");
+						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(1.0, 0.05, 0.05, 1.0));
+						Y += 14;
 					}
-				} TempRenderTarget(View);
-
-				// create a temporary FCanvas object with the temp render target
-				// so it can get the screen size
-				int32 Y = 130;
-				FCanvas Canvas(&TempRenderTarget, NULL, View.Family->CurrentRealTime, View.Family->CurrentWorldTime, View.Family->DeltaWorldTime, FeatureLevel);
-				if (bViewParentOrFrozen)
-				{
-					const FText StateText =
-						ViewState->bIsFrozen ?
-						NSLOCTEXT("SceneRendering", "RenderingFrozen", "Rendering frozen...")
-						:
-						NSLOCTEXT("SceneRendering", "OcclusionChild", "Occlusion Child");
-					Canvas.DrawShadowedText( 10, Y, StateText, GetStatsFont(), FLinearColor(0.8,1.0,0.2,1.0));
-					Y += 14;
+					if (bLocked)
+					{
+						const FText Message = NSLOCTEXT("Renderer", "ViewLocked", "VIEW LOCKED");
+						Canvas.DrawShadowedText(10, Y, Message, GetStatsFont(), FLinearColor(0.8, 1.0, 0.2, 1.0));
+						Y += 14;
+					}
+					Canvas.Flush_RenderThread(RHICmdList);
 				}
-				if (bShowPrecomputedVisibilityWarning)
-				{
-					const FText Message = NSLOCTEXT("Renderer", "NoPrecomputedVisibility", "NO PRECOMPUTED VISIBILITY");
-					Canvas.DrawShadowedText( 10, Y, Message, GetStatsFont(), FLinearColor(1.0,0.05,0.05,1.0));
-					Y += 14;
-				}
-				if (bLocked)
-				{
-					const FText Message = NSLOCTEXT("Renderer", "ViewLocked", "VIEW LOCKED");
-					Canvas.DrawShadowedText( 10, Y, Message, GetStatsFont(), FLinearColor(0.8,1.0,0.2,1.0));
-					Y += 14;
-				}
-				Canvas.Flush_RenderThread(RHICmdList);
 			}
 		}
 	}
@@ -1042,6 +1046,29 @@ void FSceneRenderer::OnStartFrame()
 	}
 }
 
+bool FSceneRenderer::ShouldCompositeEditorPrimitives(const FViewInfo& View)
+{
+	// If the show flag is enabled
+	if (!View.Family->EngineShowFlags.CompositeEditorPrimitives)
+	{
+		return false;
+	}
+
+	if (GIsEditor && View.Family->EngineShowFlags.Wireframe)
+	{
+		// In Editor we want wire frame view modes to be in MSAA
+		return true;
+	}
+
+	// Any elements that needed compositing were drawn then compositing should be done
+	if (View.ViewMeshElements.Num() || View.TopViewMeshElements.Num() || View.BatchedViewElements.HasPrimsToDraw() || View.TopBatchedViewElements.HasPrimsToDraw() || View.VisibleEditorPrimitives.Num())
+	{
+		return true;
+	}
+
+	return false;
+}
+
 /*-----------------------------------------------------------------------------
 	FRendererModule::BeginRenderingViewFamily
 -----------------------------------------------------------------------------*/
@@ -1060,7 +1087,7 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 
 	for( int ViewExt = 0; ViewExt < SceneRenderer->ViewFamily.ViewExtensions.Num(); ViewExt++ )
 	{
-		SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderViewFamily_RenderThread(SceneRenderer->ViewFamily, SceneRenderer->FrameNumber);
+		SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderViewFamily_RenderThread(SceneRenderer->ViewFamily);
 		for( int ViewIndex = 0; ViewIndex < SceneRenderer->ViewFamily.Views.Num(); ViewIndex++ )
 		{
 			SceneRenderer->ViewFamily.ViewExtensions[ViewExt]->PreRenderView_RenderThread(SceneRenderer->Views[ViewIndex]);
@@ -1123,7 +1150,7 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 #endif
 }
 
-void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,const FSceneViewFamily* ViewFamily)
+void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,FSceneViewFamily* ViewFamily)
 {
 	// Flush the canvas first.
 	Canvas->Flush_GameThread();
@@ -1131,6 +1158,9 @@ void FRendererModule::BeginRenderingViewFamily(FCanvas* Canvas,const FSceneViewF
 	// Increment FrameNumber before render the scene. Wrapping around is no problem.
 	// This is the only spot we change GFrameNumber, other places can only read.
 	++GFrameNumber;
+
+	// this is passes to the render thread, better access that than GFrameNumberRenderThread
+	ViewFamily->FrameNumber = GFrameNumber;
 
 	check(ViewFamily->Scene);
 	FScene* const Scene = ViewFamily->Scene->GetRenderScene();
@@ -1199,11 +1229,4 @@ bool IsMobileHDR32bpp()
 {
 	static auto* MobileHDR32bppCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileHDR32bpp"));
 	return IsMobileHDR() && (GSupportsRenderTargetFormat_PF_FloatRGBA == false || MobileHDR32bppCvar->GetValueOnRenderThread() == 1);
-}
-
-bool ShouldUseGetDynamicMeshElements()
-{
-	static const auto CVarUseGetMeshElements = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseGetMeshElements"));
-	const bool bUseGetMeshElements = !GRHICommandList.Bypass() ||  CVarUseGetMeshElements->GetValueOnRenderThread() != 0;
-	return bUseGetMeshElements;
 }

@@ -1,8 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/Console.h"
 #include "GameFramework/EngineMessage.h"
+#include "GameFramework/LocalMessage.h"
+#include "GameFramework/PlayerState.h"
 
 UEngineMessage::UEngineMessage(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)

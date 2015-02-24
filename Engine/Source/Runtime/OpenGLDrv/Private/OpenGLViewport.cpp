@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLViewport.cpp: OpenGL viewport RHI implementation.
@@ -30,7 +30,26 @@ void FOpenGLDynamicRHI::RHIGetSupportedResolution(uint32 &Width, uint32 &Height)
 
 bool FOpenGLDynamicRHI::RHIGetAvailableResolutions(FScreenResolutionArray& Resolutions, bool bIgnoreRefreshRate)
 {
-	return PlatformGetAvailableResolutions(Resolutions, bIgnoreRefreshRate);
+	const bool Result = PlatformGetAvailableResolutions(Resolutions, bIgnoreRefreshRate);
+	if (Result)
+	{
+		Resolutions.Sort([](const FScreenResolutionRHI& L, const FScreenResolutionRHI& R)
+							{
+								if (L.Width != R.Width)
+								{
+									return L.Width < R.Width;
+								}
+								else if (L.Height != R.Height)
+								{
+									return L.Height < R.Height;
+								}
+								else
+								{
+									return L.RefreshRate < R.RefreshRate;
+								}
+							});
+	}
+	return Result;
 }
 
 /*=============================================================================
@@ -66,6 +85,9 @@ void FOpenGLDynamicRHI::RHITick( float DeltaTime )
 /*=============================================================================
  *	Viewport functions.
  *=============================================================================*/
+
+// Ignore functions from RHIMethods.h when parsing documentation; Doxygen's preprocessor can't parse the declaration, so spews warnings for the definitions.
+#if !UE_BUILD_DOCS
 
 void FOpenGLDynamicRHI::RHIBeginDrawingViewport(FViewportRHIParamRef ViewportRHI, FTextureRHIParamRef RenderTarget)
 {
@@ -179,6 +201,8 @@ bool FOpenGLDynamicRHI::RHIIsDrawingViewport()
 {
 	return DrawingViewport != NULL;
 }
+
+#endif
 
 FTexture2DRHIRef FOpenGLDynamicRHI::RHIGetViewportBackBuffer(FViewportRHIParamRef ViewportRHI)
 {

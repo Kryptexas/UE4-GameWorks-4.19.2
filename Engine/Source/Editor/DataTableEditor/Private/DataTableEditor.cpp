@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DataTableEditorPrivatePCH.h"
 
@@ -7,10 +7,13 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "SSearchBox.h"
 #include "SDockTab.h"
+#include "SRowEditor.h"
+#include "Engine/DataTable.h"
  
 #define LOCTEXT_NAMESPACE "DataTableEditor"
 
 const FName FDataTableEditor::DataTableTabId( TEXT( "DataTableEditor_DataTable" ) );
+const FName FDataTableEditor::RowEditorTabId(TEXT("DataTableEditor_RowEditor"));
 
 void FDataTableEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
@@ -19,34 +22,68 @@ void FDataTableEditor::RegisterTabSpawners(const TSharedRef<class FTabManager>& 
 	TabManager->RegisterTabSpawner( DataTableTabId, FOnSpawnTab::CreateSP(this, &FDataTableEditor::SpawnTab_DataTable) )
 		.SetDisplayName( LOCTEXT("DataTableTab", "Data Table") )
 		.SetGroup( WorkspaceMenuCategory.ToSharedRef() );
+
+	TabManager->RegisterTabSpawner(RowEditorTabId, FOnSpawnTab::CreateSP(this, &FDataTableEditor::SpawnTab_RowEditor))
+		.SetDisplayName(LOCTEXT("RowEditorTab", "Row Editor"))
+		.SetGroup(WorkspaceMenuCategory.ToSharedRef());
 }
 
 void FDataTableEditor::UnregisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
 	TabManager->UnregisterTabSpawner( DataTableTabId );
+	TabManager->UnregisterTabSpawner(RowEditorTabId);
 }
 
 FDataTableEditor::FDataTableEditor()
 {
-	FReimportManager::Instance()->OnPostReimport().AddRaw(this, &FDataTableEditor::OnPostReimport);
 }
 
 FDataTableEditor::~FDataTableEditor()
 {
-	FReimportManager::Instance()->OnPostReimport().RemoveAll(this);
 }
 
+void FDataTableEditor::PreChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info)
+{
+}
+
+void FDataTableEditor::PostChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info)
+{
+	if (Struct && DataTable.IsValid() && (DataTable->RowStruct == Struct))
+	{
+		CachedDataTable.Empty();
+		ReloadVisibleData();
+	}
+}
+
+void FDataTableEditor::PreChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info)
+{
+}
+
+void FDataTableEditor::PostChange(const UDataTable* Changed, FDataTableEditorUtils::EDataTableChangeInfo Info)
+{
+	FStringAssetReference::InvalidateTag(); // Should be removed after UE-5615 is fixed
+	if (Changed == DataTable.Get())
+	{
+		CachedDataTable.Empty();
+		ReloadVisibleData();
+	}
+}
 
 void FDataTableEditor::InitDataTableEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UDataTable* Table )
 {
 	TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "Standalone_DataTableEditor_Layout" )
 	->AddArea
 	(
-		FTabManager::NewPrimaryArea()
+		FTabManager::NewPrimaryArea()->SetOrientation(Orient_Vertical)
 		->Split
 		(
 			FTabManager::NewStack()
 			->AddTab( DataTableTabId, ETabState::OpenedTab )
+		)
+		->Split
+		(
+			FTabManager::NewStack()
+			->AddTab(RowEditorTabId, ETabState::OpenedTab)
 		)
 	);
 
@@ -90,21 +127,31 @@ FLinearColor FDataTableEditor::GetWorldCentricTabColorScale() const
 	return FLinearColor( 0.0f, 0.0f, 0.2f, 0.5f );
 }
 
-void FDataTableEditor::OnPostReimport(UObject* InObject, bool bSuccess)
+FSlateColor FDataTableEditor::GetRowColor(FName RowName) const
 {
-	// Ignore if this is regarding a different object
-	if ( InObject == DataTable && bSuccess)
+	if (RowName == HighlightedRowName)
 	{
-		CachedDataTable.Empty();
-		ReloadVisibleData();
+		return FSlateColor(FColorList::Orange);
 	}
+	return FSlateColor::UseForeground();
+}
+
+FReply FDataTableEditor::OnRowClicked(const FGeometry&, const FPointerEvent&, FName RowName)
+{
+	if (HighlightedRowName != RowName)
+	{
+		SetHighlightedRow(RowName);
+		CallbackOnRowHighlighted.ExecuteIfBound(HighlightedRowName);
+	}
+
+	return FReply::Handled();
 }
 
 TSharedPtr<SUniformGridPanel> FDataTableEditor::CreateGridPanel()
 {
 	TSharedPtr<SUniformGridPanel> GridPanel = SNew(SUniformGridPanel).SlotPadding( FMargin( 2.0f ) );
 
-	if (DataTable != NULL)
+	if (DataTable.IsValid())
 	{
 		if (CachedDataTable.Num() == 0)
 		{
@@ -125,31 +172,38 @@ TSharedPtr<SUniformGridPanel> FDataTableEditor::CreateGridPanel()
 		{
 			if (RowsVisibility[i])
 			{
-				bool bIsHeader =  (i == 0);
+				const bool bIsHeader = (i == 0);
+				const FLinearColor RowColor = (RowIndex % 2 == 0) ? FLinearColor::Gray : FLinearColor::Black;
 
-				FLinearColor RowColor = (RowIndex % 2 == 0) ? FLinearColor::Gray : FLinearColor::Black;				
-				if (bIsHeader)
-				{
-					RowColor = FLinearColor::Gray;
-				}
-				
-				TArray<FString>& Row = CachedDataTable[i];				
+				TArray<FString>& Row = CachedDataTable[i];
+				FName RowName(*Row[0]);
+				TAttribute<FSlateColor> ForegroundColor = bIsHeader
+					? FSlateColor::UseForeground()
+					: TAttribute<FSlateColor>::Create(
+					TAttribute<FSlateColor>::FGetter::CreateSP(this, &FDataTableEditor::GetRowColor, RowName));
+
+				auto RowClickCallback = bIsHeader
+					? FPointerEventHandler()
+					: FPointerEventHandler::CreateSP(this, &FDataTableEditor::OnRowClicked, RowName);
+
 				for(int Column = 0;Column<Row.Num();++Column)
 				{
 					GridPanel->AddSlot(Column, RowIndex)
+					[
+						SNew(SBorder)
+						.Padding(1)
+						.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+						.BorderBackgroundColor(RowColor)
+						.ForegroundColor(ForegroundColor)
+						.OnMouseButtonDown(RowClickCallback)
 						[
-							SNew(SBorder)
-							.Padding(1)
-							.BorderImage( FEditorStyle::GetBrush( "ToolPanel.GroupBorder" ) )
-							.BorderBackgroundColor(RowColor)						
-							[
-								SNew(STextBlock)
-								.Text(Row[Column])
-								.ToolTipText(bIsHeader 
-								?	(FString::Printf(TEXT("Column '%s"), *ColumnTitles[Column])) 
-								:	(FString::Printf(TEXT("%s: %s"), *ColumnTitles[Column], *Row[Column])))
-							]
-						];
+							SNew(STextBlock)
+							.Text(FText::FromString(Row[Column]))
+							.ToolTipText(bIsHeader 
+							?	(FText::Format(LOCTEXT("ColumnHeaderNameFmt", "Column '{0}'"), FText::FromString(ColumnTitles[Column]))) 
+							:	(FText::Format(LOCTEXT("ColumnRowNameFmt", "{0}: {1}"), FText::FromString(ColumnTitles[Column]), FText::FromString(Row[Column]))))
+						]
+					];
 				}
 
 				++RowIndex;
@@ -226,14 +280,34 @@ TSharedRef<SVerticalBox> FDataTableEditor::CreateContentBox()
 		];
 }
 
-void FDataTableEditor::OnDataTableReloaded() 
+TSharedRef<SWidget> FDataTableEditor::CreateRowEditorBox()
 {
-	CachedDataTable.Reset();
-
-	TSharedRef<SVerticalBox> ContentBox = CreateContentBox();
-	
-	GridPanelOwner->SetContent(ContentBox);
+	auto RowEditor = SNew(SRowEditor, DataTable.Get());
+	RowEditor->RowSelectedCallback.BindSP(this, &FDataTableEditor::SetHighlightedRow);
+	CallbackOnRowHighlighted.BindSP(RowEditor, &SRowEditor::SelectRow);
+	return RowEditor;
 }
+
+TSharedRef<SDockTab> FDataTableEditor::SpawnTab_RowEditor(const FSpawnTabArgs& Args)
+{
+	check(Args.GetTabId().TabType == RowEditorTabId);
+
+	return SNew(SDockTab)
+		.Icon(FEditorStyle::GetBrush("DataTableEditor.Tabs.Properties"))
+		.Label(LOCTEXT("RowEditorTitle", "Row Editor"))
+		.TabColorScale(GetTabColorScale())
+		[
+			SNew(SBorder)
+			.Padding(2)
+			.VAlign(VAlign_Top)
+			.HAlign(HAlign_Fill)
+			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			[
+				CreateRowEditorBox()
+			]
+		];
+}
+
 
 TSharedRef<SDockTab> FDataTableEditor::SpawnTab_DataTable( const FSpawnTabArgs& Args )
 {
@@ -262,5 +336,9 @@ TSharedRef<SDockTab> FDataTableEditor::SpawnTab_DataTable( const FSpawnTabArgs& 
 		];
 }
 
+void FDataTableEditor::SetHighlightedRow(FName Name)
+{
+	HighlightedRowName = Name;
+}
 
 #undef LOCTEXT_NAMESPACE

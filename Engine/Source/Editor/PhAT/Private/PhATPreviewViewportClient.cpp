@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PhATModule.h"
 #include "PhATEdSkeletalMeshComponent.h"
@@ -10,10 +10,17 @@
 #include "PhATSharedData.h"
 #include "PhATPreviewViewportClient.h"
 #include "SPhATPreviewViewport.h"
-
+#include "GameFramework/WorldSettings.h"
+#include "CanvasTypes.h"
+#include "PhysicsEngine/BodySetup.h"
+#include "Engine/Font.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
+#include "DrawDebugHelpers.h"
 
 FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhAT, TSharedPtr<FPhATSharedData> Data)
-	: FEditorViewportClient(GLevelEditorModeTools(), &Data->PreviewScene)
+	: FEditorViewportClient(nullptr, &Data->PreviewScene)
 	, PhATPtr(InPhAT)
 	, SharedData(Data)
 	, MinPrimSize(0.5f)
@@ -45,7 +52,7 @@ FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhA
 	EngineShowFlags.CompositeEditorPrimitives = true;
 
 	// Get actors asset collision bounding box, and move actor so its not intersection the floor plane at Z = 0.
-	FBox CollBox = SharedData->PhysicsAsset->CalcAABB(SharedData->EditorSkelComp);	
+	FBox CollBox = SharedData->PhysicsAsset->CalcAABB(SharedData->EditorSkelComp, SharedData->EditorSkelComp->ComponentToWorld);	
 	FVector SkelCompLocation = FVector(0, 0, -CollBox.Min.Z + SharedData->EditorSimOptions->FloorGap);
 
 	SharedData->EditorSkelComp->SetAbsolute(true, true, true);
@@ -53,7 +60,7 @@ FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhA
 	SharedData->ResetTM = SharedData->EditorSkelComp->GetComponentToWorld();
 
 	// Get new bounding box and set view based on that.
-	CollBox = SharedData->PhysicsAsset->CalcAABB(SharedData->EditorSkelComp);	
+	CollBox = SharedData->PhysicsAsset->CalcAABB(SharedData->EditorSkelComp, SharedData->EditorSkelComp->ComponentToWorld);	
 	FVector CollBoxExtent = CollBox.GetExtent();
 
 	// Take into account internal mesh translation/rotation/scaling etc.
@@ -64,7 +71,7 @@ FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhA
 	if (CollBoxExtent.X > CollBoxExtent.Y)
 	{
 		SetViewLocation( FVector(WorldSphere.Center.X, WorldSphere.Center.Y - 1.5*WorldSphere.W, WorldSphere.Center.Z) );
-		SetViewRotation( FRotator(0,90.f,0) );	
+		SetViewRotation( EditorViewportDefs::DefaultPerspectiveViewRotation );	
 	}
 	else
 	{
@@ -157,9 +164,9 @@ void FPhATEdPreviewViewportClient::DrawCanvas( FViewport& InViewport, FSceneView
 	if ((SharedData->bShowHierarchy && SharedData->EditorSimOptions->bShowNamesInHierarchy))
 	{
 		// Iterate over each graphics bone.
-		for (int32 i = 0; i <SharedData->EditorSkelComp->SpaceBases.Num(); ++i)
+		for(int32 i = 0; i <SharedData->EditorSkelComp->GetNumSpaceBases(); ++i)
 		{
-			FVector BonePos = SharedData->EditorSkelComp->ComponentToWorld.TransformPosition(SharedData->EditorSkelComp->SpaceBases[i].GetLocation());
+			FVector BonePos = SharedData->EditorSkelComp->ComponentToWorld.TransformPosition(SharedData->EditorSkelComp->GetSpaceBases()[i].GetLocation());
 
 			FPlane proj = View.Project(BonePos);
 			if (proj.W > 0.f) // This avoids drawing bone names that are behind us.
@@ -169,7 +176,7 @@ void FPhATEdPreviewViewportClient::DrawCanvas( FViewport& InViewport, FSceneView
 
 				FName BoneName = SharedData->EditorSkelMesh->RefSkeleton.GetBoneName(i);
 
-				FColor BoneNameColor = FColor(255,255,255);
+				FColor BoneNameColor = FColor::White;
 				//iterate through selected bones and see if any match
 				for(int32 j=0; j< SharedData->SelectedBodies.Num(); ++j)
 				{
@@ -177,7 +184,7 @@ void FPhATEdPreviewViewportClient::DrawCanvas( FViewport& InViewport, FSceneView
 					FName SelectedBoneName = SharedData->PhysicsAsset->BodySetup[SelectedBodyIndex]->BoneName;
 					if(SelectedBoneName == BoneName)
 					{
-						BoneNameColor = FColor(0,255,0);
+						BoneNameColor = FColor::Green;
 						break;
 					}
 
@@ -472,7 +479,7 @@ bool FPhATEdPreviewViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisL
 
 			if ( SharedData->WidgetMode == FWidget::WM_Translate )
 			{
-				FVector Dir = SelectedObject.WidgetTM.InverseTransformVector( Drag.SafeNormal() );
+				FVector Dir = SelectedObject.WidgetTM.InverseTransformVector( Drag.GetSafeNormal() );
 				FVector DragVec = Dir * Drag.Size();
 				SelectedObject.ManipulateTM.AddToTranslation( DragVec );
 			}
@@ -659,8 +666,14 @@ void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
 		Setting->bWorldGravitySet = true;
 
 		// We back up the transforms array now
-		SharedData->EditorSkelComp->AnimationSpaceBases = SharedData->EditorSkelComp->SpaceBases;
+		SharedData->EditorSkelComp->AnimationSpaceBases = SharedData->EditorSkelComp->GetSpaceBases();
 		SharedData->EditorSkelComp->SetPhysicsBlendWeight(SharedData->EditorSimOptions->PhysicsBlend);
+
+		if(SharedData->Recorder.InRecording())
+		{
+			// make sure you don't allow switch SharedData->EditorSkelComp
+			SharedData->Recorder.UpdateRecord(SharedData->EditorSkelComp, DeltaSeconds);
+		}
 	}
 }
 
@@ -879,7 +892,7 @@ void FPhATEdPreviewViewportClient::SimMouseMove(float DeltaX, float DeltaY)
 	float QuickRadius = 5 - SimGrabPush / SimHoldDistanceChangeDelta;
 	QuickRadius = QuickRadius < 2 ? 2 : QuickRadius;
 
-	DrawDebugPoint(GetWorld(), NewLocation, QuickRadius, FColor(255,0,0), false, 0.3);
+	DrawDebugPoint(GetWorld(), NewLocation, QuickRadius, FColorList::Red, false, 0.3);
 
 	SharedData->MouseHandle->SetTargetLocation(NewLocation);
 	SharedData->MouseHandle->GrabbedComponent->WakeRigidBody(SharedData->MouseHandle->GrabbedBoneName);

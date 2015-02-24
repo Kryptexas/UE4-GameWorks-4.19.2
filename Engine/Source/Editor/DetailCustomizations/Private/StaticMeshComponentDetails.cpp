@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "StaticMeshComponentDetails.h"
@@ -14,7 +14,7 @@ TSharedRef<IDetailCustomization> FStaticMeshComponentDetails::MakeInstance()
 void FStaticMeshComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
 	// Create a category so this is displayed early in the properties
-	DetailBuilder.EditCategory( "StaticMesh", TEXT(""), ECategoryPriority::Important);
+	DetailBuilder.EditCategory( "StaticMesh", FText::GetEmpty(), ECategoryPriority::Important);
 }
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OpenGLDrvPrivate.h"
 
@@ -11,6 +11,7 @@
 #include "CocoaThread.h"
 #include "CocoaWindow.h"
 #include <IOKit/IOKitLib.h>
+#include <mach-o/dyld.h>
 
 /*------------------------------------------------------------------------------
  OpenGL static variables.
@@ -26,6 +27,7 @@ static TAutoConsoleVariable<int32> CVarMacUseFrameBufferSRGB(
 
 // @todo: remove once Apple fixes radr://15553950, TTP# 315197
 static int32 GMacFlushTexStorage = true;
+static int32 GMacMustFlushTexStorage = false;
 static FAutoConsoleVariableRef CVarMacFlushTexStorage(
 	TEXT("r.Mac.FlushTexStorage"),
 	GMacFlushTexStorage,
@@ -679,6 +681,10 @@ EOpenGLCurrentContext PlatformOpenGLCurrentContext(FPlatformOpenGLDevice* Device
 
 void PlatformFlushIfNeeded()
 {
+	if([NSOpenGLContext currentContext])
+	{
+		FMacOpenGL::Flush();
+	}
 }
 
 void PlatformRebindResources(FPlatformOpenGLDevice* Device)
@@ -780,6 +786,13 @@ void PlatformGetSupportedResolution(uint32 &Width, uint32 &Height)
 
 bool PlatformGetAvailableResolutions(FScreenResolutionArray& Resolutions, bool bIgnoreRefreshRate)
 {
+	SCOPED_AUTORELEASE_POOL;
+
+	NSArray* AllScreens = [NSScreen screens];
+	NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
+
+	SIZE_T Scale = (SIZE_T)[PrimaryScreen backingScaleFactor];
+
 	int32 MinAllowableResolutionX = 0;
 	int32 MinAllowableResolutionY = 0;
 	int32 MaxAllowableResolutionX = 10480;
@@ -807,8 +820,8 @@ bool PlatformGetAvailableResolutions(FScreenResolutionArray& Resolutions, bool b
 		for (int32 Index = 0; Index < NumModes; Index++)
 		{
 			CGDisplayModeRef Mode = (CGDisplayModeRef)CFArrayGetValueAtIndex(AllModes, Index);
-			SIZE_T Width = CGDisplayModeGetWidth(Mode);
-			SIZE_T Height = CGDisplayModeGetHeight(Mode);
+			SIZE_T Width = CGDisplayModeGetWidth(Mode) / Scale;
+			SIZE_T Height = CGDisplayModeGetHeight(Mode) / Scale;
 			int32 RefreshRate = (int32)CGDisplayModeGetRefreshRate(Mode);
 
 			if (((int32)Width >= MinAllowableResolutionX) &&
@@ -1071,6 +1084,7 @@ FRHITexture* PlatformCreateBuiltinBackBuffer(FOpenGLDynamicRHI* OpenGLRHI, uint3
 	return NULL;
 }
 
+bool FMacOpenGL::bUsingApitrace = false;
 bool FMacOpenGL::bSupportsTextureCubeMapArray = false;
 PFNGLTEXSTORAGE2DPROC FMacOpenGL::glTexStorage2D = NULL;
 PFNGLTEXSTORAGE3DPROC FMacOpenGL::glTexStorage3D = NULL;
@@ -1083,6 +1097,9 @@ PFNGLLABELOBJECTEXTPROC FMacOpenGL::glLabelObjectEXT = NULL;
 PFNGLPUSHGROUPMARKEREXTPROC FMacOpenGL::glPushGroupMarkerEXT = NULL;
 PFNGLPOPGROUPMARKEREXTPROC FMacOpenGL::glPopGroupMarkerEXT = NULL;
 PFNGLPATCHPARAMETERIPROC FMacOpenGL::glPatchParameteri = NULL;
+bool FMacOpenGL::bSupportsDrawIndirect = false;
+PFNGLDRAWARRAYSINDIRECTPROC FMacOpenGL::glDrawArraysIndirect = nullptr;
+PFNGLDRAWELEMENTSINDIRECTPROC FMacOpenGL::glDrawElementsIndirect = nullptr;
 
 uint64 FMacOpenGL::GetVideoMemorySize()
 {
@@ -1138,6 +1155,18 @@ void FMacOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	ProcessQueryGLInt();
 	FOpenGL3::ProcessExtensions(ExtensionsString);
 	
+	// Check for Apitrace, which doesn't understand some Apple extensions.
+	uint32 ModuleCount = _dyld_image_count();
+	for(uint32 Index = 0; Index < ModuleCount; Index++)
+	{
+		ANSICHAR const* ModulePath = (ANSICHAR const*)_dyld_get_image_name(Index);
+		if(FCStringAnsi::Strstr(ModulePath, "OpenGL.framework/Versions/A/OpenGL") && FCStringAnsi::Strcmp(ModulePath, "/System/Library/Frameworks/OpenGL.framework/Versions/A/OpenGL"))
+		{
+			bUsingApitrace = true;
+			break;
+		}
+	}
+	
 	if(GIsEmulatingTimestamp)
 	{
 		TimestampQueryBits = 64;
@@ -1182,6 +1211,18 @@ void FMacOpenGL::ProcessExtensions(const FString& ExtensionsString)
 	if(ExtensionsString.Contains(TEXT("GL_ARB_tessellation_shader")))
 	{
 		glPatchParameteri = (PFNGLPATCHPARAMETERIPROC)dlsym(RTLD_SELF, "glPatchParameteri");
+	}
+	
+	if(ExtensionsString.Contains(TEXT("GL_ARB_draw_indirect")))
+	{
+		bSupportsDrawIndirect = true;
+		glDrawArraysIndirect = (PFNGLDRAWARRAYSINDIRECTPROC)dlsym(RTLD_SELF, "glDrawArraysIndirect");
+		glDrawElementsIndirect = (PFNGLDRAWELEMENTSINDIRECTPROC)dlsym(RTLD_SELF, "glDrawElementsIndirect");
+	}
+	
+	if(FMacPlatformMisc::MacOSXVersionCompare(10,10,1) < 0)
+	{
+		GMacMustFlushTexStorage = ((FPlatformMisc::IsRunningOnMavericks() && IsRHIDeviceNVIDIA()) || GMacUseMTGL);
 	}
 }
 
@@ -1301,8 +1342,9 @@ bool FMacOpenGL::MustFlushTexStorage(void)
 {
 	// @todo There is a bug in Apple's GL with TexStorage calls when using MTGL that can see the texture never be created, which then subsequently causes crashes
 	// @todo This bug also affects Nvidia cards under Mavericks without MTGL.
+	// @todo Fixed in 10.10.1.
 	FPlatformOpenGLContext::VerifyCurrentContext();
-	return GMacFlushTexStorage && ((FPlatformMisc::IsRunningOnMavericks() && IsRHIDeviceNVIDIA()) || GMacUseMTGL);
+	return GMacFlushTexStorage || GMacMustFlushTexStorage;
 }
 
 void FMacOpenGL::DeleteTextures(GLsizei Number, const GLuint* Textures)
@@ -1313,7 +1355,9 @@ void FMacOpenGL::DeleteTextures(GLsizei Number, const GLuint* Textures)
 
 void FMacOpenGL::BufferSubData(GLenum Target, GLintptr Offset, GLsizeiptr Size, const GLvoid* Data)
 {
-	if(GMacUseMTGL)
+	// @todo The crash that caused UE-4772 is no longer occuring for me on 10.10.1, so use glBufferSubData from that revision onward.
+	static bool const bNeedsMTLGMapBuffer = (FMacPlatformMisc::MacOSXVersionCompare(10,10,1) < 0);
+	if(GMacUseMTGL && bNeedsMTLGMapBuffer)
 	{
 		void* Dest = MapBufferRange(Target, Offset, Size, FOpenGLBase::RLM_WriteOnly);
 		FMemory::Memcpy(Dest, Data, Size);

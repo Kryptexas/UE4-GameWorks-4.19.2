@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealPak.h"
 #include "RequiredProgramMainCPPInclude.h"
@@ -446,7 +446,11 @@ void ProcessCommandLine(int32 ArgC, TCHAR* ArgV[], TArray<FPakInputPair>& Entrie
 		{
 			TArray<FString> SourceAndDest;
 			TArray<FString> Switches;
-			CommandLineParseHelper(*Lines[EntryIndex], SourceAndDest, Switches);
+			CommandLineParseHelper(*Lines[EntryIndex].Trim(), SourceAndDest, Switches);
+			if( SourceAndDest.Num() == 0)
+			{
+				continue;
+			}
 			FPakInputPair Input;
 
 			Input.Source = SourceAndDest[0];
@@ -599,7 +603,8 @@ void CollectFilesToAdd(TArray<FPakInputPair>& OutFilesToAdd, const TArray<FPakIn
 			}
 			else
 			{
-				OutFilesToAdd.AddUnique(FileInput);
+				OutFilesToAdd.Add(FileInput);
+				AddedFiles.Add(FileInput.Source);
 			}
 		}
 	}
@@ -900,6 +905,32 @@ bool TestPakFile(const TCHAR* Filename)
 	}
 }
 
+bool ListFilesInPak(const TCHAR * InPakFilename)
+{
+	FPakFile PakFile(InPakFilename, FParse::Param(FCommandLine::Get(), TEXT("signed")));
+	int32 FileCount = 0;
+	int64 FileSize = 0;
+
+	if (PakFile.IsValid())
+	{
+		for (FPakFile::FFileIterator It(PakFile); It; ++It, ++FileCount)
+		{
+			const FPakEntry& Entry = It.Info();
+			UE_LOG(LogPakFile, Display, TEXT("\"%s\" %d bytes."), *It.Filename(), Entry.Size);
+			FileSize += Entry.Size;
+			FileCount++;
+		}
+		UE_LOG(LogPakFile, Display, TEXT("%d files (%lld bytes)."), FileCount, FileSize);
+
+		return true;
+	}
+	else
+	{
+		UE_LOG(LogPakFile, Error, TEXT("Unable to open pak file \"%s\"."), InPakFilename);
+		return false;
+	}
+}
+
 bool ExtractFilesFromPak(const TCHAR* InPakFilename, const TCHAR* InDestPath)
 {
 	FPakFile PakFile(InPakFilename, FParse::Param(FCommandLine::Get(), TEXT("signed")));
@@ -1013,6 +1044,10 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		if (FParse::Param(FCommandLine::Get(), TEXT("Test")))
 		{
 			Result = TestPakFile(*PakFilename) ? 0 : 1;
+		}
+		else if (FParse::Param(FCommandLine::Get(), TEXT("List")))
+		{
+			Result = ListFilesInPak(*PakFilename);
 		}
 		else if (FParse::Param(FCommandLine::Get(), TEXT("Extract")))
 		{

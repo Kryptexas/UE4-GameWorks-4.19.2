@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "K2Node_FormatText.generated.h"
@@ -20,7 +20,7 @@ class UK2Node_FormatText : public UK2Node
 	virtual void PinConnectionListChanged(UEdGraphPin* Pin) override;
 	virtual void PinDefaultValueChanged(UEdGraphPin* Pin) override;
 	virtual FText GetTooltipText() const override;
-	virtual FString GetPinDisplayName(const UEdGraphPin* Pin) const override;
+	virtual FText GetPinDisplayName(const UEdGraphPin* Pin) const override;
 	// End UEdGraphNode interface.
 
 	// Begin UK2Node interface.

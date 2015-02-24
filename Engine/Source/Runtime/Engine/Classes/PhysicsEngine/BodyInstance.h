@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,6 +12,13 @@
 struct FCollisionShape;
 struct FConstraintInstance;
 class UPhysicsConstraintComponent;
+
+/** Delegate for applying custom physics forces upon the body. Can be passed to "AddCustomPhysics" so 
+  * custom forces and torques can be calculated induvidually for every physics substep.
+  * The function provides delta time for a physics step and pointer to body instance upon which forces must be added.
+  * 
+  * Do not expect this callback to be called from the main game thread! It may get called from a physics simulation thread. */
+DECLARE_DELEGATE_TwoParams(FCalculateCustomPhysics, float, FBodyInstance*);
 
 #if WITH_PHYSX
 namespace physx
@@ -62,6 +69,9 @@ struct ENGINE_API FCollisionResponse
 
 	/** Set all channels to the specified response */
 	void SetAllChannels(ECollisionResponse NewResponse);
+
+	/** Replace the channels matching the old response with the new response */
+	void ReplaceChannels(ECollisionResponse OldResponse, ECollisionResponse NewResponse);
 
 	/** Returns the response set on the specified channel */
 	ECollisionResponse GetResponse(ECollisionChannel Channel) const;
@@ -124,10 +134,6 @@ struct ENGINE_API FBodyInstance
 	/////////
 	// COLLISION SETTINGS
 
-	/** Enable any collision for this body */
-	UPROPERTY()
-	uint32 bEnableCollision_DEPRECATED:1;
-
 	/** Types of objects that this physics objects will collide with. */
 	// @todo : make this to be transient, so that it doesn't have to save anymore
 	// we have to still load them until resave
@@ -188,13 +194,6 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
 	uint32 bEnableGravity:1;
 
-	/**
-	 * If true, this body will be put into the asynchronous physics scene. If false, it will be put into the synchronous physics scene.
-	 * If the body is static, it will be placed into both scenes regardless of the value of bUseAsyncScene.
-	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Physics)
-	uint32 bUseAsyncScene:1;
-
 	/** If true, it will update mass when scale changes **/
 	UPROPERTY()
 	uint32 bUpdateMassWhenScaleChanges:1;
@@ -216,6 +215,14 @@ public:
 	UPROPERTY(EditAnywhere, Category = Physics)
 	FVector CustomLockedAxis;
 
+	/** When a Locked Axis Mode is selected, will lock translation on the specified axis*/
+	UPROPERTY(EditAnywhere, Category = Physics, meta=(DisplayName = "Lock Axis Translation"))
+	uint32 bLockTranslation : 1;
+	
+	/** When a Locked Axis Mode is selected, will lock rotation to the specified axis*/
+	UPROPERTY(EditAnywhere, Category = Physics, meta=(DisplayName = "Lock Axis Rotation"))
+	uint32 bLockRotation : 1;
+
 	/** Locks physical movement along axis. */
 	void SetDOFLock(ELockedAxis::Type NewAxisMode);
 
@@ -235,6 +242,13 @@ public:
 #endif
 
 protected:
+
+	/**
+	 * If true, this body will be put into the asynchronous physics scene. If false, it will be put into the synchronous physics scene.
+	 * If the body is static, it will be placed into both scenes regardless of the value of bUseAsyncScene.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Physics)
+	uint32 bUseAsyncScene:1;
 
 	/** Whether this instance of the object has its own custom walkable slope override setting. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Physics)
@@ -321,11 +335,6 @@ public:
 	/** Constructor **/
 	FBodyInstance();
 
-	// BodyInstance interface
-
-	/** Update CollisionEnabled in old assets (before VER_UE4_CHANGE_BENABLECOLLISION_TO_COLLISIONENABLED) using bEnableCollision_DEPRECATED */ 
-	void UpdateFromDeprecatedEnableCollision();
-
 	/**  
 	 * Update profile data if required
 	 * 
@@ -396,6 +405,9 @@ public:
 	/** Returns whether this body wants (and can) use the async scene. */
 	bool UseAsyncScene() const;
 
+	/** Indicates whether this body should use the async scene. Must be called before body is init'd, will assert otherwise. Will have no affect if there is no async scene. */
+	void SetUseAsyncScene(bool bNewUseAsyncScene);
+
 #if WITH_PHYSX
 	/**
 	 * Return the PxRigidActor from the given scene (see EPhysicsSceneType), if SceneType is in the range [0, PST_MAX).
@@ -438,12 +450,16 @@ public:
 	void WakeInstance();
 	/** Force this body to sleep */
 	void PutInstanceToSleep();
+	/** Add custom forces and torques on the body. The callback will be called more than once, if substepping enabled, for every substep.  */
+	void AddCustomPhysics(FCalculateCustomPhysics& CalculateCustomPhysics);
 	/** Add a force to this body */
 	void AddForce(const FVector& Force, bool bAllowSubstepping = true);
 	/** Add a force at a particular world position to this body */
 	void AddForceAtPosition(const FVector& Force, const FVector& Position, bool bAllowSubstepping = true);
 	/** Add a torque to this body */
 	void AddTorque(const FVector& Torque, bool bAllowSubstepping = true);
+	/** Add a rotational impulse to this body */
+	void AddAngularImpulse(const FVector& Impulse, bool bVelChange);
 	/** Add an impulse to this body */
 	void AddImpulse(const FVector& Impulse, bool bVelChange);
 	/** Add an impulse to this body and a particular world position */
@@ -497,6 +513,9 @@ public:
 	/** Set the response of this body to all channels */
 	void SetResponseToAllChannels(ECollisionResponse NewResponse);
 
+	/** Replace the channels on this body matching the old response with the new response */
+	void ReplaceResponseToChannels(ECollisionResponse OldResponse, ECollisionResponse NewResponse);
+
 	/** Set the response of this body to the supplied settings */
 	void SetResponseToChannels(const FCollisionResponseContainer& NewReponses);
 
@@ -529,6 +548,9 @@ public:
 
 	/** return true if it uses Collision Profile System. False otherwise*/
 	bool DoesUseCollisionProfile() const;
+
+	/** Modify the mass scale of this body */
+	void SetMassScale(float InMassScale=1.f);
 
 	/** Update instance's mass properties (mass, inertia and center-of-mass offset) based on MassScale, InstanceMassScale and COMNudge. */
 	void UpdateMassProperties();

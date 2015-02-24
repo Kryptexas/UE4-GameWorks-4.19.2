@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -38,7 +38,7 @@ class ENGINE_API UTextRenderComponent : public UPrimitiveComponent
 	GENERATED_UCLASS_BODY()
 
 	/** Text content, can be multi line using <br> as line separator */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Text)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Text, meta=(MultiLine=true))
 	FString Text;
 
 	/** Text material */

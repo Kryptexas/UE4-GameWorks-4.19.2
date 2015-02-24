@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,7 +9,7 @@
 class UPawnAction;
 
 USTRUCT()
-struct FPawnActionEvent
+struct AIMODULE_API FPawnActionEvent
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -35,7 +35,7 @@ struct FPawnActionEvent
 };
 
 USTRUCT()
-struct FPawnActionStack
+struct AIMODULE_API FPawnActionStack
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -139,6 +139,8 @@ public:
 #if ENABLE_VISUAL_LOG
 	void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
 #endif // ENABLE_VISUAL_LOG
+
+	static FString DescribeEventType(EPawnActionEventType::Type EventType);
 
 	//----------------------------------------------------------------------//
 	// Debugging-testing purposes 

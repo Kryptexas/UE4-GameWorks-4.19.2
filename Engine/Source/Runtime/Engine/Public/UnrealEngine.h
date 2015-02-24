@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealEngine.h: Unreal engine helper definitions.
@@ -7,6 +7,8 @@
 #pragma once
 
 #include "Engine/Engine.h"
+
+ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 
 //
 //	FLocalPlayerIterator - Iterates over local players in the game.
@@ -252,6 +254,8 @@ private:
 	float TimesToReport;
 	/** Name of operation performed that is being tracked. */
 	FString OperationPerformed;
+	/** Handle to the registered OnPreGarbageCollect delegate */
+	FDelegateHandle OnPreGarbageCollectDelegateHandle;
 };
 
 /** Scoped helper structure for capturing tick time. */

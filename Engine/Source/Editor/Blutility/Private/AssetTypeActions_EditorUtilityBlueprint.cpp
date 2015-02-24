@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlutilityPrivatePCH.h"
 #include "BlutilityClasses.h"
@@ -9,6 +9,7 @@
 #include "AssetRegistryModule.h"
 #include "AssetToolsModule.h"
 #include "GlobalBlutilityDialog.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

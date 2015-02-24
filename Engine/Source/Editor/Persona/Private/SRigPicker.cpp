@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PersonaPrivatePCH.h"
 #include "SRigPicker.h"
@@ -57,8 +57,6 @@ void SRigPicker::Construct(const FArguments& InArgs)
 		AssetPickerConfig.Filter.bRecursiveClasses = true;
 		// Set a delegate for setting the asset from the picker
 		AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateSP(this, &SRigPicker::OnAssetSelected);
-		// Use the smallest size thumbnails
-		AssetPickerConfig.ThumbnailScale = 0;
 		// Use the list view by default
 		AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
 		// The initial selection should be the current value

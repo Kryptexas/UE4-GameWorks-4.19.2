@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "MetalRHIPrivate.h"
@@ -24,7 +24,7 @@ FUnorderedAccessViewRHIRef FMetalDynamicRHI::RHICreateUnorderedAccessView(FStruc
 
 FUnorderedAccessViewRHIRef FMetalDynamicRHI::RHICreateUnorderedAccessView(FTextureRHIParamRef TextureRHI)
 {
-	FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(TextureRHI);
+	FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(TextureRHI);
 
 	// create the UAV buffer to point to the structured buffer's memory
 	FMetalUnorderedAccessView* UAV = new FMetalUnorderedAccessView;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -290,9 +290,6 @@ class UMaterial : public UMaterialInterface
 	FScalarMaterialInput Specular;
 
 	UPROPERTY()
-	FScalarMaterialInput SpecularPower_DEPRECATED;
-
-	UPROPERTY()
 	FScalarMaterialInput Roughness;
 
 	UPROPERTY()
@@ -308,9 +305,6 @@ class UMaterial : public UMaterialInterface
 
 	UPROPERTY()
 	FScalarMaterialInput OpacityMask;
-
-	UPROPERTY()
-	float FresnelBaseReflectFraction_DEPRECATED;
 
 	/** 
 	 * The domain that the material's attributes will be evaluated in. 
@@ -477,16 +471,6 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Material, meta=(DisplayName = "Emissive (Dynamic Area Light)"), AdvancedDisplay)
 	uint32 bUseEmissiveForDynamicAreaLighting : 1;
-
-	/** Whether material uses BaseColor, Metallic, Specular */
-	UPROPERTY()
-	uint32 bPhysicallyBasedInputs_DEPRECATED : 1;
-
-	UPROPERTY()
-	uint32 bUsedAsLightFunction_DEPRECATED:1;
-
-	UPROPERTY()
-	uint32 bUsedWithDeferredDecal_DEPRECATED:1;
 
 	/** 
 	 * This is a special usage flag that allows a material to be assignable to any primitive type.
@@ -656,9 +640,13 @@ public:
 	UPROPERTY()
 	TArray<struct FMaterialParameterCollectionInfo> MaterialParameterCollectionInfos;
 
-	/** true if Material is masked and uses custom opacity */
+	/** true if this Material can be assumed Opaque when set to masked. */
 	UPROPERTY()
-	uint32 bIsMasked:1;
+	uint32 bCanMaskedBeAssumedOpaque : 1;
+
+ 	/** true if Material is masked and uses custom opacity */
+ 	UPROPERTY()
+ 	uint32 bIsMasked_DEPRECATED:1;
 
 	/** true if Material is the preview material used in the material editor. */
 	UPROPERTY(transient, duplicatetransient)
@@ -778,11 +766,11 @@ public:
 		TArray<FName>* OutTextureParamNames, class FStaticParameterSet* InStaticParameterSet) override;
 	ENGINE_API virtual void RecacheUniformExpressions() const override;
 
-	ENGINE_API virtual float GetOpacityMaskClipValue_Internal() const;
-	ENGINE_API virtual EBlendMode GetBlendMode_Internal() const;
-	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
-	ENGINE_API virtual bool IsTwoSided_Internal() const;
-	ENGINE_API virtual bool IsMasked_Internal() const;
+	ENGINE_API virtual float GetOpacityMaskClipValue(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual EBlendMode GetBlendMode(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual EMaterialShadingModel GetShadingModel(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual bool IsTwoSided(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual bool IsMasked(bool bIsGameThread = IsInGameThread()) const;
 	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const;
 
 	ENGINE_API void SetShadingModel(EMaterialShadingModel NewModel) {ShadingModel = NewModel;}
@@ -1023,7 +1011,7 @@ public:
 	/** 
 	 * Recreates FShaders for FMaterialShaderMap's from the serialized data.  Shader maps may not be complete after this due to changes in the shader keys.
 	 */
-	ENGINE_API static void RestoreMaterialShadersFromMemory(EShaderPlatform ShaderPlatform, const TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
+	ENGINE_API static void RestoreMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData);
 
 	/** Builds a map from UMaterialInterface name to the shader maps that are needed for rendering on the given platform. */
 	ENGINE_API static void CompileMaterialsForRemoteRecompile(

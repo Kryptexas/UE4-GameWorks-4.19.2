@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MessagingDebuggerPrivatePCH.h"
 
@@ -138,29 +138,29 @@ TSharedRef<ITableRow> SMessagingEndpointDetails::HandleAddressListGenerateRow( F
 }
 
 
-FString SMessagingEndpointDetails::HandleEndpointDetailsReceivedMessagesText() const
+FText SMessagingEndpointDetails::HandleEndpointDetailsReceivedMessagesText() const
 {
 	FMessageTracerEndpointInfoPtr SelectedEndpoint = Model->GetSelectedEndpoint();
 
 	if (SelectedEndpoint.IsValid())
 	{
-		return FString::Printf(TEXT("%i"), SelectedEndpoint->ReceivedMessages.Num());
+		return FText::AsNumber(SelectedEndpoint->ReceivedMessages.Num());
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
 
-FString SMessagingEndpointDetails::HandleEndpointDetailsSentMessagesText() const
+FText SMessagingEndpointDetails::HandleEndpointDetailsSentMessagesText() const
 {
 	FMessageTracerEndpointInfoPtr SelectedEndpoint = Model->GetSelectedEndpoint();
 
 	if (SelectedEndpoint.IsValid())
 	{
-		return FString::Printf(TEXT("%i"), SelectedEndpoint->SentMessages.Num());
+		return FText::AsNumber(SelectedEndpoint->SentMessages.Num());
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
 

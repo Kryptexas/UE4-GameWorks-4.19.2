@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Composites/BTComposite_SimpleParallel.h"
@@ -19,8 +19,9 @@ int32 UBTComposite_SimpleParallel::GetNextChildHandler(FBehaviorTreeSearchData& 
 	if (PrevChild == BTSpecialChild::NotInitialized)
 	{
 		NextChildIdx = EBTParallelChild::MainTask;
+		MyMemory->MainTaskResult = EBTNodeResult::Failed;
 	}
-	else if ((MyMemory->bMainTaskIsActive || MyMemory->bForceBackgroundTree) && !SearchData.OwnerComp->IsRestartPending())
+	else if ((MyMemory->bMainTaskIsActive || MyMemory->bForceBackgroundTree) && !SearchData.OwnerComp.IsRestartPending())
 	{
 		// if main task is running - always pick background tree
 		// unless search is from abort from background tree - return to parent (and break from search when node gets deactivated)
@@ -31,14 +32,14 @@ int32 UBTComposite_SimpleParallel::GetNextChildHandler(FBehaviorTreeSearchData& 
 	return NextChildIdx;
 }
 
-void UBTComposite_SimpleParallel::NotifyChildExecution(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const
+void UBTComposite_SimpleParallel::NotifyChildExecution(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, int32 ChildIdx, EBTNodeResult::Type& NodeResult) const
 {
 	FBTParallelMemory* MyMemory = (FBTParallelMemory*)NodeMemory;
 	if (ChildIdx == EBTParallelChild::MainTask)
 	{
 		if (NodeResult == EBTNodeResult::InProgress)
 		{
-			EBTTaskStatus::Type Status = OwnerComp->GetTaskStatus(Children[EBTParallelChild::MainTask].ChildTask);
+			EBTTaskStatus::Type Status = OwnerComp.GetTaskStatus(Children[EBTParallelChild::MainTask].ChildTask);
 			if (Status == EBTTaskStatus::Active)
 			{
 				// can't register if task is currently being aborted (latent abort returns in progress)
@@ -46,7 +47,7 @@ void UBTComposite_SimpleParallel::NotifyChildExecution(UBehaviorTreeComponent* O
 				MyMemory->bMainTaskIsActive = true;
 				MyMemory->bForceBackgroundTree = false;
 				
-				OwnerComp->RegisterParallelTask(Children[EBTParallelChild::MainTask].ChildTask);
+				OwnerComp.RegisterParallelTask(Children[EBTParallelChild::MainTask].ChildTask);
 				RequestDelayedExecution(OwnerComp, EBTNodeResult::Succeeded);
 			}
 		}
@@ -55,15 +56,15 @@ void UBTComposite_SimpleParallel::NotifyChildExecution(UBehaviorTreeComponent* O
 			MyMemory->MainTaskResult = NodeResult;
 			MyMemory->bMainTaskIsActive = false;
 
-			const int32 MyInstanceIdx = OwnerComp->FindInstanceContainingNode(this);
+			const int32 MyInstanceIdx = OwnerComp.FindInstanceContainingNode(this);
 
-			OwnerComp->UnregisterParallelTask(Children[EBTParallelChild::MainTask].ChildTask, MyInstanceIdx);
+			OwnerComp.UnregisterParallelTask(Children[EBTParallelChild::MainTask].ChildTask, MyInstanceIdx);
 			if (NodeResult != EBTNodeResult::Aborted)
 			{
 				// check if subtree should be aborted when task finished with success/failed result
 				if (FinishMode == EBTParallelMode::AbortBackground)
 				{
-					OwnerComp->RequestExecution((UBTCompositeNode*)this, MyInstanceIdx,
+					OwnerComp.RequestExecution((UBTCompositeNode*)this, MyInstanceIdx,
 						Children[EBTParallelChild::MainTask].ChildTask, EBTParallelChild::MainTask,
 						NodeResult);
 				}
@@ -84,7 +85,7 @@ void UBTComposite_SimpleParallel::NotifyChildExecution(UBehaviorTreeComponent* O
 void UBTComposite_SimpleParallel::NotifyNodeDeactivation(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const
 {
 	FBTParallelMemory* MyMemory = GetNodeMemory<FBTParallelMemory>(SearchData);
-	const uint16 ActiveInstanceIdx = SearchData.OwnerComp->GetActiveInstanceIdx();
+	const uint16 ActiveInstanceIdx = SearchData.OwnerComp.GetActiveInstanceIdx();
 
 	// modify node result if main task has finished
 	if (!MyMemory->bMainTaskIsActive)
@@ -101,7 +102,7 @@ void UBTComposite_SimpleParallel::NotifyNodeDeactivation(FBehaviorTreeSearchData
 	// remove all active nodes from background tree
 	const FBTNodeIndex FirstBackgroundIndex(ActiveInstanceIdx, GetChildExecutionIndex(EBTParallelChild::BackgroundTree, EBTChildIndex::FirstNode));
 	const FBTNodeIndex LastBackgroundIndex(ActiveInstanceIdx, GetLastExecutionIndex());
-	SearchData.OwnerComp->UnregisterAuxNodesUpTo(FirstBackgroundIndex);
+	SearchData.OwnerComp.UnregisterAuxNodesUpTo(FirstBackgroundIndex);
 
 	// remove all pending updates "AddForLowerPri" from background tree 
 	// it doesn't make sense for decorators to reactivate themselves there
@@ -114,7 +115,7 @@ void UBTComposite_SimpleParallel::NotifyNodeDeactivation(FBehaviorTreeSearchData
 			const FBTNodeIndex UpdateIdx(UpdateInfo.InstanceIndex, UpdateNodeIdx);
 			if (FirstBackgroundIndex.TakesPriorityOver(UpdateIdx) && UpdateIdx.TakesPriorityOver(LastBackgroundIndex))
 			{
-				UE_VLOG(SearchData.OwnerComp->GetOwner(), LogBehaviorTree, Verbose, TEXT("Search node update[canceled]: %s"),
+				UE_VLOG(SearchData.OwnerComp.GetOwner(), LogBehaviorTree, Verbose, TEXT("Search node update[canceled]: %s"),
 					*UBehaviorTreeTypes::DescribeNodeHelper(UpdateInfo.AuxNode ? (UBTNode*)UpdateInfo.AuxNode : (UBTNode*)UpdateInfo.TaskNode));
 
 				SearchData.PendingUpdates.RemoveAt(Idx);
@@ -128,7 +129,7 @@ uint16 UBTComposite_SimpleParallel::GetInstanceMemorySize() const
 	return sizeof(FBTParallelMemory);
 }
 
-bool UBTComposite_SimpleParallel::CanPushSubtree(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, int32 ChildIdx) const
+bool UBTComposite_SimpleParallel::CanPushSubtree(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, int32 ChildIdx) const
 {
 	return (ChildIdx != EBTParallelChild::MainTask);
 }
@@ -147,7 +148,7 @@ FString UBTComposite_SimpleParallel::GetStaticDescription() const
 		FinishMode < 2 ? *FinishDesc[FinishMode] : TEXT(""));
 }
 
-void UBTComposite_SimpleParallel::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTComposite_SimpleParallel::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -10,6 +10,9 @@
 #if WITH_PHYSX
 	#include "PhysicsEngine/PhysXSupport.h"
 #endif // WITH_PHYSX
+#include "Components/SphereComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/GameMode.h"
 
 // CVars
 static TAutoConsoleVariable<float> CVarEncroachEpsilon(
@@ -449,7 +452,7 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 	TArray<AActor*> AttachedActors;
 	ThisActor->GetAttachedActors(AttachedActors);
 
-	TArray<USceneComponent*> SceneComponents;
+	TInlineComponentArray<USceneComponent*> SceneComponents;
 	ThisActor->GetComponents(SceneComponents);
 
 	if (AttachedActors.Num() > 0)
@@ -499,31 +502,11 @@ bool UWorld::DestroyActor( AActor* ThisActor, bool bNetForce, bool bShouldModify
 		return true;
 	}
 
-	// Remove owned components from overlap tracking
-	// We don't traverse the RootComponent attachment tree since that might contain
-	// components owned by other actors.
-	for (int32 Index = 0; Index < SceneComponents.Num(); ++Index)
+	ThisActor->ClearComponentOverlaps();
+
+	if (ThisActor->IsPendingKill())
 	{
-		UPrimitiveComponent* const PrimComp = Cast<UPrimitiveComponent>(SceneComponents[Index]);
-		if (PrimComp)
-		{
-			TArray<UPrimitiveComponent*> OverlappingComponents;
-			PrimComp->GetOverlappingComponents(OverlappingComponents);
-
-			for (auto OverlapIt = OverlappingComponents.CreateIterator(); OverlapIt; ++OverlapIt)
-			{
-				UPrimitiveComponent* const OverlapComp = *OverlapIt;
-				if (OverlapComp)
-				{
-					PrimComp->EndComponentOverlap(OverlapComp, true, true);
-
-					if (ThisActor->IsPendingKill())
-					{
-						return true;
-					}
-				}
-			}
-		}
+		return true;
 	}
 
 	// If this actor has an owner, notify it that it has lost a child.

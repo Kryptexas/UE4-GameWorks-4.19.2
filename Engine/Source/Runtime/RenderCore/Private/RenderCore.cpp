@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderCore.h: Render core module implementation.
@@ -78,7 +78,6 @@ DEFINE_STAT(STAT_UpdatePreshadowCache);
 DEFINE_STAT(STAT_CreateWholeSceneProjectedShadow);
 DEFINE_STAT(STAT_AddViewDependentWholeSceneShadowsForView);
 DEFINE_STAT(STAT_SetupInteractionShadows);
-DEFINE_STAT(STAT_PreRenderView);
 DEFINE_STAT(STAT_GetDynamicMeshElements);
 DEFINE_STAT(STAT_UpdateStaticMeshesTime);
 DEFINE_STAT(STAT_StaticRelevance);

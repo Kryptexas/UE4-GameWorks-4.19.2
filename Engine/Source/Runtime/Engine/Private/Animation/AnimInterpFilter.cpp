@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InterpFilter.h
@@ -216,6 +216,6 @@ float FFIRFilterTimeBased::CalculateFilteredOutput()
 // 		return SumInputs;
 // 	}
 
-	return SumInputs/SumCoefficient;
+	return (SumCoefficient>0.f)?SumInputs/SumCoefficient : 0.f;
 }
 

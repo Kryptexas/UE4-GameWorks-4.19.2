@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 
@@ -68,7 +68,7 @@ void SPropertyEditorCombo::Construct( const FArguments& InArgs, const TSharedRef
 	
 	// Important to find certain info out about the combo box.
 	TArray< TSharedPtr<FString> > ComboItems;
-	TArray< TSharedPtr<FString> > ToolTips;
+	TArray< FText > ToolTips;
 	TArray< bool > Restrictions;
 	GenerateComboBoxStrings( ComboItems, ToolTips, Restrictions );
 
@@ -80,7 +80,7 @@ void SPropertyEditorCombo::Construct( const FArguments& InArgs, const TSharedRef
 		.OnSelectionChanged( this, &SPropertyEditorCombo::OnComboSelectionChanged )
 		.OnComboBoxOpening( this, &SPropertyEditorCombo::OnComboOpening )
 		.VisibleText( this, &SPropertyEditorCombo::GetDisplayValueAsString )
-		.ToolTipText( InPropertyEditor, &FPropertyEditor::GetValueAsString );
+		.ToolTipText( InPropertyEditor, &FPropertyEditor::GetValueAsText );
 
 	ChildSlot
 	[
@@ -110,7 +110,7 @@ FString SPropertyEditorCombo::GetDisplayValueAsString() const
 	return (bUsesAlternateDisplayValues) ? PropertyEditor->GetValueAsDisplayString() : PropertyEditor->GetValueAsString();
 }
 
-void SPropertyEditorCombo::GenerateComboBoxStrings( TArray< TSharedPtr<FString> >& OutComboBoxStrings, TArray< TSharedPtr<FString> >& OutToolTips, TArray<bool>& OutRestrictedItems )
+void SPropertyEditorCombo::GenerateComboBoxStrings( TArray< TSharedPtr<FString> >& OutComboBoxStrings, TArray< FText >& OutToolTips, TArray<bool>& OutRestrictedItems )
 {
 	const TSharedRef< IPropertyHandle > PropertyHandle = PropertyEditor->GetPropertyHandle();
 	bUsesAlternateDisplayValues = PropertyHandle->GeneratePossibleValues(OutComboBoxStrings, OutToolTips, OutRestrictedItems);
@@ -138,7 +138,6 @@ void SPropertyEditorCombo::SendToObjects( const FString& NewValue )
 	UProperty* Property = PropertyNode->GetProperty();
 
 	FString Value;
-	FString ToolTipValue;
 	if ( bUsesAlternateDisplayValues && !Property->IsA(UStrProperty::StaticClass()))
 	{
 		// currently only enum properties can use alternate display values; this 
@@ -152,13 +151,13 @@ void SPropertyEditorCombo::SendToObjects( const FString& NewValue )
 
 		Value = Enum->GetEnumName(Index);
 
-		ToolTipValue = Enum->GetToolTipText(Index).ToString();
-		FString ToolTipText = Property->GetToolTipText().ToString();
-		if (ToolTipValue.Len() > 0)
+		FText ToolTipValue = Enum->GetToolTipText(Index);
+		FText ToolTipText = Property->GetToolTipText();
+		if (!ToolTipValue.IsEmpty())
 		{
-			ToolTipText = FString::Printf(TEXT("%s\n\n%s"), *ToolTipText, *ToolTipValue);
+			ToolTipText = FText::Format(FText::FromString(TEXT("{0}\n\n{1}")), ToolTipText, ToolTipValue);
 		}
-		SetToolTipText(TAttribute<FString>(ToolTipText));
+		SetToolTipText(ToolTipText);
 	}
 	else
 	{

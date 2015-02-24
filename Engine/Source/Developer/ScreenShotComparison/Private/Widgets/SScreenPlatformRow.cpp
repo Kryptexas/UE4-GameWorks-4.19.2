@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SScreenPlatformRow.h: Implements the SScreenPlatformRow class.
@@ -22,7 +22,7 @@ TSharedRef<SWidget> SScreenPlatformRow::GenerateWidgetForColumn( const FName& Co
 		.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 		.Content()
 		[
-			SNew( STextBlock ) .Text( ScreenShotDataItem->GetName() )
+			SNew( STextBlock ) .Text( FText::FromString(ScreenShotDataItem->GetName()) )
 		];
 	}
 	else if ( ColumnName == TEXT( "Current View" ) )

@@ -102,6 +102,8 @@ typedef struct SDL_VideoData
 /* EG BEGIN */
 #ifdef SDL_WITH_EPIC_EXTENSIONS
     Atom _NET_WM_WINDOW_OPACITY;
+    Atom _NET_WM_STATE_ABOVE;
+    Atom _NET_WM_STATE_SKIP_TASKBAR;
 #endif /* SDL_WITH_EPIC_EXTENSIONS */
 /* EG END */
     Atom _NET_ACTIVE_WINDOW;

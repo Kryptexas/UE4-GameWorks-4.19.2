@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "DirectionalLightComponentDetails.h"
+#include "Components/LightComponentBase.h"
 
 #define LOCTEXT_NAMESPACE "DirectionalLightComponentDetails"
 
@@ -17,7 +18,7 @@ void FDirectionalLightComponentDetails::CustomizeDetails( IDetailLayoutBuilder& 
 	MobilityProperty = DetailBuilder.GetProperty("Mobility", USceneComponent::StaticClass());
 
 	// Get cascaded shadow map category
-	IDetailCategoryBuilder& ShadowMapCategory = DetailBuilder.EditCategory("CascadedShadowMaps", TEXT(""), ECategoryPriority::Default );
+	IDetailCategoryBuilder& ShadowMapCategory = DetailBuilder.EditCategory("CascadedShadowMaps", FText::GetEmpty(), ECategoryPriority::Default );
 
 	// Add DynamicShadowDistanceMovableLight
 	TSharedPtr<IPropertyHandle> MovableShadowRadiusProperty = DetailBuilder.GetProperty("DynamicShadowDistanceMovableLight");

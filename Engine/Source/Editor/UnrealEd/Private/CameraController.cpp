@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CameraController.cpp: Implements controls for a camera with pseudo-physics
@@ -247,7 +247,7 @@ void FEditorCameraController::UpdatePosition( const FCameraControllerUserImpulse
 	// Constrain maximum movement speed
 	if( MovementVelocity.Size() > Config.MaximumMovementSpeed * MovementSpeedScale )
 	{
-		MovementVelocity = MovementVelocity.UnsafeNormal() * Config.MaximumMovementSpeed * MovementSpeedScale;
+		MovementVelocity = MovementVelocity.GetUnsafeNormal() * Config.MaximumMovementSpeed * MovementSpeedScale;
 	}
 
 

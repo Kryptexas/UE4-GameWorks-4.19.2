@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "PhysicsEngine/ConstraintInstance.h"
 #include "PhysicsConstraintComponent.generated.h"
@@ -68,8 +68,8 @@ public:
 	//Begin ActorComponent interface
 #if WITH_EDITOR
 	virtual void CheckForErrors() override;
-#endif // WITH_EDITOR
 	virtual void OnRegister() override;
+#endif // WITH_EDITOR
 	virtual void OnUnregister() override;
 	virtual void InitializeComponent() override;
 	//End ActorComponent interface
@@ -218,6 +218,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
 	ENGINE_API void	SetAngularTwistLimit(EAngularConstraintMotion ConstraintType, float TwistLimitAngle);
 
+
+	/** Gets the current Angular Twist of the constraint */
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API float GetCurrentTwist() const;
+
+	/** Gets the current Swing1 of the constraint */
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API float GetCurrentSwing1() const;
+
+	/** Gets the current Swing2 of the constraint */
+	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
+	ENGINE_API float GetCurrentSwing2() const;
+
 	/** 
 	 *	Update the reference frames held inside the constraint that indicate the joint location in the reference frame 
 	 *	of the two connected bodies. You should call this whenever the constraint or either Component moves, or if you change
@@ -245,10 +258,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Physics|Components|PhysicsConstraint")
 	ENGINE_API void GetConstraintForce(FVector& OutLinearForce, FVector& OutAngularForce);
 
-#if WITH_EDITORONLY_DATA
-	UPROPERTY(transient)
-	class UBillboardComponent* SpriteComponent;
-
+#if WITH_EDITOR
 	ENGINE_API void UpdateSpriteTexture();
 #endif
 

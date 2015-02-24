@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemNullPrivatePCH.h"
 #include "OnlineIdentityNull.h"
@@ -120,31 +120,32 @@ bool FOnlineIdentityNull::AutoLogin(int32 LocalUserNum)
 	FString LoginStr;
 	FString PasswordStr;
 	FString TypeStr;
+
+	FParse::Value(FCommandLine::Get(), TEXT("AUTH_LOGIN="), LoginStr);
+	FParse::Value(FCommandLine::Get(), TEXT("AUTH_PASSWORD="), PasswordStr);
+	FParse::Value(FCommandLine::Get(), TEXT("AUTH_TYPE="), TypeStr);
 	
-	if (FParse::Value(FCommandLine::Get(), TEXT("LOGIN="), LoginStr) &&
-		!LoginStr.IsEmpty())
+	if (!LoginStr.IsEmpty())
 	{
-		if (FParse::Value(FCommandLine::Get(), TEXT("PASSWORD="), PasswordStr) &&
-			!PasswordStr.IsEmpty())
+		if (!PasswordStr.IsEmpty())
 		{
-			if (FParse::Value(FCommandLine::Get(), TEXT("TYPE="), TypeStr) &&
-				!PasswordStr.IsEmpty())
+			if (!TypeStr.IsEmpty())
 			{
 				return Login(0, FOnlineAccountCredentials(TypeStr, LoginStr, PasswordStr));
 			}
 			else
 			{
-				UE_LOG_ONLINE(Warning, TEXT("AutoLogin missing TYPE=<type>."));
+				UE_LOG_ONLINE(Warning, TEXT("AutoLogin missing AUTH_TYPE=<type>."));
 			}
 		}
 		else
 		{
-			UE_LOG_ONLINE(Warning, TEXT("AutoLogin missing PASSWORD=<password>."));
+			UE_LOG_ONLINE(Warning, TEXT("AutoLogin missing AUTH_PASSWORD=<password>."));
 		}
 	}
 	else
 	{
-		UE_LOG_ONLINE(Warning, TEXT("AutoLogin missing LOGIN=<login id>."));
+		UE_LOG_ONLINE(Warning, TEXT("AutoLogin missing AUTH_LOGIN=<login id>."));
 	}
 	return false;
 }

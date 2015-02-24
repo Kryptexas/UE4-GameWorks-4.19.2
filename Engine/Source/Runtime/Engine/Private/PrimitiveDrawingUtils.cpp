@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "DynamicMeshBuilder.h"
@@ -8,6 +8,7 @@
 #include "SceneUtils.h"
 #include "MeshBatch.h"
 #include "RendererInterface.h"
+#include "Engine/LightMapTexture2D.h"
 
 /** Emits draw events for a given FMeshBatch and the FPrimitiveSceneProxy corresponding to that mesh element. */
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -182,23 +183,23 @@ void DrawBox(FPrimitiveDrawInterface* PDI,const FMatrix& BoxToWorld,const FVecto
 	MeshBuilder.Draw(PDI,FScaleMatrix(Radii) * BoxToWorld,MaterialRenderProxy,DepthPriorityGroup,0.f);
 }
 
-void GetSphereMesh(const FVector& Center,const FVector& Radii,int32 NumSides,int32 NumRings,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,bool bDisableBackfaceCulling,int32 ViewIndex,FMeshElementCollector& Collector)
+void GetHalfSphereMesh(const FVector& Center, const FVector& Radii, int32 NumSides, int32 NumRings, float StartAngle, float EndAngle, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, bool bDisableBackfaceCulling, int32 ViewIndex, FMeshElementCollector& Collector)
 {
 	// Use a mesh builder to draw the sphere.
 	FDynamicMeshBuilder MeshBuilder;
 	{
 		// The first/last arc are on top of each other.
-		int32 NumVerts = (NumSides+1) * (NumRings+1);
-		FDynamicMeshVertex* Verts = (FDynamicMeshVertex*)FMemory::Malloc( NumVerts * sizeof(FDynamicMeshVertex) );
+		int32 NumVerts = (NumSides + 1) * (NumRings + 1);
+		FDynamicMeshVertex* Verts = (FDynamicMeshVertex*)FMemory::Malloc(NumVerts * sizeof(FDynamicMeshVertex));
 
 		// Calculate verts for one arc
-		FDynamicMeshVertex* ArcVerts = (FDynamicMeshVertex*)FMemory::Malloc( (NumRings+1) * sizeof(FDynamicMeshVertex) );
+		FDynamicMeshVertex* ArcVerts = (FDynamicMeshVertex*)FMemory::Malloc((NumRings + 1) * sizeof(FDynamicMeshVertex));
 
-		for(int32 i=0; i<NumRings+1; i++)
+		for (int32 i = 0; i<NumRings + 1; i++)
 		{
 			FDynamicMeshVertex* ArcVert = &ArcVerts[i];
 
-			float angle = ((float)i/NumRings) * PI;
+			float angle = StartAngle + ((float)i / NumRings) * (EndAngle-StartAngle);
 
 			// Note- unit sphere, so position always has mag of one. We can just use it for normal!			
 			ArcVert->Position.X = 0.0f;
@@ -206,32 +207,32 @@ void GetSphereMesh(const FVector& Center,const FVector& Radii,int32 NumSides,int
 			ArcVert->Position.Z = FMath::Cos(angle);
 
 			ArcVert->SetTangents(
-				FVector(1,0,0),
-				FVector(0.0f,-ArcVert->Position.Z,ArcVert->Position.Y),
+				FVector(1, 0, 0),
+				FVector(0.0f, -ArcVert->Position.Z, ArcVert->Position.Y),
 				ArcVert->Position
 				);
 
 			ArcVert->TextureCoordinate.X = 0.0f;
-			ArcVert->TextureCoordinate.Y = ((float)i/NumRings);
+			ArcVert->TextureCoordinate.Y = ((float)i / NumRings);
 		}
 
 		// Then rotate this arc NumSides+1 times.
-		for(int32 s=0; s<NumSides+1; s++)
+		for (int32 s = 0; s<NumSides + 1; s++)
 		{
-			FRotator ArcRotator(0, 360.f * (float)s/NumSides, 0);
-			FRotationMatrix ArcRot( ArcRotator );
-			float XTexCoord = ((float)s/NumSides);
+			FRotator ArcRotator(0, 360.f * (float)s / NumSides, 0);
+			FRotationMatrix ArcRot(ArcRotator);
+			float XTexCoord = ((float)s / NumSides);
 
-			for(int32 v=0; v<NumRings+1; v++)
+			for (int32 v = 0; v<NumRings + 1; v++)
 			{
-				int32 VIx = (NumRings+1)*s + v;
+				int32 VIx = (NumRings + 1)*s + v;
 
-				Verts[VIx].Position = ArcRot.TransformPosition( ArcVerts[v].Position );
+				Verts[VIx].Position = ArcRot.TransformPosition(ArcVerts[v].Position);
 
 				Verts[VIx].SetTangents(
-					ArcRot.TransformVector( ArcVerts[v].TangentX ),
-					ArcRot.TransformVector( ArcVerts[v].GetTangentY() ),
-					ArcRot.TransformVector( ArcVerts[v].TangentZ )
+					ArcRot.TransformVector(ArcVerts[v].TangentX),
+					ArcRot.TransformVector(ArcVerts[v].GetTangentY()),
+					ArcRot.TransformVector(ArcVerts[v].TangentZ)
 					);
 
 				Verts[VIx].TextureCoordinate.X = XTexCoord;
@@ -240,18 +241,18 @@ void GetSphereMesh(const FVector& Center,const FVector& Radii,int32 NumSides,int
 		}
 
 		// Add all of the vertices we generated to the mesh builder.
-		for(int32 VertIdx=0; VertIdx < NumVerts; VertIdx++)
+		for (int32 VertIdx = 0; VertIdx < NumVerts; VertIdx++)
 		{
 			MeshBuilder.AddVertex(Verts[VertIdx]);
 		}
 
 		// Add all of the triangles we generated to the mesh builder.
-		for(int32 s=0; s<NumSides; s++)
+		for (int32 s = 0; s<NumSides; s++)
 		{
-			int32 a0start = (s+0) * (NumRings+1);
-			int32 a1start = (s+1) * (NumRings+1);
+			int32 a0start = (s + 0) * (NumRings + 1);
+			int32 a1start = (s + 1) * (NumRings + 1);
 
-			for(int32 r=0; r<NumRings; r++)
+			for (int32 r = 0; r<NumRings; r++)
 			{
 				MeshBuilder.AddTriangle(a0start + r + 0, a1start + r + 0, a0start + r + 1);
 				MeshBuilder.AddTriangle(a1start + r + 0, a1start + r + 1, a0start + r + 1);
@@ -262,7 +263,12 @@ void GetSphereMesh(const FVector& Center,const FVector& Radii,int32 NumSides,int
 		FMemory::Free(Verts);
 		FMemory::Free(ArcVerts);
 	}
-	MeshBuilder.GetMesh(FScaleMatrix( Radii ) * FTranslationMatrix( Center ), MaterialRenderProxy, DepthPriority, bDisableBackfaceCulling, false, ViewIndex, Collector);
+	MeshBuilder.GetMesh(FScaleMatrix(Radii) * FTranslationMatrix(Center), MaterialRenderProxy, DepthPriority, bDisableBackfaceCulling, false, ViewIndex, Collector);
+}
+
+void GetSphereMesh(const FVector& Center,const FVector& Radii,int32 NumSides,int32 NumRings,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,bool bDisableBackfaceCulling,int32 ViewIndex,FMeshElementCollector& Collector)
+{
+	GetHalfSphereMesh(Center, Radii, NumSides, NumRings, 0, PI, MaterialRenderProxy, DepthPriority, bDisableBackfaceCulling, ViewIndex, Collector);
 }
 
 
@@ -419,14 +425,14 @@ void BuildConeVerts(float Angle1, float Angle2, float Scale, float XOffset, int3
 		V1.TextureCoordinate.X = 1.0f;
 		V1.TextureCoordinate.Y = (float)i / NumSides;
 		FVector TriTangentZPrev = ConeVerts[i] ^ ConeVerts[i == 0 ? NumSides - 1 : i - 1]; // Normal of the previous face connected to this face
-		V1.SetTangents(TriTangentX, TriTangentY, (TriTangentZPrev + TriTangentZ).SafeNormal());
+		V1.SetTangents(TriTangentX, TriTangentY, (TriTangentZPrev + TriTangentZ).GetSafeNormal());
 		int32 I1 = OutVerts.Add(V1);
 
 		V2.Position = ConeVerts[(i + 1) % NumSides];
 		V2.TextureCoordinate.X = 1.0f;
 		V2.TextureCoordinate.Y = (float)((i + 1) % NumSides) / NumSides;
 		FVector TriTangentZNext = ConeVerts[(i + 2) % NumSides] ^ ConeVerts[(i + 1) % NumSides]; // Normal of the next face connected to this face
-		V2.SetTangents(TriTangentX, TriTangentY, (TriTangentZNext + TriTangentZ).SafeNormal());
+		V2.SetTangents(TriTangentX, TriTangentY, (TriTangentZNext + TriTangentZ).GetSafeNormal());
 		int32 I2 = OutVerts.Add(V2);
 
 		// Flip winding for negative scale
@@ -596,6 +602,31 @@ void GetCylinderMesh(const FMatrix& CylToWorld, const FVector& Base, const FVect
 
 	MeshBuilder.GetMesh(CylToWorld, MaterialRenderProxy, DepthPriority, false, false, ViewIndex, Collector);
 }
+
+void GetConeMesh(const FMatrix& LocalToWorld, float AngleWidth, float AngleHeight, int32 NumSides, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector)
+{
+	TArray<FDynamicMeshVertex> MeshVerts;
+	TArray<int32> MeshIndices;
+	BuildConeVerts(AngleWidth * PI / 180, AngleHeight * PI / 180, 1.f, 0.f, 16, MeshVerts, MeshIndices);
+	FDynamicMeshBuilder MeshBuilder;
+	MeshBuilder.AddVertices(MeshVerts);
+	MeshBuilder.AddTriangles(MeshIndices);
+	MeshBuilder.GetMesh(LocalToWorld, MaterialRenderProxy, SDPG_World, false, false, ViewIndex, Collector);
+}
+
+void GetCapsuleMesh(const FVector& Origin, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis, const FLinearColor& Color, float Radius, float HalfHeight, int32 NumSides, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, bool bDisableBackfaceCulling, int32 ViewIndex, FMeshElementCollector& Collector)
+{
+	const float HalfAxis = FMath::Max<float>(HalfHeight - Radius, 1.f);
+	const FVector BottomEnd = Origin + Radius * ZAxis;
+	const FVector TopEnd = BottomEnd + (2 * HalfAxis) * ZAxis;
+	const float CylinderHalfHeight = (TopEnd - BottomEnd).Size() * 0.5;
+	const FVector CylinderLocation = BottomEnd + CylinderHalfHeight * ZAxis;
+
+	GetHalfSphereMesh(TopEnd, FVector(Radius), NumSides, 16, 0, PI / 2, MaterialRenderProxy, DepthPriority, bDisableBackfaceCulling, ViewIndex, Collector);
+	GetCylinderMesh(CylinderLocation, XAxis, YAxis, ZAxis, Radius, CylinderHalfHeight, NumSides, MaterialRenderProxy, DepthPriority, ViewIndex, Collector);
+	GetHalfSphereMesh(BottomEnd, FVector(Radius), NumSides, 16, PI / 2, PI, MaterialRenderProxy, DepthPriority, bDisableBackfaceCulling, ViewIndex, Collector);
+}
+
 
 void DrawCylinder(FPrimitiveDrawInterface* PDI,const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis,
 	float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority)
@@ -778,7 +809,7 @@ void DrawFlatArrow(class FPrimitiveDrawInterface* PDI,const FVector& Base,const 
  * @param	Color			Color of the box.
  * @param	DepthPriority	Depth priority for the circle.
  */
-void DrawWireBox(FPrimitiveDrawInterface* PDI,const FBox& Box,const FLinearColor& Color,uint8 DepthPriority)
+void DrawWireBox(FPrimitiveDrawInterface* PDI, const FBox& Box, const FLinearColor& Color, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
 	FVector	B[2],P,Q;
 	int32 i,j;
@@ -791,17 +822,17 @@ void DrawWireBox(FPrimitiveDrawInterface* PDI,const FBox& Box,const FLinearColor
 		P.X=B[i].X; Q.X=B[i].X;
 		P.Y=B[j].Y; Q.Y=B[j].Y;
 		P.Z=B[0].Z; Q.Z=B[1].Z;
-		PDI->DrawLine(P,Q,Color,DepthPriority);
+		PDI->DrawLine(P, Q, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 
 		P.Y=B[i].Y; Q.Y=B[i].Y;
 		P.Z=B[j].Z; Q.Z=B[j].Z;
 		P.X=B[0].X; Q.X=B[1].X;
-		PDI->DrawLine(P,Q,Color,DepthPriority);
+		PDI->DrawLine(P, Q, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 
 		P.Z=B[i].Z; Q.Z=B[i].Z;
 		P.X=B[j].X; Q.X=B[j].X;
 		P.Y=B[0].Y; Q.Y=B[1].Y;
-		PDI->DrawLine(P,Q,Color,DepthPriority);
+		PDI->DrawLine(P, Q, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 	}
 }
 
@@ -818,7 +849,7 @@ void DrawWireBox(FPrimitiveDrawInterface* PDI,const FBox& Box,const FLinearColor
  * @param	NumSides		Numbers of sides that the circle has.
  * @param	DepthPriority	Depth priority for the circle.
  */
-void DrawCircle(FPrimitiveDrawInterface* PDI,const FVector& Base,const FVector& X,const FVector& Y,const FLinearColor& Color,float Radius,int32 NumSides,uint8 DepthPriority)
+void DrawCircle(FPrimitiveDrawInterface* PDI, const FVector& Base, const FVector& X, const FVector& Y, const FLinearColor& Color, float Radius, int32 NumSides, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
 	const float	AngleDelta = 2.0f * PI / NumSides;
 	FVector	LastVertex = Base + X * Radius;
@@ -826,7 +857,7 @@ void DrawCircle(FPrimitiveDrawInterface* PDI,const FVector& Base,const FVector& 
 	for(int32 SideIndex = 0;SideIndex < NumSides;SideIndex++)
 	{
 		const FVector Vertex = Base + (X * FMath::Cos(AngleDelta * (SideIndex + 1)) + Y * FMath::Sin(AngleDelta * (SideIndex + 1))) * Radius;
-		PDI->DrawLine(LastVertex,Vertex,Color,DepthPriority);
+		PDI->DrawLine(LastVertex, Vertex, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 		LastVertex = Vertex;
 	}
 }
@@ -872,11 +903,11 @@ void DrawArc(FPrimitiveDrawInterface* PDI, const FVector Base, const FVector X, 
  * @param	NumSides		Numbers of sides that the circle has.
  * @param	DepthPriority	Depth priority for the circle.
  */
-void DrawWireSphere(class FPrimitiveDrawInterface* PDI, const FVector& Base, const FLinearColor& Color, float Radius, int32 NumSides, uint8 DepthPriority)
+void DrawWireSphere(class FPrimitiveDrawInterface* PDI, const FVector& Base, const FLinearColor& Color, float Radius, int32 NumSides, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
-	DrawCircle(PDI, Base, FVector(1,0,0), FVector(0,1,0), Color, Radius, NumSides, DepthPriority);
-	DrawCircle(PDI, Base, FVector(1,0,0), FVector(0,0,1), Color, Radius, NumSides, DepthPriority);
-	DrawCircle(PDI, Base, FVector(0,1,0), FVector(0,0,1), Color, Radius, NumSides, DepthPriority);
+	DrawCircle(PDI, Base, FVector(1,0,0), FVector(0,1,0), Color, Radius, NumSides, DepthPriority, Thickness, DepthBias, bScreenSpace);
+	DrawCircle(PDI, Base, FVector(1, 0, 0), FVector(0, 0, 1), Color, Radius, NumSides, DepthPriority, Thickness, DepthBias, bScreenSpace);
+	DrawCircle(PDI, Base, FVector(0, 1, 0), FVector(0, 0, 1), Color, Radius, NumSides, DepthPriority, Thickness, DepthBias, bScreenSpace);
 }
 
 /**
@@ -888,26 +919,26 @@ void DrawWireSphere(class FPrimitiveDrawInterface* PDI, const FVector& Base, con
  * @param	Radius			Radius of the sphere.
  * @param	DepthPriority	Depth priority for the circle.
  */
-void DrawWireSphereAutoSides(class FPrimitiveDrawInterface* PDI, const FVector& Base, const FLinearColor& Color, float Radius, uint8 DepthPriority)
+void DrawWireSphereAutoSides(class FPrimitiveDrawInterface* PDI, const FVector& Base, const FLinearColor& Color, float Radius, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
 	// Guess a good number of sides
 	int32 NumSides =  FMath::Clamp<int32>(Radius/4.f, 16, 64);
-	DrawWireSphere(PDI, Base, Color, Radius, NumSides, DepthPriority);
+	DrawWireSphere(PDI, Base, Color, Radius, NumSides, DepthPriority, Thickness, DepthBias, bScreenSpace);
 }
 
-void DrawWireSphere(class FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FLinearColor& Color, float Radius, int32 NumSides, uint8 DepthPriority)
+void DrawWireSphere(class FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FLinearColor& Color, float Radius, int32 NumSides, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
-	DrawCircle( PDI, Transform.GetLocation(), Transform.GetScaledAxis( EAxis::X ), Transform.GetScaledAxis( EAxis::Y ), Color, Radius, NumSides, SDPG_World );
-	DrawCircle( PDI, Transform.GetLocation(), Transform.GetScaledAxis( EAxis::X ), Transform.GetScaledAxis( EAxis::Z ), Color, Radius, NumSides, SDPG_World );
-	DrawCircle( PDI, Transform.GetLocation(), Transform.GetScaledAxis( EAxis::Y ), Transform.GetScaledAxis( EAxis::Z ), Color, Radius, NumSides, SDPG_World );
+	DrawCircle(PDI, Transform.GetLocation(), Transform.GetScaledAxis(EAxis::X), Transform.GetScaledAxis(EAxis::Y), Color, Radius, NumSides, SDPG_World, Thickness, DepthBias, bScreenSpace);
+	DrawCircle(PDI, Transform.GetLocation(), Transform.GetScaledAxis(EAxis::X), Transform.GetScaledAxis(EAxis::Z), Color, Radius, NumSides, SDPG_World, Thickness, DepthBias, bScreenSpace);
+	DrawCircle(PDI, Transform.GetLocation(), Transform.GetScaledAxis(EAxis::Y), Transform.GetScaledAxis(EAxis::Z), Color, Radius, NumSides, SDPG_World, Thickness, DepthBias, bScreenSpace);
 }
 
 
-void DrawWireSphereAutoSides(class FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FLinearColor& Color, float Radius, uint8 DepthPriority)
+void DrawWireSphereAutoSides(class FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FLinearColor& Color, float Radius, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
 	// Guess a good number of sides
 	int32 NumSides =  FMath::Clamp<int32>(Radius/4.f, 16, 64);
-	DrawWireSphere(PDI, Transform, Color, Radius, NumSides, DepthPriority);
+	DrawWireSphere(PDI, Transform, Color, Radius, NumSides, DepthPriority, Thickness, DepthBias, bScreenSpace);
 }
 
 /**
@@ -924,7 +955,7 @@ void DrawWireSphereAutoSides(class FPrimitiveDrawInterface* PDI, const FTransfor
  * @param	NumSides		Numbers of sides that the cylinder has.
  * @param	DepthPriority	Depth priority for the cylinder.
  */
-void DrawWireCylinder(FPrimitiveDrawInterface* PDI,const FVector& Base,const FVector& X,const FVector& Y,const FVector& Z,const FLinearColor& Color,float Radius,float HalfHeight,int32 NumSides,uint8 DepthPriority)
+void DrawWireCylinder(FPrimitiveDrawInterface* PDI, const FVector& Base, const FVector& X, const FVector& Y, const FVector& Z, const FLinearColor& Color, float Radius, float HalfHeight, int32 NumSides, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
 	const float	AngleDelta = 2.0f * PI / NumSides;
 	FVector	LastVertex = Base + X * Radius;
@@ -933,16 +964,16 @@ void DrawWireCylinder(FPrimitiveDrawInterface* PDI,const FVector& Base,const FVe
 	{
 		const FVector Vertex = Base + (X * FMath::Cos(AngleDelta * (SideIndex + 1)) + Y * FMath::Sin(AngleDelta * (SideIndex + 1))) * Radius;
 
-		PDI->DrawLine(LastVertex - Z * HalfHeight,Vertex - Z * HalfHeight,Color,DepthPriority);
-		PDI->DrawLine(LastVertex + Z * HalfHeight,Vertex + Z * HalfHeight,Color,DepthPriority);
-		PDI->DrawLine(LastVertex - Z * HalfHeight,LastVertex + Z * HalfHeight,Color,DepthPriority);
+		PDI->DrawLine(LastVertex - Z * HalfHeight, Vertex - Z * HalfHeight, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
+		PDI->DrawLine(LastVertex + Z * HalfHeight, Vertex + Z * HalfHeight, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
+		PDI->DrawLine(LastVertex - Z * HalfHeight, LastVertex + Z * HalfHeight, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 
 		LastVertex = Vertex;
 	}
 }
 
 
-static void DrawHalfCircle(FPrimitiveDrawInterface* PDI, const FVector& Base, const FVector& X, const FVector& Y, const FLinearColor& Color, float Radius, int32 NumSides)
+static void DrawHalfCircle(FPrimitiveDrawInterface* PDI, const FVector& Base, const FVector& X, const FVector& Y, const FLinearColor& Color, float Radius, int32 NumSides, float Thickness, float DepthBias, bool bScreenSpace)
 {
 	const float	AngleDelta = (float)PI / ((float)NumSides);
 	FVector	LastVertex = Base + X * Radius;
@@ -950,7 +981,7 @@ static void DrawHalfCircle(FPrimitiveDrawInterface* PDI, const FVector& Base, co
 	for(int32 SideIndex = 0; SideIndex < NumSides; SideIndex++)
 	{
 		const FVector	Vertex = Base + (X * FMath::Cos(AngleDelta * (SideIndex + 1)) + Y * FMath::Sin(AngleDelta * (SideIndex + 1))) * Radius;
-		PDI->DrawLine(LastVertex, Vertex, Color, SDPG_World);
+		PDI->DrawLine(LastVertex, Vertex, Color, SDPG_World, Thickness, DepthBias, bScreenSpace);
 		LastVertex = Vertex;
 	}	
 }
@@ -970,12 +1001,12 @@ static void DrawHalfCircle(FPrimitiveDrawInterface* PDI, const FVector& Base, co
  * @param	NumSides		Numbers of sides that the cylinder has.
  * @param	DepthPriority	Depth priority for the cylinder.
  */
-void DrawWireCapsule(FPrimitiveDrawInterface* PDI,const FVector& Base,const FVector& X,const FVector& Y,const FVector& Z,const FLinearColor& Color,float Radius,float HalfHeight,int32 NumSides,uint8 DepthPriority)
+void DrawWireCapsule(FPrimitiveDrawInterface* PDI, const FVector& Base, const FVector& X, const FVector& Y, const FVector& Z, const FLinearColor& Color, float Radius, float HalfHeight, int32 NumSides, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
 	const FVector Origin = Base;
-	const FVector XAxis = X.SafeNormal();
-	const FVector YAxis = Y.SafeNormal();
-	const FVector ZAxis = Z.SafeNormal();
+	const FVector XAxis = X.GetSafeNormal();
+	const FVector YAxis = Y.GetSafeNormal();
+	const FVector ZAxis = Z.GetSafeNormal();
 
 	// because we are drawing a capsule we have to have room for the "domed caps"
 	const float XScale = X.Size();
@@ -991,17 +1022,17 @@ void DrawWireCapsule(FPrimitiveDrawInterface* PDI,const FVector& Base,const FVec
 	const FVector TopEnd = Origin + (HalfHeight * ZAxis);
 	const FVector BottomEnd = Origin - (HalfHeight * ZAxis);
 
-	DrawCircle(PDI, TopEnd, XAxis, YAxis, Color, CapsuleRadius, NumSides, DepthPriority);
-	DrawCircle(PDI, BottomEnd, XAxis, YAxis, Color, CapsuleRadius, NumSides, DepthPriority);
+	DrawCircle(PDI, TopEnd, XAxis, YAxis, Color, CapsuleRadius, NumSides, DepthPriority, Thickness, DepthBias, bScreenSpace);
+	DrawCircle(PDI, BottomEnd, XAxis, YAxis, Color, CapsuleRadius, NumSides, DepthPriority, Thickness, DepthBias, bScreenSpace);
 
 	// Draw domed caps
-	DrawHalfCircle(PDI, TopEnd, YAxis, ZAxis, Color, CapsuleRadius, NumSides/2);
-	DrawHalfCircle(PDI, TopEnd, XAxis, ZAxis, Color, CapsuleRadius, NumSides/2);
+	DrawHalfCircle(PDI, TopEnd, YAxis, ZAxis, Color, CapsuleRadius, NumSides / 2, Thickness, DepthBias, bScreenSpace);
+	DrawHalfCircle(PDI, TopEnd, XAxis, ZAxis, Color, CapsuleRadius, NumSides / 2, Thickness, DepthBias, bScreenSpace);
 
 	const FVector NegZAxis = -ZAxis;
 
-	DrawHalfCircle(PDI, BottomEnd, YAxis, NegZAxis, Color, CapsuleRadius, NumSides/2);
-	DrawHalfCircle(PDI, BottomEnd, XAxis, NegZAxis, Color, CapsuleRadius, NumSides/2);
+	DrawHalfCircle(PDI, BottomEnd, YAxis, NegZAxis, Color, CapsuleRadius, NumSides / 2, Thickness, DepthBias, bScreenSpace);
+	DrawHalfCircle(PDI, BottomEnd, XAxis, NegZAxis, Color, CapsuleRadius, NumSides / 2, Thickness, DepthBias, bScreenSpace);
 
 	// we set NumSides to 4 as it makes a nicer looking capsule as we only draw 2 HalfCircles above
 	const int32 NumCylinderLines = 4;
@@ -1014,7 +1045,7 @@ void DrawWireCapsule(FPrimitiveDrawInterface* PDI,const FVector& Base,const FVec
 	{
 		const FVector Vertex = Base + (XAxis * FMath::Cos(AngleDelta * (SideIndex + 1)) + YAxis * FMath::Sin(AngleDelta * (SideIndex + 1))) * CapsuleRadius;
 
-		PDI->DrawLine(LastVertex - ZAxis * HalfHeight,LastVertex + ZAxis * HalfHeight,Color,DepthPriority);
+		PDI->DrawLine(LastVertex - ZAxis * HalfHeight, LastVertex + ZAxis * HalfHeight, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 
 		LastVertex = Vertex;
 	}
@@ -1034,7 +1065,7 @@ void DrawWireCapsule(FPrimitiveDrawInterface* PDI,const FVector& Base,const FVec
  * @param	DepthPriority	Depth priority for the cone.
  * @param	Verts			Out param, the positions of the verts at the cone's base.
  */
-void DrawWireCone(FPrimitiveDrawInterface* PDI, const FTransform& Transform, float ConeRadius, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, TArray<FVector>& Verts)
+void DrawWireCone(FPrimitiveDrawInterface* PDI, TArray<FVector>& Verts, const FTransform& Transform, float ConeRadius, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
 	static const float TwoPI = 2.0f * PI;
 	static const float ToRads = PI / 180.0f;
@@ -1065,20 +1096,20 @@ void DrawWireCone(FPrimitiveDrawInterface* PDI, const FTransform& Transform, flo
 	// Draw spokes.
 	for ( int32 i = 0 ; i < Verts.Num(); ++i )
 	{
-		PDI->DrawLine( Transform.GetLocation(), Verts[i], Color, DepthPriority );
+		PDI->DrawLine(Transform.GetLocation(), Verts[i], Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 	}
 
 	// Draw rim.
 	for ( int32 i = 0 ; i < Verts.Num()-1 ; ++i )
 	{
-		PDI->DrawLine( Verts[i], Verts[i+1], Color, DepthPriority );
+		PDI->DrawLine(Verts[i], Verts[i + 1], Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 	}
-	PDI->DrawLine( Verts[Verts.Num()-1], Verts[0], Color, DepthPriority );
+	PDI->DrawLine(Verts[Verts.Num() - 1], Verts[0], Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 }
 
-void DrawWireCone(FPrimitiveDrawInterface* PDI, const FMatrix& Transform, float ConeRadius, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, TArray<FVector>& Verts)
+void DrawWireCone(FPrimitiveDrawInterface* PDI, TArray<FVector>& Verts, const FMatrix& Transform, float ConeRadius, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
-	DrawWireCone(PDI, FTransform(Transform), ConeRadius, ConeAngle, ConeSides, Color, DepthPriority, Verts);
+	DrawWireCone(PDI, Verts, FTransform(Transform), ConeRadius, ConeAngle, ConeSides, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 }
 
 /**
@@ -1103,7 +1134,7 @@ void DrawWireSphereCappedCone(FPrimitiveDrawInterface* PDI, const FTransform& Tr
 	}
 
 	TArray<FVector> Verts;
-	DrawWireCone(PDI, Transform, ConeRadius, ConeAngle, ConeSides, Color, DepthPriority, Verts);
+	DrawWireCone(PDI, Verts, Transform, ConeRadius, ConeAngle, ConeSides, Color, DepthPriority, 0);
 
 	// Draw arcs
 	int32 ArcCount = (int32)(Verts.Num() / 2);
@@ -1165,34 +1196,39 @@ void DrawWireChoppedCone(FPrimitiveDrawInterface* PDI,const FVector& Base,const 
  * @param	DepthPriority	Depth priority for the cone.
  */
 
-void DrawOrientedWireBox(FPrimitiveDrawInterface* PDI,const FVector& Base,const FVector& X,const FVector& Y,const FVector& Z, FVector Extent, const FLinearColor& Color,uint8 DepthPriority)
+void DrawOrientedWireBox(FPrimitiveDrawInterface* PDI, const FVector& Base, const FVector& X, const FVector& Y, const FVector& Z, FVector Extent, const FLinearColor& Color, uint8 DepthPriority, float Thickness, float DepthBias, bool bScreenSpace)
 {
 	FVector	B[2],P,Q;
-	int32 i,j;
 
-	FMatrix m(X, Y, Z, Base);
+	FMatrix M(X, Y, Z, Base);
 	B[0] = -Extent;
 	B[1] = Extent;
 
-	for( i=0; i<2; i++ ) for( j=0; j<2; j++ )
+	for (int32 i = 0; i < 2; i++)
 	{
-		P.X=B[i].X; Q.X=B[i].X;
-		P.Y=B[j].Y; Q.Y=B[j].Y;
-		P.Z=B[0].Z; Q.Z=B[1].Z;
-		P = m.TransformPosition(P); Q = m.TransformPosition(Q);
-		PDI->DrawLine(P,Q,Color,DepthPriority);
+		for (int32 j = 0; j < 2; j++)
+		{
+			P.X = B[i].X; Q.X = B[i].X;
+			P.Y = B[j].Y; Q.Y = B[j].Y;
+			P.Z = B[0].Z; Q.Z = B[1].Z;
+			P = M.TransformPosition(P);
+			Q = M.TransformPosition(Q);
+			PDI->DrawLine(P, Q, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 
-		P.Y=B[i].Y; Q.Y=B[i].Y;
-		P.Z=B[j].Z; Q.Z=B[j].Z;
-		P.X=B[0].X; Q.X=B[1].X;
-		P = m.TransformPosition(P); Q = m.TransformPosition(Q);
-		PDI->DrawLine(P,Q,Color,DepthPriority);
+			P.Y = B[i].Y; Q.Y = B[i].Y;
+			P.Z = B[j].Z; Q.Z = B[j].Z;
+			P.X = B[0].X; Q.X = B[1].X;
+			P = M.TransformPosition(P);
+			Q = M.TransformPosition(Q);
+			PDI->DrawLine(P, Q, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
 
-		P.Z=B[i].Z; Q.Z=B[i].Z;
-		P.X=B[j].X; Q.X=B[j].X;
-		P.Y=B[0].Y; Q.Y=B[1].Y;
-		P = m.TransformPosition(P); Q = m.TransformPosition(Q);
-		PDI->DrawLine(P,Q,Color,DepthPriority);
+			P.Z = B[i].Z; Q.Z = B[i].Z;
+			P.X = B[j].X; Q.X = B[j].X;
+			P.Y = B[0].Y; Q.Y = B[1].Y;
+			P = M.TransformPosition(P);
+			Q = M.TransformPosition(Q);
+			PDI->DrawLine(P, Q, Color, DepthPriority, Thickness, DepthBias, bScreenSpace);
+		}
 	}
 }
 
@@ -1351,6 +1387,23 @@ void DrawWireDiamond(FPrimitiveDrawInterface* PDI,const FMatrix& DiamondMatrix, 
 	PDI->DrawLine(SquarePoints[3], SquarePoints[0], InColor, DepthPriority);
 }
 
+static FLinearColor ApplySelectionIntensity(const FLinearColor& FinalColor, bool bSelected, bool bHovered, bool bUseOverlayIntensity)
+{
+	static const float BaseIntensity = 0.5f;
+	static const float SelectedIntensity = 0.5f;
+	static const float HoverIntensity = 0.15f;
+
+	const float OverlayIntensity = bUseOverlayIntensity ? GEngine->SelectionHighlightIntensity : 1.0f;
+	float ResultingIntensity = bSelected ? SelectedIntensity : (bHovered ? HoverIntensity : 0.0f);
+
+	ResultingIntensity = (ResultingIntensity * OverlayIntensity) + BaseIntensity;
+
+	FLinearColor ret = FinalColor * FMath::Pow(ResultingIntensity, 2.2f);
+	ret.A = FinalColor.A;
+
+	return ret;
+}
+
 FLinearColor GetSelectionColor(const FLinearColor& BaseColor,bool bSelected,bool bHovered, bool bUseOverlayIntensity)
 {
 	FLinearColor FinalColor = BaseColor;
@@ -1359,19 +1412,25 @@ FLinearColor GetSelectionColor(const FLinearColor& BaseColor,bool bSelected,bool
 		FinalColor = GEngine->GetSelectedMaterialColor();
 	}
 
-	static const float BaseIntensity = 0.5f;
-	static const float SelectedIntensity = 0.5f;
-	static const float HoverIntensity = 0.15f;
+	return ApplySelectionIntensity(FinalColor, bSelected, bHovered, bUseOverlayIntensity );
 
-	const float OverlayIntensity = bUseOverlayIntensity ? GEngine->SelectionHighlightIntensity : 1.0f;
-	float ResultingIntensity = bSelected ? SelectedIntensity : ( bHovered ? HoverIntensity : 0.0f );
+}
 
-	ResultingIntensity = ( ResultingIntensity * OverlayIntensity ) + BaseIntensity;
+FLinearColor GetViewSelectionColor(const FLinearColor& BaseColor, const FSceneView& View, bool bSelected, bool bHovered, bool bUseOverlayIntensity, bool bIndividuallySelected)
+{
+	FLinearColor FinalColor = BaseColor;
+#if WITH_EDITOR
+	if (View.bHasSelectedComponents && !bIndividuallySelected)
+	{
+		FinalColor = GEngine->GetSubduedSelectionOutlineColor();
+	}
+	else if( bSelected )
+#endif
+	{
+		FinalColor = GEngine->GetSelectedMaterialColor();
+	}
 
-	FLinearColor ret = FinalColor * FMath::Pow(ResultingIntensity, 2.2f);
-	ret.A = FinalColor.A;
-
-	return ret;
+	return ApplySelectionIntensity(FinalColor, bSelected, bHovered, bUseOverlayIntensity );
 }
 
 bool IsRichView(const FSceneViewFamily& ViewFamily)
@@ -1628,266 +1687,6 @@ void ApplyViewModeOverrides(
 		}
 	}
 #endif
-}
-
-/**
- * Draws a mesh, modifying the material which is used depending on the view's show flags.
- * Meshes with materials irrelevant to the pass which the mesh is being drawn for may be entirely ignored.
- *
- * @param PDI - The primitive draw interface to draw the mesh on.
- * @param Mesh - The mesh to draw.
- * @param WireframeColor - The color which is used when rendering the mesh with EngineShowFlags.Wireframe.
- * @param LevelColor - The color which is used when rendering the mesh with EngineShowFlags.LevelColoration.
- * @param PropertyColor - The color to use when rendering the mesh with EngineShowFlags.PropertyColoration.
- * @param PrimitiveInfo - The FScene information about the UPrimitiveComponent.
- * @param bSelected - True if the primitive is selected.
- * @param ExtraDrawFlags - optional flags to override the view family show flags when rendering
- * @return Number of passes rendered for the mesh
- */
-int32 DrawRichMesh(
-	FPrimitiveDrawInterface* PDI,
-	const FMeshBatch& Mesh,
-	const FLinearColor& WireframeColor,
-	const FLinearColor& LevelColor,
-	const FLinearColor& PropertyColor,
-	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-	bool bSelected,
-	bool bDrawInWireframe
-	)
-{
-	int32 PassesRendered=0;
-
-#if (UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	// Draw the mesh unmodified.
-	PassesRendered = PDI->DrawMesh( Mesh );
-#else
-
-	// If debug viewmodes are not allowed, skip all of the debug viewmode handling
-	if (!AllowDebugViewmodes())
-	{
-		return PDI->DrawMesh( Mesh );
-	}
-
-	const auto FeatureLevel = PDI->View->GetFeatureLevel();
-	const FEngineShowFlags& EngineShowFlags = PDI->View->Family->EngineShowFlags;
-
-	if(bDrawInWireframe)
-	{
-		// In wireframe mode, draw the edges of the mesh with the specified wireframe color, or
-		// with the level or property color if level or property coloration is enabled.
-		FLinearColor BaseColor( WireframeColor );
-		if (EngineShowFlags.PropertyColoration)
-		{
-			BaseColor = PropertyColor;
-		}
-		else if (EngineShowFlags.LevelColoration)
-		{
-			BaseColor = LevelColor;
-		}
-
-		if (Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->MaterialModifiesMeshPosition_RenderThread())
-		{
-			// If the material is mesh-modifying, we cannot rely on substitution
-			const FOverrideSelectionColorMaterialRenderProxy WireframeMaterialInstance(
-				Mesh.MaterialRenderProxy,
-				GetSelectionColor( BaseColor, bSelected, Mesh.MaterialRenderProxy->IsHovered(), /*bUseOverlayIntensity=*/false)
-				);
-
-			FMeshBatch ModifiedMesh = Mesh;
-			ModifiedMesh.bWireframe = true;
-			ModifiedMesh.MaterialRenderProxy = &WireframeMaterialInstance;
-			PassesRendered = PDI->DrawMesh(ModifiedMesh);
-		}
-		else
-		{
-			const FColoredMaterialRenderProxy WireframeMaterialInstance(
-				GEngine->WireframeMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
-				GetSelectionColor( BaseColor, bSelected, Mesh.MaterialRenderProxy->IsHovered(), /*bUseOverlayIntensity=*/false)
-				);
-			FMeshBatch ModifiedMesh = Mesh;
-			ModifiedMesh.bWireframe = true;
-			ModifiedMesh.MaterialRenderProxy = &WireframeMaterialInstance;
-			PassesRendered = PDI->DrawMesh(ModifiedMesh);
-		}
-	}
-	else if(PDI->View->Family->EngineShowFlags.LightComplexity)
-	{
-		// Don't render unlit translucency when in 'light complexity' viewmode.
-		if (!Mesh.IsTranslucent(FeatureLevel) || Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetShadingModel() != MSM_Unlit)
-		{
-			// Count the number of lights interacting with this primitive.
-			int32 NumDynamicLights = GetRendererModule().GetNumDynamicLightsAffectingPrimitive(PrimitiveSceneProxy->GetPrimitiveSceneInfo(),Mesh.LCI);
-
-			// Get a colored material to represent the number of lights.
-			// Some component types (BSP) have multiple FLightCacheInterface's per component, so make sure the whole component represents the number of dominant lights affecting
-			NumDynamicLights = FMath::Min( NumDynamicLights, GEngine->LightComplexityColors.Num() - 1 );
-			const FColor Color = GEngine->LightComplexityColors[NumDynamicLights];
-
-			FColoredMaterialRenderProxy LightComplexityMaterialInstance(
-				GEngine->LevelColorationUnlitMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
-				Color
-				);
-
-			// Draw the mesh colored by light complexity.
-			FMeshBatch ModifiedMesh = Mesh;
-			ModifiedMesh.MaterialRenderProxy = &LightComplexityMaterialInstance;
-			PassesRendered = PDI->DrawMesh(ModifiedMesh);
-		}
-	}
-	else if(!EngineShowFlags.Materials && !PDI->View->bForceShowMaterials)
-	{
-		// Don't render unlit translucency when in 'lighting only' viewmode.
-		if (Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetShadingModel() != MSM_Unlit
-			// Don't render translucency in 'lighting only', since the viewmode works by overriding with an opaque material
-			// This would cause a mismatch of the material's blend mode with the primitive's view relevance,
-			// And make faint particles block the view
-			&& !IsTranslucentBlendMode(Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->GetBlendMode()))
-		{
-			// When materials aren't shown, apply the same basic material to all meshes.
-			FMeshBatch ModifiedMesh = Mesh;
-
-			bool bTextureMapped = false;
-			FVector2D LMResolution;
-
-			if (EngineShowFlags.LightMapDensity && Mesh.LCI)
-			{
-				auto Interaction = Mesh.LCI->GetLightMapInteraction(FeatureLevel);
-				auto Texture = Interaction.GetTexture(AllowHighQualityLightmaps(FeatureLevel));
-
-				if (Interaction.GetType() == LMIT_Texture && Texture)
-				{
-					LMResolution.X = Texture->GetSizeX();
-					LMResolution.Y = Texture->GetSizeY();
-					bTextureMapped = true;
-				}
-			}
-
-			if (bTextureMapped == false)
-			{
-				FMaterialRenderProxy* RenderProxy = GEngine->LevelColorationLitMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(),Mesh.MaterialRenderProxy->IsHovered());
-				const FColoredMaterialRenderProxy LightingOnlyMaterialInstance(
-					RenderProxy,
-					GEngine->LightingOnlyBrightness
-					);
-
-				ModifiedMesh.MaterialRenderProxy = &LightingOnlyMaterialInstance;
-				PassesRendered = PDI->DrawMesh(ModifiedMesh);
-			}
-			else
-			{
-				FMaterialRenderProxy* RenderProxy = GEngine->LightingTexelDensityMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(),Mesh.MaterialRenderProxy->IsHovered());
-				const FLightingDensityMaterialRenderProxy LightingDensityMaterialInstance(
-					RenderProxy,
-					GEngine->LightingOnlyBrightness,
-					LMResolution
-					);
-
-				ModifiedMesh.MaterialRenderProxy = &LightingDensityMaterialInstance;
-				PassesRendered = PDI->DrawMesh(ModifiedMesh);
-			}
-		}
-	}
-	else
-	{	
-		if(EngineShowFlags.PropertyColoration)
-		{
-			// In property coloration mode, override the mesh's material with a color that was chosen based on property value.
-			const UMaterial* PropertyColorationMaterial = EngineShowFlags.Lighting ? GEngine->LevelColorationLitMaterial : GEngine->LevelColorationUnlitMaterial;
-
-			const FColoredMaterialRenderProxy PropertyColorationMaterialInstance(
-				PropertyColorationMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
-				GetSelectionColor(PropertyColor,bSelected,Mesh.MaterialRenderProxy->IsHovered())
-				);
-			FMeshBatch ModifiedMesh = Mesh;
-			ModifiedMesh.MaterialRenderProxy = &PropertyColorationMaterialInstance;
-			PassesRendered = PDI->DrawMesh(ModifiedMesh);
-		}
-		else if (EngineShowFlags.LevelColoration)
-		{
-			const UMaterial* LevelColorationMaterial = EngineShowFlags.Lighting ? GEngine->LevelColorationLitMaterial : GEngine->LevelColorationUnlitMaterial;
-			// Draw the mesh with level coloration.
-			const FColoredMaterialRenderProxy LevelColorationMaterialInstance(
-				LevelColorationMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
-				GetSelectionColor(LevelColor,bSelected,Mesh.MaterialRenderProxy->IsHovered())
-				);
-			FMeshBatch ModifiedMesh = Mesh;
-			ModifiedMesh.MaterialRenderProxy = &LevelColorationMaterialInstance;
-			PassesRendered = PDI->DrawMesh(ModifiedMesh);
-		}
-		else if (EngineShowFlags.BSPSplit
-			&& PrimitiveSceneProxy->ShowInBSPSplitViewmode())
-		{
-			// Determine unique color for model component.
-			FLinearColor BSPSplitColor;
-			FRandomStream RandomStream(GetTypeHash(PrimitiveSceneProxy->GetPrimitiveComponentId().Value));
-			BSPSplitColor.R = RandomStream.GetFraction();
-			BSPSplitColor.G = RandomStream.GetFraction();
-			BSPSplitColor.B = RandomStream.GetFraction();
-			BSPSplitColor.A = 1.0f;
-
-			// Piggy back on the level coloration material.
-			const UMaterial* BSPSplitMaterial = EngineShowFlags.Lighting ? GEngine->LevelColorationLitMaterial : GEngine->LevelColorationUnlitMaterial;
-			
-			// Draw BSP mesh with unique color for each model component.
-			const FColoredMaterialRenderProxy BSPSplitMaterialInstance(
-				BSPSplitMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
-				GetSelectionColor(BSPSplitColor,bSelected,Mesh.MaterialRenderProxy->IsHovered())
-				);
-			FMeshBatch ModifiedMesh = Mesh;
-			ModifiedMesh.MaterialRenderProxy = &BSPSplitMaterialInstance;
-			PassesRendered = PDI->DrawMesh(ModifiedMesh);
-		}
-		else if (PrimitiveSceneProxy->HasStaticLighting() && !PrimitiveSceneProxy->HasValidSettingsForStaticLighting())
-		{
-			const FColoredMaterialRenderProxy InvalidSettingsMaterialInstance(
-				GEngine->InvalidLightmapSettingsMaterial->GetRenderProxy(bSelected),
-				GetSelectionColor(LevelColor,bSelected,Mesh.MaterialRenderProxy->IsHovered())
-				);
-			FMeshBatch ModifiedMesh = Mesh;
-			ModifiedMesh.MaterialRenderProxy = &InvalidSettingsMaterialInstance;
-			PassesRendered = PDI->DrawMesh(ModifiedMesh);
-		}
-		else 
-		{
-			// Draw the mesh unmodified.
-			PassesRendered = PDI->DrawMesh( Mesh );
-		}
-
-		//Draw a wireframe overlay last, if requested
-		if(EngineShowFlags.MeshEdges)
-		{
-			// Draw the mesh's edges in blue, on top of the base geometry.
-			if (Mesh.MaterialRenderProxy->GetMaterial(FeatureLevel)->MaterialModifiesMeshPosition_RenderThread())
-			{
-				const FSceneView* View = PDI->View;
-
-				// If the material is mesh-modifying, we cannot rely on substitution
-				const FOverrideSelectionColorMaterialRenderProxy WireframeMaterialInstance(
-					Mesh.MaterialRenderProxy,
-					WireframeColor
-					);
-
-				FMeshBatch ModifiedMesh = Mesh;
-				ModifiedMesh.bWireframe = true;
-				ModifiedMesh.MaterialRenderProxy = &WireframeMaterialInstance;
-				PassesRendered = PDI->DrawMesh(ModifiedMesh);
-			}
-			else
-			{
-				FColoredMaterialRenderProxy WireframeMaterialInstance(
-					GEngine->WireframeMaterial->GetRenderProxy(Mesh.MaterialRenderProxy->IsSelected(), Mesh.MaterialRenderProxy->IsHovered()),
-					WireframeColor
-					);
-				FMeshBatch ModifiedMesh = Mesh;
-				ModifiedMesh.bWireframe = true;
-				ModifiedMesh.MaterialRenderProxy = &WireframeMaterialInstance;
-				PassesRendered = PDI->DrawMesh(ModifiedMesh);
-			}
-		}
-	}
-#endif
-
-	return PassesRendered;
 }
 
 void ClampUVs(FVector2D* UVs, int32 NumUVs)

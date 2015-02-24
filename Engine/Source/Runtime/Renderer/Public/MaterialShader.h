@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialShader.h: Shader base classes
@@ -34,12 +34,16 @@ public:
 	int32 NumScalarExpressions;
 	int32 Num2DTextureExpressions;
 	int32 NumCubeTextureExpressions;
+	int32 NumPerFrameScalarExpressions;
+	int32 NumPerFrameVectorExpressions;
 
 	FDebugUniformExpressionSet()
 		: NumVectorExpressions(0)
 		, NumScalarExpressions(0)
 		, Num2DTextureExpressions(0)
 		, NumCubeTextureExpressions(0)
+		, NumPerFrameScalarExpressions(0)
+		, NumPerFrameVectorExpressions(0)
 	{
 	}
 
@@ -55,6 +59,8 @@ public:
 		NumScalarExpressions = InUniformExpressionSet.UniformScalarExpressions.Num();
 		Num2DTextureExpressions = InUniformExpressionSet.Uniform2DTextureExpressions.Num();
 		NumCubeTextureExpressions = InUniformExpressionSet.UniformCubeTextureExpressions.Num();
+		NumPerFrameScalarExpressions = InUniformExpressionSet.PerFrameUniformScalarExpressions.Num();
+		NumPerFrameVectorExpressions = InUniformExpressionSet.PerFrameUniformVectorExpressions.Num();
 	}
 
 	/** Returns true if the number of uniform expressions matches those with which the debug set was initialized. */
@@ -63,7 +69,9 @@ public:
 		return NumVectorExpressions == InUniformExpressionSet.UniformVectorExpressions.Num()
 			&& NumScalarExpressions == InUniformExpressionSet.UniformScalarExpressions.Num()
 			&& Num2DTextureExpressions == InUniformExpressionSet.Uniform2DTextureExpressions.Num()
-			&& NumCubeTextureExpressions == InUniformExpressionSet.UniformCubeTextureExpressions.Num();
+			&& NumCubeTextureExpressions == InUniformExpressionSet.UniformCubeTextureExpressions.Num()
+			&& NumPerFrameScalarExpressions == InUniformExpressionSet.PerFrameUniformScalarExpressions.Num()
+			&& NumPerFrameVectorExpressions == InUniformExpressionSet.PerFrameUniformVectorExpressions.Num();
 	}
 };
 
@@ -72,6 +80,8 @@ inline FArchive& operator<<(FArchive& Ar, FDebugUniformExpressionSet& DebugExpre
 {
 	Ar << DebugExpressionSet.NumVectorExpressions;
 	Ar << DebugExpressionSet.NumScalarExpressions;
+	Ar << DebugExpressionSet.NumPerFrameScalarExpressions;
+	Ar << DebugExpressionSet.NumPerFrameVectorExpressions;
 	Ar << DebugExpressionSet.Num2DTextureExpressions;
 	Ar << DebugExpressionSet.NumCubeTextureExpressions;
 	return Ar;
@@ -128,6 +138,8 @@ private:
 
 	FShaderUniformBufferParameter MaterialUniformBuffer;
 	TArray<FShaderUniformBufferParameter> ParameterCollectionUniformBuffers;
+	TArray<FShaderParameter> PerFrameScalarExpressions;
+	TArray<FShaderParameter> PerFrameVectorExpressions;
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderResourceParameter LightAttenuation;
 	FShaderResourceParameter LightAttenuationSampler;

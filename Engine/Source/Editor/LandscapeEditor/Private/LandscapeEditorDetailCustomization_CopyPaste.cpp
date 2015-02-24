@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "LandscapeEdMode.h"
@@ -38,7 +38,7 @@ void FLandscapeEditorDetailCustomization_CopyPaste::CustomizeDetails(IDetailLayo
 
 	IDetailCategoryBuilder& ToolsCategory = DetailBuilder.EditCategory("Tool Settings");
 
-	ToolsCategory.AddCustomRow("Copy Data to Gizmo")
+	ToolsCategory.AddCustomRow(LOCTEXT("CopyToGizmo", "Copy Data to Gizmo"))
 	[
 		SNew(SButton)
 		.ToolTipText(LOCTEXT("CopyToGizmo.Tooltip", "Copies the data within the gizmo bounds to the gizmo taking into account any masking from selected regions."))
@@ -47,7 +47,7 @@ void FLandscapeEditorDetailCustomization_CopyPaste::CustomizeDetails(IDetailLayo
 		.OnClicked_Static(&FLandscapeEditorDetailCustomization_CopyPaste::OnCopyToGizmoButtonClicked)
 	];
 
-	ToolsCategory.AddCustomRow("Fit Gizmo to Selected Regions")
+	ToolsCategory.AddCustomRow(LOCTEXT("FitGizmoToSelection", "Fit Gizmo to Selected Regions"))
 	[
 		SNew(SButton)
 		.ToolTipText(LOCTEXT("FitGizmoToSelection.Tooltip", "Positions and resizes the gizmo so that it completely encompasses all region selections."))
@@ -56,7 +56,7 @@ void FLandscapeEditorDetailCustomization_CopyPaste::CustomizeDetails(IDetailLayo
 		.OnClicked_Static(&FLandscapeEditorDetailCustomization_CopyPaste::OnFitGizmoToSelectionButtonClicked)
 	];
 
-	ToolsCategory.AddCustomRow("Fit Height Values to Gizmo Size")
+	ToolsCategory.AddCustomRow(LOCTEXT("FitHeightsToGizmo", "Fit Height Values to Gizmo Size"))
 	[
 		SNew(SButton)
 		.ToolTipText(LOCTEXT("FitHeightsToGizmo.Tooltip", "Scales the data in the gizmo to fit the gizmo's Z size"))
@@ -65,7 +65,7 @@ void FLandscapeEditorDetailCustomization_CopyPaste::CustomizeDetails(IDetailLayo
 		.OnClicked_Static(&FLandscapeEditorDetailCustomization_CopyPaste::OnFitHeightsToGizmoButtonClicked)
 	];
 
-	ToolsCategory.AddCustomRow("Clear Gizmo Data")
+	ToolsCategory.AddCustomRow(LOCTEXT("ClearGizmoData", "Clear Gizmo Data"))
 	[
 		SNew(SButton)
 		.ToolTipText(LOCTEXT("ClearGizmoData.Tooltip", "Clears the gizmo of any copied data."))
@@ -75,7 +75,7 @@ void FLandscapeEditorDetailCustomization_CopyPaste::CustomizeDetails(IDetailLayo
 	];
 
 
-	IDetailGroup& GizmoImportExportGroup = ToolsCategory.AddGroup("Gizmo Import / Export", LOCTEXT("ImportExportTitle", "Gizmo Import / Export").ToString(), true);
+	IDetailGroup& GizmoImportExportGroup = ToolsCategory.AddGroup("Gizmo Import / Export", LOCTEXT("ImportExportTitle", "Gizmo Import / Export"), true);
 
 	TSharedRef<IPropertyHandle> PropertyHandle_Heightmap = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULandscapeEditorObject, GizmoHeightmapFilenameString));
 	DetailBuilder.HideProperty(PropertyHandle_Heightmap);
@@ -141,7 +141,7 @@ void FLandscapeEditorDetailCustomization_CopyPaste::CustomizeDetails(IDetailLayo
 		[
 			SNew(STextBlock)
 			.Font(DetailBuilder.GetDetailFont())
-			.Text(FString().AppendChar(0xD7)) // Multiply sign
+			.Text(FText::FromString(FString().AppendChar(0xD7))) // Multiply sign
 		]
 		+ SHorizontalBox::Slot()
 		.FillWidth(1)
@@ -166,7 +166,7 @@ void FLandscapeEditorDetailCustomization_CopyPaste::CustomizeDetails(IDetailLayo
 	GizmoImportExportGroup.AddPropertyRow(PropertyHandle_ImportLayers);
 
 	GizmoImportExportGroup.AddWidgetRow()
-	.FilterString("")
+	.FilterString(LOCTEXT("GizmoImportExport", "ImportExport"))
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -355,6 +355,10 @@ FReply FLandscapeEditorDetailCustomization_CopyPaste::OnGizmoImportButtonClicked
 			}
 
 			Gizmo->Import(LandscapeEdMode->UISettings->GizmoImportSize.X, LandscapeEdMode->UISettings->GizmoImportSize.Y, (uint16*)Data.GetData(), LayerInfos, LayerDataPtrs.Num() ? LayerDataPtrs.GetData() : NULL);
+
+			// Make sure gizmo actor is selected
+			GEditor->SelectNone(false, true);
+			GEditor->SelectActor(Gizmo, true, false, true);
 		}
 	}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -50,7 +50,7 @@ public:
 	static FString RemoveWhitespaces(const FString& Source);
 
 	/** Shell parameters list: " TypeName ( A a, B b ) " -> "A a, B b" */
-	static bool GetParameters(const FString& Source, const FString& TypeName, FString &OutForm);
+	static bool GetParameters(const FString& Source, const FString& TypeName, FString& OutForm);
 
 	/** returns if given strings are equal, ignores initial and final white spaces in Source */
 	static bool Is(const FString& Source, const TCHAR* CompareStr);
@@ -59,7 +59,7 @@ public:
 	 * source forms:	TypeName( TEXT ("ABC") ), TEXT("ABC"), TypeName("ABC"), "ABC"
 	 * output form:		ABC
 	 */
-	static bool StringFromCppString(const FString& Source, const FString& TypeName, FString &OutForm);
+	static bool StringFromCppString(const FString& Source, const FString& TypeName, FString& OutForm);
 
 	/*
 	 *	Following functions accept c++ style representations of numbers.

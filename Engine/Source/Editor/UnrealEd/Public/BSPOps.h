@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __BSPOPS_H__
@@ -51,8 +51,6 @@ public:
 	 */
 	static void RotateBrushVerts(ABrush* Brush, const FRotator& Rotation, bool bClearComponents);
 
-	/** Called when an ABrush is registered */
-	static void HandleBrushRegistered(ABrush* Brush);
 	/** Called when an AVolume shape is changed*/
 	static void HandleVolumeShapeChanged(AVolume& Volume);
 

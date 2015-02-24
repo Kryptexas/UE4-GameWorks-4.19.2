@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AITestSuitePrivatePCH.h"
 #include "BehaviorTree/TestBTDecorator_CantExecute.h"
@@ -12,7 +12,7 @@ UTestBTDecorator_CantExecute::UTestBTDecorator_CantExecute(const FObjectInitiali
 	bAllowAbortChildNodes = false;
 }
 
-bool UTestBTDecorator_CantExecute::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+bool UTestBTDecorator_CantExecute::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
 	return false;
 }

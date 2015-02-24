@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InterpolationDraw.cpp: Code for supporting interpolation of properties in-game.
@@ -119,10 +119,12 @@ FColor UInterpTrack::GetKeyframeColor(int32 KeyIndex) const
 	return KeyNormalColor;
 }
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrack::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 /*-----------------------------------------------------------------------------
   UInterpTrackMove
@@ -548,10 +550,12 @@ void UInterpTrackMove::Render3DTrack(UInterpTrackInst* TrInst,
 #endif // WITH_EDITORONLY_DATA
 }
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackMove::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackFloatBase
@@ -582,29 +586,35 @@ FColor UInterpTrackFloatBase::GetKeyframeColor(int32 KeyIndex) const
 	UInterpTrackFloatProp
 -----------------------------------------------------------------------------*/
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackFloatProp::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackBoolProp
 -----------------------------------------------------------------------------*/
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackBoolProp::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackToggle
 -----------------------------------------------------------------------------*/
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackToggle::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 void UInterpTrackToggle::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const FInterpTrackDrawParams& Params )
 {
@@ -796,29 +806,35 @@ FColor UInterpTrackLinearColorBase::GetKeyframeColor(int32 KeyIndex) const
 	UInterpTrackVectorProp
 -----------------------------------------------------------------------------*/
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackVectorProp::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackColorProp
 -----------------------------------------------------------------------------*/
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackColorProp::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackLinearColorProp
 -----------------------------------------------------------------------------*/
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackLinearColorProp::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 
 /*-----------------------------------------------------------------------------
@@ -856,10 +872,12 @@ void UInterpTrackEvent::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const F
 #endif // WITH_EDITORONLY_DATA
 }
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackEvent::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackDirector
@@ -940,10 +958,12 @@ void UInterpTrackDirector::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, cons
 #endif // WITH_EDITORONLY_DATA
 }
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackDirector::GetTrackIcon() const
 {
 	return TrackIcon; 
 }
+#endif // WITH_EDITORONLY_DATA
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackAnimControl
@@ -1329,10 +1349,12 @@ void UInterpTrackAnimControl::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, c
 #endif // WITH_EDITORONLY_DATA
 }
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackAnimControl::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackSound
@@ -1449,58 +1471,70 @@ void UInterpTrackSound::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const F
 #endif // WITH_EDITORONLY_DATA
 }
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackSound::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackFade
 -----------------------------------------------------------------------------*/
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackFade::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackSlomo
 -----------------------------------------------------------------------------*/
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackSlomo::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackColorScale
 -----------------------------------------------------------------------------*/
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackColorScale::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackAudioMaster
 -----------------------------------------------------------------------------*/
 
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackAudioMaster::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 
 
 /*-----------------------------------------------------------------------------
 	UInterpTrackVisibility
 -----------------------------------------------------------------------------*/
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackVisibility::GetTrackIcon() const
 {
 	return TrackIcon;
 }
+#endif // WITH_EDITORONLY_DATA
 
 void UInterpTrackVisibility::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, const FInterpTrackDrawParams& Params )
 {
@@ -1635,10 +1669,12 @@ void UInterpTrackVisibility::DrawTrack( FCanvas* Canvas, UInterpGroup* Group, co
 /*-----------------------------------------------------------------------------
 	UInterpTrackParticleReplay
 -----------------------------------------------------------------------------*/
+#if WITH_EDITORONLY_DATA
 UTexture2D* UInterpTrackParticleReplay::GetTrackIcon() const
 {
 	return (UTexture2D*)StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_ParticleReplay.MAT_Groups_ParticleReplay"), NULL, LOAD_None, NULL );
 }
+#endif // WITH_EDITORONLY_DATA
 
 
 void UInterpTrackParticleReplay::BeginDrag(FInterpEdInputData &InputData)

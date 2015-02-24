@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MeshPaintPrivatePCH.h"
 #include "MeshPaintEdMode.h"
@@ -10,7 +10,9 @@
 #include "DesktopPlatformModule.h"
 #include "ISourceControlModule.h"
 #include "SColorPicker.h"
-
+#include "Engine/StaticMeshActor.h"
+#include "Engine/Selection.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "MeshPaint_Mode"
 
@@ -233,18 +235,18 @@ public:
 
 private:
 
-	void OnImportColorChannelChanged(ESlateCheckBoxState::Type InNewValue, FImportVertexTextureHelper::ChannelsMask InColorChannelMask)
+	void OnImportColorChannelChanged(ECheckBoxState InNewValue, FImportVertexTextureHelper::ChannelsMask InColorChannelMask)
 	{
 		// Toggle the appropriate bit in the import color mask
 		ImportColorMask ^= InColorChannelMask;
 	}
 
-	ESlateCheckBoxState::Type IsRadioChecked( FImportVertexTextureHelper::ChannelsMask InColorChannelMask ) const
+	ECheckBoxState IsRadioChecked( FImportVertexTextureHelper::ChannelsMask InColorChannelMask ) const
 	{
 		// Bitwise check to see if the specified color channel should be checked
 		return (ImportColorMask & InColorChannelMask)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
 	FReply FindTGAButtonClicked()
@@ -297,9 +299,9 @@ private:
 		UVValue = InCount;
 	}
 
-	FString GetUVSelectionString() const
+	FText GetUVSelectionString() const
 	{
-		return FString::Printf(TEXT("%d"), UVValue);
+		return FText::AsNumber(UVValue);
 	}
 
 	void OnChangeLOD(int32 InCount)
@@ -307,9 +309,9 @@ private:
 		LODValue = InCount;
 	}
 
-	FString GetLODSelectionString() const
+	FText GetLODSelectionString() const
 	{
-		return FString::Printf(TEXT("%d"), LODValue);
+		return FText::AsNumber(LODValue);
 	}
 
 	TSharedRef<SWidget> GetUVMenu()
@@ -408,16 +410,16 @@ private:
 			];
 	}
 
-	ESlateCheckBoxState::Type IsRadioChecked( EMeshPaintResource::Type ButtonId ) const
+	ECheckBoxState IsRadioChecked( EMeshPaintResource::Type ButtonId ) const
 	{
 		return (CurrentChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
-	void OnRadioChanged( ESlateCheckBoxState::Type NewRadioState, EMeshPaintResource::Type RadioThatChanged )
+	void OnRadioChanged( ECheckBoxState NewRadioState, EMeshPaintResource::Type RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			CurrentChoice = RadioThatChanged;
 
@@ -489,16 +491,16 @@ private:
 			];
 	}
 
-	ESlateCheckBoxState::Type IsRadioChecked( EMeshVertexPaintTarget::Type ButtonId ) const
+	ECheckBoxState IsRadioChecked( EMeshVertexPaintTarget::Type ButtonId ) const
 	{
 		return (CurrentChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
-	void OnRadioChanged( ESlateCheckBoxState::Type NewRadioState, EMeshVertexPaintTarget::Type RadioThatChanged )
+	void OnRadioChanged( ECheckBoxState NewRadioState, EMeshVertexPaintTarget::Type RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			CurrentChoice = RadioThatChanged;
 
@@ -571,16 +573,16 @@ private:
 			];
 	}
 
-	ESlateCheckBoxState::Type IsRadioChecked( EMeshPaintMode::Type ButtonId ) const
+	ECheckBoxState IsRadioChecked( EMeshPaintMode::Type ButtonId ) const
 	{
 		return (CurrentChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
-	void OnRadioChanged( ESlateCheckBoxState::Type NewRadioState, EMeshPaintMode::Type RadioThatChanged )
+	void OnRadioChanged( ECheckBoxState NewRadioState, EMeshPaintMode::Type RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			CurrentChoice = RadioThatChanged;
 
@@ -678,16 +680,16 @@ private:
 			];
 	}
 
-	ESlateCheckBoxState::Type IsRadioChecked( EMeshPaintColorViewMode::Type ButtonId ) const
+	ECheckBoxState IsRadioChecked( EMeshPaintColorViewMode::Type ButtonId ) const
 	{
 		return (CurrentChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
-	void OnRadioChanged( ESlateCheckBoxState::Type NewRadioState, EMeshPaintColorViewMode::Type RadioThatChanged )
+	void OnRadioChanged( ECheckBoxState NewRadioState, EMeshPaintColorViewMode::Type RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			CurrentChoice = RadioThatChanged;
 
@@ -859,16 +861,16 @@ private:
 			];
 	}
 
-	ESlateCheckBoxState::Type IsRadioChecked( EMeshPaintColorSet::Type ButtonId ) const
+	ECheckBoxState IsRadioChecked( EMeshPaintColorSet::Type ButtonId ) const
 	{
 		return (CurrentChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
-	void OnRadioChanged( ESlateCheckBoxState::Type NewRadioState, EMeshPaintColorSet::Type RadioThatChanged )
+	void OnRadioChanged( ECheckBoxState NewRadioState, EMeshPaintColorSet::Type RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			CurrentChoice = RadioThatChanged;
 
@@ -956,7 +958,7 @@ public:
 					+SVerticalBox::Slot()
 					.AutoHeight()
 					[
-						CreateRadioButton( TEXT("1"), 0 )
+						CreateRadioButton( FText::FromString(TEXT("1")), 0 )
 					]
 				]
 				+SHorizontalBox::Slot()
@@ -968,7 +970,7 @@ public:
 					+SVerticalBox::Slot()
 					.AutoHeight()
 					[
-						CreateRadioButton( TEXT("2"), 1 )
+						CreateRadioButton( FText::FromString(TEXT("2")), 1 )
 					]
 					
 				]
@@ -981,7 +983,7 @@ public:
 					+SVerticalBox::Slot()
 					.AutoHeight()
 					[
-						CreateRadioButton( TEXT("3"), 2 )
+						CreateRadioButton( FText::FromString(TEXT("3")), 2 )
 					]
 				]
 				+SHorizontalBox::Slot()
@@ -993,7 +995,7 @@ public:
 					+SVerticalBox::Slot()
 					.AutoHeight()
 					[
-						CreateRadioButton( TEXT("4"), 3 )
+						CreateRadioButton( FText::FromString(TEXT("4")), 3 )
 					]
 					
 				]
@@ -1006,7 +1008,7 @@ public:
 					+SVerticalBox::Slot()
 					.AutoHeight()
 					[
-						CreateRadioButton( TEXT("5"), 4 )
+						CreateRadioButton( FText::FromString(TEXT("5")), 4 )
 					]
 				]
 			]
@@ -1015,7 +1017,7 @@ public:
 
 private:
 
-	TSharedRef<SWidget> CreateRadioButton( const FString& RadioText, int32 RadioButtonChoice )
+	TSharedRef<SWidget> CreateRadioButton( const FText& RadioText, int32 RadioButtonChoice )
 	{
 		return
 			SNew(SCheckBox)
@@ -1028,16 +1030,16 @@ private:
 			];
 	}
 
-	ESlateCheckBoxState::Type IsRadioChecked( int32 ButtonId ) const
+	ECheckBoxState IsRadioChecked( int32 ButtonId ) const
 	{
 		return (CurrentChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
-	void OnRadioChanged( ESlateCheckBoxState::Type NewRadioState, int32 RadioThatChanged )
+	void OnRadioChanged( ECheckBoxState NewRadioState, int32 RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			if (OnSelectionChanged.IsBound())
 			{
@@ -2157,9 +2159,9 @@ int32 SMeshPaint::GetEraseWeightIndex() const
 	return FMeshPaintSettings::Get().EraseWeightIndex;
 }
 
-FString SMeshPaint::GetInstanceVertexColorsText() const 
+FText SMeshPaint::GetInstanceVertexColorsText() const 
 {
-	FString Text = LOCTEXT("MeshPaint_InstVertexColorsStartText", "None").ToString();
+	FText Text = LOCTEXT("MeshPaint_InstVertexColorsStartText", "None");
 	int32 NumBaseVertexColorBytes = 0;
 	int32 NumInstanceVertexColorBytes = 0;
 	bool bHasInstanceMaterialAndTexture = false;
@@ -2168,7 +2170,10 @@ FString SMeshPaint::GetInstanceVertexColorsText() const
 	if( NumInstanceVertexColorBytes > 0 )
 	{
 		float VertexKiloBytes = NumInstanceVertexColorBytes / 1000.0f;
-		Text = FString::Printf( TEXT( "%.3f k" ), VertexKiloBytes );
+		static const FNumberFormattingOptions FormatOptions = FNumberFormattingOptions()
+			.SetMinimumFractionalDigits(3)
+			.SetMaximumFractionalDigits(3);
+		Text = FText::Format( LOCTEXT("InstanceVertexColorsKiloBytesFmt", "{0} k"), FText::AsNumber(VertexKiloBytes, &FormatOptions) );
 	}
 	return Text;
 }
@@ -2218,40 +2223,40 @@ void SMeshPaint::OnFlowAmountChanged(float InFlowAmount)
 	FMeshPaintSettings::Get().FlowAmount = InFlowAmount;
 }
 
-ESlateCheckBoxState::Type SMeshPaint::IsIgnoreBackfaceChecked() const
+ECheckBoxState SMeshPaint::IsIgnoreBackfaceChecked() const
 {
 	return (FMeshPaintSettings::Get().bOnlyFrontFacingTriangles)
-		? ESlateCheckBoxState::Checked
-		: ESlateCheckBoxState::Unchecked;
+		? ECheckBoxState::Checked
+		: ECheckBoxState::Unchecked;
 }
 
-void SMeshPaint::OnIgnoreBackfaceChanged(ESlateCheckBoxState::Type InCheckState)
+void SMeshPaint::OnIgnoreBackfaceChanged(ECheckBoxState InCheckState)
 {
-	FMeshPaintSettings::Get().bOnlyFrontFacingTriangles = (InCheckState == ESlateCheckBoxState::Checked);
+	FMeshPaintSettings::Get().bOnlyFrontFacingTriangles = (InCheckState == ECheckBoxState::Checked);
 }
 
-ESlateCheckBoxState::Type SMeshPaint::IsSeamPaintingChecked() const
+ECheckBoxState SMeshPaint::IsSeamPaintingChecked() const
 {
 	return (FMeshPaintSettings::Get().bEnableSeamPainting)
-		? ESlateCheckBoxState::Checked
-		: ESlateCheckBoxState::Unchecked;
+		? ECheckBoxState::Checked
+		: ECheckBoxState::Unchecked;
 }
 
-void SMeshPaint::OnSeamPaintingChanged(ESlateCheckBoxState::Type InCheckState)
+void SMeshPaint::OnSeamPaintingChanged(ECheckBoxState InCheckState)
 {
-	FMeshPaintSettings::Get().bEnableSeamPainting = (InCheckState == ESlateCheckBoxState::Checked);
+	FMeshPaintSettings::Get().bEnableSeamPainting = (InCheckState == ECheckBoxState::Checked);
 }
 
-ESlateCheckBoxState::Type SMeshPaint::IsEnableFlowChecked() const
+ECheckBoxState SMeshPaint::IsEnableFlowChecked() const
 {
 	return (FMeshPaintSettings::Get().bEnableFlow)
-		? ESlateCheckBoxState::Checked
-		: ESlateCheckBoxState::Unchecked;
+		? ECheckBoxState::Checked
+		: ECheckBoxState::Unchecked;
 }
 
-void SMeshPaint::OnEnableFlowChanged(ESlateCheckBoxState::Type InCheckState)
+void SMeshPaint::OnEnableFlowChanged(ECheckBoxState InCheckState)
 {
-	FMeshPaintSettings::Get().bEnableFlow = (InCheckState == ESlateCheckBoxState::Checked);
+	FMeshPaintSettings::Get().bEnableFlow = (InCheckState == ECheckBoxState::Checked);
 }
 
 void SMeshPaint::OnEraseWeightChanged(int32 InWeightIndex)
@@ -2265,7 +2270,7 @@ void SMeshPaint::OnPaintWeightChanged(int32 InWeightIndex)
 }
 
 
-ESlateCheckBoxState::Type SMeshPaint::IsWriteColorChannelChecked(EMeshPaintWriteColorChannels::Type CheckBoxInfo) const
+ECheckBoxState SMeshPaint::IsWriteColorChannelChecked(EMeshPaintWriteColorChannels::Type CheckBoxInfo) const
 {
 	const bool bIsRedAndChecked = ( CheckBoxInfo == EMeshPaintWriteColorChannels::Red && FMeshPaintSettings::Get().bWriteRed );
 	const bool bIsGreenAndChecked = ( CheckBoxInfo == EMeshPaintWriteColorChannels::Green && FMeshPaintSettings::Get().bWriteGreen );
@@ -2273,12 +2278,12 @@ ESlateCheckBoxState::Type SMeshPaint::IsWriteColorChannelChecked(EMeshPaintWrite
 	const bool bIsAlphaAndChecked = (CheckBoxInfo == EMeshPaintWriteColorChannels::Alpha && FMeshPaintSettings::Get().bWriteAlpha);
 
 	const bool bIsChecked = ( bIsRedAndChecked || bIsGreenAndChecked || bIsBlueAndChecked || bIsAlphaAndChecked );
-	return bIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SMeshPaint::OnWriteColorChannelChanged(ESlateCheckBoxState::Type InNewValue, EMeshPaintWriteColorChannels::Type CheckBoxInfo)
+void SMeshPaint::OnWriteColorChannelChanged(ECheckBoxState InNewValue, EMeshPaintWriteColorChannels::Type CheckBoxInfo)
 {
-	bool bIsCheckedState = (InNewValue == ESlateCheckBoxState::Checked);
+	bool bIsCheckedState = (InNewValue == ECheckBoxState::Checked);
 	if(CheckBoxInfo == EMeshPaintWriteColorChannels::Red)
 	{
 		FMeshPaintSettings::Get().bWriteRed = bIsCheckedState;
@@ -2676,23 +2681,23 @@ TSharedRef<SWidget> SMeshPaint::GetTextureTargetWidget( UTexture2D* TextureData 
 		];
 }
 
-FString SMeshPaint::GetCurrentTextureTargetText( UTexture2D* TextureData, int index ) const
+FText SMeshPaint::GetCurrentTextureTargetText( UTexture2D* TextureData, int index ) const
 {
 	UTexture2D* Tex = TextureData != NULL ? TextureData :  MeshPaintEditMode->GetSelectedTexture();
 
 	if( Tex == NULL ) 
 	{
-		return TEXT("");
+		return FText::GetEmpty();
 	}
 
 	switch ( index )
 	{
 		case 0:	
-			return Tex->GetName();
+			return FText::FromString(Tex->GetName());
 		case 1:	
-			return Tex->GetDesc();
+			return FText::FromString(Tex->GetDesc());
 		default:
-			return TEXT("");
+			return FText::GetEmpty();
 	}
 }
 
@@ -2702,10 +2707,10 @@ const FSlateBrush* SMeshPaint::GetCurrentTextureTargetImage(UTexture2D* TextureD
 	return Tex != NULL ? new FSlateDynamicImageBrush( Tex, FVector2D(64, 64), Tex->GetFName() ) : NULL;
 }
 
-FString SMeshPaint::GetCurrentUVChannel() const
+FText SMeshPaint::GetCurrentUVChannel() const
 {
-	UTexture2D* Tex = MeshPaintEditMode->GetSelectedTexture();	
-	return FString::Printf( TEXT("%d"), FMeshPaintSettings::Get().UVChannel );	
+	UTexture2D* Tex = MeshPaintEditMode->GetSelectedTexture();
+	return FText::AsNumber( FMeshPaintSettings::Get().UVChannel );	
 }
 
 FReply SMeshPaint::OnChangeTextureTarget( TWeakObjectPtr<UTexture2D> TextureData )
@@ -2818,10 +2823,10 @@ TSharedRef<SWidget> SMeshPaint::GetMaterialSelectionMenu()
 	return MenuBuilder.MakeWidget();
 }
 
-FString SMeshPaint::GetEditingMaterial() const
+FText SMeshPaint::GetEditingMaterial() const
 {
 	int32 SelectedMaterialIndex = MeshPaintEditMode->GetEditingMaterialIndex();
-	return TTypeToString<int32>::ToString(SelectedMaterialIndex);
+	return FText::AsNumber(SelectedMaterialIndex);
 }
 
 void SMeshPaint::OnSetEditingMaterial( int32 NewMaterialIndex )
@@ -2843,14 +2848,14 @@ TSharedRef<SWidget> SMeshPaint::GetActorSelectionMenu()
 	return MenuBuilder.MakeWidget();
 }
 
-FString SMeshPaint::GetEditingActorLabel() const
+FText SMeshPaint::GetEditingActorLabel() const
 {
 	TWeakObjectPtr<AActor> SelectedActor = MeshPaintEditMode->GetEditingActor();
 	if (SelectedActor.IsValid())
 	{
-		return SelectedActor.Get()->GetActorLabel();
+		return FText::FromString(SelectedActor.Get()->GetActorLabel());
 	}
-	return FString();
+	return FText::GetEmpty();
 }
 
 void SMeshPaint::OnSetEditingActor( TWeakObjectPtr<AActor> InActor )

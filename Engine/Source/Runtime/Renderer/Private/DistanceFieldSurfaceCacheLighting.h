@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldSurfaceCacheLighting.h
@@ -21,7 +21,7 @@ public:
 	FDistanceFieldAOParameters(float InOcclusionMaxDistance = 600.0f, float InContrast = 0)
 	{
 		Contrast = FMath::Clamp(InContrast, .01f, 2.0f);
-		OcclusionMaxDistance = FMath::Clamp(InOcclusionMaxDistance, 200.0f, 1500.0f);
+		OcclusionMaxDistance = FMath::Clamp(InOcclusionMaxDistance, 200.0f, 3000.0f);
 	}
 };
 
@@ -44,6 +44,7 @@ public:
 			OccluderRadius.Initialize(sizeof(float), MaxIrradianceCacheSamples, PF_R32_FLOAT, BUF_Static);
 			Normal.Initialize(sizeof(FFloat16Color), MaxIrradianceCacheSamples, PF_FloatRGBA, BUF_Static);
 			BentNormal.Initialize(sizeof(FFloat16Color), MaxIrradianceCacheSamples, PF_FloatRGBA, BUF_Static);
+			Irradiance.Initialize(sizeof(FFloat16Color), MaxIrradianceCacheSamples, PF_FloatRGBA, BUF_Static);
 			ScatterDrawParameters.Initialize(sizeof(uint32), 4, PF_R32_UINT, BUF_Static | BUF_DrawIndirect);
 			SavedStartIndex.Initialize(sizeof(uint32), 1, PF_R32_UINT, BUF_Static);
 			TileCoordinate.Initialize(sizeof(uint16)* 2, MaxIrradianceCacheSamples, PF_R16G16_UINT, BUF_Static);
@@ -56,6 +57,7 @@ public:
 		OccluderRadius.Release();
 		Normal.Release();
 		BentNormal.Release();
+		Irradiance.Release();
 		ScatterDrawParameters.Release();
 		SavedStartIndex.Release();
 		TileCoordinate.Release();
@@ -67,6 +69,7 @@ public:
 	FRWBuffer OccluderRadius;
 	FRWBuffer Normal;
 	FRWBuffer BentNormal;
+	FRWBuffer Irradiance;
 	FRWBuffer ScatterDrawParameters;
 	FRWBuffer SavedStartIndex;
 	FRWBuffer TileCoordinate;
@@ -256,8 +259,8 @@ public:
 
 		SetShaderValue(RHICmdList, ShaderRHI, AOStepExponentScale, GAOStepExponentScale);
 
-		extern float GAOMaxViewDistance;
-		SetShaderValue(RHICmdList, ShaderRHI, AOMaxViewDistance, GAOMaxViewDistance);
+		extern float GetMaxAOViewDistance();
+		SetShaderValue(RHICmdList, ShaderRHI, AOMaxViewDistance, GetMaxAOViewDistance());
 	}
 
 private:

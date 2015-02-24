@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	LightmapResRatioAdjust.cpp: Lightmap Resolution Ratio Adjustment helper
@@ -10,6 +10,9 @@
 #include "SurfaceIterators.h"
 #include "MessageLog.h"
 #include "ActorEditorUtils.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/Polys.h"
+#include "Engine/LevelStreaming.h"
 
 #define LOCTEXT_NAMESPACE "LightmapResRatioAdjustSettings"
 
@@ -69,7 +72,7 @@ bool FLightmapResRatioAdjustSettings::ApplyRatioAdjustment()
 				// Store the required levels relating to this object based on the level option settings
 				UWorld* MeshWorld = StaticMeshComp->GetWorld();
 				// Exclude preview worlds				
-				if( MeshWorld->WorldType != EWorldType::Preview && MeshWorld->WorldType != EWorldType::Inactive )
+				if( MeshWorld && (MeshWorld->WorldType != EWorldType::Preview && MeshWorld->WorldType != EWorldType::Inactive) )
 				{
 					AddRequiredLevels( Settings.LevelOptions, MeshWorld , MeshLevels );
 					Worlds.AddUnique( MeshWorld );

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Core.h"
 #include "SecureHash.h"
@@ -213,13 +213,14 @@ public:
 	 * @param NodeName Node name
 	 * @param Entry Node definition
 	 * @param bWriting true to create pak interface for writing
-	 * @return Pak file data backend interface instance or NULL if unsuccessfull
+	 * @return Pak file data backend interface instance or NULL if unsuccessful
 	 */
 	FDerivedDataBackendInterface* ParsePak( const TCHAR* NodeName, const TCHAR* Entry, const bool bWriting )
 	{
 		FDerivedDataBackendInterface* PakNode = NULL;
 		FString PakFilename;
 		FParse::Value( Entry, TEXT("Filename="), PakFilename );
+		bool bCompressed = GetParsedBool(Entry, TEXT("Compressed="));
 
 		if( !PakFilename.Len() )
 		{
@@ -233,7 +234,7 @@ public:
 				FGuid Temp = FGuid::NewGuid();
 				ReadPakFilename = PakFilename;
 				WritePakFilename = PakFilename + TEXT(".") + Temp.ToString();
-				WritePakCache = new FPakFileDerivedDataBackend( *WritePakFilename, true );
+				WritePakCache = bCompressed? new FCompressedPakFileDerivedDataBackend( *WritePakFilename, true ) : new FPakFileDerivedDataBackend( *WritePakFilename, true );
 				PakNode = WritePakCache;
 			}
 			else
@@ -241,7 +242,7 @@ public:
 				bool bReadPak = FPlatformFileManager::Get().GetPlatformFile().FileExists( *PakFilename );
 				if( bReadPak )
 				{
-					FPakFileDerivedDataBackend* ReadPak = new FPakFileDerivedDataBackend( *PakFilename, false );
+					FPakFileDerivedDataBackend* ReadPak = bCompressed? new FCompressedPakFileDerivedDataBackend( *PakFilename, false ) : new FPakFileDerivedDataBackend( *PakFilename, false );
 					ReadPakFilename = PakFilename;
 					PakNode = ReadPak;
 					ReadPakCache.Add(ReadPak);
@@ -263,7 +264,7 @@ public:
 	 * @param IniFilename ini filename.
 	 * @param IniSection ini section containing graph definition
 	 * @param InParsedNodes map of nodes and their names which have already been parsed
-	 * @return Verify wrapper backend interface instance or NULL if unsuccessfull
+	 * @return Verify wrapper backend interface instance or NULL if unsuccessful
 	 */
 	FDerivedDataBackendInterface* ParseVerify( const TCHAR* NodeName, const TCHAR* Entry, const FString& IniFilename, const TCHAR* IniSection, TMap<FString, FDerivedDataBackendInterface*>& InParsedNodes )
 	{
@@ -587,7 +588,11 @@ public:
 					return Cache;
 				}
 
-				if( Cache->LoadCache( *Filename ) )
+				if (IFileManager::Get().FileSize(*Filename) < 0)
+				{
+					UE_LOG( LogDerivedDataCache, Display, TEXT("Starting with empty %s cache"), NodeName );
+				}
+				else if( Cache->LoadCache( *Filename ) )
 				{
 					UE_LOG( LogDerivedDataCache, Display, TEXT("Loaded %s cache: %s"), NodeName, *Filename );
 				}
@@ -670,6 +675,13 @@ public:
 		}
 		if (bShutdown)
 		{
+			if(FParse::Param(FCommandLine::Get(), TEXT("MergePaks")) && WritePakCache && WritePakCache->IsWritable())
+			{
+				for (int32 ReadPakIndex = 0; ReadPakIndex < ReadPakCache.Num(); ReadPakIndex++)
+				{
+					WritePakCache->MergeCache(ReadPakCache[ReadPakIndex]);
+				}
+			}
 			for (int32 ReadPakIndex = 0; ReadPakIndex < ReadPakCache.Num(); ReadPakIndex++)
 			{
 				ReadPakCache[ReadPakIndex]->Close();

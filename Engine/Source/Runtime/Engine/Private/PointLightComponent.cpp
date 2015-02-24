@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PointLightComponent.cpp: PointLightComponent implementation.
@@ -130,7 +130,7 @@ FLightSceneProxy* UPointLightComponent::CreateSceneProxy() const
 void UPointLightComponent::SetAttenuationRadius(float NewRadius)
 {
 	// Only movable lights can change their radius at runtime
-	if (!(IsRegistered() && (Mobility == EComponentMobility::Static || Mobility == EComponentMobility::Stationary))
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && (Mobility == EComponentMobility::Static || Mobility == EComponentMobility::Stationary)))
 		&& NewRadius != AttenuationRadius)
 	{
 		AttenuationRadius = NewRadius;
@@ -140,7 +140,7 @@ void UPointLightComponent::SetAttenuationRadius(float NewRadius)
 
 void UPointLightComponent::SetLightFalloffExponent(float NewLightFalloffExponent)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& NewLightFalloffExponent != LightFalloffExponent)
 	{
 		LightFalloffExponent = NewLightFalloffExponent;
@@ -150,7 +150,7 @@ void UPointLightComponent::SetLightFalloffExponent(float NewLightFalloffExponent
 
 void UPointLightComponent::SetSourceRadius(float bNewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& SourceRadius != bNewValue)
 	{
 		SourceRadius = bNewValue;

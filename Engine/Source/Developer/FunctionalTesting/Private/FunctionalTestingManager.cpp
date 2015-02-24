@@ -1,16 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FunctionalTestingPrivatePCH.h"
 #if WITH_EDITOR
 
 //----------------------------------------------------------------------//
 // 6/25 @todo these will be removed once marge from main comes
-#include "Editor/UnrealEdTypes.h"
-#include "Editor/EditorEngine.h"
+#include "UnrealEd.h"
 class UFactory;
 //----------------------------------------------------------------------//
 
-#include "Editor.h"
 #endif
 
 #define LOCTEXT_NAMESPACE "FunctionalTesting"
@@ -58,6 +56,7 @@ FAutomationTestExecutionInfo* UFunctionalTestingManager::ExecutionInfo = NULL;
 UFunctionalTestingManager::UFunctionalTestingManager( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
 	, bIsRunning(false)
+	, bFinished(false)
 	, bLooped(false)
 	, bWaitForNavigationBuildFinish(false)
 	, bInitialDelayApplied(false)
@@ -91,6 +90,7 @@ bool UFunctionalTestingManager::RunAllFunctionalTests(UObject* WorldContext, boo
 		FunctionalTestingLog.NewPage(LOCTEXT("NewLogLabel", "Functional Test"));
 	}
 
+	Manager->bFinished = false;
 	Manager->bLooped = bRunLooped;
 	Manager->bWaitForNavigationBuildFinish = bInWaitForNavigationBuildFinish;
 	Manager->CurrentIteration = 0;
@@ -159,7 +159,7 @@ void UFunctionalTestingManager::TriggerFirstValidTest()
 	{
 		bInitialDelayApplied = true;
 		static const float WaitingTime = 0.25f;
-		World->GetTimerManager().SetTimer(this, &UFunctionalTestingManager::TriggerFirstValidTest, WaitingTime);
+		World->GetTimerManager().SetTimer(TriggerFirstValidTestTimerHandle, this, &UFunctionalTestingManager::TriggerFirstValidTest, WaitingTime);
 	}
 }
 
@@ -274,6 +274,7 @@ void UFunctionalTestingManager::AllTestsDone()
 	}
 	else
 	{
+		bFinished = true;
 		AddLogItem(LOCTEXT("TestDone", "DONE."));
 		RemoveFromRoot();
 	}

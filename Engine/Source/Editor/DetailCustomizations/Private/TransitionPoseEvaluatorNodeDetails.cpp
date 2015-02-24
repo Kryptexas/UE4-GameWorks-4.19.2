@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 
@@ -31,7 +31,7 @@ void FTransitionPoseEvaluatorNodeDetails::CustomizeDetails( IDetailLayoutBuilder
 		}
 	}
 
-	IDetailCategoryBuilder& PoseCategory = DetailBuilder.EditCategory("Pose", TEXT("Pose") );
+	IDetailCategoryBuilder& PoseCategory = DetailBuilder.EditCategory("Pose", LOCTEXT("PoseCategoryName", "Pose") );
 	TSharedPtr<IPropertyHandle> FramesToCachePosePropety = DetailBuilder.GetProperty(TEXT("Node.FramesToCachePose"));
 
 	//@TODO: CONDUIT: try both

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -51,6 +51,9 @@ private:
 
 	TSharedRef<SWidget> MakeAnchorWidget(EAnchorWidget::Type AnchorType, float Width, float Height);
 
+	void OnMouseEnterAnchor();
+	void OnMouseLeaveAnchor();
+
 	const FSlateBrush* GetAnchorBrush(EAnchorWidget::Type AnchorType) const;
 	EVisibility GetAnchorVisibility(EAnchorWidget::Type AnchorType) const;
 	FVector2D GetAnchorAlignment(EAnchorWidget::Type AnchorType) const;
@@ -60,6 +63,8 @@ private:
 	static void GetCollisionSegmentsFromGeometry(FGeometry ArrangedGeometry, TArray<FVector2D>& Segments);
 
 	void PaintCollisionLines(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
+	void PaintDragPercentages(const TSet< FWidgetReference >& Selection, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
+	void PaintLineWithText(FVector2D Start, FVector2D End, FText Text, FVector2D TextTransform, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId) const;
 
 	void ProximitySnapValue(float SnapFrequency, float SnapProximity, float& Value);
 
@@ -70,6 +75,9 @@ private:
 
 	/** */
 	bool bMovingAnchor;
+
+	/** */
+	bool bHoveringAnchor;
 
 	/** */
 	FVector2D MouseDownPosition;

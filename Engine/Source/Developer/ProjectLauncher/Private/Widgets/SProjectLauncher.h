@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -62,10 +62,10 @@ protected:
 private:
 
 	// Callback for toggling the advanced mode.
-	void OnAdvancedChanged(const ESlateCheckBoxState::Type NewCheckedState);
+	void OnAdvancedChanged(const ECheckBoxState NewCheckedState);
 
 	// Callback to determine if we are in advanced mode.
-	ESlateCheckBoxState::Type OnIsAdvanced() const;
+	ECheckBoxState OnIsAdvanced() const;
 
 	// Get advanced toggle button brush.
 	const FSlateBrush* GetAdvancedToggleBrush() const;

@@ -1,4 +1,6 @@
-﻿using EnvDTE;
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+using EnvDTE;
 using EnvDTE80;
 using Microsoft.VisualStudio;
 using Microsoft.VisualStudio.Shell;
@@ -191,7 +193,10 @@ namespace UnrealVS
 				new SubMenu {Name = "PS4", SubMenuId = 0x1900, DynamicStartCommandId = 0x1930},
 				new SubMenu {Name = "IOS", SubMenuId = 0x1A00, DynamicStartCommandId = 0x1A30},
 				new SubMenu {Name = "Android", SubMenuId = 0x1B00, DynamicStartCommandId = 0x1B30},
-				new SubMenu {Name = "WinRT", SubMenuId = 0x1C00, DynamicStartCommandId = 0x1C30}
+				new SubMenu {Name = "WinRT", SubMenuId = 0x1C00, DynamicStartCommandId = 0x1C30},
+				new SubMenu {Name = "WinRT_ARM", SubMenuId = 0x1D00, DynamicStartCommandId = 0x1D30},
+				new SubMenu {Name = "HTML5", SubMenuId = 0x1E00, DynamicStartCommandId = 0x1E30},
+				new SubMenu {Name = "Linux", SubMenuId = 0x1F00, DynamicStartCommandId = 0x1F30},
 			};
 
 		/// The main root command of the Quick Build menu hierarchy - used to hide it when not active

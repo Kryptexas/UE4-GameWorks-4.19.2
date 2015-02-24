@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsEditorModulePrivatePCH.h"
 #include "GameplayTagContainerCustomization.h"
@@ -104,7 +104,7 @@ TSharedRef<ITableRow> FGameplayTagContainerCustomization::MakeListViewWidget(TSh
 {
 	return SNew( STableRow< TSharedPtr<FString> >, OwnerTable )
 			[
-				SNew(STextBlock) .Text( *Item.Get() )
+				SNew(STextBlock) .Text( FText::FromString(*Item.Get()) )
 			];
 }
 
@@ -123,7 +123,7 @@ FReply FGameplayTagContainerCustomization::OnEditButtonClicked()
 
 	FText Title;
 	FText AssetName;
-	FText PropertyName = FText::FromString( StructPropertyHandle->GetPropertyDisplayName() );
+	FText PropertyName = StructPropertyHandle->GetPropertyDisplayName();
 
 	if (OuterObjects.Num() > 1)
 	{
@@ -144,7 +144,7 @@ FReply FGameplayTagContainerCustomization::OnEditButtonClicked()
 		.Filter( Categories )
 		.OnTagChanged(this, &FGameplayTagContainerCustomization::RefreshTagList)
 		.ReadOnly(bReadOnly)
-		.TagContainerName( StructPropertyHandle->GetPropertyDisplayName() )
+		.TagContainerName( StructPropertyHandle->GetPropertyDisplayName().ToString() )
 		.PropertyHandle( StructPropertyHandle )
 	];
 

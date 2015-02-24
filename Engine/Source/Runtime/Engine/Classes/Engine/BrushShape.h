@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // BrushShape: A brush that acts as a template for geometry mode modifiers like "Lathe"

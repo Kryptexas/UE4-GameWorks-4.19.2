@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Property.cpp: UProperty implementation
@@ -236,6 +236,7 @@ struct TStructOpsTypeTraits<FDateTime> : public TStructOpsTypeTraitsBase
 		WithImportTextItem = true,
 		WithSerializer = true,
 		WithZeroConstructor = true,
+		WithIdenticalViaEquality = true,
 	};
 };
 IMPLEMENT_STRUCT(DateTime);
@@ -250,6 +251,7 @@ struct TStructOpsTypeTraits<FTimespan> : public TStructOpsTypeTraitsBase
 		WithImportTextItem = false, // @todo gmp: implement FTimespan::ImportTextItem
 		WithSerializer = true,
 		WithZeroConstructor = true,
+		WithIdenticalViaEquality = true,
 	};
 };
 IMPLEMENT_STRUCT(Timespan);
@@ -378,20 +380,8 @@ void UProperty::Serialize( FArchive& Ar )
 	Ar << ArrayDim << SaveFlags;
 	if (Ar.IsLoading())
 	{
-		if (Ar.UE4Ver() < VER_UE4_REMOVE_CTOR_LINK)
-		{
-			SaveFlags &= ~0x0000000000400000; // remove old CPF_NeedCtorLink flag
-		}
 		PropertyFlags = (SaveFlags & ~CPF_ComputedFlags) | (PropertyFlags & CPF_ComputedFlags);
 	}
-	// Old categories (moved to metadata).
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_CATEGORY_MOVED_TO_METADATA)
-	{
-		FName	TempCategory;
-		Ar << TempCategory;
-		UEnum* TempArraySizeEnum = NULL;
-		Ar << TempArraySizeEnum;
-	}	
 	
 	if (FPlatformProperties::HasEditorOnlyData() == false)
 	{
@@ -473,7 +463,7 @@ FString UProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 	return TEXT("PROPERTY");
 }
 
-void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride, uint32 AdditionalExportCPPFlags) const
+void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::Type DeclarationType, const TCHAR* ArrayDimOverride, uint32 AdditionalExportCPPFlags, bool bSkipParameterName) const
 {
 	const bool bIsParameter = (DeclarationType == EExportedDeclaration::Parameter) || (DeclarationType == EExportedDeclaration::MacroParameter);
 	const bool bIsInterfaceProp = dynamic_cast<const UInterfaceProperty*>(this) != nullptr;
@@ -505,7 +495,7 @@ void UProperty::ExportCppDeclaration(FOutputDevice& Out, EExportedDeclaration::T
 		}
 	}
 
-	FString NameCpp = GetNameCPP();
+	FString NameCpp = bSkipParameterName ? FString() : GetNameCPP();
 	if (DeclarationType == EExportedDeclaration::MacroParameter)
 	{
 		NameCpp = FString(TEXT(", ")) + NameCpp;
@@ -620,6 +610,9 @@ bool UProperty::ExportText_Direct
 
 bool UProperty::ShouldSerializeValue( FArchive& Ar ) const
 {
+	if (Ar.ShouldSkipProperty(this))
+		return false;
+
 	if (Ar.IsSaveGame() && !(PropertyFlags & CPF_SaveGame))
 		return false;
 

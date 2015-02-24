@@ -1,4 +1,6 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
 
 #include "PaperSpriteThumbnailRenderer.generated.h"
 
@@ -12,7 +14,7 @@ class UPaperSpriteThumbnailRenderer : public UDefaultSizedThumbnailRenderer
 	// End of UThumbnailRenderer interface
 
 protected:
-	void DrawFrame(class UPaperSprite* Sprite, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget*, FCanvas* Canvas);
+	void DrawFrame(class UPaperSprite* Sprite, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget*, FCanvas* Canvas, FBoxSphereBounds* OverrideRenderBounds);
 
 	void DrawGrid(int32 X, int32 Y, uint32 Width, uint32 Height, FCanvas* Canvas);
 };

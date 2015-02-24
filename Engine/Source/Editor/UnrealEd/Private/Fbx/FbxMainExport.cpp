@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*
 * Copyright 2010 Autodesk, Inc.  All Rights Reserved.
@@ -57,6 +57,14 @@
 #include "FbxExporter.h"
 #include "RawMesh.h"
 #include "Particles/Emitter.h"
+#include "Engine/Light.h"
+#include "Engine/Polys.h"
+#include "Engine/StaticMeshActor.h"
+#include "Components/BrushComponent.h"
+#include "Components/SpotLightComponent.h"
+#include "Components/PointLightComponent.h"
+#include "Camera/CameraActor.h"
+#include "Components/DirectionalLightComponent.h"
 
 namespace UnFbx
 {
@@ -1085,10 +1093,10 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 
 		if( bExportComponents )
 		{
-			TArray<UMeshComponent*> MeshComponents;
+			TInlineComponentArray<UMeshComponent*> MeshComponents;
 			Actor->GetComponents(MeshComponents);
 
-			TArray<UActorComponent*> ComponentsToExport;
+			TInlineComponentArray<UActorComponent*> ComponentsToExport;
 			for( int32 ComponentIndex = 0; ComponentIndex < MeshComponents.Num(); ++ComponentIndex )
 			{
 				UMeshComponent* Component = MeshComponents[ComponentIndex];

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BodySetup.cpp
@@ -15,6 +15,7 @@
 
 
 #include "PhysDerivedData.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 #if WITH_PHYSX
 	namespace
@@ -231,6 +232,9 @@ void UBodySetup::ClearPhysicsMeshes()
 
 	bCreatedPhysicsMeshes = false;
 #endif
+
+	// Also clear render info
+	AggGeom.FreeRenderInfo();
 }
 
 #if WITH_PHYSX
@@ -714,12 +718,8 @@ void UBodySetup::Serialize(FArchive& Ar)
 		BodySetupGuid = FGuid::NewGuid();
 	}
 
-	bool bCooked = false;
-	if (Ar.UE4Ver() >= VER_UE4_ADD_COOKED_TO_BODY_SETUP)
-	{
-		bCooked = Ar.IsCooking();
-		Ar << bCooked;
-	}
+	bool bCooked = Ar.IsCooking();
+	Ar << bCooked;
 
 	if (FPlatformProperties::RequiresCookedData() && !bCooked && Ar.IsLoading())
 	{

@@ -1,16 +1,20 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateViewerApp.h"
 #include "RequiredProgramMainCPPInclude.h"
 #include "STestSuite.h"
 #include "ISourceCodeAccessModule.h"
+#include "SPerfSuite.h"
+#include "SDockTab.h"
+#include "SWebBrowser.h"
 
 IMPLEMENT_APPLICATION(SlateViewer, "SlateViewer");
 
+#define LOCTEXT_NAMESPACE "SlateViewer"
 
 namespace WorkspaceMenu
 {
-	TSharedRef<FWorkspaceItem> DeveloperMenu = FWorkspaceItem::NewGroup(NSLOCTEXT("SlateViewer", "DeveloperMenu", "Developer"));
+	TSharedRef<FWorkspaceItem> DeveloperMenu = FWorkspaceItem::NewGroup(LOCTEXT("DeveloperMenu", "Developer"));
 }
 
 
@@ -35,11 +39,23 @@ void RunSlateViewer( const TCHAR* CommandLine )
 #endif
 
 	// set the application name
-	FGlobalTabmanager::Get()->SetApplicationTitle(NSLOCTEXT("SlateViewer", "AppTitle", "Slate Viewer"));
+	FGlobalTabmanager::Get()->SetApplicationTitle(LOCTEXT("AppTitle", "Slate Viewer"));
 	FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").RegisterTabSpawner(WorkspaceMenu::DeveloperMenu);
 
-	// Bring up the test suite.
-	RestoreSlateTestSuite();
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner("WebBrowserTab", FOnSpawnTab::CreateStatic(&SpawnWebBrowserTab))
+		.SetDisplayName(LOCTEXT("WebBrowserTab", "Web Browser"));
+	
+	if (FParse::Param(FCommandLine::Get(), TEXT("perftest")))
+	{
+		// Bring up perf test
+		SummonPerfTestSuite();
+	}
+	else
+	{
+		// Bring up the test suite.
+		RestoreSlateTestSuite();
+	}
+
 
 #if WITH_SHARED_POINTER_TESTS
 	SharedPointerTesting::TestSharedPointer<ESPMode::Fast>();
@@ -49,11 +65,27 @@ void RunSlateViewer( const TCHAR* CommandLine )
 	// loop while the server does the rest
 	while (!GIsRequestingExit)
 	{
-		FTicker::GetCoreTicker().Tick(0);
+		FTaskGraphInterface::Get().ProcessThreadUntilIdle(ENamedThreads::GameThread);
+		FStats::AdvanceFrame(false);
+		FTicker::GetCoreTicker().Tick(FApp::GetDeltaTime());
 		FSlateApplication::Get().PumpMessages();
-		FSlateApplication::Get().Tick();
+		FSlateApplication::Get().Tick();		
 		FPlatformProcess::Sleep(0);
 	}
 
 	FSlateApplication::Shutdown();
 }
+
+TSharedRef<SDockTab> SpawnWebBrowserTab(const FSpawnTabArgs& Args)
+{
+	return SNew(SDockTab)
+		.Label(LOCTEXT("WebBrowserTab", "Web Browser"))
+		.ToolTipText(LOCTEXT("WebBrowserTabToolTip", "Switches to the Web Browser to test its features."))
+		.TabRole(ETabRole::NomadTab)
+		[
+			SNew(SWebBrowser)
+			.ParentWindow(Args.GetOwnerWindow())
+		];
+}
+
+#undef LOCTEXT_NAMESPACE

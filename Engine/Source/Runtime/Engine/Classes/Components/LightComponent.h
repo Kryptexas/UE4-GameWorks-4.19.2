@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -77,10 +77,6 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	
 	UPROPERTY()
 	uint32 InverseSquaredFalloff_DEPRECATED:1;
-
-	/** Runtime toggleable enabled state - this has been replaced by USceneComponent::bVisible */
-	UPROPERTY()
-	uint32 bEnabled_DEPRECATED:1;
 
 	/** Whether the light is allowed to cast dynamic shadows from translucency. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay)
@@ -278,9 +274,9 @@ public:
 	virtual bool IsReadyForFinishDestroy() override;
 	// End UObject interface.
 
-	virtual FComponentInstanceDataBase* GetComponentInstanceData() const override;
+	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
 	virtual FName GetComponentInstanceDataType() const override;
-	virtual void ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData) override;
+	 void ApplyComponentInstanceData(class FPrecomputedLightInstanceData* ComponentInstanceData);
 
 	/** @return number of material elements in this primitive */
 	virtual int32 GetNumMaterials() const;

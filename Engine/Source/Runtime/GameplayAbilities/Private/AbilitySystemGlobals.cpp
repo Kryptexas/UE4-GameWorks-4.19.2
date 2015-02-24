@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AttributeSet.h"
@@ -29,7 +29,7 @@ void UAbilitySystemGlobals::InitGlobalData()
 	GetGlobalCurveTable();
 	GetGlobalAttributeMetaDataTable();
 	
-	InitAtributeDefaults();
+	InitAttributeDefaults();
 
 	GetGameplayCueManager();
 }
@@ -63,22 +63,42 @@ T* UAbilitySystemGlobals::InternalGetLoadTable(T*& Table, FString TableName)
 	return Table;
 }
 
+void UAbilitySystemGlobals::DeriveGameplayCueTagFromAssetName(FString AssetName, FGameplayTag& GameplayCueTag, FName& GameplayCueName)
+{
+	// In the editor, attempt to infer GameplayCueTag from our asset name (if there is no valid GameplayCueTag already).
+	#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		if (GameplayCueTag.IsValid() == false)
+		{
+			AssetName.RemoveFromStart(TEXT("Default__"));
+			AssetName.RemoveFromStart(TEXT("GC_"));		// allow GC_ prefix in asset name
+			AssetName.RemoveFromEnd(TEXT("_c"));
+
+			AssetName.ReplaceInline(TEXT("_"), TEXT("."));
+
+			if (!AssetName.Contains(TEXT("GameplayCue")))
+			{
+				AssetName = FString(TEXT("GameplayCue.")) + AssetName;
+			}
+
+			IGameplayTagsModule& GameplayTagsModule = IGameplayTagsModule::Get();
+			GameplayCueTag = GameplayTagsModule.GetGameplayTagsManager().RequestGameplayTag(FName(*AssetName), false);
+		}
+		GameplayCueName = GameplayCueTag.GetTagName();
+	}
+	#endif
+}
+
 
 #if WITH_EDITOR
 
 void UAbilitySystemGlobals::OnTableReimported(UObject* InObject)
 {
-	if (GIsEditor && !IsRunningCommandlet() && InObject && InObject == GlobalCurveTable)
-	{
-	}
-	
 	if (GIsEditor && !IsRunningCommandlet() && InObject && InObject == GlobalAttributeDefaultsTable)
 	{
-	}
-
-	if (GIsEditor && !IsRunningCommandlet() && InObject && InObject == GlobalAttributeMetaDataTable)
-	{
-	}
+		ReloadAttributeDefaults();
+	}	
 }
 
 #endif
@@ -184,13 +204,18 @@ FAttributeSetInitter* UAbilitySystemGlobals::GetAttributeSetInitter() const
 	return GlobalAttributeSetInitter.Get();
 }
 
-void UAbilitySystemGlobals::InitAtributeDefaults()
+void UAbilitySystemGlobals::InitAttributeDefaults()
 {
 	if (InternalGetLoadTable<UCurveTable>(GlobalAttributeDefaultsTable, GlobalAttributeSetDefaultsTableName))
 	{	
-		AllocAttributeSetInitter();
-		GlobalAttributeSetInitter->PreloadAttributeSetData(GlobalAttributeDefaultsTable);
+		ReloadAttributeDefaults();
 	}
+}
+
+void UAbilitySystemGlobals::ReloadAttributeDefaults()
+{
+	AllocAttributeSetInitter();
+	GlobalAttributeSetInitter->PreloadAttributeSetData(GlobalAttributeDefaultsTable);
 }
 
 // --------------------------------------------------------------------
@@ -207,4 +232,9 @@ UGameplayCueManager* UAbilitySystemGlobals::GetGameplayCueManager()
 	}
 
 	return GlobalGameplayCueManager;
+}
+
+void UAbilitySystemGlobals::GlobalPreGameplayEffectSpecApply(FGameplayEffectSpec& Spec, UAbilitySystemComponent* AbilitySystemComponent)
+{
+
 }

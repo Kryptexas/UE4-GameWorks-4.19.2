@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -29,6 +29,9 @@
 #include "PackageTools.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/LevelStreaming.h"
+#include "GameMapsSettings.h"
+#include "AutoSaveUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogFileHelpers, Log, All);
 
@@ -390,7 +393,7 @@ static bool SaveWorld(UWorld* World,
 		{
 			// If package exists, but doesn't feature the default extension, it will not load when launched,
 			// Change the extension of the map to the default for the auto-save
-			Path			= GEditor->AutoSaveDir;
+			Path			= AutoSaveUtils::GetAutoSaveDir();
 			CleanFilename	= FPackageName::GetLongPackageAssetName(PackageName) + FPackageName::GetMapPackageExtension();
 		}
 		else
@@ -410,7 +413,7 @@ static bool SaveWorld(UWorld* World,
 	else
 	{
 		// No package filename exists and none was specified, so save the package in the autosaves folder.
-		Path			= GEditor->AutoSaveDir;
+		Path			= AutoSaveUtils::GetAutoSaveDir();
 		CleanFilename	= FPackageName::GetLongPackageAssetName(PackageName) + FPackageName::GetMapPackageExtension();
 	}
 
@@ -1062,12 +1065,12 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 			if( SourceControlState.IsValid() && !SourceControlState->IsCurrent() )
 			{				
 				// This package is not at the head revision and it should be ghosted as a result
-				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Unchecked, true, TEXT("SavePackages.SCC_DlgNotCurrent"), SourceControlState->GetDisplayTooltip().ToString());
+				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ECheckBoxState::Unchecked, true, TEXT("SavePackages.SCC_DlgNotCurrent"), SourceControlState->GetDisplayTooltip().ToString());
 			}
 			else if( SourceControlState.IsValid() && SourceControlState->IsCheckedOutOther() )
 			{
 				// This package is checked out by someone else so it should be ghosted
-				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Unchecked, true, TEXT("SavePackages.SCC_DlgCheckedOutOther"), SourceControlState->GetDisplayTooltip().ToString());
+				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ECheckBoxState::Unchecked, true, TEXT("SavePackages.SCC_DlgCheckedOutOther"), SourceControlState->GetDisplayTooltip().ToString());
 			}
 			else
 			{
@@ -1076,7 +1079,7 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 				bHavePackageToCheckOut = true;
 				//Add this package to the dialog if its not checked out, in the source control depot, dirty(if we are checking), and read only
 				//This package could also be marked for delete, which we will treat as SCC_ReadOnly until it is time to check it out. At that time, we will revert it.
-				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Checked, false, TEXT("SavePackages.SCC_DlgReadOnly"), Tooltip.ToString());
+				CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ECheckBoxState::Checked, false, TEXT("SavePackages.SCC_DlgReadOnly"), Tooltip.ToString());
 			}
 			bPackagesAdded = true;
 		}
@@ -1089,7 +1092,7 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 
 			// This package is read only but source control is not available, show the dialog so users can save the package by making the file writable or by connecting to source control.
 			// If we don't care about read-only state, we should allow the user to make the file writable whatever the state of source control.
-			CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ESlateCheckBoxState::Unchecked, bIsDisabled, TEXT("SavePackages.SCC_DlgReadOnly"), Tooltip.ToString());
+			CheckoutPackagesDialogModule.AddPackageItem(CurPackage, CurPackage->GetName(), ECheckBoxState::Unchecked, bIsDisabled, TEXT("SavePackages.SCC_DlgReadOnly"), Tooltip.ToString());
 			bPackagesAdded = true;
 		}
 		else if ( OutPackagesNotNeedingCheckout )
@@ -1138,7 +1141,7 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 			{
 				// Get the packages that should be checked out from the user's choices in the dialog
 				TArray<UPackage*> PkgsToCheckOut;
-				CheckoutPackagesDialogModule.GetResults( PkgsToCheckOut, ESlateCheckBoxState::Checked );
+				CheckoutPackagesDialogModule.GetResults( PkgsToCheckOut, ECheckBoxState::Checked );
 
 				if(CheckoutPackages(PkgsToCheckOut, OutPackagesCheckedOutOrMadeWritable) == ECommandResult::Cancelled)
 				{
@@ -1154,8 +1157,8 @@ bool FEditorFileUtils::PromptToCheckoutPackages(bool bCheckDirty, const TArray<U
 				// Get the packages that should be made writable out from the user's choices in the dialog
 				TArray<UPackage*> PkgsToMakeWritable;
 				// Both undetermined and checked should be made writable.  Undetermined is only available when packages cant be checked out
-				CheckoutPackagesDialogModule.GetResults( PkgsToMakeWritable, ESlateCheckBoxState::Undetermined );
-				CheckoutPackagesDialogModule.GetResults( PkgsToMakeWritable, ESlateCheckBoxState::Checked);
+				CheckoutPackagesDialogModule.GetResults( PkgsToMakeWritable, ECheckBoxState::Undetermined );
+				CheckoutPackagesDialogModule.GetResults( PkgsToMakeWritable, ECheckBoxState::Checked);
 
 				bool bPackageFailedWritable = false;
 				FString PkgsWhichFailedWritable;
@@ -1541,7 +1544,7 @@ bool FEditorFileUtils::PromptToCheckoutLevels(bool bCheckDirty, ULevel* Specific
 	return FEditorFileUtils::PromptToCheckoutLevels( bCheckDirty, LevelsToCheckOut );	
 }
 
-void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsChosen, bool bAllowMultipleSelection)
+void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsChosen, const FOnLevelPickingCancelled& OnLevelPickingCancelled, bool bAllowMultipleSelection)
 {
 	struct FLocal
 	{
@@ -1567,6 +1570,11 @@ void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsCho
 				OnLevelsChosen.ExecuteIfBound(SelectedLevels);
 			}
 		}
+
+		static void OnDialogCancelled(FOnLevelPickingCancelled OnLevelPickingCancelled)
+		{
+			OnLevelPickingCancelled.ExecuteIfBound();
+		}
 	};
 
 	// Determine the starting path. Try to use the most recently used directory
@@ -1587,7 +1595,9 @@ void FEditorFileUtils::OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsCho
 	OpenAssetDialogConfig.bAllowMultipleSelection = bAllowMultipleSelection;
 
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-	ContentBrowserModule.Get().CreateOpenAssetDialog(OpenAssetDialogConfig, FOnAssetsChosenForOpen::CreateStatic(&FLocal::OnLevelsSelected, OnLevelsChosen));
+	ContentBrowserModule.Get().CreateOpenAssetDialog(OpenAssetDialogConfig,
+													 FOnAssetsChosenForOpen::CreateStatic(&FLocal::OnLevelsSelected, OnLevelsChosen),
+													 FOnAssetDialogCancelled::CreateStatic(&FLocal::OnDialogCancelled, OnLevelPickingCancelled));
 }
 
 bool FEditorFileUtils::IsValidMapFilename(const FString& MapFilename, FText& OutErrorMessage)
@@ -1739,10 +1749,14 @@ void FEditorFileUtils::LoadMap()
 
 	if (UEditorEngine::IsUsingWorldAssets())
 	{
+		static bool bIsDialogOpen = false;
+
 		struct FLocal
 		{
 			static void HandleLevelsChosen(const TArray<FAssetData>& SelectedAssets)
 			{
+				bIsDialogOpen = false;
+
 				if ( SelectedAssets.Num() > 0 )
 				{
 					const FAssetData& AssetData = SelectedAssets[0];
@@ -1765,10 +1779,21 @@ void FEditorFileUtils::LoadMap()
 					FEditorFileUtils::LoadMap(FileToOpen, bLoadAsTemplate, bShowProgress);
 				}
 			}
+
+			static void HandleDialogCancelled()
+			{
+				bIsDialogOpen = false;
+			}
 		};
 		
-		const bool bAllowMultipleSelection = false;
-		OpenLevelPickingDialog(FOnLevelsChosen::CreateStatic(&FLocal::HandleLevelsChosen), bAllowMultipleSelection);
+		if (!bIsDialogOpen)
+		{
+			bIsDialogOpen = true;
+			const bool bAllowMultipleSelection = false;
+			OpenLevelPickingDialog(FOnLevelsChosen::CreateStatic(&FLocal::HandleLevelsChosen),
+								   FOnLevelPickingCancelled::CreateStatic(&FLocal::HandleDialogCancelled),
+								   bAllowMultipleSelection);
+		}
 	}
 	else
 	{
@@ -1879,7 +1904,7 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 	// Deactivate any editor modes when loading a new map
 	GLevelEditorModeTools().DeactivateAllModes();
 
-	FString LoadCommand = FString::Printf( TEXT("MAP LOAD FILE=\"%s\" TEMPLATE=%d SHOWPROGRESS=%d"), *Filename, LoadAsTemplate, bShowProgress );
+	FString LoadCommand = FString::Printf(TEXT("MAP LOAD FILE=\"%s\" TEMPLATE=%d SHOWPROGRESS=%d FEATURELEVEL=%d"), *Filename, LoadAsTemplate, bShowProgress, (int32)GEditor->DefaultWorldFeatureLevel);
 	bool bResult = GUnrealEd->Exec( NULL, *LoadCommand );
 
 	UWorld* World = GWorld;
@@ -2717,11 +2742,11 @@ FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( 
 		{
 			for (auto Iter = AddPackageItemsChecked.CreateIterator(); Iter; ++Iter)
 			{
-				PackagesDialogModule.AddPackageItem(*Iter, (*Iter)->GetName(), ESlateCheckBoxState::Checked);
+				PackagesDialogModule.AddPackageItem(*Iter, (*Iter)->GetName(), ECheckBoxState::Checked);
 			}
 			for (auto Iter = AddPackageItemsUnchecked.CreateIterator(); Iter; ++Iter)
 			{
-				PackagesDialogModule.AddPackageItem(*Iter, (*Iter)->GetName(), ESlateCheckBoxState::Unchecked);
+				PackagesDialogModule.AddPackageItem(*Iter, (*Iter)->GetName(), ECheckBoxState::Unchecked);
 			}
 
 			// If valid packages were added to the dialog, display it to the user
@@ -2730,10 +2755,10 @@ FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( 
 			// If the user has responded yes, they want to save the packages they have checked
 			if ( UserResponse == DRT_Save )
 			{
-				PackagesDialogModule.GetResults( FilteredPackages, ESlateCheckBoxState::Checked );
+				PackagesDialogModule.GetResults( FilteredPackages, ECheckBoxState::Checked );
 
 				TArray<UPackage*> UncheckedPackagesRaw;
-				PackagesDialogModule.GetResults( UncheckedPackagesRaw, ESlateCheckBoxState::Unchecked );
+				PackagesDialogModule.GetResults( UncheckedPackagesRaw, ECheckBoxState::Unchecked );
 				UncheckedPackages.Empty();
 				for (auto Iter = UncheckedPackagesRaw.CreateIterator(); Iter; ++Iter)
 				{
@@ -2819,51 +2844,56 @@ FEditorFileUtils::EPromptReturnCode FEditorFileUtils::PromptForCheckoutAndSave( 
 
 			const FScopedBusyCursor BusyCursor;
 			FSaveErrorOutputDevice SaveErrors;
-			GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "SavingPackagesE", "Saving packages..."), true );
-			for( TArray<UPackage*>::TConstIterator PackageIter( FinalSaveList ); PackageIter; ++PackageIter )
+
 			{
-				UPackage* Package = *PackageIter;
-				
-				if( !Package->IsFullyLoaded() )
-				{
-					// Packages must be fully loaded to save.
-					Package->FullyLoad();
-				}
+				FScopedSlowTask SlowTask(FinalSaveList.Num()*2, NSLOCTEXT("UnrealEd", "SavingPackagesE", "Saving packages..."));
+				SlowTask.MakeDialog();
 
-				const UWorld* const AssociatedWorld = UWorld::FindWorldInPackage(Package);
-				const bool bIsMapPackage = AssociatedWorld != nullptr;
-
-				const FText SavingPackageText = (bIsMapPackage) 
-					? FText::Format(NSLOCTEXT("UnrealEd", "SavingMapf", "Saving map {0}"), FText::FromString(Package->GetName()))
-					: FText::Format(NSLOCTEXT("UnrealEd", "SavingAssetf", "Saving asset {0}"), FText::FromString(Package->GetName()));
-
-				GWarn->StatusForceUpdate( PackageIter.GetIndex(), FinalSaveList.Num(), SavingPackageText );
-				
-				// Save the package
-				bool bPackageLocallyWritable;
-				const int32 SaveStatus = InternalSavePackage( Package, bPackageLocallyWritable, SaveErrors );
-				
-				// If InternalSavePackage reported that the provided package was locally writable, add it to the list of writable files
-				// to warn the user about
-				if ( bPackageLocallyWritable )
+				for (auto* Package : FinalSaveList)
 				{
-					WritablePackageFiles.Add( Package );
-				}
+					SlowTask.EnterProgressFrame(1);
 
-				if( SaveStatus == EAppReturnType::No )
-				{
-					// The package could not be saved so add it to the failed array and change the return response to indicate failure
-					FailedPackages.Add( Package );
-					ReturnResponse = PR_Failure;
-				}
-				else if( SaveStatus == EAppReturnType::Cancel )
-				{
-					// No need to save anything else, the user wants to cancel everything
-					ReturnResponse = PR_Cancelled;
-					break;
+					if( !Package->IsFullyLoaded() )
+					{
+						// Packages must be fully loaded to save.
+						Package->FullyLoad();
+					}
+
+					const UWorld* const AssociatedWorld = UWorld::FindWorldInPackage(Package);
+					const bool bIsMapPackage = AssociatedWorld != nullptr;
+
+					const FText SavingPackageText = (bIsMapPackage) 
+						? FText::Format(NSLOCTEXT("UnrealEd", "SavingMapf", "Saving map {0}"), FText::FromString(Package->GetName()))
+						: FText::Format(NSLOCTEXT("UnrealEd", "SavingAssetf", "Saving asset {0}"), FText::FromString(Package->GetName()));
+
+					SlowTask.EnterProgressFrame(1, SavingPackageText);
+					
+					// Save the package
+					bool bPackageLocallyWritable;
+					const int32 SaveStatus = InternalSavePackage( Package, bPackageLocallyWritable, SaveErrors );
+					
+					// If InternalSavePackage reported that the provided package was locally writable, add it to the list of writable files
+					// to warn the user about
+					if ( bPackageLocallyWritable )
+					{
+						WritablePackageFiles.Add( Package );
+					}
+
+					if( SaveStatus == EAppReturnType::No )
+					{
+						// The package could not be saved so add it to the failed array and change the return response to indicate failure
+						FailedPackages.Add( Package );
+						ReturnResponse = PR_Failure;
+					}
+					else if( SaveStatus == EAppReturnType::Cancel )
+					{
+						// No need to save anything else, the user wants to cancel everything
+						ReturnResponse = PR_Cancelled;
+						break;
+					}
 				}
 			}
-			GWarn->EndSlowTask();
+
 			SaveErrors.Flush();
 
 			if( UserResponse == false && PackagesNotNeedingCheckout.Num() > 0 )
@@ -3095,6 +3125,40 @@ void FEditorFileUtils::FindAllSubmittablePackageFiles(TMap<FString, FSourceContr
 			(bIncludeMaps || !IsMapPackageAsset(*Filename)))
 		{
 			OutPackages.Add(PackageName, SourceControlState);
+		}
+	}
+}
+
+void FEditorFileUtils::FindAllConfigFiles(TArray<FString>& OutConfigFiles)
+{
+	TArray<FString> IniFilenames;
+	IFileManager::Get().FindFiles(IniFilenames, *(FPaths::GameConfigDir() / TEXT("*.ini")), true, false);
+	for (const FString& IniFilename : IniFilenames)
+	{
+		OutConfigFiles.Add(FPaths::ConvertRelativePathToFull(FPaths::GameConfigDir() / IniFilename));
+	}
+}
+
+void FEditorFileUtils::FindAllSubmittableConfigFiles(TMap<FString, TSharedPtr<class ISourceControlState, ESPMode::ThreadSafe> >& OutConfigFiles)
+{
+	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+
+	TArray<FString> ConfigFilenames;
+	FEditorFileUtils::FindAllConfigFiles(ConfigFilenames);
+
+	for (const FString& ConfigFilename : ConfigFilenames)
+	{
+		// Only check files which are intended to be under source control
+		if (FPaths::GetCleanFilename(ConfigFilename) != TEXT("DefaultEditorUserSettings.ini"))
+		{
+			FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(ConfigFilename, EStateCacheUsage::Use);
+
+			// Only include config files that are currently checked out or packages not under source control
+			if (SourceControlState.IsValid() &&
+				(SourceControlState->IsCheckedOut() || SourceControlState->IsAdded() || (!SourceControlState->IsSourceControlled() && SourceControlState->CanAdd())))
+			{
+				OutConfigFiles.Add(ConfigFilename, SourceControlState);
+			}
 		}
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
 #include "LegacySlateFontInfoCache.h"
@@ -470,6 +470,8 @@ public:
 		OutRenderData.RawPixels.Reset();
 		OutRenderData.RawPixels.AddUninitialized( Bitmap->rows * Bitmap->width );
 
+		// Nothing to do for zero width or height glyphs
+		if (OutRenderData.RawPixels.Num())
 		{
 			// Copy the rendered bitmap to our raw pixels array
 
@@ -1067,6 +1069,26 @@ FSlateFontCache::FSlateFontCache( TSharedRef<ISlateFontAtlasFactory> InFontAtlas
 FSlateFontCache::~FSlateFontCache()
 {	
 
+}
+
+int32 FSlateFontCache::GetNumAtlasPages() const
+{
+	return FontAtlases.Num();
+}
+
+FIntPoint FSlateFontCache::GetAtlasPageSize() const
+{
+	return FontAtlasFactory->GetAtlasSize();
+}
+
+FSlateShaderResource* FSlateFontCache::GetAtlasPageResource(const int32 InIndex) const
+{
+	return FontAtlases[InIndex]->GetSlateTexture();
+}
+
+bool FSlateFontCache::IsAtlasPageResourceAlphaOnly() const
+{
+	return true;
 }
 
 bool FSlateFontCache::AddNewEntry( TCHAR Character, const FSlateFontKey& InKey, FCharacterEntry& OutCharacterEntry ) const

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -57,7 +57,10 @@ public:
 
 	/** FMultiBlock interface */
 	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const override;
+	virtual bool HasIcon() const override { return GetActualBlock()->HasIcon(); }
+
 	TSharedRef<const FMultiBlock> GetActualBlock() const { return ActualBlock.ToSharedRef(); }
+
 private:
 	TSharedPtr<const FMultiBlock> ActualBlock;
 	TSharedPtr<IMultiBlockBaseWidget> ActualWidget;

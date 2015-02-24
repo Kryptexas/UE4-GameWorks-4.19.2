@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,3 +9,5 @@
 
 // Module includes
 #include "HttpModule.h"
+
+HTTP_API DECLARE_LOG_CATEGORY_EXTERN(LogHttp, Warning, All);

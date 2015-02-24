@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealTypeTraits.h: Unreal type traits definitions.
@@ -587,3 +587,14 @@ template <> struct TIsBitwiseConstructible<uint32,  int32> { enum { Value = true
 template <> struct TIsBitwiseConstructible< int32, uint32> { enum { Value = true }; };
 template <> struct TIsBitwiseConstructible<uint64,  int64> { enum { Value = true }; };
 template <> struct TIsBitwiseConstructible< int64, uint64> { enum { Value = true }; };
+
+#define GENERATE_MEMBER_FUNCTION_CHECK(MemberName, Result, ConstModifier, ...)									\
+template <typename T>																							\
+class THasMemberFunction_##MemberName																			\
+{																												\
+	template <typename U, Result(U::*)(__VA_ARGS__) ConstModifier> struct Check;								\
+	template <typename U> static char MemberTest(Check<U, &U::MemberName> *);									\
+	template <typename U> static int MemberTest(...);															\
+public:																											\
+	enum { Value = sizeof(MemberTest<T>(nullptr)) == sizeof(char) };											\
+};

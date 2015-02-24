@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnvironmentQueryEditorPrivatePCH.h"
 #include "ScopedTransaction.h"
@@ -25,6 +25,7 @@ void UEnvironmentQueryGraphNode_Option::PostPlacedNewNode()
 		UEnvQuery* Query = Cast<UEnvQuery>(GetEnvironmentQueryGraph()->GetOuter());
 		UEnvQueryOption* QueryOption = ConstructObject<UEnvQueryOption>(UEnvQueryOption::StaticClass(), Query);
 		QueryOption->Generator = ConstructObject<UEnvQueryGenerator>(EnvQueryNodeClass, Query);
+		QueryOption->Generator->UpdateGeneratorVersion();
 		
 		QueryOption->SetFlags(RF_Transactional);
 		QueryOption->Generator->SetFlags(RF_Transactional);

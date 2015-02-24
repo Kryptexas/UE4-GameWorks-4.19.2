@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "DetailGroup.h"
@@ -6,7 +6,7 @@
 #include "DetailPropertyRow.h"
 #include "DetailItemNode.h"
 
-FDetailGroup::FDetailGroup( const FName InGroupName, TSharedRef<FDetailCategoryImpl> InParentCategory, const FString& InLocalizedDisplayName, const bool bInStartExpanded )
+FDetailGroup::FDetailGroup( const FName InGroupName, TSharedRef<FDetailCategoryImpl> InParentCategory, const FText& InLocalizedDisplayName, const bool bInStartExpanded )
 	: ParentCategory( InParentCategory )
 	, LocalizedDisplayName( InLocalizedDisplayName )
 	, GroupName( InGroupName )

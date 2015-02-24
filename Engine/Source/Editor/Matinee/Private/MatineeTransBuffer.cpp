@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MatineeModule.h"
 #include "MatineeTransaction.h"
@@ -7,10 +7,6 @@
 /*-----------------------------------------------------------------------------
 	UMatineeTransBuffer / FMatineeTransaction
 -----------------------------------------------------------------------------*/
-UMatineeTransBuffer::UMatineeTransBuffer(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-}
 
 void UMatineeTransBuffer::BeginSpecial(const FText& Description)
 {

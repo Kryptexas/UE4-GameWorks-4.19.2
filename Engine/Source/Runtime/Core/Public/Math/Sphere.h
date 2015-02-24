@@ -1,8 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	Sphere.h: Declares the FSphere class.
-=============================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,10 +18,8 @@ public:
 
 public:
 
-	/**
-	 * Default constructor (no initialization).
-	 */
-	FSphere( ) { }
+	/** Default constructor (no initialization). */
+	FSphere() { }
 
 	/**
 	 * Creates and initializes a new sphere.
@@ -95,6 +89,19 @@ public:
 		}
 
 		return (Center - Other.Center).SizeSquared() <= FMath::Square(Other.W - Tolerance - W);
+	}
+
+	
+	/**
+	 * Test whether this sphere intersects another.
+	 * 
+	 * @param  Other The other sphere.
+	 * @param  Tolerance Error tolerance.
+	 * @return true if spheres intersect, false otherwise.
+	 */
+	FORCEINLINE bool Intersects( const FSphere& Other, float Tolerance = KINDA_SMALL_NUMBER ) const
+	{
+		return (Center - Other.Center).SizeSquared() <= FMath::Square(FMath::Max(0.f, Other.W + W + Tolerance));
 	}
 
 	/**

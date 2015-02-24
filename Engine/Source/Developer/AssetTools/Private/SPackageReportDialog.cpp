@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "AssetToolsPrivatePCH.h"
@@ -211,7 +211,7 @@ TSharedRef<ITableRow> SPackageReportDialog::GenerateTreeRow( TSharedPtr<FPackage
 			+SHorizontalBox::Slot()
 			.FillWidth(1.f)
 			[
-				SNew(STextBlock).Text(TreeItem->NodeName)
+				SNew(STextBlock).Text(FText::FromString(TreeItem->NodeName))
 			]
 		];
 }

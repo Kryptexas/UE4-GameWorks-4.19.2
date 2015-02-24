@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemComponent.h"
@@ -20,7 +20,7 @@ AGameplayAbilityTargetActor_Trace::AGameplayAbilityTargetActor_Trace(const FObje
 	StaticTargetFunction = false;
 
 	MaxRange = 999999.0f;
-	TraceChannel = ECC_WorldStatic;
+	bTraceAffectsAimPitch = true;
 }
 
 void AGameplayAbilityTargetActor_Trace::EndPlay(const EEndPlayReason::Type EndPlayReason)
@@ -33,38 +33,50 @@ void AGameplayAbilityTargetActor_Trace::EndPlay(const EEndPlayReason::Type EndPl
 	Super::EndPlay(EndPlayReason);
 }
 
-void AGameplayAbilityTargetActor_Trace::LineTraceWithFilter(FHitResult& ReturnHitResult, const UWorld* InWorld, const FGameplayTargetDataFilterHandle InFilterHandle, const FVector& InTraceStart, const FVector& InTraceEnd, ECollisionChannel Channel, const FCollisionQueryParams Params) const
+void AGameplayAbilityTargetActor_Trace::LineTraceWithFilter(FHitResult& OutHitResult, const UWorld* World, const FGameplayTargetDataFilterHandle FilterHandle, const FVector& Start, const FVector& End, FName ProfileName, const FCollisionQueryParams Params)
 {
-	check(InWorld);
-	FCollisionQueryParams LocalParams = Params;
-	while (true)
+	check(World);
+
+	TArray<FHitResult> HitResults;
+	World->LineTraceMultiByProfile(HitResults, Start, End, ProfileName, Params);
+
+	OutHitResult.TraceStart = Start;
+	OutHitResult.TraceEnd = End;
+
+	for (int32 HitIdx = 0; HitIdx < HitResults.Num(); ++HitIdx)
 	{
-		InWorld->LineTraceSingle(ReturnHitResult, InTraceStart, InTraceEnd, Channel, LocalParams);
-		if (ReturnHitResult.Actor.IsValid() && !InFilterHandle.FilterPassesForActor(ReturnHitResult.Actor))
+		const FHitResult& Hit = HitResults[HitIdx];
+
+		if (!Hit.Actor.IsValid() || FilterHandle.FilterPassesForActor(Hit.Actor))
 		{
-			LocalParams.AddIgnoredActor(ReturnHitResult.Actor.Get());
-			continue;
+			OutHitResult = Hit;
+			OutHitResult.bBlockingHit = true; // treat it as a blocking hit
+			return;
 		}
-		//Either hit something we're not ignoring, or didn't hit anything.
-		return;
-	};
+	}
 }
 
-void AGameplayAbilityTargetActor_Trace::SweepWithFilter(FHitResult& ReturnHitResult, const UWorld* InWorld, const FGameplayTargetDataFilterHandle InFilterHandle, const FVector& InTraceStart, const FVector& InTraceEnd, const FQuat& InRotation, ECollisionChannel Channel, const FCollisionShape CollisionShape, const FCollisionQueryParams Params) const
+void AGameplayAbilityTargetActor_Trace::SweepWithFilter(FHitResult& OutHitResult, const UWorld* World, const FGameplayTargetDataFilterHandle FilterHandle, const FVector& Start, const FVector& End, const FQuat& Rotation, const FCollisionShape CollisionShape, FName ProfileName, const FCollisionQueryParams Params)
 {
-	check(InWorld);
-	FCollisionQueryParams LocalParams = Params;
-	while (true)
+	check(World);
+
+	TArray<FHitResult> HitResults;
+	World->SweepMultiByProfile(HitResults, Start, End, Rotation, ProfileName, CollisionShape, Params);
+
+	OutHitResult.TraceStart = Start;
+	OutHitResult.TraceEnd = End;
+
+	for (int32 HitIdx = 0; HitIdx < HitResults.Num(); ++HitIdx)
 	{
-		InWorld->SweepSingle(ReturnHitResult, InTraceStart, InTraceEnd, InRotation, Channel, CollisionShape, LocalParams);
-		if (ReturnHitResult.Actor.IsValid() && !InFilterHandle.FilterPassesForActor(ReturnHitResult.Actor))
+		const FHitResult& Hit = HitResults[HitIdx];
+
+		if (!Hit.Actor.IsValid() || FilterHandle.FilterPassesForActor(Hit.Actor))
 		{
-			LocalParams.AddIgnoredActor(ReturnHitResult.Actor.Get());
-			continue;
+			OutHitResult = Hit;
+			OutHitResult.bBlockingHit = true; // treat it as a blocking hit
+			return;
 		}
-		//Either hit something we're not ignoring, or didn't hit anything.
-		return;
-	};
+	}
 }
 
 FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Trace::StaticGetTargetData(UWorld * World, const FGameplayAbilityActorInfo* ActorInfo, FGameplayAbilityActivationInfo ActivationInfo) const
@@ -75,44 +87,55 @@ FGameplayAbilityTargetDataHandle AGameplayAbilityTargetActor_Trace::StaticGetTar
 	return MakeTargetData(FHitResult());
 }
 
-void AGameplayAbilityTargetActor_Trace::AimWithPlayerController(AActor* InSourceActor, FCollisionQueryParams Params, FVector TraceStart, FVector& TraceEnd) const
+void AGameplayAbilityTargetActor_Trace::AimWithPlayerController(const AActor* InSourceActor, FCollisionQueryParams Params, const FVector& TraceStart, FVector& OutTraceEnd, bool bIgnorePitch) const
 {
-	if (OwningAbility)		//Server and launching client only
+	if (!OwningAbility) // Server and launching client only
 	{
-		APlayerController* AimingPC = OwningAbility->GetCurrentActorInfo()->PlayerController.Get();
-		check(AimingPC);
-		FVector CamLoc;
-		FRotator CamRot;
-		AimingPC->GetPlayerViewPoint(CamLoc, CamRot);
-		FVector CamDir = CamRot.Vector();
-		FVector CamTarget = CamLoc + (CamDir * MaxRange);		//Straight, dumb aiming to a point that's reasonable though not exactly correct
+		return;
+	}
 
-		ClipCameraRayToAbilityRange(CamLoc, CamDir, TraceStart, MaxRange, CamTarget);
+	APlayerController* PC = OwningAbility->GetCurrentActorInfo()->PlayerController.Get();
+	check(PC);
 
-		FHitResult TempHitResult;
-		LineTraceWithFilter(TempHitResult, InSourceActor->GetWorld(), Filter, CamLoc, CamTarget, TraceChannel, Params);
-		if (TempHitResult.bBlockingHit && (FVector::DistSquared(TraceStart, TempHitResult.Location) <= (MaxRange * MaxRange)))
-		{
-			//We actually made a hit? Pull back.
-			TraceEnd = TempHitResult.Location;
-		}
-		else
-		{
-			//If we didn't make a hit, use the clipped location.
-			TraceEnd = CamTarget;
-		}
+	FVector ViewStart;
+	FRotator ViewRot;
+	PC->GetPlayerViewPoint(ViewStart, ViewRot);
 
-		//Readjust so we have a full-length line going through the predicted target point.
-		FVector AimDirection = (TraceEnd - TraceStart).SafeNormal();
-		if (AimDirection.SizeSquared() > 0.0f)
+	const FVector ViewDir = ViewRot.Vector();
+	FVector ViewEnd = ViewStart + (ViewDir * MaxRange);
+
+	ClipCameraRayToAbilityRange(ViewStart, ViewDir, TraceStart, MaxRange, ViewEnd);
+
+	FHitResult HitResult;
+	LineTraceWithFilter(HitResult, InSourceActor->GetWorld(), Filter, ViewStart, ViewEnd, TraceProfile.Name, Params);
+
+	const bool bUseTraceResult = HitResult.bBlockingHit && (FVector::DistSquared(TraceStart, HitResult.Location) <= (MaxRange * MaxRange));
+
+	const FVector AdjustedEnd = (bUseTraceResult) ? HitResult.Location : ViewEnd;
+
+	FVector AdjustedAimDir = (AdjustedEnd - TraceStart).GetSafeNormal();
+	if (AdjustedAimDir.IsZero())
+	{
+		AdjustedAimDir = ViewDir;
+	}
+
+	if (!bTraceAffectsAimPitch && bUseTraceResult)
+	{
+		FVector OriginalAimDir = (ViewEnd - TraceStart).GetSafeNormal();
+
+		if (!OriginalAimDir.IsZero())
 		{
-			TraceEnd = TraceStart + (AimDirection * MaxRange);
-		}
-		else
-		{
-			FVector TraceEnd = TraceStart + (InSourceActor->GetActorForwardVector() * MaxRange);		//Default
+			// Convert to angles and use original pitch
+			const FRotator OriginalAimRot = OriginalAimDir.Rotation();
+
+			FRotator AdjustedAimRot = AdjustedAimDir.Rotation();
+			AdjustedAimRot.Pitch = OriginalAimRot.Pitch;
+
+			AdjustedAimDir = AdjustedAimRot.Vector();
 		}
 	}
+
+	OutTraceEnd = TraceStart + (AdjustedAimDir * MaxRange);
 }
 
 bool AGameplayAbilityTargetActor_Trace::ClipCameraRayToAbilityRange(FVector CameraLocation, FVector CameraDirection, FVector AbilityCenter, float AbilityRange, FVector& ClippedPosition)

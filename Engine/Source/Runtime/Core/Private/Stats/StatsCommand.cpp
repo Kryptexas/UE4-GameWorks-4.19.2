@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "TaskGraphInterfaces.h"
@@ -8,6 +8,7 @@
 
 #include "StatsData.h"
 #include "StatsFile.h"
+#include "StatsMallocProfilerProxy.h"
 
 DECLARE_CYCLE_STAT(TEXT("Hitch Scan"),STAT_HitchScan,STATGROUP_StatSystem);
 DECLARE_CYCLE_STAT(TEXT("HUD Group"),STAT_HUDGroup,STATGROUP_StatSystem);
@@ -428,6 +429,12 @@ static bool HandleCommandBroadcast(const FName& InStatName, bool& bOutCurrentEna
 
 #if STATS
 
+void FHUDGroupGameThreadRenderer::NewData(FGameThreadHudData* Data)
+{
+	delete Latest;
+	Latest = Data;
+}
+
 FHUDGroupGameThreadRenderer& FHUDGroupGameThreadRenderer::Get()
 {
 	static FHUDGroupGameThreadRenderer Singleton;
@@ -513,6 +520,9 @@ struct FHUDGroupManager
 	/** Whether it's enabled or not. */
 	bool bEnabled;
 
+	/** NewFrame delegate handle */
+	FDelegateHandle NewFrameDelegateHandle;
+
 	/** Default constructor. */
 	FHUDGroupManager(FStatsThreadState const& InStats)
 		: NumTotalStackFrames(0)
@@ -587,12 +597,12 @@ struct FHUDGroupManager
 		if( EnabledGroups.Num() && !bEnabled )
 		{
 			bEnabled = true;
-			Stats.NewFrameDelegate.AddRaw( this, &FHUDGroupManager::NewFrame );
+			NewFrameDelegateHandle = Stats.NewFrameDelegate.AddRaw( this, &FHUDGroupManager::NewFrame );
 			StatsMasterEnableAdd();
 		}
 		else if( !EnabledGroups.Num() && bEnabled )
 		{
-			Stats.NewFrameDelegate.RemoveRaw( this, &FHUDGroupManager::NewFrame );
+			Stats.NewFrameDelegate.Remove( NewFrameDelegateHandle );
 			StatsMasterEnableSubtract();
 			bEnabled = false;
 
@@ -935,6 +945,9 @@ struct FHUDGroupManager
 static float DumpCull = 5.0f;
 static int32 MaxDepth = MAX_int32;
 static FString NameFilter;
+static FDelegateHandle DumpFrameDelegateHandle;
+static FDelegateHandle DumpCPUDelegateHandle;
+static FDelegateHandle DumpMemoryDelegateHandle;
 
 static void DumpFrame(int64 Frame)
 {
@@ -942,7 +955,7 @@ static void DumpFrame(int64 Frame)
 	int64 Latest = Stats.GetLatestValidFrame();
 	check(Latest > 0);
 	DumpHistoryFrame(Stats, Latest, DumpCull, MaxDepth, *NameFilter);
-	Stats.NewFrameDelegate.RemoveStatic(&DumpFrame);
+	Stats.NewFrameDelegate.Remove(DumpFrameDelegateHandle);
 	StatsMasterEnableSubtract();
 }
 
@@ -952,10 +965,99 @@ static void DumpCPU(int64 Frame)
 	int64 Latest = Stats.GetLatestValidFrame();
 	check(Latest > 0);
 	DumpCPUSummary(Stats, Latest);
-	Stats.NewFrameDelegate.RemoveStatic(&DumpCPU);
+	Stats.NewFrameDelegate.Remove(DumpCPUDelegateHandle);
 	StatsMasterEnableSubtract();
 }
 
+static void DumpMemory(int64 /*Frame*/)
+{
+	FStatsThreadState& Stats = FStatsThreadState::GetLocalState();
+	const TMap<uint64,FAllocationInfo>& Allocations = Stats.GetAllocations();
+	if( Allocations.Num() == 0  )
+	{
+		UE_LOG(LogStats, Warning, TEXT("There are no allocations, make sure memory profiler is enabled") );
+	}
+	else
+	{
+		const TMap<uint64,FAllocationInfoEx>& NonSequentialAllocations = Stats.GetNonSequentialAllocations();
+
+		struct FSizeAndCount
+		{
+			uint64 Size;
+			uint64 Count;
+			FSizeAndCount()
+				: Size(0)
+				, Count(0)
+			{}
+		};
+
+		TMap<FName,FSizeAndCount> ScopedAllocations;
+
+		uint64 TotalAllocatedMemory = 0;
+		for( const auto& It : Allocations )
+		{
+			const FAllocationInfo& Alloc = It.Value;
+			FSizeAndCount& SizeAndCount = ScopedAllocations.FindOrAdd(Alloc.Scope);
+			SizeAndCount.Size += Alloc.Size;
+			SizeAndCount.Count += 1;
+
+			TotalAllocatedMemory += Alloc.Size;
+		}
+
+		// Dump memory to the log.
+		struct FGreater
+		{
+			FORCEINLINE bool operator()(const FSizeAndCount& A, const FSizeAndCount& B) const { return B.Size < A.Size; }
+		};
+
+		ScopedAllocations.ValueSort( FGreater() );
+
+		const float MaxPctDisplayed = 0.99f;
+		int32 CurrentIndex = 0;
+		uint64 DisplayedSoFar = 0;
+		UE_LOG( LogStats, Warning, TEXT("Index, Size (Size MB), Count, Stat desc [ Group ]") );
+		for( const auto& It : ScopedAllocations )
+		{
+			const FName LongName = It.Key;
+			const FSizeAndCount& SizeAndCount = It.Value;
+
+			const FString ShortName = FStatNameAndInfo::GetShortNameFrom(LongName).ToString();
+			const FString Group = FStatNameAndInfo::GetGroupNameFrom(LongName).ToString();
+			FString Desc = FStatNameAndInfo::GetDescriptionFrom(LongName);
+			Desc.Trim();
+
+			if( Desc != ShortName )
+			{
+				if( Desc.Len() )
+				{
+					Desc += TEXT( " - " );
+				}
+				Desc += ShortName;
+			}
+
+			UE_LOG( LogStats, Warning, TEXT("%2i, %llu (%.2f MB), %llu, %s [%s] "), 
+				CurrentIndex, 
+				SizeAndCount.Size, 
+				SizeAndCount.Size/1024.0f/1024.0f,
+				SizeAndCount.Count,
+				*Desc, 
+				*Group );
+
+			CurrentIndex++;
+			DisplayedSoFar += SizeAndCount.Size;
+
+			const float CurrentPct = (float)DisplayedSoFar/(float)TotalAllocatedMemory;
+			if( CurrentPct > MaxPctDisplayed )
+			{
+				break;
+			}
+		}
+
+		UE_LOG(LogStats, Warning, TEXT("Allocated memory: %llu bytes (%.2f MB)"), TotalAllocatedMemory, TotalAllocatedMemory/1024.0f/1024.0f );
+	}
+
+	Stats.NewFrameDelegate.Remove(DumpMemoryDelegateHandle);
+}
 
 static struct FDumpMultiple* DumpMultiple = NULL;
 
@@ -967,6 +1069,7 @@ struct FDumpMultiple
 	int32 NumFrames;
 	int32 NumFramesToGo;
 	FRawStatStackNode* Stack;
+	FDelegateHandle NewFrameDelegateHandle;
 
 	FDumpMultiple()
 		: Stats(FStatsThreadState::GetLocalState())
@@ -977,7 +1080,7 @@ struct FDumpMultiple
 		, Stack(NULL)
 	{
 		StatsMasterEnableAdd();
-		Stats.NewFrameDelegate.AddRaw(this, &FDumpMultiple::NewFrame);
+		NewFrameDelegateHandle = Stats.NewFrameDelegate.AddRaw(this, &FDumpMultiple::NewFrame);
 	}
 
 	~FDumpMultiple()
@@ -1010,7 +1113,7 @@ struct FDumpMultiple
 			delete Stack;
 			Stack = NULL;
 		}
-		Stats.NewFrameDelegate.RemoveRaw(this, &FDumpMultiple::NewFrame);
+		Stats.NewFrameDelegate.Remove(NewFrameDelegateHandle);
 		StatsMasterEnableSubtract();
 		DumpMultiple = NULL;
 	}
@@ -1076,7 +1179,14 @@ static void PrintStatsHelpToOutputDevice( FOutputDevice& Ar )
 	Ar.Log( TEXT("stat startfile - starts dumping a capture"));
 	Ar.Log( TEXT("stat stopfile - stops dumping a capture"));
 
+	Ar.Log( TEXT("stat startfileraw - starts dumping a raw capture"));
+	Ar.Log( TEXT("stat stopfileraw - stops dumping a raw capture"));
+
 	Ar.Log( TEXT("stat toggledebug - toggles tracking the most memory expensive stats"));
+
+	Ar.Log( TEXT("stat memoryprofiler enable - enables tracking all memory operations, run 'stat startfileraw' before"));
+	Ar.Log( TEXT("stat memoryprofiler disable - disables tracking all memory operations, run 'stat startfileraw' after"));
+	Ar.Log( TEXT("stat dumpmemory - dump basic memory statistics WIP, memoryprofiler must to be enabled"));
 }
 
 static void CommandTestFile()
@@ -1127,7 +1237,11 @@ static void StatCmd(FString InCmd)
 	if( FParse::Command(&Cmd,TEXT("DUMPFRAME")) )
 	{
 		StatsMasterEnableAdd();
-		Stats.NewFrameDelegate.AddStatic(&DumpFrame);
+		DumpFrameDelegateHandle = Stats.NewFrameDelegate.AddStatic(&DumpFrame);
+	} 
+	else if( FParse::Command(&Cmd,TEXT("DumpMemory")) )
+	{
+		DumpMemoryDelegateHandle = Stats.NewFrameDelegate.AddStatic(&DumpMemory);
 	}
 	else if ( FParse::Command(&Cmd,TEXT("DUMPNONFRAME")) )
 	{
@@ -1136,7 +1250,7 @@ static void StatCmd(FString InCmd)
 	else if ( FParse::Command(&Cmd,TEXT("DUMPCPU")) )
 	{
 		StatsMasterEnableAdd();
-		Stats.NewFrameDelegate.AddStatic(&DumpCPU);
+		DumpCPUDelegateHandle = Stats.NewFrameDelegate.AddStatic(&DumpCPU);
 	}
 	else if( FParse::Command(&Cmd,TEXT("STOP")) )
 	{
@@ -1187,16 +1301,17 @@ static void StatCmd(FString InCmd)
 	else if( FParse::Command(&Cmd,TEXT("DUMPHITCHES")) )
 	{
 		static bool bToggle = false;
+		static FDelegateHandle DumpHitchDelegateHandle;
 		bToggle = !bToggle;
 		if (bToggle)
 		{
 			StatsMasterEnableAdd();
-			Stats.NewFrameDelegate.AddStatic(&DumpHitch);
+			DumpHitchDelegateHandle = Stats.NewFrameDelegate.AddStatic(&DumpHitch);
 		}
 		else
 		{
 			StatsMasterEnableSubtract();
-			Stats.NewFrameDelegate.RemoveStatic(&DumpHitch);
+			Stats.NewFrameDelegate.Remove(DumpHitchDelegateHandle);
 		}
 	}
 	else if( FParse::Command( &Cmd, TEXT( "STARTFILE" ) ) )
@@ -1231,6 +1346,14 @@ static void StatCmd(FString InCmd)
 	else if ( FParse::Command( &Cmd, TEXT( "toggledebug" ) ) )
 	{
 		FStatsThreadState::GetLocalState().ToggleFindMemoryExtensiveStats();
+	}
+	else if ( FParse::Command( &Cmd, TEXT( "memoryprofiler" ) ) )
+	{
+		IStatGroupEnableManager::Get().StatGroupEnableManagerCommand( TEXT("enable LinkerLoad") );
+		IStatGroupEnableManager::Get().StatGroupEnableManagerCommand( TEXT("enable AsyncLoad") );
+
+		const bool bEnable = FParse::Command( &Cmd, TEXT( "enable" ) ) || FParse::Command( &Cmd, TEXT( "start" ) );
+		FStatsMallocProfilerProxy::Get()->SetState( bEnable );
 	}
 	// @see FStatHierParams
 	else if ( FParse::Command( &Cmd, TEXT( "hier" ) ) )
@@ -1293,12 +1416,12 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 	{
 		FString AddArgs;
 		const TCHAR* TempCmd = Cmd;
-		bResult = true;
 
 		FString ArgNoWhitespaces = FDefaultValueHelper::RemoveWhitespaces(TempCmd);
 		const bool bIsEmpty = ArgNoWhitespaces.IsEmpty();
 #if STATS
-		if( bIsEmpty && Ar )
+		bResult = true;
+		if (bIsEmpty && Ar)
 		{
 			PrintStatsHelpToOutputDevice( *Ar );
 		}
@@ -1313,6 +1436,9 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 			AddArgs += CreateProfileFilename( FStatConstants::StatsFileRawExtension, true );
 		}
 		else if( FParse::Command(&TempCmd,TEXT("DUMPFRAME")) )
+		{
+		}
+		else if( FParse::Command(&TempCmd,TEXT("DumpMemory")) )
 		{
 		}
 		else if ( FParse::Command(&TempCmd,TEXT("DUMPNONFRAME")) )
@@ -1360,11 +1486,29 @@ bool DirectStatsCommand(const TCHAR* Cmd, bool bBlockForCompletion /*= false*/, 
 		else if ( FParse::Command( &TempCmd, TEXT( "toggledebug" ) ) )
 		{
 		}
+		else if ( FParse::Command( &TempCmd, TEXT( "memoryprofiler" ) ) )
+		{
+		}
 		else
-#endif
 		{
 			bResult = false;
+
+			FString MaybeGroup;
+			if (FParse::Token(TempCmd, MaybeGroup, false) && MaybeGroup.Len() > 0)
+			{
+				// If there is + at the end of the group name, remove it
+				const int32 PlusPos = MaybeGroup.Len() - 1;
+				const bool bHierarchy = MaybeGroup[MaybeGroup.Len() - 1] == TEXT('+');
+				if (bHierarchy)
+				{
+					MaybeGroup.RemoveAt(PlusPos, 1, false);
+				}
+
+				const FName MaybeGroupFName = FName(*(FString(TEXT("STATGROUP_")) + MaybeGroup));
+				bResult = FStatGroupGameThreadNotifier::Get().StatGroupNames.Contains(MaybeGroupFName);
+			}
 		}
+#endif
 
 		check(IsInGameThread());
 		if( !bIsEmpty )

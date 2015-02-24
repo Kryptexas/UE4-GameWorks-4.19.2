@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "WorldBrowserPrivatePCH.h"
 #include "SourceControlWindows.h"
@@ -8,6 +8,8 @@
 
 #include "LevelCollectionModel.h"
 #include "ShaderCompiler.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
@@ -565,7 +567,9 @@ void FLevelCollectionModel::UnloadLevels(const FLevelModelList& InLevelList)
 
 	
 	// Remove each level!
-	for(auto It = InLevelList.CreateConstIterator(); It; ++It)
+	// Take a copy of the list rather than using a reference to the selected levels list, as this will be modified in the loop below
+	const FLevelModelList LevelListCopy = InLevelList;
+	for (auto It = LevelListCopy.CreateConstIterator(); It; ++It)
 	{
 		TSharedPtr<FLevelModel> LevelModel = (*It);
 		ULevel* Level = LevelModel->GetLevelObject();
@@ -682,9 +686,9 @@ void FLevelCollectionModel::CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) c
 	}
 }
 
-FMatrix FLevelCollectionModel::GetObserverViewMatrix() const
+bool FLevelCollectionModel::GetObserverView(FVector& Location, FRotator& Rotation) const
 {
-	return FMatrix::Identity;
+	return false;
 }
 
 bool FLevelCollectionModel::CompareLevelsZOrder(TSharedPtr<FLevelModel> InA, TSharedPtr<FLevelModel> InB) const
@@ -1114,10 +1118,10 @@ void FLevelCollectionModel::SCCDiffAgainstDepot(const FLevelModelList& InList, U
 							FRevisionInfo OldRevision;
 							OldRevision.Changelist = Revision->GetCheckInIdentifier();
 							OldRevision.Date = Revision->GetDate();
-							OldRevision.Revision = Revision->GetRevisionNumber();
+							OldRevision.Revision = Revision->GetRevision();
 
 							FRevisionInfo NewRevision; 
-							NewRevision.Revision = -1;
+							NewRevision.Revision = TEXT("");
 
 							// Dump assets to temp text files
 							FString OldTextFilename = AssetToolsModule.Get().DumpAssetToTempFile(OldPackage);

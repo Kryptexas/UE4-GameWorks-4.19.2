@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -57,16 +57,12 @@ public:
 		SLATE_ATTRIBUTE( TRange<float>, ViewRange )
 		/** The current scrub position in (seconds) */
 		SLATE_ATTRIBUTE( float, ScrubPosition )
-		/** Whether or not to allow auto-key */
-		SLATE_ATTRIBUTE( bool, AllowAutoKey )
 		/** Whether the clean sequencer view is enabled */
 		SLATE_ATTRIBUTE( bool, CleanViewEnabled )
 		/** Called when the user changes the view range */
 		SLATE_EVENT( FOnViewRangeChanged, OnViewRangeChanged )
 		/** Called when the user changes the scrub position */
 		SLATE_EVENT( FOnScrubPositionChanged, OnScrubPositionChanged )
-		/** Called when the user toggles auto-key */
-		SLATE_EVENT( FOnToggleBoolOption, OnToggleAutoKey )
 		/** Called when the user toggles auto-key */
 		SLATE_EVENT( FOnToggleBoolOption, OnToggleCleanView )
 	SLATE_END_ARGS()
@@ -95,17 +91,11 @@ public:
 	void DeleteSelectedNodes();
 
 private:
-	/**
-	 * @return The state of the auto-key check box
-	 */
-	ESlateCheckBoxState::Type OnGetAutoKeyCheckState() const;
-	
-	/**
-	 * Called when the auto-key checkbox state changes
-	 * 
-	 * @param InState	The new state
-	 */
-	void OnAutoKeyChecked( ESlateCheckBoxState::Type InState );	
+	/** Makes the toolbar for the outline section. */
+	TSharedRef<SWidget> MakeToolBar();
+
+	/** Makes the snapping menu for the toolbar. */
+	TSharedRef<SWidget> MakeSnapMenu();
 	
 	/** @return The visibility of the clean view button */
 	EVisibility OnGetCleanViewVisibility() const;
@@ -113,14 +103,26 @@ private:
 	/**
 	 * @return The state of the auto-key check box
 	 */
-	ESlateCheckBoxState::Type OnGetCleanViewCheckState() const;
+	ECheckBoxState OnGetCleanViewCheckState() const;
 	
 	/**
 	 * Called when the auto-key checkbox state changes
 	 * 
 	 * @param InState	The new state
 	 */
-	void OnCleanViewChecked( ESlateCheckBoxState::Type InState );	
+	void OnCleanViewChecked( ECheckBoxState InState );	
+
+	/**
+	* @return The value of the current snap interval.
+	*/
+	TOptional<float> OnGetSnapInterval() const;
+
+	/**
+	* Called when the snap interval slider changes.
+	*
+	* @param InInterval	The new snap interval
+	*/
+	void OnSnapIntervalChanged(float InInterval);
 
 	/**
 	 * Called when the outliner search terms change                                                              
@@ -131,7 +133,7 @@ private:
 	 * @return The fill percentage of the animation outliner
 	 * @todo Sequencer Make this user adjustable
 	 */
-	float GetAnimationOutlinerFillPercentage() const { return .2f; }
+	float GetAnimationOutlinerFillPercentage() const { return .25f; }
 
 	/**
 	 * Creates an overlay for various components of the time slider that should be displayed on top or bottom of the section area
@@ -195,10 +197,6 @@ private:
 	TSharedPtr<class FSequencerNodeTree> SequencerNodeTree;
 	/** The breadcrumb trail widget for this sequencer */
 	TSharedPtr< class SBreadcrumbTrail<FSequencerBreadcrumb> > BreadcrumbTrail;
-	/** Delegate to call when auto-key is toggled */
-	FOnToggleBoolOption OnToggleAutoKey;
-	/** Whether or not to allow auto-key */
-	TAttribute<bool> AllowAutoKey;
 	/** Delegate to call when clean view is toggled */
 	FOnToggleBoolOption OnToggleCleanView;
 	/** Whether the clean sequencer view is enabled */

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "../../../Renderer/Private/ScenePrivate.h"
@@ -100,7 +100,7 @@ UAtmosphericFogComponent::UAtmosphericFogComponent(const FObjectInitializer& Obj
 
 	// Default lighting
 	DefaultBrightness = 50.f;
-	DefaultLightColor = FColor(255, 255, 255);
+	DefaultLightColor = FColor::White;
 
 	bDisableSunDisk = false;
 	bDisableGroundScattering = false;
@@ -502,13 +502,14 @@ void UAtmosphericFogComponent::PostEditChangeProperty(FPropertyChangedEvent& Pro
 {
 	const FName CategoryName = FObjectEditorUtils::GetCategoryFName(PropertyChangedEvent.Property);
 
+	bool bNeedsPrecompute = false;
 	if( CategoryName == FName(TEXT("AtmosphereParam")) )
 	{
 		// Recompute when precompute parameters were changed
 		PrecomputeParams.DensityHeight = FMath::Clamp(PrecomputeParams.DensityHeight, 0.1f, 1.f);
 		PrecomputeParams.MaxScatteringOrder = FMath::Clamp(PrecomputeParams.MaxScatteringOrder, 1, 4);
 		PrecomputeParams.InscatterAltitudeSampleNum = FMath::Clamp(PrecomputeParams.InscatterAltitudeSampleNum, 2, 32);
-		StartPrecompute();
+		bNeedsPrecompute = true;
 	}
 	else
 	{
@@ -524,6 +525,11 @@ void UAtmosphericFogComponent::PostEditChangeProperty(FPropertyChangedEvent& Pro
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (bNeedsPrecompute)
+	{
+		StartPrecompute();
+	}
 }
 #endif // WITH_EDITOR
 
@@ -664,26 +670,23 @@ void UAtmosphericFogComponent::Serialize(FArchive& Ar)
 		IrradianceData.Serialize(Ar, this);
 	}
 
-	if (Ar.UE4Ver() >= VER_UE4_ATMOSPHERIC_FOG_CACHE_TEXTURE)
-	{
-		InscatterData.Serialize(Ar,this);
+	InscatterData.Serialize(Ar,this);
 
-		if (Ar.IsLoading())
+	if (Ar.IsLoading())
+	{
+		int32 CounterVal;
+		Ar << CounterVal;
+		// Precomputation was not successful, just ignore it
+		if (CounterVal < EValid)
 		{
-			int32 CounterVal;
-			Ar << CounterVal;
-			// Precomputation was not successful, just ignore it
-			if (CounterVal < EValid)
-			{
-				CounterVal = EInvalid;
-			}
-			PrecomputeCounter.Set(CounterVal);
+			CounterVal = EInvalid;
 		}
-		else
-		{
-			int32 CounterVal = PrecomputeCounter.GetValue();
-			Ar << CounterVal;
-		}
+		PrecomputeCounter.Set(CounterVal);
+	}
+	else
+	{
+		int32 CounterVal = PrecomputeCounter.GetValue();
+		Ar << CounterVal;
 	}
 
 	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_ATMOSPHERIC_FOG_CACHE_DATA && PrecomputeCounter.GetValue() == EValid) 
@@ -698,19 +701,20 @@ void UAtmosphericFogComponent::Serialize(FArchive& Ar)
 }
 
 /** Used to store lightmap data during RerunConstructionScripts */
-class FAtmospherePrecomputeInstanceData : public FComponentInstanceDataBase
+class FAtmospherePrecomputeInstanceData : public FSceneComponentInstanceData
 {
 public:
 	FAtmospherePrecomputeInstanceData(const UAtmosphericFogComponent* SourceComponent)
-		: FComponentInstanceDataBase(SourceComponent)
+		: FSceneComponentInstanceData(SourceComponent)
 	{}
 
 	virtual ~FAtmospherePrecomputeInstanceData()
 	{}
 
-	virtual bool MatchesComponent(const UActorComponent* Component) const override
+	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
 	{
-		return (PrecomputeParameter == CastChecked<UAtmosphericFogComponent>(Component)->GetPrecomputeParameters());
+		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
+		CastChecked<UAtmosphericFogComponent>(Component)->ApplyComponentInstanceData(this);
 	}
 
 	struct FAtmospherePrecomputeParameters PrecomputeParameter;
@@ -727,14 +731,15 @@ FName UAtmosphericFogComponent::GetComponentInstanceDataType() const
 }
 
 // Backup the precomputed data before re-running Blueprint construction script
-FComponentInstanceDataBase* UAtmosphericFogComponent::GetComponentInstanceData() const
+FActorComponentInstanceData* UAtmosphericFogComponent::GetComponentInstanceData() const
 {
-	FAtmospherePrecomputeInstanceData* PrecomputedData = nullptr;
+	FActorComponentInstanceData* InstanceData = nullptr;
 
 	if (TransmittanceData.GetElementCount() && IrradianceData.GetElementCount() && InscatterData.GetElementCount() && PrecomputeCounter.GetValue() == EValid)
 	{
 		// Allocate new struct for holding light map data
-		 PrecomputedData = new FAtmospherePrecomputeInstanceData(this);
+		 FAtmospherePrecomputeInstanceData* PrecomputedData = new FAtmospherePrecomputeInstanceData(this);
+		 InstanceData = PrecomputedData;
 
 		// Fill in info
 		PrecomputedData->PrecomputeParameter = PrecomputeParams;
@@ -762,15 +767,23 @@ FComponentInstanceDataBase* UAtmosphericFogComponent::GetComponentInstanceData()
 			PrecomputedData->InscatterData.Unlock();
 		}
 	}
+	else
+	{
+		InstanceData = Super::GetComponentInstanceData();
+	}
 
-	return PrecomputedData;
+	return InstanceData;
 }
 
 // Restore the precomputed data after re-running Blueprint construction script
-void UAtmosphericFogComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
+void UAtmosphericFogComponent::ApplyComponentInstanceData(FAtmospherePrecomputeInstanceData* PrecomputedData)
 {
-	check(ComponentInstanceData);
-	FAtmospherePrecomputeInstanceData* PrecomputedData = static_cast<FAtmospherePrecomputeInstanceData*>(const_cast<FComponentInstanceDataBase*>(ComponentInstanceData));
+	check(PrecomputedData);
+
+	if (PrecomputedData->PrecomputeParameter != GetPrecomputeParameters())
+	{
+		return;
+	}
 
 	FComponentReregisterContext ReregisterContext(this);
 	ReleaseResource();

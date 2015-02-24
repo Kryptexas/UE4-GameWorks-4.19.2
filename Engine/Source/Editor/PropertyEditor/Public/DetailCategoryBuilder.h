@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -81,12 +81,22 @@ public:
 	virtual IDetailPropertyRow* AddExternalProperty( const TArray<UObject*>& Objects, FName PropertyName, EPropertyLocation::Type Location = EPropertyLocation::Default ) = 0;
 
 	/**
+	 * Adds an external property, that is contained within a UStruct, that is not a property on the object(s) being customized 
+	 *
+	 * @param StructData		Struct data to find the property within
+	 * @param PropertyName		The name of the property to view
+	 * @param Location			The location within the category where the property is shown
+	 * @return A property row for customizing the property or NULL if the property could not be found
+	 */
+	virtual IDetailPropertyRow* AddExternalProperty( TSharedPtr<FStructOnScope> StructData, FName PropertyName, EPropertyLocation::Type Location = EPropertyLocation::Default ) = 0;
+
+	/**
 	 * Adds a custom widget row to the category
 	 *
 	 * @param FilterString	 A string which is used to filter this custom row when a user types into the details panel search box
 	 * @param bForAdvanced	 Whether the widget should appear in the advanced section
 	 */
-	virtual FDetailWidgetRow& AddCustomRow( const FString& FilterString, bool bForAdvanced = false ) = 0;
+	virtual FDetailWidgetRow& AddCustomRow( const FText& FilterString, bool bForAdvanced = false ) = 0;
 
 	/**
 	 * Adds a custom builder to the category (for more complicated layouts)
@@ -104,7 +114,7 @@ public:
 	 * @param true if the group should appear in the advanced section of the category
 	 * @param true if the group should start expanded
 	 */
-	virtual IDetailGroup& AddGroup( FName GroupName, const FString& LocalizedDisplayName, bool bForAdvanced = false, bool bStartExpanded = false ) = 0;
+	virtual IDetailGroup& AddGroup( FName GroupName, const FText& LocalizedDisplayName, bool bForAdvanced = false, bool bStartExpanded = false ) = 0;
 
 	/**
 	 * Gets the default propeties of this category
@@ -123,5 +133,5 @@ public:
 	/**
 	 * @return The localized display name of the category
 	 */
-	virtual const FString& GetDisplayName() const = 0;
+	virtual const FText& GetDisplayName() const = 0;
 };

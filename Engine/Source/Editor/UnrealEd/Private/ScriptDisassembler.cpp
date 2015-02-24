@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScriptDisassembler.cpp: Disassembler for Kismet bytecode.
@@ -447,6 +447,11 @@ void FKismetBytecodeDisassembler::ProcessCommon(int32& ScriptIndex, EExprToken O
 			break;
 		}
 	case EX_NoObject:
+		{
+			Ar.Logf(TEXT("%s $%X: EX_NoObject"), *Indents, (int32)Opcode);
+			break;
+		}
+	case EX_NoInterface:
 		{
 			Ar.Logf(TEXT("%s $%X: EX_NoObject"), *Indents, (int32)Opcode);
 			break;

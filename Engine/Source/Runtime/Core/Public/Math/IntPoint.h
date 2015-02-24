@@ -1,12 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	IntPoint.h: Declares the FIntPoint structure.
-=============================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "Containers/UnrealString.h"
 #include "HAL/Platform.h"
+
 
 /**
  * Structure for integer points in 2-d space.
@@ -31,10 +29,8 @@ public:
 
 public:
 
-	/**
-	 * Default constructor (no initialization).
-	 */
-	FIntPoint( );
+	/** Default constructor (no initialization). */
+	FIntPoint();
 
 	/**
 	 * Creates and initializes a new instance with the specified coordinates.
@@ -189,6 +185,12 @@ public:
 	*/
 	int32 operator[](int32 Index) const;
 
+	/** Gets the component-wise min of two vectors. */
+	FORCEINLINE FIntPoint ComponentMin(const FIntPoint& Other) const;
+
+	/** Gets the component-wise max of two vectors. */
+	FORCEINLINE FIntPoint ComponentMax(const FIntPoint& Other) const;
+
 public:
 
 	/**
@@ -197,7 +199,7 @@ public:
 	 * @return The maximum value in the point.
 	 * @see GetMin, Size, SizeSquared
 	 */
-	int32 GetMax( ) const;
+	int32 GetMax() const;
 
 	/**
 	 * Gets the minimum value in the point.
@@ -205,7 +207,7 @@ public:
 	 * @return The minimum value in the point.
 	 * @see GetMax, Size, SizeSquared
 	 */
-	int32 GetMin( ) const;
+	int32 GetMin() const;
 
 	/**
 	 * Gets the distance of this point from (0,0).
@@ -213,7 +215,7 @@ public:
 	 * @return The distance of this point from (0,0).
 	 * @see GetMax, GetMin, SizeSquared
 	 */
-	int32 Size( ) const;
+	int32 Size() const;
 
 	/**
 	 * Gets the squared distance of this point from (0,0).
@@ -221,14 +223,14 @@ public:
 	 * @return The squared distance of this point from (0,0).
 	 * @see GetMax, GetMin, Size
 	 */
-	int32 SizeSquared( ) const;
+	int32 SizeSquared() const;
 	
 	/**
 	 * Get a textual representation of this point.
 	 *
 	 * @return A string describing the point.
 	 */
-	FString ToString( ) const;
+	FString ToString() const;
 
 public:
 
@@ -256,7 +258,7 @@ public:
 	 * Gets number of components point has.
 	 * @return number of components point has.
 	 */
-	static int32 Num( );
+	static int32 Num();
 
 public:
 
@@ -274,10 +276,10 @@ public:
 };
 
 
-/* FInterval inline functions
+/* FIntPoint inline functions
  *****************************************************************************/
 
-FORCEINLINE FIntPoint::FIntPoint( ) { }
+FORCEINLINE FIntPoint::FIntPoint() { }
 
 
 FORCEINLINE FIntPoint::FIntPoint( int32 InX, int32 InY )
@@ -304,7 +306,7 @@ FORCEINLINE int32& FIntPoint::operator()( int32 PointIndex )
 }
 
 
-FORCEINLINE int32 FIntPoint::Num( )
+FORCEINLINE int32 FIntPoint::Num()
 {
 	return 2;
 }
@@ -387,11 +389,13 @@ FORCEINLINE FIntPoint FIntPoint::operator/( int32 Divisor ) const
 	return FIntPoint(*this) /= Divisor;
 }
 
+
 FORCEINLINE int32& FIntPoint::operator[](int32 Index)
 {
 	check(Index >= 0 && Index < 2);
 	return ((Index == 0) ? X : Y);
 }
+
 
 FORCEINLINE int32 FIntPoint::operator[](int32 Index) const
 {
@@ -399,15 +403,30 @@ FORCEINLINE int32 FIntPoint::operator[](int32 Index) const
 	return ((Index == 0) ? X : Y);
 }
 
+
+FORCEINLINE FIntPoint FIntPoint::ComponentMin(const FIntPoint& Other) const
+{
+	return FIntPoint(FMath::Min(X, Other.X), FMath::Min(Y, Other.Y));
+}
+
+
+FORCEINLINE FIntPoint FIntPoint::ComponentMax(const FIntPoint& Other) const
+{
+	return FIntPoint(FMath::Max(X, Other.X), FMath::Max(Y, Other.Y));
+}
+
+
 FORCEINLINE FIntPoint FIntPoint::DivideAndRoundUp( FIntPoint lhs, int32 Divisor )
 {
 	return FIntPoint(FMath::DivideAndRoundUp(lhs.X, Divisor), FMath::DivideAndRoundUp(lhs.Y, Divisor));
 }	
 
+
 FORCEINLINE FIntPoint FIntPoint::DivideAndRoundDown( FIntPoint lhs, int32 Divisor )
 {
 	return FIntPoint(FMath::DivideAndRoundDown(lhs.X, Divisor), FMath::DivideAndRoundDown(lhs.Y, Divisor));
 }	
+
 
 FORCEINLINE FIntPoint FIntPoint::operator+( const FIntPoint& Other ) const
 {
@@ -427,24 +446,24 @@ FORCEINLINE FIntPoint FIntPoint::operator/( const FIntPoint& Other ) const
 }
 
 
-FORCEINLINE int32 FIntPoint::GetMax( ) const
+FORCEINLINE int32 FIntPoint::GetMax() const
 {
 	return FMath::Max(X, Y);
 }
 
 
-FORCEINLINE int32 FIntPoint::GetMin( ) const
+FORCEINLINE int32 FIntPoint::GetMin() const
 {
 	return FMath::Min(X,Y);
 }
 
-FORCEINLINE uint32 GetTypeHash( const FIntPoint& InPoint )
+FORCEINLINE uint32 GetTypeHash(const FIntPoint& InPoint)
 {
-	return FCrc::MemCrc_DEPRECATED(&InPoint, sizeof(FIntPoint));
+	return HashCombine(GetTypeHash(InPoint.X), GetTypeHash(InPoint.Y));
 }
 
 
-FORCEINLINE int32 FIntPoint::Size( ) const
+FORCEINLINE int32 FIntPoint::Size() const
 {
 	return int32(FMath::Sqrt( float(X*X + Y*Y)));
 }
@@ -454,7 +473,7 @@ FORCEINLINE int32 FIntPoint::SizeSquared() const
 	return X*X + Y*Y;
 }
 
-FORCEINLINE FString FIntPoint::ToString( ) const
+FORCEINLINE FString FIntPoint::ToString() const
 {
 	return FString::Printf(TEXT("X=%d Y=%d"), X, Y);
 }

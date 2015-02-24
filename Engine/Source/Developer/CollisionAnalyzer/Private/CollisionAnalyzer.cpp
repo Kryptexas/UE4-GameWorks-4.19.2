@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CollisionAnalyzerPCH.h"
 #include "CollisionDebugDrawingPublic.h"
@@ -8,18 +8,18 @@
 
 
 void FCollisionAnalyzer::CaptureQuery(	const FVector& Start, 
-									  const FVector& End, 
-									  const FQuat& Rot, 
-									  ECAQueryType::Type QueryType, 
-									  ECAQueryShape::Type QueryShape, 
-									  const FVector& Dims, 
-									  ECollisionChannel TraceChannel, 
-									  const struct FCollisionQueryParams& Params, 
-									  const FCollisionResponseParams&	ResponseParams,
-									  const FCollisionObjectQueryParams&	ObjectParams,
-									  const TArray<FHitResult>& Results, 
-									  const TArray<FHitResult>& TouchAllResults,
-									  double CPUTime ) 
+										const FVector& End, 
+										const FQuat& Rot, 
+										ECAQueryType::Type QueryType, 
+										ECAQueryShape::Type QueryShape, 
+										const FVector& Dims, 
+										ECollisionChannel TraceChannel, 
+										const struct FCollisionQueryParams& Params, 
+										const FCollisionResponseParams&	ResponseParams,
+										const FCollisionObjectQueryParams&	ObjectParams,
+										const TArray<FHitResult>& Results, 
+										const TArray<FHitResult>& TouchAllResults,
+										double CPUTime) 
 {
 	if(bIsRecording)
 	{
@@ -38,7 +38,9 @@ void FCollisionAnalyzer::CaptureQuery(	const FVector& Start,
 		NewQuery.Results = Results;
 		NewQuery.TouchAllResults = TouchAllResults;
 		NewQuery.FrameNum = CurrentFrameNum;
-		NewQuery.CPUTime = CPUTime * 1000.f;
+		NewQuery.CPUTime = CPUTime * 1000.f;		
+		NewQuery.ID = NewQueryId;
+
 
 		QueryAddedEvent.Broadcast();
 	}
@@ -105,7 +107,7 @@ void FCollisionAnalyzer::TickAnalyzer(UWorld* World)
 	// Draw debug box if desired
 	if(DrawBox.IsValid)
 	{
-		DrawDebugBox(World, DrawBox.GetCenter(), DrawBox.GetExtent(), FColor(255,255,255));
+		DrawDebugBox(World, DrawBox.GetCenter(), DrawBox.GetExtent(), FColor::White);
 	}
 }
 

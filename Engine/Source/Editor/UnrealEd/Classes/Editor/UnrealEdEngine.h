@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "UniquePtr.h"
@@ -178,6 +178,7 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	virtual void SelectActor(AActor* Actor, bool InSelected, bool bNotify, bool bSelectEvenIfHidden=false) override;
 	virtual bool CanSelectActor(AActor* Actor, bool InSelected, bool bSelectEvenIfHidden=false, bool bWarnIfLevelLocked=false) const override;
 	virtual void SelectGroup(AGroupActor* InGroupActor, bool bForceSelection=false, bool bInSelected=true, bool bNotify=true) override;
+	virtual void SelectComponent(class UActorComponent* Component, bool bInSelected, bool bNotify, bool bSelectEvenIfHidden = false) override;
 	virtual void SelectBSPSurf(UModel* InModel, int32 iSurf, bool bSelected, bool bNoteSelectionChange) override;
 	virtual void SelectNone(bool bNoteSelectionChange, bool bDeselectBSPSurfs, bool WarnAboutManyActors=true) override;
 	virtual void NoteSelectionChange() override;
@@ -209,7 +210,7 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	// End UEngine Interface.
 
 	/** Builds a list of sprite categories for use in menus */
-	void MakeSortedSpriteInfo(TArray<struct FSpriteCategoryInfo>& OutSortedSpriteInfo) const;
+	static void MakeSortedSpriteInfo(TArray<struct FSpriteCategoryInfo>& OutSortedSpriteInfo);
 
 	/** called when a package has has its dirty state updated */
 	void OnPackageDirtyStateUpdated( UPackage* Pkg);
@@ -297,7 +298,6 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	bool Exec_Pivot( const TCHAR* Str, FOutputDevice& Ar );
 	bool Exec_Actor( UWorld* InWorld, const TCHAR* Str, FOutputDevice& Ar );
 	bool Exec_Mode( const TCHAR* Str, FOutputDevice& Ar );
-	bool Exec_SkeletalMesh( const TCHAR* Str, FOutputDevice& Ar );
 	bool Exec_Group( const TCHAR* Str, FOutputDevice& Ar );
 
 
@@ -542,7 +542,12 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	/**
 	 * Can the editor do cook by the book in the editor process space
 	 */
-	virtual bool CanCookByTheBookInEditor() const;
+	virtual bool CanCookByTheBookInEditor(const FString& PlatformName) const override;
+
+	/**
+	 * Can the editor act as a cook on the fly server
+	 */
+	virtual bool CanCookOnTheFlyInEditor(const FString& PlatformName) const override;
 
 	/**
 	 * Start cook by the book in the editor process space
@@ -693,7 +698,7 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	*
 	* @param	VolumeClasses		Array to populate with AVolume classes.
 	*/
-	void GetSortedVolumeClasses( TArray< UClass* >* VolumeClasses );
+	static void GetSortedVolumeClasses( TArray< UClass* >* VolumeClasses );
 
 	/**
 	 * Checks the destination level visibility and warns the user if he is trying to paste to a hidden level, offering the option to cancel the operation or unhide the level that is hidden
@@ -726,18 +731,24 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	bool HandleUpdateLandscapeEditorDataCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleUpdateLandscapeMICCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleRecreateLandscapeCollisionCommand(const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld);
+	bool HandleRemoveLandscapeXYOffsetsCommand(const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld);
 	bool HandleConvertMatineesCommand( const TCHAR* Str, FOutputDevice& Ar, UWorld* InWorld );
 	bool HandleDisasmScriptCommand( const TCHAR* Str, FOutputDevice& Ar );	
 
 	/** OnEditorModeChanged delegate which looks for Matinee editor closing */
 	void OnMatineeEditorClosed( class FEdMode* Mode, bool IsEntering );
+
+	bool IsComponentSelected(const UPrimitiveComponent* PrimComponent);
 	
 protected:
 	EWriteDisallowedWarningState GetWarningStateForWritePermission(const FString& PackageName) const;
-
+	
 	/** The package auto-saver instance used by the editor */
 	TUniquePtr<IPackageAutoSaver> PackageAutoSaver;
 
 	/** Instance responsible for monitoring this editor's performance */
 	FPerformanceMonitor* PerformanceMonitor;
+
+	/** Handle to the registered OnMatineeEditorClosed delegate. */
+	FDelegateHandle OnMatineeEditorClosedDelegateHandle;
 };

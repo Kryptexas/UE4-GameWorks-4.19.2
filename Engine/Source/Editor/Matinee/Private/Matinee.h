@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,9 +17,11 @@
 #include "SMatineeRecorder.h"
 
 #include "Editor/DistCurveEditor/Public/IDistCurveEditor.h"
+#include "Editor/UnrealEd/Classes/Editor/Transactor.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSlateMatinee, Log, All);
 
+class UInterpTrackMove;
 
 class FMatinee : public IMatinee, public FGCObject, public FCurveEdNotifyInterface
 {
@@ -97,6 +99,9 @@ public:
 
 	/** Starts recording the current sequence */
 	void StartRecordingMovie() override;
+
+	/** Handle undo redo events */
+	void OnPostUndoRedo(FUndoSessionContext SessionContext, bool Succeeded);
 
 	// Menu handlers
 	void OnMenuAddKey();
@@ -1280,9 +1285,9 @@ protected:
 
 	TSharedRef<SWidget> AddFilterButton(UInterpFilter* Filter);
 
-	void SetFilterActive(ESlateCheckBoxState::Type CheckStatus, UInterpFilter* Filter);
+	void SetFilterActive(ECheckBoxState CheckStatus, UInterpFilter* Filter);
 
-	ESlateCheckBoxState::Type GetFilterActive(UInterpFilter* Filter) const;
+	ECheckBoxState GetFilterActive(UInterpFilter* Filter) const;
 
 	/** Holds the slate object for the Matinee Recorder. */
 	TWeakPtr<SMatineeRecorder> MatineeRecorderWindow;
@@ -1532,6 +1537,9 @@ private:
 	};
 	TMap<UInterpTrack*, AddKeyInfo> AddKeyInfoMap;
 	TMap<UInterpTrack*, int32> TrackToNewKeyIndexMap;
+
+	/** Handle to the registered OnActorMoved delegate */
+	FDelegateHandle OnActorMovedDelegateHandle;
 
 	/** For keeping track of the previously used camera, so we can detect cuts when playing back in editor mode */
 	ACameraActor* PreviousCamera;

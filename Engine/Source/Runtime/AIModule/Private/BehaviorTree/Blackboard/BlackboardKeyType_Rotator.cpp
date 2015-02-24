@@ -1,7 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Rotator.h"
+
+const UBlackboardKeyType_Rotator::FDataType UBlackboardKeyType_Rotator::InvalidValue = FAISystem::InvalidRotation;
 
 UBlackboardKeyType_Rotator::UBlackboardKeyType_Rotator(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {

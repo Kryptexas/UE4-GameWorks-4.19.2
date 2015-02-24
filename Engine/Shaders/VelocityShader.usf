@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VelocityShader.usf: Calculates velocity vectors.
@@ -12,12 +12,16 @@
 #define GPUSKIN_PASS_THROUGH 0
 #endif
 
-/*=============================================================================
- * Vertex Shader
- *============================================================================*/
+// Move all geometry a little bit towards the camera to not get z fighting with existing depth
+// buffer of the same meshes rendered with slightly different float computations.
+// This is a positive number as our z buffer is inverted for better precision.
 
-// Move all geometry a little bit towards the camera
-static const float GStretchTimeScale = -0.001f;
+// for tessellation
+static const float GTessellationDepthBias = 0.001f;
+// for non tessellation: 0.0f as the isolate code should do a good job to prevent this case (can be increased if that is not the case e.g. if the platform ignores the isolate)
+static const float GNonTessellationDepthBias = 0.0f;
+
+//
 
 struct FVelocityInterpsVSToPS
 {
@@ -90,8 +94,8 @@ struct FVelocityVSToPS
 			O.Position = mul(WorldPosition, View.TranslatedWorldToClip);
 		}
 
-		// Move all geometry a little bit towards the camera.
-		O.Position.z += GStretchTimeScale * O.Position.w;
+		// Move all geometry a little bit towards the camera (to not get z fighting with existing zbuffer of the same meshes rendered with slightly different float computations).
+		O.Position.z += GTessellationDepthBias * O.Position.w;
 		
 		O.Interps.PackedVelocityA = Interpolants.Interps.PackedVelocityA;
 		O.Interps.PackedVelocityC = Interpolants.Interps.PackedVelocityC;
@@ -101,6 +105,10 @@ struct FVelocityVSToPS
 	
 	#include "Tessellation.usf"
 #endif
+	
+/*=============================================================================
+ * Vertex Shader
+ *============================================================================*/
 
 void MainVertexShader(
 	FVertexFactoryInput Input,
@@ -161,8 +169,8 @@ void MainVertexShader(
 	}
 
 #if !USING_TESSELLATION
-	// Move all geometry a little bit towards the camera.
-	//Output.Position.z += GStretchTimeScale * Output.Position.w;
+	// Move all geometry a little bit towards the camera (to not get z fighting with existing zbuffer of the same meshes rendered with slightly different float computations).
+	Output.Position.z += GNonTessellationDepthBias * Output.Position.w;
 #endif
 
 #if USING_TESSELLATION
@@ -180,14 +188,14 @@ float4 IndividualVelocityScale;
  
 void MainPixelShader(
 	FVelocityInterpsVSToPS Input,
-	float4	PixelPosition	: SV_POSITION,
+	in float4 SvPosition : SV_Position,
 	OPTIONAL_IsFrontFace,
 	out float4 OutColor : SV_Target0
 	)
 {
 	// Manual clipping here (alpha-test, etc)
-	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Input.FactoryInterpolants, PixelPosition);
-	CalcMaterialParameters(MaterialParameters, bIsFrontFace, PixelPosition);
+	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Input.FactoryInterpolants, SvPosition);
+	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace, SvPosition);
 	GetMaterialCoverageAndClipping(MaterialParameters);
 
 	float2 ScreenPosition = Input.PackedVelocityA.xy / Input.PackedVelocityA.w - View.ViewToClip[2].xy;

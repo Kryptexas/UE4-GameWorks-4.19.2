@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	NavMeshRenderingComponent.cpp: A component that renders a nav mesh.
@@ -100,9 +100,6 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 	CurrentData->bEnableDrawing = NavMesh->bEnableDrawing;
 	CurrentData->bNeedsNewData = false;
 
-	static const auto CVarUseGetMeshElements = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.UseGetMeshElements"));
-	const bool bUseGetMeshElements = !GRHICommandList.Bypass() || CVarUseGetMeshElements->GetValueOnGameThread() != 0;
-
 	if (CurrentData && NavMesh && NavMesh->bEnableDrawing)
 	{
 		FHitProxyId HitProxyId = FHitProxyId();
@@ -158,18 +155,9 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 				const TArray<int32>& MeshIndices = CurrentData->NavMeshGeometry.AreaIndices[AreaIdx];
 				for (int32 Idx=0; Idx<MeshIndices.Num(); Idx += 3)
 				{
-					if (bUseGetMeshElements)
-					{
-						CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(MeshVerts[MeshIndices[Idx + 0]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx + 1]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges, DefaultEdges_LineThickness));
-						CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(MeshVerts[MeshIndices[Idx + 1]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx + 2]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges, DefaultEdges_LineThickness));
-						CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(MeshVerts[MeshIndices[Idx + 2]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx + 0]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges, DefaultEdges_LineThickness));
-					}
-					else
-					{
-						CurrentData->BatchedElements.AddLine(MeshVerts[MeshIndices[Idx + 0]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx + 1]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges, HitProxyId, DefaultEdges_LineThickness, 0, true);
-						CurrentData->BatchedElements.AddLine(MeshVerts[MeshIndices[Idx + 1]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx + 2]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges, HitProxyId, DefaultEdges_LineThickness, 0, true);
-						CurrentData->BatchedElements.AddLine(MeshVerts[MeshIndices[Idx + 2]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx + 0]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges, HitProxyId, DefaultEdges_LineThickness, 0, true);
-					}
+					CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(MeshVerts[MeshIndices[Idx + 0]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx + 1]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges, DefaultEdges_LineThickness));
+					CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(MeshVerts[MeshIndices[Idx + 1]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx + 2]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges, DefaultEdges_LineThickness));
+					CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(MeshVerts[MeshIndices[Idx + 2]] + CurrentData->NavMeshDrawOffset, MeshVerts[MeshIndices[Idx + 0]] + CurrentData->NavMeshDrawOffset, NavMeshRenderColor_Recast_TriangleEdges, DefaultEdges_LineThickness));
 				}
 			}
 		}
@@ -195,35 +183,6 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 			}
 		}
 
-		if (NavMesh->bDrawPathCollidingGeometry)
-		{
-			// draw all geometry gathered in navoctree
-			const FNavigationOctree* NavOctree = NavMesh->GetWorld()->GetNavigationSystem()->GetNavOctree();
-
-			for (FNavigationOctree::TConstIterator<> It(*NavOctree); It.HasPendingNodes(); It.Advance())
-			{
-				const FNavigationOctree::FNode& Node = It.GetCurrentNode();
-				for (FNavigationOctree::ElementConstIt ElementIt(Node.GetElementIt()); ElementIt; ElementIt++)
-				{
-					const FNavigationOctreeElement& Element = *ElementIt;
-					if (Element.ShouldUseGeometry(&NavMesh->NavDataConfig) && Element.Data.CollisionData.Num())
-					{
-						const FRecastGeometryCache CachedGeometry(Element.Data.CollisionData.GetData());
-						AppendGeometry(CurrentData->PathCollidingGeomVerts, CurrentData->PathCollidingGeomIndices,
-							CachedGeometry.Verts, CachedGeometry.Header.NumVerts, CachedGeometry.Indices, CachedGeometry.Header.NumFaces);
-					}
-				}
-
-				FOREACH_OCTREE_CHILD_NODE(ChildRef)
-				{
-					if (Node.HasChild(ChildRef))
-					{
-						It.PushChild(ChildRef);
-					}
-				}
-			}
-		}
-		
 		// offset all navigation-link positions
 		if (!NavMesh->bDrawClusters)
 		{
@@ -340,20 +299,10 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 						FVector UR(TileBox.Max.X, TileBox.Max.Y, DrawZ);
 						FVector UL(LL.X, UR.Y, DrawZ);
 						FVector LR(UR.X, LL.Y, DrawZ);
-						if (bUseGetMeshElements)
-						{
-							CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(LL, UL, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
-							CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(UL, UR, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
-							CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(UR, LR, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
-							CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(LR, LL, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
-						}
-						else
-						{
-							CurrentData->BatchedElements.AddLine(LL, UL, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
-							CurrentData->BatchedElements.AddLine(UL, UR, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
-							CurrentData->BatchedElements.AddLine(UR, LR, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
-							CurrentData->BatchedElements.AddLine(LR, LL, NavMeshRenderColor_TileBounds, HitProxyId, DefaultEdges_LineThickness, 0, true);
-						}
+						CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(LL, UL, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
+						CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(UL, UR, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
+						CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(UR, LR, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
+						CurrentData->ThickLineItems.Add(FNavMeshSceneProxyData::FDebugThickLine(LR, LL, NavMeshRenderColor_TileBounds, DefaultEdges_LineThickness));
 					}
 				}
 			}
@@ -389,7 +338,7 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 				CurrentData->MeshBuilders.Add(DebugMeshData);
 			}
 		}
-		else
+		else if (NavMesh->bDrawNavMesh)
 		{			
 			for (int32 AreaType = 0; AreaType < RECAST_MAX_AREAS; ++AreaType)
 			{
@@ -415,17 +364,39 @@ void UNavMeshRenderingComponent::GatherData(struct FNavMeshSceneProxyData* Curre
 			}
 		}
 
-		// Draw path generation input geometry
-		if (CurrentData->bDrawPathCollidingGeometry)
+		if (NavMesh->bDrawPathCollidingGeometry)
 		{
-			FNavMeshSceneProxyData::FDebugMeshData DebugMeshData;
-			for (int32 VertIdx=0; VertIdx < CurrentData->PathCollidingGeomVerts.Num(); ++VertIdx)
+			// draw all geometry gathered in navoctree
+			const FNavigationOctree* NavOctree = NavMesh->GetWorld()->GetNavigationSystem()->GetNavOctree();
+
+			TArray<FVector> PathCollidingGeomVerts;
+			TArray <int32> PathCollidingGeomIndices;
+			for (FNavigationOctree::TConstIterator<> It(*NavOctree); It.HasPendingNodes(); It.Advance())
 			{
-				AddVertexHelper(DebugMeshData, CurrentData->PathCollidingGeomVerts[VertIdx], NavMeshRenderColor_PathCollidingGeom);
+				const FNavigationOctree::FNode& Node = It.GetCurrentNode();
+				for (FNavigationOctree::ElementConstIt ElementIt(Node.GetElementIt()); ElementIt; ElementIt++)
+				{
+					const FNavigationOctreeElement& Element = *ElementIt;
+					if (Element.ShouldUseGeometry(&NavMesh->NavDataConfig) && Element.Data.CollisionData.Num())
+					{
+						const FRecastGeometryCache CachedGeometry(Element.Data.CollisionData.GetData());
+						AppendGeometry(PathCollidingGeomVerts, PathCollidingGeomIndices, CachedGeometry.Verts, CachedGeometry.Header.NumVerts, CachedGeometry.Indices, CachedGeometry.Header.NumFaces);
+					}
+				}
+				FOREACH_OCTREE_CHILD_NODE(ChildRef)
+				{
+					if (Node.HasChild(ChildRef))
+					{
+						It.PushChild(ChildRef);
+					}
+				}
 			}
-			DebugMeshData.Indices.Append(CurrentData->PathCollidingGeomIndices);
-			DebugMeshData.ClusterColor = NavMeshRenderColor_PathCollidingGeom;
-			CurrentData->MeshBuilders.Add(DebugMeshData);
+			CurrentData->PathCollidingGeomIndices = PathCollidingGeomIndices;
+			for (const auto& Vertex : PathCollidingGeomVerts)
+			{
+				CurrentData->PathCollidingGeomVerts.Add(FDynamicMeshVertex(Vertex));
+			}
+
 		}
 
 		if (CurrentData->NavMeshGeometry.BuiltMeshIndices.Num() > 0)

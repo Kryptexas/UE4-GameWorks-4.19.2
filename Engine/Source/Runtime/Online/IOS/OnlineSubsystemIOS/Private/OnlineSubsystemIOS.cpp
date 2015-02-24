@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemIOSPrivatePCH.h"
 
@@ -113,6 +113,11 @@ IOnlineMessagePtr FOnlineSubsystemIOS::GetMessageInterface() const
 }
 
 IOnlinePresencePtr FOnlineSubsystemIOS::GetPresenceInterface() const
+{
+	return NULL;
+}
+
+IOnlineChatPtr FOnlineSubsystemIOS::GetChatInterface() const
 {
 	return NULL;
 }

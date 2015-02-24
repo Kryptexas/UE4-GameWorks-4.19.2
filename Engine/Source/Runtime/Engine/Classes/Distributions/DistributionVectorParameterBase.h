@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -26,11 +26,11 @@ class UDistributionVectorParameterBase : public UDistributionVectorConstant
 	FVector MaxOutput;
 
 	UPROPERTY(EditAnywhere, Category=DistributionVectorParameterBase)
-	TEnumAsByte<enum DistributionParamMode> ParamModes[3];
+	TEnumAsByte<DistributionParamMode> ParamModes[3];
 
 
 	//Begin UDistributionVector Interface
-	virtual FVector GetValue(float F = 0.f, UObject* Data = NULL, int32 Extreme = 0, class FRandomStream* InRandomStream = NULL) const override;
+	virtual FVector GetValue(float F = 0.f, UObject* Data = NULL, int32 Extreme = 0, struct FRandomStream* InRandomStream = NULL) const override;
 	virtual bool CanBeBaked() const override { return false; }
 	//End UDistributionVector Interface
 	

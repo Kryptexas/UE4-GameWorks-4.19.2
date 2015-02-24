@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SoundDefinitions.h"
 #include "DialogueWaveDetails.h"
 #include "DialogueWaveWidgets.h"
+#include "Sound/DialogueWave.h"
 
 #define LOCTEXT_NAMESPACE "DialogueWaveDetails"
 
@@ -96,7 +97,7 @@ void FDialogueWaveDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailB
 	IDetailCategoryBuilder& ContextMappingsDetailCategoryBuilder = DetailBuilder.EditCategory("DialogueContexts");
 
 	// Add Context Button
-	ContextMappingsDetailCategoryBuilder.AddCustomRow( LOCTEXT("AddDialogueContext", "Add Dialogue Context").ToString() )
+	ContextMappingsDetailCategoryBuilder.AddCustomRow( LOCTEXT("AddDialogueContext", "Add Dialogue Context") )
 	[
 		SNew( SBox )
 		.Padding(2.0f)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "TextEditHelper.h"
@@ -49,6 +49,14 @@ FReply FTextEditHelper::OnKeyChar( const FCharacterEvent& InCharacterEvent, cons
 
 		// Tab
 	case TCHAR( '\t' ):
+		{
+			Reply = FReply::Handled();
+		}
+		break;
+
+
+		// Newline (Ctrl+Enter - handled correctly outside this function)
+	case TCHAR( '\n' ):
 		{
 			Reply = FReply::Handled();
 		}

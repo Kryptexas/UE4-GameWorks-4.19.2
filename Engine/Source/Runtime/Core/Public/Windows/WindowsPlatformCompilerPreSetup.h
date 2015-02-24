@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,4 +31,28 @@
 	#endif // EMIT_DEPRECATED_WARNING_MESSAGE_STR
 
 	#define EMIT_DEPRECATED_WARNING_MESSAGE(Msg) __pragma(message(__FILE__ "(" EMIT_DEPRECATED_WARNING_MESSAGE_STR(__LINE__) "): warning C4996: " Msg))
+
+	#define PRAGMA_DISABLE_DEPRECATION_WARNINGS \
+		__pragma (warning(push)) \
+		__pragma (warning(disable:4995)) \
+		__pragma (warning(disable:4996))
+
+	#define PRAGMA_POP \
+		__pragma(warning(pop))
+
+	#define PRAGMA_ENABLE_DEPRECATION_WARNINGS \
+		__pragma (warning(push)) \
+		__pragma (warning(default:4995)) \
+		__pragma (warning(default:4996))
+
 #endif // DISABLE_DEPRECATION
+
+#if _MSC_VER
+#define EMIT_CUSTOM_WARNING(Warning) \
+	__pragma(message(WARNING_LOCATION "(: warning C4996: " Warning))
+#elif __clang__
+#define EMIT_CUSTOM_WARNING(Warning) \
+	_Pragma(PREPROCESSOR_TO_STRING(message(WARNING_LOCATION Warning)))
+#else
+#error Unknown compiler
+#endif

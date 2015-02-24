@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -74,20 +74,7 @@ class USoundNodeModulatorContinuous : public USoundNode
 	UPROPERTY(EditAnywhere, Category=ContinuousModulator)
 	FModulatorContinuousParams VolumeModulationParams;
 
-	UPROPERTY()
-	struct FRawDistributionFloat PitchModulation_DEPRECATED;
-
-
-	UPROPERTY()
-	struct FRawDistributionFloat VolumeModulation_DEPRECATED;
-
-
-
 public:
-	// Begin UObject Interface
-	virtual void Serialize(FArchive& Ar) override;
-	// End UObject Interface
-
 	// Begin USoundNode interface.
 	virtual void ParseNodes( FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& ActiveSound, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances ) override;
 	// End USoundNode interface.

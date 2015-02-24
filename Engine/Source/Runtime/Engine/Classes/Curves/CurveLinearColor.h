@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -36,6 +36,8 @@ class ENGINE_API UCurveLinearColor : public UCurveBase
 	virtual FLinearColor GetLinearColorValue(float InTime) const override;
 
 	bool HasAnyAlphaKeys() const override { return FloatCurves[3].GetNumKeys() > 0; }
+
+	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo ) override;
 	// End FCurveOwnerInterface
 
 	/** Determine if Curve is the same */

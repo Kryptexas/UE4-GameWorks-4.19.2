@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -19,10 +19,17 @@ UK2Node_EnumLiteral::UK2Node_EnumLiteral(const FObjectInitializer& ObjectInitial
 {
 }
 
+void UK2Node_EnumLiteral::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
+{
+	Super::ValidateNodeDuringCompilation(MessageLog);
+	if (!Enum)
+	{
+		MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "EnumLiteral_NullEnumError", "Undefined Enum in @@").ToString()), this);
+	}
+}
+
 void UK2Node_EnumLiteral::AllocateDefaultPins()
 {
-	check(Enum);
-
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
 	auto InputPin = CreatePin(EGPD_Input, Schema->PC_Byte, TEXT(""), Enum, false, false, GetEnumInputPinName());

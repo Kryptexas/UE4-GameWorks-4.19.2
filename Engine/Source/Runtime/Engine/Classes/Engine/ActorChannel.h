@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**	ActorChannel.h
  *	A channel for exchanging actor and its subobject's properties and RPCs.
@@ -46,7 +46,10 @@ class ENGINE_API UActorChannel : public UChannel
 
 	// Variables.
 	UPROPERTY()
-	AActor* Actor;			// Actor this corresponds to.
+	AActor* Actor;					// Actor this corresponds to.
+
+	FNetworkGUID ActorNetGUID;		// Actor GUID (useful when we don't have the actor resolved yet). Currently only valid on clients.
+
 
 	// Variables.
 	double	RelevantTime;			// Last time this actor was relevant to client.
@@ -66,9 +69,15 @@ class ENGINE_API UActorChannel : public UChannel
 	TMap< TWeakObjectPtr< UObject >, TSharedRef< FObjectReplicator > > ReplicationMap;
 
 	// Async networking loading support state
-	TArray< class FInBunch * >	QueuedBunches;			// Queued bunches waiting on pending guids to resolve
-	double						QueuedBunchStartTime;	// Time when since queued bunches was last empty
-	TSet< FNetworkGUID >		PendingGuidResolves;	// These guids are waiting for their resolves, we need to queue up bunches until these are resolved
+	TArray< class FInBunch * >			QueuedBunches;			// Queued bunches waiting on pending guids to resolve
+	double								QueuedBunchStartTime;	// Time when since queued bunches was last empty
+	TSet< FNetworkGUID >				PendingGuidResolves;	// These guids are waiting for their resolves, we need to queue up bunches until these are resolved
+
+	TArray< TWeakObjectPtr< UObject > >	CreateSubObjects;		// Any sub-object we created on this channel
+
+	TArray< FNetworkGUID >				QueuedMustBeMappedGuidsInLastBunch;		// Array of guids that will async load on client. This list is used for queued RPC's.
+
+	TArray< class FOutBunch * >			QueuedExportBunches;			// Bunches that need to be appended to the export list on the next SendBunch call. This list is used for queued RPC's.
 
 	/**
 	 * Default constructor
@@ -91,7 +100,7 @@ class ENGINE_API UActorChannel : public UChannel
 
 	virtual void Tick() override;
 	void ProcessBunch( FInBunch & Bunch );
-	void ProcessQueuedBunches();
+	bool ProcessQueuedBunches();
 
 	virtual void ReceivedNak( int32 NakPacketId ) override;
 	
@@ -114,6 +123,12 @@ class ENGINE_API UActorChannel : public UChannel
 	void SetChannelActor( AActor* InActor );
 
 	void SetChannelActorForDestroy( struct FActorDestructionInfo *DestructInfo );
+
+	/** Append any export bunches */
+	virtual void AppendExportBunches( TArray< FOutBunch* >& OutExportBunches ) override;
+
+	/** Append any "must be mapped" guids to front of bunch. These are guids that the client will wait on before processing this bunch. */
+	virtual void AppendMustBeMappedGuids( FOutBunch* Bunch ) override;
 
 	virtual void Serialize(FArchive& Ar) override;
 
@@ -141,7 +156,7 @@ class ENGINE_API UActorChannel : public UChannel
 	void EndContentBlock( UObject *Obj, FOutBunch &Bunch, FClassNetCache* ClassCache = NULL );
 
 	/** Reads the header of the content block and instantiates the subobject if necessary */
-	UObject* ReadContentBlockHeader(FInBunch& Bunch);
+	UObject* ReadContentBlockHeader(FInBunch& Bunch, bool& bObjectDeleted);
 
 	/** Returns the replicator for the actor associated with this channel. Guaranteed to exist. */
 	FObjectReplicator & GetActorReplicationData();

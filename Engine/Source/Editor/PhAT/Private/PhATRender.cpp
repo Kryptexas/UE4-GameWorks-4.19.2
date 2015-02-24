@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PhATModule.h"
 #include "PhATSharedData.h"
 #include "PhATHitProxies.h"
 #include "PhATEdSkeletalMeshComponent.h"
-
+#include "PhysicsEngine/BodySetup.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
 
 UPhATEdSkeletalMeshComponent::UPhATEdSkeletalMeshComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -278,7 +279,7 @@ FPrimitiveSceneProxy* UPhATEdSkeletalMeshComponent::CreateSceneProxy()
 
 void UPhATEdSkeletalMeshComponent::DrawHierarchy(FPrimitiveDrawInterface* PDI, bool bAnimSkel)
 {
-	for (int32 i=1; i <SpaceBases.Num(); ++i)
+	for (int32 i=1; i<GetNumSpaceBases(); ++i)
 	{
 		int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(i);
 
@@ -290,8 +291,8 @@ void UPhATEdSkeletalMeshComponent::DrawHierarchy(FPrimitiveDrawInterface* PDI, b
 		}
 		else
 		{
-			ParentPos = ComponentToWorld.TransformPosition(SpaceBases[ParentIndex].GetLocation());
-			ChildPos = ComponentToWorld.TransformPosition(SpaceBases[i].GetLocation());
+			ParentPos = ComponentToWorld.TransformPosition(GetSpaceBases()[ParentIndex].GetLocation());
+			ChildPos = ComponentToWorld.TransformPosition(GetSpaceBases()[i].GetLocation());
 		}
 
 		FColor DrawColor = bAnimSkel ? AnimSkelDrawColor : HierarchyDrawColor;

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+# Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 set -e
 
@@ -28,11 +28,11 @@ else
 	if [ -d .git/hooks ]; then
 		echo "Registering git hooks... (this will override existing ones!)"
 		echo \#!/bin/sh >.git/hooks/post-checkout
-		echo mono Engine/Binaries/DotNET/GitDependencies.exe >>.git/hooks/post-checkout
+		echo Engine/Build/BatchFiles/Linux/GitDependencies.sh >>.git/hooks/post-checkout
 		chmod +x .git/hooks/post-checkout
 
 		echo \#!/bin/sh >.git/hooks/post-merge
-		echo mono Engine/Binaries/DotNET/GitDependencies.exe >>.git/hooks/post-merge
+		echo Engine/Build/BatchFiles/Linux/GitDependencies.sh >>.git/hooks/post-merge
 		chmod +x .git/hooks/post-merge
 	fi
 

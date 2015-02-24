@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "ObjectEditorUtils.h"
@@ -9,6 +9,7 @@
 #include "AI/Navigation/NavLinkCustomComponent.h"
 #include "AI/Navigation/NavLinkProxy.h"
 #include "AI/Navigation/NavLinkRenderingComponent.h"
+#include "NavigationSystemHelpers.h"
 
 ANavLinkProxy::ANavLinkProxy(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -73,7 +74,7 @@ void ANavLinkProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 }
 #endif // WITH_EDITOR
 
-void ANavLinkProxy::GetNavigationData(struct FNavigationRelevantData& Data) const
+void ANavLinkProxy::GetNavigationData(FNavigationRelevantData& Data) const
 {
 	NavigationHelper::ProcessNavLinkAndAppend(&Data.Modifiers, this, PointLinks);
 	NavigationHelper::ProcessNavLinkSegmentAndAppend(&Data.Modifiers, this, SegmentLinks);
@@ -89,7 +90,7 @@ bool ANavLinkProxy::IsNavigationRelevant() const
 	return (PointLinks.Num() > 0) || (SegmentLinks.Num() > 0);
 }
 
-bool ANavLinkProxy::GetNavigationLinksClasses(TArray<TSubclassOf<class UNavLinkDefinition> >& OutClasses) const
+bool ANavLinkProxy::GetNavigationLinksClasses(TArray<TSubclassOf<UNavLinkDefinition> >& OutClasses) const
 {
 	return false;
 }
@@ -135,7 +136,7 @@ FBox ANavLinkProxy::GetComponentsBoundingBox(bool bNonColliding) const
 	return LinksBB;
 }
 
-void ANavLinkProxy::NotifySmartLinkReached(UNavLinkCustomComponent* LinkComp, class UPathFollowingComponent* PathComp, const FVector& DestPoint)
+void ANavLinkProxy::NotifySmartLinkReached(UNavLinkCustomComponent* LinkComp, UPathFollowingComponent* PathComp, const FVector& DestPoint)
 {
 	AActor* PathOwner = PathComp->GetOwner();
 	AController* ControllerOwner = Cast<AController>(PathOwner);

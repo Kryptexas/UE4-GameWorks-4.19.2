@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "CompilerResultsLog.h"
 #include "KismetCompiler.h"
 #include "EventEntryHandler.h"
+#include "GraphEditorSettings.h"
 
 const FString UK2Node_Event::DelegateOutputName(TEXT("OutputDelegate"));
 
@@ -38,6 +39,18 @@ UK2Node_Event::UK2Node_Event(const FObjectInitializer& ObjectInitializer)
 	FunctionFlags = 0;
 }
 
+void UK2Node_Event::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	// Fix up legacy nodes that may not yet have a delegate pin
+	if(Ar.IsLoading() && !FindPin(DelegateOutputName))
+	{
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		CreatePin(EGPD_Output, K2Schema->PC_Delegate, TEXT(""), NULL, false, false, DelegateOutputName);
+	}
+}
+
 FNodeHandlingFunctor* UK2Node_Event::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_EventEntry(CompilerContext);
@@ -66,17 +79,11 @@ FText UK2Node_Event::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 		if(TitleType == ENodeTitleType::FullTitle && EventSignatureClass != NULL && EventSignatureClass->IsChildOf(UInterface::StaticClass()))
 		{
-			FString SourceString = EventSignatureClass->GetName();
-
-			// @todo: This action won't be necessary once the new name convention is used.
-			if(SourceString.EndsWith(TEXT("_C")))
-			{
-				SourceString = SourceString.LeftChop(2);
-			}
+			const FText SignatureClassAsText = FBlueprintEditorUtils::GetFriendlyClassDisplayName(EventSignatureClass);
 
 			FFormatNamedArguments FullTitleArgs;
 			FullTitleArgs.Add(TEXT("Title"), Title);
-			FullTitleArgs.Add(TEXT("InterfaceClass"), FText::FromString(SourceString));
+			FullTitleArgs.Add(TEXT("InterfaceClass"), SignatureClassAsText);
 
 			Title = FText::Format(LOCTEXT("EventFromInterface", "{Title}\nFrom {InterfaceClass}"), FullTitleArgs);
 		}
@@ -159,28 +166,33 @@ void UK2Node_Event::PostReconstructNode()
 	UpdateDelegatePin();
 }
 
-void UK2Node_Event::UpdateDelegatePin()
+void UK2Node_Event::UpdateDelegatePin(bool bSilent)
 {
 	UEdGraphPin* Pin = FindPinChecked(DelegateOutputName);
 	checkSlow(EGPD_Output == Pin->Direction);
-	const UObject* OldSignature = Pin->PinType.PinSubCategoryObject.Get();
 
+	const UObject* OldSignature = FMemberReference::ResolveSimpleMemberReference<UFunction>(Pin->PinType.PinSubCategoryMemberReference);
+	if (!OldSignature)
+	{
+		OldSignature = Pin->PinType.PinSubCategoryObject.Get();
+	}
+
+	UFunction* NewSignature = NULL;
 	if(bOverrideFunction)
 	{
-		Pin->PinType.PinSubCategoryObject = EventSignatureClass->FindFunctionByName(EventSignatureName);
+		NewSignature = EventSignatureClass->FindFunctionByName(EventSignatureName);
 	}
 	else if(UBlueprint* Blueprint = GetBlueprint())
 	{
-		Pin->PinType.PinSubCategoryObject = Blueprint->SkeletonGeneratedClass 
+		NewSignature = Blueprint->SkeletonGeneratedClass
 			? Blueprint->SkeletonGeneratedClass->FindFunctionByName(CustomFunctionName)
 			: NULL;
 	}
-	else
-	{
-		Pin->PinType.PinSubCategoryObject = NULL;
-	}
 
-	if(OldSignature != Pin->PinType.PinSubCategoryObject.Get())
+	Pin->PinType.PinSubCategoryObject = NULL;
+	FMemberReference::FillSimpleMemberReference<UFunction>(NewSignature, Pin->PinType.PinSubCategoryMemberReference);
+
+	if ((OldSignature != NewSignature) && !bSilent)
 	{
 		PinTypeChanged(Pin);
 	}
@@ -233,6 +245,8 @@ void UK2Node_Event::AllocateDefaultPins()
 		CreatePinsForFunctionEntryExit(Function, /*bIsFunctionEntry=*/ true);
 	}
 
+	UpdateDelegatePin(true);
+
 	Super::AllocateDefaultPins();
 }
 
@@ -245,6 +259,12 @@ void UK2Node_Event::ValidateNodeDuringCompilation(class FCompilerResultsLog& Mes
 	{
 		MessageLog.Error(*FString::Printf(*NSLOCTEXT("KismetCompiler", "MissingEventSig_Error", "Missing Event '%s' for @@").ToString(), *EventSignatureName.ToString()), this);
 	}
+}
+
+bool UK2Node_Event::NodeCausesStructuralBlueprintChange() const
+{
+	// will only change class structure when UGPF is disabled
+	return !UBlueprintGeneratedClass::UsePersistentUberGraphFrame();
 }
 
 void UK2Node_Event::GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const
@@ -412,6 +432,24 @@ bool UK2Node_Event::CanPasteHere(const UEdGraph* TargetGraph) const
 							bDisallowPaste = ExistingEventNodes[i]->bOverrideFunction
 								&& ExistingEventNodes[i]->EventSignatureName == EventSignatureName
 								&& ExistingEventNodes[i]->EventSignatureClass == EventSignatureClass;
+						}
+
+						// We need to also check for 'const' BPIE methods that might already be implemented as functions with a read-only 'self' context (these were previously implemented as events)
+						if(!bDisallowPaste)
+						{
+							TArray<UBlueprint*> ParentBPStack;
+							UBlueprint::GetBlueprintHierarchyFromClass(Blueprint->SkeletonGeneratedClass, ParentBPStack);
+							for(auto BPStackIt = ParentBPStack.CreateConstIterator(); BPStackIt && !bDisallowPaste; ++BPStackIt)
+							{
+								TArray<UK2Node_FunctionEntry*> ExistingFunctionEntryNodes;
+								FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_FunctionEntry>(*BPStackIt, ExistingFunctionEntryNodes);
+								for(auto NodeIt = ExistingFunctionEntryNodes.CreateConstIterator(); NodeIt && !bDisallowPaste; ++NodeIt)
+								{
+									UK2Node_FunctionEntry* ExistingFunctionEntryNode = *NodeIt;
+									bDisallowPaste = ExistingFunctionEntryNode->bEnforceConstCorrectness
+										&& ExistingFunctionEntryNode->SignatureName == EventSignatureName;
+								}
+							}
 						}
 
 						if(!bDisallowPaste)

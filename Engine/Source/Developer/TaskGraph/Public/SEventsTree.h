@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,9 +38,12 @@ public:
 
 private:
 
-	FString	GetDurationText() const
+	FText GetDurationText() const
 	{
-		return FString::Printf( TEXT("%.2f"), EventDuration.Get() );
+		static const FNumberFormattingOptions DurationFormatOptions = FNumberFormattingOptions()
+			.SetMinimumFractionalDigits(2)
+			.SetMaximumFractionalDigits(2);
+		return FText::AsNumber(EventDuration.Get(), &DurationFormatOptions);
 	}
 
 	FString EventName;
@@ -228,7 +231,7 @@ protected:
 	}
 
 	/** Gets the currently selected time units text */
-	FString GetDurationColumnTitle() const;
+	FText GetDurationColumnTitle() const;
 
 	/** A pointer to the ListView of profiler events */
 	TSharedPtr< STreeView< TSharedPtr< FVisualizerEvent > > > EventsListView;

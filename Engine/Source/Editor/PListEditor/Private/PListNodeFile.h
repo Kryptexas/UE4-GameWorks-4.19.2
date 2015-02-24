@@ -1,9 +1,6 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#ifndef __PListNodeFile_h__
-#define __PlistNodeFile_h__
 
 #include "PListNode.h"
 
@@ -60,5 +57,3 @@ private:
 	/** Widget for displaying text on this row */
 	TSharedPtr<STextBlock> TextWidget;
 };
-
-#endif

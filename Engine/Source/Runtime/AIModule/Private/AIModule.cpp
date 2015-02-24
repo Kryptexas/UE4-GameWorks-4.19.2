@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "AIModulePrivate.h"
 #include "AISystem.h"
 #if WITH_EDITOR && ENABLE_VISUAL_LOG
@@ -26,6 +26,11 @@ IMPLEMENT_MODULE(FAIModule, AIModule)
 
 void FAIModule::StartupModule()
 { 
+	// This code will execute after your module is loaded into memory and after global variables initialization. We needs some place to load GameplayDebugger module so it's best place for it now.
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+	FModuleManager::LoadModulePtr< IModuleInterface >("GameplayDebugger");
+#endif
+
 #if WITH_EDITOR 
 	FModuleManager::LoadModulePtr< IModuleInterface >("AITestSuite");
 #endif // WITH_EDITOR 

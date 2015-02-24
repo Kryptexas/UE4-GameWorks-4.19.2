@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AI/Navigation/NavigationTypes.h"
@@ -32,10 +32,13 @@ private:
 	uint32 bDebugDrawingEnabled : 1;
 	FColor DebugDrawingColor;
 
+	FDelegateHandle DrawDebugDelegateHandle;
+
 protected:
 	FNavPathSharedPtr SharedPath;
 
 	FNavigationPath::FPathObserverDelegate::FDelegate PathObserver;
+	FDelegateHandle PathObserverDelegateHandle;
 
 public:
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LevelTick.cpp: Level timer tick function
@@ -8,6 +8,7 @@
 #include "Components/SceneCaptureComponent2D.h"
 #include "Components/SceneCaptureComponentCube.h"
 #include "Engine/LevelStreamingVolume.h"
+#include "Engine/WorldComposition.h"
 #include "Net/UnrealNetwork.h"
 #include "Collision.h"
 #include "PhysicsPublic.h"
@@ -48,6 +49,8 @@ DEFINE_STAT(STAT_GCMarkTime);
 
 DEFINE_STAT(STAT_TeleportToTime);
 DEFINE_STAT(STAT_MoveComponentTime);
+DEFINE_STAT(STAT_UpdateOverlaps);
+DEFINE_STAT(STAT_UpdatePhysicsVolume);
 
 DEFINE_STAT(STAT_PostTickComponentLW);
 DEFINE_STAT(STAT_PostTickComponentRecreate);
@@ -116,7 +119,7 @@ FDetailedTickStats::FDetailedTickStats( int32 InNumObjectsToReport, float InTime
 FDetailedTickStats::~FDetailedTickStats()
 {
 	// remove callback as we are dead
-	FCoreUObjectDelegates::PreGarbageCollect.RemoveRaw(this, &FDetailedTickStats::OnPreGarbageCollect);
+	FCoreUObjectDelegates::PreGarbageCollect.Remove(OnPreGarbageCollectDelegateHandle);
 }
 
 /**
@@ -176,7 +179,7 @@ void FDetailedTickStats::EndObject( UObject* Object, float DeltaTime, bool bForS
 		{
 			GCCallBackRegistered = true;
 			// register callback so that we can avoid finding the wrong stats for new objects reusing memory that used to be associated with a different object
-			FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FDetailedTickStats::OnPreGarbageCollect);
+			OnPreGarbageCollectDelegateHandle = FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FDetailedTickStats::OnPreGarbageCollect);
 		}
 
 		FTickStats NewTickStats;
@@ -1200,9 +1203,14 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 		if( !bIsPaused )
 		{
 			// Issues level streaming load/unload requests based on local players being inside/outside level streaming volumes.
-			if( IsGameWorld() && GetNetMode() != NM_Client)
+			if (IsGameWorld() && GetNetMode() != NM_Client)
 			{
 				ProcessLevelStreamingVolumes();
+			}
+
+			if (IsGameWorld() && WorldComposition)
+			{
+				WorldComposition->UpdateStreamingState();
 			}
 		}
 	}
@@ -1337,11 +1345,11 @@ void UWorld::Tick( ELevelTick TickType, float DeltaSeconds )
 
 		if( IsGameWorld() && GAreScreenMessagesEnabled && ThisFramePawnSpawns.Num() > GEngine->NumPawnsAllowedToBeSpawnedInAFrame )
 		{
-			GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.f, FColor(255,0,0), *WarningMessage);
+			GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)this), 5.f, FColor::Red, *WarningMessage);
 
 			for(int32 i=0; i<ThisFramePawnSpawns.Num(); i++)
 			{
-				GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)+i), 5.f, FColor(255,0,0), *ThisFramePawnSpawns[i]);
+				GEngine->AddOnScreenDebugMessage((uint64)((PTRINT)+i), 5.f, FColor::Red, *ThisFramePawnSpawns[i]);
 			}
 		}
 	}

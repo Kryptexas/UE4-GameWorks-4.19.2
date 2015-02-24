@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -29,7 +29,7 @@ void SGraphNodeK2Composite::UpdateGraphNode()
 	RightNodeBox.Reset();
 	LeftNodeBox.Reset();
 
-	TSharedPtr<SWidget> ErrorText = SetupErrorReporting();
+	SetupErrorReporting();
 	TSharedPtr<SNodeTitle> NodeTitle = SNew(SNodeTitle, GraphNode);
 
 	//
@@ -44,7 +44,7 @@ void SGraphNodeK2Composite::UpdateGraphNode()
 	//            |_______|______|_______|
 	//
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
-	this->ChildSlot
+	this->GetOrAddSlot( ENodeZone::Center )
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
 		[
@@ -104,7 +104,7 @@ void SGraphNodeK2Composite::UpdateGraphNode()
 								.AutoHeight()
 								.Padding(1.0f)
 								[
-									ErrorText->AsShared()
+									ErrorReporting->AsWidget()
 								]
 							]
 						]
@@ -119,6 +119,27 @@ void SGraphNodeK2Composite::UpdateGraphNode()
 				]
 			]
 		];
+	// Create comment bubble
+	TSharedPtr<SCommentBubble> CommentBubble;
+
+	SAssignNew( CommentBubble, SCommentBubble )
+	.GraphNode( GraphNode )
+	.Text( this, &SGraphNode::GetNodeComment )
+	.ColorAndOpacity( this, &SGraphNodeK2Composite::GetCommentColor )
+	.AllowPinning( true )
+	.EnableTitleBarBubble( true )
+	.EnableBubbleCtrls( true )
+	.GraphLOD( this, &SGraphNode::GetCurrentLOD )
+	.IsGraphNodeHovered( this, &SGraphNode::IsHovered );
+
+	GetOrAddSlot( ENodeZone::TopCenter )
+	.SlotOffset( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetOffset ))
+	.SlotSize( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetSize ))
+	.AllowScaling( TAttribute<bool>( CommentBubble.Get(), &SCommentBubble::IsScalingAllowed ))
+	.VAlign( VAlign_Top )
+	[
+		CommentBubble.ToSharedRef()
+	];
 
 	CreatePinWidgets();
 }
@@ -199,15 +220,15 @@ TSharedPtr<SToolTip> SGraphNodeK2Composite::GetComplexTooltip()
 
 }
 
-FString SGraphNodeK2Composite::GetPreviewCornerText() const
+FText SGraphNodeK2Composite::GetPreviewCornerText() const
 {
 	UEdGraph* BoundGraph = GetInnerGraph();
-	return BoundGraph->GetName();
+	return FText::FromString(BoundGraph->GetName());
 }
 
-FString SGraphNodeK2Composite::GetTooltipTextForNode() const
+FText SGraphNodeK2Composite::GetTooltipTextForNode() const
 {
-	return GraphNode->GetTooltipText().ToString();
+	return GraphNode->GetTooltipText();
 }
 
 TSharedRef<SWidget> SGraphNodeK2Composite::CreateNodeBody()

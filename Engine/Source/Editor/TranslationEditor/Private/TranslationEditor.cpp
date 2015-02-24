@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "TranslationEditorPrivatePCH.h"
 
@@ -474,7 +474,7 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Search(const FSpawnTabArgs& Ar
 			[
 				SAssignNew(SearchBox, SSearchBox)
 				.HintText(LOCTEXT("FilterSearch", "Search..."))
-				.ToolTipText(LOCTEXT("FilterSearchHint", "Type here to search").ToString())
+				.ToolTipText(LOCTEXT("FilterSearchHint", "Type here to search"))
 				.OnTextChanged(this, &FTranslationEditor::OnFilterTextChanged)
 				.OnTextCommitted(this, &FTranslationEditor::OnFilterTextCommitted)
 			]
@@ -641,9 +641,14 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Context( const FSpawnTabArgs& 
 				+SVerticalBox::Slot()
 				.HAlign(HAlign_Left)
 				.VAlign(VAlign_Center)
-				.FillHeight(0.1)
+				.AutoHeight()
 				[
-					NamespaceTextBlock
+					SNew(SBorder)
+					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.Padding(5.0f)
+					[
+						NamespaceTextBlock
+					]
 				]
 				+SVerticalBox::Slot()
 				.HAlign(HAlign_Fill)
@@ -657,28 +662,28 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_Context( const FSpawnTabArgs& 
 	return NewDockTab;
 }
 
-TSharedRef<SDockTab> FTranslationEditor::SpawnTab_History( const FSpawnTabArgs& Args )
+TSharedRef<SDockTab> FTranslationEditor::SpawnTab_History(const FSpawnTabArgs& Args)
 {
-	check( Args.GetTabId().TabType == HistoryTabId );
+	check(Args.GetTabId().TabType == HistoryTabId);
 
-	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
+	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
-	UProperty* SourceProperty = FindField<UProperty>( FTranslationChange::StaticStruct(), "Source");
-	UProperty* TranslationProperty = FindField<UProperty>( FTranslationChange::StaticStruct(), "Translation");
+	UProperty* SourceProperty = FindField<UProperty>(FTranslationChange::StaticStruct(), "Source");
+	UProperty* TranslationProperty = FindField<UProperty>(FTranslationChange::StaticStruct(), "Translation");
 
 	// create empty property table
 	HistoryPropertyTable = PropertyEditorModule.CreatePropertyTable();
-	HistoryPropertyTable->SetIsUserAllowedToChangeRoot( false );
-	HistoryPropertyTable->SetOrientation( EPropertyTableOrientation::AlignPropertiesInColumns );
-	HistoryPropertyTable->SetShowRowHeader( true );
-	HistoryPropertyTable->SetShowObjectName( false );
+	HistoryPropertyTable->SetIsUserAllowedToChangeRoot(false);
+	HistoryPropertyTable->SetOrientation(EPropertyTableOrientation::AlignPropertiesInColumns);
+	HistoryPropertyTable->SetShowRowHeader(true);
+	HistoryPropertyTable->SetShowObjectName(false);
 
 	// we want to customize some columns
 	TArray< TSharedRef<class IPropertyTableCustomColumn>> CustomColumns;
 	SourceColumn->AddSupportedProperty(SourceProperty);
 	TranslationColumn->AddSupportedProperty(TranslationProperty);
-	CustomColumns.Add( SourceColumn );
-	CustomColumns.Add( TranslationColumn );
+	CustomColumns.Add(SourceColumn);
+	CustomColumns.Add(TranslationColumn);
 
 	if (DataManager->GetAllTranslationsArray().Num() > 0)
 	{
@@ -689,14 +694,14 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_History( const FSpawnTabArgs& 
 
 	// Build the Path to the data we want to show
 	TSharedRef<FPropertyPath> Path = FPropertyPath::CreateEmpty();
-	UArrayProperty* ContextsProp = FindField<UArrayProperty>( UTranslationUnit::StaticClass(), "Contexts" );
+	UArrayProperty* ContextsProp = FindField<UArrayProperty>(UTranslationUnit::StaticClass(), "Contexts");
 	Path = Path->ExtendPath(FPropertyPath::Create(ContextsProp));
 	FPropertyInfo ContextsPropInfo;
 	ContextsPropInfo.Property = ContextsProp->Inner;
 	ContextsPropInfo.ArrayIndex = 0;
 	Path = Path->ExtendPath(ContextsPropInfo);
 
-	UProperty* ChangesProp = FindField<UProperty>( FTranslationContextInfo::StaticStruct(), "Changes" );
+	UProperty* ChangesProp = FindField<UProperty>(FTranslationContextInfo::StaticStruct(), "Changes");
 	FPropertyInfo ChangesPropInfo;
 	ChangesPropInfo.Property = ChangesProp;
 	ChangesPropInfo.ArrayIndex = INDEX_NONE;
@@ -704,8 +709,8 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_History( const FSpawnTabArgs& 
 	HistoryPropertyTable->SetRootPath(Path);
 
 	// Add the columns we want to display
-	HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationChange::StaticStruct(), "Version"));
-	HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>( FTranslationChange::StaticStruct(), "DateAndTime"));
+	HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationChange::StaticStruct(), "Version"));
+	HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(FTranslationChange::StaticStruct(), "DateAndTime"));
 	HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)SourceProperty);
 	HistoryPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)TranslationProperty);
 
@@ -716,19 +721,44 @@ TSharedRef<SDockTab> FTranslationEditor::SpawnTab_History( const FSpawnTabArgs& 
 		Column->SetFrozen(true);
 	}
 
-	HistoryPropertyTableWidgetHandle = PropertyEditorModule.CreatePropertyTableWidgetHandle( HistoryPropertyTable.ToSharedRef(), CustomColumns );
+	HistoryPropertyTableWidgetHandle = PropertyEditorModule.CreatePropertyTableWidgetHandle(HistoryPropertyTable.ToSharedRef(), CustomColumns);
 	TSharedRef<SWidget> PropertyTableWidget = HistoryPropertyTableWidgetHandle->GetWidget();
 
 	TSharedRef<SDockTab> NewDockTab = SNew(SDockTab)
-		.Icon( FEditorStyle::GetBrush("TranslationEditor.Tabs.Properties") )
-		.Label( LOCTEXT("HistoryTabTitle", "History") )
-		.TabColorScale( GetTabColorScale() )
+		.Icon(FEditorStyle::GetBrush("TranslationEditor.Tabs.Properties"))
+		.Label(LOCTEXT("HistoryTabTitle", "History"))
+		.TabColorScale(GetTabColorScale())
 		[
 			SNew(SBorder)
-			.BorderImage( FEditorStyle::GetBrush("ToolPanel.GroupBorder") )
+			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 			.Padding(0.0f)
 			[
-				PropertyTableWidget
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.HAlign(HAlign_Left)
+				.VAlign(VAlign_Center)
+				.AutoHeight()
+				[
+					SNew(SBorder)
+					.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+					.Padding(5.0f)
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						.OnClicked(FOnClicked::CreateSP(this, &FTranslationEditor::OnGetHistoryButtonClicked))
+						[
+							SNew(STextBlock)
+							.Text((LOCTEXT("GetHistoryButton", "Get History...")))
+						]
+					]
+				]
+				+ SVerticalBox::Slot()
+				.HAlign(HAlign_Fill)
+				.VAlign(VAlign_Fill)
+				[
+					PropertyTableWidget
+				]
 			]
 		];
 	
@@ -1444,6 +1474,62 @@ void FTranslationEditor::OnFilterTextCommitted(const FText& InFilterText, ETextC
 void FTranslationEditor::OpenSearchTab_Execute()
 {
 	TabManager->InvokeTab(SearchTabId);
+}
+
+FReply FTranslationEditor::OnGetHistoryButtonClicked()
+{
+	// Load the actual history data
+	DataManager->GetHistoryForTranslationUnits();
+
+	// Items might have moved from Untranslated to review, so refresh the view of both tables
+	if (UntranslatedPropertyTable.IsValid())
+	{
+		UntranslatedPropertyTable->SetObjects((TArray<UObject*>&)DataManager->GetUntranslatedArray());
+
+		// Need to re-add the columns we want to display
+		UntranslatedPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Source"));
+		UntranslatedPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Translation"));
+
+		TArray<TSharedRef<IPropertyTableColumn>> Columns = UntranslatedPropertyTable->GetColumns();
+		for (TSharedRef<IPropertyTableColumn> Column : Columns)
+		{
+			Column->SetFrozen(true);
+		}
+	}
+
+	if (ReviewPropertyTable.IsValid())
+	{
+		ReviewPropertyTable->SetObjects((TArray<UObject*>&)DataManager->GetReviewArray());
+
+		// Need to re-add the columns we want to display
+		ReviewPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Source"));
+		ReviewPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "Translation"));
+		ReviewPropertyTable->AddColumn((TWeakObjectPtr<UProperty>)FindField<UProperty>(UTranslationUnit::StaticClass(), "HasBeenReviewed"));
+
+		TArray<TSharedRef<IPropertyTableColumn>> Columns = ReviewPropertyTable->GetColumns();
+		for (TSharedRef<IPropertyTableColumn> Column : Columns)
+		{
+			FString ColumnId = Column->GetId().ToString();
+			if (ColumnId == "HasBeenReviewed")
+			{
+				Column->SetWidth(120);
+				Column->SetSizeMode(EPropertyTableColumnSizeMode::Fixed);
+			}
+			// Freeze columns, don't want user to remove them
+			Column->SetFrozen(true);
+		}
+	}
+
+	// Make sure all UI is refreshed
+	RefreshUI();
+
+	// Make sure current selection is reflected
+	UpdateUntranslatedSelection();
+	UpdateNeedsReviewSelection();
+	UpdateCompletedSelection();
+	UpdateSearchSelection();
+
+	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE

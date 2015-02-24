@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "GameFramework/Info.h"
@@ -145,10 +145,10 @@ public:
 	 * Receives ping updates for the client (both clientside and serverside), from the net driver
 	 * NOTE: This updates much more frequently clientside, thus the clientside ping will often be different to what the server displays
 	 */
-	void UpdatePing(float InPing);
+	virtual void UpdatePing(float InPing);
 
 	/** Recalculates the replicated Ping value once per second (both clientside and serverside), based upon collected ping data */
-	void RecalculateAvgPing();
+	virtual void RecalculateAvgPing();
 
 	/**
 	 * Returns true if should broadcast player welcome/left messages.

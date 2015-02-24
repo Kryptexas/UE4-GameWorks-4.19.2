@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -95,6 +95,14 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	UPROPERTY(transient)
 	uint32 bDisplayAdditiveBasePose:1;
 
+	/** Display baked animation pose */
+	UPROPERTY(Transient)
+	uint32 bDisplayBakedAnimation:1;
+
+	/** Display source animation pose */
+	UPROPERTY(Transient)
+	uint32 bDisplaySourceAnimation:1;
+
 	/** Display Bound **/
 	UPROPERTY(transient)
 	uint32 bDisplayBound:1;
@@ -110,6 +118,12 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 
 	/** Storage for non retargeted pose. */
 	TArray<FTransform> NonRetargetedSpaceBases;
+
+	/** Storage of Baked Animation Pose for when bDisplayBakedAnimation == true, as they have to be calculated */
+	TArray<FTransform> BakedAnimationPoses;
+
+	/** Storage of Source Animation Pose for when bDisplaySourceAnimation == true, as they have to be calculated */
+	TArray<FTransform> SourceAnimationPoses;
 
 	/** Color render mode enum value - 0 - none, 1 - tangent, 2 - normal, 3 - mirror, 4 - bone weighting */
 	//var native transient int ColorRenderMode;
@@ -248,6 +262,11 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	virtual void CheckClothTeleport(float DeltaTime) override;
 
 #endif //#if WITH_APEX_CLOTHING
+
+private:
+
+	// Helper function to generate space bases for current frame
+	void GenSpaceBases(TArray<FTransform>& OutSpaceBases);
 };
 
 

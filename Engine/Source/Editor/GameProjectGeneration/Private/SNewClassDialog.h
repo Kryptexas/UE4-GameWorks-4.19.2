@@ -1,8 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 struct FParentClassItem;
+class IClassViewerFilter;
+
+enum class EClassDomain : uint8 { Blueprint, Native };
 
 /**
  * A dialog to choose a new class parent and name
@@ -11,12 +14,33 @@ class SNewClassDialog : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS( SNewClassDialog )
-		: _Class(NULL)
+		: _ClassDomain(EClassDomain::Native), _Class(NULL)
 	{}
 
-	/** The class we want to build our new class from. If this is not specified then the wizard will display classes to the user. */
-	SLATE_ARGUMENT(UClass*, Class)
+	/** The domain of the class we are to create (native or blueprint) */
+	SLATE_ARGUMENT(EClassDomain, ClassDomain)
 
+	/** An array of classes to feature on the class picker page */
+	SLATE_ARGUMENT(TArray<FNewClassInfo>, FeaturedClasses)
+
+	/** Filter specifying allowable class types, if a parent class is to be chosen by the user */
+	SLATE_ARGUMENT(TSharedPtr<IClassViewerFilter>, ClassViewerFilter)
+
+	/** The class we want to build our new class from. If this is not specified then the wizard will display classes to the user. */
+	SLATE_ARGUMENT(const UClass*, Class)
+
+	/** The initial path to use as the destination for the new class. If this is not specified, we will work out a suitable default from the available project modules */
+	SLATE_ARGUMENT(FString, InitialPath)
+
+	/** The prefix to put on new classes by default, if the user doesn't type in a new name.  Defaults to 'My'. */
+	SLATE_ARGUMENT(FString, DefaultClassPrefix)
+
+	/** If non-empty, overrides the default name of the class, when the user doesn't type a new name.  Defaults to empty, which causes the
+	    name to be the inherited class name.  Note that DefaultClassPrefix is still prepended to this name, if non-empty. */
+	SLATE_ARGUMENT(FString, DefaultClassName)
+
+	/** Event called when code is successfully added to the project */
+	SLATE_EVENT( FOnAddedToProject, OnAddedToProject )
 	SLATE_END_ARGS()
 
 	/** Constructs this widget with InArgs */
@@ -30,10 +54,10 @@ private:
 	TSharedRef<ITableRow> MakeParentClassListViewWidget(TSharedPtr<FParentClassItem> ParentClassItem, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Gets the currently selected parent class name */
-	FString GetSelectedParentClassName() const;
+	FText GetSelectedParentClassName() const;
 
 	/** Gets the currently selected parent class's filename */
-	FString GetSelectedParentClassFilename() const;
+	FText GetSelectedParentClassFilename() const;
 
 	/** Whether the hyper link to go to source should be visible */
 	EVisibility GetSourceHyperlinkVisibility() const;
@@ -57,10 +81,10 @@ private:
 	void OnAdvancedClassSelected(UClass* Class);
 
 	/** Gets the check box state for the full class list */
-	ESlateCheckBoxState::Type IsFullClassTreeChecked() const;
+	ECheckBoxState IsFullClassTreeChecked() const;
 
 	/** Gets the check box state for the full class list */
-	void OnFullClassTreeChanged(ESlateCheckBoxState::Type NewCheckedState);
+	void OnFullClassTreeChanged(ECheckBoxState NewCheckedState);
 
 	/** Gets the visibility of the basic class list */
 	EVisibility GetBasicParentClassVisibility() const;
@@ -72,22 +96,19 @@ private:
 	EVisibility GetNameErrorLabelVisibility() const;
 
 	/** Gets the text to display in the name error label */
-	FString GetNameErrorLabelText() const;
+	FText GetNameErrorLabelText() const;
 
 	/** Gets the visibility of the global error label */
 	EVisibility GetGlobalErrorLabelVisibility() const;
 
-	/** Gets the visibility of the global error label IDE Link */
-	EVisibility GetGlobalErrorLabelIDELinkVisibility() const;
-
 	/** Gets the text to display in the global error label */
-	FString GetGlobalErrorLabelText() const;
+	FText GetGlobalErrorLabelText() const;
 
 	/** Handler for when the user enters the "name class" page */
 	void OnNamePageEntered();
 
 	/** Returns the title text for the "name class" page */
-	FString GetNameClassTitle() const;
+	FText GetNameClassTitle() const;
 
 	/** Returns the text in the class name edit box */
 	FText OnGetClassNameText() const;
@@ -100,6 +121,9 @@ private:
 
 	/** Handler for when the text in the class path edit box has changed */
 	void OnClassPathTextChanged(const FText& NewText);
+
+	/** Called when the user chooses a path for a blueprint */
+	void OnBlueprintPathSelected(const FString& NewPath);
 
 	/** Returns the text for the calculated header file name */
 	FText OnGetClassHeaderFileText() const;
@@ -115,9 +139,6 @@ private:
 
 	/** Handler for when finish is clicked */
 	void FinishClicked();
-
-	/** Handler for when the error label IDE hyperlink was clicked */
-	void OnDownloadIDEClicked(FString URL);
 
 	/** Handler for when the "Choose Folder" button is clicked */
 	FReply HandleChooseFolderButtonClicked( );
@@ -140,10 +161,10 @@ private:
 	FText GetClassLocationTooltip(GameProjectUtils::EClassLocation InLocation) const;
 
 	/** Checks to see if the given class location is active based on the current value of NewClassPath */
-	ESlateCheckBoxState::Type IsClassLocationActive(GameProjectUtils::EClassLocation InLocation) const;
+	ECheckBoxState IsClassLocationActive(GameProjectUtils::EClassLocation InLocation) const;
 
 	/** Update the value of NewClassPath so that it uses the given class location */
-	void OnClassLocationChanged(ESlateCheckBoxState::Type InCheckedState, GameProjectUtils::EClassLocation InLocation);
+	void OnClassLocationChanged(ECheckBoxState InCheckedState, GameProjectUtils::EClassLocation InLocation);
 
 	/** Checks to see if the class location can be changed (relies on us having a Public/Private folder layout) */
 	bool CanChangeClassLocation() const;
@@ -152,10 +173,10 @@ private:
 	void UpdateInputValidity();
 
 	/** Gets the currently selected parent class */
-	const GameProjectUtils::FNewClassInfo& GetSelectedParentClassInfo() const;
+	const FNewClassInfo& GetSelectedParentClassInfo() const;
 
 	/** Adds parent classes to the ParentClassListView source */
-	void SetupParentClassItems();
+	void SetupParentClassItems(const TArray<FNewClassInfo>& UserSpecifiedFeaturedClasses);
 
 	/** Closes the window that contains this widget */
 	void CloseContainingWindow();
@@ -171,6 +192,13 @@ private:
 
 	/** A pointer to a class viewer **/
 	TSharedPtr<class SClassViewer> ClassViewer;
+
+	/** The prefix to put on new classes by default, if the user doesn't type in a new name.  Defaults to 'My'. */
+	FString DefaultClassPrefix;
+
+	/** If non-empty, overrides the default name of the class, when the user doesn't type a new name.  Defaults to empty, which causes the
+	    name to be the inherited class name.  Note that DefaultClassPrefix is still prepended to this name, if non-empty. */
+	FString DefaultClassName;
 
 	/** The editable text box to enter the current name */
 	TSharedPtr<SEditableTextBox> ClassNameEditBox;
@@ -194,7 +222,7 @@ private:
 	FString LastAutoGeneratedClassName;
 
 	/** The selected parent class */
-	GameProjectUtils::FNewClassInfo ParentClassInfo;
+	FNewClassInfo ParentClassInfo;
 
 	/** If true, the full class tree will be shown in the parent class selection */
 	bool bShowFullClassTree;
@@ -217,9 +245,15 @@ private:
 	/** Whether the class should be created as a Public or Private class */
 	GameProjectUtils::EClassLocation ClassLocation;
 
+	/** The domain of the new class we are creating (native or blueprint) */
+	EClassDomain ClassDomain;
+
 	/** Information about the currently available modules for this project */
 	TArray<TSharedPtr<FModuleContextInfo>> AvailableModules;
 
 	/** Information about the currently selected module; used for class validation */
 	TSharedPtr<FModuleContextInfo> SelectedModuleInfo;
+
+	/** Event called when code is succesfully added to the project */
+	FOnAddedToProject OnAddedToProject;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 // Unfortunately needs to be a #define since it uses GET_VARARGS_RESULT which uses the va_list stuff which operates on the
 // current function, so we can't easily call a function
@@ -66,22 +66,19 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 	UObject * LogOwner = FVisualLogger::FindRedirection(Object);
 
 	bool InitializeNewEntry = false;
+
+	UWorld* World = GetWorld();
 	if (CurrentEntryPerObject.Contains(LogOwner))
 	{
 		CurrentEntry = &CurrentEntryPerObject[LogOwner];
-		if (TimeStamp > CurrentEntry->TimeStamp && ShouldCreate == ECreateIfNeeded::Create)
+		InitializeNewEntry = TimeStamp > CurrentEntry->TimeStamp && ShouldCreate == ECreateIfNeeded::Create;
+		if (World)
 		{
-			if (CurrentEntry->TimeStamp >= 0) //-1 means not initialized entry information
-			{
-				for (auto* Device : OutputDevices)
-				{
-					Device->Serialize(LogOwner, ObjectToNameMap[LogOwner], *CurrentEntry);
-				}
-			}
-			InitializeNewEntry = true;
+			World->GetTimerManager().ClearAllTimersForObject(this);
 		}
 	}
-	else
+
+	if(!CurrentEntry)
 	{
 		CurrentEntry = &CurrentEntryPerObject.Add(LogOwner);
 		ObjectToNameMap.Add(LogOwner, LogOwner->GetFName());
@@ -125,6 +122,27 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 				ObjectAsActor->GrabDebugSnapshot(CurrentEntry);
 			}
 		}
+
+		if (World)
+		{
+			//set next tick timer to flush obsolete/old entries
+			World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda(
+				[this](){
+				for (auto& CurrentPair : CurrentEntryPerObject)
+				{
+					FVisualLogEntry* Entry = &CurrentPair.Value;
+					if (Entry->TimeStamp >= 0) // CurrentEntry->TimeStamp == -1 means it's not initialized entry information
+					{
+						for (auto* Device : OutputDevices)
+						{
+							Device->Serialize(CurrentPair.Key, ObjectToNameMap[CurrentPair.Key], *Entry);
+						}
+						Entry->Reset();
+					}
+				}
+			}
+			));
+		}
 	}
 
 	return CurrentEntry;
@@ -159,7 +177,7 @@ VARARG_BODY(void, FVisualLogger::CategorizedLogf, const TCHAR*, VARARG_EXTRA(con
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddText(Buffer, Category.GetCategoryName());
+		CurrentEntry->AddText(Buffer, Category.GetCategoryName(), Verbosity);
 	);
 }
 
@@ -175,7 +193,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddElement(Start, End, Category.GetCategoryName(), Color, Buffer);
+		CurrentEntry->AddElement(Start, End, Category.GetCategoryName(), Verbosity, Color, Buffer);
 	);
 }
 
@@ -191,7 +209,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddElement(Location, Category.GetCategoryName(), Color, Buffer, Radius);
+		CurrentEntry->AddElement(Location, Category.GetCategoryName(), Verbosity, Color, Buffer, Radius);
 	);
 }
 
@@ -207,7 +225,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddElement(Box, Category.GetCategoryName(), Color, Buffer);
+		CurrentEntry->AddElement(Box, Category.GetCategoryName(), Verbosity, Color, Buffer);
 	);
 }
 
@@ -223,7 +241,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddElement(Orgin, Direction, Length, Angle, Angle, Category.GetCategoryName(), Color, Buffer);
+		CurrentEntry->AddElement(Orgin, Direction, Length, Angle, Angle, Category.GetCategoryName(), Verbosity, Color, Buffer);
 	);
 }
 
@@ -239,7 +257,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddElement(Start, End, Radius, Category.GetCategoryName(), Color, Buffer);
+		CurrentEntry->AddElement(Start, End, Radius, Category.GetCategoryName(), Verbosity, Color, Buffer);
 	);
 }
 
@@ -255,7 +273,7 @@ VARARG_BODY(void, FVisualLogger::GeometryShapeLogf, const TCHAR*, VARARG_EXTRA(c
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddElement(Center, HalfHeight, Radius, Rotation, Category.GetCategoryName(), Color, Buffer);
+		CurrentEntry->AddElement(Center, HalfHeight, Radius, Rotation, Category.GetCategoryName(), Verbosity, Color, Buffer);
 	);
 }
 
@@ -271,7 +289,7 @@ VARARG_BODY(void, FVisualLogger::HistogramDataLogf, const TCHAR*, VARARG_EXTRA(c
 	}
 
 	COLLAPSED_LOGF(
-		CurrentEntry->AddHistogramData(Data, Category.GetCategoryName(), GraphName, DataName);
+		CurrentEntry->AddHistogramData(Data, Category.GetCategoryName(), Verbosity, GraphName, DataName);
 	);
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -149,7 +149,7 @@ public:
 	void RestoreData();
 
 	/** Returns Detail description of what's going with viewport **/
-	FString GetDisplayString() const;
+	FText GetDisplayString() const;
 
 	/** Can we use gizmos? */
 	bool CanUseGizmos() const;
@@ -175,14 +175,14 @@ public:
 	float GetWindStrengthSliderValue() const;
 
 	/** Function to get slider value which returns a string*/
-	FString GetWindStrengthLabel() const;
+	FText GetWindStrengthLabel() const;
 
 	bool IsApplyingClothWind() const;
 
 	/** Show gravity scale */
 	void SetGravityScale( float SliderPos );
 	float GetGravityScaleSliderValue() const;
-	FString GetGravityScaleLabel() const;
+	FText GetGravityScaleLabel() const;
 
 protected:
 
@@ -212,6 +212,17 @@ private:
 	void OnShowNonRetargetedAnimation();
 
 	bool IsShowingNonRetargetedPose() const;
+
+	/** Show non retargeted animation. */
+	void OnShowSourceRawAnimation();
+
+	bool IsShowingSourceRawAnimation() const;
+
+	/** Show non retargeted animation. */
+	void OnShowBakedAnimation();
+
+	bool IsShowingBakedAnimation() const;
+
 
 	/** Additive Base Pose on top of full animation **/
 	void OnShowAdditiveBase();

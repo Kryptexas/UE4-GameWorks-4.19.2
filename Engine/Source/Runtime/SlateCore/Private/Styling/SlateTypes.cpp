@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
 
@@ -287,6 +287,15 @@ const FProgressBarStyle& FProgressBarStyle::GetDefault()
 
 
 FScrollBarStyle::FScrollBarStyle()
+	: HorizontalBackgroundImage(FSlateNoResource())
+	, VerticalBackgroundImage(FSlateNoResource())
+	, VerticalTopSlotImage(FSlateNoResource())
+	, HorizontalTopSlotImage(FSlateNoResource())
+	, VerticalBottomSlotImage(FSlateNoResource())
+	, HorizontalBottomSlotImage(FSlateNoResource())
+	, NormalThumbImage(FSlateNoResource())
+	, HoveredThumbImage(FSlateNoResource())
+	, DraggedThumbImage(FSlateNoResource())
 {
 }
 
@@ -294,6 +303,10 @@ void FScrollBarStyle::GetResources( TArray< const FSlateBrush* >& OutBrushes ) c
 {
 	OutBrushes.Add( &HorizontalBackgroundImage );
 	OutBrushes.Add( &VerticalBackgroundImage );
+	OutBrushes.Add( &VerticalTopSlotImage);
+	OutBrushes.Add( &HorizontalTopSlotImage);
+	OutBrushes.Add( &VerticalBottomSlotImage);
+	OutBrushes.Add( &HorizontalBottomSlotImage);
 	OutBrushes.Add( &NormalThumbImage );
 	OutBrushes.Add( &HoveredThumbImage );
 	OutBrushes.Add( &DraggedThumbImage );
@@ -328,6 +341,7 @@ const FExpandableAreaStyle& FExpandableAreaStyle::GetDefault()
 
 
 FSearchBoxStyle::FSearchBoxStyle()
+	: bLeftAlignButtons(false)
 {
 }
 
@@ -480,6 +494,9 @@ void FTableRowStyle::GetResources( TArray< const FSlateBrush* >& OutBrushes ) co
 	OutBrushes.Add( &EvenRowBackgroundBrush );
 	OutBrushes.Add( &OddRowBackgroundHoveredBrush );
 	OutBrushes.Add( &OddRowBackgroundBrush );
+	OutBrushes.Add( &DropIndicator_Above );
+	OutBrushes.Add( &DropIndicator_Onto );
+	OutBrushes.Add( &DropIndicator_Below );
 }
 
 const FName FTableRowStyle::TypeName( TEXT("FTableRowStyle") );

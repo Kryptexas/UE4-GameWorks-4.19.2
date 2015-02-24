@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "OnlineSubsystemTypes.h"
@@ -102,6 +102,15 @@ public:
 	 * @return true if it was able to show the UI, false if it failed
 	 */
 	virtual bool ShowProfileUI(const FUniqueNetId& Requestor, const FUniqueNetId& Requestee, const FOnProfileUIClosedDelegate& Delegate) = 0;
+
+	/**
+	* Displays a system dialog to purchase user account upgrades.  e.g. PlaystationPlus, XboxLive GOLD, etc.
+	*
+	* @param UniqueID of the user to show the dialog for
+	*
+	* @return true if it was able to show the UI, false if it failed
+	*/
+	virtual bool ShowAccountUpgradeUI(const FUniqueNetId& UniqueId) = 0;
 
 	/**
 	 * Delegate called when the external UI is opened or closed

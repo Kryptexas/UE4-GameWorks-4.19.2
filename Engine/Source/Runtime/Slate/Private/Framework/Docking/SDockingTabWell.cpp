@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "DockingPrivate.h"
@@ -265,6 +265,11 @@ FReply SDockingTabWell::StartDraggingTab( TSharedRef<SDockTab> TabToStartDraggin
 		ForegroundTabIndex = INDEX_NONE;
 		ParentTabStackPtr.Pin()->OnTabRemoved(TabToStartDragging->GetLayoutIdentifier());
 
+#if PLATFORM_MAC
+		// On Mac we need to activate the app as we may be dragging a window that is set to be invisible if the app is inactive
+		FPlatformMisc::ActivateApplication();
+#endif
+
 		// Start dragging.
 		TSharedRef<FDockingDragOperation> DragDropOperation =
 			FDockingDragOperation::New(
@@ -454,6 +459,8 @@ void SDockingTabWell::BringTabToFront( int32 TabIndexToActivate )
 				: Tabs[ForegroundTabIndex];
 			
 			MyDockArea->GetTabManager()->GetPrivateApi().OnTabForegrounded(NewForegroundTab, PreviousForegroundTab);
+
+			FGlobalTabmanager::Get()->GetPrivateApi().OnTabForegrounded(NewForegroundTab, PreviousForegroundTab);
 		}
 	}
 

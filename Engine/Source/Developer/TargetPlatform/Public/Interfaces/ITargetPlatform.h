@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -366,6 +366,11 @@ public:
 	 * @return float priority for this platform variant.
 	 */
 	virtual float GetVariantPriority() const = 0;
+
+	/** 
+	 * Whether or not to send all lower-case filepaths when connecting over a fileserver connection. 
+	 */
+	virtual bool SendLowerCaseFilePaths() const = 0;
 
 public:
 

@@ -1,8 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-#include "EditorViewportClient.h"
 #include "UnrealWidget.h"
 #include "Framework/Commands/Commands.h"
 #include "Layout/SlateRect.h"
@@ -241,7 +240,7 @@ class UNREALED_API FEditorViewportClient : public FCommonViewportClient, public 
 public:
 	friend class FMouseDeltaTracker;
 
-	FEditorViewportClient(FEditorModeTools& InModeTools, FPreviewScene* InPreviewScene = nullptr);
+	FEditorViewportClient(FEditorModeTools* InModeTools, FPreviewScene* InPreviewScene = nullptr);
 	virtual ~FEditorViewportClient();
 
 	/**
@@ -332,16 +331,29 @@ public:
 	/** Callback for toggling the realtime preview flag. */
 	void SetRealtimePreview();
 
+	/** Gets ViewportCameraTransform object for the current viewport type */
+	FViewportCameraTransform& GetViewTransform()
+	{
+		return IsPerspective() ? ViewTransformPerspective : ViewTransformOrthographic;
+	}
+
+	const FViewportCameraTransform& GetViewTransform() const
+	{
+		return IsPerspective() ? ViewTransformPerspective : ViewTransformOrthographic;
+	}
+
 	/** Sets the location of the viewport's camera */
 	void SetViewLocation( const FVector& NewLocation )
 	{
-		ViewTransform.SetLocation( NewLocation );
+		FViewportCameraTransform& ViewTransform = GetViewTransform();
+		ViewTransform.SetLocation(NewLocation);
 	}
 
 	/** Sets the location of the viewport's camera */
 	void SetViewRotation( const FRotator& NewRotation )
 	{
-		ViewTransform.SetRotation( NewRotation );
+		FViewportCameraTransform& ViewTransform = GetViewTransform();
+		ViewTransform.SetRotation(NewRotation);
 	}
 
 	/** 
@@ -352,47 +364,55 @@ public:
 	 */
 	void SetLookAtLocation( const FVector& LookAt, bool bRecalculateView = false )
 	{
-		ViewTransform.SetLookAt( LookAt );
+		FViewportCameraTransform& ViewTransform = GetViewTransform();
+
+		ViewTransform.SetLookAt(LookAt);
 
 		if( bRecalculateView )
 		{
 			FMatrix OrbitMatrix = ViewTransform.ComputeOrbitMatrix();
 			OrbitMatrix = OrbitMatrix.InverseFast();
 
-			ViewTransform.SetRotation( OrbitMatrix.Rotator() );
-			ViewTransform.SetLocation( OrbitMatrix.GetOrigin() );
+			ViewTransform.SetRotation(OrbitMatrix.Rotator());
+			ViewTransform.SetLocation(OrbitMatrix.GetOrigin());
 		}
 	}
 
 	/** Sets ortho zoom amount */
 	void SetOrthoZoom( float InOrthoZoom ) 
 	{
+		FViewportCameraTransform& ViewTransform = GetViewTransform();
+
 		// A zero ortho zoom is not supported and causes NaN/div0 errors
 		check(InOrthoZoom != 0);
-		ViewTransform.SetOrthoZoom( InOrthoZoom );
+		ViewTransform.SetOrthoZoom(InOrthoZoom);
 	}
 
 	/** @return the current viewport camera location */
 	const FVector& GetViewLocation() const
 	{
+		const FViewportCameraTransform& ViewTransform = GetViewTransform();
 		return ViewTransform.GetLocation();
 	}
 
 	/** @return the current viewport camera rotation */
 	const FRotator& GetViewRotation() const
 	{
+		const FViewportCameraTransform& ViewTransform = GetViewTransform();
 		return ViewTransform.GetRotation();
 	}
 
 	/** @return the current look at location */
 	const FVector& GetLookAtLocation() const
 	{
+		const FViewportCameraTransform& ViewTransform = GetViewTransform();
 		return ViewTransform.GetLookAt();
 	}
 
 	/** @return the current ortho zoom amount */
 	float GetOrthoZoom() const
 	{
+		const FViewportCameraTransform& ViewTransform = GetViewTransform();
 		return ViewTransform.GetOrthoZoom();
 	}
 
@@ -409,9 +429,7 @@ public:
 		SetViewRotation( Rotation );
 	}
 
-	void SetInitialViewTransform( const FVector& ViewLocation, const FRotator& ViewRotation, float InOrthoZoom );
-
-	virtual void ProcessScreenShots(FViewport* Viewport) override;
+	void SetInitialViewTransform(ELevelViewportType ViewportType, const FVector& ViewLocation, const FRotator& ViewRotation, float InOrthoZoom );
 
 	void TakeHighResScreenShot();
 
@@ -423,6 +441,7 @@ public:
 	virtual void Draw(FViewport* Viewport,FCanvas* Canvas) override;
 
 	/** FViewportClient interface */
+	virtual void ProcessScreenShots(FViewport* Viewport) override;
 	virtual void RedrawRequested(FViewport* Viewport) override;
 	virtual void RequestInvalidateHitProxy(FViewport* Viewport) override;
 	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
@@ -437,7 +456,11 @@ public:
 	virtual void CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY ) override;
 	virtual bool IsOrtho() const override;
 	virtual void LostFocus(FViewport* Viewport) override;
-
+	virtual FStatUnitData* GetStatUnitData() const override;
+	virtual FStatHitchesData* GetStatHitchesData() const override;
+	virtual const TArray<FString>* GetEnabledStats() const override;
+	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) override;
+	virtual bool IsStatEnabled(const TCHAR* InName) const override;
 
 	/** FGCObject interface */
 	virtual void AddReferencedObjects( FReferenceCollector& Collector ) override;
@@ -452,7 +475,7 @@ public:
 	 * @param HitX			The X location of the mouse
 	 * @param HitY			The Y location of the mouse
 	 */
-	virtual void ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) {}
+	virtual void ProcessClick(class FSceneView& View, class HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY);
 	
 	/**
 	 * Called when mouse movement tracking begins
@@ -477,17 +500,17 @@ public:
 	 * @param Rot			The amount the widget was rotated  (the value depends on the coordinate system of the widget.  See GetWidgetCoordSystem )
 	 * @param Scale			The amount the widget was scaled (the value depends on the coordinate system of the widget.  See GetWidgetCoordSystem )
 	 */
-	virtual bool InputWidgetDelta( FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale ) { return false; }
+	virtual bool InputWidgetDelta(FViewport* InViewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale);
 
 	/**
 	 * Sets the current widget mode
 	 */
-	virtual void SetWidgetMode( FWidget::EWidgetMode NewMode ) {};
+	virtual void SetWidgetMode(FWidget::EWidgetMode NewMode);
 
 	/**
 	 * Whether or not the new widget mode can be set in this viewport
 	 */
-	virtual bool CanSetWidgetMode( FWidget::EWidgetMode NewMode ) const { return true; }
+	virtual bool CanSetWidgetMode(FWidget::EWidgetMode NewMode) const;
 
 	/**
 	 * Whether or not the widget mode can be cycled
@@ -497,28 +520,28 @@ public:
 	/**
 	 * @return The current display mode for transform widget 
 	 */
-	virtual FWidget::EWidgetMode GetWidgetMode() const { return FWidget::WM_None; }
+	virtual FWidget::EWidgetMode GetWidgetMode() const;
 
 	/**
 	 * @return The world space location of the transform widget
 	 */
-	virtual FVector GetWidgetLocation() const { return FVector::ZeroVector; }
+	virtual FVector GetWidgetLocation() const;
 
 	/**
 	 * @return The current coordinate system for drawing and input of the transform widget.  
 	 * For world coordiante system return the identity matrix
 	 */
-	virtual FMatrix GetWidgetCoordSystem() const { return FMatrix::Identity; }
+	virtual FMatrix GetWidgetCoordSystem() const;
 
 	/**
 	 * Sets the coordinate system space to use
 	 */
-	virtual void SetWidgetCoordSystemSpace( ECoordSystem NewCoordSystem ) {};
+	virtual void SetWidgetCoordSystemSpace( ECoordSystem NewCoordSystem );
 
 	/**
 	 * @return The coordinate system space (world or local) to display the widget in
 	 */
-	virtual ECoordSystem GetWidgetCoordSystemSpace() const { return COORD_World; }
+	virtual ECoordSystem GetWidgetCoordSystemSpace() const;
 
 	/**
 	 * Sets the current axis being manipulated by the transform widget
@@ -545,7 +568,7 @@ public:
 	 * @param View			The view of the scene to be rendered
 	 * @param Canvas		The canvas to draw on
 	 */
-	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) {};
+	virtual void DrawCanvas(FViewport& InViewport, FSceneView& View, FCanvas& Canvas);
 
 	/**
 	 * Render the drag tool in the viewport
@@ -915,6 +938,12 @@ public:
 	/** Get the camera speed setting for this viewport */
 	virtual int32 GetCameraSpeedSetting() const;
 
+	/** Editor mode tool manager being used for this viewport client */
+	FEditorModeTools* GetModeTools() const
+	{
+		return ModeTools;
+	}
+
 protected:
 
 	/** Camera speed setting */
@@ -988,6 +1017,12 @@ protected:
 	 * Called when the perspective viewport camera moves
 	 */
 	virtual void PerspectiveCameraMoved() {}
+
+	/** Updates the rotate widget with the passed in delta rotation. */
+	void ApplyDeltaToRotateWidget(const FRotator& InRot);
+
+	/** Invalidates this and other linked viewports (anything viewing the same scene) */
+	virtual void RedrawAllViewportsIntoThisScene();
 
 	/**
 	 * Used to store the required cursor visibility states and override cursor appearance
@@ -1104,6 +1139,11 @@ protected:
 	 */
 	void StopTracking();
 
+	/**
+	 * Aborts mouse tracking (stop and cancel)
+	 */
+	virtual void AbortTracking();
+
 	/** Enables or disables camera lock **/
 	void EnableCameraLock(bool bEnable);
 
@@ -1117,6 +1157,8 @@ protected:
 
 	/** Helper function to calculate the safe frame rectangle on the current viewport */
 	bool CalculateEditorConstrainedViewRect(FSlateRect& OutSafeFrameRect, FViewport* InViewport);
+
+	virtual void NudgeSelectedObjects(const struct FInputEventState& InputState) {}
 
 private:
 	/** @return Whether or not the camera should be panned or dollied */
@@ -1161,6 +1203,23 @@ private:
 		return &EngineShowFlags; 
 	}
 
+	/**
+	 * Set a specific stat to either enabled or disabled (returns true if there are any stats enabled)
+	 */
+	int32 SetStatEnabled(const TCHAR* InName, const bool bEnable, const bool bAll = false);
+
+	/** Delegate handler to see if a stat is enabled on this viewport */
+	void HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled);
+
+	/** Delegate handler for when stats are enabled in a viewport */
+	void HandleViewportStatEnabled(const TCHAR* InName);
+
+	/** Delegate handler for when stats are disabled in a viewport */
+	void HandleViewportStatDisabled(const TCHAR* InName);
+
+	/** Delegate handler for when all stats are disabled in a viewport */
+	void HandleViewportStatDisableAll(const bool bInAnyViewport);
+
 public:
 	static const uint32 MaxCameraSpeeds;
 
@@ -1172,8 +1231,11 @@ public:
 
 	FViewport*				Viewport;
 
-	/** Viewport camera transform data */
-	FViewportCameraTransform		ViewTransform;
+	/** Viewport camera transform data for perspective viewports */
+	FViewportCameraTransform		ViewTransformPerspective;
+
+	/** Viewport camera transform data for orthographic viewports */
+	FViewportCameraTransform		ViewTransformOrthographic;
 
 	/** The viewport type. */
 	ELevelViewportType		ViewportType;
@@ -1241,8 +1303,10 @@ public:
 	bool bDrawVertices;
 
 protected:
+	/** Does this viewport client own the mode tools instance pointed at by ModeTools control the lifetime of it? */
+	bool bOwnsModeTools;
 
-	/** Editor mode tools provided to this instance. Assumed to be managed externally */
+	/** Editor mode tools provided to this instance. Assumed to be managed externally if bOwnsModeTools is false */
 	FEditorModeTools*		ModeTools;
 
 	FWidget*				Widget;
@@ -1352,6 +1416,16 @@ public:
 	/* Default view mode for orthographic viewports */
 	static const EViewModeIndex DefaultOrthoViewMode;
 
+protected:
+	/** Data needed to display per-frame stat tracking when STAT UNIT is enabled */
+	mutable FStatUnitData StatUnitData;
+
+	/** Data needed to display per-frame stat tracking when STAT HITCHES is enabled */
+	mutable FStatHitchesData StatHitchesData;
+
+	/** A list of all the stat names which are enabled for this viewport */
+	TArray<FString> EnabledStats;
+
 private:
 	/* View mode to set when this viewport is of type LVT_Perspective */
 	EViewModeIndex PerspViewModeIndex;
@@ -1368,6 +1442,9 @@ private:
 	/** If true, we are in Game View mode*/
 	bool bInGameViewMode;
 };
+
+
+
 
 class UNREALED_API FEditorViewportStats
 {

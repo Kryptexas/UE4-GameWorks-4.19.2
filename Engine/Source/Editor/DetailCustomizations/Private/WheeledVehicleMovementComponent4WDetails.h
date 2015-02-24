@@ -1,8 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "SCurveEditor.h"
+#include "IDetailCustomization.h"
+class UWheeledVehicleMovementComponent4W;
 
 class FWheeledVehicleMovementComponent4WDetails : public IDetailCustomization
 {
@@ -25,6 +27,7 @@ private:
 		virtual void ModifyOwner() override;
 		virtual void MakeTransactional() override;
 		virtual void OnCurveChanged() override { }
+		virtual bool IsValidCurve(FRichCurveEditInfo CurveInfo) override;
 
 	private:
 		UWheeledVehicleMovementComponent4W * VehicleComponent;
@@ -42,6 +45,7 @@ private:
 		virtual void ModifyOwner() override;
 		virtual void MakeTransactional() override;
 		virtual void OnCurveChanged() override { }
+		virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo ) override;
 
 	private:
 		UWheeledVehicleMovementComponent4W * VehicleComponent;

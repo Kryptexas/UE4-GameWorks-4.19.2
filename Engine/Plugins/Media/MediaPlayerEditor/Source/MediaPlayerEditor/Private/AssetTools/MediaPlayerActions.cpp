@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaPlayerEditorPrivatePCH.h"
 #include "ContentBrowserModule.h"
@@ -96,7 +96,7 @@ UClass* FMediaPlayerActions::GetSupportedClass() const
 
 FColor FMediaPlayerActions::GetTypeColor() const
 {
-	return FColor(255, 0, 0);
+	return FColor::Red;
 }
 
 

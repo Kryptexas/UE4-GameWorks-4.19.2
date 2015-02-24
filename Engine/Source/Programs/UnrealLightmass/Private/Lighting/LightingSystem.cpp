@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "stdafx.h"
 #include "Exporter.h"
@@ -1893,7 +1893,7 @@ void FStaticLightingSystem::CalculateApproximateDirectLighting(
 
 					FVector4 NormalForOffset = Vertex.WorldTangentZ;
 			
-					const FVector4 StartOffset = LightVector.SafeNormal() * SceneConstants.VisibilityRayOffsetDistance 
+					const FVector4 StartOffset = LightVector.GetSafeNormal() * SceneConstants.VisibilityRayOffsetDistance
 						+ NormalForOffset * SampleRadius * SceneConstants.VisibilityNormalOffsetSampleRadiusScale;
 
 					const FLightRay LightRay(
@@ -1956,13 +1956,13 @@ void FStaticLightingSystem::CalculateApproximateDirectLighting(
 					Dot3(WorldLightVector, Vertex.WorldTangentY),
 					Dot3(WorldLightVector, Vertex.WorldTangentZ),
 					0
-					).SafeNormal();
+					).GetSafeNormal();
 
 				// Compute the incident lighting of the light on the vertex.
 				const FLinearColor FinalIntensity = LightIntensity * Transmission;
 
 				// Compute the light-map sample for the front-face of the vertex.
-				FGatheredLightSample Lighting = FGatheredLightSample::PointLightWorldSpace(FinalIntensity, TangentLightVector, WorldLightVector.SafeNormal());
+				FGatheredLightSample Lighting = FGatheredLightSample::PointLightWorldSpace(FinalIntensity, TangentLightVector, WorldLightVector.GetSafeNormal());
 
 				if (Light->UseStaticLighting(false) || bCompositeAllLights)
 				{
@@ -2361,7 +2361,7 @@ bool FStaticLightingSystem::CalculatePointShadowing(
 			const FVector4 LightPosition = FVector4(Light->Position.X, Light->Position.Y, Light->Position.Z, 0);
 			const FVector4 LightVector = LightPosition - WorldSurfacePoint * Light->Position.W;
 			const FLightRay LightRay(
-				WorldSurfacePoint + LightVector.SafeNormal() * SceneConstants.VisibilityRayOffsetDistance,
+				WorldSurfacePoint + LightVector.GetSafeNormal() * SceneConstants.VisibilityRayOffsetDistance,
 				WorldSurfacePoint + LightVector,
 				Mapping,
 				Light
@@ -2456,7 +2456,7 @@ int32 FStaticLightingSystem::CalculatePointAreaShadowing(
 			const FLightRay LightRay(
 				// Offset the start of the ray by some fraction along the direction of the ray and some fraction along the vertex normal.
 				Vertex.WorldPosition 
-					+ LightVector.SafeNormal() * SceneConstants.VisibilityRayOffsetDistance 
+					+ LightVector.GetSafeNormal() * SceneConstants.VisibilityRayOffsetDistance 
 					+ NormalForOffset * SampleRadius * SceneConstants.VisibilityNormalOffsetSampleRadiusScale 
 					+ SampleOffset,
 				Vertex.WorldPosition + LightVector,
@@ -2517,13 +2517,13 @@ FGatheredLightSample FStaticLightingSystem::CalculatePointLighting(
 			    Dot3(WorldLightVector, Vertex.WorldTangentY),
 			    Dot3(WorldLightVector, Vertex.WorldTangentZ),
 				0
-			    ).SafeNormal();
+				).GetSafeNormal();
 
 		// Compute the incident lighting of the light on the vertex.
 		const FLinearColor LightIntensity = InLightIntensity * InTransmission;
 
 		// Compute the light-map sample for the front-face of the vertex.
-		FGatheredLightSample FrontFaceSample = FGatheredLightSample::PointLightWorldSpace(LightIntensity, TangentLightVector, WorldLightVector.SafeNormal());
+		FGatheredLightSample FrontFaceSample = FGatheredLightSample::PointLightWorldSpace(LightIntensity, TangentLightVector, WorldLightVector.GetSafeNormal());
 
 		if (Mapping->Mesh->UsesTwoSidedLighting(ElementIndex))
 		{
@@ -2533,8 +2533,8 @@ FGatheredLightSample FStaticLightingSystem::CalculatePointLighting(
 					Dot3(WorldLightVector, -Vertex.WorldTangentY),
 					Dot3(WorldLightVector, -Vertex.WorldTangentZ),
 					0
-					).SafeNormal();
-			const FGatheredLightSample BackFaceSample = FGatheredLightSample::PointLightWorldSpace(LightIntensity, BackFaceTangentLightVector, -WorldLightVector.SafeNormal());
+					).GetSafeNormal();
+			const FGatheredLightSample BackFaceSample = FGatheredLightSample::PointLightWorldSpace(LightIntensity, BackFaceTangentLightVector, -WorldLightVector.GetSafeNormal());
 			// Average front and back face lighting
 			return (FrontFaceSample + BackFaceSample) * .5f;
 		}

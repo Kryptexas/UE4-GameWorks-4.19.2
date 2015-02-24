@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "../Classes/Kismet/DataTableFunctionLibrary.h"
@@ -55,4 +55,16 @@ bool UDataTableFunctionLibrary::GetDataTableRowFromName(UDataTable* Table, FName
 	// We should never hit this!  stubs to avoid NoExport on the class.
 	check(0);
     return false;
+}
+
+void UDataTableFunctionLibrary::GetDataTableRowNames(UDataTable* Table, TArray<FName>& OutRowNames)
+{
+	if (Table)
+	{
+		OutRowNames = Table->GetRowNames();
+	}
+	else
+	{
+		OutRowNames.Empty();
+	}
 }

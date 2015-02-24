@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -51,9 +51,9 @@ FText UK2Node_FormatText::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	return LOCTEXT("FormatText_Title", "Format Text");
 }
 
-FString UK2Node_FormatText::GetPinDisplayName(const UEdGraphPin* Pin) const
+FText UK2Node_FormatText::GetPinDisplayName(const UEdGraphPin* Pin) const
 {
-	return Pin->PinName;
+	return FText::FromString(Pin->PinName);
 }
 
 FText UK2Node_FormatText::GetUniquePinName()
@@ -147,6 +147,7 @@ void UK2Node_FormatText::PinDefaultValueChanged(UEdGraphPin* Pin)
 				int Index = 0;
 				if(!ArgumentParams.Find(CheckPin->PinName, Index))
 				{
+					CheckPin->BreakAllPinLinks();
 					Pins.Remove(CheckPin);
 					--It;
 				}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -52,7 +52,7 @@ protected:
 	void OnFilterTextChanged(const FText& InFilterText);
 
 	EVisibility GetFilterStatusVisibility() const;
-	FString GetFilterStatusText() const;
+	FText GetFilterStatusText() const;
 
 	bool IsFilterActive() const;
 	void ReapplyFilter();

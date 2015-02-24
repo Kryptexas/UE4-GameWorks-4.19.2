@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "AndroidApplication.h"
@@ -6,10 +6,13 @@
 #include <cpu-features.h>
 #include "ModuleManager.h"
 #include <android/keycodes.h>
+#include <string.h>
+
 #include "AndroidPlatformCrashContext.h"
 #include "MallocCrash.h"
+#include "AndroidJavaMessageBox.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 
 void* FAndroidMisc::NativeWindow = NULL;
 
@@ -18,6 +21,9 @@ FString FAndroidMisc::AndroidVersion; // version of android we are running eg "4
 FString FAndroidMisc::DeviceMake; // make of the device we are running on eg. "samsung"
 FString FAndroidMisc::DeviceModel; // model of the device we are running on eg "SAMSUNG-SGH-I437"
 FString FAndroidMisc::OSLanguage; // language code the device is set to eg "deu"
+
+// Build/API level we are running.
+int32 FAndroidMisc::AndroidBuildVersion = 0;
 
 GenericApplication* FAndroidMisc::CreateApplication()
 {
@@ -122,9 +128,15 @@ void* FAndroidMisc::GetHardwareWindow()
 
 const TCHAR* FAndroidMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
 {
-	//check if there is android equivalent of hardware's GetLastError() ?
 	check(OutBuffer && BufferCount);
 	*OutBuffer = TEXT('\0');
+	if (Error == 0)
+	{
+		Error = errno;
+	}
+	char ErrorBuffer[1024];
+	strerror_r(Error, ErrorBuffer, 1024);
+	FCString::Strcpy(OutBuffer, BufferCount, UTF8_TO_TCHAR((const ANSICHAR*)ErrorBuffer));
 	return OutBuffer;
 }
 
@@ -141,30 +153,83 @@ void FAndroidMisc::ClipboardPaste(class FString& Result)
 
 EAppReturnType::Type FAndroidMisc::MessageBoxExt( EAppMsgType::Type MsgType, const TCHAR* Text, const TCHAR* Caption )
 {
-	//implement android message box here.
-	
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Cannot display dialog box on this platform: %s : %s"), Caption, Text);
-	switch(MsgType)
+	FJavaAndroidMessageBox MessageBox;
+	MessageBox.SetText(Text);
+	MessageBox.SetCaption(Caption);
+	EAppReturnType::Type * ResultValues = nullptr;
+	static EAppReturnType::Type ResultsOk[] = {
+		EAppReturnType::Ok };
+	static EAppReturnType::Type ResultsYesNo[] = {
+		EAppReturnType::Yes, EAppReturnType::No };
+	static EAppReturnType::Type ResultsOkCancel[] = {
+		EAppReturnType::Ok, EAppReturnType::Cancel };
+	static EAppReturnType::Type ResultsYesNoCancel[] = {
+		EAppReturnType::Yes, EAppReturnType::No, EAppReturnType::Cancel };
+	static EAppReturnType::Type ResultsCancelRetryContinue[] = {
+		EAppReturnType::Cancel, EAppReturnType::Retry, EAppReturnType::Continue };
+	static EAppReturnType::Type ResultsYesNoYesAllNoAll[] = {
+		EAppReturnType::Yes, EAppReturnType::No, EAppReturnType::YesAll,
+		EAppReturnType::NoAll };
+	static EAppReturnType::Type ResultsYesNoYesAllNoAllCancel[] = {
+		EAppReturnType::Yes, EAppReturnType::No, EAppReturnType::YesAll,
+		EAppReturnType::NoAll, EAppReturnType::Cancel };
+
+	// TODO: Should we localize button text?
+
+	switch (MsgType)
 	{
 	case EAppMsgType::Ok:
-		return EAppReturnType::Ok; // Ok
+		MessageBox.AddButton(TEXT("Ok"));
+		ResultValues = ResultsOk;
+		break;
 	case EAppMsgType::YesNo:
-		return EAppReturnType::No; // No
+		MessageBox.AddButton(TEXT("Yes"));
+		MessageBox.AddButton(TEXT("No"));
+		ResultValues = ResultsYesNo;
+		break;
 	case EAppMsgType::OkCancel:
-		return EAppReturnType::Cancel; // Cancel
+		MessageBox.AddButton(TEXT("Ok"));
+		MessageBox.AddButton(TEXT("Cancel"));
+		ResultValues = ResultsOkCancel;
+		break;
 	case EAppMsgType::YesNoCancel:
-		return EAppReturnType::Cancel; // Cancel
+		MessageBox.AddButton(TEXT("Yes"));
+		MessageBox.AddButton(TEXT("No"));
+		MessageBox.AddButton(TEXT("Cancel"));
+		ResultValues = ResultsYesNoCancel;
+		break;
 	case EAppMsgType::CancelRetryContinue:
-		return EAppReturnType::Cancel; // Cancel
+		MessageBox.AddButton(TEXT("Cancel"));
+		MessageBox.AddButton(TEXT("Retry"));
+		MessageBox.AddButton(TEXT("Continue"));
+		ResultValues = ResultsCancelRetryContinue;
+		break;
 	case EAppMsgType::YesNoYesAllNoAll:
-		return EAppReturnType::No; // No
+		MessageBox.AddButton(TEXT("Yes"));
+		MessageBox.AddButton(TEXT("No"));
+		MessageBox.AddButton(TEXT("Yes To All"));
+		MessageBox.AddButton(TEXT("No To All"));
+		ResultValues = ResultsYesNoYesAllNoAll;
+		break;
 	case EAppMsgType::YesNoYesAllNoAllCancel:
-		return EAppReturnType::Yes; // Yes
+		MessageBox.AddButton(TEXT("Yes"));
+		MessageBox.AddButton(TEXT("No"));
+		MessageBox.AddButton(TEXT("Yes To All"));
+		MessageBox.AddButton(TEXT("No To All"));
+		MessageBox.AddButton(TEXT("Cancel"));
+		ResultValues = ResultsYesNoYesAllNoAllCancel;
+		break;
 	default:
 		check(0);
 	}
-	return EAppReturnType::Cancel; // Cancel
-
+	int32 Choice = MessageBox.Show();
+	if (Choice >= 0 && nullptr != ResultValues)
+	{
+		return ResultValues[Choice];
+	}
+	// Failed to show dialog, or failed to get a response,
+	// return default cancel response instead.
+	return FGenericPlatformMisc::MessageBoxExt(MsgType, Text, Caption);
 }
 
 extern void AndroidThunkCpp_KeepScreenOn(bool Enable);
@@ -234,24 +299,53 @@ public:
 		if(FileHandle)
 		{
 			fclose(FileHandle);
-			struct utimbuf Times;
-			Times.actime = 0;
-			Times.modtime = 0;
-			int Result = utime(TestFilePathChar, &Times);
-			Supported = -1 != Result;
-			unlink(TestFilePathChar);
-		}
 
+			// get file times
+			struct stat FileInfo;
+			if (stat(TestFilePathChar, &FileInfo) == -1)
+			{
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Unable to get file stamp for file ('%s')"), TestFilePathChar);
+			}
+			else
+			{
+				struct utimbuf Times;
+			    Times.actime = 0;
+			    Times.modtime = 0;
+				int Result = utime(TestFilePathChar, &Times);
+				Supported = -1 != Result;
+				unlink(TestFilePathChar);
+
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("UTime failed for local caching supported test, with error code %d\n"), Result);
+			}
+			
+		}
+		else
+		{
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Failed to create file for Local cache file test\n"), Supported);
+		}
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Is Local Caching Supported? %d\n"), Supported);
 	}
 
 	bool Supported;
 };
 
-bool FAndroidMisc::SupportsLocalCaching()
+bool SupportsUTime()
 {
 	static FTestUtime Test;
 	return Test.Supported;
+}
+
+
+bool FAndroidMisc::SupportsLocalCaching()
+{
+	return true;
+
+	/*if ( SupportsUTime() )
+	{
+		return true;
+	}*/
+
+
 }
 
 /**
@@ -619,3 +713,53 @@ uint32 FAndroidMisc::GetKeyMap( uint16* KeyCodes, FString* KeyNames, uint32 MaxM
 	return NumMappings;
 #undef ADDKEYMAP
 }
+
+int32 FAndroidMisc::GetAndroidBuildVersion()
+{
+	if (AndroidBuildVersion > 0)
+	{
+		return AndroidBuildVersion;
+	}
+	if (AndroidBuildVersion <= 0)
+	{
+		JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
+		if (nullptr != JEnv)
+		{
+			jclass Class = FAndroidApplication::FindJavaClass("com/epicgames/ue4/GameActivity");
+			if (nullptr != Class)
+			{
+				jfieldID Field = JEnv->GetStaticFieldID(Class, "ANDROID_BUILD_VERSION", "I");
+				if (nullptr != Field)
+				{
+					AndroidBuildVersion = JEnv->GetStaticIntField(Class, Field);
+				}
+				JEnv->DeleteLocalRef(Class);
+			}
+		}
+	}
+	return AndroidBuildVersion;
+}
+
+#if !UE_BUILD_SHIPPING
+bool FAndroidMisc::IsDebuggerPresent()
+{
+	bool Result = false;
+#if 0
+	JNIEnv* JEnv = FAndroidApplication::GetJavaEnv();
+	if (nullptr != JEnv)
+	{
+		jclass Class = FAndroidApplication::FindJavaClass("android/os/Debug");
+		if (nullptr != Class)
+		{
+			// This segfaults for some reason. So this is all disabled for now.
+			jmethodID Method = JEnv->GetStaticMethodID(Class, "isDebuggerConnected", "()Z");
+			if (nullptr != Method)
+			{
+				Result = JEnv->CallStaticBooleanMethod(Class, Method);
+			}
+		}
+	}
+#endif
+	return Result;
+}
+#endif

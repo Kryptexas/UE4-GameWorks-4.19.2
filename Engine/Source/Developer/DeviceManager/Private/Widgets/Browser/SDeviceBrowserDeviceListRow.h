@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -92,7 +92,7 @@ public:
 				[
 					SNew(STextBlock)
 						.ColorAndOpacity(this, &SDeviceBrowserDeviceListRow::HandleTextColorAndOpacity)
-						.Text(DeviceService->GetDevicePlatformDisplayName())
+						.Text(FText::FromString(DeviceService->GetDevicePlatformDisplayName()))
 				];
 		}
 		else if (ColumnName == TEXT("Share"))
@@ -105,7 +105,7 @@ public:
 						.IsChecked(this, &SDeviceBrowserDeviceListRow::HandleShareCheckBoxIsChecked)
 						.IsEnabled(this, &SDeviceBrowserDeviceListRow::HandleShareCheckBoxIsEnabled)
 						.OnCheckStateChanged(this, &SDeviceBrowserDeviceListRow::HandleShareCheckBoxStateChanged)
-						.ToolTipText(LOCTEXT("ShareCheckBoxToolTip", "Check this box to share this device with other users on the network").ToString())
+						.ToolTipText(LOCTEXT("ShareCheckBoxToolTip", "Check this box to share this device with other users on the network"))
 				];
 		}
 		else if (ColumnName == TEXT("Status"))
@@ -146,20 +146,20 @@ private:
 	}
 
 	// Callback for changing this row's Share check box state.
-	void HandleShareCheckBoxStateChanged( ESlateCheckBoxState::Type NewState )
+	void HandleShareCheckBoxStateChanged( ECheckBoxState NewState )
 	{
-		DeviceService->SetShared(NewState == ESlateCheckBoxState::Checked);
+		DeviceService->SetShared(NewState == ECheckBoxState::Checked);
 	}
 
 	// Callback for getting the state of the 'Share' check box.
-	ESlateCheckBoxState::Type HandleShareCheckBoxIsChecked( ) const
+	ECheckBoxState HandleShareCheckBoxIsChecked( ) const
 	{
 		if (DeviceService->IsShared())
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 
 	// Callback for getting the enabled state of the 'Share' check box.

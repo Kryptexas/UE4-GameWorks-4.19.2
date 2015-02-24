@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PaperJsonImporterPrivatePCH.h"
 #include "Paper2DClasses.h"
@@ -50,7 +50,7 @@ UObject* UPaperJsonImporterFactory::FactoryCreateText(UClass* InClass, UObject* 
 	
 
 	const FString LongPackagePath = FPackageName::GetLongPackagePath(InParent->GetOutermost()->GetPathName());
-	UPaperSpriteSheet* Result = NULL;
+	UPaperSpriteSheet* Result = nullptr;
 	
 	const FString NameForErrors(InName.ToString());
 	const FString FileContent(BufferEnd - Buffer, Buffer);

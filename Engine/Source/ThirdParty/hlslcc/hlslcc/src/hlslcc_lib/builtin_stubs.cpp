@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 // This code is modified from that in the Mesa3D Graphics library available at
 // http://mesa3d.org/
@@ -100,75 +100,92 @@ void make_intrinsic_genType(
 	const bool ret_bool_true = flags & IR_INTRINSIC_RETURNS_BOOL_TRUE;
 	const bool ret_bool = ret_bool_true || (flags & IR_INTRINSIC_RETURNS_BOOL);
 	const bool support_matrices = (flags & IR_INTRINSIC_MATRIX) && !is_scalar && !ret_bool;
+	const bool bIsVoid = (flags & IR_INTRINSIC_RETURNS_VOID);
 
 	ir_function* func = new(ctx)ir_function(name);
-	for (int base_type = GLSL_TYPE_UINT; base_type <= GLSL_TYPE_BOOL; ++base_type)
+	if (flags)
 	{
-		if (flags & (1 << base_type))
+		for (int base_type = GLSL_TYPE_UINT; base_type <= GLSL_TYPE_BOOL; ++base_type)
 		{
-			const bool do_passthru = flags & (0x10 << base_type) && num_args == 1;
-			for (unsigned vec_size = min_vec; vec_size <= max_vec; ++vec_size)
+			if (flags & (1 << base_type))
 			{
-				const glsl_type* genType = glsl_type::get_instance(base_type, vec_size, 1);
-				const glsl_type* retType = genType;
-
-				if (is_scalar)
+				const bool do_passthru = flags & (0x10 << base_type) && num_args == 1;
+				for (unsigned vec_size = min_vec; vec_size <= max_vec; ++vec_size)
 				{
-					retType = glsl_type::get_instance(ret_bool ? GLSL_TYPE_BOOL : base_type, 1, 1);
-				}
-				else if (ret_bool)
-				{
-					retType = glsl_type::get_instance(GLSL_TYPE_BOOL, vec_size, 1);
-				}
+					const glsl_type* genType = glsl_type::get_instance(base_type, vec_size, 1);
+					const glsl_type* retType = genType;
 
-				ir_function_signature* sig = new(ctx)ir_function_signature(retType);
-				sig->is_builtin = true;
-
-				for (unsigned a = 0; a < num_args; ++a)
-				{
-					args[a] = make_var(ctx, genType, a, ir_var_in);
-					sig->parameters.push_tail(args[a]);
-				}
-
-				if (do_passthru)
-				{
-					if (ret_bool_true)
+					if (is_scalar)
 					{
-						ir_constant_data data;
-						for (unsigned i = 0; i < 16; ++i) data.b[i] = true;
-						sig->body.push_tail(new(ctx)ir_return(new(ctx)ir_constant(retType, &data)));
+						retType = glsl_type::get_instance(ret_bool ? GLSL_TYPE_BOOL : base_type, 1, 1);
 					}
 					else if (ret_bool)
 					{
-						ir_constant_data data = {0};
-						sig->body.push_tail(new(ctx)ir_return(new(ctx)ir_constant(retType, &data)));
+						retType = glsl_type::get_instance(GLSL_TYPE_BOOL, vec_size, 1);
 					}
-					else
+					else if (bIsVoid)
 					{
-						sig->body.push_tail(new(ctx)ir_return(new(ctx)ir_dereference_variable(args[0])));
+						retType = glsl_type::get_instance(GLSL_TYPE_VOID, 0, 0);
 					}
-					sig->is_defined = true;
-				}
-				else if (op != ir_invalid_opcode)
-				{
-					ir_expression* expr = new(ctx)ir_expression(op, retType, NULL, NULL, NULL, NULL);
+
+					ir_function_signature* sig = new(ctx)ir_function_signature(retType);
+					sig->is_builtin = true;
+
 					for (unsigned a = 0; a < num_args; ++a)
 					{
-						expr->operands[a] = new(ctx)ir_dereference_variable(args[a]);
+						args[a] = make_var(ctx, genType, a, ir_var_in);
+						sig->parameters.push_tail(args[a]);
 					}
-					sig->body.push_tail(new(ctx)ir_return(expr));
-					sig->is_defined = true;
-				}
 
-				func->add_signature(sig);
+					if (do_passthru)
+					{
+						if (ret_bool_true)
+						{
+							ir_constant_data data;
+							for (unsigned i = 0; i < 16; ++i) data.b[i] = true;
+							sig->body.push_tail(new(ctx)ir_return(new(ctx)ir_constant(retType, &data)));
+						}
+						else if (ret_bool)
+						{
+							ir_constant_data data ={0};
+							sig->body.push_tail(new(ctx)ir_return(new(ctx)ir_constant(retType, &data)));
+						}
+						else
+						{
+							sig->body.push_tail(new(ctx)ir_return(new(ctx)ir_dereference_variable(args[0])));
+						}
+						sig->is_defined = true;
+					}
+					else if (op != ir_invalid_opcode)
+					{
+						ir_expression* expr = new(ctx)ir_expression(op, retType, NULL, NULL, NULL, NULL);
+						for (unsigned a = 0; a < num_args; ++a)
+						{
+							expr->operands[a] = new(ctx)ir_dereference_variable(args[a]);
+						}
+						sig->body.push_tail(new(ctx)ir_return(expr));
+						sig->is_defined = true;
+					}
 
-				if (support_matrices && vec_size >= 2 && (base_type == GLSL_TYPE_FLOAT || base_type == GLSL_TYPE_HALF))
-				{
-					make_intrinsic_matrix_wrappers(state, sig, num_args);
+					func->add_signature(sig);
+
+					if (support_matrices && vec_size >= 2 && (base_type == GLSL_TYPE_FLOAT || base_type == GLSL_TYPE_HALF))
+					{
+						make_intrinsic_matrix_wrappers(state, sig, num_args);
+					}
 				}
 			}
 		}
 	}
+	else
+	{
+		check(bIsVoid);
+		const glsl_type* retType = glsl_type::get_instance(GLSL_TYPE_VOID, 0, 0);
+		ir_function_signature* sig = new(ctx)ir_function_signature(retType);
+		sig->is_builtin = true;
+		func->add_signature(sig);
+	}
+
 	state->symbols->add_global_function(func);
 	ir->push_tail(func);
 }
@@ -736,80 +753,6 @@ void make_intrinsic_end_primitive(exec_list *ir, _mesa_glsl_parse_state *state)
 	func->add_signature(sig);
 	state->symbols->add_global_function(func);
 	ir->push_tail(func);
-}
-
-void make_intrinsic_barriers(exec_list *ir, _mesa_glsl_parse_state *state)
-{
-	/**
-	* Create GLSL functions that are left out of the symbol table
-	*  Prevent pollution, but make them so thay can be used to
-	*  implement the hlsl barriers
-	*/
-	const int glslFuncCount = 7;
-	const char * glslFuncName[glslFuncCount] =
-	{
-		"barrier", "memoryBarrier", "memoryBarrierAtomicCounter", "memoryBarrierBuffer",
-		"memoryBarrierShared", "memoryBarrierImage", "groupMemoryBarrier"
-	};
-	ir_function* glslFuncs[glslFuncCount];
-
-	for (int i = 0; i < glslFuncCount; i++)
-	{
-		void* ctx = state;
-		ir_function* func = new(ctx)ir_function(glslFuncName[i]);
-		ir_function_signature* sig = new(ctx)ir_function_signature(glsl_type::void_type);
-		sig->is_builtin = true;
-		func->add_signature(sig);
-		ir->push_tail(func);
-		glslFuncs[i] = func;
-	}
-
-	/** Implement HLSL barriers in terms of GLSL functions */
-	const char * functions[] =
-	{
-		"GroupMemoryBarrier", "GroupMemoryBarrierWithGroupSync",
-		"DeviceMemoryBarrier", "DeviceMemoryBarrierWithGroupSync",
-		"AllMemoryBarrier", "AllMemoryBarrierWithGroupSync"
-	};
-	const int max_children = 4;
-	ir_function * implFuncs[][max_children] =
-	{
-		{glslFuncs[4]} /**{"memoryBarrierShared"}*/,
-		{glslFuncs[4], glslFuncs[0]} /**{"memoryBarrierShared","barrier"}*/,
-		{glslFuncs[2], glslFuncs[3], glslFuncs[5]} /**{"memoryBarrierAtomicCounter", "memoryBarrierBuffer", "memoryBarrierImage"}*/,
-		{glslFuncs[2], glslFuncs[3], glslFuncs[5], glslFuncs[0]} /**{"memoryBarrierAtomicCounter", "memoryBarrierBuffer", "memoryBarrierImage", "barrier"}*/,
-		{glslFuncs[1]} /**{"memoryBarrier"}*/,
-		{glslFuncs[1], glslFuncs[0]} /**{"groupMemoryBarrier","barrier"}*/
-	};
-
-	for (size_t i = 0; i < sizeof(functions) / sizeof(const char*); i++)
-	{
-		void* ctx = state;
-		ir_function* func = new(ctx)ir_function(functions[i]);
-
-		ir_function_signature* sig = new(ctx)ir_function_signature(glsl_type::void_type);
-		sig->is_builtin = true;
-		sig->is_defined = true;
-
-		for (int j = 0; j < max_children; j++)
-		{
-			if (implFuncs[i][j] == NULL)
-				break;
-			ir_function* child = implFuncs[i][j];
-			check(child);
-			check(child->signatures.get_head() == child->signatures.get_tail());
-			ir_function_signature *childSig = (ir_function_signature *)child->signatures.get_head();
-			exec_list actual_parameter;
-			sig->body.push_tail(
-				new(ctx)ir_call(childSig, NULL, &actual_parameter)
-				);
-		}
-
-		func->add_signature(sig);
-
-		state->symbols->add_global_function(func);
-		ir->push_tail(func);
-	}
 }
 
 void make_intrinsic_pack_functions(exec_list *ir, _mesa_glsl_parse_state *state)
@@ -1491,7 +1434,6 @@ void _mesa_glsl_initialize_functions(exec_list *ir, _mesa_glsl_parse_state *stat
 
 	if (state->language_version >= 310)
 	{
-		make_intrinsic_barriers(ir, state);
 		make_intrinsic_pack_functions(ir, state);
 		make_intrinsic_genType(ir, state, "bitreverse", ir_unop_bitreverse, IR_INTRINSIC_INT | IR_INTRINSIC_UINT, 1);
 		make_intrinsic_sm5_functions(ir, state);

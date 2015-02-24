@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //
 // Simulated network connection for recording and playing back game sessions.
@@ -25,11 +25,14 @@ class UDemoNetConnection : public UNetConnection
 	virtual int32		IsNetReady( bool Saturate ) override;
 	virtual void		FlushNet( bool bIgnoreSimulation = false ) override;
 	virtual void		HandleClientPlayer( APlayerController* PC, class UNetConnection* NetConnection ) override;
-	virtual bool		ClientHasInitializedLevelFor( const UObject* TestObject ) override;
+	virtual bool		ClientHasInitializedLevelFor( const UObject* TestObject ) const override;
 	// End UNetConnection interface.
 
 	/** @return The DemoRecording driver object */
 	FORCEINLINE class UDemoNetDriver* GetDriver() { return (UDemoNetDriver*)Driver; }
+
+	/** @return The DemoRecording driver object */
+	FORCEINLINE const class UDemoNetDriver* GetDriver() const { return (UDemoNetDriver*)Driver; }
 
 	TArray< FQueuedDemoPacket > QueuedDemoPackets;
 };

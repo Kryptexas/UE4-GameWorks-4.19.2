@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "CorePrivatePCH.h"
 #include "ICUInternationalization.h"
 
@@ -206,7 +206,7 @@ void FICUInternationalization::LoadDLLs()
 #elif PLATFORM_LINUX
 		FString LibraryName = "lib" "icu" + Stem + LibraryNamePostfix + ".53.1" "." "so";
 #elif PLATFORM_MAC
-		FString LibraryName = "lib" "icu" + Stem + LibraryNamePostfix + ".53.1" "." "dylib";
+		FString LibraryName = "lib" "icu" + Stem + ".53.1" + LibraryNamePostfix + "." "dylib";
 #endif //PLATFORM_*
 
 		void* DLLHandle = FPlatformProcess::GetDllHandle(*(TargetSpecificPath / LibraryName));

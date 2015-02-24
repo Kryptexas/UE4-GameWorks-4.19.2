@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealEngine.cpp: Implements the UEngine class and helpers.
@@ -48,7 +48,9 @@
 #include "Animation/SkeletalMeshActor.h"
 #include "GameFramework/HUD.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/GameMode.h"
 #include "Engine/LevelStreamingVolume.h"
+#include "Engine/WorldComposition.h"
 #include "Engine/LevelScriptActor.h"
 #include "Vehicles/TireType.h"
 
@@ -88,8 +90,16 @@
 #include "STestSuite.h"
 #include "Engine/DemoNetDriver.h"
 #include "SThrobber.h"
+#include "Engine/TextureCube.h"
+#include "AI/Navigation/AvoidanceManager.h"
+#include "Engine/GameEngine.h"
+#include "PhysicsEngine/PhysicsCollisionHandler.h"
+#include "Components/BrushComponent.h"
+#include "GameFramework/GameUserSettings.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Engine/UserInterfaceSettings.h"
 
-DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
+DEFINE_LOG_CATEGORY(LogEngine);
 
 IMPLEMENT_MODULE( FEngineModule, Engine );
 
@@ -396,9 +406,11 @@ void RefreshEngineSettings()
 	SystemResolutionSinkCallback();
 }
 
+FConsoleVariableSinkHandle GRefreshEngineSettingsSinkHandle;
+
 ENGINE_API void InitializeRenderingCVarsCaching()
 {
-	IConsoleManager::Get().RegisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&RefreshEngineSettings));
+	GRefreshEngineSettingsSinkHandle = IConsoleManager::Get().RegisterConsoleVariableSink_Handle(FConsoleCommandDelegate::CreateStatic(&RefreshEngineSettings));
 
 	// Initialise this to invalid
 	GCachedScalabilityCVars.MaterialQualityLevel = EMaterialQualityLevel::Num;
@@ -410,7 +422,7 @@ ENGINE_API void InitializeRenderingCVarsCaching()
 
 void ShutdownRenderingCVarsCaching()
 {
-	IConsoleManager::Get().UnregisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&RefreshEngineSettings));
+	IConsoleManager::Get().UnregisterConsoleVariableSink_Handle(GRefreshEngineSettingsSinkHandle);
 }
 
 namespace
@@ -822,7 +834,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 			FOnExternalUIChangeDelegate OnExternalUIChangeDelegate;
 			OnExternalUIChangeDelegate.BindUObject(this, &UEngine::OnExternalUIChange);
 
-			ExternalUI->AddOnExternalUIChangeDelegate(OnExternalUIChangeDelegate);
+			ExternalUI->AddOnExternalUIChangeDelegate_Handle(OnExternalUIChangeDelegate);
 		}
 	}
 
@@ -836,7 +848,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	// register screenshot capture if we are dumping a movie
 	if(GIsDumpingMovie)
 	{
-		UGameViewportClient::OnScreenshotCaptured().AddUObject(this, &UEngine::HandleScreenshotCaptured);
+		HandleScreenshotCapturedDelegateHandle = UGameViewportClient::OnScreenshotCaptured().AddUObject(this, &UEngine::HandleScreenshotCaptured);
 	}
 #endif
 
@@ -920,7 +932,7 @@ void UEngine::PreExit()
 	FEngineAnalytics::Shutdown();
 
 #if WITH_EDITOR
-	UGameViewportClient::OnScreenshotCaptured().RemoveUObject(this, &UEngine::HandleScreenshotCaptured);
+	UGameViewportClient::OnScreenshotCaptured().Remove(HandleScreenshotCapturedDelegateHandle);
 #endif
 
 	if (ScreenSaverInhibitor)
@@ -930,6 +942,9 @@ void UEngine::PreExit()
 	}
 
 	delete ScreenSaverInhibitorRunnable;
+
+	StereoRenderingDevice.Reset();
+	HMDDevice.Reset();
 }
 
 void UEngine::TickDeferredCommands()
@@ -1437,6 +1452,9 @@ void UEngine::InitializeObjectReferences()
 
 		checkf(DefaultPreviewPawnClass != NULL, TEXT("Engine config value DefaultPreviewPawnClass is not a valid class name."));
 	}
+
+	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
+	UISettings->LoadCursors();
 }
 
 //
@@ -1720,7 +1738,7 @@ public:
 
 bool UEngine::InitializeHMDDevice()
 {
-	if (!GIsEditor)
+	if (!IsRunningCommandlet())
 	{
 		if (FParse::Param(FCommandLine::Get(), TEXT("emulatestereo")))
 		{
@@ -1762,7 +1780,7 @@ void UEngine::RecordHMDAnalytics()
 bool UEngine::IsSplitScreen(UWorld *InWorld)
 {
 	if (InWorld == NULL)
-{
+	{
 		// If no specified world, return true if any world context has multiple local players
 		for (auto It = WorldList.CreateIterator(); It; ++It)
 		{
@@ -1779,46 +1797,46 @@ bool UEngine::IsSplitScreen(UWorld *InWorld)
 }
 
 /** @return whether we're currently running with stereoscopic 3D enabled */
-bool UEngine::IsStereoscopic3D()
+bool UEngine::IsStereoscopic3D(FViewport* InViewport)
 {
-	return !GIsEditor && StereoRenderingDevice.IsValid() && StereoRenderingDevice->IsStereoEnabled();
+	return (!InViewport || InViewport->IsStereoRenderingAllowed()) &&
+		   (StereoRenderingDevice.IsValid() && StereoRenderingDevice->IsStereoEnabled());
 }
 
-ULocalPlayer* GetLocalPlayerFromControllerId_local(const TArray<class ULocalPlayer*>& GamePlayers, int32 ControllerId)
+ULocalPlayer* GetLocalPlayerFromControllerId_local(const TArray<class ULocalPlayer*>& GamePlayers, const int32 ControllerId)
 {
-	for ( int32 PlayerIndex = 0; PlayerIndex < GamePlayers.Num(); PlayerIndex++ )
+	for ( ULocalPlayer* const Player : GamePlayers )
 	{
-		ULocalPlayer* const Player = GamePlayers[PlayerIndex];
-		if ( Player && Player->ControllerId == ControllerId )
+		if ( Player && Player->GetControllerId() == ControllerId )
 		{
 			return Player;
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
-ULocalPlayer* UEngine::GetLocalPlayerFromControllerId( const UGameViewportClient* InViewport, int32 ControllerId )
+ULocalPlayer* UEngine::GetLocalPlayerFromControllerId( const UGameViewportClient* InViewport, const int32 ControllerId ) const
 {
-	if (GetWorldContextFromGameViewport(InViewport) != NULL)
+	if (GetWorldContextFromGameViewport(InViewport) != nullptr)
 	{
 		const TArray<class ULocalPlayer*>& GamePlayers = GetGamePlayers(InViewport);
 		return GetLocalPlayerFromControllerId_local(GamePlayers, ControllerId);
 	}
-	return NULL;
+	return nullptr;
 }
 
-ULocalPlayer* UEngine::GetLocalPlayerFromControllerId( UWorld * InWorld, int32 ControllerId )
+ULocalPlayer* UEngine::GetLocalPlayerFromControllerId( UWorld * InWorld, const int32 ControllerId ) const
 {
 	const TArray<class ULocalPlayer*>& GamePlayers = GetGamePlayers(InWorld);
 	return GetLocalPlayerFromControllerId_local(GamePlayers, ControllerId);
 }
 
-void UEngine::SwapControllerId(ULocalPlayer *NewPlayer, int32 CurrentControllerId, int32 NewControllerID)
+void UEngine::SwapControllerId(ULocalPlayer *NewPlayer, const int32 CurrentControllerId, const int32 NewControllerID) const
 {
-	for (auto It = WorldList.CreateIterator(); It; ++It)
+	for (auto It = WorldList.CreateConstIterator(); It; ++It)
 	{
-		if (It->OwningGameInstance == NULL)
+		if (It->OwningGameInstance == nullptr)
 		{
 			continue;
 		}
@@ -1828,11 +1846,11 @@ void UEngine::SwapControllerId(ULocalPlayer *NewPlayer, int32 CurrentControllerI
 		if (LocalPlayers.Contains(NewPlayer))
 		{
 			// This is the world context that NewPlayer belongs to, see if anyone is using his CurrentControllerId
-			for (int32 i=0; i < LocalPlayers.Num(); ++i)
+			for (ULocalPlayer* LocalPlayer : LocalPlayers)
 			{
-				if(LocalPlayers[i] && LocalPlayers[i]->ControllerId == NewControllerID)
+				if(LocalPlayer && LocalPlayer->GetControllerId() == NewControllerID)
 				{
-					LocalPlayers[i]->ControllerId = CurrentControllerId;
+					LocalPlayer->SetControllerId( CurrentControllerId);
 					return;
 				}
 			}
@@ -2413,14 +2431,6 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleTrackParticleRenderingStatsCommand( Cmd, Ar );
 	}
-	else if( FParse::Command(&Cmd,TEXT("DUMPPARTICLERENDERINGSTATS")) )
-	{
-		return HandleDumpParticleRenderingStatsCommand( Cmd, Ar );
-	}
-	else if( FParse::Command(&Cmd,TEXT("DUMPPARTICLEFRAMERENDERINGSTATS")) )
-	{
-		return HandleDumpParticleFrameRenderingStatsCommand( Cmd, Ar );
-	}
 	else if ( FParse::Command(&Cmd,TEXT("DUMPALLOCS")) )
 	{
 		return HandleDumpAllocatorStats( Cmd, Ar );
@@ -2664,7 +2674,7 @@ bool UEngine::HandleHotReloadCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 		PackagesToRebind.Add( Package );
 		const bool bWaitForCompletion = true;	// Always wait when hotreload is initiated from the console
 		IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
-		HotReloadSupport.RebindPackages(PackagesToRebind, TArray<FName>(), bWaitForCompletion, Ar);
+		const ECompilationResult::Type CompilationResult = HotReloadSupport.RebindPackages(PackagesToRebind, TArray<FName>(), bWaitForCompletion, Ar);
 	}
 	return true;
 }
@@ -5214,21 +5224,6 @@ bool UEngine::HandleTrackParticleRenderingStatsCommand( const TCHAR* Cmd, FOutpu
 	return 1;
 }
 
-bool UEngine::HandleDumpParticleRenderingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	extern void DumpParticleRenderingStats(FOutputDevice& Ar);
-	DumpParticleRenderingStats(Ar);
-	return 1;
-}
-
-bool UEngine::HandleDumpParticleFrameRenderingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	extern bool GWantsParticleStatsNextFrame;
-	GWantsParticleStatsNextFrame = true;
-	UE_LOG(LogEngine, Warning, TEXT("DUMPPARTICLEFRAMERENDERINGSTATS triggered"));
-	return 1;
-}
-
 bool UEngine::HandleDumpAllocatorStats( const TCHAR* Cmd, FOutputDevice& Ar )
 {
 	GMalloc->DumpAllocatorStats(Ar);
@@ -6260,7 +6255,7 @@ static void DrawVolumeOnCanvas(const AVolume* Volume, FCanvas* Canvas, const FVe
 				// We only want to draw faces pointing up
 				const FVector Edge0 = V1 - V0;
 				const FVector Edge1 = V2 - V1;
-				const FVector Normal = (Edge1 ^ Edge0).SafeNormal();
+				const FVector Normal = (Edge1 ^ Edge0).GetSafeNormal();
 				if(Normal.Z > 0.01)
 				{
 					// Transform as 2d points in 'map space'
@@ -6371,9 +6366,9 @@ bool UEngine::HandleLogoutStatLevelsCommand( const TCHAR* Cmd, FOutputDevice& Ar
 		{
 			DisplayName += FString::Printf(TEXT(" - %4.1f sec"), LevelPackage->GetLoadTime());
 		}
-		else if( GetAsyncLoadPercentage( *LevelStatus.PackageName.ToString() ) >= 0 )
+		else if( GetAsyncLoadPercentage( LevelStatus.PackageName ) >= 0 )
 		{
-			const int32 Percentage = FMath::TruncToInt( GetAsyncLoadPercentage( *LevelStatus.PackageName.ToString() ) );
+			const int32 Percentage = FMath::TruncToInt( GetAsyncLoadPercentage( LevelStatus.PackageName ) );
 			DisplayName += FString::Printf(TEXT(" - %3i %%"), Percentage ); 
 		}
 
@@ -6523,12 +6518,36 @@ static void DrawProperty(UCanvas* CanvasObject, UObject* Obj, const FDebugDispla
 			if (PropData.PropertyName == NAME_Location)
 			{
 				AActor *Actor = Cast<AActor>(Obj);
-				ValueText = FString::Printf(TEXT("%s"), Actor != NULL ? *Actor->GetActorLocation().ToString() : TEXT("None"));
+				USceneComponent *Component = Cast<USceneComponent>(Obj);
+				if (Actor != nullptr)
+				{
+					ValueText = Actor->GetActorLocation().ToString();
+				}
+				else if (Component != nullptr)
+				{
+					ValueText = Component->GetComponentLocation().ToString();
+				}
+				else
+				{
+					ValueText = TEXT("Unsupported for this type");
+				}
 			}
 			else if (PropData.PropertyName == NAME_Rotation)
 			{
 				AActor *Actor = Cast<AActor>(Obj);
-				ValueText = FString::Printf(TEXT("%s"), Actor != NULL ? *Actor->GetActorRotation().ToString() : TEXT("None"));
+				USceneComponent *Component = Cast<USceneComponent>(Obj);
+				if (Actor != nullptr)
+				{
+					ValueText = Actor->GetActorRotation().ToString();
+				}
+				else if (Component != nullptr)
+				{
+					ValueText = Component->GetComponentRotation().ToString();
+				}
+				else
+				{
+					ValueText = TEXT("Unsupported for this type");
+				}
 			}
 		}
 	}
@@ -6550,7 +6569,7 @@ static void DrawProperty(UCanvas* CanvasObject, UObject* Obj, const FDebugDispla
 		CanvasObject->ClippedStrLen(GEngine->GetSmallFont(), 1.0f, 1.0f, XL, YL, *PropText);
 		FTextSizingParameters DrawParams(X, Y, CanvasObject->SizeX - X, 0, GEngine->GetSmallFont());
 		TArray<FWrappedStringElement> TextLines;
-		UCanvas::WrapString(DrawParams, X + XL, *Str, TextLines);
+		CanvasObject->WrapString(DrawParams, X + XL, *Str, TextLines);
 		int32 XL2 = XL;
 		if (TextLines.Num() > 0)
 		{
@@ -6662,7 +6681,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 
 	//@todo joeg: Move this stuff to a function, make safe to use on consoles by
 	// respecting the various safe zones, and make it compile out.
-	const int32 FPSXOffset	= (GEngine->IsStereoscopic3D()) ? Viewport->GetSizeXY().X * 0.5f * 0.334f : (FPlatformProperties::SupportsWindowedMode() ? 110 : 250);
+	const int32 FPSXOffset	= (GEngine->IsStereoscopic3D(Viewport)) ? Viewport->GetSizeXY().X * 0.5f * 0.334f : (FPlatformProperties::SupportsWindowedMode() ? 110 : 250);
 	const int32 StatsXOffset	= FPlatformProperties::SupportsWindowedMode() ?  4 : 100;
 
 	int32 MessageY = 35;
@@ -6712,7 +6731,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 #endif
 			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(World);
 			if (NavSys && NavSys->IsNavigationDirty() &&
-				(!bIsNavigationAutoUpdateEnabled || !NavSys->bBuildNavigationAtRuntime || !NavSys->CanRebuildDirtyNavigation()))
+				(!bIsNavigationAutoUpdateEnabled || !NavSys->SupportsNavigationGeneration() || !NavSys->CanRebuildDirtyNavigation()))
 			{
 				SmallTextItem.SetColor( FLinearColor::White );
 				SmallTextItem.Text =  LOCTEXT("NAVMESHERROR", "NAVMESH NEEDS TO BE REBUILT");				
@@ -6856,7 +6875,7 @@ void DrawStatsHUD( UWorld* World, FViewport* Viewport, FCanvas* Canvas, UCanvas*
 
 	{
 		int32 X = (CanvasObject) ? CanvasObject->SizeX - FPSXOffset : Viewport->GetSizeXY().X - FPSXOffset; //??
-		int32 Y = (GEngine->IsStereoscopic3D()) ? FMath::TruncToInt(Viewport->GetSizeXY().Y * 0.40f) : FMath::TruncToInt(Viewport->GetSizeXY().Y * 0.20f);
+		int32 Y = (GEngine->IsStereoscopic3D(Viewport)) ? FMath::TruncToInt(Viewport->GetSizeXY().Y * 0.40f) : FMath::TruncToInt(Viewport->GetSizeXY().Y * 0.20f);
 
 		//give the viewport first shot at drawing stats
 		Y = Viewport->DrawStatsHUD(Canvas, X, Y);
@@ -7254,7 +7273,7 @@ const TArray<class ULocalPlayer*>& HandleFakeLocalPlayersList()
 	return FakeEmptyLocalPlayers;
 }
 
-const TArray<class ULocalPlayer*>& UEngine::GetGamePlayers(UWorld *World)
+const TArray<class ULocalPlayer*>& UEngine::GetGamePlayers(UWorld *World) const
 {
 	const FWorldContext &Context = GetWorldContextFromWorldChecked(World);
 	if ( Context.OwningGameInstance == NULL )
@@ -7264,7 +7283,7 @@ const TArray<class ULocalPlayer*>& UEngine::GetGamePlayers(UWorld *World)
 	return Context.OwningGameInstance->GetLocalPlayers();
 }
 	
-const TArray<class ULocalPlayer*>& UEngine::GetGamePlayers(const UGameViewportClient *Viewport)
+const TArray<class ULocalPlayer*>& UEngine::GetGamePlayers(const UGameViewportClient *Viewport) const
 {
 	const FWorldContext &Context = GetWorldContextFromGameViewportChecked(Viewport);
 	if ( Context.OwningGameInstance == NULL )
@@ -7284,17 +7303,17 @@ ULocalPlayer* UEngine::FindFirstLocalPlayerFromControllerId(int32 ControllerId) 
 			const TArray<class ULocalPlayer*> & LocalPlayers = Context.OwningGameInstance->GetLocalPlayers();
 
 			// Use this world context, look for the ULocalPlayer with this ControllerId
-			for (int32 i=0; i < LocalPlayers.Num(); ++i)
+			for (ULocalPlayer* LocalPlayer : LocalPlayers)
 			{
-				if (LocalPlayers[i] && LocalPlayers[i]->ControllerId == ControllerId)
+				if (LocalPlayer && LocalPlayer->GetControllerId() == ControllerId)
 				{
-					return LocalPlayers[i];
+					return LocalPlayer;
 				}
 			}
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 int32 UEngine::GetNumGamePlayers(UWorld *InWorld)
@@ -7625,7 +7644,9 @@ static inline void CallHandleDisconnectForFailure(UWorld* InWorld, UNetDriver* N
 		ULocalPlayer* const LP = Context.OwningGameInstance->GetFirstGamePlayer();
 		if(ensure(LP))
 		{
-			LP->HandleDisconnect(InWorld, NetDriver);
+			// Use the world on the context instead since InWorld is null, it should be valid. This way we can do a travel
+			// in UEngine::HandleDisconnect if it gets called
+			LP->HandleDisconnect(Context.World(), NetDriver);
 		}
 	}
 	else
@@ -7765,10 +7786,15 @@ void UEngine::HandleTravelFailure_NotifyGameInstance(UWorld *World, ETravelFailu
 
 void UEngine::SpawnServerActors(UWorld *World)
 {
-	for( int32 i=0; i < ServerActors.Num(); i++ )
+	TArray<FString> FullServerActors;
+
+	FullServerActors.Append(ServerActors);
+	FullServerActors.Append(RuntimeServerActors);
+
+	for( int32 i=0; i < FullServerActors.Num(); i++ )
 	{
-		TCHAR Str[240];
-		const TCHAR* Ptr = * ServerActors[i];
+		TCHAR Str[2048];
+		const TCHAR* Ptr = * FullServerActors[i];
 		if( FParse::Token( Ptr, Str, ARRAY_COUNT(Str), 1 ) )
 		{
 			UE_LOG(LogNet, Log, TEXT("Spawning: %s"), Str );
@@ -7914,22 +7940,16 @@ void UEngine::HandleDisconnect( UWorld *InWorld, UNetDriver *NetDriver )
 	// If there is a context for this world, setup client travel.
 	if (FWorldContext* WorldContext = GetWorldContextFromWorld(InWorld))
 	{
-		if (InWorld)
-		{
-			// If we have a world, then the failing NetDriver must be the world' net driver
-			check(InWorld->GetNetDriver() == NetDriver);
-		}
-
 		// Remove ?Listen parameter, if it exists
 		WorldContext->LastURL.RemoveOption( TEXT("Listen") );
 		WorldContext->LastURL.RemoveOption( TEXT("LAN") );
 
+		// Net driver destruction will occur during LoadMap (prevents GetNetMode from changing output for the remainder of the frame)
 		SetClientTravel( InWorld, TEXT("?closed"), TRAVEL_Absolute );
 	}
-
-	// Shut down any existing game connections
-	if (NetDriver)
+	else if (NetDriver)
 	{
+		// Shut down any existing game connections
 		if (InWorld)
 		{
 			// Call this to remove the NetDriver from the world context's ActiveNetDriver list
@@ -7939,6 +7959,23 @@ void UEngine::HandleDisconnect( UWorld *InWorld, UNetDriver *NetDriver )
 		{
 			NetDriver->Shutdown();
 			NetDriver->LowLevelDestroy();
+
+			// In this case, the world is null and something went wrong, so we should travel back to the default world so that we
+			// can get back to a good state.
+			for (FWorldContext& WorldContext : WorldList)
+			{
+				if (WorldContext.WorldType == EWorldType::Game)
+				{
+					FURL DefaultURL;
+					DefaultURL.LoadURLConfig(TEXT("DefaultPlayer"), GGameIni);
+					const UGameMapsSettings* GameMapsSettings = GetDefault<UGameMapsSettings>();
+					if (GameMapsSettings)
+					{
+						WorldContext.TravelURL = FURL(&DefaultURL, *(GameMapsSettings->GetGameDefaultMap() + GameMapsSettings->LocalMapOptions), TRAVEL_Partial).ToString();
+						WorldContext.TravelType = TRAVEL_Partial;
+					}
+				}
+			}
 		}
 	}
 }
@@ -7955,18 +7992,22 @@ bool UEngine::HandleReconnectCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorl
 
 bool UEngine::MakeSureMapNameIsValid(FString& InOutMapName)
 {
+	const FString TestMapName = UWorld::RemovePIEPrefix(InOutMapName);
+
 	// Check if the map name is long package name and if it actually exists.
 	// Short package names are only supported in non-shipping builds.
-	bool bIsValid = !FPackageName::IsShortPackageName(InOutMapName);
+	bool bIsValid = !FPackageName::IsShortPackageName(TestMapName);
 	if (bIsValid)
 	{
-		bIsValid = FPackageName::DoesPackageExist(InOutMapName);
+		// If the user starts a multiplayer PIE session with an unsaved map,
+		// DoesPackageExist won't find it, so we have to try to find the package in memory as well.
+		bIsValid = (FindObjectFast<UPackage>(nullptr, FName(*TestMapName)) != nullptr) || FPackageName::DoesPackageExist(TestMapName);
 	}
 	else
 	{
 		// Look up on disk. Slow!
 		FString LongPackageName;
-		bIsValid = FPackageName::SearchForPackageOnDisk(InOutMapName, &LongPackageName);
+		bIsValid = FPackageName::SearchForPackageOnDisk(TestMapName, &LongPackageName);
 		if (bIsValid)
 		{
 			InOutMapName = LongPackageName;
@@ -8072,14 +8113,17 @@ EBrowseReturnVal::Type UEngine::Browse( FWorldContext& WorldContext, FURL URL, F
 		
 		const UGameMapsSettings* GameMapsSettings = GetDefault<UGameMapsSettings>();
 		bool LoadSucces = LoadMap(WorldContext, FURL(&URL, *(GameMapsSettings->GetGameDefaultMap() + GameMapsSettings->LocalMapOptions), TRAVEL_Partial), NULL, Error);
-		check(LoadSucces);
+		if (LoadSucces==false)
+		{
+			UE_LOG(LogNet, Fatal, TEXT("Failed to load default map (%s). Error: (%s)"), *(GameMapsSettings->GetGameDefaultMap() + GameMapsSettings->LocalMapOptions), *Error);
+		}
 
 		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
 
 		// now remove "failed" and "closed" options from LastURL so it doesn't get copied on to future URLs
 		WorldContext.LastURL.RemoveOption(TEXT("failed"));
 		WorldContext.LastURL.RemoveOption(TEXT("closed"));
-		return EBrowseReturnVal::Success;
+		return (LoadSucces ? EBrowseReturnVal::Success : EBrowseReturnVal::Failure);
 	}
 	else if( URL.HasOption(TEXT("restart")) )
 	{
@@ -8113,7 +8157,8 @@ EBrowseReturnVal::Type UEngine::Browse( FWorldContext& WorldContext, FURL URL, F
 			ShutdownWorldNetDriver(WorldContext.World());
 		}
 
-		WorldContext.PendingNetGame = new UPendingNetGame(FObjectInitializer(), URL);
+		WorldContext.PendingNetGame = NewObject<UPendingNetGame>();
+		WorldContext.PendingNetGame->Initialize(URL);
 		WorldContext.PendingNetGame->InitNetDriver();
 		if( !WorldContext.PendingNetGame->NetDriver )
 		{
@@ -8290,32 +8335,40 @@ bool UEngine::TickWorldTravel(FWorldContext& Context, float DeltaSeconds)
 		}
 		else if( Context.PendingNetGame && Context.PendingNetGame->bSuccessfullyConnected && !Context.PendingNetGame->bSentJoinRequest )
 		{
-			// Attempt to load the map.
-			FString Error;
-			
-			const bool bLoadedMapSuccessfully = LoadMap( Context, Context.PendingNetGame->URL, Context.PendingNetGame, Error );
-				
-			if( !bLoadedMapSuccessfully || Error != TEXT("") )
+			if (!MakeSureMapNameIsValid(Context.PendingNetGame->URL.Map))
 			{
-				// we can't guarantee the current World is in a valid state, so travel to the default map
 				BrowseToDefaultMap(Context);
-				BroadcastTravelFailure(Context.World(), ETravelFailure::LoadMapFailure, Error);
-				check(Context.World() != NULL);
+				BroadcastTravelFailure(Context.World(), ETravelFailure::PackageMissing, Context.PendingNetGame->URL.RedirectURL);
 			}
 			else
 			{
-				// Show connecting message, cause precaching to occur.
-				TransitionType = TT_Connecting;
-					
-				RedrawViewports();
+				// Attempt to load the map.
+				FString Error;
 
-				// Send join.
-				Context.PendingNetGame->SendJoin();
-				Context.PendingNetGame->NetDriver = NULL;
+				const bool bLoadedMapSuccessfully = LoadMap(Context, Context.PendingNetGame->URL, Context.PendingNetGame, Error);
+
+				if (!bLoadedMapSuccessfully || Error != TEXT(""))
+				{
+					// we can't guarantee the current World is in a valid state, so travel to the default map
+					BrowseToDefaultMap(Context);
+					BroadcastTravelFailure(Context.World(), ETravelFailure::LoadMapFailure, Error);
+					check(Context.World() != NULL);
+				}
+				else
+				{
+					// Show connecting message, cause precaching to occur.
+					TransitionType = TT_Connecting;
+
+					RedrawViewports();
+
+					// Send join.
+					Context.PendingNetGame->SendJoin();
+					Context.PendingNetGame->NetDriver = NULL;
+				}
+
+				// Kill the pending level.
+				Context.PendingNetGame = NULL;
 			}
-
-			// Kill the pending level.
-			Context.PendingNetGame = NULL;
 		}
 	}
 	else if (TransitionType == TT_WaitingToConnect)
@@ -8381,7 +8434,7 @@ static void SetGametypeContentObjectReferencers(UObject* GametypeContentPackage,
  * @param	ContentPackage		The package that was loaded.
  * @param	GameEngine			The GameEngine.
  */
-static void AsyncLoadLocalizedMapGameTypeContentCallback(const FString& PackageName, UPackage* ContentPackage, FName InContextHandle)
+static void AsyncLoadLocalizedMapGameTypeContentCallback(const FName& PackageName, UPackage* ContentPackage, FName InContextHandle)
 {
 	SetGametypeContentObjectReferencers(ContentPackage, InContextHandle, GametypeContent_LocalizedReferencerIndex);
 }
@@ -8393,7 +8446,7 @@ static void AsyncLoadLocalizedMapGameTypeContentCallback(const FString& PackageN
  * @param	ContentPackage		The package that was loaded.
  * @param	GameEngine			The GameEngine.
  */
-static void AsyncLoadMapGameTypeContentCallback(const FString& PackageName, UPackage* ContentPackage, FName InContextHandle)
+static void AsyncLoadMapGameTypeContentCallback(const FName& PackageName, UPackage* ContentPackage, FName InContextHandle)
 {
 	SetGametypeContentObjectReferencers(ContentPackage, InContextHandle, GametypeContent_ReferencerIndex);
 }
@@ -8576,7 +8629,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 		ShutdownWorldNetDriver(WorldContext.World());
 
 		// Make sure there are no pending visibility requests.
-		WorldContext.World()->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Visibility );
+		WorldContext.World()->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 		
 		// send a message that all levels are going away (NULL means every sublevel is being removed
 		// without a call to RemoveFromWorld for each)
@@ -8926,16 +8979,8 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	check(WorldContext.World()->PersistentLevel);
 	LoadPackagesFully(WorldContext.World(), FULLYLOAD_Map, WorldContext.World()->PersistentLevel->GetOutermost()->GetName());
 
-	// Make sure all relevant streaming levels are fully loaded
-	if (WorldContext.World()->WorldComposition)
-	{
-		// Set initial world origin and stream in levels
-		WorldContext.World()->NavigateTo(FIntVector::ZeroValue);
-	}
-	else
-	{
-		WorldContext.World()->FlushLevelStreaming();
-	}
+	// Make sure "always loaded" sub-levels are fully loaded
+	WorldContext.World()->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 	
 	UNavigationSystem::InitializeForWorld(WorldContext.World(), FNavigationSystem::GameMode);
 	
@@ -8993,10 +9038,55 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	// RedrawViewports() may have added a dummy playerstart location. Remove all views to start from fresh the next Tick().
 	IStreamingManager::Get().RemoveStreamingViews( RemoveStreamingViews_All );
 	
+	// See if we need to record network demos
+	const TCHAR* DemoRecName = URL.GetOption( TEXT( "DemoRec=" ), NULL );
+
+	if ( DemoRecName != NULL )
+	{
+		// Play the demo
+		GEngine->Exec( WorldContext.World(), *FString::Printf( TEXT("DEMOREC %s"), DemoRecName ) );
+	}
+
 	MALLOC_PROFILER( FMallocProfiler::SnapshotMemoryLoadMapEnd( URL.Map ); )
 
 	// Successfully started local level.
 	return true;
+}
+
+void UEngine::BlockTillLevelStreamingCompleted(UWorld* InWorld)
+{
+	check(InWorld);
+	
+	// Update streaming levels state using streaming volumes
+	if (InWorld->GetNetMode() != NM_Client)
+	{
+		InWorld->ProcessLevelStreamingVolumes();
+	}
+
+	if (InWorld->WorldComposition)
+	{
+		InWorld->WorldComposition->UpdateStreamingState();
+	}
+
+	// Probe if we have anything to do
+	InWorld->UpdateLevelStreaming();
+	bool bWorkToDo = (InWorld->IsVisibilityRequestPending() || IsAsyncLoading());
+	
+	if (bWorkToDo)
+	{
+		if( GameViewport && GEngine->BeginStreamingPauseDelegate && GEngine->BeginStreamingPauseDelegate->IsBound() )
+		{
+			GEngine->BeginStreamingPauseDelegate->Execute( GameViewport->Viewport );
+		}	
+
+		// Flush level streaming requests, blocking till completion.
+		InWorld->FlushLevelStreaming(EFlushLevelStreamingType::Full);
+
+		if( GEngine->EndStreamingPauseDelegate && GEngine->EndStreamingPauseDelegate->IsBound() )
+		{
+			GEngine->EndStreamingPauseDelegate->Execute( );
+		}	
+	}
 }
 
 void UEngine::CleanupPackagesToFullyLoad(FWorldContext &Context, EFullyLoadPackageType FullyLoadType, const FString& Tag)
@@ -9219,7 +9309,7 @@ FWorldContext& HandleInvalidWorldContext()
 	return GEngine->CreateNewWorldContext(EWorldType::None);
 }
 
-FWorldContext* UEngine::GetWorldContextFromHandle(FName WorldContextHandle)
+FWorldContext* UEngine::GetWorldContextFromHandle(const FName WorldContextHandle)
 {
 	for (FWorldContext& WorldContext : WorldList)
 	{
@@ -9228,12 +9318,35 @@ FWorldContext* UEngine::GetWorldContextFromHandle(FName WorldContextHandle)
 			return &WorldContext;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-FWorldContext& UEngine::GetWorldContextFromHandleChecked(FName WorldContextHandle)
+const FWorldContext* UEngine::GetWorldContextFromHandle(const FName WorldContextHandle) const
+{
+	for (const FWorldContext& WorldContext : WorldList)
+	{
+		if (WorldContext.ContextHandle == WorldContextHandle)
+		{
+			return &WorldContext;
+		}
+	}
+	return nullptr;
+}
+
+FWorldContext& UEngine::GetWorldContextFromHandleChecked(const FName WorldContextHandle)
 {
 	if (FWorldContext* WorldContext = GetWorldContextFromHandle(WorldContextHandle))
+	{
+		return *WorldContext;
+	}
+
+	UE_LOG(LogLoad, Warning, TEXT("WorldContext requested with invalid context handle %s"), *WorldContextHandle.ToString());
+	return HandleInvalidWorldContext();
+}
+
+const FWorldContext& UEngine::GetWorldContextFromHandleChecked(const FName WorldContextHandle) const
+{
+	if (const FWorldContext* WorldContext = GetWorldContextFromHandle(WorldContextHandle))
 	{
 		return *WorldContext;
 	}
@@ -9251,10 +9364,22 @@ FWorldContext* UEngine::GetWorldContextFromWorld(const UWorld* InWorld)
 			return &WorldContext;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
 
-FWorldContext& UEngine::GetWorldContextFromWorldChecked(UWorld *InWorld)
+const FWorldContext* UEngine::GetWorldContextFromWorld(const UWorld* InWorld) const
+{
+	for (const FWorldContext& WorldContext : WorldList)
+	{
+		if (WorldContext.World() == InWorld)
+		{
+			return &WorldContext;
+		}
+	}
+	return nullptr;
+}
+
+FWorldContext& UEngine::GetWorldContextFromWorldChecked(const UWorld *InWorld)
 {
 	if (FWorldContext* WorldContext = GetWorldContextFromWorld(InWorld))
 	{
@@ -9263,9 +9388,18 @@ FWorldContext& UEngine::GetWorldContextFromWorldChecked(UWorld *InWorld)
 	return HandleInvalidWorldContext();
 }
 
-UGameViewportClient* UEngine::GameViewportForWorld(UWorld *InWorld)
+const FWorldContext& UEngine::GetWorldContextFromWorldChecked(const UWorld *InWorld) const
 {
-	FWorldContext* Context = GetWorldContextFromWorld(InWorld);
+	if (const FWorldContext* WorldContext = GetWorldContextFromWorld(InWorld))
+	{
+		return *WorldContext;
+	}
+	return HandleInvalidWorldContext();
+}
+
+UGameViewportClient* UEngine::GameViewportForWorld(const UWorld *InWorld) const
+{
+	const FWorldContext* Context = GetWorldContextFromWorld(InWorld);
 	return (Context ? Context->GameViewport : NULL);
 }
 
@@ -9278,12 +9412,33 @@ FWorldContext* UEngine::GetWorldContextFromGameViewport(const UGameViewportClien
 			return &WorldContext;
 		}
 	}
-	return NULL;
+	return nullptr;
+}
+
+const FWorldContext* UEngine::GetWorldContextFromGameViewport(const UGameViewportClient *InViewport) const
+{
+	for (const FWorldContext& WorldContext : WorldList)
+	{
+		if (WorldContext.GameViewport == InViewport)
+		{
+			return &WorldContext;
+		}
+	}
+	return nullptr;
 }
 
 FWorldContext& UEngine::GetWorldContextFromGameViewportChecked(const UGameViewportClient *InViewport)
 {
 	if (FWorldContext* WorldContext = GetWorldContextFromGameViewport(InViewport))
+	{
+		return *WorldContext;
+	}
+	return HandleInvalidWorldContext();
+}
+
+const FWorldContext& UEngine::GetWorldContextFromGameViewportChecked(const UGameViewportClient *InViewport) const
+{
+	if (const FWorldContext* WorldContext = GetWorldContextFromGameViewport(InViewport))
 	{
 		return *WorldContext;
 	}
@@ -9299,12 +9454,33 @@ FWorldContext* UEngine::GetWorldContextFromPendingNetGame(const UPendingNetGame 
 			return &WorldContext;
 		}
 	}
-	return NULL;
+	return nullptr;
+}
+
+const FWorldContext* UEngine::GetWorldContextFromPendingNetGame(const UPendingNetGame *InPendingNetGame) const
+{
+	for (const FWorldContext& WorldContext : WorldList)
+	{
+		if (WorldContext.PendingNetGame == InPendingNetGame)
+		{
+			return &WorldContext;
+		}
+	}
+	return nullptr;
 }
 
 FWorldContext& UEngine::GetWorldContextFromPendingNetGameChecked(const UPendingNetGame *InPendingNetGame)
 {
 	if (FWorldContext* WorldContext = GetWorldContextFromPendingNetGame(InPendingNetGame))
+	{
+		return *WorldContext;
+	}
+	return HandleInvalidWorldContext();
+}
+
+const FWorldContext& UEngine::GetWorldContextFromPendingNetGameChecked(const UPendingNetGame *InPendingNetGame) const
+{
+	if (const FWorldContext* WorldContext = GetWorldContextFromPendingNetGame(InPendingNetGame))
 	{
 		return *WorldContext;
 	}
@@ -9320,11 +9496,33 @@ FWorldContext* UEngine::GetWorldContextFromPendingNetGameNetDriver(const UNetDri
 			return &WorldContext;
 		}
 	}
-	return NULL;
+	return nullptr;
 }
+
+const FWorldContext* UEngine::GetWorldContextFromPendingNetGameNetDriver(const UNetDriver *InPendingNetDriver) const
+{
+	for (const FWorldContext& WorldContext : WorldList)
+	{
+		if (WorldContext.PendingNetGame && WorldContext.PendingNetGame->NetDriver == InPendingNetDriver)
+		{
+			return &WorldContext;
+		}
+	}
+	return nullptr;
+}
+
 FWorldContext& UEngine::GetWorldContextFromPendingNetGameNetDriverChecked(const UNetDriver *InPendingNetDriver)
 {
 	if (FWorldContext* WorldContext = GetWorldContextFromPendingNetGameNetDriver(InPendingNetDriver))
+	{
+		return *WorldContext;
+	}
+	return HandleInvalidWorldContext();
+}
+
+const FWorldContext& UEngine::GetWorldContextFromPendingNetGameNetDriverChecked(const UNetDriver *InPendingNetDriver) const
+{
+	if (const FWorldContext* WorldContext = GetWorldContextFromPendingNetGameNetDriver(InPendingNetDriver))
 	{
 		return *WorldContext;
 	}
@@ -9340,12 +9538,33 @@ FWorldContext* UEngine::GetWorldContextFromPIEInstance(const int32 PIEInstance)
 			return &WorldContext;
 		}
 	}
-	return NULL;
+	return nullptr;
+}
+
+const FWorldContext* UEngine::GetWorldContextFromPIEInstance(const int32 PIEInstance) const
+{
+	for (const FWorldContext& WorldContext : WorldList)
+	{
+		if (WorldContext.WorldType == EWorldType::PIE && WorldContext.PIEInstance == PIEInstance)
+		{
+			return &WorldContext;
+		}
+	}
+	return nullptr;
 }
 
 FWorldContext& UEngine::GetWorldContextFromPIEInstanceChecked(const int32 PIEInstance)
 {
 	if (FWorldContext* WorldContext = GetWorldContextFromPIEInstance(PIEInstance))
+	{
+		return *WorldContext;
+	}
+	return HandleInvalidWorldContext();
+}
+
+const FWorldContext& UEngine::GetWorldContextFromPIEInstanceChecked(const int32 PIEInstance) const
+{
+	if (const FWorldContext* WorldContext = GetWorldContextFromPIEInstance(PIEInstance))
 	{
 		return *WorldContext;
 	}
@@ -9408,7 +9627,7 @@ void UEngine::VerifyLoadMapWorldCleanup()
  * @param	LevelPackage	level package that finished async loading
  * @param	InGameEngine	pointer to game engine object to associated loaded level with so it won't be GC'ed
  */
-static void AsyncMapChangeLevelLoadCompletionCallback(const FString& PackageName, UPackage* LevelPackage, FName InWorldHandle )
+static void AsyncMapChangeLevelLoadCompletionCallback(const FName& PackageName, UPackage* LevelPackage, FName InWorldHandle )
 {
 	FWorldContext &Context = GEngine->GetWorldContextFromHandleChecked( InWorldHandle );
 
@@ -9744,7 +9963,7 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 		// Update level streaming, forcing existing levels to be unloaded and their streaming objects 
 		// removed from the world info.	We can't kick off async loading in this update as we want to 
 		// collect garbage right below.
-		Context.World()->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Visibility );
+		Context.World()->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 		
 		// make sure any looping sounds, etc are stopped
 		if (GetAudioDevice() != NULL)
@@ -9791,12 +10010,12 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 
 			Context.PendingLevelStreamingStatusUpdates.Empty();
 
-			Context.World()->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Full );
+			Context.World()->FlushLevelStreaming(EFlushLevelStreamingType::Full);
 		}
 		else
 		{
 			// Make sure there are no pending visibility requests.
-			Context.World()->FlushLevelStreaming( NULL, EFlushLevelStreamingType::Visibility );
+			Context.World()->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 		}
 
 		// delay the use of streaming volumes for a few frames
@@ -9896,7 +10115,38 @@ struct FFindInstancedReferenceSubobjectHelper
 		check(ContainerAddress);
 		for (UProperty* Prop = (Struct ? Struct->RefLink : NULL); Prop; Prop = Prop->NextRef)
 		{
-			if (Prop->HasAllPropertyFlags(CPF_PersistentInstance))
+			auto ArrayProperty = Cast<const UArrayProperty>(Prop);
+			if (ArrayProperty && Prop->HasAnyPropertyFlags(CPF_PersistentInstance | CPF_ContainsInstancedReference))
+			{
+				auto InnerStructProperty = Cast<const UStructProperty>(ArrayProperty->Inner);
+				auto InnerObjectProperty = Cast<const UObjectProperty>(ArrayProperty->Inner);
+				if (InnerStructProperty && InnerStructProperty->Struct)
+				{
+					FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, ContainerAddress);
+					for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ++ElementIndex)
+					{
+						const uint8* ValueAddress = ArrayHelper.GetRawPtr(ElementIndex);
+						if (ValueAddress)
+						{
+							Get(InnerStructProperty->Struct, ValueAddress, OutObjects);
+						}
+					}
+				}
+				else if (InnerObjectProperty && InnerObjectProperty->HasAllPropertyFlags(CPF_PersistentInstance))
+				{
+					ensure(InnerObjectProperty->HasAllPropertyFlags(CPF_InstancedReference));
+					FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, ContainerAddress);
+					for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ++ElementIndex)
+					{
+						UObject* ObjectValue = InnerObjectProperty->GetObjectPropertyValue(ArrayHelper.GetRawPtr(ElementIndex));
+						if (ObjectValue)
+						{
+							OutObjects.Add(ObjectValue);
+						}
+					}
+				}
+			}
+			else if (Prop->HasAllPropertyFlags(CPF_PersistentInstance))
 			{
 				ensure(Prop->HasAllPropertyFlags(CPF_InstancedReference));
 				auto ObjectProperty = Cast<const UObjectProperty>(Prop);
@@ -9908,23 +10158,6 @@ struct FFindInstancedReferenceSubobjectHelper
 						if (ObjectValue)
 						{
 							OutObjects.Add(ObjectValue);
-						}
-					}
-				}
-				else
-				{
-					auto ArrayProperty = Cast<const UArrayProperty>(Prop);
-					auto InnerObjectProperty = ArrayProperty ? Cast<const UObjectProperty>(ArrayProperty->Inner) : NULL;
-					if (InnerObjectProperty)
-					{
-						FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, ContainerAddress);
-						for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ++ElementIndex)
-						{
-							UObject** ObjectValuePtr = reinterpret_cast<UObject**>(ArrayHelper.GetRawPtr(ElementIndex));
-							if (ObjectValuePtr && *ObjectValuePtr)
-							{
-								OutObjects.Add(*ObjectValuePtr);
-							}
 						}
 					}
 				}
@@ -9940,20 +10173,36 @@ struct FFindInstancedReferenceSubobjectHelper
 						Get(StructProperty->Struct, ValueAddress, OutObjects);
 					}
 				}
-				else
+			}
+		}
+	}
+
+	static void Duplicate(UObject* OldObject, UObject* NewObject, TMap<UObject*, UObject*>& ReferenceReplacementMap, TArray<UObject*>& DuplicatedObjects)
+	{
+		if (OldObject->GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference) &&
+			NewObject->GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference))
+		{
+			TSet<UObject*> OldEditInlineObjects;
+			Get(OldObject->GetClass(), reinterpret_cast<uint8*>(OldObject), OldEditInlineObjects);
+			if (OldEditInlineObjects.Num())
+			{
+				TSet<UObject*> NewEditInlineObjects;
+				Get(NewObject->GetClass(), reinterpret_cast<uint8*>(NewObject), NewEditInlineObjects);
+				for (auto Obj : NewEditInlineObjects)
 				{
-					auto ArrayProperty = Cast<const UArrayProperty>(Prop);
-					auto InnerStructProperty = ArrayProperty ? Cast<const UStructProperty>(ArrayProperty->Inner) : NULL;
-					if (InnerStructProperty && InnerStructProperty->Struct)
+					const bool bProperOuter = (Obj->GetOuter() == OldObject);
+					const bool bEditInlineNew = Obj->GetClass()->HasAnyClassFlags(CLASS_EditInlineNew | CLASS_DefaultToInstanced);
+					if (bProperOuter && bEditInlineNew)
 					{
-						FScriptArrayHelper_InContainer ArrayHelper(ArrayProperty, ContainerAddress);
-						for (int32 ElementIndex = 0; ElementIndex < ArrayHelper.Num(); ++ElementIndex)
+						const bool bKeptByOld = OldEditInlineObjects.Contains(Obj);
+						const bool bNotHandledYet = !ReferenceReplacementMap.Contains(Obj);
+						if (bKeptByOld && bNotHandledYet)
 						{
-							const uint8* ValueAddress = ArrayHelper.GetRawPtr(ElementIndex);
-							if (ValueAddress)
-							{
-								Get(InnerStructProperty->Struct, ValueAddress, OutObjects);
-							}
+							UObject* NewEditInlineSubobject = StaticDuplicateObject(Obj, NewObject, NULL);
+							ReferenceReplacementMap.Add(Obj, NewEditInlineSubobject);
+
+							// We also need to make sure to fixup any properties here
+							DuplicatedObjects.Add(NewEditInlineSubobject);
 						}
 					}
 				}
@@ -9968,9 +10217,9 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 
 	// Bad idea to write data to an actor while its components are registered
 	AActor* NewActor = Cast<AActor>(NewObject);
-	if(NewActor != NULL)
+	if (NewActor != nullptr)
 	{
-		TArray<UActorComponent*> Components;
+		TInlineComponentArray<UActorComponent*> Components;
 		NewActor->GetComponents(Components);
 
 		for(int32 i=0; i<Components.Num(); i++)
@@ -9980,12 +10229,12 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	}
 
 	// If the new object is an Actor, save the root component reference, to be restored later
-	USceneComponent* SavedRootComponent = NULL;
-	UObjectProperty* RootComponentProperty = NULL;
-	if(NewActor != NULL)
+	USceneComponent* SavedRootComponent = nullptr;
+	UObjectProperty* RootComponentProperty = nullptr;
+	if (NewActor != nullptr)
 	{
 		RootComponentProperty = FindField<UObjectProperty>(NewActor->GetClass(), "RootComponent");
-		if(RootComponentProperty != NULL)
+		if (RootComponentProperty != nullptr)
 		{
 			SavedRootComponent = Cast<USceneComponent>(RootComponentProperty->GetObjectPropertyValue_InContainer(NewActor));
 		}
@@ -10004,7 +10253,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	{
 		// Find all instanced objects of the old CDO, and save off their modified properties to be later applied to the newly instanced objects of the new CDO
 		TArray<UObject*> Components;
-		OldObject->CollectDefaultSubobjects(Components,true);
+		OldObject->CollectDefaultSubobjects(Components, true);
 
 		for (int32 Index = 0; Index < Components.Num(); Index++)
 		{
@@ -10028,6 +10277,8 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 
 	TArray<UObject*> ComponentsOnNewObject;
 	{
+		TArray<UObject*> EditInlineSubobjectsOfComponents;
+
 		// Find all instanced objects of the old CDO, and save off their modified properties to be later applied to the newly instanced objects of the new CDO
 		NewObject->CollectDefaultSubobjects(ComponentsOnNewObject,true);
 
@@ -10076,6 +10327,7 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 					}
 				}
 				FObjectReader Reader(NewInstance, Record.SavedProperties, true, true);
+				FFindInstancedReferenceSubobjectHelper::Duplicate(Record.OldInstance, NewInstance, ReferenceReplacementMap, EditInlineSubobjectsOfComponents);
 			}
 			else
 			{
@@ -10096,38 +10348,11 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 				}
 			}
 		}
+		ComponentsOnNewObject.Append(EditInlineSubobjectsOfComponents);
 	}
 
-	if (OldObject->GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference) &&
-		NewObject->GetClass()->HasAnyClassFlags(CLASS_HasInstancedReference))
-	{
-		TSet<UObject*> OldEditInlineObjects;
-		FFindInstancedReferenceSubobjectHelper::Get(OldObject->GetClass(), reinterpret_cast<uint8*>(OldObject), OldEditInlineObjects);
-		if (OldEditInlineObjects.Num())
-		{
-			TSet<UObject*> NewEditInlineObjects;
-			FFindInstancedReferenceSubobjectHelper::Get(NewObject->GetClass(), reinterpret_cast<uint8*>(NewObject), NewEditInlineObjects);
-			for (auto Obj : NewEditInlineObjects)
-			{
-				const bool bProperOuter = (Obj->GetOuter() == OldObject);
-				const bool bEditInlineNew = Obj->GetClass()->HasAnyClassFlags(CLASS_EditInlineNew | CLASS_DefaultToInstanced);
-				if (bProperOuter && bEditInlineNew)
-				{
-					const bool bKeptByOld = OldEditInlineObjects.Contains(Obj);
-					const bool bNotHandledYet = !ReferenceReplacementMap.Contains(Obj);
-					if (bKeptByOld && bNotHandledYet)
-					{
-						UObject* NewEditInlineSubobject = StaticDuplicateObject(Obj, NewObject, NULL);
-						ReferenceReplacementMap.Add(Obj, NewEditInlineSubobject);
+	FFindInstancedReferenceSubobjectHelper::Duplicate(OldObject, NewObject, ReferenceReplacementMap, ComponentsOnNewObject);
 
-						// We also need to make sure to fixup any properties here
-						ComponentsOnNewObject.Add(NewEditInlineSubobject);
-					}
-				}
-			}
-		}
-	}
-	
 	// Replace anything with an outer of the old object with NULL, unless it already has a replacement
 	TArray<UObject*> ObjectsInOuter;
 	GetObjectsWithOuter(OldObject, ObjectsInOuter, true);
@@ -10140,19 +10365,20 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 	}
 
 	// Replace references to old classes and instances on this object with the corresponding new ones
-	FArchiveReplaceObjectRef<UObject> ReplaceInCDOAr(NewObject, ReferenceReplacementMap, /*bNullPrivateRefs=*/ false, /*bIgnoreOuterRef=*/ false, /*bIgnoreArchetypeRef=*/ false);
+	UPackage* NewPackage = Cast<UPackage>(NewObject->GetOutermost());
+	FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInCDOAr(NewObject, ReferenceReplacementMap, NewPackage);
 
 	// Replace references inside each individual component. This is always required because if something is in ReferenceReplacementMap, the above replace code will skip fixing child properties
 	for (int32 ComponentIndex = 0; ComponentIndex < ComponentsOnNewObject.Num(); ++ComponentIndex)
 	{
 		UObject* NewComponent = ComponentsOnNewObject[ComponentIndex];
-		FArchiveReplaceObjectRef<UObject> ReplaceInComponentAr(NewComponent, ReferenceReplacementMap, /*bNullPrivateRefs=*/ false, /*bIgnoreOuterRef=*/ false, /*bIgnoreArchetypeRef=*/ false);
+		FArchiveReplaceOrClearExternalReferences<UObject> ReplaceInComponentAr(NewComponent, ReferenceReplacementMap, NewPackage);
 	}
 
 	// Restore the root component reference
-	if(NewActor != NULL)
+	if (NewActor != nullptr)
 	{
-		if(RootComponentProperty != NULL)
+		if (RootComponentProperty != nullptr)
 		{
 			RootComponentProperty->SetObjectPropertyValue_InContainer(NewActor, SavedRootComponent);
 		}
@@ -10162,15 +10388,15 @@ void UEngine::CopyPropertiesForUnrelatedObjects(UObject* OldObject, UObject* New
 
 	bool bDumpProperties = CVarDumpCopyPropertiesForUnrelatedObjects.GetValueOnGameThread() != 0;
 	// Uncomment the next line to debug CPFUO for a specific object:
-	// bDumpProperties |= (NewObject->GetName().InStr(TEXT("Charm_Vim")) != INDEX_NONE);
+	// bDumpProperties |= (NewObject->GetName().Find(TEXT("SpinTree")) != INDEX_NONE);
 	if (bDumpProperties)
 	{
-		DumpObject(TEXT("CopyPropertiesForUnrelatedObjects: Old"), OldObject);
-		DumpObject(TEXT("CopyPropertiesForUnrelatedObjects: New"), NewObject);
+		DumpObject(*FString::Printf(TEXT("CopyPropertiesForUnrelatedObjects: Old (%s)"), *OldObject->GetFullName()), OldObject);
+		DumpObject(*FString::Printf(TEXT("CopyPropertiesForUnrelatedObjects: New (%s)"), *NewObject->GetFullName()), NewObject);
 	}
 
 	// Now notify any tools that aren't already updated via the FArchiveReplaceObjectRef path
-	if( GEngine != NULL )
+	if (GEngine != nullptr)
 	{
 		GEngine->NotifyToolsOfObjectReplacement(ReferenceReplacementMap);
 	}
@@ -10198,7 +10424,7 @@ bool UEngine::ShouldAbsorbAuthorityOnlyEvent()
 			}
 		}
 
-		if (useIt)
+		if (useIt && (Context.World() != nullptr))
 		{
 			return (Context.World()->GetNetMode() ==  NM_Client);
 		}
@@ -10239,7 +10465,7 @@ bool UEngine::ShouldAbsorbCosmeticOnlyEvent()
 			}
 		}
 
-		if (useIt)
+		if (useIt && (Context.World() != nullptr))
 		{
 			return (Context.World()->GetNetMode() == NM_DedicatedServer);
 		}
@@ -10300,7 +10526,7 @@ void FSystemResolution::RequestResolutionChange(int32 InResX, int32 InResY, EWin
 	}
 
 	FString NewValue = FString::Printf(TEXT("%dx%d%s"), InResX, InResY, *WindowModeSuffix);
-	CVarSystemResolution->Set(*NewValue, ECVF_SetByCode);
+	CVarSystemResolution->Set(*NewValue, ECVF_SetByConsole);
 }
 
 
@@ -10390,29 +10616,29 @@ void UEngine::HandleScreenshotCaptured(int32 Width, int32 Height, const TArray<F
 /** Utility that gets a color for a particular level status */
 FColor GetColorForLevelStatus(int32 Status)
 {
-	FColor Color = FColor(255, 255, 255);
+	FColor Color = FColor::White;
 	switch (Status)
 	{
 	case LEVEL_Visible:
-		Color = FColor(255, 0, 0);	// red  loaded and visible
+		Color = FColor::Red;		// red  loaded and visible
 		break;
 	case LEVEL_MakingVisible:
-		Color = FColor(255, 128, 0);	// orange, in process of being made visible
+		Color = FColorList::Orange;	// orange, in process of being made visible
 		break;
 	case LEVEL_Loading:
-		Color = FColor(255, 0, 255);	// purple, in process of being loaded
+		Color = FColor::Magenta;	// purple, in process of being loaded
 		break;
 	case LEVEL_Loaded:
-		Color = FColor(255, 255, 0);	// yellow loaded but not visible
+		Color = FColor::Yellow;		// yellow loaded but not visible
 		break;
 	case LEVEL_UnloadedButStillAround:
-		Color = FColor(0, 0, 255);	// blue  (GC needs to occur to remove this)
+		Color = FColor::Blue;		// blue  (GC needs to occur to remove this)
 		break;
 	case LEVEL_Unloaded:
-		Color = FColor(0, 255, 0);	// green
+		Color = FColor::Green;		// green
 		break;
 	case LEVEL_Preloading:
-		Color = FColor(255, 0, 255);	// purple (preloading)
+		Color = FColor::Magenta;	// purple (preloading)
 		break;
 	default:
 		break;
@@ -10554,7 +10780,7 @@ int32 UEngine::RenderStatFPS(UWorld* World, FViewport* Viewport, FCanvas* Canvas
 	UFont* Font = FPlatformProperties::SupportsWindowedMode() ? GetSmallFont() : GetMediumFont();
 
 	// Choose the counter color based on the average framerate.
-	FColor FPSColor = GAverageFPS < 20.0f ? FColor(255, 0, 0) : (GAverageFPS < 29.5f ? FColor(255, 255, 0) : FColor(0, 255, 0));
+	FColor FPSColor = GAverageFPS < 20.0f ? FColor::Red : (GAverageFPS < 29.5f ? FColor::Yellow : FColor::Green);
 
 	// Start drawing the various counters.
 	const int32 RowHeight = FMath::TruncToInt(Font->GetMaxCharHeight() * 1.1f);
@@ -11085,7 +11311,7 @@ int32 UEngine::RenderStatSoundMixes(UWorld* World, FViewport* Viewport, FCanvas*
 	FAudioDevice* AudioDevice = GetAudioDevice();
 	if (AudioDevice)
 	{
-		Canvas->DrawShadowedString(X, Y, TEXT("Active Sound Mixes:"), GetSmallFont(), FColor(0, 255, 0));
+		Canvas->DrawShadowedString(X, Y, TEXT("Active Sound Mixes:"), GetSmallFont(), FColor::Green);
 		Y += 12;
 
 		if (AudioDevice->SoundMixModifiers.Num() > 0)
@@ -11097,7 +11323,7 @@ int32 UEngine::RenderStatSoundMixes(UWorld* World, FViewport* Viewport, FCanvas*
 				uint32 TotalRefCount = It.Value().ActiveRefCount + It.Value().PassiveRefCount;
 				FString TheString = FString::Printf(TEXT("%s - Fade Proportion: %1.2f - Total Ref Count: %i"), *It.Key()->GetName(), It.Value().InterpValue, TotalRefCount);
 
-				FColor TextColour = FColor(255, 255, 255);
+				FColor TextColour = FColor::White;
 				if (It.Key() == CurrentEQMix)
 				{
 					TextColour = FColor(255, 255, 0);
@@ -11110,7 +11336,7 @@ int32 UEngine::RenderStatSoundMixes(UWorld* World, FViewport* Viewport, FCanvas*
 		}
 		else
 		{
-			Canvas->DrawShadowedString(X + 12, Y, TEXT("None"), GetSmallFont(), FColor(255, 255, 255));
+			Canvas->DrawShadowedString(X + 12, Y, TEXT("None"), GetSmallFont(), FColor::White);
 			Y += 12;
 		}
 	}
@@ -11147,7 +11373,7 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 				SoundOwner ? *SoundOwner->GetName() : TEXT("None"),
 				SoundClass ? *SoundClass->GetName() : TEXT("None"));
 
-			Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor(255, 255, 255));
+			Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
 			Y += 12;
 		}
 
@@ -11192,7 +11418,7 @@ int32 UEngine::RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* 
 		}
 	}
 
-	Canvas->DrawShadowedString(X, Y, TEXT("Active Sound Cues:"), GetSmallFont(), FColor(0, 255, 0));
+	Canvas->DrawShadowedString(X, Y, TEXT("Active Sound Cues:"), GetSmallFont(), FColor::Green);
 	Y += 12;
 
 	int32 ActiveSoundCount = 0;
@@ -11200,11 +11426,11 @@ int32 UEngine::RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* 
 	{
 		USoundClass* SoundClass = ActiveSound->GetSoundClass();
 		const FString TheString = FString::Printf(TEXT("%4i. %s %s"), ActiveSoundCount++, *ActiveSound->Sound->GetPathName(), (SoundClass ? *SoundClass->GetName() : TEXT("None")));
-		Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor(255, 255, 255));
+		Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
 		Y += 12;
 	}
 
-	Canvas->DrawShadowedString(X, Y, *FString::Printf(TEXT("Total: %i"), ActiveSounds.Num()), GetSmallFont(), FColor(0, 255, 0));
+	Canvas->DrawShadowedString(X, Y, *FString::Printf(TEXT("Total: %i"), ActiveSounds.Num()), GetSmallFont(), FColor::Green);
 	Y += 12;
 	return Y;
 }
@@ -11367,14 +11593,14 @@ int32 UEngine::RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Can
 		}
 
 
-		Canvas->DrawShadowedString(X, Y, TEXT("Active Sounds:"), GetSmallFont(), FColor(0, 255, 0));
+		Canvas->DrawShadowedString(X, Y, TEXT("Active Sounds:"), GetSmallFont(), FColor::Green);
 		Y += 12;
 
 		const FString InfoText = FString::Printf(TEXT(" Sorting: %s Debug: %s"), *SortingName, bDebug ? TEXT("enabled") : TEXT("disabled"));
 		Canvas->DrawShadowedString(X, Y, *InfoText, GetSmallFont(), FColor(128, 255, 128));
 		Y += 12;
 
-		Canvas->DrawShadowedString(X, Y, TEXT("Index Path (Class) Distance"), GetSmallFont(), FColor(0, 255, 0));
+		Canvas->DrawShadowedString(X, Y, TEXT("Index Path (Class) Distance"), GetSmallFont(), FColor::Green);
 		Y += 12;
 
 		int32 TotalSoundWavesNum = 0;
@@ -11388,7 +11614,7 @@ int32 UEngine::RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Can
 			{
 				{
 					const FString TheString = FString::Printf(TEXT("%4i. %s (%s) %6.2f"), SoundIndex, *SoundInfo.PathName, *SoundInfo.ClassName.ToString(), SoundInfo.Distance);
-					Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor(255, 255, 255));
+					Canvas->DrawShadowedString(X, Y, *TheString, GetSmallFont(), FColor::White);
 					Y += 12;
 				}
 
@@ -11410,10 +11636,10 @@ int32 UEngine::RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Can
 			}
 		}
 
-		Canvas->DrawShadowedString(X, Y, *FString::Printf(TEXT("Total sounds: %i, sound waves: %i"), SoundIndex, TotalSoundWavesNum), GetSmallFont(), FColor(0, 255, 0));
+		Canvas->DrawShadowedString(X, Y, *FString::Printf(TEXT("Total sounds: %i, sound waves: %i"), SoundIndex, TotalSoundWavesNum), GetSmallFont(), FColor::Green);
 		Y += 12;
 
-		Canvas->DrawShadowedString(X, Y, *FString::Printf(TEXT("Listener position: %s"), *ListenerPosition.ToString()), GetSmallFont(), FColor(0, 255, 0));
+		Canvas->DrawShadowedString(X, Y, *FString::Printf(TEXT("Listener position: %s"), *ListenerPosition.ToString()), GetSmallFont(), FColor::Green);
 		Y += 12;
 
 		// Draw sound cue's sphere.
@@ -11541,7 +11767,7 @@ int32 UEngine::RenderStatAI(UWorld* World, FViewport* Viewport, FCanvas* Canvas,
 
 #define MAXDUDES 20
 #define BADAMTOFDUDES 12
-	FColor TotalColor = FColor(0, 255, 0);
+	FColor TotalColor = FColor::Green;
 	if (NumAI > BADAMTOFDUDES)
 	{
 		float Scalar = 1.0f - FMath::Clamp<float>((float)NumAI / (float)MAXDUDES, 0.f, 1.f);
@@ -11549,7 +11775,7 @@ int32 UEngine::RenderStatAI(UWorld* World, FViewport* Viewport, FCanvas* Canvas,
 		TotalColor = FColor::MakeRedToGreenColorFromScalar(Scalar);
 	}
 
-	FColor RenderedColor = FColor(0, 255, 0);
+	FColor RenderedColor = FColor::Green;
 	if (NumAIRendered > BADAMTOFDUDES)
 	{
 		float Scalar = 1.0f - FMath::Clamp<float>((float)NumAIRendered / (float)MAXDUDES, 0.f, 1.f);
@@ -11598,7 +11824,7 @@ int32 UEngine::RenderStatSlateBatches(UWorld* World, FViewport* Viewport, FCanva
 		Y,
 		TEXT("Slate Batches:"),
 		Font, 
-		FColor(0,255,0) );
+		FColor::Green );
 	
 	Y+=RowHeight;
 	
@@ -11616,7 +11842,7 @@ int32 UEngine::RenderStatSlateBatches(UWorld* World, FViewport* Viewport, FCanva
 			Y,
 			*FString::Printf(TEXT("Layer: %d, Elements: %d, Vertices: %d"), Stat.Layer, Stat.NumElementsInBatch, Stat.NumVertices ), 
 			Font,
-			FColor(0,255,0) );
+			FColor::Green );
 		Y += RowHeight;
 	}*/
 	return Y;

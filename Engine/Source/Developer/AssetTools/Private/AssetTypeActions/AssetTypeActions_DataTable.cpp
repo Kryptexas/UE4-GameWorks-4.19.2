@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetToolsPrivatePCH.h"
 
 #include "Editor/DataTableEditor/Public/DataTableEditorModule.h"
 #include "Editor/DataTableEditor/Public/IDataTableEditor.h"
+#include "Engine/DataTable.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

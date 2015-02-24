@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Components/SceneCaptureComponent.h"
+#include "IDetailCustomization.h"
 
 class FSceneCaptureDetails : public IDetailCustomization
 {
@@ -21,8 +23,8 @@ private:
 	* @param The type of checkbox.
 	* @return The desired checkbox state.
 	*/
-	ESlateCheckBoxState::Type OnGetDisplayCheckState(FString ShowFlagName) const;
+	ECheckBoxState OnGetDisplayCheckState(FString ShowFlagName) const;
 
 	/** Show flag settings changed, so update the scene capture */
-	void OnShowFlagCheckStateChanged(ESlateCheckBoxState::Type InNewRadioState, FString FlagName);
+	void OnShowFlagCheckStateChanged(ECheckBoxState InNewRadioState, FString FlagName);
 };

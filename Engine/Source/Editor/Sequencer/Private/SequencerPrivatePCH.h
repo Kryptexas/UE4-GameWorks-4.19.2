@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __SequencerPrivatePCH_h__
 #define __SequencerPrivatePCH_h__
@@ -20,6 +20,7 @@
 #include "SSequencerTrackViewPanel.h"
 #include "SAnimationOutlinerView.h"
 #include "MovieSceneInstance.h"
+#include "SequencerSnapSettings.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSequencer, Log, All);
 

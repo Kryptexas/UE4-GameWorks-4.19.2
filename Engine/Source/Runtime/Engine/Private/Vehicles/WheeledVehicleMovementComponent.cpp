@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
@@ -14,6 +14,8 @@
 #include "../Collision/PhysXCollision.h"
 #include "PhysXVehicleManager.h"
 #endif //WITH_PHYSX
+#include "AI/Navigation/AvoidanceManager.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 #define LOCTEXT_NAMESPACE "UWheeledVehicleMovementComponent"
 
@@ -141,7 +143,14 @@ bool UWheeledVehicleMovementComponent::CanCreateVehicle() const
 		return false;
 	}
 
-	if ( UpdatedComponent->GetBodyInstance() == NULL )
+	if (UpdatedPrimitive == NULL)
+	{
+		UE_LOG(LogVehicles, Warning, TEXT("Cannot create vehicle for %s. UpdatedComponent is not a PrimitiveComponent."),
+			*GetPathName());
+		return false;
+	}
+
+	if (UpdatedPrimitive->GetBodyInstance() == NULL)
 	{
 		UE_LOG( LogVehicles, Warning, TEXT("Cannot create vehicle for %s. UpdatedComponent has not initialized its rigid body actor."),
 			*GetPathName() );
@@ -170,14 +179,16 @@ void UWheeledVehicleMovementComponent::CreateVehicle()
 		if ( CanCreateVehicle() )
 		{
 			check(UpdatedComponent);
-			check(UpdatedComponent->GetBodyInstance()->GetPxRigidDynamic());
-
-
-			SetupVehicle();
-
-			if ( PVehicle != NULL )
+			if (ensure(UpdatedPrimitive != nullptr))
 			{
-				PostSetupVehicle();
+				check(UpdatedPrimitive->GetBodyInstance()->GetPxRigidDynamic());
+				
+				SetupVehicle();
+
+				if ( PVehicle != NULL )
+				{
+					PostSetupVehicle();
+				}
 			}
 		}
 	}
@@ -185,7 +196,12 @@ void UWheeledVehicleMovementComponent::CreateVehicle()
 
 void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 {
-	PxRigidDynamic* PVehicleActor = UpdatedComponent->GetBodyInstance()->GetPxRigidDynamic();
+	if (!UpdatedPrimitive)
+	{
+		return;
+	}
+
+	PxRigidDynamic* PVehicleActor = UpdatedPrimitive->GetBodyInstance()->GetPxRigidDynamic();
 
 	static PxMaterial* WheelMaterial = GPhysXSDK->createMaterial(0.0f, 0.0f, 0.0f);
 
@@ -242,7 +258,7 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 		CollisionResponse.SetAllChannels( ECR_Ignore );
 
 		PxFilterData PWheelQueryFilterData, PDummySimData;
-		CreateShapeFilterData( ECC_Vehicle, GetOwner()->GetUniqueID(), CollisionResponse, 0, 0, PWheelQueryFilterData, PDummySimData, false, false, false );
+		CreateShapeFilterData(ECC_Vehicle, UpdatedComponent->GetUniqueID(), CollisionResponse, 0, 0, PWheelQueryFilterData, PDummySimData, false, false, false );
 
 		//// Give suspension raycasts the same group ID as the chassis so that they don't hit each other
 		PWheelShape->setQueryFilterData( PWheelQueryFilterData );
@@ -251,7 +267,12 @@ void UWheeledVehicleMovementComponent::SetupVehicleShapes()
 
 void UWheeledVehicleMovementComponent::SetupVehicleMass()
 {
-	const FBodyInstance& BodyInst = *UpdatedComponent->GetBodyInstance();
+	if (!UpdatedPrimitive)
+	{
+		return;
+	}
+
+	const FBodyInstance& BodyInst = *UpdatedPrimitive->GetBodyInstance();
 	PxRigidDynamic* PVehicleActor = BodyInst.GetPxRigidDynamic();
 
 	// Override mass
@@ -272,7 +293,12 @@ void UWheeledVehicleMovementComponent::SetupVehicleMass()
 
 void UWheeledVehicleMovementComponent::SetupWheels( PxVehicleWheelsSimData* PWheelsSimData )
 {
-	const FBodyInstance& VehicleBodyInstance = *UpdatedComponent->GetBodyInstance();
+	if (!UpdatedPrimitive)
+	{
+		return;
+	}
+
+	const FBodyInstance& VehicleBodyInstance = *UpdatedPrimitive->GetBodyInstance();
 	PxRigidDynamic* PVehicleActor = VehicleBodyInstance.GetPxRigidDynamic();
 
 	const PxReal LengthScale = 100.f; // Convert default from m to cm
@@ -523,12 +549,15 @@ FVector UWheeledVehicleMovementComponent::GetWheelRestingPosition( const FWheelS
 
 FVector UWheeledVehicleMovementComponent::GetLocalCOM() const
 {
-	if (const FBodyInstance* BodyInst = UpdatedComponent->GetBodyInstance())
+	if (UpdatedPrimitive)
 	{
-		if (PxRigidDynamic* PVehicleActor = BodyInst->GetPxRigidDynamic())
+		if (const FBodyInstance* BodyInst = UpdatedPrimitive->GetBodyInstance())
 		{
-			PxTransform PCOMTransform = PVehicleActor->getCMassLocalPose();
-			return P2UVector(PCOMTransform.p);
+			if (PxRigidDynamic* PVehicleActor = BodyInst->GetPxRigidDynamic())
+			{
+				PxTransform PCOMTransform = PVehicleActor->getCMassLocalPose();
+				return P2UVector(PCOMTransform.p);
+			}
 		}
 	}
 
@@ -709,19 +738,23 @@ void UWheeledVehicleMovementComponent::TickVehicle( float DeltaTime )
 
 void UWheeledVehicleMovementComponent::UpdateDrag(float DeltaTime)
 {
-	if (PVehicle && UpdatedComponent)
+	if (PVehicle && UpdatedPrimitive)
 	{
 		float ForwardSpeed = GetForwardSpeed();
-		FVector GlobalForwardVector = UpdatedComponent->GetForwardVector();
-		FVector DragVector = -GlobalForwardVector;
-		float SpeedSquared = ForwardSpeed * ForwardSpeed;
-		float ChassisDragArea = ChassisHeight * ChassisWidth;
-		float AirDensity = 1.25 / (100 * 100 * 100); //kg/cm^3
-		float DragMag = 0.5f * AirDensity * SpeedSquared * DragCoefficient * ChassisDragArea;
-		DebugDragMagnitude = DragMag;
-		DragVector *= DragMag;
-		FBodyInstance* BodyInstance = UpdatedComponent->GetBodyInstance();
-		BodyInstance->AddForce(DragVector, false);
+		if (FMath::Abs(ForwardSpeed) > 1.f)
+		{
+			FVector GlobalForwardVector = UpdatedComponent->GetForwardVector();
+			FVector DragVector = -GlobalForwardVector;
+			float SpeedSquared = ForwardSpeed * ForwardSpeed;
+			float ChassisDragArea = ChassisHeight * ChassisWidth;
+			float AirDensity = 1.25 / (100 * 100 * 100); //kg/cm^3
+			float DragMag = 0.5f * AirDensity * SpeedSquared * DragCoefficient * ChassisDragArea;
+			DebugDragMagnitude = DragMag;
+			DragVector *= DragMag;
+			FBodyInstance* BodyInstance = UpdatedPrimitive->GetBodyInstance();
+			BodyInstance->AddForce(DragVector, false);
+		}
+		
 	}
 }
 
@@ -1399,9 +1432,9 @@ void UWheeledVehicleMovementComponent::DrawDebugLines()
 	const PxTransform T = GlobalT.transform( PActor->getCMassLocalPose() );
 	const PxVec3 ChassisExtent = PActor->getWorldBounds().getExtents();
 	const float ChassisSize = ChassisExtent.magnitude();
-	DrawDebugLine( World, P2UVector(T.p), P2UVector( T.p + T.rotate( PxVec3( ChassisSize, 0, 0 ) ) ), FColor(255,0,0) );
-	DrawDebugLine( World, P2UVector(T.p), P2UVector( T.p + T.rotate( PxVec3( 0, ChassisSize, 0 ) ) ), FColor(0,255,0) );
-	DrawDebugLine( World, P2UVector(T.p), P2UVector( T.p + T.rotate( PxVec3( 0, 0, ChassisSize ) ) ), FColor(0,0,255) );
+	DrawDebugLine(World, P2UVector(T.p), P2UVector(T.p + T.rotate(PxVec3(ChassisSize, 0, 0))), FColor::Red);
+	DrawDebugLine(World, P2UVector(T.p), P2UVector(T.p + T.rotate(PxVec3(0, ChassisSize, 0))), FColor::Green);
+	DrawDebugLine(World, P2UVector(T.p), P2UVector(T.p + T.rotate(PxVec3(0, 0, ChassisSize))), FColor::Blue);
 
 	PxVehicleTelemetryData* TelemetryData = MyVehicleManager->GetTelemetryData();
 	
@@ -1519,7 +1552,7 @@ void UWheeledVehicleMovementComponent::CalculateAvoidanceVelocity(float DeltaTim
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 			if (bShowDebug)
 			{
-				DrawDebugLine(GetWorld(), GetRVOAvoidanceOrigin(), GetRVOAvoidanceOrigin() + AvoidanceVelocity, FColor(0, 0, 255), true, 0.5f, SDPG_MAX);
+				DrawDebugLine(GetWorld(), GetRVOAvoidanceOrigin(), GetRVOAvoidanceOrigin() + AvoidanceVelocity, FColor::Blue, true, 0.5f, SDPG_MAX);
 			}
 #endif
 		}
@@ -1534,7 +1567,7 @@ void UWheeledVehicleMovementComponent::CalculateAvoidanceVelocity(float DeltaTim
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 				if (bShowDebug)
 				{
-					DrawDebugLine(GetWorld(), GetRVOAvoidanceOrigin(), GetRVOAvoidanceOrigin() + AvoidanceVelocity, FColor(255, 0, 0), true, 20.0f, SDPG_MAX, 10.0f);
+					DrawDebugLine(GetWorld(), GetRVOAvoidanceOrigin(), GetRVOAvoidanceOrigin() + AvoidanceVelocity, FColor::Red, true, 20.0f, SDPG_MAX, 10.0f);
 				}
 #endif
 			}
@@ -1551,13 +1584,13 @@ void UWheeledVehicleMovementComponent::CalculateAvoidanceVelocity(float DeltaTim
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	else if (bShowDebug)
 	{
-		DrawDebugLine(GetWorld(), GetRVOAvoidanceOrigin(), GetRVOAvoidanceOrigin() + GetVelocityForRVOConsideration(), FColor(255, 255, 0), true, 0.05f, SDPG_MAX);
+		DrawDebugLine(GetWorld(), GetRVOAvoidanceOrigin(), GetRVOAvoidanceOrigin() + GetVelocityForRVOConsideration(), FColor::Yellow, true, 0.05f, SDPG_MAX);
 	}
 
 	if (bShowDebug)
 	{
 		FVector UpLine(0, 0, 500);
-		DrawDebugLine(GetWorld(), GetRVOAvoidanceOrigin(), GetRVOAvoidanceOrigin() + UpLine, (AvoidanceLockTimer > 0.01f) ? FColor(255, 0, 0) : FColor(0, 0, 255), true, 0.05f, SDPG_MAX, 5.0f);
+		DrawDebugLine(GetWorld(), GetRVOAvoidanceOrigin(), GetRVOAvoidanceOrigin() + UpLine, (AvoidanceLockTimer > 0.01f) ? FColor::Red : FColor::Blue, true, 0.05f, SDPG_MAX, 5.0f);
 	}
 #endif
 }

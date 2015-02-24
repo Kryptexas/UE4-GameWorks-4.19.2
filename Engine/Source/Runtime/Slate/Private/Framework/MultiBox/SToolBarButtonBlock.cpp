@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "MultiBox.h"
@@ -44,6 +44,19 @@ void FToolBarButtonBlock::CreateMenuEntry(FMenuBuilder& MenuBuilder) const
 		const FUIAction& DirectAction = GetDirectActions();
 		MenuBuilder.AddMenuEntry( LabelOverride.Get(), ToolTipOverride.Get(), IconOverride.Get(), DirectAction );
 	}
+}
+
+bool FToolBarButtonBlock::HasIcon() const
+{
+	const FSlateIcon ActionIcon = GetAction().IsValid() ? GetAction()->GetIcon() : FSlateIcon();
+	const FSlateIcon& ActualIcon = IconOverride.IsSet() ? IconOverride.Get() : ActionIcon;
+
+	if (ActualIcon.IsSet())
+	{
+		return ActualIcon.GetIcon()->GetResourceName() != NAME_None;
+	}
+
+	return false;
 }
 
 /**
@@ -304,7 +317,7 @@ FReply SToolBarButtonBlock::OnClicked()
 /**
  * Called by Slate when this tool bar check box button is toggled
  */
-void SToolBarButtonBlock::OnCheckStateChanged( const ESlateCheckBoxState::Type NewCheckedState )
+void SToolBarButtonBlock::OnCheckStateChanged( const ECheckBoxState NewCheckedState )
 {
 	OnClicked();
 }
@@ -312,9 +325,9 @@ void SToolBarButtonBlock::OnCheckStateChanged( const ESlateCheckBoxState::Type N
 /**
  * Called by slate to determine if this button should appear checked
  *
- * @return ESlateCheckBoxState::Checked if it should be checked, ESlateCheckBoxState::Unchecked if not.
+ * @return ECheckBoxState::Checked if it should be checked, ECheckBoxState::Unchecked if not.
  */
-ESlateCheckBoxState::Type SToolBarButtonBlock::OnIsChecked() const
+ECheckBoxState SToolBarButtonBlock::OnIsChecked() const
 {
 	TSharedPtr< const FUICommandList > ActionList = MultiBlock->GetActionList();
 	TSharedPtr< const FUICommandInfo > Action = MultiBlock->GetAction();
@@ -331,7 +344,7 @@ ESlateCheckBoxState::Type SToolBarButtonBlock::OnIsChecked() const
 		bIsChecked = DirectActions.IsChecked();
 	}
 
-	return bIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 /**

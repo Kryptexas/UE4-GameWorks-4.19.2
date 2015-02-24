@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,8 +30,8 @@ protected:
 	// Splines Tool
 	static FReply OnApplyAllSplinesButtonClicked();
 	static FReply OnApplySelectedSplinesButtonClicked();
-	void OnbUseAutoRotateControlPointChanged(ESlateCheckBoxState::Type NewState);
-	ESlateCheckBoxState::Type GetbUseAutoRotateControlPoint() const;
+	void OnbUseAutoRotateControlPointChanged(ECheckBoxState NewState);
+	ECheckBoxState GetbUseAutoRotateControlPoint() const;
 
 	// Ramp Tool
 	static FReply OnApplyRampButtonClicked();

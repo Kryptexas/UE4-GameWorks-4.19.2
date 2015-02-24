@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -46,12 +46,12 @@ public:
 	// Get delegates
 	FText GetStartText() const;
 	FText GetEndText() const;
-	ESlateCheckBoxState::Type GetShowMissesState() const;
+	ECheckBoxState GetShowMissesState() const;
 	// List delegates
 	TSharedRef<ITableRow> ResultListGenerateRow(TSharedPtr<FCAHitInfo> Info, const TSharedRef<STableViewBase>& OwnerTable);
 	void ResultListSelectionChanged(TSharedPtr<FCAHitInfo> SelectedInfos, ESelectInfo::Type SelectInfo);
 	// Handler delegates
-	void OnToggleShowMisses(ESlateCheckBoxState::Type InCheckboxState);
+	void OnToggleShowMisses(ECheckBoxState InCheckboxState);
 
 private:
 

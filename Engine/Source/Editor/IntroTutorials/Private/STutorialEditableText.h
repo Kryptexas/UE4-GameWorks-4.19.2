@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -64,9 +64,9 @@ protected:
 
 	EVisibility GetOpenAssetVisibility() const;
 
-	void HandleOpenAssetCheckStateChanged(ESlateCheckBoxState::Type InCheckState);
+	void HandleOpenAssetCheckStateChanged(ECheckBoxState InCheckState);
 
-	ESlateCheckBoxState::Type IsOpenAssetChecked() const;
+	ECheckBoxState IsOpenAssetChecked() const;
 
 	EVisibility GetExcerptVisibility() const;
 

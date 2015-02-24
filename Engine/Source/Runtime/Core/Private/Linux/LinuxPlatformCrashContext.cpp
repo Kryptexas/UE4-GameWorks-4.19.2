@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "Linux/LinuxPlatformCrashContext.h"
@@ -646,7 +646,7 @@ void GenerateMinidump(const FString & Path)
 }
 
 
-int32 ReportCrash(const FLinuxCrashContext & Context)
+int32 DLLEXPORT ReportCrash(const FLinuxCrashContext & Context)
 {
 	static bool GAlreadyCreatedMinidump = false;
 	// Only create a minidump the first time this function is called.
@@ -673,7 +673,7 @@ int32 ReportCrash(const FLinuxCrashContext & Context)
 /**
  * Generates information for crash reporter
  */
-void GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Context)
+void DLLEXPORT GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Context)
 {
 	// do not report crashes for tools (particularly for crash reporter itself)
 #if !IS_PROGRAM
@@ -706,10 +706,10 @@ void GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext & Context)
 		static_cast<void>(IFileManager::Get().Copy(*LogDstAbsolute, *LogSrcAbsolute));	// best effort, so don't care about result: couldn't copy -> tough, no log
 
 		// try launching the tool and wait for its exit, if at all
-		const TCHAR * RelativePathToCrashReporter = TEXT("../../../engine/binaries/linux/crashreportclient");	// FIXME: painfully hard-coded
+		const TCHAR * RelativePathToCrashReporter = TEXT("../../../Engine/Binaries/Linux/CrashReportClient");	// FIXME: painfully hard-coded
 		if (!FPaths::FileExists(RelativePathToCrashReporter))
 		{
-			RelativePathToCrashReporter = TEXT("../../../Engine/Binaries/Linux/CrashReportClient");	// FIXME: even more painfully hard-coded
+			RelativePathToCrashReporter = TEXT("../../../engine/binaries/linux/crashreportclient");	// FIXME: even more painfully hard-coded
 		}
 
 		// show on the console

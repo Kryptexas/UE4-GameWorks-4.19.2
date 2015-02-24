@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Manages selections of objects.  Used in the editor for selecting
@@ -16,7 +16,8 @@ private:
 	typedef TArray<TWeakObjectPtr<UObject> >	ObjectArray;
 	typedef TMRUArray<UClass*>	ClassArray;
 
-	friend class FSelectionIterator;
+	template<typename SelectionFilter>
+	friend class TSelectionIterator;
 
 public:
 	/** Params: UObject* NewSelection */
@@ -283,11 +284,6 @@ public:
 		return SelectedClasses[ InIndex ];
 	}
 
-	/**
-	 * Sync's all objects' RF_EdSelected flag based on the current selection list.
-	 */
-	void RefreshObjectFlags();
-
 
 	// Begin UObject Interface
 	virtual void Serialize(FArchive& Ar) override;
@@ -356,15 +352,28 @@ private:
 	}
 };
 
+
+/** A filter for generic selection sets.  Simply allows objects which are non-null */
+class FGenericSelectionFilter
+{
+public:
+	bool IsObjectValid( const UObject* InObject ) const
+	{
+		return InObject != nullptr;
+	}
+};
+
 /**
  * Manages selections of objects.  Used in the editor for selecting
  * objects in the various browser windows.
  */
-class FSelectionIterator
+template<typename SelectionFilter>
+class TSelectionIterator
 {
 public:
-	FSelectionIterator(USelection& InSelection)
+	TSelectionIterator(USelection& InSelection)
 		: Selection( InSelection )
+		, Filter( SelectionFilter() )
 	{
 		Reset();
 	}
@@ -429,7 +438,7 @@ private:
 
 	bool IsObjectValid() const
 	{
-		return GetCurrentObject() != NULL;
+		return Filter.IsObjectValid( GetCurrentObject() );
 	}
 
 	bool IsIndexValid() const
@@ -438,11 +447,37 @@ private:
 	}
 
 	USelection&	Selection;
+	SelectionFilter Filter;
 	int32			Index;
 };
 
 
+class FSelectionIterator : public TSelectionIterator<FGenericSelectionFilter>
+{
+public:
+	FSelectionIterator(USelection& InSelection)
+		: TSelectionIterator<FGenericSelectionFilter>( InSelection )
+	{}
+};
+
+/** A filter for only iterating through editable components */
+class FSelectedEditableComponentFilter
+{
+public:
+	bool IsObjectValid(const UObject* Object) const
+	{
+		const UActorComponent* Comp = Cast<UActorComponent>( Object );
+		return Comp && !Comp->IsCreatedByConstructionScript();
+	}
+};
+
 /**
- * Ensures that only selected objects are marked with what was the RF_EdSelected flag.
+ * An iterator used to iterate through selected components that are editable (i.e. not created in a blueprint)
  */
-void RefreshSelectionSets();
+class FSelectedEditableComponentIterator : public TSelectionIterator<FSelectedEditableComponentFilter>
+{
+public:
+	FSelectedEditableComponentIterator(USelection& InSelection)
+		: TSelectionIterator<FSelectedEditableComponentFilter>(InSelection)
+	{}
+};

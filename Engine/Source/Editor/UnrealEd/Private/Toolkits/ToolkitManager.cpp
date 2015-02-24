@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "Toolkits/IToolkit.h"
@@ -11,7 +11,7 @@ static TSharedRef<SDockTab> SpawnStandaloneToolkitHost( const FSpawnTabArgs& Arg
 	return
 		SNew(SDockTab)
 		.TabRole(ETabRole::MajorTab)
-		.ContentPadding(FMargin(0,2,0,0));
+		.ContentPadding(FMargin(0));
 }
 
 static TSharedPtr<SDockTab> NeverReuse(const FTabId&)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMeshRender.cpp: Static mesh rendering code.
@@ -12,6 +12,8 @@
 #include "ShadowMap.h"
 #include "DistanceFieldAtlas.h"
 #include "ComponentReregisterContext.h"
+#include "Components/BrushComponent.h"
+#include "AI/Navigation/NavCollision.h"
 
 /** If true, optimized depth-only index buffers are used for shadow rendering. */
 static bool GUseShadowIndexBuffer = true;
@@ -64,6 +66,7 @@ FStaticMeshSceneProxy::FStaticMeshSceneProxy(UStaticMeshComponent* InComponent):
 	WireframeColor = InComponent->GetWireframeColor();
 	LevelColor = FLinearColor(1,1,1);
 	PropertyColor = FLinearColor(1,1,1);
+	bSupportsDistanceFieldRepresentation = true;
 
 	const auto FeatureLevel = GetScene().GetFeatureLevel();
 
@@ -572,9 +575,10 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 
 	bool bDrawSimpleCollision = false, bDrawComplexCollision = false;
 	const bool bInCollisionView = IsCollisionView(EngineShowFlags, bDrawSimpleCollision, bDrawComplexCollision);
-	// Draw simple collision as wireframe if 'show collision', collision is enabled, and we are not using the complex as the simple
-	const bool bDrawWireframeCollision = (EngineShowFlags.Collision && IsCollisionEnabled() && CollisionTraceFlag != ECollisionTraceFlag::CTF_UseComplexAsSimple);
 	
+	// Should we draw the mesh wireframe to indicate we are using the mesh as collision
+	const bool bDrawComplexWireframeCollision = (EngineShowFlags.Collision && IsCollisionEnabled() && CollisionTraceFlag == ECollisionTraceFlag::CTF_UseComplexAsSimple);
+
 	const bool bDrawMesh = (bInCollisionView) ? (bDrawComplexCollision) : 
 		(	IsRichView(ViewFamily) || HasViewDependentDPG()
 			|| EngineShowFlags.Collision
@@ -701,18 +705,34 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 										Collector.RegisterOneFrameMaterialProxy(VertexColorVisualizationMaterialInstance);
 										MeshElement.MaterialRenderProxy = VertexColorVisualizationMaterialInstance;
 									}
-									else if( bInCollisionView && bDrawComplexCollision && AllowDebugViewmodes() )
+									else if( bDrawComplexWireframeCollision || (bInCollisionView && bDrawComplexCollision && AllowDebugViewmodes()) )
 									{
 										if (LODModel.Sections[SectionIndex].bEnableCollision)
 										{
+											UMaterial* MaterialToUse = (bDrawComplexWireframeCollision) ? GEngine->WireframeMaterial : GEngine->ShadedLevelColorationUnlitMaterial;
+
 											// Override the mesh's material with our material that draws the collision color
 											auto CollisionMaterialInstance = new FColoredMaterialRenderProxy(
-												GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(bProxyIsSelected, IsHovered()),
+												MaterialToUse->GetRenderProxy(bProxyIsSelected, IsHovered()),
 												WireframeColor
 												);
 
 											Collector.RegisterOneFrameMaterialProxy(CollisionMaterialInstance);
-											MeshElement.MaterialRenderProxy = CollisionMaterialInstance;
+
+											// If drawing the complex collision in wireframe, we do that in _addition_ to the normal mesh
+											if(bDrawComplexWireframeCollision)
+											{
+												FMeshBatch& CollisionElement = Collector.AllocateMesh();
+												GetMeshElement(LODIndex, BatchIndex, SectionIndex, SDPG_World, bSectionIsSelected, IsHovered(), CollisionElement);
+												CollisionElement.MaterialRenderProxy = CollisionMaterialInstance;
+												Collector.AddMesh(ViewIndex, CollisionElement);
+												INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, CollisionElement.GetNumPrimitives());
+											}
+											// Otherwise just change material on existing mesh
+											else
+											{
+												MeshElement.MaterialRenderProxy = CollisionMaterialInstance;
+											}
 										}
 										else
 										{
@@ -755,7 +775,11 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 	{
 		if (VisibilityMap & (1 << ViewIndex))
 		{
-			if((bDrawSimpleCollision || bDrawWireframeCollision) && AllowDebugViewmodes())
+			// Draw simple collision as wireframe if 'show collision', collision is enabled, and we are not using the complex as the simple
+			const bool bDrawSimpleWireframeCollision = (EngineShowFlags.Collision && IsCollisionEnabled() && CollisionTraceFlag != ECollisionTraceFlag::CTF_UseComplexAsSimple);
+
+
+			if((bDrawSimpleCollision || bDrawSimpleWireframeCollision) && AllowDebugViewmodes())
 			{
 				if(BodySetup)
 				{
@@ -767,7 +791,7 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 					}
 					else
 					{
-						const bool bDrawSolid = !bDrawWireframeCollision;
+						const bool bDrawSolid = !bDrawSimpleWireframeCollision;
 
 						if(bDrawSolid)
 						{
@@ -811,291 +835,6 @@ void FStaticMeshSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 #endif
 		}
 	}
-}
-
-/** 
-* Draw the scene proxy as a dynamic element
-*
-* @param	PDI - draw interface to render to
-* @param	View - current view
-*/
-void FStaticMeshSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View, uint32 DrawDynamicFlags )
-{
-	QUICK_SCOPE_CYCLE_COUNTER( STAT_StaticMeshSceneProxy_DrawDynamicElements );
-
-	checkSlow(IsInParallelRenderingThread());
-
-	const bool bIsLightmapSettingError = HasStaticLighting() && !HasValidSettingsForStaticLighting();
-
-	bool bProxyIsSelected = IsSelected();
-
-	bool bDrawSimpleCollision = false, bDrawComplexCollision = false;
-	const bool bInCollisionView = IsCollisionView(View->Family->EngineShowFlags, bDrawSimpleCollision, bDrawComplexCollision);
-	// Draw simple collision as wireframe if 'show collision', collision is enabled, and we are not using the complex as the simple
-	const bool bDrawWireframeCollision = (View->Family->EngineShowFlags.Collision && IsCollisionEnabled() && CollisionTraceFlag != ECollisionTraceFlag::CTF_UseComplexAsSimple);
-
-	const bool bDrawMesh = (bInCollisionView) ? (bDrawComplexCollision) : 
-		(	IsRichView(*View->Family) || HasViewDependentDPG()
-			|| View->Family->EngineShowFlags.Collision
-			|| View->Family->EngineShowFlags.Bounds
-			|| bProxyIsSelected 
-			|| IsHovered()
-			|| bIsLightmapSettingError ) ;
-
-
-	// Draw polygon mesh if we are either not in a collision view, or are drawing it as collision.
-	if(View->Family->EngineShowFlags.StaticMeshes && bDrawMesh)
-	{
-		// how we should draw the collision for this mesh.
-		const bool bIsWireframeView = View->Family->EngineShowFlags.Wireframe;
-		const bool bLevelColorationEnabled = View->Family->EngineShowFlags.LevelColoration;
-		const bool bPropertyColorationEnabled = View->Family->EngineShowFlags.PropertyColoration;
-
-		// force lowest LOD (e.g. for Reflective Shadow Maps)
-		int32 LODIndex = 0;
-		if(DrawDynamicFlags & EDrawDynamicFlags::ForceLowestLOD)
-		{
-			LODIndex = RenderData->LODResources.Num() - 1;
-		} 
-		else
-		{
-			LODIndex = GetLOD(View);
-		}
-
-		if (RenderData->LODResources.IsValidIndex(LODIndex))
-		{
-			const FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
-			const FLODInfo& ProxyLODInfo = LODs[LODIndex];
-
-			if (AllowDebugViewmodes() && bIsWireframeView && !View->Family->EngineShowFlags.Materials
-				// If any of the materials are mesh-modifying, we can't use the single merged mesh element of GetWireframeMeshElement()
-				&& !ProxyLODInfo.UsesMeshModifyingMaterials())
-			{
-				FLinearColor ViewWireframeColor( bLevelColorationEnabled ? LevelColor : WireframeColor );
-				if ( bPropertyColorationEnabled )
-				{
-					ViewWireframeColor = PropertyColor;
-				}
-
-				FColoredMaterialRenderProxy WireframeMaterialInstance(
-					GEngine->WireframeMaterial->GetRenderProxy(false),
-					GetSelectionColor(ViewWireframeColor,!(GIsEditor && View->Family->EngineShowFlags.Selection) || bProxyIsSelected, IsHovered(), /*bUseOverlayIntensity=*/false)
-					);
-
-				const int32 NumBatches = GetNumMeshBatches();
-
-				for (int32 BatchIndex = 0; BatchIndex < NumBatches; BatchIndex++)
-				{
-					FMeshBatch MeshBatch;
-
-					if (GetWireframeMeshElement(LODIndex, BatchIndex, &WireframeMaterialInstance, GetDepthPriorityGroup(View), MeshBatch))
-					{
-						const int32 NumPasses = PDI->DrawMesh(MeshBatch);
-						INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,MeshBatch.GetNumPrimitives() * NumPasses);
-					}
-				}
-			}
-			else
-			{
-				const FLinearColor UtilColor( LevelColor );
-
-				// Draw the static mesh sections.
-				for(int32 SectionIndex = 0; SectionIndex < LODModel.Sections.Num(); SectionIndex++)
-				{
-					bool bSectionIsSelected = false;
-
-#if WITH_EDITOR
-					if( GIsEditor )
-					{
-						const FLODInfo::FSectionInfo& Section = LODs[LODIndex].Sections[SectionIndex];
-
-						bSectionIsSelected = Section.bSelected;
-						PDI->SetHitProxy(Section.HitProxy);
-					}
-#endif // WITH_EDITOR
-
-					const int32 NumBatches = GetNumMeshBatches();
-
-					for (int32 BatchIndex = 0; BatchIndex < NumBatches; BatchIndex++)
-					{
-						FMeshBatch MeshBatch;
-
-						if (GetMeshElement(LODIndex, BatchIndex, SectionIndex, GetDepthPriorityGroup(View), bSectionIsSelected, IsHovered(), MeshBatch))
-						{			
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-							if( View->Family->EngineShowFlags.VertexColors && AllowDebugViewmodes() )
-							{
-								// Override the mesh's material with our material that draws the vertex colors
-								UMaterial* VertexColorVisualizationMaterial = NULL;
-								switch( GVertexColorViewMode )
-								{
-								case EVertexColorViewMode::Color:
-									VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_ColorOnly;
-									break;
-
-								case EVertexColorViewMode::Alpha:
-									VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_AlphaAsColor;
-									break;
-
-								case EVertexColorViewMode::Red:
-									VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_RedOnly;
-									break;
-
-								case EVertexColorViewMode::Green:
-									VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_GreenOnly;
-									break;
-
-								case EVertexColorViewMode::Blue:
-									VertexColorVisualizationMaterial = GEngine->VertexColorViewModeMaterial_BlueOnly;
-									break;
-								}
-								check( VertexColorVisualizationMaterial != NULL );
-
-								const FColoredMaterialRenderProxy VertexColorVisualizationMaterialInstance(
-									VertexColorVisualizationMaterial->GetRenderProxy( MeshBatch.MaterialRenderProxy->IsSelected(),MeshBatch.MaterialRenderProxy->IsHovered() ),
-									GetSelectionColor( FLinearColor::White, bSectionIsSelected, IsHovered() )
-									);
-								FMeshBatch ModifiedMeshElement = MeshBatch;
-								ModifiedMeshElement.MaterialRenderProxy = &VertexColorVisualizationMaterialInstance;
-
-								const int32 NumPasses = DrawRichMesh(
-									PDI,
-									ModifiedMeshElement,
-									WireframeColor,
-									UtilColor,
-									PropertyColor,
-									this,
-									bSectionIsSelected,
-									bIsWireframeView
-									);
-								INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,MeshBatch.GetNumPrimitives() * NumPasses);
-							}
-							else if( bInCollisionView && bDrawComplexCollision && AllowDebugViewmodes() )
-							{
-								if (LODModel.Sections[SectionIndex].bEnableCollision)
-								{
-									// Override the mesh's material with our material that draws the collision color
-									const FColoredMaterialRenderProxy CollisionMaterialInstance(
-										GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(bProxyIsSelected, IsHovered()),
-										WireframeColor
-										);
-
-									FMeshBatch ModifiedMeshElement = MeshBatch;
-									ModifiedMeshElement.MaterialRenderProxy = &CollisionMaterialInstance;
-
-									const int32 NumPasses = DrawRichMesh(
-										PDI,
-										ModifiedMeshElement,
-										WireframeColor,
-										UtilColor,
-										PropertyColor,
-										this,
-										bSectionIsSelected,
-										bIsWireframeView
-										);
-									INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,MeshBatch.GetNumPrimitives() * NumPasses);
-								}
-							}
-							else
-#endif
-#if WITH_EDITOR
-							if (bSectionIsSelected)
-							{
-								// Override the mesh's material with our material that draws the collision color
-								const FOverrideSelectionColorMaterialRenderProxy SelectedMaterialInstance(
-									GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(bSectionIsSelected, IsHovered()),
-									GetSelectionColor(GEngine->GetSelectedMaterialColor(), bSectionIsSelected, IsHovered())
-									);
-
-								FMeshBatch ModifiedMeshElement(MeshBatch);
-								ModifiedMeshElement.MaterialRenderProxy = &SelectedMaterialInstance;
-
-								const int32 NumPasses = DrawRichMesh(
-									PDI,
-									ModifiedMeshElement,
-									WireframeColor,
-									UtilColor,
-									PropertyColor,
-									this,
-									bSectionIsSelected,
-									bIsWireframeView
-									);
-								INC_DWORD_STAT_BY(STAT_StaticMeshTriangles, MeshBatch.GetNumPrimitives() * NumPasses);
-							}
-							else
-#endif
-							{
-								const int32 NumPasses = DrawRichMesh(
-									PDI,
-									MeshBatch,
-									WireframeColor,
-									UtilColor,
-									PropertyColor,
-									this,
-									bSectionIsSelected,
-									bIsWireframeView
-									);
-								INC_DWORD_STAT_BY(STAT_StaticMeshTriangles,MeshBatch.GetNumPrimitives() * NumPasses);
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	if((bDrawSimpleCollision || bDrawWireframeCollision) && AllowDebugViewmodes())
-	{
-		if(BodySetup)
-		{
-			if(FMath::Abs(GetLocalToWorld().Determinant()) < SMALL_NUMBER)
-			{
-				// Catch this here or otherwise GeomTransform below will assert
-				// This spams so commented out
-				//UE_LOG(LogStaticMesh, Log, TEXT("Zero scaling not supported (%s)"), *StaticMesh->GetPathName());
-			}
-			else
-			{
-				const bool bDrawSolid = !bDrawWireframeCollision;
-
-				if(bDrawSolid)
-				{
-					// Make a material for drawing solid collision stuff
-					const FColoredMaterialRenderProxy SolidMaterialInstance(
-						GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
-						WireframeColor
-						);
-
-					FTransform GeomTransform(GetLocalToWorld());
-					BodySetup->AggGeom.DrawAggGeom(PDI, GeomTransform, WireframeColor, /*Material=*/&SolidMaterialInstance, false, /*bSolid=*/true, UseEditorDepthTest());
-				}
-				// wireframe
-				else
-				{
-					FColor CollisionColor = FColor(157,149,223,255);
-					FTransform GeomTransform(GetLocalToWorld());
-					BodySetup->AggGeom.DrawAggGeom(PDI, GeomTransform, GetSelectionColor(CollisionColor, bProxyIsSelected, IsHovered()), /*Material=*/NULL, (Owner == NULL), /*bSolid=*/false, UseEditorDepthTest());
-				}
-
-
-				// The simple nav geometry is only used by dynamic obstacles for now
-				if (StaticMesh->NavCollision && StaticMesh->NavCollision->bIsDynamicObstacle)
-				{
-					// Draw the static mesh's body setup (simple collision)
-					FTransform GeomTransform(GetLocalToWorld());
-					FColor NavCollisionColor = FColor(118,84,255,255);
-					StaticMesh->NavCollision->DrawSimpleGeom(PDI, GeomTransform, GetSelectionColor(NavCollisionColor, bProxyIsSelected, IsHovered()));
-				}
-			}
-		}
-	}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	if (View->Family->EngineShowFlags.StaticMeshes)
-	{
-		RenderBounds(PDI, View->Family->EngineShowFlags, GetBounds(), !Owner || IsSelected());
-	}
-#endif
 }
 
 void FStaticMeshSceneProxy::OnTransformChanged()
@@ -1212,7 +951,7 @@ void FStaticMeshSceneProxy::GetLightRelevance(const FLightSceneProxy* LightScene
 	}
 }
 
-void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane) const
+void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, FIntVector& OutBlockMin, FIntVector& OutBlockSize, bool& bOutBuiltAsIfTwoSided, bool& bMeshWasPlane, TArray<FMatrix>& ObjectLocalToWorldTransforms) const
 {
 	if (DistanceFieldData)
 	{
@@ -1221,6 +960,7 @@ void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, F
 		OutBlockSize = DistanceFieldData->VolumeTexture.GetAllocationSize();
 		bOutBuiltAsIfTwoSided = DistanceFieldData->bBuiltAsIfTwoSided;
 		bMeshWasPlane = DistanceFieldData->bMeshWasPlane;
+		ObjectLocalToWorldTransforms.Add(GetLocalToWorld());
 	}
 	else
 	{
@@ -1234,7 +974,7 @@ void FStaticMeshSceneProxy::GetDistancefieldAtlasData(FBox& LocalVolumeBounds, F
 
 bool FStaticMeshSceneProxy::HasDistanceFieldRepresentation() const
 {
-	return (CastsDynamicShadow() || CastsStaticShadow()) && DistanceFieldData && DistanceFieldData->VolumeTexture.IsValidDistanceFieldVolume();
+	return CastsDynamicShadow() && AffectsDistanceFieldLighting() && DistanceFieldData && DistanceFieldData->VolumeTexture.IsValidDistanceFieldVolume();
 }
 
 /** Initialization constructor. */

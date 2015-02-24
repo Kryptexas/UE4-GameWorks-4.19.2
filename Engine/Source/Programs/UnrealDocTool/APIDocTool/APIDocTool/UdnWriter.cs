@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -154,7 +154,7 @@ namespace APIDocTool
 
 		public void WritePageHeader(string Title, string Crumbs, string Description)
 		{
-			WriteLine("Title: {0}", Title);
+			WriteLine("Title: {0}", Title.Replace("<", "&lt;").Replace(">", "&gt;"));
 			WriteLine("Crumbs: {0}", Crumbs);
 			WriteLine("Description: {0}", Description.Replace('\n', ' ').Replace('\r', ' '));
 			WriteLine("Availability: Public");

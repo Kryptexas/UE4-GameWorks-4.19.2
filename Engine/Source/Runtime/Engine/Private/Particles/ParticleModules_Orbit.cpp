@@ -1,11 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Orbit.cpp: Orbit particle modules implementation.
 =============================================================================*/
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
-#include "../DistributionHelpers.h"
 #include "Particles/Orbit/ParticleModuleOrbit.h"
 #include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
 #include "Particles/ParticleLODLevel.h"
@@ -65,17 +64,6 @@ void UParticleModuleOrbit::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleOrbit::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultUniform(OffsetAmount.Distribution, TEXT("DistributionOffsetAmount"), FVector(0.0f, 0.0f, 0.0f), FVector(0.0f, 50.0f, 0.0f));
-		FDistributionHelpers::RestoreDefaultUniform(RotationAmount.Distribution, TEXT("DistributionRotationAmount"), FVector(0.0f, 0.0f, 0.0f), FVector(1.0f, 1.0f, 1.0f));
-		FDistributionHelpers::RestoreDefaultUniform(RotationRateAmount.Distribution, TEXT("DistributionRotationRateAmount"), FVector(0.0f, 0.0f, 0.0f), FVector(1.0f, 1.0f, 1.0f));
 	}
 }
 

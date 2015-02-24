@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -258,6 +258,7 @@ void UK2Node_Literal::SetObjectRef(UObject* NewValue)
 		// Set the pin type to reflect the object we're referencing
 		if( ValuePin )
 		{
+			ValuePin->Modify();
 			ValuePin->PinType.PinCategory = Schema->PC_Object;
 			ValuePin->PinType.PinSubCategory = TEXT("");
 			ValuePin->PinType.PinSubCategoryObject = ObjectRef->GetClass();

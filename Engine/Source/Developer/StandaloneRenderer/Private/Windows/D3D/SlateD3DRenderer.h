@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef _SLATERENDERRD3D_H__
@@ -58,6 +58,7 @@ public:
 	virtual void LoadStyleResources( const ISlateStyle& Style ) override;
 	virtual FSlateUpdatableTexture* CreateUpdatableTexture(uint32 Width, uint32 Height) override;
 	virtual void ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture) override;
+	virtual ISlateAtlasProvider* GetTextureAtlasProvider() override;
 	
 	void CreateDevice();
 	void CreateDepthStencilBuffer( FSlateD3DViewport& Viewport );

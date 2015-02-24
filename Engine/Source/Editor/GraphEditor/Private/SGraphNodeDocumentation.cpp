@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -59,7 +59,7 @@ void SGraphNodeDocumentation::UpdateGraphNode()
 	RightNodeBox.Reset();
 	LeftNodeBox.Reset();
 
-	TSharedPtr<SWidget> ErrorText = SetupErrorReporting();
+	SetupErrorReporting();
 
 	// Create Node Title
 	TSharedPtr<SNodeTitle> NodeTitle = SNew( SNodeTitle, GraphNode );
@@ -130,7 +130,7 @@ void SGraphNodeDocumentation::UpdateGraphNode()
 	TSharedPtr<SWidget> DocumentationPage = CreateDocumentationPage();
 
 	TSharedPtr<SVerticalBox> InnerVerticalBox;
-	ChildSlot
+	GetOrAddSlot( ENodeZone::Center )
 	.HAlign( HAlign_Center )
 	.VAlign( VAlign_Center )
 	[

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 
@@ -8,7 +8,7 @@
 
 FString UAssetClassProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CPPExportFlags/*=0*/ ) const
 {
-	return FString::Printf(TEXT("TAssetSubclassOf<class %s%s> "),MetaClass->GetPrefixCPP(),*MetaClass->GetName());
+	return FString::Printf(TEXT("TAssetSubclassOf<%s%s> "),MetaClass->GetPrefixCPP(),*MetaClass->GetName());
 }
 FString UAssetClassProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 {

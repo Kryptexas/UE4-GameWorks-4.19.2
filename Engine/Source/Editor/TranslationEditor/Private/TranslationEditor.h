@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -175,6 +175,9 @@ private:
 
 	/** Called when text is committed to the SearchBox */
 	void OnFilterTextCommitted(const FText& InFilterText, ETextCommit::Type CommitInfo);
+
+	/** Called when the get history button is clicked to retrieve history from source control */
+	FReply OnGetHistoryButtonClicked();
 
 	/**	The tab id for the untranslated tab */
 	static const FName UntranslatedTabId;

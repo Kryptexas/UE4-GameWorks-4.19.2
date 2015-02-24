@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "ParticleSysParamStructCustomization.h"
@@ -23,8 +23,8 @@ FParticleSysParamStructCustomization::FParticleSysParamStructCustomization()
 void FParticleSysParamStructCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	const bool bDisplayResetToDefault = false;
-	const FString DisplayNameOverride = TEXT("");
-	const FString DisplayToolTipOverride = TEXT("");
+	const FText DisplayNameOverride = FText::GetEmpty();
+	const FText DisplayToolTipOverride = FText::GetEmpty();
 
 	HeaderRow
 		.NameContent()
@@ -63,7 +63,7 @@ void FParticleSysParamStructCustomization::CustomizeChildren(TSharedRef<IPropert
 	TArray<bool> RestrictedList;
 	ParamTypeHandle->GeneratePossibleValues(ParameterTypeNames, ParameterTypeToolTips, RestrictedList);
 
-	StructBuilder.AddChildContent(TEXT("ParamType"))
+	StructBuilder.AddChildContent(LOCTEXT("ParamType", "Param Type"))
 		.NameContent()
 		[
 			ParamTypeHandle->CreatePropertyNameWidget()
@@ -136,7 +136,7 @@ EVisibility FParticleSysParamStructCustomization::GetVectorLowVisibility() const
 
 EVisibility FParticleSysParamStructCustomization::GetColorVisibility() const
 {
-	return (ParameterType == PSPT_Color) ? EVisibility::Visible : EVisibility::Collapsed;
+	return (ParameterType == PSPT_Vector || ParameterType == PSPT_VectorRand || ParameterType == PSPT_Color) ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility FParticleSysParamStructCustomization::GetActorVisibility() const
@@ -153,14 +153,14 @@ EVisibility FParticleSysParamStructCustomization::GetMaterialVisibility() const
 TSharedRef<SWidget> FParticleSysParamStructCustomization::OnGenerateComboWidget(TSharedPtr<FString> InComboString)
 {
 	// Find ToolTip which corresponds to string
-	FString ToolTip;
+	FText ToolTip;
 	check(ParameterTypeNames.Num() == ParameterTypeToolTips.Num());
 	if (ParameterTypeToolTips.Num() > 0)
 	{
 		int32 Index = ParameterTypeNames.IndexOfByKey(InComboString);
 		if (ensure(Index >= 0))
 		{
-			ToolTip = *ParameterTypeToolTips[Index];
+			ToolTip = ParameterTypeToolTips[Index];
 		}
 	}
 
@@ -168,7 +168,7 @@ TSharedRef<SWidget> FParticleSysParamStructCustomization::OnGenerateComboWidget(
 		SNew(SBox)
 		[
 			SNew(STextBlock)
-			.Text(*InComboString)
+			.Text(FText::FromString(*InComboString))
 			.ToolTipText(ToolTip)
 			.Font(IPropertyTypeCustomizationUtils::GetRegularFont())
 		];

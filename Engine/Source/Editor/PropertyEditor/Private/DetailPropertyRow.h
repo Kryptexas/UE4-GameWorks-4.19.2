@@ -1,15 +1,15 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 class FDetailPropertyRow : public IDetailPropertyRow, public IPropertyTypeCustomizationUtils, public TSharedFromThis<FDetailPropertyRow>
 {
 public:
-	FDetailPropertyRow( TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FObjectPropertyNode> InExternalRootNode = NULL);
+	FDetailPropertyRow( TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FPropertyNode> InExternalRootNode = NULL);
 
 	/** IDetailPropertyRow interface */
-	virtual IDetailPropertyRow& DisplayName( const FString& InDisplayName ) override;
-	virtual IDetailPropertyRow& ToolTip( const FString& InToolTip ) override;
+	virtual IDetailPropertyRow& DisplayName( const FText& InDisplayName ) override;
+	virtual IDetailPropertyRow& ToolTip( const FText& InToolTip ) override;
 	virtual IDetailPropertyRow& ShowPropertyButtons( bool bInShowPropertyButtons ) override;
 	virtual IDetailPropertyRow& EditCondition( TAttribute<bool> EditConditionValue, FOnBooleanValueChanged OnEditConditionValueChanged ) override;
 	virtual IDetailPropertyRow& IsEnabled( TAttribute<bool> InIsEnabled ) override;
@@ -120,7 +120,7 @@ private:
 	/** The category this row resides in */
 	TWeakPtr<FDetailCategoryImpl> ParentCategory;
 	/** Root of the property node if this node comes from an external tree */
-	TSharedPtr<FObjectPropertyNode> ExternalRootNode;
+	TSharedPtr<FPropertyNode> ExternalRootNode;
 	/** Whether or not to show standard property buttons */
 	bool bShowPropertyButtons;
 	/** True to show custom property children */

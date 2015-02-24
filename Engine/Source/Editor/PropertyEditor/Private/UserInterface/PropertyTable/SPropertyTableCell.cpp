@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SPropertyTableCell.h"
@@ -22,7 +22,9 @@ void SPropertyTableCell::Construct( const FArguments& InArgs, const TSharedRef< 
 
 	FCoreUObjectDelegates::OnObjectPropertyChanged.AddSP(this, &SPropertyTableCell::OnCellValueChanged);
 
-	SetForegroundColor( FEditorStyle::GetSlateColor( "InvertedForeground" ) );
+	static const FName InvertedForegroundName("InvertedForeground");
+
+	SetForegroundColor( FEditorStyle::GetSlateColor(InvertedForegroundName) );
 }
 
 void SPropertyTableCell::SetContent( const TSharedRef< SWidget >& NewContents )
@@ -228,7 +230,7 @@ TSharedRef<SBorder> SPropertyTableCell::ConstructInvalidPropertyWidget()
 			[
 				SNew(STextBlock)
 				.ColorAndOpacity(FLinearColor::Red)
-				.Text(NSLOCTEXT("PropertyEditor", "InvalidTableCellProperty", "Failed to retrieve value").ToString())
+				.Text(NSLOCTEXT("PropertyEditor", "InvalidTableCellProperty", "Failed to retrieve value"))
 			]
 		];
 }

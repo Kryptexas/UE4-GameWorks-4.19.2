@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "INiagaraCompiler.h"
@@ -11,6 +11,7 @@ UNiagaraNodeConstant::UNiagaraNodeConstant(const FObjectInitializer& ObjectIniti
 	ConstName = NAME_None;
 	DataType = ENiagaraDataType::Vector;
 	bNeedsDefault = true;
+	bExposeToEffectEditor = false;
 }
 
 void UNiagaraNodeConstant::AllocateDefaultPins()

@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 
 #if WITH_EDITOR
 #include "StructureEditorUtils.h"
 #endif //WITH_EDITOR
+#include "Engine/UserDefinedStruct.h"
 
 UUserDefinedStruct::UUserDefinedStruct(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -59,6 +60,29 @@ void UUserDefinedStruct::InitializeDefaultValue(uint8* StructData) const
 }
 
 #endif	// WITH_EDITOR
+
+FString UUserDefinedStruct::PropertyNameToDisplayName(FName Name) const
+{
+#if WITH_EDITOR
+	auto Guid = FStructureEditorUtils::GetGuidFromPropertyName(Name);
+	return FStructureEditorUtils::GetVariableDisplayName(this, Guid);
+#endif	// WITH_EDITOR
+
+	const int32 GuidStrLen = 32;
+	const int32 MinimalPostfixlen = GuidStrLen + 3;
+	const FString OriginalName = Name.ToString();
+	if (OriginalName.Len() > MinimalPostfixlen)
+	{
+		FString DisplayName = OriginalName.LeftChop(GuidStrLen + 1);
+		int FirstCharToRemove = -1;
+		const bool bCharFound = DisplayName.FindLastChar(TCHAR('_'), FirstCharToRemove);
+		if(bCharFound && (FirstCharToRemove > 0))
+		{
+			return DisplayName.Mid(0, FirstCharToRemove);
+		}
+	}
+	return OriginalName;
+}
 
 void UUserDefinedStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* DefaultsStruct, uint8* Defaults, const UObject* BreakRecursionIfFullyLoad) const
 {

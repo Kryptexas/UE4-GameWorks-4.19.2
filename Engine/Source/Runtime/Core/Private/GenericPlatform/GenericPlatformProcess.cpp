@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "Public/Modules/ModuleVersion.h"
@@ -51,6 +51,12 @@ const TCHAR* FGenericPlatformProcess::UserDir()
 }
 
 const TCHAR *FGenericPlatformProcess::UserSettingsDir()
+{
+	// default to the root directory
+	return FPlatformMisc::RootDir();
+}
+
+const TCHAR *FGenericPlatformProcess::UserTempDir()
 {
 	// default to the root directory
 	return FPlatformMisc::RootDir();

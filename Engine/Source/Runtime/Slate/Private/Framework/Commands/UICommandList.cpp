@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
@@ -161,11 +161,7 @@ bool FUICommandList::ConditionalProcessCommandBindings( const FKey Key, bool bCt
 {
 	if ( !bRepeat && !FSlateApplication::Get().IsDragDropping() )
 	{
-		FInputGesture CheckGesture( Key );
-		CheckGesture.bCtrl = bCtrl;
-		CheckGesture.bAlt = bAlt;
-		CheckGesture.bShift = bShift;
-		CheckGesture.bCmd = bCmd;
+		FInputGesture CheckGesture( Key, EModifierKey::FromBools(bCtrl, bAlt, bShift, bCmd) );
 
 		if( CheckGesture.IsValidGesture() )
 		{

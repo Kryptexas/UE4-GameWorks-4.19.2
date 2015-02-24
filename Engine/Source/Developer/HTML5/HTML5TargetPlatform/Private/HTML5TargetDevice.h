@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HTML5TargetDevice.h: Declares the HTML5TargetDevice class.
@@ -34,9 +34,10 @@ public:
 	 * @param InTargetPlatform - The target platform.
 	 * @param InName - The device name.
 	 */
-	FHTML5TargetDevice( const ITargetPlatform& InTargetPlatform, const FString& InName )
-		: TargetPlatform(InTargetPlatform), 
-		  Name(InName)
+	FHTML5TargetDevice( const ITargetPlatform& InTargetPlatform, const FString& InName, const FString& InBrowserName )
+		: TargetPlatform(InTargetPlatform)
+		, Name(InName)
+		, OperatingSystemName(InBrowserName)
 	{ }
 
 	/**
@@ -114,4 +115,6 @@ private:
 	const ITargetPlatform& TargetPlatform;
 
 	FString Name; 
+
+	FString OperatingSystemName;
 };

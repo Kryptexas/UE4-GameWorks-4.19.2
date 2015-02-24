@@ -1,8 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BlackboardDataDetails.h"
 #include "Runtime/AIModule/Classes/BehaviorTree/BlackboardData.h"
+
+#define LOCTEXT_NAMESPACE "BlackboardDataDetails"
 
 TSharedRef<IDetailCustomization> FBlackboardDataDetails::MakeInstance(FOnGetSelectedBlackboardItemIndex InOnGetSelectedBlackboardItemIndex)
 {
@@ -35,7 +37,7 @@ void FBlackboardDataDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayou
 
 			IDetailCategoryBuilder& DetailCategoryBuilder = DetailLayout.EditCategory("Key");
 			TSharedPtr<IPropertyHandle> EntryNameProperty = KeyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBlackboardEntry, EntryName));
-			DetailCategoryBuilder.AddCustomRow(TEXT("Entry Name"))
+			DetailCategoryBuilder.AddCustomRow(LOCTEXT("EntryNameLabel", "Entry Name"))
 			.NameContent()
 			[
 				EntryNameProperty->CreatePropertyNameWidget()
@@ -59,6 +61,11 @@ void FBlackboardDataDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayou
 
 			TSharedPtr<IPropertyHandle> KeyTypeProperty = KeyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBlackboardEntry, KeyType));
 			DetailCategoryBuilder.AddProperty(KeyTypeProperty);
+
+			TSharedPtr<IPropertyHandle> bInstanceSyncedProperty = KeyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FBlackboardEntry, bInstanceSynced));
+			DetailCategoryBuilder.AddProperty(bInstanceSyncedProperty);
 		}	
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

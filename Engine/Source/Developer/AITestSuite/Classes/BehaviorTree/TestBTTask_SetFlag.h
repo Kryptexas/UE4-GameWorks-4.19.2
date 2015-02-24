@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "BehaviorTree/BTTaskNode.h"
@@ -18,5 +18,5 @@ class UTestBTTask_SetFlag : public UBTTaskNode
 	UPROPERTY()
 	TEnumAsByte<EBTNodeResult::Type> TaskResult;
 
-	virtual EBTNodeResult::Type ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 };

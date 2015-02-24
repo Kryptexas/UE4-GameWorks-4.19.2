@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -50,7 +50,7 @@ public:
 	/**
 	 * Gets the name of the material or material function that we are editing
 	 */
-	virtual FString GetOriginalObjectName() const {return TEXT("");}
+	virtual FText GetOriginalObjectName() const {return FText::GetEmpty();}
 
 	/**
 	 * Re-links the material and updates its representation in the editor,

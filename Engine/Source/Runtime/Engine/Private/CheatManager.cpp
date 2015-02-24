@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "UnrealNetwork.h"
@@ -12,6 +12,12 @@
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
+#include "GameFramework/CheatManager.h"
+#include "Components/CapsuleComponent.h"
+#include "Engine/DebugCameraController.h"
+#include "GameFramework/PlayerState.h"
+#include "GameFramework/GameMode.h"
+#include "Components/BrushComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCheatManager, Log, All);
 
@@ -677,7 +683,7 @@ void UCheatManager::TickCollisionDebug()
 	for (int32 TraceIdx=0; TraceIdx < DebugTraceInfoList.Num(); ++TraceIdx)
 	{
 		FDebugTraceInfo & TraceInfo = DebugTraceInfoList[TraceIdx];
-		DrawDebugDirectionalArrow(GetWorld(), TraceInfo.LineTraceStart, TraceInfo.LineTraceEnd, 10.f, FColor(255,255,255), SDPG_World);
+		DrawDebugDirectionalArrow(GetWorld(), TraceInfo.LineTraceStart, TraceInfo.LineTraceEnd, 10.f, FColor::White, SDPG_World);
 		// if it's current trace index, use highlight color
 		if (CurrentTraceIndex == TraceIdx)
 		{
@@ -870,22 +876,20 @@ void UCheatManager::TestCollisionDistance()
 
 void UCheatManager::WidgetReflector()
 {
-	static TWeakPtr<SWindow> WidgetReflectorWindow;
-	
-	// Only allow one instance open at a time
-	if( !WidgetReflectorWindow.IsValid() )
-	{
-		const TSharedRef<SWindow> ReflectorWindow = SNew(SWindow)
-			.AutoCenter(EAutoCenter::PrimaryWorkArea)
-			.ClientSize(FVector2D(600,400))
-			[
-				FModuleManager::LoadModuleChecked<ISlateReflectorModule>("SlateReflector").GetWidgetReflector()
-			];
-		
-		WidgetReflectorWindow = ReflectorWindow;
-		
-		FSlateApplication::Get().AddWindow( ReflectorWindow );
-	}
+	static const FName SlateReflectorModuleName("SlateReflector");
+	FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayWidgetReflector();
+}
+
+void UCheatManager::TextureAtlasVisualizer()
+{
+	static const FName SlateReflectorModuleName("SlateReflector");
+	FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayTextureAtlasVisualizer();
+}
+
+void UCheatManager::FontAtlasVisualizer()
+{
+	static const FName SlateReflectorModuleName("SlateReflector");
+	FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayFontAtlasVisualizer();
 }
 
 void UCheatManager::RebuildNavigation()

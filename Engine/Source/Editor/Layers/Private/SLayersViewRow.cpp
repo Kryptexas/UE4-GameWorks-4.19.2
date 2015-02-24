@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LayersPrivatePCH.h"
 #include "SLayersViewRow.h"
@@ -17,7 +17,7 @@ void SLayersViewRow::Construct(const FArguments& InArgs, TSharedRef< FLayerViewM
 
 SLayersViewRow::~SLayersViewRow()
 {
-	ViewModel->OnRenamedRequest().RemoveSP(InlineTextBlock.Get(), &SInlineEditableTextBlock::EnterEditingMode);
+	ViewModel->OnRenamedRequest().Remove(EnterEditingModeDelegateHandle);
 }
 
 TSharedRef< SWidget > SLayersViewRow::GenerateWidgetForColumn(const FName& ColumnID)
@@ -52,24 +52,22 @@ TSharedRef< SWidget > SLayersViewRow::GenerateWidgetForColumn(const FName& Colum
 			]
 		;
 
-		ViewModel->OnRenamedRequest().AddSP(InlineTextBlock.Get(), &SInlineEditableTextBlock::EnterEditingMode);
+		EnterEditingModeDelegateHandle = ViewModel->OnRenamedRequest().AddSP(InlineTextBlock.Get(), &SInlineEditableTextBlock::EnterEditingMode);
 	}
 	else if (ColumnID == LayersView::ColumnID_Visibility)
 	{
 		TableRowContent =
 			SAssignNew(VisibilityButton, SButton)
 			.ContentPadding(0)
-			.ButtonStyle(FEditorStyle::Get(), "ToggleButton")
+			.ButtonStyle(FEditorStyle::Get(), "NoBorder")
 			.OnClicked(this, &SLayersViewRow::OnToggleVisibility)
 			.ToolTipText(LOCTEXT("VisibilityButtonToolTip", "Toggle Layer Visibility"))
-			.ForegroundColor(FSlateColor::UseForeground())
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			.Content()
 			[
 				SNew(SImage)
 				.Image(this, &SLayersViewRow::GetVisibilityBrushForLayer)
-				.ColorAndOpacity(this, &SLayersViewRow::GetForegroundColorForButton)
 			]
 		;
 	}
@@ -154,11 +152,6 @@ FReply SLayersViewRow::OnDrop(const FGeometry& MyGeometry, const FDragDropEvent&
 	return FReply::Handled();
 }
 
-FSlateColor SLayersViewRow::GetForegroundColorForButton() const
-{
-	return (VisibilityButton.IsValid() && (VisibilityButton->IsHovered() || VisibilityButton->IsPressed())) ? FEditorStyle::GetSlateColor("InvertedForeground") : FSlateColor::UseForeground();
-}
-
 FSlateColor SLayersViewRow::GetColorAndOpacity() const
 {
 	if (!FSlateApplication::Get().IsDragDropping())
@@ -182,7 +175,16 @@ FSlateColor SLayersViewRow::GetColorAndOpacity() const
 
 const FSlateBrush* SLayersViewRow::GetVisibilityBrushForLayer() const
 {
-	return (ViewModel->IsVisible()) ? FEditorStyle::GetBrush("Layer.VisibleIcon16x") : FEditorStyle::GetBrush("Layer.NotVisibleIcon16x");
+	if (ViewModel->IsVisible())
+	{
+		return IsHovered() ? FEditorStyle::GetBrush("Level.VisibleHighlightIcon16x") :
+			FEditorStyle::GetBrush("Level.VisibleIcon16x");
+	}
+	else
+	{
+		return IsHovered() ? FEditorStyle::GetBrush("Level.NotVisibleHighlightIcon16x") :
+			FEditorStyle::GetBrush("Level.NotVisibleIcon16x");
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -1,4 +1,6 @@
-﻿namespace MarkdownSharp.EpicMarkdown.PathProviders
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+namespace MarkdownSharp.EpicMarkdown.PathProviders
 {
     using System.Text.RegularExpressions;
 

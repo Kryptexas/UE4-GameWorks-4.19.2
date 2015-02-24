@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "CsvParser.h"
@@ -750,33 +750,6 @@ float FRichCurve::Eval( const float InTime, float DefaultValue ) const
 	return Keys[NumKeys-1].Value;
 }
 
-void FRichCurve::ConvertInterpCurveFloat(const FInterpCurveFloat& InCurve, FRichCurve& OutCurve)
-{
-	const int32 NumInKeys = InCurve.Points.Num();
-
-	OutCurve.Keys.Empty();
-	OutCurve.Keys.AddUninitialized(NumInKeys);
-	for(int32 i=0; i<NumInKeys; i++)
-	{
-		OutCurve.Keys[i] = FRichCurveKey(InCurve.Points[i]);
-	}
-}
-
-void FRichCurve::ConvertInterpCurveVector(const FInterpCurveVector& InCurve, FRichCurve OutCurves[3])
-{
-	const int32 NumInKeys = InCurve.Points.Num();
-
-	for(int32 AxisIdx = 0; AxisIdx < 3; AxisIdx++)
-	{
-		OutCurves[AxisIdx].Keys.Empty();
-		OutCurves[AxisIdx].Keys.AddUninitialized(NumInKeys);
-		for(int32 i=0; i<NumInKeys; i++)
-		{
-			OutCurves[AxisIdx].Keys[i] = FRichCurveKey(InCurve.Points[i], AxisIdx);
-		}
-	}
-}
-
 bool FRichCurve::operator==( const FRichCurve& Curve ) const
 {
 	if(Keys.Num() != Curve.Keys.Num())
@@ -800,6 +773,15 @@ UCurveBase::UCurveBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 }
+
+#if WITH_EDITORONLY_DATA
+void UCurveBase::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), ImportPath, FAssetRegistryTag::TT_Hidden) );
+
+	Super::GetAssetRegistryTags(OutTags);
+}
+#endif
 
 void UCurveBase::GetTimeRange(float& MinTime, float& MaxTime) const
 {

@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Developer/Merge/Public/Merge.h" // for FOnMergeResolved
 
 namespace EAssetTypeCategories
 {
@@ -35,13 +37,13 @@ class IToolkitHost;
 /* Revision information for a single revision of a file in source control */
 struct FRevisionInfo
 {
-	int32		Revision;
+	FString		Revision;
 	int32		Changelist;
 	FDateTime	Date;	
 
 	static inline FRevisionInfo InvalidRevision()
 	{
-		static const FRevisionInfo Ret = { -1, -1, FDateTime() };
+		static const FRevisionInfo Ret = { TEXT(""), -1, FDateTime() };
 		return Ret;
 	}
 };
@@ -80,8 +82,11 @@ public:
 	/** Returns true if this class can be merged (either manually or automatically) */
 	virtual bool CanMerge() const = 0;
 
-	/** Begins a merge operation for InObjects */
+	/** Begins a merge operation for InObject (automatically determines remote/base versions needed to resolve) */
 	virtual void Merge( UObject* InObject ) = 0;
+
+	/** Begins a merge between the specified assets */
+	virtual void Merge(UObject* BaseAsset, UObject* RemoteAsset, UObject* LocalAsset, const FOnMergeResolved& ResolutionCallback) = 0;
 
 	/** Returns the categories that this asset type. The return value is one or more flags from EAssetTypeCategories.  */
 	virtual uint32 GetCategories() = 0;
@@ -94,6 +99,9 @@ public:
 
 	/** Returns the thumbnail info for the specified asset, if it has one. */
 	virtual class UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const = 0;
+
+	/** Optionally returns a custom widget to overlay on top of this assets' thumbnail */
+	virtual TSharedPtr<class SWidget> GetThumbnailOverlay(const class FAssetData& AssetData) const = 0;
 
 	/** Returns additional tooltip information for the specified asset, if it has any (otherwise return the null widget) */
 	virtual FText GetAssetDescription(const class FAssetData& AssetData) const = 0;

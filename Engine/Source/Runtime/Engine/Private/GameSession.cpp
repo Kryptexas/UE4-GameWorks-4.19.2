@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GameSession.cpp: GameSession code.
@@ -8,6 +8,9 @@
 #include "Net/UnrealNetwork.h"
 #include "OnlineSubsystemUtils.h"
 #include "Kismet/GameplayStatics.h"
+#include "GameFramework/PlayerState.h"
+#include "GameFramework/GameSession.h"
+#include "GameFramework/GameMode.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameSession, Log, All);
 
@@ -68,7 +71,7 @@ bool AGameSession::ProcessAutoLogin()
 	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(World);
 	if (IdentityInt.IsValid())
 	{
-		IdentityInt->AddOnLoginCompleteDelegate(0, FOnLoginCompleteDelegate::CreateUObject(this, &AGameSession::OnLoginComplete));
+		OnLoginCompleteDelegateHandle = IdentityInt->AddOnLoginCompleteDelegate_Handle(0, FOnLoginCompleteDelegate::CreateUObject(this, &AGameSession::OnLoginComplete));
 		if (!IdentityInt->AutoLogin(0))
 		{
 			// Not waiting for async login
@@ -88,7 +91,7 @@ void AGameSession::OnLoginComplete(int32 LocalUserNum, bool bWasSuccessful, cons
 	IOnlineIdentityPtr IdentityInt = Online::GetIdentityInterface(World);
 	if (IdentityInt.IsValid())
 	{
-		IdentityInt->ClearOnLoginCompleteDelegate(0, FOnLoginCompleteDelegate::CreateUObject(this, &AGameSession::OnLoginComplete));
+		IdentityInt->ClearOnLoginCompleteDelegate_Handle(0, OnLoginCompleteDelegateHandle);
 		if (IdentityInt->GetLoginStatus(0) == ELoginStatus::LoggedIn)
 		{
 			RegisterServer();

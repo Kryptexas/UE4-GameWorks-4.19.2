@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 class FPropertyEditor;
@@ -88,9 +88,9 @@ class SEditConditionWidget : public SCompoundWidget
 	void Construct( const FArguments& Args, TSharedPtr<FPropertyEditor> InPropertyEditor );
 
 private:
-	void OnEditConditionCheckChanged( ESlateCheckBoxState::Type CheckState );
+	void OnEditConditionCheckChanged( ECheckBoxState CheckState );
 	bool HasEditCondition() const;
-	ESlateCheckBoxState::Type OnGetEditConditionCheckState() const;
+	ECheckBoxState OnGetEditConditionCheckState() const;
 private:
 	TSharedPtr<FPropertyEditor> PropertyEditor;
 	FCustomEditCondition CustomEditCondition;
@@ -141,7 +141,7 @@ namespace PropertyEditorHelpers
 	/**
 	 * @return The text that represents the specified properties tooltip
 	 */
-	FString GetToolTipText( const UProperty* const Property );
+	FText GetToolTipText( const UProperty* const Property );
 
 	/**
 	 * @return The link to the documentation that describes this property in detail

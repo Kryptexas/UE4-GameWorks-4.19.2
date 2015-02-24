@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightComponent.cpp: LightComponent implementation.
@@ -13,6 +13,9 @@
 #include "ComponentInstanceDataCache.h"
 #include "TargetPlatform.h"
 #include "ComponentReregisterContext.h"
+#include "Components/PointLightComponent.h"
+#include "Components/LightComponent.h"
+#include "Components/DirectionalLightComponent.h"
 
 void FStaticShadowDepthMap::InitRHI()
 {
@@ -67,7 +70,7 @@ FArchive& operator<<(FArchive& Ar, FStaticShadowDepthMap& ShadowMap)
 
 void ULightComponentBase::SetCastShadows(bool bNewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& CastShadows != bNewValue)
 	{
 		CastShadows = bNewValue;
@@ -120,7 +123,7 @@ void ULightComponentBase::UpdateLightSpriteTexture()
 		SpriteComponent->SetSprite(GetEditorSprite());
 
 		float SpriteScale = GetEditorSpriteScale();
-		SpriteComponent->RelativeScale3D = FVector(SpriteScale);
+		SpriteComponent->SetRelativeScale3D(FVector(SpriteScale));
 	}
 }
 
@@ -165,29 +168,20 @@ bool ULightComponentBase::HasStaticShadowing() const
 	return Owner && (Mobility != EComponentMobility::Movable);
 }
 
+#if WITH_EDITOR
 void ULightComponentBase::OnRegister()
 {
 	Super::OnRegister();
 
-#if WITH_EDITOR
-	if (SpriteComponent == NULL && GetOwner() && !GetWorld()->IsGameWorld())
+	if (SpriteComponent)
 	{
-		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional | RF_TextExportTransient);
-
-		SpriteComponent->AttachTo(this);
-		SpriteComponent->AlwaysLoadOnClient = false;
-		SpriteComponent->AlwaysLoadOnServer = false;
 		SpriteComponent->SpriteInfo.Category = TEXT("Lighting");
 		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT("SpriteCategory", "Lighting", "Lighting");
-		SpriteComponent->bCreatedByConstructionScript = bCreatedByConstructionScript;
-		SpriteComponent->bIsScreenSizeScaled = true;
-
-		SpriteComponent->RegisterComponent();
 
 		UpdateLightSpriteTexture();
 	}
-#endif
 }
+#endif
 
 bool ULightComponentBase::ShouldCollideWhenPlacing() const
 {
@@ -290,12 +284,15 @@ ULightComponentBase::ULightComponentBase(const FObjectInitializer& ObjectInitial
 {
 	Brightness_DEPRECATED = 3.1415926535897932f;
 	Intensity = 3.1415926535897932f;
-	LightColor = FColor(255, 255, 255);
+	LightColor = FColor::White;
 	bAffectsWorld = true;
 	CastShadows = true;
 	CastStaticShadows = true;
 	CastDynamicShadows = true;
 	bPrecomputedLightingIsValid = true;
+#if WITH_EDITORONLY_DATA
+	bVisualizeComponent = true;
+#endif
 }
 
 /**
@@ -309,11 +306,10 @@ ULightComponent::ULightComponent(const FObjectInitializer& ObjectInitializer)
 	IndirectLightingIntensity = 1.0f;
 	ShadowBias = 0.5f;
 	ShadowSharpen = 0.0f;
-	bUseIESBrightness = (GetLinkerUE4Version() < VER_UE4_LIGHTS_USE_IES_BRIGHTNESS_DEFAULT_CHANGED);
+	bUseIESBrightness = false;
 	IESBrightnessScale = 1.0f;
 	IESTexture = NULL;
 
-	bEnabled_DEPRECATED = true;
 	bAffectTranslucentLighting = true;
 	LightFunctionScale = FVector(1024.0f, 1024.0f, 1024.0f);
 
@@ -404,11 +400,6 @@ void ULightComponent::Serialize(FArchive& Ar)
 void ULightComponent::PostLoad()
 {
 	Super::PostLoad();
-
-	if (GetLinkerUE4Version() < VER_UE4_REMOVE_COMPONENT_ENABLED_FLAG)
-	{
-		bVisible = bEnabled_DEPRECATED;	
-	}
 
 	if (LightFunctionMaterial && HasStaticLighting())
 	{
@@ -575,7 +566,7 @@ void ULightComponent::UpdateLightSpriteTexture()
 			UTexture2D* SpriteTexture = NULL;
 			SpriteTexture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/LightIcons/S_LightError.S_LightError"));
 			SpriteComponent->SetSprite(SpriteTexture);
-			SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
+			SpriteComponent->SetRelativeScale3D(FVector(0.5f));
 		}
 		else
 		{
@@ -666,7 +657,7 @@ void ULightComponent::DestroyRenderState_Concurrent()
 void ULightComponent::SetIntensity(float NewIntensity)
 {
 	// Can't set brightness on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& Intensity != NewIntensity)
 	{
 		Intensity = NewIntensity;
@@ -686,7 +677,7 @@ void ULightComponent::SetLightColor(FLinearColor NewLightColor)
 	FColor NewColor(NewLightColor);
 
 	// Can't set color on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& LightColor != NewColor)
 	{
 		LightColor	= NewColor;
@@ -703,7 +694,7 @@ void ULightComponent::SetLightColor(FLinearColor NewLightColor)
 void ULightComponent::SetLightFunctionMaterial(UMaterialInterface* NewLightFunctionMaterial)
 {
 	// Can't set light function on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& NewLightFunctionMaterial != LightFunctionMaterial)
 	{
 		LightFunctionMaterial = NewLightFunctionMaterial;
@@ -713,7 +704,7 @@ void ULightComponent::SetLightFunctionMaterial(UMaterialInterface* NewLightFunct
 
 void ULightComponent::SetLightFunctionScale(FVector NewLightFunctionScale)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& NewLightFunctionScale != LightFunctionScale)
 	{
 		LightFunctionScale = NewLightFunctionScale;
@@ -723,7 +714,7 @@ void ULightComponent::SetLightFunctionScale(FVector NewLightFunctionScale)
 
 void ULightComponent::SetLightFunctionFadeDistance(float NewLightFunctionFadeDistance)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& NewLightFunctionFadeDistance != LightFunctionFadeDistance)
 	{
 		LightFunctionFadeDistance = NewLightFunctionFadeDistance;
@@ -733,7 +724,7 @@ void ULightComponent::SetLightFunctionFadeDistance(float NewLightFunctionFadeDis
 
 void ULightComponent::SetAffectDynamicIndirectLighting(bool bNewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& bAffectDynamicIndirectLighting != bNewValue)
 	{
 		bAffectDynamicIndirectLighting = bNewValue;
@@ -743,7 +734,7 @@ void ULightComponent::SetAffectDynamicIndirectLighting(bool bNewValue)
 
 void ULightComponent::SetAffectTranslucentLighting(bool bNewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& bAffectTranslucentLighting != bNewValue)
 	{
 		bAffectTranslucentLighting = bNewValue;
@@ -753,7 +744,7 @@ void ULightComponent::SetAffectTranslucentLighting(bool bNewValue)
 
 void ULightComponent::SetEnableLightShaftBloom(bool bNewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& bEnableLightShaftBloom != bNewValue)
 	{
 		bEnableLightShaftBloom = bNewValue;
@@ -763,7 +754,7 @@ void ULightComponent::SetEnableLightShaftBloom(bool bNewValue)
 
 void ULightComponent::SetBloomScale(float NewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& BloomScale != NewValue)
 	{
 		BloomScale = NewValue;
@@ -773,7 +764,7 @@ void ULightComponent::SetBloomScale(float NewValue)
 
 void ULightComponent::SetBloomThreshold(float NewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& BloomThreshold != NewValue)
 	{
 		BloomThreshold = NewValue;
@@ -783,7 +774,7 @@ void ULightComponent::SetBloomThreshold(float NewValue)
 
 void ULightComponent::SetBloomTint(FColor NewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& BloomTint != NewValue)
 	{
 		BloomTint = NewValue;
@@ -793,7 +784,7 @@ void ULightComponent::SetBloomTint(FColor NewValue)
 
 void ULightComponent::SetIESTexture(UTextureLightProfile* NewValue)
 {
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& IESTexture != NewValue)
 	{
 		IESTexture = NewValue;
@@ -866,27 +857,23 @@ void ULightComponent::InvalidateLightingCacheInner(bool bRecreateLightGuids)
 }
 
 /** Used to store lightmap data during RerunConstructionScripts */
-class FPrecomputedLightInstanceData : public FComponentInstanceDataBase
+class FPrecomputedLightInstanceData : public FSceneComponentInstanceData
 {
 public:
 	FPrecomputedLightInstanceData(const ULightComponent* SourceComponent)
-		: FComponentInstanceDataBase(SourceComponent)
+		: FSceneComponentInstanceData(SourceComponent)
 		, Transform(SourceComponent->ComponentToWorld)
 		, LightGuid(SourceComponent->LightGuid)
 		, ShadowMapChannel(SourceComponent->ShadowMapChannel)
 		, PreviewShadowMapChannel(SourceComponent->PreviewShadowMapChannel)
 		, bPrecomputedLightingIsValid(SourceComponent->bPrecomputedLightingIsValid)
 	{}
-			
-	virtual ~FPrecomputedLightInstanceData()
-	{}
 
-	// Begin FComponentInstanceDataBase interface
-	virtual bool MatchesComponent(const UActorComponent* Component) const override
+	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
 	{
-		return Transform.Equals(CastChecked<ULightComponent>(Component)->ComponentToWorld);
+		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
+		CastChecked<ULightComponent>(Component)->ApplyComponentInstanceData(this);
 	}
-	// End FComponentInstanceDataBase interface
 
 	FTransform Transform;
 	FGuid LightGuid;
@@ -901,16 +888,20 @@ FName ULightComponent::GetComponentInstanceDataType() const
 	return PrecomputedLightInstanceDataTypeName;
 }
 
-FComponentInstanceDataBase* ULightComponent::GetComponentInstanceData() const
+FActorComponentInstanceData* ULightComponent::GetComponentInstanceData() const
 {
 	// Allocate new struct for holding light map data
 	return new FPrecomputedLightInstanceData(this);
 }
 
-void ULightComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
+void ULightComponent::ApplyComponentInstanceData(FPrecomputedLightInstanceData* LightMapData)
 {
-	check(ComponentInstanceData);
-	FPrecomputedLightInstanceData* LightMapData  = static_cast<FPrecomputedLightInstanceData*>(ComponentInstanceData);
+	check(LightMapData);
+
+	if (!LightMapData->Transform.Equals(ComponentToWorld))
+	{
+		return;
+	}
 
 	LightGuid = LightMapData->LightGuid;
 	ShadowMapChannel = LightMapData->ShadowMapChannel;

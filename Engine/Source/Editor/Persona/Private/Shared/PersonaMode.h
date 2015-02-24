@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,8 +21,8 @@ struct FPersonaTabs
 	// Skeleton/Sockets
 	// Anim Blueprint Params
 	// Explorer
-	// Blueprint Defaults
-	static const FName AnimBlueprintDefaultsEditorID;
+	// Class Defaults
+	static const FName AnimBlueprintPreviewEditorID;
 	static const FName AnimBlueprintParentPlayerEditorID;
 	// Anim Document
 	static const FName ScrubberID;
@@ -221,7 +221,7 @@ public:
 };
 
 /////////////////////////////////////////////////////
-// FAnimBlueprintDefaultsEditorSummoner
+// FAnimBlueprintPreviewEditorSummoner
 
 namespace EAnimBlueprintEditorMode
 {
@@ -232,10 +232,10 @@ namespace EAnimBlueprintEditorMode
 	};
 }
 
-struct FAnimBlueprintDefaultsEditorSummoner : public FWorkflowTabFactory
+struct FAnimBlueprintPreviewEditorSummoner : public FWorkflowTabFactory
 {
 public:
-	FAnimBlueprintDefaultsEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
+	FAnimBlueprintPreviewEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
 
@@ -244,11 +244,11 @@ public:
 private:
 	/** Delegates to customize tab look based on selected mode */
 	EVisibility IsEditorVisible(EAnimBlueprintEditorMode::Type Mode) const;
-	ESlateCheckBoxState::Type IsChecked(EAnimBlueprintEditorMode::Type Mode) const;
+	ECheckBoxState IsChecked(EAnimBlueprintEditorMode::Type Mode) const;
 	const FSlateBrush* GetBorderBrushByMode(EAnimBlueprintEditorMode::Type Mode) const;
 
 	/** Handle changing of editor mode */
-	void OnCheckedChanged(ESlateCheckBoxState::Type NewType, EAnimBlueprintEditorMode::Type Mode);
+	void OnCheckedChanged(ECheckBoxState NewType, EAnimBlueprintEditorMode::Type Mode);
 	EAnimBlueprintEditorMode::Type CurrentMode;
 };
 

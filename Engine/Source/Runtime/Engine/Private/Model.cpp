@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Model.cpp: Unreal model functions
@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "Model.h"
 #include "MeshBuild.h"
+#include "Engine/Polys.h"
 
 float UModel::BSPTexelScale = 100.0f;
 
@@ -490,7 +491,7 @@ void UModel::EmptyModel( int32 EmptySurfInfo, int32 EmptyPolys )
 #if WITH_EDITOR
 	if( EmptyPolys )
 	{
-		Polys = new( GetOuter(), NAME_None, RF_Transactional )UPolys(FObjectInitializer());
+		Polys = NewNamedObject<UPolys>(GetOuter(), NAME_None, RF_Transactional);
 	}
 #endif // WITH_EDITOR
 
@@ -501,17 +502,22 @@ void UModel::EmptyModel( int32 EmptySurfInfo, int32 EmptyPolys )
 //
 // Create a new model and allocate all objects needed for it.
 //
-UModel::UModel( const class FObjectInitializer& ObjectInitializer,ABrush* Owner, bool InRootOutside )
-:	UObject(ObjectInitializer)
-,	Nodes		( this )
-,	Verts		( this )
-,	Vectors		( this )
-,	Points		( this )
-,	Surfs		( this )
-,	VertexBuffer( this )
-,	LightingGuid( FGuid::NewGuid() )
-,	RootOutside	( InRootOutside )
+UModel::UModel(const FObjectInitializer& ObjectInitializer)
+	: UObject(ObjectInitializer)
+	, Nodes(this)
+	, Verts(this)
+	, Vectors(this)
+	, Points(this)
+	, Surfs(this)
+	, VertexBuffer(this)
 {
+
+}
+
+void UModel::Initialize(ABrush* Owner, bool InRootOutside)
+{
+	LightingGuid = FGuid::NewGuid();
+	RootOutside = InRootOutside;
 	SetFlags( RF_Transactional );
 	EmptyModel( 1, 1 );
 	if( Owner )
@@ -525,6 +531,23 @@ UModel::UModel( const class FObjectInitializer& ObjectInitializer,ABrush* Owner,
 	if( GIsEditor && !FApp::IsGame() )
 	{
 		UpdateVertices();
+	}
+}
+
+void UModel::Initialize()
+{
+#if WITH_EDITOR
+	LightingLevel = nullptr;
+#endif // WITH_EDITOR
+	RootOutside = true;
+
+	if (!HasAnyFlags(RF_ClassDefaultObject))
+	{
+		EmptyModel(1, 0);
+		if (GIsEditor && !FApp::IsGame())
+		{
+			UpdateVertices();
+		}
 	}
 }
 

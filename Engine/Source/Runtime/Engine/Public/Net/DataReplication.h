@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DataReplication.h:
@@ -82,6 +82,7 @@ public:
 	{
 		FName	FuncName;
 		int32	Calls;
+		float	LastCallTime;
 	};
 
 	TArray< FRPCCallInfo >							RemoteFuncInfo;				// Meta information on pending net RPCs (to be sent)

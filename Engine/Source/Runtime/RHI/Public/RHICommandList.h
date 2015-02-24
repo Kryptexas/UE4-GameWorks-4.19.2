@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RHICommandList.h: RHI Command List definitions for queueing up & executing later.
@@ -409,16 +409,16 @@ struct FRHICommandDrawIndexedPrimitive : public FRHICommand<FRHICommandDrawIndex
 	FIndexBufferRHIParamRef IndexBuffer;
 	uint32 PrimitiveType;
 	int32 BaseVertexIndex;
-	uint32 MinIndex;
+	uint32 FirstInstance;
 	uint32 NumVertices;
 	uint32 StartIndex;
 	uint32 NumPrimitives;
 	uint32 NumInstances;
-	FORCEINLINE_DEBUGGABLE FRHICommandDrawIndexedPrimitive(FIndexBufferRHIParamRef InIndexBuffer, uint32 InPrimitiveType, int32 InBaseVertexIndex, uint32 InMinIndex, uint32 InNumVertices, uint32 InStartIndex, uint32 InNumPrimitives, uint32 InNumInstances)
+	FORCEINLINE_DEBUGGABLE FRHICommandDrawIndexedPrimitive(FIndexBufferRHIParamRef InIndexBuffer, uint32 InPrimitiveType, int32 InBaseVertexIndex, uint32 InFirstInstance, uint32 InNumVertices, uint32 InStartIndex, uint32 InNumPrimitives, uint32 InNumInstances)
 		: IndexBuffer(InIndexBuffer)
 		, PrimitiveType(InPrimitiveType)
 		, BaseVertexIndex(InBaseVertexIndex)
-		, MinIndex(InMinIndex)
+		, FirstInstance(InFirstInstance)
 		, NumVertices(InNumVertices)
 		, StartIndex(InStartIndex)
 		, NumPrimitives(InNumPrimitives)
@@ -805,7 +805,7 @@ struct FRHICommandClearMRT : public FRHICommand<FRHICommandClearMRT>
 		, bClearDepth(InbClearDepth)
 		, bClearStencil(InbClearStencil)
 	{
-		check(InNumClearColors < MaxSimultaneousRenderTargets);
+		check(InNumClearColors <= MaxSimultaneousRenderTargets);
 		for (int32 Index = 0; Index < InNumClearColors; Index++)
 		{
 			ColorArray[Index] = InColorArray[Index];
@@ -1440,14 +1440,14 @@ public:
 		new (AllocCommand<FRHICommandDrawPrimitive>()) FRHICommandDrawPrimitive(PrimitiveType, BaseVertexIndex, NumPrimitives, NumInstances);
 	}
 
-	FORCEINLINE_DEBUGGABLE void DrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuffer, uint32 PrimitiveType, int32 BaseVertexIndex, uint32 MinIndex, uint32 NumVertices, uint32 StartIndex, uint32 NumPrimitives, uint32 NumInstances)
+	FORCEINLINE_DEBUGGABLE void DrawIndexedPrimitive(FIndexBufferRHIParamRef IndexBuffer, uint32 PrimitiveType, int32 BaseVertexIndex, uint32 FirstInstance, uint32 NumVertices, uint32 StartIndex, uint32 NumPrimitives, uint32 NumInstances)
 	{
 		if (Bypass())
 		{
-			CMD_CONTEXT(DrawIndexedPrimitive)(IndexBuffer, PrimitiveType, BaseVertexIndex, MinIndex, NumVertices, StartIndex, NumPrimitives, NumInstances);
+			CMD_CONTEXT(DrawIndexedPrimitive)(IndexBuffer, PrimitiveType, BaseVertexIndex, FirstInstance, NumVertices, StartIndex, NumPrimitives, NumInstances);
 			return;
 		}
-		new (AllocCommand<FRHICommandDrawIndexedPrimitive>()) FRHICommandDrawIndexedPrimitive(IndexBuffer, PrimitiveType, BaseVertexIndex, MinIndex, NumVertices, StartIndex, NumPrimitives, NumInstances);
+		new (AllocCommand<FRHICommandDrawIndexedPrimitive>()) FRHICommandDrawIndexedPrimitive(IndexBuffer, PrimitiveType, BaseVertexIndex, FirstInstance, NumVertices, StartIndex, NumPrimitives, NumInstances);
 	}
 
 	FORCEINLINE_DEBUGGABLE void SetStreamSource(uint32 StreamIndex, FVertexBufferRHIParamRef VertexBuffer, uint32 Stride, uint32 Offset)
@@ -1864,11 +1864,19 @@ class RHI_API FRHICommandListImmediate : public FRHICommandList
 	{
 		check(!HasCommands());
 	}
+
+	static bool bFlushedGlobal;
+
 public:
 
 	inline void ImmediateFlush(EImmediateFlushType::Type FlushType);
 
 	void SetCurrentStat(TStatId Stat);
+
+	static bool IsFullyFlushed()
+	{
+		return bFlushedGlobal;
+	};
 
 	#define DEFINE_RHIMETHOD_CMDLIST(Type,Name,ParameterTypesAndNames,ParameterNames,ReturnStatement,NullImplementation)
 	#define DEFINE_RHIMETHOD(Type, Name, ParameterTypesAndNames, ParameterNames, ReturnStatement, NullImplementation) \
@@ -1898,7 +1906,9 @@ public:
 		{ \
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_RHIMETHOD_##Name##_Flush); \
 			ImmediateFlush(EImmediateFlushType::FlushRHIThread); \
+			bFlushedGlobal = true;\
 			ReturnStatement Name##_Internal ParameterNames; \
+			bFlushedGlobal = false;\
 		}
 	#include "RHIMethods.h"
 	#undef DEFINE_RHIMETHOD

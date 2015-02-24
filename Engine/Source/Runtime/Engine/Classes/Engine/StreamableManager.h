@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "StreamableManager.generated.h"
@@ -68,7 +68,7 @@ private:
 		}
 	};
 
-	static void AsyncLoadCallbackWrapper(const FString& PackageName, UPackage* LevelPackage, FCallback* Handler)
+	static void AsyncLoadCallbackWrapper(const FName& PackageName, UPackage* LevelPackage, FCallback* Handler)
 	{
 		FCallback* Callback = Handler;
 		Callback->Manager->AsyncLoadCallback(Callback->Request);

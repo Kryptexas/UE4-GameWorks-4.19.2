@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -63,11 +63,10 @@ private:
 	const FUProjectDictionary &GetCachedProjectDictionary(const FString& RootDir);
 
 	void GetProjectBuildProducts(const FString& ProjectFileName, TArray<FString> &OutFileNames, TArray<FString> &OutDirectoryNames);
-
-	FString GetUnrealBuildToolSourceCodePath() const;
-	bool BuildUnrealBuildTool(FOutputDevice &Ar);
+	bool BuildUnrealBuildTool(const FString& RootDir, FOutputDevice &Ar);
 
 protected:
 
-	FString GetUnrealBuildToolExecutableFilename() const;	
+	FString GetUnrealBuildToolProjectFileName(const FString& RootDir) const;
+	FString GetUnrealBuildToolExecutableFilename(const FString& RootDir) const;	
 };

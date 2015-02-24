@@ -1,11 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "ModuleInterface.h"
-#include "ISceneOutliner.h"
-#include "SceneOutlinerInitializationOptions.h"
-
+#include "SceneOutlinerFwd.h"
 
 /**
  * Implements the Scene Outliner module.
@@ -24,8 +22,8 @@ public:
 	 *
 	 * @return	New scene outliner widget
 	 */
-	virtual TSharedRef< class ISceneOutliner > CreateSceneOutliner(
-		const FSceneOutlinerInitializationOptions& InitOptions,
+	virtual TSharedRef< ISceneOutliner > CreateSceneOutliner(
+		const SceneOutliner::FInitializationOptions& InitOptions,
 		const FOnActorPicked& OnActorPickedDelegate ) const;
 
 	/**
@@ -37,14 +35,53 @@ public:
 	 *
 	 * @return	New scene outliner widget
 	 */
-	virtual TSharedRef< class ISceneOutliner > CreateSceneOutliner(
-		const FSceneOutlinerInitializationOptions& InitOptions,
+	virtual TSharedRef< ISceneOutliner > CreateSceneOutliner(
+		const SceneOutliner::FInitializationOptions& InitOptions,
 		const FOnSceneOutlinerItemPicked& OnItemPickedDelegate ) const;
+
+public:
+	/** Register a new type of column available to all scene outliners */
+	template< typename T >
+	void RegisterColumnType()
+	{
+		auto ID = T::GetID();
+		if ( !ColumnMap.Contains( ID ) )
+		{
+			auto CreateColumn = []( ISceneOutliner& Outliner ){
+				return TSharedRef< ISceneOutlinerColumn >( MakeShareable( new T(Outliner) ) );
+			};
+
+			ColumnMap.Add( ID, FCreateSceneOutlinerColumn::CreateStatic( CreateColumn ) );
+		}
+	}
+
+	/** Unregister a previously registered column type */
+	template< typename T >
+	void UnRegisterColumnType()
+	{
+		ColumnMap.Remove( T::GetID() );
+	}
+
+	/** Factory a new column from the specified name. Returns null if no type has been registered under that name. */
+	TSharedPtr< ISceneOutlinerColumn > FactoryColumn( FName ID, ISceneOutliner& Outliner ) const
+	{
+		if ( auto* Factory = ColumnMap.Find( ID ) )
+		{
+			return Factory->Execute(Outliner);
+		}
+		
+		return nullptr;
+	}
+
+private:
+
+	/** Map of column type name -> factory delegate */
+	TMap< FName, FCreateSceneOutlinerColumn > ColumnMap;
 
 public:
 
 	// IModuleInterface interface
 
-	virtual void StartupModule() { }
-	virtual void ShutdownModule() { }
+	virtual void StartupModule() override;
+	virtual void ShutdownModule() override;
 };

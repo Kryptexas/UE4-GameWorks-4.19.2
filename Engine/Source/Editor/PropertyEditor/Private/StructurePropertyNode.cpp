@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PropertyEditorPrivatePCH.h"
@@ -11,7 +11,7 @@
 void FStructurePropertyNode::InitChildNodes()
 {
 	const bool bShouldShowHiddenProperties = !!HasNodeFlags(EPropertyNodeFlags::ShouldShowHiddenProperties);
-	const UScriptStruct* Struct = StructData.IsValid() ? StructData->GetStruct() : NULL;
+	const UStruct* Struct = StructData.IsValid() ? StructData->GetStruct() : NULL;
 
 	for (TFieldIterator<UProperty> It(Struct); It; ++It)
 	{

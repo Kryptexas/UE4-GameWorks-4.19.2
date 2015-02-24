@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "Core.h"
@@ -68,8 +68,6 @@ public:
 
 	void ResetModifierKeys() { ModifierKeysFlags = 0; }
 
-	TSharedPtr<FMacWindow> GetKeyWindow();
-
 	uint32 GetModifierKeysFlags() { return ModifierKeysFlags; }
 
 	void UseMouseCaptureWindow(bool bUseMouseCaptureWindow);
@@ -112,6 +110,14 @@ public:
 
 	const TArray<TSharedRef<FMacWindow>>& GetAllWindows() const { return Windows; }
 
+
+	void CloseQueuedWindows();
+
+	/** Queues a window for text layout invalidation when safe */
+	void InvalidateTextLayout( FCocoaWindow* Window );
+
+	/** Invalidates all queued windows requiring text layout changes */
+	void InvalidateTextLayouts();
 private:
 	enum FMacApplicationEventTypes
 	{
@@ -181,7 +187,9 @@ private:
 	/** The current set of Cocoa modifier flags, used to detect when Mission Control has been invoked & returned so that we can synthesis the modifier events it steals */
 	NSUInteger CurrentModifierFlags;
 
-	TArray< TSharedRef< FMacWindow > > KeyWindows;
+	TArray<FCocoaWindow*> WindowsToClose;
+
+	TArray<FCocoaWindow*> WindowsRequiringTextInvalidation;
 
 	TSharedPtr<FMacTextInputMethodSystem> TextInputMethodSystem;
 

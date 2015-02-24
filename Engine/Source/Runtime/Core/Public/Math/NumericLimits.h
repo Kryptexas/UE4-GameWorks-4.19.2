@@ -1,8 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	NumericLimits.h: Unreal numeric limits
-=============================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -309,7 +305,7 @@ struct TNumericLimits<double>
 
 	static NumericType Max()
 	{
-		return MIN_dbl;
+		return MAX_dbl;
 	}
 
 	static NumericType Lowest()

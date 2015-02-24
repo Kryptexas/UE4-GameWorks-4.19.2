@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "STableViewBase.h"
 
 
 /**
@@ -788,7 +789,7 @@ public:
 
 			// Generate widgets assuming scenario a.
 			bool bGeneratedEnoughForSmoothScrolling = false;
-			bool AtEndOfList = false;
+			bool bAtEndOfList = false;
 
 			for( int32 ItemIndex = StartIndex; !bGeneratedEnoughForSmoothScrolling && ItemIndex < SourceItems->Num(); ++ItemIndex )
 			{
@@ -796,20 +797,22 @@ public:
 
 				const float ItemHeight = GenerateWidgetForItem( CurItem, ItemIndex, StartIndex );
 
-				const bool IsFirstItem = ItemIndex == StartIndex;
+				const bool bIsFirstItem = ItemIndex == StartIndex;
 
-				if (IsFirstItem)
+				if (bIsFirstItem)
 				{
 					FirstItemHeight = ItemHeight;
 				}
 
 				// Track the number of items in the view, including fractions.
-				if (IsFirstItem)
+				if (bIsFirstItem)
 				{
-					ItemsInView += 1.0f - FMath::Fractional(ScrollOffset);
+					// The first item may not be fully visible (but cannot exceed 1)
+					ItemsInView += 1.0f - FMath::Max(FMath::Fractional(ScrollOffset), 0.0f);
 				}
 				else if (ViewHeightUsedSoFar + ItemHeight > MyGeometry.Size.Y)
 				{
+					// The last item may not be fully visible either
 					ItemsInView += (MyGeometry.Size.Y - ViewHeightUsedSoFar) / ItemHeight;
 				}
 				else
@@ -819,13 +822,13 @@ public:
 
 				HeightGeneratedSoFar += ItemHeight;
 
-				ViewHeightUsedSoFar += (IsFirstItem)
-					? ItemHeight * (1.0f - FMath::Fractional(ScrollOffset))
+				ViewHeightUsedSoFar += (bIsFirstItem)
+					? ItemHeight * ItemsInView	// For the first item, ItemsInView <= 1.0f
 					: ItemHeight;
 
 				if (ItemIndex >= SourceItems->Num()-1)
 				{
-					AtEndOfList = true;
+					bAtEndOfList = true;
 				}
 
 				if (ViewHeightUsedSoFar > MyGeometry.Size.Y )
@@ -837,7 +840,7 @@ public:
 			// Handle scenario b.
 			// We may have stopped because we got to the end of the items.
 			// But we may still have space to fill!
-			if (AtEndOfList && ViewHeightUsedSoFar < MyGeometry.Size.Y)
+			if (bAtEndOfList && ViewHeightUsedSoFar < MyGeometry.Size.Y)
 			{
 				float NewScrollOffsetForBackfill = StartIndex + (HeightGeneratedSoFar - MyGeometry.Size.Y) / FirstItemHeight;
 
@@ -858,10 +861,10 @@ public:
 					HeightGeneratedSoFar += ItemHeight;
 				}
 
-				return FReGenerateResults(NewScrollOffsetForBackfill, HeightGeneratedSoFar, ItemsSource->Num() - NewScrollOffsetForBackfill, AtEndOfList);
+				return FReGenerateResults(NewScrollOffsetForBackfill, HeightGeneratedSoFar, ItemsSource->Num() - NewScrollOffsetForBackfill, bAtEndOfList);
 			}
 
-			return FReGenerateResults(ScrollOffset, HeightGeneratedSoFar, ItemsInView, AtEndOfList);
+			return FReGenerateResults(ScrollOffset, HeightGeneratedSoFar, ItemsInView, bAtEndOfList);
 		}
 
 		return FReGenerateResults(0.0f, 0.0f, 0.0f, false);
@@ -995,6 +998,11 @@ public:
 	void ClearSelection()
 	{
 		if ( SelectionMode == ESelectionMode::None )
+		{
+			return;
+		}
+
+		if ( SelectedItems.Num() == 0 )
 		{
 			return;
 		}
@@ -1146,6 +1154,21 @@ protected:
 
 	virtual float ScrollBy( const FGeometry& MyGeometry, float ScrollByAmountInSlateUnits, EAllowOverscroll InAllowOverscroll ) override
 	{
+		if (InAllowOverscroll == EAllowOverscroll::No)
+		{
+			//check if we are on the top of the list and want to scroll up
+			if (ScrollOffset < KINDA_SMALL_NUMBER && ScrollByAmountInSlateUnits < 0)
+			{
+				return 0.0f;
+			}
+
+			//check if we are on the bottom of the list and want to scroll down
+			if (bWasAtEndOfList && ScrollByAmountInSlateUnits > 0)
+			{
+				return 0.0f;
+			}
+		}
+
 		float AbsScrollByAmount = FMath::Abs( ScrollByAmountInSlateUnits );
 		int32 StartingItemIndex = (int32)ScrollOffset;
 		double NewScrollOffset = ScrollOffset;

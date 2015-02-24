@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -97,12 +97,6 @@ public:
 	 * @param	InOnLoginWindowStartup	Whether the provider should be set to 'None' on dialog startup
 	 */
 	virtual void ShowLoginDialog(const FSourceControlLoginClosed& InOnSourceControlLoginClosed, ELoginWindowMode::Type InLoginWindowMode, EOnLoginWindowStartup::Type InOnLoginWindowStartup = EOnLoginWindowStartup::ResetProviderToNone) = 0;
-
-	/**
-	 * Create a status widget, used to display passive source control status
-	 * @returns a new status widget
-	 */
-	virtual TSharedPtr<class SWidget> CreateStatusWidget() const = 0;
 
 	/**
 	 * Get whether we should use global or per-project settings

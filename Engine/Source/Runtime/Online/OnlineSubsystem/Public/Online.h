@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,21 +31,6 @@
 /** Helpers for accessing all the online features available in the online subsystem */
 namespace Online
 {
-	/** 
-	 * Shutdown all online services
-	 */
-	static void ShutdownOnlineSubsystem() 
-	{ 
-		// This will potentially be called before the online subsystem was loaded...
-		FModuleManager& ModuleManager = FModuleManager::Get();
-		if (ModuleManager.IsModuleLoaded(TEXT("OnlineSubsystem")) == true)
-		{
-			// Unloading the module will call FOnlineSubsystemModule::ShutdownOnlineSubsystem()
-			const bool bIsShutdown = true;
-			ModuleManager.UnloadModule(TEXT("OnlineSubsystem"), bIsShutdown);
-		}
-	}
-
 	/** 
 	 * Get the interface for accessing the session services
 	 * @param SubsystemName - Name of the requested online service

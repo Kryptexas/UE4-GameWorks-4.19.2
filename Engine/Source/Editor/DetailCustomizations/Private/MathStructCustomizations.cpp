@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "Materials/MaterialExpressionConstant3Vector.h"
@@ -38,8 +38,8 @@ void FMathStructCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>&
 {
 	// We'll set up reset to default ourselves
 	const bool bDisplayResetToDefault = false;
-	const FString DisplayNameOverride = TEXT("");
-	const FString DisplayToolTipOverride = TEXT("");
+	const FText DisplayNameOverride = FText::GetEmpty();
+	const FText DisplayToolTipOverride = FText::GetEmpty();
 
 	TWeakPtr<IPropertyHandle> StructWeakHandlePtr = StructPropertyHandle;
 
@@ -103,14 +103,14 @@ const FSlateBrush* FMathStructCustomization::GetPreserveScaleRatioImage() const
 	return bPreserveScaleRatio ? FEditorStyle::GetBrush(TEXT("GenericLock")) : FEditorStyle::GetBrush(TEXT("GenericUnlock"));
 }
 
-ESlateCheckBoxState::Type FMathStructCustomization::IsPreserveScaleRatioChecked() const
+ECheckBoxState FMathStructCustomization::IsPreserveScaleRatioChecked() const
 {
-	return bPreserveScaleRatio ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bPreserveScaleRatio ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void FMathStructCustomization::OnPreserveScaleRatioToggled(ESlateCheckBoxState::Type NewState, TWeakPtr<IPropertyHandle> PropertyHandle)
+void FMathStructCustomization::OnPreserveScaleRatioToggled(ECheckBoxState NewState, TWeakPtr<IPropertyHandle> PropertyHandle)
 {
-	bPreserveScaleRatio = ( NewState == ESlateCheckBoxState::Checked ) ? true : false;
+	bPreserveScaleRatio = ( NewState == ECheckBoxState::Checked ) ? true : false;
 
 	if ( PropertyHandle.IsValid() )
 	{
@@ -213,7 +213,7 @@ TSharedRef<SWidget> FMathStructCustomization::MakeNumericWidget(
 		.IsEnabled( this, &FMathStructCustomization::IsValueEnabled, WeakHandlePtr )
 		.Value( this, &FMathStructCustomization::OnGetValue, WeakHandlePtr )
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
-		.UndeterminedString( NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values").ToString() )
+		.UndeterminedString( NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values") )
 		.OnValueCommitted( this, &FMathStructCustomization::OnValueCommitted<NumericType>, WeakHandlePtr )
 		.OnValueChanged( this, &FMathStructCustomization::OnValueChanged<NumericType>, WeakHandlePtr )
 		.OnBeginSliderMovement( this, &FMathStructCustomization::OnBeginSliderMovement )
@@ -433,8 +433,8 @@ void FColorStructCustomization::MakeHeaderRow( TSharedRef<class IPropertyHandle>
 {
 	// We'll set up reset to default ourselves
 	const bool bDisplayResetToDefault = false;
-	const FString DisplayNameOverride = TEXT("");
-	const FString DisplayToolTipOverride = TEXT("");
+	const FText DisplayNameOverride = FText::GetEmpty();
+	const FText DisplayToolTipOverride = FText::GetEmpty();
 
 	Row.NameContent()
 	[
@@ -671,7 +671,7 @@ void FColorStructCustomization::OnColorPickerInteractiveBegin()
 {
 	bIsInteractive = true;
 
-	GEditor->BeginTransaction( FText::Format( NSLOCTEXT("FColorStructCustomization", "SetColorProperty", "Edit {0}"), FText::FromString( StructPropertyHandle->GetPropertyDisplayName() ) ) );
+	GEditor->BeginTransaction( FText::Format( NSLOCTEXT("FColorStructCustomization", "SetColorProperty", "Edit {0}"), StructPropertyHandle->GetPropertyDisplayName() ) );
 }
 
 void FColorStructCustomization::OnColorPickerInteractiveEnd()

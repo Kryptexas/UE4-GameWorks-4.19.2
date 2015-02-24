@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MatineeModule.h"
 #include "Matinee.h"
@@ -8,13 +8,14 @@
 #include "Matinee/MatineeActor.h"
 #include "Matinee/InterpTrackMove.h"
 #include "Matinee/InterpTrackEvent.h"
+#include "Engine/InterpCurveEdSetup.h"
 
 /*-----------------------------------------------------------------------------
  FMatineeViewportClient
 -----------------------------------------------------------------------------*/
 
 FMatineeViewportClient::FMatineeViewportClient( class FMatinee* InMatinee )
-	: FEditorViewportClient(GLevelEditorModeTools())
+	: FEditorViewportClient(nullptr)
 {
 	InterpEd = InMatinee;
 
@@ -919,7 +920,7 @@ void FMatineeViewportClient::MouseMove(FViewport* Viewport, int32 X, int32 Y)
 		}
 		else if(bPanning)
 		{
-			const bool bInvertPanning = GLevelEditorModeTools().GetInterpPanInvert();
+			const bool bInvertPanning = ModeTools->GetInterpPanInvert();
 
 			float DeltaTime = (bInvertPanning ? -DeltaX : DeltaX) / InterpEd->PixelsPerSec;
 			InterpEd->ViewStartTime -= DeltaTime;

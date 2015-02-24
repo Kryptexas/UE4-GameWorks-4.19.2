@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	ParticleModuleVectorFieldScaleOverLife: Per-particle vector field scale over life.
@@ -19,7 +19,6 @@ class UParticleModuleVectorFieldScaleOverLife : public UParticleModuleVectorFiel
 
 	// Begin UObject Interface
 	virtual void PostInitProperties() override;
-	virtual void Serialize(FArchive& Ar) override;
 	// End UObject Interface
 
 	// Begin UParticleModule Interface

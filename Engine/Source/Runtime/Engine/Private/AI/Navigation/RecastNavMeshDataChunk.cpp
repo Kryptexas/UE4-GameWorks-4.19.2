@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "AI/Navigation/RecastNavMeshDataChunk.h"
@@ -56,7 +56,8 @@ void URecastNavMeshDataChunk::Serialize(FArchive& Ar)
 
 	if (Ar.IsLoading())
 	{
-		if (NavMeshVersion < NAVMESHVER_MIN_COMPATIBLE)
+		// VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION was integrated from main to 4.7 without support for reading the data. Discard it.
+		if (NavMeshVersion < NAVMESHVER_MIN_COMPATIBLE || (Ar.UE4Ver() >= VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION && Ar.UE4Ver() < VER_UE4_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7))
 		{
 			// incompatible, just skip over this data.  navmesh needs rebuilt.
 			Ar.Seek(RecastNavMeshSizePos + RecastNavMeshSizeBytes);

@@ -1,13 +1,16 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "SceneOutlinerFilters.h"
 
-class FActorsAssignedToSpecificLayersFilter : public IFilter< const AActor* const >, public TSharedFromThis< FActorsAssignedToSpecificLayersFilter >
+class FActorsAssignedToSpecificLayersFilter : public SceneOutliner::FOutlinerFilter, public TSharedFromThis< FActorsAssignedToSpecificLayersFilter >
 {
 public:
 
-	DECLARE_DERIVED_EVENT(FActorsAssignedToSpecificLayersFilter, IFilter< const AActor* const >::FChangedEvent, FChangedEvent);
-	virtual FChangedEvent& OnChanged() override { return ChangedEvent; }
+	/** By default, any types not handled by this filter will fail */
+	FActorsAssignedToSpecificLayersFilter()
+		: FOutlinerFilter(SceneOutliner::EDefaultFilterBehaviour::Fail)
+	{}
 
 	/** 
 	 * Returns whether the specified Item passes the Filter's text restrictions 
@@ -15,7 +18,7 @@ public:
 	 *	@param	InItem	The Item to check 
 	 *	@return			Whether the specified Item passed the filter
 	 */
-	virtual bool PassesFilter( const AActor* const InActor ) const override
+	virtual bool PassesFilter( const AActor* InActor ) const override
 	{
 		if( LayerNames.Num() == 0 )
 		{
@@ -83,7 +86,4 @@ private:
 
 	/**	The list of layer names which actors need to belong to */
 	TArray< FName > LayerNames;
-
-	/**	The event that broadcasts whenever a change occurs to the filter */
-	FChangedEvent ChangedEvent;
 };

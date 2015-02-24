@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DistCurveEditorModule.h"
 #include "SDistributionCurveEditor.h"
@@ -8,6 +8,8 @@
 #include "SCurveEditorViewport.h"
 #include "CurveEditorViewportClient.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "Engine/InterpCurveEdSetup.h"
+#include "CanvasTypes.h"
 
 FCurveEditorViewportClient::FCurveEditorViewportClient(TWeakPtr<SDistributionCurveEditor> InCurveEditor, TWeakPtr<SCurveEditorViewport> InCurveEditorViewport)
 	: CurveEditorPtr(InCurveEditor)
@@ -1133,7 +1135,7 @@ void FCurveEditorViewportClient::DrawEntry(FViewport* Viewport, FCanvas* Canvas,
 					
 
 					if(Canvas->IsHitTesting()) Canvas->SetHitProxy(new HCurveEditorKeyHandleProxy(CurveIndex, SubIdx, KeyIdx, true));
-					Canvas->DrawTile(HandlePos.X-2, HandlePos.Y-2, 5, 5, 0.f, 0.f, 1.f, 1.f, FColor(255,255,255));
+					Canvas->DrawTile(HandlePos.X - 2, HandlePos.Y - 2, 5, 5, 0.f, 0.f, 1.f, 1.f, FColor::White);
 					if(Canvas->IsHitTesting()) Canvas->SetHitProxy(NULL);
 				}
 
@@ -1150,7 +1152,7 @@ void FCurveEditorViewportClient::DrawEntry(FViewport* Viewport, FCanvas* Canvas,
 					LineItem.Draw( Canvas, NewKeyPos, HandlePos );
 					
 					if(Canvas->IsHitTesting()) Canvas->SetHitProxy(new HCurveEditorKeyHandleProxy(CurveIndex, SubIdx, KeyIdx, false));
-					Canvas->DrawTile(HandlePos.X-2, HandlePos.Y-2, 5, 5, 0.f, 0.f, 1.f, 1.f, FColor(255,255,255));
+					Canvas->DrawTile(HandlePos.X - 2, HandlePos.Y - 2, 5, 5, 0.f, 0.f, 1.f, 1.f, FColor::White);
 					if(Canvas->IsHitTesting()) Canvas->SetHitProxy(NULL);
 				}
 			}

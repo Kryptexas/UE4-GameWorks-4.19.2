@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,11 +14,22 @@ class UMG_API UWidgetTree : public UObject
 
 public:
 
+	// Begin UObject
+	virtual UWorld* GetWorld() const override;
+	// End UObject
+
 	/** Finds the widget in the tree by name. */
 	UWidget* FindWidget(const FName& Name) const;
 
 	/** Finds a widget in the tree using the native widget as the key. */
 	UWidget* FindWidget(TSharedRef<SWidget> InWidget) const;
+
+	/** Finds the widget in the tree by name and casts the return to the desired type. */
+	template<class WidgetClass>
+	FORCEINLINE WidgetClass* FindWidget(const FName& Name) const
+	{
+		return Cast<WidgetClass>(FindWidget(Name));
+	}
 
 	/** Removes the widget from the hierarchy and all sub widgets. */
 	bool RemoveWidget(UWidget* Widget);
@@ -32,7 +43,11 @@ public:
 	/** Gathers descendant child widgets of a parent widget. */
 	void GetChildWidgets(UWidget* Parent, TArray<UWidget*>& Widgets) const;
 
-	/**  */
+	/**
+	 * Iterates through all widgets including widgets contained in named slots, other than
+	 * investigating named slots, this code does not dive into foreign WidgetTrees, as would exist
+	 * inside another user widget.
+	 */
 	template <typename Predicate>
 	FORCEINLINE void ForEachWidget(Predicate Pred) const
 	{
@@ -44,10 +59,15 @@ public:
 		}
 	}
 
-	/**  */
+	/**
+	 * Iterates through all child widgets including widgets contained in named slots, other than
+	 * investigating named slots, this code does not dive into foreign WidgetTrees, as would exist
+	 * inside another user widget.
+	 */
 	template <typename Predicate>
 	FORCEINLINE void ForWidgetAndChildren(UWidget* Widget, Predicate Pred) const
 	{
+		// Search for any named slot with content that we need to dive into.
 		if ( INamedSlotInterface* NamedSlotHost = Cast<INamedSlotInterface>(Widget) )
 		{
 			TArray<FName> SlotNames;
@@ -64,6 +84,7 @@ public:
 			}
 		}
 
+		// Search standard children.
 		if ( UPanelWidget* PanelParent = Cast<UPanelWidget>(Widget) )
 		{
 			for ( int32 ChildIndex = 0; ChildIndex < PanelParent->GetChildrenCount(); ChildIndex++ )
@@ -97,6 +118,7 @@ public:
 		}
 	}
 
+	// UObject interface
 	virtual void PreSave() override
 	{
 		AllWidgets.Empty();
@@ -105,13 +127,7 @@ public:
 
 		Super::PreSave();
 	}
-
-	virtual void PostLoad() override
-	{
-		//AllWidgets.Empty();
-
-		Super::PostLoad();
-	}
+	// End of UObject interface
 
 public:
 	/** The root widget of the tree */

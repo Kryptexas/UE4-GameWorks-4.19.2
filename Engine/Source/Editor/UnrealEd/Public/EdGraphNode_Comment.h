@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EdGraph/EdGraphNode.h"
@@ -37,6 +37,10 @@ class UEdGraphNode_Comment : public UEdGraphNode
 	UPROPERTY(EditAnywhere, Category=Comment)
 	TEnumAsByte<ECommentBoxMode::Type> MoveMode;
 
+	/** comment Depth */
+	UPROPERTY(EditAnywhere, Category=Comment, meta=(DisplayName="CommentDepth"))
+	int32 CommentDepth;
+
 public:
 
 	// Begin UObject Interface
@@ -49,7 +53,7 @@ public:
 	UNREALED_API virtual FLinearColor GetNodeCommentColor() const override;
 	UNREALED_API virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual bool ShouldOverridePinNames() const override { return true; }
-	UNREALED_API virtual FString GetPinNameOverride(const UEdGraphPin& Pin) const override;
+	UNREALED_API virtual FText GetPinNameOverride(const UEdGraphPin& Pin) const override;
 	UNREALED_API virtual void ResizeNode(const FVector2D& NewSize) override;
 	UNREALED_API virtual void PostPlacedNewNode() override;
 	UNREALED_API virtual void OnRenameNode(const FString& NewName) override;

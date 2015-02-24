@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "DocumentationActorDetails.h"
@@ -33,7 +33,7 @@ void FDocumentationActorDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBu
 
 	// Add a button we can click on to open the documentation
 	IDetailCategoryBuilder& HelpCategory = DetailBuilder.EditCategory("Help Data");
-	HelpCategory.AddCustomRow("Help Documentation")
+	HelpCategory.AddCustomRow(LOCTEXT("HelpDocumentation", "Help Documentation"))
 		[
 			SNew(SButton)
 			.Text(this, &FDocumentationActorDetails::OnGetButtonText)

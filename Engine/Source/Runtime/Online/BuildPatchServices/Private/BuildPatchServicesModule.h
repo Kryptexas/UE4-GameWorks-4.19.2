@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchServicesModule.h: Declares the FBuildPatchServicesModule class.
@@ -115,6 +115,11 @@ private:
 	 */
 	bool Tick( float Delta );
 
+	/**
+	 * This will get called when core PreExits. Make sure any running installers are canceled out.
+	 */
+	void PreExit();
+
 private:
 	// Holds the cloud directory where chunks should belong
 	static FString CloudDirectory;
@@ -130,4 +135,7 @@ private:
 
 	// The system that holds available installations used for recycling install data
 	FBuildPatchInstallationInfo InstallationInfo;
+
+	// Handle to the registered Tick delegate
+	FDelegateHandle TickDelegateHandle;
 };

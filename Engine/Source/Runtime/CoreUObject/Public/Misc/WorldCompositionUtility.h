@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WorldCompositionUtility.h: Support structures for world composition
@@ -53,10 +53,10 @@ class FWorldTileLODInfo
 public:
 	FWorldTileLODInfo()
 		: RelativeStreamingDistance(10000)
-		, GenDetailsPercentage(70.f)
-		, GenMaxDeviation(5.f)
 		, Reserved0(0)
 		, Reserved1(0)
+		, Reserved2(0)
+		, Reserved3(0)
 	{
 	}
 
@@ -64,22 +64,18 @@ public:
 
 	bool operator==(const FWorldTileLODInfo& OtherInfo) const
 	{
-		return (RelativeStreamingDistance == OtherInfo.RelativeStreamingDistance) &&
-				(GenDetailsPercentage == OtherInfo.GenDetailsPercentage) &&
-				(GenMaxDeviation == OtherInfo.GenMaxDeviation);
+		return RelativeStreamingDistance == OtherInfo.RelativeStreamingDistance;
 	}
 
 public:
 	/**  Relative to LOD0 streaming distance, absolute distance = LOD0 + StreamingDistanceDelta */
 	int32	RelativeStreamingDistance;
 	
-	/**  LOD generation settings */
-	float	GenDetailsPercentage;
-	float	GenMaxDeviation;
-	
 	/**  Reserved for additional options */
-	int32	Reserved0;
-	int32	Reserved1;
+	float	Reserved0;
+	float	Reserved1;
+	int32	Reserved2;
+	int32	Reserved3;
 };
 
 /** 

@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Engine/DataTable.h"
 
 #define LOCTEXT_NAMESPACE "FDataTableCustomizationLayout"
 
@@ -23,7 +24,7 @@ public:
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), TEXT( "" ), false )
+				InStructPropertyHandle->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
 			];
 	}
 
@@ -44,11 +45,11 @@ public:
 			DataTablePropertyHandle->SetOnPropertyValueChanged( OnDataTableChangedDelegate );
 
 			/** Construct a combo box widget to select from a list of valid options */
-			StructBuilder.AddChildContent( LOCTEXT( "DataTable_RowName", "Row Name" ).ToString() )
+			StructBuilder.AddChildContent( LOCTEXT( "DataTable_RowName", "Row Name" ) )
 			.NameContent()
 				[
 					SNew( STextBlock )
-					.Text( LOCTEXT( "DataTable_RowName", "Row Name" ).ToString() )
+					.Text( LOCTEXT( "DataTable_RowName", "Row Name" ) )
 					.Font( StructCustomizationUtils.GetRegularFont() )
 				]
 			.ValueContent()
@@ -128,28 +129,28 @@ private:
 		return
 			SNew( STableRow<TSharedPtr<FString>>, OwnerTable)
 			[
-				SNew( STextBlock ).Text( *InItem )
+				SNew( STextBlock ).Text( FText::FromString(*InItem) )
 			];
 	}
 
 	/** Display the current selection */
-	FString GetRowNameComboBoxContentText( ) const
+	FText GetRowNameComboBoxContentText( ) const
 	{
-		FString RowName = LOCTEXT( "MultipleValues", "Multiple Values" ).ToString();
-		const FPropertyAccess::Result RowResult = RowNamePropertyHandle->GetValue( RowName );
+		FString RowNameValue;
+		const FPropertyAccess::Result RowResult = RowNamePropertyHandle->GetValue( RowNameValue );
 		if ( RowResult != FPropertyAccess::MultipleValues )
 		{
 			TSharedPtr<FString> SelectedRowName = CurrentSelectedItem;
 			if ( SelectedRowName.IsValid() )
 			{
-				RowName = *SelectedRowName;
+				return FText::FromString(*SelectedRowName);
 			}
 			else
 			{
-				RowName = LOCTEXT("DataTable_None", "None").ToString();
+				return LOCTEXT("DataTable_None", "None");
 			}
 		}
-		return RowName;
+		return LOCTEXT( "MultipleValues", "Multiple Values" );
 	}
 
 	/** Update the root data on a change of selection */

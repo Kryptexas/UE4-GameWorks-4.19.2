@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Animation/BoneControllers/AnimNode_SpringBone.h"
@@ -137,7 +137,7 @@ void FAnimNode_SpringBone::EvaluateBoneTransforms(USkeletalMeshComponent* SkelCo
 			// Too far away - project back onto sphere around target.
 			if (CurrentDisp.Size() > MaxDisplacement)
 			{
-				FVector DispDir = CurrentDisp.SafeNormal();
+				FVector DispDir = CurrentDisp.GetSafeNormal();
 				BoneLocation = TargetPos + (MaxDisplacement * DispDir);
 			}
 		}

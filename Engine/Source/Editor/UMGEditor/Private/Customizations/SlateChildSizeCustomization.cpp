@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 
@@ -34,6 +34,7 @@ void FSlateChildSizeCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> P
 		PropertyHandle->CreatePropertyNameWidget()
 	]
 	.ValueContent()
+	.MaxDesiredWidth(TOptional<float>())
 	[
 		SNew(SHorizontalBox)
 
@@ -85,11 +86,6 @@ void FSlateChildSizeCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> P
 				SNew( SNumericEntryBox<float> )
 				.LabelVAlign(VAlign_Center)
 				.Visibility(this, &FSlateChildSizeCustomization::GetValueVisiblity, RuleHandle)
-				//.Label()
-				//[
-				//	SNew(STextBlock)
-				//	.Text(LOCTEXT("Fill", "Fill"))
-				//]
 				.Value(this, &FSlateChildSizeCustomization::GetValue, ValueHandle)
 				.OnValueCommitted(this, &FSlateChildSizeCustomization::HandleValueComitted, ValueHandle)
 				.UndeterminedString( LOCTEXT("MultipleValues", "Multiple Values") )
@@ -103,20 +99,20 @@ void FSlateChildSizeCustomization::CustomizeChildren(TSharedRef<IPropertyHandle>
 	
 }
 
-void FSlateChildSizeCustomization::HandleCheckStateChanged(ESlateCheckBoxState::Type InCheckboxState, TSharedPtr<IPropertyHandle> PropertyHandle, ESlateSizeRule::Type ToRule)
+void FSlateChildSizeCustomization::HandleCheckStateChanged(ECheckBoxState InCheckboxState, TSharedPtr<IPropertyHandle> PropertyHandle, ESlateSizeRule::Type ToRule)
 {
 	PropertyHandle->SetValue((uint8)ToRule);
 }
 
-ESlateCheckBoxState::Type FSlateChildSizeCustomization::GetCheckState(TSharedPtr<IPropertyHandle> PropertyHandle, ESlateSizeRule::Type ForRule) const
+ECheckBoxState FSlateChildSizeCustomization::GetCheckState(TSharedPtr<IPropertyHandle> PropertyHandle, ESlateSizeRule::Type ForRule) const
 {
 	uint8 Value;
 	if ( PropertyHandle->GetValue(Value) )
 	{
-		return Value == ForRule ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return Value == ForRule ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 TOptional<float> FSlateChildSizeCustomization::GetValue(TSharedPtr<IPropertyHandle> ValueHandle) const

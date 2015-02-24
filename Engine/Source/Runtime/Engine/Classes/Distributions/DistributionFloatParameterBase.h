@@ -1,18 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 #include "Distributions/DistributionFloatConstant.h"
 #include "DistributionFloatParameterBase.generated.h"
-
-UENUM()
-enum DistributionParamMode
-{
-	DPM_Normal,
-	DPM_Abs,
-	DPM_Direct,
-	DPM_MAX,
-};
 
 UCLASS(abstract, collapsecategories, hidecategories=Object, editinlinenew)
 class UDistributionFloatParameterBase : public UDistributionFloatConstant
@@ -45,7 +36,7 @@ class UDistributionFloatParameterBase : public UDistributionFloatConstant
 
 
 	// Begin UDistributionFloat Interface
-	virtual float GetValue( float F = 0.f, UObject* Data = NULL, class FRandomStream* InRandomStream = NULL ) const override;
+	virtual float GetValue( float F = 0.f, UObject* Data = NULL, struct FRandomStream* InRandomStream = NULL ) const override;
 	// End UDistributionFloat Interface
 	
 	

@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "IntroTutorialsPrivatePCH.h"
 #include "EditorTutorialFactory.h"
 #include "EditorTutorial.h"
 #include "KismetEditorUtilities.h"
 #include "IAssetTypeActions.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "UEditorTutorialFactory"
 

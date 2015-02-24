@@ -1,9 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "FriendViewModel.h"
 #include "FriendsViewModel.h"
 #include "FriendListViewModel.h"
+
+#define LOCTEXT_NAMESPACE "FriendsAndChat"
 
 class FFriendListViewModelImpl
 	: public FFriendListViewModel
@@ -25,6 +27,24 @@ public:
 		return FText::AsNumber(FriendsList.Num());
 	}
 
+	virtual int32 GetListCount() const override
+	{
+		return FriendsList.Num();
+	}
+
+	virtual FText GetOnlineCountText() const override
+	{
+		FFormatNamedArguments Arguments;
+		Arguments.Add( TEXT("ListCount"), FText::AsNumber(OnlineCount));
+		const FText ListCount = FText::Format(LOCTEXT("FFriendListViewModelImpl_ListCount", "{ListCount} / "), Arguments);
+		return ListCount;
+	}
+
+	virtual EVisibility GetOnlineCountVisibility() const
+	{
+		return ListType == EFriendsDisplayLists::DefaultDisplay ? EVisibility::Visible : EVisibility::Collapsed;
+	}
+
 	virtual const FText GetListName() const override
 	{
 		return EFriendsDisplayLists::ToFText(ListType);
@@ -33,6 +53,11 @@ public:
 	virtual const EFriendsDisplayLists::Type GetListType() const override
 	{
 		return ListType;
+	}
+
+	virtual EVisibility GetListVisibility() const override
+	{
+		return FriendsList.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
 	DECLARE_DERIVED_EVENT(FFriendListViewModelImpl , FFriendListViewModel::FFriendsListUpdated, FFriendsListUpdated);
@@ -44,7 +69,14 @@ public:
 private:
 	void Initialize()
 	{
-		FFriendsAndChatManager::Get()->OnFriendsListUpdated().AddSP( this, &FFriendListViewModelImpl::RefreshFriendsList );
+		if (ListType == EFriendsDisplayLists::GameInviteDisplay)
+		{
+			FFriendsAndChatManager::Get()->OnGameInvitesUpdated().AddSP(this, &FFriendListViewModelImpl::RefreshFriendsList);
+		}
+		else
+		{
+			FFriendsAndChatManager::Get()->OnFriendsListUpdated().AddSP(this, &FFriendListViewModelImpl::RefreshFriendsList);
+		}
 		RefreshFriendsList();
 	}
 
@@ -55,35 +87,85 @@ private:
 	void RefreshFriendsList()
 	{
 		FriendsList.Empty();
+		TArray< TSharedPtr< IFriendItem > > OnlineFriendsList;
+		TArray< TSharedPtr< IFriendItem > > OfflineFriendsList;
+		TArray< TSharedPtr< IFriendItem > > FriendItemList;
+		OnlineCount = 0;
 
-		TArray< TSharedPtr< FFriendStuct > > FriendItemList;
-		FFriendsAndChatManager::Get()->GetFilteredFriendsList( FriendItemList );
-		for( const auto& FriendItem : FriendItemList)
+		if(ListType == EFriendsDisplayLists::GameInviteDisplay)
 		{
-			switch (ListType)
+			FFriendsAndChatManager::Get()->GetFilteredGameInviteList(OfflineFriendsList);
+		}
+		else if (ListType == EFriendsDisplayLists::RecentPlayersDisplay)
+		{
+			OfflineFriendsList = FFriendsAndChatManager::Get()->GetRecentPlayerList();
+		}
+		else
+		{
+			FFriendsAndChatManager::Get()->GetFilteredFriendsList( FriendItemList );
+			for( const auto& FriendItem : FriendItemList)
 			{
-				case EFriendsDisplayLists::DefaultDisplay :
+				switch (ListType)
 				{
-					if(FriendItem->GetInviteStatus() == EInviteStatus::Accepted)
+					case EFriendsDisplayLists::DefaultDisplay :
 					{
-						FriendsList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef()));
+						if(FriendItem->GetInviteStatus() == EInviteStatus::Accepted)
+						{
+							if(FriendItem->IsOnline())
+							{
+								OnlineFriendsList.Add(FriendItem);
+								OnlineCount++;
+							}
+							else
+							{
+								OfflineFriendsList.Add(FriendItem);
+							}
+						}
 					}
-				}
-				break;
-				case EFriendsDisplayLists::RecentPlayersDisplay :
-				{
-				}
-				break;
-				case EFriendsDisplayLists::FriendRequestsDisplay :
-				{
-					if( FriendItem->GetInviteStatus() == EInviteStatus::PendingInbound)
+					break;
+					case EFriendsDisplayLists::FriendRequestsDisplay :
 					{
-						FriendsList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef()));
+						if( FriendItem->GetInviteStatus() == EInviteStatus::PendingInbound)
+						{
+							OfflineFriendsList.Add(FriendItem.ToSharedRef());
+						}
 					}
+					break;
+					case EFriendsDisplayLists::OutgoingFriendInvitesDisplay :
+					{
+						if( FriendItem->GetInviteStatus() == EInviteStatus::PendingOutbound)
+						{
+							OfflineFriendsList.Add(FriendItem.ToSharedRef());
+						}
+					}
+					break;
 				}
-				break;
 			}
 		}
+
+		/** Functor for sorting friends list */
+		struct FCompareGroupByName
+		{
+			FORCEINLINE bool operator()( const TSharedPtr< IFriendItem > A, const TSharedPtr< IFriendItem > B ) const
+			{
+				check( A.IsValid() );
+				check ( B.IsValid() );
+				return ( A->GetName() < B->GetName() );
+			}
+		};
+
+		OnlineFriendsList.Sort(FCompareGroupByName());
+		OfflineFriendsList.Sort(FCompareGroupByName());
+
+		for(const auto& FriendItem : OnlineFriendsList)
+		{
+			FriendsList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef()));
+		}
+		for(const auto& FriendItem : OfflineFriendsList)
+		{
+			FriendsList.Add(FFriendViewModelFactory::Create(FriendItem.ToSharedRef()));
+		}
+
 		FriendsListUpdatedEvent.Broadcast();
 	}
 
@@ -103,6 +185,7 @@ private:
 	/** Holds the list of friends. */
 	TArray< TSharedPtr< FFriendViewModel > > FriendsList;
 	FFriendsListUpdated FriendsListUpdatedEvent;
+	int32 OnlineCount;
 
 	friend FFriendListViewModelFactory;
 };
@@ -116,3 +199,5 @@ TSharedRef< FFriendListViewModel > FFriendListViewModelFactory::Create(
 	ViewModel->Initialize();
 	return ViewModel;
 }
+
+#undef LOCTEXT_NAMESPACE

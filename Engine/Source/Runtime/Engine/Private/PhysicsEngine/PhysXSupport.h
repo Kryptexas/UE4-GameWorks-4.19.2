@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysXSupport.h: PhysX support
@@ -139,7 +139,6 @@ private:
 };
 
 /** Thresholds for aggregates  */
-const uint32 AggregatePhysicsAssetThreshold  = 999999999;
 const uint32 AggregateMaxSize	   = 128;
 const uint32 AggregateBodyShapesThreshold	   = 999999999;
 

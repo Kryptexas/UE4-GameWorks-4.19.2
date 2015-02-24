@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "DelegateNodeHandlers.h"
+#include "K2Node_ClearDelegate.h"
 
 #define LOCTEXT_NAMESPACE "DelegateNodeHandlers"
 

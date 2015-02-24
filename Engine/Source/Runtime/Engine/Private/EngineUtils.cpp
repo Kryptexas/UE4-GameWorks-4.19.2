@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 =============================================================================*/
@@ -477,11 +477,11 @@ void FConsoleOutputDevice::Serialize(const TCHAR* Text, ELogVerbosity::Type Verb
 /*-----------------------------------------------------------------------------
 	Serialized data stripping.
 -----------------------------------------------------------------------------*/
-FStripDataFlags::FStripDataFlags( class FArchive& Ar, uint8 InClassFlags /*= 0*/, int32 InVersion /*= VER_UE4_REMOVED_STRIP_DATA */ )
+FStripDataFlags::FStripDataFlags( class FArchive& Ar, uint8 InClassFlags /*= 0*/, int32 InVersion /*= VER_UE4_OLDEST_LOADABLE_PACKAGE */ )
 	: GlobalStripFlags( 0 )
 	, ClassStripFlags( 0 )
 {
-	check(InVersion >= VER_UE4_REMOVED_STRIP_DATA);
+	check(InVersion >= VER_UE4_OLDEST_LOADABLE_PACKAGE);
 	if (Ar.UE4Ver() >= InVersion)
 	{
 		if (Ar.IsCooking())
@@ -497,11 +497,11 @@ FStripDataFlags::FStripDataFlags( class FArchive& Ar, uint8 InClassFlags /*= 0*/
 	}
 }
 
-FStripDataFlags::FStripDataFlags( class FArchive& Ar, uint8 InGlobalFlags, uint8 InClassFlags, int32 InVersion /*= VER_UE4_REMOVED_STRIP_DATA */ )
+FStripDataFlags::FStripDataFlags( class FArchive& Ar, uint8 InGlobalFlags, uint8 InClassFlags, int32 InVersion /*= VER_UE4_OLDEST_LOADABLE_PACKAGE */ )
 	: GlobalStripFlags( 0 )
 	, ClassStripFlags( 0 )
 {
-	check(InVersion >= VER_UE4_REMOVED_STRIP_DATA);
+	check(InVersion >= VER_UE4_OLDEST_LOADABLE_PACKAGE);
 	if (Ar.UE4Ver() >= InVersion)
 	{
 		if (Ar.IsCooking())

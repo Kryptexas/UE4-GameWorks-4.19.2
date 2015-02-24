@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -95,8 +95,9 @@ public:
 	virtual void CreateMenuEntry(class FMenuBuilder& MenuBuilder) const { }
 
 	/** Group blocks interface */
-	virtual bool IsGroupStartBlock()	const	{ return false; };
-	virtual bool IsGroupEndBlock()		const	{ return false; };
+	virtual bool IsGroupStartBlock() const { return false; }
+	virtual bool IsGroupEndBlock() const { return false; }
+	virtual bool HasIcon() const { return false; }
 
 	/** Set the tutorial highlight name for this menu entry */
 	void SetTutorialHighlightName(FName InTutorialName)
@@ -118,7 +119,7 @@ public:
 	 *
 	 * @return  MultiBlock widget object
 	 */
-	TSharedRef< class IMultiBlockBaseWidget > MakeWidget( TSharedRef< class SMultiBoxWidget > InOwnerMultiBoxWidget, EMultiBlockLocation::Type InLocation ) const;
+	TSharedRef< class IMultiBlockBaseWidget > MakeWidget( TSharedRef< class SMultiBoxWidget > InOwnerMultiBoxWidget, EMultiBlockLocation::Type InLocation, bool bSectionContainsIcons ) const;
 
 	/**
 	 * Gets the type of this MultiBox
@@ -369,8 +370,9 @@ public:
 	 * Sets the blocks location relative to the other blocks
 	 * 
 	 * @param InLocation	The MultiBlocks location
+	 * @param bSectionContainsIcons Does the section contain icons?
 	 */
-	virtual void SetMultiBlockLocation(EMultiBlockLocation::Type InLocation) = 0;
+	virtual void SetMultiBlockLocation(EMultiBlockLocation::Type InLocation, bool bSectionContainsIcons) = 0;
 
 	/**
 	 * Returns this MultiBlocks location
@@ -391,71 +393,13 @@ class SLATE_API SMultiBlockBaseWidget
 
 public:
 
-	/**
-	 * Interprets this object as a SWidget
-	 *
-	 * @return  Widget reference
-	 */
-	virtual TSharedRef< SWidget > AsWidget()
-	{
-		return this->AsShared();
-	}
-
-
-	/**
-	 * Interprets this object as a SWidget
-	 *
-	 * @return  Widget reference
-	 */
-	virtual TSharedRef< const SWidget > AsWidget() const
-	{
-		return this->AsShared();
-	}
-
-
-	/**
-	 * Associates the owner MultiBox widget with this widget
-	 *
-	 * @param	InOwnerMultiBoxWidget		The MultiBox widget that owns us
-	 */
-	void SetOwnerMultiBoxWidget( TSharedRef< SMultiBoxWidget > InOwnerMultiBoxWidget )
-	{
-		OwnerMultiBoxWidget = InOwnerMultiBoxWidget;
-	}
-
-	
-	/**
-	 * Associates this widget with a MultiBlock
-	 *
-	 * @param	InMultiBlock	The MultiBlock we'll be associated with
-	 */
-	void SetMultiBlock( TSharedRef< const FMultiBlock > InMultiBlock )
-	{
-		MultiBlock = InMultiBlock;
-	}
-
-	/**
-	 * Sets the blocks location relative to the other blocks
-	 * 
-	 * @param InLocation	The MultiBlocks location
-	 */
-	virtual void SetMultiBlockLocation(EMultiBlockLocation::Type InLocation)
-	{
-		Location = InLocation;
-	}
-
-	/**
-	 * Returns this MultiBlocks location
-	 */
-	virtual EMultiBlockLocation::Type GetMultiBlockLocation()
-	{
-		return Location;
-	}
-
-	/**
-	 * Builds this MultiBlock widget up from the MultiBlock associated with it
-	 */
-	virtual void BuildMultiBlockWidget(const ISlateStyle* StyleSet, const FName& StyleName) = 0;
+	/** IMultiBlockBaseWidget interface */
+	virtual TSharedRef< SWidget > AsWidget() override;
+	virtual TSharedRef< const SWidget > AsWidget() const override;
+	virtual void SetOwnerMultiBoxWidget( TSharedRef< SMultiBoxWidget > InOwnerMultiBoxWidget ) override;
+	virtual void SetMultiBlock( TSharedRef< const FMultiBlock > InMultiBlock ) override;
+	virtual void SetMultiBlockLocation( EMultiBlockLocation::Type InLocation, bool bInSectionContainsIcons ) override;
+	virtual EMultiBlockLocation::Type GetMultiBlockLocation() override;
 
 	/** SWidget Interface */
 	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent ) override;
@@ -471,6 +415,9 @@ protected:
 
 	/** The MultiBlocks location relative to the other blocks in the set */
 	EMultiBlockLocation::Type Location;
+
+	/** Does the section this block resides in contain blocks with icons? */
+	bool bSectionContainsIcons;
 };
 
 /**
@@ -589,7 +536,7 @@ public:
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& KeyEvent ) override;
 private:
 	/** Adds a block Widget to this widget */
-	void AddBlockWidget( const FMultiBlock& Block, TSharedPtr<SHorizontalBox> HorizontalBox, TSharedPtr<SVerticalBox> VerticalBox, EMultiBlockLocation::Type InLocation );
+	void AddBlockWidget( const FMultiBlock& Block, TSharedPtr<SHorizontalBox> HorizontalBox, TSharedPtr<SVerticalBox> VerticalBox, EMultiBlockLocation::Type InLocation, bool bSectionContainsIcons );
 
 	/**
 	 * @return True if the passed in block is being dragged

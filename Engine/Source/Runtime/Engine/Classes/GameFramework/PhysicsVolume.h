@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "GameFramework/Volume.h"
@@ -20,6 +20,9 @@ class ENGINE_API APhysicsVolume : public AVolume
 #endif // WITH_EDITOR	
 	// End UObject interface.
 
+	virtual void PostInitializeComponents() override;
+	virtual void Destroyed() override;
+
 	//======================================================================================
 	// Character Movement related properties
 
@@ -27,7 +30,7 @@ class ENGINE_API APhysicsVolume : public AVolume
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CharacterMovement)
 	float TerminalVelocity;
 
-	/** determines which PhysicsVolume takes precedence if they overlap */
+	/** Determines which PhysicsVolume takes precedence if they overlap (higher number = higher priority). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=CharacterMovement)
 	int32 Priority;
 

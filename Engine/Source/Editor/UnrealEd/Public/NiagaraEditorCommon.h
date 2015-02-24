@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -44,7 +44,6 @@
 	NiagaraOp(Normalize)\
 	NiagaraOp(Random)\
 	NiagaraOp(Length)\
-	NiagaraOp(Sin4)\
 	NiagaraOp(Noise)\
 	NiagaraOp(Scalar)\
 	NiagaraOp(Vector)\
@@ -61,7 +60,8 @@
 	NiagaraOp(GetW)\
 	NiagaraOp(TransformVector)\
 	NiagaraOp(Transpose)\
-	NiagaraOp(Inverse)
+	NiagaraOp(Inverse)\
+	NiagaraOp(LessThan)
 
 enum class ENiagaraExpressionResultLocation
 {

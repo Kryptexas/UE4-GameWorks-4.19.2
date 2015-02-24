@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BasePassPixelShader.usf: Base pass pixel shader
@@ -48,14 +48,6 @@ float4 PointSkyBentNormal;
 #endif
 
 #define EDITOR_ALPHA2COVERAGE (EDITOR_PRIMITIVE_MATERIAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !COMPILER_GLSL)
-
-// For now we only use it on EDITOR_PRIMITIVE_MATERIAL (LevelGrid bias can be much lower) but later we might want to use it for all materials.
-// According to GCNPerformanceTweets.pdf Tip 38 it might have a performance cost on GCN.
-// On consoles we don't need the editor rendering features
-#if EDITOR_PRIMITIVE_MATERIAL && FEATURE_LEVEL >= FEATURE_LEVEL_SM5 && !PS4_PROFILE && !XBOXONE_PROFILE
-	// not available on mobile, if not available we have to reconstruct it from the world position interpolator which is much worse quality (noticable for depth bias)
-	#define HIGHQUALITY_PS_POSITION 1
-#endif
 
 
 #if TRANSLUCENCY_LIGHTING_SURFACE
@@ -268,13 +260,15 @@ float3 IndirectlightingCacheMinUV;
 float3 IndirectlightingCacheMaxUV;
 
 /** Computes sky diffuse lighting, including precomputed shadowing. */
-float3 GetSkyLighting(float3 WorldNormal, float2 LightmapUV)
+void GetSkyLighting(float3 WorldNormal, float2 LightmapUV, out float3 OutDiffuseLighting, out float3 OutSubsurfaceLighting)
 {
-	float3 Lighting = 0;
+	OutDiffuseLighting = 0;
+	OutSubsurfaceLighting = 0;
 
 #if ENABLE_SKY_LIGHT
 
 	float SkyVisibility = 1;
+	float GeometryTerm = 1;
 	float3 SkyLightingNormal = WorldNormal;
 	
 	#if HQ_TEXTURE_LIGHTMAP || CACHED_POINT_INDIRECT_LIGHTING || CACHED_VOLUME_INDIRECT_LIGHTING
@@ -313,7 +307,7 @@ float3 GetSkyLighting(float3 WorldNormal, float2 LightmapUV)
 
 				float DotProductFactor = lerp(saturate(dot(NormalizedBentNormal, WorldNormal)), 1, BentNormalWeightFactor);
 				// Account for darkening due to the geometry term
-				SkyVisibility *= DotProductFactor;
+				GeometryTerm = DotProductFactor;
 			#endif
 		}
 	#endif
@@ -322,21 +316,28 @@ float3 GetSkyLighting(float3 WorldNormal, float2 LightmapUV)
 	float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * View.SkyLightColor.rgb;
 
 	// Apply AO to the sky diffuse
-	Lighting += DiffuseLookup * SkyVisibility;
-#endif
+	OutDiffuseLighting += DiffuseLookup * (SkyVisibility * GeometryTerm);
 
-	return Lighting;
+	#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
+		float3 BackfaceDiffuseLookup = GetSkySHDiffuse(-WorldNormal) * View.SkyLightColor.rgb;
+		OutSubsurfaceLighting += BackfaceDiffuseLookup * SkyVisibility;
+	#endif
+
+#endif
 }
 
 /** Calculates indirect lighting contribution on this object from precomputed data. */
-float3 GetPrecomputedIndirectLighting(
+void GetPrecomputedIndirectLightingAndSkyLight(
 	FMaterialPixelParameters MaterialParameters, 
 	FVertexFactoryInterpolantsVSToPS Interpolants,
 	FBasePassInterpolantsVSToPS BasePassInterpolants,
-	out float IndirectIrradiance)
+	out float3 OutDiffuseLighting,
+	out float3 OutSubsurfaceLighting,
+	out float OutIndirectIrradiance)
 {
-	IndirectIrradiance = 0;
-	float3 Lighting = 0;
+	OutIndirectIrradiance = 0;
+	OutDiffuseLighting = 0;
+	OutSubsurfaceLighting = 0;
 	float2 SkyOcclusionUV = 0;
 
 	// Method for movable components which want to use a volume texture of interpolated SH samples
@@ -353,7 +354,7 @@ float3 GetPrecomputedIndirectLighting(
 		#define AMBIENTONLY 0
 		#if AMBIENTONLY
 
-			Lighting = Vector0.rgb / SHAmbientFunction() / PI;
+			OutDiffuseLighting = Vector0.rgb / SHAmbientFunction() / PI;
 
 		#else
 
@@ -368,7 +369,12 @@ float3 GetPrecomputedIndirectLighting(
 
 			// Diffuse convolution
 			FTwoBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH(MaterialParameters.WorldNormal, 1);
-			Lighting = max(half3(0,0,0), DotSH(CachedSH, DiffuseTransferSH)) / PI;
+			OutDiffuseLighting = max(half3(0,0,0), DotSH(CachedSH, DiffuseTransferSH)) / PI;
+
+			#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
+				FTwoBandSHVector SubsurfaceTransferSH = CalcDiffuseTransferSH(-MaterialParameters.WorldNormal, 1);
+				OutSubsurfaceLighting += max(half3(0,0,0), DotSH(CachedSH, SubsurfaceTransferSH)) / PI;
+			#endif
 
 		#endif
 
@@ -382,7 +388,12 @@ float3 GetPrecomputedIndirectLighting(
 			PointIndirectLighting.B.V = IndirectLightingSHCoefficients[2].x;
 
 			FOneBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH1(MaterialParameters.WorldNormal, 1);
-			Lighting = DotSH1(PointIndirectLighting, DiffuseTransferSH);
+			OutDiffuseLighting = DotSH1(PointIndirectLighting, DiffuseTransferSH);
+
+			#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
+				FOneBandSHVector SubsurfaceTransferSH = CalcDiffuseTransferSH1(-MaterialParameters.WorldNormal, 1);
+				OutSubsurfaceLighting += DotSH1(PointIndirectLighting, SubsurfaceTransferSH);
+			#endif
 
 		#else
 
@@ -393,7 +404,12 @@ float3 GetPrecomputedIndirectLighting(
 
 			FTwoBandSHVector DiffuseTransferSH = CalcDiffuseTransferSH(MaterialParameters.WorldNormal, 1);
 			// Compute diffuse lighting which takes the normal into account
-			Lighting = max(half3(0,0,0), DotSH(PointIndirectLighting, DiffuseTransferSH));
+			OutDiffuseLighting = max(half3(0,0,0), DotSH(PointIndirectLighting, DiffuseTransferSH));
+
+			#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
+				FTwoBandSHVector SubsurfaceTransferSH = CalcDiffuseTransferSH(-MaterialParameters.WorldNormal, 1);
+				OutSubsurfaceLighting += max(half3(0,0,0), DotSH(PointIndirectLighting, SubsurfaceTransferSH));
+			#endif
 
 		#endif
 
@@ -403,24 +419,31 @@ float3 GetPrecomputedIndirectLighting(
 		float2 LightmapUV0, LightmapUV1;
 		GetLightMapCoordinates(Interpolants, LightmapUV0, LightmapUV1);
 		SkyOcclusionUV = LightmapUV0;
-		Lighting = GetLightMapColorHQ(LightmapUV0, LightmapUV1, MaterialParameters.WorldNormal).rgb;
+		GetLightMapColorHQ(LightmapUV0, LightmapUV1, MaterialParameters.WorldNormal, OutDiffuseLighting, OutSubsurfaceLighting);
 
 	// Low quality texture lightmaps
 	#elif LQ_TEXTURE_LIGHTMAP
 
 		float2 LightmapUV0, LightmapUV1;
 		GetLightMapCoordinates(Interpolants, LightmapUV0, LightmapUV1);
-		Lighting = GetLightMapColorLQ( LightmapUV0, LightmapUV1, MaterialParameters.WorldNormal ).rgb;
+		OutDiffuseLighting = GetLightMapColorLQ(LightmapUV0, LightmapUV1, MaterialParameters.WorldNormal).rgb;
 
 	#endif
 
-	// Sky lighting must contribute to IndirectIrradiance for ReflectionEnvironment lightmap mixing
-	float3 SkyLighting = GetSkyLighting(MaterialParameters.WorldNormal, SkyOcclusionUV);
+	// Apply indirect lighting scale while we have only accumulated lightmaps
+	OutDiffuseLighting *= View.IndirectLightingColorScale;
+
+	float3 SkyDiffuseLighting;
+	float3 SkySubsurfaceLighting;
+	GetSkyLighting(MaterialParameters.WorldNormal, SkyOcclusionUV, SkyDiffuseLighting, SkySubsurfaceLighting);
+
+	OutSubsurfaceLighting += SkySubsurfaceLighting;
 
 	BRANCH
 	if( View.UseLightmaps > 0 )
 	{
-		Lighting += SkyLighting;
+		// Sky lighting must contribute to IndirectIrradiance for ReflectionEnvironment lightmap mixing
+		OutDiffuseLighting += SkyDiffuseLighting;
 	}
 	else
 	{
@@ -428,16 +451,13 @@ float3 GetPrecomputedIndirectLighting(
 		float DiffuseMip = ComputeReflectionCaptureMipFromRoughness(1);
 		float4 DiffuseIBL = TextureCubeArraySampleLevel(ReflectionCubemap, ReflectionCubemapSampler, MaterialParameters.WorldNormal, CubemapArrayIndex, DiffuseMip);
 		
-		Lighting += DiffuseIBL.rgb + (1 - DiffuseIBL.a) * SkyLighting;
+		OutDiffuseLighting += DiffuseIBL.rgb + (1 - DiffuseIBL.a) * SkyDiffuseLighting;
 	#endif
 	}
 
 	#if HQ_TEXTURE_LIGHTMAP || LQ_TEXTURE_LIGHTMAP || CACHED_VOLUME_INDIRECT_LIGHTING || CACHED_POINT_INDIRECT_LIGHTING
-		Lighting *= View.IndirectLightingColorScale;
-		IndirectIrradiance = Luminance(Lighting);
+		OutIndirectIrradiance = Luminance(OutDiffuseLighting);
 	#endif
-
-	return Lighting;
 }
 
 #if EDITOR_PRIMITIVE_MATERIAL
@@ -506,9 +526,7 @@ uint CustomAlpha2Coverage(inout float4 InOutColor)
 void Main(
 	FVertexFactoryInterpolantsVSToPS Interpolants,
 	FBasePassInterpolantsVSToPS BasePassInterpolants,
-#if HIGHQUALITY_PS_POSITION
-   float4 InSVPosition : SV_POSITION,
-#endif
+	in float4 SvPosition : SV_Position,
 	OPTIONAL_IsFrontFace,
 	out float4 OutColor		: SV_Target0
 #if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 && (MATERIALBLENDING_SOLID || MATERIALBLENDING_MASKED) && !NO_GBUFFER
@@ -533,21 +551,11 @@ void Main(
 
 	FMaterialPixelParameters MaterialParameters = GetMaterialPixelParameters(Interpolants, BasePassInterpolants.PixelPosition);
 
-	CalcMaterialParameters(MaterialParameters,bIsFrontFace,BasePassInterpolants.PixelPosition
+	CalcMaterialParameters(MaterialParameters, SvPosition, bIsFrontFace, BasePassInterpolants.PixelPosition
 #if USE_WORLD_POSITION_EXCLUDING_SHADER_OFFSETS
 		, BasePassInterpolants.PixelPositionExcludingWPO
 #endif
 	);
-
-#if HIGHQUALITY_PS_POSITION
-	// SVPosition was already computed but only at low quality.
-	// Here we override it with the higher quality.
-
-	// Pixel position relative to left top of screen (not viewport), center of pixel
-	// z:DeviceZ, .w:SceneDepth
-	MaterialParameters.SVPosition = InSVPosition;
-#endif
-
 
 #if EDITOR_PRIMITIVE_MATERIAL && (FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || ES2_EMULATION)
 	const bool bEditorWeightedZBuffering = true;
@@ -576,11 +584,11 @@ void Main(
 
 	// If we don't use this shading model the color should be black (don't generate shader code for unused data, don't do indirectlighting cache lighting with this color).
 	float3 SubsurfaceColor = 0;
-#if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN || MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE
+#if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN || MATERIAL_SHADINGMODEL_SUBSURFACE_PROFILE || MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
 	{
 		float4 SubsurfaceData = GetMaterialSubsurfaceData(MaterialParameters);
 
-#if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN
+#if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN || MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
 		SubsurfaceColor = SubsurfaceData.rgb;
 #endif
 		SubsurfaceProfile = SubsurfaceData.a;
@@ -629,7 +637,19 @@ void Main(
 
 	#if !MATERIAL_SHADINGMODEL_UNLIT
 
-		Color += GetPrecomputedIndirectLighting(MaterialParameters, Interpolants, BasePassInterpolants, IndirectIrradiance) * (DiffuseColor + SubsurfaceColor) * MaterialAO;
+		float3 DiffuseIndirectLighting;
+		float3 SubsurfaceIndirectLighting;
+		GetPrecomputedIndirectLightingAndSkyLight(MaterialParameters, Interpolants, BasePassInterpolants, DiffuseIndirectLighting, SubsurfaceIndirectLighting, IndirectIrradiance);
+
+		float3 EffectiveDiffuseColor = DiffuseColor;
+
+		#if MATERIAL_SHADINGMODEL_SUBSURFACE || MATERIAL_SHADINGMODEL_PREINTEGRATED_SKIN
+			// Add subsurface energy to diffuse
+			//@todo - better subsurface handling for these shading models with skylight and precomputed GI
+			DiffuseColor += SubsurfaceColor;
+		#endif
+
+		Color += (DiffuseIndirectLighting * DiffuseColor + SubsurfaceIndirectLighting * SubsurfaceColor) * MaterialAO;
 
 		#if SIMPLE_DYNAMIC_LIGHTING
 			// always unshadowed so BiasedNDotL is not needed
@@ -762,6 +782,9 @@ void Main(
 
 			GBuffer.CustomData.x = ClearCoat;
 			GBuffer.CustomData.y = ClearCoatRoughness;
+		#elif MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
+			GBuffer.ShadingModelID = SHADINGMODELID_TWOSIDED_FOLIAGE;
+			GBuffer.CustomData = EncodeSubsurfaceColor(SubsurfaceColor);
 		#else
 			// missing shading model, compiler should report ShadingModelID is not set
 		#endif

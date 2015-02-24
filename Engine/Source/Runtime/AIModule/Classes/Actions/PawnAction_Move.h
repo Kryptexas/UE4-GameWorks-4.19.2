@@ -1,8 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "TimerManager.h"
 #include "PawnAction_Move.generated.h"
+
+class AActor;
+class AAIController;
+class UNavigationQueryFilter;
+struct FAIMessage;
 
 namespace EPawnActionMoveMode
 {
@@ -19,7 +24,7 @@ class AIMODULE_API UPawnAction_Move : public UPawnAction
 	GENERATED_UCLASS_BODY()
 protected:
 	UPROPERTY(Category = PawnAction, EditAnywhere, BlueprintReadWrite)
-	class AActor* GoalActor;
+	AActor* GoalActor;
 
 	UPROPERTY(Category = PawnAction, EditAnywhere, BlueprintReadWrite)
 	FVector GoalLocation;
@@ -29,7 +34,7 @@ protected:
 
 	/** "None" will result in default filter being used */
 	UPROPERTY(Category = PawnAction, EditAnywhere, BlueprintReadWrite)
-	TSubclassOf<class UNavigationQueryFilter> FilterClass;
+	TSubclassOf<UNavigationQueryFilter> FilterClass;
 
 	UPROPERTY(Category = PawnAction, EditAnywhere, BlueprintReadWrite)
 	uint32 bAllowStrafe : 1;
@@ -57,13 +62,13 @@ protected:
 public:
 	virtual void BeginDestroy() override;
 
-	static UPawnAction_Move* CreateAction(UWorld& World, class AActor* GoalActor, EPawnActionMoveMode::Type Mode);
+	static UPawnAction_Move* CreateAction(UWorld& World, AActor* GoalActor, EPawnActionMoveMode::Type Mode);
 	static UPawnAction_Move* CreateAction(UWorld& World, const FVector& GoalLocation, EPawnActionMoveMode::Type Mode);
 
-	static bool CheckAlreadyAtGoal(class AAIController* Controller, const FVector& TestLocation, float Radius);
-	static bool CheckAlreadyAtGoal(class AAIController* Controller, const AActor* TestGoal, float Radius);
+	static bool CheckAlreadyAtGoal(AAIController& Controller, const FVector& TestLocation, float Radius);
+	static bool CheckAlreadyAtGoal(AAIController& Controller, const AActor& TestGoal, float Radius);
 
-	virtual void HandleAIMessage(UBrainComponent*, const struct FAIMessage&) override;
+	virtual void HandleAIMessage(UBrainComponent*, const FAIMessage&) override;
 
 	void SetPath(FNavPathSharedRef InPath);
 	void OnPathUpdated(FNavigationPath* UpdatedPath, ENavPathEvent::Type Event);
@@ -74,14 +79,21 @@ public:
 	void EnablePathUpdateOnMoveGoalLocationChange(bool bEnable) { bUpdatePathToGoal = bEnable; }
 	void EnableGoalLocationProjectionToNavigation(bool bEnable) { bProjectGoalToNavigation = bEnable; }
 	void EnableChildAbortionOnPathUpdate(bool bEnable) { bAbortChildActionOnPathChange = bEnable; }
-	void SetFilterClass(TSubclassOf<class UNavigationQueryFilter> NewFilterClass) { FilterClass = NewFilterClass; }
+	void SetFilterClass(TSubclassOf<UNavigationQueryFilter> NewFilterClass) { FilterClass = NewFilterClass; }
 
 protected:
 	/** currently followed path */
 	FNavPathSharedPtr Path;
 
 	FNavigationPath::FPathObserverDelegate::FDelegate PathObserver;
+	FDelegateHandle PathObserverDelegateHandle;
 	
+	/** Handle for efficient management of DeferredPerformMoveAction timer */
+	FTimerHandle TimerHandle_DeferredPerformMoveAction;
+
+	/** Handle for efficient management of TryToRepath timer */
+	FTimerHandle TimerHandle_TryToRepath;
+
 	void ClearPath();
 	virtual bool Start() override;
 	virtual bool Pause(const UPawnAction* PausedBy) override;
@@ -89,7 +101,7 @@ protected:
 	virtual void OnFinished(EPawnActionResult::Type WithResult) override;
 	virtual EPawnActionAbortState::Type PerformAbort(EAIForceParam::Type ShouldForce) override;
 
-	virtual EPathFollowingRequestResult::Type RequestMove(AAIController* Controller);
+	virtual EPathFollowingRequestResult::Type RequestMove(AAIController& Controller);
 	
 	bool PerformMoveAction();
 	void DeferredPerformMoveAction();

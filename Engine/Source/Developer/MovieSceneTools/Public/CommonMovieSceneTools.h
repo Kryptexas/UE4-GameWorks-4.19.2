@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,10 +9,11 @@ struct FTimeToPixel
 {
 public:
 	FTimeToPixel( const FGeometry& AllottedGeometry, TRange<float> InLocalViewRange )
-		: LocalViewRange( InLocalViewRange )
+		: MaxPixelsPerInput(1000.0f)
+		, LocalViewRange( InLocalViewRange )
 	{
 		const float ViewRange = LocalViewRange.Size<float>();
-		PixelsPerInput = ViewRange > 0 ? AllottedGeometry.Size.X / ViewRange : 0;
+		PixelsPerInput = ViewRange > 0 ? AllottedGeometry.Size.X / ViewRange : MaxPixelsPerInput;
 	}
 
 	/**
@@ -45,6 +46,8 @@ public:
 		return PixelsPerInput;
 	}
 private:
+	const float MaxPixelsPerInput;
+
 	/** time range of the sequencer */
 	TRange<float> LocalViewRange;
 	/** The number of pixels in the view range */

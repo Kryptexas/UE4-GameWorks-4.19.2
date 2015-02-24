@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -7,6 +7,12 @@
 #include "ActorEditorUtils.h"
 #include "ScopedTransaction.h"
 #include "HModel.h"
+#include "Components/DrawSphereComponent.h"
+#include "AI/Navigation/NavLinkRenderingComponent.h"
+#include "Engine/Selection.h"
+#include "EngineUtils.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
 
 ///////////////////////////////////////////////////////////////////////////////
 //
@@ -23,7 +29,7 @@
 void FDragTool_ActorFrustumSelect::AddDelta( const FVector& InDelta )
 {
 	FIntPoint MousePos;
-	ViewportClient->Viewport->GetMousePos(MousePos);
+	LevelViewportClient->Viewport->GetMousePos(MousePos);
 
 	EndWk = FVector(MousePos);
 	End = EndWk;
@@ -35,8 +41,6 @@ void FDragTool_ActorFrustumSelect::AddDelta( const FVector& InDelta )
 void FDragTool_ActorFrustumSelect::StartDrag(FEditorViewportClient* InViewportClient, const FVector& InStart, const FVector2D& InStartScreen)
 {
 	FDragTool::StartDrag(InViewportClient, InStart, InStartScreen);
-
-	ViewportClient = InViewportClient;
 
 	const bool bUseHoverFeedback = GEditor != NULL && GetDefault<ULevelEditorViewportSettings>()->bEnableViewportHoverFeedback;
 
@@ -59,8 +63,8 @@ void FDragTool_ActorFrustumSelect::EndDrag()
 	FEditorModeTools& EdModeTools = GLevelEditorModeTools();
 	const bool bGeometryMode = EdModeTools.IsModeActive( FBuiltinEditorModes::EM_Geometry );
 
-	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(ViewportClient->Viewport, ViewportClient->GetScene(), ViewportClient->EngineShowFlags ));
-	FSceneView* SceneView = ViewportClient->CalcSceneView(&ViewFamily);
+	FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(LevelViewportClient->Viewport, LevelViewportClient->GetScene(), LevelViewportClient->EngineShowFlags ));
+	FSceneView* SceneView = LevelViewportClient->CalcSceneView(&ViewFamily);
 
 	// Generate a frustum out of the dragged box
 	FConvexVolume Frustum;
@@ -93,8 +97,8 @@ void FDragTool_ActorFrustumSelect::EndDrag()
 		}
 		
 
-		const int32 ViewportSizeX = ViewportClient->Viewport->GetSizeXY().X;
-		const int32 ViewportSizeY = ViewportClient->Viewport->GetSizeXY().Y;
+		const int32 ViewportSizeX = LevelViewportClient->Viewport->GetSizeXY().X;
+		const int32 ViewportSizeY = LevelViewportClient->Viewport->GetSizeXY().Y;
 
 		if( Start.X > End.X )
 		{
@@ -110,7 +114,7 @@ void FDragTool_ActorFrustumSelect::EndDrag()
 		if (bTransparentBoxSelection)
 		{
 			// Get a list of frustum-culled actors
-			for(FActorIterator It(ViewportClient->GetWorld()); It; ++It)
+			for(FActorIterator It(LevelViewportClient->GetWorld()); It; ++It)
 			{
 				AActor* Actor = *It;
 				if (IntersectsFrustum( *Actor, Frustum, bStrictDragSelection))
@@ -126,7 +130,7 @@ void FDragTool_ActorFrustumSelect::EndDrag()
 			// Extend the endpoint of the rect to get the actual line
 			FIntRect BoxRect( FIntPoint( FMath::Max( 0.0f, Start.X ), FMath::Max( 0.0f, Start.Y ) ), FIntPoint( FMath::Min(ViewportSizeX, FMath::TruncToInt(End.X+1)), FMath::Min( ViewportSizeY, FMath::TruncToInt(End.Y+1) ) ) );
 
-			const TArray<FColor>& RawHitProxyData = ViewportClient->Viewport->GetRawHitProxyData(BoxRect);
+			const TArray<FColor>& RawHitProxyData = LevelViewportClient->Viewport->GetRawHitProxyData(BoxRect);
 
 			TSet<AActor*> HitActors;
 			TSet<UModel*> HitModels;
@@ -230,140 +234,19 @@ void FDragTool_ActorFrustumSelect::Render(const FSceneView* View, FCanvas* Canva
 	Canvas->DrawItem( BoxItem );
 }
 
-/** 
- * Returns true if the mesh on the component has vertices which intersect the frustum
- *
- * @param InComponent			The static mesh or skeletal mesh component to check
- * @param InFrustum				The frustum to check against.
- * @param bUseStrictSelection	true if all the vertices must be entirely within the frustum
- */
-bool FDragTool_ActorFrustumSelect::IntersectsVertices( UPrimitiveComponent& InComponent, const FConvexVolume& InFrustum, bool bUseStrictSelection ) const
-{
-	bool bAlreadyProcessed = false;
-	bool bResult = false;
-	UStaticMeshComponent* StaticMeshComponent = Cast<UStaticMeshComponent>(&InComponent);
-	USkeletalMeshComponent* SkeletalMeshComponent = Cast<USkeletalMeshComponent>(&InComponent);
-
-	if( StaticMeshComponent && StaticMeshComponent->StaticMesh && ViewportClient->EngineShowFlags.StaticMeshes )
-	{
-		check( StaticMeshComponent->StaticMesh->RenderData );
-		if( StaticMeshComponent->StaticMesh->RenderData->LODResources.Num() > 0 )
-		{
-			const FStaticMeshLODResources& LODModel = StaticMeshComponent->StaticMesh->RenderData->LODResources[0];
-			uint32 NumVertices = LODModel.VertexBuffer.GetNumVertices();
-			for (uint32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
-			{
-				const FVector& LocalPosition = LODModel.PositionVertexBuffer.VertexPosition(VertexIndex);
-				const FVector& WorldPosition = StaticMeshComponent->ComponentToWorld.TransformPosition(LocalPosition);
-				bool bLocationIntersected = InFrustum.IntersectBox(WorldPosition, FVector::ZeroVector);
-				if (bLocationIntersected && !bUseStrictSelection)
-				{
-					bResult = true;
-					bAlreadyProcessed = true;
-					break;
-				}
-				else if (!bLocationIntersected && bUseStrictSelection)
-				{
-					bResult = false;
-					bAlreadyProcessed = true;
-					break;
-				}
-			}
-		}
-
-		if (!bAlreadyProcessed && bUseStrictSelection)
-		{
-			bResult = true;
-			bAlreadyProcessed = true;
-		}
-	}
-	else if( SkeletalMeshComponent && SkeletalMeshComponent->MeshObject && ViewportClient->EngineShowFlags.SkeletalMeshes )
-	{
-		FSkeletalMeshResource* SkelMeshResource = SkeletalMeshComponent->GetSkeletalMeshResource();
-		check(SkelMeshResource);
-		check( SkelMeshResource->LODModels.Num() > 0 );
-
-		const FStaticLODModel& LODModel = SkelMeshResource->LODModels[0];
-		for( int32 ChunkIndex = 0 ; ChunkIndex < LODModel.Chunks.Num() && !bAlreadyProcessed; ++ChunkIndex )
-		{
-			const FSkelMeshChunk& Chunk = LODModel.Chunks[ChunkIndex];
-			for( int32 VertexIndex = 0; VertexIndex < Chunk.RigidVertices.Num(); ++VertexIndex )
-			{
-				const FVector Location = SkeletalMeshComponent->ComponentToWorld.TransformPosition( Chunk.RigidVertices[VertexIndex].Position );
-				const bool bLocationIntersected = InFrustum.IntersectBox( Location, FVector::ZeroVector );
-
-				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
-				// the selection box, this component is being touched by the selection box
-				if( bLocationIntersected && !bUseStrictSelection )
-				{
-					bResult = true;
-					bAlreadyProcessed = true;
-					break;
-				}
-
-				// If the selection box has to encompass the entire component and a skeletal mesh vertex didn't intersect with the selection
-				// box, this component does not qualify
-				else if ( !bLocationIntersected && bUseStrictSelection )
-				{
-					bResult = false;
-					bAlreadyProcessed = true;
-					break;
-				}
-			}
-
-			for( int32 VertexIndex = 0 ; VertexIndex < Chunk.SoftVertices.Num() && !bAlreadyProcessed ; ++VertexIndex )
-			{
-				const FVector Location = SkeletalMeshComponent->ComponentToWorld.TransformPosition( Chunk.SoftVertices[VertexIndex].Position );
-				const bool bLocationIntersected = InFrustum.IntersectBox( Location, FVector::ZeroVector );
-
-				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
-				// the selection box, this component is being touched by the selection box
-				if( bLocationIntersected && !bUseStrictSelection )
-				{
-					bResult = true;
-					bAlreadyProcessed = true;
-					break;
-				}
-
-				// If the selection box has to encompass the entire component and a skeletal mesh vertex didn't intersect with the selection
-				// box, this component does not qualify
-				else if ( !bLocationIntersected && bUseStrictSelection  )
-				{
-					bResult = false;
-					bAlreadyProcessed = true;
-					break;
-				}
-			}
-
-			// If the selection box has to encompass all of the component and none of the component's verts failed the intersection test, this component
-			// is consider touching
-			if ( !bAlreadyProcessed && bUseStrictSelection )
-			{
-				bResult = true;
-				bAlreadyProcessed = true;
-			}
-		}
-	}
-
-	return bResult;
-}
-
 bool FDragTool_ActorFrustumSelect::IntersectsFrustum( AActor& InActor, const FConvexVolume& InFrustum, bool bUseStrictSelection ) const
 {	
 	bool bActorHitByBox = false;
-	bool bActorFullyContained = false;
+
+	FEditorModeTools& EdModeTools = GLevelEditorModeTools();
+	const bool bGeometryMode = EdModeTools.IsModeActive(FBuiltinEditorModes::EM_Geometry);
 
 	// Check for special cases (like certain show flags that might hide an actor)
 	bool bActorIsHiddenByShowFlags = false;
 
-	FLevelEditorViewportClient* LevelViewportClient = NULL;
-	if ( ViewportClient->IsLevelEditorClient()  )
-	{
-		LevelViewportClient = (FLevelEditorViewportClient*)ViewportClient;
-	}
-
 	// Check to see that volume actors are visible in the viewport
-	if( LevelViewportClient && InActor.IsA(AVolume::StaticClass()) && (!LevelViewportClient->EngineShowFlags.Volumes || !LevelViewportClient->IsVolumeVisibleInViewport(InActor) ) )
+	check(LevelViewportClient != nullptr);
+	if( InActor.IsA(AVolume::StaticClass()) && (!LevelViewportClient->EngineShowFlags.Volumes || !LevelViewportClient->IsVolumeVisibleInViewport(InActor) ) )
 	{
 		bActorIsHiddenByShowFlags = true;
 	}
@@ -372,107 +255,18 @@ bool FDragTool_ActorFrustumSelect::IntersectsFrustum( AActor& InActor, const FCo
 	if( !bActorIsHiddenByShowFlags && !InActor.IsHiddenEd() && !FActorEditorUtils::IsABuilderBrush(&InActor) )
 	{
 		// Iterate over all actor components, selecting out primitive components
-		TArray<UPrimitiveComponent*> Components;
+		TInlineComponentArray<UPrimitiveComponent*> Components;
 		InActor.GetComponents(Components);
 
-		for( int32 ComponentIndex = 0 ; ComponentIndex < Components.Num() ; ++ComponentIndex )
+		for (const UPrimitiveComponent* PrimitiveComponent : Components)
 		{
-			UPrimitiveComponent* PrimitiveComponent = Components[ComponentIndex];
+			check(PrimitiveComponent != nullptr);
 			if ( PrimitiveComponent->IsRegistered() && PrimitiveComponent->IsVisibleInEditor() )
 			{
-				FVector Origin = PrimitiveComponent->Bounds.Origin;
-				FVector Extent;
-				if( PrimitiveComponent->IsA(UDrawSphereComponent::StaticClass()) )
+				if (PrimitiveComponent->ComponentIsTouchingSelectionFrustum(InFrustum, LevelViewportClient->EngineShowFlags, bGeometryMode, bUseStrictSelection))
 				{
-					// Do not select by DrawLight Radii or Cones
-					continue;
-				}
-				else if( PrimitiveComponent->IsA(UNavLinkRenderingComponent::StaticClass() ) )
-				{
-					continue;
-				}
-				if(PrimitiveComponent->IsA(UBillboardComponent::StaticClass()) && Cast<UBillboardComponent>(PrimitiveComponent)->Sprite != NULL)
-				{
-					// Use the size of the sprite itself rather than its box extent
-					UBillboardComponent* SpriteComponent = Cast<UBillboardComponent>(PrimitiveComponent);
-					float Scale = SpriteComponent->ComponentToWorld.GetMaximumAxisScale();
-					Extent = FVector(Scale * SpriteComponent->Sprite->GetSizeX()/2.0f, Scale * SpriteComponent->Sprite->GetSizeY()/2.0f, 0.0f);
-				}
-				else
-				{
-					Extent = PrimitiveComponent->Bounds.BoxExtent;
-				}
-
-
-				UBrushComponent* BrushComponent = Cast<UBrushComponent>( PrimitiveComponent );
-				if( BrushComponent && BrushComponent->Brush && BrushComponent->Brush->Polys )
-				{
-					bool bAlreadyProcessed = false;
-
-					// Need to check each vert of the brush separately
-					for( int32 PolyIndex = 0 ; PolyIndex < BrushComponent->Brush->Polys->Element.Num() && !bAlreadyProcessed ; ++PolyIndex )
-					{
-						const FPoly& Poly = BrushComponent->Brush->Polys->Element[ PolyIndex ];
-
-						for( int32 VertexIndex = 0 ; VertexIndex < Poly.Vertices.Num() ; ++VertexIndex )
-						{
-							const FVector Location = BrushComponent->ComponentToWorld.TransformPosition( Poly.Vertices[VertexIndex] );
-							const bool bIntersect = InFrustum.IntersectBox( Location, FVector::ZeroVector );
-
-							if( bIntersect && !bUseStrictSelection )
-							{
-								// If we intersected a vertex and we dont require the box to encompass the entire component
-								// then the actor should be selected and we can stop checking
-								bAlreadyProcessed = true;
-								bActorHitByBox = true;
-								break;
-							}
-							else if( !bIntersect && bUseStrictSelection )
-							{
-								// If we didnt intersect a vertex but we require the box to encompass the entire component
-								// then this test failed and we can stop checking
-								bAlreadyProcessed = true;
-								bActorHitByBox = false;
-								break;
-							}
-						}
-					}
-
-					if( bUseStrictSelection && !bAlreadyProcessed )
-					{
-						// If we are here then every vert was intersected so we should select the actor
-						bActorHitByBox = true;
-						bAlreadyProcessed = true;
-					}
-
-					if( bAlreadyProcessed )
-					{
-						// if this component has been processed, dont bother checking other components
-						break;
-					}
-				}
-				else
-				{
-					if ( InFrustum.IntersectBox( Origin, Extent, bActorFullyContained) 
-						&& (!bUseStrictSelection || bActorFullyContained))
-					{
-						if( PrimitiveComponent->IsA( UStaticMeshComponent::StaticClass() ) || PrimitiveComponent->IsA( USkeletalMeshComponent::StaticClass() ) )
-						{
-							// Check each vertex on the component's mesh for intersection
-							bActorHitByBox = IntersectsVertices( *PrimitiveComponent, InFrustum, bUseStrictSelection );
-						}
-						else
-						{
-							// Use the bounding box check for all other components
-							bActorHitByBox = true;
-						}
-							
-						if( bActorHitByBox )
-						{
-							// no need to continue checking other components
-							break;
-						}
-					}
+					bActorHitByBox = true;
+					break;
 				}
 			}
 		}
@@ -513,7 +307,7 @@ void FDragTool_ActorFrustumSelect::CalculateFrustum( FSceneView* View, FConvexVo
 {
 	if( bUseBoxFrustum )
 	{
-		FVector CamPoint = ViewportClient->GetViewLocation();
+		FVector CamPoint = LevelViewportClient->GetViewLocation();
 		FVector BoxPoint1, BoxPoint2, BoxPoint3, BoxPoint4;
 		FVector WorldDir1, WorldDir2, WorldDir3, WorldDir4;
 		// Deproject the four corners of the selection box

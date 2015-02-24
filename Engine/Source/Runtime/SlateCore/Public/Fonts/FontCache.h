@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "TextureAtlas.h"
+
 struct FCharacterRenderData;
 class FFreeTypeInterface;
-
 
 /** Information for rendering one character */
 struct SLATECORE_API FCharacterEntry
@@ -218,7 +219,7 @@ private:
  * Font caching implementation
  * Caches characters into textures as needed
  */
-class SLATECORE_API FSlateFontCache
+class SLATECORE_API FSlateFontCache : public ISlateAtlasProvider
 {
 public:
 	/**
@@ -229,6 +230,12 @@ public:
 	 */
 	FSlateFontCache( TSharedRef<ISlateFontAtlasFactory> InFontAtlasFactory );
 	virtual ~FSlateFontCache();
+
+	/** ISlateAtlasProvider */
+	virtual int32 GetNumAtlasPages() const override;
+	virtual FIntPoint GetAtlasPageSize() const override;
+	virtual FSlateShaderResource* GetAtlasPageResource(const int32 InIndex) const override;
+	virtual bool IsAtlasPageResourceAlphaOnly() const override;
 
 	/** 
 	 * Gets information for how to draw all characters in the specified string. Caches characters as they are found

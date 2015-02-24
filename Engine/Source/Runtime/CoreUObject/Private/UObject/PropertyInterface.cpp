@@ -1,10 +1,24 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
+#include "LinkerPlaceholderClass.h"
 
 /*-----------------------------------------------------------------------------
 	UInterfaceProperty.
 -----------------------------------------------------------------------------*/
+
+void UInterfaceProperty::BeginDestroy()
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(InterfaceClass))
+	{
+		PlaceholderClass->RemovePropertyReference(this);
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
+	Super::BeginDestroy();
+}
+
 /**
  * Returns the text to use for exporting this property to header file.
  *
@@ -47,10 +61,24 @@ FString UInterfaceProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint
 		check(ExportClass);
 		check(ExportClass->HasAnyClassFlags(CLASS_Interface));
 
-		*ExtendedTypeText = FString::Printf(TEXT("<class I%s>"), *ExportClass->GetName());
+		*ExtendedTypeText = FString::Printf(TEXT("<I%s>"), *ExportClass->GetName());
 	}
 
 	return TEXT("TScriptInterface");
+}
+
+FString UInterfaceProperty::GetCPPTypeForwardDeclaration() const
+{
+	checkSlow(InterfaceClass);
+	UClass* ExportClass = InterfaceClass;
+	while (ExportClass && !ExportClass->HasAnyClassFlags(CLASS_Native))
+	{
+		ExportClass = ExportClass->GetSuperClass();
+	}
+	check(ExportClass);
+	check(ExportClass->HasAnyClassFlags(CLASS_Interface));
+
+	return FString::Printf(TEXT("class I%s;"), *ExportClass->GetName());
 }
 
 void UInterfaceProperty::LinkInternal(FArchive& Ar)
@@ -184,6 +212,16 @@ void UInterfaceProperty::Serialize( FArchive& Ar )
 
 	Ar << InterfaceClass;
 
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (Ar.IsLoading() || Ar.IsObjectReferenceCollector())
+	{
+		if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(InterfaceClass))
+		{
+			PlaceholderClass->AddReferencingProperty(this);
+		}
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
 	if ( !InterfaceClass && !HasAnyFlags(RF_ClassDefaultObject) )
  	{
 		// If we failed to load the InterfaceClass and we're not a CDO, that means we relied on a class that has been removed or doesn't exist.
@@ -199,6 +237,23 @@ void UInterfaceProperty::Serialize( FArchive& Ar )
 		++a;
  	}
 }
+
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+void UInterfaceProperty::SetInterfaceClass(UClass* NewInterfaceClass)
+{
+	if (ULinkerPlaceholderClass* NewPlaceholderClass = Cast<ULinkerPlaceholderClass>(NewInterfaceClass))
+	{
+		NewPlaceholderClass->AddReferencingProperty(this);
+	}
+
+	if (ULinkerPlaceholderClass* OldPlaceholderClass = Cast<ULinkerPlaceholderClass>(InterfaceClass))
+	{
+		OldPlaceholderClass->RemovePropertyReference(this);
+	}
+	InterfaceClass = NewInterfaceClass;
+}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 bool UInterfaceProperty::SameType(const UProperty* Other) const
 {

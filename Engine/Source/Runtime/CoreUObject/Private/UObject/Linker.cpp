@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Linker.cpp: Unreal object linker.
@@ -80,17 +80,11 @@ FGenerationInfo::FGenerationInfo(int32 InExportCount, int32 InNameCount)
 {}
 
 /** I/O function
- * we use a function instead of operator<< so we can pass in the package file summary for version tests, since Ar.UE3Ver() hasn't been set yet
+ * we use a function instead of operator<< so we can pass in the package file summary for version tests, since archive version hasn't been set yet
  */
 void FGenerationInfo::Serialize(FArchive& Ar, const struct FPackageFileSummary& Summary)
 {
 	Ar << ExportCount << NameCount;
-
-	if ( Summary.GetFileVersionUE4() < VER_UE4_REMOVE_NET_INDEX)
-	{
-		int32 OldNetObjectCount = 0;
-		Ar << OldNetObjectCount;
-	}
 }
 
 FName FLinkerTables::GetExportClassName( int32 i )
@@ -164,36 +158,6 @@ void ULinker::Serialize( FArchive& Ar )
 			FObjectImport& I = ImportMap[i];
 			Ar << (UObject*&)I.SourceLinker;
 			Ar << I.ClassPackage << I.ClassName;
-			if (Ar.IsLoading())
-			{
-				if (Ar.UE4Ver() < VER_UE4_CORE_SPLIT)
-				{
-					if (Linker::IsCorePackage(I.ClassPackage))
-					{
-						I.ClassPackage = GLongCoreUObjectPackageName;
-					}
-					if (Linker::IsCorePackage(I.ObjectName))
-					{
-						I.ObjectName = GLongCoreUObjectPackageName;
-					}
-				}
-				
-				// Short -> Long package name associations removal - convert all 
-				// short script package names to long package names.
-				if (Ar.UE4Ver() < VER_UE4_REMOVE_SHORT_PACKAGE_NAME_ASSOCIATIONS)
-				{
-					FName* LongScriptPackageName = FPackageName::FindScriptPackageName(I.ClassPackage);
-					if (LongScriptPackageName)
-					{
-						I.ClassPackage = *LongScriptPackageName;
-					}
-					LongScriptPackageName = FPackageName::FindScriptPackageName(I.ObjectName);
-					if (LongScriptPackageName)
-					{
-						I.ObjectName = *LongScriptPackageName;
-					}
-				}
-			}
 		}
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -41,12 +41,12 @@ private:
 	/** Called to create a widget for each string */
 	TSharedRef<SWidget> MakeItemWidget(TSharedPtr<FString> StringItem);
 	// Helper method to get the text for a given item in the combo box 
-	FString GetSelectedTextLabel(TSharedRef<IPropertyHandle> ParentSpacePropertyHandle) const;
+	FText GetSelectedTextLabel(TSharedRef<IPropertyHandle> ParentSpacePropertyHandle) const;
 	void OnComboBoxOopening(TSharedRef<IPropertyHandle> ParentSpacePropertyHandle, int32 ArrayIndex, bool bTranslation);
 	// check box handler
 	// Callback for changing this row's Share check box state.
-	void OnAdvancedCheckBoxStateChanged(ESlateCheckBoxState::Type NewState, TSharedRef<IPropertyHandle> PropertyHandle);
-	ESlateCheckBoxState::Type AdvancedCheckBoxIsChecked(TSharedRef<IPropertyHandle> PropertyHandle) const;
+	void OnAdvancedCheckBoxStateChanged(ECheckBoxState NewState, TSharedRef<IPropertyHandle> PropertyHandle);
+	ECheckBoxState AdvancedCheckBoxIsChecked(TSharedRef<IPropertyHandle> PropertyHandle) const;
 
 	// button handlers
 	FReply OnSetAllToWorld();

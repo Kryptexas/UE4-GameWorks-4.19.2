@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "PhysicsEngine/AggregateGeometry2D.h"
@@ -116,11 +116,6 @@ void FAggregateGeometry2D::EmptyElements()
 	CircleElements.Empty();
 	BoxElements.Empty();
 	ConvexElements.Empty();
-}
-
-void FAggregateGeometry2D::DrawAggGeom(FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FColor Color, const FMaterialRenderProxy* MatInst, bool bPerHullColor, bool bDrawSolid, bool bUseEditorDepthTest) const
-{
-	//@TODO: PAPER2D: Implement this method
 }
 
 float FAggregateGeometry2D::GetArea(const FVector& Scale) const

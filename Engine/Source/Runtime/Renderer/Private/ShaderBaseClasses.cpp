@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShaderBaseClasses.cpp: Shader base classes
@@ -32,6 +32,20 @@ FMaterialShader::FMaterialShader(const FMaterialShaderType::CompiledShaderInitia
 		FShaderUniformBufferParameter CollectionParameter;
 		CollectionParameter.Bind(Initializer.ParameterMap,*FString::Printf(TEXT("MaterialCollection%u"), CollectionIndex));
 		ParameterCollectionUniformBuffers.Add(CollectionParameter);
+	}
+
+	for (int32 Index = 0; Index < Initializer.UniformExpressionSet.PerFrameUniformScalarExpressions.Num(); Index++)
+	{
+		FShaderParameter Parameter;
+		Parameter.Bind(Initializer.ParameterMap, *FString::Printf(TEXT("UE_Material_PerFrameScalarExpression%u"), Index));
+		PerFrameScalarExpressions.Add(Parameter);
+	}
+
+	for (int32 Index = 0; Index < Initializer.UniformExpressionSet.PerFrameUniformVectorExpressions.Num(); Index++)
+	{
+		FShaderParameter Parameter;
+		Parameter.Bind(Initializer.ParameterMap, *FString::Printf(TEXT("UE_Material_PerFrameVectorExpression%u"), Index));
+		PerFrameVectorExpressions.Add(Parameter);
 	}
 
 	DeferredParameters.Bind(Initializer.ParameterMap);
@@ -89,9 +103,11 @@ void FMaterialShader::SetParameters(
 	check(Material.GetRenderingThreadShaderMap()->IsValidForRendering());
 	check(Material.GetFeatureLevel() == FeatureLevel);
 
-#if NO_LOGGING == 0
 	// Validate that the shader is being used for a material that matches the uniform expression set the shader was compiled for.
 	const FUniformExpressionSet& MaterialUniformExpressionSet = Material.GetRenderingThreadShaderMap()->GetUniformExpressionSet();
+
+#if NO_LOGGING == 0
+	
 	const bool bUniformExpressionSetMismatch = !DebugUniformExpressionSet.Matches(MaterialUniformExpressionSet)
 		|| UniformExpressionCache->CachedUniformExpressionShaderMap != Material.GetRenderingThreadShaderMap();
 
@@ -103,8 +119,8 @@ void FMaterialShader::SetParameters(
 			TEXT("%s shader uniform expression set mismatch for material %s/%s.\n")
 			TEXT("Shader compilation info:                %s\n")
 			TEXT("Material render proxy compilation info: %s\n")
-			TEXT("Shader uniform expression set:   %u vectors, %u scalars, %u 2D textures, %u cube textures, shader map %p\n")
-			TEXT("Material uniform expression set: %u vectors, %u scalars, %u 2D textures, %u cube textures, shader map %p\n"),
+			TEXT("Shader uniform expression set:   %u vectors, %u scalars, %u 2D textures, %u cube textures, %u scalars/frame, %u vectors/frame, shader map %p\n")
+			TEXT("Material uniform expression set: %u vectors, %u scalars, %u 2D textures, %u cube textures, %u scalars/frame, %u vectors/frame, shader map %p\n"),
 			GetType()->GetName(),
 			*MaterialRenderProxy->GetFriendlyName(),
 			*Material.GetFriendlyName(),
@@ -114,11 +130,15 @@ void FMaterialShader::SetParameters(
 			DebugUniformExpressionSet.NumScalarExpressions,
 			DebugUniformExpressionSet.Num2DTextureExpressions,
 			DebugUniformExpressionSet.NumCubeTextureExpressions,
+			DebugUniformExpressionSet.NumPerFrameScalarExpressions,
+			DebugUniformExpressionSet.NumPerFrameVectorExpressions,
 			UniformExpressionCache->CachedUniformExpressionShaderMap,
 			MaterialUniformExpressionSet.UniformVectorExpressions.Num(),
 			MaterialUniformExpressionSet.UniformScalarExpressions.Num(),
 			MaterialUniformExpressionSet.Uniform2DTextureExpressions.Num(),
 			MaterialUniformExpressionSet.UniformCubeTextureExpressions.Num(),
+			MaterialUniformExpressionSet.PerFrameUniformScalarExpressions.Num(),
+			MaterialUniformExpressionSet.PerFrameUniformVectorExpressions.Num(),
 			Material.GetRenderingThreadShaderMap()
 			);
 	}
@@ -146,6 +166,40 @@ void FMaterialShader::SetParameters(
 		{
 			FUniformBufferRHIParamRef UniformBuffer = GetParameterCollectionBuffer(ParameterCollections[CollectionIndex], View.Family->Scene);
 			SetUniformBufferParameter(RHICmdList, ShaderRHI,ParameterCollectionUniformBuffers[CollectionIndex],UniformBuffer);
+		}
+	}
+
+	{
+		// Per frame material expressions
+		const int32 NumScalarExpressions = PerFrameScalarExpressions.Num();
+		const int32 NumVectorExpressions = PerFrameVectorExpressions.Num();
+
+		if (NumScalarExpressions > 0 || NumVectorExpressions > 0)
+		{
+			FMaterialRenderContext MaterialRenderContext(MaterialRenderProxy, Material, &View);
+			MaterialRenderContext.Time = View.Family->CurrentWorldTime;
+			MaterialRenderContext.RealTime = View.Family->CurrentRealTime;
+			for (int32 Index = 0; Index < NumScalarExpressions; ++Index)
+			{
+				auto& Parameter = PerFrameScalarExpressions[Index];
+				if (Parameter.IsBound())
+				{
+					FLinearColor TempValue;
+					MaterialUniformExpressionSet.PerFrameUniformScalarExpressions[Index]->GetNumberValue(MaterialRenderContext, TempValue);
+					SetShaderValue(RHICmdList, ShaderRHI, Parameter, TempValue.R);
+				}
+			}
+
+			for (int32 Index = 0; Index < NumVectorExpressions; ++Index)
+			{
+				auto& Parameter = PerFrameVectorExpressions[Index];
+				if (Parameter.IsBound())
+				{
+					FLinearColor TempValue;
+					MaterialUniformExpressionSet.PerFrameUniformVectorExpressions[Index]->GetNumberValue(MaterialRenderContext, TempValue);
+					SetShaderValue(RHICmdList, ShaderRHI, Parameter, TempValue);
+				}
+			}
 		}
 	}
 
@@ -204,6 +258,9 @@ void FMaterialShader::SetParameters(
 	}
 }
 
+// Doxygen struggles to parse these explicit specializations. Just ignore them for now.
+#if !UE_BUILD_DOCS
+
 #define IMPLEMENT_MATERIAL_SHADER_SetParameters( ShaderRHIParamRef ) \
 	template RENDERER_API void FMaterialShader::SetParameters< ShaderRHIParamRef >( \
 		FRHICommandList& RHICmdList,					\
@@ -222,6 +279,8 @@ IMPLEMENT_MATERIAL_SHADER_SetParameters( FGeometryShaderRHIParamRef );
 IMPLEMENT_MATERIAL_SHADER_SetParameters( FPixelShaderRHIParamRef );
 IMPLEMENT_MATERIAL_SHADER_SetParameters( FComputeShaderRHIParamRef );
 
+#endif
+
 bool FMaterialShader::Serialize(FArchive& Ar)
 {
 	const bool bShaderHasOutdatedParameters = FShader::Serialize(Ar);
@@ -235,7 +294,7 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 		Ar << DebugUniformExpressionSet;
 		Ar << DebugDescription;
 	}
-	else if (Ar.IsLoading() && Ar.UE4Ver() >= VER_DEBUG_MATERIALSHADER_UNIFORM_EXPRESSIONS)
+	else if (Ar.IsLoading())
 	{
 		FUniformExpressionSet TempExpressionSet;
 		TempExpressionSet.Serialize(Ar);
@@ -250,6 +309,10 @@ bool FMaterialShader::Serialize(FArchive& Ar)
 	Ar << PerlinNoiseGradientTextureSampler;
 	Ar << PerlinNoise3DTexture;
 	Ar << PerlinNoise3DTextureSampler;
+
+	Ar << PerFrameScalarExpressions;
+	Ar << PerFrameVectorExpressions;
+
 	return bShaderHasOutdatedParameters;
 }
 

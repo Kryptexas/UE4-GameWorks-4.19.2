@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -35,6 +35,7 @@ class UK2Node_InputTouch : public UK2Node
 	virtual void AllocateDefaultPins() override;
 	virtual FLinearColor GetNodeTitleColor() const override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual FText GetTooltipText() const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.TouchEvent_16x"); }
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
@@ -48,6 +49,9 @@ class UK2Node_InputTouch : public UK2Node
 
 	/** Get the 'released' input pin */
 	BLUEPRINTGRAPH_API UEdGraphPin* GetReleasedPin() const;
+
+	/** Get the 'moved' input pin */
+	BLUEPRINTGRAPH_API UEdGraphPin* GetMovedPin() const;
 
 	BLUEPRINTGRAPH_API UEdGraphPin* GetLocationPin() const;
 	BLUEPRINTGRAPH_API UEdGraphPin* GetFingerIndexPin() const;

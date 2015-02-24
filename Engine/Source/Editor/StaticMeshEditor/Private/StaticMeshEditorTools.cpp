@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "StaticMeshEditorModule.h"
 #include "StaticMeshEditorTools.h"
@@ -36,11 +36,11 @@ FStaticMeshDetails::~FStaticMeshDetails()
 
 void FStaticMeshDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailBuilder )
 {
-	IDetailCategoryBuilder& LODSettingsCategory = DetailBuilder.EditCategory( "LodSettings", LOCTEXT("LodSettingsCategory", "LOD Settings").ToString() );
-	IDetailCategoryBuilder& StaticMeshCategory = DetailBuilder.EditCategory( "StaticMesh", LOCTEXT("StaticMeshGeneralSettings", "Static Mesh Settings").ToString() );
-	IDetailCategoryBuilder& ImportCategory = DetailBuilder.EditCategory( "ImportSettings", LOCTEXT("ImportGeneralSettings", "Import Settings").ToString() );
+	IDetailCategoryBuilder& LODSettingsCategory = DetailBuilder.EditCategory( "LodSettings", LOCTEXT("LodSettingsCategory", "LOD Settings") );
+	IDetailCategoryBuilder& StaticMeshCategory = DetailBuilder.EditCategory( "StaticMesh", LOCTEXT("StaticMeshGeneralSettings", "Static Mesh Settings") );
+	IDetailCategoryBuilder& ImportCategory = DetailBuilder.EditCategory( "ImportSettings", LOCTEXT("ImportGeneralSettings", "Import Settings") );
 	
-	DetailBuilder.EditCategory( "Navigation", TEXT(""), ECategoryPriority::Uncommon );
+	DetailBuilder.EditCategory( "Navigation", FText::GetEmpty(), ECategoryPriority::Uncommon );
 
 	LevelOfDetailSettings = MakeShareable( new FLevelOfDetailSettingsLayout( StaticMeshEditor ) );
 
@@ -90,7 +90,7 @@ void FStaticMeshDetails::CustomizeDetails( class IDetailLayoutBuilder& DetailBui
 	check(StaticMesh);
 	if (StaticMesh->AssetImportData && StaticMesh->AssetImportData->GetClass() != UAssetImportData::StaticClass())
 	{
-		ImportCategory.AddCustomRow(LOCTEXT("ReimportStaticMesh", "Reimport Static Mesh").ToString(), true)
+		ImportCategory.AddCustomRow(LOCTEXT("ReimportStaticMesh", "Reimport Static Mesh"), true)
 			.ValueContent()
 			[
 				SNew(SButton)
@@ -312,10 +312,12 @@ void FMeshBuildSettingsLayout::GenerateHeaderRowContent( FDetailWidgetRow& NodeR
 	];
 }
 
+TAutoConsoleVariable<int32> GEnableMikkTSpaceCVar(TEXT("r.MikkTSPaceOptional"),0,TEXT("Set to be non-zero to display the option of using MikkTSpace to generate tangents for static meshes. MikkTSpace is the default."),ECVF_Default);
+
 void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder )
 {
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("RecomputeNormals", "Recompute Normals").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("RecomputeNormals", "Recompute Normals") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -332,7 +334,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("RecomputeTangents", "Recompute Tangents").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("RecomputeTangents", "Recompute Tangents") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -347,8 +349,25 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 		];
 	}
 
+	if (GEnableMikkTSpaceCVar.GetValueOnAnyThread())
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("RemoveDegenerates", "Remove Degenerates").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("UseMikkTSpace", "Use MikkTSpace") )
+		.NameContent()
+		[
+			SNew(STextBlock)
+			.Font( IDetailLayoutBuilder::GetDetailFont() )
+			.Text(LOCTEXT("UseMikkTSpace", "Use MikkTSpace"))
+		]
+		.ValueContent()
+		[
+			SNew(SCheckBox)
+			.IsChecked(this, &FMeshBuildSettingsLayout::ShouldUseMikkTSpace)
+			.OnCheckStateChanged(this, &FMeshBuildSettingsLayout::OnUseMikkTSpaceChanged)
+		];
+	}
+
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT("RemoveDegenerates", "Remove Degenerates") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -364,7 +383,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("UseFullPrecisionUVs", "Use Full Precision UVs").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("UseFullPrecisionUVs", "Use Full Precision UVs") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -380,7 +399,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("GenerateLightmapUVs", "Generate Lightmap UVs").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("GenerateLightmapUVs", "Generate Lightmap UVs") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -396,12 +415,12 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("MinLightmapResolution", "Min Lightmap Resolution").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("MinLightmapResolution", "Min Lightmap Resolution") )
 		.NameContent()
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("MinLightmapResolution", "Min Lightmap Resolution").ToString())
+			.Text(LOCTEXT("MinLightmapResolution", "Min Lightmap Resolution"))
 		]
 		.ValueContent()
 		[
@@ -415,12 +434,12 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("SourceLightmapIndex", "Source Lightmap Index").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("SourceLightmapIndex", "Source Lightmap Index") )
 		.NameContent()
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("SourceLightmapIndex", "Source Lightmap Index").ToString())
+			.Text(LOCTEXT("SourceLightmapIndex", "Source Lightmap Index"))
 		]
 		.ValueContent()
 		[
@@ -434,12 +453,12 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("DestinationLightmapIndex", "Destination Lightmap Index").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("DestinationLightmapIndex", "Destination Lightmap Index") )
 		.NameContent()
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("DestinationLightmapIndex", "Destination Lightmap Index").ToString())
+			.Text(LOCTEXT("DestinationLightmapIndex", "Destination Lightmap Index"))
 		]
 		.ValueContent()
 		[
@@ -453,7 +472,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent(LOCTEXT("BuildScale", "Build Scale").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("BuildScale", "Build Scale"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -478,12 +497,12 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("DistanceFieldResolutionScale", "Distance Field Resolution Scale").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("DistanceFieldResolutionScale", "Distance Field Resolution Scale") )
 		.NameContent()
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("DistanceFieldResolutionScale", "Distance Field Resolution Scale").ToString())
+			.Text(LOCTEXT("DistanceFieldResolutionScale", "Distance Field Resolution Scale"))
 		]
 		.ValueContent()
 		[
@@ -498,12 +517,12 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 		
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Generate Distance Field as if TwoSided").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Generate Distance Field as if TwoSided") )
 		.NameContent()
 		[
 			SNew(STextBlock)
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
-			.Text(LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Generate Distance Field as if TwoSided").ToString())
+			.Text(LOCTEXT("GenerateDistanceFieldAsIfTwoSided", "Generate Distance Field as if TwoSided"))
 		]
 		.ValueContent()
 		[
@@ -514,7 +533,7 @@ void FMeshBuildSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& Chi
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("ApplyChanges", "Apply Changes").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("ApplyChanges", "Apply Changes") )
 		.ValueContent()
 		.HAlign(HAlign_Left)
 		[
@@ -544,34 +563,39 @@ FReply FMeshBuildSettingsLayout::OnApplyChanges()
 	return FReply::Handled();
 }
 
-ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldRecomputeNormals() const
+ECheckBoxState FMeshBuildSettingsLayout::ShouldRecomputeNormals() const
 {
-	return BuildSettings.bRecomputeNormals ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return BuildSettings.bRecomputeNormals ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldRecomputeTangents() const
+ECheckBoxState FMeshBuildSettingsLayout::ShouldRecomputeTangents() const
 {
-	return BuildSettings.bRecomputeTangents ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return BuildSettings.bRecomputeTangents ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldRemoveDegenerates() const
+ECheckBoxState FMeshBuildSettingsLayout::ShouldUseMikkTSpace() const
 {
-	return BuildSettings.bRemoveDegenerates ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return BuildSettings.bUseMikkTSpace ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldUseFullPrecisionUVs() const
+ECheckBoxState FMeshBuildSettingsLayout::ShouldRemoveDegenerates() const
 {
-	return BuildSettings.bUseFullPrecisionUVs ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return BuildSettings.bRemoveDegenerates ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldGenerateLightmapUVs() const
+ECheckBoxState FMeshBuildSettingsLayout::ShouldUseFullPrecisionUVs() const
 {
-	return BuildSettings.bGenerateLightmapUVs ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return BuildSettings.bUseFullPrecisionUVs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-ESlateCheckBoxState::Type FMeshBuildSettingsLayout::ShouldGenerateDistanceFieldAsIfTwoSided() const
+ECheckBoxState FMeshBuildSettingsLayout::ShouldGenerateLightmapUVs() const
 {
-	return BuildSettings.bGenerateDistanceFieldAsIfTwoSided ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return BuildSettings.bGenerateLightmapUVs ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+}
+
+ECheckBoxState FMeshBuildSettingsLayout::ShouldGenerateDistanceFieldAsIfTwoSided() const
+{
+	return BuildSettings.bGenerateDistanceFieldAsIfTwoSided ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 int32 FMeshBuildSettingsLayout::GetMinLightmapResolution() const
@@ -609,9 +633,9 @@ float FMeshBuildSettingsLayout::GetDistanceFieldResolutionScale() const
 	return BuildSettings.DistanceFieldResolutionScale;
 }
 
-void FMeshBuildSettingsLayout::OnRecomputeNormalsChanged(ESlateCheckBoxState::Type NewState)
+void FMeshBuildSettingsLayout::OnRecomputeNormalsChanged(ECheckBoxState NewState)
 {
-	const bool bRecomputeNormals = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bRecomputeNormals = (NewState == ECheckBoxState::Checked) ? true : false;
 	if (BuildSettings.bRecomputeNormals != bRecomputeNormals)
 	{
 		if (FEngineAnalytics::IsAvailable())
@@ -622,9 +646,9 @@ void FMeshBuildSettingsLayout::OnRecomputeNormalsChanged(ESlateCheckBoxState::Ty
 	}
 }
 
-void FMeshBuildSettingsLayout::OnRecomputeTangentsChanged(ESlateCheckBoxState::Type NewState)
+void FMeshBuildSettingsLayout::OnRecomputeTangentsChanged(ECheckBoxState NewState)
 {
-	const bool bRecomputeTangents = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bRecomputeTangents = (NewState == ECheckBoxState::Checked) ? true : false;
 	if (BuildSettings.bRecomputeTangents != bRecomputeTangents)
 	{
 		if (FEngineAnalytics::IsAvailable())
@@ -635,9 +659,18 @@ void FMeshBuildSettingsLayout::OnRecomputeTangentsChanged(ESlateCheckBoxState::T
 	}
 }
 
-void FMeshBuildSettingsLayout::OnRemoveDegeneratesChanged(ESlateCheckBoxState::Type NewState)
+void FMeshBuildSettingsLayout::OnUseMikkTSpaceChanged(ECheckBoxState NewState)
 {
-	const bool bRemoveDegenerates = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bUseMikkTSpace = (NewState == ECheckBoxState::Checked) ? true : false;
+	if (BuildSettings.bUseMikkTSpace != bUseMikkTSpace)
+	{
+		BuildSettings.bUseMikkTSpace = bUseMikkTSpace;
+	}
+}
+
+void FMeshBuildSettingsLayout::OnRemoveDegeneratesChanged(ECheckBoxState NewState)
+{
+	const bool bRemoveDegenerates = (NewState == ECheckBoxState::Checked) ? true : false;
 	if (BuildSettings.bRemoveDegenerates != bRemoveDegenerates)
 	{
 		if (FEngineAnalytics::IsAvailable())
@@ -648,9 +681,9 @@ void FMeshBuildSettingsLayout::OnRemoveDegeneratesChanged(ESlateCheckBoxState::T
 	}
 }
 
-void FMeshBuildSettingsLayout::OnUseFullPrecisionUVsChanged(ESlateCheckBoxState::Type NewState)
+void FMeshBuildSettingsLayout::OnUseFullPrecisionUVsChanged(ECheckBoxState NewState)
 {
-	const bool bUseFullPrecisionUVs = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bUseFullPrecisionUVs = (NewState == ECheckBoxState::Checked) ? true : false;
 	if (BuildSettings.bUseFullPrecisionUVs != bUseFullPrecisionUVs)
 	{
 		if (FEngineAnalytics::IsAvailable())
@@ -661,9 +694,9 @@ void FMeshBuildSettingsLayout::OnUseFullPrecisionUVsChanged(ESlateCheckBoxState:
 	}
 }
 
-void FMeshBuildSettingsLayout::OnGenerateLightmapUVsChanged(ESlateCheckBoxState::Type NewState)
+void FMeshBuildSettingsLayout::OnGenerateLightmapUVsChanged(ECheckBoxState NewState)
 {
-	const bool bGenerateLightmapUVs = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bGenerateLightmapUVs = (NewState == ECheckBoxState::Checked) ? true : false;
 	if (BuildSettings.bGenerateLightmapUVs != bGenerateLightmapUVs)
 	{
 		if (FEngineAnalytics::IsAvailable())
@@ -674,9 +707,9 @@ void FMeshBuildSettingsLayout::OnGenerateLightmapUVsChanged(ESlateCheckBoxState:
 	}
 }
 
-void FMeshBuildSettingsLayout::OnGenerateDistanceFieldAsIfTwoSidedChanged(ESlateCheckBoxState::Type NewState)
+void FMeshBuildSettingsLayout::OnGenerateDistanceFieldAsIfTwoSidedChanged(ECheckBoxState NewState)
 {
-	const bool bGenerateDistanceFieldAsIfTwoSided = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	const bool bGenerateDistanceFieldAsIfTwoSided = (NewState == ECheckBoxState::Checked) ? true : false;
 	if (BuildSettings.bGenerateDistanceFieldAsIfTwoSided != bGenerateDistanceFieldAsIfTwoSided)
 	{
 		if (FEngineAnalytics::IsAvailable())
@@ -798,7 +831,7 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder )
 {
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("PercentTriangles", "Percent Triangles").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("PercentTriangles", "Percent Triangles") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -819,7 +852,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("MaxDeviation", "Max Deviation").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("MaxDeviation", "Max Deviation") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -840,7 +873,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("Silhouette_MeshSimplification", "Silhouette").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("Silhouette_MeshSimplification", "Silhouette") )
 		.NameContent()
 		[
 			SNew( STextBlock )
@@ -860,7 +893,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("Texture_MeshSimplification", "Texture").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("Texture_MeshSimplification", "Texture") )
 		.NameContent()
 		[
 			SNew( STextBlock )
@@ -880,7 +913,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("Shading_MeshSimplification", "Shading").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("Shading_MeshSimplification", "Shading") )
 		.NameContent()
 		[
 			SNew( STextBlock )
@@ -900,7 +933,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("WeldingThreshold", "Welding Threshold").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("WeldingThreshold", "Welding Threshold") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -921,7 +954,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("RecomputeNormals", "Recompute Normals").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("RecomputeNormals", "Recompute Normals") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -938,7 +971,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("HardEdgeAngle", "Hard Edge Angle").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("HardEdgeAngle", "Hard Edge Angle") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -959,7 +992,7 @@ void FMeshReductionSettingsLayout::GenerateChildContent( IDetailChildrenBuilder&
 	}
 
 	{
-		ChildrenBuilder.AddChildContent( LOCTEXT("ApplyChanges", "Apply Changes").ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT("ApplyChanges", "Apply Changes") )
 			.ValueContent()
 			.HAlign(HAlign_Left)
 			[
@@ -1014,9 +1047,9 @@ float FMeshReductionSettingsLayout::GetWeldingThreshold() const
 	return ReductionSettings.WeldingThreshold;
 }
 
-ESlateCheckBoxState::Type FMeshReductionSettingsLayout::ShouldRecalculateNormals() const
+ECheckBoxState FMeshReductionSettingsLayout::ShouldRecalculateNormals() const
 {
-	return ReductionSettings.bRecalculateNormals ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return ReductionSettings.bRecalculateNormals ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 float FMeshReductionSettingsLayout::GetHardAngleThreshold() const
@@ -1067,9 +1100,9 @@ void FMeshReductionSettingsLayout::OnWeldingThresholdCommitted(float NewValue, E
 	OnWeldingThresholdChanged(NewValue);
 }
 
-void FMeshReductionSettingsLayout::OnRecalculateNormalsChanged(ESlateCheckBoxState::Type NewValue)
+void FMeshReductionSettingsLayout::OnRecalculateNormalsChanged(ECheckBoxState NewValue)
 {
-	const bool bRecalculateNormals = NewValue == ESlateCheckBoxState::Checked;
+	const bool bRecalculateNormals = NewValue == ECheckBoxState::Checked;
 	if (ReductionSettings.bRecalculateNormals != bRecalculateNormals)
 	{
 		if (FEngineAnalytics::IsAvailable())
@@ -1275,59 +1308,59 @@ void FMeshSectionSettingsLayout::OnResetMaterialToDefaultClicked(UMaterialInterf
 	CallPostEditChange();
 }
 
-ESlateCheckBoxState::Type FMeshSectionSettingsLayout::DoesSectionCastShadow(int32 SectionIndex) const
+ECheckBoxState FMeshSectionSettingsLayout::DoesSectionCastShadow(int32 SectionIndex) const
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
 	FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
-	return Info.bCastShadow ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return Info.bCastShadow ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void FMeshSectionSettingsLayout::OnSectionCastShadowChanged(ESlateCheckBoxState::Type NewState, int32 SectionIndex)
+void FMeshSectionSettingsLayout::OnSectionCastShadowChanged(ECheckBoxState NewState, int32 SectionIndex)
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
 	FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
-	Info.bCastShadow = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	Info.bCastShadow = (NewState == ECheckBoxState::Checked) ? true : false;
 	StaticMesh.SectionInfoMap.Set(LODIndex, SectionIndex, Info);
 	CallPostEditChange();
 }
 
-ESlateCheckBoxState::Type FMeshSectionSettingsLayout::DoesSectionCollide(int32 SectionIndex) const
+ECheckBoxState FMeshSectionSettingsLayout::DoesSectionCollide(int32 SectionIndex) const
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
 	FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
-	return Info.bEnableCollision ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return Info.bEnableCollision ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void FMeshSectionSettingsLayout::OnSectionCollisionChanged(ESlateCheckBoxState::Type NewState, int32 SectionIndex)
+void FMeshSectionSettingsLayout::OnSectionCollisionChanged(ECheckBoxState NewState, int32 SectionIndex)
 {
 	UStaticMesh& StaticMesh = GetStaticMesh();
 	FMeshSectionInfo Info = StaticMesh.SectionInfoMap.Get(LODIndex, SectionIndex);
-	Info.bEnableCollision = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	Info.bEnableCollision = (NewState == ECheckBoxState::Checked) ? true : false;
 	StaticMesh.SectionInfoMap.Set(LODIndex, SectionIndex, Info);
 	CallPostEditChange();
 }
 
-ESlateCheckBoxState::Type FMeshSectionSettingsLayout::IsSectionSelected(int32 SectionIndex) const
+ECheckBoxState FMeshSectionSettingsLayout::IsSectionSelected(int32 SectionIndex) const
 {
-	ESlateCheckBoxState::Type State = ESlateCheckBoxState::Unchecked;
+	ECheckBoxState State = ECheckBoxState::Unchecked;
 	UStaticMeshComponent* Component = StaticMeshEditor.GetStaticMeshComponent();
 	if (Component)
 	{
-		State = Component->SelectedEditorSection == SectionIndex ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		State = Component->SelectedEditorSection == SectionIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 	return State;
 }
 
-void FMeshSectionSettingsLayout::OnSectionSelectedChanged(ESlateCheckBoxState::Type NewState, int32 SectionIndex)
+void FMeshSectionSettingsLayout::OnSectionSelectedChanged(ECheckBoxState NewState, int32 SectionIndex)
 {
 	UStaticMeshComponent* Component = StaticMeshEditor.GetStaticMeshComponent();
 	if (Component)
 	{
-		if (NewState == ESlateCheckBoxState::Checked)
+		if (NewState == ECheckBoxState::Checked)
 		{
 			Component->SelectedEditorSection = SectionIndex;
 		}
-		else if (NewState == ESlateCheckBoxState::Unchecked)
+		else if (NewState == ECheckBoxState::Unchecked)
 		{
 			Component->SelectedEditorSection = INDEX_NONE;
 		}
@@ -1396,11 +1429,11 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
 
 	IDetailCategoryBuilder& LODSettingsCategory =
-		DetailBuilder.EditCategory( "LodSettings", LOCTEXT("LodSettingsCategory", "LOD Settings").ToString() );
+		DetailBuilder.EditCategory( "LodSettings", LOCTEXT("LodSettingsCategory", "LOD Settings") );
 
 	
 
-	LODSettingsCategory.AddCustomRow( LOCTEXT("LODGroup", "LOD Group").ToString() )
+	LODSettingsCategory.AddCustomRow( LOCTEXT("LODGroup", "LOD Group") )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -1416,7 +1449,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 		.OnSelectionChanged(this, &FLevelOfDetailSettingsLayout::OnLODGroupChanged)
 	];
 	
-	LODSettingsCategory.AddCustomRow( LOCTEXT("LODImport", "LOD Import").ToString() )
+	LODSettingsCategory.AddCustomRow( LOCTEXT("LODImport", "LOD Import") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -1434,7 +1467,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 
 	// Add Number of LODs slider.
 	const int32 MinAllowedLOD = 1;
-	LODSettingsCategory.AddCustomRow( LOCTEXT("NumberOfLODs", "Number of LODs").ToString() )
+	LODSettingsCategory.AddCustomRow( LOCTEXT("NumberOfLODs", "Number of LODs") )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -1455,7 +1488,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 	];
 
 	// Auto LOD distance check box.
-	LODSettingsCategory.AddCustomRow( LOCTEXT("AutoComputeLOD", "Auto Compute LOD Distances").ToString() )
+	LODSettingsCategory.AddCustomRow( LOCTEXT("AutoComputeLOD", "Auto Compute LOD Distances") )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -1469,7 +1502,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 		.OnCheckStateChanged(this, &FLevelOfDetailSettingsLayout::OnAutoLODChanged)
 	];
 
-	LODSettingsCategory.AddCustomRow( LOCTEXT("ApplyChanges", "Apply Changes").ToString() )
+	LODSettingsCategory.AddCustomRow( LOCTEXT("ApplyChanges", "Apply Changes") )
 	.ValueContent()
 	.HAlign(HAlign_Left)
 	[
@@ -1485,7 +1518,7 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 
 	bool bAdvanced = true;
 	// Allowed pixel error.
-	LODSettingsCategory.AddCustomRow( LOCTEXT("AllowedPixelError", "Auto Distance Error").ToString(), bAdvanced )
+	LODSettingsCategory.AddCustomRow( LOCTEXT("AllowedPixelError", "Auto Distance Error"), bAdvanced )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -1563,7 +1596,7 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			FString CategoryName = FString(TEXT("LOD"));
 			CategoryName.AppendInt( LODIndex );
 
-			FString LODLevelString = FText::Format( LOCTEXT("LODLevel", "LOD{0}"), FText::AsNumber( LODIndex ) ).ToString();
+			FText LODLevelString = FText::Format( LOCTEXT("LODLevel", "LOD{0}"), FText::AsNumber( LODIndex ) );
 
 			IDetailCategoryBuilder& LODCategory = DetailBuilder.EditCategory( *CategoryName, LODLevelString, ECategoryPriority::Important );
 
@@ -1605,7 +1638,7 @@ void FLevelOfDetailSettingsLayout::AddLODLevelCategories( IDetailLayoutBuilder& 
 			SectionSettingsWidgets[ LODIndex ] = MakeShareable( new FMeshSectionSettingsLayout( StaticMeshEditor, LODIndex ) );
 			SectionSettingsWidgets[ LODIndex ]->AddToCategory( LODCategory );
 
-			LODCategory.AddCustomRow(( LOCTEXT("ScreenSizeRow", "ScreenSize").ToString()))
+			LODCategory.AddCustomRow(( LOCTEXT("ScreenSizeRow", "ScreenSize")))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -1809,17 +1842,17 @@ bool FLevelOfDetailSettingsLayout::IsAutoLODEnabled() const
 	return StaticMesh->bAutoComputeLODScreenSize;
 }
 
-ESlateCheckBoxState::Type FLevelOfDetailSettingsLayout::IsAutoLODChecked() const
+ECheckBoxState FLevelOfDetailSettingsLayout::IsAutoLODChecked() const
 {
-	return IsAutoLODEnabled() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return IsAutoLODEnabled() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void FLevelOfDetailSettingsLayout::OnAutoLODChanged(ESlateCheckBoxState::Type NewState)
+void FLevelOfDetailSettingsLayout::OnAutoLODChanged(ECheckBoxState NewState)
 {
 	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
 	check(StaticMesh);
 	StaticMesh->Modify();
-	StaticMesh->bAutoComputeLODScreenSize = (NewState == ESlateCheckBoxState::Checked) ? true : false;
+	StaticMesh->bAutoComputeLODScreenSize = (NewState == ECheckBoxState::Checked) ? true : false;
 	if (!StaticMesh->bAutoComputeLODScreenSize)
 	{
 		if (StaticMesh->SourceModels.IsValidIndex(0))

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "TargetDeviceServicesPrivatePCH.h"
 
@@ -51,6 +51,7 @@ void FTargetDeviceProxy::UpdateFromMessage( const FTargetDeviceServicePong& Mess
 	Make = Message.Make;
 	Model = Message.Model;
 	Name = Message.Name;
+	OperatingSystemName = Message.OperatingSystemName;
 	DeviceUser = Message.DeviceUser;
 	DeviceUserPassword = Message.DeviceUserPassword;
 	Shared = Message.Shared;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AppFrameworkPrivatePCH.h"
 #include "SSearchBox.h"
@@ -16,6 +16,8 @@
 
 
 #define LOCTEXT_NAMESPACE "WidgetGallery"
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 /**
  * Implements a widget gallery.
@@ -41,8 +43,6 @@ public:
 		
 public:
 
-	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
-
 	/**
 	 * Constructs the widget gallery.
 	 *
@@ -50,6 +50,8 @@ public:
 	 */
 	void Construct( const FArguments& InArgs )
 	{
+		PopupMethod = EPopupMethod::CreateNewWindow;
+
 		// example of tab activation registration
 		{
 			IsActiveTabVisibility = EVisibility::Visible;
@@ -257,38 +259,44 @@ public:
 						.HAlign(HAlign_Left)
 						.Padding(0.0f, 5.0f)
 						[
-							SNew(SFxWidget).IgnoreClipping(false)
-							[
 							SNew(SVerticalBox)
 
 							+ SVerticalBox::Slot()
-								.AutoHeight()
+							[
+								SNew(SCheckBox)
+								.IsChecked(this, &SWidgetGallery::IsCreateNewWindowChecked)
+								.OnCheckStateChanged( this, &SWidgetGallery::CreateNewWindowToggled )
 								[
-									// selector combo box
-									SAssignNew(SelectorComboBox, SComboBox<TSharedPtr<FString> >)
-										.Method(SMenuAnchor::UseCurrentWindow)
-										.OptionsSource(&SelectorComboBoxOptions)
-										.OnSelectionChanged(this, &SWidgetGallery::HandleSelectorComboBoxSelectionChanged)
-										.OnGenerateWidget(this, &SWidgetGallery::HandleComboBoxGenerateWidget)
-										[
-											SNew(STextBlock)
-												.Text(this, &SWidgetGallery::HandleSelectorComboBoxText)
-										]
+									SNew(STextBlock).Text(LOCTEXT("CreateNewWindowCheckbox", "Create new window for popups."))
 								]
+							]
 
 							+ SVerticalBox::Slot()
-								.AutoHeight()
-								[
-									// second combo box
-									SAssignNew(SecondComboBox, SComboBox<TSharedPtr<FString> >)
-										.OptionsSource(&SecondComboBoxOptions)
-										.OnSelectionChanged(this, &SWidgetGallery::HandleSecondComboBoxSelectionChanged)
-										.OnGenerateWidget(this, &SWidgetGallery::HandleComboBoxGenerateWidget)
-										[
-											SNew(STextBlock)
-												.Text(this, &SWidgetGallery::HandleSecondComboBoxText)
-										]
-								]
+							.AutoHeight()
+							[
+								// selector combo box
+								SAssignNew(SelectorComboBox, SComboBox<TSharedPtr<FString> >)
+									.OptionsSource(&SelectorComboBoxOptions)
+									.OnSelectionChanged(this, &SWidgetGallery::HandleSelectorComboBoxSelectionChanged)
+									.OnGenerateWidget(this, &SWidgetGallery::HandleComboBoxGenerateWidget)
+									[
+										SNew(STextBlock)
+											.Text(this, &SWidgetGallery::HandleSelectorComboBoxText)
+									]
+							]
+
+							+ SVerticalBox::Slot()
+							.AutoHeight()
+							[
+								// second combo box
+								SAssignNew(SecondComboBox, SComboBox<TSharedPtr<FString> >)
+									.OptionsSource(&SecondComboBoxOptions)
+									.OnSelectionChanged(this, &SWidgetGallery::HandleSecondComboBoxSelectionChanged)
+									.OnGenerateWidget(this, &SWidgetGallery::HandleComboBoxGenerateWidget)
+									[
+										SNew(STextBlock)
+											.Text(this, &SWidgetGallery::HandleSecondComboBoxText)
+									]
 							]
 						]
 
@@ -306,7 +314,6 @@ public:
 							SNew(SFxWidget).IgnoreClipping(false)
 							[
 								SNew(SComboButton)
-								.Method(SMenuAnchor::UseCurrentWindow)
 								.ButtonContent()
 								[
 									SNew(STextBlock)
@@ -847,7 +854,6 @@ public:
 			SwitchSecondComboToOptionSetA();
 		}
 	}
-	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 
 protected:
@@ -934,6 +940,21 @@ protected:
 
 private:
 
+	EPopupMethod PopupMethod;
+
+	ECheckBoxState IsCreateNewWindowChecked() const
+	{
+		return this->PopupMethod == EPopupMethod::CreateNewWindow ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
+	}
+
+	void CreateNewWindowToggled(ECheckBoxState NewState)
+	{
+		this->PopupMethod = (PopupMethod == EPopupMethod::CreateNewWindow)
+			? EPopupMethod::UseCurrentWindow
+			: EPopupMethod::CreateNewWindow;
+	}
+
+
 	// Callback for clicking the Add button in the SBreadcrumbTrail example.
 	FReply HandleBreadcrumbTrailAddButtonClicked( )
 	{
@@ -943,17 +964,17 @@ private:
 	}
 
 	// Callback for changing the checked state of a check box.
-	void HandleCheckBoxCheckedStateChanged( ESlateCheckBoxState::Type NewState, bool* CheckBoxThatChanged )
+	void HandleCheckBoxCheckedStateChanged( ECheckBoxState NewState, bool* CheckBoxThatChanged )
 	{
-		*CheckBoxThatChanged = (NewState == ESlateCheckBoxState::Checked);
+		*CheckBoxThatChanged = (NewState == ECheckBoxState::Checked);
 	}
 
 	// Callback for determining whether a check box is checked.
-	ESlateCheckBoxState::Type HandleCheckBoxIsChecked( bool* CheckBox ) const
+	ECheckBoxState HandleCheckBoxIsChecked( bool* CheckBox ) const
 	{
 		return (*CheckBox)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
 	// Callback for generating a widget in the SComboBox example.
@@ -976,20 +997,20 @@ private:
 	}
 
 	// Callback for checking a radio button.
-	void HandleRadioButtonCheckStateChanged( ESlateCheckBoxState::Type NewRadioState, ERadioChoice RadioThatChanged )
+	void HandleRadioButtonCheckStateChanged( ECheckBoxState NewRadioState, ERadioChoice RadioThatChanged )
 	{
-		if (NewRadioState == ESlateCheckBoxState::Checked)
+		if (NewRadioState == ECheckBoxState::Checked)
 		{
 			RadioChoice = RadioThatChanged;
 		}
 	}
 
 	// Callback for determining whether a radio button is checked.
-	ESlateCheckBoxState::Type HandleRadioButtonIsChecked( ERadioChoice ButtonId ) const
+	ECheckBoxState HandleRadioButtonIsChecked( ERadioChoice ButtonId ) const
 	{
 		return (RadioChoice == ButtonId)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
 	// Callback for searching in the SSearchBox example.
@@ -1074,6 +1095,11 @@ private:
 		FSlateApplication::Get().DismissAllMenus();
 	}
 
+	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const override
+	{
+		return PopupMethod;
+	}
+
 private:
 
 	// Holds the bread crumb trail widget.
@@ -1140,5 +1166,6 @@ TSharedRef<SWidget> MakeWidgetGallery()
 		.RenderTransformPivot_Static(&GetTestRenderTransformPivot);
 }
 
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 #undef LOCTEXT_NAMESPACE

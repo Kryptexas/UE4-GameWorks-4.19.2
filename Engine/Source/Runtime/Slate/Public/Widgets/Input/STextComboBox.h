@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
  
 #pragma once
 
@@ -12,17 +12,27 @@ public:
 	DECLARE_DELEGATE_RetVal_OneParam( FString, FGetTextComboLabel, TSharedPtr<FString> );
 	typedef TSlateDelegates< TSharedPtr<FString> >::FOnSelectionChanged FOnTextSelectionChanged;
 
-	SLATE_BEGIN_ARGS( STextComboBox ) 
-		: _ColorAndOpacity( FSlateColor::UseForeground() )
+	SLATE_BEGIN_ARGS( STextComboBox )
+		: _ComboBoxStyle(&FCoreStyle::Get().GetWidgetStyle< FComboBoxStyle >("ComboBox"))
+		, _ButtonStyle(nullptr)
+		, _ColorAndOpacity( FSlateColor::UseForeground() )
 		, _ContentPadding(FMargin(4.0, 2.0))
 		, _OnGetTextLabelForItem()
 		{}
+
+		SLATE_STYLE_ARGUMENT(FComboBoxStyle, ComboBoxStyle)
+
+		/** The visual style of the button part of the combo box (overrides ComboBoxStyle) */
+		SLATE_STYLE_ARGUMENT(FButtonStyle, ButtonStyle)
 
 		/** Selection of strings to pick from */
 		SLATE_ARGUMENT( TArray< TSharedPtr<FString> >*, OptionsSource )
 
 		/** Text color and opacity */
 		SLATE_ATTRIBUTE( FSlateColor, ColorAndOpacity )
+
+		/** Sets the font used to draw the text */
+		SLATE_ATTRIBUTE(FSlateFontInfo, Font)
 
 		/** Visual padding of the button content for the combobox */
 		SLATE_ATTRIBUTE( FMargin, ContentPadding )
@@ -86,4 +96,7 @@ private:
 
 	/** Forwarding Delegate */
 	FOnTextSelectionChanged SelectionChanged;
+
+	/** Sets the font used to draw the text */
+	TAttribute< FSlateFontInfo > Font;
 };

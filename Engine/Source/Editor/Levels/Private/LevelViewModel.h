@@ -1,5 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
+#include "EditorUndoClient.h"
+#include "Layers/Layer.h"
 
 namespace ELevelsAction
 {
@@ -73,18 +75,18 @@ public:
 	  * @param	bDisplayTags		Whether to include tags (ie: Persistent/Current/Dirty) */
 	FString GetName(bool bForceDisplayPath=false, bool bDisplayTags=true) const;
 
-	/**	@return	The Level's display name as a FString;
+	/**	@return	The Level's display name as a FText;
 	  * wrapper function for GetName that simplifies function pointer for slate */
-	FString GetDisplayName() const;
+	FText GetDisplayName() const;
 
-	/** @return The Level's Actor Count as a FString */
-	FString GetActorCountString() const;
+	/** @return The Level's Actor Count as a FText */
+	FText GetActorCountString() const;
 
-	/** @return the Level's Lightmass Size as a FString */
-	FString GetLightmassSizeString() const;
+	/** @return the Level's Lightmass Size as a FText */
+	FText GetLightmassSizeString() const;
 
-	/** @return the Level's File Size as a FString */
-	FString GetFileSizeString() const;
+	/** @return the Level's File Size as a FText */
+	FText GetFileSizeString() const;
 
 	/** @return whether the Level is dirty */
 	bool IsDirty() const;

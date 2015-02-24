@@ -1,10 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "BehaviorTree/Blackboard/BlackboardKeyType.h"
 #include "BehaviorTree/BTDecorator.h"
 #include "BTDecorator_BlackboardBase.h"
 #include "BTDecorator_Blackboard.generated.h"
+
+class UBlackboardComponent;
+class UBehaviorTreeComponent;
+class FBlackboardDecoratorDetails;
 
 /**
  *  Decorator for accessing blackboard values
@@ -29,9 +33,9 @@ class AIMODULE_API UBTDecorator_Blackboard : public UBTDecorator_BlackboardBase
 {
 	GENERATED_UCLASS_BODY()
 
-	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const override;
-	virtual void OnBlackboardChange(const class UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID) override;
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
+	virtual void OnBlackboardChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID) override;
+	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
 	virtual FString GetStaticDescription() const override;
 
 protected:
@@ -84,9 +88,7 @@ protected:
 #endif
 
 	/** take blackboard value and evaluate decorator's condition */
-	bool EvaluateOnBlackboard(const class UBlackboardComponent* BlackboardComp) const;
+	bool EvaluateOnBlackboard(const UBlackboardComponent& BlackboardComp) const;
 
-#if CPP
-	friend class FBlackboardDecoratorDetails;
-#endif
+	friend FBlackboardDecoratorDetails;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Texture2D.cpp: Implementation of UTexture2D.
@@ -128,17 +128,14 @@ private:
 void FTexture2DMipMap::Serialize(FArchive& Ar, UObject* Owner, int32 MipIdx)
 {
 	bool bCooked = Ar.IsCooking();
-	if (Ar.UE4Ver() >= VER_UE4_TEXTURE_SOURCE_ART_REFACTOR)
-	{
-		Ar << bCooked;
-	}
+	Ar << bCooked;
 
 	BulkData.Serialize(Ar, Owner, MipIdx);
 	Ar << SizeX;
 	Ar << SizeY;
 
 #if WITH_EDITORONLY_DATA
-	if (Ar.UE4Ver() >= VER_UE4_TEXTURE_DERIVED_DATA2 && !bCooked)
+	if (!bCooked)
 	{
 		Ar << DerivedDataKey;
 	}
@@ -175,125 +172,14 @@ bool UTexture2D::GetResourceMemSettings(int32 FirstMipIdx, int32& OutSizeX, int3
 	return false;
 }
 
-#if WITH_EDITOR
-void UTexture2D::LegacySerialize(FArchive& Ar, FStripDataFlags& StripDataFlags)
-{
-	check(Ar.UE4Ver() < VER_UE4_TEXTURE_SOURCE_ART_REFACTOR);
-
-	bool bHasLegacyMips = bDisableDerivedDataCache_DEPRECATED;
-	TIndirectArray<FTexture2DMipMap> LegacyMips;
-	if (bHasLegacyMips)
-	{
-		LegacyMips.Serialize(Ar, this);
-	}
-
-	Ar << TextureFileCacheGuid_DEPRECATED;
-	
-	bool bValidGuid = TextureFileCacheGuid_DEPRECATED.IsValid();
-	if (!bValidGuid)
-	{
-		UE_LOG(LogTexture, Warning, TEXT("Texture with no guid %s, package must be resaved!"),*GetFullName());
-		MarkPackageDirty();
-		TextureFileCacheGuid_DEPRECATED = FGuid::NewGuid();
-	}
-
-	if ((bDisableDerivedDataCache_DEPRECATED || Source.BulkData.GetBulkDataSize() == 0) &&
-		LegacyMips.Num() > 0)
-	{
-		if (Format_DEPRECATED == PF_A8R8G8B8 || Format_DEPRECATED == PF_B8G8R8A8 || Format_DEPRECATED == PF_FloatRGBA || Format_DEPRECATED == PF_G8)
-		{
-			ETextureSourceFormat SourceFormat = TSF_BGRA8;
-			if (Format_DEPRECATED == PF_FloatRGBA)
-			{
-				SourceFormat = TSF_RGBA16F;
-			}
-			else if (Format_DEPRECATED == PF_G8)
-			{
-				SourceFormat = TSF_G8;
-			}
-			int32 NumSourceMips = MipGenSettings == TMGS_LeaveExistingMips ? LegacyMips.Num() : 1;
-			Source.Init(
-				LegacyMips[0].SizeX,
-				LegacyMips[0].SizeY,
-				/*NumSlices=*/ 1, 
-				/*NumMips=*/ NumSourceMips,
-				SourceFormat
-				);
-			for (int32 MipIndex = 0; MipIndex < NumSourceMips; ++MipIndex)
-			{
-				uint8* SrcMipData = NULL;
-				uint8* DestMipData = NULL;
-				LegacyMips[MipIndex].BulkData.GetCopy((void**)&SrcMipData, /*bDiscardInternalCopy=*/ true);
-				DestMipData = Source.LockMip(MipIndex);
-				FMemory::Memcpy(DestMipData, SrcMipData, LegacyMips[MipIndex].BulkData.GetBulkDataSize());
-				Source.UnlockMip(MipIndex);
-				FMemory::Free(SrcMipData);
-			}
-		}
-		else
-		{
-			UE_LOG(LogTexture,Warning,
-				TEXT("Legacy texture has no source art and compressed mip ")
-				TEXT("levels. The texture must be deleted or reimported. %s"),
-				*GetFullName()
-				);
-		}
-	}
-	else if (Source.BulkData.GetBulkDataSize() != 0 &&
-		SourceArtType_DEPRECATED != TSAT_DDSFile)
-	{
-		Source.SizeX = OriginalSizeX_DEPRECATED;
-		Source.SizeY = OriginalSizeY_DEPRECATED;
-		Source.NumSlices = 1;
-		Source.NumMips = 1;
-	}
-
-	if (bValidGuid)
-	{
-		Source.Id = TextureFileCacheGuid_DEPRECATED;
-	}
-	else
-	{
-		Source.UseHashAsGuid();
-	}
-
-	// Fix up non power-of-two textures with incorrect compression settings.
-	if (!Source.IsPowerOfTwo())
-	{
-		// Force NPT textures to have no mipmaps.
-		MipGenSettings = TMGS_NoMipmaps;
-		NeverStream = true;
-	}
-
-	// Make sure settings are correct for LUT textures.
-	if(LODGroup == TEXTUREGROUP_ColorLookupTable)
-	{
-		MipGenSettings = TMGS_NoMipmaps;
-		SRGB = false;
-	}
-}
-#endif // #if WITH_EDITOR
-
 void UTexture2D::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
 	FStripDataFlags StripDataFlags(Ar);
 
-	bool bCooked = false;
-	if (Ar.UE4Ver() >= VER_UE4_ADD_COOKED_TO_TEXTURE2D)
-	{
-		bCooked = Ar.IsCooking();
-		Ar << bCooked;
-	}
-
-	/** Legacy serialization. */
-#if WITH_EDITOR
-	if (Ar.UE4Ver() < VER_UE4_TEXTURE_SOURCE_ART_REFACTOR)
-	{
-		UTexture2D::LegacySerialize(Ar, StripDataFlags);
-	}
-#endif // #if WITH_EDITOR
+	bool bCooked = Ar.IsCooking();
+	Ar << bCooked;
 
 	if (Ar.IsCooking() || bCooked)
 	{
@@ -901,18 +787,24 @@ FTextureResource* UTexture2D::CreateResource()
 		}
 	}
 
+	const EPixelFormat PixelFormat = GetPixelFormat();
 	const bool bIncompatibleTexture = (NumMips == 0);
 	const bool bTextureTooLarge = FMath::Max(GetSizeX(), GetSizeY()) > (int32)GetMax2DTextureDimension();
 	// Too large textures with full mip chains are OK as we load up to max supported mip.
 	const bool bNotSupportedByRHI = NumMips == 1 && bTextureTooLarge;
+	const bool bFormatNotSupported = !(GPixelFormats[PixelFormat].Supported);
 
-	if (bIncompatibleTexture || bNotSupportedByRHI)
+	if (bIncompatibleTexture || bNotSupportedByRHI || bFormatNotSupported)
 	{
 		// Handle unsupported/corrupted/incompatible textures :(
 		ResidentMips	= 0;
 		RequestedMips	= 0;
 
-		if (bNotSupportedByRHI)
+		if (bFormatNotSupported)
+		{
+			UE_LOG(LogTexture, Error, TEXT("%s is %s which is not supported."), *GetFullName(), GPixelFormats[PixelFormat].Name);
+		}
+		else if (bNotSupportedByRHI)
 		{
 			UE_LOG(LogTexture, Warning, TEXT("%s cannot be created, exceeds this rhi's maximum dimension (%d) and has no mip chain to fall back on."), *GetFullName(), GetMax2DTextureDimension());
 		}

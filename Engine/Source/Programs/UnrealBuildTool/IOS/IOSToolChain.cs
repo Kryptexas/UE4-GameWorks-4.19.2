@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 using System;
@@ -89,8 +89,10 @@ namespace UnrealBuildTool
 			BaseSDKDirSim = XcodeDeveloperDir + "Platforms/iPhoneSimulator.platform/Developer/SDKs";
 		}
 
-		public static void ParseProjectSettings()
+		public override void ParseProjectSettings()
 		{
+			base.ParseProjectSettings();
+
 			// look in ini settings for what platforms to compile for
 			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", UnrealBuildTool.GetUProjectPath());
 			string MinVersion = "IOS_6";
@@ -98,8 +100,8 @@ namespace UnrealBuildTool
 			{
 				switch (MinVersion)
 				{
-					case "IOS_6":
-						RunTimeIOSVersion = "6.0";
+					case "IOS_61":
+						RunTimeIOSVersion = "6.1";
 						break;
 					case "IOS_7":
 						RunTimeIOSVersion = "7.0";
@@ -190,7 +192,6 @@ namespace UnrealBuildTool
 		{
 			base.SetUpGlobalEnvironment();
 
-			ParseProjectSettings();
 			ParseArchitectures();
 
 			if (IOSSDKVersion == "latest")
@@ -202,7 +203,10 @@ namespace UnrealBuildTool
 					{
 						// on the Mac, we can just get the directory name
 						SubDirs = System.IO.Directory.GetDirectories(BaseSDKDir);
-						Log.TraceInformation(String.Format("Directories : {0} {1}", SubDirs, SubDirs[0]));
+						if (!ProjectFileGenerator.bGenerateProjectFiles)
+						{
+							Log.TraceInformation(String.Format("Directories : {0} {1}", SubDirs, SubDirs[0]));
+						}
 					}
 					else
 					{
@@ -265,22 +269,25 @@ namespace UnrealBuildTool
 
 			IOSSDKVersionFloat = float.Parse(IOSSDKVersion, System.Globalization.CultureInfo.InvariantCulture);
 
-			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+			if (!ProjectFileGenerator.bGenerateProjectFiles)
 			{
-				Log.TraceInformation("Compiling with IOS SDK {0} on Mac {1}", IOSSDKVersionFloat, RemoteServerName);
-			}
-			else
-			{
-				Log.TraceInformation("Compiling with IOS SDK {0}", IOSSDKVersionFloat);
+				if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+				{
+					Log.TraceInformation("Compiling with IOS SDK {0} on Mac {1}", IOSSDKVersionFloat, RemoteServerName);
+				}
+				else
+				{
+					Log.TraceInformation("Compiling with IOS SDK {0}", IOSSDKVersionFloat);
+				}
 			}
 		}
 
-		public override void AddFilesToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
+		public override void AddFilesToManifest(BuildManifest Manifest, UEBuildBinary Binary)
 		{
 			if (BuildConfiguration.bCreateStubIPA)
 			{
 				string StubFile = Path.Combine (Path.GetDirectoryName (Binary.Config.OutputFilePath), Path.GetFileNameWithoutExtension (Binary.Config.OutputFilePath) + ".stub");
-				Manifest.AddFileName (StubFile);
+				Manifest.AddBuildProduct(StubFile);
 			}
 		}
 
@@ -1216,7 +1223,7 @@ namespace UnrealBuildTool
 						Log.TraceInformation( "Copying bundled asset... LocalSource: {0}, LocalDest: {1}", LocalSource, LocalDest );
 
 						string ResultsText;
-						RunExecutableAndWait( "cp", String.Format( "-R -L {0} {1}", LocalSource, LocalDest ), out ResultsText );
+						RunExecutableAndWait( "cp", String.Format( "-R -L {0} {1}", LocalSource.Replace(" ", "\\ "), LocalDest.Replace(" ", "\\ ") ), out ResultsText );
 					}
 				}
 			}
@@ -1257,36 +1264,46 @@ namespace UnrealBuildTool
 						Log.TraceInformation("Dangeroulsy Fast mode was requested, but a slow mode hasn't completed. Performing slow now...");
 						bUseDangerouslyFastMode = false;
 					}
-				}	
-	
-				string RemoteExecutablePath = ConvertPath(Target.OutputPath);
-	
-				// when going super fast, just copy the executable to the final resting spot
-				if (bUseDangerouslyFastMode)
-				{
-					Log.TraceInformation("==============================================================================");
-					Log.TraceInformation("USING DANGEROUSLY FAST MODE! IF YOU HAVE ANY PROBLEMS, TRY A REBUILD/CLEAN!!!!");
-					Log.TraceInformation("==============================================================================");	
-
-					// copy the executable
-					string RemoteShadowDirectoryMac = ConvertPath(Path.GetDirectoryName(Target.OutputPath));
-					string FinalRemoteExecutablePath = String.Format("{0}/Payload/{1}.app/{1}", RemoteShadowDirectoryMac, Target.GameName);
-					RPCUtilHelper.Command("/", String.Format("cp -f {0} {1}", RemoteExecutablePath, FinalRemoteExecutablePath), "", null);
 				}
-				else if(!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
-				{
-					RPCUtilHelper.CopyFile(RemoteExecutablePath, Target.OutputPath, false);
 
-					if (BuildConfiguration.bGeneratedSYMFile == true)
+				foreach (string FilePath in BuiltBinaries)
+				{
+					string RemoteExecutablePath = ConvertPath(FilePath);
+
+					// when going super fast, just copy the executable to the final resting spot
+					if (bUseDangerouslyFastMode)
 					{
-						string DSYMExt = ".app.dSYM.zip";
-						RPCUtilHelper.CopyFile(RemoteExecutablePath + DSYMExt, Target.OutputPath + DSYMExt, false);
+						Log.TraceInformation("==============================================================================");
+						Log.TraceInformation("USING DANGEROUSLY FAST MODE! IF YOU HAVE ANY PROBLEMS, TRY A REBUILD/CLEAN!!!!");
+						Log.TraceInformation("==============================================================================");
+
+						// copy the executable
+						string RemoteShadowDirectoryMac = ConvertPath(Path.GetDirectoryName(Target.OutputPath));
+						string FinalRemoteExecutablePath = String.Format("{0}/Payload/{1}.app/{1}", RemoteShadowDirectoryMac, Target.GameName);
+						RPCUtilHelper.Command("/", String.Format("cp -f {0} {1}", RemoteExecutablePath, FinalRemoteExecutablePath), "", null);
+					}
+					else if (!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+					{
+						RPCUtilHelper.CopyFile(RemoteExecutablePath, FilePath, false);
+
+						if (BuildConfiguration.bGeneratedSYMFile == true)
+						{
+							string DSYMExt = ".app.dSYM.zip";
+							RPCUtilHelper.CopyFile(RemoteExecutablePath + DSYMExt, FilePath + DSYMExt, false);
+						}
 					}
 				}
 
 				// Generate the stub
 				if (BuildConfiguration.bCreateStubIPA || bUseDangerouslyFastMode)
 				{
+					// ensure the plist, entitlements, and provision files are properly copied
+					var DeployHandler = UEBuildDeploy.GetBuildDeploy(Target.Platform);
+					if (DeployHandler != null)
+					{
+						DeployHandler.PrepTargetForDeployment(Target);
+					}
+
 					if (!bUseDangerouslyFastMode)
 					{
 						// generate the dummy project so signing works
@@ -1295,18 +1312,8 @@ namespace UnrealBuildTool
 
 					// now that 
 					Process StubGenerateProcess = new Process();
-
-					if (RemoteToolChain.bUseRPCUtil)
-					{
-						StubGenerateProcess.StartInfo.WorkingDirectory = Path.GetFullPath("..\\Binaries\\DotNET\\IOS");
-						StubGenerateProcess.StartInfo.FileName = Path.Combine(StubGenerateProcess.StartInfo.WorkingDirectory, "iPhonePackager.exe");
-					}
-					else
-					{
-						// UAT wants the working directory to be the root (or does it matter?)
-						StubGenerateProcess.StartInfo.WorkingDirectory = Path.GetFullPath("..\\Binaries\\DotNET");
-						StubGenerateProcess.StartInfo.FileName = Path.Combine(StubGenerateProcess.StartInfo.WorkingDirectory, "AutomationTool.exe");
-					}
+					StubGenerateProcess.StartInfo.WorkingDirectory = Path.GetFullPath("..\\Binaries\\DotNET\\IOS");
+					StubGenerateProcess.StartInfo.FileName = Path.Combine(StubGenerateProcess.StartInfo.WorkingDirectory, "iPhonePackager.exe");
 
 					string Arguments = "";
 						
@@ -1354,18 +1361,19 @@ namespace UnrealBuildTool
 						Arguments += " -architecture " + Architecture.Substring(1);
 					}
 
+					if (!bUseRPCUtil )
+					{
+						Arguments += " -usessh";
+						Arguments += " -sshexe \"" + ResolvedSSHExe + "\"";
+						Arguments += " -sshauth \"" + ResolvedSSHAuthentication + "\"";
+						Arguments += " -sshuser \"" + ResolvedRSyncUsername + "\"";
+						Arguments += " -rsyncexe \"" + ResolvedRSyncExe + "\"";
+						Arguments += " -overridedevroot \"" + UserDevRootMac + "\"";
+					}
+
 					// programmers that use Xcode packaging mode should use the following commandline instead, as it will package for Xcode on each compile
 					//				Arguments = "PackageApp " + GameName + " " + Configuration;
-
-					if (RemoteToolChain.bUseRPCUtil)
-					{
-						StubGenerateProcess.StartInfo.Arguments = Arguments;
-					}
-					else
-					{
-						Arguments = Arguments.Replace("\"", "\\\"");
-						StubGenerateProcess.StartInfo.Arguments = "IPhonePackager -cmd=\"" + Arguments + "\" -nocompile";
-					}
+					StubGenerateProcess.StartInfo.Arguments = Arguments;
 
 					StubGenerateProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedDataEventHandler);
 					StubGenerateProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedDataEventHandler);
@@ -1415,7 +1423,7 @@ namespace UnrealBuildTool
 							continue;		// This framework item doesn't belong to this target, skip it
 						}
 
-						string RemoteZipPath = GetRemoteFrameworkZipPath( Framework );
+						string RemoteZipPath = GetRemoteIntermediateFrameworkZipPath( Framework );
 
 						RemoteZipPath = RemoteZipPath.Replace( ".zip", "" );
 
@@ -1428,7 +1436,7 @@ namespace UnrealBuildTool
 
 						Log.TraceInformation( "Copying bundled asset... RemoteSource: {0}, RemoteDest: {1}, LocalDest: {2}", RemoteSource, RemoteDest, LocalDest );
 
-						Hashtable Results = RPCUtilHelper.Command( "/", String.Format( "cp -R -L {0} {1}", RemoteSource, RemoteDest ), "", null );
+						Hashtable Results = RPCUtilHelper.Command( "/", String.Format( "cp -R -L {0} {1}", RemoteSource.Replace(" ", "\\ "), RemoteDest.Replace(" ", "\\ ") ), "", null );
 
 						foreach ( DictionaryEntry Entry in Results )
 						{
@@ -1444,14 +1452,17 @@ namespace UnrealBuildTool
 
 		public override string GetPlatformVersion()
 		{
-			ParseProjectSettings();
 			return RunTimeIOSVersion;
 		}
 
 		public override string GetPlatformDevices()
 		{
-			ParseProjectSettings();
 			return RunTimeIOSDevices;
+		}
+
+		public override UnrealTargetPlatform GetPlatform()
+		{
+			return UnrealTargetPlatform.IOS;
 		}
 
 		public static int RunExecutableAndWait( string ExeName, string ArgumentList, out string StdOutResults )

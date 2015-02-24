@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "VisualLogger/VisualLogger.h"
@@ -6,7 +6,6 @@
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
 // @todo to be addressed when removing AIModule circular dependency
 #include "Navigation/PathFollowingComponent.h"
-#include "Navigation/NavigationComponent.h"
 #include "AI/Navigation/NavLinkCustomComponent.h"
 #include "AI/Navigation/NavAreas/NavArea_Default.h"
 #include "AI/Navigation/NavAreas/NavArea_Null.h"
@@ -68,7 +67,7 @@ bool UNavLinkCustomComponent::IsLinkPathfindingAllowed(const UObject* Querier) c
 	return true;
 }
 
-bool UNavLinkCustomComponent::OnLinkMoveStarted(class UPathFollowingComponent* PathComp, const FVector& DestPoint)
+bool UNavLinkCustomComponent::OnLinkMoveStarted(UPathFollowingComponent* PathComp, const FVector& DestPoint)
 {
 	TWeakObjectPtr<UPathFollowingComponent> WeakPathComp = PathComp;
 	MovingAgents.Add(WeakPathComp);
@@ -82,13 +81,13 @@ bool UNavLinkCustomComponent::OnLinkMoveStarted(class UPathFollowingComponent* P
 	return false;
 }
 
-void UNavLinkCustomComponent::OnLinkMoveFinished(class UPathFollowingComponent* PathComp)
+void UNavLinkCustomComponent::OnLinkMoveFinished(UPathFollowingComponent* PathComp)
 {
 	TWeakObjectPtr<UPathFollowingComponent> WeakPathComp;
 	MovingAgents.Remove(WeakPathComp);
 }
 
-void UNavLinkCustomComponent::GetNavigationData(struct FNavigationRelevantData& Data) const
+void UNavLinkCustomComponent::GetNavigationData(FNavigationRelevantData& Data) const
 {
 	FNavigationLink LinkMod = GetLinkModifier();
 	Data.Modifiers.Add(FSimpleLinkNavModifier(LinkMod, GetOwner()->GetTransform()));
@@ -158,7 +157,7 @@ FNavigationLink UNavLinkCustomComponent::GetLinkModifier() const
 	return INavLinkCustomInterface::GetModifier(this);
 }
 
-void UNavLinkCustomComponent::SetEnabledArea(TSubclassOf<class UNavArea> AreaClass)
+void UNavLinkCustomComponent::SetEnabledArea(TSubclassOf<UNavArea> AreaClass)
 {
 	EnabledAreaClass = AreaClass;
 	if (IsNavigationRelevant() && bLinkEnabled)
@@ -168,7 +167,7 @@ void UNavLinkCustomComponent::SetEnabledArea(TSubclassOf<class UNavArea> AreaCla
 	}
 }
 
-void UNavLinkCustomComponent::SetDisabledArea(TSubclassOf<class UNavArea> AreaClass)
+void UNavLinkCustomComponent::SetDisabledArea(TSubclassOf<UNavArea> AreaClass)
 {
 	DisabledAreaClass = AreaClass;
 	if (IsNavigationRelevant() && !bLinkEnabled)
@@ -178,7 +177,7 @@ void UNavLinkCustomComponent::SetDisabledArea(TSubclassOf<class UNavArea> AreaCl
 	}
 }
 
-void UNavLinkCustomComponent::AddNavigationObstacle(TSubclassOf<class UNavArea> AreaClass, const FVector& BoxExtent, const FVector& BoxOffset)
+void UNavLinkCustomComponent::AddNavigationObstacle(TSubclassOf<UNavArea> AreaClass, const FVector& BoxExtent, const FVector& BoxOffset)
 {
 	ObstacleOffset = BoxOffset;
 	ObstacleExtent = BoxExtent;
@@ -210,7 +209,7 @@ void UNavLinkCustomComponent::SetEnabled(bool bNewEnabled)
 
 		if (GetWorld())
 		{
-			GetWorld()->GetTimerManager().ClearTimer(this, &UNavLinkCustomComponent::BroadcastStateChange);
+			GetWorld()->GetTimerManager().ClearTimer(TimerHandle_BroadcastStateChange);
 
 			if ((bLinkEnabled && bNotifyWhenEnabled) || (!bLinkEnabled && bNotifyWhenDisabled))
 			{
@@ -255,7 +254,7 @@ void UNavLinkCustomComponent::SendBroadcastWhenDisabled(bool bEnabled)
 	bNotifyWhenDisabled = bEnabled;
 }
 
-void UNavLinkCustomComponent::CollectNearbyAgents(TArray<UNavigationComponent*>& NotifyList)
+void UNavLinkCustomComponent::CollectNearbyAgents(TArray<UPathFollowingComponent*>& NotifyList)
 {
 	AActor* MyOwner = GetOwner();
 	if (BroadcastRadius < KINDA_SMALL_NUMBER || MyOwner == NULL)
@@ -302,8 +301,8 @@ void UNavLinkCustomComponent::CollectNearbyAgents(TArray<UNavigationComponent*>&
 
 	for (int32 i = 0; i < PawnList.Num(); i++)
 	{
-		UNavigationComponent* NavComp = PawnList[i]->GetController()->FindComponentByClass<UNavigationComponent>();
-		if (NavComp && NavComp->WantsSmartLinkUpdates())
+		UPathFollowingComponent* NavComp = PawnList[i]->GetController()->FindComponentByClass<UPathFollowingComponent>();
+		if (NavComp)// && NavComp->WantsSmartLinkUpdates())
 		{
 			NotifyList.Add(NavComp);
 		}
@@ -312,19 +311,19 @@ void UNavLinkCustomComponent::CollectNearbyAgents(TArray<UNavigationComponent*>&
 
 void UNavLinkCustomComponent::BroadcastStateChange()
 {
-	TArray<UNavigationComponent*> NearbyAgents;
+	TArray<UPathFollowingComponent*> NearbyAgents;
 
 	CollectNearbyAgents(NearbyAgents);
 	OnBroadcastFilter.ExecuteIfBound(this, NearbyAgents);
 
 	for (int32 i = 0; i < NearbyAgents.Num(); i++)
 	{
-		NearbyAgents[i]->OnCustomLinkBroadcast(this);
+//		NearbyAgents[i]->OnCustomLinkBroadcast(this);
 	}
 
 	if (BroadcastInterval > 0.0f)
 	{
-		GetWorld()->GetTimerManager().SetTimer(this, &UNavLinkCustomComponent::BroadcastStateChange, BroadcastInterval);
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle_BroadcastStateChange, this, &UNavLinkCustomComponent::BroadcastStateChange, BroadcastInterval);
 	}
 }
 

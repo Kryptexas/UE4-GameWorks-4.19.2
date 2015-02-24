@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -77,7 +77,7 @@ public:
 					[
 						SNew(STextBlock)
 							.HighlightText(HighlightText)
-							.Text(EndpointInfo->Name.ToString())
+							.Text(FText::FromName(EndpointInfo->Name))
 					];
 		}
 		else if (ColumnName == "Messages")
@@ -113,32 +113,32 @@ public:
 private:
 
 	/** Gets the text for the Messages column. */
-	FString HandleMessagesText() const
+	FText HandleMessagesText() const
 	{
-		return FString::Printf(TEXT("%i"), EndpointInfo->ReceivedMessages.Num() + EndpointInfo->SentMessages.Num());
+		return FText::AsNumber(EndpointInfo->ReceivedMessages.Num() + EndpointInfo->SentMessages.Num());
 	}
 
 	/** Gets the tooltip text for the Messages column. */
-	FString HandleMessagesTooltipText() const
+	FText HandleMessagesTooltipText() const
 	{
-		return FString::Printf(TEXT("In: %i\nOut: %i"), EndpointInfo->ReceivedMessages.Num(), EndpointInfo->SentMessages.Num());
+		return FText::Format(LOCTEXT("MessagesTooltipTextFmt", "In: {0}\nOut: {1}"), FText::AsNumber(EndpointInfo->ReceivedMessages.Num()), FText::AsNumber(EndpointInfo->SentMessages.Num()));
 	}
 
 	/** Handles changing the checked state of the visibility check box. */
-	void HandleVisibilityCheckBoxCheckStateChanged( ESlateCheckBoxState::Type CheckState )
+	void HandleVisibilityCheckBoxCheckStateChanged( ECheckBoxState CheckState )
 	{
-		Model->SetEndpointVisibility(EndpointInfo.ToSharedRef(), (CheckState == ESlateCheckBoxState::Checked));
+		Model->SetEndpointVisibility(EndpointInfo.ToSharedRef(), (CheckState == ECheckBoxState::Checked));
 	}
 
 	/** Gets the image for the visibility check box. */
-	ESlateCheckBoxState::Type HandleVisibilityCheckBoxIsChecked() const
+	ECheckBoxState HandleVisibilityCheckBoxIsChecked() const
 	{
 		if (Model->IsEndpointVisible(EndpointInfo.ToSharedRef()))
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 
 private:

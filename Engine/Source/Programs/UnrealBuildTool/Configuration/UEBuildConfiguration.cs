@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -28,7 +28,7 @@ namespace UnrealBuildTool
         public static bool bCompileICU;
 
 		/** Whether to build a stripped down version of the game specifically for dedicated server. */
-		[XmlConfig]
+		[Obsolete("bBuildDedicatedServer has been deprecated and will be removed in future release. Update your code to use TargetInfo.Type instead or your code will not compile.")]
 		public static bool bBuildDedicatedServer;
 
 		/** Whether to compile the editor or not. Only desktop platforms (Windows or Mac) will use this, other platforms force this to false */
@@ -160,10 +160,6 @@ namespace UnrealBuildTool
 		[XmlConfig]
 		public static bool bUseLoggingInShipping;
 
-        /** True if we need to package up Android with the OBB in the APK file */
-		[XmlConfig]
-        public static bool bOBBinAPK;
-
 		/** True if we need PhysX vehicle support */
 		[XmlConfig]
 		public static bool bCompilePhysXVehicle;
@@ -186,6 +182,10 @@ namespace UnrealBuildTool
 		/** When true, the targets won't execute their link actions if there was nothing to compile */
 		public static bool bSkipLinkingWhenNothingToCompile;
 
+		/** Whether to compile CEF3 support. */
+		[XmlConfig]
+		public static bool bCompileCEF3;
+
 		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
@@ -198,7 +198,6 @@ namespace UnrealBuildTool
             bRuntimePhysicsCooking = true;
 			bCompileBox2D = true;
 			bCompileICU = true;
-			bBuildDedicatedServer = false;
 			bBuildEditor = true;
 			bBuildRequiresCookedData = false;
 			bBuildWithEditorOnlyData = true;
@@ -220,13 +219,13 @@ namespace UnrealBuildTool
             bUseLoggingInShipping = false;
 			bCompileSteamOSS = true;
 			bCompileMcpOSS = true;
-            bOBBinAPK = false;
 			bCompilePhysXVehicle = true;
 			bCompileFreeType = true;
 			bCompileForSize = false;
 			bHotReloadFromIDE = false;
 			bAllowHotReloadFromIDE = true;
 			bSkipLinkingWhenNothingToCompile = false;
+			bCompileCEF3 = true;
 		}
 
 		/// <summary>
@@ -248,6 +247,19 @@ namespace UnrealBuildTool
 				&& Directory.Exists(UEBuildConfiguration.UEThirdPartySourceDirectory + "NotForLicensees/Simplygon") == true
 				&& Directory.Exists("Developer/SimplygonMeshReduction") == true
 				&& !(ProjectFileGenerator.bGenerateProjectFiles && ProjectFileGenerator.bGeneratingRocketProjectFiles);
+
+			if (UnrealBuildTool.CommandLineContains(@"UnrealCodeAnalyzer") || UnrealBuildTool.CommandLineContains(@"UnrealHeaderTool"))
+			{
+				BuildConfiguration.bRunUnrealCodeAnalyzer = false;
+			}
+
+			if (BuildConfiguration.bRunUnrealCodeAnalyzer)
+			{
+				BuildConfiguration.bUsePCHFiles = false;
+				BuildConfiguration.bUseUnityBuild = false;
+				BuildConfiguration.bUseSharedPCHs = false;
+				BuildConfiguration.bAllowXGE = false;
+			}
 		}
 
 		/**

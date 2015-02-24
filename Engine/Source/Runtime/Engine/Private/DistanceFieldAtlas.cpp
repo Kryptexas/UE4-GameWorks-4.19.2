@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DistanceFieldAtlas.cpp
@@ -15,9 +15,12 @@
 
 TGlobalResource<FDistanceFieldVolumeTextureAtlas> GDistanceFieldVolumeTextureAtlas = TGlobalResource<FDistanceFieldVolumeTextureAtlas>(PF_R16F);
 
+const int32 MaxAtlasDimension = 512;
+
 FDistanceFieldVolumeTextureAtlas::FDistanceFieldVolumeTextureAtlas(EPixelFormat InFormat) :
-	BlockAllocator(0, 0, 0, 512, 512, 512, false, false)
+	BlockAllocator(0, 0, 0, MaxAtlasDimension, MaxAtlasDimension, MaxAtlasDimension, false, false)
 {
+	Generation = 0;
 	Format = InFormat;
 }
  
@@ -39,11 +42,21 @@ void FDistanceFieldVolumeTextureAtlas::RemoveAllocation(FDistanceFieldVolumeText
 	}
 }
 
+struct FCompareVolumeAllocation
+{
+	FORCEINLINE bool operator()(const FDistanceFieldVolumeTexture& A, const FDistanceFieldVolumeTexture& B) const
+	{
+		return A.GetAllocationVolume() > B.GetAllocationVolume();
+	}
+};
+
 void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 {
 	if (PendingAllocations.Num() > 0)
 	{
-		//@todo - sort largest to smallest for best packing
+		// Sort largest to smallest for best packing
+		PendingAllocations.Sort(FCompareVolumeAllocation());
+
 		for (int32 AllocationIndex = 0; AllocationIndex < PendingAllocations.Num(); AllocationIndex++)
 		{
 			FDistanceFieldVolumeTexture* Texture = PendingAllocations[AllocationIndex];
@@ -62,6 +75,35 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 			|| BlockAllocator.GetSizeY() > VolumeTextureRHI->GetSizeY()
 			|| BlockAllocator.GetSizeZ() > VolumeTextureRHI->GetSizeZ())
 		{
+			if (CurrentAllocations.Num() > 0)
+			{
+				// Remove all allocations from the layout so we have a clean slate
+				BlockAllocator = FTextureLayout3d(0, 0, 0, MaxAtlasDimension, MaxAtlasDimension, MaxAtlasDimension, false, false);
+				
+				Generation++;
+
+				// Re-upload all textures since we had to reallocate
+				PendingAllocations.Append(CurrentAllocations);
+				CurrentAllocations.Empty();
+
+				// Sort largest to smallest for best packing
+				PendingAllocations.Sort(FCompareVolumeAllocation());
+
+				// Add all allocations back to the layout
+				for (int32 AllocationIndex = 0; AllocationIndex < PendingAllocations.Num(); AllocationIndex++)
+				{
+					FDistanceFieldVolumeTexture* Texture = PendingAllocations[AllocationIndex];
+					const FIntVector Size = Texture->VolumeData.Size;
+
+					if (!BlockAllocator.AddElement((uint32&)Texture->AtlasAllocationMin.X, (uint32&)Texture->AtlasAllocationMin.Y, (uint32&)Texture->AtlasAllocationMin.Z, Size.X, Size.Y, Size.Z))
+					{
+						UE_LOG(LogStaticMesh,Error,TEXT("Failed to allocate %ux%ux%u in distance field atlas"), Size.X, Size.Y, Size.Z);
+						PendingAllocations.RemoveAt(AllocationIndex);
+						AllocationIndex--;
+					}
+				}
+			}
+
 			FRHIResourceCreateInfo CreateInfo;
 
 			VolumeTextureRHI = RHICreateTexture3D(
@@ -76,10 +118,6 @@ void FDistanceFieldVolumeTextureAtlas::UpdateAllocations()
 			const int32 FormatSize = GPixelFormats[Format].BlockBytes;
 			float MemorySize = VolumeTextureRHI->GetSizeX() * VolumeTextureRHI->GetSizeY() * VolumeTextureRHI->GetSizeZ() * FormatSize / 1024.0f / 1024.0f;
 			UE_LOG(LogStaticMesh,Log,TEXT("Allocated %ux%ux%u distance field atlas = %.1fMb"), VolumeTextureRHI->GetSizeX(), VolumeTextureRHI->GetSizeY(), VolumeTextureRHI->GetSizeZ(), MemorySize);
-
-			// Re-upload all textures since we had to reallocate
-			PendingAllocations.Append(CurrentAllocations);
-			CurrentAllocations.Empty();
 		}
 
 		for (int32 AllocationIndex = 0; AllocationIndex < PendingAllocations.Num(); AllocationIndex++)

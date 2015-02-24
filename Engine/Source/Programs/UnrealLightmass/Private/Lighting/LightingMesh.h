@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -48,11 +48,11 @@ struct FStaticLightingVertex: public FStaticLightingVertexData
 		if (TangentXCandidate.SizeSquared3() < KINDA_SMALL_NUMBER)
 		{
 			// The normal was nearly equal to the Y axis, use the X axis instead
-			WorldTangentX = (WorldTangentZ ^ FVector4(1,0,0)).UnsafeNormal3();
+			WorldTangentX = (WorldTangentZ ^ FVector4(1,0,0)).GetUnsafeNormal3();
 		}
 		else
 		{
-			WorldTangentX = TangentXCandidate.UnsafeNormal3();
+			WorldTangentX = TangentXCandidate.GetUnsafeNormal3();
 		}
 		WorldTangentY = WorldTangentZ ^ WorldTangentX;
 		checkSlow(WorldTangentY.IsUnit3());
@@ -166,11 +166,11 @@ struct FFullStaticLightingVertex : public FStaticLightingVertex
 		if (TangentXCandidate.SizeSquared3() < KINDA_SMALL_NUMBER)
 		{
 			// The normal was nearly equal to the Y axis, use the X axis instead
-			TriangleTangentX = (TriangleNormal ^ FVector4(1,0,0)).UnsafeNormal3();
+			TriangleTangentX = (TriangleNormal ^ FVector4(1,0,0)).GetUnsafeNormal3();
 		}
 		else
 		{
-			TriangleTangentX = TangentXCandidate.UnsafeNormal3();
+			TriangleTangentX = TangentXCandidate.GetUnsafeNormal3();
 		}
 		TriangleTangentY = TriangleNormal ^ TriangleTangentX;
 		checkSlow(TriangleTangentY.IsUnit3());

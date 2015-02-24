@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Animation/AnimNode_StateMachine.h"
@@ -107,7 +107,15 @@ void FAnimationActiveTransitionEntry::Update(const FAnimationUpdateContext& Cont
 			bOutFinished = true;
 		}
 
-		Alpha = CalculateAlpha(ElapsedTime / CrossfadeDuration);
+		if(CrossfadeDuration <= 0.0f)
+		{
+			Alpha = 1.0f;
+		}
+		else
+		{
+			Alpha = CalculateAlpha(ElapsedTime / CrossfadeDuration);
+		}
+
 	}
 }
 

@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Niagara/NiagaraCommon.h"
 #include "NiagaraConstantSet.generated.h"
+
 
 USTRUCT()
 struct FNiagaraConstantMap
@@ -11,7 +12,6 @@ struct FNiagaraConstantMap
 	GENERATED_USTRUCT_BODY()
 
 private:
-
 	TMap<FName, float> ScalarConstants;
 	TMap<FName, FVector4> VectorConstants;
 	TMap<FName, FMatrix> MatrixConstants;
@@ -39,7 +39,35 @@ public:
 	const float* FindScalar(FName InName)const { return ScalarConstants.Find(InName); }
 	const FVector4* FindVector(FName InName)const { return VectorConstants.Find(InName); }
 	const FMatrix* FindMatrix(FName InName)const { return MatrixConstants.Find(InName); }
+
+	void Merge(FNiagaraConstantMap &InMap)
+	{
+		for (auto MapIt = InMap.ScalarConstants.CreateIterator(); MapIt; ++MapIt)
+		{
+			SetOrAdd(MapIt.Key(), MapIt.Value());
+		}
+
+		for (auto MapIt = InMap.VectorConstants.CreateIterator(); MapIt; ++MapIt)
+		{
+			SetOrAdd(MapIt.Key(), MapIt.Value());
+		}
+
+		for (auto MapIt = InMap.MatrixConstants.CreateIterator(); MapIt; ++MapIt)
+		{
+			SetOrAdd(MapIt.Key(), MapIt.Value());
+		}
+	}
+
+
+	virtual bool Serialize(FArchive &Ar)
+	{
+		Ar << ScalarConstants << VectorConstants << MatrixConstants;
+		return true;
+	}
 };
+
+
+
 
 USTRUCT()
 struct FNiagaraConstants
@@ -112,12 +140,14 @@ public:
 		}
 
 		Idx += FMath::Min(1, NewIdx % 4);//Move to the next table entry if needed.
+
 		for (int32 i = 0; i < VectorNames.Num(); ++i)
 		{
 			FName VcName = VectorNames[i];
 			const FVector4* Vector = Externals.FindVector(VcName);
 			ConstantsTable[Idx++] = Vector ? *Vector : VectorConstants[i];
 		}
+
 		for (int32 i = 0; i < MatrixNames.Num(); ++i)
 		{
 			FName McName = MatrixNames[i];
@@ -142,6 +172,7 @@ public:
 		{
 			ScalarConstants[Idx] = Sc;
 		}
+
 	}
 
 	void SetOrAdd(FName Name, const FVector4& Vc)

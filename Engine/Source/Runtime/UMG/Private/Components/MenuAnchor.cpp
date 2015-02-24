@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -23,7 +23,6 @@ void UMenuAnchor::ReleaseSlateResources(bool bReleaseChildren)
 TSharedRef<SWidget> UMenuAnchor::RebuildWidget()
 {
 	MyMenuAnchor = SNew(SMenuAnchor)
-		.Method(SMenuAnchor::UseCurrentWindow)
 		.Placement(Placement)
 		.OnGetMenuContent(BIND_UOBJECT_DELEGATE(FOnGetContent, HandleGetMenuContent));
 
@@ -69,10 +68,12 @@ TSharedRef<SWidget> UMenuAnchor::HandleGetMenuContent()
 	{
 		if ( MenuClass != nullptr && !MenuClass->HasAnyClassFlags(CLASS_Abstract) )
 		{
-			UUserWidget* MenuWidget = CreateWidget<UUserWidget>(GetWorld(), MenuClass);
-			if ( MenuWidget )
+			if ( UWorld* World = GetWorld() )
 			{
-				SlateMenuWidget = MenuWidget->TakeWidget();
+				if ( UUserWidget* MenuWidget = CreateWidget<UUserWidget>(World, MenuClass) )
+				{
+					SlateMenuWidget = MenuWidget->TakeWidget();
+				}
 			}
 		}
 	}

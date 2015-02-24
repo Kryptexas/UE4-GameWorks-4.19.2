@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #if WITH_EDITOR
@@ -6,6 +6,7 @@
 #endif
 #include "AI/Navigation/NavigationTestingActor.h"
 #include "AI/Navigation/NavTestRenderingComponent.h"
+#include "Components/CapsuleComponent.h"
 
 void FNavTestTickHelper::Tick(float DeltaTime)
 {
@@ -315,7 +316,7 @@ void ANavigationTestingActor::UpdatePathfinding()
 	}
 }
 
-void ANavigationTestingActor::SearchPathTo(class ANavigationTestingActor* Goal)
+void ANavigationTestingActor::SearchPathTo(ANavigationTestingActor* Goal)
 {
 #if WITH_EDITORONLY_DATA
 	if (EdRenderComp)

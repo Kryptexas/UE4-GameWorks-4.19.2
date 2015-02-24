@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
+#include "Components/CapsuleComponent.h"
 
 
 UCapsuleComponent::UCapsuleComponent(const FObjectInitializer& ObjectInitializer)
@@ -36,34 +37,22 @@ FPrimitiveSceneProxy* UCapsuleComponent::CreateSceneProxy()
 		{
 			QUICK_SCOPE_CYCLE_COUNTER( STAT_GetDynamicMeshElements_DrawDynamicElements );
 
-			const FLinearColor DrawCapsuleColor = GetSelectionColor(ShapeColor, IsSelected(), IsHovered(), /*bUseOverlayIntensity=*/false);
+		
 			const FMatrix& LocalToWorld = GetLocalToWorld();
 			const int32 CapsuleSides =  FMath::Clamp<int32>(CapsuleRadius/4.f, 16, 64);
 
 			for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 			{
+
 				if (VisibilityMap & (1 << ViewIndex))
 				{
+					const FSceneView* View = Views[ViewIndex];
+					const FLinearColor DrawCapsuleColor = GetViewSelectionColor(ShapeColor, *View, IsSelected(), IsHovered(), false, IsIndividuallySelected() );
+
 					FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
 					DrawWireCapsule( PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetScaledAxis( EAxis::X ), LocalToWorld.GetScaledAxis( EAxis::Y ), LocalToWorld.GetScaledAxis( EAxis::Z ), DrawCapsuleColor, CapsuleRadius, CapsuleHalfHeight, CapsuleSides, SDPG_World );
 				}
 			}
-		}
-
-		/** 
-		* Draw the scene proxy as a dynamic element
-		*
-		* @param	PDI - draw interface to render to
-		* @param	View - current view
-		*/
-		virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
-		{
-			QUICK_SCOPE_CYCLE_COUNTER( STAT_DrawCylinderSceneProxy_DrawDynamicElements );
-
-			const FLinearColor DrawCapsuleColor = GetSelectionColor(ShapeColor, IsSelected(), IsHovered(), /*bUseOverlayIntensity=*/false);
-			const FMatrix& LocalToWorld = GetLocalToWorld();
-			const int32 CapsuleSides =  FMath::Clamp<int32>(CapsuleRadius/4.f, 16, 64);
-			DrawWireCapsule( PDI, LocalToWorld.GetOrigin(), LocalToWorld.GetScaledAxis( EAxis::X ), LocalToWorld.GetScaledAxis( EAxis::Y ), LocalToWorld.GetScaledAxis( EAxis::Z ), DrawCapsuleColor, CapsuleRadius, CapsuleHalfHeight, CapsuleSides, SDPG_World );
 		}
 
 		virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
@@ -127,13 +116,20 @@ void UCapsuleComponent::Serialize(FArchive& Ar)
 #if WITH_EDITOR
 void UCapsuleComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
 	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	if (PropertyName == FName(TEXT("CapsuleHalfHeight")) || PropertyName == FName(TEXT("CapsuleRadius")))
+
+	// We only want to modify the property that was changed at this point
+	// things like propagation from CDO to instances don't work correctly if changing one property causes a different property to change
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UCapsuleComponent, CapsuleHalfHeight))
 	{
 		CapsuleHalfHeight = FMath::Max(CapsuleHalfHeight, CapsuleRadius);
 	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UCapsuleComponent, CapsuleRadius))
+	{
+		CapsuleRadius = FMath::Min(CapsuleHalfHeight, CapsuleRadius);
+	}
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
 #endif	// WITH_EDITOR
 

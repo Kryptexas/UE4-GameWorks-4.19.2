@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 #include "IUMGDesigner.h"
@@ -7,6 +7,7 @@
 #include "WidgetReference.h"
 #include "Widget.h"
 #include "Components/PanelSlot.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "UMG"
 
@@ -19,6 +20,7 @@ void STransformHandle::Construct(const FArguments& InArgs, IUMGDesigner* InDesig
 	Designer = InDesigner;
 
 	Action = ETransformAction::None;
+	ScopedTransaction = nullptr;
 
 	DragDirection = ComputeDragDirection(InTransformDirection);
 	DragOrigin = ComputeOrigin(InTransformDirection);
@@ -52,7 +54,7 @@ EVisibility STransformHandle::GetHandleVisibility() const
 			{
 				if ( UPanelSlot* TemplateSlot = SelectedWidget.GetTemplate()->Slot )
 				{
-					if ( TemplateSlot->CanResize(DragDirection) )
+					if ( CanResize(TemplateSlot, DragDirection) )
 					{
 						return EVisibility::Visible;
 					}
@@ -74,6 +76,20 @@ FReply STransformHandle::OnMouseButtonDown(const FGeometry& MyGeometry, const FP
 	{
 		Action = ComputeActionAtLocation(MyGeometry, MouseEvent);
 
+		FWidgetReference SelectedWidget = Designer->GetSelectedWidget();
+		UWidget* Preview = SelectedWidget.GetPreview();
+		UWidget* Template = SelectedWidget.GetTemplate();
+
+		if ( UCanvasPanelSlot* Slot = Cast<UCanvasPanelSlot>(Preview->Slot) )
+		{
+			StartingOffsets = Slot->GetOffsets();
+		}
+
+		MouseDownPosition = MouseEvent.GetScreenSpacePosition();
+
+		ScopedTransaction = new FScopedTransaction(LOCTEXT("ResizeWidget", "Resize Widget"));
+		Template->Modify();
+
 		return FReply::Handled().CaptureMouse(SharedThis(this));
 	}
 
@@ -86,6 +102,12 @@ FReply STransformHandle::OnMouseButtonUp(const FGeometry& MyGeometry, const FPoi
 	{
 		const bool bRequiresRecompile = false;
 		Designer->MarkDesignModifed(bRequiresRecompile);
+
+		if ( ScopedTransaction )
+		{
+			delete ScopedTransaction;
+			ScopedTransaction = nullptr;
+		}
 
 		Action = ETransformAction::None;
 		return FReply::Handled().ReleaseMouseCapture();
@@ -103,52 +125,18 @@ FReply STransformHandle::OnMouseMove(const FGeometry& MyGeometry, const FPointer
 		UWidget* Template = SelectedWidget.GetTemplate();
 		UWidget* Preview = SelectedWidget.GetPreview();
 
-		ETransformMode::Type TransformMode = Designer->GetTransformMode();
-		if ( TransformMode == ETransformMode::Layout )
 		{
-			//FGeometry MyGeometry = Designer->GetWidgetGeometry(SelectedWidget);
-			//FGeometry ParentGeometry = Designer->GetWidgetParentGeometry(SelectedWidget);
+			FVector2D Delta = MouseEvent.GetScreenSpacePosition() - MouseDownPosition;
+			FVector2D TranslateAmount = Delta * ( 1.0f / Designer->GetPreviewScale() );
 
-			//FVector2D LocalPosition = MyGeometry.Position;
-			//FVector2D LocalDragPosition = ParentGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-
-			//FVector2D NewSize = LocalDragPosition - LocalPosition;
-
-			FVector2D TranslateAmount = MouseEvent.GetCursorDelta() * ( 1.0f / Designer->GetPreviewScale() );
-
-			if ( Preview->Slot )
-			{
-				Preview->Slot->Resize(DragDirection, TranslateAmount);
-			}
-
-			if ( Template->Slot )
-			{
-				Template->Slot->Resize(DragDirection, TranslateAmount);
-			}
+			Resize(Cast<UCanvasPanelSlot>(Preview->Slot), DragDirection, TranslateAmount);
+			Resize(Cast<UCanvasPanelSlot>(Template->Slot), DragDirection, TranslateAmount);
 		}
-		else if ( TransformMode == ETransformMode::Render )
+
+		ETransformMode::Type TransformMode = Designer->GetTransformMode();
+		if ( TransformMode == ETransformMode::Render )
 		{
 			FWidgetTransform RenderTransform = Preview->RenderTransform;
-
-			//if ( Action == ETransformAction::Primary )
-			//{
-				FVector2D TranslateAmount = MouseEvent.GetCursorDelta() * ( 1.0f / Designer->GetPreviewScale() );
-
-				if ( Preview->Slot )
-				{
-					Preview->Slot->Resize(DragDirection, TranslateAmount);
-				}
-
-				if ( Template->Slot )
-				{
-					Template->Slot->Resize(DragDirection, TranslateAmount);
-				}
-			//}
-			//else
-			//{
-			//	FVector2D RotationDelta = MouseEvent.GetCursorDelta();
-			//	RenderTransform.Angle += RotationDelta.Size();
-			//}
 
 			static const FName RenderTransformName(TEXT("RenderTransform"));
 
@@ -160,9 +148,83 @@ FReply STransformHandle::OnMouseMove(const FGeometry& MyGeometry, const FPointer
 	return FReply::Unhandled();
 }
 
+bool STransformHandle::CanResize(UPanelSlot* Slot, const FVector2D& Direction) const
+{
+	return Cast<UCanvasPanelSlot>(Slot) != nullptr;
+}
+
+void STransformHandle::Resize(UCanvasPanelSlot* Slot, const FVector2D& Direction, const FVector2D& Amount)
+{
+	if ( Slot == nullptr )
+	{
+		return;
+	}
+
+	FMargin Offsets = StartingOffsets;
+	const FAnchorData& LayoutData = Slot->LayoutData;
+
+	FVector2D Movement = Amount * Direction;
+	FVector2D PositionMovement = Movement * ( FVector2D(1.0f, 1.0f) - LayoutData.Alignment );
+	FVector2D SizeMovement = Movement;
+
+	if ( Direction.X < 0 )
+	{
+		if ( LayoutData.Anchors.IsStretchedHorizontal() )
+		{
+			Offsets.Left -= Amount.X * Direction.X;
+		}
+		else
+		{
+			Offsets.Left -= PositionMovement.X;
+			Offsets.Right += SizeMovement.X;
+		}
+	}
+
+	if ( Direction.Y < 0 )
+	{
+		if ( LayoutData.Anchors.IsStretchedVertical() )
+		{
+			Offsets.Top -= Amount.Y * Direction.Y;
+		}
+		else
+		{
+			Offsets.Top -= PositionMovement.Y;
+			Offsets.Bottom += SizeMovement.Y;
+		}
+	}
+
+	if ( Direction.X > 0 )
+	{
+		if ( LayoutData.Anchors.IsStretchedHorizontal() )
+		{
+			Offsets.Right -= Amount.X * Direction.X;
+		}
+		else
+		{
+			Offsets.Left += (Movement * LayoutData.Alignment).X;
+			Offsets.Right += Amount.X * Direction.X;
+		}
+	}
+
+	if ( Direction.Y > 0 )
+	{
+		if ( LayoutData.Anchors.IsStretchedVertical() )
+		{
+			Offsets.Bottom -= Amount.Y * Direction.Y;
+		}
+		else
+		{
+			Offsets.Top += ( Movement * LayoutData.Alignment ).Y;
+			Offsets.Bottom += Amount.Y * Direction.Y;
+		}
+	}
+
+	Slot->SetOffsets(Offsets);
+}
+
 FCursorReply STransformHandle::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const
 {
-	ETransformAction::Type CurrentAction = Action;
+	ETransformAction CurrentAction = Action;
 	if ( CurrentAction == ETransformAction::None )
 	{
 		CurrentAction = ComputeActionAtLocation(MyGeometry, MouseEvent);
@@ -170,28 +232,21 @@ FCursorReply STransformHandle::OnCursorQuery(const FGeometry& MyGeometry, const 
 
 	ETransformMode::Type TransformMode = Designer->GetTransformMode();
 
-	//if ( TransformMode == ETransformMode::Layout || CurrentAction == ETransformAction::Primary )
-	//{
-		switch ( TransformDirection )
-		{
-		case ETransformDirection::TopLeft:
-		case ETransformDirection::BottomRight:
-			return FCursorReply::Cursor(EMouseCursor::ResizeSouthEast);
-		case ETransformDirection::TopRight:
-		case ETransformDirection::BottomLeft:
-			return FCursorReply::Cursor(EMouseCursor::ResizeSouthWest);
-		case ETransformDirection::TopCenter:
-		case ETransformDirection::BottomCenter:
-			return FCursorReply::Cursor(EMouseCursor::ResizeUpDown);
-		case ETransformDirection::CenterLeft:
-		case ETransformDirection::CenterRight:
-			return FCursorReply::Cursor(EMouseCursor::ResizeLeftRight);
-		}
-	//}
-	//else
-	//{
-	//	return FCursorReply::Cursor(EMouseCursor::EyeDropper);
-	//}
+	switch ( TransformDirection )
+	{
+	case ETransformDirection::TopLeft:
+	case ETransformDirection::BottomRight:
+		return FCursorReply::Cursor(EMouseCursor::ResizeSouthEast);
+	case ETransformDirection::TopRight:
+	case ETransformDirection::BottomLeft:
+		return FCursorReply::Cursor(EMouseCursor::ResizeSouthWest);
+	case ETransformDirection::TopCenter:
+	case ETransformDirection::BottomCenter:
+		return FCursorReply::Cursor(EMouseCursor::ResizeUpDown);
+	case ETransformDirection::CenterLeft:
+	case ETransformDirection::CenterRight:
+		return FCursorReply::Cursor(EMouseCursor::ResizeLeftRight);
+	}
 
 	return FCursorReply::Unhandled();
 }
@@ -252,7 +307,7 @@ FVector2D STransformHandle::ComputeOrigin(ETransformDirection::Type InTransformD
 	return FVector2D(0, 0);
 }
 
-ETransformAction::Type STransformHandle::ComputeActionAtLocation(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const
+ETransformAction STransformHandle::ComputeActionAtLocation(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) const
 {
 	FVector2D LocalPosition = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
 	FVector2D GrabOriginOffset = LocalPosition - DragOrigin;

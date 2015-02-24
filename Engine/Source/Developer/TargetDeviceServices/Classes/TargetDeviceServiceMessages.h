@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -532,6 +532,10 @@ struct FTargetDeviceServicePong
 	/** Holds the device type. */
 	UPROPERTY()
 	FString Type;
+
+	/** Holds the device operating system name. */
+	UPROPERTY()
+	FString OperatingSystemName;
 
 	/** Holds the variant name of the default device. */
 	UPROPERTY()

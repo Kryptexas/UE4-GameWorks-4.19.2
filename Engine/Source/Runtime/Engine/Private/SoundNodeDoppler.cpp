@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -26,7 +26,7 @@ float USoundNodeDoppler::GetDopplerPitchMultiplier(FListener const& InListener, 
 {
 	static const float SpeedOfSoundInAirAtSeaLevel = 33000.f;		// cm/sec
 
-	FVector const SourceToListenerNorm = (InListener.Transform.GetTranslation() - Location).SafeNormal();
+	FVector const SourceToListenerNorm = (InListener.Transform.GetTranslation() - Location).GetSafeNormal();
 
 	// find source and listener speeds along the line between them
 	float const SourceVelMagTorwardListener = Velocity | SourceToListenerNorm;

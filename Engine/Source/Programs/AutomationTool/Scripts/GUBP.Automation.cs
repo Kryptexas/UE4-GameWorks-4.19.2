@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -114,13 +114,17 @@ public class GUBP : BuildCommand
     public bool bFake = false;
     public static bool bNoIOSOnPC = false;
     public static bool bBuildRocket = false;
+	public static bool bPostedRocketBuild = false;
+	public static bool bBuildOnlySamples = false;
+	public static List<string> Samples = new List<string>();
+	public static string RocketBuild;	
     public static bool bForceIncrementalCompile = false;
     public static string ECProject = null;
     public string EmailHint;
     static public bool bPreflightBuild = false;
     public int PreflightShelveCL = 0;
     static public string PreflightMangleSuffix = "";
-    public GUBPBranchHacker.BranchOptions BranchOptions = null;
+    public GUBPBranchHacker.BranchOptions BranchOptions = null;	
 
     Dictionary<string, GUBPNode> GUBPNodes;
     Dictionary<string, bool> GUBPNodesCompleted;
@@ -144,11 +148,16 @@ public class GUBP : BuildCommand
 
     public string RocketUBTArgs(bool bUseRocketInsteadOfBuildRocket = false)
     {
+		string Args = "";
         if (bBuildRocket)
         {
-            return " -NoSimplygon " + (bUseRocketInsteadOfBuildRocket ? "-Rocket" : "-BuildRocket");
+            Args = " -NoSimplygon " + (bUseRocketInsteadOfBuildRocket ? "-Rocket" : "-BuildRocket");
+			if(bPostedRocketBuild && bUseRocketInsteadOfBuildRocket)
+			{
+				Args += " -PostedRocket";
+			}
         }
-        return "";
+        return Args;
     }
 
     public abstract class GUBPNodeAdder
@@ -264,7 +273,7 @@ public class GUBP : BuildCommand
         if(EmailHint == null)
         {
             EmailHint = "";
-        }
+        }			
         if (EmailHackers == null)
         {
             EmailHackers = new List<GUBPEmailHacker>();
@@ -361,7 +370,7 @@ public class GUBP : BuildCommand
         public List<string> BuildProducts = null;
 		public List<string> DependentPromotions = new List<string>();
         public List<string> AllDependencyBuildProducts = null;
-        public List<string> AllDependencies = null;
+        public List<string> AllDependencies = null;		
         public string AgentSharingGroup = "";
         public int ComputedDependentCISFrequencyQuantumShift = -1;
 
@@ -417,6 +426,14 @@ public class GUBP : BuildCommand
 		public virtual bool IsSeparatePromotable()
 		{
 			return false;
+		}
+		public virtual bool IsRocketSample()
+		{
+			return false;
+		}
+		public virtual string NodeHostPlatform()
+		{
+			return "";
 		}
         public virtual int AgentMemoryRequirement(GUBP bp)
         {
@@ -750,7 +767,7 @@ public class GUBP : BuildCommand
         }
         public override int AgentMemoryRequirement(GUBP bp)
         {
-            if (bp.ParseParam("Launcher") || bp.TimeIndex != 0)
+            if (bp.ParseParam("Launcher") || bp.TimeIndex != 0  && HostPlatform != UnrealTargetPlatform.Mac)
             {
                 return base.AgentMemoryRequirement(bp);
             }
@@ -1260,11 +1277,11 @@ public class GUBP : BuildCommand
         public EditorGameNode(GUBP bp, UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj)
             : base(InHostPlatform)
         {
-            AgentSharingGroup = "Editor" + StaticGetHostPlatformSuffix(InHostPlatform);
+            AgentSharingGroup = "Editor"  + StaticGetHostPlatformSuffix(InHostPlatform);
             GameProj = InGameProj;
-            AddDependency(RootEditorNode.StaticGetFullName(InHostPlatform));
-        }
-
+			AddDependency(RootEditorNode.StaticGetFullName(InHostPlatform));						
+		}
+		
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj)
         {
             return InGameProj.GameName + "_EditorGame" + StaticGetHostPlatformSuffix(InHostPlatform);
@@ -1276,7 +1293,7 @@ public class GUBP : BuildCommand
         public override string GameNameIfAnyForTempStorage()
         {
             return GameProj.GameName;
-        }
+        }		
         public override float Priority()
         {
             float Result = base.Priority();
@@ -1309,16 +1326,106 @@ public class GUBP : BuildCommand
         }
     }
 
+	public class MakeFeaturePackNode : HostPlatformNode
+	{
+        BranchInfo.BranchUProject GameProj;
+
+        public MakeFeaturePackNode(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj)
+            : base(InHostPlatform)
+        {
+			GameProj = InGameProj;
+			AddDependency(ToolsNode.StaticGetFullName(InHostPlatform)); // for UnrealPak
+            AgentSharingGroup = "FeaturePacks"  + StaticGetHostPlatformSuffix(InHostPlatform);
+        }
+
+		public static bool IsFeaturePack(BranchInfo.BranchUProject InGameProj)
+		{
+			// No obvious way to store this in the project options; it's a property of non-code projects too.
+			if(InGameProj.GameName == "StarterContent" || InGameProj.GameName == "MobileStarterContent" || InGameProj.GameName.StartsWith("FP_"))
+			{
+				return true;
+			}
+			if(InGameProj.GameName.StartsWith("TP_"))
+			{
+				return CommandUtils.FileExists(CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(InGameProj.FilePath), "contents.txt"));
+			}
+			return false;
+		}
+
+		public static UnrealTargetPlatform GetDefaultBuildPlatform(GUBP bp)
+		{
+			if(bp.HostPlatforms.Contains(UnrealTargetPlatform.Win64))
+			{
+				return UnrealTargetPlatform.Win64;
+			}
+			else if(bp.HostPlatforms.Contains(UnrealTargetPlatform.Mac))
+			{
+				return UnrealTargetPlatform.Mac;
+			}
+			else
+			{
+				return bp.HostPlatforms[0];
+			}
+		}
+
+        public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj)
+        {
+            return InGameProj.GameName + "_MakeFeaturePack" + StaticGetHostPlatformSuffix(InHostPlatform);
+        }
+
+		public override string GetFullName()
+        {
+            return StaticGetFullName(HostPlatform, GameProj);
+        }
+
+		public override void DoBuild(GUBP bp)
+        {
+			string ContentsFileName = CommandUtils.CombinePaths(CommandUtils.GetDirectoryName(GameProj.FilePath), "contents.txt");
+
+			// Make sure we delete the output file. It may be read-only.
+			string OutputFileName = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "FeaturePacks", Path.GetFileNameWithoutExtension(GameProj.GameName) + ".upack");
+			CommandUtils.DeleteFile(OutputFileName);
+
+			// Get the command line
+			string CmdLine = CommandUtils.MakePathSafeToUseWithCommandLine(OutputFileName) + " " + CommandUtils.MakePathSafeToUseWithCommandLine("-create=" + ContentsFileName);
+			if (GlobalCommandLine.Installed)
+			{
+				CmdLine += " -installed";
+			}
+			if (GlobalCommandLine.UTF8Output)
+			{
+				CmdLine += " -UTF8Output";
+			}
+
+			// Run UnrealPak
+			string UnrealPakExe;
+			if(HostPlatform == UnrealTargetPlatform.Win64)
+			{
+				UnrealPakExe = CombinePaths(CmdEnv.LocalRoot, "Engine/Binaries/Win64/UnrealPak.exe");
+			}
+			else
+			{
+				throw new AutomationException("Unknown path to UnrealPak for host platform ({0})", HostPlatform);
+			}
+			RunAndLog(CmdEnv, UnrealPakExe, CmdLine, Options: ERunOptions.Default | ERunOptions.AllowSpew | ERunOptions.UTF8Output);
+
+			// Add the build products
+			BuildProducts = new List<string>();
+			BuildProducts.Add(OutputFileName);
+		}
+	}
+
     public class GamePlatformMonolithicsNode : CompileNode
     {
         BranchInfo.BranchUProject GameProj;
         UnrealTargetPlatform TargetPlatform;
-
-        public GamePlatformMonolithicsNode(GUBP bp, UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform)
+		bool WithXp;
+        public GamePlatformMonolithicsNode(GUBP bp, UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, bool InWithXp = false)
             : base(InHostPlatform)
         {
             GameProj = InGameProj;
             TargetPlatform = InTargetPlatform;
+			WithXp = InWithXp;
             if (TargetPlatform == UnrealTargetPlatform.PS4)
             {
                 var PS4MapFileUtil = bp.Branch.FindProgram("PS4MapFileUtil");
@@ -1328,6 +1435,15 @@ public class GUBP : BuildCommand
                 }
                 AddDependency(SingleToolsNode.StaticGetFullName(HostPlatform, PS4MapFileUtil));
             }
+			if (TargetPlatform == UnrealTargetPlatform.XboxOne)
+			{
+				var XboxOnePDBFileUtil = bp.Branch.FindProgram("XboxOnePDBFileUtil");
+				if (XboxOnePDBFileUtil.Rules == null)
+				{
+					throw new AutomationException("XboxOnePDBFileUtil is not is this branch, but is required to build Xbox One monolithics");
+				}
+				AddDependency(SingleToolsNode.StaticGetFullName(HostPlatform, XboxOnePDBFileUtil));
+			}
             if (InGameProj.GameName != bp.Branch.BaseEngineProject.GameName && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
             {
                 AddPseudodependency(EditorGameNode.StaticGetFullName(InHostPlatform, GameProj));
@@ -1375,6 +1491,10 @@ public class GUBP : BuildCommand
                         {
                             continue;
                         }
+                        if (TargetPlatform == UnrealTargetPlatform.HTML5 && Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
+                        {
+                            continue;
+                        }
                         if (TargetPlatform == UnrealTargetPlatform.Linux && Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
                         {
                             continue;
@@ -1390,13 +1510,22 @@ public class GUBP : BuildCommand
 
         }
 
-        public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform)
+        public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, BranchInfo.BranchUProject InGameProj, UnrealTargetPlatform InTargetPlatform, bool WithXp = false)
         {
-            return InGameProj.GameName + "_" + InTargetPlatform + "_Mono" + StaticGetHostPlatformSuffix(InHostPlatform);
+			string Name;
+			if (!WithXp)
+			{
+				Name = InGameProj.GameName + "_" + InTargetPlatform + "_Mono" + StaticGetHostPlatformSuffix(InHostPlatform);
+			}
+			else
+			{
+				Name = InGameProj.GameName + "_WinXP_Mono" + StaticGetHostPlatformSuffix(InHostPlatform);
+			}
+			return Name;
         }
         public override string GetFullName()
         {
-            return StaticGetFullName(HostPlatform, GameProj, TargetPlatform);
+            return StaticGetFullName(HostPlatform, GameProj, TargetPlatform, WithXp);
         }
         public override string GameNameIfAnyForTempStorage()
         {
@@ -1431,6 +1560,11 @@ public class GUBP : BuildCommand
 
             string Args = "-nobuilduht -skipactionhistory -CopyAppBundleBackToDevice" + bp.RocketUBTArgs();
 
+            if (GUBP.bBuildRocket && (TargetPlatform == UnrealTargetPlatform.Win32 || TargetPlatform == UnrealTargetPlatform.Win64))
+            {
+                Args += " -nodebuginfo";
+            }
+
             foreach (var Kind in BranchInfo.MonolithicKinds)
             {
                 if (GUBP.bBuildRocket && Kind != TargetRules.TargetType.Game)
@@ -1440,50 +1574,62 @@ public class GUBP : BuildCommand
                 if (GameProj.Properties.Targets.ContainsKey(Kind))
                 {
                     var Target = GameProj.Properties.Targets[Kind];
-                    var Platforms = Target.Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform);
-					var AdditionalPlatforms = Target.Rules.GUBP_GetBuildOnlyPlatforms_MonolithicOnly(HostPlatform);
-					var AllPlatforms = Platforms.Union(AdditionalPlatforms);
-					if (AllPlatforms.Contains(TargetPlatform) && Target.Rules.SupportsPlatform(TargetPlatform))
-                    {
-                        var Configs = Target.Rules.GUBP_GetConfigs_MonolithicOnly(HostPlatform, TargetPlatform);
-                        foreach (var Config in Configs)
-                        {
-                            if (GUBP.bBuildRocket)
-                            {
-                                if (HostPlatform == UnrealTargetPlatform.Win64)
-                                {
-                                    if (TargetPlatform == UnrealTargetPlatform.Win32 && Config != UnrealTargetConfiguration.Shipping)
-                                    {
-                                        continue;
-                                    }
-                                    if (TargetPlatform == UnrealTargetPlatform.Win64 && Config != UnrealTargetConfiguration.Development)
-                                    {
-                                        continue;
-                                    }
-                                    if (TargetPlatform == UnrealTargetPlatform.Android && Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
-                                    {
-                                        continue;
-                                    }
-                                    if (TargetPlatform == UnrealTargetPlatform.Linux && Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
-                                    {
-                                        continue;
-                                    }
-                                }
-                                else if (Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
-                                {
-                                    continue;
-                                }
-                            }
+					var AllowXp = Target.Rules.GUBP_BuildWindowsXPMonolithics();
+					if (!WithXp || (AllowXp && WithXp))
+					{
+						var Platforms = Target.Rules.GUBP_GetPlatforms_MonolithicOnly(HostPlatform);
+						var AdditionalPlatforms = Target.Rules.GUBP_GetBuildOnlyPlatforms_MonolithicOnly(HostPlatform);
+						var AllPlatforms = Platforms.Union(AdditionalPlatforms);
+						if (AllPlatforms.Contains(TargetPlatform) && Target.Rules.SupportsPlatform(TargetPlatform))
+						{
+							var Configs = Target.Rules.GUBP_GetConfigs_MonolithicOnly(HostPlatform, TargetPlatform);
+							foreach (var Config in Configs)
+							{
+								if (WithXp)
+								{
+									Args += " -winxp";
+								}
 
-                            if (GameProj.GameName == bp.Branch.BaseEngineProject.GameName)
-                            {
-                                Agenda.AddTargets(new string[] { Target.TargetName }, TargetPlatform, Config, InAddArgs: Args);
-                            }
-                            else
-                            {
-                                Agenda.AddTargets(new string[] { Target.TargetName }, TargetPlatform, Config, GameProj.FilePath, InAddArgs: Args);
-                            }
-                        }
+								if (GUBP.bBuildRocket)
+								{
+									if (HostPlatform == UnrealTargetPlatform.Win64)
+									{
+										if (TargetPlatform == UnrealTargetPlatform.Win32 && Config != UnrealTargetConfiguration.Shipping)
+										{
+											continue;
+										}
+										if (TargetPlatform == UnrealTargetPlatform.Win64 && Config != UnrealTargetConfiguration.Development)
+										{
+											continue;
+										}
+										if (TargetPlatform == UnrealTargetPlatform.Android && Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
+										{
+											continue;
+										}
+										if (TargetPlatform == UnrealTargetPlatform.HTML5 && Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
+										{
+											continue;
+										}
+										if (TargetPlatform == UnrealTargetPlatform.Linux && Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
+										{
+											continue;
+										}
+									}
+									else if (Config != UnrealTargetConfiguration.Shipping && Config != UnrealTargetConfiguration.Development)
+									{
+										continue;
+									}
+								}
+								if (GameProj.GameName == bp.Branch.BaseEngineProject.GameName)
+								{
+										Agenda.AddTargets(new string[] { Target.TargetName }, TargetPlatform, Config, InAddArgs: Args);
+								}
+								else
+								{
+										Agenda.AddTargets(new string[] { Target.TargetName }, TargetPlatform, Config, GameProj.FilePath, InAddArgs: Args);
+								}
+							}
+						}
                     }
                 }
             }
@@ -1491,6 +1637,29 @@ public class GUBP : BuildCommand
             return Agenda;
         }
     }
+
+	public static class HeadersNode
+	{
+		public static void ZipHeaders(IEnumerable<string> HeaderFiles, string ZipFileName)
+		{
+			string NormalizedPrefix = CommandUtils.ConvertSeparators(PathSeparator.Slash, CmdEnv.LocalRoot).TrimEnd('/') + "/";
+
+			Ionic.Zip.ZipFile Zip = new Ionic.Zip.ZipFile();
+			foreach(string HeaderFile in HeaderFiles)
+			{
+				string NormalizedDirectoryName = CommandUtils.ConvertSeparators(PathSeparator.Slash, Path.GetDirectoryName(HeaderFile));
+				if(NormalizedDirectoryName.StartsWith(NormalizedPrefix))
+				{
+					Zip.AddFile(HeaderFile, NormalizedDirectoryName.Substring(NormalizedPrefix.Length));
+				}
+				else
+				{
+					throw new AutomationException("Header file '{0}' was not under root directory ('{1}')", NormalizedDirectoryName, NormalizedPrefix);
+				}
+			}
+			Zip.Save(ZipFileName);
+		}
+	}
 
     public class RootEditorHeadersNode : HostPlatformNode
     {
@@ -1514,11 +1683,10 @@ public class GUBP : BuildCommand
         }
         public override void DoBuild(GUBP bp)
         {
-            BuildProducts = new List<string>();
-
+			HashSet<string> HeaderFiles = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
             foreach (var FileToCopy in CommandUtils.FindFiles("*.h", true, CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine\Intermediate\Build\", HostPlatform.ToString(), "Inc")))
             {
-                AddBuildProduct(FileToCopy);
+				HeaderFiles.Add(FileToCopy);
             }
             var Targets = new List<string> { bp.Branch.BaseEngineProject.Properties.Targets[TargetRules.TargetType.Editor].TargetName };
             foreach (var ProgramTarget in bp.Branch.BaseEngineProject.Properties.Programs)
@@ -1532,7 +1700,7 @@ public class GUBP : BuildCommand
             {
                 foreach (var FileToCopy in CommandUtils.FindFiles("*.h", true, CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine\Intermediate\Build\", HostPlatform.ToString(), Target, "Inc")))
                 {
-                    AddBuildProduct(FileToCopy);
+					HeaderFiles.Add(FileToCopy);
                 }
             }
 
@@ -1544,10 +1712,14 @@ public class GUBP : BuildCommand
             {
                 foreach (var FileToCopy in CommandUtils.FindFiles("*", true, CommandUtils.CombinePaths(EnginePlugin.Directory, @"Intermediate\Build", HostPlatform.ToString(), "Inc")))
                 {
-                    AddBuildProduct(FileToCopy);
+					HeaderFiles.Add(FileToCopy);
                 }
             }
-            RemoveOveralppingBuildProducts();
+
+			// Create a zip file containing the headers. 
+			string ZipFileName = CommandUtils.CombinePaths(CmdEnv.LocalRoot, "Engine\\Intermediate\\Build", HostPlatform.ToString(), "RootEditorHeaders.zip");
+			HeadersNode.ZipHeaders(HeaderFiles, ZipFileName);
+            BuildProducts = new List<string>{ ZipFileName };
         }
     }
 
@@ -1580,14 +1752,15 @@ public class GUBP : BuildCommand
             {
                 throw new AutomationException("these rocket header node require real mac path.");
             }
-            BuildProducts = new List<string>();
+
+			HashSet<string> HeaderFiles = new HashSet<string>(StringComparer.InvariantCultureIgnoreCase);
 			if (TargetPlatform != HostPlatform)
 			{
 				// host platform overlaps with the editor, so we don't want them here
 				var PlatformDir = TargetPlatform.ToString();
 				foreach (var FileToCopy in CommandUtils.FindFiles("*.h", true, CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine\Intermediate\Build\", PlatformDir, "Inc")))
 				{
-					AddBuildProduct(FileToCopy);
+					HeaderFiles.Add(FileToCopy);
 				}
 
 				// these may not be any new build products here, but we will check anyway
@@ -1599,15 +1772,15 @@ public class GUBP : BuildCommand
 				{
 					foreach (var FileToCopy in CommandUtils.FindFiles("*", true, CommandUtils.CombinePaths(EnginePlugin.Directory, @"Intermediate\Build", PlatformDir, "Inc")))
 					{
-						AddBuildProduct(FileToCopy);
+						HeaderFiles.Add(FileToCopy);
 					}
 				}
 			}
-            RemoveOveralppingBuildProducts();
-            if (BuildProducts.Count == 0)
-            {
-                SaveRecordOfSuccessAndAddToBuildProducts(); // could be empty
-            }
+
+			// Create a zip containing all the headers
+			string ZipFileName = CommandUtils.CombinePaths(CmdEnv.LocalRoot, "Engine\\Intermediate\\Build", TargetPlatform.ToString(), "MonolithicHeaders.zip");
+			HeadersNode.ZipHeaders(HeaderFiles, ZipFileName);
+            BuildProducts = new List<string>{ ZipFileName };
         }
     }
 
@@ -1777,9 +1950,16 @@ public class GUBP : BuildCommand
                     foreach (var Plat in Platforms)
                     {
                         AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, GameProj, Plat));
+						if(Plat == UnrealTargetPlatform.Win32 && GameProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Game))
+						{
+							if(GameProj.Properties.Targets[TargetRules.TargetType.Game].Rules.GUBP_BuildWindowsXPMonolithics())
+							{
+								AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, GameProj, Plat, true));
+							}
                     }
                 }
             }
+        }
         }
 
         public static string StaticGetFullName(BranchInfo.BranchUProject InGameProj)
@@ -1836,6 +2016,15 @@ public class GUBP : BuildCommand
                     }
                 }
             }
+
+			UnrealTargetPlatform FeaturePackPlatform = MakeFeaturePackNode.GetDefaultBuildPlatform(bp);
+			foreach(var Proj in bp.Branch.AllProjects)
+			{
+				if(MakeFeaturePackNode.IsFeaturePack(Proj))
+				{
+					AddDependency(MakeFeaturePackNode.StaticGetFullName(FeaturePackPlatform, Proj));
+				}
+			}
         }
 		public override bool IsSeparatePromotable()
 		{
@@ -2047,7 +2236,7 @@ public class GUBP : BuildCommand
         {
             return !bLabelPromoted;
         }
-    }    
+    }   	
 
     public class LabelPromotableNode : GUBPNode
     {
@@ -2489,8 +2678,12 @@ public class GUBP : BuildCommand
 							}
                             AddDependency(CookNode.StaticGetFullName(HostPlatform, GameProj, CookedPlatform));
                             AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, GameProj, TargetPlatform));
+							if(Target.Rules.GUBP_BuildWindowsXPMonolithics())
+							{
+								AddDependency(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, GameProj, TargetPlatform, true));
                         }
                     }
+                }
                 }
                 else
                 {
@@ -2725,13 +2918,19 @@ public class GUBP : BuildCommand
         public override string ECAgentString()
         {
             string Result = base.ECAgentString();
-            foreach (UnrealTargetPlatform Plat in ClientTargetPlatforms)
-            {
-                if (Plat == UnrealTargetPlatform.XboxOne)
-                {
-                    Result = MergeSpaceStrings(Result, Plat.ToString());
-                }
-            }
+			if (ClientTargetPlatforms != null)
+			{
+				if (!ClientNotGame)
+				{
+					foreach (UnrealTargetPlatform Plat in ClientTargetPlatforms)
+					{
+						if (Plat == UnrealTargetPlatform.XboxOne)
+						{
+							Result = MergeSpaceStrings(Result, Plat.ToString());
+						}
+					}
+				}
+			}
             return Result;
         }      
         public override float Priority()
@@ -4688,8 +4887,7 @@ public class GUBP : BuildCommand
         if (ECProject == null)
         {
             ECProject = "";
-        }
-
+        }		
         HostPlatforms = new List<UnrealTargetPlatform>();
         if (!ParseParam("NoPC"))
         {
@@ -4722,15 +4920,36 @@ public class GUBP : BuildCommand
 			HostPlatforms.Add(UnrealTargetPlatform.Linux);
 		}
 
-		bBuildRocket = ParseParam("BuildRocket");
+		bBuildRocket = ParseParam("BuildRocket");		
+		string Sample = ParseParamValue("Sample");		
+		if (Sample != null)
+		{
+			Samples = new List<string>(Sample.Split('+'));
+			bBuildOnlySamples = true;
+		}
+		else
+		{
+			bBuildOnlySamples = ParseParam("OnlySamples");
+		}
         bForceIncrementalCompile = ParseParam("ForceIncrementalCompile");
         bool bNoAutomatedTesting = ParseParam("NoAutomatedTesting") || BranchOptions.bNoAutomatedTesting;		
         StoreName = ParseParamValue("Store");
         string StoreSuffix = ParseParamValue("StoreSuffix", "");
+
         if (bBuildRocket)
         {
             StoreSuffix = StoreSuffix + "-Rkt";
+			if (ParseParam("UsePostedRocket"))
+			{
+				bPostedRocketBuild = true;
+				RocketBuild = ParseParamValue("RocketBuild");
+				if (RocketBuild == null)
+				{
+					RocketBuild = FEngineVersionSupport.FromVersionFile(CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, @"Engine\Source\Runtime\Launch\Resources\Version.h")).ToString();
+				}
+			}
         }
+		
         if (bPreflightBuild)
         {
             int PreflightUID = ParseParamInt("PreflightUID", 0);
@@ -4990,7 +5209,7 @@ public class GUBP : BuildCommand
             var FilteredActivePlatforms = new List<UnrealTargetPlatform>();
             foreach (var Plat in ActivePlatforms)
             {
-                if (Plat != UnrealTargetPlatform.HTML5 && 
+                if (
                     (Plat != UnrealTargetPlatform.PS4 || ParseParam("WithPS4")) &&
                     Plat != UnrealTargetPlatform.WinRT &&
                     Plat != UnrealTargetPlatform.WinRT_ARM &&
@@ -5273,9 +5492,16 @@ public class GUBP : BuildCommand
                                         AddNode(new GameMonolithicHeadersNode(this, HostPlatform, Plat));
                                     }
                                 }
+								if (Plat == UnrealTargetPlatform.Win32 && Target.Rules.GUBP_BuildWindowsXPMonolithics() && Kind == TargetRules.TargetType.Game)
+								{
+									if (!GUBPNodes.ContainsKey(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, Branch.BaseEngineProject, Plat, true)))
+									{
+										AddNode(new GamePlatformMonolithicsNode(this, HostPlatform, Branch.BaseEngineProject, Plat, true));
+									}
                             }
                         }
                     }
+                }
                 }
 
                 var CookedAgentSharingGroup = "Shared_CookedTests" + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
@@ -5444,6 +5670,17 @@ public class GUBP : BuildCommand
                 }
             }
 			
+			if(HostPlatform == MakeFeaturePackNode.GetDefaultBuildPlatform(this))
+			{
+				foreach(BranchInfo.BranchUProject Project in Branch.AllProjects)
+				{
+					if(MakeFeaturePackNode.IsFeaturePack(Project))
+					{
+						AddNode(new MakeFeaturePackNode(HostPlatform, Project));
+					}
+				}
+			}
+
             foreach (var CodeProj in Branch.CodeProjects)
             {
                 var Options = CodeProj.Options(HostPlatform);
@@ -5501,6 +5738,13 @@ public class GUBP : BuildCommand
                             {
                                 continue;
                             }
+							if(Plat == UnrealTargetPlatform.Win32 && Target.Rules.GUBP_BuildWindowsXPMonolithics())
+							{
+								if(!GUBPNodes.ContainsKey(GamePlatformMonolithicsNode.StaticGetFullName(HostPlatform, CodeProj, Plat, true)))
+								{
+									AddNode(new GamePlatformMonolithicsNode(this, HostPlatform, CodeProj, Plat, true));
+								}
+							}
                             if (ActivePlatforms.Contains(Plat))
                             {
                                 if (Kind == TargetRules.TargetType.Server && !ServerPlatforms.Contains(Plat))
@@ -5764,6 +6008,7 @@ public class GUBP : BuildCommand
         var FullNodeDirectDependencies = new Dictionary<string, string>();
 		var FullNodeDependedOnBy = new Dictionary<string, string>();
 		var FullNodeDependentPromotions = new Dictionary<string, string>();
+		var SeparatePromotables = new List<string>();
         {
             Log("******* {0} GUBP Nodes", GUBPNodes.Count);
             var SortedNodes = TopologicalSort(new HashSet<string>(GUBPNodes.Keys), LocalOnly: true, DoNotConsiderCompletion: true);
@@ -5843,7 +6088,15 @@ public class GUBP : BuildCommand
             {
                 // rocket is the shared promotable plus some other stuff and nothing else
                 bRelatedToNode = true;
-                NodeSpec = "Rocket_Aggregate";
+                NodeSpec = "";
+				if(!bBuildOnlySamples)
+				{
+					NodeSpec = "Rocket_Aggregate+";
+				}
+				if (!ParseParam("nosamples"))
+				{
+					NodeSpec = NodeSpec + "Sample_Aggregate";
+				}
                 if (!ParseParam("RocketValidate"))
                 {
                     //build a full promotable NodeSpec = SharedAggregatePromotableNode.StaticGetFullName() + "+" + NodeSpec;
@@ -6043,7 +6296,8 @@ public class GUBP : BuildCommand
 			foreach(var NodeToDo in NodesToDo)
 			{
 				if(GUBPNodes[NodeToDo].IsSeparatePromotable())
-				{					
+				{
+					SeparatePromotables.Add(GUBPNodes[NodeToDo].GetFullName());
 					List<string> Dependencies = new List<string>();
 					Dependencies = GetECDependencies(NodeToDo);
 					foreach(var Dep in Dependencies)
@@ -6076,7 +6330,7 @@ public class GUBP : BuildCommand
 				}
 				FullNodeDependentPromotions.Add(NodeToDo, All);				
 			}
-		}
+		}		
 		if (TimeIndex != 0)
 		{
 			Log("Culling based on time index");
@@ -6302,6 +6556,10 @@ public class GUBP : BuildCommand
 			{
 				ECProps.Add(string.Format("DependentPromotions/{0}={1}", NodePair.Key, NodePair.Value));
 			}
+			foreach (var Node in SeparatePromotables)
+			{
+				ECProps.Add(string.Format("PossiblePromotables/{0}={1}", Node, ""));
+			}
             var ECJobProps = new List<string>();
             if (ExplicitTrigger != "")
             {
@@ -6391,7 +6649,7 @@ public class GUBP : BuildCommand
             if (LastSticky == "" && bHaveECNodes)
             {
                 // if we don't have any sticky nodes and we have other nodes, we run a fake noop just to release the resource 
-                string Args = String.Format("{0}, subprocedure => 'GUBP_UAT_Node', parallel => '0', jobStepName => 'Noop', actualParameter => [{{actualParameterName => 'NodeName', value => 'Noop'}}, {{actualParametername => 'Sticky', value =>'1' }}], releaseMode => 'release'", BaseArgs);
+                string Args = String.Format("{0}, subprocedure => 'GUBP_UAT_Node', parallel => '0', jobStepName => 'Noop', actualParameter => [{{actualParameterName => 'NodeName', value => 'Noop'}}, {{actualParameterName => 'Sticky', value =>'1' }}], releaseMode => 'release'}});", BaseArgs);
                 StepList.Add(Args);
                 bHasNoop = true;
             }
@@ -6706,7 +6964,7 @@ public class GUBP : BuildCommand
         }
 
         var BuildProductToNodeMap = new Dictionary<string, string>();
-        foreach (var NodeToDo in OrdereredToDo)
+		foreach (var NodeToDo in OrdereredToDo)
         {
             if (GUBPNodes[NodeToDo].BuildProducts != null || GUBPNodes[NodeToDo].AllDependencyBuildProducts != null)
             {
@@ -6757,6 +7015,7 @@ public class GUBP : BuildCommand
             
             string GameNameIfAny = GUBPNodes[NodeToDo].GameNameIfAnyForTempStorage();
             string StorageRootIfAny = GUBPNodes[NodeToDo].RootIfAnyForTempStorage();
+					
             if (bFake)
             {
                 StorageRootIfAny = ""; // we don't rebase fake runs since those are entirely "records of success", which are always in the logs folder
@@ -6805,8 +7064,14 @@ public class GUBP : BuildCommand
                         GUBPNodes[NodeToDo].DoFakeBuild(this);
                     }
                     else
-                    {
-                        Log("***** Building GUBP Node {0} for {1}", NodeToDo, NodeStoreName);
+                    {                        
+						if(GUBPNodes[NodeToDo].IsRocketSample() && bPostedRocketBuild)
+						{
+
+							Log("***** Retrieving Build {0} for {1}", RocketBuild, GUBPNodes[NodeToDo].NodeHostPlatform());
+							RetrieveFromPermanentStorage(CmdEnv, "Rocket\\Automated", RocketBuild, GUBPNodes[NodeToDo].NodeHostPlatform());
+						}
+						Log("***** Building GUBP Node {0} for {1}", NodeToDo, NodeStoreName);
                         GUBPNodes[NodeToDo].DoBuild(this);
                     }
                     if (!GUBPNodes[NodeToDo].IsAggregate())
@@ -6820,11 +7085,12 @@ public class GUBP : BuildCommand
                                 try
                                 {
                                     bool WasLocal;
-                                    RetrieveFromTempStorage(CmdEnv, NodeStoreName, out WasLocal, GameNameIfAny, StorageRootIfAny);
-                                    if (!WasLocal)
-                                    {
-                                        throw new AutomationException("Retrieve was not local?");
-                                    }
+									RetrieveFromTempStorage(CmdEnv, NodeStoreName, out WasLocal, GameNameIfAny, StorageRootIfAny);
+									if (!WasLocal)
+									{
+										throw new AutomationException("Retrieve was not local?");
+									}
+																	                                    
                                 }
                                 catch(Exception Ex)
                                 {

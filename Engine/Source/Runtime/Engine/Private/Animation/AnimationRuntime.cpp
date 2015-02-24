@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationUE4.cpp: Animation runtime utilities
@@ -707,12 +707,14 @@ void FAnimationRuntime::FillWithRetargetBaseRefPose( TArray<FTransform> & OutAto
 	// Copy Target Asset's ref pose.
 	if (Mesh)
 	{
+		const int32 NumBones = RequiredBones.GetNumBones();
 		const TArray<FBoneIndexType> & BoneIndices = RequiredBones.GetBoneIndicesArray();
-		OutAtoms.Empty(BoneIndices.Num());
-		OutAtoms.AddUninitialized(BoneIndices.Num());
+		OutAtoms.Empty(NumBones);
+		OutAtoms.AddUninitialized(NumBones);
 		for (int32 Idx = 0; Idx < BoneIndices.Num(); ++Idx)
 		{
-			OutAtoms[Idx] = Mesh->RetargetBasePose[BoneIndices[Idx]];
+			const int32 PoseIdx = BoneIndices[Idx];
+			OutAtoms[PoseIdx] = Mesh->RetargetBasePose[PoseIdx];
 		}
 	}
 	else
@@ -1209,6 +1211,7 @@ bool FAnimationRuntime::ContainsNaN(TArray<FBoneIndexType> & RequiredBoneIndices
 }
 #endif
 
+#if WITH_EDITOR
 void FAnimationRuntime::FillUpSpaceBasesRefPose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBaseRefPose)
 {
 	check(Skeleton);
@@ -1232,7 +1235,6 @@ void FAnimationRuntime::FillUpSpaceBasesRefPose(const USkeleton* Skeleton, TArra
 	}
 }
 
-#if WITH_EDITOR
 void FAnimationRuntime::FillUpSpaceBasesRetargetBasePose(const USkeleton* Skeleton, TArray<FTransform> &SpaceBaseRefPose)
 {
 	check(Skeleton);

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "stdafx.h"
 #include "Raster.h"
@@ -293,7 +293,7 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 		TextureMapping->Mesh->GetTriangle(TriangleIndex, V0.Vertex, V1.Vertex, V2.Vertex, Element);
 		V0.ElementIndex = V1.ElementIndex = V2.ElementIndex = Element;
 
-		const FVector4 TriangleNormal = ((V2.Vertex.WorldPosition - V0.Vertex.WorldPosition) ^ (V1.Vertex.WorldPosition - V0.Vertex.WorldPosition)).SafeNormal();
+		const FVector4 TriangleNormal = ((V2.Vertex.WorldPosition - V0.Vertex.WorldPosition) ^ (V1.Vertex.WorldPosition - V0.Vertex.WorldPosition)).GetSafeNormal();
 
 		// Don't rasterize degenerates 
 		if (!TriangleNormal.IsNearlyZero3())
@@ -365,14 +365,14 @@ void FStaticLightingSystem::CacheIrradiancePhotonsTextureMapping(FStaticLighting
 				}
 
 				// Normalize the tangent basis and ensure it is orthonormal
-				CurrentVertex.WorldTangentZ = CurrentVertex.WorldTangentZ.UnsafeNormal3();
-				CurrentVertex.TriangleNormal = TexelToVertex.TriangleNormal.UnsafeNormal3();
+				CurrentVertex.WorldTangentZ = CurrentVertex.WorldTangentZ.GetUnsafeNormal3();
+				CurrentVertex.TriangleNormal = TexelToVertex.TriangleNormal.GetUnsafeNormal3();
 				checkSlow(!CurrentVertex.TriangleNormal.ContainsNaN());
 
 				const FVector4 OriginalTangentX = CurrentVertex.WorldTangentX;
 				const FVector4 OriginalTangentY = CurrentVertex.WorldTangentY;
 
-				CurrentVertex.WorldTangentY = (CurrentVertex.WorldTangentZ ^ CurrentVertex.WorldTangentX).UnsafeNormal3();
+				CurrentVertex.WorldTangentY = (CurrentVertex.WorldTangentZ ^ CurrentVertex.WorldTangentX).GetUnsafeNormal3();
 				// Maintain handedness
 				if (Dot3(CurrentVertex.WorldTangentY, OriginalTangentY) < 0)
 				{
@@ -806,7 +806,7 @@ void FStaticLightingSystem::SetupTextureMapping(
 			TextureMapping->Mesh->GetTriangle(TriangleIndex,V0.Vertex,V1.Vertex,V2.Vertex,Element);
 			V0.ElementIndex = V1.ElementIndex = V2.ElementIndex = Element;
 
-			const FVector4 TriangleNormal = ((V2.Vertex.WorldPosition - V0.Vertex.WorldPosition) ^ (V1.Vertex.WorldPosition - V0.Vertex.WorldPosition)).SafeNormal();
+			const FVector4 TriangleNormal = ((V2.Vertex.WorldPosition - V0.Vertex.WorldPosition) ^ (V1.Vertex.WorldPosition - V0.Vertex.WorldPosition)).GetSafeNormal();
 
 			// Don't rasterize degenerates 
 			if (!TriangleNormal.IsNearlyZero3())
@@ -956,14 +956,14 @@ void FStaticLightingSystem::SetupTextureMapping(
 				}
 
 				// Normalize the tangent basis and ensure it is orthonormal
-				TexelToVertex.WorldTangentZ = TexelToVertex.WorldTangentZ.UnsafeNormal3();
-				TexelToVertex.TriangleNormal = TexelToVertex.TriangleNormal.UnsafeNormal3();
+				TexelToVertex.WorldTangentZ = TexelToVertex.WorldTangentZ.GetUnsafeNormal3();
+				TexelToVertex.TriangleNormal = TexelToVertex.TriangleNormal.GetUnsafeNormal3();
 				checkSlow(!TexelToVertex.TriangleNormal.ContainsNaN());
 
 				const FVector4 OriginalTangentX = TexelToVertex.WorldTangentX;
 				const FVector4 OriginalTangentY = TexelToVertex.WorldTangentY;
 				
-				TexelToVertex.WorldTangentY = (TexelToVertex.WorldTangentZ ^ TexelToVertex.WorldTangentX).UnsafeNormal3();
+				TexelToVertex.WorldTangentY = (TexelToVertex.WorldTangentZ ^ TexelToVertex.WorldTangentX).GetUnsafeNormal3();
 				// Maintain handedness
 				if (Dot3(TexelToVertex.WorldTangentY, OriginalTangentY) < 0)
 				{
@@ -1902,7 +1902,7 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 					CurrentSample.SetMapped(true);
 
 					const FVector4 LightPosition = Light->LightCenterPosition(TexelToVertex.WorldPosition, TexelToVertex.WorldTangentZ);
-					const FVector4 LightVector = (LightPosition - TexelToVertex.WorldPosition).SafeNormal();
+					const FVector4 LightVector = (LightPosition - TexelToVertex.WorldPosition).GetSafeNormal();
 
 					FVector4 NormalForOffset = CurrentSample.GetNormal();
 					// Flip the normal used for offsetting the start of the ray for two sided materials if a flipped normal would be closer to the light.
@@ -2133,7 +2133,7 @@ void FStaticLightingSystem::CalculateDirectSignedDistanceFieldLightingTextureMap
 								&& Light->AffectsBounds(FBoxSphereBounds(HighResSample.GetPosition(), FVector4(0,0,0),0)))
 							{
 								const FVector4 LightPosition = Light->LightCenterPosition(HighResSample.GetPosition(), HighResSample.GetNormal());
-								const FVector4 LightVector = (LightPosition - HighResSample.GetPosition()).SafeNormal();
+								const FVector4 LightVector = (LightPosition - HighResSample.GetPosition()).GetSafeNormal();
 
 								FVector4 NormalForOffset = HighResSample.GetNormal();
 								// Flip the normal used for offsetting the start of the ray for two sided materials if a flipped normal would be closer to the light.

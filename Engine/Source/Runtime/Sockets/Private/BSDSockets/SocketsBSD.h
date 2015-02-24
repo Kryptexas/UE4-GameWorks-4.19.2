@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,20 +10,25 @@
 #include "IPAddress.h"
 
 
-namespace ESocketInternalState
+/**
+ * Enumerates BSD socket state parameters.
+ */
+enum class ESocketBSDParam
 {
-	enum Param
-	{
-		CanRead,
-		CanWrite,
-		HasError,
-	};
-	enum Return
-	{
-		Yes,
-		No,
-		EncounteredError,
-	};
+	CanRead,
+	CanWrite,
+	HasError,
+};
+
+
+/**
+ * Enumerates BSD socket state return values.
+ */
+enum class ESocketBSDReturn
+{
+	Yes,
+	No,
+	EncounteredError,
 };
 
 
@@ -60,6 +65,18 @@ public:
 
 public:
 
+	/**
+	* Gets the Socket for anyone who knows they have an FSocketBSD.
+	*
+	* @return The native socket.
+	*/
+	SOCKET GetNativeSocket()
+	{
+		return Socket;
+	}
+
+public:
+
 	// FSocket overrides
 
 	virtual bool Close() override;
@@ -90,18 +107,16 @@ public:
 	virtual bool SetReceiveBufferSize(int32 Size,int32& NewSize) override;
 	virtual int32 GetPortNo() override;
 
-	/**
-	 * Return the Socket for anyone who knows they have an FSocketBSD
-	 */
-	SOCKET GetNativeSocket()
-	{
-		return Socket;
-	}
-
 protected:
 
 	/** This is generally select(), but makes it easier for platforms without select to replace it. */
-	virtual ESocketInternalState::Return HasState(ESocketInternalState::Param State, FTimespan WaitTime=FTimespan(0));
+	virtual ESocketBSDReturn HasState(ESocketBSDParam State, FTimespan WaitTime = FTimespan(0));
+
+	/** Updates this socket's time of last activity. */
+	void UpdateActivity()
+	{
+		LastActivityTime = FDateTime::UtcNow();
+	}
 
 	/** Holds the BSD socket object. */
 	SOCKET Socket;
@@ -110,7 +125,7 @@ protected:
 	FDateTime LastActivityTime;
 
 	/** Pointer to the subsystem that created it. */
-	ISocketSubsystem * SocketSubsystem;
+	ISocketSubsystem* SocketSubsystem;
 };
 
 

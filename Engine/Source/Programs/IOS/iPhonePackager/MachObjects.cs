@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 using System;
@@ -2149,6 +2149,72 @@ namespace MachObjectHandling
 			{
 				// Should only be one...
 				MachObjectFiles[0].Write(Context);
+			}
+		}
+
+		public void WriteHeader(ref byte[] OutputData, uint Offset)
+		{
+			if (bIsFatBinary)
+			{
+				// Write the header
+				byte[] Data = BitConverter.GetBytes(Magic);
+				if (BitConverter.IsLittleEndian)
+				{
+					Array.Reverse(Data);
+				}
+				Data.CopyTo(OutputData, Offset);
+				Offset += sizeof(UInt32);
+
+				Data = BitConverter.GetBytes(NumArchs);
+				if (BitConverter.IsLittleEndian)
+				{
+					Array.Reverse(Data);
+				}
+				Data.CopyTo(OutputData, Offset);
+				Offset += sizeof(UInt32);
+
+				foreach (FatBinaryArch Arch in Archs)
+				{
+					Data = BitConverter.GetBytes(Arch.CpuType);
+					if (BitConverter.IsLittleEndian)
+					{
+						Array.Reverse(Data);
+					}
+					Data.CopyTo(OutputData, Offset);
+					Offset += sizeof(UInt32);
+
+					Data = BitConverter.GetBytes(Arch.CpuSubType);
+					if (BitConverter.IsLittleEndian)
+					{
+						Array.Reverse(Data);
+					}
+					Data.CopyTo(OutputData, Offset);
+					Offset += sizeof(UInt32);
+
+					Data = BitConverter.GetBytes(Arch.Offset);
+					if (BitConverter.IsLittleEndian)
+					{
+						Array.Reverse(Data);
+					}
+					Data.CopyTo(OutputData, Offset);
+					Offset += sizeof(UInt32);
+
+					Data = BitConverter.GetBytes(Arch.Size);
+					if (BitConverter.IsLittleEndian)
+					{
+						Array.Reverse(Data);
+					}
+					Data.CopyTo(OutputData, Offset);
+					Offset += sizeof(UInt32);
+
+					Data = BitConverter.GetBytes(Arch.Align);
+					if (BitConverter.IsLittleEndian)
+					{
+						Array.Reverse(Data);
+					}
+					Data.CopyTo(OutputData, Offset);
+					Offset += sizeof(UInt32);
+				}
 			}
 		}
 

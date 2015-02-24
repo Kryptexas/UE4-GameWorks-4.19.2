@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalState.cpp: Metal state implementation.
@@ -195,26 +195,28 @@ FMetalDepthStencilState::FMetalDepthStencilState(const FDepthStencilStateInitial
 		MTLStencilDescriptor* Stencil = [[MTLStencilDescriptor alloc] init];
 		Stencil.stencilCompareFunction = TranslateCompareFunction(Initializer.FrontFaceStencilTest);
 		Stencil.stencilFailureOperation = TranslateStencilOp(Initializer.FrontFaceStencilFailStencilOp);
-		Stencil.depthFailureOperation = TranslateStencilOp(Initializer.FrontFaceStencilFailStencilOp);
+		Stencil.depthFailureOperation = TranslateStencilOp(Initializer.FrontFaceDepthFailStencilOp);
 		Stencil.depthStencilPassOperation = TranslateStencilOp(Initializer.FrontFacePassStencilOp);
 		Stencil.readMask = Initializer.StencilReadMask;
 		Stencil.writeMask = Initializer.StencilWriteMask;
-		Desc.frontFaceStencil = Stencil;
+		// @todo metal: We had to swap, but I can't remember why these are backwards.
+		// Should the culling stuff be flipped instead? 
+		Desc.backFaceStencil = Stencil;
 		
 		[Stencil release];
 	}
 	
-	if (Initializer.bEnableFrontFaceStencil)
+	if (Initializer.bEnableBackFaceStencil)
 	{
 		// set up back face stencil operations
 		MTLStencilDescriptor* Stencil = [[MTLStencilDescriptor alloc] init];
 		Stencil.stencilCompareFunction = TranslateCompareFunction(Initializer.BackFaceStencilTest);
 		Stencil.stencilFailureOperation = TranslateStencilOp(Initializer.BackFaceStencilFailStencilOp);
-		Stencil.depthFailureOperation = TranslateStencilOp(Initializer.BackFaceStencilFailStencilOp);
+		Stencil.depthFailureOperation = TranslateStencilOp(Initializer.BackFaceDepthFailStencilOp);
 		Stencil.depthStencilPassOperation = TranslateStencilOp(Initializer.BackFacePassStencilOp);
 		Stencil.readMask = Initializer.StencilReadMask;
 		Stencil.writeMask = Initializer.StencilWriteMask;
-		Desc.backFaceStencil = Stencil;
+		Desc.frontFaceStencil = Stencil;
 		
 		[Stencil release];
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -37,7 +37,7 @@ class AIMODULE_API UBTService : public UBTAuxiliaryNode
 
 	virtual FString GetStaticDescription() const override;
 
-	void NotifyParentActivation(struct FBehaviorTreeSearchData& SearchData);
+	void NotifyParentActivation(FBehaviorTreeSearchData& SearchData);
 
 protected:
 
@@ -60,10 +60,10 @@ protected:
 
 	/** update next tick interval
 	 * this function should be considered as const (don't modify state of object) if node is not instanced! */
-	virtual void TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
 
 	/** called when search enters underlying branch */
-	virtual void OnSearchStart(struct FBehaviorTreeSearchData& SearchData);
+	virtual void OnSearchStart(FBehaviorTreeSearchData& SearchData);
 
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;

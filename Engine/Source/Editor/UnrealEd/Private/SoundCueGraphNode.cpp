@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SoundCueGraphNode.cpp
@@ -11,6 +11,8 @@
 #include "SoundCueGraphEditorCommands.h"
 #include "ScopedTransaction.h"
 #include "GenericCommands.h"
+#include "Sound/SoundCue.h"
+#include "Engine/Font.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueGraphNode"
 

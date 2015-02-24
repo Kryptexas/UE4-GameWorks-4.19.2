@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "StandaloneRendererPrivate.h"
@@ -52,13 +52,20 @@ public:
 	{
 	}
 
+	virtual FIntPoint GetAtlasSize() const override
+	{
+		return FIntPoint(TextureSize, TextureSize);
+	}
+
 	virtual TSharedRef<FSlateFontAtlas> CreateFontAtlas() const override
 	{
-		/** Size of each font texture, width and height */
-		const uint32 TextureSize = 1024;
-
 		return MakeShareable( new FSlateFontAtlasD3D( TextureSize, TextureSize ) );
 	}
+
+private:
+
+	/** Size of each font texture, width and height */
+	static const uint32 TextureSize = 1024;
 };
 
 void FSlateD3DRenderer::Initialize()
@@ -132,6 +139,16 @@ void FSlateD3DRenderer::ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture)
 	delete Texture;
 }
 
+ISlateAtlasProvider* FSlateD3DRenderer::GetTextureAtlasProvider()
+{
+	if( TextureManager.IsValid() )
+	{
+		return TextureManager->GetTextureAtlasProvider();
+	}
+
+	return nullptr;
+}
+
 void FSlateD3DRenderer::Private_CreateViewport( TSharedRef<SWindow> InWindow, const FVector2D &WindowSize )
 {
 	TSharedRef< FGenericWindow > NativeWindow = InWindow->GetNativeWindow().ToSharedRef();
@@ -171,6 +188,9 @@ void FSlateD3DRenderer::Private_CreateViewport( TSharedRef<SWindow> InWindow, co
 
 	Hr = DXGIFactory->CreateSwapChain(DXGIDevice.GetReference(), &SwapChainDesc, Viewport.D3DSwapChain.GetInitReference() );
 	check( SUCCEEDED(Hr) );
+
+	Hr = DXGIFactory->MakeWindowAssociation((HWND)NativeWindow->GetOSWindowHandle(),DXGI_MWA_NO_ALT_ENTER);
+	check(SUCCEEDED(Hr));
 
 	uint32 Width = FMath::TruncToInt(WindowSize.X);
 	uint32 Height = FMath::TruncToInt(WindowSize.Y);

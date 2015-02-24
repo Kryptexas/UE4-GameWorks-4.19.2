@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetToolsPrivatePCH.h"
 
 #include "Editor/CurveTableEditor/Public/CurveTableEditorModule.h"
 #include "Editor/CurveTableEditor/Public/ICurveTableEditor.h"
+#include "Engine/CurveTable.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

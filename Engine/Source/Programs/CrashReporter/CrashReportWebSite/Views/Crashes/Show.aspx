@@ -1,4 +1,4 @@
-﻿<%-- // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. --%>
+﻿<%-- // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved. --%>
 
 <%@ Page Title="" Language="C#" MasterPageFile="~/Views/Shared/Site.Master" Inherits="System.Web.Mvc.ViewPage<CrashViewModel>" %>
 <%@ Import Namespace="Tools.CrashReporter.CrashReportWebSite.Models" %>
@@ -168,7 +168,9 @@
 				<dd class='even' style='width:8em'><%=Model.Crash.GetCrashTypeAsString()%></dd>
 
 			<dt>User</dt>
-				<dd><%=Html.DisplayFor(m => Model.Crash.User.UserName) %></dd>
+				<dd>
+					<%=Html.DisplayFor(m => Model.Crash.UserName) %>
+				</dd>
 
 			<dt>User Group</dt>
 				<dd><%=Html.DisplayFor(m => Model.Crash.UserGroupName) %></dd>

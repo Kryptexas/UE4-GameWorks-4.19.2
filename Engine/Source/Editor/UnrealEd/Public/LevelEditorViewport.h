@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
 #include "EditorViewportClient.h"
+#include "Camera/CameraComponent.h"
 
 // Forward declarations.
 
@@ -137,34 +138,33 @@ public:
 	virtual void DrawCanvas( FViewport& InViewport, FSceneView& View, FCanvas& Canvas ) override;
 	virtual bool InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed = 1.f, bool bGamepad=false) override;
 	virtual bool InputAxis(FViewport* Viewport, int32 ControllerId, FKey Key, float Delta, float DeltaTime, int32 NumSamples=1, bool bGamepad=false) override;
-	virtual void MouseEnter( FViewport* Viewport,int32 x, int32 y ) override;
-	virtual void MouseLeave( FViewport* Viewport ) override;
-	virtual void MouseMove(FViewport* Viewport,int32 x, int32 y) override;
 	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) override;
 	virtual void CapturedMouseMove( FViewport* InViewport, int32 InMouseX, int32 InMouseY ) override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual bool InputWidgetDelta( FViewport* Viewport, EAxisList::Type CurrentAxis, FVector& Drag, FRotator& Rot, FVector& Scale ) override;
 	virtual TSharedPtr<FDragTool> MakeDragTool( EDragTool::Type DragToolType ) override;
-	virtual bool IsLevelEditorClient() const { return ParentLevelEditor.IsValid(); }
+	virtual bool IsLevelEditorClient() const override { return ParentLevelEditor.IsValid(); }
 	virtual void TrackingStarted( const struct FInputEventState& InInputState, bool bIsDraggingWidget, bool bNudge ) override;
 	virtual void TrackingStopped() override;
-	virtual void SetWidgetMode( FWidget::EWidgetMode NewMode ) override;
-	virtual bool CanSetWidgetMode( FWidget::EWidgetMode NewMode ) const override;
-	virtual void SetWidgetCoordSystemSpace( ECoordSystem NewCoordSystem ) override;
-	virtual FWidget::EWidgetMode GetWidgetMode() const override;
+	virtual void AbortTracking() override;
 	virtual FVector GetWidgetLocation() const override;
-	virtual FMatrix GetWidgetCoordSystem() const;
-	virtual ECoordSystem GetWidgetCoordSystemSpace() const;
+	virtual FMatrix GetWidgetCoordSystem() const override;
 	virtual void SetupViewForRendering( FSceneViewFamily& ViewFamily, FSceneView& View ) override;
 	virtual FLinearColor GetBackgroundColor() const override;
 	virtual int32 GetCameraSpeedSetting() const override;
 	virtual void SetCameraSpeedSetting(int32 SpeedSetting) override;
 	virtual void ReceivedFocus(FViewport* Viewport) override;
-	virtual void LostFocus(FViewport* Viewport) override;
+	virtual void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY) override;
+	virtual UWorld* GetWorld() const override;
 
 	virtual bool OverrideHighResScreenshotCaptureRegion(FIntRect& OutCaptureRegion) override;
 
 	void SetIsCameraCut( bool bInIsCameraCut ) { bEditorCameraCut = bInIsCameraCut; }
+
+	/** 
+	 * Initialize visibility flags
+	 */
+	void InitializeVisibilityFlags();
 
 	/**
 	 * Reset the camera position and rotation.  Used when creating a new level.
@@ -196,18 +196,6 @@ public:
 	/** Determines if the new MoveCanvas movement should be used */
 	bool ShouldUseMoveCanvasMovement (void);
 
-	/**
-	 * Determines if InComponent is inside of InSelBBox.  This check differs depending on the type of component.
-	 * If InComponent is NULL, false is returned.
-	 *
-	 * @param	InActor							Used only when testing billboard components.
-	 * @param	InComponent						The component to query.  If NULL, false is returned.
-	 * @param	InSelBox						The selection box.
-	 * @param	bConsiderOnlyBSP				If true, consider only BSP.
-	 * @param	bMustEncompassEntireComponent	If true, the entire component must be encompassed by the selection box in order to return true.
-	 */
-	bool ComponentIsTouchingSelectionBox( AActor* InActor, UPrimitiveComponent* InComponent, const FBox& InSelBBox, bool bConsiderOnlyBSP, bool bMustEncompassEntireComponent );
-
 	/** 
 	 * Returns true if the passed in volume is visible in the viewport (due to volume actor visibility flags)
 	 *
@@ -230,7 +218,7 @@ public:
 	 */
 	EAxisList::Type GetVertAxis() const;
 
-	void NudgeSelectedObjects( const struct FInputEventState& InputState );
+	virtual void NudgeSelectedObjects( const struct FInputEventState& InputState ) override;
 
 	/**
 	 * Moves the viewport camera according to the locked actors location and rotation
@@ -249,9 +237,7 @@ public:
 
 	void ApplyDeltaToActors( const FVector& InDrag, const FRotator& InRot, const FVector& InScale );
 	void ApplyDeltaToActor( AActor* InActor, const FVector& InDeltaDrag, const FRotator& InDeltaRot, const FVector& InDeltaScale );
-
-	/** Updates the rotate widget with the passed in delta rotation. */
-	void ApplyDeltaToRotateWidget( const FRotator& InRot );
+	void ApplyDeltaToComponent(USceneComponent* InComponent, const FVector& InDeltaDrag, const FRotator& InDeltaRot, const FVector& InDeltaScale);
 
 	virtual void SetIsSimulateInEditorViewport( bool bInIsSimulateInEditorViewport ) override;
 
@@ -310,12 +296,6 @@ public:
 	 * @param	bVisible	true if all the categories should be made visible, false if they should be hidden
 	 */
 	void SetAllSpriteCategoryVisibility( bool bVisible );
-
-	/** FEditorViewportClient Interface*/
-	virtual void UpdateMouseDelta() override;
-	virtual void ProcessClick(FSceneView& View, HHitProxy* HitProxy, FKey Key, EInputEvent Event, uint32 HitX, uint32 HitY);
-	virtual void SetCurrentWidgetAxis( EAxisList::Type NewAxis ) override;
-	virtual UWorld* GetWorld() const override;
 
 	void SetReferenceToWorldContext(FWorldContext& WorldContext);
 
@@ -490,46 +470,6 @@ public:
 	}
 
 	/**
-	 * Get a ptr to the stat unit data for this viewport
-	 */
-	virtual FStatUnitData* GetStatUnitData() const override
-	{
-		return StatUnitData;
-	}
-
-	/**
-	 * Get a ptr to the stat unit data for this viewport
-	 */
-	virtual FStatHitchesData* GetStatHitchesData() const override
-	{
-		return StatHitchesData;
-	}
-
-	/**
-	 * Get a ptr to the enabled stats list
-	 */
-	virtual const TArray<FString>* GetEnabledStats() const override
-	{
-		return &EnabledStats;
-	}
-
-	/**
-	 * Sets all the stats that should be enabled for the viewport
-	 */
-	virtual void SetEnabledStats(const TArray<FString>& InEnabledStats) override
-	{
-		EnabledStats = InEnabledStats;
-	}
-
-	/**
-	 * Check whether a specific stat is enabled for this viewport
-	 */
-	virtual bool IsStatEnabled(const TCHAR* InName) const override
-	{
-		return EnabledStats.Contains(InName);
-	}
-
-	/**
 	 * Get the sound stat flags enabled for this viewport
 	 */
 	virtual ESoundShowFlags::Type GetSoundShowFlags() const override
@@ -543,31 +483,6 @@ public:
 	virtual void SetSoundShowFlags(const ESoundShowFlags::Type InSoundShowFlags) override
 	{
 		SoundShowFlags = InSoundShowFlags;
-	}
-
-private:
-	/**
-	 * Set a specific stat to either enabled or disabled (returns true if there are any stats enabled)
-	 */
-	int32 SetStatEnabled(const TCHAR* InName, const bool bEnable, const bool bAll = false)
-	{
-		if (bEnable)
-		{
-			check(!bAll);	// Not possible to enable all
-			EnabledStats.AddUnique(InName);
-		}
-		else
-		{
-			if (bAll)
-			{
-				EnabledStats.Empty();
-			}
-			else
-			{
-				EnabledStats.Remove(InName);
-			}
-		}
-		return EnabledStats.Num();
 	}
 
 protected:
@@ -596,6 +511,7 @@ protected:
 	virtual bool ShouldLockPitch() const override;
 	virtual void CheckHoveredHitProxy( HHitProxy* HoveredHitProxy ) override;
 	virtual bool GetActiveSafeFrame(float& OutAspectRatio) const override;
+	virtual void RedrawAllViewportsIntoThisScene() override;
 
 private:
 	/**
@@ -607,8 +523,7 @@ private:
 	/**
 	 * Moves the locked actor according to the viewport cameras location and rotation
 	 */
-	void MoveLockedActorToCamera() const;
-
+	void MoveLockedActorToCamera();
 	
 	/** @return	Returns true if the delta tracker was used to modify any selected actors or BSP.  Must be called before EndTracking(). */
 	bool HaveSelectedObjectsBeenChanged() const;
@@ -631,12 +546,13 @@ private:
 	 * @param	DroppedObjects		Array of objects dropped into the viewport
 	 * @param	ObjectFlags			The object flags to place on the actors that this function spawns.
 	 * @param	OutNewActors		The list of actors created while dropping
+	 * @param	bCreateDropPreview	If true, the actor being dropped is a preview actor (defaults: false)
 	 * @param	bSelectActors		If true, select the newly dropped actors (defaults: true)
 	 * @param	FactoryToUse		The preferred actor factory to use (optional)
 	 *
 	 * @return	true if the drop operation was successfully handled; false otherwise
 	 */
-	bool DropObjectsOnBackground( struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL );
+	bool DropObjectsOnBackground( struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bCreateDropPreview = false, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL );
 
 	/**
 	* Called when an asset is dropped upon an existing actor.
@@ -647,12 +563,13 @@ private:
 	* @param    DroppedUponSlot     The material slot/submesh that was identified as the drop location.  If unknown use -1.
 	* @param	ObjectFlags			The object flags to place on the actors that this function spawns.
 	* @param	OutNewActors		The list of actors created while dropping
+	* @param	bCreateDropPreview	If true, the actor being dropped is a preview actor (defaults: false)
 	* @param	bSelectActors		If true, select the newly dropped actors (defaults: true)
 	* @param	FactoryToUse		The preferred actor factory to use (optional)
 	*
 	* @return	true if the drop operation was successfully handled; false otherwise
 	*/
-	bool DropObjectsOnActor(struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, int32 DroppedUponSlot, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL);
+	bool DropObjectsOnActor(struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, AActor* DroppedUponActor, int32 DroppedUponSlot, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bCreateDropPreview = false, bool bSelectActors = true, class UActorFactory* FactoryToUse = NULL);
 
 	/**
 	 * Called when an asset is dropped upon a BSP surface.
@@ -663,12 +580,13 @@ private:
 	 * @param	TargetProxy			Hit proxy representing the dropped upon model
 	 * @param	ObjectFlags			The object flags to place on the actors that this function spawns.
 	 * @param	OutNewActors		The list of actors created while dropping
+	 * @param	bCreateDropPreview	If true, the actor being dropped is a preview actor (defaults: false)
 	 * @param	bSelectActors		If true, select the newly dropped actors (defaults: true)
 	 * @param	FactoryToUse		The preferred actor factory to use (optional)
 	 *
 	 * @return	true if the drop operation was successfully handled; false otherwise
 	 */
-	bool DropObjectsOnBSPSurface( FSceneView* View, struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, HModel* TargetProxy, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bSelectActors, UActorFactory* FactoryToUse );
+	bool DropObjectsOnBSPSurface(FSceneView* View, struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, HModel* TargetProxy, EObjectFlags ObjectFlags, TArray<AActor*>& OutNewActors, bool bCreateDropPreview = false, bool bSelectActors = true, UActorFactory* FactoryToUse = NULL);
 
 	/**
 	 * Called when an asset is dropped upon a manipulation widget.
@@ -676,12 +594,11 @@ private:
 	 * @param	View				The SceneView for the dropped-in viewport
 	 * @param	Cursor				Mouse cursor location
 	 * @param	DroppedObjects		Array of objects dropped into the viewport
+	 * @param	bCreateDropPreview	If true, the actor being dropped is a preview actor (defaults: false)
 	 *
 	 * @return	true if the drop operation was successfully handled; false otherwise
 	 */
-	bool DropObjectsOnWidget( FSceneView* View, struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects);
-
-	
+	bool DropObjectsOnWidget(FSceneView* View, struct FViewportCursorLocation& Cursor, const TArray<UObject*>& DroppedObjects, bool bCreateDropPreview = false);
 
 	/** Helper functions for ApplyDeltaTo* functions - modifies scale based on grid settings */
 	void ModifyScale( AActor* InActor, FVector& ScaleDelta, bool bCheckSmallExtent = false ) const;
@@ -690,22 +607,13 @@ private:
 	/** Project the specified actors into the world according to the current drag parameters */
 	void ProjectActorsIntoWorld(const TArray<AActor*>& Actors, FViewport* Viewport, const FVector& Drag, const FRotator& Rot);
 
-	/** Delegate handler to see if a stat is enabled on this viewport */
-	void HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled);
-
-	/** Delegate handler for when stats are enabled in a viewport */
-	void HandleViewportStatEnabled(const TCHAR* InName);
-
-	/** Delegate handler for when stats are disabled in a viewport */
-	void HandleViewportStatDisabled(const TCHAR* InName);
-
-	/** Delegate handler for when all stats are disabled in a viewport */
-	void HandleViewportStatDisableAll(const bool bInAnyViewport);
+	/** Draw additional details for brushes in the world */
+	void DrawBrushDetails(const FSceneView* View, FPrimitiveDrawInterface* PDI);
 
 public:
 	/** Static: List of objects we're hovering over */
 	static TSet< FViewportHoverTarget > HoveredObjects;
-		
+	
 	/** Parent level editor that owns this viewport.  Currently, this may be null if the parent doesn't happen to be a level editor. */
 	TWeakPtr< class ILevelEditor > ParentLevelEditor;
 
@@ -724,15 +632,14 @@ public:
 
 	FColor					FadeColor;
 
-	
 	float					FadeAmount;
 
 	bool					bEnableFading;
 
 	bool					bEnableColorScaling;
 
-	/** If true then the pivot has been moved independantly of the actor and position updates should not occur when the actor is moved. */
-	bool					bPivotMovedIndependantly;
+	/** If true, the pivot has been moved independently of the actor and position updates should not occur when the actor is moved. */
+	bool					bPivotMovedIndependently;
 
 	/** If true, we switched between two different cameras. Set by matinee, used by the motion blur to invalidate this frames motion vectors */
 	bool					bEditorCameraCut;
@@ -741,10 +648,10 @@ public:
 	bool bDrawBaseInfo;
 
 	/**
-	 * Used for actor drag duplication.  Set to true on Alt+LMB so that the selected
-	 * actors will be duplicated as soon as the widget is displaced.
+	 * Used for drag duplication. Set to true on Alt+LMB so that the selected
+	 * objects (components or actors) will be duplicated as soon as the widget is displaced.
 	 */
-	bool					bDuplicateActorsOnNextDrag;
+	bool					bDuplicateOnNextDrag;
 
 	/**
 	* bDuplicateActorsOnNextDrag will not be set again while bDuplicateActorsInProgress is true.
@@ -759,6 +666,9 @@ public:
 
 	/** True if this viewport is to change its view (aspect ratio, post processing, FOV etc) to match that of the currently locked camera, if applicable */
 	bool					bLockedCameraView;
+
+	/** Whether this viewport recently received focus. Used to determine whether component selection is permissible. */
+	bool bReceivedFocusRecently;
 
 private:
 	/** The actors that are currently being placed in the viewport via dragging */
@@ -788,15 +698,6 @@ private:
 	 */
 	TWeakObjectPtr<AActor>	ActorLockedByMatinee;
 	TWeakObjectPtr<AActor>	ActorLockedToCamera;
-
-	/** Data needed to display perframe stat tracking when STAT UNIT is enabled */
-	FStatUnitData*			StatUnitData;
-
-	/** Data needed to display perframe stat tracking when STAT HITCHES is enabled */
-	FStatHitchesData*		StatHitchesData;
-
-	/** A list of all the stat names which are enabled for this viewport */
-	TArray<FString>			EnabledStats;
 
 	/** Those sound stat flags which are enabled on this viewport */
 	ESoundShowFlags::Type	SoundShowFlags;

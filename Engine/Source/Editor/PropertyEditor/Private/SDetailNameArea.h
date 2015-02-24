@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,7 +30,7 @@ public:
 	 *
 	 * @param SelectedActors	the new list of selected actors
 	 */
-	void Refresh( const TArray< TWeakObjectPtr<AActor> >& SelectedActors );
+	void Refresh( const TArray< TWeakObjectPtr<AActor> >& SelectedActors, const TArray< TWeakObjectPtr<UObject> >& SelectedObjects, FDetailsViewArgs::ENameAreaSettings NameAreaSettings  );
 
 private:
 	/** @return the Slate brush to use for the lock image */

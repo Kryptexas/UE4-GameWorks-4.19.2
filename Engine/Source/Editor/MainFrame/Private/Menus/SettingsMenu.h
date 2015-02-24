@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -56,6 +56,12 @@ public:
 			if (SettingsCategory->GetSections(SettingsSections) > 0)
 			{
 				MenuBuilder.BeginSection(SettingsCategory->GetName(), SettingsCategory->GetDisplayName());
+
+				SettingsSections.Sort(
+					[](const ISettingsSectionPtr& First, const ISettingsSectionPtr& Second)
+					{
+						return First->GetDisplayName().ToString() < Second->GetDisplayName().ToString();
+					});
 
 				for (int32 SectionIndex = 0; SectionIndex < SettingsSections.Num(); ++SectionIndex)
 				{

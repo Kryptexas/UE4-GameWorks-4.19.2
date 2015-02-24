@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GraphEditorCommon.h"
 #include "NodeFactory.h"
@@ -107,7 +107,7 @@ void SNodeTitle::RebuildWidget()
 		[
 			SNew(STextBlock)
 			.TextStyle( FEditorStyle::Get(), ExtraLineStyle )
-			.Text(Lines[Index])
+			.Text(FText::FromString(Lines[Index]))
 		];
 	}
 }
@@ -503,9 +503,47 @@ UObject* SGraphNode::GetObjectBeingDisplayed() const
 
 FSlateColor SGraphNode::GetNodeTitleColor() const
 {
-	FLinearColor NodeTitleColor = GraphNode->IsDeprecated() ? FLinearColor::Red : GetNodeObj()->GetNodeTitleColor();
-	NodeTitleColor.A = FadeCurve.GetLerp();
-	return NodeTitleColor;
+	FLinearColor ReturnTitleColor = GraphNode->IsDeprecated() ? FLinearColor::Red : GetNodeObj()->GetNodeTitleColor();
+
+	if(!GraphNode->bIsNodeEnabled)
+	{
+		ReturnTitleColor *= FLinearColor(0.5f, 0.5f, 0.5f, 0.4f);
+	}
+	else
+	{
+		ReturnTitleColor.A = FadeCurve.GetLerp();
+	}
+	return ReturnTitleColor;
+}
+
+FSlateColor SGraphNode::GetNodeBodyColor() const
+{
+	FLinearColor ReturnBodyColor = FLinearColor::White;
+	if(!GraphNode->bIsNodeEnabled)
+	{
+		ReturnBodyColor *= FLinearColor(1.0f, 1.0f, 1.0f, 0.5f); 
+	}
+	return ReturnBodyColor;
+}
+
+FSlateColor SGraphNode::GetNodeTitleIconColor() const
+{
+	FLinearColor ReturnIconColor = IconColor;
+	if(!GraphNode->bIsNodeEnabled)
+	{
+		ReturnIconColor *= FLinearColor(1.0f, 1.0f, 1.0f, 0.3f); 
+	}
+	return ReturnIconColor;
+}
+
+FLinearColor SGraphNode::GetNodeTitleTextColor() const
+{
+	FLinearColor ReturnTextColor = FLinearColor::White;
+	if(!GraphNode->bIsNodeEnabled)
+	{
+		ReturnTextColor *= FLinearColor(1.0f, 1.0f, 1.0f, 0.3f); 
+	}
+	return ReturnTextColor;
 }
 
 FSlateColor SGraphNode::GetNodeCommentColor() const
@@ -596,32 +634,36 @@ void SGraphNode::UpdateErrorInfo()
 	}
 }
 
-TSharedPtr<SWidget>	SGraphNode::SetupErrorReporting()
+void SGraphNode::SetupErrorReporting()
 {
-	TSharedPtr<SErrorText> ErrorText;
-
 	UpdateErrorInfo();
 
-	// generate widget
-	SAssignNew(ErrorText, SErrorText)
-		.BackgroundColor( this, &SGraphNode::GetErrorColor )
-		.ToolTipText( this, &SGraphNode::GetErrorMsgToolTip );
+	if( !ErrorReporting.IsValid() )
+	{
+		TSharedPtr<SErrorText> ErrorTextWidget;
 
-	ErrorReporting = ErrorText;
+		// generate widget
+		SAssignNew(ErrorTextWidget, SErrorText)
+			.BackgroundColor( this, &SGraphNode::GetErrorColor )
+			.ToolTipText( this, &SGraphNode::GetErrorMsgToolTip );
+
+		ErrorReporting = ErrorTextWidget;
+	}
 	ErrorReporting->SetError(ErrorMsg);
-
-	return ErrorText;
 }
 
 TSharedRef<SWidget> SGraphNode::CreateTitleWidget(TSharedPtr<SNodeTitle> NodeTitle)
 {
-	return SAssignNew(InlineEditableText, SInlineEditableTextBlock)
+	SAssignNew(InlineEditableText, SInlineEditableTextBlock)
 		.Style(FEditorStyle::Get(), "Graph.Node.NodeTitleInlineEditableText")
 		.Text(NodeTitle.Get(), &SNodeTitle::GetHeadTitle)
 		.OnVerifyTextChanged(this, &SGraphNode::OnVerifyNameTextChanged)
 		.OnTextCommitted(this, &SGraphNode::OnNameTextCommited)
 		.IsReadOnly(this, &SGraphNode::IsNameReadOnly)
 		.IsSelected(this, &SGraphNode::IsSelectedExclusively);
+	InlineEditableText->SetColorAndOpacity(TAttribute<FLinearColor>::Create(TAttribute<FLinearColor>::FGetter::CreateSP(this, &SGraphNode::GetNodeTitleTextColor)));
+
+	return InlineEditableText.ToSharedRef();
 }
 
 /**
@@ -649,12 +691,12 @@ void SGraphNode::UpdateGraphNode()
 	//            |_______|______|_______|
 	//
 	TSharedPtr<SVerticalBox> MainVerticalBox;
-	TSharedPtr<SWidget> ErrorText = SetupErrorReporting();
+	SetupErrorReporting();
 
 	TSharedPtr<SNodeTitle> NodeTitle = SNew(SNodeTitle, GraphNode);
 
 	// Get node icon
-	FLinearColor IconColor = FLinearColor::White;
+	IconColor = FLinearColor::White;
 	const FSlateBrush* IconBrush = NULL;
 	if (GraphNode != NULL && GraphNode->ShowPaletteIconOnNode())
 	{
@@ -667,6 +709,7 @@ void SGraphNode::UpdateGraphNode()
 		[
 			SNew(SImage)
 			.Image( FEditorStyle::GetBrush("Graph.Node.TitleGloss") )
+			.ColorAndOpacity( this, &SGraphNode::GetNodeTitleIconColor )
 		]
 		+SOverlay::Slot()
 		.HAlign(HAlign_Left)
@@ -687,7 +730,7 @@ void SGraphNode::UpdateGraphNode()
 				[
 					SNew(SImage)
 					.Image(IconBrush)
-					.ColorAndOpacity(IconColor)
+					.ColorAndOpacity(this, &SGraphNode::GetNodeTitleIconColor)
 				]
 				+ SHorizontalBox::Slot()
 				[
@@ -711,6 +754,7 @@ void SGraphNode::UpdateGraphNode()
 			SNew(SBorder)
 			.Visibility(EVisibility::HitTestInvisible)			
 			.BorderImage( FEditorStyle::GetBrush( "Graph.Node.TitleHighlight" ) )
+			.BorderBackgroundColor( this, &SGraphNode::GetNodeTitleIconColor )
 			[
 				SNew(SSpacer)
 				.Size(FVector2D(20,20))
@@ -748,7 +792,7 @@ void SGraphNode::UpdateGraphNode()
 	TSharedPtr<SVerticalBox> InnerVerticalBox;
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
 
-	this->ChildSlot
+	this->GetOrAddSlot( ENodeZone::Center )
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
 		[
@@ -763,6 +807,7 @@ void SGraphNode::UpdateGraphNode()
 				[
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("Graph.Node.Body"))
+					.ColorAndOpacity(this, &SGraphNode::GetNodeBodyColor)
 				]
 				+SOverlay::Slot()
 				[
@@ -788,11 +833,33 @@ void SGraphNode::UpdateGraphNode()
 					.AutoHeight()
 					.Padding(Settings->GetNonPinNodeBodyPadding())
 					[
-						ErrorText->AsShared()
+						ErrorReporting->AsWidget()
 					]
 				]
 			]			
 		];
+
+	// Create comment bubble
+	TSharedPtr<SCommentBubble> CommentBubble;
+
+	SAssignNew( CommentBubble, SCommentBubble )
+	.GraphNode( GraphNode )
+	.Text( this, &SGraphNode::GetNodeComment )
+	.ColorAndOpacity( this, &SGraphNode::GetCommentColor )
+	.AllowPinning( true )
+	.EnableTitleBarBubble( true )
+	.EnableBubbleCtrls( true )
+	.GraphLOD( this, &SGraphNode::GetCurrentLOD )
+	.IsGraphNodeHovered( this, &SGraphNode::IsHovered );
+
+	GetOrAddSlot( ENodeZone::TopCenter )
+	.SlotOffset( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetOffset ))
+	.SlotSize( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetSize ))
+	.AllowScaling( TAttribute<bool>( CommentBubble.Get(), &SCommentBubble::IsScalingAllowed ))
+	.VAlign( VAlign_Top )
+	[
+		CommentBubble.ToSharedRef()
+	];
 
 	CreateBelowWidgetControls(MainVerticalBox);
 	CreatePinWidgets();
@@ -838,19 +905,19 @@ EVisibility SGraphNode::AdvancedViewArrowVisibility() const
 	return bShowAdvancedViewArrow ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-void SGraphNode::OnAdvancedViewChanged( const ESlateCheckBoxState::Type NewCheckedState )
+void SGraphNode::OnAdvancedViewChanged( const ECheckBoxState NewCheckedState )
 {
 	if(GraphNode && (ENodeAdvancedPins::NoPins != GraphNode->AdvancedPinDisplay))
 	{
-		const bool bAdvancedPinsHidden = (NewCheckedState != ESlateCheckBoxState::Checked);
+		const bool bAdvancedPinsHidden = (NewCheckedState != ECheckBoxState::Checked);
 		GraphNode->AdvancedPinDisplay = bAdvancedPinsHidden ? ENodeAdvancedPins::Hidden : ENodeAdvancedPins::Shown;
 	}
 }
 
-ESlateCheckBoxState::Type SGraphNode::IsAdvancedViewChecked() const
+ECheckBoxState SGraphNode::IsAdvancedViewChecked() const
 {
 	const bool bAdvancedPinsHidden = GraphNode && (ENodeAdvancedPins::Hidden == GraphNode->AdvancedPinDisplay);
-	return bAdvancedPinsHidden ? ESlateCheckBoxState::Unchecked : ESlateCheckBoxState::Checked;
+	return bAdvancedPinsHidden ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
 }
 
 const FSlateBrush* SGraphNode::GetAdvancedViewArrow() const
@@ -1145,7 +1212,7 @@ void SGraphNode::PositionThisNodeBetweenOtherNodes(const FVector2D& PrevPos, con
 		DeltaPos = FVector2D(10.0f, 0.0f);
 	}
 
-	const FVector2D Normal = FVector2D(DeltaPos.Y, -DeltaPos.X).SafeNormal();
+	const FVector2D Normal = FVector2D(DeltaPos.Y, -DeltaPos.X).GetSafeNormal();
 
 	const FVector2D SlidingCapsuleBias = FVector2D::ZeroVector;//(0.5f * FMath::Sin(Normal.X * (float)HALF_PI) * DesiredSize.X, 0.0f);
 
@@ -1158,14 +1225,9 @@ void SGraphNode::PositionThisNodeBetweenOtherNodes(const FVector2D& PrevPos, con
 	GraphNode->NodePosY = NewCorner.Y;
 }
 
-FString SGraphNode::GetErrorMsgToolTip( ) const
+FText SGraphNode::GetErrorMsgToolTip( ) const
 {
-	return GraphNode->ErrorMsg;
-}
-
-bool SGraphNode::ShouldScaleNodeComment() const
-{
-	return true;
+	return FText::FromString(GraphNode->ErrorMsg);
 }
 
 bool SGraphNode::IsNameReadOnly() const
@@ -1343,4 +1405,14 @@ void SGraphNode::PopulateMetaTag(FGraphNodeMetaData* TagMeta) const
 		TagMeta->GUID = GraphNode->NodeGuid;
 		TagMeta->FriendlyName = FString::Printf(TEXT("%s in %s"), *GraphNode->GetNodeTitle(ENodeTitleType::ListView).ToString(), *TagMeta->OuterName);		
 	}
+}
+
+EGraphRenderingLOD::Type SGraphNode::GetCurrentLOD() const
+{
+	return OwnerGraphPanelPtr.IsValid() ? OwnerGraphPanelPtr.Pin()->GetCurrentLOD() : EGraphRenderingLOD::DefaultDetail;
+}
+
+void SGraphNode::RefreshErrorInfo()
+{
+	SetupErrorReporting();
 }

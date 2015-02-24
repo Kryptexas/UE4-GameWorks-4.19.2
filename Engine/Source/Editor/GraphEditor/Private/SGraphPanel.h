@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -160,10 +160,7 @@ protected:
 
 	void NotifyGraphChanged ( const struct FEdGraphEditAction& InAction);
 
-	const TSharedRef<SGraphNode> GetChild(int32 ChildIndex)
-	{
-		return StaticCastSharedRef<SGraphNode>(Children[ChildIndex]);
-	}
+	const TSharedRef<SGraphNode> GetChild(int32 ChildIndex);
 
 	/** Helper method to add a new node to the panel */
 	void AddNode (class UEdGraphNode* Node);
@@ -247,6 +244,7 @@ private:
 	TMap<const class UEdGraphNode*, int32> UserAddedNodes;
 
 	FOnGraphChanged::FDelegate MyRegisteredGraphChangedDelegate;
+	FDelegateHandle            MyRegisteredGraphChangedDelegateHandle;
 private:
 	/** Called when watched graph changes */
 	void OnGraphChanged( const FEdGraphEditAction& InAction );

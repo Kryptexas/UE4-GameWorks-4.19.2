@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 
@@ -214,19 +214,10 @@ void UK2Node_MatineeController::OnEventKeyframeRenamed(const AMatineeActor* InMa
 {
 	if ( MatineeActor == InMatineeActor )
 	{
-		// Rather than rename the pin directly, modify 'this' array as it's cheaper and quicker for the undo/redo system to not track UEdGraphPin's directly
 		if( UEdGraphPin* OldPin = FindPin(InOldPinName.ToString()) )
 		{
-			// Cache the pin index, then remove it from the array
-			const int32 PinIndex = GetPinIndex(OldPin);
-			check( PinIndex != INDEX_NONE );
-			DiscardPin(OldPin);
-
-			// Create a new pin at the old index and with the new name and copy it's data
-			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
-			UEdGraphPin* NewPin = CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, InNewPinName.ToString(), false, PinIndex);	
-			NewPin->CopyPersistentDataFromOldPin(*OldPin);
-			OldPin = NULL;
+			OldPin->Modify();
+			OldPin->PinName = InNewPinName.ToString();
 
 			GetGraph()->NotifyGraphChanged();
 		}

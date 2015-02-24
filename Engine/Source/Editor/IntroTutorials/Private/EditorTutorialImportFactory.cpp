@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "IntroTutorialsPrivatePCH.h"
 #include "EditorTutorialImportFactory.h"
@@ -7,6 +7,7 @@
 #include "IAssetTypeActions.h"
 #include "IDocumentation.h"
 #include "IDocumentationPage.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "UEditorTutorialImportFactory"
 
@@ -113,6 +114,11 @@ EReimportResult::Type UEditorTutorialImportFactory::Reimport(UObject* Obj)
 	}
 
 	return EReimportResult::Failed;
+}
+
+int32 UEditorTutorialImportFactory::GetPriority() const
+{
+	return ImportPriority;
 }
 
 bool UEditorTutorialImportFactory::Import(UEditorTutorial* InTutorialToImportTo, const FString& InImportPath)

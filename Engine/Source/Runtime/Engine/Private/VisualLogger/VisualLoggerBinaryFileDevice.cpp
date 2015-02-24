@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "EnginePrivate.h"
 #include "VisualLogger/VisualLoggerBinaryFileDevice.h"
 
@@ -48,7 +48,7 @@ void FVisualLoggerBinaryFileDevice::StopRecordingToFile(float TimeStamp)
 	const int32 NumEntries = FrameCache.Num();
 	if (NumEntries> 0)
 	{
-		*FileArchive << FrameCache;
+		FVisualLoggerHelpers::Serialize(*FileArchive, FrameCache);
 		FrameCache.Reset();
 	}
 

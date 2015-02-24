@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGLDrv.cpp: Unreal OpenGL RHI library implementation.
@@ -18,6 +18,9 @@ IMPLEMENT_MODULE(FOpenGLDynamicRHIModule, OpenGLDrv);
 
 /** OpenGL Logging. */
 DEFINE_LOG_CATEGORY(LogOpenGL);
+
+// Ignore functions from RHIMethods.h when parsing documentation; Doxygen's preprocessor can't parse the declaration, so spews warnings for the definitions.
+#if !UE_BUILD_DOCS
 
 void FOpenGLDynamicRHI::RHIPushEvent(const TCHAR* Name)
 {
@@ -47,6 +50,9 @@ void FOpenGLGPUProfiler::PopEvent()
 	FGPUProfiler::PopEvent();
 
 }
+
+#endif
+
 void FOpenGLGPUProfiler::BeginFrame(FOpenGLDynamicRHI* InRHI)
 {
 	CurrentEventNode = NULL;
@@ -503,13 +509,13 @@ void FOpenGLBase::ProcessExtensions( const FString& ExtensionsString )
 
 	bSupportsDrawBuffersBlend = ExtensionsString.Contains(TEXT("GL_ARB_draw_buffers_blend"));
 
-	#if PLATFORM_WINDOWS
-		FString VendorName( ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VENDOR) ) );
-		if ( VendorName.Contains(TEXT("ATI ")) )
-		{
-			bAmdWorkaround = true;
-		}
-	#endif
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
+	FString VendorName( ANSI_TO_TCHAR((const ANSICHAR*)glGetString(GL_VENDOR) ) );
+	if (VendorName.Contains(TEXT("ATI ")) || VendorName.Contains(TEXT("Intel ")))
+	{
+		bAmdWorkaround = true;
+	}
+#endif
 }
 
 void GetExtensionsString( FString& ExtensionsString)

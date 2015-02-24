@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompiler.cpp
@@ -10,7 +10,9 @@
 #include "Editor/UnrealEd/Public/Kismet2/KismetDebugUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetReinstanceUtilities.h"
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/ScriptDisassembler.h"
+#include "Editor/UnrealEd/Public/ComponentTypeRegistry.h"
 #include "K2Node_PlayMovieScene.h"
 #include "RuntimeMovieScenePlayer.h"
 #include "MovieSceneBindings.h"
@@ -22,6 +24,7 @@
 #include "EdGraph/EdGraphNode_Documentation.h"
 #include "Engine/DynamicBlueprintBinding.h"
 #include "Kismet/KismetMathLibrary.h"
+#include "Engine/InheritableComponentHandler.h"
 
 static bool bDebugPropertyPropagation = false;
 
@@ -30,24 +33,20 @@ static bool bDebugPropertyPropagation = false;
 
 //////////////////////////////////////////////////////////////////////////
 // Stats for this module
-
-
-DEFINE_STAT(EKismetCompilerStats_CompileTime);
-DEFINE_STAT(EKismetCompilerStats_CreateSchema);
-DEFINE_STAT(EKismetCompilerStats_CreateFunctionList);
-DEFINE_STAT(EKismetCompilerStats_Expansion);
-DEFINE_STAT(EKismetCompilerStats_ProcessUbergraph);
-DEFINE_STAT(EKismetCompilerStats_ProcessFunctionGraph);
-DEFINE_STAT(EKismetCompilerStats_PrecompileFunction);
-DEFINE_STAT(EKismetCompilerStats_CompileFunction);
-DEFINE_STAT(EKismetCompilerStats_PostcompileFunction);
-DEFINE_STAT(EKismetCompilerStats_FinalizationWork);
-DEFINE_STAT(EKismetCompilerStats_CodeGenerationTime);
-DEFINE_STAT(EKismetCompilerStats_ChooseTerminalScope);
-DEFINE_STAT(EKismetCompilerStats_CleanAndSanitizeClass);
-DEFINE_STAT(EKismetCompilerStats_CreateClassVariables);
-DEFINE_STAT(EKismetCompilerStats_BindAndLinkClass);
-DEFINE_STAT(EKismetCompilerStats_ChecksumCDO);
+DECLARE_CYCLE_STAT(TEXT("Create Schema"), EKismetCompilerStats_CreateSchema, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Create Function List"), EKismetCompilerStats_CreateFunctionList, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Expansion"), EKismetCompilerStats_Expansion, STATGROUP_KismetCompiler )
+DECLARE_CYCLE_STAT(TEXT("Process uber"), EKismetCompilerStats_ProcessUbergraph, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Process func"), EKismetCompilerStats_ProcessFunctionGraph, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Precompile Function"), EKismetCompilerStats_PrecompileFunction, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Compile Function"), EKismetCompilerStats_CompileFunction, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Postcompile Function"), EKismetCompilerStats_PostcompileFunction, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Finalization"), EKismetCompilerStats_FinalizationWork, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Code Gen"), EKismetCompilerStats_CodeGenerationTime, STATGROUP_KismetCompiler);
+DECLARE_CYCLE_STAT(TEXT("Clean and Sanitize Class"), EKismetCompilerStats_CleanAndSanitizeClass, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Create Class Properties"), EKismetCompilerStats_CreateClassVariables, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Bind and Link Class"), EKismetCompilerStats_BindAndLinkClass, STATGROUP_KismetCompiler );
+DECLARE_CYCLE_STAT(TEXT("Calculate checksum of CDO"), EKismetCompilerStats_ChecksumCDO, STATGROUP_KismetCompiler );
 		
 //////////////////////////////////////////////////////////////////////////
 // FKismetCompilerContext
@@ -153,6 +152,15 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 	UClass* TransientClass = ConstructObject<UBlueprintGeneratedClass>(UBlueprintGeneratedClass::StaticClass(), GetTransientPackage(), TransientClassName, RF_Public|RF_Transient);
 	
 	UClass* ParentClass = Blueprint->ParentClass;
+
+	if(UBlueprintGeneratedClass::CompileSkeletonClassesInheritSkeletonClasses() && FKismetEditorUtilities::IsClassABlueprintSkeleton(ClassToClean))
+	{
+		if(UBlueprint* BlueprintParent = Cast<UBlueprint>(Blueprint->ParentClass->ClassGeneratedBy))
+		{
+			ParentClass = BlueprintParent->SkeletonGeneratedClass;
+		}
+	}
+
 	if( ParentClass == NULL )
 	{
 		ParentClass = UObject::StaticClass();
@@ -247,6 +255,14 @@ void FKismetCompilerContext::SaveSubObjectsFromCleanAndSanitizeClass(FSubobjectC
 			SubObjectsToSave.AddObject(Curve);
 		}
 	}
+
+	if (Blueprint->InheritableComponentHandler)
+	{
+		SubObjectsToSave.AddObject(Blueprint->InheritableComponentHandler);
+		TArray<UActorComponent*> AllTemplates;
+		Blueprint->InheritableComponentHandler->GetAllTemplates(AllTemplates);
+		SubObjectsToSave.AddObjects(AllTemplates);
+	}
 }
 
 void FKismetCompilerContext::PostCreateSchema()
@@ -282,6 +298,17 @@ void FKismetCompilerContext::ValidateLink(const UEdGraphPin* PinA, const UEdGrap
 	if (Schema->CanCreateConnection(PinA, PinB).Response == CONNECT_RESPONSE_DISALLOW)
 	{
 		MessageLog.Warning(*LOCTEXT("PinTypeMismatch_Error", "Type mismatch between pins @@ and @@").ToString(), PinA, PinB); 
+	}
+
+	if (PinA && PinB && PinA->Direction != PinB->Direction)
+	{
+		const UEdGraphPin* InputPin = (EEdGraphPinDirection::EGPD_Input == PinA->Direction) ? PinA : PinB;
+		const UEdGraphPin* OutputPin = (EEdGraphPinDirection::EGPD_Output == PinA->Direction) ? PinA : PinB;
+		const bool bForbiddenConnection = InputPin && OutputPin && (OutputPin->PinType.PinCategory == Schema->PC_Interface) && (InputPin->PinType.PinCategory == Schema->PC_Object);
+		if (bForbiddenConnection)
+		{
+			MessageLog.Error(*LOCTEXT("PinTypeMismatch_Error", "Can't connect pins @@ (Interface) and @@ (Object). Use an explicit cast node.").ToString(), OutputPin, InputPin);
+		}
 	}
 }
 
@@ -553,6 +580,9 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 	// Create a class property for any simple-construction-script created components that should be exposed
 	if (Blueprint->SimpleConstructionScript != NULL)
 	{
+		// Ensure that nodes have valid templates (This will remove nodes that have had the classes the inherited from removed
+		Blueprint->SimpleConstructionScript->ValidateNodeTemplates(MessageLog);
+
 		// Ensure that variable names are valid and that there are no collisions with a parent class
 		Blueprint->SimpleConstructionScript->ValidateNodeVariableNames(MessageLog);
 
@@ -572,7 +602,7 @@ void FKismetCompilerContext::CreateClassVariablesFromBlueprint()
 					const FString CategoryName = Node->CategoryName != NAME_None ? Node->CategoryName.ToString() : Blueprint->GetName();
 					
 					NewProperty->SetMetaData(TEXT("Category"), *CategoryName);
-					NewProperty->SetPropertyFlags(CPF_BlueprintVisible);
+					NewProperty->SetPropertyFlags(CPF_BlueprintVisible | CPF_NonTransactional | CPF_BlueprintReadOnly);
 				}
 			}
 		}
@@ -807,6 +837,7 @@ void FKismetCompilerContext::CreateUserDefinedLocalVariablesForFunction(FKismetF
 			NewProperty->SetMetaData(TEXT("FriendlyName"), *Variable.FriendlyName);
 			NewProperty->SetMetaData(TEXT("Category"), *Variable.Category.ToString());
 			NewProperty->RepNotifyFunc = Variable.RepNotifyFunc;
+			NewProperty->SetPropertyFlags(Variable.PropertyFlags);
 
 			if(!Variable.DefaultValue.IsEmpty())
 			{
@@ -890,7 +921,7 @@ void FKismetCompilerContext::CheckConnectionResponse(const FPinConnectionRespons
 {
 	if (!Response.CanSafeConnect())
 	{
-		MessageLog.Error(*FString::Printf(*LOCTEXT("FailedBuildingConnection_Error", "COMPILER ERROR: failed building connection with '%s' at @@").ToString(), *Response.Message), Node);
+		MessageLog.Error(*FString::Printf(*LOCTEXT("FailedBuildingConnection_Error", "COMPILER ERROR: failed building connection with '%s' at @@").ToString(), *Response.Message.ToString()), Node);
 	}
 }
 
@@ -1029,43 +1060,47 @@ void FKismetCompilerContext::ValidateSelfPinsInGraph(const UEdGraph* SourceGraph
 			{
 				if (const UEdGraphPin* Pin = Node->Pins[PinIndex])
 				{
-					if (Schema->IsSelfPin(*Pin) && (Pin->LinkedTo.Num() == 0))
+					if (Schema->IsSelfPin(*Pin) && (Pin->LinkedTo.Num() == 0) && Pin->DefaultObject == nullptr)
 					{
 						FEdGraphPinType SelfType;
 						SelfType.PinCategory = Schema->PC_Object;
 						SelfType.PinSubCategory = Schema->PSC_Self;
 
-						if (!Schema->ArePinTypesCompatible(SelfType, Pin->PinType, NewClass))
+						FString ErrorMsg;
+						if(Blueprint->BlueprintType != BPTYPE_FunctionLibrary && Schema->IsStaticFunctionGraph(SourceGraph))
 						{
-							if (Pin->DefaultObject == NULL)
+							ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_Static_Error", "'@@' must have a connection, because %s is a static function and will not be bound to instances of this blueprint.").ToString(), *SourceGraph->GetName());
+						}
+						else if (!Schema->ArePinTypesCompatible(SelfType, Pin->PinType, NewClass))
+						{
+							FString PinType = Pin->PinType.PinCategory;
+							if ((Pin->PinType.PinCategory == Schema->PC_Object)    || 
+								(Pin->PinType.PinCategory == Schema->PC_Interface) ||
+								(Pin->PinType.PinCategory == Schema->PC_Class))
 							{
-								FString PinType = Pin->PinType.PinCategory;
-								if ((Pin->PinType.PinCategory == Schema->PC_Object)    || 
-									(Pin->PinType.PinCategory == Schema->PC_Interface) ||
-									(Pin->PinType.PinCategory == Schema->PC_Class))
+								if (Pin->PinType.PinSubCategoryObject.IsValid())
 								{
-									if (Pin->PinType.PinSubCategoryObject.IsValid())
-									{
-										PinType = Pin->PinType.PinSubCategoryObject->GetName();
-									}
-									else
-									{
-										PinType = TEXT("");
-									}
-								}
-
-								FString ErrorMsg;
-								if(PinType.IsEmpty())
-								{
-									ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_NoType_Error", "'@@' must have a connection").ToString());
+									PinType = Pin->PinType.PinSubCategoryObject->GetName();
 								}
 								else
 								{
-									ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_Error", "This blueprint (self) is not a %s, therefore '@@' must have a connection").ToString(), *PinType);	
+									PinType = TEXT("");
 								}
-
-								MessageLog.Error(*ErrorMsg, Pin);
 							}
+
+							if(PinType.IsEmpty())
+							{
+								ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_NoType_Error", "'@@' must have a connection.").ToString());
+							}
+							else
+							{
+								ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_WrongClass_Error", "This blueprint (self) is not a %s, therefore '@@' must have a connection.").ToString(), *PinType);	
+							}
+						}
+
+						if(!ErrorMsg.IsEmpty())
+						{
+							MessageLog.Error(*ErrorMsg, Pin);
 						}
 					}
 				}
@@ -1108,11 +1143,14 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		// Find the connected subgraph starting at the root node and prune out unused nodes
 		PruneIsolatedNodes(Context.RootSet, Context.SourceGraph->Nodes);
 
-		// Check if self pins are connected after PruneIsolatedNodes, to avoid errors from isolated nodes.
-		ValidateSelfPinsInGraph(Context.SourceGraph);
+		if (bIsFullCompile)
+		{
+			// Check if self pins are connected after PruneIsolatedNodes, to avoid errors from isolated nodes.
+			ValidateSelfPinsInGraph(Context.SourceGraph);
 
-		// Transforms
-		TransformNodes(Context);
+			// Transforms
+			TransformNodes(Context);
+		}
 
 		//Now we can safely remove automatically added WorldContext pin from static function.
 		Context.EntryPoint->RemoveUnnecessaryAutoWorldContext();
@@ -1458,11 +1496,8 @@ void FKismetCompilerContext::PostcompileFunction(FKismetFunctionContext& Context
 {
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_PostcompileFunction);
 
-	// Sort the 'linear execution list' again by likely execution order.
-	Context.FinalSortLinearExecList();
-
-	// Resolve goto links
-	Context.ResolveGotoFixups();
+	// The function links gotos, sorts statments, and merges adjacent ones. 
+	Context.ResolveStatements();
 
 	//@TODO: Code generation (should probably call backend here, not later)
 
@@ -1662,22 +1697,43 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 
 		// Copy the category info from the parent class
 #if WITH_EDITORONLY_DATA
-		FEditorCategoryUtils::GetClassHideCategories(ParentClass, AllHideCategories);
-		if (ParentClass->HasMetaData(TEXT("ShowCategories")))
+		if (!ParentClass->HasMetaData(FBlueprintMetadata::MD_IgnoreCategoryKeywordsInSubclasses))
 		{
-			Class->SetMetaData(TEXT("ShowCategories"), *ParentClass->GetMetaData("ShowCategories"));
+			FEditorCategoryUtils::GetClassHideCategories(ParentClass, AllHideCategories);
+			if (ParentClass->HasMetaData(TEXT("ShowCategories")))
+			{
+				Class->SetMetaData(TEXT("ShowCategories"), *ParentClass->GetMetaData("ShowCategories"));
+			}
+			if (ParentClass->HasMetaData(TEXT("AutoExpandCategories")))
+			{
+				Class->SetMetaData(TEXT("AutoExpandCategories"), *ParentClass->GetMetaData("AutoExpandCategories"));
+			}
+			if (ParentClass->HasMetaData(TEXT("AutoCollapseCategories")))
+			{
+				Class->SetMetaData(TEXT("AutoCollapseCategories"), *ParentClass->GetMetaData("AutoCollapseCategories"));
+			}
 		}
+
 		if (ParentClass->HasMetaData(TEXT("HideFunctions")))
 		{
 			Class->SetMetaData(TEXT("HideFunctions"), *ParentClass->GetMetaData("HideFunctions"));
 		}
-		if (ParentClass->HasMetaData(TEXT("AutoExpandCategories")))
+		
+		// Blueprinted Components are always Blueprint Spawnable
+		if (ParentClass->IsChildOf(UActorComponent::StaticClass()))
 		{
-			Class->SetMetaData(TEXT("AutoExpandCategories"), *ParentClass->GetMetaData("AutoExpandCategories"));
-		}
-		if (ParentClass->HasMetaData(TEXT("AutoCollapseCategories")))
-		{
-			Class->SetMetaData(TEXT("AutoCollapseCategories"), *ParentClass->GetMetaData("AutoCollapseCategories"));
+			static const FName NAME_ClassGroupNames(TEXT("ClassGroupNames"));
+			Class->SetMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent, TEXT("true"));
+
+			FString ClassGroupCategory = NSLOCTEXT("BlueprintableComponents", "CategoryName", "Custom").ToString();
+			if (!Blueprint->BlueprintCategory.IsEmpty())
+			{
+				ClassGroupCategory = Blueprint->BlueprintCategory;
+			}
+
+			Class->SetMetaData(NAME_ClassGroupNames, *ClassGroupCategory);
+
+			FComponentTypeRegistry::Get().InvalidateClass(Class);
 		}
 
 		// Add a category if one has been specified
@@ -1736,6 +1792,11 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 				Property->RepNotifyFunc = NAME_None;
 			}
 		}
+		if( Property->HasAnyPropertyFlags( CPF_Config ))
+		{
+			// If we have properties that are set from the config, then the class needs to also have CLASS_Config flags
+			Class->ClassFlags |= CLASS_Config;
+		}
 	}
 
 	// Set class metadata as needed
@@ -1751,10 +1812,12 @@ void FKismetCompilerContext::FinishCompilingClass(UClass* Class)
 		BPGClass->ComponentTemplates.Empty();
 		BPGClass->Timelines.Empty();
 		BPGClass->SimpleConstructionScript = NULL;
+		BPGClass->InheritableComponentHandler = NULL;
 
 		BPGClass->ComponentTemplates = Blueprint->ComponentTemplates;
 		BPGClass->Timelines = Blueprint->Timelines;
 		BPGClass->SimpleConstructionScript = Blueprint->SimpleConstructionScript;
+		BPGClass->InheritableComponentHandler = Blueprint->InheritableComponentHandler;
 	}
 
 	//@TODO: Not sure if doing this again is actually necessary
@@ -2309,9 +2372,19 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 		StubContext.MarkAsInternalOrCppUseOnly();
 	}
 
-	if ((SrcEventNode->FunctionFlags & FUNC_Net) > 0)
+	uint32 FunctionFlags = SrcEventNode->FunctionFlags;
+	if(SrcEventNode->bOverrideFunction && Blueprint->ParentClass != nullptr)
 	{
-		StubContext.MarkAsNetFunction(SrcEventNode->FunctionFlags);
+		const UFunction* ParentFunction = Blueprint->ParentClass->FindFunctionByName(SrcEventNode->GetFunctionName());
+		if(ParentFunction != nullptr)
+		{
+			FunctionFlags |= ParentFunction->FunctionFlags & FUNC_NetFuncFlags;
+		}
+	}
+
+	if ((FunctionFlags & FUNC_Net) > 0)
+	{
+		StubContext.MarkAsNetFunction(FunctionFlags);
 	}
 
 	// Create an entry point
@@ -2441,7 +2514,7 @@ void FKismetCompilerContext::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
 		if (CompileOptions.bSaveIntermediateProducts)
 		{
 			TArray<UEdGraphNode*> ClonedNodeList;
-			FEdGraphUtilities::CloneAndMergeGraphIn(Ubergraph, SourceGraph, MessageLog, /*bRequireSchemaMatch=*/ true, &ClonedNodeList);
+			FEdGraphUtilities::CloneAndMergeGraphIn(Ubergraph, SourceGraph, MessageLog, /*bRequireSchemaMatch=*/ true, /*bIsCompiling*/ true, &ClonedNodeList);
 
 			// Create a comment block around the ubergrapgh contents before anything else got started
 			int32 OffsetX = 0;
@@ -2459,7 +2532,7 @@ void FKismetCompilerContext::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
 		}
 		else
 		{
-			FEdGraphUtilities::CloneAndMergeGraphIn(Ubergraph, SourceGraph, MessageLog, /*bRequireSchemaMatch=*/ true);
+			FEdGraphUtilities::CloneAndMergeGraphIn(Ubergraph, SourceGraph, MessageLog, /*bRequireSchemaMatch=*/ true, /*bIsCompiling*/ true);
 		}
 	}
 }
@@ -2467,8 +2540,8 @@ void FKismetCompilerContext::MergeUbergraphPagesIn(UEdGraph* Ubergraph)
 // Expands out nodes that need it
 void FKismetCompilerContext::ExpansionStep(UEdGraph* Graph, bool bAllowUbergraphExpansions)
 {
-	// Node expansion may affect a signature of function in FunctionLibrary
-	if (bIsFullCompile || (EBlueprintType::BPTYPE_FunctionLibrary == Blueprint->BlueprintType))
+	// Node expansion may affect the signature of a static function
+	if (bIsFullCompile || Schema->IsStaticFunctionGraph(Graph))
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_Expansion);
 
@@ -2521,7 +2594,7 @@ void FKismetCompilerContext::VerifyValidOverrideEvent(const UEdGraph* Graph)
 					{
 						MessageLog.Warning(*EventNode->GetDeprecationMessage(), EventNode);
 					}
-					else
+					else if(!Function->HasAllFunctionFlags(FUNC_Const))	// ...allow legacy event nodes that override methods declared as 'const' to pass.
 					{
 						MessageLog.Error(TEXT("The function in node @@ cannot be overridden and/or placed as event"), EventNode);
 					}
@@ -2657,15 +2730,16 @@ void FKismetCompilerContext::CreateAndProcessUbergraph()
 			{
 				const UEdGraphNode* Node = ConsolidatedEventGraph->Nodes[ChildIndex];
 				const int32 SavedErrorCount = MessageLog.NumErrors;
-				ValidateNode(Node);
+				UK2Node_Event* SrcEventNode = Cast<UK2Node_Event>(ConsolidatedEventGraph->Nodes[ChildIndex]);
+				if (bIsFullCompile || SrcEventNode)
+				{
+					ValidateNode(Node);
+				}
 
 				// If the node didn't generate any errors then generate function stubs for event entry nodes etc.
-				if (SavedErrorCount == MessageLog.NumErrors)
+				if ((SavedErrorCount == MessageLog.NumErrors) && SrcEventNode)
 				{
-					if (UK2Node_Event* SrcEventNode = Cast<UK2Node_Event>(ConsolidatedEventGraph->Nodes[ChildIndex]))
-					{
-						CreateFunctionStubForEvent(SrcEventNode, Blueprint);
-					}
+					CreateFunctionStubForEvent(SrcEventNode, Blueprint);
 				}
 			}
 		}
@@ -2960,7 +3034,7 @@ void FKismetCompilerContext::ResetErrorFlags(UEdGraph* Graph) const
 /**
  * Merges macros/subgraphs into the graph and validates it, creating a function list entry if it's reasonable.
  */
-void FKismetCompilerContext::ProcessOneFunctionGraph(UEdGraph* SourceGraph)
+void FKismetCompilerContext::ProcessOneFunctionGraph(UEdGraph* SourceGraph, bool bInternalFunction)
 {
 	BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ProcessFunctionGraph);
 
@@ -2992,9 +3066,15 @@ void FKismetCompilerContext::ProcessOneFunctionGraph(UEdGraph* SourceGraph)
 			Context.MarkAsInterfaceStub();
 		}
 
-		if (FBlueprintEditorUtils::IsBlueprintConst(Blueprint))
+		bool bEnforceConstCorrectness = true;
+		if (FBlueprintEditorUtils::IsBlueprintConst(Blueprint) || Schema->IsConstFunctionGraph(Context.SourceGraph, &bEnforceConstCorrectness))
 		{
-			Context.MarkAsConstFunction();
+			Context.MarkAsConstFunction(bEnforceConstCorrectness);
+		}
+
+		if ( bInternalFunction )
+		{
+			Context.MarkAsInternalOrCppUseOnly();
 		}
 	}
 }
@@ -3230,15 +3310,33 @@ void FKismetCompilerContext::Compile()
 		++TimelineIndex;
 	}
 
+	if (CompileOptions.CompileType == EKismetCompileType::Full)
+	{
+		auto InheritableComponentHandler = Blueprint->GetInheritableComponentHandler(false);
+		if (InheritableComponentHandler)
+		{
+			InheritableComponentHandler->ValidateTemplates();
+		}
+	}
+
 	CleanAndSanitizeClass(TargetClass, OldCDO);
 
 	FKismetCompilerVMBackend Backend_VM(Blueprint, Schema, *this);
 
 	NewClass->ClassGeneratedBy = Blueprint;
 
-	NewClass->SetSuperStruct(Blueprint->ParentClass);
-	NewClass->ClassFlags |= (Blueprint->ParentClass->ClassFlags & CLASS_Inherit);
-	NewClass->ClassCastFlags |= Blueprint->ParentClass->ClassCastFlags;
+	UClass* ParentClass = nullptr;
+	if(UBlueprintGeneratedClass::CompileSkeletonClassesInheritSkeletonClasses())
+	{
+		ParentClass = NewClass->ClassWithin;
+	}
+	else
+	{
+		ParentClass = Blueprint->ParentClass;
+	}
+	NewClass->SetSuperStruct(ParentClass);
+	NewClass->ClassFlags |= (ParentClass->ClassFlags & CLASS_Inherit);
+	NewClass->ClassCastFlags |= ParentClass->ClassCastFlags;
 	
 	if(Blueprint->bGenerateConstClass)
 	{
@@ -3395,6 +3493,12 @@ void FKismetCompilerContext::Compile()
 		}
 	}
 
+	// It's necessary to tell if UberGraphFunction is ready to create frame.
+	if (NewClass->UberGraphFunction)
+	{
+		NewClass->UberGraphFunction->SetFlags(RF_LoadCompleted);
+	}
+
 	{ BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_FinalizationWork);
 
 		// Set any final flags and seal the class, build a CDO, etc...
@@ -3460,7 +3564,8 @@ void FKismetCompilerContext::Compile()
 		}
 
 		CopyTermDefaultsToDefaultObject(NewCDO);
-		SetCanEverTickForActor();
+		SetCanEverTick();
+		SetWantsInitialize();
 		FKismetCompilerUtilities::ValidateEnumProperties(NewCDO, MessageLog);
 	}
 
@@ -3605,7 +3710,8 @@ void FKismetCompilerContext::Compile()
 		// TODO What do we do if validation fails?
 	}
 
-	if (bIsFullCompile)
+	static const FBoolConfigValueHelper ChangeDefaultValueWithoutReinstancing(TEXT("Kismet"), TEXT("bChangeDefaultValueWithoutReinstancing"), GEngineIni);
+	if (bIsFullCompile && !ChangeDefaultValueWithoutReinstancing)
 	{
 		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_ChecksumCDO);
 		UObject* NewCDO = NewClass->GetDefaultObject(false);
@@ -3632,48 +3738,134 @@ const UK2Node_FunctionEntry* FKismetCompilerContext::FindLocalEntryPoint(const U
 	return NULL;
 }
 
-void FKismetCompilerContext::SetCanEverTickForActor()
+void FKismetCompilerContext::SetCanEverTick() const
 {
-	AActor* const CDActor = NewClass ? Cast<AActor>(NewClass->GetDefaultObject()) : NULL;
-	if(NULL == CDActor)
+	FTickFunction* TickFunction = nullptr;
+	FTickFunction* ParentTickFunction = nullptr;
+	
+	if (AActor* CDActor = Cast<AActor>(NewClass->GetDefaultObject()))
+	{
+		TickFunction = &CDActor->PrimaryActorTick;
+		ParentTickFunction = &NewClass->GetSuperClass()->GetDefaultObject<AActor>()->PrimaryActorTick;
+	}
+	else if (UActorComponent* CDComponent = Cast<UActorComponent>(NewClass->GetDefaultObject()))
+	{
+		TickFunction = &CDComponent->PrimaryComponentTick;
+		ParentTickFunction = &NewClass->GetSuperClass()->GetDefaultObject<UActorComponent>()->PrimaryComponentTick;
+	}
+
+	if (TickFunction == nullptr)
 	{
 		return;
 	}
 
-	const bool bOldFlag = CDActor->PrimaryActorTick.bCanEverTick;
+	const bool bOldFlag = TickFunction->bCanEverTick;
 	// RESET FLAG 
-	{
-		UClass* ParentClass = NewClass->GetSuperClass();
-		const AActor* ParentCDO = ParentClass ? Cast<AActor>(ParentClass->GetDefaultObject()) : NULL;
-		check(NULL != ParentCDO);
-		// Clear to handle case, when an event (that forced a flag) was removed, or class was re-parented
-		CDActor->PrimaryActorTick.bCanEverTick = ParentCDO->PrimaryActorTick.bCanEverTick;
-	}
+	TickFunction->bCanEverTick = ParentTickFunction->bCanEverTick;
 	
 	// RECEIVE TICK
-	static FName ReceiveTickName(GET_FUNCTION_NAME_CHECKED(AActor, ReceiveTick));
-	const UFunction* ReciveTickEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveTickName, NewClass);
-	if (ReciveTickEvent)
+	if (!TickFunction->bCanEverTick)
 	{
-		static const FName ChildCanTickName = TEXT("ChildCanTick");
-		const UClass* FirstNativeClass = FBlueprintEditorUtils::FindFirstNativeClass(NewClass);
-		const bool bOverrideFlags = (AActor::StaticClass() == FirstNativeClass) || (FirstNativeClass && FirstNativeClass->HasMetaData(ChildCanTickName));
-		if(bOverrideFlags)
+		// Make sure that both AActor and UActorComponent have the same name for their tick method
+		static FName ReceiveTickName(GET_FUNCTION_NAME_CHECKED(AActor, ReceiveTick));
+		static FName ComponentReceiveTickName(GET_FUNCTION_NAME_CHECKED(UActorComponent, ReceiveTick));
+
+		if (const UFunction* ReceiveTickEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveTickName, NewClass))
 		{
-			CDActor->PrimaryActorTick.bCanEverTick = true;
-		}
-		else if(!CDActor->PrimaryActorTick.bCanEverTick)
-		{
-			const FString ReceivTickEventWarning = FString::Printf( 
-				*LOCTEXT("ReceiveTick_CanNeverTick", "Blueprint %s has the ReceiveTick @@ event, but it can never tick.  Please consider using a Timer instead of a tick, using Actor as the parent class, or you can enable Tick using code in one of the following ways: set ChildCanTick in the metadata on the parent class, or set bCanEverTick to true.").ToString(), *NewClass->GetName());
-			MessageLog.Warning( *ReceivTickEventWarning, FindLocalEntryPoint(ReciveTickEvent) );
+			// We have a tick node, but are we allowed to?
+
+			const UEngine* EngineSettings = GetDefault<UEngine>();
+			const bool bAllowTickingByDefault = EngineSettings->bCanBlueprintsTickByDefault;
+
+			const UClass* FirstNativeClass = FBlueprintEditorUtils::FindFirstNativeClass(NewClass);
+			const bool bHasCanTickMetadata = (FirstNativeClass != nullptr) && FirstNativeClass->HasMetaData(FBlueprintMetadata::MD_ChildCanTick);
+			const bool bHasCannotTickMetadata = (FirstNativeClass != nullptr) && FirstNativeClass->HasMetaData(FBlueprintMetadata::MD_ChildCannotTick);
+			const bool bHasUniversalParent = (FirstNativeClass != nullptr) && ((AActor::StaticClass() == FirstNativeClass) || (UActorComponent::StaticClass() == FirstNativeClass));
+
+			if (bHasCanTickMetadata && bHasCannotTickMetadata)
+			{
+				// User error: The C++ class has conflicting metadata
+				const FString ConlictingMetadataWarning = FString::Printf(
+					*LOCTEXT("HasBothCanAndCannotMetadata", "Native class %s has both '%s' and '%s' metadata specified, they are mutually exclusive and '%s' will win.").ToString(),
+					*FirstNativeClass->GetPathName(),
+					*FBlueprintMetadata::MD_ChildCanTick.ToString(),
+					*FBlueprintMetadata::MD_ChildCannotTick.ToString(),
+					*FBlueprintMetadata::MD_ChildCannotTick.ToString());
+				MessageLog.Warning(*ConlictingMetadataWarning);
+			}
+
+			if (bHasCannotTickMetadata)
+			{
+				// This could only happen if someone adds bad metadata to AActor or UActorComponent directly
+				check(!bHasUniversalParent);
+
+				// Parent class has forbidden us to tick
+				const FString NativeClassSaidNo = FString::Printf(
+					*LOCTEXT("NativeClassProhibitsTicking", "@@ is not allowed as the C++ parent class %s has disallowed Blueprint subclasses from ticking.  Please consider using a Timer instead of Tick.").ToString(),
+					*FirstNativeClass->GetPathName(),
+					*FBlueprintMetadata::MD_ChildCannotTick.ToString());
+				MessageLog.Warning(*NativeClassSaidNo, FindLocalEntryPoint(ReceiveTickEvent));
+			}
+			else
+			{
+				if (bAllowTickingByDefault || bHasUniversalParent || bHasCanTickMetadata)
+				{
+					// We're allowed to tick for one reason or another
+					TickFunction->bCanEverTick = true;
+				}
+				else
+				{
+					// Nothing allowing us to tick
+					const FString ReceiveTickEventWarning = FString::Printf(
+						*LOCTEXT("ReceiveTick_CanNeverTick", "@@ is not allowed for Blueprints based on the C++ parent class %s, so it will never Tick!").ToString(),
+						*FirstNativeClass->GetPathName());
+					MessageLog.Warning(*ReceiveTickEventWarning, FindLocalEntryPoint(ReceiveTickEvent));
+
+					const FString ReceiveTickEventRemedies = FString::Printf(
+						*LOCTEXT("RecieveTick_CanNeverTickRemedies", "You can solve this in several ways:\n  1) Consider using a Timer instead of Tick.\n  2) Add meta=(%s) to the parent C++ class\n  3) Reparent the Blueprint to AActor or UActorComponent, which can always tick.").ToString(),
+						*FBlueprintMetadata::MD_ChildCanTick.ToString());
+					MessageLog.Warning(*ReceiveTickEventRemedies);
+				}
+			}
 		}
 	}
 
-	if(CDActor->PrimaryActorTick.bCanEverTick != bOldFlag)
+	if (TickFunction->bCanEverTick != bOldFlag)
 	{
-		UE_LOG(LogK2Compiler, Verbose, TEXT("Overridden flags for Actor class '%s': CanEverTick %s "), *NewClass->GetName(),
-			CDActor->PrimaryActorTick.bCanEverTick ? *(GTrue.ToString()) : *(GFalse.ToString()) );
+		UE_LOG(LogK2Compiler, Verbose, TEXT("Overridden flag for class '%s': CanEverTick %s "), *NewClass->GetName(),
+			TickFunction->bCanEverTick ? *(GTrue.ToString()) : *(GFalse.ToString()) );
+	}
+}
+
+void FKismetCompilerContext::SetWantsInitialize() const
+{
+	UActorComponent* CDComponent = Cast<UActorComponent>(NewClass->GetDefaultObject());
+
+	if (CDComponent == nullptr)
+	{
+		return;
+	}
+
+	const bool bOldFlag = CDComponent->bWantsInitializeComponent;
+
+	CDComponent->bWantsInitializeComponent = NewClass->GetSuperClass()->GetDefaultObject<UActorComponent>()->bWantsInitializeComponent;
+
+	if (!CDComponent->bWantsInitializeComponent)
+	{
+		static FName ReceiveInitializeComponentName(GET_FUNCTION_NAME_CHECKED(UActorComponent, ReceiveInitializeComponent));
+		static FName ReceiveUninitializeComponentName(GET_FUNCTION_NAME_CHECKED(UActorComponent, ReceiveUninitializeComponent));
+		const UFunction* ReciveInitializeComponentEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveInitializeComponentName, NewClass);
+		const UFunction* ReciveUninitializeComponentEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveUninitializeComponentName, NewClass);
+		if (ReciveInitializeComponentEvent || ReciveUninitializeComponentEvent)
+		{
+			CDComponent->bWantsInitializeComponent = true;
+		}
+	}
+
+	if(CDComponent->bWantsInitializeComponent != bOldFlag)
+	{
+		UE_LOG(LogK2Compiler, Verbose, TEXT("Overridden flag for class '%s': bWantsInitializeComponent %s "), *NewClass->GetName(),
+			CDComponent->bWantsInitializeComponent ? *(GTrue.ToString()) : *(GFalse.ToString()) );
 	}
 }
 

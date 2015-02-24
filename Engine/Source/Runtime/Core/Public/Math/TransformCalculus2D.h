@@ -1,8 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "TransformCalculus.h"
+
 
 //////////////////////////////////////////////////////////////////////////
 // Transform calculus for 2D types. UE4 already has a 2D Vector class that we

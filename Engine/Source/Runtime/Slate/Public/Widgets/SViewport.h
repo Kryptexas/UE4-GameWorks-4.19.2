@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,6 +14,7 @@ public:
 		, _RenderDirectlyToWindow(false)
 		, _EnableGammaCorrection(true)
 		, _EnableBlending(false)
+		, _EnableStereoRendering(false)
 		, _IgnoreTextureAlpha(true)
 		, _ViewportSize(FVector2D(320.0f, 240.0f))
 	{ }
@@ -35,6 +36,9 @@ public:
 
 		/** Allow this viewport to blend with its background. */
 		SLATE_ARGUMENT( bool, EnableBlending )
+
+		/** Whether or not to enable stereo rendering. */
+		SLATE_ARGUMENT(bool, EnableStereoRendering )
 
 		/**
 		 * If true, the viewport's texture alpha is ignored when performing blending.  In this case only the viewport tint opacity is used
@@ -109,6 +113,9 @@ public:
 	/** @return Whether or not this viewport renders directly to the backbuffer */
 	bool ShouldRenderDirectly() const { return bRenderDirectlyToWindow; }
 
+	/** @return Whether or not this viewport supports stereo rendering */
+	bool IsStereoRenderingAllowed() const { return bEnableStereoRendering; }
+
 	/**
 	 * Sets a widget that should become focused when this window is next activated
 	 *
@@ -137,6 +144,7 @@ public:
 	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
 	virtual FReply OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent ) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const override;
+	virtual TOptional<TSharedRef<SWidget>> OnMapCursor(const FCursorReply& CursorReply) const override;
 	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -151,6 +159,8 @@ public:
 	virtual FReply OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent ) override;
 	virtual void OnFocusLost( const FFocusEvent& InFocusEvent ) override;
 	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent ) override;
+	virtual TOptional<bool> OnQueryShowFocus( const EFocusCause InFocusCause ) const override;
+	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const override;
 	virtual void OnFinishedPointerInput() override;
 	virtual void OnArrangeChildren( const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren ) const override;
 	virtual TSharedPtr<struct FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const;
@@ -161,6 +171,12 @@ private:
 	FSimpleSlot& Decl_GetContent()
 	{
 		return ChildSlot;
+	}
+
+	// Viewports shouldn't show focus
+	virtual const FSlateBrush* GetFocusBrush() const override
+	{
+		return nullptr;
 	}
 
 protected:
@@ -192,6 +208,9 @@ private:
 
 	/** Whether or not to blend this viewport with the background. */
 	bool bEnableBlending;
+
+	/** Whether or not to enable stereo rendering. */
+	bool bEnableStereoRendering;
 
 	/** Whether or not to allow texture alpha to be used in blending calculations. */
 	bool bIgnoreTextureAlpha;

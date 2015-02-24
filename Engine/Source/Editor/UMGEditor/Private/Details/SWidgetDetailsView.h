@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -52,9 +52,9 @@ private:
 	void HandleNameTextChanged(const FText& Text);
 	void HandleNameTextCommitted(const FText& Text, ETextCommit::Type CommitType);
 
-	ESlateCheckBoxState::Type GetIsVariable() const;
+	ECheckBoxState GetIsVariable() const;
 
-	void HandleIsVariableChanged(ESlateCheckBoxState::Type CheckState);
+	void HandleIsVariableChanged(ECheckBoxState CheckState);
 
 	EVisibility GetCategoryAreaVisibility() const;
 	FText GetCategoryText() const;

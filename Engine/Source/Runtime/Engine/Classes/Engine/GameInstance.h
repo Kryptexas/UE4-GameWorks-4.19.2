@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EngineBaseTypes.h"
@@ -143,7 +143,7 @@ public:
 	int32					GetNumLocalPlayers() const;
 	ULocalPlayer*			GetLocalPlayerByIndex(const int32 Index) const;
 	APlayerController*		GetFirstLocalPlayerController() const;
-	ULocalPlayer*			FindLocalPlayerFromControllerId(int32 ControllerId) const;
+	ULocalPlayer*			FindLocalPlayerFromControllerId(const int32 ControllerId) const;
 	ULocalPlayer*			FindLocalPlayerFromUniqueNetId(TSharedPtr< FUniqueNetId > UniqueNetId) const;
 	ULocalPlayer*			FindLocalPlayerFromUniqueNetId(const FUniqueNetId& UniqueNetId) const;
 	ULocalPlayer*			GetFirstGamePlayer() const;
@@ -152,6 +152,9 @@ public:
 
 	TArray<class ULocalPlayer*>::TConstIterator	GetLocalPlayerIterator();
 	const TArray<class ULocalPlayer*> &			GetLocalPlayers();
+
+	/** Called when demo playback fails for any reason */
+	virtual void			HandleDemoPlaybackFailure( EDemoPlayFailure::Type FailureType, const FString& ErrorString = TEXT("") ) { }
 
 	static void				AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimCompositeBase.cpp: Anim Composite base class that contains AnimTrack data structure/interface
@@ -191,7 +191,7 @@ bool FAnimTrack::HasRootMotion() const
 {
 	for (const FAnimSegment& AnimSegment : AnimSegments)
 	{
-		if (AnimSegment.AnimReference->HasRootMotion())
+		if (AnimSegment.AnimReference && AnimSegment.AnimReference->HasRootMotion())
 		{
 			return true;
 		}

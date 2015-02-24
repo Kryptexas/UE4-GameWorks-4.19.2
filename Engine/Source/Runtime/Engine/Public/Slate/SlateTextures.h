@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -62,6 +62,11 @@ public:
 	 * Clears texture data being used.  Can only be accessed on the render thread                   
 	 */
 	void ClearTextureData();
+
+	/**
+	 * Returns the pixel format of this texture
+	 */
+	EPixelFormat GetPixelFormat() const { return PixelFormat; }
 
 	// FSlateUpdatableTexture interface
 	virtual FSlateShaderResource* GetSlateResource() override {return this;}

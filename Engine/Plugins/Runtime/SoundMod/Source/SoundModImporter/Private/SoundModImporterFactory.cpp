@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SoundModImporterPrivatePCH.h"
 #include "AssetToolsModule.h"
@@ -6,6 +6,7 @@
 #include "PackageTools.h"
 #include "SoundDefinitions.h"
 #include "xmp.h"
+#include "Components/AudioComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // USoundModImporterFactory
@@ -106,7 +107,7 @@ UObject* USoundModImporterFactory::FactoryCreateBinary
 
 	// Use pre-existing sound if it exists and we want to keep settings,
 	// otherwise create new sound and import raw data.
-	USoundMod* Sound = (bUseExistingSettings && ExistingSound) ? ExistingSound : new(InParent, Name, Flags) USoundMod(FObjectInitializer());
+	USoundMod* Sound = (bUseExistingSettings && ExistingSound) ? ExistingSound : NewNamedObject<USoundMod>(InParent, Name, Flags);
 
 	Sound->Duration = xmpModuleInfo.seq_data->duration / 1000.f;
 

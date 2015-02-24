@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnvironmentQueryEditorPrivatePCH.h"
 #include "EnvDirectionCustomization.h"
@@ -53,9 +53,9 @@ void FEnvDirectionCustomization::CustomizeChildren( TSharedRef<class IPropertyHa
 	.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FEnvDirectionCustomization::GetRotationVisibility)));
 }
 
-FString FEnvDirectionCustomization::GetShortDescription() const
+FText FEnvDirectionCustomization::GetShortDescription() const
 {
-	return bIsRotation ? TEXT("context's rotation...") : TEXT("between two contexts...");
+	return bIsRotation ? LOCTEXT("DirectionShortDescRotatation", "context's rotation...") : LOCTEXT("DirectionShortDescBetweenTwoPoints", "between two contexts...");
 }
 
 EVisibility FEnvDirectionCustomization::GetTwoPointsVisibility() const

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraEditorPrivatePCH.h"
 #include "Engine/NiagaraScript.h"
@@ -180,7 +180,7 @@ void FNiagaraCompiler_VectorVM::CompileScript(UNiagaraScript* InScript)
 	check(InScript);
 
 	Script = InScript;
-	UNiagaraScriptSource* Source = CastChecked<UNiagaraScriptSource>(InScript->Source);
+	Source = CastChecked<UNiagaraScriptSource>(InScript->Source);
 
 	// Clone the source graph so we can modify it as needed; merging in the child graphs
 	UEdGraph* UpdateGraph = FEdGraphUtilities::CloneGraph(Source->UpdateGraph, Source, &MessageLog, true);
@@ -457,11 +457,6 @@ void FNiagaraCompiler_VectorVM::Length_Internal(TArray<TNiagaraExprPtr>& InputEx
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::length, InputExpressions));
 }
 
-void FNiagaraCompiler_VectorVM::Sin4_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
-{
-	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::sin4, InputExpressions));
-}
-
 void FNiagaraCompiler_VectorVM::Noise_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
 {
 	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::noise, InputExpressions));
@@ -591,6 +586,12 @@ void FNiagaraCompiler_VectorVM::Inverse_Internal(TArray<TNiagaraExprPtr>& InputE
 	//OutputExpressions.Add(Expression_UnknownError());
 
 	
+}
+
+
+void FNiagaraCompiler_VectorVM::LessThan_Internal(TArray<TNiagaraExprPtr>& InputExpressions, TArray<TNiagaraExprPtr>& OutputExpressions)
+{
+	OutputExpressions.Add(Expression_VMNative(VectorVM::EOp::lessthan, InputExpressions));
 }
 
 #undef LOCTEXT_NAMESPACE

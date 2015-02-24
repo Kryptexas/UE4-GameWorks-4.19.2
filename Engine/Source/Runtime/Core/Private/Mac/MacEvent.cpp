@@ -1,10 +1,41 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "MacEvent.h"
 #include "MacApplication.h"
 #include "CocoaThread.h"
 #include "CocoaWindow.h"
+#import <objc/runtime.h>
+
+static char PositionPropertyKey;
+
+@implementation NSEvent (FCachedWindowAccess)
+
+@dynamic windowPosition;
+
+-(void)CacheWindow
+{
+	_window = [[self window] retain];
+	self.windowPosition = _window.frame.origin;
+}
+-(NSWindow*)GetWindow
+{
+	return _window;
+}
+-(void)setWindowPosition:(NSPoint)position
+{
+	objc_setAssociatedObject(self, &PositionPropertyKey, [NSValue valueWithPoint:position], OBJC_ASSOCIATION_RETAIN_NONATOMIC);
+}
+-(NSPoint)windowPosition
+{
+	return [(NSValue*)objc_getAssociatedObject(self, &PositionPropertyKey) pointValue];
+}
+-(void)ResetWindow
+{
+	[_window release];
+	_window = nil;
+}
+@end
 
 FMacEvent::FMacEvent(NSEvent* const Event)
 : EventData(Event)
@@ -12,6 +43,7 @@ FMacEvent::FMacEvent(NSEvent* const Event)
 	SCOPED_AUTORELEASE_POOL;
 	check(Event);
 	[Event retain];
+	[Event CacheWindow];
 }
 
 FMacEvent::FMacEvent(NSNotification* const Notification)

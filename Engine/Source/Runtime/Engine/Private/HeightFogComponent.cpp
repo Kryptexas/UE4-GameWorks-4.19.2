@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HeightFogComponent.cpp: Height fog implementation.
@@ -12,8 +12,6 @@
 UExponentialHeightFogComponent::UExponentialHeightFogComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	bEnabled_DEPRECATED = true;
-
 	FogInscatteringColor = FLinearColor(0.447f, 0.638f, 1.0f);
 
 	DirectionalInscatteringExponent = 4.0f;
@@ -52,16 +50,6 @@ void UExponentialHeightFogComponent::DestroyRenderState_Concurrent()
 {
 	Super::DestroyRenderState_Concurrent();
 	World->Scene->RemoveExponentialHeightFog(this);
-}
-
-void UExponentialHeightFogComponent::PostLoad()
-{
-	Super::PostLoad();
-
-	if (GetLinkerUE4Version() < VER_UE4_REMOVE_COMPONENT_ENABLED_FLAG)
-	{
-		bVisible = bEnabled_DEPRECATED;	
-	}
 }
 
 #if WITH_EDITOR

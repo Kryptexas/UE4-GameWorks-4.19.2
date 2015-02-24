@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MaterialEditorModule.h"
 #include "MaterialEditor.h"
@@ -70,7 +70,7 @@ TSharedRef<ITableRow> SMaterialEditorTitleBar::MakeMaterialInfoWidget(TSharedPtr
 				SNew(STextBlock)
 				.ColorAndOpacity(TextColor)
 				.Font(FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), FontSize ))
-				.Text( Text )
+				.Text(FText::FromString(Text))
 			];
 	}
 }

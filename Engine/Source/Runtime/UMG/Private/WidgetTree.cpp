@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -8,6 +8,17 @@
 UWidgetTree::UWidgetTree(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+}
+
+UWorld* UWidgetTree::GetWorld() const
+{
+	// The outer of a widget tree should be a user widget
+	if ( UUserWidget* OwningWidget = Cast<UUserWidget>(GetOuter()) )
+	{
+		return OwningWidget->GetWorld();
+	}
+
+	return nullptr;
 }
 
 UWidget* UWidgetTree::FindWidget(const FName& Name) const

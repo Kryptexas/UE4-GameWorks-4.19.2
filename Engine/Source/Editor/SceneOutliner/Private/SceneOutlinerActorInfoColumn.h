@@ -1,15 +1,51 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "ISceneOutliner.h"
 #include "ISceneOutlinerColumn.h"
-#include "SceneOutlinerInitializationOptions.h"
+#include "SceneOutlinerPublicTypes.h"
+
+namespace SceneOutliner
+{
+
+/** Types of actor data we can display in a 'custom' tree column */
+namespace ECustomColumnMode
+{
+	enum Type
+	{
+		/** Empty column -- doesn't display anything */
+		None = 0,
+
+		/** Class */
+		Class,
+
+		/** Level */
+		Level,
+
+		/** Layer */
+		Layer,
+
+		/** The socket the actor is attached to. */
+		Socket,
+
+		/** Actor's internal name (FName) */
+		InternalName,
+
+		/** Actor's number of uncached lights */
+		UncachedLights,
+
+		// ---
+
+		/** Number of options */
+		Count
+	};
+}
 
 /**
  * A custom column for the SceneOutliner which is capable of displaying a variety of Actor details
  */
-class FSceneOutlinerActorInfoColumn : public ISceneOutlinerColumn
+class FActorInfoColumn : public ISceneOutlinerColumn
 {
 
 public:
@@ -17,9 +53,11 @@ public:
 	/**
 	 *	Constructor
 	 */
-	FSceneOutlinerActorInfoColumn( const TWeakPtr< ISceneOutliner >& InSceneOutlinerWeak, ECustomColumnMode::Type InDefaultCustomColumnMode );
+	FActorInfoColumn( ISceneOutliner& Outliner, ECustomColumnMode::Type InDefaultCustomColumnMode = ECustomColumnMode::Class );
 
-	virtual ~FSceneOutlinerActorInfoColumn() {}
+	virtual ~FActorInfoColumn() {}
+
+	static FName GetID() { return FBuiltInColumnTypes::ActorInfo(); }
 
 	//////////////////////////////////////////////////////////////////////////
 	// Begin ISceneOutlinerColumn Implementation
@@ -28,30 +66,26 @@ public:
 
 	virtual SHeaderRow::FColumn::FArguments ConstructHeaderRowColumn() override;
 
-	virtual const TSharedRef< SWidget > ConstructRowWidget( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem ) override;
+	virtual const TSharedRef< SWidget > ConstructRowWidget( FTreeItemRef TreeItem, const STableRow<FTreeItemPtr>& Row ) override;
 
-	virtual bool ProvidesSearchStrings() override;
-
-	virtual void PopulateActorSearchStrings( const AActor* const Actor, OUT TArray< FString >& OutSearchStrings ) const override;
+	virtual void PopulateSearchStrings( const ITreeItem& Item, TArray< FString >& OutSearchStrings ) const override;
 
 	virtual bool SupportsSorting() const override;
 
-	virtual void SortItems(TArray<TSharedPtr<SceneOutliner::TOutlinerTreeItem>>& RootItems, const EColumnSortMode::Type SortMode) const override;
+	virtual void SortItems(TArray<FTreeItemPtr>& RootItems, const EColumnSortMode::Type SortMode) const override;
 	
 	// End ISceneOutlinerColumn Implementation
 	//////////////////////////////////////////////////////////////////////////
 
+	FText GetTextForItem( const TWeakPtr<ITreeItem> TreeItem ) const;
+
 private:
 
-	TSharedRef< SWidget > ConstructClassHyperlink( const TWeakObjectPtr< AActor >&  Actor );
+	TSharedPtr<SWidget> ConstructClassHyperlink( ITreeItem& TreeItem );
 
 	void OnModeChanged( TSharedPtr< ECustomColumnMode::Type > NewSelection, ESelectInfo::Type SelectInfo );
 
 	EVisibility GetColumnDataVisibility( bool bIsClassHyperlink ) const;
-
-	FString GetTextForItem( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem ) const;
-
-	FString GetTextForActor( const TWeakObjectPtr< AActor > TreeItem ) const;
 
 	FText MakeComboText( const ECustomColumnMode::Type& Mode ) const;
 
@@ -75,3 +109,6 @@ private:
 	/** Weak reference to the outliner widget that owns our list */
 	TWeakPtr< ISceneOutliner > SceneOutlinerWeak;
 };
+
+
+}	// namespace SceneOutliner

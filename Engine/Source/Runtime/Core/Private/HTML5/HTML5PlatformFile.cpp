@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HTML5File.cpp: HTML5 platform implementations of File functions
@@ -388,8 +388,9 @@ public:
 #else 
 		bool Result = false;
 		// If Directory is an empty string, assume that we want to iterate Binaries/Mac (current dir), but because we're an app bundle, iterate bundle's Contents/Frameworks instead
+		FString FilePath = FPaths::Combine(*NormalizeFilename(Directory), TEXT("*"));
 		struct _finddata_t c_file;
-		long hFile = _findfirst(TCHAR_TO_UTF8(*NormalizeFilename(Directory)),&c_file);
+		long hFile = _findfirst(TCHAR_TO_UTF8(*FilePath), &c_file);
 
 		if (hFile  != -1L )
 		{

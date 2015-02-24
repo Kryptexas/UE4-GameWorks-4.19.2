@@ -1,7 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Landscape.h"
 #include "LandscapeModule.h"
+#include "LandscapeComponent.h"
+#include "UObjectHash.h"
+#include "Engine/World.h"
+#include "Engine/Level.h"
 
 class FLandscapeModule : public IModuleInterface
 {
@@ -59,12 +63,69 @@ void WorldCreationEventFunction(UWorld* World)
 void WorldDestroyEventFunction(UWorld* World);
 
 /**
+ * Gets array of Landscape-specific textures and materials connected with given
+ * level.
+ *
+ * @param Level Level to search textures and materials in.
+ * @param OutTexturesAndMaterials (Output parameter) Array to fill.
+ */
+void GetLandscapeTexturesAndMaterials(ULevel* Level, TArray<UObject*>& OutTexturesAndMaterials)
+{
+	TArray<UObject*> ObjectsInLevel;
+	const bool bIncludeNestedObjects = true;
+	GetObjectsWithOuter(Level, ObjectsInLevel, bIncludeNestedObjects);
+	for (auto* ObjInLevel : ObjectsInLevel)
+	{
+		ULandscapeComponent* LandscapeComponent = Cast<ULandscapeComponent>(ObjInLevel);
+		if (LandscapeComponent)
+		{
+			LandscapeComponent->GetGeneratedTexturesAndMaterialInstances(OutTexturesAndMaterials);
+		}
+	}
+}
+
+/**
+ * A function that fires everytime a world is renamed.
+ *
+ * @param World A world that was renamed.
+ * @param InName New world name.
+ * @param NewOuter New outer of the world after rename.
+ * @param Flags Rename flags.
+ * @param bShouldFailRename (Output parameter) If you set it to true, then the renaming process should fail.
+ */
+void WorldRenameEventFunction(UWorld* World, const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags, bool& bShouldFailRename)
+{
+	// Also rename all textures and materials used by landscape components
+	TArray<UObject*> LandscapeTexturesAndMaterials;
+	GetLandscapeTexturesAndMaterials(World->PersistentLevel, LandscapeTexturesAndMaterials);
+	UPackage* PersistentLevelPackage = World->PersistentLevel->GetOutermost();
+	for (auto* OldTexOrMat : LandscapeTexturesAndMaterials)
+	{
+		if (OldTexOrMat && OldTexOrMat->GetOuter() == PersistentLevelPackage)
+		{
+			// The names for these objects are not important, just generate a new name to avoid collisions
+			if (!OldTexOrMat->Rename(nullptr, NewOuter, Flags))
+			{
+				bShouldFailRename = true;
+			}
+		}
+	}
+}
+
+/**
  * A function that fires everytime a world is duplicated.
+ *
+ * If there are some objects duplicated during this event fill out
+ * ReplacementMap and ObjectsToFixReferences in order to properly fix
+ * references in objects created during this duplication.
  *
  * @param World A world that was duplicated.
  * @param bDuplicateForPIE If this duplication was done for PIE.
+ * @param ReplacementMap Replacement map (i.e. old object -> new object).
+ * @param ObjectsToFixReferences Array of objects that may contain bad
+ *		references to old objects.
  */
-void WorldDuplicateEventFunction(UWorld* World, bool bDuplicateForPIE)
+void WorldDuplicateEventFunction(UWorld* World, bool bDuplicateForPIE, TMap<UObject*, UObject*>& ReplacementMap, TArray<UObject*>& ObjectsToFixReferences)
 {
 	int32 Index;
 	ULandscapeInfoMap *InfoMap;
@@ -78,6 +139,32 @@ void WorldDuplicateEventFunction(UWorld* World, bool bDuplicateForPIE)
 	{
 		AddPerWorldLandscapeData(World);
 	}
+
+#if WITH_EDITOR
+	if (!bDuplicateForPIE)
+	{
+		UPackage* WorldPackage = World->GetOutermost();
+
+		// Also duplicate all textures and materials used by landscape components
+		TArray<UObject*> LandscapeTexturesAndMaterials;
+		GetLandscapeTexturesAndMaterials(World->PersistentLevel, LandscapeTexturesAndMaterials);
+		for (auto* OldTexOrMat : LandscapeTexturesAndMaterials)
+		{
+			if (OldTexOrMat && OldTexOrMat->GetOuter() != WorldPackage)
+			{
+				// The names for these objects are not important, just generate a new name to avoid collisions
+				UObject* NewTextureOrMaterial = StaticDuplicateObject(OldTexOrMat, WorldPackage, nullptr);
+				ReplacementMap.Add(OldTexOrMat, NewTextureOrMaterial);
+
+				// Materials hold references to the textures being moved, so they will need references fixed up as well
+				if (OldTexOrMat->IsA(UMaterialInterface::StaticClass()))
+				{
+					ObjectsToFixReferences.Add(NewTextureOrMaterial);
+				}
+			}
+		}
+	}
+#endif // WITH_EDITOR
 }
 
 void FLandscapeModule::StartupModule()
@@ -101,6 +188,12 @@ void FLandscapeModule::StartupModule()
 		&WorldDestroyEventFunction
 	);
 #endif // WITH_EDITORONLY_DATA
+
+#if WITH_EDITOR
+	FWorldDelegates::OnPreWorldRename.AddStatic(
+		&WorldRenameEventFunction
+	);
+#endif // WITH_EDITOR
 
 	FWorldDelegates::OnPostDuplicate.AddStatic(
 		&WorldDuplicateEventFunction

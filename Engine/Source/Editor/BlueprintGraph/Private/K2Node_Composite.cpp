@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 
 #include "EdGraphUtilities.h"
 #include "Kismet2NameValidators.h"
+#include "K2Node_Composite.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 

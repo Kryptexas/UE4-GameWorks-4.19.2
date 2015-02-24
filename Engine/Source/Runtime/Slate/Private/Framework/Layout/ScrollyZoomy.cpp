@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "ScrollyZoomy.h"
@@ -7,10 +7,11 @@
 /* FScrollyZoomy structors
  *****************************************************************************/
 
-FScrollyZoomy::FScrollyZoomy( )
-	: AmountScrolledWhileRightMouseDown( 0.0f ),
-	  bShowSoftwareCursor( false ),
-	  SoftwareCursorPosition( FVector2D::ZeroVector )
+FScrollyZoomy::FScrollyZoomy( const bool bInUseIntertialScrolling )
+	: AmountScrolledWhileRightMouseDown( 0.0f )
+	, bShowSoftwareCursor( false )
+	, SoftwareCursorPosition( FVector2D::ZeroVector )
+	, bUseIntertialScrolling( bInUseIntertialScrolling )
 { }
 
 
@@ -91,6 +92,12 @@ FReply FScrollyZoomy::OnMouseButtonUp( const TSharedRef<SWidget> MyWidget, const
 				);
 
 			Reply.SetMousePos( BestPositionInPanel );
+		}
+
+		if (!bUseIntertialScrolling)
+		{
+			HorizontalIntertia.ClearScrollVelocity();
+			VerticalIntertia.ClearScrollVelocity();
 		}
 
 		return Reply;

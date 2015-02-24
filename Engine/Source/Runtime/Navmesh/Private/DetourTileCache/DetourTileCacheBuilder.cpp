@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -26,6 +26,7 @@
 #include "DetourTileCacheBuilder.h"
 #include <string.h>
 #include <math.h>
+#include <stdarg.h>
 
 static const int MAX_VERTS_PER_POLY = 6;	// TODO: use the DT_VERTS_PER_POLYGON
 static const int MAX_REM_EDGES = 48;		// TODO: make this an expression.
@@ -252,7 +253,7 @@ static bool walkContour(dtTileCacheLayer& layer, int x, int y, int idx, unsigned
 	unsigned short neiReg = 0xffff;
 	unsigned char neiArea = 0;
 
-	const int maxIter = w*h;
+	const int maxIter = w * h * 2;
 	int iter = 0;
 	while (iter < maxIter)
 	{
@@ -947,8 +948,7 @@ dtStatus dtBuildTileCacheContours(dtTileCacheAlloc* alloc, dtTileCacheLayer& lay
 			nnewNeiRegs = 0;
 			for (int ir = 0; ir < nneiRegs; ir++)
 			{
-				dtAssert(neiRegs[ir] < clusters.nregs);
-				if (clusters.regMap[neiRegs[ir]] != 0xffff)
+				if ((neiRegs[ir] >= clusters.nregs) || (clusters.regMap[neiRegs[ir]] != 0xffff))
 				{
 					continue;
 				}
@@ -1651,7 +1651,7 @@ static bool canRemoveVertex(dtTileCachePolyMesh& mesh, const unsigned short rem)
 	return true;
 }
 
-static dtStatus removeVertex(dtTileCachePolyMesh& mesh, const unsigned short rem, const int maxTris)
+static dtStatus removeVertex(dtTileCacheLogContext* ctx, dtTileCachePolyMesh& mesh, const unsigned short rem, const int maxTris)
 {
 	// Count number of polygons to remove.
 	int numRemovedVerts = 0;
@@ -1665,13 +1665,23 @@ static dtStatus removeVertex(dtTileCachePolyMesh& mesh, const unsigned short rem
 				numRemovedVerts++;
 		}
 	}
-	
+
 	int nedges = 0;
-	unsigned short edges[MAX_REM_EDGES*3];
 	int nhole = 0;
-	unsigned short hole[MAX_REM_EDGES];
 	int nharea = 0;
-	unsigned short harea[MAX_REM_EDGES];
+	unsigned short edgesStatic[MAX_REM_EDGES * 3];
+	unsigned short holeStatic[MAX_REM_EDGES];
+	unsigned short hareaStatic[MAX_REM_EDGES];
+
+	const int MaxRemovedVertsStatic = MAX_REM_EDGES / mesh.nvp;
+	const int DynamicAllocSize = (numRemovedVerts > MaxRemovedVertsStatic) ? (numRemovedVerts * mesh.nvp) : 0;
+	dtScopedDelete<unsigned short> edgesDynamic(DynamicAllocSize * 4);
+	dtScopedDelete<unsigned short> holeDynamic(DynamicAllocSize);
+	dtScopedDelete<unsigned short> hareaDynamic(DynamicAllocSize);
+
+	unsigned short* edges = (DynamicAllocSize > 0) ? edgesDynamic.get() : edgesStatic;
+	unsigned short* hole = (DynamicAllocSize > 0) ? holeDynamic.get() : holeStatic;
+	unsigned short* harea = (DynamicAllocSize > 0) ? hareaDynamic.get() : hareaStatic;
 	
 	for (int i = 0; i < mesh.npolys; ++i)
 	{
@@ -1687,8 +1697,6 @@ static dtStatus removeVertex(dtTileCachePolyMesh& mesh, const unsigned short rem
 			{
 				if (p[j] != rem && p[k] != rem)
 				{
-					if (nedges >= MAX_REM_EDGES)
-						return DT_FAILURE | DT_BUFFER_TOO_SMALL;
 					unsigned short* e = &edges[nedges*3];
 					e[0] = p[k];
 					e[1] = p[j];
@@ -1750,8 +1758,6 @@ static dtStatus removeVertex(dtTileCachePolyMesh& mesh, const unsigned short rem
 			if (hole[0] == eb)
 			{
 				// The segment matches the beginning of the hole boundary.
-				if (nhole >= MAX_REM_EDGES)
-					return DT_FAILURE | DT_BUFFER_TOO_SMALL;
 				pushFront(ea, hole, nhole);
 				pushFront(a, harea, nharea);
 				add = true;
@@ -1759,8 +1765,6 @@ static dtStatus removeVertex(dtTileCachePolyMesh& mesh, const unsigned short rem
 			else if (hole[nhole-1] == ea)
 			{
 				// The segment matches the end of the hole boundary.
-				if (nhole >= MAX_REM_EDGES)
-					return DT_FAILURE | DT_BUFFER_TOO_SMALL;
 				pushBack(eb, hole, nhole);
 				pushBack(a, harea, nharea);
 				add = true;
@@ -1785,9 +1789,18 @@ static dtStatus removeVertex(dtTileCachePolyMesh& mesh, const unsigned short rem
 	if (nhole < 3)
 		return DT_SUCCESS;
 	
-	unsigned short tris[MAX_REM_EDGES*3];
-	unsigned short tverts[MAX_REM_EDGES*3];
-	unsigned short tpoly[MAX_REM_EDGES*3];
+	unsigned short trisStatic[MAX_REM_EDGES * 3];
+	unsigned short tvertsStatic[MAX_REM_EDGES * 3];
+	unsigned short tpolyStatic[MAX_REM_EDGES * 3];
+
+	const int DynamicAllocSize2 = (nhole * 4) > (MAX_REM_EDGES * 3) ? nhole : 0;
+	dtScopedDelete<unsigned short> trisDynamic(DynamicAllocSize2 * 3);
+	dtScopedDelete<unsigned short> tvertsDynamic(DynamicAllocSize2 * 4);
+	dtScopedDelete<unsigned short> tpolyDynamic(DynamicAllocSize2);
+
+	unsigned short* tris = (DynamicAllocSize2 > 0) ? trisDynamic.get() : trisStatic;
+	unsigned short* tverts = (DynamicAllocSize2 > 0) ? tvertsDynamic.get() : tvertsStatic;
+	unsigned short* tpoly = (DynamicAllocSize2 > 0) ? tpolyDynamic.get() : tpolyStatic;
 	
 	// Generate temp vertex array for triangulation.
 	for (int i = 0; i < nhole; ++i)
@@ -1804,15 +1817,20 @@ static dtStatus removeVertex(dtTileCachePolyMesh& mesh, const unsigned short rem
 	int ntris = triangulate(nhole, tverts, tpoly, tris);
 	if (ntris < 0)
 	{
-		// TODO: issue warning!
 		ntris = -ntris;
+		if (ctx)
+			ctx->dtLog("removeVertex: triangulate() returned bad results.");
 	}
-	
-	if (ntris > MAX_REM_EDGES)
-		return DT_FAILURE | DT_BUFFER_TOO_SMALL;
 
-	unsigned short polys[MAX_REM_EDGES*MAX_VERTS_PER_POLY];
-	unsigned char pareas[MAX_REM_EDGES];
+	unsigned short polysStatic[MAX_REM_EDGES*MAX_VERTS_PER_POLY];
+	unsigned char pareasStatic[MAX_REM_EDGES];
+
+	const int DynamicAllocSize3 = ((ntris + 1) > MAX_REM_EDGES) ? (ntris + 1) : 0;
+	dtScopedDelete<unsigned short> polysDynamic(DynamicAllocSize3 * MAX_VERTS_PER_POLY);
+	dtScopedDelete<unsigned char> pareasDynamic(DynamicAllocSize3);
+
+	unsigned short* polys = (DynamicAllocSize3 > 0) ? polysDynamic.get() : polysStatic;
+	unsigned char* pareas = (DynamicAllocSize3 > 0) ? pareasDynamic.get() : pareasStatic;
 	
 	// Build initial polygons.
 	int npolys = 0;
@@ -1890,14 +1908,19 @@ static dtStatus removeVertex(dtTileCachePolyMesh& mesh, const unsigned short rem
 		mesh.areas[mesh.npolys] = pareas[i];
 		mesh.npolys++;
 		if (mesh.npolys > maxTris)
+		{
+			if (ctx)
+				ctx->dtLog("removeVertex: Too many polygons %d (max:%d).", mesh.npolys, maxTris);
 			return DT_FAILURE | DT_BUFFER_TOO_SMALL;
+		}
 	}
 	
 	return DT_SUCCESS;
 }
 
 
-dtStatus dtBuildTileCachePolyMesh(dtTileCacheAlloc* alloc,
+dtStatus dtBuildTileCachePolyMesh(dtTileCacheAlloc* alloc, 
+								  dtTileCacheLogContext* ctx,
 								  dtTileCacheContourSet& lcset,
 								  dtTileCachePolyMesh& mesh)
 {
@@ -2082,7 +2105,11 @@ dtStatus dtBuildTileCachePolyMesh(dtTileCacheAlloc* alloc,
 			mesh.regs[mesh.npolys] = cont.reg;
 			mesh.npolys++;
 			if (mesh.npolys > maxTris)
+			{
+				if (ctx)
+					ctx->dtLog("can't store polys! npolys:%d limit:%d", npolys, maxTris);
 				return DT_FAILURE | DT_BUFFER_TOO_SMALL;
+			}
 		}
 	}
 	
@@ -2094,7 +2121,7 @@ dtStatus dtBuildTileCachePolyMesh(dtTileCacheAlloc* alloc,
 		{
 			if (!canRemoveVertex(mesh, (unsigned short)i))
 				continue;
-			dtStatus status = removeVertex(mesh, (unsigned short)i, maxTris);
+			dtStatus status = removeVertex(ctx, mesh, (unsigned short)i, maxTris);
 			if (dtStatusFailed(status))
 				return status;
 			// Remove vertex
@@ -2637,3 +2664,18 @@ bool dtTileCacheHeaderSwapEndian(unsigned char* data, const int dataSize)
 	return true;
 }
 
+void dtTileCacheLogContext::dtLog(const char* format, ...)
+{
+	static const int MSG_SIZE = 512;
+	char msg[MSG_SIZE];
+	va_list ap;
+	va_start(ap, format);
+	int len = FCStringAnsi::GetVarArgs(msg, MSG_SIZE, MSG_SIZE - 1, format, ap);
+	if (len >= MSG_SIZE)
+	{
+		len = MSG_SIZE - 1;
+		msg[MSG_SIZE - 1] = '\0';
+	}
+	va_end(ap);
+	doDtLog(msg, len);
+}

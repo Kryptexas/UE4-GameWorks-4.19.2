@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "Sequencer.h"
@@ -260,12 +260,19 @@ void SSection::PaintKeys( const FGeometry& AllottedGeometry, const FSlateRect& M
 
 	const FSequencer& Sequencer = ParentSectionArea->GetSequencer();
 
-	const FSlateBrush* BackgroundBrush = FEditorStyle::GetBrush("Sequencer.SectionArea.Background");
+	static const FName BackgroundBrushName("Sequencer.SectionArea.Background");
+	static const FName KeyBrushName("Sequencer.Key");
 
-	const FSlateBrush* KeyBrush = FEditorStyle::GetBrush("Sequencer.Key");
+	const FSlateBrush* BackgroundBrush = FEditorStyle::GetBrush(BackgroundBrushName);
 
-	const FLinearColor PressedKeyColor = FEditorStyle::GetSlateColor("SelectionColor_Pressed").GetColor( InWidgetStyle );
-	const FLinearColor SelectedKeyColor = FEditorStyle::GetSlateColor("SelectionColor").GetColor( InWidgetStyle );
+	const FSlateBrush* KeyBrush = FEditorStyle::GetBrush(KeyBrushName);
+
+	static const FName SelectionColorName("SelectionColor");
+	static const FName SelectionColorPressedName("SelectionColor_Pressed");
+
+	const FLinearColor PressedKeyColor = FEditorStyle::GetSlateColor(SelectionColorPressedName).GetColor( InWidgetStyle );
+	const FLinearColor SelectedKeyColor = FEditorStyle::GetSlateColor(SelectionColorName).GetColor( InWidgetStyle );
+
 	// @todo Sequencer temp color, make hovered brighter than selected.
 	FLinearColor HoveredKeyColor = SelectedKeyColor * FLinearColor(1.5,1.5,1.5,1.0f);
 
@@ -349,8 +356,13 @@ void SSection::DrawSectionBorders( const FGeometry& AllottedGeometry, const FSla
 
 	const bool bSelected = ParentSectionArea->GetSequencer().IsSectionSelected(SectionObject);
 
-	FLinearColor SelectionColor = FEditorStyle::GetSlateColor("SelectionColor").GetColor(FWidgetStyle());
+	static const FName SelectionColorName("SelectionColor");
+
+	FLinearColor SelectionColor = FEditorStyle::GetSlateColor(SelectionColorName).GetColor(FWidgetStyle());
 	FLinearColor TransparentSelectionColor = SelectionColor;
+
+	static const FName SectionGripLeftName("Sequencer.SectionGripLeft");
+	static const FName SectionGripRightName("Sequencer.SectionGripRight");
 
 	// Left Grip
 	FSlateDrawElement::MakeBox(
@@ -358,7 +370,7 @@ void SSection::DrawSectionBorders( const FGeometry& AllottedGeometry, const FSla
 		LayerId,
 		// Center the key along Y.  Ensure the middle of the key is at the actual key time
 		AllottedGeometry.ToPaintGeometry( FVector2D( 0.0f, 0.0f ), FVector2D( SequencerSectionConstants::SectionGripSize, AllottedGeometry.GetDrawSize().Y) ) ,
-		FEditorStyle::GetBrush("Sequencer.SectionGripLeft"),
+		FEditorStyle::GetBrush(SectionGripLeftName),
 		MyClippingRect,
 		ESlateDrawEffect::None,
 		(bLeftEdgePressed || bLeftEdgeHovered) ? TransparentSelectionColor : FLinearColor::White
@@ -370,7 +382,7 @@ void SSection::DrawSectionBorders( const FGeometry& AllottedGeometry, const FSla
 		LayerId,
 		// Center the key along Y.  Ensure the middle of the key is at the actual key time
 		AllottedGeometry.ToPaintGeometry( FVector2D( AllottedGeometry.Size.X-SequencerSectionConstants::SectionGripSize, 0.0f), FVector2D(SequencerSectionConstants::SectionGripSize, AllottedGeometry.GetDrawSize().Y)),
-		FEditorStyle::GetBrush("Sequencer.SectionGripRight"),
+		FEditorStyle::GetBrush(SectionGripRightName),
 		MyClippingRect,
 		ESlateDrawEffect::None,
 		(bRightEdgePressed || bRightEdgeHovered) ? TransparentSelectionColor : FLinearColor::White
@@ -380,11 +392,13 @@ void SSection::DrawSectionBorders( const FGeometry& AllottedGeometry, const FSla
 	// draw selection box
 	if(bSelected)
 	{
+		static const FName PlainBorder("PlainBorder");
+
 		FSlateDrawElement::MakeBox(
 			OutDrawElements,
 			LayerId,
 			AllottedGeometry.ToPaintGeometry(),
-			FEditorStyle::GetBrush("PlainBorder"),
+			FEditorStyle::GetBrush(PlainBorder),
 			MyClippingRect,
 			ESlateDrawEffect::None,
 			SelectionColor

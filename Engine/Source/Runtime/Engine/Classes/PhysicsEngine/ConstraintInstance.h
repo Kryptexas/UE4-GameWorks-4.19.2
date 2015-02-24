@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "ConstraintInstance.generated.h"
@@ -178,13 +178,6 @@ struct ENGINE_API FConstraintInstance
 	/** Force needed to break the joint. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, Category=Linear, meta=(editcondition = "bLinearBreakable", ClampMin = "0.0"))
 	float LinearBreakThreshold;
-
-	// ANGULAR DOF
-	UPROPERTY()
-	uint32 bSwingLimited_DEPRECATED:1;
-
-	UPROPERTY()
-	uint32 bTwistLimited_DEPRECATED:1;
 
 	/** Indicates whether rotation about the Z axis is allowed, blocked, or limited. If limited, the 
 		AngularLimit property will be used to determine the range of motion. See EAngularConstraintMotion. */
@@ -419,6 +412,14 @@ public:
 	// Pass in reference orientation in (maintains reference position). If the constraint is currently active, this will set its active local pose. Otherwise the change will take affect in InitConstraint.
 	void SetRefOrientation(EConstraintFrame::Type Frame, const FVector& PriAxis, const FVector& SecAxis);
 	
+	// The current twist of the constraint
+	float GetCurrentTwist() const;
+
+	// The current swing1 of the constraint
+	float GetCurrentSwing1() const;
+
+	// The current swing2 of the constraint
+	float GetCurrentSwing2() const;
 
 	// Get component ref frame
 	FTransform GetRefFrame(EConstraintFrame::Type Frame) const;

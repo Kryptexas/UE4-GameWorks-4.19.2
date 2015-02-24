@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompilerVMBackend.cpp
@@ -208,6 +208,8 @@ private:
 	
 	// Is this compiling the ubergraph?
 	bool bIsUbergraph;
+
+	FBlueprintCompiledStatement& ReturnStatement;
 protected:
 	/**
 	 * This class is designed to be used like so to emit a bytecode context expression:
@@ -308,12 +310,13 @@ protected:
 		}
 	};
 public:
-	FScriptBuilderBase(TArray<uint8>& InScript, UBlueprintGeneratedClass* InClass, UEdGraphSchema_K2* InSchema, FKismetCompilerVMBackend::TStatementToSkipSizeMap& InUbergraphStatementLabelMap, bool bInIsUbergraph)
+	FScriptBuilderBase(TArray<uint8>& InScript, UBlueprintGeneratedClass* InClass, UEdGraphSchema_K2* InSchema, FKismetCompilerVMBackend::TStatementToSkipSizeMap& InUbergraphStatementLabelMap, bool bInIsUbergraph, FBlueprintCompiledStatement& InReturnStatement)
 		: Writer(InScript)
 		, ClassBeingBuilt(InClass)
 		, Schema(InSchema)
 		, UbergraphStatementLabelMap(InUbergraphStatementLabelMap)
 		, bIsUbergraph(bInIsUbergraph)
+		, ReturnStatement(InReturnStatement)
 	{
 		VectorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Vector"));
 		RotatorStruct = FindObjectChecked<UScriptStruct>(UObject::StaticClass(), TEXT("Rotator"));
@@ -557,16 +560,20 @@ public:
 				{
 					Writer << EX_Self;
 				}
-				else 
+				else if (Term->ObjectLiteral == nullptr)
 				{
-					ensureMsg(false, TEXT("It is not possible to express this interface property as a literal value!"));
+					Writer << EX_NoInterface;
+				}
+				else
+				{
+					ensureMsgf(false, TEXT("It is not possible to express this interface property as a literal value! (%s)"), *CoerceProperty->GetFullName());
 				}
 			}
 			// else if (CoerceProperty->IsA(UMulticastDelegateProperty::StaticClass()))
 			// Cannot assign a literal to a multicast delegate; it should be added instead of assigned
 			else
 			{
-				ensureMsg(false, TEXT("It is not possible to express this type as a literal value!"));
+				ensureMsgf(false, TEXT("It is not possible to express this type as a literal value! (%s)"), *CoerceProperty->GetFullName());
 			}
 		}
 		else
@@ -1073,7 +1080,7 @@ public:
 			// Now include the boolean expression
 			EmitTerm(Statement.LHS, (UProperty*)(GetDefault<UBoolProperty>()));
 		}
-		else
+		else if (Statement.Type == KCST_UnconditionalGoto)
 		{
 			// Emit the jump with a dummy address
 			Writer << EX_Jump;
@@ -1081,6 +1088,31 @@ public:
 
 			// Queue up a fixup to be done once all label offsets are known
 			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, Statement.TargetLabel);
+		}
+		else if (Statement.Type == KCST_GotoReturn)
+		{
+			// Emit the jump with a dummy address
+			Writer << EX_Jump;
+			CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
+
+			// Queue up a fixup to be done once all label offsets are known
+			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, &ReturnStatement);
+		}
+		else if (Statement.Type == KCST_GotoReturnIfNot)
+		{
+			// Emit the jump with a dummy address
+			Writer << EX_JumpIfNot;
+			CodeSkipSizeType PatchUpNeededAtOffset = Writer.EmitPlaceholderSkip();
+
+			// Queue up a fixup to be done once all label offsets are known
+			JumpTargetFixupMap.Add(PatchUpNeededAtOffset, &ReturnStatement);
+
+			// Now include the boolean expression
+			EmitTerm(Statement.LHS, (UProperty*)(GetDefault<UBoolProperty>()));
+		}
+		else
+		{
+			ensureMsg(false, TEXT("FScriptBuilderBase::EmitGoto unknown type"));
 		}
 	}
 
@@ -1249,6 +1281,8 @@ public:
 		case KCST_UnconditionalGoto:
 		case KCST_GotoIfNot:
 		case KCST_EndOfThreadIfNot:
+		case KCST_GotoReturn:
+		case KCST_GotoReturnIfNot:
 			EmitGoto(Statement);
 			break;
 		case KCST_PushState:
@@ -1312,16 +1346,19 @@ void FKismetCompilerVMBackend::ConstructFunction(FKismetFunctionContext& Functio
 
 	TArray<uint8>& ScriptArray = Function->Script;
 
-	FScriptBuilderBase ScriptWriter(ScriptArray, Class, Schema, UbergraphStatementLabelMap, bIsUbergraph);
-
-	// Since the flow stack always assumes there is something to pop, the first pushed item should be the return block for the function
+	// Return statement, to push on FlowStack or to use with _GotoReturn
 	FBlueprintCompiledStatement ReturnStatement;
 	ReturnStatement.Type = KCST_Return;
+
+	FScriptBuilderBase ScriptWriter(ScriptArray, Class, Schema, UbergraphStatementLabelMap, bIsUbergraph, ReturnStatement);
 
 	if (!bGenerateStubOnly)
 	{
 		ReturnStatement.bIsJumpTarget = true;
-		ScriptWriter.PushReturnAddress(ReturnStatement);
+		if (FunctionContext.bUseFlowStack)
+		{
+			ScriptWriter.PushReturnAddress(ReturnStatement);
+		}
 	
 		// Emit code in the order specified by the linear execution list (the first node is always the entry point for the function)
 		for (int32 NodeIndex = 0; NodeIndex < FunctionContext.LinearExecutionList.Num(); ++NodeIndex)

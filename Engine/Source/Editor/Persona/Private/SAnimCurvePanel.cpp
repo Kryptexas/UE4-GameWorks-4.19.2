@@ -1,11 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
 
 #include "SAnimCurvePanel.h"
 #include "ScopedTransaction.h"
-#include "SCurveEditor.h"
+#include "SAnimCurveEd.h"
 #include "Editor/KismetWidgets/Public/SScrubWidget.h"
 #include "AssetRegistryModule.h"
 #include "Kismet2NameValidators.h"
@@ -22,13 +22,15 @@ class FAnimCurveBaseInterface : public FCurveOwnerInterface
 {
 public:
 	TWeakObjectPtr<UAnimSequenceBase>	BaseSequence;
+	USkeleton::AnimCurveUID CurveUID;
 	FAnimCurveBase*	CurveData;
 
 public:
-	FAnimCurveBaseInterface(UAnimSequenceBase * BaseSeq, FAnimCurveBase*	InData)
+	FAnimCurveBaseInterface( UAnimSequenceBase * BaseSeq, USkeleton::AnimCurveUID InCurveUID)
 		: BaseSequence(BaseSeq)
-		, CurveData(InData)
+		, CurveUID(InCurveUID)
 	{
+		CurveData = BaseSequence.Get()->RawCurveData.GetCurveData( CurveUID );
 		// they should be valid
 		check (BaseSequence.IsValid());
 		check (CurveData);
@@ -103,178 +105,16 @@ public:
 	virtual void OnCurveChanged() override
 	{
 	}
+
+	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo ) override
+	{
+		// Get the curve with the ID directly from the sequence and compare it since undo/redo can cause previously
+		// used curves to become invalid.
+		FAnimCurveBase* CurrentCurveData = BaseSequence.Get()->RawCurveData.GetCurveData( CurveUID );
+		return CurrentCurveData != nullptr &&
+			CurveInfo.CurveToEdit == &((FFloatCurve*)CurrentCurveData)->FloatCurve;
+	}
 };
-
-//////////////////////////////////////////////////////////////////////////
-//  SAnimCurveEd : anim curve editor
-
-class SAnimCurveEd : public SCurveEditor
-{
-public:
-	SLATE_BEGIN_ARGS( SAnimCurveEd )
-		: _ViewMinInput(0.0f)
-		, _ViewMaxInput(10.0f)
-		, _TimelineLength(5.0f)
-		, _DrawCurve(true)
-		, _HideUI(true)
-		, _OnGetScrubValue()
-	{}
-	
-		SLATE_ATTRIBUTE( float, ViewMinInput )
-		SLATE_ATTRIBUTE( float, ViewMaxInput )
-		SLATE_ATTRIBUTE( TOptional<float>, DataMinInput )
-		SLATE_ATTRIBUTE( TOptional<float>, DataMaxInput )
-		SLATE_ATTRIBUTE( float, TimelineLength )
-		SLATE_ATTRIBUTE( int32, NumberOfKeys)
-		SLATE_ATTRIBUTE( FVector2D, DesiredSize )
-		SLATE_ARGUMENT( bool, DrawCurve )
-		SLATE_ARGUMENT( bool, HideUI )
-		SLATE_EVENT( FOnGetScrubValue, OnGetScrubValue )
-		SLATE_EVENT( FOnSetInputViewRange, OnSetInputViewRange )
-	SLATE_END_ARGS()
-
-	void Construct(const FArguments& InArgs);
-
-protected:
-	// SWidget interface
-	virtual int32 OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
-	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
-	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const override;
-	// SWidget interface
-
-	// SCurveEditor interface
-	virtual void SetDefaultOutput(const float MinZoomRange) override;
-	virtual float GetTimeStep(FTrackScaleInfo &ScaleInfo) const override;
-	// SCurveEditor interface
-	
-private:
-	// scrub value grabber
-	FOnGetScrubValue	OnGetScrubValue;
-	// @todo redo this code, all mess and dangerous
-	TAttribute<int32>	NumberOfKeys;
-};
-
-//////////////////////////////////////////////////////////////////////////
-//  SAnimCurveEd : anim curve editor
-
-float SAnimCurveEd::GetTimeStep(FTrackScaleInfo &ScaleInfo)const
-{
-	if(NumberOfKeys.Get())
-	{
-		int32 Divider = SScrubWidget::GetDivider( ViewMinInput.Get(), ViewMaxInput.Get(), ScaleInfo.WidgetSize, TimelineLength.Get(), NumberOfKeys.Get());
-
-		float TimePerKey;
-
-		if ( NumberOfKeys.Get() != 0.f )
-		{
-			TimePerKey = TimelineLength.Get()/(float)NumberOfKeys.Get();
-		}
-		else
-		{
-			TimePerKey = 1.f;
-		}
-
-		return TimePerKey * Divider;
-	}
-
-	return 0.0f;
-}
-
-int32 SAnimCurveEd::OnPaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
-{
-	int32 NewLayerId = SCurveEditor::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled) + 1;
-
-	float Value = 0.f;
-
-	if ( OnGetScrubValue.IsBound() )
-	{
-		Value = OnGetScrubValue.Execute();
-	}
-
-	FPaintGeometry MyGeometry = AllottedGeometry.ToPaintGeometry();
-
-	// scale info
-	FTrackScaleInfo ScaleInfo(ViewMinInput.Get(), ViewMaxInput.Get(), 0.f, 0.f, AllottedGeometry.Size);
-	float XPos = ScaleInfo.InputToLocalX(Value);
-
-	TArray<FVector2D> LinePoints;
-	LinePoints.Add(FVector2D(XPos-1, 0.f));
-	LinePoints.Add(FVector2D(XPos+1, AllottedGeometry.Size.Y));
-
-
-	FSlateDrawElement::MakeLines( 
-		OutDrawElements,
-		NewLayerId,
-		MyGeometry,
-		LinePoints,
-		MyClippingRect,
-		ESlateDrawEffect::None,
-		FLinearColor::Red
-		);
-
-	// now draw scrub with new layer ID + 1;
-	return NewLayerId;
-}
-
-FReply SAnimCurveEd::OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
-{
-	const float ZoomDelta = -0.1f * MouseEvent.GetWheelDelta();
-
-	const FVector2D WidgetSpace = MyGeometry.AbsoluteToLocal(MouseEvent.GetScreenSpacePosition());
-	const float ZoomRatio = FMath::Clamp((WidgetSpace.X / MyGeometry.Size.X), 0.f, 1.f);
-
-	{
-		const float InputViewSize = ViewMaxInput.Get() - ViewMinInput.Get();
-		const float InputChange = InputViewSize * ZoomDelta;
-
-		float NewViewMinInput = ViewMinInput.Get() - (InputChange * ZoomRatio);
-		float NewViewMaxInput = ViewMaxInput.Get() + (InputChange * (1.f - ZoomRatio));
-
-		SetInputMinMax(NewViewMinInput, NewViewMaxInput);
-	}
-
-	return FReply::Handled();
-}
-
-FCursorReply SAnimCurveEd::OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const
-{
-	if (ViewMinInput.Get() > 0.f || ViewMaxInput.Get() < TimelineLength.Get())
-	{
-		return FCursorReply::Cursor(EMouseCursor::GrabHand);
-	}
-
-	return FCursorReply::Unhandled();
-}
-
-void SAnimCurveEd::Construct(const FArguments& InArgs)
-{
-	OnGetScrubValue = InArgs._OnGetScrubValue;
-	NumberOfKeys = InArgs._NumberOfKeys;
-
-	SCurveEditor::Construct( SCurveEditor::FArguments()
-		.ViewMinInput(InArgs._ViewMinInput)
-		.ViewMaxInput(InArgs._ViewMaxInput)
-		.DataMinInput(InArgs._DataMinInput)
-		.DataMaxInput(InArgs._DataMaxInput)
-		.ViewMinOutput(0.f)
-		.ViewMaxOutput(1.f)
-		.ZoomToFitVertical(true)
-		.ZoomToFitHorizontal(false)
-		.TimelineLength(InArgs._TimelineLength)
-		.DrawCurve(InArgs._DrawCurve)
-		.HideUI(InArgs._HideUI)
-		.AllowZoomOutput(false)
-		.DesiredSize(InArgs._DesiredSize)
-		.OnSetInputViewRange(InArgs._OnSetInputViewRange));
-}
-
-void SAnimCurveEd::SetDefaultOutput(const float MinZoomRange)
-{
-	const float NewMinOutput = (ViewMinOutput.Get());
-	const float NewMaxOutput = (ViewMaxOutput.Get() + MinZoomRange);
-
-	SetOutputMinMax(NewMinOutput, NewMaxOutput);
-}
 //////////////////////////////////////////////////////////////////////////
 //  SCurveEd Track : each track for curve editing 
 
@@ -330,10 +170,10 @@ public:
 	void DeleteTrack();
 
 	// Sets the current mode for this curve
-	void ToggleCurveMode(ESlateCheckBoxState::Type NewState, EAnimCurveFlags ModeToSet);
+	void ToggleCurveMode(ECheckBoxState NewState, EAnimCurveFlags ModeToSet);
 
 	// Returns whether this curve is of the specificed mode type
-	ESlateCheckBoxState::Type IsCurveOfMode(EAnimCurveFlags ModeToTest) const;
+	ECheckBoxState IsCurveOfMode(EAnimCurveFlags ModeToTest) const;
 
 	/**
 	 * Build and display curve track context menu.
@@ -342,8 +182,8 @@ public:
 	FReply OnContextMenu();
 
 	// expand editor mode 
-	ESlateCheckBoxState::Type IsEditorExpanded() const;
-	void ToggleExpandEditor(ESlateCheckBoxState::Type NewType);
+	ECheckBoxState IsEditorExpanded() const;
+	void ToggleExpandEditor(ECheckBoxState NewType);
 	const FSlateBrush* GetExpandContent() const;
 	FVector2D GetDesiredSize() const;
 
@@ -368,7 +208,7 @@ void SCurveEdTrack::Construct(const FArguments& InArgs)
 	FAnimCurveBase * Curve = Sequence->RawCurveData.GetCurveData(InArgs._CurveUid);
 	check (Curve);
 
-	CurveInterface = new FAnimCurveBaseInterface(Sequence, Curve);
+	CurveInterface = new FAnimCurveBaseInterface(Sequence, InArgs._CurveUid);
 	int32 NumberOfKeys = Sequence->GetNumberOfFrames();
 	//////////////////////////////
 	
@@ -381,8 +221,7 @@ void SCurveEdTrack::Construct(const FArguments& InArgs)
 		SAssignNew(InnerBox, SHorizontalBox)
 	];
 	
-	FFloatCurve* CurveData = (FFloatCurve*)Curve;
-	bool bIsMetadata = CurveData->GetCurveTypeFlag(ACF_Metadata);
+	bool bIsMetadata = Curve->GetCurveTypeFlag(ACF_Metadata);
 	if(!bIsMetadata)
 	{
 		InnerBox->AddSlot()
@@ -529,7 +368,7 @@ void SCurveEdTrack::DeleteTrack()
 	}
 }
 
-void SCurveEdTrack::ToggleCurveMode(ESlateCheckBoxState::Type NewState,EAnimCurveFlags ModeToSet)
+void SCurveEdTrack::ToggleCurveMode(ECheckBoxState NewState,EAnimCurveFlags ModeToSet)
 {
 	const int32 AllModes = (ACF_DrivesMorphTarget|ACF_DrivesMaterial);
 	check((ModeToSet&AllModes) != 0); //unexpected value for ModeToSet
@@ -538,7 +377,7 @@ void SCurveEdTrack::ToggleCurveMode(ESlateCheckBoxState::Type NewState,EAnimCurv
 
 	FText UndoLabel;
 	bool bIsSwitchingFlagOn = !CurveData->GetCurveTypeFlag(ModeToSet);
-	check(bIsSwitchingFlagOn == (NewState==ESlateCheckBoxState::Checked));
+	check(bIsSwitchingFlagOn == (NewState==ECheckBoxState::Checked));
 	
 	if(bIsSwitchingFlagOn)
 	{
@@ -570,10 +409,10 @@ void SCurveEdTrack::ToggleCurveMode(ESlateCheckBoxState::Type NewState,EAnimCurv
 	CurveData->SetCurveTypeFlag(ModeToSet, bIsSwitchingFlagOn);
 }
 
-ESlateCheckBoxState::Type SCurveEdTrack::IsCurveOfMode(EAnimCurveFlags ModeToTest) const
+ECheckBoxState SCurveEdTrack::IsCurveOfMode(EAnimCurveFlags ModeToTest) const
 {
 	FFloatCurve* CurveData = (FFloatCurve*)(CurveInterface->CurveData);
-	return CurveData->GetCurveTypeFlag(ModeToTest) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return CurveData->GetCurveTypeFlag(ModeToTest) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 FReply SCurveEdTrack::OnContextMenu()
@@ -591,14 +430,14 @@ FReply SCurveEdTrack::OnContextMenu()
 	return FReply::Handled();
 }
 
-ESlateCheckBoxState::Type SCurveEdTrack::IsEditorExpanded() const
+ECheckBoxState SCurveEdTrack::IsEditorExpanded() const
 {
-	return (bUseExpandEditor)? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (bUseExpandEditor)? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SCurveEdTrack::ToggleExpandEditor(ESlateCheckBoxState::Type NewType)
+void SCurveEdTrack::ToggleExpandEditor(ECheckBoxState NewType)
 {
-	bUseExpandEditor = (NewType == ESlateCheckBoxState::Checked);
+	bUseExpandEditor = (NewType == ECheckBoxState::Checked);
 }
 
 FVector2D SCurveEdTrack::GetDesiredSize() const
@@ -796,7 +635,7 @@ FReply SAnimCurvePanel::DuplicateTrack(USkeleton::AnimCurveUID Uid)
 		// Use the validator to pick a reasonable name for the duplicated curve.
 		FString NewCurveName = CurveNameToCopy.ToString();
 		Validator->FindValidString(NewCurveName);
-		if(NameMapping->AddName(*NewCurveName, NewUid))
+		if(NameMapping->AddOrFindName(*NewCurveName, NewUid))
 		{
 			if(Sequence->RawCurveData.DuplicateCurveData(Uid, NewUid))
 			{
@@ -868,16 +707,16 @@ EVisibility SAnimCurvePanel::IsSetAllTracksButtonVisible() const
 	return (Tracks.Num() > 1) ? EVisibility::Visible : EVisibility::Hidden;
 }
 
-void SAnimCurvePanel::ToggleAllCurveModes(ESlateCheckBoxState::Type NewState, EAnimCurveFlags ModeToSet)
+void SAnimCurvePanel::ToggleAllCurveModes(ECheckBoxState NewState, EAnimCurveFlags ModeToSet)
 {
-	const ESlateCheckBoxState::Type CurrentAllState = AreAllCurvesOfMode(ModeToSet);
+	const ECheckBoxState CurrentAllState = AreAllCurvesOfMode(ModeToSet);
 	for(TWeakPtr<SCurveEdTrack> TrackWeak : Tracks)
 	{
 		TSharedPtr<SCurveEdTrack> TrackWidget = TrackWeak.Pin();
 		if( TrackWidget.IsValid() )
 		{
-			const ESlateCheckBoxState::Type CurrentTrackState = TrackWidget->IsCurveOfMode(ModeToSet);
-			if( (CurrentAllState == CurrentTrackState) || ((CurrentAllState == ESlateCheckBoxState::Undetermined) && (CurrentTrackState == ESlateCheckBoxState::Unchecked)) )
+			const ECheckBoxState CurrentTrackState = TrackWidget->IsCurveOfMode(ModeToSet);
+			if( (CurrentAllState == CurrentTrackState) || ((CurrentAllState == ECheckBoxState::Undetermined) && (CurrentTrackState == ECheckBoxState::Unchecked)) )
 			{
 				TrackWidget->ToggleCurveMode( NewState, ModeToSet );
 			}
@@ -885,7 +724,7 @@ void SAnimCurvePanel::ToggleAllCurveModes(ESlateCheckBoxState::Type NewState, EA
 	}
 }
 
-ESlateCheckBoxState::Type SAnimCurvePanel::AreAllCurvesOfMode(EAnimCurveFlags ModeToSet) const
+ECheckBoxState SAnimCurvePanel::AreAllCurvesOfMode(EAnimCurveFlags ModeToSet) const
 {
 	int32 NumChecked = 0;
 	for(const TWeakPtr<SCurveEdTrack> TrackWeak : Tracks)
@@ -893,7 +732,7 @@ ESlateCheckBoxState::Type SAnimCurvePanel::AreAllCurvesOfMode(EAnimCurveFlags Mo
 		const TSharedPtr<SCurveEdTrack> TrackWidget = TrackWeak.Pin();
 		if( TrackWidget.IsValid() )
 		{
-			if( TrackWidget->IsCurveOfMode(ModeToSet) )
+			if ( TrackWidget->IsCurveOfMode(ModeToSet) == ECheckBoxState::Checked )
 			{
 				NumChecked++;
 			}
@@ -901,13 +740,13 @@ ESlateCheckBoxState::Type SAnimCurvePanel::AreAllCurvesOfMode(EAnimCurveFlags Mo
 	}
 	if( NumChecked == Tracks.Num() )
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 	else if( NumChecked == 0 )
 	{
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
-	return ESlateCheckBoxState::Undetermined;
+	return ECheckBoxState::Undetermined;
 }
 
 void SAnimCurvePanel::UpdatePanel()
@@ -1107,27 +946,27 @@ TSharedRef<SWidget> SAnimCurvePanel::GenerateCurveList()
 	return NewWidget;
 }
 
-ESlateCheckBoxState::Type SAnimCurvePanel::IsCurveEditable(USkeleton::AnimCurveUID Uid) const
+ECheckBoxState SAnimCurvePanel::IsCurveEditable(USkeleton::AnimCurveUID Uid) const
 {
 	if ( Sequence )
 	{
-		const FFloatCurve* Curve = Sequence->RawCurveData.GetCurveData(Uid);
+		const FFloatCurve* Curve = static_cast<const FFloatCurve *>(Sequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
 		if ( Curve )
 		{
-			return Curve->GetCurveTypeFlag(ACF_Editable)? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return Curve->GetCurveTypeFlag(ACF_Editable)? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 	}
 
-	return ESlateCheckBoxState::Undetermined;
+	return ECheckBoxState::Undetermined;
 }
 
-void SAnimCurvePanel::ToggleEditability(ESlateCheckBoxState::Type NewType, USkeleton::AnimCurveUID Uid)
+void SAnimCurvePanel::ToggleEditability(ECheckBoxState NewType, USkeleton::AnimCurveUID Uid)
 {
-	bool bEdit = (NewType == ESlateCheckBoxState::Checked);
+	bool bEdit = (NewType == ECheckBoxState::Checked);
 
 	if ( Sequence )
 	{
-		FFloatCurve * Curve = Sequence->RawCurveData.GetCurveData(Uid);
+		FFloatCurve * Curve = static_cast<FFloatCurve *>(Sequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
 		if ( Curve )
 		{
 			Curve->SetCurveTypeFlag(ACF_Editable, bEdit);
@@ -1244,7 +1083,7 @@ void SAnimCurvePanel::AddMetadataEntry(USkeleton::AnimCurveUID Uid)
 	if(Sequence->RawCurveData.AddCurveData(Uid))
 	{
 		Sequence->Modify(true);
-		FFloatCurve* Curve = Sequence->RawCurveData.GetCurveData(Uid);
+		FFloatCurve* Curve = static_cast<FFloatCurve *>(Sequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
 		Curve->FloatCurve.AddKey(0.0f, 1.0f);
 		Curve->SetCurveTypeFlag(ACF_Metadata, true);
 		RefreshPanel();
@@ -1371,14 +1210,14 @@ TSharedRef<SWidget> SAnimCurvePanel::CreateCurveContextMenu(FFloatCurve* Curve) 
 	return MenuBuilder.MakeWidget();
 }
 
-ESlateCheckBoxState::Type SAnimCurvePanel::GetCurveFlagAsCheckboxState(FFloatCurve* Curve, EAnimCurveFlags InFlag) const
+ECheckBoxState SAnimCurvePanel::GetCurveFlagAsCheckboxState(FFloatCurve* Curve, EAnimCurveFlags InFlag) const
 {
-	return Curve->GetCurveTypeFlag(InFlag) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return Curve->GetCurveTypeFlag(InFlag) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SAnimCurvePanel::SetCurveFlagFromCheckboxState(ESlateCheckBoxState::Type CheckState, FFloatCurve* Curve, EAnimCurveFlags InFlag)
+void SAnimCurvePanel::SetCurveFlagFromCheckboxState(ECheckBoxState CheckState, FFloatCurve* Curve, EAnimCurveFlags InFlag)
 {
-	bool Enabled = CheckState == ESlateCheckBoxState::Checked;
+	bool Enabled = CheckState == ECheckBoxState::Checked;
 	Curve->SetCurveTypeFlag(InFlag, Enabled);
 }
 

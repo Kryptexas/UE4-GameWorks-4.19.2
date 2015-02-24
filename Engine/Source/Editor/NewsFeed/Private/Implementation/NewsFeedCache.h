@@ -1,3 +1,5 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
 
@@ -200,6 +202,9 @@ private:
 
 	// Holds a delegate to be invoked when the feed needs to be auto-reloaded.
 	FTickerDelegate TickDelegate;
+
+	// Handle to the registered TickDelegate.
+	FDelegateHandle TickDelegateHandle;
 
 	// Holds the title file to load from.
 	IOnlineTitleFilePtr TitleFile;

@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Compression.h"
 
 /** 
  * A simple thread safe, pak file based backend. 
@@ -347,6 +349,33 @@ public:
 		}
 		return true;
 	}
+
+	/**
+	 * Merges another cache file into this one.
+	 * @return true on success
+	 */
+	void MergeCache(FPakFileDerivedDataBackend* OtherPak)
+	{
+		// Get all the existing keys
+		TArray<FString> KeyNames;
+		OtherPak->CacheItems.GenerateKeyArray(KeyNames);
+		UE_LOG(LogDerivedDataCache, Display, TEXT("Found %d entries."), KeyNames.Num());
+
+		// Copy them all to the new cache
+		TArray<uint8> Buffer;
+		for(int32 Idx = 0; Idx < KeyNames.Num(); Idx++)
+		{
+			if(!CachedDataProbablyExists(*KeyNames[Idx]))
+			{
+				Buffer.Reset();
+				if(OtherPak->GetCachedData(*KeyNames[Idx], Buffer))
+				{
+					UE_LOG(LogDerivedDataCache, Display, TEXT("[%d/%d] Copying %s (%d bytes)..."), Idx + 1, KeyNames.Num(), *KeyNames[Idx], Buffer.Num());
+					PutCachedData(*KeyNames[Idx], Buffer, false);
+				}
+			}
+		}
+	}
 	
 	const FString& GetFilename() const
 	{
@@ -412,3 +441,45 @@ private:
 	};
 };
 
+class FCompressedPakFileDerivedDataBackend : public FPakFileDerivedDataBackend
+{
+public:
+	FCompressedPakFileDerivedDataBackend(const TCHAR* InFilename, bool bInWriting) 
+		: FPakFileDerivedDataBackend(InFilename, bInWriting)
+	{
+	}
+
+	virtual void PutCachedData(const TCHAR* CacheKey, TArray<uint8>& InData, bool bPutEvenIfExists) override
+	{
+		int32 UncompressedSize = InData.Num();
+		int32 CompressedSize = FCompression::CompressMemoryBound(CompressionFlags, UncompressedSize);
+
+		TArray<uint8> CompressedData;
+		CompressedData.AddUninitialized(CompressedSize + sizeof(UncompressedSize));
+
+		FMemory::Memcpy(&CompressedData[0], &UncompressedSize, sizeof(UncompressedSize));
+		verify(FCompression::CompressMemory(CompressionFlags, CompressedData.GetData() + sizeof(UncompressedSize), CompressedSize, InData.GetData(), InData.Num()));
+		CompressedData.SetNum(CompressedSize + sizeof(UncompressedSize), false);
+
+		FPakFileDerivedDataBackend::PutCachedData(CacheKey, CompressedData, bPutEvenIfExists);
+	}
+
+	virtual bool GetCachedData(const TCHAR* CacheKey, TArray<uint8>& OutData) override
+	{
+		TArray<uint8> CompressedData;
+		if(!FPakFileDerivedDataBackend::GetCachedData(CacheKey, CompressedData))
+		{
+			return false;
+		}
+
+		int32 UncompressedSize;
+		FMemory::Memcpy(&UncompressedSize, &CompressedData[0], sizeof(UncompressedSize));
+		OutData.SetNum(UncompressedSize);
+		verify(FCompression::UncompressMemory(CompressionFlags, OutData.GetData(), UncompressedSize, CompressedData.GetData() + sizeof(UncompressedSize), CompressedData.Num() - sizeof(UncompressedSize)));
+
+		return true;
+	}
+
+private:
+	static const ECompressionFlags CompressionFlags = (ECompressionFlags)(COMPRESS_ZLIB | COMPRESS_BiasMemory);
+};

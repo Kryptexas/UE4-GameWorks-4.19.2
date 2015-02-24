@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimEncoding.cpp: Skeletal mesh animation functions.
@@ -288,7 +288,6 @@ void AnimEncodingLegacyBase::GetBoneAtom(
  *
  * @param	Seq					An Animation Sequence to contain the read data.
  * @param	MemoryReader		The MemoryReader object to read from.
- * @param	SourceArVersion		The version of the archive that the data is coming from.
  */
 //@todo.VC10: Apparent VC10 compiler bug here causes an access violation in optimized builds
 #if _MSC_VER
@@ -296,8 +295,7 @@ void AnimEncodingLegacyBase::GetBoneAtom(
 #endif
 void AnimEncodingLegacyBase::ByteSwapIn(
 	UAnimSequence& Seq, 
-	FMemoryReader& MemoryReader,
-	int32 SourceArVersion)
+	FMemoryReader& MemoryReader)
 {
 	const int32 NumTracks = Seq.CompressedTrackOffsets.Num() / 4;
 
@@ -320,7 +318,7 @@ void AnimEncodingLegacyBase::ByteSwapIn(
 		checkSlow( (OffsetTrans % 4) == 0 && "CompressedByteStream not aligned to four bytes" );
 		uint8* TransTrackData = StreamBase + OffsetTrans;
 		checkSlow(Seq.TranslationCodec != NULL);
-		((AnimEncodingLegacyBase*)Seq.TranslationCodec)->ByteSwapTranslationIn(Seq, MemoryReader, TransTrackData, NumKeysTrans, SourceArVersion);
+		((AnimEncodingLegacyBase*)Seq.TranslationCodec)->ByteSwapTranslationIn(Seq, MemoryReader, TransTrackData, NumKeysTrans);
 
 		// Like the compressed byte stream, pad the serialization stream to four bytes.
 		// As a sanity check, each pad byte can be checked to be the PadSentinel.
@@ -330,7 +328,7 @@ void AnimEncodingLegacyBase::ByteSwapIn(
 		checkSlow( (OffsetRot % 4) == 0 && "CompressedByteStream not aligned to four bytes" );
 		uint8* RotTrackData = StreamBase + OffsetRot;
 		checkSlow(Seq.RotationCodec != NULL);
-		((AnimEncodingLegacyBase*)Seq.RotationCodec)->ByteSwapRotationIn(Seq, MemoryReader, RotTrackData, NumKeysRot, SourceArVersion);
+		((AnimEncodingLegacyBase*)Seq.RotationCodec)->ByteSwapRotationIn(Seq, MemoryReader, RotTrackData, NumKeysRot);
 
 		// Like the compressed byte stream, pad the serialization stream to four bytes.
 		// As a sanity check, each pad byte can be checked to be the PadSentinel.
@@ -345,7 +343,7 @@ void AnimEncodingLegacyBase::ByteSwapIn(
 			checkSlow( (OffsetScale % 4) == 0 && "CompressedByteStream not aligned to four bytes" );
 			uint8* ScaleTrackData = StreamBase + OffsetScale;
 			checkSlow(Seq.ScaleCodec != NULL);
-			((AnimEncodingLegacyBase*)Seq.ScaleCodec)->ByteSwapScaleIn(Seq, MemoryReader, ScaleTrackData, NumKeysScale, SourceArVersion);
+			((AnimEncodingLegacyBase*)Seq.ScaleCodec)->ByteSwapScaleIn(Seq, MemoryReader, ScaleTrackData, NumKeysScale);
 
 			// Like the compressed byte stream, pad the serialization stream to four bytes.
 			// As a sanity check, each pad byte can be checked to be the PadSentinel.

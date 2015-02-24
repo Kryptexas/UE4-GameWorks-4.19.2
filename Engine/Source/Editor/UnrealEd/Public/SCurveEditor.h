@@ -1,8 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __SCurveEditor_h__
 #define __SCurveEditor_h__
+
+#include "EditorUndoClient.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FTrackScaleInfo
@@ -88,8 +90,8 @@ public:
 	{
 		CurveInfo = InCurveInfo;
 		Color = InColor;
+		bIsVisible = true;
 		bIsLocked = bInIsLocked;
-		bIsLocked = false;
 	}
 };
 
@@ -141,6 +143,8 @@ public:
 		, _ZoomToFitVertical(true)
 		, _ZoomToFitHorizontal(true)
 		, _ShowZoomButtons(true)
+		, _XAxisName()
+		, _YAxisName()
 		{}
 
 		SLATE_ATTRIBUTE( float, ViewMinInput )
@@ -161,6 +165,8 @@ public:
 		SLATE_ARGUMENT( bool, ZoomToFitVertical )
 		SLATE_ARGUMENT( bool, ZoomToFitHorizontal )
 		SLATE_ARGUMENT( bool, ShowZoomButtons )
+		SLATE_ARGUMENT( TOptional<FString>, XAxisName )
+		SLATE_ARGUMENT( TOptional<FString>, YAxisName )
 		SLATE_EVENT( FOnSetInputViewRange, OnSetInputViewRange )
 		SLATE_EVENT( FOnSetOutputViewRange, OnSetOutputViewRange )
 		SLATE_EVENT( FSimpleDelegate, OnCreateAsset )
@@ -446,12 +452,12 @@ private:
 	FVector2D SnapLocation(FVector2D InLocation);
 
 	FText GetIsCurveVisibleToolTip(TSharedPtr<FCurveViewModel> CurveViewModel) const;
-	ESlateCheckBoxState::Type IsCurveVisible(TSharedPtr<FCurveViewModel> CurveViewModel) const;
-	void OnCurveIsVisibleChanged(ESlateCheckBoxState::Type NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel);
+	ECheckBoxState IsCurveVisible(TSharedPtr<FCurveViewModel> CurveViewModel) const;
+	void OnCurveIsVisibleChanged(ECheckBoxState NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel);
 
 	FText GetIsCurveLockedToolTip(TSharedPtr<FCurveViewModel> CurveViewModel) const;
-	ESlateCheckBoxState::Type IsCurveLocked(TSharedPtr<FCurveViewModel> CurveViewModel) const;
-	void OnCurveIsLockedChanged(ESlateCheckBoxState::Type NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel);
+	ECheckBoxState IsCurveLocked(TSharedPtr<FCurveViewModel> CurveViewModel) const;
+	void OnCurveIsLockedChanged(ECheckBoxState NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel);
 
 	void RemoveCurveKeysFromSelection(TSharedPtr<FCurveViewModel> CurveViewModel);
 

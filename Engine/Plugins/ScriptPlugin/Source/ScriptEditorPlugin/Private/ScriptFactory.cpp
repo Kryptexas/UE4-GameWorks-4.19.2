@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. 
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved. 
 #include "ScriptEditorPluginPrivatePCH.h"
 
 UScriptFactory::UScriptFactory(const FObjectInitializer& ObjectInitializer)
@@ -69,7 +69,7 @@ UObject* UScriptFactory::FactoryCreateText(UClass* InClass, UObject* InParent, F
 
 /** UReimportScriptFactory */
 
-UReimportScriptFactory::UReimportScriptFactory(const class FObjectInitializer& ObjectInitializer)
+UReimportScriptFactory::UReimportScriptFactory(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
 }
@@ -146,4 +146,9 @@ EReimportResult::Type UReimportScriptFactory::Reimport(UObject* Obj)
 	}
 
 	return EReimportResult::Succeeded;
+}
+
+int32 UReimportScriptFactory::GetPriority() const
+{
+	return ImportPriority;
 }

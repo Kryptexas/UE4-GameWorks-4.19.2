@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "TextPropertyTableCellPresenter.h"
@@ -41,7 +41,7 @@ TSharedRef< class SWidget > FTextPropertyTableCellPresenter::ConstructDisplayWid
 		.Padding( FMargin( 2, 0, 0, 0 ) )
 		[
 			SNew( STextBlock )
-			.Text( PropertyEditor->GetValueAsString() )
+			.Text( PropertyEditor->GetValueAsText() )
 			.ToolTipText( PropertyEditor->GetToolTipText() )
 			.Font( Font )
 		]
@@ -156,7 +156,7 @@ TSharedRef<SWidget> FTextPropertyTableCellPresenter::ConstructEditModeCellWidget
 		HasReadOnlyEditingWidget = true;
 	}
 
-	PropertyWidget->SetToolTipText( TAttribute<FString>(PropertyEditor->GetToolTipText()) );
+	PropertyWidget->SetToolTipText( PropertyEditor->GetToolTipText() );
 
 	return PropertyWidget.ToSharedRef();
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnSkeletalComponent.cpp: Actor component implementation.
@@ -18,8 +18,15 @@
 #include "Animation/VertexAnim/VertexAnimation.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Animation/AnimSingleNodeInstance.h"
+#if WITH_EDITOR
+#include "ShowFlags.h"
+#include "Collision.h"
+#include "ConvexVolume.h"
+#endif
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
-TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("a.ParallelAnimEvaluation"), 0, TEXT("If 1, animation evaluation will be run across the task graph system. If 0, evaluation will run purely on the game thread"));
+TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("a.ParallelAnimEvaluation"), 1, TEXT("If 1, animation evaluation will be run across the task graph system. If 0, evaluation will run purely on the game thread"));
 
 class FParallelAnimationEvaluationTask
 {
@@ -91,11 +98,9 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 	bAutoActivate = true;
 	PrimaryComponentTick.bCanEverTick = true;
 	PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	PostPhysicsComponentTick.bCanEverTick = true;
 	bWantsInitializeComponent = true;
 	GlobalAnimRateScale = 1.0f;
 	bNoSkeletonUpdate = false;
-	bTickAnimationWhenNotRendered_DEPRECATED = true;
 	MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	KinematicBonesUpdateType = EKinematicBonesUpdateToPhysics::SkipSimulatingBones;
 	bGenerateOverlapEvents = false;
@@ -129,6 +134,7 @@ USkeletalMeshComponent::USkeletalMeshComponent(const FObjectInitializer& ObjectI
 	bDefaultPlaying_DEPRECATED = true;
 	bEnablePhysicsOnDedicatedServer = UPhysicsSettings::Get()->bSimulateSkeletalMeshOnDedicatedServer;
 	bEnableUpdateRateOptimizations = false;
+	RagdollAggregateThreshold = UPhysicsSettings::Get()->RagdollAggregateThreshold;
 
 	bTickInEditor = true;
 }
@@ -226,6 +232,7 @@ void USkeletalMeshComponent::InitAnim(bool bForceReinit)
         TickAnimation(0.f); 
 
 		RefreshBoneTransforms();
+		FlipEditableSpaceBases();
 		UpdateComponentToWorld();
 	}
 }
@@ -391,6 +398,10 @@ void USkeletalMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Prope
 			{
 				UE_LOG(LogAnimation, Warning, TEXT("Invalid animation"));
 				AnimationData.AnimToPlay = NULL;
+			}
+			else
+			{
+				PlayAnimation(AnimationData.AnimToPlay, false);
 			}
 		}
 
@@ -626,7 +637,9 @@ void USkeletalMeshComponent::FillSpaceBases(const USkeletalMesh* InSkeletalMesh,
 	for(int32 i=1; i<RequiredBones.Num(); i++)
 	{
 		const int32 BoneIndex = RequiredBones[i];
-		FPlatformMisc::Prefetch(SpaceBasesData + BoneIndex);
+		FTransform* SpaceBase = SpaceBasesData + BoneIndex;
+
+		FPlatformMisc::Prefetch(SpaceBase);
 
 #if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
 		// Mark bone as processed
@@ -634,16 +647,17 @@ void USkeletalMeshComponent::FillSpaceBases(const USkeletalMesh* InSkeletalMesh,
 #endif
 		// For all bones below the root, final component-space transform is relative transform * component-space transform of parent.
 		const int32 ParentIndex = InSkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-		FPlatformMisc::Prefetch(SpaceBasesData + ParentIndex);
+		FTransform* ParentSpaceBase = SpaceBasesData + ParentIndex;
+		FPlatformMisc::Prefetch(ParentSpaceBase);
 
 #if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
 		// Check the precondition that Parents occur before Children in the RequiredBones array.
 		checkSlow(BoneProcessed[ParentIndex] == 1);
 #endif
-		FTransform::Multiply(SpaceBasesData + BoneIndex, LocalTransformsData + BoneIndex, SpaceBasesData + ParentIndex);
+		FTransform::Multiply(SpaceBase, LocalTransformsData + BoneIndex, ParentSpaceBase);
 
-		checkSlow( SpaceBases[BoneIndex].IsRotationNormalized() );
-		checkSlow( !SpaceBases[BoneIndex].ContainsNaN() );
+		checkSlow(SpaceBase->IsRotationNormalized());
+		checkSlow(!SpaceBase->ContainsNaN());
 	}
 
 	/**
@@ -754,7 +768,7 @@ void USkeletalMeshComponent::RecalcRequiredBones(int32 LODIndex)
 	// mirror table/phys body ones has to be calculated
 	if (ShouldUpdateBoneVisibility())
 	{
-		check(BoneVisibilityStates.Num() == SpaceBases.Num());
+		check(BoneVisibilityStates.Num() == GetNumSpaceBases());
 
 		int32 VisibleBoneWriteIndex = 0;
 		for (int32 i = 0; i < RequiredBones.Num(); ++i)
@@ -910,7 +924,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 {
 	SCOPE_CYCLE_COUNTER(STAT_RefreshBoneTransforms);
 
-	if (!SkeletalMesh || SpaceBases.Num() == 0)
+	if (!SkeletalMesh || GetNumSpaceBases() == 0)
 	{
 		return;
 	}
@@ -933,7 +947,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	const bool bInvalidCachedBones = bDoUpdateRateOptimization &&
 									( (LocalAtoms.Num() != SkeletalMesh->RefSkeleton.GetNum())
 									  || (LocalAtoms.Num() != CachedLocalAtoms.Num())
-									  || (SpaceBases.Num() != CachedSpaceBases.Num()) );
+									  || (GetNumSpaceBases() != CachedSpaceBases.Num()) );
 
 	AnimEvaluationContext.bDoEvaluation = !bDoUpdateRateOptimization || bInvalidCachedBones || !AnimUpdateRateParams.ShouldSkipEvaluation();
 	
@@ -954,7 +968,7 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 		{
 			// Initialize Parallel Task arrays
 			AnimEvaluationContext.LocalAtoms = LocalAtoms;
-			AnimEvaluationContext.SpaceBases = SpaceBases;
+			AnimEvaluationContext.SpaceBases = GetSpaceBases();
 			AnimEvaluationContext.VertexAnims = ActiveVertexAnims;
 		}
 
@@ -978,13 +992,13 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 			}
 			else
 			{
-				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, SpaceBases, LocalAtoms, ActiveVertexAnims, RootBoneTranslation);
+				PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, GetEditableSpaceBases(), LocalAtoms, ActiveVertexAnims, RootBoneTranslation);
 			}
 		}
 		else if (!AnimEvaluationContext.bDoInterpolation)
 		{
 			LocalAtoms = CachedLocalAtoms;
-			SpaceBases = CachedSpaceBases;
+			GetEditableSpaceBases() = CachedSpaceBases;
 		}
 
 		PostAnimEvaluation(AnimEvaluationContext);
@@ -994,12 +1008,17 @@ void USkeletalMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 
 void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& EvaluationContext)
 {
+	if (AnimScriptInstance)
+	{
+		AnimScriptInstance->PostAnimEvaluation();
+	}
+
 	AnimEvaluationContext.Clear();
 
 	SCOPE_CYCLE_COUNTER(STAT_PostAnimEvaluation);
 	if (EvaluationContext.bDuplicateToCacheBones)
 	{
-		CachedSpaceBases = SpaceBases;
+		CachedSpaceBases = GetEditableSpaceBases();
 		CachedLocalAtoms = LocalAtoms;
 	}
 
@@ -1009,14 +1028,21 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 
 		const float Alpha = 0.25f + (1.f / float(FMath::Max(AnimUpdateRateParams.GetEvaluationRate(), 2) * 2));
 		FAnimationRuntime::LerpBoneTransforms(LocalAtoms, CachedLocalAtoms, Alpha, RequiredBones);
-		FAnimationRuntime::LerpBoneTransforms(SpaceBases, CachedSpaceBases, Alpha, RequiredBones);
+		if (bDoubleBufferedBlendSpaces)
+		{
+			// We need to prep our space bases for interp (TODO: Would a new Lerp function that took
+			// separate input and output be quicker than current copy + lerp in place?)
+			GetEditableSpaceBases() = GetSpaceBases();
+		}
+		FAnimationRuntime::LerpBoneTransforms(GetEditableSpaceBases(), CachedSpaceBases, Alpha, RequiredBones);
 	}
+	bNeedToFlipSpaceBaseBuffers = true;
 
 	// Transforms updated, cached local bounds are now out of date.
 	InvalidateCachedBounds();
 
 	// update physics data from animated data
-	UpdateKinematicBonesToPhysics(false, true);
+	UpdateKinematicBonesToPhysics(GetEditableSpaceBases(), false, true);
 	UpdateRBJointMotors();
 
 	// @todo anim : hack TTP 224385	ANIM: Skeletalmesh double buffer
@@ -1024,9 +1050,12 @@ void USkeletalMeshComponent::PostAnimEvaluation(FAnimationEvaluationContext& Eva
 	// this causes issue where a half of frame, physics position is fixed with anim pose, and the other half is real simulated position
 	// if you enable physics in tick, since that's before physics update, you'll get animation pose dominating physics pose, which isn't what you want. (Or what you'll see)
 	// so do not update transform if physics is on. This problem will be solved by double buffer, when we keep one buffer for intermediate, and the other buffer for result query
-	if( !IsSimulatingPhysics() )
+	if (!bBlendPhysics && !ShouldBlendPhysicsBones())
 	{
 		SCOPE_CYCLE_COUNTER(STAT_UpdateLocalToWorldAndOverlaps);
+
+		// Updated last good bone positions
+		FlipEditableSpaceBases();
 
 		// New bone positions need to be sent to render thread
 		UpdateComponentToWorld();
@@ -1314,7 +1343,7 @@ void USkeletalMeshComponent::DebugDrawBones(UCanvas* Canvas, bool bSimpleBones) 
 		{
 			int32 BoneIndex = RequiredBones[Index];
 			int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-			FTransform BoneTM = (SpaceBases[BoneIndex] * ComponentToWorld);
+			FTransform BoneTM = (GetSpaceBases()[BoneIndex] * ComponentToWorld);
 			FVector Start, End;
 			FLinearColor LineColor;
 
@@ -1322,7 +1351,7 @@ void USkeletalMeshComponent::DebugDrawBones(UCanvas* Canvas, bool bSimpleBones) 
 
 			if (ParentIndex >=0)
 			{
-				Start = (SpaceBases[ParentIndex] * ComponentToWorld).GetLocation();
+				Start = (GetSpaceBases()[ParentIndex] * ComponentToWorld).GetLocation();
 				LineColor = FLinearColor::White;
 			}
 			else
@@ -1720,6 +1749,129 @@ float USkeletalMeshComponent::CalculateMass(FName BoneName)
 
 #if WITH_EDITOR
 
+bool USkeletalMeshComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	if (!bConsiderOnlyBSP && ShowFlags.SkeletalMeshes && MeshObject != nullptr)
+	{
+		FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
+		check(SkelMeshResource);
+		check(SkelMeshResource->LODModels.Num() > 0);
+
+		// Transform hard and soft verts into world space. Note that this assumes skeletal mesh is in reference pose...
+		const FStaticLODModel& LODModel = SkelMeshResource->LODModels[0];
+		for (const auto& Chunk : LODModel.Chunks)
+		{
+			for (const auto& Vertex : Chunk.RigidVertices)
+			{
+				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
+				const bool bLocationIntersected = FMath::PointBoxIntersection(Location, InSelBBox);
+
+				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
+				// the selection box, this component is being touched by the selection box
+				if (!bMustEncompassEntireComponent && bLocationIntersected)
+				{
+					return true;
+				}
+
+				// If the selection box has to encompass the entire component and a skeletal mesh vertex didn't intersect with the selection
+				// box, this component does not qualify
+				else if (bMustEncompassEntireComponent && !bLocationIntersected)
+				{
+					return false;
+				}
+			}
+
+			for (const auto& Vertex : Chunk.SoftVertices)
+			{
+				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
+				const bool bLocationIntersected = FMath::PointBoxIntersection(Location, InSelBBox);
+
+				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
+				// the selection box, this component is being touched by the selection box
+				if (!bMustEncompassEntireComponent && bLocationIntersected)
+				{
+					return true;
+				}
+
+				// If the selection box has to encompass the entire component and a skeletal mesh vertex didn't intersect with the selection
+				// box, this component does not qualify
+				else if (bMustEncompassEntireComponent && !bLocationIntersected)
+				{
+					return false;
+				}
+			}
+		}
+
+		// If the selection box has to encompass all of the component and none of the component's verts failed the intersection test, this component
+		// is consider touching
+		return true;
+	}
+
+	return false;
+}
+
+bool USkeletalMeshComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	if (!bConsiderOnlyBSP && ShowFlags.SkeletalMeshes && MeshObject != nullptr)
+	{
+		FSkeletalMeshResource* SkelMeshResource = GetSkeletalMeshResource();
+		check(SkelMeshResource);
+		check(SkelMeshResource->LODModels.Num() > 0);
+
+		// Transform hard and soft verts into world space. Note that this assumes skeletal mesh is in reference pose...
+		const FStaticLODModel& LODModel = SkelMeshResource->LODModels[0];
+		for (const auto& Chunk : LODModel.Chunks)
+		{
+			for (const auto& Vertex : Chunk.RigidVertices)
+			{
+				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
+				const bool bLocationIntersected = InFrustum.IntersectSphere(Location, 0.0f);
+
+				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
+				// the selection box, this component is being touched by the selection box
+				if (!bMustEncompassEntireComponent && bLocationIntersected)
+				{
+					return true;
+				}
+
+				// If the selection box has to encompass the entire component and a skeletal mesh vertex didn't intersect with the selection
+				// box, this component does not qualify
+				else if (bMustEncompassEntireComponent && !bLocationIntersected)
+				{
+					return false;
+				}
+			}
+
+			for (const auto& Vertex : Chunk.SoftVertices)
+			{
+				const FVector Location = ComponentToWorld.TransformPosition(Vertex.Position);
+				const bool bLocationIntersected = InFrustum.IntersectSphere(Location, 0.0f);
+
+				// If the selection box doesn't have to encompass the entire component and a skeletal mesh vertex has intersected with
+				// the selection box, this component is being touched by the selection box
+				if (!bMustEncompassEntireComponent && bLocationIntersected)
+				{
+					return true;
+				}
+
+				// If the selection box has to encompass the entire component and a skeletal mesh vertex didn't intersect with the selection
+				// box, this component does not qualify
+				else if (bMustEncompassEntireComponent && !bLocationIntersected)
+				{
+					return false;
+				}
+			}
+		}
+
+		// If the selection box has to encompass all of the component and none of the component's verts failed the intersection test, this component
+		// is consider touching
+		return true;
+	}
+
+	return false;
+}
+
+
 void USkeletalMeshComponent::UpdateCollisionProfile()
 {
 	Super::UpdateCollisionProfile();
@@ -1733,14 +1885,19 @@ void USkeletalMeshComponent::UpdateCollisionProfile()
 	}
 }
 
-void USkeletalMeshComponent::RegisterOnSkeletalMeshPropertyChanged( const FOnSkeletalMeshPropertyChanged& Delegate )
+FDelegateHandle USkeletalMeshComponent::RegisterOnSkeletalMeshPropertyChanged( const FOnSkeletalMeshPropertyChanged& Delegate )
 {
-	OnSkeletalMeshPropertyChanged.Add(Delegate);
+	return OnSkeletalMeshPropertyChanged.Add(Delegate);
 }
 
 void USkeletalMeshComponent::UnregisterOnSkeletalMeshPropertyChanged( const FOnSkeletalMeshPropertyChanged& Delegate )
 {
-	OnSkeletalMeshPropertyChanged.Remove(Delegate);
+	OnSkeletalMeshPropertyChanged.DEPRECATED_Remove(Delegate);
+}
+
+void USkeletalMeshComponent::UnregisterOnSkeletalMeshPropertyChanged( FDelegateHandle Handle )
+{
+	OnSkeletalMeshPropertyChanged.Remove(Handle);
 }
 
 void USkeletalMeshComponent::ValidateAnimation()
@@ -1774,14 +1931,36 @@ void USkeletalMeshComponent::SetRootBodyIndex(int32 InBodyIndex)
 {
 	RootBodyData.BodyIndex = InBodyIndex;
 
-	if(Bodies.IsValidIndex(RootBodyData.BodyIndex) && 
+	if(Bodies.IsValidIndex(RootBodyData.BodyIndex) && SkeletalMesh && 
 		Bodies[RootBodyData.BodyIndex]->BodySetup.IsValid() && Bodies[RootBodyData.BodyIndex]->BodySetup.Get()->BoneName != NAME_None)
 	{
-		RootBodyData.BoneIndex = GetBoneIndex(Bodies[RootBodyData.BodyIndex]->BodySetup->BoneName);
+		int32 BoneIndex = GetBoneIndex(Bodies[RootBodyData.BodyIndex]->BodySetup->BoneName);
+		// if bone index is valid and not 0, it SHOULD have parnet index
+		if (ensure (BoneIndex != INDEX_NONE))
+		{
+			int32 ParentIndex = SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
+			if (BoneIndex != 0 && ensure (ParentIndex != INDEX_NONE))
+			{
+				const TArray<FTransform>& RefPose = SkeletalMesh->RefSkeleton.GetRefBonePose();
+
+				FTransform RelativeTransform = FTransform(SkeletalMesh->RefBasesInvMatrix[BoneIndex]) * RefPose[ParentIndex];
+				// now get offset 
+				RootBodyData.TransformToRoot = RelativeTransform;
+			}
+			else
+			{
+				RootBodyData.TransformToRoot = FTransform::Identity;
+			}
+		}
+		else
+		{
+			RootBodyData.TransformToRoot = FTransform::Identity;
+		}
 	}
 	else
 	{
-		// error
-		RootBodyData.BoneIndex = INDEX_NONE;
+		// error - this should not happen
+		ensure(false);
+		RootBodyData.TransformToRoot = FTransform::Identity;
 	}
 }

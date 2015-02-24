@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsModulePrivatePCH.h"
 #include "GameplayTagsSettings.h"
@@ -143,6 +143,8 @@ void UGameplayTagsManager::ConstructGameplayTagTree()
 			}
 			GameplayRootTag->GetChildTagNodes().Sort(FCompareFGameplayTagNodeByTag());
 		}
+
+		GameplayTagTreeChangedEvent.Broadcast();
 	}
 }
 

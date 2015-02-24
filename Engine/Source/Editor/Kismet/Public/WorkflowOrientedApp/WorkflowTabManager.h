@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -293,12 +293,21 @@ private:
 	// The last active tab info to be selected, used for opening new documents in the most recently used tab
 	TWeakPtr<FTabInfo> LastEditedTabInfo;
 
+	/** Handle to the registered OnActiveTabChanged delegate */
+	FDelegateHandle OnActiveTabChangedDelegateHandle;
+
+	/** Handle to the registered OnTabForegrounded delegate */
+	FDelegateHandle TabForegroundedDelegateHandle;
+
 private:
 	// Clean the spawned list 
 	FTabList& GetSpawnedList();
 
 	// Called by the global active tab changed callback; dispatches to individually registered callbacks
 	void OnActiveTabChanged(TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyActivated);
+
+	// Called by the global tab manager foregrounds a tab; dispatches to individually registered callbacks
+	void OnTabForegrounded(TSharedPtr<SDockTab> PreviouslyActive, TSharedPtr<SDockTab> NewlyActivated);
 
 	/** Callback for navigating tabs with buttons */
 	FReply OnNavigateTab(FDocumentTracker::EOpenDocumentCause InCause);

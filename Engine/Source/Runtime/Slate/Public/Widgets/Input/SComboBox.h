@@ -1,6 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "STableRow.h"
+#include "SMenuAnchor.h"
+#include "SComboButton.h"
+#include "SListView.h"
+#include "SlateApplication.h"
 
 
 DECLARE_DELEGATE( FOnComboBoxOpening )
@@ -80,7 +85,7 @@ public:
 		, _OnSelectionChanged()
 		, _OnGenerateWidget()
 		, _InitiallySelectedItem( nullptr)
-		, _Method( SMenuAnchor::CreateNewWindow )
+		, _Method()
 		, _MaxListHeight(450.0f)
 		, _HasDownArrow( true )
 		{}
@@ -106,7 +111,7 @@ public:
 		/** The option that should be selected when the combo box is first created */
 		SLATE_ARGUMENT( OptionType, InitiallySelectedItem )
 
-		SLATE_ARGUMENT( SMenuAnchor::EMethod, Method )
+		SLATE_ARGUMENT( TOptional<EPopupMethod>, Method )
 
 		/** The max height of the combo box menu */
 		SLATE_ARGUMENT(float, MaxListHeight)

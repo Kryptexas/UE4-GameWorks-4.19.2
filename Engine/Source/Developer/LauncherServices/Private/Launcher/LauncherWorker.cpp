@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LauncherServicesPrivatePCH.h"
 #include "PlatformInfo.h"
+#include "ISourceCodeAccessModule.h"
 
 #define LOCTEXT_NAMESPACE "LauncherWorker"
 
@@ -183,8 +184,7 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 {
 	CommandStart = TEXT("");
 	FString UATCommand = TEXT("");
-	FGuid InstanceId(FGuid::NewGuid());
-	FGuid SessionId(FGuid::NewGuid());
+	static FGuid SessionId(FGuid::NewGuid());
 	FString InitialMap = InProfile->GetDefaultLaunchRole()->GetInitialMap();
 	if (InitialMap.IsEmpty() && InProfile->GetCookedMaps().Num() == 1)
 	{
@@ -355,11 +355,6 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 
 			UATCommand += MapList;
 
-			if (InProfile->IsCookingIncrementally())
-			{
-				UATCommand += TEXT(" -iterate");
-			}
-
 			if (InProfile->IsCookingUnversioned())
 			{
 				UATCommand += TEXT(" -Unversioned");
@@ -411,11 +406,22 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 			}
 		}
 		break;
+	case ELauncherProfileCookModes::OnTheFlyInEditor:
+		UATCommand += MapList;
+		UATCommand += " -skipcook -cookonthefly";
+		break;
 	case ELauncherProfileCookModes::ByTheBookInEditor:
 		UATCommand += MapList;
+		UATCommand += TEXT(" -skipcook"); // don't cook anything the editor is doing it ;)
+		break;
 	case ELauncherProfileCookModes::DoNotCook:
 		UATCommand += TEXT(" -skipcook");
 		break;
+	}
+
+	if (InProfile->IsCookingIncrementally())
+	{
+		UATCommand += TEXT(" -iterativecooking");
 	}
 
 	// stage/package/deploy
@@ -444,8 +450,14 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 			}
 			break;
 
-		case ELauncherProfileDeploymentModes::FileServer:
 		case ELauncherProfileDeploymentModes::CopyToDevice:
+			{
+				if (Profile->IsDeployingIncrementally())
+				{
+					UATCommand += " -iterativedeploy";
+				}
+			}
+		case ELauncherProfileDeploymentModes::FileServer:
 			{
 				UATCommand += TEXT(" -stage -deploy");
 				UATCommand += CommandLine;
@@ -470,7 +482,7 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 		// run
 		if (InProfile->GetLaunchMode() != ELauncherProfileLaunchModes::DoNotLaunch)
 		{
-			UATCommand += TEXT(" -run");
+			UATCommand += TEXT(" -run -nokill");
 
 			FCommandDesc Desc;
 			FText Command = FText::Format(LOCTEXT("LauncherRunDesc", "Launching on {0}"), FText::FromString(DeviceNames.RightChop(1)));
@@ -522,6 +534,19 @@ FString FLauncherWorker::CreateUATCommand( const ILauncherProfileRef& InProfile,
 
 void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfile )
 {
+	// check to see if we need to build by default
+	if (!InProfile->HasProjectSpecified())
+	{
+		FString ProjectPath = FPaths::GetPath(InProfile->GetProjectPath());
+		TArray<FString> OutProjectCodeFilenames;
+		IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *(ProjectPath / TEXT("Source")), TEXT("*.h"), true, false, false);
+		IFileManager::Get().FindFilesRecursive(OutProjectCodeFilenames, *(ProjectPath / TEXT("Source")), TEXT("*.cpp"), true, false, false);
+		ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+		if (OutProjectCodeFilenames.Num() > 0 && SourceCodeAccessModule.GetAccessor().CanAccessSourceCode())
+		{
+			InProfile->SetBuildGame(true);
+		}
+	}
 	FPlatformProcess::CreatePipe(ReadPipe, WritePipe);
 
 	// create task chains
@@ -560,6 +585,7 @@ void FLauncherWorker::CreateAndExecuteTasks( const ILauncherProfileRef& InProfil
 #if !WITH_EDITOR
 	// can't cook by the book in the editor if we are not in the editor...
 	check( InProfile->GetCookMode() != ELauncherProfileCookModes::ByTheBookInEditor );
+	check( InProfile->GetCookMode() != ELauncherProfileCookModes::OnTheFlyInEditor );
 #endif
 
 	TSharedPtr<FLauncherTask> NextTask = TaskChain;

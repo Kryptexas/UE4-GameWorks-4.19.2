@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ModelLight.cpp: Unreal model lighting.
@@ -12,6 +12,7 @@
 #include "LightMap.h"
 #include "ShadowMap.h"
 #include "ComponentReregisterContext.h"
+#include "Components/ModelComponent.h"
 
 //
 //	Static vars
@@ -69,7 +70,7 @@ static bool SphereOnNode(UModel* Model,uint32 NodeIndex,FVector Point,float Radi
 			continue;
 
 		// If point is not behind all the planes created by this polys edges, it's outside the poly.
-		if(FVector::PointPlaneDist(Point,Model->Points[Model->Verts[Node.iVertPool + VertexIndex].pVertex],EdgeNormal.SafeNormal()) > Radius)
+		if(FVector::PointPlaneDist(Point,Model->Points[Model->Verts[Node.iVertPool + VertexIndex].pVertex],EdgeNormal.GetSafeNormal()) > Radius)
 			return 0;
 	}
 
@@ -524,7 +525,7 @@ void UModel::GroupAllNodes(const ULevel* Level, const TArray<ULightComponentBase
 			ULightComponent* Light = Cast<ULightComponent>(LightBase);
 
 			// Only add enabled lights and lights that can potentially be enabled at runtime (toggleable)
-			if (Light && (Light->bVisible || !Light->HasStaticLighting() && Light->AffectsPrimitive(Level->ModelComponents[ComponentIndex])))
+			if (Light && (Light->bVisible || (!Light->HasStaticLighting() && Light->AffectsPrimitive(Level->ModelComponents[ComponentIndex]))))
 			{
 				RelevantLights->Add(Light);
 			}

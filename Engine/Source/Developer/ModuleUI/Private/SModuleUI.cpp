@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ModuleUIPrivatePCH.h"
 #include "HotReloadInterface.h"
@@ -25,10 +25,10 @@ void SModuleUI::Construct(const SModuleUI::FArguments& InArgs)
 					(
 						SNew(SHeaderRow)
 						+SHeaderRow::Column("ModuleName")
-						.DefaultLabel(NSLOCTEXT("ModuleUI", "ModuleName", "Module").ToString())
+						.DefaultLabel(NSLOCTEXT("ModuleUI", "ModuleName", "Module"))
 						.FillWidth(200)
 						+SHeaderRow::Column("ModuleActions")
-						.DefaultLabel(NSLOCTEXT("ModuleUI", "ModuleActions", "Actions").ToString())
+						.DefaultLabel(NSLOCTEXT("ModuleUI", "ModuleActions", "Actions"))
 						.FillWidth(1000)
 					)
 			]
@@ -77,7 +77,7 @@ TSharedRef<ITableRow> SModuleUI::OnGenerateWidgetForModuleListView(TSharedPtr< F
 			{
 				return
 					SNew( STextBlock )
-					.Text( Item->ModuleName.ToString() );
+					.Text( FText::FromName(Item->ModuleName) );
 			}
 			else if ( ColumnName == "ModuleActions" )
 			{
@@ -257,13 +257,15 @@ FReply SModuleUI::FModuleListItem::OnRecompileClicked()
 		{
 			// Perform a hot reload
 			const bool bWaitForCompletion = true;			
-			HotReloadSupport.RebindPackages(PackagesToRebind, TArray<FName>(), bWaitForCompletion, *GLog);
+			ECompilationResult::Type Result = HotReloadSupport.RebindPackages(PackagesToRebind, TArray<FName>(), bWaitForCompletion, *GLog);
 		}
 		else
 		{
 			// Perform a regular unload, then reload
 			const bool bReloadAfterRecompile = true;
-			HotReloadSupport.RecompileModule( ModuleName, bReloadAfterRecompile, *GLog );
+			const bool bForceCodeProject = false;
+			const bool bFailIfGeneratedCodeChanges = true;
+			const bool bRecompileSucceeded = HotReloadSupport.RecompileModule(ModuleName, bReloadAfterRecompile, *GLog, bFailIfGeneratedCodeChanges, bForceCodeProject);
 		}
 	}
 

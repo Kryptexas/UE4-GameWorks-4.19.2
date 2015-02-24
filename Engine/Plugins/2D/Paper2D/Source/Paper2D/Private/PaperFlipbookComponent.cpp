@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
 #include "PaperFlipbookSceneProxy.h"
@@ -18,9 +18,7 @@
 UPaperFlipbookComponent::UPaperFlipbookComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BodyInstance.SetCollisionEnabled(ECollisionEnabled::NoCollision);
-
-	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
+	SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 	Material_DEPRECATED = nullptr;
 
 	CastShadow = false;
@@ -99,18 +97,15 @@ FBoxSphereBounds UPaperFlipbookComponent::CalcBounds(const FTransform& LocalToWo
 		// Graphics bounds.
 		FBoxSphereBounds NewBounds = SourceFlipbook->GetRenderBounds().TransformBy(LocalToWorld);
 
-		//@TODO: PAPER2D: Add collision support to flipbooks
-#if 0
 		// Add bounds of collision geometry (if present).
-		if (UBodySetup* BodySetup = SourceFlipbook->BodySetup)
+		if (CachedBodySetup != nullptr)
 		{
-			const FBox AggGeomBox = BodySetup->AggGeom.CalcAABB(LocalToWorld);
+			const FBox AggGeomBox = CachedBodySetup->AggGeom.CalcAABB(LocalToWorld);
 			if (AggGeomBox.IsValid)
 			{
 				NewBounds = Union(NewBounds, FBoxSphereBounds(AggGeomBox));
 			}
 		}
-#endif
 
 		// Apply bounds scale
 		NewBounds.BoxExtent *= BoundsScale;
@@ -148,9 +143,9 @@ void UPaperFlipbookComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EM
 
 UMaterialInterface* UPaperFlipbookComponent::GetMaterial(int32 MaterialIndex) const
 {
-	if (Materials.IsValidIndex(MaterialIndex) && (Materials[MaterialIndex] != nullptr))
+	if (OverrideMaterials.IsValidIndex(MaterialIndex) && (OverrideMaterials[MaterialIndex] != nullptr))
 	{
-		return Materials[MaterialIndex];
+		return OverrideMaterials[MaterialIndex];
 	}
 	else if (SourceFlipbook != nullptr)
 	{
@@ -173,7 +168,25 @@ void UPaperFlipbookComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePr
 
 int32 UPaperFlipbookComponent::GetNumMaterials() const
 {
-	return FMath::Max<int32>(Materials.Num(), 1);
+	return FMath::Max<int32>(OverrideMaterials.Num(), 1);
+}
+
+UBodySetup* UPaperFlipbookComponent::GetBodySetup()
+{
+	CachedBodySetup = nullptr;
+
+	if ((SourceFlipbook != nullptr) && (SourceFlipbook->GetCollisionSource() != EFlipbookCollisionMode::NoCollision))
+	{
+		const int32 PotentialSpriteIndex = (SourceFlipbook->GetCollisionSource() == EFlipbookCollisionMode::FirstFrameCollision) ? 0 : CachedFrameIndex;
+		UPaperSprite* PotentialSpriteSource = SourceFlipbook->GetSpriteAtFrame(PotentialSpriteIndex);
+
+		if (PotentialSpriteSource != nullptr)
+		{
+			CachedBodySetup = PotentialSpriteSource->BodySetup;
+		}
+	}
+
+	return CachedBodySetup;
 }
 
 void UPaperFlipbookComponent::CalculateCurrentFrame()
@@ -186,9 +199,23 @@ void UPaperFlipbookComponent::CalculateCurrentFrame()
 		// Update children transforms in case we have anything attached to an animated socket
 		UpdateChildTransforms();
 
+		if ((SourceFlipbook != nullptr) && (SourceFlipbook->GetCollisionSource() == EFlipbookCollisionMode::EachFrameCollision))
+		{
+			FlipbookChangedPhysicsState();
+		}
+
 		// Indicate we need to send new dynamic data.
 		MarkRenderDynamicDataDirty();
 	}
+}
+
+void UPaperFlipbookComponent::FlipbookChangedPhysicsState()
+{
+	// If the frame has changed and we're using animated collision, we need to recreate that state as well
+	RecreatePhysicsState();
+
+	// We just totally changed the physics setup so update overlaps too
+	UpdateOverlaps();
 }
 
 void UPaperFlipbookComponent::TickFlipbook(float DeltaTime)
@@ -305,7 +332,7 @@ void UPaperFlipbookComponent::TickComponent(float DeltaTime, enum ELevelTick Tic
 
 void UPaperFlipbookComponent::SendRenderDynamicData_Concurrent()
 {
-	if (SceneProxy != NULL)
+	if (SceneProxy != nullptr)
 	{
 		UPaperSprite* SpriteToSend = GetSpriteAtCachedIndex();
 
@@ -313,12 +340,14 @@ void UPaperFlipbookComponent::SendRenderDynamicData_Concurrent()
 		DrawCall.BuildFromSprite(SpriteToSend);
 		DrawCall.Color = SpriteColor;
 
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 				FSendPaperRenderComponentDynamicData,
 				FPaperRenderSceneProxy*,InSceneProxy,(FPaperRenderSceneProxy*)SceneProxy,
 				FSpriteDrawCallRecord,InSpriteToSend,DrawCall,
+				UBodySetup*,InBodySetup,CachedBodySetup,
 			{
 				InSceneProxy->SetDrawCall_RenderThread(InSpriteToSend);
+				InSceneProxy->SetBodySetup_RenderThread(InBodySetup);
 			});
 	}
 }
@@ -329,7 +358,7 @@ bool UPaperFlipbookComponent::SetFlipbook(class UPaperFlipbook* NewFlipbook)
 	{
 		// Don't allow changing the sprite if we are "static".
 		AActor* Owner = GetOwner();
-		if (!IsRegistered() || (Owner == NULL) || (Mobility != EComponentMobility::Static))
+		if (!IsRegistered() || (Owner == nullptr) || (Mobility != EComponentMobility::Static))
 		{
 			SourceFlipbook = NewFlipbook;
 
@@ -341,7 +370,7 @@ bool UPaperFlipbookComponent::SetFlipbook(class UPaperFlipbook* NewFlipbook)
 			MarkRenderStateDirty();
 
 			// Update physics representation right away
-			RecreatePhysicsState();
+			FlipbookChangedPhysicsState();
 
 			// Notify the streaming system. Don't use Update(), because this may be the first time the mesh has been set
 			// and the component may have to be added to the streaming system for the first time.
@@ -383,7 +412,6 @@ const UObject* UPaperFlipbookComponent::AdditionalStatObject() const
 {
 	return SourceFlipbook;
 }
-
 
 void UPaperFlipbookComponent::Play()
 {
@@ -556,6 +584,20 @@ bool UPaperFlipbookComponent::HasAnySockets() const
 	if (SourceFlipbook != nullptr)
 	{
 		return SourceFlipbook->HasAnySockets();
+	}
+
+	return false;
+}
+
+bool UPaperFlipbookComponent::DoesSocketExist(FName InSocketName) const
+{
+	if (SourceFlipbook != nullptr)
+	{
+		FTransform SocketLocalTransform;
+		if (SourceFlipbook->DoesSocketExist(InSocketName))
+		{
+			return true;
+		}
 	}
 
 	return false;

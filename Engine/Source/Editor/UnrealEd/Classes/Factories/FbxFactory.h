@@ -1,10 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "FbxFactory.generated.h"
 
 UCLASS(hidecategories=Object)
-class UFbxFactory : public UFactory
+class UNREALED_API UFbxFactory : public UFactory
 {
 	GENERATED_UCLASS_BODY()
 

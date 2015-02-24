@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "PhysicsEngine/PhysicsThrusterComponent.h"
@@ -28,16 +28,6 @@ void UPhysicsThrusterComponent::TickComponent(float DeltaTime, enum ELevelTick T
 		{
 			BasePrimComp->AddForceAtLocation(WorldForce, GetComponentLocation(), NAME_None);
 		}
-	}
-}
-
-void UPhysicsThrusterComponent::PostLoad()
-{
-	Super::PostLoad();
-
-	if (GetLinkerUE4Version() < VER_UE4_CONFORM_COMPONENT_ACTIVATE_FLAG)
-	{
-		bAutoActivate = bThrustEnabled_DEPRECATED;
 	}
 }
 

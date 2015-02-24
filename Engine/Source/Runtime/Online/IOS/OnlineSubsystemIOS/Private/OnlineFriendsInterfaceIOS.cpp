@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "OnlineSubsystemIOSPrivatePCH.h"
@@ -48,7 +48,7 @@ FOnlineFriendsIOS::FOnlineFriendsIOS(FOnlineSubsystemIOS* InSubsystem)
 	IdentityInterface = (FOnlineIdentityIOS*)InSubsystem->GetIdentityInterface().Get();
 }
 
-bool FOnlineFriendsIOS::ReadFriendsList(int32 LocalUserNum, const FString& ListName)
+bool FOnlineFriendsIOS::ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate /*= FOnReadFriendsListComplete()*/)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsIOS::ReadFriendsList()"));
 	bool bSuccessfullyBeganReadFriends = false;
@@ -70,7 +70,7 @@ bool FOnlineFriendsIOS::ReadFriendsList(int32 LocalUserNum, const FString& ListN
 						// Report back to the game thread whether this succeeded.
 						[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 						{
-							TriggerOnReadFriendsListCompleteDelegates(0, false, ListName, ErrorStr);
+							Delegate.ExecuteIfBound(0, false, ListName, ErrorStr);
 							return true;
 						}];
 				}
@@ -112,7 +112,7 @@ bool FOnlineFriendsIOS::ReadFriendsList(int32 LocalUserNum, const FString& ListN
 								// Report back to the game thread whether this succeeded.
 								[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
 								{
-									TriggerOnReadFriendsListCompleteDelegates(0, bWasSuccessful, ListName, ErrorStr);
+									Delegate.ExecuteIfBound(0, bWasSuccessful, ListName, ErrorStr);
 									return true;
 								}];
 						}
@@ -125,27 +125,27 @@ bool FOnlineFriendsIOS::ReadFriendsList(int32 LocalUserNum, const FString& ListN
 	else
 	{
 		// no gamecenter login means we cannot read the friends.
-		TriggerOnReadFriendsListCompleteDelegates( 0 , false, ListName, TEXT("not logged in") );
+		Delegate.ExecuteIfBound( 0 , false, ListName, TEXT("not logged in") );
 	}
 
 	return bSuccessfullyBeganReadFriends;
 }
 
-bool FOnlineFriendsIOS::DeleteFriendsList(int32 LocalUserNum, const FString& ListName)
+bool FOnlineFriendsIOS::DeleteFriendsList(int32 LocalUserNum, const FString& ListName, const FOnDeleteFriendsListComplete& Delegate /*= FOnDeleteFriendsListComplete()*/)
 {
-	TriggerOnDeleteFriendsListCompleteDelegates(LocalUserNum, false, ListName, FString(TEXT("DeleteFriendsList() is not supported")));
+	Delegate.ExecuteIfBound(LocalUserNum, false, ListName, FString(TEXT("DeleteFriendsList() is not supported")));
 	return false;
 }
 
-bool FOnlineFriendsIOS::SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName)
+bool FOnlineFriendsIOS::SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnSendInviteComplete& Delegate /*= FOnSendInviteComplete()*/)
 {
-	TriggerOnSendInviteCompleteDelegates(LocalUserNum, false, FriendId, ListName, FString(TEXT("SendInvite() is not supported")));
+	Delegate.ExecuteIfBound(LocalUserNum, false, FriendId, ListName, FString(TEXT("SendInvite() is not supported")));
 	return false;
 }
 
-bool FOnlineFriendsIOS::AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName)
+bool FOnlineFriendsIOS::AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnAcceptInviteComplete& Delegate /*= FOnAcceptInviteComplete()*/)
 {
-	TriggerOnAcceptInviteCompleteDelegates(LocalUserNum, false, FriendId, ListName, FString(TEXT("AcceptInvite() is not supported")));
+	Delegate.ExecuteIfBound(LocalUserNum, false, FriendId, ListName, FString(TEXT("AcceptInvite() is not supported")));
 	return false;
 }
 
@@ -201,6 +201,20 @@ bool FOnlineFriendsIOS::IsFriend(int32 LocalUserNum, const FUniqueNetId& FriendI
 	{
 		return true;
 	}
+	return false;
+}
+
+bool FOnlineFriendsIOS::QueryRecentPlayers(const FUniqueNetId& UserId)
+{
+	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsIOS::QueryRecentPlayers()"));
+
+	TriggerOnQueryRecentPlayersCompleteDelegates(UserId, false, TEXT("not implemented"));
+
+	return false;
+}
+
+bool FOnlineFriendsIOS::GetRecentPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers)
+{
 	return false;
 }
 

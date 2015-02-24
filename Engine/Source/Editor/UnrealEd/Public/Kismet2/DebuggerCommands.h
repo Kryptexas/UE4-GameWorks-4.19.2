@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __DebuggerCommands_h__
 #define __DebuggerCommands_h__
@@ -45,6 +45,7 @@ public:
 	TSharedPtr<FUICommandInfo> RepeatLastPlay;
 	TSharedPtr<FUICommandInfo> PlayInViewport;
 	TSharedPtr<FUICommandInfo> PlayInEditorFloating;
+	TSharedPtr<FUICommandInfo> PlayInVR;
 	TSharedPtr<FUICommandInfo> PlayInMobilePreview;
 	TSharedPtr<FUICommandInfo> PlayInNewProcess;
 	TSharedPtr<FUICommandInfo> PlayInCameraLocation;
@@ -65,6 +66,7 @@ public:
 
 	/** Launch on device */
 	TSharedPtr<FUICommandInfo> RepeatLastLaunch;
+	TSharedPtr<FUICommandInfo> OpenProjectLauncher;
 	TSharedPtr<FUICommandInfo> OpenDeviceManager;
 
 protected:

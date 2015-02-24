@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "K2Node_FunctionTerminator.h"
@@ -25,6 +25,14 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 	UPROPERTY()
 	TArray<struct FBPVariableDescription> LocalVariables;
 
+	/** Whether or not to enforce const-correctness for const function overrides */
+	UPROPERTY()
+	bool bEnforceConstCorrectness;
+
+	// Begin UObject interface
+	virtual void Serialize(FArchive& Ar) override;
+	// End of UObject interface
+
 	// Begin UEdGraphNode interface
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
@@ -37,6 +45,7 @@ class UK2Node_FunctionEntry : public UK2Node_FunctionTerminator
 	virtual bool DrawNodeAsEntry() const override { return true; }
 	virtual class FNodeHandlingFunctor* CreateNodeHandler(class FKismetCompilerContext& CompilerContext) const override;
 	virtual void GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FString>& RedirectPinNames) const override;
+	virtual void ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph) override;
 	// End UK2Node interface
 
 	// Begin UK2Node_EditablePinBase interface

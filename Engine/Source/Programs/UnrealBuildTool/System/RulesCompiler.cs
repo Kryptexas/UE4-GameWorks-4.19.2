@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -154,9 +154,6 @@ namespace UnrealBuildTool
 
 		/** If true and unity builds are enabled, this module will build without unity. */
 		public bool bFasterWithoutUnity = false;
-
-		/** If true then the engine will call it's StartupModule at engine initialization automatically. */
-		public bool bIsAutoStartupModule = false;
 
 		/** Overrides BuildConfiguration.MinFilesUsingPrecompiledHeader if non-zero. */
 		public int MinFilesUsingPrecompiledHeaderOverride = 0;
@@ -348,6 +345,11 @@ namespace UnrealBuildTool
         /// Whether the target uses Steam (todo: substitute with more generic functionality)
         /// </summary>
         public bool bUsesSteam;
+
+        /// <summary>
+        /// Whether the target uses CEF3
+        /// </summary>
+        public bool bUsesCEF3;
 
 		/// <summary>
 		/// Whether the project uses visual Slate UI (as opposed to the low level windowing/messaging which is always used)
@@ -667,6 +669,15 @@ namespace UnrealBuildTool
             return false;
         }
 
+		///<summary>
+		///Returns true if XP monolithics are required for a game
+		/// </summary>
+		/// <returns>true if this target needs to be compiled for Windows XP</returns>
+		public virtual bool GUBP_BuildWindowsXPMonolithics()
+		{
+			return false;
+		}
+
         /// <summary>
         /// Return a list of target platforms for the monolithic
         /// </summary>
@@ -754,7 +765,8 @@ namespace UnrealBuildTool
         {
             var Result = new GUBPProjectOptions();
             // hack to set up the templates without adding anything to their .targets.cs files
-            if (!String.IsNullOrEmpty(TargetName) && TargetName.StartsWith("TP_"))
+			// tweaked to include FP_ folders too - which are temporary
+            if (!String.IsNullOrEmpty(TargetName) && ( TargetName.StartsWith("TP_") || TargetName.StartsWith("FP_")) )
             {
                 Result.bTestWithShared = true;
             }

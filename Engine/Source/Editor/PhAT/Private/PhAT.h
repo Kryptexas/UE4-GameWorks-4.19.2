@@ -1,9 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Toolkits/AssetEditorToolkit.h"
 #include "PhATSharedData.h"
+#include "EditorUndoClient.h"
+#include "PhysicsEngine/BodySetup.h"
 
 class SPhATPreviewViewport;
 class FPhATTreeInfo;
@@ -28,7 +30,7 @@ enum EPhATSimulationMode
    FPhAT
 -----------------------------------------------------------------------------*/
 
-class FPhAT : public IPhAT, public FGCObject, public FEditorUndoClient
+class FPhAT : public IPhAT, public FGCObject, public FEditorUndoClient, public FTickableEditorObject
 {
 public:
 	virtual void RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager) override;
@@ -66,7 +68,7 @@ public:
 	TSharedPtr<SWidget> BuildMenuWidgetBone();
 	TSharedRef<SWidget> BuildStaticMeshAssetPicker();
 	TSharedRef<SWidget> BuildHierarchyFilterMenu();
-	FString GetHierarchyFilter() const;
+	FText GetHierarchyFilter() const;
 
 	/** IToolkit interface */
 	virtual FName GetToolkitFName() const override;
@@ -88,6 +90,12 @@ public:
 
 	/** Returns whether a PIE session is running. */
 	static bool IsPIERunning();
+
+	// FTickableEditorObject interface
+	virtual void Tick(float DeltaTime) override;
+	virtual bool IsTickable() const override { return true; }
+	virtual TStatId GetStatId() const override;
+	// End of FTickableEditorObject interface
 
 private:
 
@@ -295,4 +303,12 @@ private:
 
 	/** Records PhAT related data - simulating or mode change */
 	void OnAddPhatRecord(const FString& Action, bool bRecordSimulate, bool bRecordMode);
+
+private:
+	void RecordAnimation();
+	bool IsRecordAvailable() const;
+	FSlateIcon GetRecordStatusImage() const;
+	FText GetRecordStatusTooltip() const;
+	FText GetRecordStatusLabel() const;
+	FText GetRecordMenuLabel() const;
 };

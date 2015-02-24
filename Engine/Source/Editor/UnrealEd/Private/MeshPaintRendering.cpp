@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	MeshPaintRendering.cpp: Mesh texture paint brush rendering
@@ -10,6 +10,7 @@
 #include "ShaderParameters.h"
 #include "ShaderParameterUtils.h"
 #include "RHIStaticStates.h"
+#include "Engine/TextureRenderTarget2D.h"
 
 namespace MeshPaintRendering
 {

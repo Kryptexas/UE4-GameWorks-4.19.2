@@ -1,249 +1,98 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "STileLayerItem.h"
 #include "SContentReference.h"
 #include "ScopedTransaction.h"
+#include "SInlineEditableTextBlock.h"
+#include "PaperStyle.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 
 //////////////////////////////////////////////////////////////////////////
-// SRenamableEntry
+// STileLayerItem
 
-class SRenamableEntry : public SCompoundWidget
+void STileLayerItem::Construct(const FArguments& InArgs, int32 Index, class UPaperTileMap* InMap, FIsSelected InIsSelectedDelegate)
 {
-public:
-	SLATE_BEGIN_ARGS(SRenamableEntry) {}
-		SLATE_ATTRIBUTE(FText, Text)
-		SLATE_EVENT(FOnTextCommitted, OnTextCommitted)
-	SLATE_END_ARGS()
+	MyMap = InMap;
+	MyIndex = Index;
 
-	void Construct(const FArguments& InArgs);
-
-	// SWidget interface
-	virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual bool SupportsKeyboardFocus() const override;
-	// End of SWidget interface
-protected:
-	bool bInEditMode;
-
-	/** Editable text object used when node is being renamed */
-	TSharedPtr<SEditableText> EditableTextWidget;
-
-	TAttribute<FText> MyText;
-
-	FOnTextCommitted OnTextCommittedEvent;
-protected:
-	/* Called to check the visibility of the editable text */
-	EVisibility	GetEditModeVisibility() const;
-
-	/* Called to check the visibility of the non-editable text */
-	EVisibility	GetNonEditModeVisibility() const;
-
-	FText GetEditableText() const;
-	FString GetNonEditableText() const;
-
-	void OnTextChanged(const FText& InNewText);
-	void OnTextCommited(const FText& InText, ETextCommit::Type CommitInfo);
-};
-
-FText SRenamableEntry::GetEditableText() const
-{
-	return MyText.Get();
-}
-
-FString SRenamableEntry::GetNonEditableText() const
-{
-	return MyText.Get().ToString();
-}
-
-void SRenamableEntry::OnTextChanged(const FText& InNewText)
-{
-	//@TODO:	OnTextChanged.ExecuteIfBound(InNewText);
-
-	//UpdateErrorInfo();
-	//ErrorReporting->SetError(ErrorMsg);
-}
-
-void SRenamableEntry::OnTextCommited(const FText& InText, ETextCommit::Type CommitInfo) 
-{
-	OnTextCommittedEvent.ExecuteIfBound(InText, CommitInfo);
-
-	//UpdateErrorInfo();
-	//ErrorReporting->SetError(ErrorMsg);
-
-	// lost focus so exit rename mode
-	bInEditMode = false;
-}
-
-FReply SRenamableEntry::OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent)
-{
-	if (!bInEditMode)
-	{
-		bInEditMode = true;
-
-		FWidgetPath TextBoxPath;
-		FSlateApplication::Get().GeneratePathToWidgetUnchecked(EditableTextWidget.ToSharedRef(), TextBoxPath);
-		FSlateApplication::Get().SetKeyboardFocus(EditableTextWidget, EFocusCause::Mouse);
-
-		return FReply::Handled();
-	}
-	else
-	{
-		return FReply::Unhandled();
-	}
-}
-
-bool SRenamableEntry::SupportsKeyboardFocus() const
-{
-	return (bInEditMode && EditableTextWidget.IsValid())
-		? StaticCastSharedPtr<SWidget>(EditableTextWidget)->SupportsKeyboardFocus() 
-		: false;
-}
-
-void SRenamableEntry::Construct(const FArguments& InArgs)
-{
-	bInEditMode = false;
-
-	MyText = InArgs._Text;
-	OnTextCommittedEvent = InArgs._OnTextCommitted;
-
-	//@TODO: Add an error reporting area / text validation
+	static const FName EyeClosedBrushName("TileMapEditor.LayerEyeClosed");
+	static const FName EyeOpenedBrushName("TileMapEditor.LayerEyeOpened");
+	EyeClosed = FPaperStyle::Get()->GetBrush(EyeClosedBrushName);
+	EyeOpened = FPaperStyle::Get()->GetBrush(EyeOpenedBrushName);
 
 	ChildSlot
 	[
 		SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()
 		.AutoWidth()
+		.VAlign(VAlign_Center)
 		[
-			SAssignNew(EditableTextWidget, SEditableText)
-			.Text(this, &SRenamableEntry::GetEditableText)
-			.OnTextChanged(this, &SRenamableEntry::OnTextChanged)
-			.OnTextCommitted(this, &SRenamableEntry::OnTextCommited)
-			.SelectAllTextWhenFocused(true)
-			.ClearKeyboardFocusOnCommit(true)
-			.RevertTextOnEscape(true)
-			.Visibility(this, &SRenamableEntry::GetEditModeVisibility)
+			SAssignNew( VisibilityButton, SButton )
+			.ContentPadding(FMargin(4.0f, 4.0f, 4.0f, 4.0f))
+			.ButtonStyle( FEditorStyle::Get(), "NoBorder" )
+			.OnClicked( this, &STileLayerItem::OnToggleVisibility )
+			.ToolTipText( LOCTEXT("LayerVisibilityButtonToolTip", "Toggle Layer Visibility") )
+			.ForegroundColor( FSlateColor::UseForeground() )
+			.HAlign( HAlign_Center )
+			.VAlign( VAlign_Center )
+			.Content()
+			[
+				SNew(SImage)
+				.Image(this, &STileLayerItem::GetVisibilityBrushForLayer)
+				.ColorAndOpacity(this, &STileLayerItem::GetForegroundColorForVisibilityButton)
+			]
 		]
 		+SHorizontalBox::Slot()
-		.AutoWidth()
+		.VAlign(VAlign_Center)
+		.Padding(FMargin(4.0f, 4.0f, 4.0f, 4.0f))
 		[
-			SNew(STextBlock)
-			.Visibility(this, &SRenamableEntry::GetNonEditModeVisibility)
-			.Text(this, &SRenamableEntry::GetNonEditableText)
+			SNew(SInlineEditableTextBlock)
+			.Text(this, &STileLayerItem::GetLayerDisplayName)
+			.ToolTipText(this, &STileLayerItem::GetLayerDisplayName)
+			.OnTextCommitted(this, &STileLayerItem::OnLayerNameCommitted)
+			.IsSelected(InIsSelectedDelegate)
 		]
 	];
-}
-
-EVisibility	SRenamableEntry::GetEditModeVisibility() const
-{
-	return bInEditMode ? EVisibility::Visible : EVisibility::Collapsed;
-}
-
-EVisibility	SRenamableEntry::GetNonEditModeVisibility() const
-{
-	return bInEditMode ? EVisibility::Collapsed : EVisibility::Visible;
-}
-
-//////////////////////////////////////////////////////////////////////////
-// STileLayerItem
-
-void STileLayerItem::Construct(const FArguments& InArgs, class UPaperTileLayer* InItem, const TSharedRef<STableViewBase>& OwnerTable)
-{
-	MyLayer = InItem;
-
-	SMultiColumnTableRow<class UPaperTileLayer*>::Construct(FSuperRowType::FArguments(), OwnerTable);
-}
-
-TSharedRef<SWidget> STileLayerItem::GenerateWidgetForColumn(const FName& ColumnName) 
-{
-	if (ColumnName == TEXT("Name"))
-	{
-		return SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign(VAlign_Center)
-			[
-				SAssignNew( VisibilityButton, SButton )
-				.ContentPadding( 0 )
-				.ButtonStyle( FEditorStyle::Get(), "ToolBarButton" ) //@TODO: Bogus?
-				.OnClicked( this, &STileLayerItem::OnToggleVisibility )
-				.ToolTipText( LOCTEXT("LayerVisibilityButtonToolTip", "Toggle Layer Visibility") )
-				.ForegroundColor( FSlateColor::UseForeground() )
-				.HAlign( HAlign_Center )
-				.VAlign( VAlign_Center )
-				.Content()
-				[
-					SNew(SImage)
-					.Image(this, &STileLayerItem::GetVisibilityBrushForLayer)
-					.ColorAndOpacity(this, &STileLayerItem::GetForegroundColorForVisibilityButton)
-				]
-			]
-			+SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			[
-				SNew(SRenamableEntry)
-				.Text(this, &STileLayerItem::GetLayerDisplayName)
-				.OnTextCommitted(this, &STileLayerItem::OnLayerNameCommitted)
-			];
-	}
-	else
-	{
-		return SNew(SContentReference)
-			.AssetReference(this, &STileLayerItem::GetLayerTileset)
-			.OnSetReference(this, &STileLayerItem::OnChangeLayerTileSet)
-			.AllowedClass(UPaperTileSet::StaticClass())
-			.AllowSelectingNewAsset(true)
-			.AllowClearingReference(false);
-	}
 }
 
 FText STileLayerItem::GetLayerDisplayName() const
 {
 	const FText UnnamedText = LOCTEXT("NoLayerName", "(unnamed)");
 
-	return MyLayer->LayerName.IsEmpty() ? UnnamedText : MyLayer->LayerName;
+	return GetMyLayer()->LayerName.IsEmpty() ? UnnamedText : GetMyLayer()->LayerName;
 }
 
 void STileLayerItem::OnLayerNameCommitted(const FText& NewText, ETextCommit::Type CommitInfo)
 {
 	const FScopedTransaction Transaction( LOCTEXT("TileMapRenameLayer", "Rename Layer") );
+	UPaperTileLayer* MyLayer = GetMyLayer();
 	MyLayer->SetFlags(RF_Transactional);
 	MyLayer->Modify();
 	MyLayer->LayerName = NewText;
 }
 
-void STileLayerItem::OnChangeLayerTileSet(UObject* NewAsset)
-{
-	//@TODO: PAPER2D: Dead code now?
-// 	if (UPaperTileSet* TileSet = Cast<UPaperTileSet>(NewAsset))
-// 	{
-// 		MyLayer->TileSet = TileSet;
-// 	}
-}
-
-UObject* STileLayerItem::GetLayerTileset() const
-{
-	return nullptr;// MyLayer->TileSet;
-}
-
 FReply STileLayerItem::OnToggleVisibility()
 {
 	const FScopedTransaction Transaction( LOCTEXT("ToggleVisibility", "Toggle Layer Visibility") );
+	UPaperTileLayer* MyLayer = GetMyLayer();
 	MyLayer->SetFlags(RF_Transactional);
 	MyLayer->Modify();
 	MyLayer->bHiddenInEditor = !MyLayer->bHiddenInEditor;
+	MyLayer->PostEditChange();
 	return FReply::Handled();
 }
 
 const FSlateBrush* STileLayerItem::GetVisibilityBrushForLayer() const
 {
-	return MyLayer->bHiddenInEditor ? FEditorStyle::GetBrush("Layer.NotVisibleIcon16x") : FEditorStyle::GetBrush("Layer.VisibleIcon16x");
+	return GetMyLayer()->bHiddenInEditor ? EyeClosed : EyeOpened;
 }
 
 FSlateColor STileLayerItem::GetForegroundColorForVisibilityButton() const
 {
-	return (VisibilityButton.IsValid() && (VisibilityButton->IsHovered() || VisibilityButton->IsPressed())) ? FEditorStyle::GetSlateColor("InvertedForeground") : FSlateColor::UseForeground();
+	static const FName InvertedForeground("InvertedForeground");
+	return FEditorStyle::GetSlateColor(InvertedForeground);
 }
 
 //////////////////////////////////////////////////////////////////////////

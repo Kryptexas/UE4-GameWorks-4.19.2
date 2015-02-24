@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "WorldTileModel.h"
+#include "EditorUndoClient.h"
 
 /** The non-UI solution specific presentation logic for a world composition */
 class FWorldTileCollectionModel
@@ -33,7 +34,7 @@ public:
 	virtual bool PassesAllFilters(TSharedPtr<FLevelModel> InLevelModel) const override;
 	virtual void BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const override;
 	virtual void CustomizeFileMainMenu(FMenuBuilder& InMenuBuilder) const override;
-	virtual FMatrix GetObserverViewMatrix() const override;
+	virtual bool GetObserverView(FVector& Location, FRotator& Rotation) const override;
 	virtual bool CompareLevelsZOrder(TSharedPtr<FLevelModel> InA, TSharedPtr<FLevelModel> InB) const override;
 	virtual void RegisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView)  override;
 	virtual void UnregisterDetailsCustomization(class FPropertyEditorModule& PropertyModule, TSharedPtr<class IDetailsView> InDetailsView) override;

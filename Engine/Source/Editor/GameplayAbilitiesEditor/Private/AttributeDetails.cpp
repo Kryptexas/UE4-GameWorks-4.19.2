@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemEditorPrivatePCH.h"
 #include "AttributeDetails.h"
@@ -10,6 +10,7 @@
 #include "SSearchBox.h"
 #include "STextComboBox.h"
 #include "GameplayEffect.h"
+#include "AbilitySystemComponent.h"
 #include "GameplayEffectExtension.h"
 
 #define LOCTEXT_NAMESPACE "AttributeDetailsCustomization"
@@ -31,73 +32,15 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 	FString FilterMetaStr = StructPropertyHandle->GetProperty()->GetMetaData(TEXT("FilterMetaTag"));
 
 	TArray<UProperty*> PropertiesToAdd;
-
-
 	
-/*
-	const bool bIsExtensionAttribute = (StructPropertyHandle->GetProperty()->GetOuter() == FExtensionAttributeModifierInfo::StaticStruct());
-	if (bIsExtensionAttribute)
 	{
-		// Attributes in FExtensionAttributeModifierInfo in FGameplayModifierInfos can only be set to the attributes in the extension class
-		TSharedPtr<IPropertyHandle> ExtensionAttributeModifierInfoHandle = StructPropertyHandle->GetParentHandle();
-		TSharedPtr<IPropertyHandle> AttributeModifierArrayHandle = ExtensionAttributeModifierInfoHandle.IsValid() ? ExtensionAttributeModifierInfoHandle->GetParentHandle() : nullptr;
-		TSharedPtr<IPropertyHandle> ModifierCallbackHandle = AttributeModifierArrayHandle.IsValid() ? AttributeModifierArrayHandle->GetParentHandle() : nullptr;
-		if ( ModifierCallbackHandle.IsValid() )
-		{
-			TArray<const void*> RawPtrs;
-			ModifierCallbackHandle->AccessRawData(RawPtrs);
-			if ( RawPtrs.Num() > 0 )
-			{
-				// Only allow setting of attributes of all selected structs have the same extension class
-				const FGameplayModifierCallback& FirstCallback = *reinterpret_cast<const FGameplayModifierCallback*>(RawPtrs[0]);
-				TSubclassOf<UGameplayEffectExtension> CommonExtensionClass = FirstCallback.ExtensionClass;
-				bool bHasCommonExtensionClass = true;
-
-				for( const void* Ptr : RawPtrs )
-				{
-					const FGameplayModifierCallback& Callback = *reinterpret_cast<const FGameplayModifierCallback*>(Ptr);
-					if ( Callback.ExtensionClass != CommonExtensionClass )
-					{
-						bHasCommonExtensionClass = false;
-						break;
-					}
-				}
-
-				if ( bHasCommonExtensionClass && CommonExtensionClass != nullptr )
-				{
-					UGameplayEffectExtension* ExtensionCDO = CommonExtensionClass->GetDefaultObject<UGameplayEffectExtension>();
-					if ( ensure(ExtensionCDO) )
-					{
-						const bool bIsSourceAttributeModifiers = (AttributeModifierArrayHandle->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FGameplayModifierCallback, SourceAttributeModifiers));
-						if ( bIsSourceAttributeModifiers )
-						{
-							for (const FGameplayAttribute& RelevantAttribute : ExtensionCDO->RelevantSourceAttributes)
-							{
-								PropertiesToAdd.Add(RelevantAttribute.GetUProperty());
-							}
-						}
-						else
-						{
-							for (const FGameplayAttribute& RelevantAttribute : ExtensionCDO->RelevantTargetAttributes)
-							{
-								PropertiesToAdd.Add(RelevantAttribute.GetUProperty());
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-	else
-*/
-	{
-		// Gather all UAttriubute classes
+		// Gather all UAttribute classes
 		for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 		{
 			UClass *Class = *ClassIt;
 			if (Class->IsChildOf(UAttributeSet::StaticClass()) && !FKismetEditorUtilities::IsClassABlueprintSkeleton(Class))
 			{
-				// Allow entire classes to be filtered globalyl
+				// Allow entire classes to be filtered globally
 				if (Class->HasMetaData(TEXT("HideInDetailsView")))
 				{
 					continue;
@@ -105,7 +48,7 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 
 				for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
 				{
-					UProperty *Property = *PropertyIt;
+					UProperty* Property = *PropertyIt;
 
 					if (!FilterMetaStr.IsEmpty() && Property->HasMetaData(*FilterMetaStr))
 					{
@@ -121,6 +64,23 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 					PropertiesToAdd.Add(Property);
 				}
 			}
+
+			// UAbilitySystemComponent can add 'system' attributes
+			if (Class->IsChildOf(UAbilitySystemComponent::StaticClass()) && !FKismetEditorUtilities::IsClassABlueprintSkeleton(Class))
+			{
+				for (TFieldIterator<UProperty> PropertyIt(Class, EFieldIteratorFlags::ExcludeSuper); PropertyIt; ++PropertyIt)
+				{
+					UProperty* Property = *PropertyIt;
+
+					// SystemAttributes have to be explicitly tagged
+					if (Property->HasMetaData(TEXT("SystemGameplayAttribute")) == false)
+					{
+						continue;
+					}
+
+					PropertiesToAdd.Add(Property);
+				}
+			}
 		}
 	}
 
@@ -129,7 +89,7 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 		PropertyOptions.Add(MakeShareable(new FString(FString::Printf(TEXT("%s.%s"), *Property->GetOuter()->GetName(), *Property->GetName()))));
 	}
 
-	// Fixme: this should be unified to use SGameplayATtributeWidget instead of custom combo box
+	// Fixme: this should be unified to use SGameplayAttributeWidget instead of custom combo box
 
 	HeaderRow.
 		NameContent()
@@ -149,6 +109,7 @@ void FAttributePropertyDetails::CustomizeHeader( TSharedRef<IPropertyHandle> Str
 
 				SNew(STextComboBox)
 				.ContentPadding(FMargin(2.0f, 2.0f))
+				.IsEnabled(!StructPropertyHandle->IsEditConst())
 				.OptionsSource( &PropertyOptions )
 				.InitiallySelectedItem(GetPropertyType())
 				.OnSelectionChanged( this, &FAttributePropertyDetails::OnChangeProperty )
@@ -241,10 +202,10 @@ void FAttributeDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 		PropertyOptions.Add(MakeShareable(new FString(Property->GetName())));
 	}
 
-	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Variable", LOCTEXT("VariableDetailsCategory", "Variable").ToString());
+	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Variable", LOCTEXT("VariableDetailsCategory", "Variable"));
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 	
-	Category.AddCustomRow( TEXT("Replication") )
+	Category.AddCustomRow( LOCTEXT("ReplicationLabel", "Replication") )
 		//.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ReplicationVisibility))
 		.NameContent()
 		[
@@ -326,12 +287,6 @@ void FScalableFloatDetails::CustomizeHeader( TSharedRef<class IPropertyHandle> S
 {
 	uint32 NumChildren = 0;
 	StructPropertyHandle->GetNumChildren(NumChildren);
-
-	for (uint32 i = 0; i < NumChildren; i++)
-	{
-		FString PropName = StructPropertyHandle->GetChildHandle(i)->GetPropertyDisplayName();
-		PropName;
-	}
 
 	ValueProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FScalableFloat,Value));
 	CurveTableHandleProperty = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FScalableFloat,Curve));
@@ -585,28 +540,28 @@ TSharedRef<ITableRow> FScalableFloatDetails::HandleRowNameComboBoxGenarateWidget
 	return
 		SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
 		[
-			SNew(STextBlock).Text(*InItem)
+			SNew(STextBlock).Text(FText::FromString(*InItem))
 		];
 }
 
 /** Display the current selection */
-FString FScalableFloatDetails::GetRowNameComboBoxContentText() const
+FText FScalableFloatDetails::GetRowNameComboBoxContentText() const
 {
-	FString RowName = TEXT("Multiple Values");
+	FString RowName;
 	const FPropertyAccess::Result RowResult = RowNameProperty->GetValue(RowName);
 	if (RowResult != FPropertyAccess::MultipleValues)
 	{
 		TSharedPtr<FString> SelectedRowName = CurrentSelectedItem;
 		if (SelectedRowName.IsValid())
 		{
-			RowName = *SelectedRowName;
+			return FText::FromString(*SelectedRowName);
 		}
 		else
 		{
-			RowName = TEXT("None");
+			return LOCTEXT("None", "None");
 		}
 	}
-	return RowName;
+	return LOCTEXT("MultipleValues", "Multiple Values");
 }
 
 FText FScalableFloatDetails::GetRowValuePreviewLabel() const
@@ -614,7 +569,7 @@ FText FScalableFloatDetails::GetRowValuePreviewLabel() const
 	return FText::Format(LOCTEXT("LevelPreviewLabel", "Preview At {0}"), FText::AsNumber(PreviewLevel));
 }
 
-FString FScalableFloatDetails::GetRowValuePreviewText() const
+FText FScalableFloatDetails::GetRowValuePreviewText() const
 {
 	TArray<const void*> RawPtrs;
 	CurveTableHandleProperty->AccessRawData(RawPtrs);
@@ -626,11 +581,14 @@ FString FScalableFloatDetails::GetRowValuePreviewText() const
 			float Value;
 			ValueProperty->GetValue(Value);
 
-			return FString::Printf(TEXT("%.3f"), Value * Curve.Eval(PreviewLevel));
+			static const FNumberFormattingOptions FormatOptions = FNumberFormattingOptions()
+				.SetMinimumFractionalDigits(3)
+				.SetMaximumFractionalDigits(3);
+			return FText::AsNumber(Value * Curve.Eval(PreviewLevel), &FormatOptions);
 		}
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
 /** Called by Slate when the filter box changes text. */

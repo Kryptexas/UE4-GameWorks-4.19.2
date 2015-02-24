@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MessageLogPrivatePCH.h"
 #include "SMessageLogListing.h"
@@ -342,7 +342,7 @@ TSharedRef<ITableRow> SMessageLogListing::MakeShowWidget(TSharedRef<FMessageFilt
 				+SHorizontalBox::Slot().AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(Selection->GetName().ToString())
+					.Text(Selection->GetName())
 				]
 			]
 		];

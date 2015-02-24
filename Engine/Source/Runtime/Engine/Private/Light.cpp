@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -9,6 +9,8 @@
 #include "Components/ArrowComponent.h"
 #include "LightingBuildOptions.h"
 #include "Net/UnrealNetwork.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/PointLightComponent.h"
 
 ALight::ALight(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

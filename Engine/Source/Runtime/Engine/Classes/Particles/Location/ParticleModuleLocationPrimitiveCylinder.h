@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // ParticleModuleLocationPrimitiveCylinder
@@ -53,7 +53,6 @@ class UParticleModuleLocationPrimitiveCylinder : public UParticleModuleLocationP
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void PostInitProperties() override;
-	virtual void Serialize(FArchive& Ar) override;
 	// End UObject Interface
 
 	// Begin UParticleModule Interface
@@ -69,7 +68,7 @@ class UParticleModuleLocationPrimitiveCylinder : public UParticleModuleLocationP
 	 *	@param	SpawnTime			The time of the spawn
 	 *	@param	InRandomStream		The random stream to use for retrieving random values
 	 */
-	void SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase);
+	void SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase);
 };
 
 

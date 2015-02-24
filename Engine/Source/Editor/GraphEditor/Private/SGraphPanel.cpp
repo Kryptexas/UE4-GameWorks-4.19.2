@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -7,7 +7,17 @@
 #include "Editor/UnrealEd/Public/DragAndDrop/ActorDragDropGraphEdOp.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
 #include "Editor/UnrealEd/Public/DragAndDrop/LevelDragDropOp.h"
+
+#include "GraphEditorActions.h"
+#include "UICommandInfo.h"
+#include "InputGesture.h"
+
 #include "ConnectionDrawingPolicy.h"
+#include "BlueprintConnectionDrawingPolicy.h"
+#include "AnimGraphConnectionDrawingPolicy.h"
+#include "SoundCueGraphConnectionDrawingPolicy.h"
+#include "MaterialGraphConnectionDrawingPolicy.h"
+#include "StateMachineConnectionDrawingPolicy.h"
 
 #include "AssetSelection.h"
 #include "ComponentAssetBroker.h"
@@ -87,14 +97,14 @@ void SGraphPanel::Construct( const SGraphPanel::FArguments& InArgs )
 
 	// Register for notifications
 	MyRegisteredGraphChangedDelegate = FOnGraphChanged::FDelegate::CreateSP(this, &SGraphPanel::OnGraphChanged);
-	this->GraphObj->AddOnGraphChangedHandler(MyRegisteredGraphChangedDelegate);
+	MyRegisteredGraphChangedDelegateHandle = this->GraphObj->AddOnGraphChangedHandler(MyRegisteredGraphChangedDelegate);
 	
 	ShowGraphStateOverlay = InArgs._ShowGraphStateOverlay;
 }
 
 SGraphPanel::~SGraphPanel()
 {
-	this->GraphObj->RemoveOnGraphChangedHandler(MyRegisteredGraphChangedDelegate);
+	this->GraphObj->RemoveOnGraphChangedHandler(MyRegisteredGraphChangedDelegateHandle);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -123,8 +133,6 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 	ArrangeChildNodes(AllottedGeometry, ArrangedChildren);
 
 	// Determine some 'global' settings based on current LOD
-	const bool bDrawScaledCommentBubblesThisFrame = GetCurrentLOD() > EGraphRenderingLOD::LowestDetail;
-	const bool bDrawUnscaledCommentBubblesThisFrame = GetCurrentLOD() <= EGraphRenderingLOD::MediumDetail;
 	const bool bDrawShadowsThisFrame = GetCurrentLOD() > EGraphRenderingLOD::LowestDetail;
 
 	// Because we paint multiple children, we must track the maximum layer id that they produced in case one of our parents
@@ -207,24 +215,8 @@ int32 SGraphPanel::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeo
 
 				// Draw the comments and information popups for this node, if it has any.
 				{
-					float CommentBubbleY = 0.0f;
-
-					const FString NodeComment = ChildNode->GetNodeComment();
-					if (!NodeComment.IsEmpty())
-					{
-						// Comment bubbles have different LOD behavior:
-						//   A comment box comment (bScaleComments=false) will only be shown when zoomed out (the title bar is readable instead when up close)
-						//   A per-node comment (bScaleComments=true) will only be show when zoomed in (it gets too small to read)
-						const bool bScaleComments = ChildNode->ShouldScaleNodeComment();
-						const bool bShowCommentBubble = bScaleComments ? bDrawScaledCommentBubblesThisFrame : bDrawUnscaledCommentBubblesThisFrame;
-
-						if (bShowCommentBubble)
-						{
-							FGeometry CommentGeometry = CurWidget.Geometry.MakeChild(CurWidget.Geometry.Size, FSlateLayoutTransform(bScaleComments ? 1.0f : Inverse(CurWidget.Geometry.Scale)));
-							PaintComment(NodeComment, CommentGeometry, MyClippingRect, OutDrawElements, ChildLayerId, ChildNode->GetNodeCommentColor().GetColor( InWidgetStyle ), /*inout*/ CommentBubbleY, InWidgetStyle);
-						}
-					}
-
+					const SNodePanel::SNode::FNodeSlot& CommentSlot = ChildNode->GetOrAddSlot( ENodeZone::TopCenter );
+					float CommentBubbleY = -CommentSlot.Offset.Get().Y;
 					Context.bSelected = bSelected;
 					TArray<FGraphInformationPopupInfo> Popups;
 
@@ -565,12 +557,12 @@ FReply SGraphPanel::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InK
 			UpdateSelectedNodesPositions(FVector2D(-GetSnapGridSize(),0.0f));
 			return FReply::Handled();
 		}
-		if ( InKeyEvent.GetKey() ==  EKeys::Subtract )
+		if(InKeyEvent.GetKey() == FGraphEditorCommands::Get().ZoomOut->GetActiveGesture()->Key)
 		{
 			ChangeZoomLevel(-1, CachedAllottedGeometryScaledSize / 2.f, InKeyEvent.IsControlDown());
 			return FReply::Handled();
 		}
-		if ( InKeyEvent.GetKey() ==  EKeys::Add )
+		if(InKeyEvent.GetKey() == FGraphEditorCommands::Get().ZoomIn->GetActiveGesture()->Key)
 		{
 			ChangeZoomLevel(+1, CachedAllottedGeometryScaledSize / 2.f, InKeyEvent.IsControlDown());
 			return FReply::Handled();
@@ -822,7 +814,12 @@ FReply SGraphPanel::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& D
 	{
 		check(GraphObj);
 		TSharedPtr<FGraphEditorDragDropAction> DragConn = StaticCastSharedPtr<FGraphEditorDragDropAction>(Operation);
-		return DragConn->DroppedOnPanel( SharedThis( this ), DragDropEvent.GetScreenSpacePosition(), NodeAddPosition, *GraphObj);
+		if (DragConn.IsValid() && DragConn->IsSupportedBySchema(GraphObj->GetSchema()))
+		{
+			return DragConn->DroppedOnPanel(SharedThis(this), DragDropEvent.GetScreenSpacePosition(), NodeAddPosition, *GraphObj);
+		}
+
+		return FReply::Unhandled();
 	}
 	else if (Operation->IsOfType<FActorDragDropGraphEdOp>())
 	{
@@ -888,14 +885,7 @@ void SGraphPanel::AddGraphNode( const TSharedRef<SNodePanel::SNode>& NodeToAdd )
 		NodeGuidMap.Add(Node->NodeGuid, GraphNode);
 	}
 
-	if (Node && Node->IsA( UEdGraphNode_Comment::StaticClass()))
-	{
-		SNodePanel::AddGraphNodeToBack(NodeToAdd);
-	}
-	else
-	{
-		SNodePanel::AddGraphNode(NodeToAdd);
-	}
+	SNodePanel::AddGraphNode(NodeToAdd);
 }
 
 void SGraphPanel::RemoveAllNodes()
@@ -918,12 +908,7 @@ TSharedPtr<SWidget> SGraphPanel::SummonContextMenu(const FVector2D& WhereToSummo
 
 		FActionMenuContent FocusedContent = OnGetContextMenuFor.Execute(SpawnInfo);
 
-		TSharedRef<SWidget> MenuContent =
-			SNew( SBorder )
-			.BorderImage( FEditorStyle::GetBrush("Menu.Background") )
-			[
-				FocusedContent.Content
-			];
+		TSharedRef<SWidget> MenuContent = FocusedContent.Content;
 		
 		FSlateApplication::Get().PushMenu(
 			AsShared(),
@@ -945,6 +930,11 @@ void SGraphPanel::AttachGraphEvents(TSharedPtr<SGraphNode> CreatedSubNode)
 	CreatedSubNode->SetDoubleClickEvent(OnNodeDoubleClicked);
 	CreatedSubNode->SetVerifyTextCommitEvent(OnVerifyTextCommit);
 	CreatedSubNode->SetTextCommittedEvent(OnTextCommitted);
+}
+
+const TSharedRef<SGraphNode> SGraphPanel::GetChild(int32 ChildIndex)
+{
+	return StaticCastSharedRef<SGraphNode>(Children[ChildIndex]);
 }
 
 void SGraphPanel::AddNode(UEdGraphNode* Node)
@@ -1058,6 +1048,7 @@ bool SGraphPanel::IsNodeTitleVisible(const class UEdGraphNode* Node, bool bReque
 			if( bTitleVisible && bRequestRename )
 			{
 				GraphNode.Pin()->RequestRename();
+				SelectAndCenterObject(Node, false);
 			}
 		}
 	}
@@ -1096,7 +1087,6 @@ void SGraphPanel::JumpToNode(const UEdGraphNode* JumpToMe, bool bRequestRename)
 		SelectAndCenterObject(JumpToMe, true);
 	}
 }
-
 
 void SGraphPanel::JumpToPin(const UEdGraphPin* JumpToMe)
 {

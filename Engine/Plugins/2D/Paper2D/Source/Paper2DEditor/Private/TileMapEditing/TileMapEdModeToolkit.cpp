@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "EdModeTileMap.h"
@@ -6,11 +6,17 @@
 #include "../TileSetEditor.h"
 #include "SContentReference.h"
 #include "PaperEditorCommands.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 
 //////////////////////////////////////////////////////////////////////////
 // FTileMapEdModeToolkit
+
+FTileMapEdModeToolkit::FTileMapEdModeToolkit(class FEdModeTileMap* InOwningMode)
+{
+	TileMapEditor = InOwningMode;
+}
 
 void FTileMapEdModeToolkit::RegisterTabSpawners(const TSharedRef<class FTabManager>& TabManager)
 {
@@ -46,7 +52,7 @@ FText FTileMapEdModeToolkit::GetToolkitName() const
 
 FEdMode* FTileMapEdModeToolkit::GetEditorMode() const
 {
-	return GLevelEditorModeTools().GetActiveMode(FEdModeTileMap::EM_TileMap);
+	return TileMapEditor;
 }
 
 TSharedPtr<SWidget> FTileMapEdModeToolkit::GetInlineContent() const
@@ -61,19 +67,15 @@ void FTileMapEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitToolkitHost
 	BindCommands();
 
 	// Try to determine a good default tile set based on the current selection set
-	USelection* SelectedActors = GEditor->GetSelectedActors();
-	for (FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
+	if (UPaperTileMapComponent* TargetComponent = TileMapEditor->FindSelectedComponent())
 	{
-		AActor* Actor = CastChecked<AActor>(*Iter);
-		if (UPaperTileMapRenderComponent* TileMapComponent = Actor->FindComponentByClass<UPaperTileMapRenderComponent>())
+		if (TargetComponent->TileMap != nullptr)
 		{
-			if (TileMapComponent->TileMap != nullptr)
-			{
-				CurrentTileSetPtr = TileMapComponent->TileMap->DefaultLayerTileSet;
-				break;
-			}
+			CurrentTileSetPtr = TargetComponent->TileMap->SelectedTileSet.Get();
 		}
 	}
+
+	TileSetPalette = SNew(STileSetSelectorViewport, CurrentTileSetPtr.Get(), TileMapEditor);
 
 	// Create the contents of the editor mode toolkit
 	MyWidget = 
@@ -133,7 +135,7 @@ void FTileMapEdModeToolkit::Init(const TSharedPtr<IToolkitHost>& InitToolkitHost
 					+SHorizontalBox::Slot()
 					.HAlign(HAlign_Fill)
 					[
-						SAssignNew(TileSetPalette, STileSetSelectorViewport, CurrentTileSetPtr.Get())
+						TileSetPalette.ToSharedRef()
 					]
 				]
 			]
@@ -146,10 +148,22 @@ void FTileMapEdModeToolkit::OnChangeTileSet(UObject* NewAsset)
 {
 	if (UPaperTileSet* NewTileSet = Cast<UPaperTileSet>(NewAsset))
 	{
-		CurrentTileSetPtr = NewTileSet;
-		if (TileSetPalette.IsValid())
+		if (CurrentTileSetPtr.Get() != NewTileSet)
 		{
-			TileSetPalette->ChangeTileSet(NewTileSet);
+			CurrentTileSetPtr = NewTileSet;
+			if (TileSetPalette.IsValid())
+			{
+				TileSetPalette->ChangeTileSet(NewTileSet);
+			}
+
+			// Save the newly selected tile set in the asset so it can be restored next time we edit it
+			if (UPaperTileMapComponent* TargetComponent = TileMapEditor->FindSelectedComponent())
+			{
+				if (TargetComponent->TileMap != nullptr)
+				{
+					TargetComponent->TileMap->SelectedTileSet = NewTileSet;
+				}
+			}
 		}
 	}
 }
@@ -195,51 +209,27 @@ void FTileMapEdModeToolkit::BindCommands()
 
 void FTileMapEdModeToolkit::OnSelectTool(ETileMapEditorTool::Type NewTool)
 {
-	if (FEdModeTileMap* TileMapEditor = GLevelEditorModeTools().GetActiveModeTyped<FEdModeTileMap>(FEdModeTileMap::EM_TileMap))
-	{
-		TileMapEditor->SetActiveTool(NewTool);
-	}
+	TileMapEditor->SetActiveTool(NewTool);
 }
 
 bool FTileMapEdModeToolkit::IsToolSelected(ETileMapEditorTool::Type QueryTool) const
 {
-	if (FEdModeTileMap* TileMapEditor = GLevelEditorModeTools().GetActiveModeTyped<FEdModeTileMap>(FEdModeTileMap::EM_TileMap))
-	{
-		return (TileMapEditor->GetActiveTool() == QueryTool);
-	}
-	else
-	{
-		return false;
-	}
+	return (TileMapEditor->GetActiveTool() == QueryTool);
 }
 
 void FTileMapEdModeToolkit::OnSelectLayerPaintingMode(ETileMapLayerPaintingMode::Type NewMode)
 {
-	if (FEdModeTileMap* TileMapEditor = GLevelEditorModeTools().GetActiveModeTyped<FEdModeTileMap>(FEdModeTileMap::EM_TileMap))
-	{
-		TileMapEditor->SetActiveLayerPaintingMode(NewMode);
-	}
+	TileMapEditor->SetActiveLayerPaintingMode(NewMode);
 }
 
 bool FTileMapEdModeToolkit::IsLayerPaintingModeSelected(ETileMapLayerPaintingMode::Type PaintingMode) const
 {
-	if (FEdModeTileMap* TileMapEditor = GLevelEditorModeTools().GetActiveModeTyped<FEdModeTileMap>(FEdModeTileMap::EM_TileMap))
-	{
-		return (TileMapEditor->GetActiveLayerPaintingMode() == PaintingMode);
-	}
-	else
-	{
-		return false;
-	}
+	return (TileMapEditor->GetActiveLayerPaintingMode() == PaintingMode);
 }
 
 EVisibility FTileMapEdModeToolkit::GetTileSetSelectorVisibility() const
 {
-	bool bShouldShowSelector = false;
-	if (FEdModeTileMap* TileMapEditor = GLevelEditorModeTools().GetActiveModeTyped<FEdModeTileMap>(FEdModeTileMap::EM_TileMap))
-	{
-		bShouldShowSelector = (TileMapEditor->GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::VisualLayers);
-	}
+	bool bShouldShowSelector = (TileMapEditor->GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::VisualLayers);
 	
 	return bShouldShowSelector ? EVisibility::Visible : EVisibility::Collapsed;
 }

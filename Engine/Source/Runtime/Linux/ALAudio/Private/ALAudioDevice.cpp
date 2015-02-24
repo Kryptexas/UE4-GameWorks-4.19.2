@@ -1,6 +1,7 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 /*=============================================================================
 	ALAudioDevice.cpp: Unreal OpenAL Audio interface object.
-	Copyright 1998-2012 Epic Games, Inc. All Rights Reserved.
 
 	Unreal is RHS with Y and Z swapped (or technically LHS with flipped axis)
 =============================================================================*/

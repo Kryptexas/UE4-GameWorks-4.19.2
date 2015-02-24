@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "SSpriteList.h"
@@ -32,7 +32,7 @@ void SSpriteList::RebuildWidget(UTexture2D* NewTextureFilter)
 	Config.ThumbnailScale = 0.0f;
 	Config.InitialAssetViewType = EAssetViewType::Tile;
 
-	if (NewTextureFilter != NULL)
+	if (NewTextureFilter != nullptr)
 	{
 		const FString TextureString = FAssetData(NewTextureFilter).GetExportTextName();
 		const FName SourceTexturePropName(TEXT("SourceTexture")); //@TODO: Protected: GET_MEMBER_NAME_CHECKED(UPaperSprite, SourceTexture);

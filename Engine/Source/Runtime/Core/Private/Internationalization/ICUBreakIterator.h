@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,6 +25,7 @@ public:
 
 private:
 	static FICUBreakIteratorManager* Singleton;
+	FCriticalSection AllocatedIteratorsCS;
 	TSet<TSharedPtr<icu::BreakIterator>> AllocatedIterators;
 };
 

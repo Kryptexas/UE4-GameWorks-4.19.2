@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnObjUObject.h: Unreal object base class
@@ -43,12 +43,86 @@ class COREUOBJECT_API UObject : public UObjectBaseUtility
 	static const TCHAR* StaticConfigName() {return TEXT("Engine");}
 
 	// Constructors and destructors.
-	UObject() { };
+	UObject();
 	UObject(const FObjectInitializer& ObjectInitializer);
 	UObject( EStaticConstructor, EObjectFlags InFlags );
 
 	static void StaticRegisterNativesUObject() 
 	{
+	}
+
+	UObject* CreateDefaultSubobject(FName SubobjectFName, UClass* ReturnType, UClass* ClassToCreateByDefault, bool bIsRequired, bool bAbstract, bool bIsTransient);
+
+	/**
+	* Create a component or subobject only to be used with the editor.
+	* @param	TReturnType					class of return type, all overrides must be of this type
+	* @param	Outer						outer to construct the subobject in
+	* @param	SubobjectName				name of the new component
+	* @param bTransient		true if the component is being assigned to a transient property
+	*/
+	template<class TReturnType>
+	TReturnType* CreateEditorOnlyDefaultSubobject(FName SubobjectName, bool bTransient = false)
+	{
+		UClass* ReturnType = TReturnType::StaticClass();
+		return static_cast<TReturnType*>(CreateEditorOnlyDefaultSubobjectImpl(SubobjectName, ReturnType, bTransient));
+	}
+
+	/**
+	* Create a component or subobject
+	* @param	TReturnType					class of return type, all overrides must be of this type
+	* @param	Outer						outer to construct the subobject in
+	* @param	SubobjectName				name of the new component
+	* @param bTransient		true if the component is being assigned to a transient property
+	*/
+	template<class TReturnType>
+	TReturnType* CreateDefaultSubobject(FName SubobjectName, bool bTransient = false)
+	{
+		UClass* ReturnType = TReturnType::StaticClass();
+		return static_cast<TReturnType*>(CreateDefaultSubobject(SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient));
+	}
+	
+	/**
+	* Create a component or subobject
+	* @param TReturnType class of return type, all overrides must be of this type
+	* @param TClassToConstructByDefault class to construct by default
+	* @param Outer outer to construct the subobject in
+	* @param SubobjectName name of the new component
+	* @param bTransient		true if the component is being assigned to a transient property
+	*/
+	template<class TReturnType, class TClassToConstructByDefault>
+	TReturnType* CreateDefaultSubobject(FName SubobjectName, bool bTransient = false)
+	{
+		return static_cast<TReturnType*>(CreateDefaultSubobject(SubobjectName, TReturnType::StaticClass(), TClassToConstructByDefault::StaticClass(), /*bIsRequired =*/ true, /*bIsAbstract =*/ false, bTransient));
+	}
+	
+	/**
+	* Create optional component or subobject. Optional subobjects may not get created
+	* when a derived class specified DoNotCreateDefaultSubobject with the subobject's name.
+	* @param	TReturnType					class of return type, all overrides must be of this type
+	* @param	Outer						outer to construct the subobject in
+	* @param	SubobjectName				name of the new component
+	* @param bTransient		true if the component is being assigned to a transient property
+	*/
+	template<class TReturnType>
+	TReturnType* CreateOptionalDefaultSubobject(FName SubobjectName, bool bTransient = false)
+	{
+		UClass* ReturnType = TReturnType::StaticClass();
+		return static_cast<TReturnType*>(CreateDefaultSubobject(SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ false, /*bIsAbstract =*/ false, bTransient));
+	}
+	
+	/**
+	* Create optional component or subobject. Optional subobjects may not get created
+	* when a derived class specified DoNotCreateDefaultSubobject with the subobject's name.
+	* @param	TReturnType					class of return type, all overrides must be of this type
+	* @param	Outer						outer to construct the subobject in
+	* @param	SubobjectName				name of the new component
+	* @param bTransient		true if the component is being assigned to a transient property
+	*/
+	template<class TReturnType>
+	TReturnType* CreateAbstractDefaultSubobject(FName SubobjectName, bool bTransient = false)
+	{
+		UClass* ReturnType = TReturnType::StaticClass();
+		return static_cast<TReturnType*>(CreateDefaultSubobject(SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ true, /*bIsAbstract =*/ true, bTransient));
 	}
 
 	//==========================================
@@ -62,7 +136,7 @@ protected:
 	virtual FString GetDetailedInfoInternal() const { return TEXT("No_Detailed_Info_Specified"); }
 public:
 	/**
-	 * Called after the C++ constructor and after the properties have been initialized, but before the config has been loaded, etc.
+	 * Called after the C++ constructor and after the properties have been initialized, including those loaded from config.
 	 * mainly this is to emulate some behavior of when the constructor was called after the properties were intialized.
 	 */
 	virtual void PostInitProperties();
@@ -126,18 +200,18 @@ public:
 	virtual void PostLoad();
 
 	/**
-	 * Instances components for objects being loaded from disk, if necessary.  Ensures that component references
-	 * between nested components are fixed up correctly.
-	 *
-	 * @param	OuterInstanceGraph	when calling this method on subobjects, specifies the instancing graph which contains all instanced
-	 *								subobjects and components for a subobject root.
-	 */
-	virtual void PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph );
-	
+	* Instances components for objects being loaded from disk, if necessary.  Ensures that component references
+	* between nested components are fixed up correctly.
+	*
+	* @param	OuterInstanceGraph	when calling this method on subobjects, specifies the instancing graph which contains all instanced
+	*								subobjects and components for a subobject root.
+	*/
+	virtual void PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph);
+
 	/**
-	 * Called before destroying the object.  This is called immediately upon deciding to destroy the object, to allow the object to begin an
-	 * asynchronous cleanup process.
-	 */
+	* Called before destroying the object.  This is called immediately upon deciding to destroy the object, to allow the object to begin an
+	* asynchronous cleanup process.
+	*/
 	virtual void BeginDestroy();
 
 	/**
@@ -445,6 +519,9 @@ public:
 	};
 	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const;
 
+	/** Get the common tag name used for all asset source file import paths */
+	static const FName& SourceFileTagName();
+
 	/** Returns true if this object is considered an asset. */
 	virtual bool IsAsset() const;
 
@@ -629,9 +706,26 @@ public:
 	void UpdateDefaultConfigFile();
 
 	/**
+	 * Saves just the section(s) for this class into the global user ini file for the class (with just the changes from base)
+	 */
+	void UpdateGlobalUserConfigFile();
+
+private:
+	/**
+	 * Saves just the section(s) for this class into the given ini file for the class (with just the changes from base)
+	 */
+	void UpdateSingleSectionOfConfigFile(const FString& ConfigIniName);
+public:
+	
+	/**
 	 * Get the default config filename for the specified UObject
 	 */
 	FString GetDefaultConfigFilename() const;
+
+	/**
+	 * Get the global user override config filename for the specified UObject
+	 */
+	FString GetGlobalUserConfigFilename() const;
 
 	/**
 	 * Imports property values from an .ini file.
@@ -703,7 +797,7 @@ public:
 	 * 
 	 * @return the archetype for this object
 	 */
-	static UObject* GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FName Name, bool bIsCDO);
+	static UObject* GetArchetypeFromRequiredInfo(UClass* Class, UObject* Outer, FName Name, EObjectFlags ObjectFlags);
 
 	/**
 	 * Return the template this object is based on. 
@@ -712,7 +806,7 @@ public:
 	 */
 	UObject* GetArchetype() const
 	{
-		return GetArchetypeFromRequiredInfo(GetClass(), GetOuter(), GetFName(), HasAnyFlags(RF_ClassDefaultObject));
+		return GetArchetypeFromRequiredInfo(GetClass(), GetOuter(), GetFName(), GetFlags());
 	}
 
 	/**
@@ -812,6 +906,8 @@ public:
 	 *  Destroy properties that won't be destroyed by the native destructor
 	 */
 	void DestroyNonNativeProperties();
+
+	virtual void MarkAsEditorOnlySubobject() { }
 
 	// UnrealScript intrinsics.
 
@@ -928,6 +1024,7 @@ public:
 	DECLARE_FUNCTION(execTrue);
 	DECLARE_FUNCTION(execFalse);
 	DECLARE_FUNCTION(execNoObject);
+	DECLARE_FUNCTION(execNullInterface);
 	DECLARE_FUNCTION(execIntConstByte);
 	DECLARE_FUNCTION(execRotationConst);
 	DECLARE_FUNCTION(execVectorConst);
@@ -1000,6 +1097,15 @@ protected:
 
 private:
 	void ProcessContextOpcode(FFrame& Stack, RESULT_DECL, bool bCanFailSilent);
+
+	/**
+	* Create a component or subobject only to be used with the editor.
+	* @param	Outer						outer to construct the subobject in
+	* @param	ReturnType					type of the new component
+	* @param	SubobjectName				name of the new component
+	* @param	bTransient					true if the component is being assigned to a transient property
+	*/
+	UObject* CreateEditorOnlyDefaultSubobjectImpl(FName SubobjectName, UClass* ReturnType, bool bTransient = false);
 };
 
 #endif	// __UNOBJUOBJECT_H__

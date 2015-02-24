@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowDepthCommon.usf: Shared functionality for shadow depth rendering.
@@ -12,7 +12,7 @@
 #define REFLECTIVE_SHADOW_MAP 0
 #endif
 
-#define INTERPOLATE_VF_ATTRIBUTES (!MATERIALBLENDING_SOLID || REFLECTIVE_SHADOW_MAP || MATERIALBLENDING_MASKED)
+#define INTERPOLATE_VF_ATTRIBUTES (!MATERIALBLENDING_SOLID || REFLECTIVE_SHADOW_MAP || MATERIALBLENDING_MASKED || (REQUIRES_VF_ATTRIBUTES_FOR_CLIPPING && !POSITION_ONLY))
 #define INTERPOLATE_POSITION ((REFLECTIVE_SHADOW_MAP && !ONEPASS_POINTLIGHT_SHADOW) || MATERIALBLENDING_MASKED)
 
 // x: Tweakable depth bias, y:InvMaxSubjectDepthUsed to normalize the outputted depth

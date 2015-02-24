@@ -1,9 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "PhysXSupport.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 #define LOCTEXT_NAMESPACE "ConstraintComponent"
 
@@ -11,6 +13,9 @@ UPhysicsConstraintComponent::UPhysicsConstraintComponent(const FObjectInitialize
 	: Super(ObjectInitializer)
 {
 	bWantsInitializeComponent = true;
+#if WITH_EDITORONLY_DATA
+	bVisualizeComponent = true;
+#endif
 }
 
 
@@ -228,28 +233,19 @@ void UPhysicsConstraintComponent::InitializeComponent()
 	InitComponentConstraint();
 }
 
+#if WITH_EDITOR
 void UPhysicsConstraintComponent::OnRegister()
 {
 	Super::OnRegister();
 
-#if WITH_EDITOR
-	if (SpriteComponent == NULL && GetOwner() && !GetWorld()->IsGameWorld() )
+	if (SpriteComponent)
 	{
-		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional | RF_TextExportTransient);
-
 		UpdateSpriteTexture();
-		SpriteComponent->AttachTo(this);
-		SpriteComponent->AlwaysLoadOnClient = false;
-		SpriteComponent->AlwaysLoadOnServer = false;
 		SpriteComponent->SpriteInfo.Category = TEXT("Physics");
 		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT( "SpriteCategory", "Physics", "Physics" );
-		SpriteComponent->bCreatedByConstructionScript = bCreatedByConstructionScript;
-		SpriteComponent->bIsScreenSizeScaled = true;
-
-		SpriteComponent->RegisterComponent();
 	}
-#endif
 }
+#endif
 
 void UPhysicsConstraintComponent::OnUnregister()
 {
@@ -400,9 +396,13 @@ void UPhysicsConstraintComponent::UpdateConstraintFrames()
 	ConstraintInstance.PriAxis1 = A1Transform.InverseTransformVectorNoScale(WPri);
 	ConstraintInstance.SecAxis1 = A1Transform.InverseTransformVectorNoScale(WOrth);
 
+	const FVector RotatedX = ConstraintInstance.AngularRotationOffset.RotateVector(FVector(1,0,0));
+	const FVector RotatedY = ConstraintInstance.AngularRotationOffset.RotateVector(FVector(0,1,0));
+	const FVector WPri2 = ComponentToWorld.TransformVector(RotatedX);
+	const FVector WOrth2 = ComponentToWorld.TransformVector(RotatedY);
 	ConstraintInstance.Pos2 = A2Transform.InverseTransformPosition(WPos);
-	ConstraintInstance.PriAxis2 = A2Transform.InverseTransformVectorNoScale(ConstraintInstance.AngularRotationOffset.RotateVector(WPri));
-	ConstraintInstance.SecAxis2 = A2Transform.InverseTransformVectorNoScale(ConstraintInstance.AngularRotationOffset.RotateVector(WOrth));
+	ConstraintInstance.PriAxis2 = A2Transform.InverseTransformVectorNoScale(WPri2);
+	ConstraintInstance.SecAxis2 = A2Transform.InverseTransformVectorNoScale(WOrth2);
 }
 
 void UPhysicsConstraintComponent::SetConstraintReferenceFrame(EConstraintFrame::Type Frame, const FTransform& RefFrame)
@@ -530,6 +530,24 @@ void UPhysicsConstraintComponent::SetAngularSwing2Limit(EAngularConstraintMotion
 void UPhysicsConstraintComponent::SetAngularTwistLimit(EAngularConstraintMotion Motion, float TwistLimitAngle)
 {
 	ConstraintInstance.SetAngularTwistLimit(Motion, TwistLimitAngle);
+}
+
+float UPhysicsConstraintComponent::GetCurrentTwist() const
+{
+	const float CurrentTwistRads = ConstraintInstance.GetCurrentTwist();
+	return FMath::RadiansToDegrees(CurrentTwistRads);
+}
+
+float UPhysicsConstraintComponent::GetCurrentSwing1() const
+{
+	const float CurrentSwing1Rads = ConstraintInstance.GetCurrentSwing1();
+	return FMath::RadiansToDegrees(CurrentSwing1Rads);
+}
+
+float UPhysicsConstraintComponent::GetCurrentSwing2() const
+{
+	const float CurrentSwing2Rads = ConstraintInstance.GetCurrentSwing2();
+	return FMath::RadiansToDegrees(CurrentSwing2Rads);
 }
 
 #undef LOCTEXT_NAMESPACE

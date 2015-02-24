@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Particles/ParticleSystemComponent.h"
@@ -40,7 +40,7 @@ private:
 	TArray<TSharedPtr<FString>> ParameterTypeNames;
 
 	/** A list of parameter type tooltips */
-	TArray<TSharedPtr<FString>> ParameterTypeToolTips;
+	TArray<FText> ParameterTypeToolTips;
 
 	/** Delegates called by each property widget to determine their visibility */
 	EVisibility GetScalarVisibility() const;

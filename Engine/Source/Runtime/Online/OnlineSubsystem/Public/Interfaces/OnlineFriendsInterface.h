@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,8 +11,6 @@ namespace EFriendsLists
 	{
 		/** default friends list */
 		Default,
-		/** recent players friends list */
-		RecentPlayers,
 		/** online players friends list */
 		OnlinePlayers,
 		/** list of players running the same title/game */
@@ -26,8 +24,6 @@ namespace EFriendsLists
 		{
 			case Default:
 				return TEXT("default");
-			case RecentPlayers:
-				return TEXT("recentPlayers");
 			case OnlinePlayers:
 				return TEXT("onlinePlayers");
 			case InGamePlayers:
@@ -51,8 +47,7 @@ typedef FOnFriendsChange::FDelegate FOnFriendsChangeDelegate;
  * @param ListName name of the friends list that was operated on
  * @param ErrorStr string representing the error condition
  */
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnReadFriendsListComplete, int32, bool, const FString&, const FString&);
-typedef FOnReadFriendsListComplete::FDelegate FOnReadFriendsListCompleteDelegate;
+DECLARE_DELEGATE_FourParams(FOnReadFriendsListComplete, int32, bool, const FString&, const FString&);
 
 /**
  * Delegate used when the friends list delete request has completed
@@ -62,8 +57,7 @@ typedef FOnReadFriendsListComplete::FDelegate FOnReadFriendsListCompleteDelegate
  * @param ListName name of the friends list that was operated on
  * @param ErrorStr string representing the error condition
  */
-DECLARE_MULTICAST_DELEGATE_FourParams(FOnDeleteFriendsListComplete, int32, bool, const FString&, const FString&);
-typedef FOnDeleteFriendsListComplete::FDelegate FOnDeleteFriendsListCompleteDelegate;
+DECLARE_DELEGATE_FourParams(FOnDeleteFriendsListComplete, int32, bool, const FString&, const FString&);
 
 /**
  * Delegate used when an invite send request has completed
@@ -74,8 +68,7 @@ typedef FOnDeleteFriendsListComplete::FDelegate FOnDeleteFriendsListCompleteDele
  * @param ListName name of the friends list that was operated on
  * @param ErrorStr string representing the error condition
  */
-DECLARE_MULTICAST_DELEGATE_FiveParams(FOnSendInviteComplete, int32, bool, const FUniqueNetId&, const FString&, const FString&);
-typedef FOnSendInviteComplete::FDelegate FOnSendInviteCompleteDelegate;
+DECLARE_DELEGATE_FiveParams(FOnSendInviteComplete, int32, bool, const FUniqueNetId&, const FString&, const FString&);
 
 /**
  * Delegate used when an invite accept request has completed
@@ -86,8 +79,7 @@ typedef FOnSendInviteComplete::FDelegate FOnSendInviteCompleteDelegate;
  * @param ListName name of the friends list that was operated on
  * @param ErrorStr string representing the error condition
  */
-DECLARE_MULTICAST_DELEGATE_FiveParams(FOnAcceptInviteComplete, int32, bool, const FUniqueNetId&, const FString&, const FString&);
-typedef FOnAcceptInviteComplete::FDelegate FOnAcceptInviteCompleteDelegate;
+DECLARE_DELEGATE_FiveParams(FOnAcceptInviteComplete, int32, bool, const FUniqueNetId&, const FString&, const FString&);
 
 /**
  * Delegate used when an invite reject request has completed
@@ -114,6 +106,52 @@ DECLARE_MULTICAST_DELEGATE_FiveParams(FOnDeleteFriendComplete, int32, bool, cons
 typedef FOnDeleteFriendComplete::FDelegate FOnDeleteFriendCompleteDelegate;
 
 /**
+ * Delegate used when the query for recent players has completed
+ *
+ * @param UserId the id of the user that made the request
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param ErrorStr string representing the error condition
+ */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnQueryRecentPlayersComplete, const FUniqueNetId& /*UserId*/, bool /*bWasSuccessful*/, const FString& /*Error*/);
+typedef FOnQueryRecentPlayersComplete::FDelegate FOnQueryRecentPlayersCompleteDelegate;
+
+/**
+ * Delegate called when remote friend sends an invite
+ *
+ * @param UserId id of the local user that received the invite
+ * @param FriendId remote friend id that sent the invite
+ */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInviteReceived, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FriendId*/);
+typedef FOnInviteReceived::FDelegate FOnInviteReceivedDelegate;
+
+/**
+ * Delegate called when a remote friend accepts an invite
+ *
+ * @param UserId id of the local user that had sent the invite
+ * @param FriendId friend id that accepted the invite
+ */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInviteAccepted, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FriendId*/);
+typedef FOnInviteAccepted::FDelegate FOnInviteAcceptedDelegate;
+
+/**
+ * Delegate called when a remote friend rejects an invite
+ *
+ * @param UserId id of the local user that had sent the invite
+ * @param FriendId friend id that rejected the invite
+ */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnInviteRejected, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FriendId*/);
+typedef FOnInviteRejected::FDelegate FOnInviteRejectedDelegate;
+
+/**
+ * Delegate called when a remote friend removes user from friends list
+ *
+ * @param UserId id of the local user that had the friendship
+ * @param FriendId friend id that removed himself from the friendship
+ */
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnFriendRemoved, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FriendId*/);
+typedef FOnFriendRemoved::FDelegate FOnFriendRemovedDelegate;
+
+/**
  * Interface definition for the online services friends services 
  * Friends services are anything related to the maintenance of friends and friends lists
  */
@@ -131,6 +169,38 @@ public:
 	DEFINE_ONLINE_PLAYER_DELEGATE(MAX_LOCAL_PLAYERS, OnFriendsChange);
 
 	/**
+	 * Delegate called when remote friend sends an invite
+	 *
+	 * @param UserId id of the local user that received the invite
+	 * @param FriendId remote friend id that sent the invite
+	 */
+	 DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnInviteReceived, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FriendId*/);
+
+	/**
+	 * Delegate called when a remote friend accepts an invite
+	 *
+	 * @param UserId id of the local user that had sent the invite
+	 * @param FriendId friend id that accepted the invite
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnInviteAccepted, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FriendId*/);
+
+	/**
+	 * Delegate called when a remote friend rejects an invite
+	 *
+	 * @param UserId id of the local user that had sent the invite
+	 * @param FriendId friend id that rejected the invite
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnInviteRejected, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FriendId*/);
+
+	/**
+	 * Delegate called when a remote friend removes user from friends list
+	 *
+	 * @param UserId id of the local user that had the friendship
+	 * @param FriendId friend id that removed himself from the friendship
+	 */
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnFriendRemoved, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FriendId*/);
+
+	/**
 	 * Starts an async task that reads the named friends list for the player 
 	 *
 	 * @param LocalUserNum the user to read the friends list of
@@ -138,17 +208,7 @@ public:
 	 *
 	 * @return true if the read request was started successfully, false otherwise
 	 */
-	virtual bool ReadFriendsList(int32 LocalUserNum, const FString& ListName) = 0;
-
-	/**
-	 * Delegate used when the friends list read request has completed
-	 *
-	 * @param LocalUserNum the controller number of the associated user that made the request
-	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
-	 * @param ListName name of the friends list that was operated on
-	 * @param ErrorStr string representing the error condition
-	 */
-	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnReadFriendsListComplete, bool, const FString&, const FString&);
+	virtual bool ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate = FOnReadFriendsListComplete()) = 0;
 
 	/**
 	 * Starts an async task that deletes the named friends list for the player 
@@ -158,17 +218,7 @@ public:
 	 *
 	 * @return true if the delete request was started successfully, false otherwise
 	 */
-	virtual bool DeleteFriendsList(int32 LocalUserNum, const FString& ListName) = 0;
-
-	/**
-     * Delegate used when the friends list delete request has completed
-     *
-	 * @param LocalUserNum the controller number of the associated user that made the request
-     * @param bWasSuccessful true if the async action completed without error, false if there was an error
-	 * @param ListName name of the friends list that was operated on
-	 * @param ErrorStr string representing the error condition
-     */
-	DEFINE_ONLINE_PLAYER_DELEGATE_THREE_PARAM(MAX_LOCAL_PLAYERS, OnDeleteFriendsListComplete, bool, const FString&, const FString&);
+	virtual bool DeleteFriendsList(int32 LocalUserNum, const FString& ListName, const FOnDeleteFriendsListComplete& Delegate = FOnDeleteFriendsListComplete()) = 0;
 
 	/**
 	 * Starts an async task that sends an invite to another player. 
@@ -179,18 +229,7 @@ public:
 	 *
 	 * @return true if the request was started successfully, false otherwise
 	 */
-	virtual bool SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) = 0;
-
-	/**
-	 * Delegate used when an invite send request has completed
-	 *
-	 * @param LocalUserNum the controller number of the associated user that made the request
-	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
-	 * @param FriendId player that was invited
-	 * @param ListName name of the friends list that was operated on
-	 * @param ErrorStr string representing the error condition
-	 */
-	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, OnSendInviteComplete, bool, const FUniqueNetId&, const FString&, const FString&);
+	virtual bool SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnSendInviteComplete& Delegate = FOnSendInviteComplete()) = 0;
 
 	/**
 	 * Starts an async task that accepts an invite from another player. 
@@ -201,18 +240,7 @@ public:
 	 *
 	 * @return true if the request was started successfully, false otherwise
 	 */
-	virtual bool AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) = 0;
-
-	/**
-	 * Delegate used when an invite accept request has completed
-	 *
-	 * @param LocalUserNum the controller number of the associated user that made the request
-	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
-	 * @param FriendId player that invited us
-	 * @param ListName name of the friends list that was operated on
-	 * @param ErrorStr string representing the error condition
-	 */
-	DEFINE_ONLINE_PLAYER_DELEGATE_FOUR_PARAM(MAX_LOCAL_PLAYERS, OnAcceptInviteComplete, bool, const FUniqueNetId&, const FString&, const FString&);
+	virtual bool AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnAcceptInviteComplete& Delegate = FOnAcceptInviteComplete()) = 0;
 
 	/**
 	 * Starts an async task that rejects an invite from another player. 
@@ -290,6 +318,34 @@ public:
 	 * @return true if friends list was found and the friend was valid
 	 */
 	virtual bool IsFriend(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) = 0;
+
+	/**
+	 * Query for recent players of the current user
+	 *
+	 * @param UserId user to query recent players for
+	 *
+	 * @return true if query was started
+	 */
+	virtual bool QueryRecentPlayers(const FUniqueNetId& UserId) = 0;
+
+	/**
+	 * Delegate used when the query for recent players has completed
+	 *
+	 * @param UserId the id of the user that made the request
+	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
+	 * @param Error string representing the error condition
+	 */
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnQueryRecentPlayersComplete, const FUniqueNetId& /*UserId*/, bool /*bWasSuccessful*/, const FString& /*Error*/);
+
+	/**
+	 * Copies the cached list of recent players for a given user
+	 *
+	 * @param UserId user to retrieve recent players for
+	 * @param OutRecentPlayers [out] array that receives the copied data
+	 *
+	 * @return true if recent players list was found for the given user
+	 */
+	virtual bool GetRecentPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers) = 0;
 };
 
 typedef TSharedPtr<IOnlineFriends, ESPMode::ThreadSafe> IOnlineFriendsPtr;

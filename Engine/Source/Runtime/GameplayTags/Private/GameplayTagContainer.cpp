@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsModulePrivatePCH.h"
+
+const FGameplayTagContainer FGameplayTagContainer::EmptyContainer;
 
 FGameplayTagContainer::FGameplayTagContainer()
 {}
@@ -93,7 +95,7 @@ FGameplayTagContainer FGameplayTagContainer::Filter(const FGameplayTagContainer&
 	return ResultContainer;
 }
 
-bool FGameplayTagContainer::DoesTagContainerMatch(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType, TEnumAsByte<EGameplayContainerMatchType::Type> ContainerMatchType) const
+bool FGameplayTagContainer::DoesTagContainerMatch(const FGameplayTagContainer& OtherContainer, TEnumAsByte<EGameplayTagMatchType::Type> TagMatchType, TEnumAsByte<EGameplayTagMatchType::Type> OtherTagMatchType, EGameplayContainerMatchType ContainerMatchType) const
 {
 	UGameplayTagsManager& TagManager = IGameplayTagsModule::Get().GetGameplayTagsManager();
 
@@ -177,9 +179,9 @@ void FGameplayTagContainer::RemoveTag(FGameplayTag TagToRemove)
 	GameplayTags.Remove(TagToRemove);
 }
 
-void FGameplayTagContainer::RemoveAllTags()
+void FGameplayTagContainer::RemoveAllTags(int32 Slack)
 {
-	GameplayTags.Empty();
+	GameplayTags.Empty(Slack);
 }
 
 bool FGameplayTagContainer::Serialize(FArchive& Ar)
@@ -269,6 +271,60 @@ FString FGameplayTagContainer::ToString() const
 	}
 	RetString += TEXT("))");
 	return RetString;
+}
+
+FString FGameplayTagContainer::ToStringSimple() const
+{
+	FString RetString;
+	for (int i = 0; i < GameplayTags.Num(); ++i)
+	{
+		RetString += TEXT("\"");
+		RetString += GameplayTags[i].ToString();
+		RetString += TEXT("\"");
+		if (i < GameplayTags.Num() - 1)
+		{
+			RetString += TEXT(", ");
+		}
+	}
+	return RetString;
+}
+
+FText FGameplayTagContainer::ToMatchingText(EGameplayContainerMatchType MatchType, bool bInvertCondition) const
+{
+	enum class EMatchingTypes : int8
+	{
+		Inverted	= 0x01,
+		All			= 0x02
+	};
+
+#define LOCTEXT_NAMESPACE "FGameplayTagContainer"
+	const FText MatchingDescription[] =
+	{
+		LOCTEXT("MatchesAnyGameplayTags", "Has any tags in set: {GameplayTagSet}"),
+		LOCTEXT("NotMatchesAnyGameplayTags", "Does not have any tags in set: {GameplayTagSet}"),
+		LOCTEXT("MatchesAllGameplayTags", "Has all tags in set: {GameplayTagSet}"),
+		LOCTEXT("NotMatchesAllGameplayTags", "Does not have all tags in set: {GameplayTagSet}")
+	};
+#undef LOCTEXT_NAMESPACE
+
+	int32 DescriptionIndex = bInvertCondition ? static_cast<int32>(EMatchingTypes::Inverted) : 0;
+	switch (MatchType)
+	{
+		case EGameplayContainerMatchType::All:
+			DescriptionIndex |= static_cast<int32>(EMatchingTypes::All);
+			break;
+
+		case EGameplayContainerMatchType::Any:
+			break;
+
+		default:
+			UE_LOG(LogGameplayTags, Warning, TEXT("Invalid value for TagsToMatch (EGameplayContainerMatchType) %d.  Should only be Any or All."), static_cast<int32>(MatchType));
+			break;
+	}
+
+	FFormatNamedArguments Arguments;
+	Arguments.Add(TEXT("GameplayTagSet"), FText::FromString(*ToString()));
+	return FText::Format(MatchingDescription[DescriptionIndex], Arguments);
 }
 
 FGameplayTag::FGameplayTag()

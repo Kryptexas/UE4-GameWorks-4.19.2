@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
@@ -15,121 +15,55 @@
  */
 FText FInputGesture::GetInputText( ) const
 {
-	FText FormatString = LOCTEXT("ShortcutKeyWithNoAdditionalModifierKeys", "{Key}");
-
-	if ( bCtrl && !bAlt && !bShift && !bCmd )
-	{
 #if PLATFORM_MAC
-		FormatString = LOCTEXT("KeyName_Command", "Cmd+{Key}");
+    const FText CommandText = LOCTEXT("KeyName_Control", "Ctrl");
+    const FText ControlText = LOCTEXT("KeyName_Command", "Cmd");
 #else
-		FormatString = LOCTEXT("KeyName_Control", "Ctrl+{Key}");
+    const FText ControlText = LOCTEXT("KeyName_Control", "Ctrl");
+    const FText CommandText = LOCTEXT("KeyName_Command", "Cmd"); 
 #endif
-	}
-	else if ( bCtrl && bAlt && !bShift && !bCmd )
-	{
-#if PLATFORM_MAC
-		FormatString = LOCTEXT("KeyName_Command + KeyName_Alt", "Cmd+Alt+{Key}");
-#else
-		FormatString = LOCTEXT("KeyName_Control + KeyName_Alt", "Ctrl+Alt+{Key}");
-#endif
-	}
-	else if ( bCtrl && !bAlt && bShift && !bCmd )
-	{
-#if PLATFORM_MAC
-		FormatString = LOCTEXT("KeyName_Command + KeyName_Shift", "Cmd+Shift+{Key}");
-#else
-		FormatString = LOCTEXT("KeyName_Control + KeyName_Shift", "Ctrl+Shift+{Key}");
-#endif
-	}
-	else if ( bCtrl && !bAlt && !bShift && bCmd )
-	{
-#if PLATFORM_MAC
-		FormatString = LOCTEXT("KeyName_Command + KeyName_Control", "Cmd+Ctrl+{Key}");
-#else
-		FormatString = LOCTEXT("KeyName_Control + KeyName_Command", "Ctrl+Cmd+{Key}");
-#endif
-	}
-	else if ( !bCtrl && bAlt && !bShift && bCmd )
-	{
-#if PLATFORM_MAC
-		FormatString = LOCTEXT("KeyName_Control + KeyName_Alt", "Ctrl+Alt+{Key}");
-#else
-		FormatString = LOCTEXT("KeyName_Command + KeyName_Alt", "Cmd+Alt+{Key}");
-#endif
-	}
-	else if ( !bCtrl && !bAlt && bShift && bCmd )
-	{
-#if PLATFORM_MAC
-		FormatString = LOCTEXT("KeyName_Control + KeyName_Shift", "Ctrl+Shift+{Key}");
-#else
-		FormatString = LOCTEXT("KeyName_Command + KeyName_Shift", "Cmd+Shift+{Key}");
-#endif
-	}
-	else if ( bCtrl && bAlt && bShift && !bCmd )
-	{
-#if PLATFORM_MAC
-		FormatString = LOCTEXT("KeyName_Command + KeyName_Alt + KeyName_Shift", "Cmd+Alt+Shift+{Key}");
-#else
-		FormatString = LOCTEXT("KeyName_Control + KeyName_Alt + KeyName_Shift", "Ctrl+Alt+Shift+{Key}");
-#endif
-	}
-	else if ( !bCtrl && bAlt && bShift && bCmd )
-	{
-#if PLATFORM_MAC
-		FormatString = LOCTEXT("KeyName_Control + KeyName_Alt + KeyName_Shift", "Ctrl+Alt+Shift+{Key}");
-#else
-		FormatString = LOCTEXT("KeyName_Command + KeyName_Alt + KeyName_Shift", "Cmd+Alt+Shift+{Key}");
-#endif
-	}
-	else if ( bCtrl && !bAlt && bShift && bCmd )
-	{
-#if PLATFORM_MAC
-		FormatString = LOCTEXT("KeyName_Command + KeyName_Control + KeyName_Shift", "Cmd+Ctrl+Shift+{Key}");
-#else
-		FormatString = LOCTEXT("KeyName_Control + KeyName_Command + KeyName_Shift", "Ctrl+Cmd+Shift+{Key}");
-#endif
-	}
-	else if ( bCtrl && bAlt && !bShift && bCmd )
-	{
-#if PLATFORM_MAC
-		FormatString = LOCTEXT("KeyName_Command + KeyName_Control + KeyName_Alt", "Cmd+Ctrl+Alt+{Key}");
-#else
-		FormatString = LOCTEXT("KeyName_Control + KeyName_Command + KeyName_Alt", "Ctrl+Cmd+Alt+{Key}");
-#endif
-	}
-	else if ( bCtrl && bAlt && bShift && bCmd )
-	{
-#if PLATFORM_MAC
-		FormatString = LOCTEXT("KeyName_Command + KeyName_Control + KeyName_Alt + KeyName_Shift", "Cmd+Ctrl+Alt+Shift{Key}");
-#else
-		FormatString = LOCTEXT("KeyName_Control + KeyName_Command + KeyName_Alt + KeyName_Shift", "Ctrl+Cmd+Alt+Shift{Key}");
-#endif
-	}
-	else if ( !bCtrl && bAlt && !bShift && !bCmd )
-	{
-		FormatString = LOCTEXT("KeyName_Alt", "Alt+{Key}");
-	}
-	else if ( !bCtrl && bAlt && bShift && !bCmd )
-	{
-		FormatString = LOCTEXT("KeyName_Alt + KeyName_Shift", "Alt+Shift+{Key}");
-	}
-	else if ( !bCtrl && !bAlt && bShift && !bCmd )
-	{
-		FormatString = LOCTEXT("KeyName_Shift", "Shift+{Key}");
-	}
-	else if ( !bCtrl && !bAlt && !bShift && bCmd )
-	{
-#if PLATFORM_MAC
-		FormatString = LOCTEXT("KeyName_Control", "Ctrl+{Key}");
-#else
-		FormatString = LOCTEXT("KeyName_Command", "Cmd+{Key}");
-#endif
-	}
+    const FText AltText = LOCTEXT("KeyName_Alt", "Alt");
+    const FText ShiftText = LOCTEXT("KeyName_Shift", "Shift");
+    
+	const FText AppenderText = LOCTEXT("ModAppender", "+");
 
 	FFormatNamedArguments Args;
-	Args.Add( TEXT("Key"), GetKeyText() );
+	int32 ModCount = 0;
 
-	return FText::Format( FormatString, Args );
+    if (ModifierKeys & EModifierKey::Control)
+    {
+		Args.Add(FString::Printf(TEXT("Mod%d"),++ModCount), ControlText);
+    }
+    if (ModifierKeys & EModifierKey::Command)
+    {
+		Args.Add(FString::Printf(TEXT("Mod%d"),++ModCount), CommandText);
+    }
+    if (ModifierKeys & EModifierKey::Alt)
+    {
+		Args.Add(FString::Printf(TEXT("Mod%d"),++ModCount), AltText);
+    }
+    if (ModifierKeys & EModifierKey::Shift)
+    {
+		Args.Add(FString::Printf(TEXT("Mod%d"),++ModCount), ShiftText);
+    }
+
+	for (int32 i = 1; i <= 4; ++i)
+	{
+		if (i > ModCount)
+		{
+			Args.Add(FString::Printf(TEXT("Mod%d"), i), FText::GetEmpty());
+			Args.Add(FString::Printf(TEXT("Appender%d"), i), FText::GetEmpty());
+		}
+		else
+		{
+			Args.Add(FString::Printf(TEXT("Appender%d"), i), AppenderText);
+		}
+
+	}
+
+	Args.Add(TEXT("Key"), GetKeyText());
+
+	return FText::Format(LOCTEXT("FourModifiers", "{Mod1}{Appender1}{Mod2}{Appender2}{Mod3}{Appender3}{Mod4}{Appender4}{Key}"), Args);
 }
 
 

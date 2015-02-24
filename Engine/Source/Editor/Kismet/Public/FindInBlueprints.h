@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,7 +21,7 @@ public:
 	virtual FReply OnClick();
 
 	/* Get Category for this search result */
-	virtual FString GetCategory() const;
+	virtual FText GetCategory() const;
 
 	/* Create an icon to represent the result */
 	virtual TSharedRef<SWidget>	CreateIcon() const;
@@ -81,7 +81,7 @@ public:
 	void ExpandAllChildren( TSharedPtr< STreeView< TSharedPtr< FFindInBlueprintsResult > > > InTreeView );
 
 	/** Returns the display string for the row */
-	FString GetDisplayString() const;
+	FText GetDisplayString() const;
 
 protected:
 
@@ -121,7 +121,7 @@ public:
 	virtual TSharedRef<SWidget>	CreateIcon() const override;
 	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
 	virtual bool ExtractContent(TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens) override;
-	virtual FString GetCategory() const override;
+	virtual FText GetCategory() const override;
 	virtual void FinalizeSearchData() override;
 	/** End FFindInBlueprintsResult Interface */
 
@@ -152,7 +152,7 @@ public:
 	/** FFindInBlueprintsResult Interface */
 	virtual TSharedRef<SWidget>	CreateIcon() const override;
 	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
-	virtual FString GetCategory() const override;
+	virtual FText GetCategory() const override;
 	virtual void FinalizeSearchData() override;
 	/** End FFindInBlueprintsResult Interface */
 protected:
@@ -179,7 +179,7 @@ public:
 	/** FFindInBlueprintsResult Interface */
 	virtual TSharedRef<SWidget>	CreateIcon() const override;
 	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
-	virtual FString GetCategory() const override;
+	virtual FText GetCategory() const override;
 	virtual void FinalizeSearchData() override;
 	/** End FFindInBlueprintsResult Interface */
 protected:
@@ -191,6 +191,9 @@ protected:
 
 	/** The Property's sub-category name, for the pin display type */
 	FString PinSubCategory;
+
+	/** TRUE if the property is an SCS_Component */
+	bool bIsSCSComponent;
 };
 
 /** Graphs, such as functions and macros, are stored here */
@@ -204,7 +207,7 @@ public:
 	virtual FReply OnClick() override;
 	virtual TSharedRef<SWidget>	CreateIcon() const override;
 	virtual bool ParseSearchInfo(const TArray<FString> &InTokens, FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParentOverride = NULL) override;
-	virtual FString GetCategory() const override;
+	virtual FText GetCategory() const override;
 	virtual bool ExtractContent(TSharedPtr< FJsonObject > InJsonNode, const TArray<FString>& InTokens) override;
 	/** End FFindInBlueprintsResult Interface */
 protected:
@@ -212,7 +215,6 @@ protected:
 	/** The type of graph this represents */
 	EGraphType GraphType;
 };
-
 
 /*Widget for searching for (functions/events) across all blueprints or just a single blueprint */
 class SFindInBlueprints: public SCompoundWidget
@@ -231,8 +233,6 @@ public:
 	/** Focuses this widget's search box, and changes the mode as well, and optionally the search terms */
 	void FocusForUse(bool bSetFindWithinBlueprint, FString NewSearchTerms = FString(), bool bSelectFirstResult = false);
 
-	/** Called when caching Blueprints is complete, if this widget initiated the indexing */
-	void OnCacheComplete();
 private:
 
 	/** Register any Find-in-Blueprint commands */
@@ -245,10 +245,10 @@ private:
 	void OnSearchTextCommitted(const FText& Text, ETextCommit::Type CommitType);
 
 	/** Called when the find mode checkbox is hit */
-	void OnFindModeChanged(ESlateCheckBoxState::Type CheckState);
+	void OnFindModeChanged(ECheckBoxState CheckState);
 
 	/** Called to check what the find mode is for the checkbox */
-	ESlateCheckBoxState::Type OnGetFindModeChecked() const;
+	ECheckBoxState OnGetFindModeChecked() const;
 
 	/* Get the children of a row */
 	void OnGetChildren( FSearchResult InItem, TArray< FSearchResult >& OutChildren );
@@ -274,47 +274,8 @@ private:
 	/** Returns the progress bar visiblity */
 	EVisibility GetSearchbarVisiblity() const;
 
-	/** Adds the "cache" bar at the bottom of the Find-in-Blueprints widget, to notify the user that the search is incomplete */
-	void ConditionallyAddCacheBar();
-
 	/** Callback to remove the "cache" bar when a button is pressed */
 	FReply OnRemoveCacheBar();
-
-	/** Callback to return the cache bar's display text, informing the user of the situation */
-	FText GetUncachedBlueprintWarningText() const;
-
-	/** Callback to return the cache bar's current indexing Blueprint name */
-	FText GetCurrentCacheBlueprintName() const;
-
-	/** Callback to cache all uncached Blueprints */
-	FReply OnCacheAllBlueprints();
-
-	/** Callback to cancel the caching process */
-	FReply OnCancelCacheAll();
-
-	/** Retrieves the current index of the Blueprint caching process */
-	int32 GetCurrentCacheIndex() const;
-
-	/** Gets the percent complete of the caching process */
-	TOptional<float> GetPercentCompleteCache() const;
-
-	/** Returns the visibility of the caching progress bar, visible when in progress, hidden when not */
-	EVisibility GetCachingProgressBarVisiblity() const;
-
-	/** Returns the visibility of the "Cache All" button, visible when not caching, collapsed when caching is in progress */
-	EVisibility GetCacheAllButtonVisibility() const;
-
-	/** Returns the caching bar's visibility, it goes invisible when there is nothing to be cached. The next search will remove this bar or make it visible again */
-	EVisibility GetCachingBarVisibility() const;
-	
-	/** Returns the visibility of the caching Blueprint name, visible when in progress, collapsed when not */
-	EVisibility GetCachingBlueprintNameVisiblity() const;
-
-	/** Returns TRUE if Blueprint caching is in progress */
-	bool IsCacheInProgress() const;
-
-	/** Returns the color of the caching bar */
-	FSlateColor GetCachingBarColor() const;
 
 	/** Callback to build the context menu when right clicking in the tree */
 	TSharedPtr<SWidget> OnContextMenuOpening();

@@ -1,7 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "GameFramework/PhysicsVolume.h"
+#include "Engine/NavigationObjectBase.h"
+#include "Components/CapsuleComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogNavigationPoint, Log, All);
 
@@ -12,7 +14,6 @@ ANavigationObjectBase::ANavigationObjectBase(const FObjectInitializer& ObjectIni
 	CapsuleComponent->ShapeColor = FColor(255, 138, 5, 255);
 	CapsuleComponent->bDrawOnlyIfSelected = true;
 	CapsuleComponent->InitCapsuleSize(50.0f, 50.0f);
-	CapsuleComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 	CapsuleComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	CapsuleComponent->bShouldCollideWhenPlacing = true;
 	CapsuleComponent->bShouldUpdatePhysicsVolume = true;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PersonaPrivatePCH.h"
 #include "AssetSearchBoxUtilPersona.h"
@@ -9,13 +9,14 @@
 #include "DetailWidgetRow.h"
 #include "IDetailsView.h"
 #include "SAssetSearchBox.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 void SAssetSearchBoxForBones::Construct( const FArguments& InArgs, const class UObject* Outer, TSharedPtr<class IPropertyHandle> BoneNameProperty )
 {
 	check(Outer);
 
 	// get the currently chosen bone/socket, if any
-	const FString PropertyName = BoneNameProperty->GetPropertyDisplayName();
+	const FText PropertyName = BoneNameProperty->GetPropertyDisplayName();
 	FString CurValue;
 	BoneNameProperty->GetValue(CurValue);
 	if( CurValue == FString("None") )
@@ -74,7 +75,7 @@ void SAssetSearchBoxForCurves::Construct(const FArguments& InArgs, const class U
 	check(InSkeleton);
 
 	// get the currently chosen curve, if any
-	const FString PropertyName = CurveNameProperty->GetPropertyDisplayName();
+	const FText PropertyName = CurveNameProperty->GetPropertyDisplayName();
 	FString CurValue;
 	CurveNameProperty->GetValue(CurValue);
 	if (CurValue == FString("None"))

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "OnlineSessionInterface.h"
@@ -35,6 +35,9 @@ private:
 
 	// The delegate executed by the online subsystem
 	FOnDestroySessionCompleteDelegate Delegate;
+
+	// Handle to the registered OnDestroySessionComplete delegate
+	FDelegateHandle DelegateHandle;
 
 	// The world context object in which this call is taking place
 	UObject* WorldContextObject;

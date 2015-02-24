@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessUpscale.cpp: Post processing Upscale implementation.
@@ -13,14 +13,76 @@
 #include "PostProcessEyeAdaptation.h"
 #include "SceneUtils.h"
 
-static TAutoConsoleVariable<float> CVarScreenPercentageSoftness(
-	TEXT("r.ScreenPercentageSoftness"),
+static TAutoConsoleVariable<float> CVarUpscaleSoftness(
+	TEXT("r.Upscale.Softness"),
 	0.3f,
-	TEXT("To scale up with higher quality loosing some sharpness\n")
+	TEXT("To scale up with higher quality losing some sharpness\n")
 	TEXT(" 0..1 (0.3 is good for ScreenPercentage 90"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
-/** Encapsulates the post processing eye adaptation pixel shader. */
+/** Encapsulates the upscale vertex shader. */
+class FPostProcessUpscaleVS : public FPostProcessVS
+{
+	DECLARE_SHADER_TYPE(FPostProcessUpscaleVS,Global);
+
+	/** Default constructor. */
+	FPostProcessUpscaleVS() {}
+
+public:
+	FShaderParameter DistortionParams;
+
+	/** Initialization constructor. */
+	FPostProcessUpscaleVS(const ShaderMetaType::CompiledShaderInitializerType& Initializer)
+		: FPostProcessVS(Initializer)
+	{
+		DistortionParams.Bind(Initializer.ParameterMap,TEXT("DistortionParams"));
+	}
+
+	static bool ShouldCache(EShaderPlatform Platform)
+	{
+		return true;
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		FPostProcessVS::ModifyCompilationEnvironment(Platform,OutEnvironment);
+		OutEnvironment.SetDefine(TEXT("TESS_RECT_X"), FTesselatedScreenRectangleIndexBuffer::Width);
+		OutEnvironment.SetDefine(TEXT("TESS_RECT_Y"), FTesselatedScreenRectangleIndexBuffer::Height);
+	}
+
+	// @param InCylinderDistortion 0=none..1=full in percent, must be in that range
+	void SetParameters(const FRenderingCompositePassContext& Context, float InCylinderDistortion)
+	{
+		const FVertexShaderRHIParamRef ShaderRHI = GetVertexShader();
+
+		FGlobalShader::SetParameters(Context.RHICmdList, ShaderRHI, Context.View);
+
+		{
+			float HalfFOV = FMath::Atan(1.0f / Context.View.ViewMatrices.ProjMatrix.M[0][0]);
+			float TanHalfFov = 1.0f / Context.View.ViewMatrices.ProjMatrix.M[0][0];
+			float InvHalfFov = 1.0f / HalfFOV;
+
+			// compute Correction to scale Y the same as X is scaled in the center
+			float SmallX = 0.01f;
+			float Correction = atan(SmallX * TanHalfFov) * InvHalfFov / SmallX;
+
+			FVector4 Value(HalfFOV, TanHalfFov, InCylinderDistortion, Correction);
+
+			SetShaderValue(Context.RHICmdList, ShaderRHI, DistortionParams, Value);
+		}
+	}
+
+	virtual bool Serialize(FArchive& Ar)
+	{
+		bool bShaderHasOutdatedParameters = FPostProcessVS::Serialize(Ar);
+		Ar << DistortionParams;
+		return bShaderHasOutdatedParameters;
+	}
+};
+
+IMPLEMENT_SHADER_TYPE(,FPostProcessUpscaleVS,TEXT("PostProcessUpscale"),TEXT("MainVS"),SF_Vertex);
+
+/** Encapsulates the post processing upscale pixel shader. */
 template <uint32 Method>
 class FPostProcessUpscalePS : public FGlobalShader
 {
@@ -28,6 +90,12 @@ class FPostProcessUpscalePS : public FGlobalShader
 
 	static bool ShouldCache(EShaderPlatform Platform)
 	{
+		// Always allow simple bilinear upscale. (Provides upscaling for ES2 emulation)
+		if (Method == 1)
+		{
+			return true;
+		}
+
 		return IsFeatureLevelSupported(Platform, ERHIFeatureLevel::SM4);
 	}
 
@@ -67,10 +135,8 @@ public:
 		PostprocessParameter.SetPS(ShaderRHI, Context, 0, false, FilterTable);
 		DeferredParameters.Set(Context.RHICmdList, ShaderRHI, Context.View);
 
-		// If the method needs softness value
-		if(Method == 2)
 		{
-			float UpscaleSoftnessValue = FMath::Clamp(CVarScreenPercentageSoftness.GetValueOnRenderThread(), 0.0f, 1.0f);
+			float UpscaleSoftnessValue = FMath::Clamp(CVarUpscaleSoftness.GetValueOnRenderThread(), 0.0f, 1.0f);
 
 			SetShaderValue(Context.RHICmdList, ShaderRHI, UpscaleSoftness, UpscaleSoftnessValue);
 		}
@@ -107,23 +173,45 @@ VARIATION1(3)
 
 #undef VARIATION1
 
-FRCPassPostProcessUpscale::FRCPassPostProcessUpscale(uint32 InUpscaleMethod)
-	: UpscaleMethod(InUpscaleMethod)
+FRCPassPostProcessUpscale::FRCPassPostProcessUpscale(uint32 InUpscaleQuality, float InCylinderDistortion)
+	: UpscaleQuality(InUpscaleQuality)
+	, CylinderDistortion(FMath::Clamp(InCylinderDistortion, 0.0f, 1.0f))
 {
 }
 
-template <uint32 Method>
-void FRCPassPostProcessUpscale::SetShader(const FRenderingCompositePassContext& Context)
+template <uint32 Method, uint32 bTesselatedQuad>
+FShader* FRCPassPostProcessUpscale::SetShader(const FRenderingCompositePassContext& Context, float InCylinderDistortion)
 {
-	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
-	TShaderMapRef<FPostProcessUpscalePS<Method> > PixelShader(Context.GetShaderMap());
+	if(bTesselatedQuad)
+	{
+		check(InCylinderDistortion > 0.0f);
 
-	static FGlobalBoundShaderState BoundShaderState;
-	
+		TShaderMapRef<FPostProcessUpscaleVS> VertexShader(Context.GetShaderMap());
+		TShaderMapRef<FPostProcessUpscalePS<Method> > PixelShader(Context.GetShaderMap());
 
-	SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+		static FGlobalBoundShaderState BoundShaderState;
 
-	PixelShader->SetPS(Context);
+		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+		PixelShader->SetPS(Context);
+		VertexShader->SetParameters(Context, InCylinderDistortion);
+		return *VertexShader;
+	}
+	else
+	{
+		check(InCylinderDistortion == 0.0f);
+
+		TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+		TShaderMapRef<FPostProcessUpscalePS<Method> > PixelShader(Context.GetShaderMap());
+
+		static FGlobalBoundShaderState BoundShaderState;
+
+		SetGlobalBoundShaderState(Context.RHICmdList, Context.GetFeatureLevel(), BoundShaderState, GFilterVertexDeclaration.VertexDeclarationRHI, *VertexShader, *PixelShader);
+
+		PixelShader->SetPS(Context);
+		VertexShader->SetParameters(Context);
+		return *VertexShader;
+	}
 }
 
 void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
@@ -150,32 +238,48 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIRef());
 	Context.SetViewportAndCallRHI(DestRect);
 
+	bool bTessellatedQuad = CylinderDistortion >= 0.01f;
+
+	// with distortion (bTessellatedQuad) we need to clear the background
+	FIntRect ExcludeRect = bTessellatedQuad ? FIntRect() : View.ViewRect;
+
+	Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, ExcludeRect);
+
 	// set the state
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
 	Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
 	Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<false, CF_Always>::GetRHI());
 
-	switch (UpscaleMethod)
+	FShader* VertexShader = 0;
+
+	if(bTessellatedQuad)
 	{
-		case 0:
-			SetShader<0>(Context);
-		break;
-		case 1:
-			SetShader<1>(Context);
-		break;
-		case 2:
-			SetShader<2>(Context);
-		break;
-		case 3:
-			SetShader<3>(Context);
-		break;
-		default:
-			checkNoEntry();
-		break;
+		switch (UpscaleQuality)
+		{
+			case 0:	VertexShader = SetShader<0, 1>(Context, CylinderDistortion); break;
+			case 1:	VertexShader = SetShader<1, 1>(Context, CylinderDistortion); break;
+			case 2:	VertexShader = SetShader<2, 1>(Context, CylinderDistortion); break;
+			case 3:	VertexShader = SetShader<3, 1>(Context, CylinderDistortion); break;
+			default:
+				checkNoEntry();
+				break;
+		}
+	}
+	else
+	{
+		switch (UpscaleQuality)
+		{
+			case 0:	VertexShader = SetShader<0, 0>(Context); break;
+			case 1:	VertexShader = SetShader<1, 0>(Context); break;
+			case 2:	VertexShader = SetShader<2, 0>(Context); break;
+			case 3:	VertexShader = SetShader<3, 0>(Context); break;
+			default:
+				checkNoEntry();
+				break;
+		}
 	}
 
-	// Draw a quad mapping scene color to the view's render target
-	TShaderMapRef<FPostProcessVS> VertexShader(Context.GetShaderMap());
+	// Draw a quad, a triangle or a tessellated quad
 	DrawRectangle(
 		Context.RHICmdList,
 		0, 0,
@@ -184,8 +288,8 @@ void FRCPassPostProcessUpscale::Process(FRenderingCompositePassContext& Context)
 		SrcRect.Width(), SrcRect.Height(),
 		DestRect.Size(),
 		SrcSize,
-		*VertexShader,
-		EDRF_UseTriangleOptimization);
+		VertexShader,
+		bTessellatedQuad ? EDRF_UseTesselatedIndexBuffer: EDRF_UseTriangleOptimization);
 
 	Context.RHICmdList.CopyToResolveTarget(DestRenderTarget.TargetableTexture, DestRenderTarget.ShaderResourceTexture, false, FResolveParams());
 }

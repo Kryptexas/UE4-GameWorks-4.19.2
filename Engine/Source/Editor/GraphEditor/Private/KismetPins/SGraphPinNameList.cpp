@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -13,16 +13,12 @@ void SGraphPinNameList::Construct(const FArguments& InArgs, UEdGraphPin* InGraph
 
 TSharedRef<SWidget>	SGraphPinNameList::GetDefaultValueWidget()
 {
-	//Get list of name indexes
-	TArray< TSharedPtr<int32> > ComboItems;
-	GenerateComboBoxIndexes( ComboItems );
-
 	TSharedPtr<FName> CurrentlySelectedName;
-	if (NameList.Num() > 0)
+
+	if (GraphPinObj)
 	{
 		// Preserve previous selection, or set to first in list
 		FName PreviousSelection = FName(*GraphPinObj->GetDefaultAsString());
-		CurrentlySelectedName = NameList[0];
 		for (TSharedPtr<FName> ListNamePtr : NameList)
 		{
 			if (PreviousSelection == *ListNamePtr.Get())
@@ -31,14 +27,8 @@ TSharedRef<SWidget>	SGraphPinNameList::GetDefaultValueWidget()
 				break;
 			}
 		}
-		check(CurrentlySelectedName.IsValid());
-		// Ensure the pin value is synchronised with the graph pin widget
-		if( PreviousSelection != *CurrentlySelectedName.Get() )
-		{
-			GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, *CurrentlySelectedName->ToString());
-		}
 	}
-
+	
 	// Create widget
 	return SAssignNew(ComboBox, SNameComboBox)
 		.ContentPadding(FMargin(6.0f, 2.0f))
@@ -49,29 +39,12 @@ TSharedRef<SWidget>	SGraphPinNameList::GetDefaultValueWidget()
 		;
 }
 
-FString SGraphPinNameList::OnGetFriendlyName(int32 NameIndex)
-{
-	check(NameIndex < NameList.Num());
-	return NameList[NameIndex]->ToString();
-}
-
 void SGraphPinNameList::ComboBoxSelectionChanged(TSharedPtr<FName> NameItem, ESelectInfo::Type SelectInfo )
 {
-	check(NameItem.IsValid());
-	GraphPinObj->GetSchema()->TrySetDefaultValue(*GraphPinObj, *NameItem->ToString());
-}
-
-FString SGraphPinNameList::OnGetText() const 
-{
-	FString SelectedString = GraphPinObj->GetDefaultAsString();
-	return SelectedString;
-}
-
-void SGraphPinNameList::GenerateComboBoxIndexes( TArray< TSharedPtr<int32> >& OutComboBoxIndexes )
-{
-	for (int32 NameIndex = 0; NameIndex < NameList.Num(); NameIndex++)
+	FName Name = NameItem.IsValid() ? *NameItem : NAME_None;
+	if (auto Schema = (GraphPinObj ? GraphPinObj->GetSchema() : NULL))
 	{
-		TSharedPtr<int32> NameIdxPtr(new int32(NameIndex));
-		OutComboBoxIndexes.Add(NameIdxPtr);
+		Schema->TrySetDefaultValue(*GraphPinObj, *Name.ToString());
 	}
 }
+

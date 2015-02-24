@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "HTML5Cursor.h"
@@ -29,6 +29,8 @@ void FHTML5Cursor::SetPosition( const int32 X, const int32 Y )
 
 void FHTML5Cursor::SetType( const EMouseCursor::Type InNewCursor )
 {
+	CurrentType = InNewCursor;
+
 	// TODO: use .css to correctly change cursor types in javascript. 
 	if ( InNewCursor == EMouseCursor::None)
 		CursorStatus = false; 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __ActorIconFinder_h__
@@ -30,7 +30,7 @@ public:
 	/** Find the small icon name to use for the supplied class */
 	UNREALED_API static FName FindIconNameForClass(const UClass* InClass, const FName& InDefaultName = FName() );
 
-	/** Find the small icon to use for the supplied class */
+	/** Find the large thumbnail name to use for the supplied class */
 	UNREALED_API static const FSlateBrush* FindThumbnailForClass(const UClass* InClass, const FName& InDefaultName = FName() );
 
 	/** Find the large thumbnail name to use for the supplied class */

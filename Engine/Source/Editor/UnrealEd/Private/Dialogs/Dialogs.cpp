@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -24,7 +24,7 @@ class SChoiceDialog : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS( SChoiceDialog )	{}
 		SLATE_ATTRIBUTE(TSharedPtr<SWindow>, ParentWindow)
-		SLATE_ATTRIBUTE(FString, Message)	
+		SLATE_ATTRIBUTE(FText, Message)	
 		SLATE_ATTRIBUTE(float, WrapMessageAt)
 		SLATE_ATTRIBUTE(EAppMsgType::Type, MessageType)
 	SLATE_END_ARGS()
@@ -224,7 +224,7 @@ protected:
 	 */
 	void CopyMessageToClipboard( )
 	{
-		FPlatformMisc::ClipboardCopy( *MyMessage.Get() );
+		FPlatformMisc::ClipboardCopy( *MyMessage.Get().ToString() );
 	}
 
 
@@ -257,7 +257,7 @@ private:
 
 	EAppReturnType::Type Response;
 	TSharedPtr<SWindow> ParentWindow;
-	TAttribute<FString> MyMessage;
+	TAttribute<FText> MyMessage;
 };
 
 
@@ -272,7 +272,7 @@ void CreateMsgDlgWindow(TSharedPtr<SWindow>& OutWindow, TSharedPtr<SChoiceDialog
 
 	OutDialog = SNew(SChoiceDialog)
 		.ParentWindow(OutWindow)
-		.Message(InMessage.ToString())
+		.Message(InMessage)
 		.WrapMessageAt(512.0f)
 		.MessageType(InMessageType);
 
@@ -312,7 +312,7 @@ class SModalDialog : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS( SModalDialog ){}
-		SLATE_ARGUMENT(FString,Message)
+		SLATE_ARGUMENT(FText,Message)
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs )
@@ -374,7 +374,7 @@ public:
 	{
 		if (InKeyEvent.GetKey() == EKeys::C && InKeyEvent.IsControlDown())
 		{
-			FPlatformMisc::ClipboardCopy( *MyMessage.Get() );
+			FPlatformMisc::ClipboardCopy( *MyMessage.Get().ToString() );
 			return FReply::Handled();
 		}
 		return FReply::Unhandled();
@@ -398,7 +398,7 @@ private:
 
 	TSharedPtr<SWindow> MyWindow;
 	bool bUserResponse;
-	TAttribute<FString> MyMessage;
+	TAttribute<FText> MyMessage;
 };
 
 /**
@@ -521,7 +521,7 @@ public:
 		.AutoWidth()
 		[
 			SNew(SCheckBox)
-			.IsChecked(InArgs._bDefaultCheckValue ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+			.IsChecked(InArgs._bDefaultCheckValue ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 			.OnCheckStateChanged(this, &SModalDialogWithCheckbox::OnCheckboxClicked)
 			.Visibility(this, &SModalDialogWithCheckbox::GetCheckboxVisibility)
 			[
@@ -622,9 +622,9 @@ private:
 	}
 
 	/** Used as a delegate for the Checkboxs OnClicked method */
-	void OnCheckboxClicked(ESlateCheckBoxState::Type InNewState)
+	void OnCheckboxClicked(ECheckBoxState InNewState)
 	{
-		bCheckboxResult = InNewState == ESlateCheckBoxState::Checked;
+		bCheckboxResult = InNewState == ECheckBoxState::Checked;
 	}
 
 	/** Used as a delegate for the Checkboxs Visibile method */

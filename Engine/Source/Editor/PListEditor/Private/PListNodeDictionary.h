@@ -1,9 +1,6 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#ifndef __PListNodeDictionary_h__
-#define __PlistNodeDictionary_h__
 
 #include "PListNode.h"
 
@@ -91,5 +88,3 @@ private:
 	/** Filtered Status */
 	bool bFiltered;
 };
-
-#endif

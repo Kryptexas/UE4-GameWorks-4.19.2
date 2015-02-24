@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnvironmentQueryEditorPrivatePCH.h"
 #include "EnvQueryParamSetupCustomization.h"
@@ -154,7 +154,7 @@ void FEnvQueryParamSetupCustomization::OnParamNameCommitted(const FText& ParamNa
 	LastPropName = (NameValue != NAME_None) ? NameValue : FName(TEXT("unknown"));
 }
 
-ESlateCheckBoxState::Type FEnvQueryParamSetupCustomization::GetParamBoolValue() const
+ECheckBoxState FEnvQueryParamSetupCustomization::GetParamBoolValue() const
 {
 	if (ParamType == EEnvQueryParam::Bool)
 	{
@@ -162,32 +162,32 @@ ESlateCheckBoxState::Type FEnvQueryParamSetupCustomization::GetParamBoolValue() 
 		FPropertyAccess::Result PropResult = ValueProp->GetValue(BoolValue);
 		if (PropResult == FPropertyAccess::Success)
 		{
-			return BoolValue ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return BoolValue ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 	}
 	
-	return ESlateCheckBoxState::Undetermined;
+	return ECheckBoxState::Undetermined;
 }
 
-void FEnvQueryParamSetupCustomization::OnParamBoolValueChanged(ESlateCheckBoxState::Type BoolValue) const
+void FEnvQueryParamSetupCustomization::OnParamBoolValueChanged(ECheckBoxState BoolValue) const
 {
 	if (ParamType == EEnvQueryParam::Bool)
 	{
-		const bool StoreValue = (BoolValue == ESlateCheckBoxState::Checked);
+		const bool StoreValue = (BoolValue == ECheckBoxState::Checked);
 		ValueProp->SetValue(StoreValue);
 	}
 }
 
-FString FEnvQueryParamSetupCustomization::GetComboText() const
+FText FEnvQueryParamSetupCustomization::GetComboText() const
 {
-	return bIsNamed ? FString("NAMED") : FString("VALUE");
+	return bIsNamed ? LOCTEXT("NamedLabel", "NAMED") : LOCTEXT("ValueLabel", "VALUE");
 }
 
-FString FEnvQueryParamSetupCustomization::GetComboTooltip() const
+FText FEnvQueryParamSetupCustomization::GetComboTooltip() const
 {
 	return bIsNamed ?
-		LOCTEXT("NamedTooltip","Value will be provided by named parameter, press to switch into direct mode.").ToString() :
-		LOCTEXT("ValueTooltip","Direct value of property, press to switch into parameter mode.").ToString();
+		LOCTEXT("NamedTooltip","Value will be provided by named parameter, press to switch into direct mode.") :
+		LOCTEXT("ValueTooltip","Direct value of property, press to switch into parameter mode.");
 }
 
 FReply FEnvQueryParamSetupCustomization::ToggleMode()

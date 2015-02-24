@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -25,7 +25,6 @@ Low level includes.
 #include "MemoryOps.h"							// Functions for efficient handling of object arrays.
 
 #include "Misc/CoreDefines.h"
-
 // Container forward declarations
 #include "Containers/ContainerAllocationPolicies.h"
 
@@ -94,3 +93,4 @@ Includes.
 #include "CustomVersion.h"				// Custom versioning system.
 #include "MonitoredProcess.h"
 #include "Misc/DisableOldUETypes.h"
+#include "Misc/App.h"

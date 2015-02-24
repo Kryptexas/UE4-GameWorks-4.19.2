@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnObjGC.cpp: Unreal object garbage collection code.
@@ -7,6 +7,7 @@
 #include "CoreUObjectPrivate.h"
 #include "TaskGraphInterfaces.h"
 #include "IConsoleManager.h"
+#include "LinkerPlaceholderClass.h"
 
 /*-----------------------------------------------------------------------------
    Garbage collection.
@@ -949,10 +950,9 @@ void IncrementalPurgeGarbage( bool bUseTimeLimit, float TimeLimit )
 				GGCObjectsPendingDestruction.Empty( 256 );
 
 				// Destroy has been routed to all objects so it's safe to delete objects now.
-				GObjFinishDestroyHasBeenRoutedToAllObjects		= true;
-				GObjCurrentPurgeObjectIndexNeedsReset			= true;
-				GObjCurrentPurgeObjectIndexResetPastPermanent	= true;
-
+				GObjFinishDestroyHasBeenRoutedToAllObjects = true;
+				GObjCurrentPurgeObjectIndexNeedsReset = true;
+				GObjCurrentPurgeObjectIndexResetPastPermanent = !GExitPurge;
 			}
 		}
 	}		
@@ -1214,7 +1214,8 @@ void UObject::AddReferencedObjects(UObject* This, FReferenceCollector& Collector
 
 		// Serialize object properties which are defined in the class.
 		// Note: This check is intentionally excluding UClass objects but including subclasses like UBlueprintGeneratedClass
-		if (Class != UClass::StaticClass())
+		// @TODO: is it right to also exclude ULinkerPlaceholderClass here (it was causing a crash in here).
+		if (Class != UClass::StaticClass() && Class != ULinkerPlaceholderClass::StaticClass())
 		{
 			// Script properties
 			FSimpleObjectReferenceCollectorArchive ObjectReferenceCollector( This, Collector );
@@ -1613,7 +1614,7 @@ void UClass::AssembleReferenceTokenStream()
 		}
 
 		// Emit end of stream token.
-		const FName EOSDebugName("EOS");
+		static const FName EOSDebugName("EOS");
 		EmitObjectReference(0, EOSDebugName, GCRT_EndOfStream);
 
 		// Shrink reference token stream to proper size.

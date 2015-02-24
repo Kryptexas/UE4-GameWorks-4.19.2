@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -636,8 +636,8 @@ private:
 	/** Menu extender for right-click context menu */
 	TSharedPtr<FExtender> MenuExtender;
 
-	/** Weak pointer to context menu window that's currently open, if there is one */
-	TWeakPtr< SWindow > ContextMenuWindow;
+	/** Information about any active context menu widgets */
+	FActiveTextEditContextMenu ActiveContextMenu;
 
 	/** Implemented context object for text input method systems. */
 	TSharedPtr<FTextInputMethodContext> TextInputMethodContext;

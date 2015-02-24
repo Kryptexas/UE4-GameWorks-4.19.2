@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Misc/TextFilter.h"
@@ -69,7 +69,7 @@ private:
 	void TransformWidgetViewModelToString(TSharedPtr<FWidgetViewModel> WidgetViewModel, OUT TArray< FString >& Array);
 
 	/** Requests a rebuild of the widget list if a widget blueprint was compiled */
-	void HandleOnBlueprintCompiled(UBlueprint* Blueprint);
+	void OnBlueprintReinstanced();
 
 	/** Requests a rebuild of the widget list */
 	void HandleOnHotReload(bool bWasTriggeredAutomatically);

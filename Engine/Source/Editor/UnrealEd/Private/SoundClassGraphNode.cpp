@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SoundClassGraphNode.cpp
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "Sound/SoundClass.h"
 
 #define LOCTEXT_NAMESPACE "SoundClassGraphNode"
 

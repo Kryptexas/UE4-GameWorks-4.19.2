@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MainFramePrivatePCH.h"
 
@@ -166,30 +166,35 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 		TabManager->PopulateTabSpawnerMenu(MenuBuilder, MenuStructure.GetStructureRoot());
 	}
 
+	MenuBuilder.BeginSection("WindowGlobalTabSpawners");
+	{
+		MenuBuilder.AddMenuEntry(
+			LOCTEXT("ProjectLauncherLabel", "Project Launcher"),
+			LOCTEXT("ProjectLauncherToolTip", "The Project Launcher provides advanced workflows for packaging, deploying and launching your projects."),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "Launcher.TabIcon"),
+			FUIAction(FExecuteAction::CreateStatic(&FMainMenu::OpenProjectLauncher))
+			);
+
+		//@todo The tab system needs to be able to be extendable by plugins [9/3/2013 Justin.Sargent]
+		if (IModularFeatures::Get().IsModularFeatureAvailable(EditorFeatures::PluginsEditor))
+		{
+			FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, "PluginsEditor");
+		}
+	}
+	MenuBuilder.EndSection();
+
 	{
 		// This is a temporary home for the spawners of experimental features that must be explicitly enabled.
 		// When the feature becomes permanent and need not check a flag, register a nomad spawner for it in the proper WorkspaceMenu category
-		bool bProjectLauncher = GetDefault<UEditorExperimentalSettings>()->bProjectLauncher;
 		bool bMessagingDebugger = GetDefault<UEditorExperimentalSettings>()->bMessagingDebugger;
 		bool bBlutility = GetDefault<UEditorExperimentalSettings>()->bEnableEditorUtilityBlueprints;
 		bool bTranslationEditor = GetDefault<UEditorExperimentalSettings>()->bEnableTranslationEditor;
 
 		// Make sure at least one is enabled before creating the section
-		if (bProjectLauncher || bMessagingDebugger || bBlutility || bTranslationEditor)
+		if (bMessagingDebugger || bBlutility || bTranslationEditor)
 		{
 			MenuBuilder.BeginSection("ExperimentalTabSpawners", LOCTEXT("ExperimentalTabSpawnersHeading", "Experimental"));
 			{
-				// Project Launcher
-				if (bProjectLauncher)
-				{
-					MenuBuilder.AddMenuEntry(
-						LOCTEXT("ProjectLauncherLabel", "Project Launcher"),
-						LOCTEXT("ProjectLauncherToolTip", "The Project Launcher provides advanced workflows for packaging, deploying and launching your projects."),
-						FSlateIcon(FEditorStyle::GetStyleSetName(), "Launcher.TabIcon"),
-						FUIAction(FExecuteAction::CreateStatic(&FMainMenu::OpenProjectLauncher))
-						);
-				}
-
 				// Messaging Debugger
 				if (bMessagingDebugger)
 				{
@@ -225,16 +230,6 @@ void FMainMenu::FillWindowMenu( FMenuBuilder& MenuBuilder, const TSharedRef< FEx
 			MenuBuilder.EndSection();
 		}
 	}
-
-	MenuBuilder.BeginSection("WindowGlobalTabSpawners");
-	{
-		//@todo The tab system needs to be able to be extendable by plugins [9/3/2013 Justin.Sargent]
-		if (IModularFeatures::Get().IsModularFeatureAvailable(EditorFeatures::PluginsEditor ) )
-		{
-			FGlobalTabmanager::Get()->PopulateTabSpawnerMenu(MenuBuilder, "PluginsEditor");
-		}
-	}
-	MenuBuilder.EndSection();
 
 	MenuBuilder.BeginSection("WindowLayout", NSLOCTEXT("MainAppMenu", "LayoutManagementHeader", "Layout"));
 	{

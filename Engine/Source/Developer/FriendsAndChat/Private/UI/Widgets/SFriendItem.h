@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,7 +8,7 @@ public:
 	SLATE_USER_ARGS(SFriendItem)
 	{ }
 	SLATE_ARGUMENT( const FFriendsAndChatStyle*, FriendStyle )
-	SLATE_ARGUMENT(SMenuAnchor::EMethod, Method)
+	SLATE_ARGUMENT(EPopupMethod, Method)
 	SLATE_END_ARGS()
 
 	/**

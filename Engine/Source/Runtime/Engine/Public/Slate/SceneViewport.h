@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __SLATE_VIEWPORT_H__
@@ -33,10 +33,7 @@ public:
 	virtual void ShowSoftwareCursor( bool bVisible ) override { bIsSoftwareCursorVisible = bVisible; }
 	virtual void SetSoftwareCursorPosition( FVector2D Position ) override { SoftwareCursorPosition = Position; }
 	virtual bool IsSoftwareCursorVisible() const override { return bIsSoftwareCursorVisible; }
-	virtual FVector2D GetSoftwareCursorPosition() const override
-	{
-		return SoftwareCursorPosition;
-	}
+	virtual FVector2D GetSoftwareCursorPosition() const override { return SoftwareCursorPosition; }
 	virtual FCanvas* GetDebugCanvas() override;
 
 	/**
@@ -188,6 +185,7 @@ public:
 	virtual FSlateShaderResource* GetViewportRenderTargetTexture() const override;
 	virtual void OnDrawViewport( const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) override;
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) override;
+	virtual TOptional<TSharedRef<SWidget>> OnMapCursor(const FCursorReply& CursorReply) override;
 	virtual FReply OnMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual FReply OnMouseButtonUp( const FGeometry& InGeometry, const FPointerEvent& MouseEvent ) override;
 	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent ) override;
@@ -200,6 +198,8 @@ public:
 	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent ) override;
 	virtual FReply OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& InGestureEvent ) override;
 	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent ) override;
+	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const override;
+	virtual TOptional<bool> OnQueryShowFocus(const EFocusCause InFocusCause) const override;
 	virtual void OnFinishedPointerInput() override;
 	virtual FReply OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
 	virtual FReply OnKeyUp( const FGeometry& InGeometry, const FKeyEvent& InKeyEvent ) override;
@@ -212,6 +212,10 @@ public:
 	
 	void SetViewportSize(uint32 NewSizeX,uint32 NewSizeY);
 	TSharedPtr<SWindow> FindWindow();
+
+	/** Should return true, if stereo rendering is allowed in this viewport */
+	virtual bool IsStereoRenderingAllowed() const;
+
 private:
 	/**
 	 * Called when this viewport is destroyed

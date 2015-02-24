@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "StatsViewerPrivatePCH.h"
 #include "StatsCustomColumn.h"
@@ -60,7 +60,7 @@ TSharedPtr< SWidget > FStatsCustomColumn::CreateColumnLabel( const TSharedRef< I
 			[
 				SNew( STextBlock )
 				.Font( FEditorStyle::GetFontStyle( Style ) )
-				.Text( Column->GetDisplayName().ToString() )
+				.Text( Column->GetDisplayName() )
 			]
 			+SVerticalBox::Slot()
 			.AutoHeight()
@@ -79,7 +79,7 @@ TSharedPtr< SWidget > FStatsCustomColumn::CreateColumnLabel( const TSharedRef< I
 			[
 				SNew( STextBlock )
 				.Font( FEditorStyle::GetFontStyle( Style ) )
-				.Text( Column->GetDisplayName().ToString() )
+				.Text( Column->GetDisplayName() )
 			];
 	}
 }

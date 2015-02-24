@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "RangeStructCustomization.h"
@@ -339,7 +339,7 @@ bool FRangeStructCustomization<NumericType>::ShouldAllowSpin() const
 template <typename NumericType>
 TSharedRef<SWidget> FRangeStructCustomization<NumericType>::OnGenerateComboWidget(TSharedPtr<FString> InComboString)
 {
-	FString ToolTip;
+	FText ToolTip;
 
 	// A list of tool tips should have been populated in a 1 to 1 correspondence
 	check(ComboBoxList.Num() == ComboBoxToolTips.Num());
@@ -349,7 +349,7 @@ TSharedRef<SWidget> FRangeStructCustomization<NumericType>::OnGenerateComboWidge
 		int32 Index = ComboBoxList.IndexOfByKey(InComboString);
 		if (ensure(Index >= 0))
 		{
-			ToolTip = *ComboBoxToolTips[Index];
+			ToolTip = ComboBoxToolTips[Index];
 		}
 	}
 
@@ -358,7 +358,7 @@ TSharedRef<SWidget> FRangeStructCustomization<NumericType>::OnGenerateComboWidge
 		.WidthOverride(150.0f)
 		[
 			SNew(STextBlock)
-			.Text(*InComboString)
+			.Text(FText::FromString(*InComboString))
 			.ToolTipText(ToolTip)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.IsEnabled(true)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ShaderCompilerCommon.h"
 #include "hlslcc.h"
@@ -75,7 +75,7 @@ static const int VersionTable[HCT_InvalidTarget] =
 	310,
 	430,
 	150,
-	150,
+	430,
 };
 
 /**
@@ -170,10 +170,14 @@ int HlslCrossCompile(
 		return 0;
 	}
 
-//@todo-rco: Support compute on ES 3_1
-	if (bIsES && InShaderFrequency != HSF_VertexShader && InShaderFrequency != HSF_PixelShader)
+	if (bIsES2 && InShaderFrequency != HSF_VertexShader && InShaderFrequency != HSF_PixelShader)
 	{
-		// ES only supports VS & PS currently
+		// ES 2 only supports VS & PS
+		return 0;
+	}
+	else if (bIsES3_1 && InShaderFrequency != HSF_VertexShader && InShaderFrequency != HSF_PixelShader && InShaderFrequency != HSF_ComputeShader)
+	{
+		// ES 3.1 supports VS, PS & CS
 		return 0;
 	}
 
@@ -263,7 +267,7 @@ int HlslCrossCompile(
 		}
 	}
 
-	if (bIsES)
+	if (bIsES2)
 	{
 		ParseState->es_shader = true;
 		ParseState->language_version = 100;

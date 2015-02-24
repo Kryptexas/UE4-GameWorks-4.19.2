@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "HttpPrivatePCH.h"
 #include "HttpWinInet.h"
@@ -920,13 +920,13 @@ void FHttpResponseWinInet::ProcessResponse()
 			&ResponsePayload[TotalBytesRead], 
 			NumBytesToRead, 
 			(LPDWORD)&AsyncBytesRead);
+		const int32 ErrorCode = GetLastError();
 
-		DEBUG_LOG_HTTP(bDebugLog, VeryVerbose, TEXT("InternetReadFile result=%d (%u bytes read) (%u bytes total read) (%u bytes to read). LoopCount=%d %p"), 
-			bReadFile, AsyncBytesRead, TotalBytesRead, NumBytesToRead, LoopCount, &Request);
+		DEBUG_LOG_HTTP(bDebugLog, VeryVerbose, TEXT("InternetReadFile result=%d error=%d (%u bytes read) (%u bytes total read) (%u bytes to read). LoopCount=%d %p"), 
+			bReadFile, ErrorCode, AsyncBytesRead, TotalBytesRead, NumBytesToRead, LoopCount, &Request);
 
 		if (!bReadFile)
 		{
-			int32 ErrorCode = GetLastError();
 			if (ErrorCode == ERROR_IO_PENDING)
 			{
 				// Chunked responses could cause InternetReadFile to return IO_PENDING, in which

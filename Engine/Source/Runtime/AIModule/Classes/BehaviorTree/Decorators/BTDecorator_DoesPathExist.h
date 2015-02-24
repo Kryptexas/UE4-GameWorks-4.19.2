@@ -1,8 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "BehaviorTree/BTDecorator.h"
 #include "BTDecorator_DoesPathExist.generated.h"
+
+class UNavigationQueryFilter;
 
 UENUM()
 namespace EPathExistanceQueryType
@@ -28,11 +30,11 @@ protected:
 
 	/** blackboard key selector */
 	UPROPERTY(EditAnywhere, Category=Condition)
-	struct FBlackboardKeySelector BlackboardKeyA;
+	FBlackboardKeySelector BlackboardKeyA;
 
 	/** blackboard key selector */
 	UPROPERTY(EditAnywhere, Category=Condition)
-	struct FBlackboardKeySelector BlackboardKeyB;
+	FBlackboardKeySelector BlackboardKeyB;
 
 public:
 
@@ -45,9 +47,9 @@ public:
 
 	/** "None" will result in default filter being used */
 	UPROPERTY(Category=Node, EditAnywhere)
-	TSubclassOf<class UNavigationQueryFilter> FilterClass;
+	TSubclassOf<UNavigationQueryFilter> FilterClass;
 
-	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const override;
+	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
 	virtual FString GetStaticDescription() const override;
 	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,20 +27,6 @@ namespace EInAppPurchaseResult
         Cancelled,
     };
 }
-
-/**
- * IOS implementation of the Platform Purchase receipt. For this we provide an identifier and the encrypted data.
- */
-class FIOSPurchaseReceipt : public IPlatformPurchaseReceipt
-{
-public:
-    // Product identifier
-    FString Identifier;
-    
-    // The encrypted receipt data
-    FString Data;
-};
-
 
 
 /** Helper class, which allows us to manage IAP product information requests, AND transactions */
@@ -76,7 +62,7 @@ public:
 
 	// Begin IOnlineStore interface
 	virtual bool QueryForAvailablePurchases(const TArray<FString>& ProductIDs, FOnlineProductInformationReadRef& InReadObject) override;
-	virtual bool BeginPurchase(const FString& ProductId, FOnlineInAppPurchaseTransactionRef& InReadObject) override;
+	virtual bool BeginPurchase(const FInAppPurchaseProductRequest& ProductRequest, FOnlineInAppPurchaseTransactionRef& InReadObject) override;
 	virtual bool IsAllowedToMakePurchases() override;
 	// End IOnlineStore interface
 

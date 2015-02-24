@@ -1,16 +1,22 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+
 /** Rotation matrix no translation */
-class FRotationMatrix : public FRotationTranslationMatrix
+class FRotationMatrix
+	: public FRotationTranslationMatrix
 {
 public:
-	/** Constructor
+
+	/**
+	 * Constructor.
 	 *
 	 * @param Rot rotation
 	 */
-	FRotationMatrix(const FRotator& Rot) : FRotationTranslationMatrix(Rot, FVector::ZeroVector)	{}
+	FRotationMatrix(const FRotator& Rot)
+		: FRotationTranslationMatrix(Rot, FVector::ZeroVector)
+	{ }
 
 	/** Matrix factory. Return an FMatrix so we don't have type conversion issues in expressions. */
 	static FMatrix Make(FRotator const& Rot)

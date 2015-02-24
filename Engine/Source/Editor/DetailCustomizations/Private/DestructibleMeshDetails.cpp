@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "DestructibleMeshDetails.h"
 #include "ScopedTransaction.h"
 #include "ObjectEditorUtils.h"
 #include "IDocumentation.h"
+#include "Engine/DestructibleMesh.h"
 
 #define LOCTEXT_NAMESPACE "DestructibleMeshDetails"
 
@@ -15,7 +16,7 @@ TSharedRef<IDetailCustomization> FDestructibleMeshDetails::MakeInstance()
 
 void AddStructToDetails(FName CategoryName, FName PropertyName, IDetailLayoutBuilder& DetailBuilder, bool bInline = true, bool bAdvanced = false)
 {
-	IDetailCategoryBuilder& Category = DetailBuilder.EditCategory(CategoryName, TEXT(""), ECategoryPriority::Important);
+	IDetailCategoryBuilder& Category = DetailBuilder.EditCategory(CategoryName, FText::GetEmpty(), ECategoryPriority::Important);
 	TSharedPtr<IPropertyHandle> Params = DetailBuilder.GetProperty(PropertyName);
 	if (Params.IsValid())
 	{
@@ -42,14 +43,14 @@ void AddStructToDetails(FName CategoryName, FName PropertyName, IDetailLayoutBui
 void FDestructibleMeshDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
 		//we always hide bodysetup as it's not useful in this editor
-		TSharedPtr<IPropertyHandle> BodySetupHandler = DetailBuilder.GetProperty("BodySetup");
+		TSharedPtr<IPropertyHandle> BodySetupHandler = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UDestructibleMesh, BodySetup));
 		if (BodySetupHandler.IsValid())
 		{
 			DetailBuilder.HideProperty(BodySetupHandler);
 		}
 		
 		//rest of customization is just moving stuff out of DefaultDestructibleParameters so it's nicer to view
-		TSharedPtr<IPropertyHandle> DefaultParams = DetailBuilder.GetProperty("DefaultDestructibleParameters");
+		TSharedPtr<IPropertyHandle> DefaultParams = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UDestructibleMesh, DefaultDestructibleParameters));
 		if (DefaultParams.IsValid() == false)
 		{
 			return;

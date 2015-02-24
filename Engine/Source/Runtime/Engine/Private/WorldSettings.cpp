@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/AssetUserData.h"
@@ -11,6 +11,7 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 #include "Particles/ParticleEventManager.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 #define LOCTEXT_NAMESPACE "ErrorChecking"
 
@@ -31,7 +32,7 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 	bEnableWorldBoundsChecks = true;
 	bEnableNavigationSystem = true;
 	bEnableWorldComposition = false;
-	bEnableWorldOriginRebasing = true;
+	bEnableWorldOriginRebasing = false;
 
 	KillZ = -HALF_WORLD_MAX1;
 	KillZDamageType = ConstructorStatics.DmgType_Environmental_Object.Object;
@@ -56,15 +57,6 @@ AWorldSettings::AWorldSettings(const FObjectInitializer& ObjectInitializer)
 	VisibilityCellSize = 200;
 	VisibilityAggressiveness = VIS_LeastAggressive;
 	LevelLightingQuality = Quality_MAX;
-
-	UStaticMeshComponent* StaticMeshComponent = ObjectInitializer.CreateDefaultSubobject<UStaticMeshComponent>(this, TEXT("StaticMeshComponent0"));
-	StaticMeshComponent->bHiddenInGame = true;
-	StaticMeshComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
-	StaticMeshComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
-	StaticMeshComponent->PostPhysicsComponentTick.bCanEverTick = false;
-	StaticMeshComponent->Mobility = EComponentMobility::Static;
-
-	RootComponent = StaticMeshComponent;
 
 #if WITH_EDITORONLY_DATA
 	bActorLabelEditable = false;
@@ -238,7 +230,14 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 
 		if (PropertyThatChanged->GetName()==TEXT("bEnableWorldComposition"))
 		{
-			EnabledWorldComposition(bEnableWorldComposition);
+			if (UWorldComposition::EnableWorldCompositionEvent.IsBound())
+			{
+				bEnableWorldComposition = UWorldComposition::EnableWorldCompositionEvent.Execute(GetWorld(), bEnableWorldComposition);
+			}
+			else
+			{
+				bEnableWorldComposition = false;
+			}
 		}
 	}
 
@@ -259,7 +258,7 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 	// Ensure texture size is power of two between 512 and 4096.
 	PackedLightAndShadowMapTextureSize = FMath::Clamp<uint32>( FMath::RoundUpToPowerOfTwo( PackedLightAndShadowMapTextureSize ), 512, 4096 );
 
-	if (GetWorld()->PersistentLevel->GetWorldSettings() == this)
+	if (GetWorld() != nullptr && GetWorld()->PersistentLevel->GetWorldSettings() == this)
 	{
 		if (GIsEditor)
 		{
@@ -268,38 +267,6 @@ void AWorldSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
-}
-
-void AWorldSettings::EnabledWorldComposition(bool bEnable)
-{
-	bEnableWorldComposition = false;
-
-	if (!bEnable)
-	{
-		if (GetWorld()->WorldComposition != nullptr)
-		{
-			GetWorld()->WorldComposition = nullptr;
-			GetWorld()->StreamingLevels.Empty();
-			GetWorld()->FlushLevelStreaming();
-
-			UWorldComposition::OnWorldCompositionDestroyed.Broadcast(GetWorld());
-		}
-	}
-	else
-	{
-		FString RootPackageName = GetOutermost()->GetName();
-
-		if (GetWorld()->WorldComposition == nullptr && FPackageName::DoesPackageExist(RootPackageName))
-		{
-			GetWorld()->StreamingLevels.Empty();
-			GetWorld()->FlushLevelStreaming();
-			GetWorld()->WorldComposition = ConstructObject<UWorldComposition>(UWorldComposition::StaticClass(), GetWorld());
-			
-			bEnableWorldComposition = true;
-
-			UWorldComposition::OnWorldCompositionCreated.Broadcast(GetWorld());
-		}
-	}
 }
 
 #endif // WITH_EDITOR

@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FunctionalTestingPrivatePCH.h"
 #include "ObjectEditorUtils.h"
@@ -11,6 +11,7 @@ AFunctionalAITest::AFunctionalAITest( const FObjectInitializer& ObjectInitialize
 	, CurrentSpawnSetIndex(INDEX_NONE)
 	, bSingleSetRun(false)
 {
+	SpawnLocationRandomizationRange = 0.f;
 }
 
 bool AFunctionalAITest::IsOneOfSpawnedPawns(AActor* Actor)
@@ -53,6 +54,8 @@ bool AFunctionalAITest::StartTest(const TArray<FString>& Params)
 {
 	KillOffSpawnedPawns();
 	ClearPendingDelayedSpawns();
+
+	RandomNumbersStream.Reset();
 
 	bSingleSetRun = Params.Num() > 0;
 	if (bSingleSetRun)
@@ -209,6 +212,11 @@ void AFunctionalAITest::AddSpawnedPawn(APawn& SpawnedPawn)
 	OnAISpawned.Broadcast(Cast<AAIController>(SpawnedPawn.GetController()), &SpawnedPawn);
 }
 
+FVector AFunctionalAITest::GetRandomizedLocation(const FVector& Location) const
+{
+	return Location + FVector(RandomNumbersStream.FRandRange(-SpawnLocationRandomizationRange, SpawnLocationRandomizationRange), RandomNumbersStream.FRandRange(-SpawnLocationRandomizationRange, SpawnLocationRandomizationRange), 0);
+}
+
 //----------------------------------------------------------------------//
 // FAITestSpawnInfo
 //----------------------------------------------------------------------//
@@ -219,7 +227,7 @@ bool FAITestSpawnInfo::Spawn(AFunctionalAITest* AITest) const
 	bool bSuccessfullySpawned = false;
 
 	APawn* SpawnedPawn = UAIBlueprintHelperLibrary::SpawnAIFromClass(AITest->GetWorld(), PawnClass, BehaviorTree
-		, SpawnLocation->GetActorLocation()
+		, AITest->GetRandomizedLocation(SpawnLocation->GetActorLocation())
 		, SpawnLocation->GetActorRotation()
 		, /*bNoCollisionFail=*/true);
 
@@ -241,6 +249,17 @@ bool FAITestSpawnInfo::Spawn(AFunctionalAITest* AITest) const
 	}
 	else
 	{
+		IGenericTeamAgentInterface* TeamAgent = Cast<IGenericTeamAgentInterface>(SpawnedPawn);
+		if (TeamAgent == nullptr)
+		{
+			TeamAgent = Cast<IGenericTeamAgentInterface>(SpawnedPawn->GetController());
+		}
+
+		if (TeamAgent != nullptr)
+		{
+			TeamAgent->SetGenericTeamId(TeamID);
+		}
+
 		AITest->AddSpawnedPawn(*SpawnedPawn);
 		bSuccessfullySpawned = true;
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,6 +19,7 @@ struct FCAQuery
 	TArray<FHitResult>			TouchAllResults;
 	int32						FrameNum;
 	float						CPUTime; /** In ms */
+	int32						ID;
 };
 
 /** Actual implementation of CollisionAnalyzer, private inside module */

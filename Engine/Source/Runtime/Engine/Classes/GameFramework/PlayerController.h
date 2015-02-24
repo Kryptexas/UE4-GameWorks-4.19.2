@@ -1,7 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "TimerManager.h"
 #include "GameFramework/PlayerMuteList.h"
 #include "Camera/PlayerCameraManager.h"
 #include "Camera/CameraTypes.h"
@@ -11,9 +11,7 @@
 #include "GameFramework/OnlineReplStructs.h"
 #include "GameFramework/Controller.h"
 #include "Engine/LatentActionManager.h"
-#include "GenericPlatform/IForceFeedbackSystem.h"
-#include "SlateCore.h"
-
+#include "GenericPlatform/IInputInterface.h"
 #include "PlayerController.generated.h"
 
 
@@ -63,10 +61,10 @@ struct ENGINE_API FInputModeDataBase
 {
 protected:
 	/** Derived classes override this function to apply the necessary settings for the desired input mode */
-	virtual void ApplyInputMode(FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const = 0;
+	virtual void ApplyInputMode(class FReply& SlateOperations, class UGameViewportClient& GameViewportClient) const = 0;
 
 	/** Utility functions for derived classes. */
-	void SetFocusAndLocking(FReply& SlateOperations, TSharedPtr<SWidget> InWidgetToFocus, bool bLockMouseToViewport, TSharedRef<class SViewport> InViewportWidget) const;
+	void SetFocusAndLocking(FReply& SlateOperations, TSharedPtr<class SWidget> InWidgetToFocus, bool bLockMouseToViewport, TSharedRef<class SViewport> InViewportWidget) const;
 
 	friend class APlayerController;
 };
@@ -144,7 +142,7 @@ protected:
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Controller/PlayerController/
  */
 
-UCLASS(config=Game, BlueprintType, Blueprintable)
+UCLASS(config=Game, BlueprintType, Blueprintable, meta=(ShortTooltip="A Player Controller is an actor responsible for controlling a Pawn used by the player."))
 class ENGINE_API APlayerController : public AController
 {
 	GENERATED_UCLASS_BODY()
@@ -648,10 +646,6 @@ public:
 	UFUNCTION(Reliable, Client)
 	void ClientIgnoreMoveInput(bool bIgnore);
 
-	/** Informs the client of a rejected attempt to confirm an ability. */
-	UFUNCTION(Unreliable, Client)
-	void ClientNotifyRejectedAbilityConfirmation(int32 InputID);
-
 	/**
 	 * Outputs a message to HUD
 	 * @param S - message to display
@@ -679,7 +673,7 @@ public:
 	 * Play Camera Shake 
 	 * @param Shake - Camera shake animation to play
 	 * @param Scale - Scalar defining how "intense" to play the anim
-	 * @param PlaySpace - Animation play area
+	 * @param PlaySpace - Which coordinate system to play the shake in (used for CameraAnims within the shake).
 	 * @param UserPlaySpaceRot - Matrix used when PlaySpace = CAPS_UserDefined
 	 */
 	UFUNCTION(unreliable, client, BlueprintCallable, Category="Game|Feedback")
@@ -771,8 +765,8 @@ public:
 	UFUNCTION(Reliable, Client)
 	void ClientSetForceMipLevelsToBeResident(class UMaterialInterface* Material, float ForceDuration, int32 CinematicTextureGroups = 0);
 
-	/** Set the client's class of HUD */
-	UFUNCTION(Reliable, Client)
+	/** Set the client's class of HUD and spawns a new instance of it. If there was already a HUD active, it is destroyed. */
+	UFUNCTION(BlueprintCallable, Category="HUD", Reliable, Client)
 	void ClientSetHUD(TSubclassOf<class AHUD> NewHUDClass);
 
 	/** Helper to get the size of the HUD canvas for this player controller.  Returns 0 if there is no HUD */
@@ -1095,7 +1089,7 @@ private:
 	uint32 bInputEnabled:1;
 
 	/** Whether the PlayerController's voice chat is enabled. */
-	bool bSpeaking;
+	uint32 bSpeaking:1;
 
 protected:
 
@@ -1115,6 +1109,15 @@ protected:
 	UPROPERTY()
 	class UTouchInterface* CurrentTouchInterface;
 
+	/** Handle for efficient management of UnFreeze timer */
+	FTimerHandle TimerHandle_UnFreeze;
+
+private:
+	/** Handle for efficient management of DelayedPrepareMapChange timer */
+	FTimerHandle TimerHandle_DelayedPrepareMapChange;
+
+	/** Handle for efficient management of ClientCommitMapChange timer */
+	FTimerHandle TimerHandle_ClientCommitMapChange;
 
 public:
 	/** Adds an inputcomponent to the top of the input stack. */
@@ -1151,7 +1154,7 @@ public:
 	virtual void GetActorEyesViewPoint(FVector& Location, FRotator& Rotation) const override;
 	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult) override;
 	virtual void TickActor(float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction) override;
-	virtual bool IsNetRelevantFor(APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation) override;
+	virtual bool IsNetRelevantFor(const APlayerController* RealViewer, const AActor* Viewer, const FVector& SrcLocation) const override;
 	virtual void FellOutOfWorld(const class UDamageType& dmgType) override;
 	virtual void Reset() override;
 	virtual void Possess(APawn* aPawn) override;
@@ -1229,8 +1232,33 @@ public:
 	/** get audio listener position and orientation */
 	virtual void GetAudioListenerPosition(FVector& OutLocation, FVector& OutFrontDir, FVector& OutRightDir);
 
-protected:
+	/**
+	 * Used to override the default positioning of the audio listener
+	 * 
+	 * @param AttachToComponent Optional component to attach the audio listener to
+	 * @param Location Depending on whether Component is attached this is either an offset from its location or an absolute position
+	 * @param Rotation Depending on whether Component is attached this is either an offset from its rotation or an absolute rotation
+	 */
+	UFUNCTION(BlueprintCallable, Category="Game|Audio")
+	void SetAudioListenerOverride(USceneComponent* AttachToComponent, FVector Location, FRotator Rotation);
 
+	/**
+	 * Clear any overrides that have been applied to audio listener
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Game|Audio")
+	void ClearAudioListenerOverride();
+
+protected:
+	/** Whether to override the normal audio listener positioning method */
+	uint32 bOverrideAudioListener:1;
+	/** Component that is currently driving the audio listener position/orientation */
+	USceneComponent* AudioListenerComponent;
+	/** Currently overridden location of audio listener */
+	FVector AudioListenerLocationOverride;
+	/** Currently overridden rotation of audio listener */
+	FRotator AudioListenerRotationOverride;
+
+protected:
 	/** Internal. */
 	void TickPlayerInput(const float DeltaSeconds, const bool bGamePaused);
 	virtual void ProcessPlayerInput(const float DeltaTime, const bool bGamePaused);
@@ -1281,7 +1309,7 @@ public:
 	virtual void PawnLeavingGame();
 
 	/** Takes ping updates from the net driver (both clientside and serverside), and passes them on to PlayerState::UpdatePing */
-	void UpdatePing(float InPing);
+	virtual void UpdatePing(float InPing);
 
 	/**
 	 * Get next active viewable player in PlayerArray.
@@ -1497,9 +1525,6 @@ public:
 	UPROPERTY()
 	uint16		LastCompletedSeamlessTravelCount;
 
-	/** Stores the last input mode set */
-	//EInputMode  InputMode; right now we don't save this as it could be a half truth.
-
 	/** FReply used to defer some slate operations. */
-	FReply		SlateOperations;
+	TSharedPtr<class FReply> SlateOperations;
 };

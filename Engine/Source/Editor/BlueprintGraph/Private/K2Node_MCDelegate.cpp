@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "BlueprintGraphPrivatePCH.h"
 
 #include "CompilerResultsLog.h"
@@ -97,11 +97,12 @@ UFunction* UK2Node_BaseMCDelegate::GetDelegateSignature(bool bForceNotFromSkelCl
 	}
 	else if (UBlueprintGeneratedClass* BpClassOwner = Cast<UBlueprintGeneratedClass>(OwnerClass))
 	{
-		UBlueprint* DelegateBlueprint = CastChecked<UBlueprint>(BpClassOwner->ClassGeneratedBy);
+		UBlueprint* DelegateBlueprint = Cast<UBlueprint>(BpClassOwner->ClassGeneratedBy);
 		// favor the skeleton class, because the generated class may not 
 		// have the delegate yet (hasn't been compiled with it), or it could 
 		// be out of date
-		OwnerClass = DelegateBlueprint->SkeletonGeneratedClass;
+		UClass* SkeletonClass = DelegateBlueprint ? DelegateBlueprint->SkeletonGeneratedClass : nullptr;
+		OwnerClass = SkeletonClass ? SkeletonClass : OwnerClass;
 	}
 
 	FMemberReference ReferenceToUse;
@@ -212,10 +213,10 @@ void UK2Node_BaseMCDelegate::GetNodeAttributes( TArray<TKeyValuePair<FString, FS
 
 void UK2Node_BaseMCDelegate::AutowireNewNode(UEdGraphPin* FromPin)
 {
-	const UEdGraphSchema_K2* K2Schema = CastChecked<UEdGraphSchema_K2>(GetSchema());
+	const UEdGraphSchema_K2* K2Schema = Cast<UEdGraphSchema_K2>(GetSchema());
 
 	// Since nodes no longer have a sense of scope when they're placed, look at the connection we're coming from, and use that to coerce the Target pin
-	if (FromPin != nullptr)
+	if (FromPin && K2Schema)
 	{
 		bool bConnected = false;
 

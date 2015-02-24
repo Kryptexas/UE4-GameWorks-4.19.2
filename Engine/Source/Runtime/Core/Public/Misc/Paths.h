@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -266,9 +266,9 @@ public:
 	static FString GameSourceDir();
 
 	/**
-	 * @return The directory where starter content is kept
+	 * @return The directory where feature packs are kept
 	 */
-	static FString StarterContentDir();
+	static FString FeaturePackDir();
 
 	/**
 	 * Checks whether the path to the project file, if any, is set.
@@ -311,6 +311,9 @@ public:
 
 	/** @return true if this file was found, false otherwise */
 	static bool FileExists(const FString& InPath);
+
+	/** @return true if this directory was found, false otherwise */
+	static bool DirectoryExists(const FString& InPath);
 
 	/** @return true if this path represents a drive */
 	static bool IsDrive(const FString& InPath);

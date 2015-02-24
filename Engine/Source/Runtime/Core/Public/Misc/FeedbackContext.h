@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -225,8 +225,9 @@ public:
 	/**
 	 * Creates a new dialog for this slow task, if there is currently not one open
 	 * @param		bShowCancelButton		Whether to show a cancel button on the dialog or not
+	 * @param		bAllowInPIE				Whether to allow this dialog in PIE. If false, this dialog will not appear during PIE sessions.
 	 */
-	void MakeDialog(bool bShowCancelButton = false);
+	void MakeDialog(bool bShowCancelButton = false, bool bAllowInPIE = false);
 
 	/**
 	 * Indicate that we are to enter a frame that will take up the specified amount of work. Completes any previous frames (potentially contributing to parent scopes' progress).

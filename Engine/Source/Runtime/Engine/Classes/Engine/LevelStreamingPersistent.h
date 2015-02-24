@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  * LevelStreamingPersistent
@@ -17,11 +17,11 @@ class ULevelStreamingPersistent : public ULevelStreaming
 
 
 	// Begin ULevelStreaming Interface
-	virtual bool ShouldBeLoaded( const FVector& ViewLocation ) override
+	virtual bool ShouldBeLoaded() override
 	{
 		return true;
 	}
-	virtual bool ShouldBeVisible( const FVector& ViewLocation ) override
+	virtual bool ShouldBeVisible() override
 	{
 		return true;
 	}

@@ -1,15 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SPropertyMenuAssetPicker.h"
-#include "SPropertyEditorNewAsset.h"
 #include "AssetRegistryModule.h"
+#include "AssetToolsModule.h"
 #include "DelegateFilter.h"
-#include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
+#include "ContentBrowserModule.h"
 #include "PropertyEditorAssetConstants.h"
 #include "EditorStyleSet.h"
 #include "ClassIconFinder.h"
-#include "SPropertyEditorNewAsset.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
@@ -98,8 +97,6 @@ void SPropertyMenuAssetPicker::Construct( const FArguments& InArgs )
 		AssetPickerConfig.Filter.bRecursiveClasses = true;
 		// Set a delegate for setting the asset from the picker
 		AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateSP(this, &SPropertyMenuAssetPicker::OnAssetSelected);
-		// Use the smallest size thumbnails
-		AssetPickerConfig.ThumbnailScale = 0;
 		// Use the list view by default
 		AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
 		// The initial selection should be the current value
@@ -112,6 +109,8 @@ void SPropertyMenuAssetPicker::Construct( const FArguments& InArgs )
 		AssetPickerConfig.OnShouldFilterAsset = OnShouldFilterAsset;
 		// Don't allow dragging
 		AssetPickerConfig.bAllowDragging = false;
+		// Save the settings into a special section for asset pickers for properties
+		AssetPickerConfig.SaveSettingsName = TEXT("AssetPropertyPicker");
 
 		MenuContent =
 			SNew(SBox)
@@ -242,7 +241,9 @@ void SPropertyMenuAssetPicker::OnCreateNewAssetSelected(TWeakObjectPtr<UFactory>
 {
 	if (FactoryPtr.IsValid())
 	{
-		UObject* NewAsset = SPropertyEditorNewAsset::Create(FactoryPtr);
+		UFactory* FactoryInstance = DuplicateObject<UFactory>(FactoryPtr.Get(), GetTransientPackage());
+		FAssetToolsModule& AssetToolsModule = FAssetToolsModule::GetModule();
+		UObject* NewAsset = AssetToolsModule.Get().CreateAsset(FactoryInstance->GetSupportedClass(), FactoryInstance);
 		if (NewAsset != nullptr)
 		{
 			SetValue(NewAsset);

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -289,6 +289,10 @@ namespace EpicGames.MCP.Automation
             /// Matches the corresponding BuildPatchTool command line argument.
             /// </summary>
             public string FileIgnoreList;
+            /// <summary>
+            /// Matches the corresponding BuildPatchTool command line argument.
+            /// </summary>
+            public string FileAttributeList;
             /// <summary>
             /// Matches the corresponding BuildPatchTool command line argument.
             /// </summary>

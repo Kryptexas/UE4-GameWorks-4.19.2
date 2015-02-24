@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
  */
 
 #include "EnginePrivate.h"
+#include "Components/LineBatchComponent.h"
 #include "GameFramework/HUD.h"
 
 void FlushPersistentDebugLines( const UWorld* InWorld )
@@ -439,7 +440,7 @@ void DrawDebugCylinder(const UWorld* InWorld, FVector const& Start, FVector cons
 		float Angle = AngleInc;
 
 		// Default for Axis is up
-		FVector Axis = (End - Start).SafeNormal();
+		FVector Axis = (End - Start).GetSafeNormal();
 		if( Axis.IsZero() )
 		{
 			Axis = FVector(0.f, 0.f, 1.f);
@@ -583,7 +584,7 @@ void DrawDebugCone(const UWorld* InWorld, FVector const& Origin, FVector const& 
 
 		// Calculate transform for cone.
 		FVector YAxis, ZAxis;
-		FVector DirectionNorm = Direction.SafeNormal();
+		FVector DirectionNorm = Direction.GetSafeNormal();
 		DirectionNorm.FindBestAxisVectors(YAxis, ZAxis);
 		const FMatrix ConeToWorld = FScaleMatrix(FVector(Length)) * FMatrix(DirectionNorm, YAxis, ZAxis, Origin);
 
@@ -700,7 +701,7 @@ void DrawDebugFrustum(const UWorld* InWorld, const FMatrix& FrustumToWorld, FCol
 
 
 
-static void DrawHalfCircle(const UWorld* InWorld, const FVector& Base, const FVector& X, const FVector& Y, const FColor& Color, float Radius, int32 NumSides, bool bPersistentLines, float LifeTime, uint8 DepthPriority = 0)
+static void DrawHalfCircle(const UWorld* InWorld, const FVector& Base, const FVector& X, const FVector& Y, const FColor& Color, float Radius, int32 NumSides, bool bPersistentLines, float LifeTime, uint8 DepthPriority, float Thickness)
 {
 	float	AngleDelta = 2.0f * (float)PI / ((float)NumSides);
 	FVector	LastVertex = Base + X * Radius;
@@ -708,12 +709,12 @@ static void DrawHalfCircle(const UWorld* InWorld, const FVector& Base, const FVe
 	for(int32 SideIndex = 0; SideIndex < (NumSides/2); SideIndex++)
 	{
 		FVector	Vertex = Base + (X * FMath::Cos(AngleDelta * (SideIndex + 1)) + Y * FMath::Sin(AngleDelta * (SideIndex + 1))) * Radius;
-		DrawDebugLine(InWorld, LastVertex, Vertex, Color, bPersistentLines, LifeTime, DepthPriority);
+		DrawDebugLine(InWorld, LastVertex, Vertex, Color, bPersistentLines, LifeTime, DepthPriority, Thickness);
 		LastVertex = Vertex;
 	}	
 }
 
-static void DrawCircle(const UWorld* InWorld, const FVector& Base, const FVector& X, const FVector& Y, const FColor& Color, float Radius, int32 NumSides, bool bPersistentLines, float LifeTime, uint8 DepthPriority = 0)
+static void DrawCircle(const UWorld* InWorld, const FVector& Base, const FVector& X, const FVector& Y, const FColor& Color, float Radius, int32 NumSides, bool bPersistentLines, float LifeTime, uint8 DepthPriority, float Thickness)
 {
 	const float	AngleDelta = 2.0f * PI / NumSides;
 	FVector	LastVertex = Base + X * Radius;
@@ -721,12 +722,12 @@ static void DrawCircle(const UWorld* InWorld, const FVector& Base, const FVector
 	for(int32 SideIndex = 0;SideIndex < NumSides;SideIndex++)
 	{
 		const FVector Vertex = Base + (X * FMath::Cos(AngleDelta * (SideIndex + 1)) + Y * FMath::Sin(AngleDelta * (SideIndex + 1))) * Radius;
-		DrawDebugLine(InWorld, LastVertex, Vertex, Color, bPersistentLines, LifeTime, DepthPriority);
+		DrawDebugLine(InWorld, LastVertex, Vertex, Color, bPersistentLines, LifeTime, DepthPriority, Thickness);
 		LastVertex = Vertex;
 	}
 }
 
-void DrawDebugCapsule(const UWorld* InWorld, FVector const& Center, float HalfHeight, float Radius, const FQuat& Rotation, FColor const& Color, bool bPersistentLines, float LifeTime, uint8 DepthPriority)
+void DrawDebugCapsule(const UWorld* InWorld, FVector const& Center, float HalfHeight, float Radius, const FQuat& Rotation, FColor const& Color, bool bPersistentLines, float LifeTime, uint8 DepthPriority, float Thickness)
 {
 	// no debug line drawing on dedicated server
 	if (GEngine->GetNetMode(InWorld) != NM_DedicatedServer)
@@ -744,23 +745,23 @@ void DrawDebugCapsule(const UWorld* InWorld, FVector const& Center, float HalfHe
 		FVector TopEnd = Origin + HalfAxis*ZAxis;
 		FVector BottomEnd = Origin - HalfAxis*ZAxis;
 
-		DrawCircle(InWorld, TopEnd, XAxis, YAxis, Color, Radius, DrawCollisionSides, bPersistentLines, LifeTime, DepthPriority);
-		DrawCircle(InWorld, BottomEnd, XAxis, YAxis, Color, Radius, DrawCollisionSides, bPersistentLines, LifeTime, DepthPriority);
+		DrawCircle(InWorld, TopEnd, XAxis, YAxis, Color, Radius, DrawCollisionSides, bPersistentLines, LifeTime, DepthPriority, Thickness);
+		DrawCircle(InWorld, BottomEnd, XAxis, YAxis, Color, Radius, DrawCollisionSides, bPersistentLines, LifeTime, DepthPriority, Thickness);
 
 		// Draw domed caps
-		DrawHalfCircle(InWorld, TopEnd, YAxis, ZAxis, Color, Radius, DrawCollisionSides, bPersistentLines, LifeTime, DepthPriority);
-		DrawHalfCircle(InWorld, TopEnd, XAxis, ZAxis, Color, Radius, DrawCollisionSides, bPersistentLines, LifeTime, DepthPriority);
+		DrawHalfCircle(InWorld, TopEnd, YAxis, ZAxis, Color, Radius, DrawCollisionSides, bPersistentLines, LifeTime, DepthPriority, Thickness);
+		DrawHalfCircle(InWorld, TopEnd, XAxis, ZAxis, Color, Radius, DrawCollisionSides, bPersistentLines, LifeTime, DepthPriority, Thickness);
 
 		FVector NegZAxis = -ZAxis;
 
-		DrawHalfCircle(InWorld, BottomEnd, YAxis, NegZAxis, Color, Radius, DrawCollisionSides, bPersistentLines, LifeTime, DepthPriority);
-		DrawHalfCircle(InWorld, BottomEnd, XAxis, NegZAxis, Color, Radius, DrawCollisionSides, bPersistentLines, LifeTime, DepthPriority);
+		DrawHalfCircle(InWorld, BottomEnd, YAxis, NegZAxis, Color, Radius, DrawCollisionSides, bPersistentLines, LifeTime, DepthPriority, Thickness);
+		DrawHalfCircle(InWorld, BottomEnd, XAxis, NegZAxis, Color, Radius, DrawCollisionSides, bPersistentLines, LifeTime, DepthPriority, Thickness);
 
-		// Draw connecty lines
-		DrawDebugLine(InWorld, TopEnd + Radius*XAxis, BottomEnd + Radius*XAxis, Color, bPersistentLines, LifeTime, DepthPriority);
-		DrawDebugLine(InWorld, TopEnd - Radius*XAxis, BottomEnd - Radius*XAxis, Color, bPersistentLines, LifeTime, DepthPriority);
-		DrawDebugLine(InWorld, TopEnd + Radius*YAxis, BottomEnd + Radius*YAxis, Color, bPersistentLines, LifeTime, DepthPriority);
-		DrawDebugLine(InWorld, TopEnd - Radius*YAxis, BottomEnd - Radius*YAxis, Color, bPersistentLines, LifeTime, DepthPriority);
+		// Draw connected lines
+		DrawDebugLine(InWorld, TopEnd + Radius*XAxis, BottomEnd + Radius*XAxis, Color, bPersistentLines, LifeTime, DepthPriority, Thickness);
+		DrawDebugLine(InWorld, TopEnd - Radius*XAxis, BottomEnd - Radius*XAxis, Color, bPersistentLines, LifeTime, DepthPriority, Thickness);
+		DrawDebugLine(InWorld, TopEnd + Radius*YAxis, BottomEnd + Radius*YAxis, Color, bPersistentLines, LifeTime, DepthPriority, Thickness);
+		DrawDebugLine(InWorld, TopEnd - Radius*YAxis, BottomEnd - Radius*YAxis, Color, bPersistentLines, LifeTime, DepthPriority, Thickness);
 	}
 }
 

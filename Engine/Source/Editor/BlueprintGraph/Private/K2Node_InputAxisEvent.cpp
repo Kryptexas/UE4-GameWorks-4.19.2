@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "CompilerResultsLog.h"
@@ -6,6 +6,7 @@
 #include "EditorCategoryUtils.h"
 #include "Engine/InputAxisDelegateBinding.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "K2Node_InputAxisEvent.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_InputAxisEvent"
 

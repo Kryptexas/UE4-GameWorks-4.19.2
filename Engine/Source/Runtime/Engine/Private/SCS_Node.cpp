@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
@@ -6,8 +6,9 @@
 #if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"
 #endif
-#include "DeferRegisterComponents.h"
 #include "Engine/SCS_Node.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/InheritableComponentHandler.h"
 
 //////////////////////////////////////////////////////////////////////////
 // USCS_Node
@@ -25,36 +26,42 @@ USCS_Node::USCS_Node(const FObjectInitializer& ObjectInitializer)
 #endif
 }
 
-void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentComponent, const FTransform* RootTransform, bool bIsDefaultTransform)
+UActorComponent* USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentComponent, const FTransform* RootTransform, bool bIsDefaultTransform)
 {
-	check(Actor != NULL);
-	check((ParentComponent != NULL && !ParentComponent->IsPendingKill()) || (RootTransform != NULL)); // must specify either a parent component or a world transform
+	check(Actor != nullptr);
+	check((ParentComponent != nullptr && !ParentComponent->IsPendingKill()) || (RootTransform != nullptr)); // must specify either a parent component or a world transform
+
+	UActorComponent* OverridenComponentTemplate = nullptr;
+	static const FBoolConfigValueHelper EnableInheritableComponents(TEXT("Kismet"), TEXT("bEnableInheritableComponents"), GEngineIni);
+	if (EnableInheritableComponents)
+	{
+		const FComponentKey ComponentKey(this);
+		auto ActualBPGC = Cast<UBlueprintGeneratedClass>(Actor->GetClass());
+		while (!OverridenComponentTemplate && ActualBPGC)
+		{
+			if (ActualBPGC->InheritableComponentHandler)
+			{
+				OverridenComponentTemplate = ActualBPGC->InheritableComponentHandler->GetOverridenComponentTemplate(ComponentKey);
+			}
+			ActualBPGC = Cast<UBlueprintGeneratedClass>(ActualBPGC->GetSuperClass());
+		}
+	}
+	UActorComponent* ActualComponentTemplate = OverridenComponentTemplate ? OverridenComponentTemplate : ComponentTemplate;
 
 	// Create a new component instance based on the template
-	UActorComponent* NewActorComp = Actor->CreateComponentFromTemplate(ComponentTemplate, VariableName.ToString());
-	if(NewActorComp != NULL)
+	UActorComponent* NewActorComp = Actor->CreateComponentFromTemplate(ActualComponentTemplate, VariableName.ToString());
+	if(NewActorComp != nullptr)
 	{
-		bool bDeferRegisterStaticComponent = false;
-		EComponentMobility::Type OriginalMobility = EComponentMobility::Movable;
-
+		NewActorComp->CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
 		// SCS created components are net addressable
 		NewActorComp->SetNetAddressable();
 
 		// Special handling for scene components
 		USceneComponent* NewSceneComp = Cast<USceneComponent>(NewActorComp);
-		if (NewSceneComp != NULL)
+		if (NewSceneComp != nullptr)
 		{
-			// Components with Mobility set to EComponentMobility::Static or EComponentMobility::Stationary can't be properly set up in SCS (all changes will be rejected
-			// due to EComponentMobility::Static flag) so we're going to temporarily change the flag and defer the registration until SCS has finished.
-			bDeferRegisterStaticComponent = NewSceneComp->Mobility != EComponentMobility::Movable;
-			OriginalMobility = NewSceneComp->Mobility;
-			if (bDeferRegisterStaticComponent)
-			{
-				NewSceneComp->Mobility = EComponentMobility::Movable;
-			}
-
 			// If NULL is passed in, we are the root, so set transform and assign as RootComponent on Actor
-			if (ParentComponent == NULL || (ParentComponent && ParentComponent->IsPendingKill()))
+			if (ParentComponent == nullptr || (ParentComponent && ParentComponent->IsPendingKill()))
 			{
 				FTransform WorldTransform = *RootTransform;
 				if(bIsDefaultTransform)
@@ -74,17 +81,6 @@ void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentCompone
 
 		// Call function to notify component it has been created
 		NewActorComp->OnComponentCreated();
-
-		if (bDeferRegisterStaticComponent)
-		{
-			// need to defer component registration until after the construction script
-			// is ran, since the construction script can mutate the object (for collision, etc.)
-			FDeferRegisterComponents::Get().DeferComponentRegistration(Actor, NewSceneComp, OriginalMobility);
-		}
-		else
-		{
-			NewActorComp->RegisterComponent();
-		}
 
 		if (NewActorComp->GetIsReplicated())
 		{
@@ -107,7 +103,7 @@ void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentCompone
 #if WITH_EDITOR
 				// If we're constructing editable components in the SCS editor, set the component instance corresponding to this node for editing purposes
 				USimpleConstructionScript* SCS = GetSCS();
-				if(SCS != NULL && (SCS->IsConstructingEditorComponents() || SCS->GetComponentEditorActorInstance() == Actor))
+				if(SCS != nullptr && (SCS->IsConstructingEditorComponents() || SCS->GetComponentEditorActorInstance() == Actor))
 				{
 					EditorComponentInstance = NewSceneComp;
 				}
@@ -116,16 +112,18 @@ void USCS_Node::ExecuteNodeOnActor(AActor* Actor, USceneComponent* ParentCompone
 		}
 
 		// Determine the parent component for our children (it's still our parent if we're a non-scene component)
-		USceneComponent* ParentSceneComponentOfChildren = (NewSceneComp != NULL) ? NewSceneComp : ParentComponent;
+		USceneComponent* ParentSceneComponentOfChildren = (NewSceneComp != nullptr) ? NewSceneComp : ParentComponent;
 
 		// If we made a component, go ahead and process our children
 		for (int32 NodeIdx = 0; NodeIdx < ChildNodes.Num(); NodeIdx++)
 		{
 			USCS_Node* Node = ChildNodes[NodeIdx];
-			check(Node != NULL);
-			Node->ExecuteNodeOnActor(Actor, ParentSceneComponentOfChildren, NULL, false);
+			check(Node != nullptr);
+			Node->ExecuteNodeOnActor(Actor, ParentSceneComponentOfChildren, nullptr, false);
 		}
 	}
+
+	return NewActorComp;
 }
 
 TArray<USCS_Node*> USCS_Node::GetAllNodes()
@@ -189,6 +187,11 @@ void USCS_Node::PreloadChain()
 	if( HasAnyFlags(RF_NeedLoad) )
 	{
 		GetLinker()->Preload(this);
+	}
+
+	if (ComponentTemplate && ComponentTemplate->HasAnyFlags(RF_NeedLoad))
+	{
+		ComponentTemplate->GetLinker()->Preload(ComponentTemplate);
 	}
 
 	for( TArray<USCS_Node*>::TIterator ChildIt(ChildNodes); ChildIt; ++ChildIt )
@@ -338,7 +341,7 @@ USceneComponent* USCS_Node::GetParentComponentTemplate(UBlueprint* InBlueprint) 
 			if(CDO != NULL)
 			{
 				// Find the component template in the CDO that matches the specified name
-				TArray<USceneComponent*> Components;
+				TInlineComponentArray<USceneComponent*> Components;
 				CDO->GetComponents(Components);
 
 				for(auto CompIt = Components.CreateIterator(); CompIt; ++CompIt)
@@ -388,23 +391,6 @@ USceneComponent* USCS_Node::GetParentComponentTemplate(UBlueprint* InBlueprint) 
 	return ParentComponentTemplate;
 }
 
-bool USCS_Node::IsValidVariableNameString(const FString& InString)
-{
-	// First test to make sure the string is not empty and does not equate to the DefaultSceneRoot node name
-	bool bIsValid = !InString.IsEmpty() && !InString.Equals(USimpleConstructionScript::DefaultSceneRootVariableName.ToString());
-	if(bIsValid && ComponentTemplate != NULL)
-	{
-		// Next test to make sure the string doesn't conflict with the format that MakeUniqueObjectName() generates
-		FString MakeUniqueObjectNamePrefix = FString::Printf(TEXT("%s_"), *ComponentTemplate->GetClass()->GetName());
-		if(InString.StartsWith(MakeUniqueObjectNamePrefix))
-		{
-			bIsValid = !InString.Replace(*MakeUniqueObjectNamePrefix, TEXT("")).IsNumeric();
-		}
-	}
-
-	return bIsValid;
-}
-
 void USCS_Node::GenerateListOfExistingNames( TArray<FName>& CurrentNames ) const
 {
 	const USimpleConstructionScript* SCS = GetSCS();
@@ -419,6 +405,15 @@ void USCS_Node::GenerateListOfExistingNames( TArray<FName>& CurrentNames ) const
 	}
 	// <<< End Backwards Compatibility
 	check(Blueprint);
+
+	TArray<UObject*> NativeCDOChildren;
+	UClass* FirstNativeClass = FBlueprintEditorUtils::FindFirstNativeClass(Blueprint->ParentClass);
+	GetObjectsWithOuter(FirstNativeClass->GetDefaultObject(), NativeCDOChildren, false);
+
+	for (UObject* NativeCDOChild : NativeCDOChildren)
+	{
+		CurrentNames.Add(NativeCDOChild->GetFName());
+	}
 
 	if(Blueprint->SkeletonGeneratedClass)
 	{
@@ -467,18 +462,52 @@ FName USCS_Node::GenerateNewComponentName( TArray<FName>& CurrentNames, FName De
 			}
 			else
 			{
-				ComponentName = ComponentTemplate->GetClass()->GetName().Replace(TEXT("Component"), TEXT(""));
+				const UClass* ComponentClass = ComponentTemplate->GetClass();
+				ComponentName = ComponentClass->GetName();
+
+				if (!ComponentClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+				{
+					ComponentName.RemoveFromEnd(TEXT("Component"));
+				}
+				else
+				{
+					ComponentName.RemoveFromEnd("_C");
+				}
 			}
 			
+			NewName = *ComponentName;
 			int32 Counter = 1;
-			do
+			while (CurrentNames.Contains(NewName))
 			{
 				NewName = FName(*( FString::Printf(TEXT("%s%d"), *ComponentName, Counter++) ));		
 			} 
-			while( CurrentNames.Contains(NewName) );
 		}
 	}
 	return NewName;
+}
+
+void USCS_Node::PostLoad()
+{
+	Super::PostLoad();
+
+	ValidateGuid();
+}
+
+void USCS_Node::ValidateGuid()
+{
+	// Backward compatibility:
+	// The guid for the node should be always the same (event when it's not saved). 
+	// The guid is created in an deterministic way using persistent name.
+	if (!VariableGuid.IsValid() && (VariableName != NAME_None))
+	{
+		const FString HashString = VariableName.ToString();
+		ensure(HashString.Len());
+
+		const uint32 BufferLength = HashString.Len() * sizeof(HashString[0]);
+		uint32 HashBuffer[5];
+		FSHA1::HashBuffer(*HashString, BufferLength, reinterpret_cast<uint8*>(HashBuffer));
+		VariableGuid = FGuid(HashBuffer[1], HashBuffer[2], HashBuffer[3], HashBuffer[4]);
+	}
 }
 
 #endif

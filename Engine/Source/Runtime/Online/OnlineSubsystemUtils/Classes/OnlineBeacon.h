@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //
 // Basic beacon
@@ -113,6 +113,8 @@ protected:
 	UNetConnection* BeaconConnection;
 	/** State of beacon */
 	EBeaconState::Type BeaconState;
+	/** Handle to the registered HandleNetworkFailure delegate */
+	FDelegateHandle HandleNetworkFailureDelegateHandle;
 
 	/** Common initialization for all beacon types */
 	bool InitBase();

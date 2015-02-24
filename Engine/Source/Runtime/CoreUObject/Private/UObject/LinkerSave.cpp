@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 
@@ -28,7 +28,7 @@ ULinkerSave::ULinkerSave( const FObjectInitializer& ObjectInitializer, UPackage*
 
 		// Set main summary info.
 		Summary.Tag           = PACKAGE_FILE_TAG;
-		Summary.SetFileVersions( (int32)VER_LAST_ENGINE_UE3, GPackageFileUE4Version, GPackageFileLicenseeUE4Version, bInSaveUnversioned );
+		Summary.SetFileVersions( GPackageFileUE4Version, GPackageFileLicenseeUE4Version, bInSaveUnversioned );
 		Summary.EngineVersion =	GEngineVersion;
 		Summary.PackageFlags  = Package ? Package->PackageFlags : 0;
 
@@ -61,7 +61,7 @@ ULinkerSave::ULinkerSave(const FObjectInitializer& ObjectInitializer, UPackage* 
 
 		// Set main summary info.
 		Summary.Tag           = PACKAGE_FILE_TAG;
-		Summary.SetFileVersions( (int32)VER_LAST_ENGINE_UE3, GPackageFileUE4Version, GPackageFileLicenseeUE4Version, bInSaveUnversioned );
+		Summary.SetFileVersions( GPackageFileUE4Version, GPackageFileLicenseeUE4Version, bInSaveUnversioned );
 		Summary.EngineVersion =	GEngineVersion;
 		Summary.PackageFlags  = Package ? Package->PackageFlags : 0;
 

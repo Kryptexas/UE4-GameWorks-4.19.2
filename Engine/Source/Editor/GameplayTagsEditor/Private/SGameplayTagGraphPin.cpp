@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsEditorModulePrivatePCH.h"
 #include "SGameplayTagGraphPin.h"
@@ -113,7 +113,7 @@ TSharedRef<ITableRow> SGameplayTagGraphPin::OnGenerateRow(TSharedPtr<FString> It
 {
 	return SNew( STableRow< TSharedPtr<FString> >, OwnerTable )
 		[
-			SNew(STextBlock) .Text( *Item.Get() )
+			SNew(STextBlock) .Text( FText::FromString(*Item.Get()) )
 		];
 }
 

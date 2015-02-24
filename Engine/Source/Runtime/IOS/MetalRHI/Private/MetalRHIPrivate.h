@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalRHIPrivate.h: Private Metal RHI definitions.
@@ -32,7 +32,7 @@ const uint32 BufferOffsetAlignment = 256;
 
 
 // Access the underlying surface object from any kind of texture
-FMetalSurface& GetMetalSurfaceFromRHITexture(FRHITexture* Texture);
+FMetalSurface* GetMetalSurfaceFromRHITexture(FRHITexture* Texture);
 
 #define NOT_SUPPORTED(Func) UE_LOG(LogMetal, Fatal, TEXT("'%s' is not supported"), L##Func);
 

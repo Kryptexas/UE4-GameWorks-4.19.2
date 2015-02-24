@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/NetworkSettings.h"
@@ -8,8 +8,7 @@ UNetworkSettings::UNetworkSettings(const FObjectInitializer& ObjectInitializer)
 {
 }
 
-static FName ConsoleVariableFName(TEXT("ConsoleVariable"));
-static FName ToolTipFName(TEXT("ConsoleVariable"));
+static FName NetworkConsoleVariableFName(TEXT("ConsoleVariable"));
 
 void UNetworkSettings::PostInitProperties()
 {
@@ -24,7 +23,7 @@ void UNetworkSettings::PostInitProperties()
 				continue;
 			}
 
-			FString CVarName = Property->GetMetaData(ConsoleVariableFName);
+			FString CVarName = Property->GetMetaData(NetworkConsoleVariableFName);
 			if (!CVarName.IsEmpty())
 			{
 				IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(*CVarName);
@@ -51,7 +50,7 @@ void UNetworkSettings::PostEditChangeProperty(FPropertyChangedEvent& PropertyCha
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 	if (PropertyChangedEvent.Property)
 	{
-		FString CVarName = PropertyChangedEvent.Property->GetMetaData(ConsoleVariableFName);
+		FString CVarName = PropertyChangedEvent.Property->GetMetaData(NetworkConsoleVariableFName);
 		if (!CVarName.IsEmpty())
 		{
 			IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(*CVarName);

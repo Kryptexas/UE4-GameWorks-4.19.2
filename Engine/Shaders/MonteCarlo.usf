@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MonteCarlo.usf: Monte Carlo integration of distributions
@@ -63,6 +63,13 @@ float4 UniformSampleHemisphere( float2 E )
 	float PDF = 1.0 / (2 * PI);
 
 	return float4( H, PDF );
+}
+
+float2 UniformSampleDisk(float2 Random)
+{
+	const float Theta = 2.0f * (float)PI * Random.x;
+	const float Radius = sqrt(Random.y);
+	return float2(Radius * cos(Theta), Radius * sin(Theta));
 }
 
 float4 CosineSampleHemisphere( float2 E )

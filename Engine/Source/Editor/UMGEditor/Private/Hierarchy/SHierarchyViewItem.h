@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -57,6 +57,9 @@ public:
 	virtual bool IsVisible() const { return true; }
 	virtual bool CanControlVisibility() const { return false; }
 	virtual void SetIsVisible(bool IsVisible) { }
+
+	virtual bool IsExpanded() const { return true; }
+	virtual void SetExpanded(bool bIsExpanded) { }
 
 protected:
 	virtual void GetChildren(TArray< TSharedPtr<FHierarchyModel> >& Children) = 0;
@@ -193,9 +196,16 @@ public:
 		{
 			PreviewWidget->bHiddenInDesigner = !IsVisible;
 		}
+	}
 
-		// Mark the blueprint as modified
-		FBlueprintEditorUtils::MarkBlueprintAsModified(BlueprintEditor.Pin()->GetBlueprintObj());
+	virtual bool IsExpanded() const override
+	{
+		return Item.GetTemplate()->bExpandedInDesigner;
+	}
+
+	virtual void SetExpanded(bool bIsExpanded) override
+	{
+		Item.GetTemplate()->bExpandedInDesigner = bIsExpanded;
 	}
 
 protected:

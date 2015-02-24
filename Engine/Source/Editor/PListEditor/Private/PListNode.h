@@ -1,9 +1,6 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#ifndef __PListNode_h__
-#define __PlistNode_h__
 
 #include "SlateBasics.h"
 
@@ -124,5 +121,3 @@ private:
 
 	int32 Depth;
 };
-
-#endif

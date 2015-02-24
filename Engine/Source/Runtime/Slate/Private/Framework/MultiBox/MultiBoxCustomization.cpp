@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "MultiBox.h"
@@ -79,7 +79,7 @@ FReply SMultiBlockDragHandle::OnDragDetected( const FGeometry& MyGeometry, const
 	TSharedRef<FUICommandDragDropOp> NewOp = FUICommandDragDropOp::New(
 			Block->GetAction().ToSharedRef(), 
 			MultiBoxCustomizationName, 
-			Block->MakeWidget( BaseWidget.Pin().ToSharedRef(), EMultiBlockLocation::None )->AsWidget(),
+			Block->MakeWidget( BaseWidget.Pin().ToSharedRef(), EMultiBlockLocation::None, Block->HasIcon() )->AsWidget(),
 			MyGeometry.AbsolutePosition-MouseEvent.GetScreenSpacePosition()
 		);
 			

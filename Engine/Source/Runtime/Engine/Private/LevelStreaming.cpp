@@ -1,8 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/LevelStreamingAlwaysLoaded.h"
-#include "Engine/LevelStreamingBounds.h"
 #include "Engine/LevelStreamingPersistent.h"
 #include "Engine/LevelStreamingVolume.h"
 #include "Engine/LevelBounds.h"
@@ -12,6 +11,8 @@
 	#include "SNotificationList.h"
 	#include "NotificationManager.h"
 #endif
+#include "Engine/LevelStreamingKismet.h"
+#include "Components/BrushComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLevelStreaming, Log, All);
 
@@ -494,12 +495,10 @@ bool ULevelStreaming::RequestLevel(UWorld* PersistentWorld, bool bAllowLevelLoad
 	return true;
 }
 
-void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPackage* InLoadedPackage ) 
+void ULevelStreaming::AsyncLevelLoadComplete( const FName& InPackageName, UPackage* InLoadedPackage ) 
 {
 	bHasLoadRequestPending = false;
 
-	const FName PackageFName = FName(*InPackageName);
-	
 	if( InLoadedPackage )
 	{
 		UPackage* LevelPackage = InLoadedPackage;
@@ -542,7 +541,7 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 			}
 			else
 			{
-				UE_LOG(LogLevelStreaming, Warning, TEXT("Couldn't find ULevel object in package '%s'"), *InPackageName );
+				UE_LOG(LogLevelStreaming, Warning, TEXT("Couldn't find ULevel object in package '%s'"), *InPackageName.ToString() );
 			}
 		}
 		else
@@ -560,7 +559,7 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 				//    If the package name to load was different...
 				//         ... it means the specified package name was explicit and we will just load from another file.
 
-				FName OldDesiredPackageName = PackageFName;
+				FName OldDesiredPackageName = InPackageName;
 				UWorld** OwningWorldPtr = ULevel::StreamedLevelsOwningWorld.Find(OldDesiredPackageName);
 				UWorld* OwningWorld = OwningWorldPtr ? *OwningWorldPtr : NULL;
 				ULevel::StreamedLevelsOwningWorld.Remove(OldDesiredPackageName);
@@ -623,12 +622,12 @@ void ULevelStreaming::AsyncLevelLoadComplete( const FString& InPackageName, UPac
 	}
 	else
 	{
-		UE_LOG(LogLevelStreaming, Warning, TEXT("Failed to load package '%s'"), *InPackageName );
+		UE_LOG(LogLevelStreaming, Warning, TEXT("Failed to load package '%s'"), *InPackageName.ToString() );
 	}
 
 	// Clean up the world type list and owning world list now that PostLoad has occurred
-	UWorld::WorldTypePreLoadMap.Remove(PackageFName);
-	ULevel::StreamedLevelsOwningWorld.Remove(PackageFName);
+	UWorld::WorldTypePreLoadMap.Remove(InPackageName);
+	ULevel::StreamedLevelsOwningWorld.Remove(InPackageName);
 }
 
 bool ULevelStreaming::IsLevelVisible() const
@@ -770,17 +769,17 @@ void ULevelStreaming::RenameForPIE(int32 PIEInstanceID)
 	}
 }
 
-bool ULevelStreaming::ShouldBeLoaded( const FVector& ViewLocation )
+bool ULevelStreaming::ShouldBeLoaded()
 {
 	return true;
 }
 
-bool ULevelStreaming::ShouldBeVisible( const FVector& ViewLocation )
+bool ULevelStreaming::ShouldBeVisible()
 {
 	if( GetWorld()->IsGameWorld() )
 	{
 		// Game and play in editor viewport codepath.
-		return bShouldBeVisible && ShouldBeLoaded( ViewLocation );
+		return bShouldBeVisible && ShouldBeLoaded();
 	}
 	else
 	{
@@ -925,12 +924,12 @@ void ULevelStreamingKismet::PostLoad()
 	}
 }
 
-bool ULevelStreamingKismet::ShouldBeVisible( const FVector& ViewLocation )
+bool ULevelStreamingKismet::ShouldBeVisible()
 {
 	return bShouldBeVisible || (bShouldBeVisibleInEditor && !FApp::IsGame());
 }
 
-bool ULevelStreamingKismet::ShouldBeLoaded( const FVector& ViewLocation )
+bool ULevelStreamingKismet::ShouldBeLoaded()
 {
 	return bShouldBeLoaded;
 }
@@ -944,36 +943,9 @@ ULevelStreamingAlwaysLoaded::ULevelStreamingAlwaysLoaded(const FObjectInitialize
 	bShouldBeVisible = true;
 }
 
-bool ULevelStreamingAlwaysLoaded::ShouldBeLoaded( const FVector& ViewLocation )
+bool ULevelStreamingAlwaysLoaded::ShouldBeLoaded()
 {
 	return true;
-}
-
-/*-----------------------------------------------------------------------------
-	ULevelStreamingBounds implementation.
------------------------------------------------------------------------------*/
-ULevelStreamingBounds::ULevelStreamingBounds(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-}
-
-bool ULevelStreamingBounds::ShouldBeVisible( const FVector& ViewLocation )
-{
-	bShouldBeVisible = ShouldBeLoaded(ViewLocation);
-	return bShouldBeVisible;
-}
-
-bool ULevelStreamingBounds::ShouldBeLoaded( const FVector& ViewLocation )
-{
-	bShouldBeLoaded = false;
-	
-	UWorld* MyWorld = Cast<UWorld>(GetOuter());
-	if (MyWorld && MyWorld->PersistentLevel->LevelBoundsActor.IsValid())
-	{
-		return MyWorld->PersistentLevel->LevelBoundsActor.Get()->GetComponentsBoundingBox().IsInside(ViewLocation);
-	}
-	
-	return bShouldBeLoaded;
 }
 
 #undef LOCTEXT_NAMESPACE

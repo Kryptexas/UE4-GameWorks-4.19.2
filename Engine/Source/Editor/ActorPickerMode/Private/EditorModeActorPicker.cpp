@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ActorPickerModePrivatePCH.h"
+#include "EngineUtils.h"
 
 #define LOCTEXT_NAMESPACE "PropertyPicker"
 
@@ -164,26 +165,26 @@ void FEdModeActorPicker::Exit()
 	FEdMode::Exit();
 }
 
-FString FEdModeActorPicker::GetCursorDecoratorText() const
+FText FEdModeActorPicker::GetCursorDecoratorText() const
 {
 	switch(PickState)
 	{
 	default:
 	case EPickState::NotOverViewport:
-		return LOCTEXT("PickActor_NotOverViewport", "Pick an actor by clicking on it in the active level viewport").ToString();
+		return LOCTEXT("PickActor_NotOverViewport", "Pick an actor by clicking on it in the active level viewport");
 	case EPickState::OverViewport:
-		return LOCTEXT("PickActor_NotOverActor", "Pick an actor by clicking on it").ToString();
+		return LOCTEXT("PickActor_NotOverActor", "Pick an actor by clicking on it");
 	case EPickState::OverIncompatibleActor:
 		{
 			if(HoveredActor.IsValid())
 			{
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("Actor"), FText::FromString(HoveredActor.Get()->GetName()));
-				return FText::Format(LOCTEXT("PickActor_OverIncompatibleActor", "{Actor} is incompatible"), Arguments).ToString();
+				return FText::Format(LOCTEXT("PickActor_OverIncompatibleActor", "{Actor} is incompatible"), Arguments);
 			}
 			else
 			{
-				return LOCTEXT("PickActor_NotOverActor", "Pick an actor by clicking on it").ToString();
+				return LOCTEXT("PickActor_NotOverActor", "Pick an actor by clicking on it");
 			}
 		}
 	case EPickState::OverActor:
@@ -192,11 +193,11 @@ FString FEdModeActorPicker::GetCursorDecoratorText() const
 			{
 				FFormatNamedArguments Arguments;
 				Arguments.Add(TEXT("Actor"), FText::FromString(HoveredActor.Get()->GetName()));
-				return FText::Format(LOCTEXT("PickActor_OverActor", "Pick {Actor}"), Arguments).ToString();
+				return FText::Format(LOCTEXT("PickActor_OverActor", "Pick {Actor}"), Arguments);
 			}
 			else
 			{
-				return LOCTEXT("PickActor_NotOverActor", "Pick an actor by clicking on it").ToString();
+				return LOCTEXT("PickActor_NotOverActor", "Pick an actor by clicking on it");
 			}
 		}
 	}

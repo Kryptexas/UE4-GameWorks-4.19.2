@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "SocketSubsystem.h"
 #include "SocketSubsystemPackage.h"
+
 
 #if PLATFORM_HAS_BSD_SOCKETS
 
@@ -15,23 +16,18 @@
  * Standard BSD specific socket subsystem implementation
  */
 class FSocketSubsystemBSD
-	: public ISocketSubsystem
+	: public FSocketSubsystemBSDCommon
 {
 public:
 
-	// Begin ISocketSubsystem interface
+	// ISocketSubsystem interface
 
 	virtual TSharedRef<FInternetAddr> CreateInternetAddr( uint32 Address = 0, uint32 Port = 0 ) override;
-
 	virtual class FSocket* CreateSocket( const FName& SocketType, const FString& SocketDescription, bool bForceUDP = false ) override;
-
 	virtual void DestroySocket( class FSocket* Socket ) override;
-
 	virtual ESocketErrors GetHostByName( const ANSICHAR* HostName, FInternetAddr& OutAddr ) override;
-
 	virtual bool GetHostName( FString& HostName ) override;
-
-	virtual ESocketErrors GetLastErrorCode( ) override;
+	virtual ESocketErrors GetLastErrorCode() override;
 
 	virtual bool GetLocalAdapterAddresses( TArray<TSharedPtr<FInternetAddr> >& OutAdresses ) override
 	{
@@ -42,22 +38,19 @@ public:
 		return true;
 	}
 
-	virtual const TCHAR* GetSocketAPIName( ) const override;
+	virtual const TCHAR* GetSocketAPIName() const override;
 
-	virtual bool RequiresChatDataBeSeparate( ) override
+	virtual bool RequiresChatDataBeSeparate() override
 	{
 		return false;
 	}
 
-	virtual bool RequiresEncryptedPackets( ) override
+	virtual bool RequiresEncryptedPackets() override
 	{
 		return false;
 	}
 
 	virtual ESocketErrors TranslateErrorCode( int32 Code ) override;
-
-	// End ISocketSubsystem interface
-
 
 protected:
 
@@ -74,4 +67,6 @@ private:
 	// Used to prevent multiple threads accessing the shared data.
 	FCriticalSection HostByNameSynch;
 };
+
+
 #endif

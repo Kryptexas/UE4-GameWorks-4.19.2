@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	OpenGL3.cpp: OpenGL 3.2 implementation.
@@ -149,13 +149,8 @@ bool FOpenGLES31::SupportsAdvancedFeatures()
 		// Check for minimum ES 3.1 + extensions support to avoid the ES2 fallback
 		bResult = (MajorVersion == 3 && MinorVersion >= 1);
 
-		bResult &= ExtensionsString.Contains(TEXT("GL_EXT_draw_buffers_indexed"));
-		bResult &= ExtensionsString.Contains(TEXT("GL_EXT_gpu_shader5"));
-		bResult &= ExtensionsString.Contains(TEXT("GL_EXT_geometry_shader"));
-		bResult &= ExtensionsString.Contains(TEXT("GL_EXT_texture_border_clamp"));
-		bResult &= ExtensionsString.Contains(TEXT("GL_EXT_texture_buffer"));
-		bResult &= ExtensionsString.Contains(TEXT("GL_EXT_texture_cube_map_array"));
-		bResult &= ExtensionsString.Contains(TEXT("GL_OES_shader_image_atomic"));
+		bResult &= ExtensionsString.Contains(TEXT("GL_ANDROID_extension_pack_es31a"));
+		bResult &= ExtensionsString.Contains(TEXT("GL_EXT_color_buffer_half_float"));
 	}
 	else
 	{

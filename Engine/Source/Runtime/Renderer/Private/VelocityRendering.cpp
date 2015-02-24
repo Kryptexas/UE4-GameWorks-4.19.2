@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VelocityRendering.cpp: Velocity rendering implementation.
@@ -451,28 +451,6 @@ bool IsMotionBlurEnabled(const FViewInfo& View)
 		&& !(View.Family->Views.Num() > 1);
 }
 
-void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesInner(FRHICommandList& RHICmdList, const FViewInfo& View, int32 FirstIndex, int32 LastIndex)
-{
-	// Draw velocities for movable dynamic meshes.
-	TDynamicPrimitiveDrawer<FVelocityDrawingPolicyFactory> Drawer(
-		RHICmdList, &View, FVelocityDrawingPolicyFactory::ContextType(DDM_AllOccluders), true, false, true
-		);
-	for (int32 PrimitiveIndex = FirstIndex; PrimitiveIndex <= LastIndex; PrimitiveIndex++)
-	{
-		const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
-
-		if (!PrimitiveSceneInfo->ShouldRenderVelocity(View))
-		{
-			continue;
-		}
-
-		FScopeCycleCounter Context(PrimitiveSceneInfo->Proxy->GetStatId());
-
-		Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-		PrimitiveSceneInfo->Proxy->DrawDynamicElements(&Drawer, &View);
-	}
-}
-
 void FDeferredShadingSceneRenderer::RenderDynamicVelocitiesMeshElementsInner(FRHICommandList& RHICmdList, const FViewInfo& View, int32 FirstIndex, int32 LastIndex)
 {
 	FVelocityDrawingPolicyFactory::ContextType Context(DDM_AllOccluders);
@@ -572,7 +550,7 @@ public:
 static TAutoConsoleVariable<int32> CVarRHICmdVelocityPassDeferredContexts(
 	TEXT("r.RHICmdVelocityPassDeferredContexts"),
 	1,
-	TEXT("True to use deferred contexts to parallelize velocity pass command list execution.\n"));
+	TEXT("True to use deferred contexts to parallelize velocity pass command list execution."));
 
 void FDeferredShadingSceneRenderer::RenderVelocitiesInnerParallel(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
@@ -619,8 +597,6 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInnerParallel(FRHICommandLis
 
 void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmediate& RHICmdList, TRefCountPtr<IPooledRenderTarget>& VelocityRT)
 {
-	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
-
 	for(int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
 		const FViewInfo& View = Views[ViewIndex];
@@ -629,14 +605,7 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmedia
 		// Draw velocities for movable static meshes.
 		Scene->VelocityDrawList.DrawVisible(RHICmdList, View, View.StaticMeshVelocityMap, View.StaticMeshBatchVisibility);
 
-		if (bUseGetMeshElements)
-		{
-			RenderDynamicVelocitiesMeshElementsInner(RHICmdList, View, 0, View.DynamicMeshElements.Num() - 1);
-		}
-		else
-		{
-			RenderDynamicVelocitiesInner(RHICmdList, View, 0, View.VisibleDynamicPrimitives.Num() - 1);
-		}
+		RenderDynamicVelocitiesMeshElementsInner(RHICmdList, View, 0, View.DynamicMeshElements.Num() - 1);
 	}
 }
 
@@ -645,7 +614,7 @@ void FDeferredShadingSceneRenderer::RenderVelocitiesInner(FRHICommandListImmedia
 static TAutoConsoleVariable<int32> CVarParallelVelocity(
 	TEXT("r.ParallelVelocity"),
 	1,  
-	TEXT("Toggles parallel velocity rendering. Parallel rendering must be enabled for this to have an effect.\n"),
+	TEXT("Toggles parallel velocity rendering. Parallel rendering must be enabled for this to have an effect."),
 	ECVF_RenderThreadSafe
 	);
 
@@ -665,10 +634,13 @@ void FDeferredShadingSceneRenderer::RenderVelocities(FRHICommandListImmediate& R
 
 		bNeedsVelocity |= bMotionBlur || bTemporalAA;
 	}
-	if( !bNeedsVelocity || GPixelFormats[PF_G16R16].Supported == false )
+	if( !bNeedsVelocity || !GPixelFormats[PF_G16R16].Supported )
 	{
 		return;
 	}
+
+	// this is not supported
+	check(!Views[0].bIsSceneCapture);
 
 	SCOPED_DRAW_EVENT(RHICmdList, RenderVelocities);
 

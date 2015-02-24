@@ -1,8 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "IOSTapJoyPrivatePCH.h"
 #include "IOSAppDelegate.h"
-#import "../ThirdPartyFrameworks/Tapjoy.embeddedframework/Tapjoy.framework/Headers/Tapjoy.h"
+#import <Tapjoy/Tapjoy.h>
 
 class FTapJoyProvider : public IAdvertisingProvider
 {

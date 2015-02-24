@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -43,7 +43,7 @@ private:
 	TSharedRef<SWidget> GetClassPickerMenuContent();
 
 	/** Gets the currently selected blueprint name to display on the class picker combo button */
-	FString GetSelectedAnimBlueprintName() const;
+	FText GetSelectedAnimBlueprintName() const;
 
 	/** Callback from the class picker when the user selects a class */
 	void OnClassPicked(UClass* PickedClass);
@@ -77,4 +77,7 @@ private:
 
 	/** The combo button for the class picker, Cached so we can close it when the user picks something */
 	TSharedPtr<SComboButton> ClassPickerComboButton;
+
+	/** Per-mesh handles to registered OnSkeletalMeshPropertyChanged delegates */
+	TMap<USkeletalMeshComponent*, FDelegateHandle> OnSkeletalMeshPropertyChangedDelegateHandles;
 };

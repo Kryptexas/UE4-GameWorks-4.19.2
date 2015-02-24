@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 // .
 
 // This code is largely based on that in ir_print_glsl_visitor.cpp from
@@ -3319,7 +3319,37 @@ static ir_rvalue* GenShaderInputSemantic(
 						ParseState->symbols->add_variable(Variable);
 						ir_dereference_variable* VariableDeref = new(ParseState)ir_dereference_variable(Variable);
 
-						if (ParseState->adjust_clip_space_dx11_to_opengl && SystemValues[i].bApplyClipSpaceAdjustment)
+						if (FCStringAnsi::Stricmp(Semantic, "SV_Position") == 0 && Frequency == HSF_PixelShader)
+						{
+							// This is for input of gl_FragCoord into pixel shader only.
+							
+							// Generate a local variable to do the conversion in, keeping source type.
+							ir_variable* TempVariable = new(ParseState)ir_variable(Variable->type, NULL, ir_var_temporary);
+							DeclInstructions->push_tail(TempVariable);
+							
+							// Assign input to this variable
+							ir_dereference_variable* TempVariableDeref = new(ParseState)ir_dereference_variable(TempVariable);
+							DeclInstructions->push_tail(
+								new(ParseState)ir_assignment(
+								TempVariableDeref,
+								VariableDeref
+								)
+							);
+							
+							// TempVariable.w = ( 1.0f / TempVariable.w );
+							DeclInstructions->push_tail(
+								new(ParseState)ir_assignment(
+								new(ParseState)ir_swizzle(TempVariableDeref->clone(ParseState, NULL), 3, 0, 0, 0, 1),
+								new(ParseState)ir_expression(ir_binop_div,
+								new(ParseState)ir_constant(1.0f),
+								new(ParseState)ir_swizzle(TempVariableDeref->clone(ParseState, NULL), 3, 0, 0, 0, 1)
+								)
+								)
+								);
+
+							return TempVariableDeref->clone(ParseState, NULL);
+						}
+						else if (ParseState->adjust_clip_space_dx11_to_opengl && SystemValues[i].bApplyClipSpaceAdjustment)
 						{
 							// incoming gl_FrontFacing. Make it (!gl_FrontFacing), due to vertical flip in OpenGL
 							return new(ParseState)ir_expression(ir_unop_logic_not, glsl_type::bool_type, VariableDeref, NULL);
@@ -4970,6 +5000,80 @@ void FGlslLanguageSpec::SetupLanguageIntrinsics(_mesa_glsl_parse_state* State, e
 	if (bIsES2)
 	{
 		make_intrinsic_genType(ir, State, FRAMEBUFFER_FETCH_ES2, ir_invalid_opcode, IR_INTRINSIC_FLOAT, 0, 4, 4);
+	}
+
+	if (State->language_version >= 310)
+	{
+		/**
+		* Create GLSL functions that are left out of the symbol table
+		*  Prevent pollution, but make them so thay can be used to
+		*  implement the hlsl barriers
+		*/
+		const int glslFuncCount = 7;
+		const char * glslFuncName[glslFuncCount] =
+		{
+			"barrier", "memoryBarrier", "memoryBarrierAtomicCounter", "memoryBarrierBuffer",
+			"memoryBarrierShared", "memoryBarrierImage", "groupMemoryBarrier"
+		};
+		ir_function* glslFuncs[glslFuncCount];
+
+		for (int i = 0; i < glslFuncCount; i++)
+		{
+			void* ctx = State;
+			ir_function* func = new(ctx)ir_function(glslFuncName[i]);
+			ir_function_signature* sig = new(ctx)ir_function_signature(glsl_type::void_type);
+			sig->is_builtin = true;
+			func->add_signature(sig);
+			ir->push_tail(func);
+			glslFuncs[i] = func;
+		}
+
+		/** Implement HLSL barriers in terms of GLSL functions */
+		const char * functions[] =
+		{
+			"GroupMemoryBarrier", "GroupMemoryBarrierWithGroupSync",
+			"DeviceMemoryBarrier", "DeviceMemoryBarrierWithGroupSync",
+			"AllMemoryBarrier", "AllMemoryBarrierWithGroupSync"
+		};
+		const int max_children = 4;
+		ir_function * implFuncs[][max_children] =
+		{
+			{glslFuncs[4]} /**{"memoryBarrierShared"}*/,
+			{glslFuncs[4], glslFuncs[0]} /**{"memoryBarrierShared","barrier"}*/,
+			{glslFuncs[2], glslFuncs[3], glslFuncs[5]} /**{"memoryBarrierAtomicCounter", "memoryBarrierBuffer", "memoryBarrierImage"}*/,
+			{glslFuncs[2], glslFuncs[3], glslFuncs[5], glslFuncs[0]} /**{"memoryBarrierAtomicCounter", "memoryBarrierBuffer", "memoryBarrierImage", "barrier"}*/,
+			{glslFuncs[1]} /**{"memoryBarrier"}*/,
+			{glslFuncs[1], glslFuncs[0]} /**{"groupMemoryBarrier","barrier"}*/
+		};
+
+		for (size_t i = 0; i < sizeof(functions) / sizeof(const char*); i++)
+		{
+			void* ctx = State;
+			ir_function* func = new(ctx)ir_function(functions[i]);
+
+			ir_function_signature* sig = new(ctx)ir_function_signature(glsl_type::void_type);
+			sig->is_builtin = true;
+			sig->is_defined = true;
+
+			for (int j = 0; j < max_children; j++)
+			{
+				if (implFuncs[i][j] == NULL)
+					break;
+				ir_function* child = implFuncs[i][j];
+				check(child);
+				check(child->signatures.get_head() == child->signatures.get_tail());
+				ir_function_signature *childSig = (ir_function_signature *)child->signatures.get_head();
+				exec_list actual_parameter;
+				sig->body.push_tail(
+					new(ctx)ir_call(childSig, NULL, &actual_parameter)
+					);
+			}
+
+			func->add_signature(sig);
+
+			State->symbols->add_global_function(func);
+			ir->push_tail(func);
+		}
 	}
 }
 

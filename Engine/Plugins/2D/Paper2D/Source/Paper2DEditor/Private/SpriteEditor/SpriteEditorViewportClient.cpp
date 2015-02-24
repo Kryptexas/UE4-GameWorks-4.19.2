@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "SpriteEditorViewportClient.h"
@@ -11,6 +11,8 @@
 #include "AssetToolsModule.h"
 #include "ContentBrowserModule.h"
 #include "AssetRegistryModule.h"
+#include "CanvasTypes.h"
+#include "CanvasItem.h"
 
 #define LOCTEXT_NAMESPACE "SpriteEditor"
 
@@ -76,7 +78,7 @@ FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor>
 	WidgetMode = FWidget::WM_Translate;
 	bManipulating = false;
 	bManipulationDirtiedSomething = false;
-	ScopedTransaction = NULL;
+	ScopedTransaction = nullptr;
 
 	bShowSourceTexture = false;
 	bShowSockets = true;
@@ -87,6 +89,8 @@ FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor>
 	bDeferZoomToSprite = true;
 
 	bIsMarqueeTracking = false;
+
+	DrawHelper.bDrawGrid = false;
 
 	EngineShowFlags.DisableAdvancedFeatures();
 	EngineShowFlags.CompositeEditorPrimitives = true;
@@ -122,7 +126,7 @@ void FSpriteEditorViewportClient::UpdateSourceTextureSpriteFromSprite(UPaperSpri
 	UPaperSprite* TargetSprite = SourceTextureViewComponent->GetSprite();
 	check(TargetSprite);
 
-	if (SourceSprite != NULL)
+	if (SourceSprite != nullptr)
 	{
 		if ((SourceSprite->GetSourceTexture() != TargetSprite->GetSourceTexture()) || (TargetSprite->PixelsPerUnrealUnit != SourceSprite->PixelsPerUnrealUnit))
 		{
@@ -180,7 +184,7 @@ void FSpriteEditorViewportClient::UpdateSourceTextureSpriteFromSprite(UPaperSpri
 	else
 	{
 		// No source sprite, so don't draw the target either
-		TargetSprite->SourceTexture = NULL;
+		TargetSprite->SourceTexture = nullptr;
 	}
 }
 
@@ -315,7 +319,7 @@ void FSpriteEditorViewportClient::DrawSourceRegion(FViewport& InViewport, FScene
 
             if (bIsHitTesting)
             {
-                Canvas.SetHitProxy(NULL);
+                Canvas.SetHitProxy(nullptr);
             }
         }
 
@@ -334,7 +338,7 @@ void FSpriteEditorViewportClient::DrawSourceRegion(FViewport& InViewport, FScene
 
             if (bIsHitTesting)
             {
-                Canvas.SetHitProxy(NULL);
+                Canvas.SetHitProxy(nullptr);
             }
         }
 	}
@@ -389,7 +393,7 @@ void FSpriteEditorViewportClient::DrawGeometry(FViewport& InViewport, FSceneView
 			// Draw the normal tick
 			if (bShowNormals)
 			{
-				const FVector2D Direction = (NextScreenPos - ScreenPos).SafeNormal();
+				const FVector2D Direction = (NextScreenPos - ScreenPos).GetSafeNormal();
 				const FVector2D Normal = FVector2D(-Direction.Y, Direction.X);
 
 				const FVector2D Midpoint = (ScreenPos + NextScreenPos) * 0.5f;
@@ -417,7 +421,7 @@ void FSpriteEditorViewportClient::DrawGeometry(FViewport& InViewport, FSceneView
 
 				if (bIsHitTesting)
 				{
-					Canvas.SetHitProxy(NULL);
+					Canvas.SetHitProxy(nullptr);
 				}
 			}
 		}
@@ -447,7 +451,7 @@ void FSpriteEditorViewportClient::DrawGeometry(FViewport& InViewport, FSceneView
 			
 			if (bIsHitTesting)
 			{
-				Canvas.SetHitProxy(NULL);
+				Canvas.SetHitProxy(nullptr);
 			}
 		}
 	}
@@ -614,7 +618,7 @@ void FSpriteEditorViewportClient::DrawSockets(const FSceneView* View, FPrimitive
 		
 		DrawWireDiamond(PDI, SocketTM, DiamondSize, DiamondColor, SDPG_Foreground);
 		
-		PDI->SetHitProxy(NULL);
+		PDI->SetHitProxy(nullptr);
 	}
 }
 
@@ -669,7 +673,7 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 	const bool bIsHitTesting = Canvas.IsHitTesting();
 	if (!bIsHitTesting)
 	{
-		Canvas.SetHitProxy(NULL);
+		Canvas.SetHitProxy(nullptr);
 	}
 
 	if (!SpriteEditorPtr.IsValid())
@@ -968,12 +972,13 @@ void FSpriteEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitP
 	const bool bIsShiftKeyDown = Viewport->KeyState(EKeys::LeftShift) || Viewport->KeyState(EKeys::RightShift);
 	const bool bIsAltKeyDown = Viewport->KeyState(EKeys::LeftAlt) || Viewport->KeyState(EKeys::RightAlt);
 	bool bHandled = false;
-	bool bAllowSelectVertex = !(IsEditingGeometry() && IsAddingPolygon());
-	HSpriteSelectableObjectHitProxy* SelectedItemProxy = HitProxyCast<HSpriteSelectableObjectHitProxy>(HitProxy);
 
-	bool bClearSelectionModifier = bIsCtrlKeyDown;
-	bool bDeleteClickedVertex = bIsAltKeyDown;
-	bool bInsertVertexModifier = bIsShiftKeyDown;
+	const bool bAllowSelectVertex = !(IsEditingGeometry() && IsAddingPolygon()) && !bIsShiftKeyDown;
+
+	const bool bClearSelectionModifier = bIsCtrlKeyDown;
+	const bool bDeleteClickedVertex = bIsAltKeyDown;
+	const bool bInsertVertexModifier = bIsShiftKeyDown;
+	HSpriteSelectableObjectHitProxy* SelectedItemProxy = HitProxyCast<HSpriteSelectableObjectHitProxy>(HitProxy);
 
 	if (bAllowSelectVertex && SelectedItemProxy)
 	{
@@ -1389,9 +1394,14 @@ ECoordSystem FSpriteEditorViewportClient::GetWidgetCoordSystemSpace() const
 	return COORD_World;
 }
 
+FLinearColor FSpriteEditorViewportClient::GetBackgroundColor() const
+{
+	return FEditorViewportClient::GetBackgroundColor();
+}
+
 void FSpriteEditorViewportClient::BeginTransaction(const FText& SessionName)
 {
-	if (ScopedTransaction == NULL)
+	if (ScopedTransaction == nullptr)
 	{
 		ScopedTransaction = new FScopedTransaction(SessionName);
 
@@ -1420,10 +1430,10 @@ void FSpriteEditorViewportClient::EndTransaction()
 	
 	bManipulationDirtiedSomething = false;
 
-	if (ScopedTransaction != NULL)
+	if (ScopedTransaction != nullptr)
 	{
 		delete ScopedTransaction;
-		ScopedTransaction = NULL;
+		ScopedTransaction = nullptr;
 	}
 }
 
@@ -1594,7 +1604,7 @@ FSpritePolygonCollection* FSpriteEditorViewportClient::GetGeometryBeingEdited() 
 	case ESpriteEditorMode::EditRenderingGeomMode:
 		return &(Sprite->RenderGeometry);
 	default:
-		return NULL;
+		return nullptr;
 	}
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "SEditableTextBlock.h"
@@ -14,6 +14,23 @@ FEditableTextBlock::FEditableTextBlock( const FText& InLabel, const FText& InToo
 	  OnTextChanged( InOnTextChanged ),
 	  bReadOnly( bInReadOnly )
 { }
+
+
+bool FEditableTextBlock::HasIcon() const
+{
+	const TSharedPtr< const FUICommandInfo >& UICommand = GetAction();
+	const FSlateIcon ActionIcon = UICommand.IsValid() ? UICommand->GetIcon() : FSlateIcon();
+
+	const FSlateIcon& ActualIcon = !IconOverride.IsSet() ? ActionIcon : IconOverride;
+
+	if (ActualIcon.IsSet())
+	{
+		const FSlateBrush* IconBrush = ActualIcon.GetIcon();
+		return (IconBrush->GetResourceName() != NAME_None);
+	}
+
+	return false;
+}
 
 
 TSharedRef<class IMultiBlockBaseWidget> FEditableTextBlock::ConstructWidget() const

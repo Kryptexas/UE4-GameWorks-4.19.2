@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -91,5 +91,15 @@ private:
 	static void OpenBlutilityShelf()
 	{
 		FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("BlutilityShelfApp")));
+	}
+
+	/**
+	* Opens the experimental Visual Logger tab.
+	* Remove this when it is no longer experimental.
+	*/
+	static void OpenVisualLogger()
+	{
+		FModuleManager::Get().LoadModuleChecked<IModuleInterface>("LogVisualizer");
+		FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("VisualLogger")));
 	}
 };

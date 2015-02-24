@@ -1,7 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/DecalActor.h"
+#include "Components/DecalComponent.h"
+#include "Components/BoxComponent.h"
 
 
 #if WITH_EDITOR
@@ -29,7 +31,6 @@ ADecalActor::ADecalActor(const FObjectInitializer& ObjectInitializer)
 	BoxComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UBoxComponent>(this, TEXT("DrawBox0"));
 	if (BoxComponent != nullptr)
 	{
-		BoxComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 		BoxComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 
 		BoxComponent->ShapeColor = FColor(80, 80, 200, 255);

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessTemporalAA.cpp: Post process MotionBlur implementation.
@@ -181,7 +181,7 @@ public:
 			}
 			
 			FVector2D RandomOffsetValue;
-			TemporalRandom(&RandomOffsetValue, Context.View.FrameNumber);
+			TemporalRandom(&RandomOffsetValue, Context.View.Family->FrameNumber);
 			SetShaderValue(Context.RHICmdList, ShaderRHI, RandomOffset, RandomOffsetValue);
 
 		}

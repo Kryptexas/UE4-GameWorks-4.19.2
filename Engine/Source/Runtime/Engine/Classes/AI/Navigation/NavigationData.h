@@ -1,13 +1,16 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AI/Navigation/NavFilters/NavigationQueryFilter.h"
 #include "AI/Navigation/NavigationTypes.h"
+#include "AI/NavDataGenerator.h"
 #include "GameFramework/Actor.h"
 #include "UniquePtr.h"
 #include "NavigationData.generated.h"
 
+class UNavigationQueryFilter;
 class FNavDataGenerator; 
+class INavLinkCustomInterface;
 
 USTRUCT()
 struct FSupportedAreaData
@@ -83,9 +86,9 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	{
 		return bReachedSearchLimit;
 	}
-	FORCEINLINE bool IsDirect() const
+	FORCEINLINE bool IsWaitingForRepath() const
 	{
-		return NavigationDataUsed.Get() == NULL;
+		return bWaitingForRepath;
 	}
 	FORCEINLINE FVector GetDestinationLocation() const
 	{
@@ -95,13 +98,18 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 	{
 		return ObserverDelegate;
 	}
-	FORCEINLINE void AddObserver(FPathObserverDelegate::FDelegate& NewObserver)
+	FORCEINLINE FDelegateHandle AddObserver(FPathObserverDelegate::FDelegate& NewObserver)
 	{
-		ObserverDelegate.Add(NewObserver);
+		return ObserverDelegate.Add(NewObserver);
 	}
+	DELEGATE_DEPRECATED("This RemoveObserver overload has been deprecated - please pass the handle returned from AddObserver instead.")
 	FORCEINLINE void RemoveObserver(FPathObserverDelegate::FDelegate& ObserverToRemove)
 	{
-		ObserverDelegate.Remove(ObserverToRemove);
+		ObserverDelegate.DEPRECATED_Remove(ObserverToRemove);
+	}
+	FORCEINLINE void RemoveObserver(FDelegateHandle HandleOfObserverToRemove)
+	{
+		ObserverDelegate.Remove(HandleOfObserverToRemove);
 	}
 
 	FORCEINLINE void MarkReady()
@@ -157,8 +165,11 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 
 	FORCEINLINE void DoneUpdating(ENavPathUpdateType::Type UpdateType)
 	{
-		bUpToDate = true; ObserverDelegate.Broadcast(this, UpdateType == ENavPathUpdateType::GoalMoved ? ENavPathEvent::UpdatedDueToGoalMoved : ENavPathEvent::UpdatedDueToNavigationChanged);
+		bUpToDate = true;
+		bWaitingForRepath = false;
+		ObserverDelegate.Broadcast(this, UpdateType == ENavPathUpdateType::GoalMoved ? ENavPathEvent::UpdatedDueToGoalMoved : ENavPathEvent::UpdatedDueToNavigationChanged);
 	}
+
 	void Invalidate();
 	void RePathFailed();
 
@@ -222,7 +233,20 @@ struct ENGINE_API FNavigationPath : public TSharedFromThis<FNavigationPath, ESPM
 		return PathPoints;
 	}
 
+	/** checks if given path, starting from StartingIndex, intersects with given AABB box */
 	virtual bool DoesIntersectBox(const FBox& Box, uint32 StartingIndex = 0, int32* IntersectingSegmentIndex = NULL) const;
+	/** checks if given path, starting from StartingIndex, intersects with given AABB box. This version uses AgentLocation as beginning of the path
+	 *	with segment between AgentLocation and path's StartingIndex-th node treated as first path segment to check */
+	virtual bool DoesIntersectBox(const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex = 0, int32* IntersectingSegmentIndex = NULL) const;
+	/** retrieves normalized direction vector to given path segment
+	 *	for '0'-th segment returns same as for 1st segment 
+	 */
+	virtual FVector GetSegmentDirection(uint32 SegmentEndIndex) const;
+
+private:
+	bool DoesPathIntersectBoxImplementation(const FBox& Box, const FVector& StartLocation, uint32 StartingIndex, int32* IntersectingSegmentIndex) const;
+
+public:
 
 	/** type safe casts */
 	template<typename PathClass>
@@ -336,6 +360,9 @@ protected:
 	/** if true path will request re-pathing if it gets invalidated due to underlying navigation changed */
 	uint32 bDoAutoUpdateOnInvalidation : 1;
 
+	/** set when path is waiting for recalc from navigation data */
+	uint32 bWaitingForRepath : 1;
+
 	/** navigation data used to generate this path */
 	TWeakObjectPtr<ANavigationData> NavigationDataUsed;
 
@@ -372,8 +399,13 @@ class ENGINE_API ANavigationData : public AActor
 	//----------------------------------------------------------------------//
 
 	/** If true, the NavMesh can be dynamically rebuilt at runtime. */
-	UPROPERTY(EditAnywhere, Category=Runtime, config)
+	UPROPERTY(EditAnywhere, Category = Runtime, config)
 	uint32 bRebuildAtRuntime:1;
+
+	/** By default navigation will skip the first update after being successfully loaded
+	 *  setting bForceRebuildOnLoad to false can override this behavior */
+	UPROPERTY(config, EditAnywhere, Category = Runtime)
+	uint32 bForceRebuildOnLoad : 1;
 
 	/** all observed paths will be processed every ObservedPathsTickInterval seconds */
 	UPROPERTY(EditAnywhere, Category = Runtime, config)
@@ -382,8 +414,6 @@ class ENGINE_API ANavigationData : public AActor
 	//----------------------------------------------------------------------//
 	// Life cycle                                                                
 	//----------------------------------------------------------------------//
-	/** Dtor */
-	virtual ~ANavigationData();
 
 	// Begin UObject/AActor Interface
 	virtual void PostInitProperties() override;
@@ -392,7 +422,7 @@ class ENGINE_API ANavigationData : public AActor
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
-	virtual void Destroyed() override;
+	virtual void BeginDestroy() override;
 	// End UObject Interface
 		
 	virtual void CleanUp();
@@ -422,10 +452,12 @@ public:
 	const FNavDataConfig& GetConfig() const { return NavDataConfig; }
 	virtual void SetConfig(const FNavDataConfig& Src) { NavDataConfig = Src; }
 
-	void SetSupportsDefaultAgent(bool bIsDefault) { bSupportsDefaultAgent = bIsDefault; bEnableDrawing = bIsDefault; } 
+	void SetSupportsDefaultAgent(bool bIsDefault) { bSupportsDefaultAgent = bIsDefault; SetNavRenderingEnabled(bIsDefault); }
 	bool IsSupportingDefaultAgent() const { return bSupportsDefaultAgent; }
 
-	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const { return false; }
+	virtual bool DoesSupportAgent(const FNavAgentProperties& AgentProps) const;
+
+	FORCEINLINE void MarkAsNeedingUpdate() { bWantsUpdate = true; }
 
 protected:
 	virtual void FillConfig(FNavDataConfig& Dest) { Dest = NavDataConfig; }
@@ -676,25 +708,28 @@ public:
 	// Custom navigation links
 	//----------------------------------------------------------------------//
 
-	virtual void UpdateCustomLink(const class INavLinkCustomInterface* CustomLink);
+	virtual void UpdateCustomLink(const INavLinkCustomInterface* CustomLink);
 
 	//----------------------------------------------------------------------//
 	// Filters
 	//----------------------------------------------------------------------//
 
 	/** get cached query filter */
-	TSharedPtr<const FNavigationQueryFilter> GetQueryFilter(TSubclassOf<class UNavigationQueryFilter> FilterClass) const;
+	TSharedPtr<const FNavigationQueryFilter> GetQueryFilter(TSubclassOf<UNavigationQueryFilter> FilterClass) const;
 
 	/** store cached query filter */
-	void StoreQueryFilter(TSubclassOf<class UNavigationQueryFilter> FilterClass, TSharedPtr<const FNavigationQueryFilter> NavFilter);
+	void StoreQueryFilter(TSubclassOf<UNavigationQueryFilter> FilterClass, TSharedPtr<const FNavigationQueryFilter> NavFilter);
 
 	/** removes cached query filter */
-	void RemoveQueryFilter(TSubclassOf<class UNavigationQueryFilter> FilterClass);
+	void RemoveQueryFilter(TSubclassOf<UNavigationQueryFilter> FilterClass);
 
 	//----------------------------------------------------------------------//
 	// all the rest                                                                
 	//----------------------------------------------------------------------//
 	virtual UPrimitiveComponent* ConstructRenderingComponent() { return NULL; }
+
+	/** updates state of rendering component */
+	void SetNavRenderingEnabled(bool bEnable);
 
 protected:
 	void InstantiateAndRegisterRenderingComponent();
@@ -755,6 +790,10 @@ protected:
 
 	/** was it generated for default agent (SupportedAgents[0]) */
 	uint32 bSupportsDefaultAgent:1;
+
+	/** controls whether this NavigationData will accept navigation building requests resulting from dirty areas
+	 *	true by default, set to false on successful serialization to skip initial rebuild */
+	uint32 bWantsUpdate:1;
 
 private:
 	uint16 NavDataUniqueID;

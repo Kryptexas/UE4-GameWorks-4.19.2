@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "AttenuationSettingsCustomizations.h"
+#include "Sound/SoundAttenuation.h"
 
 TSharedRef<IPropertyTypeCustomization> FAttenuationSettingsCustomization::MakeInstance() 
 {
@@ -12,8 +13,8 @@ void FAttenuationSettingsCustomization::CustomizeHeader( TSharedRef<class IPrope
 {
 	// We'll set up reset to default ourselves
 	const bool bDisplayResetToDefault = false;
-	const FString DisplayNameOverride = TEXT("");
-	const FString DisplayToolTipOverride = TEXT("");
+	const FText DisplayNameOverride = FText::GetEmpty();
+	const FText DisplayToolTipOverride = FText::GetEmpty();
 
 	HeaderRow
 		.NameContent()
@@ -84,10 +85,10 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 	
 	ChildBuilder.AddChildProperty(AttenuationExtentsHandle)
 		.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsBoxSelected))
-		.DisplayName(TEXT("Extents"))
-		.ToolTip(NSLOCTEXT("AttenuationSettings", "BoxExtents", "The dimensions of the of the box.").ToString());
+		.DisplayName(NSLOCTEXT("AttenuationSettings", "BoxExtentsLabel", "Extents"))
+		.ToolTip(NSLOCTEXT("AttenuationSettings", "BoxExtents", "The dimensions of the of the box."));
 
-	ChildBuilder.AddChildContent(TEXT("Radius"))
+	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "RadiusLabel", "Radius"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -101,7 +102,7 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 		]
 		.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsSphereSelected));
 
-	ChildBuilder.AddChildContent(TEXT("CapsuleHalfHeight"))
+	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "CapsuleHalfHeightLabel", "Capsule Half Height"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -115,7 +116,7 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 			]
 		.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsCapsuleSelected));
 
-	ChildBuilder.AddChildContent(TEXT("CapsuleRadius"))
+	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "CapsuleRadiusLabel", "Capsule Radius"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -129,7 +130,7 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 		]
 	.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsCapsuleSelected));
 
-	ChildBuilder.AddChildContent(TEXT("ConeRadius"))
+	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "ConeRadiusLabel", "Cone Radius"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -143,7 +144,7 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 		]
 	.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsConeSelected));
 
-	ChildBuilder.AddChildContent(TEXT("ConeAngle"))
+	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "ConeAngleLabel", "Cone Angle"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -157,7 +158,7 @@ void FAttenuationSettingsCustomization::CustomizeChildren( TSharedRef<IPropertyH
 		]
 	.Visibility(TAttribute<EVisibility>(this, &FAttenuationSettingsCustomization::IsConeSelected));
 
-	ChildBuilder.AddChildContent(TEXT("ConeFalloffAngle"))
+	ChildBuilder.AddChildContent(NSLOCTEXT("AttenuationSettings", "ConeFalloffAngleLabel", "Cone Falloff Angle"))
 		.NameContent()
 		[
 			SNew(STextBlock)

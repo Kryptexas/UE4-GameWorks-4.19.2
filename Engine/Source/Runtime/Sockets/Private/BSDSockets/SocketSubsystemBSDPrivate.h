@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -62,3 +62,40 @@ inline int TranslateFlags(ESocketReceiveFlags::Type Flags)
 }
 
 #include <errno.h>
+
+/**
+ * Standard BSD specific socket subsystem implementation (common to both IPv4 and IPv6)
+ */
+class FSocketSubsystemBSDCommon
+	: public ISocketSubsystem
+{
+protected:
+
+	/**
+	 * Translates return values of getaddrinfo() to socket error enum
+	 */
+	inline ESocketErrors TranslateGAIErrorCode(int32 Code) const
+	{
+#if PLATFORM_HAS_BSD_SOCKET_FEATURE_GETHOSTNAME
+		switch (Code)
+		{
+			// getaddrinfo() has its own error codes
+			case EAI_AGAIN:			return SE_TRY_AGAIN;
+			case EAI_BADFLAGS:		return SE_EINVAL;
+			case EAI_FAIL:			return SE_NO_RECOVERY;
+			case EAI_FAMILY:		return SE_EAFNOSUPPORT;
+			case EAI_MEMORY:		return SE_ENOBUFS;
+			case EAI_NONAME:		return SE_HOST_NOT_FOUND;
+			case EAI_SERVICE:		return SE_EPFNOSUPPORT;
+			case EAI_SOCKTYPE:		return SE_ESOCKTNOSUPPORT;
+			case 0:					break; // 0 means success
+			default:
+				UE_LOG(LogSockets, Warning, TEXT("Unhandled getaddrinfo() socket error! Code: %d"), Code);
+				check(0);
+				break;
+		}
+#endif // PLATFORM_HAS_BSD_SOCKET_FEATURE_GETHOSTNAME
+
+		return SE_NO_ERROR;
+	};
+};

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SuperSearchPrivatePCH.h"
 #include "SSuperSearch.h"
@@ -18,9 +18,9 @@ void FSuperSearchModule::ShutdownModule()
 {
 }
 
-TSharedRef< SWidget > FSuperSearchModule::MakeSearchBox( TSharedPtr< SEditableTextBox >& OutExposedEditableTextBox ) const
+TSharedRef< SWidget > FSuperSearchModule::MakeSearchBox(TSharedPtr< SEditableTextBox >& OutExposedEditableTextBox, const TOptional<const FSearchBoxStyle*> InStyle) const
 {
-	TSharedRef< SSuperSearchBox > NewSearchBox = SNew( SSuperSearchBox );
+	TSharedRef< SSuperSearchBox > NewSearchBox = SNew(SSuperSearchBox).Style(InStyle);
 	OutExposedEditableTextBox = NewSearchBox->GetEditableTextBox();
 	return NewSearchBox;
 }

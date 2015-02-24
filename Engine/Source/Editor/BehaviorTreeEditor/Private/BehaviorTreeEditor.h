@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "IBehaviorTreeEditor.h"
 #include "Toolkits/AssetEditorToolkit.h"
+#include "EditorUndoClient.h"
 
 class UBehaviorTree;
 class UBlackboardData;
@@ -103,7 +104,7 @@ public:
 
 	TSharedRef<class SWidget> OnGetDebuggerActorsMenu();
 	void OnDebuggerActorSelected(TWeakObjectPtr<UBehaviorTreeComponent> InstanceToDebug);
-	FString GetDebuggerActorDesc() const;
+	FText GetDebuggerActorDesc() const;
 	FGraphAppearanceInfo GetGraphAppearance() const;
 	bool InEditingMode(bool bGraphIsEditable) const;
 
@@ -321,6 +322,12 @@ private:
 
 	/** Whether the current selection is inherited, stored here so it can be accessed by our details customization */
 	bool bIsCurrentBlackboardEntryInherited;
+
+	/** Handle to the registered OnPackageSave delegate */
+	FDelegateHandle OnPackageSavedDelegateHandle;
+
+	/** Handle to the registered OnClassListUpdated delegate */
+	FDelegateHandle OnClassListUpdatedDelegateHandle;
 
 public:
 	/** Modes in mode switcher */

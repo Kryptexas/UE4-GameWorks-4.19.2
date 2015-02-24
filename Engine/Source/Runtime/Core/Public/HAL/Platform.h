@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -48,8 +48,24 @@
 // Platform specific compiler pre-setup.
 #if PLATFORM_WINDOWS
 	#include "Windows/WindowsPlatformCompilerPreSetup.h"
+#elif PLATFORM_PS4
+	#include "PS4/PS4PlatformCompilerPreSetup.h"
+#elif PLATFORM_XBOXONE
+	#include "XboxOne/XboxOnePlatformCompilerPreSetup.h"
 #elif PLATFORM_MAC
 	#include "Mac/MacPlatformCompilerPreSetup.h"
+#elif PLATFORM_IOS
+	#include "IOS/IOSPlatformCompilerPreSetup.h"
+#elif PLATFORM_ANDROID
+	#include "Android/AndroidPlatformCompilerPreSetup.h"
+#elif PLATFORM_WINRT_ARM || PLATFORM_WINRT
+	#include "WinRT/WinRTPlatformCompilerPreSetup.h"
+#elif PLATFORM_HTML5
+	#include "HTML5/HTML5PlatformCompilerPreSetup.h"
+#elif PLATFORM_LINUX
+	#include "Linux/LinuxPlatformCompilerPreSetup.h"
+#else
+	#error Unknown Compiler
 #endif
 
 // Generic compiler pre-setup.
@@ -245,10 +261,6 @@
 	#define PLATFORM_SUPPORTS_RHI_THREAD		0
 #endif
 
-#ifndef PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult
-	#define PLATFORM_HAS_THREADSAFE_RHIGetRenderQueryResult		0
-#endif
-
 #ifndef PLATFORM_USES_FIXED_RHI_CLASS
 	#define PLATFORM_USES_FIXED_RHI_CLASS		0
 #endif
@@ -320,6 +332,11 @@
 #ifndef PRAGMA_DISABLE_OPTIMIZATION_ACTUAL
 	#define PRAGMA_DISABLE_OPTIMIZATION_ACTUAL
 	#define PRAGMA_ENABLE_OPTIMIZATION_ACTUAL
+#endif
+
+// Disable optimization of a specific function
+#ifndef DISABLE_FUNCTION_OPTIMIZATION
+	#define DISABLE_FUNCTION_OPTIMIZATION
 #endif
 
 #ifndef FORCEINLINE_DEBUGGABLE_ACTUAL

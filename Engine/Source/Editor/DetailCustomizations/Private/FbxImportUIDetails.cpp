@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "FbxImportUIDetails.h"
 #include "Factories/FbxAnimSequenceImportData.h"
 #include "STextComboBox.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "FbxImportUIDetails"
 
@@ -35,7 +36,7 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 	ImportUI = Cast<UFbxImportUI>(EditingObjects[0].Get());
 
 	// Handle mesh category
-	IDetailCategoryBuilder& MeshCategory = DetailBuilder.EditCategory("Mesh", TEXT(""), ECategoryPriority::Important);
+	IDetailCategoryBuilder& MeshCategory = DetailBuilder.EditCategory("Mesh", FText::GetEmpty(), ECategoryPriority::Important);
 	IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory("Transform");
 	TArray<TSharedRef<IPropertyHandle>> CategoryDefaultProperties;
 	TArray<TSharedPtr<IPropertyHandle>> ExtraProperties;
@@ -118,13 +119,21 @@ void FFbxImportUIDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder 
 					{
 						SetStaticMeshLODGroupWidget(PropertyRow, Handle);
 					}
+
+					if (Property->GetFName() == GET_MEMBER_NAME_CHECKED(UFbxStaticMeshImportData, VertexOverrideColor))
+					{
+						// Cache the VertexColorImportOption property
+						VertexColorImportOptionHandle = StaticMeshDataProp->GetChildHandle(GET_MEMBER_NAME_CHECKED(UFbxStaticMeshImportData, VertexColorImportOption));
+
+						PropertyRow.IsEnabled(TAttribute<bool>(this, &FFbxImportUIDetails::GetVertexOverrideColorEnabledState));
+					}
 				}
 			}
 		}
 	}
 
 	// Animation Category
-	IDetailCategoryBuilder& AnimCategory = DetailBuilder.EditCategory("Animation", TEXT(""), ECategoryPriority::Important);
+	IDetailCategoryBuilder& AnimCategory = DetailBuilder.EditCategory("Animation", FText::GetEmpty(), ECategoryPriority::Important);
 
 	CategoryDefaultProperties.Empty();
 	AnimCategory.GetDefaultProperties(CategoryDefaultProperties);
@@ -242,8 +251,10 @@ void FFbxImportUIDetails::SetStaticMeshLODGroupWidget(IDetailPropertyRow& Proper
 		.ValueContent()
 		.MinDesiredWidth(Row.ValueWidget.MinWidth)
 		.MaxDesiredWidth(Row.ValueWidget.MaxWidth)
+		.VAlign(VAlign_Center)
 		[
 			SNew(STextComboBox)
+			.Font(IDetailLayoutBuilder::GetDetailFont())
 			.OptionsSource(&LODGroupOptions)
 			.InitiallySelectedItem(LODGroupOptions[GroupIndex])
 			.OnSelectionChanged(this, &FFbxImportUIDetails::OnLODGroupChanged, HandlePtr)
@@ -261,6 +272,14 @@ void FFbxImportUIDetails::OnLODGroupChanged(TSharedPtr<FString> NewValue, ESelec
 	}
 }
 
+bool FFbxImportUIDetails::GetVertexOverrideColorEnabledState() const
+{
+	uint8 VertexColorImportOption;
+	check(VertexColorImportOptionHandle.IsValid())
+	ensure(VertexColorImportOptionHandle->GetValue(VertexColorImportOption) == FPropertyAccess::Success);
+
+	return (VertexColorImportOption == EVertexColorImportOption::Override);
+}
 
 void FFbxImportUIDetails::CollectChildPropertiesRecursive(TSharedPtr<IPropertyHandle> Node, TArray<TSharedPtr<IPropertyHandle>>& OutProperties)
 {
@@ -309,7 +328,15 @@ void FFbxImportUIDetails::ImportMeshToggleChanged()
 {
 	if(CachedDetailBuilder)
 	{
-		ImportUI->MeshTypeToImport = ImportUI->bImportMesh ? FBXIT_SkeletalMesh: FBXIT_Animation;
+		if(ImportUI->bImportMesh)
+		{
+			ImportUI->MeshTypeToImport = ImportUI->bImportAsSkeletal ? FBXIT_SkeletalMesh : FBXIT_StaticMesh;
+		}
+		else
+		{
+			ImportUI->MeshTypeToImport = FBXIT_Animation;
+		}
+
 		CachedDetailBuilder->ForceRefreshDetails();
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -477,6 +477,7 @@ namespace UnrealBuildTool
 			else
 			{
 				IUEToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
+				Toolchain.SetUpGlobalEnvironment();
 
 				Contents.Append(
 					"\t\t" + ConfigGuid + " /* " + ConfigName + " */ = {" + ProjectFileGenerator.NewLine +
@@ -506,6 +507,7 @@ namespace UnrealBuildTool
 		private void AppendIOSBuildConfig(ref StringBuilder Contents, string ConfigName, string ConfigGuid)
 		{
 			IUEToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
+			Toolchain.SetUpGlobalEnvironment();
 
 			Contents.Append(
 				"\t\t" + ConfigGuid + " /* " + ConfigName + " */ = {" + ProjectFileGenerator.NewLine +
@@ -526,6 +528,7 @@ namespace UnrealBuildTool
 		private void AppendIOSRunConfig(ref StringBuilder Contents, string ConfigName, string ConfigGuid, string TargetName, string EngineRelative, string GamePath, bool bIsUE4Game, bool IsAGame, bool bIsUE4Client)
 		{
 			IUEToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
+			Toolchain.SetUpGlobalEnvironment();
 
 			Contents.Append(
 				"\t\t" + ConfigGuid + " /* " + ConfigName + " */ = {" + ProjectFileGenerator.NewLine +
@@ -605,16 +608,22 @@ namespace UnrealBuildTool
 			// This is needed for the target to pass the settings validation before code signing. UBT will overwrite this plist file later, with proper contents.
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
-				if (File.Exists(InfoPlistPath))
+				if (!File.Exists(InfoPlistPath))
 				{
-					File.Delete(InfoPlistPath);
-				}
-				else
-				{
+					string ProjectPath = GamePath;
+					string GameName = TargetName;
+					if (string.IsNullOrEmpty (ProjectPath))
+					{
+						ProjectPath = EngineRelative + "Engine";
+					}
+					if (bIsUE4Game)
+					{
+						ProjectPath = EngineRelative + "Engine";
+						GameName = "UE4Game";
+					}
 					Directory.CreateDirectory(Path.GetDirectoryName(InfoPlistPath));
+					IOS.UEDeployIOS.GeneratePList(ProjectPath, bIsUE4Game, GameName, TargetName, EngineRelative + "Engine", ProjectPath + "/Binaries/IOS/Payload");
 				}
-				string InfoPlistContents = File.ReadAllText(EngineRelative + "Engine/Build/IOS/UE4Game-Info.plist").Replace("${BUNDLE_IDENTIFIER}", TargetName).Replace("${EXECUTABLE_NAME}", TargetName);
-				File.WriteAllText(InfoPlistPath, InfoPlistContents);
 			}
 		}
 
@@ -725,7 +734,7 @@ namespace UnrealBuildTool
 			IUEToolChain Toolchain = UEToolChain.GetPlatformToolChain(CPPTargetPlatform.IOS);
 			foreach (string GameFolder in GameFolders)
 			{
-				if (GameFolder.EndsWith(Target.TargetName))
+				if (File.Exists(Path.Combine(GameFolder, Target.TargetName+".uproject")))
 				{
 					IsAGame = true;
 					GamePath = Toolchain.ConvertPath(Path.GetFullPath(GameFolder));
@@ -1081,7 +1090,7 @@ namespace UnrealBuildTool
 
 					if (IsEngineTarget)
 					{
-						if (!bAlwaysIncludeEngineModules)
+						if (!IncludeEngineSource)
 						{
 							// We were asked to exclude engine modules from the generated projects
 							WantProjectFileForTarget = false;

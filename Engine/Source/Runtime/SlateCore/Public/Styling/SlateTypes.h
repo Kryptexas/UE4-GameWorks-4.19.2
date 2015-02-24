@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -530,6 +530,26 @@ struct SLATECORE_API FScrollBarStyle : public FSlateWidgetStyle
 	FSlateBrush VerticalBackgroundImage;
 	FScrollBarStyle& SetVerticalBackgroundImage( const FSlateBrush& InVerticalBackgroundImage ){ VerticalBackgroundImage = InVerticalBackgroundImage; return *this; }
 
+	/** The image to use to represent the track above the thumb when the scrollbar is oriented vertically */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Appearance)
+	FSlateBrush VerticalTopSlotImage;
+	FScrollBarStyle& SetVerticalTopSlotImage(const FSlateBrush& Value){ VerticalTopSlotImage = Value; return *this; }
+
+	/** The image to use to represent the track above the thumb when the scrollbar is oriented horizontally */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Appearance)
+	FSlateBrush HorizontalTopSlotImage;
+	FScrollBarStyle& SetHorizontalTopSlotImage(const FSlateBrush& Value){ HorizontalTopSlotImage = Value; return *this; }
+
+	/** The image to use to represent the track below the thumb when the scrollbar is oriented vertically */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Appearance)
+	FSlateBrush VerticalBottomSlotImage;
+	FScrollBarStyle& SetVerticalBottomSlotImage(const FSlateBrush& Value){ VerticalBottomSlotImage = Value; return *this; }
+
+	/** The image to use to represent the track below the thumb when the scrollbar is oriented horizontally */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Appearance)
+	FSlateBrush HorizontalBottomSlotImage;
+	FScrollBarStyle& SetHorizontalBottomSlotImage(const FSlateBrush& Value){ HorizontalBottomSlotImage = Value; return *this; }
+
 	/** Image to use when the scrollbar thumb is in its normal state */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FSlateBrush NormalThumbImage;
@@ -775,6 +795,16 @@ struct SLATECORE_API FSearchBoxStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, Category=Appearance)
 	FSlateBrush ClearImage;
 	FSearchBoxStyle& SetClearImage( const FSlateBrush& InClearImage ){ ClearImage = InClearImage; return *this; }
+
+	/** Padding to use around the images */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	FMargin ImagePadding;
+	FSearchBoxStyle& SetImagePadding(const FMargin& InImagePadding){ ImagePadding = InImagePadding; return *this; }
+
+	/** If true, buttons appear to the left of the search text */
+	UPROPERTY(EditAnywhere, Category = Appearance)
+	bool bLeftAlignButtons;
+	FSearchBoxStyle& SetLeftAlignButtons(bool bInLeftAlignButtons){ bLeftAlignButtons = bInLeftAlignButtons; return *this; }
 };
 
 
@@ -1055,11 +1085,6 @@ struct SLATECORE_API FTableRowStyle : public FSlateWidgetStyle
 	FSlateBrush DragDropLineIndicatorBrush;
 	FTableRowStyle& SetDragDropLineIndicatorBrush(const FSlateBrush& InDragDropLineIndicatorBrush){ DragDropLineIndicatorBrush = InDragDropLineIndicatorBrush; return *this; }
 
-	/** Brush used when drawing the drag-drop indicator border around a row */
-	UPROPERTY(EditAnywhere, Category = Appearance)
-	FSlateBrush DragDropBorderIndicatorBrush;
-	FTableRowStyle& SetDragDropBorderIndicatorBrush(const FSlateBrush& InDragDropBorderIndicatorBrush){ DragDropBorderIndicatorBrush = InDragDropBorderIndicatorBrush; return *this; }
-
 	/** Text color used for all rows */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FSlateColor TextColor;
@@ -1069,6 +1094,21 @@ struct SLATECORE_API FTableRowStyle : public FSlateWidgetStyle
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Appearance)
 	FSlateColor SelectedTextColor;
 	FTableRowStyle& SetSelectedTextColor( const FSlateColor& InSelectedTextColor ){ SelectedTextColor = InSelectedTextColor; return *this; }
+
+	/** Brush used to provide feedback that a user can drop above the hovered row. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Appearance)
+	FSlateBrush DropIndicator_Above;
+	FTableRowStyle& SetDropIndicator_Above(const FSlateBrush& InValue){ DropIndicator_Above = InValue; return *this; }
+
+	/** Brush used to provide feedback that a user can drop onto the hovered row. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Appearance)
+	FSlateBrush DropIndicator_Onto;
+	FTableRowStyle& SetDropIndicator_Onto(const FSlateBrush& InValue){ DropIndicator_Onto = InValue; return *this; }
+
+	/** Brush used to provide feedback that a user can drop below the hovered row. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Appearance)
+	FSlateBrush DropIndicator_Below;
+	FTableRowStyle& SetDropIndicator_Below(const FSlateBrush& InValue){ DropIndicator_Below = InValue; return *this; }
 };
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealSync.h"
 
@@ -236,11 +236,11 @@ public:
 		 *
 		 * @returns State of the check box enum.
 		 */
-		ESlateCheckBoxState::Type IsCheckboxChecked() const
+		ECheckBoxState IsCheckboxChecked() const
 		{
 			return Parent.GetChosen() == Id
-				? ESlateCheckBoxState::Checked
-				: ESlateCheckBoxState::Unchecked;
+				? ECheckBoxState::Checked
+				: ECheckBoxState::Unchecked;
 		}
 
 	private:
@@ -249,7 +249,7 @@ public:
 		 *
 		 * @parent InNewState New state enum.
 		 */
-		void OnCheckStateChange(ESlateCheckBoxState::Type InNewState)
+		void OnCheckStateChange(ECheckBoxState InNewState)
 		{
 			Parent.ChooseEnabledItem(Id);
 		}

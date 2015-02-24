@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "IMediaPlayer.h"
@@ -25,7 +25,7 @@ void FMediaTextureCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailB
 		// video track index
 		IDetailPropertyRow& VideoTrackIndexRow = MediaPlayerCategory.AddProperty(VideoTrackIndexProperty);
 
-		VideoTrackIndexRow.DisplayName(TEXT("Video Track"));
+		VideoTrackIndexRow.DisplayName(LOCTEXT("VideoTrack", "Video Track"));
 		VideoTrackIndexRow.CustomWidget()
 			.NameContent()
 			[

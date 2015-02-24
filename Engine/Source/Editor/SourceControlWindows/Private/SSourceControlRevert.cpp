@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SourceControlWindowsPCH.h"
 #include "AssetToolsModule.h"
@@ -33,14 +33,14 @@ struct FRevertCheckBoxListViewItem
 		IsModified = false;
 	}
 
-	void OnCheckStateChanged( const ESlateCheckBoxState::Type NewCheckedState )
+	void OnCheckStateChanged( const ECheckBoxState NewCheckedState )
 	{
-		IsSelected = (NewCheckedState == ESlateCheckBoxState::Checked);
+		IsSelected = (NewCheckedState == ECheckBoxState::Checked);
 	}
 
-	ESlateCheckBoxState::Type OnIsChecked() const
+	ECheckBoxState OnIsChecked() const
 	{
-		return ( IsSelected ) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return ( IsSelected ) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	EVisibility OnGetModifiedStateVisibility() const
@@ -103,7 +103,7 @@ public:
 				.Padding(10)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("SourceControl.Revert", "SelectFiles", "Select the files that should be reverted below").ToString())
+					.Text(NSLOCTEXT("SourceControl.Revert", "SelectFiles", "Select the files that should be reverted below"))
 				]
 				+SVerticalBox::Slot()
 				.AutoHeight()
@@ -118,7 +118,7 @@ public:
 						.IsEnabled(this, &SSourceControlRevertWidget::OnGetItemsEnabled)
 						[
 							SNew(STextBlock)
-							.Text(NSLOCTEXT("SourceControl.Revert", "ListHeader", "File Name").ToString())
+							.Text(NSLOCTEXT("SourceControl.Revert", "ListHeader", "File Name"))
 						]
 					]
 				]
@@ -152,7 +152,7 @@ public:
 						.OnCheckStateChanged(this, &SSourceControlRevertWidget::RevertUnchangedToggled)
 						[
 							SNew(STextBlock)
-							.Text(NSLOCTEXT("SourceControl.Revert", "RevertUnchanged", "Revert Unchanged Only").ToString())
+							.Text(NSLOCTEXT("SourceControl.Revert", "RevertUnchanged", "Revert Unchanged Only"))
 						]
 					]
 					+SHorizontalBox::Slot()
@@ -236,7 +236,7 @@ private:
 					.IsChecked(ListItemPtr.ToSharedRef(), &FRevertCheckBoxListViewItem::OnIsChecked)
 					[
 						SNew(STextBlock)
-						.Text(ListItemPtr->Text)
+						.Text(FText::FromString(ListItemPtr->Text))
 					]
 				]
 				+SHorizontalBox::Slot()
@@ -288,16 +288,16 @@ private:
 	}
 
 	/** Called when the user checks or unchecks the revert unchanged checkbox; updates the list view accordingly */
-	void RevertUnchangedToggled( const ESlateCheckBoxState::Type NewCheckedState )
+	void RevertUnchangedToggled( const ECheckBoxState NewCheckedState )
 	{
-		bRevertUnchangedFilesOnly = (NewCheckedState == ESlateCheckBoxState::Checked);
+		bRevertUnchangedFilesOnly = (NewCheckedState == ECheckBoxState::Checked);
 	}
 
 	/**
 	 * Called whenever a column header is clicked, or in the case of the dialog, also when the "Check/Uncheck All" column header
 	 * checkbox is called, because its event bubbles to the column header. 
 	 */
-	void ColumnHeaderClicked( const ESlateCheckBoxState::Type NewCheckedState )
+	void ColumnHeaderClicked( const ECheckBoxState NewCheckedState )
 	{
 		for (int32 i=0; i<ListViewItemSource.Num(); i++)
 		{
@@ -305,7 +305,7 @@ private:
 
 			if (OnGetItemsEnabled())
 			{
-				CurListViewItem->IsSelected = (NewCheckedState == ESlateCheckBoxState::Checked);
+				CurListViewItem->IsSelected = (NewCheckedState == ECheckBoxState::Checked);
 			}
 		}
 	}

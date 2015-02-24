@@ -186,7 +186,7 @@ float3 SSSSTransmittance(float translucency, float sssWidth, float3 worldPositio
 // @param texcoord The usual quad texture coordinates.
 // @param dir Direction of the blur: First pass:   float2(1.0, 0.0), Second pass:  float2(0.0, 1.0)
 // @param initStencil indicates whether the stencil buffer should be initialized. Should be set to 'true' for the first pass if not previously initialized, to enable optimization of the second pass.
-float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initStencil)
+float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initStencil, bool bIncludeCenter)
 {
     // Fetch color of current pixel:
     float4 colorM = SSSSSampleSceneColorPoint(ViewportUV);
@@ -208,7 +208,7 @@ float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initSten
 
 	// Initialize the stencil buffer in case it was not already available:
     if (initStencil) // (Checked in compile time, it's optimized away)
-        if (SSSStrength == 0.0) discard;
+        if (SSSStrength < 1 / 256.0f) discard;
 
 	float SSSScaleX = SSSParams.x;
 
@@ -232,9 +232,10 @@ float4 SSSSBlurPS(float2 GBufferUV, float2 ViewportUV, float2 dir, bool initSten
 	// center sample is added in Recombine pass
 	colorBlurred.a = colorM.a;
 
-//#if SSS_DIRECTION == 0
-	colorBlurred.rgb = colorM.rgb * GetKernel(SSSS_N_KERNELWEIGHTOFFSET, SubsurfaceProfileInt).rgb;
-//#endif
+	if(bIncludeCenter)
+	{
+		colorBlurred.rgb = colorM.rgb * GetKernel(SSSS_N_KERNELWEIGHTOFFSET, SubsurfaceProfileInt).rgb;
+	}
 
 	// Accumulate the other samples:
     SSSS_UNROLL

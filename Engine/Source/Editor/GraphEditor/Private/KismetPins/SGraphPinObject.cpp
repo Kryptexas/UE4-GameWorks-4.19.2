@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GraphEditorCommon.h"
 #include "SGraphPinObject.h"
@@ -72,10 +72,7 @@ TSharedRef<SWidget>	SGraphPinObject::GetDefaultValueWidget()
 					.Text( this, &SGraphPinObject::OnGetComboTextValue )
 					.ToolTipText( this, &SGraphPinObject::GetObjectToolTip )
 				]
-				.MenuContent()
-				[
-					GenerateAssetPicker()
-				]
+				.OnGetMenuContent(this, &SGraphPinObject::GenerateAssetPicker)
 			]
 			// Use button
 			+SHorizontalBox::Slot()
@@ -88,7 +85,7 @@ TSharedRef<SWidget>	SGraphPinObject::GetDefaultValueWidget()
 				.ButtonColorAndOpacity( this, &SGraphPinObject::OnGetWidgetBackground )
 				.OnClicked( GetOnUseButtonDelegate() )
 				.ContentPadding(1.f)
-				.ToolTipText(NSLOCTEXT("GraphEditor", "ObjectGraphPin_Use", "Use asset browser selection").ToString())
+				.ToolTipText(NSLOCTEXT("GraphEditor", "ObjectGraphPin_Use", "Use asset browser selection"))
 				[
 					SNew(SImage)
 					.ColorAndOpacity( this, &SGraphPinObject::OnGetWidgetForeground )
@@ -106,7 +103,7 @@ TSharedRef<SWidget>	SGraphPinObject::GetDefaultValueWidget()
 				.ButtonColorAndOpacity( this, &SGraphPinObject::OnGetWidgetBackground )
 				.OnClicked( GetOnBrowseButtonDelegate() )
 				.ContentPadding(0)
-				.ToolTipText(NSLOCTEXT("GraphEditor", "ObjectGraphPin_Browse", "Browse").ToString())
+				.ToolTipText(NSLOCTEXT("GraphEditor", "ObjectGraphPin_Browse", "Browse"))
 				[
 					SNew(SImage)
 					.ColorAndOpacity( this, &SGraphPinObject::OnGetWidgetForeground )
@@ -184,7 +181,6 @@ TSharedRef<SWidget> SGraphPinObject::GenerateAssetPicker()
 	AssetPickerConfig.bAllowNullSelection = true;
 	AssetPickerConfig.Filter.bRecursiveClasses = true;
 	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateSP(this, &SGraphPinObject::OnAssetSelectedFromPicker);
-	AssetPickerConfig.ThumbnailScale = 0;
 	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
 	AssetPickerConfig.bAllowDragging = false;
 

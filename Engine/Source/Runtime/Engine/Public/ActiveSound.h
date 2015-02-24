@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Sound/AudioVolume.h"
 #include "Sound/SoundAttenuation.h"
+#include "Components/AudioComponent.h"
 
 /**
  *	Struct used for gathering the final parameters to apply to a wave instance
@@ -173,7 +174,7 @@ public:
 	TMap<UPTRINT,uint32> SoundNodeOffsetMap;
 	TArray<uint8> SoundNodeData;
 
-	TArray<struct FAudioComponentParam> InstanceParameters;
+	TArray<FAudioComponentParam> InstanceParameters;
 
 	// Updates the wave instances to be played.
 	void UpdateWaveInstances( FAudioDevice* AudioDevice, TArray<FWaveInstance*> &WaveInstances, const float DeltaTime );

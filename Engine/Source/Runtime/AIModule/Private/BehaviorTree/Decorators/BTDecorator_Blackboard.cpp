@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Decorators/BTDecorator_Blackboard.h"
@@ -11,19 +11,21 @@ UBTDecorator_Blackboard::UBTDecorator_Blackboard(const FObjectInitializer& Objec
 	NotifyObserver = EBTBlackboardRestart::ResultChange;
 }
 
-bool UBTDecorator_Blackboard::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+bool UBTDecorator_Blackboard::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
-	const UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
-	return EvaluateOnBlackboard(BlackboardComp);
+	const UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+	// note that this may produce unexpected logical results. FALSE is a valid return value here as well
+	// @todo signal it
+	return BlackboardComp && EvaluateOnBlackboard(*BlackboardComp);
 }
 
-bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent* BlackboardComp) const
+bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent& BlackboardComp) const
 {
 	bool bResult = false;
-	if (BlackboardComp && BlackboardKey.SelectedKeyType)
+	if (BlackboardKey.SelectedKeyType)
 	{
 		UBlackboardKeyType* KeyCDO = BlackboardKey.SelectedKeyType->GetDefaultObject<UBlackboardKeyType>();
-		const uint8* KeyMemory = BlackboardComp->GetKeyRawData(BlackboardKey.GetSelectedKeyID());
+		const uint8* KeyMemory = BlackboardComp.GetKeyRawData(BlackboardKey.GetSelectedKeyID());
 
 		const EBlackboardKeyOperation::Type Op = KeyCDO->GetTestOperation();
 		switch (Op)
@@ -48,9 +50,9 @@ bool UBTDecorator_Blackboard::EvaluateOnBlackboard(const UBlackboardComponent* B
 	return bResult;
 }
 
-void UBTDecorator_Blackboard::OnBlackboardChange(const UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID)
+void UBTDecorator_Blackboard::OnBlackboardChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID)
 {
-	UBehaviorTreeComponent* BehaviorComp = Blackboard ? (UBehaviorTreeComponent*)Blackboard->GetBrainComponent() : NULL;
+	UBehaviorTreeComponent* BehaviorComp = (UBehaviorTreeComponent*)Blackboard.GetBrainComponent();
 	if (BlackboardKey.GetSelectedKeyID() == ChangedKeyID &&
 		GetFlowAbortMode() != EBTFlowAbortMode::None &&
 		BehaviorComp)
@@ -62,7 +64,7 @@ void UBTDecorator_Blackboard::OnBlackboardChange(const UBlackboardComponent* Bla
 
 			UE_VLOG(BehaviorComp->GetOwner(), LogBehaviorTree, Verbose, TEXT("%s, OnBlackboardChange[%s] pass:%d executing:%d => %s"),
 				*UBehaviorTreeTypes::DescribeNodeHelper(this),
-				*Blackboard->GetKeyName(ChangedKeyID).ToString(), bPass, bIsExecutingBranch,
+				*Blackboard.GetKeyName(ChangedKeyID).ToString(), bPass, bIsExecutingBranch,
 				(bIsExecutingBranch && !bPass) || (!bIsExecutingBranch && bPass) ? TEXT("restart") : TEXT("skip"));
 
 			if ((bIsExecutingBranch && !bPass) ||
@@ -75,7 +77,7 @@ void UBTDecorator_Blackboard::OnBlackboardChange(const UBlackboardComponent* Bla
 		{
 			UE_VLOG(BehaviorComp->GetOwner(), LogBehaviorTree, Verbose, TEXT("%s, OnBlackboardChange[%s] => restart"),
 				*UBehaviorTreeTypes::DescribeNodeHelper(this),
-				*Blackboard->GetKeyName(ChangedKeyID).ToString());
+				*Blackboard.GetKeyName(ChangedKeyID).ToString());
 
 			// force result Aborted to restart from this decorator
 			// can't use helper function
@@ -89,11 +91,11 @@ void UBTDecorator_Blackboard::OnBlackboardChange(const UBlackboardComponent* Bla
 	}
 }
 
-void UBTDecorator_Blackboard::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTDecorator_Blackboard::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 
-	const UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
+	const UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	FString DescKeyValue;
 
 	if (BlackboardComp)
@@ -101,7 +103,7 @@ void UBTDecorator_Blackboard::DescribeRuntimeValues(const UBehaviorTreeComponent
 		DescKeyValue = BlackboardComp->DescribeKeyValue(BlackboardKey.GetSelectedKeyID(), EBlackboardDescription::OnlyValue);
 	}
 
-	const bool bResult = EvaluateOnBlackboard(BlackboardComp);
+	const bool bResult = BlackboardComp && EvaluateOnBlackboard(*BlackboardComp);
 	Values.Add(FString::Printf(TEXT("value: %s (%s)"), *DescKeyValue, bResult ? TEXT("pass") : TEXT("fail")));
 }
 

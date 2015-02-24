@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "DockingPrivate.h"
@@ -142,7 +142,7 @@ void SDockingTabStack::Construct( const FArguments& InArgs, const TSharedRef<FTa
 				.AutoHeight()
 				[
 					SNew(SImage)
-						.Image(this, &SDockingTabStack::GetTabWellBrush)
+					.Image(this, &SDockingTabStack::GetTabWellBrush)
 				]
 			]
 		]
@@ -769,7 +769,7 @@ FMargin SDockingTabStack::GetContentPadding() const
 	TSharedPtr<SDockTab> ForegroundTab = TabWell->GetForegroundTab();
 	return (ForegroundTab.IsValid())
 		? ForegroundTab->GetContentPadding()
-		: FMargin(5);
+		: FMargin(2);
 }
 
 EVisibility SDockingTabStack::GetTabWellVisibility() const

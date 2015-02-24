@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /////////////////////////////////////////////////////
 // USoundClassGraph
 
 #include "UnrealEd.h"
 #include "GraphEditor.h"
+#include "Sound/SoundClass.h"
 
 USoundClassGraph::USoundClassGraph(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

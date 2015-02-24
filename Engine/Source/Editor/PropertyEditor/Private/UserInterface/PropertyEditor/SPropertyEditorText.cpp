@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SPropertyEditorText.h"
@@ -48,7 +48,7 @@ void SPropertyEditorText::Construct( const FArguments& InArgs, const TSharedRef<
 	if( InPropertyEditor->PropertyIsA( UObjectPropertyBase::StaticClass() ) )
 	{
 		// Object properties should display their entire text in a tooltip
-		PrimaryWidget->SetToolTipText( TAttribute<FString>( InPropertyEditor, &FPropertyEditor::GetValueAsString ) );
+		PrimaryWidget->SetToolTipText( TAttribute<FText>( InPropertyEditor, &FPropertyEditor::GetValueAsText ) );
 	}
 
 	SetEnabled( TAttribute<bool>( this, &SPropertyEditorText::CanEdit ) );

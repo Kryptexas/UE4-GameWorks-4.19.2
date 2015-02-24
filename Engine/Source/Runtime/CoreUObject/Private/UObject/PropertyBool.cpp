@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "PropertyHelper.h"
@@ -95,31 +95,22 @@ void UBoolProperty::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 
-	if( Ar.UE4Ver() >= VER_UE4_VARIABLE_BITFIELD_SIZE )
+	// Serialize additional flags which will help to identify this UBoolProperty type and size.
+	uint8 BoolSize = (uint8)ElementSize;
+	Ar << BoolSize;
+	uint8 NativeBool = false;
+	if( Ar.IsLoading())
 	{
-		// Serialize additional flags which will help to identify this UBoolProperty type and size.
-		uint8 BoolSize = (uint8)ElementSize;
-		Ar << BoolSize;
-		uint8 NativeBool = false;
-		if( Ar.IsLoading())
+		Ar << NativeBool;
+		if (!HasAnyFlags(RF_PendingKill))
 		{
-			Ar << NativeBool;
-			if (!HasAnyFlags(RF_PendingKill))
-			{
-				SetBoolSize( BoolSize, !!NativeBool );
-			}
-		}
-		else
-		{
-			NativeBool = (!HasAnyFlags(RF_ClassDefaultObject|RF_PendingKill) && Ar.IsSaving()) ? (IsNativeBool() ? 1 : 0) : 0;
-			Ar << NativeBool;
+			SetBoolSize( BoolSize, !!NativeBool );
 		}
 	}
-	else if( Ar.IsLoading() && FieldSize == 0 )
+	else
 	{
-		// In case this property hasn't been initialized yet and is being loaded from disk set its size
-		// to the old size of UBOOL.
-		SetBoolSize( sizeof(uint32) );
+		NativeBool = (!HasAnyFlags(RF_ClassDefaultObject|RF_PendingKill) && Ar.IsSaving()) ? (IsNativeBool() ? 1 : 0) : 0;
+		Ar << NativeBool;
 	}
 }
 FString UBoolProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CPPExportFlags/*=0*/ ) const
@@ -151,6 +142,12 @@ FString UBoolProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CP
 	}
 	return TEXT("uint32");
 }
+
+FString UBoolProperty::GetCPPTypeForwardDeclaration() const
+{
+	return FString();
+}
+
 FString UBoolProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 {
 	check(FieldSize != 0);

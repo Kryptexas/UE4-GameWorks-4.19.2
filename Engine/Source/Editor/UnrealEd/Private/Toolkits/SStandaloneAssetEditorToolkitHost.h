@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -96,8 +96,11 @@ private:
 	/** Name ID for this app */
 	FName AppName;
 
-	/** The single toolkit we're hosting */
-	TSharedPtr< IToolkit > HostedToolkit;
+	/** List of all of the toolkits we're currently hosting */
+	TArray< TSharedPtr< class IToolkit > > HostedToolkits;
+
+	/** The 'owning' asset editor toolkit we're hosting */
+	TSharedPtr< class FAssetEditorToolkit > HostedAssetEditorToolkit;
 
 	/** Delegate to be called to determine if we are allowed to close this toolkit host */
 	FRequestAssetEditorClose EditorCloseRequest;

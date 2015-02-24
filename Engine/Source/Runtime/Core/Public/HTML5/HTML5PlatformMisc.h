@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -51,6 +51,13 @@ struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 			emscripten_log(255, "DebugBreak() called!");
 #endif
 		}
+	}
+
+	/** Break into debugger. Returning false allows this function to be used in conditionals. */
+	FORCEINLINE static bool DebugBreakReturningFalse()
+	{
+		DebugBreak();
+		return false;
 	}
 
 	FORCEINLINE static void LocalPrint( const TCHAR* Str )

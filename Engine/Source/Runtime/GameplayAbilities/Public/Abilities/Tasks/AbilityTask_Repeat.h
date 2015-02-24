@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "AbilityTask.h"
 #include "Abilities/GameplayAbilityTypes.h"
@@ -35,6 +35,9 @@ protected:
 	int32 ActionPerformancesDesired;
 	int32 ActionCounter;
 	float TimeBetweenActions;
+
+	/** Handle for efficient management of PerformAction timer */
+	FTimerHandle TimerHandle_PerformAction;
 
 	virtual void OnDestroy(bool AbilityIsEnding) override;
 };

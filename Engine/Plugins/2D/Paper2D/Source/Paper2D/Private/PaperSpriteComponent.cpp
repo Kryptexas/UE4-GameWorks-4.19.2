@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
 #include "PaperSpriteSceneProxy.h"
@@ -76,7 +76,7 @@ FPrimitiveSceneProxy* UPaperSpriteComponent::CreateSceneProxy()
 
 FBoxSphereBounds UPaperSpriteComponent::CalcBounds(const FTransform& LocalToWorld) const
 {
-	if (SourceSprite != NULL)
+	if (SourceSprite != nullptr)
 	{
 		// Graphics bounds.
 		FBoxSphereBounds NewBounds = SourceSprite->GetRenderBounds().TransformBy(LocalToWorld);
@@ -105,7 +105,7 @@ FBoxSphereBounds UPaperSpriteComponent::CalcBounds(const FTransform& LocalToWorl
 
 void UPaperSpriteComponent::SendRenderDynamicData_Concurrent()
 {
-	if (SceneProxy != NULL)
+	if (SceneProxy != nullptr)
 	{
 		FSpriteDrawCallRecord DrawCall;
 		DrawCall.BuildFromSprite(SourceSprite);
@@ -125,7 +125,7 @@ void UPaperSpriteComponent::SendRenderDynamicData_Concurrent()
 
 bool UPaperSpriteComponent::HasAnySockets() const
 {
-	if (SourceSprite != NULL)
+	if (SourceSprite != nullptr)
 	{
 		return SourceSprite->HasAnySockets();
 	}
@@ -133,9 +133,22 @@ bool UPaperSpriteComponent::HasAnySockets() const
 	return false;
 }
 
+bool UPaperSpriteComponent::DoesSocketExist(FName InSocketName) const
+{
+	if (SourceSprite != nullptr)
+	{
+		if (FPaperSpriteSocket* Socket = SourceSprite->FindSocket(InSocketName))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 FTransform UPaperSpriteComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const
 {
-	if (SourceSprite != NULL)
+	if (SourceSprite != nullptr)
 	{
 		if (FPaperSpriteSocket* Socket = SourceSprite->FindSocket(InSocketName))
 		{
@@ -169,7 +182,7 @@ FTransform UPaperSpriteComponent::GetSocketTransform(FName InSocketName, ERelati
 
 void UPaperSpriteComponent::QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const
 {
-	if (SourceSprite != NULL)
+	if (SourceSprite != nullptr)
 	{
 		return SourceSprite->QuerySupportedSockets(OutSockets);
 	}
@@ -186,7 +199,7 @@ bool UPaperSpriteComponent::SetSprite(class UPaperSprite* NewSprite)
 	{
 		// Don't allow changing the sprite if we are "static".
 		AActor* Owner = GetOwner();
-		if (!IsRegistered() || (Owner == NULL) || (Mobility != EComponentMobility::Static))
+		if (!IsRegistered() || (Owner == nullptr) || (Mobility != EComponentMobility::Static))
 		{
 			SourceSprite = NewSprite;
 
@@ -227,9 +240,9 @@ void UPaperSpriteComponent::GetUsedTextures(TArray<UTexture*>& OutTextures, EMat
 
 UMaterialInterface* UPaperSpriteComponent::GetMaterial(int32 MaterialIndex) const
 {
-	if (Materials.IsValidIndex(MaterialIndex) && (Materials[MaterialIndex] != nullptr))
+	if (OverrideMaterials.IsValidIndex(MaterialIndex) && (OverrideMaterials[MaterialIndex] != nullptr))
 	{
-		return Materials[MaterialIndex];
+		return OverrideMaterials[MaterialIndex];
 	}
 	else if (SourceSprite != nullptr)
 	{
@@ -254,11 +267,11 @@ int32 UPaperSpriteComponent::GetNumMaterials() const
 {
 	if (SourceSprite != nullptr)
 	{
-		return FMath::Max<int32>(Materials.Num(), SourceSprite->GetNumMaterials());
+		return FMath::Max<int32>(OverrideMaterials.Num(), SourceSprite->GetNumMaterials());
 	}
 	else
 	{
-		return FMath::Max<int32>(Materials.Num(), 1);
+		return FMath::Max<int32>(OverrideMaterials.Num(), 1);
 	}
 }
 

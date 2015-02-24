@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaPlayerEditorPrivatePCH.h"
 #include "Editor/ContentBrowser/Public/ContentBrowserModule.h"
@@ -79,7 +79,7 @@ UClass* FMediaTextureActions::GetSupportedClass() const
 
 FColor FMediaTextureActions::GetTypeColor() const
 {
-	return FColor(255, 0, 0);
+	return FColor::Red;
 }
 
 

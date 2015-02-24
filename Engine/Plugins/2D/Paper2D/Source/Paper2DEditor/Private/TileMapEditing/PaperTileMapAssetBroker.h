@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,7 +17,7 @@ public:
 
 	virtual bool AssignAssetToComponent(UActorComponent* InComponent, UObject* InAsset) override
 	{
-		if (UPaperTileMapRenderComponent* RenderComp = Cast<UPaperTileMapRenderComponent>(InComponent))
+		if (UPaperTileMapComponent* RenderComp = Cast<UPaperTileMapComponent>(InComponent))
 		{
 			UPaperTileMap* TileMap = Cast<UPaperTileMap>(InAsset);
 
@@ -33,7 +33,7 @@ public:
 
 	virtual UObject* GetAssetFromComponent(UActorComponent* InComponent) override
 	{
-		if (UPaperTileMapRenderComponent* RenderComp = Cast<UPaperTileMapRenderComponent>(InComponent))
+		if (UPaperTileMapComponent* RenderComp = Cast<UPaperTileMapComponent>(InComponent))
 		{
 			if ((RenderComp->TileMap != nullptr) && (RenderComp->TileMap->IsAsset()))
 			{

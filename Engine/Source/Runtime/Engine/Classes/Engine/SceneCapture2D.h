@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  * 
@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "SceneCapture.h"
 #include "SceneCapture2D.generated.h"
 
 UCLASS(hidecategories=(Collision, Material, Attachment, Actor), MinimalAPI)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "stdafx.h"
 #include "LightmassSwarm.h"
@@ -119,7 +119,7 @@ namespace Lightmass
 				}
 				if (AverageNormal.SizeSquared3() > KINDA_SMALL_NUMBER)
 				{
-					AverageNormal = AverageNormal.UnsafeNormal3();
+					AverageNormal = AverageNormal.GetUnsafeNormal3();
 				}
 				else
 				{

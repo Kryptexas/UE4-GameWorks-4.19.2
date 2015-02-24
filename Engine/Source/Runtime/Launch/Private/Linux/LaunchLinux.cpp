@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LaunchPrivatePCH.h"
 #include "ExceptionHandling.h"
@@ -16,8 +16,8 @@ extern int32 GuardedMain( const TCHAR* CmdLine );
 extern void LaunchStaticShutdownAfterError();
 
 // FIXME: handle expose it someplace else?
-extern int32 ReportCrash(const FLinuxCrashContext& Context);
-extern void GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext& Context);
+extern int32 DLLIMPORT ReportCrash(const FLinuxCrashContext& Context);
+extern void DLLIMPORT GenerateCrashInfoAndLaunchReporter(const FLinuxCrashContext& Context);
 
 /**
  * Game-specific crash reporter

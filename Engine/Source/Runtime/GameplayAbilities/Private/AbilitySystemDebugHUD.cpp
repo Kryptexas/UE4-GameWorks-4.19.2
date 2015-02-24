@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemComponent.h"
 #include "AbilitySystemDebugHUD.h"
 #include "DebugRenderSceneProxy.h"
+#include "Debug/DebugDrawService.h"
 
 AAbilitySystemDebugHUD::AAbilitySystemDebugHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -136,17 +137,19 @@ static void	ToggleDebugHUD(const TArray<FString>& Args, UWorld* InWorld)
 		break;
 	}
 
+	static FDelegateHandle DrawDebugDelegateHandle;
+
 	if (!HUD)
 	{
 		HUD = InWorld->SpawnActor<AAbilitySystemDebugHUD>();
 		
 		FDebugDrawDelegate DrawDebugDelegate = FDebugDrawDelegate::CreateUObject(HUD, &AAbilitySystemDebugHUD::DrawDebugHUD);
-		UDebugDrawService::Register(TEXT("GameplayDebug"), DrawDebugDelegate);
+		DrawDebugDelegateHandle = UDebugDrawService::Register(TEXT("GameplayDebug"), DrawDebugDelegate);
 	}
 	else
 	{
 		FDebugDrawDelegate DrawDebugDelegate = FDebugDrawDelegate::CreateUObject(HUD, &AAbilitySystemDebugHUD::DrawDebugHUD);
-		UDebugDrawService::Unregister(DrawDebugDelegate);
+		UDebugDrawService::Unregister(DrawDebugDelegateHandle);
 		HUD->Destroy();
 	}
 }

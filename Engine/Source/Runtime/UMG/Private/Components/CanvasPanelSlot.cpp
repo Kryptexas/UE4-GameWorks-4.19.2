@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -7,7 +7,7 @@
 
 UCanvasPanelSlot::UCanvasPanelSlot(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, Slot(NULL)
+	, Slot(nullptr)
 {
 	LayoutData.Offsets = FMargin(0, 0, 100, 30);
 	LayoutData.Anchors = FAnchors(0.0f, 0.0f);
@@ -20,108 +20,34 @@ void UCanvasPanelSlot::ReleaseSlateResources(bool bReleaseChildren)
 {
 	Super::ReleaseSlateResources(bReleaseChildren);
 
-	Slot = NULL;
+	Slot = nullptr;
 }
 
 void UCanvasPanelSlot::BuildSlot(TSharedRef<SConstraintCanvas> Canvas)
 {
 	Slot = &Canvas->AddSlot()
 		[
-			Content == NULL ? SNullWidget::NullWidget : Content->TakeWidget()
+			Content == nullptr ? SNullWidget::NullWidget : Content->TakeWidget()
 		];
 
 	SynchronizeProperties();
 }
 
-void UCanvasPanelSlot::SetDesiredPosition(FVector2D InPosition)
+void UCanvasPanelSlot::SetLayout(const FAnchorData& InLayoutData)
 {
-	FVector2D Delta = FVector2D(InPosition.X - LayoutData.Offsets.Left, InPosition.Y - LayoutData.Offsets.Top);
-
-	FMargin NewOffset = LayoutData.Offsets;
-	NewOffset.Left += Delta.X;
-	NewOffset.Top += Delta.Y;
-
-	// If the slot is stretched horizontally we need to move the right side as it no longer represents width, but
-	// now represents margin from the right stretched side.
-	if ( LayoutData.Anchors.IsStretchedHorizontal() )
-	{
-		NewOffset.Right -= Delta.X;
-	}
-
-	// If the slot is stretched vertically we need to move the bottom side as it no longer represents width, but
-	// now represents margin from the bottom stretched side.
-	if ( LayoutData.Anchors.IsStretchedVertical() )
-	{
-		NewOffset.Bottom -= Delta.Y;
-	}
-
-	SetOffsets(NewOffset);
-}
-
-void UCanvasPanelSlot::SetDesiredSize(FVector2D InSize)
-{
-	SetOffsets(FMargin(LayoutData.Offsets.Left, LayoutData.Offsets.Top, InSize.X, InSize.Y));
-}
-
-void UCanvasPanelSlot::Resize(const FVector2D& Direction, const FVector2D& Amount)
-{
-	if ( Direction.X < 0 )
-	{
-		LayoutData.Offsets.Left -= Amount.X * Direction.X;
-
-		// Keep the right side stable if it's not stretched and we're resizing left.
-		if ( !LayoutData.Anchors.IsStretchedHorizontal() )
-		{
-			// TODO UMG This doesn't work correctly with Alignment, fix or remove alignment
-			LayoutData.Offsets.Right += Amount.X * Direction.X;
-		}
-	}
-	
-	if ( Direction.Y < 0 )
-	{
-		LayoutData.Offsets.Top -= Amount.Y * Direction.Y;
-
-		// Keep the bottom side stable if it's not stretched and we're resizing top.
-		if ( !LayoutData.Anchors.IsStretchedVertical() )
-		{
-			// TODO UMG This doesn't work correctly with Alignment, fix or remove alignment
-			LayoutData.Offsets.Bottom += Amount.Y * Direction.Y;
-		}
-	}
-	
-	if ( Direction.X > 0 )
-	{
-		if ( LayoutData.Anchors.IsStretchedHorizontal() )
-		{
-			LayoutData.Offsets.Right -= Amount.X * Direction.X;
-		}
-		else
-		{
-			LayoutData.Offsets.Right += Amount.X * Direction.X;
-		}
-	}
-
-	if ( Direction.Y > 0 )
-	{
-		if ( LayoutData.Anchors.IsStretchedVertical() )
-		{
-			LayoutData.Offsets.Bottom -= Amount.Y * Direction.Y;
-		}
-		else
-		{
-			LayoutData.Offsets.Bottom += Amount.Y * Direction.Y;
-		}
-	}
+	LayoutData = InLayoutData;
 
 	if ( Slot )
 	{
 		Slot->Offset(LayoutData.Offsets);
+		Slot->Anchors(LayoutData.Anchors);
+		Slot->Alignment(LayoutData.Alignment);
 	}
 }
 
-bool UCanvasPanelSlot::CanResize(const FVector2D& Direction) const
+FAnchorData UCanvasPanelSlot::GetLayout() const
 {
-	return true;
+	return LayoutData;
 }
 
 void UCanvasPanelSlot::SetPosition(FVector2D InPosition)
@@ -135,6 +61,17 @@ void UCanvasPanelSlot::SetPosition(FVector2D InPosition)
 	}
 }
 
+FVector2D UCanvasPanelSlot::GetPosition() const
+{
+	if ( Slot )
+	{
+		FMargin Offsets = Slot->OffsetAttr.Get();
+		return FVector2D(Offsets.Left, Offsets.Top);
+	}
+
+	return FVector2D(LayoutData.Offsets.Left, LayoutData.Offsets.Top);
+}
+
 void UCanvasPanelSlot::SetSize(FVector2D InSize)
 {
 	LayoutData.Offsets.Right = InSize.X;
@@ -146,6 +83,17 @@ void UCanvasPanelSlot::SetSize(FVector2D InSize)
 	}
 }
 
+FVector2D UCanvasPanelSlot::GetSize() const
+{
+	if ( Slot )
+	{
+		FMargin Offsets = Slot->OffsetAttr.Get();
+		return FVector2D(Offsets.Right, Offsets.Bottom);
+	}
+
+	return FVector2D(LayoutData.Offsets.Right, LayoutData.Offsets.Bottom);
+}
+
 void UCanvasPanelSlot::SetOffsets(FMargin InOffset)
 {
 	LayoutData.Offsets = InOffset;
@@ -153,6 +101,16 @@ void UCanvasPanelSlot::SetOffsets(FMargin InOffset)
 	{
 		Slot->Offset(InOffset);
 	}
+}
+
+FMargin UCanvasPanelSlot::GetOffsets() const
+{
+	if ( Slot )
+	{
+		return Slot->OffsetAttr.Get();
+	}
+
+	return LayoutData.Offsets;
 }
 
 void UCanvasPanelSlot::SetAnchors(FAnchors InAnchors)
@@ -164,6 +122,16 @@ void UCanvasPanelSlot::SetAnchors(FAnchors InAnchors)
 	}
 }
 
+FAnchors UCanvasPanelSlot::GetAnchors() const
+{
+	if ( Slot )
+	{
+		return Slot->AnchorsAttr.Get();
+	}
+
+	return LayoutData.Anchors;
+}
+
 void UCanvasPanelSlot::SetAlignment(FVector2D InAlignment)
 {
 	LayoutData.Alignment = InAlignment;
@@ -171,6 +139,16 @@ void UCanvasPanelSlot::SetAlignment(FVector2D InAlignment)
 	{
 		Slot->Alignment(InAlignment);
 	}
+}
+
+FVector2D UCanvasPanelSlot::GetAlignment() const
+{
+	if ( Slot )
+	{
+		return Slot->AlignmentAttr.Get();
+	}
+
+	return LayoutData.Alignment;
 }
 
 void UCanvasPanelSlot::SetAutoSize(bool InbAutoSize)
@@ -182,6 +160,16 @@ void UCanvasPanelSlot::SetAutoSize(bool InbAutoSize)
 	}
 }
 
+bool UCanvasPanelSlot::GetAutoSize() const
+{
+	if ( Slot )
+	{
+		return Slot->AutoSizeAttr.Get();
+	}
+
+	return bAutoSize;
+}
+
 void UCanvasPanelSlot::SetZOrder(int32 InZOrder)
 {
 	ZOrder = InZOrder;
@@ -189,6 +177,16 @@ void UCanvasPanelSlot::SetZOrder(int32 InZOrder)
 	{
 		Slot->ZOrder(InZOrder);
 	}
+}
+
+int32 UCanvasPanelSlot::GetZOrder() const
+{
+	if ( Slot )
+	{
+		return Slot->ZOrderAttr.Get();
+	}
+
+	return ZOrder;
 }
 
 void UCanvasPanelSlot::SetMinimum(FVector2D InMinimumAnchors)
@@ -270,6 +268,11 @@ void UCanvasPanelSlot::SaveBaseLayout()
 	}
 }
 
+void UCanvasPanelSlot::SetDesiredPosition(FVector2D InPosition)
+{
+	DesiredPosition = InPosition;
+}
+
 void UCanvasPanelSlot::RebaseLayout(bool PreserveSize)
 {
 	// Ensure we have a parent canvas
@@ -287,14 +290,19 @@ void UCanvasPanelSlot::RebaseLayout(bool PreserveSize)
 				LayoutData.Anchors.Maximum.Y * CanvasSize.Y);
 			FVector2D DefaultAnchorPosition = FVector2D(AnchorPositions.Left, AnchorPositions.Top);
 
+			// Determine the amount that would be offset from the anchor position if alignment was applied.
+			FVector2D AlignmentOffset = LayoutData.Alignment * PreEditGeometry.Size;
+
+			FVector2D MoveDelta = Geometry.Position - PreEditGeometry.Position;
+
 			// Determine where the widget's new position needs to be to maintain a stable location when the anchors change.
 			FVector2D LeftTopDelta = PreEditGeometry.Position - DefaultAnchorPosition;
 
-			if ( PreEditLayoutData.Anchors.Minimum != LayoutData.Anchors.Minimum || PreEditLayoutData.Anchors.Maximum != LayoutData.Anchors.Maximum )
-			{
-				// Determine the amount that would be offset from the anchor position if alignment was applied.
-				FVector2D AlignmentOffset = LayoutData.Alignment * PreEditGeometry.Size;
+			const bool bAnchorsMoved = PreEditLayoutData.Anchors.Minimum != LayoutData.Anchors.Minimum || PreEditLayoutData.Anchors.Maximum != LayoutData.Anchors.Maximum;
+			const bool bMoved = PreEditLayoutData.Offsets.Left != LayoutData.Offsets.Left || PreEditLayoutData.Offsets.Top != LayoutData.Offsets.Top;
 
+			if ( bAnchorsMoved )
+			{
 				// Adjust the size to remain constant
 				if ( !LayoutData.Anchors.IsStretchedHorizontal() && PreEditLayoutData.Anchors.IsStretchedHorizontal() )
 				{
@@ -344,23 +352,60 @@ void UCanvasPanelSlot::RebaseLayout(bool PreserveSize)
 					LayoutData.Offsets.Top = LeftTopDelta.Y + AlignmentOffset.Y;
 				}
 			}
-			else if ( PreEditLayoutData.Offsets.Left != LayoutData.Offsets.Left || PreEditLayoutData.Offsets.Top != LayoutData.Offsets.Top )
+			else if ( DesiredPosition.IsSet() )
 			{
-				LayoutData.Offsets.Left += LeftTopDelta.X;
-				LayoutData.Offsets.Top += LeftTopDelta.Y;
+				FVector2D NewLocalPosition = DesiredPosition.GetValue();
+
+				LayoutData.Offsets.Left = NewLocalPosition.X - AnchorPositions.Left;
+				LayoutData.Offsets.Top = NewLocalPosition.Y - AnchorPositions.Top;
+
+				if ( LayoutData.Anchors.IsStretchedHorizontal() )
+				{
+					LayoutData.Offsets.Right -= LayoutData.Offsets.Left - PreEditLayoutData.Offsets.Left;
+				}
+				else
+				{
+					LayoutData.Offsets.Left += AlignmentOffset.X;
+				}
+
+				if ( LayoutData.Anchors.IsStretchedVertical() )
+				{
+					LayoutData.Offsets.Bottom -= LayoutData.Offsets.Top - PreEditLayoutData.Offsets.Top;
+				}
+				else
+				{
+					LayoutData.Offsets.Top += AlignmentOffset.Y;
+				}
+
+				DesiredPosition.Reset();
+			}
+			else if ( bMoved )
+			{
+				//LayoutData.Offsets.Left += LeftTopDelta.X;
+				//LayoutData.Offsets.Top += LeftTopDelta.Y;
+				LayoutData.Offsets.Left -= DefaultAnchorPosition.X;
+				LayoutData.Offsets.Top -= DefaultAnchorPosition.Y;
 
 				// If the slot is stretched horizontally we need to move the right side as it no longer represents width, but
 				// now represents margin from the right stretched side.
 				if ( LayoutData.Anchors.IsStretchedHorizontal() )
 				{
-					LayoutData.Offsets.Right -= LeftTopDelta.X;
+					//LayoutData.Offsets.Right = PreEditLayoutData.Offsets.Top;
+				}
+				else
+				{
+					LayoutData.Offsets.Left += AlignmentOffset.X;
 				}
 
 				// If the slot is stretched vertically we need to move the bottom side as it no longer represents width, but
 				// now represents margin from the bottom stretched side.
 				if ( LayoutData.Anchors.IsStretchedVertical() )
 				{
-					LayoutData.Offsets.Bottom -= LeftTopDelta.Y;
+					//LayoutData.Offsets.Bottom -= MoveDelta.Y;
+				}
+				else
+				{
+					LayoutData.Offsets.Top += AlignmentOffset.Y;
 				}
 			}
 		}

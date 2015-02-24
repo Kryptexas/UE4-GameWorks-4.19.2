@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrecomputedLightVolume.h: Declarations for precomputed light volumes.
@@ -8,6 +8,7 @@
 #define __PRECOMPUTEDLIGHTVOLUME_H__
 
 #include "GenericOctree.h"
+#include "GenericOctreePublic.h"
 
 /** Incident radiance stored for a point. */
 class FVolumeLightingSample

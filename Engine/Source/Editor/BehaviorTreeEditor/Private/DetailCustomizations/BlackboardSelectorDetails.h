@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,7 +23,7 @@ private:
 	void InitKeyFromProperty();
 	void OnKeyComboChange(int32 Index);
 	TSharedRef<SWidget> OnGetKeyContent() const;
-	FString GetCurrentKeyDesc() const;
+	FText GetCurrentKeyDesc() const;
 	bool IsEditingEnabled() const;
 
 	TSharedPtr<IPropertyHandle> MyStructProperty;

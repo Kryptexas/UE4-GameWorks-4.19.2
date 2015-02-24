@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,6 +7,7 @@
 
 /**
  * A Gameplay Ability Blueprint is essentially a specialized Blueprint whose graphs control a gameplay ability.
+ *	NOTE: This feature is EXPERIMENTAL. Use at your own risk!
  */
 
 UCLASS(BlueprintType)

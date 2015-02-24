@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -52,6 +52,10 @@ public:
 	TSharedPtr<FUICommandInfo> ExportToFBX;
 	// Add looping interpolation
 	TSharedPtr<FUICommandInfo> AddLoopingInterpolation;
+	// set key for bone track
+	TSharedPtr<FUICommandInfo> SetKey;
+	// bake bone track curves to animation
+	TSharedPtr<FUICommandInfo> ApplyAnimation;
 	// Create Asset command
 	TSharedPtr<FUICommandInfo> CreateAimOffset1D;
 	TSharedPtr<FUICommandInfo> CreateAimOffset2D;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalMesh.h: Unreal skeletal mesh objects.
@@ -1368,72 +1368,6 @@ private:
 	void AllocateData();	
 };
 
-//////////////////////////////////////////////////////////////////////////
-// DEPRECATED (can remove when min ue4 version > VER_UE4_REMOVE_EXTRA_SKELMESH_VERTEX_INFLUENCES)
-
-struct FInfluenceWeights_DEPRECATED
-{
-	uint32 InfluenceWeightsDWORD; 
-
-	friend FArchive& operator<<( FArchive& Ar, FInfluenceWeights_DEPRECATED& W )
-	{
-		return Ar << W.InfluenceWeightsDWORD;
-	}
-};
-
-struct FInfluenceBones_DEPRECATED
-{
-	uint32 InfluenceBonesDWORD; 
-
-	friend FArchive& operator<<( FArchive& Ar, FInfluenceBones_DEPRECATED& W )
-	{
-		return Ar << W.InfluenceBonesDWORD;
-	}
-
-};
-
-struct FVertexInfluence_DEPRECATED
-{
-	FInfluenceWeights_DEPRECATED Weights;
-	FInfluenceBones_DEPRECATED Bones;
-
-	friend FArchive& operator<<( FArchive& Ar, FVertexInfluence_DEPRECATED& W )
-	{
-		return Ar << W.Weights << W.Bones;
-	}
-};
-
-class FSkeletalMeshVertexInfluences_DEPRECATED : public FVertexBuffer
-{
-public:
-	TResourceArray<FVertexInfluence_DEPRECATED, VERTEXBUFFER_ALIGNMENT> Influences;
-	TMap<struct FBoneIndexPair, TArray<uint32> > VertexInfluenceMapping;
-	TArray<FSkelMeshSection> Sections;
-	TArray<FSkelMeshChunk> Chunks;
-	TArray<FBoneIndexType> RequiredBones;
-	TArray<int32> CustomLeftRightSectionMap;
-
-	FSkeletalMeshVertexInfluences_DEPRECATED() : Influences(true) {}
-
-
-	friend FArchive& operator<<( FArchive& Ar, FSkeletalMeshVertexInfluences_DEPRECATED& W )
-	{
-		Ar << W.Influences;
-
-		Ar << W.VertexInfluenceMapping;
-		Ar << W.Sections;
-		Ar << W.Chunks;
-		Ar << W.RequiredBones;
-		uint8 Usage = 0;
-		Ar << Usage;
-
-		return Ar;
-	}
-};
-
-//////////////////////////////////////////////////////////////////////////
-
-
 struct FMultiSizeIndexContainerData
 {
 	TArray<uint32> Indices;
@@ -1803,11 +1737,9 @@ public:
 #if WITH_EDITOR
 	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) override;
 #endif
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override;
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 	virtual bool CanBeOccluded() const override;
-	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override;
 	
 	/**
 	 * Returns the world transform to use for drawing.
@@ -1829,7 +1761,7 @@ public:
 	/** 
 	 * Render physics asset for debug display
 	 */
-	void DebugDrawPhysicsAsset(FPrimitiveDrawInterface* PDI, const FEngineShowFlags& EngineShowFlags) const;
+	void DebugDrawPhysicsAsset(int32 ViewIndex, FMeshElementCollector& Collector, const FEngineShowFlags& EngineShowFlags) const;
 
 	virtual uint32 GetMemoryFootprint( void ) const { return( sizeof( *this ) + GetAllocatedSize() ); }
 	uint32 GetAllocatedSize( void ) const { return( FPrimitiveSceneProxy::GetAllocatedSize() + LODSections.GetAllocatedSize() ); }
@@ -1897,20 +1829,6 @@ protected:
 	TSet<UMaterialInterface*> MaterialsInUse_GameThread;
 	bool bMaterialsNeedMorphUsage_GameThread;
 	
-	/**
-	* Draw only the section of the scene proxy as a dynamic element
-	* 
-	* @param	PDI - draw interface to render to
-	* @param	View - current view
-	* @param	const FStaticLODModel& LODModel - LODModel 
-	* @param	const FSkelMeshSection& Section - Section
-	* @param	const FSkelMeshChunk& Chunk - Chunk
-	* @param	const FSectionElementInfo& SectionElementInfo - SectionElementInfo - material ID
-	*/
-	void DrawDynamicElementsSection(FPrimitiveDrawInterface* PDI,const FSceneView* View,
-		const FStaticLODModel& LODModel, const int32 LODIndex, const FSkelMeshSection& Section, 
-		const FSkelMeshChunk& Chunk, const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors );
-
 	void GetDynamicElementsSection(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, 
 		const FStaticLODModel& LODModel, const int32 LODIndex, const FSkelMeshSection& Section, const FSkelMeshChunk& Chunk, 
 		const FSectionElementInfo& SectionElementInfo, const FTwoVectors& CustomLeftRightVectors, bool bSelectable, FMeshElementCollector& Collector ) const;

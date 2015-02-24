@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LevelEditor.h"
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
@@ -31,7 +31,9 @@ void FLevelEditorGenericDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 void FLevelEditorGenericDetails::GetSelectedSurfaceMaterials(IMaterialListBuilder& MaterialList) const
 {
-	for (TSelectedSurfaceIterator<> SurfaceIt(GWorld); SurfaceIt; ++SurfaceIt)
+	FSelectedActorInfo SelectionInfo = AssetSelectionUtils::GetSelectedActorInfo();	
+
+	for (TSelectedSurfaceIterator<> SurfaceIt(SelectionInfo.SharedWorld); SurfaceIt; ++SurfaceIt)
 	{
         FBspSurf* SelectedSurface = *SurfaceIt;
 
@@ -44,10 +46,12 @@ void FLevelEditorGenericDetails::OnMaterialChanged( UMaterialInterface* NewMater
 {
 	bool bModelDirtied = false;
 	{
-		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "PolySetMaterial", "Set Material") );
-		GEditor->FlagModifyAllSelectedSurfacesInLevels( GWorld );
+		FSelectedActorInfo SelectionInfo = AssetSelectionUtils::GetSelectedActorInfo();	
 
-		for ( TSelectedSurfaceIterator<> It(GWorld) ; It ; ++It )
+		const FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "PolySetMaterial", "Set Material") );
+		GEditor->FlagModifyAllSelectedSurfacesInLevels( SelectionInfo.SharedWorld );
+
+		for ( TSelectedSurfaceIterator<> It(SelectionInfo.SharedWorld) ; It ; ++It )
 		{
 			UModel* Model = It.GetModel();
 			const int32 SurfaceIndex = It.GetSurfaceIndex();
@@ -124,14 +128,16 @@ void FLevelEditorGenericDetails::AddSurfaceDetails( IDetailLayoutBuilder& Detail
 	{
 		static FReply ExecuteExecCommand(FString InCommand)
 		{
-			GUnrealEd->Exec( GWorld, *InCommand );
+			FSelectedActorInfo SelectionInfo = AssetSelectionUtils::GetSelectedActorInfo();	
+
+			GUnrealEd->Exec( SelectionInfo.SharedWorld, *InCommand );
 			return FReply::Handled();
 		}
 	};
 
 	const FSlateFontInfo& FontInfo = IDetailLayoutBuilder::GetDetailFont();
 
-	IDetailCategoryBuilder& MaterialsCategory = DetailBuilder.EditCategory( "Surface Materials", LOCTEXT("BSPSurfaceMaterials", "Surface Materials").ToString() );
+	IDetailCategoryBuilder& MaterialsCategory = DetailBuilder.EditCategory( "Surface Materials", LOCTEXT("BSPSurfaceMaterials", "Surface Materials") );
 	{
 		FMaterialListDelegates MaterialListDelegates;
 		MaterialListDelegates.OnGetMaterials.BindSP(this, &FLevelEditorGenericDetails::GetSelectedSurfaceMaterials);
@@ -143,8 +149,8 @@ void FLevelEditorGenericDetails::AddSurfaceDetails( IDetailLayoutBuilder& Detail
 	}
 
 	// Add a new section for static meshes
-	IDetailCategoryBuilder& BSPCategory = DetailBuilder.EditCategory( "Geometry", LOCTEXT("BSPSurfacesTitle", "Geometry").ToString() );
-	BSPCategory.AddCustomRow( TEXT("") )
+	IDetailCategoryBuilder& BSPCategory = DetailBuilder.EditCategory( "Geometry", LOCTEXT("BSPSurfacesTitle", "Geometry") );
+	BSPCategory.AddCustomRow( FText::GetEmpty() )
 	[
 		SNew( SVerticalBox )
 		+ SVerticalBox::Slot()
@@ -187,7 +193,7 @@ void FLevelEditorGenericDetails::AddSurfaceDetails( IDetailLayoutBuilder& Detail
 		]
 	];
 
-	BSPCategory.AddCustomRow( LOCTEXT("CleanBSPMaterials", "Clean Geometry Materials").ToString(), true )
+	BSPCategory.AddCustomRow( LOCTEXT("CleanBSPMaterials", "Clean Geometry Materials"), true )
 	[
 		SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
@@ -206,8 +212,8 @@ void FLevelEditorGenericDetails::AddSurfaceDetails( IDetailLayoutBuilder& Detail
 		]
 	];
 
-	IDetailCategoryBuilder& SurfaceCategory = DetailBuilder.EditCategory( "Surface Properties", LOCTEXT("BSPSurfaceProperties", "Surface Properties").ToString() );
-	SurfaceCategory.AddCustomRow( LOCTEXT("BSPSurfaceProperties", "Surface Properties").ToString() )
+	IDetailCategoryBuilder& SurfaceCategory = DetailBuilder.EditCategory( "Surface Properties", LOCTEXT("BSPSurfaceProperties", "Surface Properties") );
+	SurfaceCategory.AddCustomRow( LOCTEXT("BSPSurfaceProperties", "Surface Properties") )
 	[
 		SNew(SVerticalBox)
 		+SVerticalBox::Slot()

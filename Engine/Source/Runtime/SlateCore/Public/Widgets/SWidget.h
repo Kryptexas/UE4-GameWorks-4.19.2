@@ -1,8 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "SlateRenderTransform.h"
+
+enum class EPopupMethod : uint8;
 
 class SLATECORE_API FSlateControlledConstruction
 {
@@ -109,7 +111,7 @@ public:
 	 * @param bParentEnabled	True if the parent of this widget is enabled.
 	 * @return The maximum layer ID attained by this widget or any of its children.
 	 */
-	int32 Paint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
+	int32 Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const;
 
 	DEPRECATED(4.4, "Paint() now requires an extra FPaintArgs parameter. When calling paint on a child widget, use Args.WithNewParent(this).")
 	int32 Paint(const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const { return 0; }
@@ -169,7 +171,7 @@ public:
 	 * @param  InCharacterEvent  Character event
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	virtual FReply OnKeyChar( const FGeometry& MyGeometry,const FCharacterEvent& InCharacterEvent );
+	virtual FReply OnKeyChar(const FGeometry& MyGeometry, const FCharacterEvent& InCharacterEvent);
 
 	/**
 	 * Called after a key is pressed when this widget or a child of this widget has focus
@@ -182,7 +184,7 @@ public:
 	 * @param InKeyEvent  Key event
 	 * @return Returns whether the event was handled, along with other possible actions
 	 */
-	virtual FReply OnPreviewKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
+	virtual FReply OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent);
 
 	/**
 	 * Called after a key is pressed when this widget has focus (this event bubbles if not handled)
@@ -191,7 +193,7 @@ public:
 	 * @param InKeyEvent  Key event
 	 * @return Returns whether the event was handled, along with other possible actions
 	 */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent );
+	virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent);
 
 	DEPRECATED(4.6, "SWidget::OnControllerButtonPressed() is deprecated, SWidget::OnKeyDown() now handles controller input as well as controller.")
 	virtual FReply OnControllerButtonPressed(const FGeometry& MyGeometry, const FControllerEvent& ControllerEvent);
@@ -231,7 +233,7 @@ public:
 	 * @param MouseEvent Information about the input event
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
-	virtual FReply OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
+	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
 	/**
 	 * Just like OnMouseButtonDown, but tunnels instead of bubbling.
@@ -240,7 +242,7 @@ public:
 	 * Use this event sparingly as preview events generally make UIs more
 	 * difficult to reason about.
 	 */
-	virtual FReply OnPreviewMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
+	virtual FReply OnPreviewMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 	
 	/**
 	 * The system calls this method to notify the widget that a mouse button was release within it. This event is bubbled.
@@ -249,7 +251,7 @@ public:
 	 * @param MouseEvent Information about the input event
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
-	virtual FReply OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
+	virtual FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 	
 	/**
 	 * The system calls this method to notify the widget that a mouse moved within it. This event is bubbled.
@@ -258,7 +260,7 @@ public:
 	 * @param MouseEvent Information about the input event
 	 * @return Whether the event was handled along with possible requests for the system to take action.
 	 */
-	virtual FReply OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
+	virtual FReply OnMouseMove(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 	
 	/**
 	 * The system will use this event to notify a widget that the cursor has entered it. This event is NOT bubbled.
@@ -266,14 +268,14 @@ public:
 	 * @param MyGeometry The Geometry of the widget receiving the event
 	 * @param MouseEvent Information about the input event
 	 */
-	virtual void OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
+	virtual void OnMouseEnter(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 	
 	/**
 	 * The system will use this event to notify a widget that the cursor has left it. This event is NOT bubbled.
 	 *
 	 * @param MouseEvent Information about the input event
 	 */
-	virtual void OnMouseLeave( const FPointerEvent& MouseEvent );
+	virtual void OnMouseLeave(const FPointerEvent& MouseEvent);
 	
 	/**
 	 * Called when the mouse wheel is spun. This event is bubbled.
@@ -281,14 +283,21 @@ public:
 	 * @param  MouseEvent  Mouse event
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	virtual FReply OnMouseWheel( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
+	virtual FReply OnMouseWheel(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 	
 	/**
 	 * The system asks each widget under the mouse to provide a cursor. This event is bubbled.
 	 * 
 	 * @return FCursorReply::Unhandled() if the event is not handled; return FCursorReply::Cursor() otherwise.
 	 */
-	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent ) const;
+	virtual FCursorReply OnCursorQuery(const FGeometry& MyGeometry, const FPointerEvent& CursorEvent) const;
+
+	/**
+	 * After OnCursorQuery has specified a cursor type the system asks each widget under the mouse to map that cursor to a widget. This event is bubbled.
+	 * 
+	 * @return TOptional<TSharedRef<SWidget>>() if you don't have a mapping otherwise return the Widget to show.
+	 */
+	virtual TOptional<TSharedRef<SWidget>> OnMapCursor(const FCursorReply& CursorReply) const;
 
 	/**
 	 * Called when a mouse button is double clicked.  Override this in derived classes.
@@ -297,7 +306,7 @@ public:
 	 * @param  InMouseEvent  Mouse button event
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	virtual FReply OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent );
+	virtual FReply OnMouseButtonDoubleClick(const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent);
 
 	/**
 	 * Called when Slate wants to visualize tooltip.
@@ -307,7 +316,7 @@ public:
 	 * @param  TooltipContent    The TooltipContent that I may want to visualize.
 	 * @return true if this widget visualized the tooltip content; i.e., the event is handled.
 	 */
-	virtual bool OnVisualizeTooltip( const TSharedPtr<SWidget>& TooltipContent );
+	virtual bool OnVisualizeTooltip(const TSharedPtr<SWidget>& TooltipContent);
 
 	/**
 	 * Called when Slate detects that a widget started to be dragged.
@@ -322,7 +331,7 @@ public:
 	 * @param  InMyGeometry  Widget geometry
 	 * @param  InMouseEvent  MouseMove that triggered the drag
 	 */
-	virtual FReply OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent );
+	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
 	//
 	// DRAG AND DROP (DragDrop)
@@ -345,14 +354,14 @@ public:
 	 *
 	 * @return A reply that indicated whether the contents of the DragDropEvent can potentially be processed by this widget.
 	 */
-	virtual void OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent );
+	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
 	
 	/**
 	 * Called during drag and drop when the drag leaves a widget.
 	 *
 	 * @param DragDropEvent   The drag and drop event.
 	 */
-	virtual void OnDragLeave( const FDragDropEvent& DragDropEvent );
+	virtual void OnDragLeave(const FDragDropEvent& DragDropEvent);
 
 	/**
 	 * Called during drag and drop when the the mouse is being dragged over a widget.
@@ -361,7 +370,7 @@ public:
 	 * @param DragDropEvent   The drag and drop event.
 	 * @return A reply that indicated whether this event was handled.
 	 */
-	virtual FReply OnDragOver( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent );
+	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
 	
 	/**
 	 * Called when the user is dropping something onto a widget; terminates drag and drop.
@@ -370,7 +379,11 @@ public:
 	 * @param DragDropEvent   The drag and drop event.
 	 * @return A reply that indicated whether this event was handled.
 	 */
-	virtual FReply OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent );
+	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent);
+
+	//
+	// TOUCH and GESTURES
+	//
 
 	/**
 	 * Called when the user performs a gesture on trackpad. This event is bubbled.
@@ -378,28 +391,28 @@ public:
 	 * @param  GestureEvent  gesture event
 	 * @return  Returns whether the event was handled, along with other possible actions
 	 */
-	virtual FReply OnTouchGesture( const FGeometry& MyGeometry, const FPointerEvent& GestureEvent );
+	virtual FReply OnTouchGesture(const FGeometry& MyGeometry, const FPointerEvent& GestureEvent);
 	
 	/**
 	 * Called when a touchpad touch is started (finger down)
 	 * 
 	 * @param InTouchEvent	The touch event generated
 	 */
-	virtual FReply OnTouchStarted( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent );
+	virtual FReply OnTouchStarted(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent);
 
 	/**
 	 * Called when a touchpad touch is moved  (finger moved)
 	 * 
 	 * @param InTouchEvent	The touch event generated
 	 */
-	virtual FReply OnTouchMoved( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent );
+	virtual FReply OnTouchMoved(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent);
 
 	/**
 	 * Called when a touchpad touch is ended (finger lifted)
 	 * 
 	 * @param InTouchEvent	The touch event generated
 	 */
-	virtual FReply OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent );
+	virtual FReply OnTouchEnded(const FGeometry& MyGeometry, const FPointerEvent& InTouchEvent);
 
 	/**
 	 * Called when motion is detected (controller or device)
@@ -407,16 +420,32 @@ public:
 	 * 
 	 * @param InMotionEvent	The motion event generated
 	 */
-	virtual FReply OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent );
+	virtual FReply OnMotionDetected(const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent);
 
-	virtual TSharedPtr<struct FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild( const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate ) const { return nullptr; }
+	/**
+	 * Called to determine if we should render the focus brush.
+	 *
+	 * @param InFocusCause	The cause of focus
+	 */
+	virtual TOptional<bool> OnQueryShowFocus(const EFocusCause InFocusCause) const;
 
+	/**
+	 * Popups can manifest in a NEW OS WINDOW or via an OVERLAY in an existing window.
+	 * This can be set explicitly on SMenuAnchor, or can be determined by a scoping widget.
+	 * A scoping widget can reply to OnQueryPopupMethod() to drive all its descendants'
+	 * poup methods.
+	 *
+	 * e.g. Fullscreen games cannot summon a new window, so game SViewports will reply with
+	 *      EPopupMethod::UserCurrentWindow. This makes all the menu anchors within them
+	 *      use the current window.
+	 */
+	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const;
 
+	virtual TSharedPtr<struct FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const;
+	
 	/**
 	 * All the pointer (mouse, touch, stylus, etc.) events from this frame have been routed.
 	 * This is a widget's chance to act on any accumulated data.
-	 *
-	 * 
 	 */
 	virtual void OnFinishedPointerInput();
 
@@ -518,6 +547,20 @@ public:
 	virtual bool HasKeyboardFocus() const;
 
 	/**
+	 * Gets whether or not the specified users has this widget focused, and if so the type of focus.
+	 *
+	 * @return The optional will be set with the focus cause, if unset this widget doesn't have focus.
+	 */
+	TOptional<EFocusCause> HasUserFocus(int32 UserIndex) const;
+
+	/**
+	 * Gets whether or not any users users has this widget focused, and if so the type of focus (first one found).
+	 *
+	 * @return The optional will be set with the focus cause, if unset this widget doesn't have focus.
+	 */
+	TOptional<EFocusCause> HasAnyUserFocus() const;
+
+	/**
 	 * @return Whether this widget has any descendants with keyboard focus
 	 */
 	bool HasFocusedDescendants() const;
@@ -555,6 +598,12 @@ public:
 	bool IsEnabled() const 
 	{
 		return EnabledState.Get();
+	}
+
+	/** @return Is this widget interactable or not? Defaults to false */
+	virtual bool IsInteractable() const
+	{
+		return false;
 	}
 
 	/** @return The tool tip associated with this widget; Invalid reference if there is not one */
@@ -774,6 +823,9 @@ protected:
 		// This widget should be enabled if its parent is enabled and it is enabled
 		return IsEnabled() && InParentEnabled;
 	}
+
+	/** @return a brush to draw focus, nullptr if no focus drawing is desired */
+	virtual const FSlateBrush* GetFocusBrush() const;
 
 private:
 

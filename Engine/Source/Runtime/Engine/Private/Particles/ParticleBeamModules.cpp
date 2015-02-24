@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleBeamModules.cpp: Particle module implementations for beams.
@@ -7,7 +7,6 @@
 #include "EnginePrivate.h"
 #include "Distributions/DistributionVectorConstant.h"
 #include "ParticleDefinitions.h"
-#include "../DistributionHelpers.h"
 #include "Particles/Beam/ParticleModuleBeamBase.h"
 #include "Particles/Beam/ParticleModuleBeamModifier.h"
 #include "Particles/Beam/ParticleModuleBeamNoise.h"
@@ -16,6 +15,8 @@
 #include "Particles/TypeData/ParticleModuleTypeDataBeam2.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Engine/InterpCurveEdSetup.h"
+#include "Distributions/DistributionFloatConstantCurve.h"
 
 /*-----------------------------------------------------------------------------
 	Abstract base modules used for categorization.
@@ -83,17 +84,6 @@ void UParticleModuleTypeDataBeam2::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleTypeDataBeam2::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(Distance.Distribution, TEXT("DistributionDistance"), 25.0f);
-		FDistributionHelpers::RestoreDefaultConstant(TaperFactor.Distribution, TEXT("DistributionTaperFactor"), 1.0f);
-		FDistributionHelpers::RestoreDefaultConstant(TaperScale.Distribution, TEXT("DistributionTaperScale"), 1.0f);
 	}
 }
 
@@ -957,17 +947,6 @@ void UParticleModuleBeamModifier::PostInitProperties()
 	}
 }
 
-void UParticleModuleBeamModifier::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(Position.Distribution, TEXT("DistributionPosition"), FVector(0.0f, 0.0f, 0.0f));
-		FDistributionHelpers::RestoreDefaultConstant(Tangent.Distribution, TEXT("DistributionTangent"), FVector(0.0f, 0.0f, 0.0f));
-		FDistributionHelpers::RestoreDefaultConstant(Strength.Distribution, TEXT("DistributionStrength"), 0.0f);
-	}
-}
-
 void UParticleModuleBeamModifier::Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase)
 {
 	// Make sure that the owner is a beam emitter instance.
@@ -1249,18 +1228,6 @@ void UParticleModuleBeamNoise::PostInitProperties()
 		NoiseTangentStrength.Distribution = DistributionNoiseTangentStrength; 
 
 		NoiseScale.Distribution = NewNamedObject<UDistributionFloatConstantCurve>(this, TEXT("DistributionNoiseScale"));
-	}
-}
-
-void UParticleModuleBeamNoise::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(NoiseSpeed.Distribution, TEXT("DistributionNoiseSpeed"), FVector(50.0f, 50.0f, 50.0f));
-		FDistributionHelpers::RestoreDefaultConstant(NoiseRange.Distribution, TEXT("DistributionNoiseRange"), FVector(50.0f, 50.0f, 50.0f));
-		FDistributionHelpers::RestoreDefaultConstant(NoiseRangeScale.Distribution, TEXT("DistributionNoiseRangeScale"), 1.0f);
-		FDistributionHelpers::RestoreDefaultConstant(NoiseTangentStrength.Distribution, TEXT("DistributionNoiseTangentStrength"), 250.0f);
 	}
 }
 
@@ -1572,17 +1539,6 @@ void UParticleModuleBeamSource::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleBeamSource::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(Source.Distribution, TEXT("DistributionSource"), FVector(50.0f, 50.0f, 50.0f));
-		FDistributionHelpers::RestoreDefaultConstant(SourceTangent.Distribution, TEXT("DistributionSourceTangent"), FVector(1.0f, 0.0f, 0.0f));
-		FDistributionHelpers::RestoreDefaultConstant(SourceStrength.Distribution, TEXT("DistributionSourceStrength"), 25.0f);
 	}
 }
 
@@ -2004,17 +1960,6 @@ void UParticleModuleBeamTarget::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleBeamTarget::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(Target.Distribution, TEXT("DistributionTarget"), FVector(50.0f, 50.0f, 50.0f));
-		FDistributionHelpers::RestoreDefaultConstant(TargetTangent.Distribution, TEXT("DistributionTargetTangent"), FVector(1.0f, 0.0f, 0.0f));
-		FDistributionHelpers::RestoreDefaultConstant(TargetStrength.Distribution, TEXT("DistributionTargetStrength"), 25.0f);
 	}
 }
 

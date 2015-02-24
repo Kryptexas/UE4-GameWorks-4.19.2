@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneComponent.cpp
@@ -23,17 +23,32 @@ FOverlapInfo::FOverlapInfo(UPrimitiveComponent* InComponent, int32 InBodyIndex)
 	OverlapInfo.Item = InBodyIndex;
 }
 
-USceneComponent::USceneComponent(const FObjectInitializer& ObjectInitializer)
+const FName& USceneComponent::GetDefaultSceneRootVariableName()
+{
+	static FName DefaultSceneRootVariableName = FName(TEXT("DefaultSceneRoot"));
+
+	return DefaultSceneRootVariableName;
+}
+
+USceneComponent::USceneComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
 {
 	Mobility = EComponentMobility::Movable;
-	RelativeScale_DEPRECATED = 1.0f;
-	RelativeScale3D = FVector(1.0f,1.0f,1.0f);
+	RelativeScale3D = FVector(1.0f, 1.0f, 1.0f);
 	// default behavior is visible
 	bVisible = true;
-	bAutoActivate=false;
-	
+	bAutoActivate = false;
+
 	NetUpdateTransform = false;
+}
+
+void USceneComponent::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
+{
+#if WITH_EDITORONLY_DATA
+	USceneComponent* This = CastChecked<USceneComponent>(InThis);
+	Collector.AddReferencedObject(This->SpriteComponent);
+#endif
+	Super::AddReferencedObjects(InThis, Collector);
 }
 
 FTransform USceneComponent::CalcNewComponentToWorld(const FTransform& NewRelativeTransform, const USceneComponent* Parent) const
@@ -113,6 +128,28 @@ void USceneComponent::OnRegister()
 	AttachTo(AttachParent, AttachSocketName);
 	
 	Super::OnRegister();
+
+#if WITH_EDITORONLY_DATA
+	if (bVisualizeComponent && SpriteComponent == nullptr && GetOwner() && !GetWorld()->IsGameWorld() )
+	{
+		// Create a new billboard component to serve as a visualization of the actor until there is another primitive component
+		SpriteComponent = ConstructObject<UBillboardComponent>(UBillboardComponent::StaticClass(), GetOwner(), NAME_None, RF_Transactional | RF_TextExportTransient);
+
+		SpriteComponent->Sprite = LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/EmptyActor.EmptyActor"));
+		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
+		SpriteComponent->Mobility = EComponentMobility::Movable;
+		SpriteComponent->AlwaysLoadOnClient = false;
+		SpriteComponent->AlwaysLoadOnServer = false;
+		SpriteComponent->SpriteInfo.Category = TEXT("Misc");
+		SpriteComponent->SpriteInfo.DisplayName = NSLOCTEXT( "SpriteCategory", "Misc", "Misc" );
+		SpriteComponent->CreationMethod = CreationMethod;
+		SpriteComponent->bIsScreenSizeScaled = true;
+		SpriteComponent->bUseInEditorScaling = true;
+
+		SpriteComponent->AttachTo(this);
+		SpriteComponent->RegisterComponent();
+	}
+#endif
 }
 
 void USceneComponent::UpdateComponentToWorld(bool bSkipPhysicsMove)
@@ -249,9 +286,119 @@ void USceneComponent::EndScopedMovementUpdate(class FScopedMovementUpdate& Compl
 }
 
 
+void USceneComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
+{
+	if (bPromoteChildren)
+	{
+		AActor* Owner = GetOwner();
+		if (Owner != NULL)
+		{
+			Owner->Modify();
+
+			// Find an appropriate child node to promote to this node's position in the hierarchy
+			USceneComponent* ChildToPromote = nullptr;
+			if (AttachChildren.Num() > 0)
+			{
+				// Start with the first child node
+				ChildToPromote = AttachChildren[0];
+				check(ChildToPromote != nullptr);
+
+				// Always choose non editor-only child nodes over editor-only child nodes (since we don't want editor-only nodes to end up with non editor-only child nodes)
+				if (ChildToPromote->IsEditorOnly())
+				{
+					for (int32 ChildIndex = 1; ChildIndex < AttachChildren.Num(); ++ChildIndex)
+					{
+						USceneComponent* Child = AttachChildren[ChildIndex];
+						if (Child != nullptr && !Child->IsEditorOnly())
+						{
+							ChildToPromote = Child;
+							break;
+						}
+					}
+				}
+			}
+
+			// Handle removal of the root node
+			if (this == Owner->GetRootComponent())
+			{
+				// We only promote non editor-only components to root in instanced mode
+				if (ChildToPromote == nullptr || ChildToPromote->IsEditorOnly())
+				{
+					Rename(NULL, GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
+
+					// Construct a new default root component
+					USceneComponent* NewRootComponent = ConstructObject<USceneComponent>(USceneComponent::StaticClass(), Owner, USceneComponent::GetDefaultSceneRootVariableName(), RF_Transactional);
+					NewRootComponent->Mobility = Mobility;
+					NewRootComponent->SetWorldLocationAndRotation(GetComponentLocation(), GetComponentRotation());
+#if WITH_EDITORONLY_DATA
+					NewRootComponent->bVisualizeComponent = true;
+#endif
+					Owner->AddInstanceComponent(NewRootComponent);
+					NewRootComponent->RegisterComponent();
+
+					// Designate the new default root as the child we're promoting
+					ChildToPromote = NewRootComponent;
+				}
+
+				Owner->Modify();
+
+				// Set the selected child node as the new root
+				check(ChildToPromote != nullptr);
+				Owner->SetRootComponent(ChildToPromote);
+			}
+			else    // ...not the root node, so we'll promote the selected child node to this position in its AttachParent's child array.
+			{
+				// Cache our AttachParent
+				USceneComponent* CachedAttachParent = AttachParent;
+				check(CachedAttachParent != nullptr);
+
+				// Find the our position in its AttachParent's child array
+				int32 Index = CachedAttachParent->AttachChildren.Find(this);
+				check(Index != INDEX_NONE);
+
+				// Detach from parent
+				DetachFromParent(true);
+
+				if (ChildToPromote != nullptr)
+				{
+					// Attach the child node that we're promoting to the parent and move it to the same position as the old node was in the array
+					ChildToPromote->AttachTo(CachedAttachParent, NAME_None, EAttachLocation::KeepWorldPosition);
+					CachedAttachParent->AttachChildren.Remove(ChildToPromote);
+
+					Index = FMath::Clamp<int32>(Index, 0, CachedAttachParent->AttachChildren.Num());
+					CachedAttachParent->AttachChildren.Insert(ChildToPromote, Index);
+				}
+			}
+
+			// Detach child nodes from the node that's being removed and re-attach them to the child that's being promoted
+			TArray<USceneComponent*> AttachChildrenLocalCopy(AttachChildren);
+			for (auto ChildCompIt = AttachChildrenLocalCopy.CreateIterator(); ChildCompIt; ++ChildCompIt)
+			{
+				USceneComponent* Child = *ChildCompIt;
+				check(Child != nullptr);
+
+				// Note: This will internally call Modify(), so we don't need to call it here
+				Child->DetachFromParent(true);
+				if (Child != ChildToPromote)
+				{
+					Child->AttachTo(ChildToPromote, NAME_None, EAttachLocation::KeepWorldPosition);
+				}
+			}
+		}
+	}
+	Super::DestroyComponent(bPromoteChildren);
+}
+
 void USceneComponent::OnComponentDestroyed()
 {
 	Super::OnComponentDestroyed();
+
+#if WITH_EDITORONLY_DATA
+	if (SpriteComponent)
+	{
+		SpriteComponent->DestroyComponent();
+	}
+#endif
 
 	ScopedMovementStack.Reset();
 
@@ -714,6 +861,12 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 {
 	if(Parent != NULL)
 	{
+		if (Parent == AttachParent && InSocketName == AttachSocketName && Parent->AttachChildren.Contains(this))
+		{
+			// already attached!
+			return;
+		}
+
 		if(Parent == this)
 		{
 			FMessageLog("PIE").Warning(FText::Format(LOCTEXT("AttachToSelfWarning", "AttachTo: '{0}' cannot be attached to itself. Aborting."), 
@@ -735,7 +888,8 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 			return;
 		}
 
-		if(Mobility == EComponentMobility::Static && Parent->Mobility != EComponentMobility::Static )
+		// Don't allow components with static mobility to be attached to non-static parents (except during UCS)
+		if(!IsRunningUserConstructionScript() && Mobility == EComponentMobility::Static && Parent->Mobility != EComponentMobility::Static)
 		{
 			FString ExtraBlueprintInfo;
 #if WITH_EDITORONLY_DATA
@@ -771,6 +925,10 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 		const bool bSavedDisableDetachmentUpdateOverlaps = bDisableDetachmentUpdateOverlaps;
 		bDisableDetachmentUpdateOverlaps = true;
 
+		// Find out if we're already attached, and save off our position in the array if we are
+		int32 LastAttachIndex = INDEX_NONE;
+		Parent->AttachChildren.Find(this, LastAttachIndex);
+
 		// Make sure we are detached
 		const bool bMaintainWorldPosition = (AttachType == EAttachLocation::KeepWorldPosition);
 		DetachFromParent(bMaintainWorldPosition);
@@ -787,7 +945,7 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 			//Also physics state may not be created yet so we use bSimulatePhysics to determine if the object has any intention of being physically simulated
 			UPrimitiveComponent * PrimitiveComponent = Cast<UPrimitiveComponent>(this);
 
-			if (PrimitiveComponent && PrimitiveComponent->BodyInstance.bSimulatePhysics && !bWeldSimulatedBodies && GetWorld() && GetWorld()->IsGameWorld())
+			if (PrimitiveComponent && PrimitiveComponent->BodyInstance.bSimulatePhysics && !bWeldSimulatedBodies && GetWorld() && GetWorld()->IsGameWorld() && !GetWorld()->bIsRunningConstructionScript)
 			{
 				//Since the object is physically simulated it can't be the case that it's a child of object A and being attached to object B (at runtime)
 				if (bMaintainWorldPosition == false)	//User tried to attach but physically based so detach. However, if they provided relative coordinates we should still get the correct position
@@ -811,7 +969,15 @@ void USceneComponent::AttachTo(class USceneComponent* Parent, FName InSocketName
 
 		OnAttachmentChanged();
 
-		Parent->AttachChildren.Add(this);
+		// Preserve order of previous attachment if valid (in case we're doing a reattach operation inside a loop that might assume the AttachChildren order won't change)
+		if(LastAttachIndex != INDEX_NONE)
+		{
+			Parent->AttachChildren.Insert(this, LastAttachIndex);
+		}
+		else
+		{
+			Parent->AttachChildren.Add(this);
+		}
 
 		switch ( AttachType )
 		{
@@ -993,6 +1159,77 @@ bool USceneComponent::IsAttachedTo(class USceneComponent* TestComp) const
 		}
 	}
 	return false;
+}
+
+FSceneComponentInstanceData::FSceneComponentInstanceData(const USceneComponent* SourceComponent)
+	: FActorComponentInstanceData(SourceComponent)
+{
+	for (int32 i = SourceComponent->AttachChildren.Num()-1; i >= 0; --i)
+	{
+		USceneComponent* SceneComponent = SourceComponent->AttachChildren[i];
+		if (SceneComponent && !SceneComponent->IsCreatedByConstructionScript())
+		{
+			AttachedInstanceComponents.Add(SceneComponent);
+		}
+	}
+}
+
+void FSceneComponentInstanceData::ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase)
+{
+	FActorComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
+
+	USceneComponent* SceneComponent = CastChecked<USceneComponent>(Component);
+
+	if (ContainsSavedProperties())
+	{
+		SceneComponent->UpdateComponentToWorld();
+	}
+
+	for (USceneComponent* ChildComponent : AttachedInstanceComponents)
+	{
+		if (ChildComponent)
+		{
+			ChildComponent->AttachTo(SceneComponent);
+		}
+	}
+}
+
+void FSceneComponentInstanceData::FindAndReplaceInstances(const TMap<UObject*, UObject*>& OldToNewInstanceMap)
+{
+	for (USceneComponent*& ChildComponent : AttachedInstanceComponents)
+	{
+		if (UObject* const* NewChildComponent = OldToNewInstanceMap.Find(ChildComponent))
+		{
+			ChildComponent = CastChecked<USceneComponent>(*NewChildComponent, ECastCheckedType::NullAllowed);
+		}
+	}
+}
+
+FActorComponentInstanceData* USceneComponent::GetComponentInstanceData() const
+{
+	FActorComponentInstanceData* InstanceData = nullptr;
+
+	for (USceneComponent* Child : AttachChildren)
+	{
+		if (Child && !Child->IsCreatedByConstructionScript())
+		{
+			InstanceData = new FSceneComponentInstanceData(this);
+			break;
+		}
+	}
+
+	if (InstanceData == nullptr)
+	{
+		InstanceData = Super::GetComponentInstanceData();
+	}
+
+	return InstanceData;
+}
+
+FName USceneComponent::GetComponentInstanceDataType() const
+{
+	static const FName SceneComponentInstanceDataTypeName(TEXT("SceneComponentInstanceData"));
+	return SceneComponentInstanceDataTypeName;
 }
 
 void USceneComponent::UpdateChildTransforms()
@@ -1201,34 +1438,63 @@ void USceneComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 {
 	if ( bShouldUpdatePhysicsVolume && !IsPendingKill() && GetWorld() )
 	{
-		APhysicsVolume *NewVolume = GetWorld()->GetDefaultPhysicsVolume();
+		SCOPE_CYCLE_COUNTER(STAT_UpdatePhysicsVolume);
+
+		UWorld* const MyWorld = GetWorld();
+		APhysicsVolume *NewVolume = MyWorld->GetDefaultPhysicsVolume();
 		
-		// check for all volumes that overlap the component
-		TArray<FOverlapResult> Hits;
-		static FName NAME_PhysicsVolumeTrace = FName(TEXT("PhysicsVolumeTrace"));
-		FComponentQueryParams Params(NAME_PhysicsVolumeTrace, GetOwner());
-
-		bool bOverlappedOrigin = false;
-		const UPrimitiveComponent* SelfAsPrimitive = Cast<UPrimitiveComponent>(this);
-		if (SelfAsPrimitive)
+		// Avoid doing anything if there are no other physics volumes in the world.
+		if (MyWorld->GetNonDefaultPhysicsVolumeCount() > 0)
 		{
-			GetWorld()->ComponentOverlapMulti(Hits, SelfAsPrimitive, GetComponentLocation(), GetComponentRotation(), GetCollisionObjectType(), Params);
-		}
-		else
-		{
-			bOverlappedOrigin = true;
-			GetWorld()->OverlapMulti(Hits, GetComponentLocation(), FQuat::Identity, GetCollisionObjectType(), FCollisionShape::MakeSphere(0.f), Params);
-		}
-
-		for( int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++ )
-		{
-			const FOverlapResult& Link = Hits[HitIdx];
-			APhysicsVolume* const V = Cast<APhysicsVolume>(Link.GetActor());
-			if (V && (V->Priority > NewVolume->Priority))
+			// Avoid a full overlap query if we can do some quick bounds tests against the volumes.
+			bool bAnyPotentialOverlap = false;
+			for (auto VolumeIter = MyWorld->GetNonDefaultPhysicsVolumeIterator(); VolumeIter && !bAnyPotentialOverlap; ++VolumeIter)
 			{
-				if (bOverlappedOrigin || V->IsOverlapInVolume(*this))
+				const APhysicsVolume* Volume = *VolumeIter;
+				const USceneComponent* VolumeRoot = Volume->GetRootComponent();
+				if (VolumeRoot)
 				{
-					NewVolume = V;
+					if (FBoxSphereBounds::SpheresIntersect(VolumeRoot->Bounds, Bounds))
+					{
+						if (FBoxSphereBounds::BoxesIntersect(VolumeRoot->Bounds, Bounds))
+						{
+							bAnyPotentialOverlap = true;
+						}
+					}
+				}
+				// TODO: bail if too many volumes?				
+			}
+			
+			if (bAnyPotentialOverlap)
+			{
+				// check for all volumes that overlap the component
+				TArray<FOverlapResult> Hits;
+				static FName NAME_PhysicsVolumeTrace = FName(TEXT("PhysicsVolumeTrace"));
+				FComponentQueryParams Params(NAME_PhysicsVolumeTrace, GetOwner());
+
+				bool bOverlappedOrigin = false;
+				const UPrimitiveComponent* SelfAsPrimitive = Cast<UPrimitiveComponent>(this);
+				if (SelfAsPrimitive)
+				{
+					MyWorld->ComponentOverlapMulti(Hits, SelfAsPrimitive, GetComponentLocation(), GetComponentRotation(), GetCollisionObjectType(), Params);
+				}
+				else
+				{
+					bOverlappedOrigin = true;
+					MyWorld->OverlapMulti(Hits, GetComponentLocation(), FQuat::Identity, GetCollisionObjectType(), FCollisionShape::MakeSphere(0.f), Params);
+				}
+
+				for (int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++)
+				{
+					const FOverlapResult& Link = Hits[HitIdx];
+					APhysicsVolume* const V = Cast<APhysicsVolume>(Link.GetActor());
+					if (V && (V->Priority > NewVolume->Priority))
+					{
+						if (bOverlappedOrigin || V->IsOverlapInVolume(*this))
+						{
+							NewVolume = V;
+						}
+					}
 				}
 			}
 		}
@@ -1308,7 +1574,7 @@ bool USceneComponent::InternalSetWorldLocationAndRotation(FVector NewLocation, F
 
 void USceneComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps, bool bDoNotifies, const TArray<FOverlapInfo>* OverlapsAtEndLocation)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
+	SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
 
 	if (IsDeferringMovementUpdates())
 	{
@@ -1337,16 +1603,19 @@ bool USceneComponent::MoveComponent( const FVector& Delta, const FRotator& NewRo
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// make sure mobility is movable, otherwise you shouldn't try to move
-	if ( UWorld * World = GetWorld() )
+	if (Mobility != EComponentMobility::Movable)
 	{
-		ULevel* Level = GetComponentLevel();
-
-		// It's only a problem if we're in gameplay, and the owning level is visible
-		if (World->HasBegunPlay() && IsRegistered() && Level && Level->bIsVisible && Mobility != EComponentMobility::Movable)
+		if (UWorld * World = GetWorld())
 		{
-			FMessageLog("Performance").Warning( FText::Format(LOCTEXT("InvalidMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to move. "), 
-				FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName())));
-			return false;
+			ULevel* Level = GetComponentLevel();
+
+			// It's only a problem if we're in gameplay, and the owning level is visible
+			if (World->HasBegunPlay() && IsRegistered() && Level && Level->bIsVisible)
+			{
+				FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to move. "),
+					FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName())));
+				return false;
+			}
 		}
 	}
 #endif
@@ -1397,12 +1666,12 @@ bool USceneComponent::ShouldRender() const
 	AActor* Owner = GetOwner();
 	const bool bShowInEditor = 
 #if WITH_EDITOR
-		(!Owner || !Owner->IsHiddenEd());
+		GIsEditor ? (!Owner || !Owner->IsHiddenEd()) : false;
 #else
 		false;
 #endif
-
-	const bool bInGameWorld = GetWorld() && GetWorld()->IsGameWorld();
+	UWorld *World = GetWorld();
+	const bool bInGameWorld = GetWorld() && GetWorld()->UsesGameHiddenFlags();
 
 	const bool bShowInGame = IsVisible() && (!Owner || !Owner->bHidden);
 	return ((bInGameWorld && bShowInGame) || (!bInGameWorld && bShowInEditor)) && bVisible == true;
@@ -1413,12 +1682,12 @@ bool USceneComponent::CanEverRender() const
 	AActor* Owner = GetOwner();
 	const bool bShowInEditor =
 #if WITH_EDITOR
-		(!Owner || !Owner->IsHiddenEd());
+		GIsEditor ? (!Owner || !Owner->IsHiddenEd()) : false;
 #else
 		false;
 #endif
-
-	const bool bInGameWorld = GetWorld() && GetWorld()->IsGameWorld();
+	UWorld *World = GetWorld();
+	const bool bInGameWorld = World && World->UsesGameHiddenFlags();
 
 	const bool bShowInGame = (!Owner || !Owner->bHidden);
 	return ((bInGameWorld && bShowInGame) || (!bInGameWorld && bShowInEditor));

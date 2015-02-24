@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "AbilityTask.h"
 #include "Abilities/GameplayAbilityTypes.h"
@@ -30,7 +30,7 @@ class UAbilityTask_WaitGameplayEffectRemoved : public UAbilityTask
 	UFUNCTION()
 	void OnGameplayEffectRemoved();
 
-	/** Wait until an overlap occurs. This will need to be better fleshed out so we can specify game specific collision requirements */
+	/** Wait until the specified gameplay effect is removed. */
 	UFUNCTION(BlueprintCallable, Category="Ability|Tasks", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
 	static UAbilityTask_WaitGameplayEffectRemoved* WaitForGameplayEffectRemoved(UObject* WorldContextObject, FActiveGameplayEffectHandle Handle);
 
@@ -40,4 +40,6 @@ protected:
 
 	virtual void OnDestroy(bool AbilityIsEnding) override;
 	bool Registered;
+
+	FDelegateHandle OnGameplayEffectRemovedDelegateHandle;
 };

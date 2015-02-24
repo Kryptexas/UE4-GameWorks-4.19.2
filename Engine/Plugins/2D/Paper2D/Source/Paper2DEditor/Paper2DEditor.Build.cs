@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -21,7 +21,6 @@ public class Paper2DEditor : ModuleRules
 				"SlateCore",
 				"Engine",
                 "InputCore",
-				"AssetTools",
 				"UnrealEd", // for FAssetEditorManager
 				"KismetWidgets",
 				"GraphEditor",
@@ -39,8 +38,16 @@ public class Paper2DEditor : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"Settings",
-				"IntroTutorials"
+				"IntroTutorials",
+                "AssetTools"
 			}
 		);
+
+        DynamicallyLoadedModuleNames.AddRange(
+            new string[] {
+                "AssetTools"
+            }
+        );
+
 	}
 }

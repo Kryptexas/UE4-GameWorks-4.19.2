@@ -1,15 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 
 class FUniqueNetId;
-
-
-/**
- * Type definition for shared references to instances of ILauncherProfile.
- */
-typedef TSharedRef<class FFriendsAndChatMessage> FFriendsAndChatMessageRef;
 
 
 // Enum to list download status flags
@@ -19,19 +13,23 @@ namespace EFriendsRequestType
 	{
 		// A chat message
 		ChatMessage,
+		// Friend came online/in-game
+		PresenceChange,
 		// Request to join a game
 		JoinGame,
 		// Invite someone to join your game
 		GameInvite,
 		// Invite someone to be a friend
 		FriendInvite,
+		// Request accepted
+		FriendAccepted,
 		// The message is handled. Clear the notification if present
 		MessageHandled,
 	};
 };
 
 
-// Enum to list friend respose type
+// Enum to list friend response type
 namespace EFriendsResponseType
 {
 	enum Type
@@ -51,9 +49,12 @@ namespace EFriendsDisplayLists
 {
 	enum Type
 	{
-		DefaultDisplay, 		// Default friend list display
-		RecentPlayersDisplay,	// Recent Players display
-		FriendRequestsDisplay,	// Friend request display
+		DefaultDisplay, 				// Default friend list display
+		RecentPlayersDisplay,			// Recent Players display
+		FriendRequestsDisplay,			// Friend request display
+		OutgoingFriendInvitesDisplay,	// Outgoing friends invites
+		GameInviteDisplay,				// GameInviteDisplay
+		MAX_None
 	};
 
 	inline const FText ToFText(EFriendsDisplayLists::Type EnumVal)
@@ -61,21 +62,17 @@ namespace EFriendsDisplayLists
 		static const FText FriendsList = NSLOCTEXT("FriendsListTypes", "FriendsList", "Friends");
 		static const FText RecentPlayersList = NSLOCTEXT("FriendsListTypes", "RecentPlayersList", "Recent Players");
 		static const FText FriendRequestList = NSLOCTEXT("FriendsListTypes", "InvitesList", "Invitations");
+		static const FText OutgoingFriendRequestList = NSLOCTEXT("FriendsListTypes", "OutgoingInvites", "Outgoing");
+		static const FText GameInviteList = NSLOCTEXT("FriendsListTypes", "GameInvites", "GameInvites");
+
 
 		switch (EnumVal)
 		{
-			case DefaultDisplay:
-			{
-				return FriendsList;
-			}
-			case RecentPlayersDisplay:
-			{
-				return RecentPlayersList;
-			}
-			case FriendRequestsDisplay:
-			{
-				return FriendRequestList;
-			}
+			case DefaultDisplay: return FriendsList;
+			case RecentPlayersDisplay : return RecentPlayersList;
+			case FriendRequestsDisplay: return FriendRequestList;
+			case OutgoingFriendInvitesDisplay : return OutgoingFriendRequestList;
+			case GameInviteDisplay : return GameInviteList;
 		}
 
 		return FText::GetEmpty();
@@ -137,6 +134,16 @@ public:
 	void SetButtonCallback( FOnClicked InCallback )
 	{
 		ButtonCallbacks.Add( InCallback );
+	}
+
+	/**
+	 * Set a button callbacks.
+	 *
+	 * @param InCallback The button callback.
+	 */
+	void SetButtonDescription( FText Description )
+	{
+		MessageDescriptions.Add( Description );
 	}
 
 	/**
@@ -240,9 +247,19 @@ public:
 	 *
 	 * @return The button callback array.
 	 */
-	TArray< FOnClicked > GetCallbacks()
+	const TArray< FOnClicked >& GetCallbacks() const
 	{
 		return ButtonCallbacks;
+	}
+
+	/**
+	 * Get a button description.
+	 *
+	 * @return The button callback array.
+	 */
+	const TArray< FText >& GetButtonDescriptions() const
+	{
+		return MessageDescriptions;
 	}
 
 	/** Set this message into a handled state. */
@@ -255,6 +272,9 @@ private:
 
 	// Holds the button callbacks
 	TArray< FOnClicked > ButtonCallbacks;
+
+	// Holds the Action Descriptions
+	TArray< FText > MessageDescriptions;
 	
 	// Holds the message content
 	FString MessageConent;

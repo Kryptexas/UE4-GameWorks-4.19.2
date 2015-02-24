@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "SoundCueEditorModule.h"
@@ -14,6 +14,7 @@ const FName SoundCueEditorAppIdentifier = FName(TEXT("SoundCueEditorApp"));
    FSoundCueEditorModule
 -----------------------------------------------------------------------------*/
 #include "SoundDefinitions.h"
+#include "Sound/SoundCue.h"
 
 class FSoundCueEditorModule : public ISoundCueEditorModule
 {

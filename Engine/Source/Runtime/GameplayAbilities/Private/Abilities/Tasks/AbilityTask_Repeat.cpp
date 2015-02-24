@@ -1,3 +1,4 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_Repeat.h"
@@ -38,7 +39,7 @@ void UAbilityTask_Repeat::Activate()
 		PerformAction();
 		if (ActionCounter < ActionPerformancesDesired)
 		{
-			GetWorld()->GetTimerManager().SetTimer(this, &UAbilityTask_Repeat::PerformAction, TimeBetweenActions, true);
+			GetWorld()->GetTimerManager().SetTimer(TimerHandle_PerformAction, this, &UAbilityTask_Repeat::PerformAction, TimeBetweenActions, true);
 		}
 	}
 	else
@@ -50,7 +51,7 @@ void UAbilityTask_Repeat::Activate()
 
 void UAbilityTask_Repeat::OnDestroy(bool AbilityIsEnding)
 {
-	GetWorld()->GetTimerManager().ClearTimer(this, &UAbilityTask_Repeat::PerformAction);
+	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_PerformAction);
 
 	Super::OnDestroy(AbilityIsEnding);
 }

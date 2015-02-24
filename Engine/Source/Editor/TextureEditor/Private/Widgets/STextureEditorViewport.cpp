@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "TextureEditorPrivatePCH.h"
 #include "SNumericEntryBox.h"
@@ -56,11 +56,11 @@ void STextureEditorViewport::Construct( const FArguments& InArgs, const TSharedR
 		ZoomMenuBuilder.AddMenuEntry(LOCTEXT("ZoomFitAction", "Scale To Fit"), LOCTEXT("ZoomFillActionHint", "Scale the texture to fit the viewport."), FSlateIcon(), ZoomFitAction, NAME_None, EUserInterfaceActionType::ToggleButton);
 	}
 
-	FString TextureName;
+	FText TextureName = FText::GetEmpty();
 	
 	if (InToolkit->GetTexture() != nullptr)
 	{
-		TextureName = InToolkit->GetTexture()->GetFName().ToString();
+		TextureName = FText::FromName(InToolkit->GetTexture()->GetFName());
 	}
 
 	this->ChildSlot
@@ -292,7 +292,7 @@ void STextureEditorViewport::Tick( const FGeometry& AllottedGeometry, const doub
 /* STextureEditorViewport implementation
  *****************************************************************************/
 
-FString STextureEditorViewport::GetDisplayedResolution( ) const
+FText STextureEditorViewport::GetDisplayedResolution( ) const
 {
 	return ViewportClient->GetDisplayedResolution();
 }

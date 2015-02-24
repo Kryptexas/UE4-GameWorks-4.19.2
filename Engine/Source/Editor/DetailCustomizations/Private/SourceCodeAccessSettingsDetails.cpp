@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SourceCodeAccessSettingsDetails.h"
@@ -34,7 +34,7 @@ void FSourceCodeAccessSettingsDetails::CustomizeDetails( IDetailLayoutBuilder& D
 	}
 
 	IDetailCategoryBuilder& AccessorCategory = DetailLayout.EditCategory( "Accessor" );
-	AccessorCategory.AddCustomRow( LOCTEXT("PreferredAccessor", "Preferred Accessor").ToString() )
+	AccessorCategory.AddCustomRow( LOCTEXT("PreferredAccessor", "Preferred Accessor") )
 	.NameContent()
 	[
 		PreferredProviderPropertyHandle->CreatePropertyNameWidget()

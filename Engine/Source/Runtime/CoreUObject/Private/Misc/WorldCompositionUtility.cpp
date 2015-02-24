@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WorldCompositionUtility.cpp : Support structures for world composition
@@ -27,10 +27,10 @@ FArchive& operator<<( FArchive& Ar, FWorldTileLODInfo& D )
 {
 	// Serialized with FPackageFileSummary
 	Ar << D.RelativeStreamingDistance 
-		<< D.GenDetailsPercentage
-		<< D.GenMaxDeviation
 		<< D.Reserved0
-		<< D.Reserved1;
+		<< D.Reserved1
+		<< D.Reserved2
+		<< D.Reserved3;
 	return Ar;
 }
 
@@ -104,7 +104,6 @@ bool FWorldTileInfo::Read(const FString& InPackageFileName, FWorldTileInfo& OutI
 		FileReader->Seek(FileSummary.WorldTileInfoDataOffset);
 
 		//make sure the filereader gets the correct version number (it defaults to latest version)
-		FileReader->SetUE3Ver(FileSummary.GetFileVersionUE3());
 		FileReader->SetUE4Ver(FileSummary.GetFileVersionUE4());
 
 		// Load the structure

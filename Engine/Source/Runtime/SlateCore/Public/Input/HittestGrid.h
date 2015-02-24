@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,7 +26,7 @@ public:
 	 * Given a Slate Units coordinate in virtual desktop space, perform a hittest
 	 * and return the path along which the corresponding event would be bubbled.
 	 */
-	TArray<FWidgetAndPointer> GetBubblePath( FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus );
+	TArray<FWidgetAndPointer> GetBubblePath( FVector2D DesktopSpaceCoordinate, float CursorRadius, bool bIgnoreEnabledStatus );
 
 	/**
 	 * Clear the hittesting area and prepare to execute a new frame.
@@ -35,7 +35,7 @@ public:
 	 *
 	 * @param HittestArea       Size in Slate Units of the area we are considering for hittesting.
 	 */
-	void BeginFrame(const FSlateRect& HittestArea);
+	void ClearGridForNewFrame(const FSlateRect& HittestArea);
 
 	/** Add Widget into the hittest data structure so that we can later make queries about it. */
 	int32 InsertWidget( const int32 ParentHittestIndex, const EVisibility& Visibility, const FArrangedWidget& Widget, const FVector2D InWindowOffset, const FSlateRect& InClippingRect );
@@ -73,7 +73,56 @@ private:
 	 */
 	struct FCachedWidget;
 
-private:
+	/** Shared arguments to helper functions. */
+	struct FGridTestingParams;
+
+	/** Helper functions */
+	bool IsValidCellCoord(const FIntPoint& CellCoord) const;
+	bool IsValidCellCoord(const int32 XCoord, const int32 YCoord) const;
+
+	/** Bubble path and distance to leafmost widget from point of picking. */
+	struct FWidgetPathAndDist
+	{
+		/** Ctor */
+		FWidgetPathAndDist( float InDistanceSq = -1.0f )
+		: DistToTopWidgetSq(InDistanceSq)
+		{}
+
+		FWidgetPathAndDist(const TArray<FWidgetAndPointer>& InPath, float InDistanceSq)
+		: BubblePath(InPath)
+		, DistToTopWidgetSq(InDistanceSq)
+		{}
+
+		void Clear()
+		{
+			BubblePath.Reset();
+			DistToTopWidgetSq = -1.0f;
+		}
+
+		bool IsValidPath() const
+		{
+			return DistToTopWidgetSq >= 0.0f && BubblePath.Num() > 0;
+		}
+
+		TArray<FWidgetAndPointer> BubblePath;
+		float DistToTopWidgetSq;
+	};
+
+	FWidgetPathAndDist GetWidgetPathAndDist(const FGridTestingParams& Params, const bool bIgnoreEnabledStatus) const;
+
+	/** Return Value for GetHitIndexFromCellIndex */
+	struct FIndexAndDistance
+	{
+		FIndexAndDistance( int32 InIndex = INDEX_NONE, float InDistanceSq = 0 )
+		: WidgetIndex(InIndex)
+		, DistanceSqToWidget(InDistanceSq)
+		{}
+		int32 WidgetIndex;
+		float DistanceSqToWidget;
+	};
+	FIndexAndDistance GetHitIndexFromCellIndex(const FGridTestingParams& Params) const;
+
+	TArray<FWidgetAndPointer> GetBubblePathFromHitIndex(const int32 HitIndex, const bool bIgnoreEnabledStatus) const;
 	
 	friend class SWidgetReflector;
 

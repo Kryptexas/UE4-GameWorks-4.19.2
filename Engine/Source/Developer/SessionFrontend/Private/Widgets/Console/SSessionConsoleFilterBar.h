@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -71,7 +71,7 @@ private:
 	TSharedRef<ITableRow> HandleCategoryFilterGenerateRow( FSessionConsoleCategoryFilterPtr Filter, const TSharedRef<STableViewBase>& OwnerTable );
 
 	/** Callback for getting the text for a row in the category filter drop-down. */
-	FString HandleCategoryFilterGetRowText( FSessionConsoleCategoryFilterPtr Filter ) const;
+	FText HandleCategoryFilterGetRowText( FSessionConsoleCategoryFilterPtr Filter ) const;
 
 	/** Callback for changing the enabled state of a category filter. */
 	void HandleCategoryFilterStateChanged( const FName& ChangedCategory, bool Enabled );
@@ -80,13 +80,13 @@ private:
 	void HandleFilterStringTextChanged( const FText& NewText );
 
 	/** Callback for changing the checked state of the 'Filter' check box. */
-	void HandleHighlightOnlyCheckBoxCheckStateChanged( ESlateCheckBoxState::Type CheckedState );
+	void HandleHighlightOnlyCheckBoxCheckStateChanged( ECheckBoxState CheckedState );
 
 	/** Callback for generating a row widget for the verbosity filter list. */
 	TSharedRef<ITableRow> HandleVerbosityFilterGenerateRow( FSessionConsoleVerbosityFilterPtr Filter, const TSharedRef<STableViewBase>& OwnerTable );
 
 	/** Callback for getting the text for a row in the verbosity filter drop-down. */
-	FString HandleVerbosityFilterGetRowText( FSessionConsoleVerbosityFilterPtr Filter ) const;
+	FText HandleVerbosityFilterGetRowText( FSessionConsoleVerbosityFilterPtr Filter ) const;
 
 	/** Callback for changing the check state of a filter button. */
 	void HandleVerbosityFilterStateChanged( ELogVerbosity::Type Verbosity, bool Enabled );

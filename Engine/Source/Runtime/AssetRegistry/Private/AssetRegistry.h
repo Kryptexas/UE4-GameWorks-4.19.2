@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -181,6 +181,11 @@ private:
 	/** The map of asset tag to asset data for assets saved to disk */
 	TMap<FName, TArray<FAssetData*> > CachedAssetsByTag;
 
+#if WITH_EDITORONLY_DATA
+	/** A map of clean source file name (asset.ext) to assets saved to disk */
+	TMap<FName, TArray<FAssetData*>> CachedAssetsBySourceFileName;
+#endif
+
 	/** A map of object names to dependency data */
 	TMap<FName, FDependsNode*> CachedDependsNodes;
 
@@ -254,4 +259,10 @@ private:
 
 	/** List of all class names derived from Blueprint (including Blueprint itself) */
 	TSet<FName> ClassGeneratorNames;
+
+	/** Handles to all registered OnDirectoryChanged delegates */
+	TMap<FString, FDelegateHandle> OnDirectoryChangedDelegateHandles;
+
+	/** Handle to the registered OnDirectoryChanged delegate for the OnContentPathMounted handler */
+	FDelegateHandle OnContentPathMountedOnDirectoryChangedDelegateHandle;
 };

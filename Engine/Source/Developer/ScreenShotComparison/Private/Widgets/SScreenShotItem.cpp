@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SScreenShotItem.cpp: Implements the SScreenShotItem class.
@@ -31,7 +31,7 @@ void SScreenShotItem::Construct( const FArguments& InArgs )
 				.HAlign(HAlign_Center)
 				.Padding( 4.0f, 4.0f )
 				[
-					SNew( STextBlock ) .Text( ScreenShotData->GetName() )
+					SNew( STextBlock ) .Text( FText::FromString(ScreenShotData->GetName()) )
 				]
 				+SVerticalBox::Slot()
 				.AutoHeight()

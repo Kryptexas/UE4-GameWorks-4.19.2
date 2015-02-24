@@ -1,8 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	HideWindowsPLatformTypes.h: Defines for hiding windows type names.
-=============================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #ifdef WINDOWS_PLATFORM_TYPES_GUARD
 	#undef WINDOWS_PLATFORM_TYPES_GUARD
@@ -16,8 +12,9 @@
 #undef FLOAT
 
 #ifdef TRUE
-#undef TRUE
+	#undef TRUE
 #endif
+
 #ifdef FALSE
-#undef FALSE
+	#undef FALSE
 #endif

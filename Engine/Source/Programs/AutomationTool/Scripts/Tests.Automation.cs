@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -211,11 +211,11 @@ class GitPullRequest : BuildCommand
 		RunGit("reset --hard");
 
 		// show-ref is just a double check that the PR exists
-		var Refs = RunGit("show-ref");
-		if (!Refs.Contains("refs/remotes/origin/pr/" + PRNum))
+		//var Refs = RunGit("show-ref");
+		/*if (!Refs.Contains("refs/remotes/origin/pr/" + PRNum))
 		{
 			throw new AutomationException("This is not among the refs: refs/remotes/origin/pr/{0}", PRNum);
-		}
+		}*/
 		RunGit(String.Format("fetch origin refs/pull/{0}/head:pr/{1}", PRNum, PRNum));
 		RunGit(String.Format("checkout pr/{0} --", PRNum));
 
@@ -1630,8 +1630,6 @@ public class ZeroEngineVersions : BuildCommand
 			{
 				Log("Zeroing out engine versions in {0}", VersionFilename);
 				VersionH.ReplaceLine("#define ENGINE_VERSION ", "0");
-				VersionH.ReplaceLine("#define ENGINE_VERSION_HIWORD ", "0");
-				VersionH.ReplaceLine("#define ENGINE_VERSION_LOWORD ", "0");
 				VersionH.ReplaceLine("#define BRANCH_NAME ", "\"" + P4Env.BranchName + "\"");
 				VersionH.ReplaceLine("#define BUILT_FROM_CHANGELIST ", "0");
 

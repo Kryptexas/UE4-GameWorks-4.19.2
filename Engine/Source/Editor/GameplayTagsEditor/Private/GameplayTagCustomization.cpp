@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayTagsEditorModulePrivatePCH.h"
 #include "GameplayTagCustomization.h"
@@ -74,7 +74,7 @@ TSharedRef<SWidget> FGameplayTagCustomization::GetListContent()
 			SNew(SGameplayTagWidget, EditableContainers)
 			.Filter(Categories)
 			.ReadOnly(bReadOnly)
-			.TagContainerName(StructPropertyHandle->GetPropertyDisplayName())
+			.TagContainerName(StructPropertyHandle->GetPropertyDisplayName().ToString())
 			.MultiSelect(false)
 			.OnTagChanged(this, &FGameplayTagCustomization::OnTagChanged)
 		];

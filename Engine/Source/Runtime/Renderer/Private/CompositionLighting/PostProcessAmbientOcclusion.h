@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessAmbientOcclusion.h: Post processing ambient occlusion implementation.
@@ -96,8 +96,8 @@ public:
 		FVector4 AOScreenPositionScaleBiasValue = FVector4(
 			ViewRect.Size().X / InputTextureSize.X / +2.0f,
 			ViewRect.Size().Y / InputTextureSize.Y / -2.0f,
-			(ViewRect.Size().X / 2.0f + GPixelCenterOffset + ViewRect.Min.X) / InputTextureSize.X,
-			(ViewRect.Size().Y / 2.0f + GPixelCenterOffset + ViewRect.Min.Y) / InputTextureSize.Y);
+			(ViewRect.Size().X / 2.0f + ViewRect.Min.X) / InputTextureSize.X,
+			(ViewRect.Size().Y / 2.0f + ViewRect.Min.Y) / InputTextureSize.Y);
 
 		// Combining two scales into one parameter, Projection matrix scaling of x and y and scaling from clip to screen space.
 		FVector2D ProjectionScaleValue = FVector2D(View.ViewMatrices.ProjMatrix.M[0][0], View.ViewMatrices.ProjMatrix.M[1][1])

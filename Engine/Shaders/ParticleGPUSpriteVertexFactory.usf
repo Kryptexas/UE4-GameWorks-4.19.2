@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleGPUSpriteVertexFactory.usf: Vertex factory for GPU simulated particles.
@@ -228,10 +228,16 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates( FVertexFactoryInput I
 	float4 MiscCurve = MiscCurveSample * EmitterUniforms.MiscScale + EmitterUniforms.MiscBias;
 
 	// Compute the size of the sprite. Note it is (0,0) if the sprite is dead.
-	float2 InitialSize = AttributeSample.xy;
+	// Reconstruct the real size after we've encoded the UV flip mode as sizes > 0.5;
+	float2 UVFlipOffset = float2( AttributeSample.x < 0.5 ? 0.0f : -0.5, AttributeSample.y < 0.5 ? 0.0f : -0.5);
+	float2 InitialSize = (AttributeSample.xy + UVFlipOffset) * float2(2.0,2.0);
 	float2 SizeScale = MiscCurve.xy * EmitterDynamicUniforms.LocalToWorldScale;
 	float2 SizeScaleBySpeed = clamp(EmitterUniforms.SizeBySpeed.xy * ParticleSpeed,float2(1,1), EmitterUniforms.SizeBySpeed.zw);
 	float2 Size = InitialSize * SizeScale * SizeScaleBySpeed * IsAlive.xx;
+	
+	float2 FlippedUV = Input.TexCoord.xy;
+	FlippedUV.x = UVFlipOffset.x == 0.0 ? 1.0 - FlippedUV.x : FlippedUV.x;
+	FlippedUV.y = UVFlipOffset.y == 0.0 ? 1.0 - FlippedUV.y : FlippedUV.y;
 
 	// SubUV.
 	float SubImageIndex = MiscCurve.z;
@@ -245,8 +251,8 @@ FVertexFactoryIntermediates GetVertexFactoryIntermediates( FVertexFactoryInput I
 
 	// Compute the final texture coordinates for both subimages.
 	float4 TexCoord;
-	TexCoord.xy = (float2( SubImageAH, SubImageAV ) + Input.TexCoord.xy) * EmitterUniforms.SubImageSize.zw;
-	TexCoord.zw = (float2( SubImageBH, SubImageBV ) + Input.TexCoord.xy) * EmitterUniforms.SubImageSize.zw;
+	TexCoord.xy = (float2( SubImageAH, SubImageAV ) + FlippedUV) * EmitterUniforms.SubImageSize.zw;
+	TexCoord.zw = (float2( SubImageBH, SubImageBV ) + FlippedUV) * EmitterUniforms.SubImageSize.zw;
 
 	// Current rotation of the sprite. Map [0,1] to one full rotation.
 	float RotationRate = AttributeSample.w * EmitterUniforms.RotationRateScale;

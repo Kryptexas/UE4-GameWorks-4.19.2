@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GeomFitUtils.cpp: Utilities for fitting collision models to static meshes.
@@ -11,6 +11,7 @@
 #include "../Private/GeomFitUtils.h"
 #include "RawMesh.h"
 #include "MeshUtilities.h"
+#include "Engine/Polys.h"
 
 #define LOCAL_EPS (0.01f)
 static void AddVertexIfNotPresent(TArray<FVector> &vertices, FVector &newVertex)
@@ -82,7 +83,8 @@ int32 GenerateKDopAsSimpleCollision(UStaticMesh* StaticMesh, const TArray<FVecto
 		maxDist.Add(-MY_FLTMAX);
 
 	// Construct temporary UModel for kdop creation. We keep no refs to it, so it can be GC'd.
-	UModel* TempModel = new UModel(FObjectInitializer(),NULL,1);
+	auto TempModel = NewObject<UModel>();
+	TempModel->Initialize(nullptr, 1);
 
 	// For each vertex, project along each kdop direction, to find the max in that direction.
 	const FStaticMeshLODResources& RenderData = StaticMesh->RenderData->LODResources[0];

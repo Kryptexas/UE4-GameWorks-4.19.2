@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Factories.h: Unreal Engine factory types.
@@ -6,6 +6,7 @@
 
 #ifndef __FACTORIES_H__
 #define __FACTORIES_H__
+#include "Animation/VertexAnim/MorphTarget.h"
 
 /**  
  * This class is a simple customizable object factory driven from a text buffer.  

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SceneComponentDetails.h"
@@ -9,6 +9,11 @@
 #include "ComponentTransformDetails.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/InheritableComponentHandler.h"
+#include "Components/LightComponentBase.h"
 
 #define LOCTEXT_NAMESPACE "SceneComponentDetails"
 
@@ -346,17 +351,17 @@ TSharedRef<IDetailCustomization> FSceneComponentDetails::MakeInstance()
 	return MakeShareable( new FSceneComponentDetails );
 }
 
-ESlateCheckBoxState::Type FSceneComponentDetails::IsMobilityActive(TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const
+ECheckBoxState FSceneComponentDetails::IsMobilityActive(TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const
 {
 	if ( MobilityHandle.IsValid() )
 	{
 		uint8 MobilityByte;
 		MobilityHandle.Pin()->GetValue(MobilityByte);
 
-		return MobilityByte == InMobility ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return MobilityByte == InMobility ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 FSlateColor FSceneComponentDetails::GetMobilityTextColor(TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility) const
@@ -372,9 +377,9 @@ FSlateColor FSceneComponentDetails::GetMobilityTextColor(TWeakPtr<IPropertyHandl
 	return FSlateColor(FLinearColor(0.72f, 0.72f, 0.72f, 1.f));
 }
 
-void FSceneComponentDetails::OnMobilityChanged(ESlateCheckBoxState::Type InCheckedState, TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility)
+void FSceneComponentDetails::OnMobilityChanged(ECheckBoxState InCheckedState, TWeakPtr<IPropertyHandle> MobilityHandle, EComponentMobility::Type InMobility)
 {
-	if ( MobilityHandle.IsValid() && InCheckedState == ESlateCheckBoxState::Checked)
+	if ( MobilityHandle.IsValid() && InCheckedState == ECheckBoxState::Checked)
 	{
 		MobilityHandle.Pin()->SetValue((uint8)InMobility);
 	}
@@ -384,7 +389,7 @@ FText FSceneComponentDetails::GetMobilityToolTip(TWeakPtr<IPropertyHandle> Mobil
 {
 	if ( MobilityHandle.IsValid() )
 	{
-		return FText::FromString(MobilityHandle.Pin()->GetToolTipText());
+		return MobilityHandle.Pin()->GetToolTipText();
 	}
 
 	return FText::GetEmpty();
@@ -395,7 +400,7 @@ void FSceneComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuild
 	MakeTransformDetails( DetailBuilder );
 
 	// Put mobility property in Transform section
-	IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory( "TransformCommon", LOCTEXT("TransformCommonCategory", "Transform").ToString(), ECategoryPriority::Transform );
+	IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory( "TransformCommon", LOCTEXT("TransformCommonCategory", "Transform"), ECategoryPriority::Transform );
 	TSharedPtr<IPropertyHandle> MobilityProperty = DetailBuilder.GetProperty("Mobility");
 
 	uint8 RestrictedMobilityBits = 0u;
@@ -604,14 +609,14 @@ void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailB
 
 
 	// Hide the transform properties so they don't show up
-	DetailBuilder.HideProperty( DetailBuilder.GetProperty( "bAbsoluteLocation" ) );
-	DetailBuilder.HideProperty( DetailBuilder.GetProperty( "bAbsoluteRotation" ) );
-	DetailBuilder.HideProperty( DetailBuilder.GetProperty( "bAbsoluteScale" ) );
-	DetailBuilder.HideProperty( DetailBuilder.GetProperty( "RelativeLocation" ) );
-	DetailBuilder.HideProperty( DetailBuilder.GetProperty( "RelativeRotation" ) );
-	DetailBuilder.HideProperty( DetailBuilder.GetProperty( "RelativeScale3D" ) );
+	DetailBuilder.HideProperty( DetailBuilder.GetProperty( GET_MEMBER_NAME_CHECKED(USceneComponent, bAbsoluteLocation) ) );
+	DetailBuilder.HideProperty( DetailBuilder.GetProperty( GET_MEMBER_NAME_CHECKED(USceneComponent, bAbsoluteRotation) ) );
+	DetailBuilder.HideProperty( DetailBuilder.GetProperty( GET_MEMBER_NAME_CHECKED(USceneComponent, bAbsoluteScale) ) );
+	DetailBuilder.HideProperty( DetailBuilder.GetProperty( GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeLocation) ) );
+	DetailBuilder.HideProperty( DetailBuilder.GetProperty( GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeRotation) ) );
+	DetailBuilder.HideProperty( DetailBuilder.GetProperty( GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeScale3D) ) );
 
-	// Determine whether or not we are editing Blueprint defaults through the CDO
+	// Determine whether or not we are editing Class Defaults through the CDO
 	bool bIsEditingBlueprintDefaults = false;
 	const TArray<TWeakObjectPtr<UObject> >& SelectedObjects = DetailBuilder.GetDetailsView().GetSelectedObjects();
 	for(int32 ObjectIndex = 0; ObjectIndex < SelectedObjects.Num(); ++ObjectIndex)
@@ -627,7 +632,7 @@ void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailB
 		}
 	}
 
-	// If there are any actors selected and we're not editing Blueprint defaults, the transform section is shown as part of the actor customization
+	// If there are any actors selected and we're not editing Class Defaults, the transform section is shown as part of the actor customization
 	if( SelectedActors.Num() == 0 || bIsEditingBlueprintDefaults)
 	{
 		TArray< TWeakObjectPtr<UObject> > SceneComponentObjects;
@@ -657,6 +662,20 @@ void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailB
 					}
 				}
 			}
+
+			if (bShouldShowTransform && SceneComponent && SceneComponent->HasAnyFlags(RF_InheritableComponentTemplate))
+			{
+				auto OwnerClass = Cast<UClass>(SceneComponent->GetOuter());
+				auto Bluepirnt = UBlueprint::GetBlueprintFromClass(OwnerClass);
+				auto InheritableComponentHandler = Bluepirnt ? Bluepirnt->GetInheritableComponentHandler(false) : nullptr;
+				auto ComponentKey = InheritableComponentHandler ? InheritableComponentHandler->FindKey(SceneComponent) : FComponentKey();
+				auto SCSNode = ComponentKey.FindSCSNode();
+				const bool bProperRootNodeFound = ComponentKey.IsValid() && SCSNode && SCSNode->IsRootNode() && (SCSNode->ParentComponentOrVariableName == NAME_None);
+				if (bProperRootNodeFound)
+				{
+					bShouldShowTransform = false;
+				}
+			}
 		}
 
 		TSharedRef<FComponentTransformDetails> TransformDetails = MakeShareable( new FComponentTransformDetails( bIsEditingBlueprintDefaults ? SceneComponentObjects : DetailBuilder.GetDetailsView().GetSelectedObjects(), SelectedActorInfo, DetailBuilder ) );
@@ -667,7 +686,7 @@ void FSceneComponentDetails::MakeTransformDetails( IDetailLayoutBuilder& DetailB
 			TransformDetails->HideTransformField(ETransformField::Rotation);
 		}
 
-		IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory( "TransformCommon", LOCTEXT("TransformCommonCategory", "Transform").ToString(), ECategoryPriority::Transform );
+		IDetailCategoryBuilder& TransformCategory = DetailBuilder.EditCategory( "TransformCommon", LOCTEXT("TransformCommonCategory", "Transform"), ECategoryPriority::Transform );
 
 		TransformCategory.AddCustomBuilder( TransformDetails );
 	}

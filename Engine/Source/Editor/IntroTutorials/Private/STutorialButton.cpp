@@ -1,11 +1,15 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "IntroTutorialsPrivatePCH.h"
 #include "STutorialButton.h"
+#include "STutorialLoading.h"
 #include "EditorTutorialSettings.h"
 #include "TutorialStateSettings.h"
 #include "TutorialMetaData.h"
 #include "EngineBuildSettings.h"
+#include "AssetRegistryModule.h"
+#include "LevelEditor.h"
+#include "SDockTab.h"
 
 #define LOCTEXT_NAMESPACE "STutorialButton"
 
@@ -22,6 +26,7 @@ void STutorialButton::Construct(const FArguments& InArgs)
 
 	bTestAlerts = FParse::Param(FCommandLine::Get(), TEXT("TestTutorialAlerts"));
 
+	bPendingClickAction = false;
 	bTutorialAvailable = false;
 	bTutorialCompleted = false;
 	bTutorialDismissed = false;
@@ -30,6 +35,21 @@ void STutorialButton::Construct(const FArguments& InArgs)
 
 	PulseAnimation.AddCurve(0.0f, TutorialButtonConstants::PulseAnimationLength, ECurveEaseFunction::Linear);
 	PulseAnimation.Play();
+
+	IIntroTutorials& IntroTutorials = FModuleManager::LoadModuleChecked<IIntroTutorials>(TEXT("IntroTutorials"));
+	LoadingWidget = IntroTutorials.CreateTutorialsLoadingWidget(ContextWindow);
+	/*
+	//LoadingWidget->SetVisibility(EVisibility::Visible);
+
+	if (GEngine)
+	{
+		UGameViewportClient* GVC = GEngine->Viewport;
+		if (GVC)
+		{
+			GVC->AddViewportWidgetContent(LoadingWidgetRef, 100);
+		}
+	}
+	*/
 
 	ChildSlot
 	[
@@ -45,6 +65,8 @@ void STutorialButton::Construct(const FArguments& InArgs)
 			.HeightOverride(16)
 		]
 	];
+
+	//ChildSlot.AttachWidget(LoadingWidgetRef);
 }
 
 void STutorialButton::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
@@ -72,6 +94,12 @@ void STutorialButton::Tick(const FGeometry& AllottedGeometry, const double InCur
 		}
 	}
 	bDeferTutorialOpen = false;
+
+	//The user has clicked to the button, but if the asset registry isn't done loading, we don't know whether to open the browser or do a tutorial immediately.
+	if (bPendingClickAction)
+	{
+		bPendingClickAction = HandleButtonClicked_AssetRegistryChecker();
+	}
 }
 
 static void GetAnimationValues(float InAnimationProgress, float& OutAlphaFactor0, float& OutPulseFactor0, float& OutAlphaFactor1, float& OutPulseFactor1)
@@ -135,37 +163,71 @@ int32 STutorialButton::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 
 FReply STutorialButton::HandleButtonClicked()
 {
+	if (bPendingClickAction)
+	{
+		//There's already a click pending
+		return FReply::Handled();
+	}
+
 	RefreshStatus();
 
-	if( FEngineAnalytics::IsAvailable() )
+	if (FEngineAnalytics::IsAvailable())
 	{
 		TArray<FAnalyticsEventAttribute> EventAttributes;
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("Context"), Context.ToString()));
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("TimeSinceAlertStarted"), (AlertStartTime != 0.0f && ShouldShowAlert()) ? (FPlatformTime::Seconds() - AlertStartTime) : -1.0f));
 		EventAttributes.Add(FAnalyticsEventAttribute(TEXT("LaunchedBrowser"), ShouldLaunchBrowser()));
 
-		FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.ClickedContextButton"), EventAttributes );
+		FEngineAnalytics::GetProvider().RecordEvent(TEXT("Rocket.Tutorials.ClickedContextButton"), EventAttributes);
 	}
 
 	FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
-	if(ShouldLaunchBrowser())
+	IntroTutorials.AttachWidget(LoadingWidget);
+	bPendingClickAction = HandleButtonClicked_AssetRegistryChecker();
+	return FReply::Handled();
+}
+
+bool STutorialButton::HandleButtonClicked_AssetRegistryChecker()
+{
+	//Force tutorials to load into the asset registry before we proceed any further.
+	FAssetRegistryModule& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+	bool IsStillLoading = AssetRegistry.Get().IsLoadingAssets();
+	if (IsStillLoading)
+	{
+		return true;		//Keep doing this on tick
+	}
+
+	//Sometimes, this gives a false positive because the tutorial we want to launch wasn't loaded into the asset registry when we checked. Opening and closing the tab works around that by letting the browser recheck.
+	if (ShouldLaunchBrowser())
+	{
+		FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
+		LevelEditorModule.GetLevelEditorTabManager()->InvokeTab(FTabId("TutorialsBrowser"))->RequestCloseTab();
+		RefreshStatus();
+	}
+
+	//Now we know the asset registry is loaded, the tutorial broswer is updated, and we are ready to complete the click and stop this active timer
+	FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
+	IntroTutorials.DetachWidget();
+	if (ShouldLaunchBrowser())
 	{
 		IntroTutorials.SummonTutorialBrowser();
 	}
 	else if (CachedLaunchTutorial != nullptr)
 	{
+		//If we don't want to launch the browser, and we have a tutorial in mind, launch the tutorial now.
 		auto Delegate = FSimpleDelegate::CreateSP(this, &STutorialButton::HandleTutorialExited);
 
 		const bool bRestart = true;
 		IntroTutorials.LaunchTutorial(CachedLaunchTutorial, bRestart, ContextWindow, Delegate, Delegate);
 
-		const bool bDismissAcrossSessions = true;
+		// The user asked to start the tutorial, so we don't need to remind them about it again this session, but we'll remind
+		// them in the next session if they haven't completed it by then
+		const bool bDismissAcrossSessions = false;
 		GetMutableDefault<UTutorialStateSettings>()->DismissTutorial(CachedLaunchTutorial, bDismissAcrossSessions);
 		GetMutableDefault<UTutorialStateSettings>()->SaveProgress();
 		bTutorialDismissed = true;
 	}
-
-	return FReply::Handled();
+	return false;		//Stop doing this
 }
 
 FReply STutorialButton::OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent)
@@ -178,18 +240,20 @@ FReply STutorialButton::OnMouseButtonDown(const FGeometry& MyGeometry, const FPo
 		if(ShouldShowAlert())
 		{
 			MenuBuilder.AddMenuEntry(
-				LOCTEXT("DismissReminder", "Dismiss Alert"),
-				LOCTEXT("DismissReminderTooltip", "Don't show me this alert again"),
+				LOCTEXT("DismissReminder", "Don't Remind Me Again"),
+				LOCTEXT("DismissReminderTooltip", "Selecting this option will prevent the tutorial blip from being displayed again, even if you choose not to complete the tutorial."),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateSP(this, &STutorialButton::DismissAlert))
 				);
+
+			MenuBuilder.AddMenuSeparator();
 		}
 
 		if(bTutorialAvailable)
 		{
 			MenuBuilder.AddMenuEntry(
-				FText::Format(LOCTEXT("LaunchTutorialPattern", "Open Tutorial: {0}"), TutorialTitle),
-				LOCTEXT("LaunchTutorialTooltip", "Launch this tutorial"),
+				FText::Format(LOCTEXT("LaunchTutorialPattern", "Start Tutorial: {0}"), TutorialTitle),
+				FText::Format(LOCTEXT("TutorialLaunchToolTip", "Click to begin the '{0}' tutorial"), TutorialTitle),
 				FSlateIcon(),
 				FUIAction(FExecuteAction::CreateSP(this, &STutorialButton::LaunchTutorial))
 				);
@@ -221,6 +285,7 @@ void STutorialButton::DismissAlert()
 		FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.DismissedTutorialAlert"), EventAttributes );
 	}
 
+	// If they actually right click and choose "Dismiss Alert", we'll go ahead and suppress the tutorial reminder for this feature for good (all sessions.)
 	const bool bDismissAcrossSessions = true;
 	if (CachedAttractTutorial != nullptr)
 	{
@@ -264,11 +329,11 @@ FText STutorialButton::GetButtonToolTip() const
 {
 	if(ShouldLaunchBrowser())
 	{
-		return LOCTEXT("TutorialLaunchBrowserToolTip", "Show Available Tutorials");
+		return LOCTEXT("TutorialLaunchBrowserToolTip", "Show Available Tutorials...");
 	}
 	else if(bTutorialAvailable)
 	{
-		return FText::Format(LOCTEXT("TutorialLaunchToolTipPattern", "Open: {0}\nRight-Click for More Options"), TutorialTitle);
+		return FText::Format(LOCTEXT("TutorialLaunchToolTipPattern", "Click to begin the '{0}' tutorial, or right click for more options"), TutorialTitle);
 	}
 	
 	return LOCTEXT("TutorialToolTip", "Take Tutorial");

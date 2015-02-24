@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -103,15 +103,17 @@ public:
 
 	// IOnlineFriends
 
-	virtual bool ReadFriendsList(int32 LocalUserNum, const FString& ListName) override;
-	virtual bool DeleteFriendsList(int32 LocalUserNum, const FString& ListName) override;
-	virtual bool SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
-	virtual bool AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
+	virtual bool ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate = FOnReadFriendsListComplete()) override;
+	virtual bool DeleteFriendsList(int32 LocalUserNum, const FString& ListName, const FOnDeleteFriendsListComplete& Delegate = FOnDeleteFriendsListComplete()) override;
+	virtual bool SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName,  const FOnSendInviteComplete& Delegate = FOnSendInviteComplete()) override;
+	virtual bool AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnAcceptInviteComplete& Delegate = FOnAcceptInviteComplete()) override;
  	virtual bool RejectInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
  	virtual bool DeleteFriend(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
 	virtual bool GetFriendsList(int32 LocalUserNum, const FString& ListName, TArray< TSharedRef<FOnlineFriend> >& OutFriends) override;
 	virtual TSharedPtr<FOnlineFriend> GetFriend(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
 	virtual bool IsFriend(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName) override;
+	virtual bool QueryRecentPlayers(const FUniqueNetId& UserId) override;
+	virtual bool GetRecentPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers) override;
 };
 
 typedef TSharedPtr<FOnlineFriendsSteam, ESPMode::ThreadSafe> FOnlineFriendsSteamPtr;
@@ -127,16 +129,20 @@ class FOnlineAsyncTaskSteamReadFriendsList :
 	/** The user that is triggering the event */
 	int32 LocalUserNum;
 
+	FOnReadFriendsListComplete Delegate;
+
 public:
 	/**
 	 * Inits the pointer used to trigger the delegates on
 	 *
 	 * @param InFriendsPtr the interface to call the delegates on
 	 * @param InLocalUserNum the local user that requested the read
+	 * @param InDelegate the delegate that will be called when reading the friends list is complete
 	 */
-	FOnlineAsyncTaskSteamReadFriendsList(FOnlineFriendsSteam* InFriendsPtr, int32 InLocalUserNum) :
+	FOnlineAsyncTaskSteamReadFriendsList(FOnlineFriendsSteam* InFriendsPtr, int32 InLocalUserNum, const FOnReadFriendsListComplete& InDelegate) :
 		FriendsPtr(InFriendsPtr),
-		LocalUserNum(InLocalUserNum)
+		LocalUserNum(InLocalUserNum),
+		Delegate(InDelegate)
 	{
 		check(FriendsPtr);
 	}

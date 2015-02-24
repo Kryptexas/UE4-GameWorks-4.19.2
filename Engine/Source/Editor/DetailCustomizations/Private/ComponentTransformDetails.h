@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -100,12 +100,12 @@ private:
 	const FSlateBrush* GetPreserveScaleRatioImage() const;
 
 	/** @return The state of the preserve scale ratio checkbox */
-	ESlateCheckBoxState::Type IsPreserveScaleRatioChecked() const;
+	ECheckBoxState IsPreserveScaleRatioChecked() const;
 
 	/**
 	 * Called when the preserve scale ratio checkbox is toggled
 	 */
-	void OnPreserveScaleRatioToggled( ESlateCheckBoxState::Type NewState );
+	void OnPreserveScaleRatioToggled( ECheckBoxState NewState );
 
 	/**
 	 * Builds a transform field label

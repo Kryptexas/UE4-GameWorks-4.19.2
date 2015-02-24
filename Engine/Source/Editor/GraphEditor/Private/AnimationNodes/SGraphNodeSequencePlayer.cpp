@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -24,7 +24,7 @@ void SGraphNodeSequencePlayer::GetNodeInfoPopups(FNodeInfoContext* Context, TArr
 {
 }
 
-FString SGraphNodeSequencePlayer::GetPositionTooltip() const
+FText SGraphNodeSequencePlayer::GetPositionTooltip() const
 {
 	float Position;
 	float Length;
@@ -49,10 +49,10 @@ FString SGraphNodeSequencePlayer::GetPositionTooltip() const
 
 		const FString FramesStr = FString::Printf(TEXT("Frame %d"), CurrentFrame);
 
-		return FString::Printf(TEXT("%s (%s%s%s)"), *FramesStr, *MinuteStr, *SecondStr, *HundredthsStr);
+		return FText::FromString(FString::Printf(TEXT("%s (%s%s%s)"), *FramesStr, *MinuteStr, *SecondStr, *HundredthsStr));
 	}
 
-	return TEXT("Position");
+	return NSLOCTEXT("SGraphNodeSequencePlayer", "PositionToolTip_Default", "Position");
 }
 
 void SGraphNodeSequencePlayer::UpdateGraphNode()

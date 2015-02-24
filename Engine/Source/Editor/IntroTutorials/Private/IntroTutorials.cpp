@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "IntroTutorialsPrivatePCH.h"
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
@@ -27,12 +27,16 @@
 #include "EditorTutorialDetailsCustomization.h"
 #include "STutorialRoot.h"
 #include "STutorialButton.h"
+#include "STutorialLoading.h"
 #include "ToolkitManager.h"
 #include "BlueprintEditor.h"
 #include "EngineBuildSettings.h"
 #include "IDocumentation.h"
 #include "SDockTab.h"
 #include "ModuleManager.h"
+#include "IntroTutorials.h"
+#include "IAssetTools.h"
+#include "ClassTypeActions_EditorTutorial.h"
 
 
 #define LOCTEXT_NAMESPACE "IntroTutorials"
@@ -49,7 +53,7 @@ FIntroTutorials::FIntroTutorials()
 	bDesireResettingTutorialSeenFlagOnLoad = FParse::Param(FCommandLine::Get(), TEXT("ResetTutorials"));
 }
 
-FString FIntroTutorials::AnalyticsEventNameFromTutorial(const FString& BaseEventName, UEditorTutorial* Tutorial)
+FString FIntroTutorials::AnalyticsEventNameFromTutorial(UEditorTutorial* Tutorial)
 {
 	FString TutorialPath = Tutorial->GetOutermost()->GetFName().ToString();
 
@@ -57,12 +61,7 @@ FString FIntroTutorials::AnalyticsEventNameFromTutorial(const FString& BaseEvent
 	FString RightStr;
 	TutorialPath.Split( TEXT("/"), NULL, &RightStr, ESearchCase::IgnoreCase, ESearchDir::FromEnd );
 
-	// then append that to the header
-	// e.g. Rocket.Tutorials.ClosedInEditorTutorial
-	FString OutStr = BaseEventName;
-	OutStr += RightStr;
-
-	return OutStr;
+	return RightStr;
 }
 
 TSharedRef<FExtender> FIntroTutorials::AddSummonBlueprintTutorialsMenuExtender(const TSharedRef<FUICommandList> CommandList, const TArray<UObject*> EditingObjects) const
@@ -117,6 +116,14 @@ void FIntroTutorials::StartupModule()
 		{
 			GetMutableDefault<UTutorialStateSettings>()->ClearProgress();
 		}
+
+		// register our class actions to show the "Play" button on editor tutorial Blueprint assets
+		{
+			IAssetTools& AssetTools = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
+			TSharedRef<IClassTypeActions> EditorTutorialClassActions = MakeShareable(new FClassTypeActions_EditorTutorial());
+			RegisteredClassTypeActions.Add(EditorTutorialClassActions);
+			AssetTools.RegisterClassTypeActions(EditorTutorialClassActions);
+		}
 	}
 
 	// Register to display our settings
@@ -159,6 +166,16 @@ void FIntroTutorials::ShutdownModule()
 	if (!bDisableTutorials && !IsRunningCommandlet())
 	{
 		FSourceCodeNavigation::AccessOnCompilerNotFound().RemoveAll( this );
+
+		FAssetToolsModule* AssetToolsModule = FModuleManager::GetModulePtr<FAssetToolsModule>("AssetTools");
+		if (AssetToolsModule)
+		{
+			IAssetTools& AssetTools = AssetToolsModule->Get();
+			for(const auto& RegisteredClassTypeAction : RegisteredClassTypeActions)
+			{
+				AssetTools.UnregisterClassTypeActions(RegisteredClassTypeAction);
+			}
+		}
 	}
 
 	if (BlueprintEditorExtender.IsValid() && FModuleManager::Get().IsModuleLoaded("Kismet"))
@@ -387,7 +404,32 @@ void FIntroTutorials::SummonTutorialBrowser()
 	if(TutorialRoot.IsValid())
 	{
 		FLevelEditorModule& LevelEditorModule = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
-		LevelEditorModule.GetLevelEditorTabManager()->InvokeTab(FTabId("TutorialsBrowser"));
+		TutorialBrowserDockTab = LevelEditorModule.GetLevelEditorTabManager()->InvokeTab(FTabId("TutorialsBrowser"));
+	}
+}
+
+void FIntroTutorials::DismissTutorialBrowser()
+{
+	if (TutorialBrowserDockTab.IsValid() && TutorialBrowserDockTab.Pin().IsValid())
+	{
+		TutorialBrowserDockTab.Pin()->RequestCloseTab();
+		TutorialBrowserDockTab = nullptr;
+	}
+}
+
+void FIntroTutorials::AttachWidget(TSharedPtr<SWidget> Widget)
+{
+	if (TutorialRoot.IsValid())
+	{
+		TutorialRoot->AttachWidget(Widget);
+	}
+}
+
+void FIntroTutorials::DetachWidget()
+{
+	if (TutorialRoot.IsValid())
+	{
+		TutorialRoot->DetachWidget();
 	}
 }
 
@@ -447,6 +489,12 @@ TSharedRef<SWidget> FIntroTutorials::CreateTutorialsWidget(FName InContext, TWea
 {
 	return SNew(STutorialButton)
 		.Context(InContext)
+		.ContextWindow(InContextWindow);
+}
+
+TSharedPtr<SWidget> FIntroTutorials::CreateTutorialsLoadingWidget(TWeakPtr<SWindow> InContextWindow) const
+{
+	return SNew(STutorialLoading)
 		.ContextWindow(InContextWindow);
 }
 

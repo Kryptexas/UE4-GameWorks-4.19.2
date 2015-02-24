@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -99,12 +99,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category=Behavior, AdvancedDisplay)
 	bool SelectAllTextOnCommit;
 
+public:
+
 	/** Called whenever the text is changed interactively by the user */
-	UPROPERTY(BlueprintAssignable, Category="Widget Event")
+	UPROPERTY(BlueprintAssignable, Category="TextBox|Event")
 	FOnEditableTextBoxChangedEvent OnTextChanged;
 
 	/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
-	UPROPERTY(BlueprintAssignable, Category="Widget Event")
+	UPROPERTY(BlueprintAssignable, Category="TextBox|Event")
 	FOnEditableTextBoxCommittedEvent OnTextCommitted;
 
 	/** Provide a alternative mechanism for error reporting. */
@@ -113,14 +115,14 @@ public:
 public:
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Widget")
+	UFUNCTION(BlueprintCallable, Category="Widget", meta=(FriendlyName="GetText (Text Box)"))
 	FText GetText() const;
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Widget")
+	UFUNCTION(BlueprintCallable, Category="Widget", meta=(FriendlyName="SetText (Text Box)"))
 	void SetText(FText InText);
 
-	UFUNCTION(BlueprintCallable, Category="Widget")
+	UFUNCTION(BlueprintCallable, Category="Widget",  meta=(FriendlyName="SetError (Text Box)"))
 	void SetError(FText InError);
 
 	UFUNCTION(BlueprintCallable, Category="Widget")

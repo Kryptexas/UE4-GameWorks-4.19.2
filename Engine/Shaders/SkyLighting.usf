@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkyLighting.usf
@@ -10,6 +10,9 @@
 
 Texture2D BentNormalAOTexture;
 SamplerState BentNormalAOSampler;
+
+Texture2D IrradianceTexture;
+SamplerState IrradianceSampler;
 
 float3 ContrastAndNormalizeMulAdd;
 float4 OcclusionTintAndMinOcclusion;
@@ -32,7 +35,8 @@ void SkyLightDiffusePS(
 		float SkyVisibility = 1;
 		float DotProductFactor = 1;
 		float3 SkyLightingNormal = InGBufferData.WorldNormal;
-		
+		float3 DiffuseIrradiance = 0;
+
 #if APPLY_SHADOWING
 		float3 BentNormal = Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UV, 0).xyz;
 
@@ -65,17 +69,33 @@ void SkyLightDiffusePS(
 		float ContrastCurve = 1 / (1 + exp(-ContrastAndNormalizeMulAdd.x * (SkyVisibility * 10 - 5)));
 		SkyVisibility = saturate(ContrastCurve * ContrastAndNormalizeMulAdd.y + ContrastAndNormalizeMulAdd.z);
 		
+		#if SUPPORT_IRRADIANCE
+			DiffuseIrradiance = Texture2DSampleLevel(IrradianceTexture, IrradianceSampler, UV, 0).xyz * View.GeneralPurposeTweak;
+		#endif
 #endif
+
+		float ScalarFactors = lerp(SkyVisibility, 1, OcclusionTintAndMinOcclusion.w) * InGBufferData.GBufferAO * ScreenSpaceData.AmbientOcclusion;
+
+		if (InGBufferData.ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE)
+		{
+			float3 SubsurfaceLookup = GetSkySHDiffuse(-InGBufferData.WorldNormal) * View.SkyLightColor.rgb;
+			float3 SubsurfaceColor = ExtractSubsurfaceColor(InGBufferData);
+			Lighting += ScalarFactors * SubsurfaceLookup * SubsurfaceColor;
+		}
 
 		// Compute the preconvolved incoming lighting with the bent normal direction
 		float3 DiffuseLookup = GetSkySHDiffuse(SkyLightingNormal) * View.SkyLightColor.rgb;
-
-		float ScalarFactors = lerp(SkyVisibility, 1, OcclusionTintAndMinOcclusion.w) * DotProductFactor * InGBufferData.GBufferAO * ScreenSpaceData.AmbientOcclusion;
-
+		
 		// Apply AO to the sky diffuse and account for darkening due to the geometry term
-		Lighting = ScalarFactors * DiffuseLookup * InGBufferData.DiffuseColor + (1 - SkyVisibility) * OcclusionTintAndMinOcclusion.xyz;
+		Lighting += (ScalarFactors * DotProductFactor) * DiffuseLookup * InGBufferData.DiffuseColor + (1 - SkyVisibility) * OcclusionTintAndMinOcclusion.xyz;
+
+		Lighting += DiffuseIrradiance * InGBufferData.DiffuseColor;
 
 		// For debugging
+		#if SUPPORT_IRRADIANCE
+			//Lighting = max(Texture2DSampleLevel(IrradianceTexture, IrradianceSampler, UV, 0).xyz, 0) + .01f * GetSkySHDiffuse(InGBufferData.WorldNormal);
+		#endif
+
 		//Lighting = (Texture2DSampleLevel(BentNormalAOTexture, BentNormalAOSampler, UV, 0).xyz);
 	}
 

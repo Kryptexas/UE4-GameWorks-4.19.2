@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "Materials/MaterialExpressionConstant3Vector.h"
@@ -10,6 +10,7 @@
 #include "ScopedTransaction.h"
 #include "SPropertyEditorColor.h"
 #include "SColorPicker.h"
+#include "Components/LightComponent.h"
 
 void SPropertyEditorColor::Construct( const FArguments& InArgs, const TSharedRef<FPropertyEditor>& InPropertyEditor, const TSharedRef<IPropertyUtilities>& InPropertyUtilities )
 {

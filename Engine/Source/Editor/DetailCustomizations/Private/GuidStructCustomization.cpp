@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "GuidStructCustomization.h"
@@ -116,7 +116,8 @@ FSlateColor FGuidStructCustomization::HandleTextBoxForegroundColor( ) const
 {
 	if (InputValid)
 	{
-		return FEditorStyle::GetSlateColor("InvertedForeground");
+		static const FName InvertedForegroundName("InvertedForeground");
+		return FEditorStyle::GetSlateColor(InvertedForegroundName);
 	}
 
 	return FLinearColor::Red;

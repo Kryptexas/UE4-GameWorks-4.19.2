@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ComponentVisualizersPrivatePCH.h"
 #include "ComponentVisualizers.h"
@@ -17,6 +17,14 @@
 #include "SensingComponentVisualizer.h"
 #include "SpringComponentVisualizer.h"
 #include "PrimitiveComponentVisualizer.h"
+#include "Components/PointLightComponent.h"
+#include "Components/SpotLightComponent.h"
+#include "Components/AudioComponent.h"
+#include "PhysicsEngine/RadialForceComponent.h"
+#include "PhysicsEngine/PhysicsConstraintComponent.h"
+#include "GameFramework/SpringArmComponent.h"
+#include "Components/SplineComponent.h"
+#include "Components/PrimitiveComponent.h"
 
 IMPLEMENT_MODULE( FComponentVisualizersModule, ComponentVisualizers );
 

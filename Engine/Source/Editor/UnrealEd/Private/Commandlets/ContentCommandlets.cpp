@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UCContentCommandlets.cpp: Various commmandlets.
@@ -24,6 +24,8 @@ DEFINE_LOG_CATEGORY_STATIC(LogContentCommandlet, Log, All);
 #include "Particles/ParticleModuleRequired.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/StaticMesh.h"
 
 
 /**-----------------------------------------------------------------------------
@@ -166,11 +168,6 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 		}
 	}
 
-	if ( Switches.Contains(TEXT("SOUNDCONVERSIONONLY")) )
-	{
-		bSoundConversionOnly = true;
-	}
-
 	FString ClassList;
 	for ( int32 SwitchIdx = 0; SwitchIdx < Switches.Num(); SwitchIdx++ )
 	{
@@ -307,7 +304,6 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 			VerboseMessage(TEXT("Post PerformAdditionalOperations"));
 
 			// Check for any special per object operations
-			bSoundWasDirty = false;
 			for( FObjectIterator ObjectIt; ObjectIt; ++ObjectIt )
 			{
 				if( ObjectIt->IsIn( Package ) )
@@ -317,14 +313,6 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 			}
 			
 			VerboseMessage(TEXT("Post PerformAdditionalOperations Loop"));
-
-			if (bSoundConversionOnly == true)
-			{
-				if (bSoundWasDirty == false)
-				{
-					bSavePackage = false;
-				}
-			}
 
 			if (bStripEditorOnlyContent)
 			{
@@ -339,14 +327,13 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 
 				TArray<UObject *> ObjectsInOuter;
 				GetObjectsWithOuter(Package, ObjectsInOuter);
-				for (int32 Index = 0; Index < ObjectsInOuter.Num(); Index++)
+				for (UObject* Obj : ObjectsInOuter)
 				{
-					UObject* Obj = ObjectsInOuter[Index];
-
 					if (!Obj->IsA(UMetaData::StaticClass()))
 					{
 						// This package has a real object
 						bIsEmpty = false;
+						break;
 					}
 				}
 
@@ -376,7 +363,7 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 						UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
 						SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
 					}
-					else if (SourceControlState.IsValid() && (SourceControlState->CanEdit() || !SourceControlState->IsCurrent()))
+					else if (SourceControlState.IsValid() && SourceControlState->CanCheckout())
 					{
 						UE_LOG(LogContentCommandlet, Display, TEXT("Deleting '%s' from source control..."), *Filename);
 						SourceControlProvider.Execute(ISourceControlOperation::Create<FDelete>(), PackageFilename);
@@ -410,8 +397,8 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 			{
 				if( bIsReadOnly == true && bVerifyContent == true && bAutoCheckOut == false )
 				{
-					UE_LOG(LogContentCommandlet, Warning, TEXT("Package [%s] is read-only but needs to be resaved (Package Version: %i, UE4 Version: %i, Licensee Version: %i  Current Version: %i, Current UE4 Version: %i, Current Licensee Version: %i)"),
-						*Filename, Linker->Summary.GetFileVersionUE3(), Linker->Summary.GetFileVersionUE4(), Linker->Summary.GetFileVersionLicenseeUE4(), VER_LAST_ENGINE_UE3, GPackageFileUE4Version, VER_LATEST_ENGINE_LICENSEEUE4 );
+					UE_LOG(LogContentCommandlet, Warning, TEXT("Package [%s] is read-only but needs to be resaved (UE4 Version: %i, Licensee Version: %i  Current UE4 Version: %i, Current Licensee Version: %i)"),
+						*Filename, Linker->Summary.GetFileVersionUE4(), Linker->Summary.GetFileVersionLicenseeUE4(), GPackageFileUE4Version, VER_LATEST_ENGINE_LICENSEEUE4 );
 					if( SavePackageHelper(Package, FString(TEXT("Temp.temp"))) )
 					{
 						UE_LOG(LogContentCommandlet, Warning, TEXT("Correctly saved:  [Temp.temp].") );
@@ -463,8 +450,8 @@ void UResavePackagesCommandlet::LoadAndSaveOnePackage(const FString& Filename)
 
 					if (Verbosity != ONLY_ERRORS)
 					{
-						UE_LOG(LogContentCommandlet, Display, TEXT("Resaving package [%s] (Package Version: %i, UE4 Version: %i, Licensee Version: %i  Saved Version: %i, Saved UE4 Version: %i, Saved Licensee Version: %i)"),
-							*Filename, Linker->Summary.GetFileVersionUE3(), Linker->Summary.GetFileVersionUE4(), Linker->Summary.GetFileVersionLicenseeUE4(), VER_LAST_ENGINE_UE3, GPackageFileUE4Version, VER_LATEST_ENGINE_LICENSEEUE4 );
+						UE_LOG(LogContentCommandlet, Display, TEXT("Resaving package [%s] (UE4 Version: %i, Licensee Version: %i  Saved UE4 Version: %i, Saved Licensee Version: %i)"),
+							*Filename,Linker->Summary.GetFileVersionUE4(), Linker->Summary.GetFileVersionLicenseeUE4(), GPackageFileUE4Version, VER_LATEST_ENGINE_LICENSEEUE4 );
 					}
 
 					if( SavePackageHelper(Package, Filename) )
@@ -708,98 +695,6 @@ void UResavePackagesCommandlet::VerboseMessage(const FString& Message)
 	{
 		UE_LOG(LogContentCommandlet, Verbose, TEXT("%s"), *Message);
 	}
-}
-
-/*-----------------------------------------------------------------------------
-	URecompileBlueprintsCommandlet commandlet.
------------------------------------------------------------------------------*/
-
-URecompileBlueprintsCommandlet::URecompileBlueprintsCommandlet(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-}
-
-bool URecompileBlueprintsCommandlet::ShouldSkipPackage(const FString& Filename)
-{
-	//@todo:  Only do this for packages with blueprints in them
-	return false;
-}
-
-bool URecompileBlueprintsCommandlet::PerformPreloadOperations( ULinkerLoad* PackageLinker, bool& bSavePackage )
-{
-	bool RetVal = Super::PerformPreloadOperations(PackageLinker, bSavePackage);
-
-	// Force the metadata to be loaded, which will fully load the package
-	UPackage* Package = PackageLinker->LinkerRoot;
-	if( Package )
-	{
-		Package->GetMetaData();
-	}
-
-	return RetVal;
-}
-
-void URecompileBlueprintsCommandlet::PerformAdditionalOperations( class UObject* Object, bool& bSavePackage )
-{
-	if( UBlueprint* TargetBlueprint = Cast<UBlueprint>(Object) )
-	{
-		// Obtain the filename so we can regenerate the ULinkerLoad after the compile.
-		FString Filename;
-		FPackageName::DoesPackageExist(Object->GetOutermost()->GetName(), NULL, &Filename);
-
-		FBlueprintEditorUtils::RefreshAllNodes(TargetBlueprint);
-		FKismetEditorUtilities::CompileBlueprint(TargetBlueprint, true, false);
-
-		// Clean up the metadata, now that we've recompiled and potentially moved stuff into the transient package
-		UPackage* Package = CastChecked<UPackage>(Object->GetOutermost());
-		UMetaData* MetaData = Package->GetMetaData();
-		check(MetaData);
-		MetaData->RemoveMetaDataOutsidePackage();
-
-		if ( !Filename.IsEmpty() )
-		{
-			// Regenerate the LinkerLoad if it was reset during the compile. This will add the ULinkerLoad to GObjLoaders.
-			// This will allow thumbnails to be properly preserved in UPackage::SavePackage (ResetLoadersForSave)
-			BeginLoad();
-			ULinkerLoad* Linker = GetPackageLinker(NULL,*Filename,LOAD_NoVerify,NULL,NULL);
-			EndLoad();
-		}
-	}
-}
-
-int32 URecompileBlueprintsCommandlet::Main(const FString& Params)
-{
-	// Verify that all blueprints are set to NOT compile on load
-	for( TObjectIterator<UBlueprint> BlueprintIt; BlueprintIt; ++BlueprintIt )
-	{
-		UBlueprint* Blueprint = *BlueprintIt;
-		if( Blueprint->bRecompileOnLoad )
-		{
-			UE_LOG(LogContentCommandlet, Error, TEXT("Blueprint %s is set to compile on load, which is unsafe for this commandlet.  Please disable in the engine's INI file."), *Blueprint->GetClass()->GetName());
-			return -1;
-		}
-	}
-
-	return Super::Main(Params);
-}
-
-int32 URecompileBlueprintsCommandlet::InitializeResaveParameters( const TArray<FString>& Tokens, const TArray<FString>& Switches, TArray<FString>& MapPathNames )
-{
-	int32 RetVal = Super::InitializeResaveParameters(Tokens, Switches, MapPathNames);
-	
-	ResaveClasses.Add(FName(TEXT("Blueprint")));
-	ResaveClasses.Add(FName(TEXT("LevelScriptBlueprint")));
-	ResaveClasses.Add(FName(TEXT("AnimBlueprint")));
-	ResaveClasses.Add(FName(TEXT("EditorUtilityBlueprint")));
-	bOnlySaveDirtyPackages = false;
-
-	// Checking in automatically is too dangerous in the case that something goes wrong!
-	bAutoCheckIn = false;
-
-	// Too slow to GC every time
-	GarbageCollectionFrequency = 50;
-
-	return RetVal;
 }
 
 /*-----------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EditorWidgetsPrivatePCH.h"
 #include "SAssetSearchBox.h"
@@ -173,8 +173,11 @@ void SAssetSearchBox::HandleTextCommitted(const FText& NewText, ETextCommit::Typ
 	SetText(CommittedText);
 	OnTextCommitted.ExecuteIfBound(CommittedText, CommitType);
 
-	// Always close the suggestion box
-	SuggestionBox->SetIsOpen(false, false);
+	if(CommitType != ETextCommit::Default)
+	{
+		// Clear the suggestion box if the user has navigated away or set their own text.
+		SuggestionBox->SetIsOpen(false, false);
+	}
 }
 
 void SAssetSearchBox::OnSelectionChanged( TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo )
@@ -197,7 +200,7 @@ TSharedRef<ITableRow> SAssetSearchBox::MakeSuggestionListItemWidget(TSharedPtr<F
 		SNew(STableRow< TSharedPtr<FString> >, OwnerTable)
 		[
 			SNew(STextBlock)
-			.Text(*Text.Get())
+			.Text(FText::FromString(*Text.Get()))
 			.HighlightText(this, &SAssetSearchBox::GetHighlightText)
 		];
 }

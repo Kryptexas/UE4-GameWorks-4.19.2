@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MatineeModule.h"
 #include "MatineeFilterButton.h"
@@ -28,7 +28,7 @@ FReply SMatineeFilterButton::OnMouseButtonUp( const FGeometry& MyGeometry, const
 	if ( MouseEvent.GetEffectingButton() == EKeys::RightMouseButton )
 	{
 		// Pretend as if the checkbox was clicked so that the current tab will be selected
-		OnCheckStateChanged.ExecuteIfBound( ESlateCheckBoxState::Checked );
+		OnCheckStateChanged.ExecuteIfBound( ECheckBoxState::Checked );
 
 		if ( OnContextMenuOpening.IsBound() )
 		{

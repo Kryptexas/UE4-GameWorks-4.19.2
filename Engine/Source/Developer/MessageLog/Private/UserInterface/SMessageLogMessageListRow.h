@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -85,7 +85,7 @@ private:
 #if WITH_EDITOR
 	void HandleDocsHyperlinkNavigate( FString DocumentationLink )
 	{
-		IDocumentation::Get()->Open(DocumentationLink);
+		IDocumentation::Get()->Open(DocumentationLink, FDocumentationSourceInfo(TEXT("msg_log")));
 	}
 
 	void HandleTutorialHyperlinkNavigate( FString TutorialAssetName )

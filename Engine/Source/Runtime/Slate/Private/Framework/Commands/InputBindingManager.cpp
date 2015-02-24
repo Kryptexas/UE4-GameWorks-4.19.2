@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
@@ -87,11 +87,12 @@ void FUserDefinedGestures::LoadGestures()
 					const FUserDefinedGestureKey GestureKey(BindingContext, CommandName);
 					FInputGesture& UserDefinedGesture = Gestures->FindOrAdd(GestureKey);
 
-					UserDefinedGesture.bCtrl = CtrlObj->AsBool();
-					UserDefinedGesture.bAlt = AltObj->AsBool();
-					UserDefinedGesture.bShift = ShiftObj->AsBool();
-					UserDefinedGesture.bCmd = CmdObj.IsValid() ? CmdObj->AsBool() : false; // Old config files may not have this
-					UserDefinedGesture.Key = *KeyObj->AsString();
+					UserDefinedGesture = FInputGesture(*KeyObj->AsString(), EModifierKey::FromBools(
+																				CtrlObj->AsBool(), 
+																				AltObj->AsBool(), 
+																				ShiftObj->AsBool(), 
+																				CmdObj.IsValid() ? CmdObj->AsBool() : false // Old config files may not have this
+																			));
 				}
 			}
 		}
@@ -140,11 +141,12 @@ void FUserDefinedGestures::LoadGestures()
 						const FUserDefinedGestureKey GestureKey(BindingContext, CommandName);
 						FInputGesture& UserDefinedGesture = Gestures->FindOrAdd(GestureKey);
 
-						UserDefinedGesture.bCtrl = CtrlObj->AsBool();
-						UserDefinedGesture.bAlt = AltObj->AsBool();
-						UserDefinedGesture.bShift = ShiftObj->AsBool();
-						UserDefinedGesture.bCmd = CmdObj.IsValid() ? CmdObj->AsBool() : false; // Old config files may not have this
-						UserDefinedGesture.Key = *KeyObj->AsString();
+						UserDefinedGesture = FInputGesture(*KeyObj->AsString(), EModifierKey::FromBools(
+																					CtrlObj->AsBool(), 
+																					AltObj->AsBool(), 
+																					ShiftObj->AsBool(), 
+																					CmdObj.IsValid() ? CmdObj->AsBool() : false // Old config files may not have this
+																				));
 					}
 				}
 			}
@@ -166,10 +168,10 @@ void FUserDefinedGestures::SaveGestures() const
 			// Set the gesture values for the command
 			GestureInfoObj->Values.Add( TEXT("BindingContext"), MakeShareable( new FJsonValueString( GestureInfo.Key.BindingContext.ToString() ) ) );
 			GestureInfoObj->Values.Add( TEXT("CommandName"), MakeShareable( new FJsonValueString( GestureInfo.Key.CommandName.ToString() ) ) );
-			GestureInfoObj->Values.Add( TEXT("Control"), MakeShareable( new FJsonValueBoolean( GestureInfo.Value.bCtrl ) ) );
-			GestureInfoObj->Values.Add( TEXT("Alt"), MakeShareable( new FJsonValueBoolean( GestureInfo.Value.bAlt ) ) );
-			GestureInfoObj->Values.Add( TEXT("Shift"), MakeShareable( new FJsonValueBoolean( GestureInfo.Value.bShift ) ) );
-			GestureInfoObj->Values.Add( TEXT("Command"), MakeShareable( new FJsonValueBoolean( GestureInfo.Value.bCmd ) ) );
+			GestureInfoObj->Values.Add( TEXT("Control"), MakeShareable( new FJsonValueBoolean( GestureInfo.Value.NeedsControl() ) ) );
+			GestureInfoObj->Values.Add( TEXT("Alt"), MakeShareable( new FJsonValueBoolean( GestureInfo.Value.NeedsAlt() ) ) );
+			GestureInfoObj->Values.Add( TEXT("Shift"), MakeShareable( new FJsonValueBoolean( GestureInfo.Value.NeedsShift() ) ) );
+			GestureInfoObj->Values.Add( TEXT("Command"), MakeShareable( new FJsonValueBoolean( GestureInfo.Value.NeedsCommand() ) ) );
 			GestureInfoObj->Values.Add( TEXT("Key"), MakeShareable( new FJsonValueString( GestureInfo.Value.Key.ToString() ) ) );
 
 			auto JsonWriter = TJsonWriterFactory< TCHAR, TCondensedJsonPrintPolicy<TCHAR> >::Create( &GestureRawJsonContent );

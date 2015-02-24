@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneView.cpp: SceneView implementation.
@@ -14,6 +14,8 @@
 #include "RendererInterface.h"
 #include "BufferVisualizationData.h"
 #include "Interfaces/Interface_PostProcessVolume.h"
+#include "Engine/TextureCube.h"
+#include "Classes/Engine/RendererSettings.h"
 
 DEFINE_LOG_CATEGORY(LogBufferVisualization);
 
@@ -52,6 +54,15 @@ static TAutoConsoleVariable<int32> CVarRenderTimeFrozen(
 	TEXT(" 0: off\n")
 	TEXT(" 1: on (Note: this also disables occlusion queries)"),
 	ECVF_Cheat);
+
+static TAutoConsoleVariable<int32> CVarScreenPercentageEditor(
+	TEXT("r.ScreenPercentage.Editor"),
+	0,
+	TEXT("To allow to have an effect of ScreenPercentage in the editor.\n")
+	TEXT("0: off (default)\n")
+	TEXT("1: allow upsample (blurry but faster) and downsample (cripser but slower)"),
+	ECVF_Default);
+
 #endif
 
 static TAutoConsoleVariable<float> CVarSSAOFadeRadiusScale(
@@ -250,7 +261,6 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	, ViewRect(InitOptions.GetConstrainedViewRect())
 	, UnscaledViewRect(InitOptions.GetConstrainedViewRect())
 	, UnconstrainedViewRect(InitOptions.GetViewRect())
-	, FrameNumber(UINT_MAX)
 	, MaxShadowCascades(10)
 	, WorldToMetersScale(InitOptions.WorldToMetersScale)
 	, ProjectionMatrixUnadjustedForRHI(InitOptions.ProjectionMatrix)
@@ -277,6 +287,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 #if WITH_EDITOR
 	, OverrideLODViewOrigin(InitOptions.OverrideLODViewOrigin)
 	, bAllowTranslucentPrimitivesInHitProxy( true )
+	, bHasSelectedComponents( false )
 #endif
 	, FeatureLevel(InitOptions.ViewFamily ? InitOptions.ViewFamily->GetFeatureLevel() : GMaxRHIFeatureLevel)
 {
@@ -308,12 +319,12 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	else if (InitOptions.bUseFauxOrthoViewPos)
 	{
 		float DistanceToViewOrigin = WORLD_MAX;
-		ViewMatrices.ViewOrigin = FVector4(InvViewMatrix.TransformVector(FVector(0,0,-1)).SafeNormal()*DistanceToViewOrigin,1) + InvViewMatrix.GetOrigin();
+		ViewMatrices.ViewOrigin = FVector4(InvViewMatrix.TransformVector(FVector(0,0,-1)).GetSafeNormal()*DistanceToViewOrigin,1) + InvViewMatrix.GetOrigin();
 	}
 #endif
 	else
 	{
-		ViewMatrices.ViewOrigin = FVector4(InvViewMatrix.TransformVector(FVector(0,0,-1)).SafeNormal(),0);
+		ViewMatrices.ViewOrigin = FVector4(InvViewMatrix.TransformVector(FVector(0,0,-1)).GetSafeNormal(),0);
 		// to avoid issues with view dependent effect (e.g. Frensel)
 		ApplyPreViewTranslation = false;
 	}
@@ -351,6 +362,17 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	// Compute a transform from view origin centered world-space to clip space.
 	ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * ViewMatrices.ProjMatrix;
 	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
+
+	// Compute screen scale factors.
+	// Stereo renders at half horizontal resolution, but compute shadow resolution based on full resolution.
+	const bool bStereo = StereoPass != eSSP_FULL;
+	const float ScreenXScale = bStereo ? 2.0f : 1.0f;
+	ViewMatrices.ProjectionScale.X = ScreenXScale * FMath::Abs(ViewMatrices.ProjMatrix.M[0][0]);
+	ViewMatrices.ProjectionScale.Y = FMath::Abs(ViewMatrices.ProjMatrix.M[1][1]);
+	ViewMatrices.ScreenScale = FMath::Max(
+		ViewRect.Size().X * 0.5f * ViewMatrices.ProjectionScale.X,
+		ViewRect.Size().Y * 0.5f * ViewMatrices.ProjectionScale.Y
+		);
 	
 	ShadowViewMatrices = ViewMatrices;
 
@@ -412,6 +434,11 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	// into world oriented z.
 	InvDeviceZToWorldZTransform = CreateInvDeviceZToWorldZTransform(ProjectionMatrixUnadjustedForRHI);
 
+	static TConsoleVariableData<int32>* SortPolicyCvar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TranslucentSortPolicy"));
+	TranslucentSortPolicy = static_cast<ETranslucentSortPolicy::Type>(SortPolicyCvar->GetValueOnAnyThread());
+
+	TranslucentSortAxis = GetDefault<URendererSettings>()->TranslucentSortAxis;
+
 	// As the world is only accessable from the game thread, bIsGameView should be explicitly
 	// set on any other thread.
 	if(IsInGameThread())
@@ -425,6 +452,51 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	SelectionOutlineColor = GEngine->GetSelectionOutlineColor();
 #endif
 }
+
+float FSceneView::GetLODDistanceFactor() const
+{
+	const float ScreenMultiple = FMath::Max(ViewRect.Width() / 2.0f * ViewMatrices.ProjMatrix.M[0][0],
+		ViewRect.Height() / 2.0f * ViewMatrices.ProjMatrix.M[1][1]);
+	float Fac = PI * ScreenMultiple * ScreenMultiple / ViewRect.Area();
+	return Fac;
+}
+
+float FSceneView::GetTemporalLODDistanceFactor(int32 Index, bool bUseLaggedLODTransition) const
+{
+	if (bUseLaggedLODTransition && State)
+	{
+		const FTemporalLODState& LODState = State->GetTemporalLODState();
+		if (LODState.TemporalLODLag != 0.0f)
+		{
+			return LODState.TemporalDistanceFactor[Index];
+		}
+	}
+	return GetLODDistanceFactor();
+}
+
+
+FVector FSceneView::GetTemporalLODOrigin(int32 Index, bool bUseLaggedLODTransition) const
+{
+	if (bUseLaggedLODTransition && State)
+	{
+		const FTemporalLODState& LODState = State->GetTemporalLODState();
+		if (LODState.TemporalLODLag != 0.0f)
+		{
+			return LODState.TemporalLODViewOrigin[Index];
+		}
+	}
+	return ViewMatrices.ViewOrigin;
+}
+
+float FSceneView::GetTemporalLODTransition() const
+{
+	if (State)
+	{
+		return State->GetTemporalLODTransition();
+	}
+	return 0.0f;
+}
+
 
 void FSceneView::UpdateViewMatrix()
 {
@@ -606,7 +678,7 @@ void FSceneView::DeprojectScreenToWorld(const FVector2D& ScreenPos, const FIntRe
 		RayEndViewSpace /= HGRayEndViewSpace.W;
 	}
 	FVector RayDirViewSpace = RayEndViewSpace - RayStartViewSpace;
-	RayDirViewSpace = RayDirViewSpace.SafeNormal();
+	RayDirViewSpace = RayDirViewSpace.GetSafeNormal();
 
 	// The view transform does not have projection, so we can use the standard functions that deal with vectors and normals (normals
 	// are vectors that do not use the translational part of a rotation/translation)
@@ -616,7 +688,7 @@ void FSceneView::DeprojectScreenToWorld(const FVector2D& ScreenPos, const FIntRe
 	// Finally, store the results in the hitcheck inputs.  The start position is the eye, and the end position
 	// is the eye plus a long distance in the direction the mouse is pointing.
 	out_WorldOrigin = RayStartWorldSpace;
-	out_WorldDirection = RayDirWorldSpace.SafeNormal();
+	out_WorldDirection = RayDirWorldSpace.GetSafeNormal();
 }
 
 #define LERP_PP(NAME) if(Src.bOverride_ ## NAME)	Dest . NAME = FMath::Lerp(Dest . NAME, Src . NAME, Weight);
@@ -945,7 +1017,7 @@ void FSceneView::StartFinalPostprocessSettings(FVector InViewLocation)
 	}
 }
 
-void FSceneView::EndFinalPostprocessSettings()
+void FSceneView::EndFinalPostprocessSettings(const FSceneViewInitOptions& ViewInitOptions)
 {
 	{
 		static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
@@ -1037,13 +1109,6 @@ void FSceneView::EndFinalPostprocessSettings()
 		{
 			FinalPostProcessSettings.ScreenPercentage = Value;
 		}
-
-		// Not supported in ES2.
-		auto FeatureLevel = Family->Scene->GetFeatureLevel();
-		if(FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1)
-		{
-			FinalPostProcessSettings.ScreenPercentage = 100.0f;
-		}
 	}
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1068,7 +1133,7 @@ void FSceneView::EndFinalPostprocessSettings()
 		}
 	}
 
-	if(!Family->EngineShowFlags.ScreenPercentage)
+	if(!Family->EngineShowFlags.ScreenPercentage || bIsSceneCapture || bIsReflectionCapture)
 	{
 		FinalPostProcessSettings.ScreenPercentage = 100;
 	}
@@ -1157,40 +1222,12 @@ void FSceneView::EndFinalPostprocessSettings()
 	}
 
 #if WITH_EDITOR
-	// Access the materials for the hires screenshot system
-	static UMaterial* HighResScreenshotMaterial = NULL;
-	static UMaterial* HighResScreenshotMaskMaterial = NULL;
-	static UMaterial* HighResScreenshotCaptureRegionMaterial = NULL;
-	static bool bHighResScreenshotMaterialsConfigured = false;
-
-	if (!bHighResScreenshotMaterialsConfigured)
-	{
-		HighResScreenshotMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EngineMaterials/HighResScreenshot.HighResScreenshot"));
-		HighResScreenshotMaskMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EngineMaterials/HighResScreenshotMask.HighResScreenshotMask"));
-		HighResScreenshotCaptureRegionMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EngineMaterials/HighResScreenshotCaptureRegion.HighResScreenshotCaptureRegion"));
-
-		if (HighResScreenshotMaterial)
-		{
-			HighResScreenshotMaterial->AddToRoot();
-		}
-		if (HighResScreenshotMaskMaterial)
-		{
-			HighResScreenshotMaskMaterial->AddToRoot(); 
-		}
-		if (HighResScreenshotCaptureRegionMaterial)
-		{
-			HighResScreenshotCaptureRegionMaterial->AddToRoot();
-		}
-
-		bHighResScreenshotMaterialsConfigured = true;
-	}
+	FHighResScreenshotConfig& Config = GetHighResScreenshotConfig();
 
 	// Pass highres screenshot materials through post process settings
-	FinalPostProcessSettings.HighResScreenshotMaterial = HighResScreenshotMaterial;
-	FinalPostProcessSettings.HighResScreenshotMaskMaterial = HighResScreenshotMaskMaterial;
+	FinalPostProcessSettings.HighResScreenshotMaterial = Config.HighResScreenshotMaterial;
+	FinalPostProcessSettings.HighResScreenshotMaskMaterial = Config.HighResScreenshotMaskMaterial;
 	FinalPostProcessSettings.HighResScreenshotCaptureRegionMaterial = NULL;
-
-	FHighResScreenshotConfig& Config = GetHighResScreenshotConfig();
 
 	// If the highres screenshot UI is open and we're not taking a highres screenshot this frame
 	if (Config.bDisplayCaptureRegion && !GIsHighResScreenshot)
@@ -1212,12 +1249,73 @@ void FSceneView::EndFinalPostprocessSettings()
 				NormalizedCaptureRegion.A = (float)Config.UnscaledCaptureRegion.Max.Y / (float)ViewRect.Height();
 
 				// Get a MID for drawing this frame and push the capture region into the shader parameter
-				FinalPostProcessSettings.HighResScreenshotCaptureRegionMaterial = State->GetReusableMID(HighResScreenshotCaptureRegionMaterial);
+				FinalPostProcessSettings.HighResScreenshotCaptureRegionMaterial = State->GetReusableMID(Config.HighResScreenshotCaptureRegionMaterial);
 				FinalPostProcessSettings.HighResScreenshotCaptureRegionMaterial->SetVectorParameterValue(ParamName, NormalizedCaptureRegion);
 			}
 		}
 	}
 #endif // WITH_EDITOR
+
+
+	// Upscaling or Super sampling
+	{
+		float LocalScreenPercentage = FinalPostProcessSettings.ScreenPercentage;
+
+		float Fraction = 1.0f;
+
+		// apply ScreenPercentage
+		if (LocalScreenPercentage != 100.f)
+		{
+			Fraction = FMath::Clamp(LocalScreenPercentage / 100.0f, 0.1f, 4.0f);
+		}
+
+		// Window full screen mode with upscaling
+		bool bFullscreen = false;
+		if (GEngine && GEngine->GameViewport && GEngine->GameViewport->GetWindow().IsValid())
+		{
+			bFullscreen = GEngine->GameViewport->GetWindow()->GetWindowMode() != EWindowMode::Windowed;
+		}
+
+		check(Family->RenderTarget);
+
+		if (bFullscreen)
+		{
+			// CVar mode 2 is fullscreen with upscale
+			if(GSystemResolution.WindowMode == EWindowMode::WindowedFullscreen)
+			{
+//				FIntPoint WindowSize = Viewport->GetSizeXY();
+				FIntPoint WindowSize = Family->RenderTarget->GetSizeXY();
+
+				// allow only upscaling
+				float FractionX = FMath::Clamp((float)GSystemResolution.ResX / WindowSize.X, 0.1f, 4.0f);
+				float FractionY = FMath::Clamp((float)GSystemResolution.ResY / WindowSize.Y, 0.1f, 4.0f);
+
+				// maintain a pixel aspect ratio of 1:1 for easier internal computations
+				Fraction *= FMath::Max(FractionX, FractionY);
+			}
+		}
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+		if(CVarScreenPercentageEditor.GetValueOnAnyThread() == 0)
+		{
+			bool bNotInGame = GEngine && GEngine->GameViewport == 0;
+
+			if(bNotInGame)
+			{
+				Fraction = 1.0f;
+			}
+		}
+#endif
+
+
+		// Upscale if needed
+		if (Fraction != 1.0f)
+		{
+			// compute the view rectangle with the ScreenPercentage applied
+			const FIntRect ScreenPercentageAffectedViewRect = ViewInitOptions.GetConstrainedViewRect().Scale(Fraction);
+			SetScaledViewRect(ScreenPercentageAffectedViewRect);
+		}
+	}
 }
 
 void FSceneView::ConfigureBufferVisualizationSettings()
@@ -1303,6 +1401,7 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	CurrentWorldTime(CVS.CurrentWorldTime),
 	DeltaWorldTime(CVS.DeltaWorldTime),
 	CurrentRealTime(CVS.CurrentRealTime),
+	FrameNumber(UINT_MAX),
 	bRealtimeUpdate(CVS.bRealtimeUpdate),
 	bDeferClear(CVS.bDeferClear),
 	bResolveScene(CVS.bResolveScene),
@@ -1341,6 +1440,13 @@ FSceneViewFamily::FSceneViewFamily( const ConstructionValues& CVS )
 	LandscapeLODOverride = -1;
 	bDrawBaseInfo = true;
 #endif
+
+	// Not supported in ES2.
+	auto FeatureLevel = GetFeatureLevel();
+	if (FeatureLevel == ERHIFeatureLevel::ES2 || FeatureLevel == ERHIFeatureLevel::ES3_1)
+	{
+		EngineShowFlags.ScreenPercentage = false;
+	}
 }
 
 void FSceneViewFamily::ComputeFamilySize()

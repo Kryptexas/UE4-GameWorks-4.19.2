@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -154,7 +154,7 @@ protected:
 
 			PopulateCultureList();
 
-			PackagingCategory.AddCustomRow("CulturesToStage", true)
+			PackagingCategory.AddCustomRow(LOCTEXT("CulturesToStageLabel", "Cultures To Stage"), true)
 				.NameContent()
 				.HAlign(HAlign_Fill)
 				.VAlign(VAlign_Top)
@@ -273,19 +273,19 @@ protected:
 		return RawCultureStringArray->Num() ? EVisibility::Hidden : EVisibility::Visible;
 	}
 
-	ESlateCheckBoxState::Type HandleShowCulturesCheckBoxIsChecked( EFilterCulturesChoices Choice ) const
+	ECheckBoxState HandleShowCulturesCheckBoxIsChecked( EFilterCulturesChoices Choice ) const
 	{
 		if (FilterCulturesChoice == Choice)
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 
-	void HandleShowCulturesCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState, EFilterCulturesChoices Choice )
+	void HandleShowCulturesCheckBoxCheckStateChanged( ECheckBoxState NewState, EFilterCulturesChoices Choice )
 	{
-		if (NewState == ESlateCheckBoxState::Checked)
+		if (NewState == ECheckBoxState::Checked)
 		{
 			FilterCulturesChoice = Choice;
 		}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BitArray.h: Bit array definition.
@@ -393,9 +393,9 @@ public:
 				int32 ToIndex = BaseIndex + Index;
 				FBitReference To(GetData()[ToIndex / NumBitsPerDWORD],1 << (ToIndex & (NumBitsPerDWORD - 1)));
 
-				To = From;
+				To = (bool)From;
 #else
-				(*this)[BaseIndex + Index] = (*this)[NumBits - NumBitsToRemove + Index];
+				(*this)[BaseIndex + Index] = (bool)(*this)[NumBits - NumBitsToRemove + Index];
 #endif
 			}
 		}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -291,7 +291,7 @@ struct FkDOPBuildCollisionTriangle
 	}
 	FVector4 GetLocalNormal() const
 	{
-		FVector4 LocalNormal = ((V1 - V2) ^ (V0 - V2)).SafeNormal();
+		FVector4 LocalNormal = ((V1 - V2) ^ (V0 - V2)).GetSafeNormal();
 		LocalNormal.W = Dot3(V0, LocalNormal);
 		return LocalNormal;
 	}
@@ -1080,7 +1080,7 @@ template <typename COLL_DATA_PROVIDER, typename KDOP_IDX_TYPE> struct TkDOPLineC
 	FORCEINLINE FVector4 GetHitNormal(void)
 	{
 		// Transform the hit back into world space using the transpose adjoint
-		FVector4 Normal = TkDOPCollisionCheck<COLL_DATA_PROVIDER,KDOP_IDX_TYPE>::CollDataProvider.GetLocalToWorldTransposeAdjoint().TransformVector(LocalHitNormal).SafeNormal();
+		FVector4 Normal = TkDOPCollisionCheck<COLL_DATA_PROVIDER,KDOP_IDX_TYPE>::CollDataProvider.GetLocalToWorldTransposeAdjoint().TransformVector(LocalHitNormal).GetSafeNormal();
 		// Flip the normal if the triangle is inverted
 		if (TkDOPCollisionCheck<COLL_DATA_PROVIDER,KDOP_IDX_TYPE>::CollDataProvider.GetDeterminant() < 0.f)
 		{

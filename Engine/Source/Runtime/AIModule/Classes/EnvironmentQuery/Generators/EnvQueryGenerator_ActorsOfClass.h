@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EnvironmentQuery/EnvQueryGenerator.h"
 #include "EnvQueryGenerator_ActorsOfClass.generated.h"
 
 class AActor;
+class UEnvQueryContext;
 
 UCLASS()	
 class UEnvQueryGenerator_ActorsOfClass : public UEnvQueryGenerator
@@ -13,16 +14,21 @@ class UEnvQueryGenerator_ActorsOfClass : public UEnvQueryGenerator
 
 	/** max distance of path between point and context */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
-	FEnvFloatParam Radius;
+	FAIDataProviderFloatValue SearchRadius;
 
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
 	TSubclassOf<AActor> SearchedActorClass;
 
 	/** context */
 	UPROPERTY(EditAnywhere, Category=Generator)
-	TSubclassOf<class UEnvQueryContext> SearchCenter;
+	TSubclassOf<UEnvQueryContext> SearchCenter;
+
+	// DEPRECATED
+	UPROPERTY()
+	FEnvFloatParam Radius;
 
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
+	virtual void PostLoad() override;
 
 	virtual FText GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;

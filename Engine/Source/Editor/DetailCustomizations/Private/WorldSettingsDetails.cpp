@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "WorldSettingsDetails.h"
@@ -96,7 +96,7 @@ void FLightmapCustomNodeBuilder::GenerateChildContent(IDetailChildrenBuilder& Ch
 {
 	RefreshLightmapItems();
 
-	ChildrenBuilder.AddChildContent(LOCTEXT("LightMapsFilter", "Lightmaps").ToString())
+	ChildrenBuilder.AddChildContent(LOCTEXT("LightMapsFilter", "Lightmaps"))
 	.ValueContent()
 	.HAlign(HAlign_Fill)
 	[
@@ -145,6 +145,9 @@ TSharedRef<ITableRow> FLightmapCustomNodeBuilder::MakeLightMapListViewWidget(TSh
 	UObject* LightMapObject = FindObject<UObject>(NULL, *LightMapItem->ObjectPath);
 	FAssetData LightMapAssetData(LightMapObject);
 
+	FAssetThumbnailConfig ThumbnailConfig;
+	ThumbnailConfig.bAllowFadeIn = true;
+
 	return SNew( STableRow<TSharedPtr<FLightmapItem>>, OwnerTable )
 		.Style(FEditorStyle::Get(), "ContentBrowser.AssetListView.TableRow")
 		[
@@ -164,7 +167,7 @@ TSharedRef<ITableRow> FLightmapCustomNodeBuilder::MakeLightMapListViewWidget(TSh
 					.Padding(ThumbnailBoxPadding)
 					.BorderImage( FEditorStyle::GetBrush("ContentBrowser.ThumbnailShadow") )
 					[
-						LightMapItem->Thumbnail->MakeThumbnailWidget(true)
+						LightMapItem->Thumbnail->MakeThumbnailWidget(ThumbnailConfig)
 					]
 				]
 			]

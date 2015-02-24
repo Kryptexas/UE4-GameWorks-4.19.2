@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalMeshImport.cpp: Skeletal mesh import code.
@@ -11,6 +11,7 @@
 #include "../../../../Source/Runtime/Engine/Classes/PhysicsEngine/PhysicsAsset.h"
 #include "FbxImporter.h"
 #include "FbxErrors.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkeletalMeshImport, Log, All);
 
@@ -845,6 +846,7 @@ void RestoreExistingSkelMeshData(ExistingSkelMeshData* MeshData, USkeletalMesh* 
 
 				// Sort ascending for parent child relationship
 				LODModel.RequiredBones.Sort();
+				LODModel.ActiveBoneIndices.Sort();
 
 				// Fix the chunks' BoneMaps.
 				for(int32 ChunkIndex = 0;ChunkIndex < LODModel.Chunks.Num();ChunkIndex++)

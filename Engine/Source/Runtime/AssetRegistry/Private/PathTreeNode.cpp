@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetRegistryPCH.h"
 
@@ -163,7 +163,7 @@ const FPathTreeNode* FPathTreeNode::FindNode_Recursive(TArray<FString>& PathElem
 
 void FPathTreeNode::GetSubPaths_Recursive(const FString& CurrentPath, TSet<FName>& OutPaths, bool bRecurse) const
 {
-	FString NewPath = CurrentPath + TEXT("/") + FolderName;
+	FString NewPath = CurrentPath / FolderName;
 	OutPaths.Add(FName(*NewPath));
 
 	if(bRecurse)

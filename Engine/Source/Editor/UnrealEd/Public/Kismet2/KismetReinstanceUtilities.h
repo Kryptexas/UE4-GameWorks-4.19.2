@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __KismetReinstanceUtilities_h__
@@ -9,13 +9,6 @@
 #include "Engine.h"
 
 DECLARE_STATS_GROUP(TEXT("Kismet Reinstancer"), STATGROUP_KismetReinstancer, STATCAT_Advanced);
-
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Replace Instances"), EKismetReinstancerStats_ReplaceInstancesOfClass, STATGROUP_KismetReinstancer, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Find Referencers"), EKismetReinstancerStats_FindReferencers, STATGROUP_KismetReinstancer, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Replace References"), EKismetReinstancerStats_ReplaceReferences, STATGROUP_KismetReinstancer, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Bytecode References"), EKismetReinstancerStats_UpdateBytecodeReferences, STATGROUP_KismetReinstancer, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Recompile Child Classes"), EKismetReinstancerStats_RecompileChildClasses, STATGROUP_KismetReinstancer, );
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Replace Classes Without Reinstancing"), EKismetReinstancerStats_ReplaceClassNoReinsancing, STATGROUP_KismetReinstancer, );
 
 class UNREALED_API FBlueprintCompileReinstancer
 {
@@ -46,7 +39,13 @@ protected:
 	/** Don't call GC */
 	bool bSkipGarbageCollection;
 
+	/** Cached value, true if reinstancing a skeleton class or not */
+	bool bIsReinstancingSkeleton;
+
 	uint32 ClassToReinstanceDefaultValuesCRC;
+
+	/** Objects that should keep reference to old class */
+	TSet<UObject*> ObjectsThatShouldUseOldStuff;
 
 public:
 	virtual ~FBlueprintCompileReinstancer();
@@ -67,7 +66,16 @@ public:
 	void UpdateBytecodeReferences();
 
 	/** Worker function to replace all instances of OldClass with a new instance of NewClass */
-	static void ReplaceInstancesOfClass(UClass* OldClass, UClass* NewClass, UObject* OriginalCDO = NULL);
+	static void ReplaceInstancesOfClass(UClass* OldClass, UClass* NewClass, UObject* OriginalCDO = NULL, TSet<UObject*>* ObjectsThatShouldUseOldStuff = NULL);
+
+	/**
+	 * When re-instancing a component, we have to make sure all instance owners' 
+	 * construction scripts are re-ran (in-case modifying the component alters 
+	 * the construction of the actor).
+	 * 
+	 * @param  ComponentClass    Identifies the component that was altered (used to find all its instances, and thusly all instance owners).
+	 */
+	static void ReconstructOwnerInstances(TSubclassOf<UActorComponent> ComponentClass);
 	
 	/** Verify that all instances of the duplicated class have been replaced and collected */
 	void VerifyReplacement();

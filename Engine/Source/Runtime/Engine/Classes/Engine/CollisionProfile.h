@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,20 @@
  */
 
 #include "CollisionProfile.generated.h"
+
+
+USTRUCT(BlueprintType)
+struct FCollisionProfileName
+{
+	GENERATED_USTRUCT_BODY()
+
+	FCollisionProfileName()
+		: Name(NAME_None)
+	{}
+
+	UPROPERTY(EditAnywhere, Category = Collision)
+	FName Name;
+};
 
 
 /**
@@ -160,11 +174,20 @@ public:
 	/** Accessor and initializer **/
 	ENGINE_API static UCollisionProfile* Get();
 
+	/** Fill up the array with the profile names **/
+	ENGINE_API static void GetProfileNames(TArray<TSharedPtr<FName>>& OutNameList);
+
+	/** Get the channel and response params from the specified profile */
+	ENGINE_API static bool GetChannelAndResponseParams(FName ProfileName, ECollisionChannel &CollisionChannel, FCollisionResponseParams &ResponseParams);
+
 	/** Fill up the loaded config of the profile name to the BodyInstance **/
 	bool ReadConfig(FName ProfileName, struct FBodyInstance& BodyInstance) const;
 
 	/** Fill up the loaded config of the profile name to the BodyInstance **/
 	ENGINE_API bool GetProfileTemplate(FName ProfileName, struct FCollisionResponseTemplate& ProfileData) const;
+
+	/** Check if this profile name has been redirected **/
+	ENGINE_API const FName* LookForProfileRedirect(FName ProfileName) const;
 
 	/** Accessor for UI customization **/
 	int32 GetNumOfProfiles() const { return Profiles.Num(); }
@@ -204,6 +227,9 @@ public:
 	/* custom collision profile name that you can modify what you'd like */
 	ENGINE_API static FName CustomCollisionProfileName;
 
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif //WITH_EDITOR
 private:
 
 	/** 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,6 +38,7 @@ struct FSlateOpenGLContext
 	GLint TextureDirectionUniform;
 	GLuint CompositeTexture;
 	GLuint CompositeVAO;
+	bool bNeedsUpdate;
 #elif PLATFORM_IOS
 	UIWindow* WindowHandle;
 	EAGLContext* Context;
@@ -148,6 +149,7 @@ public:
 	virtual void LoadStyleResources(const ISlateStyle& Style) override;
 	virtual FSlateUpdatableTexture* CreateUpdatableTexture(uint32 Width, uint32 Height) override;
 	virtual void ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture) override;
+	virtual ISlateAtlasProvider* GetTextureAtlasProvider() override;
 
 private:
 	/** 

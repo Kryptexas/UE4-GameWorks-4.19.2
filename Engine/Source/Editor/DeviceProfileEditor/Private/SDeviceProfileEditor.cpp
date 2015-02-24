@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DeviceProfileEditorPCH.h"
 
@@ -315,9 +315,6 @@ SDeviceProfileEditor::~SDeviceProfileEditor()
 	if( DeviceProfileManager.IsValid() )
 	{
 		DeviceProfileManager->SaveProfiles();
-
-		// Unbind our delegates when destroyed
-		DeviceProfileManager->OnManagerUpdated().RemoveRaw( this, &SDeviceProfileEditor::RebuildPropertyTable );
 	}
 
 	if (TabManager.IsValid())

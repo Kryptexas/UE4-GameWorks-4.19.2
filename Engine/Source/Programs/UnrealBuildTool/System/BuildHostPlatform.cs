@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -332,7 +334,7 @@ namespace UnrealBuildTool
 						try
 						{
 							var ExistingProc = Process.GetProcessById(Pid);
-							if (ExistingProc != null && ExistingProc.HasExited == false)
+							if (ExistingProc != null && Pid != Process.GetCurrentProcess().Id && ExistingProc.HasExited == false)
 							{
 								var ProcInfo = new ProcessInfo(ExistingProc);
 								ProcInfo.Name = Path.GetFileName(Filename);

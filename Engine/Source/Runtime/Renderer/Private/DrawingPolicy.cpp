@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DrawingPolicy.cpp: Base drawing policy implementation.
@@ -40,6 +40,8 @@ FMeshDrawingPolicy::FMeshDrawingPolicy(
 	bNeedsBackfacePass = !bInTwoSidedOverride && bMaterialResourceIsTwoSided
 		//@todo - hook up bTwoSidedSeparatePass here if we re-add it
 		&& false;
+	
+	bUsePositionOnlyVS = false;
 }
 
 void FMeshDrawingPolicy::SetMeshRenderState(
@@ -103,16 +105,75 @@ void FMeshDrawingPolicy::DrawMesh(FRHICommandList& RHICmdList, const FMeshBatch&
 		if(BatchElement.IndexBuffer)
 		{
 			check(BatchElement.IndexBuffer->IsInitialized());
-			RHICmdList.DrawIndexedPrimitive(
+			if (BatchElement.InstanceRuns)
+			{
+				if (!GRHISupportsFirstInstance)
+				{
+					if (bUsePositionOnlyVS)
+					{
+						for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
+						{
+							VertexFactory->OffsetPositionInstanceStreams(RHICmdList, BatchElement.InstanceRuns[Run * 2]); 
+							RHICmdList.DrawIndexedPrimitive(
+								BatchElement.IndexBuffer->IndexBufferRHI,
+								Mesh.Type,
+								0,
+								0,
+								BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
+								BatchElement.FirstIndex,
+								BatchElement.NumPrimitives,
+								1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2]
+							);
+						}
+					}
+					else
+					{
+						for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
+						{
+							VertexFactory->OffsetInstanceStreams(RHICmdList, BatchElement.InstanceRuns[Run * 2]); 
+							RHICmdList.DrawIndexedPrimitive(
+								BatchElement.IndexBuffer->IndexBufferRHI,
+								Mesh.Type,
+								0,
+								0,
+								BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
+								BatchElement.FirstIndex,
+								BatchElement.NumPrimitives,
+								1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2]
+							);
+						}
+					}
+				}
+				else
+				{
+					for (uint32 Run = 0; Run < BatchElement.NumInstances; Run++)
+					{
+						RHICmdList.DrawIndexedPrimitive(
+							BatchElement.IndexBuffer->IndexBufferRHI,
+							Mesh.Type,
+							0,
+							BatchElement.InstanceRuns[Run * 2],
+							BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
+							BatchElement.FirstIndex,
+							BatchElement.NumPrimitives,
+							1 + BatchElement.InstanceRuns[Run * 2 + 1] - BatchElement.InstanceRuns[Run * 2]
+						);
+					}
+				}
+			}
+			else
+			{
+				RHICmdList.DrawIndexedPrimitive(
 					BatchElement.IndexBuffer->IndexBufferRHI,
 					Mesh.Type,
 					0,
-					BatchElement.MinVertexIndex,
+					0,
 					BatchElement.MaxVertexIndex - BatchElement.MinVertexIndex + 1,
 					BatchElement.FirstIndex,
 					BatchElement.NumPrimitives,
 					BatchElement.NumInstances
 					);
+			}
 		}
 		else
 		{

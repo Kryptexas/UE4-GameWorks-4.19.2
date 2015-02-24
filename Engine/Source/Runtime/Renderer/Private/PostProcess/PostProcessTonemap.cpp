@@ -1,5 +1,4 @@
-
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessTonemap.cpp: Post processing tone mapping implementation.
@@ -1547,7 +1546,7 @@ public:
 		PostprocessParameter.SetVS(ShaderRHI, Context, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI());
 
 		FVector GrainRandomFullValue;
-		GrainRandomFromFrame(&GrainRandomFullValue, Context.View.FrameNumber);
+		GrainRandomFromFrame(&GrainRandomFullValue, Context.View.Family->FrameNumber);
 		// TODO: Don't use full on mobile with framebuffer fetch.
 		GrainRandomFullValue.Z = bUsedFramebufferFetch ? 0.0f : 1.0f;
 		SetShaderValue(Context.RHICmdList, ShaderRHI, GrainRandomFull, GrainRandomFullValue);
@@ -1582,8 +1581,11 @@ static void SetShaderTemplES2(const FRenderingCompositePassContext& Context, boo
 }
 
 
-FRCPassPostProcessTonemapES2::FRCPassPostProcessTonemapES2(const FViewInfo& View, bool bInUsedFramebufferFetch) 
-	: bUsedFramebufferFetch(bInUsedFramebufferFetch)
+FRCPassPostProcessTonemapES2::FRCPassPostProcessTonemapES2(const FViewInfo& View, FIntRect InViewRect, FIntPoint InDestSize, bool bInUsedFramebufferFetch) 
+	:
+	ViewRect(InViewRect),
+	DestSize(InDestSize),
+	bUsedFramebufferFetch(bInUsedFramebufferFetch)
 {
 	uint32 ConfigBitmask = TonemapperGenerateBitmaskMobile(&View, false);
 	ConfigIndexMobile = TonemapperFindLeastExpensive(TonemapperConfBitmaskMobile, sizeof(TonemapperConfBitmaskMobile)/4, TonemapperCostTab, ConfigBitmask);
@@ -1604,11 +1606,12 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	const FSceneView& View = Context.View;
 	const FSceneViewFamily& ViewFamily = *(View.Family);
 	const FSceneRenderTargetItem& DestRenderTarget = PassOutputs[0].RequestSurface(Context);
+	const FPooledRenderTargetDesc& OutputDesc = PassOutputs[0].RenderTargetDesc;
 
-	FIntRect SrcRect = View.ViewRect;
-	FIntRect DestRect = View.ViewRect;
+	FIntRect SrcRect = ViewRect;
+	FIntRect DestRect = View.UnscaledViewRect; // Simple upscaling, ES2 post process does not currently have a specific upscaling pass.
 	FIntPoint SrcSize = InputDesc->Extent;
-	FIntPoint DstSize = DestRect.Size();
+	FIntPoint DstSize = OutputDesc.Extent;
 
 	// Set the view family's render target/viewport.
 	SetRenderTarget(Context.RHICmdList, DestRenderTarget.TargetableTexture, FTextureRHIParamRef());
@@ -1616,7 +1619,7 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	// Full clear to avoid restore
 	Context.RHICmdList.Clear(true, FLinearColor::Black, false, 1.0f, false, 0, FIntRect());
 
-	Context.SetViewportAndCallRHI(View.ViewRect);
+	Context.SetViewportAndCallRHI(DestRect);
 
 	// set the state
 	Context.RHICmdList.SetBlendState(TStaticBlendState<>::GetRHI());
@@ -1674,9 +1677,9 @@ void FRCPassPostProcessTonemapES2::Process(FRenderingCompositePassContext& Conte
 	DrawRectangle(
 		Context.RHICmdList,
 		0, 0,
-		View.ViewRect.Width(), View.ViewRect.Height(),
-		View.ViewRect.Min.X, View.ViewRect.Min.Y, 
-		View.ViewRect.Width(), View.ViewRect.Height(),
+		DstSize.X, DstSize.Y,
+		SrcRect.Min.X, SrcRect.Min.Y,
+		SrcRect.Width(), SrcRect.Height(),
 		DstSize,
 		SrcSize,
 		*VertexShader,
@@ -1702,6 +1705,6 @@ FPooledRenderTargetDesc FRCPassPostProcessTonemapES2::ComputeOutputDesc(EPassOut
 	Ret.Reset();
 	Ret.Format = PF_B8G8R8A8;
 	Ret.DebugName = TEXT("Tonemap");
-
+	Ret.Extent = DestSize;
 	return Ret;
 }

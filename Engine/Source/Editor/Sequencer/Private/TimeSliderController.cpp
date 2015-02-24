@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "TimeSliderController.h"
@@ -126,7 +126,7 @@ struct FDrawTickArgs
 	
 };
 
-void FSequencerTimeSliderController::DrawTicks( FSlateWindowElementList& OutDrawElements, const FScrubRangeToScreen& RangeToScreen, FDrawTickArgs& InArgs ) const
+void FSequencerTimeSliderController::DrawTicks( FSlateWindowElementList& OutDrawElements, const struct FScrubRangeToScreen& RangeToScreen, FDrawTickArgs& InArgs ) const
 {
 	const float Spacing = DetermineOptimalSpacing( RangeToScreen.PixelsPerInput, ScrubConstants::MinPixelsPerDisplayTick, ScrubConstants::MinDisplayTickSpacing );
 
@@ -334,6 +334,12 @@ FReply FSequencerTimeSliderController::OnMouseButtonUp( TSharedRef<SWidget> Widg
 			FVector2D CursorPos = MyGeometry.AbsoluteToLocal(MouseEvent.GetLastScreenSpacePosition());
 			float NewValue = RangeToScreen.LocalXToInput(CursorPos.X);
 
+			const USequencerSnapSettings* SnapSettings = GetDefault<USequencerSnapSettings>();
+			if ( SnapSettings->GetIsSnapEnabled() && SnapSettings->GetSnapPlayTimeToInterval() )
+			{
+				NewValue = SnapSettings->SnapToInterval( NewValue );
+			}
+
 			CommitScrubPosition( NewValue, /*bIsScrubbing=*/false );
 		}
 
@@ -412,6 +418,12 @@ FReply FSequencerTimeSliderController::OnMouseMove( TSharedRef<SWidget> WidgetOw
 				FScrubRangeToScreen RangeToScreen( TimeSliderArgs.ViewRange.Get(), MyGeometry.Size );
 				FVector2D CursorPos = MyGeometry.AbsoluteToLocal( MouseEvent.GetLastScreenSpacePosition() );
 				float NewValue = RangeToScreen.LocalXToInput( CursorPos.X );
+
+				const USequencerSnapSettings* SnapSettings = GetDefault<USequencerSnapSettings>();
+				if ( SnapSettings->GetIsSnapEnabled() && SnapSettings->GetSnapPlayTimeToInterval() )
+				{
+					NewValue = SnapSettings->SnapToInterval(NewValue);
+				}
 
 				CommitScrubPosition( NewValue, /*bIsScrubbing=*/true );
 			}

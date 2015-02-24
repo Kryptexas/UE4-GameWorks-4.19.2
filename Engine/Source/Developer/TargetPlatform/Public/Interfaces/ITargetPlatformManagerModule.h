@@ -1,7 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "TargetDeviceId.h"
+#include "ITargetDevice.h"
 
 /**
  * Module for the target platform manager
@@ -139,6 +141,11 @@ public:
 	 * @return Version number.
 	 */
 	virtual uint16 ShaderFormatVersion(FName Name) = 0;
+
+	/**
+	 * Allows changes to environment for a given platform
+	 */
+	virtual bool UpdatePlatformEnvironment(FString PlatformName, TArray<FString> &Keys, TArray<FString> &Values) = 0;
 
 public:
 

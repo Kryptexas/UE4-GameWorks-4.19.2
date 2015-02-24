@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "HAL/Platform.h"
 #include "Misc/Build.h"
@@ -24,7 +24,7 @@ typedef FIOSPlatformProperties FPlatformProperties;
 typedef FAndroidPlatformProperties FPlatformProperties;
 #elif PLATFORM_WINRT
 #include "WinRT/WinRTProperties.h"
-typedef FWinRTPlatformPropertiesFPlatformProperties;
+typedef FWinRTPlatformProperties FPlatformProperties;
 #elif PLATFORM_HTML5
 #include "HTML5/HTML5PlatformProperties.h"
 typedef FHTML5PlatformProperties FPlatformProperties;

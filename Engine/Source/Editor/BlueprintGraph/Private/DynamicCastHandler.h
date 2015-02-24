@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,7 +10,6 @@
 class FKCHandler_DynamicCast : public FNodeHandlingFunctor
 {
 protected:
-	TMap<UEdGraphNode*, FBPTerminal*> BoolTermMap;
 	EKismetCompiledStatementType CastType;
 
 public:

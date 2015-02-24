@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessSelectionOutline.cpp: Post processing outline effect.
@@ -42,100 +42,56 @@ void FRCPassPostProcessSelectionOutlineColor::Process(FRenderingCompositePassCon
 
 	if (View.Family->EngineShowFlags.Selection)
 	{
-		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+		FHitProxyDrawingPolicyFactory::ContextType FactoryContext;
 
-		if (bUseGetMeshElements)
+		//@todo - use memstack
+		TMap<FName, int32> ActorNameToStencilIndex;
+		TMap<const FPrimitiveSceneProxy*, int32> IndividuallySelectedProxies;
+		ActorNameToStencilIndex.Add(NAME_BSP, 1);
+
+		Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
+		Context.RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI());
+
+		for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
 		{
-			FHitProxyDrawingPolicyFactory::ContextType FactoryContext;
+			const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+			const FPrimitiveSceneProxy* PrimitiveSceneProxy = MeshBatchAndRelevance.PrimitiveSceneProxy;
 
-			//@todo - use memstack
-			TMap<FName, int32> ActorNameToStencilIndex;
-			ActorNameToStencilIndex.Add(NAME_BSP, 1);
-
-			Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-			Context.RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI());
-
-			for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+#if WITH_EDITOR
+			// Selected actors should be subdued if any component is individually selected
+			bool bActorSelectionColorIsSubdued = View.bHasSelectedComponents;
+#else
+			bool bActorSelectionColorIsSubdued = false;
+#endif
+			if (PrimitiveSceneProxy->IsSelected() && MeshBatchAndRelevance.Mesh->bUseSelectionOutline)
 			{
-				const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
-				const FPrimitiveSceneProxy* PrimitiveSceneProxy = MeshBatchAndRelevance.PrimitiveSceneProxy;
+				const int32* AssignedStencilIndexPtr = PrimitiveSceneProxy->IsIndividuallySelected() ? IndividuallySelectedProxies.Find( PrimitiveSceneProxy ) : ActorNameToStencilIndex.Find(PrimitiveSceneProxy->GetOwnerName());
 
-				if (PrimitiveSceneProxy->IsSelected() && MeshBatchAndRelevance.Mesh->bUseSelectionOutline)
+				if (!AssignedStencilIndexPtr)
 				{
-					const int32* AssignedStencilIndexPtr = ActorNameToStencilIndex.Find(PrimitiveSceneProxy->GetOwnerName());
-
-					if (!AssignedStencilIndexPtr)
+					if( PrimitiveSceneProxy->IsIndividuallySelected() )
 					{
-						AssignedStencilIndexPtr = &ActorNameToStencilIndex.Add(PrimitiveSceneProxy->GetOwnerName(), ActorNameToStencilIndex.Num() + 1);
-					}
-
-					// This is a reversed Z depth surface, using CF_GreaterEqual.
-					// Note that the stencil value will overflow with enough selected objects
-					Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), *AssignedStencilIndexPtr);
-
-					const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-					FHitProxyDrawingPolicyFactory::DrawDynamicMesh(Context.RHICmdList, View, FactoryContext, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-				}
-			}
-		}
-		else if (View.VisibleDynamicPrimitives.Num() > 0)
-		{
-			TDynamicPrimitiveDrawer<FHitProxyDrawingPolicyFactory> Drawer(Context.RHICmdList, &View, FHitProxyDrawingPolicyFactory::ContextType(), true, false, false, true);
-			TMultiMap<FName, const FPrimitiveSceneInfo*> PrimitivesByActor;
-
-			for (int32 PrimitiveIndex = 0; PrimitiveIndex < View.VisibleDynamicPrimitives.Num();PrimitiveIndex++)
-			{
-				const FPrimitiveSceneInfo* PrimitiveSceneInfo = View.VisibleDynamicPrimitives[PrimitiveIndex];
-
-				// Only draw the primitive if relevant
-				if(PrimitiveSceneInfo->Proxy->IsSelected())
-				{
-					PrimitivesByActor.Add(PrimitiveSceneInfo->Proxy->GetOwnerName(), PrimitiveSceneInfo);
-				}
-			}
-
-			if (PrimitivesByActor.Num())
-			{
-				// 0 means no object, 1 means BSP so we start with 2
-				uint32 StencilValue = 2;
-
-				Context.RHICmdList.SetRasterizerState(TStaticRasterizerState<>::GetRHI());
-				Context.RHICmdList.SetBlendState(TStaticBlendStateWriteMask<CW_NONE, CW_NONE, CW_NONE, CW_NONE>::GetRHI());
-
-				// Sort by actor
-				TArray<FName> Actors;
-				PrimitivesByActor.GetKeys(Actors);
-				for( TArray<FName>::TConstIterator ActorIt(Actors); ActorIt; ++ActorIt )
-				{
-					bool bBSP = *ActorIt == NAME_BSP;
-					if (bBSP)
-					{
-						// This is a reversed Z depth surface, using CF_GreaterEqual.
-						Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), 1);
+						// Any component that is individually selected should have a stencil value of < 128 so that it can have a unique color.  We offset the value by 2 because 0 means no selection and 1 is for bsp
+						int32 StencilValue = IndividuallySelectedProxies.Num() % 126 + 2;
+						AssignedStencilIndexPtr = &IndividuallySelectedProxies.Add(PrimitiveSceneProxy, StencilValue);
 					}
 					else
 					{
-						// This is a reversed Z depth surface, using CF_GreaterEqual.
-						Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), StencilValue);
-
-						// we want to use 1..255 for all objects, not correct silhouettes after that is acceptable
-						StencilValue = (StencilValue == 255) ? 2 : (StencilValue + 1);
-					}
-
-					TArray<const FPrimitiveSceneInfo*> Primitives;
-					PrimitivesByActor.MultiFind(*ActorIt, Primitives);
-
-					for( TArray<const FPrimitiveSceneInfo*>::TConstIterator PrimIt(Primitives); PrimIt; ++PrimIt )
-					{
-						const FPrimitiveSceneInfo* PrimitiveSceneInfo = *PrimIt;
-						// Render the object to the stencil/depth buffer
-						Drawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-						PrimitiveSceneInfo->Proxy->DrawDynamicElements(&Drawer, &View);
+						// If we are subduing actor color highlight then use the top level bits to indicate that to the shader.  
+						int32 StencilValue = bActorSelectionColorIsSubdued ? ActorNameToStencilIndex.Num() % 128 + 128 : ActorNameToStencilIndex.Num() % 126 + 2;
+						AssignedStencilIndexPtr = &ActorNameToStencilIndex.Add(PrimitiveSceneProxy->GetOwnerName(), StencilValue);
 					}
 				}
+
+				// This is a reversed Z depth surface, using CF_GreaterEqual.
+				// Note that the stencil value will overflow with enough selected objects
+				Context.RHICmdList.SetDepthStencilState(TStaticDepthStencilState<true, CF_GreaterEqual, true, CF_Always, SO_Keep, SO_Keep, SO_Replace>::GetRHI(), *AssignedStencilIndexPtr);
+
+				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+				FHitProxyDrawingPolicyFactory::DrawDynamicMesh(Context.RHICmdList, View, FactoryContext, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 			}
 		}
-
+		
 		// to get an outline around the objects if it's partly outside of the screen
 		{
 			FIntRect InnerRect = ViewRect;
@@ -222,6 +178,7 @@ public:
 	FPostProcessPassParameters PostprocessParameter;
 	FDeferredPixelShaderParameters DeferredParameters;
 	FShaderParameter OutlineColor;
+	FShaderParameter SubduedOutlineColor;
 	FShaderParameter BSPSelectionIntensity;
 	FShaderResourceParameter PostprocessInput1MS;
 	FShaderResourceParameter EditorPrimitivesStencil;
@@ -234,6 +191,7 @@ public:
 		PostprocessParameter.Bind(Initializer.ParameterMap);
 		DeferredParameters.Bind(Initializer.ParameterMap);
 		OutlineColor.Bind(Initializer.ParameterMap, TEXT("OutlineColor"));
+		SubduedOutlineColor.Bind(Initializer.ParameterMap, TEXT("SubduedOutlineColor"));
 		BSPSelectionIntensity.Bind(Initializer.ParameterMap, TEXT("BSPSelectionIntensity"));
 		PostprocessInput1MS.Bind(Initializer.ParameterMap, TEXT("PostprocessInput1MS"));
 		EditorRenderParams.Bind(Initializer.ParameterMap, TEXT("EditorRenderParams"));
@@ -295,11 +253,12 @@ public:
 
 #if WITH_EDITOR
 		{
-			FLinearColor Value = Context.View.SelectionOutlineColor;
+			FLinearColor OutlineColorValue = Context.View.SelectionOutlineColor;
+			FLinearColor SubduedOutlineColorValue = Context.View.SubduedSelectionOutlineColor;
+			OutlineColorValue.A = GEngine->SelectionHighlightIntensity;
 
-			Value.A = GEngine->SelectionHighlightIntensity;
-
-			SetShaderValue(Context.RHICmdList, ShaderRHI, OutlineColor, Value);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, OutlineColor, OutlineColorValue);
+			SetShaderValue(Context.RHICmdList, ShaderRHI, SubduedOutlineColor, SubduedOutlineColorValue);
 			SetShaderValue(Context.RHICmdList, ShaderRHI, BSPSelectionIntensity, GEngine->BSPSelectionHighlightIntensity);
 		}
 #else
@@ -325,7 +284,7 @@ public:
 	virtual bool Serialize(FArchive& Ar)
 	{
 		bool bShaderHasOutdatedParameters = FGlobalShader::Serialize(Ar);
-		Ar << PostprocessParameter << OutlineColor << BSPSelectionIntensity << DeferredParameters << PostprocessInput1MS << EditorPrimitivesStencil << EditorRenderParams;
+		Ar << PostprocessParameter << OutlineColor << SubduedOutlineColor << BSPSelectionIntensity << DeferredParameters << PostprocessInput1MS << EditorPrimitivesStencil << EditorRenderParams;
 		return bShaderHasOutdatedParameters;
 	}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -80,13 +80,21 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Culling)
 	int32 InstanceEndCullDistance;
 
+	/** Mapping from PerInstanceSMData order to instance render buffer order. If empty, the PerInstanceSMData order is used. */
+	UPROPERTY()
+	TArray<int32> InstanceReorderTable;
+
+	// The render indices of any removed items we should not render.
+	UPROPERTY()
+	TArray<int32> RemovedInstances;
+
 	/** Add an instance to this component. Transform is given in local space of this component.  */
 	UFUNCTION(BlueprintCallable, Category="Components|InstancedStaticMesh")
-	void AddInstance(const FTransform& InstanceTransform);
+	virtual int32 AddInstance(const FTransform& InstanceTransform);
 
 	/** Add an instance to this component. Transform is given in world space. */
 	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
-	void AddInstanceWorldSpace(const FTransform& WorldTransform);
+	int32 AddInstanceWorldSpace(const FTransform& WorldTransform);
 
 	/** Get the transform for the instance specified. Instance is returned in local space of this component unless bWorldSpace is set.  Returns True on success. */
 	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
@@ -94,15 +102,15 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	
 	/** Update the transform for the instance specified. Instance is given in local space of this component unless bWorldSpace is set.  Returns True on success. */
 	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
-	bool UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace=false);
+	virtual bool UpdateInstanceTransform(int32 InstanceIndex, const FTransform& NewInstanceTransform, bool bWorldSpace=false);
 
 	/** Remove the instance specified. Returns True on success. */
 	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
-	bool RemoveInstance(int32 InstanceIndex);
+	virtual bool RemoveInstance(int32 InstanceIndex);
 	
 	/** Clear all instances being rendered by this component */
 	UFUNCTION(BlueprintCallable, Category="Components|InstancedStaticMesh")
-	void ClearInstances();
+	virtual void ClearInstances();
 	
 	/** Get the number of instances in this component */
 	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
@@ -112,7 +120,7 @@ class ENGINE_API UInstancedStaticMeshComponent : public UStaticMeshComponent
 	UFUNCTION(BlueprintCallable, Category = "Components|InstancedStaticMesh")
 	void SetCullDistances(int32 StartCullDistance, int32 EndCullDistance);
 
-	virtual bool ShouldCreatePhysicsState() const;
+	virtual bool ShouldCreatePhysicsState() const override;
 
 public:
 #if WITH_EDITOR
@@ -129,9 +137,8 @@ public:
 	TArray<FBodyInstance*> InstanceBodies;
 
 	// Begin UActorComponent interface 
-	virtual FComponentInstanceDataBase* GetComponentInstanceData() const override;
+	virtual FActorComponentInstanceData* GetComponentInstanceData() const override;
 	virtual FName GetComponentInstanceDataType() const override;
-	virtual void ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData) override;
 	// End UActorComponent interface 
 
 	// Begin UPrimitiveComponent Interface
@@ -159,6 +166,9 @@ public:
 #endif
 	//End UObject Interface
 
+	/** Applies the cached component instance data to a newly blueprint constructed component */
+	void ApplyComponentInstanceData(class FInstancedStaticMeshComponentInstanceData* ComponentInstanceData);
+
 	/** Check to see if an instance is selected */
 	bool IsInstanceSelected(int32 InInstanceIndex) const;
 
@@ -166,9 +176,6 @@ public:
 	void SelectInstance(bool bInSelected, int32 InInstanceIndex, int32 InInstanceCount = 1);
 
 private:
-	/** Initializes the body instance for the specified instance of the static mesh*/
-	void InitInstanceBody(int32 InstanceIdx, FBodyInstance* BodyInstance);
-
 	/** Creates body instances for all instances owned by this component */
 	void CreateAllInstanceBodies();
 
@@ -179,6 +186,15 @@ private:
 	void SetupNewInstanceData(FInstancedStaticMeshInstanceData& InOutNewInstanceData, int32 InInstanceIndex, const FTransform& InInstanceTransform);
 
 protected:
+	/** Request to navigation system to update only part of navmesh occupied by specified instance */
+	virtual void PartialNavigationUpdate(int32 InstanceIdx);
+	
+	/** Handles request from navigation system to gather instance transforms in a specific area box */
+	virtual void GetNavigationPerInstanceTransforms(const FBox& AreaBox, TArray<FTransform>& InstanceData) const;
+
+	/** Initializes the body instance for the specified instance of the static mesh*/
+	void InitInstanceBody(int32 InstanceIdx, FBodyInstance* BodyInstance);
+
 	/** Number of pending lightmaps still to be calculated (Apply()'d) */
 	UPROPERTY(Transient, DuplicateTransient, TextExportTransient)
 	int32 NumPendingLightmaps;

@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Engine/TimelineTemplate.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
 
@@ -69,8 +70,13 @@ public:
 
 	virtual FText GetTabToolTipText(const FWorkflowTabSpawnInfo& Info) const override
 	{
-		return LOCTEXT("DefaultsEditorTooltip", "The defaults editor lets you set the default value for all variables in your Blueprint.");
+		return LOCTEXT("DefaultsEditorTooltip", "The class defaults editor lets you set the default value for all variables in your Blueprint.");
 	}
+
+private:
+	TSharedRef<SWidget> CreateOptionalDataOnlyMessage() const;
+
+	void OnChangeBlueprintToNotDataOnly();
 };
 
 /////////////////////////////////////////////////////
@@ -118,25 +124,19 @@ public:
 
 	virtual void OnTabActivated(TSharedPtr<SDockTab> Tab) const override;
 
+	virtual void OnTabBackgrounded(TSharedPtr<SDockTab> Tab) const override;
+
 	virtual void OnTabRefreshed(TSharedPtr<SDockTab> Tab) const override;
 
 	virtual void SaveState(TSharedPtr<SDockTab> Tab, TSharedPtr<FTabPayload> Payload) const override;
 
-//	virtual void OnTabClosed(TSharedRef<SDockTab> Tab, TSharedPtr<FTabPayload> Payload) const override
-//	{
-//		BlueprintEditorPtr.Pin()->RequestSaveEditedObjectState();
-//	}
 protected:
 	virtual TAttribute<FText> ConstructTabNameForObject(UEdGraph* DocumentID) const override
 	{
 		return TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateStatic<UEdGraph*>(&FLocalKismetCallbacks::GetGraphDisplayName, DocumentID));
 	}
 
-	virtual TSharedRef<SWidget> CreateTabBodyForObject(const FWorkflowTabSpawnInfo& Info, UEdGraph* DocumentID) const override
-	{
-		check(Info.TabInfo.IsValid());
-		return OnCreateGraphEditorWidget.Execute(Info.TabInfo.ToSharedRef(), DocumentID);
-	}
+	virtual TSharedRef<SWidget> CreateTabBodyForObject(const FWorkflowTabSpawnInfo& Info, UEdGraph* DocumentID) const override;
 
 	virtual const FSlateBrush* GetTabIconForObject(const FWorkflowTabSpawnInfo& Info, UEdGraph* DocumentID) const override;
 
@@ -204,6 +204,7 @@ public:
 	FSCSViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp);
 
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override;
+	virtual TSharedRef<SDockTab> SpawnTab(const FWorkflowTabSpawnInfo& Info) const override;
 };
 
 //////////////////////////////////////////////////////////////////////////

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 /**
@@ -46,6 +46,7 @@ public:
 	virtual void SetIsHighlighted(bool bInIsHighlighted) { bIsHighlighted = bInIsHighlighted; }
 	virtual bool IsHighlighted() const { return bIsHighlighted; }
 	virtual bool IsLeaf() { return true; }
+	virtual TAttribute<bool> IsPropertyEditingEnabled() const override { return IsParentEnabled; }
 
 private:
 

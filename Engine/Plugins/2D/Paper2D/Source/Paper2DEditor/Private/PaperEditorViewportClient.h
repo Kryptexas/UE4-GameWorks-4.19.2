@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,6 +9,28 @@ struct FViewportSelectionRectangle
 	FVector2D TopLeft;
 	FVector2D Dimensions;
 	FLinearColor Color;
+};
+
+//////////////////////////////////////////////////////////////////////////
+// FAssetEditorModeTools
+
+class FAssetEditorModeTools : public FEditorModeTools
+{
+public:
+	FAssetEditorModeTools();
+	virtual ~FAssetEditorModeTools();
+
+	// FEditorModeTools interface
+	virtual class USelection* GetSelectedActors() const override;
+	virtual class USelection* GetSelectedObjects() const override;
+	virtual UWorld* GetWorld() const override;
+	// End of FEditorModeTools interface
+
+	void SetPreviewScene(class FPreviewScene* NewPreviewScene);
+protected:
+	class USelection* ActorSet;
+	class USelection* ObjectSet;
+	class FPreviewScene* PreviewScene;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -24,6 +46,10 @@ public:
 	// FViewportClient interface
 	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
 	// End of FViewportClient interface
+
+	// FEditorViewportClient interface
+	virtual FLinearColor GetBackgroundColor() const override;
+	// End of FEditorViewportClient interface
 
 	// FSerializableObject interface
 	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;

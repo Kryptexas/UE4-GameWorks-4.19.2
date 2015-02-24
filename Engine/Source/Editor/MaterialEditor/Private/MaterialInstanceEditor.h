@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Toolkits/AssetEditorToolkit.h"
 #include "SMaterialEditorViewport.h"
+#include "EditorUndoClient.h"
 
 /**
  * Material Instance Editor class

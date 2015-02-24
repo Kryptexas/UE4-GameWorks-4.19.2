@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Audio.h"
@@ -74,9 +74,6 @@ USTRUCT()
 struct FSoundClassAdjuster
 {
 	GENERATED_USTRUCT_BODY()
-
-	UPROPERTY()
-	FName SoundClass_DEPRECATED;
 
 	/* The sound class this adjuster affects. */
 	UPROPERTY(EditAnywhere, Category=SoundClassAdjuster, DisplayName = "Sound Class" )

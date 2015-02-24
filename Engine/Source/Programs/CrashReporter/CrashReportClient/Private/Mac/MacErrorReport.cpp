@@ -1,10 +1,12 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
 #include "../CrashReportUtil.h"
 #include "CrashDebugHelperModule.h"
 
 #include "MacErrorReport.h"
+
+#define LOCTEXT_NAMESPACE "CrashReportClient"
 
 namespace
 {
@@ -116,14 +118,7 @@ FText FMacErrorReport::DiagnoseReport() const
 	
 	if ( !CrashDebugHelper->CreateMinidumpDiagnosticReport(ReportDirectory / DumpFilename) )
 	{
-		if ( FRocketSupport::IsRocket() )
-		{
-			return FText::FromString("We apologize for the inconvenience.\nPlease send this crash report to help improve our software.");
-		}
-		else
-		{
-			return FText::FromString("You do not have any debugging symbols required to display the callstack for this crash.");
-		}
+		return LOCTEXT("NoDebuggingSymbols", "You do not have any debugging symbols required to display the callstack for this crash.");
 	}
 	else
 	{

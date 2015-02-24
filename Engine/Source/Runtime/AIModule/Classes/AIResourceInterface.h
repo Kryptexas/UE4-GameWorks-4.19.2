@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,11 +14,11 @@ class IAIResourceInterface
 {
 	GENERATED_IINTERFACE_BODY()
 
-	/** If resource is lockable lock it with indicating source */
-	virtual void LockResource(EAILockSource::Type LockSource) {}
+	/** If resource is lockable lock it with indicated priority */
+	virtual void LockResource(EAIRequestPriority::Type LockSource) {}
 
-	/** clear resource lock of given origin */
-	virtual void ClearResourceLock(EAILockSource::Type LockSource) {}
+	/** clear resource lock of the given origin */
+	virtual void ClearResourceLock(EAIRequestPriority::Type LockSource) {}
 
 	/** Force-clears all locks on resource */
 	virtual void ForceUnlockResource() {}

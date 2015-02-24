@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,8 +31,8 @@ public:
 private:
 
 	// Supported/Targeted RHI check boxes
-	void OnTargetedRHIChanged(ESlateCheckBoxState::Type InNewValue, FName InRHIName);
-	ESlateCheckBoxState::Type IsTargetedRHIChecked(FName InRHIName) const;
+	void OnTargetedRHIChanged(ECheckBoxState InNewValue, FName InRHIName);
+	ECheckBoxState IsTargetedRHIChecked(FName InRHIName) const;
 
 private:
 

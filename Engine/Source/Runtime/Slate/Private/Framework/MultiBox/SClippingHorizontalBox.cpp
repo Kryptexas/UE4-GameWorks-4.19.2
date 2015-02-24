@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "SClippingHorizontalBox.h"
@@ -139,7 +139,7 @@ void SClippingHorizontalBox::AddWrapButton()
 		.HasDownArrow( false )
 		.ButtonStyle( StyleSet, ISlateStyle::Join(StyleName, ".Button") )
 		.ContentPadding( 0 )
-		.ToolTipText( NSLOCTEXT("Slate", "ExpandToolbar", "Click to expand toolbar").ToString() )
+		.ToolTipText( NSLOCTEXT("Slate", "ExpandToolbar", "Click to expand toolbar") )
 		.OnGetMenuContent( OnWrapButtonClicked )
 		.Cursor( EMouseCursor::Default )
 		.ButtonContent()

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -102,15 +102,30 @@ struct FFunctionEntryHelper
 
 	static bool RequireWorldContextParameter(const UK2Node_FunctionEntry* Node)
 	{
-		auto Blueprint = Node->GetBlueprint();
-		ensure(Blueprint);
-		return Blueprint && (BPTYPE_FunctionLibrary == Blueprint->BlueprintType);
+		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+		return K2Schema->IsStaticFunctionGraph(Node->GetGraph());
 	}
 };
 
 UK2Node_FunctionEntry::UK2Node_FunctionEntry(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	// Enforce const-correctness by default
+	bEnforceConstCorrectness = true;
+}
+
+void UK2Node_FunctionEntry::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading())
+	{
+		if (Ar.UE4Ver() < VER_UE4_BLUEPRINT_ENFORCE_CONST_IN_FUNCTION_OVERRIDES)
+		{
+			// Allow legacy implementations to violate const-correctness
+			bEnforceConstCorrectness = false;
+		}
+	}
 }
 
 FText UK2Node_FunctionEntry::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -236,6 +251,116 @@ FString UK2Node_FunctionEntry::GetDeprecationMessage() const
 	}
 
 	return Super::GetDeprecationMessage();
+}
+
+void UK2Node_FunctionEntry::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
+{
+	Super::ExpandNode(CompilerContext, SourceGraph);
+
+	const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
+	
+	UEdGraphPin* OldStartExecPin = nullptr;
+
+	if(Pins[0]->LinkedTo.Num())
+	{
+		OldStartExecPin = Pins[0]->LinkedTo[0];
+	}
+	
+	UEdGraphPin* LastActiveOutputPin = Pins[0];
+
+	// Only look for FunctionEntry nodes who were duplicated and have a source object
+	if ( UK2Node_FunctionEntry* OriginalNode = Cast<UK2Node_FunctionEntry>(CompilerContext.MessageLog.FindSourceObject(this)) )
+	{
+		check(OriginalNode->GetOuter());
+
+		// Find the associated UFunction
+		UFunction* Function = FindField<UFunction>(CompilerContext.Blueprint->SkeletonGeneratedClass, *OriginalNode->GetOuter()->GetName());
+		for (TFieldIterator<UProperty> It(Function); It; ++It)
+		{
+			if (const UProperty* Property = *It)
+			{
+				for (auto& LocalVar : LocalVariables)
+				{
+					if (LocalVar.VarName == Property->GetFName() && !LocalVar.DefaultValue.IsEmpty())
+					{
+						// Add a variable set node for the local variable and hook it up immediately following the entry node or the last added local variable
+						UK2Node_VariableSet* VariableSetNode = CompilerContext.SpawnIntermediateNode<UK2Node_VariableSet>(this, SourceGraph);
+						VariableSetNode->SetFromProperty(Property, false);
+						Schema->ConfigureVarNode(VariableSetNode, LocalVar.VarName, Function, CompilerContext.Blueprint);
+						VariableSetNode->AllocateDefaultPins();
+						CompilerContext.MessageLog.NotifyIntermediateObjectCreation(VariableSetNode, this);
+
+						if(UEdGraphPin* SetPin = VariableSetNode->FindPin(Property->GetName()))
+						{
+							if(LocalVar.VarType.bIsArray)
+							{
+								TSharedPtr<FStructOnScope> StructData = MakeShareable(new FStructOnScope(Function));
+								FBlueprintEditorUtils::PropertyValueFromString(Property, LocalVar.DefaultValue, StructData->GetStructMemory());
+
+								// Create a Make Array node to setup the array's defaults
+								UK2Node_MakeArray* MakeArray = CompilerContext.SpawnIntermediateNode<UK2Node_MakeArray>(this, SourceGraph);
+								MakeArray->AllocateDefaultPins();
+								MakeArray->GetOutputPin()->MakeLinkTo(SetPin);
+								MakeArray->PostReconstructNode();
+
+								const UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
+								check(ArrayProperty);
+
+								FScriptArrayHelper ArrayHelper(ArrayProperty, StructData->GetStructMemory());
+								FScriptArrayHelper DefaultArrayHelper(ArrayProperty, StructData->GetStructMemory());
+
+								uint8* StructDefaults = NULL;
+								UStructProperty* StructProperty = dynamic_cast<UStructProperty*>(ArrayProperty->Inner);
+								if ( StructProperty != NULL )
+								{
+									checkSlow(StructProperty->Struct);
+									StructDefaults = (uint8*)FMemory::Malloc(StructProperty->Struct->GetStructureSize());
+									StructProperty->InitializeValue(StructDefaults);
+								}
+
+								// Go through each element in the array to set the default value
+								for( int32 ArrayIndex = 0 ; ArrayIndex < ArrayHelper.Num() ; ArrayIndex++ )
+								{
+									uint8* PropData = ArrayHelper.GetRawPtr(ArrayIndex);
+
+									// Always use struct defaults if the inner is a struct, for symmetry with the import of array inner struct defaults
+									uint8* PropDefault = ( StructProperty != NULL ) ? StructDefaults :
+										( ( StructData->GetStructMemory() && DefaultArrayHelper.Num() > ArrayIndex ) ? DefaultArrayHelper.GetRawPtr(ArrayIndex) : NULL );
+
+									// Retrieve the element's default value
+									FString DefaultValue;
+									FBlueprintEditorUtils::PropertyValueToString(ArrayProperty->Inner, PropData, DefaultValue);
+
+									if(ArrayIndex > 0)
+									{
+										MakeArray->AddInputPin();
+									}
+
+									// Add one to the index for the pin to set the default on to skip the output pin
+									Schema->TrySetDefaultValue(*MakeArray->Pins[ArrayIndex + 1], DefaultValue);
+								}
+							}
+							else
+							{
+								// Set the default value
+								Schema->TrySetDefaultValue(*SetPin, LocalVar.DefaultValue);
+							}
+						}
+
+						LastActiveOutputPin->BreakAllPinLinks();
+						LastActiveOutputPin->MakeLinkTo(VariableSetNode->Pins[0]);
+						LastActiveOutputPin = VariableSetNode->Pins[1];
+					}
+				}
+			}
+		}
+
+		// Finally, hook up the last node to the old node the function entry node was connected to
+		if(OldStartExecPin)
+		{
+			LastActiveOutputPin->MakeLinkTo(OldStartExecPin);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

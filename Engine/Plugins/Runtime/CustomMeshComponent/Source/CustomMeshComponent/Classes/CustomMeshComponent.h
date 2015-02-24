@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,19 +9,19 @@ struct FCustomMeshTriangle
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, Category=Triangle)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Triangle)
 	FVector Vertex0;
 
-	UPROPERTY(EditAnywhere, Category=Triangle)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Triangle)
 	FVector Vertex1;
 
-	UPROPERTY(EditAnywhere, Category=Triangle)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Triangle)
 	FVector Vertex2;
 };
 
 /** Component that allows you to specify custom triangle mesh geometry */
 UCLASS(hidecategories=(Object,LOD, Physics, Collision), editinlinenew, meta=(BlueprintSpawnableComponent), ClassGroup=Rendering)
-class UCustomMeshComponent : public UMeshComponent
+class CUSTOMMESHCOMPONENT_API UCustomMeshComponent : public UMeshComponent
 {
 	GENERATED_UCLASS_BODY()
 

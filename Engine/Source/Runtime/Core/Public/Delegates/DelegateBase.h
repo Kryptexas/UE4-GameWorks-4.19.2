@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -92,6 +92,22 @@ public:
 	{
 		Unbind();
 		DelegateInstance = InDelegateInstance;
+	}
+
+	/**
+	 * Gets a handle to the delegate.
+	 *
+	 * @return The delegate instance.
+	 */
+	inline FDelegateHandle GetHandle() const
+	{
+		FDelegateHandle Result;
+		if (DelegateInstance)
+		{
+			Result = DelegateInstance->GetHandle();
+		}
+
+		return Result;
 	}
 
 private:

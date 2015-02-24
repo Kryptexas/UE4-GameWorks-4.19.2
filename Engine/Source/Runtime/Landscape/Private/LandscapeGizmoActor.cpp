@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "Landscape.h"
@@ -11,6 +11,7 @@
 #include "LandscapeLayerInfoObject.h"
 #include "DynamicMeshBuilder.h"
 #include "Engine/CollisionProfile.h"
+#include "EngineUtils.h"
 
 namespace
 {
@@ -123,12 +124,14 @@ public:
 	bool bHeightmapRendering;
 	FLandscapeGizmoMeshRenderProxy* HeightmapRenderProxy;
 	FMaterialRenderProxy* GizmoRenderProxy;
+	HHitProxy* HitProxy;
 
 	FLandscapeGizmoRenderSceneProxy(const ULandscapeGizmoRenderComponent* InComponent):
 		FPrimitiveSceneProxy(InComponent),
 		bHeightmapRendering(false),
-		HeightmapRenderProxy(NULL),
-		GizmoRenderProxy(NULL)
+		HeightmapRenderProxy(nullptr),
+		GizmoRenderProxy(nullptr),
+		HitProxy(nullptr)
 	{
 #if WITH_EDITOR	
 		ALandscapeGizmoActiveActor* Gizmo = Cast<ALandscapeGizmoActiveActor>(InComponent->GetOwner());
@@ -140,31 +143,35 @@ public:
 				SampleSizeX = Gizmo->SampleSizeX;
 				SampleSizeY = Gizmo->SampleSizeY;
 				bHeightmapRendering = (Gizmo->DataType & LGT_Height);
-				FMatrix LToW = LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld().ToMatrixWithScale();
-				FMatrix WToL = LToW.InverseFast();
-				FVector BaseLocation = WToL.TransformPosition(Gizmo->GetActorLocation());
-				float ScaleXY = LandscapeInfo->DrawScale.X;
-				float ScaleZ = LandscapeInfo->DrawScale.Z;
-				const float W = Gizmo->GetWidth() / (2 * ScaleXY);
-				const float H = Gizmo->GetHeight() / (2 * ScaleXY);
-				const float L = Gizmo->GetLength() / ScaleZ;
-				FMatrix GizmoRT = FRotationTranslationMatrix(FRotator(0, Gizmo->GetActorRotation().Yaw, 0), FVector(BaseLocation.X, BaseLocation.Y, 0)) * LToW;
+				FTransform LToW = LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld();
+				const float W = Gizmo->Width / 2;
+				const float H = Gizmo->Height / 2;
+				const float L = Gizmo->LengthZ;
+				// The Gizmo's coordinate space is weird, it's partially relative to the landscape and partially relative to the world
+				const FVector GizmoLocation = Gizmo->GetActorLocation();
+				const FQuat   GizmoRotation = FRotator(0, Gizmo->GetActorRotation().Yaw, 0).Quaternion() * LToW.GetRotation();
+				const FVector GizmoScale3D  = Gizmo->GetActorScale3D();
+				const FTransform GizmoRT = FTransform(GizmoRotation, GizmoLocation, GizmoScale3D);
 
-				FrustumVerts[0] = Gizmo->FrustumVerts[0] = GizmoRT.TransformPosition(FVector( - W, - H, BaseLocation.Z + L ));
-				FrustumVerts[1] = Gizmo->FrustumVerts[1] = GizmoRT.TransformPosition(FVector( + W, - H, BaseLocation.Z + L ));
-				FrustumVerts[2] = Gizmo->FrustumVerts[2] = GizmoRT.TransformPosition(FVector( + W, + H, BaseLocation.Z + L ));
-				FrustumVerts[3] = Gizmo->FrustumVerts[3] = GizmoRT.TransformPosition(FVector( - W, + H, BaseLocation.Z + L ));
+				FrustumVerts[0] = Gizmo->FrustumVerts[0] = GizmoRT.TransformPosition(FVector( - W, - H, + L ));
+				FrustumVerts[1] = Gizmo->FrustumVerts[1] = GizmoRT.TransformPosition(FVector( + W, - H, + L ));
+				FrustumVerts[2] = Gizmo->FrustumVerts[2] = GizmoRT.TransformPosition(FVector( + W, + H, + L ));
+				FrustumVerts[3] = Gizmo->FrustumVerts[3] = GizmoRT.TransformPosition(FVector( - W, + H, + L ));
 
-				FrustumVerts[4] = Gizmo->FrustumVerts[4] = GizmoRT.TransformPosition(FVector( - W, - H, BaseLocation.Z ));
-				FrustumVerts[5] = Gizmo->FrustumVerts[5] = GizmoRT.TransformPosition(FVector( + W, - H, BaseLocation.Z ));
-				FrustumVerts[6] = Gizmo->FrustumVerts[6] = GizmoRT.TransformPosition(FVector( + W, + H, BaseLocation.Z ));
-				FrustumVerts[7] = Gizmo->FrustumVerts[7] = GizmoRT.TransformPosition(FVector( - W, + H, BaseLocation.Z ));
+				FrustumVerts[4] = Gizmo->FrustumVerts[4] = GizmoRT.TransformPosition(FVector( - W, - H,   0 ));
+				FrustumVerts[5] = Gizmo->FrustumVerts[5] = GizmoRT.TransformPosition(FVector( + W, - H,   0 ));
+				FrustumVerts[6] = Gizmo->FrustumVerts[6] = GizmoRT.TransformPosition(FVector( + W, + H,   0 ));
+				FrustumVerts[7] = Gizmo->FrustumVerts[7] = GizmoRT.TransformPosition(FVector( - W, + H,   0 ));
 
-				XAxis = GizmoRT.TransformPosition(FVector( + W,	0,		BaseLocation.Z + L ));
-				YAxis = GizmoRT.TransformPosition(FVector( 0,	+ H,	BaseLocation.Z + L ));
-				Origin = GizmoRT.TransformPosition(FVector( 0,	0,		BaseLocation.Z + L ));
+				XAxis  = GizmoRT.TransformPosition(FVector( + W,   0, + L ));
+				YAxis  = GizmoRT.TransformPosition(FVector(   0, + H, + L ));
+				Origin = GizmoRT.TransformPosition(FVector(   0,   0, + L ));
 
-				MeshRT = FTranslationMatrix(FVector(- W + 0.5, - H + 0.5, 0)) * FRotationTranslationMatrix(FRotator(0, Gizmo->GetActorRotation().Yaw, 0), FVector(BaseLocation.X, BaseLocation.Y, 0)) * LToW;
+				const FMatrix WToL = LToW.ToMatrixWithScale().InverseFast();
+				const FVector BaseLocation = WToL.TransformPosition(Gizmo->GetActorLocation());
+				const float ScaleXY = LandscapeInfo->DrawScale.X;
+
+				MeshRT = FTranslationMatrix(FVector(-W / ScaleXY + 0.5, -H / ScaleXY + 0.5, 0) * GizmoScale3D) * FRotationTranslationMatrix(FRotator(0, Gizmo->GetActorRotation().Yaw, 0), FVector(BaseLocation.X, BaseLocation.Y, 0)) * LToW.ToMatrixWithScale();
 				HeightmapRenderProxy = new FLandscapeGizmoMeshRenderProxy( Gizmo->GizmoMeshMaterial->GetRenderProxy(false), BaseLocation.Z + L, BaseLocation.Z, Gizmo->GizmoTexture, FLinearColor(Gizmo->TextureScale.X, Gizmo->TextureScale.Y, 0, 0), WToL );
 
 				GizmoRenderProxy = (Gizmo->DataType != LGT_None) ? Gizmo->GizmoDataMaterial->GetRenderProxy(false) : Gizmo->GizmoMaterial->GetRenderProxy(false);
@@ -189,11 +196,11 @@ public:
 						SampledPos.Z = Gizmo->GetLandscapeHeight(SampledPos.Z);
 
 						FVector SampledNormal = NormalM.TransformVector(Gizmo->SampledNormal[X + Y * ALandscapeGizmoActiveActor::DataTexSize]);
-						SampledNormal = SampledNormal.SafeNormal();
+						SampledNormal = SampledNormal.GetSafeNormal();
 
 						SampledPositions.Add(SampledPos);
 						SampledNormals.Add(SampledNormal);
-						//MeshBuilder.AddVertex(SampledPos, FVector2D((float)X / (Gizmo->SampleSizeX), (float)Y / (Gizmo->SampleSizeY)), TangentX, SampledNormal^TangentX, SampledNormal, FColor(255, 255, 255) );
+						//MeshBuilder.AddVertex(SampledPos, FVector2D((float)X / (Gizmo->SampleSizeX), (float)Y / (Gizmo->SampleSizeY)), TangentX, SampledNormal^TangentX, SampledNormal, FColor::White );
 					}
 				}
 			}
@@ -206,6 +213,18 @@ public:
 		delete HeightmapRenderProxy;
 		HeightmapRenderProxy = NULL;
 	}
+
+#if WITH_EDITOR
+	virtual HHitProxy* CreateHitProxies(UPrimitiveComponent* Component, TArray<TRefCountPtr<HHitProxy> >& OutHitProxies) override
+	{
+		ALandscapeGizmoActiveActor* Gizmo = CastChecked<ALandscapeGizmoActiveActor>(Component->GetOwner());
+		HitProxy = new HTranslucentActor(Gizmo, Component);
+		OutHitProxies.Add(HitProxy);
+
+		// by default we're not clickable, to allow the preview heightmap to be non-clickable (only the bounds frame)
+		return nullptr;
+	}
+#endif
 
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override
 	{
@@ -227,35 +246,36 @@ public:
 					{
 						FDynamicMeshBuilder MeshBuilder;
 
-						MeshBuilder.AddVertex(FrustumVerts[0], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[1], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[2], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[3], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
+						const FColor GizmoColor = FColor::White;
+						MeshBuilder.AddVertex(FrustumVerts[0], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[1], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[2], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[3], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
 
-						MeshBuilder.AddVertex(FrustumVerts[4], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[5], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[6], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[7], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
+						MeshBuilder.AddVertex(FrustumVerts[4], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[5], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[6], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[7], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
 
-						MeshBuilder.AddVertex(FrustumVerts[1], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[0], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[4], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[5], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
+						MeshBuilder.AddVertex(FrustumVerts[1], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[0], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[4], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[5], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
 
-						MeshBuilder.AddVertex(FrustumVerts[3], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[2], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[6], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[7], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
+						MeshBuilder.AddVertex(FrustumVerts[3], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[2], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[6], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[7], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
 
-						MeshBuilder.AddVertex(FrustumVerts[2], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[1], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[5], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[6], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
+						MeshBuilder.AddVertex(FrustumVerts[2], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[1], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[5], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[6], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
 
-						MeshBuilder.AddVertex(FrustumVerts[0], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[3], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[7], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-						MeshBuilder.AddVertex(FrustumVerts[4], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
+						MeshBuilder.AddVertex(FrustumVerts[0], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[3], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[7], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
+						MeshBuilder.AddVertex(FrustumVerts[4], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), GizmoColor);
 
 						for (int32 i = 0; i < 6; ++i)
 						{
@@ -264,11 +284,11 @@ public:
 							MeshBuilder.AddTriangle( Idx, Idx+3, Idx+2 );
 						}
 
-						MeshBuilder.GetMesh(FMatrix::Identity, GizmoRenderProxy , SDPG_World, true, false, ViewIndex, Collector);
+						MeshBuilder.GetMesh(FMatrix::Identity, GizmoRenderProxy, SDPG_World, true, false, false, ViewIndex, Collector, HitProxy);
 					}
 
 					if (bHeightmapRendering)
-					{		  		
+					{
 						FDynamicMeshBuilder MeshBuilder;
 
 						for (int32 Y = 0; Y < SampleSizeY; ++Y)
@@ -277,9 +297,9 @@ public:
 							{
 								FVector SampledNormal = SampledNormals[X + Y * SampleSizeX];
 								FVector TangentX(SampledNormal.Z, 0, -SampledNormal.X);
-								TangentX = TangentX.SafeNormal();
+								TangentX = TangentX.GetSafeNormal();
 
-								MeshBuilder.AddVertex(SampledPositions[X + Y * SampleSizeX], FVector2D((float)X / (SampleSizeX), (float)Y / (SampleSizeY)), TangentX, SampledNormal^TangentX, SampledNormal, FColor(255, 255, 255) );
+								MeshBuilder.AddVertex(SampledPositions[X + Y * SampleSizeX], FVector2D((float)X / (SampleSizeX), (float)Y / (SampleSizeY)), TangentX, SampledNormal^TangentX, SampledNormal, FColor::White);
 							}
 						}
 
@@ -298,93 +318,6 @@ public:
 						MeshBuilder.GetMesh(MeshRT, HeightmapRenderProxy , SDPG_World, false, false, ViewIndex, Collector);
 					}
 				}
-			}
-		}
-#endif
-	};
-
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-	{
-		//FMemMark Mark(FMemStack::Get());
-#if WITH_EDITOR
-		if( GizmoRenderProxy &&  HeightmapRenderProxy )
-		{
-			// Axis
-			PDI->DrawLine( Origin, XAxis, FLinearColor(1, 0, 0), SDPG_World );
-			PDI->DrawLine( Origin, YAxis, FLinearColor(0, 1, 0), SDPG_World );
-
-			{
-				FDynamicMeshBuilder MeshBuilder;
-
-				MeshBuilder.AddVertex(FrustumVerts[0], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[1], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[2], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[3], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-
-				MeshBuilder.AddVertex(FrustumVerts[4], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[5], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[6], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[7], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-
-				MeshBuilder.AddVertex(FrustumVerts[1], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[0], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[4], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[5], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-
-				MeshBuilder.AddVertex(FrustumVerts[3], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[2], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[6], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[7], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-
-				MeshBuilder.AddVertex(FrustumVerts[2], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[1], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[5], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[6], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-
-				MeshBuilder.AddVertex(FrustumVerts[0], FVector2D(0, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[3], FVector2D(1, 0), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[7], FVector2D(1, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-				MeshBuilder.AddVertex(FrustumVerts[4], FVector2D(0, 1), FVector(1,0,0), FVector(0,1,0), FVector(0,0,1), FColor(255,255,255));
-
-				for (int32 i = 0; i < 6; ++i)
-				{
-					int32 Idx = i*4;
-					MeshBuilder.AddTriangle( Idx, Idx+2, Idx+1 );
-					MeshBuilder.AddTriangle( Idx, Idx+3, Idx+2 );
-				}
-
-				MeshBuilder.Draw(PDI, FMatrix::Identity, GizmoRenderProxy , SDPG_World, true);
-			}
-
-			if (bHeightmapRendering)
-			{		  		
-				FDynamicMeshBuilder MeshBuilder;
-
-				for (int32 Y = 0; Y < SampleSizeY; ++Y)
-				{
-					for (int32 X = 0; X < SampleSizeX; ++X)
-					{
-						FVector SampledNormal = SampledNormals[X + Y * SampleSizeX];
-						FVector TangentX(SampledNormal.Z, 0, -SampledNormal.X);
-						TangentX = TangentX.SafeNormal();
-
-						MeshBuilder.AddVertex(SampledPositions[X + Y * SampleSizeX], FVector2D((float)X / (SampleSizeX), (float)Y / (SampleSizeY)), TangentX, SampledNormal^TangentX, SampledNormal, FColor(255, 255, 255) );
-					}
-				}
-
-				for (int32 Y = 0; Y < SampleSizeY; ++Y)
-				{
-					for (int32 X = 0; X < SampleSizeX; ++X)
-					{
-						if (X < SampleSizeX - 1 && Y < SampleSizeY - 1)
-						{
-							MeshBuilder.AddTriangle( (X+0) + (Y+0) * SampleSizeX, (X+1) + (Y+1) * SampleSizeX, (X+1) + (Y+0) * SampleSizeX );
-							MeshBuilder.AddTriangle( (X+0) + (Y+0) * SampleSizeX, (X+0) + (Y+1) * SampleSizeX, (X+1) + (Y+1) * SampleSizeX );
-						}
-					}
-				}
-
-				MeshBuilder.Draw(PDI, MeshRT, HeightmapRenderProxy, SDPG_World, false);
 			}
 		}
 #endif
@@ -412,8 +345,6 @@ ULandscapeGizmoRenderComponent::ULandscapeGizmoRenderComponent(const FObjectInit
 	bHiddenInGame = true;
 	AlwaysLoadOnClient = false;
 	AlwaysLoadOnServer = false;
-	bSelectable = false;
-	BodyInstance.bEnableCollision_DEPRECATED = true;
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 }
 
@@ -426,14 +357,28 @@ FBoxSphereBounds ULandscapeGizmoRenderComponent::CalcBounds(const FTransform& Lo
 {
 #if WITH_EDITOR
 	ALandscapeGizmoActiveActor* Gizmo = Cast<ALandscapeGizmoActiveActor>(GetOwner());
-	if( Gizmo )
+	if (Gizmo)
 	{
-		return FBoxSphereBounds(Gizmo->FrustumVerts, 8);
+		ULandscapeInfo* LandscapeInfo = Gizmo->TargetLandscapeInfo;
+		if (LandscapeInfo && LandscapeInfo->GetLandscapeProxy())
+		{
+			FTransform LToW = LandscapeInfo->GetLandscapeProxy()->LandscapeActorToWorld();
+
+			// We calculate this ourselves, not from Gizmo->FrustrumVerts, as those haven't been updated yet
+			// The Gizmo's coordinate space is weird, it's partially relative to the landscape and partially relative to the world
+			const FVector GizmoLocation = Gizmo->GetActorLocation();
+			const FQuat   GizmoRotation = FRotator(0, Gizmo->GetActorRotation().Yaw, 0).Quaternion() * LToW.GetRotation();
+			const FVector GizmoScale3D = Gizmo->GetActorScale3D();
+			const FTransform GizmoRT = FTransform(GizmoRotation, GizmoLocation, GizmoScale3D);
+			const float W = Gizmo->Width / 2;
+			const float H = Gizmo->Height / 2;
+			const float L = Gizmo->LengthZ;
+			return FBoxSphereBounds(FBox(FVector(-W, -H, 0), FVector(+W, +H, +L))).TransformBy(GizmoRT);
+		}
 	}
 #endif
-	{
-		return Super::CalcBounds(LocalToWorld);
-	}
+
+	return Super::CalcBounds(LocalToWorld);
 }
 
 ALandscapeGizmoActor::ALandscapeGizmoActor(const FObjectInitializer& ObjectInitializer)
@@ -714,6 +659,16 @@ void ALandscapeGizmoActiveActor::ClearGizmoData()
 	DataType = LGT_None;
 	SelectedData.Empty();
 	LayerInfos.Empty();
+
+	// If the clipboard contains copied gizmo data, clear it also
+	FString ClipboardString;
+	FPlatformMisc::ClipboardPaste(ClipboardString);
+	const TCHAR* Str = *ClipboardString;
+	if (FParse::Command(&Str, TEXT("GizmoData=")))
+	{
+		FPlatformMisc::ClipboardCopy(TEXT(""));
+	}
+
 	ReregisterAllComponents();
 }
 
@@ -768,7 +723,7 @@ float ALandscapeGizmoActiveActor::GetNormalizedHeight(uint16 LandscapeHeight) co
 {
 	if (TargetLandscapeInfo)
 	{
-		ALandscapeProxy* Proxy = TargetLandscapeInfo->GetCurrentLevelLandscapeProxy(true);
+		ALandscapeProxy* Proxy = TargetLandscapeInfo->GetLandscapeProxy();
 		if (Proxy)
 		{
 			// Need to make it scale...?
@@ -787,7 +742,7 @@ float ALandscapeGizmoActiveActor::GetWorldHeight(float NormalizedHeight) const
 {
 	if (TargetLandscapeInfo)
 	{
-		ALandscapeProxy* Proxy = TargetLandscapeInfo->GetCurrentLevelLandscapeProxy(true);
+		ALandscapeProxy* Proxy = TargetLandscapeInfo->GetLandscapeProxy();
 		if (Proxy)
 		{
 			float ZScale = GetLength();
@@ -831,8 +786,8 @@ void ALandscapeGizmoActiveActor::CalcNormal()
 				FVector Vert10 = SampledHeight[X+1 + Y*DataTexSize];
 				FVector Vert11 = SampledHeight[X+1 + (Y+1)*DataTexSize];
 
-				FVector FaceNormal1 = ((Vert00-Vert10) ^ (Vert10-Vert11)).SafeNormal();
-				FVector FaceNormal2 = ((Vert11-Vert01) ^ (Vert01-Vert00)).SafeNormal(); 
+				FVector FaceNormal1 = ((Vert00-Vert10) ^ (Vert10-Vert11)).GetSafeNormal();
+				FVector FaceNormal2 = ((Vert11-Vert01) ^ (Vert01-Vert00)).GetSafeNormal(); 
 
 				// contribute to the vertex normals.
 				SampledNormal[X + Y*DataTexSize] += FaceNormal1;
@@ -845,7 +800,7 @@ void ALandscapeGizmoActiveActor::CalcNormal()
 		{
 			for (int32 X = 0; X < SampleSizeX; ++X)
 			{
-				SampledNormal[X + Y*DataTexSize] = SampledNormal[X + Y*DataTexSize].SafeNormal();
+				SampledNormal[X + Y*DataTexSize] = SampledNormal[X + Y*DataTexSize].GetSafeNormal();
 			}
 		}
 	}

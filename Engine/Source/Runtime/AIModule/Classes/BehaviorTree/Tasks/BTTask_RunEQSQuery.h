@@ -1,8 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "../../EnvironmentQuery/EnvQueryTypes.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
 #include "BTTask_RunEQSQuery.generated.h"
+
+class UEnvQuery;
 
 struct FBTEnvQueryTaskMemory
 {
@@ -21,21 +23,21 @@ class AIMODULE_API UBTTask_RunEQSQuery : public UBTTask_BlackboardBase
 
 	/** query to run */
 	UPROPERTY(Category=Node, EditAnywhere)
-	class UEnvQuery* QueryTemplate;
+	UEnvQuery* QueryTemplate;
 
 	/** optional parameters for query */
 	UPROPERTY(Category=Node, EditAnywhere)
-	TArray<struct FEnvNamedValue> QueryParams;
+	TArray<FEnvNamedValue> QueryParams;
 
-	virtual EBTNodeResult::Type ExecuteTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
-	virtual EBTNodeResult::Type AbortTask(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
+	virtual EBTNodeResult::Type ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	virtual EBTNodeResult::Type AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
 	virtual FString GetStaticDescription() const override;
 	virtual uint16 GetInstanceMemorySize() const override;
 
 	/** finish task */
-	void OnQueryFinished(TSharedPtr<struct FEnvQueryResult> Result);
+	void OnQueryFinished(TSharedPtr<FEnvQueryResult> Result);
 
 #if WITH_EDITOR
 	/** prepare query params */

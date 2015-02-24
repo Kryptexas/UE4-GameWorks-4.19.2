@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 
 #include "Engine/WorldComposition.h"
@@ -29,8 +29,8 @@ void FWorldBrowserModule::StartupModule()
 		GEngine->OnWorldAdded().AddRaw(this, &FWorldBrowserModule::OnWorldCreated);
 		GEngine->OnWorldDestroyed().AddRaw(this, &FWorldBrowserModule::OnWorldDestroyed);
 	}
-	UWorldComposition::OnWorldCompositionCreated.AddRaw(this, &FWorldBrowserModule::OnWorldCompositionChanged);
-	UWorldComposition::OnWorldCompositionDestroyed.AddRaw(this, &FWorldBrowserModule::OnWorldCompositionChanged);
+
+	UWorldComposition::WorldCompositionChangedEvent.AddRaw(this, &FWorldBrowserModule::OnWorldCompositionChanged);
 }
 
 void FWorldBrowserModule::ShutdownModule()
@@ -40,9 +40,9 @@ void FWorldBrowserModule::ShutdownModule()
 		GEngine->OnWorldAdded().RemoveAll(this);
 		GEngine->OnWorldDestroyed().RemoveAll(this);
 	}
-	UWorldComposition::OnWorldCompositionCreated.RemoveAll(this);
-	UWorldComposition::OnWorldCompositionDestroyed.RemoveAll(this);
 
+	UWorldComposition::WorldCompositionChangedEvent.RemoveAll(this);
+	
 	FLevelCollectionCommands::Unregister();
 
 	// unregister the editor mode
@@ -127,8 +127,5 @@ TSharedPtr<FLevelCollectionModel> FWorldBrowserModule::SharedWorldModel(UWorld* 
 	
 	return SharedWorldModel;
 }
-
-
-
 
 #undef LOCTEXT_NAMESPACE

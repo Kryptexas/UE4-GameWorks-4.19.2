@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -38,7 +38,7 @@ namespace UnrealBuildTool
 
 		void SetUpGlobalEnvironment();
 
-        void AddFilesToManifest(ref FileManifest manifest, UEBuildBinary Binary );
+        void AddFilesToManifest(BuildManifest Manifest, UEBuildBinary Binary);
 
 		void SetupBundleDependencies(List<UEBuildBinary> Binaries, string GameName);
 
@@ -47,6 +47,8 @@ namespace UnrealBuildTool
 		string GetPlatformVersion();
 
 		string GetPlatformDevices();
+
+		UnrealTargetPlatform GetPlatform();
 	}
 
 	public abstract class UEToolChain : IUEToolChain
@@ -161,6 +163,89 @@ namespace UnrealBuildTool
 
 		public virtual void SetUpGlobalEnvironment()
 		{
+			ParseProjectSettings();
+		}
+
+		public virtual void ParseProjectSettings()
+		{
+			ConfigCacheIni Ini = new ConfigCacheIni(GetPlatform(), "Engine", UnrealBuildTool.GetUProjectPath());
+			bool bValue = UEBuildConfiguration.bCompileAPEX;
+			if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileApex", out bValue))
+			{
+				UEBuildConfiguration.bCompileAPEX = bValue;
+			}
+
+			bValue = UEBuildConfiguration.bCompileBox2D;
+			if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileBox2D", out bValue))
+			{
+				UEBuildConfiguration.bCompileBox2D = bValue;
+			}
+
+			bValue = UEBuildConfiguration.bCompileICU;
+			if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileICU", out bValue))
+			{
+				UEBuildConfiguration.bCompileICU = bValue;
+			}
+
+			bValue = UEBuildConfiguration.bCompileSimplygon;
+			if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileSimplygon", out bValue))
+			{
+				UEBuildConfiguration.bCompileSimplygon = bValue;
+			}
+
+			bValue = UEBuildConfiguration.bCompileLeanAndMeanUE;
+			if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileLeanAndMeanUE", out bValue))
+			{
+				UEBuildConfiguration.bCompileLeanAndMeanUE = bValue;
+			}
+
+			bValue = UEBuildConfiguration.bIncludeADO;
+			if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bIncludeADO", out bValue))
+			{
+				UEBuildConfiguration.bIncludeADO = bValue;
+			}
+
+			bValue = UEBuildConfiguration.bCompileRecast;
+			if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileRecast", out bValue))
+			{
+				UEBuildConfiguration.bCompileRecast = bValue;
+			}
+
+			bValue = UEBuildConfiguration.bCompileSpeedTree;
+			if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileSpeedTree", out bValue))
+			{
+				UEBuildConfiguration.bCompileSpeedTree = bValue;
+			}
+
+			bValue = UEBuildConfiguration.bCompileWithPluginSupport;
+			if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileWithPluginSupport", out bValue))
+			{
+				UEBuildConfiguration.bCompileWithPluginSupport = bValue;
+			}
+
+			bValue = UEBuildConfiguration.bCompilePhysXVehicle;
+			if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompilePhysXVehicle", out bValue))
+			{
+				UEBuildConfiguration.bCompilePhysXVehicle = bValue;
+			}
+
+			bValue = UEBuildConfiguration.bCompileFreeType;
+			if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileFreeType", out bValue))
+			{
+				UEBuildConfiguration.bCompileFreeType = bValue;
+			}
+
+			bValue = UEBuildConfiguration.bCompileForSize;
+			if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileForSize", out bValue))
+			{
+				UEBuildConfiguration.bCompileForSize = bValue;
+			}
+
+			bValue = UEBuildConfiguration.bCompileCEF3;
+			if (Ini.GetBool("/Script/BuildSettings.BuildSettings", "bCompileCEF3", out bValue))
+			{
+				UEBuildConfiguration.bCompileCEF3 = bValue;
+			}
 		}
 
 		protected void RunUnrealHeaderToolIfNeeded()
@@ -168,7 +253,7 @@ namespace UnrealBuildTool
 
 		}
 
-        public virtual void AddFilesToManifest(ref FileManifest manifest, UEBuildBinary Binary )
+        public virtual void AddFilesToManifest(BuildManifest Manifest, UEBuildBinary Binary)
         {
 
         }
@@ -223,6 +308,11 @@ namespace UnrealBuildTool
 		public virtual string GetPlatformDevices()
 		{
 			return "";
+		}
+
+		public virtual UnrealTargetPlatform GetPlatform()
+		{
+			return UnrealTargetPlatform.Unknown;
 		}
 	};
 }

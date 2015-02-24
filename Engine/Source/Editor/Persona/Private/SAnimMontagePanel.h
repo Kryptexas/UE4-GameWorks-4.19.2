@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -66,18 +66,13 @@ public:
 	// Functions used as delegates that build the context menus for the montage tracks
 	void SummonTrackContextMenu( FMenuBuilder& MenuBuilder, float DataPosX, int32 SectionIndex, int32 AnimSlotIndex );
 	void SummonSectionContextMenu( FMenuBuilder& MenuBuilder, int32 SectionIndex );
-	void SummonBranchNodeContextMenu( FMenuBuilder& MenuBuilder, int32 BranchIndex );
 	void FillElementSubMenuForTimes( FMenuBuilder& MenuBuilder );
 	void FillSlotSubMenu( FMenuBuilder& Menubuilder );
 
 	void OnNewSlotClicked();
 	void OnNewSectionClicked(float DataPosX);
-	void OnNewBranchClicked(float DataPosX);
-
-	void OnBranchPointClicked( int32 BranchPointIndex );
 
 	void ShowSegmentInDetailsView(int32 AnimSegmentIndex, int32 AnimSlotIndex);
-	void ShowBranchPointInDetailsView(int32 BranchPointIndex);
 	void ShowSectionInDetailsView(int32 SectionIndex);
 
 	void ClearSelected();
@@ -135,11 +130,14 @@ private:
 	
 	void CreateNewSlot(const FText& NewSlotName, ETextCommit::Type CommitInfo);
 	void CreateNewSection(const FText& NewSectionName, ETextCommit::Type CommitInfo, float StartTime);
-	void CreateNewBranch(const FText& NewBranchName, ETextCommit::Type CommitInfo, float StartTime);
-	void RenameBranchPoint(const FText &NewName, ETextCommit::Type CommitInfo, int32 BranchPointIndex);
 
 	/** Called when a segment is removed from a track, so we can adjust the indices in linkable elements
 	 *	@param SegmentIndex - Index of the removed segment
 	 */
 	void OnAnimSegmentRemoved(int32 SegmentIndex, int32 SlotIndex);
+
+	/** Gets the length of the montage we are currently editing
+	 */
+	virtual float GetSequenceLength() const override;
+
 };

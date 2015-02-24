@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -49,10 +49,10 @@ private:
 	void GraphNavigateHistoryForward();
 
 	/** Gets the tool tip text for the history back button */
-	FString GetHistoryBackTooltip() const;
+	FText GetHistoryBackTooltip() const;
 
 	/** Gets the tool tip text for the history forward button */
-	FString GetHistoryForwardTooltip() const;
+	FText GetHistoryForwardTooltip() const;
 
 	/** Gets the text to be displayed in the address bar */
 	FText GetAddressBarText() const;
@@ -61,13 +61,13 @@ private:
 
 	void OnUpdateHistoryData(FReferenceViewerHistoryData& HistoryData) const;
 	
-	void OnSearchDepthEnabledChanged( ESlateCheckBoxState::Type NewState );
-	ESlateCheckBoxState::Type IsSearchDepthEnabledChecked() const;
+	void OnSearchDepthEnabledChanged( ECheckBoxState NewState );
+	ECheckBoxState IsSearchDepthEnabledChecked() const;
 	int32 GetSearchDepthCount() const;
 	void OnSearchDepthCommitted(int32 NewValue);
 
-	void OnSearchBreadthEnabledChanged( ESlateCheckBoxState::Type NewState );
-	ESlateCheckBoxState::Type IsSearchBreadthEnabledChecked() const;
+	void OnSearchBreadthEnabledChanged( ECheckBoxState NewState );
+	ECheckBoxState IsSearchBreadthEnabledChecked() const;
 	int32 GetSearchBreadthCount() const;
 	void OnSearchBreadthCommitted(int32 NewValue);
 

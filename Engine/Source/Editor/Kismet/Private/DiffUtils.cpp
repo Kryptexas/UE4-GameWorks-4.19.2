@@ -1,10 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
 
 #include "DiffUtils.h"
 #include "EditorCategoryUtils.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "IAssetTypeActions.h"
 #include "ObjectEditorUtils.h"
+#include "ISourceControlModule.h"
 
 static const UProperty* Resolve( const UStruct* Class, FName PropertyName )
 {
@@ -27,8 +31,28 @@ static FPropertySoftPathSet GetPropertyNameSet(const UObject* ForObj)
 FResolvedProperty FPropertySoftPath::Resolve(const UObject* Object) const
 {
 	// dig into the object, finding nested objects, etc:
-	const UProperty* Property = ::Resolve(Object->GetClass(), PropertyChain[0]);
-	// @todo: recurse for objects and structs:
+	const UProperty* Property = nullptr;
+	for( int32 i = 0; i < PropertyChain.Num(); ++i )
+	{
+		const UProperty* NextProperty = ::Resolve(Object->GetClass(), PropertyChain[i]);
+		if( NextProperty )
+		{
+			Property = NextProperty;
+			if (const UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property))
+			{
+				Object = ObjectProperty->GetObjectPropertyValue(Property->ContainerPtrToValuePtr<UObject*>(Object));
+			}
+			else
+			{
+				break;
+			}
+		}
+		else
+		{
+			break;
+		}
+	}
+
 	return FResolvedProperty(Object, Property);
 }
 
@@ -72,16 +96,24 @@ const UObject* DiffUtils::GetCDO(const UBlueprint* ForBlueprint)
 	return ForBlueprint->GeneratedClass->ClassDefaultObject;
 }
 
-void DiffUtils::CompareUnrelatedObjects(const UObject* A, UObject const* B, TArray<FPropertySoftPath>& OutDifferingProperties)
+void DiffUtils::CompareUnrelatedObjects(const UObject* A, const UObject* B, TArray<FSingleObjectDiffEntry>& OutDifferingProperties)
 {
 	FPropertySoftPathSet PropertiesInA = GetPropertyNameSet(A);
 	FPropertySoftPathSet PropertiesInB = GetPropertyNameSet(B);
 
 	// any properties in A that aren't in B are differing:
-	OutDifferingProperties.Append(PropertiesInA.Difference(PropertiesInB).Array());
+	auto AddedToA = PropertiesInA.Difference(PropertiesInB).Array();
+	for( const auto& Entry : AddedToA )
+	{
+		OutDifferingProperties.Push(FSingleObjectDiffEntry( Entry, EPropertyDiffType::PropertyAddedToA ));
+	}
 
 	// and the converse:
-	OutDifferingProperties.Append(PropertiesInB.Difference(PropertiesInA).Array());
+	auto AddedToB = PropertiesInB.Difference(PropertiesInA).Array();
+	for (const auto& Entry : AddedToB)
+	{
+		OutDifferingProperties.Push(FSingleObjectDiffEntry( Entry, EPropertyDiffType::PropertyAddedToB ));
+	}
 
 	// for properties in common, dig out the uproperties and determine if they're identical:
 	if (A && B)
@@ -95,99 +127,67 @@ void DiffUtils::CompareUnrelatedObjects(const UObject* A, UObject const* B, TArr
 			check(AProp != FResolvedProperty() && BProp != FResolvedProperty());
 			if (!DiffUtils::Identical(AProp, BProp))
 			{
-				OutDifferingProperties.Add(PropertyName);
+				OutDifferingProperties.Push(FSingleObjectDiffEntry( PropertyName, EPropertyDiffType::PropertyValueChanged ));
 			}
 		}
 	}
 }
 
-void DiffUtils::CompareUnrelatedSCS(const UBlueprint* A, const UBlueprint* B, TArray< FSCSDiffEntry >& OutDifferingEntries, TArray< int >* OptionalOutSortKeys)
+void DiffUtils::CompareUnrelatedSCS(const UBlueprint* Old, const TArray< FSCSResolvedIdentifier >& OldHierarchy, const UBlueprint* New, const TArray< FSCSResolvedIdentifier >& NewHierarchy, FSCSDiffRoot& OutDifferingEntries )
 {
-	const auto FindObjectPropertyByName = [](const UObject* Instance, FName Name) -> UObject const*
+	const auto FindEntry = [](TArray< FSCSResolvedIdentifier > const& InArray, const FSCSIdentifier* Value) -> const FSCSResolvedIdentifier*
 	{
-		for (TFieldIterator<UProperty> PropertyIter(Instance->GetClass()); PropertyIter; ++PropertyIter)
+		for (const auto& Node : InArray)
 		{
-			if (PropertyIter->GetFName() == Name)
+			if (Node.Identifier.Name == Value->Name )
 			{
-				const UObject* const* SCS = PropertyIter->ContainerPtrToValuePtr<const UObject*>(Instance);
-				return SCS ? *SCS : nullptr;
+				return &Node;
 			}
 		}
 		return nullptr;
 	};
 
-	FName SCS = TEXT("SimpleConstructionScript");
-	UObject const* SCSA = FindObjectPropertyByName(A, SCS);
-	UObject const* SCSB = FindObjectPropertyByName(B, SCS);
-
-	// we get bitten by const shallowness here, avoid mutation:
-	const TArray<USCS_Node*> NodesInA = A && A->SimpleConstructionScript ? A->SimpleConstructionScript->GetAllNodes() : TArray<USCS_Node*>();
-	const TArray<USCS_Node*> NodesInB = B && B->SimpleConstructionScript ? B->SimpleConstructionScript->GetAllNodes() : TArray<USCS_Node*>();
-
-	const auto FindByName = [](const TArray<USCS_Node*>& NodeList, FName Name) -> USCS_Node*
+	for (const auto& OldNode : OldHierarchy)
 	{
-		for (auto Node : NodeList)
+		const FSCSResolvedIdentifier* NewEntry = FindEntry(NewHierarchy, &OldNode.Identifier);
+
+		if (NewEntry != nullptr)
 		{
-			if (Node->VariableName == Name)
+			// did a property change?
+			TArray<FSingleObjectDiffEntry> DifferingProperties;
+			DiffUtils::CompareUnrelatedObjects(OldNode.Object, NewEntry->Object, DifferingProperties);
+			for (const auto& Property : DifferingProperties)
 			{
-				return Node;
+				FSCSDiffEntry Diff = { OldNode.Identifier, ETreeDiffType::NODE_PROPERTY_CHANGED, Property };
+				OutDifferingEntries.Entries.Push(Diff);
 			}
-		}
-		return nullptr;
-	};
 
-	int32 SortKey = 0;
-	for (auto NodeInA : NodesInA)
-	{
-		auto NodeInB = FindByName(NodesInB, NodeInA->VariableName);
-		if (NodeInB)
-		{
-			// diff NodeA vs NodeB:
-			TArray<FPropertySoftPath> DifferingProperties;
-
-			DiffUtils::CompareUnrelatedObjects(A, B, DifferingProperties);
-			for (auto Property : DifferingProperties)
+			// did it move?
+			if( NewEntry->Identifier.TreeLocation != OldNode.Identifier.TreeLocation )
 			{
-				FSCSDiffEntry Diff = { NodeInA->VariableName, Property.LastPropertyName() };
-				OutDifferingEntries.Push(Diff);
-
-				if (OptionalOutSortKeys)
-				{
-					OptionalOutSortKeys->Push(SortKey);
-				}
+				FSCSDiffEntry Diff = { OldNode.Identifier, ETreeDiffType::NODE_MOVED, FSingleObjectDiffEntry() };
+				OutDifferingEntries.Entries.Push(Diff);
 			}
+
+			// no change! Do nothing.
 		}
 		else
 		{
-			// Node A was added (removed from node B):
-			FSCSDiffEntry Diff = { NodeInA->VariableName, FName() };
-			OutDifferingEntries.Push(Diff);
-
-			if (OptionalOutSortKeys)
-			{
-				OptionalOutSortKeys->Push(SortKey);
-			}
+			// not found in the new data, must have been deleted:
+			FSCSDiffEntry Entry = { OldNode.Identifier, ETreeDiffType::NODE_REMOVED, FSingleObjectDiffEntry() };
+			OutDifferingEntries.Entries.Push( Entry );
 		}
-
-		++SortKey;
 	}
 
-	// add nodes that were added in B:
-	for (auto NodeInB : NodesInB)
+	for (const auto& NewNode : NewHierarchy)
 	{
-		if (FindByName(NodesInA, NodeInB->VariableName) == nullptr)
+		const FSCSResolvedIdentifier* OldEntry = FindEntry(OldHierarchy, &NewNode.Identifier);
+
+		if (OldEntry == nullptr)
 		{
-			// Node B was added:
-			FSCSDiffEntry Diff = { NodeInB->VariableName, FName() };
-			OutDifferingEntries.Push(Diff);
-
-			if (OptionalOutSortKeys)
-			{
-				OptionalOutSortKeys->Push(SortKey);
-			}
+			FSCSDiffEntry Entry = { NewNode.Identifier, ETreeDiffType::NODE_ADDED, FSingleObjectDiffEntry() };
+			OutDifferingEntries.Entries.Push( Entry );
 		}
-
-		++SortKey;
 	}
 }
 
@@ -243,3 +243,351 @@ TArray<FPropertyPath> DiffUtils::ResolveAll(const UObject* Object, const TArray<
 	}
 	return Ret;
 }
+
+TArray<FPropertyPath> DiffUtils::ResolveAll(const UObject* Object, const TArray<FSingleObjectDiffEntry>& InDifferences)
+{
+	TArray< FPropertyPath > Ret;
+	for (const auto& Difference : InDifferences)
+	{
+		Ret.Push(Difference.Identifier.ResolvePath(Object));
+	}
+	return Ret;
+}
+
+TSharedPtr<FBlueprintDifferenceTreeEntry> FBlueprintDifferenceTreeEntry::NoDifferencesEntry()
+{
+	// This just generates a widget that tells the user that no differences were detected. Without this
+	// the treeview displaying differences is confusing when no differences are present because it is not obvious
+	// that the control is a treeview (a treeview with no children looks like a listview).
+	const auto GenerateWidget = []() -> TSharedRef<SWidget>
+	{
+		return SNew(STextBlock)
+			.ColorAndOpacity(FLinearColor::FLinearColor(.7f, .7f, .7f))
+			.TextStyle(FEditorStyle::Get(), TEXT("BlueprintDif.ItalicText"))
+			.Text(NSLOCTEXT("FBlueprintDifferenceTreeEntry", "NoDifferencesLabel", "No differences detected..."));
+	};
+
+	return TSharedPtr<FBlueprintDifferenceTreeEntry>(new FBlueprintDifferenceTreeEntry(
+		FOnDiffEntryFocused()
+		, FGenerateDiffEntryWidget::CreateStatic(GenerateWidget)
+		, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >()
+	) );
+}
+
+TSharedPtr<FBlueprintDifferenceTreeEntry> FBlueprintDifferenceTreeEntry::CreateDefaultsCategoryEntry(FOnDiffEntryFocused FocusCallback, const TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& Children, bool bHasDifferences)
+{
+	const auto CreateDefaultsRootEntry = [](FLinearColor Color) -> TSharedRef<SWidget>
+	{
+		return SNew(STextBlock)
+			.ToolTipText(NSLOCTEXT("FBlueprintDifferenceTreeEntry", "DefaultsTooltip", "The list of changes made in the Defaults panel"))
+			.ColorAndOpacity(Color)
+			.Text(NSLOCTEXT("FBlueprintDifferenceTreeEntry", "DefaultsLabel", "Defaults"));
+	};
+
+	return TSharedPtr<FBlueprintDifferenceTreeEntry>(new FBlueprintDifferenceTreeEntry(
+		FocusCallback
+		, FGenerateDiffEntryWidget::CreateStatic(CreateDefaultsRootEntry, DiffViewUtils::LookupColor(bHasDifferences) )
+		, Children
+	));
+}
+
+TSharedPtr<FBlueprintDifferenceTreeEntry> FBlueprintDifferenceTreeEntry::CreateDefaultsCategoryEntryForMerge(FOnDiffEntryFocused FocusCallback, const TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& Children, bool bHasRemoteDifferences, bool bHasLocalDifferences, bool bHasConflicts)
+{
+	const auto CreateDefaultsRootEntry = [](bool bHasRemoteDifferences, bool bHasLocalDifferences, bool bHasConflicts) -> TSharedRef<SWidget>
+	{
+		const FLinearColor BaseColor = DiffViewUtils::LookupColor(bHasRemoteDifferences || bHasLocalDifferences, bHasConflicts);
+		return SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			[
+				SNew(STextBlock)
+				.ToolTipText(NSLOCTEXT("FBlueprintDifferenceTreeEntry", "DefaultsTooltip", "The list of changes made in the Defaults panel"))
+				.ColorAndOpacity(BaseColor)
+				.Text(NSLOCTEXT("FBlueprintDifferenceTreeEntry", "DefaultsLabel", "Defaults"))
+			]
+			+ DiffViewUtils::Box(true, DiffViewUtils::LookupColor(bHasRemoteDifferences, bHasConflicts))
+			+ DiffViewUtils::Box(true, BaseColor)
+			+ DiffViewUtils::Box(true, DiffViewUtils::LookupColor(bHasLocalDifferences, bHasConflicts));
+	};
+
+	return TSharedPtr<FBlueprintDifferenceTreeEntry>(new FBlueprintDifferenceTreeEntry(
+		FocusCallback
+		, FGenerateDiffEntryWidget::CreateStatic(CreateDefaultsRootEntry, bHasRemoteDifferences, bHasLocalDifferences, bHasConflicts)
+		, Children
+		));
+}
+
+TSharedPtr<FBlueprintDifferenceTreeEntry> FBlueprintDifferenceTreeEntry::CreateComponentsCategoryEntry(FOnDiffEntryFocused FocusCallback, const TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& Children, bool bHasDifferences)
+{
+	const auto CreateComponentsRootEntry = [](FLinearColor Color) -> TSharedRef<SWidget>
+	{
+		return SNew(STextBlock)
+			.ToolTipText(NSLOCTEXT("FBlueprintDifferenceTreeEntry", "SCSTooltip", "The list of changes made in the Components panel"))
+			.ColorAndOpacity(Color)
+			.Text(NSLOCTEXT("FBlueprintDifferenceTreeEntry", "SCSLabel", "Components"));
+	};
+
+	return TSharedPtr<FBlueprintDifferenceTreeEntry>(new FBlueprintDifferenceTreeEntry(
+		FocusCallback
+		, FGenerateDiffEntryWidget::CreateStatic(CreateComponentsRootEntry, DiffViewUtils::LookupColor(bHasDifferences))
+		, Children
+		));
+}
+
+TSharedPtr<FBlueprintDifferenceTreeEntry> FBlueprintDifferenceTreeEntry::CreateComponentsCategoryEntryForMerge(FOnDiffEntryFocused FocusCallback, const TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& Children, bool bHasRemoteDifferences, bool bHasLocalDifferences, bool bHasConflicts)
+{
+	const auto CreateComponentsRootEntry = [](bool bHasRemoteDifferences, bool bHasLocalDifferences, bool bHasConflicts) -> TSharedRef<SWidget>
+	{
+		const FLinearColor BaseColor = DiffViewUtils::LookupColor(bHasRemoteDifferences || bHasLocalDifferences, bHasConflicts);
+		return  SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			[
+				SNew(STextBlock)
+				.ToolTipText(NSLOCTEXT("FBlueprintDifferenceTreeEntry", "SCSTooltip", "The list of changes made in the Components panel"))
+				.ColorAndOpacity(BaseColor)
+				.Text(NSLOCTEXT("FBlueprintDifferenceTreeEntry", "SCSLabel", "Components"))
+			]
+			+ DiffViewUtils::Box(true, DiffViewUtils::LookupColor(bHasRemoteDifferences, bHasConflicts))
+			+ DiffViewUtils::Box(true, BaseColor)
+			+ DiffViewUtils::Box(true, DiffViewUtils::LookupColor(bHasLocalDifferences, bHasConflicts));
+	};
+
+	return TSharedPtr<FBlueprintDifferenceTreeEntry>(new FBlueprintDifferenceTreeEntry(
+		FocusCallback
+		, FGenerateDiffEntryWidget::CreateStatic(CreateComponentsRootEntry, bHasRemoteDifferences, bHasLocalDifferences, bHasConflicts)
+		, Children
+	));
+}
+
+TSharedRef< STreeView<TSharedPtr< FBlueprintDifferenceTreeEntry > > > DiffTreeView::CreateTreeView(TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >* DifferencesList)
+{
+	const auto RowGenerator = [](TSharedPtr< FBlueprintDifferenceTreeEntry > Entry, const TSharedRef<STableViewBase>& Owner) -> TSharedRef< ITableRow >
+	{
+		return SNew(STableRow<TSharedPtr<FBlueprintDifferenceTreeEntry> >, Owner)
+			[
+				Entry->GenerateWidget.Execute()
+			];
+	};
+
+	const auto ChildrenAccessor = [](TSharedPtr<FBlueprintDifferenceTreeEntry> InTreeItem, TArray< TSharedPtr< FBlueprintDifferenceTreeEntry > >& OutChildren, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >* MasterList)
+	{
+		OutChildren = InTreeItem->Children;
+	};
+
+	const auto Selector = [](TSharedPtr<FBlueprintDifferenceTreeEntry> InTreeItem, ESelectInfo::Type Type)
+	{
+		if (InTreeItem.IsValid())
+		{
+			InTreeItem->OnFocus.ExecuteIfBound();
+		}
+	};
+
+	return SNew(STreeView< TSharedPtr< FBlueprintDifferenceTreeEntry > >)
+		.OnGenerateRow(STreeView< TSharedPtr< FBlueprintDifferenceTreeEntry > >::FOnGenerateRow::CreateStatic(RowGenerator))
+		.OnGetChildren(STreeView< TSharedPtr< FBlueprintDifferenceTreeEntry > >::FOnGetChildren::CreateStatic(ChildrenAccessor, DifferencesList))
+		.OnSelectionChanged(STreeView< TSharedPtr< FBlueprintDifferenceTreeEntry > >::FOnSelectionChanged::CreateStatic(Selector))
+		.TreeItemsSource(DifferencesList);
+}
+
+int32 DiffTreeView::CurrentDifference(TSharedRef< STreeView<TSharedPtr< FBlueprintDifferenceTreeEntry > > > TreeView, const TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> >& Differences)
+{
+	auto SelectedItems = TreeView->GetSelectedItems();
+	if (SelectedItems.Num() == 0)
+	{
+		return INDEX_NONE;
+	}
+
+	for (int32 Iter = 0; Iter < SelectedItems.Num(); ++Iter)
+	{
+		int32 Index = Differences.Find(SelectedItems[Iter]);
+		if (Index != INDEX_NONE)
+		{
+			return Index;
+		}
+	}
+
+	return INDEX_NONE;
+}
+
+void DiffTreeView::HighlightNextDifference(TSharedRef< STreeView<TSharedPtr< FBlueprintDifferenceTreeEntry > > > TreeView, const TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> >& Differences, const TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> >& RootDifferences)
+{
+	int32 CurrentIndex = CurrentDifference(TreeView, Differences);
+
+	auto Next = Differences[CurrentIndex + 1];
+	// we have to manually expand our parent:
+	for (auto& Test : RootDifferences)
+	{
+		if (Test->Children.Contains(Next))
+		{
+			TreeView->SetItemExpansion(Test, true);
+			break;
+		}
+	}
+
+	TreeView->SetSelection(Next);
+	TreeView->RequestScrollIntoView(Next);
+}
+
+void DiffTreeView::HighlightPrevDifference(TSharedRef< STreeView<TSharedPtr< FBlueprintDifferenceTreeEntry > > > TreeView, const TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> >& Differences, const TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> >& RootDifferences)
+{
+	int32 CurrentIndex = CurrentDifference(TreeView, Differences);
+
+	auto Prev = Differences[CurrentIndex - 1];
+	// we have to manually expand our parent:
+	for (auto& Test : RootDifferences)
+	{
+		if (Test->Children.Contains(Prev))
+		{
+			TreeView->SetItemExpansion(Test, true);
+			break;
+		}
+	}
+
+	TreeView->SetSelection(Prev);
+	TreeView->RequestScrollIntoView(Prev);
+}
+
+bool DiffTreeView::HasNextDifference(TSharedRef< STreeView<TSharedPtr< FBlueprintDifferenceTreeEntry > > > TreeView, const TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> >& Differences)
+{
+	int32 CurrentIndex = CurrentDifference(TreeView, Differences);
+	return Differences.IsValidIndex(CurrentIndex + 1);
+}
+
+bool DiffTreeView::HasPrevDifference(TSharedRef< STreeView<TSharedPtr< FBlueprintDifferenceTreeEntry > > > TreeView, const TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> >& Differences)
+{
+	int32 CurrentIndex = CurrentDifference(TreeView, Differences);
+	return Differences.IsValidIndex(CurrentIndex - 1);
+}
+
+FLinearColor DiffViewUtils::LookupColor(bool bDiffers, bool bConflicts)
+{
+	if( bConflicts )
+	{
+		return DiffViewUtils::Conflicting();
+	}
+	else if( bDiffers )
+	{
+		return DiffViewUtils::Differs();
+	}
+	else
+	{
+		return DiffViewUtils::Identical();
+	}
+}
+
+FLinearColor DiffViewUtils::Differs()
+{
+	// yellow color
+	return FLinearColor(0.85f,0.71f,0.25f);
+}
+
+FLinearColor DiffViewUtils::Identical()
+{
+	return FLinearColor::White;
+}
+
+FLinearColor DiffViewUtils::Missing()
+{
+	// blue color
+	return FLinearColor(0.3f,0.3f,1.f);
+}
+
+FLinearColor DiffViewUtils::Conflicting()
+{
+	// red color
+	return FLinearColor(1.0f,0.2f,0.3f);
+}
+
+FText DiffViewUtils::PropertyDiffMessage(FSingleObjectDiffEntry Difference, FText ObjectName)
+{
+	FText Message;
+	FString PropertyName = Difference.Identifier.LastPropertyName().GetPlainNameString();
+	switch (Difference.DiffType)
+	{
+	case EPropertyDiffType::PropertyAddedToA:
+		Message = FText::Format(NSLOCTEXT("DiffViewUtils", "PropertyValueChange", "{0} removed from {1}"), FText::FromString(PropertyName), ObjectName);
+		break;
+	case EPropertyDiffType::PropertyAddedToB:
+		Message = FText::Format(NSLOCTEXT("DiffViewUtils", "PropertyValueChange", "{0} added to {1}"), FText::FromString(PropertyName), ObjectName);
+		break;
+	case EPropertyDiffType::PropertyValueChanged:
+		Message = FText::Format(NSLOCTEXT("DiffViewUtils", "PropertyValueChange", "{0} changed value in {1}"), FText::FromString(PropertyName), ObjectName);
+		break;
+	}
+	return Message;
+}
+
+FText DiffViewUtils::SCSDiffMessage(const FSCSDiffEntry& Difference, FText ObjectName)
+{
+	const FText NodeName = FText::FromName(Difference.TreeIdentifier.Name);
+	FText Text;
+	switch (Difference.DiffType)
+	{
+	case ETreeDiffType::NODE_ADDED:
+		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeAdded", "Added Node {0} to {1}"), NodeName, ObjectName);
+		break;
+	case ETreeDiffType::NODE_REMOVED:
+		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeAdded", "Removed Node {0} from {1}"), NodeName, ObjectName);
+		break;
+	case ETreeDiffType::NODE_PROPERTY_CHANGED:
+		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeAdded", "{0} on {2}"), DiffViewUtils::PropertyDiffMessage(Difference.PropertyDiff, NodeName), ObjectName);
+		break;
+	case ETreeDiffType::NODE_MOVED:
+		Text = FText::Format(NSLOCTEXT("DiffViewUtils", "NodeAdded", "Moved Node {0} in {1}"), NodeName, ObjectName);
+		break;
+	}
+	return Text;
+}
+
+FText DiffViewUtils::GetPanelLabel(const UBlueprint* Blueprint, const FRevisionInfo& Revision, FText Label )
+{
+	if( !Revision.Revision.IsEmpty() )
+	{
+		FText RevisionData;
+		
+		if(ISourceControlModule::Get().GetProvider().UsesChangelists())
+		{
+			RevisionData = FText::Format(NSLOCTEXT("DiffViewUtils", "RevisionData", "Revision {0} - CL {1} - {2}")
+				, FText::FromString(Revision.Revision)
+				, FText::AsNumber(Revision.Changelist)
+				, FText::FromString(Revision.Date.ToString(TEXT("%m/%d/%Y"))));
+		}
+		else
+		{
+			RevisionData = FText::Format(NSLOCTEXT("DiffViewUtils", "RevisionDataNoChangelist", "Revision {0} - {1}")
+				, FText::FromString(Revision.Revision)
+				, FText::FromString(Revision.Date.ToString(TEXT("%m/%d/%Y"))));		
+		}
+
+		return FText::Format( NSLOCTEXT("DiffViewUtils", "RevisionLabel", "{0}\n{1}\n{2}")
+			, Label
+			, FText::FromString( Blueprint->GetName() )
+			, RevisionData );
+	}
+	else
+	{
+		if( Blueprint )
+		{
+			return FText::Format( NSLOCTEXT("DiffViewUtils", "RevisionLabel", "{0}\n{1}\n{2}")
+				, Label
+				, FText::FromString( Blueprint->GetName() )
+				, NSLOCTEXT("DiffViewUtils", "LocalRevisionLabel", "Local Revision" ));
+		}
+
+		return NSLOCTEXT("DiffViewUtils", "NoBlueprint", "None" );
+	}
+}
+
+SHorizontalBox::FSlot& DiffViewUtils::Box(bool bIsPresent, FLinearColor Color)
+{
+	return SHorizontalBox::Slot()
+		.AutoWidth()
+		.HAlign(HAlign_Right)
+		.VAlign(VAlign_Center)
+		.MaxWidth(8.0f)
+		[
+			SNew(SImage)
+			.ColorAndOpacity(Color)
+			.Image(bIsPresent ? FEditorStyle::GetBrush("BlueprintDif.HasGraph") : FEditorStyle::GetBrush("BlueprintDif.MissingGraph"))
+		];
+};
+

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -47,7 +47,7 @@ void SGraphNodeAnimStateEntry::UpdateGraphNode()
 	FLinearColor TitleShadowColor(0.6f, 0.6f, 0.6f);
 
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
-	this->ChildSlot
+	this->GetOrAddSlot( ENodeZone::Center )
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
 		[
@@ -85,7 +85,7 @@ void SGraphNodeAnimStateEntry::AddPin(const TSharedRef<SGraphPin>& PinToAdd)
 	OutputPins.Add(PinToAdd);
 }
 
-FString SGraphNodeAnimStateEntry::GetPreviewCornerText() const
+FText SGraphNodeAnimStateEntry::GetPreviewCornerText() const
 {
-	return FString(TEXT("Entry point for state machine"));
+	return NSLOCTEXT("SGraphNodeAnimStateEntry", "CornerTextDescription", "Entry point for state machine");
 }

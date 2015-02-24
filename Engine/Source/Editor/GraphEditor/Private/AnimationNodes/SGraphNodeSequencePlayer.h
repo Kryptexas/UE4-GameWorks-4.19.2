@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,7 +26,7 @@ protected:
 	float GetSequencePositionRatio() const;
 	void SetSequencePositionRatio(float NewRatio);
 
-	FString GetPositionTooltip() const;
+	FText GetPositionTooltip() const;
 
 	bool GetSequencePositionInfo(float& Out_Position, float& Out_Length, int32& FrameCount) const;
 };

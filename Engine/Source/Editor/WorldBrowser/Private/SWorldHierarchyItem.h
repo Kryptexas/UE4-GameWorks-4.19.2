@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 namespace HierarchyColumns
@@ -104,7 +104,7 @@ private:
 	/**
 	 *  @return The text of level name while it is not being edited
 	 */
-	FString GetLevelDisplayNameText() const;
+	FText GetLevelDisplayNameText() const;
 	
 	/** */
 	FSlateFontInfo GetLevelDisplayNameFont() const;
@@ -159,10 +159,10 @@ private:
 
 	
 	/** */
-	FString GetLevelLockToolTip() const;
+	FText GetLevelLockToolTip() const;
 	
 	/** */
-	FString GetSCCStateTooltip() const;
+	FText GetSCCStateTooltip() const;
 	
 	/** */
 	const FSlateBrush* GetSCCStateImage() const;

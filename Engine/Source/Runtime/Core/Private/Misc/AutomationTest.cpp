@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "ModuleManager.h"
@@ -133,8 +133,11 @@ bool FAutomationTestFramework::RunSmokeTests()
 			TMap<FString, FAutomationTestExecutionInfo> OutExecutionInfoMap;
 
 			// Run each valid test
+			FScopedSlowTask SlowTask(TestInfo.Num());
+
 			for ( int TestIndex = 0; TestIndex < TestInfo.Num(); ++TestIndex )
 			{
+				SlowTask.EnterProgressFrame(1);
 				if (TestInfo[TestIndex].GetTestType() == EAutomationTestType::ATT_SmokeTest )
 				{
 					FString TestCommand = TestInfo[TestIndex].GetTestName();
@@ -646,7 +649,8 @@ FAutomationTestFramework::FAutomationTestFramework()
 ,	CurrentTest(NULL)
 ,	bDeveloperDirectoryIncluded(false)
 ,	bVisualCommandletFilterOn(false)
-,	bUseFullSizeScreenShots(false)
+,	bScreenshotsEnabled(true)
+,	bUseFullSizeScreenShots(true)
 ,	NetworkRoleIndex(0)
 ,	bForceSmokeTests(false)
 { }

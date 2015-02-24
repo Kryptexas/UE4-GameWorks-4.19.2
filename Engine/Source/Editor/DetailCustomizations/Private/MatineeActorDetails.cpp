@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "Matinee/MatineeActor.h"
@@ -31,8 +31,8 @@ void FMatineeActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 		}
 	}
 	
-	DetailLayout.EditCategory( "MatineeActor", NSLOCTEXT("MatineeActorDetails", "MatineeActor", "Matinee Actor").ToString(), ECategoryPriority::Important )
-	.AddCustomRow( NSLOCTEXT("MatineeActorDetails", "OpenMatinee", "Open Matinee").ToString() )
+	DetailLayout.EditCategory( "MatineeActor", NSLOCTEXT("MatineeActorDetails", "MatineeActor", "Matinee Actor"), ECategoryPriority::Important )
+	.AddCustomRow( NSLOCTEXT("MatineeActorDetails", "OpenMatinee", "Open Matinee") )
 	[
 		SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()
@@ -44,7 +44,7 @@ void FMatineeActorDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout 
 			.VAlign(VAlign_Center)
 			.HAlign(HAlign_Center)
 			.OnClicked( this, &FMatineeActorDetails::OnOpenMatineeForActor )
-			.Text( NSLOCTEXT("MatineeActorDetails", "OpenMatinee", "Open Matinee").ToString() )
+			.Text( NSLOCTEXT("MatineeActorDetails", "OpenMatinee", "Open Matinee") )
 		]
 	];
 }

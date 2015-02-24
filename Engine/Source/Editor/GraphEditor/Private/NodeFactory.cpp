@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -64,6 +64,7 @@
 #include "KismetPins/SGraphPinVector2D.h"
 #include "NiagaraPins/SGraphPinVector4.h"
 #include "KismetPins/SGraphPinIndex.h"
+#include "KismetPins/SGraphPinCollisionProfile.h"
 
 #include "SoundNodes/SGraphNodeSoundBase.h"
 #include "SoundNodes/SGraphNodeSoundResult.h"
@@ -327,6 +328,10 @@ TSharedPtr<SGraphPin> FNodeFactory::CreatePinWidget(UEdGraphPin* InPin)
 			else if ((InPin->PinType.PinSubCategoryObject == FPoseLink::StaticStruct()) || (InPin->PinType.PinSubCategoryObject == FComponentSpacePoseLink::StaticStruct()))
 			{
 				return SNew(SGraphPinPose, InPin);
+			}
+			else if (InPin->PinType.PinSubCategoryObject == FCollisionProfileName::StaticStruct())
+			{
+				return SNew(SGraphPinCollisionProfile, InPin);
 			}
 		}
 		else if (InPin->PinType.PinCategory == K2Schema->PC_Byte)

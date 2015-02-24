@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,3 +10,8 @@
  * Run the SlateViewer .
  */
 void RunSlateViewer(const TCHAR* Commandline);
+
+/**
+ * Spawn the contents of the web browser tab
+ */
+TSharedRef<SDockTab> SpawnWebBrowserTab(const FSpawnTabArgs& Args);

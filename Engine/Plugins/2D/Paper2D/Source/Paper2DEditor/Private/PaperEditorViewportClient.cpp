@@ -1,21 +1,67 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "TileSetEditor.h"
 #include "PaperEditorViewportClient.h"
+#include "CanvasTypes.h"
+#include "PreviewScene.h"
+
+//////////////////////////////////////////////////////////////////////////
+// FAssetEditorModeTools
+
+FAssetEditorModeTools::FAssetEditorModeTools()
+	: PreviewScene(nullptr)
+{
+	ActorSet = NewObject<USelection>();
+	ActorSet->SetFlags(RF_Transactional);
+	ActorSet->AddToRoot();
+
+	ObjectSet = NewObject<USelection>();
+	ObjectSet->SetFlags(RF_Transactional);
+	ObjectSet->AddToRoot();
+}
+
+FAssetEditorModeTools::~FAssetEditorModeTools()
+{
+	ActorSet->RemoveFromRoot();
+	ActorSet = nullptr;
+	ObjectSet->RemoveFromRoot();
+	ObjectSet = nullptr;
+}
+
+USelection* FAssetEditorModeTools::GetSelectedActors() const
+{
+	return ActorSet;
+}
+
+USelection* FAssetEditorModeTools::GetSelectedObjects() const
+{
+	return ObjectSet;
+}
+
+UWorld* FAssetEditorModeTools::GetWorld() const
+{
+	return (PreviewScene != nullptr) ? PreviewScene->GetWorld() : GEditor->GetEditorWorldContext().World();
+}
+
+void FAssetEditorModeTools::SetPreviewScene(class FPreviewScene* NewPreviewScene)
+{
+	PreviewScene = NewPreviewScene;
+}
 
 //////////////////////////////////////////////////////////////////////////
 // FPaperEditorViewportClient
 
 FPaperEditorViewportClient::FPaperEditorViewportClient()
-	: FEditorViewportClient(GLevelEditorModeTools())
-	, CheckerboardTexture(NULL)
+	: FEditorViewportClient(new FAssetEditorModeTools())
+	, CheckerboardTexture(nullptr)
 {
+	bOwnsModeTools = true;
 	ZoomPos = FVector2D::ZeroVector;
 	ZoomAmount = 1.0f;
 
 	//ModifyCheckerboardTextureColors();
-
+	//@TODO: ModeTools->SetToolkitHost
 
 	//@TODO: Pretty lame hardcoding
 	//@TODO: Doesn't handle negatives either (not really)
@@ -47,12 +93,17 @@ FPaperEditorViewportClient::FPaperEditorViewportClient()
 
 FPaperEditorViewportClient::~FPaperEditorViewportClient()
 {
-	//DestroyCheckerboardTexture();
+}
+
+FLinearColor FPaperEditorViewportClient::GetBackgroundColor() const
+{
+	//@TODO: Make adjustable - TextureEditorPtr.Pin()->GetBackgroundColor());
+	return FLinearColor(0, 0, 127, 0);
 }
 
 void FPaperEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 {
-	Canvas->Clear(FColor(0, 0, 127, 0));//@TODO: Make adjustable - TextureEditorPtr.Pin()->GetBackgroundColor());
+	Canvas->Clear(GetBackgroundColor());
 }
 
 void FPaperEditorViewportClient::DrawSelectionRectangles(FViewport* Viewport, FCanvas* Canvas)
@@ -101,7 +152,7 @@ void FPaperEditorViewportClient::SetupCheckerboardTexture(const FColor& ColorOne
 	CheckerSize = FMath::RoundUpToPowerOfTwo(CheckerSize);
 	const int32 HalfPixelNum = CheckerSize >> 1;
 
-	if (CheckerboardTexture == NULL)
+	if (CheckerboardTexture == nullptr)
 	{
 		// Create the texture
 		CheckerboardTexture = UTexture2D::CreateTransient(CheckerSize, CheckerSize, PF_B8G8R8A8);
@@ -118,11 +169,11 @@ void FPaperEditorViewportClient::SetupCheckerboardTexture(const FColor& ColorOne
 
 				if (ColNum < HalfPixelNum)
 				{
-					CurColor = (RowNum < HalfPixelNum)? ColorOne: ColorTwo;
+					CurColor = (RowNum < HalfPixelNum) ? ColorOne: ColorTwo;
 				}
 				else
 				{
-					CurColor = (RowNum < HalfPixelNum)? ColorTwo: ColorOne;
+					CurColor = (RowNum < HalfPixelNum) ? ColorTwo: ColorOne;
 				}
 			}
 		}
@@ -142,6 +193,6 @@ void FPaperEditorViewportClient::DestroyCheckerboardTexture()
 			CheckerboardTexture->ReleaseResource();
 		}
 		CheckerboardTexture->MarkPendingKill();
-		CheckerboardTexture = NULL;
+		CheckerboardTexture = nullptr;
 	}
 }

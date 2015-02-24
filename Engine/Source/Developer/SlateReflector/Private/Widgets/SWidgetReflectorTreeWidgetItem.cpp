@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateReflectorPrivatePCH.h"
+#include "ReflectionMetadata.h"
 #include "SWidgetReflectorTreeWidgetItem.h"
 #include "SHyperlink.h"
 
@@ -16,21 +17,21 @@ TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FNam
 		return SNew(SHorizontalBox)
 
 		+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.VAlign(VAlign_Center)
-			[
-				SNew(SExpanderArrow, SharedThis(this))
-			]
+		.AutoWidth()
+		.VAlign(VAlign_Center)
+		[
+			SNew(SExpanderArrow, SharedThis(this))
+		]
 
 		+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(2.0f, 0.0f)
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-					.Text(this, &SReflectorTreeWidgetItem::GetWidgetType)
-					.ColorAndOpacity(this, &SReflectorTreeWidgetItem::GetTint)
-			];
+		.AutoWidth()
+		.Padding(2.0f, 0.0f)
+		.VAlign(VAlign_Center)
+		[
+			SNew(STextBlock)
+			.Text(this, &SReflectorTreeWidgetItem::GetWidgetType)
+			.ColorAndOpacity(this, &SReflectorTreeWidgetItem::GetTint)
+		];
 	}
 	else if (ColumnName == TEXT("WidgetInfo"))
 	{
@@ -40,8 +41,8 @@ TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FNam
 			.Padding(FMargin(2.0f, 0.0f))
 			[
 				SNew(SHyperlink)
-					.Text(this, &SReflectorTreeWidgetItem::GetReadableLocation)
-					.OnNavigate(this, &SReflectorTreeWidgetItem::HandleHyperlinkNavigate)
+				.Text(this, &SReflectorTreeWidgetItem::GetReadableLocationAsText)
+				.OnNavigate(this, &SReflectorTreeWidgetItem::HandleHyperlinkNavigate)
 			];
 	}
 	else if (ColumnName == "Visibility")
@@ -94,3 +95,49 @@ TSharedRef<SWidget> SReflectorTreeWidgetItem::GenerateWidgetForColumn(const FNam
 	}
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
+
+FString SReflectorTreeWidgetItem::GetReadableLocation() const
+{
+	FString ReadableLocation;
+
+	TWeakPtr<SWidget> Widget = WidgetInfo.Get()->Widget;
+	if ( Widget.IsValid() )
+	{
+		TSharedPtr<SWidget> SafeWidget = Widget.Pin();
+		TSharedPtr<FReflectionMetaData> MetaData = SafeWidget->GetMetaData<FReflectionMetaData>();
+		if ( MetaData.IsValid() && MetaData->Asset.Get() != nullptr )
+		{
+			ReadableLocation = MetaData->Asset->GetName() + TEXT(" [") + MetaData->Name.ToString() + TEXT("]");
+		}
+		else
+		{
+			ReadableLocation = SafeWidget->GetReadableLocation();
+		}
+	}
+
+	return ReadableLocation;
+}
+
+void SReflectorTreeWidgetItem::HandleHyperlinkNavigate()
+{
+	TWeakPtr<SWidget> Widget = WidgetInfo.Get()->Widget;
+	if ( Widget.IsValid() )
+	{
+		TSharedPtr<SWidget> SafeWidget = Widget.Pin();
+		TSharedPtr<FReflectionMetaData> MetaData = SafeWidget->GetMetaData<FReflectionMetaData>();
+		if ( MetaData.IsValid() && MetaData->Asset.Get() != nullptr )
+		{
+			if ( OnAccessAsset.IsBound() )
+			{
+				OnAccessAsset.Execute(MetaData->Asset.Get());
+			}
+		}
+		else
+		{
+			if ( OnAccessSourceCode.IsBound() )
+			{
+				OnAccessSourceCode.Execute(GetWidgetFile().ToString(), GetWidgetLineNumber(), 0);
+			}
+		}
+	}
+}

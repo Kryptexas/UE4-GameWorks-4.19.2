@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "ModuleManager.h"
 #include "IAssetTypeActions.h"
+#include "IClassTypeActions.h"
 #include "IAssetTools.h"
 
 class FAssetToolsModule : public IModuleInterface
@@ -22,7 +23,8 @@ public:
 	 */
 	static inline FAssetToolsModule& GetModule()
 	{
-		return FModuleManager::LoadModuleChecked< FAssetToolsModule >("AssetTools");
+		static const FName ModuleName = "AssetTools";
+		return FModuleManager::LoadModuleChecked< FAssetToolsModule >(ModuleName);
 	}
 
 private:

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -162,4 +162,7 @@ private:
 
 	/** Holds a delegate to be invoked when the widget ticks. */
 	FTickerDelegate TickDelegate;
+
+	/** Holds a delegate to be invoked when the widget ticks. */
+	FDelegateHandle TickDelegateHandle;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Matinee exporter for Unreal Engine 3.
@@ -15,6 +15,9 @@ class UInterpData;
 class UInterpTrackMove;
 class UInterpTrackFloatProp;
 class UInterpTrackVectorProp;
+class AActor;
+class AMatineeActor;
+class ALight;
 
 /**
  * Main Matinee Exporter class.

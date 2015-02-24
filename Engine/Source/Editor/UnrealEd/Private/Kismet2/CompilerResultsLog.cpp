@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "CompilerResultsLog.h"
@@ -7,6 +7,7 @@
 #include "UObjectToken.h"
 #include "SourceCodeNavigation.h"
 #include "Developer/HotReload/Public/IHotReload.h"
+#include "EngineLogs.h"
 
 #if WITH_EDITOR
 
@@ -14,6 +15,7 @@
 
 const FName FCompilerResultsLog::Name(TEXT("CompilerResultsLog"));
 FCompilerResultsLog* FCompilerResultsLog::CurrentEventTarget = nullptr;
+FDelegateHandle FCompilerResultsLog::GetGlobalModuleCompilerDumpDelegateHandle;
 
 //////////////////////////////////////////////////////////////////////////
 // FCompilerResultsLog
@@ -92,12 +94,12 @@ void FCompilerResultsLog::Register()
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	MessageLogModule.RegisterLogListing(Name, LOCTEXT("CompilerLog", "Compiler Log"));
 
-	IHotReloadModule::Get().OnModuleCompilerFinished().AddStatic( &FCompilerResultsLog::GetGlobalModuleCompilerDump );
+	GetGlobalModuleCompilerDumpDelegateHandle = IHotReloadModule::Get().OnModuleCompilerFinished().AddStatic( &FCompilerResultsLog::GetGlobalModuleCompilerDump );
 }
 
 void FCompilerResultsLog::Unregister()
 {
-	IHotReloadModule::Get().OnModuleCompilerFinished().RemoveStatic( &FCompilerResultsLog::GetGlobalModuleCompilerDump );
+	IHotReloadModule::Get().OnModuleCompilerFinished().Remove( GetGlobalModuleCompilerDumpDelegateHandle );
 
 	FMessageLogModule& MessageLogModule = FModuleManager::LoadModuleChecked<FMessageLogModule>("MessageLog");
 	MessageLogModule.UnregisterLogListing(Name);

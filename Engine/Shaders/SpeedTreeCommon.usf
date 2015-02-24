@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  * SpeedTreeCommon.usf: Code for SpeedTree vertex processing
@@ -96,7 +96,7 @@ float3x3 RotationMatrix(float3 vAxis, float fAngle)
 {
     // compute sin/cos of fAngle
     float2 vSinCos;
-	#ifdef OPENGL
+	#if COMPILER_GLSL || COMPILER_GLSL_ES2
 		vSinCos.x = sin(fAngle);
 		vSinCos.y = cos(fAngle);
 	#else

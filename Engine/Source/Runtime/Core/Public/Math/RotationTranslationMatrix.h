@@ -1,12 +1,16 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+
 /** Combined rotation and translation matrix */
-class FRotationTranslationMatrix : public FMatrix
+class FRotationTranslationMatrix
+	: public FMatrix
 {
 public:
-	/** Constructor
+
+	/**
+	 * Constructor.
 	 *
 	 * @param Rot rotation
 	 * @param Origin translation to apply
@@ -18,8 +22,8 @@ public:
 	{
 		return FRotationTranslationMatrix(Rot, Origin);
 	}
-
 };
+
 
 FORCEINLINE FRotationTranslationMatrix::FRotationTranslationMatrix(const FRotator& Rot, const FVector& Origin)
 {

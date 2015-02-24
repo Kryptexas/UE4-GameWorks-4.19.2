@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -45,21 +45,21 @@ public:
 	FSlateFontInfo Font;
 
 	/** Called whenever the text is changed interactively by the user */
-	UPROPERTY(BlueprintAssignable, Category="Widget Event")
+	UPROPERTY(BlueprintAssignable, Category="Widget Event", meta=(DisplayName="OnTextChanged (Multi-Line Editable Text)"))
 	FOnMultiLineEditableTextChangedEvent OnTextChanged;
 
 	/** Called whenever the text is committed.  This happens when the user presses enter or the text box loses focus. */
-	UPROPERTY(BlueprintAssignable, Category="Widget Event")
+	UPROPERTY(BlueprintAssignable, Category="Widget Event", meta=(DisplayName="OnTextCommitted (Multi-Line Editable Text)"))
 	FOnMultiLineEditableTextCommittedEvent OnTextCommitted;
 
 public:
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Widget")
+	UFUNCTION(BlueprintCallable, Category="Widget", meta=(FriendlyName="GetText (Multi-Line Editable Text)"))
 	FText GetText() const;
 
 	/**  */
-	UFUNCTION(BlueprintCallable, Category="Widget")
+	UFUNCTION(BlueprintCallable, Category="Widget", meta=(FriendlyName="SetText (Multi-Line Editable Text)"))
 	void SetText(FText InText);
 	
 	// UWidget interface

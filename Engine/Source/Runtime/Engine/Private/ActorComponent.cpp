@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 // ActorComponent.cpp: Actor component implementation.
 
 #include "EnginePrivate.h"
@@ -9,6 +9,7 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 #include "ComponentReregisterContext.h"
+#include "Engine/SimpleConstructionScript.h"
 
 #define LOCTEXT_NAMESPACE "ActorComponent"
 
@@ -98,13 +99,14 @@ FGlobalComponentReregisterContext::~FGlobalComponentReregisterContext()
 	ActiveGlobalReregisterContextCount--;
 }
 
-
-UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer)
+UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.TickGroup = TG_DuringPhysics;
 	PrimaryComponentTick.bStartWithTickEnabled = true;
 	PrimaryComponentTick.bCanEverTick = false;
+
+	CreationMethod = EComponentCreationMethod::Native;
 
 	bAutoRegister = true;
 	bNetAddressable = false;
@@ -121,8 +123,67 @@ void UActorComponent::PostInitProperties()
 	}
 }
 
+void UActorComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	// TODO: Wrap all this up with an engine version, for now just don't do it in cooked builds since we know they are good
+	if (!FPlatformProperties::RequiresCookedData())
+	{
+		if (bCreatedByConstructionScript_DEPRECATED)
+		{
+			CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
+		}
+		else if (bInstanceComponent_DEPRECATED)
+		{
+			CreationMethod = EComponentCreationMethod::Instance;
+		}
+
+		if (CreationMethod == EComponentCreationMethod::SimpleConstructionScript)
+		{
+			UBlueprintGeneratedClass* Class = Cast/*Checked*/<UBlueprintGeneratedClass>(GetOuter()->GetClass());
+			while (Class)
+			{
+				USimpleConstructionScript* SCS = Class->SimpleConstructionScript;
+				if (SCS != nullptr && SCS->FindSCSNode(GetFName()))
+				{
+					break;
+				}
+				else
+				{
+					Class = Cast<UBlueprintGeneratedClass>(Class->GetSuperClass());
+					if (Class == nullptr)
+					{
+						CreationMethod = EComponentCreationMethod::UserConstructionScript;
+					}
+				}
+			}
+		}
+	}
+}
+
+bool UActorComponent::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
+{
+	bRoutedPostRename = false;
+
+	const FName OldName = GetFName();
+	const UObject* OldOuter = GetOuter();
+	
+	const bool bRenameSuccessful = Super::Rename(InName, NewOuter, Flags);
+	
+	const bool bMoved = (OldName != GetFName()) || (OldOuter != GetOuter());
+	if (!bRoutedPostRename && ((Flags & REN_Test) == 0) && bMoved)
+	{
+		UE_LOG(LogActorComponent, Fatal, TEXT("%s failed to route PostRename.  Please call Super::PostRename() in your <className>::PostRename() function. "), *GetFullName() );
+	}
+
+	return bRenameSuccessful;
+}
+
 void UActorComponent::PostRename(UObject* OldOuter, const FName OldName)
 {
+	Super::PostRename(OldOuter, OldName);
+
 	if (OldOuter != GetOuter())
 	{
 		AActor* Owner = GetOwner();
@@ -140,6 +201,13 @@ void UActorComponent::PostRename(UObject* OldOuter, const FName OldName)
 			}
 		}
 	}
+
+	bRoutedPostRename = true;
+}
+
+bool UActorComponent::IsCreatedByConstructionScript() const
+{
+	return ((CreationMethod == EComponentCreationMethod::SimpleConstructionScript) || (CreationMethod == EComponentCreationMethod::UserConstructionScript));
 }
 
 #if WITH_EDITOR
@@ -358,6 +426,18 @@ bool UActorComponent::CallRemoteFunction( UFunction* Function, void* Parameters,
 static TMap<UActorComponent*,FComponentReregisterContext*> EditReregisterContexts;
 
 #if WITH_EDITOR
+bool UActorComponent::Modify( bool bAlwaysMarkDirty/*=true*/ )
+{
+	// If this is a construction script component we don't store them in the transaction buffer.  Instead, mark
+	// the Actor as modified so that we store of the transaction annotation that has the component properties stashed
+	if (IsCreatedByConstructionScript() && GetOwner())
+	{
+		return GetOwner()->Modify(bAlwaysMarkDirty);
+	}
+
+	return Super::Modify(bAlwaysMarkDirty);
+}
+
 void UActorComponent::PreEditChange(UProperty* PropertyThatWillChange)
 {
 	Super::PreEditChange(PropertyThatWillChange);
@@ -396,10 +476,19 @@ void UActorComponent::PostEditUndo()
 			EditReregisterContexts.Remove(this);
 		}
 	}
+	else
+	{
+		//Let the component be properly registered, after it was restored.
+		AActor* Owner = GetOwner();
+		if (Owner)
+		{
+			Owner->AddOwnedComponent(this);
+		}
+	}
 	Super::PostEditUndo();
 }
 
-void UActorComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+void UActorComponent::ConsolidatedPostEditChange()
 {
 	FComponentReregisterContext* ReregisterContext = EditReregisterContexts.FindRef(this);
 	if(ReregisterContext)
@@ -412,13 +501,27 @@ void UActorComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 	// Don't do do a full recreate in this situation, and instead simply detach.
 	if( IsPendingKill() )
 	{
-		// @todo UE4 james should this call UnregsiterComponent instead to remove itself from the RegisteteredComponents array on the owner?
+		// @todo UE4 james should this call UnregisterComponent instead to remove itself from the RegisteredComponents array on the owner?
 		ExecuteUnregisterEvents();
 		World = NULL;
 	}
+}
+
+void UActorComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	ConsolidatedPostEditChange();
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 }
+
+void UActorComponent::PostEditChangeChainProperty(FPropertyChangedChainEvent& PropertyChangedEvent)
+{
+	ConsolidatedPostEditChange();
+
+	Super::PostEditChangeChainProperty(PropertyChangedEvent);
+}
+
+
 #endif // WITH_EDITOR
 
 void UActorComponent::OnRegister()
@@ -451,13 +554,42 @@ void UActorComponent::InitializeComponent()
 {
 	check(bRegistered);
 	check(!bHasBeenInitialized);
+
+	ReceiveInitializeComponent();
+
 	bHasBeenInitialized = true;
 }
 
 void UActorComponent::UninitializeComponent()
 {
 	check(bHasBeenInitialized);
+
+	// If we're already pending kill blueprints don't get to be notified
+	if (!HasAnyFlags(RF_BeginDestroyed))
+	{
+		ReceiveUninitializeComponent();
+	}
+
 	bHasBeenInitialized = false;
+}
+
+FActorComponentInstanceData* UActorComponent::GetComponentInstanceData() const
+{
+	FActorComponentInstanceData* InstanceData = new FActorComponentInstanceData(this);
+
+	if (!InstanceData->ContainsSavedProperties())
+	{
+		delete InstanceData;
+		InstanceData = nullptr;
+	}
+
+	return InstanceData;
+}
+
+FName UActorComponent::GetComponentInstanceDataType() const
+{
+	static const FName ActorComponentInstanceDataTypeName(TEXT("ActorComponentInstanceData"));
+	return ActorComponentInstanceDataTypeName;
 }
 
 void FActorComponentTickFunction::ExecuteTick(float DeltaTime, enum ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
@@ -555,10 +687,7 @@ void UActorComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, F
 {
 	check(bRegistered);
 
-	if (!bIsActive)
-	{
-		SetComponentTickEnabled(false);
-	}
+	ReceiveTick(DeltaTime);
 }
 
 void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
@@ -628,7 +757,7 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 	}
 
 	// If this is a blueprint created component and it has component children they can miss getting registered in some scenarios
-	if (bCreatedByConstructionScript)
+	if (IsCreatedByConstructionScript())
 	{
 		TArray<UObject*> Children;
 		GetObjectsWithOuter(this, Children, true, RF_PendingKill);
@@ -680,7 +809,7 @@ void UActorComponent::UnregisterComponent()
 	World = NULL;
 }
 
-void UActorComponent::DestroyComponent()
+void UActorComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 {
 	// Ensure that we call UninitializeComponent before we destroy this component
 	if (bHasBeenInitialized)
@@ -698,7 +827,14 @@ void UActorComponent::DestroyComponent()
 	AActor* Owner = GetOwner();
 	if(Owner != NULL)
 	{
-		Owner->SerializedComponents.Remove(this);
+		if (IsCreatedByConstructionScript())
+		{
+			Owner->BlueprintCreatedComponents.Remove(this);
+		}
+		else
+		{
+			Owner->RemoveInstanceComponent(this);
+		}
 		Owner->RemoveOwnedComponent(this);
 		if (Owner->GetRootComponent() == this)
 		{
@@ -1103,6 +1239,17 @@ void UActorComponent::ToggleActive()
 bool UActorComponent::IsActive() const
 {
 	return bIsActive;
+}
+
+void UActorComponent::SetTickableWhenPaused(bool bTickableWhenPaused)
+{
+	PrimaryComponentTick.bTickEvenWhenPaused = bTickableWhenPaused;
+}
+
+bool UActorComponent::IsRunningUserConstructionScript() const
+{
+	const AActor* Owner = GetOwner();
+	return Owner != nullptr && Owner->bRunningUserConstructionScript;
 }
 
 void UActorComponent::AddAssetUserData(UAssetUserData* InUserData)

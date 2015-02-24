@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMesh.cpp: Static mesh class implementation.
@@ -21,6 +21,9 @@
 #include "DerivedDataCacheInterface.h"
 #include "UObjectAnnotation.h"
 #endif // #if WITH_EDITOR
+#include "Engine/StaticMeshSocket.h"
+#include "EditorFramework/AssetImportData.h"
+#include "AI/Navigation/NavCollision.h"
 
 DEFINE_LOG_CATEGORY(LogStaticMesh);	
 
@@ -618,22 +621,26 @@ void FStaticMeshRenderData::Serialize(FArchive& Ar, UStaticMesh* Owner, bool bCo
 	// Inline the distance field derived data for cooked builds
 	if (bCooked)
 	{
-		for (int32 ResourceIndex = 0; ResourceIndex < LODResources.Num(); ResourceIndex++)
+		FStripDataFlags StripFlags( Ar );
+		if ( !StripFlags.IsDataStrippedForServer() )
 		{
-			FStaticMeshLODResources& LOD = LODResources[ResourceIndex];
-
-			bool bValid = LOD.DistanceFieldData != NULL;
-
-			Ar << bValid;
-
-			if (bValid)
+			for (int32 ResourceIndex = 0; ResourceIndex < LODResources.Num(); ResourceIndex++)
 			{
-				if (!LOD.DistanceFieldData)
-				{
-					LOD.DistanceFieldData = new FDistanceFieldVolumeData();
-				}
+				FStaticMeshLODResources& LOD = LODResources[ResourceIndex];
 
-				Ar << *(LOD.DistanceFieldData);
+				bool bValid = LOD.DistanceFieldData != NULL;
+
+				Ar << bValid;
+
+				if (bValid)
+				{
+					if (!LOD.DistanceFieldData)
+					{
+						LOD.DistanceFieldData = new FDistanceFieldVolumeData();
+					}
+
+					Ar << *(LOD.DistanceFieldData);
+				}
 			}
 		}
 	}
@@ -990,6 +997,7 @@ FArchive& operator<<(FArchive& Ar, FMeshBuildSettings& BuildSettings)
 	// Note: this serializer is currently only used to build the mesh DDC key, no versioning is required
 	Ar << BuildSettings.bRecomputeNormals;
 	Ar << BuildSettings.bRecomputeTangents;
+	Ar << BuildSettings.bUseMikkTSpace;
 	Ar << BuildSettings.bRemoveDegenerates;
 	Ar << BuildSettings.bUseFullPrecisionUVs;
 	Ar << BuildSettings.bGenerateLightmapUVs;
@@ -1410,7 +1418,7 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 	if (!bAutoComputeLODScreenSize
 		&& RenderData
 		&& PropertyThatChanged
-		&& PropertyThatChanged->GetName() == TEXT("bAutoComputeLODDistance"))
+		&& PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, bAutoComputeLODScreenSize))
 		{
 		for (int32 LODIndex = 1; LODIndex < SourceModels.Num(); ++LODIndex)
 		{
@@ -1424,8 +1432,8 @@ void UStaticMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedE
 
 	// Only unbuild lighting for properties which affect static lighting
 	if (!PropertyThatChanged 
-		|| PropertyThatChanged->GetName() == TEXT("LightMapResolution")
-		|| PropertyThatChanged->GetName() == TEXT("LightMapCoordinateIndex"))
+		|| PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, LightMapResolution)
+		|| PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UStaticMesh, LightMapCoordinateIndex))
 	{
 		FStaticMeshComponentRecreateRenderStateContext Context(this, true);		
 		SetLightingGuid();
@@ -1479,6 +1487,13 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 	OutTags.Add( FAssetRegistryTag("Materials", FString::FromInt(Materials.Num()), FAssetRegistryTag::TT_Numerical) );
 	OutTags.Add( FAssetRegistryTag("ApproxSize", ApproxSizeStr, FAssetRegistryTag::TT_Dimensional) );
 	OutTags.Add( FAssetRegistryTag("CollisionPrims", FString::FromInt(NumCollisionPrims), FAssetRegistryTag::TT_Numerical) );
+
+#if WITH_EDITORONLY_DATA
+	if (AssetImportData)
+	{
+		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->SourceFilePath, FAssetRegistryTag::TT_Hidden) );
+	}
+#endif
 
 	Super::GetAssetRegistryTags(OutTags);
 }
@@ -1668,21 +1683,12 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	FStripDataFlags StripFlags( Ar );
 
 	bool bCooked = Ar.IsCooking();
-	if (Ar.UE4Ver() >= VER_UE4_STATIC_MESH_REFACTOR)
-	{
-		Ar << bCooked;
-	}
+	Ar << bCooked;
 
 #if WITH_EDITORONLY_DATA
 	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_REMOVE_ZERO_TRIANGLE_SECTIONS)
 	{
 		GStaticMeshesThatNeedMaterialFixup.Set(this);
-	}
-
-	FBoxSphereBounds LegacyBounds;
-	if (Ar.UE4Ver() < VER_UE4_STATIC_MESH_REFACTOR)
-	{
-		Ar << LegacyBounds;
 	}
 #endif // #if WITH_EDITORONLY_DATA
 
@@ -1692,21 +1698,6 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	{
 		Ar << NavCollision;
 	}
-
-#if WITH_EDITOR
-	if (Ar.UE4Ver() < VER_UE4_STATIC_MESH_REFACTOR)
-	{
-		int64 StartCycles = FPlatformTime::Cycles();
-		SerializeLegacySouceData(Ar, LegacyBounds);
-		int64 EndCycles = FPlatformTime::Cycles();
-		StaticMeshDerivedDataTimings::ConvertCycles += (EndCycles - StartCycles);
-		UE_LOG(LogStaticMesh,Verbose,
-			TEXT("Converting legacy source data for %s took %fs"),
-			*GetPathName(),
-			FPlatformTime::ToSeconds(EndCycles - StartCycles)
-			);
-	}
-#endif
 
 #if WITH_EDITORONLY_DATA
 	if( !StripFlags.IsEditorDataStripped() )
@@ -1745,40 +1736,10 @@ void UStaticMesh::Serialize(FArchive& Ar)
 	}
 
 	Ar << LightingGuid;
-
-	if (Ar.UE4Ver() < VER_UE4_STATIC_MESH_REFACTOR)
-	{
-		int32 VertexPositionVersionNumber = 0;
-		Ar << VertexPositionVersionNumber;
-	}
-
-	if (Ar.UE4Ver() < VER_UE4_REMOVE_CACHED_STATIC_MESH_STREAMING_FACTORS)
-	{
-		TArray<float> CachedStreamingTextureFactors;
-		Ar << CachedStreamingTextureFactors;
-	}
-
-#if WITH_EDITORONLY_DATA
-	if (Ar.UE4Ver() < VER_UE4_STATIC_MESH_REFACTOR)
-	{
-		bool bRemoveDegenerates_DEPRECATED;
-		Ar << bRemoveDegenerates_DEPRECATED;
-		for (int32 i = 0; i < SourceModels.Num(); ++i)
-		{
-			FStaticMeshSourceModel& SrcModel = SourceModels[i];
-			SrcModel.BuildSettings.bRemoveDegenerates = SrcModel.BuildSettings.bRemoveDegenerates && bRemoveDegenerates_DEPRECATED;
-			SrcModel.BuildSettings.bUseFullPrecisionUVs = UseFullPrecisionUVs_DEPRECATED;
-		}
-	}
-#endif // #if WITH_EDITORONLY_DATA
-
-	if (Ar.UE4Ver() >= VER_UE4_STATIC_MESH_SOCKETS)
-	{
-		Ar << Sockets;
-	}
+	Ar << Sockets;
 
 #if WITH_EDITOR
-	if (Ar.UE4Ver() >= VER_UE4_STATIC_MESH_REFACTOR && !StripFlags.IsEditorDataStripped())
+	if (!StripFlags.IsEditorDataStripped())
 	{
 		for (int32 i = 0; i < SourceModels.Num(); ++i)
 		{
@@ -1870,6 +1831,14 @@ void UStaticMesh::PostLoad()
 		for( int32 i = 0; i < SourceModels.Num(); i++ )
 		{
 			SourceModels[i].BuildSettings.bGenerateLightmapUVs = false;
+		}
+	}
+
+	if (GetLinkerUE4Version() < VER_UE4_MIKKTSPACE_IS_DEFAULT)
+	{
+		for (int32 i = 0; i < SourceModels.Num(); ++i)
+		{
+			SourceModels[i].BuildSettings.bUseMikkTSpace = true;
 		}
 	}
 
@@ -2563,7 +2532,7 @@ UStaticMeshSocket* UStaticMesh::FindSocket(FName InSocketName)
 UStaticMeshSocket
 -----------------------------------------------------------------------------*/
 
-UStaticMeshSocket::UStaticMeshSocket(const class FObjectInitializer& ObjectInitializer)
+UStaticMeshSocket::UStaticMeshSocket(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	RelativeScale = FVector(1.0f, 1.0f, 1.0f);

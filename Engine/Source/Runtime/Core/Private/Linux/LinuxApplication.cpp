@@ -1,11 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "LinuxApplication.h"
 #include "LinuxWindow.h"
 #include "LinuxCursor.h"
 #include "GenericApplicationMessageHandler.h"
-#include "IForceFeedbackSystem.h"
+#include "IInputInterface.h"
 #include "IInputDeviceModule.h"
 #include "IInputDevice.h"
 #if STEAM_CONTROLLER_SUPPORT
@@ -67,6 +67,8 @@ FLinuxApplication::FLinuxApplication() : GenericApplication( MakeShareable( new 
 #if STEAM_CONTROLLER_SUPPORT
 	, SteamInput( SteamControllerInterface::Create(MessageHandler) )
 #endif // STEAM_CONTROLLER_SUPPORT
+	, bIsMouseCursorLocked(false)
+	, bIsMouseCaptureEnabled(false)
 	, bHasLoadedInputPlugins(false)
 {
 	bUsingHighPrecisionMouseInput = false;
@@ -240,13 +242,14 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			SDL_KeyboardEvent KeyEvent = Event.key;
 			const SDL_Keycode KeyCode = KeyEvent.keysym.scancode;
 			const bool bIsRepeated = KeyEvent.repeat != 0;
-				
-			// First KeyDown, then KeyChar. This is important, as in-game console ignores first character otherwise
+
+			// Text input is now handled in SDL_TEXTINPUT: see below
 			MessageHandler->OnKeyDown(KeyCode, KeyEvent.keysym.sym, bIsRepeated);
 
-			if (GeneratesKeyCharMessage(KeyEvent))
+			// Backspace input in only caught here.
+			if (KeyCode == SDL_SCANCODE_BACKSPACE || KeyCode == SDL_SCANCODE_RETURN)
 			{
-				const TCHAR Character = ConvertChar(KeyEvent.keysym);
+				const TCHAR Character = SDL_GetKeyFromScancode(Event.key.keysym.scancode);
 				MessageHandler->OnKeyChar(Character, bIsRepeated);
 			}
 		}
@@ -255,10 +258,19 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 		{
 			SDL_KeyboardEvent keyEvent = Event.key;
 			const SDL_Keycode KeyCode = keyEvent.keysym.scancode;
-			const TCHAR Character = ConvertChar( keyEvent.keysym );
 			const bool IsRepeat = keyEvent.repeat != 0;
 
 			MessageHandler->OnKeyUp( KeyCode, keyEvent.keysym.sym, IsRepeat );
+		}
+		break;
+	case SDL_TEXTINPUT:
+		{
+			// Slate now gets all its text from here, I hope.
+			// Don't know if this will work with ingame text or not.
+			const bool bIsRepeated = Event.key.repeat != 0;
+			const TCHAR Character = *ANSI_TO_TCHAR(Event.text.text);
+
+			MessageHandler->OnKeyChar(Character, bIsRepeated);
 		}
 		break;
 	case SDL_MOUSEMOTION:
@@ -302,7 +314,11 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 
 			if(bUsingHighPrecisionMouseInput)
 			{
-					LinuxCursor->AddOffset(motionEvent.xrel, motionEvent.yrel);
+					// maintain "shadow" global position
+					if (LinuxCursor->IsHidden())
+					{
+						LinuxCursor->AddOffset(motionEvent.xrel, motionEvent.yrel);
+					}
  					MessageHandler->OnRawMouseMove(motionEvent.xrel, motionEvent.yrel);
 			}
 			else
@@ -346,7 +362,6 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 			}
 			else
 			{
-				TrackActivationChanges(CurrentEventWindow, EWindowActivation::ActivateByMouse);
 				if (buttonEvent.clicks == 2)
 				{
 					MessageHandler->OnMouseDoubleClick(CurrentEventWindow, button);
@@ -706,8 +721,24 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 					}
 					break;
 
-				case SDL_WINDOWEVENT_FOCUS_GAINED:	// seems to be spurious and does not always reflect actual focus changes, ignore for now
-				case SDL_WINDOWEVENT_FOCUS_LOST:	// seems to be spurious and does not always reflect actual focus changes, ignore for now
+				case SDL_WINDOWEVENT_FOCUS_GAINED:
+					{
+						if (CurrentEventWindow.IsValid())
+						{
+							TrackActivationChanges(CurrentEventWindow, EWindowActivation::Activate);                            
+						}
+					}
+					break;
+
+				case SDL_WINDOWEVENT_FOCUS_LOST:
+					{
+						if (CurrentEventWindow.IsValid())
+						{
+							TrackActivationChanges(CurrentEventWindow, EWindowActivation::Deactivate);
+						}
+					}
+					break;
+
 				case SDL_WINDOWEVENT_HIDDEN:		// intended fall-through
 				case SDL_WINDOWEVENT_EXPOSED:		// intended fall-through
 				case SDL_WINDOWEVENT_MINIMIZED:		// intended fall-through
@@ -772,27 +803,27 @@ void FLinuxApplication::PollGameDeviceState( const float TimeDelta )
 
 TCHAR FLinuxApplication::ConvertChar( SDL_Keysym Keysym )
 {
-	if( Keysym.sym >= 128 )
+	if (SDL_GetKeyFromScancode(Keysym.scancode) >= 128)
 	{
 		return 0;
 	}
 
-    TCHAR Char = Keysym.sym;
+	TCHAR Char = SDL_GetKeyFromScancode(Keysym.scancode);
 
     if (Keysym.mod & (KMOD_LSHIFT | KMOD_RSHIFT))
     {
         // Convert to uppercase (FIXME: what about CAPS?)
-        if( Keysym.sym >= 97 && Keysym.sym <= 122)
+		if( SDL_GetKeyFromScancode(Keysym.scancode)  >= 97 && SDL_GetKeyFromScancode(Keysym.scancode)  <= 122)
         {
             return Keysym.sym - 32;
         }
-        else if( Keysym.sym >= 91 && Keysym.sym <= 93)
+		else if( SDL_GetKeyFromScancode(Keysym.scancode) >= 91 && SDL_GetKeyFromScancode(Keysym.scancode)  <= 93)
         {
-            return Keysym.sym + 32; // [ \ ] -> { | }
+			return SDL_GetKeyFromScancode(Keysym.scancode) + 32; // [ \ ] -> { | }
         }
         else
         {
-            switch(Keysym.sym)
+			switch(SDL_GetKeyFromScancode(Keysym.scancode) )
             {
                 case '`': // ` -> ~
                     Char = TEXT('`');
@@ -880,6 +911,12 @@ TSharedPtr< FLinuxWindow > FLinuxApplication::FindEventWindow( SDL_Event* Event 
 	uint16 WindowID = 0;
 	switch (Event->type)
 	{
+		case SDL_TEXTINPUT:
+			WindowID = Event->text.windowID;
+			break;
+		case SDL_TEXTEDITING:
+			WindowID = Event->edit.windowID;
+			break;
 		case SDL_KEYDOWN:
 		case SDL_KEYUP:
 			WindowID = Event->key.windowID;

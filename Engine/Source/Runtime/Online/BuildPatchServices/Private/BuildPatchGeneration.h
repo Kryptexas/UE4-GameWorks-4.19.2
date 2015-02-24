@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchGeneration.h: Declares classes involved with producing build data.
@@ -679,6 +679,17 @@ private:
 	// A critical section to enforce only one build at a time
 	static FCriticalSection SingleConcurrentBuildCS;
 
+};
+
+/**
+ * Simple data structure to hold values parsed from the File Attribute List
+ */
+struct FFileAttributes
+{
+	bool bReadOnly;
+	bool bCompressed;
+	bool bUnixExecutable;
+	FFileAttributes();
 };
 
 #endif //WITH_BUILDPATCHGENERATION

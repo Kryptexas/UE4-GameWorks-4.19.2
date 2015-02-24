@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemTestPawn.h"
@@ -12,25 +12,9 @@
 #include "GameplayEffectStackingExtension_CappedNumberTest.h"
 #include "GameplayEffectStackingExtension_DiminishingReturnsTest.h"
 
-IMPLEMENT_SIMPLE_AUTOMATION_TEST(FGameplayEffectsTest, "AbilitySystem.GameplayEffects", EAutomationTestFlags::ATF_Editor)
-
 #define SKILL_TEST_TEXT( Format, ... ) FString::Printf(TEXT("%s - %d: %s"), TEXT(__FILE__) , __LINE__ , *FString::Printf(TEXT(Format), ##__VA_ARGS__) )
 
 #if WITH_EDITOR
-
-void GameplayTest_TickWorld(UWorld *World, float Time)
-{
-	const float step = 0.1f;
-	while(Time > 0.f)
-	{
-		World->Tick(ELevelTick::LEVELTICK_All, FMath::Min(Time, step) );
-		Time-=step;
-
-		// This is terrible but required for subticking like this.
-		// we could always cache the real GFrameCounter at the start of our tests and restore it when finished.
-		GFrameCounter++;
-	}
-}
 
 static UDataTable* CreateGameplayDataTable()
 {
@@ -72,76 +56,314 @@ static UDataTable* CreateGameplayDataTable()
 	return DataTable;
 }
 
-bool GameplayEffectsTest_InstantDamage(UWorld *World, FAutomationTestBase * Test)
+#define GET_FIELD_CHECKED(Class, Field) FindFieldChecked<UProperty>(Class::StaticClass(), GET_MEMBER_NAME_CHECKED(Class, Field))
+#define CONSTRUCT_CLASS(Class, Name) Class * Name = Cast<Class>(StaticConstructObject(Class::StaticClass(), GetTransientPackage(), FName(TEXT(#Name))))
+
+class GameplayEffectsTestSuite
 {
-	const float StartHealth = 100.f;
-	const float DamageValue = -5.f;
-
-	AAbilitySystemTestPawn *SourceActor = World->SpawnActor<AAbilitySystemTestPawn>();
-	AAbilitySystemTestPawn *DestActor = World->SpawnActor<AAbilitySystemTestPawn>();
-
-	UProperty *HealthProperty = FindFieldChecked<UProperty>(UAbilitySystemTestAttributeSet::StaticClass(), GET_MEMBER_NAME_CHECKED(UAbilitySystemTestAttributeSet, Health));
-
-	UAbilitySystemComponent * SourceComponent = SourceActor->GetAbilitySystemComponent();
-	UAbilitySystemComponent * DestComponent = DestActor->GetAbilitySystemComponent();
-	SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
-	DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartHealth;
-
+public:
+	GameplayEffectsTestSuite(UWorld* WorldIn, FAutomationTestBase* TestIn)
+	: World(WorldIn)
+	, Test(TestIn)
 	{
-		ABILITY_LOG_SCOPE(TEXT("Apply InstantDamage"))
+		// run before each test
 
-		UGameplayEffect * BaseDmgEffect = Cast<UGameplayEffect>(StaticConstructObject(UGameplayEffect::StaticClass(), GetTransientPackage(), FName(TEXT("BaseDmgEffect"))));
-		BaseDmgEffect->Modifiers.SetNum(1);
-		BaseDmgEffect->Modifiers[0].Magnitude.SetValue(DamageValue);
-		BaseDmgEffect->Modifiers[0].ModifierOp = EGameplayModOp::Additive;
-		BaseDmgEffect->Modifiers[0].Attribute.SetUProperty(HealthProperty);
-		BaseDmgEffect->Duration.Value = UGameplayEffect::INSTANT_APPLICATION;
+		const float StartingHealth = 100.f;
+		const float StartingMana = 200.f;
 
-		SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
-		
-		Test->TestTrue(SKILL_TEST_TEXT("Basic Instant Damage Applied"), (DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health == (StartHealth + DamageValue)));
-		ABILITY_LOG(Log, TEXT("Final Health: %.2f"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health);
+		// set up the source actor
+		SourceActor = World->SpawnActor<AAbilitySystemTestPawn>();
+		SourceComponent = SourceActor->GetAbilitySystemComponent();
+		SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartingHealth;
+		SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->MaxHealth = StartingHealth;
+		SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->Mana = StartingMana;
+		SourceComponent->GetSet<UAbilitySystemTestAttributeSet>()->MaxMana = StartingMana;
+
+		// set up the destination actor
+		DestActor = World->SpawnActor<AAbilitySystemTestPawn>();
+		DestComponent = DestActor->GetAbilitySystemComponent();
+		DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health = StartingHealth;
+		DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->MaxHealth = StartingHealth;
+		DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Mana = StartingMana;
+		DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->MaxMana = StartingMana;
 	}
 
-	World->EditorDestroyActor(SourceActor, false);
-	World->EditorDestroyActor(DestActor, false);
+	~GameplayEffectsTestSuite()
+	{
+		// run after each test
 
-	return true;
-}
+		// destroy the actors
+		if (SourceActor)
+		{
+			World->EditorDestroyActor(SourceActor, false);
+		}
+		if (DestActor)
+		{
+			World->EditorDestroyActor(DestActor, false);
+		}
+	}
 
-#endif //WITH_EDITOR
+public: // the tests
 
-bool FGameplayEffectsTest::RunTest( const FString& Parameters )
+	void Test_InstantDamage()
+	{
+		const float DamageValue = 5.f;
+		const float StartingHealth = DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health;
+
+		// just try and reduce the health attribute
+		{
+			ABILITY_LOG_SCOPE(TEXT("Apply InstantDamage"));
+			
+			CONSTRUCT_CLASS(UGameplayEffect, BaseDmgEffect);
+			AddModifier(BaseDmgEffect, GET_FIELD_CHECKED(UAbilitySystemTestAttributeSet, Health), EGameplayModOp::Additive, FScalableFloat(-DamageValue));
+			BaseDmgEffect->DurationPolicy = EGameplayEffectDurationType::Instant;
+			
+			SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		}
+
+		// make sure health was reduced
+		TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - DamageValue);
+	}
+
+	void Test_InstantDamageRemap()
+	{
+		const float DamageValue = 5.f;
+		const float StartingHealth = DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health;
+
+		// This is the same as GameplayEffectsTest_InstantDamage but modifies the Damage attribute and confirms it is remapped to -Health by UAbilitySystemTestAttributeSet::PostAttributeModify
+		{
+			ABILITY_LOG_SCOPE(TEXT("Apply InstantDamage"));
+
+			CONSTRUCT_CLASS(UGameplayEffect, BaseDmgEffect);
+			AddModifier(BaseDmgEffect, GET_FIELD_CHECKED(UAbilitySystemTestAttributeSet, Damage), EGameplayModOp::Additive, FScalableFloat(DamageValue));
+			BaseDmgEffect->DurationPolicy = EGameplayEffectDurationType::Instant;
+
+			SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		}
+
+		// Now we should have lost some health
+		TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - DamageValue);
+
+		// Confirm the damage attribute itself was reset to 0 when it was applied to health
+		TestEqual(SKILL_TEST_TEXT("Damage Applied"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Damage, 0.f);
+	}
+
+	void Test_ManaBuff()
+	{
+		const float BuffValue = 30.f;
+		const float StartingMana = DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Mana;
+
+		FActiveGameplayEffectHandle BuffHandle;
+
+		// apply the buff
+		{
+			ABILITY_LOG_SCOPE(TEXT("Apply Buff"));
+
+			CONSTRUCT_CLASS(UGameplayEffect, DamageBuffEffect);
+			AddModifier(DamageBuffEffect, GET_FIELD_CHECKED(UAbilitySystemTestAttributeSet, Mana), EGameplayModOp::Additive, FScalableFloat(BuffValue));
+			DamageBuffEffect->DurationPolicy = EGameplayEffectDurationType::Infinite;
+
+			BuffHandle = SourceComponent->ApplyGameplayEffectToTarget(DamageBuffEffect, DestComponent, 1.f);
+		}
+
+		// check that the value changed
+		TestEqual(SKILL_TEST_TEXT("Mana Buffed"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Mana, StartingMana + BuffValue);
+
+		// remove the effect
+		{
+			ABILITY_LOG_SCOPE(TEXT("Remove Buff"));
+
+			DestComponent->RemoveActiveGameplayEffect(BuffHandle);
+		}
+
+		// check that the value changed back
+		TestEqual(SKILL_TEST_TEXT("Mana Restored"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Mana, StartingMana);
+	}
+
+	void Test_PeriodicDamage()
+	{
+		const int32 NumPeriods = 10;
+		const float PeriodSecs = 1.0f;
+		const float DamagePerPeriod = 5.f; 
+		const float StartingHealth = DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health;
+
+		// just try and reduce the health attribute
+		{
+			CONSTRUCT_CLASS(UGameplayEffect, BaseDmgEffect);
+			AddModifier(BaseDmgEffect, GET_FIELD_CHECKED(UAbilitySystemTestAttributeSet, Health), EGameplayModOp::Additive, FScalableFloat(-DamagePerPeriod));
+			BaseDmgEffect->DurationPolicy = EGameplayEffectDurationType::HasDuration;
+			BaseDmgEffect->DurationMagnitude = FGameplayEffectModifierMagnitude(FScalableFloat(NumPeriods * PeriodSecs));
+			BaseDmgEffect->Period.Value = PeriodSecs;
+
+			SourceComponent->ApplyGameplayEffectToTarget(BaseDmgEffect, DestComponent, 1.f);
+		}
+
+		int32 NumApplications = 0;
+
+		// Tick a small number to verify the application tick
+		TickWorld(SMALL_NUMBER);
+		++NumApplications;
+
+		TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - (DamagePerPeriod * NumApplications));
+
+		// Tick a bit more to address possible floating point issues
+		TickWorld(PeriodSecs * .1f);
+
+		for (int32 i = 0; i < NumPeriods; ++i)
+		{
+			// advance time by one period
+			TickWorld(PeriodSecs);
+
+			++NumApplications;
+
+			// check that health has been reduced
+			TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - (DamagePerPeriod * NumApplications));
+		}
+
+		// advance time by one extra period
+		TickWorld(PeriodSecs);
+
+		// should not have reduced further
+		TestEqual(SKILL_TEST_TEXT("Health Reduced"), DestComponent->GetSet<UAbilitySystemTestAttributeSet>()->Health, StartingHealth - (DamagePerPeriod * NumApplications));
+
+		// TODO: test that the effect is no longer applied
+	}
+
+private: // test helpers
+
+	void TestEqual(const FString& TestText, float Actual, float Expected)
+	{
+		Test->TestEqual(FString::Printf(TEXT("%s: %f (actual) != %f (expected)"), *TestText, Actual, Expected), Actual, Expected);
+	}
+
+	template<typename MODIFIER_T>
+	FGameplayModifierInfo& AddModifier(UGameplayEffect* Effect, UProperty* Property, EGameplayModOp::Type Op, const MODIFIER_T& Magnitude)
+	{
+		int32 Idx = Effect->Modifiers.Num();
+		Effect->Modifiers.SetNum(Idx+1);
+		FGameplayModifierInfo& Info = Effect->Modifiers[Idx];
+		Info.ModifierMagnitude = Magnitude;
+		Info.ModifierOp = Op;
+		Info.Attribute.SetUProperty(Property);
+		return Info;
+	}
+
+	void TickWorld(float Time)
+	{
+		const float step = 0.1f;
+		while (Time > 0.f)
+		{
+			World->Tick(ELevelTick::LEVELTICK_All, FMath::Min(Time, step));
+			Time -= step;
+
+			// This is terrible but required for subticking like this.
+			// we could always cache the real GFrameCounter at the start of our tests and restore it when finished.
+			GFrameCounter++;
+		}
+	}
+
+private:
+	UWorld* World;
+	FAutomationTestBase* Test;
+
+	AAbilitySystemTestPawn* SourceActor;
+	UAbilitySystemComponent* SourceComponent;
+
+	AAbilitySystemTestPawn* DestActor;
+	UAbilitySystemComponent* DestComponent;
+};
+
+#define ADD_TEST(Name) \
+	TestFunctions.Add(&GameplayEffectsTestSuite::Name); \
+	TestFunctionNames.Add(TEXT(#Name))
+
+class FGameplayEffectsTest : public FAutomationTestBase
 {
-#if WITH_EDITOR
+public:
+	typedef void (GameplayEffectsTestSuite::*TestFunc)();
 
-	UCurveTable *CurveTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalCurveTable();
-	UDataTable *DataTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalAttributeMetaDataTable();
+	FGameplayEffectsTest(const FString& InName)
+	: FAutomationTestBase(InName, false)
+	{
+		// list all test functions here
+		ADD_TEST(Test_InstantDamage);
+		ADD_TEST(Test_InstantDamageRemap);
+		ADD_TEST(Test_ManaBuff);
+		ADD_TEST(Test_PeriodicDamage);
+	}
 
-	// setup required GameplayTags
-	UDataTable* TagTable = CreateGameplayDataTable();
+	virtual uint32 GetTestFlags() const { return EAutomationTestFlags::ATF_Editor; }
+	virtual bool IsStressTest() const { return false; }
+	virtual uint32 GetRequiredDeviceNum() const { return 1; }
 
-	IGameplayTagsModule::Get().GetGameplayTagsManager().PopulateTreeFromDataTable(TagTable);
+protected:
+	virtual FString GetBeautifiedTestName() const override { return "AbilitySystem.GameplayEffects"; }
+	virtual void GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const override
+	{
+		for (const FString& TestName : TestFunctionNames)
+		{
+			OutBeautifiedNames.Add(TestName);
+			OutTestCommands.Add(TestName);
+		}
+	}
 
-	UWorld *World = UWorld::CreateWorld(EWorldType::Game, false);
-	FWorldContext &WorldContext = GEngine->CreateNewWorldContext(EWorldType::Game);
-	WorldContext.SetCurrentWorld(World);
-	
-	FURL URL;
-	World->InitializeActorsForPlay(URL);
-	World->BeginPlay();
-	
-	GameplayEffectsTest_InstantDamage(World, this);
-	
+	bool RunTest(const FString& Parameters)
+	{
+		// find the matching test
+		TestFunc TestFunction = nullptr;
+		for (int32 i = 0; i < TestFunctionNames.Num(); ++i)
+		{
+			if (TestFunctionNames[i] == Parameters)
+			{
+				TestFunction = TestFunctions[i];
+				break;
+			}
+		}
+		if (TestFunction == nullptr)
+		{
+			return false;
+		}
 
-	GEngine->DestroyWorldContext(World);
-	World->DestroyWorld(false);
+		// get the current curve and data table (to restore later)
+		UCurveTable *CurveTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalCurveTable();
+		UDataTable *DataTable = IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->GetGlobalAttributeMetaDataTable();
 
-	IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->AutomationTestOnly_SetGlobalCurveTable(CurveTable);
-	IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->AutomationTestOnly_SetGlobalAttributeDataTable(DataTable);
+		// setup required GameplayTags
+		UDataTable* TagTable = CreateGameplayDataTable();
 
-#endif //WITH_EDITOR
-	return true;
+		IGameplayTagsModule::Get().GetGameplayTagsManager().PopulateTreeFromDataTable(TagTable);
+
+		UWorld *World = UWorld::CreateWorld(EWorldType::Game, false);
+		FWorldContext &WorldContext = GEngine->CreateNewWorldContext(EWorldType::Game);
+		WorldContext.SetCurrentWorld(World);
+
+		FURL URL;
+		World->InitializeActorsForPlay(URL);
+		World->BeginPlay();
+
+		// run the matching test
+		uint64 InitialFrameCounter = GFrameCounter;
+		{
+			GameplayEffectsTestSuite Tester(World, this);
+			(Tester.*TestFunction)();
+		}
+		GFrameCounter = InitialFrameCounter;
+
+		GEngine->DestroyWorldContext(World);
+		World->DestroyWorld(false);
+
+		IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->AutomationTestOnly_SetGlobalCurveTable(CurveTable);
+		IGameplayAbilitiesModule::Get().GetAbilitySystemGlobals()->AutomationTestOnly_SetGlobalAttributeDataTable(DataTable);
+		return true;
+	}
+
+	TArray<TestFunc> TestFunctions;
+	TArray<FString> TestFunctionNames;
+};
+
+namespace
+{
+	FGameplayEffectsTest FGameplayEffectsTestAutomationTestInstance(TEXT("FGameplayEffectsTest"));
 }
 
-
+#endif //WITH_EDITOR

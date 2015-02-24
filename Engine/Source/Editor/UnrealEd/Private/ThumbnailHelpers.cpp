@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "ThumbnailHelpers.h"
@@ -7,6 +7,14 @@
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "ContentStreaming.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Engine/StaticMeshActor.h"
+#include "Animation/AnimSingleNodeInstance.h"
+#include "Animation/BlendSpaceBase.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/TextureCube.h"
 
 /*
 ***************************************************************
@@ -105,7 +113,7 @@ void FThumbnailPreviewScene::GetView(FSceneViewFamily* ViewFamily, int32 X, int3
 		ViewFamily->Views.Add(NewView);
 
 		NewView->StartFinalPostprocessSettings( ViewMatrix.GetOrigin() );
-		NewView->EndFinalPostprocessSettings();
+		NewView->EndFinalPostprocessSettings(ViewInitOptions);
 
 		FFinalPostProcessSettings::FCubemapEntry& CubemapEntry = *new(NewView->FinalPostProcessSettings.ContributingCubemaps) FFinalPostProcessSettings::FCubemapEntry;
 		CubemapEntry.AmbientCubemap = GUnrealEd->GetThumbnailManager()->AmbientCubemap;
@@ -373,7 +381,7 @@ FSkeletalMeshThumbnailScene::FSkeletalMeshThumbnailScene()
 
 void FSkeletalMeshThumbnailScene::SetSkeletalMesh(USkeletalMesh* InSkeletalMesh)
 {
-	PreviewActor->GetSkeletalMeshComponent()->Materials.Empty();
+	PreviewActor->GetSkeletalMeshComponent()->OverrideMaterials.Empty();
 	PreviewActor->GetSkeletalMeshComponent()->SetSkeletalMesh(InSkeletalMesh);
 
 	if ( InSkeletalMesh )
@@ -516,7 +524,7 @@ FAnimationSequenceThumbnailScene::FAnimationSequenceThumbnailScene()
 
 bool FAnimationSequenceThumbnailScene::SetAnimation(UAnimSequenceBase* InAnimation)
 {
-	PreviewActor->GetSkeletalMeshComponent()->Materials.Empty();
+	PreviewActor->GetSkeletalMeshComponent()->OverrideMaterials.Empty();
 
 	bool bSetSucessfully = false;
 
@@ -640,7 +648,7 @@ FBlendSpaceThumbnailScene::FBlendSpaceThumbnailScene()
 
 bool FBlendSpaceThumbnailScene::SetBlendSpace(class UBlendSpaceBase* InBlendSpace)
 {
-	PreviewActor->GetSkeletalMeshComponent()->Materials.Empty();
+	PreviewActor->GetSkeletalMeshComponent()->OverrideMaterials.Empty();
 
 	bool bSetSucessfully = false;
 
@@ -766,7 +774,7 @@ FAnimBlueprintThumbnailScene::FAnimBlueprintThumbnailScene()
 
 bool FAnimBlueprintThumbnailScene::SetAnimBlueprint(class UAnimBlueprint* InBlueprint)
 {
-	PreviewActor->GetSkeletalMeshComponent()->Materials.Empty();
+	PreviewActor->GetSkeletalMeshComponent()->OverrideMaterials.Empty();
 
 	bool bSetSucessfully = false;
 
@@ -856,32 +864,28 @@ void FAnimBlueprintThumbnailScene::GetViewMatrixParameters(const float InFOVDegr
 
 /*
 ***************************************************************
-  FBlueprintThumbnailScene
+  FClassActorThumbnailScene
 ***************************************************************
 */
 
-FBlueprintThumbnailScene::FBlueprintThumbnailScene()
+FClassActorThumbnailScene::FClassActorThumbnailScene()
 	: FThumbnailPreviewScene()
 {
-	CurrentBlueprint = NULL;
-
-	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FBlueprintThumbnailScene::OnPreGarbageCollect);
+	FCoreUObjectDelegates::PreGarbageCollect.AddRaw(this, &FClassActorThumbnailScene::OnPreGarbageCollect);
 }
 
-FBlueprintThumbnailScene::~FBlueprintThumbnailScene()
+FClassActorThumbnailScene::~FClassActorThumbnailScene()
 {
 	FCoreUObjectDelegates::PreGarbageCollect.RemoveAll(this);
 }
 
-void FBlueprintThumbnailScene::SetBlueprint(UBlueprint* Blueprint)
+void FClassActorThumbnailScene::SetObject(UObject* Obj)
 {
-	CurrentBlueprint = Blueprint;
-
-	if ( Blueprint )
+	if ( Obj )
 	{
-		VisualizableBlueprintComponents = GetPooledVisualizableComponents(Blueprint);
+		VisualizableComponents = GetPooledVisualizableComponents(Obj);
 
-		for ( auto CompIt = VisualizableBlueprintComponents.CreateConstIterator(); CompIt; ++CompIt )
+		for ( auto CompIt = VisualizableComponents.CreateConstIterator(); CompIt; ++CompIt )
 		{
 			UPrimitiveComponent* PrimComp = *CompIt;
 			PrimComp->bVisible = true;
@@ -890,40 +894,48 @@ void FBlueprintThumbnailScene::SetBlueprint(UBlueprint* Blueprint)
 	}
 	else
 	{
-		for ( auto CompIt = VisualizableBlueprintComponents.CreateConstIterator(); CompIt; ++CompIt )
+		for ( auto CompIt = VisualizableComponents.CreateConstIterator(); CompIt; ++CompIt )
 		{
 			UPrimitiveComponent* PrimComp = *CompIt;
 			PrimComp->bVisible = false;
 			PrimComp->MarkRenderStateDirty();
 		}
 
-		VisualizableBlueprintComponents.Empty();
+		VisualizableComponents.Empty();
 	}
 
 	GetWorld()->SendAllEndOfFrameUpdates();
 }
 
-bool FBlueprintThumbnailScene::IsValidComponentForVisualization(UActorComponent* Component) const
+bool FClassActorThumbnailScene::IsValidComponentForVisualization(UActorComponent* Component) const
 {
 	UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component);
 	if ( PrimComp && PrimComp->IsVisible() && !PrimComp->bHiddenInGame )
 	{
+		UStaticMeshComponent* StaticMeshComp = Cast<UStaticMeshComponent>(Component);
+		if ( StaticMeshComp && StaticMeshComp->StaticMesh )
+		{
+			return true;
+		}
+
+		USkeletalMeshComponent* SkelMeshComp = Cast<USkeletalMeshComponent>(Component);
+		if ( SkelMeshComp && SkelMeshComp->SkeletalMesh )
+		{
+			return true;
+		}
+
+		/*
 		UParticleSystemComponent* ParicleSystemComp = Cast<UParticleSystemComponent>(PrimComp);
 
 		// @TODO Support particle systems in thumbnails
 		return !ParicleSystemComp;
+		*/
 	}
 
 	return false;
 }
 
-void FBlueprintThumbnailScene::BlueprintChanged(class UBlueprint* Blueprint)
-{
-	// We could clear only the components for the specified blueprint, but we clear all components anyway because it is quick to regenerate them.
-	ClearComponentsPool();
-}
-
-void FBlueprintThumbnailScene::AddReferencedObjects( FReferenceCollector& Collector )
+void FClassActorThumbnailScene::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	// Clear all components so they are never considered "Referenced"
 	ClearComponentsPool();
@@ -931,14 +943,12 @@ void FBlueprintThumbnailScene::AddReferencedObjects( FReferenceCollector& Collec
 	FThumbnailPreviewScene::AddReferencedObjects(Collector);
 }
 
-void FBlueprintThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const
+void FClassActorThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees, FVector& OutOrigin, float& OutOrbitPitch, float& OutOrbitYaw, float& OutOrbitZoom) const
 {
-	check(CurrentBlueprint);
-
 	const float HalfFOVRadians = FMath::DegreesToRadians<float>(InFOVDegrees) * 0.5f;
 	// Add extra size to view slightly outside of the sphere to compensate for perspective
 	FBoxSphereBounds Bounds(ForceInitToZero);
-	for ( auto CompIt = VisualizableBlueprintComponents.CreateConstIterator(); CompIt; ++CompIt )
+	for ( auto CompIt = VisualizableComponents.CreateConstIterator(); CompIt; ++CompIt )
 	{
 		Bounds = Bounds + (*CompIt)->Bounds;
 	}
@@ -947,18 +957,8 @@ void FBlueprintThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees,
 	const float BoundsZOffset = GetBoundsZOffset(Bounds);
 	const float TargetDistance = HalfMeshSize / FMath::Tan(HalfFOVRadians);
 
-	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(CurrentBlueprint->ThumbnailInfo);
-	if ( ThumbnailInfo )
-	{
-		if ( TargetDistance + ThumbnailInfo->OrbitZoom < 0 )
-		{
-			ThumbnailInfo->OrbitZoom = -TargetDistance;
-		}
-	}
-	else
-	{
-		ThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
-	}
+	USceneThumbnailInfo* ThumbnailInfo = GetSceneThumbnailInfo(TargetDistance);
+	check(ThumbnailInfo);
 
 	OutOrigin = FVector(0, 0, -BoundsZOffset);
 	OutOrbitPitch = ThumbnailInfo->OrbitPitch;
@@ -966,7 +966,7 @@ void FBlueprintThumbnailScene::GetViewMatrixParameters(const float InFOVDegrees,
 	OutOrbitZoom = TargetDistance + ThumbnailInfo->OrbitZoom;
 }
 
-UActorComponent* FBlueprintThumbnailScene::CreateComponentInstanceFromTemplate(UActorComponent* ComponentTemplate) const
+UActorComponent* FClassActorThumbnailScene::CreateComponentInstanceFromTemplate(UActorComponent* ComponentTemplate) const
 {
 	check(ComponentTemplate);
 
@@ -1005,6 +1005,59 @@ UActorComponent* FBlueprintThumbnailScene::CreateComponentInstanceFromTemplate(U
 	}
 
 	return NewComponent;
+}
+
+void FClassActorThumbnailScene::OnPreGarbageCollect()
+{
+	// This is a good time to clear the component pool to deal with invalid or stale entries. It will be re-populated as needed.
+	ClearComponentsPool();
+}
+
+void FClassActorThumbnailScene::ClearComponentsPool()
+{
+	for ( auto PoolIt = AllComponentsPool.CreateConstIterator(); PoolIt; ++PoolIt )
+	{
+		TArray< TWeakObjectPtr<UActorComponent> > WeakComponents = PoolIt.Value();
+		for ( auto CompIt = WeakComponents.CreateConstIterator(); CompIt; ++CompIt )
+		{
+			UActorComponent* ActorComp = (*CompIt).GetEvenIfUnreachable();
+			if ( ActorComp )
+			{
+				FPreviewScene::RemoveComponent(ActorComp);
+			}
+		}
+	}
+
+	AllComponentsPool.Empty();
+	VisualizableComponentsPool.Empty();
+}
+
+/*
+***************************************************************
+  FBlueprintThumbnailScene
+***************************************************************
+*/
+
+FBlueprintThumbnailScene::FBlueprintThumbnailScene()
+	: FClassActorThumbnailScene()
+{
+	CurrentBlueprint = nullptr;
+}
+
+FBlueprintThumbnailScene::~FBlueprintThumbnailScene()
+{
+}
+
+void FBlueprintThumbnailScene::SetBlueprint(UBlueprint* Blueprint)
+{
+	CurrentBlueprint = Blueprint;
+	SetObject(CurrentBlueprint);
+}
+
+void FBlueprintThumbnailScene::BlueprintChanged(class UBlueprint* Blueprint)
+{
+	// We could clear only the components for the specified blueprint, but we clear all components anyway because it is quick to regenerate them.
+	ClearComponentsPool();
 }
 
 void FBlueprintThumbnailScene::InstanceComponents(USCS_Node* CurrentNode, USceneComponent* ParentComponent, const TMap<UActorComponent*, UActorComponent*>& NativeInstanceMap, TArray<UActorComponent*>& OutComponents)
@@ -1067,8 +1120,9 @@ void FBlueprintThumbnailScene::InstanceComponents(USCS_Node* CurrentNode, UScene
 	}
 }
 
-TArray<UPrimitiveComponent*> FBlueprintThumbnailScene::GetPooledVisualizableComponents(UBlueprint* Blueprint)
+TArray<UPrimitiveComponent*> FBlueprintThumbnailScene::GetPooledVisualizableComponents(UObject* Obj)
 {
+	UBlueprint* Blueprint = Cast<UBlueprint>(Obj);
 	check(Blueprint);
 
 	TArray<UPrimitiveComponent*> VisualizableComponentsListForBlueprint;
@@ -1098,7 +1152,7 @@ TArray<UPrimitiveComponent*> FBlueprintThumbnailScene::GetPooledVisualizableComp
 			// Instance native components based on the CDO template
 			AActor* CDO = Blueprint->GeneratedClass->GetDefaultObject<AActor>();
 
-			TArray<UActorComponent*> Components;
+			TInlineComponentArray<UActorComponent*> Components;
 			CDO->GetComponents(Components);
 
 			for ( auto CompIt = Components.CreateConstIterator(); CompIt; ++CompIt )
@@ -1261,27 +1315,190 @@ TArray<UPrimitiveComponent*> FBlueprintThumbnailScene::GetPooledVisualizableComp
 	return VisualizableComponentsListForBlueprint;
 }
 
-void FBlueprintThumbnailScene::OnPreGarbageCollect()
+USceneThumbnailInfo* FBlueprintThumbnailScene::GetSceneThumbnailInfo(const float TargetDistance) const
 {
-	// This is a good time to clear the component pool to deal with invalid or stale entries. It will be re-populated as needed.
-	ClearComponentsPool();
+	check(CurrentBlueprint);
+
+	USceneThumbnailInfo* ThumbnailInfo = Cast<USceneThumbnailInfo>(CurrentBlueprint->ThumbnailInfo);
+	if ( ThumbnailInfo )
+	{
+		if ( TargetDistance + ThumbnailInfo->OrbitZoom < 0 )
+		{
+			ThumbnailInfo->OrbitZoom = -TargetDistance;
+		}
+	}
+	else
+	{
+		ThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
+	}
+
+	return ThumbnailInfo;
 }
 
-void FBlueprintThumbnailScene::ClearComponentsPool()
+/*
+***************************************************************
+  FClassThumbnailScene
+***************************************************************
+*/
+
+FClassThumbnailScene::FClassThumbnailScene()
+	: FClassActorThumbnailScene()
 {
-	for ( auto PoolIt = AllComponentsPool.CreateConstIterator(); PoolIt; ++PoolIt )
+	CurrentClass = nullptr;
+}
+
+FClassThumbnailScene::~FClassThumbnailScene()
+{
+}
+
+void FClassThumbnailScene::SetClass(UClass* Class)
+{
+	CurrentClass = Class;
+	SetObject(CurrentClass);
+}
+
+TArray<UPrimitiveComponent*> FClassThumbnailScene::GetPooledVisualizableComponents(UObject* Obj)
+{
+	UClass* Class = Cast<UClass>(Obj);
+	check(Class);
+
+	TArray<UPrimitiveComponent*> VisualizableComponentsListForBlueprint;
+
+	TArray< TWeakObjectPtr<UPrimitiveComponent> >* PooledComponentsPtr = VisualizableComponentsPool.Find(Class);
+	if ( PooledComponentsPtr )
 	{
-		TArray< TWeakObjectPtr<UActorComponent> > WeakComponents = PoolIt.Value();
-		for ( auto CompIt = WeakComponents.CreateConstIterator(); CompIt; ++CompIt )
+		TArray< TWeakObjectPtr<UPrimitiveComponent> >& PooledComponents = *PooledComponentsPtr;
+		for ( auto CompIt = PooledComponents.CreateConstIterator(); CompIt; ++CompIt )
 		{
-			UActorComponent* ActorComp = (*CompIt).GetEvenIfUnreachable();
-			if ( ActorComp )
+			UPrimitiveComponent* Component = (*CompIt).GetEvenIfUnreachable();
+			if ( Component )
 			{
-				FPreviewScene::RemoveComponent(ActorComp);
+				VisualizableComponentsListForBlueprint.Add(Component);
 			}
 		}
 	}
+	else
+	{
+		// We need to find the RootComponent in order to property transform the components
+		USceneComponent* RootComponent = nullptr;
+		TArray<UActorComponent*> AllCreatedActorComponents;
+		TMap<UActorComponent*, UActorComponent*> NativeInstanceMap;
 
-	AllComponentsPool.Empty();
-	VisualizableComponentsPool.Empty();
+		if ( Class->IsChildOf(AActor::StaticClass()) )
+		{
+			// Instance native components based on the CDO template
+			AActor* CDO = Class->GetDefaultObject<AActor>();
+
+			TInlineComponentArray<UActorComponent*> Components;
+			CDO->GetComponents(Components);
+
+			for ( auto CompIt = Components.CreateConstIterator(); CompIt; ++CompIt )
+			{
+				UActorComponent* Comp = *CompIt;
+				if ( Comp != NULL )
+				{
+					UActorComponent* InstancedComponent = CreateComponentInstanceFromTemplate(Comp);
+					if ( InstancedComponent != NULL )
+					{
+						NativeInstanceMap.Add(Comp, InstancedComponent);
+					}
+				}
+			}
+
+			// Fix up parent and child attachments to point at the new instances
+			for ( auto CompIt = NativeInstanceMap.CreateConstIterator(); CompIt; ++CompIt )
+			{
+				UActorComponent* ActorComp = CompIt.Value();
+				if(ActorComp != NULL)
+				{
+					AllCreatedActorComponents.Add(ActorComp);
+
+					USceneComponent* SceneComp = Cast<USceneComponent>(ActorComp);
+					if(SceneComp != NULL)
+					{
+						if(SceneComp->AttachParent != NULL)
+						{
+							SceneComp->AttachParent = Cast<USceneComponent>(NativeInstanceMap.FindRef(SceneComp->AttachParent));
+						}
+						else if(CompIt.Key() == CDO->GetRootComponent())
+						{
+							RootComponent = SceneComp;
+
+							// Make sure the root component transform is Identity. Actors ignore the transform of the root component.
+							RootComponent->SetRelativeTransform( FTransform::Identity );
+						}
+
+						for(auto ChildCompIt = SceneComp->AttachChildren.CreateIterator(); ChildCompIt; ++ChildCompIt)
+						{
+							*ChildCompIt = Cast<USceneComponent>(NativeInstanceMap.FindRef(*ChildCompIt));
+						}
+					}
+				}
+			}
+		}
+
+		// Calculate the bounds. Include all visualizable components.
+		// Update the transform for all components since they will be used to transform the visualizable ones too.
+		FBoxSphereBounds Bounds(ForceInitToZero);
+		for ( auto CompIt = AllCreatedActorComponents.CreateConstIterator(); CompIt; ++CompIt )
+		{
+			USceneComponent* SceneComp = Cast<USceneComponent>(*CompIt);
+			if ( SceneComp )
+			{
+				SceneComp->UpdateComponentToWorld();
+
+				if ( IsValidComponentForVisualization(*CompIt) )
+				{
+					UPrimitiveComponent* PrimComp = CastChecked<UPrimitiveComponent>(*CompIt);
+					Bounds = Bounds + PrimComp->Bounds;
+				}
+			}
+		}
+
+		// Center the mesh at the world origin then offset to put it on top of the plane
+		const float BoundsZOffset = GetBoundsZOffset(Bounds);
+		FTransform CompTransform(-Bounds.Origin + FVector(0, 0, BoundsZOffset));
+
+		// Add all instanced scene components to the scene.
+		// Hide all non-visualizable ones.
+		TArray< TWeakObjectPtr<UActorComponent> > WeakAllComponentsList;
+		TArray< TWeakObjectPtr<UPrimitiveComponent> > WeakVisualizableComponentsList;
+		for ( auto CompIt = AllCreatedActorComponents.CreateConstIterator(); CompIt; ++CompIt )
+		{
+			WeakAllComponentsList.Add(*CompIt);
+
+			USceneComponent* SceneComp = Cast<USceneComponent>(*CompIt);
+			if ( SceneComp != NULL )
+			{
+				if ( IsValidComponentForVisualization(SceneComp) )
+				{
+					UPrimitiveComponent* PrimComp = CastChecked<UPrimitiveComponent>(SceneComp);
+					WeakVisualizableComponentsList.Add(PrimComp);
+					VisualizableComponentsListForBlueprint.Add(PrimComp);
+				}
+				else
+				{
+					// If this was a non-visualizable scene component, mark it invisible.
+					SceneComp->bVisible = false;
+				}
+
+				// Add the component to the scene.
+				FPreviewScene::AddComponent(*CompIt, CompTransform);
+			}
+		}
+
+		// Keep track of all components to reuse them in future render calls.
+		// These lists are transient and are rebuilt after garbage collection
+		AllComponentsPool.Add( Class, WeakAllComponentsList );
+		VisualizableComponentsPool.Add( Class, WeakVisualizableComponentsList );
+	}
+	
+	return VisualizableComponentsListForBlueprint;
+}
+
+USceneThumbnailInfo* FClassThumbnailScene::GetSceneThumbnailInfo(const float TargetDistance) const
+{
+	// todo: jdale - CLASS - Needs proper thumbnail info for class (see FAssetTypeActions_Class::GetThumbnailInfo)
+	USceneThumbnailInfo* ThumbnailInfo = USceneThumbnailInfo::StaticClass()->GetDefaultObject<USceneThumbnailInfo>();
+	return ThumbnailInfo;
 }

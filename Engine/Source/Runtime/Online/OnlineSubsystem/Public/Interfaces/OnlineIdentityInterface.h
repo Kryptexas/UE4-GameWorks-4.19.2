@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "OnlineDelegateMacros.h"
@@ -212,7 +212,7 @@ public:
 
 	/**
 	 * Logs the player into the online service using parameters passed on the
-	 * command line. Expects -Login=<UserName> -Password=<password>. If either
+	 * command line. Expects -AUTH_LOGIN=<UserName> -AUTH_PASSWORD=<password>. If either
 	 * are missing, the function returns false and doesn't start the login
 	 * process
 	 *

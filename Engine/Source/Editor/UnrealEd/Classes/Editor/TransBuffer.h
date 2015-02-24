@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Transaction tracking system, manages the undo and redo buffer.
@@ -11,7 +11,8 @@ UCLASS(transient)
 class UNREALED_API UTransBuffer
 	: public UTransactor
 {
-    GENERATED_UCLASS_BODY()
+public:
+    GENERATED_BODY()
 	// Variables.
 	/** The queue of transaction records */
 	TArray<FTransaction> UndoBuffer;
@@ -34,7 +35,7 @@ class UNREALED_API UTransBuffer
 public:
 
 	// Constructor.
-	UTransBuffer( const FObjectInitializer& ObjectInitializer,SIZE_T InMaxMemory );
+	void Initialize(SIZE_T InMaxMemory);
 
 public:
 

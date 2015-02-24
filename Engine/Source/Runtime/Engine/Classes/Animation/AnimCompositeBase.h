@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -62,14 +62,6 @@ struct FAnimSegment
 	/** Start Pos within this AnimCompositeBase */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category=AnimSegment)
 	float	StartPos;
-
-	/** Time to start playing AnimSequence at. */
-	UPROPERTY()
-	float	AnimStartOffset_DEPRECATED;
-
-	/** Time to end playing the AnimSequence at. */
-	UPROPERTY()
-	float	AnimEndOffset_DEPRECATED;
 
 	/** Time to start playing AnimSequence at. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AnimSegment)

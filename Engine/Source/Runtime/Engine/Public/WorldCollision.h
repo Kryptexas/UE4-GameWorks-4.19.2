@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 // Structs that are used for Async Trace functionality
 // Mostly used by a batch of traces that you don't need a result right away

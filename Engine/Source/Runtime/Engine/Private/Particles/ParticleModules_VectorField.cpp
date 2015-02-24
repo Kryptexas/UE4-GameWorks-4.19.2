@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	ParticleModules_VectorField.cpp: Vector field module implementations.
@@ -7,7 +7,6 @@
 #include "EnginePrivate.h"
 #include "FXSystem.h"
 #include "ParticleDefinitions.h"
-#include "../DistributionHelpers.h"
 #include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
 #include "Particles/VectorField/ParticleModuleVectorFieldLocal.h"
 #include "Particles/VectorField/ParticleModuleVectorFieldGlobal.h"
@@ -55,15 +54,6 @@ void UParticleModuleVectorFieldScale::PostInitProperties()
 	}
 }
 
-void UParticleModuleVectorFieldScale::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(VectorFieldScale, TEXT("DistributionVectorFieldScale"), 1.0f);
-	}
-}
-
 void UParticleModuleVectorFieldScale::CompileModule(FParticleEmitterBuildInfo& EmitterInfo)
 {
 	EmitterInfo.VectorFieldScale.ScaleByDistribution(VectorFieldScale);
@@ -102,15 +92,6 @@ void UParticleModuleVectorFieldScaleOverLife::PostInitProperties()
 		UDistributionFloatConstant* DistributionVectorFieldScaleOverLife = NewNamedObject<UDistributionFloatConstant>(this, TEXT("DistributionVectorFieldScaleOverLife"));
 		DistributionVectorFieldScaleOverLife->Constant = 1.0f;
 		VectorFieldScaleOverLife = DistributionVectorFieldScaleOverLife;
-	}
-}
-
-void UParticleModuleVectorFieldScaleOverLife::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(VectorFieldScaleOverLife, TEXT("DistributionVectorFieldScaleOverLife"), 1.0f);
 	}
 }
 

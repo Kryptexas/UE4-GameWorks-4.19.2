@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -46,7 +46,7 @@ public:
 
 	~STileSetSelectorViewport();
 
-	void Construct(const FArguments& InArgs, UPaperTileSet* InTileSet);
+	void Construct(const FArguments& InArgs, UPaperTileSet* InTileSet, class FEdModeTileMap* InTileMapEditor);
 
 	void ChangeTileSet(UPaperTileSet* InTileSet);
 protected:
@@ -56,8 +56,12 @@ protected:
 
 private:
 	void OnSelectionChanged(FMarqueeOperation Marquee, bool bIsPreview);
+	void RefreshSelectionRectangle();
 
 private:
 	TWeakObjectPtr<class UPaperTileSet> TileSetPtr;
 	TSharedPtr<class FTileSetEditorViewportClient> TypedViewportClient;
+	class FEdModeTileMap* TileMapEditor;
+	FIntPoint SelectionTopLeft;
+	FIntPoint SelectionDimensions;
 };

@@ -1,3 +1,4 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemComponent.h"
@@ -33,7 +34,7 @@ UAbilityTask_WaitVelocityChange* UAbilityTask_WaitVelocityChange::CreateWaitVelo
 	auto MyObj = NewTask<UAbilityTask_WaitVelocityChange>(WorldContextObject);
 
 	MyObj->MinimumMagnitude = InMinimumMagnitude;
-	MyObj->Direction = InDirection.SafeNormal();
+	MyObj->Direction = InDirection.GetSafeNormal();
 	
 
 	return MyObj;

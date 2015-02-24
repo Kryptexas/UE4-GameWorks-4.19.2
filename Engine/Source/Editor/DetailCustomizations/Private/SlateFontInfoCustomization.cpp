@@ -1,7 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SlateFontInfoCustomization.h"
+#include "AssetData.h"
+#include "Engine/Font.h"
 
 #define LOCTEXT_NAMESPACE "SlateFontInfo"
 
@@ -10,29 +12,23 @@ TSharedRef<IPropertyTypeCustomization> FSlateFontInfoStructCustomization::MakeIn
 	return MakeShareable(new FSlateFontInfoStructCustomization());
 }
 
-void FSlateFontInfoStructCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> StructPropertyHandle, FDetailWidgetRow& HeaderRow, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FSlateFontInfoStructCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InStructPropertyHandle, FDetailWidgetRow& InHeaderRow, IPropertyTypeCustomizationUtils& InStructCustomizationUtils)
 {
-	FontObjectProperty = StructPropertyHandle->GetChildHandle(TEXT("FontObject"));
+	StructPropertyHandle = InStructPropertyHandle;
+
+	FontObjectProperty = InStructPropertyHandle->GetChildHandle(FName("FontObject"));
 	check(FontObjectProperty.IsValid());
 
-	TypefaceFontNameProperty = StructPropertyHandle->GetChildHandle(TEXT("TypefaceFontName"));
+	TypefaceFontNameProperty = InStructPropertyHandle->GetChildHandle(FName("TypefaceFontName"));
 	check(TypefaceFontNameProperty.IsValid());
 
-	FontSizeProperty = StructPropertyHandle->GetChildHandle(TEXT("Size"));
+	FontSizeProperty = InStructPropertyHandle->GetChildHandle(FName("Size"));
 	check(FontSizeProperty.IsValid());
 
-	TArray<void*> StructPtrs;
-	StructPropertyHandle->AccessRawData(StructPtrs);
-	for(auto It = StructPtrs.CreateConstIterator(); It; ++It)
-	{
-		FSlateFontInfo* const SlateFontInfo = reinterpret_cast<FSlateFontInfo*>(*It);
-		SlateFontInfoStructs.Add(SlateFontInfo);
-	}
-
-	HeaderRow
+	InHeaderRow
 	.NameContent()
 	[
-		StructPropertyHandle->CreatePropertyNameWidget()
+		InStructPropertyHandle->CreatePropertyNameWidget()
 	]
 	.ValueContent()
 	.MinDesiredWidth(250.0f)
@@ -82,7 +78,7 @@ void FSlateFontInfoStructCustomization::CustomizeHeader(TSharedRef<IPropertyHand
 	];
 }
 
-void FSlateFontInfoStructCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
+void FSlateFontInfoStructCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InStructPropertyHandle, IDetailChildrenBuilder& InStructBuilder, IPropertyTypeCustomizationUtils& InStructCustomizationUtils)
 {
 }
 
@@ -97,6 +93,7 @@ void FSlateFontInfoStructCustomization::OnFontChanged(const FAssetData& InAssetD
 	const UFont* const FontAsset = Cast<const UFont>(InAssetData.GetAsset());
 	const FName FirstFontName = (FontAsset && FontAsset->CompositeFont.DefaultTypeface.Fonts.Num()) ? FontAsset->CompositeFont.DefaultTypeface.Fonts[0].Name : NAME_None;
 
+	TArray<FSlateFontInfo*> SlateFontInfoStructs = GetFontInfoBeingEdited();
 	for(FSlateFontInfo* FontInfo : SlateFontInfoStructs)
 	{
 		// The font has been updated in the editor, so clear the non-UObject pointer so that the two don't conflict
@@ -109,6 +106,12 @@ void FSlateFontInfoStructCustomization::OnFontChanged(const FAssetData& InAssetD
 
 bool FSlateFontInfoStructCustomization::IsFontEntryComboEnabled() const
 {
+	TArray<const FSlateFontInfo*> SlateFontInfoStructs = GetFontInfoBeingEdited();
+	if(SlateFontInfoStructs.Num() == 0)
+	{
+		return false;
+	}
+
 	const FSlateFontInfo* const FirstSlateFontInfo = SlateFontInfoStructs[0];
 	const UFont* const FontObject = Cast<const UFont>(FirstSlateFontInfo->FontObject);
 	if(!FontObject)
@@ -132,43 +135,58 @@ bool FSlateFontInfoStructCustomization::IsFontEntryComboEnabled() const
 
 void FSlateFontInfoStructCustomization::OnFontEntryComboOpening()
 {
-	const FSlateFontInfo* const FirstSlateFontInfo = SlateFontInfoStructs[0];
-	const UFont* const FontObject = Cast<const UFont>(FirstSlateFontInfo->FontObject);
-	check(FontObject);
-
-	const FName ActiveFontEntry = GetActiveFontEntry();
-	TSharedPtr<FName> SelectedNamePtr;
+	TArray<FSlateFontInfo*> SlateFontInfoStructs = GetFontInfoBeingEdited();
 
 	FontEntryComboData.Empty();
-	for(const FTypefaceEntry& TypefaceEntry : FontObject->CompositeFont.DefaultTypeface.Fonts)
-	{
-		TSharedPtr<FName> NameEntryPtr = MakeShareable(new FName(TypefaceEntry.Name));
-		FontEntryComboData.Add(NameEntryPtr);
 
-		if(!TypefaceEntry.Name.IsNone() && TypefaceEntry.Name == ActiveFontEntry)
+	if(SlateFontInfoStructs.Num() > 0)
+	{
+		const FSlateFontInfo* const FirstSlateFontInfo = SlateFontInfoStructs[0];
+		const UFont* const FontObject = Cast<const UFont>(FirstSlateFontInfo->FontObject);
+		check(FontObject);
+
+		const FName ActiveFontEntry = GetActiveFontEntry();
+		TSharedPtr<FName> SelectedNamePtr;
+
+		for(const FTypefaceEntry& TypefaceEntry : FontObject->CompositeFont.DefaultTypeface.Fonts)
 		{
-			SelectedNamePtr = NameEntryPtr;
+			TSharedPtr<FName> NameEntryPtr = MakeShareable(new FName(TypefaceEntry.Name));
+			FontEntryComboData.Add(NameEntryPtr);
+
+			if(!TypefaceEntry.Name.IsNone() && TypefaceEntry.Name == ActiveFontEntry)
+			{
+				SelectedNamePtr = NameEntryPtr;
+			}
 		}
+
+		FontEntryComboData.Sort([](const TSharedPtr<FName>& One, const TSharedPtr<FName>& Two) -> bool
+		{
+			return One->ToString() < Two->ToString();
+		});
+
+		FontEntryCombo->ClearSelection();
+		FontEntryCombo->RefreshOptions();
+		FontEntryCombo->SetSelectedItem(SelectedNamePtr);
 	}
-
-	FontEntryComboData.Sort([](const TSharedPtr<FName>& One, const TSharedPtr<FName>& Two) -> bool
+	else
 	{
-		return One->ToString() < Two->ToString();
-	});
-
-	FontEntryCombo->ClearSelection();
-	FontEntryCombo->RefreshOptions();
-	FontEntryCombo->SetSelectedItem(SelectedNamePtr);
+		FontEntryCombo->ClearSelection();
+		FontEntryCombo->RefreshOptions();
+	}
 }
 
 void FSlateFontInfoStructCustomization::OnFontEntrySelectionChanged(TSharedPtr<FName> InNewSelection, ESelectInfo::Type)
 {
 	if(InNewSelection.IsValid())
 	{
-		const FSlateFontInfo* const FirstSlateFontInfo = SlateFontInfoStructs[0];
-		if(FirstSlateFontInfo->TypefaceFontName != *InNewSelection)
+		TArray<FSlateFontInfo*> SlateFontInfoStructs = GetFontInfoBeingEdited();
+		if(SlateFontInfoStructs.Num() > 0)
 		{
-			TypefaceFontNameProperty->SetValue(*InNewSelection);
+			const FSlateFontInfo* const FirstSlateFontInfo = SlateFontInfoStructs[0];
+			if(FirstSlateFontInfo->TypefaceFontName != *InNewSelection)
+			{
+				TypefaceFontNameProperty->SetValue(*InNewSelection);
+			}
 		}
 	}
 }
@@ -188,16 +206,68 @@ FText FSlateFontInfoStructCustomization::GetFontEntryComboText() const
 
 FName FSlateFontInfoStructCustomization::GetActiveFontEntry() const
 {
-	const FSlateFontInfo* const FirstSlateFontInfo = SlateFontInfoStructs[0];
-	const UFont* const FontObject = Cast<const UFont>(FirstSlateFontInfo->FontObject);
-	if(FontObject)
+	TArray<const FSlateFontInfo*> SlateFontInfoStructs = GetFontInfoBeingEdited();
+	if(SlateFontInfoStructs.Num() > 0)
 	{
-		return (FirstSlateFontInfo->TypefaceFontName.IsNone() && FontObject->CompositeFont.DefaultTypeface.Fonts.Num())
-			? FontObject->CompositeFont.DefaultTypeface.Fonts[0].Name
-			: FirstSlateFontInfo->TypefaceFontName;
+		const FSlateFontInfo* const FirstSlateFontInfo = SlateFontInfoStructs[0];
+		const UFont* const FontObject = Cast<const UFont>(FirstSlateFontInfo->FontObject);
+		if(FontObject)
+		{
+			return (FirstSlateFontInfo->TypefaceFontName.IsNone() && FontObject->CompositeFont.DefaultTypeface.Fonts.Num())
+				? FontObject->CompositeFont.DefaultTypeface.Fonts[0].Name
+				: FirstSlateFontInfo->TypefaceFontName;
+		}
 	}
 
 	return NAME_None;
+}
+
+TArray<FSlateFontInfo*> FSlateFontInfoStructCustomization::GetFontInfoBeingEdited()
+{
+	TArray<FSlateFontInfo*> SlateFontInfoStructs;
+
+	if(StructPropertyHandle->IsValidHandle())
+	{
+		TArray<void*> StructPtrs;
+		StructPropertyHandle->AccessRawData(StructPtrs);
+		SlateFontInfoStructs.Reserve(StructPtrs.Num());
+
+		for(auto It = StructPtrs.CreateConstIterator(); It; ++It)
+		{
+			void* RawPtr = *It;
+			if(RawPtr)
+			{
+				FSlateFontInfo* const SlateFontInfo = reinterpret_cast<FSlateFontInfo*>(RawPtr);
+				SlateFontInfoStructs.Add(SlateFontInfo);
+			}
+		}
+	}
+
+	return SlateFontInfoStructs;
+}
+
+TArray<const FSlateFontInfo*> FSlateFontInfoStructCustomization::GetFontInfoBeingEdited() const
+{
+	TArray<const FSlateFontInfo*> SlateFontInfoStructs;
+
+	if(StructPropertyHandle->IsValidHandle())
+	{
+		TArray<const void*> StructPtrs;
+		StructPropertyHandle->AccessRawData(StructPtrs);
+		SlateFontInfoStructs.Reserve(StructPtrs.Num());
+
+		for(auto It = StructPtrs.CreateConstIterator(); It; ++It)
+		{
+			const void* RawPtr = *It;
+			if(RawPtr)
+			{
+				const FSlateFontInfo* const SlateFontInfo = reinterpret_cast<const FSlateFontInfo*>(RawPtr);
+				SlateFontInfoStructs.Add(SlateFontInfo);
+			}
+		}
+	}
+
+	return SlateFontInfoStructs;
 }
 
 #undef LOCTEXT_NAMESPACE

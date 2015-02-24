@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -56,6 +56,11 @@ public:
 		check(false); // no generic merge operation exists yet, did you override CanMerge but not Merge?
 	}
 
+	virtual void Merge(UObject* BaseAsset, UObject* RemoteAsset, UObject* LocalAsset, const FOnMergeResolved& ResolutionCallback) override
+	{
+		check(false); // no generic merge operation exists yet, did you override CanMerge but not Merge?
+	}
+
 	virtual bool ShouldForceWorldCentric() override
 	{
 		return false;
@@ -77,7 +82,12 @@ public:
 
 	virtual class UThumbnailInfo* GetThumbnailInfo(UObject* Asset) const override
 	{
-		return NULL;
+		return nullptr;
+	}
+
+	virtual TSharedPtr<class SWidget> GetThumbnailOverlay(const FAssetData& AssetData) const override
+	{
+		return nullptr;
 	}
 
 	virtual bool IsImportedAsset() const

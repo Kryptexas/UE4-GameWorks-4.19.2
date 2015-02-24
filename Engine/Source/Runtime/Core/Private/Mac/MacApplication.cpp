@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 
@@ -13,6 +13,7 @@
 #include "IAnalyticsProvider.h"
 #include "CocoaThread.h"
 #include "ModuleManager.h"
+#include "CocoaTextView.h"
 
 static NSString* NSWindowDraggingFinished = @"NSWindowDraggingFinished";
 
@@ -176,7 +177,11 @@ FMacApplication::FMacApplication()
 
 								// app is active, allow sound
 								FApp::SetVolumeMultiplier( 1.0f );
-							}];
+
+								GameThreadCall(^{
+									MessageHandler->OnApplicationActivationChanged(true);
+								}, @[ NSDefaultRunLoopMode ], false);
+							 }];
 
 	AppDeactivationObserver = [[NSNotificationCenter defaultCenter] addObserverForName:NSApplicationWillResignActiveNotification object:[NSApplication sharedApplication] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification)
 							{
@@ -221,6 +226,10 @@ FMacApplication::FMacApplication()
 
 								// app is inactive, apply multiplier
 								FApp::SetVolumeMultiplier(FApp::GetUnfocusedVolumeMultiplier());
+
+								GameThreadCall(^{
+									MessageHandler->OnApplicationActivationChanged(false);
+								}, @[ NSDefaultRunLoopMode ], false);
 							}];
 
 	WorkspaceActivationObserver = [[[NSWorkspace sharedWorkspace] notificationCenter] addObserverForName:NSWorkspaceSessionDidBecomeActiveNotification object:[NSWorkspace sharedWorkspace] queue:[NSOperationQueue mainQueue] usingBlock:^(NSNotification* Notification){
@@ -413,9 +422,70 @@ void FMacApplication::ProcessEvent(FMacEvent const* const Event)
 	delete Event;
 }
 
-void FMacApplication::PumpMessages( const float TimeDelta )
+void FMacApplication::PumpMessages(const float TimeDelta)
 {
-	FPlatformMisc::PumpMessages( true );
+	FPlatformMisc::PumpMessages(true);
+}
+
+void FMacApplication::CloseQueuedWindows()
+{
+	if (WindowsToClose.Num() > 0)
+	{
+		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
+
+			// Set the new key window, if needed. We cannot trust Cocoa to set the key window to the actual top most window. It will prefer windows with title bars so,
+			// for example, will choose the main window over a context menu window, when closing a submenu.
+			NSArray* AllWindows = [NSApp orderedWindows];
+			for (NSWindow* Window : AllWindows)
+			{
+				if ([Window isKindOfClass:[FCocoaWindow class]] && !WindowsToClose.Contains((FCocoaWindow*)Window) && [Window canBecomeKeyWindow])
+				{
+					if (Window != [NSApp keyWindow])
+					{
+						[Window makeKeyWindow];
+					}
+					break;
+				}
+			}
+
+			for (FCocoaWindow* Window : WindowsToClose)
+			{
+				[Window destroy];
+				[Window release];
+			}
+		}, UE4CloseEventMode, true);
+
+		WindowsToClose.Empty();
+	}
+}
+
+void FMacApplication::InvalidateTextLayout(FCocoaWindow* Window)
+{
+	WindowsRequiringTextInvalidation.AddUnique( Window );
+}
+
+void FMacApplication::InvalidateTextLayouts()
+{
+	if( WindowsRequiringTextInvalidation.Num() > 0 )
+	{
+	   MainThreadCall(^{
+		   SCOPED_AUTORELEASE_POOL;
+	
+		   for( FCocoaWindow* CocoaWindow : WindowsRequiringTextInvalidation)
+		   {
+			   if(CocoaWindow && [CocoaWindow openGLView])
+			   {
+				   FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
+				   [[TextView inputContext] invalidateCharacterCoordinates];
+			   }
+		   }
+
+		}, UE4IMEEventMode, true);
+		
+		WindowsRequiringTextInvalidation.Empty();
+	}
+
 }
 
 void FMacApplication::OnWindowDraggingFinished()
@@ -593,10 +663,10 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event)
 			else
 			{
 				NSPoint CursorPos = [Event locationInWindow];
-				if ([Event window])
+				if ([Event GetWindow])
 				{
-					CursorPos.x += [Event window].frame.origin.x;
-					CursorPos.y += [Event window].frame.origin.y;
+					CursorPos.x += [Event windowPosition].x;
+					CursorPos.y += [Event windowPosition].y;
 				}
 				CursorPos.y--; // The y coordinate in the point returned by locationInWindow starts from a base of 1
 				const FVector2D MousePosition = FVector2D(CursorPos.x, FPlatformMisc::ConvertSlateYPositionToCocoa(CursorPos.y));
@@ -647,13 +717,28 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event)
 				if (Button == LastPressedMouseButton && ([Event clickCount] % 2) == 0)
 				{
 					MessageHandler->OnMouseDoubleClick(CurrentEventWindow, Button);
+
+					bool IsMouseOverTitleBar = false;
+					const bool IsMovable = IsWindowMovable(NativeWindow, &IsMouseOverTitleBar);
+					if (IsMouseOverTitleBar)
+					{
+						const bool bShouldMinimize = [[NSUserDefaults standardUserDefaults] boolForKey:@"AppleMiniaturizeOnDoubleClick"];
+						if (bShouldMinimize)
+						{
+							MainThreadCall(^{ [NativeWindow performMiniaturize:nil]; }, NSDefaultRunLoopMode, true);
+						}
+						else if (!FPlatformMisc::IsRunningOnMavericks())
+						{
+							MainThreadCall(^{ [NativeWindow performZoom:nil]; }, NSDefaultRunLoopMode, true);
+						}
+					}
 				}
 				else
 				{
 					MessageHandler->OnMouseDown(CurrentEventWindow, Button);
 				}
 
-				if (!DraggedWindow && !GetCapture())
+				if (CurrentEventWindow->GetWindowHandle() && !DraggedWindow && !GetCapture())
 				{
 					MessageHandler->OnCursorSet();
 				}
@@ -689,7 +774,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event)
 
 			MessageHandler->OnMouseUp(Button);
 
-			if (CurrentEventWindow.IsValid() && !DraggedWindow && !GetCapture())
+			if (CurrentEventWindow.IsValid() && CurrentEventWindow->GetWindowHandle() && !DraggedWindow && !GetCapture())
 			{
 				MessageHandler->OnCursorSet();
 			}
@@ -826,6 +911,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event)
 		}
 	}
 
+	[Event ResetWindow];
 	bIsProcessingNSEvent = bWasProcessingNSEvent;
 }
 
@@ -860,7 +946,7 @@ FCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 			break;
 	}
 
-	FCocoaWindow* EventWindow = (FCocoaWindow*)[Event window];
+	FCocoaWindow* EventWindow = (FCocoaWindow*)[Event GetWindow];
 
 	if ([Event type] == NSMouseMoved)
 	{
@@ -878,17 +964,17 @@ FCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 		{
 			EventWindow = DraggedWindow;
 		}
-		else if( MouseCaptureWindow && MouseCaptureWindow == [Event window] && [MouseCaptureWindow targetWindow] )
+		else if( MouseCaptureWindow && MouseCaptureWindow == [Event GetWindow] && [MouseCaptureWindow targetWindow] )
 		{
 			EventWindow = [MouseCaptureWindow targetWindow];
 		}
 		else
 		{
 			NSPoint CursorPos = [Event locationInWindow];
-			if ([Event window])
+			if ([Event GetWindow])
 			{
-				CursorPos.x += [Event window].frame.origin.x;
-				CursorPos.y += [Event window].frame.origin.y;
+				CursorPos.x += [Event windowPosition].x;
+				CursorPos.y += [Event windowPosition].y;
 			}
 			CursorPos.y--; // The y coordinate in the point returned by locationInWindow starts from a base of 1
 			TSharedPtr<FMacWindow> WindowUnderCursor = LocateWindowUnderCursor(CursorPos);
@@ -1194,7 +1280,6 @@ void FMacApplication::OnWindowDidBecomeKey( FCocoaWindow* Window )
 	if( EventWindow.IsValid() )
 	{
 		MessageHandler->OnWindowActivationChanged( EventWindow.ToSharedRef(), EWindowActivation::Activate );
-		KeyWindows.Add( EventWindow.ToSharedRef() );
 	}
 }
 
@@ -1278,7 +1363,6 @@ void FMacApplication::OnWindowDidClose( FCocoaWindow* Window )
 			MessageHandler->OnWindowActivationChanged( EventWindow.ToSharedRef(), EWindowActivation::Deactivate );
 		}
 		Windows.Remove( EventWindow.ToSharedRef() );
-		KeyWindows.Remove( EventWindow.ToSharedRef() );
 		MessageHandler->OnWindowClose( EventWindow.ToSharedRef() );
 	}
 }
@@ -1293,7 +1377,10 @@ bool FMacApplication::OnWindowDestroyed( FCocoaWindow* Window )
 			MessageHandler->OnWindowActivationChanged( EventWindow.ToSharedRef(), EWindowActivation::Deactivate );
 		}
 		Windows.Remove( EventWindow.ToSharedRef() );
-		KeyWindows.Remove( EventWindow.ToSharedRef() );
+		if (!WindowsToClose.Contains(Window))
+		{
+			WindowsToClose.Add(Window);
+		}
 		return true;
 	}
 	return false;
@@ -1399,16 +1486,6 @@ TCHAR FMacApplication::TranslateCharCode(TCHAR CharCode, uint32 KeyCode)
 	}
 
 	return CharCode;
-}
-
-TSharedPtr<FMacWindow> FMacApplication::GetKeyWindow()
-{
-	TSharedPtr<FMacWindow> KeyWindow;
-	if(KeyWindows.Num() > 0)
-	{
-		KeyWindow = KeyWindows.Top();
-	}
-	return KeyWindow;
 }
 
 #if WITH_EDITOR

@@ -1,8 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
 #include "ElementBatcher.h"
 #include "SlateRenderTransform.h"
+#include "Internationalization/Text.h"
 
 // Super-hacky way of storing the scissor rect so we don't have to change all the FSlateDrawElement APIs for this hacky support.
 SLATECORE_API TOptional<FShortRect> GSlateScissorRect;
@@ -197,9 +198,10 @@ void FSlateElementBatcher::AddBoxElement( const FSlateDrawElement& DrawElement )
 	// The clip rect is NOT subject to the rotations specified by MakeRotatedBox.
 	FSlateRotatedClipRectType RenderClipRect = ToSnappedRotatedRect(InClippingRect, InverseLayoutTransform, ElementRenderTransform);
 
-	check( InPayload.BrushResource );
+	check(InPayload.BrushResource);
+	const FSlateBrush* BrushResource = InPayload.BrushResource;
 
-	if(InPayload.BrushResource->DrawAs != ESlateBrushDrawType::NoDrawType)
+	if ( BrushResource->DrawAs != ESlateBrushDrawType::NoDrawType )
 	{
 		// Do pixel snapping
 		FVector2D TopLeft(0,0);
@@ -215,7 +217,7 @@ void FSlateElementBatcher::AddBoxElement( const FSlateDrawElement& DrawElement )
 
 		FVector2D HalfTexel;
 
-		FSlateShaderResourceProxy* ResourceProxy = ResourceManager.GetShaderResource( *InPayload.BrushResource );
+		FSlateShaderResourceProxy* ResourceProxy = ResourceManager.GetShaderResource(*BrushResource);
 		FSlateShaderResource* Resource = nullptr;
 		if( ResourceProxy )
 		{
@@ -240,13 +242,13 @@ void FSlateElementBatcher::AddBoxElement( const FSlateDrawElement& DrawElement )
 		}
 
 
-		FColor Tint = GetElementColor( InPayload.Tint, InPayload.BrushResource );
+		FColor Tint = GetElementColor(InPayload.Tint, BrushResource);
 
-		const ESlateBrushTileType::Type TilingRule = InPayload.BrushResource->Tiling;
+		const ESlateBrushTileType::Type TilingRule = BrushResource->Tiling;
 		const bool bTileHorizontal = (TilingRule == ESlateBrushTileType::Both || TilingRule == ESlateBrushTileType::Horizontal);
 		const bool bTileVertical = (TilingRule == ESlateBrushTileType::Both || TilingRule == ESlateBrushTileType::Vertical);
 
-		const ESlateBrushMirrorType::Type MirroringRule = InPayload.BrushResource->Mirroring;
+		const ESlateBrushMirrorType::Type MirroringRule = BrushResource->Mirroring;
 		const bool bMirrorHorizontal = (MirroringRule == ESlateBrushMirrorType::Both || MirroringRule == ESlateBrushMirrorType::Horizontal);
 		const bool bMirrorVertical = (MirroringRule == ESlateBrushMirrorType::Both || MirroringRule == ESlateBrushMirrorType::Vertical);
 
@@ -267,10 +269,10 @@ void FSlateElementBatcher::AddBoxElement( const FSlateDrawElement& DrawElement )
 		// The offset into the index buffer where this elements indices start
 		uint32 IndexOffsetStart = BatchIndices.Num();
 
-		if( InPayload.BrushResource->Margin.Left!= 0.0f || 
-			InPayload.BrushResource->Margin.Top != 0.0f ||
-			InPayload.BrushResource->Margin.Right != 0.0f ||
-			InPayload.BrushResource->Margin.Bottom != 0.0f )
+		const FMargin& Margin = BrushResource->Margin;
+
+		if ( BrushResource->DrawAs != ESlateBrushDrawType::Image &&
+			( Margin.Left != 0.0f || Margin.Top != 0.0f || Margin.Right != 0.0f || Margin.Bottom != 0.0f ) )
 		{
 			// Create 9 quads for the box element based on the following diagram
 			//     ___LeftMargin    ___RightMargin
@@ -283,8 +285,6 @@ void FSlateElementBatcher::AddBoxElement( const FSlateDrawElement& DrawElement )
 			//  +--o-------------o--+
 			//  |  |             |  | ___BottomMargin
 			//  +--+-------------+--+
-
-			const FMargin& Margin = InPayload.BrushResource->Margin;
 
 
 			// Determine the texture coordinates for each quad
@@ -573,7 +573,7 @@ void FSlateElementBatcher::AddTextElement(const FSlateDrawElement& DrawElement)
 				InvTextureSizeY = 1.0f/FontTexture->GetHeight();
 			}
 
-			const bool bIsWhitespace = FChar::IsWhitespace(CurrentChar);
+			const bool bIsWhitespace = FText::IsWhitespace(CurrentChar);
 
 			if( !bIsWhitespace && PreviousCharEntry.IsValidEntry() )
 			{
@@ -823,7 +823,7 @@ void FSlateElementBatcher::AddSplineElement( const FSlateDrawElement& DrawElemen
 	const FVector2D EndDir = InPayload.EndDir;
 	
 	// Compute the normal to the line
-	FVector2D Normal = FVector2D( StartPt.Y - EndPt.Y, EndPt.X - StartPt.X ).SafeNormal();
+	FVector2D Normal = FVector2D( StartPt.Y - EndPt.Y, EndPt.X - StartPt.X ).GetSafeNormal();
 
 	FVector2D Up = Normal * HalfThickness;
 
@@ -850,7 +850,7 @@ void FSlateElementBatcher::AddSplineElement( const FSlateDrawElement& DrawElemen
 		int32 IndexStart = BatchVertices.Num();
 
 		// Compute the normal to the line
-		FVector2D SegmentNormal = FVector2D( StartPos.Y - EndPos.Y, EndPos.X - StartPos.X ).SafeNormal();
+		FVector2D SegmentNormal = FVector2D( StartPos.Y - EndPos.Y, EndPos.X - StartPos.X ).GetSafeNormal();
 
 		// Create the new vertices for the thick line segment
 		Up = SegmentNormal * HalfThickness;
@@ -968,7 +968,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 		FVector2D StartPos = Points[0];
 		FVector2D EndPos = Points[1];
 
-		FVector2D Normal = FVector2D( StartPos.Y - EndPos.Y, EndPos.X - StartPos.X ).SafeNormal();
+		FVector2D Normal = FVector2D( StartPos.Y - EndPos.Y, EndPos.X - StartPos.X ).GetSafeNormal();
 
 		FVector2D Up = Normal * HalfThickness;
 
@@ -985,7 +985,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 			uint32 IndexStart = BatchVertices.Num();
 
 			// Compute the normal to the line
-			Normal = FVector2D( StartPos.Y - EndPos.Y, EndPos.X - StartPos.X ).SafeNormal();
+			Normal = FVector2D( StartPos.Y - EndPos.Y, EndPos.X - StartPos.X ).GetSafeNormal();
 
 			// Create the new vertices for the thick line segment
 			Up = Normal * HalfThickness;
@@ -1000,7 +1000,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 				const FVector2D NextEndPos = Points[Point+1];
 
 				// The normal of the next segment
-				const FVector2D NextNormal = FVector2D( EndPos.Y - NextEndPos.Y, NextEndPos.X - EndPos.X ).SafeNormal();
+				const FVector2D NextNormal = FVector2D( EndPos.Y - NextEndPos.Y, NextEndPos.X - EndPos.X ).GetSafeNormal();
 
 				// The next amount to adjust the vertices by 
 				FVector2D NextUp = NextNormal * HalfThickness;
@@ -1012,7 +1012,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 					IntersectUpper = IntersectionPoint;
 
 					// visualizes the intersection
-					//AddQuadElement( IntersectUpper-FVector2D(1,1), FVector2D(2,2), 1, InClippingRect, Layer+1, FColor(255,0,0));
+					//AddQuadElement( IntersectUpper-FVector2D(1,1), FVector2D(2,2), 1, InClippingRect, Layer+1, FColor::Red);
 
 				}
 
@@ -1022,7 +1022,7 @@ void FSlateElementBatcher::AddLineElement( const FSlateDrawElement& DrawElement 
 					IntersectLower = IntersectionPoint;
 
 					// visualizes the intersection
-					//AddQuadElement( IntersectLower-FVector2D(1,1), FVector2D(2,2), 1, InClippingRect, Layer+1, FColor(255,255,0));
+					//AddQuadElement( IntersectLower-FVector2D(1,1), FVector2D(2,2), 1, InClippingRect, Layer+1, FColor::Yellow);
 				}
 				// the midpoint of the intersection.  Used as the new end to the line segment (not adjusted for anti-aliasing)
 				IntersectCenter = (IntersectUpper+IntersectLower) * .5f;
@@ -1127,9 +1127,21 @@ void FSlateElementBatcher::AddViewportElement( const FSlateDrawElement& DrawElem
 
 	TSharedPtr<const ISlateViewport> ViewportPin = InPayload.Viewport.Pin();
 
-	FSlateShaderResource* ViewportResource = ViewportPin.IsValid() ? ViewportPin->GetViewportRenderTargetTexture() : nullptr;
+	FSlateShaderResource* ViewportResource =  nullptr;
+	ESlateShader::Type ShaderType = ESlateShader::Default;
 
-	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), ViewportResource, ESlateDrawPrimitive::TriangleList, ESlateShader::Default, InDrawEffects, DrawFlags, DrawElement.GetScissorRect() );
+	if( ViewportPin.IsValid() )
+	{
+		ViewportResource = ViewportPin->GetViewportRenderTargetTexture();
+
+		if( ViewportPin->IsViewportTextureAlphaOnly() )
+		{
+			// This is a slight hack, but the font shader is the same as the general shader except it reads alpha only textures
+			ShaderType = ESlateShader::Font;
+		}
+	}
+
+	FSlateElementBatch& ElementBatch = FindBatchForElement( Layer, FShaderParams(), ViewportResource, ESlateDrawPrimitive::TriangleList, ShaderType, InDrawEffects, DrawFlags, DrawElement.GetScissorRect() );
 	TArray<FSlateVertex>& BatchVertices = BatchVertexArrays[ElementBatch.VertexArrayIndex];
 	TArray<SlateIndex>& BatchIndices = BatchIndexArrays[ElementBatch.IndexArrayIndex];
 

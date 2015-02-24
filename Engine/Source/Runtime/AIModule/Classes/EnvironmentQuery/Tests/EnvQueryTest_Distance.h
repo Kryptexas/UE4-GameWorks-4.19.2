@@ -1,8 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EnvironmentQuery/EnvQueryTest.h"
 #include "EnvQueryTest_Distance.generated.h"
+
+class UEnvQueryContext;
 
 UENUM()
 namespace EEnvTestDistance
@@ -26,7 +28,7 @@ class UEnvQueryTest_Distance : public UEnvQueryTest
 
 	/** context */
 	UPROPERTY(EditDefaultsOnly, Category=Distance)
-	TSubclassOf<class UEnvQueryContext> DistanceTo;
+	TSubclassOf<UEnvQueryContext> DistanceTo;
 
 	virtual void RunTest(FEnvQueryInstance& QueryInstance) const override;
 

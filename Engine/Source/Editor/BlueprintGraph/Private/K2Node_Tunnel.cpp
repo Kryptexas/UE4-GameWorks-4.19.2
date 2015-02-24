@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "EdGraphUtilities.h"
 
 #include "K2Node_MacroInstance.h"
 #include "K2Node_Tunnel.h"
+#include "K2Node_Composite.h"
 
 UK2Node_Tunnel::UK2Node_Tunnel(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

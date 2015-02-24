@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TranslucentRendering.cpp: Translucent rendering implementation.
@@ -642,12 +642,7 @@ void FTranslucentPrimSet::DrawPrimitives(
 		}
 	}
 
-	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
-
-	if (bUseGetMeshElements)
-	{
-		View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
-	}
+	View.SimpleElementCollector.DrawBatchedElements(RHICmdList, View, FTexture2DRHIRef(), EBlendModeFilter::Translucent);
 }
 
 void FTranslucentPrimSet::RenderPrimitive(
@@ -663,39 +658,18 @@ void FTranslucentPrimSet::RenderPrimitive(
 
 	if(ViewRelevance.bDrawRelevance)
 	{
-		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
-		
-		if (bUseGetMeshElements)
-		{
-			FTranslucencyDrawingPolicyFactory::ContextType Context(TranslucentSelfShadow, bSeparateTranslucencyPass);
+		FTranslucencyDrawingPolicyFactory::ContextType Context(TranslucentSelfShadow, bSeparateTranslucencyPass);
 
-			//@todo parallelrendering - come up with a better way to filter these by primitive
-			for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+		//@todo parallelrendering - come up with a better way to filter these by primitive
+		for (int32 MeshBatchIndex = 0; MeshBatchIndex < View.DynamicMeshElements.Num(); MeshBatchIndex++)
+		{
+			const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
+
+			if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneInfo->Proxy)
 			{
-				const FMeshBatchAndRelevance& MeshBatchAndRelevance = View.DynamicMeshElements[MeshBatchIndex];
-
-				if (MeshBatchAndRelevance.PrimitiveSceneProxy == PrimitiveSceneInfo->Proxy)
-				{
-					const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-					FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, false, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-				}
+				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+				FTranslucencyDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, View, Context, MeshBatch, false, false, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 			}
-		}
-		// Render dynamic scene prim
-		else if( ViewRelevance.bDynamicRelevance )
-		{
-			TDynamicPrimitiveDrawer<FTranslucencyDrawingPolicyFactory> TranslucencyDrawer(
-				RHICmdList,
-				&View,
-				FTranslucencyDrawingPolicyFactory::ContextType(TranslucentSelfShadow, bSeparateTranslucencyPass),
-				false
-				);
-
-			TranslucencyDrawer.SetPrimitive(PrimitiveSceneInfo->Proxy);
-			PrimitiveSceneInfo->Proxy->DrawDynamicElements(
-				&TranslucencyDrawer,
-				&View
-				);
 		}
 
 		// Render static scene prim
@@ -726,6 +700,31 @@ void FTranslucentPrimSet::RenderPrimitive(
 	}
 }
 
+inline float CalculateTranslucentSortKey(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo)
+{
+	float SortKey = 0.0f;
+	if (ViewInfo.TranslucentSortPolicy == ETranslucentSortPolicy::SortByDistance)
+	{
+		//sort based on distance to the view position, view rotation is not a factor
+		SortKey = (PrimitiveSceneInfo->Proxy->GetBounds().Origin - ViewInfo.ViewMatrices.ViewOrigin).Size();
+		// UE4_TODO: also account for DPG in the sort key.
+	}
+	else if (ViewInfo.TranslucentSortPolicy == ETranslucentSortPolicy::SortAlongAxis)
+	{
+		// Sort based on enforced orthogonal distance
+		const FVector CameraToObject = PrimitiveSceneInfo->Proxy->GetBounds().Origin - ViewInfo.ViewMatrices.ViewOrigin;
+		SortKey = FVector::DotProduct(CameraToObject, ViewInfo.TranslucentSortAxis);
+	}
+	else
+	{
+		// Sort based on projected Z distance
+		check(ViewInfo.TranslucentSortPolicy == ETranslucentSortPolicy::SortByProjectedZ);
+		SortKey = ViewInfo.ViewMatrices.ViewMatrix.TransformPosition(PrimitiveSceneInfo->Proxy->GetBounds().Origin).Z;
+	}
+
+	return SortKey;
+}
+
 /**
 * Add a new primitive to the list of sorted prims
 * @param PrimitiveSceneInfo - primitive info to add. Origin of bounds is used for sort.
@@ -733,10 +732,7 @@ void FTranslucentPrimSet::RenderPrimitive(
 */
 void FTranslucentPrimSet::AddScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency)
 {
-	float SortKey=0.f;
-	//sort based on distance to the view position, view rotation is not a factor
-	SortKey = (PrimitiveSceneInfo->Proxy->GetBounds().Origin - ViewInfo.ViewMatrices.ViewOrigin).Size();
-	// UE4_TODO: also account for DPG in the sort key.
+	const float SortKey = CalculateTranslucentSortKey(PrimitiveSceneInfo, ViewInfo);
 
 	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
 
@@ -764,10 +760,7 @@ void FTranslucentPrimSet::AppendScenePrimitives(FSortedPrim* Normal, int32 NumNo
 
 void FTranslucentPrimSet::PlaceScenePrimitive(FPrimitiveSceneInfo* PrimitiveSceneInfo, const FViewInfo& ViewInfo, bool bUseNormalTranslucency, bool bUseSeparateTranslucency, void *NormalPlace, int32& NormalNum, void* SeparatePlace, int32& SeparateNum)
 {
-	float SortKey=0.f;
-	//sort based on distance to the view position, view rotation is not a factor
-	SortKey = (PrimitiveSceneInfo->Proxy->GetBounds().Origin - ViewInfo.ViewMatrices.ViewOrigin).Size();
-	// UE4_TODO: also account for DPG in the sort key.
+	const float SortKey = CalculateTranslucentSortKey(PrimitiveSceneInfo, ViewInfo);
 
 	const auto FeatureLevel = ViewInfo.GetFeatureLevel();
 
@@ -887,7 +880,7 @@ public:
 static TAutoConsoleVariable<int32> CVarRHICmdTranslucencyPassDeferredContexts(
 	TEXT("r.RHICmdTranslucencyPassDeferredContexts"),
 	1,
-	TEXT("True to use deferred contexts to parallelize base pass command list execution.\n"));
+	TEXT("True to use deferred contexts to parallelize base pass command list execution."));
 
 void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListImmediate& RHICmdList)
 {
@@ -999,7 +992,7 @@ void FDeferredShadingSceneRenderer::RenderTranslucencyParallel(FRHICommandListIm
 static TAutoConsoleVariable<int32> CVarParallelTranslucency(
 	TEXT("r.ParallelTranslucency"),
 	1,
-	TEXT("Toggles parallel translucency rendering. Parallel rendering must be enabled for this to have an effect.\n"),
+	TEXT("Toggles parallel translucency rendering. Parallel rendering must be enabled for this to have an effect."),
 	ECVF_RenderThreadSafe
 	);
 

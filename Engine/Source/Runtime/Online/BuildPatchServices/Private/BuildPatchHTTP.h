@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchHTTP.h: Declares a simple class to wrap queuing HTTP requests
@@ -119,6 +119,7 @@ private:
 private:
 	static FBuildPatchHTTP& Get();
 	static FBuildPatchHTTP* SingletonInstance;
+	static FDelegateHandle TickDelegateHandle;
 };
 
 #endif // __BuildPatchHTTP_h__

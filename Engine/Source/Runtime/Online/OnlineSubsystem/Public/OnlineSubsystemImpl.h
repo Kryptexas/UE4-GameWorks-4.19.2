@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -42,7 +42,6 @@ public:
 
 	virtual bool IsLocalPlayer(const FUniqueNetId& UniqueId) const override;
 
-	virtual void DisplayAccountUpgradeDialog(const FUniqueNetId& UniqueId) override {};
 	virtual void SetUsingMultiplayerFeatures(const FUniqueNetId& UniqueId, bool bUsingMP) override {};
 
 	// FOnlineSubsystemImpl
@@ -51,5 +50,8 @@ public:
 	 * @return the name of the online subsystem instance
 	 */
 	FName GetInstanceName() const { return InstanceName; }
+
+	/** Name given to default OSS instances (disambiguates for PIE) */
+	static const FName DefaultInstanceName;
 };
 

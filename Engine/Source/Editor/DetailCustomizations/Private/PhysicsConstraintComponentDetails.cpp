@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "PhysicsConstraintComponentDetails.h"
@@ -30,13 +30,13 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 
 		if (Objects[i]->IsA(UPhysicsConstraintTemplate::StaticClass()))
 		{
-			ConstraintInstance = DetailBuilder.GetProperty("DefaultInstance");
+			ConstraintInstance = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UPhysicsConstraintTemplate, DefaultInstance));
 			bInPhAT = true;
 			break;
 		}
 		else if (Objects[i]->IsA(UPhysicsConstraintComponent::StaticClass()))
 		{
-			ConstraintInstance = DetailBuilder.GetProperty("ConstraintInstance");
+			ConstraintInstance = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UPhysicsConstraintComponent, ConstraintInstance));
 			ConstraintComp = (UPhysicsConstraintComponent*)Objects[i].Get();
 			OwningConstraintActor = Cast<APhysicsConstraintActor>(ConstraintComp->GetOwner());
 			break;
@@ -48,7 +48,7 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 		ConstraintComponent = TWeakObjectPtr<UObject>(ConstraintComp);
 
 		DetailBuilder.EditCategory( "Joint Presets" )
-			.AddCustomRow( TEXT("") )
+			.AddCustomRow( FText::GetEmpty() )
 			[
 				SNew(SVerticalBox)
 				+ SVerticalBox::Slot()
@@ -99,14 +99,14 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 
 	// Linear Limits
 	{
-		IDetailCategoryBuilder& LinearLimitCat = DetailBuilder.EditCategory("Linear Limits", TEXT(""));
+		IDetailCategoryBuilder& LinearLimitCat = DetailBuilder.EditCategory("Linear Limits");
 
 		LinearXMotionProperty = ConstraintInstance->GetChildHandle("LinearXMotion");
 		LinearYMotionProperty = ConstraintInstance->GetChildHandle("LinearYMotion");
 		LinearZMotionProperty = ConstraintInstance->GetChildHandle("LinearZMotion");
 		
 		TArray<TSharedPtr<FString>> LinearLimitOptionNames;
-		TArray<TSharedPtr<FString>> LinearLimitOptionTooltips;
+		TArray<FText> LinearLimitOptionTooltips;
 		TArray<bool> LinearLimitOptionRestrictItems;
 
 		const int32 ExpectedLinearLimitOptionCount = 3;
@@ -144,9 +144,9 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 						.Style(FEditorStyle::Get(), "RadioButton")
 						.IsChecked( this, &FPhysicsConstraintComponentDetails::IsLimitRadioChecked, CurProperty, LinearLimitEnum[0])
 						.OnCheckStateChanged( this, &FPhysicsConstraintComponentDetails::OnLimitRadioChanged, CurProperty, LinearLimitEnum[0] )
-						.ToolTipText(*LinearLimitOptionTooltips[0].Get())
+						.ToolTipText(LinearLimitOptionTooltips[0])
 						[
-							SNew(STextBlock).Text(*LinearLimitOptionNames[0].Get())
+							SNew(STextBlock).Text(FText::FromString(*LinearLimitOptionNames[0].Get()))
 						]						
 					]
 					+SVerticalBox::Slot()
@@ -157,9 +157,9 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 							.Style(FEditorStyle::Get(), "RadioButton")
 							.IsChecked( this, &FPhysicsConstraintComponentDetails::IsLimitRadioChecked, CurProperty, LinearLimitEnum[1])
 							.OnCheckStateChanged( this, &FPhysicsConstraintComponentDetails::OnLimitRadioChanged, CurProperty, LinearLimitEnum[1] )
-							.ToolTipText(*LinearLimitOptionTooltips[1].Get())
+							.ToolTipText(LinearLimitOptionTooltips[1])
 							[
-								SNew(STextBlock).Text(*LinearLimitOptionNames[1].Get())
+								SNew(STextBlock).Text(FText::FromString(*LinearLimitOptionNames[1].Get()))
 							]
 						]
 					+SVerticalBox::Slot()
@@ -170,37 +170,37 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 							.Style(FEditorStyle::Get(), "RadioButton")
 							.IsChecked( this, &FPhysicsConstraintComponentDetails::IsLimitRadioChecked, CurProperty, LinearLimitEnum[2])
 							.OnCheckStateChanged( this, &FPhysicsConstraintComponentDetails::OnLimitRadioChanged, CurProperty, LinearLimitEnum[2] )
-							.ToolTipText(*LinearLimitOptionTooltips[2].Get())
+							.ToolTipText(LinearLimitOptionTooltips[2])
 							[
-								SNew(STextBlock).Text(*LinearLimitOptionNames[2].Get())
+								SNew(STextBlock).Text(FText::FromString(*LinearLimitOptionNames[2].Get()))
 							]
 						]
 				];
 		}
 		
 
-		LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle("LinearLimitSize").ToSharedRef())
+		LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, LinearLimitSize)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearLimit)));
-		LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle("bLinearLimitSoft").ToSharedRef())
+		LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bLinearLimitSoft)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearLimit)));
-		LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle("LinearLimitStiffness").ToSharedRef())
+		LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, LinearLimitStiffness)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearLimit)));
-		LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle("LinearLimitDamping").ToSharedRef())
+		LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, LinearLimitDamping)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearLimit)));
-		LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle("bLinearBreakable").ToSharedRef());
-		LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle("LinearBreakThreshold").ToSharedRef());
+		LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bLinearBreakable)).ToSharedRef());
+		LinearLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, LinearBreakThreshold)).ToSharedRef());
 	}
 
 	// Angular Limits
 	{
-		IDetailCategoryBuilder& AngularLimitCat = DetailBuilder.EditCategory("Angular Limits", TEXT(""));
+		IDetailCategoryBuilder& AngularLimitCat = DetailBuilder.EditCategory("Angular Limits");
 
-		AngularSwing1MotionProperty = ConstraintInstance->GetChildHandle("AngularSwing1Motion");
-		AngularSwing2MotionProperty = ConstraintInstance->GetChildHandle("AngularSwing2Motion");
-		AngularTwistMotionProperty = ConstraintInstance->GetChildHandle("AngularTwistMotion");
+		AngularSwing1MotionProperty = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularSwing1Motion));
+		AngularSwing2MotionProperty = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularSwing2Motion));
+		AngularTwistMotionProperty = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularTwistMotion));
 
 		TArray<TSharedPtr<FString>> AngularLimitOptionNames;
-		TArray<TSharedPtr<FString>> AngularLimitOptionTooltips;
+		TArray<FText> AngularLimitOptionTooltips;
 		TArray<bool> AngularLimitOptionRestrictItems;
 
 		const int32 ExpectedAngularLimitOptionCount = 3;
@@ -237,9 +237,9 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 						.Style(FEditorStyle::Get(), "RadioButton")
 						.IsChecked( this, &FPhysicsConstraintComponentDetails::IsLimitRadioChecked, CurProperty, AngularLimitEnum[0])
 						.OnCheckStateChanged( this, &FPhysicsConstraintComponentDetails::OnLimitRadioChanged, CurProperty, AngularLimitEnum[0] )
-						.ToolTipText(*AngularLimitOptionTooltips[0].Get())
+						.ToolTipText(AngularLimitOptionTooltips[0])
 						[
-							SNew(STextBlock).Text(*AngularLimitOptionNames[0].Get())
+							SNew(STextBlock).Text(FText::FromString(*AngularLimitOptionNames[0].Get()))
 						]						
 					]
 					+SVerticalBox::Slot()
@@ -250,9 +250,9 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 							.Style(FEditorStyle::Get(), "RadioButton")
 							.IsChecked( this, &FPhysicsConstraintComponentDetails::IsLimitRadioChecked, CurProperty, AngularLimitEnum[1])
 							.OnCheckStateChanged( this, &FPhysicsConstraintComponentDetails::OnLimitRadioChanged, CurProperty, AngularLimitEnum[1] )
-							.ToolTipText(*AngularLimitOptionTooltips[1].Get())
+							.ToolTipText(AngularLimitOptionTooltips[1])
 							[
-								SNew(STextBlock).Text(*AngularLimitOptionNames[1].Get())
+								SNew(STextBlock).Text(FText::FromString(*AngularLimitOptionNames[1].Get()))
 							]
 						]
 					+SVerticalBox::Slot()
@@ -263,108 +263,108 @@ void FPhysicsConstraintComponentDetails::CustomizeDetails( IDetailLayoutBuilder&
 							.Style(FEditorStyle::Get(), "RadioButton")
 							.IsChecked( this, &FPhysicsConstraintComponentDetails::IsLimitRadioChecked, CurProperty, AngularLimitEnum[2])
 							.OnCheckStateChanged( this, &FPhysicsConstraintComponentDetails::OnLimitRadioChanged, CurProperty, AngularLimitEnum[2] )
-							.ToolTipText(*AngularLimitOptionTooltips[2].Get())
+							.ToolTipText(AngularLimitOptionTooltips[2])
 							[
-								SNew(STextBlock).Text(*AngularLimitOptionNames[2].Get())
+								SNew(STextBlock).Text(FText::FromString(*AngularLimitOptionNames[2].Get()))
 							]
 						]
 				];
 		}
 
-		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("Swing1LimitAngle").ToSharedRef())
+		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, Swing1LimitAngle)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularSwing1Limit)));
-		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("TwistLimitAngle").ToSharedRef())
+		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, TwistLimitAngle)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularTwistLimit)));
-		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("Swing2LimitAngle").ToSharedRef())
+		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, Swing2LimitAngle)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularSwing2Limit)));
 
 
-		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("bSwingLimitSoft").ToSharedRef())
+		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bSwingLimitSoft)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularSwingLimit)));
-		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("SwingLimitStiffness").ToSharedRef())
+		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, SwingLimitStiffness)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularSwingLimit)));
-		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("SwingLimitDamping").ToSharedRef())
+		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, SwingLimitDamping)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularSwingLimit)));
 
 		
 
-		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("bTwistLimitSoft").ToSharedRef())
+		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bTwistLimitSoft)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularTwistLimit)));
-		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("TwistLimitStiffness").ToSharedRef())
+		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, TwistLimitStiffness)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularTwistLimit)));
-		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("TwistLimitDamping").ToSharedRef())
+		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, TwistLimitDamping)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularTwistLimit)));
 		
 		if (bInPhAT == false)
 		{
-			AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("AngularRotationOffset").ToSharedRef())
+			AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularRotationOffset)).ToSharedRef())
 				.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularAnyLimit)));
 
 		}
 		else
 		{
-			AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("AngularRotationOffset").ToSharedRef())
+			AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularRotationOffset)).ToSharedRef())
 				.Visibility(EVisibility::Collapsed);
 		}
 
-		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("bAngularBreakable").ToSharedRef());
-		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle("AngularBreakThreshold").ToSharedRef());
+		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bAngularBreakable)).ToSharedRef());
+		AngularLimitCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularBreakThreshold)).ToSharedRef());
 	}
 
 	// Linear Drive
 	{
-		IDetailCategoryBuilder& LinearMotorCat = DetailBuilder.EditCategory("LinearMotor", TEXT(""));
+		IDetailCategoryBuilder& LinearMotorCat = DetailBuilder.EditCategory("LinearMotor");
 
-		LinearPositionDriveProperty = ConstraintInstance->GetChildHandle("bLinearPositionDrive");
-		LinearVelocityDriveProperty = ConstraintInstance->GetChildHandle("bLinearVelocityDrive");
+		LinearPositionDriveProperty = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bLinearPositionDrive));
+		LinearVelocityDriveProperty = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bLinearVelocityDrive));
 
-		IDetailGroup& PositionGroup = LinearMotorCat.AddGroup("Linear Position Drive", TEXT(""));
+		IDetailGroup& PositionGroup = LinearMotorCat.AddGroup("Linear Position Drive", FText::GetEmpty());
 		PositionGroup.HeaderProperty(LinearPositionDriveProperty.ToSharedRef());
-		PositionGroup.AddPropertyRow(ConstraintInstance->GetChildHandle("bLinearXPositionDrive").ToSharedRef())
+		PositionGroup.AddPropertyRow(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bLinearXPositionDrive)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearPositionDrive)));
-		PositionGroup.AddPropertyRow(ConstraintInstance->GetChildHandle("bLinearYPositionDrive").ToSharedRef())
+		PositionGroup.AddPropertyRow(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bLinearYPositionDrive)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearPositionDrive)));
-		PositionGroup.AddPropertyRow(ConstraintInstance->GetChildHandle("bLinearZPositionDrive").ToSharedRef())
+		PositionGroup.AddPropertyRow(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bLinearZPositionDrive)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearPositionDrive)));
-		PositionGroup.AddPropertyRow(ConstraintInstance->GetChildHandle("LinearPositionTarget").ToSharedRef())
+		PositionGroup.AddPropertyRow(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, LinearPositionTarget)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearPositionDrive)));
 
-		IDetailGroup& VelocityGroup = LinearMotorCat.AddGroup("Linear Velocity Drive", TEXT(""));
+		IDetailGroup& VelocityGroup = LinearMotorCat.AddGroup("Linear Velocity Drive", FText::GetEmpty());
 		VelocityGroup.HeaderProperty(LinearVelocityDriveProperty.ToSharedRef());
-		VelocityGroup.AddPropertyRow(ConstraintInstance->GetChildHandle("LinearVelocityTarget").ToSharedRef())
+		VelocityGroup.AddPropertyRow(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, LinearVelocityTarget)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearVelocityDrive)));
 
-		LinearMotorCat.AddProperty(ConstraintInstance->GetChildHandle("LinearDriveSpring").ToSharedRef())
+		LinearMotorCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, LinearDriveSpring)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearAnyDrive)));
-		LinearMotorCat.AddProperty(ConstraintInstance->GetChildHandle("LinearDriveDamping").ToSharedRef())
+		LinearMotorCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, LinearDriveDamping)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearAnyDrive)));
-		LinearMotorCat.AddProperty(ConstraintInstance->GetChildHandle("LinearDriveForceLimit").ToSharedRef())
+		LinearMotorCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, LinearDriveForceLimit)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::LinearAnyDrive)));
 	}
 
 	// Angular Drive
 	{
-		AngularPositionDriveProperty = ConstraintInstance->GetChildHandle("bAngularOrientationDrive");
-		AngularVelocityDriveProperty = ConstraintInstance->GetChildHandle("bAngularVelocityDrive");
+		AngularPositionDriveProperty = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bAngularOrientationDrive));
+		AngularVelocityDriveProperty = ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, bAngularVelocityDrive));
 
-		IDetailCategoryBuilder& AngularMotorCat = DetailBuilder.EditCategory("AngularMotor", TEXT(""));
+		IDetailCategoryBuilder& AngularMotorCat = DetailBuilder.EditCategory("AngularMotor");
 
-		IDetailGroup& PositionGroup = AngularMotorCat.AddGroup("Angular Orientation Drive", TEXT(""));
+		IDetailGroup& PositionGroup = AngularMotorCat.AddGroup("Angular Orientation Drive", FText::GetEmpty());
 		PositionGroup.HeaderProperty(AngularPositionDriveProperty.ToSharedRef());
 		
-		PositionGroup.AddPropertyRow(ConstraintInstance->GetChildHandle("AngularOrientationTarget").ToSharedRef())
+		PositionGroup.AddPropertyRow(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularOrientationTarget)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularPositionDrive)));
 
-		IDetailGroup& VelocityGroup = AngularMotorCat.AddGroup("Angular Velocity Drive", TEXT(""));
+		IDetailGroup& VelocityGroup = AngularMotorCat.AddGroup("Angular Velocity Drive", FText::GetEmpty());
 		VelocityGroup.HeaderProperty(AngularVelocityDriveProperty.ToSharedRef());
-		VelocityGroup.AddPropertyRow(ConstraintInstance->GetChildHandle("AngularVelocityTarget").ToSharedRef())
+		VelocityGroup.AddPropertyRow(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularVelocityTarget)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularVelocityDrive)));
-		VelocityGroup.AddPropertyRow(ConstraintInstance->GetChildHandle("AngularDriveForceLimit").ToSharedRef())
+		VelocityGroup.AddPropertyRow(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularDriveForceLimit)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularVelocityDrive)));
 
-		AngularMotorCat.AddProperty(ConstraintInstance->GetChildHandle("AngularDriveSpring").ToSharedRef())
+		AngularMotorCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularDriveSpring)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularAnyDrive)));
-		AngularMotorCat.AddProperty(ConstraintInstance->GetChildHandle("AngularDriveDamping").ToSharedRef())
+		AngularMotorCat.AddProperty(ConstraintInstance->GetChildHandle(GET_MEMBER_NAME_CHECKED(FConstraintInstance, AngularDriveDamping)).ToSharedRef())
 			.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPhysicsConstraintComponentDetails::IsPropertyVisible, EPropertyType::AngularAnyDrive)));
 	}
 }
@@ -458,19 +458,19 @@ FReply FPhysicsConstraintComponentDetails::OnBallSocketClicked()
 	return FReply::Handled();
 }
 
-ESlateCheckBoxState::Type FPhysicsConstraintComponentDetails::IsLimitRadioChecked( TSharedPtr<IPropertyHandle> Property, uint8 Value ) const
+ECheckBoxState FPhysicsConstraintComponentDetails::IsLimitRadioChecked( TSharedPtr<IPropertyHandle> Property, uint8 Value ) const
 {
 	uint8 PropertyEnumValue = 0;
 	if (Property.IsValid() && Property->GetValue(PropertyEnumValue))
 	{
-		return PropertyEnumValue == Value ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return PropertyEnumValue == Value ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void FPhysicsConstraintComponentDetails::OnLimitRadioChanged( ESlateCheckBoxState::Type CheckType, TSharedPtr<IPropertyHandle> Property, uint8 Value )
+void FPhysicsConstraintComponentDetails::OnLimitRadioChanged( ECheckBoxState CheckType, TSharedPtr<IPropertyHandle> Property, uint8 Value )
 {
-	if (Property.IsValid() && CheckType == ESlateCheckBoxState::Checked)
+	if (Property.IsValid() && CheckType == ECheckBoxState::Checked)
 	{
 		Property->SetValue(Value);
 	}

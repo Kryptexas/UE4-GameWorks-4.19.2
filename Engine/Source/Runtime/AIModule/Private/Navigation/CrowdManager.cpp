@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 
@@ -81,8 +81,7 @@ TStatId FCrowdTickHelper::GetStatId() const
 void FCrowdAgentData::ClearFilter()
 {
 #if WITH_RECAST
-	delete LinkFilter;
-	LinkFilter = NULL;
+	LinkFilter.Reset();
 #endif
 }
 
@@ -171,12 +170,6 @@ void UCrowdManager::BeginDestroy()
 {
 #if WITH_RECAST
 	// cleanup allocated link filters
-	for (auto It = ActiveAgents.CreateConstIterator(); It; ++It)
-	{
-		const FCrowdAgentData& AgentData = It.Value();
-		delete AgentData.LinkFilter;
-	}
-
 	ActiveAgents.Empty();
 
 	dtFreeObstacleAvoidanceDebugData(DetourAvoidanceDebug);
@@ -253,13 +246,13 @@ void UCrowdManager::Tick(float DeltaTime)
 			// velocity updates
 			{
 				SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_StepMovementTime);
-				for (auto It = ActiveAgents.CreateConstIterator(); It; ++It)
+				for (auto It = ActiveAgents.CreateIterator(); It; ++It)
 				{
 					const FCrowdAgentData& AgentData = It.Value();
 					if (AgentData.bIsSimulated && AgentData.IsValid())
 					{
-						const UCrowdFollowingComponent* CrowdComponent = Cast<const UCrowdFollowingComponent>(It.Key());
-						if (CrowdComponent)
+						UCrowdFollowingComponent* CrowdComponent = Cast<UCrowdFollowingComponent>(It.Key());
+						if (CrowdComponent && CrowdComponent->IsCrowdSimulationActive())
 						{
 							ApplyVelocity(CrowdComponent, AgentData.AgentIndex);
 						}
@@ -291,7 +284,7 @@ void UCrowdManager::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 }
 #endif // WITH_EDITOR
 
-void UCrowdManager::RegisterAgent(const ICrowdAgentInterface* Agent)
+void UCrowdManager::RegisterAgent(ICrowdAgentInterface* Agent)
 {
 	UpdateNavData();
 
@@ -341,13 +334,13 @@ void UCrowdManager::UpdateAgentParams(const ICrowdAgentInterface* Agent) const
 	if (DetourCrowd && AgentData && AgentData->IsValid())
 	{
 		dtCrowdAgentParams Params;
-		GetAgentParams(Agent, &Params);
+		GetAgentParams(Agent, Params);
 		Params.linkFilter = AgentData->LinkFilter;
 
 		// store for updating with constant intervals
 		((FCrowdAgentData*)AgentData)->bWantsPathOptimization = (Params.updateFlags & DT_CROWD_OPTIMIZE_VIS) != 0;
 
-		DetourCrowd->updateAgentParameters(AgentData->AgentIndex, &Params);
+		DetourCrowd->updateAgentParameters(AgentData->AgentIndex, Params);
 	}
 #endif
 }
@@ -523,6 +516,35 @@ int32 UCrowdManager::GetNumNearbyAgents(const ICrowdAgentInterface* Agent) const
 	return NumNearby;
 }
 
+int32 UCrowdManager::GetNearbyAgentLocations(const ICrowdAgentInterface* Agent, TArray<FVector>& OutLocations) const
+{
+	const int32 InitialSize = OutLocations.Num();
+#if WITH_RECAST
+	const FCrowdAgentData* AgentData = ActiveAgents.Find(Agent);
+
+	if (AgentData && AgentData->bIsSimulated && AgentData->IsValid() && DetourCrowd)
+	{
+		const dtCrowdAgent* CrowdAgent = DetourCrowd->getAgent(AgentData->AgentIndex);
+
+		if (CrowdAgent)
+		{
+			OutLocations.Reserve(InitialSize + CrowdAgent->nneis);
+
+			for (int32 NeighbourIndex = 0; NeighbourIndex < CrowdAgent->nneis; NeighbourIndex++)
+			{
+				const dtCrowdAgent* NeighbourAgent = DetourCrowd->getAgent(CrowdAgent->neis[NeighbourIndex].idx);
+				if (NeighbourAgent)
+				{
+					OutLocations.Add(Recast2UnrealPoint(NeighbourAgent->npos));
+				}
+			}
+		}
+	}
+#endif
+
+	return OutLocations.Num() - InitialSize;
+}
+
 bool UCrowdManager::GetAvoidanceConfig(int32 Idx, FCrowdAvoidanceConfig& Data) const
 {
 	if (AvoidanceConfig.IsValidIndex(Idx))
@@ -612,19 +634,19 @@ void UCrowdManager::AddAgent(const ICrowdAgentInterface* Agent, FCrowdAgentData&
 	SCOPE_CYCLE_COUNTER(STAT_AI_Crowd_AgentUpdateTime);
 
 	dtCrowdAgentParams Params;
-	GetAgentParams(Agent, &Params);
+	GetAgentParams(Agent, Params);
 
 	// store for updating with constant intervals
 	AgentData.bWantsPathOptimization = (Params.updateFlags & DT_CROWD_OPTIMIZE_VIS) != 0;
 
 	// create link filter for fully simulated agents
 	// (used to determine if agent can traverse smart links)
-	FRecastSpeciaLinkFilter* MyLinkFilter = NULL;
+	TSharedPtr<dtQuerySpecialLinkFilter> MyLinkFilter;
 	const UCrowdFollowingComponent* CrowdComponent = Cast<const UCrowdFollowingComponent>(Agent);
 	if (CrowdComponent)
 	{
 		UNavigationSystem* NavSys = Cast<UNavigationSystem>(GetOuter());
-		MyLinkFilter = new FRecastSpeciaLinkFilter(NavSys, CrowdComponent->GetOuter());
+		MyLinkFilter = MakeShareable(new FRecastSpeciaLinkFilter(NavSys, CrowdComponent->GetOuter()));
 	}
 
 	Params.linkFilter = MyLinkFilter;
@@ -632,7 +654,7 @@ void UCrowdManager::AddAgent(const ICrowdAgentInterface* Agent, FCrowdAgentData&
 	const FVector RcAgentPos = Unreal2RecastPoint(Agent->GetCrowdAgentLocation());
 	const dtQueryFilter* DefaultFilter = ((const FRecastQueryFilter*)MyNavData->GetDefaultQueryFilterImpl())->GetAsDetourQueryFilter();
 
-	AgentData.AgentIndex = DetourCrowd->addAgent(&RcAgentPos.X, &Params, DefaultFilter);
+	AgentData.AgentIndex = DetourCrowd->addAgent(&RcAgentPos.X, Params, DefaultFilter);
 	AgentData.bIsSimulated = (Params.collisionQueryRange > 0.0f) && (CrowdComponent == NULL || CrowdComponent->IsCrowdSimulationEnabled());
 	AgentData.LinkFilter = MyLinkFilter;
 }
@@ -645,42 +667,46 @@ void UCrowdManager::RemoveAgent(const ICrowdAgentInterface* Agent, FCrowdAgentDa
 	AgentData->ClearFilter();
 }
 
-void UCrowdManager::GetAgentParams(const ICrowdAgentInterface* Agent, dtCrowdAgentParams* AgentParams) const
+void UCrowdManager::GetAgentParams(const ICrowdAgentInterface* Agent, dtCrowdAgentParams& AgentParams) const
 {
 	float CylRadius = 0.0f, CylHalfHeight = 0.0f;
 	Agent->GetCrowdAgentCollisions(CylRadius, CylHalfHeight);
 
-	FMemory::Memzero(AgentParams, sizeof(dtCrowdAgentParams));
-	AgentParams->radius = CylRadius;
-	AgentParams->height = CylHalfHeight * 2.0f;
+	// first release the shared pointer
+	AgentParams.linkFilter = nullptr;
+	// this is actually a bit @hacky if we have non-POD types in dtCrowdAgentParams
+	FMemory::Memzero(&AgentParams, sizeof(dtCrowdAgentParams));
+
+	AgentParams.radius = CylRadius;
+	AgentParams.height = CylHalfHeight * 2.0f;
 	// skip maxSpeed, it will be constantly updated in every tick
 	// skip maxAcceleration, we don't use Detour's movement code
 
 	const UCrowdFollowingComponent* CrowdComponent = Cast<const UCrowdFollowingComponent>(Agent);
 	if (CrowdComponent)
 	{
-		AgentParams->collisionQueryRange = CrowdComponent->GetCrowdCollisionQueryRange();
-		AgentParams->pathOptimizationRange = CrowdComponent->GetCrowdPathOptimizationRange();
-		AgentParams->separationWeight = CrowdComponent->GetCrowdSeparationWeight();
-		AgentParams->obstacleAvoidanceType = CrowdComponent->GetCrowdAvoidanceQuality();
+		AgentParams.collisionQueryRange = CrowdComponent->GetCrowdCollisionQueryRange();
+		AgentParams.pathOptimizationRange = CrowdComponent->GetCrowdPathOptimizationRange();
+		AgentParams.separationWeight = CrowdComponent->GetCrowdSeparationWeight();
+		AgentParams.obstacleAvoidanceType = CrowdComponent->GetCrowdAvoidanceQuality();
 	
-		AgentParams->updateFlags =
-			(CrowdComponent->IsCrowdAnticipateTurnsEnabled() ? DT_CROWD_ANTICIPATE_TURNS : 0) |
-			(CrowdComponent->IsCrowdObstacleAvoidanceEnabled() ? DT_CROWD_OBSTACLE_AVOIDANCE : 0) |
-			(CrowdComponent->IsCrowdSeparationEnabled() ? DT_CROWD_SEPARATION : 0) |
+		AgentParams.updateFlags =
+			(CrowdComponent->IsCrowdAnticipateTurnsActive() ? DT_CROWD_ANTICIPATE_TURNS : 0) |
+			(CrowdComponent->IsCrowdObstacleAvoidanceActive() ? DT_CROWD_OBSTACLE_AVOIDANCE : 0) |
+			(CrowdComponent->IsCrowdSeparationActive() ? DT_CROWD_SEPARATION : 0) |
 			(CrowdComponent->IsCrowdOptimizeVisibilityEnabled() ? (DT_CROWD_OPTIMIZE_VIS | DT_CROWD_OPTIMIZE_VIS_MULTI) : 0) |
-			(CrowdComponent->IsCrowdOptimizeTopologyEnabled() ? DT_CROWD_OPTIMIZE_TOPO : 0) |
+			(CrowdComponent->IsCrowdOptimizeTopologyActive() ? DT_CROWD_OPTIMIZE_TOPO : 0) |
 			(CrowdComponent->IsCrowdPathOffsetEnabled() ? DT_CROWD_OFFSET_PATH : 0) |
 			(CrowdComponent->IsCrowdSlowdownAtGoalEnabled() ? DT_CROWD_SLOWDOWN_AT_GOAL : 0);
 
-		AgentParams->avoidanceGroup = CrowdComponent->GetAvoidanceGroup();
-		AgentParams->groupsToAvoid = CrowdComponent->GetGroupsToAvoid();
-		AgentParams->groupsToIgnore = CrowdComponent->GetGroupsToIgnore();
+		AgentParams.avoidanceGroup = CrowdComponent->GetAvoidanceGroup();
+		AgentParams.groupsToAvoid = CrowdComponent->GetGroupsToAvoid();
+		AgentParams.groupsToIgnore = CrowdComponent->GetGroupsToIgnore();
 	}
 	else
 	{
-		AgentParams->avoidanceGroup = 1;
-		AgentParams->groupsToAvoid = MAX_uint32;
+		AgentParams.avoidanceGroup = 1;
+		AgentParams.groupsToAvoid = MAX_uint32;
 	}
 }
 
@@ -710,17 +736,17 @@ void UCrowdManager::PrepareAgentStep(const ICrowdAgentInterface* Agent, FCrowdAg
 	}
 }
 
-void UCrowdManager::ApplyVelocity(const UCrowdFollowingComponent* AgentComponent, int32 AgentIndex) const
+void UCrowdManager::ApplyVelocity(UCrowdFollowingComponent* AgentComponent, int32 AgentIndex) const
 {
 	const dtCrowdAgent* ag = DetourCrowd->getAgent(AgentIndex);
 	const dtCrowdAgentAnimation* anims = DetourCrowd->getAgentAnims();
 
-	FVector NewVelocity = Recast2UnrealPoint(ag->nvel);
+	const FVector NewVelocity = Recast2UnrealPoint(ag->nvel);
 	const float* RcDestCorner = anims[AgentIndex].active ? anims[AgentIndex].endPos : 
 		ag->ncorners ? &ag->cornerVerts[0] : &ag->npos[0];
 
-	FVector DestPathCorner = Recast2UnrealPoint(RcDestCorner);
-	((UCrowdFollowingComponent*)AgentComponent)->ApplyCrowdAgentVelocity(NewVelocity, DestPathCorner, anims->active != 0);
+	const FVector DestPathCorner = Recast2UnrealPoint(RcDestCorner);
+	AgentComponent->ApplyCrowdAgentVelocity(NewVelocity, DestPathCorner, anims->active != 0);
 }
 
 void UCrowdManager::UpdateAgentPaths()
@@ -838,6 +864,7 @@ void UCrowdManager::CreateCrowdManager()
 
 void UCrowdManager::DestroyCrowdManager()
 {
+	// freeing DetourCrowd with dtFreeCrowd 
 	dtFreeCrowd(DetourCrowd);
 	DetourCrowd = NULL;
 }
@@ -960,8 +987,9 @@ void UCrowdManager::DrawDebugPathOptimization(const dtCrowdAgent* CrowdAgent) co
 
 void UCrowdManager::DrawDebugNeighbors(const dtCrowdAgent* CrowdAgent) const
 {
+	UWorld* World = GetWorld();
 	FVector Center = Recast2UnrealPoint(CrowdAgent->npos) + CrowdDebugDrawing::Offset;
-	DrawDebugCylinder(GetWorld(), Center - CrowdDebugDrawing::Offset, Center, CrowdAgent->params.collisionQueryRange, 32, CrowdDebugDrawing::CollisionRange);
+	DrawDebugCylinder(World, Center - CrowdDebugDrawing::Offset, Center, CrowdAgent->params.collisionQueryRange, 32, CrowdDebugDrawing::CollisionRange);
 
 	for (int32 Idx = 0; Idx < CrowdAgent->nneis; Idx++)
 	{
@@ -969,7 +997,7 @@ void UCrowdManager::DrawDebugNeighbors(const dtCrowdAgent* CrowdAgent) const
 		if (nei)
 		{
 			FVector Pt0 = Recast2UnrealPoint(nei->npos) + CrowdDebugDrawing::Offset;
-			DrawDebugLine(GetWorld(), Center, Pt0, CrowdDebugDrawing::Neighbor);
+			DrawDebugLine(World, Center, Pt0, CrowdDebugDrawing::Neighbor);
 		}
 	}
 }

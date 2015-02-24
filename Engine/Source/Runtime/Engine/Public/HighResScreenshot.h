@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 struct ENGINE_API FHighResScreenshotConfig
@@ -18,6 +18,11 @@ struct ENGINE_API FHighResScreenshotConfig
 
 	TSharedPtr<class IImageWrapper> ImageCompressorLDR;
 	TSharedPtr<class IImageWrapper> ImageCompressorHDR;
+
+	// Materials used in the editor to help with the capture of highres screenshots
+	UMaterial* HighResScreenshotMaterial;
+	UMaterial* HighResScreenshotMaskMaterial;
+	UMaterial* HighResScreenshotCaptureRegionMaterial;
 
 	FHighResScreenshotConfig();
 

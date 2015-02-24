@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "InputBindingEditorPrivatePCH.h"
 
@@ -16,11 +16,14 @@ void SGestureEditBox::Construct( const FArguments& InArgs, TSharedPtr<FGestureTr
 	BorderImageHovered = FEditorStyle::GetBrush( "EditableTextBox.Background.Hovered" );
 	BorderImageFocused = FEditorStyle::GetBrush( "EditableTextBox.Background.Focused" );
 
+	static const FName InvertedForegroundName("InvertedForeground");
+
 	ChildSlot
 	[
 		SAssignNew( ConflictPopup, SMenuAnchor )
 		.Placement(MenuPlacement_ComboBox)
 		.OnGetMenuContent( this, &SGestureEditBox::OnGetContentForConflictPopup )
+		.OnMenuOpenChanged(this, &SGestureEditBox::OnConflictPopupOpenChanged)
 		[
 			SNew( SBox )
 			.WidthOverride( 200.0f )
@@ -29,7 +32,7 @@ void SGestureEditBox::Construct( const FArguments& InArgs, TSharedPtr<FGestureTr
 				.VAlign(VAlign_Center)
 				.Padding( FMargin( 4.0f, 2.0f ) )
 				.BorderImage( this, &SGestureEditBox::GetBorderImage )
-				.ForegroundColor( FEditorStyle::GetSlateColor("InvertedForeground") )
+				.ForegroundColor( FEditorStyle::GetSlateColor(InvertedForegroundName) )
 				[
 					SNew( SHorizontalBox )
 					+ SHorizontalBox::Slot()
@@ -125,8 +128,6 @@ void SGestureEditBox::OnGestureEditingStopped()
 	{
 		GestureEditor->CommitNewGesture();
 	}
-
-	ConflictPopup->SetIsOpen(false);
 }
 
 
@@ -134,7 +135,7 @@ void SGestureEditBox::OnGestureChanged()
 {
 	if( GestureEditor->HasConflict() )
 	{
-		ConflictPopup->SetIsOpen(true, false);
+		ConflictPopup->SetIsOpen(true, true);
 	}
 	else
 	{
@@ -148,7 +149,6 @@ void SGestureEditBox::OnGestureChanged()
 		}
 	}
 }
-
 
 EVisibility SGestureEditBox::GetGestureRemoveButtonVisibility() const
 {
@@ -243,6 +243,13 @@ TSharedRef<SWidget> SGestureEditBox::OnGetContentForConflictPopup()
 		];
 }
 
+void SGestureEditBox::OnConflictPopupOpenChanged(bool bIsOpen)
+{
+	if(!bIsOpen)
+	{
+		GestureEditor->StopEditing();
+	}
+}
 
 EVisibility SGestureEditBox::GetNotificationVisibility() const
 {
@@ -265,6 +272,5 @@ FReply SGestureEditBox::OnMouseButtonDown( const FGeometry& MyGeometry, const FP
 
 	return FReply::Handled();
 }
-
 
 #undef LOCTEXT_NAMESPACE

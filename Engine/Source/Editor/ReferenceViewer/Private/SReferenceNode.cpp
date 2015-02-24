@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ReferenceViewerPrivatePCH.h"
 #include "SReferenceNode.h"
 #include "AssetThumbnail.h"
 #include "AssetRegistryModule.h"
 #include "SInlineEditableTextBlock.h"
+#include "SCommentBubble.h"
 
 #define LOCTEXT_NAMESPACE "ReferenceViewer"
 
@@ -58,17 +59,21 @@ void SReferenceNode::UpdateGraphNode()
 	TSharedRef<SWidget> ThumbnailWidget = SNullWidget::NullWidget;
 	if ( AssetThumbnail.IsValid() )
 	{
+		FAssetThumbnailConfig ThumbnailConfig;
+		ThumbnailConfig.bAllowFadeIn = bUsesThumbnail;
+		ThumbnailConfig.bForceGenericThumbnail = !bUsesThumbnail;
+
 		ThumbnailWidget =
 			SNew(SBox)
 			.WidthOverride(AssetThumbnail->GetSize().X)
 			.HeightOverride(AssetThumbnail->GetSize().Y)
 			[
-				AssetThumbnail->MakeThumbnailWidget(/*bAllowFadeIn=*/bUsesThumbnail, /*bForceGenericThumbnail=*/!bUsesThumbnail)
+				AssetThumbnail->MakeThumbnailWidget(ThumbnailConfig)
 			];
 	}
 
 	ContentScale.Bind( this, &SReferenceNode::GetContentScale );
-	ChildSlot
+	GetOrAddSlot( ENodeZone::Center )
 	.HAlign(HAlign_Center)
 	.VAlign(VAlign_Center)
 	[
@@ -194,6 +199,26 @@ void SReferenceNode::UpdateGraphNode()
 			]
 		]
 	];
+	// Create comment bubble if comment text is valid
+	GetNodeObj()->bCommentBubbleVisible = !GetNodeObj()->NodeComment.IsEmpty();
+	if( GetNodeObj()->bCommentBubbleVisible )
+	{
+		TSharedPtr<SCommentBubble> CommentBubble;
+
+		SAssignNew( CommentBubble, SCommentBubble )
+		.GraphNode( GraphNode )
+		.Text( this, &SGraphNode::GetNodeComment )
+		.ColorAndOpacity( this, &SReferenceNode::GetCommentColor );
+
+		GetOrAddSlot( ENodeZone::TopCenter )
+		.SlotOffset( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetOffset ))
+		.SlotSize( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetSize ))
+		.AllowScaling( TAttribute<bool>( CommentBubble.Get(), &SCommentBubble::IsScalingAllowed ))
+		.VAlign( VAlign_Top )
+		[
+			CommentBubble.ToSharedRef()
+		];
+	}
 
 	ErrorReporting = ErrorText;
 	ErrorReporting->SetError(ErrorMsg);

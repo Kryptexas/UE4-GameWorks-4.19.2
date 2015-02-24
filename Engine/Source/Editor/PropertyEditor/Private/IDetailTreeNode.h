@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -101,5 +101,10 @@ public:
 	 * @return true if this is a leaf node:
 	 */
 	virtual bool IsLeaf() { return false; }
+
+	/**
+	* @return TAttribute indicating whether editing is enabled or whether the property is readonly:
+	*/
+	virtual TAttribute<bool> IsPropertyEditingEnabled() const { return false; }
 };
 

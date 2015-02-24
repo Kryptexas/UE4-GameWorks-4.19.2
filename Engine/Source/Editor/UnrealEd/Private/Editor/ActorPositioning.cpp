@@ -1,10 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "ActorPositioning.h"
 #include "SnappingUtils.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeComponent.h"
+#include "GameFramework/Volume.h"
+#include "Components/ShapeComponent.h"
+#include "Components/ModelComponent.h"
 
 FActorPositionTraceResult FActorPositioning::TraceWorldForPositionWithDefault(const FViewportCursorLocation& Cursor, const FSceneView& View, const TArray<AActor*>* IgnoreActors)
 {
@@ -116,7 +119,7 @@ FActorPositionTraceResult FActorPositioning::TraceWorldForPosition(const UWorld&
 			{
 				ClosestHitDistance = DistanceToHit;
 				Results.Location = Hit.Location;
-				Results.SurfaceNormal = Hit.Normal.SafeNormal();
+				Results.SurfaceNormal = Hit.Normal.GetSafeNormal();
 				Results.State = FActorPositionTraceResult::HitSuccess;
 				Results.HitActor = Hit.Actor;
 			}

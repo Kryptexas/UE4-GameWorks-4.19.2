@@ -1,8 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "BehaviorTree/BTDecorator.h"
 #include "BTDecorator_CompareBBEntries.generated.h"
+
+class UBlackboardComponent;
+struct FBlackboardKeySelector;
 
 UENUM()
 namespace EBlackBoardEntryComparison
@@ -31,26 +34,22 @@ protected:
 
 	/** blackboard key selector */
 	UPROPERTY(EditAnywhere, Category=Blackboard)
-	struct FBlackboardKeySelector BlackboardKeyA;
+	FBlackboardKeySelector BlackboardKeyA;
 
 	/** blackboard key selector */
 	UPROPERTY(EditAnywhere, Category=Blackboard)
-	struct FBlackboardKeySelector BlackboardKeyB;
-
-	FOnBlackboardChange BBKeyObserver;
+	FBlackboardKeySelector BlackboardKeyB;
 
 public:
 
-	virtual void PostInitProperties() override;
-
-	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const override;
+	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const override;
 	virtual FString GetStaticDescription() const override;
 
 	virtual void InitializeFromAsset(UBehaviorTree& Asset) override;
 
-	virtual void OnBlackboardChange(const class UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID);
-	virtual void OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
-	virtual void OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
+	virtual void OnBlackboardChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID);
+	virtual void OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	virtual void OnCeaseRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
 
 #if WITH_EDITOR
 	virtual FName GetNodeIconName() const override;

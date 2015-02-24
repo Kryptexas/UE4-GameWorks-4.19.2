@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -46,6 +46,9 @@ namespace ETestExternalUIInterfaceState
 
 	/** Delegate for external UI opening and closing */
 	FOnExternalUIChangeDelegate ExternalUIChangeDelegate;
+
+	/** ExternalUIChange delegate handle */
+	FDelegateHandle ExternalUIChangeDelegateHandle;
 
 	/** Current external UI test */
 	ETestExternalUIInterfaceState::Type State;

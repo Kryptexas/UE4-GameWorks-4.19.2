@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
@@ -28,10 +28,6 @@ class UCurveFloat : public UCurveBase
 {
 	GENERATED_UCLASS_BODY()
 
-	/** Legacy keyframe data. */
-	UPROPERTY()
-	FInterpCurveFloat FloatKeys_DEPRECATED;
-
 	/** Keyframe data */
 	UPROPERTY()
 	FRichCurve FloatCurve;
@@ -44,12 +40,10 @@ class UCurveFloat : public UCurveBase
 	UFUNCTION(BlueprintCallable, Category="Math|Curves")
 	ENGINE_API float GetFloatValue(float InTime) const;
 
-	// UObject interface
-	virtual void PostLoad() override;
-
 	// Begin FCurveOwnerInterface
 	virtual TArray<FRichCurveEditInfoConst> GetCurves() const override;
 	virtual TArray<FRichCurveEditInfo> GetCurves() override;
+	virtual bool IsValidCurve( FRichCurveEditInfo CurveInfo ) override;
 
 	/** Determine if Curve is the same */
 	ENGINE_API bool operator == (const UCurveFloat& Curve) const;

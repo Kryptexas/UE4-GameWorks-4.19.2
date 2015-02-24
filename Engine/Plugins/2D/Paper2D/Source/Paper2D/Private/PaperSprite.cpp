@@ -1,9 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
 #include "PaperSprite.h"
 #include "PhysicsEngine/BodySetup.h"
 #include "PaperCustomVersion.h"
+
+#if WITH_EDITOR
+#include "UnrealEd.h"
+#endif
 
 #if WITH_EDITOR
 
@@ -13,6 +17,7 @@
 #include "PaperGeomTools.h"
 #include "BitmapUtils.h"
 #include "ComponentReregisterContext.h"
+
 
 //////////////////////////////////////////////////////////////////////////
 // maf
@@ -269,6 +274,8 @@ UPaperSprite::UPaperSprite(const FObjectInitializer& ObjectInitializer)
 
 	bTrimmedInSourceImage = false;
 	bRotatedInSourceImage = false;
+
+	SourceTextureDimension.Set(0, 0);
 #endif
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaskedMaterialRef(TEXT("/Paper2D/MaskedUnlitSpriteMaterial"));
@@ -276,18 +283,97 @@ UPaperSprite::UPaperSprite(const FObjectInitializer& ObjectInitializer)
 
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> OpaqueMaterialRef(TEXT("/Paper2D/OpaqueUnlitSpriteMaterial"));
 	AlternateMaterial = OpaqueMaterialRef.Object;
+
+#if WITH_EDITOR
+	// Hook into notifications for object re-imports so that the gameplay tag tree can be reconstructed if the table changes
+	if (GIsEditor && !bRegisteredObjectReimport)
+	{
+		bRegisteredObjectReimport = true;
+		FEditorDelegates::OnAssetReimport.AddUObject(this, &UPaperSprite::OnObjectReimported);
+	}
+#endif
 }
 
 #if WITH_EDITOR
+
+void UPaperSprite::OnObjectReimported(UObject* InObject)
+{
+	// Check if its our source texture, and if its dimensions have changed
+	// If SourceTetxureDimension == 0, we don't have a previous dimension to work off, so can't
+	// rescale sensibly
+	UTexture2D* Texture = Cast<UTexture2D>(InObject);
+	if (Texture != nullptr && Texture == GetSourceTexture() && NeedRescaleSpriteData())
+	{
+		RescaleSpriteData(GetSourceTexture());
+		PostEditChange();
+	}
+}
+
+#endif
+
+
+#if WITH_EDITOR
+
+/** Removes all components that use the specified sprite asset from their scenes for the lifetime of the class. */
+class FSpriteReregisterContext
+{
+public:
+	/** Initialization constructor. */
+	FSpriteReregisterContext(UPaperSprite* TargetAsset)
+	{
+		// Look at sprite components
+		for (TObjectIterator<UPaperSpriteComponent> SpriteIt; SpriteIt; ++SpriteIt)
+		{
+			if (UPaperSpriteComponent* TestComponent = *SpriteIt)
+			{
+				if (TestComponent->GetSprite() == TargetAsset)
+				{
+					AddComponentToRefresh(TestComponent);
+				}
+			}
+		}
+
+		// Look at flipbook components
+		for (TObjectIterator<UPaperFlipbookComponent> FlipbookIt; FlipbookIt; ++FlipbookIt)
+		{
+			if (UPaperFlipbookComponent* TestComponent = *FlipbookIt)
+			{
+				if (UPaperFlipbook* Flipbook = TestComponent->GetFlipbook())
+				{
+					if (Flipbook->ContainsSprite(TargetAsset))
+					{
+						AddComponentToRefresh(TestComponent);
+					}
+				}
+			}
+		}
+	}
+
+protected:
+	void AddComponentToRefresh(UActorComponent* Component)
+	{
+		if (ComponentContexts.Num() == 0)
+		{
+			// wait until resources are released
+			FlushRenderingCommands();
+		}
+
+		new (ComponentContexts) FComponentReregisterContext(Component);
+	}
+
+private:
+	/** The recreate contexts for the individual components. */
+	TIndirectArray<FComponentReregisterContext> ComponentContexts;
+};
+
 void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	//@TODO: Determine when these are really needed, as they're seriously expensive!
-	TComponentReregisterContext<UPaperSpriteComponent> ReregisterStaticComponents;
-	TComponentReregisterContext<UPaperFlipbookComponent> ReregisterAnimatedComponents;
+	//@TODO: Determine when this is really needed, as it is seriously expensive!
+	FSpriteReregisterContext ReregisterExistingComponents(this);
 
 	// Look for changed properties
-	const FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
-	const FName MemberPropertyName = (PropertyChangedEvent.MemberProperty != NULL) ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
+	const FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	const FName MemberPropertyName = (PropertyChangedEvent.MemberProperty != nullptr) ? PropertyChangedEvent.MemberProperty->GetFName() : NAME_None;
 
 	if (PixelsPerUnrealUnit <= 0.0f)
 	{
@@ -297,7 +383,7 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 	if (CollisionGeometry.GeometryType == ESpritePolygonMode::Diced)
 	{
 		// Disallow dicing on collision geometry for now
-		CollisionGeometry.GeometryType == ESpritePolygonMode::SourceBoundingBox;
+		CollisionGeometry.GeometryType = ESpritePolygonMode::SourceBoundingBox;
 	}
 	RenderGeometry.PixelsPerSubdivisionX = FMath::Max(RenderGeometry.PixelsPerSubdivisionX, 4);
 	RenderGeometry.PixelsPerSubdivisionY = FMath::Max(RenderGeometry.PixelsPerSubdivisionY, 4);
@@ -350,14 +436,24 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 
 	if (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperSprite, SourceTexture))
 	{
-		// If this is a brand new sprite that didn't have a texture set previously, act like we were factoried with the texture
 		if ((SourceTexture != nullptr) && SourceDimension.IsNearlyZero())
 		{
+			// If this is a brand new sprite that didn't have a texture set previously, act like we were factoried with the texture
 			SourceUV = FVector2D::ZeroVector;
 			SourceDimension = FVector2D(SourceTexture->GetSizeX(), SourceTexture->GetSizeY());
+			SourceTextureDimension = FVector2D(SourceTexture->GetSizeX(), SourceTexture->GetSizeY());
 		}
 		bBothModified = true;
 	}
+
+	// The texture dimensions have changed
+	//if (NeedRescaleSpriteData())
+	//{
+		// TMP: Disabled, not sure if we want this here
+		// RescaleSpriteData(GetSourceTexture());
+		// bBothModified = true;
+	//}
+
 
 	if (bCollisionDataModified || bBothModified)
 	{
@@ -370,6 +466,106 @@ void UPaperSprite::PostEditChangeProperty(FPropertyChangedEvent& PropertyChanged
 	}
 
 	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+
+void UPaperSprite::RescaleSpriteData(const UTexture2D* Texture)
+{
+	FVector2D PreviousTextureDimension = SourceTextureDimension;
+	FVector2D NewTextureDimension(Texture->GetImportedSize().X, Texture->GetImportedSize().Y);
+
+	// Don't ever divby0 (no previously stored texture dimensions)
+	// or scale to 0, should be covered by NeedRescaleSpriteData
+	if (NewTextureDimension.X == 0 || NewTextureDimension.Y == 0 ||
+		PreviousTextureDimension.X == 0 || PreviousTextureDimension.Y == 0)
+	{
+		return;
+	}
+
+	const FVector2D& S = NewTextureDimension;
+	const FVector2D& D = PreviousTextureDimension;
+
+	struct Local
+	{
+		static float NoSnap(const float Value, const float Scale, const float Divisor)
+		{
+			return (Value * Scale) / Divisor;
+		}
+
+		static FVector2D RescaleNeverSnap(const FVector2D& Value, const FVector2D& Scale, const FVector2D& Divisor)
+		{
+			return FVector2D(NoSnap(Value.X, Scale.X, Divisor.X), NoSnap(Value.Y, Scale.Y, Divisor.Y));
+		}
+
+		static FVector2D Rescale(const FVector2D& Value, const FVector2D& Scale, const FVector2D& Divisor)
+		{
+			// Never snap, want to be able to return to original values when rescaled back
+			return RescaleNeverSnap(Value, Scale, Divisor);
+			//return FVector2D(FMath::FloorToFloat(NoSnap(Value.X, Scale.X, Divisor.X)), FMath::FloorToFloat(NoSnap(Value.Y, Scale.Y, Divisor.Y)));
+		}
+	};
+
+	// Sockets are in pivot space, convert these to texture space to apply later
+	TArray<FVector2D> RescaledTextureSpaceSocketPositions;
+	for (int32 SocketIndex = 0; SocketIndex < Sockets.Num(); ++SocketIndex)
+	{
+		FPaperSpriteSocket& Socket = Sockets[SocketIndex];
+		FVector Translation = Socket.LocalTransform.GetTranslation();
+		FVector2D TextureSpaceSocketPosition = ConvertPivotSpaceToTextureSpace(FVector2D(Translation.X, Translation.Z));
+		RescaledTextureSpaceSocketPositions.Add(Local::RescaleNeverSnap(TextureSpaceSocketPosition, S, D));
+	}
+
+	SourceUV = Local::Rescale(SourceUV, S, D);
+	SourceDimension = Local::Rescale(SourceDimension, S, D);
+	SourceImageDimensionBeforeTrimming = Local::Rescale(SourceImageDimensionBeforeTrimming, S, D);
+	SourceTextureDimension = NewTextureDimension;
+
+	if (bSnapPivotToPixelGrid)
+	{
+		CustomPivotPoint = Local::Rescale(CustomPivotPoint, S, D);
+	}
+	else
+	{
+		CustomPivotPoint = Local::RescaleNeverSnap(CustomPivotPoint, S, D);
+	}
+
+	for (int32 GeomtryIndex = 0; GeomtryIndex < 2; ++GeomtryIndex)
+	{
+		FSpritePolygonCollection& Geometry = (GeomtryIndex == 0) ? CollisionGeometry : RenderGeometry;
+		for (int32 PolygonIndex = 0; PolygonIndex < Geometry.Polygons.Num(); ++PolygonIndex)
+		{
+			FSpritePolygon& Polygon = Geometry.Polygons[PolygonIndex];
+			Polygon.BoxPosition = Local::Rescale(Polygon.BoxPosition, S, D);
+			Polygon.BoxSize = Local::Rescale(Polygon.BoxSize, S, D);
+
+			for (int32 VertexIndex = 0; VertexIndex < Polygon.Vertices.Num(); ++VertexIndex)
+			{
+				Polygon.Vertices[VertexIndex] = Local::Rescale(Polygon.Vertices[VertexIndex], S, D);
+			}
+		}
+	}
+
+	// Apply texture space pivot positions now that pivot space is correctly defined
+	for (int32 SocketIndex = 0; SocketIndex < Sockets.Num(); ++SocketIndex)
+	{
+		FPaperSpriteSocket& Socket = Sockets[SocketIndex];
+		FVector2D PivotSpaceSocketPosition = ConvertTextureSpaceToPivotSpace(RescaledTextureSpaceSocketPositions[SocketIndex]);
+		FVector Translation = Socket.LocalTransform.GetTranslation();
+		Translation.X = PivotSpaceSocketPosition.X;
+		Translation.Z = PivotSpaceSocketPosition.Y;
+		Socket.LocalTransform.SetTranslation(Translation);
+	}
+}
+
+bool UPaperSprite::NeedRescaleSpriteData()
+{
+	if (UTexture2D* Texture = GetSourceTexture())
+	{
+		FIntPoint TextureSize = Texture->GetImportedSize();
+		bool bTextureSizeIsZero = TextureSize.X == 0 || TextureSize.Y == 0;
+		return !SourceTextureDimension.IsZero() && !bTextureSizeIsZero && (TextureSize.X != SourceTextureDimension.X || TextureSize.Y != SourceTextureDimension.Y);
+	}
+
+	return false;
 }
 
 void UPaperSprite::RebuildCollisionData()
@@ -980,38 +1176,49 @@ void UPaperSprite::Triangulate(const FSpritePolygonCollection& Source, TArray<FV
 {
 	Target.Empty();
 	TArray<FVector2D> AllGeneratedTriangles;
+	
+	// AOS -> Validate -> SOA
+	TArray<bool> PolygonsNegativeWinding; // do these polygons have negative winding?
+	TArray<TArray<FVector2D> > ValidPolygonTriangles;
+	PolygonsNegativeWinding.Empty(Source.Polygons.Num());
+	ValidPolygonTriangles.Empty(Source.Polygons.Num());
+	bool bSourcePolygonHasHoles = false;
 
 	// Correct polygon winding for additive and subtractive polygons
 	// Invalid polygons (< 3 verts) removed from this list
-	TArray<FSpritePolygon> ValidPolygons = PaperGeomTools::CorrectPolygonWinding(Source.Polygons);
-	
+	TArray<FSpritePolygon> ValidPolygons;
+	for (int32 PolygonIndex = 0; PolygonIndex < Source.Polygons.Num(); ++PolygonIndex)
+	{
+		const FSpritePolygon& SourcePolygon = Source.Polygons[PolygonIndex];
+		if (SourcePolygon.Vertices.Num() >= 3)
+		{
+			TArray<FVector2D>* FixedVertices = new (ValidPolygonTriangles)TArray<FVector2D>();
+			PaperGeomTools::CorrectPolygonWinding(*FixedVertices, SourcePolygon.Vertices, SourcePolygon.bNegativeWinding);
+			PolygonsNegativeWinding.Add(SourcePolygon.bNegativeWinding);
+		}
+
+		if (Source.Polygons[PolygonIndex].bNegativeWinding)
+		{
+			bSourcePolygonHasHoles = true;
+		}
+	}
+
 	// Check if polygons overlap, or have inconsistent winding, or edges overlap
-	if (!PaperGeomTools::ArePolygonsValid(ValidPolygons))
+	if (!PaperGeomTools::ArePolygonsValid(ValidPolygonTriangles))
 	{
 		return;
 	}
 
 	// Merge each additive and associated subtractive polygons to form a list of polygons in CCW winding
-	ValidPolygons = PaperGeomTools::ReducePolygons(ValidPolygons);
+	ValidPolygonTriangles = PaperGeomTools::ReducePolygons(ValidPolygonTriangles, PolygonsNegativeWinding);
 
 	// Triangulate the polygons
-	for (int32 PolygonIndex = 0; PolygonIndex < ValidPolygons.Num(); ++PolygonIndex)
+	for (int32 PolygonIndex = 0; PolygonIndex < ValidPolygonTriangles.Num(); ++PolygonIndex)
 	{
-		const FSpritePolygon& SourcePoly = ValidPolygons[PolygonIndex];
 		TArray<FVector2D> Generated2DTriangles;
-		if (PaperGeomTools::TriangulatePoly(Generated2DTriangles, SourcePoly.Vertices, Source.bAvoidVertexMerging))
+		if (PaperGeomTools::TriangulatePoly(Generated2DTriangles, ValidPolygonTriangles[PolygonIndex], Source.bAvoidVertexMerging))
 		{
 			AllGeneratedTriangles.Append(Generated2DTriangles);
-		}
-	}
-
-	bool bSourcePolygonHasHoles = false;
-	for (int32 PolygonIndex = 0; PolygonIndex < Source.Polygons.Num(); ++PolygonIndex)
-	{
-		if (Source.Polygons[PolygonIndex].bNegativeWinding)
-		{
-			bSourcePolygonHasHoles = true;
-			break;
 		}
 	}
 
@@ -1039,20 +1246,55 @@ void UPaperSprite::InitializeSprite(const FSpriteAssetInitParameters& InitParams
 		const UPaperRuntimeSettings* DefaultSettings = GetDefault<UPaperRuntimeSettings>();
 		PixelsPerUnrealUnit = DefaultSettings->DefaultPixelsPerUnrealUnit;
 
-		if (UMaterialInterface* TranslucentMaterial = LoadObject<UMaterialInterface>(nullptr, *DefaultSettings->DefaultTranslucentSpriteMaterialName.ToString(), nullptr, LOAD_None, nullptr))
+		bool bUseMaskedTexture = true;
+
+		// Analyze the texture if desired (to see if it's got greyscale alpha or just binary alpha, picking either a ranslucent or masked material)
+		if (DefaultSettings->bPickBestMaterialWhenCreatingSprite)
 		{
-			DefaultMaterial = TranslucentMaterial;
+			if (InitParams.Texture != nullptr)
+			{
+				FAlphaBitmap AlphaBitmap(InitParams.Texture);
+				bool bHasIntermediateValues;
+				bool bHasZeros;
+				AlphaBitmap.AnalyzeImage((int32)InitParams.Offset.X, (int32)InitParams.Offset.Y, (int32)InitParams.Dimension.X, (int32)InitParams.Dimension.Y, /*out*/ bHasZeros, /*out*/ bHasIntermediateValues);
+
+				bUseMaskedTexture = !bHasIntermediateValues;
+			}
 		}
 
-		if (UMaterialInterface* OpaqueMaterial = LoadObject<UMaterialInterface>(nullptr, *DefaultSettings->DefaultOpaqueSpriteMaterialName.ToString(), nullptr, LOAD_None, nullptr))
+		if (bUseMaskedTexture)
+		{
+			if (UMaterialInterface* MaskedMaterial = LoadObject<UMaterialInterface>(nullptr, *DefaultSettings->DefaultMaskedMaterialName.ToString(), nullptr, LOAD_None, nullptr))
+			{
+				DefaultMaterial = MaskedMaterial;
+			}
+		}
+		else
+		{
+			if (UMaterialInterface* TranslucentMaterial = LoadObject<UMaterialInterface>(nullptr, *DefaultSettings->DefaultTranslucentMaterialName.ToString(), nullptr, LOAD_None, nullptr))
+			{
+				DefaultMaterial = TranslucentMaterial;
+			}
+		}
+
+		if (UMaterialInterface* OpaqueMaterial = LoadObject<UMaterialInterface>(nullptr, *DefaultSettings->DefaultOpaqueMaterialName.ToString(), nullptr, LOAD_None, nullptr))
 		{
 			AlternateMaterial = OpaqueMaterial;
 		}
 	}
 
 	SourceTexture = InitParams.Texture;
+	if (SourceTexture != nullptr)
+	{
+		SourceTextureDimension.Set(SourceTexture->GetImportedSize().X, SourceTexture->GetImportedSize().Y);
+	}
+	else
+	{
+		SourceTextureDimension.Set(0, 0);
+	}
 	SourceUV = InitParams.Offset;
 	SourceDimension = InitParams.Dimension;
+
 	RebuildCollisionData();
 	RebuildRenderData();
 }
@@ -1308,7 +1550,7 @@ FPaperSpriteSocket* UPaperSprite::FindSocket(FName SocketName)
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void UPaperSprite::QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const
@@ -1358,10 +1600,17 @@ void UPaperSprite::PostLoad()
 	{
 		bRebuildCollision = true;
 	}
-	
+
 	if ((PaperVer < FPaperCustomVersion::AddDefaultCollisionProfileInSpriteAsset) && (BodySetup != nullptr))
 	{
 		BodySetup->DefaultInstance.SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
+	}
+
+	if (PaperVer >= FPaperCustomVersion::AddSourceTextureSize && NeedRescaleSpriteData())
+	{
+		RescaleSpriteData(GetSourceTexture());
+		bRebuildCollision = true;
+		bRebuildRenderData = true;
 	}
 
 	if (bRebuildCollision)

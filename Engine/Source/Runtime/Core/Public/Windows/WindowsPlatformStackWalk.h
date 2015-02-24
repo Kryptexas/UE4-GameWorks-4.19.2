@@ -1,11 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-
-/*=============================================================================================
-	WindowsPlatformStackWalk.h: Windows platform stack walk functions
-==============================================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "GenericPlatform/GenericPlatformStackWalk.h"
 
 #undef PLATFORM_SUPPORTS_STACK_SYMBOLS
@@ -15,7 +11,8 @@
 /**
  * Windows implementation of the stack walking.
  **/
-struct CORE_API FWindowsPlatformStackWalk : public FGenericPlatformStackWalk
+struct CORE_API FWindowsPlatformStackWalk
+	: public FGenericPlatformStackWalk
 {
 	static bool InitStackWalking();
 	
@@ -29,5 +26,5 @@ struct CORE_API FWindowsPlatformStackWalk : public FGenericPlatformStackWalk
 	static void RegisterOnModulesChanged();
 };
 
-typedef FWindowsPlatformStackWalk FPlatformStackWalk;
 
+typedef FWindowsPlatformStackWalk FPlatformStackWalk;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DestructibleMeshEditorPrivatePCH.h"
 
@@ -12,6 +12,8 @@
 #include "ComponentReregisterContext.h"
 #include "Engine/DestructibleMesh.h"
 #include "SDockableTab.h"
+#include "Components/DestructibleComponent.h"
+#include "Engine/StaticMesh.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDestructibleMeshEditor, Log, All);
 
@@ -79,7 +81,7 @@ private:
 };
 
 FDestructibleMeshEditorViewportClient::FDestructibleMeshEditorViewportClient(TWeakPtr<IDestructibleMeshEditor> InDestructibleMeshEditor, FPreviewScene& InPreviewScene)
-	: FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)
+	: FEditorViewportClient(nullptr, &InPreviewScene)
 	, DestructibleMeshEditorPtr(InDestructibleMeshEditor)
 {
 	SetViewMode(VMI_Lit);

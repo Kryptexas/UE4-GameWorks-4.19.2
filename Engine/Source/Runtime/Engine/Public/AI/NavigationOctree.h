@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AI/NavigationModifier.h"
@@ -44,6 +44,9 @@ struct ENGINE_API FNavigationRelevantData
 	/** additional modifiers: areas and external links */
 	FCompositeNavModifier Modifiers;
 
+	// Gathers per instance data for navigation geometry in a specified area box
+	FNavDataPerInstanceTransformDelegate NavDataPerInstanceTransformDelegate;
+
 	FORCEINLINE bool HasGeometry() const { return VoxelData.Num() || CollisionData.Num(); }
 	FORCEINLINE bool HasModifiers() const { return !Modifiers.IsEmpty(); }
 	FORCEINLINE bool IsEmpty() const { return !HasGeometry() && !HasModifiers(); }
@@ -54,7 +57,8 @@ struct ENGINE_API FNavigationRelevantData
 			(HasModifiers() ? ENavigationDirtyFlag::DynamicModifier : 0) |
 			(Modifiers.HasAgentHeightAdjust() ? ENavigationDirtyFlag::UseAgentHeight : 0);
 	}
-
+	
+	bool HasPerInstanceTransforms() const;
 	bool IsMatchingFilter(const FNavigationOctreeFilter& Filter) const;
 	void Shrink();
 };
@@ -146,6 +150,9 @@ public:
 
 	/** Append new data to existing node */
 	void AppendToNode(const FOctreeElementId& Id, INavRelevantInterface* NavElement, const FBox& Bounds, FNavigationOctreeElement& Data);
+
+	/** Updates element bounds remove/add operation */
+	void UpdateNode(const FOctreeElementId& Id, const FBox& NewBounds);
 
 	/** Remove node */
 	void RemoveNode(const FOctreeElementId& Id);

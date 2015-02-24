@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
@@ -58,7 +58,7 @@ void SWorldDetails::OnBrowseWorld(UWorld* InWorld)
 		WorldModel->CollectionChanged.AddSP(this, &SWorldDetails::OnCollectionChanged);
 	
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		FDetailsViewArgs Args(false, false, false, false, true);
+		FDetailsViewArgs Args(false, false, false, FDetailsViewArgs::HideNameArea, true);
 		Args.bShowActorLabel = false;
 	
 		DetailsView = PropertyModule.CreateDetailView(Args);
@@ -212,7 +212,7 @@ TSharedRef<SWidget> SWorldDetails::HandleInspectedLevelComboBoxGenerateWidget(TS
 	return SNew(SBox)
 	.Padding(4)
 	[
-		SNew(STextBlock).Text(InLevelModel->GetDisplayName())
+		SNew(STextBlock).Text(FText::FromString(InLevelModel->GetDisplayName()))
 	];
 }
 

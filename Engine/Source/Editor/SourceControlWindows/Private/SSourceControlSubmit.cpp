@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SourceControlWindowsPCH.h"
 #include "AssetToolsModule.h"
 #include "MessageLog.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "FileHelpers.h"
 
 
 IMPLEMENT_MODULE( FDefaultModuleImpl, SourceControlWindows );
@@ -84,15 +85,15 @@ public:
 
 private:
 	/** The check status of the item. */
-	ESlateCheckBoxState::Type IsChecked() const
+	ECheckBoxState IsChecked() const
 	{
-		return SubmitItemData->bIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return SubmitItemData->bIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	/** Changes the check status of the item .*/
-	void OnCheckStateChanged(ESlateCheckBoxState::Type InState)
+	void OnCheckStateChanged(ECheckBoxState InState)
 	{
-		SubmitItemData->bIsChecked = InState == ESlateCheckBoxState::Checked;
+		SubmitItemData->bIsChecked = InState == ECheckBoxState::Checked;
 	}
 
 private:
@@ -151,9 +152,7 @@ public:
 					]
 				]
 				+SVerticalBox::Slot()
-				.AutoHeight()
 				.Padding(FMargin(5, 0))
-				.MaxHeight(300)
 				[
 					SNew(SBorder)
 					[
@@ -188,7 +187,6 @@ public:
 						.Padding(2)
 						[
 							SNew(SBox)
-							.WidthOverride(500.0f)
 							[
 								SAssignNew( ListView, SListType)
 								.ItemHeight(24)
@@ -206,8 +204,8 @@ public:
 					.Visibility(this, &SSourceControlSubmitWidget::IsWarningPanelVisible)
 					.Padding(5)
 					[
-						SNew( STextBlock )
-						.Text( NSLOCTEXT("SourceControl.SubmitPanel", "ChangeListDescWarning", "Changelist description is required to submit") )
+						SNew( SErrorText )
+						.ErrorText( NSLOCTEXT("SourceControl.SubmitPanel", "ChangeListDescWarning", "Changelist description is required to submit") )
 					]
 				]
 				+SVerticalBox::Slot()
@@ -261,7 +259,7 @@ public:
 		;
 
 		DialogResult = ESubmitResults::SUBMIT_CANCELED;
-		KeepCheckedOut = ESlateCheckBoxState::Unchecked;
+		KeepCheckedOut = ECheckBoxState::Unchecked;
 
 		ParentFrame.Pin()->SetWidgetToFocusOnActivate(ChangeListDescriptionTextCtrl);
 	}
@@ -315,10 +313,10 @@ private:
 	 * @return the desired toggle state for the ToggleSelectedCheckBox.
 	 * Returns Unchecked, unless all of the selected items are Checked.
 	 */
-	ESlateCheckBoxState::Type GetToggleSelectedState() const
+	ECheckBoxState GetToggleSelectedState() const
 	{
 		// Default to a Checked state
-		ESlateCheckBoxState::Type PendingState = ESlateCheckBoxState::Checked;
+		ECheckBoxState PendingState = ECheckBoxState::Checked;
 
 		TArray< TSharedPtr<TSubmitItemData> > SelectedItems = GetSelectedItems(true);
 
@@ -330,7 +328,7 @@ private:
 			{
 				// If any item in the selection is Unchecked, then represent the entire set of highlighted items as Unchecked,
 				// so that the first (user) toggle of ToggleSelectedCheckBox consistently Checks all highlighted items
-				PendingState = ESlateCheckBoxState::Unchecked;
+				PendingState = ECheckBoxState::Unchecked;
 			}
 		}
 
@@ -341,11 +339,11 @@ private:
 	 * Toggles the highlighted items.
 	 * If no items are explicitly highlighted, toggles all items in the list.
 	 */
-	void OnToggleSelectedCheckBox(ESlateCheckBoxState::Type InNewState)
+	void OnToggleSelectedCheckBox(ECheckBoxState InNewState)
 	{
 		TArray< TSharedPtr<TSubmitItemData> > SelectedItems = GetSelectedItems(true);
 
-		const bool bIsChecked = (InNewState == ESlateCheckBoxState::Checked);
+		const bool bIsChecked = (InNewState == ECheckBoxState::Checked);
 		for(auto SelectedItem = SelectedItems.CreateConstIterator(); SelectedItem; ++SelectedItem)
 		{
 			TSubmitItemData* const Item = SelectedItem->Get();
@@ -383,7 +381,7 @@ public:
 	/** Does the user want to keep the files checked out */
 	bool WantToKeepCheckedOut()
 	{
-		return KeepCheckedOut == ESlateCheckBoxState::Checked ? true : false;
+		return KeepCheckedOut == ECheckBoxState::Checked ? true : false;
 	}
 
 private:
@@ -419,13 +417,13 @@ private:
 	}
 
 	/** Called when the Keep checked out Checkbox is changed */
-	void OnCheckStateChanged_KeepCheckedOut(ESlateCheckBoxState::Type InState)
+	void OnCheckStateChanged_KeepCheckedOut(ECheckBoxState InState)
 	{
 		KeepCheckedOut = InState;
 	}
 
 	/** Get the current state of the Keep Checked Out checkbox  */
-	ESlateCheckBoxState::Type GetKeepCheckedOut() const
+	ECheckBoxState GetKeepCheckedOut() const
 	{
 		return KeepCheckedOut;
 	}
@@ -451,51 +449,235 @@ private:
 	/** Internal widgets to save having to get in multiple places*/
 	TSharedPtr<SMultiLineEditableTextBox> ChangeListDescriptionTextCtrl;
 
-	ESlateCheckBoxState::Type	KeepCheckedOut;
+	ECheckBoxState	KeepCheckedOut;
 };
 
-static void FindFilesForCheckIn(const TArray<FString>& InPackagesNames, TArray<FString>& OutAddFiles, TArray<FString>& OutOpenFiles)
+
+TWeakPtr<SNotificationItem> FSourceControlWindows::ChoosePackagesToCheckInNotification;
+
+void FSourceControlWindows::ChoosePackagesToCheckInCompleted(const TArray<UPackage*>& LoadedPackages, const TArray<FString>& PackageNames, const TArray<FString>& ConfigFiles)
+{
+	if (ChoosePackagesToCheckInNotification.IsValid())
+	{
+		ChoosePackagesToCheckInNotification.Pin()->ExpireAndFadeout();
+	}
+	ChoosePackagesToCheckInNotification.Reset();
+
+	check(PackageNames.Num() > 0 || ConfigFiles.Num() > 0);
+
+	// Prompt the user to ask if they would like to first save any dirty packages they are trying to check-in
+	const FEditorFileUtils::EPromptReturnCode UserResponse = FEditorFileUtils::PromptForCheckoutAndSave(LoadedPackages, true, true);
+
+	// If the user elected to save dirty packages, but one or more of the packages failed to save properly OR if the user
+	// canceled out of the prompt, don't follow through on the check-in process
+	const bool bShouldProceed = (UserResponse == FEditorFileUtils::EPromptReturnCode::PR_Success || UserResponse == FEditorFileUtils::EPromptReturnCode::PR_Declined);
+	if (bShouldProceed)
+	{
+		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+		FSourceControlWindows::PromptForCheckin(PackageNames, ConfigFiles);
+	}
+	else
+	{
+		// If a failure occurred, alert the user that the check-in was aborted. This warning shouldn't be necessary if the user cancelled
+		// from the dialog, because they obviously intended to cancel the whole operation.
+		if (UserResponse == FEditorFileUtils::EPromptReturnCode::PR_Failure)
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "SCC_Checkin_Aborted", "Check-in aborted as a result of save failure."));
+		}
+	}
+}
+
+void FSourceControlWindows::ChoosePackagesToCheckInCancelled(FSourceControlOperationRef InOperation)
+{
+	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+	SourceControlProvider.CancelOperation(InOperation);
+
+	if (ChoosePackagesToCheckInNotification.IsValid())
+	{
+		ChoosePackagesToCheckInNotification.Pin()->ExpireAndFadeout();
+	}
+	ChoosePackagesToCheckInNotification.Reset();
+}
+
+void FSourceControlWindows::ChoosePackagesToCheckInCallback(const FSourceControlOperationRef& InOperation, ECommandResult::Type InResult)
+{
+	if (ChoosePackagesToCheckInNotification.IsValid())
+	{
+		ChoosePackagesToCheckInNotification.Pin()->ExpireAndFadeout();
+	}
+	ChoosePackagesToCheckInNotification.Reset();
+
+	if (InResult == ECommandResult::Succeeded)
+	{
+		// Get a list of all the checked out packages
+		int32 NumSelectedNames = 0;
+		int32 NumSelectedPackages = 0;
+		TArray<FString> PackageNames;
+		TArray<UPackage*> LoadedPackages;
+		TMap<FString, FSourceControlStatePtr> PackageStates;
+		FEditorFileUtils::FindAllSubmittablePackageFiles(PackageStates, true);
+		for (TMap<FString, FSourceControlStatePtr>::TConstIterator PackageIter(PackageStates); PackageIter; ++PackageIter)
+		{
+			const FString Filename = *PackageIter.Key();
+			const FString PackageName = FPackageName::FilenameToLongPackageName(Filename);
+			const FSourceControlStatePtr CurPackageSCCState = PackageIter.Value();
+
+			UPackage* Package = FindPackage(NULL, *PackageName);
+
+			// Put pre-selected items at the start of the list
+			if (CurPackageSCCState.IsValid() && CurPackageSCCState->IsSourceControlled())
+			{
+				if (Package != NULL)
+				{
+					LoadedPackages.Insert(Package, NumSelectedPackages++);
+				}
+				PackageNames.Insert(PackageName, NumSelectedNames++);
+			}
+			else
+			{
+				if (Package != NULL)
+				{
+					LoadedPackages.Add(Package);
+				}
+				PackageNames.Add(PackageName);
+			}
+		}
+
+		// Get a list of all the checked out config files
+		TMap<FString, FSourceControlStatePtr> ConfigFileStates;
+		TArray<FString> ConfigFilesToSubmit;
+		FEditorFileUtils::FindAllSubmittableConfigFiles(ConfigFileStates);
+		for (TMap<FString, FSourceControlStatePtr>::TConstIterator It(ConfigFileStates); It; ++It)
+		{
+			ConfigFilesToSubmit.Add(It.Key());
+		}
+
+		if (PackageNames.Num() > 0 || ConfigFilesToSubmit.Num() > 0)
+		{
+			ChoosePackagesToCheckInCompleted(LoadedPackages, PackageNames, ConfigFilesToSubmit);
+		}
+		else
+		{
+			FMessageLog EditorErrors("EditorErrors");
+			EditorErrors.Warning(LOCTEXT("NoAssetsToCheckIn", "No assets to check in!"));
+			EditorErrors.Notify();
+		}
+	}
+	else if (InResult == ECommandResult::Failed)
+	{
+		FMessageLog EditorErrors("EditorErrors");
+		EditorErrors.Warning(LOCTEXT("CheckInOperationFailed", "Failed checking source control status!"));
+		EditorErrors.Notify();
+	}
+}
+
+void FSourceControlWindows::ChoosePackagesToCheckIn()
+{
+	if (ISourceControlModule::Get().IsEnabled())
+	{
+		if (ISourceControlModule::Get().GetProvider().IsAvailable())
+		{
+			// make sure we update the SCC status of all packages (this could take a long time, so we will run it as a background task)
+			TArray<FString> Packages;
+			FEditorFileUtils::FindAllPackageFiles(Packages);
+
+			// Get list of filenames corresponding to packages
+			TArray<FString> Filenames = SourceControlHelpers::PackageFilenames(Packages);
+
+			// Add game config files to the list
+			FEditorFileUtils::FindAllConfigFiles(Filenames);
+
+			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
+			FSourceControlOperationRef Operation = ISourceControlOperation::Create<FUpdateStatus>();
+			SourceControlProvider.Execute(Operation, Filenames, EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateStatic(&FSourceControlWindows::ChoosePackagesToCheckInCallback));
+
+			if (ChoosePackagesToCheckInNotification.IsValid())
+			{
+				ChoosePackagesToCheckInNotification.Pin()->ExpireAndFadeout();
+			}
+
+			FNotificationInfo Info(LOCTEXT("ChooseAssetsToCheckInIndicator", "Checking for assets to check in..."));
+			Info.bFireAndForget = false;
+			Info.ExpireDuration = 0.0f;
+			Info.FadeOutDuration = 1.0f;
+
+			if (SourceControlProvider.CanCancelOperation(Operation))
+			{
+				Info.ButtonDetails.Add(FNotificationButtonInfo(
+					LOCTEXT("ChoosePackagesToCheckIn_CancelButton", "Cancel"),
+					LOCTEXT("ChoosePackagesToCheckIn_CancelButtonTooltip", "Cancel the check in operation."),
+					FSimpleDelegate::CreateStatic(&FSourceControlWindows::ChoosePackagesToCheckInCancelled, Operation)
+					));
+			}
+
+			ChoosePackagesToCheckInNotification = FSlateNotificationManager::Get().AddNotification(Info);
+
+			if (ChoosePackagesToCheckInNotification.IsValid())
+			{
+				ChoosePackagesToCheckInNotification.Pin()->SetCompletionState(SNotificationItem::CS_Pending);
+			}
+		}
+		else
+		{
+			FMessageLog EditorErrors("EditorErrors");
+			EditorErrors.Warning(LOCTEXT("NoSCCConnection", "No connection to source control available!"))
+				->AddToken(FDocumentationToken::Create(TEXT("Engine/UI/SourceControl")));
+			EditorErrors.Notify();
+		}
+	}
+}
+
+bool FSourceControlWindows::CanChoosePackagesToCheckIn()
+{
+	return !ChoosePackagesToCheckInNotification.IsValid();
+}
+
+static void FindFilesForCheckIn(const TArray<FString>& InFilenames, TArray<FString>& OutAddFiles, TArray<FString>& OutOpenFiles)
 {
 	ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 
 	TArray<FSourceControlStateRef> States;
-	SourceControlProvider.GetState(SourceControlHelpers::PackageFilenames(InPackagesNames), States, EStateCacheUsage::ForceUpdate);
+	SourceControlProvider.GetState(InFilenames, States, EStateCacheUsage::ForceUpdate);
 
-	for( int32 PackageIndex = 0 ; PackageIndex < InPackagesNames.Num() ; ++PackageIndex )
+	for (const FString& Filename : InFilenames)
 	{
-		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(SourceControlHelpers::PackageFilename(InPackagesNames[PackageIndex]), EStateCacheUsage::Use);
-		if(SourceControlState.IsValid())
+		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Filename, EStateCacheUsage::Use);
+		if (SourceControlState.IsValid())
 		{
 			if (SourceControlState->CanCheckIn())
 			{
-				OutOpenFiles.Add(InPackagesNames[PackageIndex]);
+				OutOpenFiles.Add(Filename);
 			}
 			else
 			{
-				if( !SourceControlState->IsSourceControlled() )
+				if (!SourceControlState->IsSourceControlled())
 				{
-					OutAddFiles.Add(InPackagesNames[PackageIndex]);
+					OutAddFiles.Add(Filename);
 				}
 			}
 		}
 	}
 }
 
-
-bool FSourceControlWindows::PromptForCheckin(const TArray<FString>& InPackageNames)
+bool FSourceControlWindows::PromptForCheckin(const TArray<FString>& InPackageNames, const TArray<FString>& InConfigFiles)
 {
 	bool bCheckInSuccess = true;
 
+	// Get filenames for package names
+	TArray<FString> AllFiles = SourceControlHelpers::PackageFilenames(InPackageNames);
+	AllFiles.Append(InConfigFiles);
+
 	TArray<FString> AddFiles;
 	TArray<FString> OpenFiles;
-	FindFilesForCheckIn(InPackageNames, AddFiles, OpenFiles);
+	FindFilesForCheckIn(AllFiles, AddFiles, OpenFiles);
 
 	if (AddFiles.Num() || OpenFiles.Num())
 	{
 		TSharedRef<SWindow> NewWindow = SNew(SWindow)
 			.Title(NSLOCTEXT("SourceControl.SubmitWindow", "Title", "Submit Files"))
-			.SizingRule( ESizingRule::Autosized )
-			.SupportsMaximize(false)
+			.SizingRule(ESizingRule::UserSized)
+			.ClientSize(FVector2D(512, 430))
+			.SupportsMaximize(true)
 			.SupportsMinimize(false);
 
 		TSharedRef<SSourceControlSubmitWidget> SourceControlWidget = 
@@ -520,10 +702,6 @@ bool FSourceControlWindows::PromptForCheckin(const TArray<FString>& InPackageNam
 			//Get description from the dialog
 			SourceControlWidget->FillChangeListDescription(Description, AddFiles, OpenFiles);
 
-			// Convert to source control paths
-			Description.FilesForAdd = SourceControlHelpers::PackageFilenames(Description.FilesForAdd);
-			Description.FilesForSubmit = SourceControlHelpers::PackageFilenames(Description.FilesForSubmit);
-
 			//revert all unchanged files that were submitted
 			if ( Description.FilesForSubmit.Num() > 0 )
 			{
@@ -532,9 +710,7 @@ bool FSourceControlWindows::PromptForCheckin(const TArray<FString>& InPackageNam
 				//make sure all files are still checked out
 				for (int32 VerifyIndex = Description.FilesForSubmit.Num()-1; VerifyIndex >= 0; --VerifyIndex)
 				{
-					FString TempFilename = Description.FilesForSubmit[VerifyIndex];
-					const FString PackageName = FPackageName::FilenameToLongPackageName(TempFilename);
-					FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(SourceControlHelpers::PackageFilename(PackageName), EStateCacheUsage::Use);
+					FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Description.FilesForSubmit[VerifyIndex], EStateCacheUsage::Use);
 					if( SourceControlState.IsValid() && !SourceControlState->IsCheckedOut() && !SourceControlState->IsAdded() )
 					{
 						Description.FilesForSubmit.RemoveAt(VerifyIndex);
@@ -591,6 +767,7 @@ bool FSourceControlWindows::PromptForCheckin(const TArray<FString>& InPackageNam
 
 	return bCheckInSuccess;
 }
+
 
 #undef LOCTEXT_NAMESPACE
 

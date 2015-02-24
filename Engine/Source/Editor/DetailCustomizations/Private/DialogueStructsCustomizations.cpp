@@ -1,10 +1,12 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SoundDefinitions.h"
 #include "DialogueStructsCustomizations.h"
 #include "DialogueWaveWidgets.h"
 #include "AssetThumbnail.h"
+#include "Sound/DialogueWave.h"
+#include "Sound/DialogueVoice.h"
 
 #define LOCTEXT_NAMESPACE "DialogueWaveDetails"
 
@@ -265,7 +267,7 @@ TSharedRef<SWidget> SSpeakerDropDown::MakeComboButtonItemWidget(TSharedPtr<UDial
 		[
 			// Voice Description
 			SNew( STextBlock )
-			.Text( ( Speaker.IsValid() && *Speaker ) ? (*Speaker)->GetDesc() : LOCTEXT("None", "None").ToString() )
+			.Text( ( Speaker.IsValid() && *Speaker ) ? FText::FromString((*Speaker)->GetDesc()) : LOCTEXT("None", "None") )
 		];
 }
 
@@ -557,7 +559,7 @@ TSharedRef<SWidget> STargetSetDropDown::MakeComboButtonItemWidget(TSharedPtr<FTa
 			// Voice Description
 			SNew( STextBlock )
 			.Font( Font )
-			.Text( Target ? Target->GetDesc() : LOCTEXT("None", "None").ToString() )
+			.Text( Target ? FText::FromString(Target->GetDesc()) : LOCTEXT("None", "None") )
 		];
 	}
 	else
@@ -749,7 +751,7 @@ void SValidatedDialogueContextHeaderWidget::Construct( const FArguments& InArgs,
 							+SHorizontalBox::Slot()
 							.AutoWidth()
 							[
-								TargetsPropertyHandle->CreatePropertyNameWidget( LOCTEXT("DirectedAt", "Directed At").ToString() )
+								TargetsPropertyHandle->CreatePropertyNameWidget( LOCTEXT("DirectedAt", "Directed At") )
 							]
 							+SHorizontalBox::Slot()
 							.FillWidth(1.0f)

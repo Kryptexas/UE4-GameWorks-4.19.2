@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "PaperAtlasGenerator.h"
@@ -48,7 +48,7 @@ public:
 		const FIntPoint SpriteSize(FMath::TruncToInt(SpriteSizeFloat.X), FMath::TruncToInt(SpriteSizeFloat.Y));
 
 		TArray<uint8> DummyBuffer;
-		DummyBuffer.AddZeroed(SpriteSize.X * SpriteSize.Y * Stride);
+		DummyBuffer.AddZeroed(SpriteSize.X * SpriteSize.Y * BytesPerPixel);
 		
 		check(Sprite->GetSourceTexture());
 		FTextureSource& SourceData = Sprite->GetSourceTexture()->Source;

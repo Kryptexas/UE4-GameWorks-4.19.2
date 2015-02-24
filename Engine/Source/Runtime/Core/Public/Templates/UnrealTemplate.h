@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -150,7 +150,15 @@ char (&ArrayCountHelper(const T (&)[N]))[N];
 #define ARRAY_COUNT( array ) (sizeof(ArrayCountHelper(array))+0)
 
 // Offset of a struct member.
+#ifndef UNREAL_CODE_ANALYZER
+// UCA uses clang on Windows. According to C++11 standard, (which in this case clang follows and msvc doesn't)
+// forbids using reinterpret_cast in constant expressions. msvc uses reinterpret_cast in offsetof macro,
+// while clang uses compiler intrinsic. Calling static_assert(STRUCT_OFFSET(x, y) == SomeValue) causes compiler
+// error when using clang on Windows (while including windows headers).
 #define STRUCT_OFFSET( struc, member )	offsetof(struc, member)
+#else
+#define STRUCT_OFFSET( struc, member )	__builtin_offsetof(struc, member)
+#endif
 
 #if PLATFORM_VTABLE_AT_END_OF_CLASS
 	#error need implementation

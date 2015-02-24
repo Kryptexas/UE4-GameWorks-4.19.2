@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CookCommandlet.cpp: Commandlet for cooking content
@@ -30,7 +30,9 @@ DEFINE_LOG_CATEGORY_STATIC(LogCookCommandlet, Log, All);
 UCookerSettings::UCookerSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	DefaultPVRTCQuality = 0;
+	DefaultPVRTCQuality = 1;
+	DefaultASTCQualityBySize = 3;
+	DefaultASTCQualityBySpeed = 3;
 }
 
 
@@ -43,6 +45,7 @@ static FString GetPackageFilename( UPackage* Package )
 	if (FPackageName::DoesPackageExist(Package->GetName(), NULL, &Filename))
 	{
 		Filename = FPaths::ConvertRelativePathToFull(Filename);
+		FPaths::RemoveDuplicateSlashes(Filename);
 	}
 	return Filename;
 }
@@ -51,7 +54,7 @@ static FString GetPackageFilename( UPackage* Package )
 /* UCookCommandlet structors
  *****************************************************************************/
 
-UCookCommandlet::UCookCommandlet( const class FObjectInitializer& ObjectInitializer )
+UCookCommandlet::UCookCommandlet( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
 {
 
@@ -932,6 +935,13 @@ void UCookCommandlet::CollectFilesToCook(TArray<FString>& FilesInPath)
 				AddFileToCook(FilesInPath, Obj);
 			}
 		}
+		if (PlatformEngineIni.GetString(TEXT("/Script/EngineSettings.GameMapsSettings"), TEXT("GameInstanceClass"), Obj))
+		{
+			if (Obj != FName(NAME_None).ToString())
+			{
+				AddFileToCook(FilesInPath, Obj);
+			}
+		}
 	}
 
 	// make sure we cook any extra assets for the default touch interface
@@ -1034,7 +1044,16 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	//////////////////////////////////////////////////////////////////////////
 	// parse commandline options 
 
-	FString AssetRegistry;
+	FString DLCName;
+	FParse::Value( *Params, TEXT("DLCNAME="), DLCName);
+
+	FString BasedOnReleaseVersion;
+	FParse::Value( *Params, TEXT("BasedOnReleaseVersion="), BasedOnReleaseVersion);
+
+	FString CreateReleaseVersion;
+	FParse::Value( *Params, TEXT("CreateReleaseVersion="), CreateReleaseVersion);
+
+	/*FString AssetRegistry;
 	if (FParse::Value(*Params, TEXT("SHIPPEDASSETREGISTRY="), AssetRegistry))
 	{
 		TArray<FName> TargetPlatformNames;
@@ -1044,7 +1063,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 			TargetPlatformNames.Add(PlatformName); // build list of all target platform names
 		}
 		CookOnTheFlyServer->WarmCookedPackages(FPaths::GameContentDir() / AssetRegistry, TargetPlatformNames);
-	}
+	}*/
 
 	TArray<FString> CmdLineIniSections;
 	FString SectionStr;
@@ -1133,7 +1152,18 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 		MapList.Add( MapName );
 	}
 
-	CookOnTheFlyServer->StartCookByTheBook(Platforms, MapList, CmdLineDirEntries, CmdLineCultEntries, CmdLineIniSections, CookOptions );
+	UCookOnTheFlyServer::FCookByTheBookStartupOptions StartupOptions;
+
+	StartupOptions.TargetPlatforms = Platforms;
+	Swap( StartupOptions.CookMaps, MapList );
+	Swap( StartupOptions.CookDirectories, CmdLineDirEntries );
+	Swap( StartupOptions.CookCultures, CmdLineCultEntries );
+	Swap( StartupOptions.DLCName, DLCName );
+	Swap( StartupOptions.BasedOnReleaseVersion, BasedOnReleaseVersion );
+	Swap( StartupOptions.CreateReleaseVersion, CreateReleaseVersion );
+	StartupOptions.CookOptions = CookOptions;
+
+	CookOnTheFlyServer->StartCookByTheBook( StartupOptions );
 
 	// Garbage collection should happen when either
 	//	1. We have cooked a map

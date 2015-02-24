@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -98,7 +98,12 @@ void UButton::SetBackgroundColor(FLinearColor Color)
 
 bool UButton::IsPressed() const
 {
-	return MyButton->IsPressed();
+	if ( MyButton.IsValid() )
+	{
+		return MyButton->IsPressed();
+	}
+
+	return false;
 }
 
 void UButton::PostLoad()

@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
+#include "CanvasTypes.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperTileSetThumbnailRenderer
@@ -13,17 +14,17 @@ UPaperTileSetThumbnailRenderer::UPaperTileSetThumbnailRenderer(const FObjectInit
 void UPaperTileSetThumbnailRenderer::Draw(UObject* Object, int32 X, int32 Y, uint32 Width, uint32 Height, FRenderTarget*, FCanvas* Canvas)
 {
 	UPaperTileSet* TileSet = Cast<UPaperTileSet>(Object);
-	if ((TileSet != NULL) && (TileSet->TileSheet != NULL))
+	if ((TileSet != nullptr) && (TileSet->TileSheet != nullptr))
 	{
 		const bool bUseTranslucentBlend = TileSet->TileSheet->HasAlphaChannel();
 
 		// Draw the grid behind the sprite
 		if (bUseTranslucentBlend)
 		{
-			static UTexture2D* GridTexture = NULL;
-			if (GridTexture == NULL)
+			static UTexture2D* GridTexture = nullptr;
+			if (GridTexture == nullptr)
 			{
-				GridTexture = LoadObject<UTexture2D>(NULL, TEXT("/Engine/EngineMaterials/DefaultWhiteGrid.DefaultWhiteGrid"), NULL, LOAD_None, NULL);
+				GridTexture = LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EngineMaterials/DefaultWhiteGrid.DefaultWhiteGrid"), nullptr, LOAD_None, nullptr);
 			}
 
 			const bool bAlphaBlend = false;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PropertyEditorPrivatePCH.h"
@@ -6,6 +6,8 @@
 #include "CategoryPropertyNode.h"
 #include "ScopedTransaction.h"
 #include "PropertyRestriction.h"
+#include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
+#include "Engine/UserDefinedStruct.h"
 
 FPropertySettings& FPropertySettings::Get()
 {
@@ -732,18 +734,26 @@ public:
 		uint8*		ValueAddress;
 	};
 
-	/**
-	 * Constructor
-	 *
-	 * @param	InPropItem		the property window item this struct will hold values for
-	 * @param	InOwnerObject	the object which contains the property value
-	 */
-	FPropertyItemValueDataTrackerSlate( FPropertyNode* InPropertyNode, UObject* InOwnerObject )
-		: OwnerObject( InOwnerObject )
-		, PropertyNode(InPropertyNode)
-		, bHasDefaultValue(false)
+	void Reset(FPropertyNode* InPropertyNode, UObject* InOwnerObject)
 	{
-		PropertyValueRoot.OwnerObject = InOwnerObject;
+		OwnerObject = InOwnerObject;
+		PropertyNode = InPropertyNode;
+		bHasDefaultValue = false;
+		InnerInitialize();
+	}
+
+	void InnerInitialize()
+	{
+	{
+			PropertyValueRoot.OwnerObject = NULL;
+			PropertyDefaultValueRoot.OwnerObject = NULL;
+			PropertyValueAddress = NULL;
+			PropertyValueBaseAddress = NULL;
+			PropertyDefaultBaseAddress = NULL;
+			PropertyDefaultAddress = NULL;
+		}
+
+		PropertyValueRoot.OwnerObject = OwnerObject.Get();
 		check(PropertyNode);
 		UProperty* Property = PropertyNode->GetProperty();
 		check(Property);
@@ -775,7 +785,7 @@ public:
 			// calculate the values for the default object
 			if ( bHasDefaultValue )
 			{
-				PropertyDefaultValueRoot.OwnerObject = PropertyValueRoot.OwnerObject->GetArchetype();
+				PropertyDefaultValueRoot.OwnerObject = PropertyValueRoot.OwnerObject ? PropertyValueRoot.OwnerObject->GetArchetype() : NULL;
 				PropertyDefaultBaseAddress = OuterArrayProp == NULL
 					? PropertyNode->GetValueBaseAddress(PropertyDefaultValueRoot.ValueAddress)
 					: ParentNode->GetValueBaseAddress(PropertyDefaultValueRoot.ValueAddress);
@@ -791,6 +801,20 @@ public:
 				}
 			}
 		}
+	}
+
+	/**
+	 * Constructor
+	 *
+	 * @param	InPropItem		the property window item this struct will hold values for
+	 * @param	InOwnerObject	the object which contains the property value
+	 */
+	FPropertyItemValueDataTrackerSlate( FPropertyNode* InPropertyNode, UObject* InOwnerObject )
+		: OwnerObject( InOwnerObject )
+		, PropertyNode(InPropertyNode)
+		, bHasDefaultValue(false)
+	{
+		InnerInitialize();
 	}
 
 	/**
@@ -1423,21 +1447,21 @@ FString FPropertyNode::GetDefaultValueAsString()
 FText FPropertyNode::GetResetToDefaultLabel()
 {
 	FString DefaultValue = GetDefaultValueAsString();
-	FString OutLabel = GetDisplayName();
+	FText OutLabel = GetDisplayName();
 	if ( DefaultValue.Len() )
 	{
 		const int32 MaxValueLen = 60;
 
-		OutLabel += TEXT(": ");
 		if ( DefaultValue.Len() > MaxValueLen )
 		{
 			DefaultValue = DefaultValue.Left( MaxValueLen );
 			DefaultValue += TEXT( "..." );
 		}
-		OutLabel += DefaultValue;
+
+		return FText::Format(NSLOCTEXT("FPropertyNode", "ResetToDefaultLabelFmt", "{0}: {1}"), OutLabel, FText::FromString(DefaultValue));
 	}
 
-	return FText::FromString( OutLabel );
+	return OutLabel;
 }
 
 void FPropertyNode::ResetToDefault( FNotifyHook* InNotifyHook )
@@ -1657,13 +1681,14 @@ void FPropertyNode::FilterNodes( const TArray<FString>& InFilterStrings, const b
 		bool bPassedFilter = false;	//assuming that we aren't filtered
 
 		//see if this is a filter-able primitive
-		FString DisplayName = GetDisplayName();
+		FText DisplayName = GetDisplayName();
+		const FString& DisplayNameStr = DisplayName.ToString();
 		TArray <FString> AcceptableNames;
-		AcceptableNames.Add(DisplayName);
+		AcceptableNames.Add(DisplayNameStr);
 
 		//get the basic name as well of the property
 		UProperty* TheProperty = GetProperty();
-		if (TheProperty && (TheProperty->GetName() != DisplayName))
+		if (TheProperty && (TheProperty->GetName() != DisplayNameStr))
 		{
 			AcceptableNames.Add(TheProperty->GetName());
 		}
@@ -2021,6 +2046,10 @@ TSharedPtr< FPropertyItemValueDataTrackerSlate > FPropertyNode::GetValueTracker(
 		{
 			ValueTracker = MakeShareable( new FPropertyItemValueDataTrackerSlate( this, Object ) );
 		}
+		else
+		{
+			ValueTracker->Reset(this, Object);
+		}
 		RetVal = ValueTracker;
 
 	}
@@ -2117,6 +2146,17 @@ bool FPropertyNode::IsFilterAcceptable(const TArray<FString>& InAcceptableNames,
 	return bCompleteMatchFound;
 }
 
+void FPropertyNode::AdditionalInitializationUDS(UProperty* Property, uint8* RawPtr)
+{
+	if (const UStructProperty* StructProperty = Cast<const UStructProperty>(Property))
+	{
+		if (!FStructureEditorUtils::Fill_MakeStructureDefaultValue(Cast<const UUserDefinedStruct>(StructProperty->Struct), RawPtr))
+		{
+			UE_LOG(LogPropertyNode, Warning, TEXT("MakeStructureDefaultValue parsing error. Property: %s "), *StructProperty->GetPathName());
+		}
+	}
+}
+
 void FPropertyNode::PropagateArrayPropertyChange( UObject* ModifiedObject, const FString& OriginalArrayContent, EPropertyArrayChangeType::Type ChangeType, int32 Index )
 {
 	UProperty* NodeProperty = GetProperty();
@@ -2188,28 +2228,31 @@ void FPropertyNode::PropagateArrayPropertyChange( UObject* ModifiedObject, const
 			{
 				Addr = ParentPropertyNode->GetValueBaseAddress((uint8*)ActualObjToChange);
 			}
-			check(Addr != NULL);
 
-			FScriptArrayHelper ArrayHelper(ArrayProperty, Addr);
-
-			FString ArrayContent;
-
-			ArrayProperty->ExportText_Direct(ArrayContent, Addr, Addr, NULL, PPF_Localized);
-			bool bIsDefault = ArrayContent == OriginalArrayContent;
-
-			// Check if the original value was the default value and change it only then
-			if (bIsDefault)
+			if (Addr != NULL)
 			{
-				switch (ChangeType)
+				FScriptArrayHelper ArrayHelper(ArrayProperty, Addr);
+
+				FString ArrayContent;
+
+				ArrayProperty->ExportText_Direct(ArrayContent, Addr, Addr, NULL, PPF_Localized);
+				bool bIsDefault = ArrayContent == OriginalArrayContent;
+
+				// Check if the original value was the default value and change it only then
+				if (bIsDefault)
 				{
+					int32 ElementToInitialize = -1;
+					switch (ChangeType)
+					{
 					case EPropertyArrayChangeType::Add:
-						ArrayHelper.AddValue();
+						ElementToInitialize = ArrayHelper.AddValue();
 						break;
 					case EPropertyArrayChangeType::Clear:
 						ArrayHelper.EmptyValues();
 						break;
 					case EPropertyArrayChangeType::Insert:
 						ArrayHelper.InsertValues(ArrayIndex, 1);
+						ElementToInitialize = ArrayIndex;
 						break;
 					case EPropertyArrayChangeType::Delete:
 						ArrayHelper.RemoveValues(ArrayIndex, 1);
@@ -2220,6 +2263,11 @@ void FPropertyNode::PropagateArrayPropertyChange( UObject* ModifiedObject, const
 						NodeProperty->CopyCompleteValue(ArrayHelper.GetRawPtr(ArrayIndex), ArrayHelper.GetRawPtr(ArrayIndex + 1));
 						Object->InstanceSubobjectTemplates();
 						break;
+					}
+					if (ElementToInitialize >= 0)
+					{
+						AdditionalInitializationUDS(ArrayProperty->Inner, ArrayHelper.GetRawPtr(ElementToInitialize));
+					}
 				}
 			}
 		}

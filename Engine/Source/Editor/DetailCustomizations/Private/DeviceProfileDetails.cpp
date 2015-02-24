@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "DeviceProfiles/DeviceProfile.h"
@@ -428,7 +428,7 @@ void FDeviceProfileParentPropertyDetails::CreateParentPropertyView()
 	ParentPropertyNameHandle->GetValue(CurrentParentName);
 
 	IDetailCategoryBuilder& ParentDetailCategory = DetailBuilder->EditCategory("ParentDeviceProfile");
-	IDetailGroup& ParentNameGroup = ParentDetailCategory.AddGroup(TEXT("ParentProfileName"), LOCTEXT("ParentProfileOptionsGroupTitle", "Parent Profile Name").ToString());
+	IDetailGroup& ParentNameGroup = ParentDetailCategory.AddGroup(TEXT("ParentProfileName"), LOCTEXT("ParentProfileOptionsGroupTitle", "Parent Profile Name"));
 
 	ParentNameGroup.HeaderRow()
 	[
@@ -498,7 +498,7 @@ void FDeviceProfileParentPropertyDetails::CreateParentPropertyView()
 			{
 				if(ParentCVarsGroup == nullptr)
 				{
-					ParentCVarsGroup = &ParentDetailCategory.AddGroup(TEXT("ParentProfileOptions"), LOCTEXT("ParentProfileOptionsGroupTitle", "Parent Console Variables").ToString());
+					ParentCVarsGroup = &ParentDetailCategory.AddGroup(TEXT("ParentProfileOptions"), LOCTEXT("ParentProfileOptionsGroupTitle", "Parent Console Variables"));
 
 					ParentCVarsGroup->HeaderRow()
 					[
@@ -548,7 +548,7 @@ TSharedRef<SWidget> FDeviceProfileParentPropertyDetails::HandleDeviceProfilePare
 	.Padding(DeviceProfilePropertyConstants::CVarSelectionMenuPadding)
 	[
 		SNew(STextBlock)
-		.Text(*InItem)
+		.Text(FText::FromString(*InItem))
 	];
 }
 
@@ -616,17 +616,17 @@ void FDeviceProfileConsoleVariablesPropertyDetails::CreateConsoleVariablesProper
 	for (auto& Current : CategoryPropertyMap)
 	{
 		const TArray<TSharedRef<IPropertyHandle>>& CurrentGroupsProperties = Current.Value;
-		const TSharedPtr<FString> GroupName = MakeShareable(new FString(Current.Key));
+		const FText GroupName = FText::FromString(Current.Key);
 
-		FString CVarPrefix = DeviceProfileCVarFormatHelper::CVarPrefixFromCategoryString(*GroupName.Get());
+		FString CVarPrefix = DeviceProfileCVarFormatHelper::CVarPrefixFromCategoryString(GroupName.ToString());
 		if (CVarPrefix.Len() > 0)
 		{
 			CVarPrefix += TEXT(".");
 		}
 
 		// Find the Property table UI Group for the current CVar
-		IDetailGroup& CVarGroup = CVarDetailCategory.AddGroup(**GroupName.Get(), *GroupName.Get());
-		CVarDetailGroups.Add(*GroupName.Get(), &CVarGroup);
+		IDetailGroup& CVarGroup = CVarDetailCategory.AddGroup(*GroupName.ToString(), GroupName);
+		CVarDetailGroups.Add(GroupName.ToString(), &CVarGroup);
 		CVarGroup.HeaderRow()
 			[
 				SNew(SHorizontalBox)
@@ -636,7 +636,7 @@ void FDeviceProfileConsoleVariablesPropertyDetails::CreateConsoleVariablesProper
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(FText::FromString(*GroupName.Get()))
+					.Text(GroupName)
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 				]
 				+ SHorizontalBox::Slot()
@@ -803,14 +803,14 @@ FReply FDeviceProfileConsoleVariablesPropertyDetails::OnRemoveCVarProperty(TShar
 }
 
 
-FReply FDeviceProfileConsoleVariablesPropertyDetails::OnRemoveAllFromGroup(const TSharedPtr<FString> GroupName)
+FReply FDeviceProfileConsoleVariablesPropertyDetails::OnRemoveAllFromGroup(FText GroupName)
 {
 	const TSharedPtr<IPropertyHandleArray> CVarsArrayHandle = CVarsHandle->AsArray();
 
 	uint32 CVarCount = 0;
 	ensure(CVarsArrayHandle->GetNumElements(CVarCount) == FPropertyAccess::Success);
 
-	FString CVarPrefix = DeviceProfileCVarFormatHelper::CVarPrefixFromCategoryString(*GroupName);
+	FString CVarPrefix = DeviceProfileCVarFormatHelper::CVarPrefixFromCategoryString(GroupName.ToString());
 
 	for (int32 CVarPropertyIdx = CVarCount-1; CVarPropertyIdx >= 0; CVarPropertyIdx--)
 	{

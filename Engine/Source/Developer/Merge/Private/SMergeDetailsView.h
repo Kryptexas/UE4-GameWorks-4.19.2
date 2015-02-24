@@ -1,13 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "BlueprintMergeData.h"
-#include "IDiffControl.h"
 #include "DetailsDiff.h"
 
 class SMergeDetailsView : public SCompoundWidget
-						, public IDiffControl
-						, public IMergeControl
 {
 public:
 	virtual ~SMergeDetailsView() {}
@@ -16,21 +13,14 @@ public:
 	{}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments InArgs, const FBlueprintMergeData& InData );
+	void Construct(const FArguments InArgs
+					, const FBlueprintMergeData& InData
+					, FOnMergeNodeSelected SelectionCallback
+					, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutTreeEntries
+					, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutRealDifferences
+					, TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& OutConflicts);
 private:
-	/** Implementation of IDiffControl: */
-	void NextDiff() override;
-	void PrevDiff() override;
-	bool HasNextDifference() const override;
-	bool HasPrevDifference() const override;
-
-	/** Implementation of IMergeControl: */
-	void HighlightNextConflict() override;
-	void HighlightPrevConflict() override;
-	bool HasNextConflict() const override;
-	bool HasPrevConflict() const override;
-
-	void HighlightCurrentDifference();
+	void HighlightDifference(FPropertySoftPath Path);
 	FDetailsDiff& GetRemoteDetails();
 	FDetailsDiff& GetBaseDetails();
 	FDetailsDiff& GetLocalDetails();

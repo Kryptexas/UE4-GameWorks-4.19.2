@@ -1,9 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 DECLARE_DELEGATE_OneParam( FOnBrushLoaded, const TSharedPtr< FSlateDynamicImageBrush >& /*Brush*/ );
-
-#include "SurveyBranch.h"
 
 namespace EContentInitializationState
 {
@@ -147,4 +145,7 @@ private:
 
 	/** The specification of the culture we are using to display surveys */
 	ECultureSpecification CurrentCulture;
+
+private:
+	FTimerHandle DisplayNotificationTimerHandle;
 };

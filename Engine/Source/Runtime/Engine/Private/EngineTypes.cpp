@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 
@@ -49,7 +49,7 @@ void FDamageEvent::GetBestHitInfo(AActor const* HitActor, AActor const* HitInsti
 		
 		// assume hit came from instigator's location
 		OutImpulseDir = HitInstigator ? 
-			( OutHitInfo.ImpactPoint - HitInstigator->GetActorLocation() ).SafeNormal()
+			( OutHitInfo.ImpactPoint - HitInstigator->GetActorLocation() ).GetSafeNormal()
 			: FVector::ZeroVector;
 
 		// assume normal points back toward instigator
@@ -72,7 +72,7 @@ void FRadialDamageEvent::GetBestHitInfo(AActor const* HitActor, AActor const* Hi
 
 	// for now, just return the first one
 	OutHitInfo = ComponentHits[0];
-	OutImpulseDir = (OutHitInfo.ImpactPoint - Origin).SafeNormal();
+	OutImpulseDir = (OutHitInfo.ImpactPoint - Origin).GetSafeNormal();
 }
 
 

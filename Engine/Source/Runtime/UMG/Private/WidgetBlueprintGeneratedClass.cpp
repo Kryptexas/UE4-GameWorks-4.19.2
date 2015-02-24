@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 #include "MovieScene.h"
@@ -15,43 +15,13 @@ UWidgetBlueprintGeneratedClass::UWidgetBlueprintGeneratedClass(const FObjectInit
 {
 }
 
-void UWidgetBlueprintGeneratedClass::PostInitProperties()
-{
-	Super::PostInitProperties();
-
-	//// Create a widget tree if one doesn't already exist.
-	//if ( WidgetTree == NULL )
-	//{
-	//	WidgetTree = ConstructObject<UWidgetTree>(UWidgetTree::StaticClass(), this);
-	//}
-
-	////WidgetTree->SetFlags(RF_DefaultSubObject);
-	//WidgetTree->SetFlags(RF_Transactional);
-}
-
-void UWidgetBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
-{
-	Super::Link(Ar, bRelinkExistingProperties);
-
-	// @TODO: Shouldn't be necessary to clear these, but currently the class gets linked twice during compilation
-	WidgetNodeProperties.Empty();
-
-	// Initialize derived members
-	//for ( TFieldIterator<UProperty> It(this); It; ++It )
-	//{
-	//	if ( UStructProperty* StructProp = Cast<UStructProperty>(*It) )
-	//	{
-	//		if ( StructProp->Struct->IsChildOf(FWidgetNode_Base::StaticStruct()) )
-	//		{
-	//			WidgetNodeProperties.Add(StructProp);
-	//		}
-	//	}
-	//}
-}
-
 void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) const
 {
 	UWidgetTree* ClonedTree = DuplicateObject<UWidgetTree>( WidgetTree, UserWidget );
+
+#if WITH_EDITOR
+	UserWidget->WidgetGeneratedBy = ClassGeneratedBy;
+#endif
 
 	if ( ClonedTree )
 	{
@@ -83,6 +53,10 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 				return;
 			}
 
+#if WITH_EDITOR
+			Widget->WidgetGeneratedBy = ClassGeneratedBy;
+#endif
+
 			// TODO UMG Make this an FName
 			FString VariableName = Widget->GetName();
 
@@ -111,10 +85,23 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 
 					if ( DelegateProperty )
 					{
-						FScriptDelegate* ScriptDelegate = DelegateProperty->GetPropertyValuePtr_InContainer(Widget);
-						if ( ScriptDelegate )
+						bool bSourcePathBound = false;
+
+						if ( Binding.SourcePath.IsValid() )
 						{
-							ScriptDelegate->BindUFunction(UserWidget, Binding.FunctionName);
+							bSourcePathBound = Widget->AddBinding(DelegateProperty, UserWidget, Binding.SourcePath);
+						}
+
+						// If no native binder is found then the only possibility is that the binding is for
+						// a delegate that doesn't match the known native binders available and so we
+						// fallback to just attempting to bind to the function directly.
+						if ( bSourcePathBound == false )
+						{
+							FScriptDelegate* ScriptDelegate = DelegateProperty->GetPropertyValuePtr_InContainer(Widget);
+							if ( ScriptDelegate )
+							{
+								ScriptDelegate->BindUFunction(UserWidget, Binding.FunctionName);
+							}
 						}
 					}
 				}
@@ -129,6 +116,25 @@ void UWidgetBlueprintGeneratedClass::InitializeWidget(UUserWidget* UserWidget) c
 		BindDynamicDelegates(UserWidget);
 
 		//TODO UMG Add OnWidgetInitialized?
+	}
+}
+
+void UWidgetBlueprintGeneratedClass::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_RENAME_WIDGET_VISIBILITY )
+	{
+		static const FName Visiblity(TEXT("Visiblity"));
+		static const FName Visibility(TEXT("Visibility"));
+
+		for ( FDelegateRuntimeBinding& Binding : Bindings )
+		{
+			if ( Binding.PropertyName == Visiblity )
+			{
+				Binding.PropertyName = Visibility;
+			}
+		}
 	}
 }
 

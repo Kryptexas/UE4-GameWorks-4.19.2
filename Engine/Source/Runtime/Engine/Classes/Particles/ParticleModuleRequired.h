@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -6,6 +6,50 @@
 #include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleSpriteEmitter.h"
 #include "ParticleModuleRequired.generated.h"
+
+class UInterpCurveEdSetup;
+
+UENUM()
+enum class EParticleUVFlipMode : uint8
+{
+	/** Flips UV on all particles. */
+	None,
+	/** Flips UV on all particles. */
+	FlipUV,
+	/** Flips U only on all particles. */
+	FlipUOnly,
+	/** Flips V only on all particles. */
+	FlipVOnly,
+	/** Flips UV randomly for each particle on spawn. */
+	RandomFlipUV,
+	/** Flips U only randomly for each particle on spawn. */
+	RandomFlipUOnly,
+	/** Flips V only randomly for each particle on spawn. */
+	RandomFlipVOnly,
+	/** Flips U and V independently at random for each particle on spawn. */
+	RandomFlipUVIndependent,
+};
+
+/** Flips the sign of a particle's base size based on it's UV flip mode. */
+FORCEINLINE void AdjustParticleBaseSizeForUVFlipping(FVector& OutSize, EParticleUVFlipMode FlipMode)
+{
+	static const int32 HalfRandMax = RAND_MAX / 2;
+	switch (FlipMode)
+	{
+	case EParticleUVFlipMode::FlipUV:						OutSize = -OutSize;			return;
+	case EParticleUVFlipMode::FlipUOnly:					OutSize.X = -OutSize.X;		return;
+	case EParticleUVFlipMode::FlipVOnly:					OutSize.Y = -OutSize.Y;		return;
+	case EParticleUVFlipMode::RandomFlipUV:					OutSize = FMath::Rand() > HalfRandMax ? -OutSize : OutSize;			return;
+	case EParticleUVFlipMode::RandomFlipUOnly:				OutSize.X = FMath::Rand() > HalfRandMax ? -OutSize.X : OutSize.X;	return;
+	case EParticleUVFlipMode::RandomFlipVOnly:				OutSize.Y = FMath::Rand() > HalfRandMax ? -OutSize.Y : OutSize.Y;	return;
+	case EParticleUVFlipMode::RandomFlipUVIndependent:
+	{
+		OutSize.X = FMath::Rand() > HalfRandMax ? -OutSize.X : OutSize.X;		
+		OutSize.Y = FMath::Rand() > HalfRandMax ? -OutSize.Y : OutSize.Y;
+		return;
+	}
+	};
+}
 
 UENUM()
 enum EParticleSortMode
@@ -73,10 +117,6 @@ class UParticleModuleRequired : public UParticleModule
 	/** If true, kill the emitter when it completes										*/
 	UPROPERTY(EditAnywhere, Category=Emitter)
 	uint32 bKillOnCompleted:1;
-
-	/** Whether this emitter requires sorting as specified by artist.					*/
-	UPROPERTY()
-	uint32 bRequiresSorting_DEPRECATED:1;
 
 	/**
 	 *	The sorting mode to use for this emitter.
@@ -277,6 +317,12 @@ class UParticleModuleRequired : public UParticleModule
 	UPROPERTY(EditAnywhere, Category=Emitter)
 	uint32 bOrbitModuleAffectsVelocityAlignment:1;
 
+	/**
+	* Controls UV Flipping for this emitter.
+	*/
+	UPROPERTY(EditAnywhere, Category = Rendering)
+	EParticleUVFlipMode UVFlippingMode;
+
 	/** 
 	*	Named material overrides for this emitter. 
 	*	Overrides this emitter's material(s) with those in the correspondingly named slot(s) of the owning system.
@@ -294,7 +340,6 @@ class UParticleModuleRequired : public UParticleModule
 #endif // WITH_EDITOR
 	virtual void	PostLoad() override;
 	virtual void	PostInitProperties() override;
-	virtual void	Serialize(FArchive& Ar) override;
 	// End UObject Interface
 
 	// Begin UParticleModule Interface

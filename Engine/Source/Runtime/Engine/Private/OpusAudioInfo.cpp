@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -127,11 +127,12 @@ FOpusAudioInfo::~FOpusAudioInfo(void)
 
 size_t FOpusAudioInfo::Read(void *ptr, uint32 size)
 {
-	check(SrcBufferOffset < SrcBufferDataSize);
-
 	size_t BytesToRead = FMath::Min(size, SrcBufferDataSize - SrcBufferOffset);
-	FMemory::Memcpy(ptr, SrcBufferData + SrcBufferOffset, BytesToRead);
-	SrcBufferOffset += BytesToRead;
+	if (BytesToRead > 0)
+	{
+		FMemory::Memcpy(ptr, SrcBufferData + SrcBufferOffset, BytesToRead);
+		SrcBufferOffset += BytesToRead;
+	}
 	return(BytesToRead);
 }
 

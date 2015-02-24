@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HUD.cpp: Heads up Display related functionality
 =============================================================================*/
 #include "GameplayDebuggerPrivate.h"
+#include "GameplayDebuggerSettings.h"
 #include "Net/UnrealNetwork.h"
 #include "GameplayDebuggingComponent.h"
 #include "GameplayDebuggingHUDComponent.h"
@@ -73,11 +74,11 @@ AGameplayDebuggingReplicator* AGameplayDebuggingHUDComponent::GetDebuggingReplic
 
 void AGameplayDebuggingHUDComponent::GetKeyboardDesc(TArray<FDebugCategoryView>& Categories)
 {
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::NavMesh, "NavMesh"));			// Num0
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Basic, "Basic"));
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::BehaviorTree, "Behavior"));
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::EQS, "EQS"));
-	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Perception, "Perception"));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::NavMesh, TEXT("NavMesh")));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Basic, TEXT("Basic")));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::BehaviorTree, TEXT("BehaviorTree")));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::EQS, TEXT("EQS")));
+	Categories.Add(FDebugCategoryView(EAIDebugDrawDataView::Perception, TEXT("Perception")));
 }
 
 void AGameplayDebuggingHUDComponent::PrintAllData()
@@ -585,6 +586,7 @@ void AGameplayDebuggingHUDComponent::DrawEQSItemDetails(int32 ItemIdx, class UGa
 
 void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (!DebugComponent)
 	{
 		return;
@@ -605,18 +607,16 @@ void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class
 				const FVector AILocation = MyPawn->GetActorLocation();
 				const FVector Facing = MyPawn->GetActorRotation().Vector();
 
-				static const FColor SightColor = FColor::Red;
-				static const FColor LoseSightColor = FColorList::NeonPink;
-				static const FColor HearingColor = FColor::Yellow;
-				static const FColor LoSHearingColor = FColor::Cyan;
-
-				PrintString(DefaultContext, FColor::Green, TEXT("\n PERCEPTION COMPONENT\n"));
-				PrintString(DefaultContext, FString::Printf(TEXT("Draw Colors:")));
-				PrintString(DefaultContext, SightColor, FString::Printf(TEXT(" Sight,")));
-				PrintString(DefaultContext, LoseSightColor, FString::Printf(TEXT(" Lose Sight,")));
-				PrintString(DefaultContext, HearingColor, FString::Printf(TEXT(" Hearing,")));
-				PrintString(DefaultContext, LoSHearingColor, FString::Printf(TEXT(" Line-of-Sight Hearing\n")));
-
+				UAIPerceptionSystem* PerceptionSys = UAIPerceptionSystem::GetCurrent(this);
+				if (PerceptionSys)
+				{
+					PrintString(DefaultContext, FColor::Green, TEXT("\nPERCEPTION COMPONENT\n"));
+					PrintString(DefaultContext, FString::Printf(TEXT("Draw Colors:")));
+					
+					FString PerceptionLegend = PerceptionSys->GetPerceptionDebugLegend();
+					PrintString(DefaultContext, *PerceptionLegend);
+				}
+				
 				if (PC && PC->GetPawn())
 				{
 					const float DistanceFromPlayer = (MyPawn->GetActorLocation() - PC->GetPawn()->GetActorLocation()).Size();
@@ -624,21 +624,10 @@ void AGameplayDebuggingHUDComponent::DrawPerception(APlayerController* PC, class
 					PrintString(DefaultContext, FString::Printf(TEXT("Distance Sensor-PlayerPawn: %.1f\n"), DistanceFromSensor));
 					PrintString(DefaultContext, FString::Printf(TEXT("Distance Pawn-PlayerPawn: %.1f\n"), DistanceFromPlayer));
 				}
-
-				UWorld* World = GetWorld();
-				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetSightRadius(), 32, SightColor);
-				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetLoseSightRadius(), 32, LoseSightColor);
-				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetHearingRange(), 32, HearingColor);
-				DrawDebugCylinder(World, AILocation, AILocation + FVector(0, 0, -50), BTAI->GetPerceptionComponent()->GetLOSHearingRange(), 32, LoSHearingColor);
-
-				DrawDebugLine(World, AILocation, AILocation + (Facing * BTAI->GetPerceptionComponent()->GetLoseSightRadius()), SightColor);
-				DrawDebugLine(World, AILocation, AILocation + (Facing.RotateAngleAxis(BTAI->GetPerceptionComponent()->GetPeripheralVisionAngle(), FVector::UpVector) * BTAI->GetPerceptionComponent()->GetLoseSightRadius()), SightColor);
-				DrawDebugLine(World, AILocation, AILocation + (Facing.RotateAngleAxis(-BTAI->GetPerceptionComponent()->GetPeripheralVisionAngle(), FVector::UpVector) * BTAI->GetPerceptionComponent()->GetLoseSightRadius()), SightColor);
-
-				return;
 			}
 		}
 	}
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void AGameplayDebuggingHUDComponent::DrawNavMeshSnapshot(APlayerController* PC, class UGameplayDebuggingComponent *DebugComponent)
@@ -646,19 +635,14 @@ void AGameplayDebuggingHUDComponent::DrawNavMeshSnapshot(APlayerController* PC, 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (DebugComponent && DebugComponent->NavmeshRepData.Num())
 	{
-		float TimeLeft = 0.0f;
 		UGameplayDebuggingControllerComponent*  GDC = PC ? PC->FindComponentByClass<UGameplayDebuggingControllerComponent>() : NULL;
+		FString NextUpdateDesc;
 		if (GDC)
 		{
-			TimeLeft = GetWorldTimerManager().GetTimerRemaining(GDC, &UGameplayDebuggingControllerComponent::UpdateNavMeshTimer);
-		}
-
-		FString NextUpdateDesc;
-		if (TimeLeft > 0.0f)
-		{
+			const float TimeLeft = GDC->GetUpdateNavMeshTimeRemaining();
 			NextUpdateDesc = FString::Printf(TEXT(", next update: {yellow}%.1fs"), TimeLeft);
 		}
-	
+
 		PrintString(DefaultContext, FString::Printf(TEXT("\n\n{green}Showing NavMesh (%.1fkB)%s\n"),
 			DebugComponent->NavmeshRepData.Num() / 1024.0f, *NextUpdateDesc));
 	}

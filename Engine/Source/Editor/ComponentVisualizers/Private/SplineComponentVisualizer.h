@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -39,6 +39,21 @@ struct HSplineSegmentProxy : public HSplineVisProxy
 	{}
 
 	int32 SegmentIndex;
+};
+
+/** Proxy for a tangent handle */
+struct HSplineTangentHandleProxy : public HSplineVisProxy
+{
+	DECLARE_HIT_PROXY();
+
+	HSplineTangentHandleProxy(const UActorComponent* InComponent, int32 InKeyIndex, bool bInArriveTangent)
+		: HSplineVisProxy(InComponent)
+		, KeyIndex(InKeyIndex)
+		, bArriveTangent(bInArriveTangent)
+	{}
+
+	int32 KeyIndex;
+	bool bArriveTangent;
 };
 
 /** SplineComponent visualizer/edit functionality */
@@ -102,6 +117,19 @@ private:
 
 	/** Index of segment we have selected */
 	int32 SelectedSegmentIndex;
+
+	struct ESelectedTangentHandle
+	{
+		enum Type
+		{
+			None,
+			Leave,
+			Arrive
+		};
+	};
+
+	/** Whether the selected key is a tangent handle, and if so, which type */
+	ESelectedTangentHandle::Type SelectedTangentHandle;
 
 	/** Position on spline we have selected */
 	FVector SelectedSplinePosition;

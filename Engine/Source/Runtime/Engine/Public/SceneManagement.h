@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneManagement.h: Scene manager definitions.
@@ -28,11 +28,42 @@ struct FDynamicMeshVertex;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogBufferVisualization, Log, All);
 
-static const int MAX_FORWARD_SHADOWCASCADES = 2;
-
 // -----------------------------------------------------------------------------
 
 
+/**
+ * struct to hold the temporal LOD state within a view state
+ */
+struct ENGINE_API FTemporalLODState
+{
+	/** The last two camera origin samples collected for stateless temporal LOD transitions */
+	FVector	TemporalLODViewOrigin[2];
+	/** The last two fov-like parameters from the projection matrix for stateless temporal LOD transitions */
+	float	TemporalDistanceFactor[2];
+	/** The last two time samples collected for stateless temporal LOD transitions */
+	float	TemporalLODTime[2];
+	/** If non-zero, then we are doing temporal LOD smoothing, this is the time interval. */
+	float	TemporalLODLag;
+
+	FTemporalLODState()
+		: TemporalLODLag(0.0f) // nothing else is used if this is zero
+	{
+
+	}
+	/** 
+	 * Returns the blend factor between the last two LOD samples
+	 */
+	float GetTemporalLODTransition(float LastRenderTime) const
+	{
+		if (TemporalLODLag == 0.0)
+		{
+			return 0.0f; // no fade
+		}
+		return FMath::Clamp((LastRenderTime - TemporalLODLag - TemporalLODTime[0]) / (TemporalLODTime[1] - TemporalLODTime[0]), 0.0f, 1.0f);
+	}
+
+	void UpdateTemporalLODTransition(const class FViewInfo& View, float LastRenderTime);
+};
 
 /**
  * The scene manager's persistent view state.
@@ -105,6 +136,13 @@ public:
 	virtual void OnStartPostProcessing(FSceneView& CurrentView) = 0;
 	/** Allows MIDs being created and released during view rendering without the overhead of creating and relasing objects */
 	virtual UMaterialInstanceDynamic* GetReusableMID(class UMaterialInterface* ParentMaterial) = 0;
+	/** Returns the temporal LOD struct from the viewstate */
+	virtual FTemporalLODState& GetTemporalLODState() = 0;
+	virtual const FTemporalLODState& GetTemporalLODState() const = 0;
+	/** 
+	 * Returns the blend factor between the last two LOD samples
+	 */
+	virtual float GetTemporalLODTransition() const = 0;
 protected:
 	// Don't allow direct deletion of the view state, Destroy should be called instead.
 	virtual ~FSceneViewStateInterface() {}
@@ -1064,25 +1102,6 @@ public:
 		) = 0;
 
 	/**
-	 * Determines whether a particular material will be ignored in this context.
-	 * @param MaterialRenderProxy - The render proxy of the material to check.
-	 * @param InFeatureLevel - The feature level we are currently rendering at
-	 * @return true if meshes using the material will be ignored in this context.
-	 */
-	virtual bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) const
-	{
-		return false;
-	}
-
-	/**
-	 * @returns true if this PDI is rendering for the selection outline post process.
-	 */
-	virtual bool IsRenderingSelectionOutline() const
-	{
-		return false;
-	}
-
-	/**
 	 * Draw a mesh element.
 	 * This should only be called through the DrawMesh function.
 	 *
@@ -1123,9 +1142,7 @@ class ENGINE_API FSimpleElementCollector : public FPrimitiveDrawInterface
 {
 public:
 
-	FSimpleElementCollector() : FPrimitiveDrawInterface(NULL)
-	{}
-
+	FSimpleElementCollector();
 	~FSimpleElementCollector();
 
 	virtual void SetHitProxy(HHitProxy* HitProxy);
@@ -1192,34 +1209,6 @@ public:
 		return 0;
 	}
 
-	// Legacy, should not be used
-	virtual bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel) const
-	{
-		static bool bTriggered = false;
-
-		if (!bTriggered)
-		{
-			bTriggered = true;
-			ensureMsg(false, TEXT("FSimpleElementCollector::IsMaterialIgnored called"));
-		}
-
-		return false;
-	}
-
-	// Legacy, should not be used
-	virtual bool IsRenderingSelectionOutline() const
-	{
-		static bool bTriggered = false;
-
-		if (!bTriggered)
-		{
-			bTriggered = true;
-			ensureMsg(false, TEXT("FSimpleElementCollector::IsRenderingSelectionOutline called"));
-		}
-
-		return false;
-	}
-
 	void DrawBatchedElements(FRHICommandList& RHICmdList, const FSceneView& View, FTexture2DRHIRef DepthTexture, EBlendModeFilter::Type Filter) const;
 
 	/** The batched simple elements. */
@@ -1228,6 +1217,8 @@ public:
 private:
 
 	FHitProxyId HitProxyId;
+
+	bool bIsMobileHDR;
 
 	/** The dynamic resources which have been registered with this drawer. */
 	TArray<FDynamicPrimitiveResource*,SceneRenderingAllocator> DynamicResources;
@@ -1456,6 +1447,7 @@ private:
 	bool bKeepAndUpdateThisFrame;
 };
 
+// stored in the scene, can be shared for multiple views
 class FMotionBlurInfoData
 {
 public:
@@ -1465,19 +1457,21 @@ public:
 	/** 
 	 *	Set the primitives motion blur info
 	 * 
-	 *	@param PrimitiveSceneInfo	The primitive to add
+	 *	@param PrimitiveSceneInfo The primitive to add, must not be 0
 	 */
 	void UpdatePrimitiveMotionBlur(FPrimitiveSceneInfo* PrimitiveSceneInfo);
 
 	/** 
-	 *	Set the primitives motion blur info
+	 *	Unsets the primitives motion blur info
 	 * 
-	 *	@param PrimitiveSceneInfo	The primitive to add
+	 *	@param PrimitiveSceneInfo The primitive to remove, must not be 0
 	 */
 	void RemovePrimitiveMotionBlur(FPrimitiveSceneInfo* PrimitiveSceneInfo);
 
 	/**
 	 * Creates any needed motion blur infos if needed and saves the transforms of the frame we just completed
+	 * called in RenderFinish()
+	 * @param InScene must not be 0
 	 */
 	void UpdateMotionBlurCache(class FScene* InScene);
 
@@ -1495,7 +1489,7 @@ public:
 	 */
 	bool GetPrimitiveMotionBlurInfo(const FPrimitiveSceneInfo* PrimitiveSceneInfo, FMatrix& OutPreviousLocalToWorld);
 
-	/** */
+	/** Request to clear all stored motion blur data for this scene. */
 	void SetClearMotionBlurInfo();
 
 	/**
@@ -1506,8 +1500,6 @@ public:
 private:
 	/** The motion blur info entries for the frame. Accessed on Renderthread only! */
 	TMap<FPrimitiveComponentId, FMotionBlurInfo> MotionBlurInfos;
-	/** Unique "frame number" counter to make sure we don't double update */
-	uint32 CacheUpdateCount;	
 	/** */
 	bool bShouldClearMotionBlurInfo;
 
@@ -1518,114 +1510,6 @@ private:
 	FMotionBlurInfo* FindMBInfoIndex(FPrimitiveComponentId ComponentId);
 };
 
-
-
-/** 
- * Enumeration for currently used translucent lighting volume cascades 
- */
-enum ETranslucencyVolumeCascade
-{
-	TVC_Inner,
-	TVC_Outer,
-
-	TVC_MAX,
-};
-
-/** The uniform shader parameters associated with a view. */
-BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters,ENGINE_API)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,TranslatedWorldToClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,WorldToClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,TranslatedWorldToView)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,ViewToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,ViewToClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,ClipToView)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,ClipToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,ScreenToWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,ScreenToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector,ViewForward, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector,ViewUp, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector,ViewRight, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,InvDeviceZToWorldZTransform)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,ScreenPositionScaleBias, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,ViewRectMin, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,ViewSizeAndSceneTexelSize)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,ViewOrigin)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,TranslatedViewOrigin)
-	// The exposure scale is just a scalar but needs to be a float4 to workaround a driver bug on IOS.
-	// After 4.2 we can put the workaround in the cross compiler.
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,ExposureScale, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,DiffuseOverrideParameter, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,SpecularOverrideParameter, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4,NormalOverrideParameter, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector2D,RoughnessOverrideParameter, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,PreViewTranslation)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,OutOfBoundsMask, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,ViewOriginDelta)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,CullingSign)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,NearPlane, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,AdaptiveTessellationFactor)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,GameTime)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,RealTime)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,Random)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,FrameNumber)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,UseLightmaps, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,UnlitViewmodeMask, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FLinearColor,DirectionalLightColor, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector,DirectionalLightDirection, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float, DirectionalLightShadowTransition, EShaderPrecisionModifier::Half)			
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, DirectionalLightShadowSize, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FMatrix, DirectionalLightScreenToShadow, [MAX_FORWARD_SHADOWCASCADES])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FVector4, DirectionalLightShadowDistances, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FLinearColor,UpperSkyColor, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FLinearColor,LowerSkyColor, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,TranslucencyLightingVolumeMin,[TVC_MAX])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,TranslucencyLightingVolumeInvSize,[TVC_MAX])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,TemporalAAParams)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,DepthOfFieldFocalDistance)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,DepthOfFieldScale)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,DepthOfFieldFocalLength)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,DepthOfFieldFocalRegion)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,DepthOfFieldNearTransitionRegion)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,DepthOfFieldFarTransitionRegion)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,MotionBlurNormalizedToPixel)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,GeneralPurposeTweak)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,DemosaicVposOffset, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevProjection)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevViewProj)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevViewRotationProj)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevTranslatedWorldToClip)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,PrevViewOrigin)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,PrevPreViewTranslation)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevInvViewProj)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,PrevScreenToTranslatedWorld)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,IndirectLightingColorScale)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,HdrMosaic, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector,AtmosphericFogSunDirection)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogSunPower, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogPower, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogDensityScale, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogDensityOffset, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogGroundOffset, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogDistanceScale, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogAltitudeScale, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogHeightScaleRayleigh, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogStartDistance, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogDistanceOffset, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,AtmosphericFogSunDiscScale, EShaderPrecisionModifier::Half)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,AtmosphericFogRenderMask)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,AtmosphericFogInscatterAltitudeSampleNum)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FLinearColor,AtmosphericFogSunColor)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FLinearColor,AmbientCubemapTint)//Used via a custom material node. DO NOT REMOVE.
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,AmbientCubemapIntensity)//Used via a custom material node. DO NOT REMOVE.
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector2D,RenderTargetSize)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,SkyLightParameters)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,SceneTextureMinMax)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FLinearColor,SkyLightColor)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_ARRAY(FVector4,SkyIrradianceEnvironmentMap,[7])
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float, ES2PreviewMode)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_TEXTURE(Texture2D, DirectionalLightShadowTexture)	
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState, DirectionalLightShadowSampler)
-END_UNIFORM_BUFFER_STRUCT(FViewUniformShaderParameters)
 
 
 //
@@ -1648,31 +1532,36 @@ extern ENGINE_API void DrawCylinder(class FPrimitiveDrawInterface* PDI, const FM
 	float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority);
 
 extern ENGINE_API void GetBoxMesh(const FMatrix& BoxToWorld,const FVector& Radii,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,int32 ViewIndex,FMeshElementCollector& Collector);
-extern ENGINE_API void GetSphereMesh(const FVector& Center,const FVector& Radii,int32 NumSides,int32 NumRings,const FMaterialRenderProxy* MaterialRenderProxy,uint8 DepthPriority,bool bDisableBackfaceCulling,int32 ViewIndex,FMeshElementCollector& Collector);
+extern ENGINE_API void GetSphereMesh(const FVector& Center, const FVector& Radii, int32 NumSides, int32 NumRings, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, bool bDisableBackfaceCulling, int32 ViewIndex, FMeshElementCollector& Collector);
+extern ENGINE_API void GetHalfSphereMesh(const FVector& Center, const FVector& Radii, int32 NumSides, int32 NumRings, float StartAngle, float EndAngle, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, bool bDisableBackfaceCulling, int32 ViewIndex, FMeshElementCollector& Collector);
 extern ENGINE_API void GetCylinderMesh(const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis,
 									float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector);
 extern ENGINE_API void GetCylinderMesh(const FMatrix& CylToWorld, const FVector& Base, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis,
 									float Radius, float HalfHeight, int32 Sides, const FMaterialRenderProxy* MaterialInstance, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector);
+extern ENGINE_API void GetConeMesh(const FMatrix& LocalToWorld, float AngleWidth, float AngleHeight, int32 NumSides,
+									const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, int32 ViewIndex, FMeshElementCollector& Collector);
+extern ENGINE_API void GetCapsuleMesh(const FVector& Origin, const FVector& XAxis, const FVector& YAxis, const FVector& ZAxis, const FLinearColor& Color, float Radius, float HalfHeight, int32 NumSides,
+									const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority, bool bDisableBackfaceCulling, int32 ViewIndex, FMeshElementCollector& Collector);
 
 
 extern ENGINE_API void DrawDisc(class FPrimitiveDrawInterface* PDI,const FVector& Base,const FVector& XAxis,const FVector& YAxis,FColor Color,float Radius,int32 NumSides, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority);
 extern ENGINE_API void DrawFlatArrow(class FPrimitiveDrawInterface* PDI,const FVector& Base,const FVector& XAxis,const FVector& YAxis,FColor Color,float Length,int32 Width, const FMaterialRenderProxy* MaterialRenderProxy, uint8 DepthPriority);
 
 // Line drawing utility functions.
-extern ENGINE_API void DrawWireBox(class FPrimitiveDrawInterface* PDI,const FBox& Box,const FLinearColor& Color,uint8 DepthPriority);
-extern ENGINE_API void DrawCircle(class FPrimitiveDrawInterface* PDI,const FVector& Base,const FVector& X,const FVector& Y,const FLinearColor& Color,float Radius,int32 NumSides,uint8 DepthPriority);
+extern ENGINE_API void DrawWireBox(class FPrimitiveDrawInterface* PDI, const FBox& Box, const FLinearColor& Color, uint8 DepthPriority, float Thickness = 0, float DepthBias = 0.0f, bool bScreenSpace = false);
+extern ENGINE_API void DrawCircle(class FPrimitiveDrawInterface* PDI, const FVector& Base, const FVector& X, const FVector& Y, const FLinearColor& Color, float Radius, int32 NumSides, uint8 DepthPriority, float Thickness = 0, float DepthBias = 0.0f, bool bScreenSpace = false);
 extern ENGINE_API void DrawArc(FPrimitiveDrawInterface* PDI, const FVector Base, const FVector X, const FVector Y, const float MinAngle, const float MaxAngle, const float Radius, const int32 Sections, const FLinearColor& Color, uint8 DepthPriority);
-extern ENGINE_API void DrawWireSphere(class FPrimitiveDrawInterface* PDI, const FVector& Base, const FLinearColor& Color, float Radius, int32 NumSides, uint8 DepthPriority);
-extern ENGINE_API void DrawWireSphereAutoSides(class FPrimitiveDrawInterface* PDI, const FVector& Base, const FLinearColor& Color, float Radius, uint8 DepthPriority);
-extern ENGINE_API void DrawWireSphere(class FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FLinearColor& Color, float Radius, int32 NumSides, uint8 DepthPriority);
-extern ENGINE_API void DrawWireSphereAutoSides(class FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FLinearColor& Color, float Radius, uint8 DepthPriority);
-extern ENGINE_API void DrawWireCylinder(class FPrimitiveDrawInterface* PDI,const FVector& Base,const FVector& X,const FVector& Y,const FVector& Z,const FLinearColor& Color,float Radius,float HalfHeight,int32 NumSides,uint8 DepthPriority);
-extern ENGINE_API void DrawWireCapsule(class FPrimitiveDrawInterface* PDI,const FVector& Base,const FVector& X,const FVector& Y,const FVector& Z,const FLinearColor& Color,float Radius,float HalfHeight,int32 NumSides,uint8 DepthPriority);
+extern ENGINE_API void DrawWireSphere(class FPrimitiveDrawInterface* PDI, const FVector& Base, const FLinearColor& Color, float Radius, int32 NumSides, uint8 DepthPriority, float Thickness = 0, float DepthBias = 0.0f, bool bScreenSpace = false);
+extern ENGINE_API void DrawWireSphere(class FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FLinearColor& Color, float Radius, int32 NumSides, uint8 DepthPriority, float Thickness = 0, float DepthBias = 0.0f, bool bScreenSpace = false);
+extern ENGINE_API void DrawWireSphereAutoSides(class FPrimitiveDrawInterface* PDI, const FVector& Base, const FLinearColor& Color, float Radius, uint8 DepthPriority, float Thickness = 0, float DepthBias = 0.0f, bool bScreenSpace = false);
+extern ENGINE_API void DrawWireSphereAutoSides(class FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FLinearColor& Color, float Radius, uint8 DepthPriority, float Thickness = 0, float DepthBias = 0.0f, bool bScreenSpace = false);
+extern ENGINE_API void DrawWireCylinder(class FPrimitiveDrawInterface* PDI, const FVector& Base, const FVector& X, const FVector& Y, const FVector& Z, const FLinearColor& Color, float Radius, float HalfHeight, int32 NumSides, uint8 DepthPriority, float Thickness = 0.0f, float DepthBias = 0.0f, bool bScreenSpace = false);
+extern ENGINE_API void DrawWireCapsule(class FPrimitiveDrawInterface* PDI, const FVector& Base, const FVector& X, const FVector& Y, const FVector& Z, const FLinearColor& Color, float Radius, float HalfHeight, int32 NumSides, uint8 DepthPriority, float Thickness = 0.0f, float DepthBias = 0.0f, bool bScreenSpace = false);
 extern ENGINE_API void DrawWireChoppedCone(class FPrimitiveDrawInterface* PDI,const FVector& Base,const FVector& X,const FVector& Y,const FVector& Z,const FLinearColor& Color,float Radius,float TopRadius,float HalfHeight,int32 NumSides,uint8 DepthPriority);
-extern ENGINE_API void DrawWireCone(class FPrimitiveDrawInterface* PDI, const FMatrix& Transform, float ConeRadius, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, TArray<FVector>& Verts);
-extern ENGINE_API void DrawWireCone(class FPrimitiveDrawInterface* PDI, const FTransform& Transform, float ConeRadius, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, TArray<FVector>& Verts);
+extern ENGINE_API void DrawWireCone(class FPrimitiveDrawInterface* PDI, TArray<FVector>& Verts, const FMatrix& Transform, float ConeRadius, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, float Thickness = 0.0f, float DepthBias = 0.0f, bool bScreenSpace = false);
+extern ENGINE_API void DrawWireCone(class FPrimitiveDrawInterface* PDI, TArray<FVector>& Verts, const FTransform& Transform, float ConeRadius, float ConeAngle, int32 ConeSides, const FLinearColor& Color, uint8 DepthPriority, float Thickness = 0.0f, float DepthBias = 0.0f, bool bScreenSpace = false);
 extern ENGINE_API void DrawWireSphereCappedCone(FPrimitiveDrawInterface* PDI, const FTransform& Transform, float ConeRadius, float ConeAngle, int32 ConeSides, int32 ArcFrequency, int32 CapSegments, const FLinearColor& Color, uint8 DepthPriority);
-extern ENGINE_API void DrawOrientedWireBox(class FPrimitiveDrawInterface* PDI,const FVector& Base,const FVector& X,const FVector& Y,const FVector& Z, FVector Extent, const FLinearColor& Color,uint8 DepthPriority);
+extern ENGINE_API void DrawOrientedWireBox(class FPrimitiveDrawInterface* PDI, const FVector& Base, const FVector& X, const FVector& Y, const FVector& Z, FVector Extent, const FLinearColor& Color, uint8 DepthPriority, float Thickness = 0.0f, float DepthBias = 0.0f, bool bScreenSpace = false);
 extern ENGINE_API void DrawDirectionalArrow(class FPrimitiveDrawInterface* PDI,const FMatrix& ArrowToWorld,const FLinearColor& InColor,float Length,float ArrowSize,uint8 DepthPriority);
 extern ENGINE_API void DrawConnectedArrow(class FPrimitiveDrawInterface* PDI, const FMatrix& ArrowToWorld, const FLinearColor& Color, float ArrowHeight, float ArrowWidth, uint8 DepthPriority, float Thickness = 0.5f, int32 NumSpokes = 6);
 extern ENGINE_API void DrawWireStar(class FPrimitiveDrawInterface* PDI,const FVector& Position, float Size, const FLinearColor& Color,uint8 DepthPriority);
@@ -1708,6 +1597,8 @@ void BuildCylinderVerts(const FVector& Base, const FVector& XAxis, const FVector
  * @return The color to draw the object with, accounting for the selection state
  */
 extern ENGINE_API FLinearColor GetSelectionColor(const FLinearColor& BaseColor,bool bSelected,bool bHovered, bool bUseOverlayIntensity = true);
+extern ENGINE_API FLinearColor GetViewSelectionColor(const FLinearColor& BaseColor, const FSceneView& View, bool bSelected, bool bHovered, bool bUseOverlayIntensity, bool bIndividuallySelected);
+
 
 /** Vertex Color view modes */
 namespace EVertexColorViewMode
@@ -1739,8 +1630,7 @@ namespace EVertexColorViewMode
 extern ENGINE_API EVertexColorViewMode::Type GVertexColorViewMode;
 
 /**
- * Returns true if the given view is "rich".  Rich means that calling DrawRichMesh for the view will result in a modified draw call
- * being made.
+ * Returns true if the given view is "rich", and all primitives should be forced down the dynamic drawing path so that ApplyViewModeOverrides can implement the rich view feature.
  * A view is rich if is missing the EngineShowFlags.Materials showflag, or has any of the render mode affecting showflags.
  */
 extern ENGINE_API bool IsRichView(const FSceneViewFamily& ViewFamily);
@@ -1764,31 +1654,6 @@ FORCEINLINE void EmitMeshDrawEvents(FRHICommandList& RHICmdList, const class FPr
 	}
 #endif
 }
-
-/**
- * Draws a mesh, modifying the material which is used depending on the view's show flags.
- * Meshes with materials irrelevant to the pass which the mesh is being drawn for may be entirely ignored.
- *
- * @param PDI - The primitive draw interface to draw the mesh on.
- * @param Mesh - The mesh to draw.
- * @param WireframeColor - The color which is used when rendering the mesh with EngineShowFlags.Wireframe.
- * @param LevelColor - The color which is used when rendering the mesh with EngineShowFlags.LevelColoration.
- * @param PropertyColor - The color to use when rendering the mesh with EngineShowFlags.PropertyColoration.
- * @param PrimitiveInfo - The FScene information about the UPrimitiveComponent.
- * @param bSelected - True if the primitive is selected.
- * @param ExtraDrawFlags - optional flags to override the view family show flags when rendering
- * @return Number of passes rendered for the mesh
- */
-extern ENGINE_API int32 DrawRichMesh(
-	FPrimitiveDrawInterface* PDI,
-	const struct FMeshBatch& Mesh,
-	const FLinearColor& WireframeColor,
-	const FLinearColor& LevelColor,
-	const FLinearColor& PropertyColor,
-	const FPrimitiveSceneProxy* PrimitiveSceneProxy,
-	bool bSelected,
-	bool bDrawInWireframe = false
-	);
 
 extern ENGINE_API void ApplyViewModeOverrides(
 	int32 ViewIndex,

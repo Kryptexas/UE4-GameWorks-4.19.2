@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -169,7 +169,7 @@ private:
 	FText HandleSettingsBoxDescriptionText() const;
 
 	/** Callback for getting the section text for the settings box. */
-	FString HandleSettingsBoxTitleText() const;
+	FText HandleSettingsBoxTitleText() const;
 
 	/** Callback for determining the visibility of the settings box. */
 	EVisibility HandleSettingsBoxVisibility() const;

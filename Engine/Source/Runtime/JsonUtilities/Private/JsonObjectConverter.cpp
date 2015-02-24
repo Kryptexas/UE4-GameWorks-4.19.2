@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "JsonUtilitiesPrivatePCH.h"
 #include "JsonUtilities.h"
@@ -266,7 +266,24 @@ bool ConvertScalarJsonValueToUProperty(TSharedPtr<FJsonValue> JsonValue, UProper
 		}
 		else if (JsonValue->Type == EJson::String && StructProperty->Struct->GetFName() == NAME_DateTime)
 		{
-			if (!FDateTime::ParseIso8601(*JsonValue->AsString(), *(FDateTime*)OutValue))
+			FString DateString = JsonValue->AsString();
+			FDateTime& DateTimeOut = *(FDateTime*)OutValue;
+			if (DateString == TEXT("min"))
+			{
+				// min representable value for our date struct. Actual date may vary by platform (this is used for sorting)
+				DateTimeOut = FDateTime::MinValue();
+			}
+			else if (DateString == TEXT("max"))
+			{
+				// max representable value for our date struct. Actual date may vary by platform (this is used for sorting)
+				DateTimeOut = FDateTime::MaxValue();
+			}
+			else if (DateString == TEXT("now"))
+			{
+				// this value's not really meaningful from json serialization (since we don't know timezone) but handle it anyway since we're handling the other keywords
+				DateTimeOut = FDateTime::UtcNow();
+			}
+			else if (!FDateTime::ParseIso8601(*DateString, DateTimeOut))
 			{
 				UE_LOG(LogJson, Error, TEXT("JsonValueToUProperty - Unable to import FDateTime from Iso8601 String"));
 				return false;

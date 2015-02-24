@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DestructibleActor.cpp: ADestructibleActor methods.
@@ -8,6 +8,7 @@
 #include "EnginePrivate.h"
 #include "PhysicsEngine/PhysXSupport.h"
 #include "PhysicsEngine/DestructibleActor.h"
+#include "Components/DestructibleComponent.h"
 
 ADestructibleActor::ADestructibleActor(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -20,6 +21,8 @@ ADestructibleActor::ADestructibleActor(const FObjectInitializer& ObjectInitializ
 #if WITH_EDITOR
 bool ADestructibleActor::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 {
+	Super::GetReferencedContentObjects(Objects);
+
 	if (DestructibleComponent && DestructibleComponent->SkeletalMesh)
 	{
 		Objects.Add(DestructibleComponent->SkeletalMesh);

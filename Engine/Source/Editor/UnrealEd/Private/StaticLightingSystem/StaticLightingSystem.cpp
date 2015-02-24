@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticLightingSystem.cpp: Bsp light mesh illumination builder code
@@ -34,6 +34,7 @@ DEFINE_LOG_CATEGORY(LogStaticLightingSystem);
 #include "MessageLog.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/GeneratedMeshAreaLight.h"
 
 #define LOCTEXT_NAMESPACE "StaticLightingSystem"
 
@@ -286,6 +287,11 @@ void FStaticLightingManager::DestroyStaticLightingSystem()
 bool FStaticLightingManager::IsLightingBuildCurrentlyRunning() const
 {
 	return StaticLightingSystem != NULL;
+}
+
+bool FStaticLightingManager::IsLightingBuildCurrentlyExporting() const
+{
+	return StaticLightingSystem != NULL && StaticLightingSystem->IsAmortizedExporting();
 }
 
 
@@ -662,7 +668,7 @@ void FStaticLightingSystem::InvalidateStaticLighting()
 				{
 					if (!Options.bOnlyBuildVisibility)
 					{
-						TArray<UActorComponent*> Components;
+						TInlineComponentArray<UActorComponent*> Components;
 						Actor->GetComponents(Components);
 
 						for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
@@ -724,7 +730,7 @@ void FStaticLightingSystem::PostInvalidateStaticLighting()
 				{
 					if (!Options.bOnlyBuildVisibility)
 					{
-						TArray<UPrimitiveComponent*> Components;
+						TInlineComponentArray<UPrimitiveComponent*> Components;
 						Actor->GetComponents(Components);
 
 						for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
@@ -930,7 +936,7 @@ void FStaticLightingSystem::GatherStaticLightingInfo(bool bRebuildDirtyGeometryF
 					bBuildLightingForLevel &&
 					(!Options.bOnlyBuildSelected || Actor->IsSelected());
 
-				TArray<UPrimitiveComponent*> Components;
+				TInlineComponentArray<UPrimitiveComponent*> Components;
 				Actor->GetComponents(Components);
 
 				if (bBuildActorLighting)
@@ -1056,7 +1062,7 @@ void FStaticLightingSystem::ApplyNewLightingData(bool bLightingSuccessful)
 
 				if (Actor && bLightingSuccessful && !Options.bOnlyBuildSelected)
 				{
-					TArray<ULightComponentBase*> Components;
+					TInlineComponentArray<ULightComponentBase*> Components;
 					Actor->GetComponents(Components);
 
 					for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
@@ -1247,7 +1253,7 @@ void FStaticLightingSystem::ReportStatistics()
 	}
 	else	//if ( GLightmassStatsMode)
 	{
-		UE_LOG(LogStaticLightingSystem, Warning, TEXT("Illumination: %s (%s encoding lightmaps)"), *FPlatformTime::PrettyTime(LightmassStatistics.TotalTime), *FPlatformTime::PrettyTime(LightmassStatistics.EncodingTime) );
+		UE_LOG(LogStaticLightingSystem, Log, TEXT("Illumination: %s (%s encoding lightmaps)"), *FPlatformTime::PrettyTime(LightmassStatistics.TotalTime), *FPlatformTime::PrettyTime(LightmassStatistics.EncodingTime) );
 	}
 	UE_LOG(LogStaticLightingSystem, Log, TEXT("Lightmap texture memory:  %.1f MB (%.1f MB streaming, %.1f MB non-streaming), %d textures"),
 		GLightmapTotalSize/1024.0f/1024.0f,
@@ -1375,9 +1381,9 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, bool bBuildL
 				const FVector& TextureY = Model->Vectors[NodeSurf.vTextureV];
 				const int32 BaseVertexIndex = NodeGroup->Vertices.Num();
 				// Compute the surface's tangent basis.
-				FVector NodeTangentX = Model->Vectors[NodeSurf.vTextureU].SafeNormal();
-				FVector NodeTangentY = Model->Vectors[NodeSurf.vTextureV].SafeNormal();
-				FVector NodeTangentZ = Model->Vectors[NodeSurf.vNormal].SafeNormal();
+				FVector NodeTangentX = Model->Vectors[NodeSurf.vTextureU].GetSafeNormal();
+				FVector NodeTangentY = Model->Vectors[NodeSurf.vTextureV].GetSafeNormal();
+				FVector NodeTangentZ = Model->Vectors[NodeSurf.vNormal].GetSafeNormal();
 
 				// Generate the node's vertices.
 				for(uint32 VertexIndex = 0;VertexIndex < Node.NumVertices;VertexIndex++)
@@ -1530,9 +1536,9 @@ void FStaticLightingSystem::AddBSPStaticLightingInfo(ULevel* Level, TArray<FNode
 				const FVector& TextureY = Model->Vectors[NodeSurf.vTextureV];
 				const int32 BaseVertexIndex = NodeGroup->Vertices.Num();
 				// Compute the surface's tangent basis.
-				FVector NodeTangentX = Model->Vectors[NodeSurf.vTextureU].SafeNormal();
-				FVector NodeTangentY = Model->Vectors[NodeSurf.vTextureV].SafeNormal();
-				FVector NodeTangentZ = Model->Vectors[NodeSurf.vNormal].SafeNormal();
+				FVector NodeTangentX = Model->Vectors[NodeSurf.vTextureU].GetSafeNormal();
+				FVector NodeTangentY = Model->Vectors[NodeSurf.vTextureV].GetSafeNormal();
+				FVector NodeTangentZ = Model->Vectors[NodeSurf.vNormal].GetSafeNormal();
 
 				// Generate the node's vertices.
 				for(uint32 VertexIndex = 0;VertexIndex < Node.NumVertices;VertexIndex++)
@@ -2105,6 +2111,11 @@ bool FStaticLightingSystem::IsAsyncBuilding() const
 	return CurrentBuildStage == FStaticLightingSystem::AsynchronousBuilding;
 }
 
+bool FStaticLightingSystem::IsAmortizedExporting() const
+{
+	return CurrentBuildStage == FStaticLightingSystem::AmortizedExport;
+}
+
 #endif
 
 
@@ -2142,6 +2153,11 @@ void UEditorEngine::UpdateBuildLighting()
 bool UEditorEngine::IsLightingBuildCurrentlyRunning() const
 {
 	return FStaticLightingManager::Get()->IsLightingBuildCurrentlyRunning();
+}
+
+bool UEditorEngine::IsLightingBuildCurrentlyExporting() const
+{
+	return FStaticLightingManager::Get()->IsLightingBuildCurrentlyExporting(); 
 }
 
 bool UEditorEngine::WarnIfLightingBuildIsCurrentlyRunning()

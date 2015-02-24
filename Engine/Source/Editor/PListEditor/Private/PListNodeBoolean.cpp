@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "PListNodeBoolean.h"
@@ -113,7 +113,7 @@ TSharedRef<SWidget> FPListNodeBoolean::GenerateWidgetForColumn(const FName& Colu
 			.FillWidth(1.0f)
 			[
 				SAssignNew(ValueCheckBox, SCheckBox)
-				.IsChecked(bValue ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+				.IsChecked(bValue ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 				.OnCheckStateChanged(this, &FPListNodeBoolean::OnValueChanged)
 			]
 		];
@@ -292,9 +292,9 @@ void FPListNodeBoolean::OnKeyStringChanged(const FText& NewString)
 }
 
 /** Delegate: When the checkbox changes */
-void FPListNodeBoolean::OnValueChanged(ESlateCheckBoxState::Type NewValue)
+void FPListNodeBoolean::OnValueChanged(ECheckBoxState NewValue)
 {
-	if(NewValue == ESlateCheckBoxState::Checked)
+	if(NewValue == ECheckBoxState::Checked)
 	{
 		// Simply do nothing
 		if(bValue == true)
@@ -308,7 +308,7 @@ void FPListNodeBoolean::OnValueChanged(ESlateCheckBoxState::Type NewValue)
 		check(EditorWidget);
 		EditorWidget->MarkDirty();
 	}
-	else if(NewValue == ESlateCheckBoxState::Unchecked)
+	else if(NewValue == ECheckBoxState::Unchecked)
 	{
 		// Simply do nothing
 		if(bValue == false)
@@ -349,17 +349,20 @@ FSlateColor FPListNodeBoolean::GetKeyBackgroundColor() const
 /** Delegate: Changes the color of the key string text box based on validity */
 FSlateColor FPListNodeBoolean::GetKeyForegroundColor() const
 {
+	static const FName InvertedForegroundName("InvertedForeground");
+
 	if(bArrayMember)
 	{
-		return FEditorStyle::GetSlateColor("InvertedForeground");
+		return FEditorStyle::GetSlateColor(InvertedForegroundName);
 	}
 
 	if(!bKeyValid)
 	{
-		return FEditorStyle::GetColor("ErrorReporting.ForegroundColor");
+		static const FName ForegroundColor("ErrorReporting.ForegroundColor");
+		return FEditorStyle::GetColor(ForegroundColor);
 	}
 	else
 	{
-		return FEditorStyle::GetSlateColor("InvertedForeground");
+		return FEditorStyle::GetSlateColor(InvertedForegroundName);
 	}
 }

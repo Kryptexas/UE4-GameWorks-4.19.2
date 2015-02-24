@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -7,6 +7,7 @@
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "EngineLogs.h"
 
 #define LOCTEXT_NAMESPACE "FAnimationRecorder"
 
@@ -16,6 +17,7 @@ FAnimationRecorder::FAnimationRecorder()
 	: IntervalTime(1.0f/DEFAULT_SAMPLERATE)
 	, MaxFrame(DEFAULT_SAMPLERATE * 60 * 10) // for now, set the max limit to 10 mins. 
 	, AnimationObject(NULL)
+	, bRecordLocalToWorld(false)
 {
 
 }
@@ -90,7 +92,7 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent * Component, UAnimSe
 	AnimationObject->TrackToSkeletonMapTable.Empty();
 	AnimationObject->AnimationTrackNames.Empty();
 
-	PreviousSpacesBases = Component->SpaceBases;
+	PreviousSpacesBases = Component->GetSpaceBases();
 
 	LastFrame = 0;
 	AnimationObject->SequenceLength = 0.f;
@@ -120,7 +122,7 @@ void FAnimationRecorder::StartRecord(USkeletalMeshComponent * Component, UAnimSe
 	Record(Component, PreviousSpacesBases, 0);
 }
 
-void FAnimationRecorder::StopRecord(bool bShowMessage)
+UAnimSequence * FAnimationRecorder::StopRecord(bool bShowMessage)
 {
 	if (AnimationObject)
 	{
@@ -128,9 +130,11 @@ void FAnimationRecorder::StopRecord(bool bShowMessage)
 		AnimationObject->NumFrames = NumFrames;
 
 		// can't use TimePassed. That is just total time that has been passed, not necessarily match with frame count
-		AnimationObject->SequenceLength = NumFrames * IntervalTime;
+		AnimationObject->SequenceLength = (NumFrames>1)? (NumFrames-1) * IntervalTime : MINIMUM_ANIMATION_LENGTH;
 		AnimationObject->PostProcessSequence();
 		AnimationObject->MarkPackageDirty();
+
+		UAnimSequence * ReturnObject = AnimationObject;
 
 		// notify to user
 		if (bShowMessage)
@@ -153,12 +157,18 @@ void FAnimationRecorder::StopRecord(bool bShowMessage)
 				Notification->SetCompletionState( SNotificationItem::CS_Success );
 			}
 
+			FAssetRegistryModule::AssetCreated(AnimationObject);
+			
 			FMessageDialog::Open(EAppMsgType::Ok, NotificationText);
 		}
 
 		AnimationObject = NULL;
 		PreviousSpacesBases.Empty();
+
+		return ReturnObject;
 	}
+
+	return NULL;
 }
 
 // return false if nothing to update
@@ -193,7 +203,7 @@ void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent * Component, float 
 		return;
 	}
 
-	TArray<FTransform> & SpaceBases = Component->SpaceBases;
+	const TArray<FTransform> & SpaceBases = Component->GetSpaceBases();
 
 	check (SpaceBases.Num() == PreviousSpacesBases.Num());
 
@@ -224,7 +234,7 @@ void FAnimationRecorder::UpdateRecord(USkeletalMeshComponent * Component, float 
 	}
 
 	//save to current transform
-	PreviousSpacesBases = Component->SpaceBases;
+	PreviousSpacesBases = Component->GetSpaceBases();
 
 	// if we passed MaxFrame, just stop it
 	if (FramesRecorded > MaxFrame)
@@ -251,6 +261,11 @@ void FAnimationRecorder::Record( USkeletalMeshComponent * Component, TArray<FTra
 				if ( ParentIndex != INDEX_NONE )
 				{
 					LocalTransform.SetToRelativeTransform(SpacesBases[ParentIndex]);
+				}
+				// if record local to world, we'd like to consider component to world to be in root
+				else if (bRecordLocalToWorld)
+				{
+					LocalTransform *= Component->ComponentToWorld;
 				}
 
 				FRawAnimSequenceTrack& RawTrack = AnimationObject->RawAnimationData[TrackIndex];

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 
@@ -238,12 +238,9 @@ bool FRecastSpeciaLinkFilter::isLinkAllowed(const int32 UserId) const
 
 FPImplRecastNavMesh::FPImplRecastNavMesh(ARecastNavMesh* Owner)
 	: NavMeshOwner(Owner)
-	, bOwnsNavMeshData(false)
 	, DetourNavMesh(NULL)
 {
 	check(Owner && "Owner must never be NULL");
-
-	DetourNavMesh = dtAllocNavMesh();
 
 	INC_DWORD_STAT_BY( STAT_NavigationMemory
 		, Owner->HasAnyFlags(RF_ClassDefaultObject) == false ? sizeof(*this) : 0 );
@@ -286,14 +283,12 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 	if (Ar.IsLoading())
 	{
 		// allocate the navmesh object
+		ReleaseDetourNavMesh();
 		DetourNavMesh = dtAllocNavMesh();
+
 		if (DetourNavMesh == NULL)
 		{
 			UE_VLOG(NavMeshOwner, LogNavigation, Error, TEXT("Failed to allocate Recast navmesh"));
-		}
-		else
-		{
-			bOwnsNavMeshData = true;
 		}
 	}
 
@@ -346,8 +341,7 @@ void FPImplRecastNavMesh::Serialize( FArchive& Ar )
 		if (ActorsTileSize != Params.tileWidth)
 		{
 			// just move archive position
-			dtFreeNavMesh(DetourNavMesh);
-			DetourNavMesh = NULL;
+			ReleaseDetourNavMesh();
 
 			for (int i = 0; i < NumTiles; ++i)
 			{
@@ -630,21 +624,14 @@ void FPImplRecastNavMesh::SerializeRecastMeshTile(FArchive& Ar, unsigned char*& 
 	}
 }
 
-void FPImplRecastNavMesh::SetRecastMesh(dtNavMesh* NavMesh, bool bOwnData)
+void FPImplRecastNavMesh::SetRecastMesh(dtNavMesh* NavMesh)
 {
 	if (NavMesh == DetourNavMesh)
 	{
 		return;
 	}
 
-	if (DetourNavMesh != NULL && !!bOwnsNavMeshData)
-	{
-		// if there's already some recast navmesh, and it's owned by this instance then release it
-		dtFreeNavMesh(DetourNavMesh);
-		DetourNavMesh = NULL;
-	}
-
-	bOwnsNavMeshData = bOwnData;
+	ReleaseDetourNavMesh();
 	DetourNavMesh = NavMesh;
 
 	if (NavMeshOwner)
@@ -694,7 +681,7 @@ void FPImplRecastNavMesh::Raycast2D(const FVector& StartLoc, const FVector& EndL
 	{
 		// start location is not on navmesh, treat it as a blocked raycast
 		RaycastResult.HitTime = 0.f;
-		RaycastResult.HitNormal = (StartLoc - EndLoc).SafeNormal();
+		RaycastResult.HitNormal = (StartLoc - EndLoc).GetSafeNormal();
 	}
 }
 
@@ -733,7 +720,7 @@ void FPImplRecastNavMesh::Raycast2D(NavNodeRef StartNode, const FVector& StartLo
 	{
 		// start location is not on navmesh, treat it as a blocked raycast
 		RaycastResult.HitTime = 0.f;
-		RaycastResult.HitNormal = (StartLoc - EndLoc).SafeNormal();
+		RaycastResult.HitNormal = (StartLoc - EndLoc).GetSafeNormal();
 	}
 }
 
@@ -1698,7 +1685,7 @@ void FPImplRecastNavMesh::GetEdgesForPathCorridor(const TArray<NavNodeRef>* Path
 	GetEdgesForPathCorridorImpl(PathCorridor, PathCorridorEdges, NavQuery);
 }
 
-bool FPImplRecastNavMesh::FilterPolys(TArray<NavNodeRef>& PolyRefs, const class FRecastQueryFilter* Filter, const UObject* Owner) const
+bool FPImplRecastNavMesh::FilterPolys(TArray<NavNodeRef>& PolyRefs, const FRecastQueryFilter* Filter, const UObject* Owner) const
 {
 	if (Filter == NULL || DetourNavMesh == NULL)
 	{
@@ -2120,7 +2107,7 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 						if (linkedIdx > i || TileIdx > (int32)ConstNavMesh->decodeClusterIdTile(link.ref))
 						{
 							FVector UpDir(0,0,1.0f);
-							FVector LinkDir = (LinkGeom.ToCluster - LinkGeom.FromCluster).SafeNormal();
+							FVector LinkDir = (LinkGeom.ToCluster - LinkGeom.FromCluster).GetSafeNormal();
 							FVector SideDir = FVector::CrossProduct(LinkDir, UpDir);
 							LinkGeom.FromCluster += SideDir * 40.0f;
 							LinkGeom.ToCluster += SideDir * 40.0f;

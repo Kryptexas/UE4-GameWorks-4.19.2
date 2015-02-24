@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayAbilityTargetActor.h"
@@ -71,13 +71,13 @@ void AGameplayAbilityTargetActor::ConfirmTargeting()
 
 void AGameplayAbilityTargetActor::NotifyPlayerControllerOfRejectedConfirmation()
 {
-	if (OwningAbility && OwningAbility->IsInstantiated())
+	if (OwningAbility && OwningAbility->IsInstantiated() && OwningAbility->GetCurrentActorInfo())
 	{
-		if (APlayerController* PC = OwningAbility->GetActorInfo().PlayerController.Get())
+		if (UAbilitySystemComponent* ASC = OwningAbility->GetCurrentActorInfo()->AbilitySystemComponent.Get())
 		{
 			if (FGameplayAbilitySpec* AbilitySpec = OwningAbility->GetCurrentAbilitySpec())
 			{
-				PC->ClientNotifyRejectedAbilityConfirmation(AbilitySpec->InputID);
+				ASC->ClientAbilityNotifyRejected(AbilitySpec->InputID);
 			}
 		}
 	}
@@ -90,7 +90,7 @@ void AGameplayAbilityTargetActor::CancelTargeting()
 	Destroy();
 }
 
-bool AGameplayAbilityTargetActor::IsNetRelevantFor(class APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation)
+bool AGameplayAbilityTargetActor::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* Viewer, const FVector& SrcLocation) const
 {
 	//The player who created the ability doesn't need to be updated about it - there should be local prediction in place.
 	if (RealViewer == MasterPC)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/DocumentationActor.h"
@@ -30,7 +30,7 @@ bool ADocumentationActor::OpenDocumentLink() const
 	bool bOpened = false;
 
 #if WITH_EDITOR
-	bOpened = IDocumentation::Get()->Open(DocumentLink);	
+	bOpened = IDocumentation::Get()->Open(DocumentLink, FDocumentationSourceInfo(TEXT("doc_actors")));
 #endif //WITH_EDITOR
 
 	return bOpened;

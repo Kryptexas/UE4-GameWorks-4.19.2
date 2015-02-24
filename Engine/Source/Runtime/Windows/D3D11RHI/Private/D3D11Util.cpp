@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	D3D11Util.h: D3D RHI utility implementation.
@@ -116,6 +116,8 @@ const TCHAR* GetD3D11TextureFormatString(DXGI_FORMAT TextureFormat)
 		D3DFORMATCASE(DXGI_FORMAT_R1_UNORM)
 		D3DFORMATCASE(DXGI_FORMAT_R8G8B8A8_TYPELESS)
 		D3DFORMATCASE(DXGI_FORMAT_B8G8R8A8_TYPELESS)
+		D3DFORMATCASE(DXGI_FORMAT_BC7_UNORM)
+		D3DFORMATCASE(DXGI_FORMAT_BC6H_UF16)
 		default: TextureFormatText = EmptyString;
 	}
 #undef D3DFORMATCASE

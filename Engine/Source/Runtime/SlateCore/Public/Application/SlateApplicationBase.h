@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -120,6 +120,20 @@ public:
 	 * @return Cursor size.
 	 */
 	virtual FVector2D GetCursorSize( ) const = 0;
+
+	/** 
+	 * Whether the software cursor is enabled for this application.  
+	 *
+	 * @return software cursor available or not.
+	 */
+	virtual bool GetSoftwareCursorAvailable( ) const = 0;
+
+	/** 
+	 * Gets the desired visibility of the software cursor
+	 *
+	 * @return Software Cursor visibility
+	 */
+	virtual EVisibility GetSoftwareCursorVis( ) const = 0;
 
 	/**
 	 * Gets the application's display metrics.
@@ -306,11 +320,32 @@ public:
 protected:
 
 	/**
-	* Gets whether or not a particular widget has mouse capture.
-	*
-	* @return True if the widget has mouse capture, otherwise false.
-	*/
+	 * Gets whether or not a particular widget has mouse capture.
+	 *
+	 * @return True if the widget has mouse capture, otherwise false.
+	 */
 	virtual bool HasMouseCapture(const TSharedPtr<const SWidget> Widget) const = 0;
+
+	/**
+	 * Gets whether or not a particular widget has the specified users focus, and if so the type of focus.
+	 *
+	 * @return The optional will be set with the focus cause, if unset this widget doesn't have focus.
+	 */
+	virtual TOptional<EFocusCause> HasUserFocus(const TSharedPtr<const SWidget> Widget, int32 UserIndex) const = 0;
+
+	/**
+	 * Gets whether or not a particular widget has any users focus, and if so the type of focus (first one found).
+	 *
+	 * @return The optional will be set with the focus cause, if unset this widget doesn't have focus.
+	 */
+	virtual TOptional<EFocusCause> HasAnyUserFocus(const TSharedPtr<const SWidget> Widget) const = 0;
+
+	/**
+	 * Gets whether or not a particular widget should show user focus.
+	 *
+	 * @return True if we should show user focus
+	 */
+	virtual bool ShowUserFocus(const TSharedPtr<const SWidget> Widget) const = 0;
 
 protected:
 

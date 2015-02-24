@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections;
@@ -186,6 +186,56 @@ namespace UnrealBuildTool
 			return InPath;
 		}
 
+		// Look for any build options in the engine config file.
+		public override void ParseProjectSettings()
+		{
+			base.ParseProjectSettings();
+
+			ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.IOS, "Engine", UnrealBuildTool.GetUProjectPath());
+			string ServerName = RemoteServerName;
+			if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "RemoteServerName", out ServerName))
+			{
+				RemoteServerName = ServerName;
+			}
+
+			bool bUseRSync = false;
+			if (Ini.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bUseRSync", out bUseRSync))
+			{
+				bUseRPCUtil = !bUseRSync;
+				Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "RSyncUsername", out RSyncUsername);
+
+				string ConfigKeyPath;
+				if (Ini.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "SSHPrivateKeyOverridePath", out ConfigKeyPath))
+				{
+					if (File.Exists(ConfigKeyPath))
+					{
+						SSHPrivateKeyOverridePath = ConfigKeyPath;
+					}
+				}
+			}
+		}
+
+		// Gather a users root path from the remote server. Should only be called once.
+		public static void SetUserDevRootFromServer()
+		{
+			if (!bUseRPCUtil)
+			{
+				// Only set relative to the users root when using rsync, for now
+				Hashtable Results = RPCUtilHelper.Command("/", "echo $HOME", null);
+
+				if (Results == null)
+				{
+					Log.TraceInformation("UserDevRoot Command failed to execute!");
+				}
+				else if (Results["CommandOutput"] != null)
+				{
+					// pass back the string
+					string HomeLocation = Results["CommandOutput"] as string;
+					UserDevRootMac = HomeLocation + UserDevRootMac;
+				}
+			}
+		}
+
         // Do any one-time, global initialization for the tool chain
 		static int InitializationErrorCode = 0;
 		private static int InitializeRemoteExecution()
@@ -264,22 +314,31 @@ namespace UnrealBuildTool
 					// we need the RemoteServerName and the Username to find the private key
 					ResolvedRSyncUsername = ResolveString(RSyncUsername, false);
 
+					bool bFoundOverrideSSHPrivateKey = false;
+
 					// if the override path is set, just use it directly
 					if (!string.IsNullOrEmpty(SSHPrivateKeyOverridePath))
 					{
 						ResolvedSSHPrivateKey = ResolveString(SSHPrivateKeyOverridePath, true);
+						
+						bFoundOverrideSSHPrivateKey = File.Exists(ResolvedSSHPrivateKey);
+						
 						// make sure it exists
-						if (!File.Exists(ResolvedSSHPrivateKey))
+						if (!bFoundOverrideSSHPrivateKey)
 						{
-							throw new BuildException("An SSHKey override was specified [" + SSHPrivateKeyOverridePath + "] but it doesn't exist. Can't continue...");
+							Log.TraceWarning("An SSHKey override was specified [" + SSHPrivateKeyOverridePath + "] but it doesn't exist. Looking elsewhere...");
 						}
 					}
-					else
+
+					if (!bFoundOverrideSSHPrivateKey)
 					{
 						// all the places to look for a key
 						string[] Locations = new string[] {
 							Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Unreal Engine", "UnrealBuildTool"),
 							Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Unreal Engine", "UnrealBuildTool"),
+							Path.Combine(UnrealBuildTool.GetUProjectPath(), "Build", "NotForLicensees"),
+							Path.Combine(UnrealBuildTool.GetUProjectPath(), "Build", "NoRedist"),
+							Path.Combine(UnrealBuildTool.GetUProjectPath(), "Build"),
 							Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "NotForLicensees"),
 							Path.Combine(BuildConfiguration.RelativeEnginePath, "Build", "NoRedist"),
 							Path.Combine(BuildConfiguration.RelativeEnginePath, "Build"),
@@ -292,9 +351,15 @@ namespace UnrealBuildTool
 							if (File.Exists(KeyPath))
 							{
 								ResolvedSSHPrivateKey = KeyPath;
+								bFoundOverrideSSHPrivateKey = true;
 								break;
 							}
 						}
+					}
+
+					if (!bFoundOverrideSSHPrivateKey)
+					{
+						throw new BuildException("An SSHKey was required, but one cannot be found. Can't continue...");
 					}
 
 					// resolve the rest of the strings
@@ -349,6 +414,9 @@ namespace UnrealBuildTool
 
 			// connect to server
 			InitializeRemoteExecution();
+
+			// Setup root directory to use.
+			SetUserDevRootFromServer();
 		}
 
         /** Converts the passed in path from UBT host to compiler native format. */
@@ -621,7 +689,7 @@ namespace UnrealBuildTool
 				// --exclude='*'  ??? why???
 				RsyncProcess.StartInfo.FileName = ResolvedRSyncExe;
 				RsyncProcess.StartInfo.Arguments = string.Format(
-					"-vzae \"{0}\" --rsync-path=\"mkdir -p {2} && rsync\" --delete --files-from=\"{4}\" --include-from=\"{5}\" --include='*/' --exclude='*.o' --exclude='Timestamp' {1} {6}@{3}:'{2}'",
+					"-vzae \"{0}\" --rsync-path=\"mkdir -p {2} && rsync\" --chmod=ug=rwX,o=rxX --delete --files-from=\"{4}\" --include-from=\"{5}\" --include='*/' --exclude='*.o' --exclude='Timestamp' {1} {6}@{3}:'{2}'",
 					ResolvedRsyncAuthentication,
 					CygRootPath,
 					RemotePath,
@@ -662,7 +730,7 @@ namespace UnrealBuildTool
 			// make simple rsync commandline to send a file
 			RsyncProcess.StartInfo.FileName = ResolvedRSyncExe;
 			RsyncProcess.StartInfo.Arguments = string.Format(
-				"-zae \"{0}\" --rsync-path=\"mkdir -p '{1}' && rsync\" \"{2}\" {3}@{4}:\"{1}/{5}\"",
+				"-zae \"{0}\" --rsync-path=\"mkdir -p {1} && rsync\" \"{2}\" {3}@{4}:\"{1}/{5}\"",
 				ResolvedRsyncAuthentication,
 				RemoteDir,
 				ConvertPathToCygwin(LocalPath),
@@ -695,7 +763,7 @@ namespace UnrealBuildTool
 			// make simple rsync commandline to send a file
 			RsyncProcess.StartInfo.FileName = ResolvedRSyncExe;
 			RsyncProcess.StartInfo.Arguments = string.Format(
-				"-zae {0} {2}@{3}:\"{4}\" \"{1}\"",
+				"-zae \"{0}\" {2}@{3}:\"{4}\" \"{1}\"",
 				ResolvedRsyncAuthentication,
 				ConvertPathToCygwin(LocalPath),
 				RSyncUsername,

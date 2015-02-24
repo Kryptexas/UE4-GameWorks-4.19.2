@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,7 +34,7 @@ public:
 
 	/** Visibility */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Scroll")
-	TEnumAsByte<ESlateVisibility::Type> ScrollBarVisibility;
+	TEnumAsByte<ESlateVisibility> ScrollBarVisibility;
 
 	/**  */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Scroll")
@@ -51,9 +51,20 @@ public:
 
 public:
 
-	/** Updates the scroll offset of the scrollbox */
+	/**
+	 * Updates the scroll offset of the scrollbox.
+	 * @param NewScrollOffset is in Slate Units.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void SetScrollOffset(float NewScrollOffset);
+
+	/** Scrolls the ScrollBox to the top instantly */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void ScrollToStart();
+
+	/** Scrolls the ScrollBox to the bottom instantly during the next layout pass. */
+	UFUNCTION(BlueprintCallable, Category="Widget")
+	void ScrollToEnd();
 
 	// UWidget interface
 	virtual void SynchronizeProperties() override;

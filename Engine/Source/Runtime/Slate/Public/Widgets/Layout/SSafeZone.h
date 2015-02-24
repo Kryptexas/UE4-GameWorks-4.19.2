@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -54,5 +54,5 @@ class SLATE_API SSafeZone : public SBox
 private:
 	/** Cached values from the args */
 	TAttribute<FMargin> Padding;
-	bool IsTitleSafe;
+	FMargin SafeMargin;
 };

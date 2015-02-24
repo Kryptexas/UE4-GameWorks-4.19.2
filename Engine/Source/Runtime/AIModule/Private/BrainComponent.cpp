@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BrainComponent.h"
@@ -186,7 +186,7 @@ UBrainComponent::UBrainComponent(const FObjectInitializer& ObjectInitializer) : 
 #if ENABLE_VISUAL_LOG
 void UBrainComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 {
-	const static UEnum* SourceEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAILockSource"));
+	const static UEnum* PriorityEnum = FindObject<UEnum>(ANY_PACKAGE, TEXT("EAIRequestPriority"));
 
 	if (IsPendingKill())
 	{
@@ -194,10 +194,10 @@ void UBrainComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 	}
 
 	FVisualLogStatusCategory StatusCategory;
-	StatusCategory.Category = FString::Printf(TEXT("Resource lock: %s"), *ResourceLock.GetLockSourceName());
-	for (int32 LockLevel = 0; LockLevel < int32(EAILockSource::MAX); ++LockLevel)
+	StatusCategory.Category = FString::Printf(TEXT("Resource lock: %s"), *ResourceLock.GetLockPriorityName());
+	for (int32 LockLevel = 0; LockLevel < int32(EAIRequestPriority::MAX); ++LockLevel)
 	{
-		StatusCategory.Add(*SourceEnum->GetEnumName(LockLevel), ResourceLock.Locks[LockLevel] ? TEXT("Locked") : TEXT("Unlocked"));		
+		StatusCategory.Add(*PriorityEnum->GetEnumName(LockLevel), ResourceLock.IsLockedBy(EAIRequestPriority::Type(LockLevel)) ? TEXT("Locked") : TEXT("Unlocked"));
 	}
 	Snapshot->Status.Add(StatusCategory);
 
@@ -208,17 +208,17 @@ void UBrainComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 }
 #endif // ENABLE_VISUAL_LOG
 
-void UBrainComponent::LockResource(EAILockSource::Type LockSource)
+void UBrainComponent::LockResource(EAIRequestPriority::Type LockSource)
 {
 	const bool bWasLocked = ResourceLock.IsLocked();
 	ResourceLock.SetLock(LockSource);
 	if (bWasLocked == false)
 	{
-		PauseLogic(FString::Printf(TEXT("Locking Resource with source %s"), *ResourceLock.GetLockSourceName()));
+		PauseLogic(FString::Printf(TEXT("Locking Resource with source %s"), *ResourceLock.GetLockPriorityName()));
 	}
 }
 
-void UBrainComponent::ClearResourceLock(EAILockSource::Type LockSource)
+void UBrainComponent::ClearResourceLock(EAIRequestPriority::Type LockSource)
 {
 	ResourceLock.ClearLock(LockSource);
 
@@ -258,7 +258,7 @@ void UBrainComponent::InitializeComponent()
 		BlackboardComp = GetOwner()->FindComponentByClass<UBlackboardComponent>();
 		if (BlackboardComp)
 		{
-			BlackboardComp->CacheBrainComponent(this);
+			BlackboardComp->CacheBrainComponent(*this);
 		}
 	}
 }
@@ -313,4 +313,14 @@ EAILogicResuming::Type UBrainComponent::ResumeLogic(const FString& Reason)
 	}
 
 	return EAILogicResuming::Continue;
+}
+
+void UBrainComponent::RestartLogic()
+{
+
+}
+
+void UBrainComponent::StopLogic(const FString& Reason)
+{
+
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PaperJsonImporterPrivatePCH.h"
 #include "Paper2DClasses.h"
@@ -23,7 +23,7 @@ FText FPaperSpriteSheetAssetTypeActions::GetName() const
 
 FColor FPaperSpriteSheetAssetTypeActions::GetTypeColor() const
 {
-	return FColor(0, 255, 255);
+	return FColor::Cyan;
 }
 
 UClass* FPaperSpriteSheetAssetTypeActions::GetSupportedClass() const
@@ -70,60 +70,6 @@ void FPaperSpriteSheetAssetTypeActions::GetActions(const TArray<UObject*>& InObj
 
 //////////////////////////////////////////////////////////////////////////
 
-static bool ExtractSpriteNumber(const FString& String, FString& BareString, int& Number)
-{
-	bool bExtracted = false;
-
-	int LastCharacter = String.Len() - 1;
-	if (LastCharacter >= 0)
-	{
-		// Find the last character that isn't a digit (Handle sprite names with numbers inside inverted commas / parentheses)
-		while (LastCharacter >= 0 && !FChar::IsDigit(String[LastCharacter]))
-		{
-			LastCharacter--;
-		}
-
-		// Only proceed if we found a number in the sprite name
-		if (LastCharacter >= 0)
-		{
-			while (LastCharacter > 0 && FChar::IsDigit(String[LastCharacter - 1]))
-			{
-				LastCharacter--;
-			}
-
-			if (LastCharacter >= 0)
-			{
-				int FirstDigit = LastCharacter;
-				int EndCharacter = FirstDigit;
-				while (EndCharacter > 0 && !FChar::IsAlnum(String[EndCharacter - 1]))
-				{
-					EndCharacter--;
-				}
-
-				if (EndCharacter == 0)
-				{
-					// This string consists of non alnum + number, eg. _42
-					// The flipbook / category name in this case will be _
-					// Otherwise, we strip out all trailing non-alnum chars
-					EndCharacter = FirstDigit;
-				}
-
-				FString NumberString = String.Mid(FirstDigit);
-				BareString = String.Left(EndCharacter);
-				Number = FCString::Atoi(*NumberString);
-				bExtracted = true;
-			}
-		}
-	}
-
-	if (!bExtracted)
-	{
-		BareString = String;
-		Number = -1;
-	}
-	return bExtracted;
-}
-
 void FPaperSpriteSheetAssetTypeActions::ExecuteCreateFlipbooks(TArray<TWeakObjectPtr<UPaperSpriteSheet>> Objects)
 {	
 	for (int SpriteSheetIndex = 0; SpriteSheetIndex < Objects.Num(); ++SpriteSheetIndex)
@@ -150,7 +96,7 @@ void FPaperSpriteSheetAssetTypeActions::ExecuteCreateFlipbooks(TArray<TWeakObjec
 				UPaperSprite* Sprite = nullptr;
 				if (!SpriteStringRef.ToString().IsEmpty())
 				{
-					Sprite = Cast<UPaperSprite>(StaticLoadObject(UPaperSprite::StaticClass(), NULL, *SpriteStringRef.ToString(), NULL, LOAD_None, NULL));
+					Sprite = Cast<UPaperSprite>(StaticLoadObject(UPaperSprite::StaticClass(), nullptr, *SpriteStringRef.ToString(), nullptr, LOAD_None, nullptr));
 				}
 				if (Sprite != nullptr)
 				{

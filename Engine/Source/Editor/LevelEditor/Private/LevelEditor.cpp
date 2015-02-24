@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "LevelEditor.h"
@@ -37,12 +37,74 @@ FLevelEditorModule::FLevelEditorModule()
 	TEXT( "LevelEditor.ToggleImmersive" ),
 	TEXT( "Toggle 'Immersive Mode' for the active level editing viewport" ),
 	FConsoleCommandDelegate::CreateRaw( this, &FLevelEditorModule::ToggleImmersiveOnActiveLevelViewport ) )
+{
+}
+
+
+class SLevelEditorWatermark : public SCompoundWidget
+{
+public:
+	SLATE_BEGIN_ARGS(SLevelEditorWatermark) {}
+	SLATE_END_ARGS()
+
+	void Construct(const FArguments& InArgs)
 	{
+		FString OptionalBranchPrefix;
+		GConfig->GetString(TEXT("LevelEditor"), TEXT("ProjectNameWatermarkPrefix"), /*out*/ OptionalBranchPrefix, GEditorUserSettingsIni);
+
+		FFormatNamedArguments Args;
+		Args.Add(TEXT("Branch"), FText::FromString(OptionalBranchPrefix));
+		Args.Add(TEXT("GameName"), FText::FromString(FString(FApp::GetGameName())));
+
+		FText RightContentText;
+		FText RightContentTooltip;
+
+		const EBuildConfigurations::Type BuildConfig = FApp::GetBuildConfiguration();
+		if (BuildConfig != EBuildConfigurations::Shipping && BuildConfig != EBuildConfigurations::Development && BuildConfig != EBuildConfigurations::Unknown)
+		{
+			Args.Add(TEXT("Config"), EBuildConfigurations::ToText(BuildConfig));
+			RightContentText = FText::Format(NSLOCTEXT("UnrealEditor", "TitleBarRightContentAndConfig", "{Branch}{GameName} [{Config}]"), Args);
+		}
+		else
+		{
+			RightContentText = FText::Format(NSLOCTEXT("UnrealEditor", "TitleBarRightContent", "{Branch}{GameName}"), Args);
+		}
+
+		// Create the tooltip showing more detailed information
+		FFormatNamedArguments TooltipArgs;
+		const FString EngineVerisonString = GEngineVersion.ToString(GEngineVersion.IsPromotedBuild() ? EVersionComponent::Changelist : EVersionComponent::Patch);
+		TooltipArgs.Add(TEXT("Version"), FText::FromString(EngineVerisonString));
+		TooltipArgs.Add(TEXT("Branch"), FText::FromString(FApp::GetBranchName()));
+		TooltipArgs.Add(TEXT("BuildConfiguration"), EBuildConfigurations::ToText(BuildConfig));
+		TooltipArgs.Add(TEXT("BuildDate"), FText::FromString(FApp::GetBuildDate()));
+		RightContentTooltip = FText::Format(NSLOCTEXT("UnrealEditor", "TitleBarRightContentTooltip", "Version: {Version}\nBranch: {Branch}\nBuild Configuration: {BuildConfiguration}\nBuild Date: {BuildDate}"), TooltipArgs);
+
+		SetToolTipText(RightContentTooltip);
+
+		ChildSlot
+		[
+			SNew(STextBlock)
+			.Text(RightContentText)
+			.Visibility(EVisibility::HitTestInvisible)
+			.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 14))
+			.ColorAndOpacity(FLinearColor(1.0f, 1.0f, 1.0f, 0.4f))
+		];
 	}
+	
+	// SWidget interface
+	virtual EWindowZone::Type GetWindowZoneOverride() const override
+	{
+		return EWindowZone::TitleBar;
+	}
+	// End of SWidget interface
+};
 
 TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& InArgs )
 {
-	TSharedRef<SDockTab> LevelEditorTab = SNew(SDockTab) .TabRole(ETabRole::MajorTab) .ContentPadding( FMargin(0,2,0,0) );
+	TSharedRef<SDockTab> LevelEditorTab = SNew(SDockTab)
+		.TabRole(ETabRole::MajorTab)
+		.ContentPadding( FMargin(0) );
+
 	SetLevelEditorInstanceTab(LevelEditorTab);
 	TSharedPtr< SWindow > OwnerWindow = InArgs.GetOwnerWindow();
 	
@@ -71,40 +133,14 @@ TSharedRef<SDockTab> FLevelEditorModule::SpawnLevelEditor( const FSpawnTabArgs& 
 
 	TSharedPtr< SWidget > RightContent;
 	{
-		FString OptionalBranchPrefix;
-		GConfig->GetString(TEXT("LevelEditor"), TEXT("ProjectNameWatermarkPrefix"), /*out*/ OptionalBranchPrefix, GEditorUserSettingsIni);
-
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("Branch"), FText::FromString(OptionalBranchPrefix) );
-		Args.Add( TEXT("GameName"), FText::FromString(FString(FApp::GetGameName())) );
-
-		FText RightContentText;
-
-		const EBuildConfigurations::Type BuildConfig = FApp::GetBuildConfiguration();
-		if (BuildConfig != EBuildConfigurations::Shipping && BuildConfig != EBuildConfigurations::Development && BuildConfig != EBuildConfigurations::Unknown)
-		{
-			Args.Add( TEXT("Config"), EBuildConfigurations::ToText(BuildConfig) );
-			RightContentText = FText::Format(NSLOCTEXT("UnrealEditor", "TitleBarRightContentAndConfig", "{Branch}{GameName} [{Config}]"), Args);
-		}
-		else
-		{
-			RightContentText = FText::Format(NSLOCTEXT("UnrealEditor", "TitleBarRightContent", "{Branch}{GameName}"), Args);
-		}
-
 		RightContent =
 				SNew( SHorizontalBox )
 
 				+SHorizontalBox::Slot()
+				.Padding(0.0f, 0.0f, 14.0f, 0.0f)
 				.AutoWidth()
 				[
-					SNew(SBox)
-					.Visibility( EVisibility::HitTestInvisible )
-					[
-						SNew( STextBlock )
-						.Text( RightContentText )
-						.Font( FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 14 ) )
-						.ColorAndOpacity( FLinearColor( 1.0f, 1.0f, 1.0f, 0.3f ) )
-					]
+					SNew(SLevelEditorWatermark)
 				]
 // Put the level editor stats/notification widgets on the main window title bar since we don't have a menu bar on OS X
 #if PLATFORM_MAC
@@ -153,10 +189,6 @@ void FLevelEditorModule::StartupModule()
 	ModeBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
 
 	NotificationBarExtensibilityManager = MakeShareable(new FExtensibilityManager);
-
-	// Figure out if we recompile the level editor.
-	FString SourcePath = FPaths::Combine(*FPaths::EngineDir(), TEXT("Source/Editor/LevelEditor/Private"));
-	bCanBeRecompiled = IFileManager::Get().DirectoryExists(*SourcePath) && !GEngineVersion.IsPromotedBuild();
 
 	// Note this must come before any tab spawning because that can create the SLevelEditor and attempt to map commands
 	FLevelEditorCommands::Register();
@@ -360,6 +392,11 @@ void FLevelEditorModule::BroadcastMapChanged( UWorld* World, EMapChangeType::Typ
 	MapChangedEvent.Broadcast( World, MapChangeType );
 }
 
+void FLevelEditorModule::BroadcastComponentsEdited()
+{
+	ComponentsEditedEvent.Broadcast();
+}
+
 const FLevelEditorCommands& FLevelEditorModule::GetLevelEditorCommands() const
 {
 	return FLevelEditorCommands::Get();
@@ -393,6 +430,7 @@ TSharedPtr<FTabManager> FLevelEditorModule::GetLevelEditorTabManager() const
 void FLevelEditorModule::SetLevelEditorInstance( TWeakPtr<SLevelEditor> LevelEditor )
 {
 	LevelEditorInstancePtr = LevelEditor;
+	GLevelEditorModeTools().SetToolkitHost(LevelEditorInstancePtr.Pin().ToSharedRef());
 }
 
 void FLevelEditorModule::SetLevelEditorInstanceTab( TWeakPtr<SDockTab> LevelEditorTab )
@@ -552,21 +590,29 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 	ActionList.MapAction( Commands.Build,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Build_Execute ) );
 
+	ActionList.MapAction(
+		Commands.ConnectToSourceControl,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ConnectToSourceControl_Clicked)
+		);
 
-	if (CanBeRecompiled())
-	{
-		ActionList.MapAction( Commands.RecompileLevelEditor,
-			FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::RecompileLevelEditor_Clicked ),
-			FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Recompile_CanExecute )
-			);
+	ActionList.MapAction(
+		Commands.ChangeSourceControlSettings,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ConnectToSourceControl_Clicked)
+		);
 
-		ActionList.MapAction( Commands.ReloadLevelEditor,
-			FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ReloadLevelEditor_Clicked ),
-			FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Reload_CanExecute )
-			);
-	}
+	ActionList.MapAction(
+		Commands.CheckOutModifiedFiles,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::CheckOutModifiedFiles_Clicked),
+		FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::CheckOutModifiedFiles_CanExecute)
+		);
 
-	ActionList.MapAction( Commands.RecompileGameCode,
+	ActionList.MapAction(
+		Commands.SubmitToSourceControl,
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SubmitToSourceControl_Clicked),
+		FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SubmitToSourceControl_CanExecute)
+		);
+
+	ActionList.MapAction(Commands.RecompileGameCode,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::RecompileGameCode_Clicked ),
 		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::Recompile_CanExecute )
 		);
@@ -582,8 +628,14 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CanViewReferences )
 		);
 
+	const FVector* NullVector = nullptr;
+	ActionList.MapAction(
+		Commands.GoHere,
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::GoHere_Clicked, NullVector )
+		);
+
 	ActionList.MapAction( 
-		Commands.SnapCameraToActor, 
+		Commands.SnapCameraToObject,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::ExecuteExecCommand, FString( TEXT("CAMERA SNAP") ) )
 		);
 
@@ -682,7 +734,7 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 	bool bUsePivot = false;
 	ActionList.MapAction(
 		Commands.SnapToFloor,
-		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SnapActorToFloor_Clicked, bAlign, bUseLineTrace, bUseBounds, bUsePivot),
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SnapToFloor_Clicked, bAlign, bUseLineTrace, bUseBounds, bUsePivot),
 		FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ActorSelected_CanExecute)
 		);
 
@@ -692,7 +744,7 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 	bUsePivot = false;
 	ActionList.MapAction(
 		Commands.AlignToFloor,
-		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SnapActorToFloor_Clicked, bAlign, bUseLineTrace, bUseBounds, bUsePivot),
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SnapToFloor_Clicked, bAlign, bUseLineTrace, bUseBounds, bUsePivot),
 		FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ActorSelected_CanExecute)
 		);
 
@@ -702,7 +754,7 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 	bUsePivot = true;
 	ActionList.MapAction(
 		Commands.SnapPivotToFloor,
-		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SnapActorToFloor_Clicked, bAlign, bUseLineTrace, bUseBounds, bUsePivot),
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SnapToFloor_Clicked, bAlign, bUseLineTrace, bUseBounds, bUsePivot),
 		FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ActorSelected_CanExecute)
 		);
 
@@ -712,7 +764,7 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 	bUsePivot = true;
 	ActionList.MapAction(
 		Commands.AlignPivotToFloor,
-		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SnapActorToFloor_Clicked, bAlign, bUseLineTrace, bUseBounds, bUsePivot),
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SnapToFloor_Clicked, bAlign, bUseLineTrace, bUseBounds, bUsePivot),
 		FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ActorSelected_CanExecute)
 		);
 
@@ -722,7 +774,7 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 	bUsePivot = false;
 	ActionList.MapAction(
 		Commands.SnapBottomCenterBoundsToFloor,
-		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SnapActorToFloor_Clicked, bAlign, bUseLineTrace, bUseBounds, bUsePivot),
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SnapToFloor_Clicked, bAlign, bUseLineTrace, bUseBounds, bUsePivot),
 		FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ActorSelected_CanExecute)
 		);
 
@@ -732,7 +784,7 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 	bUsePivot = false;
 	ActionList.MapAction(
 		Commands.AlignBottomCenterBoundsToFloor,
-		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SnapActorToFloor_Clicked, bAlign, bUseLineTrace, bUseBounds, bUsePivot),
+		FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::SnapToFloor_Clicked, bAlign, bUseLineTrace, bUseBounds, bUsePivot),
 		FCanExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::ActorSelected_CanExecute)
 		);
 
@@ -951,6 +1003,12 @@ void FLevelEditorModule::BindGlobalLevelEditorCommands()
 	ActionList.MapAction(
 		Commands.SelectAllActorsOfSameClassWithArchetype,
 		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OnSelectAllActorsOfClass, (bool)true )
+		);
+
+	ActionList.MapAction(
+		Commands.SelectComponentOwnerActor,
+		FExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::OnSelectComponentOwnerActor ),
+		FCanExecuteAction::CreateStatic( &FLevelEditorActionCallbacks::CanSelectComponentOwnerActor )
 		);
 
 	ActionList.MapAction(

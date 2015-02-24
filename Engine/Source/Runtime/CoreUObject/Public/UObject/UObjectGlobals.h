@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnObjGlobals.h: Unreal object system globals.
@@ -253,7 +253,7 @@ COREUOBJECT_API UPackage* LoadPackage( UPackage* InOuter, const TCHAR* InLongPac
  * @param	PackageName			Package name we were trying to load
  * @param	LoadedPackage		Loaded package if successful, NULL otherwise	
  */
-DECLARE_DELEGATE_TwoParams(FLoadPackageAsyncDelegate, const FString& /*PackageName*/, UPackage* /*LoadedPackage*/)
+DECLARE_DELEGATE_TwoParams(FLoadPackageAsyncDelegate, const FName& /*PackageName*/, UPackage* /*LoadedPackage*/)
 struct FAsyncPackage;
 /**
  * Asynchronously load a package and all contained objects that match context flags. Non- blocking.
@@ -284,7 +284,7 @@ COREUOBJECT_API FAsyncPackage& LoadPackageAsync( const FString& PackageName, con
  * @param	PackageName			Name of package to query load percentage for
  * @return	Async load percentage if package is currently being loaded, -1 otherwise
  */
-COREUOBJECT_API float GetAsyncLoadPercentage( const FString& PackageName );
+COREUOBJECT_API float GetAsyncLoadPercentage( const FName& PackageName );
 
 /** 
  * Deletes all unreferenced objects, keeping objects that have any of the passed in KeepFlags set
@@ -691,26 +691,24 @@ public:
 	 * @param	TReturnType					class of return type, all overrides must be of this type
 	 * @param	Outer						outer to construct the subobject in
 	 * @param	SubobjectName				name of the new component
-	 * @param bTransient		true if the component is being assigned to a transient property
+	 * @param	bTransient					true if the component is being assigned to a transient property
 	 */
 	template<class TReturnType>
 	TReturnType* CreateEditorOnlyDefaultSubobject(UObject* Outer, FName SubobjectName, bool bTransient = false) const
 	{
-#if WITH_EDITOR
-		if (GIsEditor)
-		{
-			UClass* ReturnType = TReturnType::StaticClass();
-			TReturnType* EditorSubobject = static_cast<TReturnType*>(CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ false, /*bIsAbstract =*/ false, bTransient));
-			if (EditorSubobject)
-			{
-				EditorSubobject->AlwaysLoadOnClient = false;
-				EditorSubobject->AlwaysLoadOnServer = false;
-			}
-			return EditorSubobject;	
-		}
-#endif
-		return NULL;
+		UClass* ReturnType = TReturnType::StaticClass();
+		return static_cast<TReturnType*>(CreateEditorOnlyDefaultSubobject(Outer, SubobjectName, ReturnType, bTransient));
 	}
+
+	/**
+	* Create a component or subobject only to be used with the editor.
+	* @param	TReturnType					class of return type, all overrides must be of this type
+	* @param	Outer						outer to construct the subobject in
+	* @param	ReturnType					type of the new component 
+	* @param	SubobjectName				name of the new component
+	* @param	bTransient					true if the component is being assigned to a transient property
+	*/
+	UObject* CreateEditorOnlyDefaultSubobject(UObject* Outer, FName SubobjectName, UClass* ReturnType, bool bTransient = false) const;
 
 	/**
 	 * Create a component or subobject
@@ -782,6 +780,9 @@ public:
 	{
 		bSubobjectClassInitializationAllowed = false;
 	}
+
+	/** Gets ObjectInitializer for the currently constructed object. Can only be used inside of a constructor of UObject-derived class. */
+	static FObjectInitializer& Get();
 
 private:
 
@@ -1568,6 +1569,19 @@ struct COREUOBJECT_API FCoreUObjectDelegates
 
 	// Called when any object is modified at all 
 	static FOnObjectModified OnObjectModified;
+
+	// Set of objects modified this frame, to prevent multiple triggerings of the OnObjectModified delegate.
+	static TSet<UObject*> ObjectsModifiedThisFrame;
+
+	// Broadcast OnObjectModified if the broadcast hasn't ocurred for this object in this frame
+	static void BroadcastOnObjectModified(UObject* Object)
+	{
+		if (OnObjectModified.IsBound() && !ObjectsModifiedThisFrame.Contains(Object))
+		{
+			ObjectsModifiedThisFrame.Add(Object);
+			OnObjectModified.Broadcast(Object);
+		}
+	}
 
 	// Callback for when an asset is loaded (Editor)
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetLoaded, UObject*);

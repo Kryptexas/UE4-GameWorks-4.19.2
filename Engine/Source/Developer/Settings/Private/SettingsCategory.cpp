@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SettingsPrivatePCH.h"
 
@@ -55,6 +55,11 @@ void FSettingsCategory::RemoveSection( const FName& SectionName )
 
 /* ISettingsCategory interface
  *****************************************************************************/
+
+ISettingsSectionPtr FSettingsCategory::GetSection( const FName& SectionName ) const
+{
+	return Sections.FindRef(SectionName);
+}
 
 int32 FSettingsCategory::GetSections( TArray<ISettingsSectionPtr>& OutSections ) const
 {

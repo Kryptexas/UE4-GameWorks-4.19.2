@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,11 +8,11 @@ public:
 	SLATE_BEGIN_ARGS( SPropertyMenuActorPicker )
 		: _InitialActor(NULL)
 		, _AllowClear(true)
-		, _ActorFilters(NULL)
+		, _ActorFilter()
 	{}
 		SLATE_ARGUMENT( AActor*, InitialActor )
 		SLATE_ARGUMENT( bool, AllowClear )
-		SLATE_ARGUMENT( TSharedPtr< SceneOutliner::FOutlinerFilters >, ActorFilters )
+		SLATE_ARGUMENT( FOnShouldFilterActor, ActorFilter )
 		SLATE_EVENT( FOnActorSelected, OnSet )
 		SLATE_EVENT( FSimpleDelegate, OnClose )
 		SLATE_EVENT( FSimpleDelegate, OnUseSelected )
@@ -75,7 +75,8 @@ private:
 	/** Whether the asset can be 'None' in this case */
 	bool bAllowClear;
 
-	TSharedPtr< SceneOutliner::FOutlinerFilters > ActorFilters;
+	/** Delegate used to test whether an actor should be displayed or not */
+	FOnShouldFilterActor ActorFilter;
 
 	/** Delegate to call when our object value should be set */
 	FOnActorSelected OnSet;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PackageUtilities.cpp: Commandlets for viewing information about package files
@@ -16,7 +16,8 @@
 #include "AnimationCompression.h"
 
 #include "CollectionManagerModule.h"
-
+#include "GameFramework/WorldSettings.h"
+#include "EngineUtils.h"
 
 DEFINE_LOG_CATEGORY(LogPackageHelperFunctions);
 DEFINE_LOG_CATEGORY_STATIC(LogPackageUtilities, Log, All);

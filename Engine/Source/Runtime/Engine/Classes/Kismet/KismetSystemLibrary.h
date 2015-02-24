@@ -1,12 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Engine/LatentActionManager.h"
+#include "BlueprintFunctionLibrary.h"
+#include "Engine/CollisionProfile.h"
 #include "KismetSystemLibrary.generated.h"
-
-/** It's just a proxy for FTimerDynamicDelegate */
-DECLARE_DYNAMIC_DELEGATE(FBlueprintTimerDynamicDelegate);
 
 UENUM(BlueprintType)
 namespace EDrawDebugTrace
@@ -75,6 +74,10 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	// Return true if the object is usable : non-null and not pending kill
 	UFUNCTION(BlueprintPure, Category = "Utilities")
 	static ENGINE_API bool IsValid(const UObject* Object);
+
+	// Return true if the class is usable : non-null and not pending kill
+	UFUNCTION(BlueprintPure, Category = "Utilities")
+	static ENGINE_API bool IsValidClass(UClass* Class);
 
 	// Returns the display name (or actor label), for displaying to end users.  Note:  In editor builds, this is the actor label.  In non-editor builds, this is the actual object name.  This function should not be used to uniquely identify actors!
 	UFUNCTION(BlueprintPure, Category="Utilities")
@@ -192,8 +195,21 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param	bPrintToConsole	Whether or not to print the output to the console
 	 * @param	TextColor		Whether or not to print the output to the console
 	 */
-	UFUNCTION(BlueprintCallable, meta=(WorldContext="WorldContextObject", CallableWithoutWorldContext, Keywords = "log", AdvancedDisplay = "2"), Category="Utilities|String")
+	UFUNCTION(BlueprintCallable, meta=(WorldContext="WorldContextObject", CallableWithoutWorldContext, Keywords = "log print", AdvancedDisplay = "2"), Category="Utilities|String")
 	static void PrintString(UObject* WorldContextObject, const FString& InString = FString(TEXT("Hello")), bool bPrintToScreen = true, bool bPrintToLog = true, FLinearColor TextColor = FLinearColor(0.0,0.66,1.0));
+
+	/**
+	 * Prints text to the log, and optionally, to the screen
+	 * If Print To Log is true, it will be visible in the Output Log window.  Otherwise it will be logged only as 'Verbose', so it generally won't show up.
+	 *
+	 * @param	InText			The text to log out
+	 * @param	bPrintToScreen	Whether or not to print the output to the screen
+	 * @param	bPrintToLog		Whether or not to print the output to the log
+	 * @param	bPrintToConsole	Whether or not to print the output to the console
+	 * @param	TextColor		Whether or not to print the output to the console
+	 */
+	UFUNCTION(BlueprintCallable, meta=(WorldContext="WorldContextObject", CallableWithoutWorldContext, Keywords = "log", AdvancedDisplay = "2"), Category="Utilities|Text")
+	static void PrintText(UObject* WorldContextObject, const FText InText = FText::FromString(TEXT("Hello")), bool bPrintToScreen = true, bool bPrintToLog = true, FLinearColor TextColor = FLinearColor(0.0,0.66,1.0));
 
 	/**
 	 * Prints a warning string to the log and the screen. Meant to be used as a way to inform the user that they misused the node.
@@ -205,7 +221,11 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "TRUE"))
 	static void PrintWarning(const FString& InString);
 
-	/** 
+	/** Sets the game window title */
+	UFUNCTION(BlueprintCallable, Category = "Utilities")
+	static void SetWindowTitle(const FText& Title);
+
+	/**
 	 * Executes a console command, optionally on a specific controller
 	 * 
 	 * @param	Command			Command to send to the console
@@ -225,16 +245,22 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	// Latent Actions
 
 	/** 
-	 * Perform a latent action with a delay.
+	 * Perform a latent action with a delay (specified in seconds).  Calling again while it is counting down will be ignored.
 	 * 
 	 * @param WorldContext	World context.
-	 * @param Duration 		length of delay.
+	 * @param Duration 		length of delay (in seconds).
 	 * @param LatentInfo 	The latent action.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|FlowControl", meta=(Latent, WorldContext="WorldContextObject", LatentInfo="LatentInfo", Duration="0.2"))
 	static void	Delay(UObject* WorldContextObject, float Duration, struct FLatentActionInfo LatentInfo );
 
-	/** Delay execution by Duration seconds; Calling again before the delay has expired will reset the countdown to Duration. */
+	/** 
+	 * Perform a latent action with a retriggerable delay (specified in seconds).  Calling again while it is counting down will reset the countdown to Duration.
+	 * 
+	 * @param WorldContext	World context.
+	 * @param Duration 		length of delay (in seconds).
+	 * @param LatentInfo 	The latent action.
+	 */
 	UFUNCTION(BlueprintCallable, meta=(Latent, LatentInfo="LatentInfo", WorldContext="WorldContextObject", Duration="0.2"), Category="Utilities|FlowControl")
 	static void RetriggerableDelay(UObject* WorldContextObject, float Duration, FLatentActionInfo LatentInfo);
 
@@ -261,7 +287,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	 * @param bLooping		true to keep executing the delegate every Time seconds, false to execute delegate only once.
 	 */
 	UFUNCTION(BlueprintCallable, meta=(FriendlyName = "SetTimerDelegate"), Category="Utilities|Time")
-	static void K2_SetTimerDelegate(FBlueprintTimerDynamicDelegate Delegate, float Time, bool bLooping);
+	static void K2_SetTimerDelegate(FTimerDynamicDelegate Delegate, float Time, bool bLooping);
 
 	/**
 	 * Clears a set timer.
@@ -382,6 +408,23 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, meta=(BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value" ))
 	static void SetTransformPropertyByName(UObject* Object, FName PropertyName, const FTransform& Value);
 
+	/** Set a CollisionProfileName property by name */
+	UFUNCTION(BlueprintCallable, CustomThunk, meta = (BlueprintInternalUseOnly = "true", AutoCreateRefTerm = "Value"))
+	static void SetCollisionProfileNameProperty(UObject* Object, FName PropertyName, const FCollisionProfileName& Value);
+
+	DECLARE_FUNCTION(execSetCollisionProfileNameProperty)
+	{
+		P_GET_OBJECT(UObject, OwnerObject);
+		P_GET_PROPERTY(UNameProperty, StructPropertyName);
+
+		Stack.StepCompiledIn<UStructProperty>(NULL);
+		void* SrcStructAddr = Stack.MostRecentPropertyAddress;
+
+		P_FINISH;
+
+		Generic_SetStructurePropertyByName(OwnerObject, StructPropertyName, SrcStructAddr);
+	}
+
 	/** Set a custom structure property by name */
 	UFUNCTION(BlueprintCallable, CustomThunk, meta = (BlueprintInternalUseOnly = "true", CustomStructureParam = "Value"))
 	static void SetStructurePropertyByName(UObject* Object, FName PropertyName, const FGenericStruct& Value);
@@ -420,7 +463,7 @@ class UKismetSystemLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintCallable, Category="Collision", meta=(WorldContext="WorldContextObject", AutoCreateRefTerm="ActorsToIgnore", FriendlyName = "SphereOverlapActors"))
 	static ENGINE_API bool SphereOverlapActors_NEW(UObject* WorldContextObject, const FVector SpherePos, float SphereRadius, const TArray<TEnumAsByte<EObjectTypeQuery> > & ObjectTypes, UClass* ActorClassFilter, const TArray<AActor*>& ActorsToIgnore, TArray<class AActor*>& OutActors);
 
-	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DeprecatedFunction, DeprecationMessage = "Use new SphereOverlaActors", WorldContext="WorldContextObject", AutoCreateRefTerm="ActorsToIgnore"))
+	UFUNCTION(BlueprintCallable, Category="Collision", meta=(DeprecatedFunction, DeprecationMessage = "Use new SphereOverlapActors", WorldContext="WorldContextObject", AutoCreateRefTerm="ActorsToIgnore"))
 	static ENGINE_API bool SphereOverlapActors_DEPRECATED(UObject* WorldContextObject, const FVector SpherePos, float SphereRadius, EOverlapFilterOption Filter, UClass* ActorClassFilter, const TArray<AActor*>& ActorsToIgnore, TArray<class AActor*>& OutActors);
 
 	/**

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -91,23 +91,6 @@ public:
 		, IsCheckedDelegate(InitIsCheckedDelegate)
 		, IsActionVisibleDelegate(InitIsActionVisibleDelegate)
 	{ }
-
-public:
-
-	/**
-	 * Compares this UI action to another for equality.
-	 *
-	 * @param Other The other action to compare to.
-	 * @return true if both actions are equal, false otherwise.
-	 */
-	bool operator==( const FUIAction& Other ) const
-	{
-		return
-			(ExecuteAction == Other.ExecuteAction) &&
-			(CanExecuteAction == Other.CanExecuteAction) &&
-			(IsCheckedDelegate == Other.IsCheckedDelegate) &&
-			(IsActionVisibleDelegate == Other.IsActionVisibleDelegate);
-	}
 
 public:
 

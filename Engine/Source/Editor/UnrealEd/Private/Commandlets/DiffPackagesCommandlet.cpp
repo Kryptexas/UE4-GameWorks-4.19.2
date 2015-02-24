@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DiffPackagesCommandlet.cpp: Commandlet used for comparing two packages.
@@ -6,6 +6,7 @@
 =============================================================================*/
 
 #include "UnrealEd.h"
+#include "EditorCommandlets.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogDiffPackagesCommandlet, Log, All);
 

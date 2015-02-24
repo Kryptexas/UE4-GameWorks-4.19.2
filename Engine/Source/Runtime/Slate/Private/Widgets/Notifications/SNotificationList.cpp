@@ -1,10 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "SNotificationList.h"
 #include "SHyperlink.h"
 #include "SThrobber.h"
-
+#include "INotificationWidget.h"
 
 /////////////////////////////////////////////////
 // SNotificationExtendable
@@ -92,6 +92,24 @@ public:
 		FadeAnimation = FCurveSequence();
 		FadeCurve = FadeAnimation.AddCurve(0.f, FadeOutDuration.Get());
 		FadeAnimation.PlayReverse();
+	}
+
+	/** Sets the ExpireDuration */
+	virtual void SetExpireDuration(float Duration)
+	{
+		ExpireDuration = Duration;
+	}
+
+	/** Sets the FadeInDuration */
+	virtual void SetFadeInDuration(float Duration)
+	{
+		FadeInDuration = Duration;
+	}
+
+	/** Sets the FadeOutDuration */
+	virtual void SetFadeOutDuration(float Duration)
+	{
+		FadeOutDuration = Duration;
 	}
 
 	void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
@@ -280,7 +298,7 @@ public:
 		/** When set this forces the width of the box, used to stop resizeing on text change */
 		SLATE_ARGUMENT( FOptionalSize, WidthOverride )
 		/** When set this will display a check box on the notification; handles getting the current check box state */
-		SLATE_ATTRIBUTE( ESlateCheckBoxState::Type, CheckBoxState )
+		SLATE_ATTRIBUTE( ECheckBoxState, CheckBoxState )
 		/** When set this will display a check box on the notification; handles setting the new check box state */
 		SLATE_EVENT( FOnCheckStateChanged, CheckBoxStateChanged );
 		/** Text to display for the check box message */
@@ -309,14 +327,14 @@ public:
 		[
 			SNew(SBorder)
 			.BorderImage(FCoreStyle::Get().GetBrush("NotificationList.ItemBackground"))
-			.BorderBackgroundColor( this, &SNotificationItemImpl::GetContentColor )
-			.ColorAndOpacity(this, &SNotificationItemImpl::GetContentColorRaw )
-			.DesiredSizeScale( this, &SNotificationItemImpl::GetItemScale )
+			.BorderBackgroundColor(this, &SNotificationItemImpl::GetContentColor)
+			.ColorAndOpacity(this, &SNotificationItemImpl::GetContentColorRaw)
+			.DesiredSizeScale(this, &SNotificationItemImpl::GetItemScale)
 			[
 				SNew(SBorder)
 				.Padding( FMargin(5) )
 				.BorderImage(FCoreStyle::Get().GetBrush("NotificationList.ItemBackground_Border"))
-				.BorderBackgroundColor( this, &SNotificationItemImpl::GetGlowColor)
+				.BorderBackgroundColor(this, &SNotificationItemImpl::GetGlowColor)
 				[
 					ConstructInternals(InArgs)
 				]
@@ -504,24 +522,6 @@ public:
 		}
 	}
 
-	/** Sets the ExpireDuration */
-	virtual void SetExpireDuration(float Duration)
-	{
-		ExpireDuration = Duration;
-	}
-
-	/** Sets the FadeInDuration */
-	virtual void SetFadeInDuration(float Duration)
-	{
-		FadeInDuration = Duration;
-	}
-
-	/** Sets the FadeOutDuration */
-	virtual void SetFadeOutDuration(float Duration)
-	{
-		FadeOutDuration = Duration;
-	}
-
 protected:
 
 	/* Used to determine whether the button is visible */
@@ -584,30 +584,118 @@ protected:
 	TAttribute< FText > HyperlinkText;
 };
 
+/////////////////////////////////////////////////
+// SNotificationItemExternalImpl
+
+/** A single line in the event message list with the actual content provided by the client */
+class SNotificationItemExternalImpl : public SNotificationItemImpl
+{
+public:
+	SLATE_BEGIN_ARGS(SNotificationItemExternalImpl)
+		: _FadeInDuration(0.5f)
+		, _FadeOutDuration(2.f)
+		, _ExpireDuration(1.f)
+	{}
+
+		/** The fade in duration for this element */
+		SLATE_ATTRIBUTE(float, FadeInDuration)
+		/** The fade out duration for this element */
+		SLATE_ATTRIBUTE(float, FadeOutDuration)
+		/** The duration before a fadeout for this element */
+		SLATE_ATTRIBUTE(float, ExpireDuration)
+		/** The widget that provides the notification to display */
+		SLATE_ARGUMENT(TSharedPtr<INotificationWidget>, ContentWidget)
+
+	SLATE_END_ARGS()
+
+	/**
+	* Constructs this widget
+	*
+	* @param InArgs    Declaration from which to construct the widget
+	*/
+	void Construct(const FArguments& InArgs)
+	{
+		check(InArgs._ContentWidget.IsValid());
+
+		FadeInDuration = InArgs._FadeInDuration;
+		FadeOutDuration = InArgs._FadeOutDuration;
+		ExpireDuration = InArgs._ExpireDuration;
+		NotificationWidget = InArgs._ContentWidget;
+
+		ChildSlot
+			[
+				SNew(SBorder)
+				.Padding(0)
+				.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
+				.BorderBackgroundColor(this, &SNotificationItemExternalImpl::GetContentColor)
+				.ColorAndOpacity(this, &SNotificationItemExternalImpl::GetContentColorRaw)
+				.DesiredSizeScale(this, &SNotificationItemExternalImpl::GetItemScale)
+				[
+					SNew(SOverlay)
+					+ SOverlay::Slot()
+					[
+						NotificationWidget->AsWidget()
+					]
+					+ SOverlay::Slot()
+					[
+						SNew(SBorder)
+						.Padding(0)
+						.BorderImage(FCoreStyle::Get().GetBrush("NotificationList.ItemBackground_Border_Transparent"))
+						.BorderBackgroundColor(this, &SNotificationItemExternalImpl::GetGlowColor)
+						.Visibility(EVisibility::SelfHitTestInvisible)
+					]
+				]
+			];
+	}
+
+	/** SNotificationItem interface */
+	virtual void SetCompletionState(ECompletionState State) override
+	{
+		SNotificationItemImpl::SetCompletionState(State);
+
+		NotificationWidget->OnSetCompletionState(State);
+	}
+
+private:
+	TSharedPtr<INotificationWidget> NotificationWidget;
+};
+
 ///////////////////////////////////////////////////
 //// SNotificationList
 TSharedRef<SNotificationItem> SNotificationList::AddNotification(const FNotificationInfo& Info)
 {
-	static const FSlateBrush* CachedImage = FCoreStyle::Get().GetBrush("NotificationList.DefaultMessage");
+	TSharedPtr<SNotificationExtendable> NewItem;
 
-	// Create notification.
-	TSharedRef<SNotificationExtendable> NewItem =
-		SNew(SNotificationItemImpl)
-		.Text(Info.Text)
-		.ButtonDetails(Info.ButtonDetails)
-		.Image((Info.Image != nullptr) ? Info.Image : CachedImage)
-		.FadeInDuration(Info.FadeInDuration)
-		.ExpireDuration(Info.ExpireDuration)
-		.FadeOutDuration(Info.FadeOutDuration)
-		.bUseThrobber(Info.bUseThrobber)
-		.bUseSuccessFailIcons(Info.bUseSuccessFailIcons)
-		.bUseLargeFont(Info.bUseLargeFont)
-		.WidthOverride(Info.WidthOverride)
-		.CheckBoxState(Info.CheckBoxState)
-		.CheckBoxStateChanged(Info.CheckBoxStateChanged)
-		.CheckBoxText(Info.CheckBoxText)
-		.Hyperlink(Info.Hyperlink)
-		.HyperlinkText(Info.HyperlinkText);
+	if (Info.ContentWidget.IsValid())
+	{
+		NewItem = SNew(SNotificationItemExternalImpl)
+			.ContentWidget(Info.ContentWidget)
+			.FadeInDuration(Info.FadeInDuration)
+			.ExpireDuration(Info.ExpireDuration)
+			.FadeOutDuration(Info.FadeOutDuration);
+	}
+	else
+	{
+		static const FSlateBrush* CachedImage = FCoreStyle::Get().GetBrush("NotificationList.DefaultMessage");
+
+		// Create notification.
+		NewItem = SNew(SNotificationItemImpl)
+			.Text(Info.Text)
+			.ButtonDetails(Info.ButtonDetails)
+			.Image((Info.Image != nullptr) ? Info.Image : CachedImage)
+			.FadeInDuration(Info.FadeInDuration)
+			.ExpireDuration(Info.ExpireDuration)
+			.FadeOutDuration(Info.FadeOutDuration)
+			.bUseThrobber(Info.bUseThrobber)
+			.bUseSuccessFailIcons(Info.bUseSuccessFailIcons)
+			.bUseLargeFont(Info.bUseLargeFont)
+			.WidthOverride(Info.WidthOverride)
+			.CheckBoxState(Info.CheckBoxState)
+			.CheckBoxStateChanged(Info.CheckBoxStateChanged)
+			.CheckBoxText(Info.CheckBoxText)
+			.Hyperlink(Info.Hyperlink)
+			.HyperlinkText(Info.HyperlinkText);
+	}
 		
 	NewItem->MyList = SharedThis(this);
 
@@ -615,7 +703,7 @@ TSharedRef<SNotificationItem> SNotificationList::AddNotification(const FNotifica
 		.AutoHeight()
 		.HAlign(HAlign_Right)
 		[
-			NewItem
+			NewItem.ToSharedRef()
 		];
 
 	NewItem->Fadein( Info.bAllowThrottleWhenFrameRateIsLow );
@@ -625,7 +713,7 @@ TSharedRef<SNotificationItem> SNotificationList::AddNotification(const FNotifica
 		NewItem->ExpireAndFadeout();
 	}
 
-	return NewItem;
+	return NewItem.ToSharedRef();
 }
 
 void SNotificationList::NotificationItemFadedOut (const TSharedRef<SNotificationItem>& NotificationItem)

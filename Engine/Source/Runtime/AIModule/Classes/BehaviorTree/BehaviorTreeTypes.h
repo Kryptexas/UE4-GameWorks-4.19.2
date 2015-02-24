@@ -1,13 +1,25 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "BehaviorTreeTypes.generated.h"
 
 class UBlackboardData;
+class UBlackboardComponent;
+class UBehaviorTreeComponent;
+class UBTNode;
+class UBTTaskNode;
+class UBehaviorTree;
+class UBTCompositeNode;
+class UBTAuxiliaryNode;
+class UBlackboardKeyType;
+class FBlackboardDecoratorDetails;
+
+struct FBTNodeIndex;
+struct FBehaviorTreeSearchUpdate;
 
 // Visual logging helper
 #define BT_VLOG(Context, Verbosity, Format, ...) UE_VLOG(Context->OwnerComp.IsValid() ? Context->OwnerComp->GetOwner() : NULL, LogBehaviorTree, Verbosity, Format, ##__VA_ARGS__)
-#define BT_SEARCHLOG(SearchData, Verbosity, Format, ...) UE_VLOG(SearchData.OwnerComp->GetOwner(), LogBehaviorTree, Verbosity, Format, ##__VA_ARGS__)
+#define BT_SEARCHLOG(SearchData, Verbosity, Format, ...) UE_VLOG(SearchData.OwnerComp.GetOwner(), LogBehaviorTree, Verbosity, Format, ##__VA_ARGS__)
 
 // Behavior tree debugger in editor
 #define USE_BEHAVIORTREE_DEBUGGER	(1 && WITH_EDITORONLY_DATA)
@@ -33,7 +45,7 @@ namespace FBlackboard
 }
 
 // delegate defines
-DECLARE_DELEGATE_TwoParams(FOnBlackboardChange, const class UBlackboardComponent*, FBlackboard::FKey /*key ID*/);
+DECLARE_DELEGATE_TwoParams(FOnBlackboardChange, const UBlackboardComponent&, FBlackboard::FKey /*key ID*/);
 
 namespace BTSpecialChild
 {
@@ -132,7 +144,7 @@ namespace EBTNodeUpdateMode
 struct FBehaviorTreeParallelTask
 {
 	/** worker object */
-	const class UBTTaskNode* TaskNode;
+	const UBTTaskNode* TaskNode;
 
 	/** additional mode data used for context switching */
 	TEnumAsByte<EBTTaskStatus::Type> Status;
@@ -178,10 +190,10 @@ struct FBehaviorTreeDebuggerInstance
 	FBehaviorTreeDebuggerInstance() : TreeAsset(NULL), RootNode(NULL) {}
 
 	/** behavior tree asset */
-	class UBehaviorTree* TreeAsset;
+	UBehaviorTree* TreeAsset;
 
 	/** root node in template */
-	class UBTCompositeNode* RootNode;
+	UBTCompositeNode* RootNode;
 
 	/** execution indices of active nodes */
 	TArray<uint16> ActivePath;
@@ -220,10 +232,10 @@ struct FBehaviorTreeExecutionStep
 struct FBehaviorTreeInstanceId
 {
 	/** behavior tree asset */
-	class UBehaviorTree* TreeAsset;
+	UBehaviorTree* TreeAsset;
 
 	/** root node in template for cleanup purposes */
-	class UBTCompositeNode* RootNode;
+	UBTCompositeNode* RootNode;
 
 	/** execution index path from root */
 	TArray<uint16> Path;
@@ -246,13 +258,13 @@ struct FBehaviorTreeInstanceId
 struct FBehaviorTreeInstance
 {
 	/** root node in template */
-	class UBTCompositeNode* RootNode;
+	UBTCompositeNode* RootNode;
 
 	/** active node in template */
-	class UBTNode* ActiveNode;
+	UBTNode* ActiveNode;
 
 	/** active auxiliary nodes */
-	TArray<class UBTAuxiliaryNode*> ActiveAuxNodes;
+	TArray<UBTAuxiliaryNode*> ActiveAuxNodes;
 
 	/** active parallel tasks */
 	TArray<FBehaviorTreeParallelTask> ParallelTasks;
@@ -285,18 +297,18 @@ struct FBehaviorTreeInstance
 #endif // STATS
 
 	/** initialize memory and create node instances */
-	void Initialize(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex, EBTMemoryInit::Type InitType);
+	void Initialize(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, int32& InstancedIndex, EBTMemoryInit::Type InitType);
 
 	/** update injected nodes */
-	void InjectNodes(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, int32& InstancedIndex);
+	void InjectNodes(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, int32& InstancedIndex);
 
 	/** cleanup node instances */
-	void Cleanup(class UBehaviorTreeComponent* OwnerComp, EBTMemoryClear::Type CleanupType);
+	void Cleanup(UBehaviorTreeComponent& OwnerComp, EBTMemoryClear::Type CleanupType);
 
 protected:
 
 	/** worker for updating all nodes */
-	void CleanupNodes(class UBehaviorTreeComponent* OwnerComp, UBTCompositeNode* Node, EBTMemoryClear::Type CleanupType);
+	void CleanupNodes(UBehaviorTreeComponent& OwnerComp, UBTCompositeNode& Node, EBTMemoryClear::Type CleanupType);
 };
 
 struct FBTNodeIndex
@@ -322,8 +334,8 @@ struct FBTNodeIndex
 /** node update data */
 struct FBehaviorTreeSearchUpdate
 {
-	class UBTAuxiliaryNode* AuxNode;
-	class UBTTaskNode* TaskNode;
+	UBTAuxiliaryNode* AuxNode;
+	UBTTaskNode* TaskNode;
 
 	uint16 InstanceIndex;
 
@@ -333,11 +345,11 @@ struct FBehaviorTreeSearchUpdate
 	uint8 bPostUpdate : 1;
 
 	FBehaviorTreeSearchUpdate() : AuxNode(0), TaskNode(0), InstanceIndex(0) {}
-	FBehaviorTreeSearchUpdate(const class UBTAuxiliaryNode* InAuxNode, uint16 InInstanceIndex, EBTNodeUpdateMode::Type InMode) :
-		AuxNode((class UBTAuxiliaryNode*)InAuxNode), TaskNode(0), InstanceIndex(InInstanceIndex), Mode(InMode) 
+	FBehaviorTreeSearchUpdate(const UBTAuxiliaryNode* InAuxNode, uint16 InInstanceIndex, EBTNodeUpdateMode::Type InMode) :
+		AuxNode((UBTAuxiliaryNode*)InAuxNode), TaskNode(0), InstanceIndex(InInstanceIndex), Mode(InMode) 
 	{}
-	FBehaviorTreeSearchUpdate(const class UBTTaskNode* InTaskNode, uint16 InInstanceIndex, EBTNodeUpdateMode::Type InMode) :
-		AuxNode(0), TaskNode((class UBTTaskNode*)InTaskNode), InstanceIndex(InInstanceIndex), Mode(InMode) 
+	FBehaviorTreeSearchUpdate(const UBTTaskNode* InTaskNode, uint16 InInstanceIndex, EBTNodeUpdateMode::Type InMode) :
+		AuxNode(0), TaskNode((UBTTaskNode*)InTaskNode), InstanceIndex(InInstanceIndex), Mode(InMode) 
 	{}
 };
 
@@ -345,17 +357,17 @@ struct FBehaviorTreeSearchUpdate
 struct FBehaviorTreeSearchData
 {
 	/** BT component */
-	class UBehaviorTreeComponent* OwnerComp;
+	UBehaviorTreeComponent& OwnerComp;
 
 	/** requested updates of additional nodes (preconditions, services, parallels)
 	 *  buffered during search to prevent instant add & remove pairs */
-	TArray<struct FBehaviorTreeSearchUpdate> PendingUpdates;
+	TArray<FBehaviorTreeSearchUpdate> PendingUpdates;
 
 	/** first node allowed in search */
-	struct FBTNodeIndex SearchStart;
+	FBTNodeIndex SearchStart;
 
 	/** last node allowed in search */
-	struct FBTNodeIndex SearchEnd;
+	FBTNodeIndex SearchEnd;
 
 	/** search unique number */
 	int32 SearchId;
@@ -365,6 +377,9 @@ struct FBehaviorTreeSearchData
 
 	/** assign unique Id number */
 	void AssignSearchId();
+
+	FBehaviorTreeSearchData(UBehaviorTreeComponent& InOwnerComp) : OwnerComp(InOwnerComp)
+	{}
 
 private:
 
@@ -396,7 +411,7 @@ struct AIMODULE_API FBlackboardKeySelector
 	/** array of allowed types with additional properties (e.g. uobject's base class) 
 	  * EditDefaults is required for FBlackboardSelectorDetails::CacheBlackboardData() */
 	UPROPERTY(transient, EditDefaultsOnly, BlueprintReadWrite, Category = Blackboard)
-	TArray<class UBlackboardKeyType*> AllowedTypes;
+	TArray<UBlackboardKeyType*> AllowedTypes;
 
 	/** name of selected key */
 	UPROPERTY(EditInstanceOnly, BlueprintReadWrite, Category = Blackboard)
@@ -404,7 +419,7 @@ struct AIMODULE_API FBlackboardKeySelector
 
 	/** class of selected key  */
 	UPROPERTY(transient, EditInstanceOnly, BlueprintReadWrite, Category = Blackboard)
-	TSubclassOf<class UBlackboardKeyType> SelectedKeyType;
+	TSubclassOf<UBlackboardKeyType> SelectedKeyType;
 
 protected:
 	/** ID of selected key */
@@ -443,7 +458,7 @@ public:
 
 	FORCEINLINE bool IsNone() const { return bNoneIsAllowedValue && SelectedKeyID == FBlackboard::InvalidKey; }
 
-	friend class FBlackboardDecoratorDetails;
+	friend FBlackboardDecoratorDetails;
 };
 
 UCLASS(Abstract)

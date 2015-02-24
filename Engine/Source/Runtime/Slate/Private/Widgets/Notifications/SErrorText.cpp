@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
@@ -30,17 +30,17 @@ void SErrorText::Construct(const FArguments& InArgs)
 
 void SErrorText::SetError( const FText& InErrorText )
 {
-	SetError( InErrorText.ToString() );
-}
-
-void SErrorText::SetError( const FString& InErrorText )
-{
 	if ( TextBlock->GetText().IsEmpty() && !InErrorText.IsEmpty() )
 	{
 		ExpandAnimation.Play();
 	}
 
 	TextBlock->SetText( InErrorText );
+}
+
+void SErrorText::SetError( const FString& InErrorText )
+{
+	SetError( FText::FromString(InErrorText) );
 }
 
 bool SErrorText::HasError() const

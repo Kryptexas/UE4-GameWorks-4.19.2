@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetToolsPrivatePCH.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "Editor/Persona/Public/PersonaModule.h"
 #include "ObjectTools.h"
+#include "Animation/VertexAnim/MorphTarget.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMorphTarget, Warning, All);
 

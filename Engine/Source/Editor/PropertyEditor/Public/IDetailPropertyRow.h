@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,14 +15,14 @@ public:
 	 *
 	 * @param InDisplayName	The name of the property
 	 */
-	virtual IDetailPropertyRow& DisplayName( const FString& InDisplayName ) = 0;
+	virtual IDetailPropertyRow& DisplayName( const FText& InDisplayName ) = 0;
 
 	/**
 	 * Sets the localized tooltip of the property
 	 *
 	 * @param InToolTip	The tooltip of the property
 	 */
-	virtual IDetailPropertyRow& ToolTip( const FString& InToolTip ) = 0;
+	virtual IDetailPropertyRow& ToolTip( const FText& InToolTip ) = 0;
 
 	/**
 	 * Sets whether or not we show the default property editing buttons for this property
@@ -78,7 +78,7 @@ public:
 	 * @param OutValueWidget	The default value widget
 	 * @param OutCustomRow		The default widget row
 	 */
-	virtual void GetDefaultWidgets( TSharedPtr<SWidget>& OutNameWidget, TSharedPtr<SWidget>& OutValueWidget, FDetailWidgetRow& Row ) = 0;
+	virtual void GetDefaultWidgets( TSharedPtr<SWidget>& OutNameWidget, TSharedPtr<SWidget>& OutValueWidget, class FDetailWidgetRow& Row ) = 0;
 
 	/**
 	 * Overrides the property widget
@@ -86,6 +86,6 @@ public:
 	 * @param bShowChildren	Whether or not to still show any children of this property
 	 * @return a row for the property that custom widgets can be added to
 	 */
-	virtual FDetailWidgetRow& CustomWidget( bool bShowChildren = false ) = 0;
+	virtual class FDetailWidgetRow& CustomWidget( bool bShowChildren = false ) = 0;
 
 };

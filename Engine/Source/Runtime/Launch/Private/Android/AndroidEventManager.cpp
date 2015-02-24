@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LaunchPrivatePCH.h"
 #include "AndroidEventManager.h"
 #include "AndroidApplication.h"
 #include "AudioDevice.h"
+#include "CallbackDevice.h"
 #include <android/native_window.h> 
 #include <android/native_window_jni.h> 
 
@@ -28,6 +29,8 @@ void FAppEventManager::Tick()
 {
 	while (!Queue.IsEmpty())
 	{
+		bool bDestroyWindow = false;
+
 		FAppEventData Event = DequeueAppEvent();
 
 		switch (Event.State)
@@ -47,15 +50,23 @@ void FAppEventManager::Tick()
 			bSaveState = true; //todo android: handle save state.
 			break;
 		case APP_EVENT_STATE_WINDOW_DESTROYED:
-			//AndroidEGL::GetInstance()->UnBind()
-			FAndroidAppEntry::DestroyWindow();
-			FPlatformMisc::SetHardwareWindow(NULL);
+			if (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHMDConnected())
+			{
+				// delay the destruction until after the renderer teardown on GearVR
+				bDestroyWindow = true;
+			}
+			else
+			{
+				FAndroidAppEntry::DestroyWindow();
+				FPlatformMisc::SetHardwareWindow(NULL);
+			}
 			bHaveWindow = false;
 			break;
 		case APP_EVENT_STATE_ON_START:
 			//doing nothing here
 			break;
 		case APP_EVENT_STATE_ON_DESTROY:
+			FCoreDelegates::ApplicationWillTerminateDelegate.Broadcast();
 			GIsRequestingExit = true; //destroy immediately. Game will shutdown.
 			break;
 		case APP_EVENT_STATE_ON_STOP:
@@ -110,13 +121,30 @@ void FAppEventManager::Tick()
 		{
 			ResumeRendering();
 			ResumeAudio();
+
+			// broadcast events after the rendering thread has resumed
+			FCoreDelegates::ApplicationHasEnteredForegroundDelegate.Broadcast();
+			FCoreDelegates::ApplicationHasReactivatedDelegate.Broadcast();
+
 			bRunning = true;
 		}
 		else if (bRunning && (!bHaveWindow || !bHaveGame))
 		{
+			// broadcast events before rendering thred suspends
+			FCoreDelegates::ApplicationWillDeactivateDelegate.Broadcast();
+			FCoreDelegates::ApplicationWillEnterBackgroundDelegate.Broadcast();
+
 			PauseRendering();
 			PauseAudio();
+
 			bRunning = false;
+		}
+
+		if (bDestroyWindow)
+		{
+			FAndroidAppEntry::DestroyWindow();
+			FPlatformMisc::SetHardwareWindow(NULL);
+			bDestroyWindow = false;
 		}
 	}
 
@@ -295,4 +323,54 @@ FAppEventData FAppEventManager::DequeueAppEvent()
 bool FAppEventManager::IsGamePaused()
 {
 	return !bRunning;
+}
+
+bool FAppEventManager::WaitForEventInQueue(EAppEventState InState, double TimeoutSeconds)
+{
+	bool FoundEvent = false;
+	double StopTime = FPlatformTime::Seconds() + TimeoutSeconds;
+
+	TQueue<FAppEventData, EQueueMode::Spsc> HoldingQueue;
+	while (!FoundEvent)
+	{
+		int rc = pthread_mutex_lock(&QueueMutex);
+		check(rc == 0);
+
+		// Copy the existing queue (and check for our event)
+		while (!Queue.IsEmpty())
+		{
+			FAppEventData OutData;
+			Queue.Dequeue(OutData);
+
+			if (OutData.State == InState)
+				FoundEvent = true;
+
+			HoldingQueue.Enqueue(OutData);
+		}
+
+		if (FoundEvent)
+			break;
+
+		// Time expired?
+		if (FPlatformTime::Seconds() > StopTime)
+			break;
+
+		// Unlock for new events and wait a bit before trying again
+		rc = pthread_mutex_unlock(&QueueMutex);
+		check(rc == 0);
+		FPlatformProcess::Sleep(0.01f);
+	}
+
+	// Add events back to queue from holding
+	while (!HoldingQueue.IsEmpty())
+	{
+		FAppEventData OutData;
+		HoldingQueue.Dequeue(OutData);
+		Queue.Enqueue(OutData);
+	}
+
+	int rc = pthread_mutex_unlock(&QueueMutex);
+	check(rc == 0);
+
+	return FoundEvent;
 }

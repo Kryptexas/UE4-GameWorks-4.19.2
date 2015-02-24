@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*
 * Copyright 2009 - 2010 Autodesk, Inc.  All Rights Reserved.
@@ -112,7 +112,7 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 			SAssignNew(FbxOptionWindow, SFbxOptionWindow)
 			.ImportUI(ImportUI)
 			.WidgetWindow(Window)
-			.FullPath(FullPath)
+			.FullPath(FText::FromString(FullPath))
 			.ForcedImportType( bForceImportType ? TOptional<EFBXImportType>( ImportType ) : TOptional<EFBXImportType>() )
 			.IsObjFormat( bIsObjFormat )
 		);
@@ -228,7 +228,8 @@ void ApplyImportUIToImportOptions(UFbxImportUI* ImportUI, FBXImportOptions& InOu
 	InOutImportOptions.bPreserveSmoothingGroups = ImportUI->SkeletalMeshImportData->bPreserveSmoothingGroups;
 	InOutImportOptions.bKeepOverlappingVertices = ImportUI->SkeletalMeshImportData->bKeepOverlappingVertices;
 	InOutImportOptions.bCombineToSingle = ImportUI->bCombineMeshes;
-	InOutImportOptions.bReplaceVertexColors = ImportUI->StaticMeshImportData->bReplaceVertexColors;
+	InOutImportOptions.VertexColorImportOption = ImportUI->StaticMeshImportData->VertexColorImportOption;
+	InOutImportOptions.VertexOverrideColor = ImportUI->StaticMeshImportData->VertexOverrideColor;
 	InOutImportOptions.bRemoveDegenerates = ImportUI->StaticMeshImportData->bRemoveDegenerates;
 	InOutImportOptions.bGenerateLightmapUVs = ImportUI->StaticMeshImportData->bGenerateLightmapUVs;
 	InOutImportOptions.bOneConvexHullPerUCX = ImportUI->StaticMeshImportData->bOneConvexHullPerUCX;
@@ -768,26 +769,29 @@ bool FFbxImporter::ImportFromFile(const FString& Filename, const FString& Type)
 				FbxDocumentInfo* DocInfo = Scene->GetSceneInfo();
 				if (DocInfo)
 				{
-					TArray<FAnalyticsEventAttribute> Attribs;
+					if( FEngineAnalytics::IsAvailable() )
+					{
+						TArray<FAnalyticsEventAttribute> Attribs;
 
-					FString OriginalVendor(ANSI_TO_TCHAR(DocInfo->Original_ApplicationVendor.Get().Buffer()));
-					FString OriginalAppName(ANSI_TO_TCHAR(DocInfo->Original_ApplicationName.Get().Buffer()));
-					FString OriginalAppVersion(ANSI_TO_TCHAR(DocInfo->Original_ApplicationVersion.Get().Buffer()));
+						FString OriginalVendor(ANSI_TO_TCHAR(DocInfo->Original_ApplicationVendor.Get().Buffer()));
+						FString OriginalAppName(ANSI_TO_TCHAR(DocInfo->Original_ApplicationName.Get().Buffer()));
+						FString OriginalAppVersion(ANSI_TO_TCHAR(DocInfo->Original_ApplicationVersion.Get().Buffer()));
 
-					FString LastSavedVendor(ANSI_TO_TCHAR(DocInfo->LastSaved_ApplicationVendor.Get().Buffer()));
-					FString LastSavedAppName(ANSI_TO_TCHAR(DocInfo->LastSaved_ApplicationName.Get().Buffer()));
-					FString LastSavedAppVersion(ANSI_TO_TCHAR(DocInfo->LastSaved_ApplicationVersion.Get().Buffer()));
+						FString LastSavedVendor(ANSI_TO_TCHAR(DocInfo->LastSaved_ApplicationVendor.Get().Buffer()));
+						FString LastSavedAppName(ANSI_TO_TCHAR(DocInfo->LastSaved_ApplicationName.Get().Buffer()));
+						FString LastSavedAppVersion(ANSI_TO_TCHAR(DocInfo->LastSaved_ApplicationVersion.Get().Buffer()));
 
-					Attribs.Add(FAnalyticsEventAttribute(TEXT("Original Application Vendor"), OriginalVendor));
-					Attribs.Add(FAnalyticsEventAttribute(TEXT("Original Application Name"), OriginalAppName));
-					Attribs.Add(FAnalyticsEventAttribute(TEXT("Original Application Version"), OriginalAppVersion));
+						Attribs.Add(FAnalyticsEventAttribute(TEXT("Original Application Vendor"), OriginalVendor));
+						Attribs.Add(FAnalyticsEventAttribute(TEXT("Original Application Name"), OriginalAppName));
+						Attribs.Add(FAnalyticsEventAttribute(TEXT("Original Application Version"), OriginalAppVersion));
 
-					Attribs.Add(FAnalyticsEventAttribute(TEXT("LastSaved Application Vendor"), LastSavedVendor));
-					Attribs.Add(FAnalyticsEventAttribute(TEXT("LastSaved Application Name"), LastSavedAppName));
-					Attribs.Add(FAnalyticsEventAttribute(TEXT("LastSaved Application Version"), LastSavedAppVersion));
+						Attribs.Add(FAnalyticsEventAttribute(TEXT("LastSaved Application Vendor"), LastSavedVendor));
+						Attribs.Add(FAnalyticsEventAttribute(TEXT("LastSaved Application Name"), LastSavedAppName));
+						Attribs.Add(FAnalyticsEventAttribute(TEXT("LastSaved Application Version"), LastSavedAppVersion));
 
-					FString EventString = FString::Printf(TEXT("Editor.Usage.FBX.Import"));
-					FEngineAnalytics::GetProvider().RecordEvent(EventString, Attribs);
+						FString EventString = FString::Printf(TEXT("Editor.Usage.FBX.Import"));
+						FEngineAnalytics::GetProvider().RecordEvent(EventString, Attribs);
+					}
 				}
 			}
 
@@ -1494,8 +1498,8 @@ void FFbxImporter::FillFbxSkelMeshArrayInScene(FbxNode* Node, TArray< TArray<Fbx
 	SkeletonArray.Empty();
 	// b) find rigid mesh
 	
-	// for rigid meshes, we don't convert to bone
-	if (ImportOptions->bImportRigidMesh)
+	// If we are attempting to import a skeletal mesh but we have no hierarchy attempt to find a rigid mesh.
+	if (outSkelMeshArray.Num() == 0)
 	{
 		RecursiveFindRigidMesh(Node, outSkelMeshArray, SkeletonArray, ExpandLOD);
 	}

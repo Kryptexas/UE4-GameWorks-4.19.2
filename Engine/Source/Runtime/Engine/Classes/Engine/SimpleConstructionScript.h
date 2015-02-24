@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -15,6 +15,8 @@ class USimpleConstructionScript : public UObject
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	// End UObject Interface
+
+	void PreloadChain();
 
 	/** Ensures that all root node parent references are still valid and clears the reference if not */
 	ENGINE_API void FixupRootNodeParentReferences();
@@ -58,9 +60,14 @@ class USimpleConstructionScript : public UObject
 	/** Find the parent node of this one. Returns NULL if node is not in tree or if is root */
 	ENGINE_API USCS_Node* FindParentNode(USCS_Node* InNode) const;
 
-protected:
+	/** Find the SCS_Node node by name and return it if found */
+	ENGINE_API USCS_Node* FindSCSNode(const FName InName) const;
+
+	/** Find the SCS_Node node by name and return it if found */
+	ENGINE_API USCS_Node* FindSCSNodeByGuid(const FGuid Guid) const;
+
 	/** Checks the root node set for scene components and ensures that it is valid (e.g. after a removal) */
-	void ValidateSceneRootNodes();
+	ENGINE_API void ValidateSceneRootNodes();
 
 private:
 	/** Root nodes of the construction script */
@@ -90,6 +97,9 @@ public:
 	/** Ensures that all nodes in the SCS have valid names for compilation/replication */
 	ENGINE_API void ValidateNodeVariableNames(class FCompilerResultsLog& MessageLog);
 
+	/** Ensures that all nodes in the SCS have valid templates */
+	ENGINE_API void ValidateNodeTemplates(class FCompilerResultsLog& MessageLog);
+
 	/** Called by the SCS editor to clear all SCS editor component references */
 	ENGINE_API void ClearEditorComponentReferences();
 
@@ -116,9 +126,6 @@ public:
 	{
 		return EditorActorInstancePtr.Get();
 	}
-
-	/** The name to use for the default scene root variable */
-	ENGINE_API static const FName DefaultSceneRootVariableName;
 
 private:
 	/** Actor instance used to host components in the SCS editor */

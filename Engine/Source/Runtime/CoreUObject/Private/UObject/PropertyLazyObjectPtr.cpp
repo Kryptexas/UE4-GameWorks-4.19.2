@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "PropertyHelper.h"
@@ -9,7 +9,7 @@
 
 FString ULazyObjectProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CPPExportFlags/*=0*/ ) const
 {
-	return FString::Printf( TEXT("TLazyObjectPtr<class %s%s>"), PropertyClass->GetPrefixCPP(), *PropertyClass->GetName() );
+	return FString::Printf( TEXT("TLazyObjectPtr<%s%s>"), PropertyClass->GetPrefixCPP(), *PropertyClass->GetName() );
 }
 FString ULazyObjectProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 {

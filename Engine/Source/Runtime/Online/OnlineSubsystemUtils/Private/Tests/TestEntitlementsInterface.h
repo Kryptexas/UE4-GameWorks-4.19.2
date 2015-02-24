@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,6 +19,9 @@
 	
 	/** Delegates for callbacks of each test */
 	FOnQueryEntitlementsCompleteDelegate OnQueryEntitlementsCompleteDelegate;
+
+	/** Handle to the above delegates */
+	FDelegateHandle OnQueryEntitlementsCompleteDelegateHandle;
 
 	/** toggles for whether to run each test */
 	bool bQueryEntitlements;

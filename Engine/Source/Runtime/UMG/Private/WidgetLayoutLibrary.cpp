@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 #include "Slate/SlateBrushAsset.h"
@@ -30,6 +30,20 @@ float UWidgetLayoutLibrary::GetViewportScale(UObject* WorldContextObject)
 	}
 
 	return 1;
+}
+
+bool UWidgetLayoutLibrary::GetMousePositionScaledByDPI(APlayerController* Player, float& LocationX, float& LocationY)
+{
+	if ( Player && Player->GetMousePosition(LocationX, LocationY) )
+	{
+		float Scale = UWidgetLayoutLibrary::GetViewportScale(Player);
+		LocationX = LocationX / Scale;
+		LocationY = LocationY / Scale;
+
+		return true;
+	}
+
+	return false;
 }
 
 FVector2D UWidgetLayoutLibrary::GetViewportSize(UObject* WorldContextObject)

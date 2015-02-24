@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -15,6 +15,7 @@ public class Kismet : ModuleRules
 				"EditorWidgets",
 				"Analytics",
                 "DerivedDataCache",
+                "LevelEditor",
 			}
 			);
 
@@ -37,14 +38,14 @@ public class Kismet : ModuleRules
 				"AnimGraph",
 				"PropertyEditor",
 				"SourceControl",
-				"LevelEditor",
                 "InputCore",
 				"EngineSettings",
                 "Projects",
                 "JsonUtilities",
                 "DerivedDataCache",
 				"DesktopPlatform",
-				"HotReload"
+				"HotReload",
+				"GameProjectGeneration",
 			}
 			);
 

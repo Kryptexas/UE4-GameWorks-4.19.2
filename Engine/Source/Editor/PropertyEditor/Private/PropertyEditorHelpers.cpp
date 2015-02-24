@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "PropertyEditorHelpers.h"
@@ -27,6 +27,7 @@
 
 #include "Kismet2/KismetEditorUtilities.h"
 #include "EditorClassUtils.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "PropertyEditor"
 
@@ -50,7 +51,7 @@ void SPropertyNameWidget::Construct( const FArguments& InArgs, TSharedPtr<FPrope
 				SNew( SPropertyEditorTitle, PropertyEditor.ToSharedRef() )
 				.StaticDisplayName( PropertyEditor->GetDisplayName() )
 				.OnDoubleClicked( InArgs._OnDoubleClicked )
-                .ToolTip( IDocumentation::Get()->CreateToolTip( FText::FromString( PropertyEditor->GetToolTipText() ), NULL, PropertyEditor->GetDocumentationLink(), PropertyEditor->GetDocumentationExcerptName() ) )
+                .ToolTip( IDocumentation::Get()->CreateToolTip( PropertyEditor->GetToolTipText(), NULL, PropertyEditor->GetDocumentationLink(), PropertyEditor->GetDocumentationExcerptName() ) )
 			]
 		]
 	
@@ -78,7 +79,7 @@ void SPropertyValueWidget::Construct( const FArguments& InArgs, TSharedPtr<FProp
 
 	ValueEditorWidget = ConstructPropertyEditorWidget( PropertyEditor, InPropertyUtilities );
 
-	ValueEditorWidget->SetToolTipText( TAttribute<FString>(PropertyEditor->GetToolTipText()) );
+	ValueEditorWidget->SetToolTipText( PropertyEditor->GetToolTipText() );
 
 
 	if( InArgs._ShowPropertyButtons )
@@ -273,22 +274,22 @@ bool SEditConditionWidget::HasEditCondition() const
 		||	( CustomEditCondition.OnEditConditionValueChanged.IsBound() );
 }
 
-void SEditConditionWidget::OnEditConditionCheckChanged( ESlateCheckBoxState::Type CheckState )
+void SEditConditionWidget::OnEditConditionCheckChanged( ECheckBoxState CheckState )
 {
 	if( PropertyEditor.IsValid() && PropertyEditor->HasEditCondition() && PropertyEditor->SupportsEditConditionToggle() )
 	{
-		PropertyEditor->SetEditConditionState( CheckState == ESlateCheckBoxState::Checked );
+		PropertyEditor->SetEditConditionState( CheckState == ECheckBoxState::Checked );
 	}
 	else
 	{
-		CustomEditCondition.OnEditConditionValueChanged.ExecuteIfBound( CheckState == ESlateCheckBoxState::Checked );
+		CustomEditCondition.OnEditConditionValueChanged.ExecuteIfBound( CheckState == ECheckBoxState::Checked );
 	}
 }
 
-ESlateCheckBoxState::Type SEditConditionWidget::OnGetEditConditionCheckState() const
+ECheckBoxState SEditConditionWidget::OnGetEditConditionCheckState() const
 {
 	bool bEditConditionMet = ( PropertyEditor.IsValid() && PropertyEditor->HasEditCondition() && PropertyEditor->IsEditConditionMet() ) || CustomEditCondition.EditConditionValue.Get();
-	return bEditConditionMet ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bEditConditionMet ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 namespace PropertyEditorHelpers
@@ -353,16 +354,14 @@ namespace PropertyEditorHelpers
 			&&	(bAllowAbstract || !CheckClass->HasAnyClassFlags(CLASS_Abstract));
 	}
 
-	FString GetToolTipText( const UProperty* const Property )
+	FText GetToolTipText( const UProperty* const Property )
 	{
 		if( Property )
 		{
-			FString ToolTipText = Property->GetToolTipText().ToString();
-
-			return ToolTipText;
+			return Property->GetToolTipText();
 		}
 
-		return FString();
+		return FText::GetEmpty();
 	}
 
 	FString GetDocumentationLink( const UProperty* const Property )
@@ -588,7 +587,7 @@ namespace PropertyEditorHelpers
 
 			UClass* Class = (ClassProp ? ClassProp->MetaClass : FEditorClassUtils::GetClassFromString(NodeProperty->GetMetaData("MetaClass")));
 
-			if (Class && FKismetEditorUtilities::CanCreateBlueprintOfClass(Class))
+			if (Class && FKismetEditorUtilities::CanCreateBlueprintOfClass(Class) && !NodeProperty->HasMetaData("DisallowCreateNew"))
 			{
 				OutRequiredButtons.Add( EPropertyButton::NewBlueprint );
 			}

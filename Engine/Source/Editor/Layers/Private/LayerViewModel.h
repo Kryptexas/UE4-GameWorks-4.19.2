@@ -1,5 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
+#include "EditorUndoClient.h"
+#include "Layers/Layer.h"
 
 
 /**
@@ -144,7 +146,7 @@ public:
 	 *	@param	StatsIndex		The array index of the FLayerActorStats
 	 *	@return					The total actors as a FString			
 	 */
-	FString GetActorStatTotal( int32 StatsIndex  ) const;
+	FText GetActorStatTotal( int32 StatsIndex ) const;
 
 	/**	
 	 *	Selected the Actors assigned to the Layer that are of a certain type

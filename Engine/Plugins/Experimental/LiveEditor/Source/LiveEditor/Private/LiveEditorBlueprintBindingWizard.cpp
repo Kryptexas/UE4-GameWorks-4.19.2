@@ -1,6 +1,10 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 #include "LiveEditorPrivatePCH.h"
 #include "LiveEditorUserData.h"
 #include "LiveEditorBlueprintBindingWizard.h"
+
+#define LOCTEXT_NAMESPACE "LiveEditorWizard"
 
 class SLiveEditorBlueprintBindingWindow : public SCompoundWidget
 {
@@ -10,11 +14,11 @@ public:
 
 public:
 	void Construct(const FArguments& InArgs, struct FBindState *_Owner);
-	FString GetStateText() const;
+	FText GetStateText() const;
 	void OnTypeChanged(TSharedPtr<ELiveEditControllerType::Type> InType, ESelectInfo::Type);
 	TSharedRef<SWidget> GenerateControlTypeItem(TSharedPtr<ELiveEditControllerType::Type> InType);
-	FString GetControlTypeText(ELiveEditControllerType::Type Type) const;
-	FString GetSelectedControlTypeText() const;
+	FText GetControlTypeText(ELiveEditControllerType::Type Type) const;
+	FText GetSelectedControlTypeText() const;
 
 private:
 	struct FBindState *Owner;
@@ -39,16 +43,16 @@ struct FBindState : FLiveEditorWizardBase::FState
 	{
 	}
 	
-	virtual FString GetStateTitle() const
+	virtual FText GetStateTitle() const
 	{
-		return FString( TEXT("MIDI Binding") );
+		return LOCTEXT("MIDIBinding", "MIDI Binding");
 	}
-	virtual FString GetStateText() const
+	virtual FText GetStateText() const
 	{
-		return FString::Printf( TEXT("Use the MIDI Control you would like bound to:\n\n%s\n\nChannel: %d\nControlID: %d"),
-			*Description,
-			BindingData.Channel,
-			BindingData.ControlID );
+		return FText::Format( LOCTEXT("MIDIBindingDescFmt", "Use the MIDI Control you would like bound to:\n\n{0}\n\nChannel: {1}\nControlID: {2}"),
+			FText::FromString(Description),
+			FText::AsNumber(BindingData.Channel),
+			FText::AsNumber(BindingData.ControlID) );
 	}
 
 	virtual void Init()
@@ -234,7 +238,7 @@ void SLiveEditorBlueprintBindingWindow::Construct(const FArguments& InArgs, FBin
 	];
 }
 
-FString SLiveEditorBlueprintBindingWindow::GetStateText() const
+FText SLiveEditorBlueprintBindingWindow::GetStateText() const
 {
 	return Owner->GetStateText();
 }
@@ -250,26 +254,26 @@ TSharedRef<SWidget> SLiveEditorBlueprintBindingWindow::GenerateControlTypeItem(T
 		.Text( GetControlTypeText(*InType) );
 }
 
-FString SLiveEditorBlueprintBindingWindow::GetSelectedControlTypeText() const
+FText SLiveEditorBlueprintBindingWindow::GetSelectedControlTypeText() const
 {
 	return GetControlTypeText(Owner->GetBindingData().ControlType);
 }
 
-FString SLiveEditorBlueprintBindingWindow::GetControlTypeText(ELiveEditControllerType::Type Type) const
+FText SLiveEditorBlueprintBindingWindow::GetControlTypeText(ELiveEditControllerType::Type Type) const
 {
 	switch( Type )
 	{
 	case ELiveEditControllerType::NotSet:
-		return FString(TEXT("Not Set"));
+		return LOCTEXT("NotSet", "Not Set");
 	case ELiveEditControllerType::NoteOnOff:
-		return FString(TEXT("Note On/Off"));
+		return LOCTEXT("NoteOnOrOff", "Note On/Off");
 	case ELiveEditControllerType::ControlChangeContinuous:
-		return FString(TEXT("Continuous Knob"));
+		return LOCTEXT("ControlChangeContinuous", "Continuous Knob");
 	case ELiveEditControllerType::ControlChangeFixed:
-		return FString(TEXT("Fixed Knob/Slider"));
+		return LOCTEXT("ControlChangeFixed", "Fixed Knob/Slider");
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
 
@@ -346,3 +350,5 @@ bool FLiveEditorBlueprintBindingWizard::GenerateStates()
 	SetFinalState(FoundCount);
 	return (FoundCount > 0);
 }
+
+#undef LOCTEXT_NAMESPACE

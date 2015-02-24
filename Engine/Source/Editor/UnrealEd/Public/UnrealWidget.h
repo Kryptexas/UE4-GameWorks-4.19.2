@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
  /*=============================================================================
 	UnrealWidget: Editor widgets for control like 3DS Max
@@ -26,7 +26,7 @@ public:
 	/**
 	 * Sets editor mode tools to use in this widget
 	 */
-	void SetUsesEditorModeTools( class FEditorModeTools* InEditorModeTools );
+	UNREALED_API void SetUsesEditorModeTools(class FEditorModeTools* InEditorModeTools);
 
 	/**
 	 * Renders any widget specific HUD text
@@ -91,6 +91,16 @@ public:
 
 	/** Only some modes support Absolute Translation Movement.  Check current mode */
 	static bool AllowsAbsoluteTranslationMovement(FWidget::EWidgetMode WidgetMode);
+
+	/**
+	 * Sets the default visibility of the widget, if it is not overridden by an active editor mode tool.
+	 *
+	 * @param	bInVisibility	true for visible
+	 */
+	void SetDefaultVisibility(bool bInDefaultVisibility)
+	{
+		bDefaultVisibility = bInDefaultVisibility;
+	}
 
 	/**
 	 * Sets the axis currently being moused over.  Typically called by FMouseDeltaTracker or FLevelEditorViewportClient.
@@ -354,9 +364,6 @@ private:
 	/** Any mode tools being used */
 	class FEditorModeTools* EditorModeTools;
 
-	/** Viewport client the widget is being drawn in */
-	class FEditorViewportClient* EditorViewportClient;
-
 	/**
 	 * An extra matrix to apply to the widget before drawing it (allows for local/custom coordinate systems).
 	 */
@@ -380,6 +387,8 @@ private:
 	bool bDragging;
 	/** Whether or not snapping is enabled for all actors */
 	bool bSnapEnabled;
+	/** Default visibility for the widget if an Editor Mode Tool doesn't override it */
+	bool bDefaultVisibility;
 
 	/** Total delta rotation applied since the widget was dragged */
 	float TotalDeltaRotation;

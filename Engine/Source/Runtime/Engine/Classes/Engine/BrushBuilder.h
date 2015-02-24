@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -79,9 +79,9 @@ public:
 	// @ todo document all below
 	virtual void BeginBrush( bool InMergeCoplanars, FName InLayer ) {}
 	virtual bool EndBrush( UWorld* InWorld, ABrush* InBrush ) { return false; }
-	virtual int32 GetVertexCount() { return 0; }
-	virtual FVector GetVertex( int32 i ) { return FVector::ZeroVector; }
-	virtual int32 GetPolyCount() { return 0; }
+	virtual int32 GetVertexCount() const { return 0; }
+	virtual FVector GetVertex( int32 i ) const { return FVector::ZeroVector; }
+	virtual int32 GetPolyCount() const { return 0; }
 	virtual bool BadParameters( const FText& msg ) { return false; }
 	virtual int32 Vertexv( FVector v ) { return 0; }
 	virtual int32 Vertex3f( float X, float Y, float Z ) { return 0; }

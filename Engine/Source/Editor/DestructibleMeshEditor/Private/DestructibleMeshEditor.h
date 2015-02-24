@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -104,10 +104,10 @@ private:
 	TSharedRef<SWidget> MakeWidgetFromString( TSharedPtr<FString> InItem );
 	
 	/** Slider label. */
-	FString GetButtonLabel() const;
+	FText GetButtonLabel() const;
 
 	/** Handles display text in preview depth combo box */
-	FString HandlePreviewDepthComboBoxContent() const;
+	FText HandlePreviewDepthComboBoxContent() const;
 
 	/** A general callback for the combo boxes in the Destructible Mesh Editor to force a viewport refresh when a selection changes. */
 	void ComboBoxSelectionChanged( TSharedPtr<FString> NewSelection );

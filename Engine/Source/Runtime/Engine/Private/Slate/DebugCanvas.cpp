@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "SlateBasics.h"
@@ -16,7 +16,7 @@ public:
 
 	~FProxyCounter()
 	{
-		ensure( Creations == Deletions );
+		ensureMsgf( Creations == Deletions, TEXT("FProxyCounter::~FProxyCounter has a mismatch.  %d creations != %d deletions"), Creations, Deletions );
 	}
 
 	int32 Creations;

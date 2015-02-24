@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -448,10 +448,6 @@ class UDestructibleMesh : public USkeletalMesh
 	/** Parameters controlling the destruction behavior. */
 	UPROPERTY(EditAnywhere, Category=DestructibleMesh)
 	struct FDestructibleParameters DefaultDestructibleParameters;
-
-	/** The PhysicalMaterial used if there is no override in the component. */
-	UPROPERTY()
-	class UPhysicalMaterial* DestructiblePhysicalMaterial_DEPRECATED;
 
 	/** Fracture effects for each fracture level, unless overridden in the component. */
 	UPROPERTY(EditAnywhere, editfixedsize, Category=Effects)

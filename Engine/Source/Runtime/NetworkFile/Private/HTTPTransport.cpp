@@ -1,3 +1,5 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 #include "NetworkFilePrivatePCH.h"
 
 #if ENABLE_HTTP_FOR_NFS

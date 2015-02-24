@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "SocketSubsystem.h"
@@ -53,6 +53,7 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 			SoundStreaming->SampleRate = SampleRate;
 			SoundStreaming->NumChannels = 1;
 			SoundStreaming->Duration = INDEFINITELY_LOOPING_DURATION;
+			SoundStreaming->SoundGroup = SOUNDGROUP_Voice;
 			SoundStreaming->bLooping = false;
 
 			AudioComponent = AudioDevice->CreateComponent(SoundStreaming, NULL, NULL, false);
@@ -80,7 +81,7 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 UWorld* GetWorldForOnline(FName InstanceName)
 {
 	UWorld* World = NULL;
-	if (InstanceName != DEFAULT_INSTANCE && InstanceName != NAME_None)
+	if (InstanceName != FOnlineSubsystemImpl::DefaultInstanceName && InstanceName != NAME_None)
 	{
 		FWorldContext& WorldContext = GEngine->GetWorldContextFromHandleChecked(InstanceName);
 		check(WorldContext.WorldType == EWorldType::Game || WorldContext.WorldType == EWorldType::PIE);

@@ -1,8 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "PackageRestore.h"
 #include "PackageTools.h"
+#include "AutoSaveUtils.h"
 
 #define LOCTEXT_NAMESPACE "PackageRestore"
 
@@ -17,7 +18,7 @@ namespace PackageRestore
 			, PackageFilename(InPackageFilename)
 			, AutoSaveFilename(InAutoSaveFilename)
 			, bIsExistingPackage(bInIsExistingPackage)
-			, State(ESlateCheckBoxState::Unchecked)
+			, State(ECheckBoxState::Unchecked)
 		{
 		}
 
@@ -46,13 +47,13 @@ namespace PackageRestore
 		}
 
 		/** @return The state of this item (checked, unchecked) */
-		ESlateCheckBoxState::Type GetState() const
+		ECheckBoxState GetState() const
 		{
 			return State;
 		}
 
 		/** Set the state of this item (checked, unchecked)  */
-		void SetState(const ESlateCheckBoxState::Type InState)
+		void SetState(const ECheckBoxState InState)
 		{
 			State = InState;
 		}
@@ -97,7 +98,7 @@ namespace PackageRestore
 		FString PackageFilename;
 		FString AutoSaveFilename;
 		bool bIsExistingPackage;
-		ESlateCheckBoxState::Type State;
+		ECheckBoxState State;
 	};
 
 	typedef TSharedPtr<FPackageRestoreItem> FPackageRestoreItemPtr;
@@ -267,7 +268,7 @@ namespace PackageRestore
 				.FillWidth(1)
 				[
 					SNew(STextBlock) 
-					.Text(Item->GetPackageName())
+					.Text(FText::FromString(Item->GetPackageName()))
 				]
 				+SHorizontalBox::Slot()
 				.Padding(FMargin(4, 0, 0, 0))
@@ -280,7 +281,7 @@ namespace PackageRestore
 					.FillWidth(1)
 					[
 						SNew(STextBlock) 
-						.Text(Item->GetPackageFilename())
+						.Text(FText::FromString(Item->GetPackageFilename()))
 					]
 					+SHorizontalBox::Slot()
 					.Padding(FMargin(2, 0, 0, 0))
@@ -302,7 +303,7 @@ namespace PackageRestore
 					.FillWidth(1)
 					[
 						SNew(STextBlock) 
-						.Text(Item->GetAutoSaveFilename())
+						.Text(FText::FromString(Item->GetAutoSaveFilename()))
 					]
 					+SHorizontalBox::Slot()
 					.Padding(FMargin(2, 0, 0, 0))
@@ -320,20 +321,20 @@ namespace PackageRestore
 		 * @return	the desired toggle state for the ToggleSelectedCheckBox.
 		 * Returns Unchecked, unless all of the selected packages are Checked.
 		 */
-		ESlateCheckBoxState::Type GetToggleSelectedState() const
+		ECheckBoxState GetToggleSelectedState() const
 		{
 			// Default to a Checked state
-			ESlateCheckBoxState::Type PendingState = ESlateCheckBoxState::Checked;
+			ECheckBoxState PendingState = ECheckBoxState::Checked;
 
 			for(auto It = PackageRestoreItems->CreateConstIterator(); It; ++It)
 			{
 				const FPackageRestoreItemPtr& ListItem = *It;
 
-				if(ListItem->GetState() == ESlateCheckBoxState::Unchecked)
+				if(ListItem->GetState() == ECheckBoxState::Unchecked)
 				{
 					// If any package in the selection is Unchecked, then represent the entire set of highlighted packages as Unchecked,
 					// so that the first (user) toggle of ToggleSelectedCheckBox consistently Checks all highlighted packages
-					PendingState = ESlateCheckBoxState::Unchecked;
+					PendingState = ECheckBoxState::Unchecked;
 				}
 			}
 
@@ -344,7 +345,7 @@ namespace PackageRestore
 		 * Toggles the highlighted packages.
 		 * If no packages are explicitly highlighted, toggles all packages in the list.
 		 */
-		void OnToggleSelectedCheckBox(ESlateCheckBoxState::Type InNewState)
+		void OnToggleSelectedCheckBox(ECheckBoxState InNewState)
 		{
 			for(auto It = PackageRestoreItems->CreateIterator(); It; ++It)
 			{
@@ -365,7 +366,7 @@ namespace PackageRestore
 			{
 				const FPackageRestoreItemPtr& ListItem = *It;
 
-				if(ListItem->GetState() == ESlateCheckBoxState::Checked)
+				if(ListItem->GetState() == ECheckBoxState::Checked)
 				{
 					return true;
 				}
@@ -421,7 +422,7 @@ namespace PackageRestore
 			{
 				const FPackageRestoreItemPtr& ListItem = *It;
 
-				if(ListItem->GetState() == ESlateCheckBoxState::Checked)
+				if(ListItem->GetState() == ECheckBoxState::Checked)
 				{
 					SelectedPackageItems.Add(ListItem);
 				}
@@ -514,7 +515,7 @@ namespace PackageRestore
 
 FEditorFileUtils::EPromptReturnCode PackageRestore::PromptToRestorePackages(const TMap<FString, FString>& PackagesToRestore, TArray<FString>* OutFailedPackages)
 {
-	const FString& AutoSaveDir = GUnrealEd->AutoSaveDir;
+	const FString AutoSaveDir = AutoSaveUtils::GetAutoSaveDir();
 
 	FPackageRestoreItems PackageRestoreItems;
 	PackageRestoreItems.Reserve(PackagesToRestore.Num());

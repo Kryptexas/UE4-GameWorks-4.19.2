@@ -1,3 +1,5 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 // usage
 //
 // General purpose showflag (always variable):
@@ -152,8 +154,8 @@ SHOWFLAG_ALWAYS_ACCESSIBLE(StationaryLightOverlap, SFG_Hidden, LOCTEXT("Stationa
 SHOWFLAG_ALWAYS_ACCESSIBLE(LightMapDensity, SFG_Hidden, LOCTEXT("LightMapDensitySF", "Light Map Density"))
 /** Render streaming bounding volumes for the currently selected texture */
 SHOWFLAG_ALWAYS_ACCESSIBLE(StreamingBounds, SFG_Advanced, LOCTEXT("StreamingBoundsSF", "Streaming Bounds"))
-/**  */
-SHOWFLAG_ALWAYS_ACCESSIBLE(Constraints, SFG_Advanced, LOCTEXT("ConstraintsSF", "Constraints"))
+/** Render joint limits */
+SHOWFLAG_FIXED_IN_SHIPPING(Constraints, 0, SFG_Advanced, LOCTEXT("ConstraintsSF", "Constraints"))
 /** Draws camera frustums */
 SHOWFLAG_ALWAYS_ACCESSIBLE(CameraFrustums, SFG_Advanced, LOCTEXT("CameraFrustumsSF", "Camera Frustums"))
 /** Draw sound actor radii */

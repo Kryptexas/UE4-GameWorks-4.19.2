@@ -1,13 +1,19 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BrushComponent.cpp: Unreal brush component implementation
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Components/BrushComponent.h"
+#include "Engine/Polys.h"
 #include "Model.h"
 #include "LevelUtils.h"
-
+#if WITH_EDITOR
+#include "Collision.h"
+#include "ShowFlags.h"
+#include "ConvexVolume.h"
+#endif
 #include "DebuggingDefines.h"
 #include "ActorEditorUtils.h"
 
@@ -288,7 +294,7 @@ public:
 						{
 							auto WireframeMaterial = new FColoredMaterialRenderProxy(
 								GEngine->LevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
-								GetSelectionColor(DrawColor,!(GIsEditor && (View->Family->EngineShowFlags.Selection)) || IsSelected(), IsHovered(), /*bUseOverlayIntensity=*/false)
+								GetViewSelectionColor(DrawColor, *View, !(GIsEditor && (View->Family->EngineShowFlags.Selection)) || IsSelected(), IsHovered(), false, IsIndividuallySelected() )
 								);
 
 							Collector.RegisterOneFrameMaterialProxy(WireframeMaterial);
@@ -321,99 +327,6 @@ public:
 				}
 			}
 		}
-	}
-
-	/** 
-	* Draw the scene proxy as a dynamic element
-	*
-	* @param	PDI - draw interface to render to
-	* @param	View - current view
-	*/
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-	{
-		QUICK_SCOPE_CYCLE_COUNTER( STAT_BrushSceneProxy_DrawDynamicElements );
-
-
-		if( AllowDebugViewmodes() )
-		{
-			bool bDrawCollision = false;
-			const bool bInCollisionView = IsCollisionView(View->Family->EngineShowFlags, bDrawCollision);
-
-			// Draw solid if 'solid when selected' and selected, or we are in a 'collision view'
-			const bool bDrawSolid = ((bSolidWhenSelected && IsSelected()) || (bInCollisionView && bDrawCollision));
-			// Don't draw wireframe if in a collision view mode and not drawing solid
-			const bool bDrawWireframe = !bInCollisionView;
-
-			// Choose color to draw it
-			FLinearColor DrawColor = BrushColor;
-			// In a collision view mode
-			if(bInCollisionView)
-			{
-				DrawColor = BrushColor;
-			}
-			else if(View->Family->EngineShowFlags.PropertyColoration)
-			{
-				DrawColor = PropertyColor;
-			}
-			else if(View->Family->EngineShowFlags.LevelColoration)
-			{
-				DrawColor = LevelColor;
-			}
-
-
-			// SOLID
-			if(bDrawSolid)
-			{
-				if(BodySetup != NULL)
-				{
-					const FColoredMaterialRenderProxy SolidMaterialInstance(
-						GEngine->ShadedLevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
-						DrawColor
-						);
-
-					FTransform GeomTransform(GetLocalToWorld());
-					BodySetup->AggGeom.DrawAggGeom(PDI, GeomTransform, DrawColor, /*Material=*/&SolidMaterialInstance, false, /*bSolid=*/ true, UseEditorDepthTest() );
-				}
-			}
-			// WIREFRAME
-			else if(bDrawWireframe)
-			{
-				// If we have the editor data (Wire Buffers) use those for wireframe
-#if WITH_EDITOR
-				if(WireIndexBuffer.GetNumEdges() && WireVertexBuffer.GetNumVertices())
-				{
-					FColoredMaterialRenderProxy WireframeMaterial(
-						GEngine->LevelColorationUnlitMaterial->GetRenderProxy(IsSelected(), IsHovered()),
-						GetSelectionColor(DrawColor,!(GIsEditor && (View->Family->EngineShowFlags.Selection)) || IsSelected(), IsHovered(), /*bUseOverlayIntensity=*/false)
-						);
-
-					FMeshBatch Mesh;
-					FMeshBatchElement& BatchElement = Mesh.Elements[0];
-					BatchElement.IndexBuffer = &WireIndexBuffer;
-					Mesh.VertexFactory = &VertexFactory;
-					Mesh.MaterialRenderProxy = &WireframeMaterial;
-					BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
-					BatchElement.FirstIndex = 0;
-					BatchElement.NumPrimitives = WireIndexBuffer.GetNumEdges();
-					BatchElement.MinVertexIndex = 0;
-					BatchElement.MaxVertexIndex = WireVertexBuffer.GetNumVertices() - 1;
-					Mesh.CastShadow = false;
-					Mesh.Type = PT_LineList;
-					Mesh.DepthPriorityGroup = IsSelected() ? SDPG_Foreground : SDPG_World;
-					PDI->DrawMesh(Mesh);
-				}
-				else 
-#endif
-				if(BodySetup != NULL)
-				// If not, use the body setup for wireframe
-				{
-					FTransform GeomTransform(GetLocalToWorld());
-					BodySetup->AggGeom.DrawAggGeom(PDI, GeomTransform, GetSelectionColor(DrawColor, IsSelected(), IsHovered()), /* Material=*/ NULL, false, /* bSolid=*/ false, UseEditorDepthTest() );
-				}
-
-			}
-		}
-
 	}
 
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
@@ -683,6 +596,121 @@ uint8 UBrushComponent::GetStaticDepthPriorityGroup() const
 		return DepthPriorityGroup;
 	}
 }
+
+#if WITH_EDITOR
+static bool IsComponentTypeShown(AActor* Actor, const FEngineShowFlags& ShowFlags)
+{
+	if (Actor != nullptr)
+	{
+		return (Actor->IsA(AVolume::StaticClass())) ? ShowFlags.Volumes : ShowFlags.BSP;
+	}
+
+	return false;
+}
+
+bool UBrushComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	if (!IsComponentTypeShown(GetOwner(), ShowFlags))
+	{
+		return false;
+	}
+
+	if (Brush != nullptr && Brush->Polys != nullptr)
+	{
+		TArray<FVector> Vertices;
+
+		if (!bMustEncompassEntireComponent)
+		{
+			for (const auto& Poly : Brush->Polys->Element)
+			{
+				// Just an intersection will do...
+				Vertices.Empty(Poly.Vertices.Num());
+				for (const auto& Vertex : Poly.Vertices)
+				{
+					Vertices.Add(ComponentToWorld.TransformPosition(Vertex));
+				}
+
+				FSeparatingAxisPointCheck PointCheck(Vertices, InSelBBox.GetCenter(), InSelBBox.GetExtent(), false);
+				if (PointCheck.bHit)
+				{
+					// If any poly intersected with the bounding box, this component is considered to be touching
+					return true;
+				}
+			}
+
+			// No poly intersected with the bounding box
+			return false;
+		}
+		else
+		{
+			for (const auto& Poly : Brush->Polys->Element)
+			{
+				// The component must be entirely within the bounding box...
+				for (const auto& Vertex : Poly.Vertices)
+				{
+					const FVector Location = ComponentToWorld.TransformPosition(Vertex);
+					const bool bLocationIntersected = FMath::PointBoxIntersection(Location, InSelBBox);
+
+					// If the selection box has to encompass the entire component and a poly vertex didn't intersect with the selection
+					// box, this component does not qualify
+					if (!bLocationIntersected)
+					{
+						return false;
+					}
+				}
+			}
+
+			// All points lay within the selection box
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+bool UBrushComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	if (!IsComponentTypeShown(GetOwner(), ShowFlags))
+	{
+		return false;
+	}
+
+	if (Brush != nullptr && Brush->Polys != nullptr)
+	{
+		TArray<FVector> Vertices;
+
+		for (const auto& Poly : Brush->Polys->Element)
+		{
+			for (const auto& Vertex : Poly.Vertices)
+			{
+				const FVector Location = ComponentToWorld.TransformPosition(Vertex);
+				const bool bIntersect = InFrustum.IntersectSphere(Location, 0.0f);
+
+				if (bIntersect && !bMustEncompassEntireComponent)
+				{
+					// If we intersected a vertex and we don't require the box to encompass the entire component
+					// then the actor should be selected and we can stop checking
+					return true;
+				}
+				else if (!bIntersect && bMustEncompassEntireComponent)
+				{
+					// If we didn't intersect a vertex but we require the box to encompass the entire component
+					// then this test failed and we can stop checking
+					return false;
+				}
+			}
+		}
+
+		// If the selection box has to encompass all of the component and none of the component's verts failed the intersection test, this component
+		// is considered touching
+		return true;
+	}
+
+	return false;
+}
+#endif
+
 
 void UBrushComponent::BuildSimpleBrushCollision()
 {

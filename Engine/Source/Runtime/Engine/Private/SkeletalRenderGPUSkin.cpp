@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalRenderGPUSkin.cpp: GPU skinned skeletal mesh rendering code.
@@ -361,7 +361,9 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 				const FActiveVertexAnim& VertAnim = ActiveVertexAnims[AnimIdx];
 				checkSlow(VertAnim.VertAnim != NULL);
 				checkSlow(VertAnim.VertAnim->HasDataForLOD(LODIndex));
-				checkSlow(VertAnim.Weight >= MinVertexAnimBlendWeight && VertAnim.Weight <= MaxVertexAnimBlendWeight);
+
+				const float VertAnimAbsWeight = FMath::Abs(VertAnim.Weight);
+				checkSlow(VertAnimAbsWeight >= MinVertexAnimBlendWeight && VertAnimAbsWeight <= MaxVertexAnimBlendWeight);
 
 				// Allocate temp state
 				FVertexAnimEvalStateBase* AnimState = VertAnim.VertAnim->InitEval();
@@ -384,7 +386,7 @@ void FSkeletalMeshObjectGPUSkin::FSkeletalMeshObjectLOD::UpdateMorphVertexBuffer
 						// add to accumulated tangent Z
 						DeltaTangentZAccumulationArray[MorphVertex.SourceIdx] += MorphVertex.TangentZDelta * VertAnim.Weight;
 						// accumulate the weight so we can normalized it later
-						AccumulatedWeightArray[MorphVertex.SourceIdx] += VertAnim.Weight;
+						AccumulatedWeightArray[MorphVertex.SourceIdx] += VertAnimAbsWeight;
 					}
 				} // for all vertices
 
@@ -991,16 +993,18 @@ FDynamicSkelMeshObjectDataGPUSkin::FDynamicSkelMeshObjectDataGPUSkin(
 
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	MeshSpaceBases = InMeshComponent->SpaceBases;
+	MeshSpaceBases = InMeshComponent->GetSpaceBases();
 #endif
 
 	// find number of morphs that are currently weighted and will affect the mesh
 	for( int32 AnimIdx=ActiveVertexAnims.Num()-1; AnimIdx >= 0; AnimIdx-- )
 	{
 		const FActiveVertexAnim& Anim = ActiveVertexAnims[AnimIdx];
+		const float AnimAbsWeight = FMath::Abs(Anim.Weight);
+
 		if( Anim.VertAnim != NULL && 
-			Anim.Weight >= MinVertexAnimBlendWeight &&
-			Anim.Weight <= MaxVertexAnimBlendWeight &&
+			AnimAbsWeight >= MinVertexAnimBlendWeight &&
+			AnimAbsWeight <= MaxVertexAnimBlendWeight &&
 			Anim.VertAnim->HasDataForLOD(LODIndex) ) 
 		{
 			NumWeightedActiveVertexAnims++;

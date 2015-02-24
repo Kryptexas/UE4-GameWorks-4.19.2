@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	NetworkDriver.cpp: Unreal network driver base class.
@@ -16,6 +16,8 @@
 #include "NetworkingDistanceConstants.h"
 #include "DataChannel.h"
 #include "Engine/PackageMapClient.h"
+#include "GameFramework/PlayerState.h"
+#include "GameFramework/GameMode.h"
 
 // Default net driver stats
 DEFINE_STAT(STAT_Ping);
@@ -99,7 +101,6 @@ UNetDriver::UNetDriver(const FObjectInitializer& ObjectInitializer)
 :	UObject(ObjectInitializer)
 ,	MaxInternetClientRate(10000)
 , 	MaxClientRate(15000)
-,	RequireEngineVersionMatch(true)
 ,	ClientConnections()
 ,	Time( 0.f )
 ,	InBytes(0)
@@ -503,23 +504,23 @@ ENetMode UNetDriver::GetNetMode() const
 	return (IsServer() ? (GIsClient ? NM_ListenServer : NM_DedicatedServer) : NM_Client);
 }
 
-void UNetDriver::RegisterTickEvents(class UWorld* InWorld) const
+void UNetDriver::RegisterTickEvents(class UWorld* InWorld)
 {
 	if (InWorld)
 	{
-		InWorld->OnTickDispatch().AddUObject(this, &UNetDriver::TickDispatch);
-		InWorld->OnTickFlush().AddUObject(this, &UNetDriver::TickFlush);
-		InWorld->OnPostTickFlush().AddUObject(this, &UNetDriver::PostTickFlush);
+		TickDispatchDelegateHandle  = InWorld->OnTickDispatch ().AddUObject(this, &UNetDriver::TickDispatch);
+		TickFlushDelegateHandle     = InWorld->OnTickFlush    ().AddUObject(this, &UNetDriver::TickFlush);
+		PostTickFlushDelegateHandle = InWorld->OnPostTickFlush().AddUObject(this, &UNetDriver::PostTickFlush);
 	}
 }
 
-void UNetDriver::UnregisterTickEvents(class UWorld* InWorld) const
+void UNetDriver::UnregisterTickEvents(class UWorld* InWorld)
 {
 	if (InWorld)
 	{
-		InWorld->OnTickDispatch().RemoveUObject(this, &UNetDriver::TickDispatch);
-		InWorld->OnTickFlush().RemoveUObject(this, &UNetDriver::TickFlush);
-		InWorld->OnPostTickFlush().RemoveUObject(this, &UNetDriver::PostTickFlush);
+		InWorld->OnTickDispatch ().Remove(TickDispatchDelegateHandle);
+		InWorld->OnTickFlush    ().Remove(TickFlushDelegateHandle);
+		InWorld->OnPostTickFlush().Remove(PostTickFlushDelegateHandle);
 	}
 }
 
@@ -595,7 +596,7 @@ void UNetDriver::TickDispatch( float DeltaTime )
 	}
 }
 
-bool UNetDriver::IsLevelInitializedForActor(class AActor* InActor, class UNetConnection* InConnection)
+bool UNetDriver::IsLevelInitializedForActor(const AActor* InActor, const UNetConnection* InConnection) const
 {
 	check(InActor);
     check(InConnection);
@@ -679,11 +680,8 @@ void UNetDriver::InternalProcessRemoteFunction
 			}
 			else
 			{
-				UE_LOG(LogNet, Log, TEXT("Error: Can't send function '%s' on '%s': Client hasn't loaded the level for this Actor"), *Function->GetName(), *Actor->GetName());
-				if ( !Connection->TrackLogsPerSecond() )	// This will disconnect the client if we get here too often
-				{
-					return;
-				}
+				UE_LOG(LogNet, Verbose, TEXT("Can't send function '%s' on '%s': Client hasn't loaded the level for this Actor"), *Function->GetName(), *Actor->GetName());
+				return;
 			}
 		}
 		if (!Ch)
@@ -1500,7 +1498,7 @@ void UNetDriver::FlushActorDormancy(AActor* Actor)
 UChildConnection* UNetDriver::CreateChild(UNetConnection* Parent)
 {
 	UE_LOG(LogNet, Log, TEXT("Creating child connection with %s parent"), *Parent->GetName());
-	UChildConnection* Child = new UChildConnection(FObjectInitializer());
+	auto Child = NewObject<UChildConnection>();
 	Child->Driver = this;
 	Child->URL = FURL();
 	Child->State = Parent->State;
@@ -2725,9 +2723,8 @@ void UNetDriver::ResetGameWorldState()
 
 void UNetDriver::CleanPackageMaps()
 {
-	if ( IsServer() && GuidCache.IsValid()  )
+	if ( GuidCache.IsValid() )
 	{ 
-		// Only the server makes this call initially, client will call when the GuidSequence increments on their end
 		GuidCache->CleanReferences();
 	}
 }

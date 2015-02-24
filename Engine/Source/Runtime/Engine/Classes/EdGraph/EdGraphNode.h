@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -127,6 +127,14 @@ class ENGINE_API UEdGraphNode : public UObject
 	UPROPERTY()
 	FString NodeComment;
 
+	/** Comment bubble pinned state */
+	UPROPERTY()
+	bool bCommentBubblePinned;
+
+	/** Comment bubble visibility */
+	UPROPERTY()
+	bool bCommentBubbleVisible;
+
 	/** Flag to store node specific compile error/warning*/
 	UPROPERTY()
 	int32 ErrorType;
@@ -142,6 +150,10 @@ class ENGINE_API UEdGraphNode : public UObject
 	/** Enum to indicate if a node has advanced-display-pins, and if they are shown */
 	UPROPERTY()
 	TEnumAsByte<ENodeAdvancedPins::Type> AdvancedPinDisplay;
+
+	/** FALSE if the node is a disabled, which eliminates it from being compiled */
+	UPROPERTY()
+	bool bIsNodeEnabled;
 
 #if WITH_EDITOR
 
@@ -182,10 +194,10 @@ public:
 	virtual bool AllowSplitPins() const { return false; }
 
 	/** Gets the overridden name for the specified pin, if any */
-	virtual FString GetPinNameOverride(const UEdGraphPin& Pin) const { return FString(TEXT("")); }
+	virtual FText GetPinNameOverride(const UEdGraphPin& Pin) const { return FText::GetEmpty(); }
 
 	/** Gets the display name for a pin */
-	virtual FString GetPinDisplayName(const UEdGraphPin* Pin) const;
+	virtual FText GetPinDisplayName(const UEdGraphPin* Pin) const;
 
 	/**
 	 * Fetch the hover text for a pin when the graph is being edited.
@@ -395,6 +407,9 @@ public:
 
 	// called when this node is being renamed after a successful name validation
 	virtual void OnRenameNode(const FString& NewName) {}
+
+	// called to replace this nodes comment text
+	virtual void OnUpdateCommentText( const FString& NewComment );
 
 	/** Return whether to draw this node as a comment node */
 	virtual bool ShouldDrawNodeAsComment() const { return false; }

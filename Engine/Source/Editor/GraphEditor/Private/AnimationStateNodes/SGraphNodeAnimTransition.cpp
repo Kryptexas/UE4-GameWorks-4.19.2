@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -108,7 +108,7 @@ TSharedRef<SWidget> SGraphNodeAnimTransition::GenerateRichTooltip()
 
 	TSharedRef<SVerticalBox> Widget = SNew(SVerticalBox);
 
-	const FString TooltipDesc = GetPreviewCornerText(false);
+	const FText TooltipDesc = GetPreviewCornerText(false);
 
 	
 	// Transition rule linearized
@@ -165,7 +165,7 @@ void SGraphNodeAnimTransition::UpdateGraphNode()
 	LeftNodeBox.Reset();
 
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
-	this->ChildSlot
+	this->GetOrAddSlot( ENodeZone::Center )
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
 		[
@@ -194,39 +194,41 @@ void SGraphNodeAnimTransition::UpdateGraphNode()
 		];
 }
 
-FString SGraphNodeAnimTransition::GetPreviewCornerText(bool bReverse) const
+FText SGraphNodeAnimTransition::GetPreviewCornerText(bool bReverse) const
 {
 	UAnimStateTransitionNode* TransNode = CastChecked<UAnimStateTransitionNode>(GraphNode);
 
 	UAnimStateNodeBase* PrevState = (bReverse ? TransNode->GetNextState() : TransNode->GetPreviousState());
 	UAnimStateNodeBase* NextState = (bReverse ? TransNode->GetPreviousState() : TransNode->GetNextState());
 
-	FString Result = TEXT("Bad transition (missing source or target)");
+	FText Result = LOCTEXT("BadTransition", "Bad transition (missing source or target)");
 
 	// Show the priority if there is any ambiguity
 	if (PrevState != NULL)
 	{
 		if (NextState != NULL)
 		{
-			Result = FString::Printf(TEXT("%s to %s"), *PrevState->GetStateName(), *NextState->GetStateName());
-		}
+			TArray<UAnimStateTransitionNode*> TransitionFromSource;
+			PrevState->GetTransitionList(/*out*/ TransitionFromSource);
 
-		TArray<UAnimStateTransitionNode*> TransitionFromSource;
-		PrevState->GetTransitionList(/*out*/ TransitionFromSource);
-
-		if (TransitionFromSource.Num() > 1)
-		{
-			// See if the priorities differ
 			bool bMultiplePriorities = false;
-			for (int32 Index = 0; (Index < TransitionFromSource.Num()) && !bMultiplePriorities; ++Index)
+			if (TransitionFromSource.Num() > 1)
 			{
-				const bool bDifferentPriority = (TransitionFromSource[Index]->PriorityOrder != TransNode->PriorityOrder);
-				bMultiplePriorities |= bDifferentPriority;
+				// See if the priorities differ
+				for (int32 Index = 0; (Index < TransitionFromSource.Num()) && !bMultiplePriorities; ++Index)
+				{
+					const bool bDifferentPriority = (TransitionFromSource[Index]->PriorityOrder != TransNode->PriorityOrder);
+					bMultiplePriorities |= bDifferentPriority;
+				}
 			}
 
 			if (bMultiplePriorities)
 			{
-				Result += FString::Printf(TEXT(" (Priority %d)"), TransNode->PriorityOrder);
+				Result = FText::Format(LOCTEXT("TransitionXToYWithPriority", "{0} to {1} (Priority {2})"), FText::FromString(PrevState->GetStateName()), FText::FromString(NextState->GetStateName()), FText::AsNumber(TransNode->PriorityOrder));
+			}
+			else
+			{
+				Result = FText::Format(LOCTEXT("TransitionXToY", "{0} to {1}"), FText::FromString(PrevState->GetStateName()), FText::FromString(NextState->GetStateName()));
 			}
 		}
 	}
@@ -355,11 +357,11 @@ void SGraphNodeAnimTransition::PositionBetweenTwoNodesWithOffset(const FGeometry
 		DeltaPos = FVector2D(10.0f, 0.0f);
 	}
 
-	const FVector2D Normal = FVector2D(DeltaPos.Y, -DeltaPos.X).SafeNormal();
+	const FVector2D Normal = FVector2D(DeltaPos.Y, -DeltaPos.X).GetSafeNormal();
 
 	const FVector2D NewCenter = StartAnchorPoint + (0.5f * DeltaPos) + (Height * Normal);
 
-	FVector2D DeltaNormal = DeltaPos.SafeNormal();
+	FVector2D DeltaNormal = DeltaPos.GetSafeNormal();
 	
 	// Calculate node offset in the case of multiple transitions between the same two nodes
 	// MultiNodeOffset: the offset where 0 is the centre of the transition, -1 is 1 <size of node>

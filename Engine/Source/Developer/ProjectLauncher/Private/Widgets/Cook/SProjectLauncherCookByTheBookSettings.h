@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -65,13 +65,13 @@ private:
 	void HandleCookConfigurationSelectorConfigurationSelected( EBuildConfigurations::Type );
 
 	/** Handles getting the content text of the cooker build configuration selector. */
-	FString HandleCookConfigurationSelectorText( ) const;
+	FText HandleCookConfigurationSelectorText( ) const;
 
 	/** Handles check state changes of the 'Incremental' check box. */
-	void HandleIncrementalCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState );
+	void HandleIncrementalCheckBoxCheckStateChanged( ECheckBoxState NewState );
 
 	/** Handles determining the checked state of the 'Incremental' check box. */
-	ESlateCheckBoxState::Type HandleIncrementalCheckBoxIsChecked( ) const;
+	ECheckBoxState HandleIncrementalCheckBoxIsChecked( ) const;
 
 	/** Handles generating a row widget in the map list view. */
 	TSharedRef<ITableRow> HandleMapListViewGenerateRow( TSharedPtr<FString> InItem, const TSharedRef<STableViewBase>& OwnerTable );
@@ -92,16 +92,16 @@ private:
 	void HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile );
 
 	/** Handles checking the specified 'Show maps' check box. */
-	void HandleShowCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState, EShowMapsChoices::Type Choice );
+	void HandleShowCheckBoxCheckStateChanged( ECheckBoxState NewState, EShowMapsChoices::Type Choice );
 
 	/** Handles determining the checked state of the specified 'Show maps' check box. */
-	ESlateCheckBoxState::Type HandleShowCheckBoxIsChecked( EShowMapsChoices::Type Choice ) const;
+	ECheckBoxState HandleShowCheckBoxIsChecked( EShowMapsChoices::Type Choice ) const;
 
 	/** Handles checking the specified 'Unversioned' check box. */
-	void HandleUnversionedCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState );
+	void HandleUnversionedCheckBoxCheckStateChanged( ECheckBoxState NewState );
 
 	/** Handles determining the checked state of the specified 'Unversioned' check box. */
-	ESlateCheckBoxState::Type HandleUnversionedCheckBoxIsChecked( ) const;
+	ECheckBoxState HandleUnversionedCheckBoxIsChecked( ) const;
 
 	/** Handles determining the visibility of a validation error icon. */
 	EVisibility HandleValidationErrorIconVisibility( ELauncherProfileValidationErrors::Type Error ) const;
@@ -114,6 +114,12 @@ private:
 
 	/** Callback for updating any settings after the selected project has changed in the profile. */
 	void HandleProfileProjectChanged();
+
+	// Callback for check state changes of the 'UnrealPak' check box.
+	void HandleUnrealPakCheckBoxCheckStateChanged( ECheckBoxState NewState );
+
+	// Callback for determining the checked state of the 'UnrealPak' check box.
+	ECheckBoxState HandleUnrealPakCheckBoxIsChecked( ) const;
 
 	/** creates the complex widget. */
 	TSharedRef<SWidget> MakeComplexWidget();

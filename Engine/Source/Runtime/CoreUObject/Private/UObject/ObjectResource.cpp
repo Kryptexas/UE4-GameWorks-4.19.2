@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 
@@ -78,12 +78,6 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 	Ar << E.OuterIndex;
 	Ar << E.ObjectName;
 
-	if (Ar.UE4Ver() < VER_UE4_REMOVE_ARCHETYPE_INDEX_FROM_LINKER_TABLES)
-	{
-		FPackageIndex OldArchetypeIndex;
-		Ar << OldArchetypeIndex;	
-	}
-
 	uint32 Save = E.ObjectFlags & RF_Load;
 	Ar << Save;
 	if (Ar.IsLoading())
@@ -98,11 +92,6 @@ FArchive& operator<<( FArchive& Ar, FObjectExport& E )
 	Ar << E.bNotForClient;
 	Ar << E.bNotForServer;
 
-	if (Ar.UE4Ver() < VER_UE4_REMOVE_NET_INDEX)
-	{
-		TArray<int32>		OldGenerationNetObjectCount;
-		Ar << OldGenerationNetObjectCount;
-	}
 	Ar << E.PackageGuid;
 	Ar << E.PackageFlags;
 
@@ -143,32 +132,6 @@ FArchive& operator<<( FArchive& Ar, FObjectImport& I )
 		I.SourceLinker	= NULL;
 		I.SourceIndex	= INDEX_NONE;
 		I.XObject		= NULL;
-		if (Ar.UE4Ver() < VER_UE4_CORE_SPLIT)
-		{
-			if (IsCorePackage(I.ClassPackage))
-			{
-				I.ClassPackage = GLongCoreUObjectPackageName;
-			}
-			if (IsCorePackage(I.ObjectName))
-			{
-				I.ObjectName = GLongCoreUObjectPackageName;
-			}
-		}
-		// Short -> Long package name associations removal - convert all 
-		// short script package names to long package names.
-		if (Ar.UE4Ver() < VER_UE4_REMOVE_SHORT_PACKAGE_NAME_ASSOCIATIONS)
-		{
-			FName* LongScriptPackageName = FPackageName::FindScriptPackageName(I.ClassPackage);
-			if (LongScriptPackageName)
-			{
-				I.ClassPackage = *LongScriptPackageName;
-			}
-			LongScriptPackageName = FPackageName::FindScriptPackageName(I.ObjectName);
-			if (LongScriptPackageName)
-			{
-				I.ObjectName = *LongScriptPackageName;
-			}
-		}
 	}
 	return Ar;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 // Core includes.
 #include "CorePrivatePCH.h"
@@ -91,6 +91,12 @@ FString FPaths::GameUserDir()
 	}
 	else
 	{
+		FString UserDir;
+		if (FParse::Value(FCommandLine::Get(), TEXT("UserDir="), UserDir))
+		{
+			return FPaths::Combine(*FPaths::GameDir(), *UserDir) + TEXT("/");
+		}
+
 		return FPaths::GameDir();
 	}
 }
@@ -161,7 +167,7 @@ FString FPaths::VideoCaptureDir()
 
 FString FPaths::GameLogDir()
 {
-#if PLATFORM_MAC
+#if PLATFORM_MAC || PLATFORM_XBOXONE
 	return FPlatformProcess::UserLogsDir();
 #else
 	return FPaths::GameSavedDir() + TEXT("Logs/");
@@ -352,9 +358,9 @@ FString FPaths::GameSourceDir()
 	return FPaths::GameDir() + TEXT("Source/");
 }
 
-FString FPaths::StarterContentDir()
+FString FPaths::FeaturePackDir()
 {
-	return FPaths::RootDir() + TEXT("Samples/StarterContent/");
+	return FPaths::RootDir() + TEXT("FeaturePacks/");
 }
 
 bool FPaths::IsProjectFilePathSet()
@@ -448,6 +454,11 @@ FString FPaths::GetPath(const FString& InPath)
 bool FPaths::FileExists(const FString& InPath)
 {
 	return IFileManager::Get().GetTimeStamp(*InPath) > FDateTime::MinValue();
+}
+
+bool FPaths::DirectoryExists(const FString& InPath)
+{
+	return IFileManager::Get().DirectoryExists(*InPath);
 }
 
 bool FPaths::IsDrive(const FString& InPath)
@@ -553,14 +564,16 @@ bool FPaths::IsDrive(const FString& InPath)
 
 bool FPaths::IsRelative(const FString& InPath)
 {
-	return
-		InPath.StartsWith( TEXT("./") ) ||
-		InPath.StartsWith( TEXT(".\\") ) || 
-		InPath.StartsWith( TEXT("../") ) ||
-		InPath.StartsWith( TEXT("..\\") ) || 
-		InPath.IsEmpty() ||
-		!(InPath.Contains("/")
-		|| InPath.Contains("\\"));
+	// The previous implementation of this function seemed to handle normalized and unnormalized paths, so this one does too for legacy reasons.
+
+	const bool IsRooted =	InPath.StartsWith(TEXT("\\\\"))	||												// "\\" for UNC or "network" paths.
+							InPath.StartsWith(TEXT("//"))	||												// Equivalent to "\\", considering normalization replaces "\\" with "//".
+							InPath.StartsWith(TEXT("\\"))	||												// Root of the current directory on Windows
+							InPath.StartsWith(TEXT("/"))	||												// Root of the current directory on Windows, root on UNIX-likes.
+							InPath.StartsWith(TEXT("root:/")) ||											// Feature packs use this
+							(InPath.Len() >= 2 && FChar::IsAlpha(InPath[0]) && InPath[1] == TEXT(':'));	// Starts with "<DriveLetter>:"
+
+	return !IsRooted;
 }
 
 void FPaths::NormalizeFilename(FString& InPath)

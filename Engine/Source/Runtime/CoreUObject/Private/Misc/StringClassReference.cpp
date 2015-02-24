@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 
@@ -18,7 +18,7 @@ bool FStringClassReference::SerializeFromMismatchedTag(struct FPropertyTag const
 	return SerializeFromMismatchedTagTemplate<UClassTypePolicy>(AssetLongPathname, Tag, Ar);
 }
 
-UClass *FStringClassReference::ResolveClass() const
+UClass* FStringClassReference::ResolveClass() const
 {
 	return dynamic_cast<UClass*>(ResolveObject());
 }

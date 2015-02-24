@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimEncoding.h: Skeletal mesh animation compression.
@@ -162,8 +162,7 @@ public:
 	 */
 	virtual void ByteSwapIn(
 		UAnimSequence& Seq, 
-		FMemoryReader& MemoryReader,
-		int32 SourceArVersion) PURE_VIRTUAL(AnimEncoding::ByteSwapIn,);
+		FMemoryReader& MemoryReader) PURE_VIRTUAL(AnimEncoding::ByteSwapIn,);
 
 	/**
 	 * Handles Byte-swapping outgoing animation data to an array of BYTEs
@@ -298,7 +297,7 @@ public:
 		FTransform& OutAtom,
 		const UAnimSequence& Seq,
 		int32 TrackIndex,
-		float Time);
+		float Time) override;
 
 	/**
 	 * Decompress the Rotation component of a BoneAtom
@@ -362,12 +361,10 @@ public:
 	 *
 	 * @param	Seq					An Animation Sequence to contain the read data.
 	 * @param	MemoryReader		The MemoryReader object to read from.
-	 * @param	SourceArVersion		The version of the archive that the data is coming from.
 	 */
 	virtual void ByteSwapIn(
 		UAnimSequence& Seq, 
-		FMemoryReader& MemoryReader,
-		int32 SourceArVersion);
+		FMemoryReader& MemoryReader) override;
 
 	/**
 	 * Handles Byte-swapping outgoing animation data to an array of BYTEs
@@ -379,7 +376,7 @@ public:
 	virtual void ByteSwapOut(
 		UAnimSequence& Seq,
 		TArray<uint8>& SerializedData, 
-		bool ForceByteSwapping);
+		bool ForceByteSwapping) override;
 
 	/**
 	 * Handles the ByteSwap of compressed animation data on import
@@ -395,8 +392,7 @@ public:
 		UAnimSequence& Seq, 
 		FMemoryReader& MemoryReader,
 		uint8*& Stream,
-		int32 NumKeys,
-		int32 SourceArVersion) PURE_VIRTUAL(AnimEncoding::ByteSwapRotationIn,);
+		int32 NumKeys) PURE_VIRTUAL(AnimEncoding::ByteSwapRotationIn,);
 
 	/**
 	 * Handles the ByteSwap of compressed animation data on import
@@ -412,8 +408,7 @@ public:
 		UAnimSequence& Seq, 
 		FMemoryReader& MemoryReader,
 		uint8*& Stream,
-		int32 NumKeys,
-		int32 SourceArVersion) PURE_VIRTUAL(AnimEncoding::ByteSwapTranslationIn,);
+		int32 NumKeys) PURE_VIRTUAL(AnimEncoding::ByteSwapTranslationIn,);
 
 	/**
 	 * Handles the ByteSwap of compressed animation data on import
@@ -429,8 +424,7 @@ public:
 		UAnimSequence& Seq, 
 		FMemoryReader& MemoryReader,
 		uint8*& Stream,
-		int32 NumKeys,
-		int32 SourceArVersion) PURE_VIRTUAL(AnimEncoding::ByteSwapScaleIn,);
+		int32 NumKeys) PURE_VIRTUAL(AnimEncoding::ByteSwapScaleIn,);
 
 	/**
 	 * Handles the ByteSwap of compressed animation data on export
@@ -500,14 +494,8 @@ FORCEINLINE float AnimEncoding::TimeToIndex(
 	int32 &PosIndex0Out,
 	int32 &PosIndex1Out)
 {
-	static int32		NumKeysCache = 0; // this value is guaranteed to not be used for valid data
-	static float	TimeCache;
-	static float	SequenceLengthCache;
-	static int32		PosIndex0CacheOut; 
-	static int32		PosIndex1CacheOut; 
-	static float	AlphaCacheOut;
-
 	const float SequenceLength= Seq.SequenceLength;
+	float Alpha;
 
 	if (NumKeys < 2)
 	{
@@ -516,48 +504,36 @@ FORCEINLINE float AnimEncoding::TimeToIndex(
 		PosIndex1Out = 0;
 		return 0.0f;
 	}
-	if (
-		NumKeysCache		!= NumKeys ||
-		SequenceLengthCache != SequenceLength ||
-		TimeCache			!= RelativePos
-		)
+	// Check for before-first-frame case.
+	if( RelativePos <= 0.f )
 	{
-		NumKeysCache		= NumKeys;
-		SequenceLengthCache = SequenceLength;
-		TimeCache			= RelativePos;
-		// Check for before-first-frame case.
-		if( RelativePos <= 0.f )
+		PosIndex0Out = 0;
+		PosIndex1Out = 0;
+		Alpha = 0.0f;
+	}
+	else
+	{
+		NumKeys -= 1; // never used without the minus one in this case
+		// Check for after-last-frame case.
+		if( RelativePos >= 1.0f )
 		{
-			PosIndex0CacheOut = 0;
-			PosIndex1CacheOut = 0;
-			AlphaCacheOut = 0.0f;
+			// If we're not looping, key n-1 is the final key.
+			PosIndex0Out = NumKeys;
+			PosIndex1Out = NumKeys;
+			Alpha = 0.0f;
 		}
 		else
 		{
-			NumKeys -= 1; // never used without the minus one in this case
-			// Check for after-last-frame case.
-			if( RelativePos >= 1.0f )
-			{
-				// If we're not looping, key n-1 is the final key.
-				PosIndex0CacheOut = NumKeys;
-				PosIndex1CacheOut = NumKeys;
-				AlphaCacheOut = 0.0f;
-			}
-			else
-			{
-				// For non-looping animation, the last frame is the ending frame, and has no duration.
-				const float KeyPos = RelativePos * float(NumKeys);
-				checkSlow(KeyPos >= 0.0f);
-				const float KeyPosFloor = floorf(KeyPos);
-				PosIndex0CacheOut = FMath::Min( FMath::TruncToInt(KeyPosFloor), NumKeys );
-				AlphaCacheOut = KeyPos - KeyPosFloor;
-				PosIndex1CacheOut = FMath::Min( PosIndex0CacheOut + 1, NumKeys );
-			}
+			// For non-looping animation, the last frame is the ending frame, and has no duration.
+			const float KeyPos = RelativePos * float(NumKeys);
+			checkSlow(KeyPos >= 0.0f);
+			const float KeyPosFloor = floorf(KeyPos);
+			PosIndex0Out = FMath::Min( FMath::TruncToInt(KeyPosFloor), NumKeys );
+			Alpha = KeyPos - KeyPosFloor;
+			PosIndex1Out = FMath::Min( PosIndex0Out + 1, NumKeys );
 		}
 	}
-	PosIndex0Out = PosIndex0CacheOut;
-	PosIndex1Out = PosIndex1CacheOut;
-	return AlphaCacheOut;
+	return Alpha;
 }
 
 /**

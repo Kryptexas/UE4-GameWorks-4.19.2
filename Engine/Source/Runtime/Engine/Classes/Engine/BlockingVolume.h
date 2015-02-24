@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
+#include "GameFramework/Volume.h"
 #include "BlockingVolume.generated.h"
 
 /** An invisible volume used to block other actors. */

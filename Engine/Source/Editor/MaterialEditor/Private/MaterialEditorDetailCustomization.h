@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -70,8 +70,8 @@ private:
 	TSharedRef< ITableRow > MakeDetailsGroupViewWidget( TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable );
 	void OnSelectionChanged( TSharedPtr<FString> ProposedSelection, ESelectInfo::Type SelectInfo );
 
-	FString GetToolTipText() const;
-	FString GetParameterNameString() const;
+	FText GetToolTipText() const;
+	FText GetParameterNameString() const;
 	bool IsParameterNameComboEnabled() const;
 	void OnCollectionChanged();
 

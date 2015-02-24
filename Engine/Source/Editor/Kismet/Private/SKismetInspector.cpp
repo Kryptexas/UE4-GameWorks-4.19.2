@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintEditorPrivatePCH.h"
@@ -18,6 +18,8 @@
 #include "UserDefinedEnumEditor.h"
 #include "UserDefinedStructureEditor.h"
 #include "FormatTextDetails.h"
+#include "Engine/SCS_Node.h"
+#include "Components/ChildActorComponent.h"
 
 #define LOCTEXT_NAMESPACE "KismetInspector"
 
@@ -33,6 +35,18 @@ public:
 
 //////////////////////////////////////////////////////////////////////////
 // SKismetInspector
+
+void SKismetInspector::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
+{
+	if(bRefreshOnTick)
+	{
+		FKismetSelectionInfo SelectionInfo;
+		UpdateFromObjects(RefreshPropertyObjects, SelectionInfo, RefreshOptions);
+		RefreshPropertyObjects.Empty();
+
+		bRefreshOnTick = false;
+	}
+}
 
 TSharedRef<SWidget> SKismetInspector::MakeContextualEditingWidget(struct FKismetSelectionInfo& SelectionInfo, const FShowDetailsOptions& Options)
 {
@@ -71,40 +85,63 @@ TSharedRef<SWidget> SKismetInspector::MakeContextualEditingWidget(struct FKismet
 	if (SelectionInfo.ObjectsForPropertyEditing.Num())
 	{
 		ContextualEditingWidget->AddSlot()
-			.FillHeight( 0.9f )
-			.VAlign( VAlign_Top )
+		.FillHeight( 0.9f )
+		.VAlign( VAlign_Top )
+		[
+			SNew( SBox )
+			.Visibility(this, &SKismetInspector::GetPropertyViewVisibility)
 			[
-				SNew( SBorder )
-				.Visibility(this, &SKismetInspector::GetPropertyViewVisibility)
-				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
-				[
-					PropertyView.ToSharedRef()
-				]
-			];
+				PropertyView.ToSharedRef()
+			]
+		];
 
 		if (bShowPublicView)
 		{
 			ContextualEditingWidget->AddSlot()
-				.AutoHeight()
-				.VAlign( VAlign_Top )
+			.AutoHeight()
+			.VAlign( VAlign_Top )
+			[
+				SNew(SCheckBox)
+				.ToolTipText(LOCTEXT("TogglePublicView", "Toggle Public View"))
+				.IsChecked(this, &SKismetInspector::GetPublicViewCheckboxState)
+				.OnCheckStateChanged( this, &SKismetInspector::SetPublicViewCheckboxState)
 				[
-					SNew(SCheckBox)
-					.ToolTipText(LOCTEXT("TogglePublicView", "Toggle Public View"))
-					.IsChecked(this, &SKismetInspector::GetPublicViewCheckboxState)
-					.OnCheckStateChanged( this, &SKismetInspector::SetPublicViewCheckboxState)
-					[
-						SNew(STextBlock) .Text(LOCTEXT("PublicViewCheckboxLabel", "Public View"))
-					]
-				];
+					SNew(STextBlock)
+					.Text(LOCTEXT("PublicViewCheckboxLabel", "Public View"))
+				]
+			];
 		}
 	}
 
 	return ContextualEditingWidget;
 }
 
-FString SKismetInspector::GetContextualEditingWidgetTitle() const
+void SKismetInspector::SetOwnerTab(TSharedRef<SDockTab> Tab)
 {
-	FString Title = PropertyViewTitle;
+	OwnerTab = Tab;
+}
+
+TSharedPtr<SDockTab> SKismetInspector::GetOwnerTab() const
+{
+	return OwnerTab.Pin();
+}
+
+bool SKismetInspector::IsSelected(UObject* Object) const
+{
+	for ( const TWeakObjectPtr<UObject>& SelectedObject : SelectedObjects )
+	{
+		if ( SelectedObject.Get() == Object )
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+FText SKismetInspector::GetContextualEditingWidgetTitle() const
+{
+	FText Title = PropertyViewTitle;
 	if (Title.IsEmpty())
 	{
 		if (SelectedObjects.Num() == 1 && SelectedObjects[0].IsValid())
@@ -113,7 +150,7 @@ FString SKismetInspector::GetContextualEditingWidgetTitle() const
 
 			if (UEdGraphNode* Node = Cast<UEdGraphNode>(Object))
 			{
-				Title = Node->GetNodeTitle(ENodeTitleType::ListView).ToString();
+				Title = Node->GetNodeTitle(ENodeTitleType::ListView);
 			}
 			else if (USCS_Node* SCSNode = Cast<USCS_Node>(Object))
 			{
@@ -121,11 +158,11 @@ FString SKismetInspector::GetContextualEditingWidgetTitle() const
 				{
 					if (SCSNode->VariableName != NAME_None)
 					{
-						Title = FString::Printf(*LOCTEXT("TemplateFor", "Template for %s").ToString(), *(SCSNode->VariableName.ToString()));
+						Title = FText::Format(LOCTEXT("TemplateForFmt", "Template for {0}"), FText::FromName(SCSNode->VariableName));
 					}
 					else 
 					{
-						Title = FString::Printf(*LOCTEXT("Name_Template", "%s Template").ToString(), *(SCSNode->ComponentTemplate->GetClass()->GetName()));
+						Title = FText::Format(LOCTEXT("Name_TemplateFmt", "{0} Template"), FText::FromString(SCSNode->ComponentTemplate->GetClass()->GetName()));
 					}
 				}
 			}
@@ -134,13 +171,13 @@ FString SKismetInspector::GetContextualEditingWidgetTitle() const
 				// Edit the component template
 				if (UActorComponent* Template = K2Node->GetTemplateFromNode())
 				{
-					Title = FString::Printf(*LOCTEXT("Name_Template", "%s Template").ToString(), *(Template->GetClass()->GetName()));
+					Title = FText::Format(LOCTEXT("Name_TemplateFmt", "{0} Template"), FText::FromString(Template->GetClass()->GetName()));
 				}
 			}
 
 			if (Title.IsEmpty())
 			{
-				Title = UKismetSystemLibrary::GetDisplayName(Object);
+				Title = FText::FromString(UKismetSystemLibrary::GetDisplayName(Object));
 			}
 		}
 		else if (SelectedObjects.Num() > 1)
@@ -175,7 +212,7 @@ FString SKismetInspector::GetContextualEditingWidgetTitle() const
 
 			if (BaseClass)
 			{
-				Title = FString::Printf( *LOCTEXT("MultipleObjectsSelected", "%d %ss selected").ToString(), SelectedObjects.Num(), *BaseClass->GetName() );
+				Title = FText::Format(LOCTEXT("MultipleObjectsSelectedFmt", "{0} {1} selected"), FText::AsNumber(SelectedObjects.Num()), FText::FromString(BaseClass->GetName() + TEXT("s")));
 			}
 		}
 	}
@@ -185,12 +222,13 @@ FString SKismetInspector::GetContextualEditingWidgetTitle() const
 void SKismetInspector::Construct(const FArguments& InArgs)
 {
 	bShowInspectorPropertyView = true;
-	PublicViewState = ESlateCheckBoxState::Unchecked;
+	PublicViewState = ECheckBoxState::Unchecked;
+	bComponenetDetailsCustomizationEnabled = false;
 
-	Kismet2Ptr = InArgs._Kismet2;
+	BlueprintEditorPtr = InArgs._Kismet2;
 	bShowPublicView = InArgs._ShowPublicViewControl;
 	bShowTitleArea = InArgs._ShowTitleArea;
-	TSharedPtr<FBlueprintEditor> Kismet2 = Kismet2Ptr.Pin();
+	TSharedPtr<FBlueprintEditor> Kismet2 = BlueprintEditorPtr.Pin();
 
 	// Create a property view
 	FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
@@ -200,46 +238,52 @@ void SKismetInspector::Construct(const FArguments& InArgs)
 	{
 		NotifyHook = Kismet2.Get();
 	}
-	FDetailsViewArgs DetailsViewArgs( /*bUpdateFromSelection=*/ false, /*bLockable=*/ false, /*bAllowSearch=*/ true, /*bObjectsUseNameArea=*/ true, /*bHideSelectionTip=*/ true, /*InNotifyHook=*/ NotifyHook, /*InSearchInitialKeyFocus=*/ false, /*InViewIdentifier=*/ InArgs._ViewIdentifier );
-	DetailsViewArgs.bHideActorNameArea = InArgs._HideNameArea;
+
+	FDetailsViewArgs::ENameAreaSettings NameAreaSettings = InArgs._HideNameArea ? FDetailsViewArgs::HideNameArea : FDetailsViewArgs::ObjectsUseNameArea;
+	FDetailsViewArgs DetailsViewArgs( /*bUpdateFromSelection=*/ false, /*bLockable=*/ false, /*bAllowSearch=*/ true, NameAreaSettings, /*bHideSelectionTip=*/ true, /*InNotifyHook=*/ NotifyHook, /*InSearchInitialKeyFocus=*/ false, /*InViewIdentifier=*/ InArgs._ViewIdentifier );
 
 	PropertyView = EditModule.CreateDetailView( DetailsViewArgs );
 		
 	//@TODO: .IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() );
 	PropertyView->SetIsPropertyVisibleDelegate( FIsPropertyVisible::CreateSP(this, &SKismetInspector::IsPropertyVisible) );
 	PropertyView->SetIsPropertyEditingEnabledDelegate(InArgs._IsPropertyEditingEnabledDelegate);
-	PropertyView->OnFinishedChangingProperties().Add( InArgs._OnFinishedChangingProperties );
+	UserOnFinishedChangingProperties = InArgs._OnFinishedChangingProperties;
+
+	TWeakPtr<SMyBlueprint> MyBlueprint = Kismet2.IsValid() ? Kismet2->GetMyBlueprintWidget() : InArgs._MyBlueprintWidget;
 	
-	if (Kismet2.IsValid() && Kismet2->IsEditingSingleBlueprint())
+	if( MyBlueprint.IsValid() )
 	{
-		FOnGetDetailCustomizationInstance LayoutDelegateDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintDelegateActionDetails::MakeInstance, TWeakPtr<SMyBlueprint>(Kismet2->GetMyBlueprintWidget()));
+		FOnGetDetailCustomizationInstance LayoutDelegateDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintDelegateActionDetails::MakeInstance, MyBlueprint);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UMulticastDelegateProperty::StaticClass(), LayoutDelegateDetails);
 
 		// Register function and variable details customization
-		FOnGetDetailCustomizationInstance LayoutGraphDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintGraphActionDetails::MakeInstance, TWeakPtr<SMyBlueprint>(Kismet2->GetMyBlueprintWidget()));
+		FOnGetDetailCustomizationInstance LayoutGraphDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintGraphActionDetails::MakeInstance, MyBlueprint);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UEdGraph::StaticClass(), LayoutGraphDetails);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_EditablePinBase::StaticClass(), LayoutGraphDetails);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_CallFunction::StaticClass(), LayoutGraphDetails);
-	
-		FOnGetDetailCustomizationInstance LayoutVariableDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintVarActionDetails::MakeInstance, TWeakPtr<SMyBlueprint>(Kismet2->GetMyBlueprintWidget()));
+
+		FOnGetDetailCustomizationInstance LayoutVariableDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintVarActionDetails::MakeInstance, MyBlueprint);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UProperty::StaticClass(), LayoutVariableDetails);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_VariableGet::StaticClass(), LayoutVariableDetails);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_VariableSet::StaticClass(), LayoutVariableDetails);
+	}
 
-		FOnGetDetailCustomizationInstance LayoutOptionDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintGlobalOptionsDetails::MakeInstance, Kismet2Ptr);
+	if (Kismet2.IsValid() && Kismet2->IsEditingSingleBlueprint())
+	{
+		FOnGetDetailCustomizationInstance LayoutOptionDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintGlobalOptionsDetails::MakeInstance, BlueprintEditorPtr);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UBlueprint::StaticClass(), LayoutOptionDetails);
 
 		FOnGetDetailCustomizationInstance LayoutFormatTextDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FFormatTextDetails::MakeInstance);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UK2Node_FormatText::StaticClass(), LayoutFormatTextDetails);
 
-		FOnGetDetailCustomizationInstance LayoutDocumentationDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintDocumentationDetails::MakeInstance, Kismet2Ptr);
+		FOnGetDetailCustomizationInstance LayoutDocumentationDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintDocumentationDetails::MakeInstance, BlueprintEditorPtr);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UEdGraphNode_Documentation::StaticClass(), LayoutDocumentationDetails);
 
-		FOnGetDetailCustomizationInstance GraphNodeDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintGraphNodeDetails::MakeInstance, Kismet2Ptr);
+		FOnGetDetailCustomizationInstance GraphNodeDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintGraphNodeDetails::MakeInstance, BlueprintEditorPtr);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UEdGraphNode::StaticClass(), GraphNodeDetails);
 
 		PropertyView->RegisterInstancedCustomPropertyLayout(UChildActorComponent::StaticClass(),
-			FOnGetDetailCustomizationInstance::CreateStatic(&FChildActorComponentDetails::MakeInstance, Kismet2Ptr));
+		FOnGetDetailCustomizationInstance::CreateStatic(&FChildActorComponentDetails::MakeInstance, BlueprintEditorPtr));
 	}
 
 	// Create the border that all of the content will get stuffed into
@@ -259,18 +303,38 @@ void SKismetInspector::Construct(const FArguments& InArgs)
 	// Update based on the current (empty) selection set
 	TArray<UObject*> InitialSelectedObjects;
 	FKismetSelectionInfo SelectionInfo;
-	UpdateFromObjects(InitialSelectedObjects, SelectionInfo, SKismetInspector::FShowDetailsOptions(FString(), true));
+	UpdateFromObjects(InitialSelectedObjects, SelectionInfo, SKismetInspector::FShowDetailsOptions(FText::GetEmpty(), true));
 }
 
 void SKismetInspector::EnableComponentDetailsCustomization(bool bEnable)
 {
+	// An "empty" instanced customization that's intended to override any registered global details customization for
+	// the AActor class type. This will be applied -only- when the CDO is selected to the Details view in Components mode.
+	class FActorDetailsOverrideCustomization : public IDetailCustomization
+	{
+	public:
+		/** IDetailCustomization interface */
+		virtual void CustomizeDetails(IDetailLayoutBuilder& DetailLayout) override {}
+
+		static TSharedRef<class IDetailCustomization> MakeInstance()
+		{
+			return MakeShareable(new FActorDetailsOverrideCustomization());
+		}
+	};
+
+	bComponenetDetailsCustomizationEnabled = bEnable;
+
 	if (bEnable)
 	{
-		FOnGetDetailCustomizationInstance LayoutComponentDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintComponentDetails::MakeInstance, Kismet2Ptr);
+		FOnGetDetailCustomizationInstance ActorOverrideDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FActorDetailsOverrideCustomization::MakeInstance);
+		PropertyView->RegisterInstancedCustomPropertyLayout(AActor::StaticClass(), ActorOverrideDetails);
+
+		FOnGetDetailCustomizationInstance LayoutComponentDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlueprintComponentDetails::MakeInstance, BlueprintEditorPtr);
 		PropertyView->RegisterInstancedCustomPropertyLayout(UActorComponent::StaticClass(), LayoutComponentDetails);
 	}
 	else
 	{
+		PropertyView->UnregisterInstancedCustomPropertyLayout(AActor::StaticClass());
 		PropertyView->UnregisterInstancedCustomPropertyLayout(UActorComponent::StaticClass());
 	}
 }
@@ -279,15 +343,13 @@ void SKismetInspector::EnableComponentDetailsCustomization(bool bEnable)
 void SKismetInspector::ShowDetailsForSingleObject(UObject* Object, const FShowDetailsOptions& Options)
 {
 	TArray<UObject*> PropertyObjects;
-	FKismetSelectionInfo SelectionInfo;
 
 	if (Object != NULL)
 	{
 		PropertyObjects.Add(Object);
-		SelectionInfo.ObjectsForPropertyEditing.Add(Object);
 	}
 
-	UpdateFromObjects(PropertyObjects, SelectionInfo, Options);
+	ShowDetailsForObjects(PropertyObjects, Options);
 }
 
 void SKismetInspector::ShowDetailsForObjects(const TArray<UObject*>& PropertyObjects, const FShowDetailsOptions& Options)
@@ -305,12 +367,69 @@ void SKismetInspector::ShowDetailsForObjects(const TArray<UObject*>& PropertyObj
 		bIsReentrant = false;
 	}
 
-	FKismetSelectionInfo SelectionInfo;
-	UpdateFromObjects(PropertyObjects, SelectionInfo, Options);
+	// Refresh is being deferred until the next tick, this prevents batch operations from bombarding the details view with calls to refresh
+	RefreshPropertyObjects = PropertyObjects;
+	RefreshOptions = Options;
+	bRefreshOnTick = true;
+}
+
+void SKismetInspector::AddPropertiesRecursive(UProperty* Property)
+{
+	if (Property != NULL)
+	{
+		// Add this property
+		SelectedObjectProperties.Add(Property);
+
+		// If this is a struct or an array of structs, recursively add the child properties
+		UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
+		UStructProperty* StructProperty = Cast<UStructProperty>(Property);
+		if(	StructProperty != NULL && 
+			StructProperty->Struct != NULL)
+		{
+			for (TFieldIterator<UProperty> StructPropIt(StructProperty->Struct); StructPropIt; ++StructPropIt)
+			{
+				UProperty* InsideStructProperty = *StructPropIt;
+				AddPropertiesRecursive(InsideStructProperty);
+			}
+		}
+		else if( ArrayProperty && ArrayProperty->Inner->IsA<UStructProperty>() )
+		{
+			AddPropertiesRecursive(ArrayProperty->Inner);
+		}
+	}
 }
 
 void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects, struct FKismetSelectionInfo& SelectionInfo, const FShowDetailsOptions& Options)
 {
+	// If we're using the unified blueprint editor, there's not an explicit point where
+	// we ender a kind of component editing mode, so instead, just look at what we're selecting.
+	// If we select a component, then enable the customization.
+	if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
+	{
+		bool bEnableComponentCustomization = false;
+
+		TSharedPtr<FBlueprintEditor> BlueprintEditor = BlueprintEditorPtr.Pin();
+		if ( BlueprintEditor.IsValid() )
+		{
+			if ( BlueprintEditor->CanAccessComponentsMode() )
+			{
+				for ( UObject* PropertyObject : PropertyObjects )
+				{
+					if ( PropertyObject->IsA<UActorComponent>() )
+					{
+						bEnableComponentCustomization = true;
+						break;
+					}
+				}
+			}
+		}
+
+		EnableComponentDetailsCustomization(bEnableComponentCustomization);
+	}
+
+	PropertyView->OnFinishedChangingProperties().Clear();
+	PropertyView->OnFinishedChangingProperties().Add( UserOnFinishedChangingProperties );
+
 	if (!Options.bForceRefresh)
 	{
 		// Early out if the PropertyObjects and the SelectedObjects are the same
@@ -414,30 +533,7 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 				UProperty* Property = *PropIt;
 				check(Property != NULL);
 
-				SelectedObjectProperties.Add(Property);
-
-				UArrayProperty* ArrayProperty = Cast<UArrayProperty>(Property);
-				// If 'showing inners' on a struct, add them to the list as well
-				UStructProperty* StructProperty = Cast<UStructProperty>(Property);
-				static FName ShowOnlyInners("ShowOnlyInnerProperties");
-				if(	StructProperty != NULL && 
-					StructProperty->Struct != NULL && 
-					StructProperty->HasMetaData(ShowOnlyInners) )
-				{
-					for (TFieldIterator<UProperty> StructPropIt(StructProperty->Struct); StructPropIt; ++StructPropIt)
-					{
-						UProperty* InsideStructProperty = *StructPropIt;
-						check(InsideStructProperty != NULL);
-						SelectedObjectProperties.Add(InsideStructProperty);
-					}
-				}
-				else if( ArrayProperty && ArrayProperty->Inner->IsA<UStructProperty>() )
-				{
-					// Array property inners with complex children should be tested for visibility since the children of the inner could have different visibility requirements
-					SelectedObjectProperties.Add(ArrayProperty->Inner);
-				}
-
-
+				AddPropertiesRecursive(Property);
 			}
 
 			// Attempt to locate a matching property for the current component template
@@ -465,6 +561,7 @@ void SKismetInspector::UpdateFromObjects(const TArray<UObject*>& PropertyObjects
 	}
 
 	PropertyViewTitle = Options.ForcedTitle;
+	bShowComponents = Options.bShowComponents;
 
 	// Update our context-sensitive editing widget
 	ContextualEditingBorderWidget->SetContent( MakeContextualEditingWidget(SelectionInfo, Options) );
@@ -476,7 +573,7 @@ bool SKismetInspector::IsPropertyVisible( const FPropertyAndParent& PropertyAndP
 
 
 	// If we are in 'instance preview' - hide anything marked 'disabled edit on instance'
-	if ((ESlateCheckBoxState::Checked == PublicViewState) && Property.HasAnyPropertyFlags(CPF_DisableEditOnInstance))
+	if ((ECheckBoxState::Checked == PublicViewState) && Property.HasAnyPropertyFlags(CPF_DisableEditOnInstance))
 	{
 		return false;
 	}
@@ -485,7 +582,7 @@ bool SKismetInspector::IsPropertyVisible( const FPropertyAndParent& PropertyAndP
 
 	if(const UClass* OwningClass = Cast<UClass>(Property.GetOuter()))
 	{
-		const UBlueprint* BP = Kismet2Ptr.IsValid() ? Kismet2Ptr.Pin()->GetBlueprintObj() : NULL;
+		const UBlueprint* BP = BlueprintEditorPtr.IsValid() ? BlueprintEditorPtr.Pin()->GetBlueprintObj() : NULL;
 		const bool VariableAddedInCurentBlueprint = (OwningClass->ClassGeneratedBy == BP);
 
 		// If we did not add this var, hide it!
@@ -508,6 +605,13 @@ bool SKismetInspector::IsPropertyVisible( const FPropertyAndParent& PropertyAndP
 	{
 		// Actor variables can't have default values (because Blueprint templates are library elements that can 
 		// bridge multiple levels and different levels might not have the actor that the default is referencing).
+		return false;
+	}
+
+	bool bIsComponent = (ObjectProperty != nullptr && ObjectProperty->PropertyClass->IsChildOf(UActorComponent::StaticClass()));
+	if (!bShowComponents && bIsComponent)
+	{
+		// Don't show sub components properties, thats what selecting components in the component tree is for.
 		return false;
 	}
 
@@ -536,12 +640,12 @@ EVisibility SKismetInspector::GetPropertyViewVisibility() const
 	return bShowInspectorPropertyView? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-ESlateCheckBoxState::Type SKismetInspector::GetPublicViewCheckboxState() const
+ECheckBoxState SKismetInspector::GetPublicViewCheckboxState() const
 {
 	return PublicViewState;
 }
 
-void SKismetInspector::SetPublicViewCheckboxState( ESlateCheckBoxState::Type InIsChecked )
+void SKismetInspector::SetPublicViewCheckboxState( ECheckBoxState InIsChecked )
 {
 	PublicViewState = InIsChecked;
 
@@ -562,7 +666,7 @@ void SKismetInspector::SetPublicViewCheckboxState( ESlateCheckBoxState::Type InI
 		ShowDetailsForSingleObject(Objs[0], FShowDetailsOptions(PropertyViewTitle));
 	}
 	
-	Kismet2Ptr.Pin()->StartEditingDefaults();
+	BlueprintEditorPtr.Pin()->StartEditingDefaults();
 }
 
 //////////////////////////////////////////////////////////////////////////

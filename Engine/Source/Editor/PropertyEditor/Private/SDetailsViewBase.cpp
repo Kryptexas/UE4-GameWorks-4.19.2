@@ -1,3 +1,4 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SDetailsViewBase.h"
@@ -197,7 +198,7 @@ const FSlateBrush* SDetailsViewBase::OnGetFilterButtonImageResource() const
 
 void SDetailsViewBase::EnqueueDeferredAction(FSimpleDelegate& DeferredAction)
 {
-	DeferredActions.AddUnique(DeferredAction);
+	DeferredActions.Add(DeferredAction);
 }
 
 /**
@@ -402,6 +403,13 @@ void SDetailsViewBase::OnShowOnlyModifiedClicked()
 	UpdateFilteredDetails();
 }
 
+void SDetailsViewBase::OnShowAllAdvancedClicked()
+{
+	CurrentFilter.bShowAllAdvanced = !CurrentFilter.bShowAllAdvanced;
+
+	UpdateFilteredDetails();
+}
+
 void SDetailsViewBase::OnShowOnlyDifferingClicked()
 {
 	CurrentFilter.bShowOnlyDiffering = !CurrentFilter.bShowOnlyDiffering;
@@ -409,9 +417,9 @@ void SDetailsViewBase::OnShowOnlyDifferingClicked()
 	UpdateFilteredDetails();
 }
 
-void SDetailsViewBase::OnShowAllAdvancedClicked()
+void SDetailsViewBase::OnShowAllChildrenIfCategoryMatchesClicked()
 {
-	CurrentFilter.bShowAllAdvanced = !CurrentFilter.bShowAllAdvanced;
+	CurrentFilter.bShowAllChildrenIfCategoryMatches = !CurrentFilter.bShowAllChildrenIfCategoryMatches;
 
 	UpdateFilteredDetails();
 }
@@ -427,6 +435,16 @@ void SDetailsViewBase::OnFilterTextChanged(const FText& InFilterText)
 
 	FilterView(InFilterString);
 
+}
+
+TSharedPtr<SWidget> SDetailsViewBase::GetNameAreaWidget()
+{
+	return DetailsViewArgs.bCustomNameAreaLocation ? NameArea : nullptr;
+}
+
+TSharedPtr<SWidget> SDetailsViewBase::GetFilterAreaWidget()
+{
+	return DetailsViewArgs.bCustomFilterAreaLocation ? FilterRow : nullptr;
 }
 
 /** 
@@ -706,14 +724,14 @@ void SDetailsViewBase::Tick(const FGeometry& AllottedGeometry, const double InCu
 	{
 		for (int32 NodeIndex = 0; NodeIndex < ExternalRootPropertyNodes.Num(); ++NodeIndex)
 		{
-			TSharedPtr<FObjectPropertyNode> ObjectNode = ExternalRootPropertyNodes[NodeIndex].Pin();
+			TSharedPtr<FPropertyNode> PropertyNode = ExternalRootPropertyNodes[NodeIndex].Pin();
 
-			if (ObjectNode.IsValid())
+			if (PropertyNode.IsValid())
 			{
-				Result = ObjectNode->EnsureDataIsValid();
+				Result = PropertyNode->EnsureDataIsValid();
 				if (Result == FPropertyNode::PropertiesChanged || Result == FPropertyNode::EditInlineNewValueChanged)
 				{
-					RestoreExpandedItems(ObjectNode);
+					RestoreExpandedItems(PropertyNode);
 					UpdatePropertyMap();
 					// Note this will invalidate all the external root nodes so there is no need to continue
 					ExternalRootPropertyNodes.Empty();
@@ -721,7 +739,7 @@ void SDetailsViewBase::Tick(const FGeometry& AllottedGeometry, const double InCu
 				}
 				else if (Result == FPropertyNode::ArraySizeChanged)
 				{
-					RestoreExpandedItems(ObjectNode);
+					RestoreExpandedItems(PropertyNode);
 					UpdateFilteredDetails();
 				}
 			}
@@ -925,12 +943,12 @@ void SDetailsViewBase::UpdateFilteredDetails()
 
 		for (int32 NodeIndex = 0; NodeIndex < ExternalRootPropertyNodes.Num(); ++NodeIndex)
 		{
-			TSharedPtr<FObjectPropertyNode> ObjectNode = ExternalRootPropertyNodes[NodeIndex].Pin();
+			TSharedPtr<FPropertyNode> PropertyNode = ExternalRootPropertyNodes[NodeIndex].Pin();
 
-			if (ObjectNode.IsValid())
+			if (PropertyNode.IsValid())
 			{
-				ObjectNode->FilterNodes(CurrentFilter.FilterStrings);
-				ObjectNode->ProcessSeenFlags(true);
+				PropertyNode->FilterNodes(CurrentFilter.FilterStrings);
+				PropertyNode->ProcessSeenFlags(true);
 			}
 		}
 
@@ -964,7 +982,7 @@ static bool IsVisibleStandaloneProperty(const FPropertyNode& PropertyNode, const
 			// Do not add this child node to the current map if its a single object property in a category (serves no purpose for UI)
 			bIsVisibleStandalone = !ParentArrayProperty && (PropertyNode.GetNumChildNodes() == 0 || PropertyNode.GetNumChildNodes() > 1);
 		}
-		else if (Property->IsA(UArrayProperty::StaticClass()) || Property->ArrayDim > 1 && PropertyNode.GetArrayIndex() == INDEX_NONE)
+		else if (Property->IsA(UArrayProperty::StaticClass()) || (Property->ArrayDim > 1 && PropertyNode.GetArrayIndex() == INDEX_NONE))
 		{
 			// Base array properties are always visible
 			bIsVisibleStandalone = true;

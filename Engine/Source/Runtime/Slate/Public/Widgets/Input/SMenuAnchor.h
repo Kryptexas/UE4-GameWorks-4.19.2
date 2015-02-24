@@ -1,9 +1,21 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "STextBlock.h"
 
 /** Notification when popup is opened/closed. */
 DECLARE_DELEGATE_OneParam(FOnIsOpenChanged, bool)
+
+
+enum class EPopupMethod : uint8
+{
+	/** Creating a new window allows us to place popups outside of the window in which the menu anchor resides. */
+	CreateNewWindow,
+	/** Place the popup into the current window. Applications that intend to run in fullscreen cannot create new windows, so they must use this method.. */
+	UseCurrentWindow
+};
+
+;
 
 /**
  * A PopupAnchor summons a Popup relative to its content.
@@ -12,13 +24,10 @@ DECLARE_DELEGATE_OneParam(FOnIsOpenChanged, bool)
 class SLATE_API SMenuAnchor : public SPanel
 {
 public:
-	enum EMethod
-	{
-		/** Creating a new window allows us to place popups outside of the window in which the menu anchor resides. */
-		CreateNewWindow,
-		/** Applications that intend to run in fullscreen cannot create new windows. */
-		UseCurrentWindow
-	};
+	DEPRECATED(4.7, "You probably do not need this setting any more. See OnQueryPopupMethod() in SWidget.h.")
+	typedef ::EPopupMethod EMethod;
+	static const EPopupMethod CreateNewWindow = EPopupMethod::CreateNewWindow;
+	static const EPopupMethod UseCurrentWindow = EPopupMethod::UseCurrentWindow;
 	
 public:
 	SLATE_BEGIN_ARGS( SMenuAnchor )
@@ -26,7 +35,7 @@ public:
 		, _MenuContent( SNew(STextBlock) .Text( NSLOCTEXT("SMenuAnchor", "NoMenuContent", "No Menu Content Assigned; use .MenuContent") ) )
 		, _OnGetMenuContent()
 		, _Placement( MenuPlacement_BelowAnchor )
-		, _Method( CreateNewWindow )
+		, _Method()
 		{}
 		
 		SLATE_DEFAULT_SLOT( FArguments, Content )
@@ -39,7 +48,7 @@ public:
 
 		SLATE_ATTRIBUTE( EMenuPlacement, Placement )
 
-		SLATE_ARGUMENT( EMethod, Method )
+		SLATE_ARGUMENT(TOptional<EPopupMethod>, Method)
 
 	SLATE_END_ARGS()
 
@@ -90,22 +99,17 @@ protected:
 	int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const;
 	// End of SWidget interface
 
-	/**
-	 * Computes the desired position for a popup that is attached to this anchor.
-	 *
-	 * @param   AllottedGeometry    Our widget's geometry
-	 * @param   PopupDesiredSize    How big the popup needs to be for all of its contents to be visible
-	 * @param   PlacementMode       Should the popup be below the anchor? Right of it? Some other placement?
-	 *
-	 * @return Geometry computed for the popup widget.
-	 */
-	static FGeometry ComputeMenuPlacement( const FGeometry& AllottedGeometry, const FVector2D& PopupDesiredSize, EMenuPlacement PlacementMode );
-
 	/** Invoked when the popup window is being closed by the application */
 	void RequestClosePopupWindow( const TSharedRef<SWindow>& PopupWindow );
 
 	/** Invoked when a click occurred outside the widget that is our popup; used for popup auto-dismissal */
 	void OnClickedOutsidePopup();
+
+	/** @return true if the popup is currently open and reusing an existing window */
+	bool IsOpenAndReusingWindow() const;
+
+	/** @return true if the popup is currently open and we created a dedicated window for it */
+	bool IsOpenViaCreatedWindow() const;
 
 protected:
 	/** A pointer to the window presenting this popup. Pointer is null when the popup is not visible */
@@ -127,7 +131,21 @@ protected:
 	bool bDismissedThisTick;
 
 	/** Should we summon a new window for this popup or  */
-	EMethod Method;
+	TOptional<EPopupMethod> Method;
+
+	/** Method currently being used to show the popup. No value if popup is closed. */
+	TOptional<EPopupMethod> MethodInUse;
+
+	/**
+	 * @todo Slate : Unify geometry so that this is not necessary.
+	 * Stores the local offset of the popup as we have to compute it in OnTick;
+	 * Cannot compute in OnArrangeChildren() because it can be
+	 * called in different spaces (window or desktop.)
+	 */
+	FVector2D LocalPopupPosition;
 
 	TPanelChildren<FSimpleSlot> Children;
+
+	/** Handle to the registered OnClickedOutsidePopup delegate */
+	FDelegateHandle OnClickedOutsidePopupDelegateHandle;
 };

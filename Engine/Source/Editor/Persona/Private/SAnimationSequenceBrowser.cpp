@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -439,8 +439,36 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 	Config.OnGetCustomAssetToolTip = FOnGetCustomAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::CreateCustomAssetToolTip);
 	Config.OnVisualizeAssetToolTip = FOnVisualizeAssetToolTip::CreateSP(this, &SAnimationSequenceBrowser::OnVisualizeAssetToolTip);
 
-	TWeakPtr< SMenuAnchor > BackMenuAnchorPtr;
-	TWeakPtr< SMenuAnchor > FwdMenuAnchorPtr;	
+	TSharedRef< SMenuAnchor > BackMenuAnchorPtr = SNew(SMenuAnchor)
+		.Placement(MenuPlacement_BelowAnchor)
+		.OnGetMenuContent(this, &SAnimationSequenceBrowser::CreateHistoryMenu, true)
+		[
+			SNew(SButton)
+			.OnClicked(this, &SAnimationSequenceBrowser::OnGoBackInHistory)
+			.ButtonStyle(FEditorStyle::Get(), "GraphBreadcrumbButton")
+			.IsEnabled(this, &SAnimationSequenceBrowser::CanStepBackwardInHistory)
+			.ToolTipText(LOCTEXT("Backward_Tooltip", "Step backward in the asset history. Right click to see full history."))
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("GraphBreadcrumb.BrowseBack"))
+			]
+		];
+
+	TSharedRef< SMenuAnchor > FwdMenuAnchorPtr = SNew(SMenuAnchor)
+		.Placement(MenuPlacement_BelowAnchor)
+		.OnGetMenuContent(this, &SAnimationSequenceBrowser::CreateHistoryMenu, false)
+		[
+			SNew(SButton)
+			.OnClicked(this, &SAnimationSequenceBrowser::OnGoForwardInHistory)
+			.ButtonStyle(FEditorStyle::Get(), "GraphBreadcrumbButton")
+			.IsEnabled(this, &SAnimationSequenceBrowser::CanStepForwardInHistory)
+			.ToolTipText(LOCTEXT("Forward_Tooltip", "Step forward in the asset history. Right click to see full history."))
+			[
+				SNew(SImage)
+				.Image(FEditorStyle::GetBrush("GraphBreadcrumb.BrowseForward"))
+			]
+		];
+
 	this->ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -453,33 +481,22 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 		.AutoHeight()
 		[
 			SNew(SSeparator)
+			.Visibility(this, &SAnimationSequenceBrowser::GetNonBlueprintModeVisibility)
 		]
 		+SVerticalBox::Slot()
 		.HAlign(HAlign_Right)
 		.AutoHeight()
 		[
 			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
+			.Visibility(this, &SAnimationSequenceBrowser::GetNonBlueprintModeVisibility)
+			+ SHorizontalBox::Slot()
 			.AutoWidth()
 			[
 				SNew(SBorder)
-				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, BackMenuAnchorPtr)
+				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, TWeakPtr<SMenuAnchor>(BackMenuAnchorPtr))
 				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 				[
-					SAssignNew(BackMenuAnchorPtr, SMenuAnchor)
-					.Placement( MenuPlacement_BelowAnchor )
-					.OnGetMenuContent( this, &SAnimationSequenceBrowser::CreateHistoryMenu, true )
-					[
-						SNew(SButton)
-						.OnClicked( this, &SAnimationSequenceBrowser::OnGoBackInHistory )
-						.ButtonStyle( FEditorStyle::Get(), "GraphBreadcrumbButton" )
-						.IsEnabled(this, &SAnimationSequenceBrowser::CanStepBackwardInHistory)
-						.ToolTipText(LOCTEXT("Backward_Tooltip", "Step backward in the asset history. Right click to see full history."))
-						[
-							SNew(SImage)
-							.Image( FEditorStyle::GetBrush("GraphBreadcrumb.BrowseBack") )
-						]
-					]
+					BackMenuAnchorPtr
 				]
 			]
 
@@ -487,23 +504,10 @@ void SAnimationSequenceBrowser::Construct(const FArguments& InArgs)
 			.AutoWidth()
 			[
 				SNew(SBorder)
-				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, FwdMenuAnchorPtr)
+				.OnMouseButtonDown(this, &SAnimationSequenceBrowser::OnMouseDownHisory, TWeakPtr<SMenuAnchor>(FwdMenuAnchorPtr))
 				.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 				[
-					SAssignNew(FwdMenuAnchorPtr, SMenuAnchor)
-					.Placement( MenuPlacement_BelowAnchor )
-					.OnGetMenuContent( this, &SAnimationSequenceBrowser::CreateHistoryMenu, false )
-					[
-						SNew(SButton)
-						.OnClicked( this, &SAnimationSequenceBrowser::OnGoForwardInHistory )
-						.ButtonStyle( FEditorStyle::Get(), "GraphBreadcrumbButton" )
-						.IsEnabled(this, &SAnimationSequenceBrowser::CanStepForwardInHistory)
-						.ToolTipText(LOCTEXT("Forward_Tooltip", "Step forward in the asset history. Right click to see full history."))
-						[
-							SNew(SImage)
-							.Image( FEditorStyle::GetBrush("GraphBreadcrumb.BrowseForward") )
-						]
-					]
+					FwdMenuAnchorPtr
 				]
 			]
 		]
@@ -758,7 +762,7 @@ TSharedRef<SToolTip> SAnimationSequenceBrowser::CreateCustomAssetToolTip(FAssetD
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text(TagPair.Value)
+					.Text(FText::FromString(TagPair.Value))
 					.ColorAndOpacity(FSlateColor::UseForeground())
 				]
 			];
@@ -803,7 +807,21 @@ TSharedRef<SToolTip> SAnimationSequenceBrowser::CreateCustomAssetToolTip(FAssetD
 					.Padding(6)
 					.BorderImage(FEditorStyle::GetBrush("ContentBrowser.TileViewTooltip.ContentBorder"))
 					[
-						ViewportWidget.ToSharedRef()
+						SNew(SOverlay)
+						+SOverlay::Slot()
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("NoPreviewMesh", "No Preview Mesh"))
+						]
+
+						+ SOverlay::Slot()
+						.VAlign(VAlign_Center)
+						.HAlign(HAlign_Center)
+						[
+							ViewportWidget.ToSharedRef()
+						]
 					]
 				]
 			]
@@ -881,20 +899,29 @@ bool SAnimationSequenceBrowser::OnVisualizeAssetToolTip(const TSharedPtr<SWidget
 		USkeleton* Skeleton = Asset->GetSkeleton();
 		
 		MeshToUse = Skeleton->GetAssetPreviewMesh(Asset);
-		check(MeshToUse);
-		if(PreviewComponent->SkeletalMesh != MeshToUse)
+		
+		if(MeshToUse)
 		{
-			PreviewComponent->SetSkeletalMesh(MeshToUse);
+			if(PreviewComponent->SkeletalMesh != MeshToUse)
+			{
+				PreviewComponent->SetSkeletalMesh(MeshToUse);
+			}
+
+			PreviewComponent->EnablePreview(true, Asset, NULL);
+			PreviewComponent->PreviewInstance->PlayAnim(true);
+
+			float HalfFov = FMath::DegreesToRadians(ViewportClient->ViewFOV) / 2.0f;
+			float TargetDist = MeshToUse->Bounds.SphereRadius / FMath::Tan(HalfFov);
+
+			ViewportClient->SetViewRotation(FRotator(0.0f, -45.0f, 0.0f));
+			ViewportClient->SetViewLocationForOrbiting(FVector(0.0f, 0.0f, MeshToUse->Bounds.BoxExtent.Z / 2.0f), TargetDist);
+
+			ViewportWidget->SetVisibility(EVisibility::Visible);
 		}
-
-		PreviewComponent->EnablePreview(true, Asset, NULL);
-		PreviewComponent->PreviewInstance->PlayAnim(true);
-
-		float HalfFov = FMath::DegreesToRadians(ViewportClient->ViewFOV) / 2.0f;
-		float TargetDist = MeshToUse->Bounds.SphereRadius / FMath::Tan(HalfFov);
-
-		ViewportClient->SetViewRotation(FRotator(0.0f, -45.0f, 0.0f));
-		ViewportClient->SetViewLocationForOrbiting(FVector(0.0f, 0.0f, MeshToUse->Bounds.BoxExtent.Z / 2.0f), TargetDist);
+		else
+		{
+			ViewportWidget->SetVisibility(EVisibility::Hidden);
+		}
 	}
 
 	// We return false here as we aren't visualizing the tooltip - just detecting when it is about to be shown.
@@ -939,7 +966,23 @@ bool SAnimationSequenceBrowser::IsToolTipPreviewVisible()
 	return bVisible;
 }
 
-FAnimationAssetViewportClient::FAnimationAssetViewportClient(FPreviewScene& InPreviewScene) : FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)
+EVisibility SAnimationSequenceBrowser::GetNonBlueprintModeVisibility() const
+{
+	if (PersonaPtr.IsValid())
+	{
+		if (PersonaPtr.Pin()->GetCurrentMode() == FPersonaModes::AnimBlueprintEditMode)
+		{
+			return EVisibility::Collapsed;
+		}
+	}
+
+	return EVisibility::Visible;
+}
+
+
+
+FAnimationAssetViewportClient::FAnimationAssetViewportClient(FPreviewScene& InPreviewScene)
+	: FEditorViewportClient(nullptr, &InPreviewScene)
 {
 	SetViewMode(VMI_Lit);
 

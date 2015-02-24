@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "PListNodeArray.h"
@@ -147,14 +147,12 @@ TSharedRef<SWidget> FPListNodeArray::GenerateWidgetForColumn(const FName& Column
 
 	else if(ColumnName == "PListValueColumn")
 	{
-		FString StatusText = NSLOCTEXT("PListEditor", "PListEditorKeyValuePairs", "key/value pairs").ToString();
-
 		return 
 		SNew(SBorder)
 		.BorderImage_Static(&IPListNode::GetOverlayBrushDelegate, AsShared())
 		[
 			SAssignNew(InfoTextWidget, STextBlock)
-			.Text(FString(TEXT("[")) + FString::Printf(TEXT("%i "), GetNumPairs()) + StatusText + FString(TEXT("]")))
+			.Text(FText::Format(NSLOCTEXT("PListEditor", "NumKeyValuePairsFmt", "[{0} key/value pairs]"), FText::AsNumber(GetNumPairs())))
 		];
 	}
 
@@ -200,10 +198,9 @@ FString FPListNodeArray::ToXML(const int32 indent, bool bOutputKey)
 void FPListNodeArray::Refresh()
 {
 	// Refresh display of # of child widgets (key/value pairs)
-	FString StatusText = NSLOCTEXT("PListEditor", "PListEditorKeyValuePairs", "key/value pairs").ToString();
 	if(InfoTextWidget.IsValid())
 	{
-		InfoTextWidget->SetText(FString(TEXT("[")) + FString::Printf(TEXT("%i "), GetNumPairs()) + StatusText + FString(TEXT("]")));
+		InfoTextWidget->SetText(FText::Format(NSLOCTEXT("PListEditor", "NumKeyValuePairsFmt", "[{0} key/value pairs]"), FText::AsNumber(GetNumPairs())));
 	}
 
 	// Refresh all children and set their indices
@@ -406,17 +403,21 @@ FSlateColor FPListNodeArray::GetKeyBackgroundColor() const
 /** Delegate: Changes the color of the key string text box based on validity */
 FSlateColor FPListNodeArray::GetKeyForegroundColor() const
 {
+	static const FName InvertedForegroundName("InvertedForeground");
+
 	if(bArrayMember)
 	{
-		return FEditorStyle::GetSlateColor("InvertedForeground");
+		
+		return FEditorStyle::GetSlateColor(InvertedForegroundName);
 	}
 
 	if(!bKeyValid)
 	{
-		return FEditorStyle::GetColor("ErrorReporting.ForegroundColor");
+		static const FName ForegroundColor("ErrorReporting.ForegroundColor");
+		return FEditorStyle::GetColor(ForegroundColor);
 	}
 	else
 	{
-		return FEditorStyle::GetSlateColor("InvertedForeground");
+		return FEditorStyle::GetSlateColor(InvertedForegroundName);
 	}
 }

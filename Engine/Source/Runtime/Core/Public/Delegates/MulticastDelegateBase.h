@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -95,9 +95,10 @@ protected:
 	 *
 	 * @param DelegateInstance The delegate instance to add.
 	 */
-	inline void AddInternal( IDelegateInstance* DelegateInstance )
+	inline FDelegateHandle AddInternal( IDelegateInstance* DelegateInstance )
 	{
 		InvocationList.Add(DelegateInstance);
+		return DelegateInstance->GetHandle();
 	}
 
 	/**

@@ -1,6 +1,7 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 /*=============================================================================
 	SteamController.h: Unreal SteamController interface object.
-	Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 =============================================================================*/
 
 #pragma  once 

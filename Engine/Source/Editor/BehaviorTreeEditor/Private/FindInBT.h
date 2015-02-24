@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -58,6 +58,9 @@ private:
 
 	/** Called when user changes the text they are searching for */
 	void OnSearchTextChanged(const FText& Text);
+
+	/** Called when user commits text */
+	void OnSearchTextCommitted(const FText& Text, ETextCommit::Type CommitType);
 
 	/** Get the children of a row */
 	void OnGetChildren(FSearchResult InItem, TArray<FSearchResult>& OutChildren);

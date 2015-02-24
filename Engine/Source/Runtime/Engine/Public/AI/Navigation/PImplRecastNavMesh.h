@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //
 // Private implementation for communication with Recast library
@@ -14,6 +14,10 @@
 #include "Detour/DetourNavMeshQuery.h"
 
 #define RECAST_VERY_SMALL_AGENT_RADIUS 0.0f
+
+class ARecastNavMesh;
+class dtNavMesh;
+struct dtMeshTile;
 
 class ENGINE_API FRecastQueryFilter : public INavigationQueryFilterInterface, public dtQueryFilter
 {
@@ -58,7 +62,7 @@ class ENGINE_API FPImplRecastNavMesh
 public:
 
 	/** Constructor */
-	FPImplRecastNavMesh(class ARecastNavMesh* Owner);
+	FPImplRecastNavMesh(ARecastNavMesh* Owner);
 
 	/** Dtor */
 	~FPImplRecastNavMesh();
@@ -145,7 +149,7 @@ public:
 	bool FindStraightPath(const FVector& StartLoc, const FVector& EndLoc, const TArray<NavNodeRef>& PathCorridor, TArray<FNavPathPoint>& PathPoints, TArray<uint32>* CustomLinks = NULL) const;
 
 	/** Filters nav polys in PolyRefs with Filter */
-	bool FilterPolys(TArray<NavNodeRef>& PolyRefs, const class FRecastQueryFilter* Filter, const UObject* Owner) const;
+	bool FilterPolys(TArray<NavNodeRef>& PolyRefs, const FRecastQueryFilter* Filter, const UObject* Owner) const;
 
 	/** Get all polys from tile */
 	bool GetPolysInTile(int32 TileIndex, TArray<FNavPoly>& Polys) const;
@@ -182,17 +186,15 @@ public:
 	static void SetFilterForbiddenFlags(FRecastQueryFilter* Filter, uint16 ForbiddenFlags);
 
 public:
-	class dtNavMesh const* GetRecastMesh() const { return DetourNavMesh; };
-	class dtNavMesh* GetRecastMesh() { return DetourNavMesh; };
+	dtNavMesh const* GetRecastMesh() const { return DetourNavMesh; };
+	dtNavMesh* GetRecastMesh() { return DetourNavMesh; };
 	void ReleaseDetourNavMesh();
-
-	bool GetOwnsNavMeshData() const { return bOwnsNavMeshData; }
 
 	/** Assigns recast generated navmesh to this instance.
 	 *	@param bOwnData if true from now on this FPImplRecastNavMesh instance will be responsible for this piece 
 	 *		of memory
 	 */
-	void SetRecastMesh(class dtNavMesh* NavMesh, bool bOwnData = false);
+	void SetRecastMesh(dtNavMesh* NavMesh);
 
 	float GetTotalDataSize() const;
 
@@ -204,13 +206,10 @@ public:
 	 *	@note no check if segment is on poly is performed. */
 	float CalcSegmentCostOnPoly(NavNodeRef PolyID, const dtQueryFilter* Filter, const FVector& StartLoc, const FVector& EndLoc) const;
 
-	class ARecastNavMesh* NavMeshOwner;
-
-	/** if true instance is responsible for deallocation of recast navmesh */
-	bool bOwnsNavMeshData;
-
+	ARecastNavMesh* NavMeshOwner;
+	
 	/** Recast's runtime navmesh data that we can query against */
-	class dtNavMesh* DetourNavMesh;
+	dtNavMesh* DetourNavMesh;
 
 	/** query used for searching data on game thread */
 	mutable dtNavMeshQuery SharedNavQuery;
@@ -232,7 +231,7 @@ public:
 		const FVector& RecastStart, FVector& RecastEnd,
 		dtQueryResult& PathResult) const;
 
-	void GetDebugPolyEdges(const struct dtMeshTile* Tile, bool bInternalEdges, bool bNavMeshEdges, TArray<FVector>& InternalEdgeVerts, TArray<FVector>& NavMeshEdgeVerts) const;
+	void GetDebugPolyEdges(const dtMeshTile* Tile, bool bInternalEdges, bool bNavMeshEdges, TArray<FVector>& InternalEdgeVerts, TArray<FVector>& NavMeshEdgeVerts) const;
 
 	/** workhorse function finding portal edges between corridor polys */
 	void GetEdgesForPathCorridorImpl(const TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges, const dtNavMeshQuery& NavQuery) const;

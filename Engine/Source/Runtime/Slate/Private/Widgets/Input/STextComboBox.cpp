@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "STextComboBox.h"
@@ -8,11 +8,14 @@ void STextComboBox::Construct( const FArguments& InArgs )
 {
 	SelectionChanged = InArgs._OnSelectionChanged;
 	GetTextLabelForItem = InArgs._OnGetTextLabelForItem;
+	Font = InArgs._Font;
 
 	// Then make widget
 	this->ChildSlot
 	[
 		SAssignNew(StringCombo, SComboBox< TSharedPtr<FString> > )
+		.ComboBoxStyle(InArgs._ComboBoxStyle)
+		.ButtonStyle(InArgs._ButtonStyle)
 		.OptionsSource(InArgs._OptionsSource)
 		.OnGenerateWidget(this, &STextComboBox::MakeItemWidget)
 		.OnSelectionChanged(this, &STextComboBox::OnSelectionChanged)
@@ -23,6 +26,7 @@ void STextComboBox::Construct( const FArguments& InArgs )
 			SNew(STextBlock)
 				.ColorAndOpacity(InArgs._ColorAndOpacity)
 				.Text(this, &STextComboBox::GetSelectedTextLabel)
+				.Font(InArgs._Font)
 		]
 	];
 	SelectedItem = StringCombo->GetSelectedItem();
@@ -51,7 +55,8 @@ TSharedRef<SWidget> STextComboBox::MakeItemWidget( TSharedPtr<FString> StringIte
 	check( StringItem.IsValid() );
 
 	return SNew(STextBlock)
-		.Text(this, &STextComboBox::GetItemTextLabel, StringItem);
+		.Text(this, &STextComboBox::GetItemTextLabel, StringItem)
+		.Font(Font);
 }
 
 void STextComboBox::OnSelectionChanged (TSharedPtr<FString> Selection, ESelectInfo::Type SelectInfo)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,6 +15,12 @@ const FString DefaultPresenceKey = "RichPresence";
 
 /** Custom presence data that is not seen by users but can be polled */
 const FString CustomPresenceDataKey = "CustomData";
+
+/** Id of the client that sent the presence update */
+const FString DefaultClientIdKey = "ClientId";
+
+/** Id of the session for the presence update. @todo samz - SessionId on presence data should be FUniqueNetId not uint64 */
+const FString DefaultSessionIdKey = "SessionId";
 
 namespace EOnlinePresenceState
 {
@@ -135,6 +141,7 @@ public:
 	 * @param Users The list of unique ids of the users to query for presence information.
 	 * @param Delegate The delegate to be executed when the potentially asynchronous query operation completes.
 	 */
+	//@todo samz - interface should be QueryPresence(const FUniqueNetId& User,  const TArray<TSharedRef<class FUniqueNetId> >& UserIds, const FOnPresenceTaskCompleteDelegate& Delegate)
 	virtual void QueryPresence(const FUniqueNetId& User, const FOnPresenceTaskCompleteDelegate& Delegate = FOnPresenceTaskCompleteDelegate()) = 0;
 
 	/**

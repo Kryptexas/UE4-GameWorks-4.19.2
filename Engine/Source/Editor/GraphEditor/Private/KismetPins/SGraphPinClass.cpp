@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -80,8 +80,9 @@ TSharedRef<SWidget> SGraphPinClass::GenerateAssetPicker()
 		.WidthOverride(280)
 		[
 			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
-			.AutoHeight()
+
+			+ SVerticalBox::Slot()
+			.FillHeight(1.0f)
 			.MaxHeight(500)
 			[ 
 				SNew(SBorder)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -41,6 +41,8 @@ public:
 	 * @return The new action node.
 	 */
 	TSharedPtr<FGraphActionNode> AddChild(FGraphActionListBuilderBase::ActionGroup const& ActionSet);
+
+	TSharedPtr<FGraphActionNode> AddSection(int32 Grouping, int32 InSectionID);
 
 	/**
 	 * Sorts all child nodes by section, group, and type (additionally, can

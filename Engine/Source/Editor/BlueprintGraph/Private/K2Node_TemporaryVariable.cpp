@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -114,6 +114,14 @@ bool UK2Node_TemporaryVariable::IsCompatibleWithGraph(UEdGraph const* TargetGrap
 	}
 
 	return bIsCompatible;
+}
+
+bool UK2Node_TemporaryVariable::CanPasteHere(const UEdGraph* TargetGraph) const
+{
+	// These nodes can be pasted anywhere that UK2Node's are compatible with the graph
+	// Avoiding the call to IsCompatibleWithGraph because these nodes should normally only
+	// be placed in Macros, but it's nice to be able to paste Macro functionality anywhere.
+	return Super::IsCompatibleWithGraph(TargetGraph);
 }
 
 // get variable pin

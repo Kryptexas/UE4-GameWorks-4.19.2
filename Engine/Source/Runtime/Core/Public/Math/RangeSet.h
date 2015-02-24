@@ -1,8 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	RangeSet.h: Declares the TRangeSet class template.
-=============================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,15 +14,11 @@ template<typename ElementType> class TRangeSet
 
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	TRangeSet( ) { }
+	/** Default constructor. */
+	TRangeSet() { }
 
-	/**
-	 * Destructor.
-	 */
-	~TRangeSet( ) { }
+	/** Destructor. */
+	~TRangeSet() { }
 
 public:
 	
@@ -105,7 +97,7 @@ public:
 	/**
 	 * Removes all ranges from the set.
 	 */
-	void Empty( )
+	void Empty()
 	{
 		Ranges.Empty();
 	}
@@ -155,7 +147,7 @@ public:
 	 *
 	 * @return Array of ranges.
 	 */
-	const TArray<RangeType>& GetRanges( ) const
+	const TArray<RangeType>& GetRanges() const
 	{
 		return Ranges;
 	}
@@ -165,7 +157,7 @@ public:
 	 *
 	 * @return true if the range set is empty, false otherwise.
 	 */
-	bool IsEmpty( ) const
+	bool IsEmpty() const
 	{
 		return (Ranges.Num() == 0);
 	}

@@ -1,4 +1,4 @@
-﻿<%-- // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. --%>
+﻿<%-- // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved. --%>
 
 <%@ Page Title="" Language="C#" MasterPageFile="~/Views/Shared/Site.Master" Inherits="System.Web.Mvc.ViewPage<CrashesViewModel>" %>
 
@@ -111,7 +111,10 @@ Crash Reports
 			<input type="radio" name="CrashType" class="CrashType" value="All" <%=( Model.CrashType == "All" ) ? "checked='checked'" : "" %>/> <span title='All Crashes'>All</span>
 		</span>
 
-		<div id="SearchBox"><%=Html.TextBox( "SearchQuery", Model.SearchQuery, new { width = "1000" } )%><input type="submit" value="Search" class='SearchButton' /></div>
+		<div id="SearchBox">
+			<input id="SearchQuery" name="SearchQuery" type="text" value="<%=Model.SearchQuery %>" width="1000" title="For searching for an user use 'user:[name]'" />
+			<input type="submit" value="Search" class='SearchButton' />
+		</div>
 	
 		<script>$.datepicker.setDefaults($.datepicker.regional['']);</script>
 
@@ -122,9 +125,9 @@ Crash Reports
 		<input id="dateTo" name="dateTo" type="hidden" value="<%=Model.DateTo %>" AUTOCOMPLETE=OFF />
 
 		<span style="margin-left: 10px; font-weight:bold;">Filter Branch:</span>
-		<span><input id="BranchName" name="BranchName" type="text" value="<%=Model.BranchName %>" AUTOCOMPLETE=OFF title="Branch to filter by; prefix with '-' to exclude branch."/></span>
+		<span><input id="BranchName" name="BranchName" type="text" value="<%=Model.BranchName %>" title="Branch to filter by; prefix with '-' to exclude branch."/></span>
 		<span style="margin-left: 10px; font-weight:bold;">Filter Game:</span>
-		<span><input id="GameName" name="GameName" type="text" value="<%=Model.GameName %>" AUTOCOMPLETE=OFF title="Game to filter by; prefix with '-' to exclude game."/></span>
+		<span><input id="GameName" name="GameName" type="text" value="<%=Model.GameName %>" title="Game to filter by; prefix with '-' to exclude game."/></span>
 	<% } %>
 	</div>
 </asp:Content>
@@ -157,7 +160,8 @@ Crash Reports
 						UserGroup = Model.UserGroup, 
 						DateFrom = Model.DateFrom, 
 						DateTo = Model.DateTo, 
-						CrashType = Model.CrashType
+						CrashType = Model.CrashType,
+						RealUserName = Model.RealUserName
 					}
 					, 
 					new { style = "color:black; text-decoration:none;" }
@@ -193,7 +197,8 @@ Crash Reports
 			UserGroup = Model.UserGroup, 
 			DateFrom = Model.DateFrom, 
 			DateTo = Model.DateTo, 
-			CrashType = Model.CrashType 
+			CrashType = Model.CrashType,
+			RealUserName = Model.RealUserName
 		} 
 	) )%>
 	<div id="clear"></div>

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSOpenGL.h: Public OpenGL ES 2.0 definitions for iOS-specific functionality
@@ -107,6 +107,8 @@ struct FIOSOpenGL : public FOpenGLES2
 	}
 
 	static FORCEINLINE bool SupportsFramebufferSRGBEnable()				{ return false; }
+
+	static FORCEINLINE GLenum GetShadowDepthFormat()					{ return GL_DEPTH_COMPONENT16; }
 };
 
 typedef FIOSOpenGL FOpenGL;

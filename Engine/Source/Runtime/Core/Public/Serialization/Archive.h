@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Core utility archive classes.  Must be separate from ArchiveBase.h since 
@@ -85,7 +85,7 @@ public:
 		}
 	}
 
-	void Serialize( void* Data, int64 Num )
+	virtual void Serialize(void* Data, int64 Num) override
 	{
 		const int64 NumBytesToAdd = Offset + Num - Bytes.Num();
 		if( NumBytesToAdd > 0 )

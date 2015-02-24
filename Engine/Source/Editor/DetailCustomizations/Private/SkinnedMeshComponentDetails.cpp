@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SkinnedMeshComponentDetails.h"
@@ -14,16 +14,16 @@ TSharedRef<IDetailCustomization> FSkinnedMeshComponentDetails::MakeInstance()
 
 void FSkinnedMeshComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	DetailBuilder.EditCategory("Mesh", TEXT(""), ECategoryPriority::Important);
-	IDetailCategoryBuilder& PhysicsCategory = DetailBuilder.EditCategory("Physics", TEXT(""), ECategoryPriority::TypeSpecific);
-	IDetailCategoryBuilder& LODCategory = DetailBuilder.EditCategory("LOD", TEXT("Level of Detail"), ECategoryPriority::Default);
+	DetailBuilder.EditCategory("Mesh", FText::GetEmpty(), ECategoryPriority::Important);
+	IDetailCategoryBuilder& PhysicsCategory = DetailBuilder.EditCategory("Physics", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
+	IDetailCategoryBuilder& LODCategory = DetailBuilder.EditCategory("LOD", LOCTEXT("LODCategoryName", "Level of Detail"), ECategoryPriority::Default);
 	
 	// show extra field about actually used physics asset, but make sure to show it under physics asset override
-	TSharedRef<IPropertyHandle> PhysicsAssetProperty =  DetailBuilder.GetProperty("PhysicsAssetOverride");
+	TSharedRef<IPropertyHandle> PhysicsAssetProperty =  DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(USkinnedMeshComponent, PhysicsAssetOverride));
 	if (PhysicsAssetProperty->IsValidHandle())
 	{
-		PhysicsCategory.AddProperty("PhysicsAssetOverride");
-		CreateActuallyUsedPhysicsAssetWidget(PhysicsCategory.AddCustomRow( LOCTEXT("CurrentPhysicsAsset", "Currently used Physics Asset").ToString(), true), &DetailBuilder);
+		PhysicsCategory.AddProperty(GET_MEMBER_NAME_CHECKED(USkinnedMeshComponent, PhysicsAssetOverride));
+		CreateActuallyUsedPhysicsAssetWidget(PhysicsCategory.AddCustomRow( LOCTEXT("CurrentPhysicsAsset", "Currently used Physics Asset"), true), &DetailBuilder);
 	}
 }
 
@@ -67,7 +67,7 @@ bool FSkinnedMeshComponentDetails::FindUniqueUsedPhysicsAsset(IDetailLayoutBuild
 	{
 		if (AActor* Actor = Cast<AActor>(SelectionIt->Get()))
 		{
-			TArray<USkinnedMeshComponent*> SkinnedMeshComponents;
+			TInlineComponentArray<USkinnedMeshComponent*> SkinnedMeshComponents;
 			Actor->GetComponents(SkinnedMeshComponents);
 
 			for (int32 CompIdx = 0; CompIdx < SkinnedMeshComponents.Num(); CompIdx++)

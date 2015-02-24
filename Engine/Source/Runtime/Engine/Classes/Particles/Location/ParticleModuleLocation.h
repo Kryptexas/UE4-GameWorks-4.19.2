@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -46,7 +46,7 @@ protected:
 	 *	@param	SpawnTime			The time of the spawn
 	 *	@param	InRandomStream		The random stream to use for retrieving random values
 	 */
-	virtual void SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase);
+	virtual void SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase);
 
 public:
 	//Begin UObject Interface
@@ -54,7 +54,6 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void PostInitProperties() override;
-	virtual void Serialize(FArchive& Ar) override;
 	//End UObject Interface
 
 	//Begin UParticleModule Interface

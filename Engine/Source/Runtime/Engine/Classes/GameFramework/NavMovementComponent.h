@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Movement component that is compatible with the navigation system's PathFollowingComponent
@@ -12,6 +12,9 @@
 #include "GameFramework/MovementComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "NavMovementComponent.generated.h"
+
+class AActor;
+class UCapsuleComponent;
 
 /**
  * NavMovementComponent defines base functionality for MovementComponents that move any 'agent' that may be involved in AI pathfinding.
@@ -53,18 +56,20 @@ public:
 	// Overridden to also call StopActiveMovement().
 	virtual void StopMovementImmediately() override;
 
+	void SetUpdateNavAgentWithOwnersCollisions(bool bUpdateWithOwner);
 	FORCEINLINE bool ShouldUpdateNavAgentWithOwnersCollision() const { return bUpdateNavAgentWithOwnersCollision != 0; }
-	void UpdateNavAgent(class AActor* Owner);
-	void UpdateNavAgent(class UCapsuleComponent* CapsuleComponent);
+	
+	void UpdateNavAgent(const AActor& Owner);
+	void UpdateNavAgent(const UCapsuleComponent& CapsuleComponent);
 
 	/** @returns location of controlled actor - meaning center of collision bounding box */
 	FORCEINLINE FVector GetActorLocation() const { return UpdatedComponent ? UpdatedComponent->GetComponentLocation() : FVector(FLT_MAX); }
 	/** @returns location of controlled actor's "feet" meaning center of bottom of collision bounding box */
-	FORCEINLINE FVector GetActorFeetLocation() const { return UpdatedComponent ? (UpdatedComponent->GetComponentLocation() - FVector(0,0,UpdatedComponent->Bounds.BoxExtent.Z)) : FVector::ZeroVector; }
+	FORCEINLINE FVector GetActorFeetLocation() const { return UpdatedComponent ? (UpdatedComponent->GetComponentLocation() - FVector(0,0,UpdatedComponent->Bounds.BoxExtent.Z)) : FNavigationSystem::InvalidLocation; }
 	/** @returns based location of controlled actor */
 	virtual FBasedPosition GetActorFeetLocationBased() const;
 	/** @returns navigation location of controlled actor */
-	FORCEINLINE FVector GetActorNavLocation() const { INavAgentInterface* MyOwner = Cast<INavAgentInterface>(GetOwner()); return MyOwner ? MyOwner->GetNavAgentLocation() : FVector::ZeroVector; }
+	FORCEINLINE FVector GetActorNavLocation() const { INavAgentInterface* MyOwner = Cast<INavAgentInterface>(GetOwner()); return MyOwner ? MyOwner->GetNavAgentLocation() : FNavigationSystem::InvalidLocation; }
 
 	/** request direct movement */
 	virtual void RequestDirectMove(const FVector& MoveVelocity, bool bForceMaxSpeed);
@@ -74,13 +79,15 @@ public:
 	virtual bool CanStopPathFollowing() const;
 
 	/** @returns the NavAgentProps(const) */
-	FORCEINLINE const FNavAgentProperties* GetNavAgentProperties() const { return &NavAgentProps; }
+	FORCEINLINE const FNavAgentProperties& GetNavAgentPropertiesRef() const { return NavAgentProps; }
 	/** @returns the NavAgentProps */
-	FORCEINLINE FNavAgentProperties* GetNavAgentProperties() { return &NavAgentProps; }
+	FORCEINLINE FNavAgentProperties& GetNavAgentPropertiesRef() { return NavAgentProps; }
 
 	/** Resets runtime movement state to character's movement capabilities */
 	void ResetMoveState() { MovementState = NavAgentProps; }
 
+	/** @return true if path following can start */
+	virtual bool CanStartPathFollowing() const { return true; }
 
 	/** @return true if component can crouch */
 	FORCEINLINE bool CanEverCrouch() const { return NavAgentProps.bCanCrouch; }
@@ -98,7 +105,7 @@ public:
 	FORCEINLINE bool CanEverFly() const { return NavAgentProps.bCanFly; }
 
 	/** @return true if component is allowed to jump */
-	FORCEINLINE bool IsJumpAllowed() const { return NavAgentProps.bCanJump && MovementState.bCanJump; }
+	FORCEINLINE bool IsJumpAllowed() const { return CanEverJump() && MovementState.bCanJump; }
 
 	/** @param bAllowed true if component is allowed to jump */
 	FORCEINLINE void SetJumpAllowed(bool bAllowed) { MovementState.bCanJump = bAllowed; }
@@ -123,6 +130,15 @@ public:
 	/** @return true if currently flying (moving through a non-fluid volume without resting on the ground) */
 	UFUNCTION(BlueprintCallable, Category="AI|Components|NavMovement")
 	virtual bool IsFlying() const;
+
+	//----------------------------------------------------------------------//
+	// DEPRECATED
+	//----------------------------------------------------------------------//
+public:
+	DEPRECATED(4.7, "This function is deprecated. Please use GetNavAgentPropertiesRef instead.")
+	const FNavAgentProperties* GetNavAgentProperties() const;
+	DEPRECATED(4.7, "This function is deprecated. Please use GetNavAgentPropertiesRef instead.")
+	FNavAgentProperties* GetNavAgentProperties();
 };
 
 

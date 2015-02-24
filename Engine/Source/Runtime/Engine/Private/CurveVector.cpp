@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CurveVector.cpp
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Curves/CurveVector.h"
 
 
 UCurveVector::UCurveVector(const FObjectInitializer& ObjectInitializer)
@@ -19,16 +20,6 @@ FVector UCurveVector::GetVectorValue( float InTime ) const
 	Result.Y = FloatCurves[1].Eval(InTime);
 	Result.Z = FloatCurves[2].Eval(InTime);
 	return Result;
-}
-
-void UCurveVector::PostLoad()
-{
-	Super::PostLoad();
-
-	if(GetLinkerUE4Version() < VER_UE4_UCURVE_USING_RICHCURVES)
-	{
-		FRichCurve::ConvertInterpCurveVector(VectorKeys_DEPRECATED, FloatCurves);
-	}
 }
 
 static const FName XCurveName(TEXT("X"));
@@ -56,5 +47,12 @@ TArray<FRichCurveEditInfo> UCurveVector::GetCurves()
 bool UCurveVector::operator==( const UCurveVector& Curve ) const
 {
 	return (FloatCurves[0] == Curve.FloatCurves[0]) && (FloatCurves[1] == Curve.FloatCurves[1]) && (FloatCurves[2] == Curve.FloatCurves[2]) ;
+}
+
+bool UCurveVector::IsValidCurve( FRichCurveEditInfo CurveInfo )
+{
+	return CurveInfo.CurveToEdit == &FloatCurves[0] ||
+		CurveInfo.CurveToEdit == &FloatCurves[1] ||
+		CurveInfo.CurveToEdit == &FloatCurves[2];
 }
 

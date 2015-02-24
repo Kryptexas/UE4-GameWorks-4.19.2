@@ -1,7 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "OnlineSubsystemUtils.h"
+#include "GameFramework/GameSession.h"
+#include "GameFramework/PlayerState.h"
 
 static inline void AddIdToMuteList(TArray< TSharedRef<class FUniqueNetId> >& MuteList, const TSharedPtr<FUniqueNetId>& UniqueIdToAdd)
 {
@@ -105,7 +107,7 @@ void FPlayerMuteList::ClientMutePlayer(APlayerController* OwningPC, const FUniqu
 		if (VoiceInt.IsValid())
 		{
 			// Have the voice subsystem mute this player
-			VoiceInt->MuteRemoteTalker(LP->ControllerId, *PlayerIdToMute, false);
+			VoiceInt->MuteRemoteTalker(LP->GetControllerId(), *PlayerIdToMute, false);
 		}
 	}
 }
@@ -126,7 +128,7 @@ void FPlayerMuteList::ClientUnmutePlayer(APlayerController* OwningPC, const FUni
 		if (VoiceInt.IsValid())
 		{
 			// Have the voice subsystem mute this player
-			VoiceInt->UnmuteRemoteTalker(LP->ControllerId, *PlayerIdToUnmute, false);
+			VoiceInt->UnmuteRemoteTalker(LP->GetControllerId(), *PlayerIdToUnmute, false);
 		}
 	}
 }

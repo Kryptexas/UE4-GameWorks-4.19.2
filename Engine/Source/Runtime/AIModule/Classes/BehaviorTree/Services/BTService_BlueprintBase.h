@@ -1,8 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "BehaviorTree/BTService.h"
 #include "BTService_BlueprintBase.generated.h"
+
+class FBehaviorBlueprintDetails;
 
 /**
  *  Base class for blueprint based service nodes. Do NOT use it for creating native c++ classes!
@@ -19,14 +21,23 @@ class AIMODULE_API UBTService_BlueprintBase : public UBTService
 
 	virtual void PostInitProperties() override;
 
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
-	virtual void OnInstanceDestroyed(class UBehaviorTreeComponent* OwnerComp) override;
+	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual void OnInstanceDestroyed(UBehaviorTreeComponent& OwnerComp) override;
+
+	virtual void SetOwner(AActor* ActorOwner) override;
 
 #if WITH_EDITOR
 	virtual bool UsesBlueprint() const override;
 #endif
 
 protected:
+	/** Cached AIController owner of BehaviorTreeComponent. */
+	UPROPERTY(Transient)
+	AAIController* AIOwner;
+
+	/** Cached actor owner of BehaviorTreeComponent. */
+	UPROPERTY(Transient)
+	AActor* ActorOwner;
 
 	// Gets the description for our service
 	virtual FString GetStaticServiceDescription() const override;
@@ -39,41 +50,77 @@ protected:
 	uint32 bShowPropertyDetails : 1;
 
 	/** set if ReceiveTick is implemented by blueprint */
-	uint32 bImplementsReceiveTick : 1;
+	uint32 ReceiveTickImplementations : 2;
 	
 	/** set if ReceiveActivation is implemented by blueprint */
-	uint32 bImplementsReceiveActivation : 1;
+	uint32 ReceiveActivationImplementations : 2;
 
 	/** set if ReceiveDeactivation is implemented by blueprint */
-	uint32 bImplementsReceiveDeactivation : 1;
+	uint32 ReceiveDeactivationImplementations : 2;
 
 	/** set if ReceiveSearchStart is implemented by blueprint */
-	uint32 bImplementsReceiveSearchStart : 1;
+	uint32 ReceiveSearchStartImplementations : 2;
 
-	virtual void OnBecomeRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
-	virtual void OnCeaseRelevant(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) override;
-	virtual void TickNode(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
-	virtual void OnSearchStart(struct FBehaviorTreeSearchData& SearchData) override;
+	virtual void OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	virtual void OnCeaseRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) override;
+	virtual void TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds) override;
+	virtual void OnSearchStart(FBehaviorTreeSearchData& SearchData) override;
 
-	/** tick function */
+	/** tick function
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveTick(AActor* OwnerActor, float DeltaSeconds);
 
-	/** task search enters branch of tree, initial ReceiveTick won't be called if you implement this event! */
+	/** task search enters branch of tree, initial ReceiveTick won't be called if you implement this event!
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveSearchStart(AActor* OwnerActor);
 
-	/** service became active */
+	/** service became active
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveActivation(AActor* OwnerActor);
 
-	/** service became inactive */
+	/** service became inactive
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
 	UFUNCTION(BlueprintImplementableEvent)
 	virtual void ReceiveDeactivation(AActor* OwnerActor);
+
+	/** Alternative AI version of ReceiveTick function.
+	 *	@see ReceiveTick for more details
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
+	UFUNCTION(BlueprintImplementableEvent, Category = AI)
+	virtual void ReceiveTickAI(AAIController* OwnerController, APawn* ControlledPawn, float DeltaSeconds);
+
+	/** Alternative AI version of ReceiveSearchStart function.
+	 *	@see ReceiveSearchStart for more details
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
+	UFUNCTION(BlueprintImplementableEvent, Category = AI)
+	virtual void ReceiveSearchStartAI(AAIController* OwnerController, APawn* ControlledPawn);
+
+	/** Alternative AI version of ReceiveActivation function.
+	 *	@see ReceiveActivation for more details
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
+	UFUNCTION(BlueprintImplementableEvent, Category = AI)
+	virtual void ReceiveActivationAI(AAIController* OwnerController, APawn* ControlledPawn);
+
+	/** Alternative AI version of ReceiveDeactivation function.
+	 *	@see ReceiveDeactivation for more details
+	 *	@Note that if both generic and AI event versions are implemented only the more
+	 *	suitable one will be called, meaning the AI version if called for AI, generic one otherwise */
+	UFUNCTION(BlueprintImplementableEvent, Category = AI)
+	virtual void ReceiveDeactivationAI(AAIController* OwnerController, APawn* ControlledPawn);
 
 	/** check if service is currently being active */
 	UFUNCTION(BlueprintCallable, Category="AI|BehaviorTree")
 	bool IsServiceActive() const;
 
-	friend class FBehaviorBlueprintDetails;
+	friend FBehaviorBlueprintDetails;
 };

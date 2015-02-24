@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Runtime/Analytics/AnalyticsET/Private/AnalyticsETPrivatePCH.h"
 
@@ -30,7 +30,6 @@ public:
 
 	virtual bool StartSession(const TArray<FAnalyticsEventAttribute>& Attributes) override;
 	virtual void EndSession() override;
-	/** ET PC implementation doesn't cache events */
 	virtual void FlushEvents() override;
 
 	virtual void SetUserID(const FString& InUserID) override;
@@ -59,11 +58,16 @@ private:
 	FString BuildType;
 	/** The AppVersion passed to ET. */
 	FString AppVersion;
-
+	/** True if we are sending to the data router*/
+	bool UseDataRouter;
+	/** The URL to which uploads are sent when using the data router*/
+	FString DataRouterUploadURL;
 	/** Max number of analytics events to cache before pushing to server */
 	const int32 MaxCachedNumEvents;
 	/** Max time that can elapse before pushing cached events to server */
 	const float MaxCachedElapsedTime;
+	/** Allows events to not be cached when -AnalyticsDisableCaching is used. This should only be used for debugging as caching significantly reduces bandwidth overhead per event. */
+	bool bShouldCacheEvents;
 	/** Current countdown timer to keep track of MaxCachedElapsedTime push */
 	float FlushEventsCountdown;
 	/**
@@ -89,10 +93,18 @@ private:
 	/** List of analytic events pending a server update */
 	TArray<FAnalyticsEventEntry> CachedEvents;
 
+	/** Critical section for updating the CachedEvents */
+	FCriticalSection CachedEventsCS;
+
 	/**
 	 * Delegate called when an event Http request completes
 	 */
 	void EventRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
+
+	/**
+	 * Delegate called when an event Http request completes (for DataRouter)
+	 */
+	void EventRequestCompleteDataRouter(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
 };
 
 void FAnalyticsET::StartupModule()
@@ -113,6 +125,8 @@ TSharedPtr<IAnalyticsProvider> FAnalyticsET::CreateAnalyticsProvider(const FAnal
 		ConfigValues.APIKeyET = GetConfigValue.Execute(Config::GetKeyNameForAPIKey(), true);
 		ConfigValues.APIServerET = GetConfigValue.Execute(Config::GetKeyNameForAPIServer(), false);
 		ConfigValues.AppVersionET = GetConfigValue.Execute(Config::GetKeyNameForAppVersion(), false);
+		ConfigValues.UseDataRouterET = GetConfigValue.Execute(Config::GetKeyNameForUseDataRouter(), false);
+		ConfigValues.DataRouterUploadURLET = GetConfigValue.Execute(Config::GetKeyNameForDataRouterUploadURL(), false);
 		return CreateAnalyticsProvider(ConfigValues);
 	}
 	else
@@ -140,6 +154,7 @@ FAnalyticsProviderET::FAnalyticsProviderET(const FAnalyticsET::Config& ConfigVal
 	:bSessionInProgress(false)
 	, MaxCachedNumEvents(20)
 	, MaxCachedElapsedTime(60.0f)
+	, bShouldCacheEvents(!FParse::Param(FCommandLine::Get(), TEXT("ANALYTICSDISABLECACHING")))
 	, FlushEventsCountdown(MaxCachedElapsedTime)
 {
 	UE_LOG(LogAnalytics, Verbose, TEXT("Initializing ET Analytics provider"));
@@ -154,6 +169,14 @@ FAnalyticsProviderET::FAnalyticsProviderET(const FAnalyticsET::Config& ConfigVal
 		? FAnalyticsET::Config::GetDefaultAPIServer()
 		: ConfigValues.APIServerET;
 
+	// allow the DataRouterUploadURL value to be empty and use defaults.
+	DataRouterUploadURL = ConfigValues.DataRouterUploadURLET.IsEmpty()
+		? FAnalyticsET::Config::GetDefaultDataRouterUploadURL()
+		: ConfigValues.DataRouterUploadURLET;
+
+	// determine if we are using the data router
+	UseDataRouter = FCString::ToBool(*ConfigValues.UseDataRouterET);
+
 	// default to GEngineVersion if one is not provided, append GEngineVersion otherwise.
 	FString ConfigAppVersion = ConfigValues.AppVersionET;
 	// Allow the cmdline to force a specific AppVersion so it can be set dynamically.
@@ -163,6 +186,10 @@ FAnalyticsProviderET::FAnalyticsProviderET(const FAnalyticsET::Config& ConfigVal
 		: ConfigAppVersion.Replace(TEXT("%VERSION%"), *GEngineVersion.ToString(), ESearchCase::CaseSensitive);
 
 	UE_LOG(LogAnalytics, Log, TEXT("ET APIKey = %s. APIServer = %s. AppVersion = %s"), *APIKey, *APIServer, *AppVersion);
+	if (UseDataRouter)
+	{
+		UE_LOG(LogAnalytics, Log, TEXT("ET APIKey = %s. DataRouterUploadURL = %s. AppVersion = %s"), *APIKey, *DataRouterUploadURL, *AppVersion);
+	}
 
 	// cache the build type string
 	FAnalytics::BuildType BuildTypeEnum = FAnalytics::Get().GetBuildType();
@@ -227,7 +254,14 @@ bool FAnalyticsProviderET::StartSession(const TArray<FAnalyticsEventAttribute>& 
 	FPlatformMisc::CreateGuid(SessionGUID);
 	SessionID = SessionGUID.ToString(EGuidFormats::DigitsWithHyphensInBraces);
 
-	RecordEvent(TEXT("SessionStart"), Attributes);
+	// always ensure we send a few specific attributes on session start.
+	TArray<FAnalyticsEventAttribute> AppendedAttributes(Attributes);
+	// this is for legacy reasons (we used to use this ID, so helps us create old->new mappings).
+	AppendedAttributes.Emplace(TEXT("UniqueDeviceId"), FPlatformMisc::GetUniqueDeviceId());
+	// we should always know what platform is hosting this session.
+	AppendedAttributes.Emplace(TEXT("Platform"), FString(FPlatformProperties::IniPlatformName()));
+
+	RecordEvent(TEXT("SessionStart"), AppendedAttributes);
 	bSessionInProgress = !UserID.IsEmpty();
 	return bSessionInProgress;
 }
@@ -248,6 +282,16 @@ void FAnalyticsProviderET::EndSession()
 
 void FAnalyticsProviderET::FlushEvents()
 {
+	// Make sure we don't try to flush too many times. When we are not caching events it's possible this can be called when there are no events in the array.
+	if (CachedEvents.Num() == 0)
+	{
+		return;
+	}
+
+	// There are much better ways to do this, but since most events are recorded and handled on the same (game) thread,
+	// this is probably mostly fine for now, and simply favoring not crashing at the moment
+	FScopeLock ScopedLock(&CachedEventsCS);
+
 	if(ensure(FModuleManager::Get().IsModuleLoaded("HTTP")))
 	{
 		FString Payload;
@@ -256,6 +300,11 @@ void FAnalyticsProviderET::FlushEvents()
 
 		TSharedRef< TJsonWriter<TCHAR, TCondensedJsonPrintPolicy<TCHAR> > > JsonWriter = TJsonWriterFactory<TCHAR, TCondensedJsonPrintPolicy<TCHAR> >::Create(&Payload);
 		JsonWriter->WriteObjectStart();
+		if (UseDataRouter)
+		{
+			JsonWriter->WriteValue(TEXT("SessionID"), SessionID);
+			JsonWriter->WriteValue(TEXT("UserID"), UserID);
+		}
 		JsonWriter->WriteArrayStart(TEXT("Events"));
 		for (int32 EventIdx = 0; EventIdx < CachedEvents.Num(); EventIdx++)
 		{
@@ -281,12 +330,21 @@ void FAnalyticsProviderET::FlushEvents()
 		JsonWriter->WriteObjectEnd();
 		JsonWriter->Close();
 
-		UE_LOG(LogAnalytics, Verbose, TEXT("ET Flush: Payload:\n%s"), *Payload);
+		// when we are not caching events, assume we are debugging and always log analytics payloads.
+		if (bShouldCacheEvents)
+		{
+			UE_LOG(LogAnalytics, Verbose, TEXT("AnalyticsET Payload:%s"), *Payload);
+		}
+		else
+		{
+			UE_LOG(LogAnalytics, Log, TEXT("AnalyticsET Payload:%s"), *Payload);
+		}
 
 		// Create/send Http request for an event
- 		TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
- 		HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
- 		HttpRequest->SetURL(
+		TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+		HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
+
+		HttpRequest->SetURL(
 			FString::Printf(TEXT("%sCollectData.1?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s&IsEditor=%s"),
 			*APIServer, 
 			*FGenericPlatformHttp::UrlEncode(SessionID),
@@ -294,11 +352,40 @@ void FAnalyticsProviderET::FlushEvents()
 			*FGenericPlatformHttp::UrlEncode(AppVersion),
 			*FGenericPlatformHttp::UrlEncode(UserID),
 			*FGenericPlatformHttp::UrlEncode(FString::FromInt(GIsEditor))
-			));
-   		HttpRequest->SetVerb(TEXT("POST"));
- 		HttpRequest->SetContentAsString(Payload);
- 		HttpRequest->OnProcessRequestComplete().BindRaw(this, &FAnalyticsProviderET::EventRequestComplete);
+		));
+
+		HttpRequest->SetVerb(TEXT("POST"));
+		HttpRequest->SetContentAsString(Payload);
+		HttpRequest->OnProcessRequestComplete().BindRaw(this, &FAnalyticsProviderET::EventRequestComplete);
+
  		HttpRequest->ProcessRequest();
+
+		if (UseDataRouter)
+		{
+			// If we're using the DataRouter backend, then submit the same request to the new DataRouter backend
+			// NOTE - This branch is temp, and we will eventually use the DataRouter path exclusively
+
+			// Create/send Http request for an event
+			TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+			HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json; charset=utf-8"));
+
+			// TODO need agent here??
+			HttpRequest->SetURL(
+				FString::Printf(TEXT("%s?SessionID=%s&AppID=%s&AppVersion=%s&UserID=%s&IsEditor=%s&AppEnvironment=%s&UploadType=eteventstream"),
+				*DataRouterUploadURL,
+				*FGenericPlatformHttp::UrlEncode(SessionID),
+				*FGenericPlatformHttp::UrlEncode(APIKey), 
+				*FGenericPlatformHttp::UrlEncode(AppVersion),
+				*FGenericPlatformHttp::UrlEncode(UserID),
+				*FGenericPlatformHttp::UrlEncode(FString::FromInt(GIsEditor)),
+				*FGenericPlatformHttp::UrlEncode(BuildType)
+			));
+
+			HttpRequest->SetVerb(TEXT("POST"));
+			HttpRequest->SetContentAsString(Payload);
+			HttpRequest->OnProcessRequestComplete().BindRaw(this, &FAnalyticsProviderET::EventRequestCompleteDataRouter);
+			HttpRequest->ProcessRequest();
+		}
 
 		FlushEventsCountdown = MaxCachedElapsedTime;
 		CachedEvents.Empty();
@@ -343,12 +430,15 @@ bool FAnalyticsProviderET::SetSessionID(const FString& InSessionID)
 /** Helper to log any ET event. Used by all the LogXXX functions. */
 void FAnalyticsProviderET::RecordEvent(const FString& EventName, const TArray<FAnalyticsEventAttribute>& Attributes)
 {
-	if (Attributes.Num() > 40)
-	{
-		UE_LOG(LogAnalytics, Log, TEXT("Event %s has too many attributes (%d). May be truncated at the collector."), *EventName, Attributes.Num());
-	}
-
+	// There are much better ways to do this, but since most events are recorded and handled on the same (game) thread,
+	// this is probably mostly fine for now, and simply favoring not crashing at the moment
+	FScopeLock ScopedLock(&CachedEventsCS);
 	CachedEvents.Add(FAnalyticsEventEntry(EventName, Attributes));
+	// if we aren't caching events, flush immediately. This is really only for debugging as it will significantly affect bandwidth.
+	if (!bShouldCacheEvents)
+	{
+		FlushEvents();
+	}
 }
 
 
@@ -357,11 +447,21 @@ void FAnalyticsProviderET::EventRequestComplete(FHttpRequestPtr HttpRequest, FHt
 	if (bSucceeded && HttpResponse.IsValid())
 	{
 		UE_LOG(LogAnalytics, VeryVerbose, TEXT("ET response for [%s]. Code: %d. Payload: %s"), *HttpRequest->GetURL(), HttpResponse->GetResponseCode(), *HttpResponse->GetContentAsString());
-		FString PayloadStr = HttpResponse->GetContentAsString();
-		bool test = false;
 	}
 	else
 	{
 		UE_LOG(LogAnalytics, VeryVerbose, TEXT("ET response for [%s]. No response"), *HttpRequest->GetURL());
+	}
+}
+
+void FAnalyticsProviderET::EventRequestCompleteDataRouter(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
+{
+	if (bSucceeded && HttpResponse.IsValid())
+	{
+		UE_LOG(LogAnalytics, VeryVerbose, TEXT("ET (DataRouter) response for [%s]. Code: %d. Payload: %s"), *HttpRequest->GetURL(), HttpResponse->GetResponseCode(), *HttpResponse->GetContentAsString());
+	}
+	else
+	{
+		UE_LOG(LogAnalytics, VeryVerbose, TEXT("ET (DataRouter) response for [%s]. No response"), *HttpRequest->GetURL());
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EpicSurveyPrivatePCH.h"
 #include "SQuestionBlock.h"
@@ -38,7 +38,7 @@ void SQuestionBlock::Construct( const FArguments& Args, const TSharedRef<FQuesti
 				.VAlign( VAlign_Center )
 				[
 					SNew( STextBlock )
-					.Text( Questions[QuestionIndex].ToString() )
+					.Text( Questions[QuestionIndex] )
 				]
 			];
 
@@ -55,7 +55,7 @@ void SQuestionBlock::Construct( const FArguments& Args, const TSharedRef<FQuesti
 					.Padding( FMargin( 0, 0, 10, 0 ) )
 					[
 						SNew( STextBlock )
-						.Text( Answers[AnswerIndex].Text.ToString() )
+						.Text( Answers[AnswerIndex].Text )
 					]
 				];
 				Grid->SetColumnFill( ColumnIndex, 1.0f );
@@ -79,7 +79,7 @@ void SQuestionBlock::Construct( const FArguments& Args, const TSharedRef<FQuesti
 					.VAlign( VAlign_Center )
 					[
 						SNew( STextBlock )
-						.Text( Questions[QuestionIndex].ToString() )
+						.Text( Questions[QuestionIndex] )
 					]
 				];
 			}
@@ -90,7 +90,7 @@ void SQuestionBlock::Construct( const FArguments& Args, const TSharedRef<FQuesti
 				.Padding( FMargin( 0, 5 ) )
 				[
 					SNew( STextBlock )
-					.Text( Questions[QuestionIndex].ToString() )
+					.Text( Questions[QuestionIndex] )
 				];
 			}
 
@@ -102,7 +102,7 @@ void SQuestionBlock::Construct( const FArguments& Args, const TSharedRef<FQuesti
 				.Padding( 0, 0, 3, 0 )
 				[
 					SNew( STextBlock )
-					.Text( Answers[AnswerIndex].Text.ToString() )
+					.Text( Answers[AnswerIndex].Text )
 				];
 
 				++ColumnIndex;
@@ -132,7 +132,7 @@ void SQuestionBlock::Construct( const FArguments& Args, const TSharedRef<FQuesti
 				.Padding( FMargin( 0, 0, 0, 8 ) )
 				[					
 					SNew( STextBlock )
-					.Text( Questions[QuestionIndex].ToString() )
+					.Text( Questions[QuestionIndex] )
 				]
 			];
 
@@ -154,7 +154,7 @@ void SQuestionBlock::Construct( const FArguments& Args, const TSharedRef<FQuesti
 						.OnCheckStateChanged( this, &SQuestionBlock::AnswerCheckStateChanged, TWeakPtr< FQuestionBlock >( Block ), QuestionIndex, AnswerIndex )
 						[
 							SNew( STextBlock )
-							.Text( Answers[AnswerIndex].Text.ToString() )
+							.Text( Answers[AnswerIndex].Text )
 						]
 					]
 				];
@@ -175,7 +175,7 @@ void SQuestionBlock::Construct( const FArguments& Args, const TSharedRef<FQuesti
 				.Padding( FMargin( 0, 0, 0, 8 ) )
 				[					
 					SNew( STextBlock )
-					.Text( Questions[QuestionIndex].ToString() )
+					.Text( Questions[QuestionIndex] )
 				]
 			];
 
@@ -193,7 +193,7 @@ void SQuestionBlock::Construct( const FArguments& Args, const TSharedRef<FQuesti
 					.VAlign( VAlign_Center )
 					[
 						SNew( STextBlock )
-						.Text( Answers[AnswerIndex].Text.ToString() )
+						.Text( Answers[AnswerIndex].Text )
 					]
 					+SHorizontalBox::Slot()
 					.Padding( FMargin( 0, 3, 10, 3 ) )
@@ -239,7 +239,7 @@ void SQuestionBlock::Construct( const FArguments& Args, const TSharedRef<FQuesti
 				.WidthOverride( QuestionColumnWidth )
 				[
 					SNew( STextBlock )
-					.Text( Questions[QuestionIndex].ToString() )
+					.Text( Questions[QuestionIndex] )
 				]
 			];
 
@@ -290,7 +290,7 @@ void SQuestionBlock::Construct( const FArguments& Args, const TSharedRef<FQuesti
 		.AutoHeight()
 		[
 			SNew( STextBlock )
-			.Text( Block->GetInstructions().ToString() )
+			.Text( Block->GetInstructions() )
 			.AutoWrapText( true )
 		];
 	}
@@ -302,7 +302,7 @@ void SQuestionBlock::Construct( const FArguments& Args, const TSharedRef<FQuesti
 	];
 }
 
-ESlateCheckBoxState::Type SQuestionBlock::IsAnswerChecked( TWeakPtr< FQuestionBlock > BlockPtr, int32 QuestionIndex, int32 AnswerIndex ) const
+ECheckBoxState SQuestionBlock::IsAnswerChecked( TWeakPtr< FQuestionBlock > BlockPtr, int32 QuestionIndex, int32 AnswerIndex ) const
 {
 	TSharedPtr< FQuestionBlock > Block =  BlockPtr.Pin();
 
@@ -312,10 +312,10 @@ ESlateCheckBoxState::Type SQuestionBlock::IsAnswerChecked( TWeakPtr< FQuestionBl
 		IsChecked = Block->GetUserAnswers( QuestionIndex ).Contains( AnswerIndex );
 	}
 
-	return IsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return IsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SQuestionBlock::AnswerCheckStateChanged( ESlateCheckBoxState::Type CheckState, TWeakPtr< FQuestionBlock > BlockPtr, int32 QuestionIndex, int32 AnswerIndex )
+void SQuestionBlock::AnswerCheckStateChanged( ECheckBoxState CheckState, TWeakPtr< FQuestionBlock > BlockPtr, int32 QuestionIndex, int32 AnswerIndex )
 {
 	TSharedPtr< FQuestionBlock > Block =  BlockPtr.Pin();
 

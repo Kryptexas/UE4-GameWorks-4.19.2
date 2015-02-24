@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,7 +8,7 @@ public:
 
 	SLATE_BEGIN_ARGS( SMatineeFilterButton )
 		: _Text()
-		, _IsChecked( ESlateCheckBoxState::Unchecked )
+		, _IsChecked( ECheckBoxState::Unchecked )
 		, _OnCheckStateChanged()
 		, _OnContextMenuOpening()
 		{}
@@ -17,7 +17,7 @@ public:
 		SLATE_ARGUMENT( FText, Text )
 
 		/** Whether the check box is currently in a checked state */
-		SLATE_ATTRIBUTE( ESlateCheckBoxState::Type, IsChecked )
+		SLATE_ATTRIBUTE( ECheckBoxState, IsChecked )
 
 		/** Called when the checked state has changed */
 		SLATE_EVENT( FOnCheckStateChanged, OnCheckStateChanged )

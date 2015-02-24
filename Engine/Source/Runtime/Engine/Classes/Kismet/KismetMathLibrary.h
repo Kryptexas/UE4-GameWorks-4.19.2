@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -208,7 +208,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Random")
 	static int32 RandomInteger(int32 Max);
 
-	/** Return a random integer between Min and Max */
+	/** Return a random integer between Min and Max (>= Min and <= Max) */
 	UFUNCTION(BlueprintPure, Category="Math|Random")
 	static int32 RandomIntegerInRange(int32 Min, int32 Max);
 
@@ -458,7 +458,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Float")
 	static int32 FCeil(float A);
 
-	/* Returns the number of times A will go into B, as well as the remainder */
+	/* Returns the number of times Divisor will go into Dividend (i.e., Dividend divided by Divisor), as well as the remainder */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Division (whole and remainder)"), Category="Math|Float")
 	static int32 FMod(float Dividend, float Divisor, float& Remainder);
 
@@ -537,14 +537,22 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Not Equal (vector)", CompactNodeTitle = "!=", Keywords = "!= not equal"), Category="Math|Vector")
 	static bool NotEqual_VectorVector(FVector A, FVector B, float ErrorTolerance = 1.e-4f);
 
-	/* Returns the dot product of two vectors */
+	/* Returns the dot product of two 3d vectors */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Dot Product", CompactNodeTitle = "."), Category="Math|Vector" )
 	static float Dot_VectorVector(FVector A, FVector B);
 
-	/* Returns the cross product of two vectors */
-	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Cross Product", CompactNodeTitle = "x"), Category="Math|Vector" )
+	/* Returns the cross product of two 3d vectors */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Cross Product", CompactNodeTitle = ""), Category="Math|Vector" )
 	static FVector Cross_VectorVector(FVector A, FVector B);
-	
+
+	/* Returns the dot product of two 2d vectors */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Dot Product (2D)", CompactNodeTitle="."), Category="Math|Vector")
+	static float DotProduct2D(FVector2D A, FVector2D B);
+
+	/* Returns the cross product of two 2d vectors */
+	UFUNCTION(BlueprintPure, meta=(FriendlyName="Cross Product (2D)", CompactNodeTitle="x"), Category="Math|Vector")
+	static float CrossProduct2D(FVector2D A, FVector2D B);
+
 	/* Returns the length of the FVector */
 	UFUNCTION(BlueprintPure, meta=(FriendlyName = "VectorLength"), Category="Math|Vector")
 	static float VSize(FVector A);
@@ -1115,6 +1123,14 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	UFUNCTION(BlueprintPure, Category="Math|Transform", meta=(NativeBreakFunc))
 	static void BreakTransform(const FTransform& InTransform, FVector& Location, FRotator& Rotation, FVector& Scale);
 
+	/** Makes a SRand-based random number generator */
+	UFUNCTION(BlueprintPure, meta = (Keywords = "construct build", NativeMakeFunc), Category = "Math|Random")
+		static FRandomStream MakeRandomStream(int32 InitialSeed);
+
+	/** Breaks apart a random number generator */
+	UFUNCTION(BlueprintPure, Category = "Math|Random", meta = (NativeBreakFunc))
+		static void BreakRandomStream(const FRandomStream& InRandomStream, int32& InitialSeed);
+
 	/** Make a color from individual color components (RGB space) */
 	UFUNCTION(BlueprintPure, Category="Math|Color", meta=(Keywords="construct build"))
 	static FLinearColor MakeColor(float R, float G, float B, float A = 1.0f);
@@ -1170,6 +1186,10 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	/** If bPickA is true, A is returned, otherwise B is */
 	UFUNCTION(BlueprintPure, Category="Utilities")
 	static UObject* SelectObject(UObject* A, UObject* B, bool bSelectA);
+
+	/** If bPickA is true, A is returned, otherwise B is */
+	UFUNCTION(BlueprintPure, Category = "Utilities")
+	static UClass* SelectClass(UClass* A, UClass* B, bool bSelectA);
 
 	// Build a reference frame from three axes
 	UFUNCTION(BlueprintPure, Category="Math|Rotator", meta=(Keywords="construct build rotation rotate"))
@@ -1337,7 +1357,7 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	static float FInterpTo(float Current, float Target, float DeltaTime, float InterpSpeed);
 
 	/**
-	 * Tries to reach Target based on distance from Current position, giving a nice smooth feeling when tracking a position.
+	 * Tries to reach Target at a constant rate.
 	 *
 	 * @param		Current			Actual position
 	 * @param		Target			Target position
@@ -1382,14 +1402,38 @@ class UKismetMathLibrary : public UBlueprintFunctionLibrary
 	 * @param		InterpSpeed		Interpolation speed
 	 * @return		New interpolated position
 	 */
+	UFUNCTION(BlueprintPure, Category="Math|Interpolation", meta=(Keywords="position"))
+	static FVector2D Vector2DInterpTo(FVector2D Current, FVector2D Target, float DeltaTime, float InterpSpeed);
+	
+	/**
+	 * Tries to reach Target at a constant rate.
+	 *
+	 * @param		Current			Actual position
+	 * @param		Target			Target position
+	 * @param		DeltaTime		Time since last tick
+	 * @param		InterpSpeed		Interpolation speed
+	 * @return		New interpolated position
+	 */
+	UFUNCTION(BlueprintPure, Category="Math|Interpolation", meta=(Keywords="position"))
+	static FVector2D Vector2DInterpTo_Constant(FVector2D Current, FVector2D Target, float DeltaTime, float InterpSpeed);
+	
+	/**
+	 * Tries to reach Target based on distance from Current position, giving a nice smooth feeling when tracking a position.
+	 *
+	 * @param		Current			Actual rotation
+	 * @param		Target			Target rotation
+	 * @param		DeltaTime		Time since last tick
+	 * @param		InterpSpeed		Interpolation speed
+	 * @return		New interpolated position
+	 */
 	UFUNCTION(BlueprintPure, Category="Math|Interpolation", meta=(Keywords="rotation rotate"))
 	static FRotator RInterpTo(FRotator Current, FRotator Target, float DeltaTime, float InterpSpeed);
 
 	/**
-	 * Tries to reach Target based on distance from Current position, giving a nice smooth feeling when tracking a position.
+	 * Tries to reach Target at a constant rate.
 	 *
-	 * @param		Current			Actual position
-	 * @param		Target			Target position
+	 * @param		Current			Actual rotation
+	 * @param		Target			Target rotation
 	 * @param		DeltaTime		Time since last tick
 	 * @param		InterpSpeed		Interpolation speed
 	 * @return		New interpolated position

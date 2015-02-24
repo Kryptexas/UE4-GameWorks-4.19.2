@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #define LOCTEXT_NAMESPACE "LayersView"
@@ -59,14 +59,14 @@ public:
 			/** We don't want the normal header to be visible */
 			.Visibility( EVisibility::Collapsed )
 
-			/** LayerName label column */
-			+ SHeaderRow::Column( LayersView::ColumnID_LayerLabel )
-			.DefaultLabel( LOCTEXT("Column_LayerNameLabel", "Layer").ToString() )
-
 			/** Layer visibility column */
-			+ SHeaderRow::Column( LayersView::ColumnID_Visibility )
-			.DefaultLabel( NSLOCTEXT("LayersView", "Visibility", "Visibility").ToString() )
-			.FixedWidth( 48.0f );
+			+SHeaderRow::Column(LayersView::ColumnID_Visibility)
+			.DefaultLabel(NSLOCTEXT("LayersView", "Visibility", "Visibility"))
+			.FixedWidth(40.0f)
+
+			/** LayerName label column */
+			+SHeaderRow::Column(LayersView::ColumnID_LayerLabel)
+			.DefaultLabel(LOCTEXT("Column_LayerNameLabel", "Layer"));
 
 		ChildSlot
 			[
@@ -101,7 +101,7 @@ public:
 					.OnItemScrolledIntoView( this, &SLayersView::OnItemScrolledIntoView)
 
 					// Help text 
-					.ToolTipText(LOCTEXT("HelpText", "Drag actors from scene outliner or right click to add a new layer.").ToString())
+					.ToolTipText(LOCTEXT("HelpText", "Drag actors from world outliner or right click to add a new layer."))
 				]
 			];
 

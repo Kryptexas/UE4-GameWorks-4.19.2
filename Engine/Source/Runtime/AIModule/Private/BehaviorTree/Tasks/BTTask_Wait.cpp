@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Tasks/BTTask_Wait.h"
@@ -10,15 +10,15 @@ UBTTask_Wait::UBTTask_Wait(const FObjectInitializer& ObjectInitializer) : Super(
 	bNotifyTick = true;
 }
 
-EBTNodeResult::Type UBTTask_Wait::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_Wait::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	FBTWaitTaskMemory* MyMemory = (FBTWaitTaskMemory*)NodeMemory;
-	MyMemory->RemainingWaitTime = WaitTime;
+	MyMemory->RemainingWaitTime = FMath::FRandRange(FMath::Max(0.0f, WaitTime - RandomDeviation), (WaitTime + RandomDeviation));
 	
 	return EBTNodeResult::InProgress;
 }
 
-void UBTTask_Wait::TickTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTTask_Wait::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	FBTWaitTaskMemory* MyMemory = (FBTWaitTaskMemory*)NodeMemory;
 	MyMemory->RemainingWaitTime -= DeltaSeconds;
@@ -32,10 +32,17 @@ void UBTTask_Wait::TickTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory
 
 FString UBTTask_Wait::GetStaticDescription() const
 {
-	return FString::Printf(TEXT("%s: %.1fs"), *Super::GetStaticDescription(), WaitTime);
+	if (FMath::IsNearlyZero(RandomDeviation))
+	{
+		return FString::Printf(TEXT("%s: %.1fs"), *Super::GetStaticDescription(), WaitTime);
+	}
+	else
+	{
+		return FString::Printf(TEXT("%s: %.1f+-%.1fs"), *Super::GetStaticDescription(), WaitTime, RandomDeviation);
+	}
 }
 
-void UBTTask_Wait::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTTask_Wait::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	Super::DescribeRuntimeValues(OwnerComp, NodeMemory, Verbosity, Values);
 

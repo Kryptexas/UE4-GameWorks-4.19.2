@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -42,10 +42,6 @@ public:
 	void SetShadowOffset(FVector2D InShadowOffset);
 
 public:
-	/** The text block style */
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Style", meta=( DisplayName="Style" ))
-	//FTextBlockStyle WidgetStyle;
-
 	UPROPERTY()
 	USlateWidgetStyleAsset* Style_DEPRECATED;
 
@@ -112,7 +108,7 @@ public:
 	 * Gets the widget text
 	 * @return The widget text
 	 */
-	UFUNCTION(BlueprintCallable, Category="Widget")
+	UFUNCTION(BlueprintCallable, Category="Widget", meta=(FriendlyName="GetText (Text)"))
 	FText GetText() const;
 
 	/**
@@ -120,7 +116,7 @@ public:
 	 * Warning: This will wipe any binding created for the Text property!
 	 * @param InText The text to assign to the widget
 	 */
-	UFUNCTION(BlueprintCallable, Category="Widget")
+	UFUNCTION(BlueprintCallable, Category="Widget", meta=(FriendlyName="SetText (Text)"))
 	void SetText(FText InText);
 
 	// UWidget interface
@@ -134,8 +130,6 @@ public:
 	// Begin UObject interface
 	virtual void PostLoad() override;
 	// End of UObject interface
-
-	static const FTextBlockStyle* GetDefaultStyle();
 
 #if WITH_EDITOR
 	// UWidget interface
@@ -151,6 +145,7 @@ public:
 protected:
 	// UWidget interface
 	virtual TSharedRef<SWidget> RebuildWidget() override;
+	virtual void OnBindingChanged(const FName& Property) override;
 	// End of UWidget interface
 
 protected:

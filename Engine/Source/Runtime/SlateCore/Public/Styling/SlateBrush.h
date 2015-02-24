@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,7 +17,7 @@ namespace ESlateBrushDrawType
 	enum Type
 	{
 		/** Don't do anything */
-		NoDrawType UMETA(DisplayName="None"), // UMETA(Hidden),
+		NoDrawType UMETA(DisplayName="None"),
 
 		/** Draw a 3x3 box, where the sides and the middle stretch based on the Margin */
 		Box,

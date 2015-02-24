@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 
 /**
 * 32 bit float components
@@ -8,6 +9,7 @@
 class FFloat32
 {
 public:
+
 	union
 	{
 		struct
@@ -34,6 +36,7 @@ public:
 	FFloat32( float InValue=0.0f );
 };
 
+
 FORCEINLINE FFloat32::FFloat32( float InValue)
-:	FloatValue(InValue)
-{}
+	: FloatValue(InValue)
+{ }

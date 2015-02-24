@@ -1,8 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "AISystem.h"
+#include "Perception/AISense.h"
 #include "AIPerceptionSystem.h"
 
 #include "AIPerceptionComponent.generated.h"
@@ -11,29 +12,37 @@ class AAIController;
 struct FVisualLogEntry;
 class UCanvas;
 class UAIPerceptionSystem;
+class UAISenseConfig;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FPerceptionUpdatedDelegate, TArray<AActor*>, UpdatedActors);
 
 struct AIMODULE_API FActorPerceptionInfo
 {
 	TWeakObjectPtr<AActor> Target;
 
-	FAIStimulus LastSensedStimuli[ECorePerceptionTypes::MAX];
+	TArray<FAIStimulus> LastSensedStimuli;
 
 	/** if != MAX indicated the sense that takes precedense over other senses when it comes
 		to determining last stimulus location */
-	ECorePerceptionTypes::Type DominantSense;
+	FAISenseID DominantSense;
 
 	/** indicates whether this Actor is hostile to perception holder */
 	uint32 bIsHostile : 1;
 	
 	FActorPerceptionInfo(AActor* InTarget = NULL)
-		: Target(InTarget), DominantSense(ECorePerceptionTypes::MAX)
-	{}
+		: Target(InTarget), DominantSense(FAISenseID::InvalidID())
+	{
+		for (uint32 Index = 0; Index < FAISenseID::GetSize(); ++Index)
+		{
+			LastSensedStimuli.Add(FAIStimulus());
+		}
+	}
 
 	FORCEINLINE_DEBUGGABLE FVector GetLastStimulusLocation(float* OptionalAge = NULL) const 
 	{
 		FVector Location(FAISystem::InvalidLocation);
 		float BestAge = FLT_MAX;
-		for (int32 Sense = 0; Sense < ECorePerceptionTypes::MAX; ++Sense)
+		for (int32 Sense = 0; Sense < LastSensedStimuli.Num(); ++Sense)
 		{
 			const float Age = LastSensedStimuli[Sense].GetAge();
 			if (Age >= 0 && (Age < BestAge 
@@ -53,23 +62,42 @@ struct AIMODULE_API FActorPerceptionInfo
 	}
 
 	/** @note will return FAISystem::InvalidLocation if given sense has never registered related Target actor */
-	FORCEINLINE FVector GetStimulusLocation(FAISenseId Sense) const
+	FORCEINLINE FVector GetStimulusLocation(FAISenseID Sense) const
 	{
-		return LastSensedStimuli[Sense].GetAge() < FAIStimulus::NeverHappenedAge ? LastSensedStimuli[Sense].StimulusLocation : FAISystem::InvalidLocation;
+		return LastSensedStimuli.IsValidIndex(Sense) && LastSensedStimuli[Sense].GetAge() < FAIStimulus::NeverHappenedAge ? LastSensedStimuli[Sense].StimulusLocation : FAISystem::InvalidLocation;
 	}
 
-	FORCEINLINE FVector GetReceiverLocation(FAISenseId Sense) const
+	FORCEINLINE FVector GetReceiverLocation(FAISenseID Sense) const
 	{
-		return LastSensedStimuli[Sense].GetAge() < FAIStimulus::NeverHappenedAge ? LastSensedStimuli[Sense].ReceiverLocation : FAISystem::InvalidLocation;
+		return LastSensedStimuli.IsValidIndex(Sense) && LastSensedStimuli[Sense].GetAge() < FAIStimulus::NeverHappenedAge ? LastSensedStimuli[Sense].ReceiverLocation : FAISystem::InvalidLocation;
 	}
 
-	FORCEINLINE bool IsSenseRegistered(FAISenseId Sense) const
+	FORCEINLINE bool IsSenseRegistered(FAISenseID Sense) const
 	{
-		return LastSensedStimuli[Sense].WasSuccessfullySensed() && (LastSensedStimuli[Sense].GetAge() < FAIStimulus::NeverHappenedAge);
+		return LastSensedStimuli.IsValidIndex(Sense) && LastSensedStimuli[Sense].WasSuccessfullySensed() && (LastSensedStimuli[Sense].GetAge() < FAIStimulus::NeverHappenedAge);
 	}
 	
 	/** takes all "newer" info from Other and absorbs it */
 	void Merge(const FActorPerceptionInfo& Other);
+};
+
+USTRUCT(BlueprintType, meta = (DisplayName = "Sensed Actor's Data"))
+struct FActorPerceptionBlueprintInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = "AI|Perception")
+	AActor* Target;
+
+	UPROPERTY(BlueprintReadWrite, Category = "AI|Perception")
+	TArray<FAIStimulus> LastSensedStimuli;
+
+	UPROPERTY(BlueprintReadWrite, Category = "AI|Perception")
+	uint32 bIsHostile : 1;
+
+	FActorPerceptionBlueprintInfo() : Target(NULL), bIsHostile(false)
+	{}
+	FActorPerceptionBlueprintInfo(const FActorPerceptionInfo& Info);
 };
 
 /**
@@ -92,7 +120,7 @@ protected:
 
 	/** Max distance at which a makenoise(1.0) loudness sound can be heard if unoccluded (LOSHearingThreshold should be > HearingThreshold) */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AI)
-	float LOSHearingRange;
+	float LoSHearingRange;
 
 	/** Maximum sight distance to notice a target. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AI)
@@ -105,6 +133,16 @@ protected:
 	/** How far to the side AI can see, in degrees. Use SetPeripheralVisionAngle to change the value at runtime. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AI)
 	float PeripheralVisionAngle;
+		
+	UPROPERTY(EditDefaultsOnly, Instanced, Category = "AI Perception")
+	TArray<UAISenseConfig*> SensesConfig;
+
+	/** Indicated sense that takes precedence over other senses when determining sensed actor's location. 
+	 *	Should be set to one of the sences configured in SensesConfig, or None. */
+	UPROPERTY(EditDefaultsOnly, Instanced, Category = "AI Perception")
+	TSubclassOf<UAISense> DominantSense;
+	
+	FAISenseID DominantSenseID;
 
 	UPROPERTY(Transient)
 	AAIController* AIOwner;
@@ -113,11 +151,7 @@ protected:
 
 private:
 	TActorPerceptionContainer PerceptualData;
-
-	/** Indicated sense that takes precedence over other senses when determining sensed actor's location */
-	UPROPERTY(config)
-	TEnumAsByte<ECorePerceptionTypes::Type> DominantSense;
-
+		
 protected:	
 	struct FStimulusToProcess
 	{
@@ -134,97 +168,106 @@ protected:
 	TArray<FStimulusToProcess> StimuliToProcess; 
 	
 	/** max age of stimulus to consider it "active" (e.g. target is visible) */
-	float MaxActiveAge[ECorePerceptionTypes::MAX];
+	TArray<float> MaxActiveAge;
+
+private:
+	uint32 bCleanedUp : 1;
 
 public:
 
 	virtual void PostInitProperties() override;
 	virtual void BeginDestroy() override;
+	virtual void OnRegister() override;
+	virtual void OnUnregister() override;
 
 	UFUNCTION()
 	void OnOwnerEndPlay(EEndPlayReason::Type EndPlayReason);
-
-	/** Sets PeripheralVisionAngle. Updates AIPercetionSystem's stimuli listener */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AI")
-	void SetPeripheralVisionAngle(const float NewPeripheralVisionAngle);
-
-	/** Sets HearingRange. Updates AIPercetionSystem's stimuli listener */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AI")
-	void SetHearingRange(const float NewHearingRange);
-
-	/** Sets LOSHearingRange. Updates AIPercetionSystem's stimuli listener */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AI")
-	void SetLOSHearingRange(const float NewLOSHearingRange);
-
-	/** Sets SightRadius. Updates AIPercetionSystem's stimuli listener */
-	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="AI")
-	void SetSightRadius(const float NewSightRadius);
-
-	FORCEINLINE float GetPeripheralVisionAngle() const { return PeripheralVisionAngle; }
-	FORCEINLINE float GetHearingRange() const { return HearingRange; }
-	FORCEINLINE float GetLOSHearingRange() const { return LOSHearingRange; }
-	FORCEINLINE float GetSightRadius() const { return SightRadius; }	
-	FORCEINLINE float GetLoseSightRadius() const { return LoseSightRadius; }	
-
+	
 	void GetLocationAndDirection(FVector& Location, FVector& Direction) const;
 	const AActor* GetBodyActor() const;
 
 	FORCEINLINE const FPerceptionChannelFilter GetPerceptionFilter() const { return PerceptionFilter; }
 
 	FGenericTeamId GetTeamIdentifier() const;
-	FORCEINLINE uint32 GetListenerId() const { return PerceptionListenerId; }
+	FORCEINLINE FPerceptionListenerID GetListenerId() const { return PerceptionListenerId; }
 
-	FVector GetActorLocation(const AActor* Actor) const;
-	FORCEINLINE const FActorPerceptionInfo* GetActorInfo(const AActor* Actor) const { return PerceptualData.Find(Actor); }
+	FVector GetActorLocation(const AActor& Actor) const;
+	FORCEINLINE const FActorPerceptionInfo* GetActorInfo(const AActor& Actor) const { return PerceptualData.Find(&Actor); }
 	FORCEINLINE TActorPerceptionContainer::TIterator GetPerceptualDataIterator() { return TActorPerceptionContainer::TIterator(PerceptualData); }
 	FORCEINLINE TActorPerceptionContainer::TConstIterator GetPerceptualDataConstIterator() const { return TActorPerceptionContainer::TConstIterator(PerceptualData); }
 
-	void GetHostileActors(TArray<const AActor*>& OutActors) const;
+	void GetHostileActors(TArray<AActor*>& OutActors) const;
 
 	// @note will stop on first age 0 stimulus
-	const FActorPerceptionInfo* GetFreshestTrace(const FAISenseId Sense) const;
+	const FActorPerceptionInfo* GetFreshestTrace(const FAISenseID Sense) const;
 	
-	void SetDominantSense(ECorePerceptionTypes::Type InDominantSense);
-	FORCEINLINE ECorePerceptionTypes::Type GetDominantSense() const { return DominantSense; }
+	void SetDominantSense(TSubclassOf<UAISense> InDominantSense);
+	FORCEINLINE FAISenseID GetDominantSenseID() const { return DominantSenseID; }
+	FORCEINLINE TSubclassOf<UAISense> GetDominantSense() const { return DominantSense; }
+	UAISenseConfig* GetSenseConfig(const FAISenseID& SenseID);
+	const UAISenseConfig* GetSenseConfig(const FAISenseID& SenseID) const;
+	void ConfigureSense(UAISenseConfig& SenseConfig);
 
-	void SetShouldSee(bool bNewValue);
-	void SetShouldHear(bool bNewValue);
-	void SetShouldSenseDamage(bool bNewValue);	
-
-	/** Notifies AIPerceptionSystem to update data for this "stimuli listener" */
+	/** Notifies AIPerceptionSystem to update properties for this "stimuli listener" */
+	UFUNCTION(BlueprintCallable, Category="AI|Perception")
 	void RequestStimuliListenerUpdate();
 
 	void RegisterStimulus(AActor* Source, const FAIStimulus& Stimulus);
 	void ProcessStimuli();
-	void AgeStimuli(const float ConstPerceptionAgingRate);
+	/** returns true if, as result of stimuli aging, this listener needs an update (like if some stimuli expired)*/
+	bool AgeStimuli(const float ConstPerceptionAgingRate);
 	void ForgetActor(AActor* ActorToForget);
 
-	float GetYoungestStimulusAge(const AActor* Source) const;
-	bool HasAnyActiveStimulus(const AActor* Source) const;
-	bool HasActiveStimulus(const AActor* Source, FAISenseId Sense) const;
+	float GetYoungestStimulusAge(const AActor& Source) const;
+	bool HasAnyActiveStimulus(const AActor& Source) const;
+	bool HasActiveStimulus(const AActor& Source, FAISenseID Sense) const;
 
+#if !UE_BUILD_SHIPPING
 	void DrawDebugInfo(UCanvas* Canvas);
+#endif // !UE_BUILD_SHIPPING
 
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const;
 #endif // ENABLE_VISUAL_LOG
+
+	//----------------------------------------------------------------------//
+	// blueprint interface
+	//----------------------------------------------------------------------//
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
+	void GetPerceivedHostileActors(TArray<AActor*>& OutActors) const;
 	
+	/** Retrieves whatever has been sensed about given actor */
+	UFUNCTION(BlueprintCallable, Category = "AI|Perception")
+	bool GetActorsPerception(AActor* Actor, FActorPerceptionBlueprintInfo& Info);
+
+	//////////////////////////////////////////////////////////////////////////
+	// Might want to move these to special "BP_AIPerceptionComponent"
+	//////////////////////////////////////////////////////////////////////////
+	UPROPERTY(BlueprintAssignable)
+	FPerceptionUpdatedDelegate OnPerceptionUpdated;
+
 protected:
 
-	void UpdatePerceptionFilter(FAISenseId Channel, bool bNewValue);
+	void UpdatePerceptionFilter(FAISenseID Channel, bool bNewValue);
 	TActorPerceptionContainer& GetPerceptualData() { return PerceptualData; }
 
 	/** called to clean up on owner's end play or destruction */
 	virtual void CleanUp();
 
 	void RemoveDeadData();
+
+	/** Updates the stimulus entry in StimulusStore, if NewStimulus is more recent or stronger */
+	virtual void RefreshStimulus(FAIStimulus& StimulusStore, const FAIStimulus& NewStimulus);
+
+	/** @note no need to call super implementation, it's there just for some validity checking */
+	virtual void HandleExpiredStimulus(FAIStimulus& StimulusStore);
 	
 private:
-	uint32 PerceptionListenerId;
+	FPerceptionListenerID PerceptionListenerId;
 
 	friend UAIPerceptionSystem;
 
-	void StoreListenerId(uint32 InListenerId) { PerceptionListenerId = InListenerId; }
-
+	void StoreListenerId(FPerceptionListenerID InListenerId) { PerceptionListenerId = InListenerId; }
+	void SetMaxStimulusAge(int32 ConfigIndex, float MaxAge);
 };
 

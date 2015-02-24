@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "ActiveSound.h"
@@ -457,8 +457,7 @@ bool FAudioDevice::HandleListSoundClassVolumesCommand( const TCHAR* Cmd, FOutput
 		{
 			const FSoundClassProperties& CurClass = It.Value();
 
-			FString Line = FString::Printf( TEXT("Cur (%3.2f, %3.2f) for SoundClass %s"), CurClass.Volume, CurClass.Pitch, *SoundClass->GetName() );
-			Ar.Logf( *Line );
+			Ar.Logf( TEXT("Cur (%3.2f, %3.2f) for SoundClass %s"), CurClass.Volume, CurClass.Pitch, *SoundClass->GetName() );
 		}
 	}
 
@@ -519,11 +518,11 @@ bool FAudioDevice::HandleListAudioComponentsCommand( const TCHAR* Cmd, FOutputDe
 
 bool FAudioDevice::HandleListSoundDurationsCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	UE_LOG(LogAudio, Log,  TEXT( ",Sound,Duration,Channels" ) );
+	Ar.Logf(TEXT( "Sound,Duration,Channels" ) );
 	for( TObjectIterator<USoundWave> It; It; ++It )
 	{
 		USoundWave* SoundWave = *It;
-		UE_LOG(LogAudio, Log,  TEXT( ",%s,%f,%i" ), *SoundWave->GetPathName(), SoundWave->Duration, SoundWave->NumChannels );
+		Ar.Logf(TEXT( "%s,%f,%i" ), *SoundWave->GetPathName(), SoundWave->Duration, SoundWave->NumChannels );
 	}
 	return true;
 }
@@ -680,43 +679,6 @@ bool FAudioDevice::HandleResetSoundStateCommand( const TCHAR* Cmd, FOutputDevice
 	DebugState = DEBUGSTATE_None;
 	return true;
 }
-
-bool FAudioDevice::HandleModifySoundClassCommand( const TCHAR* Cmd, FOutputDevice& Ar )
-{
-	const FString SoundClassName = FParse::Token( Cmd, 0 );
-	float NewVolume = -1.0f;
-	FParse::Value( Cmd, TEXT( "Vol=" ), NewVolume );
-
-	// Set the volume in the original sound class
-	TArray<USoundClass*> FoundSoundClasses;
-	for (TMap<USoundClass*, FSoundClassProperties>::TIterator It(SoundClasses); It; ++It)
-	{
-		USoundClass* SoundClass = It.Key();
-		if (SoundClass && SoundClass->GetName() == SoundClassName)
-		{
-			FoundSoundClasses.Add(It.Key());
-		}
-	}
-
-	if (FoundSoundClasses.Num() == 1)
-	{
-		SetClassVolume( FoundSoundClasses[0], NewVolume );
-	}
-	else if (FoundSoundClasses.Num() == 0)
-	{
-		UE_LOG(LogAudio, Log, TEXT( "Couldn't find specified sound class (%s)!" ), *SoundClassName );
-	}
-	else
-	{
-		// If we found multiples we will set them all for now, but perhaps we could report an error message
-		// and go ahead and require them to supply an index for the one they want or -1 for all?
-		for(int32 Index = 0; Index < FoundSoundClasses.Num(); ++Index)
-		{
-			SetClassVolume( FoundSoundClasses[Index], NewVolume );
-		}
-	}
-	return true;
-}
 #endif // !UE_BUILD_SHIPPING
 
 EDebugState FAudioDevice::GetMixDebugState( void )
@@ -807,11 +769,6 @@ bool FAudioDevice::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	{
 		return HandleResetSoundStateCommand( Cmd, Ar );
 	}
-	// usage ModifySoundClass <soundclassname> vol=<new volume>
-	else if( FParse::Command( &Cmd, TEXT( "ModifySoundClass" ) ) )
-	{
-		return HandleModifySoundClassCommand( Cmd, Ar );
-	}
 #endif // !UE_BUILD_SHIPPING
 
 	return false;
@@ -831,8 +788,7 @@ void FAudioDevice::InitSoundClasses( void )
 	for( TObjectIterator<USoundClass> It; It; ++It )
 	{
 		USoundClass* SoundClass = *It;
-		FSoundClassProperties& Properties = SoundClasses.Add( SoundClass, FSoundClassProperties() );
-		Properties = SoundClass->Properties;
+		FSoundClassProperties& Properties = SoundClasses.Add( SoundClass, SoundClass->Properties );
 	}
 
 	// Propagate the properties down the hierarchy
@@ -1341,7 +1297,7 @@ void FAudioDevice::InvalidateCachedInteriorVolumes() const
 
 void FListener::ApplyInteriorSettings( class AAudioVolume* InVolume, const FInteriorSettings& Settings )
 {
-	if( InVolume != Volume )
+	if( InVolume != Volume || Settings != InteriorSettings)
 	{
 		// Use previous/ current interpolation time if we're transitioning to the default worldsettings zone.
 		InteriorStartTime = FApp::GetCurrentTime();
@@ -2046,14 +2002,6 @@ void FAudioDevice::RemoveActiveSound(FActiveSound* ActiveSound)
 	}
 }
 
-void FAudioDevice::SetClassVolume( USoundClass* InSoundClass, const float Volume )
-{
-	if (InSoundClass)
-	{
-		InSoundClass->Properties.Volume = Volume;
-	}
-}
-
 bool FAudioDevice::LocationIsAudible( FVector Location, float MaxDistance )
 {
 	if( MaxDistance >= WORLD_MAX )
@@ -2110,7 +2058,9 @@ UAudioComponent* FAudioDevice::CreateComponent( USoundBase* Sound, UWorld* World
 			AudioComponent->bIsUISound = false;
 			AudioComponent->bAutoDestroy = bPlay;
 			AudioComponent->bStopWhenOwnerDestroyed = bStopWhenOwnerDestroyed;
+#if WITH_EDITORONLY_DATA
 			AudioComponent->bVisualizeComponent	= false;
+#endif
 			AudioComponent->AttenuationSettings = AttenuationSettings;
 			if (Location)
 			{

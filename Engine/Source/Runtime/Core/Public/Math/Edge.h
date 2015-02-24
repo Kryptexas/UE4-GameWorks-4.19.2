@@ -1,8 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	Edge.h: Declares the FEdge structure.
-=============================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -20,9 +16,7 @@ struct FEdge
 
 public:
 
-	/**
-	 * Default constructor (no initialization).
-	 */
+	/** Default constructor (no initialization). */
 	FEdge () { }
 
 	/**

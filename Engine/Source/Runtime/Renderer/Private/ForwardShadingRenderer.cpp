@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ForwardShadingRenderer.cpp: Scene rendering code for the ES2 feature level.
@@ -12,6 +12,8 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessMobile.h"
 #include "SceneUtils.h"
+#include "PostProcessUpscale.h"
+#include "PostProcessCompositeEditorPrimitives.h"
 
 uint32 GetShadowQuality();
 
@@ -105,15 +107,27 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	FGlobalDynamicVertexBuffer::Get().Commit();
 	FGlobalDynamicIndexBuffer::Get().Commit();
 
+	// This might eventually be a problem with multiple views.
+	// Using only view 0 to check to do on-chip transform of alpha.
+	FViewInfo& View = Views[0];
+
 	const bool bGammaSpace = !IsMobileHDR();
-	if( bGammaSpace )
+	const bool bRequiresUpscale = ((uint32)ViewFamily.RenderTarget->GetSizeXY().X > ViewFamily.FamilySizeX || (uint32)ViewFamily.RenderTarget->GetSizeXY().Y > ViewFamily.FamilySizeY);
+	const bool bRenderToScene = bRequiresUpscale || FSceneRenderer::ShouldCompositeEditorPrimitives(View);
+
+	if (bGammaSpace && !bRenderToScene)
 	{
 		SetRenderTarget(RHICmdList, ViewFamily.RenderTarget->GetRenderTargetTexture(), GSceneRenderTargets.GetSceneDepthTexture(), ESimpleRenderTargetMode::EClearToDefault);
 	}
 	else
 	{
 		// Begin rendering to scene color
-        GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EClearToDefault);
+		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList, ESimpleRenderTargetMode::EClearToDefault);
+	}
+
+	if (GIsEditor)
+	{
+		RHICmdList.Clear(true, Views[0].BackgroundColor, false, 0, false, 0, FIntRect());
 	}
 
 	RenderForwardShadingBasePass(RHICmdList);
@@ -144,47 +158,45 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		RenderTranslucency(RHICmdList);
 	}
 
-	if( !bGammaSpace )
+	static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
+	bool bOnChipSunMask =
+		GSupportsRenderTargetFormat_PF_FloatRGBA &&
+		GSupportsShaderFramebufferFetch &&
+		ViewFamily.EngineShowFlags.PostProcessing &&
+		((View.bLightShaftUse) || (View.FinalPostProcessSettings.DepthOfFieldScale > 0.0) ||
+		((ViewFamily.GetShaderPlatform() == SP_METAL) && (CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false))
+		);
+
+	if (!bGammaSpace && bOnChipSunMask)
 	{
-		// This might eventually be a problem with multiple views.
-		// Using only view 0 to check to do on-chip transform of alpha.
-		FViewInfo& View = Views[0];
-
-		static const auto CVarMobileMSAA = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.MobileMSAA"));
-
-		bool bOnChipSunMask = 
-			GSupportsRenderTargetFormat_PF_FloatRGBA && 
-			GSupportsShaderFramebufferFetch &&
-			ViewFamily.EngineShowFlags.PostProcessing &&
-			((View.bLightShaftUse) || (View.FinalPostProcessSettings.DepthOfFieldScale > 0.0) || 
-			((ViewFamily.GetShaderPlatform() == SP_METAL) && (CVarMobileMSAA ? CVarMobileMSAA->GetValueOnAnyThread() > 1 : false))
-			);
-
 		// Convert alpha from depth to circle of confusion with sunshaft intensity.
 		// This is done before resolve on hardware with framebuffer fetch.
-		if(bOnChipSunMask)
-		{
-			// This will break when PrePostSourceViewportSize is not full size.
-			FIntPoint PrePostSourceViewportSize = GSceneRenderTargets.GetBufferSizeXY();
+		// This will break when PrePostSourceViewportSize is not full size.
+		FIntPoint PrePostSourceViewportSize = GSceneRenderTargets.GetBufferSizeXY();
 
-			FMemMark Mark(FMemStack::Get());
-			FRenderingCompositePassContext CompositeContext(RHICmdList, View);
+		FMemMark Mark(FMemStack::Get());
+		FRenderingCompositePassContext CompositeContext(RHICmdList, View);
 
-			FRenderingCompositePass* PostProcessSunMask = CompositeContext.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSunMaskES2(PrePostSourceViewportSize, true));
-			CompositeContext.Root->AddDependency(FRenderingCompositeOutputRef(PostProcessSunMask));
-			CompositeContext.Process(TEXT("OnChipAlphaTransform"));
-		}
+		FRenderingCompositePass* PostProcessSunMask = CompositeContext.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessSunMaskES2(PrePostSourceViewportSize, true));
+		CompositeContext.Root->AddDependency(FRenderingCompositeOutputRef(PostProcessSunMask));
+		CompositeContext.Process(TEXT("OnChipAlphaTransform"));
+	}
 
+	if (!bGammaSpace || bRenderToScene)
+	{
 		// Resolve the scene color for post processing.
 		GSceneRenderTargets.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
 
 		// Drop depth and stencil before post processing to avoid export.
 		RHICmdList.DiscardRenderTargets(true, true, 0);
+	}
 
+	if (!bGammaSpace)
+	{
 		// Finish rendering for each view, or the full stereo buffer if enabled
 		if (ViewFamily.bResolveScene)
 		{
-			if (GEngine->IsStereoscopic3D())
+			if (ViewFamily.EngineShowFlags.StereoRendering)
 			{
 				check(Views.Num() > 1);
 
@@ -199,13 +211,63 @@ void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 				SCOPED_DRAW_EVENT(RHICmdList, PostProcessing);
 				SCOPE_CYCLE_COUNTER(STAT_FinishRenderViewTargetTime);
 				for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
-				{	
+				{
 					SCOPED_CONDITIONAL_DRAW_EVENTF(RHICmdList, EventView, Views.Num() > 1, TEXT("View%d"), ViewIndex);
 					GPostProcessing.ProcessES2(RHICmdList, Views[ViewIndex], bOnChipSunMask);
 				}
 			}
 		}
 	}
-
+	else if (bRenderToScene)
+	{
+		BasicPostProcess(RHICmdList, View, bRequiresUpscale, FSceneRenderer::ShouldCompositeEditorPrimitives(View));
+	}
 	RenderFinish(RHICmdList);
+}
+
+// Perform simple upscale and/or editor primitive composite if the fully-featured post process is not in use.
+void FForwardShadingSceneRenderer::BasicPostProcess(FRHICommandListImmediate& RHICmdList, FViewInfo &View, bool bDoUpscale, bool bDoEditorPrimitives)
+{
+	FRenderingCompositePassContext CompositeContext(RHICmdList, View);
+	FPostprocessContext Context(CompositeContext.Graph, View);
+
+	if (bDoUpscale)
+	{	// simple bilinear upscaling for ES2.
+		FRenderingCompositePass* Node = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessUpscale(1, 0.0f));
+
+		Node->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+		Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.FinalOutput));
+
+		Context.FinalOutput = FRenderingCompositeOutputRef(Node);
+	}
+
+	// Composite editor primitives if we had any to draw and compositing is enabled
+	if (bDoEditorPrimitives)
+	{
+		FRenderingCompositePass* EditorCompNode = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessCompositeEditorPrimitives(false));
+		EditorCompNode->SetInput(ePId_Input0, FRenderingCompositeOutputRef(Context.FinalOutput));
+		//Node->SetInput(ePId_Input1, FRenderingCompositeOutputRef(Context.SceneDepth));
+		Context.FinalOutput = FRenderingCompositeOutputRef(EditorCompNode);
+	}
+
+	// currently created on the heap each frame but View.Family->RenderTarget could keep this object and all would be cleaner
+	TRefCountPtr<IPooledRenderTarget> Temp;
+	FSceneRenderTargetItem Item;
+	Item.TargetableTexture = (FTextureRHIRef&)View.Family->RenderTarget->GetRenderTargetTexture();
+	Item.ShaderResourceTexture = (FTextureRHIRef&)View.Family->RenderTarget->GetRenderTargetTexture();
+
+	FPooledRenderTargetDesc Desc;
+
+	Desc.Extent = View.Family->RenderTarget->GetSizeXY();
+	// todo: this should come from View.Family->RenderTarget
+	Desc.Format = PF_B8G8R8A8;
+	Desc.NumMips = 1;
+
+	GRenderTargetPool.CreateUntrackedElement(Desc, Temp, Item);
+
+	Context.FinalOutput.GetOutput()->PooledRenderTarget = Temp;
+	Context.FinalOutput.GetOutput()->RenderTargetDesc = Desc;
+
+	CompositeContext.Root->AddDependency(Context.FinalOutput);
+	CompositeContext.Process(TEXT("ES2BasicPostProcess"));
 }

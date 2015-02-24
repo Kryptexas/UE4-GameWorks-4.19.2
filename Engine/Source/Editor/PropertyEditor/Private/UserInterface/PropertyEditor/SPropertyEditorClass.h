@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "PropertyEditorConstants.h"
@@ -66,7 +66,7 @@ private:
 	/**
 	 * Gets the active display value as a string
 	 */
-	FString GetDisplayValueAsString() const;
+	FText GetDisplayValueAsString() const;
 
 private:
 	/** The property editor we were constructed for, or null if we're editing using the construction arguments */

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,7 +34,7 @@ public:
 private:
 
 	// Callback for getting the content text of the 'Cook Mode' combo button.
-	FString HandlePackagingModeComboButtonContentText( ) const;
+	FText HandlePackagingModeComboButtonContentText( ) const;
 
 	// Callback for clicking an item in the 'Cook Mode' menu.
 	void HandlePackagingModeMenuEntryClicked( ELauncherProfilePackagingModes::Type PackagingMode );

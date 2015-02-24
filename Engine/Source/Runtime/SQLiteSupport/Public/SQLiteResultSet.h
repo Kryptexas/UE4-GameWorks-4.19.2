@@ -1,7 +1,8 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 #pragma once
 
 #include "Database.h"
-#ifdef WITH_SQLITE
 //Forward declarations
 struct sqlite3_stmt;
 
@@ -34,5 +35,3 @@ private:
 	int32 NumberOfRecords = 0;
 	int32 StepStatus = 0;
 };
-
-#endif //WITH_SQLITE

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -50,6 +50,9 @@ typedef TSharedPtr<class IOnlineUser, ESPMode::ThreadSafe> IOnlineUserPtr;
 typedef TSharedPtr<class IOnlineMessage, ESPMode::ThreadSafe> IOnlineMessagePtr;
 typedef TSharedPtr<class IOnlinePresence, ESPMode::ThreadSafe> IOnlinePresencePtr;
 typedef TSharedPtr<class IOnlineParty, ESPMode::ThreadSafe> IOnlinePartyPtr;
+typedef TSharedPtr<class IOnlineChat, ESPMode::ThreadSafe> IOnlineChatPtr;
+typedef TSharedPtr<class FOnlineNotificationHandler, ESPMode::ThreadSafe> FOnlineNotificationHandlerPtr;
+typedef TSharedPtr<class FOnlineNotificationTransportManager, ESPMode::ThreadSafe> FOnlineNotificationTransportManagerPtr;
 
 /**
  * Called when the connection state as reported by the online platform changes
@@ -67,6 +70,9 @@ class ONLINESUBSYSTEM_API IOnlineSubsystem
 protected:
 	/** Hidden on purpose */
 	IOnlineSubsystem() {}
+
+	FOnlineNotificationHandlerPtr OnlineNotificationHandler;
+	FOnlineNotificationTransportManagerPtr OnlineNotificationTransportManager;
 
 public:
 	
@@ -239,6 +245,29 @@ public:
 	 */
 	virtual IOnlinePresencePtr GetPresenceInterface() const = 0;
 
+	/** 
+	 * Get the interface for user-user and user-room chat functionality
+	 * @return Interface pointer for the appropriate online user service
+	 */
+	virtual IOnlineChatPtr GetChatInterface() const = 0;
+	/**
+	* Get the notification handler instance for this subsystem
+	* @return Pointer for the appropriate notification handler
+	*/
+	FOnlineNotificationHandlerPtr GetOnlineNotificationHandler() const
+	{
+		return OnlineNotificationHandler;
+	}
+
+	/**
+	* Get the transport manager instance for this subsystem
+	* @return Pointer for the appropriate transport manager
+	*/
+	FOnlineNotificationTransportManagerPtr GetOnlineNotificationTransportManager() const
+	{
+		return OnlineNotificationTransportManager;
+	}
+
 	/**
 	 * Get custom UObject data preserved by the online subsystem
 	 *
@@ -317,12 +346,6 @@ public:
 	 */
 	virtual bool Exec(class UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar) = 0;
 
-
-	/**
-	 * Displays a system dialog to purchase user account upgrades.  e.g. PlaystationPlus, XboxLive GOLD, etc.
-	 */
-	virtual void DisplayAccountUpgradeDialog(const FUniqueNetId& UniqueId) = 0;
-
 	/**
 	 * Some platforms must know when the game is using Multiplayer features so they can do recurring authorization checks.
 	 */
@@ -364,7 +387,7 @@ public:
  *
  * @return the unique number from the current engine package
  */
-ONLINESUBSYSTEM_API uint32 GetBuildUniqueId();
+ONLINESUBSYSTEM_API int32 GetBuildUniqueId();
 
 /**
  * Common implementation for finding a player in a session

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 ConsoleManager.cpp: console command handling
@@ -13,6 +13,31 @@ DEFINE_LOG_CATEGORY(LogConsoleResponse);
 DEFINE_LOG_CATEGORY_STATIC(LogConsoleManager, Log, All);
 
 static inline bool IsWhiteSpace(TCHAR Value) { return Value == TCHAR(' '); }
+
+// @param In must not be 0
+bool IsGoodHelpString(const TCHAR* In)
+{
+	check(In);
+
+	if(*In == 0)
+	{
+		return false;
+	}
+
+	bool bGoodEndChar = true;
+
+	while(TCHAR c = *In++)
+	{
+		bGoodEndChar = true;
+
+		if(c == L'\n' || c == L'\t' || c == L' ' || c == L'\r')
+		{
+			bGoodEndChar = false;
+		}
+	}
+
+	return bGoodEndChar;
+}
 
 // Get human readable string
 // @return never 0
@@ -47,10 +72,9 @@ public:
 	 * @param InHelp must not be 0, must not be empty
 	 */
 	FConsoleVariableBase(const TCHAR* InHelp, EConsoleVariableFlags InFlags)
-		:Help(InHelp), Flags(InFlags), bWarnedAboutThreadSafety(false)
+		:Flags(InFlags), bWarnedAboutThreadSafety(false)
 	{
-		check(InHelp);
-		//check(*Help != 0); for now disabled as there callstack when we crash early during engine init
+		SetHelp(InHelp);
 	}
 
 	// interface IConsoleVariable -----------------------------------
@@ -62,9 +86,11 @@ public:
 	virtual void SetHelp(const TCHAR* Value)
 	{
 		check(Value);
-		//check(*Value != 0);
 
 		Help = Value;
+
+		// for now disabled as there is no good callstack when we crash early during engine init
+//		ensure(IsGoodHelpString(Value));
 	}
 	virtual EConsoleVariableFlags GetFlags() const
 	{
@@ -164,8 +190,6 @@ protected: // -----------------------------------------
 		return 0;
 	}
 };
-
-
 
 class FConsoleCommandBase : public IConsoleCommand
 {
@@ -521,7 +545,18 @@ void FConsoleManager::RegisterConsoleVariableSink(const FConsoleCommandDelegate&
 
 void FConsoleManager::UnregisterConsoleVariableSink(const FConsoleCommandDelegate& Command)
 {
-	ConsoleVariableChangeSinks.Remove(Command);
+	ConsoleVariableChangeSinks.RemoveAll([&](const FConsoleCommandDelegate& Element){ return Command.DEPRECATED_Compare(Element); });
+}
+
+FConsoleVariableSinkHandle FConsoleManager::RegisterConsoleVariableSink_Handle(const FConsoleCommandDelegate& Command)
+{
+	ConsoleVariableChangeSinks.Add(Command);
+	return FConsoleVariableSinkHandle(Command.GetHandle());
+}
+
+void FConsoleManager::UnregisterConsoleVariableSink_Handle(FConsoleVariableSinkHandle Handle)
+{
+	ConsoleVariableChangeSinks.RemoveAll([=](const FConsoleCommandDelegate& Delegate){ return Handle.HasSameHandle(Delegate); });
 }
 
 class FConsoleCommand : public FConsoleCommandBase
@@ -942,7 +977,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		TArray< FString > Args;
 		FString( It ).ParseIntoArrayWS( &Args );
 
-		const bool bShowHelp = Args.Num() == 1 && Args[0] == TEXT("?") ? true : false;
+		const bool bShowHelp = Args.Num() == 1 && Args[0] == TEXT("?");
 		if( bShowHelp )
 		{
 			// get help
@@ -959,10 +994,11 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 	{
 		// Process variable
 
+		bool bShowCurrentState = false;
+
 		if(*It == 0)
 		{
-			// get current state
-			Ar.Logf(TEXT("%s = \"%s\"      LastSetBy: %s"), *Param1, *CVar->GetString(), GetSetByTCHAR(CVar->GetFlags()));
+			bShowCurrentState = true;
 		}
 		else
 		{
@@ -982,6 +1018,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 			{
 				// get help
 				Ar.Logf(TEXT("HELP for '%s'%s:\n%s"), *Param1, bReadOnly ? TEXT("(ReadOnly)") : TEXT(""), CVar->GetHelp());
+				bShowCurrentState = true;
 			}
 			else
 			{
@@ -999,6 +1036,11 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 					CallAllConsoleVariableSinks();
 				}
 			}
+		}
+
+		if(bShowCurrentState)
+		{
+			Ar.Logf(TEXT("%s = \"%s\"      LastSetBy: %s"), *Param1, *CVar->GetString(), GetSetByTCHAR(CVar->GetFlags()));
 		}
 	}
 
@@ -1276,7 +1318,7 @@ void FConsoleManager::Test()
 
 	// setup ---------
 
-	RegisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&TestSinkCallback));
+	auto TestSinkCallbackHandle = RegisterConsoleVariableSink_Handle(FConsoleCommandDelegate::CreateStatic(&TestSinkCallback));
 
 	// start tests ---------
 
@@ -1448,7 +1490,7 @@ void FConsoleManager::Test()
 	TestSinkCallback();
 	check(GConsoleManagerSinkTestCounter == 2);
 
-	UnregisterConsoleVariableSink(FConsoleCommandDelegate::CreateStatic(&TestSinkCallback));
+	UnregisterConsoleVariableSink_Handle(TestSinkCallbackHandle);
 
 #endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -1476,6 +1518,32 @@ void CreateConsoleVariables()
 		ConsoleManager.Test();
 	}
 }
+
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
+static void DumpHelp(FOutputDevice& Ar)
+{
+	Ar.Logf(TEXT("Console Help:"));
+	Ar.Logf(TEXT("============="));
+	Ar.Logf(TEXT(" "));
+	Ar.Logf(TEXT("A console variable is a engine wide key value pair. The key is a string usually starting with the subsystem prefix followed"));
+	Ar.Logf(TEXT("by '.' e.g. r.BloomQuality. The value can be of different tpe (e.g. float, int, string). A console command has no state associated with"));
+	Ar.Logf(TEXT("and gets executed immediately."));
+	Ar.Logf(TEXT(" "));
+	Ar.Logf(TEXT("Console variables can be put into ini files (e.g. ConsoleVariables.ini or BaseEngine.ini) with this syntax:"));
+	Ar.Logf(TEXT("<Console variable> = <value>"));
+	Ar.Logf(TEXT(" "));
+	Ar.Logf(TEXT("DumpConsoleCommands         Lists all console variables and commands that are registered (Some are not registered)"));
+	Ar.Logf(TEXT("<Console variable>          Get the console variable state"));
+	Ar.Logf(TEXT("<Console variable> ?        Get the console variable help text"));
+	Ar.Logf(TEXT("<Console variable> <value>  Set the console variable value"));
+	Ar.Logf(TEXT("<Console command> [Params]  Execute the console command with optional parameters"));
+}
+static FAutoConsoleCommandWithOutputDevice GConsoleCommandHelp(
+	TEXT("help"),
+	TEXT("Outputs some helptext to the console and the log"),
+	FConsoleCommandWithOutputDeviceDelegate::CreateStatic(DumpHelp)
+	);
+#endif // !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 // Naming conventions:
 //
@@ -1560,6 +1628,14 @@ static TAutoConsoleVariable<int32> CVarSimpleDynamicLighting(
 	TEXT("Whether to use simple dynamic lighting, which just renders an unshadowed dynamic directional light and a skylight.\n")
 	TEXT("All other lighting features are disabled when true.  This is useful for supporting very low end hardware.\n")
 	TEXT("0:off, 1:on"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<int32> CVarTranslucentSortPolicy(
+	TEXT("r.TranslucentSortPolicy"),
+	0,
+	TEXT("0: Sort based on distance from camera centerpoint to bounding sphere centerpoint. (default, best for 3D games)\n")
+	TEXT("1: Sort based on projected distance to camera.")
+	TEXT("2: Sort based on the projection onto a fixed axis. (best for 2D games)"),
 	ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<int32> CVarMobileHDR(
@@ -1661,11 +1737,10 @@ static TAutoConsoleVariable<int32> CVarPostProcessAAQuality(
 
 static TAutoConsoleVariable<int32> CVarFullscreenMode(
 	TEXT("r.FullScreenMode"),
-	2,
+	1,
 	TEXT("Defines how we do full screen when requested (e.g. command line option -fullscreen or in ini [SystemSettings] fullscreen=true)\n")
 	TEXT(" 0: normal full screen (renders faster, more control over vsync, less GPU memory, 10bit color if possible)\n")
-	TEXT(" 1: windowed full screen, desktop resolution (quick switch between applications and window mode, full quality)\n")
-	TEXT(" 2: windowed full screen, specified resolution (like 1 but no unintuitive performance cliff, can be blurry, default)\n")
+	TEXT(" 1: windowed full screen (quick switch between applications and window mode, slight performance loss)\n")
 	TEXT(" any other number behaves like 0"),
 	ECVF_Scalability);
 
@@ -1847,7 +1922,7 @@ static TAutoConsoleVariable<int32> CVarMaxAnistropy(
 
 static TAutoConsoleVariable<int32> CVarShadowMaxResolution(
 	TEXT("r.Shadow.MaxResolution"),
-	1024,
+	2048,
 	TEXT("Max square dimensions (in texels) allowed for rendering shadow depths. Range 4 to hardware limit. Higher = better quality shadows but at a performance cost."),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 

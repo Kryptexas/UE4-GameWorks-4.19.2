@@ -1,7 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include <SDL/SDL.h>
+#include <SDL.h>
+
+#if PLATFORM_HTML5_BROWSER
+#include <html5.h>
+#endif 
 
 
 /**
@@ -38,4 +42,12 @@ private:
 	const TSharedPtr< ICursor > Cursor;
 
 	TBitArray<FDefaultBitArrayAllocator> KeyStates;
+
+#if PLATFORM_HTML5_BROWSER
+
+	EmscriptenGamepadEvent PrevGamePadState[5]; 
+	double LastPressedTime[5][15];
+
+#endif 
+
 };

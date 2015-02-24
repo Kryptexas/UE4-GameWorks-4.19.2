@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -119,3 +119,15 @@ void ArrangeSingleChild( const FGeometry& AllottedGeometry, FArrangedChildren& A
 	}
 
 }
+
+/**
+* Given information about a popup and the space available for displaying that popup, compute best placement for it.
+*
+* @param InAnchor          Area relative to which popup is being created (e.g. the button part of a combo box)
+* @param PopupRect         Proposed placement of popup; position may require adjustment.
+* @param Orientation       Are we trying to show the popup above/below or left/right relative to the anchor?
+* @param RectToFit         The space available for showing this popup; we want to fit entirely within it without clipping.
+*
+* @return A best position within the RectToFit such that none of the popup clips outside of the RectToFit.
+*/
+SLATECORE_API FVector2D ComputePopupFitInRect(const FSlateRect& InAnchor, const FSlateRect& PopupRect, const EOrientation Orientation, const FSlateRect RectToFit);

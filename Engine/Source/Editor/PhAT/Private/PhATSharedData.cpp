@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PhATModule.h"
 #include "PhysicsPublic.h"
@@ -8,6 +8,12 @@
 #include "PhATEdSkeletalMeshComponent.h"
 #include "PhATSharedData.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
+#include "PhysicsEngine/BodySetup.h"
+#include "Engine/CollisionProfile.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsHandleComponent.h"
+#include "Vehicles/WheeledVehicleMovementComponent.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "PhATShared"
 
@@ -61,6 +67,9 @@ FPhATSharedData::FPhATSharedData()
 	EditorSimOptions->HandleAngularDamping = MouseHandle->AngularDamping;
 	EditorSimOptions->HandleAngularStiffness = MouseHandle->AngularStiffness;
 	EditorSimOptions->InterpolationSpeed = MouseHandle->InterpolationSpeed;
+
+	// when record simulation, we'd like to record local to world change
+	Recorder.bRecordLocalToWorld = true;
 }
 
 FPhATSharedData::~FPhATSharedData()
@@ -91,7 +100,7 @@ void FPhATSharedData::Initialize()
 
 		FMessageDialog::Open(EAppMsgType::Ok, FText::Format(
 				NSLOCTEXT("UnrealEd", "Error_PhysicsAssetHasNoSkelMesh",
-				"Warning: Physics Asset has no default SkeletalMesh assigned!  For now, a simple default skeletal mesh ({0}) will be used.  You should repair the DefaultSkeletalMesh using UnrealPhAT (Edit -> Change Default SkeletalMesh) before saving this asset."),
+				"Warning: Physics Asset has no skeletal mesh assigned!  For now, a simple default skeletal mesh ({0}) will be used.  You can fix this by opening PhAT, selecting the appropriate skeletal mesh in the content browser, and using (Asset -> Change Mesh) before saving this asset."),
 				FText::FromString(PreviewMesh->GetFullName())));
 	}
 

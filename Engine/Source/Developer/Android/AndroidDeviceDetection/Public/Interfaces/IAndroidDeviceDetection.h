@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IAndroidDeviceDetection.h: Declares the IAndroidDeviceDetection interface.
@@ -50,7 +50,7 @@ class IAndroidDeviceDetection
 public:
 	virtual const TMap<FString,FAndroidDeviceInfo>& GetDeviceMap() = 0;
 	virtual FCriticalSection* GetDeviceMapLock() = 0;
-
+	virtual void UpdateADBPath() = 0;
 protected:
 
 	/**

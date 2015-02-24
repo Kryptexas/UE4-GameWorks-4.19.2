@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Camera/CameraAnim.h"
+#include "AssetTypeActions_Base.h"
 
 class FAssetTypeActions_CameraAnim : public FAssetTypeActions_Base
 {
@@ -41,4 +43,7 @@ private:
 
 	/** The pawn we we will use for previewing the camera anim */
 	TWeakObjectPtr<class APawn> PreviewPawn;
+
+	/** Handle to the registered OnMatineeEditorClosed delegate */
+	FDelegateHandle OnMatineeEditorClosedDelegateHandle;
 };

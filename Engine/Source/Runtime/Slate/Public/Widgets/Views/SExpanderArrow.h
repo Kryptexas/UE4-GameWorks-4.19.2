@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "SButton.h"
 
 
 /**
@@ -12,8 +13,11 @@ class SLATE_API SExpanderArrow : public SCompoundWidget
 public:
 
 	SLATE_BEGIN_ARGS( SExpanderArrow )
+		: _IndentAmount(10)
+		, _BaseIndentLevel(0)
 	{ }
 		SLATE_ATTRIBUTE(float, IndentAmount)
+		SLATE_ATTRIBUTE(int32, BaseIndentLevel)
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs, const TSharedPtr<class ITableRow>& TableRow );
@@ -39,4 +43,7 @@ protected:
 
 	/** The amount of space to indent at each level */
 	TAttribute<float> IndentAmount;
+
+	/** The level in the tree that begins the indention amount */
+	TAttribute<int32> BaseIndentLevel;
 };

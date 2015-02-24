@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,8 +24,6 @@ struct FPrimitiveViewRelevance
 	uint32 bEditorPrimitiveRelevance : 1;
 	/** The primitive is drawn only in the editor and composited onto the scene after post processing using no depth testing */
 	uint32 bEditorNoDepthTestPrimitiveRelevance : 1;
-	/** The primitive needs PreRenderView to be called before rendering. */
-	uint32 bNeedsPreRenderView : 1;
 	/** The primitive should have GatherSimpleLights called on the proxy when gathering simple lights. */
 	uint32 bHasSimpleLights : 1;
 
@@ -64,7 +62,6 @@ struct FPrimitiveViewRelevance
 		bRenderInMainPass(true),
 		bEditorPrimitiveRelevance(false),
 		bEditorNoDepthTestPrimitiveRelevance(false),
-		bNeedsPreRenderView(false),
 		bHasSimpleLights(false),
 		bOpaqueRelevance(true),
 		bMaskedRelevance(false),
@@ -89,7 +86,6 @@ struct FPrimitiveViewRelevance
 		bRenderInMainPass |= B.bRenderInMainPass !=0;
 		bEditorPrimitiveRelevance |= B.bEditorPrimitiveRelevance !=0;
 		bEditorNoDepthTestPrimitiveRelevance |= B.bEditorNoDepthTestPrimitiveRelevance !=0;
-		bNeedsPreRenderView |= B.bNeedsPreRenderView != 0;
 		bHasSimpleLights |= B.bHasSimpleLights != 0;
 		bSeparateTranslucencyRelevance |= B.bSeparateTranslucencyRelevance != 0;
 		bNormalTranslucencyRelevance |= B.bNormalTranslucencyRelevance != 0;

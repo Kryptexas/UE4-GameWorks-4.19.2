@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Animation/BoneControllers/AnimNode_SkeletalControlBase.h"
@@ -48,6 +48,11 @@ void FAnimNode_SkeletalControlBase::EvaluateComponentSpace(FComponentSpacePoseCo
 	if ((ActualAlpha >= ZERO_ANIMWEIGHT_THRESH) && IsValidToEvaluate(Output.AnimInstance->CurrentSkeleton, Output.AnimInstance->RequiredBones))
 	{
 		USkeletalMeshComponent* Component = Output.AnimInstance->GetSkelMeshComponent();
+
+#if WITH_EDITORONLY_DATA
+		// save current pose before applying skeletal control to compute the exact gizmo location in AnimGraphNode
+		ForwardedPose = Output.Pose;
+#endif // #if WITH_EDITORONLY_DATA
 
 		TArray<FBoneTransform> BoneTransforms;
 		EvaluateBoneTransforms(Component, Output.AnimInstance->RequiredBones, Output.Pose, BoneTransforms);

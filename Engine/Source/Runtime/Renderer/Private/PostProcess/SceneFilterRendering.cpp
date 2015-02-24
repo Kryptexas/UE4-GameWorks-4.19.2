@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneFilterRendering.cpp: Filter rendering implementation.
@@ -69,6 +69,56 @@ public:
 /** Global resource  */
 static TGlobalResource<FScreenRectangleVertexBuffer> GScreenRectangleVertexBuffer;
 static TGlobalResource<FScreenRectangleIndexBuffer> GScreenRectangleIndexBuffer;
+
+void FTesselatedScreenRectangleIndexBuffer::InitRHI()
+{
+	TResourceArray<uint16, INDEXBUFFER_ALIGNMENT> IndexBuffer;
+
+	uint32 NumIndices = NumPrimitives() * 3;
+	IndexBuffer.AddUninitialized(NumIndices);
+		
+	uint16* Out = (uint16*)IndexBuffer.GetData();
+
+	for(uint32 y = 0; y < Height; ++y)
+	{
+		for(uint32 x = 0; x < Width; ++x)
+		{
+			// left top to bottom right in reading order
+			uint16 Index00 = x  + y * (Width + 1);
+			uint16 Index10 = Index00 + 1;
+			uint16 Index01 = Index00 + (Width + 1);
+			uint16 Index11 = Index01 + 1;
+
+			// todo: diagonal can be flipped on parts of the screen
+
+			// triangle A
+			*Out++ = Index00; *Out++ = Index01; *Out++ = Index10;
+
+			// triangle B
+			*Out++ = Index11; *Out++ = Index10; *Out++ = Index01;
+		}
+	}
+
+	// Create index buffer. Fill buffer with initial data upon creation
+	FRHIResourceCreateInfo CreateInfo(&IndexBuffer);
+	IndexBufferRHI = RHICreateIndexBuffer(sizeof(uint16), IndexBuffer.GetResourceDataSize(), BUF_Static, CreateInfo);
+}
+
+uint32 FTesselatedScreenRectangleIndexBuffer::NumVertices() const
+{
+	// 4 vertices per quad but shared
+	return (Width + 1) * (Height + 1);
+}
+
+uint32 FTesselatedScreenRectangleIndexBuffer::NumPrimitives() const
+{
+	// triangle has 3 corners, 2 triangle per quad
+	return 2 * Width * Height;
+}
+
+/** We don't need a vertex buffer as we can compute the vertex attributes in the VS */
+static TGlobalResource<FTesselatedScreenRectangleIndexBuffer> GTesselatedScreenRectangleIndexBuffer;
+
 
 /** Vertex declaration for the 2D screen rectangle. */
 TGlobalResource<FFilterVertexDeclaration> GFilterVertexDeclaration;
@@ -149,38 +199,59 @@ void DrawRectangle(
 		1.0f / TextureSize.X, 1.0f / TextureSize.Y);
 
 	SetUniformBufferParameterImmediate(RHICmdList, VertexShader->GetVertexShader(), VertexShader->GetUniformBufferParameter<FDrawRectangleParameters>(), Parameters);
-	RHICmdList.SetStreamSource(0, GScreenRectangleVertexBuffer.VertexBufferRHI, sizeof(FFilterVertex), 0);
 
-
-	if (Flags == EDRF_UseTriangleOptimization)
+	if(Flags == EDRF_UseTesselatedIndexBuffer)
 	{
-		// A single triangle spans the entire viewport this results in a quad that fill the viewport. This can increase rasterization efficiency
-		// as we do not have a diagonal edge (through the center) for the rasterizer/span-dispatch. Although the actual benefit of this technique is dependent upon hardware.
+		// no vertex buffer needed as we compute it in VS
+		RHICmdList.SetStreamSource(0, NULL, 0, 0);
 
-		// We offset into the index buffer when using the triangle optimization to access the correct vertices.
 		RHICmdList.DrawIndexedPrimitive(
-			GScreenRectangleIndexBuffer.IndexBufferRHI,
+			GTesselatedScreenRectangleIndexBuffer.IndexBufferRHI,
 			PT_TriangleList,
 			/*BaseVertexIndex=*/ 0,
 			/*MinIndex=*/ 0,
-			/*NumVertices=*/ 3,
-			/*StartIndex=*/ 6,
-			/*NumPrimitives=*/ 1,
+			/*NumVertices=*/ GTesselatedScreenRectangleIndexBuffer.NumVertices(),
+			/*StartIndex=*/ 0,
+			/*NumPrimitives=*/ GTesselatedScreenRectangleIndexBuffer.NumPrimitives(),
 			/*NumInstances=*/ 1
 			);
 	}
 	else
 	{
-		RHICmdList.DrawIndexedPrimitive(
-			GScreenRectangleIndexBuffer.IndexBufferRHI,
-			PT_TriangleList,
-			/*BaseVertexIndex=*/ 0,
-			/*MinIndex=*/ 0,
-			/*NumVertices=*/ 4,
-			/*StartIndex=*/ 0,
-			/*NumPrimitives=*/ 2,
-			/*NumInstances=*/ 1
-			);
+		RHICmdList.SetStreamSource(0, GScreenRectangleVertexBuffer.VertexBufferRHI, sizeof(FFilterVertex), 0);
+
+		if (Flags == EDRF_UseTriangleOptimization)
+		{
+			// A single triangle spans the entire viewport this results in a quad that fill the viewport. This can increase rasterization efficiency
+			// as we do not have a diagonal edge (through the center) for the rasterizer/span-dispatch. Although the actual benefit of this technique is dependent upon hardware.
+
+			// We offset into the index buffer when using the triangle optimization to access the correct vertices.
+			RHICmdList.DrawIndexedPrimitive(
+				GScreenRectangleIndexBuffer.IndexBufferRHI,
+				PT_TriangleList,
+				/*BaseVertexIndex=*/ 0,
+				/*MinIndex=*/ 0,
+				/*NumVertices=*/ 3,
+				/*StartIndex=*/ 6,
+				/*NumPrimitives=*/ 1,
+				/*NumInstances=*/ 1
+				);
+		}
+		else
+		{
+			RHICmdList.SetStreamSource(0, GScreenRectangleVertexBuffer.VertexBufferRHI, sizeof(FFilterVertex), 0);
+
+			RHICmdList.DrawIndexedPrimitive(
+				GScreenRectangleIndexBuffer.IndexBufferRHI,
+				PT_TriangleList,
+				/*BaseVertexIndex=*/ 0,
+				/*MinIndex=*/ 0,
+				/*NumVertices=*/ 4,
+				/*StartIndex=*/ 0,
+				/*NumPrimitives=*/ 2,
+				/*NumInstances=*/ 1
+				);
+		}
 	}
 }
 
@@ -218,8 +289,8 @@ void DrawTransformedRectangle(
 
 	for (int32 VertexIndex = 0; VertexIndex < 4; VertexIndex++)
 	{
-		Vertices[VertexIndex].Position.X = -1.0f + 2.0f * (Vertices[VertexIndex].Position.X - GPixelCenterOffset) / (float)TargetSize.X;
-		Vertices[VertexIndex].Position.Y = (+1.0f - 2.0f * (Vertices[VertexIndex].Position.Y - GPixelCenterOffset) / (float)TargetSize.Y) * GProjectionSignY;
+		Vertices[VertexIndex].Position.X = -1.0f + 2.0f * (Vertices[VertexIndex].Position.X) / (float)TargetSize.X;
+		Vertices[VertexIndex].Position.Y = (+1.0f - 2.0f * (Vertices[VertexIndex].Position.Y) / (float)TargetSize.Y) * GProjectionSignY;
 
 		Vertices[VertexIndex].UV.X = Vertices[VertexIndex].UV.X / (float)TextureSize.X;
 		Vertices[VertexIndex].UV.Y = Vertices[VertexIndex].UV.Y / (float)TextureSize.Y;

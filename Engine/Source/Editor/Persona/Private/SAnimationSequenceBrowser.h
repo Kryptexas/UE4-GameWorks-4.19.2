@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -148,6 +148,9 @@ protected:
 	 */
 	bool IsToolTipPreviewVisible();
 
+	/** Returns visible when not in a Blueprint mode (anim mode, etc...) */
+	EVisibility GetNonBlueprintModeVisibility() const;
+protected:
 	/**
 	 * The actual viewport widget
 	 */	
@@ -172,8 +175,6 @@ protected:
 	 * The scene to show in the asset previews
 	 */
 	FPreviewScene PreviewScene;
-
-protected:
 
 	// Pointer back to persona tool that owns us
 	TWeakPtr<class FPersona> PersonaPtr;

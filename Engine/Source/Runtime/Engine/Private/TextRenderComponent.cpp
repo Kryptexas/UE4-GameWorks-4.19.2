@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Components/TextRenderComponent.h"
@@ -73,6 +73,10 @@ struct FTextIterator
 		{
 			CurrentPosition += 4;
 		}
+		else if (CurrentPosition[0] == '\n')
+		{
+			++CurrentPosition;
+		}
 		else
 		{
 			Ch = *CurrentPosition;
@@ -86,7 +90,7 @@ struct FTextIterator
 	bool Peek(int32& Ch)
 	{
 		check(CurrentPosition);
-		if ( CurrentPosition[0] =='\0' || (CurrentPosition[0] == '<' && CurrentPosition[1] == 'b' && CurrentPosition[2] == 'r' && CurrentPosition[3] == '>'))
+		if ( CurrentPosition[0] =='\0' || (CurrentPosition[0] == '<' && CurrentPosition[1] == 'b' && CurrentPosition[2] == 'r' && CurrentPosition[3] == '>') || (CurrentPosition[0] == '\n') )
 		{
 			return false;
 		}
@@ -357,7 +361,6 @@ public:
 	virtual ~FTextRenderSceneProxy();
 
 	// Begin FPrimitiveSceneProxy interface
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
@@ -495,57 +498,6 @@ void FTextRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView
 #endif
 			}
 		}
-	}
-}
-
-void FTextRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-{
-	QUICK_SCOPE_CYCLE_COUNTER( STAT_TextRenderSceneProxy_DrawDynamicElements );
-
-	// Vertex factory will not been initialized when the text string is empty or font is invalid.
-	if(VertexFactory.IsInitialized())
-	{
-		// Draw the mesh.
-		FMeshBatch Mesh;
-		FMeshBatchElement& BatchElement = Mesh.Elements[0];
-		BatchElement.IndexBuffer = &IndexBuffer;
-		Mesh.VertexFactory = &VertexFactory;
-		BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
-		BatchElement.FirstIndex = 0;
-		BatchElement.NumPrimitives = IndexBuffer.Indices.Num() / 3;
-		BatchElement.MinVertexIndex = 0;
-		BatchElement.MaxVertexIndex = VertexBuffer.Vertices.Num() - 1;
-		Mesh.ReverseCulling = IsLocalToWorldDeterminantNegative();
-		Mesh.bDisableBackfaceCulling = false;
-		Mesh.Type = PT_TriangleList;
-		Mesh.DepthPriorityGroup = SDPG_World;
-		const bool bUseSelectedMaterial = GIsEditor && (View->Family->EngineShowFlags.Selection) ? IsSelected() : false;
-		Mesh.MaterialRenderProxy = TextMaterial->GetRenderProxy(bUseSelectedMaterial);
-
-		const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
-
-		if (bAlwaysRenderAsText)
-		{ 
-			// Render text unmodified
-			PDI->DrawMesh(Mesh);
-		}
-		else
-		{
-			uint32 NumPasses = DrawRichMesh(
-				PDI,
-				Mesh,
-				FLinearColor(1.0f, 0.0f, 0.0f),	//WireframeColor,
-				FLinearColor(1.0f, 1.0f, 0.0f),	//LevelColor,
-				FLinearColor(1.0f, 1.0f, 1.0f),	//PropertyColor,		
-				this,
-				bUseSelectedMaterial,
-				bIsWireframe
-				);
-		}
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-		RenderBounds(PDI, View->Family->EngineShowFlags, GetBounds(), IsSelected());
-#endif
 	}
 }
 
@@ -756,7 +708,7 @@ UTextRenderComponent::UTextRenderComponent(const FObjectInitializer& ObjectIniti
 	TextMaterial = ConstructorStatics.TextMaterial.Get();
 
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
-	TextRenderColor = FColor(255, 255, 255);
+	TextRenderColor = FColor::White;
 	XScale = 1;
 	YScale = 1;
 	HorizSpacingAdjust = 0;
@@ -845,7 +797,12 @@ FBoxSphereBounds UTextRenderComponent::CalcBounds(const FTransform& LocalToWorld
 		LeftTop.Y = ComputeVerticalAlignmentOffset(Size.Y, VerticalAlignment, FirstLineHeight);
 		FBox LocalBox(FVector(0, -LeftTop.X, -LeftTop.Y), FVector(0, -(LeftTop.X + Size.X), -(LeftTop.Y + Size.Y)));
 
-		return FBoxSphereBounds(LocalBox.TransformBy(LocalToWorld));
+		FBoxSphereBounds Ret(LocalBox.TransformBy(LocalToWorld));
+
+		Ret.BoxExtent *= BoundsScale;
+		Ret.SphereRadius *= BoundsScale;
+
+		return Ret;
 	}
 	else
 	{

@@ -1,8 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "EditorActorFolders.h"
 #include "ScopedTransaction.h"
+#include "EngineUtils.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "FActorFolders"
 
@@ -30,6 +32,7 @@ FName OldPathToNewPath(const FString& InOldBranch, const FString& InNewBranch, c
 
 // Static member definitions
 FOnActorFolderCreate	FActorFolders::OnFolderCreate;
+FOnActorFolderMove		FActorFolders::OnFolderMove;
 FOnActorFolderDelete	FActorFolders::OnFolderDelete;
 FActorFolders*			FActorFolders::Singleton;
 
@@ -78,13 +81,11 @@ void FActorFolders::Cleanup()
 
 void FActorFolders::Housekeeping()
 {
-	TArray<TWeakObjectPtr<UWorld>> Worlds;
-	TemporaryWorldFolders.GenerateKeyArray(Worlds);
-	for (const auto& World : Worlds)
+	for (auto It = TemporaryWorldFolders.CreateIterator(); It; ++It)
 	{
-		if (!World.Get())
+		if (!It.Key().Get())
 		{
-			TemporaryWorldFolders.Remove(World);
+			It.RemoveCurrent();
 		}
 	}
 }
@@ -211,6 +212,9 @@ UEditorActorFolders& FActorFolders::GetOrCreateFoldersForWorld(UWorld& InWorld)
 
 UEditorActorFolders& FActorFolders::InitializeForWorld(UWorld& InWorld)
 {
+	// Clean up any stale worlds
+	Housekeeping();
+
 	// We intentionally don't pass RF_Transactional to ConstructObject so that we don't record the creation of the object into the undo buffer
 	// (to stop it getting deleted on undo as we manage its lifetime), but we still want it to be RF_Transactional so we can record any changes later
 	UEditorActorFolders* Folders = ConstructObject<UEditorActorFolders>(UEditorActorFolders::StaticClass(), GetTransientPackage(), NAME_None, RF_NoFlags);
@@ -405,6 +409,7 @@ bool FActorFolders::RenameFolderInWorld(UWorld& World, FName OldPath, FName NewP
 					// Otherwise use default properties
 					FoldersInWorld.Folders.Add(NewFolder);
 				}
+				OnFolderMove.Broadcast(World, Path, NewFolder);
 				OnFolderCreate.Broadcast(World, NewFolder);
 			}
 			RenamedFolders.Add(Path);

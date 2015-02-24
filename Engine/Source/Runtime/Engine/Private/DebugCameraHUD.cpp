@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
    DebugCameraInput.cpp: Native implementation for the debug camera
@@ -8,13 +8,14 @@
 #include "GameFramework/PawnMovementComponent.h"
 #include "GameFramework/SpectatorPawn.h"
 #include "Engine/DebugCameraHUD.h"
+#include "Engine/DebugCameraController.h"
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 static TAutoConsoleVariable<int32> CVarDebugCameraTraceComplex(
 	TEXT("g.DebugCameraTraceComplex"),
 	1,
 	TEXT("Whether DebugCamera should use complex or simple collision for the line trace.\n")
-	TEXT("1: complex collision, 0: simple collision "),
+	TEXT("1: complex collision, 0: simple collision"),
 	ECVF_Cheat);
 #endif
 // ------------------
@@ -134,7 +135,7 @@ void ADebugCameraHUD::PostRender()
 				}
 				else
 				{
-					TArray<UMeshComponent*> Components;
+					TInlineComponentArray<UMeshComponent*> Components;
 					GetComponents(Components);
 
 					for ( int32 i=0; i<Components.Num(); i++ )

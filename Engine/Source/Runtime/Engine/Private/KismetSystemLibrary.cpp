@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Engine/GameEngine.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Engine/Console.h"
 #include "LatentActions.h"
@@ -9,6 +10,9 @@
 #include "Advertising.h"
 #include "Online.h"
 #include "Camera/CameraActor.h"
+#include "Camera/CameraComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "SlateCore.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UKismetSystemLibrary
@@ -27,6 +31,11 @@ void UKismetSystemLibrary::StackTraceImpl(const FFrame& StackFrame)
 bool UKismetSystemLibrary::IsValid(const UObject* Object)
 {
 	return ::IsValid(Object);
+}
+
+bool UKismetSystemLibrary::IsValidClass(UClass* Class)
+{
+	return ::IsValid(Class);
 }
 
 FString UKismetSystemLibrary::GetDisplayName(const UObject* Object)
@@ -80,13 +89,13 @@ bool UKismetSystemLibrary::DoesImplementInterface(UObject* TestObject, TSubclass
 float UKismetSystemLibrary::GetGameTimeInSeconds(UObject* WorldContextObject)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	return World->GetTimeSeconds();
+	return World ? World->GetTimeSeconds() : 0.f;
 }
 
 bool UKismetSystemLibrary::IsServer(UObject* WorldContextObject)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	return (World->GetNetMode() != NM_Client);
+	return World ? (World->GetNetMode() != NM_Client) : false;
 }
 
 bool UKismetSystemLibrary::IsDedicatedServer(UObject* WorldContextObject)
@@ -211,9 +220,29 @@ void UKismetSystemLibrary::PrintString(UObject* WorldContextObject, const FStrin
 #endif
 }
 
+void UKismetSystemLibrary::PrintText(UObject* WorldContextObject, const FText InText, bool bPrintToScreen, bool bPrintToLog, FLinearColor TextColor)
+{
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST) // Do not Print in Shipping or Test
+	PrintString(WorldContextObject, InText.ToString(), bPrintToScreen, bPrintToLog, TextColor);
+#endif
+}
+
 void UKismetSystemLibrary::PrintWarning(const FString& InString)
 {
 	PrintString(NULL, InString, true, true);
+}
+
+void UKismetSystemLibrary::SetWindowTitle(const FText& Title)
+{
+	UGameEngine* GameEngine = Cast<UGameEngine>(GEngine);
+	if (GameEngine != nullptr)
+	{
+		TSharedPtr<SWindow> GameViewportWindow = GameEngine->GameViewportWindow.Pin();
+		if (GameViewportWindow.IsValid())
+		{
+			GameViewportWindow->SetTitle(Title);
+		}
+	}
 }
 
 void UKismetSystemLibrary::ExecuteConsoleCommand(UObject* WorldContextObject, const FString& Command, APlayerController* Player)
@@ -260,26 +289,26 @@ void UKismetSystemLibrary::K2_SetTimer(UObject* Object, FString FunctionName, fl
 		}
 	}
 
-	FBlueprintTimerDynamicDelegate Delegate;
+	FTimerDynamicDelegate Delegate;
 	Delegate.BindUFunction(Object, FunctionFName);
 	K2_SetTimerDelegate(Delegate, Time, bLooping);
 }
 
-void UKismetSystemLibrary::K2_SetTimerDelegate(FBlueprintTimerDynamicDelegate Delegate, float Time, bool bLooping)
+void UKismetSystemLibrary::K2_SetTimerDelegate(FTimerDynamicDelegate Delegate, float Time, bool bLooping)
 {
-	UObject* const Object = Delegate.GetUObject();
-	FName const FunctionName = Delegate.GetFunctionName();
-
-	FTimerDynamicDelegate InnerDelegate;
-	InnerDelegate.BindUFunction(Object, FunctionName);
-	if (InnerDelegate.IsBound())
+	if (Delegate.IsBound())
 	{
-		const UWorld* const World = GEngine->GetWorldFromContextObject(Object);
-		World->GetTimerManager().SetTimer(InnerDelegate, Time, bLooping);
+		const UWorld* const World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		if(World)
+		{
+			auto& TimerManager = World->GetTimerManager();
+			auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+			TimerManager.SetTimer(Handle, Delegate, Time, bLooping);
+		}
 	}
 	else
 	{
-		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("SetTimer passed a bad function (%s) or object (%s)"), *FunctionName.ToString(), *GetNameSafe(Object));
+		UE_LOG(LogBlueprintUserMessages, Warning, TEXT("SetTimer passed a bad function (%s) or object (%s)"), *Delegate.GetFunctionName().ToString(), *GetNameSafe(Delegate.GetUObject()));
 	}
 }
 
@@ -293,7 +322,9 @@ void UKismetSystemLibrary::K2_ClearTimer(UObject* Object, FString FunctionName)
 		UWorld* World = GEngine->GetWorldFromContextObject(Object);
 		if (World)
 		{
-			World->GetTimerManager().ClearTimer(Delegate);
+			auto& TimerManager = World->GetTimerManager();
+			auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+			World->GetTimerManager().ClearTimer(Handle);
 		}
 	}
 	else
@@ -311,7 +342,13 @@ void UKismetSystemLibrary::K2_PauseTimer(UObject* Object, FString FunctionName)
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Object);
-		World->GetTimerManager().PauseTimer(Delegate);
+		if(World)
+		{
+		    UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		    auto& TimerManager = World->GetTimerManager();
+		    auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		    World->GetTimerManager().PauseTimer(Handle);
+		}
 	}
 	else
 	{
@@ -328,7 +365,13 @@ void UKismetSystemLibrary::K2_UnPauseTimer(UObject* Object, FString FunctionName
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Object);
-		World->GetTimerManager().UnPauseTimer(Delegate);
+		if(World)
+		{
+		    UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		    auto& TimerManager = World->GetTimerManager();
+		    auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		    World->GetTimerManager().UnPauseTimer(Handle);
+		}
 	}
 	else
 	{
@@ -345,7 +388,17 @@ bool UKismetSystemLibrary::K2_IsTimerActive(UObject* Object, FString FunctionNam
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Object);
-		return World->GetTimerManager().IsTimerActive(Delegate);
+		if(World)
+		{
+		    UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		    auto& TimerManager = World->GetTimerManager();
+		    auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		    return World->GetTimerManager().IsTimerActive(Handle);
+		}
+		else
+		{
+			return false;
+		}
 	}
 	else
 	{
@@ -363,7 +416,17 @@ bool UKismetSystemLibrary::K2_IsTimerPaused(UObject* Object, FString FunctionNam
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Object);
-		return World->GetTimerManager().IsTimerPaused(Delegate);
+		if(World)
+		{
+		    UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		    auto& TimerManager = World->GetTimerManager();
+		    auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		    return World->GetTimerManager().IsTimerPaused(Handle);
+		}
+		else
+		{
+			return false;
+		}
 	}
 	else
 	{
@@ -381,7 +444,17 @@ bool UKismetSystemLibrary::K2_TimerExists(UObject* Object, FString FunctionName)
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Object);
-		return World->GetTimerManager().TimerExists(Delegate);
+		if(World)
+		{
+		    UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		    auto& TimerManager = World->GetTimerManager();
+		    auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		    return World->GetTimerManager().TimerExists(Handle);
+		}
+		else
+		{
+			return false;
+		}
 	}
 	else
 	{
@@ -398,8 +471,18 @@ float UKismetSystemLibrary::K2_GetTimerElapsedTime(UObject* Object, FString Func
 
 	if (Delegate.IsBound())
 	{
-		UWorld* World = GEngine->GetWorldFromContextObject(Object);		
-		return World->GetTimerManager().GetTimerElapsed(Delegate);
+		UWorld* World = GEngine->GetWorldFromContextObject(Object);	
+		if(World)
+		{
+		    UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		    auto& TimerManager = World->GetTimerManager();
+		    auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		    return World->GetTimerManager().GetTimerElapsed(Handle);
+		}
+		else
+		{
+			return false;
+		}
 	}
 	else
 	{
@@ -417,7 +500,17 @@ float UKismetSystemLibrary::K2_GetTimerRemainingTime(UObject* Object, FString Fu
 	if (Delegate.IsBound())
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(Object);
-		return World->GetTimerManager().GetTimerRemaining(Delegate);
+		if(World)
+		{
+		    UWorld* World = GEngine->GetWorldFromContextObject(Delegate.GetUObject());
+		    auto& TimerManager = World->GetTimerManager();
+		    auto Handle = TimerManager.K2_FindDynamicTimerHandle(Delegate);
+		    return World->GetTimerManager().GetTimerRemaining(Handle);
+		}
+		else
+		{
+			return false;
+		}
 	}
 	else
 	{
@@ -585,6 +678,12 @@ void UKismetSystemLibrary::SetTransformPropertyByName(UObject* Object, FName Pro
 			*TransformProp->ContainerPtrToValuePtr<FTransform>(Object) = Value;
 		}		
 	}
+}
+
+void UKismetSystemLibrary::SetCollisionProfileNameProperty(UObject* Object, FName PropertyName, const FCollisionProfileName& Value)
+{
+	// We should never hit these!  They're stubs to avoid NoExport on the class.
+	check(0);
 }
 
 void UKismetSystemLibrary::Generic_SetStructurePropertyByName(UObject* OwnerObject, FName StructPropertyName, const void* SrcStructAddr)
@@ -836,7 +935,10 @@ bool UKismetSystemLibrary::SphereOverlapComponents_NEW(UObject* WorldContextObje
 
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	World->OverlapMulti(Overlaps, SpherePos, FQuat::Identity, FCollisionShape::MakeSphere(SphereRadius), Params, ObjectParams);
+	if(World != nullptr)
+	{
+		World->OverlapMulti(Overlaps, SpherePos, FQuat::Identity, FCollisionShape::MakeSphere(SphereRadius), Params, ObjectParams);
+	}
 
 	for (int32 OverlapIdx=0; OverlapIdx<Overlaps.Num(); ++OverlapIdx)
 	{
@@ -888,7 +990,10 @@ bool UKismetSystemLibrary::BoxOverlapComponents_NEW(UObject* WorldContextObject,
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	World->OverlapMulti(Overlaps, BoxPos, FQuat::Identity, FCollisionShape::MakeBox(BoxExtent), Params, ObjectParams);
+	if (World != nullptr)
+	{
+		World->OverlapMulti(Overlaps, BoxPos, FQuat::Identity, FCollisionShape::MakeBox(BoxExtent), Params, ObjectParams);
+	}
 
 	for (int32 OverlapIdx=0; OverlapIdx<Overlaps.Num(); ++OverlapIdx)
 	{
@@ -939,7 +1044,10 @@ bool UKismetSystemLibrary::CapsuleOverlapComponents_NEW(UObject* WorldContextObj
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );	
-	World->OverlapMulti(Overlaps, CapsulePos, FQuat::Identity, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params, ObjectParams);
+	if (World != nullptr)
+	{
+		World->OverlapMulti(Overlaps, CapsulePos, FQuat::Identity, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params, ObjectParams);
+	}
 
 	for (int32 OverlapIdx=0; OverlapIdx<Overlaps.Num(); ++OverlapIdx)
 	{
@@ -1213,9 +1321,9 @@ bool UKismetSystemLibrary::BoxTraceSingle(UObject* WorldContextObject, const FVe
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	bool const bHit = World->SweepSingle(OutHit, Start, End, Orientation.Quaternion(), UEngineTypes::ConvertToCollisionChannel(TraceChannel), FCollisionShape::MakeBox(HalfSize), Params);
+	bool const bHit = World ? World->SweepSingle(OutHit, Start, End, Orientation.Quaternion(), UEngineTypes::ConvertToCollisionChannel(TraceChannel), FCollisionShape::MakeBox(HalfSize), Params) : false;
 
-	if (DrawDebugType != EDrawDebugTrace::None)
+	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
 		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? KISMET_TRACE_DEBUG_DRAW_DURATION : 0.f;
@@ -1268,9 +1376,9 @@ bool UKismetSystemLibrary::BoxTraceMulti(UObject* WorldContextObject, const FVec
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	bool const bHit = World->SweepMulti(OutHits, Start, End, Orientation.Quaternion(), UEngineTypes::ConvertToCollisionChannel(TraceChannel), FCollisionShape::MakeBox(HalfSize), Params);
+	bool const bHit = World ? World->SweepMulti(OutHits, Start, End, Orientation.Quaternion(), UEngineTypes::ConvertToCollisionChannel(TraceChannel), FCollisionShape::MakeBox(HalfSize), Params) : false;
 
-	if (DrawDebugType != EDrawDebugTrace::None)
+	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
 		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? KISMET_TRACE_DEBUG_DRAW_DURATION : 0.f;
@@ -2014,9 +2122,9 @@ bool UKismetSystemLibrary::BoxTraceSingleForObjects(UObject* WorldContextObject,
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	bool const bHit = World->SweepSingle(OutHit, Start, End, Orientation.Quaternion(), FCollisionShape::MakeBox(HalfSize), Params, ObjectParams);
+	bool const bHit = World ? World->SweepSingle(OutHit, Start, End, Orientation.Quaternion(), FCollisionShape::MakeBox(HalfSize), Params, ObjectParams) : false;
 
-	if (DrawDebugType != EDrawDebugTrace::None)
+	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
 		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? KISMET_TRACE_DEBUG_DRAW_DURATION : 0.f;
@@ -2097,9 +2205,9 @@ bool UKismetSystemLibrary::BoxTraceMultiForObjects(UObject* WorldContextObject, 
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	bool const bHit = World->SweepMulti(OutHits, Start, End, Orientation.Quaternion(), FCollisionShape::MakeBox(HalfSize), Params, ObjectParams);
+	bool const bHit = World ? World->SweepMulti(OutHits, Start, End, Orientation.Quaternion(), FCollisionShape::MakeBox(HalfSize), Params, ObjectParams) : false;
 
-	if (DrawDebugType != EDrawDebugTrace::None)
+	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
 	{
 		bool bPersistent = DrawDebugType == EDrawDebugTrace::Persistent;
 		float LifeTime = (DrawDebugType == EDrawDebugTrace::ForDuration) ? KISMET_TRACE_DEBUG_DRAW_DURATION : 0.f;
@@ -2329,103 +2437,157 @@ bool UKismetSystemLibrary::CapsuleTraceMultiByObject_DEPRECATED(UObject* WorldCo
 /** Draw a debug line */
 void UKismetSystemLibrary::DrawDebugLine(UObject* WorldContextObject, FVector const LineStart, FVector const LineEnd, FLinearColor Color, float LifeTime, float Thickness)
 {
-	::DrawDebugLine(GEngine->GetWorldFromContextObject(WorldContextObject), LineStart, LineEnd, Color, false, LifeTime, SDPG_World, Thickness);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if(World != nullptr)
+	{
+		::DrawDebugLine(World, LineStart, LineEnd, Color, false, LifeTime, SDPG_World, Thickness);
+	}
 }
 
 /** Draw a debug point */
 void UKismetSystemLibrary::DrawDebugPoint(UObject* WorldContextObject, FVector const Position, float Size, FLinearColor PointColor, float LifeTime)
 {
-	::DrawDebugPoint(GEngine->GetWorldFromContextObject(WorldContextObject), Position, Size, PointColor, false, LifeTime, SDPG_World);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World != nullptr)
+	{
+		::DrawDebugPoint(World, Position, Size, PointColor, false, LifeTime, SDPG_World);
+	}
 }
 
 /** Draw directional arrow, pointing from LineStart to LineEnd. */
 void UKismetSystemLibrary::DrawDebugArrow(UObject* WorldContextObject, FVector const LineStart, FVector const LineEnd, float ArrowSize, FLinearColor Color, float LifeTime)
 {
-	::DrawDebugDirectionalArrow(GEngine->GetWorldFromContextObject(WorldContextObject), LineStart, LineEnd, ArrowSize, Color, false, LifeTime, SDPG_World);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World != nullptr)
+	{
+		::DrawDebugDirectionalArrow(World, LineStart, LineEnd, ArrowSize, Color, false, LifeTime, SDPG_World);
+	}
 }
 
 /** Draw a debug box */
 void UKismetSystemLibrary::DrawDebugBox(UObject* WorldContextObject, FVector const Center, FVector Extent, FLinearColor Color, const FRotator Rotation, float LifeTime)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	if (Rotation == FRotator::ZeroRotator)
+	if(World != nullptr)
 	{
-		::DrawDebugBox(World, Center, Extent, Color.ToFColor(true), false, LifeTime, SDPG_World);
-	}
-	else
-	{
-		::DrawDebugBox(World, Center, Extent, Rotation.Quaternion(), Color.ToFColor(true), false, LifeTime, SDPG_World);
+		if (Rotation == FRotator::ZeroRotator)
+		{
+			::DrawDebugBox(World, Center, Extent, Color.ToFColor(true), false, LifeTime, SDPG_World);
+		}
+		else
+		{
+			::DrawDebugBox(World, Center, Extent, Rotation.Quaternion(), Color.ToFColor(true), false, LifeTime, SDPG_World);
+		}
 	}
 }
 
 /** Draw a debug coordinate system. */
 void UKismetSystemLibrary::DrawDebugCoordinateSystem(UObject* WorldContextObject, FVector const AxisLoc, FRotator const AxisRot, float Scale, float LifeTime)
 {
-	::DrawDebugCoordinateSystem(GEngine->GetWorldFromContextObject(WorldContextObject), AxisLoc, AxisRot, Scale, false, LifeTime, SDPG_World);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World != nullptr)
+	{
+		::DrawDebugCoordinateSystem(World, AxisLoc, AxisRot, Scale, false, LifeTime, SDPG_World);
+	}
 }
 
 /** Draw a debug sphere */
 void UKismetSystemLibrary::DrawDebugSphere(UObject* WorldContextObject, FVector const Center, float Radius, int32 Segments, FLinearColor Color, float LifeTime)
 {
-	::DrawDebugSphere(GEngine->GetWorldFromContextObject(WorldContextObject), Center, Radius, Segments, Color.ToFColor(true), false, LifeTime, SDPG_World);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World != nullptr)
+	{
+		::DrawDebugSphere(World, Center, Radius, Segments, Color.ToFColor(true), false, LifeTime, SDPG_World);
+	}
 }
 
 /** Draw a debug cylinder */
 void UKismetSystemLibrary::DrawDebugCylinder(UObject* WorldContextObject, FVector const Start, FVector const End, float Radius, int32 Segments, FLinearColor Color, float LifeTime)
 {
-	::DrawDebugCylinder(GEngine->GetWorldFromContextObject(WorldContextObject), Start, End, Radius, Segments, Color.ToFColor(true), false, LifeTime, SDPG_World);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World != nullptr)
+	{
+		::DrawDebugCylinder(World, Start, End, Radius, Segments, Color.ToFColor(true), false, LifeTime, SDPG_World);
+	}
 }
 
 /** Draw a debug cone */
 void UKismetSystemLibrary::DrawDebugCone(UObject* WorldContextObject, FVector const Origin, FVector const Direction, float Length, float AngleWidth, float AngleHeight, int32 NumSides, FLinearColor Color)
 {
-	::DrawDebugCone(GEngine->GetWorldFromContextObject(WorldContextObject), Origin, Direction, Length, AngleWidth, AngleHeight, NumSides, Color.ToFColor(true), false, -1.f, SDPG_World);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World != nullptr)
+	{
+		::DrawDebugCone(World, Origin, Direction, Length, AngleWidth, AngleHeight, NumSides, Color.ToFColor(true), false, -1.f, SDPG_World);
+	}
 }
 
 void UKismetSystemLibrary::DrawDebugConeInDegrees(UObject* WorldContextObject, FVector const Origin, FVector const Direction, float Length, float AngleWidth, float AngleHeight, int32 NumSides, FLinearColor Color, float LifeTime)
 {
-	::DrawDebugCone(GEngine->GetWorldFromContextObject(WorldContextObject), Origin, Direction, Length, FMath::DegreesToRadians(AngleWidth), FMath::DegreesToRadians(AngleHeight), NumSides, Color.ToFColor(true), false, LifeTime, SDPG_World);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World != nullptr)
+	{
+		::DrawDebugCone(World, Origin, Direction, Length, FMath::DegreesToRadians(AngleWidth), FMath::DegreesToRadians(AngleHeight), NumSides, Color.ToFColor(true), false, LifeTime, SDPG_World);
+	}
 }
 
 /** Draw a debug capsule */
 void UKismetSystemLibrary::DrawDebugCapsule(UObject* WorldContextObject, FVector const Center, float HalfHeight, float Radius, const FRotator Rotation, FLinearColor Color, float LifeTime)
 {
-	::DrawDebugCapsule(GEngine->GetWorldFromContextObject(WorldContextObject), Center, HalfHeight, Radius, Rotation.Quaternion(), Color.ToFColor(true), false, LifeTime, SDPG_World);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World != nullptr)
+	{
+		::DrawDebugCapsule(World, Center, HalfHeight, Radius, Rotation.Quaternion(), Color.ToFColor(true), false, LifeTime, SDPG_World);
+	}
 }
 
 /** Draw a debug string at a 3d world location. */
 void UKismetSystemLibrary::DrawDebugString(UObject* WorldContextObject, FVector const TextLocation, const FString& Text, class AActor* TestBaseActor, FLinearColor TextColor, float Duration)
 {
-	::DrawDebugString(GEngine->GetWorldFromContextObject( WorldContextObject ), TextLocation, Text, TestBaseActor, TextColor.ToFColor(true), Duration);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World != nullptr)
+	{
+		::DrawDebugString(World, TextLocation, Text, TestBaseActor, TextColor.ToFColor(true), Duration);
+	}
 }
 
 /** Removes all debug strings. */
 void UKismetSystemLibrary::FlushDebugStrings( UObject* WorldContextObject )
 {
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	::FlushDebugStrings( World );
+	if(World != nullptr)
+	{
+		::FlushDebugStrings( World );
+	}
 }
 
 /** Draws a debug plane. */
 void UKismetSystemLibrary::DrawDebugPlane(UObject* WorldContextObject, FPlane const& P, FVector const Loc, float Size, FLinearColor Color, float LifeTime)
 {
-	::DrawDebugSolidPlane(GEngine->GetWorldFromContextObject( WorldContextObject ), P, Loc, Size, Color.ToFColor(true), false, LifeTime, SDPG_World);
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World != nullptr)
+	{
+		::DrawDebugSolidPlane(World, P, Loc, Size, Color.ToFColor(true), false, LifeTime, SDPG_World);
+	}
 }
 
 /** Flush all persistent debug lines and shapes */
 void UKismetSystemLibrary::FlushPersistentDebugLines(UObject* WorldContextObject)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	::FlushPersistentDebugLines( World );
+	if(World != nullptr)
+	{
+		::FlushPersistentDebugLines( World );
+	}
 }
 
 /** Draws a debug frustum. */
 void UKismetSystemLibrary::DrawDebugFrustum(UObject* WorldContextObject, const FTransform& FrustumTransform, FLinearColor FrustumColor, float Duration)
 {
-	if( FrustumTransform.IsRotationNormalized() )
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if( World != nullptr && FrustumTransform.IsRotationNormalized() )
 	{
 		FMatrix FrustumToWorld =  FrustumTransform.ToMatrixWithScale();
-		::DrawDebugFrustum(GEngine->GetWorldFromContextObject(WorldContextObject), FrustumToWorld, FrustumColor, false, Duration, SDPG_World);
+		::DrawDebugFrustum(World, FrustumToWorld, FrustumColor, false, Duration, SDPG_World);
 	}
 }
 
@@ -2681,7 +2843,7 @@ void UKismetSystemLibrary::ShowPlatformSpecificAchievementsScreen(class APlayerC
 			ULocalPlayer* LocalPlayer = Cast<ULocalPlayer>(SpecificPlayer->Player);
 			if(LocalPlayer)
 			{
-				LocalUserNum = LocalPlayer->ControllerId;
+				LocalUserNum = LocalPlayer->GetControllerId();
 			}
 		}
 		ExternalUI->ShowAchievementsUI(LocalUserNum);

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -60,9 +60,6 @@ public:
 	void RestartPreviewPlayAllSections();
 
 private:
-	/** Minimum distance to make sure branching points are seperated */
-	static const float MinimumBranchPointSeperation;
-
 	/** Pointer to the animation sequence being edited */
 	UAnimMontage* MontageObj;
 
@@ -81,7 +78,6 @@ private:
 	virtual float CalculateSequenceLengthOfEditorObject() const override;
 	void SortAndUpdateMontage();
 	void CollapseMontage();
-	void SortBranchPoints();
 	void SortAnimSegments();
 	void SortSections();
 	void EnsureStartingSection();
@@ -93,7 +89,6 @@ private:
 
 	bool ValidIndexes(int32 AnimSlotIndex, int32 AnimSegmentIndex) const;
 	bool ValidSection(int32 SectionIndex) const;
-	bool ValidBranch(int32 BranchIndex) const;	
 
 	/** Updates Notify trigger offsets to take into account current montage state */
 	void RefreshNotifyTriggerOffsets();
@@ -119,13 +114,6 @@ public:
 	void					RemoveSection(int32 SectionIndex);
 
 	FString					GetSectionName(int32 SectionIndex) const;
-
-	float					GetBranchPointStartPos(int32 BranchPointIndex) const;
-	FString					GetBranchPointName(int32 BranchPointIndex) const;
-	void					SetBranchPointStartPos(float NewStartPos, int32 BranchPointIndex);
-	void					RemoveBranchPoint(int32 BranchPointIndex);
-	void					AddBranchPoint(float StartTime, FString EventName);
-	void					RenameBranchPoint(int32 BranchIndex, FString NewEventName);
 	void					RenameSlotNode(int32 SlotIndex, FString NewSlotName);
 
 	void					AddNewMontageSlot(FString NewSlotName);

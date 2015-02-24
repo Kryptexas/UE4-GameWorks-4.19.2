@@ -1,14 +1,17 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "AmbientSoundDetails.h"
 #include "Toolkits/AssetEditorManager.h"
 #include "SoundDefinitions.h"
+#include "Sound/AmbientSound.h"
 #include "Sound/SoundNodeLooping.h"
 #include "Sound/SoundNodeMixer.h"
 #include "Sound/SoundNodeDelay.h"
 #include "Sound/SoundNodeRandom.h"
 #include "Sound/SoundNodeWavePlayer.h"
+#include "Sound/SoundCue.h"
+#include "Components/AudioComponent.h"
 
 
 #define LOCTEXT_NAMESPACE "AmbientSoundDetails"
@@ -31,8 +34,8 @@ void FAmbientSoundDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder
 		}
 	}
 
-	DetailBuilder.EditCategory( "Sound", TEXT(""), ECategoryPriority::Important )
-		.AddCustomRow( TEXT("") )
+	DetailBuilder.EditCategory( "Sound", FText::GetEmpty(), ECategoryPriority::Important )
+		.AddCustomRow( FText::GetEmpty() )
 		[
 			SNew(SVerticalBox)
 			+ SVerticalBox::Slot()
@@ -97,8 +100,8 @@ void FAmbientSoundDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder
 			]
 		];
 
-	DetailBuilder.EditCategory("Attenuation", TEXT(""), ECategoryPriority::TypeSpecific);
-	DetailBuilder.EditCategory("Modulation", TEXT(""), ECategoryPriority::TypeSpecific);
+	DetailBuilder.EditCategory("Attenuation", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
+	DetailBuilder.EditCategory("Modulation", FText::GetEmpty(), ECategoryPriority::TypeSpecific);
 }
 
 bool FAmbientSoundDetails::IsEditSoundCueEnabled() const

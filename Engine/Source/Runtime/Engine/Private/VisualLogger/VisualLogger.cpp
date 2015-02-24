@@ -1,9 +1,19 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "VisualLogger/VisualLogger.h"
 #include "VisualLogger/VisualLogger.h"
 #include "VisualLogger/VisualLoggerBinaryFileDevice.h"
+#if WITH_EDITOR
+#	include "Editor/UnrealEd/Public/EditorComponents.h"
+#	include "Editor/UnrealEd/Public/EditorReimportHandler.h"
+#	include "Editor/UnrealEd/Public/TexAlignTools.h"
+#	include "Editor/UnrealEd/Public/TickableEditorObject.h"
+#	include "UnrealEdClasses.h"
+#	include "Editor/UnrealEd/Public/Editor.h"
+#	include "Editor/UnrealEd/Public/EditorViewportClient.h"
+#endif
+
 
 #if ENABLE_VISUAL_LOG 
 
@@ -24,6 +34,27 @@ FVisualLogger::FVisualLogger()
 		SetIsRecording(true);
 		SetIsRecordingToFile(true);
 	}
+}
+
+UWorld* FVisualLogger::GetWorld()
+{
+	UWorld* World = GWorld;
+#if WITH_EDITOR
+	UEditorEngine *EEngine = Cast<UEditorEngine>(GEngine);
+	if (GIsEditor && EEngine != NULL)
+	{
+		// lets use PlayWorld during PIE/Simulate and regular world from editor otherwise, to draw debug information
+		World = EEngine->PlayWorld != NULL ? EEngine->PlayWorld : EEngine->GetEditorWorldContext().World();
+	}
+	else 
+#endif
+	if (!GIsEditor)
+	{
+
+		World = GEngine->GetWorld();
+	}
+
+	return World;
 }
 
 void FVisualLogger::Shutdown()
@@ -158,7 +189,9 @@ FCustomVersionRegistration GVisualLoggerVersion(EVisualLoggerVersion::GUID, EVis
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 #include "Developer/LogVisualizer/Public/LogVisualizerModule.h"
-
+#if WITH_EDITOR
+#include "SlateBasics.h"
+#endif
 static class FLogVisualizerExec : private FSelfRegisteringExec
 {
 public:
@@ -167,40 +200,38 @@ public:
 	{
 		if (FParse::Command(&Cmd, TEXT("VISLOG")))
 		{
+			if (FModuleManager::Get().LoadModulePtr<IModuleInterface>("LogVisualizer") != nullptr)
+			{
 #if ENABLE_VISUAL_LOG
-			FString Command = FParse::Token(Cmd, 0);
-			if (Command == TEXT("record"))
-			{
-				FVisualLogger::Get().SetIsRecording(true);
-				return true;
-			}
-			else if (Command == TEXT("stop"))
-			{
-				FVisualLogger::Get().SetIsRecording(false);
-				return true;
-			}
-			else if (Command == TEXT("disableallbut"))
-			{
-				FString Category = FParse::Token(Cmd, 1);
-				FVisualLogger::Get().BlockAllCategories(true);
-				FVisualLogger::Get().GetWhiteList().AddUnique(*Category);
-				return true;
-			}
+				FString Command = FParse::Token(Cmd, 0);
+				if (Command == TEXT("record"))
+				{
+					FVisualLogger::Get().SetIsRecording(true);
+					return true;
+				}
+				else if (Command == TEXT("stop"))
+				{
+					FVisualLogger::Get().SetIsRecording(false);
+					return true;
+				}
+				else if (Command == TEXT("disableallbut"))
+				{
+					FString Category = FParse::Token(Cmd, 1);
+					FVisualLogger::Get().BlockAllCategories(true);
+					FVisualLogger::Get().GetWhiteList().AddUnique(*Category);
+					return true;
+				}
 #if WITH_EDITOR
-			else if (Command == TEXT("exit"))
-			{
-				FLogVisualizerModule::Get()->CloseUI(InWorld);
-				return true;
-			}
-			else
-			{
-				FLogVisualizerModule::Get()->SummonUI(InWorld);
-				return true;
-			}
+				else
+				{
+					FGlobalTabmanager::Get()->InvokeTab(FName(TEXT("VisualLogger")));
+					return true;
+				}
 #endif
 #else
 			UE_LOG(LogVisual, Warning, TEXT("Unable to open LogVisualizer - logs are disabled"));
 #endif
+			}
 		}
 		return false;
 	}

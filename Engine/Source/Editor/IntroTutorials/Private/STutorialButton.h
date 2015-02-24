@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "STutorialLoading.h"
 
 class STutorialButton : public SCompoundWidget
 {
@@ -22,6 +24,9 @@ class STutorialButton : public SCompoundWidget
 private:
 	/** Handle clicking the tutorial button */
 	FReply HandleButtonClicked();
+
+	/** After the initial click is processed, go here, wait for the asset registry to load, and complete the action once we're ready. Returns true if it needs to be ticked again, false when it's done. */
+	bool HandleButtonClicked_AssetRegistryChecker();
 
 	/** Dismiss the pulsing alert */
 	void DismissAlert();
@@ -86,4 +91,9 @@ private:
 
 	/** Cached browser filter */
 	FString CachedBrowserFilter;
+
+	TSharedPtr<SWidget> LoadingWidget;
+
+	/** True if we're waiting for asset registry to load in response to a click */
+	bool bPendingClickAction;
 };

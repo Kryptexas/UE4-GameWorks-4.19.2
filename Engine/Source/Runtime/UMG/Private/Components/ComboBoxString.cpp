@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -47,7 +47,6 @@ TSharedRef<SWidget> UComboBoxString::RebuildWidget()
 		.ContentPadding(ContentPadding)
 		.MaxListHeight(MaxListHeight)
 		.HasDownArrow(HasDownArrow)
-		.Method(SMenuAnchor::UseCurrentWindow)
 		.OnGenerateWidget(BIND_UOBJECT_DELEGATE(SComboBox< TSharedPtr<FString> >::FOnGenerateWidget, HandleGenerateWidget))
 		.OnSelectionChanged(BIND_UOBJECT_DELEGATE(SComboBox< TSharedPtr<FString> >::FOnSelectionChanged, HandleSelectionChanged))
 		.OnComboBoxOpening(BIND_UOBJECT_DELEGATE(FOnComboBoxOpening, HandleOpening))
@@ -67,18 +66,25 @@ TSharedRef<SWidget> UComboBoxString::RebuildWidget()
 void UComboBoxString::AddOption(const FString& Option)
 {
 	Options.Add(MakeShareable(new FString(Option)));
+
+	RefreshOptions();
 }
 
 bool UComboBoxString::RemoveOption(const FString& Option)
 {
 	int32 OptionIndex = FindOptionIndex(Option);
-	if (Options[OptionIndex] == CurrentOptionPtr)
-	{
-		CurrentOptionPtr.Reset();
-	}
+
 	if ( OptionIndex != -1 )
 	{
+		if ( Options[OptionIndex] == CurrentOptionPtr )
+		{
+			ClearSelection();
+		}
+
 		Options.RemoveAt(OptionIndex);
+
+		RefreshOptions();
+
 		return true;
 	}
 
@@ -111,7 +117,37 @@ FString UComboBoxString::GetOptionAtIndex(int32 Index) const
 
 void UComboBoxString::ClearOptions()
 {
+	ClearSelection();
+
 	Options.Empty();
+
+	if ( MyComboBox.IsValid() )
+	{
+		MyComboBox->RefreshOptions();
+	}
+}
+
+void UComboBoxString::ClearSelection()
+{
+	CurrentOptionPtr.Reset();
+
+	if ( MyComboBox.IsValid() )
+	{
+		MyComboBox->ClearSelection();
+	}
+
+	if ( ComoboBoxContent.IsValid() )
+	{
+		ComoboBoxContent->SetContent(SNullWidget::NullWidget);
+	}
+}
+
+void UComboBoxString::RefreshOptions()
+{
+	if ( MyComboBox.IsValid() )
+	{
+		MyComboBox->RefreshOptions();
+	}
 }
 
 void UComboBoxString::SetSelectedOption(FString Option)
@@ -120,7 +156,16 @@ void UComboBoxString::SetSelectedOption(FString Option)
 	if (InitialIndex != -1)
 	{
 		CurrentOptionPtr = Options[InitialIndex];
-		ComoboBoxContent->SetContent(HandleGenerateWidget(CurrentOptionPtr));
+
+		if ( ComoboBoxContent.IsValid() )
+		{
+			MyComboBox->SetSelectedItem(CurrentOptionPtr);
+			ComoboBoxContent->SetContent(HandleGenerateWidget(CurrentOptionPtr));
+		}
+		else
+		{
+			SelectedOption = Option;
+		}
 	}
 }
 
@@ -133,12 +178,19 @@ FString UComboBoxString::GetSelectedOption() const
 	return FString();
 }
 
+int32 UComboBoxString::GetOptionCount() const
+{
+	return Options.Num();
+}
+
 TSharedRef<SWidget> UComboBoxString::HandleGenerateWidget(TSharedPtr<FString> Item) const
 {
+	FString StringItem = Item.IsValid() ? *Item : FString();
+
 	// Call the user's delegate to see if they want to generate a custom widget bound to the data source.
 	if ( !IsDesignTime() && OnGenerateWidgetEvent.IsBound() )
 	{
-		UWidget* Widget = OnGenerateWidgetEvent.Execute(*Item);
+		UWidget* Widget = OnGenerateWidgetEvent.Execute(StringItem);
 		if ( Widget != NULL )
 		{
 			return Widget->TakeWidget();
@@ -146,7 +198,7 @@ TSharedRef<SWidget> UComboBoxString::HandleGenerateWidget(TSharedPtr<FString> It
 	}
 
 	// If a row wasn't generated just create the default one, a simple text block of the item's name.
-	return SNew(STextBlock).Text(FText::FromString(*Item));
+	return SNew(STextBlock).Text(FText::FromString(StringItem));
 }
 
 void UComboBoxString::HandleSelectionChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectionType)
@@ -155,7 +207,7 @@ void UComboBoxString::HandleSelectionChanged(TSharedPtr<FString> Item, ESelectIn
 
 	if ( !IsDesignTime() )
 	{
-		OnSelectionChanged.Broadcast(*Item, SelectionType);
+		OnSelectionChanged.Broadcast(Item.IsValid() ? *Item : FString(), SelectionType);
 	}
 
 	// When the selection changes we always generate another widget to represent the content area of the comobox.

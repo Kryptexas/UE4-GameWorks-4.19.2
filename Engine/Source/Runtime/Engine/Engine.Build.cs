@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -42,6 +42,7 @@ public class Engine : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Json",
+				"SlateCore",
 				"Slate",
 				"InputCore",
 				"Messaging",
@@ -63,15 +64,16 @@ public class Engine : ModuleRules
                 "AppFramework",
 				"Networking",
 				"Sockets",
-				"SlateCore",
 				"SlateReflector",
 				"VectorVM",
-				"Landscape"
+				"Landscape",
+                "UMG",
 			}
         );
 
         CircularlyReferencedDependentModules.Add("AIModule");
 		CircularlyReferencedDependentModules.Add("Landscape");
+        CircularlyReferencedDependentModules.Add("UMG");
 
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[]
@@ -80,7 +82,6 @@ public class Engine : ModuleRules
 				"MovieSceneCoreTypes",
 				"HeadMountedDisplay",
 				"StreamingPauseRendering",
-                "UMG",
 			}
 		);
 
@@ -122,9 +123,9 @@ public class Engine : ModuleRules
 				PrivateDependencyModuleNames.Add("CollisionAnalyzer");
 				CircularlyReferencedDependentModules.Add("CollisionAnalyzer");
 
-				PrivateDependencyModuleNames.Add("LogVisualizer");
-				CircularlyReferencedDependentModules.Add("LogVisualizer");
-			}
+                PrivateDependencyModuleNames.Add("LogVisualizer");
+                CircularlyReferencedDependentModules.Add("LogVisualizer");
+            }
 
 			if (Target.Platform == UnrealTargetPlatform.Win64)
 			{
@@ -170,7 +171,7 @@ public class Engine : ModuleRules
 			}
 		);
 
-		if (!UEBuildConfiguration.bBuildDedicatedServer)
+		if (Target.Type.Value != TargetRules.TargetType.Server)
         {
 		    DynamicallyLoadedModuleNames.AddRange(
 			    new string[] {

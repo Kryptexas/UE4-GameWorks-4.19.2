@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Actions/PawnActionsComponent.h"
@@ -180,8 +180,19 @@ void UPawnActionsComponent::TickComponent(float DeltaTime, enum ELevelTick TickT
 		for (int32 EventIndex = 0; EventIndex < ActionEvents.Num(); ++EventIndex)
 		{
 			FPawnActionEvent& Event = ActionEvents[EventIndex];
+
+			if (Event.Action == nullptr)
+			{
+				UE_VLOG(ControlledPawn, LogPawnAction, Warning, TEXT("NULL action encountered during ActionEvents processing. May result in some notifies not being sent out."));
+				continue;
+			}
+
 			switch (Event.EventType)
 			{
+			case EPawnActionEventType::InstantAbort:
+				Event.Action->Abort(EAIForceParam::Force);
+				ActionStacks[Event.Priority].PopAction(*Event.Action);
+				break;
 			case EPawnActionEventType::FinishedAborting:
 			case EPawnActionEventType::FinishedExecution:
 			case EPawnActionEventType::FailedToStart:
@@ -279,14 +290,14 @@ void UPawnActionsComponent::UpdateAILogicLock()
 			if (CurrentAction != NULL && CurrentAction->GetPriority() > EAIRequestPriority::Logic)
 			{
 				UE_VLOG(ControlledPawn, LogPawnAction, Log, TEXT("Locking AI logic"));
-				BrainComp->LockResource(EAILockSource::Script);
+				BrainComp->LockResource(EAIRequestPriority::HardScript);
 				bLockedAILogic = true;
 			}
 			else if (bLockedAILogic)
 			{
 				UE_VLOG(ControlledPawn, LogPawnAction, Log, TEXT("Clearing AI logic lock"));
 				bLockedAILogic = false;
-				BrainComp->ClearResourceLock(EAILockSource::Script);
+				BrainComp->ClearResourceLock(EAIRequestPriority::HardScript);
 				if (BrainComp->IsResourceLocked() == false)
 				{
 					UE_VLOG(ControlledPawn, LogPawnAction, Log, TEXT("Reseting AI logic"));
@@ -370,7 +381,7 @@ uint32 UPawnActionsComponent::AbortActionsInstigatedBy(UObject* const Instigator
 		{
 			if (Action->GetInstigator() == Instigator)
 			{
-				Action->Abort(EAIForceParam::Force);
+				OnEvent(*Action, EPawnActionEventType::InstantAbort);
 				++AbortedActionsCount;
 			}
 			Action = Action->ParentAction;
@@ -534,3 +545,8 @@ void UPawnActionsComponent::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) cons
 	}
 }
 #endif // ENABLE_VISUAL_LOG
+
+FString UPawnActionsComponent::DescribeEventType(EPawnActionEventType::Type EventType)
+{
+	return GetEventName(EventType);
+}

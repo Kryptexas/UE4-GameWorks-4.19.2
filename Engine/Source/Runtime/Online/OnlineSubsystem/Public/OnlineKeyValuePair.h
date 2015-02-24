@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "OnlineSubsystemPackage.h"
@@ -519,6 +519,21 @@ public:
 	{
 		return EOnlineKeyValuePairDataType::ToString(Type);
 	}
+
+	/**
+	 * Convert variant data to json object with "type,value" fields
+	 *
+	 * @return json object representation
+	 */
+	TSharedRef<class FJsonObject> ToJson() const;
+	
+	/**
+	 * Convert json object to variant data from "type,value" fields
+	 *
+	 * @param JsonObject json to convert from
+	 * @return true if conversion was successful
+	 */
+	bool FromJson(const TSharedRef<class FJsonObject>& JsonObject);
 
 	/**
 	* Comparison of two settings data classes

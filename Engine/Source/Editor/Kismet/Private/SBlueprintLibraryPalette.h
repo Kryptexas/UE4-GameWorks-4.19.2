@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -52,7 +52,7 @@ private:
 	 * 
 	 * @return A string representing the selected class filter.
 	 */
-	FString GetFilterClassName() const;
+	FText GetFilterClassName() const;
 
 	/**
 	 * Clears the current class filter (if one is set), and refreshes the 

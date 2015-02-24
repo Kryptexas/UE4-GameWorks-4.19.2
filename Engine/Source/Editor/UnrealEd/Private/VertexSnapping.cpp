@@ -1,8 +1,12 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "VertexSnapping.h"
 #include "StaticMeshResources.h"
+#include "Components/BrushComponent.h"
+#include "Engine/Polys.h"
+#include "Engine/Selection.h"
+#include "EngineUtils.h"
 
 namespace VertexSnappingConstants
 {
@@ -304,7 +308,7 @@ void FVertexSnappingImpl::ClearSnappingHelpers( bool bClearImmediately )
 
 static void DrawSnapVertices( AActor* Actor, float PointSize, FPrimitiveDrawInterface* PDI )
 {
-	TArray<UActorComponent*> Components;
+	TInlineComponentArray<UActorComponent*> Components;
 	Actor->GetComponents(Components);
 
 	// Get the closest vertex on each component
@@ -504,7 +508,7 @@ FSnappingVertex FVertexSnappingImpl::GetClosestVertex( const TArray<FSnapActor>&
 		AActor* Actor = SnapActor.Actor;
 
 		// Get the closest vertex on each component
-		TArray<UPrimitiveComponent*> PrimitiveComponents;
+		TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
 		Actor->GetComponents(PrimitiveComponents);
 
 		for( int32 ComponentIndex  = 0; ComponentIndex < PrimitiveComponents.Num(); ++ComponentIndex )
@@ -704,7 +708,7 @@ bool FVertexSnappingImpl::SnapDraggedActorsToNearestVertex( FVector& DragDelta, 
 		// Are there selected actors?
 		USelection* Selection = GEditor->GetSelectedActors();
 
-		FVector Direction = DragDelta.SafeNormal();
+		FVector Direction = DragDelta.GetSafeNormal();
 
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
 			ViewportClient->Viewport, 
@@ -714,7 +718,7 @@ bool FVertexSnappingImpl::SnapDraggedActorsToNearestVertex( FVector& DragDelta, 
 
 		FSceneView* View = ViewportClient->CalcSceneView( &ViewFamily );
 
-		FVector StartLocation = GLevelEditorModeTools().PivotLocation;
+		FVector StartLocation = ViewportClient->GetModeTools()->PivotLocation;
 
 		FVector DesiredUnsnappedLocation = StartLocation+DragDelta;
 					
@@ -856,7 +860,7 @@ bool FVertexSnappingImpl::SnapDragLocationToNearestVertex( const FVector& BaseLo
 	bool bSnapped = false;
 	if( !DragDelta.IsNearlyZero() )
 	{
-		FVector Direction = DragDelta.SafeNormal();
+		FVector Direction = DragDelta.GetSafeNormal();
 
 		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
 			ViewportClient->Viewport, 

@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "TimerManager.h"
 #include "AI/RVOAvoidanceInterface.h"
 #include "AvoidanceManager.generated.h"
 
@@ -50,7 +51,7 @@ struct FNavAvoidanceData
 	FNavAvoidanceData(UAvoidanceManager* Manager, IRVOAvoidanceInterface* AvoidanceComp);
 
 	/** Init function for internal use to guard against data changes not being reflected in blueprint-accessible creation functions */
-	void Init(class UAvoidanceManager* Avoidance, const FVector& InCenter, float InRadius, float InHeight,
+	void Init(UAvoidanceManager* Avoidance, const FVector& InCenter, float InRadius, float InHeight,
 		const FVector& InVelocity, float InWeight = 0.5f,
 		int32 InGroupMask = 1, int32 InGroupsToAvoid = 0xffffffff, int32 InGroupsToIgnore = 0,
 		float InTestRadius2D = 500.0f);
@@ -154,6 +155,9 @@ class ENGINE_API UAvoidanceManager : public UObject, public FSelfRegisteringExec
 	// End FExec Interface
 
 private:
+
+	/** Handle for efficient management of RemoveOutdatedObjects timer */
+	FTimerHandle TimerHandle_RemoveOutdatedObjects;
 
 	/** Cleanup AvoidanceObjects, called by timer */
 	void RemoveOutdatedObjects();

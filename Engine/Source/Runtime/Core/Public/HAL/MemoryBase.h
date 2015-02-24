@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -75,21 +75,11 @@ class CORE_API FMalloc  :
 	public FExec
 {
 public:
-	/** 
-	 * QuantizeSize returns the actual size of allocation request likely to be returned
-	 * so for the template containers that use slack, they can more wisely pick
-	 * appropriate sizes to grow and shrink to.
-	 *
-	 * CAUTION: QuantizeSize is a special case and is NOT guarded by a thread lock, so must be intrinsically thread safe!
-	 *
-	 * @param Size			The size of a hypothetical allocation request
-	 * @param Alignment		The alignment of a hypothetical allocation request
-	 * @return				Returns the usable size that the allocation request would return. In other words you can ask for this greater amount without using any more actual memory.
+	/**
+	 *	Initializes stats metadata. We need to do this as soon as possible, but cannot be done in the constructor
+	 *	due to the FName::StaticInit
 	 */
-	virtual SIZE_T QuantizeSize( SIZE_T Size, uint32 Alignment )
-	{
-		return Size; // implementations where this is not possible need not implement it.
-	}
+	virtual void InitializeStatsMetadata();
 
 	/** 
 	 * Malloc

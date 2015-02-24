@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowDepthVertexShader.usf: Vertex shader for writing shadow depth.
@@ -52,10 +52,10 @@ struct FShadowDepthGSToPS
 #if INTERPOLATE_VF_ATTRIBUTES
 	FShadowDepthVSToPS PSInputs;
 #endif
+	float4 OutPosition : SV_POSITION;
 
 	/** Controls which of the cube map faces to rasterize the primitive to, only the value from the first vertex is used. */
 	uint RTIndex : SV_RenderTargetArrayIndex;
-	float4 OutPosition : SV_POSITION;
 };
  
 /** Allocate space for cloning to all 6 faces which is the worst case. */

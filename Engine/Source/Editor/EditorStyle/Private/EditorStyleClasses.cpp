@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EditorStylePrivatePCH.h"
 
@@ -14,8 +14,17 @@ UEditorStyleSettings::UEditorStyleSettings( const FObjectInitializer& ObjectInit
 	PressedSelectionColor = FLinearColor(0.701f, 0.225f, 0.003f);
 
 	bShowFriendlyNames = true;
+	LogTimestampMode = ELogTimes::None;
 }
 
+FLinearColor UEditorStyleSettings::GetSubduedSelectionColor() const
+{
+	FLinearColor SubduedSelectionColor = SelectionColor.LinearRGBToHSV();
+	SubduedSelectionColor.G *= 0.55f;		// take the saturation 
+	SubduedSelectionColor.B *= 0.8f;		// and brightness down
+
+	return SubduedSelectionColor.HSVToLinearRGB();
+}
 
 #if WITH_EDITOR
 

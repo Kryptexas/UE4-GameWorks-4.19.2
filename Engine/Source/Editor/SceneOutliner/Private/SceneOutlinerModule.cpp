@@ -1,37 +1,56 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SceneOutlinerPrivatePCH.h"
-#include "SceneOutlinerTreeItems.h"
 #include "ModuleManager.h"
 
+#include "SceneOutlinerActorInfoColumn.h"
+#include "SceneOutlinerGutter.h"
+#include "SceneOutlinerItemLabelColumn.h"
 
 /* FSceneOutlinerModule interface
  *****************************************************************************/
 
 namespace SceneOutliner
 {
-	void OnSceneOutlinerItemClicked(TSharedRef<TOutlinerTreeItem> Item, FOnActorPicked OnActorPicked)
+	void OnSceneOutlinerItemClicked(TSharedRef<ITreeItem> Item, FOnActorPicked OnActorPicked)
 	{
-		if (Item->Type == TOutlinerTreeItem::Actor)
-		{
-			AActor* Actor = StaticCastSharedRef<TOutlinerActorTreeItem>(Item)->Actor.Get();
-			if (Actor)
-			{
-				OnActorPicked.ExecuteIfBound(Actor);
-			}
-		}
+		Item->Visit(
+			FFunctionalVisitor()
+			.Actor([&](const FActorTreeItem& ActorItem){
+				if (AActor* Actor = ActorItem.Actor.Get())
+				{
+					OnActorPicked.ExecuteIfBound(Actor);
+				}
+			})
+		);
 	}
 }
 
 
-TSharedRef< ISceneOutliner > FSceneOutlinerModule::CreateSceneOutliner( const FSceneOutlinerInitializationOptions& InitOptions, const FOnActorPicked& OnActorPickedDelegate ) const
+void FSceneOutlinerModule::StartupModule()
+{
+	RegisterColumnType< SceneOutliner::FSceneOutlinerGutter >();
+	RegisterColumnType< SceneOutliner::FItemLabelColumn >();
+	RegisterColumnType< SceneOutliner::FActorInfoColumn >();
+}
+
+
+void FSceneOutlinerModule::ShutdownModule()
+{
+	UnRegisterColumnType< SceneOutliner::FSceneOutlinerGutter >();
+	UnRegisterColumnType< SceneOutliner::FItemLabelColumn >();
+	UnRegisterColumnType< SceneOutliner::FActorInfoColumn >();
+}
+
+
+TSharedRef< ISceneOutliner > FSceneOutlinerModule::CreateSceneOutliner( const SceneOutliner::FInitializationOptions& InitOptions, const FOnActorPicked& OnActorPickedDelegate ) const
 {
 	auto OnItemPicked = FOnSceneOutlinerItemPicked::CreateStatic( &SceneOutliner::OnSceneOutlinerItemClicked, OnActorPickedDelegate );
 	return CreateSceneOutliner(InitOptions, OnItemPicked);
 }
 
 
-TSharedRef< ISceneOutliner > FSceneOutlinerModule::CreateSceneOutliner( const FSceneOutlinerInitializationOptions& InitOptions, const FOnSceneOutlinerItemPicked& OnItemPickedDelegate ) const
+TSharedRef< ISceneOutliner > FSceneOutlinerModule::CreateSceneOutliner( const SceneOutliner::FInitializationOptions& InitOptions, const FOnSceneOutlinerItemPicked& OnItemPickedDelegate ) const
 {
 	return SNew( SceneOutliner::SSceneOutliner, InitOptions )
 		.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )

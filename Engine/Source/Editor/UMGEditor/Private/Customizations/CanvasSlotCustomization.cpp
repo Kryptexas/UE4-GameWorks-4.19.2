@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 #include "Components/CanvasPanelSlot.h"
@@ -267,21 +267,23 @@ FText FCanvasSlotCustomization::GetOffsetLabel(TSharedPtr<IPropertyHandle> Prope
 	TArray<UObject*> Objects;
 	PropertyHandle->GetOuterObjects(Objects);
 	
-	if ( Objects.Num() > 1 )
+	if ( Objects.Num() == 1 && Objects[0] != nullptr )
+	{
+		TArray<void*> RawData;
+		PropertyHandle->AccessRawData(RawData);
+
+		FAnchorData* AnchorData = reinterpret_cast<FAnchorData*>( RawData[0] );
+
+		const bool bStretching =
+			( Orientation == Orient_Horizontal && AnchorData->Anchors.IsStretchedHorizontal() ) ||
+			( Orientation == Orient_Vertical && AnchorData->Anchors.IsStretchedVertical() );
+
+		return bStretching ? StretchingLabel : NonStretchingLabel;
+	}
+	else
 	{
 		return StretchingLabel;
 	}
-
-	TArray<void*> RawData;
-	PropertyHandle->AccessRawData(RawData);
-
-	FAnchorData* AnchorData = reinterpret_cast<FAnchorData*>( RawData[0] );
-
-	const bool bStretching =
-		( Orientation == Orient_Horizontal && AnchorData->Anchors.IsStretchedHorizontal() ) ||
-		( Orientation == Orient_Vertical && AnchorData->Anchors.IsStretchedVertical() );
-
-	return bStretching ? StretchingLabel : NonStretchingLabel;
 }
 
 void FCanvasSlotCustomization::CustomizeAnchors(TSharedPtr<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder, IPropertyTypeCustomizationUtils& CustomizationUtils)

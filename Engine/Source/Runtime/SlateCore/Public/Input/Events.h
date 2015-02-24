@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "InputCoreTypes.h"
 #include "Events.generated.h"
 
 
@@ -12,7 +13,7 @@ class SWindow;
 * Context for focus change
 */
 UENUM()
-enum class EFocusCause
+enum class EFocusCause : uint8
 {
 	/** Focus was changed because of a mouse action */
 	Mouse,

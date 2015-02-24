@@ -1,10 +1,15 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "WinRTApplication.h"
 #include "WinRTInputInterface.h"
 #include "GenericApplication.h"
 
+FWinRTCursor::FWinRTCursor()
+{
+	// Set the default cursor
+	SetType(EMouseCursor::Default);
+}
 
 FVector2D FWinRTCursor::GetPosition() const
 {
@@ -24,7 +29,7 @@ void FWinRTCursor::UpdatePosition( const FVector2D& NewPosition )
 
 void FWinRTCursor::SetType( const EMouseCursor::Type InNewCursor )
 {
-
+	CurrentType = InNewCursor;
 }
 
 void FWinRTCursor::GetSize( int32& Width, int32& Height ) const

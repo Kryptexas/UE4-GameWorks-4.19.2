@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintBoundEventNodeSpawner.h"
@@ -6,6 +6,9 @@
 #include "KismetEditorUtilities.h"	// for FindBoundEventForComponent()/FindBoundEventForActor()
 #include "EditorCategoryUtils.h"	// for GetCommonCategory()
 #include "BlueprintNodeSpawnerUtils.h" // for GetBindingClass()
+#include "K2Node_ComponentBoundEvent.h"
+#include "K2Node_ActorBoundEvent.h"
+#include "EditorStyleSettings.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintBoundEventNodeSpawner"
 

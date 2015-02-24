@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
@@ -86,8 +86,8 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FEnvQuerySpatialD
 		Data.Init(ContextData.NumValues);
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
 		{
-			Data[ValueIndex].Location = DefTypeOb->GetLocation(RawData);
-			Data[ValueIndex].Rotation = DefTypeOb->GetRotation(RawData);
+			Data[ValueIndex].Location = DefTypeOb->GetItemLocation(RawData);
+			Data[ValueIndex].Rotation = DefTypeOb->GetItemRotation(RawData);
 			RawData += DefTypeValueSize;
 		}
 	}
@@ -114,7 +114,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FVector>& Data)
 		Data.Init(ContextData.NumValues);
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
 		{
-			Data[ValueIndex] = DefTypeOb->GetLocation(RawData);
+			Data[ValueIndex] = DefTypeOb->GetItemLocation(RawData);
 			RawData += DefTypeValueSize;
 		}
 	}
@@ -141,7 +141,7 @@ bool FEnvQueryInstance::PrepareContext(UClass* Context, TArray<FRotator>& Data)
 		Data.Init(ContextData.NumValues);
 		for (int32 ValueIndex = 0; ValueIndex < ContextData.NumValues; ValueIndex++)
 		{
-			Data[ValueIndex] = DefTypeOb->GetRotation(RawData);
+			Data[ValueIndex] = DefTypeOb->GetItemRotation(RawData);
 			RawData += DefTypeValueSize;
 		}
 	}
@@ -180,15 +180,17 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 {
 	if (!Owner.IsValid())
 	{
-		Status = EEnvQueryStatus::OwnerLost;
+		MarkAsOwnerLost();
 		return;
 	}
+
+	check(IsFinished() == false);
 
 	FEnvQueryOptionInstance& OptionItem = Options[OptionIndex];
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EQS_GeneratorTime, CurrentTest < 0);
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EQS_TestTime, CurrentTest >= 0);
 
-	const bool bDoingLastTest = (CurrentTest == OptionItem.Tests.Num() - 1);
+	const bool bDoingLastTest = (CurrentTest >= OptionItem.Tests.Num() - 1);
 	bool bStepDone = true;
 	TimeLimit = InTimeLimit;
 
@@ -207,7 +209,7 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 		OptionItem.Generator->GenerateItems(*this);
 		FinalizeGeneration();
 	}
-	else
+	else if (OptionItem.Tests.IsValidIndex(CurrentTest))
 	{
 //		SCOPE_LOG_TIME(*UEnvQueryTypes::GetShortTypeName(Options[OptionIndex].Tests[CurrentTest]).ToString(), nullptr);
 
@@ -247,6 +249,11 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 			FinalizeTest();
 		}
 	}
+	else
+	{
+		UE_LOG(LogEQS, Warning, TEXT("Query [%s] is trying to execute non existing test! [option:%d test:%d]"), 
+			*QueryName, OptionIndex, CurrentTest);
+	}
 	
 	if (bStepDone)
 	{
@@ -262,7 +269,7 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 	}
 
 	// sort results or switch to next option when all tests are performed
-	if (Status == EEnvQueryStatus::Processing &&
+	if (IsFinished() == false &&
 		(OptionItem.Tests.Num() == CurrentTest || NumValidItems <= 0))
 	{
 		if (NumValidItems > 0)
@@ -310,7 +317,6 @@ FEnvQueryInstance::ItemIterator::ItemIterator(const UEnvQueryTest* QueryTest, FE
 	, CurrentItem(StartingItemIndex != INDEX_NONE ? StartingItemIndex : QueryInstance.CurrentTestStartingItem)
 {
 	Deadline = QueryInstance.TimeLimit > 0.0 ? (FPlatformTime::Seconds() + QueryInstance.TimeLimit) : -1.0;
-	bDiscardFailed = QueryTest && QueryTest->bDiscardFailedItems;
 	// it's possible item 'CurrentItem' has been already discarded. Find a valid starting index
 	--CurrentItem;
 	FindNextValidIndex();
@@ -545,7 +551,7 @@ void FEnvQueryInstance::FinalizeQuery()
 		RawData.Reset();
 	}
 
-	Status = EEnvQueryStatus::Success;
+	MarkAsFinishedWithoutIssues();
 }
 
 void FEnvQueryInstance::FinalizeGeneration()
@@ -657,7 +663,7 @@ FBox FEnvQueryInstance::GetBoundingBox() const
 
 		for (int32 Index = 0; Index < Items.Num(); ++Index)
 		{		
-			BBox += DefTypeOb->GetLocation(RawData.GetData() + Items[Index].DataOffset);
+			BBox += DefTypeOb->GetItemLocation(RawData.GetData() + Items[Index].DataOffset);
 		}
 	}
 

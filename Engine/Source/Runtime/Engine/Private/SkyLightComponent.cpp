@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkyLightComponent.cpp: SkyLightComponent implementation.
@@ -15,6 +15,7 @@
 #include "MapErrors.h"
 #include "ComponentInstanceDataCache.h"
 #include "ShaderCompiler.h"
+#include "Components/SkyLightComponent.h"
 
 #define LOCTEXT_NAMESPACE "SkyLightComponent"
 
@@ -324,12 +325,18 @@ bool USkyLightComponent::IsReadyForFinishDestroy()
 }
 
 /** Used to store lightmap data during RerunConstructionScripts */
-class FPrecomputedSkyLightInstanceData : public FComponentInstanceDataBase
+class FPrecomputedSkyLightInstanceData : public FSceneComponentInstanceData
 {
 public:
 	FPrecomputedSkyLightInstanceData(const USkyLightComponent* SourceComponent)
-		: FComponentInstanceDataBase(SourceComponent)
+		: FSceneComponentInstanceData(SourceComponent)
 	{}
+
+	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
+	{
+		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
+		CastChecked<USkyLightComponent>(Component)->ApplyComponentInstanceData(this);
+	}
 
 	FGuid LightGuid;
 	bool bPrecomputedLightingIsValid;
@@ -345,7 +352,7 @@ FName USkyLightComponent::GetComponentInstanceDataType() const
 	return PrecomputedSkyLightInstanceDataTypeName;
 }
 
-FComponentInstanceDataBase* USkyLightComponent::GetComponentInstanceData() const
+FActorComponentInstanceData* USkyLightComponent::GetComponentInstanceData() const
 {
 	FPrecomputedSkyLightInstanceData* InstanceData = new FPrecomputedSkyLightInstanceData(this);
 	InstanceData->LightGuid = LightGuid;
@@ -356,10 +363,9 @@ FComponentInstanceDataBase* USkyLightComponent::GetComponentInstanceData() const
 	return InstanceData;
 }
 
-void USkyLightComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
+void USkyLightComponent::ApplyComponentInstanceData(FPrecomputedSkyLightInstanceData* LightMapData)
 {
-	check(ComponentInstanceData);
-	FPrecomputedSkyLightInstanceData* LightMapData  = static_cast<FPrecomputedSkyLightInstanceData*>(ComponentInstanceData);
+	check(LightMapData);
 
 	LightGuid = LightMapData->LightGuid;
 	bPrecomputedLightingIsValid = LightMapData->bPrecomputedLightingIsValid;
@@ -432,7 +438,7 @@ void USkyLightComponent::CaptureEmissiveIrradianceEnvironmentMap(FSHVectorRGB3& 
 void USkyLightComponent::SetIntensity(float NewIntensity)
 {
 	// Can't set brightness on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& Intensity != NewIntensity)
 	{
 		Intensity = NewIntensity;
@@ -446,7 +452,7 @@ void USkyLightComponent::SetLightColor(FLinearColor NewLightColor)
 	FColor NewColor(NewLightColor);
 
 	// Can't set color on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& LightColor != NewColor)
 	{
 		LightColor = NewColor;
@@ -457,7 +463,7 @@ void USkyLightComponent::SetLightColor(FLinearColor NewLightColor)
 void USkyLightComponent::SetCubemap(UTextureCube* NewCubemap)
 {
 	// Can't set color on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& Cubemap != NewCubemap)
 	{
 		Cubemap = NewCubemap;
@@ -469,7 +475,7 @@ void USkyLightComponent::SetCubemap(UTextureCube* NewCubemap)
 void USkyLightComponent::SetOcclusionTint(const FColor& InTint)
 {
 	// Can't set on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& OcclusionTint != InTint)
 	{
 		OcclusionTint = InTint;
@@ -480,7 +486,7 @@ void USkyLightComponent::SetOcclusionTint(const FColor& InTint)
 void USkyLightComponent::SetMinOcclusion(float InMinOcclusion)
 {
 	// Can't set on a static light
-	if (!(IsRegistered() && Mobility == EComponentMobility::Static)
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
 		&& MinOcclusion != InMinOcclusion)
 	{
 		MinOcclusion = InMinOcclusion;

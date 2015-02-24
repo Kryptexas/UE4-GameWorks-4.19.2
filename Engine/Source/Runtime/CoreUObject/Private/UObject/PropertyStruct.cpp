@@ -1,8 +1,30 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "Archive.h"
 #include "PropertyHelper.h"
+
+static inline void PreloadInnerStructMembers(UStructProperty* StructProperty)
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	uint32 PropagatedLoadFlags = 0;
+	if (ULinkerLoad* Linker = StructProperty->GetLinker())
+	{
+		PropagatedLoadFlags |= (Linker->LoadFlags & LOAD_DeferDependencyLoads);
+	}
+
+	if (UScriptStruct* Struct = StructProperty->Struct)
+	{
+		if (ULinkerLoad* StructLinker = Struct->GetLinker())
+		{
+			TGuardValue<uint32> LoadFlagGuard(StructLinker->LoadFlags, StructLinker->LoadFlags | PropagatedLoadFlags);
+			Struct->RecursivelyPreload();
+		}
+	}
+#else // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	StructProperty->Struct->RecursivelyPreload();
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+}
 
 /*-----------------------------------------------------------------------------
 	UStructProperty.
@@ -41,7 +63,7 @@ void UStructProperty::LinkInternal(FArchive& Ar)
 	{
 		Struct = GetFallbackStruct();
 	}
-	Struct->RecursivelyPreload();
+	PreloadInnerStructMembers(this);
 	
 	ElementSize = Align(Struct->PropertiesSize, Struct->GetMinAlignment());
 	if (Struct->StructFlags & STRUCT_IsPlainOldData) // if there is nothing to construct or the struct is known to be memcpy-able, then allow memcpy
@@ -184,7 +206,7 @@ void UStructProperty::Serialize( FArchive& Ar )
 #endif // WITH_EDITOR
 	if (Struct)
 	{
-		Struct->RecursivelyPreload();
+		PreloadInnerStructMembers(this);
 	}
 	else
 	{
@@ -215,15 +237,14 @@ bool UStructProperty::HasNoOpConstructor() const
 
 FString UStructProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 CPPExportFlags/*=0*/ ) const
 {
-	bool bExportForwardDeclaration = 
-		(CPPExportFlags&CPPF_OptionalValue) == 0 &&
-		(Struct->GetOwnerClass() == NULL || 
-		!(Struct->GetOwnerClass()->HasAnyClassFlags(CLASS_NoExport) || (Struct->StructFlags&STRUCT_Native) == 0));
-
-	return FString::Printf( TEXT("%sF%s"), 
-		bExportForwardDeclaration ? TEXT("struct ") : TEXT(""),
-		*Struct->GetName() );
+	return FString::Printf(TEXT("F%s"), *Struct->GetName());
 }
+
+FString UStructProperty::GetCPPTypeForwardDeclaration() const
+{
+	return FString::Printf(TEXT("struct F%s;"), *Struct->GetName());
+}
+
 FString UStructProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 {
 	ExtendedTypeText = GetCPPType(NULL, CPPF_None);
@@ -395,7 +416,7 @@ void UStructProperty::CopyValuesInternal( void* Dest, void const* Src, int32 Cou
 
 void UStructProperty::InitializeValueInternal( void* InDest ) const
 {
-	Struct->InitializeScriptStruct(InDest, ArrayDim);
+	Struct->InitializeStruct(InDest, ArrayDim);
 }
 
 void UStructProperty::ClearValueInternal( void* Data ) const
@@ -405,7 +426,7 @@ void UStructProperty::ClearValueInternal( void* Data ) const
 
 void UStructProperty::DestroyValueInternal( void* Dest ) const
 {
-	Struct->DestroyScriptStruct(Dest, ArrayDim);
+	Struct->DestroyStruct(Dest, ArrayDim);
 }
 
 /**

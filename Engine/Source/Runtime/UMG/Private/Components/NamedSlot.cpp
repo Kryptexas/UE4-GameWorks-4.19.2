@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -90,7 +90,7 @@ void UNamedSlot::OnSlotRemoved(UPanelSlot* Slot)
 
 const FSlateBrush* UNamedSlot::GetEditorIcon()
 {
-	return FUMGStyle::Get().GetBrush("Widget.Spacer");
+	return FUMGStyle::Get().GetBrush("Widget.NamedSlot");
 }
 
 const FText UNamedSlot::GetPaletteCategory()

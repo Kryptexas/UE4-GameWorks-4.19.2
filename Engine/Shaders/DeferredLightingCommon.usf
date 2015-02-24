@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DeferredLightingCommon.usf: Common definitions for deferred lighting.
@@ -12,9 +12,6 @@
 #include "BRDF.usf"
 #include "MonteCarlo.usf"
 #include "IESLightProfilesCommon.usf"
-
-// 0/1, default is 0 as on NV670 there was a slowdown in average scene, keep for further experiments
-#define LIGHTCULLING_FINE 0
 
 /** 
  * Data about a single light.
@@ -248,6 +245,25 @@ float3 SubsurfaceShadingSubsurface( FGBufferData GBuffer, float3 L, float3 V, ha
 	return SubsurfaceColor * lerp(BackScatter, 1, InScatter);
 }
 
+float3 TwoSidedFoliageShadingSubsurface( FGBufferData GBuffer, float3 L, float3 V, half3 N )
+{
+	float VoL = saturate(dot(V, -L));
+	float VoLLobe = VoL * VoL;
+	VoLLobe *= VoLLobe;
+	float Exponent = 8;
+	// Modified phong energy conservation
+	VoLLobe = VoLLobe * (Exponent + 1) / (2.0f * PI);
+
+	float DiffuseWrap = .6f;
+	// Energy conserving wrap
+	float BackDiffuse = saturate(dot(-N, L) * DiffuseWrap * DiffuseWrap + (1 - DiffuseWrap) * DiffuseWrap) / PI;  
+	float ViewDependenceAmount = .5f;
+	float BackShading = lerp(BackDiffuse, VoLLobe, ViewDependenceAmount);
+
+	float3 SubsurfaceColor = ExtractSubsurfaceColor(GBuffer);
+	return BackShading * SubsurfaceColor;
+}
+
 Texture2D		PreIntegratedBRDF;
 SamplerState	PreIntegratedBRDFSampler;
 
@@ -270,6 +286,7 @@ float3 SurfaceShading( FGBufferData GBuffer, float3 LobeRoughness, float3 LobeEn
 		case SHADINGMODELID_SUBSURFACE:
 		case SHADINGMODELID_PREINTEGRATED_SKIN:
 		case SHADINGMODELID_SUBSURFACE_PROFILE:
+		case SHADINGMODELID_TWOSIDED_FOLIAGE:
 			return StandardShading( GBuffer, LobeRoughness, LobeEnergy, L, V, N, DiffSpecMask);
 		case SHADINGMODELID_CLEAR_COAT:
 			// this path does not support DiffSpecMask yet
@@ -287,6 +304,8 @@ float3 SubsurfaceShading( FGBufferData GBuffer, float3 L, float3 V, half3 N )
 			return SubsurfaceShadingSubsurface( GBuffer, L, V, N );
 		case SHADINGMODELID_PREINTEGRATED_SKIN:
 			return SubsurfaceShadingPreintegratedSkin( GBuffer, L, V, N );
+		case SHADINGMODELID_TWOSIDED_FOLIAGE:
+			return TwoSidedFoliageShadingSubsurface( GBuffer, L, V, N );
 		default:
 			return 0;
 	}
@@ -585,11 +604,6 @@ float4 GetDynamicLighting(float3 WorldPosition, float3 CameraVector, float2 InUV
 		float SubsurfaceAttenuation	= (DistanceAttenuation * LightRadiusMask * SpotFalloff) * SubsurfaceShadow;
 
 		LightAccumulator.EstimatedCost += 0.3f;		// add the cost of getting the shadow terms
-
-#if LIGHTCULLING_FINE == 1
-		// optimization that should help if there are a lot of shadowed pixels
-		BRANCH if (ShadowedAttenuation > 0 || ShadingModelID == SHADINGMODELID_SUBSURFACE)
-#endif
 
 		{
 			const float3 LightColor = LightData.LightColorAndFalloffExponent.rgb;

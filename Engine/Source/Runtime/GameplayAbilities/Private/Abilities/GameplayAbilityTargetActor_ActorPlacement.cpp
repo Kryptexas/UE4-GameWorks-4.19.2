@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemComponent.h"
@@ -32,7 +32,7 @@ void AGameplayAbilityTargetActor_ActorPlacement::StartTargeting(UGameplayAbility
 	if (AActor *VisualizationActor = GetWorld()->SpawnActor(PlacedActorClass))
 	{
 		ActorVisualizationReticle = GetWorld()->SpawnActor<AGameplayAbilityWorldReticle_ActorVisualization>();
-		ActorVisualizationReticle->InitializeReticleVisualizationInformation(VisualizationActor, PlacedActorMaterial);
+		ActorVisualizationReticle->InitializeReticleVisualizationInformation(this, VisualizationActor, PlacedActorMaterial);
 		GetWorld()->DestroyActor(VisualizationActor);
 	}
 	if (AGameplayAbilityWorldReticle* CachedReticleActor = ReticleActor.Get())

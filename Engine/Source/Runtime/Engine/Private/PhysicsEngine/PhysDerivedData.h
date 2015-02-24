@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -43,7 +43,10 @@ public:
 
 	virtual FString GetPluginSpecificCacheKeySuffix() const override
 	{
-		enum { UE_PHYSX_DERIVEDDATA_VER = 1 };
+		//  1 - base version
+		//  2 - cook out small area trimesh triangles from BSP (see UPhysicsSettings::TriangleMeshTriangleMinAreaThreshold)
+		//  3 - increase default small area threshold and force recook.
+		enum { UE_PHYSX_DERIVEDDATA_VER = 3 };
 
 		const uint16 PhysXVersion = ((PX_PHYSICS_VERSION_MAJOR  & 0xF) << 12) |
 				((PX_PHYSICS_VERSION_MINOR  & 0xF) << 8) |

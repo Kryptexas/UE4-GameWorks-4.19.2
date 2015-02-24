@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchAnalytics.h: Declares static helper class for sending analytics events
@@ -52,6 +52,16 @@ public:
 	 * @param ErrorString	The point at which the download has failed
 	 */
 	static void RecordChunkDownloadError( const FString& ChunkUrl, const int32& ResponseCode, const FString& ErrorString );
+
+	/**
+	 * Record a chunk download aborted event
+	 * @param ChunkUrl		The url for the chunk being downloaded
+	 * @param ChunkTime		The current running time for this chunk
+	 * @param ChunkMean		The recorded average chunk download time
+	 * @param ChunkStd		The recorded standard deviation for chunk download time
+	 * @param BreakingPoint	The value used as the breaking point for chunk download time
+	 */
+	static void RecordChunkDownloadAborted( const FString& ChunkUrl, const double& ChunkTime, const double& ChunkMean, const double& ChunkStd, const double& BreakingPoint );
 
 	/**
 	 * Record a chunk cache error event

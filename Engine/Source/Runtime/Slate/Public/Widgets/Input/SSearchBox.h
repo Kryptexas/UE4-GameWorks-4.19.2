@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,7 +21,7 @@ public:
 	DECLARE_DELEGATE_OneParam(FOnSearch, SSearchBox::SearchDirection);
 
 	SLATE_BEGIN_ARGS(SSearchBox)
-		: _Style( &FCoreStyle::Get().GetWidgetStyle<FSearchBoxStyle>("SearchBox") )
+		: _Style()
 		, _HintText( LOCTEXT("SearchHint", "Search") )
 		, _InitialText()
 		, _OnTextChanged()
@@ -32,7 +32,7 @@ public:
 	{ }
 
 		/** Style used to draw this search box */
-		SLATE_STYLE_ARGUMENT( FSearchBoxStyle, Style )
+		SLATE_ARGUMENT( TOptional<const FSearchBoxStyle*>, Style )
 
 		/** The text displayed in the SearchBox when no text has been entered */
 		SLATE_ATTRIBUTE( FText, HintText )

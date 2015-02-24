@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SocketsPrivatePCH.h"
 
@@ -9,10 +9,11 @@
 //#include "Net/NetworkProfiler.h"
 
 #if PLATFORM_HTML5 
-typedef unsigned long   u_long;
+	typedef unsigned long u_long;
 #endif 
 
-/* FSocket interface
+
+/* FSocket overrides
  *****************************************************************************/
 
 bool FSocketBSD::Close(void)
@@ -50,44 +51,6 @@ bool FSocketBSD::Listen(int32 MaxBacklog)
 	return listen(Socket, MaxBacklog) == 0;
 }
 
-ESocketInternalState::Return FSocketBSD::HasState(ESocketInternalState::Param State, FTimespan WaitTime)
-{
-#if PLATFORM_HAS_BSD_SOCKET_FEATURE_SELECT
-	// convert WaitTime to a timeval
-	timeval Time;
-	Time.tv_sec = (int32)WaitTime.GetTotalSeconds();
-	Time.tv_usec = WaitTime.GetMilliseconds() * 1000;
-
-	fd_set SocketSet;
-
-	// Set up the socket sets we are interested in (just this one)
-	FD_ZERO(&SocketSet);
-	FD_SET(Socket, &SocketSet);
-
-	// Check the status of the state
-	int32 SelectStatus = 0;
-	switch (State)
-	{
-		case ESocketInternalState::CanRead:
-			SelectStatus = select(Socket + 1, &SocketSet, NULL, NULL, &Time);
-			break;
-		case ESocketInternalState::CanWrite:
-			SelectStatus = select(Socket + 1, NULL, &SocketSet, NULL, &Time);
-			break;
-		case ESocketInternalState::HasError:
-			SelectStatus = select(Socket + 1, NULL, NULL, &SocketSet, &Time);
-			break;
-	}
-
-	// if the select returns a positive number, the socket had the state, 0 means didn't have it, and negative is API error condition (not socket's error state)
-	return SelectStatus > 0  ? ESocketInternalState::Yes : 
-		   SelectStatus == 0 ? ESocketInternalState::No : 
-		   ESocketInternalState::EncounteredError;
-#else
-	UE_LOG(LogSockets, Fatal, TEXT("This platform doesn't support select(), but FSocketBSD::HasState was not overridden"));
-	return ESocketInternalState::EncounteredError;
-#endif
-}
 
 bool FSocketBSD::HasPendingConnection(bool& bHasPendingConnection)
 {
@@ -95,14 +58,14 @@ bool FSocketBSD::HasPendingConnection(bool& bHasPendingConnection)
 	bHasPendingConnection = false;
 
 	// make sure socket has no error state
-	if (HasState(ESocketInternalState::HasError) == ESocketInternalState::No)
+	if (HasState(ESocketBSDParam::HasError) == ESocketBSDReturn::No)
 	{
 		// get the read state
-		ESocketInternalState::Return State = HasState(ESocketInternalState::CanRead);
+		ESocketBSDReturn State = HasState(ESocketBSDParam::CanRead);
 		
 		// turn the result into the outputs
-		bHasSucceeded = State != ESocketInternalState::EncounteredError;
-		bHasPendingConnection = State == ESocketInternalState::Yes;
+		bHasSucceeded = State != ESocketBSDReturn::EncounteredError;
+		bHasPendingConnection = State == ESocketBSDReturn::Yes;
 	}
 
 	return bHasSucceeded;
@@ -114,7 +77,7 @@ bool FSocketBSD::HasPendingData(uint32& PendingDataSize)
 	PendingDataSize = 0;
 
 	// make sure socket has no error state
-	if (HasState(ESocketInternalState::CanRead) == ESocketInternalState::Yes)
+	if (HasState(ESocketBSDParam::CanRead) == ESocketBSDReturn::Yes)
 	{
 #if PLATFORM_HAS_BSD_SOCKET_FEATURE_IOCTL
 		// See if there is any pending data on the read socket
@@ -131,7 +94,7 @@ bool FSocketBSD::HasPendingData(uint32& PendingDataSize)
 
 FSocket* FSocketBSD::Accept(const FString& SocketDescription)
 {
-	SOCKET NewSocket = accept(Socket,NULL,NULL);
+	SOCKET NewSocket = accept(Socket, NULL, NULL);
 
 	if (NewSocket != INVALID_SOCKET)
 	{
@@ -234,7 +197,7 @@ bool FSocketBSD::Wait(ESocketWaitConditions::Type Condition, FTimespan WaitTime)
 {
 	if ((Condition == ESocketWaitConditions::WaitForRead) || (Condition == ESocketWaitConditions::WaitForReadOrWrite))
 	{
-		if (HasState(ESocketInternalState::CanRead, WaitTime) == ESocketInternalState::Yes)
+		if (HasState(ESocketBSDParam::CanRead, WaitTime) == ESocketBSDReturn::Yes)
 		{
 			return true;
 		}
@@ -242,7 +205,7 @@ bool FSocketBSD::Wait(ESocketWaitConditions::Type Condition, FTimespan WaitTime)
 
 	if ((Condition == ESocketWaitConditions::WaitForWrite) || (Condition == ESocketWaitConditions::WaitForReadOrWrite))
 	{
-		if (HasState(ESocketInternalState::CanWrite, WaitTime) == ESocketInternalState::Yes)
+		if (HasState(ESocketBSDParam::CanWrite, WaitTime) == ESocketBSDReturn::Yes)
 		{
 			return true;
 		}
@@ -257,21 +220,21 @@ ESocketConnectionState FSocketBSD::GetConnectionState(void)
 	ESocketConnectionState CurrentState = SCS_ConnectionError;
 
 	// look for an existing error
-	if (HasState(ESocketInternalState::HasError) == ESocketInternalState::No)
+	if (HasState(ESocketBSDParam::HasError) == ESocketBSDReturn::No)
 	{
 		if (FDateTime::UtcNow() - LastActivityTime > FTimespan::FromSeconds(5))
 		{
 			// get the write state
-			ESocketInternalState::Return WriteState = HasState(ESocketInternalState::CanWrite, FTimespan::FromMilliseconds(1));
-			ESocketInternalState::Return ReadState = HasState(ESocketInternalState::CanRead, FTimespan::FromMilliseconds(1));
+			ESocketBSDReturn WriteState = HasState(ESocketBSDParam::CanWrite, FTimespan::FromMilliseconds(1));
+			ESocketBSDReturn ReadState = HasState(ESocketBSDParam::CanRead, FTimespan::FromMilliseconds(1));
 		
 			// translate yes or no (error is already set)
-			if (WriteState == ESocketInternalState::Yes || ReadState == ESocketInternalState::Yes)
+			if (WriteState == ESocketBSDReturn::Yes || ReadState == ESocketBSDReturn::Yes)
 			{
 				CurrentState = SCS_Connected;
 				LastActivityTime = FDateTime::UtcNow();
 			}
-			else if (WriteState == ESocketInternalState::No && ReadState == ESocketInternalState::No)
+			else if (WriteState == ESocketBSDReturn::No && ReadState == ESocketBSDReturn::No)
 			{
 				CurrentState = SCS_NotConnected;
 			}
@@ -433,5 +396,51 @@ int32 FSocketBSD::GetPortNo(void)
 	// Read the port number
 	return ntohs(Addr.sin_port);
 }
+
+
+/* FSocketBSD implementation
+*****************************************************************************/
+
+ESocketBSDReturn FSocketBSD::HasState(ESocketBSDParam State, FTimespan WaitTime)
+{
+#if PLATFORM_HAS_BSD_SOCKET_FEATURE_SELECT
+	// convert WaitTime to a timeval
+	timeval Time;
+	Time.tv_sec = (int32)WaitTime.GetTotalSeconds();
+	Time.tv_usec = WaitTime.GetMilliseconds() * 1000;
+
+	fd_set SocketSet;
+
+	// Set up the socket sets we are interested in (just this one)
+	FD_ZERO(&SocketSet);
+	FD_SET(Socket, &SocketSet);
+
+	// Check the status of the state
+	int32 SelectStatus = 0;
+	switch (State)
+	{
+	case ESocketBSDParam::CanRead:
+		SelectStatus = select(Socket + 1, &SocketSet, NULL, NULL, &Time);
+		break;
+
+	case ESocketBSDParam::CanWrite:
+		SelectStatus = select(Socket + 1, NULL, &SocketSet, NULL, &Time);
+		break;
+
+	case ESocketBSDParam::HasError:
+		SelectStatus = select(Socket + 1, NULL, NULL, &SocketSet, &Time);
+		break;
+	}
+
+	// if the select returns a positive number, the socket had the state, 0 means didn't have it, and negative is API error condition (not socket's error state)
+	return SelectStatus > 0 ? ESocketBSDReturn::Yes :
+		SelectStatus == 0 ? ESocketBSDReturn::No :
+		ESocketBSDReturn::EncounteredError;
+#else
+	UE_LOG(LogSockets, Fatal, TEXT("This platform doesn't support select(), but FSocketBSD::HasState was not overridden"));
+	return ESocketBSDReturn::EncounteredError;
+#endif
+}
+
 
 #endif	//PLATFORM_HAS_BSD_SOCKETS

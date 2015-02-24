@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  *	Abstract base class for a skeletal controller.
@@ -36,6 +36,11 @@ public:
 	}
 
 public:
+#if WITH_EDITORONLY_DATA
+	// forwarded pose data from the wired node which current node's skeletal control is not applied yet
+	FA2CSPose ForwardedPose;
+#endif //#if WITH_EDITORONLY_DATA
+
 	// FAnimNode_Base interface
 	virtual void Initialize(const FAnimationInitializeContext& Context) override;
 	virtual void CacheBones(const FAnimationCacheBonesContext& Context)  override;

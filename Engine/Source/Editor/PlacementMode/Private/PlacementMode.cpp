@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PlacementModePrivatePCH.h"
 
@@ -12,6 +12,7 @@
 #include "Editor/UnrealEd/Public/Toolkits/ToolkitManager.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "Editor/LevelEditor/Public/ILevelViewport.h"
+#include "Engine/Selection.h"
 
 FPlacementMode::FPlacementMode()
 	: AssetsToPlace()
@@ -44,9 +45,8 @@ void FPlacementMode::Enter()
 
 	if ( !Toolkit.IsValid() )
 	{
-		TSharedPtr< ILevelEditor > ToolkitHost = FModuleManager::LoadModuleChecked< FLevelEditorModule >( "LevelEditor" ).GetFirstLevelEditor();
 		Toolkit = MakeShareable( new FPlacementModeToolkit );
-		Toolkit->Init( ToolkitHost );
+		Toolkit->Init(Owner->GetToolkitHost());
 	}
 }
 
@@ -146,7 +146,7 @@ bool FPlacementMode::MouseLeave( FEditorViewportClient* ViewportClient, FViewpor
 
 bool FPlacementMode::AllowPreviewActors( FEditorViewportClient* ViewportClient ) const
 {
-	return IsCurrentlyPlacing() && ( ViewportClient->IsTracking() && AllowPreviewActorsWhileTracking ) || !ViewportClient->IsTracking();
+	return (IsCurrentlyPlacing() && ( ViewportClient->IsTracking() && AllowPreviewActorsWhileTracking )) || !ViewportClient->IsTracking();
 }
 
 bool FPlacementMode::MouseMove( FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y )

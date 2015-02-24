@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "SoundDefinitions.h"
@@ -6,6 +6,8 @@
 #include "AssetThumbnail.h"
 #include "SAssetDropTarget.h"
 #include "AssetRegistryModule.h"
+#include "Sound/DialogueVoice.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "DialogueWaveDetails"
 
@@ -850,7 +852,7 @@ void SDialogueContextHeaderWidget::Construct( const FArguments& InArgs, const TS
 						+SHorizontalBox::Slot()
 						.AutoWidth()
 						[
-							TargetsPropertyHandle->CreatePropertyNameWidget( LOCTEXT("DirectedAt", "Directed At").ToString() )
+							TargetsPropertyHandle->CreatePropertyNameWidget( LOCTEXT("DirectedAt", "Directed At") )
 						]
 						+SHorizontalBox::Slot()
 						.AutoWidth()

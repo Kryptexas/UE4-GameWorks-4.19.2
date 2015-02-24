@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
 
@@ -13,8 +13,12 @@
 #include "SSCSEditorViewport.h"
 #include "SBlueprintPalette.h"
 #include "FindInBlueprints.h"
+#include "Kismet2/BlueprintEditorUtils.h"
 #include "SMyBlueprint.h"
-
+#include "Engine/Blueprint.h"
+#include "Engine/TimelineTemplate.h"
+#include "EditorClassUtils.h"
+#include "SHyperlink.h"
 
 
 #define LOCTEXT_NAMESPACE "BlueprintEditor"
@@ -23,6 +27,12 @@ void FGraphEditorSummoner::OnTabActivated(TSharedPtr<SDockTab> Tab) const
 {
 	TSharedRef<SGraphEditor> GraphEditor = StaticCastSharedRef<SGraphEditor>(Tab->GetContent());
 	BlueprintEditorPtr.Pin()->OnGraphEditorFocused(GraphEditor);
+}
+
+void FGraphEditorSummoner::OnTabBackgrounded(TSharedPtr<SDockTab> Tab) const
+{
+	TSharedRef<SGraphEditor> GraphEditor = StaticCastSharedRef<SGraphEditor>(Tab->GetContent());
+	BlueprintEditorPtr.Pin()->OnGraphEditorBackgrounded(GraphEditor);
 }
 
 void FGraphEditorSummoner::OnTabRefreshed(TSharedPtr<SDockTab> Tab) const
@@ -39,9 +49,9 @@ void FGraphEditorSummoner::SaveState(TSharedPtr<SDockTab> Tab, TSharedPtr<FTabPa
 	float ZoomAmount;
 	GraphEditor->GetViewLocation(ViewLocation, ZoomAmount);
 
-	UEdGraph* Graph = FTabPayload_UObject::CastChecked<UEdGraph>(Payload);
+	UEdGraph* Graph = Payload->IsValid() ? FTabPayload_UObject::CastChecked<UEdGraph>(Payload) : nullptr;
 
-	if (BlueprintEditorPtr.Pin()->IsGraphInCurrentBlueprint(Graph))
+	if (Graph && BlueprintEditorPtr.Pin()->IsGraphInCurrentBlueprint(Graph))
 	{
 		// Don't save references to external graphs.
 		BlueprintEditorPtr.Pin()->GetBlueprintObj()->LastEditedDocuments.Add(FEditedDocumentInfo(Graph, ViewLocation, ZoomAmount));
@@ -53,6 +63,12 @@ FGraphEditorSummoner::FGraphEditorSummoner(TSharedPtr<class FBlueprintEditor> In
 , OnCreateGraphEditorWidget(CreateGraphEditorWidgetCallback)
 {
 
+}
+
+TSharedRef<SWidget> FGraphEditorSummoner::CreateTabBodyForObject(const FWorkflowTabSpawnInfo& Info, UEdGraph* DocumentID) const
+{
+	check(Info.TabInfo.IsValid());
+	return OnCreateGraphEditorWidget.Execute(Info.TabInfo.ToSharedRef(), DocumentID);
 }
 
 const FSlateBrush* FGraphEditorSummoner::GetTabIconForObject(const FWorkflowTabSpawnInfo& Info, UEdGraph* DocumentID) const
@@ -71,7 +87,8 @@ void FTimelineEditorSummoner::OnTabRefreshed(TSharedPtr<SDockTab> Tab) const
 	TimelineEditor->OnTimelineChanged();
 }
 
-FTimelineEditorSummoner::FTimelineEditorSummoner(TSharedPtr<class FBlueprintEditor> InBlueprintEditorPtr) : FDocumentTabFactoryForObjects<UTimelineTemplate>(FBlueprintEditorTabs::TimelineEditorID, InBlueprintEditorPtr)
+FTimelineEditorSummoner::FTimelineEditorSummoner(TSharedPtr<class FBlueprintEditor> InBlueprintEditorPtr)
+	: FDocumentTabFactoryForObjects<UTimelineTemplate>(FBlueprintEditorTabs::TimelineEditorID, InBlueprintEditorPtr)
 , BlueprintEditorPtr(InBlueprintEditorPtr)
 {
 
@@ -117,9 +134,10 @@ TSharedRef<SWidget> FDebugInfoSummoner::CreateTabBody(const FWorkflowTabSpawnInf
 	return BlueprintEditorPtr->GetDebuggingView();
 }
 
-FDefaultsEditorSummoner::FDefaultsEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp) : FWorkflowTabFactory(FBlueprintEditorTabs::DefaultEditorID, InHostingApp)
+FDefaultsEditorSummoner::FDefaultsEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+	: FWorkflowTabFactory(FBlueprintEditorTabs::DefaultEditorID, InHostingApp)
 {
-	TabLabel = LOCTEXT("BlueprintDefaultsTabTitle", "Blueprint Defaults"); //@TODO: ANIMATION: GetDefaultEditorTitle(); !!!
+	TabLabel = LOCTEXT("ClassDefaultsTabTitle", "Class Defaults");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.BlueprintDefaults");
 
 	bIsSingleton = true;
@@ -132,10 +150,85 @@ TSharedRef<SWidget> FDefaultsEditorSummoner::CreateTabBody(const FWorkflowTabSpa
 {
 	TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
 
-	return BlueprintEditorPtr->GetDefaultEditor();
+	TSharedRef<SWidget> Message = CreateOptionalDataOnlyMessage();
+
+	return SNew(SVerticalBox)
+
+		+ SVerticalBox::Slot()
+		.AutoHeight()
+		.Padding(FMargin(0,0,0,1))
+		[
+			Message
+		]
+
+		+ SVerticalBox::Slot()
+		.FillHeight(1.0f)
+		[
+			BlueprintEditorPtr->GetDefaultEditor()
+		];
 }
 
-FConstructionScriptEditorSummoner::FConstructionScriptEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp) : FWorkflowTabFactory(FBlueprintEditorTabs::ConstructionScriptEditorID, InHostingApp)
+TSharedRef<SWidget> FDefaultsEditorSummoner::CreateOptionalDataOnlyMessage() const
+{
+	TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
+
+	TSharedRef<SWidget> Message = SNullWidget::NullWidget;
+	if ( UBlueprint* Blueprint = BlueprintEditorPtr->GetBlueprintObj() )
+	{
+		if ( FBlueprintEditorUtils::IsDataOnlyBlueprint(Blueprint) )
+		{
+			Message = SNew(SBorder)
+				.Padding(FMargin(5))
+				.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+				[
+					SNew(SWrapBox)
+					.UseAllottedWidth(true)
+
+					+ SWrapBox::Slot()
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::GetFontStyle("BoldFont"))
+						.Text(LOCTEXT("DataOnlyMessage_Part1", "NOTE: This is a data only blueprint, so only the default values are shown.  It does not have any script or variables.  If you want to add some, "))
+					]
+
+					+ SWrapBox::Slot()
+					[
+						SNew(SHyperlink)
+						.Style(FEditorStyle::Get(), "Common.GotoBlueprintHyperlink")
+						.OnNavigate(this, &FDefaultsEditorSummoner::OnChangeBlueprintToNotDataOnly)
+						.Text(LOCTEXT("FullEditor", "Open Full Blueprint Editor"))
+						.ToolTipText(LOCTEXT("FullEditorToolTip", "This opens the blueprint in the full editor."))
+					]
+				];
+		}
+	}
+
+	return Message;
+}
+
+void FDefaultsEditorSummoner::OnChangeBlueprintToNotDataOnly()
+{
+	UBlueprint* Blueprint = nullptr;
+
+	{
+		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
+		Blueprint = BlueprintEditorPtr->GetBlueprintObj();
+		if ( Blueprint )
+		{
+			BlueprintEditorPtr->CloseWindow();
+		}
+	}
+
+	if ( Blueprint )
+	{
+		Blueprint->bForceFullEditor = true;
+
+		GEditor->EditObject(Blueprint);
+	}
+}
+
+FConstructionScriptEditorSummoner::FConstructionScriptEditorSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+	: FWorkflowTabFactory(FBlueprintEditorTabs::ConstructionScriptEditorID, InHostingApp)
 {
 	TabLabel = LOCTEXT("ComponentsTabLabel", "Components");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Components");
@@ -150,15 +243,17 @@ TSharedRef<SWidget> FConstructionScriptEditorSummoner::CreateTabBody(const FWork
 {
 	TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
 
-	return BlueprintEditorPtr->GetSCSEditor();
+	return BlueprintEditorPtr->GetSCSEditor().ToSharedRef();
 }
 
-FSCSViewportSummoner::FSCSViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp) : FWorkflowTabFactory(FBlueprintEditorTabs::SCSViewportID, InHostingApp)
+FSCSViewportSummoner::FSCSViewportSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+	: FWorkflowTabFactory(FBlueprintEditorTabs::SCSViewportID, InHostingApp)
 {
 	TabLabel = LOCTEXT("SCSViewportTabLabel", "Viewport");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "LevelEditor.Tabs.Viewports");
 
 	bIsSingleton = true;
+	TabRole = ETabRole::DocumentTab;
 
 	ViewMenuDescription = LOCTEXT("SCSViewportView", "Viewport");
 	ViewMenuTooltip = LOCTEXT("SCSViewportView_ToolTip", "Show the viewport view");
@@ -182,11 +277,22 @@ TSharedRef<SWidget> FSCSViewportSummoner::CreateTabBody(const FWorkflowTabSpawnI
 	{
 		return SNew(SErrorText)
 			.BackgroundColor(FLinearColor::Transparent)
-			.ErrorText(LOCTEXT("SCSViewportView_Unavailable", "Viewport is not available for this Blueprint.").ToString());
+			.ErrorText(LOCTEXT("SCSViewportView_Unavailable", "Viewport is not available for this Blueprint."));
 	}
 }
 
-FPaletteSummoner::FPaletteSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp) : FWorkflowTabFactory(FBlueprintEditorTabs::PaletteID, InHostingApp)
+TSharedRef<SDockTab> FSCSViewportSummoner::SpawnTab(const FWorkflowTabSpawnInfo& Info) const
+{
+	TSharedRef<SDockTab> Tab = FWorkflowTabFactory::SpawnTab(Info);
+
+	TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = StaticCastSharedPtr<FBlueprintEditor>(HostingApp.Pin());
+	BlueprintEditorPtr->GetSCSViewport()->SetOwnerTab(Tab);
+
+	return Tab;
+}
+
+FPaletteSummoner::FPaletteSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+	: FWorkflowTabFactory(FBlueprintEditorTabs::PaletteID, InHostingApp)
 {
 	TabLabel = LOCTEXT("PaletteTabTitle", "Palette");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.Palette");
@@ -204,7 +310,8 @@ TSharedRef<SWidget> FPaletteSummoner::CreateTabBody(const FWorkflowTabSpawnInfo&
 	return BlueprintEditorPtr->GetPalette();
 }
 
-FMyBlueprintSummoner::FMyBlueprintSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp) : FWorkflowTabFactory(FBlueprintEditorTabs::MyBlueprintID, InHostingApp)
+FMyBlueprintSummoner::FMyBlueprintSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+	: FWorkflowTabFactory(FBlueprintEditorTabs::MyBlueprintID, InHostingApp)
 {
 	TabLabel = LOCTEXT("MyBlueprintTabLabel", "My Blueprint");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "ClassIcon.BlueprintCore");
@@ -222,7 +329,8 @@ TSharedRef<SWidget> FMyBlueprintSummoner::CreateTabBody(const FWorkflowTabSpawnI
 	return BlueprintEditorPtr->GetMyBlueprintWidget().ToSharedRef();
 }
 
-FCompilerResultsSummoner::FCompilerResultsSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp) : FWorkflowTabFactory(FBlueprintEditorTabs::CompilerResultsID, InHostingApp)
+FCompilerResultsSummoner::FCompilerResultsSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+	: FWorkflowTabFactory(FBlueprintEditorTabs::CompilerResultsID, InHostingApp)
 {
 	TabLabel = LOCTEXT("CompilerResultsTabTitle", "Compiler Results");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.CompilerResults");
@@ -240,7 +348,8 @@ TSharedRef<SWidget> FCompilerResultsSummoner::CreateTabBody(const FWorkflowTabSp
 	return BlueprintEditorPtr->GetCompilerResults();
 }
 
-FFindResultsSummoner::FFindResultsSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp) : FWorkflowTabFactory(FBlueprintEditorTabs::FindResultsID, InHostingApp)
+FFindResultsSummoner::FFindResultsSummoner(TSharedPtr<class FAssetEditorToolkit> InHostingApp)
+	: FWorkflowTabFactory(FBlueprintEditorTabs::FindResultsID, InHostingApp)
 {
 	TabLabel = LOCTEXT("FindResultsTabTitle", "Find Results");
 	TabIcon = FSlateIcon(FEditorStyle::GetStyleSetName(), "Kismet.Tabs.FindResults");

@@ -1,6 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "TableViewTypeTraits.h"
+#include "ITypedTableView.h"
+#include "SExpanderArrow.h"
 
 
 /**
@@ -34,8 +37,22 @@ class SLATE_API ITableRow
 
 		/** Called when the expander arrow for this row is shift+clicked */
 		virtual void Private_OnExpanderArrowShiftClicked() = 0;
+
+	protected:
+		/** Called to query the selection mode for the row */
+		virtual ESelectionMode::Type GetSelectionMode() const = 0;
 };
 
+
+/**
+ * Where we are going to drop relative to the target item.
+ */
+enum class EItemDropZone
+{
+	AboveItem,
+	OntoItem,
+	BelowItem
+};
 
 template <typename ItemType> class SListView;
 
@@ -52,7 +69,13 @@ DECLARE_DELEGATE_RetVal_OneParam(FReply, FOnTableRowDrop, FDragDropEvent const&)
 template<typename ItemType>
 class STableRow : public ITableRow, public SBorder
 {
-	static_assert(TIsValidListItem<ItemType>::Value, "Item type T must be a pointer or a TSharedPtr.");
+	static_assert(TIsValidListItem<ItemType>::Value, "Item type T must be UObjectBase*, TSharedRef<>, or TSharedPtr<>.");
+
+public:
+	/** Delegate signature for querying whether this FDragDropEvent will be handled by the drop target of type ItemType. */
+	DECLARE_DELEGATE_RetVal_ThreeParams(TOptional<EItemDropZone>, FOnCanAcceptDrop, const FDragDropEvent&, EItemDropZone, ItemType);
+	/** Delegate signature for handling the drop of FDragDropEvent onto target of type ItemType */
+	DECLARE_DELEGATE_RetVal_ThreeParams(FReply, FOnAcceptDrop, const FDragDropEvent&, EItemDropZone, ItemType);
 
 public:
 
@@ -65,7 +88,27 @@ public:
 	
 		SLATE_STYLE_ARGUMENT( FTableRowStyle, Style )
 
-		SLATE_EVENT( FOnDragDetected, OnDragDetected )
+		// High Level DragAndDrop
+
+		/**
+		 * Handle this event to determine whether a drag and drop operation can be executed on top of the target row widget.
+		 * Most commonly, this is used for previewing re-ordering and re-organization operations in lists or trees.
+		 * e.g. A user is dragging one item into a different spot in the list or tree.
+		 *      This delegate will be called to figure out if we should give visual feedback on whether an item will 
+		 *      successfully drop into the list.
+		 */
+		SLATE_EVENT( FOnCanAcceptDrop, OnCanAcceptDrop )
+
+		/**
+		 * Perform a drop operation onto the target row widget
+		 * Most commonly used for executing a re-ordering and re-organization operations in lists or trees.
+		 * e.g. A user was dragging one item into a different spot in the list; they just dropped it.
+		 *      This is our chance to handle the drop by reordering items and calling for a list refresh.
+		 */
+		SLATE_EVENT( FOnAcceptDrop,    OnAcceptDrop )
+
+		// Low level DragAndDrop
+		SLATE_EVENT( FOnDragDetected,      OnDragDetected )
 		SLATE_EVENT( FOnTableRowDragEnter, OnDragEnter )
 		SLATE_EVENT( FOnTableRowDragLeave, OnDragLeave )
 		SLATE_EVENT( FOnTableRowDrop,      OnDrop )
@@ -114,20 +157,23 @@ public:
 		else
 		{
 			// -- Row is for TreeView --
-			
+
 			// Rows in a TreeView need an expander button and some indentation
 			this->ChildSlot
 			[
 				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-					.AutoWidth()
-					.HAlign(HAlign_Right) .VAlign(VAlign_Fill)
+
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				.HAlign(HAlign_Right)
+				.VAlign(VAlign_Fill)
 				[
 					SNew(SExpanderArrow, SharedThis(this) )
 				]
-				+SHorizontalBox::Slot()
-					.FillWidth(1)
-					.Padding( InPadding )
+
+				+ SHorizontalBox::Slot()
+				.FillWidth(1)
+				.Padding( InPadding )
 				[
 					InContent
 				]
@@ -137,8 +183,6 @@ public:
 
 	virtual int32 OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled ) const override
 	{
-		int32 Result = SBorder::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
-
 		TSharedRef< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin().ToSharedRef();
 		const bool bIsActive = OwnerWidget->AsWidget()->HasKeyboardFocus();
 		const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget( this );
@@ -155,7 +199,35 @@ public:
 				);
 		}
 
-		return Result;
+		LayerId = SBorder::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+		if (ItemDropZone.IsSet())
+		{
+			// Draw feedback for user dropping an item above, below, or onto a row.
+			const FSlateBrush* DropIndicatorBrush = [&]()
+			{
+				switch (ItemDropZone.GetValue())
+				{
+					case EItemDropZone::AboveItem: return &Style->DropIndicator_Above; break;
+					default:
+					case EItemDropZone::OntoItem: return &Style->DropIndicator_Onto; break;
+					case EItemDropZone::BelowItem: return &Style->DropIndicator_Below; break;
+				};
+			}();
+
+			FSlateDrawElement::MakeBox
+			(
+				OutDrawElements,
+				LayerId++,
+				AllottedGeometry.ToPaintGeometry(),
+				DropIndicatorBrush,
+				MyClippingRect,
+				ESlateDrawEffect::None,
+				Style->SelectorFocusedBrush.GetTint(InWidgetStyle) * InWidgetStyle.GetColorAndOpacityTint()
+			);
+		}
+
+		return LayerId;
 	}
 
 	/**
@@ -204,7 +276,7 @@ public:
 
 		if ( MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton )
 		{
-			switch( OwnerWidget->Private_GetSelectionMode() )
+			switch( GetSelectionMode() )
 			{
 			case ESelectionMode::Single:
 				{
@@ -309,7 +381,7 @@ public:
 			{
 				if ( bIsUnderMouse )
 				{
-					switch( OwnerWidget->Private_GetSelectionMode() )
+					switch( GetSelectionMode() )
 					{
 					case ESelectionMode::SingleToggle:
 						{
@@ -370,7 +442,7 @@ public:
 			// Handle selection of items when releasing the right mouse button, but only if the user isn't actively
 			// scrolling the view by holding down the right mouse button.
 
-			switch( OwnerWidget->Private_GetSelectionMode() )
+			switch( GetSelectionMode() )
 			{
 			case ESelectionMode::Single:
 			case ESelectionMode::SingleToggle:
@@ -418,7 +490,7 @@ public:
 			const TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
 			const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget( this );
 
-			switch( OwnerWidget->Private_GetSelectionMode() )
+			switch( GetSelectionMode() )
 			{
 				default:
 				case ESelectionMode::None:
@@ -491,34 +563,103 @@ public:
 		{
 			OnDragEnter_Handler.Execute(DragDropEvent);
 		}
-		else
-		{
-			SBorder::OnDragEnter(MyGeometry, DragDropEvent);
-		}
 	}
 
 	virtual void OnDragLeave(FDragDropEvent const& DragDropEvent) override
 	{
+		ItemDropZone = TOptional<EItemDropZone>();
+
 		if (OnDragLeave_Handler.IsBound())
 		{
 			OnDragLeave_Handler.Execute(DragDropEvent);
 		}
+	}
+
+	/** @return the zone (above, onto, below) based on where the user is hovering over within the row */
+	EItemDropZone ZoneFromPointerPosition(FVector2D LocalPointerPos, float RowHeight)
+	{
+		const float VecticalZoneBoundarySu = FMath::Clamp(RowHeight * 0.25f, 3.0f, 10.0f);
+		if (LocalPointerPos.Y < VecticalZoneBoundarySu)
+		{
+			return EItemDropZone::AboveItem;
+		}
+		else if (LocalPointerPos.Y > RowHeight - VecticalZoneBoundarySu)
+		{
+			return EItemDropZone::BelowItem;
+		}
 		else
 		{
-			SBorder::OnDragLeave(DragDropEvent);
+			return EItemDropZone::OntoItem;
 		}
 	}
 
-	virtual FReply OnDrop(FGeometry const& MyGeometry, FDragDropEvent const& DragDropEvent) override
+	virtual FReply OnDragOver(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override
 	{
-		if (OnDrop_Handler.IsBound())
+		if ( OnCanAcceptDrop.IsBound() )
 		{
-			return OnDrop_Handler.Execute(DragDropEvent);
+			const FVector2D LocalPointerPos = MyGeometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
+			const EItemDropZone ItemHoverZone = ZoneFromPointerPosition(LocalPointerPos, MyGeometry.GetLocalSize().Y);
+
+			ItemDropZone = [&]()
+			{
+				TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
+				const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget(this);
+				return OnCanAcceptDrop.Execute(DragDropEvent, ItemHoverZone, *MyItem);
+			}();
+
+			return FReply::Handled();
 		}
 		else
 		{
-			return SBorder::OnDrop(MyGeometry, DragDropEvent);
+			return FReply::Unhandled();
 		}
+
+	}
+
+	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override
+	{
+		const FReply Reply = [&]()
+		{
+			if (OnAcceptDrop.IsBound())
+			{
+				const TSharedRef< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin().ToSharedRef();
+
+				// A drop finishes the drag/drop operation, so we are no longer providing any feedback.
+				ItemDropZone = TOptional<EItemDropZone>();
+
+				// Find item associated with this widget.
+				const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget(this);
+				
+				// Which physical drop zone is the drop about to be performed onto?
+				const FVector2D LocalPointerPos = MyGeometry.AbsoluteToLocal(DragDropEvent.GetScreenSpacePosition());
+				const EItemDropZone HoveredZone = ZoneFromPointerPosition(LocalPointerPos, MyGeometry.GetLocalSize().Y);
+
+				// The row gets final say over which zone to drop onto regardless of physical location.
+				const TOptional<EItemDropZone> ReportedZone = OnCanAcceptDrop.IsBound()
+					? OnCanAcceptDrop.Execute(DragDropEvent, HoveredZone, *MyItem)
+					: HoveredZone;
+
+				if (ReportedZone.IsSet())
+				{
+					FReply DropReply = OnAcceptDrop.Execute(DragDropEvent, ReportedZone.GetValue(), *MyItem);
+					if (DropReply.IsEventHandled())
+					{
+						// Expand the drop target just in case, so that what we dropped is visible.
+						OwnerWidget->Private_SetItemExpansion(*MyItem, true);
+					}
+				}
+			}
+
+			return FReply::Unhandled();
+		}();
+
+		// @todo slate : Made obsolete by OnAcceptDrop. Get rid of this.
+		if ( !Reply.IsEventHandled() && OnDrop_Handler.IsBound() )
+		{
+			return OnDrop_Handler.Execute(DragDropEvent);
+		}
+
+		return Reply;
 	}
 
 	virtual void SetIndexInList( int32 InIndexInList ) override
@@ -625,7 +766,7 @@ public:
 		else
 		{
 			// Add a slightly lighter background for even rows
-			const bool bAllowSelection = OwnerWidget->Private_GetSelectionMode() != ESelectionMode::None;
+			const bool bAllowSelection = GetSelectionMode() != ESelectionMode::None;
 			if( IndexInList % 2 == 0 )
 			{
 				return ( IsHovered() && bAllowSelection )
@@ -644,7 +785,7 @@ public:
 	}
 
 	/** 
-	 * Callback to determine if the row is selected or not
+	 * Callback to determine if the row is selected singularly and has keyboard focus or not
 	 *
 	 * @return		true if selected by owning widget.
 	 */
@@ -659,6 +800,19 @@ public:
 
 		const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget( this );
 		return OwnerWidget->Private_IsItemSelected( *MyItem );
+	}
+
+	/**
+	 * Callback to determine if the row is selected or not
+	 *
+	 * @return		true if selected by owning widget.
+	 */
+	bool IsSelected() const
+	{
+		TSharedPtr< ITypedTableView< ItemType > > OwnerWidget = OwnerTablePtr.Pin();
+
+		const ItemType* MyItem = OwnerWidget->Private_ItemFromWidget(this);
+		return OwnerWidget->Private_IsItemSelected(*MyItem);
 	}
 
 	/** Protected constructor; SWidgets should only be instantiated via declarative syntax. */
@@ -687,6 +841,9 @@ protected:
 		this->BorderImage = TAttribute<const FSlateBrush*>( this, &STableRow::GetBorder );
 
 		this->ForegroundColor = TAttribute<FSlateColor>( this, &STableRow::GetForegroundBasedOnSelection );
+
+		this->OnCanAcceptDrop = InArgs._OnCanAcceptDrop;
+		this->OnAcceptDrop = InArgs._OnAcceptDrop;
 
 		this->OnDragDetected_Handler = InArgs._OnDragDetected;
 		this->OnDragEnter_Handler = InArgs._OnDragEnter;
@@ -726,6 +883,12 @@ protected:
 			: NonSelectedForeground;
 	}
 
+	virtual ESelectionMode::Type GetSelectionMode() const override
+	{
+		const TSharedPtr< ITypedTableView<ItemType> > OwnerWidget = OwnerTablePtr.Pin();
+		return OwnerWidget->Private_GetSelectionMode();
+	}
+
 protected:
 
 	/** The list that owns this Selectable */
@@ -739,6 +902,15 @@ protected:
 
 	/** Style used to draw this table row */
 	const FTableRowStyle* Style;
+
+	/** @see STableRow's OnCanAcceptDrop event */
+	FOnCanAcceptDrop OnCanAcceptDrop;
+
+	/** @see STableRow's OnAcceptDrop event */
+	FOnAcceptDrop OnAcceptDrop;
+
+	/** Are we currently dragging/dropping over this item? */
+	TOptional<EItemDropZone> ItemDropZone;
 
 	/** Delegate triggered when a user starts to drag a list item */
 	FOnDragDetected OnDragDetected_Handler;
@@ -778,7 +950,10 @@ public:
 	 */
 	virtual TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) = 0;
 
+	/** Use this to construct the superclass; e.g. FSuperRowType::Construct( FTableRowArgs(), OwnerTableView ) */
 	typedef SMultiColumnTableRow< ItemType > FSuperRowType;
+
+	/** Use this to construct the superclass; e.g. FSuperRowType::Construct( FTableRowArgs(), OwnerTableView ) */
 	typedef typename STableRow<ItemType>::FArguments FTableRowArgs;
 
 protected:
@@ -789,6 +964,8 @@ protected:
 			.Style(InArgs._Style)
 			.Padding(InArgs._Padding)
 			.ShowSelection(InArgs._ShowSelection)
+			.OnCanAcceptDrop(InArgs._OnCanAcceptDrop)
+			.OnAcceptDrop(InArgs._OnAcceptDrop)
 			.OnDragDetected(InArgs._OnDragDetected)
 			.OnDragEnter(InArgs._OnDragEnter)
 			.OnDragLeave(InArgs._OnDragLeave)

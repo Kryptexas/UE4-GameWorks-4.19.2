@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "PlainTextLayoutMarshaller.h"
@@ -105,10 +105,7 @@ int32 STextBlock::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeom
 #if WITH_FANCY_TEXT
 
 	// OnPaint will also update the text layout cache if required
-	LayerId = TextLayoutCache->OnPaint(
-		FTextBlockLayout::FWidgetArgs(BoundText, HighlightText, WrapTextAt, AutoWrapText, Margin, LineHeightPercentage, Justification), 
-		Args.WithNewParent(this), AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled(bParentEnabled)
-		);
+	LayerId = TextLayoutCache->OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, ShouldBeEnabled(bParentEnabled));
 
 #else//WITH_FANCY_TEXT
 
@@ -266,3 +263,4 @@ FTextBlockStyle STextBlock::GetComputedTextStyle() const
 	ComputedStyle.SetHighlightShape( *GetHighlightShape() );
 	return ComputedStyle;
 }
+

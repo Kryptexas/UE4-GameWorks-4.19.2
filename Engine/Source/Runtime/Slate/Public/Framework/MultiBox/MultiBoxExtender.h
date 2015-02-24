@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+class FUICommandList;
 
 /** Called on your extension to add new pull-down menus to a menu bar */
 DECLARE_DELEGATE_OneParam( FMenuBarExtensionDelegate, class FMenuBarBuilder& );

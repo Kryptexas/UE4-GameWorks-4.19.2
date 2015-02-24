@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -29,7 +29,11 @@ namespace UnrealBuildTool
 				string dllPath = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "iTunesMobileDeviceDLL", null) as string;
 				if (String.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
 				{
-					return SDKStatus.Invalid;
+					dllPath = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "MobileDeviceDLL", null) as string;
+					if (String.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
+					{
+						return SDKStatus.Invalid;
+					}
 				}
 			}
 			return SDKStatus.Valid;
@@ -250,7 +254,8 @@ namespace UnrealBuildTool
                     else if (InModule.ToString() == "TargetPlatform")
                     {
                         bBuildShaderFormats = true;
-                        InModule.AddDynamicallyLoadedModule("TextureFormatPVR");
+						InModule.AddDynamicallyLoadedModule("TextureFormatPVR");
+						InModule.AddDynamicallyLoadedModule("TextureFormatASTC");
                         if (UEBuildConfiguration.bBuildDeveloperTools)
                         {
                             InModule.AddPlatformSpecificDynamicallyLoadedModule("AudioFormatADPCM");

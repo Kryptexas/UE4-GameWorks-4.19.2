@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 struct SLATECORE_API FSlateFontKey
@@ -122,5 +122,6 @@ public:
 class SLATECORE_API ISlateFontAtlasFactory
 {
 public:
+	virtual FIntPoint GetAtlasSize() const = 0;
 	virtual TSharedRef<class FSlateFontAtlas> CreateFontAtlas() const = 0;
 };

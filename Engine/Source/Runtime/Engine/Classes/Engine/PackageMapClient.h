@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 /**
@@ -27,7 +27,7 @@
 class FNetGuidCacheObject
 {
 public:
-	FNetGuidCacheObject() : GuidSequence( 0 ), InitialQueryTime( -1.0f ), bNoLoad( 0 ), bIgnoreWhenMissing( 0 ), bIsPending( 0 ), bIsBroken( 0 )
+	FNetGuidCacheObject() : ReadOnlyTimestamp( 0 ), bNoLoad( 0 ), bIgnoreWhenMissing( 0 ), bIsPending( 0 ), bIsBroken( 0 )
 	{
 	}
 
@@ -36,10 +36,9 @@ public:
 	// These fields are set when this guid is static
 	FNetworkGUID				OuterGUID;
 	FName						PathName;
-	int32						GuidSequence;				// We remember the guid sequence this net guid was generated on so we can tell how old it is
 	FGuid						PackageGuid;				// If this is a package, this is the guid to expect
 
-	float						InitialQueryTime;
+	double						ReadOnlyTimestamp;			// Time in second when we should start timing out after going read only
 
 	uint8						bNoLoad				: 1;	// Don't load this, only do a find
 	uint8						bIgnoreWhenMissing	: 1;	// Don't warn when this asset can't be found or loaded
@@ -53,7 +52,7 @@ public:
 	FNetGUIDCache( UNetDriver * InDriver );
 
 	void			CleanReferences();
-	bool			SupportsObject( const UObject* Object );
+	bool			SupportsObject( const UObject* Object ) const;
 	bool			IsDynamicObject( const UObject* Object );
 	bool			IsNetGUIDAuthority() const;
 	FNetworkGUID	GetOrAssignNetGUID( const UObject* Object );
@@ -67,14 +66,15 @@ public:
 	bool			IsGUIDRegistered( const FNetworkGUID& NetGUID ) const;
 	bool			IsGUIDLoaded( const FNetworkGUID& NetGUID ) const;
 	bool			IsGUIDBroken( const FNetworkGUID& NetGUID, const bool bMustBeRegistered ) const;
+	FString			FullNetGUIDPath( const FNetworkGUID& NetGUID ) const;
+	void			GenerateFullNetGUIDPath_r( const FNetworkGUID& NetGUID, FString& FullPath ) const;
 
-	void			AsyncPackageCallback( const FString& PackageName, UPackage * Package );
+	void			AsyncPackageCallback( const FName& PackageName, UPackage * Package );
 	
 	TMap< FNetworkGUID, FNetGuidCacheObject >		ObjectLookup;
 	TMap< TWeakObjectPtr< UObject >, FNetworkGUID >	NetGUIDLookup;
 	int32											UniqueNetIDs[2];
 
-	int32											GuidSequence;
 	bool											IsExportingNetGUIDBunch;
 
 	UNetDriver *									Driver;
@@ -90,14 +90,16 @@ public:
 UCLASS(transient)
 class UPackageMapClient : public UPackageMap
 {
-    GENERATED_UCLASS_BODY()
+public:
+	GENERATED_BODY()
 
-	UPackageMapClient( const FObjectInitializer & ObjectInitializer, UNetConnection * InConnection, TSharedPtr< FNetGUIDCache > InNetGUIDCache ) : 
-		UPackageMap( ObjectInitializer )
-	,	Connection(InConnection)
+	UPackageMapClient(const FObjectInitializer & ObjectInitializer);
+
+	void Initialize(UNetConnection * InConnection, TSharedPtr<FNetGUIDCache> InNetGUIDCache)
 	{
-		GuidCache				= InNetGUIDCache;
-		ExportNetGUIDCount		= 0;
+		Connection = InConnection;
+		GuidCache = InNetGUIDCache;
+		ExportNetGUIDCount = 0;
 	}
 
 	virtual ~UPackageMapClient()

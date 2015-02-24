@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
  	CoreAudioSource.cpp: Unreal CoreAudio source interface object.
@@ -283,7 +283,7 @@ void FCoreAudioSoundSource::Update( void )
 		}
 		else if( WaveInstance->bUseSpatialization )
 		{
-			FVector Direction = AudioDevice->InverseTransform.TransformPosition(WaveInstance->Location).SafeNormal();
+			FVector Direction = AudioDevice->InverseTransform.TransformPosition(WaveInstance->Location).GetSafeNormal();
 
 			FVector EmitterPosition;
 			EmitterPosition.X = -Direction.Z;

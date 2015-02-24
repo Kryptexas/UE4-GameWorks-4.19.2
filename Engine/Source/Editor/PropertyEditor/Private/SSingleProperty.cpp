@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SSingleProperty.h"
@@ -131,7 +131,7 @@ void SSingleProperty::SetObject( UObject* InObject )
 
 		bIsAcceptableProperty = true;
 		// not an array property (dynamic or static)
-		bIsAcceptableProperty &= !( Property->IsA( UArrayProperty::StaticClass() ) || Property->ArrayDim > 1 && ValueNode->GetArrayIndex() == INDEX_NONE );
+		bIsAcceptableProperty &= !( Property->IsA( UArrayProperty::StaticClass() ) || (Property->ArrayDim > 1 && ValueNode->GetArrayIndex() == INDEX_NONE) );
 		// not a struct property unless its a built in type like a vector
 		bIsAcceptableProperty &= ( !Property->IsA( UStructProperty::StaticClass() ) || PropertyEditorHelpers::IsBuiltInStructProperty( Property ) );
 	}
@@ -184,8 +184,8 @@ void SSingleProperty::SetObject( UObject* InObject )
 		[
 			SNew(STextBlock)
 			.Font(PropertyFont)
-			.Text(NSLOCTEXT("PropertyEditor", "SinglePropertyInvalidType", "Cannot Edit Inline").ToString())
-			.ToolTipText(NSLOCTEXT("PropertyEditor", "SinglePropertyInvalidType_Tooltip", "Properties of this type cannot be edited inline; edit it elsewhere").ToString())
+			.Text(NSLOCTEXT("PropertyEditor", "SinglePropertyInvalidType", "Cannot Edit Inline"))
+			.ToolTipText(NSLOCTEXT("PropertyEditor", "SinglePropertyInvalidType_Tooltip", "Properties of this type cannot be edited inline; edit it elsewhere"))
 		];
 
 		// invalid or missing property

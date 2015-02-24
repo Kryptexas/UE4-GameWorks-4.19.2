@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -217,7 +217,7 @@ public:
 	/** Whether the server employs anti-cheat (punkbuster, vac, etc) */
 	bool bAntiCheatProtected;
 	/** Used to keep different builds from seeing each other during searches */
-	uint32 BuildUniqueId;
+	int32 BuildUniqueId;
 	/** Array of custom session settings */
 	FSessionSettings Settings;
 
@@ -351,9 +351,13 @@ public:
 	/** The name of the session */
 	const FName SessionName;
 	/** Index of the player who created the session [host] or joined it [client] */
-	int32 HostingPlayerNum;
+	int32 HostingPlayerNum;	
 	/** Whether or not the local player is hosting this session */
 	bool bHosting;
+
+	/** NetId of the local player that created this named session.  Could be the host, or a player joining a session. Will entirely replace HostingPlayerNum */
+	TSharedPtr<FUniqueNetId> LocalOwnerId;
+
 	/** List of players registered in the session */
 	TArray< TSharedRef<FUniqueNetId> > RegisteredPlayers;
 	/** State of the session (game thread write only) */

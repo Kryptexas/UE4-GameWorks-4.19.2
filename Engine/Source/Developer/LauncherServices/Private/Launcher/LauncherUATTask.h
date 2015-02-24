@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -41,7 +41,7 @@ protected:
 	{
 		if (FirstTimeCompile)
 		{
-			NoCompile = !FParse::Param( FCommandLine::Get(), TEXT("development") ) ? TEXT(" -nocompile") : TEXT("");
+			NoCompile = (!FParse::Param( FCommandLine::Get(), TEXT("development") ) && !ChainState.Profile->IsBuildingUAT()) ? TEXT(" -nocompile") : TEXT("");
 			FirstTimeCompile = false;
 		}
 

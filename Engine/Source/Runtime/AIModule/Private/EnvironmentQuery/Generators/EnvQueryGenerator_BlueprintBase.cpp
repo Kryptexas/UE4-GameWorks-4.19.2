@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/Contexts/EnvQueryContext_Querier.h"
@@ -16,7 +16,6 @@ UEnvQueryGenerator_BlueprintBase::UEnvQueryGenerator_BlueprintBase(const FObject
 {
 	Context = UEnvQueryContext_Querier::StaticClass();
 	ItemType = UEnvQueryItemType_Actor::StaticClass();
-	Radius.Value = 1000.0f;
 	GeneratedItemType = UEnvQueryItemType_Actor::StaticClass();
 }
 
@@ -33,29 +32,25 @@ UWorld* UEnvQueryGenerator_BlueprintBase::GetWorld() const
 
 void UEnvQueryGenerator_BlueprintBase::GenerateItems(FEnvQueryInstance& QueryInstance) const
 {
-	float RadiusValue = 0.f;
-	if (QueryInstance.GetParamValue(Radius, RadiusValue, TEXT("Radius")) == false)
-	{
-		return;
-	}
-
 	TArray<FVector> ContextLocations;
 	QueryInstance.PrepareContext(Context, ContextLocations);
 
 	CachedQueryInstance = &QueryInstance;
-	DoItemGeneration(ContextLocations);
+	const_cast<UEnvQueryGenerator_BlueprintBase*>(this)->DoItemGeneration(ContextLocations);
 	CachedQueryInstance = NULL;
 }
 
-void UEnvQueryGenerator_BlueprintBase::AddGeneratedVector(FVector Vector)
+void UEnvQueryGenerator_BlueprintBase::AddGeneratedVector(FVector Vector) const
 {
 	check(CachedQueryInstance);
+	ensure(ItemType->IsChildOf<UEnvQueryItemType_VectorBase>());
 	CachedQueryInstance->AddItemData<UEnvQueryItemType_Point>(Vector);
 }
 
-void UEnvQueryGenerator_BlueprintBase::AddGeneratedActor(AActor* Actor)
+void UEnvQueryGenerator_BlueprintBase::AddGeneratedActor(AActor* Actor) const
 {
 	check(CachedQueryInstance);
+	ensure(ItemType->IsChildOf<UEnvQueryItemType_ActorBase>());
 	CachedQueryInstance->AddItemData<UEnvQueryItemType_Actor>(Actor);
 }
 

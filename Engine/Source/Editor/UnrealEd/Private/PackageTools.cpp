@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -15,6 +15,7 @@
 #include "MainFrame.h"
 #include "MessageLog.h"
 #include "ComponentReregisterContext.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "PackageTools"
 

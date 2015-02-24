@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -7,6 +7,8 @@
 #include "CompilerResultsLog.h"
 #include "BlueprintEventNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "K2Node_CustomEvent.h"
+#include "K2Node_BaseMCDelegate.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_CustomEvent"
 
@@ -385,6 +387,19 @@ FString UK2Node_CustomEvent::GetDocumentationExcerptName() const
 FName UK2Node_CustomEvent::GetPaletteIcon(FLinearColor& OutColor) const
 {
 	return bCallInEditor ? TEXT("GraphEditor.CallInEditorEvent_16x") : TEXT("GraphEditor.CustomEvent_16x");
+}
+
+void UK2Node_CustomEvent::AutowireNewNode(UEdGraphPin* FromPin)
+{
+	Super::AutowireNewNode(FromPin);
+
+	if (auto DelegateOutPin = FindPin(DelegateOutputName))
+	{
+		if (DelegateOutPin->LinkedTo.Num())
+		{
+			ReconstructNode();
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

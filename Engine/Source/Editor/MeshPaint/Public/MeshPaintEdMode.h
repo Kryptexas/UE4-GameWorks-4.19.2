@@ -1,8 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "GenericOctree.h"
+#include "GenericOctreePublic.h"
+#include "Engine/StaticMesh.h"
 
 
 /** Mesh paint resource types */

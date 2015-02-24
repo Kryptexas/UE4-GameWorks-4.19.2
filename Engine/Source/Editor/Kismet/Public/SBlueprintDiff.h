@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "Developer/AssetTools/Public/IAssetTypeActions.h"
@@ -30,6 +30,8 @@ struct FDiffResultItem : public TSharedFromThis<FDiffResultItem>
 	TSharedRef<SWidget> KISMET_API GenerateWidget() const;
 };
 
+DECLARE_DELEGATE_OneParam(FOnMyBlueprintActionSelected, UObject*);
+
 namespace DiffWidgetUtils
 {
 	KISMET_API void SelectNextRow(SListView< TSharedPtr< struct FDiffSingleResult> >& ListView, const TArray< TSharedPtr< struct FDiffSingleResult > >& ListViewSource );
@@ -43,11 +45,14 @@ struct KISMET_API FDiffPanel
 {
 	FDiffPanel();
 
-	/*Generate this panel based on the specified graph*/
-	void	GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff);
+	/** Initializes the panel, can be moved into constructor if diff and merge clients are made more uniform: */
+	void InitializeDiffPanel();
 
-	/*Get the title to show at the top of the panel*/
-	FString GetTitle() const;
+	/* Generate this panel based on the specified graph */
+	void GeneratePanel(UEdGraph* Graph, UEdGraph* GraphToDiff);
+
+	/* Generate the 'MyBlueprint' widget, which is private to this module */
+	TSharedRef<SWidget> GenerateMyBlueprintPanel();
 
 	/* Called when user hits keyboard shortcut to copy nodes*/
 	void CopySelectedNodes();
@@ -66,7 +71,13 @@ struct KISMET_API FDiffPanel
 	const class UBlueprint*				Blueprint;
 
 	/*The border around the graph editor, used to change the content when new graphs are set */
-	TSharedPtr<SBorder>				GraphEditorBorder;
+	TSharedPtr<SBox>				GraphEditorBorder;
+
+	/* The border around the my blueprint panel, used to regenerate the panel when the new graphs are set */
+	TSharedPtr<class SMyBlueprint>	MyBlueprint;
+
+	/*The box around the the details view associated with the graph editor */
+	TSharedPtr<class SKismetInspector>	DetailsView;
 
 	/*The graph editor which does the work of displaying the graph*/
 	TWeakPtr<class SGraphEditor>	GraphEditor;
@@ -87,7 +98,6 @@ private:
 /* Visual Diff between two Blueprints*/
 class  KISMET_API SBlueprintDiff: public SCompoundWidget
 {
-
 public:
 	DECLARE_DELEGATE_TwoParams( FOpenInDefaults, const class UBlueprint* , const class UBlueprint* );
 
@@ -118,15 +128,18 @@ protected:
 	bool HasNextDiff() const;
 	bool HasPrevDiff() const;
 
-	/* Need to process keys for shortcuts to buttons */
-	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;
-
+	/** Spawns the tabs that contain the Graph views and blueprints views respectively: */
+	TSharedRef<SDockTab> CreateGraphDiffViews( const FSpawnTabArgs& Args );
+	TSharedRef<SDockTab> CreateMyBlueprintsViews( const FSpawnTabArgs& Args );
 
 	typedef TSharedPtr<struct FListItemGraphToDiff>	FGraphToDiff;
 	typedef SListView<FGraphToDiff >	SListViewType;
 
+	/** Find the FListItemGraphToDiff that displays the graph with GraphName: */
+	FListItemGraphToDiff* FindGraphToDiffEntry(FName ByName);
+
 	/** Bring these revisions of graph into focus on main display*/
-	void FocusOnGraphRevisions( class UEdGraph* GraphOld, class UEdGraph* GraphNew , struct FListItemGraphToDiff* Diff);
+	void FocusOnGraphRevisions( struct FListItemGraphToDiff* Diff);
 
 	/*Create a list item entry graph that exists in at least one of the blueprints */
 	void CreateGraphEntry(class UEdGraph* GraphOld, class UEdGraph* GraphNew);
@@ -137,19 +150,21 @@ protected:
 	/*Called when user clicks on a new graph list item */
 	void OnSelectionChanged(FGraphToDiff Item, ESelectInfo::Type SelectionType);
 
-	void OnDiffListSelectionChanged(const TSharedPtr<struct FDiffResultItem>& TheDiff, struct FListItemGraphToDiff* GraphDiffer);
+	/** Called when user clicks on an entry in the listview of differences */
+	void OnDiffListSelectionChanged(TSharedPtr<struct FDiffResultItem> TheDiff );
 		
 	/** Disable the focus on a particular pin */
 	void DisablePinDiffFocus();
 
 	/*User toggles the option to lock the views between the two blueprints */
+	void	OnToggleLockView2();
 	FReply	OnToggleLockView();
 
 	/*Reset the graph editor, called when user switches graphs to display*/
 	void ResetGraphEditors();
 
 	/*Get the image to show for the toggle lock option*/
-	const FSlateBrush* GetLockViewImage() const;
+	FSlateIcon GetLockViewImage() const;
 
 	/* This buffer stores the currently displayed results */
 	TArray< FGraphToDiff> Graphs;
@@ -160,9 +175,21 @@ protected:
 	/** Event handler that updates the graph view when user selects a new graph */
 	void HandleGraphChanged( const FName GraphName );
 
-	TSharedRef<SWidget> GenerateGraphPanel();
-	TSharedRef<SWidget> GenerateDefaultsPanel();
-	TSharedRef<SWidget> GenerateComponentsPanel();
+	struct FDiffControl
+	{
+		FDiffControl()
+		: Widget()
+		, DiffControl(NULL)
+		{
+		}
+
+		TSharedPtr<SWidget> Widget;
+		TSharedPtr< class IDiffControl > DiffControl;
+	};
+
+	FDiffControl GenerateGraphPanel();
+	FDiffControl GenerateDefaultsPanel();
+	FDiffControl GenerateComponentsPanel();
 
 	/** Accessor and event handler for toggling between diff view modes (defaults, components, graph view, interface, macro): */
 	void SetCurrentMode(FName NewMode);
@@ -176,22 +203,30 @@ protected:
 	/** If the two views should be locked */
 	bool	bLockViews;
 
-	/** Border Widget, inside is the current graphs being diffed, we can replace content to change the graph*/
-	TSharedPtr<SBorder>	DiffListBorder;
-
 	/** Contents widget that we swap when mode changes (defaults, components, etc) */
-	TSharedPtr<SBorder> ModeContents;
-
-	/** The ListView containing the graphs the user can select */
-	TSharedPtr<SListViewType>	GraphsToDiff;
+	TSharedPtr<SBox> ModeContents;
 
 	friend struct FListItemGraphToDiff;
 
-	/** Key commands processed by this widget */
-	TSharedPtr< FUICommandList > KeyCommands;
-
 	/** Helper class for highlighting diffs in different types of controls (graph view, details view, etc) */
 	TSharedPtr< class IDiffControl > DiffControl;
+
+	/** We can't use the global tab manager because we need to instance the diff control, so we have our own tab manager: */
+	TSharedPtr<FTabManager> TabManager;
+
+	/** Tree of differences collected across all panels: */
+	TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> > MasterDifferencesList;
+
+	/** List of all differences, cached so that we can iterate only the differences and not labels, etc: */
+	TArray< TSharedPtr<class FBlueprintDifferenceTreeEntry> > RealDifferences;
+
+	/** Tree view that displays the differences, cached for the buttons that iterate the differences: */
+	TSharedPtr< STreeView< TSharedPtr< FBlueprintDifferenceTreeEntry > > > DifferencesTreeView;
+
+	/** Stored references to widgets used to display various parts of a blueprint: */
+	FDiffControl GraphPanel;
+	FDiffControl DefaultsPanel;
+	FDiffControl ComponentsPanel;
 };
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AutomationWindowPrivatePCH.h"
 
@@ -409,19 +409,19 @@ void SAutomationWindow::Construct( const FArguments& InArgs, const IAutomationCo
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 
-void SAutomationWindow::HandleResultDisplayTypeStateChanged( ESlateCheckBoxState::Type NewRadioState, EAutomationGrapicalDisplayType::Type NewDisplayType)
+void SAutomationWindow::HandleResultDisplayTypeStateChanged( ECheckBoxState NewRadioState, EAutomationGrapicalDisplayType::Type NewDisplayType)
 {
-	if (NewRadioState == ESlateCheckBoxState::Checked)
+	if (NewRadioState == ECheckBoxState::Checked)
 	{
 		GraphicalResultBox->SetDisplayType(NewDisplayType);
 	}
 }
 
-ESlateCheckBoxState::Type SAutomationWindow::HandleResultDisplayTypeIsChecked( EAutomationGrapicalDisplayType::Type InDisplayType ) const
+ECheckBoxState SAutomationWindow::HandleResultDisplayTypeIsChecked( EAutomationGrapicalDisplayType::Type InDisplayType ) const
 {
 	return (GraphicalResultBox->GetDisplayType() == InDisplayType)
-		? ESlateCheckBoxState::Checked
-		: ESlateCheckBoxState::Unchecked;
+		? ECheckBoxState::Checked
+		: ECheckBoxState::Unchecked;
 }
 
 const FSlateBrush* SAutomationWindow::GetTestBackgroundBorderImage() const
@@ -832,7 +832,7 @@ void SAutomationWindow::HandlePresetTextCommited( const FText& CommittedText, ET
 
 		TArray<FString> EnabledTests;
 		AutomationController->GetEnabledTestNames(EnabledTests);
-		AutomationPresetPtr NewPreset = TestPresetManager->AddNewPreset(CommittedText.ToString(),EnabledTests);
+		AutomationPresetPtr NewPreset = TestPresetManager->AddNewPreset(CommittedText,EnabledTests);
 		PresetComboBox->SetSelectedItem(NewPreset);
 		SelectedPreset = NewPreset;
 
@@ -911,15 +911,15 @@ FReply SAutomationWindow::HandleRemovePresetClicked()
 	return FReply::Handled();
 }
 
-FString SAutomationWindow::GetPresetComboText() const
+FText SAutomationWindow::GetPresetComboText() const
 {
 	if( SelectedPreset.IsValid() )
 	{
-		return *SelectedPreset->GetPresetName();
+		return SelectedPreset->GetPresetName();
 	}
 	else
 	{
-		return LOCTEXT("AutomationPresetComboLabel", "<Select A Preset>").ToString();
+		return LOCTEXT("AutomationPresetComboLabel", "<Select A Preset>");
 	}
 }
 
@@ -978,12 +978,12 @@ TSharedRef< SWidget > SAutomationWindow::GenerateGroupOptionsMenuContent( )
 }
 
 /** Returns if full size screen shots are enabled */
-ESlateCheckBoxState::Type SAutomationWindow::IsDeviceGroupCheckBoxIsChecked(const int32 DeviceGroupFlag) const
+ECheckBoxState SAutomationWindow::IsDeviceGroupCheckBoxIsChecked(const int32 DeviceGroupFlag) const
 {
-	return AutomationController->IsDeviceGroupFlagSet((EAutomationDeviceGroupTypes::Type)DeviceGroupFlag) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return AutomationController->IsDeviceGroupFlagSet((EAutomationDeviceGroupTypes::Type)DeviceGroupFlag) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 /** Toggles if we are collecting full size screenshots */
-void SAutomationWindow::HandleDeviceGroupCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState, const int32 DeviceGroupFlag)
+void SAutomationWindow::HandleDeviceGroupCheckStateChanged(ECheckBoxState CheckBoxState, const int32 DeviceGroupFlag)
 {
 	//Update the device groups
 	AutomationController->ToggleDeviceGroupFlag((EAutomationDeviceGroupTypes::Type)DeviceGroupFlag);
@@ -1143,24 +1143,24 @@ TSharedRef< SWidget > SAutomationWindow::GenerateTestHistoryMenuContent()
 	return MenuBuilder.MakeWidget();
 }
 
-ESlateCheckBoxState::Type SAutomationWindow::IsFullSizeScreenshotsCheckBoxChecked() const
+ECheckBoxState SAutomationWindow::IsFullSizeScreenshotsCheckBoxChecked() const
 {
-	return AutomationController->IsUsingFullSizeScreenshots() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return AutomationController->IsUsingFullSizeScreenshots() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SAutomationWindow::HandleFullSizeScreenshotsBoxCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState)
+void SAutomationWindow::HandleFullSizeScreenshotsBoxCheckStateChanged(ECheckBoxState CheckBoxState)
 {
-	AutomationController->SetUsingFullSizeScreenshots(CheckBoxState == ESlateCheckBoxState::Checked);
+	AutomationController->SetUsingFullSizeScreenshots(CheckBoxState == ECheckBoxState::Checked);
 }
 
-ESlateCheckBoxState::Type SAutomationWindow::IsEnableScreenshotsCheckBoxChecked() const
+ECheckBoxState SAutomationWindow::IsEnableScreenshotsCheckBoxChecked() const
 {
-	return AutomationController->IsScreenshotAllowed() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return AutomationController->IsScreenshotAllowed() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SAutomationWindow::HandleEnableScreenshotsBoxCheckStateChanged(ESlateCheckBoxState::Type CheckBoxState)
+void SAutomationWindow::HandleEnableScreenshotsBoxCheckStateChanged(ECheckBoxState CheckBoxState)
 {
-	AutomationController->SetScreenshotsEnabled(CheckBoxState == ESlateCheckBoxState::Checked);
+	AutomationController->SetScreenshotsEnabled(CheckBoxState == ECheckBoxState::Checked);
 }
 
 bool SAutomationWindow::IsFullSizeScreenshotsOptionEnabled() const
@@ -1282,9 +1282,9 @@ EVisibility SAutomationWindow::GetTestGraphVisibility( ) const
 }
 
 
-void SAutomationWindow::HeaderCheckboxStateChange(ESlateCheckBoxState::Type InCheckboxState)
+void SAutomationWindow::HeaderCheckboxStateChange(ECheckBoxState InCheckboxState)
 {
-	const bool bState = (InCheckboxState == ESlateCheckBoxState::Checked)? true : false;
+	const bool bState = (InCheckboxState == ECheckBoxState::Checked)? true : false;
 
 	AutomationController->SetVisibleTestsEnabled(bState);
 }
@@ -1403,29 +1403,29 @@ TSharedRef<ITableRow> SAutomationWindow::OnGenerateWidgetForLog(TSharedPtr<FAuto
 			[
 				SNew(STextBlock)
 				.TextStyle( FEditorStyle::Get(), Message->Style )
-				.Text(FString::Printf(TEXT("%s"), *Message->Text))
+				.Text(FText::FromString(Message->Text))
 			]
 		];
 }
 
 
-FString SAutomationWindow::OnGetNumEnabledTestsString() const
+FText SAutomationWindow::OnGetNumEnabledTestsString() const
 {
 	int32 NumPasses = AutomationController->GetNumPasses();
 	if( NumPasses > 1 )
 	{
-		return FString::Printf(TEXT("%d x%d"), AutomationController->GetEnabledTestsNum(),NumPasses);
+		return FText::Format(LOCTEXT("NumEnabledTestsFmt", "{0} x{1}"), FText::AsNumber(AutomationController->GetEnabledTestsNum()), FText::AsNumber(NumPasses));
 	}
 	else
 	{
-		return FString::Printf(TEXT("%d"), AutomationController->GetEnabledTestsNum());
+		return FText::AsNumber(AutomationController->GetEnabledTestsNum());
 	}
 }
 
 
-FString SAutomationWindow::OnGetNumDevicesInClusterString(const int32 ClusterIndex) const
+FText SAutomationWindow::OnGetNumDevicesInClusterString(const int32 ClusterIndex) const
 {
-	return FString::Printf(TEXT("%d"), AutomationController->GetNumDevicesInCluster(ClusterIndex));
+	return FText::AsNumber(AutomationController->GetNumDevicesInCluster(ClusterIndex));
 }
 
 
@@ -1641,14 +1641,14 @@ void SAutomationWindow::OnToggleErrorFilter()
 }
 
 
-ESlateCheckBoxState::Type SAutomationWindow::IsTrackingHistory() const
+ECheckBoxState SAutomationWindow::IsTrackingHistory() const
 {
-	return bIsTrackingHistory ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bIsTrackingHistory ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SAutomationWindow::OnToggleTrackHistory(ESlateCheckBoxState::Type InState)
+void SAutomationWindow::OnToggleTrackHistory(ECheckBoxState InState)
 {
-	bIsTrackingHistory = InState == ESlateCheckBoxState::Checked;
+	bIsTrackingHistory = InState == ECheckBoxState::Checked;
 
 	AutomationController->TrackReportHistory(bIsTrackingHistory, NumHistoryElementsToTrack);
 
@@ -1729,15 +1729,15 @@ const FSlateBrush* SAutomationWindow::GetRunAutomationIcon() const
 }
 
 
-FString SAutomationWindow::GetRunAutomationLabel() const
+FText SAutomationWindow::GetRunAutomationLabel() const
 {
 	if( AutomationControllerState == EAutomationControllerModuleState::Running )
 	{
-		return LOCTEXT( "RunStopTestsLabel", "Stop Tests" ).ToString();
+		return LOCTEXT( "RunStopTestsLabel", "Stop Tests" );
 	}
 	else
 	{
-		return LOCTEXT( "RunStartTestsLabel", "Start Tests" ).ToString();
+		return LOCTEXT( "RunStartTestsLabel", "Start Tests" );
 	}
 }
 

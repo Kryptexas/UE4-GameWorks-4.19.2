@@ -1,11 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	UnStats.cpp: Performance stats framework.
-=============================================================================*/
-
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
+
+/*-----------------------------------------------------------------------------
+	Global
+-----------------------------------------------------------------------------*/
 
 DECLARE_THREAD_SINGLETON( FThreadIdleStats );
 
@@ -23,7 +22,20 @@ struct FStats2Globals
 static struct FForceInitAtBootFStats2 : public TForceInitAtBoot<FStats2Globals>
 {} FForceInitAtBootFStats2;
 
-DECLARE_FLOAT_COUNTER_STAT( TEXT( "Seconds Per Cycle" ), STAT_SecondsPerCycle, STATGROUP_Engine );
+DECLARE_FLOAT_COUNTER_STAT( TEXT("Seconds Per Cycle"), STAT_SecondsPerCycle, STATGROUP_Engine );
+DECLARE_DWORD_COUNTER_STAT( TEXT("Frame Packets Received"),STAT_StatFramePacketsRecv,STATGROUP_StatSystem);
+
+DECLARE_CYCLE_STAT(TEXT("WaitForStats"),STAT_WaitForStats,STATGROUP_Engine);
+DECLARE_CYCLE_STAT(TEXT("StatsNew Tick"),STAT_StatsNewTick,STATGROUP_StatSystem);
+DECLARE_CYCLE_STAT(TEXT("Parse Meta"),STAT_StatsNewParseMeta,STATGROUP_StatSystem);
+DECLARE_CYCLE_STAT(TEXT("Add To History"),STAT_StatsNewAddToHistory,STATGROUP_StatSystem);
+
+DECLARE_MEMORY_STAT( TEXT( "Stats Descriptions" ), STAT_StatDescMemory, STATGROUP_StatSystem );
+DECLARE_MEMORY_STAT( TEXT( "Memory Map" ), STAT_MemoryAllocationMap, STATGROUP_StatSystem );
+
+DEFINE_STAT(STAT_FrameTime);
+DEFINE_STAT(STAT_FPS);
+DEFINE_STAT(STAT_DrawStats);
 DEFINE_STAT(STAT_StatMessagesMemory);
 
 /*-----------------------------------------------------------------------------
@@ -119,21 +131,16 @@ check(InStatId != NAME_None);
 
 */
 
-
 #if STATS
 
 #include "TaskGraphInterfaces.h"
 #include "StatsData.h"
 
-DEFINE_STAT(STAT_FrameTime);
-DEFINE_STAT(STAT_FPS);
-DEFINE_STAT(STAT_DrawStats);
-
-DECLARE_DWORD_COUNTER_STAT(TEXT("Frame Packets Received"),STAT_StatFramePacketsRecv,STATGROUP_StatSystem);
-DECLARE_MEMORY_STAT( TEXT( "Stats descriptions (ansi+wide)" ), STAT_StatDescMemory, STATGROUP_StatSystem );
-
-
 TStatIdData TStatId::TStatId_NAME_None;
+
+/*-----------------------------------------------------------------------------
+	FStartupMessages
+-----------------------------------------------------------------------------*/
 
 void FStartupMessages::AddThreadMetadata( const FName InThreadName, uint32 InThreadID )
 {
@@ -164,6 +171,10 @@ FStartupMessages& FStartupMessages::Get()
 	return *Messages;
 }
 
+/*-----------------------------------------------------------------------------
+	FThreadSafeStaticStatBase
+-----------------------------------------------------------------------------*/
+
 void FThreadSafeStaticStatBase::DoSetup(const char* InStatName, const TCHAR* InStatDesc, const char* InGroupName, const char* InGroupCategory, const TCHAR* InGroupDesc, bool bDefaultEnable, bool bShouldClearEveryFrame, EStatDataType::Type InStatType, bool bCycleStat, FPlatformMemory::EMemoryCounterRegion InMemoryRegion) const
 {
 	FName TempName(InStatName);
@@ -175,6 +186,10 @@ void FThreadSafeStaticStatBase::DoSetup(const char* InStatName, const TCHAR* InS
 	TStatIdData const* OldHighPerformanceEnable = (TStatIdData const*)FPlatformAtomics::InterlockedCompareExchangePointer((void**)&HighPerformanceEnable, (void*)LocalHighPerformanceEnable, NULL);
 	check(!OldHighPerformanceEnable || HighPerformanceEnable == OldHighPerformanceEnable); // we are assigned two different groups?
 }
+
+/*-----------------------------------------------------------------------------
+	FStatGroupEnableManager
+-----------------------------------------------------------------------------*/
 
 DEFINE_LOG_CATEGORY_STATIC(LogStatGroupEnableManager, Log, All);
 
@@ -506,17 +521,9 @@ IStatGroupEnableManager& IStatGroupEnableManager::Get()
 	return *Singleton;
 }
 
-uint32 FThreadStats::TlsSlot = 0;
-FThreadSafeCounter FThreadStats::MasterEnableCounter;
-FThreadSafeCounter FThreadStats::MasterEnableUpdateNumber;
-FThreadSafeCounter FThreadStats::MasterDisableChangeTagLock;
-bool FThreadStats::bMasterEnable = false;
-bool FThreadStats::bMasterDisableForever = false;
-
-
-DECLARE_CYCLE_STAT(TEXT("StatsNew Tick"),STAT_StatsNewTick,STATGROUP_StatSystem);
-DECLARE_CYCLE_STAT(TEXT("Parse Meta"),STAT_StatsNewParseMeta,STATGROUP_StatSystem);
-DECLARE_CYCLE_STAT(TEXT("Add To History"),STAT_StatsNewAddToHistory,STATGROUP_StatSystem);
+/*-----------------------------------------------------------------------------
+	FStatNameAndInfo
+-----------------------------------------------------------------------------*/
 
 FName FStatNameAndInfo::ToLongName(FName InStatName, char const* InGroup, char const* InCategory, TCHAR const* InDescription)
 {
@@ -618,6 +625,10 @@ FName FStatNameAndInfo::GetGroupCategoryFrom(FName InLongName)
 	return NAME_None;
 }
 
+/*-----------------------------------------------------------------------------
+	FStatsThread
+-----------------------------------------------------------------------------*/
+
 static TAutoConsoleVariable<int32> CVarDumpStatPackets(	TEXT("DumpStatPackets"),0,	TEXT("If true, dump stat packets."));
 
 /** The rendering thread runnable object. */
@@ -654,12 +665,16 @@ public:
 
 	virtual void Tick() override
 	{
+		// Ignore all memory stack inside the stats thread tick, not really sure about that.
+		FThreadStats* ThreadStats = FThreadStats::GetThreadStats();
+		FStatMessageLock MessageLock(ThreadStats->MemoryMessageScope);
+
 		static double LastTime = -1.0;
 		if (bReadyToProcess && FPlatformTime::Seconds() - LastTime > .005) // we won't process more than every 5ms
 		{
 			// Update the seconds per cycle.
 			SET_FLOAT_STAT( STAT_SecondsPerCycle, FPlatformTime::GetSecondsPerCycle() ); 
-
+			SET_MEMORY_STAT( STAT_MemoryAllocationMap, State.GetAllocations().GetAllocatedSize()+State.GetNonSequentialAllocations().GetAllocatedSize() );
 			IStatGroupEnableManager::Get().UpdateMemoryUsage();
 
 			SCOPE_CYCLE_COUNTER(STAT_StatsNewTick);
@@ -700,15 +715,16 @@ public:
 
 	void StatMessage(FStatPacket* Packet)
 	{
-		// the parallel case doesn't ever seem to be faster, so it disabled by default.
 		if (CVarDumpStatPackets.GetValueOnAnyThread())
 		{
-			UE_LOG(LogTemp, Log, TEXT("Packet from %x"), Packet->ThreadId);
+			UE_LOG(LogStats, Log, TEXT("Packet from %x with %d messages"), Packet->ThreadId, Packet->StatMessages.Num());
 		}
 
 		bReadyToProcess = Packet->ThreadType != EThreadType::Other;
 		IncomingData.Packets.Add(Packet);
-		INC_MEMORY_STAT_BY(STAT_StatMessagesMemory,Packet->StatMessages.GetAllocatedSize());
+		const uint32 PacketMemory = Packet->StatMessages.GetAllocatedSize();
+		INC_MEMORY_STAT_BY(STAT_StatMessagesMemory, PacketMemory);
+
 		Tick();
 	}
 
@@ -719,6 +735,10 @@ public:
 	}
 
 };
+
+/*-----------------------------------------------------------------------------
+	FStatMessagesTask
+-----------------------------------------------------------------------------*/
 
 // not using a delegate here to allow higher performance since we may end up sending a lot of small message arrays to the thread.
 class FStatMessagesTask
@@ -746,10 +766,48 @@ public:
 	}
 };
 
+/*-----------------------------------------------------------------------------
+	FThreadStatsPool
+-----------------------------------------------------------------------------*/
+
+FThreadStatsPool::FThreadStatsPool()
+{
+	for( int32 Index = 0; Index < NUM_ELEMENTS_IN_POOL; ++Index )
+	{
+		Pool.Push( new FThreadStats(true) );
+	}
+}
+
+FThreadStats* FThreadStatsPool::GetFromPool()
+{
+	FThreadStats* Result = new(Pool.Pop()) FThreadStats();
+	check(Result && "Increase NUM_ELEMENTS_IN_POOL");
+	return Result;
+}
+
+void FThreadStatsPool::ReturnToPool( FThreadStats* Instance )
+{
+	check(Instance);
+	Instance->~FThreadStats();
+	Pool.Push(Instance);
+}
+
+/*-----------------------------------------------------------------------------
+	FThreadStats
+-----------------------------------------------------------------------------*/
+
+uint32 FThreadStats::TlsSlot = 0;
+FThreadSafeCounter FThreadStats::MasterEnableCounter;
+FThreadSafeCounter FThreadStats::MasterEnableUpdateNumber;
+FThreadSafeCounter FThreadStats::MasterDisableChangeTagLock;
+bool FThreadStats::bMasterEnable = false;
+bool FThreadStats::bMasterDisableForever = false;
+
 FThreadStats::FThreadStats():
 	CurrentGameFrame(FStatsThreadState::GetLocalState().CurrentGameFrame),
 	ScopeCount(0), 
 	bWaitForExplicitFlush(0),
+	MemoryMessageScope(0),
 	bSawExplicitFlush(false)
 {
 	Packet.ThreadId = FPlatformTLS::GetCurrentThreadId();
@@ -769,6 +827,14 @@ FThreadStats::FThreadStats():
 	FPlatformTLS::SetTlsValue(TlsSlot, this);
 }
 
+CORE_API FThreadStats::FThreadStats( bool ):
+	CurrentGameFrame(0),
+	ScopeCount(0), 
+	bWaitForExplicitFlush(0),
+	MemoryMessageScope(0),
+	bSawExplicitFlush(false)
+{}
+
 void FThreadStats::CheckEnable()
 {
 	bool bOldMasterEnable(bMasterEnable);
@@ -781,9 +847,10 @@ void FThreadStats::CheckEnable()
 	}
 }
 
-
 void FThreadStats::Flush(bool bHasBrokenCallstacks)
 {
+	FStatMessageLock MessageLock(MemoryMessageScope);
+
 	if (bMasterDisableForever)
 	{
 		Packet.StatMessages.Empty();
@@ -878,6 +945,8 @@ void FThreadStats::StartThread()
 	}
 	check(IsThreadingReady());
 	CheckEnable();
+	// Preallocate a bunch of FThreadStats to avoid dynamic memory allocation.
+	FThreadStatsPool::Get();
 
 	{
 		FString CmdLine(FCommandLine::Get());
@@ -906,21 +975,24 @@ void FThreadStats::StartThread()
 			CmdLine = CmdLine.Mid(Index + StatCmds.Len());
 		}
 	}
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("LoadTimeStats")))
 	{
-		if (FParse::Param(FCommandLine::Get(), TEXT("LoadTimeStats")))
-		{
-			DirectStatsCommand(TEXT("stat group enable LinkerLoad"));
-			DirectStatsCommand(TEXT("stat group enable AsyncLoad"));
-			DirectStatsCommand(TEXT("stat dumpsum -start -ms=250"));
-		}
-		if (FParse::Param(FCommandLine::Get(), TEXT("LoadTimeFile")))
-		{
-			DirectStatsCommand(TEXT("stat group enable LinkerLoad"));
-			DirectStatsCommand(TEXT("stat group enable AsyncLoad"));
-			DirectStatsCommand(TEXT("stat startfile"));
-		}
+		DirectStatsCommand(TEXT("stat group enable LinkerLoad"));
+		DirectStatsCommand(TEXT("stat group enable AsyncLoad"));
+		DirectStatsCommand(TEXT("stat dumpsum -start -ms=250 -num=240"));
+	}
+	if (FParse::Param(FCommandLine::Get(), TEXT("LoadTimeFile")))
+	{
+		DirectStatsCommand(TEXT("stat group enable LinkerLoad"));
+		DirectStatsCommand(TEXT("stat group enable AsyncLoad"));
+		DirectStatsCommand(TEXT("stat startfile"));
 	}
 
+	if( FParse::Param(FCommandLine::Get(), TEXT("MemoryProfiler")) )
+	{
+		DirectStatsCommand(TEXT("stat memoryprofiler enable"), true);
+	}
 }
 
 static FGraphEventRef LastFramesEvents[MAX_STAT_LAG];
@@ -941,8 +1013,6 @@ void FThreadStats::StopThread()
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(QuitTask, ENamedThreads::GameThread_Local);	
 	}
 }
-
-DECLARE_CYCLE_STAT(TEXT("WaitForStats"),STAT_WaitForStats,STATGROUP_Engine);
 
 void FThreadStats::WaitForStats()
 {

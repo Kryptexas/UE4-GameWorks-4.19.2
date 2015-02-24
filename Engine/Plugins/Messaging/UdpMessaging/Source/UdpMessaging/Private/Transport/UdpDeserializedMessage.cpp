@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UdpMessagingPrivatePCH.h"
 #include "JsonStructDeserializerBackend.h"
@@ -92,7 +92,7 @@ bool FUdpDeserializedMessage::Deserialize( const FUdpReassembledMessageRef& Reas
 
 	// create message body
 	MessageData = FMemory::Malloc(TypeInfo->PropertiesSize);
-	TypeInfo->InitializeScriptStruct(MessageData);
+	TypeInfo->InitializeStruct(MessageData);
 
 	// deserialize message body
 	FJsonStructDeserializerBackend Backend(MessageReader);

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PointLightSceneProxy.h: Point light scene info definition.
@@ -6,6 +6,7 @@
 
 #ifndef __PointLightSceneProxy_H__
 #define __PointLightSceneProxy_H__
+#include "Components/PointLightComponent.h"
 
 /**
  * Compute the screen bounds of a point light along one axis.
@@ -229,7 +230,7 @@ public:
 		if (LightDistance <= SubjectRadius * ShadowRadiusMultiplier)
 		{
 			// Make the primitive fit in a single < 90 degree FOV projection.
-			LightVector = SubjectRadius * LightVector.SafeNormal() * ShadowRadiusMultiplier;
+			LightVector = SubjectRadius * LightVector.GetSafeNormal() * ShadowRadiusMultiplier;
 			LightPosition = (SubjectBounds.Origin - LightVector );
 			LightDistance = SubjectRadius * ShadowRadiusMultiplier;
 			SilhouetteRadius = 1.0f;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -70,6 +70,11 @@ public:
 		SourceAccessDelegate = InDelegate;
 	}
 
+	virtual void SetAssetAccessDelegate(FAccessAsset InDelegate) override
+	{
+		AsseetAccessDelegate = InDelegate;
+	}
+
 	virtual void SetWidgetsToVisualize( const FWidgetPath& InWidgetsToVisualize ) override;
 	virtual int32 Visualize( const FWidgetPath& InWidgetsToVisualize, FSlateWindowElementList& OutDrawElements, int32 LayerId ) override;
 
@@ -119,6 +124,10 @@ private:
 		FSlateApplication::Get().SetApplicationScale(NewValue);
 	}
 
+	FReply HandleDisplayTextureAtlases();
+
+	FReply HandleDisplayFontAtlases();
+
 	/** Callback for getting the value of the application scale slider. */
 	float HandleAppScaleSliderValue() const
 	{
@@ -126,12 +135,12 @@ private:
 	}
 
 	/** Callback for checked state changes of the focus check box. */
-	void HandleFocusCheckBoxCheckedStateChanged( ESlateCheckBoxState::Type NewValue );
+	void HandleFocusCheckBoxCheckedStateChanged( ECheckBoxState NewValue );
 
 	/** Callback for getting the checked state of the focus check box. */
-	ESlateCheckBoxState::Type HandleFocusCheckBoxIsChecked() const
+	ECheckBoxState HandleFocusCheckBoxIsChecked() const
 	{
-		return bShowFocus ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bShowFocus ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	/** Callback for getting the text of the frame rate text block. */
@@ -153,9 +162,12 @@ private:
 	/** Callback for getting the color of the pick button text. */
 	FSlateColor HandlePickButtonColorAndOpacity() const
 	{
+		static const FName SelectionColor("SelectionColor");
+		static const FName DefaultForeground("DefaultForeground");
+
 		return bIsPicking
-			? FCoreStyle::Get().GetSlateColor("SelectionColor")
-			: FCoreStyle::Get().GetSlateColor("DefaultForeground");
+			? FCoreStyle::Get().GetSlateColor(SelectionColor)
+			: FCoreStyle::Get().GetSlateColor(DefaultForeground);
 	}
 
 	/** Callback for getting the text of the pick button. */
@@ -165,10 +177,7 @@ private:
 	TSharedRef<ITableRow> HandleReflectorTreeGenerateRow( TSharedPtr<FReflectorNode> InReflectorNode, const TSharedRef<STableViewBase>& OwnerTable );
 
 	/** Callback for getting the child items of the given reflector tree node. */
-	void HandleReflectorTreeGetChildren( TSharedPtr<FReflectorNode> InWidgetGeometry, TArray<TSharedPtr<FReflectorNode>>& OutChildren )
-	{
-		OutChildren = InWidgetGeometry->ChildNodes;
-	}
+	void HandleReflectorTreeGetChildren( TSharedPtr<FReflectorNode> InWidgetGeometry, TArray<TSharedPtr<FReflectorNode>>& OutChildren );
 
 	/** Callback for when the selection in the reflector tree has changed. */
 	void HandleReflectorTreeSelectionChanged( TSharedPtr< FReflectorNode >, ESelectInfo::Type /*SelectInfo*/ )
@@ -192,7 +201,19 @@ private:
 	SSplitter::FSlot* WidgetInfoLocation;
 
 	FAccessSourceCode SourceAccessDelegate;
+	FAccessAsset AsseetAccessDelegate;
 
 	bool bShowFocus;
 	bool bIsPicking;
+
+private:
+	// STATS
+	TSharedPtr<SBorder> StatsBorder;
+	TArray< TSharedRef<class FStatItem> > StatsItems;
+	TSharedPtr< SListView< TSharedRef< FStatItem > > > StatsList;
+
+	TSharedRef<SWidget> MakeStatViewer();
+	void UpdateStats();
+	TSharedRef<ITableRow> GenerateStatRow( TSharedRef<FStatItem> StatItem, const TSharedRef<STableViewBase>& OwnerTable );
+	FReply CopyStatsToClipboard();
 };

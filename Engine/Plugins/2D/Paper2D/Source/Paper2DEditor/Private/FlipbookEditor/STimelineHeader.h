@@ -1,4 +1,6 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+#pragma once
 
 //////////////////////////////////////////////////////////////////////////
 // STimelineHeader
@@ -9,7 +11,7 @@ class STimelineHeader : public SCompoundWidget
 public:
 	SLATE_BEGIN_ARGS(STimelineHeader)
 		: _SlateUnitsPerFrame(1)
-		, _FlipbookBeingEdited((class UPaperFlipbook*)NULL)
+		, _FlipbookBeingEdited((class UPaperFlipbook*)nullptr)
 		, _PlayTime(0)
 	{}
 
@@ -66,7 +68,7 @@ private:
 						.HAlign(HAlign_Center)
 						[
 							SNew(STextBlock)
-							.Text(FText::AsNumber(FrameIdx).ToString())
+							.Text(FText::AsNumber(FrameIdx))
 						]
 					];
 			}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Parameter.cpp: 
@@ -8,7 +8,6 @@
 #include "Materials/MaterialExpressionDynamicParameter.h"
 #include "Materials/MaterialInstanceConstant.h"
 #include "ParticleDefinitions.h"
-#include "../DistributionHelpers.h"
 #include "Particles/Parameter/ParticleModuleParameterBase.h"
 #include "Particles/Parameter/ParticleModuleParameterDynamic.h"
 #include "Particles/Parameter/ParticleModuleParameterDynamic_Seeded.h"
@@ -16,6 +15,7 @@
 #include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleModuleRequired.h"
+#include "Engine/InterpCurveEdSetup.h"
 
 UParticleModuleParameterBase::UParticleModuleParameterBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -70,18 +70,6 @@ void UParticleModuleParameterDynamic::PostInitProperties()
 	}
 }
 
-void UParticleModuleParameterDynamic::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{		
-		FDistributionHelpers::RestoreDefaultConstant(Cast<UDistributionFloatConstant>(StaticFindObjectFast(UDistributionFloatConstant::StaticClass(), this, TEXT("DistributionParam1"))), TEXT("DistributionParam1"), 0.0f);
-		FDistributionHelpers::RestoreDefaultConstant(Cast<UDistributionFloatConstant>(StaticFindObjectFast(UDistributionFloatConstant::StaticClass(), this, TEXT("DistributionParam2"))), TEXT("DistributionParam2"), 0.0f);
-		FDistributionHelpers::RestoreDefaultConstant(Cast<UDistributionFloatConstant>(StaticFindObjectFast(UDistributionFloatConstant::StaticClass(), this, TEXT("DistributionParam3"))), TEXT("DistributionParam3"), 0.0f);
-		FDistributionHelpers::RestoreDefaultConstant(Cast<UDistributionFloatConstant>(StaticFindObjectFast(UDistributionFloatConstant::StaticClass(), this, TEXT("DistributionParam4"))), TEXT("DistributionParam4"), 0.0f);
-	}
-}
-
 /** Flags for optimizing update */
 enum EDynamicParameterUpdateFlags
 {
@@ -130,7 +118,7 @@ void UParticleModuleParameterDynamic::Spawn(FParticleEmitterInstance* Owner, int
 	SpawnEx(Owner, Offset, SpawnTime, NULL, ParticleBase);
 }
 
-void UParticleModuleParameterDynamic::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
+void UParticleModuleParameterDynamic::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
 {
 	SPAWN_INIT;
 	{

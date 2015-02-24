@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -16,10 +16,6 @@ class UMaterialExpressionBreakMaterialAttributes : public UMaterialExpression
  	UPROPERTY()
  	FMaterialAttributesInput MaterialAttributes;
  
-	// Begin UObject interface.
- 	virtual void Serialize( FArchive& Ar ) override;
-	// End UObject interface.
-
 	// Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;
 	virtual void GetCaption(TArray<FString>& OutCaptions) const override;

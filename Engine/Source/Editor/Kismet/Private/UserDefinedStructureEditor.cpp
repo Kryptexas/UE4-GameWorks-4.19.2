@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
 #include "UserDefinedStructureEditor.h"
@@ -11,6 +11,7 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "Editor/UnrealEd/Public/Kismet2/StructureEditorUtils.h"
 #include "SDockTab.h"
+#include "Engine/UserDefinedStruct.h"
 
 #define LOCTEXT_NAMESPACE "StructureEditor"
 
@@ -20,7 +21,6 @@ public:
 	FStructureDefaultValueView(UUserDefinedStruct* EditedStruct) 
 		: UserDefinedStruct(EditedStruct)
 	{
-		FStructureEditorUtils::FStructEditorManager::Get().AddListener(this);
 	}
 
 	void Initialize()
@@ -34,13 +34,12 @@ public:
 		ViewArgs.bHideSelectionTip = false;
 		ViewArgs.bShowActorLabel = false;
 
-		StructureDetailsView = PropertyModule.CreateStructureDetailView(ViewArgs, StructData, false, LOCTEXT("DefaultValues", "Default Values").ToString());
+		StructureDetailsView = PropertyModule.CreateStructureDetailView(ViewArgs, StructData, false, LOCTEXT("DefaultValues", "Default Values"));
 		StructureDetailsView->GetOnFinishedChangingPropertiesDelegate().AddSP(this, &FStructureDefaultValueView::OnFinishedChangingProperties);
 	}
 
 	virtual ~FStructureDefaultValueView()
 	{
-		FStructureEditorUtils::FStructEditorManager::Get().RemoveListener(this);
 	}
 
 	void OnFinishedChangingProperties(const FPropertyChangedEvent& PropertyChangedEvent)
@@ -82,7 +81,7 @@ public:
 		return StructureDetailsView.IsValid() ? StructureDetailsView->GetWidget() : NULL;
 	}
 
-	virtual void PreChange(const class UUserDefinedStruct* Struct) override
+	virtual void PreChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override
 	{
 		if (Struct && (GetUserDefinedStruct() == Struct))
 		{
@@ -98,7 +97,7 @@ public:
 		}
 	}
 
-	virtual void PostChange(const class UUserDefinedStruct* Struct) override
+	virtual void PostChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override
 	{
 		if (Struct && (GetUserDefinedStruct() == Struct))
 		{
@@ -131,7 +130,6 @@ public:
 
 	~FUserDefinedStructureDetails()
 	{
-		FStructureEditorUtils::FStructEditorManager::Get().RemoveListener(this);
 	}
 
 	UUserDefinedStruct* GetUserDefinedStruct()
@@ -152,8 +150,8 @@ public:
 	virtual void CustomizeDetails(class IDetailLayoutBuilder& DetailLayout) override;
 
 	/** FStructureEditorUtils::INotifyOnStructChanged */
-	virtual void PreChange(const class UUserDefinedStruct* Struct) override {}
-	virtual void PostChange(const class UUserDefinedStruct* Struct) override;
+	virtual void PreChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override {}
+	virtual void PostChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info) override;
 
 private:
 	TWeakObjectPtr<UUserDefinedStruct> UserDefinedStruct;
@@ -263,8 +261,7 @@ TSharedRef<SDockTab> FUserDefinedStructureEditor::SpawnStructureTab(const FSpawn
 	{
 		// Create a property view
 		FPropertyEditorModule& EditModule = FModuleManager::Get().GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		FDetailsViewArgs DetailsViewArgs( /*bUpdateFromSelection=*/ false, /*bLockable=*/ false, /*bAllowSearch=*/ false, /*bObjectsUseNameArea=*/ true, /*bHideSelectionTip=*/ true);
-		DetailsViewArgs.bHideActorNameArea = true;
+		FDetailsViewArgs DetailsViewArgs( /*bUpdateFromSelection=*/ false, /*bLockable=*/ false, /*bAllowSearch=*/ false, FDetailsViewArgs::HideNameArea, /*bHideSelectionTip=*/ true);
 		DetailsViewArgs.bShowOptions = false;
 		PropertyView = EditModule.CreateDetailView(DetailsViewArgs);
 		FOnGetDetailCustomizationInstance LayoutStructDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FUserDefinedStructureDetails::MakeInstance);
@@ -352,7 +349,7 @@ public:
 		return NULL;
 	}
 
-	FString GetStatusTooltip() const
+	FText GetStatusTooltip() const
 	{
 		auto StructureDetailsSP = StructureDetails.Pin();
 		if (StructureDetailsSP.IsValid())
@@ -362,11 +359,11 @@ public:
 				switch (Struct->Status.GetValue())
 				{
 				case EUserDefinedStructureStatus::UDSS_Error:
-					return Struct->ErrorMessage;
+					return FText::FromString(Struct->ErrorMessage);
 				}
 			}
 		}
-		return FString();
+		return FText::GetEmpty();
 	}
 
 	FText OnGetTooltipText() const
@@ -539,25 +536,25 @@ public:
 		}
 	}
 
-	ESlateCheckBoxState::Type OnGetEditableOnBPInstanceState() const
+	ECheckBoxState OnGetEditableOnBPInstanceState() const
 	{
 		auto StructureDetailsSP = StructureDetails.Pin();
 		if (StructureDetailsSP.IsValid())
 		{
 			if (const FStructVariableDescription* FieldDesc = StructureDetailsSP->FindStructureFieldByGuid(FieldGuid))
 			{
-				return !FieldDesc->bDontEditoOnInstance ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+				return !FieldDesc->bDontEditoOnInstance ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 			}
 		}
-		return ESlateCheckBoxState::Undetermined;
+		return ECheckBoxState::Undetermined;
 	}
 
-	void OnEditableOnBPInstanceCommitted(ESlateCheckBoxState::Type InNewState)
+	void OnEditableOnBPInstanceCommitted(ECheckBoxState InNewState)
 	{
 		auto StructureDetailsSP = StructureDetails.Pin();
 		if (StructureDetailsSP.IsValid())
 		{
-			FStructureEditorUtils::ChangeEditableOnBPInstance(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, ESlateCheckBoxState::Unchecked != InNewState);
+			FStructureEditorUtils::ChangeEditableOnBPInstance(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, ECheckBoxState::Unchecked != InNewState);
 		}
 	}
 
@@ -572,22 +569,22 @@ public:
 		return EVisibility::Collapsed;
 	}
 
-	ESlateCheckBoxState::Type OnGet3dWidgetEnabled() const
+	ECheckBoxState OnGet3dWidgetEnabled() const
 	{
 		auto StructureDetailsSP = StructureDetails.Pin();
 		if (StructureDetailsSP.IsValid())
 		{
-			return FStructureEditorUtils::Is3dWidgetEnabled(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return FStructureEditorUtils::Is3dWidgetEnabled(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
-		return ESlateCheckBoxState::Undetermined;
+		return ECheckBoxState::Undetermined;
 	}
 
-	void On3dWidgetEnabledCommitted(ESlateCheckBoxState::Type InNewState)
+	void On3dWidgetEnabledCommitted(ECheckBoxState InNewState)
 	{
 		auto StructureDetailsSP = StructureDetails.Pin();
-		if (StructureDetailsSP.IsValid() && (ESlateCheckBoxState::Undetermined != InNewState))
+		if (StructureDetailsSP.IsValid() && (ECheckBoxState::Undetermined != InNewState))
 		{
-			FStructureEditorUtils::Change3dWidgetEnabled(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, ESlateCheckBoxState::Checked == InNewState);
+			FStructureEditorUtils::Change3dWidgetEnabled(StructureDetailsSP->GetUserDefinedStruct(), FieldGuid, ECheckBoxState::Checked == InNewState);
 		}
 	}
 
@@ -772,7 +769,7 @@ public:
 
 	virtual void GenerateChildContent( IDetailChildrenBuilder& ChildrenBuilder ) override 
 	{
-		ChildrenBuilder.AddChildContent(*LOCTEXT("Tooltip", "Tooltip").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("Tooltip", "Tooltip"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -787,7 +784,7 @@ public:
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		];
 
-		ChildrenBuilder.AddChildContent(*LOCTEXT("EditableOnInstance", "EditableOnInstance").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("EditableOnInstance", "EditableOnInstance"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -802,7 +799,7 @@ public:
 			.IsChecked(this, &FUserDefinedStructureFieldLayout::OnGetEditableOnBPInstanceState)
 		];
 
-		ChildrenBuilder.AddChildContent(*LOCTEXT("3dWidget", "3d Widget").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("3dWidget", "3d Widget"))
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -845,7 +842,7 @@ void FUserDefinedStructureLayout::GenerateChildContent( IDetailChildrenBuilder& 
 	const float NameWidth = 80.0f;
 	const float ContentWidth = 130.0f;
 
-	ChildrenBuilder.AddChildContent(FString())
+	ChildrenBuilder.AddChildContent(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -866,13 +863,13 @@ void FUserDefinedStructureLayout::GenerateChildContent( IDetailChildrenBuilder& 
 			[
 				SNew(SButton)
 				.HAlign(HAlign_Center)
-				.Text(LOCTEXT("NewStructureField", "New Variable").ToString())
+				.Text(LOCTEXT("NewStructureField", "New Variable"))
 				.OnClicked(this, &FUserDefinedStructureLayout::OnAddNewField)
 			]
 		]
 	];
 
-	ChildrenBuilder.AddChildContent(FString())
+	ChildrenBuilder.AddChildContent(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -930,16 +927,14 @@ void FUserDefinedStructureDetails::CustomizeDetails(class IDetailLayoutBuilder& 
 	{
 		UserDefinedStruct = CastChecked<UUserDefinedStruct>(Objects[0].Get());
 
-		IDetailCategoryBuilder& StructureCategory = DetailLayout.EditCategory("Structure", LOCTEXT("Structure", "Structure").ToString());
+		IDetailCategoryBuilder& StructureCategory = DetailLayout.EditCategory("Structure", LOCTEXT("Structure", "Structure"));
 		Layout = MakeShareable(new FUserDefinedStructureLayout(SharedThis(this)));
 		StructureCategory.AddCustomBuilder(Layout.ToSharedRef());
 	}
-
-	FStructureEditorUtils::FStructEditorManager::Get().AddListener(this);
 }
 
 /** FStructureEditorUtils::INotifyOnStructChanged */
-void FUserDefinedStructureDetails::PostChange(const class UUserDefinedStruct* Struct)
+void FUserDefinedStructureDetails::PostChange(const class UUserDefinedStruct* Struct, FStructureEditorUtils::EStructureEditorChangeInfo Info)
 {
 	if (Struct && (GetUserDefinedStruct() == Struct))
 	{

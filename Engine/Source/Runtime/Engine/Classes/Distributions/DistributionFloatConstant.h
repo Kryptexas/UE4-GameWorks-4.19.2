@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -20,7 +20,7 @@ class UDistributionFloatConstant : public UDistributionFloat
 	// End UObject Interface
 
 	// Begin UDistributionFloat Interface
-	virtual float GetValue( float F = 0.f, UObject* Data = NULL, class FRandomStream* InRandomStream = NULL ) const override;
+	virtual float GetValue( float F = 0.f, UObject* Data = NULL, struct FRandomStream* InRandomStream = NULL ) const override;
 	// End UDistributionFloat Interface
 
 

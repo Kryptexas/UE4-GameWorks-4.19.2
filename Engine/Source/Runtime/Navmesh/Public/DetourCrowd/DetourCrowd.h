@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -78,7 +78,7 @@ struct dtCrowdAgentParams
 	void* userData;
 
 	/// UE4: special link filter used by this agent
-	struct dtQuerySpecialLinkFilter* linkFilter;
+	TSharedPtr<dtQuerySpecialLinkFilter> linkFilter;
 
 	float radius;						///< Agent radius. [Limit: >= 0]
 	float height;						///< Agent height. [Limit: > 0]
@@ -316,12 +316,12 @@ public:
 	///  @param[in]		params	The configutation of the agent.
 	///  @param[in]		filter	[UE4] query filter used by agent
 	/// @return The index of the agent in the agent pool. Or -1 if the agent could not be added.
-	int addAgent(const float* pos, const dtCrowdAgentParams* params, const dtQueryFilter* filter);
+	int addAgent(const float* pos, const dtCrowdAgentParams& params, const dtQueryFilter* filter);
 
 	/// Updates the specified agent's configuration.
 	///  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]
 	///  @param[in]		params	The new agent configuration.
-	void updateAgentParameters(const int idx, const dtCrowdAgentParams* params);
+	void updateAgentParameters(const int idx, const dtCrowdAgentParams& params);
 
 	/// [UE4] Updates the specified agent's query filter.
 	///  @param[in]		idx		The agent index. [Limits: 0 <= value < #getAgentCount()]

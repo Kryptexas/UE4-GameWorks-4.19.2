@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CascadeModule.h"
 #include "Cascade.h"
@@ -13,11 +13,16 @@
 #include "Particles/ParticleModuleRequired.h"
 #include "Particles/ParticleSpriteEmitter.h"
 #include "PhysicsPublic.h"
+#include "Components/VectorFieldComponent.h"
+#include "Engine/StaticMesh.h"
+#include "CanvasTypes.h"
+#include "Components/LineBatchComponent.h"
+#include "Engine/Canvas.h"
 
 #define LOCTEXT_NAMESPACE "CascadeViewportClient"
 
 FCascadeEdPreviewViewportClient::FCascadeEdPreviewViewportClient(TWeakPtr<FCascade> InCascade, TWeakPtr<SCascadePreviewViewport> InCascadeViewport)
-	: FEditorViewportClient(GLevelEditorModeTools())
+	: FEditorViewportClient(nullptr)
 	, CascadePtr(InCascade)
 	, CascadeViewportPtr(InCascadeViewport)
 	, CascadePreviewScene(FPreviewScene::ConstructionValues()
@@ -206,19 +211,19 @@ void FCascadeEdPreviewViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 	if (GetDrawElement(OriginAxis))
 	{
 		FMatrix ArrowMatrix = FMatrix(XAxis, YAxis, ZAxis, FVector::ZeroVector);
-		LineBatcher->DrawDirectionalArrow(ArrowMatrix, FColor(255,0,0), 10.f, 1.0f, SDPG_World);
+		LineBatcher->DrawDirectionalArrow(ArrowMatrix, FColorList::Red, 10.f, 1.0f, SDPG_World);
 
 		ArrowMatrix = FMatrix(YAxis, ZAxis, XAxis, FVector::ZeroVector);
-		LineBatcher->DrawDirectionalArrow(ArrowMatrix, FColor(0,255,0), 10.f, 1.0f, SDPG_World);
+		LineBatcher->DrawDirectionalArrow(ArrowMatrix, FColorList::Green, 10.f, 1.0f, SDPG_World);
 
 		ArrowMatrix = FMatrix(ZAxis, XAxis, YAxis, FVector::ZeroVector);
-		LineBatcher->DrawDirectionalArrow(ArrowMatrix, FColor(0,0,255), 10.f, 1.0f, SDPG_World);
+		LineBatcher->DrawDirectionalArrow(ArrowMatrix, FColorList::Blue, 10.f, 1.0f, SDPG_World);
 	}
 
 	if (GetDrawElement(WireSphere))
 	{
 		FVector Base(0.f);
-		FColor WireColor = FColor(255, 0, 0);
+		FColor WireColor = FColor::Red;
 		const int32 NumRings = 16;
 		const float RotatorMultiplier = 360.f / NumRings;
 		const int32 NumSides = 32;

@@ -1,10 +1,12 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
 #include "Layers.h"
 #include "ActorEditorUtils.h"
-
+#include "Layers/Layer.h"
+#include "Engine/Selection.h"
+#include "EngineUtils.h"
 
 FLayers::FLayers( const TWeakObjectPtr< UEditorEngine >& InEditor )
 {
@@ -690,7 +692,7 @@ void FLayers::RemoveViewFromActorViewVisibility( FLevelEditorViewportClient* Vie
 		}
 
 		// Find all registered primitive components and update the scene proxy with the actors updated visibility map
-		TArray<UPrimitiveComponent*> Components;
+		TInlineComponentArray<UPrimitiveComponent*> Components;
 		Actor->GetComponents(Components);
 
 		for( int32 ComponentIdx = 0; ComponentIdx < Components.Num(); ++ComponentIdx )

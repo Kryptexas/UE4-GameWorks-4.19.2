@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,7 +24,7 @@ public:
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 	void RefreshViewport();
 	
-	void SetPreviewEffect(UNiagaraEffect* InEffect);
+	void SetPreviewEffect(FNiagaraEffectInstance* InEffect);
 	
 	void ToggleRealtime();
 	
@@ -47,7 +47,7 @@ public:
 	bool IsTogglePreviewGridChecked() const;
 	void TogglePreviewBackground();
 	bool IsTogglePreviewBackgroundChecked() const;
-	
+	class UNiagaraComponent *GetPreviewComponent()	{ return PreviewComponent;  }
 protected:
 	/** SEditorViewport interface */
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;

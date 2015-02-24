@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,8 +33,34 @@ namespace EVariableReplication
 	};
 }
 
+class FBlueprintDetails : public IDetailCustomization
+{
+public:
+	FBlueprintDetails(TWeakPtr<SMyBlueprint> InMyBlueprint)
+		: Blueprint(InMyBlueprint.Pin()->GetBlueprintObj())
+	{
+	}
+
+	FBlueprintDetails(TWeakPtr<FBlueprintEditor> InBlueprintEditorPtr)
+		: Blueprint(InBlueprintEditorPtr.Pin()->GetBlueprintObj())
+	{
+	}
+
+protected:
+
+	UBlueprint* GetBlueprintObj() const { return Blueprint.Get(); }
+
+	void AddEventsCategory(IDetailLayoutBuilder& DetailBuilder, UProperty* VariableProperty);
+	FReply HandleAddOrViewEventForVariable(const FName EventName, FName PropertyName, TWeakObjectPtr<UClass> PropertyClass);
+	int32 HandleAddOrViewIndexForButton(const FName EventName, FName PropertyName) const;
+
+private:
+	/** Pointer back to my parent tab */
+	TWeakObjectPtr<UBlueprint> Blueprint;
+};
+
 /** Details customization for variables selected in the MyBlueprint panel */
-class FBlueprintVarActionDetails : public IDetailCustomization
+class FBlueprintVarActionDetails : public FBlueprintDetails
 {
 public:
 	/** Makes a new instance of this detail layout class for a specific detail view requesting it */
@@ -44,7 +70,8 @@ public:
 	}
 
 	FBlueprintVarActionDetails(TWeakPtr<SMyBlueprint> InMyBlueprint)
-		: MyBlueprint(InMyBlueprint)
+		: FBlueprintDetails(InMyBlueprint)
+		, MyBlueprint(InMyBlueprint)
 		, bIsVarNameInvalid(false)
 	{
 	}
@@ -56,7 +83,6 @@ public:
 
 private:
 	/** Accessors passed to parent */
-	UBlueprint* GetBlueprintObj() const {return MyBlueprint.Pin()->GetBlueprintObj();}
 	FEdGraphSchemaAction_K2Var* MyBlueprintSelectionAsVar() const {return MyBlueprint.Pin()->SelectionAsVar();}
 	FEdGraphSchemaAction_K2LocalVar* MyBlueprintSelectionAsLocalVar() const {return MyBlueprint.Pin()->SelectionAsLocalVar();}
 	UK2Node_Variable* EdGraphSelectionAsVar() const;
@@ -79,6 +105,15 @@ private:
 	void OnVarTypeChanged(const FEdGraphPinType& NewPinType);
 	EVisibility IsTooltipEditVisible() const;
 
+	/**
+	 * Callback when changing a local variable property
+	 *
+	 * @param InPropertyChangedEvent	Information on the property changed
+	 * @param InStructData				The struct data where the value of the properties are stored
+	 * @param InEntryNode				Entry node where the default values of local variables are stored
+	 */
+	void OnFinishedChangingProperties(const FPropertyChangedEvent& InPropertyChangedEvent, TSharedPtr<FStructOnScope> InStructData, TWeakObjectPtr<UK2Node_EditablePinBase> InEntryNode);
+
 	/** Callback to decide if the category drop down menu should be enabled */
 	bool GetVariableCategoryChangeEnabled() const;
 
@@ -91,25 +126,29 @@ private:
 	void OnCategorySelectionChanged( TSharedPtr<FString> ProposedSelection, ESelectInfo::Type /*SelectInfo*/ );
 	
 	EVisibility ShowEditableCheckboxVisibilty() const;
-	ESlateCheckBoxState::Type OnEditableCheckboxState() const;
-	void OnEditableChanged(ESlateCheckBoxState::Type InNewState);
+	ECheckBoxState OnEditableCheckboxState() const;
+	void OnEditableChanged(ECheckBoxState InNewState);
 
-	ESlateCheckBoxState::Type OnCreateWidgetCheckboxState() const;
-	void OnCreateWidgetChanged(ESlateCheckBoxState::Type InNewState);
+	ECheckBoxState OnCreateWidgetCheckboxState() const;
+	void OnCreateWidgetChanged(ECheckBoxState InNewState);
 	EVisibility Show3DWidgetVisibility() const;
 	bool Is3DWidgetEnabled();
 	
-	ESlateCheckBoxState::Type OnGetExposedToSpawnCheckboxState() const;
-	void OnExposedToSpawnChanged(ESlateCheckBoxState::Type InNewState);
+	ECheckBoxState OnGetExposedToSpawnCheckboxState() const;
+	void OnExposedToSpawnChanged(ECheckBoxState InNewState);
 	EVisibility ExposeOnSpawnVisibility() const;
 
-	ESlateCheckBoxState::Type OnGetPrivateCheckboxState() const;
-	void OnPrivateChanged(ESlateCheckBoxState::Type InNewState);
+	ECheckBoxState OnGetPrivateCheckboxState() const;
+	void OnPrivateChanged(ECheckBoxState InNewState);
 	EVisibility ExposePrivateVisibility() const;
 	
-	ESlateCheckBoxState::Type OnGetExposedToMatineeCheckboxState() const;
-	void OnExposedToMatineeChanged(ESlateCheckBoxState::Type InNewState);
+	ECheckBoxState OnGetExposedToMatineeCheckboxState() const;
+	void OnExposedToMatineeChanged(ECheckBoxState InNewState);
 	EVisibility ExposeToMatineeVisibility() const;
+
+	ECheckBoxState OnGetConfigVariableCheckboxState() const;
+	void OnSetConfigVariableState(ECheckBoxState InNewState);
+	EVisibility ExposeConfigVisibility() const;
 
 	FText OnGetMetaKeyValue(FName Key) const;
 	void OnMetaKeyValueChanged(const FText& NewMinValue, ETextCommit::Type CommitInfo, FName Key);
@@ -121,12 +160,12 @@ private:
 	EVisibility ReplicationVisibility() const;
 
 	EVisibility GetTransientVisibility() const;
-	ESlateCheckBoxState::Type OnGetTransientCheckboxState() const;
-	void OnTransientChanged(ESlateCheckBoxState::Type InNewState);
+	ECheckBoxState OnGetTransientCheckboxState() const;
+	void OnTransientChanged(ECheckBoxState InNewState);
 
 	EVisibility GetSaveGameVisibility() const;
-	ESlateCheckBoxState::Type OnGetSaveGameCheckboxState() const;
-	void OnSaveGameChanged(ESlateCheckBoxState::Type InNewState);
+	ECheckBoxState OnGetSaveGameCheckboxState() const;
+	void OnSaveGameChanged(ECheckBoxState InNewState);
 
 	/** Refresh the property flags list */
 	void RefreshPropertyFlags();
@@ -217,7 +256,7 @@ protected:
 	bool AttemptToCreateResultNode();
 
 	/** Toggles the ability to be called in editor */
-	void OnToggleEditorCallableEvent( const ESlateCheckBoxState::Type NewCheckedState, TWeakObjectPtr<UK2Node_EditablePinBase> SelectedNode ) const;
+	void OnToggleEditorCallableEvent( const ECheckBoxState NewCheckedState, TWeakObjectPtr<UK2Node_EditablePinBase> SelectedNode ) const;
 
 protected:
 	/** Pointer to the parent */
@@ -338,8 +377,11 @@ private:
 
 private:
 	/** Determines if this pin should not be editable */
-	bool ShouldPinBeReadOnly() const;
+	bool ShouldPinBeReadOnly(bool bIsEditingPinType = false) const;
 	
+	/** Determines if editing the pins on the node should be read only */
+	bool IsPinEditingReadOnly(bool bIsEditingPinType = false) const;
+
 	/** Callbacks for all the functionality for modifying arguments */
 	void OnRemoveClicked();
 	FReply OnArgMoveUp();
@@ -354,10 +396,10 @@ private:
 	void OnPrePinInfoChange(const FEdGraphPinType& PinType);
 
 	/** Returns whether the "Pass-by-Reference" checkbox is checked or not */
-	ESlateCheckBoxState::Type IsRefChecked() const;
+	ECheckBoxState IsRefChecked() const;
 
 	/** Handles toggling the "Pass-by-Reference" checkbox */
-	void OnRefCheckStateChanged(ESlateCheckBoxState::Type InState);
+	void OnRefCheckStateChanged(ECheckBoxState InState);
 
 	FText OnGetArgDefaultValueText() const;
 	void OnArgDefaultValueCommitted(const FText& NewText, ETextCommit::Type InTextCommit);
@@ -435,7 +477,7 @@ private:
 	FText AccessSpecifierProperName( uint32 AccessSpecifierFlag ) const;
 	bool IsAccessSpecifierVisible() const;
 	TSharedRef<ITableRow> HandleGenerateRowAccessSpecifier( TSharedPtr<FAccessSpecifierLabel> SpecifierName, const TSharedRef<STableViewBase>& OwnerTable );
-	FString GetCurrentAccessSpecifierName() const;
+	FText GetCurrentAccessSpecifierName() const;
 	void OnAccessSpecifierSelected( TSharedPtr<FAccessSpecifierLabel> SpecifierName, ESelectInfo::Type SelectInfo );
 
 	bool GetInstanceColorVisibility() const;
@@ -443,8 +485,8 @@ private:
 	FReply ColorBlock_OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 	
 	bool IsCustomEvent() const;
-	void OnIsReliableReplicationFunctionModified(const ESlateCheckBoxState::Type NewCheckedState);
-	ESlateCheckBoxState::Type GetIsReliableReplicatedFunction() const;
+	void OnIsReliableReplicationFunctionModified(const ECheckBoxState NewCheckedState);
+	ECheckBoxState GetIsReliableReplicatedFunction() const;
 
 	struct FReplicationSpecifierLabel
 	{
@@ -457,22 +499,25 @@ private:
 		{}
 	};
 
-	FString GetCurrentReplicatedEventString() const;
+	FText GetCurrentReplicatedEventString() const;
 	FText ReplicationSpecifierProperName( uint32 ReplicationSpecifierFlag ) const;
 	TSharedRef<ITableRow> OnGenerateReplicationComboWidget( TSharedPtr<FReplicationSpecifierLabel> InNetFlag, const TSharedRef<STableViewBase>& OwnerTable );
 	
 	bool IsPureFunctionVisible() const;
-	void OnIsPureFunctionModified(const ESlateCheckBoxState::Type NewCheckedState);
-	ESlateCheckBoxState::Type GetIsPureFunction() const;
+	void OnIsPureFunctionModified(const ECheckBoxState NewCheckedState);
+	ECheckBoxState GetIsPureFunction() const;
 
 	/** Determines if the selected event is identified as editor callable */
-	ESlateCheckBoxState::Type GetIsEditorCallableEvent() const;
+	ECheckBoxState GetIsEditorCallableEvent() const;
 
 	/** Enables/Disables selected event as editor callable  */
-	void OnEditorCallableEventModified( const ESlateCheckBoxState::Type NewCheckedState ) const;
+	void OnEditorCallableEventModified( const ECheckBoxState NewCheckedState ) const;
 
 	
 	FReply OnAddNewOutputClicked();
+
+	/** Callback to determine if the "New" button for adding input/output pins is visible */
+	EVisibility GetAddNewInputOutputVisibility() const;
 
 	/** Called to set the replication type from the details view combo */
 	static void SetNetFlags( TWeakObjectPtr<UK2Node_EditablePinBase> FunctionEntryNode, uint32 NetFlags);
@@ -541,8 +586,12 @@ private:
 	void OnRemoveInterface(FInterfaceName InterfaceName);
 
 	TSharedRef<SWidget> OnGetAddInterfaceMenuContent();
-	TSharedRef<ITableRow> GenerateInterfaceListRow(TSharedPtr<FInterfaceName> InterfaceName, const TSharedRef<STableViewBase>& OwningList);
-	void OnInterfaceListSelectionChanged(TSharedPtr<FInterfaceName> Selection, ESelectInfo::Type SelectInfo);
+
+	/** Callback function when an interface class is picked */
+	void OnClassPicked(UClass* PickedClass);
+
+	/** Helper function to set the Blueprint back into the KismetInspector's details view */
+	void OnRefreshInDetailsView();
 
 private:
 	/** The parent graph action details customization */
@@ -604,10 +653,10 @@ protected:
 	bool CanDeprecateBlueprint() const;
 
 	/** Callback when toggling the Deprecate checkbox, handles marking a Blueprint as deprecated */
-	void OnDeprecateBlueprint(ESlateCheckBoxState::Type InCheckState);
+	void OnDeprecateBlueprint(ECheckBoxState InCheckState);
 
 	/** Callback for Deprecate checkbox, returns checked if the Blueprint is deprecated */
-	ESlateCheckBoxState::Type IsDeprecatedBlueprint() const;
+	ECheckBoxState IsDeprecatedBlueprint() const;
 
 	/** Returns the tooltip explaining deprecation */
 	FText GetDeprecatedTooltip() const;
@@ -623,12 +672,13 @@ private:
 
 
 /** Details customization for Blueprint Component settings */
-class FBlueprintComponentDetails : public IDetailCustomization
+class FBlueprintComponentDetails : public FBlueprintDetails
 {
 public:
 	/** Constructor */
 	FBlueprintComponentDetails(TWeakPtr<FBlueprintEditor> InBlueprintEditorPtr)
-		: BlueprintEditorPtr(InBlueprintEditorPtr)
+		: FBlueprintDetails(InBlueprintEditorPtr)
+		, BlueprintEditorPtr(InBlueprintEditorPtr)
 		, bIsVariableNameInvalid(false)
 	{
 
@@ -644,9 +694,6 @@ public:
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailLayout ) override;
 
 protected:
-	/** Accessors passed to parent */
-	UBlueprint* GetBlueprintObj() const {return BlueprintEditorPtr.Pin()->GetBlueprintObj();}
-
 	/** Callbacks for widgets */
 	FText OnGetVariableText() const;
 	void OnVariableTextChanged(const FText& InNewText);
@@ -658,15 +705,6 @@ protected:
 	void OnVariableCategoryTextCommitted(const FText& NewText, ETextCommit::Type InTextCommit, FName VarName);
 	void OnVariableCategorySelectionChanged(TSharedPtr<FString> ProposedSelection, ESelectInfo::Type /*SelectInfo*/);
 	TSharedRef<ITableRow> MakeVariableCategoryViewWidget(TSharedPtr<FString> Item, const TSharedRef< STableViewBase >& OwnerTable);
-
-	/** Find common base class from current selection */
-	UClass* FindCommonBaseClassFromSelected() const;
-
-	/** Build Event Menu for currently selected components */
-	TSharedRef<SWidget> BuildEventsMenuForComponents() const;
-	
-	/** True if the selected node can be attached to sockets */
-	bool IsNodeAttachable() const;
 
 	FText GetSocketName() const;
 	void OnBrowseSocket();

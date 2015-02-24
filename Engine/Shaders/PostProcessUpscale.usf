@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PostProcessUpscale.usf: PostProcessing shader to upscale
@@ -7,7 +7,21 @@
 #include "Common.usf"
 #include "PostProcessCommon.usf"
 
+// only for MainPS
 float UpscaleSoftness;
+
+// only for MainVS()
+// .x:HalfFOV .y:tan(HalfFov) .z:CylinderDistortion(0=none, 1:full) .w:Correction to scale Y the same as X is scaled in the center
+float4 DistortionParams;
+
+// to avoid compiler errors on the PS
+#ifndef TESS_RECT_X
+	#define TESS_RECT_X 1
+#endif
+#ifndef TESS_RECT_Y
+	#define TESS_RECT_Y 1
+#endif
+
 
 float Luma(float3 Color) 
 {
@@ -20,9 +34,52 @@ float Gaussian(float Scale, float2 Offset)
 	return exp2(Scale * dot(Offset, Offset));
 }
 
+// @param In -1 .. 1 range
+// @return In -1 .. 1 range
+float2 CylindricalDistortPos(float2 In)
+{
+	float HalfFov = DistortionParams.x;
+	float TanHalfFov = DistortionParams.y;
+	float InvHalfFov = 1.0f / HalfFov;
+	float CylinderDistortion = DistortionParams.z;
+	float Correction = DistortionParams.w;
+
+	float X = In.x * TanHalfFov;
+	float AngleX = atan(X);
+
+	float2 Ret = float2(AngleX * InvHalfFov, In.y * cos(AngleX) * Correction);
+
+	return lerp(In, Ret, CylinderDistortion);
+}
+
+
+// vertex shader entry point
+void MainVS(
+	in uint VertexId : SV_VertexID,
+	out float4 OutTexCoord : TEXCOORD0,
+	out float4 OutPosition : SV_POSITION
+	)
+{
+	// amount of Quads in X and Y, from GTesselatedScreenRectangleIndexBuffer
+	uint2 RectangleTessellation = uint2(TESS_RECT_X, TESS_RECT_Y);
+
+	float2 TexCoord = float2((uint)fmod(VertexId, (RectangleTessellation.x + 1)), VertexId / (RectangleTessellation.x + 1)) / float2(RectangleTessellation);
+
+	// still in 0..1 range
+	float4 Position = float4(TexCoord.x, TexCoord.y, 0, 1);
+
+	float2 PlanarScreenPos = TexCoord * 2 - 1;
+
+	// distort pos
+	Position.xy = CylindricalDistortPos(PlanarScreenPos) * 0.5f + 0.5f;
+
+	DrawRectangle(Position, TexCoord, OutPosition, OutTexCoord.xy);
+	OutTexCoord.zw =  OutPosition.xy;
+}
+
+
 void MainPS(float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition : SV_POSITION, out float4 OutColor : SV_Target0)
 {
-
 #if METHOD == 0
 	// Nearest sampling (not blurry but blocky, more for testing)
 	OutColor = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, UVAndScreenPos.xy, 0, int2(0, 0));
@@ -70,7 +127,15 @@ void MainPS(float4 UVAndScreenPos : TEXCOORD0, float4 SvPosition : SV_POSITION, 
     float2 Dir;
     Dir.x = DirSWMinusNE + DirSEMinusNW;
     Dir.y = DirSWMinusNE - DirSEMinusNW;
-    Dir = normalize(Dir);
+
+	{
+		// minor rendering artifacts when using the distortion feature
+		//Dir = normalize(Dir);
+
+		// fixed these problems
+		Dir = Dir * rsqrt(dot(Dir, Dir) + 0.0001f);
+	}
+
 	float2 Dir90 = float2(-Dir.y, Dir.x);
 
 	UVShift = 1.0 - UVShift;

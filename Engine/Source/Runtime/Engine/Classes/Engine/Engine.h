@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // Engine: The base class of the global application object classes.
@@ -1077,10 +1077,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Settings)
 	float NearClipPlane;
 
-	/** Can the editor report usage analytics (types of assets being spawned, etc...) back to Epic in order for us to improve the editor user experience?  Note: The editor must be restarted for changes to take effect. */
-	UPROPERTY(EditAnywhere, config, Category=Settings, AdvancedDisplay)
-	uint32 bEditorAnalyticsEnabled:1;
-
 	/** Can a runtime game/application report anonymous hardware survey statistics (such as display resolution and GPU model) back to Epic? */
 	UPROPERTY(EditAnywhere, config, Category=Settings, AdvancedDisplay)
 	uint32 bHardwareSurveyEnabled:1;
@@ -1124,6 +1120,14 @@ public:
 	/** Script maximum loop iteration count used as a threshold to warn users about script execution runaway */
 	UPROPERTY(EditAnywhere, config, Category=Blueprints)
 	int32 MaximumLoopIterationCount;
+
+	// Controls whether Blueprint subclasses of actors or components can tick by default.
+	//
+	// Blueprints that derive from native C++ classes that have bCanEverTick=true will always be able to tick
+	// Blueprints that derive from exactly AActor or UActorComponent will always be able to tick
+	// Otherwise, they can tick as long as the parent doesn't have meta=(ChildCannotTick) and either bCanBlueprintsTickByDefault is true or the parent has meta=(ChildCanTick)
+	UPROPERTY(EditAnywhere, config, Category=Blueprints)
+	uint32 bCanBlueprintsTickByDefault:1;
 
 	/** @todo document */
 	UPROPERTY(config)
@@ -1311,6 +1315,10 @@ private:
 	UPROPERTY(transient)
 	FLinearColor SelectionOutlineColor;
 
+	/** Subdued version of the selection outline color. Used for indicating sub-selection of components vs actors */
+	UPROPERTY(transient)
+	FLinearColor SubduedSelectionOutlineColor;
+
 	/** An override to use in some cases instead of the selected material color */
 	UPROPERTY(transient)
 	FLinearColor SelectedMaterialColorOverride;
@@ -1464,6 +1472,8 @@ public:
 
 	const FLinearColor& GetSelectionOutlineColor() const { return SelectionOutlineColor; }
 
+	const FLinearColor& GetSubduedSelectionOutlineColor() const { return SubduedSelectionOutlineColor; }
+
 	const FLinearColor& GetHoveredMaterialColor() const { return GetSelectedMaterialColor(); }
 
 	/**
@@ -1477,6 +1487,7 @@ public:
 
 	void SetSelectionOutlineColor( const FLinearColor& InSelectionOutlineColor ) { SelectionOutlineColor = InSelectionOutlineColor; }
 
+	void SetSubduedSelectionOutlineColor( const FLinearColor& InSubduedSelectionOutlineColor ) { SubduedSelectionOutlineColor = InSubduedSelectionOutlineColor; }
 	/**
 	 * Sets an override color to use instead of the user setting
 	 *
@@ -1579,6 +1590,13 @@ public:
 
 	/** Called by internal engine systems after a level actor has been requested to be renamed */
 	void BroadcastLevelActorRequestRename(const AActor* InActor) { LevelActorRequestRenameEvent.Broadcast(InActor); }
+
+	/** Editor-only event triggered when actors are being requested to be renamed */
+	DECLARE_EVENT_OneParam(UEngine, FLevelComponentRequestRenameEvent, const UActorComponent*);
+	FLevelComponentRequestRenameEvent& OnLevelComponentRequestRename() { return LevelComponentRequestRenameEvent; }
+
+	/** Called by internal engine systems after a level actor has been requested to be renamed */
+	void BroadcastLevelComponentRequestRename(const UActorComponent* InComponent) { LevelComponentRequestRenameEvent.Broadcast(InComponent); }
 
 #endif // #if WITH_EDITOR
 
@@ -1693,8 +1711,6 @@ public:
 	bool HandleTestslateGameUICommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleDirCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleTrackParticleRenderingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleDumpParticleRenderingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
-	bool HandleDumpParticleFrameRenderingStatsCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleDumpAllocatorStats( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleHeapCheckCommand( const TCHAR* Cmd, FOutputDevice& Ar );
 	bool HandleToggleOnscreenDebugMessageDisplayCommand( const TCHAR* Cmd, FOutputDevice& Ar );
@@ -1782,8 +1798,8 @@ public:
 	TArray<class ULocalPlayer*>::TConstIterator	GetLocalPlayerIterator(UWorld *World);
 	TArray<class ULocalPlayer*>::TConstIterator GetLocalPlayerIterator(const UGameViewportClient *Viewport);
 
-	const TArray<class ULocalPlayer*>& GetGamePlayers(UWorld *World);
-	const TArray<class ULocalPlayer*>& GetGamePlayers(const UGameViewportClient *Viewport);
+	const TArray<class ULocalPlayer*>& GetGamePlayers(UWorld *World) const;
+	const TArray<class ULocalPlayer*>& GetGamePlayers(const UGameViewportClient *Viewport) const;
 
 	/**
 	 *	Returns the first ULocalPlayer that matches the given ControllerId. 
@@ -2007,8 +2023,8 @@ public:
 	/** @return whether we're currently running in split screen (more than one local player) */
 	bool IsSplitScreen(UWorld *InWorld);
 
-	/** @return whether we're currently running with stereoscopic 3D enabled */
-	bool IsStereoscopic3D();
+	/** @return whether we're currently running with stereoscopic 3D enabled for the specified viewport (or globally, if viewport is NULL) */
+	bool IsStereoscopic3D(FViewport* InViewport = nullptr);
 
 	/**
 	 * Adds a world location as a secondary view location for purposes of texture streaming.
@@ -2044,10 +2060,10 @@ public:
 	 * @param	ControllerId	the game pad index of the player to search for
 	 * @return	The player that has the ControllerId specified, or nullptr if no players have that ControllerId
 	 */
-	ULocalPlayer* GetLocalPlayerFromControllerId( const UGameViewportClient* InViewport, int32 ControllerId );
-	ULocalPlayer* GetLocalPlayerFromControllerId( UWorld * InWorld, int32 ControllerId );
+	ULocalPlayer* GetLocalPlayerFromControllerId( const UGameViewportClient* InViewport, const int32 ControllerId ) const;
+	ULocalPlayer* GetLocalPlayerFromControllerId( UWorld * InWorld, const int32 ControllerId ) const;
 
-	void SwapControllerId(ULocalPlayer *NewPlayer, int32 CurrentControllerId, int32 NewControllerID);
+	void SwapControllerId(ULocalPlayer *NewPlayer, const int32 CurrentControllerId, const int32 NewControllerID) const;
 
 	/** 
 	 * Find a Local Player Controller, which may not exist at all if this is a server.
@@ -2205,6 +2221,9 @@ private:
 	/** Broadcasts whenever an actor is being renamed */
 	FLevelActorRequestRenameEvent LevelActorRequestRenameEvent;
 
+	/** Broadcasts whenever a component is being renamed */
+	FLevelComponentRequestRenameEvent LevelComponentRequestRenameEvent;
+
 	/** Broadcasts after an actor has been moved, rotated or scaled */
 	FOnActorMovedEvent		OnActorMovedEvent;
 
@@ -2224,11 +2243,15 @@ public:
 	UPROPERTY(Config, transient)
 	TArray<FNetDriverDefinition> NetDriverDefinitions;
 
-	/** @todo document */
+	/** A configurable list of actors that are automatically spawned upon server startup (just prior to InitGame) */
 	UPROPERTY(config)
 	TArray<FString> ServerActors;
 
-	/** Spawns all of the registered server actors	 */
+	/** Runtime-modified list of server actors, allowing plugins to use serveractors, without permanently adding them to config files */
+	UPROPERTY()
+	TArray<FString> RuntimeServerActors;
+
+	/** Spawns all of the registered server actors */
 	virtual void SpawnServerActors(UWorld *World);
 
 	/**
@@ -2354,6 +2377,14 @@ public:
 	virtual void TriggerStreamingDataRebuild() { }
 
 	/**
+	 * Updates level streaming state using active game players view and blocks until all sub-levels are loaded/ visible/ hidden
+	 * so further calls to UpdateLevelStreaming won't do any work unless state changes.
+	 *
+	 * @param InWorld Target world
+	 */
+	void BlockTillLevelStreamingCompleted(UWorld* InWorld);
+
+	/**
 	 * true if the loading movie was started during LoadMap().
 	 */
 	UPROPERTY(transient)
@@ -2403,14 +2434,28 @@ public:
 	FWorldContext* GetWorldContextFromHandle(const FName WorldContextHandle);
 	FWorldContext* GetWorldContextFromPIEInstance(const int32 PIEInstance);
 
-	FWorldContext& GetWorldContextFromWorldChecked(UWorld * InWorld);
+	const FWorldContext* GetWorldContextFromWorld(const UWorld* InWorld) const;
+	const FWorldContext* GetWorldContextFromGameViewport(const UGameViewportClient *InViewport) const;
+	const FWorldContext* GetWorldContextFromPendingNetGame(const UPendingNetGame *InPendingNetGame) const;	
+	const FWorldContext* GetWorldContextFromPendingNetGameNetDriver(const UNetDriver *InPendingNetGame) const;	
+	const FWorldContext* GetWorldContextFromHandle(const FName WorldContextHandle) const;
+	const FWorldContext* GetWorldContextFromPIEInstance(const int32 PIEInstance) const;
+
+	FWorldContext& GetWorldContextFromWorldChecked(const UWorld * InWorld);
 	FWorldContext& GetWorldContextFromGameViewportChecked(const UGameViewportClient *InViewport);
 	FWorldContext& GetWorldContextFromPendingNetGameChecked(const UPendingNetGame *InPendingNetGame);	
 	FWorldContext& GetWorldContextFromPendingNetGameNetDriverChecked(const UNetDriver *InPendingNetGame);	
 	FWorldContext& GetWorldContextFromHandleChecked(const FName WorldContextHandle);
 	FWorldContext& GetWorldContextFromPIEInstanceChecked(const int32 PIEInstance);
 
-	const TIndirectArray<FWorldContext>& GetWorldContexts() { return WorldList;	}
+	const FWorldContext& GetWorldContextFromWorldChecked(const UWorld * InWorld) const;
+	const FWorldContext& GetWorldContextFromGameViewportChecked(const UGameViewportClient *InViewport) const;
+	const FWorldContext& GetWorldContextFromPendingNetGameChecked(const UPendingNetGame *InPendingNetGame) const;	
+	const FWorldContext& GetWorldContextFromPendingNetGameNetDriverChecked(const UNetDriver *InPendingNetGame) const;	
+	const FWorldContext& GetWorldContextFromHandleChecked(const FName WorldContextHandle) const;
+	const FWorldContext& GetWorldContextFromPIEInstanceChecked(const int32 PIEInstance) const;
+
+	const TIndirectArray<FWorldContext>& GetWorldContexts() const { return WorldList;	}
 
 
 	/** Verify any remaining World(s) are valid after ::LoadMap destroys a world */
@@ -2422,7 +2467,11 @@ public:
 	bool ShouldAbsorbAuthorityOnlyEvent();
 	bool ShouldAbsorbCosmeticOnlyEvent();
 
-	UGameViewportClient* GameViewportForWorld(UWorld *InWorld);
+	UGameViewportClient* GameViewportForWorld(const UWorld *InWorld) const;
+
+	/** @return true if editor analytics are enabled */
+	virtual bool AreEditorAnalyticsEnabled() const { return false; }
+	virtual void CreateStartupAnalyticsAttributes( TArray<struct FAnalyticsEventAttribute>& StartSessionAttributes ) const {}
 
 protected:
 
@@ -2713,4 +2762,6 @@ private:
 #if STATS
 	int32 RenderStatSlateBatches(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation = nullptr, const FRotator* ViewRotation = nullptr);
 #endif
+
+	FDelegateHandle HandleScreenshotCapturedDelegateHandle;
 };

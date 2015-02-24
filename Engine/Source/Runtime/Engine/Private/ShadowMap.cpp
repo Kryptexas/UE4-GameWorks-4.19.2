@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 
@@ -6,6 +6,9 @@
 #include "TargetPlatform.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
+#include "Engine/ShadowMapTexture2D.h"
+#include "Components/InstancedStaticMeshComponent.h"
+#include "Components/LightComponent.h"
 
 #if WITH_EDITOR
 	// NOTE: We're only counting the top-level mip-map for the following variables.
@@ -88,8 +91,7 @@ struct FShadowMapAllocation
 	{
 		if (InstanceIndex >= 0)
 		{
-			UInstancedStaticMeshComponent* Component = dynamic_cast<UInstancedStaticMeshComponent*>(Primitive);
-			check(Component);
+			UInstancedStaticMeshComponent* Component = CastChecked<UInstancedStaticMeshComponent>(Primitive);
 
 			// TODO: We currently only support one LOD of static lighting in foliage
 			// Need to create per-LOD instance data to fix that
@@ -283,7 +285,7 @@ bool FShadowMapPendingTexture::AddElement(FShadowMapAllocationGroup& AllocationG
 void FShadowMapPendingTexture::StartEncoding(UWorld* InWorld)
 {
 	// Create the shadow-map texture.
-	UShadowMapTexture2D* Texture = new(Outer) UShadowMapTexture2D(FObjectInitializer());
+	auto Texture = NewObject<UShadowMapTexture2D>(Outer);
 	Texture->Filter			= GUseBilinearLightmaps ? TF_Default : TF_Nearest;
 	// Signed distance field textures get stored in linear space, since they need more precision near .5.
 	Texture->SRGB			= false;
@@ -321,12 +323,18 @@ void FShadowMapPendingTexture::StartEncoding(UWorld* InWorld)
 		}
 	}
 
+	// Update the texture resource.
+	Texture->BeginCachePlatformData();
+	Texture->FinishCachePlatformData();
+	Texture->UpdateResource();
+
 	// Update stats.
 	int32 TextureSize			= Texture->CalcTextureMemorySizeEnum( TMC_AllMips );
 	GNumShadowmapTotalTexels	+= TextureSizeX * TextureSizeY;
 	GNumShadowmapTextures++;
 	GShadowmapTotalSize			+= TextureSize;
 	GShadowmapTotalStreamingSize += (ShadowmapFlags & SMF_Streamed) ? TextureSize : 0;
+
 	UPackage* TexturePackage = Texture->GetOutermost();
 
 	for ( int32 LevelIndex=0; TexturePackage && LevelIndex < InWorld->GetNumLevels(); LevelIndex++ )
@@ -339,11 +347,6 @@ void FShadowMapPendingTexture::StartEncoding(UWorld* InWorld)
 			break;
 		}
 	}
-
-	// Update the texture resource.
-	Texture->BeginCachePlatformData();
-	Texture->FinishCachePlatformData();
-	Texture->UpdateResource();
 }
 
 static TArray<FShadowMapAllocationGroup> PendingShadowMaps;
@@ -1032,9 +1035,16 @@ FArchive& operator<<(FArchive& Ar,FShadowMap*& R)
 
 	Ar << ShadowMapType;
 
-	if (Ar.IsLoading() && ShadowMapType == FShadowMap::SMT_2D)
+	if (Ar.IsLoading())
 	{
-		R = new FShadowMap2D();
+		if (ShadowMapType == FShadowMap::SMT_2D)
+		{
+			R = new FShadowMap2D();
+		}
+		else
+		{
+			R = NULL;
+		}
 	}
 
 	if (R != NULL)

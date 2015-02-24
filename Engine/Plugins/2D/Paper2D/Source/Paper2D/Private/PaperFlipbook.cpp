@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
 #include "PaperFlipbook.h"
@@ -181,6 +181,22 @@ bool UPaperFlipbook::HasAnySockets() const
 	return false;
 }
 
+bool UPaperFlipbook::DoesSocketExist(FName SocketName) const
+{
+	for (const FPaperFlipbookKeyFrame& KeyFrame : KeyFrames)
+	{
+		if (KeyFrame.Sprite != nullptr)
+		{
+			if (KeyFrame.Sprite->FindSocket(SocketName))
+			{
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 void UPaperFlipbook::QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const
 {
 	TSet<FName> SocketNames;
@@ -208,4 +224,17 @@ void UPaperFlipbook::QuerySupportedSockets(TArray<FComponentSocketDescription>& 
 void UPaperFlipbook::InvalidateCachedData()
 {
 	// No cached data yet, but the functions that currently have to iterate over all frames can use cached data in the future
+}
+
+bool UPaperFlipbook::ContainsSprite(UPaperSprite* SpriteAsset) const
+{
+	for (const FPaperFlipbookKeyFrame& KeyFrame : KeyFrames)
+	{
+		if (KeyFrame.Sprite == SpriteAsset)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -75,6 +75,7 @@ TSharedPtr<SWidget> SAnimationEditorViewport::MakeViewportToolbar()
 void SAnimationEditorViewport::OnUndoRedo()
 {
 	LevelViewportClient->Invalidate();
+	LevelViewportClient->PostUndo();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -226,7 +227,7 @@ bool SAnimationEditorViewportTabBody::CanUseGizmos() const
 	return false;
 }
 
-FString SAnimationEditorViewportTabBody::GetDisplayString() const
+FText SAnimationEditorViewportTabBody::GetDisplayString() const
 {
 	class UDebugSkelMeshComponent* Component = PersonaPtr.Pin()->PreviewComponent;
 	FString TargetSkeletonName = TargetSkeleton ?TargetSkeleton->GetName() : FName(NAME_None).ToString();
@@ -235,36 +236,36 @@ FString SAnimationEditorViewportTabBody::GetDisplayString() const
 	{
 		if ( Component->bForceRefpose )
 		{
-			return LOCTEXT("ReferencePose", "Reference pose").ToString();
+			return LOCTEXT("ReferencePose", "Reference pose");
 		}
 		else if (Component->IsPreviewOn())
 		{
-			return FText::Format( LOCTEXT("Previewing", "Previewing {0}"), FText::FromString(Component->GetPreviewText()) ).ToString();
+			return FText::Format( LOCTEXT("Previewing", "Previewing {0}"), FText::FromString(Component->GetPreviewText()) );
 		}
 		else if (Component->AnimBlueprintGeneratedClass != NULL)
 		{
 			const bool bWarnAboutBoneManip = !PersonaPtr.Pin()->IsModeCurrent(FPersonaModes::AnimBlueprintEditMode);
 			if (bWarnAboutBoneManip)
 			{
-				return FText::Format(LOCTEXT("PreviewingAnimBP_WarnDisabled", "Previewing {0}. \nBone manipulation is disabled in this mode. "), FText::FromString(Component->AnimBlueprintGeneratedClass->GetName())).ToString();
+				return FText::Format(LOCTEXT("PreviewingAnimBP_WarnDisabled", "Previewing {0}. \nBone manipulation is disabled in this mode. "), FText::FromString(Component->AnimBlueprintGeneratedClass->GetName()));
 			}
 			else
 			{
-				return FText::Format(LOCTEXT("PreviewingAnimBP", "Previewing {0}"), FText::FromString(Component->AnimBlueprintGeneratedClass->GetName())).ToString();
+				return FText::Format(LOCTEXT("PreviewingAnimBP", "Previewing {0}"), FText::FromString(Component->AnimBlueprintGeneratedClass->GetName()));
 			}
 		}
 		else if (Component->SkeletalMesh == NULL)
 		{
-			return FText::Format( LOCTEXT("NoMeshFound", "No skeletal mesh found for skeleton '{0}'"), FText::FromString(TargetSkeletonName) ).ToString();
+			return FText::Format( LOCTEXT("NoMeshFound", "No skeletal mesh found for skeleton '{0}'"), FText::FromString(TargetSkeletonName) );
 		}
 		else 
 		{
-			return LOCTEXT("NothingToPlay", "Nothing to play").ToString();
+			return LOCTEXT("NothingToPlay", "Nothing to play");
 		}
 	}
 	else
 	{
-		return FText::Format( LOCTEXT("NoMeshFound", "No skeletal mesh found for skeleton '{0}'"), FText::FromString(TargetSkeletonName) ).ToString();
+		return FText::Format( LOCTEXT("NoMeshFound", "No skeletal mesh found for skeleton '{0}'"), FText::FromString(TargetSkeletonName) );
 	}
 }
 
@@ -512,6 +513,18 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowAdditiveBase),
 		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::IsPreviewingAnimation),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingAdditiveBase));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowSourceRawAnimation,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowSourceRawAnimation),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingSourceRawAnimation));
+
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowBakedAnimation,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowBakedAnimation),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingBakedAnimation));
 
 	//Display info
 	CommandList.MapAction( 
@@ -809,6 +822,26 @@ void SAnimationEditorViewportTabBody::OnShowNonRetargetedAnimation()
 	}
 }
 
+void SAnimationEditorViewportTabBody::OnShowSourceRawAnimation()
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	if(PreviewComponent != NULL)
+	{
+		PreviewComponent->bDisplaySourceAnimation = !PreviewComponent->bDisplaySourceAnimation;
+		PreviewComponent->MarkRenderStateDirty();
+	}
+}
+
+void SAnimationEditorViewportTabBody::OnShowBakedAnimation()
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	if(PreviewComponent != NULL)
+	{
+		PreviewComponent->bDisplayBakedAnimation = !PreviewComponent->bDisplayBakedAnimation;
+		PreviewComponent->MarkRenderStateDirty();
+	}
+}
+
 void SAnimationEditorViewportTabBody::OnShowAdditiveBase()
 {
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
@@ -853,6 +886,18 @@ bool SAnimationEditorViewportTabBody::IsShowingAdditiveBase() const
 {
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
 	return PreviewComponent != NULL && PreviewComponent->bDisplayAdditiveBasePose;
+}
+
+bool SAnimationEditorViewportTabBody::IsShowingSourceRawAnimation() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	return PreviewComponent != NULL && PreviewComponent->bDisplaySourceAnimation;
+}
+
+bool SAnimationEditorViewportTabBody::IsShowingBakedAnimation() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	return PreviewComponent != NULL && PreviewComponent->bDisplayBakedAnimation;
 }
 
 void SAnimationEditorViewportTabBody::OnShowDisplayInfo(int32 DisplayInfoMode)
@@ -1339,7 +1384,7 @@ void SAnimationEditorViewportTabBody::SaveData(class SAnimationEditorViewportTab
 		SharedData.ViewLocation = OldAnimViewportClient.Get().GetViewLocation();
 		SharedData.ViewRotation = OldAnimViewportClient.Get().GetViewRotation();
 		SharedData.LookAtLocation = OldAnimViewportClient.Get().GetLookAtLocation();
-		SharedData.OrthoZoom = OldAnimViewportClient.Get().ViewTransform.GetOrthoZoom();
+		SharedData.OrthoZoom = OldAnimViewportClient.Get().GetOrthoZoom();
 		SharedData.bCameraLock = OldAnimViewportClient.Get().IsCameraLocked();
 		SharedData.bCameraFollow = OldAnimViewportClient.Get().IsSetCameraFollowChecked();
 		SharedData.bShowBound = OldAnimViewportClient.Get().IsSetShowBoundsChecked();
@@ -1362,7 +1407,7 @@ void SAnimationEditorViewportTabBody::RestoreData()
 		AnimViewportClient.Get().SetViewRotation( SharedData.ViewRotation );
 		AnimViewportClient.Get().SetShowBounds(SharedData.bShowBound);
 		AnimViewportClient.Get().SetLocalAxesMode((ELocalAxesMode::Type)SharedData.LocalAxesMode);
-		AnimViewportClient.Get().ViewTransform.SetOrthoZoom(SharedData.OrthoZoom);
+		AnimViewportClient.Get().SetOrthoZoom(SharedData.OrthoZoom);
 
 		OnSetPlaybackSpeed(SharedData.PlaybackSpeedMode);
 
@@ -1509,7 +1554,7 @@ float SAnimationEditorViewportTabBody::GetWindStrengthSliderValue() const
 	return GetAnimationViewportClient()->GetWindStrengthSliderValue();
 }
 
-FString SAnimationEditorViewportTabBody::GetWindStrengthLabel() const
+FText SAnimationEditorViewportTabBody::GetWindStrengthLabel() const
 {
 	return GetAnimationViewportClient()->GetWindStrengthLabel();
 }
@@ -1594,7 +1639,7 @@ float SAnimationEditorViewportTabBody::GetGravityScaleSliderValue() const
 	return GetAnimationViewportClient()->GetGravityScaleSliderValue();
 }
 
-FString SAnimationEditorViewportTabBody::GetGravityScaleLabel() const
+FText SAnimationEditorViewportTabBody::GetGravityScaleLabel() const
 {
 	return GetAnimationViewportClient()->GetGravityScaleLabel();
 }

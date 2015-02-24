@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "LandscapeEditorObject.h"
@@ -6,6 +6,8 @@
 #include "ImageWrapper.h"
 
 #include "LandscapeMaterialInstanceConstant.h"
+#include "EngineUtils.h"
+#include "LandscapeGizmoActor.h"
 
 ULandscapeEditorObject::ULandscapeEditorObject(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -26,7 +28,7 @@ ULandscapeEditorObject::ULandscapeEditorObject(const FObjectInitializer& ObjectI
 	, RampWidth(2000)
 	, RampSideFalloff(0.4f)
 
-	, SmoothFilterKernelScale(1.0f)
+	, SmoothFilterKernelSize(4)
 	, bDetailSmooth(false)
 	, DetailScale(0.3f)
 
@@ -40,7 +42,7 @@ ULandscapeEditorObject::ULandscapeEditorObject(const FObjectInitializer& ObjectI
 	, SedimentCapacity(0.3f)
 	, HErodeIterationNum(75)
 	, RainDistMode(ELandscapeToolHydroErosionMode::Both)
-	, RainDistScale(60.f)
+	, RainDistScale(60.0f)
 	, bHErosionDetailSmooth(true)
 	, HErosionDetailScale(0.01f)
 
@@ -221,7 +223,7 @@ void ULandscapeEditorObject::Load()
 	NoiseMode = (ELandscapeToolNoiseMode::Type)InNoiseMode;
 	GConfig->GetFloat(TEXT("LandscapeEdit"), TEXT("NoiseScale"), NoiseScale, GEditorUserSettingsIni);
 
-	GConfig->GetFloat(TEXT("LandscapeEdit"), TEXT("SmoothFilterKernelScale"), SmoothFilterKernelScale, GEditorUserSettingsIni);
+	GConfig->GetInt(TEXT("LandscapeEdit"), TEXT("SmoothFilterKernelSize"), SmoothFilterKernelSize, GEditorUserSettingsIni);
 	GConfig->GetFloat(TEXT("LandscapeEdit"), TEXT("DetailScale"), DetailScale, GEditorUserSettingsIni);
 	bool InbDetailSmooth = bDetailSmooth;
 	GConfig->GetBool(TEXT("LandscapeEdit"), TEXT("bDetailSmooth"), InbDetailSmooth, GEditorUserSettingsIni);
@@ -316,7 +318,7 @@ void ULandscapeEditorObject::Save()
 
 	GConfig->SetInt(TEXT("LandscapeEdit"), TEXT("NoiseMode"), (int32)NoiseMode, GEditorUserSettingsIni);
 	GConfig->SetFloat(TEXT("LandscapeEdit"), TEXT("NoiseScale"), NoiseScale, GEditorUserSettingsIni);
-	GConfig->SetFloat(TEXT("LandscapeEdit"), TEXT("SmoothFilterKernelScale"), SmoothFilterKernelScale, GEditorUserSettingsIni);
+	GConfig->SetInt(TEXT("LandscapeEdit"), TEXT("SmoothFilterKernelSize"), SmoothFilterKernelSize, GEditorUserSettingsIni);
 	GConfig->SetFloat(TEXT("LandscapeEdit"), TEXT("DetailScale"), DetailScale, GEditorUserSettingsIni);
 	GConfig->SetBool(TEXT("LandscapeEdit"), TEXT("bDetailSmooth"), bDetailSmooth, GEditorUserSettingsIni);
 

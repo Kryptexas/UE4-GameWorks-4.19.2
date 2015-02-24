@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MaterialEditorModule.h"
 
@@ -18,6 +18,8 @@
 #include "Editor/WorkspaceMenuStructure/Public/WorkspaceMenuStructureModule.h"
 #include "EditorViewportCommands.h"
 #include "SDockTab.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "CanvasTypes.h"
 
 #define LOCTEXT_NAMESPACE "MaterialInstanceEditor"
 
@@ -448,7 +450,7 @@ void FMaterialInstanceEditor::CreateInternalWidgets()
 		.MaterialEditor(SharedThis(this));
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
-	const FDetailsViewArgs DetailsViewArgs( false, false, true, false, true, this );
+	const FDetailsViewArgs DetailsViewArgs( false, false, true, FDetailsViewArgs::HideNameArea, true, this );
 	MaterialInstanceDetails = PropertyEditorModule.CreateDetailView( DetailsViewArgs );
 	FOnGetDetailCustomizationInstance LayoutMICDetails = FOnGetDetailCustomizationInstance::CreateStatic( 
 		&FMaterialInstanceParameterDetails::MakeInstance, MaterialEditorInstance, FGetShowHiddenParameters::CreateSP(this, &FMaterialInstanceEditor::GetShowHiddenParameters) );

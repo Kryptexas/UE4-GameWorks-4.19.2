@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -123,9 +123,20 @@ public:
 				SNew(SBox).WidthOverride(FixedWidth) [ VerticalBox ]
 			]
 		);
+
+		// Make sure all our bars are set up
+		UpdateDynamicProgressBars();
 	}
 
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override
+	{
+		UpdateDynamicProgressBars();
+	}
+
+private:
+
+	/** Updates the dynamic progress bars for this widget */
+	void UpdateDynamicProgressBars()
 	{
 		static const double VisibleScopeThreshold = 0.5;
 
@@ -163,8 +174,6 @@ public:
 			CreateSecondaryBar(Index);
 		}
 	}
-
-private:
 
 	/** Create a progress bar for the specified index */
 	void CreateSecondaryBar(int32 Index) 
@@ -299,18 +308,11 @@ const int32 SSlowTaskWidget::SecondaryBarHeight;
 
 static void TickSlate()
 {
-	static double Seconds = FPlatformTime::Seconds();
-	static double MinFrameTime = 0.05;		// Only update at 20fps so as not to slow down the actual task
-	if (FPlatformTime::Seconds() - Seconds > MinFrameTime)
-	{
-		Seconds = FPlatformTime::Seconds();
+	// Tick Slate application
+	FSlateApplication::Get().Tick();
 
-		// Tick Slate application
-		FSlateApplication::Get().Tick();
-
-		// Sync the game thread and the render thread. This is needed if many StatusUpdate are called
-		FSlateApplication::Get().GetRenderer()->Sync();
-	}
+	// Sync the game thread and the render thread. This is needed if many StatusUpdate are called
+	FSlateApplication::Get().GetRenderer()->Sync();
 }
 
 FFeedbackContextEditor::FFeedbackContextEditor()
@@ -416,9 +418,36 @@ void FFeedbackContextEditor::FinalizeSlowTask()
 
 void FFeedbackContextEditor::ProgressReported( const float TotalProgressInterp, FText DisplayMessage )
 {
-	if (SlowTaskWidget.IsValid() && FSlateApplication::Get().CanDisplayWindows())
+	// Clean up deferred cleanup objects from rendering thread every once in a while.
+	static double LastTimePendingCleanupObjectsWhereDeleted;
+	if( FPlatformTime::Seconds() - LastTimePendingCleanupObjectsWhereDeleted > 1 )
 	{
-		TickSlate();
+		// Get list of objects that are pending cleanup.
+		FPendingCleanupObjects* PendingCleanupObjects = GetPendingCleanupObjects();
+		// Flush rendering commands in the queue.
+		FlushRenderingCommands();
+		// It is now safe to delete the pending clean objects.
+		delete PendingCleanupObjects;
+		// Keep track of time this operation was performed so we don't do it too often.
+		LastTimePendingCleanupObjectsWhereDeleted = FPlatformTime::Seconds();
+	}
+
+	if (FSlateApplication::Get().CanDisplayWindows())
+	{
+		if (BuildProgressWidget.IsValid())
+		{
+			if (!DisplayMessage.IsEmpty())
+			{
+				BuildProgressWidget->SetBuildStatusText(DisplayMessage);
+			}
+
+			BuildProgressWidget->SetBuildProgressPercent(TotalProgressInterp * 100, 100);
+			TickSlate();
+		}
+		else if (SlowTaskWidget.IsValid())
+		{
+			TickSlate();
+		}
 	}
 	else
 	{
@@ -432,16 +461,41 @@ void FFeedbackContextEditor::ProgressReported( const float TotalProgressInterp, 
 				break;
 			}
 		}
+	}
 
-		if (!DisplayMessage.IsEmpty() && TotalProgressInterp > 0)
+	if (FPlatformSplash::IsShown())
+	{
+		if (!DisplayMessage.IsEmpty())
 		{
-            FFormatOrderedArguments Args;
-            Args.Add(DisplayMessage);
-            Args.Add(int(TotalProgressInterp * 100.f));
+			const int32 DotCount = 4;
+			const float MinTimeBetweenUpdates = 0.2f;
+			static double LastUpdateTime = -100000.0;
+			static int32 DotProgress = 0;
+			const double CurrentTime = FPlatformTime::Seconds();
+			if( CurrentTime - LastUpdateTime >= MinTimeBetweenUpdates )
+			{
+				LastUpdateTime = CurrentTime;
+				DotProgress = ( DotProgress + 1 ) % DotCount;
+			}
 
-            DisplayMessage = FText::Format(NSLOCTEXT("FeedbackContextEditor", "ProgressDisplayText", "{0} ({1}%)"), Args);
+			FString NewDisplayMessage = DisplayMessage.ToString();
+			NewDisplayMessage.RemoveFromEnd( TEXT( "..." ) );
+			for( int32 DotIndex = 0; DotIndex <= DotCount; ++DotIndex )
+			{
+				if( DotIndex <= DotProgress )
+				{
+					NewDisplayMessage.AppendChar( TCHAR( '.' ) );
+				}
+				else
+				{
+					NewDisplayMessage.AppendChar( TCHAR( ' ' ) );
+				}				
+			}
+			NewDisplayMessage.Append( FString::Printf( TEXT( " %i%%" ), int(TotalProgressInterp * 100.f) ) );
+			DisplayMessage = FText::FromString( NewDisplayMessage );
 		}
-		FPlatformSplash::SetSplashText( SplashTextType::StartupProgress, *DisplayMessage.ToString() );
+
+		FPlatformSplash::SetSplashText(SplashTextType::StartupProgress, *DisplayMessage.ToString());
 	}
 }
 

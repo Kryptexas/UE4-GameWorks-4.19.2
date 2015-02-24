@@ -1,9 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "Slate/SlateBrushAsset.h"
 // FPreviewScene derived helpers for rendering
 #include "ThumbnailHelpers.h"
+#include "CanvasTypes.h"
+#include "CanvasItem.h"
 
 USlateBrushThumbnailRenderer::USlateBrushThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "Engine/NiagaraScript.h"
@@ -36,8 +36,33 @@ void UNiagaraScriptSource::PostLoad()
 	if (ScriptOwner)
 	{
 		ScriptOwner->ConditionalPostLoad();
-		FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
-		NiagaraEditorModule.CompileScript(ScriptOwner);
+		//FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
+		//NiagaraEditorModule.CompileScript(ScriptOwner);
+		Compile();
+	}
+
+}
+
+
+void UNiagaraScriptSource::Compile()
+{
+	UNiagaraScript* ScriptOwner = Cast<UNiagaraScript>(GetOuter());
+	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::Get().LoadModuleChecked<FNiagaraEditorModule>(TEXT("NiagaraEditor"));
+	NiagaraEditorModule.CompileScript(ScriptOwner);
+
+	ExposedVectorConstants.Empty();
+
+	// grab all constant nodes that are exposed to the editor
+	TArray<UNiagaraNodeConstant*> ConstNodes;
+	UpdateGraph->GetNodesOfClass<UNiagaraNodeConstant>(ConstNodes);
+	for (UNiagaraNodeConstant *Node : ConstNodes)
+	{
+		if (Node->bExposeToEffectEditor)
+		{
+			EditorExposedVectorConstant *Const = new EditorExposedVectorConstant();
+			Const->ConstName = Node->ConstName;
+			ExposedVectorConstants.Add( MakeShareable(Const) );
+		}
 	}
 }
 

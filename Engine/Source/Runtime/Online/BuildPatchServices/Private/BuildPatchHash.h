@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchHash.h: Declares and implements template classes for use with the 
@@ -265,13 +265,13 @@ private:
 namespace FCycPoly64Hash
 {
 	/**
-	 * Static function to simply return the hash for a given data range.
+	 * Calculate the hash for a given data range.
 	 * @param DataSet	The buffer to the data. This must be a buffer of length == DataSize
 	 * @param DataSize	The size of the buffer
 	 * @param State		The current hash state, if continuing hash from previous buffer. 0 for new data.
 	 * @return			The hash state for the provided data
 	 */
-	static uint64 GetHashForDataSet(const uint8* DataSet, const uint32 DataSize, const uint64 State = 0);
+	uint64 GetHashForDataSet(const uint8* DataSet, const uint32 DataSize, const uint64 State = 0);
 }
 
 /* TRingBuffer implementation

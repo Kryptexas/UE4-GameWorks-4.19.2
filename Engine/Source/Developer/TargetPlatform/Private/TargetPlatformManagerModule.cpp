@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "TargetPlatformPrivatePCH.h"
 #include "PlatformInfo.h"
@@ -569,8 +569,10 @@ protected:
 			UE_LOG(LogTargetPlatformManager, Error, TEXT("No target platforms found!"));
 		}
 
+		FScopedSlowTask SlowTask(Modules.Num());
 		for (int32 Index = 0; Index < Modules.Num(); Index++)
 		{
+			SlowTask.EnterProgressFrame(1);
 			ITargetPlatformModule* Module = FModuleManager::LoadModulePtr<ITargetPlatformModule>(Modules[Index]);
 			if (Module)
 			{
@@ -586,6 +588,12 @@ protected:
 				}
 			}
 		}
+	}
+
+	bool UpdatePlatformEnvironment(FString PlatformName, TArray<FString> &Keys, TArray<FString> &Values)
+	{
+		SetupEnvironmentVariables(Keys, Values);
+		return SetupSDKStatus(PlatformName);	
 	}
 
 	bool SetupAndValidateAutoSDK(const FString& AutoSDKPath)
@@ -738,13 +746,8 @@ protected:
 			// don't actually set anything until we successfully validate and read all values in.
 			// we don't want to set a few vars, return a failure, and then have a platform try to
 			// build against a manually installed SDK with half-set env vars.
-			for (int i = 0; i < EnvVarNames.Num(); ++i)
-			{
-				const FString& EnvVarName = EnvVarNames[i];
-				const FString& EnvVarValue = EnvVarValues[i];
-				UE_LOG(LogTargetPlatformManager, Verbose, TEXT("Setting variable '%s' to '%s'."), *EnvVarName, *EnvVarValue);
-				FPlatformMisc::SetEnvironmentVar(*EnvVarName, *EnvVarValue);
-			}
+			SetupEnvironmentVariables(EnvVarNames, EnvVarValues);
+
 
 			const int32 MaxPathVarLen = 32768;
 			TCHAR OrigPathVarMem[MaxPathVarLen];
@@ -820,15 +823,24 @@ protected:
 
 	bool SetupSDKStatus()
 	{
+		return SetupSDKStatus(TEXT(""));
+	}
+
+	bool SetupSDKStatus(FString targetPlatforms)
+	{
 		// run UBT with -validate -allplatforms and read the output
 #if PLATFORM_MAC
 		FString CmdExe = TEXT("/bin/sh");
         FString ScriptPath = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/Mac/RunMono.sh"));
-		FString CommandLine = TEXT("\"") + ScriptPath + TEXT("\" \"") + FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/UnrealBuildTool.exe")) + TEXT("\" -validateplatform -allplatforms");
+		FString CommandLine = TEXT("\"") + ScriptPath + TEXT("\" \"") + FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/UnrealBuildTool.exe")) + TEXT("\" -validateplatform");
 #else
 		FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Binaries/DotNet/UnrealBuildTool.exe"));
-		FString CommandLine = TEXT("-validateplatform -allplatforms");
+		FString CommandLine = TEXT("-validateplatform");
 #endif
+
+		// Allow for only a subset of platforms to be reparsed - needed when kicking a change from the UI
+		CommandLine += targetPlatforms.IsEmpty() ? TEXT(" -allplatforms") : (TEXT(" -platforms=") + targetPlatforms);
+
 		TSharedPtr<FMonitoredProcess> UBTProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, true));
 		UBTProcess->OnOutput().BindStatic(&FTargetPlatformManagerModule::OnStatusOutput);
 		SDKStatusMessage = TEXT("");
@@ -888,6 +900,17 @@ protected:
 	}
 
 private:
+
+	void SetupEnvironmentVariables(TArray<FString> &EnvVarNames, TArray<FString> EnvVarValues)
+	{
+		for (int i = 0; i < EnvVarNames.Num(); ++i)
+		{
+			const FString& EnvVarName = EnvVarNames[i];
+			const FString& EnvVarValue = EnvVarValues[i];
+			UE_LOG(LogTargetPlatformManager, Verbose, TEXT("Setting variable '%s' to '%s'."), *EnvVarName, *EnvVarValue);
+			FPlatformMisc::SetEnvironmentVar(*EnvVarName, *EnvVarValue);
+		}
+	}
 
 	void ModulesChangesCallback(FName ModuleName, EModuleChangeReason ReasonForChange)
 	{

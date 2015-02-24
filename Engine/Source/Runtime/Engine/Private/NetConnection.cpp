@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	NetConnection.cpp: Unreal connection base class.
@@ -11,6 +11,7 @@
 #include "Engine/ActorChannel.h"
 #include "DataChannel.h"
 #include "Engine/PackageMapClient.h"
+#include "GameFramework/GameMode.h"
 
 /*-----------------------------------------------------------------------------
 	UNetConnection implementation.
@@ -30,7 +31,6 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,	ProtocolVersion		( MIN_PROTOCOL_VERSION )
 ,	PacketOverhead		( 0 )
 ,	ResponseId			( 0 )
-,	NegotiatedVer		( GEngineNegotiationVersion )
 
 ,	QueuedBytes			( 0 )
 ,	TickCount			( 0 )
@@ -57,8 +57,6 @@ UNetConnection::UNetConnection(const FObjectInitializer& ObjectInitializer)
 ,	InPacketId			( -1 )
 ,	OutPacketId			( 0 ) // must be initialized as OutAckPacketId + 1 so loss of first packet can be detected
 ,	OutAckPacketId		( -1 )
-,	PartialPacketId		( 0 )
-,	LastPartialPacketId	( -1 )
 ,	LastPingAck			( 0.f )
 ,	LastPingAckPacketId	( -1 )
 ,	ClientWorldPackageName( NAME_None )
@@ -116,7 +114,9 @@ void UNetConnection::InitBase(UNetDriver* InDriver,class FSocket* InSocket, cons
 	}
 
 	// Create package map.
-	PackageMap = new( this )UPackageMapClient( FObjectInitializer(), this, Driver->GuidCache );
+	auto PackageMapClient = NewObject<UPackageMapClient>(this);
+	PackageMapClient->Initialize(this, Driver->GuidCache);
+	PackageMap = PackageMapClient;
 
 	// Create the voice channel
 	CreateChannel(CHTYPE_Voice, true, VOICE_CHANNEL_INDEX);
@@ -163,7 +163,9 @@ void UNetConnection::InitConnection(UNetDriver* InDriver, EConnectionState InSta
 	}
 
 	// Create package map.
-	PackageMap = new( this )UPackageMapClient( FObjectInitializer(), this, Driver->GuidCache );
+	auto PackageMapClient = NewObject<UPackageMapClient>(this);
+	PackageMapClient->Initialize(this, Driver->GuidCache);
+	PackageMap = PackageMapClient;
 }
 
 void UNetConnection::Serialize( FArchive& Ar )
@@ -348,6 +350,13 @@ void UNetConnection::AddReferencedObjects(UObject* InThis, FReferenceCollector& 
 	{
 		Collector.AddReferencedObject( This->Channels[ChIndex], This );
 	}
+
+	// Let GC know that we're referencing some UActorChannel objects
+	for ( auto It = This->KeepProcessingActorChannelBunchesMap.CreateIterator(); It; ++It )
+	{
+		Collector.AddReferencedObject( It.Value(), This );
+	}
+
 	Super::AddReferencedObjects(This, Collector);
 }
 
@@ -375,7 +384,7 @@ void UNetConnection::SendPackageMap()
 {
 }
 
-bool UNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject)
+bool UNetConnection::ClientHasInitializedLevelFor(const UObject* TestObject) const
 {
 	check(Driver);
 	checkSlow(Driver->IsServer());
@@ -469,7 +478,7 @@ void UNetConnection::FlushNet(bool bIgnoreSimulation)
 	TimeSensitive = 0;
 
 	// If there is any pending data to send, send it.
-	if ( SendBuffer.GetNumBits() || ( Driver->Time-LastSendTime > Driver->KeepAliveTime && !InternalAck ) )
+	if ( SendBuffer.GetNumBits() || ( Driver->Time-LastSendTime > Driver->KeepAliveTime && !InternalAck && State != USOCK_Closed ) )
 	{
 		// If sending keepalive packet, still write the packet id
 		if ( SendBuffer.GetNumBits() == 0 )
@@ -633,6 +642,12 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 	if( PacketId > InPacketId )
 	{
 		const int32 PacketsLost = PacketId - InPacketId - 1;
+		
+		if ( PacketsLost > 10 )
+		{
+			UE_LOG( LogNetTraffic, Warning, TEXT( "High single frame packet loss: %i" ), PacketsLost );
+		}
+
 		InPacketsLost += PacketsLost;
 		Driver->InPacketsLost += PacketsLost;
 		InPacketId = PacketId;
@@ -802,19 +817,8 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 			} 
 			else if ( Bunch.bPartial )
 			{
-				// If this is a partial bunch, use the last processed partial sequence to read the new partial sequence
-				Bunch.ChSequence = MakeRelative( Reader.ReadInt( MAX_CHSEQUENCE ), LastPartialPacketId, MAX_CHSEQUENCE );
-				if ( Bunch.ChSequence > LastPartialPacketId )
-				{
-					LastPartialPacketId = Bunch.ChSequence;
-				}
-				else
-				{
-					// Well behaved clients should never hit this, since we've already thrown out packets that were older
-					// Since PartialPacketId should evolve in sync with PacketId, this should be impossible unless the 
-					// client is misbehaving...
-					UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Invalid partial packet id." ) );
-				}
+				// If this is an unreliable partial bunch, we simply use packet sequence since we already have it
+				Bunch.ChSequence = PacketId;
 			}
 			else
 			{
@@ -871,7 +875,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				// Can't handle other channels until control channel exists.
 				if ( Channels[0] == NULL )
 				{
-					UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Received bunch before connected. ChIndex: %i, ChType: %i" ), Bunch.ChIndex, Bunch.ChType );
+					UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Received non-control bunch before control channel was created. ChIndex: %i, ChType: %i" ), Bunch.ChIndex, Bunch.ChType );
 					Close();
 					return;
 				}
@@ -880,7 +884,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 				// so reject it
 				else if ( PlayerController == NULL && Driver->ClientConnections.Contains( this ) )
 				{
-					UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Received non-control bunch during login process" ) );
+					UE_LOG( LogNetTraffic, Error, TEXT( "UNetConnection::ReceivedPacket: Received non-control bunch before player controller was assigned. ChIndex: %i, ChType: %i" ), Bunch.ChIndex, Bunch.ChType );
 					Close();
 					return;
 				}
@@ -967,12 +971,6 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 					}
 					continue;
 				}
-			}
-
-			if( Bunch.bOpen && !Bunch.bPartial )
-			{
-				Channel->OpenAcked = 1;
-				Channel->OpenPacketId = FPacketIdRange(PacketId);
 			}
 
 			// Dispatch the raw, unsequenced bunch to the channel.
@@ -1143,15 +1141,18 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 	Header.WriteBit( Bunch.bHasGUIDs );
 	Header.WriteBit( Bunch.bHasMustBeMappedGUIDs );
 	Header.WriteBit( Bunch.bPartial );
-	if (Bunch.bReliable || Bunch.bPartial)
+
+	if ( Bunch.bReliable )
 	{
 		Header.WriteIntWrapped(Bunch.ChSequence, MAX_CHSEQUENCE);
-		if (Bunch.bPartial)
-		{
-			Header.WriteBit( Bunch.bPartialInitial );
-			Header.WriteBit( Bunch.bPartialFinal );
-		}
 	}
+
+	if (Bunch.bPartial)
+	{
+		Header.WriteBit( Bunch.bPartialInitial );
+		Header.WriteBit( Bunch.bPartialFinal );
+	}
+
 	if (Bunch.bReliable || Bunch.bOpen)
 	{
 		Header.WriteIntWrapped(Bunch.ChType, CHTYPE_MAX);
@@ -1380,9 +1381,26 @@ void UNetConnection::Tick()
 			OpenChannels[i]->Tick();
 		}
 
-		for ( int32 i = KeepProcessingActorChannelBunches.Num() - 1; i >= 0; i-- )
+		for ( auto It = KeepProcessingActorChannelBunchesMap.CreateIterator(); It; ++It )
 		{
-			KeepProcessingActorChannelBunches[i]->ProcessQueuedBunches();
+			if ( It.Value() == NULL || It.Value()->IsPendingKill() )
+			{
+				It.RemoveCurrent();
+				UE_LOG( LogNet, Verbose, TEXT( "UNetConnection::Tick: Removing from KeepProcessingActorChannelBunchesMap before done processing bunches. Num: %i" ), KeepProcessingActorChannelBunchesMap.Num() );
+				continue;
+			}
+
+			check( It.Value()->ChIndex == -1 );
+
+			if ( It.Value()->ProcessQueuedBunches() )
+			{
+				// Since we are done processing bunches, we can now actually clean this channel up
+				It.Value()->ConditionalCleanUp();
+
+				// Remove the channel from the map
+				It.RemoveCurrent();
+				UE_LOG( LogNet, VeryVerbose, TEXT( "UNetConnection::Tick: Removing from KeepProcessingActorChannelBunchesMap. Num: %i" ), KeepProcessingActorChannelBunchesMap.Num() );
+			}
 		}
 
 		// If channel 0 has closed, mark the connection as closed.
@@ -1619,6 +1637,8 @@ void UNetConnection::ResetGameWorldState()
 	RecentlyDormantActors.Empty();
 	DormantActors.Empty();
 	ClientVisibleLevelNames.Empty();
+	KeepProcessingActorChannelBunchesMap.Empty();
+	DormantReplicatorMap.Empty();
 
 	CleanupDormantActorState();
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "FoliageEdModeToolkit.h"
@@ -44,7 +44,7 @@ TSharedPtr<SWidget> FFoliageEdModeToolkit::GetInlineContent() const
 	return FoliageEdWidget;
 }
 
-void FFoliageEdModeToolkit::PostUndo()
+void FFoliageEdModeToolkit::RefreshFullList()
 {
 	// When an undo relates to the Foliage Edit mode, refresh the list.
 	FoliageEdWidget->RefreshFullList();

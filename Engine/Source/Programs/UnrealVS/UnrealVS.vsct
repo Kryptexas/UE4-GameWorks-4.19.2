@@ -196,6 +196,42 @@
 				</Strings>
 			</Button>
 
+			<!-- WinRT_ARM - Quick build dynamic placeholder button -->
+			<Button guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWinRTARMDynamicStartCommandID" priority="0x0000">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWinRTARMSubMenuGroupID" />
+				<CommandFlag>DynamicItemStart</CommandFlag>
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<CommandFlag>TextChanges</CommandFlag>
+				<!-- This text does not appear. -->
+				<Strings>
+					<ButtonText>DUMMY WinRT_ARM</ButtonText>
+				</Strings>
+			</Button>
+
+			<!-- HTML5 - Quick build dynamic placeholder button -->
+			<Button guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildHTML5DynamicStartCommandID" priority="0x0000">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildHTML5SubMenuGroupID" />
+				<CommandFlag>DynamicItemStart</CommandFlag>
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<CommandFlag>TextChanges</CommandFlag>
+				<!-- This text does not appear. -->
+				<Strings>
+					<ButtonText>DUMMY HTML5</ButtonText>
+				</Strings>
+			</Button>
+
+			<!-- Linux - Quick build dynamic placeholder button -->
+			<Button guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildLinuxDynamicStartCommandID" priority="0x0000">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildLinuxSubMenuGroupID" />
+				<CommandFlag>DynamicItemStart</CommandFlag>
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<CommandFlag>TextChanges</CommandFlag>
+				<!-- This text does not appear. -->
+				<Strings>
+					<ButtonText>DUMMY Linux</ButtonText>
+				</Strings>
+			</Button>
+			
 		</Buttons>
 	
 
@@ -384,7 +420,27 @@
 					<ButtonText>WinRT</ButtonText>
 				</Strings>
 			</Menu>
-      
+			<Menu guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWinRTARMSubMenuID" priority="0x0080" type="Menu">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildSubMenuGroupID" />
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<Strings>
+					<ButtonText>WinRT_ARM</ButtonText>
+				</Strings>
+			</Menu>
+			<Menu guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildHTML5SubMenuID" priority="0x0090" type="Menu">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildSubMenuGroupID" />
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<Strings>
+					<ButtonText>HTML5</ButtonText>
+				</Strings>
+			</Menu>
+			<Menu guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildLinuxSubMenuID" priority="0x0100" type="Menu">
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildSubMenuGroupID" />
+				<CommandFlag>DynamicVisibility</CommandFlag>
+				<Strings>
+					<ButtonText>Linux</ButtonText>
+				</Strings>
+			</Menu>
 		</Menus>
 
 		<!-- In this section you can define new menu groups. A menu group is a container for 
@@ -445,7 +501,19 @@
 				<!-- Parent the menu group to the WinRT quick build menu -->
 				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWinRTSubMenuID"/>
 			</Group>
-      
+			<Group guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWinRTARMSubMenuGroupID" priority="0x0000">
+				<!-- Parent the menu group to the WinRT_ARM quick build menu -->
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildWinRTARMSubMenuID"/>
+			</Group>
+			<Group guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildHTML5SubMenuGroupID" priority="0x0000">
+				<!-- Parent the menu group to the HTML5 quick build menu -->
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildHTML5SubMenuID"/>
+			</Group>
+			<Group guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildLinuxSubMenuGroupID" priority="0x0000">
+				<!-- Parent the menu group to the Linux quick build menu -->
+				<Parent guid="UnrealVSCmdSetGUID" id="ProjectQuickBuildLinuxSubMenuID"/>
+			</Group>
+			
 		</Groups>
 
 		<Bitmaps>
@@ -525,6 +593,18 @@
 			<IDSymbol name="ProjectQuickBuildWinRTSubMenuID" value="0x1C00" />
 			<IDSymbol name="ProjectQuickBuildWinRTSubMenuGroupID" value="0x1C10" />
 			<IDSymbol name="ProjectQuickBuildWinRTDynamicStartCommandID" value="0x1C30" />
+
+			<IDSymbol name="ProjectQuickBuildWinRTARMSubMenuID" value="0x1D00" />
+			<IDSymbol name="ProjectQuickBuildWinRTARMSubMenuGroupID" value="0x1D10" />
+			<IDSymbol name="ProjectQuickBuildWinRTARMDynamicStartCommandID" value="0x1D30" />
+
+			<IDSymbol name="ProjectQuickBuildHTML5SubMenuID" value="0x1E00" />
+			<IDSymbol name="ProjectQuickBuildHTML5SubMenuGroupID" value="0x1E10" />
+			<IDSymbol name="ProjectQuickBuildHTML5DynamicStartCommandID" value="0x1E30" />
+
+			<IDSymbol name="ProjectQuickBuildLinuxSubMenuID" value="0x1F00" />
+			<IDSymbol name="ProjectQuickBuildLinuxSubMenuGroupID" value="0x1F10" />
+			<IDSymbol name="ProjectQuickBuildLinuxDynamicStartCommandID" value="0x1F30" />
 
 		</GuidSymbol>
 		

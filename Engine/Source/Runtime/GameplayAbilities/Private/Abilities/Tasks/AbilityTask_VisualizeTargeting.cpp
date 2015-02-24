@@ -1,3 +1,4 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayAbilityTargetActor.h"
@@ -12,16 +13,21 @@ UAbilityTask_VisualizeTargeting::UAbilityTask_VisualizeTargeting(const FObjectIn
 
 UAbilityTask_VisualizeTargeting* UAbilityTask_VisualizeTargeting::VisualizeTargeting(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> InTargetClass, FName TaskInstanceName, float Duration)
 {
-	auto MyObj = NewTask<UAbilityTask_VisualizeTargeting>(WorldContextObject, TaskInstanceName);		//Register for task list here, providing a given FName as a key
+	UAbilityTask_VisualizeTargeting* MyObj = NewTask<UAbilityTask_VisualizeTargeting>(WorldContextObject, TaskInstanceName);		//Register for task list here, providing a given FName as a key
 	MyObj->TargetClass = InTargetClass;
-	if (Duration > 0.0f)
-	{
-		MyObj->GetWorld()->GetTimerManager().SetTimer(MyObj, &UAbilityTask_VisualizeTargeting::OnTimeElapsed, Duration, false);
-	}
+	MyObj->SetDuration(Duration);
 	return MyObj;
 }
 
 // ---------------------------------------------------------------------------------------
+
+void UAbilityTask_VisualizeTargeting::SetDuration(const float Duration)
+{
+	if (Duration > 0.f)
+	{
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle_OnTimeElapsed, this, &UAbilityTask_VisualizeTargeting::OnTimeElapsed, Duration, false);
+	}
+}
 
 bool UAbilityTask_VisualizeTargeting::BeginSpawningActor(UObject* WorldContextObject, TSubclassOf<AGameplayAbilityTargetActor> TargetClass, AGameplayAbilityTargetActor*& SpawnedActor)
 {
@@ -89,7 +95,7 @@ void UAbilityTask_VisualizeTargeting::OnDestroy(bool AbilityEnded)
 	{
 		MyTargetActor->Destroy();
 	}
-	GetWorld()->GetTimerManager().ClearTimer(this, &UAbilityTask_VisualizeTargeting::OnTimeElapsed);
+	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_OnTimeElapsed);
 
 	Super::OnDestroy(AbilityEnded);
 }

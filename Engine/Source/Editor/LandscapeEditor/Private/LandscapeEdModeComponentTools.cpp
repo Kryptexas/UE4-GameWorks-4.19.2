@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "ObjectTools.h"
@@ -15,6 +15,7 @@
 #include "LandscapeEdModeTools.h"
 #include "Foliage/InstancedFoliageActor.h"
 #include "ComponentReregisterContext.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 #define LOCTEXT_NAMESPACE "Landscape"
 
@@ -36,33 +37,36 @@ public:
 		if (LandscapeInfo)
 		{
 			LandscapeInfo->Modify();
-			// Get list of verts to update
-			TMap<FIntPoint, float> BrushInfo;
-			int32 X1, Y1, X2, Y2;
-			if (!Brush->ApplyBrush(MousePositions, BrushInfo, X1, Y1, X2, Y2))
-			{
-				return;
-			}
 
 			// Invert when holding Shift
 			bool bInvert = MousePositions[MousePositions.Num() - 1].bShiftDown;
 
-			if (Brush->GetBrushType() == FLandscapeBrush::BT_Component)
+			if (Brush->GetBrushType() == ELandscapeBrushType::Component)
 			{
-				// Todo hold selection... static?
+				// TODO - only retrieve bounds as we don't need the data
+				const FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+				if (!BrushInfo)
+				{
+					return;
+				}
+
+				int32 X1, Y1, X2, Y2;
+				BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
+
+				// Shrink bounds by 1,1 to avoid GetComponentsInRegion picking up extra components on all sides due to the overlap between components
 				TSet<ULandscapeComponent*> NewComponents;
 				LandscapeInfo->GetComponentsInRegion(X1 + 1, Y1 + 1, X2 - 1, Y2 - 1, NewComponents);
 
 				if (!bInitializedComponentInvert)
 				{
 					// Get the component under the mouse location. Copied from FLandscapeBrushComponent::ApplyBrush()
-					const int32 MouseX = FMath::RoundToInt(MousePositions[0].PositionX);
-					const int32 MouseY = FMath::RoundToInt(MousePositions[0].PositionY);
-					const int32 MouseComponentIndexX = (MouseX >= 0.f) ? MouseX / LandscapeInfo->ComponentSizeQuads : (MouseX + 1) / LandscapeInfo->ComponentSizeQuads - 1;
-					const int32 MouseComponentIndexY = (MouseY >= 0.f) ? MouseY / LandscapeInfo->ComponentSizeQuads : (MouseY + 1) / LandscapeInfo->ComponentSizeQuads - 1;
+					const float MouseX = MousePositions[0].Position.X;
+					const float MouseY = MousePositions[0].Position.Y;
+					const int32 MouseComponentIndexX = (MouseX >= 0.0f) ? FMath::FloorToInt(MouseX / LandscapeInfo->ComponentSizeQuads) : FMath::CeilToInt(MouseX / LandscapeInfo->ComponentSizeQuads);
+					const int32 MouseComponentIndexY = (MouseY >= 0.0f) ? FMath::FloorToInt(MouseY / LandscapeInfo->ComponentSizeQuads) : FMath::CeilToInt(MouseY / LandscapeInfo->ComponentSizeQuads);
 					ULandscapeComponent* MouseComponent = LandscapeInfo->XYtoComponentMap.FindRef(FIntPoint(MouseComponentIndexX, MouseComponentIndexY));
 
-					if (MouseComponent != NULL)
+					if (MouseComponent != nullptr)
 					{
 						bComponentInvert = LandscapeInfo->GetSelectedComponents().Contains(MouseComponent);
 					}
@@ -101,48 +105,60 @@ public:
 			}
 			else // Select various shape regions
 			{
-				X1 -= 1;
-				Y1 -= 1;
-				X2 += 1;
-				Y2 += 1;
+				const FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+				if (!BrushInfo)
+				{
+					return;
+				}
+
+				int32 X1, Y1, X2, Y2;
+				BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
 
 				// Tablet pressure
-				float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.f;
+				float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
 
 				Cache.CacheData(X1, Y1, X2, Y2);
 				TArray<uint8> Data;
 				Cache.GetCachedData(X1, Y1, X2, Y2, Data);
 
 				TSet<ULandscapeComponent*> NewComponents;
-				// Remove invalid regions
 				LandscapeInfo->GetComponentsInRegion(X1, Y1, X2, Y2, NewComponents);
 				LandscapeInfo->UpdateSelectedComponents(NewComponents, false);
 
-				for (auto It = BrushInfo.CreateIterator(); It; ++It)
+				for (int32 Y = BrushInfo.GetBounds().Min.Y; Y < BrushInfo.GetBounds().Max.Y; Y++)
 				{
-					FIntPoint Key = It.Key();
-					if (It.Value() > 0.f && LandscapeInfo->IsValidPosition(Key.X, Key.Y))
+					const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
+					uint8* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
+
+					for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
 					{
-						float PaintValue = It.Value() * UISettings->ToolStrength * Pressure;
-						float Value = LandscapeInfo->SelectedRegion.FindRef(Key);
-						if (bInvert)
+						const FIntPoint Key = ALandscape::MakeKey(X, Y);
+						const float BrushValue = BrushScanline[X];
+
+						if (BrushValue > 0.0f && LandscapeInfo->IsValidPosition(X, Y))
 						{
-							if (Value - PaintValue > 0.f)
+							float PaintValue = BrushValue * UISettings->ToolStrength * Pressure;
+							float Value = DataScanline[X] / 255.0f;
+							checkSlow(FMath::IsNearlyEqual(Value, LandscapeInfo->SelectedRegion.FindRef(Key), 1 / 255.0f));
+							if (bInvert)
 							{
-								LandscapeInfo->SelectedRegion.Add(Key, FMath::Max(Value - PaintValue, 0.f));
+								Value = FMath::Max(Value - PaintValue, 0.0f);
+							}
+							else
+							{
+								Value = FMath::Min(Value + PaintValue, 1.0f);
+							}
+							if (Value > 0.0f)
+							{
+								LandscapeInfo->SelectedRegion.Add(Key, Value);
 							}
 							else
 							{
 								LandscapeInfo->SelectedRegion.Remove(Key);
 							}
 
+							DataScanline[X] = FMath::Clamp<int32>(FMath::RoundToInt(Value * 255), 0, 255);
 						}
-						else
-						{
-							LandscapeInfo->SelectedRegion.Add(Key, FMath::Min(Value + PaintValue, 1.0f));
-						}
-
-						Data[(Key.X - X1) + (Key.Y - Y1)*(1 + X2 - X1)] = FMath::Clamp<int32>(FMath::RoundToInt(LandscapeInfo->SelectedRegion.FindRef(Key) * 255), 0, 255);
 					}
 				}
 
@@ -174,7 +190,7 @@ public:
 	virtual void SetEditRenderType() override { GLandscapeEditRenderMode = ELandscapeEditRenderMode::SelectComponent | (GLandscapeEditRenderMode & ELandscapeEditRenderMode::BitMaskForMask); }
 	virtual bool SupportsMask() override { return false; }
 
-	virtual FLandscapeTool::EToolType GetToolType() override { return this->TT_Mask; }
+	virtual ELandscapeToolType GetToolType() override { return ELandscapeToolType::Mask; }
 };
 
 template<class TStrokeClass>
@@ -209,46 +225,39 @@ public:
 		{
 			LandscapeInfo->Modify();
 			// Get list of verts to update
-			TMap<FIntPoint, float> BrushInfo;
-			int32 X1, Y1, X2, Y2;
-			if (!Brush->ApplyBrush(MousePositions, BrushInfo, X1, Y1, X2, Y2))
+			FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+			if (!BrushInfo)
 			{
 				return;
 			}
 
+			int32 X1, Y1, X2, Y2;
+			BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
+
 			// Invert when holding Shift
 			bool bInvert = MousePositions[MousePositions.Num() - 1].bShiftDown;
 
-			X1 -= 1;
-			Y1 -= 1;
-			X2 += 1;
-			Y2 += 1;
-
 			// Tablet pressure
-			float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.f;
+			float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
 
 			Cache.CacheData(X1, Y1, X2, Y2);
 			TArray<uint8> Data;
 			Cache.GetCachedData(X1, Y1, X2, Y2, Data);
 
-			for (auto It = BrushInfo.CreateConstIterator(); It; ++It)
+			for (int32 Y = BrushInfo.GetBounds().Min.Y; Y < BrushInfo.GetBounds().Max.Y; Y++)
 			{
-				int32 X, Y;
-				ALandscape::UnpackKey(It.Key(), X, Y);
+				const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
+				uint8* DataScanline = Data.GetData() + (Y - Y1) * (X2 - X1 + 1) + (0 - X1);
 
-				if (It.Value() > 0.f)
+				for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
 				{
-					float Value = Data[(X - X1) + (Y - Y1)*(1 + X2 - X1)];
-					if (bInvert)
-					{
-						Value = 0;
-					}
-					else
-					{
-						Value = 255; // Just on and off for visibility, for masking...
-					}
+					const float BrushValue = BrushScanline[X];
 
-					Data[(X - X1) + (Y - Y1)*(1 + X2 - X1)] = FMath::Clamp<int32>(FMath::RoundToInt(Value), 0, 255);
+					if (BrushValue > 0.0f)
+					{
+						uint8 Value = bInvert ? 0 : 255; // Just on and off for visibility, for masking...
+						DataScanline[X] = Value;
+					}
 				}
 			}
 
@@ -297,7 +306,7 @@ public:
 
 	void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
-		ALandscape* Landscape = LandscapeInfo ? LandscapeInfo->LandscapeActor.Get() : NULL;
+		ALandscape* Landscape = LandscapeInfo ? LandscapeInfo->LandscapeActor.Get() : nullptr;
 
 		if (Landscape)
 		{
@@ -333,12 +342,17 @@ public:
 			if (!SelectedComponents.Num())
 			{
 				// Get list of verts to update
-				TMap<FIntPoint, float> BrushInfo;
-				int32 X1, Y1, X2, Y2;
-				if (!Brush->ApplyBrush(MousePositions, BrushInfo, X1, Y1, X2, Y2))
+				// TODO - only retrieve bounds as we don't need the data
+				FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+				if (!BrushInfo)
 				{
 					return;
 				}
+
+				int32 X1, Y1, X2, Y2;
+				BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
+
+				// Shrink bounds by 1,1 to avoid GetComponentsInRegion picking up extra components on all sides due to the overlap between components
 				LandscapeInfo->GetComponentsInRegion(X1 + 1, Y1 + 1, X2 - 1, Y2 - 1, SelectedComponents);
 				bBrush = true;
 			}
@@ -349,9 +363,9 @@ public:
 			if (SelectedComponents.Num())
 			{
 				bool bIsAllCurrentLevel = true;
-				for (TSet<ULandscapeComponent*>::TIterator It(SelectedComponents); It; ++It)
+				for (ULandscapeComponent* Component : SelectedComponents)
 				{
-					if ((*It)->GetLandscapeProxy()->GetLevel() != World->GetCurrentLevel())
+					if (Component->GetLandscapeProxy()->GetLevel() != World->GetCurrentLevel())
 					{
 						bIsAllCurrentLevel = false;
 					}
@@ -368,14 +382,13 @@ public:
 					return;
 				}
 
-				for (TSet<ULandscapeComponent*>::TIterator It(SelectedComponents); It; ++It)
+				for (ULandscapeComponent* Component : SelectedComponents)
 				{
-					UMaterialInterface* LandscapeMaterial = (*It)->GetLandscapeMaterial();
-					if (LandscapeMaterial && LandscapeMaterial->GetOutermost() == (*It)->GetOutermost())
+					UMaterialInterface* LandscapeMaterial = Component->GetLandscapeMaterial();
+					if (LandscapeMaterial && LandscapeMaterial->GetOutermost() == Component->GetOutermost())
 					{
-						ULandscapeComponent* Comp = *It;
 						RenameObjects.AddUnique(LandscapeMaterial);
-						MsgBoxList += Comp->GetName() + TEXT("'s ") + LandscapeMaterial->GetPathName();
+						MsgBoxList += Component->GetName() + TEXT("'s ") + LandscapeMaterial->GetPathName();
 						MsgBoxList += FString::Printf(TEXT("\n"));
 						//It.RemoveCurrent();
 					}
@@ -415,16 +428,15 @@ public:
 				int32 ComponentSizeVerts = Landscape->NumSubsections * (Landscape->SubsectionSizeQuads + 1);
 				int32 NeedHeightmapSize = 1 << FMath::CeilLogTwo(ComponentSizeVerts);
 
-				for (TSet<ULandscapeComponent*>::TConstIterator It(SelectedComponents); It; ++It)
+				for (ULandscapeComponent* Component : SelectedComponents)
 				{
-					ULandscapeComponent* Comp = *It;
-					SelectProxies.Add(Comp->GetLandscapeProxy());
-					if (Comp->GetLandscapeProxy()->GetOuter() != World->GetCurrentLevel())
+					SelectProxies.Add(Component->GetLandscapeProxy());
+					if (Component->GetLandscapeProxy()->GetOuter() != World->GetCurrentLevel())
 					{
-						TargetSelectedComponents.Add(Comp);
+						TargetSelectedComponents.Add(Component);
 					}
 
-					ULandscapeHeightfieldCollisionComponent* CollisionComp = Comp->CollisionComponent.Get();
+					ULandscapeHeightfieldCollisionComponent* CollisionComp = Component->CollisionComponent.Get();
 					SelectProxies.Add(CollisionComp->GetLandscapeProxy());
 					if (CollisionComp->GetLandscapeProxy()->GetOuter() != World->GetCurrentLevel())
 					{
@@ -435,21 +447,19 @@ public:
 				int32 TotalProgress = TargetSelectedComponents.Num() * TargetSelectedCollisionComponents.Num();
 
 				// Check which ones are need for height map change
-				for (TSet<ULandscapeComponent*>::TConstIterator It(TargetSelectedComponents); It; ++It)
+				for (ULandscapeComponent* Component : TargetSelectedComponents)
 				{
-					ULandscapeComponent* Comp = *It;
-					Comp->Modify();
-					OldTextureSet.Add(Comp->HeightmapTexture);
+					Component->Modify();
+					OldTextureSet.Add(Component->HeightmapTexture);
 				}
 
 				// Need to split all the component which share Heightmap with selected components
 				// Search neighbor only
-				for (TSet<ULandscapeComponent*>::TConstIterator It(TargetSelectedComponents); It; ++It)
+				for (ULandscapeComponent* Component : TargetSelectedComponents)
 				{
-					ULandscapeComponent* Comp = *It;
-					int32 SearchX = Comp->HeightmapTexture->Source.GetSizeX() / NeedHeightmapSize;
-					int32 SearchY = Comp->HeightmapTexture->Source.GetSizeY() / NeedHeightmapSize;
-					FIntPoint ComponentBase = Comp->GetSectionBase() / Comp->ComponentSizeQuads;
+					int32 SearchX = Component->HeightmapTexture->Source.GetSizeX() / NeedHeightmapSize;
+					int32 SearchY = Component->HeightmapTexture->Source.GetSizeY() / NeedHeightmapSize;
+					FIntPoint ComponentBase = Component->GetSectionBase() / Component->ComponentSizeQuads;
 
 					for (int32 Y = 0; Y < SearchY; ++Y)
 					{
@@ -461,12 +471,12 @@ public:
 								int32 XDir = (Dir >> 1) ? 1 : -1;
 								int32 YDir = (Dir % 2) ? 1 : -1;
 								ULandscapeComponent* Neighbor = LandscapeInfo->XYtoComponentMap.FindRef(ComponentBase + FIntPoint(XDir*X, YDir*Y));
-								if (Neighbor && Neighbor->HeightmapTexture == Comp->HeightmapTexture && !HeightmapUpdateComponents.Contains(Neighbor))
+								if (Neighbor && Neighbor->HeightmapTexture == Component->HeightmapTexture && !HeightmapUpdateComponents.Contains(Neighbor))
 								{
 									Neighbor->Modify();
 									if (!TargetSelectedComponents.Contains(Neighbor))
 									{
-										Neighbor->HeightmapScaleBias.X = -1.f; // just mark this component is for original level, not current level
+										Neighbor->HeightmapScaleBias.X = -1.0f; // just mark this component is for original level, not current level
 									}
 									HeightmapUpdateComponents.Add(Neighbor);
 								}
@@ -476,19 +486,18 @@ public:
 				}
 
 				// Changing Heightmap format for selected components
-				for (TSet<ULandscapeComponent*>::TConstIterator It(HeightmapUpdateComponents); It; ++It)
+				for (ULandscapeComponent* Component : HeightmapUpdateComponents)
 				{
-					ULandscapeComponent* Comp = *It;
-					ALandscape::SplitHeightmap(Comp, (Comp->HeightmapScaleBias.X > 0.f));
+					ALandscape::SplitHeightmap(Component, (Component->HeightmapScaleBias.X > 0.0f));
 				}
 
 				// Delete if it is no referenced textures...
-				for (TSet<UTexture2D*>::TIterator It(OldTextureSet); It; ++It)
+				for (UTexture2D* Texture : OldTextureSet)
 				{
-					(*It)->SetFlags(RF_Transactional);
-					(*It)->Modify();
-					(*It)->MarkPackageDirty();
-					(*It)->ClearFlags(RF_Standalone);
+					Texture->SetFlags(RF_Transactional);
+					Texture->Modify();
+					Texture->MarkPackageDirty();
+					Texture->ClearFlags(RF_Standalone);
 				}
 
 				ALandscapeProxy* LandscapeProxy = LandscapeInfo->GetCurrentLevelLandscapeProxy(false);
@@ -511,9 +520,9 @@ public:
 					}
 				}
 
-				for (TSet<ALandscapeProxy*>::TIterator It(SelectProxies); It; ++It)
+				for (ALandscapeProxy* Proxy : SelectProxies)
 				{
-					(*It)->Modify();
+					Proxy->Modify();
 				}
 
 				LandscapeProxy->Modify();
@@ -522,10 +531,9 @@ public:
 				// Change Weight maps...
 				{
 					FLandscapeEditDataInterface LandscapeEdit(LandscapeInfo);
-					for (TSet<ULandscapeComponent*>::TConstIterator ComponentIt(TargetSelectedComponents); ComponentIt; ++ComponentIt)
+					for (ULandscapeComponent* Component : TargetSelectedComponents)
 					{
-						ULandscapeComponent* Comp = *ComponentIt;
-						int32 TotalNeededChannels = Comp->WeightmapLayerAllocations.Num();
+						int32 TotalNeededChannels = Component->WeightmapLayerAllocations.Num();
 						int32 CurrentLayer = 0;
 						TArray<UTexture2D*> NewWeightmapTextures;
 
@@ -535,8 +543,8 @@ public:
 						{
 							// UE_LOG(LogLandscape, Log, TEXT("Still need %d channels"), TotalNeededChannels);
 
-							UTexture2D* CurrentWeightmapTexture = NULL;
-							FLandscapeWeightmapUsage* CurrentWeightmapUsage = NULL;
+							UTexture2D* CurrentWeightmapTexture = nullptr;
+							FLandscapeWeightmapUsage* CurrentWeightmapUsage = nullptr;
 
 							if (TotalNeededChannels < 4)
 							{
@@ -544,20 +552,20 @@ public:
 
 								// see if we can find a suitable existing weightmap texture with sufficient channels
 								int32 BestDistanceSquared = MAX_int32;
-								for (TMap<UTexture2D*, struct FLandscapeWeightmapUsage>::TIterator WeightmapIt(LandscapeProxy->WeightmapUsageMap); WeightmapIt; ++WeightmapIt)
+								for (auto& WeightmapUsagePair : LandscapeProxy->WeightmapUsageMap)
 								{
-									FLandscapeWeightmapUsage* TryWeightmapUsage = &WeightmapIt.Value();
+									FLandscapeWeightmapUsage* TryWeightmapUsage = &WeightmapUsagePair.Value;
 									if (TryWeightmapUsage->FreeChannelCount() >= TotalNeededChannels)
 									{
 										// See if this candidate is closer than any others we've found
 										for (int32 ChanIdx = 0; ChanIdx < 4; ChanIdx++)
 										{
-											if (TryWeightmapUsage->ChannelUsage[ChanIdx] != NULL)
+											if (TryWeightmapUsage->ChannelUsage[ChanIdx] != nullptr)
 											{
-												int32 TryDistanceSquared = (TryWeightmapUsage->ChannelUsage[ChanIdx]->GetSectionBase() - Comp->GetSectionBase()).SizeSquared();
+												int32 TryDistanceSquared = (TryWeightmapUsage->ChannelUsage[ChanIdx]->GetSectionBase() - Component->GetSectionBase()).SizeSquared();
 												if (TryDistanceSquared < BestDistanceSquared)
 												{
-													CurrentWeightmapTexture = WeightmapIt.Key();
+													CurrentWeightmapTexture = WeightmapUsagePair.Key;
 													CurrentWeightmapUsage = TryWeightmapUsage;
 													BestDistanceSquared = TryDistanceSquared;
 												}
@@ -569,17 +577,17 @@ public:
 
 							bool NeedsUpdateResource = false;
 							// No suitable weightmap texture
-							if (CurrentWeightmapTexture == NULL)
+							if (CurrentWeightmapTexture == nullptr)
 							{
-								Comp->MarkPackageDirty();
+								Component->MarkPackageDirty();
 
 								// Weightmap is sized the same as the component
-								int32 WeightmapSize = (Comp->SubsectionSizeQuads + 1) * Comp->NumSubsections;
+								int32 WeightmapSize = (Component->SubsectionSizeQuads + 1) * Component->NumSubsections;
 
 								// We need a new weightmap texture
 								CurrentWeightmapTexture = LandscapeProxy->CreateLandscapeTexture(WeightmapSize, WeightmapSize, TEXTUREGROUP_Terrain_Weightmap, TSF_BGRA8);
 								// Alloc dummy mips
-								Comp->CreateEmptyTextureMips(CurrentWeightmapTexture);
+								Component->CreateEmptyTextureMips(CurrentWeightmapTexture);
 								CurrentWeightmapTexture->PostEditChange();
 
 								// Store it in the usage map
@@ -594,10 +602,10 @@ public:
 							{
 								// UE_LOG(LogLandscape, Log, TEXT("Finding allocation for layer %d"), CurrentLayer);
 
-								if (CurrentWeightmapUsage->ChannelUsage[ChanIdx] == NULL)
+								if (CurrentWeightmapUsage->ChannelUsage[ChanIdx] == nullptr)
 								{
 									// Use this allocation
-									FWeightmapLayerAllocationInfo& AllocInfo = Comp->WeightmapLayerAllocations[CurrentLayer];
+									FWeightmapLayerAllocationInfo& AllocInfo = Component->WeightmapLayerAllocations[CurrentLayer];
 
 									if (AllocInfo.WeightmapTextureIndex == 255)
 									{
@@ -606,19 +614,19 @@ public:
 									}
 									else
 									{
-										UTexture2D* OldWeightmapTexture = Comp->WeightmapTextures[AllocInfo.WeightmapTextureIndex];
+										UTexture2D* OldWeightmapTexture = Component->WeightmapTextures[AllocInfo.WeightmapTextureIndex];
 
 										// Copy the data
 										LandscapeEdit.CopyTextureChannel(CurrentWeightmapTexture, ChanIdx, OldWeightmapTexture, AllocInfo.WeightmapTextureChannel);
 										LandscapeEdit.ZeroTextureChannel(OldWeightmapTexture, AllocInfo.WeightmapTextureChannel);
 
 										// Remove the old allocation
-										FLandscapeWeightmapUsage* OldWeightmapUsage = Comp->GetLandscapeProxy()->WeightmapUsageMap.Find(OldWeightmapTexture);
-										OldWeightmapUsage->ChannelUsage[AllocInfo.WeightmapTextureChannel] = NULL;
+										FLandscapeWeightmapUsage* OldWeightmapUsage = Component->GetLandscapeProxy()->WeightmapUsageMap.Find(OldWeightmapTexture);
+										OldWeightmapUsage->ChannelUsage[AllocInfo.WeightmapTextureChannel] = nullptr;
 									}
 
 									// Assign the new allocation
-									CurrentWeightmapUsage->ChannelUsage[ChanIdx] = Comp;
+									CurrentWeightmapUsage->ChannelUsage[ChanIdx] = Component;
 									AllocInfo.WeightmapTextureIndex = NewWeightmapTextures.Num() - 1;
 									AllocInfo.WeightmapTextureChannel = ChanIdx;
 									CurrentLayer++;
@@ -628,12 +636,11 @@ public:
 						}
 
 						// Replace the weightmap textures
-						Comp->WeightmapTextures = NewWeightmapTextures;
+						Component->WeightmapTextures = NewWeightmapTextures;
 
 						// Update the mipmaps for the textures we edited
-						for (int32 Idx = 0; Idx < Comp->WeightmapTextures.Num(); Idx++)
+						for (UTexture2D* WeightmapTexture : Component->WeightmapTextures)
 						{
-							UTexture2D* WeightmapTexture = Comp->WeightmapTextures[Idx];
 							FLandscapeTextureDataInfo* WeightmapDataInfo = LandscapeEdit.GetTextureDataInfo(WeightmapTexture);
 
 							int32 NumMips = WeightmapTexture->Source.GetNumMips();
@@ -644,7 +651,7 @@ public:
 								WeightmapTextureMipData[MipIdx] = (FColor*)WeightmapDataInfo->GetMipData(MipIdx);
 							}
 
-							ULandscapeComponent::UpdateWeightmapMips(Comp->NumSubsections, Comp->SubsectionSizeQuads, WeightmapTexture, WeightmapTextureMipData, 0, 0, MAX_int32, MAX_int32, WeightmapDataInfo);
+							ULandscapeComponent::UpdateWeightmapMips(Component->NumSubsections, Component->SubsectionSizeQuads, WeightmapTexture, WeightmapTextureMipData, 0, 0, MAX_int32, MAX_int32, WeightmapDataInfo);
 						}
 					}
 					// Need to Repacking all the Weight map (to make it packed well...)
@@ -653,45 +660,43 @@ public:
 
 				// Move the components to the Proxy actor
 				// This does not use the MoveSelectedActorsToCurrentLevel path as there is no support to only move certain components.
-				for (TSet<ULandscapeComponent*>::TConstIterator It(TargetSelectedComponents); It; ++It)
+				for (ULandscapeComponent* Component :TargetSelectedComponents)
 				{
 					// Need to move or recreate all related data (Height map, Weight map, maybe collision components, allocation info)
-					ULandscapeComponent* Comp = *It;
-					Comp->GetLandscapeProxy()->LandscapeComponents.Remove(Comp);
-					Comp->UnregisterComponent();
-					Comp->DetachFromParent(true);
-					Comp->InvalidateLightingCache();
-					Comp->Rename(NULL, LandscapeProxy);
-					LandscapeProxy->LandscapeComponents.Add(Comp);
-					Comp->AttachTo(LandscapeProxy->GetRootComponent(), NAME_None, EAttachLocation::KeepWorldPosition);
-					Comp->UpdateMaterialInstances();
+					Component->GetLandscapeProxy()->LandscapeComponents.Remove(Component);
+					Component->UnregisterComponent();
+					Component->DetachFromParent(true);
+					Component->InvalidateLightingCache();
+					Component->Rename(nullptr, LandscapeProxy);
+					LandscapeProxy->LandscapeComponents.Add(Component);
+					Component->AttachTo(LandscapeProxy->GetRootComponent(), NAME_None, EAttachLocation::KeepWorldPosition);
+					Component->UpdateMaterialInstances();
 
 					FFormatNamedArguments Args;
-					Args.Add(TEXT("ComponentName"), FText::FromString(Comp->GetName()));
+					Args.Add(TEXT("ComponentName"), FText::FromString(Component->GetName()));
 					GWarn->StatusUpdate(Progress++, TotalProgress, FText::Format(LOCTEXT("MovingComponentStatus", "Moving Component: {ComponentName}"), Args));
 				}
 
-				for (TArray<ULandscapeHeightfieldCollisionComponent*>::TConstIterator It(TargetSelectedCollisionComponents); It; ++It)
+				for (ULandscapeHeightfieldCollisionComponent* Component : TargetSelectedCollisionComponents)
 				{
 					// Need to move or recreate all related data (Height map, Weight map, maybe collision components, allocation info)
-					ULandscapeHeightfieldCollisionComponent* Comp = *It;
 
 					// Move any foliage associated
-					AInstancedFoliageActor* OldIFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Comp->GetLandscapeProxy()->GetLevel());
+					AInstancedFoliageActor* OldIFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Component->GetLandscapeProxy()->GetLevel());
 					if (OldIFA)
 					{
-						OldIFA->MoveInstancesForComponentToCurrentLevel(Comp);
+						OldIFA->MoveInstancesForComponentToCurrentLevel(Component);
 					}
 
-					Comp->GetLandscapeProxy()->CollisionComponents.Remove(*It);
-					Comp->UnregisterComponent();
-					Comp->DetachFromParent(true);
-					Comp->Rename(NULL, LandscapeProxy);
-					LandscapeProxy->CollisionComponents.Add(*It);
-					Comp->AttachTo(LandscapeProxy->GetRootComponent(), NAME_None, EAttachLocation::KeepWorldPosition);
+					Component->GetLandscapeProxy()->CollisionComponents.Remove(Component);
+					Component->UnregisterComponent();
+					Component->DetachFromParent(true);
+					Component->Rename(nullptr, LandscapeProxy);
+					LandscapeProxy->CollisionComponents.Add(Component);
+					Component->AttachTo(LandscapeProxy->GetRootComponent(), NAME_None, EAttachLocation::KeepWorldPosition);
 
 					FFormatNamedArguments Args;
-					Args.Add(TEXT("ComponentName"), FText::FromString(Comp->GetName()));
+					Args.Add(TEXT("ComponentName"), FText::FromString(Component->GetName()));
 					GWarn->StatusUpdate(Progress++, TotalProgress, FText::Format(LOCTEXT("MovingComponentStatus", "Moving Component: {ComponentName}"), Args));
 				}
 
@@ -706,11 +711,11 @@ public:
 					LandscapeProxy->RegisterAllComponents();
 				}
 
-				for (TSet<ALandscapeProxy*>::TIterator It(SelectProxies); It; ++It)
+				for (ALandscapeProxy* Proxy : SelectProxies)
 				{
-					if ((*It)->GetRootComponent()->IsRegistered())
+					if (Proxy->GetRootComponent()->IsRegistered())
 					{
-						(*It)->RegisterAllComponents();
+						Proxy->RegisterAllComponents();
 					}
 				}
 
@@ -753,10 +758,10 @@ class FLandscapeToolStrokeAddComponent : public FLandscapeToolStrokeBase
 {
 public:
 	FLandscapeToolStrokeAddComponent(FEdModeLandscape* InEdMode, const FLandscapeToolTarget& InTarget)
-		:	EdMode(InEdMode)
-		,	LandscapeInfo(InTarget.LandscapeInfo.Get())
-		,	HeightCache(InTarget)
-		,	XYOffsetCache(InTarget)
+		: EdMode(InEdMode)
+		, LandscapeInfo(InTarget.LandscapeInfo.Get())
+		, HeightCache(InTarget)
+		, XYOffsetCache(InTarget)
 	{
 	}
 
@@ -769,35 +774,38 @@ public:
 
 	virtual void Apply(FEditorViewportClient* ViewportClient, FLandscapeBrush* Brush, const ULandscapeEditorObject* UISettings, const TArray<FLandscapeToolMousePosition>& MousePositions)
 	{
-		ALandscapeProxy* Landscape = LandscapeInfo ? LandscapeInfo->GetCurrentLevelLandscapeProxy(true) : NULL;
+		ALandscapeProxy* Landscape = LandscapeInfo ? LandscapeInfo->GetCurrentLevelLandscapeProxy(true) : nullptr;
 		if (Landscape && EdMode->LandscapeRenderAddCollision)
 		{
+			check(Brush->GetBrushType() == ELandscapeBrushType::Component);
+
 			// Get list of verts to update
-			TMap<FIntPoint, float> BrushInfo;
-			int32 X1, Y1, X2, Y2;
-			if (!Brush->ApplyBrush(MousePositions, BrushInfo, X1, Y1, X2, Y2))
+			// TODO - only retrieve bounds as we don't need the data
+			FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+			if (!BrushInfo)
 			{
 				return;
 			}
 
-			// expand the area to get valid data from regions...
+			int32 X1, Y1, X2, Y2;
+			BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
+
+			// Find component range for this block of data, non shared vertices
+			int32 ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2;
+			ALandscape::CalcComponentIndicesNoOverlap(X1, Y1, X2, Y2, Landscape->ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
+
+			// expand the area by one vertex in each direction to ensure normals are calculated correctly
 			X1 -= 1;
 			Y1 -= 1;
 			X2 += 1;
 			Y2 += 1;
 
-			HeightCache.CacheData(X1, Y1, X2, Y2);
 			TArray<uint16> Data;
-			HeightCache.GetCachedData(X1,Y1,X2,Y2,Data);
-			XYOffsetCache.CacheData(X1, Y1, X2, Y2);
 			TArray<FVector> XYOffsetData;
+			HeightCache.CacheData(X1, Y1, X2, Y2);
+			XYOffsetCache.CacheData(X1, Y1, X2, Y2);
+			HeightCache.GetCachedData(X1, Y1, X2, Y2, Data);
 			bool bHasXYOffset = XYOffsetCache.GetCachedData(X1, Y1, X2, Y2, XYOffsetData);
-
-			// Find component range for this block of data, non shared vertices
-			int32 ComponentIndexX1 = (X1 + 1 >= 0) ? (X1 + 1) / Landscape->ComponentSizeQuads : (X1 + 2) / Landscape->ComponentSizeQuads - 1;
-			int32 ComponentIndexY1 = (Y1 + 1 >= 0) ? (Y1 + 1) / Landscape->ComponentSizeQuads : (Y1 + 2) / Landscape->ComponentSizeQuads - 1;
-			int32 ComponentIndexX2 = (X2 - 2 >= 0) ? (X2 - 2) / Landscape->ComponentSizeQuads : (X2 - 1) / Landscape->ComponentSizeQuads - 1;
-			int32 ComponentIndexY2 = (Y2 - 2 >= 0) ? (Y2 - 2) / Landscape->ComponentSizeQuads : (Y2 - 1) / Landscape->ComponentSizeQuads - 1;
 
 			TArray<ULandscapeComponent*> NewComponents;
 			Landscape->Modify();
@@ -828,7 +836,7 @@ public:
 
 						int32 ComponentVerts = (Landscape->SubsectionSizeQuads + 1) * Landscape->NumSubsections;
 						// Update Weightmap Scale Bias
-						LandscapeComponent->WeightmapScaleBias = FVector4(1.f / (float)ComponentVerts, 1.f / (float)ComponentVerts, 0.5f / (float)ComponentVerts, 0.5f / (float)ComponentVerts);
+						LandscapeComponent->WeightmapScaleBias = FVector4(1.0f / (float)ComponentVerts, 1.0f / (float)ComponentVerts, 0.5f / (float)ComponentVerts, 0.5f / (float)ComponentVerts);
 						LandscapeComponent->WeightmapSubsectionOffset = (float)(LandscapeComponent->SubsectionSizeQuads + 1) / (float)ComponentVerts;
 
 						TArray<FColor> HeightData;
@@ -852,35 +860,11 @@ public:
 				XYOffsetCache.Flush();
 			}
 
-				HeightCache.SetCachedData(X1, Y1, X2, Y2, Data);
-				HeightCache.Flush();
+			HeightCache.SetCachedData(X1, Y1, X2, Y2, Data);
+			HeightCache.Flush();
 
 			for (int32 Idx = 0; Idx < NewComponents.Num(); Idx++)
 			{
-				// Update LODBias from neighbors
-				FIntPoint ComponentBase = NewComponents[Idx]->GetSectionBase() / NewComponents[Idx]->ComponentSizeQuads;
-				FIntPoint LandscapeKey[8] =
-				{
-					ComponentBase + FIntPoint(-1, -1),
-					ComponentBase + FIntPoint(+0, -1),
-					ComponentBase + FIntPoint(+1, -1),
-					ComponentBase + FIntPoint(-1, +0),
-					ComponentBase + FIntPoint(+1, +0),
-					ComponentBase + FIntPoint(-1, +1),
-					ComponentBase + FIntPoint(+0, +1),
-					ComponentBase + FIntPoint(+1, +1)
-				};
-
-				for (int32 NeighborIdx = 0; NeighborIdx < 8; ++NeighborIdx)
-				{
-					ULandscapeComponent* Comp = LandscapeInfo->XYtoComponentMap.FindRef(LandscapeKey[NeighborIdx]);
-					if (Comp)
-					{
-						NewComponents[Idx]->NeighborLOD[NeighborIdx] = Comp->ForcedLOD >= 0 ? Comp->ForcedLOD : 255;
-						NewComponents[Idx]->NeighborLODBias[NeighborIdx] = Comp->LODBias + 128;
-					}
-				}
-
 				// Update Collision
 				NewComponents[Idx]->UpdateCachedBounds();
 				NewComponents[Idx]->UpdateBounds();
@@ -893,7 +877,7 @@ public:
 				}
 			}
 
-			EdMode->LandscapeRenderAddCollision = NULL;
+			EdMode->LandscapeRenderAddCollision = nullptr;
 
 			GEngine->BroadcastOnActorMoved(Landscape);
 		}
@@ -949,12 +933,17 @@ public:
 			if (!SelectedComponents.Num())
 			{
 				// Get list of verts to update
-				TMap<FIntPoint, float> BrushInfo;
-				int32 X1, Y1, X2, Y2;
-				if (!Brush->ApplyBrush(MousePositions, BrushInfo, X1, Y1, X2, Y2))
+				// TODO - only retrieve bounds as we don't need the data
+				FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+				if (!BrushInfo)
 				{
 					return;
 				}
+
+				int32 X1, Y1, X2, Y2;
+				BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
+
+				// Shrink bounds by 1,1 to avoid GetComponentsInRegion picking up extra components on all sides due to the overlap between components
 				LandscapeInfo->GetComponentsInRegion(X1 + 1, Y1 + 1, X2 - 1, Y2 - 1, SelectedComponents);
 			}
 
@@ -964,12 +953,11 @@ public:
 			TSet<ULandscapeComponent*> HeightmapUpdateComponents;
 			// Need to split all the component which share Heightmap with selected components
 			// Search neighbor only
-			for (TSet<ULandscapeComponent*>::TConstIterator It(SelectedComponents); It; ++It)
+			for (ULandscapeComponent* Component : SelectedComponents)
 			{
-				ULandscapeComponent* Comp = *It;
-				int32 SearchX = Comp->HeightmapTexture->Source.GetSizeX() / NeedHeightmapSize;
-				int32 SearchY = Comp->HeightmapTexture->Source.GetSizeY() / NeedHeightmapSize;
-				FIntPoint ComponentBase = Comp->GetSectionBase() / Comp->ComponentSizeQuads;
+				int32 SearchX = Component->HeightmapTexture->Source.GetSizeX() / NeedHeightmapSize;
+				int32 SearchY = Component->HeightmapTexture->Source.GetSizeY() / NeedHeightmapSize;
+				FIntPoint ComponentBase = Component->GetSectionBase() / Component->ComponentSizeQuads;
 
 				for (int32 Y = 0; Y < SearchY; ++Y)
 				{
@@ -981,7 +969,7 @@ public:
 							int32 XDir = (Dir >> 1) ? 1 : -1;
 							int32 YDir = (Dir % 2) ? 1 : -1;
 							ULandscapeComponent* Neighbor = LandscapeInfo->XYtoComponentMap.FindRef(ComponentBase + FIntPoint(XDir*X, YDir*Y));
-							if (Neighbor && Neighbor->HeightmapTexture == Comp->HeightmapTexture && !HeightmapUpdateComponents.Contains(Neighbor))
+							if (Neighbor && Neighbor->HeightmapTexture == Component->HeightmapTexture && !HeightmapUpdateComponents.Contains(Neighbor))
 							{
 								Neighbor->Modify();
 								HeightmapUpdateComponents.Add(Neighbor);
@@ -994,21 +982,21 @@ public:
 			// Changing Heightmap format for selected components
 			for (TSet<ULandscapeComponent*>::TConstIterator It(HeightmapUpdateComponents); It; ++It)
 			{
-				ULandscapeComponent* Comp = *It;
-				ALandscape::SplitHeightmap(Comp, false);
+				ULandscapeComponent* Component = *It;
+				ALandscape::SplitHeightmap(Component, false);
 			}
 
 			TArray<FIntPoint> DeletedNeighborKeys;
 			// Check which ones are need for height map change
 			for (TSet<ULandscapeComponent*>::TIterator It(SelectedComponents); It; ++It)
 			{
-				ULandscapeComponent* Comp = *It;
-				ALandscapeProxy* Proxy = Comp->GetLandscapeProxy();
+				ULandscapeComponent* Component = *It;
+				ALandscapeProxy* Proxy = Component->GetLandscapeProxy();
 				Proxy->Modify();
-				//Comp->Modify();
+				//Component->Modify();
 
 				// Reset neighbors LOD information
-				FIntPoint ComponentBase = Comp->GetSectionBase() / Comp->ComponentSizeQuads;
+				FIntPoint ComponentBase = Component->GetSectionBase() / Component->ComponentSizeQuads;
 				FIntPoint LandscapeKey[8] =
 				{
 					ComponentBase + FIntPoint(-1, -1),
@@ -1027,48 +1015,45 @@ public:
 					if (NeighborComp)
 					{
 						NeighborComp->Modify();
-						NeighborComp->NeighborLOD[7 - Idx] = 255; // Use 255 as unspecified value
-						NeighborComp->NeighborLODBias[7 - Idx] = 128;
-
 						NeighborComp->InvalidateLightingCache();
 						FComponentReregisterContext ReregisterContext(NeighborComp);
 					}
 				}
 
 				// Remove Selected Region in deleted Component
-				for (int32 Y = 0; Y < Comp->ComponentSizeQuads; ++Y)
+				for (int32 Y = 0; Y < Component->ComponentSizeQuads; ++Y)
 				{
-					for (int32 X = 0; X < Comp->ComponentSizeQuads; ++X)
+					for (int32 X = 0; X < Component->ComponentSizeQuads; ++X)
 					{
-						LandscapeInfo->SelectedRegion.Remove(FIntPoint(X, Y) + Comp->GetSectionBase());
+						LandscapeInfo->SelectedRegion.Remove(FIntPoint(X, Y) + Component->GetSectionBase());
 					}
 				}
 
-				if (Comp->HeightmapTexture)
+				if (Component->HeightmapTexture)
 				{
-					Comp->HeightmapTexture->SetFlags(RF_Transactional);
-					Comp->HeightmapTexture->Modify();
-					Comp->HeightmapTexture->MarkPackageDirty();
-					Comp->HeightmapTexture->ClearFlags(RF_Standalone); // Remove when there is no reference for this Heightmap...
+					Component->HeightmapTexture->SetFlags(RF_Transactional);
+					Component->HeightmapTexture->Modify();
+					Component->HeightmapTexture->MarkPackageDirty();
+					Component->HeightmapTexture->ClearFlags(RF_Standalone); // Remove when there is no reference for this Heightmap...
 				}
 
-				for (int32 i = 0; i < Comp->WeightmapTextures.Num(); ++i)
+				for (int32 i = 0; i < Component->WeightmapTextures.Num(); ++i)
 				{
-					Comp->WeightmapTextures[i]->SetFlags(RF_Transactional);
-					Comp->WeightmapTextures[i]->Modify();
-					Comp->WeightmapTextures[i]->MarkPackageDirty();
-					Comp->WeightmapTextures[i]->ClearFlags(RF_Standalone);
+					Component->WeightmapTextures[i]->SetFlags(RF_Transactional);
+					Component->WeightmapTextures[i]->Modify();
+					Component->WeightmapTextures[i]->MarkPackageDirty();
+					Component->WeightmapTextures[i]->ClearFlags(RF_Standalone);
 				}
 
-				if (Comp->XYOffsetmapTexture)
+				if (Component->XYOffsetmapTexture)
 				{
-					Comp->XYOffsetmapTexture->SetFlags(RF_Transactional);
-					Comp->XYOffsetmapTexture->Modify();
-					Comp->XYOffsetmapTexture->MarkPackageDirty();
-					Comp->XYOffsetmapTexture->ClearFlags(RF_Standalone);
+					Component->XYOffsetmapTexture->SetFlags(RF_Transactional);
+					Component->XYOffsetmapTexture->Modify();
+					Component->XYOffsetmapTexture->MarkPackageDirty();
+					Component->XYOffsetmapTexture->ClearFlags(RF_Standalone);
 				}
 
-				FIntPoint Key = Comp->GetSectionBase() / Comp->ComponentSizeQuads;
+				FIntPoint Key = Component->GetSectionBase() / Component->ComponentSizeQuads;
 				DeletedNeighborKeys.AddUnique(Key + FIntPoint(-1, -1));
 				DeletedNeighborKeys.AddUnique(Key + FIntPoint(+0, -1));
 				DeletedNeighborKeys.AddUnique(Key + FIntPoint(+1, -1));
@@ -1078,12 +1063,12 @@ public:
 				DeletedNeighborKeys.AddUnique(Key + FIntPoint(+0, +1));
 				DeletedNeighborKeys.AddUnique(Key + FIntPoint(+1, +1));
 
-				ULandscapeHeightfieldCollisionComponent* CollisionComp = Comp->CollisionComponent.Get();
+				ULandscapeHeightfieldCollisionComponent* CollisionComp = Component->CollisionComponent.Get();
 				if (CollisionComp)
 				{
 					CollisionComp->DestroyComponent();
 				}
-				Comp->DestroyComponent();
+				Component->DestroyComponent();
 			}
 
 			// Update AddCollisions...
@@ -1094,10 +1079,10 @@ public:
 
 			for (int32 i = 0; i < DeletedNeighborKeys.Num(); ++i)
 			{
-				ULandscapeComponent* Comp = LandscapeInfo->XYtoComponentMap.FindRef(DeletedNeighborKeys[i]);
-				if (Comp)
+				ULandscapeComponent* Component = LandscapeInfo->XYtoComponentMap.FindRef(DeletedNeighborKeys[i]);
+				if (Component)
 				{
-					ULandscapeHeightfieldCollisionComponent* CollisionComp = Comp->CollisionComponent.Get();
+					ULandscapeHeightfieldCollisionComponent* CollisionComp = Component->CollisionComponent.Get();
 					if (CollisionComp)
 					{
 						CollisionComp->UpdateAddCollisions();
@@ -1163,25 +1148,22 @@ public:
 			Gizmo->TargetLandscapeInfo = LandscapeInfo;
 
 			// Get list of verts to update
-			TMap<FIntPoint, float> BrushInfo;
-			int32 X1, Y1, X2, Y2;
-			if (!EdMode->GizmoBrush->ApplyBrush(MousePositions, BrushInfo, X1, Y1, X2, Y2))
+			// TODO - only retrieve bounds as we don't need the data
+			FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+			if (!BrushInfo)
 			{
 				return;
 			}
+
+			int32 X1, Y1, X2, Y2;
+			BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
 
 			//Gizmo->Modify(); // No transaction for Copied data as other tools...
 			//Gizmo->SelectedData.Empty();
 			Gizmo->ClearGizmoData();
 
 			// Tablet pressure
-			//float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.f;
-
-			// expand the area by one vertex in each direction to ensure normals are calculated correctly
-			X1 -= 1;
-			Y1 -= 1;
-			X2 += 1;
-			Y2 += 1;
+			//float Pressure = ViewportClient->Viewport->IsPenActive() ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
 
 			bool bApplyToAll = EdMode->UISettings->bApplyToAllTargets;
 			const int32 LayerNum = LandscapeInfo->Layers.Num();
@@ -1245,7 +1227,7 @@ public:
 						for (int32 i = -1; (!bApplyToAll && i < 0) || i < LayerNum; ++i)
 						{
 							// Don't try to copy data for null layers
-							if ( (bApplyToAll && i >= 0 && !LandscapeInfo->Layers[i].LayerInfoObj) ||
+							if ((bApplyToAll && i >= 0 && !LandscapeInfo->Layers[i].LayerInfoObj) ||
 								(!bApplyToAll && !EdMode->CurrentToolTarget.LayerInfo.Get()))
 							{
 								continue;
@@ -1291,7 +1273,7 @@ public:
 							FGizmoPreData LerpedData;
 							float FracX = LandscapeLocal.X - LX;
 							float FracY = LandscapeLocal.Y - LY;
-							LerpedData.Ratio = bFullCopy ? 1.f :
+							LerpedData.Ratio = bFullCopy ? 1.0f :
 								FMath::Lerp(
 								FMath::Lerp(GizmoPreData[0].Ratio, GizmoPreData[1].Ratio, FracX),
 								FMath::Lerp(GizmoPreData[2].Ratio, GizmoPreData[3].Ratio, FracX),
@@ -1304,12 +1286,12 @@ public:
 								FracY
 								);
 
-							if (!bDidCopy && LerpedData.Ratio > 0.f)
+							if (!bDidCopy && LerpedData.Ratio > 0.0f)
 							{
 								bDidCopy = true;
 							}
 
-							if (LerpedData.Ratio > 0.f)
+							if (LerpedData.Ratio > 0.0f)
 							{
 								// Added for LayerNames
 								if (bApplyToAll)
@@ -1426,7 +1408,7 @@ public:
 			//for ( TMap<uint64, FGizmoSelectData>::TIterator It(Gizmo->SelectedData); It; ++It )
 			//{
 			//	FGizmoSelectData& Data = It.Value();
-			//	if (Data.Ratio <= 0.f)
+			//	if (Data.Ratio <= 0.0f)
 			//	{
 			//		Gizmo->SelectedData.Remove(It.Key());
 			//	}
@@ -1455,6 +1437,7 @@ class FLandscapeToolCopy : public FLandscapeToolBase<FLandscapeToolStrokeCopy<To
 public:
 	FLandscapeToolCopy(FEdModeLandscape* InEdMode)
 		: FLandscapeToolBase<FLandscapeToolStrokeCopy<ToolTarget> >(InEdMode)
+		, BackupCurrentBrush(nullptr)
 	{
 	}
 
@@ -1474,37 +1457,25 @@ public:
 
 	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
 	{
-		check(this->MousePositions.Num() == 0);
-		this->bToolActive = true;
-		this->ToolStroke.Emplace(this->EdMode, InTarget);
-
 		this->EdMode->GizmoBrush->Tick(ViewportClient, 0.1f);
-		this->EdMode->GizmoBrush->BeginStroke(InHitLocation.X, InHitLocation.Y, this);
 
-		new(this->MousePositions) FLandscapeToolMousePosition(InHitLocation.X, InHitLocation.Y, false);
-		this->ToolStroke->Apply(ViewportClient, this->EdMode->CurrentBrush, this->EdMode->UISettings, this->MousePositions);
-		this->MousePositions.Empty();
-		return true;
+		// horrible hack
+		// (but avoids duplicating the code from FLandscapeToolBase)
+		BackupCurrentBrush = this->EdMode->CurrentBrush;
+		this->EdMode->CurrentBrush = this->EdMode->GizmoBrush;
+
+		return FLandscapeToolBase<FLandscapeToolStrokeCopy<ToolTarget>>::BeginTool(ViewportClient, InTarget, InHitLocation);
 	}
 
 	virtual void EndTool(FEditorViewportClient* ViewportClient) override
 	{
-		if (this->bToolActive && this->MousePositions.Num())
-		{
-			this->ToolStroke->Apply(ViewportClient, this->EdMode->CurrentBrush, this->EdMode->UISettings, this->MousePositions);
-			this->MousePositions.Empty();
-		}
+		FLandscapeToolBase<FLandscapeToolStrokeCopy<ToolTarget>>::EndTool(ViewportClient);
 
-		this->ToolStroke.Reset();
-		this->bToolActive = false;
-		this->EdMode->GizmoBrush->EndStroke();
+		this->EdMode->CurrentBrush = BackupCurrentBrush;
 	}
 
-	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int x, int y) override
-	{
-		return true;
-	}
-
+protected:
+	FLandscapeBrush* BackupCurrentBrush;
 };
 
 template<class ToolTarget>
@@ -1532,21 +1503,45 @@ public:
 				return;
 			}
 
+			// Automatically fill in any placeholder layers
+			// This gives a much better user experience when copying data to a newly created landscape
+			for (ULandscapeLayerInfoObject* LayerInfo : Gizmo->LayerInfos)
+			{
+				int32 LayerInfoIndex = LandscapeInfo->GetLayerInfoIndex(LayerInfo);
+				if (LayerInfoIndex == INDEX_NONE)
+				{
+					LayerInfoIndex = LandscapeInfo->GetLayerInfoIndex(LayerInfo->LayerName);
+					if (LayerInfoIndex != INDEX_NONE)
+					{
+						FLandscapeInfoLayerSettings& LayerSettings = LandscapeInfo->Layers[LayerInfoIndex];
+
+						if (LayerSettings.LayerInfoObj == nullptr)
+						{
+							LayerSettings.Owner = LandscapeInfo->GetLandscapeProxy(); // this isn't strictly accurate, but close enough
+							LayerSettings.LayerInfoObj = LayerInfo;
+							LayerSettings.bValid = true;
+						}
+					}
+				}
+			}
+
 			Gizmo->TargetLandscapeInfo = LandscapeInfo;
 			float ScaleXY = LandscapeInfo->DrawScale.X;
 
 			//LandscapeInfo->Modify();
 
 			// Get list of verts to update
-			TMap<FIntPoint, float> BrushInfo;
-			int32 X1, Y1, X2, Y2;
-			if (!Brush->ApplyBrush(MousePositions, BrushInfo, X1, Y1, X2, Y2))
+			FLandscapeBrushData BrushInfo = Brush->ApplyBrush(MousePositions);
+			if (!BrushInfo)
 			{
 				return;
 			}
 
+			int32 X1, Y1, X2, Y2;
+			BrushInfo.GetInclusiveBounds(X1, Y1, X2, Y2);
+
 			// Tablet pressure
-			float Pressure = (ViewportClient && ViewportClient->Viewport->IsPenActive()) ? ViewportClient->Viewport->GetTabletPressure() : 1.f;
+			float Pressure = (ViewportClient && ViewportClient->Viewport->IsPenActive()) ? ViewportClient->Viewport->GetTabletPressure() : 1.0f;
 
 			// expand the area by one vertex in each direction to ensure normals are calculated correctly
 			X1 -= 1;
@@ -1584,8 +1579,8 @@ public:
 			const float W = Gizmo->GetWidth() / (2 * ScaleXY);
 			const float H = Gizmo->GetHeight() / (2 * ScaleXY);
 
-			const float SignX = Gizmo->GetRootComponent()->RelativeScale3D.X > 0.f ? 1.0f : -1.0f;
-			const float SignY = Gizmo->GetRootComponent()->RelativeScale3D.Y > 0.f ? 1.0f : -1.0f;
+			const float SignX = Gizmo->GetRootComponent()->RelativeScale3D.X > 0.0f ? 1.0f : -1.0f;
+			const float SignY = Gizmo->GetRootComponent()->RelativeScale3D.Y > 0.0f ? 1.0f : -1.0f;
 
 			const float ScaleX = Gizmo->CachedWidth / Width * ScaleXY / Gizmo->CachedScaleXY;
 			const float ScaleY = Gizmo->CachedHeight / Height * ScaleXY / Gizmo->CachedScaleXY;
@@ -1595,35 +1590,39 @@ public:
 			FVector BaseLocation = WToL.TransformPosition(Gizmo->GetActorLocation());
 			//FMatrix LandscapeLocalToGizmo = FRotationTranslationMatrix(FRotator(0, Gizmo->Rotation.Yaw, 0), FVector(BaseLocation.X - W + 0.5, BaseLocation.Y - H + 0.5, 0));
 			FMatrix LandscapeToGizmoLocal =
-				(FTranslationMatrix(FVector((-W + 0.5)*SignX, (-H + 0.5)*SignY, 0)) * FScaleRotationTranslationMatrix(FVector(SignX, SignY, 1.f), FRotator(0, Gizmo->GetActorRotation().Yaw, 0), FVector(BaseLocation.X, BaseLocation.Y, 0))).InverseFast();
+				(FTranslationMatrix(FVector((-W + 0.5)*SignX, (-H + 0.5)*SignY, 0)) * FScaleRotationTranslationMatrix(FVector(SignX, SignY, 1.0f), FRotator(0, Gizmo->GetActorRotation().Yaw, 0), FVector(BaseLocation.X, BaseLocation.Y, 0))).InverseFast();
 
-			for (auto It = BrushInfo.CreateIterator(); It; ++It)
+			for (int32 Y = BrushInfo.GetBounds().Min.Y; Y < BrushInfo.GetBounds().Max.Y; Y++)
 			{
-				int32 X, Y;
-				ALandscape::UnpackKey(It.Key(), X, Y);
+				const float* BrushScanline = BrushInfo.GetDataPtr(FIntPoint(0, Y));
 
-				if (It.Value() > 0.f)
+				for (int32 X = BrushInfo.GetBounds().Min.X; X < BrushInfo.GetBounds().Max.X; X++)
 				{
-					// Value before we apply our painting
-					int32 index = (X - X1) + (Y - Y1)*(1 + X2 - X1);
-					float PaintAmount = (Brush->GetBrushType() == FLandscapeBrush::BT_Gizmo) ? It.Value() : It.Value() * EdMode->UISettings->ToolStrength * Pressure;
+					const float BrushValue = BrushScanline[X];
 
-					FVector GizmoLocal = LandscapeToGizmoLocal.TransformPosition(FVector(X, Y, 0));
-					GizmoLocal.X *= ScaleX * SignX;
-					GizmoLocal.Y *= ScaleY * SignY;
-
-					int32 LX = FMath::FloorToInt(GizmoLocal.X);
-					int32 LY = FMath::FloorToInt(GizmoLocal.Y);
-
-					float FracX = GizmoLocal.X - LX;
-					float FracY = GizmoLocal.Y - LY;
-
-					FGizmoSelectData* Data00 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX, LY));
-					FGizmoSelectData* Data10 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX + 1, LY));
-					FGizmoSelectData* Data01 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX, LY + 1));
-					FGizmoSelectData* Data11 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX + 1, LY + 1));
-
+					if (BrushValue > 0.0f)
 					{
+						// TODO: This is a mess and badly needs refactoring
+
+						// Value before we apply our painting
+						int32 index = (X - X1) + (Y - Y1)*(1 + X2 - X1);
+						float PaintAmount = (Brush->GetBrushType() == ELandscapeBrushType::Gizmo) ? BrushValue : BrushValue * EdMode->UISettings->ToolStrength * Pressure;
+
+						FVector GizmoLocal = LandscapeToGizmoLocal.TransformPosition(FVector(X, Y, 0));
+						GizmoLocal.X *= ScaleX * SignX;
+						GizmoLocal.Y *= ScaleY * SignY;
+
+						int32 LX = FMath::FloorToInt(GizmoLocal.X);
+						int32 LY = FMath::FloorToInt(GizmoLocal.Y);
+
+						float FracX = GizmoLocal.X - LX;
+						float FracY = GizmoLocal.Y - LY;
+
+						FGizmoSelectData* Data00 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX, LY));
+						FGizmoSelectData* Data10 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX + 1, LY));
+						FGizmoSelectData* Data01 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX, LY + 1));
+						FGizmoSelectData* Data11 = Gizmo->SelectedData.Find(ALandscape::MakeKey(LX + 1, LY + 1));
+
 						for (int32 i = -1; (!bApplyToAll && i < 0) || i < LayerNum; ++i)
 						{
 							if ((bApplyToAll && (i < 0)) || (!bApplyToAll && EdMode->CurrentToolTarget.TargetType == ELandscapeToolTargetType::Heightmap))
@@ -1654,10 +1653,10 @@ public:
 								switch (EdMode->UISettings->PasteMode)
 								{
 								case ELandscapeToolNoiseMode::Add:
-									PaintAmount = OriginalValue < DestValue ? PaintAmount : 0.f;
+									PaintAmount = OriginalValue < DestValue ? PaintAmount : 0.0f;
 									break;
 								case ELandscapeToolNoiseMode::Sub:
-									PaintAmount = OriginalValue > DestValue ? PaintAmount : 0.f;
+									PaintAmount = OriginalValue > DestValue ? PaintAmount : 0.0f;
 									break;
 								default:
 									break;
@@ -1710,9 +1709,12 @@ public:
 				}
 			}
 
-			for (int i = 0; i < Gizmo->LayerInfos.Num(); ++i)
+			for (ULandscapeLayerInfoObject* LayerInfo : Gizmo->LayerInfos)
 			{
-				WeightCache.AddDirtyLayer(Gizmo->LayerInfos[i]);
+				if (LandscapeInfo->GetLayerInfoIndex(LayerInfo) != INDEX_NONE)
+				{
+					WeightCache.AddDirtyLayer(LayerInfo);
+				}
 			}
 
 			if (bApplyToAll)
@@ -1752,8 +1754,9 @@ class FLandscapeToolPaste : public FLandscapeToolBase<FLandscapeToolStrokePaste<
 {
 public:
 	FLandscapeToolPaste(FEdModeLandscape* InEdMode)
-		: FLandscapeToolBase<FLandscapeToolStrokePaste<ToolTarget> >(InEdMode)
+		: FLandscapeToolBase<FLandscapeToolStrokePaste<ToolTarget>>(InEdMode)
 		, bUseGizmoRegion(false)
+		, BackupCurrentBrush(nullptr)
 	{
 	}
 
@@ -1778,43 +1781,28 @@ public:
 
 	virtual bool BeginTool(FEditorViewportClient* ViewportClient, const FLandscapeToolTarget& InTarget, const FVector& InHitLocation) override
 	{
-		this->bToolActive = true;
-		this->ToolStroke.Emplace(this->EdMode, InTarget);
-
 		this->EdMode->GizmoBrush->Tick(ViewportClient, 0.1f);
+
+		// horrible hack
+		// (but avoids duplicating the code from FLandscapeToolBase)
+		BackupCurrentBrush = this->EdMode->CurrentBrush;
 		if (bUseGizmoRegion)
 		{
-			this->EdMode->GizmoBrush->BeginStroke(InHitLocation.X, InHitLocation.Y, this);
-		}
-		else
-		{
-			this->EdMode->CurrentBrush->BeginStroke(InHitLocation.X, InHitLocation.Y, this);
+			this->EdMode->CurrentBrush = this->EdMode->GizmoBrush;
 		}
 
-		new(this->MousePositions) FLandscapeToolMousePosition(InHitLocation.X, InHitLocation.Y, false);
-		this->ToolStroke->Apply(ViewportClient, bUseGizmoRegion ? this->EdMode->GizmoBrush : this->EdMode->CurrentBrush, this->EdMode->UISettings, this->MousePositions);
-		this->MousePositions.Empty();
-		return true;
+		return FLandscapeToolBase<FLandscapeToolStrokePaste<ToolTarget>>::BeginTool(ViewportClient, InTarget, InHitLocation);
 	}
 
 	virtual void EndTool(FEditorViewportClient* ViewportClient) override
 	{
-		if (this->bToolActive && this->MousePositions.Num())
-		{
-			this->ToolStroke->Apply(ViewportClient, this->EdMode->CurrentBrush, this->EdMode->UISettings, this->MousePositions);
-			this->MousePositions.Empty();
-		}
+		FLandscapeToolBase<FLandscapeToolStrokePaste<ToolTarget>>::EndTool(ViewportClient);
 
-		this->ToolStroke.Reset();
-		this->bToolActive = false;
 		if (bUseGizmoRegion)
 		{
-			this->EdMode->GizmoBrush->EndStroke();
+			this->EdMode->CurrentBrush = BackupCurrentBrush;
 		}
-		else
-		{
-			this->EdMode->CurrentBrush->EndStroke();
-		}
+		check(this->EdMode->CurrentBrush == BackupCurrentBrush);
 	}
 
 	virtual bool MouseMove(FEditorViewportClient* ViewportClient, FViewport* Viewport, int32 x, int32 y) override
@@ -1824,11 +1812,12 @@ public:
 			return true;
 		}
 
-		FLandscapeToolBase<FLandscapeToolStrokePaste<ToolTarget> >::MouseMove(ViewportClient, Viewport, x, y);
-		return true;
+		return FLandscapeToolBase<FLandscapeToolStrokePaste<ToolTarget>>::MouseMove(ViewportClient, Viewport, x, y);
 	}
+
 protected:
 	bool bUseGizmoRegion;
+	FLandscapeBrush* BackupCurrentBrush;
 };
 
 template<class ToolTarget>
@@ -1844,6 +1833,17 @@ public:
 	// Just hybrid of Copy and Paste tool
 	virtual const TCHAR* GetToolName() override { return TEXT("CopyPaste"); }
 	virtual FText GetDisplayName() override { return NSLOCTEXT("UnrealEd", "LandscapeMode_Region", "Region Copy/Paste"); };
+
+	virtual void EnterTool()
+	{
+		// Make sure gizmo actor is selected
+		ALandscapeGizmoActiveActor* Gizmo = this->EdMode->CurrentGizmoActor.Get();
+		if (Gizmo)
+		{
+			GEditor->SelectNone(false, true);
+			GEditor->SelectActor(Gizmo, true, false, true);
+		}
+	}
 
 	// Copy tool doesn't use any view information, so just do it as one function
 	void Copy()

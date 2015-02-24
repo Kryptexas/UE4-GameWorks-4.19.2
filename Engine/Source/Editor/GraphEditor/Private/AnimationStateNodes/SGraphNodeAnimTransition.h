@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -35,7 +35,7 @@ private:
 	TSharedPtr<STextEntryPopup> TextEntryWidget;
 
 private:
-	FString GetPreviewCornerText(bool reverse) const;
+	FText GetPreviewCornerText(bool reverse) const;
 	FSlateColor GetTransitionColor() const;
 
 	TSharedRef<SWidget> GenerateInlineDisplayOrEditingWidget(bool bShowGraphPreview);

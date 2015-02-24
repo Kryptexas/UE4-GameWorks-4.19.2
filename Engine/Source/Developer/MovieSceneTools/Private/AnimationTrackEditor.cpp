@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "MovieScene.h"
@@ -264,7 +264,7 @@ USkeleton* FAnimationTrackEditor::AcquireSkeletonFromObjectGuid(const FGuid& Gui
 
 		if (Actor != NULL)
 		{
-			TArray<USkeletalMeshComponent*> SkeletalMeshComponents;
+			TInlineComponentArray<USkeletalMeshComponent*> SkeletalMeshComponents;
 			Actor->GetComponents(SkeletalMeshComponents);
 
 			for (int32 j = 0; j <SkeletalMeshComponents.Num(); ++j)

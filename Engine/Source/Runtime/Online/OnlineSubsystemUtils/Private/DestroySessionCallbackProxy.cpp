@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "DestroySessionCallbackProxy.h"
@@ -30,7 +30,7 @@ void UDestroySessionCallbackProxy::Activate()
 		auto Sessions = Helper.OnlineSub->GetSessionInterface();
 		if (Sessions.IsValid())
 		{
-			Sessions->AddOnDestroySessionCompleteDelegate(Delegate);
+			DelegateHandle = Sessions->AddOnDestroySessionCompleteDelegate_Handle(Delegate);
 			Sessions->DestroySession(GameSessionName);
 
 			// OnCompleted will get called, nothing more to do now
@@ -56,7 +56,7 @@ void UDestroySessionCallbackProxy::OnCompleted(FName SessionName, bool bWasSucce
 		auto Sessions = Helper.OnlineSub->GetSessionInterface();
 		if (Sessions.IsValid())
 		{
-			Sessions->ClearOnDestroySessionCompleteDelegate(Delegate);
+			Sessions->ClearOnDestroySessionCompleteDelegate_Handle(DelegateHandle);
 		}
 	}
 

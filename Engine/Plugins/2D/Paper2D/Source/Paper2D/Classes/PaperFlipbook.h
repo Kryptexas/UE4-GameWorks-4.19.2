@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,11 +18,27 @@ public:
 	int32 FrameRun;
 
 	FPaperFlipbookKeyFrame()
-		: Sprite(NULL)
+		: Sprite(nullptr)
 		, FrameRun(1)
 	{
 	}
 };
+
+UENUM()
+namespace EFlipbookCollisionMode
+{
+	enum Type
+	{
+		// The flipbook has no collision
+		NoCollision,
+
+		// The flipbook has non-animated collision based on the first frame of the animation
+		FirstFrameCollision,
+
+		// The flipbook changes collision each frame based on the animation (Note: This setting is not recommended and is very expensive, recreating the physics state every frame)
+		EachFrameCollision,
+	};
+}
 
 /**
  * Contains an animation sequence of sprite frames
@@ -45,7 +61,14 @@ protected:
 	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly)
 	UMaterialInterface* DefaultMaterial;
 
+	// Collision source
+	UPROPERTY(Category=Sprite, EditAnywhere, BlueprintReadOnly)
+	TEnumAsByte<EFlipbookCollisionMode::Type> CollisionSource;
+
 public:
+	// Returns the collision source of this flipbook animation (if any)
+	TEnumAsByte<EFlipbookCollisionMode::Type> GetCollisionSource() const { return CollisionSource; }
+
 	// Returns the nominal frame rate to play this flipbook animation back at
 	float GetFramesPerSecond() const;
 
@@ -104,6 +127,9 @@ public:
 	// Returns true if the flipbook has any sockets
 	bool HasAnySockets() const;
 
+	// Returns true if the flipbook has a specific named socket
+	bool DoesSocketExist(FName SocketName) const;
+
 	// Returns a list of all of the sockets
 	void QuerySupportedSockets(TArray<FComponentSocketDescription>& OutSockets) const;
 
@@ -120,6 +146,9 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 	// End of UObject interface
+
+	// Returns true if the flipbook asset contains the specified sprite asset in any frames
+	bool ContainsSprite(UPaperSprite* SpriteAsset) const;
 
 private:
 	friend class FScopedFlipbookMutator;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MatineeModule.h"
 
@@ -42,14 +42,20 @@
 #include "SDockTab.h"
 #include "STextComboBox.h"
 #include "GenericCommands.h"
+#include "CanvasTypes.h"
+#include "Engine/InterpCurveEdSetup.h"
+#include "Engine/Light.h"
+#include "CanvasItem.h"
+#include "Camera/CameraActor.h"
+#include "Camera/CameraAnim.h"
 
 
 DEFINE_LOG_CATEGORY(LogSlateMatinee);
 
 #define LOCTEXT_NAMESPACE "Matinee"
 
-const FColor FMatinee::ActiveCamColor = FColor(255, 255, 0);
-const FColor FMatinee::SelectedCurveColor = FColor(255, 255, 0);
+const FColor FMatinee::ActiveCamColor = FColor::Yellow;
+const FColor FMatinee::SelectedCurveColor = FColor::Yellow;
 const int32	FMatinee::DuplicateKeyOffset = 10;
 const int32	FMatinee::KeySnapPixels = 5;
 
@@ -57,7 +63,7 @@ const float FMatinee::InterpEditor_ZoomIncrement = 1.2f;
 
 const FColor FMatinee::PositionMarkerLineColor = FColor(255, 222, 206);
 const FColor FMatinee::LoopRegionFillColor = FColor(80,255,80,24);
-const FColor FMatinee::Track3DSelectedColor = FColor(255,255,0);
+const FColor FMatinee::Track3DSelectedColor = FColor::Yellow;
 
 const float FMatinee::InterpEdSnapSizes[5] = { 0.01f, 0.05f, 0.1f, 0.5f, 1.0f };
 const float FMatinee::InterpEdFPSSnapSizes[9] =
@@ -275,24 +281,24 @@ TSharedRef<SWidget> FMatinee::AddFilterButton(UInterpFilter* Filter)
 		.OnContextMenuOpening(this, &FMatinee::CreateTabMenu);
 }
 
-void FMatinee::SetFilterActive(ESlateCheckBoxState::Type CheckStatus, UInterpFilter* Filter)
+void FMatinee::SetFilterActive(ECheckBoxState CheckStatus, UInterpFilter* Filter)
 {
-	if ( CheckStatus == ESlateCheckBoxState::Checked )
+	if ( CheckStatus == ECheckBoxState::Checked )
 	{
 		SetSelectedFilter(Filter);
 		InvalidateTrackWindowViewports();
 	}
 }
 
-ESlateCheckBoxState::Type FMatinee::GetFilterActive(UInterpFilter* Filter) const
+ECheckBoxState FMatinee::GetFilterActive(UInterpFilter* Filter) const
 {
 	if ( IData->SelectedFilter == Filter )
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 	else
 	{
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 }
 
@@ -488,7 +494,10 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	GEditor->ResetTransaction( NSLOCTEXT("UnrealEd", "OpenMatinee", "Open UnrealMatinee") );
 
 	NormalTransactor = GEditor->Trans;
-	InterpEdTrans = new UMatineeTransBuffer( FObjectInitializer(), 8*1024*1024 );
+	InterpEdTrans = NewObject<UMatineeTransBuffer>();
+	InterpEdTrans->Initialize(8 * 1024 * 1024);
+	InterpEdTrans->OnUndo().AddRaw(this, &FMatinee::OnPostUndoRedo);
+	InterpEdTrans->OnRedo().AddRaw(this, &FMatinee::OnPostUndoRedo);
 	GEditor->Trans = InterpEdTrans;
 
 	// Save viewports' data before it gets overridden by UpdateLevelViewport
@@ -950,7 +959,7 @@ void FMatinee::InitMatinee(const EToolkitMode::Type Mode, const TSharedPtr< clas
 	bIsInitialized = true;
 
 	// register for any actor move change
-	GEngine->OnActorMoved().AddRaw(this, &FMatinee::OnActorMoved);
+	OnActorMovedDelegateHandle = GEngine->OnActorMoved().AddRaw(this, &FMatinee::OnActorMoved);
 
 	// register for any objects replaced
 	GEditor->OnObjectsReplaced().AddSP(this, &FMatinee::OnObjectsReplaced);
@@ -1468,6 +1477,11 @@ void FMatinee::StartRecordingMovie()
 	GUnrealEd->PlayMap(NULL, NULL, 0, -1, false, true);
 }
 
+void FMatinee::OnPostUndoRedo(FUndoSessionContext SessionContext, bool Succeeded)
+{
+	InvalidateTrackWindowViewports();
+}
+
 //Key Command Helpers
 void FMatinee::OnMarkInSection()
 {
@@ -1959,7 +1973,7 @@ void FMatinee::OnClose()
 	}
 
 	// Unregister call back events
-	GEngine->OnActorMoved().RemoveRaw(this, &FMatinee::OnActorMoved);
+	GEngine->OnActorMoved().Remove(OnActorMovedDelegateHandle);
 	GEditor->OnObjectsReplaced().RemoveAll(this);
 
 	// Restore the perspective viewport audio settings when matinee closes.

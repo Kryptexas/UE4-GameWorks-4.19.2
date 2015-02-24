@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Lightmass.h: lightmass import/export definitions.
@@ -19,6 +19,7 @@
 
 #include "Lightmass/LightmassImportanceVolume.h"
 #include "Lightmass/LightmassCharacterIndirectDetailVolume.h"
+#include "GameFramework/WorldSettings.h"
 
 /** Forward declarations of Lightmass types */
 namespace Lightmass

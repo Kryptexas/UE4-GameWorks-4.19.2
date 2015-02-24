@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // PhysicsVolume:  a bounding volume which affects actor physics
@@ -6,6 +6,7 @@
 //=============================================================================
 
 #pragma once
+#include "TimerManager.h"
 #include "GameFramework/PhysicsVolume.h"
 #include "PainCausingVolume.generated.h"
 
@@ -68,6 +69,11 @@ class ENGINE_API APainCausingVolume : public APhysicsVolume
 
 	/** damage overlapping actors if pain causing. */
 	virtual void CausePainTo(class AActor* Other);
+
+protected:
+
+	/** Handle for efficient management of OnTimerTick timer */
+	FTimerHandle TimerHandle_PainTimer;
 };
 
 

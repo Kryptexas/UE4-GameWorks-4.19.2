@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Implements a volume texture atlas for caching indirect lighting on a per-object basis
@@ -747,7 +747,7 @@ void FIndirectLightingCache::InterpolatePoint(
 	else
 	{
 		OutIncidentRadiance = AccumulatedIncidentRadiance;
-		OutDirectionalShadowing = AccumulatedDirectionalShadowing;
+		OutDirectionalShadowing = 1;
 		// Use an unoccluded vector if no valid samples were found for interpolation
 		OutSkyBentNormal = FVector(0, 0, 1);
 	}

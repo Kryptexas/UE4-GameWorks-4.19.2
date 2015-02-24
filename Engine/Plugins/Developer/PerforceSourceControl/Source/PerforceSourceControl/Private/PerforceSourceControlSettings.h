@@ -1,8 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-#include "PerforceConnectionInfo.h"
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "PerforceConnectionInfo.h"
 
 class FPerforceSourceControlSettings
 {

@@ -1,9 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
+#include "Camera/CameraComponent.h"
+#include "Components/DrawFrustumComponent.h"
 
 #define LOCTEXT_NAMESPACE "CameraComponent"
 
@@ -37,19 +39,37 @@ UCameraComponent::UCameraComponent(const FObjectInitializer& ObjectInitializer)
 	SetDeprecatedControllerViewRotation(*this, bUsePawnControlRotation);
 }
 
+#if WITH_EDITORONLY_DATA
+void UCameraComponent::OnComponentDestroyed()
+{
+	Super::OnComponentDestroyed();
+
+	if (ProxyMeshComponent)
+	{
+		ProxyMeshComponent->DestroyComponent();
+	}
+	if (DrawFrustum)
+	{
+		DrawFrustum->DestroyComponent();
+	}
+}
+#endif
+
 void UCameraComponent::OnRegister()
 {
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	if (ProxyMeshComponent == NULL)
 	{
 		ProxyMeshComponent = ConstructObject<UStaticMeshComponent>(UStaticMeshComponent::StaticClass(), GetOuter(), NAME_None, RF_Transactional);
 		ProxyMeshComponent->AttachTo(this);
+		ProxyMeshComponent->AlwaysLoadOnClient = false;
+		ProxyMeshComponent->AlwaysLoadOnServer = false;
 		ProxyMeshComponent->StaticMesh = CameraMesh;
 		ProxyMeshComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 		ProxyMeshComponent->bHiddenInGame = true;
 		ProxyMeshComponent->CastShadow = false;
 		ProxyMeshComponent->PostPhysicsComponentTick.bCanEverTick = false;
-		ProxyMeshComponent->bCreatedByConstructionScript = bCreatedByConstructionScript;
+		ProxyMeshComponent->CreationMethod = CreationMethod;
 		ProxyMeshComponent->RegisterComponentWithWorld(GetWorld());
 	}
 
@@ -59,7 +79,7 @@ void UCameraComponent::OnRegister()
 		DrawFrustum->AttachTo(this);
 		DrawFrustum->AlwaysLoadOnClient = false;
 		DrawFrustum->AlwaysLoadOnServer = false;
-		DrawFrustum->bCreatedByConstructionScript = bCreatedByConstructionScript;
+		DrawFrustum->CreationMethod = CreationMethod;
 		DrawFrustum->RegisterComponentWithWorld(GetWorld());
 	}
 
@@ -113,7 +133,7 @@ void UCameraComponent::PostLoad()
 }
 
 
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 void UCameraComponent::RefreshVisualRepresentation()
 {
 	if (DrawFrustum != NULL)
@@ -145,12 +165,16 @@ void UCameraComponent::RestoreFrustumColor()
 		//Cam->DrawFrustum->FrustumColor = DefCam->DrawFrustum->FrustumColor;
 	}
 }
+#endif
 
+#if WITH_EDITOR
 void UCameraComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
+#if WITH_EDITORONLY_DATA
 	RefreshVisualRepresentation();
+#endif
 }
 #endif
 

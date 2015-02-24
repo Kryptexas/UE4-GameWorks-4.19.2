@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -34,9 +34,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <returns>The view to display a list of Buggs on the client.</returns>
 		public ActionResult Index( FormCollection BuggsForm )
 		{
-			FormHelper FormData = new FormHelper( Request, BuggsForm, "CrashesInTimeFrame" );
-			BuggsViewModel Results = LocalBuggRepository.GetResults( FormData );
-			return View( "Index", Results );
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			{
+				FormHelper FormData = new FormHelper( Request, BuggsForm, "CrashesInTimeFrame" );
+				BuggsViewModel Results = LocalBuggRepository.GetResults( FormData );
+				return View( "Index", Results );
+			}
 		}
 
 		/// <summary>
@@ -47,108 +50,113 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <returns>The view to display a Bugg on the client.</returns>
 		public ActionResult Show( FormCollection BuggsForm, int id )
 		{
-			// Set the display properties based on the radio buttons
-			bool DisplayModuleNames = false;
-			if( BuggsForm["DisplayModuleNames"] == "true" )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(BuggId=" + id + ")" ) )
 			{
-				DisplayModuleNames = true;
-			}
-
-			bool DisplayFunctionNames = false;
-			if( BuggsForm["DisplayFunctionNames"] == "true" )
-			{
-				DisplayFunctionNames = true;
-			}
-
-			bool DisplayFileNames = false;
-			if( BuggsForm["DisplayFileNames"] == "true" )
-			{
-				DisplayFileNames = true;
-			}
-
-			bool DisplayFilePathNames = false;
-			if( BuggsForm["DisplayFilePathNames"] == "true" )
-			{
-				DisplayFilePathNames = true;
-				DisplayFileNames = false;
-			}
-
-			bool DisplayUnformattedCallStack = false;
-			if( BuggsForm["DisplayUnformattedCallStack"] == "true" )
-			{
-				DisplayUnformattedCallStack = true;
-			}
-
-			// Create a new view and populate with crashes
-			List<Crash> Crashes = null;
-			Bugg Bugg = new Bugg();
-
-			BuggViewModel Model = new BuggViewModel();
-			Bugg = LocalBuggRepository.GetBugg( id );
-			if( Bugg == null )
-			{
-				return RedirectToAction( "" );
-			}
-
-			Crashes = Bugg.GetCrashes().ToList();
-
-			// Apply any user settings
-			if( BuggsForm.Count > 0 )
-			{
-				if( !string.IsNullOrEmpty( BuggsForm["SetStatus"] ) )
+				// Set the display properties based on the radio buttons
+				bool DisplayModuleNames = false;
+				if( BuggsForm["DisplayModuleNames"] == "true" )
 				{
-					Bugg.Status = BuggsForm["SetStatus"];
-					LocalCrashRepository.SetBuggStatus( Bugg.Status, id );
+					DisplayModuleNames = true;
 				}
 
-				if( !string.IsNullOrEmpty( BuggsForm["SetFixedIn"] ) )
+				bool DisplayFunctionNames = false;
+				if( BuggsForm["DisplayFunctionNames"] == "true" )
 				{
-					Bugg.FixedChangeList = BuggsForm["SetFixedIn"];
-					LocalCrashRepository.SetBuggFixedChangeList( Bugg.FixedChangeList, id );
+					DisplayFunctionNames = true;
 				}
 
-				if( !string.IsNullOrEmpty( BuggsForm["SetTTP"] ) )
+				bool DisplayFileNames = false;
+				if( BuggsForm["DisplayFileNames"] == "true" )
 				{
-					Bugg.TTPID = BuggsForm["SetTTP"];
-					LocalCrashRepository.SetBuggTTPID( Bugg.TTPID, id );
+					DisplayFileNames = true;
 				}
 
-				if( !string.IsNullOrEmpty( BuggsForm["Description"] ) )
+				bool DisplayFilePathNames = false;
+				if( BuggsForm["DisplayFilePathNames"] == "true" )
 				{
-					Bugg.Description = BuggsForm["Description"];
+					DisplayFilePathNames = true;
+					DisplayFileNames = false;
 				}
 
-				// <STATUS>
-			}
+				bool DisplayUnformattedCallStack = false;
+				if( BuggsForm["DisplayUnformattedCallStack"] == "true" )
+				{
+					DisplayUnformattedCallStack = true;
+				}
 
-			// Set up the view model with the crash data
-			Model.Bugg = Bugg;
-			Model.Crashes = Crashes;
+				// Create a new view and populate with crashes
+				List<Crash> Crashes = null;
+				Bugg Bugg = new Bugg();
 
-			Crash NewCrash = Model.Crashes.FirstOrDefault();
-			if( NewCrash != null )
-			{
-				CallStackContainer CallStack = new CallStackContainer( NewCrash );
+				BuggViewModel Model = new BuggViewModel();
+				Bugg = LocalBuggRepository.GetBugg( id );
+				if( Bugg == null )
+				{
+					return RedirectToAction( "" );
+				}
 
-				// Set callstack properties
-				CallStack.bDisplayModuleNames = DisplayModuleNames;
-				CallStack.bDisplayFunctionNames = DisplayFunctionNames;
-				CallStack.bDisplayFileNames = DisplayFileNames;
-				CallStack.bDisplayFilePathNames = DisplayFilePathNames;
-				CallStack.bDisplayUnformattedCallStack = DisplayUnformattedCallStack;
+				Crashes = Bugg.GetCrashes().ToList();
 
-				Model.CallStack = CallStack;
+				// Apply any user settings
+				if( BuggsForm.Count > 0 )
+				{
+					if( !string.IsNullOrEmpty( BuggsForm["SetStatus"] ) )
+					{
+						Bugg.Status = BuggsForm["SetStatus"];
+						LocalCrashRepository.SetBuggStatus( Bugg.Status, id );
+					}
 
-				NewCrash.CallStackContainer = NewCrash.GetCallStack();
-			}
+					if( !string.IsNullOrEmpty( BuggsForm["SetFixedIn"] ) )
+					{
+						Bugg.FixedChangeList = BuggsForm["SetFixedIn"];
+						LocalCrashRepository.SetBuggFixedChangeList( Bugg.FixedChangeList, id );
+					}
 
-			// Add in the users for each crash in the Bugg
-			foreach( Crash CrashInstance in Model.Crashes )
-			{
-				LocalCrashRepository.PopulateUserInfo( CrashInstance );
-			}
+					if( !string.IsNullOrEmpty( BuggsForm["SetTTP"] ) )
+					{
+						Bugg.TTPID = BuggsForm["SetTTP"];
+						LocalCrashRepository.SetBuggTTPID( Bugg.TTPID, id );
+					}
 
-			return View( "Show", Model );
+					if( !string.IsNullOrEmpty( BuggsForm["Description"] ) )
+					{
+						Bugg.Description = BuggsForm["Description"];
+					}
+
+					// <STATUS>
+				}
+
+				// Set up the view model with the crash data
+				Model.Bugg = Bugg;
+				Model.Crashes = Crashes;
+
+				Crash NewCrash = Model.Crashes.FirstOrDefault();
+				if( NewCrash != null )
+				{
+					CallStackContainer CallStack = new CallStackContainer( NewCrash );
+
+					// Set callstack properties
+					CallStack.bDisplayModuleNames = DisplayModuleNames;
+					CallStack.bDisplayFunctionNames = DisplayFunctionNames;
+					CallStack.bDisplayFileNames = DisplayFileNames;
+					CallStack.bDisplayFilePathNames = DisplayFilePathNames;
+					CallStack.bDisplayUnformattedCallStack = DisplayUnformattedCallStack;
+
+					Model.CallStack = CallStack;
+
+					NewCrash.CallStackContainer = NewCrash.GetCallStack();
+				}
+
+				using( FScopedLogTimer LogTimer2 = new FScopedLogTimer( "BuggsController.Show.PopulateUserInfo" + "(id=" + id + ")" ) )
+				{
+					// Add in the users for each crash in the Bugg
+					foreach( Crash CrashInstance in Model.Crashes )
+					{
+						LocalCrashRepository.PopulateUserInfo( CrashInstance );
+					}
+				}
+				return View( "Show", Model );
+			}	
 		}
 	}
 }

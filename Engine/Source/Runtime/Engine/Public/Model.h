@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Model.h: Unreal UModel definition.
@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "ObjectBase.h"
 #include "LocalVertexFactory.h"
 #include "SceneTypes.h"
 #include "RawIndexBuffer.h"
@@ -410,29 +411,9 @@ private:
 public:
 
 	// Constructors.
-	UModel(const FObjectInitializer& ObjectInitializer)
-	: UObject(ObjectInitializer)
-	, Nodes( this )
-	, Verts( this )
-	, Vectors( this )
-	, Points( this )
-	, Surfs( this )
-	, VertexBuffer( this )
-#if WITH_EDITOR
-	, LightingLevel( NULL )
-#endif // WITH_EDITOR
-	, RootOutside( true )
-	{
-		if ( !HasAnyFlags(RF_ClassDefaultObject) )
-		{
-			EmptyModel( 1, 0 );
-			if( GIsEditor && !FApp::IsGame() )
-			{
-				UpdateVertices();
-			}
-		}
-	}
-	ENGINE_API UModel( const FObjectInitializer& ObjectInitializer,ABrush* Owner, bool InRootOutside=1 );
+	UModel(const FObjectInitializer& ObjectInitializer);
+	ENGINE_API void Initialize();
+	ENGINE_API void Initialize(ABrush* Owner, bool InRootOutside = true);
 
 	// UObject interface.
 	virtual void Serialize( FArchive& Ar );	
@@ -522,6 +503,8 @@ public:
 		const FPlane	&Sphere
 	);
 
+	/* Find the source brush actor associated with this point, or NULL if the point does not lie on a BSP surface. */
+	ENGINE_API ABrush* FindBrush(const FVector &SourcePoint) const;
 
 	/**
 	 * Creates a bounding box for the passed in node

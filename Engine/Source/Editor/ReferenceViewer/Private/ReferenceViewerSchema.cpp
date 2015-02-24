@@ -1,9 +1,27 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ReferenceViewerPrivatePCH.h"
 #include "AssetThumbnail.h"
 #include "ReferenceViewerActions.h"
 #include "GlobalEditorCommonCommands.h"
+
+#include "Editor/GraphEditor/Public/ConnectionDrawingPolicy.h"
+
+// Overridden connection drawing policy to use less curvy lines between nodes
+class FReferenceViewerConnectionDrawingPolicy : public FConnectionDrawingPolicy
+{
+public:
+	FReferenceViewerConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float InZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements)
+		: FConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, InZoomFactor, InClippingRect, InDrawElements)
+	{
+	}
+
+	virtual FVector2D ComputeSplineTangent(const FVector2D& Start, const FVector2D& End) const override
+	{
+		const int32 Tension = FMath::Abs<int32>(Start.X - End.X);
+		return Tension * FVector2D(1.0f, 0);
+	}
+};
 
 //////////////////////////////////////////////////////////////////////////
 // UReferenceViewerSchema
@@ -54,6 +72,11 @@ FPinConnectionResponse UReferenceViewerSchema::CopyPinLinks(UEdGraphPin& CopyFro
 {
 	// Don't allow copying any links
 	return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, TEXT(""));
+}
+
+FConnectionDrawingPolicy* UReferenceViewerSchema::CreateConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float InZoomFactor, const FSlateRect& InClippingRect, class FSlateWindowElementList& InDrawElements, class UEdGraph* InGraphObj) const
+{
+	return new FReferenceViewerConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, InZoomFactor, InClippingRect, InDrawElements);
 }
 
 void UReferenceViewerSchema::GetMakeCollectionWithReferencedAssetsSubMenu( FMenuBuilder& MenuBuilder )

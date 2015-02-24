@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateRHIRendererPrivatePCH.h"
 #include "ElementBatcher.h"
@@ -130,13 +130,10 @@ FSlateRHIRenderer::~FSlateRHIRenderer()
 
 FMatrix FSlateRHIRenderer::CreateProjectionMatrix(uint32 Width, uint32 Height)
 {
-
-	float PixelOffset = GPixelCenterOffset;
-
 	// Create ortho projection matrix
-	const float Left = PixelOffset;
+	const float Left = 0;
 	const float Right = Left + Width;
-	const float Top = PixelOffset;
+	const float Top = 0;
 	const float Bottom = Top + Height;
 	const float ZNear = -100.0f;
 	const float ZFar = 100.0f;
@@ -345,7 +342,7 @@ void FSlateRHIRenderer::UpdateFullscreenState( const TSharedRef<SWindow> Window,
 		uint32 ResX = OverrideResX ? OverrideResX : GSystemResolution.ResX;
 		uint32 ResY = OverrideResY ? OverrideResY : GSystemResolution.ResY;
 
-		if(GIsEditor || Window->GetWindowMode() == EWindowMode::WindowedFullscreen)
+		if( (GIsEditor && Window->IsViewportSizeDrivenByWindow()) || (Window->GetWindowMode() == EWindowMode::WindowedFullscreen))
 		{
 			ResX = ViewInfo->Width;
 			ResY = ViewInfo->Height;
@@ -362,7 +359,10 @@ void FSlateRHIRenderer::RestoreSystemResolution(const TSharedRef<SWindow> InWind
 		// Force the window system to resize the active viewport, even though nothing might have appeared to change.
 		// On windows, DXGI might change the window resolution behind our backs when we alt-tab out. This will make
 		// sure that we are actually in the resolution we think we are.
+#if !PLATFORM_HTML5
+		// @todo: fixme for HTML5. 
 		GSystemResolution.ForceRefresh();
+#endif 
 	}
 }
 
@@ -1095,24 +1095,6 @@ void FSlateRHIRenderer::LoadStyleResources( const ISlateStyle& Style )
 	}
 }
 
-void FSlateRHIRenderer::DisplayTextureAtlases()
-{
-	TSharedRef<SWindow> Window = SNew(SWindow)
-		.SizingRule( ESizingRule::Autosized )
-		.SupportsMaximize(false)
-		.SupportsMinimize(false)
-		.Title( FText::GetEmpty() )
-		[
-			SNew( SBorder )
-			.BorderImage( FCoreStyle::Get().GetBrush("ToolPanel.GroupBorder") )
-			[
-				ResourceManager->CreateTextureDisplayWidget()
-			]
-		];
-
-	FSlateApplication::Get().AddWindow( Window );
-}
-
 void FSlateRHIRenderer::ReleaseDynamicResource( const FSlateBrush& InBrush )
 {
 	ensure( IsInGameThread() );
@@ -1180,6 +1162,16 @@ void FSlateRHIRenderer::ReleaseUpdatableTexture(FSlateUpdatableTexture* Texture)
 		FlushRenderingCommands();
 	}
 	delete Texture;
+}
+
+ISlateAtlasProvider* FSlateRHIRenderer::GetTextureAtlasProvider()
+{
+	if( ResourceManager.IsValid() )
+	{
+		return ResourceManager->GetTextureAtlasProvider();
+	}
+
+	return nullptr;
 }
 
 bool FSlateRHIRenderer::AreShadersInitialized() const

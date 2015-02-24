@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 
@@ -527,7 +527,7 @@ void ReflectionApplyPS(
 				SkyLighting *= GBuffer.IndirectIrradiance;
 			}
 
-			float Visibility = GetDistanceFieldAOSpecularOcclusion(UV, ReflectionVector, GBuffer.Roughness); 
+			float Visibility = GetDistanceFieldAOSpecularOcclusion(UV, ReflectionVector, GBuffer.Roughness, GBuffer.ShadingModelID == SHADINGMODELID_TWOSIDED_FOLIAGE); 
 
 			SpecularLighting.rgb += (Visibility * SpecularLighting.a) * SkyLighting;
 		}

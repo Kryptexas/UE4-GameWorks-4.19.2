@@ -96,7 +96,7 @@ namespace Manzana
         
             DeviceCallbackHandle = new DeviceNotificationCallback(NotifyCallback);
             
-            int ret = MobileDevice.AMDeviceMethods.NotificationSubscribe(DeviceCallbackHandle);
+            int ret = MobileDevice.DeviceImpl.NotificationSubscribe(DeviceCallbackHandle);
             if (ret != 0)
             {
                 throw new Exception("AMDeviceNotificationSubscribe failed with error " + ret);
@@ -195,7 +195,7 @@ namespace Manzana
             drn3 = new DeviceRestoreNotificationCallback(DfuDisconnectCallback);
             drn4 = new DeviceRestoreNotificationCallback(RecoveryDisconnectCallback);
 
-            int ret = MobileDevice.AMDeviceMethods.AMRestoreRegisterForDeviceNotifications(drn1, drn2, drn3, drn4, 0, IntPtr.Zero);
+			int ret = MobileDevice.DeviceImpl.RestoreRegisterForDeviceNotifications(drn1, drn2, drn3, drn4, 0, IntPtr.Zero);
             if (ret != 0)
             {
                 throw new Exception("AMRestoreRegisterForDeviceNotifications failed with error " + ret);
@@ -493,10 +493,32 @@ namespace Manzana
             }
         }
 
+		void RecursiveCopy(string SourceFolderOnPC, string TargetFolderOnDevice)
+		{
+			string[] Directories = System.IO.Directory.GetDirectories(SourceFolderOnPC);
+			foreach (string Directory in Directories)
+			{
+				string NewSourceFolder = Directory;
+				string NewTargetFolder = TargetFolderOnDevice + Directory.Substring(Directory.LastIndexOf(Path.DirectorySeparatorChar)+1) + "/";
+
+				WriteProgressLine("Copying folder {0} to {1}", 0, NewSourceFolder, NewTargetFolder);
+				RecursiveCopy(NewSourceFolder, NewTargetFolder);
+			}
+
+			string[] Filenames = System.IO.Directory.GetFiles(SourceFolderOnPC);
+			foreach (string Filename in Filenames)
+			{
+				string SourceFilename = Filename;
+				string DestFilename = TargetFolderOnDevice + Path.GetFileName(Filename);
+				WriteProgressLine("Copying '{0}' -> '{1}' ...", 0, SourceFilename, DestFilename);
+				CopyFileToPhone(SourceFilename, DestFilename, 1024 * 1024);
+			}
+		}
+
 		public void DumpInstalledApplications()
 		{
 			Dictionary<string, object> AppBundles;
-			MobileDevice.AMDeviceMethods.LookupApplications(iPhoneHandle, IntPtr.Zero, out AppBundles);
+			MobileDevice.DeviceImpl.LookupApplications(iPhoneHandle, IntPtr.Zero, out AppBundles);
 
 			foreach (var Bundle in AppBundles)
 			{
@@ -539,6 +561,118 @@ namespace Manzana
             }
         }
 
+		/// <summary>
+		/// Tries to copy all of the files in a particular directory on the PC to the phone directory
+		/// (requires the bundle identifier to be able to mount that directory)
+		/// </summary>
+		public bool TryCopy(string BundleIdentifier, string SourceFolderOnPC, string TargetFolderOnDevice)
+		{
+			if (ConnectToBundle(BundleIdentifier))
+			{
+				WriteProgressLine("Connected to bundle '{0}'", 0, BundleIdentifier);
+
+				try
+				{
+					RecursiveCopy(SourceFolderOnPC, TargetFolderOnDevice);
+					return true;
+				}
+				catch (Exception ex)
+				{
+					WriteProgressLine("Failed to transfer a file, extended error is '{0}'", 100, ex.Message);
+					return false;
+				}
+			}
+			else
+			{
+				WriteProgressLine("Error: Failed to connect to bundle '{0}'", 100, BundleIdentifier);
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Tries to copy all of the files in the manifest on the PC to the documents directory
+		/// (requires the bundle identifier to be able to mount that directory)
+		/// </summary>
+		public bool TryCopy(string BundleIdentifier, string Manifest)
+		{
+			if (ConnectToBundle(BundleIdentifier))
+			{
+				WriteProgressLine("Connected to bundle '{0}'", 0, BundleIdentifier);
+
+				try
+				{
+					string BaseFolder = Path.GetDirectoryName(Manifest);
+					string Files = File.ReadAllText(Manifest);
+					string[] FileList = Files.Split('\n');
+					foreach (string Filename in FileList)
+					{
+						if (!string.IsNullOrEmpty(Filename) && !string.IsNullOrWhiteSpace(Filename))
+						{
+							string Trimmed = Filename.Trim();
+							string SourceFilename = BaseFolder + "\\" + Trimmed;
+							SourceFilename = SourceFilename.Replace('/', '\\');
+							string DestFilename = "/Documents/" + Trimmed.Replace("cookeddata/", "");
+							DestFilename = DestFilename.Replace('\\', '/');
+							WriteProgressLine("Copying '{0}' -> '{1}' ...", 0, SourceFilename, DestFilename);
+							CopyFileToPhone(SourceFilename, DestFilename, 1024 * 1024);
+						}
+					}
+					return true;
+				}
+				catch (Exception ex)
+				{
+					WriteProgressLine("Failed to transfer a file, extended error is '{0}'", 100, ex.Message);
+					return false;
+				}
+			}
+			else
+			{
+				WriteProgressLine("Error: Failed to connect to bundle '{0}'", 100, BundleIdentifier);
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Tries to copy all of the files in a particular directory on the PC to the phone directory
+		/// (requires the bundle identifier to be able to mount that directory)
+		/// </summary>
+		public bool TryBackup(string BundleIdentifier, string[] Files)
+		{
+			if (ConnectToBundle(BundleIdentifier))
+			{
+				WriteProgressLine("Connected to bundle '{0}'", 0, BundleIdentifier);
+
+				try
+				{
+					string SafeDeviceName = MobileDeviceInstance.SanitizePathNoFilename(DeviceName);
+					foreach (string Filename in Files)
+					{
+						//						string BaseFolder = Path.GetDirectoryName(Filename);
+						string Manifest = Path.GetDirectoryName(Filename) + "\\" + SafeDeviceName + "_" + Path.GetFileName(Filename);
+						CopyFileFromPhone(Manifest, "/Documents/" + Path.GetFileName(Filename), 1024 * 1024);
+					}
+					return true;
+				}
+				catch (Exception ex)
+				{
+					WriteProgressLine("Failed to transfer a file, extended error is '{0}'", 100, ex.Message);
+					return false;
+				}
+			}
+			else
+			{
+				string SafeDeviceName = MobileDeviceInstance.SanitizePathNoFilename(DeviceName);
+				foreach (string Filename in Files)
+				{
+					//						string BaseFolder = Path.GetDirectoryName(Filename);
+					string Manifest = Path.GetDirectoryName (Filename) + "\\" + SafeDeviceName + "_" + Path.GetFileName (Filename);
+					File.WriteAllText (Manifest, "");
+				}
+				WriteProgressLine("Error: Failed to connect to bundle '{0}'", 100, BundleIdentifier);
+				return false;
+			}
+		}
+
         /// <summary>
         /// Returns the names of files in a specified directory
         /// </summary>
@@ -559,14 +693,14 @@ namespace Manzana
             string full_path = FullPath(CurrentDirectory, path);
 
             IntPtr hAFCDir = IntPtr.Zero;
-            if (MobileDevice.AFCDirectoryOpen(AFCCommsHandle, full_path, ref hAFCDir) != 0)
+            if (MobileDevice.DeviceImpl.DirectoryOpen(AFCCommsHandle, full_path, ref hAFCDir) != 0)
             {
                 throw new Exception("Path does not exist");
             }
 
             string buffer = null;
             ArrayList paths = new ArrayList();
-            MobileDevice.AFCDirectoryRead(AFCCommsHandle, hAFCDir, ref buffer);
+			MobileDevice.DeviceImpl.DirectoryRead(AFCCommsHandle, hAFCDir, ref buffer);
 
             while (buffer != null)
             {
@@ -581,9 +715,9 @@ namespace Manzana
                         paths.Add(buffer + "/");
                     }
                 }
-                MobileDevice.AFCDirectoryRead(AFCCommsHandle, hAFCDir, ref buffer);
+				MobileDevice.DeviceImpl.DirectoryRead(AFCCommsHandle, hAFCDir, ref buffer);
             }
-            MobileDevice.AFC.DirectoryClose(AFCCommsHandle, hAFCDir);
+            MobileDevice.DeviceImpl.DirectoryClose(AFCCommsHandle, hAFCDir);
             return (string[])paths.ToArray(typeof(string));
         }
 
@@ -596,13 +730,13 @@ namespace Manzana
             Dictionary<string, string> ans = new Dictionary<string, string>();
             TypedPtr<AFCDictionary> Data;
 
-            int ret = MobileDevice.AFC.FileInfoOpen(AFCCommsHandle, path, out Data);
+			int ret = MobileDevice.DeviceImpl.FileInfoOpen(AFCCommsHandle, path, out Data);
             if ((ret == 0) && (Data.Handle != IntPtr.Zero))
             {
                 IntPtr pname;
                 IntPtr pvalue;
 
-                while (MobileDevice.AFC.KeyValueRead(Data, out pname, out pvalue) == 0 && pname != null && pvalue != null)
+				while (MobileDevice.DeviceImpl.KeyValueRead(Data, out pname, out pvalue) == 0 && pname != IntPtr.Zero && pvalue != IntPtr.Zero)
                 {
                     string name = Marshal.PtrToStringAnsi(pname);
                     string value = Marshal.PtrToStringAnsi(pvalue);
@@ -616,7 +750,7 @@ namespace Manzana
                     }
                 }
 
-                MobileDevice.AFC.KeyValueClose(Data);
+				MobileDevice.DeviceImpl.KeyValueClose(Data);
             }
 
             return ans;
@@ -661,9 +795,9 @@ namespace Manzana
                 // test for symbolic directory link
                 IntPtr hAFCDir = IntPtr.Zero;
 
-                if (directory = (MobileDevice.AFCDirectoryOpen(AFCCommsHandle, path, ref hAFCDir) == 0))
+				if (directory = (MobileDevice.DeviceImpl.DirectoryOpen(AFCCommsHandle, path, ref hAFCDir) == 0))
                 {
-                    MobileDevice.AFC.DirectoryClose(AFCCommsHandle, hAFCDir);
+					MobileDevice.DeviceImpl.DirectoryClose(AFCCommsHandle, hAFCDir);
                 }
             }
         }
@@ -689,7 +823,7 @@ namespace Manzana
         /// <returns>true if directory was created</returns>
         public bool CreateDirectory(string path)
         {
-            return !(MobileDevice.AFC.DirectoryCreate(AFCCommsHandle, FullPath(CurrentDirectory, path)) != 0);
+			return !(MobileDevice.DeviceImpl.DirectoryCreate(AFCCommsHandle, FullPath(CurrentDirectory, path)) != 0);
         }
 
         /// <summary>
@@ -708,7 +842,7 @@ namespace Manzana
             string full_path = FullPath(CurrentDirectory, path);
             //full_path = "/private"; // bug test
 
-            int res = MobileDevice.AFCDirectoryOpen(AFCCommsHandle, full_path, ref hAFCDir);
+			int res = MobileDevice.DeviceImpl.DirectoryOpen(AFCCommsHandle, full_path, ref hAFCDir);
             if (res != 0)
             {
                 throw new Exception("Path does not exist: " + res.ToString());
@@ -716,7 +850,7 @@ namespace Manzana
 
             string buffer = null;
             ArrayList paths = new ArrayList();
-            MobileDevice.AFCDirectoryRead(AFCCommsHandle, hAFCDir, ref buffer);
+			MobileDevice.DeviceImpl.DirectoryRead(AFCCommsHandle, hAFCDir, ref buffer);
 
             while (buffer != null)
             {
@@ -724,9 +858,9 @@ namespace Manzana
                 {
                     paths.Add(buffer);
                 }
-                MobileDevice.AFCDirectoryRead(AFCCommsHandle, hAFCDir, ref buffer);
+				MobileDevice.DeviceImpl.DirectoryRead(AFCCommsHandle, hAFCDir, ref buffer);
             }
-            MobileDevice.AFC.DirectoryClose(AFCCommsHandle, hAFCDir);
+			MobileDevice.DeviceImpl.DirectoryClose(AFCCommsHandle, hAFCDir);
             return (string[])paths.ToArray(typeof(string));
         }
 
@@ -738,7 +872,7 @@ namespace Manzana
         ///	<remarks>Files cannot be moved across filesystem boundaries.</remarks>
         public bool Rename(string sourceName, string destName)
         {
-            return MobileDevice.AFC.RenamePath(AFCCommsHandle, FullPath(CurrentDirectory, sourceName), FullPath(CurrentDirectory, destName)) == 0;
+			return MobileDevice.DeviceImpl.RenamePath(AFCCommsHandle, FullPath(CurrentDirectory, sourceName), FullPath(CurrentDirectory, destName)) == 0;
         }
 
         /// <summary>
@@ -760,10 +894,10 @@ namespace Manzana
         {
             TypedPtr<AFCDictionary> data = IntPtr.Zero;
 
-            int ret = MobileDevice.AFC.FileInfoOpen(AFCCommsHandle, path, out data);
+			int ret = MobileDevice.DeviceImpl.FileInfoOpen(AFCCommsHandle, path, out data);
             if (ret == 0)
             {
-                MobileDevice.AFC.KeyValueClose(data);
+				MobileDevice.DeviceImpl.KeyValueClose(data);
             }
 
             return ret == 0;
@@ -812,7 +946,7 @@ namespace Manzana
             string full_path = FullPath(CurrentDirectory, path);
             if (IsDirectory(full_path))
             {
-                MobileDevice.AFC.RemovePath(AFCCommsHandle, full_path);
+				MobileDevice.DeviceImpl.RemovePath(AFCCommsHandle, full_path);
             }
         }
 
@@ -846,7 +980,7 @@ namespace Manzana
             string full_path = FullPath(CurrentDirectory, path);
             if (Exists(full_path))
             {
-                MobileDevice.AFC.RemovePath(AFCCommsHandle, full_path);
+				MobileDevice.DeviceImpl.RemovePath(AFCCommsHandle, full_path);
             }
         }
         #endregion	// Filesystem
@@ -860,9 +994,9 @@ namespace Manzana
         {
             if (AFCCommsHandle.Handle != IntPtr.Zero)
             {
-                int ans = MobileDevice.AFC.ConnectionClose(AFCCommsHandle);
-                ans = MobileDevice.AMDeviceMethods.StopSession(iPhoneHandle);
-                ans = MobileDevice.AMDeviceMethods.Disconnect(iPhoneHandle);
+				MobileDevice.DeviceImpl.ConnectionClose(AFCCommsHandle);
+				MobileDevice.DeviceImpl.StopSession(iPhoneHandle);
+				MobileDevice.DeviceImpl.Disconnect(iPhoneHandle);
             }
 
             AFCCommsHandle = IntPtr.Zero;
@@ -930,7 +1064,7 @@ namespace Manzana
                 TotalBytesRead += BytesRead;
             }
 
-            DestinationFile.Flush();
+			//            DestinationFile.Flush();
             DestinationFile.Close();
             SourceFile.Close();
 
@@ -942,7 +1076,7 @@ namespace Manzana
         void SetLoggingLevel(int Threshold)
         {
             Int32 LoggingThreshold = Math.Min(Math.Max(0, Threshold), 7);
-            MobileDevice.CFPreferencesSetAppValue(
+            MobileDevice.CoreImpl.CFPreferencesSetAppValue(
                 (IntPtr)MobileDevice.CFStringMakeConstantString("LogLevel"),
                 (IntPtr)MobileDevice.CFNumberCreate(LoggingThreshold),
                 (IntPtr)MobileDevice.CFStringMakeConstantString("com.apple.MobileDevice"));
@@ -952,7 +1086,7 @@ namespace Manzana
         {
             string Line = String.Format(Fmt, Args);
 
-            if (OnGenericProgress != null)
+           if (OnGenericProgress != null)
             {
                 OnGenericProgress(Line, ProgressCount);
             }
@@ -1022,7 +1156,7 @@ namespace Manzana
         void ReconnectWithInstallProxy()
         {
             Reconnect();
-            if (MobileDevice.AMDeviceMethods.StartService(iPhoneHandle, MobileDevice.CFStringMakeConstantString("com.apple.mobile.installation_proxy"), ref hInstallService, IntPtr.Zero) != 0)
+			if (MobileDevice.DeviceImpl.StartService(iPhoneHandle, MobileDevice.CFStringMakeConstantString("com.apple.mobile.installation_proxy"), ref hInstallService, IntPtr.Zero) != 0)
             {
                 Console.WriteLine("Unable to start installation_proxy service!");
             }
@@ -1038,7 +1172,7 @@ namespace Manzana
         /// </summary>
         void HandleProgressCallback(string OuterFunction, TypedPtr<CFDictionary> SourceDict)
         {
-            Dictionary<string, object> Dict = MobileDevice.ConvertCFDictionaryToDictionaryStringy(SourceDict);
+            Dictionary<string, object> Dict = MobileDevice.ConvertCFDictionaryToDictionaryString(SourceDict);
 
             // Expecting:
             // string,string -> "Status",PhaseOfInstaller
@@ -1092,9 +1226,9 @@ namespace Manzana
             IntPtr ClientOptions = IntPtr.Zero;
 
             TypedPtr<CFURL> UrlPath = MobileDevice.CreateFileUrlHelper(IPASourcePathOnPC, false);
-            string UrlPathAsString = MobileDevice.GetStringForUrl(UrlPath);
+			//            string UrlPathAsString = MobileDevice.GetStringForUrl(UrlPath);
 
-            int Result = MobileDevice.AMDeviceMethods.SecureInstallApplication(LiveConnection, iPhoneHandle, UrlPath, ClientOptions, InstallProgressCallback, IntPtr.Zero);
+			int Result = MobileDevice.DeviceImpl.SecureInstallApplication(LiveConnection, iPhoneHandle, UrlPath, ClientOptions, InstallProgressCallback, IntPtr.Zero);
             if (Result == 0)
             {
                 Console.WriteLine("Install of \"{0}\" completed successfully in {2:0.00} seconds", Path.GetFileName(IPASourcePathOnPC), Result, (DateTime.Now - StartTime).TotalSeconds);
@@ -1120,9 +1254,9 @@ namespace Manzana
             IntPtr ClientOptions = IntPtr.Zero;
 
             TypedPtr<CFURL> UrlPath = MobileDevice.CreateFileUrlHelper(IPASourcePathOnPC, false);
-            string UrlPathAsString = MobileDevice.GetStringForUrl(UrlPath);
+			//            string UrlPathAsString = MobileDevice.GetStringForUrl(UrlPath);
 
-            int Result = MobileDevice.AMDeviceMethods.SecureUpgradeApplication(LiveConnection, iPhoneHandle, UrlPath, ClientOptions, InstallProgressCallback, IntPtr.Zero);
+			int Result = MobileDevice.DeviceImpl.SecureUpgradeApplication(LiveConnection, iPhoneHandle, UrlPath, ClientOptions, InstallProgressCallback, IntPtr.Zero);
 
             if (Result == 0)
             {
@@ -1145,11 +1279,11 @@ namespace Manzana
             TypedPtr<CFString> CF_ApplicationIdentifier = MobileDevice.CFStringMakeConstantString(ApplicationIdentifier);
 
             IntPtr CF_ClientOptions = IntPtr.Zero;
-            IntPtr ExtraKey = IntPtr.Zero;
-            IntPtr ExtraValue = IntPtr.Zero;
+			//            IntPtr ExtraKey = IntPtr.Zero;
+			//            IntPtr ExtraValue = IntPtr.Zero;
             IntPtr ConnectionHandle = IntPtr.Zero;
 
-            int Result = MobileDevice.AMDeviceMethods.SecureUninstallApplication(ConnectionHandle, iPhoneHandle, CF_ApplicationIdentifier, CF_ClientOptions, UninstallProgressCallback, IntPtr.Zero);
+			int Result = MobileDevice.DeviceImpl.SecureUninstallApplication(ConnectionHandle, iPhoneHandle, CF_ApplicationIdentifier, CF_ClientOptions, UninstallProgressCallback, IntPtr.Zero);
 
             if (Result == 0)
             {
@@ -1180,35 +1314,35 @@ namespace Manzana
             SetLoggingLevel(7);
 
             // Make sure we can connect to the phone and that it has been paired with this machine previously
-            if (MobileDevice.AMDeviceMethods.Connect(iPhoneHandle) != 0)
+			if (MobileDevice.DeviceImpl.Connect(iPhoneHandle) != 0)
             {
                 return false;
             }
 
-            if (MobileDevice.AMDeviceMethods.IsPaired(iPhoneHandle) != 1)
+			if (MobileDevice.DeviceImpl.IsPaired(iPhoneHandle) != 1)
             {
                 return false;
             }
 
-            if (MobileDevice.AMDeviceMethods.ValidatePairing(iPhoneHandle) != 0)
+			if (MobileDevice.DeviceImpl.ValidatePairing(iPhoneHandle) != 0)
             {
                 return false;
             }
 
             // Start a session
-            if (MobileDevice.AMDeviceMethods.StartSession(iPhoneHandle) == 1)
+			if (MobileDevice.DeviceImpl.StartSession(iPhoneHandle) == 1)
             {
                 return false;
             }
 
-            if (MobileDevice.AMDeviceMethods.StartService(iPhoneHandle, MobileDevice.CFStringMakeConstantString("com.apple.afc"), ref hService, IntPtr.Zero) != 0)
+			if (MobileDevice.DeviceImpl.StartService(iPhoneHandle, MobileDevice.CFStringMakeConstantString("com.apple.afc"), ref hService, IntPtr.Zero) != 0)
             {
                 return false;
             }
 
 
             // Open a file sharing connection
-            if (MobileDevice.AFC.ConnectionOpen(hService, 0, out AFCCommsHandle) != 0)
+			if (MobileDevice.DeviceImpl.ConnectionOpen(hService, 0, out AFCCommsHandle) != 0)
             {
                 return false;
             }
@@ -1224,7 +1358,7 @@ namespace Manzana
             TypedPtr<CFString> CFBundleName = MobileDevice.CFStringMakeConstantString(BundleName);
 
             // Open the bundle
-            int Result = MobileDevice.AMDeviceMethods.StartHouseArrestService(iPhoneHandle, CFBundleName, IntPtr.Zero, ref hService, 0); 
+			int Result = MobileDevice.DeviceImpl.StartHouseArrestService(iPhoneHandle, CFBundleName, IntPtr.Zero, ref hService, 0); 
             if (Result != 0)
             {
                 Console.WriteLine("Failed to connect to bundle '{0}' with {1}", BundleName, MobileDevice.GetErrorString(Result));
@@ -1232,7 +1366,7 @@ namespace Manzana
             }
 
             // Open a file sharing connection
-            if (MobileDevice.AFC.ConnectionOpen(hService, 0, out AFCCommsHandle) != 0)
+			if (MobileDevice.DeviceImpl.ConnectionOpen(hService, 0, out AFCCommsHandle) != 0)
             {
                 return false;
             }

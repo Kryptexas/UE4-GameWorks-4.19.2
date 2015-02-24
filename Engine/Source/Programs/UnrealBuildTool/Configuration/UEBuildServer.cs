@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -76,9 +76,6 @@ namespace UnrealBuildTool
 			ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
 			)
 		{
-			// Dedicated server
-			UEBuildConfiguration.bBuildDedicatedServer = true;
-
 			UEBuildConfiguration.bCompileLeanAndMeanUE = true;
 
 			// Do not include the editor

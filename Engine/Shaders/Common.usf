@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Common.usf: Common shader code
@@ -9,7 +9,12 @@
 #if PS4_PROFILE  
 	// always #include PS4Common.usf so it can #define override anything in any other included file.
 	#include "PS4/PS4Common.usf"
-#endif 
+#endif
+
+#if METAL_PROFILE || METAL_MRT_PROFILE
+	// Helps with iteration when changing Metal shader code generation backend.
+	#include "MetalCommon.usf"
+#endif
 
 #ifndef FORCE_FLOATS
 #define FORCE_FLOATS 0
@@ -91,15 +96,11 @@
 
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM5
 
-#elif SM5_PROFILE || SM4_PROFILE
-	 
+#elif SM5_PROFILE
 	// SM5 = full dx11 features (high end UE4 rendering)
-	#if SM5_PROFILE
-		#define FEATURE_LEVEL FEATURE_LEVEL_SM5
-	#elif  SM4_PROFILE
-		#define FEATURE_LEVEL FEATURE_LEVEL_SM4
-	#endif
-
+	#define FEATURE_LEVEL FEATURE_LEVEL_SM5
+#elif SM4_PROFILE
+	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
 #elif GL3_PROFILE || GL4_PROFILE
 
 	#if GL3_PROFILE
@@ -118,9 +119,15 @@
 	#endif
 #elif METAL_PROFILE
 	#define FEATURE_LEVEL  FEATURE_LEVEL_ES3_1
+	// @todo metal: remove this and make sure all uses handle METAL_PROFILE
+	#undef ES3_1_PROFILE
+	#define ES3_1_PROFILE 1
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra  
 #elif METAL_MRT_PROFILE
 	#define FEATURE_LEVEL FEATURE_LEVEL_SM4
+	// @todo metal: remove this and make sure all uses handle METAL_MRT_PROFILE
+	#undef SM4_PROFILE
+	#define SM4_PROFILE 1
 	#define FCOLOR_COMPONENT_SWIZZLE .bgra  
 #elif ES2_PROFILE || ES3_1_PROFILE
 	//@todo ES3_1 GL
@@ -145,6 +152,10 @@
 
 #endif
 
+#ifndef ES2_EMULATION
+#define ES2_EMULATION ((FEATURE_LEVEL == FEATURE_LEVEL_ES2) && (!COMPILER_GLSL_ES2 && COMPILE_SHADERS_FOR_DEVELOPMENT && !METAL_PROFILE))
+#endif
+
 // If we didn't request color component swizzling, just make it empty
 #ifndef FCOLOR_COMPONENT_SWIZZLE
 #define FCOLOR_COMPONENT_SWIZZLE
@@ -153,7 +164,8 @@
 // Whether the platform supports independent texture and samplers
 // When enabled, different texture lookups can share samplers to allow more artist samplers in the base pass
 // Ideally this would just be enabled for all SM4 and above feature level platforms
-#define SUPPORTS_INDEPENDENT_SAMPLERS (PS4_PROFILE || SM5_PROFILE || SM4_PROFILE)
+// @todo metal mrt: No reason this can't work with Metal, once cross compiler is fixed
+#define SUPPORTS_INDEPENDENT_SAMPLERS ((PS4_PROFILE || SM5_PROFILE || SM4_PROFILE) && !METAL_MRT_PROFILE)
 
 // This would need to be a #define in GLSL to ignore the SamplerState, however, it is currently a function call in HLSL
 // for type checking of the parameters - ironically the type checking is really only needed in GLSL!
@@ -369,6 +381,8 @@ SamplerState	LightAttenuationTextureSampler;
 // We don't use a function so we can avoid type promotion/ coercion.
 #define TangentBias(X) (X * 2.0f - 1.0f)
 
+#define TERRAIN_ZSCALE				(1.0f/128.0f)
+
 float Square( float x )
 {
 	return x*x;
@@ -436,7 +450,7 @@ MaterialFloat4 EncodeLightAttenuation(MaterialFloat4 InColor)
 /** return the scene lighting texture */
 MaterialFloat3 CalcSceneColor(MaterialFloat2 ScreenUV)
 {
-	return Texture2DSample(SceneColorTexture, SceneColorTextureSampler,ScreenUV).rgb;
+	return Texture2DSampleLevel(SceneColorTexture, SceneColorTextureSampler, ScreenUV, 0).rgb;
 }
 
 /** return all channels of the scene lighting texture */
@@ -618,7 +632,7 @@ float CalcSceneDepth( float2 ScreenUV )
 #endif
 }
 
-#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4
+#if FEATURE_LEVEL >= FEATURE_LEVEL_SM4 || ES2_EMULATION
 
 	// depth in in DeviceZ
 	Texture2D<float> SceneDepthTextureNonMS;

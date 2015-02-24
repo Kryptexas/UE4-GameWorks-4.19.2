@@ -1,10 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 
 /** A Delegate for passing along a string of a source code location to access */
 DECLARE_DELEGATE_RetVal_ThreeParams(bool, FAccessSourceCode, const FString& /*FileName*/, int32 /*InLineNumber*/, int32 /*InColumnNumber*/);
+
+/** A Delegate for an asset object to access */
+DECLARE_DELEGATE_RetVal_OneParam(bool, FAccessAsset, UObject* /*InAsset*/);
 
 
 /**
@@ -64,6 +67,11 @@ public:
 	 * @param InDelegate A delegate to access source code with.
 	 */
 	virtual void SetSourceAccessDelegate( FAccessSourceCode InDelegate ) = 0;
+
+	/**
+	* @param InDelegate A delegate to access assets with.
+	*/
+	virtual void SetAssetAccessDelegate(FAccessAsset InDelegate) = 0;
 	
 	/**
 	 * @param ThisWindow    Do we want to draw something for this window?

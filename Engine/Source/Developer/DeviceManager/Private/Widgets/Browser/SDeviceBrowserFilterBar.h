@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -47,13 +47,13 @@ private:
 	void HandleFilterStringTextChanged(const FText& NewText);
 
 	// Callback for changing the checked state of the given platform filter row.
-	void HandlePlatformListRowCheckStateChanged(ESlateCheckBoxState::Type CheckState, TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry);
+	void HandlePlatformListRowCheckStateChanged(ECheckBoxState CheckState, TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry);
 
 	// Callback for getting the checked state of the given platform filter row.
-	ESlateCheckBoxState::Type HandlePlatformListRowIsChecked(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const;
+	ECheckBoxState HandlePlatformListRowIsChecked(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const;
 
 	// Callback for getting the text for a row in the platform filter drop-down.
-	FString HandlePlatformListRowText(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const;
+	FText HandlePlatformListRowText(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const;
 
 	// Generates a row widget for the platform filter list.
 	TSharedRef<ITableRow> HandlePlatformListViewGenerateRow(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry, const TSharedRef<STableViewBase>& OwnerTable);

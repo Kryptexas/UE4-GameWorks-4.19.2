@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -628,6 +628,9 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 		/** Clears all categories in the local workspace menu */
 		void ClearLocalWorkspaceMenuCategories();
 
+		/** @return true if the tab has a factory registered for it that allows it to be spawned. */
+		bool CanSpawnTab( FName TabId );
+
 	protected:
 		void InvokeTabForMenu( FName TabId );
 
@@ -753,10 +756,20 @@ public:
 	static const TSharedRef<FGlobalTabmanager>& Get();
 
 	/** Subscribe to notifications about the active tab changing */
-	void OnActiveTabChanged_Subscribe( const FOnActiveTabChanged::FDelegate& InDelegate );
+	FDelegateHandle OnActiveTabChanged_Subscribe( const FOnActiveTabChanged::FDelegate& InDelegate );
 
 	/** Unsubscribe to notifications about the active tab changing */
+	DELEGATE_DEPRECATED("This overload of OnActiveTabChanged_Unsubscribe is deprecated, instead pass the result of OnActiveTabChanged_Subscribe.")
 	void OnActiveTabChanged_Unsubscribe( const FOnActiveTabChanged::FDelegate& InDelegate );
+
+	/** Unsubscribe to notifications about the active tab changing */
+	void OnActiveTabChanged_Unsubscribe( FDelegateHandle Handle );
+
+	/** Subscribe to notifications about a foreground tab changing */
+	FDelegateHandle OnTabForegrounded_Subscribe(const FOnActiveTabChanged::FDelegate& InDelegate);
+
+	/** Unsubscribe to notifications about a foreground tab changing */
+	void OnTabForegrounded_Unsubscribe(FDelegateHandle Handle);
 
 	/** @return the currently active tab; NULL pointer if there is no active tab */
 	TSharedPtr<SDockTab> GetActiveTab() const;
@@ -778,6 +791,9 @@ public:
 	}
 
 	virtual bool CanCloseManager( const TSet< TSharedRef<SDockTab> >& TabsToIgnore = TSet< TSharedRef<SDockTab> >()) override;
+
+	/** Gets the major tab for the manager */
+	TSharedPtr<SDockTab> GetMajorTabForTabManager(const TSharedRef<FTabManager>& ChildManager);
 
 	/** Draw the user's attention to a child tab manager */
 	void DrawAttentionToTabManager( const TSharedRef<FTabManager>& ChildManager );
@@ -883,6 +899,8 @@ private:
 	TWeakPtr<SDockTab> ActiveTabPtr;
 
 	FOnActiveTabChanged OnActiveTabChanged;
+
+	FOnActiveTabChanged TabForegrounded;
 
 	FText AppTitle;
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
@@ -19,6 +19,10 @@
 #include "PhysicsEngine/BodySetup2D.h"
 #include "PhysicsEngine/AggregateGeometry2D.h"
 #endif	//WITH_BOX2D
+#include "Components/ModelComponent.h"
+#include "Components/BrushComponent.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 ////////////////////////////////////////////////////////////////////////////
 // FCollisionResponse
@@ -56,6 +60,14 @@ void FCollisionResponse::SetResponse(ECollisionChannel Channel, ECollisionRespon
 void FCollisionResponse::SetAllChannels(ECollisionResponse NewResponse)
 {
 	ResponseToChannels.SetAllChannels(NewResponse);
+#if 1// @hack until PostLoad is disabled for CDO of BP WITH_EDITOR
+	UpdateArrayFromResponseContainer();
+#endif
+}
+
+void FCollisionResponse::ReplaceChannels(ECollisionResponse OldResponse, ECollisionResponse NewResponse)
+{
+	ResponseToChannels.ReplaceChannels(OldResponse, NewResponse);
 #if 1// @hack until PostLoad is disabled for CDO of BP WITH_EDITOR
 	UpdateArrayFromResponseContainer();
 #endif
@@ -190,7 +202,6 @@ FBodyInstance::FBodyInstance()
 , Scale3D(1.0f)
 , SceneIndexSync(0)
 , SceneIndexAsync(0)
-, bEnableCollision_DEPRECATED(true)
 , CollisionProfileName(UCollisionProfile::CustomCollisionProfileName)
 , CollisionEnabled(ECollisionEnabled::QueryAndPhysics)
 , ObjectType(ECC_WorldStatic)
@@ -201,14 +212,16 @@ FBodyInstance::FBodyInstance()
 , bWelded(false)
 , bStartAwake(true)
 , bEnableGravity(true)
-, bUseAsyncScene(false)
 , bUpdateMassWhenScaleChanges(false)
 , bOverrideMass(false)
 , MassInKg(100.f)
 , LockedAxisMode(0)
 , CustomLockedAxis(FVector::ZeroVector)
+, bLockTranslation(true)
+, bLockRotation(true)
 , DOFConstraint(NULL)
 , WeldParent(NULL)
+, bUseAsyncScene(false)
 , bOverrideWalkableSlopeOnInstance(false)
 , bOverrideMaxDepenetrationVelocity(false)
 , MaxDepenetrationVelocity(0.f)
@@ -275,19 +288,6 @@ FBodyInstance* FindParentBodyInstance(FName BodyName, USkeletalMeshComponent* Sk
 	}
 
 	return NULL;
-}
-
-void FBodyInstance::UpdateFromDeprecatedEnableCollision()
-{
-	//@todo should I invalidate profile name if this happens?
-	if(bEnableCollision_DEPRECATED)
-	{
-		CollisionEnabled = ECollisionEnabled::QueryAndPhysics;
-	}
-	else
-	{
-		CollisionEnabled = ECollisionEnabled::NoCollision;
-	}
 }
 
 #if WITH_PHYSX
@@ -468,6 +468,14 @@ void FBodyInstance::SetResponseToAllChannels(ECollisionResponse NewResponse)
 	UpdatePhysicsFilterData();
 }
 	
+void FBodyInstance::ReplaceResponseToChannels(ECollisionResponse OldResponse, ECollisionResponse NewResponse)
+{
+	InvalidateCollisionProfileName();
+	ResponseToChannels_DEPRECATED.ReplaceChannels(OldResponse, NewResponse);
+	CollisionResponses.ReplaceChannels(OldResponse, NewResponse);
+	UpdatePhysicsFilterData();
+}
+
 void FBodyInstance::SetResponseToChannels(const FCollisionResponseContainer& NewReponses)
 {
 	InvalidateCollisionProfileName();
@@ -505,6 +513,12 @@ FName FBodyInstance::GetCollisionProfileName() const
 bool FBodyInstance::DoesUseCollisionProfile() const
 {
 	return IsValidCollisionProfileName(CollisionProfileName);
+}
+
+void FBodyInstance::SetMassScale(float InMassScale)
+{
+	MassScale = InMassScale;
+	UpdateMassProperties();
 }
 
 void FBodyInstance::SetCollisionEnabled(ECollisionEnabled::Type NewType, bool bUpdatePhysicsFilterData)
@@ -577,15 +591,15 @@ void FBodyInstance::CreateDOFLock()
 		DOFConstraint->bTwistLimitSoft = false;
 		DOFConstraint->bLinearLimitSoft = false;
 		//set all rotation to free
-		DOFConstraint->AngularSwing1Motion = EAngularConstraintMotion::ACM_Locked;
-		DOFConstraint->AngularSwing2Motion = EAngularConstraintMotion::ACM_Locked;
+		DOFConstraint->AngularSwing1Motion = bLockRotation ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free;
+		DOFConstraint->AngularSwing2Motion = bLockRotation ? EAngularConstraintMotion::ACM_Locked : EAngularConstraintMotion::ACM_Free;
 		DOFConstraint->AngularTwistMotion = EAngularConstraintMotion::ACM_Free;
 
-		DOFConstraint->LinearXMotion = ELinearConstraintMotion::LCM_Locked;
+		DOFConstraint->LinearXMotion = bLockTranslation ? ELinearConstraintMotion::LCM_Locked : ELinearConstraintMotion::LCM_Free;
 		DOFConstraint->LinearYMotion = ELinearConstraintMotion::LCM_Free;
 		DOFConstraint->LinearZMotion = ELinearConstraintMotion::LCM_Free;
 
-		FVector Normal = LockedAxis.SafeNormal();
+		FVector Normal = LockedAxis.GetSafeNormal();
 		FVector Sec;
 		FVector Garbage;
 		Normal.FindBestAxisVectors(Garbage, Sec);
@@ -643,8 +657,8 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 			bool bUseNotify = bNotifyOverride ? *bNotifyOverride : BI->bNotifyRigidBodyCollision;
 
 
-			AActor* Owner = BI->OwnerComponent.IsValid() ? BI->OwnerComponent.Get()->GetOwner() : NULL;
-			int32 OwnerID = (Owner != NULL) ? Owner->GetUniqueID() : 0;
+			UPrimitiveComponent* OwnerComponent = BI->OwnerComponent.IsValid() ? BI->OwnerComponent.Get() : nullptr;
+			int32 CompID = (OwnerComponent != nullptr) ? OwnerComponent->GetUniqueID() : 0;
 
 			// Create the filterdata structs
 			PxFilterData PSimFilterData;
@@ -652,7 +666,7 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 			PxFilterData PComplexQueryData;
 			if (UseCollisionEnabled != ECollisionEnabled::NoCollision)
 			{
-				CreateShapeFilterData(BI->ObjectType, OwnerID, UseResponse, SkelMeshCompID, BI->InstanceBodyIndex, PSimpleQueryData, PSimFilterData, BI->bUseCCD && !bPhysicsStatic, bUseNotify, bPhysicsStatic);
+				CreateShapeFilterData(BI->ObjectType, CompID, UseResponse, SkelMeshCompID, BI->InstanceBodyIndex, PSimpleQueryData, PSimFilterData, bUseCCD && !bPhysicsStatic, bUseNotify, bPhysicsStatic);	//CCD is determined by root body in case of welding
 				PComplexQueryData = PSimpleQueryData;
 
 				// Build filterdata variations for complex and simple
@@ -892,6 +906,7 @@ void FBodyInstance::UpdatePhysicsFilterData(bool bForceSimpleAsComplex)
 	}
 #endif
 }
+
 
 #if UE_WITH_PHYSICS
 void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPrimitiveComponent* PrimComp, FPhysScene* InRBScene, PxAggregate* InAggregate)
@@ -1275,6 +1290,7 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		check(FPhysxUserData::Get<FBodyInstance>(PNewActorAsync->userData) == this && FPhysxUserData::Get<FBodyInstance>(PNewActorAsync->userData)->OwnerComponent != NULL);
 	}
 
+
 	// If we added no shapes, generate warning, destroy actor and bail out (don't add to scene).
 	if ((PNewActorSync && PNewActorSync->getNbShapes() == 0) || ((PNewActorAsync && PNewActorAsync->getNbShapes() == 0)))
 	{
@@ -1316,8 +1332,8 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 	// Need to add actor into scene before calling putToSleep
 	// check if InAggregate is passed in
 	// BRG N.B. : For now only using InAggregate and BodyAggregate for dynamic bodies that are in the same scene as the aggregate, since otherwise we might have actors from two scenes.
-	// Right now aggregates are effectively disabled anyhow.
-	if(InAggregate && PNewDynamic != NULL && InAggregate->getScene() == PSceneForNewDynamic)
+	// If the aggregate scene is NULL we trust the caller that incoming bodies will be in the same scene.
+	if(InAggregate && PNewDynamic != NULL && (InAggregate->getScene() == PSceneForNewDynamic || InAggregate->getScene() == NULL))
 	{
 		InAggregate->addActor(*PNewDynamic);
 	}
@@ -1377,22 +1393,26 @@ void FBodyInstance::InitBody(UBodySetup* Setup, const FTransform& Transform, UPr
 		int32 VelocityIterCount = FMath::Clamp(VelocitySolverIterationCount, 1, 255);
 		PNewDynamic->setSolverIterationCounts(PositionIterCount, VelocityIterCount);
 
-		CreateDOFLock();
-
-		// wakeUp and putToSleep will issue warnings on kinematic actors
-		if (IsRigidBodyNonKinematic(PNewDynamic))
+		if(PNewDynamic->getScene())
 		{
-		    // Sleep/wake up as appropriate
-		    if (bShouldStartAwake)
-		    {
-			    // Wake up bodies that are part of a moving actor.
-			    PNewDynamic->wakeUp();
-		    }
-		    else
-		    {
-			    // Bodies should start out sleeping.
-			    PNewDynamic->putToSleep();
-		    }
+			// A scene is required to build the DOF constraint
+			CreateDOFLock();
+
+			// wakeUp and putToSleep will issue warnings on kinematic actors
+			if(IsRigidBodyNonKinematic(PNewDynamic) && PNewDynamic->getScene())
+			{
+				// Sleep/wake up as appropriate
+				if(bShouldStartAwake)
+				{
+					// Wake up bodies that are part of a moving actor.
+					PNewDynamic->wakeUp();
+				}
+				else
+				{
+					// Bodies should start out sleeping.
+					PNewDynamic->putToSleep();
+				}
+			}
 		}
 	}
 #endif // WITH_PHYSX
@@ -1446,7 +1466,6 @@ TArray<int32> FBodyInstance::AddCollisionNotifyInfo(const FBodyInstance* Body0, 
 	return PairNotifyMapping;
 }
 
-
 //helper function for TermBody to avoid code duplication between scenes
 void TermBodyHelper(int32& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance* BodyInstance)
 {
@@ -1461,6 +1480,8 @@ void TermBodyHelper(int32& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance
 
 			if (PRigidActor)
 			{
+
+
 				// Let FPhysScene know
 				FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
 				if (PhysScene)
@@ -1499,28 +1520,6 @@ void TermBodyHelper(int32& SceneIndex, PxRigidActor*& PRigidActor, FBodyInstance
  */
 void FBodyInstance::TermBody()
 {
-	if (UPrimitiveComponent* OwnerComponentInst = OwnerComponent.Get())
-	{
-		OwnerComponentInst->UnWeldFromParent();
-
-		for (USceneComponent * Child : OwnerComponentInst->AttachChildren)
-		{
-			if (UPrimitiveComponent * PrimChild = Cast<UPrimitiveComponent>(Child))
-			{
-				if (FBodyInstance* ChildBI = PrimChild->GetBodyInstance())
-				{
-					if (ChildBI->bWelded)
-					{
-						if (ChildBI->OwnerComponent.IsValid())
-						{
-							ChildBI->OwnerComponent->UnWeldFromParent();
-						}
-					}
-				}
-			}
-		}
-	}
-
 #if WITH_BOX2D
 	if (BodyInstancePtr != NULL)
 	{
@@ -1563,7 +1562,7 @@ void FBodyInstance::TermBody()
 	{
 		DOFConstraint->TermConstraint();
 		FConstraintInstance::Free(DOFConstraint);
-		DOFConstraint = NULL;
+			DOFConstraint = NULL;
 	}
 	
 
@@ -1639,6 +1638,7 @@ void FBodyInstance::UnWeld(FBodyInstance* TheirBI)
 	int32 NumSyncShapes = 0;
 	TArray<PxShape *> PShapes = GetAllShapes(NumSyncShapes);
 
+	bool bShapesChanged = false;
 	bool bNeedsNotification = false;
 
 	PxScene * PSyncScene = RigidActorSync ? RigidActorSync->getScene() : NULL;
@@ -1658,6 +1658,7 @@ void FBodyInstance::UnWeld(FBodyInstance* TheirBI)
 			{
 				PShape->userData = NULL;
 				RigidActorSync->detachShape(*PShape);
+				bShapesChanged = true;
 			}
 		}
 	}
@@ -1673,11 +1674,15 @@ void FBodyInstance::UnWeld(FBodyInstance* TheirBI)
 			{
 				PShape->userData = NULL;
 				RigidActorSync->detachShape(*PShape);
+				bShapesChanged = true;
 			}
 		}
 	}
 
-	PostShapeChange();
+	if (bShapesChanged)
+	{
+		PostShapeChange();
+	}
 #endif
 }
 
@@ -2102,6 +2107,7 @@ void FBodyInstance::UpdateInstanceSimulatePhysics()
 		{
 			SCOPED_SCENE_WRITE_LOCK(PRigidDynamic->getScene());
 			PRigidDynamic->setRigidDynamicFlag(PxRigidDynamicFlag::eKINEMATIC, bNewKinematic);
+			PRigidDynamic->setRigidBodyFlag(PxRigidBodyFlag::eENABLE_CCD, !bNewKinematic && bUseCCD);
 
 			//if wake when level starts is true, calling this function automatically wakes body up
 			if (bSimulatePhysics && bStartAwake)
@@ -3053,6 +3059,28 @@ void FBodyInstance::SetMaxDepenetrationVelocity(float MaxVelocity)
 }
 
 
+void FBodyInstance::AddCustomPhysics(FCalculateCustomPhysics& CalculateCustomPhysics)
+{
+	
+#if WITH_PHYSX
+	PxRigidBody* PRigidBody = GetPxRigidBody();
+	if (IsRigidBodyNonKinematic(PRigidBody))
+	{
+		const PxScene* PScene = PRigidBody->getScene();
+		FPhysScene* PhysScene = FPhysxUserData::Get<FPhysScene>(PScene->userData);
+		PhysScene->AddCustomPhysics(this, CalculateCustomPhysics);
+	}
+#endif // WITH_PHYSX
+
+#if WITH_BOX2D
+	if (BodyInstancePtr)
+	{
+		// Since Box2D does not have any substepping, might as well apply custom forces now
+		CalculateCustomPhysics.ExecuteIfBound(0.0f, this);
+	}
+#endif
+}
+
 void FBodyInstance::AddForce(const FVector& Force, bool bAllowSubstepping)
 {
 #if WITH_PHYSX
@@ -3122,6 +3150,29 @@ void FBodyInstance::AddTorque(const FVector& Torque, bool bAllowSubstepping)
 		if (!FMath::IsNearlyZero(Torque1D))
 		{
 			BodyInstancePtr->ApplyTorque(Torque1D, /*wake=*/ true);
+		}
+	}
+#endif
+}
+
+void FBodyInstance::AddAngularImpulse(const FVector& AngularImpulse, bool bVelChange)
+{
+#if WITH_PHYSX
+	PxRigidBody* PRigidBody = GetPxRigidBody();
+	if (IsRigidBodyNonKinematic(PRigidBody))
+	{
+		PxForceMode::Enum Mode = bVelChange ? PxForceMode::eVELOCITY_CHANGE : PxForceMode::eIMPULSE;
+		PRigidBody->addTorque(U2PVector(AngularImpulse), Mode, true);
+	}
+#endif // WITH_PHYSX
+
+#if WITH_BOX2D
+	if (BodyInstancePtr)
+	{
+		if (!AngularImpulse.IsNearlyZero())
+		{
+			const float AngularImpulse2D = FPhysicsIntegration2D::ConvertUnrealTorqueToBox(AngularImpulse);
+			BodyInstancePtr->ApplyAngularImpulse(AngularImpulse2D, /*wake=*/ true);
 		}
 	}
 #endif
@@ -3709,7 +3760,7 @@ bool FBodyInstance::OverlapPhysX(const PxGeometry& PGeom, const PxTransform& Sha
 		const PxShape* PShape = PShapes[ShapeIdx];
 		check(PShape);
 
-		if (ShapeBoundToBody(PShape, this) == false)
+		if (ShapeBoundToBody(PShape, this) == true)
 		{
 			if (PxGeometryQuery::overlap(PShape->getGeometry().any(), PxShapeExt::getGlobalPose(*PShape, *RigidBody), PGeom, ShapePose))
 			{
@@ -3810,11 +3861,6 @@ void FBodyInstance::FixupData(class UObject* Loader)
 		}
 	}
 
-	if(UE4Version < VER_UE4_CHANGE_BENABLECOLLISION_TO_COLLISIONENABLED)
-	{
-		UpdateFromDeprecatedEnableCollision();
-	}
-
 	if (UE4Version < VER_UE4_SAVE_COLLISIONRESPONSE_PER_CHANNEL)
 	{
 		CollisionResponses.SetCollisionResponseContainer(ResponseToChannels_DEPRECATED);
@@ -3844,6 +3890,18 @@ bool FBodyInstance::UseAsyncScene() const
 		bHasAsyncScene = OwnerComponent->GetWorld()->GetPhysicsScene()->HasAsyncScene();
 	}
 	return bUseAsyncScene && bHasAsyncScene;
+}
+
+
+void FBodyInstance::SetUseAsyncScene(bool bNewUseAsyncScene)
+{
+#if WITH_BOX2D
+	// Invalid to call this if the body has been created
+	check(BodyInstancePtr == nullptr);
+#endif // WITH_BOX2D
+
+	// Set flag
+	bUseAsyncScene = bNewUseAsyncScene;
 }
 
 ////////////////////////////////////////////////////////////////////////////

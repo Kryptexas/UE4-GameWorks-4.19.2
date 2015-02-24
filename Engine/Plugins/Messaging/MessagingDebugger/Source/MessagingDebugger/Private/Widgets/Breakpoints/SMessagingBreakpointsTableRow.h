@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -56,7 +56,7 @@ public:
 				+ SHorizontalBox::Slot()
 					[
 						SNew(SCheckBox)
-							.IsChecked(ESlateCheckBoxState::Checked)
+							.IsChecked(ECheckBoxState::Checked)
 					]
 
 				+ SHorizontalBox::Slot()

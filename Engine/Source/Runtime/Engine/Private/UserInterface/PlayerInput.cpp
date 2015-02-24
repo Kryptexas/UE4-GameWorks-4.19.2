@@ -1,10 +1,12 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PlayerInput.cpp: Unreal input system.
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "GameFramework/PlayerInput.h"
+#include "GameFramework/InputSettings.h"
 
 DEFINE_LOG_CATEGORY(LogInput);
 
@@ -1459,7 +1461,11 @@ bool UPlayerInput::IsAltPressed() const
 
 bool UPlayerInput::IsCtrlPressed() const
 {
+#if PLATFORM_MAC
+	return IsPressed(EKeys::LeftCommand) || IsPressed(EKeys::RightCommand);
+#else
 	return IsPressed(EKeys::LeftControl) || IsPressed(EKeys::RightControl);
+#endif
 }
 
 bool UPlayerInput::IsShiftPressed() const
@@ -1469,7 +1475,11 @@ bool UPlayerInput::IsShiftPressed() const
 
 bool UPlayerInput::IsCmdPressed() const
 {
+#if PLATFORM_MAC
+	return IsPressed(EKeys::LeftControl) || IsPressed(EKeys::RightControl);
+#else
 	return IsPressed(EKeys::LeftCommand) || IsPressed(EKeys::RightCommand);
+#endif
 }
 
 void UPlayerInput::ConditionalInitAxisProperties()

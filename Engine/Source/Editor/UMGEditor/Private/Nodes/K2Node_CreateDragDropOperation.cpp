@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 #include "Blueprint/DragDropOperation.h"
@@ -47,6 +47,11 @@ void UK2Node_CreateDragDropOperation::GetMenuEntries(FGraphContextMenuBuilder& C
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip);
 	NodeAction->NodeTemplate = TemplateNode;
+}
+
+FName UK2Node_CreateDragDropOperation::GetCornerIcon() const
+{
+	return TEXT("Graph.Replication.ClientEvent");
 }
 
 void UK2Node_CreateDragDropOperation::AllocateDefaultPins()

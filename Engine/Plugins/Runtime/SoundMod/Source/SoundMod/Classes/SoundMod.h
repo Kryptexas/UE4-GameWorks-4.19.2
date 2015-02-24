@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,7 +6,9 @@
  * A sound module file
  */
 
+#include "Sound/SoundBase.h"
 #include "SoundMod.generated.h"
+struct FActiveSound;
 
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
 class USoundMod : public USoundBase

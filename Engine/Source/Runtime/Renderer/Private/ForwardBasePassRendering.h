@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ForwardBasePassRendering.h: base pass rendering definitions.
@@ -8,6 +8,7 @@
 
 #include "LightMapRendering.h"
 #include "ShaderBaseClasses.h"
+#include "EditorCompositeParams.h"
 
 enum EOutputFormat
 {
@@ -142,13 +143,15 @@ public:
 	{
 		LightMapPolicyType::PixelParametersType::Bind(Initializer.ParameterMap);
 		ReflectionCubemap.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemap"));
-		ReflectionSampler.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler"));		
+		ReflectionSampler.Bind(Initializer.ParameterMap, TEXT("ReflectionCubemapSampler"));
+		EditorCompositeParams.Bind(Initializer.ParameterMap);
 	}
 	TBasePassForForwardShadingPSBaseType() {}
 
-	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy,const FMaterial& MaterialResource,const FSceneView* View,ESceneRenderTargetsMode::Type TextureMode)
+	void SetParameters(FRHICommandList& RHICmdList, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial& MaterialResource, const FSceneView* View, ESceneRenderTargetsMode::Type TextureMode, bool bEnableEditorPrimitveDepthTest)
 	{
 		FMeshMaterialShader::SetParameters(RHICmdList, GetPixelShader(),MaterialRenderProxy,MaterialResource,*View,TextureMode);
+		EditorCompositeParams.SetParameters(RHICmdList, MaterialResource, View, bEnableEditorPrimitveDepthTest, GetPixelShader());
 	}
 
 	void SetMesh(FRHICommandList& RHICmdList, const FVertexFactory* VertexFactory,const FSceneView& View,const FPrimitiveSceneProxy* Proxy,const FMeshBatchElement& BatchElement)
@@ -179,13 +182,15 @@ public:
 		bool bShaderHasOutdatedParameters = FMeshMaterialShader::Serialize(Ar);
 		LightMapPolicyType::PixelParametersType::Serialize(Ar);
 		Ar << ReflectionCubemap;
-		Ar << ReflectionSampler;		
+		Ar << ReflectionSampler;
+		Ar << EditorCompositeParams;
 		return bShaderHasOutdatedParameters;
 	}
 
 private:
 	FShaderResourceParameter ReflectionCubemap;
-	FShaderResourceParameter ReflectionSampler;	
+	FShaderResourceParameter ReflectionSampler;
+	FEditorCompositingParameters EditorCompositeParams;
 };
 
 
@@ -257,12 +262,14 @@ public:
 		ESceneRenderTargetsMode::Type InSceneTextureMode,
 		bool bInEnableSkyLight,
 		bool bOverrideWithShaderComplexity,
-		ERHIFeatureLevel::Type FeatureLevel
+		ERHIFeatureLevel::Type FeatureLevel,
+		bool bInEnableEditorPrimitiveDepthTest = false
 		):
 		FMeshDrawingPolicy(InVertexFactory,InMaterialRenderProxy,InMaterialResource,bOverrideWithShaderComplexity),
 		LightMapPolicy(InLightMapPolicy),
 		BlendMode(InBlendMode),
-		SceneTextureMode(InSceneTextureMode)
+		SceneTextureMode(InSceneTextureMode),
+		bEnableEditorPrimitiveDepthTest(bInEnableEditorPrimitiveDepthTest)
 	{
 		if (IsMobileHDR32bpp())
 		{
@@ -304,6 +311,14 @@ public:
 				PixelShader = InMaterialResource.GetShader< TBasePassForForwardShadingPS<LightMapPolicyType, LDR_GAMMA_32, false> >(InVertexFactory->GetType());
 			}			
 		}
+
+#if DO_GUARD_SLOW
+		// Somewhat hacky
+		if (SceneTextureMode == ESceneRenderTargetsMode::DontSet && !bEnableEditorPrimitiveDepthTest && InMaterialResource.IsUsedWithEditorCompositing())
+		{
+			SceneTextureMode = ESceneRenderTargetsMode::DontSetIgnoreBoundByEditorCompositing;
+		}
+#endif
 	}
 
 	// FMeshDrawingPolicy interface.
@@ -342,7 +357,7 @@ public:
 		else
 #endif
 		{
-			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, SceneTextureMode);
+			PixelShader->SetParameters(RHICmdList, MaterialRenderProxy, *MaterialResource, View, SceneTextureMode, bEnableEditorPrimitiveDepthTest);
 
 			switch(BlendMode)
 			{
@@ -466,6 +481,8 @@ protected:
 	LightMapPolicyType LightMapPolicy;
 	EBlendMode BlendMode;
 	ESceneRenderTargetsMode::Type SceneTextureMode;
+	/** Whether or not this policy is compositing editor primitives and needs to depth test against the scene geometry in the base pass pixel shader */
+	uint32 bEnableEditorPrimitiveDepthTest : 1;
 };
 
 /**
@@ -478,7 +495,11 @@ public:
 	enum { bAllowSimpleElements = true };
 	struct ContextType 
 	{
-		ContextType(ESceneRenderTargetsMode::Type InTextureMode) :
+		/** Whether or not to perform depth test in the pixel shader */
+		bool bEditorCompositeDepthTest;
+
+		ContextType(bool bInEditorCompositeDepthTest, ESceneRenderTargetsMode::Type InTextureMode) :
+			bEditorCompositeDepthTest(bInEditorCompositeDepthTest),
 			TextureMode(InTextureMode)
 		{}
 
@@ -496,12 +517,6 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
-	{
-		// Ignore non-opaque materials in the opaque base pass.
-		// Note: blend mode does not depend on the feature level.
-		return MaterialRenderProxy && IsTranslucentBlendMode(MaterialRenderProxy->GetMaterial(InFeatureLevel)->GetBlendMode());
-	}
 };
 
 /** Processes a base pass mesh using an unknown light map policy, and unknown fog density policy. */
@@ -514,17 +529,78 @@ void ProcessBasePassMeshForForwardShading(
 {
 	// Check for a cached light-map.
 	const bool bIsLitMaterial = Parameters.ShadingModel != MSM_Unlit;
-
-	const FLightMapInteraction LightMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) 
-		? Parameters.Mesh.LCI->GetLightMapInteraction(Parameters.FeatureLevel) 
-		: FLightMapInteraction();
-
 	if (bIsLitMaterial)
 	{
+		const FLightMapInteraction LightMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) 
+			? Parameters.Mesh.LCI->GetLightMapInteraction(Parameters.FeatureLevel) 
+			: FLightMapInteraction();
+
 		const FLightSceneInfo* SimpleDirectionalLight = Action.GetSimpleDirectionalLight();
 		const bool bUseMovableLight = SimpleDirectionalLight && !SimpleDirectionalLight->Proxy->HasStaticShadowing();
 
-		if (bUseMovableLight)
+		if (LightMapInteraction.GetType() == LMIT_Texture)
+		{
+			// Lightmap path
+			if (bUseMovableLight)
+			{
+				// final determination of whether CSMs are rendered can be view dependent, thus we always need to clear the CSMs even if we're not going to render to them based on the condition below.
+				if (SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
+				{
+					Action.template Process<FMovableDirectionalLightCSMWithLightmapLightingPolicy>(RHICmdList, Parameters, FMovableDirectionalLightCSMWithLightmapLightingPolicy(), LightMapInteraction);
+				}
+				else
+				{
+					Action.template Process<FMovableDirectionalLightWithLightmapLightingPolicy>(RHICmdList, Parameters, FMovableDirectionalLightCSMWithLightmapLightingPolicy(), LightMapInteraction);
+				}
+			}
+			else
+			{
+				const FShadowMapInteraction ShadowMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial)
+					? Parameters.Mesh.LCI->GetShadowMapInteraction()
+					: FShadowMapInteraction();
+
+				if (ShadowMapInteraction.GetType() == SMIT_Texture)
+				{
+					Action.template Process< TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP> >(
+						RHICmdList,
+						Parameters,
+						TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>(),
+						TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>::ElementDataType(ShadowMapInteraction, LightMapInteraction));
+				}
+				else
+				{
+					Action.template Process< TLightMapPolicy<LQ_LIGHTMAP> >(RHICmdList, Parameters, TLightMapPolicy<LQ_LIGHTMAP>(), LightMapInteraction);
+				}
+			}
+
+			// Exit to avoid NoLightmapPolicy
+			return;
+		}
+		else if (IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
+			&& Parameters.PrimitiveSceneProxy
+			// Movable objects need to get their GI from the indirect lighting cache
+			&& Parameters.PrimitiveSceneProxy->IsMovable())
+		{
+			if (bUseMovableLight)
+			{
+				if (SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
+				{
+					Action.template Process<FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy(), FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
+				}
+				else
+				{
+					Action.template Process<FSimpleDirectionalLightAndSHDirectionalIndirectPolicy>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHDirectionalIndirectPolicy(), FSimpleDirectionalLightAndSHDirectionalIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
+				}
+			}
+			else
+			{
+				Action.template Process<FSimpleDirectionalLightAndSHIndirectPolicy>(RHICmdList, Parameters, FSimpleDirectionalLightAndSHIndirectPolicy(), FSimpleDirectionalLightAndSHIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH()));
+			}
+
+			// Exit to avoid NoLightmapPolicy
+			return;
+		}
+		else if (bUseMovableLight)
 		{
 			// final determination of whether CSMs are rendered can be view dependent, thus we always need to clear the CSMs even if we're not going to render to them based on the condition below.
 			if (SimpleDirectionalLight && SimpleDirectionalLight->ShouldRenderViewIndependentWholeSceneShadows())
@@ -534,41 +610,13 @@ void ProcessBasePassMeshForForwardShading(
 			else
 			{
 				Action.template Process<FMovableDirectionalLightLightingPolicy>(RHICmdList, Parameters, FMovableDirectionalLightLightingPolicy(), FMovableDirectionalLightLightingPolicy::ElementDataType());
-			}		
-		}
-		else if (LightMapInteraction.GetType() == LMIT_Texture)
-		{
-			const FShadowMapInteraction ShadowMapInteraction = (Parameters.Mesh.LCI && bIsLitMaterial) 
-				? Parameters.Mesh.LCI->GetShadowMapInteraction() 
-				: FShadowMapInteraction();
+			}
 
-			if (ShadowMapInteraction.GetType() == SMIT_Texture)
-			{
-				Action.template Process< TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP> >(
-					RHICmdList, 
-					Parameters,
-					TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>(),
-					TDistanceFieldShadowsAndLightMapPolicy<LQ_LIGHTMAP>::ElementDataType(ShadowMapInteraction, LightMapInteraction));
-			}
-			else
-			{
-				Action.template Process< TLightMapPolicy<LQ_LIGHTMAP> >(RHICmdList, Parameters, TLightMapPolicy<LQ_LIGHTMAP>(), LightMapInteraction );
-			}
-		}
-		else if (IsIndirectLightingCacheAllowed(Parameters.FeatureLevel)
-			&& Parameters.PrimitiveSceneProxy
-			// Movable objects need to get their GI from the indirect lighting cache
-			&& Parameters.PrimitiveSceneProxy->IsMovable())
-		{
-			Action.template Process<FSimpleDirectionalLightAndSHIndirectPolicy>(RHICmdList, Parameters,FSimpleDirectionalLightAndSHIndirectPolicy(),FSimpleDirectionalLightAndSHIndirectPolicy::ElementDataType(Action.ShouldPackAmbientSH())); 
-		}
-		else
-		{
-			Action.template Process<FNoLightMapPolicy>(RHICmdList, Parameters,FNoLightMapPolicy(),FNoLightMapPolicy::ElementDataType());
+			// Exit to avoid NoLightmapPolicy
+			return;
 		}
 	}
-	else
-	{
-		Action.template Process<FNoLightMapPolicy>(RHICmdList, Parameters,FNoLightMapPolicy(),FNoLightMapPolicy::ElementDataType());
-	}
+
+	// Default to NoLightmapPolicy
+	Action.template Process<FNoLightMapPolicy>(RHICmdList, Parameters, FNoLightMapPolicy(), FNoLightMapPolicy::ElementDataType());
 }

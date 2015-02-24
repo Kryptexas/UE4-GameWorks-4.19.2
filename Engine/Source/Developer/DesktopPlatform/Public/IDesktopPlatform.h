@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -376,6 +376,13 @@ public:
 	* @return True if a solution file exists and OutSolutionPath has been updated
 	*/
 	virtual bool GetSolutionPath(FString& OutSolutionPath) = 0;
+
+	/**
+	 * Gets the path to the user's temporary directory
+	 *
+	 * @return The path to the user's temporary directory
+	 */
+	virtual FString GetUserTempPath() = 0;
 
 	/**
 	* Gets a feedback context which can display progress information using the native platform GUI.

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightMapRendering.h: Light map rendering definitions.
@@ -6,6 +6,8 @@
 
 #ifndef __LIGHTMAPRENDERING_H__
 #define __LIGHTMAPRENDERING_H__
+
+#include "Engine/ShadowMapTexture2D.h"
 
 extern ENGINE_API bool GShowDebugSelectedLightmap;
 extern ENGINE_API class FLightMap2D* GDebugSelectedLightmap;
@@ -967,6 +969,49 @@ private:
 	FCachedPointIndirectLightingPolicy CachedPointIndirectLightingPolicy;
 };
 
+/** Combines a directional light with indirect lighting from a single SH sample. */
+class FSimpleDirectionalLightAndSHDirectionalIndirectPolicy : public FSimpleDirectionalLightAndSHIndirectPolicy
+{
+public:
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("MOVABLE_DIRECTIONAL_LIGHT"), TEXT("1"));
+		OutEnvironment.SetDefine(TEXT("MAX_FORWARD_SHADOWCASCADES"), TEXT(PREPROCESSOR_TO_STRING(MAX_FORWARD_SHADOWCASCADES)));
+		FSimpleDirectionalLightAndSHIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+
+	friend bool operator==(const FSimpleDirectionalLightAndSHDirectionalIndirectPolicy A, const FSimpleDirectionalLightAndSHDirectionalIndirectPolicy B)
+	{
+		return true;
+	}
+
+	friend int32 CompareDrawingPolicy(const FSimpleDirectionalLightAndSHDirectionalIndirectPolicy&, const FSimpleDirectionalLightAndSHDirectionalIndirectPolicy&)
+	{
+		return 0;
+	}
+};
+
+/** Combines a directional light with CSM with indirect lighting from a single SH sample. */
+class FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy : public FSimpleDirectionalLightAndSHDirectionalIndirectPolicy
+{
+public:
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("MOVABLE_DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
+		FSimpleDirectionalLightAndSHDirectionalIndirectPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+
+	friend bool operator==(const FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy A, const FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy B)
+	{
+		return true;
+	}
+
+	friend int32 CompareDrawingPolicy(const FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy&, const FSimpleDirectionalLightAndSHDirectionalCSMIndirectPolicy&)
+	{
+		return 0;
+	}
+};
+
 class FMovableDirectionalLightLightingPolicy : public FNoLightMapPolicy
 {
 public:
@@ -992,6 +1037,36 @@ public:
 	}	
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
+};
+
+class FMovableDirectionalLightWithLightmapLightingPolicy : public TLightMapPolicy<LQ_LIGHTMAP>
+{
+	typedef TLightMapPolicy< LQ_LIGHTMAP >	Super;
+
+public:
+	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FVertexFactoryType* VertexFactoryType)
+	{
+		return (Material->GetShadingModel() != MSM_Unlit) && Super::ShouldCache(Platform, Material, VertexFactoryType);
+	}
+
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("MOVABLE_DIRECTIONAL_LIGHT"), TEXT("1"));
+		OutEnvironment.SetDefine(TEXT("MAX_FORWARD_SHADOWCASCADES"), TEXT(PREPROCESSOR_TO_STRING(MAX_FORWARD_SHADOWCASCADES)));
+
+		Super::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
+};
+
+class FMovableDirectionalLightCSMWithLightmapLightingPolicy : public FMovableDirectionalLightWithLightmapLightingPolicy
+{
+public:
+	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
+	{
+		OutEnvironment.SetDefine(TEXT("MOVABLE_DIRECTIONAL_LIGHT_CSM"), TEXT("1"));
+
+		FMovableDirectionalLightWithLightmapLightingPolicy::ModifyCompilationEnvironment(Platform, Material, OutEnvironment);
+	}
 };
 
 #endif // __LIGHTMAPRENDERING_H__

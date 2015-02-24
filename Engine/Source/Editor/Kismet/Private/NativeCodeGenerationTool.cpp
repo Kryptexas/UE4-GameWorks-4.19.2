@@ -1,8 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
 #include "NativeCodeGenerationTool.h"
 #include "Dialogs.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
 
 #define LOCTEXT_NAMESPACE "NativeCodeGenerationTool"
 
@@ -252,7 +255,7 @@ public:
 				.AutoHeight()
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("HeaderPath", "Header Path").ToString())
+					.Text(LOCTEXT("HeaderPath", "Header Path"))
 				]
 				+ SVerticalBox::Slot()
 				.Padding(4.0f)
@@ -269,7 +272,7 @@ public:
 				.AutoHeight()
 				[
 					SNew(STextBlock)
-					.Text(LOCTEXT("SourcePath", "Source Path").ToString())
+					.Text(LOCTEXT("SourcePath", "Source Path"))
 				]
 				+ SVerticalBox::Slot()
 				.Padding(4.0f)

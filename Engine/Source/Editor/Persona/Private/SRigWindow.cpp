@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -286,11 +286,11 @@ void SRigWindow::Construct(const FArguments& InArgs)
 			(
 				SNew( SHeaderRow )
 				+ SHeaderRow::Column( ColumnId_NodeNameLabel )
-				.DefaultLabel( LOCTEXT( "RigWindow_NodeNameLabel", "Node (Rig)" ).ToString() )
+				.DefaultLabel( LOCTEXT( "RigWindow_NodeNameLabel", "Node (Rig)" ) )
 				.FixedWidth(150.f)
 
 				+ SHeaderRow::Column( ColumnID_BoneNameLabel )
-				.DefaultLabel( LOCTEXT( "RigWindow_BoneNameLabel", "Bone (Skeleton)" ).ToString() )
+				.DefaultLabel( LOCTEXT( "RigWindow_BoneNameLabel", "Bone (Skeleton)" ) )
 			)
 		]
 	];
@@ -334,7 +334,7 @@ void SRigWindow::CreateBoneMappingList( const FString& SearchText)
 	if ( Rig )
 	{
 		bool bDoFiltering = !SearchText.IsEmpty();
-		const TArray<FNode> & Nodes = Rig->GetNodes();
+		const TArray<FNode>& Nodes = Rig->GetNodes();
 
 		for ( const auto Node : Nodes )
 		{
@@ -432,14 +432,14 @@ FReply SRigWindow::OnToggleAdvanced()
 	return FReply::Handled();
 }
 
-FString SRigWindow::GetAdvancedButtonText() const
+FText SRigWindow::GetAdvancedButtonText() const
 {
 	if (bDisplayAdvanced)
 	{
-		return TEXT("Show Base");
+		return LOCTEXT("ShowBase", "Show Base");
 	}
 
-	return TEXT("Show Advanced");
+	return LOCTEXT("ShowAdvanced", "Show Advanced");
 }
 
 TSharedRef<SWidget> SRigWindow::MakeRigPickerWithMenu()
@@ -458,15 +458,15 @@ void SRigWindow::CloseComboButton()
 	AssetComboButton->SetIsOpen(false);
 }
 
-FString SRigWindow::GetAssetName() const
+FText SRigWindow::GetAssetName() const
 {
 	UObject* Rig = GetRigObject();
 	if (Rig)
 	{
-		return Rig->GetName();
+		return FText::FromString(Rig->GetName());
 	}
 
-	return TEXT("None");
+	return LOCTEXT("None", "None");
 }
 
 #undef LOCTEXT_NAMESPACE

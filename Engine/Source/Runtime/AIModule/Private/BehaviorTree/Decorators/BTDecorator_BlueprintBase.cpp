@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BlueprintNodeHelpers.h"
@@ -6,27 +6,28 @@
 #include "BehaviorTree/BlackboardComponent.h"
 #include "BehaviorTree/BlackboardData.h"
 
-UBTDecorator_BlueprintBase::UBTDecorator_BlueprintBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
+UBTDecorator_BlueprintBase::UBTDecorator_BlueprintBase(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 {
 	UClass* StopAtClass = UBTDecorator_BlueprintBase::StaticClass();
-	bImplementsReceiveTick = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveTick"), this, StopAtClass);
-	bImplementsReceiveExecutionStart = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveExecutionStart"), this, StopAtClass);
-	bImplementsReceiveExecutionFinish = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveExecutionFinish"), this, StopAtClass);
-	bImplementsReceiveObserverActivated = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveObserverActivated"), this, StopAtClass);
-	bImplementsReceiveObserverDeactivated = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveObserverDeactivated"), this, StopAtClass);
-	bImplementsReceiveConditionCheck = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveConditionCheck"), this, StopAtClass);
+	ReceiveTickImplementations = FBTNodeBPImplementationHelper::CheckEventImplementationVersion(TEXT("ReceiveTick"), TEXT("ReceiveTickAI"), this, StopAtClass);
+	ReceiveExecutionStartImplementations = FBTNodeBPImplementationHelper::CheckEventImplementationVersion(TEXT("ReceiveExecutionStart"), TEXT("ReceiveExecutionStartAI"), this, StopAtClass);
+	ReceiveExecutionFinishImplementations = FBTNodeBPImplementationHelper::CheckEventImplementationVersion(TEXT("ReceiveExecutionFinish"), TEXT("ReceiveExecutionFinishAI"), this, StopAtClass);
+	ReceiveObserverActivatedImplementations = FBTNodeBPImplementationHelper::CheckEventImplementationVersion(TEXT("ReceiveObserverActivated"), TEXT("ReceiveObserverActivatedAI"), this, StopAtClass);
+	ReceiveObserverDeactivatedImplementations = FBTNodeBPImplementationHelper::CheckEventImplementationVersion(TEXT("ReceiveObserverDeactivated"), TEXT("ReceiveObserverDeactivatedAI"), this, StopAtClass);
+	PerformConditionCheckImplementations = FBTNodeBPImplementationHelper::CheckEventImplementationVersion(TEXT("PerformConditionCheck"), TEXT("PerformConditionCheckAI"), this, StopAtClass);
 
-	bNotifyBecomeRelevant = bImplementsReceiveObserverActivated;
-	bNotifyCeaseRelevant = bImplementsReceiveObserverDeactivated;
-	bNotifyTick = bImplementsReceiveTick;
-	bNotifyActivation = bImplementsReceiveExecutionStart;
-	bNotifyDeactivation = bImplementsReceiveExecutionFinish;
+	bNotifyBecomeRelevant = ReceiveObserverActivatedImplementations != 0;
+	bNotifyCeaseRelevant = ReceiveObserverDeactivatedImplementations != 0;
+	bNotifyTick = ReceiveTickImplementations != 0;
+	bNotifyActivation = ReceiveExecutionStartImplementations != 0;
+	bNotifyDeactivation = ReceiveExecutionFinishImplementations != 0;
 	bShowPropertyDetails = true;
+	bCheckConditionOnlyBlackBoardChanges = false;
+	bIsObservingBB = false;
 
 	// all blueprint based nodes must create instances
 	bCreateNodeInstance = true;
-
-	InitializeProperties();
 }
 
 void UBTDecorator_BlueprintBase::InitializeProperties()
@@ -36,125 +37,201 @@ void UBTDecorator_BlueprintBase::InitializeProperties()
 		UClass* StopAtClass = UBTDecorator_BlueprintBase::StaticClass();
 		BlueprintNodeHelpers::CollectPropertyData(this, StopAtClass, PropertyData);
 
-		if (GetFlowAbortMode() != EBTFlowAbortMode::None)
-		{
-			// find all blackboard key selectors and store their names
-			BlueprintNodeHelpers::CollectBlackboardSelectors(this, StopAtClass, ObservedKeyNames);
-		}
-	}
-	else
-	{
-		UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
-		if (CDO && CDO->ObservedKeyNames.Num())
-		{
-			bNotifyBecomeRelevant = true;
-			bNotifyCeaseRelevant = true;
-		}
+		bIsObservingBB = BlueprintNodeHelpers::HasAnyBlackboardSelectors(this, StopAtClass);
+
+		NodeName = BlueprintNodeHelpers::GetNodeName(this);
 	}
 }
 
 void UBTDecorator_BlueprintBase::PostInitProperties()
 {
 	Super::PostInitProperties();
-	NodeName = BlueprintNodeHelpers::GetNodeName(this);
-	BBKeyObserver = FOnBlackboardChange::CreateUObject(this, &UBTDecorator_BlueprintBase::OnBlackboardChange);
+		
+	InitializeProperties();
+	
+	if (PerformConditionCheckImplementations || bIsObservingBB)
+	{
+		bNotifyBecomeRelevant = true;
+		bNotifyCeaseRelevant = true;
+	}
 }
 
-void UBTDecorator_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTDecorator_BlueprintBase::PostLoad()
 {
-	if (bImplementsReceiveObserverActivated)
+	Super::PostLoad();
+
+	if (GetFlowAbortMode() != EBTFlowAbortMode::None && bIsObservingBB)
 	{
-		ReceiveObserverActivated(OwnerComp->GetOwner());
+		ObservedKeyNames.Reset();
+		UClass* StopAtClass = UBTDecorator_BlueprintBase::StaticClass();
+		BlueprintNodeHelpers::CollectBlackboardSelectors(this, StopAtClass, ObservedKeyNames);
+		ensure(ObservedKeyNames.Num() > 0);
+	}
+}
+
+void UBTDecorator_BlueprintBase::SetOwner(AActor* InActorOwner)
+{
+	ActorOwner = InActorOwner;
+	AIOwner = Cast<AAIController>(InActorOwner);
+}
+
+void UBTDecorator_BlueprintBase::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
+{
+	if (AIOwner != nullptr && ReceiveObserverActivatedImplementations & FBTNodeBPImplementationHelper::AISpecific)
+	{
+		ReceiveObserverActivatedAI(AIOwner, AIOwner->GetPawn());
+	}
+	else if (ReceiveObserverActivatedImplementations & FBTNodeBPImplementationHelper::Generic)
+	{
+		ReceiveObserverActivated(ActorOwner);
 	}
 
-	UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
-	UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
-	if (BlackboardComp && CDO)
+	if (GetNeedsTickForConditionChecking())
 	{
-		for (int32 NameIndex = 0; NameIndex < CDO->ObservedKeyNames.Num(); NameIndex++)
+		// if set up as observer, and has a condition check, we want to check the condition every frame
+		// highly inefficient, but hopefully people will use it only for prototyping.
+		bNotifyTick = true;
+	}
+
+	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+	if (BlackboardComp)
+	{
+		for (int32 NameIndex = 0; NameIndex < ObservedKeyNames.Num(); NameIndex++)
 		{
-			const FBlackboard::FKey KeyID = BlackboardComp->GetKeyID(CDO->ObservedKeyNames[NameIndex]);
+			const FBlackboard::FKey KeyID = BlackboardComp->GetKeyID(ObservedKeyNames[NameIndex]);
 			if (KeyID != FBlackboard::InvalidKey)
 			{
-				BlackboardComp->RegisterObserver(KeyID, BBKeyObserver);
+				BlackboardComp->RegisterObserver(KeyID, this, FOnBlackboardChange::CreateUObject(this, &UBTDecorator_BlueprintBase::OnBlackboardChange));
 			}
 		}
 	}
 }
 
-void UBTDecorator_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTDecorator_BlueprintBase::OnCeaseRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
-	UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
-	if (BlackboardComp && CDO)
+	UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
+	if (BlackboardComp)
 	{
-		for (int32 NameIndex = 0; NameIndex < CDO->ObservedKeyNames.Num(); NameIndex++)
-		{
-			const FBlackboard::FKey KeyID = BlackboardComp->GetKeyID(CDO->ObservedKeyNames[NameIndex]);
-			if (KeyID != FBlackboard::InvalidKey)
-			{
-				BlackboardComp->UnregisterObserver(KeyID, BBKeyObserver);
-			}
-		}
+		BlackboardComp->UnregisterObserversFrom(this);
 	}
 		
-	if (bImplementsReceiveObserverDeactivated)
+	if (AIOwner != nullptr && ReceiveObserverDeactivatedImplementations & FBTNodeBPImplementationHelper::AISpecific)
 	{
-		ReceiveObserverDeactivated(OwnerComp->GetOwner());
+		ReceiveObserverDeactivatedAI(AIOwner, AIOwner->GetPawn());
+	}
+	else if (ReceiveObserverDeactivatedImplementations & FBTNodeBPImplementationHelper::Generic)
+	{
+		ReceiveObserverDeactivated(ActorOwner);
+	}
+
+	if (GetNeedsTickForConditionChecking() == true && ReceiveTickImplementations == 0)
+	{
+		// clean up the tick request if no longer "active"
+		bNotifyTick = false;
 	}
 }
 
 void UBTDecorator_BlueprintBase::OnNodeActivation(FBehaviorTreeSearchData& SearchData)
 {
-	// skip flag, will be handled by bNotifyActivation
-
-	ReceiveExecutionStart(SearchData.OwnerComp->GetOwner());
+	if (AIOwner != nullptr && ReceiveExecutionStartImplementations & FBTNodeBPImplementationHelper::AISpecific)
+	{
+		ReceiveExecutionStartAI(AIOwner, AIOwner->GetPawn());
+	}
+	else if (ReceiveExecutionStartImplementations & FBTNodeBPImplementationHelper::Generic)
+	{
+		ReceiveExecutionStart(ActorOwner);
+	}
 }
 
 void UBTDecorator_BlueprintBase::OnNodeDeactivation(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult)
 {
-	// skip flag, will be handled by bNotifyDeactivation
-
-	ReceiveExecutionFinish(SearchData.OwnerComp->GetOwner(), NodeResult);
+	if (AIOwner != nullptr && ReceiveExecutionFinishImplementations & FBTNodeBPImplementationHelper::AISpecific)
+	{
+		ReceiveExecutionFinishAI(AIOwner, AIOwner->GetPawn(), NodeResult);
+	}
+	else if (ReceiveExecutionFinishImplementations & FBTNodeBPImplementationHelper::Generic)
+	{
+		ReceiveExecutionFinish(ActorOwner, NodeResult);
+	}
 }
 
-void UBTDecorator_BlueprintBase::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTDecorator_BlueprintBase::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-	// skip flag, will be handled by bNotifyTick
-
-	ReceiveTick(OwnerComp->GetOwner(), DeltaSeconds);
+	if (AIOwner != nullptr && ReceiveTickImplementations & FBTNodeBPImplementationHelper::AISpecific)
+	{
+		ReceiveTickAI(AIOwner, AIOwner->GetPawn(), DeltaSeconds);
+	}
+	else if (ReceiveTickImplementations & FBTNodeBPImplementationHelper::Generic)
+	{
+		ReceiveTick(ActorOwner, DeltaSeconds);
+	}
+		
+	// possible this got ticked due to the decorator being configured as an observer
+	if (GetNeedsTickForConditionChecking() && GetShouldAbort(OwnerComp))
+	{
+		OwnerComp.RequestExecution(this);
+	}
 }
 
-bool UBTDecorator_BlueprintBase::CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const
+bool UBTDecorator_BlueprintBase::GetShouldAbort(UBehaviorTreeComponent& OwnerComp) const 
 {
-	CurrentCallResult = false;
-	if (bImplementsReceiveConditionCheck)
+	// if there's no condition-checking function implemented we always want to abort on any change
+	if (PerformConditionCheckImplementations == 0)
+	{
+		return true;
+	}
+
+	const bool bIsOnActiveBranch = OwnerComp.IsExecutingBranch(GetMyNode(), GetChildIndex());
+
+	bool bShouldAbort = false;
+	if (bIsOnActiveBranch)
+	{
+		bShouldAbort = (FlowAbortMode == EBTFlowAbortMode::Self || FlowAbortMode == EBTFlowAbortMode::Both) && CalculateRawConditionValueImpl(OwnerComp) == IsInversed();
+	}
+	else
+	{
+		bShouldAbort = (FlowAbortMode == EBTFlowAbortMode::LowerPriority || FlowAbortMode == EBTFlowAbortMode::Both) && CalculateRawConditionValueImpl(OwnerComp) != IsInversed();
+	}
+
+	return bShouldAbort;
+}
+
+bool UBTDecorator_BlueprintBase::CalculateRawConditionValueImpl(UBehaviorTreeComponent& OwnerComp) const
+{
+	bool CurrentCallResult = false;
+	if (PerformConditionCheckImplementations != 0)
 	{
 		// can't use const functions with blueprints
 		UBTDecorator_BlueprintBase* MyNode = (UBTDecorator_BlueprintBase*)this;
-		MyNode->ReceiveConditionCheck(OwnerComp->GetOwner());
+
+		if (AIOwner != nullptr && PerformConditionCheckImplementations & FBTNodeBPImplementationHelper::AISpecific)
+		{
+			CurrentCallResult = MyNode->PerformConditionCheckAI(MyNode->AIOwner, MyNode->AIOwner->GetPawn());
+		}
+		else if (PerformConditionCheckImplementations & FBTNodeBPImplementationHelper::Generic)
+		{
+			CurrentCallResult = MyNode->PerformConditionCheck(MyNode->ActorOwner);
+		}
 	}
 
 	return CurrentCallResult;
 }
 
-void UBTDecorator_BlueprintBase::FinishConditionCheck(bool bAllowExecution)
+bool UBTDecorator_BlueprintBase::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
-	CurrentCallResult = bAllowExecution;
+	return CalculateRawConditionValueImpl(OwnerComp);	
 }
 
 bool UBTDecorator_BlueprintBase::IsDecoratorExecutionActive() const
 {
 	UBehaviorTreeComponent* OwnerComp = Cast<UBehaviorTreeComponent>(GetOuter());
-	const bool bIsActive = OwnerComp->IsExecutingBranch(GetMyNode(), GetChildIndex());
-	return bIsActive;
+	return OwnerComp && OwnerComp->IsExecutingBranch(GetMyNode(), GetChildIndex());
 }
 
 bool UBTDecorator_BlueprintBase::IsDecoratorObserverActive() const
 {
 	UBehaviorTreeComponent* OwnerComp = Cast<UBehaviorTreeComponent>(GetOuter());
-	const bool bIsActive = OwnerComp->IsAuxNodeActive(this);
-	return bIsActive;
+	return OwnerComp && OwnerComp->IsAuxNodeActive(this);
 }
 
 FString UBTDecorator_BlueprintBase::GetStaticDescription() const
@@ -176,7 +253,7 @@ FString UBTDecorator_BlueprintBase::GetStaticDescription() const
 	return ReturnDesc;
 }
 
-void UBTDecorator_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTDecorator_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	UBTDecorator_BlueprintBase* CDO = (UBTDecorator_BlueprintBase*)(GetClass()->GetDefaultObject());
 	if (CDO && CDO->PropertyData.Num())
@@ -185,26 +262,26 @@ void UBTDecorator_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeCompon
 	}
 }
 
-void UBTDecorator_BlueprintBase::OnBlackboardChange(const UBlackboardComponent* Blackboard, FBlackboard::FKey ChangedKeyID)
+void UBTDecorator_BlueprintBase::OnBlackboardChange(const UBlackboardComponent& Blackboard, FBlackboard::FKey ChangedKeyID)
 {
-	UBehaviorTreeComponent* BehaviorComp = Blackboard ? (UBehaviorTreeComponent*)Blackboard->GetBrainComponent() : NULL;
-	if (BehaviorComp)
+	UBehaviorTreeComponent* BehaviorComp = (UBehaviorTreeComponent*)Blackboard.GetBrainComponent();
+	if (BehaviorComp && GetShouldAbort(*BehaviorComp))
 	{
 		BehaviorComp->RequestExecution(this);		
 	}
 }
 
-void UBTDecorator_BlueprintBase::OnInstanceDestroyed(UBehaviorTreeComponent* OwnerComp)
+void UBTDecorator_BlueprintBase::OnInstanceDestroyed(UBehaviorTreeComponent& OwnerComp)
 {
 	// force dropping all pending latent actions associated with this blueprint
-	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
+	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, *this);
 }
 
 #if WITH_EDITOR
 
 FName UBTDecorator_BlueprintBase::GetNodeIconName() const
 {
-	if(bImplementsReceiveConditionCheck)
+	if(PerformConditionCheckImplementations != 0)
 	{
 		return FName("BTEditor.Graph.BTNode.Decorator.Conditional.Icon");
 	}
@@ -220,3 +297,10 @@ bool UBTDecorator_BlueprintBase::UsesBlueprint() const
 }
 
 #endif // WITH_EDITOR
+
+//----------------------------------------------------------------------//
+// DEPRECATED
+//----------------------------------------------------------------------//
+void UBTDecorator_BlueprintBase::FinishConditionCheck(bool bAllowExecution)
+{
+}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
  
@@ -47,7 +47,7 @@ void SBorder::Construct( const SBorder::FArguments& InArgs )
  *
  * @param	InContent	The widget to use as content for the border
  */
-void SBorder::SetContent( const TSharedRef< SWidget >& InContent )
+void SBorder::SetContent( TSharedRef< SWidget > InContent )
 {
 	ChildSlot
 	[

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /** 
  * This is the definition for a skeleton, used to animate USkeletalMesh
@@ -270,6 +270,9 @@ public:
 	// Names for smartname mappings, if you're adding a new category of smartnames add a new name here
 	static ENGINE_API const FName AnimCurveMappingName;
 
+	// Names for smartname mappings, if you're adding a new category of smartnames add a new name here
+	static ENGINE_API const FName AnimTrackCurveMappingName;
+
 	// Container for smart name mappings
 	UPROPERTY()
 	FSmartNameContainer SmartNames;
@@ -342,19 +345,27 @@ public:
 	typedef FOnRetargetSourceChangedMulticaster::FDelegate FOnRetargetSourceChanged;
 
 	/** Registers a delegate to be called after the preview animation has been changed */
-	void RegisterOnRetargetSourceChanged(const FOnRetargetSourceChanged& Delegate)
+	FDelegateHandle RegisterOnRetargetSourceChanged(const FOnRetargetSourceChanged& Delegate)
 	{
-		OnRetargetSourceChanged.Add(Delegate);
+		return OnRetargetSourceChanged.Add(Delegate);
 	}
 
 	const FGuid GetGuid() const
 	{
 		return Guid;
 	}
+
 	/** Unregisters a delegate to be called after the preview animation has been changed */
+	DELEGATE_DEPRECATED("This UnregisterOnRetargetSourceChanged overload has been deprecated - please pass the handle returned from RegisterOnRetargetSourceChanged instead.")
 	void UnregisterOnRetargetSourceChanged(const FOnRetargetSourceChanged& Delegate)
 	{
-		OnRetargetSourceChanged.Remove(Delegate);
+		OnRetargetSourceChanged.DEPRECATED_Remove(Delegate);
+	}
+
+	/** Unregisters a delegate to be called after the preview animation has been changed */
+	void UnregisterOnRetargetSourceChanged(FDelegateHandle Handle)
+	{
+		OnRetargetSourceChanged.Remove(Handle);
 	}
 
 	void CallbackRetargetSourceChanged()

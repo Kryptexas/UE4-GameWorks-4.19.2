@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -72,17 +72,31 @@ public:
 	UFUNCTION(BlueprintCallable, Category="ComboBox")
 	int32 FindOptionIndex(const FString& Option) const;
 
-	UFUNCTION(BlueprintCallable, Category = "ComboBox")
+	UFUNCTION(BlueprintCallable, Category="ComboBox")
 	FString GetOptionAtIndex(int32 Index) const;
 
 	UFUNCTION(BlueprintCallable, Category="ComboBox")
 	void ClearOptions();
 
-	UFUNCTION(BlueprintCallable, Category = "ComboBox")
+	UFUNCTION(BlueprintCallable, Category="ComboBox")
+	void ClearSelection();
+
+	/**
+	 * Refreshes the list of options.  If you added new ones, and want to update the list even if it's
+	 * currently being displayed use this.
+	 */
+	UFUNCTION(BlueprintCallable, Category="ComboBox")
+	void RefreshOptions();
+
+	UFUNCTION(BlueprintCallable, Category="ComboBox")
 	void SetSelectedOption(FString Option);
 
-	UFUNCTION(BlueprintCallable, Category = "ComboBox")
+	UFUNCTION(BlueprintCallable, Category="ComboBox")
 	FString GetSelectedOption() const;
+
+	/** @return The number of options */
+	UFUNCTION(BlueprintCallable, Category="ComboBox")
+	int32 GetOptionCount() const;
 
 	virtual void ReleaseSlateResources(bool bReleaseChildren) override;
 

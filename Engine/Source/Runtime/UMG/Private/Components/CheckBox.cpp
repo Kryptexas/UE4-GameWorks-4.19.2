@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -13,7 +13,7 @@ UCheckBox::UCheckBox(const FObjectInitializer& ObjectInitializer)
 	SCheckBox::FArguments SlateDefaults;
 	WidgetStyle = *SlateDefaults._Style;
 
-	CheckedState = ESlateCheckBoxState::Unchecked;
+	CheckedState = ECheckBoxState::Unchecked;
 
 	HorizontalAlignment = SlateDefaults._HAlign;
 	Padding = SlateDefaults._Padding.Get();
@@ -50,7 +50,7 @@ void UCheckBox::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
-	MyCheckbox->SetIsChecked( OPTIONAL_BINDING(ESlateCheckBoxState::Type, CheckedState) );
+	MyCheckbox->SetIsChecked( OPTIONAL_BINDING(ECheckBoxState, CheckedState) );
 }
 
 void UCheckBox::OnSlotAdded(UPanelSlot* Slot)
@@ -88,10 +88,10 @@ bool UCheckBox::IsChecked() const
 		return MyCheckbox->IsChecked();
 	}
 
-	return ( CheckedState == ESlateCheckBoxState::Checked );
+	return ( CheckedState == ECheckBoxState::Checked );
 }
 
-ESlateCheckBoxState::Type UCheckBox::GetCheckedState() const
+ECheckBoxState UCheckBox::GetCheckedState() const
 {
 	if ( MyCheckbox.IsValid() )
 	{
@@ -103,35 +103,29 @@ ESlateCheckBoxState::Type UCheckBox::GetCheckedState() const
 
 void UCheckBox::SetIsChecked(bool InIsChecked)
 {
-	CheckedState = InIsChecked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	CheckedState = InIsChecked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	if ( MyCheckbox.IsValid() )
 	{
-		MyCheckbox->SetIsChecked(OPTIONAL_BINDING(ESlateCheckBoxState::Type, CheckedState));
+		MyCheckbox->SetIsChecked(OPTIONAL_BINDING(ECheckBoxState, CheckedState));
 	}
 }
 
-void UCheckBox::SetCheckedState(ESlateCheckBoxState::Type InCheckedState)
+void UCheckBox::SetCheckedState(ECheckBoxState InCheckedState)
 {
 	CheckedState = InCheckedState;
 	if ( MyCheckbox.IsValid() )
 	{
-		MyCheckbox->SetIsChecked(OPTIONAL_BINDING(ESlateCheckBoxState::Type, CheckedState));
+		MyCheckbox->SetIsChecked(OPTIONAL_BINDING(ECheckBoxState, CheckedState));
 	}
 }
 
-void UCheckBox::SlateOnCheckStateChangedCallback(ESlateCheckBoxState::Type NewState)
+void UCheckBox::SlateOnCheckStateChangedCallback(ECheckBoxState NewState)
 {
-	//@TODO: Choosing to treat Undetermined as Checked
-	const bool bWantsToBeChecked = NewState != ESlateCheckBoxState::Unchecked;
+	CheckedState = NewState;
 
-	if (OnCheckStateChanged.IsBound())
-	{
-		OnCheckStateChanged.Broadcast(bWantsToBeChecked);
-	}
-	else
-	{
-		CheckedState = NewState;
-	}
+	//@TODO: Choosing to treat Undetermined as Checked
+	const bool bWantsToBeChecked = NewState != ECheckBoxState::Unchecked;
+	OnCheckStateChanged.Broadcast(bWantsToBeChecked);
 }
 
 void UCheckBox::PostLoad()

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -77,13 +77,13 @@ private:
 	EVisibility GetSelectedTemplatePreviewVisibility() const;
 
 	/** Get a string that details the class types referenced in the selected template */
-	FString GetSelectedTemplateClassTypes() const;
+	FText GetSelectedTemplateClassTypes() const;
 	
 	/** Get a visiblity of the class types display. If the string is empty this return Collapsed otherwise it will return Visible */
 	EVisibility GetSelectedTemplateClassVisibility() const;
 	
 	/** Get a string that details the class types referenced in the selected template */
-	FString GetSelectedTemplateAssetTypes() const;	
+	FText GetSelectedTemplateAssetTypes() const;	
 	
 	/** Get a visiblity of the asset types display. If the string is empty this return Collapsed otherwise it will return Visible */
 	EVisibility GetSelectedTemplateAssetVisibility() const;
@@ -163,10 +163,10 @@ private:
 	void CreateAndOpenProject();
 
 	/** Opens the specified project file */
-	bool OpenProject(const FString& ProjectFile, bool bPromptForConfirmation);
+	bool OpenProject(const FString& ProjectFile);
 
 	/** Opens the solution for the specified project */
-	bool OpenCodeIDE(const FString& ProjectFile, bool bPromptForConfirmation);
+	bool OpenCodeIDE(const FString& ProjectFile);
 
 	/** Creates a project with the supplied project filename */
 	bool CreateProject(const FString& ProjectFile);
@@ -195,10 +195,10 @@ private:
 	void HandleTemplateListViewSelectionChanged( TSharedPtr<FTemplateItem> TemplateItem, ESelectInfo::Type SelectInfo );
 
 	/** Handle choosing a different category tab */
-	void HandleCategoryChanged(ESlateCheckBoxState::Type Checked, FName Category);
+	void HandleCategoryChanged(ECheckBoxState Checked, FName Category);
 
 	/** Get the check state for the specified categories tab */
-	ESlateCheckBoxState::Type GetCategoryTabCheckState(FName Category) const;
+	ECheckBoxState GetCategoryTabCheckState(FName Category) const;
 
 private:
 

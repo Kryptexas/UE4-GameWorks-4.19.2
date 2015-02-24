@@ -1,8 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "InputStructCustomization.h"
 #include "InputSettingsDetails.h"
+#include "GameFramework/PlayerInput.h"
 
 #define LOCTEXT_NAMESPACE "InputStructCustomization"
 
@@ -22,7 +23,7 @@ void FInputAxisConfigCustomization::CustomizeHeader( TSharedRef<class IPropertyH
 
 	HeaderRow.NameContent()
 	[
-		InStructPropertyHandle->CreatePropertyNameWidget(AxisKeyName)
+		InStructPropertyHandle->CreatePropertyNameWidget(FText::FromString(AxisKeyName))
 	];
 }
 
@@ -64,7 +65,7 @@ void FInputActionMappingCustomization::CustomizeChildren( TSharedRef<class IProp
 	TSharedRef<SWidget> RemoveButton = PropertyCustomizationHelpers::MakeDeleteButton(FSimpleDelegate::CreateSP(this, &FInputActionMappingCustomization::RemoveActionMappingButton_OnClick),
 		LOCTEXT("RemoveActionMappingToolTip", "Removes Action Mapping"));
 
-	StructBuilder.AddChildContent( LOCTEXT("KeySearchStr", "Key").ToString() )
+	StructBuilder.AddChildContent( LOCTEXT("KeySearchStr", "Key") )
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()
@@ -185,7 +186,7 @@ void FInputAxisMappingCustomization::CustomizeChildren( TSharedRef<class IProper
 	TSharedRef<SWidget> RemoveButton = PropertyCustomizationHelpers::MakeDeleteButton( FSimpleDelegate::CreateSP( this, &FInputAxisMappingCustomization::RemoveAxisMappingButton_OnClick), 
 		LOCTEXT("RemoveAxisMappingToolTip", "Removes Axis Mapping") );
 
-	StructBuilder.AddChildContent( LOCTEXT("KeySearchStr", "Key").ToString() )
+	StructBuilder.AddChildContent( LOCTEXT("KeySearchStr", "Key") )
 	[
 		SNew(SHorizontalBox)
 		+ SHorizontalBox::Slot()

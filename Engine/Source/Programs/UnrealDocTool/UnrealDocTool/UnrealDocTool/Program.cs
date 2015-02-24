@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -1074,6 +1074,11 @@ namespace UnrealDocTool
 
         private static void DoRecursively(string sourcePath, Action<string> action)
         {
+			if (!Directory.Exists(sourcePath))
+			{
+				return;
+			}
+
             action(sourcePath);
 
             foreach (var subDirectory in Directory.GetDirectories(sourcePath))

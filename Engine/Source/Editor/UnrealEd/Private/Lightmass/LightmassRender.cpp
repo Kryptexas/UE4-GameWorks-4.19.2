@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightmassRender.cpp: lightmass rendering-related implementation.
@@ -11,6 +11,9 @@
 #include "LightmassRender.h"
 #include "MaterialCompiler.h"
 #include "LightMap.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Materials/MaterialInstance.h"
+#include "CanvasTypes.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogLightmassRender, Error, All);
 
@@ -22,101 +25,101 @@ struct FLightmassMaterialCompiler : public FProxyMaterialCompiler
 	{}
 
 	// gets value stored by SetMaterialProperty()
-	virtual EShaderFrequency GetCurrentShaderFrequency() const
+	virtual EShaderFrequency GetCurrentShaderFrequency() const override
 	{
 		// not used by Lightmass
 		return SF_Pixel;
 	}
 
-	virtual int32 ParticleMacroUV()
+	virtual int32 ParticleMacroUV() override
 	{
 		return Compiler->ParticleMacroUV();
 	}
 
-	virtual int32 ParticleRelativeTime()
+	virtual int32 ParticleRelativeTime() override
 	{
 		return Compiler->Constant(0.0f);
 	}
 
-	virtual int32 ParticleMotionBlurFade()
+	virtual int32 ParticleMotionBlurFade() override
 	{
 		return Compiler->Constant(1.0f);
 	}
 
-	virtual int32 ParticleDirection()
+	virtual int32 ParticleDirection() override
 	{
 		return Compiler->Constant3(0.0f, 0.0f, 0.0f);
 	}
 
-	virtual int32 ParticleSpeed()
+	virtual int32 ParticleSpeed() override
 	{
 		return Compiler->Constant(0.0f);
 	}
 	
-	virtual int32 ParticleSize()
+	virtual int32 ParticleSize() override
 	{
 		return Compiler->Constant2(0.0f,0.0f);
 	}
 
-	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets)
+	virtual int32 WorldPosition(EWorldPositionIncludedOffsets WorldPositionIncludedOffsets) override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered WorldPosition... Forcing constant (0.0f,0.0f,0.0f)."));
 		return Compiler->Constant3(0.0f,0.0f,0.0f);
 	}
 
-	virtual int32 ObjectWorldPosition() 
+	virtual int32 ObjectWorldPosition() override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered ObjectWorldPosition... Forcing constant (0.0f,0.0f,0.0f)."));
 		return Compiler->Constant3(0.0f,0.0f,0.0f);
 	}
 
-	virtual int32 ObjectRadius() 
+	virtual int32 ObjectRadius() override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered ObjectRadius... Forcing constant 500.0f."));
 		return Compiler->Constant(500);
 	}
 
-	virtual int32 ObjectBounds() 
+	virtual int32 ObjectBounds() override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered ObjectBounds... Forcing constant (0,0,0)."));
 		return Compiler->Constant3(0,0,0);
 	}
 
-	virtual int32 DistanceCullFade() 
+	virtual int32 DistanceCullFade() override
 	{
 		return Compiler->Constant(1.0f);
 	}
 
-	virtual int32 ActorWorldPosition() 
+	virtual int32 ActorWorldPosition() override
 	{
 		return Compiler->Constant3(0.0f,0.0f,0.0f);
 	}
 
-	virtual int32 CameraWorldPosition()
+	virtual int32 CameraWorldPosition() override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered CameraWorldPosition... Forcing constant (0.0f,0.0f,0.0f)."));
 		return Compiler->Constant3(0.0f,0.0f,0.0f);
 	}
 
-	virtual int32 CameraVector()
+	virtual int32 CameraVector() override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered CameraVector... Forcing constant (0.0f,0.0f,1.0f)."));
 		return Compiler->Constant3(0.0f,0.0f,1.0f);
 	}
 
-	virtual int32 LightVector()
+	virtual int32 LightVector() override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered LightVector... Forcing constant (1.0f,0.0f,0.0f)."));
 		return Compiler->Constant3(1.0f,0.0f,0.0f);
 	}
 
-	virtual int32 ReflectionVector()
+	virtual int32 ReflectionVector() override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered ReflectionVector... Forcing constant (0.0f,0.0f,-1.0f)."));
 		return Compiler->Constant3(0.0f,0.0f,-1.0f);
 	}
 
-	virtual int32 ReflectionAboutCustomWorldNormal(int32 CustomWorldNormal, int32 bNormalizeCustomWorldNormal)
+	virtual int32 ReflectionAboutCustomWorldNormal(int32 CustomWorldNormal, int32 bNormalizeCustomWorldNormal) override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered ReflectionAboutCustomNormalVector... Forcing constant (0.0f,0.0f,-1.0f)."));
 		return Compiler->Constant3(0.0f,0.0f,-1.0f);
@@ -125,7 +128,7 @@ struct FLightmassMaterialCompiler : public FProxyMaterialCompiler
 	/**
 	 *	Generate shader code for transforming a vector
 	 */
-	virtual int32 TransformVector(uint8 SourceCoordType,uint8 DestCoordType,int32 A)
+	virtual int32 TransformVector(uint8 SourceCoordType,uint8 DestCoordType,int32 A) override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered TransformVector... Passing thru source vector untouched."));
 		return A;
@@ -137,33 +140,33 @@ struct FLightmassMaterialCompiler : public FProxyMaterialCompiler
 	 *	@param	CoordType - type of transform to apply. see EMaterialExpressionTransformPosition 
 	 *	@param	A - index for input vector parameter's code
 	 */
-	virtual int32 TransformPosition(uint8 SourceCoordType,uint8 DestCoordType,int32 A)
+	virtual int32 TransformPosition(uint8 SourceCoordType,uint8 DestCoordType,int32 A) override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered TransformPosition... Passing thru source vector untouched."));
 		return A;
 	}
 
-	virtual int32 VertexColor()
+	virtual int32 VertexColor() override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered VertexColor... Forcing constant (1.0f,1.0f,1.0f,1.0f)."));
 		return Compiler->Constant4(1.0f,1.0f,1.0f,1.0f);
 	}
 
-	virtual int32 RealTime()
+	virtual int32 RealTime(bool bPeriodic, float Period) override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered RealTime... Forcing constant 0.0f."));
 		return Compiler->Constant(0.0f);
 	}
 
-	virtual int32 GameTime()
+	virtual int32 GameTime(bool bPeriodic, float Period) override
 	{
 		//UE_LOG(LogLightmassRender, Log, TEXT("Lightmass material compiler has encountered GameTime... Forcing constant 0.0f."));
 		return Compiler->Constant(0.0f);
 	}
 
-	virtual int32 LightmassReplace(int32 Realtime, int32 Lightmass) { return Lightmass; }
+	virtual int32 LightmassReplace(int32 Realtime, int32 Lightmass) override { return Lightmass; }
 
-	virtual int32 GIReplace(int32 Direct, int32 StaticIndirect, int32 DynamicIndirect) { return StaticIndirect; }
+	virtual int32 GIReplace(int32 Direct, int32 StaticIndirect, int32 DynamicIndirect) override { return StaticIndirect; }
 };
 
 /**
@@ -180,49 +183,24 @@ public:
 	/** Initializes the material proxy and kicks off async shader compiling. */
 	void BeginCompiling(UMaterialInterface* InMaterialInterface, EMaterialProperty InPropertyToCompile, EMaterialShaderMapUsage::Type InUsage)
 	{
-		MaterialInterface = InMaterialInterface;
-		Material = MaterialInterface ? MaterialInterface->GetMaterial() : NULL;
-		PropertyToCompile = InPropertyToCompile;
-		Usage = InUsage;
-
-		Material->AppendReferencedTextures(ReferencedTextures);
-
-		// Have to properly handle compilation of static switches in MaterialInstance* cases...
-		UMaterialInstance* MaterialInstance = Cast<UMaterialInstance>(InMaterialInterface);
-
-		// Walk up the parent chain until we find the first MI with static parameters
-		while (MaterialInstance 
-			&& !MaterialInstance->bHasStaticPermutationResource
-			&& MaterialInstance->Parent 
-			&& MaterialInstance->Parent->IsA<UMaterialInstance>())
+		if (InMaterialInterface)
 		{
-			MaterialInstance = Cast<UMaterialInstance>(MaterialInstance->Parent);
-		}
+			MaterialInterface = InMaterialInterface;
+			Material = MaterialInterface ? MaterialInterface->GetMaterial() : NULL;
+			PropertyToCompile = InPropertyToCompile;
+			Usage = InUsage;
 
-		// Special path for a MI with static parameters
-		if (MaterialInstance && MaterialInstance->bHasStaticPermutationResource && MaterialInstance->Parent)
-		{
-			FMaterialResource* MIResource = MaterialInstance->GetMaterialResource(GMaxRHIFeatureLevel);
+			Material->AppendReferencedTextures(ReferencedTextures);
 
-			// Use the shader map Id from the static permutation
-			// This allows us to create a deterministic yet unique Id for the shader map that will be compiled for this FLightmassMaterialProxy
-			FMaterialShaderMapId ResourceId;
-			//@todo - always use highest quality level for static lighting
-			MaterialInstance->GetMaterialResourceId(GMaxRHIShaderPlatform, EMaterialQualityLevel::Num, ResourceId);
-
-			// Override with a special usage so we won't re-use the shader map used by the MI for rendering
-			ResourceId.Usage = GetShaderMapUsage();
-
-			CacheShaders(ResourceId, GMaxRHIShaderPlatform, true);
-		}
-		else
-		{
-			FMaterialResource* MaterialResource = Material->GetMaterialResource(GMaxRHIFeatureLevel);
-
-			// Copy the material resource Id
-			// The FLightmassMaterialProxy's GetShaderMapUsage will set it apart from the MI's resource when it comes to finding a shader map
-
-			CacheShaders(GMaxRHIShaderPlatform, true);
+			FMaterialResource* Resource = InMaterialInterface->GetMaterialResource(GMaxRHIFeatureLevel);
+			if (Resource)
+			{
+				FMaterialShaderMapId ResourceId;
+				Resource->GetShaderMapId(GMaxRHIShaderPlatform, ResourceId);
+				// Override with a special usage so we won't re-use the shader map used by the material for rendering
+				ResourceId.Usage = GetShaderMapUsage();
+				CacheShaders(ResourceId, GMaxRHIShaderPlatform, true);
+			}
 		}
 	}
 
@@ -1048,7 +1026,7 @@ bool FLightmassMaterialRenderer::CreateRenderTarget(EPixelFormat InFormat, int32
 
 	if (RenderTarget == NULL)
 	{
-		RenderTarget = new UTextureRenderTarget2D(FObjectInitializer());
+		RenderTarget = NewObject<UTextureRenderTarget2D>();
 		check(RenderTarget);
 		RenderTarget->AddToRoot();
 		RenderTarget->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TextureDerivedData.cpp: Derived data management for textures.
@@ -22,6 +22,7 @@ enum
 #include "TargetPlatform.h"
 #include "TextureCompressorModule.h"
 #include "ImageCore.h"
+#include "Engine/TextureCube.h"
 
 /*------------------------------------------------------------------------------
 	Versioning for texture derived data.
@@ -48,6 +49,7 @@ namespace TextureDerivedDataTimings
 		SyncBlockTime,
 		BuildTextureTime,
 		SerializeCookedTime,
+		SyncDoesCachedDataExist,
 		NumTimings
 	};
 
@@ -59,7 +61,8 @@ namespace TextureDerivedDataTimings
 		TEXT("Asynchronous Block"),
 		TEXT("Synchronous Loads"),
 		TEXT("Build Textures"),
-		TEXT("Serialize Cooked")
+		TEXT("Serialize Cooked"),
+		TEXT("Sync Does Cached Data Exist")
 	};
 
 	void PrintTimings()
@@ -862,6 +865,7 @@ public:
 		{
 			GetBuildInfo();
 		}
+		UTexture::GetPixelFormatEnum();
 	}
 
 	/** Does the work to cache derived data. Safe to call from any thread. */
@@ -1216,7 +1220,7 @@ static void SerializePlatformData(
 			const int32 NumCinematicMipLevels = Texture->NumCinematicMipLevels;
 			const TextureMipGenSettings MipGenSetting = Texture->MipGenSettings;
 
-			FirstMipToSerialize = Ar.CookingTarget()->GetTextureLODSettings().CalculateLODBias(Width, Height, LODGroup, LODBias, NumCinematicMipLevels, MipGenSetting);
+			FirstMipToSerialize = Ar.CookingTarget()->GetTextureLODSettings().CalculateLODBias(Width, Height, LODGroup, LODBias, 0, MipGenSetting);
 			FirstMipToSerialize = FMath::Clamp(FirstMipToSerialize, 0, FMath::Max(NumMips-1,0));
 			NumMips -= FirstMipToSerialize;
 		}
@@ -1279,6 +1283,7 @@ FAsyncStreamDerivedMipWorker::FAsyncStreamDerivedMipWorker(
 	, bRequestFailed(false)
 	, ThreadSafeCounter(InThreadSafeCounter)
 {
+	UTexture::GetPixelFormatEnum();
 }
 
 /** Retrieves the derived mip from the derived data cache. */
@@ -1347,6 +1352,11 @@ void UTexture::CleanupCachedCookedPlatformData()
 	}
 }
 
+void UTexture::UpdateCachedLODBias( bool bIncTextureMips )
+{
+	CachedCombinedLODBias = GSystemSettings.TextureLODSettings.CalculateLODBias( this, bIncTextureMips );
+}
+
 #if WITH_EDITOR
 void UTexture::CachePlatformData(bool bAsyncCache)
 {
@@ -1384,11 +1394,6 @@ void UTexture::CachePlatformData(bool bAsyncCache)
 		
 		UpdateCachedLODBias();
 	}
-}
-
-void UTexture::UpdateCachedLODBias( bool bIncTextureMips )
-{
-	CachedCombinedLODBias = GSystemSettings.TextureLODSettings.CalculateLODBias(this, bIncTextureMips);
 }
 
 void UTexture::BeginCachePlatformData()
@@ -1438,13 +1443,13 @@ void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPla
 			}
 		}
 
-
-
 		uint32 CacheFlags = ETextureCacheFlags::Async | ETextureCacheFlags::InlineMips;
 
 		// If source data is resident in memory then allow the texture to be built
 		// in a background thread.
-		if (Source.BulkData.IsBulkDataLoaded())
+		bool bAllowAsyncBuild = Source.BulkData.IsBulkDataLoaded();
+
+		if (bAllowAsyncBuild)
 		{
 			CacheFlags |= ETextureCacheFlags::AllowAsyncBuild;
 		}
@@ -1460,12 +1465,24 @@ void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPla
 
 			if ( PlatformData == NULL )
 			{
+				uint32 CurrentCacheFlags = CacheFlags;
+				// if the cached data key exists already then we don't need to allowasync build
+				// if it doesn't then allow async builds
+				
+				{
+					TextureDerivedDataTimings::FScopedMeasurement Timer(TextureDerivedDataTimings::SyncDoesCachedDataExist);
+					if ( GetDerivedDataCacheRef().CachedDataProbablyExists( *DerivedDataKey ) == false )
+					{
+						CurrentCacheFlags |= ETextureCacheFlags::AllowAsyncBuild;
+					}
+				}
+
 				FTexturePlatformData* PlatformDataToCache;
 				PlatformDataToCache = new FTexturePlatformData();
 				PlatformDataToCache->Cache(
 					*this,
 					BuildSettingsToCache[SettingsIndex],
-					CacheFlags
+					CurrentCacheFlags
 					);
 				CookedPlatformData.Add( DerivedDataKey, PlatformDataToCache );
 			}
@@ -1747,6 +1764,11 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 			}
 			Ar << PixelFormatName;
 		}
+	}
+
+	if( Ar.IsLoading() )
+	{
+		LODBias = 0;
 	}
 }
 

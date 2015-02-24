@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 
@@ -110,14 +110,20 @@ public:
 	/** Edits associated asset(s) */
 	TSharedPtr< FUICommandInfo > EditAssetNoConfirmMultiple;
 
-	/** Snaps the camera to the selected actors. */
-	TSharedPtr< FUICommandInfo > SnapCameraToActor;
+	/** Moves the camera to the current mouse position */
+	TSharedPtr< FUICommandInfo > GoHere;
+
+	/** Snaps the camera to the selected object. */
+	TSharedPtr< FUICommandInfo > SnapCameraToObject;
 
 	/** Goes to the source code for the selected actor's class. */
 	TSharedPtr< FUICommandInfo > GoToCodeForActor;
 
 	/** Goes to the documentation for the selected actor's class. */
 	TSharedPtr< FUICommandInfo > GoToDocsForActor;
+
+	/** Customize the script behavior of an instance. */
+	TSharedPtr< FUICommandInfo > AddScriptBehavior;
 
 	/** Paste actor at click location*/
 	TSharedPtr< FUICommandInfo > PasteHere;
@@ -319,6 +325,9 @@ public:
 	/** Selects all actors of the same class and archetype as the current selection */
 	TSharedPtr< FUICommandInfo > SelectAllActorsOfSameClassWithArchetype;
 
+	/** Selects the actor that owns the currently selected component(s) */
+	TSharedPtr< FUICommandInfo > SelectComponentOwnerActor;
+
 	/** Selects all lights relevant to the current selection */
 	TSharedPtr< FUICommandInfo > SelectRelevantLights;
 
@@ -503,7 +512,9 @@ public:
 	 */
 	TSharedPtr< FUICommandInfo > OpenLevelBlueprint;
 	TSharedPtr< FUICommandInfo > CheckOutProjectSettingsConfig;
-	TSharedPtr< FUICommandInfo > CreateClassBlueprint;
+	TSharedPtr< FUICommandInfo > CreateBlankBlueprintClass;
+	TSharedPtr< FUICommandInfo > ConvertSelectionToBlueprintViaHarvest;
+	TSharedPtr< FUICommandInfo > ConvertSelectionToBlueprintViaSubclass;
 
 	/** Editor mode commands */
 	TArray< TSharedPtr< FUICommandInfo > > EditorModeCommands;
@@ -546,6 +557,14 @@ public:
 	//TSharedPtr< FUICommandInfo > MeshPaintMode;
 	//TSharedPtr< FUICommandInfo > LandscapeMode;
 	//TSharedPtr< FUICommandInfo > FoliageMode;
+
+	/**
+	 * Source Control Commands
+	 */
+	TSharedPtr< FUICommandInfo > ConnectToSourceControl;
+	TSharedPtr< FUICommandInfo > ChangeSourceControlSettings;
+	TSharedPtr< FUICommandInfo > CheckOutModifiedFiles;
+	TSharedPtr< FUICommandInfo > SubmitToSourceControl;
 
 	/**
 	 * Misc Commands
@@ -697,10 +716,10 @@ public:
 	static void SetLightingDensityGrayscaleScale( float Value );
 	static void SetLightingDensityRenderGrayscale();
 	static bool IsLightingDensityRenderGrayscaleChecked();
-	static void SetLightingResolutionStaticMeshes( ESlateCheckBoxState::Type NewCheckedState );
-	static ESlateCheckBoxState::Type IsLightingResolutionStaticMeshesChecked();
-	static void SetLightingResolutionBSPSurfaces( ESlateCheckBoxState::Type NewCheckedState );
-	static ESlateCheckBoxState::Type IsLightingResolutionBSPSurfacesChecked();
+	static void SetLightingResolutionStaticMeshes( ECheckBoxState NewCheckedState );
+	static ECheckBoxState IsLightingResolutionStaticMeshesChecked();
+	static void SetLightingResolutionBSPSurfaces( ECheckBoxState NewCheckedState );
+	static ECheckBoxState IsLightingResolutionBSPSurfacesChecked();
 	static void SetLightingResolutionLevel( FLightmapResRatioAdjustSettings::AdjustLevels NewLevel );
 	static bool IsLightingResolutionLevelChecked( FLightmapResRatioAdjustSettings::AdjustLevels TestLevel );
 	static void SetLightingResolutionSelectedObjectsOnly();
@@ -745,11 +764,25 @@ public:
 	/**
 	 * Called when the recompile buttons are clicked.
 	 */
-	static void RecompileLevelEditor_Clicked();
-	static void ReloadLevelEditor_Clicked();
 	static void RecompileGameCode_Clicked();
 	static bool Recompile_CanExecute();
-	static bool Reload_CanExecute();
+
+	/**
+	 * Called when requesting connection to source control
+	 */
+	static void ConnectToSourceControl_Clicked();
+
+	/**
+	 * Called when Check Out Modified Files is clicked
+	 */
+	static void CheckOutModifiedFiles_Clicked();
+	static bool CheckOutModifiedFiles_CanExecute();
+
+	/**
+	 * Called when Submit to Source Control is clicked
+	 */
+	static void SubmitToSourceControl_Clicked();
+	static bool SubmitToSourceControl_CanExecute();
 
 	/**
 	 * Called when the FindInContentBrowser command is executed
@@ -779,6 +812,12 @@ public:
 
 	/** Called when create new outliner folder is clicked */
 	static void CreateNewOutlinerFolder_Clicked();
+
+	/** Called when the go here command is clicked 
+	 * 
+	 * @param Point	- Specified point to go to.  If null, a point will be calculated from current mouse position
+	 */
+	static void GoHere_Clicked( const FVector* Point );
 
 	/** Called when 'Go to Code for Actor' is clicked */
 	static void GoToCodeForActor_Clicked();
@@ -857,6 +896,12 @@ public:
 	 * @param bArchetype	true to also check that the archetype is the same
 	 */
 	static void OnSelectAllActorsOfClass( bool bArchetype );
+
+	/** Called when selecting the actor that owns the currently selected component(s) */
+	static void OnSelectComponentOwnerActor();
+
+	/** Called to see if any components are selected */
+	static bool CanSelectComponentOwnerActor();
 
 	/**
 	 * Called to select all lights
@@ -1032,8 +1077,20 @@ public:
 	/** Returns TRUE if the user can edit the game mode Blueprint, this requires the DefaultEngine config file to be writable */
 	static bool CanSelectGameModeBlueprint();
 
-	/** Helps the user create a class Blueprint */
-	static void CreateClassBlueprint();
+	/** Helps the user create a Blueprint class */
+	static void CreateBlankBlueprintClass();
+
+	/** Can call HarvestSelectedActorsIntoBlueprintClass right now?  (is anything selected) */
+	static bool CanHarvestSelectedActorsIntoBlueprintClass();
+
+	/** Harvest all of the components in the selected actors into a Blueprint, and replace the instances with one new actor */
+	static void HarvestSelectedActorsIntoBlueprintClass();
+
+	/** Can call SubclassSelectedActorIntoBlueprintClass right now?  (is exactly one thing selected) */
+	static bool CanSubclassSelectedActorIntoBlueprintClass();
+
+	/** Convert the selected actor into a Blueprint (via subclassing) */
+	static void SubclassSelectedActorIntoBlueprintClass();
 
 	/** Shows only selected actors, hiding any unselected actors and unhiding any selected hidden actors. */
 	static void OnShowOnlySelectedActors();
@@ -1068,7 +1125,7 @@ public:
 	static void OnToggleLevelStreamingVolumePrevis();
 	static bool OnIsLevelStreamingVolumePrevisEnabled(); 
 	
-	static FString GetAudioVolumeToolTip();
+	static FText GetAudioVolumeToolTip();
 	static float GetAudioVolume();
 	static void OnAudioVolumeChanged(float Volume);
 	static bool GetAudioMuted();
@@ -1076,7 +1133,7 @@ public:
 
 	static void OnEnableActorSnap();
 	static bool OnIsActorSnapEnabled();
-	static FString GetActorSnapTooltip();
+	static FText GetActorSnapTooltip();
 	static float GetActorSnapSetting();
 	static void SetActorSnapSetting(float Distance);
 	static void OnEnableVertexSnap();
@@ -1124,7 +1181,7 @@ public:
 	 * @param InUseBounds		Whether or not to base the line trace off of the bounds.
 	 * @param InUsePivot		Whether or not to use the pivot position.
 	 */
-	static void SnapActorToFloor_Clicked( bool InAlign, bool InUseLineTrace, bool InUseBounds, bool InUsePivot );
+	static void SnapToFloor_Clicked( bool InAlign, bool InUseLineTrace, bool InUseBounds, bool InUsePivot );
 
 	/**
 	 * Snaps an actor to another actor.  Optionally will align with the trace normal.
@@ -1155,13 +1212,21 @@ private:
 	static void MoveActorTo_Clicked( const bool InAlign, const AActor* InDestination = NULL, bool bInPerActor = false );
 
 	/** 
-	 * Snaps an actor...  Optionally will align with the trace normal.
+	 * Snaps an actor or component...  Optionally will align with the trace normal.
 	 * @param InAlign			Whether or not to rotate the actor to align with the trace normal.
 	 * @param InUseLineTrace	Whether or not to only trace with a line through the world.
 	 * @param InUseBounds		Whether or not to base the line trace off of the bounds.
 	 * @param InUsePivot		Whether or not to use the pivot position.
 	 * @param InDestination		The destination actor we want to move this actor to, NULL assumes we just want to go towards the floor
 	 */
-	static void SnapActorTo_Clicked( const bool InAlign, const bool InUseLineTrace, const bool InUseBounds, const bool InUsePivot, const AActor* InDestination = NULL );
+	static void SnapTo_Clicked( const bool InAlign, const bool InUseLineTrace, const bool InUseBounds, const bool InUsePivot, AActor* InDestination = NULL );
+
+	/** 
+	 * Create and apply animation to the SkeletalMeshComponent if Simulating
+	 * 
+	 * @param EditorActor	Editor Counterpart Actor
+	 * @param SimActor		Simulating Actor in PIE or SIE
+	 */
+	static bool SaveAnimationFromSkeletalMeshComponent(AActor * EditorActor, AActor * SimActor, TArray<class USkeletalMeshComponent*> & OutEditorComponents);
 };
 

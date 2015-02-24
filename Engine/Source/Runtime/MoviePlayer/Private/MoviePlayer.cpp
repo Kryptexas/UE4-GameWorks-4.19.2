@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MoviePlayer.h"
 
@@ -65,7 +65,7 @@ TSharedRef<SWidget> FLoadingScreenAttributes::NewTestLoadingScreenWidget()
 
 TSharedPtr<IGameMoviePlayer> GetMoviePlayer()
 {
-	if (!IsMoviePlayerEnabled() || GUsingNullRHI )
+	if (!IsMoviePlayerEnabled() || GUsingNullRHI)
 	{
 		return FNullGameMoviePlayer::Get();
 	}
@@ -77,5 +77,5 @@ TSharedPtr<IGameMoviePlayer> GetMoviePlayer()
 
 bool IsMoviePlayerEnabled()
 {
-	return !GIsEditor && !IsRunningDedicatedServer() && !IsRunningCommandlet() && !FParse::Param(FCommandLine::Get(), TEXT("ONETHREAD"));
+	return !GIsEditor && !IsRunningDedicatedServer() && !IsRunningCommandlet() && GUseThreadedRendering;
 }

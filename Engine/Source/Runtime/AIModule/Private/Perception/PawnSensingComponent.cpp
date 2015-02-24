@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Components/PawnNoiseEmitterComponent.h"
@@ -76,7 +76,7 @@ void UPawnSensingComponent::SetTimer(const float TimeInterval)
 	AActor* const Owner = GetOwner();
 	if (IsValid(Owner) && GEngine->GetNetMode(GetWorld()) < NM_Client)
 	{
-		Owner->GetWorldTimerManager().SetTimer(this, &UPawnSensingComponent::OnTimer, TimeInterval, false);
+		Owner->GetWorldTimerManager().SetTimer(TimerHandle_OnTimer, this, &UPawnSensingComponent::OnTimer, TimeInterval, false);
 	}
 }
 
@@ -96,7 +96,7 @@ void UPawnSensingComponent::SetSensingInterval(const float NewSensingInterval)
 			}
 			else if (bEnableSensingUpdates)
 			{
-				float CurrentElapsed = Owner->GetWorldTimerManager().GetTimerElapsed(this, &UPawnSensingComponent::OnTimer);
+				float CurrentElapsed = Owner->GetWorldTimerManager().GetTimerElapsed(TimerHandle_OnTimer);
 				CurrentElapsed = FMath::Max(0.f, CurrentElapsed);
 
 				if (CurrentElapsed < SensingInterval)
@@ -334,7 +334,7 @@ bool UPawnSensingComponent::CouldSeePawn(const APawn *Other, bool bMaySkipChecks
 // 	UE_LOG(LogPath, Warning, TEXT("DistanceToOtherSquared = %f, SightRadiusSquared: %f"), SelfToOtherDistSquared, FMath::Square(SightRadius));
 
 	// check field of view
-	FVector const SelfToOtherDir = SelfToOther.SafeNormal();
+	FVector const SelfToOtherDir = SelfToOther.GetSafeNormal();
 	FVector const MyFacingDir = Owner->GetActorRotation().Vector();
 
 // 	UE_LOG(LogPath, Warning, TEXT("DotProductFacing: %f, PeripheralVisionCosine: %f"), SelfToOtherDir | MyFacingDir, PeripheralVisionCosine);

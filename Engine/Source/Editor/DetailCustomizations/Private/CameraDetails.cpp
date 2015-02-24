@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "CameraDetails.h"
@@ -32,7 +32,7 @@ void FCameraDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 	FSimpleDelegate OnAspectRatioChangedDelegate = FSimpleDelegate::CreateSP( this, &FCameraDetails::OnAspectRatioChanged );
 	AspectRatioProperty->SetOnPropertyValueChanged( OnAspectRatioChangedDelegate );
 
-	IDetailCategoryBuilder& CameraCategory = DetailLayout.EditCategory( "CameraSettings", FString(), ECategoryPriority::Important );
+	IDetailCategoryBuilder& CameraCategory = DetailLayout.EditCategory( "CameraSettings", FText::GetEmpty(), ECategoryPriority::Important );
 	
 	// Organize the properties
 	CameraCategory.AddProperty(ProjectionModeProperty);

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MatineeModule.h"
 
@@ -8,7 +8,7 @@
 #include "Matinee/InterpTrackColorProp.h"
 
 #include "Matinee.h"
-
+#include "Engine/InterpCurveEdSetup.h"
 
 /** Ensure the curve editor is synchronised with the track editor. */
 void FMatinee::SyncCurveEdView()

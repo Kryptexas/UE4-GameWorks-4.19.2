@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "HittestGrid.h"
@@ -11,6 +11,7 @@ DECLARE_CYCLE_STAT( TEXT("OnPaint SViewport"), STAT_SlateOnPaint_SViewport, STAT
 SViewport::SViewport()
 	: bRenderDirectlyToWindow(false)
 	, bEnableGammaCorrection(true)
+	, bEnableStereoRendering(false)
 { }
 
 
@@ -23,6 +24,7 @@ void SViewport::Construct( const FArguments& InArgs )
 	bRenderDirectlyToWindow = InArgs._RenderDirectlyToWindow;
 	bEnableGammaCorrection = InArgs._EnableGammaCorrection;
 	bEnableBlending = InArgs._EnableBlending;
+	bEnableStereoRendering = InArgs._EnableStereoRendering;
 	bIgnoreTextureAlpha = InArgs._IgnoreTextureAlpha;
 	ViewportInterface = InArgs._ViewportInterface;
 	ViewportSize = InArgs._ViewportSize;
@@ -92,7 +94,7 @@ int32 SViewport::OnPaint( const FPaintArgs& Args, const FGeometry& AllottedGeome
 				TSet<FKey>(),
 				FModifierKeysState() )
 		 );
-		EMouseCursor::Type CursorType = Reply.GetCursor();
+		EMouseCursor::Type CursorType = Reply.GetCursorType();
 
 		const FSlateBrush* Brush = FCoreStyle::Get().GetBrush(TEXT("SoftwareCursor_Grab"));
 		if( CursorType == EMouseCursor::CardinalCross )
@@ -138,6 +140,10 @@ FCursorReply SViewport::OnCursorQuery( const FGeometry& MyGeometry, const FPoint
 	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnCursorQuery(MyGeometry, CursorEvent) : FCursorReply::Unhandled();
 }
 
+TOptional<TSharedRef<SWidget>> SViewport::OnMapCursor(const FCursorReply& CursorReply) const
+{
+	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnMapCursor(CursorReply) : TOptional<TSharedRef<SWidget>>();
+}
 
 FReply SViewport::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
@@ -285,6 +291,24 @@ FReply SViewport::OnTouchGesture( const FGeometry& MyGeometry, const FPointerEve
 FReply SViewport::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent )
 {
 	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnMotionDetected(MyGeometry, InMotionEvent) : FReply::Unhandled();
+}
+
+TOptional<bool> SViewport::OnQueryShowFocus(const EFocusCause InFocusCause) const
+{
+	return ViewportInterface.IsValid() ? ViewportInterface.Pin()->OnQueryShowFocus(InFocusCause) : TOptional<bool>();
+}
+
+TOptional<EPopupMethod> SViewport::OnQueryPopupMethod() const
+{
+	TSharedPtr<ISlateViewport> PinnedInterface = ViewportInterface.Pin();
+	if (PinnedInterface.IsValid())
+	{
+		return PinnedInterface->OnQueryPopupMethod();
+	}
+	else
+	{
+		return EPopupMethod::CreateNewWindow;
+	}	
 }
 
 void SViewport::OnFinishedPointerInput()

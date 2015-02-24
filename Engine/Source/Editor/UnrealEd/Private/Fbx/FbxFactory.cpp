@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*
 * Copyright 2008-2009 Autodesk, Inc.  All Rights Reserved.
@@ -37,6 +37,7 @@
 
 #include "FbxErrors.h"
 #include "AssetRegistryModule.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "FBXFactory"
 

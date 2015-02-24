@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,6 +38,10 @@ class UEditorUserSettings : public UObject
 	/** When turned on, the editor will constantly monitor performance and adjust scalability settings for you when performance drops (disabled in debug) */
 	UPROPERTY(EditAnywhere, config, Category=Performance)
 	uint32 bMonitorEditorPerformance:1;
+
+	/** If enabled, any newly added classes will trigger a hot-reload of the module they were added to */
+	UPROPERTY(EditAnywhere, config, Category=HotReload)
+	uint32 bAutomaticallyHotReloadNewClasses:1;
 
 	/** Select to make Distributions use the curves, not the baked lookup tables. */
 	UPROPERTY(config)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -145,10 +145,6 @@ class UParticleSystem : public UObject
 	float ThumbnailWarmup;
 
 #endif // WITH_EDITORONLY_DATA
-	/** Deprecated, ParticleSystemLOD::bLit is used instead. */
-	UPROPERTY()
-	uint32 bLit_DEPRECATED:1;
-
 	/** Used for curve editor to remember curve-editing setup.						*/
 	UPROPERTY(export)
 	class UInterpCurveEdSetup* CurveEdSetup;

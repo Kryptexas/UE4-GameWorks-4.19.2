@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -24,6 +24,13 @@ void UBTTask_RotateToFaceBBEntry::PostInitProperties()
 	PrecisionDot = FMath::Cos(FMath::DegreesToRadians(Precision));
 }
 
+void UBTTask_RotateToFaceBBEntry::PostLoad()
+{
+	Super::PostLoad();
+
+	PrecisionDot = FMath::Cos(FMath::DegreesToRadians(Precision));
+}
+
 namespace
 {
 	FORCEINLINE_DEBUGGABLE float CalculateAngleDifferenceDot(const FVector& VectorA, const FVector& VectorB)
@@ -32,10 +39,9 @@ namespace
 	}
 }
 
-EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	check(OwnerComp);
-	AAIController* AIController = OwnerComp->GetAIOwner();
+	AAIController* AIController = OwnerComp.GetAIOwner();
 
 	if (AIController == NULL || AIController->GetPawn() == NULL)
 	{
@@ -50,17 +56,17 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 
 	APawn* Pawn = AIController->GetPawn();
 	const FVector PawnLocation = Pawn->GetActorLocation();
-	const UBlackboardComponent* MyBlackboard = OwnerComp->GetBlackboardComponent();
+	const UBlackboardComponent* MyBlackboard = OwnerComp.GetBlackboardComponent();
 
 	if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Object::StaticClass())
 	{
-		UObject* KeyValue = MyBlackboard->GetValueAsObject(BlackboardKey.GetSelectedKeyID());
+		UObject* KeyValue = MyBlackboard->GetValue<UBlackboardKeyType_Object>(BlackboardKey.GetSelectedKeyID());
 		AActor* ActorValue = Cast<AActor>(KeyValue);
 
 		if (ActorValue != NULL)
 		{
 			const float AngleDifference = CalculateAngleDifferenceDot(Pawn->GetActorRotation().Vector()
-				, (ActorValue->GetActorLocation() - PawnLocation).SafeNormal2D());
+				, (ActorValue->GetActorLocation() - PawnLocation).GetSafeNormal2D());
 			
 			if (AngleDifference >= PrecisionDot)
 			{
@@ -77,12 +83,12 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 	}
 	else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Vector::StaticClass())
 	{
-		const FVector KeyValue = MyBlackboard->GetValueAsVector(BlackboardKey.GetSelectedKeyID());
+		const FVector KeyValue = MyBlackboard->GetValue<UBlackboardKeyType_Vector>(BlackboardKey.GetSelectedKeyID());
 		
 		if (FAISystem::IsValidLocation(KeyValue))
 		{
 			const float AngleDifference = CalculateAngleDifferenceDot(Pawn->GetActorRotation().Vector()
-				, (KeyValue - PawnLocation).SafeNormal2D());
+				, (KeyValue - PawnLocation).GetSafeNormal2D());
 
 			if (AngleDifference >= PrecisionDot)
 			{
@@ -90,7 +96,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 			}
 			else
 			{
-				AIController->SetFocalPoint(KeyValue, false, EAIFocusPriority::Gameplay);
+				AIController->SetFocalPoint(KeyValue, EAIFocusPriority::Gameplay);
 				MyMemory->FocusLocationSet = KeyValue;
 				Result = EBTNodeResult::InProgress;
 			}
@@ -98,7 +104,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 	}
 	else if (BlackboardKey.SelectedKeyType == UBlackboardKeyType_Rotator::StaticClass())
 	{
-		const FRotator KeyValue = MyBlackboard->GetValueAsRotator(BlackboardKey.GetSelectedKeyID());
+		const FRotator KeyValue = MyBlackboard->GetValue<UBlackboardKeyType_Rotator>(BlackboardKey.GetSelectedKeyID());
 
 		if (FAISystem::IsValidRotation(KeyValue))
 		{
@@ -113,7 +119,7 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 			{
 				const FVector FocalPoint = PawnLocation + DirectionVector * (MAX_FLT / 2);
 				// set focal somewhere far in the indicated direction
-				AIController->SetFocalPoint(FocalPoint, false, EAIFocusPriority::Gameplay);
+				AIController->SetFocalPoint(FocalPoint, EAIFocusPriority::Gameplay);
 				MyMemory->FocusLocationSet = FocalPoint;
 				Result = EBTNodeResult::InProgress;
 			}
@@ -123,10 +129,9 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::ExecuteTask(UBehaviorTreeCompon
 	return Result;
 }
 
-void UBTTask_RotateToFaceBBEntry::TickTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTTask_RotateToFaceBBEntry::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-	check(OwnerComp);
-	AAIController* AIController = OwnerComp->GetAIOwner();
+	AAIController* AIController = OwnerComp.GetAIOwner();
 
 	if (AIController == NULL || AIController->GetPawn() == NULL)
 	{
@@ -135,9 +140,9 @@ void UBTTask_RotateToFaceBBEntry::TickTask(UBehaviorTreeComponent* OwnerComp, ui
 	else
 	{
 		const FVector PawnDirection = AIController->GetPawn()->GetActorRotation().Vector();				
-		const FVector FocalPoint = AIController->GetFocalPoint(EAIFocusPriority::Gameplay);
+		const FVector FocalPoint = AIController->GetFocalPointForPriority(EAIFocusPriority::Gameplay);
 
-		if (CalculateAngleDifferenceDot(PawnDirection, (FocalPoint - AIController->GetPawn()->GetActorLocation()).SafeNormal2D()) >= PrecisionDot)
+		if (CalculateAngleDifferenceDot(PawnDirection, (FocalPoint - AIController->GetPawn()->GetActorLocation()).GetSafeNormal2D()) >= PrecisionDot)
 		{
 			CleanUp(*AIController, NodeMemory);
 			FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
@@ -153,11 +158,11 @@ void UBTTask_RotateToFaceBBEntry::CleanUp(AAIController& AIController, uint8* No
 	bool bClearFocus = false;
 	if (MyMemory->bActorSet)
 	{
-		bClearFocus = (MyMemory->FocusActorSet == AIController.GetFocusActor(EAIFocusPriority::Gameplay));
+		bClearFocus = (MyMemory->FocusActorSet == AIController.GetFocusActorForPriority(EAIFocusPriority::Gameplay));
 	}
 	else
 	{
-		bClearFocus = (MyMemory->FocusLocationSet == AIController.GetFocalPoint(EAIFocusPriority::Gameplay));
+		bClearFocus = (MyMemory->FocusLocationSet == AIController.GetFocalPointForPriority(EAIFocusPriority::Gameplay));
 	}
 	
 	if (bClearFocus)
@@ -166,9 +171,9 @@ void UBTTask_RotateToFaceBBEntry::CleanUp(AAIController& AIController, uint8* No
 	}
 }
 
-EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::AbortTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	AAIController* AIController = OwnerComp->GetAIOwner();
+	AAIController* AIController = OwnerComp.GetAIOwner();
 
 	if (AIController != NULL)
 	{
@@ -178,19 +183,19 @@ EBTNodeResult::Type UBTTask_RotateToFaceBBEntry::AbortTask(UBehaviorTreeComponen
 	return EBTNodeResult::Succeeded;
 }
 
-void UBTTask_RotateToFaceBBEntry::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTTask_RotateToFaceBBEntry::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	FString KeyDesc = BlackboardKey.SelectedKeyName.ToString();
 	Values.Add(FString::Printf(TEXT("%s: %s"), *Super::GetStaticDescription(), *KeyDesc));
 
-	AAIController* AIController = OwnerComp->GetAIOwner();
+	AAIController* AIController = OwnerComp.GetAIOwner();
 
 	if (AIController != NULL && AIController->GetPawn() != NULL)
 	{
 		const FVector PawnDirection = AIController->GetPawn()->GetActorRotation().Vector();
-		const FVector FocalPoint = AIController->GetFocusItem(EAIFocusPriority::Gameplay).GetLocation();
+		const FVector FocalPoint = AIController->GetFocalPointForPriority(EAIFocusPriority::Gameplay);
 
-		const float CurrentAngleRadians = CalculateAngleDifferenceDot(PawnDirection, (FocalPoint - AIController->GetPawn()->GetActorLocation()).SafeNormal2D());
+		const float CurrentAngleRadians = CalculateAngleDifferenceDot(PawnDirection, (FocalPoint - AIController->GetPawn()->GetActorLocation()).GetSafeNormal2D());
 		Values.Add(FString::Printf(TEXT("Current angle: %.2f"), FMath::RadiansToDegrees(FMath::Acos(CurrentAngleRadians))));
 	}
 	else

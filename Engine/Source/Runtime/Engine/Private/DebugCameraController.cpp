@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
    DebugCameraController.cpp: Native implementation for the debug camera
@@ -11,6 +11,9 @@
 #include "GameFramework/SpectatorPawnMovement.h"
 #include "Engine/DebugCameraHUD.h"
 #include "LightMap.h"
+#include "Engine/DebugCameraController.h"
+#include "Components/DrawFrustumComponent.h"
+#include "GameFramework/PlayerInput.h"
 
 
 /** The currently selected actor. */

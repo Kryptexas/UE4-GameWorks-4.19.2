@@ -1,30 +1,42 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
+
+//----------------------------------------------------------------------//
+// FAIStimulus
+//----------------------------------------------------------------------//
 
 // mind that this needs to be > 0 since checks are done if Age < FAIStimulus::NeverHappenedAge
 // @todo maybe should be a function (IsValidAge)
 const float FAIStimulus::NeverHappenedAge = FLT_MAX;
 
+FAIStimulus::FAIStimulus(const UAISense& Sense, float StimulusStrength, const FVector& InStimulusLocation, const FVector& InReceiverLocation, FResult Result)
+	: Age(0.f), Strength(Result == SensingSucceeded ? StimulusStrength : -1.f)
+	, StimulusLocation(InStimulusLocation)
+	, ReceiverLocation(InReceiverLocation), bLastSensingResult(Result == SensingSucceeded)
+	, bExpired(false)
+{
+	Type = Sense.GetSenseID();
+	ExpirationAge = Sense.GetDefaultExpirationAge();
+}
+
 //----------------------------------------------------------------------//
 // FPerceptionListener
 //----------------------------------------------------------------------//
-const FPerceptionListener FPerceptionListener::NullListener((UAIPerceptionComponent*)NULL);
+const FPerceptionListener FPerceptionListener::NullListener;
 
-FPerceptionListener::FPerceptionListener(UAIPerceptionComponent* InListener) 
-	: Listener(InListener)
-	, PeripheralVisionAngleCos(1.f)
-	, HearingRangeSq(-1.f)
-	, LOSHearingRangeSq(-1.f)
-	, SightRadiusSq(-1.f)
-	, LoseSightRadiusSq(-1.f)
-	, ListenerId(AIPerception::InvalidListenerId)
+FPerceptionListener::FPerceptionListener()
+	: ListenerID(FPerceptionListenerID::InvalidID())
 {
-	if (InListener != NULL)
-	{
-		UpdateListenerProperties(InListener);
-		ListenerId = InListener->GetListenerId();
-	}
+
+}
+
+FPerceptionListener::FPerceptionListener(UAIPerceptionComponent& InListener) 
+	: Listener(&InListener)
+	, ListenerID(FPerceptionListenerID::InvalidID())
+{
+	UpdateListenerProperties(InListener);
+	ListenerID = InListener.GetListenerId();
 }
 
 void FPerceptionListener::CacheLocation()
@@ -35,20 +47,13 @@ void FPerceptionListener::CacheLocation()
 	}
 }
 
-void FPerceptionListener::UpdateListenerProperties(UAIPerceptionComponent* InListener)
+void FPerceptionListener::UpdateListenerProperties(UAIPerceptionComponent& InListener)
 {
-	check(InListener != NULL);
-	verify(InListener == Listener.Get());
+	verify(&InListener == Listener.Get());
 
 	// using InListener rather then Listener to avoid slight overhead of TWeakObjectPtr
-	TeamIdentifier = InListener->GetTeamIdentifier();
-	Filter = InListener->GetPerceptionFilter();
-
-	PeripheralVisionAngleCos = FMath::Cos(FMath::DegreesToRadians(InListener->GetPeripheralVisionAngle()));
-	HearingRangeSq = FMath::Square(InListener->GetHearingRange());
-	LOSHearingRangeSq = FMath::Square(InListener->GetLOSHearingRange());
-	SightRadiusSq = FMath::Square(InListener->GetSightRadius());
-	LoseSightRadiusSq = FMath::Square(InListener->GetLoseSightRadius());
+	TeamIdentifier = InListener.GetTeamIdentifier();
+	Filter = InListener.GetPerceptionFilter();
 }
 
 void FPerceptionListener::RegisterStimulus(AActor* Source, const FAIStimulus& Stimulus)
@@ -89,3 +94,4 @@ const IGenericTeamAgentInterface* FPerceptionListener::GetTeamAgent() const
 	const IGenericTeamAgentInterface* OwnerTeamAgent = Cast<const IGenericTeamAgentInterface>(OwnerActor);
 	return OwnerTeamAgent != NULL ? OwnerTeamAgent : Cast<const IGenericTeamAgentInterface>(PercComponent->GetBodyActor());
 }
+

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -279,7 +279,7 @@ void SGraphNodeKnot::UpdateGraphNode()
 
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
 
-	this->ChildSlot
+	this->GetOrAddSlot( ENodeZone::Center )
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
 		[
@@ -319,16 +319,24 @@ void SGraphNodeKnot::UpdateGraphNode()
 						]
 					]
 				]
-
-				+SVerticalBox::Slot()
-				.VAlign(VAlign_Fill)
-				.HAlign(HAlign_Fill)
-				[
-					InlineEditableText.ToSharedRef()
-				]
 			]
 		];
+	// Create comment bubble
+	SAssignNew( CommentBubble, SCommentBubble )
+	.GraphNode( GraphNode )
+	.Text( this, &SGraphNode::GetNodeComment )
+	.ColorAndOpacity( FLinearColor::White )
+	.GraphLOD( this, &SGraphNode::GetCurrentLOD )
+	.IsGraphNodeHovered( this, &SGraphNode::IsHovered );
 
+	GetOrAddSlot( ENodeZone::TopCenter )
+	.SlotOffset( TAttribute<FVector2D>( this, &SGraphNodeKnot::GetCommentOffset ))
+	.SlotSize( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetSize ))
+	.AllowScaling( TAttribute<bool>( CommentBubble.Get(), &SCommentBubble::IsScalingAllowed ))
+	.VAlign( VAlign_Top )
+	[
+		CommentBubble.ToSharedRef()
+	];
 	CreatePinWidgets();
 }
 
@@ -371,5 +379,29 @@ void SGraphNodeKnot::AddPin(const TSharedRef<SGraphPin>& PinToAdd)
 				PinToAdd
 			];
 		OutputPins.Add(PinToAdd);
+	}
+}
+
+FVector2D SGraphNodeKnot::GetCommentOffset() const
+{
+	static const FVector2D CenterAdjust( 8.f, 0.f );
+	return CommentBubble->GetOffset() + CenterAdjust;
+}
+
+void SGraphNodeKnot::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	if( !GraphNode->NodeComment.IsEmpty() )
+	{
+		GraphNode->bCommentBubbleVisible = true;
+		CommentBubble->UpdateBubble();
+	}
+}
+
+void SGraphNodeKnot::OnMouseLeave( const FPointerEvent& MouseEvent )
+{
+	if( !GraphNode->NodeComment.IsEmpty() )
+	{
+		GraphNode->bCommentBubbleVisible = false;
+		CommentBubble->UpdateBubble();
 	}
 }

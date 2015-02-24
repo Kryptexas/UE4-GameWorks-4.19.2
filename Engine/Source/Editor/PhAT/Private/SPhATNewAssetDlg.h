@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,10 +38,10 @@ private:
 	void OnCollisionGeometrySelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 	void OnWeightOptionSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 	void OnAngularConstraintModeSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
-	void OnToggleOrientAlongBone(ESlateCheckBoxState::Type InCheckboxState);
-	void OnToggleCreateJoints(ESlateCheckBoxState::Type InCheckboxState);
-	void OnToggleWalkPastSmallBones(ESlateCheckBoxState::Type InCheckboxState);
-	void OnToggleCreateBodyForAllBones(ESlateCheckBoxState::Type InCheckboxState);
+	void OnToggleOrientAlongBone(ECheckBoxState InCheckboxState);
+	void OnToggleCreateJoints(ECheckBoxState InCheckboxState);
+	void OnToggleWalkPastSmallBones(ECheckBoxState InCheckboxState);
+	void OnToggleCreateBodyForAllBones(ECheckBoxState InCheckboxState);
 	
 	EVisibility GetHullOptionsVisibility() const;
 	void OnHullCountChanged(int32 InNewValue);	

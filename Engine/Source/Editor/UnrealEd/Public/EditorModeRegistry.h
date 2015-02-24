@@ -1,6 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Editor.h"
+#include "SlateIcon.h"
+
+// Required forward declarations
+class FEdMode;
+
+DECLARE_DELEGATE_RetVal(TSharedRef<FEdMode>, FEditorModeFactoryCallback);
 
 /**
  *	Class responsible for maintaining a list of registered editor mode types.
@@ -22,11 +29,6 @@
  *	Unregister your mode when it is no longer available like so (this will prompt the destruction of any existing modes of this type):
  *		FEditorModeRegistry::Get().UnregisterMode( FName( TEXT("MyEditorMode") ) );
  */
-
-// Required forward declarations
-class FEdMode;
-
-DECLARE_DELEGATE_RetVal(TSharedRef<FEdMode>, FEditorModeFactoryCallback);
 
 struct FEditorModeInfo
 {

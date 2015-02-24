@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IBuildManifest.h: Declares the IBuildManifest and IManifestField interfaces.
@@ -136,13 +136,13 @@ public:
 	 * @return True if the manifest was created from the latest format
 	 */
 	virtual bool NeedsResaving() const = 0;
-	
+
 	/**
-	 * Duplicated this manifest to create a copy. Should be used if storing a received manifest as an installed
-	 * manifest which would then be unique
-	 * @return A shared ref to the new manifest
+	 * Copy the custom fields from another manifest into this one. If this manifest has custom fields, matching keys will be overwritten but extras will remain
+	 * @param Other		The manifest to copy from
+	 * @param bClobber	Whether to overwrite any already existing fields
 	 */
-	virtual IBuildManifestRef Duplicate() const = 0;
+	virtual void CopyCustomFields(IBuildManifestRef Other, bool bClobber) = 0;
 
 	/**
 	 * Get a custom field from the manifest
@@ -160,6 +160,13 @@ public:
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const FString& Value) = 0;
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const double& Value) = 0;
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const int64& Value) = 0;
+	
+	/**
+	 * Duplicated this manifest to create a copy. Should be used if storing a received manifest as an installed
+	 * manifest which would then be unique
+	 * @return A shared ref to the new manifest
+	 */
+	virtual IBuildManifestRef Duplicate() const = 0;
 };
 
 #endif // __IBuildManifest_h__

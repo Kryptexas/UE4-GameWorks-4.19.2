@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ContentBrowserPCH.h"
 #include "AssetViewTypes.h"
@@ -32,6 +32,7 @@
 #include "GenericCommands.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/LevelStreaming.h"
 
 
 #define LOCTEXT_NAMESPACE "ContentBrowser"
@@ -39,6 +40,7 @@
 FAssetContextMenu::FAssetContextMenu(const TWeakPtr<SAssetView>& InAssetView)
 	: AssetView(InAssetView)
 	, bAtLeastOneNonRedirectorSelected(false)
+	, bAtLeastOneClassSelected(false)
 	, bCanExecuteSCCMerge(false)
 	, bCanExecuteSCCCheckOut(false)
 	, bCanExecuteSCCOpenForAdd(false)
@@ -46,6 +48,7 @@ FAssetContextMenu::FAssetContextMenu(const TWeakPtr<SAssetView>& InAssetView)
 	, bCanExecuteSCCHistory(false)
 	, bCanExecuteSCCRevert(false)
 	, bCanExecuteSCCSync(false)
+	, bCurrentWorldSelected(false)
 {
 	
 }
@@ -167,7 +170,7 @@ bool FAssetContextMenu::AddImportedAssetMenuOptions(FMenuBuilder& MenuBuilder)
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("FindSourceFile", "Open Source Location"),
 				LOCTEXT("FindSourceFileTooltip", "Opens the folder containing the source of the selected asset(s)."),
-				FSlateIcon(),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.OpenSourceLocation"),
 				FUIAction(
 					FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteFindSourceInExplorer, ResolvedFilePaths),
 					FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteImportedAssetActions, ResolvedFilePaths)
@@ -178,7 +181,7 @@ bool FAssetContextMenu::AddImportedAssetMenuOptions(FMenuBuilder& MenuBuilder)
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("OpenInExternalEditor", "Open In External Editor"),
 				LOCTEXT("OpenInExternalEditorTooltip", "Open the selected asset(s) in the default external editor."),
-				FSlateIcon(),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.OpenInExternalEditor"),
 				FUIAction(
 					FExecuteAction::CreateSP(this, &FAssetContextMenu::ExecuteOpenInExternalEditor, ResolvedFilePaths),
 					FCanExecuteAction::CreateSP(this, &FAssetContextMenu::CanExecuteImportedAssetActions, ResolvedFilePaths)
@@ -209,13 +212,15 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 	// Rename
 	MenuBuilder.AddMenuEntry(FGenericCommands::Get().Rename, NAME_None,
 		LOCTEXT("Rename", "Rename"),
-		LOCTEXT("RenameTooltip", "Rename the selected asset.")
+		LOCTEXT("RenameTooltip", "Rename the selected asset."),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Rename")
 		);
 
 	// Duplicate
 	MenuBuilder.AddMenuEntry(FGenericCommands::Get().Duplicate, NAME_None,
 		LOCTEXT("Duplicate", "Duplicate"),
-		LOCTEXT("DuplicateTooltip", "Create a copy of the selected asset(s).")
+		LOCTEXT("DuplicateTooltip", "Create a copy of the selected asset(s)."),
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions.Duplicate")
 		);
 
 	// Save
@@ -240,7 +245,15 @@ bool FAssetContextMenu::AddCommonMenuOptions(FMenuBuilder& MenuBuilder)
 	MenuBuilder.AddSubMenu(
 		LOCTEXT("AssetActionsSubMenuLabel", "Asset Actions"),
 		LOCTEXT("AssetActionsSubMenuToolTip", "Other asset actions"),
-		FNewMenuDelegate::CreateSP(this, &FAssetContextMenu::MakeAssetActionsSubMenu), false, FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions")
+		FNewMenuDelegate::CreateSP(this, &FAssetContextMenu::MakeAssetActionsSubMenu),
+		FUIAction(
+			FExecuteAction(),
+			FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteAssetActions )
+			),
+		NAME_None,
+		EUserInterfaceActionType::Button,
+		false, 
+		FSlateIcon(FEditorStyle::GetStyleSetName(), "ContentBrowser.AssetActions")
 		);
 	}
 	MenuBuilder.EndSection();
@@ -409,6 +422,11 @@ void FAssetContextMenu::MakeAssetActionsSubMenu(FMenuBuilder& MenuBuilder)
 		}
 	}
 	MenuBuilder.EndSection();
+}
+
+bool FAssetContextMenu::CanExecuteAssetActions() const
+{
+	return !bAtLeastOneClassSelected;
 }
 
 bool FAssetContextMenu::AddReferenceMenuOptions(FMenuBuilder& MenuBuilder)
@@ -595,6 +613,12 @@ bool FAssetContextMenu::AddSourceControlMenuOptions(FMenuBuilder& MenuBuilder)
 			LOCTEXT("SourceControlSubMenuLabel", "Source Control"),
 			LOCTEXT("SourceControlSubMenuToolTip", "Source control actions."),
 			FNewMenuDelegate::CreateSP(this, &FAssetContextMenu::FillSourceControlSubMenu),
+			FUIAction(
+				FExecuteAction(),
+				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSourceControlActions )
+				),
+			NAME_None,
+			EUserInterfaceActionType::Button,
 			false,
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.StatusIcon.On")
 			);
@@ -607,9 +631,9 @@ bool FAssetContextMenu::AddSourceControlMenuOptions(FMenuBuilder& MenuBuilder)
 			FSlateIcon(FEditorStyle::GetStyleSetName(), "SourceControl.StatusIcon.Unknown"),
 			FUIAction(
 				FExecuteAction::CreateSP( this, &FAssetContextMenu::ExecuteEnableSourceControl ),
-				FCanExecuteAction()
+				FCanExecuteAction::CreateSP( this, &FAssetContextMenu::CanExecuteSourceControlActions )
 				)
-			);		
+			);
 	}
 
 	// Diff selected
@@ -740,6 +764,11 @@ void FAssetContextMenu::FillSourceControlSubMenu(FMenuBuilder& MenuBuilder)
 			)
 		);
 	}
+}
+
+bool FAssetContextMenu::CanExecuteSourceControlActions() const
+{
+	return !bAtLeastOneClassSelected;
 }
 
 bool FAssetContextMenu::AddCollectionMenuOptions(FMenuBuilder& MenuBuilder)
@@ -1119,7 +1148,7 @@ void FAssetContextMenu::ExecuteDiffSelected() const
 			FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 
 			FRevisionInfo CurrentRevision; 
-			CurrentRevision.Revision = -1;
+			CurrentRevision.Revision = TEXT("");
 
 			AssetToolsModule.Get().DiffAssets(FirstObjectSelected, SecondObjectSelected, CurrentRevision, CurrentRevision);
 		}
@@ -1324,7 +1353,7 @@ void FAssetContextMenu::ExecuteGoToDocsForAsset(UClass* SelectedClass, const FSt
 		FString DocumentationLink = FEditorClassUtils::GetDocumentationLink(SelectedClass, ExcerptSection);
 		if (!DocumentationLink.IsEmpty())
 		{
-			IDocumentation::Get()->Open( DocumentationLink );
+			IDocumentation::Get()->Open(DocumentationLink, FDocumentationSourceInfo(TEXT("cb_docs")));
 		}
 	}
 }
@@ -1564,6 +1593,7 @@ void FAssetContextMenu::ExecuteSCCSync()
 		{
 			PackageTools::LoadPackage(*PackageIter);
 		}
+		ExecuteSCCRefresh();
 	}
 }
 
@@ -1613,15 +1643,21 @@ bool FAssetContextMenu::CanExecutePropertyMatrix() const
 
 bool FAssetContextMenu::CanExecuteDuplicate() const
 {
-	return bAtLeastOneNonRedirectorSelected;
+	return bAtLeastOneNonRedirectorSelected && !bAtLeastOneClassSelected && !bCurrentWorldSelected;
 }
 
 bool FAssetContextMenu::CanExecuteRename() const
 {
 	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
 	TArray< FString > SelectedFolders = AssetView.Pin()->GetSelectedFolders();
-	const bool bOneAssetSelected = AssetViewSelectedAssets.Num() == 1 && SelectedFolders.Num() == 0 && AssetViewSelectedAssets[0].AssetClass != UObjectRedirector::StaticClass()->GetFName();
-	const bool bOneFolderSelected = AssetViewSelectedAssets.Num() == 0 && SelectedFolders.Num() == 1;
+
+	const bool bOneAssetSelected = AssetViewSelectedAssets.Num() == 1 && SelectedFolders.Num() == 0		// A single asset
+		&& AssetViewSelectedAssets[0].AssetClass != UObjectRedirector::StaticClass()->GetFName()		// Which isn't a redirector
+		&& AssetViewSelectedAssets[0].AssetClass != NAME_Class;											// And isn't a class
+
+	const bool bOneFolderSelected = AssetViewSelectedAssets.Num() == 0 && SelectedFolders.Num() == 1	// A single folder
+		&& !ContentBrowserUtils::IsClassPath(SelectedFolders[0]);										// Which doesn't belong to a class path
+	
 	return (bOneAssetSelected || bOneFolderSelected) && !AssetView.Pin()->IsThumbnailEditMode();
 }
 
@@ -1629,7 +1665,15 @@ bool FAssetContextMenu::CanExecuteDelete() const
 {
 	TArray< FAssetData > AssetViewSelectedAssets = AssetView.Pin()->GetSelectedAssets();
 	TArray< FString > SelectedFolders = AssetView.Pin()->GetSelectedFolders();
-	return AssetViewSelectedAssets.Num() > 0 || SelectedFolders.Num() > 0;
+
+	int32 NumAssetItems, NumClassItems;
+	ContentBrowserUtils::CountItemTypes(AssetViewSelectedAssets, NumAssetItems, NumClassItems);
+
+	int32 NumAssetPaths, NumClassPaths;
+	ContentBrowserUtils::CountPathTypes(SelectedFolders, NumAssetPaths, NumClassPaths);
+
+	// We can't delete classes, or folders containing classes
+	return (NumAssetItems > 0 && NumClassItems == 0) || (NumAssetPaths > 0 && NumClassPaths == 0);
 }
 
 bool FAssetContextMenu::CanExecuteRemoveFromCollection() const 
@@ -1646,29 +1690,26 @@ bool FAssetContextMenu::CanExecuteSCCMerge() const
 {
 	FAssetToolsModule& AssetToolsModule = FModuleManager::GetModuleChecked<FAssetToolsModule>("AssetTools");
 
-	bool bCanExecuteMerge = GetDefault<UEditorExperimentalSettings>()->bEnableBlueprintMergeTool;
-	if( bCanExecuteMerge )
+	bool bCanExecuteMerge = bCanExecuteSCCMerge;
+	for (int32 AssetIdx = 0; AssetIdx < SelectedAssets.Num() && bCanExecuteMerge; AssetIdx++)
 	{
-		bCanExecuteMerge = bCanExecuteSCCMerge;
-		for (int32 AssetIdx = 0; AssetIdx < SelectedAssets.Num() && bCanExecuteMerge; AssetIdx++)
+		// Get the actual asset (will load it)
+		const FAssetData& AssetData = SelectedAssets[AssetIdx];
+		UObject* CurrentObject = AssetData.GetAsset();
+		if (CurrentObject)
 		{
-			// Get the actual asset (will load it)
-			const FAssetData& AssetData = SelectedAssets[AssetIdx];
-			UObject* CurrentObject = AssetData.GetAsset();
-			if (CurrentObject)
+			auto AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(CurrentObject->GetClass()).Pin();
+			if (AssetTypeActions.IsValid())
 			{
-				auto AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(CurrentObject->GetClass()).Pin();
-				if (AssetTypeActions.IsValid())
-				{
-					bCanExecuteMerge = AssetTypeActions->CanMerge();
-				}
-			}
-			else
-			{
-				bCanExecuteMerge = false;
+				bCanExecuteMerge = AssetTypeActions->CanMerge();
 			}
 		}
+		else
+		{
+			bCanExecuteMerge = false;
+		}
 	}
+
 	return bCanExecuteMerge;
 }
 
@@ -1735,6 +1776,11 @@ bool FAssetContextMenu::CanExecuteConsolidate() const
 
 bool FAssetContextMenu::CanExecuteSaveAsset() const
 {
+	if ( bAtLeastOneClassSelected )
+	{
+		return false;
+	}
+
 	TArray<UPackage*> Packages;
 	GetSelectedPackages(Packages);
 
@@ -1753,7 +1799,7 @@ bool FAssetContextMenu::CanExecuteSaveAsset() const
 bool FAssetContextMenu::CanExecuteDiffSelected() const
 {
 	bool bCanDiffSelected = false;
-	if (SelectedAssets.Num() == 2)
+	if (SelectedAssets.Num() == 2 && !bAtLeastOneClassSelected)
 	{
 		FAssetData const& FirstSelection = SelectedAssets[0];
 		FAssetData const& SecondSelection = SelectedAssets[1];
@@ -1792,6 +1838,7 @@ bool FAssetContextMenu::CanClearCustomThumbnails() const
 void FAssetContextMenu::CacheCanExecuteVars()
 {
 	bAtLeastOneNonRedirectorSelected = false;
+	bAtLeastOneClassSelected = false;
 	bCanExecuteSCCMerge = false;
 	bCanExecuteSCCCheckOut = false;
 	bCanExecuteSCCOpenForAdd = false;
@@ -1799,7 +1846,9 @@ void FAssetContextMenu::CacheCanExecuteVars()
 	bCanExecuteSCCHistory = false;
 	bCanExecuteSCCRevert = false;
 	bCanExecuteSCCSync = false;
+	bCurrentWorldSelected = false;
 
+	static const FName WorldClass("World");
 	for (auto AssetIt = SelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt)
 	{
 		const FAssetData& AssetData = *AssetIt;
@@ -1808,10 +1857,18 @@ void FAssetContextMenu::CacheCanExecuteVars()
 			continue;
 		}
 
+		// Hack: 4.7 current world is selected and cannot be duplicated due to blueprint trashed components issues.  
+		if( AssetData.AssetClass == WorldClass && AssetData.IsAssetLoaded() )
+		{
+			bCurrentWorldSelected = (GWorld == AssetData.GetAsset());
+		}
+
 		if ( !bAtLeastOneNonRedirectorSelected && AssetData.AssetClass != UObjectRedirector::StaticClass()->GetFName() )
 		{
 			bAtLeastOneNonRedirectorSelected = true;
 		}
+
+		bAtLeastOneClassSelected |= AssetData.AssetClass == NAME_Class;
 
 		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 		if ( ISourceControlModule::Get().IsEnabled() )
@@ -1853,6 +1910,7 @@ void FAssetContextMenu::CacheCanExecuteVars()
 		}
 
 		if ( bAtLeastOneNonRedirectorSelected
+			&& bAtLeastOneClassSelected
 			&& bCanExecuteSCCMerge
 			&& bCanExecuteSCCCheckOut
 			&& bCanExecuteSCCOpenForAdd

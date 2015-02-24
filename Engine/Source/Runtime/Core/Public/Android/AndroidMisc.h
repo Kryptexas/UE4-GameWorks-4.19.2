@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -57,28 +57,29 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static FString GetGPUFamily();
 	static FString GetGLVersion();
 	static bool SupportsFloatingPointRenderTargets();
+	static int GetAndroidBuildVersion();
 
 
 #if !UE_BUILD_SHIPPING
-	FORCEINLINE static bool IsDebuggerPresent()
-	{
-		//@todo Android
-		return false;
-	}
+	static bool IsDebuggerPresent();
 
 	FORCEINLINE static void DebugBreak()
 	{
 		if( IsDebuggerPresent() )
 		{
-			//@todo Android
-			//Signal interupt to our process, this is caught by the main thread, this is not immediate but you can continue
-			//when triggered by check macros you will need to inspect other threads for the appFailAssert call.
-			//kill( getpid(), SIGINT );
-
-			//If you want an immediate break use the trap instruction, continued execuction is halted
+			__builtin_trap();
 		}
 	}
 #endif
+
+	/** Break into debugger. Returning false allows this function to be used in conditionals. */
+	FORCEINLINE static bool DebugBreakReturningFalse()
+	{
+#if !UE_BUILD_SHIPPING
+		DebugBreak();
+#endif
+		return false;
+	}
 
 	FORCEINLINE static void MemoryBarrier()
 	{
@@ -94,6 +95,8 @@ struct CORE_API FAndroidMisc : public FGenericPlatformMisc
 	static FString DeviceModel; // model of the device we are running on eg "SAMSUNG-SGH-I437"
 	static FString OSLanguage; // language code the device is set to
 
+	// Build version of Android, i.e. API level.
+	static int32 AndroidBuildVersion;
 };
 
 typedef FAndroidMisc FPlatformMisc;

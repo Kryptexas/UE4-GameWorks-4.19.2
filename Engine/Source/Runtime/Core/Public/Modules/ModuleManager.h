@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -360,6 +360,11 @@ public:
 	void SetGameBinariesDirectory(const TCHAR* InDirectory);
 
 	/**
+	*	Gets the game binaries directory
+	*/
+	FString GetGameBinariesDirectory() const;
+
+	/**
 	 * Checks to see if the specified module exists and is compatible with the current engine version. 
 	 *
 	 * @param InModuleName The base name of the module file.
@@ -437,11 +442,6 @@ public:
 
 	virtual bool Exec( UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar ) override;
 
-	/**
-	 * Calls for each auto-startup module its StartupModule function.
-	 */
-	void InitializeAutoStartupModules();
-
 protected:
 
 	/**
@@ -514,13 +514,6 @@ private:
 
 	/** Finds modules matching a given name wildcard within a given directory. */
 	void FindModulePathsInDirectory(const FString &DirectoryName, bool bIsGameDirectory, const TCHAR *NamePattern, TMap<FName, FString> &OutModulePaths) const;
-
-	/**
-	 * Loads array of module names that needs to be auto-loaded.
-	 *
-	 * @param OutModules Output array to fill with module names.
-	 */
-	void GetAutoStartupModuleList(TArray<FString>& OutModules) const;
 
 private:
 
@@ -627,18 +620,6 @@ class FDefaultGameModuleImpl
 };
 
 /**
- * Callback to retrieve auto-startup modules list.
- *
- * It should return string ptr to auto-startup module for consecutive indices
- * until the list is finished. Then this function should return nullptr.
- *
- * @param Index Auto-startup module index to return.
- *
- * @returns Auto-startup module name.
- */
-extern CORE_API const ANSICHAR* (*GEnumAutoStartupModuleName)(int32 Index);
-
-/**
  * Module implementation boilerplate for regular modules.
  *
  * This macro is used to expose a module's main class to the rest of the engine.
@@ -725,16 +706,6 @@ extern CORE_API const ANSICHAR* (*GEnumAutoStartupModuleName)(int32 Index);
 	#define IMPLEMENT_DEBUGGAME()
 #endif 
 
-#define REGISTER_AUTO_STARTUP_MODULE_LIST_GETTER() \
-	struct FRegisterAutoStartupModuleListEnumerator \
-	{ \
-		FRegisterAutoStartupModuleListEnumerator() \
-		{ \
-			extern const ANSICHAR* EnumAutoStartupModuleName(int Index); \
-			GEnumAutoStartupModuleName = &EnumAutoStartupModuleName; \
-		} \
-	} RegisterAutoStartupModuleListEnumerator;
-
 #if IS_PROGRAM
 
 	#if IS_MONOLITHIC
@@ -745,8 +716,7 @@ extern CORE_API const ANSICHAR* (*GEnumAutoStartupModuleName)(int32 Index);
 			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			IMPLEMENT_GAME_MODULE(FDefaultGameModuleImpl, ModuleName) \
 			PER_MODULE_BOILERPLATE \
-			FEngineLoop GEngineLoop; \
-			REGISTER_AUTO_STARTUP_MODULE_LIST_GETTER();
+			FEngineLoop GEngineLoop;
 
 	#else		
 
@@ -761,8 +731,7 @@ extern CORE_API const ANSICHAR* (*GEnumAutoStartupModuleName)(int32 Index);
 			} AutoSet##ModuleName; \
 			PER_MODULE_BOILERPLATE \
 			PER_MODULE_BOILERPLATE_ANYLINK(FDefaultGameModuleImpl, ModuleName) \
-			FEngineLoop GEngineLoop; \
-			REGISTER_AUTO_STARTUP_MODULE_LIST_GETTER();
+			FEngineLoop GEngineLoop;
 	#endif
 
 #else
@@ -786,8 +755,7 @@ extern CORE_API const ANSICHAR* (*GEnumAutoStartupModuleName)(int32 Index);
 			{ \
 				extern void UELinkerFixups(); \
 				UELinkerFixups(); \
-			} \
-			REGISTER_AUTO_STARTUP_MODULE_LIST_GETTER();
+			}
 
 	#else	//PLATFORM_DESKTOP
 
@@ -799,8 +767,7 @@ extern CORE_API const ANSICHAR* (*GEnumAutoStartupModuleName)(int32 Index);
 			IMPLEMENT_FOREIGN_ENGINE_DIR() \
 			IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName ) \
 			/* Implement the GIsGameAgnosticExe variable (See Core.h). */ \
-			bool GIsGameAgnosticExe = false; \
-			REGISTER_AUTO_STARTUP_MODULE_LIST_GETTER();
+			bool GIsGameAgnosticExe = false;
 
 	#endif	//PLATFORM_DESKTOP
 
@@ -808,8 +775,7 @@ extern CORE_API const ANSICHAR* (*GEnumAutoStartupModuleName)(int32 Index);
 
 	#define IMPLEMENT_PRIMARY_GAME_MODULE( ModuleImplClass, ModuleName, GameName ) \
 		/* Nothing special to do for modular builds.  The game name will be set via the command-line */ \
-		IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName ) \
-		REGISTER_AUTO_STARTUP_MODULE_LIST_GETTER();
+		IMPLEMENT_GAME_MODULE( ModuleImplClass, ModuleName )
 #endif	//IS_MONOLITHIC
 
 #endif

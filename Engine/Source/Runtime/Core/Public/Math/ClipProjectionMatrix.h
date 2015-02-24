@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 
 /**
  * Realigns the near plane for an existing projection matrix 
@@ -23,6 +24,7 @@ private:
 	/** return sign of a number */
 	FORCEINLINE float sgn( float a );
 };
+
 
 FORCEINLINE FClipProjectionMatrix::FClipProjectionMatrix( const FMatrix& SrcProjMat, const FPlane& Plane ) :
 FMatrix(SrcProjMat)
@@ -49,11 +51,10 @@ FMatrix(SrcProjMat)
 	M[3][2] = -ProjPlane.W;
 }
 
+
 FORCEINLINE float FClipProjectionMatrix::sgn( float a )
 {
 	if (a > 0.0f) return (1.0f);
 	if (a < 0.0f) return (-1.0f);
 	return (0.0f);
 }
-
-

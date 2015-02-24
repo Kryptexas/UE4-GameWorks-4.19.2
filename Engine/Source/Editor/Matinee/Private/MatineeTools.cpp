@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MatineeModule.h"
 #include "Matinee.h"
@@ -38,6 +38,11 @@
 #include "EngineAnalytics.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Camera/CameraActor.h"
+#include "Camera/CameraAnim.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/Selection.h"
+#include "Engine/InterpCurveEdSetup.h"
 
 ///// UTILS
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -529,21 +529,15 @@ public:
 	ENGINE_API virtual bool GetGroupName(FName ParameterName, FName& GroupName) const;
 
 	/**
-		Allows callers from any thread to access these properties via the interface.
+		Access to overridable properties of the base material.
 	*/
-	ENGINE_API float GetOpacityMaskClipValue() const;
-	ENGINE_API EBlendMode GetBlendMode() const;
-	ENGINE_API EMaterialShadingModel GetShadingModel() const;
-	ENGINE_API bool IsTwoSided() const;
-	ENGINE_API bool IsMasked() const;
+	ENGINE_API virtual float GetOpacityMaskClipValue(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual EBlendMode GetBlendMode(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual EMaterialShadingModel GetShadingModel(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual bool IsTwoSided(bool bIsGameThread = IsInGameThread()) const;
+	ENGINE_API virtual bool IsMasked(bool bIsGameThread = IsInGameThread()) const;
 
-	/** Game thread versions of the accessors. On the render thread there are equivelant getters in FMaterial. */
-	ENGINE_API virtual float GetOpacityMaskClipValue_Internal() const;
-	ENGINE_API virtual EBlendMode GetBlendMode_Internal() const;
-	ENGINE_API virtual EMaterialShadingModel GetShadingModel_Internal() const;
-	ENGINE_API virtual bool IsTwoSided_Internal() const;
-	ENGINE_API virtual bool IsMasked_Internal() const;
-	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const { return 0; }
+	ENGINE_API virtual USubsurfaceProfile* GetSubsurfaceProfile_Internal() const;
 
 	/**
 	 * Force the streaming system to disregard the normal logic for the specified duration and

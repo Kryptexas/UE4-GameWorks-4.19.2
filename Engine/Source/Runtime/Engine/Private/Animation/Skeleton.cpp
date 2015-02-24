@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Skeleton.cpp: Skeleton features
@@ -26,6 +26,7 @@ const FName USkeleton::RigTag = FName(TEXT("Rig"));
 
 // Names of smartname containers for skeleton properties
 const FName USkeleton::AnimCurveMappingName = FName(TEXT("AnimationCurves"));
+const FName USkeleton::AnimTrackCurveMappingName = FName(TEXT("AnimationTrackCurves"));
 
 const FName FAnimSlotGroup::DefaultGroupName = FName(TEXT("DefaultGroup"));
 const FName FAnimSlotGroup::DefaultSlotName = FName(TEXT("DefaultSlot"));
@@ -430,8 +431,27 @@ bool USkeleton::RecreateBoneTree(USkeletalMesh* InSkelMesh)
 		RegenerateGuid();	
 		BoneTree.Empty();
 		ReferenceSkeleton.Empty();
-		return MergeAllBonesToBoneTree(InSkelMesh);
+
+		bool bResult = MergeAllBonesToBoneTree(InSkelMesh);
+
+		if (bResult)
+		{
+			// this has to go through all assets and fix up
+			for (FObjectIterator Iter(UAnimationAsset::StaticClass()); Iter; ++Iter)
+			{
+				UAnimationAsset* AnimAsset = Cast<UAnimationAsset>(*Iter);
+				if (AnimAsset->GetSkeleton() == this)
+				{
+					AnimAsset->ValidateSkeleton();
+				}
+			}
+			
+			return bResult;
+		}
+		
+		return bResult;
 	}
+
 	return false;
 }
 
@@ -914,7 +934,7 @@ bool USkeleton::AddSmartnameAndModify(FName ContainerName, FName NewName, FSmart
 	FSmartNameMapping* RequestedMapping = SmartNames.GetContainer(ContainerName);
 	if(RequestedMapping)
 	{
-		if(RequestedMapping->AddName(NewName, NewUid))
+		if(RequestedMapping->AddOrFindName(NewName, NewUid))
 		{
 			Modify(true);
 			Successful = true;

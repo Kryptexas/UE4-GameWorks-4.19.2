@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DeferredShadingCommon.usf: Common definitions for deferred shading.
@@ -228,7 +228,16 @@ uint DecodeShadingModelId(float InPackedChannel)
 #define SHADINGMODELID_PREINTEGRATED_SKIN	3
 #define SHADINGMODELID_CLEAR_COAT			4
 #define SHADINGMODELID_SUBSURFACE_PROFILE	5
-#define SHADINGMODELID_NUM					6
+#define SHADINGMODELID_TWOSIDED_FOLIAGE		6
+#define SHADINGMODELID_NUM					7
+
+bool IsSubsurfaceModel(int ShadingModel)
+{
+	return ShadingModel == SHADINGMODELID_SUBSURFACE 
+		|| ShadingModel == SHADINGMODELID_PREINTEGRATED_SKIN 
+		|| ShadingModel == SHADINGMODELID_SUBSURFACE_PROFILE
+		|| ShadingModel == SHADINGMODELID_TWOSIDED_FOLIAGE;
+}
 
 // all values that are output by the forward rendering pass
 struct FGBufferData
@@ -324,7 +333,7 @@ void EncodeGBuffer(
 	}
 	else
 	{
-		bool bSubsurface = (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE || GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN || GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE);
+		bool bSubsurface = IsSubsurfaceModel(GBuffer.ShadingModelID);
 
 		// NOTE OutGBufferB.b is currently unused!
 		OutGBufferB.r = bSubsurface ? GBuffer.Opacity : GBuffer.Metallic;
@@ -369,7 +378,7 @@ FGBufferData DecodeGBufferData(
 	GBuffer.HasDistanceFieldRepresentation = PackedAlpha & 1;
 	GBuffer.ShadingModelID = DecodeShadingModelId(InGBufferB.a);
 	
-	bool bSubsurface = (GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE || GBuffer.ShadingModelID == SHADINGMODELID_PREINTEGRATED_SKIN || GBuffer.ShadingModelID == SHADINGMODELID_SUBSURFACE_PROFILE);
+	bool bSubsurface = IsSubsurfaceModel(GBuffer.ShadingModelID);
 
 	GBuffer.BaseColor = DecodeBaseColor(InGBufferC.rgb);
 	GBuffer.Metallic = bSubsurface ? 0 : InGBufferB.r;

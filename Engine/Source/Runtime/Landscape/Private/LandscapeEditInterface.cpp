@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 LandscapeEditInterface.cpp: Landscape editing interface
@@ -74,7 +74,7 @@ void ALandscape::CalcComponentIndicesOverlap(const int32 X1, const int32 Y1, con
 	ComponentIndexY2 = (Y2 >= 0) ? Y2 / ComponentSizeQuads : (Y2+1) / ComponentSizeQuads - 1;
 }
 
-void ALandscape::CalcComponentIndices(const int32 X1, const int32 Y1, const int32 X2, const int32 Y2, const int32 ComponentSizeQuads, 
+void ALandscape::CalcComponentIndicesNoOverlap(const int32 X1, const int32 Y1, const int32 X2, const int32 Y2, const int32 ComponentSizeQuads, 
 									  int32& ComponentIndexX1, int32& ComponentIndexY1, int32& ComponentIndexX2, int32& ComponentIndexY2)
 {
 	// Find component range for this block of data
@@ -231,13 +231,13 @@ void FLandscapeEditDataInterface::SetHeightData(int32 X1, int32 Y1, int32 X2, in
 		{
 			for( int32 X=0;X<NumVertsX-1;X++ )
 			{
-				FVector Vert00 = FVector(XYOffsets[(X+0) + NumVertsX*(Y+0)].X,		XYOffsets[(X+0) + NumVertsX*(Y+0)].Y, ((float)Data[(X+0) + Stride*(Y+0)] - 32768.f)*LANDSCAPE_ZSCALE) * DrawScale;
-				FVector Vert01 = FVector(XYOffsets[(X+0) + NumVertsX*(Y+0)].X,		XYOffsets[(X+0) + NumVertsX*(Y+0)].Y+1.f, ((float)Data[(X+0) + Stride*(Y+1)] - 32768.f)*LANDSCAPE_ZSCALE) * DrawScale;
-				FVector Vert10 = FVector(XYOffsets[(X+0) + NumVertsX*(Y+0)].X+1.f,	XYOffsets[(X+0) + NumVertsX*(Y+0)].Y, ((float)Data[(X+1) + Stride*(Y+0)] - 32768.f)*LANDSCAPE_ZSCALE) * DrawScale;
-				FVector Vert11 = FVector(XYOffsets[(X+0) + NumVertsX*(Y+0)].X+1.f,	XYOffsets[(X+0) + NumVertsX*(Y+0)].Y+1.f, ((float)Data[(X+1) + Stride*(Y+1)] - 32768.f)*LANDSCAPE_ZSCALE) * DrawScale;
+				FVector Vert00 = FVector(XYOffsets[(X+0) + NumVertsX*(Y+0)].X,		XYOffsets[(X+0) + NumVertsX*(Y+0)].Y, ((float)Data[(X+0) + Stride*(Y+0)] - 32768.0f)*LANDSCAPE_ZSCALE) * DrawScale;
+				FVector Vert01 = FVector(XYOffsets[(X+0) + NumVertsX*(Y+0)].X,		XYOffsets[(X+0) + NumVertsX*(Y+0)].Y+1.0f, ((float)Data[(X+0) + Stride*(Y+1)] - 32768.0f)*LANDSCAPE_ZSCALE) * DrawScale;
+				FVector Vert10 = FVector(XYOffsets[(X+0) + NumVertsX*(Y+0)].X+1.0f,	XYOffsets[(X+0) + NumVertsX*(Y+0)].Y, ((float)Data[(X+1) + Stride*(Y+0)] - 32768.0f)*LANDSCAPE_ZSCALE) * DrawScale;
+				FVector Vert11 = FVector(XYOffsets[(X+0) + NumVertsX*(Y+0)].X+1.0f,	XYOffsets[(X+0) + NumVertsX*(Y+0)].Y+1.0f, ((float)Data[(X+1) + Stride*(Y+1)] - 32768.0f)*LANDSCAPE_ZSCALE) * DrawScale;
 
-				FVector FaceNormal1 = ((Vert00-Vert10) ^ (Vert10-Vert11)).SafeNormal();
-				FVector FaceNormal2 = ((Vert11-Vert01) ^ (Vert01-Vert00)).SafeNormal(); 
+				FVector FaceNormal1 = ((Vert00-Vert10) ^ (Vert10-Vert11)).GetSafeNormal();
+				FVector FaceNormal2 = ((Vert11-Vert01) ^ (Vert01-Vert00)).GetSafeNormal(); 
 
 				// contribute to the vertex normals.
 				VertexNormals[(X+1 + NumVertsX*(Y+0))] += FaceNormal1;
@@ -246,6 +246,8 @@ void FLandscapeEditDataInterface::SetHeightData(int32 X1, int32 Y1, int32 X2, in
 				VertexNormals[(X+1 + NumVertsX*(Y+1))] += FaceNormal1 + FaceNormal2;
 			}
 		}
+
+		delete[] XYOffsets;
 	}
 
 	for( int32 ComponentIndexY=ComponentIndexY1;ComponentIndexY<=ComponentIndexY2;ComponentIndexY++ )
@@ -348,9 +350,9 @@ void FLandscapeEditDataInterface::SetHeightData(int32 X1, int32 Y1, int32 X2, in
 							// Update normals if we're not on an edge vertex
 							if( VertexNormals && LandscapeX > X1 && LandscapeX < X2 && LandscapeY > Y1 && LandscapeY < Y2 )
 							{
-								FVector Normal = VertexNormals[DataIndex].SafeNormal();
-								TexData.B = FMath::RoundToInt( 127.5f * (Normal.X + 1.f) );
-								TexData.A = FMath::RoundToInt( 127.5f * (Normal.Y + 1.f) );
+								FVector Normal = VertexNormals[DataIndex].GetSafeNormal();
+								TexData.B = FMath::RoundToInt( 127.5f * (Normal.X + 1.0f) );
+								TexData.A = FMath::RoundToInt( 127.5f * (Normal.Y + 1.0f) );
 							}
 							else if (NormalData)
 							{
@@ -455,13 +457,13 @@ void FLandscapeEditDataInterface::RecalculateNormals()
 		{
 			for( int32 X=0;X<Stride-1;X++ )
 			{
-				FVector Vert00 = FVector(XYOffsets[(X+0) + Stride*(Y+0)].X,		XYOffsets[(X+0) + Stride*(Y+0)].Y, ((float)HeightData[(X+0) + Stride*(Y+0)] - 32768.f)*LANDSCAPE_ZSCALE) * DrawScale;
-				FVector Vert01 = FVector(XYOffsets[(X+0) + Stride*(Y+0)].X,		XYOffsets[(X+0) + Stride*(Y+0)].Y+1.f, ((float)HeightData[(X+0) + Stride*(Y+1)] - 32768.f)*LANDSCAPE_ZSCALE) * DrawScale;
-				FVector Vert10 = FVector(XYOffsets[(X+0) + Stride*(Y+0)].X+1.f,	XYOffsets[(X+0) + Stride*(Y+0)].Y, ((float)HeightData[(X+1) + Stride*(Y+0)] - 32768.f)*LANDSCAPE_ZSCALE) * DrawScale;
-				FVector Vert11 = FVector(XYOffsets[(X+0) + Stride*(Y+0)].X+1.f,	XYOffsets[(X+0) + Stride*(Y+0)].Y+1.f,((float)HeightData[(X+1) + Stride*(Y+1)] - 32768.f)*LANDSCAPE_ZSCALE) * DrawScale;
+				FVector Vert00 = FVector(XYOffsets[(X+0) + Stride*(Y+0)].X,		XYOffsets[(X+0) + Stride*(Y+0)].Y, ((float)HeightData[(X+0) + Stride*(Y+0)] - 32768.0f)*LANDSCAPE_ZSCALE) * DrawScale;
+				FVector Vert01 = FVector(XYOffsets[(X+0) + Stride*(Y+0)].X,		XYOffsets[(X+0) + Stride*(Y+0)].Y+1.0f, ((float)HeightData[(X+0) + Stride*(Y+1)] - 32768.0f)*LANDSCAPE_ZSCALE) * DrawScale;
+				FVector Vert10 = FVector(XYOffsets[(X+0) + Stride*(Y+0)].X+1.0f,	XYOffsets[(X+0) + Stride*(Y+0)].Y, ((float)HeightData[(X+1) + Stride*(Y+0)] - 32768.0f)*LANDSCAPE_ZSCALE) * DrawScale;
+				FVector Vert11 = FVector(XYOffsets[(X+0) + Stride*(Y+0)].X+1.0f,	XYOffsets[(X+0) + Stride*(Y+0)].Y+1.0f,((float)HeightData[(X+1) + Stride*(Y+1)] - 32768.0f)*LANDSCAPE_ZSCALE) * DrawScale;
 
-				FVector FaceNormal1 = ((Vert00-Vert10) ^ (Vert10-Vert11)).SafeNormal();
-				FVector FaceNormal2 = ((Vert11-Vert01) ^ (Vert01-Vert00)).SafeNormal(); 
+				FVector FaceNormal1 = ((Vert00-Vert10) ^ (Vert10-Vert11)).GetSafeNormal();
+				FVector FaceNormal2 = ((Vert11-Vert01) ^ (Vert01-Vert00)).GetSafeNormal(); 
 
 				// contribute to the vertex normals.
 				VertexNormals[(X+1 + Stride*(Y+0))] += FaceNormal1;
@@ -498,14 +500,15 @@ void FLandscapeEditDataInterface::RecalculateNormals()
 						FColor& TexData = HeightmapTextureData[ TexX + TexY * SizeU ];
 
 						// Update the texture
-						FVector Normal = VertexNormals[DataIndex].SafeNormal();
-						TexData.B = FMath::RoundToInt( 127.5f * (Normal.X + 1.f) );
-						TexData.A = FMath::RoundToInt( 127.5f * (Normal.Y + 1.f) );
+						FVector Normal = VertexNormals[DataIndex].GetSafeNormal();
+						TexData.B = FMath::RoundToInt( 127.5f * (Normal.X + 1.0f) );
+						TexData.A = FMath::RoundToInt( 127.5f * (Normal.Y + 1.0f) );
 					}
 				}
 			}
 		}
 
+		delete[] XYOffsets;
 		delete[] HeightData;
 		delete[] VertexNormals;
 
@@ -536,7 +539,7 @@ void FLandscapeEditDataInterface::GetHeightDataTemplFast(const int32 X1, const i
 {
 	if (!LandscapeInfo) return;
 	int32 ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2;
-	ALandscape::CalcComponentIndices(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
+	ALandscape::CalcComponentIndicesNoOverlap(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
 
 	for( int32 ComponentIndexY=ComponentIndexY1;ComponentIndexY<=ComponentIndexY2;ComponentIndexY++ )
 	{
@@ -1281,7 +1284,7 @@ void FLandscapeEditDataInterface::GetHeightDataTempl(int32& ValidX1, int32& Vali
 								// Find the texture data corresponding to this vertex
 								uint16 Value[4] = {0, 0, 0, 0};
 								int32 Dist[4] = {INT_MAX, INT_MAX, INT_MAX, INT_MAX};
-								float ValueX = 0.f, ValueY = 0.f;
+								float ValueX = 0.0f, ValueY = 0.0f;
 								bool Exist[4] = {false, false, false, false};
 
 								// Use data already stored for 0, 2
@@ -1658,7 +1661,7 @@ void ULandscapeComponent::DeleteLayer( ULandscapeLayerInfoObject* LayerInfo, str
 								if( LayerIdx != DeleteLayerIdx && LayerNoWeightBlends[LayerIdx]==false )
 								{
 									uint8& Weight = LayerDataPtrs[LayerIdx][TexDataIndex];
-									Weight = FMath::Clamp<int32>( FMath::RoundToInt(255.f * (float)Weight/(float)OtherLayerWeightSum), 0, 255 );
+									Weight = FMath::Clamp<int32>( FMath::RoundToInt(255.0f * (float)Weight/(float)OtherLayerWeightSum), 0, 255 );
 								}
 							}
 						}
@@ -2009,7 +2012,7 @@ namespace
 
 	template<> void TArrayStoreData<FVector>::Store(int32 LandscapeX, int32 LandscapeY, FVector2D Offset)
 	{
-		Data[ (LandscapeY-Y1) * Stride + (LandscapeX-X1) ] = FVector(Offset.X, Offset.Y, 0.f);
+		Data[ (LandscapeY-Y1) * Stride + (LandscapeX-X1) ] = FVector(Offset.X, Offset.Y, 0.0f);
 	}
 
 	// Data items should be initialized with ArraySize
@@ -2095,7 +2098,7 @@ namespace
 		}
 		else
 		{
-			SparseData.Add(ALandscape::MakeKey(LandscapeX,LandscapeY), FVector(Offset.X, Offset.Y, 0.f));
+			SparseData.Add(ALandscape::MakeKey(LandscapeX,LandscapeY), FVector(Offset.X, Offset.Y, 0.0f));
 		}
 	}
 };
@@ -2318,7 +2321,7 @@ void FLandscapeEditDataInterface::SetAlphaData(ULandscapeLayerInfoObject* const 
 
 									if (OtherLayerWeightSum != 255)
 									{
-										const float Factor = 255.f / OtherLayerWeightSum;
+										const float Factor = 255.0f / OtherLayerWeightSum;
 										OtherLayerWeightSum = 0;
 
 										// Normalize
@@ -2480,6 +2483,15 @@ void FLandscapeEditDataInterface::SetAlphaData(const TSet<ULandscapeLayerInfoObj
 		return;
 	}
 
+	for (ULandscapeLayerInfoObject* LayerInfo : DirtyLayerInfos)
+	{
+		// The Data[] array passed in is indexed by LandscapeInfo->GetLayerInfoIndex(),
+		// so if we're trying to write a layer which isn't in the LandscapeInfo,
+		// its data is either missing or written where another layer's data should be.
+		// Either way it's *very bad*.
+		check(LandscapeInfo->GetLayerInfoIndex(LayerInfo) != INDEX_NONE);
+	}
+
 	if (Stride == 0)
 	{
 		Stride = (1+X2-X1) * LandscapeInfo->Layers.Num();
@@ -2526,9 +2538,8 @@ void FLandscapeEditDataInterface::SetAlphaData(const TSet<ULandscapeLayerInfoObj
 
 			NeedAllocationInfos.Reset();
 
-			for (auto It = DirtyLayerInfos.CreateConstIterator(); It; ++It)
+			for (ULandscapeLayerInfoObject* LayerInfo : DirtyLayerInfos)
 			{
-				ULandscapeLayerInfoObject* const LayerInfo = *It;
 				const bool bFound = Component->WeightmapLayerAllocations.ContainsByPredicate([LayerInfo](const FWeightmapLayerAllocationInfo& Allocation){ return Allocation.LayerInfo == LayerInfo; });
 				if (!bFound)
 				{
@@ -2552,14 +2563,14 @@ void FLandscapeEditDataInterface::SetAlphaData(const TSet<ULandscapeLayerInfoObj
 				if (PaintingRestriction != ELandscapeLayerPaintingRestriction::ExistingOnly)
 				{
 					Component->Modify();
-					for (int32 i = 0; i < NeedAllocationInfos.Num(); ++i)
+					for (ULandscapeLayerInfoObject* LayerInfoNeedingAllocation : NeedAllocationInfos)
 					{
 						if (PaintingRestriction == ELandscapeLayerPaintingRestriction::UseMaxLayers &&
 							LayerLimit > 0 && Component->WeightmapLayerAllocations.Num() >= LayerLimit)
 						{
 							break;
 						}
-						new (Component->WeightmapLayerAllocations) FWeightmapLayerAllocationInfo(NeedAllocationInfos[i]);
+						Component->WeightmapLayerAllocations.Emplace(LayerInfoNeedingAllocation);
 					}
 					Component->ReallocateWeightmaps(this);
 					Component->UpdateMaterialInstances();
@@ -2577,7 +2588,7 @@ void FLandscapeEditDataInterface::SetAlphaData(const TSet<ULandscapeLayerInfoObj
 			for (int32 WeightmapIdx = 0; WeightmapIdx < Component->WeightmapTextures.Num(); ++WeightmapIdx)
 			{
 				TexDataInfos[WeightmapIdx] = GetTextureDataInfo(Component->WeightmapTextures[WeightmapIdx]);
-			};
+			}
 
 			LayerDataInfos.Reset();        // Pointers to all layers' data
 			LayerDataInfos.AddUninitialized(Component->WeightmapLayerAllocations.Num());
@@ -2736,7 +2747,7 @@ template<typename TStoreData>
 void FLandscapeEditDataInterface::GetWeightDataTemplFast(ULandscapeLayerInfoObject* LayerInfo, const int32 X1, const int32 Y1, const int32 X2, const int32 Y2, TStoreData& StoreData)
 {
 	int32 ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2;
-	ALandscape::CalcComponentIndices(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
+	ALandscape::CalcComponentIndicesNoOverlap(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
 
 	// Channel remapping
 	int32 ChannelOffsets[4] = {(int32)STRUCT_OFFSET(FColor,R),(int32)STRUCT_OFFSET(FColor,G),(int32)STRUCT_OFFSET(FColor,B),(int32)STRUCT_OFFSET(FColor,A)};
@@ -2917,7 +2928,7 @@ void FLandscapeEditDataInterface::GetWeightDataTempl(ULandscapeLayerInfoObject* 
 	ValidX1 = INT_MAX; ValidX2 = INT_MIN; ValidY1 = INT_MAX; ValidY2 = INT_MIN;
 
 	int32 ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2;
-	ALandscape::CalcComponentIndices(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
+	ALandscape::CalcComponentIndicesNoOverlap(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
 
 	int32 ComponentSizeX = ComponentIndexX2-ComponentIndexX1+1;
 	int32 ComponentSizeY = ComponentIndexY2-ComponentIndexY1+1;
@@ -3310,7 +3321,7 @@ void FLandscapeEditDataInterface::GetWeightDataTempl(ULandscapeLayerInfoObject* 
 									// Find the texture data corresponding to this vertex
 									uint8 Value[4] = {0, 0, 0, 0};
 									int32 Dist[4] = {INT_MAX, INT_MAX, INT_MAX, INT_MAX};
-									float ValueX = 0.f, ValueY = 0.f;
+									float ValueX = 0.0f, ValueY = 0.0f;
 									bool Exist[4] = {false, false, false, false};
 
 									// Use data already stored for 0, 2
@@ -3671,7 +3682,7 @@ template<typename TStoreData>
 void FLandscapeEditDataInterface::GetSelectDataTempl(const int32 X1, const int32 Y1, const int32 X2, const int32 Y2, TStoreData& StoreData)
 {
 	int32 ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2;
-	ALandscape::CalcComponentIndices(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
+	ALandscape::CalcComponentIndicesNoOverlap(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
 
 	for( int32 ComponentIndexY=ComponentIndexY1;ComponentIndexY<=ComponentIndexY2;ComponentIndexY++ )
 	{
@@ -3771,7 +3782,7 @@ void FLandscapeEditDataInterface::SetSelectData(int32 X1, int32 Y1, int32 X2, in
 	check(ComponentSizeQuads > 0);
 	// Find component range for this block of data
 	int32 ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2;
-	ALandscape::CalcComponentIndices(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
+	ALandscape::CalcComponentIndicesNoOverlap(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
 
 	for( int32 ComponentIndexY=ComponentIndexY1;ComponentIndexY<=ComponentIndexY2;ComponentIndexY++ )
 	{
@@ -3907,7 +3918,7 @@ void FLandscapeEditDataInterface::SetXYOffsetDataTempl(int32 X1, int32 Y1, int32
 	check(ComponentSizeQuads > 0);
 	// Find component range for this block of data
 	int32 ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2;
-	ALandscape::CalcComponentIndices(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
+	ALandscape::CalcComponentIndicesNoOverlap(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
 
 	const FColor DefaultValue(128, 0, 128, 0);
 
@@ -4006,8 +4017,8 @@ void FLandscapeEditDataInterface::SetXYOffsetDataTempl(int32 X1, int32 Y1, int32
 							int32 TexY = WeightmapOffsetY + (SubsectionSizeQuads+1) * SubIndexY + SubY;
 							FColor& TexData = XYOffsetTextureData[ TexX + TexY * SizeU ];
 
-							uint16 XOffset = FMath::Clamp<uint16>(Value.X * LANDSCAPE_INV_XYOFFSET_SCALE + 32768.f, 0, 65535);
-							uint16 YOffset = FMath::Clamp<uint16>(Value.Y * LANDSCAPE_INV_XYOFFSET_SCALE + 32768.f, 0, 65535);
+							uint16 XOffset = FMath::Clamp<uint16>(Value.X * LANDSCAPE_INV_XYOFFSET_SCALE + 32768.0f, 0, 65535);
+							uint16 YOffset = FMath::Clamp<uint16>(Value.Y * LANDSCAPE_INV_XYOFFSET_SCALE + 32768.0f, 0, 65535);
 
 							TexData.R = XOffset >> 8;
 							TexData.G = XOffset & 255;
@@ -4610,7 +4621,7 @@ template<typename TStoreData>
 void FLandscapeEditDataInterface::GetXYOffsetDataTemplFast(const int32 X1, const int32 Y1, const int32 X2, const int32 Y2, TStoreData& StoreData)
 {
 	int32 ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2;
-	ALandscape::CalcComponentIndices(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
+	ALandscape::CalcComponentIndicesNoOverlap(X1, Y1, X2, Y2, ComponentSizeQuads, ComponentIndexX1, ComponentIndexY1, ComponentIndexX2, ComponentIndexY2);
 
 	for( int32 ComponentIndexY=ComponentIndexY1;ComponentIndexY<=ComponentIndexY2;ComponentIndexY++ )
 	{
@@ -4664,7 +4675,7 @@ void FLandscapeEditDataInterface::GetXYOffsetDataTemplFast(const int32 X1, const
 							}
 							else
 							{
-								StoreData.Store(LandscapeX, LandscapeY, FVector2D(0.f, 0.f) );
+								StoreData.Store(LandscapeX, LandscapeY, FVector2D(0.0f, 0.0f) );
 							}
 						}
 					}

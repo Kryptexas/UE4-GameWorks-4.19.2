@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PersistentObjectPtr.h: Template that is a base class for Lazy and Asset pointers
@@ -97,6 +97,14 @@ public:
 	 * @return Unique ID for this object, or an invalid FUniqueObjectGuid if this pointer isn't set to anything
 	 */
 	FORCEINLINE const TObjectID& GetUniqueID() const
+	{
+		return ObjectID;
+	}
+
+	/**
+	 * Non-const version of the above.
+	 */
+	FORCEINLINE TObjectID& GetUniqueID()
 	{
 		return ObjectID;
 	}

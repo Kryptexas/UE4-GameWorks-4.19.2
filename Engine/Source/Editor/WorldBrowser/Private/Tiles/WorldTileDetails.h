@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "WorldTileDetails.generated.h"
 
@@ -22,13 +22,8 @@ struct FTileLODEntryDetails
 	UPROPERTY(Category=LODDetails, EditAnywhere, meta=(ClampMin = "10", ClampMax = "10000000", UIMin = "10", UIMax = "500000"))
 	int32		Distance;
 
-	// Percentage of details relative to main tile details
-	UPROPERTY(Category=ReductionSettings, EditAnywhere, meta=(ClampMin = "0", ClampMax = "100", UIMin = "0", UIMax = "100"))	
-	float		DetailsPercentage;
-	
-	// Maximum deviation of details percentage
-	UPROPERTY(Category=ReductionSettings, EditAnywhere, meta=(ClampMin = "0", ClampMax = "100", UIMin = "0", UIMax = "100"))	
-	float		MaxDeviation;
+	UPROPERTY(Category=ReductionSettings, EditAnywhere)	
+	FLevelSimplificationDetails SimplificationDetails;
 
 	FTileLODEntryDetails();
 };
@@ -107,7 +102,7 @@ class UWorldTileDetails : public UObject
 
 public:
 	// Initialize tile details with values stored in FWorldTileInfo object
-	void SetInfo(const FWorldTileInfo& Info);
+	void SetInfo(const FWorldTileInfo& Info, ULevel* Level);
 	
 	// Gets the initialized FWorldTileInfo from this details values
 	FWorldTileInfo GetInfo() const;

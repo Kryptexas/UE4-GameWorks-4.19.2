@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Toolbox.h"
 #include "ModuleManager.h"
@@ -10,6 +10,8 @@
 #include "SDockTab.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "STestSuite.h"
+#include "ISlateReflectorModule.h"
 
 IMPLEMENT_MODULE( FToolboxModule, Toolbox );
 
@@ -58,8 +60,8 @@ public:
 			.HAlign(HAlign_Left)
 			[
 				SNew( SButton )
-				.Text( NSLOCTEXT("DeveloperToolbox", "TestNotifications", "Test Notifications") )
-				.OnClicked( this, &SDebugPanel::OnTestNotificationsClicked )
+				.Text( NSLOCTEXT("DeveloperToolbox", "TestSuite", "Test Suite") )
+				.OnClicked( this, &SDebugPanel::OnTestSuiteClicked )
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
@@ -69,6 +71,15 @@ public:
 				SNew( SButton )
 				.Text( NSLOCTEXT("DeveloperToolbox", "DisplayTextureAtlases", "Display Texture Atlases") )
 				.OnClicked( this, &SDebugPanel::OnDisplayTextureAtlases )
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding( 4.0f )
+			.HAlign(HAlign_Left)
+			[
+				SNew( SButton )
+				.Text( NSLOCTEXT("DeveloperToolbox", "DisplayFontAtlases", "Display Font Atlases") )
+				.OnClicked( this, &SDebugPanel::OnDisplayFontAtlases )
 			]
 		];
 	}
@@ -83,7 +94,15 @@ public:
 
 	FReply OnDisplayTextureAtlases()
 	{
-		FSlateApplication::Get().GetRenderer()->DisplayTextureAtlases();
+		static const FName SlateReflectorModuleName("SlateReflector");
+		FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayTextureAtlasVisualizer();
+		return FReply::Handled();
+	}
+
+	FReply OnDisplayFontAtlases()
+	{
+		static const FName SlateReflectorModuleName("SlateReflector");
+		FModuleManager::LoadModuleChecked<ISlateReflectorModule>(SlateReflectorModuleName).DisplayFontAtlasVisualizer();
 		return FReply::Handled();
 	}
 
@@ -93,20 +112,11 @@ public:
 		return FReply::Handled();
 	}
 
-	FReply OnTestNotificationsClicked()
+	FReply OnTestSuiteClicked()
 	{
-		static int32 Counter = 0;
-		FFormatNamedArguments Args;
-		Args.Add( TEXT("CounterNumber"), Counter++ );
-		FNotificationInfo Info( FText::Format( NSLOCTEXT("DeveloperToolbox", "TestNotificationCounter", "Test Notification {CounterNumber}"), Args ) );
-		Info.bFireAndForget = true;
-		Info.ExpireDuration = 3.0f;
-		Info.FadeOutDuration = 3.0f;
-
-		FSlateNotificationManager::Get().AddNotification(Info);
+		RestoreSlateTestSuite();
 		return FReply::Handled();
 	}
-
 };
 
 TSharedRef<SDockTab> CreateDebugToolsTab( const FSpawnTabArgs& Args )

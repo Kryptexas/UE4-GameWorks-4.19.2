@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "OnlineStoreInterface.h"
@@ -43,6 +43,9 @@ private:
 	/** Delegate called when a InAppPurchase has been successfully read */
 	FOnQueryForAvailablePurchasesCompleteDelegate InAppPurchaseReadCompleteDelegate;
 
+	/** InAppPurchaseReadComplete delegate handle */
+	FDelegateHandle InAppPurchaseReadCompleteDelegateHandle;
+
 	/** The InAppPurchase read request */
 	FOnlineProductInformationReadPtr ReadObject;
 
@@ -55,4 +58,6 @@ private:
 	// Did the read succeed?
 	bool bSavedWasSuccessful;
 	TArray<FInAppPurchaseProductInfo> SavedProductInformation;
+
+	FTimerHandle OnInAppPurchaseRead_DelayedTimerHandle;
 };

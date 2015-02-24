@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 
@@ -23,6 +23,7 @@
 #include "MovieSceneShotSection.h"
 #include "CommonMovieSceneTools.h"
 #include "SSearchBox.h"
+#include "SNumericEntryBox.h"
 
 
 #define LOCTEXT_NAMESPACE "Sequencer"
@@ -146,8 +147,6 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 	// Create a node tree which contains a tree of movie scene data to display in the sequence
 	SequencerNodeTree = MakeShareable( new FSequencerNodeTree( InSequencer.Get() ) );
 
-	AllowAutoKey = InArgs._AllowAutoKey;
-	OnToggleAutoKey = InArgs._OnToggleAutoKey;
 	CleanViewEnabled = InArgs._CleanViewEnabled;
 	OnToggleCleanView = InArgs._OnToggleCleanView;
 
@@ -185,18 +184,10 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 				.VAlign(VAlign_Center)
 				[
 					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
+					+ SHorizontalBox::Slot()
 					.AutoWidth()
-					.HAlign(HAlign_Left)
 					[
-						// @todo Sequencer - Temp auto-key button
-						SNew( SCheckBox )
-						.IsChecked( this, &SSequencer::OnGetAutoKeyCheckState )
-						.OnCheckStateChanged( this, &SSequencer::OnAutoKeyChecked )
-						[
-							SNew( STextBlock )
-							.Text( LOCTEXT("ToggleAutoKey", "Auto Key") )
-						]
+						MakeToolBar()
 					]
 					+SHorizontalBox::Slot()
 					.HAlign(HAlign_Right)
@@ -316,6 +307,68 @@ void SSequencer::Construct( const FArguments& InArgs, TSharedRef< class FSequenc
 	ResetBreadcrumbs();
 }
 
+TSharedRef<SWidget> SSequencer::MakeToolBar()
+{
+	FToolBarBuilder ToolBarBuilder( Sequencer.Pin()->GetCommandBindings(), FMultiBoxCustomization::None, TSharedPtr<FExtender>(), Orient_Horizontal, true);
+	
+	ToolBarBuilder.SetLabelVisibility(EVisibility::Visible);
+	ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleAutoKeyEnabled );
+
+	ToolBarBuilder.SetLabelVisibility(EVisibility::Collapsed);
+	ToolBarBuilder.AddToolBarButton( FSequencerCommands::Get().ToggleIsSnapEnabled, NAME_None, TAttribute<FText>( FText::GetEmpty() ) );
+	ToolBarBuilder.AddComboButton(
+		FUIAction(),
+		FOnGetContent::CreateSP( this, &SSequencer::MakeSnapMenu ),
+		LOCTEXT( "SnapOptions", "Options" ),
+		LOCTEXT( "SnapOptionsToolTip", "Snapping Options" ),
+		TAttribute<FSlateIcon>(),
+		true );
+	ToolBarBuilder.AddWidget(
+		SNew( SBox )
+		.VAlign( VAlign_Center )
+		[
+			SNew( SNumericEntryBox<float> )
+			.AllowSpin( true )
+			.MinValue( 0 )
+			.MinSliderValue( 0 )
+			.MaxSliderValue( 1 )
+			.MinDesiredValueWidth( 50 )
+			.Delta( 0.05f )
+			.ToolTipText( LOCTEXT( "SnappingIntervalToolTip", "Snapping interval" ) )
+			.Value( this, &SSequencer::OnGetSnapInterval )
+			.OnValueChanged( this, &SSequencer::OnSnapIntervalChanged ) 
+		] );
+
+	return ToolBarBuilder.MakeWidget();
+}
+
+TSharedRef<SWidget> SSequencer::MakeSnapMenu()
+{
+	FMenuBuilder MenuBuilder( false, Sequencer.Pin()->GetCommandBindings() );
+
+	MenuBuilder.BeginSection( "KeySnapping", LOCTEXT( "SnappingMenuKeyHeader", "Key Snapping" ) );
+	{
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleSnapKeysToInterval );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleSnapKeysToKeys );
+	}
+	MenuBuilder.EndSection();
+
+	MenuBuilder.BeginSection( "SectionSnapping", LOCTEXT( "SnappingMenuSectionHeader", "Section Snapping" ) );
+	{
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleSnapSectionsToInterval );
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleSnapSectionsToSections );
+	}
+	MenuBuilder.EndSection();
+
+	MenuBuilder.BeginSection( "PlayTimeSnapping", LOCTEXT( "SnappingMenuPlayTimeHeader", "Play Time Snapping" ) );
+	{
+		MenuBuilder.AddMenuEntry( FSequencerCommands::Get().ToggleSnapPlayTimeToInterval );
+	}
+	MenuBuilder.EndSection();
+
+	return MenuBuilder.MakeWidget();
+}
+
 SSequencer::~SSequencer()
 {
 }
@@ -405,29 +458,29 @@ TSharedRef<SWidget> SSequencer::MakeSectionOverlay( TSharedRef<FSequencerTimeSli
 		];
 }
 
-ESlateCheckBoxState::Type SSequencer::OnGetAutoKeyCheckState() const
-{
-	return AllowAutoKey.Get() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
-}
-
-void SSequencer::OnAutoKeyChecked( ESlateCheckBoxState::Type InState ) 
-{
-	OnToggleAutoKey.ExecuteIfBound( InState == ESlateCheckBoxState::Checked ? true : false );
-}
-
 EVisibility SSequencer::OnGetCleanViewVisibility() const 
 {
 	return Sequencer.Pin()->IsLevelEditorSequencer() ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-ESlateCheckBoxState::Type SSequencer::OnGetCleanViewCheckState() const
+ECheckBoxState SSequencer::OnGetCleanViewCheckState() const
 {
-	return CleanViewEnabled.Get() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return CleanViewEnabled.Get() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SSequencer::OnCleanViewChecked( ESlateCheckBoxState::Type InState ) 
+void SSequencer::OnCleanViewChecked( ECheckBoxState InState ) 
 {
-	OnToggleCleanView.ExecuteIfBound( InState == ESlateCheckBoxState::Checked ? true : false );
+	OnToggleCleanView.ExecuteIfBound( InState == ECheckBoxState::Checked ? true : false );
+}
+
+TOptional<float> SSequencer::OnGetSnapInterval() const
+{
+	return GetDefault<USequencerSnapSettings>()->GetSnapInterval();
+}
+
+void SSequencer::OnSnapIntervalChanged( float InInterval )
+{
+	GetMutableDefault<USequencerSnapSettings>()->SetSnapInterval(InInterval);
 }
 
 
@@ -520,7 +573,7 @@ FReply SSequencer::OnDrop( const FGeometry& MyGeometry, const FDragDropEvent& Dr
 FReply SSequencer::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) 
 {
 	// A toolkit tab is active, so direct all command processing to it
-	if( Sequencer.Pin()->GetCommandBindings().ProcessCommandBindings( InKeyEvent ) )
+	if( Sequencer.Pin()->GetCommandBindings()->ProcessCommandBindings( InKeyEvent ) )
 	{
 		return FReply::Handled();
 	}

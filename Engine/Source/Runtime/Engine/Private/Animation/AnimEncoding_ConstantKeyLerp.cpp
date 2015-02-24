@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimEncoding_ConstantKeyLerp.cpp: Skeletal mesh animation functions.
@@ -17,14 +17,12 @@
  * @param	MemoryReader	The FMemoryReader to read from.
  * @param	TrackData		The compressed data stream.
  * @param	NumKeys			The number of keys present in the stream.
- * @param	SourceArVersion	The version number of the source archive stream.
  */
 void AEFConstantKeyLerpShared::ByteSwapRotationIn(
 	UAnimSequence& Seq, 
 	FMemoryReader& MemoryReader,
 	uint8*& TrackData,
-	int32 NumKeys,
-	int32 SourceArVersion)
+	int32 NumKeys)
 {
 	// Calculate the effective compression (in a track with only one key, it's always stored lossless)
 	const int32 EffectiveFormat = (NumKeys == 1) ? ACF_Float96NoW : (int32) Seq.RotationCompressionFormat;
@@ -62,8 +60,7 @@ void AEFConstantKeyLerpShared::ByteSwapTranslationIn(
 	UAnimSequence& Seq, 
 	FMemoryReader& MemoryReader,
 	uint8*& TrackData,
-	int32 NumKeys,
-	int32 SourceArVersion)
+	int32 NumKeys)
 {
 	// Calculate the effective compression (in a track with only one key, it's always stored lossless)
 	const int32 EffectiveFormat = (NumKeys == 1) ? ACF_None : (int32) Seq.TranslationCompressionFormat;
@@ -101,8 +98,7 @@ void AEFConstantKeyLerpShared::ByteSwapScaleIn(
 	UAnimSequence& Seq, 
 	FMemoryReader& MemoryReader,
 	uint8*& TrackData,
-	int32 NumKeys,
-	int32 SourceArVersion)
+	int32 NumKeys)
 {
 	// Calculate the effective compression (in a track with only one key, it's always stored lossless)
 	const int32 EffectiveFormat = (NumKeys == 1) ? ACF_None : (int32) Seq.ScaleCompressionFormat;

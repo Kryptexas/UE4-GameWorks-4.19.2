@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "LandscapeEdMode.h"
@@ -17,6 +17,7 @@
 
 #include "Slate/SceneViewport.h"
 #include "AssetToolsModule.h"
+#include "CanvasTypes.h"
 
 #define LOCTEXT_NAMESPACE "LandscapeEditor.Brushes.Alpha"
 

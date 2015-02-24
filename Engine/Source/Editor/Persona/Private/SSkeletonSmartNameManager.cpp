@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -103,7 +103,7 @@ TSharedRef<SWidget> FSkeletonCurveNameManagerSummoner::CreateTabBody(const FWork
 	return SNew(SCurveNameManager)
 		.Persona(StaticCastSharedPtr<FPersona>(Toolkit))
 		.ContainerName(FName(USkeleton::AnimCurveMappingName))
-		.NameColumnDescription(LOCTEXT("CurveNameTabColumnDesc", "Name").ToString());
+		.NameColumnDescription(LOCTEXT("CurveNameTabColumnDesc", "Name"));
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -159,7 +159,7 @@ void SSkeletonSmartNameManager::Construct(const FArguments& InArgs)
 			(
 				SNew(SHeaderRow)
 				+SHeaderRow::Column(ColumnId_SmartNameLabel)
-				.DefaultLabel(FString(InArgs._NameColumnDescription))
+				.DefaultLabel(InArgs._NameColumnDescription)
 			)
 		]
 	];

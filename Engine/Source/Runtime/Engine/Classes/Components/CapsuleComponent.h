@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Components/ShapeComponent.h"
@@ -7,17 +7,23 @@
 /** 
  * A capsule generally used for simple collision. Bounds are rendered as lines in the editor.
  */
-UCLASS(ClassGroup=Shapes, editinlinenew, hidecategories=(Object,LOD,Lighting,TextureStreaming), meta=(BlueprintSpawnableComponent))
+UCLASS(ClassGroup="Collision", editinlinenew, hidecategories=(Object,LOD,Lighting,TextureStreaming), meta=(DisplayName="Capsule Collision", BlueprintSpawnableComponent))
 class ENGINE_API UCapsuleComponent : public UShapeComponent
 {
 	GENERATED_UCLASS_BODY()
 
 protected:
-	/** Half-height, i.e. from center of capsule to end of top or bottom hemisphere.  */
+	/** 
+	 *	Half-height, i.e. from center of capsule to end of top or bottom hemisphere.  
+	 *	This cannot be less than CapsuleRadius.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, export, Category=Shape)
 	float CapsuleHalfHeight;
 
-	/** Radius of cap hemispheres and center cylinder. */
+	/** 
+	 *	Radius of cap hemispheres and center cylinder. 
+	 *	This cannot be more than CapsuleHalfHeight.
+	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, export, Category=Shape)
 	float CapsuleRadius;
 

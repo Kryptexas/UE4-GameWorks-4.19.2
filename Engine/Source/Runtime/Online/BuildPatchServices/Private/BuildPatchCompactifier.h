@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=================================================================================
 BuildPatchCompactifier.h: Declares classes involved with compactifying build data.
@@ -22,11 +22,11 @@ public:
 	 * NOTE: THIS function is blocking and will not return until finished. Don't run on main thread.
 	 * @param ManifestsToKeep   If specified, these manifests will be retained, and all others will be deleted
 	 * @param DataAgeThreshold  Chunks which are not referenced by a valid manifest, and which are older than this age (in days), will be deleted
-	 * @param bPreview      If true, then no actual work will be done, but all operations which would be carried out will be logged.
-	 * @param bTouchOnly    If true, then no patch data will be deleted, but referenced data will have its timestamp updated to the current time.
-	 * @return              true if no file errors occurred
+	 * @param bPreview          If true, then no actual work will be done, but all operations which would be carried out will be logged.
+	 * @param bNoPatchDelete    If true, then no patch data will be deleted, but referenced data will have its timestamp updated to the current time.
+	 * @return                  true if no file errors occurred
 	 */
-	static bool CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview, const bool bTouchOnly);
+	static bool CompactifyCloudDirectory(const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview, const bool bNoPatchDelete);
 
 	/**
 	 * Processes the specified Cloud Directory to identify and delete any orphaned chunks or files.
@@ -34,24 +34,24 @@ public:
 	 * @param CloudDir      The path to the Cloud Dir to compactify
 	 * @param ManifestsToKeep   If specified, these manifests will be retained, and all others will be deleted
 	 * @param DataAgeThreshold  Chunks which are not referenced by a valid manifest, and which are older than this age (in days), will be deleted
-	 * @param bPreview      If true, then no actual work will be done, but all operations which would be carried out will be logged.
-	 * @param bTouchOnly    If true, then no patch data will be deleted, but referenced data will have its timestamp updated to the current time.
-	 * @return              true if no file errors occurred
+	 * @param bPreview          If true, then no actual work will be done, but all operations which would be carried out will be logged.
+	 * @param bNoPatchDelete    If true, then no patch data will be deleted, but referenced data will have its timestamp updated to the current time.
+	 * @return                  true if no file errors occurred
 	 */
-	static bool CompactifyCloudDirectory(const FString& CloudDir, const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview, const bool bTouchOnly);
+	static bool CompactifyCloudDirectory(const FString& CloudDir, const TArray<FString>& ManifestsToKeep, const float DataAgeThreshold, const bool bPreview, const bool bNoPatchDelete);
 
 private:
 	const FString CloudDir;
 	const bool bPreview;
-	const bool bTouchOnly;
+	const bool bNoPatchDelete;
 
 	/**
 	 * Constructor.
-	 * @param CloudDir      The directory that this compactifier should operate on.
-	 * @param bPreview      If true, then no actual work will be done, but all operations which would be carried out will be logged.
-	 * @param bTouchOnly    If true, then no patch data will be deleted, but referenced data will have its timestamp updated to the current time.
+	 * @param CloudDir         The directory that this compactifier should operate on.
+	 * @param bPreview         If true, then no actual work will be done, but all operations which would be carried out will be logged.
+	 * @param bNoPatchDelete   If true, then no patch data will be deleted, but referenced data will have its timestamp updated to the current time.
 	 */
-	FBuildDataCompactifier(const FString& CloudDir, const bool bPreview, const bool bTouchOnly);
+	FBuildDataCompactifier(const FString& CloudDir, const bool bPreview, const bool bNoPatchDelete);
 
 	/**
 	 * Processes the Cloud Directory to identify and delete any orphaned chunks or files.

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ModelRender.cpp: Unreal model rendering
@@ -10,6 +10,7 @@
 #include "HModel.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
+#include "Components/ModelComponent.h"
 
 namespace
 {
@@ -399,223 +400,7 @@ public:
 
 		//@todo parallelrendering - remove this legacy state modification
 		// Poly selected state is modified in many places, so it's hard to push the selection state to the proxy
-		const_cast<FModelSceneProxy*>(this)->SetSelection_RenderThread(bAnySelectedSurfs);
-	}
-
-	virtual void PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber) override
-	{
-		// Reset any batches leftover from last frame.
-		PerViewBatches.Reset();
-		DynamicMeshBatches.Reset();
-		bool bAnySelectedSurfs = false;
-
-		int32 ViewBit = 1;
-		int32 NumViews = ViewFamily->Views.Num();
-		for (int32 ViewIndex = 0; ViewIndex < NumViews; ++ViewIndex, ViewBit <<= 1)
-		{
-			// Create a batch entry for each view whether this primitive is visible in it or not!
-			FPerViewBatch* ViewBatch = new(PerViewBatches) FPerViewBatch();
-
-			const FSceneView* View = ViewFamily->Views[ViewIndex];
-			bool bVisibleInView = (VisibilityMap & ViewBit) == ViewBit;
-			bool bShowSelection = GIsEditor && !View->bIsGameView && View->Family->EngineShowFlags.Selection;
-			bool bDynamicBSPTriangles = bShowSelection || IsRichView(*View->Family) ;
-			bool bShowBSPTriangles = View->Family->EngineShowFlags.BSPTriangles;
-			bool bShowBSP = View->Family->EngineShowFlags.BSP;
-
-#if WITH_EDITOR
-			bool bDrawCollision = false;
-			const bool bInCollisionView = IsCollisionView(View, bDrawCollision);
-			// draw bsp as dynamic when in collision view mode
-			if(bInCollisionView)
-			{
-				bDynamicBSPTriangles = true;
-			}
-#endif
-
-			// If in a collision view, only draw if we have collision
-			if (bVisibleInView && bDynamicBSPTriangles && bShowBSPTriangles && bShowBSP 
-#if WITH_EDITOR
-				&& (!bInCollisionView || bDrawCollision)
-#endif
-				)
-			{
-				ViewBatch->FirstBatch = DynamicMeshBatches.Num();
-				ESceneDepthPriorityGroup DepthPriorityGroup = (ESceneDepthPriorityGroup)GetDepthPriorityGroup(View);
-
-				const FMaterialRenderProxy* MatProxyOverride = NULL;
-
-#if WITH_EDITOR
-				if(bInCollisionView && AllowDebugViewmodes())
-				{
-					MatProxyOverride = &CollisionMaterialInstance;
-				}
-#endif
-
-				// If selection is being shown, batch triangles based on whether they are selected or not.
-				if (bShowSelection)
-				{
-					uint32 TotalIndices = 0;
-					for (int32 ElementIndex = 0; ElementIndex < Elements.Num(); ElementIndex++)
-					{
-						const FModelElement& ModelElement = Component->GetElements()[ElementIndex];
-						TotalIndices += ModelElement.NumTriangles * 3;
-					}
-
-					if (TotalIndices > 0)
-					{
-						FGlobalDynamicIndexBuffer::FAllocation IndexAllocation =
-							FGlobalDynamicIndexBuffer::Get().Allocate<uint32>(TotalIndices);
-						if (IndexAllocation.IsValid())
-						{
-							uint32* Indices = (uint32*)IndexAllocation.Buffer;
-							uint32 FirstIndex = IndexAllocation.FirstIndex;
-							for (int32 ElementIndex = 0; ElementIndex < Elements.Num(); ElementIndex++)
-							{
-								const FModelElement& ModelElement = Component->GetElements()[ElementIndex];
-								if (ModelElement.NumTriangles > 0)
-								{
-									const FElementInfo& ProxyElementInfo = Elements[ElementIndex];
-									bool bHasSelectedSurfs = false;
-									bool bHasHoveredSurfs = false;
-									for (uint32 BatchIndex = 0; BatchIndex < 3; BatchIndex++)
-									{
-										// Three batches total:
-										//		Batch 0: Only surfaces that are neither selected, nor hovered
-										//		Batch 1: Only selected surfaces
-										//		Batch 2: Only hovered surfaces
-										const bool bOnlySelectedSurfaces = ( BatchIndex == 1 );
-										const bool bOnlyHoveredSurfaces = ( BatchIndex == 2 );
-
-										if (bOnlySelectedSurfaces && !bHasSelectedSurfs)
-										{
-											continue;
-										}
-
-										if (bOnlyHoveredSurfaces && !bHasHoveredSurfs)
-										{
-											continue;
-										}
-
-										uint32 MinVertexIndex = MAX_uint32;
-										uint32 MaxVertexIndex = 0;
-										uint32 NumIndices = 0;
-
-										for(int32 NodeIndex = 0;NodeIndex < ModelElement.Nodes.Num();NodeIndex++)
-										{
-											FBspNode& Node = Component->GetModel()->Nodes[ModelElement.Nodes[NodeIndex]];
-											FBspSurf& Surf = Component->GetModel()->Surfs[Node.iSurf];
-
-											if (!ShouldDrawSurface(Surf))
-												continue;
-
-											const bool bSurfaceSelected = (Surf.PolyFlags & PF_Selected) == PF_Selected;
-											const bool bSurfaceHovered = !bSurfaceSelected && ((Surf.PolyFlags & PF_Hovered) == PF_Hovered);
-											bHasSelectedSurfs |= bSurfaceSelected;
-											bHasHoveredSurfs |= bSurfaceHovered;
-
-											if (bSurfaceSelected == bOnlySelectedSurfaces && bSurfaceHovered == bOnlyHoveredSurfaces)
-											{
-												for (uint32 BackFace = 0; BackFace < (uint32)((Surf.PolyFlags & PF_TwoSided) ? 2 : 1); BackFace++)
-												{
-													for (int32 VertexIndex = 2; VertexIndex < Node.NumVertices; VertexIndex++)
-													{
-														*Indices++ = Node.iVertexIndex + Node.NumVertices * BackFace;
-														*Indices++ = Node.iVertexIndex + Node.NumVertices * BackFace + VertexIndex;
-														*Indices++ = Node.iVertexIndex + Node.NumVertices * BackFace + VertexIndex - 1;
-														NumIndices += 3;
-													}
-													MinVertexIndex = FMath::Min(Node.iVertexIndex + Node.NumVertices * BackFace,MinVertexIndex);
-													MaxVertexIndex = FMath::Max(Node.iVertexIndex + Node.NumVertices * BackFace + Node.NumVertices - 1,MaxVertexIndex);
-												}
-											}
-										}
-
-										if (NumIndices > 0)
-										{
-											FDynamicModelMeshBatch& MeshElement = *new(DynamicMeshBatches) FDynamicModelMeshBatch(bOnlySelectedSurfaces);
-											FMeshBatchElement& BatchElement = MeshElement.Elements[0];
-											BatchElement.IndexBuffer = IndexAllocation.IndexBuffer;
-											MeshElement.VertexFactory = &Component->GetModel()->VertexFactory;
-											MeshElement.MaterialRenderProxy = (MatProxyOverride != NULL) ? MatProxyOverride : ProxyElementInfo.GetMaterial()->GetRenderProxy(bOnlySelectedSurfaces, bOnlyHoveredSurfaces);
-											MeshElement.LCI = &ProxyElementInfo;
-											BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
-											BatchElement.FirstIndex = FirstIndex;
-											BatchElement.NumPrimitives = NumIndices / 3;
-											BatchElement.MinVertexIndex = MinVertexIndex;
-											BatchElement.MaxVertexIndex = MaxVertexIndex;
-											MeshElement.Type = PT_TriangleList;
-											MeshElement.DepthPriorityGroup = DepthPriorityGroup;
-											MeshElement.ModelElementIndex = ElementIndex;
-											FirstIndex += NumIndices;
-										}
-									}
-									bAnySelectedSurfs |= bHasSelectedSurfs;
-								}
-							}
-						}
-					}
-				}
-				else
-				{
-					for (int32 ElementIndex = 0; ElementIndex < Elements.Num(); ElementIndex++)
-					{
-						const FModelElement& ModelElement = Component->GetElements()[ElementIndex];
-						if (ModelElement.NumTriangles > 0)
-						{
-							FDynamicModelMeshBatch& MeshElement = *new(DynamicMeshBatches) FDynamicModelMeshBatch(false);
-							FMeshBatchElement& BatchElement = MeshElement.Elements[0];
-							BatchElement.IndexBuffer = ModelElement.IndexBuffer;
-							MeshElement.VertexFactory = &Component->GetModel()->VertexFactory;
-							MeshElement.MaterialRenderProxy = (MatProxyOverride != NULL) ? MatProxyOverride : Elements[ElementIndex].GetMaterial()->GetRenderProxy(false);
-							MeshElement.LCI = &Elements[ElementIndex];
-							BatchElement.PrimitiveUniformBufferResource = &GetUniformBuffer();
-							BatchElement.FirstIndex = ModelElement.FirstIndex;
-							BatchElement.NumPrimitives = ModelElement.NumTriangles;
-							BatchElement.MinVertexIndex = ModelElement.MinVertexIndex;
-							BatchElement.MaxVertexIndex = ModelElement.MaxVertexIndex;
-							MeshElement.Type = PT_TriangleList;
-							MeshElement.DepthPriorityGroup = DepthPriorityGroup;
-							MeshElement.ModelElementIndex = ElementIndex;
-						}
-					}
-				}
-
-				ViewBatch->LastBatch = DynamicMeshBatches.Num();
-			}
-		}
-
-		SetSelection_RenderThread(bAnySelectedSurfs);
-	}
-
-	/** 
-	* Draw the scene proxy as a dynamic element
-	*
-	* @param	PDI - draw interface to render to
-	* @param	View - current view
-	*/
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-	{
-		QUICK_SCOPE_CYCLE_COUNTER( STAT_ModelSceneProxy_DrawDynamicElements );
-
-		int32 ViewIndex = View->Family->Views.Find(View);
-		const bool bRenderingSelectionOutline = PDI->IsRenderingSelectionOutline();
-
-		if (PerViewBatches.IsValidIndex(ViewIndex))
-		{
-			FLinearColor UtilColor = LevelColor;
-
-			const bool bIsWireframe = View->Family->EngineShowFlags.Wireframe;
-			FPerViewBatch& PerViewBatch = PerViewBatches[ViewIndex];
-			for (int32 BatchIndex = PerViewBatch.FirstBatch; BatchIndex < PerViewBatch.LastBatch; ++BatchIndex)
-			{
-				FDynamicModelMeshBatch& Batch = DynamicMeshBatches[BatchIndex];
-				if (!bRenderingSelectionOutline || Batch.bIsSelectedBatch)
-				{
-					DrawRichMesh(PDI,Batch,FLinearColor::White,UtilColor,PropertyColor,this,false, bIsWireframe);
-				}
-			}
-		}
+		const_cast<FModelSceneProxy*>(this)->SetSelection_RenderThread(bAnySelectedSurfs,false);
 	}
 
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI)
@@ -661,7 +446,6 @@ public:
 			|| (bShowSelectedTriangles && HasSelectedSurfaces()))
 		{
 			Result.bDynamicRelevance = true;
-			Result.bNeedsPreRenderView = true;
 		}
 		else
 		{
@@ -849,20 +633,6 @@ private:
 
 	FMaterialRelevance MaterialRelevance;
 
-	/** Which dynamic batches should be rendered for a given view. */
-	struct FPerViewBatch
-	{
-		int32 FirstBatch;
-		int32 LastBatch;
-
-		FPerViewBatch()
-			: FirstBatch(0)
-			, LastBatch(0)
-		{
-		}
-	};
-	TArray<FPerViewBatch, TInlineAllocator<2> > PerViewBatches;
-
 	/** Precomputed dynamic mesh batches. */
 	struct FDynamicModelMeshBatch : public FMeshBatch
 	{
@@ -876,7 +646,6 @@ private:
 		{
 		}
 	};
-	TArray<FDynamicModelMeshBatch> DynamicMeshBatches;
 
 	/** Collision Response of this component**/
 	FCollisionResponseContainer CollisionResponse;

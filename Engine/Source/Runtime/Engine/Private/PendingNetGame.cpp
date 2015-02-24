@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
   PendingNetGame.cpp: Unreal pending net game class.
@@ -8,14 +8,14 @@
 #include "Net/UnrealNetwork.h"
 #include "Net/NetworkProfiler.h"
 #include "Net/DataChannel.h"
+#include "GeneralProjectSettings.h"
 
-UPendingNetGame::UPendingNetGame( const FObjectInitializer& ObjectInitializer, const FURL& InURL )
-	: Super(ObjectInitializer)
-	, NetDriver(NULL)
-	, URL(InURL)
-	, bSuccessfullyConnected(false)
-	, bSentJoinRequest(false)
+void UPendingNetGame::Initialize(const FURL& InURL)
 {
+	NetDriver = NULL;
+	URL = InURL;
+	bSuccessfullyConnected = false;
+	bSentJoinRequest = false;
 }
 
 UPendingNetGame::UPendingNetGame(const FObjectInitializer& ObjectInitializer)
@@ -41,7 +41,10 @@ void UPendingNetGame::InitNetDriver()
 			// Send initial message.
 			uint8 IsLittleEndian = uint8(PLATFORM_LITTLE_ENDIAN);
 			check(IsLittleEndian == !!IsLittleEndian); // should only be one or zero
-			FNetControlMessage<NMT_Hello>::Send(NetDriver->ServerConnection, IsLittleEndian, GEngineMinNetVersion, GEngineNetVersion, Cast<UGeneralProjectSettings>(UGeneralProjectSettings::StaticClass()->GetDefaultObject())->ProjectID);
+			
+			uint32 LocalNetworkVersion = FNetworkVersion::GetLocalNetworkVersion();
+
+			FNetControlMessage<NMT_Hello>::Send( NetDriver->ServerConnection, IsLittleEndian, LocalNetworkVersion );
 
 			NetDriver->ServerConnection->FlushNet();
 		}
@@ -113,20 +116,11 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 	{
 		case NMT_Upgrade:
 			// Report mismatch.
-			int32 RemoteMinVer, RemoteVer;
-			FNetControlMessage<NMT_Upgrade>::Receive(Bunch, RemoteMinVer, RemoteVer);
-			if (GEngineNetVersion < RemoteMinVer)
-			{
-				// Upgrade
-				ConnectionError = NSLOCTEXT("Engine", "ClientOutdated", "The match you are trying to join is running an incompatible version of the game.  Please try upgrading your game version.").ToString();
-				GEngine->BroadcastNetworkFailure(NULL, NetDriver, ENetworkFailure::OutdatedClient, ConnectionError);
-			}
-			else
-			{
-				// Downgrade
-				ConnectionError = NSLOCTEXT("Engine", "ServerOutdated", "Server's version is outdated").ToString();
-				GEngine->BroadcastNetworkFailure(NULL, NetDriver, ENetworkFailure::OutdatedServer, ConnectionError);
-			}
+			uint32 RemoteNetworkVersion;
+			FNetControlMessage<NMT_Upgrade>::Receive(Bunch, RemoteNetworkVersion);
+			// Upgrade
+			ConnectionError = NSLOCTEXT("Engine", "ClientOutdated", "The match you are trying to join is running an incompatible version of the game.  Please try upgrading your game version.").ToString();
+			GEngine->BroadcastNetworkFailure(NULL, NetDriver, ENetworkFailure::OutdatedClient, ConnectionError);
 			break;
 
 		case NMT_Failure:
@@ -157,7 +151,7 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 		case NMT_Challenge:
 		{
 			// Challenged by server.
-			FNetControlMessage<NMT_Challenge>::Receive(Bunch, Connection->NegotiatedVer, Connection->Challenge);
+			FNetControlMessage<NMT_Challenge>::Receive(Bunch, Connection->Challenge);
 
 			FURL PartialURL(URL);
 			PartialURL.Host = TEXT("");
@@ -204,8 +198,9 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 		{
 			// Server accepted connection.
 			FString GameName;
+			FString RedirectURL;
 
-			FNetControlMessage<NMT_Welcome>::Receive(Bunch, URL.Map, GameName);
+			FNetControlMessage<NMT_Welcome>::Receive(Bunch, URL.Map, GameName, RedirectURL);
 
 			//GEngine->NetworkRemapPath(this, URL.Map);
 
@@ -216,6 +211,7 @@ void UPendingNetGame::NotifyControlMessage(UNetConnection* Connection, uint8 Mes
 				FURL DefaultURL;
 				FURL TempURL( &DefaultURL, *URL.Map, TRAVEL_Partial );
 				URL.Map = TempURL.Map;
+				URL.RedirectURL = RedirectURL;
 				URL.Op.Append(TempURL.Op);
 			}
 

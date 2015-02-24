@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -1241,17 +1241,23 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// Copies a file if the dest doesn't exist or the dest timestamp is different; after a copy, copies the timestamp
+		/// Copies a file if the dest doesn't exist or (optionally) if the dest timestamp is different; after a copy, copies the timestamp
 		/// </summary>
-		/// <param name="Source"></param>
-		/// <param name="Dest"></param>
+		/// <param name="Source">The full path to the source file</param>
+		/// <param name="Dest">The full path to the destination file</param>
+		/// <param name="bAllowDifferingTimestamps">If true, will always skip a file if the destination exists, even if timestamp differs; defaults to false</param>
 		/// <returns>True if the operation was successful, false otherwise.</returns>
-		public static void CopyFileIncremental(string Source, string Dest)
+		public static void CopyFileIncremental(string Source, string Dest, bool bAllowDifferingTimestamps = false, bool bFilterSpecialLinesFromIniFiles = false)
 		{
 			Source = ConvertSeparators(PathSeparator.Default, Source);
 			Dest = ConvertSeparators(PathSeparator.Default, Dest);
 			if (InternalUtils.SafeFileExists(Dest, true))
 			{
+				if (bAllowDifferingTimestamps == true)
+				{
+					Log("CopyFileIncremental Skipping {0}, already exists", Dest);
+					return;
+				}
 				TimeSpan Diff = File.GetLastWriteTimeUtc(Dest) - File.GetLastWriteTimeUtc(Source);
 				if (Diff.TotalSeconds > -1 && Diff.TotalSeconds < 1)
 				{
@@ -1271,7 +1277,7 @@ namespace AutomationTool
 			{
 				throw new AutomationException("Failed to delete {0} for copy", Dest);
 			}
-			if (!InternalUtils.SafeCopyFile(Source, Dest))
+			if (!InternalUtils.SafeCopyFile(Source, Dest, bFilterSpecialLinesFromIniFiles:bFilterSpecialLinesFromIniFiles))
 			{
 				throw new AutomationException("Failed to copy {0} to {1}", Source, Dest);
 			}
@@ -1385,31 +1391,13 @@ namespace AutomationTool
 		}
 
 		/// <summary>
-		/// A container for a binary files (dll, exe) with its associated debug info.
-		/// </summary>
-		public class FileManifest
-		{
-			/// <summary>
-			/// Items
-			/// </summary>
-			public readonly List<string> FileManifestItems = new List<string>();
-
-			/// <summary>
-			/// Constructor
-			/// </summary>
-			public FileManifest()
-			{
-			}
-		}
-
-		/// <summary>
 		/// Reads a file manifest and returns it
 		/// </summary>
 		/// <param name="ManifestName">ManifestName</param>
 		/// <returns></returns>
-		public static FileManifest ReadManifest(string ManifestName)
+		public static UnrealBuildTool.BuildManifest ReadManifest(string ManifestName)
 		{
-			return XmlHandler.ReadXml<FileManifest>(ManifestName);
+			return XmlHandler.ReadXml<UnrealBuildTool.BuildManifest>(ManifestName);
 		}
 
 		private static void CloneDirectoryRecursiveWorker(string SourcePathBase, string TargetPathBase, List<string> ClonedFiles)
@@ -2194,7 +2182,7 @@ namespace AutomationTool
 			//@TODO: Verbosity choosing
 			//  /v will spew lots of info
 			//  /q does nothing on success and minimal output on failure
-			string CodeSignArgs = String.Format("sign{0} /a /n \"{1}\" /t {2} /v \"{3}\"", SpecificStoreArg, SigningIdentity, TimestampServer, TargetFileInfo.FullName);
+			string CodeSignArgs = String.Format("sign{0} /a /n \"{1}\" /t {2} /d \"{3}\" /v \"{4}\"", SpecificStoreArg, SigningIdentity, TimestampServer, TargetFileInfo.Name, TargetFileInfo.FullName);
 
 			DateTime StartTime = DateTime.Now;
 

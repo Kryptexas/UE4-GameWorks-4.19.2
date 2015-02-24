@@ -1,8 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "EditorViewportClient.h"
+#include "Engine/WindDirectionalSource.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ELocalAxesMode
@@ -181,6 +182,10 @@ public:
 		SelectedWindActor = NULL;
 	}
 
+	void ClearSelectedAnimGraphNode();
+	void PostUndo();
+	void PostCompile();
+
 	/* Returns the floor height offset */	
 	float GetFloorOffset() const;
 
@@ -199,13 +204,13 @@ public:
 	float GetWindStrengthSliderValue() const;
 
 	/** Function to get wind strength label */
-	FString GetWindStrengthLabel() const;
+	FText GetWindStrengthLabel() const;
 	/** Function to set gravity scale (0.0 - 4.0) */
 	void SetGravityScale(float SliderPos);
 	/** Function to get slide value used to represent gravity scale */
 	float GetGravityScaleSliderValue() const;
 	/** Function to get gravity scale label */
-	FString GetGravityScaleLabel() const;
+	FText GetGravityScaleLabel() const;
 	/** Function to set mesh stat drawing state */
 	void OnSetShowMeshStats(int32 ShowMode);
 	/** Whether or not mesh stats are being displayed */
@@ -297,6 +302,10 @@ private:
 	void DrawMeshBonesNonRetargetedAnimation(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const;
 	/** Draws Bones for Additive Base Pose */
 	void DrawMeshBonesAdditiveBasePose(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const;
+	/** Draw Bones for non retargeted animation. */
+	void DrawMeshBonesSourceRawAnimation(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const;
+	/** Draw Bones for non retargeted animation. */
+	void DrawMeshBonesBakedAnimation(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const;
 	/** Draws Bones for RequiredBones with WorldTransform **/
 	void DrawBones(const USkeletalMeshComponent* MeshComponent, const TArray<FBoneIndexType> & RequiredBones, const TArray<FTransform> & WorldTransforms, FPrimitiveDrawInterface* PDI, const TArray<FLinearColor> BoneColours, float LineThickness=0.f) const;
 	/** Draw Sub set of Bones **/
@@ -307,4 +316,13 @@ private:
 	void DrawSockets( TArray<class USkeletalMeshSocket*>& Sockets, FPrimitiveDrawInterface* PDI, bool bUseSkeletonSocketColor ) const;
 
 	TWeakObjectPtr<AWindDirectionalSource> FindSelectedWindActor() const;
+
+	struct FAnimNode_SkeletalControlBase* FindSkeletalControlAnimNode(TWeakObjectPtr<class UAnimGraphNode_SkeletalControlBase> AnimGraphNode) const;
+
+	void FindSelectedAnimGraphNode();
+
+	// selected skeletal control anim graph node 
+	TWeakObjectPtr<class UAnimGraphNode_SkeletalControlBase> SelectedSkelControlAnimGraph;
+	// to check whether we should update literal values in selected AnimGraphNode
+	bool bShouldUpdateDefaultValues;
 };

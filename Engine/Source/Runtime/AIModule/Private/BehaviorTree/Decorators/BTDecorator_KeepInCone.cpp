@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/BlackboardComponent.h"
@@ -49,9 +49,9 @@ void UBTDecorator_KeepInCone::InitializeFromAsset(UBehaviorTree& Asset)
 	Observed.CacheSelectedKey(BBAsset);
 }
 
-bool UBTDecorator_KeepInCone::CalculateCurrentDirection(const UBehaviorTreeComponent* OwnerComp, FVector& Direction) const
+bool UBTDecorator_KeepInCone::CalculateCurrentDirection(const UBehaviorTreeComponent& OwnerComp, FVector& Direction) const
 {
-	const UBlackboardComponent* BlackboardComp = OwnerComp->GetBlackboardComponent();
+	const UBlackboardComponent* BlackboardComp = OwnerComp.GetBlackboardComponent();
 	if (BlackboardComp == NULL)
 	{
 		return false;
@@ -64,25 +64,25 @@ bool UBTDecorator_KeepInCone::CalculateCurrentDirection(const UBehaviorTreeCompo
 
 	if (bHasPointA && bHasPointB)
 	{
-		Direction = (PointB - PointA).SafeNormal();
+		Direction = (PointB - PointA).GetSafeNormal();
 		return true;
 	}
 
 	return false;
 }
 
-void UBTDecorator_KeepInCone::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTDecorator_KeepInCone::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	TNodeInstanceMemory* DecoratorMemory = (TNodeInstanceMemory*)NodeMemory;
+	TNodeInstanceMemory* DecoratorMemory = reinterpret_cast<TNodeInstanceMemory*>(NodeMemory);
 	FVector InitialDir(1.0f, 0, 0);
 
 	CalculateCurrentDirection(OwnerComp, InitialDir);
 	DecoratorMemory->InitialDirection = InitialDir;
 }
 
-void UBTDecorator_KeepInCone::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UBTDecorator_KeepInCone::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-	TNodeInstanceMemory* DecoratorMemory = (TNodeInstanceMemory*)NodeMemory;
+	TNodeInstanceMemory* DecoratorMemory = reinterpret_cast<TNodeInstanceMemory*>(NodeMemory);
 	FVector CurrentDir(1.0f, 0, 0);
 	
 	if (CalculateCurrentDirection(OwnerComp, CurrentDir))
@@ -90,7 +90,7 @@ void UBTDecorator_KeepInCone::TickNode(UBehaviorTreeComponent* OwnerComp, uint8*
 		const float Angle = DecoratorMemory->InitialDirection.CosineAngle2D(CurrentDir);
 		if (Angle < ConeHalfAngleDot || (IsInversed() && Angle > ConeHalfAngleDot))
 		{
-			OwnerComp->RequestExecution(this);
+			OwnerComp.RequestExecution(this);
 		}
 	}
 }
@@ -105,9 +105,9 @@ FString UBTDecorator_KeepInCone::GetStaticDescription() const
 		*Observed.SelectedKeyName.ToString());
 }
 
-void UBTDecorator_KeepInCone::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTDecorator_KeepInCone::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
-	TNodeInstanceMemory* DecoratorMemory = (TNodeInstanceMemory*)NodeMemory;
+	TNodeInstanceMemory* DecoratorMemory = reinterpret_cast<TNodeInstanceMemory*>(NodeMemory);
 	FVector CurrentDir(1.0f, 0, 0);
 	
 	if (CalculateCurrentDirection(OwnerComp, CurrentDir))

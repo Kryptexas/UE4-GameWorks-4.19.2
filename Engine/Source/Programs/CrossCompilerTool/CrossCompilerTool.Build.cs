@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -20,6 +20,10 @@ public class CrossCompilerTool : ModuleRules
 				"ShaderCompilerCommon",
 				"MetalShaderFormat",
 				"ShaderFormatOpenGL",
+				"ShaderPreprocessor",
+
+				//@todo-rco: Remove me!
+				"ShaderCore",
 			});
 
 		AddThirdPartyPrivateStaticDependencies(Target,

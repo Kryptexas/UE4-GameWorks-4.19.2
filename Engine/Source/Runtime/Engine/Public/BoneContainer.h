@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -39,6 +39,8 @@ private:
 	bool bDisableRetargeting;
 	/** Disable animation compression, use RAW data instead. */
 	bool bUseRAWData;
+	/** Use Source Data that is imported that are not compressed. */
+	bool bUseSourceData;
 
 public:
 
@@ -95,6 +97,18 @@ public:
 	bool ShouldUseRawData() const
 	{
 		return bUseRAWData;
+	}
+
+	/** use Source data instead.*/
+	void SetUseSourceData(bool InbUseSourceData)
+	{
+		bUseSourceData = InbUseSourceData;
+	}
+
+	/** True if we're requesting Source data instead of RawAnimationData. For debugging. */
+	bool ShouldUseSourceData() const
+	{
+		return bUseSourceData;
 	}
 
 	/**

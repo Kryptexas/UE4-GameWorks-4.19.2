@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 #include "UMGSequencerObjectBindingManager.h"
@@ -23,6 +23,11 @@ FUMGSequencerObjectBindingManager::FUMGSequencerObjectBindingManager( FWidgetBlu
 FUMGSequencerObjectBindingManager::~FUMGSequencerObjectBindingManager()
 {
 	WidgetBlueprintEditor.GetOnWidgetPreviewUpdated().RemoveAll( this );
+}
+
+void FUMGSequencerObjectBindingManager::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObject(WidgetAnimation);
 }
 
 FGuid FUMGSequencerObjectBindingManager::FindGuidForObject( const UMovieScene& MovieScene, UObject& Object ) const
@@ -97,7 +102,7 @@ void FUMGSequencerObjectBindingManager::GetRuntimeObjects( const TSharedRef<FMov
 bool FUMGSequencerObjectBindingManager::HasValidWidgetAnimation() const
 {
 	UWidgetBlueprint* WidgetBlueprint = WidgetBlueprintEditor.GetWidgetBlueprintObj();
-	return WidgetAnimation.IsValid() && WidgetBlueprint->Animations.Contains( WidgetAnimation.Get() );
+	return WidgetAnimation != nullptr && WidgetBlueprint->Animations.Contains( WidgetAnimation );
 }
 
 void FUMGSequencerObjectBindingManager::InitPreviewObjects()

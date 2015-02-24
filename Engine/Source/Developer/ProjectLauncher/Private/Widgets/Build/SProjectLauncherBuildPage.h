@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -43,10 +43,10 @@ protected:
 private:
 
 	/** Callback for changing the checked state of a platform menu check box. */
-	void HandleBuildCheckedStateChanged( ESlateCheckBoxState::Type CheckState );
+	void HandleBuildCheckedStateChanged( ECheckBoxState CheckState );
 
 	/** Callback for determining whether a platform menu entry is checked. */
-	ESlateCheckBoxState::Type HandleBuildIsChecked() const;
+	ECheckBoxState HandleBuildIsChecked() const;
 
 	/** Callback for changing the selected profile in the profile manager. */
 	void HandleProfileManagerProfileSelected( const ILauncherProfilePtr& SelectedProfile, const ILauncherProfilePtr& PreviousProfile );
@@ -67,10 +67,16 @@ private:
 	void HandleBuildConfigurationSelectorConfigurationSelected(EBuildConfigurations::Type Configuration);
 
 	/** Callback for getting the content text of the build configuration selector. */
-	FString HandleBuildConfigurationSelectorText() const;
+	FText HandleBuildConfigurationSelectorText() const;
 
 	/** Callback for determining the visibility of a validation error icon. */
 	EVisibility HandleValidationErrorIconVisibility(ELauncherProfileValidationErrors::Type Error) const;
+
+	/** Callback for changing the checked state of a platform menu check box. */
+	void HandleUATCheckedStateChanged( ECheckBoxState CheckState );
+
+	/** Callback for determining whether a platform menu entry is checked. */
+	ECheckBoxState HandleUATIsChecked() const;
 
 private:
 

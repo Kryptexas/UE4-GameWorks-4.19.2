@@ -1,3 +1,4 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __BoneSelectionWidget_h__
 #define __BoneSelectionWidget_h__
@@ -62,7 +63,7 @@ private:
 	// Called when the user selects a bone name
 	void OnSelectionChanged(TSharedPtr<FBoneNameInfo>, ESelectInfo::Type SelectInfo);
 	// Gets the current bone name, used to get the right name for the combo button
-	FString GetCurrentBoneName() const;
+	FText GetCurrentBoneName() const;
 
 	// Tree view used in the button menu
 	TSharedPtr<STreeView<TSharedPtr<FBoneNameInfo>>> TreeView;

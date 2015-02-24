@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -9,7 +9,6 @@
 
 #include "IHeadMountedDisplay.h"
 
-extern int32 GetBoundFullScreenModeCVar();
 extern EWindowMode::Type GetWindowModeType(EWindowMode::Type WindowMode);
 
 FSceneViewport::FSceneViewport( FViewportClient* InViewportClient, TSharedPtr<SViewport> InViewportWidget )
@@ -336,6 +335,15 @@ FCursorReply FSceneViewport::OnCursorQuery( const FGeometry& MyGeometry, const F
 	return FCursorReply::Cursor(MouseCursorToUse);
 }
 
+TOptional<TSharedRef<SWidget>> FSceneViewport::OnMapCursor(const FCursorReply& CursorReply)
+{
+	if (ViewportClient && GetSizeXY() != FIntPoint::ZeroValue)
+	{
+		return ViewportClient->MapCursor(this, CursorReply);
+	}
+	return ISlateViewport::OnMapCursor(CursorReply);
+}
+
 FReply FSceneViewport::OnMouseButtonDown( const FGeometry& InGeometry, const FPointerEvent& InMouseEvent )
 {
 	// Start a new reply state
@@ -450,11 +458,14 @@ void FSceneViewport::OnMouseEnter( const FGeometry& MyGeometry, const FPointerEv
 
 void FSceneViewport::OnMouseLeave( const FPointerEvent& MouseEvent )
 {
-	ViewportClient->MouseLeave( this );
-	
-	if ( IsPlayInEditorViewport() )
+	if( ViewportClient )
 	{
-		CachedMousePos = FIntPoint(-1, -1);
+		ViewportClient->MouseLeave( this );
+	
+		if ( IsPlayInEditorViewport() )
+		{
+			CachedMousePos = FIntPoint(-1, -1);
+		}
 	}
 }
 
@@ -463,39 +474,37 @@ FReply FSceneViewport::OnMouseMove( const FGeometry& InGeometry, const FPointerE
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled();
 
-	if( !InMouseEvent.GetCursorDelta().IsZero() )
+	UpdateCachedMousePos(InGeometry, InMouseEvent);
+	UpdateCachedGeometry(InGeometry);
+
+	const bool bViewportHasCapture = ViewportWidget.IsValid() && ViewportWidget.Pin()->HasMouseCapture();
+	if ( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue )
 	{
-		UpdateCachedMousePos( InGeometry, InMouseEvent );
-		UpdateCachedGeometry(InGeometry);
+		// Switch to the viewport clients world before processing input
+		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
 
-		const bool bViewportHasCapture = ViewportWidget.IsValid() && ViewportWidget.Pin()->HasMouseCapture();
-		if( ViewportClient && GetSizeXY() != FIntPoint::ZeroValue )
+		if ( bViewportHasCapture )
 		{
-			// Switch to the viewport clients world before processing input
-			FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
+			ViewportClient->CapturedMouseMove(this, GetMouseX(), GetMouseY());
+		}
+		else
+		{
+			ViewportClient->MouseMove(this, GetMouseX(), GetMouseY());
+		}
 
-			if( bViewportHasCapture )
-			{
-				ViewportClient->CapturedMouseMove( this, GetMouseX(), GetMouseY() );
-			}
-			else
-			{
-				ViewportClient->MouseMove( this, GetMouseX(), GetMouseY() );
-			}
-		
-			if( bViewportHasCapture )
-			{
-				// Accumulate delta changes to mouse movment.  Depending on the sample frequency of a mouse we may get many per frame.
-				//@todo Slate: In directinput, number of samples in x/y could be different...
-				const FVector2D CursorDelta = InMouseEvent.GetCursorDelta();
-				MouseDelta.X += CursorDelta.X;
-				++NumMouseSamplesX;
+		if ( bViewportHasCapture )
+		{
+			// Accumulate delta changes to mouse movement.  Depending on the sample frequency of a mouse we may get many per frame.
+			//@todo Slate: In directinput, number of samples in x/y could be different...
+			const FVector2D CursorDelta = InMouseEvent.GetCursorDelta();
+			MouseDelta.X += CursorDelta.X;
+			++NumMouseSamplesX;
 
-				MouseDelta.Y -= CursorDelta.Y;
-				++NumMouseSamplesY;
-			}
+			MouseDelta.Y -= CursorDelta.Y;
+			++NumMouseSamplesY;
 		}
 	}
+
 	return CurrentReplyState;
 }
 
@@ -664,6 +673,31 @@ FReply FSceneViewport::OnMotionDetected( const FGeometry& MyGeometry, const FMot
 	return CurrentReplyState;
 }
 
+TOptional<EPopupMethod> FSceneViewport::OnQueryPopupMethod() const
+{
+	if (ViewportClient != nullptr)
+	{
+		return ViewportClient->OnQueryPopupMethod();
+	}
+	else
+	{
+		return TOptional<EPopupMethod>();
+	}
+}
+
+TOptional<bool> FSceneViewport::OnQueryShowFocus(const EFocusCause InFocusCause) const
+{
+	if (ViewportClient)
+	{
+		// Switch to the viewport clients world before processing input
+		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
+
+		return ViewportClient->QueryShowFocus(InFocusCause);
+	}
+
+	return TOptional<bool>();
+}
+
 void FSceneViewport::OnFinishedPointerInput()
 {
 	ProcessAccumulatedPointerInput();
@@ -683,7 +717,7 @@ FReply FSceneViewport::OnKeyDown( const FGeometry& InGeometry, const FKeyEvent& 
 		// Switch to the viewport clients world before processing input
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
-		if (!ViewportClient->InputKey(this, InKeyEvent.GetUserIndex(), Key, InKeyEvent.IsRepeat() ? IE_Repeat : IE_Pressed))
+		if (!ViewportClient->InputKey(this, InKeyEvent.GetUserIndex(), Key, InKeyEvent.IsRepeat() ? IE_Repeat : IE_Pressed, 1.0f, Key.IsGamepadKey()))
 		{
 			CurrentReplyState = FReply::Unhandled();
 		}
@@ -704,7 +738,7 @@ FReply FSceneViewport::OnKeyUp( const FGeometry& InGeometry, const FKeyEvent& In
 		// Switch to the viewport clients world before processing input
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
-		if (!ViewportClient->InputKey(this, InKeyEvent.GetUserIndex(), Key, IE_Released))
+		if (!ViewportClient->InputKey(this, InKeyEvent.GetUserIndex(), Key, IE_Released, 1.0f, Key.IsGamepadKey()))
 		{
 			CurrentReplyState = FReply::Unhandled();
 		}
@@ -718,14 +752,15 @@ FReply FSceneViewport::OnAnalogValueChanged(const FGeometry& MyGeometry, const F
 	// Start a new reply state
 	CurrentReplyState = FReply::Handled();
 
-	KeyStateMap.Add(InAnalogInputEvent.GetKey(), true);
+	FKey Key = InAnalogInputEvent.GetKey();
+	KeyStateMap.Add(Key, true);
 
 	if (ViewportClient)
 	{
 		// Switch to the viewport clients world before processing input
 		FScopedConditionalWorldSwitcher WorldSwitcher(ViewportClient);
 
-		if (!ViewportClient->InputAxis(this, InAnalogInputEvent.GetUserIndex(), InAnalogInputEvent.GetKey(), InAnalogInputEvent.GetKey() == EKeys::Gamepad_RightY ? -InAnalogInputEvent.GetAnalogValue() : InAnalogInputEvent.GetAnalogValue(), FApp::GetDeltaTime(), 1, true))
+		if (!ViewportClient->InputAxis(this, InAnalogInputEvent.GetUserIndex(), Key, Key == EKeys::Gamepad_RightY ? -InAnalogInputEvent.GetAnalogValue() : InAnalogInputEvent.GetAnalogValue(), FApp::GetDeltaTime(), 1, Key.IsGamepadKey()))
 		{
 			CurrentReplyState = FReply::Unhandled();
 		}
@@ -744,7 +779,7 @@ FReply FSceneViewport::OnKeyChar( const FGeometry& InGeometry, const FCharacterE
 		// Switch to the viewport clients world before processing input
 		FScopedConditionalWorldSwitcher WorldSwitcher( ViewportClient );
 
-		if( !ViewportClient->InputChar( this,0, InCharacterEvent.GetCharacter() ) )
+		if (!ViewportClient->InputChar(this, InCharacterEvent.GetUserIndex(), InCharacterEvent.GetCharacter()))
 		{
 			CurrentReplyState = FReply::Unhandled();
 		}
@@ -846,13 +881,12 @@ void FSceneViewport::ResizeFrame(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::
 			// scaling so we actual render to the resolution we've been asked for.
 			if (DesiredWindowMode == EWindowMode::WindowedFullscreen)
 			{
-				FSlateRect Rect = WindowToResize->GetFullScreenInfo();
-				if (Rect.IsValid())
-				{
-					NewSizeX = Rect.GetSize().X;
-					NewSizeY = Rect.GetSize().Y;
-				}
+				FDisplayMetrics DisplayMetrics;
+				FSlateApplication::Get().GetInitialDisplayMetrics(DisplayMetrics);
+				NewSizeX = DisplayMetrics.PrimaryDisplayWidth;;
+				NewSizeY = DisplayMetrics.PrimaryDisplayHeight;;
 			}
+
 			uint32 ViewportSizeX = NewSizeX;
 			uint32 ViewportSizeY = NewSizeY;
 
@@ -966,6 +1000,15 @@ TSharedPtr<SWindow> FSceneViewport::FindWindow()
 	return FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef());
 }
 
+bool FSceneViewport::IsStereoRenderingAllowed() const
+{
+	if (ViewportWidget.IsValid())
+	{
+		return ViewportWidget.Pin()->IsStereoRenderingAllowed();
+	}
+	return false;
+}
+
 void FSceneViewport::ResizeViewport(uint32 NewSizeX, uint32 NewSizeY, EWindowMode::Type NewWindowMode, int32 InPosX, int32 InPosY)
 {
 	// Do not resize if the viewport is an invalid size or our UI should be responsive
@@ -1072,7 +1115,7 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 	check( IsInGameThread() );
 
 	// check if we need to reallocate rendertarget for HMD and update HMD rendering viewport 
-	if (!GIsEditor && GEngine->StereoRenderingDevice.IsValid())
+	if (GEngine->StereoRenderingDevice.IsValid() && IsStereoRenderingAllowed())
 	{
 		bool bNewUseSepRenTarget = GEngine->StereoRenderingDevice->ShouldUseSeparateRenderTarget();
 		if (bNewUseSepRenTarget != bUseSeparateRenderTarget ||
@@ -1091,15 +1134,19 @@ void FSceneViewport::EnqueueBeginRenderFrame()
 	// If we dont have the ViewportRHI then we need to get it before rendering
 	// Note, we need ViewportRHI even if bUseSeparateRenderTarget is true when stereo rendering
 	// is enabled.
-	if( !IsValidRef(ViewportRHI) && (!bUseSeparateRenderTarget || (GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->ShouldUseSeparateRenderTarget()) ))
+	if( !IsValidRef(ViewportRHI) && (!bUseSeparateRenderTarget || (GEngine->StereoRenderingDevice.IsValid())) )
 	{
 		// Get the viewport for this window from the renderer so we can render directly to the backbuffer
 		TSharedPtr<FSlateRenderer> Renderer = FSlateApplication::Get().GetRenderer();
 		FWidgetPath WidgetPath;
-		void* ViewportResource = Renderer->GetViewportResource( *FSlateApplication::Get().FindWidgetWindow( ViewportWidget.Pin().ToSharedRef(), WidgetPath ) );
-		if( ViewportResource )
+		auto WidgetWindow = FSlateApplication::Get().FindWidgetWindow(ViewportWidget.Pin().ToSharedRef(), WidgetPath);
+		if (WidgetWindow.IsValid())
 		{
-			ViewportRHI = *((FViewportRHIRef*)ViewportResource);
+			void* ViewportResource = Renderer->GetViewportResource(*WidgetWindow);
+			if (ViewportResource)
+			{
+				ViewportRHI = *((FViewportRHIRef*)ViewportResource);
+			}
 		}
 	}
 
@@ -1203,7 +1250,7 @@ void FSceneViewport::InitDynamicRHI()
 	if( bUseSeparateRenderTarget )
 	{
 		uint32 TexSizeX = SizeX, TexSizeY = SizeY;
-		if (GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabled())
+		if (GEngine->IsStereoscopic3D(this))
 		{
 			GEngine->StereoRenderingDevice->CalculateRenderTargetSize(TexSizeX, TexSizeY);
 		}
@@ -1215,11 +1262,11 @@ void FSceneViewport::InitDynamicRHI()
 		if( !SlateRenderTargetHandle )
 		{
 			SlateRenderTargetHandle = new FSlateRenderTargetRHI( ShaderResourceTextureRHI, TexSizeX, TexSizeY );
-//			UE_LOG(LogSlate, Log, TEXT("SRTH: %p, %d x %d"), ShaderResourceTextureRHI.GetReference(), TexSizeX, TexSizeY);
+			//UE_LOG(LogSlate, Log, TEXT("SRTH: %p, %d x %d"), ShaderResourceTextureRHI.GetReference(), TexSizeX, TexSizeY);
 		}
 		else
 		{
-//			UE_LOG(LogSlate, Log, TEXT("SRTH: %p, %d x %d, prev %p"), ShaderResourceTextureRHI.GetReference(), TexSizeX, TexSizeY, SlateRenderTargetHandle->GetRHIRef().GetReference());
+			//UE_LOG(LogSlate, Log, TEXT("SRTH: %p, %d x %d, prev %p"), ShaderResourceTextureRHI.GetReference(), TexSizeX, TexSizeY, SlateRenderTargetHandle->GetRHIRef().GetReference());
 			SlateRenderTargetHandle->SetRHIRef( ShaderResourceTextureRHI, TexSizeX, TexSizeY );
 		}
 
@@ -1227,7 +1274,7 @@ void FSceneViewport::InitDynamicRHI()
 		if (Window.IsValid())
 		{
 			// We need to pass a texture to the renderer only for stereo rendering. Otherwise, Editor will be rendered incorrectly.
-			if (GEngine->StereoRenderingDevice.IsValid() && GEngine->StereoRenderingDevice->IsStereoEnabled())
+			if (GEngine->IsStereoscopic3D(this))
 			{
 				Renderer->SetWindowRenderTarget(*Window, RenderTargetTextureRHI);
 			}

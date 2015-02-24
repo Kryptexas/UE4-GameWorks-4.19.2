@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnMaterial.cpp: Shader implementation.
@@ -29,7 +29,7 @@
 #include "TargetPlatform.h"
 #include "ComponentReregisterContext.h"
 #include "ShaderCompiler.h"
-
+#include "Materials/MaterialParameterCollection.h"
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #include "SlateBasics.h"  // For AddNotification
@@ -53,7 +53,6 @@ bool FMaterialsWithDirtyUsageFlags::IsUsageFlagDirty(EMaterialUsage UsageFlag)
 }
 
 FUObjectAnnotationSparseBool GMaterialsThatNeedSamplerFixup;
-FUObjectAnnotationSparseBool GMaterialsThatNeedPhysicalConversion;
 FUObjectAnnotationSparse<FMaterialsWithDirtyUsageFlags,true> GMaterialsWithDirtyUsageFlags;
 FUObjectAnnotationSparseBool GMaterialsThatNeedExpressionsFlipped;
 FUObjectAnnotationSparseBool GMaterialsThatNeedCoordinateCheck;
@@ -126,6 +125,10 @@ void FMaterialResource::GetShaderMapId(EShaderPlatform Platform, FMaterialShader
 	if(MaterialInstance)
 	{
 		MaterialInstance->GetBasePropertyOverridesHash(OutId.BasePropertyOverridesHash);
+
+		FStaticParameterSet CompositedStaticParameters;
+		MaterialInstance->GetStaticParameterValues(CompositedStaticParameters);
+		OutId.ParameterSet = CompositedStaticParameters;
 	}
 }
 
@@ -514,8 +517,6 @@ UMaterial::UMaterial(const FObjectInitializer& ObjectInitializer)
 	Opacity.Constant = 1.0f;
 	OpacityMask.Constant = 1.0f;
 	OpacityMaskClipValue = 0.3333f;
-	FresnelBaseReflectFraction_DEPRECATED = 0.04f;
-	bPhysicallyBasedInputs_DEPRECATED = true;
 	bUsedWithStaticLighting = false;
 	D3D11TessellationMode = MTM_NoTessellation;
 	bEnableCrackFreeDisplacement = false;
@@ -1701,11 +1702,6 @@ void UMaterial::Serialize(FArchive& Ar)
 	}
 
 #if WITH_EDITOR
-	if ( Ar.UE4Ver() < VER_UE4_PHYSICAL_MATERIAL_MODEL )
-	{
-		GMaterialsThatNeedPhysicalConversion.Set( this );
-	}
-
 	if (Ar.UE4Ver() < VER_UE4_FLIP_MATERIAL_COORDS)
 	{
 		GMaterialsThatNeedExpressionsFlipped.Set(this);
@@ -1741,6 +1737,20 @@ void UMaterial::Serialize(FArchive& Ar)
 	DoMaterialAttributeReorder(&SubsurfaceColor,		Ar.UE4Ver());
 	DoMaterialAttributeReorder(&AmbientOcclusion,		Ar.UE4Ver());
 	DoMaterialAttributeReorder(&Refraction,				Ar.UE4Ver());
+
+	if (Ar.UE4Ver() < VER_UE4_MATERIAL_MASKED_BLENDMODE_TIDY)
+	{
+		//Set based on old value. Real check may not be possible here in cooked builds?
+		//Cached using acutal check in PostEditChangProperty().
+		if (BlendMode == BLEND_Masked && !bIsMasked_DEPRECATED)
+		{
+			bCanMaskedBeAssumedOpaque = true;
+		}
+		else
+		{
+			bCanMaskedBeAssumedOpaque = false;
+		}
+	}
 }
 
 void UMaterial::PostDuplicate(bool bDuplicateForPIE)
@@ -1754,51 +1764,6 @@ void UMaterial::PostDuplicate(bool bDuplicateForPIE)
 void UMaterial::BackwardsCompatibilityInputConversion()
 {
 #if WITH_EDITOR
-	if ( GMaterialsThatNeedPhysicalConversion.Get( this ) )
-	{
-		GMaterialsThatNeedPhysicalConversion.Clear( this );
-
-		Roughness.Constant = 0.4238f;
-
-		if( ShadingModel != MSM_Unlit )
-		{
-			// Multiply SpecularColor by FresnelBaseReflectFraction
-			if( SpecularColor_DEPRECATED.IsConnected() && FresnelBaseReflectFraction_DEPRECATED != 1.0f )
-			{
-				UMaterialExpressionMultiply* MulExpression = ConstructObject< UMaterialExpressionMultiply >( UMaterialExpressionMultiply::StaticClass(), this );
-				Expressions.Add( MulExpression );
-
-				MulExpression->MaterialExpressionEditorX += 450;
-				MulExpression->MaterialExpressionEditorY += 20;
-
-				MulExpression->Desc = TEXT("FresnelBaseReflectFraction");
-				MulExpression->ConstA = 1.0f;
-				MulExpression->ConstB = FresnelBaseReflectFraction_DEPRECATED;
-
-				MulExpression->A.Connect( SpecularColor_DEPRECATED.OutputIndex, SpecularColor_DEPRECATED.Expression );
-				SpecularColor_DEPRECATED.Connect( 0, MulExpression );
-			}
-
-			// Convert from SpecularPower to Roughness
-			if( SpecularPower_DEPRECATED.IsConnected() )
-			{
-				check( GPowerToRoughnessMaterialFunction );
-
-				UMaterialExpressionMaterialFunctionCall* FunctionExpression = ConstructObject< UMaterialExpressionMaterialFunctionCall >( UMaterialExpressionMaterialFunctionCall::StaticClass(), this );
-				Expressions.Add( FunctionExpression );
-
-				FunctionExpression->MaterialExpressionEditorX += 200;
-				FunctionExpression->MaterialExpressionEditorY += 100;
-
-				FunctionExpression->MaterialFunction = GPowerToRoughnessMaterialFunction;
-				FunctionExpression->UpdateFromFunctionResource();
-
-				FunctionExpression->GetInput(0)->Connect( SpecularPower_DEPRECATED.OutputIndex, SpecularPower_DEPRECATED.Expression );
-				Roughness.Connect( 0, FunctionExpression );
-			}
-		}
-	}
-
 	if( ShadingModel != MSM_Unlit )
 	{
 		bool bIsDS = DiffuseColor_DEPRECATED.IsConnected() || SpecularColor_DEPRECATED.IsConnected();
@@ -1957,18 +1922,6 @@ void UMaterial::PostLoad()
 
 		LightingGuidFixupMap.Add(GetLightingGuid(), this);
 	}
-
-	// Fix exclusive material usage flags moved to an enum.
-	if (bUsedAsLightFunction_DEPRECATED)
-	{
-		MaterialDomain = MD_LightFunction;
-	}
-	else if (bUsedWithDeferredDecal_DEPRECATED)
-	{
-		MaterialDomain = MD_DeferredDecal;
-	}
-	bUsedAsLightFunction_DEPRECATED = false;
-	bUsedWithDeferredDecal_DEPRECATED = false;
 
 	// Fix the shading model to be valid.  Loading a material saved with a shading model that has been removed will yield a MSM_MAX.
 	if(ShadingModel == MSM_MAX)
@@ -2338,8 +2291,8 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 		}
 	}
 
-	// Check if the material is masked and uses a custom opacity (that's not 1.0f).
-	bIsMasked = ((EBlendMode(BlendMode) == BLEND_Masked) && (OpacityMask.Expression || (OpacityMask.UseConstant && OpacityMask.Constant < 0.999f)) || bUseMaterialAttributes);
+	//If we can be sure this material would be the same opaque as it is masked then allow it to be assumed opaque.
+	bCanMaskedBeAssumedOpaque = !OpacityMask.Expression && !(OpacityMask.UseConstant && OpacityMask.Constant < 0.999f) && !bUseMaterialAttributes;
 
 	bool bRequiresCompilation = true;
 	if( PropertyThatChanged ) 
@@ -2937,7 +2890,7 @@ void UMaterial::BackupMaterialShadersToMemory(TMap<FMaterialShaderMap*, TScopedP
 	FMaterial::BackupEditorLoadedMaterialShadersToMemory(ShaderMapToSerializedShaderData);
 }
 
-void UMaterial::RestoreMaterialShadersFromMemory(EShaderPlatform ShaderPlatform, const TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData)
+void UMaterial::RestoreMaterialShadersFromMemory(const TMap<FMaterialShaderMap*, TScopedPointer<TArray<uint8> > >& ShaderMapToSerializedShaderData)
 {
 	// Process FMaterialShaderMap's referenced by UObjects (UMaterial, UMaterialInstance)
 	for (TObjectIterator<UMaterialInterface> It; It; ++It)
@@ -3497,17 +3450,31 @@ static FAutoConsoleCommand CmdListSceneColorMaterials(
 	FConsoleCommandDelegate::CreateStatic(ListSceneColorMaterials)
 	);
 
-float UMaterial::GetOpacityMaskClipValue_Internal() const
+float UMaterial::GetOpacityMaskClipValue(bool bIsInGameThread) const
 {
 	return OpacityMaskClipValue;
 }
 
-EBlendMode UMaterial::GetBlendMode_Internal() const
+EBlendMode UMaterial::GetBlendMode(bool bIsInGameThread) const
 {
-	return BlendMode;
+	if (EBlendMode(BlendMode) == BLEND_Masked)
+	{
+		if (bCanMaskedBeAssumedOpaque)
+		{
+			return BLEND_Opaque;
+		}
+		else
+		{
+			return BLEND_Masked;
+		}
+	}
+	else
+	{
+		return BlendMode;
+	}
 }
 
-EMaterialShadingModel UMaterial::GetShadingModel_Internal() const
+EMaterialShadingModel UMaterial::GetShadingModel(bool bIsInGameThread) const
 {
 	switch (MaterialDomain)
 	{
@@ -3526,14 +3493,14 @@ EMaterialShadingModel UMaterial::GetShadingModel_Internal() const
 	}
 }
 
-bool UMaterial::IsTwoSided_Internal() const
+bool UMaterial::IsTwoSided(bool bIsInGameThread) const
 {
 	return TwoSided != 0;
 }
 
-bool UMaterial::IsMasked_Internal() const
+bool UMaterial::IsMasked(bool bIsInGameThread) const
 {
-	return bIsMasked != 0;
+	return GetBlendMode() == BLEND_Masked;
 }
 
 USubsurfaceProfile* UMaterial::GetSubsurfaceProfile_Internal() const
@@ -3642,7 +3609,7 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 		break;
 	case MP_Opacity:
 		Active = IsTranslucentBlendMode((EBlendMode)BlendMode) && BlendMode != BLEND_Modulate;
-		if (ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_SubsurfaceProfile)
+		if (IsSubsurfaceShadingModel(ShadingModel))
 		{
 			Active = true;
 		}
@@ -3657,13 +3624,14 @@ bool UMaterial::IsPropertyActive(EMaterialProperty InProperty) const
 		Active = ShadingModel != MSM_Unlit;
 		break;
 	case MP_Metallic:
-		Active = ShadingModel != MSM_Unlit && ShadingModel != MSM_Subsurface && ShadingModel != MSM_PreintegratedSkin;
+		// Subsurface models store opacity in place of Metallic in the GBuffer
+		Active = ShadingModel != MSM_Unlit && !IsSubsurfaceShadingModel(ShadingModel);
 		break;
 	case MP_Normal:
 		Active = ShadingModel != MSM_Unlit || Refraction.IsConnected();
 		break;
 	case MP_SubsurfaceColor:
-		Active = ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin;
+		Active = ShadingModel == MSM_Subsurface || ShadingModel == MSM_PreintegratedSkin || ShadingModel == MSM_TwoSidedFoliage;
 		break;
 	case MP_ClearCoat:
 	case MP_ClearCoatRoughness:

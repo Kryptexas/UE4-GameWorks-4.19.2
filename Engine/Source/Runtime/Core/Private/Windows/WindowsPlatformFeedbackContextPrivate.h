@@ -1,11 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	WindowsPlatformFeedbackContextPrivate.h: Unreal Windows user interface interaction.
-=============================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "Misc/OutputDeviceConsole.h"
+
 
 /**
  * Feedback context implementation for windows.

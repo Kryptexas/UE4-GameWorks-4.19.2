@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "GameFramework/FloatingPawnMovement.h"
@@ -27,7 +27,17 @@ void UFloatingPawnMovement::TickComponent(float DeltaTime, enum ELevelTick TickT
 	const AController* Controller = PawnOwner->GetController();
 	if (Controller && Controller->IsLocalController())
 	{
-		ApplyControlInputToVelocity(DeltaTime);
+		if (Controller->IsLocalPlayerController())
+		{
+			ApplyControlInputToVelocity(DeltaTime);
+		}
+		// if it's not player controller, but we do have a controller, then it's AI
+		// and we need to limit the speed
+		else if (IsExceedingMaxSpeed(MaxSpeed))
+		{
+			Velocity = Velocity.GetUnsafeNormal() * MaxSpeed;
+		}
+
 		LimitWorldBounds();
 		bPositionCorrected = false;
 
@@ -86,7 +96,7 @@ bool UFloatingPawnMovement::LimitWorldBounds()
 
 void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 {
-	const FVector ControlAcceleration = GetPendingInputVector().ClampMaxSize(1.f);
+	const FVector ControlAcceleration = GetPendingInputVector().GetClampedToMaxSize(1.f);
 
 	const float AnalogInputModifier = (ControlAcceleration.SizeSquared() > 0.f ? ControlAcceleration.Size() : 0.f);
 	const float MaxPawnSpeed = GetMaxSpeed() * AnalogInputModifier;
@@ -107,12 +117,12 @@ void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 		{
 			const FVector OldVelocity = Velocity;
 			const float VelSize = FMath::Max(Velocity.Size() - FMath::Abs(Deceleration) * DeltaTime, 0.f);
-			Velocity = Velocity.SafeNormal() * VelSize;
+			Velocity = Velocity.GetSafeNormal() * VelSize;
 
 			// Don't allow braking to lower us below max speed if we started above it.
 			if (bExceedingMaxSpeed && Velocity.SizeSquared() < FMath::Square(MaxPawnSpeed))
 			{
-				Velocity = OldVelocity.SafeNormal() * MaxPawnSpeed;
+				Velocity = OldVelocity.GetSafeNormal() * MaxPawnSpeed;
 			}
 		}
 	}
@@ -120,7 +130,7 @@ void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 	// Apply acceleration and clamp velocity magnitude.
 	const float NewMaxSpeed = (IsExceedingMaxSpeed(MaxPawnSpeed)) ? Velocity.Size() : MaxPawnSpeed;
 	Velocity += ControlAcceleration * FMath::Abs(Acceleration) * DeltaTime;
-	Velocity = Velocity.ClampMaxSize(NewMaxSpeed);
+	Velocity = Velocity.GetClampedToMaxSize(NewMaxSpeed);
 
 	ConsumeInputVector();
 }

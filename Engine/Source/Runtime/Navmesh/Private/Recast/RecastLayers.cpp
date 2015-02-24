@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -784,12 +784,18 @@ static bool SplitAndStoreLayerRegions(rcContext* ctx, rcCompactHeightfield& chf,
 								const int nx = ax - borderSize;
 								const int ny = ay - borderSize;
 								if (nx >= 0 && ny >= 0 && nx < lw && ny < lh)
-									con |= (unsigned char)(1<<dir);
+								{
+									con |= (unsigned char)(1 << dir);
+
+									// [UE4: make sure that connections are bidirectional, otherwise contour tracing will stuck in infinite loop]
+									const int nidx = nx + (ny * lw);
+									layer->cons[nidx] |= (unsigned char)(1 << ((dir + 2) % 4));
+								}
 							}
 						}
 					}
 
-					layer->cons[idx] = (portal << 4) | con;
+					layer->cons[idx] |= (portal << 4) | con;
 				}
 			}
 		}

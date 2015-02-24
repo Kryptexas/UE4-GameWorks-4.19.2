@@ -1,7 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Blackboard/BlackboardKeyType_Enum.h"
+
+const UBlackboardKeyType_Enum::FDataType UBlackboardKeyType_Enum::InvalidValue = UBlackboardKeyType_Enum::FDataType(0);
 
 UBlackboardKeyType_Enum::UBlackboardKeyType_Enum(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -21,7 +23,7 @@ bool UBlackboardKeyType_Enum::SetValue(uint8* RawData, uint8 Value)
 
 FString UBlackboardKeyType_Enum::DescribeValue(const uint8* RawData) const
 {
-	return EnumType ? EnumType->GetEnumName(GetValue(RawData)) : FString("UNKNOWN!");
+	return EnumType ? EnumType->GetEnumText(GetValue(RawData)).ToString() : FString("UNKNOWN!");
 }
 
 FString UBlackboardKeyType_Enum::DescribeSelf() const
@@ -60,5 +62,5 @@ bool UBlackboardKeyType_Enum::TestArithmeticOperation(const uint8* MemoryBlock, 
 
 FString UBlackboardKeyType_Enum::DescribeArithmeticParam(int32 IntValue, float FloatValue) const
 {
-	return EnumType ? EnumType->GetEnumName(IntValue) : FString("UNKNOWN!");
+	return EnumType ? EnumType->GetEnumText(IntValue).ToString() : FString("UNKNOWN!");
 }

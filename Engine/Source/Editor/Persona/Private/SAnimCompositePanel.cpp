@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -34,7 +34,7 @@ void SAnimCompositePanel::Construct(const FArguments& InArgs)
 		.FillHeight(1)
 		[
 			SNew( SExpandableArea )
-			.AreaTitle( LOCTEXT( "CompositeLabel", "Composite" ).ToString() )
+			.AreaTitle( LOCTEXT( "CompositeLabel", "Composite" ) )
 			.BodyContent()
 			[
 				SAssignNew( PanelArea, SBorder )

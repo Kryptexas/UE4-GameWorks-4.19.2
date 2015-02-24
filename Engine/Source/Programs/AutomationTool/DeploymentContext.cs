@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -159,6 +159,20 @@ public class DeploymentContext //: ProjectParams
 	///  Directory to archive all of the files in: d:\archivedir\WindowsNoEditor
 	/// </summary>
 	public string ArchiveDirectory;
+
+	/// <summary>
+	/// Filename for the manifest of file changes for iterative deployment.
+	/// </summary>
+	static public readonly string UFSDeployDeltaFileName			= "Manifest_DeltaUFSFiles.txt";	
+	static public readonly string NonUFSDeployDeltaFileName			= "Manifest_DeltaNonUFSFiles.txt";
+
+	/// <summary>
+	/// Filename for the manifest of files currently deployed on a device.
+	/// </summary>
+	static public readonly string UFSDeployedManifestFileName		= "Manifest_UFSFiles.txt";
+	static public readonly string NonUFSDeployedManifestFileName	= "Manifest_NonUFSFiles.txt";
+
+	
 
 
 	/// <summary>
@@ -534,5 +548,15 @@ public class DeploymentContext //: ProjectParams
 		}
 
 		return FilesAdded;
+	}
+
+	public String GetUFSDeploymentDeltaPath()
+	{
+		return Path.Combine(StageDirectory, UFSDeployDeltaFileName);
+	}
+
+	public String GetNonUFSDeploymentDeltaPath()
+	{
+		return Path.Combine(StageDirectory, NonUFSDeployDeltaFileName);
 	}
 }

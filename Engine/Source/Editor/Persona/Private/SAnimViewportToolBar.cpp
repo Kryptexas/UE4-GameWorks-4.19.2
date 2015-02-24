@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -337,6 +337,7 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 			];
 	//@TODO: Need clipping horizontal box: LeftToolbar->AddWrapButton();
 
+	static const FName DefaultForegroundName("DefaultForeground");
 
 	ChildSlot
 	[
@@ -344,7 +345,7 @@ void SAnimViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class 
 		.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 		// Color and opacity is changed based on whether or not the mouse cursor is hovering over the toolbar area
 		.ColorAndOpacity( this, &SViewportToolBar::OnGetColorAndOpacity )
-		.ForegroundColor( FEditorStyle::GetSlateColor("DefaultForeground") )
+		.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 		[
 			SNew( SVerticalBox )
 			+ SVerticalBox::Slot()
@@ -470,6 +471,8 @@ TSharedRef<SWidget> SAnimViewportToolBar::GenerateShowMenu() const
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowRawAnimation );
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowNonRetargetedAnimation );
 				ShowMenuBuilder.AddMenuEntry( Actions.ShowAdditiveBaseBones );
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowSourceRawAnimation);
+				ShowMenuBuilder.AddMenuEntry( Actions.ShowBakedAnimation );
 			}
 			ShowMenuBuilder.EndSection();
 
@@ -780,18 +783,19 @@ FSlateColor SAnimViewportToolBar::GetFontColor() const
 	return FontColor;
 }
 
-FString SAnimViewportToolBar::GetPlaybackMenuLabel() const
+FText SAnimViewportToolBar::GetPlaybackMenuLabel() const
 {
-	FString Label = TEXT("Error");
+	FText Label = LOCTEXT("PlaybackError", "Error");
 	if (Viewport.IsValid())
 	{
 		for(int i = 0; i < EAnimationPlaybackSpeeds::NumPlaybackSpeeds; ++i)
 		{
 			if (Viewport.Pin()->IsPlaybackSpeedSelected(i))
 			{
-				Label = FString::Printf( (i == EAnimationPlaybackSpeeds::Quarter) ? 
-										 TEXT("x%.2f") : TEXT("x%.1f"), 
-										 EAnimationPlaybackSpeeds::Values[i]);
+				Label = FText::FromString(FString::Printf(
+					(i == EAnimationPlaybackSpeeds::Quarter) ? TEXT("x%.2f") : TEXT("x%.1f"), 
+					EAnimationPlaybackSpeeds::Values[i]
+					));
 				break;
 			}
 		}

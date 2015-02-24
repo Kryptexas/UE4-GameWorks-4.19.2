@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "MultiBox.h"
@@ -27,6 +27,12 @@ void FToolBarComboButtonBlock::CreateMenuEntry(FMenuBuilder& MenuBuilder) const
 	}
 
 	MenuBuilder.AddWrapperSubMenu(EntryLabel, FText::GetEmpty(), MenuContentGenerator, Icon.Get());
+}
+
+bool FToolBarComboButtonBlock::HasIcon() const
+{
+	const FSlateIcon& ActualIcon = Icon.Get();
+	return ActualIcon.GetIcon()->GetResourceName() != NAME_None;
 }
 
 TSharedRef< class IMultiBlockBaseWidget > FToolBarComboButtonBlock::ConstructWidget() const

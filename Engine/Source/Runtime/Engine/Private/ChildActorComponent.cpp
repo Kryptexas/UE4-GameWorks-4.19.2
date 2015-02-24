@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "ComponentInstanceDataCache.h"
+#include "Components/ChildActorComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogChildActorComponent, Warning, All);
 
@@ -25,6 +26,41 @@ void UChildActorComponent::OnRegister()
 	}
 }
 
+#if WITH_EDITOR
+void UChildActorComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	static const FName NAME_ChildActorClass = GET_MEMBER_NAME_CHECKED(UChildActorComponent, ChildActorClass);
+
+	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == NAME_ChildActorClass)
+	{
+		DestroyChildActor();
+		CreateChildActor();
+	}
+}
+
+void UChildActorComponent::PostEditUndo()
+{
+	Super::PostEditUndo();
+
+	// This hack exists to fix up known cases where the AttachChildren array is broken in very problematic ways.
+	// The correct fix will be to use a Transaction Annotation at the SceneComponent level, however, it is too risky
+	// to do right now, so this will go away when that is done.
+	for (USceneComponent*& Component : AttachChildren)
+	{
+		if (Component)
+		{
+			if (Component->IsPendingKill() && Component->GetOwner() == ChildActor)
+			{
+				Component = ChildActor->GetRootComponent();
+			}
+		}
+	}
+	
+}
+#endif
+
 void UChildActorComponent::OnComponentCreated()
 {
 	Super::OnComponentCreated();
@@ -39,11 +75,11 @@ void UChildActorComponent::OnComponentDestroyed()
 	DestroyChildActor();
 }
 
-class FChildActorComponentInstanceData : public FComponentInstanceDataBase
+class FChildActorComponentInstanceData : public FSceneComponentInstanceData
 {
 public:
 	FChildActorComponentInstanceData(const UChildActorComponent* Component)
-		: FComponentInstanceDataBase(Component)
+		: FSceneComponentInstanceData(Component)
 		, ChildActorName(Component->ChildActorName)
 	{
 		if (Component->ChildActor)
@@ -70,6 +106,12 @@ public:
 		}
 	}
 
+	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
+	{
+		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
+		CastChecked<UChildActorComponent>(Component)->ApplyComponentInstanceData(this);
+	}
+
 	FName ChildActorName;
 
 	struct FAttachedActorInfo
@@ -88,7 +130,7 @@ FName UChildActorComponent::GetComponentInstanceDataType() const
 	return ChildActorComponentInstanceDataName;
 }
 
-FComponentInstanceDataBase* UChildActorComponent::GetComponentInstanceData() const
+FActorComponentInstanceData* UChildActorComponent::GetComponentInstanceData() const
 {
 	FChildActorComponentInstanceData* InstanceData = CachedInstanceData;
 
@@ -105,10 +147,10 @@ FComponentInstanceDataBase* UChildActorComponent::GetComponentInstanceData() con
 	return InstanceData;
 }
 
-void UChildActorComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
+void UChildActorComponent::ApplyComponentInstanceData(FChildActorComponentInstanceData* ChildActorInstanceData)
 {
-	check(ComponentInstanceData);
-	FChildActorComponentInstanceData* ChildActorInstanceData  = static_cast<FChildActorComponentInstanceData*>(ComponentInstanceData);
+	check(ChildActorInstanceData);
+
 	ChildActorName = ChildActorInstanceData->ChildActorName;
 	if (ChildActor)
 	{
@@ -183,7 +225,10 @@ void UChildActorComponent::CreateChildActor()
 				Params.bAllowDuringConstructionScript = true;
 				Params.OverrideLevel = GetOwner()->GetLevel();
 				Params.Name = ChildActorName;
-				Params.ObjectFlags &= ~RF_Transactional;
+				if (!HasAllFlags(RF_Transactional))
+				{
+					Params.ObjectFlags &= ~RF_Transactional;
+				}
 
 				// Spawn actor of desired class
 				FVector Location = GetComponentLocation();
@@ -198,6 +243,8 @@ void UChildActorComponent::CreateChildActor()
 					// Remember which actor spawned it (for selection in editor etc)
 					ChildActor->ParentComponentActor = GetOwner();
 
+					ChildActor->AttachRootComponentTo(this);
+
 					// Parts that we deferred from SpawnActor
 					ChildActor->FinishSpawning(ComponentToWorld);
 				}
@@ -209,12 +256,19 @@ void UChildActorComponent::CreateChildActor()
 void UChildActorComponent::DestroyChildActor()
 {
 	// If we own an Actor, kill it now
-	if(ChildActor != nullptr)
+	if(ChildActor != nullptr && !GExitPurge)
 	{
 		// if still alive, destroy, otherwise just clear the pointer
 		if(!ChildActor->IsPendingKill())
 		{
+#if WITH_EDITOR
+			if (CachedInstanceData)
+			{
+				delete CachedInstanceData;
+			}
+#else
 			check(!CachedInstanceData);
+#endif
 			CachedInstanceData = new FChildActorComponentInstanceData(this);
 
 			UWorld* World = ChildActor->GetWorld();

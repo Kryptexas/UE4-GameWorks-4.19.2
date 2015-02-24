@@ -1,9 +1,6 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#ifndef __PListNodeBoolean_h__
-#define __PlistNodeBoolean_h__
 
 #include "PListNode.h"
 
@@ -69,7 +66,7 @@ private:
 	/** Delegate: When key string changes */
 	void OnKeyStringChanged(const FText& NewString);
 	/** Delegate: When the checkbox changes */
-	void OnValueChanged(ESlateCheckBoxState::Type NewValue);
+	void OnValueChanged(ECheckBoxState NewValue);
 	/** Delegate: Changes the color of the key string text box based on validity */
 	FSlateColor GetKeyBackgroundColor() const;
 	/** Delegate: Changes the color of the key string text box based on validity */
@@ -97,5 +94,3 @@ private:
 	/** Flag for valid key string */
 	bool bKeyValid;
 };
-
-#endif

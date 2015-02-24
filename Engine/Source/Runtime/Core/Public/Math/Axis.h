@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 
 // Generic axis enum (mirrored for property use in Object.h)
 namespace EAxis
@@ -13,6 +14,7 @@ namespace EAxis
 		Z,
 	};
 }
+
 
 // Extended axis enum for more specialized usage
 namespace EAxisList

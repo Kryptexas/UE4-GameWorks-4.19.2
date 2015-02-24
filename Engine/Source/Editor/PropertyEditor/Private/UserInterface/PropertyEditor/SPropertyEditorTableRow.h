@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "IPropertyTreeRow.h"
@@ -42,8 +42,8 @@ private:
 	const FSlateBrush* OnGetFavoriteImage() const;
 	FReply OnToggleFavoriteClicked();
 
-	void OnEditConditionCheckChanged( ESlateCheckBoxState::Type CheckState );
-	ESlateCheckBoxState::Type OnGetEditConditionCheckState() const;
+	void OnEditConditionCheckChanged( ECheckBoxState CheckState );
+	ECheckBoxState OnGetEditConditionCheckState() const;
 
 	FReply OnNameDoubleClicked();
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "ExceptionHandling.h"
@@ -1782,12 +1782,12 @@ void FWindowsPlatformMisc::LoadStartupModules()
 #endif	//WITH_EDITOR
 }
 
-bool FWindowsPlatformMisc::OsExecute(const TCHAR* CommandType, const TCHAR* Command)
+bool FWindowsPlatformMisc::OsExecute(const TCHAR* CommandType, const TCHAR* Command, const TCHAR* CommandLine)
 {
 	HINSTANCE hApp = ShellExecute(NULL,
 		CommandType,
 		Command,
-		NULL,
+		CommandLine,
 		NULL,
 		SW_SHOWNORMAL);
 	bool bSucceeded = hApp > (HINSTANCE)32;
@@ -2308,16 +2308,24 @@ bool FWindowsPlatformMisc::IsRunningOnBattery()
 	GetSystemPowerStatus(&status);
 	switch(status.BatteryFlag)
 	{
-	case 4://	"Critical—the battery capacity is at less than five percent"
-	case 2://	"Low—the battery capacity is at less than 33 percent"
-	case 1://	"High—the battery capacity is at more than 66 percent"
+	case 4://	"Critical-the battery capacity is at less than five percent"
+	case 2://	"Low-the battery capacity is at less than 33 percent"
+	case 1://	"High-the battery capacity is at more than 66 percent"
 	case 8://	"Charging"
 		return true;
 	case 128://	"No system battery" - desktop, NB: UPS don't count as batteries under Windows
-	case 255://	"Unknown status—unable to read the battery flag information"
+	case 255://	"Unknown status-unable to read the battery flag information"
 	default:
 		return false;
 	}
 
 	return false;
+}
+
+FString FWindowsPlatformMisc::GetOperatingSystemId()
+{
+	FString Result;
+	// more info on this key can be found here: http://stackoverflow.com/questions/99880/generating-a-unique-machine-id
+	QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("Software\\Microsoft\\Cryptography"), TEXT("MachineGuid"), Result);
+	return Result;
 }

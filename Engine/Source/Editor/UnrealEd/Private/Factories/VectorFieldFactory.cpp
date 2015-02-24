@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VectorFieldFactory.cpp: Factory for importing a 3D grid of vectors.
@@ -9,6 +9,7 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "ComponentReregisterContext.h"
 #include "VectorField/VectorFieldStatic.h"
+#include "Components/VectorFieldComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogVectorFieldFactory, Log, All);
 
@@ -337,6 +338,11 @@ EReimportResult::Type UReimportVectorFieldStaticFactory::Reimport( UObject* Obj 
 	}
 
 	return EReimportResult::Succeeded;
+}
+
+int32 UReimportVectorFieldStaticFactory::GetPriority() const
+{
+	return ImportPriority;
 }
 
 #undef LOCTEXT_NAMESPACE

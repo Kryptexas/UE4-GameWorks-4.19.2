@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -60,6 +60,8 @@ public class SlateViewerTarget : TargetRules
 
 		// We need CoreUObject compiled in as the source code access module requires it
 		UEBuildConfiguration.bCompileAgainstCoreUObject = true;
+
+		UEBuildConfiguration.bCompileWithStatsWithoutEngine = true;
 
 		// SlateViewer.exe has no exports, so no need to verify that a .lib and .exp file was emitted by
 		// the linker.

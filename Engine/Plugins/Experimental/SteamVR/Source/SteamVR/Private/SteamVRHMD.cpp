@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SteamVRPrivatePCH.h"
 #include "SteamVRHMD.h"
@@ -513,7 +513,7 @@ void FSteamVRHMD::PreRenderView_RenderThread(FSceneView& View)
 //	UpdatePlayerViewPoint(CurrentOrientation, CurrentPosition, View);
 }
 
-void FSteamVRHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily, uint32 InFrameNumber)
+void FSteamVRHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
 }

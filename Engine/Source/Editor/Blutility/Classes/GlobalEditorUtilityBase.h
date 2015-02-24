@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Base class of all global Blutility editor utilities.
@@ -26,6 +26,14 @@ class BLUTILITY_API UGlobalEditorUtilityBase : public UObject
 
 	UFUNCTION(BlueprintCallable, Category="Development|Editor")
 	TArray<AActor*> GetSelectionSet();
+
+	/**
+	 * Attempts to find the actor specified by PathToActor in the current editor world
+	 * @param	PathToActor	The path to the actor (e.g. PersistentLevel.PlayerStart)
+	 * @return	A reference to the actor, or none if it wasn't found
+	 */
+	UFUNCTION(BlueprintPure, Category = "Development|Editor")
+	AActor* GetActorReference(FString PathToActor);
 
 	////////////////////////////
 
@@ -65,6 +73,10 @@ class BLUTILITY_API UGlobalEditorUtilityBase : public UObject
 	// Remove all actors from the selection set
 	UFUNCTION(BlueprintCallable, Category="Development|Editor")
 	void ClearActorSelectionSet();
+
+	// Selects nothing in the editor (another way to clear the selection)
+	UFUNCTION(BlueprintCallable, Category = "Development|Editor")
+	void SelectNothing();
 
 	// Set the selection state for the selected actor
 	UFUNCTION(BlueprintCallable, Category="Development|Editor")

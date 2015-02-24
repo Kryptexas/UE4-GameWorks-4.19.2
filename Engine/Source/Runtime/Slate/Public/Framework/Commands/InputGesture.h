@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "GenericApplication.h"
@@ -12,24 +12,24 @@ struct SLATE_API FInputGesture
 	/** Key that must be pressed */
 	FKey Key;
 
-	/** True if control must be pressed */
-	uint32 bCtrl:1;
-	
-	/** True if alt must be pressed */
-	uint32 bAlt:1;
-	
-	/** True if shift must be pressed */
-	uint32 bShift:1;
+	EModifierKey::Type ModifierKeys;
 
-	/** True if command must be pressed */
-	uint32 bCmd:1;
+#if PLATFORM_MAC
+	bool NeedsControl() const { return (ModifierKeys & EModifierKey::Command) != 0; }
+	bool NeedsCommand() const { return (ModifierKeys & EModifierKey::Control) != 0; }
+#else
+	bool NeedsControl() const { return (ModifierKeys & EModifierKey::Control) != 0; }
+	bool NeedsCommand() const { return (ModifierKeys & EModifierKey::Command) != 0; }
+#endif
+	bool NeedsAlt() const { return (ModifierKeys & EModifierKey::Alt) != 0; }
+	bool NeedsShift() const { return (ModifierKeys & EModifierKey::Shift) != 0; }
 
 public:
 
 	/** Default constructor. */
-	FInputGesture( )
+	FInputGesture()
+		: ModifierKeys(EModifierKey::None)
 	{
-		bCtrl = bAlt = bShift = bCmd = 0;
 	}
 
 	/**
@@ -38,13 +38,10 @@ public:
 	 * @param InModifierKeys
 	 * @param InKey
 	 */
-	FInputGesture( EModifierKey::Type InModifierKeys, const FKey InKey )
+	FInputGesture( const EModifierKey::Type InModifierKeys, const FKey InKey )
 		: Key(InKey)
+		, ModifierKeys(InModifierKeys)
 	{
-		bCtrl = (InModifierKeys & EModifierKey::Control) != 0;
-		bAlt = (InModifierKeys & EModifierKey::Alt) != 0;
-		bShift = (InModifierKeys & EModifierKey::Shift) != 0;
-		bCmd = (InModifierKeys & EModifierKey::Command) != 0;
 	}
 
 	/**
@@ -54,8 +51,8 @@ public:
 	 */
 	FInputGesture( const FKey InKey )
 		: Key(InKey)
+		, ModifierKeys(EModifierKey::None)
 	{
-		bCtrl = bAlt = bShift = bCmd = 0;
 	}
 
 	/**
@@ -64,13 +61,10 @@ public:
 	 * @param InKey
 	 * @param InModifierKeys
 	 */
-	FInputGesture( const FKey InKey, EModifierKey::Type InModifierKeys )
+	FInputGesture( const FKey InKey, const EModifierKey::Type InModifierKeys )
 		: Key(InKey)
+		, ModifierKeys(InModifierKeys)
 	{
-		bCtrl = (InModifierKeys & EModifierKey::Control) != 0;
-		bAlt = (InModifierKeys & EModifierKey::Alt) != 0;
-		bShift = (InModifierKeys & EModifierKey::Shift) != 0;
-		bCmd = (InModifierKeys & EModifierKey::Command) != 0;
 	}
 
 	/**
@@ -80,10 +74,7 @@ public:
 	 */
 	FInputGesture( const FInputGesture& Other )
 		: Key(Other.Key)
-		, bCtrl(Other.bCtrl)
-		, bAlt(Other.bAlt)
-		, bShift(Other.bShift)
-		, bCmd(Other.bCmd)
+		, ModifierKeys(Other.ModifierKeys)
 	{ }
 
 public:
@@ -96,7 +87,7 @@ public:
 	 */
 	bool operator!=( const FInputGesture& Other ) const
 	{
-		return (Key != Other.Key) || (bCtrl != Other.bCtrl) || (bAlt != Other.bAlt) || (bShift != Other.bShift) || (bCmd != Other.bCmd);
+		return !(*this == Other);
 	}
 
 	/**
@@ -107,7 +98,7 @@ public:
 	 */
 	bool operator==( const FInputGesture& Other ) const
 	{
-		return (Key == Other.Key) && (bCtrl == Other.bCtrl) && (bAlt == Other.bAlt) && (bShift == Other.bShift) && (bCmd == Other.bCmd);
+		return (Key == Other.Key) && (ModifierKeys == Other.ModifierKeys);
 	}
 
 public:
@@ -133,7 +124,7 @@ public:
 	 */
 	bool HasAnyModifierKeys( ) const
 	{
-		return bCtrl || bAlt || bShift || bCmd;
+		return (ModifierKeys != EModifierKey::None);
 	}
 
 	/**
@@ -151,13 +142,9 @@ public:
 	 * Sets this gesture to a new key and modifier state based on the provided template
 	 * Should not be called directly.  Only used by the key binding editor to set user defined keys
 	 */
-	void Set( FInputGesture InTemplate )
+	void Set( const FInputGesture& InTemplate )
 	{
-		Key = InTemplate.Key;
-		bCtrl = InTemplate.bCtrl;
-		bAlt = InTemplate.bAlt;
-		bShift = InTemplate.bShift;
-		bCmd = InTemplate.bCmd;
+		*this = InTemplate;
 	}
 
 public:
@@ -170,6 +157,6 @@ public:
 	 */
 	friend uint32 GetTypeHash( const FInputGesture& Gesture )
 	{
-		return GetTypeHash(Gesture.Key) ^ ((Gesture.bCtrl << 3) | (Gesture.bShift << 2) | (Gesture.bAlt << 1) | Gesture.bCmd);
+		return GetTypeHash(Gesture.Key) ^ Gesture.ModifierKeys;
 	}
 };

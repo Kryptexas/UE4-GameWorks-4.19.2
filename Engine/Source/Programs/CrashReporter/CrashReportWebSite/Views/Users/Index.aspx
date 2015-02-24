@@ -1,4 +1,4 @@
-﻿<%-- // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved. --%>
+﻿<%-- // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved. --%>
 
 <%@ Page Title="" Language="C#" MasterPageFile="~/Views/Shared/Site.Master" Inherits="System.Web.Mvc.ViewPage<UsersViewModel>" %>
 <%@ Import Namespace="Tools.CrashReporter.CrashReportWebSite.Models" %>
@@ -34,10 +34,10 @@
 	</div>
 
 	<div id="UserNames">
-		<form action="<%="/Users/Index/" + Model.UserGroup %>" method="POST" id="UserNamesForm" style="text-align: center">
-			<%foreach( string UserName in Model.Users )
-			{%>
-			<span>
+		<%foreach( string UserName in Model.Users )
+		{%>
+		<div>
+			<form action="<%="/Users/Index/" + Model.UserGroup %>" method="POST" id="UserNamesForm" style="text-align: center">
 				<%=UserName%>
 
 				<span id="set-user-group"></span>
@@ -49,9 +49,9 @@
 					<%} %>
 				</select>
 				<br />
-			</span>
-			<% } %>
-		</form>
+			</form>
+		</div>
+		<% } %>
 	</div>
 </asp:Content>
 

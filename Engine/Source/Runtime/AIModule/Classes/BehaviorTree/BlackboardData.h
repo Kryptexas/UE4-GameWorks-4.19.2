@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "Engine/DataAsset.h"
+#include "BehaviorTree/BehaviorTreeTypes.h"
 #include "BlackboardData.generated.h"
 
 class UBlackboardData;
@@ -23,6 +24,10 @@ struct FBlackboardEntry
 	/** key type and additional properties */
 	UPROPERTY(EditAnywhere, Instanced, Category=Blackboard)
 	UBlackboardKeyType* KeyType;
+
+	/** if set to true then this field will be synchronized across all instances of this blackboard */
+	UPROPERTY(EditAnywhere, Category = Blackboard)
+	uint32 bInstanceSynced : 1;
 
 	bool operator==(const FBlackboardEntry& Other) const;
 };
@@ -47,6 +52,17 @@ class AIMODULE_API UBlackboardData : public UDataAsset
 	UPROPERTY(EditAnywhere, Category=Blackboard)
 	TArray<FBlackboardEntry> Keys;
 
+private:
+	UPROPERTY()
+	uint32 bHasSynchronizedKeys : 1;
+
+public:
+
+	FORCEINLINE bool HasSynchronizedKeys() const { return bHasSynchronizedKeys; }
+
+	/** @return true if the key is instance synced */
+	bool IsKeyInstanceSynced(FBlackboard::FKey KeyID) const;
+	
 	/** @return key ID from name */
 	FBlackboard::FKey GetKeyID(const FName& KeyName) const;
 
@@ -66,6 +82,7 @@ class AIMODULE_API UBlackboardData : public UDataAsset
 
 	virtual void PostLoad() override;
 #if WITH_EDITOR
+	virtual void PreEditChange(class FEditPropertyChain& PropertyAboutToChange) override;
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
@@ -111,6 +128,8 @@ class AIMODULE_API UBlackboardData : public UDataAsset
 
 	/** forces update of FirstKeyID, which depends on parent chain */
 	void UpdateKeyIDs();
+
+	void UpdateIfHasSynchronizedKeys();
 
 protected:
 

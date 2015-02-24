@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ConvexVolume.cpp: Convex volume implementation.
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Engine/Polys.h"
 
 /**
  * Builds the permuted planes for SIMD fast clipping

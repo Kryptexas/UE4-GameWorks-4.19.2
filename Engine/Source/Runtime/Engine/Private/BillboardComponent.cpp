@@ -1,8 +1,12 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/Light.h"
 #include "LevelUtils.h"
+#if WITH_EDITOR
+#include "ShowFlags.h"
+#include "ConvexVolume.h"
+#endif
 
 namespace BillboardConstants
 {
@@ -143,7 +147,14 @@ public:
 					// Set the selection/hover color from the current engine setting.
 					// The color is multiplied by 10 because this value is normally expected to be blended
 					// additively, this is not how the sprites work and therefore need an extra boost
-					// to appear the same color as previously.
+					// to appear the same color as previously
+#if WITH_EDITOR
+					if( View->bHasSelectedComponents && !IsIndividuallySelected() )
+					{
+						ColorToUse = FLinearColor::White + (GEngine->GetSubduedSelectionOutlineColor() * GEngine->SelectionHighlightIntensityBillboards * 10);
+					}
+					else 
+#endif
 					if (IsSelected())
 					{
 						ColorToUse = FLinearColor::White + (GEngine->GetSelectedMaterialColor() * GEngine->SelectionHighlightIntensityBillboards * 10);
@@ -156,7 +167,7 @@ public:
 					// Sprites of locked actors draw in red.
 					if (bIsActorLocked)
 					{
-						ColorToUse = FColor(255,0,0);
+						ColorToUse = FColor::Red;
 					}
 					FLinearColor LevelColorToUse = IsSelected() ? ColorToUse : (FLinearColor)LevelColor;
 					FLinearColor PropertyColorToUse = PropertyColor;
@@ -178,78 +189,6 @@ public:
 		}
 	}
 
-	/** 
-	 * Draw the scene proxy as a dynamic element
-	 *
-	 * @param	PDI - draw interface to render to
-	 * @param	View - current view
-	 */
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) override
-	{
-		QUICK_SCOPE_CYCLE_COUNTER( STAT_SpriteSceneProxy_DrawDynamicElements );
-
-		FTexture* TextureResource = (Texture != NULL) ? Texture->Resource : NULL;
-		if (TextureResource)
-		{
-			// Calculate the view-dependent scaling factor.
-			float ViewedSizeX = SizeX;
-			float ViewedSizeY = SizeY;
-			if (bIsScreenSizeScaled && (View->ViewMatrices.ProjMatrix.M[3][3] != 1.0f))
-			{
-				const float ZoomFactor	= FMath::Min<float>(View->ViewMatrices.ProjMatrix.M[0][0], View->ViewMatrices.ProjMatrix.M[1][1]);
-				if(ZoomFactor != 0.0f)
-				{
-					const float Radius = View->WorldToScreen(Origin).W * (ScreenSize / ZoomFactor);
-					if (Radius < 1.0f)
-					{
-						ViewedSizeX *= Radius;
-						ViewedSizeY *= Radius;
-					}					
-				}
-			}
-
-#if WITH_EDITORONLY_DATA
-			ViewedSizeX *= EditorScale;
-			ViewedSizeY *= EditorScale;
-#endif
-
-			FLinearColor ColorToUse = Color;
-
-			// Set the selection/hover color from the current engine setting.
-			// The color is multiplied by 10 because this value is normally expected to be blended
-			// additively, this is not how the sprites work and therefore need an extra boost
-			// to appear the same color as previously.
-			if (IsSelected())
-			{
-				ColorToUse = FLinearColor::White + (GEngine->GetSelectedMaterialColor() * GEngine->SelectionHighlightIntensityBillboards * 10);
-			}
-			else if (IsHovered())
-			{
-				ColorToUse = FLinearColor::White + (GEngine->GetHoveredMaterialColor() * GEngine->HoverHighlightIntensity * 10);
-			}
-
-			// Sprites of locked actors draw in red.
-			if (bIsActorLocked)
-			{
-				ColorToUse = FColor(255,0,0);
-			}
-			FLinearColor LevelColorToUse = IsSelected() ? ColorToUse : LevelColor;
-			FLinearColor PropertyColorToUse = PropertyColor;
-
-			const FLinearColor& SpriteColor = View->Family->EngineShowFlags.LevelColoration ? LevelColorToUse :
-											( (View->Family->EngineShowFlags.PropertyColoration) ? PropertyColorToUse : ColorToUse );
-
-			PDI->DrawSprite(
-				Origin,
-				ViewedSizeX,
-				ViewedSizeY,
-				TextureResource,
-				SpriteColor,
-				GetDepthPriorityGroup(View),
-				U,UL,V,VL
-				);
-		}
-	}
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
 	{
 		bool bVisible = View->Family->EngineShowFlags.BillboardSprites;
@@ -314,7 +253,6 @@ UBillboardComponent::UBillboardComponent(const FObjectInitializer& ObjectInitial
 	};
 	static FConstructorStatics ConstructorStatics;
 
-	BodyInstance.bEnableCollision_DEPRECATED = false;
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	Sprite = ConstructorStatics.SpriteTexture.Object;
 	bAbsoluteScale = true;
@@ -353,6 +291,54 @@ FBoxSphereBounds UBillboardComponent::CalcBounds(const FTransform& LocalToWorld)
 	const float NewScale = LocalToWorld.GetScale3D().GetMax() * (Sprite ? (float)FMath::Max(Sprite->GetSizeX(),Sprite->GetSizeY()) : 1.0f);
 	return FBoxSphereBounds(LocalToWorld.GetLocation(),FVector(NewScale,NewScale,NewScale),FMath::Sqrt(3.0f * FMath::Square(NewScale)));
 }
+
+#if WITH_EDITOR
+bool UBillboardComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	AActor* Actor = GetOwner();
+
+	if (!bConsiderOnlyBSP && ShowFlags.BillboardSprites && Sprite != nullptr && Actor != nullptr)
+	{
+		const float Scale = ComponentToWorld.GetMaximumAxisScale();
+
+		// Construct a box representing the sprite
+		const FBox SpriteBox(
+			Actor->GetActorLocation() - Scale * FMath::Max(Sprite->GetSizeX(), Sprite->GetSizeY()) * FVector(0.5f, 0.5f, 0.5f),
+			Actor->GetActorLocation() + Scale * FMath::Max(Sprite->GetSizeX(), Sprite->GetSizeY()) * FVector(0.5f, 0.5f, 0.5f));
+
+		// If the selection box doesn't have to encompass the entire component and it intersects with the box constructed for the sprite, then it is valid.
+		// Additionally, if the selection box does have to encompass the entire component and both the min and max vectors of the sprite box are inside the selection box,
+		// then it is valid.
+		if ((!bMustEncompassEntireComponent && InSelBBox.Intersect(SpriteBox))
+			|| (bMustEncompassEntireComponent && InSelBBox.IsInside(SpriteBox)))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool UBillboardComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	AActor* Actor = GetOwner();
+
+	if (!bConsiderOnlyBSP && ShowFlags.BillboardSprites && Sprite != nullptr && Actor != nullptr)
+	{
+		const float Scale = ComponentToWorld.GetMaximumAxisScale();
+		const float MaxExtent = FMath::Max(Sprite->GetSizeX(), Sprite->GetSizeY());
+		const FVector Extent = Scale * MaxExtent * FVector(0.5f, 0.5f, 0.0f);
+
+		bool bIsFullyContained;
+		if (InFrustum.IntersectBox(Actor->GetActorLocation(), Extent, bIsFullyContained))
+		{
+			return !bMustEncompassEntireComponent || bIsFullyContained;
+		}
+	}
+
+	return false;
+}
+#endif
 
 void UBillboardComponent::SetSprite(UTexture2D* NewSprite)
 {

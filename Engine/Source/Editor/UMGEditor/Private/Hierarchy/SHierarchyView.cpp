@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 #include "SHierarchyView.h"
@@ -36,6 +36,7 @@ void SHierarchyView::Construct(const FArguments& InArgs, TSharedPtr<FWidgetBluep
 
 	UWidgetBlueprint* Blueprint = GetBlueprint();
 	Blueprint->OnChanged().AddRaw(this, &SHierarchyView::OnBlueprintChanged);
+	Blueprint->OnCompiled().AddRaw(this, &SHierarchyView::OnBlueprintChanged);
 
 	FilterHandler = MakeShareable(new TreeFilterHandler< TSharedPtr<FHierarchyModel> >());
 	FilterHandler->SetFilter(SearchBoxWidgetFilter.Get());
@@ -81,6 +82,7 @@ SHierarchyView::~SHierarchyView()
 	if ( Blueprint )
 	{
 		Blueprint->OnChanged().RemoveAll(this);
+		Blueprint->OnCompiled().RemoveAll(this);
 	}
 
 	if ( BlueprintEditor.IsValid() )
@@ -101,8 +103,6 @@ void SHierarchyView::Tick(const FGeometry& AllottedGeometry, const double InCurr
 		{
 			RebuildTreeView();
 		}
-
-		SaveExpandedItems();
 
 		RefreshTree();
 
@@ -237,6 +237,11 @@ void SHierarchyView::WidgetHierarchy_OnSelectionChanged(TSharedPtr<FHierarchyMod
 	}
 }
 
+void SHierarchyView::WidgetHierarchy_OnExpansionChanged(TSharedPtr<FHierarchyModel> Item, bool bExpanded)
+{
+	Item->SetExpanded(bExpanded);
+}
+
 FReply SHierarchyView::HandleDeleteSelected()
 {
 	TSet<FWidgetReference> SelectedWidgets = BlueprintEditor.Pin()->GetSelectedWidgets();
@@ -262,6 +267,7 @@ void SHierarchyView::RebuildTreeView()
 		.OnGetChildren(FilterHandler.ToSharedRef(), &TreeFilterHandler< TSharedPtr<FHierarchyModel> >::OnGetFilteredChildren)
 		.OnGenerateRow(this, &SHierarchyView::WidgetHierarchy_OnGenerateRow)
 		.OnSelectionChanged(this, &SHierarchyView::WidgetHierarchy_OnSelectionChanged)
+		.OnExpansionChanged(this, &SHierarchyView::WidgetHierarchy_OnExpansionChanged)
 		.OnContextMenuOpening(this, &SHierarchyView::WidgetHierarchy_OnContextMenuOpening)
 		.TreeItemsSource(&TreeRootWidgets);
 
@@ -280,23 +286,6 @@ void SHierarchyView::OnObjectsReplaced(const TMap<UObject*, UObject*>& Replaceme
 	{
 		bRefreshRequested = true;
 		bRebuildTreeRequested = true;
-
-		// We save the expanded items immediately because they're potentially about to become invalid.
-		SaveExpandedItems();
-	}
-}
-
-void SHierarchyView::SaveExpandedItems()
-{
-	if ( ExpandedItems.Num() == 0 )
-	{
-		TSet < TSharedPtr<FHierarchyModel> > ExpandedModels;
-		WidgetTreeView->GetExpandedItems(ExpandedModels);
-
-		for ( TSharedPtr<FHierarchyModel>& Model : ExpandedModels )
-		{
-			ExpandedItems.Add(Model->GetUniqueName());
-		}
 	}
 }
 
@@ -306,13 +295,11 @@ void SHierarchyView::RestoreExpandedItems()
 	{
 		RecursiveExpand(Model);
 	}
-
-	ExpandedItems.Empty();
 }
 
 void SHierarchyView::RecursiveExpand(TSharedPtr<FHierarchyModel>& Model)
 {
-	if ( ExpandedItems.Contains(Model->GetUniqueName()) )
+	if ( Model->IsExpanded() )
 	{
 		WidgetTreeView->SetItemExpansion(Model, true);
 

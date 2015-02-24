@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
 #include "SlateRenderer.h"
@@ -48,13 +48,18 @@ const FAtlasedTextureSlot* FSlateTextureAtlas::AddTexture( uint32 TextureWidth, 
 	return NewSlot;
 }
 
+
 void FSlateTextureAtlas::MarkTextureDirty()
 {
-	//check( IsThreadSafeForSlateRendering() );
-	check( (GSlateLoadingThreadId != 0) || FPlatformTLS::GetCurrentThreadId() == AtlasOwnerThreadId );
+	check( 
+		(GSlateLoadingThreadId != 0) || 
+		(AtlasOwnerThread == ESlateTextureAtlasOwnerThread::Game && IsInGameThread()) || 
+		(AtlasOwnerThread == ESlateTextureAtlasOwnerThread::Render && IsInRenderingThread()) 
+		);
+
 	bNeedsUpdate = true;
 }
-	
+
 
 const FAtlasedTextureSlot* FSlateTextureAtlas::FindSlotForTexture( uint32 InWidth, uint32 InHeight )
 {
@@ -81,11 +86,12 @@ void FSlateTextureAtlas::InitAtlasData()
 {
 	check(RootNode == nullptr && AtlasData.Num() == 0);
 
-	RootNode = new FAtlasedTextureSlot(0, 0, AtlasWidth, AtlasHeight, PaddingStyle == NoPadding ? 0 : 1);
-	AtlasData.Reserve(AtlasWidth * AtlasHeight * Stride);
-	AtlasData.AddZeroed(AtlasWidth * AtlasHeight * Stride);
+	RootNode = new FAtlasedTextureSlot(0, 0, AtlasWidth, AtlasHeight, GetPaddingAmount());
+	AtlasData.Reserve(AtlasWidth * AtlasHeight * BytesPerPixel);
+	AtlasData.AddZeroed(AtlasWidth * AtlasHeight * BytesPerPixel);
 
-	AtlasOwnerThreadId = FPlatformTLS::GetCurrentThreadId();
+	check(IsInGameThread() || IsInRenderingThread());
+	AtlasOwnerThread = (IsInGameThread()) ? ESlateTextureAtlasOwnerThread::Game : ESlateTextureAtlasOwnerThread::Render;
 
 	INC_MEMORY_STAT_BY(STAT_SlateTextureAtlasMemory, AtlasData.GetAllocatedSize());
 }
@@ -100,27 +106,27 @@ void FSlateTextureAtlas::CopyRow( const FCopyRowData& CopyRowData )
 	const uint32 SrcRow = CopyRowData.SrcRow;
 	const uint32 DestRow = CopyRowData.DestRow;
 	// this can only be one or zero
-	const uint32 Padding = PaddingStyle != ESlateTextureAtlasPaddingStyle::NoPadding ? 1 : 0;
+	const uint32 Padding = GetPaddingAmount();
 
-	const uint8* SourceDataAddr = &Data[(SrcRow * SourceWidth) * Stride]; 
-	uint8* DestDataAddr = &Start[(DestRow * DestWidth + Padding) * Stride]; 
-	FMemory::Memcpy(DestDataAddr, SourceDataAddr, SourceWidth * Stride); 
+	const uint8* SourceDataAddr = &Data[(SrcRow * SourceWidth) * BytesPerPixel];
+	uint8* DestDataAddr = &Start[(DestRow * DestWidth + Padding) * BytesPerPixel];
+	FMemory::Memcpy(DestDataAddr, SourceDataAddr, SourceWidth * BytesPerPixel);
 
 	if (Padding > 0)
 	{ 
-		uint8* DestPaddingPixelLeft = &Start[(DestRow * DestWidth) * Stride];
-		uint8* DestPaddingPixelRight = DestPaddingPixelLeft + ((CopyRowData.RowWidth - 1) * Stride);
+		uint8* DestPaddingPixelLeft = &Start[(DestRow * DestWidth) * BytesPerPixel];
+		uint8* DestPaddingPixelRight = DestPaddingPixelLeft + ((CopyRowData.RowWidth - 1) * BytesPerPixel);
 		if (PaddingStyle == ESlateTextureAtlasPaddingStyle::DilateBorder)
 		{
 			const uint8* FirstPixel = SourceDataAddr; 
-			const uint8* LastPixel = SourceDataAddr + ((SourceWidth - 1) * Stride); 
-			FMemory::Memcpy(DestPaddingPixelLeft, FirstPixel, Stride);
-			FMemory::Memcpy(DestPaddingPixelRight, LastPixel, Stride);
+			const uint8* LastPixel = SourceDataAddr + ((SourceWidth - 1) * BytesPerPixel);
+			FMemory::Memcpy(DestPaddingPixelLeft, FirstPixel, BytesPerPixel);
+			FMemory::Memcpy(DestPaddingPixelRight, LastPixel, BytesPerPixel);
 		}
 		else
 		{
-			FMemory::Memzero(DestPaddingPixelLeft, Stride);
-			FMemory::Memzero(DestPaddingPixelRight, Stride);
+			FMemory::Memzero(DestPaddingPixelLeft, BytesPerPixel);
+			FMemory::Memzero(DestPaddingPixelRight, BytesPerPixel);
 		}
 
 	} 
@@ -132,22 +138,27 @@ void FSlateTextureAtlas::ZeroRow( const FCopyRowData& CopyRowData )
 	const uint32 DestWidth = CopyRowData.DestTextureWidth;
 	const uint32 DestRow = CopyRowData.DestRow;
 
-	uint8* DestDataAddr = &CopyRowData.DestData[DestRow * DestWidth * Stride]; 
-	FMemory::Memzero(DestDataAddr, CopyRowData.RowWidth * Stride); 
+	uint8* DestDataAddr = &CopyRowData.DestData[DestRow * DestWidth * BytesPerPixel];
+	FMemory::Memzero(DestDataAddr, CopyRowData.RowWidth * BytesPerPixel);
 }
 
 
 void FSlateTextureAtlas::CopyDataIntoSlot( const FAtlasedTextureSlot* SlotToCopyTo, const TArray<uint8>& Data )
 {
 	// Copy pixel data to the texture
-	uint8* Start = &AtlasData[SlotToCopyTo->Y*AtlasWidth*Stride + SlotToCopyTo->X*Stride];
+	uint8* Start = &AtlasData[SlotToCopyTo->Y*AtlasWidth*BytesPerPixel + SlotToCopyTo->X*BytesPerPixel];
 	
 	// Account for same padding on each sides
-	const uint32 Padding = PaddingStyle != ESlateTextureAtlasPaddingStyle::NoPadding ? 1 : 0;
+	const uint32 Padding = GetPaddingAmount();
 	const uint32 AllPadding = Padding*2;
+
+	// Make sure the actual slot is not zero-area (otherwise padding could corrupt other images in the atlas)
+	check(SlotToCopyTo->Width > AllPadding);
+	check(SlotToCopyTo->Height > AllPadding);
+
 	// The width of the source texture without padding (actual width)
-	const uint32 SourceWidth = SlotToCopyTo->Width-AllPadding; 
-	const uint32 SourceHeight = SlotToCopyTo->Height-AllPadding;
+	const uint32 SourceWidth = SlotToCopyTo->Width - AllPadding; 
+	const uint32 SourceHeight = SlotToCopyTo->Height - AllPadding;
 
 	FCopyRowData CopyRowData;
 	CopyRowData.DestData = Start;
@@ -217,7 +228,7 @@ const FAtlasedTextureSlot* FSlateTextureAtlas::FindSlotForTexture( FAtlasedTextu
 			}
 		}
 
-		// Recursively search left for the smallest empty slot that can fit the texture
+		// Recursively search right for the smallest empty slot that can fit the texture
 		if (Start.Right)
 		{
 			const FAtlasedTextureSlot* NewSlot = FindSlotForTexture(*Start.Right, InWidth, InHeight);
@@ -232,22 +243,21 @@ const FAtlasedTextureSlot* FSlateTextureAtlas::FindSlotForTexture( FAtlasedTextu
 	}
 
 	// Account for padding on both sides
-	const uint32 Padding = PaddingStyle != ESlateTextureAtlasPaddingStyle::NoPadding ? 1 : 0;
-	uint32 TotalPadding = Padding * 2;
+	const uint32 Padding = GetPaddingAmount();
+	const uint32 TotalPadding = Padding * 2;
+	const uint32 PaddedWidth = InWidth + TotalPadding;
+	const uint32 PaddedHeight = InHeight + TotalPadding;
 
 	// This slot can't fit the character
-	if (InWidth+TotalPadding > (Start.Width) || InHeight+TotalPadding > (Start.Height))
+	if ((PaddedWidth > Start.Width) || (PaddedHeight > Start.Height))
 	{
 		// not enough space
 		return nullptr;
 	}
 	
-	uint32 PaddedWidth = InWidth+TotalPadding;
-	uint32 PaddedHeight = InHeight+TotalPadding;
 	// The width and height of the new child node
-	uint32 RemainingWidth =  FMath::Max<int32>(0,Start.Width - PaddedWidth);
-	uint32 RemainingHeight = FMath::Max<int32>(0,Start.Height - PaddedHeight);
-
+	const uint32 RemainingWidth =  FMath::Max<int32>(0, Start.Width - PaddedWidth);
+	const uint32 RemainingHeight = FMath::Max<int32>(0, Start.Height - PaddedHeight);
 
 	// Split the remaining area around this slot into two children.
 	if (RemainingHeight <= RemainingWidth)
@@ -264,8 +274,8 @@ const FAtlasedTextureSlot* FSlateTextureAtlas::FindSlotForTexture( FAtlasedTextu
 	}
 
 	// Shrink the slot to the remaining area.
-	Start.Width = InWidth+TotalPadding;
-	Start.Height = InHeight+TotalPadding;
+	Start.Width = PaddedWidth;
+	Start.Height = PaddedHeight;
 
 	return &Start;
 }

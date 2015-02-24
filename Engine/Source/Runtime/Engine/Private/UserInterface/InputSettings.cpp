@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InputSettings.cpp: Project configurable input settings
@@ -9,6 +9,7 @@
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
+#include "GameFramework/InputSettings.h"
 
 UInputSettings::UInputSettings(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -39,6 +40,34 @@ void UInputSettings::PostInitProperties()
 			AxisConfig.RemoveAtSwap(Index);
 		}
 	}
+
+#if PLATFORM_WINDOWS
+	// If the console key is set to the default we'll see about adding the keyboard default
+	// If they've mapped any additional keys, we'll just assume they've set it up in a way they desire
+	if (ConsoleKeys.Num() == 1 && ConsoleKeys[0] == EKeys::Tilde)
+	{
+		FKey DefaultConsoleKey = EKeys::Tilde;
+		switch(PRIMARYLANGID(LOWORD(GetKeyboardLayout(0))))
+		{
+		case LANG_FRENCH:
+			DefaultConsoleKey = FInputKeyManager::Get().GetKeyFromCodes(VK_OEM_7, 0);
+			break;
+
+		case LANG_GERMAN:
+			DefaultConsoleKey = EKeys::Caret;
+			break;
+
+		case LANG_SPANISH:
+			DefaultConsoleKey = FInputKeyManager::Get().GetKeyFromCodes(VK_OEM_5, 0);
+			break;
+		}
+
+		if (DefaultConsoleKey != EKeys::Tilde && DefaultConsoleKey.IsValid())
+		{
+			ConsoleKeys.Add(DefaultConsoleKey);
+		}
+	}
+#endif
 }
 
 #if WITH_EDITOR

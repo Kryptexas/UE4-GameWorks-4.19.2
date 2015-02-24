@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -10,7 +10,7 @@ public class SlateViewer : ModuleRules
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
-                "AppFramework",
+				"AppFramework",
 				"Core",
 				"Projects",
 				"Slate",
@@ -18,12 +18,14 @@ public class SlateViewer : ModuleRules
 				"SlateReflector",
 				"StandaloneRenderer",
 				"SourceCodeAccess",
+				"WebBrowser",
 			}
 		);
 
 		if (Target.Platform == UnrealTargetPlatform.Mac)
 		{
 			PrivateDependencyModuleNames.Add("XCodeSourceCodeAccess");
+			AddThirdPartyPrivateStaticDependencies(Target, "CEF3");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.Win64)
 		{

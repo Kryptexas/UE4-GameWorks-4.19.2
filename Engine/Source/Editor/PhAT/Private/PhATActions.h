@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -68,6 +68,7 @@ public:
 	TSharedPtr<FUICommandInfo> ConvertToSkeletal;
 	TSharedPtr<FUICommandInfo> DeleteConstraint;
 	TSharedPtr<FUICommandInfo> PlayAnimation;
+	TSharedPtr<FUICommandInfo> RecordAnimation;
 	TSharedPtr<FUICommandInfo> ShowSkeleton;
 	TSharedPtr<FUICommandInfo> MakeBodyKinematic;
 	TSharedPtr<FUICommandInfo> MakeBodySimulated;

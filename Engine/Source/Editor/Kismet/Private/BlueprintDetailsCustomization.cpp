@@ -1,7 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
+
 #include "BlueprintUtilities.h"
 #include "ScopedTransaction.h"
 #include "GraphEditor.h"
@@ -20,11 +20,13 @@
 #include "SGraphActionMenu.h"
 #include "SPinTypeSelector.h"
 #include "Kismet2NameValidators.h"
+#include "SWidgetSwitcher.h"
 
 #include "ComponentAssetBroker.h"
 #include "PropertyCustomizationHelpers.h"
 
 #include "Editor/UnrealEd/Public/Kismet2/BlueprintEditorUtils.h"
+#include "Editor/UnrealEd/Public/Kismet2/ComponentEditorUtils.h"
 
 #include "BlueprintDetailsCustomization.h"
 #include "ObjectEditorUtils.h"
@@ -34,8 +36,136 @@
 
 #include "IDocumentation.h"
 #include "STextComboBox.h"
+#include "Engine/UserDefinedStruct.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SCS_Node.h"
+#include "Components/TimelineComponent.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintDetailsCustomization"
+
+void FBlueprintDetails::AddEventsCategory(IDetailLayoutBuilder& DetailBuilder, UProperty* VariableProperty)
+{
+	UBlueprint* Blueprint = GetBlueprintObj();
+	check(Blueprint);
+
+	if ( UObjectProperty* ComponentProperty = Cast<UObjectProperty>(VariableProperty) )
+	{
+		UClass* PropertyClass = ComponentProperty->PropertyClass;
+
+		// Check for Ed Graph vars that can generate events
+		if ( PropertyClass && Blueprint->AllowsDynamicBinding() )
+		{
+			if ( FBlueprintEditorUtils::CanClassGenerateEvents(PropertyClass) )
+			{
+				for ( TFieldIterator<UMulticastDelegateProperty> PropertyIt(PropertyClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt )
+				{
+					UProperty* Property = *PropertyIt;
+
+					FName PropertyName = ComponentProperty->GetFName();
+
+					// Check for multicast delegates that we can safely assign
+					if ( !Property->HasAnyPropertyFlags(CPF_Parm) && Property->HasAllPropertyFlags(CPF_BlueprintAssignable) )
+					{
+						FName EventName = Property->GetFName();
+						FText EventText = Property->GetDisplayNameText();
+
+						IDetailCategoryBuilder& EventCategory = DetailBuilder.EditCategory(TEXT("Events"), LOCTEXT("Events", "Events"), ECategoryPriority::Uncommon);
+
+						EventCategory.AddCustomRow(EventText)
+						.NameContent()
+						[
+							SNew(SHorizontalBox)
+							.ToolTipText(Property->GetToolTipText())
+
+							+ SHorizontalBox::Slot()
+							.AutoWidth()
+							.VAlign(VAlign_Center)
+							.Padding(0, 0, 5, 0)
+							[
+								SNew(SImage)
+								.Image(FEditorStyle::GetBrush("GraphEditor.Event_16x"))
+							]
+
+							+ SHorizontalBox::Slot()
+							.VAlign(VAlign_Center)
+							[
+								SNew(STextBlock)
+								.Font(IDetailLayoutBuilder::GetDetailFont())
+								.Text(EventText)
+							]
+						]
+						.ValueContent()
+						.MinDesiredWidth(150)
+						.MaxDesiredWidth(200)
+						[
+							SNew(SButton)
+							.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
+							.HAlign(HAlign_Center)
+							.OnClicked(this, &FBlueprintVarActionDetails::HandleAddOrViewEventForVariable, EventName, PropertyName, TWeakObjectPtr<UClass>(PropertyClass))
+							.ForegroundColor(FSlateColor::UseForeground())
+							[
+								SNew(SWidgetSwitcher)
+								.WidgetIndex(this, &FBlueprintVarActionDetails::HandleAddOrViewIndexForButton, EventName, PropertyName)
+
+								+ SWidgetSwitcher::Slot()
+								[
+									SNew(STextBlock)
+									.Font(FEditorStyle::GetFontStyle(TEXT("BoldFont")))
+									.Text(LOCTEXT("ViewEvent", "View"))
+								]
+
+								+ SWidgetSwitcher::Slot()
+								[
+									SNew(SImage)
+									.Image(FEditorStyle::GetBrush("Plus"))
+								]
+							]
+						];
+					}
+				}
+			}
+		}
+	}
+}
+
+FReply FBlueprintDetails::HandleAddOrViewEventForVariable(const FName EventName, FName PropertyName, TWeakObjectPtr<UClass> PropertyClass)
+{
+	UBlueprint* Blueprint = GetBlueprintObj();
+
+	// Find the corresponding variable property in the Blueprint
+	UObjectProperty* VariableProperty = FindField<UObjectProperty>(Blueprint->SkeletonGeneratedClass, PropertyName);
+
+	if ( VariableProperty )
+	{
+		if ( !FKismetEditorUtilities::FindBoundEventForComponent(Blueprint, EventName, VariableProperty->GetFName()) )
+		{
+			FKismetEditorUtilities::CreateNewBoundEventForClass(PropertyClass.Get(), EventName, Blueprint, VariableProperty);
+		}
+		else
+		{
+			const UK2Node_ComponentBoundEvent* ExistingNode = FKismetEditorUtilities::FindBoundEventForComponent(Blueprint, EventName, VariableProperty->GetFName());
+			if ( ExistingNode )
+			{
+				FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(ExistingNode);
+			}
+		}
+	}
+
+	return FReply::Handled();
+}
+
+int32 FBlueprintDetails::HandleAddOrViewIndexForButton(const FName EventName, FName PropertyName) const
+{
+	UBlueprint* Blueprint = GetBlueprintObj();
+
+	if ( FKismetEditorUtilities::FindBoundEventForComponent(Blueprint, EventName, PropertyName) )
+	{
+		return 0; // View
+	}
+
+	return 1; // Add
+}
 
 // UProperty Detail Customization
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
@@ -51,14 +181,14 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	FName VarName =	GetVariableName();
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	
-	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Variable", LOCTEXT("VariableDetailsCategory", "Variable").ToString());
+	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Variable", LOCTEXT("VariableDetailsCategory", "Variable"));
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 	
 	const FString DocLink = TEXT("Shared/Editors/BlueprintEditor/VariableDetails");
 
 	TSharedPtr<SToolTip> VarNameTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarNameTooltip", "The name of the variable."), NULL, DocLink, TEXT("VariableName"));
 
-	Category.AddCustomRow( TEXT("Variable Name") )
+	Category.AddCustomRow( LOCTEXT("BlueprintVarActionDetails_VariableNameLabel", "Variable Name") )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -80,7 +210,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> VarTypeTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarTypeTooltip", "The type of the variable."), NULL, DocLink, TEXT("VariableType"));
 
-	Category.AddCustomRow( TEXT("Variable Type") )
+	Category.AddCustomRow( LOCTEXT("VariableTypeLabel", "Variable Type") )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -102,7 +232,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> EditableTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarEditableTooltip", "Whether this variable is publically editable on instances of this Blueprint."), NULL, DocLink, TEXT("Editable"));
 
-	Category.AddCustomRow( TEXT("Editable") )
+	Category.AddCustomRow( LOCTEXT("IsVariableEditableLabel", "Editable") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ShowEditableCheckboxVisibilty))
 	.NameContent()
 	[
@@ -121,7 +251,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> ToolTipTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VarToolTipTooltip", "Extra information about this variable, shown when cursor is over it."), NULL, DocLink, TEXT("Tooltip"));
 
-	Category.AddCustomRow( TEXT("Tooltip") )
+	Category.AddCustomRow( LOCTEXT("IsVariableToolTipLabel", "Tooltip") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::IsTooltipEditVisible))
 	.NameContent()
 	[
@@ -141,7 +271,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> Widget3DTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableWidget3D_Tooltip", "When true, allows the user to tweak the vector variable by using a 3D transform widget in the viewport (usable when varible is public/enabled)."), NULL, DocLink, TEXT("Widget3D"));
 
-	Category.AddCustomRow( LOCTEXT("VariableWidget3D_Prompt", "Show 3D Widget").ToString() )
+	Category.AddCustomRow( LOCTEXT("VariableWidget3D_Prompt", "Show 3D Widget") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::Show3DWidgetVisibility))
 	.NameContent()
 	[
@@ -162,7 +292,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> ExposeOnSpawnTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableExposeToSpawn_Tooltip", "Should this variable be exposed as a pin when spawning this Blueprint?"), NULL, DocLink, TEXT("ExposeOnSpawn"));
 
-	Category.AddCustomRow( TEXT("Expose on Spawn") )
+	Category.AddCustomRow( LOCTEXT("VariableExposeToSpawnLabel", "Expose on Spawn") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ExposeOnSpawnVisibility))
 	.NameContent()
 	[
@@ -181,7 +311,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> PrivateTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariablePrivate_Tooltip", "Should this variable be private (derived blueprints cannot modify it)?"), NULL, DocLink, TEXT("Private"));
 
-	Category.AddCustomRow(TEXT(""))
+	Category.AddCustomRow(LOCTEXT("VariablePrivate", "Private"))
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ExposePrivateVisibility))
 	.NameContent()
 	[
@@ -200,7 +330,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> ExposeToMatineeTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableExposeToMatinee_Tooltip", "Should this variable be exposed for Matinee to modify?"), NULL, DocLink, TEXT("ExposeToMatinee"));
 
-	Category.AddCustomRow( TEXT("Expose to Matinee") )
+	Category.AddCustomRow( LOCTEXT("VariableExposeToMatinee", "Expose to Matinee") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ExposeToMatineeVisibility))
 	.NameContent()
 	[
@@ -217,13 +347,32 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.ToolTip(ExposeToMatineeTooltip)
 	];
 
+	TSharedPtr<SToolTip> ExposeToConfigTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableExposeToConfig_Tooltip", "Allow this variable be set from the config?"), NULL, DocLink, TEXT("ExposeToConfig"));
+
+	Category.AddCustomRow( LOCTEXT("VariableExposeToConfig", "Config Variable") )
+	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ExposeConfigVisibility))
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.ToolTip( ExposeToConfigTooltip )
+		.Text( LOCTEXT("ExposeToConfigLabel", "Config Variable") )
+		.Font( DetailFontInfo )
+	]
+	.ValueContent()
+	[
+		SNew(SCheckBox)
+		.ToolTip( ExposeToConfigTooltip )
+		.IsChecked( this, &FBlueprintVarActionDetails::OnGetConfigVariableCheckboxState )
+		.OnCheckStateChanged( this, &FBlueprintVarActionDetails::OnSetConfigVariableState )
+	];
+
 	PopulateCategories(MyBlueprint.Pin().Get(), CategorySource);
 	TSharedPtr<SComboButton> NewComboButton;
 	TSharedPtr<SListView<TSharedPtr<FString>>> NewListView;
 
 	TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one."), NULL, DocLink, TEXT("Category"));
 
-	Category.AddCustomRow( TEXT("Category") )
+	Category.AddCustomRow( LOCTEXT("CategoryLabel", "Category") )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -274,7 +423,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	FName UIMin = TEXT("UIMin");
 	FName UIMax = TEXT("UIMax");
-	Category.AddCustomRow( TEXT("Slider Range") )
+	Category.AddCustomRow( LOCTEXT("SliderRangeLabel", "Slider Range") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::RangeVisibility))
 	.NameContent()
 	[
@@ -316,7 +465,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	FName ClampMin = TEXT("ClampMin");
 	FName ClampMax = TEXT("ClampMax");
-	Category.AddCustomRow(TEXT("Value Range"))
+	Category.AddCustomRow(LOCTEXT("ValueRangeLabel", "Value Range"))
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::RangeVisibility))
 	.NameContent()
 	[
@@ -360,7 +509,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 	TSharedPtr<SToolTip> ReplicationTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableReplicate_Tooltip", "Should this Variable be replicated over the network?"), NULL, DocLink, TEXT("Replication"));
 
-	Category.AddCustomRow( TEXT("Replication") )
+	Category.AddCustomRow( LOCTEXT("VariableReplicationLabel", "Replication") )
 	.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::ReplicationVisibility))
 	.NameContent()
 	[
@@ -378,72 +527,30 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		.ToolTip(ReplicationTooltip)
 	];
 
-		// Handle event generation
-	if(FBlueprintEditorUtils::DoesSupportEventGraphs(GetBlueprintObj()))
+	UBlueprint* Blueprint = GetBlueprintObj();
+
+	// Handle event generation
+	if ( FBlueprintEditorUtils::DoesSupportEventGraphs(Blueprint) )
 	{
-		if (UObjectProperty* ComponentProperty = Cast<UObjectProperty>(VariableProperty))
-		{
-			// Check for Ed Graph vars that can generate events
-			if (ComponentProperty->PropertyClass && ComponentProperty->PropertyClass->IsChildOf(UActorComponent::StaticClass()))
-			{
-				// Add Events Section property class that has valid events
-				if( FBlueprintEditor::CanClassGenerateEvents( ComponentProperty->PropertyClass ))
-				{
-					IDetailCategoryBuilder& EventCategory = DetailLayout.EditCategory("Component", LOCTEXT("ComponentDetailsCategory", "Events").ToString());
-
-					FText NodeName = FText::FromName( VarName );
-					const FText AddEventLabel = FText::Format( LOCTEXT( "ScriptingEvents_AddEvent", "Add Event For {0}" ), NodeName );
-					const FText AddEventToolTip = FText::Format( LOCTEXT( "ScriptingEvents_AddOrView", "Adds or views events for {0} in the Component Blueprint" ), NodeName );
-
-					TSharedPtr<SToolTip> EventsTooltip = IDocumentation::Get()->CreateToolTip(AddEventToolTip, NULL, DocLink, TEXT("Events"));
-
-					EventCategory.AddCustomRow( LOCTEXT("AddEventHeader", "Add Event").ToString())
-						.NameContent()
-						[
-							SNew(SHorizontalBox)
-							+SHorizontalBox::Slot()
-							.Padding( FMargin( 2.0f, 0, 0, 0 ) )
-							.VAlign( VAlign_Center )
-							.AutoWidth()
-							[
-								SNew( STextBlock )
-								.Text( LOCTEXT("ScriptingEvents_Label", "Add Event"))
-								.ToolTip(EventsTooltip)
-								.Font( IDetailLayoutBuilder::GetDetailFont() )
-							]
-						]
-					.ValueContent()
-						[
-							SNew(SHorizontalBox)
-							+SHorizontalBox::Slot()
-							.FillWidth( 1 )
-							.VAlign( VAlign_Center )
-							[
-								SNew( SComboButton )
-								.HAlign(HAlign_Fill)
-								.VAlign(VAlign_Center)
-								.OnGetMenuContent( this, &FBlueprintVarActionDetails::BuildEventsMenuForVariable )
-								.ButtonContent()
-								[
-									SNew( STextBlock )
-									.Text( AddEventLabel ) 
-									.ToolTip( EventsTooltip )
-									.Font( IDetailLayoutBuilder::GetDetailFont() )
-								]
-							]
-						];
-				}
-			}
-		}
+		AddEventsCategory(DetailLayout, VariableProperty);
 	}
 
 	// Add in default value editing for properties that can be edited, local properties cannot be edited
-	UBlueprint* Blueprint = GetBlueprintObj();
-	if ((Blueprint != NULL) && (Blueprint->GeneratedClass != NULL) && !IsALocalVariable(VariableProperty))
+	if ((Blueprint != NULL) && (Blueprint->GeneratedClass != NULL))
 	{
 		if (VariableProperty != NULL)
 		{
-			const UProperty* OriginalProperty = FindField<UProperty>(Blueprint->GeneratedClass, VariableProperty->GetFName());
+			const UProperty* OriginalProperty = nullptr;
+			
+			if(!IsALocalVariable(VariableProperty))
+			{
+				OriginalProperty = FindField<UProperty>(Blueprint->GeneratedClass, VariableProperty->GetFName());
+			}
+			else
+			{
+				OriginalProperty = VariableProperty;
+			}
+
 			if (OriginalProperty == NULL)
 			{
 				// Prevent editing the default value of a skeleton property
@@ -464,7 +571,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		UClass* VariableClass = (VariableProperty != NULL) ? VariableProperty->GetTypedOuter<UClass>() : NULL;
 
 		FText ErrorMessage;
-		IDetailCategoryBuilder& DefaultValueCategory = DetailLayout.EditCategory(TEXT("DefaultValueCategory"), LOCTEXT("DefaultValueCategoryHeading", "Default Value").ToString());
+		IDetailCategoryBuilder& DefaultValueCategory = DetailLayout.EditCategory(TEXT("DefaultValueCategory"), LOCTEXT("DefaultValueCategoryHeading", "Default Value"));
 
 		if (VariableProperty == NULL)
 		{
@@ -503,7 +610,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		// Show the error message if something went wrong
 		if (!ErrorMessage.IsEmpty())
 		{
-			DefaultValueCategory.AddCustomRow( TEXT("Error") )
+			DefaultValueCategory.AddCustomRow( ErrorMessage )
 			[
 				SNew(STextBlock)
 				.ToolTipText(ErrorMessage)
@@ -513,15 +620,61 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		}
 		else 
 		{
-			// Things are in order, show the property and allow it to be edited
-			TArray<UObject*> ObjectList;
-			ObjectList.Add(Blueprint->GeneratedClass->GetDefaultObject());
-			IDetailPropertyRow* Row = DefaultValueCategory.AddExternalProperty(ObjectList, VariableProperty->GetFName());
+			if(IsALocalVariable(VariableProperty))
+			{
+				UFunction* StructScope = Cast<UFunction>(VariableProperty->GetOuter());
+				check(StructScope);
+
+				TSharedPtr<FStructOnScope> StructData = MakeShareable(new FStructOnScope((UFunction*)StructScope));
+				UEdGraph* Graph = FBlueprintEditorUtils::FindScopeGraph(GetBlueprintObj(), (UFunction*)StructScope);
+
+				// Find the function entry nodes in the current graph
+				TArray<UK2Node_FunctionEntry*> EntryNodes;
+				Graph->GetNodesOfClass(EntryNodes);
+
+				// There should always be an entry node in the function graph
+				check(EntryNodes.Num() > 0);
+
+				UK2Node_FunctionEntry* FuncEntry = EntryNodes[0];
+				for(auto& LocalVar : FuncEntry->LocalVariables)
+				{
+					if(LocalVar.VarName == VariableProperty->GetFName()) //Property->GetFName())
+					{
+						// Only set the default value if there is one
+						if(!LocalVar.DefaultValue.IsEmpty())
+						{
+							FBlueprintEditorUtils::PropertyValueFromString(VariableProperty, LocalVar.DefaultValue, StructData->GetStructMemory());
+						}
+						break;
+					}
+				}
+
+				TWeakPtr<FBlueprintEditor> BlueprintEditor = MyBlueprint.Pin()->GetBlueprintEditor();
+				if(BlueprintEditor.IsValid())
+				{
+					TSharedPtr< IDetailsView > DetailsView  = BlueprintEditor.Pin()->GetInspector()->GetPropertyView();
+
+					if(DetailsView.IsValid())
+					{
+						TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode = FuncEntry;
+						DetailsView->OnFinishedChangingProperties().AddSP(this, &FBlueprintVarActionDetails::OnFinishedChangingProperties, StructData, EntryNode);
+					}
+				}
+
+				IDetailPropertyRow* Row = DefaultValueCategory.AddExternalProperty(StructData, VariableProperty->GetFName());
+			}
+			else
+			{
+				// Things are in order, show the property and allow it to be edited
+				TArray<UObject*> ObjectList;
+				ObjectList.Add(Blueprint->GeneratedClass->GetDefaultObject());
+				IDetailPropertyRow* Row = DefaultValueCategory.AddExternalProperty(ObjectList, VariableProperty->GetFName());
+			}
 		}
 
 		TSharedPtr<SToolTip> TransientTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableTransient_Tooltip", "Should this variable not serialize and be zero-filled at load?"), NULL, DocLink, TEXT("Transient"));
 
-		Category.AddCustomRow(TEXT(""), true)
+		Category.AddCustomRow(LOCTEXT("VariableTransient", "Transient"), true)
 			.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::GetTransientVisibility))
 			.NameContent()
 		[
@@ -540,7 +693,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 		TSharedPtr<SToolTip> SaveGameTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("VariableSaveGame_Tooltip", "Should this variable be serialized for saved games?"), NULL, DocLink, TEXT("SaveGame"));
 
-		Category.AddCustomRow(TEXT(""), true)
+		Category.AddCustomRow(LOCTEXT("VariableSaveGame", "SaveGame"), true)
 		.Visibility(TAttribute<EVisibility>(this, &FBlueprintVarActionDetails::GetSaveGameVisibility))
 		.NameContent()
 		[
@@ -559,7 +712,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 
 		TSharedPtr<SToolTip> PropertyFlagsTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("DefinedPropertyFlags_Tooltip", "List of defined flags for this property"), NULL, DocLink, TEXT("PropertyFlags"));
 
-		Category.AddCustomRow(TEXT(""), true)
+		Category.AddCustomRow(LOCTEXT("DefinedPropertyFlags", "Defined Property Flags"), true)
 		.WholeRowWidget
 		[
 			SNew(STextBlock)
@@ -568,7 +721,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 			.Font( IDetailLayoutBuilder::GetDetailFontBold() )
 		];
 
-		Category.AddCustomRow(TEXT(""), true)
+		Category.AddCustomRow(FText::GetEmpty(), true)
 		.WholeRowWidget
 		[
 			SAssignNew(PropertyFlagWidget, SListView< TSharedPtr< FString > >)
@@ -582,6 +735,7 @@ void FBlueprintVarActionDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		RefreshPropertyFlags();
 	}
 }
+
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void FBlueprintVarActionDetails::RefreshPropertyFlags()
@@ -614,7 +768,7 @@ TSharedRef<ITableRow> FBlueprintVarActionDetails::OnGenerateWidgetForPropertyLis
 				.AutoWidth()
 			[
 				SNew(SCheckBox)
-					.IsChecked(true ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+					.IsChecked(true ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 					.IsEnabled(false)
 			]
 		];
@@ -671,15 +825,9 @@ bool FBlueprintVarActionDetails::GetVariableNameChangeEnabled() const
 		}
 		else if(IsAComponentVariable(VariableProperty) && Blueprint->SimpleConstructionScript != NULL)
 		{
-			TArray<USCS_Node*> Nodes = Blueprint->SimpleConstructionScript->GetAllNodes();
-			for (TArray<USCS_Node*>::TConstIterator NodeIt(Nodes); NodeIt; ++NodeIt)
+			if (USCS_Node* Node = Blueprint->SimpleConstructionScript->FindSCSNode(GetVariableName()))
 			{
-				USCS_Node* Node = *NodeIt;
-				if (Node->VariableName == GetVariableName())
-				{
-					bIsReadOnly = !Node->IsValidVariableNameString(Node->VariableName.ToString());
-					break;
-				}
+				bIsReadOnly = !FComponentEditorUtils::IsValidVariableNameString(Node->ComponentTemplate, Node->VariableName.ToString());
 			}
 		}
 		else if(IsALocalVariable(VariableProperty))
@@ -710,7 +858,7 @@ void FBlueprintVarActionDetails::OnVarNameChanged(const FText& InNewText)
 		for (TArray<USCS_Node*>::TConstIterator NodeIt(Nodes); NodeIt; ++NodeIt)
 		{
 			USCS_Node* Node = *NodeIt;
-			if (Node->VariableName == GetVariableName() && !Node->IsValidVariableNameString(InNewText.ToString()))
+			if (Node->VariableName == GetVariableName() && !FComponentEditorUtils::IsValidVariableNameString(Node->ComponentTemplate, InNewText.ToString()))
 			{
 				VarNameEditableTextBox->SetError(LOCTEXT("ComponentVariableRenameFailed_NotValid", "This name is reserved for engine use."));
 				return;
@@ -790,53 +938,20 @@ void FBlueprintVarActionDetails::OnVarNameCommitted(const FText& InNewText, ETex
 
 bool FBlueprintVarActionDetails::GetVariableTypeChangeEnabled() const
 {
-	FEdGraphSchemaAction_K2Var* VarAction = MyBlueprintSelectionAsVar();
-	if (VarAction)
+	UProperty* VariableProperty = SelectionAsProperty();
+	if(VariableProperty && !IsALocalVariable(VariableProperty))
 	{
-		TArray<UK2Node_Variable*> VariableNodes;
-		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Variable>(GetBlueprintObj(), VariableNodes);
-
-		bool bNodesPendingDeletion = false;
-		for( TArray<UK2Node_Variable*>::TConstIterator NodeIt(VariableNodes); NodeIt; ++NodeIt )
+		if(GetBlueprintObj()->SkeletonGeneratedClass->GetAuthoritativeClass() != VariableProperty->GetOwnerClass()->GetAuthoritativeClass())
 		{
-			UK2Node_Variable* CurrentNode = *NodeIt;
-			if (VarAction->GetVariableName() == CurrentNode->GetVarName())
-			{
-				bNodesPendingDeletion = true;
-				break;
-			}
+			return false;
 		}
-		
-		bool bIsAVarInThisBlueprint = FBlueprintEditorUtils::FindNewVariableIndex(GetBlueprintObj(), VarAction->GetVariableName()) != INDEX_NONE;
-		return !bNodesPendingDeletion && bIsAVarInThisBlueprint;
-	}
-
-	FEdGraphSchemaAction_K2LocalVar* LocalVarAction = MyBlueprintSelectionAsLocalVar();
-	if (LocalVarAction)
-	{
-		TArray<UK2Node_Variable*> VariableNodes;
-		FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_Variable>(GetBlueprintObj(), VariableNodes);
-
-		bool bNodesPendingDeletion = false;
-		for( TArray<UK2Node_Variable*>::TConstIterator NodeIt(VariableNodes); NodeIt; ++NodeIt )
+		// If the variable belongs to this class and cannot be found in the member variable list, it is not editable (it may be a component)
+		if (FBlueprintEditorUtils::FindNewVariableIndex(GetBlueprintObj(), GetVariableName()) == INDEX_NONE)
 		{
-			UK2Node_Variable* CurrentNode = *NodeIt;
-			if (LocalVarAction->GetVariableName() == CurrentNode->GetVarName())
-			{
-				bNodesPendingDeletion = true;
-				break;
-			}
+			return false;
 		}
-
-		bool bIsAVarInThisBlueprint = FBlueprintEditorUtils::FindLocalVariable(GetBlueprintObj(), LocalVarAction->GetVariableScope(), LocalVarAction->GetVariableName()) != NULL;
-		return !bNodesPendingDeletion && bIsAVarInThisBlueprint;
 	}
-	FEdGraphSchemaAction_K2LocalVar* VarLocalAction = MyBlueprintSelectionAsLocalVar();
-	if(VarLocalAction)
-	{
-		return true;
-	}
-	return false;
+	return true;
 }
 
 bool FBlueprintVarActionDetails::GetVariableCategoryChangeEnabled() const
@@ -880,20 +995,17 @@ void FBlueprintVarActionDetails::OnVarTypeChanged(const FEdGraphPinType& NewPinT
 
 		if (VarName != NAME_None)
 		{
-			FBlueprintEditorUtils::ChangeMemberVariableType(GetBlueprintObj(), VarName, NewPinType);
 			// Set the MyBP tab's last pin type used as this, for adding lots of variables of the same type
 			MyBlueprint.Pin()->GetLastPinTypeUsed() = NewPinType;
 
-			FEdGraphSchemaAction_K2Var* VarAction = MyBlueprintSelectionAsVar();
-			if(VarAction)
+			UProperty* VariableProperty = SelectionAsProperty();
+			if(IsALocalVariable(VariableProperty))
+			{
+				FBlueprintEditorUtils::ChangeLocalVariableType(GetBlueprintObj(), GetLocalVariableScope(VariableProperty), VarName, NewPinType);
+			}
+			else
 			{
 				FBlueprintEditorUtils::ChangeMemberVariableType(GetBlueprintObj(), VarName, NewPinType);
-			}
-
-			FEdGraphSchemaAction_K2LocalVar* VarLocalAction = MyBlueprintSelectionAsLocalVar();
-			if(VarLocalAction)
-			{
-				FBlueprintEditorUtils::ChangeLocalVariableType(GetBlueprintObj(), VarLocalAction->GetVariableScope(), VarName, NewPinType);
 			}
 		}
 	}
@@ -1156,7 +1268,7 @@ TSharedRef< ITableRow > FBlueprintVarActionDetails::MakeCategoryViewWidget( TSha
 {
 	return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
 		[
-			SNew(STextBlock) .Text(*Item.Get())
+			SNew(STextBlock) .Text(FText::FromString(*Item.Get()))
 		];
 }
 
@@ -1187,45 +1299,45 @@ EVisibility FBlueprintVarActionDetails::ShowEditableCheckboxVisibilty() const
 	return EVisibility::Collapsed;
 }
 
-ESlateCheckBoxState::Type FBlueprintVarActionDetails::OnEditableCheckboxState() const
+ECheckBoxState FBlueprintVarActionDetails::OnEditableCheckboxState() const
 {
 	UProperty* VariableProperty = SelectionAsProperty();
 	if (VariableProperty)
 	{
-		return VariableProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance) ? ESlateCheckBoxState::Unchecked : ESlateCheckBoxState::Checked;
+		return VariableProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance) ? ECheckBoxState::Unchecked : ECheckBoxState::Checked;
 	}
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void FBlueprintVarActionDetails::OnEditableChanged(ESlateCheckBoxState::Type InNewState)
+void FBlueprintVarActionDetails::OnEditableChanged(ECheckBoxState InNewState)
 {
 	FName VarName = GetVariableName();
 
 	// Toggle the flag on the blueprint's version of the variable description, based on state
-	const bool bVariableIsExposed = InNewState == ESlateCheckBoxState::Checked;
+	const bool bVariableIsExposed = InNewState == ECheckBoxState::Checked;
 
 	UBlueprint* Blueprint = MyBlueprint.Pin()->GetBlueprintObj();
 	FBlueprintEditorUtils::SetBlueprintOnlyEditableFlag(Blueprint, VarName, !bVariableIsExposed);
 }
 
-ESlateCheckBoxState::Type FBlueprintVarActionDetails::OnCreateWidgetCheckboxState() const
+ECheckBoxState FBlueprintVarActionDetails::OnCreateWidgetCheckboxState() const
 {
 	UProperty* Property = SelectionAsProperty();
 	if (Property)
 	{
 		bool bMakingWidget = FEdMode::ShouldCreateWidgetForProperty(Property);
 
-		return bMakingWidget ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bMakingWidget ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void FBlueprintVarActionDetails::OnCreateWidgetChanged(ESlateCheckBoxState::Type InNewState)
+void FBlueprintVarActionDetails::OnCreateWidgetChanged(ECheckBoxState InNewState)
 {
 	const FName VarName = GetVariableName();
 	if (VarName != NAME_None)
 	{
-		if (InNewState == ESlateCheckBoxState::Checked)
+		if (InNewState == ECheckBoxState::Checked)
 		{
 			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, GetLocalVariableScope(SelectionAsProperty()), FEdMode::MD_MakeEditWidget, TEXT("true"));
 		}
@@ -1259,22 +1371,22 @@ bool FBlueprintVarActionDetails::Is3DWidgetEnabled()
 	return false;
 }
 
-ESlateCheckBoxState::Type FBlueprintVarActionDetails::OnGetExposedToSpawnCheckboxState() const
+ECheckBoxState FBlueprintVarActionDetails::OnGetExposedToSpawnCheckboxState() const
 {
 	UProperty* Property = SelectionAsProperty();
 	if (Property)
 	{
-		return (Property && Property->GetBoolMetaData(FBlueprintMetadata::MD_ExposeOnSpawn) != false) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return (Property && Property->GetBoolMetaData(FBlueprintMetadata::MD_ExposeOnSpawn) != false) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void FBlueprintVarActionDetails::OnExposedToSpawnChanged(ESlateCheckBoxState::Type InNewState)
+void FBlueprintVarActionDetails::OnExposedToSpawnChanged(ECheckBoxState InNewState)
 {
 	const FName VarName = GetVariableName();
 	if (VarName != NAME_None)
 	{
-		const bool bExposeOnSpawn = (InNewState == ESlateCheckBoxState::Checked);
+		const bool bExposeOnSpawn = (InNewState == ECheckBoxState::Checked);
 		if(bExposeOnSpawn)
 		{
 			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, NULL, FBlueprintMetadata::MD_ExposeOnSpawn, TEXT("true"));
@@ -1304,22 +1416,22 @@ EVisibility FBlueprintVarActionDetails::ExposeOnSpawnVisibility() const
 	return EVisibility::Collapsed;
 }
 
-ESlateCheckBoxState::Type FBlueprintVarActionDetails::OnGetPrivateCheckboxState() const
+ECheckBoxState FBlueprintVarActionDetails::OnGetPrivateCheckboxState() const
 {
 	UProperty* Property = SelectionAsProperty();
 	if (Property)
 	{
-		return (Property && Property->GetBoolMetaData(FBlueprintMetadata::MD_Private) != false) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return (Property && Property->GetBoolMetaData(FBlueprintMetadata::MD_Private) != false) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void FBlueprintVarActionDetails::OnPrivateChanged(ESlateCheckBoxState::Type InNewState)
+void FBlueprintVarActionDetails::OnPrivateChanged(ECheckBoxState InNewState)
 {
 	const FName VarName = GetVariableName();
 	if (VarName != NAME_None)
 	{
-		const bool bExposeOnSpawn = (InNewState == ESlateCheckBoxState::Checked);
+		const bool bExposeOnSpawn = (InNewState == ECheckBoxState::Checked);
 		if(bExposeOnSpawn)
 		{
 			FBlueprintEditorUtils::SetBlueprintVariableMetaData(GetBlueprintObj(), VarName, NULL, FBlueprintMetadata::MD_Private, TEXT("true"));
@@ -1344,20 +1456,20 @@ EVisibility FBlueprintVarActionDetails::ExposePrivateVisibility() const
 	return EVisibility::Collapsed;
 }
 
-ESlateCheckBoxState::Type FBlueprintVarActionDetails::OnGetExposedToMatineeCheckboxState() const
+ECheckBoxState FBlueprintVarActionDetails::OnGetExposedToMatineeCheckboxState() const
 {
 	UProperty* Property = SelectionAsProperty();
 	if (Property)
 	{
-		return Property && Property->HasAnyPropertyFlags(CPF_Interp) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return Property && Property->HasAnyPropertyFlags(CPF_Interp) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void FBlueprintVarActionDetails::OnExposedToMatineeChanged(ESlateCheckBoxState::Type InNewState)
+void FBlueprintVarActionDetails::OnExposedToMatineeChanged(ECheckBoxState InNewState)
 {
 	// Toggle the flag on the blueprint's version of the variable description, based on state
-	const bool bExposeToMatinee = (InNewState == ESlateCheckBoxState::Checked);
+	const bool bExposeToMatinee = (InNewState == ECheckBoxState::Checked);
 	
 	const FName VarName = GetVariableName();
 	if (VarName != NAME_None)
@@ -1380,6 +1492,61 @@ EVisibility FBlueprintVarActionDetails::ExposeToMatineeVisibility() const
 		const bool bIsLinearColorStruct = VariableProperty->IsA(UStructProperty::StaticClass()) && Cast<UStructProperty>(VariableProperty)->Struct->GetFName() == NAME_LinearColor;
 
 		if (bIsFloat || bIsBool || bIsVectorStruct || bIsColorStruct || bIsLinearColorStruct)
+		{
+			return EVisibility::Visible;
+		}
+	}
+	return EVisibility::Collapsed;
+}
+
+ECheckBoxState FBlueprintVarActionDetails::OnGetConfigVariableCheckboxState() const
+{
+	UBlueprint* Blueprint = GetBlueprintObj();
+	const FName VarName = GetVariableName();
+	ECheckBoxState CheckboxValue = ECheckBoxState::Unchecked;
+
+	if( Blueprint && VarName != NAME_None )
+	{
+		const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex( Blueprint, VarName );
+
+		if( VarIndex != INDEX_NONE && Blueprint->NewVariables[ VarIndex ].PropertyFlags & CPF_Config )
+		{
+			CheckboxValue = ECheckBoxState::Checked;
+		}
+	}
+	return CheckboxValue;
+}
+
+void FBlueprintVarActionDetails::OnSetConfigVariableState( ECheckBoxState InNewState )
+{
+	UBlueprint* Blueprint = GetBlueprintObj();
+	const FName VarName = GetVariableName();
+
+	if( Blueprint && VarName != NAME_None )
+	{
+		const int32 VarIndex = FBlueprintEditorUtils::FindNewVariableIndex( Blueprint, VarName );
+
+		if( VarIndex != INDEX_NONE )
+		{
+			if( InNewState == ECheckBoxState::Checked )
+			{
+				Blueprint->NewVariables[ VarIndex ].PropertyFlags |= CPF_Config;
+			}
+			else
+			{
+				Blueprint->NewVariables[ VarIndex ].PropertyFlags &= ~CPF_Config;
+			}
+			FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified( Blueprint );
+		}
+	}
+}
+
+EVisibility FBlueprintVarActionDetails::ExposeConfigVisibility() const
+{
+	UProperty* Property = SelectionAsProperty();
+	if (Property)
+	{
+		if (IsABlueprintVariable(Property) && !IsAComponentVariable(Property))
 		{
 			return EVisibility::Visible;
 		}
@@ -1561,9 +1728,10 @@ TSharedRef<SWidget> FBlueprintVarActionDetails::BuildEventsMenuForVariable() con
 		TWeakPtr<FBlueprintEditor> BlueprintEditorPtr = MyBlueprintPtr->GetBlueprintEditor();
 		if( BlueprintEditorPtr.IsValid() && ComponentProperty )
 		{
-			TSharedRef<SSCSEditor> Editor =  BlueprintEditorPtr.Pin()->GetSCSEditor();
+			TSharedPtr<SSCSEditor> Editor =  BlueprintEditorPtr.Pin()->GetSCSEditor();
 			FMenuBuilder MenuBuilder( true, NULL );
-			Editor->BuildMenuEventsSection( MenuBuilder, BlueprintEditorPtr.Pin(), ComponentProperty->PropertyClass, 
+			Editor->BuildMenuEventsSection( MenuBuilder, BlueprintEditorPtr.Pin()->GetBlueprintObj(), ComponentProperty->PropertyClass, 
+											FCanExecuteAction::CreateSP(BlueprintEditorPtr.Pin().Get(), &FBlueprintEditor::InEditingMode),
 											FGetSelectedObjectsDelegate::CreateSP(MyBlueprintPtr.Get(), &SMyBlueprint::GetSelectedItemsForContextMenu));
 			return MenuBuilder.MakeWidget();
 		}
@@ -1584,22 +1752,22 @@ EVisibility FBlueprintVarActionDetails::GetTransientVisibility() const
 	return EVisibility::Collapsed;
 }
 
-ESlateCheckBoxState::Type FBlueprintVarActionDetails::OnGetTransientCheckboxState() const
+ECheckBoxState FBlueprintVarActionDetails::OnGetTransientCheckboxState() const
 {
 	UProperty* Property = SelectionAsProperty();
 	if (Property)
 	{
-		return (Property && Property->HasAnyPropertyFlags(CPF_Transient)) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return (Property && Property->HasAnyPropertyFlags(CPF_Transient)) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void FBlueprintVarActionDetails::OnTransientChanged(ESlateCheckBoxState::Type InNewState)
+void FBlueprintVarActionDetails::OnTransientChanged(ECheckBoxState InNewState)
 {
 	UProperty* Property = SelectionAsProperty();
 	if (Property)
 	{
-		const bool bTransientFlag = (InNewState == ESlateCheckBoxState::Checked);
+		const bool bTransientFlag = (InNewState == ECheckBoxState::Checked);
 		FBlueprintEditorUtils::SetVariableTransientFlag(GetBlueprintObj(), Property->GetFName(), bTransientFlag);
 	}
 }
@@ -1617,22 +1785,22 @@ EVisibility FBlueprintVarActionDetails::GetSaveGameVisibility() const
 	return EVisibility::Collapsed;
 }
 
-ESlateCheckBoxState::Type FBlueprintVarActionDetails::OnGetSaveGameCheckboxState() const
+ECheckBoxState FBlueprintVarActionDetails::OnGetSaveGameCheckboxState() const
 {
 	UProperty* Property = SelectionAsProperty();
 	if (Property)
 	{
-		return (Property && Property->HasAnyPropertyFlags(CPF_SaveGame)) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return (Property && Property->HasAnyPropertyFlags(CPF_SaveGame)) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void FBlueprintVarActionDetails::OnSaveGameChanged(ESlateCheckBoxState::Type InNewState)
+void FBlueprintVarActionDetails::OnSaveGameChanged(ECheckBoxState InNewState)
 {
 	UProperty* Property = SelectionAsProperty();
 	if (Property)
 	{
-		const bool bSaveGameFlag = (InNewState == ESlateCheckBoxState::Checked);
+		const bool bSaveGameFlag = (InNewState == ECheckBoxState::Checked);
 		FBlueprintEditorUtils::SetVariableSaveGameFlag(GetBlueprintObj(), Property->GetFName(), bSaveGameFlag);
 	}
 }
@@ -1642,12 +1810,50 @@ EVisibility FBlueprintVarActionDetails::IsTooltipEditVisible() const
 	UProperty* VariableProperty = SelectionAsProperty();
 	if (VariableProperty)
 	{
-		if (IsABlueprintVariable(VariableProperty) && !IsAComponentVariable(VariableProperty) || IsALocalVariable(VariableProperty))
+		if ((IsABlueprintVariable(VariableProperty) && !IsAComponentVariable(VariableProperty)) || IsALocalVariable(VariableProperty))
 		{
 			return EVisibility::Visible;
 		}
 	}
 	return EVisibility::Collapsed;
+}
+
+void FBlueprintVarActionDetails::OnFinishedChangingProperties(const FPropertyChangedEvent& InPropertyChangedEvent, TSharedPtr<FStructOnScope> InStructData, TWeakObjectPtr<UK2Node_EditablePinBase> InEntryNode)
+{
+	check(InPropertyChangedEvent.MemberProperty
+		&& InPropertyChangedEvent.MemberProperty->GetOwnerStruct()
+		&& InPropertyChangedEvent.MemberProperty->GetOwnerStruct()->IsA<UFunction>());
+
+	// Find the top level property that was modified within the UFunction
+	const UProperty* DirectProperty = InPropertyChangedEvent.MemberProperty;
+	while (!Cast<const UFunction>(DirectProperty->GetOuter()))
+	{
+		DirectProperty = CastChecked<const UProperty>(DirectProperty->GetOuter());
+	}
+
+	FString DefaultValueString;
+	bool bDefaultValueSet = false;
+
+	if (InStructData.IsValid())
+	{
+		bDefaultValueSet = FBlueprintEditorUtils::PropertyValueToString(DirectProperty, InStructData->GetStructMemory(), DefaultValueString);
+
+		if(bDefaultValueSet)
+		{
+			UK2Node_FunctionEntry* FuncEntry = Cast<UK2Node_FunctionEntry>(InEntryNode.Get());
+
+			// Search out the correct local variable in the Function Entry Node and set the default value
+			for(auto& LocalVar : FuncEntry->LocalVariables)
+			{
+				if(LocalVar.VarName == DirectProperty->GetFName())
+				{
+					LocalVar.DefaultValue = DefaultValueString;
+					FBlueprintEditorUtils::MarkBlueprintAsModified(GetBlueprintObj());
+					break;
+				}
+			}
+		}
+	}
 }
 
 static FDetailWidgetRow& AddRow( TArray<TSharedRef<FDetailWidgetRow> >& OutChildRows )
@@ -1731,7 +1937,8 @@ void FBlueprintGraphArgumentLayout::GenerateHeaderRowContent( FDetailWidgetRow& 
 				.Schema(K2Schema)
 				.bAllowExec(TargetNode->CanModifyExecutionWires())
 				.bAllowWildcard(ShouldAllowWildcard(TargetNode))
-				.IsEnabled(!ShouldPinBeReadOnly())
+				.bAllowArrays(!ShouldPinBeReadOnly())
+				.IsEnabled(!ShouldPinBeReadOnly(true))
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
 		]
 		+SHorizontalBox::Slot()
@@ -1739,7 +1946,7 @@ void FBlueprintGraphArgumentLayout::GenerateHeaderRowContent( FDetailWidgetRow& 
 		.HAlign(HAlign_Right)
 		.VAlign(VAlign_Center)
 		[
-			PropertyCustomizationHelpers::MakeClearButton(FSimpleDelegate::CreateSP(this, &FBlueprintGraphArgumentLayout::OnRemoveClicked))
+			PropertyCustomizationHelpers::MakeClearButton(FSimpleDelegate::CreateSP(this, &FBlueprintGraphArgumentLayout::OnRemoveClicked), FText(), !IsPinEditingReadOnly())
 		]
 	];
 }
@@ -1748,7 +1955,7 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 {
 	if (bHasDefaultValue)
 	{
-		ChildrenBuilder.AddChildContent( *LOCTEXT( "FunctionArgDetailsDefaultValue", "Default Value" ).ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT( "FunctionArgDetailsDefaultValue", "Default Value" ) )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -1765,7 +1972,7 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 				.Font( IDetailLayoutBuilder::GetDetailFont() )
 		];
 
-		ChildrenBuilder.AddChildContent( *LOCTEXT( "FunctionArgDetailsPassByReference", "Pass-by-Reference" ).ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT( "FunctionArgDetailsPassByReference", "Pass-by-Reference" ) )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -1782,38 +1989,42 @@ void FBlueprintGraphArgumentLayout::GenerateChildContent( IDetailChildrenBuilder
 		];
 	}
 		
-	ChildrenBuilder.AddChildContent( *LOCTEXT( "FunctionArgDetailsMoving", "Moving" ).ToString() )
-	[
-		SNew(SHorizontalBox)
-		+SHorizontalBox::Slot()
-		[
-			SNew(SSpacer)
-		]
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(2, 0)
-		[
-			SNew(SButton)
-			.ContentPadding(0)
-			.OnClicked(this, &FBlueprintGraphArgumentLayout::OnArgMoveUp)
+	// Read only graphs can't have their pins re-organized
+	if ( !IsPinEditingReadOnly() )
+	{
+		ChildrenBuilder.AddChildContent( LOCTEXT( "FunctionArgDetailsMoving", "Moving" ) )
 			[
-				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("BlueprintEditor.Details.ArgUpButton"))
-			]
-		]
-		+SHorizontalBox::Slot()
-		.AutoWidth()
-		.Padding(2, 0)
-		[
-			SNew(SButton)
-			.ContentPadding(0)
-			.OnClicked(this, &FBlueprintGraphArgumentLayout::OnArgMoveDown)
-			[
-				SNew(SImage)
-				.Image(FEditorStyle::GetBrush("BlueprintEditor.Details.ArgDownButton"))
-			]
-		]
-	];
+				SNew(SHorizontalBox)
+				+SHorizontalBox::Slot()
+				[
+					SNew(SSpacer)
+				]
+				+SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(2, 0)
+					[
+						SNew(SButton)
+						.ContentPadding(0)
+						.OnClicked(this, &FBlueprintGraphArgumentLayout::OnArgMoveUp)
+						[
+							SNew(SImage)
+							.Image(FEditorStyle::GetBrush("BlueprintEditor.Details.ArgUpButton"))
+						]
+					]
+				+SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(2, 0)
+					[
+						SNew(SButton)
+						.ContentPadding(0)
+						.OnClicked(this, &FBlueprintGraphArgumentLayout::OnArgMoveDown)
+						[
+							SNew(SImage)
+							.Image(FEditorStyle::GetBrush("BlueprintEditor.Details.ArgDownButton"))
+						]
+					]
+			];
+	}
 }
 
 void FBlueprintGraphArgumentLayout::OnRemoveClicked()
@@ -1866,7 +2077,7 @@ FReply FBlueprintGraphArgumentLayout::OnArgMoveDown()
 	return FReply::Handled();
 }
 
-bool FBlueprintGraphArgumentLayout::ShouldPinBeReadOnly() const
+bool FBlueprintGraphArgumentLayout::ShouldPinBeReadOnly(bool bIsEditingPinType/* = false*/) const
 {
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
@@ -1877,8 +2088,26 @@ bool FBlueprintGraphArgumentLayout::ShouldPinBeReadOnly() const
 		{
 			return true;
 		}
+		else
+		{
+			// Check if pin editing is read only
+			return IsPinEditingReadOnly(bIsEditingPinType);
+		}
 	}
 	
+	return false;
+}
+
+bool FBlueprintGraphArgumentLayout::IsPinEditingReadOnly(bool bIsEditingPinType/* = false*/) const
+{
+	if(UEdGraph* NodeGraph = TargetNode->GetGraph())
+	{
+		// Math expression should not be modified directly (except for the pin type), do not let the user tweak the parameters
+		if (!bIsEditingPinType && Cast<UK2Node_MathExpression>(NodeGraph->GetOuter()) )
+		{
+			return true;
+		}
+	}
 	return false;
 }
 
@@ -1943,16 +2172,16 @@ FEdGraphPinType FBlueprintGraphArgumentLayout::OnGetPinInfo() const
 	return FEdGraphPinType();
 }
 
-ESlateCheckBoxState::Type FBlueprintGraphArgumentLayout::IsRefChecked() const
+ECheckBoxState FBlueprintGraphArgumentLayout::IsRefChecked() const
 {
 	FEdGraphPinType PinType = OnGetPinInfo();
-	return PinType.bIsReference? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return PinType.bIsReference? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void FBlueprintGraphArgumentLayout::OnRefCheckStateChanged(ESlateCheckBoxState::Type InState)
+void FBlueprintGraphArgumentLayout::OnRefCheckStateChanged(ECheckBoxState InState)
 {
 	FEdGraphPinType PinType = OnGetPinInfo();
-	PinType.bIsReference = (InState == ESlateCheckBoxState::Checked)? true : false;
+	PinType.bIsReference = (InState == ECheckBoxState::Checked)? true : false;
 	PinInfoChanged(PinType);
 }
 
@@ -1964,7 +2193,7 @@ void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinTyp
 		if (GraphActionDetailsPtr.IsValid())
 		{
 			GraphActionDetailsPtr.Pin()->GetMyBlueprint().Pin()->GetLastFunctionPinTypeUsed() = PinType;
-			if( !ShouldPinBeReadOnly() )
+			if( !ShouldPinBeReadOnly(true) )
 			{
 				GraphActionDetailsPtr.Pin()->OnParamsChanged(TargetNode);
 			}
@@ -1974,7 +2203,7 @@ void FBlueprintGraphArgumentLayout::PinInfoChanged(const FEdGraphPinType& PinTyp
 
 void FBlueprintGraphArgumentLayout::OnPrePinInfoChange(const FEdGraphPinType& PinType)
 {
-	if( !ShouldPinBeReadOnly() && TargetNode )
+	if( !ShouldPinBeReadOnly(true) && TargetNode )
 	{
 		TargetNode->Modify();
 	}
@@ -1991,13 +2220,17 @@ FText FBlueprintGraphArgumentLayout::OnGetArgDefaultValueText() const
 
 void FBlueprintGraphArgumentLayout::OnArgDefaultValueCommitted(const FText& NewText, ETextCommit::Type InTextCommit)
 {
-	if (!NewText.IsEmpty() && !ShouldPinBeReadOnly() && (InTextCommit == ETextCommit::OnEnter || InTextCommit == ETextCommit::OnUserMovedFocus) && ParamItemPtr.IsValid())
+	auto GraphActionDetailsPinned = GraphActionDetailsPtr.Pin();
+	if (!NewText.IsEmpty() 
+		&& !ShouldPinBeReadOnly() 
+		&& (InTextCommit == ETextCommit::OnEnter || InTextCommit == ETextCommit::OnUserMovedFocus) 
+		&& ParamItemPtr.IsValid() 
+		&& GraphActionDetailsPinned.IsValid())
 	{
 		bool bSuccess = TargetNode->ModifyUserDefinedPinDefaultValue(ParamItemPtr.Pin(), NewText.ToString());
-		
 		if (bSuccess)
 		{
-			GraphActionDetailsPtr.Pin()->OnParamsChanged(TargetNode);
+			GraphActionDetailsPinned->OnParamsChanged(TargetNode);
 		}
 	}
 }
@@ -2024,15 +2257,15 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 
 	if (FunctionEntryNode && FunctionEntryNode->IsEditable())
 	{
-		IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Graph", LOCTEXT("FunctionDetailsGraph", "Graph").ToString());
+		IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Graph", LOCTEXT("FunctionDetailsGraph", "Graph"));
 		if (bHasAGraph)
 		{
-			Category.AddCustomRow( LOCTEXT( "DefaultTooltip", "Description" ).ToString() )
+			Category.AddCustomRow( LOCTEXT( "DefaultTooltip", "Description" ) )
 			.NameContent()
 			[
 				SNew(STextBlock)
-					.Text( LOCTEXT( "DefaultTooltip", "Description" ).ToString() )
-					.ToolTipText(LOCTEXT("FunctionTooltipTooltip", "Enter a short message describing the purpose and operation of this graph").ToString())
+					.Text( LOCTEXT( "DefaultTooltip", "Description" ) )
+					.ToolTipText(LOCTEXT("FunctionTooltipTooltip", "Enter a short message describing the purpose and operation of this graph"))
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
 			]
 			.ValueContent()
@@ -2053,7 +2286,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 				const FString DocLink = TEXT("Shared/Editors/BlueprintEditor/VariableDetails");
 				TSharedPtr<SToolTip> CategoryTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one."), NULL, DocLink, TEXT("Category"));
 
-				Category.AddCustomRow( TEXT("Category") )
+				Category.AddCustomRow( LOCTEXT("CategoryLabel", "Category") )
 					.NameContent()
 					[
 						SNew(STextBlock)
@@ -2102,11 +2335,11 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 
 			if (IsAccessSpecifierVisible())
 			{
-				Category.AddCustomRow( LOCTEXT( "AccessSpecifier", "Access Specifier" ).ToString() )
+				Category.AddCustomRow( LOCTEXT( "AccessSpecifier", "Access Specifier" ) )
 				.NameContent()
 				[
 					SNew(STextBlock)
-						.Text( LOCTEXT( "AccessSpecifier", "Access Specifier" ).ToString() )
+						.Text( LOCTEXT( "AccessSpecifier", "Access Specifier" ) )
 						.Font( IDetailLayoutBuilder::GetDetailFont() )
 				]
 				.ValueContent()
@@ -2130,7 +2363,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 			}
 			if (GetInstanceColorVisibility())
 			{
-				Category.AddCustomRow( LOCTEXT( "InstanceColor", "Instance Color" ).ToString() )
+				Category.AddCustomRow( LOCTEXT( "InstanceColor", "Instance Color" ) )
 				.NameContent()
 				[
 					SNew(STextBlock)
@@ -2148,12 +2381,12 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 			}
 			if (IsPureFunctionVisible())
 			{
-				Category.AddCustomRow( LOCTEXT( "FunctionPure_Tooltip", "Pure" ).ToString() )
+				Category.AddCustomRow( LOCTEXT( "FunctionPure_Tooltip", "Pure" ) )
 				.NameContent()
 				[
 					SNew(STextBlock)
-						.Text( LOCTEXT( "FunctionPure_Tooltip", "Pure" ).ToString() )
-						.ToolTipText( LOCTEXT("FunctionIsPure_Tooltip", "Force this to be a pure function?").ToString() )
+						.Text( LOCTEXT( "FunctionPure_Tooltip", "Pure" ) )
+						.ToolTipText( LOCTEXT("FunctionIsPure_Tooltip", "Force this to be a pure function?") )
 						.Font( IDetailLayoutBuilder::GetDetailFont() )
 				]
 				.ValueContent()
@@ -2230,7 +2463,7 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 										FSlateIcon(),
 										FUIAction(FExecuteAction::CreateStatic( &FBlueprintGraphActionDetails::SetNetFlags, FunctionEntryNodePtr, static_cast<uint32>(FUNC_NetClient) ), CanExecuteDelegate));
 
-			Category.AddCustomRow( LOCTEXT( "FunctionReplicate", "Replicates" ).ToString() )
+			Category.AddCustomRow( LOCTEXT( "FunctionReplicate", "Replicates" ) )
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -2284,12 +2517,12 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 							.OnCheckStateChanged( this, &FBlueprintGraphActionDetails::OnIsReliableReplicationFunctionModified )
 						[
 							SNew(STextBlock)
-								.Text( LOCTEXT( "FunctionReplicateReliable", "Reliable" ).ToString() )
+								.Text( LOCTEXT( "FunctionReplicateReliable", "Reliable" ) )
 						]
 					]
 				]
 			];
-			Category.AddCustomRow( LOCTEXT( "EditorCallable", "Call In Editor" ).ToString() )
+			Category.AddCustomRow( LOCTEXT( "EditorCallable", "Call In Editor" ) )
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -2316,26 +2549,27 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 			];
 		}
 
-		IDetailCategoryBuilder& InputsCategory = DetailLayout.EditCategory("Inputs", LOCTEXT("FunctionDetailsInputs", "Inputs").ToString());
+		IDetailCategoryBuilder& InputsCategory = DetailLayout.EditCategory("Inputs", LOCTEXT("FunctionDetailsInputs", "Inputs"));
 		
 		TSharedRef<FBlueprintGraphArgumentGroupLayout> InputArgumentGroup =
 			MakeShareable(new FBlueprintGraphArgumentGroupLayout(SharedThis(this), FunctionEntryNode));
 		InputsCategory.AddCustomBuilder(InputArgumentGroup);
 
-		InputsCategory.AddCustomRow( LOCTEXT("FunctionNewInputArg", "New").ToString() )
+		InputsCategory.AddCustomRow( LOCTEXT("FunctionNewInputArg", "New") )
 		[
 			SNew(SBox)
 			.HAlign(HAlign_Right)
 			[
 				SNew(SButton)
-				.Text(LOCTEXT("FunctionNewInputArg", "New").ToString())
+				.Text(LOCTEXT("FunctionNewInputArg", "New"))
 				.OnClicked(this, &FBlueprintGraphActionDetails::OnAddNewInputClicked)
+				.Visibility(this, &FBlueprintGraphActionDetails::GetAddNewInputOutputVisibility)
 			]
 		];
 
 		if (bHasAGraph)
 		{
-			IDetailCategoryBuilder& OutputsCategory = DetailLayout.EditCategory("Outputs", LOCTEXT("FunctionDetailsOutputs", "Outputs").ToString());
+			IDetailCategoryBuilder& OutputsCategory = DetailLayout.EditCategory("Outputs", LOCTEXT("FunctionDetailsOutputs", "Outputs"));
 		
 			if (FunctionResultNode)
 			{
@@ -2344,14 +2578,15 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 				OutputsCategory.AddCustomBuilder(OutputArgumentGroup);
 			}
 
-			OutputsCategory.AddCustomRow( LOCTEXT("FunctionNewOutputArg", "New").ToString() )
+			OutputsCategory.AddCustomRow( LOCTEXT("FunctionNewOutputArg", "New") )
 			[
 				SNew(SBox)
 				.HAlign(HAlign_Right)
 				[
 					SNew(SButton)
-					.Text(LOCTEXT("FunctionNewOutputArg", "New").ToString())
+					.Text(LOCTEXT("FunctionNewOutputArg", "New"))
 					.OnClicked(this, &FBlueprintGraphActionDetails::OnAddNewOutputClicked)
+					.Visibility(this, &FBlueprintGraphActionDetails::GetAddNewInputOutputVisibility)
 				]
 			];
 		}
@@ -2360,11 +2595,11 @@ void FBlueprintGraphActionDetails::CustomizeDetails( IDetailLayoutBuilder& Detai
 	{
 		if (bHasAGraph)
 		{
-			IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Graph", LOCTEXT("FunctionDetailsGraph", "Graph").ToString());
-			Category.AddCustomRow( TEXT("") )
+			IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Graph", LOCTEXT("FunctionDetailsGraph", "Graph"));
+			Category.AddCustomRow( FText::GetEmpty() )
 			[
 				SNew(STextBlock)
-				.Text( LOCTEXT("GraphPresentButNotEditable", "Graph is not editable.").ToString() )
+				.Text( LOCTEXT("GraphPresentButNotEditable", "Graph is not editable.") )
 			];
 		}
 	}
@@ -2377,8 +2612,8 @@ TSharedRef<ITableRow> FBlueprintGraphActionDetails::OnGenerateReplicationComboWi
 		SNew(STableRow< TSharedPtr<FString> >, OwnerTable)
 		[
 			SNew( STextBlock )
-			.Text( InNetFlag.IsValid() ? InNetFlag.Get()->LocalizedName.ToString() : FString() )
-			.ToolTipText( InNetFlag.IsValid() ? InNetFlag.Get()->LocalizedToolTip.ToString() : FString() )
+			.Text( InNetFlag.IsValid() ? InNetFlag.Get()->LocalizedName : FText::GetEmpty() )
+			.ToolTipText( InNetFlag.IsValid() ? InNetFlag.Get()->LocalizedToolTip : FText::GetEmpty() )
 		];
 }
 
@@ -2413,7 +2648,7 @@ void FBlueprintGraphActionDetails::SetNetFlags( TWeakObjectPtr<UK2Node_EditableP
 	}
 }
 
-FString FBlueprintGraphActionDetails::GetCurrentReplicatedEventString() const
+FText FBlueprintGraphActionDetails::GetCurrentReplicatedEventString() const
 {
 	const UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
 	const UK2Node_CustomEvent* CustomEvent = Cast<const UK2Node_CustomEvent>(FunctionEntryNode);
@@ -2429,7 +2664,7 @@ FString FBlueprintGraphActionDetails::GetCurrentReplicatedEventString() const
 		NetFlags = SuperFunction->FunctionFlags & ReplicatedNetMask;
 	}
 
-	return ReplicationSpecifierProperName(NetFlags).ToString();
+	return ReplicationSpecifierProperName(NetFlags);
 }
 
 bool FBaseBlueprintGraphActionDetails::ConditionallyCleanUpResultNode()
@@ -2491,9 +2726,9 @@ void FBaseBlueprintGraphActionDetails::SetRefreshDelegate(FSimpleDelegate Refres
 	((bForInputs) ? RegenerateInputsChildrenDelegate : RegenerateOutputsChildrenDelegate) = RefreshDelegate;
 }
 
-ESlateCheckBoxState::Type FBlueprintGraphActionDetails::GetIsEditorCallableEvent() const
+ECheckBoxState FBlueprintGraphActionDetails::GetIsEditorCallableEvent() const
 {
-	ESlateCheckBoxState::Type Result = ESlateCheckBoxState::Unchecked;
+	ECheckBoxState Result = ECheckBoxState::Unchecked;
 
 	if( FunctionEntryNodePtr.IsValid() )
 	{
@@ -2501,13 +2736,13 @@ ESlateCheckBoxState::Type FBlueprintGraphActionDetails::GetIsEditorCallableEvent
 
 		if( CustomEventNode && CustomEventNode->bCallInEditor )
 		{
-			Result = ESlateCheckBoxState::Checked;
+			Result = ECheckBoxState::Checked;
 		}
 	}
 	return Result;
 }
 
-void FBlueprintGraphActionDetails::OnEditorCallableEventModified( const ESlateCheckBoxState::Type NewCheckedState ) const
+void FBlueprintGraphActionDetails::OnEditorCallableEventModified( const ECheckBoxState NewCheckedState ) const
 {
 	if( FunctionEntryNodePtr.IsValid() )
 	{
@@ -2515,7 +2750,7 @@ void FBlueprintGraphActionDetails::OnEditorCallableEventModified( const ESlateCh
 		{
 			if( UBlueprint* Blueprint = FunctionEntryNodePtr->GetBlueprint() )
 			{
-				const bool bCallInEditor = NewCheckedState == ESlateCheckBoxState::Checked;
+				const bool bCallInEditor = NewCheckedState == ECheckBoxState::Checked;
 				const FText TransactionType = bCallInEditor ?	LOCTEXT( "DisableCallInEditor", "Disable Call In Editor " ) : 
 																LOCTEXT( "EnableCallInEditor", "Enable Call In Editor" );
 				const FScopedTransaction Transaction( TransactionType );
@@ -2639,7 +2874,7 @@ TSharedRef< ITableRow > FBlueprintDelegateActionDetails::MakeCategoryViewWidget(
 {
 	return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
 		[
-			SNew(STextBlock) .Text(*Item.Get())
+			SNew(STextBlock) .Text(FText::FromString(*Item.Get()))
 		];
 }
 
@@ -2668,8 +2903,8 @@ void FBlueprintDelegateActionDetails::CustomizeDetails( IDetailLayoutBuilder& De
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 
 	{
-		IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Delegate", LOCTEXT("DelegateDetailsCategory", "Delegate").ToString());
-		Category.AddCustomRow( TEXT("Tooltip") )
+		IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Delegate", LOCTEXT("DelegateDetailsCategory", "Delegate"));
+		Category.AddCustomRow( LOCTEXT("VariableToolTipLabel", "Tooltip") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -2688,7 +2923,7 @@ void FBlueprintDelegateActionDetails::CustomizeDetails( IDetailLayoutBuilder& De
 		TSharedPtr<SComboButton> NewComboButton;
 		TSharedPtr<SListView<TSharedPtr<FString>>> NewListView;
 
-		Category.AddCustomRow( TEXT("Category") )
+		Category.AddCustomRow( LOCTEXT("CategoryLabel", "Category") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -2735,11 +2970,11 @@ void FBlueprintDelegateActionDetails::CustomizeDetails( IDetailLayoutBuilder& De
 
 	if (UK2Node_EditablePinBase* FunctionEntryNode = FunctionEntryNodePtr.Get())
 	{
-		IDetailCategoryBuilder& InputsCategory = DetailLayout.EditCategory("DelegateInputs", LOCTEXT("DelegateDetailsInputs", "Inputs").ToString());
+		IDetailCategoryBuilder& InputsCategory = DetailLayout.EditCategory("DelegateInputs", LOCTEXT("DelegateDetailsInputs", "Inputs"));
 		TSharedRef<FBlueprintGraphArgumentGroupLayout> InputArgumentGroup = MakeShareable(new FBlueprintGraphArgumentGroupLayout(SharedThis(this), FunctionEntryNode));
 		InputsCategory.AddCustomBuilder(InputArgumentGroup);
 
-		InputsCategory.AddCustomRow( LOCTEXT("FunctionNewInputArg", "New").ToString() )
+		InputsCategory.AddCustomRow( LOCTEXT("FunctionNewInputArg", "New") )
 		[
 			SNew(SBox)
 			.HAlign(HAlign_Right)
@@ -2752,7 +2987,7 @@ void FBlueprintDelegateActionDetails::CustomizeDetails( IDetailLayoutBuilder& De
 
 		CollectAvailibleSignatures();
 
-		InputsCategory.AddCustomRow( LOCTEXT("CopySignatureFrom", "Copy signature from").ToString() )
+		InputsCategory.AddCustomRow( LOCTEXT("CopySignatureFrom", "Copy signature from") )
 		.NameContent()
 		[
 			SNew(STextBlock)
@@ -3341,7 +3576,7 @@ TSharedRef< ITableRow > FBlueprintGraphActionDetails::MakeCategoryViewWidget( TS
 {
 	return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
 		[
-			SNew(STextBlock) .Text(*Item.Get())
+			SNew(STextBlock) .Text(FText::FromString(*Item.Get()))
 		];
 }
 
@@ -3383,11 +3618,11 @@ TSharedRef<ITableRow> FBlueprintGraphActionDetails::HandleGenerateRowAccessSpeci
 		.Content()
 		[
 			SNew( STextBlock ) 
-				.Text( SpecifierName.IsValid() ? SpecifierName->LocalizedName.ToString() : FString() )
+				.Text( SpecifierName.IsValid() ? SpecifierName->LocalizedName : FText::GetEmpty() )
 		];
 }
 
-FString FBlueprintGraphActionDetails::GetCurrentAccessSpecifierName() const
+FText FBlueprintGraphActionDetails::GetCurrentAccessSpecifierName() const
 {
 	uint32 AccessSpecifierFlag = 0;
 	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
@@ -3399,7 +3634,7 @@ FString FBlueprintGraphActionDetails::GetCurrentAccessSpecifierName() const
 	{
 		AccessSpecifierFlag = FUNC_AccessSpecifiers & CustomEventNode->FunctionFlags;
 	}
-	return AccessSpecifierProperName( AccessSpecifierFlag ).ToString();
+	return AccessSpecifierProperName( AccessSpecifierFlag );
 }
 
 bool FBlueprintGraphActionDetails::IsAccessSpecifierVisible() const
@@ -3522,13 +3757,13 @@ bool FBlueprintGraphActionDetails::IsCustomEvent() const
 	return (NULL != Cast<UK2Node_CustomEvent>(FunctionEntryNodePtr.Get()));
 }
 
-void FBlueprintGraphActionDetails::OnIsReliableReplicationFunctionModified(const ESlateCheckBoxState::Type NewCheckedState)
+void FBlueprintGraphActionDetails::OnIsReliableReplicationFunctionModified(const ECheckBoxState NewCheckedState)
 {
 	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
 	UK2Node_CustomEvent* CustomEvent = Cast<UK2Node_CustomEvent>(FunctionEntryNode);
 	if( CustomEvent )
 	{
-		if (NewCheckedState == ESlateCheckBoxState::Checked)
+		if (NewCheckedState == ECheckBoxState::Checked)
 		{
 			if (UK2Node_FunctionEntry* TypedEntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode))
 			{
@@ -3555,22 +3790,22 @@ void FBlueprintGraphActionDetails::OnIsReliableReplicationFunctionModified(const
 	}
 }
 
-ESlateCheckBoxState::Type FBlueprintGraphActionDetails::GetIsReliableReplicatedFunction() const
+ECheckBoxState FBlueprintGraphActionDetails::GetIsReliableReplicatedFunction() const
 {
 	const UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
 	const UK2Node_CustomEvent* CustomEvent = Cast<const UK2Node_CustomEvent>(FunctionEntryNode);
 	if(!CustomEvent)
 	{
-		return ESlateCheckBoxState::Undetermined;
+		return ECheckBoxState::Undetermined;
 	}
 
 	uint32 const NetReliableMask = (FUNC_Net | FUNC_NetReliable);
 	if ((CustomEvent->GetNetFlags() & NetReliableMask) == NetReliableMask)
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 	
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 bool FBlueprintGraphActionDetails::IsPureFunctionVisible() const
@@ -3589,7 +3824,7 @@ bool FBlueprintGraphActionDetails::IsPureFunctionVisible() const
 	return bSupportedType && bIsEditable;
 }
 
-void FBlueprintGraphActionDetails::OnIsPureFunctionModified( const ESlateCheckBoxState::Type NewCheckedState )
+void FBlueprintGraphActionDetails::OnIsPureFunctionModified( const ECheckBoxState NewCheckedState )
 {
 	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
 	auto Function = FindFunction();
@@ -3607,15 +3842,15 @@ void FBlueprintGraphActionDetails::OnIsPureFunctionModified( const ESlateCheckBo
 	}
 }
 
-ESlateCheckBoxState::Type FBlueprintGraphActionDetails::GetIsPureFunction() const
+ECheckBoxState FBlueprintGraphActionDetails::GetIsPureFunction() const
 {
 	UK2Node_EditablePinBase * FunctionEntryNode = FunctionEntryNodePtr.Get();
 	auto EntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode);
 	if(!EntryNode)
 	{
-		return ESlateCheckBoxState::Undetermined;
+		return ECheckBoxState::Undetermined;
 	}
-	return (EntryNode->ExtraFlags & FUNC_BlueprintPure) ? ESlateCheckBoxState::Checked :  ESlateCheckBoxState::Unchecked;
+	return (EntryNode->ExtraFlags & FUNC_BlueprintPure) ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
 }
 
 bool FBaseBlueprintGraphActionDetails::IsPinNameUnique(const FString& TestName) const
@@ -3691,6 +3926,23 @@ FReply FBaseBlueprintGraphActionDetails::OnAddNewInputClicked()
 	return FReply::Handled();
 }
 
+EVisibility FBlueprintGraphActionDetails::GetAddNewInputOutputVisibility() const
+{
+	UK2Node_EditablePinBase* FunctionEntryNode = FunctionEntryNodePtr.Get();
+	if (FunctionEntryNodePtr.IsValid())
+	{
+		if(UEdGraph* Graph = FunctionEntryNode->GetGraph())
+		{
+			// Math expression graphs are read only, do not allow adding or removing of pins
+			if(Cast<UK2Node_MathExpression>(Graph->GetOuter()))
+			{
+				return EVisibility::Collapsed;
+			}
+		}
+	}
+	return EVisibility::Visible;
+}
+
 FReply FBlueprintGraphActionDetails::OnAddNewOutputClicked()
 {
 	FScopedTransaction Transaction( LOCTEXT( "AddOutParam", "Add Out Parameter" ) );
@@ -3708,7 +3960,7 @@ FReply FBlueprintGraphActionDetails::OnAddNewOutputClicked()
 
 	AttemptToCreateResultNode();
 
-	UK2Node_EditablePinBase * FunctionResultNode = FunctionResultNodePtr.Get();
+	UK2Node_EditablePinBase* FunctionResultNode = FunctionResultNodePtr.Get();
 	if( FunctionResultNode )
 	{
 		FunctionResultNode->Modify();
@@ -3727,6 +3979,11 @@ FReply FBlueprintGraphActionDetails::OnAddNewOutputClicked()
 		FunctionResultNode->CreateUserDefinedPin(NewPinName, PinType);
 		
 		OnParamsChanged(FunctionResultNode, true);
+
+		if ( !PreviousResultNode )
+		{
+			DetailsLayoutPtr->ForceRefreshDetails();
+		}
 	}
 	else
 	{
@@ -3744,8 +4001,8 @@ void FBlueprintInterfaceLayout::GenerateHeaderRowContent( FDetailWidgetRow& Node
 	[
 		SNew(STextBlock)
 			.Text( bShowsInheritedInterfaces ?
-			LOCTEXT("BlueprintInheritedInterfaceTitle", "Inherited Interfaces").ToString() :
-			LOCTEXT("BlueprintImplementedInterfaceTitle", "Implemented Interfaces").ToString() )
+			LOCTEXT("BlueprintInheritedInterfaceTitle", "Inherited Interfaces") :
+			LOCTEXT("BlueprintImplementedInterfaceTitle", "Implemented Interfaces") )
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
 	];
 }
@@ -3791,7 +4048,7 @@ void FBlueprintInterfaceLayout::GenerateChildContent( IDetailChildrenBuilder& Ch
 	for (int32 i = 0; i < Interfaces.Num(); ++i)
 	{
 		TSharedPtr<SHorizontalBox> Box;
-		ChildrenBuilder.AddChildContent( *LOCTEXT( "BlueprintInterfaceValue", "Interface Value" ).ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT( "BlueprintInterfaceValue", "Interface Value" ) )
 		[
 			SAssignNew(Box, SHorizontalBox)
 			+SHorizontalBox::Slot()
@@ -3835,7 +4092,7 @@ void FBlueprintInterfaceLayout::GenerateChildContent( IDetailChildrenBuilder& Ch
 	// Add message if no interfaces are being used
 	if (Interfaces.Num() == 0)
 	{
-		ChildrenBuilder.AddChildContent(*LOCTEXT("BlueprintInterfaceValue", "Interface Value").ToString())
+		ChildrenBuilder.AddChildContent(LOCTEXT("BlueprintInterfaceValue", "Interface Value"))
 		[
 			SNew(STextBlock)
 			.Text(LOCTEXT("NoBlueprintInterface", "No Interfaces"))
@@ -3845,7 +4102,7 @@ void FBlueprintInterfaceLayout::GenerateChildContent( IDetailChildrenBuilder& Ch
 
 	if (!bShowsInheritedInterfaces)
 	{
-		ChildrenBuilder.AddChildContent( *LOCTEXT( "BlueprintAddInterface", "Add Interface" ).ToString() )
+		ChildrenBuilder.AddChildContent( LOCTEXT( "BlueprintAddInterface", "Add Interface" ) )
 		[
 			SNew(SBox)
 			.HAlign(HAlign_Right)
@@ -3892,104 +4149,62 @@ void FBlueprintInterfaceLayout::OnRemoveInterface(FInterfaceName InterfaceName)
 	FBlueprintEditorUtils::RemoveInterface(Blueprint, InterfaceFName, bPreserveInterfaceFunctions);
 
 	RegenerateChildrenDelegate.ExecuteIfBound();
+
+	OnRefreshInDetailsView();
 }
 
-/** Helper function for the interface menu */
-bool IsInterfaceImplemented(const UBlueprint* Blueprint, const UClass* TestInterface)
+void FBlueprintInterfaceLayout::OnClassPicked(UClass* PickedClass)
 {
-	const auto InterfaceName = TestInterface->GetFName();
-
-	// First look in the blueprint's ImplementedInterfaces list
-	for(TArray<FBPInterfaceDescription>::TConstIterator it(Blueprint->ImplementedInterfaces); it; ++it)
+	if (AddInterfaceComboButton.IsValid())
 	{
-		const FBPInterfaceDescription& CurrentInterface = *it;
-		if( CurrentInterface.Interface && CurrentInterface.Interface->GetFName() == InterfaceName )
-		{
-			return true;
-		}
+		AddInterfaceComboButton->SetIsOpen(false);
 	}
 
-	// Now go up the inheritance tree and see if the interface in implemented via its' ancestry
-	UClass* BlueprintParent =  Blueprint->ParentClass;
-	while (BlueprintParent)
-	{
-		for (TArray<FImplementedInterface>::TIterator It(BlueprintParent->Interfaces); It; ++It)
-		{
-			const FImplementedInterface& CurrentInterface = *It;
-			if (CurrentInterface.Class && (CurrentInterface.Class->GetFName() == InterfaceName))
-			{
-				return true;
-			}
-		}
-		BlueprintParent = BlueprintParent->GetSuperClass();
-	}
+	UBlueprint* Blueprint = GlobalOptionsDetailsPtr.Pin()->GetBlueprintObj();
+	check(Blueprint);
 
-	return false;
+	FBlueprintEditorUtils::ImplementNewInterface( Blueprint, PickedClass->GetFName() );
+
+	RegenerateChildrenDelegate.ExecuteIfBound();
+
+	OnRefreshInDetailsView();
 }
 
 TSharedRef<SWidget> FBlueprintInterfaceLayout::OnGetAddInterfaceMenuContent()
 {
 	UBlueprint* Blueprint = GlobalOptionsDetailsPtr.Pin()->GetBlueprintObj();
 
-	// Generate a list of interfaces that can still be implemented
-	UnimplementedInterfaces.Empty();
-	for (TObjectIterator<UClass> It; It; ++It)
-	{
-		UClass* CurrentInterface = *It;
-		if (FKismetEditorUtilities::CanBlueprintImplementInterface(Blueprint, CurrentInterface) &&
-			!IsInterfaceImplemented(Blueprint, CurrentInterface) &&
-			!FKismetEditorUtilities::IsClassABlueprintSkeleton(CurrentInterface))
-		{
-			UnimplementedInterfaces.Add(MakeShareable(new FInterfaceName(CurrentInterface->GetFName(), CurrentInterface->GetDisplayNameText())));
-		}
-	}
-
-	if (UnimplementedInterfaces.Num() > 0)
-	{
-		return SNew(SListView<TSharedPtr<FInterfaceName>>)
-			.ListItemsSource(&UnimplementedInterfaces)
-			.OnGenerateRow(this, &FBlueprintInterfaceLayout::GenerateInterfaceListRow)
-			.OnSelectionChanged(this, &FBlueprintInterfaceLayout::OnInterfaceListSelectionChanged);
-	}
-	else
-	{
-		return SNew(STextBlock)
-			.Text(LOCTEXT("BlueprintNoInterfacesAvailable", "No interfaces available to implement."));
-	}
-}
-
-TSharedRef<ITableRow> FBlueprintInterfaceLayout::GenerateInterfaceListRow(TSharedPtr<FInterfaceName> InterfaceName, const TSharedRef<STableViewBase>& OwningList)
-{
-	return SNew(STableRow< TSharedPtr<FInterfaceName> >, OwningList)
+	TArray<UBlueprint*> Blueprints;
+	Blueprints.Add(Blueprint);
+	TSharedRef<SWidget> ClassPicker = FBlueprintEditorUtils::ConstructBlueprintInterfaceClassPicker(Blueprints, FOnClassPicked::CreateSP(this, &FBlueprintInterfaceLayout::OnClassPicked));
+	return
+		SNew(SBorder)
+		.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
 		[
-			SNew(STextBlock)
-			.Text(InterfaceName.IsValid() ? InterfaceName->DisplayText : FText())
+			// Achieving fixed width by nesting items within a fixed width box.
+			SNew(SBox)
+			.WidthOverride(350.0f)
+			[
+				SNew(SVerticalBox)
+				+SVerticalBox::Slot()
+				.MaxHeight(400.0f)
+				.AutoHeight()
+				[
+					ClassPicker
+				]
+			]
 		];
 }
 
-void FBlueprintInterfaceLayout::OnInterfaceListSelectionChanged(TSharedPtr<FInterfaceName> Selection, ESelectInfo::Type SelectInfo)
+void FBlueprintInterfaceLayout::OnRefreshInDetailsView()
 {
-	if (Selection.IsValid())
-	{
-		UBlueprint* Blueprint = GlobalOptionsDetailsPtr.Pin()->GetBlueprintObj();
-		check(Blueprint);
+	TSharedPtr<SKismetInspector> Inspector = GlobalOptionsDetailsPtr.Pin()->GetBlueprintEditorPtr().Pin()->GetInspector();
+	UBlueprint* Blueprint = GlobalOptionsDetailsPtr.Pin()->GetBlueprintObj();
+	check(Blueprint);
 
-		FName SelectedInterface = Selection->Name;
-		if (!FBlueprintEditorUtils::ImplementNewInterface( Blueprint, SelectedInterface ) )
-		{
-			GlobalOptionsDetailsPtr.Pin()->GetBlueprintEditorPtr().Pin()->LogSimpleMessage( LOCTEXT("ImplementInterface_Error", "Unable to implement interface. Check log for details") );
-		}
-		
-		if (AddInterfaceComboButton.IsValid())
-		{
-			AddInterfaceComboButton->SetIsOpen(false);
-		}
-
-		RegenerateChildrenDelegate.ExecuteIfBound();
-	}
+	// Show details for the Blueprint instance we're editing
+	Inspector->ShowDetailsForSingleObject(Blueprint);
 }
-
-
 
 UBlueprint* FBlueprintGlobalOptionsDetails::GetBlueprintObj() const
 {
@@ -4045,6 +4260,11 @@ void FBlueprintGlobalOptionsDetails::OnClassPicked(UClass* PickedClass)
 	{
 		BlueprintEditorPtr.Pin()->ReparentBlueprint_NewParentChosen(PickedClass);
 	}
+
+	check(BlueprintEditorPtr.IsValid());
+	TSharedPtr<SKismetInspector> Inspector = BlueprintEditorPtr.Pin()->GetInspector();
+	// Show details for the Blueprint instance we're editing
+	Inspector->ShowDetailsForSingleObject(GetBlueprintObj());
 }
 
 bool FBlueprintGlobalOptionsDetails::CanDeprecateBlueprint() const
@@ -4058,15 +4278,15 @@ bool FBlueprintGlobalOptionsDetails::CanDeprecateBlueprint() const
 	return true;
 }
 
-void FBlueprintGlobalOptionsDetails::OnDeprecateBlueprint(ESlateCheckBoxState::Type InCheckState)
+void FBlueprintGlobalOptionsDetails::OnDeprecateBlueprint(ECheckBoxState InCheckState)
 {
-	GetBlueprintObj()->bDeprecate = InCheckState == ESlateCheckBoxState::Checked? true : false;
+	GetBlueprintObj()->bDeprecate = InCheckState == ECheckBoxState::Checked? true : false;
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(GetBlueprintObj());
 }
 
-ESlateCheckBoxState::Type FBlueprintGlobalOptionsDetails::IsDeprecatedBlueprint() const
+ECheckBoxState FBlueprintGlobalOptionsDetails::IsDeprecatedBlueprint() const
 {
-	return GetBlueprintObj()->bDeprecate? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return GetBlueprintObj()->bDeprecate? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 FText FBlueprintGlobalOptionsDetails::GetDeprecatedTooltip() const
@@ -4088,19 +4308,21 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 		for (TFieldIterator<UProperty> PropertyIt(Blueprint->GetClass(), EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
 			UProperty* Property = *PropertyIt;
-			if(FObjectEditorUtils::GetCategory(Property) != TEXT("BlueprintOption"))
+			FString Category = FObjectEditorUtils::GetCategory(Property);
+
+			if ( Category != TEXT("BlueprintOptions") && Category != TEXT("ClassOptions") )
 			{
 				DetailLayout.HideProperty(DetailLayout.GetProperty(Property->GetFName()));
 			}
 		}
 
 		// Display the parent class and set up the menu for reparenting
-		IDetailCategoryBuilder& Category = DetailLayout.EditCategory("Globals", LOCTEXT("BlueprintGlobalDetailsCategory", "Globals").ToString());
-		Category.AddCustomRow( LOCTEXT("BlueprintGlobalDetailsCategory", "Globals").ToString() )
+		IDetailCategoryBuilder& Category = DetailLayout.EditCategory("ClassOptions", LOCTEXT("ClassOptions", "Class Options"));
+		Category.AddCustomRow( LOCTEXT("ClassOptions", "Class Options") )
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("BlueprintDetails_ParentClass", "Parent Class").ToString())
+			.Text(LOCTEXT("BlueprintDetails_ParentClass", "Parent Class"))
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 		.ValueContent()
@@ -4125,7 +4347,7 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 		if (bSupportsInterfaces)
 		{
 			// Interface details customization
-			IDetailCategoryBuilder& InterfacesCategory = DetailLayout.EditCategory("Interfaces", LOCTEXT("BlueprintInterfacesDetailsCategory", "Interfaces").ToString());
+			IDetailCategoryBuilder& InterfacesCategory = DetailLayout.EditCategory("Interfaces", LOCTEXT("BlueprintInterfacesDetailsCategory", "Interfaces"));
 		
 			TSharedRef<FBlueprintInterfaceLayout> InterfaceLayout = MakeShareable(new FBlueprintInterfaceLayout(SharedThis(this), false));
 			InterfacesCategory.AddCustomBuilder(InterfaceLayout);
@@ -4147,7 +4369,7 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 		else
 		{
 			// Only display the ability to deprecate a Blueprint on non-level Blueprints.
-			Category.AddCustomRow( TEXT("Deprecate") )
+			Category.AddCustomRow( LOCTEXT("DeprecateLabel", "Deprecate"), true )
 				.NameContent()
 				[
 					SNew(STextBlock)
@@ -4158,16 +4380,14 @@ void FBlueprintGlobalOptionsDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 				.ValueContent()
 				[
 					SNew(SCheckBox)
-						.IsEnabled( this, &FBlueprintGlobalOptionsDetails::CanDeprecateBlueprint )
-						.IsChecked( this, &FBlueprintGlobalOptionsDetails::IsDeprecatedBlueprint )
-						.OnCheckStateChanged( this, &FBlueprintGlobalOptionsDetails::OnDeprecateBlueprint )
-						.ToolTipText( this, &FBlueprintGlobalOptionsDetails::GetDeprecatedTooltip )
+					.IsEnabled( this, &FBlueprintGlobalOptionsDetails::CanDeprecateBlueprint )
+					.IsChecked( this, &FBlueprintGlobalOptionsDetails::IsDeprecatedBlueprint )
+					.OnCheckStateChanged( this, &FBlueprintGlobalOptionsDetails::OnDeprecateBlueprint )
+					.ToolTipText( this, &FBlueprintGlobalOptionsDetails::GetDeprecatedTooltip )
 				];
 		}
 	}
 }
-
-
 
 void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 {
@@ -4178,39 +4398,44 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 	check(Blueprint != NULL);
 
 	TArray<FSCSEditorTreeNodePtrType> Nodes = Editor->GetSelectedNodes();
-	check(Nodes.Num() > 0);
 
-	if (Nodes.Num() == 1)
+	if (!Nodes.Num())
+	{
+		CachedNodePtr = nullptr;
+	}
+	else if (Nodes.Num() == 1)
 	{
 		CachedNodePtr = Nodes[0];
 	}
 
 	if( CachedNodePtr.IsValid() )
 	{
-		IDetailCategoryBuilder& VariableCategory = DetailLayout.EditCategory("Variable", LOCTEXT("VariableDetailsCategory", "Variable").ToString(), ECategoryPriority::Variable);
+		IDetailCategoryBuilder& VariableCategory = DetailLayout.EditCategory("Variable", LOCTEXT("VariableDetailsCategory", "Variable"), ECategoryPriority::Variable);
 
-		VariableCategory.AddCustomRow(TEXT("Variable Name"))
+		VariableNameEditableTextBox = SNew(SEditableTextBox)
+			.Text(this, &FBlueprintComponentDetails::OnGetVariableText)
+			.OnTextChanged(this, &FBlueprintComponentDetails::OnVariableTextChanged)
+			.OnTextCommitted(this, &FBlueprintComponentDetails::OnVariableTextCommitted)
+			.IsReadOnly(!CachedNodePtr->CanRename())
+			.Font(IDetailLayoutBuilder::GetDetailFont());
+
+		VariableCategory.AddCustomRow(LOCTEXT("BlueprintComponentDetails_VariableNameLabel", "Variable Name"))
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("BlueprintComponentDetails_VariableNameLabel", "Variable Name").ToString())
+			.Text(LOCTEXT("BlueprintComponentDetails_VariableNameLabel", "Variable Name"))
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 		.ValueContent()
 		[
-			SAssignNew(VariableNameEditableTextBox, SEditableTextBox)
-			.Text(this, &FBlueprintComponentDetails::OnGetVariableText)
-			.OnTextChanged( this, &FBlueprintComponentDetails::OnVariableTextChanged)
-			.OnTextCommitted( this, &FBlueprintComponentDetails::OnVariableTextCommitted)
-			.IsReadOnly(CachedNodePtr->IsNative() || CachedNodePtr->IsInherited() || CachedNodePtr->IsDefaultSceneRoot())
-			.Font(IDetailLayoutBuilder::GetDetailFont())
+			VariableNameEditableTextBox.ToSharedRef()
 		];
 
-		VariableCategory.AddCustomRow(TEXT("Tooltip"))
+		VariableCategory.AddCustomRow(LOCTEXT("BlueprintComponentDetails_VariableTooltipLabel", "Tooltip"))
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("BlueprintComponentDetails_VariableTooltipLabel", "Tooltip").ToString())
+			.Text(LOCTEXT("BlueprintComponentDetails_VariableTooltipLabel", "Tooltip"))
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 		.ValueContent()
@@ -4222,13 +4447,13 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 		];
 
 		PopulateVariableCategories();
-		const FString CategoryTooltip = LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one.").ToString();
+		const FText CategoryTooltip = LOCTEXT("EditCategoryName_Tooltip", "The category of the variable; editing this will place the variable into another category or create a new one.");
 
-		VariableCategory.AddCustomRow( TEXT("Category") )
+		VariableCategory.AddCustomRow( LOCTEXT("BlueprintComponentDetails_VariableCategoryLabel", "Category") )
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("BlueprintComponentDetails_VariableCategoryLabel", "Category").ToString())
+			.Text(LOCTEXT("BlueprintComponentDetails_VariableCategoryLabel", "Category"))
 			.ToolTipText(CategoryTooltip)
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
@@ -4267,13 +4492,13 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 			]
 		];
 
-		IDetailCategoryBuilder& SocketsCategory = DetailLayout.EditCategory("Sockets", LOCTEXT("BlueprintComponentDetailsCategory", "Sockets").ToString(), ECategoryPriority::Important);
+		IDetailCategoryBuilder& SocketsCategory = DetailLayout.EditCategory("Sockets", LOCTEXT("BlueprintComponentDetailsCategory", "Sockets"), ECategoryPriority::Important);
 
-		SocketsCategory.AddCustomRow(LOCTEXT("BlueprintComponentDetails_Sockets", "Sockets").ToString())
+		SocketsCategory.AddCustomRow(LOCTEXT("BlueprintComponentDetails_Sockets", "Sockets"))
 		.NameContent()
 		[
 			SNew(STextBlock)
-			.Text(LOCTEXT("BlueprintComponentDetails_ParentSocket", "Parent Socket").ToString())
+			.Text(LOCTEXT("BlueprintComponentDetails_ParentSocket", "Parent Socket"))
 			.Font(IDetailLayoutBuilder::GetDetailFont())
 		]
 		.ValueContent()
@@ -4307,99 +4532,19 @@ void FBlueprintComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailLa
 			]
 		];
 	}
-	// Add Events Section if we have a common base class that has valid events
-	UClass* CommonEventsClass = FindCommonBaseClassFromSelected();
 
-	if( FBlueprintEditor::CanClassGenerateEvents( CommonEventsClass ))
+	// Handle event generation
+	if ( FBlueprintEditorUtils::DoesSupportEventGraphs(Blueprint) && Nodes.Num() == 1 )
 	{
-		IDetailCategoryBuilder& EventCategory = DetailLayout.EditCategory("Component", LOCTEXT("ComponentDetailsCategory", "Events").ToString(), ECategoryPriority::Important);
+		FName PropertyName = CachedNodePtr->GetVariableName();
+		UObjectProperty* VariableProperty = FindField<UObjectProperty>(Blueprint->SkeletonGeneratedClass, PropertyName);
 
-		FText NodeName = ( Nodes.Num() > 1 ) ? LOCTEXT( "ScriptingEvents_SelectedComponents", "Selected Components" ) : FText::FromName( CachedNodePtr->GetVariableName() );
-		const FText AddEventLabel = FText::Format( LOCTEXT( "ScriptingEvents_AddEvent", "Add Event For {0}" ), NodeName );
-		const FText AddEventToolTip = FText::Format( LOCTEXT( "ScriptingEvents_AddOrView", "Adds or views events for {0} in the Component Blueprint" ), NodeName );
-
-		EventCategory.AddCustomRow( LOCTEXT("AddEventHeader", "Add Event").ToString())
-			.NameContent()
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.Padding( FMargin( 2.0f, 0, 0, 0 ) )
-				.VAlign( VAlign_Center )
-				.AutoWidth()
-				[
-					SNew( STextBlock )
-						.Text( LOCTEXT("ScriptingEvents_Label", "Add Event")  )
-						.Font( IDetailLayoutBuilder::GetDetailFont() )
-				]
-			]
-			.ValueContent()
-			[
-				SNew(SHorizontalBox)
-				+SHorizontalBox::Slot()
-				.FillWidth( 1 )
-				.VAlign( VAlign_Center )
-				[
-					SNew( SComboButton )
-						.HAlign(HAlign_Fill)
-						.VAlign(VAlign_Center)
-						.OnGetMenuContent( this, &FBlueprintComponentDetails::BuildEventsMenuForComponents)
-						.ButtonContent()
-					[
-						SNew( STextBlock )
-							.Text( AddEventLabel ) 
-							.ToolTipText( AddEventToolTip )
-							.Font( IDetailLayoutBuilder::GetDetailFont() )
-					]
-				]
-			];
+		AddEventsCategory(DetailLayout, VariableProperty);
 	}
-}
 
-UClass* FBlueprintComponentDetails::FindCommonBaseClassFromSelected() const
-{
-	UClass* Result = NULL;
-
-	if( BlueprintEditorPtr.IsValid() )
-	{
-		TSharedPtr<SSCSEditor> Editor = BlueprintEditorPtr.Pin()->GetSCSEditor();
-		check( Editor.IsValid() );
-		// Find common component class from selected
-		TArray<UClass*> SelectionClasses;
-		TArray<FSCSEditorTreeNodePtrType> SelectedNodes = Editor->GetSelectedNodes();
-
-		for (auto NodeIter = SelectedNodes.CreateConstIterator(); NodeIter; ++NodeIter)
-		{
-			auto Node = *NodeIter;
-			if( Node.IsValid() && Node->GetComponentTemplate() )
-			{
-				SelectionClasses.Add( Node->GetComponentTemplate()->GetClass() );
-			}
-		}
-		Result = UClass::FindCommonBase( SelectionClasses );
-	}
-	return Result;
-}
-
-TSharedRef<SWidget> FBlueprintComponentDetails::BuildEventsMenuForComponents() const
-{
-	// See if the component class has event properties
-	if( BlueprintEditorPtr.IsValid() )
-	{
-		TSharedPtr<SSCSEditor> Editor = BlueprintEditorPtr.Pin()->GetSCSEditor();
-
-		if( Editor.IsValid() )
-		{
-			UClass* CommonComponentClass = FindCommonBaseClassFromSelected();
-			if( CommonComponentClass )
-			{
-				FMenuBuilder MenuBuilder( true, NULL );
-				Editor->BuildMenuEventsSection( MenuBuilder, BlueprintEditorPtr.Pin(), CommonComponentClass, 
-												FGetSelectedObjectsDelegate::CreateSP(Editor.Get(), &SSCSEditor::GetSelectedItemsForContextMenu));
-				return MenuBuilder.MakeWidget();
-			}
-		}
-	}
-	return SNullWidget::NullWidget;
+	// Don't show tick properties for components in the blueprint details
+	TSharedPtr<IPropertyHandle> PrimaryTickProperty = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UActorComponent, PrimaryComponentTick));
+	PrimaryTickProperty->MarkHiddenByCustomization();
 }
 
 FText FBlueprintComponentDetails::OnGetVariableText() const
@@ -4416,7 +4561,7 @@ void FBlueprintComponentDetails::OnVariableTextChanged(const FText& InNewText)
 	bIsVariableNameInvalid = true;
 
 	USCS_Node* SCS_Node = CachedNodePtr->GetSCSNode();
-	if(SCS_Node != NULL && !InNewText.IsEmpty() && !SCS_Node->IsValidVariableNameString(InNewText.ToString()))
+	if(SCS_Node != NULL && !InNewText.IsEmpty() && !FComponentEditorUtils::IsValidVariableNameString(SCS_Node->ComponentTemplate, InNewText.ToString()))
 	{
 		VariableNameEditableTextBox->SetError(LOCTEXT("ComponentVariableRenameFailed_NotValid", "This name is reserved for engine use."));
 		return;
@@ -4486,7 +4631,7 @@ bool FBlueprintComponentDetails::OnVariableCategoryChangeEnabled() const
 {
 	check(CachedNodePtr.IsValid());
 
-	return !CachedNodePtr->IsNative() && !CachedNodePtr->IsInherited();
+	return !CachedNodePtr->CanRename();
 }
 
 FText FBlueprintComponentDetails::OnGetVariableCategoryText() const
@@ -4550,7 +4695,7 @@ TSharedRef< ITableRow > FBlueprintComponentDetails::MakeVariableCategoryViewWidg
 	return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
 	[
 		SNew(STextBlock)
-		.Text(*Item.Get())
+		.Text(FText::FromString(*Item.Get()))
 	];
 }
 
@@ -4594,42 +4739,6 @@ void FBlueprintComponentDetails::PopulateVariableCategories()
 	}
 }
 
-bool FBlueprintComponentDetails::IsNodeAttachable() const
-{
-	check(CachedNodePtr.IsValid());
-
-	// See if node is an attachable type
-	bool bCanAttach = false;	
-	if (!CachedNodePtr->IsRoot())
-	{
-		// check component is the correct type
-		if (USceneComponent* SceneComponent = Cast<USceneComponent>(CachedNodePtr->GetComponentTemplate()))
-		{
-			check(BlueprintEditorPtr.IsValid());
-			TSharedPtr<SSCSEditor> Editor = BlueprintEditorPtr.Pin()->GetSCSEditor();
-			check( Editor.IsValid() );
-			check( Editor->SCS );
-
-			USCS_Node* SCS_Node = CachedNodePtr->GetSCSNode();
-			if (SCS_Node != NULL && Editor->IsNodeInSimpleConstructionScript(SCS_Node))
-			{
-				FSCSEditorTreeNodePtrType ParentFNode = CachedNodePtr->GetParent();
-				
-				// check parent is of the right type
-				if (ParentFNode.IsValid())
-				{
-					if (USceneComponent* ParentComponent = Cast<USceneComponent>(ParentFNode->GetComponentTemplate()))
-					{
-						bCanAttach = ParentComponent->HasAnySockets();
-					}
-				}
-			}
-		}
-	}
-	
-	return bCanAttach;
-}
-
 FText FBlueprintComponentDetails::GetSocketName() const
 {
 	check(CachedNodePtr.IsValid());
@@ -4649,7 +4758,6 @@ void FBlueprintComponentDetails::OnBrowseSocket()
 	{
 		TSharedPtr<SSCSEditor> Editor = BlueprintEditorPtr.Pin()->GetSCSEditor();
 		check( Editor.IsValid() );
-		check( Editor->SCS );
 
 		FSCSEditorTreeNodePtrType ParentFNode = CachedNodePtr->GetParent();
 
@@ -4701,21 +4809,12 @@ void FBlueprintComponentDetails::OnSocketSelection( FName SocketName )
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
-	// Cache the GraphNode
-	if( BlueprintEditorPtr.IsValid() )
+	const TArray<TWeakObjectPtr<UObject>> SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
+	if( SelectedObjects.Num() == 1 )
 	{
-		/** Get the currently selected set of nodes */
-		TSet<UObject*> Objects = BlueprintEditorPtr.Pin()->GetSelectedNodes();
-
-		if (Objects.Num() == 1)
+		if (SelectedObjects[0].IsValid() && SelectedObjects[0]->IsA<UEdGraphNode>())
 		{
-			TSet<UObject*>::TIterator Iter(Objects);
-			UObject* Object = *Iter;
-
-			if (Object && Object->IsA<UEdGraphNode>())
-			{
-				GraphNodePtr = Cast<UEdGraphNode>(Object);
-			}
+			GraphNodePtr = Cast<UEdGraphNode>(SelectedObjects[0].Get());
 		}
 	}
 
@@ -4724,7 +4823,7 @@ void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 		return;
 	}
 
-	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("GraphNodeDetail", LOCTEXT("GraphNodeDetailsCategory", "Graph Node").ToString(), ECategoryPriority::Important);
+	IDetailCategoryBuilder& Category = DetailLayout.EditCategory("GraphNodeDetail", LOCTEXT("GraphNodeDetailsCategory", "Graph Node"), ECategoryPriority::Important);
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 	FText RowHeader;
 	FText NameContent;
@@ -4741,7 +4840,7 @@ void FBlueprintGraphNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailL
 	}
 
 
-	Category.AddCustomRow( RowHeader.ToString() )
+	Category.AddCustomRow( RowHeader )
 	.NameContent()
 	[
 		SNew(STextBlock)
@@ -4851,7 +4950,7 @@ FChildActorComponentDetails::FChildActorComponentDetails(TWeakPtr<FBlueprintEdit
 
 void FChildActorComponentDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 {
-	TSharedPtr<IPropertyHandle> ActorClassProperty = DetailBuilder.GetProperty("ChildActorClass");
+	TSharedPtr<IPropertyHandle> ActorClassProperty = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UChildActorComponent, ChildActorClass));
 	if (ActorClassProperty->IsValidHandle())
 	{
 		if (BlueprintEditorPtr.IsValid())
@@ -4900,14 +4999,14 @@ void FBlueprintDocumentationDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 		DocumentationLink = DocumentationNodePtr->GetDocumentationLink();
 		DocumentationExcerpt = DocumentationNodePtr->GetDocumentationExcerptName();
 
-		IDetailCategoryBuilder& DocumentationCategory = DetailLayout.EditCategory("Documentation", LOCTEXT("DocumentationDetailsCategory", "Documentation").ToString(), ECategoryPriority::Default);
+		IDetailCategoryBuilder& DocumentationCategory = DetailLayout.EditCategory("Documentation", LOCTEXT("DocumentationDetailsCategory", "Documentation"), ECategoryPriority::Default);
 
-		DocumentationCategory.AddCustomRow( TEXT( "Documentation Link" ))
+		DocumentationCategory.AddCustomRow( LOCTEXT( "DocumentationLinkLabel", "Documentation Link" ))
 		.NameContent()
 		.HAlign( HAlign_Fill )
 		[
 			SNew( STextBlock )
-			.Text( LOCTEXT( "FBlueprintDocumentationDetails_Link", "Link" ).ToString() )
+			.Text( LOCTEXT( "FBlueprintDocumentationDetails_Link", "Link" ) )
 			.ToolTipText( LOCTEXT( "FBlueprintDocumentationDetails_LinkPathTooltip", "The documentation content path" ))
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
 		]
@@ -4924,12 +5023,12 @@ void FBlueprintDocumentationDetails::CustomizeDetails(IDetailLayoutBuilder& Deta
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
 		];
 
-		DocumentationCategory.AddCustomRow( TEXT( "Documentation Excerpts" ))
+		DocumentationCategory.AddCustomRow( LOCTEXT( "DocumentationExcerptsLabel", "Documentation Excerpts" ))
 		.NameContent()
 		.HAlign( HAlign_Left )
 		[
 			SNew( STextBlock )
-			.Text( LOCTEXT( "FBlueprintDocumentationDetails_Excerpt", "Excerpt" ).ToString() )
+			.Text( LOCTEXT( "FBlueprintDocumentationDetails_Excerpt", "Excerpt" ) )
 			.ToolTipText( LOCTEXT( "FBlueprintDocumentationDetails_ExcerptTooltip", "The current documentation excerpt" ))
 			.Font( IDetailLayoutBuilder::GetDetailFont() )
 		]
@@ -5007,7 +5106,7 @@ TSharedRef< ITableRow > FBlueprintDocumentationDetails::MakeExcerptViewWidget( T
 		SNew( STableRow<TSharedPtr<FString>>, OwnerTable )
 		[
 			SNew( STextBlock )
-			.Text( *Item.Get() )
+			.Text( FText::FromString(*Item.Get()) )
 		];
 }
 

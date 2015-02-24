@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,8 +18,8 @@ public:
 private:
 	void GenerateStateContent();
 
-	FString GetTitle() const;
-	FString GetButtonText() const;
+	FText GetTitle() const;
+	FText GetButtonText() const;
 
 	EVisibility ShowCancelButton() const;
 	bool ButtonEnabled() const;

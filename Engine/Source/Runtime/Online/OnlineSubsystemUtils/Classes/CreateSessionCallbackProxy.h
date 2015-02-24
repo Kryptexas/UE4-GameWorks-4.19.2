@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "OnlineSessionInterface.h"
@@ -40,6 +40,10 @@ private:
 
 	// The delegate executed by the online subsystem
 	FOnStartSessionCompleteDelegate StartCompleteDelegate;
+
+	// Handles to the registered delegates above
+	FDelegateHandle CreateCompleteDelegateHandle;
+	FDelegateHandle StartCompleteDelegateHandle;
 
 	// Number of public connections
 	int NumPublicConnections;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Sound/SoundCue.h"
@@ -42,12 +42,7 @@ void USoundCue::Serialize( FArchive& Ar )
 
 	Super::Serialize( Ar );
 
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_SOUND_NODE_INHERIT_FROM_ED_GRAPH_NODE)
-	{
-		Ar << EditorData_DEPRECATED;
-	}
-
-	if (!Ar.IsCooking() && Ar.UE4Ver() >= VER_UE4_SOUND_CUE_GRAPH_EDITOR)
+	if (!Ar.IsCooking())
 	{
 		Ar << SoundCueGraph;
 	}
@@ -66,47 +61,7 @@ void USoundCue::PostLoad()
 {
 	Super::PostLoad();
 
-	if (GetLinkerUE4Version() < VER_UE4_SOUND_NODE_INHERIT_FROM_ED_GRAPH_NODE)
-	{
-		CreateGraph();
-
-		for(TMap<USoundNode*,FSoundNodeEditorData>::TConstIterator It(EditorData_DEPRECATED); It; ++It)
-		{
-			USoundNode* Node = It.Key();
-			if (Node)
-			{
-				SetupSoundNode(Node);
-
-				Node->GraphNode->NodePosX = -It.Value().NodePosX - Node->GraphNode->EstimateNodeWidth();
-				Node->GraphNode->NodePosY = It.Value().NodePosY;
-
-				AllNodes.Add(Node);
-			}
-		}
-		EditorData_DEPRECATED.Empty();
-
-		LinkGraphNodesFromSoundNodes();
-	}
-	else if (GetLinkerUE4Version() < VER_UE4_SOUND_CUE_GRAPH_EDITOR)
-	{
-		CreateGraph();
-
-		for(TArray<USoundNode*>::TConstIterator It(AllNodes); It; ++It)
-		{
-			USoundNode* Node = *It;
-			if (Node)
-			{
-				SetupSoundNode(Node);
-
-				Node->GraphNode->NodePosX = -Node->NodePosX_DEPRECATED - Node->GraphNode->EstimateNodeWidth();
-				Node->GraphNode->NodePosY = Node->NodePosY_DEPRECATED;
-			}
-		}
-
-		LinkGraphNodesFromSoundNodes();
-	}
-
-	// Game doesn't care if there are NULL graph nodes
+		// Game doesn't care if there are NULL graph nodes
 	if (GIsEditor)
 	{
 		// Deal with SoundNode types being removed - iterate in reverse as nodes may be removed
@@ -144,7 +99,7 @@ template<typename T> ENGINE_API void USoundCue::RecursiveFindNode( USoundNode* N
 {
 	if( Node )
 	{
-		// Record the node if it is attenuation
+		// Record the node if it is the desired type
 		if( Node->IsA( T::StaticClass() ) )
 		{
 			OutNodes.AddUnique( static_cast<T*>( Node ) );
@@ -207,7 +162,7 @@ bool USoundCue::RecursiveFindPathToNode(USoundNode* CurrentNode, const UPTRINT C
 
 bool USoundCue::FindPathToNode(const UPTRINT NodeHashToFind, TArray<USoundNode*>& OutPath) const
 {
-	return RecursiveFindPathToNode(FirstNode, 0, NodeHashToFind, OutPath);
+	return RecursiveFindPathToNode(FirstNode, (UPTRINT)FirstNode, NodeHashToFind, OutPath);
 }
 
 

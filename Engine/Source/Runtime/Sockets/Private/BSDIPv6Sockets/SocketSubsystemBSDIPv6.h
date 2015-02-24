@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -15,7 +15,7 @@
  * Standard BSD specific IPv6 socket subsystem implementation
  */
 class FSocketSubsystemBSDIPv6
-	: public ISocketSubsystem
+	: public FSocketSubsystemBSDCommon
 {
 public:
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "MeshComponentDetails.h"
@@ -12,7 +12,7 @@ TSharedRef<IDetailCustomization> FMeshComponentDetails::MakeInstance()
 void FMeshComponentDetails::CustomizeDetails( IDetailLayoutBuilder& DetailLayout )
 {
 	RenderingCategory = &DetailLayout.EditCategory("Rendering");
-	TSharedRef<IPropertyHandle> MaterialProperty = DetailLayout.GetProperty( "Materials" );
+	TSharedRef<IPropertyHandle> MaterialProperty = DetailLayout.GetProperty( GET_MEMBER_NAME_CHECKED(UMeshComponent, OverrideMaterials) );
 
 	if( MaterialProperty->IsValidHandle() )
 	{

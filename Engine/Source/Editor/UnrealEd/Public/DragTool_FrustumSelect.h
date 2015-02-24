@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -12,8 +12,9 @@
 class UNREALED_API FDragTool_ActorFrustumSelect : public FDragTool
 {
 public:
-	FDragTool_ActorFrustumSelect()
+	explicit FDragTool_ActorFrustumSelect(FLevelEditorViewportClient* InLevelViewportClient)
 		: FDragTool()
+		, LevelViewportClient( InLevelViewportClient )
 	{}
 
 	/* Updates the drag tool's end location with the specified delta.  The end location is
@@ -65,15 +66,6 @@ private:
 	 */
 	bool IntersectsFrustum( const UModel& InModel, int32 NodeIndex, const FConvexVolume& InFrustum, bool bUseStrictSelection ) const;
 	
-	/** 
-	 * Returns true if the mesh on the component has vertices which intersect the frustum
-	 *
-	 * @param InComponent			The static mesh or skeletal mesh component to check
-	 * @param InFrustum				The frustum to check against.
-	 * @param bUseStrictSelection	true if all the vertices must be entirely within the frustum
-	 */
-	bool IntersectsVertices( UPrimitiveComponent& InComponent, const FConvexVolume& InFrustum, bool bUseStrictSelection ) const;
-	
 	/** Adds a hover effect to the passed in actor */
 	void AddHoverEffect( AActor& InActor );
 	
@@ -92,5 +84,5 @@ private:
 	/** List of BSP models to check for selection */
 	TArray<UModel*> ModelsToCheck;
 
-	FEditorViewportClient* ViewportClient;
+	FLevelEditorViewportClient* LevelViewportClient;
 };

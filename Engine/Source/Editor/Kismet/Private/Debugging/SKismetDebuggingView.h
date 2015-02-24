@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -70,7 +70,7 @@ protected:
 	virtual FText GetDisplayName() const;
 
 	// @return The text to display in the value column, unless GenerateValueWidget is overridden
-	virtual FString GetDescription() const;
+	virtual FText GetDescription() const;
 private:
 	// Type of action (poor mans RTTI for the tree, really only used to accelerate Compare checks)
 	EDebugLineType Type;
@@ -95,7 +95,7 @@ public:
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
 	// End of SWidget interface
 protected:
-	FString GetTopText() const;
+	FText GetTopText() const;
 
 	TSharedRef<ITableRow> OnGenerateRowForWatchTree(FDebugTreeItemPtr InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void OnGetChildrenForWatchTree(FDebugTreeItemPtr InParent, TArray<FDebugTreeItemPtr>& OutChildren);

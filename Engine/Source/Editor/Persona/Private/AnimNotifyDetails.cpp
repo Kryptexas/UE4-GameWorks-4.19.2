@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PersonaPrivatePCH.h"
 #include "AnimNotifyDetails.h"
@@ -39,7 +39,7 @@ void FAnimNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 	// Don't want to edit the notify name here.
 	DetailBuilder.HideProperty(TEXT("Event.NotifyName"));
 
-	IDetailCategoryBuilder& AnimNotifyCategory = DetailBuilder.EditCategory(TEXT("AnimNotify"), TEXT(""), ECategoryPriority::TypeSpecific);
+	IDetailCategoryBuilder& AnimNotifyCategory = DetailBuilder.EditCategory(TEXT("AnimNotify"), FText::GetEmpty(), ECategoryPriority::TypeSpecific);
 
 	// Check existence of notify, get rid of the property if not set
 	if(!NotifyPtr)
@@ -201,7 +201,7 @@ void FAnimNotifyDetails::ClearInstancedSelectionDropDown(IDetailCategoryBuilder&
 	.CustomWidget(bShowChildren)
 	.NameContent()
 	[
-		PropHandle->CreatePropertyNameWidget(TEXT(""), TEXT(""), false)
+		PropHandle->CreatePropertyNameWidget(FText::GetEmpty(), FText::GetEmpty(), false)
 	]
 	.ValueContent()
 	[
@@ -236,7 +236,7 @@ void FAnimNotifyDetails::CustomizeLinkProperties(IDetailLayoutBuilder& Builder, 
 						.CustomWidget()
 						.NameContent()
 						[
-							ChildHandle->CreatePropertyNameWidget(NSLOCTEXT("NotifyDetails", "SlotIndexName", "Slot").ToString())
+							ChildHandle->CreatePropertyNameWidget(NSLOCTEXT("NotifyDetails", "SlotIndexName", "Slot"))
 						]
 						.ValueContent()
 						[

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	CubemapUnwapUtils.cpp: Pixel and Vertex shader to render a cube map as 2D texture
@@ -8,6 +8,10 @@
 #include "ShaderParameterUtils.h"
 #include "CubemapUnwrapUtils.h" 
 #include "RHIStaticStates.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/TextureCube.h"
+#include "Engine/TextureRenderTargetCube.h"
+#include "CanvasTypes.h"
 
 IMPLEMENT_SHADER_TYPE(,FCubemapTexturePropertiesVS,TEXT("SimpleElementVertexShader"),TEXT("Main"),SF_Vertex);
 IMPLEMENT_SHADER_TYPE(template<>,FCubemapTexturePropertiesPS<false>,TEXT("SimpleElementPixelShader"),TEXT("CubemapTextureProperties"),SF_Pixel);
@@ -37,7 +41,7 @@ namespace CubemapHelpers
 		// If the source format is 8 bit per channel or less then select a LDR target format.
 		const EPixelFormat TargetPixelFormat = CalculateImageBytes(1, 1, 0, SourcePixelFormat) <= 4 ? PF_B8G8R8A8 : PF_FloatRGBA;
 
-		UTextureRenderTarget2D* RenderTargetLongLat = new UTextureRenderTarget2D(FObjectInitializer());
+		UTextureRenderTarget2D* RenderTargetLongLat = NewObject<UTextureRenderTarget2D>();
 		check(RenderTargetLongLat);
 		RenderTargetLongLat->AddToRoot();
 		RenderTargetLongLat->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);

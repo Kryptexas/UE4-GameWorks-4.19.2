@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -54,7 +54,7 @@ void SGraphNodeK2Terminator::UpdateGraphNode()
 	//            |_______|______|_______|
 	//
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
-	this->ChildSlot
+	this->GetOrAddSlot( ENodeZone::Center )
 	.HAlign(HAlign_Center)
 	.VAlign(VAlign_Center)
 	[

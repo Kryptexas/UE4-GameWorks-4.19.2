@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/EnvQueryManager.h"
@@ -6,6 +6,11 @@
 
 UEnvQueryGenerator::UEnvQueryGenerator(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
+}
+
+void UEnvQueryGenerator::UpdateGeneratorVersion()
+{
+	VerNum = EnvQueryGeneratorVersion::Latest;
 }
 
 FText UEnvQueryGenerator::GetDescriptionTitle() const
@@ -27,3 +32,9 @@ void UEnvQueryGenerator::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 #endif
 }
 #endif //WITH_EDITOR && USE_EQS_DEBUGGER
+
+void UEnvQueryGenerator::PostLoad()
+{
+	Super::PostLoad();
+	UpdateGeneratorVersion();
+}

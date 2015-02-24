@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Commandlets/Commandlet.h"
@@ -39,10 +39,6 @@ class UNREALED_API UResavePackagesCommandlet : public UCommandlet
 	 * A value of -1 (default) removes this limitation.
 	 */
 	int32 MaxPackagesToResave;
-
-	/** if true, only save packages that require sound conversion */
-	bool bSoundConversionOnly;
-	bool bSoundWasDirty;
 
 	/** allows users to save only packages with a particular class in them (useful for fixing content) */
 	TArray<FName> ResaveClasses;

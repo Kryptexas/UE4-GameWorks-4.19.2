@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ProfilerPrivatePCH.h"
 #include "SEventGraphTooltip.h"
@@ -65,8 +65,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::StatName,
 			TEXT("name"),
-			TEXT("Event Name"),
-			TEXT("Name of the event"),
+			LOCTEXT("EventNameColumnTitle", "Event Name"),
+			LOCTEXT("EventNameColumnDesc", "Name of the event"),
 			false,true,true,false,false,
 			HAlign_Left,
 			0.0f
@@ -76,8 +76,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::InclusiveTimeMS,
 			TEXT("inc"),
-			TEXT("Inc Time (MS)"),
-			TEXT("Duration of the sample and its children, in milliseconds"),
+			LOCTEXT("InclusiveTimeMSTitle", "Inc Time (MS)"),
+			LOCTEXT("InclusiveTimeMSDesc", "Duration of the sample and its children, in milliseconds"),
 			false,true,true,true,true,
 			HAlign_Right,
 			0.0f
@@ -87,8 +87,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::InclusiveTimePct,
 			TEXT("inc%"),
-			TEXT("Inc Time (%)"),
-			TEXT("Duration of the sample and its children as percent of the caller"),
+			LOCTEXT("InclusiveTimePercentageTitle", "Inc Time (%)"),
+			LOCTEXT("InclusiveTimePercentageDesc", "Duration of the sample and its children as percent of the caller"),
 			true,true,true,false,false,
 			HAlign_Right,
 			64.0f
@@ -98,8 +98,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::MinInclusiveTimeMS,
 			TEXT("min"),
-			TEXT("Min Inc Time (MS)"),
-			TEXT("Minimum inclusive time of all instances for this event, in milliseconds"),
+			LOCTEXT("MinInclusiveTimeMSTitle", "Min Inc Time (MS)"),
+			LOCTEXT("MinInclusiveTimeMSDesc", "Minimum inclusive time of all instances for this event, in milliseconds"),
 			true,false,true,true,false,
 			HAlign_Right,
 			0.0f
@@ -109,8 +109,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::MaxInclusiveTimeMS,
 			TEXT("max"),
-			TEXT("Max Inc Time (MS)"),
-			TEXT("Maximum inclusive time of all instances for this event, in milliseconds"),
+			LOCTEXT("MaxInclusiveTimeMSTitle", "Max Inc Time (MS)"),
+			LOCTEXT("MaxInclusiveTimeMSDesc", "Maximum inclusive time of all instances for this event, in milliseconds"),
 			true,false,true,true,false,
 			HAlign_Right,
 			0.0f
@@ -120,8 +120,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::AvgInclusiveTimeMS,
 			TEXT("avg"),
-			TEXT("Avg Inc Time (MS)"),
-			TEXT("Average inclusive time of all instances for this event, in milliseconds"),
+			LOCTEXT("AverageInclusiveTimeMSTitle", "Avg Inc Time (MS)"),
+			LOCTEXT("AverageInclusiveTimeMSDesc", "Average inclusive time of all instances for this event, in milliseconds"),
 			true,false,true,true,false,
 			HAlign_Right,
 			0.0f
@@ -130,8 +130,9 @@ namespace EventGraphColumns
 		FEventGraphColumn
 		(
 			EEventPropertyIndex::ExclusiveTimeMS,
-			TEXT("exc"),TEXT("Exc Time (MS)"),
-			TEXT("Exclusive time of this event, in milliseconds"),
+			TEXT("exc"),
+			LOCTEXT("ExclusiveTimeMSTitle", "Exc Time (MS)"),
+			LOCTEXT("ExclusiveTimeMSDesc", "Exclusive time of this event, in milliseconds"),
 			false,true,true,true,false,
 			HAlign_Right,
 			0.0f
@@ -140,8 +141,9 @@ namespace EventGraphColumns
 		FEventGraphColumn
 		(
 			EEventPropertyIndex::ExclusiveTimePct,
-			TEXT("exc%"),TEXT("Exc Time (%)"),
-			TEXT("Exclusive time of this event as percent of this call's inclusive time"),
+			TEXT("exc%"),
+			LOCTEXT("ExclusiveTimePercentageTitle", "Exc Time (%)"),
+			LOCTEXT("ExclusiveTimePercentageDesc", "Exclusive time of this event as percent of this call's inclusive time"),
 			true,true,true,false,false,
 			HAlign_Right,
 			64.0f
@@ -151,8 +153,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::AvgInclusiveTimePerCallMS,
 			TEXT("avgper"),
-			TEXT("Avg Inc Time per Call (MS)"),
-			TEXT("Average inclusive time per call of all instances for this event, in milliseconds"),
+			LOCTEXT("AverageInclusiveTimePerCallMSTitle", "Avg Inc Time per Call (MS)"),
+			LOCTEXT("AverageInclusiveTimePerCallMSDesc", "Average inclusive time per call of all instances for this event, in milliseconds"),
 			true,false,true,false,false,
 			HAlign_Right,
 			0.0f
@@ -162,8 +164,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::NumCallsPerFrame,
 			TEXT("calls"),
-			TEXT("Calls"),
-			TEXT("Number of times this event was called"),
+			LOCTEXT("CallsPerFrameTitle", "Calls"),
+			LOCTEXT("CallsPerFrameDesc", "Number of times this event was called"),
 			false,true,true,true,false,
 			HAlign_Right,
 			64.0f
@@ -173,8 +175,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::AvgNumCallsPerFrame,
 			TEXT("avgcalls"),
-			TEXT("Avg Calls"),
-			TEXT("Average number of times this event was called"),
+			LOCTEXT("AverageCallsPerFrameTitle", "Avg Calls"),
+			LOCTEXT("AverageCallsPerFrameDesc", "Average number of times this event was called"),
 			true,true,true,true,false,
 			HAlign_Right,
 			64.0f
@@ -185,8 +187,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::ThreadName,
 			TEXT("th"),
-			TEXT("Thread Name"),
-			TEXT("Name of the thread that this event was captured on"),
+			LOCTEXT("ThreadNameTitle", "Thread Name"),
+			LOCTEXT("ThreadNameDesc", "Name of the thread that this event was captured on"),
 			true,false,true,false,false,
 			HAlign_Left,
 			0.0f
@@ -197,8 +199,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::ThreadDurationMS,
 			TEXT("td"),
-			TEXT("Thread Duration (MS)"),
-			TEXT("Duration of the thread that this event was captured on, in milliseconds"),
+			LOCTEXT("ThreadDurationTitle", "Thread Duration (MS)"),
+			LOCTEXT("ThreadDurationDesc", "Duration of the thread that this event was captured on, in milliseconds"),
 			true,false,true,false,false,
 			HAlign_Right,
 			0.0f
@@ -209,8 +211,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::FrameDurationMS,
 			TEXT("fd"),
-			TEXT("Frame Duration (MS)"),
-			TEXT("Duration of the frame that this event was captured on, in milliseconds"),
+			LOCTEXT("FrameDurationMSTitle", "Frame Duration (MS)"),
+			LOCTEXT("FrameDurationMSDesc", "Duration of the frame that this event was captured on, in milliseconds"),
 			true,false,true,false,false,
 			HAlign_Right,
 			0.0f
@@ -221,8 +223,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::ThreadPct,
 			TEXT("t%"),
-			TEXT("% of Thread"),
-			TEXT("Percent of inclusive time spent by this event in the particular thread"),
+			LOCTEXT("ThreadPercentageTitle", "% of Thread"),
+			LOCTEXT("ThreadPercentageDesc", "Percent of inclusive time spent by this event in the particular thread"),
 			true,true,true,false,false,
 			HAlign_Right,
 			64.0f
@@ -233,8 +235,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::FramePct,
 			TEXT("f%"),
-			TEXT("% of Frame"),
-			TEXT("Percent of inclusive time spent by this event in the particular frame"),
+			LOCTEXT("FramePercentageTitle", "% of Frame"),
+			LOCTEXT("FramePercentageDesc", "Percent of inclusive time spent by this event in the particular frame"),
 			true,true,true,false,false,
 			HAlign_Right,
 			64.0f
@@ -245,8 +247,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::ThreadToFramePct,
 			TEXT("t2f%"),
-			TEXT("Thread to Frame (%)"),
-			TEXT("Percent of time spent in the thread in relation to the entire frame"),
+			LOCTEXT("ThreadToFramePercentageTitle", "Thread to Frame (%)"),
+			LOCTEXT("ThreadToFramePercentageDesc", "Percent of time spent in the thread in relation to the entire frame"),
 			true,false,true,false,false,
 			HAlign_Right,
 			64.0f
@@ -256,8 +258,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::StartTimeMS,
 			TEXT("start"),
-			TEXT("Start Time (MS)"),
-			TEXT("Start time of this event, in milliseconds"),
+			LOCTEXT("StartTimeMSTitle", "Start Time (MS)"),
+			LOCTEXT("StartTimeMSDesc", "Start time of this event, in milliseconds"),
 			true,false,true,false,false,
 			HAlign_Right,
 			0.0f
@@ -267,8 +269,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::GroupName,
 			TEXT("grp"),
-			TEXT("Group Name"),
-			TEXT("Name of the stat group this event belongs to"),
+			LOCTEXT("GroupNameTitle", "Group Name"),
+			LOCTEXT("GroupNameDesc", "Name of the stat group this event belongs to"),
 			true,false,true,false,false,
 			HAlign_Left,
 			0.0f
@@ -279,8 +281,8 @@ namespace EventGraphColumns
 		(
 			EEventPropertyIndex::None,
 			TEXT("None"),
-			TEXT("None"),
-			TEXT("None"),
+			LOCTEXT("None", "None"),
+			LOCTEXT("None", "None"),
 			false,false,false,false,false,
 			HAlign_Left,
 			0.0f
@@ -386,7 +388,7 @@ protected:
 			.Padding( FMargin( 2.0f, 0.0f ) )
 			[
 				SNew( STextBlock )
-				.Text( EventPtr->_StatName.ToString() )
+				.Text( FText::FromName(EventPtr->_StatName) )
 				.TextStyle( FEditorStyle::Get(), TEXT("Profiler.Tooltip") )
 				.ColorAndOpacity( this, &SEventGraphTableCell::GetColorAndOpacity )
 				.ShadowColorAndOpacity( this, &SEventGraphTableCell::GetShadowColorAndOpacity )
@@ -436,7 +438,7 @@ protected:
 			.Padding( FMargin( 2.0f, 0.0f ) )
 			[
 				SNew( STextBlock )
-				.Text( FormattedValue )
+				.Text( FText::FromString(FormattedValue) )
 				.TextStyle( FEditorStyle::Get(), TEXT("Profiler.Tooltip") )
 				.ColorAndOpacity( this, &SEventGraphTableCell::GetColorAndOpacity )
 				.ShadowColorAndOpacity( this, &SEventGraphTableCell::GetShadowColorAndOpacity )
@@ -948,7 +950,7 @@ TSharedRef<SWidget> SEventGraph::GetToggleButtonForEventGraphType( const EEventG
 	.VAlign( VAlign_Center )
 	[
 		SNew( STextBlock )
-		.Text( EEventGraphTypes::ToName( EventGraphType ) )
+		.Text( FText::FromString(EEventGraphTypes::ToName( EventGraphType )) )
 		.TextStyle( FEditorStyle::Get(), TEXT("Profiler.Caption") )
 	];
 
@@ -960,7 +962,7 @@ TSharedRef<SWidget> SEventGraph::GetToggleButtonForEventGraphType( const EEventG
 	.Padding( 2.0f )
 	.OnCheckStateChanged( this, &SEventGraph::EventGraphType_OnCheckStateChanged, EventGraphType )
 	.IsChecked( this, &SEventGraph::EventGraphType_IsChecked, EventGraphType )
-	.ToolTipText( EEventGraphTypes::ToDescription( EventGraphType ) )
+	.ToolTipText( FText::FromString(EEventGraphTypes::ToDescription( EventGraphType )) )
 	[
 		ButtonContent
 	];
@@ -1540,7 +1542,7 @@ TSharedPtr<SWidget> SEventGraph::EventGraph_GetMenuContent() const
 	else if( NumSelectedEvents == 1 )
 	{
 		SelectionStr = FText::FromString( SelectedEvent->_StatName.GetPlainNameString() );
-		PropertyName = FText::FromString( Column.ShortName );
+		PropertyName = Column.ShortName;
 		PropertyValue = FText::FromString( SelectedEvent->GetFormattedValue(Column.Index) );
 	}
 	else
@@ -1858,8 +1860,8 @@ void SEventGraph::EventGraph_BuildSortByMenu( FMenuBuilder& MenuBuilder )
 			);
 			MenuBuilder.AddMenuEntry
 			( 
-				FText::FromString( Column.ShortName ),
-				FText::FromString( Column.Description ), 
+				Column.ShortName,
+				Column.Description, 
 				FSlateIcon(), Action_SortByColumn, NAME_None, EUserInterfaceActionType::RadioButton 
 			);
 		}
@@ -1915,8 +1917,8 @@ void SEventGraph::EventGraph_BuildViewColumnMenu( FMenuBuilder& MenuBuilder )
 		);
 		MenuBuilder.AddMenuEntry
 		( 
-			FText::FromString( Column.ShortName ),
-			FText::FromString( Column.Description ), 
+			Column.ShortName,
+			Column.Description, 
 			FSlateIcon(), Action_ToggleColumn, NAME_None, EUserInterfaceActionType::ToggleButton 
 		);
 	}
@@ -1924,25 +1926,25 @@ void SEventGraph::EventGraph_BuildViewColumnMenu( FMenuBuilder& MenuBuilder )
 	MenuBuilder.EndSection();
 }
 
-void SEventGraph::EventGraphViewMode_OnCheckStateChanged( ESlateCheckBoxState::Type NewRadioState, const EEventGraphViewModes::Type InViewMode )
+void SEventGraph::EventGraphViewMode_OnCheckStateChanged( ECheckBoxState NewRadioState, const EEventGraphViewModes::Type InViewMode )
 {
-	if( NewRadioState == ESlateCheckBoxState::Checked && GetCurrentStateViewMode() != InViewMode)
+	if( NewRadioState == ECheckBoxState::Checked && GetCurrentStateViewMode() != InViewMode)
 	{
 		const TArray< FEventGraphSamplePtr > SelectedEvents = TreeView_Base->GetSelectedItems();
 		ShowEventsInViewMode( SelectedEvents, InViewMode );
 	}
 }
 
-ESlateCheckBoxState::Type SEventGraph::EventGraphViewMode_IsChecked( const EEventGraphViewModes::Type InViewMode ) const
+ECheckBoxState SEventGraph::EventGraphViewMode_IsChecked( const EEventGraphViewModes::Type InViewMode ) const
 {
-	return (GetCurrentStateViewMode() == InViewMode) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (GetCurrentStateViewMode() == InViewMode) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SEventGraph::EventGraphType_OnCheckStateChanged( ESlateCheckBoxState::Type NewRadioState, const EEventGraphTypes::Type NewEventGraphType )
+void SEventGraph::EventGraphType_OnCheckStateChanged( ECheckBoxState NewRadioState, const EEventGraphTypes::Type NewEventGraphType )
 {
 	const uint32 NumFrames = GetCurrentState()->GetNumFrames();
 
-	if( NewRadioState == ESlateCheckBoxState::Checked && GetCurrentStateEventGraphType() != NewEventGraphType )
+	if( NewRadioState == ECheckBoxState::Checked && GetCurrentStateEventGraphType() != NewEventGraphType )
 	{
 		FEventGraphStateRef EventGraphState = GetCurrentState();
 		GetHierarchicalExpandedEvents( EventGraphState->ExpandedEvents );
@@ -1953,7 +1955,7 @@ void SEventGraph::EventGraphType_OnCheckStateChanged( ESlateCheckBoxState::Type 
 	}
 }
 
-ESlateCheckBoxState::Type SEventGraph::EventGraphType_IsChecked( const EEventGraphTypes::Type InEventGraphType ) const
+ECheckBoxState SEventGraph::EventGraphType_IsChecked( const EEventGraphTypes::Type InEventGraphType ) const
 {
 	if( IsEventGraphStatesHistoryValid() )
 	{
@@ -1961,15 +1963,15 @@ ESlateCheckBoxState::Type SEventGraph::EventGraphType_IsChecked( const EEventGra
 
 		if( NumFrames == 1 )
 		{
-			return GetCurrentStateEventGraphType() == InEventGraphType ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return GetCurrentStateEventGraphType() == InEventGraphType ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 		else if( NumFrames > 1 )
 		{
-			return GetCurrentStateEventGraphType() == InEventGraphType ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+			return GetCurrentStateEventGraphType() == InEventGraphType ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 bool SEventGraph::EventGraphType_IsEnabled( const EEventGraphTypes::Type InEventGraphType ) const
@@ -2014,7 +2016,7 @@ FReply SEventGraph::ExpandHotPath_OnClicked()
 	return FReply::Handled();
 }
 
-void SEventGraph::HighlightHotPath_OnCheckStateChanged( ESlateCheckBoxState::Type InState )
+void SEventGraph::HighlightHotPath_OnCheckStateChanged( ECheckBoxState InState )
 {
 
 }
@@ -2292,7 +2294,7 @@ void SEventGraph::ContextMenu_CopySelectedToClipboard_Execute()
 	for( uint32 ColumnIndex = 0; ColumnIndex < EventGraphColumns::NumColumns; ColumnIndex++ )
 	{
 		const FEventGraphColumn& Column = EventGraphColumns::Collection[ColumnIndex];
-		Result += FString::Printf( TEXT("\"%s\","), *Column.ShortName );
+		Result += FString::Printf( TEXT("\"%s\","), *Column.ShortName.ToString() );
 	}
 	Result += LINE_TERMINATOR;
 
@@ -2867,7 +2869,7 @@ TSharedRef<SHorizontalBox> SEventGraph::GetContentForEvent( FEventGraphSamplePtr
 	.VAlign(VAlign_Center)
 	[
 		SNew(STextBlock)
-		.Text( GetEventDescription(EventPtr,Pct,bSimple) )
+		.Text( FText::FromString(GetEventDescription(EventPtr,Pct,bSimple)) )
 		.TextStyle( FEditorStyle::Get(), bSimple ? TEXT("Profiler.Tooltip") : TEXT("Profiler.EventGraph.DarkText") )
 	];
 
@@ -3321,7 +3323,7 @@ EVisibility SEventGraph::EventGraphViewMode_GetVisibility( const EEventGraphView
 		{
 			// If view mode is not available event graph will switch to the hierarchical view mode.
 			SEventGraph* MutableThis = const_cast< SEventGraph* >( this );
-			MutableThis->EventGraphViewMode_OnCheckStateChanged( ESlateCheckBoxState::Checked, EEventGraphViewModes::Hierarchical );
+			MutableThis->EventGraphViewMode_OnCheckStateChanged( ECheckBoxState::Checked, EEventGraphViewModes::Hierarchical );
 		}
 		return Vis;
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MovieSceneToolsPrivatePCH.h"
 #include "MovieScene.h"
@@ -20,7 +20,7 @@
 #include "MovieSceneTrackEditor.h"
 #include "DirectorTrackEditor.h"
 #include "CommonMovieSceneTools.h"
-
+#include "Camera/CameraActor.h"
 
 namespace AnimatableShotToolConstants
 {

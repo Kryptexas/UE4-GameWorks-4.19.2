@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnMath.cpp: Unreal math routines
@@ -196,7 +196,7 @@ void FVector::FindBestAxisVectors( FVector& Axis1, FVector& Axis2 ) const
 	if( NZ>NX && NZ>NY )	Axis1 = FVector(1,0,0);
 	else					Axis1 = FVector(0,0,1);
 
-	Axis1 = (Axis1 - *this * (Axis1 | *this)).SafeNormal();
+	Axis1 = (Axis1 - *this * (Axis1 | *this)).GetSafeNormal();
 	Axis2 = Axis1 ^ *this;
 }
 
@@ -395,12 +395,12 @@ FMatrix FRotationMatrix::Make(FQuat const& Rot)
 
 FMatrix FRotationMatrix::MakeFromX(FVector const& XAxis)
 {
-	FVector const NewX = XAxis.SafeNormal();
+	FVector const NewX = XAxis.GetSafeNormal();
 
 	// try to use up if possible
 	FVector const UpVector = ( FMath::Abs(NewX.Z) < (1.f - KINDA_SMALL_NUMBER) ) ? FVector(0,0,1.f) : FVector(1.f,0,0);
 
-	const FVector NewY = (UpVector ^ NewX).SafeNormal();
+	const FVector NewY = (UpVector ^ NewX).GetSafeNormal();
 	const FVector NewZ = NewX ^ NewY;
 
 	return FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
@@ -408,12 +408,12 @@ FMatrix FRotationMatrix::MakeFromX(FVector const& XAxis)
 
 FMatrix FRotationMatrix::MakeFromY(FVector const& YAxis)
 {
-	FVector const NewY = YAxis.SafeNormal();
+	FVector const NewY = YAxis.GetSafeNormal();
 
 	// try to use up if possible
 	FVector const UpVector = ( FMath::Abs(NewY.Z) < (1.f - KINDA_SMALL_NUMBER) ) ? FVector(0,0,1.f) : FVector(1.f,0,0);
 
-	const FVector NewZ = (UpVector ^ NewY).SafeNormal();
+	const FVector NewZ = (UpVector ^ NewY).GetSafeNormal();
 	const FVector NewX = NewY ^ NewZ;
 
 	return FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
@@ -421,12 +421,12 @@ FMatrix FRotationMatrix::MakeFromY(FVector const& YAxis)
 
 FMatrix FRotationMatrix::MakeFromZ(FVector const& ZAxis)
 {
-	FVector const NewZ = ZAxis.SafeNormal();
+	FVector const NewZ = ZAxis.GetSafeNormal();
 
 	// try to use up if possible
 	FVector const UpVector = ( FMath::Abs(NewZ.Z) < (1.f - KINDA_SMALL_NUMBER) ) ? FVector(0,0,1.f) : FVector(1.f,0,0);
 
-	const FVector NewX = (UpVector ^ NewZ).SafeNormal();
+	const FVector NewX = (UpVector ^ NewZ).GetSafeNormal();
 	const FVector NewY = NewZ ^ NewX;
 
 	return FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
@@ -434,8 +434,8 @@ FMatrix FRotationMatrix::MakeFromZ(FVector const& ZAxis)
 
 FMatrix FRotationMatrix::MakeFromXY(FVector const& XAxis, FVector const& YAxis)
 {
-	FVector NewX = XAxis.SafeNormal();
-	FVector Norm = YAxis.SafeNormal();
+	FVector NewX = XAxis.GetSafeNormal();
+	FVector Norm = YAxis.GetSafeNormal();
 
 	// if they're almost same, we need to find arbitrary vector
 	if ( FMath::IsNearlyEqual(FMath::Abs(NewX | Norm), 1.f) )
@@ -444,7 +444,7 @@ FMatrix FRotationMatrix::MakeFromXY(FVector const& XAxis, FVector const& YAxis)
 		Norm = ( FMath::Abs(NewX.Z) < (1.f - KINDA_SMALL_NUMBER) ) ? FVector(0,0,1.f) : FVector(1.f,0,0);
 	}
 
-	const FVector NewZ = (NewX ^ Norm).SafeNormal();
+	const FVector NewZ = (NewX ^ Norm).GetSafeNormal();
 	const FVector NewY = NewZ ^ NewX;
 
 	return FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
@@ -452,8 +452,8 @@ FMatrix FRotationMatrix::MakeFromXY(FVector const& XAxis, FVector const& YAxis)
 
 FMatrix FRotationMatrix::MakeFromXZ(FVector const& XAxis, FVector const& ZAxis)
 {
-	FVector const NewX = XAxis.SafeNormal();
-	FVector Norm = ZAxis.SafeNormal();
+	FVector const NewX = XAxis.GetSafeNormal();
+	FVector Norm = ZAxis.GetSafeNormal();
 
 	// if they're almost same, we need to find arbitrary vector
 	if ( FMath::IsNearlyEqual(FMath::Abs(NewX | Norm), 1.f) )
@@ -462,7 +462,7 @@ FMatrix FRotationMatrix::MakeFromXZ(FVector const& XAxis, FVector const& ZAxis)
 		Norm = ( FMath::Abs(NewX.Z) < (1.f - KINDA_SMALL_NUMBER) ) ? FVector(0,0,1.f) : FVector(1.f,0,0);
 	}
 
-	const FVector NewY = (Norm ^ NewX).SafeNormal();
+	const FVector NewY = (Norm ^ NewX).GetSafeNormal();
 	const FVector NewZ = NewX ^ NewY;
 
 	return FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
@@ -470,8 +470,8 @@ FMatrix FRotationMatrix::MakeFromXZ(FVector const& XAxis, FVector const& ZAxis)
 
 FMatrix FRotationMatrix::MakeFromYX(FVector const& YAxis, FVector const& XAxis)
 {
-	FVector const NewY = YAxis.SafeNormal();
-	FVector Norm = XAxis.SafeNormal();
+	FVector const NewY = YAxis.GetSafeNormal();
+	FVector Norm = XAxis.GetSafeNormal();
 
 	// if they're almost same, we need to find arbitrary vector
 	if ( FMath::IsNearlyEqual(FMath::Abs(NewY | Norm), 1.f) )
@@ -480,7 +480,7 @@ FMatrix FRotationMatrix::MakeFromYX(FVector const& YAxis, FVector const& XAxis)
 		Norm = ( FMath::Abs(NewY.Z) < (1.f - KINDA_SMALL_NUMBER) ) ? FVector(0,0,1.f) : FVector(1.f,0,0);
 	}
 	
-	const FVector NewZ = (Norm ^ NewY).SafeNormal();
+	const FVector NewZ = (Norm ^ NewY).GetSafeNormal();
 	const FVector NewX = NewY ^ NewZ;
 
 	return FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
@@ -488,8 +488,8 @@ FMatrix FRotationMatrix::MakeFromYX(FVector const& YAxis, FVector const& XAxis)
 
 FMatrix FRotationMatrix::MakeFromYZ(FVector const& YAxis, FVector const& ZAxis)
 {
-	FVector const NewY = YAxis.SafeNormal();
-	FVector Norm = ZAxis.SafeNormal();
+	FVector const NewY = YAxis.GetSafeNormal();
+	FVector Norm = ZAxis.GetSafeNormal();
 
 	// if they're almost same, we need to find arbitrary vector
 	if ( FMath::IsNearlyEqual(FMath::Abs(NewY | Norm), 1.f) )
@@ -498,7 +498,7 @@ FMatrix FRotationMatrix::MakeFromYZ(FVector const& YAxis, FVector const& ZAxis)
 		Norm = ( FMath::Abs(NewY.Z) < (1.f - KINDA_SMALL_NUMBER) ) ? FVector(0,0,1.f) : FVector(1.f,0,0);
 	}
 
-	const FVector NewX = (NewY ^ Norm).SafeNormal();
+	const FVector NewX = (NewY ^ Norm).GetSafeNormal();
 	const FVector NewZ = NewX ^ NewY;
 
 	return FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
@@ -506,8 +506,8 @@ FMatrix FRotationMatrix::MakeFromYZ(FVector const& YAxis, FVector const& ZAxis)
 
 FMatrix FRotationMatrix::MakeFromZX(FVector const& ZAxis, FVector const& XAxis)
 {
-	FVector const NewZ = ZAxis.SafeNormal();
-	FVector Norm = XAxis.SafeNormal();
+	FVector const NewZ = ZAxis.GetSafeNormal();
+	FVector Norm = XAxis.GetSafeNormal();
 
 	// if they're almost same, we need to find arbitrary vector
 	if ( FMath::IsNearlyEqual(FMath::Abs(NewZ | Norm), 1.f) )
@@ -516,7 +516,7 @@ FMatrix FRotationMatrix::MakeFromZX(FVector const& ZAxis, FVector const& XAxis)
 		Norm = ( FMath::Abs(NewZ.Z) < (1.f - KINDA_SMALL_NUMBER) ) ? FVector(0,0,1.f) : FVector(1.f,0,0);
 	}
 
-	const FVector NewY = (NewZ ^ Norm).SafeNormal();
+	const FVector NewY = (NewZ ^ Norm).GetSafeNormal();
 	const FVector NewX = NewY ^ NewZ;
 
 	return FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
@@ -524,8 +524,8 @@ FMatrix FRotationMatrix::MakeFromZX(FVector const& ZAxis, FVector const& XAxis)
 
 FMatrix FRotationMatrix::MakeFromZY(FVector const& ZAxis, FVector const& YAxis)
 {
-	FVector const NewZ = ZAxis.SafeNormal();
-	FVector Norm = YAxis.SafeNormal();
+	FVector const NewZ = ZAxis.GetSafeNormal();
+	FVector Norm = YAxis.GetSafeNormal();
 
 	// if they're almost same, we need to find arbitrary vector
 	if ( FMath::IsNearlyEqual(FMath::Abs(NewZ | Norm), 1.f) )
@@ -534,7 +534,7 @@ FMatrix FRotationMatrix::MakeFromZY(FVector const& ZAxis, FVector const& YAxis)
 		Norm = ( FMath::Abs(NewZ.Z) < (1.f - KINDA_SMALL_NUMBER) ) ? FVector(0,0,1.f) : FVector(1.f,0,0);
 	}
 
-	const FVector NewX = (Norm ^ NewZ).SafeNormal();
+	const FVector NewX = (Norm ^ NewZ).GetSafeNormal();
 	const FVector NewY = NewZ ^ NewX;
 
 	return FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
@@ -1054,7 +1054,7 @@ static void FindBounds( float& OutMin, float& OutMax,  float Start, float StartL
 		const float c = StartLeaveTan;
 
 		const float Discriminant = (b*b) - (4.f*a*c);
-		if(Discriminant > 0.f)
+		if(Discriminant > 0.f && a > 0.f) // Solving doesn't work if a is zero, which usually indicates co-incident start and end, and zero tangents anyway
 		{
 			const float SqrtDisc = FMath::Sqrt( Discriminant );
 
@@ -1186,14 +1186,14 @@ void CORE_API CurveLinearColorFindIntervalBounds( const FInterpCurvePoint<FLinea
 
 CORE_API float FMath::PointDistToLine(const FVector &Point, const FVector &Direction, const FVector &Origin, FVector &OutClosestPoint)
 {
-	const FVector SafeDir = Direction.SafeNormal();
+	const FVector SafeDir = Direction.GetSafeNormal();
 	OutClosestPoint = Origin + (SafeDir * ((Point-Origin) | SafeDir));
 	return (OutClosestPoint-Point).Size();
 }
 
 CORE_API float FMath::PointDistToLine(const FVector &Point, const FVector &Direction, const FVector &Origin)
 {
-	const FVector SafeDir = Direction.SafeNormal();
+	const FVector SafeDir = Direction.GetSafeNormal();
 	const FVector OutClosestPoint = Origin + (SafeDir * ((Point-Origin) | SafeDir));
 	return (OutClosestPoint-Point).Size();
 }
@@ -1213,6 +1213,29 @@ FVector FMath::ClosestPointOnSegment(const FVector &Point, const FVector &StartP
 	// See if closest point is beyond EndPoint
 	const float Dot2 = Segment | Segment;
 	if( Dot2 <= Dot1 )
+	{
+		return EndPoint;
+	}
+
+	// Closest Point is within segment
+	return StartPoint + Segment * (Dot1 / Dot2);
+}
+
+FVector2D FMath::ClosestPointOnSegment2D(const FVector2D &Point, const FVector2D &StartPoint, const FVector2D &EndPoint)
+{
+	const FVector2D Segment = EndPoint - StartPoint;
+	const FVector2D VectToPoint = Point - StartPoint;
+
+	// See if closest point is before StartPoint
+	const float Dot1 = VectToPoint | Segment;
+	if (Dot1 <= 0)
+	{
+		return StartPoint;
+	}
+
+	// See if closest point is beyond EndPoint
+	const float Dot2 = Segment | Segment;
+	if (Dot2 <= Dot1)
 	{
 		return EndPoint;
 	}
@@ -1241,8 +1264,8 @@ void FMath::SegmentDistToSegmentSafe(FVector A1, FVector B1, FVector A2, FVector
 	const	FVector	S3		= A1 - A2;
 
 
-	const	FVector	S1_norm		= S1.SafeNormal();
-	const	FVector	S2_norm		= S2.SafeNormal();
+	const	FVector	S1_norm		= S1.GetSafeNormal();
+	const	FVector	S2_norm		= S2.GetSafeNormal();
 
 	const	float	Dot11	= S1 | S1;	// always >= 0
 	const	float	Dot22	= S2 | S2;	// always >= 0
@@ -1596,7 +1619,7 @@ FVector FMath::ComputeBaryCentric2D(const FVector& Point, const FVector& A, cons
 	//check collinearity of A,B,C
 	check(TriNorm.SizeSquared() > SMALL_NUMBER && "Collinear points in FMath::ComputeBaryCentric2D()");
 
-	const FVector N = TriNorm.SafeNormal();
+	const FVector N = TriNorm.GetSafeNormal();
 
 	// Compute twice area of triangle ABC
 	const float AreaABCInv = 1.0f / (N | TriNorm);
@@ -1738,7 +1761,7 @@ void FMath::SphereDistToLine(FVector SphereOrigin, float SphereRadius, FVector L
 	{
 		// line is not intersecting sphere (or is tangent at one point if D == 0 )
 		const FVector PointOnLine = LineOrigin + ( -B / 2.f * A ) * LineDir;
-		OutClosestPoint = SphereOrigin + (PointOnLine - SphereOrigin).SafeNormal() * SphereRadius;
+		OutClosestPoint = SphereOrigin + (PointOnLine - SphereOrigin).GetSafeNormal() * SphereRadius;
 	}
 	else
 	{
@@ -1797,7 +1820,7 @@ bool FMath::PointsAreCoplanar(const TArray<FVector>& Points, const float Toleran
 	}
 
 	//Get the Normal for plane determined by first 3 points
-	const FVector Normal = FVector::CrossProduct(Points[2] - Points[0], Points[1] - Points[0]).SafeNormal();
+	const FVector Normal = FVector::CrossProduct(Points[2] - Points[0], Points[1] - Points[0]).GetSafeNormal();
 
 	const int32 Total = Points.Num();
 	for (int32 v = 3; v < Total; v++)
@@ -1821,10 +1844,10 @@ bool FMath::GetDotDistance
 	const	FVector		&AxisZ 	
 )
 {
-	const FVector NormalDir = Direction.SafeNormal();
+	const FVector NormalDir = Direction.GetSafeNormal();
 
 	// Find projected point (on AxisX and AxisY, remove AxisZ component)
-	const FVector NoZProjDir = ( NormalDir - (NormalDir | AxisZ) * AxisZ ).SafeNormal();
+	const FVector NoZProjDir = (NormalDir - (NormalDir | AxisZ) * AxisZ).GetSafeNormal();
 	
 	// Figure out if projection is on right or left.
 	const float AzimuthSign = ( (NoZProjDir | AxisY) < 0.f ) ? -1.f : 1.f;
@@ -1844,9 +1867,9 @@ FVector2D FMath::GetAzimuthAndElevation
 	const FVector &AxisZ 	
 )
 {
-	const FVector NormalDir = Direction.SafeNormal();
+	const FVector NormalDir = Direction.GetSafeNormal();
 	// Find projected point (on AxisX and AxisY, remove AxisZ component)
-	const FVector NoZProjDir = (NormalDir - (NormalDir | AxisZ) * AxisZ).SafeNormal();
+	const FVector NoZProjDir = (NormalDir - (NormalDir | AxisZ) * AxisZ).GetSafeNormal();
 	// Figure out if projection is on right or left.
 	const float AzimuthSign = ((NoZProjDir | AxisY) < 0.f) ? -1.f : 1.f;
 	const float ElevationSin = NormalDir | AxisZ;
@@ -2188,13 +2211,13 @@ FVector FMath::VRandCone(FVector const& Dir, float ConeHalfAngleRad)
 		Result = Result.RotateAngleAxis(Theta * 180.f / PI, DirZ);
 
 		// ensure it's a unit vector (might not have been passed in that way)
-		Result = Result.SafeNormal();
+		Result = Result.GetSafeNormal();
 		
 		return Result;
 	}
 	else
 	{
-		return Dir.SafeNormal();
+		return Dir.GetSafeNormal();
 	}
 }
 
@@ -2230,13 +2253,13 @@ FVector FMath::VRandCone(FVector const& Dir, float HorizontalConeHalfAngleRad, f
 		Result = Result.RotateAngleAxis(Theta * 180.f / PI, DirZ);
 
 		// ensure it's a unit vector (might not have been passed in that way)
-		Result = Result.SafeNormal();
+		Result = Result.GetSafeNormal();
 
 		return Result;
 	}
 	else
 	{
-		return Dir.SafeNormal();
+		return Dir.GetSafeNormal();
 	}
 }
 
@@ -2249,7 +2272,7 @@ FVector FMath::RandPointInBox(const FBox& Box)
 
 FVector FMath::GetReflectionVector(const FVector& Direction, const FVector& SurfaceNormal)
 {
-	return Direction - 2 * (Direction | SurfaceNormal.SafeNormal()) * SurfaceNormal.SafeNormal();
+	return Direction - 2 * (Direction | SurfaceNormal.GetSafeNormal()) * SurfaceNormal.GetSafeNormal();
 }
 
 struct FClusterMovedHereToMakeCompile

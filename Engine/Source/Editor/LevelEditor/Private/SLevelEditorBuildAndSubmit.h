@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -66,7 +66,7 @@ private:
 	 *
 	 * @param InNewState	The state of the check box
 	 */
-	void OnShowPackagesNotInSCBoxChanged(ESlateCheckBoxState::Type InNewState);
+	void OnShowPackagesNotInSCBoxChanged(ECheckBoxState InNewState);
 
 	/** Level editor that we're associated with */
 	TWeakPtr<class ILevelEditor> LevelEditor;
@@ -94,4 +94,7 @@ private:
 
 	/** Set by OnShowHideExtraPackagesSection() - keeps track of the visibility or the additional packages list */
 	bool bIsExtraPackagesSectionExpanded;
+
+	/** Handle to the registered OnSourceControlStateChanged delegate */
+	FDelegateHandle OnSourceControlStateChangedDelegateHandle;
 };

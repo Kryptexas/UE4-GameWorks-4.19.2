@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "TimerManager.h"
 #include "GameNetworkManager.generated.h"
 
 /** Describes which standby detection event occured so the game can take appropriate action */
@@ -123,13 +124,13 @@ class ENGINE_API AGameNetworkManager : public AInfo
 	// Player replication
 
 	/** @return true if last player client to server update was sufficiently recent.  Used to limit frequency of corrections if connection speed is limited. */
-	bool WithinUpdateDelayBounds(class APlayerController* PC, float LastUpdateTime) const;
+	virtual bool WithinUpdateDelayBounds(class APlayerController* PC, float LastUpdateTime) const;
 
 	/** @return true if position error exceeds max allowable amount */
-	bool ExceedsAllowablePositionError(FVector LocDiff) const;
+	virtual bool ExceedsAllowablePositionError(FVector LocDiff) const;
 
 	/** @return true if velocity vector passed in is considered near zero for networking purposes */
-	bool NetworkVelocityNearZero(FVector InVelocity) const;
+	virtual bool NetworkVelocityNearZero(FVector InVelocity) const;
 	virtual void PostInitializeComponents() override;
 
 	/** @RETURN new per/client bandwidth given number of players in the game */
@@ -152,6 +153,11 @@ class ENGINE_API AGameNetworkManager : public AInfo
 	/** If true, actor network relevancy is constrained by whether they are within their NetCullDistanceSquared from the client's view point. */
 	UPROPERTY(globalconfig)
 	bool	bUseDistanceBasedRelevancy;
+
+protected:
+
+	/** Handle for efficient management of UpdateNetSpeeds timer */
+	FTimerHandle TimerHandle_UpdateNetSpeedsTimer;	
 };
 
 

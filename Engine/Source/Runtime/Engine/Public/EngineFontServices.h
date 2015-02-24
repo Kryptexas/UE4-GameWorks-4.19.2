@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "SlateCore.h"
 
 /** 
  * Provides the Engine with access to the Slate font cache and font measuring services (for Canvas)

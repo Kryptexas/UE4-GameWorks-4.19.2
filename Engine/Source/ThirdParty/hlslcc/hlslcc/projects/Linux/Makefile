@@ -1,4 +1,4 @@
-# Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+# Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #
 # Makefile for building hlslcc on Linux.
 #
@@ -20,7 +20,7 @@ LIB_OBJS := $(LIB_OBJS:.c=.o)
 MAIN_OBJS = $(MAIN_SRCS:.cpp=.o)
 
 # expecting TARGET_ARCH to be set
-LIB = ../../lib/Linux/$TARGET_ARCH/libhlslcc.a
+LIB = ../../lib/Linux/$(TARGET_ARCH)/libhlslcc.a
 MAIN = ../../bin/Linux/hlslcc_64
 
 all: lib 
@@ -49,7 +49,7 @@ $(LIB): $(LIB_OBJS)
 	ar cr $@ $^
 
 $(MAIN): $(MAIN_OBJS) $(LIB)
-	$(CXX) $(CPPFLAGS) $^ -L../../lib/Linux/$TARGET_ARCH -lhlslcc -o $@ 
+	$(CXX) $(CPPFLAGS) $^ -L../../lib/Linux/$(TARGET_ARCH) -lhlslcc -o $@ 
 
 clean:
 	rm -f $(LIB_OBJS) $(MAIN_OBJS) $(LIB) $(MAIN)

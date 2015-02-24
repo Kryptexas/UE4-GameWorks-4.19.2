@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SkeletalMeshEdit.cpp: Unreal editor skeletal mesh/anim support
@@ -350,7 +350,7 @@ void UnFbx::FFbxImporter::FillAndVerifyBoneNames(USkeleton* Skeleton, TArray<Fbx
 	}
 
 	const FReferenceSkeleton& RefSkeleton = Skeleton->GetReferenceSkeleton();
-	const USkeleton::FBoneTreeType & BoneTree = Skeleton->GetBoneTree();
+	const USkeleton::FBoneTreeType& BoneTree = Skeleton->GetBoneTree();
 
 	// make sure at least root bone matches
 	if ( OutRawBoneNames[0] != RefSkeleton.GetBoneName(0) )
@@ -804,7 +804,7 @@ bool UnFbx::FFbxImporter::ImportCurve(const FbxAnimCurve* FbxCurve, FFloatCurve 
 			Curve->FloatCurve.SetKeyInterpMode(NewKeyHandle, NewInterpMode);
 			Curve->FloatCurve.SetKeyTangentMode(NewKeyHandle, NewTangentMode);
 			Curve->FloatCurve.SetKeyTangentWeightMode(NewKeyHandle, NewTangentWeightMode);
-			FRichCurveKey & NewKey = Curve->FloatCurve.GetKey(NewKeyHandle);
+			FRichCurveKey& NewKey = Curve->FloatCurve.GetKey(NewKeyHandle);
 
 			// update tangents - I don't know what the unit for Derivatives is
 			// so I'm just inquiring tangent like above
@@ -863,7 +863,7 @@ namespace AnimationTransformDebug
 			// go through all bones and find 
 			for(int32 BoneIndex=0; BoneIndex<TransformDebugData.Num(); ++BoneIndex)
 			{
-				FAnimationTransformDebugData & Data = TransformDebugData[BoneIndex];
+				FAnimationTransformDebugData& Data = TransformDebugData[BoneIndex];
 				int32 ParentIndex = RefSkeleton.GetParentIndex(Data.BoneIndex);
 				int32 ParentTransformDebugDataIndex = 0;
 
@@ -947,14 +947,14 @@ bool UnFbx::FFbxImporter::ImportCurveToAnimSequence(class UAnimSequence * Target
 
 		// Add or retrieve curve
 		USkeleton::AnimCurveUID Uid;
-		NameMapping->AddName(Name, Uid);
+		NameMapping->AddOrFindName(Name, Uid);
 
-		FFloatCurve * CurveToImport = TargetSequence->RawCurveData.GetCurveData(Uid);
+		FFloatCurve * CurveToImport = static_cast<FFloatCurve *>(TargetSequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
 		if(CurveToImport==NULL)
 		{
 			if(TargetSequence->RawCurveData.AddCurveData(Uid, CurveFlags))
 			{
-				CurveToImport = TargetSequence->RawCurveData.GetCurveData(Uid);
+				CurveToImport = static_cast<FFloatCurve *> (TargetSequence->RawCurveData.GetCurveData(Uid, FRawCurveTracks::FloatType));
 			}
 			else
 			{
@@ -1087,10 +1087,11 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 	}
 
 	// importing custom attribute END
-
+	const bool bSourceDataExists = (DestSeq->SourceRawAnimationData.Num() > 0);
+	TArray<struct FRawAnimSequenceTrack>& RawAnimationData = bSourceDataExists? DestSeq->SourceRawAnimationData : DestSeq->RawAnimationData;
 	DestSeq->TrackToSkeletonMapTable.Empty();
-	DestSeq->RawAnimationData.Empty();
 	DestSeq->AnimationTrackNames.Empty();
+	RawAnimationData.Empty();
 
 	TArray<FName> FbxRawBoneNames;
 	FillAndVerifyBoneNames(Skeleton, SortedLinks, FbxRawBoneNames, FileName);
@@ -1210,7 +1211,7 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 			if (bSuccess)
 			{
 				//add new track
-				int32 NewTrackIdx = DestSeq->RawAnimationData.Add(RawTrack);
+				int32 NewTrackIdx = RawAnimationData.Add(RawTrack);
 				DestSeq->AnimationTrackNames.Add(BoneName);
 
 				NewDebugData.SetTrackData(NewTrackIdx, BoneTreeIndex, BoneName);
@@ -1225,7 +1226,16 @@ bool UnFbx::FFbxImporter::ImportAnimation(USkeleton* Skeleton, UAnimSequence * D
 	}
 
 	DestSeq->NumFrames = TotalNumKeys;
-	DestSeq->PostProcessSequence();
+	// if source data exists, you should bake it to Raw to apply
+	if(bSourceDataExists)
+	{
+		DestSeq->BakeTrackCurvesToRawAnimation();
+	}
+	else
+	{
+		// otherwise just compress
+		DestSeq->PostProcessSequence();
+	}
 
 	// run debug mode
 	AnimationTransformDebug::OutputAnimationTransformDebugData(TransformDebugData, TotalNumKeys, RefSkeleton);

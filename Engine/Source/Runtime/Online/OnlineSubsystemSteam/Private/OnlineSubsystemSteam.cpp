@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemSteamPrivatePCH.h"
 #include "OnlineSubsystemSteam.h"
@@ -249,6 +249,11 @@ IOnlinePresencePtr FOnlineSubsystemSteam::GetPresenceInterface() const
 	return NULL;
 }
 
+IOnlineChatPtr FOnlineSubsystemSteam::GetChatInterface() const
+{
+	return NULL;
+}
+
 void FOnlineSubsystemSteam::QueueAsyncTask(FOnlineAsyncTask* AsyncTask)
 {
 	check(OnlineAsyncTaskThreadRunnable);
@@ -372,14 +377,14 @@ bool FOnlineSubsystemSteam::Shutdown()
 
 	// Destruct the interfaces
 	DESTRUCT_INTERFACE(AchievementsInterface);
-	DESTRUCT_INTERFACE(SessionInterface);
-	DESTRUCT_INTERFACE(IdentityInterface);
-	DESTRUCT_INTERFACE(FriendInterface);
+	DESTRUCT_INTERFACE(ExternalUIInterface);
+	DESTRUCT_INTERFACE(VoiceInterface);
+	DESTRUCT_INTERFACE(LeaderboardsInterface);
 	DESTRUCT_INTERFACE(SharedCloudInterface);
 	DESTRUCT_INTERFACE(UserCloudInterface);
-	DESTRUCT_INTERFACE(LeaderboardsInterface);
-	DESTRUCT_INTERFACE(VoiceInterface);
-	DESTRUCT_INTERFACE(ExternalUIInterface);
+	DESTRUCT_INTERFACE(FriendInterface);
+	DESTRUCT_INTERFACE(IdentityInterface);
+	DESTRUCT_INTERFACE(SessionInterface);
 
 	#undef DESTRUCT_INTERFACE
 
@@ -666,6 +671,10 @@ void FOnlineSubsystemSteam::ClearUserCloudFiles()
 	UserCloudData.Empty();
 }
 
+static FDelegateHandle GOnEnumerateUserFilesCompleteDelegateHandle;
+
+TMap<IOnlineUserCloud*, FDelegateHandle> GPerCloudDeleteFromEnumerateUserFilesCompleteDelegateHandles;
+
 static void DeleteFromEnumerateUserFilesComplete(bool bWasSuccessful, const FUniqueNetId& UserId)
 {
 	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
@@ -673,8 +682,8 @@ static void DeleteFromEnumerateUserFilesComplete(bool bWasSuccessful, const FUni
 
 	IOnlineUserCloudPtr UserCloud = OnlineSub->GetUserCloudInterface();
 
-	FOnEnumerateUserFilesCompleteDelegate Delegate = FOnEnumerateUserFilesCompleteDelegate::CreateStatic(&DeleteFromEnumerateUserFilesComplete);
-	UserCloud->ClearOnEnumerateUserFilesCompleteDelegate(Delegate);
+	UserCloud->ClearOnEnumerateUserFilesCompleteDelegate_Handle(GOnEnumerateUserFilesCompleteDelegateHandle);
+	GPerCloudDeleteFromEnumerateUserFilesCompleteDelegateHandles.Remove(UserCloud.Get());
 	if (bWasSuccessful)
 	{
 		TArray<FCloudFileHeader> UserFiles;
@@ -696,7 +705,7 @@ bool FOnlineSubsystemSteam::Exec(UWorld* InWorld, const TCHAR* Cmd, FOutputDevic
 		FUniqueNetIdSteam SteamId(SteamUser()->GetSteamID());
 
 		FOnEnumerateUserFilesCompleteDelegate Delegate = FOnEnumerateUserFilesCompleteDelegate::CreateStatic(&DeleteFromEnumerateUserFilesComplete);
-		UserCloud->AddOnEnumerateUserFilesCompleteDelegate(Delegate);
+		GPerCloudDeleteFromEnumerateUserFilesCompleteDelegateHandles.Add(UserCloud.Get(), UserCloud->AddOnEnumerateUserFilesCompleteDelegate_Handle(Delegate));
 		UserCloud->EnumerateUserFiles(SteamId);
 		return true;
 	}

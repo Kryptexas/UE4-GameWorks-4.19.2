@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -73,6 +73,16 @@ namespace MarkdownSharp.Preprocessor
                 {
                     RelatedLinks.Add(data.Markdown.ProcessRelated(metaValue, data));
                 }
+
+                if (metaDataCategoryLowerCase == "prereq" && full)
+                {
+                    PrereqLinks.Add(data.Markdown.ProcessPrereqs(metaValue, data));
+                }
+
+                if (metaDataCategoryLowerCase == "version")
+                {
+                    EngineVersions.Add(metaValue);
+                }
             }
 
             // Add meta data to the list, we require some specific meta data keys to be unique others can be duplicates
@@ -133,6 +143,8 @@ namespace MarkdownSharp.Preprocessor
 
             CrumbsLinks = new List<string>();
             RelatedLinks = new List<Hash>();
+            PrereqLinks = new List<Hash>();
+            EngineVersions = new List<String>();
 
             var changes = new List<PreprocessingTextChange>();
 
@@ -193,6 +205,8 @@ namespace MarkdownSharp.Preprocessor
 
         public List<string> CrumbsLinks { get; set; }
         public List<Hash> RelatedLinks { get; set; }
+        public List<Hash> PrereqLinks { get; set; }
+        public List<String> EngineVersions { get; set; }
         public string DocumentTitle { get; set; }
 
         public Dictionary<string, List<string>> MetadataMap { get; private set; }

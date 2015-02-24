@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Engine/TextureRenderTargetCube.h"
+#include "AssetTypeActions_TextureRenderTarget.h"
 
 class FAssetTypeActions_TextureRenderTargetCube : public FAssetTypeActions_TextureRenderTarget
 {

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrimitiveSceneInfo.h: Primitive scene info definitions.
@@ -194,6 +194,9 @@ public:
 	 * Reflection capture proxy that was closest to this primitive, used for the forward shading rendering path. 
 	 */
 	const FReflectionCaptureProxy* CachedReflectionCaptureProxy;
+
+	/** Mapping from instance index in this primitive to index in the global distance field object buffers. */
+	TArray<int32, TInlineAllocator<1>> DistanceFieldInstanceIndices;
 
 	/** Whether the primitive is newly registered or moved and CachedReflectionCaptureProxy needs to be updated on the next render. */
 	uint32 bNeedsCachedReflectionCaptureUpdate : 1;

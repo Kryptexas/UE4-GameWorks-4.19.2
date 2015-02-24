@@ -1,8 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "HAL/Platform.h"
 #include "Templates/SharedPointer.h"
+#include "Misc/Optional.h"
 
 class FGenericWindow;
 
@@ -168,6 +169,29 @@ enum class EConvertibleLaptopModes
 	Laptop
 };
 
+/** Defines the minimum and maximum dimensions that a window can take on. */
+struct FWindowSizeLimits
+{
+public:
+	FWindowSizeLimits& SetMinWidth(TOptional<float> InValue){ MinWidth = InValue; return *this; }
+	const TOptional<float>& GetMinWidth() const { return MinWidth; }
+
+	FWindowSizeLimits& SetMinHeight(TOptional<float> InValue){ MinHeight = InValue; return *this; }
+	const TOptional<float>& GetMinHeight() const { return MinHeight; }
+
+	FWindowSizeLimits& SetMaxWidth(TOptional<float> InValue){ MaxWidth = InValue; return *this; }
+	const TOptional<float>& GetMaxWidth() const { return MaxWidth; }
+
+	FWindowSizeLimits& SetMaxHeight(TOptional<float> InValue){ MaxHeight = InValue; return *this; }
+	const TOptional<float>& GetMaxHeight() const { return MaxHeight; }
+
+private:
+	TOptional<float> MinWidth;
+	TOptional<float> MinHeight;
+	TOptional<float> MaxWidth;
+	TOptional<float> MaxHeight;
+};
+
 
 class FGenericApplicationMessageHandler
 {
@@ -286,6 +310,11 @@ public:
 	virtual void OnOSPaint( const TSharedRef<FGenericWindow>& Window )
 	{
 	
+	}
+
+	virtual FWindowSizeLimits GetSizeLimitsForWindow( const TSharedRef<FGenericWindow>& Window ) const
+	{
+		return FWindowSizeLimits();
 	}
 
 	virtual void OnResizingWindow( const TSharedRef< FGenericWindow >& Window )

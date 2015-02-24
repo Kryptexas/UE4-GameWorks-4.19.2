@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //
 // Basic beacon
 //
 #pragma once
+#include "TimerManager.h"
 #include "Runtime/Online/OnlineSubsystemUtils/Classes/OnlineBeacon.h"
 #include "OnlineBeaconClient.generated.h"
 
@@ -64,6 +65,9 @@ protected:
 	UPROPERTY()
 	class AOnlineBeaconHostObject* BeaconOwner;
 
+	/** Handle for efficient management of OnFailure timer */
+	FTimerHandle TimerHandle_OnFailure;
+
 private:
 
 	/**
@@ -71,7 +75,7 @@ private:
 	 */
 	UFUNCTION(client, reliable)
 	virtual void ClientOnConnected();
-	
+
 	friend class AOnlineBeaconHost;
 	friend class AOnlineBeaconHostObject;
 };

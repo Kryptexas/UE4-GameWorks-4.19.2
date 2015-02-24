@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimEncoding_VariableKeyLerp.cpp: Skeletal mesh animation functions.
@@ -17,16 +17,14 @@
  * @param	MemoryReader	The FMemoryReader to read from.
  * @param	TrackData		The compressed data stream.
  * @param	NumKeys			The number of keys present in the stream.
- * @param	SourceArVersion	The version number of the source archive stream.
  */
 void AEFVariableKeyLerpShared::ByteSwapRotationIn(
 	UAnimSequence& Seq, 
 	FMemoryReader& MemoryReader,
 	uint8*& TrackData,
-	int32 NumKeys,
-	int32 SourceArVersion)
+	int32 NumKeys)
 {
-	AEFConstantKeyLerpShared::ByteSwapRotationIn(Seq, MemoryReader, TrackData, NumKeys, SourceArVersion);
+	AEFConstantKeyLerpShared::ByteSwapRotationIn(Seq, MemoryReader, TrackData, NumKeys);
 
 	// Load the track table if present
 	if (NumKeys > 1)
@@ -56,10 +54,9 @@ void AEFVariableKeyLerpShared::ByteSwapTranslationIn(
 	UAnimSequence& Seq, 
 	FMemoryReader& MemoryReader,
 	uint8*& TrackData,
-	int32 NumKeys,
-	int32 SourceArVersion)
+	int32 NumKeys)
 {
-	AEFConstantKeyLerpShared::ByteSwapTranslationIn(Seq, MemoryReader, TrackData, NumKeys, SourceArVersion);
+	AEFConstantKeyLerpShared::ByteSwapTranslationIn(Seq, MemoryReader, TrackData, NumKeys);
 
 	// Load the track table if present
 	if (NumKeys > 1)
@@ -89,10 +86,9 @@ void AEFVariableKeyLerpShared::ByteSwapScaleIn(
 	UAnimSequence& Seq, 
 	FMemoryReader& MemoryReader,
 	uint8*& TrackData,
-	int32 NumKeys,
-	int32 SourceArVersion)
+	int32 NumKeys)
 {
-	AEFConstantKeyLerpShared::ByteSwapScaleIn(Seq, MemoryReader, TrackData, NumKeys, SourceArVersion);
+	AEFConstantKeyLerpShared::ByteSwapScaleIn(Seq, MemoryReader, TrackData, NumKeys);
 
 	// Load the track table if present
 	if (NumKeys > 1)

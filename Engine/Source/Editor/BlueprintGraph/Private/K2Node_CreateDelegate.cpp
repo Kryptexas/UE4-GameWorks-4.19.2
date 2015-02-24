@@ -1,7 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "BlueprintGraphPrivatePCH.h"
 
 #include "DelegateNodeHandlers.h"
+#include "BlueprintNodeSpawner.h"
+#include "EditorCategoryUtils.h"
+#include "BlueprintActionDatabaseRegistrar.h"
 
 struct FK2Node_CreateDelegate_Helper
 {
@@ -387,4 +390,20 @@ void UK2Node_CreateDelegate::SetFunction(FName Name)
 {
 	SelectedFunctionName = Name;
 	SelectedFunctionGuid.Invalidate();
+}
+
+FText UK2Node_CreateDelegate::GetMenuCategory() const
+{
+	return FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::Delegates);
+}
+
+void UK2Node_CreateDelegate::GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const
+{
+	UClass* NodeClass = GetClass();
+	if (ActionRegistrar.IsOpenForRegistration(NodeClass))
+	{
+		UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(NodeClass);
+		check(NodeSpawner);
+		ActionRegistrar.AddBlueprintAction(NodeClass, NodeSpawner);
+	}
 }

@@ -1,8 +1,6 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#include "../PhysicsEngine/PhysXSupport.h"
 
 /** 
  * Set of flags stored in the PhysX FilterData
@@ -33,16 +31,16 @@ struct FPhysicsFilterBuilder
 		}
 	}
 
-	inline void GetQueryData(uint32 ActorID, uint32& OutWord0, uint32& OutWord1, uint32& OutWord2, uint32& OutWord3) const
+	inline void GetQueryData(uint32 ComponentID, uint32& OutWord0, uint32& OutWord1, uint32& OutWord2, uint32& OutWord3) const
 	{
 		/**
 		 * Format for QueryData : 
-		 *		word0 (actor ID)
+		 *		word0 (object ID)
 		 *		word1 (blocking channels)
 		 *		word2 (touching channels)
 		 *		word3 (MyChannel (top 8) as ECollisionChannel + Flags (lower 24))
 		 */
-		OutWord0 = ActorID;
+		OutWord0 = ComponentID;
 		OutWord1 = BlockingBits;
 		OutWord2 = TouchingBits;
 		OutWord3 = Word3;
@@ -80,7 +78,7 @@ private:
 #if WITH_PHYSX
 inline void CreateShapeFilterData(
 	const uint8 MyChannel,
-	const int32 ActorID,
+	const int32 ComponentID,
 	const FCollisionResponseContainer& ResponseToChannels,
 	uint32 SkelMeshCompID,
 	uint16 BodyIndex,
@@ -97,7 +95,7 @@ inline void CreateShapeFilterData(
 
 	OutQueryData.setToDefault();
 	OutSimData.setToDefault();
-	Builder.GetQueryData(ActorID, OutQueryData.word0, OutQueryData.word1, OutQueryData.word2, OutQueryData.word3);
+	Builder.GetQueryData(ComponentID, OutQueryData.word0, OutQueryData.word1, OutQueryData.word2, OutQueryData.word3);
 	Builder.GetSimData(BodyIndex, SkelMeshCompID, OutSimData.word0, OutSimData.word1, OutSimData.word2, OutSimData.word3);
 }
 #endif //WITH_PHYSX

@@ -1,11 +1,25 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "PropertyHelper.h"
+#include "LinkerPlaceholderClass.h"
+#include "LinkerPlaceholderExportObject.h"
 
 /*-----------------------------------------------------------------------------
 	UObjectPropertyBase.
 -----------------------------------------------------------------------------*/
+
+void UObjectPropertyBase::BeginDestroy()
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(PropertyClass))
+	{
+		PlaceholderClass->RemovePropertyReference(this);
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
+	Super::BeginDestroy();
+}
 
 void UObjectPropertyBase::InstanceSubobjects(void* Data, void const* DefaultData, UObject* Owner, FObjectInstancingGraph* InstanceGraph )
 {
@@ -74,7 +88,34 @@ void UObjectPropertyBase::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 	Ar << PropertyClass;
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (Ar.IsLoading() || Ar.IsObjectReferenceCollector())
+	{
+		if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(PropertyClass))
+		{
+			PlaceholderClass->AddReferencingProperty(this);
+		}
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+void UObjectPropertyBase::SetPropertyClass(UClass* NewPropertyClass)
+{
+	if (ULinkerPlaceholderClass* NewPlaceholderClass = Cast<ULinkerPlaceholderClass>(NewPropertyClass))
+	{
+		NewPlaceholderClass->AddReferencingProperty(this);
+	}
+	
+	if (ULinkerPlaceholderClass* OldPlaceholderClass = Cast<ULinkerPlaceholderClass>(PropertyClass))
+	{
+		OldPlaceholderClass->RemovePropertyReference(this);
+	}
+	PropertyClass = NewPropertyClass;
+}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
 void UObjectPropertyBase::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector)
 {	
 	UObjectPropertyBase* This = CastChecked<UObjectPropertyBase>(InThis);
@@ -92,7 +133,14 @@ void UObjectPropertyBase::ExportTextItem( FString& ValueStr, const void* Propert
 		}
 		else if (Parent && !Parent->HasAnyFlags(RF_ClassDefaultObject) && Temp->IsDefaultSubobject())
 		{
-			ValueStr += Temp->GetName();
+			if ((PortFlags & PPF_Delimited) && (!Temp->GetFName().IsValidXName(INVALID_OBJECTNAME_CHARACTERS)))
+			{
+				ValueStr += FString::Printf(TEXT("\"%s\""), *Temp->GetName().ReplaceQuotesWithEscapedQuotes());
+			}
+			else
+			{
+				ValueStr += Temp->GetName();
+			}
 		}
 		else
 		{
@@ -115,30 +163,20 @@ void UObjectPropertyBase::ExportTextItem( FString& ValueStr, const void* Propert
 				{
 					StopOuter = Parent->GetOutermost();
 				}
+			}
+			else if (Parent != NULL && Temp->IsIn(Parent))
+			{
+				StopOuter = Parent;
+			}
 
-				FString TempName = Temp->GetPathName(StopOuter);
-				if ( (PortFlags & PPF_Delimited) && (!Temp->GetFName().IsValidXName(INVALID_OBJECTNAME_CHARACTERS)) )
-				{
-					TempName = FString::Printf(TEXT("\"%s\""), *TempName.ReplaceQuotesWithEscapedQuotes());
-				}
-				ValueStr += FString::Printf( TEXT("%s'%s'"), *Temp->GetClass()->GetName(), *TempName );
-			}
-			else if (Parent != NULL && (Temp->IsIn(Parent) || Temp->IsIn(Parent->GetOuter())) )
+			// Take the path name relative to the stopping point outermost ptr.
+			// This is so that cases like a component referencing a component in another actor work correctly when pasted
+			FString PathName = Temp->GetPathName(StopOuter);
+			if ( (PortFlags & PPF_Delimited) && (!Temp->GetFName().IsValidXName(INVALID_OBJECTNAME_CHARACTERS)) )
 			{
-				FString TempName = Temp->GetName();
-				if ( (PortFlags & PPF_Delimited) && (!Temp->GetFName().IsValidXName(INVALID_OBJECTNAME_CHARACTERS)) )
-				{
-					TempName = FString::Printf(TEXT("\"%s\""), *TempName.ReplaceQuotesWithEscapedQuotes());
-				}
-				ValueStr += FString::Printf( TEXT("%s'%s'"), *Temp->GetClass()->GetName(), *TempName ); 
+				PathName = FString::Printf(TEXT("\"%s\""), *PathName.ReplaceQuotesWithEscapedQuotes());
 			}
-			else
-			{
-				// Take the path name relative to the stopping point outermost ptr.
-				// This is so that cases like a component referencing a component in another actor work correctly when pasted
-				FString PathName = Temp->GetPathName(StopOuter);
-				ValueStr += FString::Printf( TEXT("%s'\"%s\"'"), *Temp->GetClass()->GetName(), *PathName );
-			}
+			ValueStr += FString::Printf( TEXT("%s'%s'"), *Temp->GetClass()->GetName(), *PathName );
 		}
 	}
 	else
@@ -380,12 +418,25 @@ void UObjectPropertyBase::CheckValidObject(void* Value) const
 		// PropertyClass itself (in the middle of an FArchiveReplaceObjectRef 
 		// pass)... if this is the case, then we might have already replaced 
 		// the object's class, but not the PropertyClass yet (or vise-versa)... 
-		// so we use this to ensure in that situation that we don't clear the 
+		// so we use this to ensure, in that situation, that we don't clear the 
 		// object value (if CLASS_NewerVersionExists is set, then we are likely 
 		// in the middle of an FArchiveReplaceObjectRef pass)
 		bool bIsReplacingClassRefs = PropertyClass->HasAnyClassFlags(CLASS_NewerVersionExists) != ObjectClass->HasAnyClassFlags(CLASS_NewerVersionExists);
 		
-		if ((PropertyClass != nullptr) && !ObjectClass->IsChildOf(PropertyClass) && !bIsReplacingClassRefs)
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+		ULinkerLoad* PropertyLinker = GetLinker();
+		bool const bIsDeferringValueLoad = ((PropertyLinker == nullptr) || (PropertyLinker->LoadFlags & LOAD_DeferDependencyLoads)) &&
+			Object->IsA<ULinkerPlaceholderExportObject>();
+
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+		check(bIsDeferringValueLoad || !Object->IsA<ULinkerPlaceholderExportObject>());
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+
+#else  // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING 
+		bool const bIsDeferringValueLoad = false;
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
+		if ((PropertyClass != nullptr) && !ObjectClass->IsChildOf(PropertyClass) && !bIsReplacingClassRefs && !bIsDeferringValueLoad)
 		{
 			UE_LOG(LogProperty, Warning,
 				TEXT("Serialized %s for a property of %s. Reference will be NULLed.\n    Property = %s\n    Item = %s"),

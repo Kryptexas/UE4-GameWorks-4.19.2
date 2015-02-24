@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ContentStreaming.cpp: Implementation of content streaming classes.
@@ -7,6 +7,8 @@
 #include "EnginePrivate.h"
 #include "GenericPlatformMemoryPoolStats.h"
 #include "AudioStreaming.h"
+#include "Engine/LightMapTexture2D.h"
+#include "Engine/ShadowMapTexture2D.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogContentStreaming, Log, All);
 
@@ -148,7 +150,7 @@ static TAutoConsoleVariable<int32> CVarStreamingUseFixedPoolSize(
 static TAutoConsoleVariable<int32> CVarStreamingPoolSize(
 	TEXT("r.Streaming.PoolSize"),
 	-1,
-	TEXT("-1: Default texture pool size, otherwise the size in MB\n"),
+	TEXT("-1: Default texture pool size, otherwise the size in MB"),
 	ECVF_Scalability);
 
 /** Streaming priority: Linear distance factor from 0 to MAX_STREAMINGDISTANCE. */
@@ -2594,7 +2596,7 @@ void FStreamingManagerTexture::BoostTextures( AActor* Actor, float BoostFactor )
 		TArray<UTexture*> Textures;
 		Textures.Empty( 32 );
 
-		TArray<UPrimitiveComponent*> Components;
+		TInlineComponentArray<UPrimitiveComponent*> Components;
 		Actor->GetComponents(Components);
 
 		for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)
@@ -2857,7 +2859,7 @@ void FStreamingManagerTexture::NotifyActorSpawned( AActor* Actor )
 {
 	if ( bUseDynamicStreaming )
 	{
-		TArray<UPrimitiveComponent*> Components;
+		TInlineComponentArray<UPrimitiveComponent*> Components;
 		Actor->GetComponents(Components);
 
 		for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)
@@ -2874,7 +2876,7 @@ void FStreamingManagerTexture::NotifyActorSpawned( AActor* Actor )
 /** Called when a spawned primitive is deleted. */
 void FStreamingManagerTexture::NotifyActorDestroyed( AActor* Actor )
 {
-	TArray<UPrimitiveComponent*> Components;
+	TInlineComponentArray<UPrimitiveComponent*> Components;
 	Actor->GetComponents(Components);
 
 	for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)

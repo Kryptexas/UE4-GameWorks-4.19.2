@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HTML5TargetPlatform.cpp: Implements the FHTML5TargetPlatform class.
@@ -34,7 +34,24 @@ FHTML5TargetPlatform::FHTML5TargetPlatform( )
 		const FString& BrowserName = It.Key.ToString();
 		const FString& BrowserPath = It.Value;
 		if(FPlatformFileManager::Get().GetPlatformFile().FileExists(*It.Value))
-			LocalDevice.Add(MakeShareable(new FHTML5TargetDevice(*this, FString::Printf(TEXT("%s on %s"), *It.Key.ToString(), FPlatformProcess::ComputerName()))));
+		{
+			//Have a guess at the type of browser
+			FString BrowserType = TEXT("HTML5 Browser(Other)");
+			if (BrowserPath.Contains("chrome") || BrowserPath.Contains("google"))
+			{
+				BrowserType = TEXT("HTML5 Browser(Chrome)");
+			}
+			else if (BrowserPath.Contains("firefox"))
+			{
+				BrowserType = TEXT("HTML5 Browser(Firefox)");
+			}
+			else if (BrowserPath.Contains("safari"))
+			{
+				BrowserType = TEXT("HTML5 Browser(Safari)");
+			}
+			
+			LocalDevice.Add(MakeShareable(new FHTML5TargetDevice(*this, FString::Printf(TEXT("%s on %s"), *It.Key.ToString(), FPlatformProcess::ComputerName()), BrowserType)));
+		}
 	}
 
 #if WITH_ENGINE
@@ -89,6 +106,10 @@ bool FHTML5TargetPlatform::IsSdkInstalled(bool bProjectHasCode, FString& OutDocu
 		const FString& Platform = It.Key.ToString();
 		const FString& Path = It.Value;
 		{
+			if (Platform == "Emscripten" && IFileManager::Get().DirectoryExists(*Path))
+			{
+				return true;
+			}
 #if PLATFORM_WINDOWS
 			if ( Platform == "Windows" && IFileManager::Get().DirectoryExists(*Path)) 
 			{
@@ -197,7 +218,8 @@ void FHTML5TargetPlatform::GetTextureFormats( const UTexture* Texture, TArray<FN
 				TextureFormatName = NameBGRA8;
 			}
 	}
-	else if (Texture->CompressionSettings == TC_HDR)
+	else if (Texture->CompressionSettings == TC_HDR
+		|| Texture->CompressionSettings == TC_HDR_Compressed)
 	{
 		TextureFormatName = NameRGBA16F;
 	}

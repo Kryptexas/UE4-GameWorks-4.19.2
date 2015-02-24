@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Animation/SmartName.h"
@@ -7,7 +7,7 @@ FSmartNameMapping::FSmartNameMapping()
 : NextUid(0)
 {}
 
-bool FSmartNameMapping::AddName(FName Name, UID& OutUid)
+bool FSmartNameMapping::AddOrFindName(FName Name, UID& OutUid)
 {
 	check(Name.IsValid());
 

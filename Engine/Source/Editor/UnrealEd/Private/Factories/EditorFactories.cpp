@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorFactories.cpp: Editor class factories.
@@ -61,6 +61,49 @@
 #if WITH_EDITOR
 #include "CubemapUnwrapUtils.h"			// FMipLevelBatchedElementParameters
 #endif
+#include "GameFramework/WorldSettings.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "Engine/Polys.h"
+#include "GameFramework/DefaultPhysicsVolume.h"
+#include "Components/BrushComponent.h"
+#include "Materials/MaterialParameterCollection.h"
+#include "Sound/ReverbEffect.h"
+#include "Sound/SoundCue.h"
+#include "Sound/SoundWave.h"
+#include "EngineUtils.h"
+#include "Engine/Selection.h"
+#include "Sound/DialogueVoice.h"
+#include "Sound/SoundMix.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/TextureRenderTargetCube.h"
+#include "Engine/TextureCube.h"
+#include "Engine/Font.h"
+#include "Components/AudioComponent.h"
+#include "Sound/DialogueWave.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/AssetUserData.h"
+#include "Engine/LevelScriptActor.h"
+#include "Engine/BlueprintGeneratedClass.h"
+#include "Curves/CurveFloat.h"
+#include "Engine/ObjectLibrary.h"
+#include "Engine/DataAsset.h"
+#include "Animation/BlendSpace1D.h"
+#include "AI/Navigation/NavCollision.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
+#include "Animation/BlendSpace.h"
+#include "Animation/AimOffsetBlendSpace.h"
+#include "Animation/AimOffsetBlendSpace1D.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
+#include "GameFramework/ForceFeedbackEffect.h"
+#include "Engine/SubsurfaceProfile.h"
+#include "Camera/CameraAnim.h"
+#include "GameFramework/TouchInterface.h"
+#include "Engine/DataTable.h"
+#include "DataTableEditorUtils.h"
+
+#include "Kismet2/BlueprintEditorUtils.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditorFactories, Log, All);
 
@@ -495,6 +538,24 @@ UObject* ULevelFactory::FactoryCreateText
 					}
 				}
 
+				// If we're pasting from a class that belongs to a map we need to duplicate the class and use that instead
+				if (FBlueprintEditorUtils::IsAnonymousBlueprintClass(TempClass))
+				{
+					UBlueprint* NewBP = DuplicateObject(CastChecked<UBlueprint>(TempClass->ClassGeneratedBy), World->GetCurrentLevel(), *FString::Printf(TEXT("%s_BPClass"), *ActorUniqueName.ToString()));
+					if (NewBP)
+					{
+						NewBP->ClearFlags(RF_Standalone);
+
+						FKismetEditorUtilities::CompileBlueprint(NewBP, false, true);
+
+						TempClass = NewBP->GeneratedClass;
+
+						// Since we changed the class we can't use an Archetype,
+						// however that is fine since we will have been editing the CDO anyways
+						Archetype = nullptr;
+					}
+				}
+
 				if (TempClass->IsChildOf(AWorldSettings::StaticClass()))
 				{
 					// if we see a WorldSettings, then we are importing an entire level, so if we
@@ -752,7 +813,7 @@ UObject* ULevelFactory::FactoryCreateText
 
 	if (GIsImportingT3D && (MapPackageText.Len() > 0))
 	{
-		UPackageFactory* PackageFactory = new UPackageFactory(FObjectInitializer());
+		UPackageFactory* PackageFactory = NewObject<UPackageFactory>();
 		check(PackageFactory);
 
 		FName NewPackageName(*(RootMapPackage->GetName()));
@@ -1140,8 +1201,8 @@ UObject* UPolysFactory::FactoryCreateText
 {
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, Class, InParent, Name, Type);
 
-	// Create polys.
-	UPolys* Polys = Context ? CastChecked<UPolys>(Context) : new(InParent,Name,Flags)UPolys(FObjectInitializer());
+	// Create polys.	
+	UPolys* Polys = Context ? CastChecked<UPolys>(Context) : NewNamedObject<UPolys>(InParent, Name, Flags);
 
 	// Eat up if present.
 	GetBEGIN( &Buffer, TEXT("POLYLIST") );
@@ -1413,7 +1474,8 @@ UObject* UModelFactory::FactoryCreateText
 	FEditorDelegates::OnAssetPreImport.Broadcast(this, Class, InParent, Name, Type);
 
 	ABrush* TempOwner = (ABrush*)Context;
-	UModel* Model = new( InParent, Name, Flags )UModel( FObjectInitializer(),TempOwner, 1 );
+	UModel* Model = NewNamedObject<UModel>(InParent, Name, Flags);
+	Model->Initialize(TempOwner, true);
 
 	const TCHAR* StrPtr;
 	FString StrLine;
@@ -1431,7 +1493,7 @@ UObject* UModelFactory::FactoryCreateText
 		}
 		else if( GetBEGIN (&StrPtr,TEXT("POLYLIST")) )
 		{
-			UPolysFactory* PolysFactory = new UPolysFactory(FObjectInitializer());
+			UPolysFactory* PolysFactory = NewObject<UPolysFactory>();
 			Model->Polys = (UPolys*)PolysFactory->FactoryCreateText(UPolys::StaticClass(),Model,NAME_None,RF_Transactional,nullptr,Type,Buffer,BufferEnd,Warn);
 			check(Model->Polys);
 		}
@@ -1713,7 +1775,7 @@ UObject* USoundFactory::FactoryCreateBinary
 
 		// Use pre-existing sound if it exists and we want to keep settings,
 		// otherwise create new sound and import raw data.
-		USoundWave* Sound = (bUseExistingSettings && ExistingSound) ? ExistingSound : new( InParent, Name, Flags ) USoundWave(FObjectInitializer());
+		USoundWave* Sound = (bUseExistingSettings && ExistingSound) ? ExistingSound : NewNamedObject<USoundWave>(InParent, Name, Flags);
 		
 		if (bUseExistingSettings && ExistingSound)
 		{
@@ -1908,6 +1970,11 @@ EReimportResult::Type UReimportSoundFactory::Reimport( UObject* Obj )
 	return EReimportResult::Succeeded;
 }
 
+int32 UReimportSoundFactory::GetPriority() const
+{
+	return ImportPriority;
+}
+
 
 /*-----------------------------------------------------------------------------
 	USoundSurroundFactory.
@@ -2015,7 +2082,7 @@ UObject* USoundSurroundFactory::FactoryCreateBinary
 
 			if (Sound == nullptr)
 			{
-				Sound = new( InParent, BaseName, Flags ) USoundWave(FObjectInitializer());
+				Sound = NewNamedObject<USoundWave>(InParent, BaseName, Flags);
 			}
 		}
 
@@ -2302,6 +2369,11 @@ EReimportResult::Type UReimportSoundSurroundFactory::Reimport( UObject* Obj )
 	EditorErrors.Notify(LOCTEXT("SurroundWarningDescription", "Some files could not be reimported."), EMessageSeverity::Warning);
 
 	return bSourceReimported ? EReimportResult::Succeeded : EReimportResult::Failed;
+}
+
+int32 UReimportSoundSurroundFactory::GetPriority() const
+{
+	return ImportPriority;
 }
 
 
@@ -3235,6 +3307,7 @@ UTextureFactory::UTextureFactory(const FObjectInitializer& ObjectInitializer)
 	Formats.Add( TEXT( "png;Texture" ) );
 	Formats.Add( TEXT( "jpg;Texture" ) );
 	Formats.Add( TEXT( "jpeg;Texture" ) );
+	Formats.Add( TEXT( "exr;Texture" ) );
 
 	bCreateNew = false;
 	bEditorImport = true;
@@ -3578,6 +3651,68 @@ UTexture* UTextureFactory::ImportTexture(UClass* Class, UObject* InParent, FName
 			else
 			{
 				Warn->Logf( ELogVerbosity::Error, TEXT( "Failed to decode JPEG." ) );
+				Texture->MarkPendingKill();
+
+				return nullptr;
+			}
+		}
+
+		return Texture;
+	}
+	//
+	// EXR
+	//
+	IImageWrapperPtr ExrImageWrapper = ImageWrapperModule.CreateImageWrapper( EImageFormat::EXR );
+	if ( ExrImageWrapper.IsValid() && ExrImageWrapper->SetCompressed( Buffer, Length ) )
+	{
+		int32 Width = ExrImageWrapper->GetWidth();
+		int32 Height = ExrImageWrapper->GetHeight();
+
+		if ( !IsImportResolutionValid( Width, Height, bAllowNonPowerOfTwo, Warn ) )
+		{
+			return nullptr;
+		}
+
+		// Select the texture's source format
+		ETextureSourceFormat TextureFormat = TSF_Invalid;
+		int32 BitDepth = ExrImageWrapper->GetBitDepth();
+		ERGBFormat::Type Format = ExrImageWrapper->GetFormat();
+
+		if ( Format == ERGBFormat::RGBA && BitDepth == 16 )
+		{
+			TextureFormat = TSF_RGBA16F;
+			Format = ERGBFormat::BGRA;
+		}
+
+		if ( TextureFormat == TSF_Invalid )
+		{
+			Warn->Logf( ELogVerbosity::Error, TEXT( "EXR file contains data in an unsupported format." ) );
+			return nullptr;
+		}
+
+		UTexture2D* Texture = CreateTexture2D( InParent, Name, Flags );
+		if ( Texture )
+		{
+			const TArray<uint8>* Raw = nullptr;
+			if ( ExrImageWrapper->GetRaw( Format, BitDepth, Raw ) )
+			{
+				Texture->Source.Init(
+					Width,
+					Height,
+					/*NumSlices=*/ 1,
+					/*NumMips=*/ 1,
+					TextureFormat
+					);
+				Texture->SRGB = false;
+				Texture->CompressionSettings = TC_HDR;
+
+				uint8* MipData = Texture->Source.LockMip( 0 );
+				FMemory::Memcpy( MipData, Raw->GetData(), Raw->Num() );
+				Texture->Source.UnlockMip( 0 );
+			}
+			else
+			{
+				Warn->Logf( ELogVerbosity::Error, TEXT( "Failed to decode EXR." ) );
 				Texture->MarkPendingKill();
 
 				return nullptr;
@@ -4382,7 +4517,7 @@ UObject* UTextureFactory::FactoryCreateBinary
 		UPackage* MaterialPackage = CreatePackage(nullptr, *MaterialPackageName);
 
 		// Create the material
-		UMaterialFactoryNew* Factory = new UMaterialFactoryNew(FObjectInitializer());
+		UMaterialFactoryNew* Factory = NewObject<UMaterialFactoryNew>();
 		UMaterial* Material = (UMaterial*)Factory->FactoryCreateNew( UMaterial::StaticClass(), MaterialPackage, *MaterialName, Flags, Context, Warn );
 
 		// Notify the asset registry
@@ -4525,7 +4660,18 @@ bool UTextureFactory::IsImportResolutionValid(int32 Width, int32 Height, bool bA
 	if( bAllowOneTimeWarningMessages && !bSuppressImportResolutionWarnings && bAllowNonPowerOfTwo && !bIsPowerOfTwo && bValid )
 	{
 		bAllowOneTimeWarningMessages = false;
-		if( EAppReturnType::Yes != FMessageDialog::Open( EAppMsgType::YesNo, NSLOCTEXT("UnrealEd", "Warning_NPTTexture", "The texture you are importing is not a power of two.  Non power of two textures are never streamed and have no mipmaps. Proceed?") ) )
+
+		FText MessageText;
+		if (GetCurrentFilename().IsEmpty())
+		{
+			MessageText = NSLOCTEXT("UnrealEd", "Warning_NPTTexture", "The texture you are importing is not a power of two.  Non power of two textures are never streamed and have no mipmaps. Proceed?");
+		}
+		else
+		{
+			MessageText = FText::Format(NSLOCTEXT("UnrealEd", "Warning_NPTTexture_Filename", "{0} is not a power of two.  Non power of two textures are never streamed and have no mipmaps. Proceed?"), FText::FromString(FPaths::GetCleanFilename(GetCurrentFilename())));
+		}
+
+		if( EAppReturnType::Yes != FMessageDialog::Open( EAppMsgType::YesNo, MessageText ) )
 		{
 			bValid = false;
 		}
@@ -5118,7 +5264,8 @@ UObject* UFontFileImportFactory::FactoryCreateBinary(UClass* InClass, UObject* I
 		Font->FontCacheType = EFontCacheType::Runtime;
 
 		// We need to allocate the bulk data with the font as its outer
-		const UFontBulkData* const BulkData = new(Font) UFontBulkData(InBuffer, InBufferEnd - InBuffer);
+		UFontBulkData* const BulkData = NewObject<UFontBulkData>(Font);
+		BulkData->Initialize(InBuffer, InBufferEnd - InBuffer);
 
 		Font->CompositeFont.DefaultTypeface.Fonts.Add(FTypefaceEntry("Default", GetCurrentFilename(), BulkData, EFontHinting::Auto));
 	}
@@ -5435,6 +5582,11 @@ EReimportResult::Type UReimportTextureFactory::Reimport( UObject* Obj )
 	return EReimportResult::Succeeded;
 }
 
+int32 UReimportTextureFactory::GetPriority() const
+{
+	return ImportPriority;
+}
+
 
 /*-----------------------------------------------------------------------------
 UReimportFbxStaticMeshFactory.
@@ -5619,6 +5771,11 @@ EReimportResult::Type UReimportFbxStaticMeshFactory::Reimport( UObject* Obj )
 	}
 }
 
+int32 UReimportFbxStaticMeshFactory::GetPriority() const
+{
+	return ImportPriority;
+}
+
 
 
 /*-----------------------------------------------------------------------------
@@ -5776,6 +5933,11 @@ EReimportResult::Type UReimportFbxSkeletalMeshFactory::Reimport( UObject* Obj )
 	}
 }
 
+int32 UReimportFbxSkeletalMeshFactory::GetPriority() const
+{
+	return ImportPriority;
+}
+
 /*-----------------------------------------------------------------------------
 UReimportFbxAnimSequenceFactory
 -----------------------------------------------------------------------------*/ 
@@ -5920,6 +6082,11 @@ EReimportResult::Type UReimportFbxAnimSequenceFactory::Reimport( UObject* Obj )
 	Importer->ReleaseScene(); 
 
 	return EReimportResult::Succeeded;
+}
+
+int32 UReimportFbxAnimSequenceFactory::GetPriority() const
+{
+	return ImportPriority;
 }
 
 
@@ -6696,6 +6863,11 @@ EReimportResult::Type UReimportDestructibleMeshFactory::Reimport( UObject* Obj )
 	return EReimportResult::Succeeded;
 }
 
+int32 UReimportDestructibleMeshFactory::GetPriority() const
+{
+	return ImportPriority;
+}
+
 #endif // #if WITH_APEX
 
 /*------------------------------------------------------------------------------
@@ -6710,27 +6882,25 @@ UBlendSpaceFactoryNew::UBlendSpaceFactoryNew(const FObjectInitializer& ObjectIni
 		}
 
 bool UBlendSpaceFactoryNew::ConfigureProperties()
-	{
+{
 	// Null the parent class so we can check for selection later
 	TargetSkeleton = nullptr;
 
-		// Load the content browser module to display an asset picker
+	// Load the content browser module to display an asset picker
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 
-		FAssetPickerConfig AssetPickerConfig;
+	FAssetPickerConfig AssetPickerConfig;
 
 	/** The asset picker will only show skeletal meshes */
-		AssetPickerConfig.Filter.ClassNames.Add(USkeleton::StaticClass()->GetFName());
-		AssetPickerConfig.Filter.bRecursiveClasses = true;
+	AssetPickerConfig.Filter.ClassNames.Add(USkeleton::StaticClass()->GetFName());
+	AssetPickerConfig.Filter.bRecursiveClasses = true;
 
-		/** The delegate that fires when an asset was selected */
+	/** The delegate that fires when an asset was selected */
 	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateUObject(this, &UBlendSpaceFactoryNew::OnTargetSkeletonSelected);
 
-		/** The default view mode should be a list view */
-		AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
+	/** The default view mode should be a list view */
+	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
 
-		/** The default scale for thumbnails. [0-1] range */
-		AssetPickerConfig.ThumbnailScale = 0.25f;
 
 	PickerWindow = SNew(SWindow)
 	.Title(LOCTEXT("CreateBlendSpaceOptions", "Pick Skeleton"))
@@ -6787,7 +6957,7 @@ bool UBlendSpaceFactory1D::ConfigureProperties()
 	// Null the parent class so we can check for selection later
 	TargetSkeleton = nullptr;
 
-		// Load the content browser module to display an asset picker
+	// Load the content browser module to display an asset picker
 	FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
 
 	FAssetPickerConfig AssetPickerConfig;
@@ -6801,9 +6971,6 @@ bool UBlendSpaceFactory1D::ConfigureProperties()
 
 	/** The default view mode should be a list view */
 	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
-
-	/** The default scale for thumbnails. [0-1] range */
-	AssetPickerConfig.ThumbnailScale = 0.25f;
 
 	PickerWindow = SNew(SWindow)
 	.Title(LOCTEXT("CreateBlendSpaceOptions", "Pick Skeleton"))
@@ -7026,6 +7193,150 @@ UObject* UCameraAnimFactory::FactoryCreateNew(UClass* Class,UObject* InParent,FN
 	NewCamAnim->CameraInterpGroup->GroupName = Name;
 	return NewCamAnim;
 }
+
+/*------------------------------------------------------------------------------
+UDataTableFactory implementation.
+------------------------------------------------------------------------------*/
+UDataTableFactory::UDataTableFactory(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+	SupportedClass = UDataTable::StaticClass();
+	bCreateNew = true;
+	bEditAfterNew = true;
+}
+
+bool UDataTableFactory::ConfigureProperties()
+{
+	class FDataTableFactoryUI : public TSharedFromThis < FDataTableFactoryUI >
+	{
+		TSharedPtr<SWindow> PickerWindow;
+		TSharedPtr<SComboBox<UScriptStruct*>> RowStructCombo;
+		TSharedPtr<SButton> OkButton;
+		UScriptStruct* ResultStruct;
+	public:
+		FDataTableFactoryUI() : ResultStruct(NULL) {}
+
+		TSharedRef<SWidget> MakeRowStructItemWidget(class UScriptStruct* Struct) const
+		{
+			return SNew(STextBlock).Text(Struct ? Struct->GetDisplayNameText() : FText::GetEmpty());
+		}
+
+		FText GetSelectedRowOptionText() const
+		{
+			UScriptStruct* Struct = RowStructCombo.IsValid() ? RowStructCombo->GetSelectedItem() : NULL;
+			return Struct ? Struct->GetDisplayNameText() : FText::GetEmpty();
+		}
+
+		FReply OnCreate()
+		{
+			ResultStruct = RowStructCombo.IsValid() ? RowStructCombo->GetSelectedItem() : NULL;
+			if (PickerWindow.IsValid())
+			{
+				PickerWindow->RequestDestroyWindow();
+			}
+			return FReply::Handled();
+		}
+
+		FReply OnCancel()
+		{
+			ResultStruct = NULL;
+			if (PickerWindow.IsValid())
+			{
+				PickerWindow->RequestDestroyWindow();
+			}
+			return FReply::Handled();
+		}
+
+		bool IsAnyRowSelected() const
+		{
+			return  RowStructCombo.IsValid() && RowStructCombo->GetSelectedItem();
+		}
+
+		UScriptStruct* OpenStructSelector()
+		{
+			ResultStruct = NULL;
+			auto RowStructs = FDataTableEditorUtils::GetPossibleStructs();
+
+			RowStructCombo = SNew(SComboBox<UScriptStruct*>)
+			.OptionsSource(&RowStructs)
+			.OnGenerateWidget(this, &FDataTableFactoryUI::MakeRowStructItemWidget)
+			[
+				SNew(STextBlock)
+				.Text(this, &FDataTableFactoryUI::GetSelectedRowOptionText)
+			];
+
+			PickerWindow = SNew(SWindow)
+			.Title(LOCTEXT("DataTableFactoryOptions", "Pick Structure"))
+			.ClientSize(FVector2D(350, 100))
+			.SupportsMinimize(false).SupportsMaximize(false)
+			[
+				SNew(SBorder)
+				.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
+				.Padding(10)
+				[
+					SNew(SVerticalBox)
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						RowStructCombo.ToSharedRef()
+					]
+					+ SVerticalBox::Slot()
+					.HAlign(HAlign_Right)
+					.AutoHeight()
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SAssignNew(OkButton, SButton)
+							.Text(LOCTEXT("OK", "OK"))
+							.OnClicked(this, &FDataTableFactoryUI::OnCreate)
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(SButton)
+							.Text(LOCTEXT("Cancel", "Cancel"))
+							.OnClicked(this, &FDataTableFactoryUI::OnCancel)
+						]
+					]
+				]
+			];
+
+			OkButton->SetEnabled(
+				TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FDataTableFactoryUI::IsAnyRowSelected)));
+
+			GEditor->EditorAddModalWindow(PickerWindow.ToSharedRef());
+
+			PickerWindow.Reset();
+			RowStructCombo.Reset();
+
+			return ResultStruct;
+		}
+	};
+
+
+	TSharedRef<FDataTableFactoryUI> StructSelector = MakeShareable(new FDataTableFactoryUI());
+	Struct = StructSelector->OpenStructSelector();
+
+	return Struct != NULL;
+}
+
+UObject* UDataTableFactory::FactoryCreateNew(UClass* Class, UObject* InParent, FName Name, EObjectFlags Flags, UObject* Context, FFeedbackContext* Warn)
+{
+	UDataTable* DataTable = NULL;
+	if (Struct && ensure(UDataTable::StaticClass() == Class))
+	{
+		ensure(0 != (RF_Public & Flags));
+		DataTable = NewNamedObject<UDataTable>(InParent, Name, Flags);
+		if (DataTable)
+		{
+			DataTable->RowStruct = Struct;
+		}
+	}
+	return DataTable;
+}
+
 
 #undef LOCTEXT_NAMESPACE
 

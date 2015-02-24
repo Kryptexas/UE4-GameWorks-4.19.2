@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchHTTP.cpp: Implements a simple class to wrap queuing HTTP requests
@@ -134,7 +134,7 @@ FBuildPatchHTTP& FBuildPatchHTTP::Get()
 	if( SingletonInstance == NULL )
 	{
 		SingletonInstance = new FBuildPatchHTTP();
-		FTicker::GetCoreTicker().AddTicker( FTickerDelegate::CreateRaw( SingletonInstance, &FBuildPatchHTTP::Tick ) );
+		TickDelegateHandle = FTicker::GetCoreTicker().AddTicker( FTickerDelegate::CreateRaw( SingletonInstance, &FBuildPatchHTTP::Tick ) );
 	}
 	return *SingletonInstance;
 }
@@ -143,8 +143,9 @@ void FBuildPatchHTTP::OnShutdown()
 	if( SingletonInstance != NULL )
 	{
 		SingletonInstance->Tick( 0.0f );
-		FTicker::GetCoreTicker().RemoveTicker( FTickerDelegate::CreateRaw( SingletonInstance, &FBuildPatchHTTP::Tick ) );
+		FTicker::GetCoreTicker().RemoveTicker( TickDelegateHandle );
 		delete SingletonInstance;
 		SingletonInstance = NULL;
 	}
 }
+FDelegateHandle FBuildPatchHTTP::TickDelegateHandle;

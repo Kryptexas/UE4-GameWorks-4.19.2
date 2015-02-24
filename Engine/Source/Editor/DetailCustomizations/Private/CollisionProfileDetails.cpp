@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "CollisionProfileDetails.h"
@@ -6,6 +6,7 @@
 #include "ObjectEditorUtils.h"
 #include "BodyInstanceCustomization.h"
 #include "IDocumentation.h"
+#include "Engine/CollisionProfile.h"
 
 #define LOCTEXT_NAMESPACE "CollsiionProfileDetails"
 
@@ -27,6 +28,8 @@ DECLARE_DELEGATE_RetVal_TwoParams(bool, FOnValidateProfile, const FCollisionResp
 //====================================================================================
 // SChannelEditDialog 
 //=====================================================================================
+
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 class SChannelEditDialog : public SCompoundWidget
 {
@@ -287,7 +290,7 @@ FText SChannelEditDialog::GetName() const
 TSharedRef<SWidget> SChannelEditDialog::HandleResponseComboBoxGenerateWidget(TSharedPtr<FString> StringItem)
 {
 	return SNew(STextBlock)
-		.Text(*StringItem)
+		.Text(FText::FromString(*StringItem))
 		.Font(IDetailLayoutBuilder::GetDetailFont());
 }
 
@@ -399,11 +402,11 @@ private:
 	void AddCollisionChannel(TArray<FCollisionChannelInfo>	ValidCollisionChannels, bool bTraceType);
 
 	// collision channel check boxes
-	void OnCollisionChannelChanged(ESlateCheckBoxState::Type InNewValue, int32 ValidIndex, ECollisionResponse InCollisionResponse);
-	ESlateCheckBoxState::Type IsCollisionChannelChecked(int32 ValidIndex, ECollisionResponse InCollisionResponse) const;
+	void OnCollisionChannelChanged(ECheckBoxState InNewValue, int32 ValidIndex, ECollisionResponse InCollisionResponse);
+	ECheckBoxState IsCollisionChannelChecked(int32 ValidIndex, ECollisionResponse InCollisionResponse) const;
 	// all collision channel check boxes
-	void OnAllCollisionChannelChanged(ESlateCheckBoxState::Type InNewValue, ECollisionResponse InCollisionResponse);
-	ESlateCheckBoxState::Type IsAllCollisionChannelChecked(ECollisionResponse InCollisionResponse) const;
+	void OnAllCollisionChannelChanged(ECheckBoxState InNewValue, ECollisionResponse InCollisionResponse);
+	ECheckBoxState IsAllCollisionChannelChecked(ECollisionResponse InCollisionResponse) const;
 };
 
 void SProfileEditDialog::Construct(const FArguments& InArgs)
@@ -585,7 +588,7 @@ void SProfileEditDialog::Construct(const FArguments& InArgs)
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("SProfileEditDialog_Accept", "Accept").ToString())
+				.Text(LOCTEXT("SProfileEditDialog_Accept", "Accept"))
 				.OnClicked(this, &SProfileEditDialog::OnAccept)
 				.IsEnabled(this, &SProfileEditDialog::IsAcceptAvailable)
 			]
@@ -594,7 +597,7 @@ void SProfileEditDialog::Construct(const FArguments& InArgs)
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("SProfileEditDialog_Cancel", "Cancel").ToString())
+				.Text(LOCTEXT("SProfileEditDialog_Cancel", "Cancel"))
 				.OnClicked(this, &SProfileEditDialog::OnCancel)
 			]
 		]
@@ -726,7 +729,7 @@ FText SProfileEditDialog::GetDescription() const
 TSharedRef<SWidget> SProfileEditDialog::HandleCollisionEnabledComboBoxGenerateWidget(TSharedPtr<FString> StringItem)
 {
 	return SNew(STextBlock)
-		.Text(*StringItem)
+		.Text(FText::FromString(*StringItem))
 		.Font(IDetailLayoutBuilder::GetDetailFont());
 }
 
@@ -762,7 +765,7 @@ FText SProfileEditDialog::HandleCollisionEnabledComboBoxContentText() const
 TSharedRef<SWidget> SProfileEditDialog::HandleObjectTypeComboBoxGenerateWidget(TSharedPtr<FString> StringItem)
 {
 	return SNew(STextBlock)
-		.Text(*StringItem)
+		.Text(FText::FromString(*StringItem))
 		.Font(IDetailLayoutBuilder::GetDetailFont());
 }
 
@@ -1032,7 +1035,7 @@ void SProfileEditDialog::AddCollisionChannel(TArray<FCollisionChannelInfo>	Valid
 				+SHorizontalBox::Slot()
 				[
 					SNew( STextBlock )
-					.Text(DisplayName)
+					.Text(FText::FromString(DisplayName))
 					.Font(IDetailLayoutBuilder::GetDetailFont())
 					.ToolTipText(LOCTEXT("SProfileEditDialog_CR_ToolTip", "When trace by channel, this information will be used for filtering."))
 				]
@@ -1083,7 +1086,7 @@ void SProfileEditDialog::AddCollisionChannel(TArray<FCollisionChannelInfo>	Valid
 	}
 }
 
-void SProfileEditDialog::OnCollisionChannelChanged(ESlateCheckBoxState::Type InNewValue, int32 ValidIndex, ECollisionResponse InCollisionResponse)
+void SProfileEditDialog::OnCollisionChannelChanged(ECheckBoxState InNewValue, int32 ValidIndex, ECollisionResponse InCollisionResponse)
 {
 	if(ValidIndex >= 0 && ValidIndex < MAX_COLLISION_CHANNEL)
 	{
@@ -1091,7 +1094,7 @@ void SProfileEditDialog::OnCollisionChannelChanged(ESlateCheckBoxState::Type InN
 	}
 }
 
-ESlateCheckBoxState::Type SProfileEditDialog::IsCollisionChannelChecked(int32 ValidIndex, ECollisionResponse InCollisionResponse) const
+ECheckBoxState SProfileEditDialog::IsCollisionChannelChecked(int32 ValidIndex, ECollisionResponse InCollisionResponse) const
 {
 	TArray<uint8> CollisionResponses;
 
@@ -1099,14 +1102,14 @@ ESlateCheckBoxState::Type SProfileEditDialog::IsCollisionChannelChecked(int32 Va
 	{
 		if(ProfileTemplate.ResponseToChannels.EnumArray[ValidIndex] == InCollisionResponse)
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void SProfileEditDialog::OnAllCollisionChannelChanged(ESlateCheckBoxState::Type InNewValue, ECollisionResponse InCollisionResponse)
+void SProfileEditDialog::OnAllCollisionChannelChanged(ECheckBoxState InNewValue, ECollisionResponse InCollisionResponse)
 {
 	for(int32 Index=0; Index<MAX_COLLISION_CHANNEL; ++Index)
 	{
@@ -1114,17 +1117,17 @@ void SProfileEditDialog::OnAllCollisionChannelChanged(ESlateCheckBoxState::Type 
 	}
 }
 
-ESlateCheckBoxState::Type SProfileEditDialog::IsAllCollisionChannelChecked(ECollisionResponse InCollisionResponse) const
+ECheckBoxState SProfileEditDialog::IsAllCollisionChannelChecked(ECollisionResponse InCollisionResponse) const
 {
 	for(int32 Index=0; Index<MAX_COLLISION_CHANNEL; ++Index)
 	{
 		if(ProfileTemplate.ResponseToChannels.EnumArray[Index] != InCollisionResponse)
 		{
-			return ESlateCheckBoxState::Unchecked;
+			return ECheckBoxState::Unchecked;
 		}
 	}
 
-	return ESlateCheckBoxState::Checked;
+	return ECheckBoxState::Checked;
 }
 //====================================================================================
 // SChannelListItem 
@@ -1137,19 +1140,19 @@ void SChannelListItem::Construct(const FArguments& InArgs, const TSharedRef<STab
 	SMultiColumnTableRow< TSharedPtr<FChannelListItem> >::Construct(FSuperRowType::FArguments(), InOwnerTableView);
 }
 
-FString SChannelListItem::GetDefaultResponse() const
+FText SChannelListItem::GetDefaultResponse() const
 {
 	switch (ChannelSetup->DefaultResponse)
 	{
 	case ECR_Ignore:
-		return TEXT("Ignore");
+		return LOCTEXT("ECR_Ignore", "Ignore");
 	case ECR_Overlap:
-		return TEXT("Overlap");
+		return LOCTEXT("ECR_Overlap", "Overlap");
 	case ECR_Block:
-		return TEXT("Block");
+		return LOCTEXT("ECR_Block", "Block");
 	}
 
-	return TEXT("ERROR");
+	return LOCTEXT("ECR_Error", "ERROR");
 }
 
 TSharedRef<SWidget> SChannelListItem::GenerateWidgetForColumn(const FName& ColumnName)
@@ -1162,7 +1165,7 @@ TSharedRef<SWidget> SChannelListItem::GenerateWidgetForColumn(const FName& Colum
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(FString::Printf(TEXT("%s"), *ChannelSetup->Name.ToString()))
+				.Text(FText::FromName(ChannelSetup->Name))
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 			];
 	}
@@ -1214,24 +1217,24 @@ int32 UCollisionProfile::ReturnContainerIndexFromChannelName(FName& DisplayName)
 
 	return NameIndex;
 }
-FString SProfileListItem::GetObjectType() const
+FText SProfileListItem::GetObjectType() const
 {
-	return ProfileTemplate->ObjectTypeName.ToString();
+	return FText::FromName(ProfileTemplate->ObjectTypeName);
 }
 
-FString SProfileListItem::GetCollsionEnabled() const
+FText SProfileListItem::GetCollsionEnabled() const
 {
 	switch(ProfileTemplate->CollisionEnabled)
 	{
 	case ECollisionEnabled::NoCollision:
-		return TEXT("No Collision");
+		return LOCTEXT("ECollisionEnabled_NoCollision", "No Collision");
 	case ECollisionEnabled::QueryOnly:
-		return TEXT("No Physics Collision");
+		return LOCTEXT("ECollisionEnabled_QueryOnly", "No Physics Collision");
 	case ECollisionEnabled::QueryAndPhysics:
-		return TEXT("Collision Enabled");
+		return LOCTEXT("ECollisionEnabled_QueryAndPhysics", "Collision Enabled");
 	}
 
-	return TEXT("ERROR");
+	return LOCTEXT("ECollisionEnabled_Error", "ERROR");
 }
 
 TSharedRef<SWidget> SProfileListItem::GenerateWidgetForColumn(const FName& ColumnName)
@@ -1246,7 +1249,7 @@ TSharedRef<SWidget> SProfileListItem::GenerateWidgetForColumn(const FName& Colum
 				[
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("SettingsEditor.Collision_Engine"))
-					.ToolTipText(LOCTEXT("CantModify_Tooltip", "You can't modify the name of Engine profiles").ToString())
+					.ToolTipText(LOCTEXT("CantModify_Tooltip", "You can't modify the name of Engine profiles"))
 				];
 		}
 		else
@@ -1257,7 +1260,7 @@ TSharedRef<SWidget> SProfileListItem::GenerateWidgetForColumn(const FName& Colum
 				[
 					SNew(SImage)
 					.Image(FEditorStyle::GetBrush("SettingsEditor.Collision_Game"))
-					.ToolTipText(LOCTEXT("CanModify_Tooltip", "This is your custom project profie").ToString())
+					.ToolTipText(LOCTEXT("CanModify_Tooltip", "This is your custom project profie"))
 				];
 		}
 	}
@@ -1268,7 +1271,7 @@ TSharedRef<SWidget> SProfileListItem::GenerateWidgetForColumn(const FName& Colum
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(FString::Printf(TEXT("%s"), *ProfileTemplate->Name.ToString()))
+				.Text(FText::FromName(ProfileTemplate->Name))
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 			];
 	}
@@ -1301,7 +1304,7 @@ TSharedRef<SWidget> SProfileListItem::GenerateWidgetForColumn(const FName& Colum
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Text(ProfileTemplate->HelpMessage)
+				.Text(FText::FromString(ProfileTemplate->HelpMessage))
 				.Font(IDetailLayoutBuilder::GetDetailFont())
 			];
 	}
@@ -1344,7 +1347,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 	TSharedPtr<SToolTip> ProfileTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("EditCollisionPreset", "Edit collision presets."), NULL, PresetsDocLink, TEXT("Preset"));
 
 	// Customize collision section
-	ObjectChannelCategory.AddCustomRow(LOCTEXT("CustomCollisionObjectChannels", "ObjectChannels").ToString())
+	ObjectChannelCategory.AddCustomRow(LOCTEXT("CustomCollisionObjectChannels", "ObjectChannels"))
 	[
 		SNew(SVerticalBox)
 
@@ -1371,7 +1374,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ChannelMenu_NewObject", "New Object Channel...").ToString())
+				.Text(LOCTEXT("ChannelMenu_NewObject", "New Object Channel..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnNewChannel, false)
 				.IsEnabled(this, &FCollisionProfileDetails::IsNewChannelAvailable)
 			]
@@ -1383,7 +1386,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ChannelMenu_Edit", "Edit...").ToString())
+				.Text(LOCTEXT("ChannelMenu_Edit", "Edit..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnEditChannel, false)
 				.IsEnabled(this, &FCollisionProfileDetails::IsAnyChannelSelected, false)
 			]
@@ -1395,7 +1398,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ChannelMenu_Delete", "Delete...").ToString())
+				.Text(LOCTEXT("ChannelMenu_Delete", "Delete..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnDeleteChannel, false)
 				.IsEnabled(this, &FCollisionProfileDetails::IsAnyChannelSelected, false)
 			]
@@ -1438,7 +1441,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 		]
 	];
 	
-	TraceChannelCategory.AddCustomRow(LOCTEXT("CustomCollisionTraceChannels", "TraceChannels").ToString())
+	TraceChannelCategory.AddCustomRow(LOCTEXT("CustomCollisionTraceChannels", "TraceChannels"))
 	[
 		SNew(SVerticalBox)
 
@@ -1465,7 +1468,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ChannelMenu_NewTrace", "New Trace Channel...").ToString())
+				.Text(LOCTEXT("ChannelMenu_NewTrace", "New Trace Channel..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnNewChannel, true)
 				.IsEnabled(this, &FCollisionProfileDetails::IsNewChannelAvailable)
 			]
@@ -1477,7 +1480,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ChannelMenu_Edit", "Edit...").ToString())
+				.Text(LOCTEXT("ChannelMenu_Edit", "Edit..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnEditChannel, true)
 				.IsEnabled(this, &FCollisionProfileDetails::IsAnyChannelSelected, true)
 			]
@@ -1489,7 +1492,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ChannelMenu_Delete", "Delete...").ToString())
+				.Text(LOCTEXT("ChannelMenu_Delete", "Delete..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnDeleteChannel, true)
 				.IsEnabled(this, &FCollisionProfileDetails::IsAnyChannelSelected, true)
 			]
@@ -1532,7 +1535,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 		]
 	];
 
-	PresetCategory.AddCustomRow(LOCTEXT("CustomCollisionProfiles", "Presets").ToString())
+	PresetCategory.AddCustomRow(LOCTEXT("CustomCollisionProfiles", "Presets"))
 	[
 		SNew(SVerticalBox)
 
@@ -1559,7 +1562,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ProfileMenu_New", "New...").ToString())
+				.Text(LOCTEXT("ProfileMenu_New", "New..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnNewProfile)
 			]
 
@@ -1570,7 +1573,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ProfileMenu_Edit", "Edit...").ToString())
+				.Text(LOCTEXT("ProfileMenu_Edit", "Edit..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnEditProfile)
 				.IsEnabled(this, &FCollisionProfileDetails::IsAnyProfileSelected)
 			]
@@ -1582,7 +1585,7 @@ void FCollisionProfileDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBui
 			[
 				SNew(SButton)
 				.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
-				.Text(LOCTEXT("ProfileMenu_Delete", "Delete...").ToString())
+				.Text(LOCTEXT("ProfileMenu_Delete", "Delete..."))
 				.OnClicked(this, &FCollisionProfileDetails::OnDeleteProfile)
 				.IsEnabled(this, &FCollisionProfileDetails::IsAnyProfileSelected)
 			]
@@ -1791,7 +1794,8 @@ void FCollisionProfileDetails::RefreshChannelList(bool bTraceType)
 
 		for(auto Iter = CollisionProfile->DefaultChannelResponses.CreateIterator(); Iter; ++Iter)
 		{
-			if(Iter->bTraceType)
+			// only display game channels
+			if(Iter->Channel >= ECC_GameTraceChannel1 && Iter->bTraceType)
 			{
 				TraceChannelList.Add(MakeShareable(new FChannelListItem(MakeShareable(new FCustomChannelSetup(*Iter)))));
 			}
@@ -1803,7 +1807,8 @@ void FCollisionProfileDetails::RefreshChannelList(bool bTraceType)
 
 		for(auto Iter = CollisionProfile->DefaultChannelResponses.CreateIterator(); Iter; ++Iter)
 		{
-			if(!Iter->bTraceType)
+			// only display game channels
+			if(Iter->Channel >= ECC_GameTraceChannel1 && !Iter->bTraceType)
 			{
 				ObjectChannelList.Add(MakeShareable(new FChannelListItem(MakeShareable(new FCustomChannelSetup(*Iter)))));
 			}
@@ -2196,3 +2201,5 @@ void FCollisionProfileDetails::FCollsiionProfileData::Save(UCollisionProfile * P
 
 #undef LOCTEXT_NAMESPACE
 #undef RowWidth_Customization
+
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION

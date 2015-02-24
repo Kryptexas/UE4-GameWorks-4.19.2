@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 // ..
 
 #include "MetalShaderFormat.h"
@@ -114,6 +114,7 @@ static void BuildMetalShaderOutput(
 	DEF_PREFIX_STR(Samplers);
 	DEF_PREFIX_STR(UAVs);
 	DEF_PREFIX_STR(SamplerStates);
+	DEF_PREFIX_STR(NumThreads);
 	#undef DEF_PREFIX_STR
 
 	// Skip any comments that come before the signature.
@@ -601,6 +602,19 @@ static void BuildMetalShaderOutput(
 		}
 	}
 
+	if (FCStringAnsi::Strncmp(ShaderSource, NumThreadsPrefix, NumThreadsPrefixLen) == 0)
+	{
+		ShaderSource += NumThreadsPrefixLen;
+		Header.NumThreadsX = ParseNumber(ShaderSource);
+		verify(Match(ShaderSource, ','));
+		Match(ShaderSource, ' ');
+		Header.NumThreadsY = ParseNumber(ShaderSource);
+		verify(Match(ShaderSource, ','));
+		Match(ShaderSource, ' ');
+		Header.NumThreadsZ = ParseNumber(ShaderSource);
+		verify(Match(ShaderSource, '\n'));
+	}
+
 	// Build the SRT for this shader.
 	{
 		// Build the generic SRT for this shader.
@@ -827,13 +841,11 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 
 	if (Input.ShaderFormat == NAME_SF_METAL)
 	{
-	AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
-	AdditionalDefines.SetDefine(TEXT("ES3_1_PROFILE"), 1);
+		AdditionalDefines.SetDefine(TEXT("METAL_PROFILE"), 1);
 	}
 	else if (Input.ShaderFormat == NAME_SF_METAL_MRT)
 	{
 		AdditionalDefines.SetDefine(TEXT("METAL_MRT_PROFILE"), 1);
-		AdditionalDefines.SetDefine(TEXT("SM4_PROFILE"), 1);
 	}
 	else
 	{

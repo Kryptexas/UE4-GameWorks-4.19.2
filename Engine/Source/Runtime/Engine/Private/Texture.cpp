@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Texture.cpp: Implementation of UTexture.
@@ -13,6 +13,7 @@
 #if WITH_EDITORONLY_DATA
 #include "DDSLoader.h"
 #endif
+#include "Engine/TextureCube.h"
 
 DEFINE_LOG_CATEGORY(LogTexture);
 
@@ -51,7 +52,6 @@ UTexture::UTexture(const FObjectInitializer& ObjectInitializer)
 	AdjustMaxAlpha = 1.0f;
 	MaxTextureSize = 0; // means no limitation
 	MipGenSettings = TMGS_FromTextureGroup;
-	SourceArtType_DEPRECATED = TSAT_PNGCompressed;
 	CompositeTextureMode = CTM_NormalRoughnessToAlpha;
 	CompositePower = 1.0f;
 #endif // #if WITH_EDITORONLY_DATA
@@ -142,7 +142,7 @@ void UTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 		}
 #endif // #if WITH_EDITORONLY_DATA
 
-		bool bPreventSRGB = (CompressionSettings == TC_Alpha || CompressionSettings == TC_Normalmap || CompressionSettings == TC_Masks || CompressionSettings == TC_HDR);		
+		bool bPreventSRGB = (CompressionSettings == TC_Alpha || CompressionSettings == TC_Normalmap || CompressionSettings == TC_Masks || CompressionSettings == TC_HDR || CompressionSettings == TC_HDR_Compressed);
 		if(bPreventSRGB && SRGB == true)
 		{
 			SRGB = false;
@@ -225,57 +225,6 @@ void UTexture::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 }
 #endif // WITH_EDITOR
 
-#if WITH_EDITORONLY_DATA
-void UTexture::LegacySerialize(FArchive& Ar, FStripDataFlags& StripFlags)
-{
-	check(Ar.UE4Ver() < VER_UE4_TEXTURE_SOURCE_ART_REFACTOR);
-
-	// Serialize the old source art directly in to the source's bulk data.
-	if (!StripFlags.IsEditorDataStripped())
-	{
-		Source.BulkData.Serialize(Ar, this);
-	}
-
-	switch (SourceArtType_DEPRECATED)
-	{
-	case TSAT_Uncompressed:
-		Source.Format = TSF_BGRA8;
-		break;
-	case TSAT_PNGCompressed:
-		Source.Format = TSF_BGRA8;
-		Source.bPNGCompressed = true;
-		break;
-	case TSAT_DDSFile:
-#if WITH_EDITOR
-		Source.ConvertFromLegacyDDS();
-#endif
-		break;
-	}
-
-	if (Ar.UE4Ver() < VER_UE4_TEXTURE_DERIVED_DATA2)
-	{
-		// PostEditChange used to set CompressionNone for TC_EditorIcon. This is
-		// now handled by the texture derived data logic automatically. Repair
-		// this on load so that the correct textures are cached and built.
-		if (CompressionSettings == TC_EditorIcon)
-		{
-			CompressionNone = false;
-		}
-	}
-
-	// to be backwards compatible, the flag was removed
-	if(CompressionNoMipmaps_DEPRECATED)
-	{
-		MipGenSettings = TMGS_NoMipmaps;
-	}
-
-	if ( CompressionSettings >= TC_MAX )
-	{
-		CompressionSettings = TC_Default;
-	}
-}
-#endif
-
 void UTexture::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -284,21 +233,6 @@ void UTexture::Serialize(FArchive& Ar)
 
 	/** Legacy serialization. */
 #if WITH_EDITORONLY_DATA
-	if (Ar.UE4Ver() < VER_UE4_TEXTURE_SOURCE_ART_REFACTOR)
-	{
-		UTexture::LegacySerialize(Ar, StripFlags);
-		return;
-	}
-
-	if (Ar.UE4Ver() < VER_UE4_TEXTURE_FORMAT_RGBA_SWIZZLE)
-	{
-		switch (Source.Format)
-		{
-		case TSF_RGBA8:	Source.Format = TSF_BGRA8; break;
-		case TSF_RGBE8:	Source.Format = TSF_BGRE8; break;
-		}
-	}
-
 	if (!StripFlags.IsEditorDataStripped())
 	{
 		Source.BulkData.Serialize(Ar, this);
@@ -312,10 +246,8 @@ void UTexture::PostLoad()
 
 	if( !IsTemplate() )
 	{
-#if WITH_EDITOR
 		// Update cached LOD bias.
 		UpdateCachedLODBias();
-#endif // #if WITH_EDITOR
 
 		// The texture will be cached by the cubemap it is contained within on consoles.
 		UTextureCube* CubeMap = Cast<UTextureCube>(GetOuter());
@@ -417,6 +349,14 @@ void UTexture::PreSave()
 #endif // #if WITH_EDITOR
 }
 
+#if WITH_EDITORONLY_DATA
+void UTexture::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), SourceFilePath, FAssetRegistryTag::TT_Hidden) );
+
+	Super::GetAssetRegistryTags(OutTags);
+}
+#endif
 
 float UTexture::GetAverageBrightness(bool bIgnoreTrueBlack, bool bUseGrayscale)
 {
@@ -469,6 +409,7 @@ UEnum* UTexture::GetPixelFormatEnum()
 	static UEnum* PixelFormatEnum = NULL;
 	if (PixelFormatEnum == NULL)
 	{
+		check(IsInGameThread());
 		UEnum::LookupEnumName(PixelFormatUnknownName, &PixelFormatEnum);
 		check(PixelFormatEnum);
 	}
@@ -865,55 +806,6 @@ int32 FTextureSource::CalcMipOffset(int32 MipIndex) const
 	}
 
 	return MipOffset;
-}
-
-void FTextureSource::ConvertFromLegacyDDS()
-{
-	TArray<uint8> RawDDS;
-	RawDDS.Empty(BulkData.GetBulkDataSize());
-	RawDDS.AddUninitialized(BulkData.GetBulkDataSize());
-	{
-		void* LockedDDSData = NULL;
-		BulkData.GetCopy(&LockedDDSData);
-		FMemory::Memcpy(RawDDS.GetData(), LockedDDSData, RawDDS.Num());
-		FMemory::Free(LockedDDSData);
-		BulkData.RemoveBulkData();
-	}
-
-	FDDSLoadHelper DDS(RawDDS.GetData(), RawDDS.Num());
-	if ((DDS.IsValid2DTexture() || DDS.IsValidCubemapTexture()) && DDS.ComputeSourceFormat() != TSF_Invalid)
-	{
-		Init(
-			DDS.DDSHeader->dwWidth, 
-			DDS.DDSHeader->dwHeight,
-			/*NumSlices=*/ DDS.IsValidCubemapTexture() ? 6 : 1,
-			DDS.ComputeMipMapCount(),
-			DDS.ComputeSourceFormat()
-			);
-
-		uint8* DestMipData[MAX_TEXTURE_MIP_COUNT] = {0};
-		int32 MipSize[MAX_TEXTURE_MIP_COUNT] = {0};
-		for (int32 MipIndex = 0; MipIndex < NumMips; ++MipIndex)
-		{
-			DestMipData[MipIndex] = LockMip(MipIndex);
-			MipSize[MipIndex] = CalcMipSize(MipIndex) / NumSlices;
-		}
-
-		for (int32 SliceIndex = 0; SliceIndex < NumSlices; ++SliceIndex)
-		{
-			const uint8* SrcMipData = DDS.GetDDSDataPointer((ECubeFace)SliceIndex);
-			for (int32 MipIndex = 0; MipIndex < NumMips; ++MipIndex)
-			{
-				FMemory::Memcpy(DestMipData[MipIndex] + MipSize[MipIndex] * SliceIndex, SrcMipData, MipSize[MipIndex]);
-				SrcMipData += MipSize[MipIndex];
-			}
-		}
-
-		for (int32 MipIndex = 0; MipIndex < NumMips; ++MipIndex)
-		{
-			UnlockMip(MipIndex);
-		}
-	}
 }
 
 void FTextureSource::UseHashAsGuid()

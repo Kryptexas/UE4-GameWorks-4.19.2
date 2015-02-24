@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -135,6 +135,11 @@ public:
 		return Type;
 	}
 
+	virtual const FString& GetOperatingSystemName() const override
+	{
+		return OperatingSystemName;
+	}
+
 	virtual bool HasDeviceId(const FString& InDeviceId) const override;
 	virtual bool HasVariant(FName InVariant) const override;
 	virtual bool HasTargetPlatform(FName InTargetPlatformId) const override;
@@ -240,6 +245,9 @@ private:
 
 	/** Holds the device type. */
 	FString Type;
+
+	/** Holds the operating system name */
+	FString OperatingSystemName;
 
 	/** Holds default variant name. */
 	FName DefaultVariant;

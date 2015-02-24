@@ -16,6 +16,12 @@
 -keepclassmembers class com.epicgames.ue4.GameActivity {
    public *;
 }
+-keep class * extends android.media.MediaPlayer {
+   public *;
+}
+-keep class com.epicgames.ue4.MessageBox01 {
+   public *;
+}
 
 # Needed...
 -keep class com.epicgames.ue4.GameActivity$JavaAchievement {

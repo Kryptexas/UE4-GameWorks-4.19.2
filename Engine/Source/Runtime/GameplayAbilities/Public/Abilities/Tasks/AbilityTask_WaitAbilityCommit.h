@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "AbilityTask.h"
 #include "Abilities/GameplayAbilityTypes.h"
@@ -35,4 +35,6 @@ class UAbilityTask_WaitAbilityCommit : public UAbilityTask
 protected:
 
 	virtual void OnDestroy(bool AbilityEnded) override;
+
+	FDelegateHandle OnAbilityCommitDelegateHandle;
 };

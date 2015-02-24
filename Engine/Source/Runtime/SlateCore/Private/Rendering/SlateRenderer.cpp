@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
 
@@ -36,6 +36,23 @@ bool FSlateRenderer::IsViewportFullscreen( const SWindow& Window ) const
 	}
 
 	return bFullscreen;
+}
+
+
+ISlateAtlasProvider* FSlateRenderer::GetTextureAtlasProvider()
+{
+	return nullptr;
+}
+
+
+ISlateAtlasProvider* FSlateRenderer::GetFontAtlasProvider()
+{
+	if( FontCache.IsValid() )
+	{
+		return FontCache.Get();
+	}
+
+	return nullptr;
 }
 
 

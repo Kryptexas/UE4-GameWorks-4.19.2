@@ -1,7 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OpenGLDrvPrivate.h"
-#include <SDL/SDL.h>
+#include <SDL.h>
 #if !PLATFORM_HTML5_WIN32
 #include <emscripten.h>
 #endif
@@ -53,7 +53,7 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
         ExtensionsString.Contains(TEXT("GL_ANGLE_depth_texture")) || // for HTML5_WIN32 build with ANGLE
         ExtensionsString.Contains(TEXT("GL_OES_depth_texture"));     // for a future HTML5 build without ANGLE
 
-#if !PLATFORM_HTML5_WIN32
+#if PLATFORM_HTML5_BROWSER
     // The core WebGL spec has a combined GL_DEPTH_STENCIL_ATTACHMENT, unlike the core GLES2 spec.
 	bCombinedDepthStencilAttachment = true;
     // Note that WebGL always supports packed depth stencil renderbuffers (DEPTH_STENCIL renderbuffor format), but for textures
@@ -87,6 +87,10 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
         }
 
         GLuint tex, fb;
+#if PLATFORM_HTML5_WIN32
+		glClearColor( 1.0, 0.5, 0.0,1.0);
+		glClear( GL_COLOR_BUFFER_BIT ); 
+#endif 
         glGenTextures(1, &tex);
         glBindTexture(GL_TEXTURE_2D, tex);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
@@ -99,8 +103,19 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
 
         GLenum fbstatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-        err = glGetError();
 
+#if PLATFORM_HTML5_WIN32
+		// keep glReadPixel out of floating point tests for HTML5 Browser builds, glReadPixels doesn't work consistently across browser and is 
+		// hidden behind inconsistent webgl extentions. 
+		TArray<FLinearColor> Data;
+		Data.AddUninitialized(32*32); 
+		glViewport(0, 0, 32, 32);
+		glClear(GL_COLOR_BUFFER_BIT);
+		FMemory::Memzero(Data.GetData(),32*32*sizeof(FLinearColor));
+		glReadPixels(0, 0, 32, 32, GL_RGBA, GL_FLOAT, Data.GetData());
+		err = glGetError();
+		UE_LOG(LogRHI, Log, TEXT(" %f %f %f %f"), Data[0].R,Data[0].G,Data[0].B,Data[0].A);
+#endif 
         bSupportsColorBufferHalfFloat = fbstatus == GL_FRAMEBUFFER_COMPLETE && err == GL_NO_ERROR;
 
         if (bSupportsColorBufferHalfFloat) {
@@ -124,8 +139,8 @@ void FHTML5OpenGL::ProcessExtensions( const FString& ExtensionsString )
 
 struct FPlatformOpenGLContext
 {
-	SDL_Surface* Context;
 	GLuint			ViewportFramebuffer;
+	SDL_GLContext Context; /* Our opengl context handle */
 
 	FPlatformOpenGLContext()
 		:Context(NULL),
@@ -136,13 +151,31 @@ struct FPlatformOpenGLContext
 
 struct FPlatformOpenGLDevice
 {
-	// SDL 1.2 cannot support multiple contexts. 
-	FPlatformOpenGLContext* SharedContext;
 	FPlatformOpenGLDevice()
 	{
 		SharedContext = new FPlatformOpenGLContext; 
-		PlatformCreateOpenGLContext(this,NULL);
+
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_EGL, 1);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+
+		SDL_GL_SetAttribute( SDL_GL_RED_SIZE, 8 );
+		SDL_GL_SetAttribute( SDL_GL_GREEN_SIZE, 8 );
+		SDL_GL_SetAttribute( SDL_GL_BLUE_SIZE, 8 );
+		SDL_GL_SetAttribute( SDL_GL_DEPTH_SIZE, 32 );
+		SDL_GL_SetAttribute( SDL_GL_DOUBLEBUFFER, 1 );
+		SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 24);
+
+		WindowHandle = SDL_CreateWindow("HTML5", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+			800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN| SDL_WINDOW_RESIZABLE);
+
+		PlatformCreateOpenGLContext(this,WindowHandle);
 	}
+
+	FPlatformOpenGLContext* SharedContext;
+	SDL_Window* WindowHandle; /* Our window handle */
+
 };
 
 FPlatformOpenGLDevice* PlatformCreateOpenGLDevice()
@@ -157,7 +190,8 @@ void PlatformReleaseOpenGLContext(FPlatformOpenGLDevice* Device, FPlatformOpenGL
 	glDeleteFramebuffers(1, &Device->SharedContext->ViewportFramebuffer);
 	Device->SharedContext->ViewportFramebuffer = 0;
 
-	SDL_FreeSurface(Device->SharedContext->Context);
+	SDL_GL_DeleteContext(Device->SharedContext->Context);
+	SDL_DestroyWindow(Device->WindowHandle);
 	Device->SharedContext->Context = 0;
 }
 
@@ -168,12 +202,7 @@ void PlatformDestroyOpenGLDevice(FPlatformOpenGLDevice* Device)
 
 FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Device, void* InWindowHandle)
 {
-	int Width = 800 , Height = 600;
-#if !PLATFORM_HTML5_WIN32
-	 int fs;
-     emscripten_get_canvas_size(&Width, &Height, &fs);
-#endif
-	Device->SharedContext->Context = SDL_SetVideoMode(Width,Height, 16, SDL_OPENGL| SDL_RESIZABLE | SDL_DOUBLEBUF);
+	Device->SharedContext->Context = SDL_GL_CreateContext((SDL_Window*)InWindowHandle);
 	return Device->SharedContext; 
 }
 
@@ -191,7 +220,7 @@ void* PlatformGetWindow(FPlatformOpenGLContext* Context, void** AddParam)
 
 bool PlatformBlitToViewport( FPlatformOpenGLDevice* Device, const FOpenGLViewport& Viewport, uint32 BackbufferSizeX, uint32 BackbufferSizeY, bool bPresent,bool bLockToVsync, int32 SyncInterval )
 {
-	SDL_GL_SwapBuffers();
+	SDL_GL_SwapWindow(Device->WindowHandle);
 	return true;
 }
 
@@ -226,12 +255,7 @@ void PlatformResizeGLContext( FPlatformOpenGLDevice* Device, FPlatformOpenGLCont
 	check(Context);
 	VERIFY_GL_SCOPE();
 
-	// we can't resize with the win32 emu right now -- we have no way of resizing the window.
-#if !PLATFORM_HTML5_WIN32
-	emscripten_set_canvas_size(SizeX,SizeY);
-#else
-	Device->SharedContext->Context = SDL_SetVideoMode(SizeX,SizeY, 16, SDL_OPENGL | SDL_RESIZABLE | SDL_DOUBLEBUF );
-#endif
+	SDL_SetWindowSize(Device->WindowHandle,SizeX,SizeY); 
 
 	glViewport(0, 0, SizeX, SizeY);
 	//@todo-mobile Do we need to clear here?
@@ -261,9 +285,6 @@ bool PlatformOpenGLContextValid()
 	// Get Current Context. 
 	// @todo-HTML5
 	// to do get current context. 
-	SDL_Surface* Current = SDL_GetVideoSurface(); 
-	if ( Current == NULL )
-		return false; 
 	return true; 
 } 
 
@@ -274,12 +295,12 @@ int32 PlatformGlGetError()
 
 void PlatformGetBackbufferDimensions( uint32& OutWidth, uint32& OutHeight )
 {
-	// @todo-mobile
-	// akhare- return current surface dimensions ?
-	SDL_Surface* Current = SDL_GetVideoSurface(); 
-	check( Current != NULL)
-	OutWidth = Current->w; 
-	OutHeight = Current->h;
+	SDL_Window* WindowHandle= SDL_GL_GetCurrentWindow();
+	check(WindowHandle);
+	SDL_Surface *Surface= SDL_GetWindowSurface(WindowHandle);
+	check(Surface);
+	OutWidth  = Surface->w;
+	OutHeight = Surface->h;
 }
 
 // =============================================================
@@ -316,17 +337,7 @@ extern "C"
 	// callback from javascript. 
 	void resize_game(int w, int h)
 	{
-		static SDL_ResizeEvent Event; 
-		// workaround emscripten's buggy SDL implementation. 
-		Event.h = -h; 
-		Event.w = w; 
-		Event.type = SDL_VIDEORESIZE; 
-
-#if !UE_BUILD_SHIPPING 
-		emscripten_log(EM_LOG_JS_STACK | EM_LOG_WARN, "Asking UE to resize to %d x %d ", w , h );
-#endif 
-
-		SDL_PushEvent((SDL_Event*)&Event);
+      // to-do: remove this separate code path. 
 	}
 #endif 
 }

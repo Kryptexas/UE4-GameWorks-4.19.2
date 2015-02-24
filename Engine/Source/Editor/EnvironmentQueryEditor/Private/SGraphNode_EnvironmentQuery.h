@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -41,8 +41,8 @@ public:
 	FSlateColor GetWeightProgressBarColor() const; 
 
 	EVisibility GetTestToggleVisibility() const;
-	ESlateCheckBoxState::Type IsTestToggleChecked() const;
-	void OnTestToggleChanged(ESlateCheckBoxState::Type NewState);
+	ECheckBoxState IsTestToggleChecked() const;
+	void OnTestToggleChanged(ECheckBoxState NewState);
 
 	/** gets drag over marker visibility */
 	EVisibility GetDragOverMarkerVisibility() const;
@@ -63,6 +63,6 @@ protected:
 	FSlateColor GetBackgroundColor() const;
 	FText GetDescription() const;
 
-	virtual FString GetPreviewCornerText() const;
+	virtual FText GetPreviewCornerText() const;
 	virtual const FSlateBrush* GetNameIcon() const;
 };

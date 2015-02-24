@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -1213,6 +1213,9 @@ protected:
 
 	/** The delegate to be invoked when this profiler session instance ticks. */
 	FTickerDelegate OnTick;
+
+	/** Handle to the registered OnTick. */
+	FDelegateHandle OnTickHandle;
 
 	/** The data provider which holds all the collected profiler samples. */
 	IDataProviderRef DataProvider;

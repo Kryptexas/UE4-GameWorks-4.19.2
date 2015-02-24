@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 //
 #include "OculusRiftPrivate.h"
 #include "OculusRiftHMD.h"
@@ -26,10 +26,6 @@ void FOculusRiftHMD::FDistortionMesh::Clear()
 
 FOculusRiftHMD::FRenderParams::FRenderParams(FOculusRiftHMD* plugin)
 	: 
-#ifndef OVR_SDK_RENDERING
-	  CurHmdOrientation(FQuat::Identity)
-	,
-#endif // OVR_SDK_RENDERING
 	  FrameNumber(~0u)
 	, bFrameBegun(false)
 	, bTimeWarp(false)
@@ -149,14 +145,14 @@ void FOculusRiftHMD::GetTimewarpMatrices_RenderThread(EStereoscopicPass StereoPa
 #endif
 }
 
-void FOculusRiftHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily, uint32 InFrameNumber)
+void FOculusRiftHMD::PreRenderViewFamily_RenderThread(FSceneViewFamily& ViewFamily)
 {
 	check(IsInRenderingThread());
 
 	RenderParams_RenderThread.ShowFlags = ViewFamily.EngineShowFlags;
 	// FrameNumber comes from SceneRenderer.FrameNumber and contains already incremented
 	// GFrameNumber. Therefore, decrementing it to match with the frame number used on a game thread.
-	RenderParams_RenderThread.FrameNumber = InFrameNumber - 1;
+	RenderParams_RenderThread.FrameNumber = ViewFamily.FrameNumber - 1;
 
 #ifndef OVR_SDK_RENDERING 
 	{
@@ -271,12 +267,15 @@ void FOculusRiftHMD::CalculateRenderTargetSize(uint32& InOutSizeX, uint32& InOut
 {
 	check(IsInGameThread());
 
-	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
-	float value = CVar->GetValueOnGameThread();
-	if (value > 0.0f)
+	if (Flags.bScreenPercentageEnabled)
 	{
-		InOutSizeX = FMath::CeilToInt(InOutSizeX * value/100.f);
-		InOutSizeY = FMath::CeilToInt(InOutSizeY * value/100.f);
+		static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.ScreenPercentage"));
+		float value = CVar->GetValueOnGameThread();
+		if (value > 0.0f)
+		{
+			InOutSizeX = FMath::CeilToInt(InOutSizeX * value / 100.f);
+			InOutSizeY = FMath::CeilToInt(InOutSizeY * value / 100.f);
+		}
 	}
 }
 
@@ -557,11 +556,20 @@ void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewpo
 {
 	check(IsInGameThread());
 
+	if (GIsEditor)
+	{
+		// In editor we are going to check if the viewport widget supports stereo rendering or not.
+		if (!ViewportWidget->IsStereoRenderingAllowed())
+		{
+			return;
+		}
+	}
+
 	FRHIViewport* const ViewportRHI = InViewport.GetViewportRHI().GetReference();
 
 	if (!IsStereoEnabled())
 	{
-		if (!bUseSeparateRenderTarget)
+		if ((!bUseSeparateRenderTarget || GIsEditor) && ViewportRHI)
 		{
 			ViewportRHI->SetCustomPresent(nullptr);
 		}
@@ -588,12 +596,15 @@ void FOculusRiftHMD::UpdateViewport(bool bUseSeparateRenderTarget, const FViewpo
 	}
 
 #if PLATFORM_WINDOWS
-	void *wnd = ViewportRHI->GetNativeWindow();
-	if (wnd && wnd != OSWindowHandle)
+	if (ViewportRHI)
 	{
-		OSWindowHandle = wnd;
-		ovrHmd_AttachToWindow(Hmd, OSWindowHandle, NULL, NULL);
- 	}
+		void *wnd = ViewportRHI->GetNativeWindow();
+		if (wnd && wnd != OSWindowHandle)
+		{
+			OSWindowHandle = wnd;
+			ovrHmd_AttachToWindow(Hmd, OSWindowHandle, NULL, NULL);
+		}
+	}
 #endif
 
 #ifdef OVR_SDK_RENDERING
@@ -848,16 +859,16 @@ void FOculusRiftHMD::D3D11Bridge::UpdateViewport(const FViewport& Viewport, FRHI
 
 	if (Cfg.D3D11.pBackBufferRT != pD3DBBRT ||
 		Cfg.D3D11.pSwapChain != pD3DSC ||
-		Cfg.D3D11.Header.RTSize.w != Viewport.GetSizeXY().X ||
-		Cfg.D3D11.Header.RTSize.h != Viewport.GetSizeXY().Y)
+		Cfg.D3D11.Header.BackBufferSize.w != Viewport.GetSizeXY().X ||
+		Cfg.D3D11.Header.BackBufferSize.h != Viewport.GetSizeXY().Y)
 	{
 		OVR::Lock::Locker lock(&ModifyLock);
 		// Note, neither BackBufferRT nor SwapChain are AddRef-ed here. Not sure, if we need to.
 		// If yes, then them should be released in ReleaseBackBuffer().
 		Cfg.D3D11.pBackBufferRT = pD3DBBRT;
 		Cfg.D3D11.pSwapChain = pD3DSC;
-		Cfg.D3D11.Header.RTSize.w = Viewport.GetSizeXY().X;
-		Cfg.D3D11.Header.RTSize.h = Viewport.GetSizeXY().Y;
+		Cfg.D3D11.Header.BackBufferSize.w = Viewport.GetSizeXY().X;
+		Cfg.D3D11.Header.BackBufferSize.h = Viewport.GetSizeXY().Y;
 		bNeedReinitRendererAPI = true;
 		Plugin->RenderParams_RenderThread.bFrameBegun = false;
 	}
@@ -1056,12 +1067,12 @@ void FOculusRiftHMD::OGLBridge::UpdateViewport(const FViewport& Viewport, FRHIVi
 	//@TODO
 #endif
 	if (bWinChanged ||
-		Cfg.OGL.Header.RTSize.w != Viewport.GetSizeXY().X ||
-		Cfg.OGL.Header.RTSize.h != Viewport.GetSizeXY().Y)
+		Cfg.OGL.Header.BackBufferSize.w != Viewport.GetSizeXY().X ||
+		Cfg.OGL.Header.BackBufferSize.h != Viewport.GetSizeXY().Y)
 	{
 		OVR::Lock::Locker lock(&ModifyLock);
 
-		Cfg.OGL.Header.RTSize = Sizei(Viewport.GetSizeXY().X, Viewport.GetSizeXY().Y);
+		Cfg.OGL.Header.BackBufferSize = Sizei(Viewport.GetSizeXY().X, Viewport.GetSizeXY().Y);
 #if PLATFORM_WINDOWS
 		Cfg.OGL.Window = Window;
 #elif PLATFORM_MAC

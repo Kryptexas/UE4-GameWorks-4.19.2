@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialGraphNode.cpp
@@ -34,6 +34,7 @@
 #include "GraphEditorSettings.h"
 #include "EditorClassUtils.h"
 #include "GenericCommands.h"
+#include "ScopedTransaction.h"
 
 #define LOCTEXT_NAMESPACE "MaterialGraphNode"
 
@@ -602,6 +603,20 @@ void UMaterialGraphNode::OnRenameNode(const FString& NewName)
 	SetParameterName(NewName);
 	MaterialExpression->MarkPackageDirty();
 	MaterialDirtyDelegate.ExecuteIfBound();
+}
+
+void UMaterialGraphNode::OnUpdateCommentText( const FString& NewComment )
+{
+	const FScopedTransaction Transaction( LOCTEXT( "CommentCommitted", "Comment Changed" ) );
+	// Update the Node comment
+	Modify();
+	NodeComment	= NewComment;
+	// Update the Material Expresssion desc to match the comment
+	if( MaterialExpression )
+	{
+		MaterialExpression->Modify();
+		MaterialExpression->Desc = NewComment;
+	}
 }
 
 void UMaterialGraphNode::GetPinHoverText(const UEdGraphPin& Pin, FString& HoverTextOut) const

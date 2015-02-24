@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PluginsEditorPrivatePCH.h"
 #include "SPluginListTile.h"
@@ -101,7 +101,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 				.Padding(2.0f, 0.0f, 0.0f, 0.0f)
 				[
 					SNew(STextBlock)
-						.Text(Item->PluginStatus.CreatedBy)
+						.Text(FText::FromString(Item->PluginStatus.CreatedBy))
 				];
 		}
 		else
@@ -124,7 +124,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 				.Padding(2.0f, 0.0f, 0.0f, 0.0f)
 				[				
 					SNew(SHyperlink)
-						.Text(Item->PluginStatus.CreatedBy)
+						.Text(FText::FromString(Item->PluginStatus.CreatedBy))
 						.ToolTipText(FText::Format(LOCTEXT("NavigateToCreatedByURL", "Visit the vendor's web site ({0})"), FText::FromString(CreatedByURL)))
 						.OnNavigate_Lambda([=]() { FPlatformProcess::LaunchURL(*CreatedByURL, nullptr, nullptr); })
 				];
@@ -171,7 +171,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 										.Padding(PaddingAmount)
 										[
 											SNew(STextBlock)
-												.Text(Item->PluginStatus.FriendlyName)
+												.Text(FText::FromString(Item->PluginStatus.FriendlyName))
 												.HighlightText_Raw(&Owner->GetOwner().GetPluginTextFilter(), &FPluginTextFilter::GetRawFilterText)
 												.TextStyle(FPluginStyle::Get(), "PluginTile.NameText")
 										]
@@ -217,7 +217,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 													.Padding( 0.0f, 0.0f, 2.0f, 0.0f )	// Extra padding from the right edge
 													[
 														SNew(STextBlock)
-															.Text(Item->PluginStatus.VersionName)
+															.Text(FText::FromString(Item->PluginStatus.VersionName))
 															.TextStyle(FPluginStyle::Get(), "PluginTile.VersionNumberText")
 													]
 											]
@@ -232,7 +232,7 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 											.Padding( PaddingAmount )
 											[
 												SNew(STextBlock)
-													.Text(Item->PluginStatus.Description)
+													.Text(FText::FromString(Item->PluginStatus.Description))
 													.AutoWrapText(true)
 											]
 
@@ -301,17 +301,17 @@ void SPluginListTile::Construct( const FArguments& Args, const TSharedRef<SPlugi
 }
 
 
-ESlateCheckBoxState::Type SPluginListTile::IsPluginEnabled() const
+ECheckBoxState SPluginListTile::IsPluginEnabled() const
 {
 	return ItemData->PluginStatus.bIsEnabled
-		? ESlateCheckBoxState::Checked
-		: ESlateCheckBoxState::Unchecked;
+		? ECheckBoxState::Checked
+		: ECheckBoxState::Unchecked;
 }
 
 
-void SPluginListTile::OnEnablePluginCheckboxChanged(ESlateCheckBoxState::Type NewCheckedState)
+void SPluginListTile::OnEnablePluginCheckboxChanged(ECheckBoxState NewCheckedState)
 {
-	const bool bNewEnabledState = (NewCheckedState == ESlateCheckBoxState::Checked);
+	const bool bNewEnabledState = (NewCheckedState == ECheckBoxState::Checked);
 
 	if (bNewEnabledState && ItemData->PluginStatus.bIsBetaVersion)
 	{

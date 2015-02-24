@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __SSkeletonWidget_h__
@@ -55,7 +55,7 @@ public:
 				.Content()
 				[
 					SNew(STextBlock)
-					.Text(BonePair->Bone1.ToString())
+					.Text(FText::FromName(BonePair->Bone1))
 				];
 		}
 		else 
@@ -76,7 +76,7 @@ public:
 					.Content()
 					[
 						SNew(STextBlock)
-						.Text(BonePair->Bone2.ToString())
+						.Text(FText::FromName(BonePair->Bone2))
 					];
 			}
 		}
@@ -117,7 +117,7 @@ public:
 			. Content()
 			[
 				SNew(STextBlock)
-				.Text(InSkeleton->GetFullName())	
+				.Text(FText::FromString(InSkeleton->GetFullName()))
 			];
 	}
 
@@ -129,7 +129,7 @@ public:
 			. Content()
 			[
 				SNew(STextBlock)
-				.Text(InBoneName->ToString())	
+				.Text(FText::FromName(*InBoneName))
 			];
 	}
 
@@ -358,17 +358,17 @@ private:
 	FOnRetargetAnimation OnRetargetAnimationDelegate;
 
 	/** Handlers for check box for remapping assets option */
-	ESlateCheckBoxState::Type IsRemappingReferencedAssets() const;
-	void OnRemappingReferencedAssetsChanged(ESlateCheckBoxState::Type InNewRadioState);
+	ECheckBoxState IsRemappingReferencedAssets() const;
+	void OnRemappingReferencedAssetsChanged(ECheckBoxState InNewRadioState);
 
 	/** Handlers for check box for converting spaces*/
-	ESlateCheckBoxState::Type IsConvertSpacesChecked() const;
-	void OnConvertSpacesCheckChanged(ESlateCheckBoxState::Type InNewRadioState);
+	ECheckBoxState IsConvertSpacesChecked() const;
+	void OnConvertSpacesCheckChanged(ECheckBoxState InNewRadioState);
 
 	/** Handlers for check box for converting spaces*/
-	ESlateCheckBoxState::Type IsShowOnlyCompatibleSkeletonsChecked() const;
+	ECheckBoxState IsShowOnlyCompatibleSkeletonsChecked() const;
 	bool IsShowOnlyCompatibleSkeletonsEnabled() const;
-	void OnShowOnlyCompatibleSkeletonsCheckChanged(ESlateCheckBoxState::Type InNewRadioState);
+	void OnShowOnlyCompatibleSkeletonsCheckChanged(ECheckBoxState InNewRadioState);
 
 	/** should filter asset */
 	bool OnShouldFilterAsset(const class FAssetData& AssetData);
@@ -504,7 +504,7 @@ public:
 		. Content()
 		[
 			SNew(STextBlock)
-			.Text(InBoneName->ToString())	
+			.Text(FText::FromName(*InBoneName))
 		];
 	}
 

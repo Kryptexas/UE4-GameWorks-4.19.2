@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionServicesPrivatePCH.h"
 
@@ -35,7 +35,7 @@ FSessionManager::FSessionManager( const IMessageBusRef& InMessageBus )
 
 	// initialize ticker
 	TickDelegate = FTickerDelegate::CreateRaw(this, &FSessionManager::HandleTicker);
-	FTicker::GetCoreTicker().AddTicker(TickDelegate, 1.f);
+	TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate, 1.f);
 
 	SendPing();
 }
@@ -43,7 +43,7 @@ FSessionManager::FSessionManager( const IMessageBusRef& InMessageBus )
 
 FSessionManager::~FSessionManager()
 {
-	FTicker::GetCoreTicker().RemoveTicker(TickDelegate);
+	FTicker::GetCoreTicker().RemoveTicker(TickDelegateHandle);
 }
 
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Engine/EngineBaseTypes.h"
@@ -8,6 +8,15 @@
 
 struct FReplicationFlags;
 
+UENUM()
+enum class EComponentCreationMethod : uint8
+{
+	Native,
+	SimpleConstructionScript,
+	UserConstructionScript,
+	Instance,
+};
+
 /**
  * ActorComponent is the base class for components that define reusable behavior that can be added to different types of Actors.
  * ActorComponents that have a transform are known as SceneComponents and those that can be rendered are PrimitiveComponents.
@@ -16,23 +25,26 @@ struct FReplicationFlags;
  * @see USceneComponent
  * @see UPrimitiveComponent
  */
-UCLASS(DefaultToInstanced, abstract, hidecategories=(ComponentReplication))
+UCLASS(DefaultToInstanced, BlueprintType, abstract, hideCategories=(ComponentReplication), meta=(ShortTooltip="An ActorComponent is a reusable component that can be added to any actor."))
 class ENGINE_API UActorComponent : public UObject, public IInterface_AssetUserData
 {
 	GENERATED_BODY()
 public:
 
 	/**
-	 * Default UObject constructor.
+	 * Default UObject constructor that takes an optional ObjectInitializer.
 	 */
-	UActorComponent(const FObjectInitializer& ObjectInitializer);
+	UActorComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+public:
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 	/** Main tick function for the Actor */
-	UPROPERTY()
+	UPROPERTY(EditDefaultsOnly, Category="Tick")
 	struct FActorComponentTickFunction PrimaryComponentTick;
 
 	/** Array of tags that can be used for grouping and categorizing. Can also be accessed from scripting. */
-	UPROPERTY(EditDefaultsOnly, AdvancedDisplay, BlueprintReadWrite, Category=Component)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Tags)
 	TArray<FName> ComponentTags;
 
 protected:
@@ -57,6 +69,7 @@ protected:
 	uint32 bReplicates:1;
 
 	/** Is this component safe to ID over the network by name?  */
+	UPROPERTY()
 	uint32 bNetAddressable:1;
 
 private:
@@ -68,6 +81,9 @@ private:
 
 	/** Is this component's dynamic data in need of sending to the renderer? */
 	uint32 bRenderDynamicDataDirty:1;
+
+	/** Used to ensure that any subclass of UActorComponent that overrides PostRename calls up to the Super to make OwnedComponents arrays get updated correctly */
+	uint32 bRoutedPostRename:1;
 
 public:
 
@@ -85,7 +101,11 @@ public:
 
 	/** True if this component was created by a construction script, and will be destroyed by DestroyConstructedComponents */
 	UPROPERTY()
-	uint32 bCreatedByConstructionScript:1;
+	uint32 bCreatedByConstructionScript_DEPRECATED:1;
+
+	/** True if this component was created as an instance component */
+	UPROPERTY()
+	uint32 bInstanceComponent_DEPRECATED:1;
 
 	/** Whether to the component is activated at creation or must be explicitly activated. */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Activation)
@@ -96,6 +116,7 @@ public:
 	uint32 bIsActive:1;
 
 	/** If TRUE, we call the virtual InitializeComponent */
+	UPROPERTY()
 	uint32 bWantsInitializeComponent:1;
 
 	/** Indicates that OnCreatedComponent has been called, but OnDestroyedComponent has not yet */
@@ -104,14 +125,18 @@ public:
 	/** Indicates that InitializeComponent has been called, but UninitializeComponent has not yet */
 	uint32 bHasBeenInitialized:1;
 
+	UPROPERTY()
+	EComponentCreationMethod CreationMethod;
+
+	bool IsCreatedByConstructionScript() const;
+
 	UFUNCTION()
 	void OnRep_IsActive();
 
 	/** Follow the Outer chain to get the  AActor  that 'Owns' this component */
-	UFUNCTION(BlueprintCallable, Category="Components")
+	UFUNCTION(BlueprintCallable, Category="Components", meta=(Keywords = "Actor Owning Parent"))
 	class AActor* GetOwner() const;
 
-	UFUNCTION(BlueprintCallable, Category="Components", meta=(DeprecatedFunction))
 	virtual class UWorld* GetWorld() const override;
 
 	/** See if this component contains the supplied tag */
@@ -152,6 +177,10 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|Activation")
 	virtual bool IsActive() const;
+
+	/** Sets whether this component can tick when paused. */
+	UFUNCTION(BlueprintCallable, Category="Utilities")
+	void SetTickableWhenPaused(bool bTickableWhenPaused);
 
 	// Networking
 
@@ -205,6 +234,8 @@ private:
 	/** Calls OnRegister, CreateRenderState_Concurrent and CreatePhysicsState. */
 	void ExecuteRegisterEvents();
 
+	/* Utility function for each of the PostEditChange variations to call for the same behavior */
+	void ConsolidatedPostEditChange();
 protected:
 
 	friend class FComponentReregisterContextBase;
@@ -265,12 +296,20 @@ public:
 	 */
 	virtual void InitializeComponent();
 
+	/** Event when the component is initialized, either via creation or its Actor's BeginPlay. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(Keywords = "Begin", FriendlyName = "Initialize Component"))
+	virtual void ReceiveInitializeComponent();
+
 	/**
 	 * Ends gameplay for this component.
 	 * Called from AActor::EndPlay only if bHasBeenInitialized is true
 	 */
 	virtual void UninitializeComponent();
 
+	/** Event when the component is uninitialized, generally via descruction or its Actor's EndPlay. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(Keywords = "End Delete", FriendlyName = "Uninitialize Component"))
+	virtual void ReceiveUninitializeComponent();
+	
 	/**
 	 * When called, will call the virtual call chain to register all of the tick functions
 	 * Do not override this function or make it virtual
@@ -279,11 +318,12 @@ public:
 	void RegisterAllComponentTickFunctions(bool bRegister);
 
 	/**
-	 * Updates time dependent state for this component.
-	 * Requires component to be registered
+	 * Function called every frame on this ActorComponent. Override this function to implement custom logic to be executed every frame.
+	 * Only executes if the component is registered, and also PrimaryComponentTick.bCanEverTick must be set to true.
+	 *	
 	 * @param DeltaTime - The time since the last tick.
-	 * @param TickType - The kind of tick this is
-	 * @param ThisTickFunction - Tick function that caused this to run
+	 * @param TickType - The kind of tick this is, for example, are we paused, or 'simulating' in the editor
+	 * @param ThisTickFunction - Internal tick function struct that caused this to run
 	 */
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction);
 	/** 
@@ -300,6 +340,7 @@ public:
 	 * 
 	 * @param	bEnabled - Rather it should be enabled or not
 	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities")
 	virtual void SetComponentTickEnabled(bool bEnabled);
 	/** 
 	 * Spawns a task on GameThread that will call SetComponentTickEnabled
@@ -310,6 +351,7 @@ public:
 	/** 
 	 * Returns whether this component has tick enabled or not
 	 */
+	UFUNCTION(BlueprintCallable, Category="Utilities")
 	bool IsComponentTickEnabled() const;
 
 	/**
@@ -437,13 +479,10 @@ public:
 	virtual void PostNetReceive() { }
 
 	/** Called before we throw away components during RerunConstructionScripts, to cache any data we wish to persist across that operation */
-	virtual class FComponentInstanceDataBase* GetComponentInstanceData() const { return NULL; }
+	virtual class FActorComponentInstanceData* GetComponentInstanceData() const;
 
 	/** The type of the component instance data that this component is interested in */
-	virtual FName GetComponentInstanceDataType() const { return NAME_None; }
-
-	/** Called after we create new components during RerunConstructionScripts, to optionally apply any data backed up during GetComponentInstanceData */
-	virtual void ApplyComponentInstanceData(class FComponentInstanceDataBase* ComponentInstanceData ) {}
+	virtual FName GetComponentInstanceDataType() const;
 
 	// Begin UObject interface.
 	virtual void BeginDestroy() override;
@@ -452,10 +491,14 @@ public:
 	virtual int32 GetFunctionCallspace( UFunction* Function, void* Parameters, FFrame* Stack ) override;
 	virtual bool CallRemoteFunction( UFunction* Function, void* Parameters, FOutParmRec* OutParms, FFrame* Stack ) override;
 	virtual void PostInitProperties() override;
+	virtual void PostLoad() override;
+	virtual bool Rename( const TCHAR* NewName=NULL, UObject* NewOuter=NULL, ERenameFlags Flags=REN_None ) override;
 	virtual void PostRename(UObject* OldOuter, const FName OldName) override;
 #if WITH_EDITOR
+	virtual bool Modify( bool bAlwaysMarkDirty = true ) override;
 	virtual void PreEditChange(UProperty* PropertyThatWillChange) override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	virtual void PostEditChangeChainProperty( FPropertyChangedChainEvent& PropertyChangedEvent ) override;
 	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
 	// End UObject interface.
@@ -465,6 +508,9 @@ public:
 	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
 	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
 	// End IInterface_AssetUserData Interface
+
+	/** See if the owning Actor is currently running the UCS */
+	bool IsRunningUserConstructionScript() const;
 
 	/** See if this component is currently registered */
 	FORCEINLINE bool IsRegistered() const
@@ -478,7 +524,7 @@ public:
 	void UnregisterComponent();
 
 	/** Unregister the component, remove it from its outer Actor's Components array and mark for pending kill. */
-	virtual void DestroyComponent();
+	virtual void DestroyComponent(bool bPromoteChildren = false);
 
 	/** Called when a component is created (not loaded) */
 	virtual void OnComponentCreated();
@@ -514,6 +560,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "dependency"))
 	virtual void RemoveTickPrerequisiteComponent(UActorComponent* PrerequisiteComponent);
 
+	/** Event called every frame */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Tick"))
+	virtual void ReceiveTick(float DeltaSeconds);
+	
 	/** 
 	 *  Called by owner actor on position shifting
 	 *  Component should update all relevant data structures to reflect new actor location

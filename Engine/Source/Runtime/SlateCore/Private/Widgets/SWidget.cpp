@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
+#include "Widgets/SWidget.h"
+#include "Input/Events.h"
 
 DECLARE_CYCLE_STAT(TEXT("OnPaint"), STAT_SlateOnPaint, STATGROUP_Slate);
 DECLARE_CYCLE_STAT(TEXT("ArrangeChildren"), STAT_SlateArrangeChildren, STATGROUP_Slate);
@@ -40,7 +42,7 @@ void SWidget::Construct(
 		// If someone specified a fancy widget tooltip, use it.
 		ToolTip = InToolTip;
 	}
-	else if ( InToolTipText.IsBound() || !(InToolTipText.Get().IsEmpty()) )
+	else if ( InToolTipText.IsSet() )
 	{
 		// If someone specified a text binding, make a tooltip out of it
 		ToolTip = FSlateApplicationBase::Get().MakeToolTip(InToolTipText);
@@ -195,6 +197,11 @@ FCursorReply SWidget::OnCursorQuery( const FGeometry& MyGeometry, const FPointer
 		: FCursorReply::Unhandled();
 }
 
+TOptional<TSharedRef<SWidget>> SWidget::OnMapCursor(const FCursorReply& CursorReply) const
+{
+	return TOptional<TSharedRef<SWidget>>();
+}
+
 
 FReply SWidget::OnMouseButtonDoubleClick( const FGeometry& InMyGeometry, const FPointerEvent& InMouseEvent )
 {
@@ -281,6 +288,21 @@ FReply SWidget::OnTouchEnded( const FGeometry& MyGeometry, const FPointerEvent& 
 FReply SWidget::OnMotionDetected( const FGeometry& MyGeometry, const FMotionEvent& InMotionEvent )
 {
 	return FReply::Unhandled();
+}
+
+TOptional<bool> SWidget::OnQueryShowFocus(const EFocusCause InFocusCause) const
+{
+	return TOptional<bool>();
+}
+
+TOptional<EPopupMethod> SWidget::OnQueryPopupMethod() const
+{
+	return TOptional<EPopupMethod>();
+}
+
+TSharedPtr<struct FVirtualPointerPosition> SWidget::TranslateMouseCoordinateFor3DChild(const TSharedRef<SWidget>& ChildWidget, const FGeometry& MyGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate) const
+{
+	return nullptr;
 }
 
 
@@ -382,18 +404,30 @@ bool SWidget::SupportsKeyboardFocus() const
 	return false;
 }
 
-
 bool SWidget::HasKeyboardFocus() const
 {
 	return (FSlateApplicationBase::Get().GetKeyboardFocusedWidget().Get() == this);
 }
 
+TOptional<EFocusCause> SWidget::HasUserFocus(int32 UserIndex) const
+{
+	return FSlateApplicationBase::Get().HasUserFocus(SharedThis(this), UserIndex);
+}
+
+TOptional<EFocusCause> SWidget::HasAnyUserFocus() const
+{
+	return FSlateApplicationBase::Get().HasAnyUserFocus(SharedThis(this));
+}
 
 bool SWidget::HasFocusedDescendants() const
 {
 	return FSlateApplicationBase::Get().HasFocusedDescendants(SharedThis(this));
 }
 
+const FSlateBrush* SWidget::GetFocusBrush() const
+{
+	return FCoreStyle::Get().GetBrush("FocusRectangle");
+}
 
 bool SWidget::HasMouseCapture() const
 {
@@ -584,13 +618,49 @@ void SWidget::SetDebugInfo( const ANSICHAR* InType, const ANSICHAR* InFile, int3
 	this->CreatedOnLine = OnLine;
 }
 
+SLATECORE_API int32 bFoldTick = 1;
+FAutoConsoleVariableRef FoldTick(TEXT("Slate.FoldTick"), bFoldTick, TEXT("When folding, call Tick as part of the paint pass instead of a separate tick pass."));
+
 int32 SWidget::Paint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
 	SCOPE_CYCLE_COUNTER(STAT_SlateOnPaint);
 	INC_DWORD_STAT(STAT_SlateNumPaintedWidgets);
 
-	FPaintArgs UpdatedArgs = Args.RecordHittestGeometry( this, AllottedGeometry, MyClippingRect );
-	return OnPaint(UpdatedArgs, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+	if ( bFoldTick )
+	{
+		FGeometry TickGeometry = AllottedGeometry;
+		TickGeometry.AppendTransform( FSlateLayoutTransform(Args.GetWindowToDesktopTransform()) );
+
+		SWidget* MutableThis = const_cast<SWidget*>(this);
+		MutableThis->Tick( TickGeometry, Args.GetCurrentTime(), Args.GetDeltaTime() );
+	}
+
+	const FPaintArgs UpdatedArgs = Args.RecordHittestGeometry( this, AllottedGeometry, MyClippingRect );
+	int32 NewLayerID = OnPaint(UpdatedArgs, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
+
+	if (SupportsKeyboardFocus())
+	{
+		bool bShowUserFocus = FSlateApplicationBase::Get().ShowUserFocus(SharedThis(this));
+		if (bShowUserFocus)
+		{
+			const FSlateBrush* BrushResource = GetFocusBrush();
+
+			if (BrushResource != nullptr)
+			{
+				FSlateDrawElement::MakeBox(
+					OutDrawElements,
+					NewLayerID,
+					AllottedGeometry.ToPaintGeometry(),
+					BrushResource,
+					MyClippingRect,
+					ESlateDrawEffect::None,
+					FColor(255, 255, 255, 128)
+					);
+			}
+		}
+	}
+
+	return NewLayerID;
 }
 
 void SWidget::ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildren& ArrangedChildren) const
@@ -598,3 +668,4 @@ void SWidget::ArrangeChildren(const FGeometry& AllottedGeometry, FArrangedChildr
 	SCOPE_CYCLE_COUNTER(STAT_SlateArrangeChildren);
 	OnArrangeChildren(AllottedGeometry, ArrangedChildren);
 }
+

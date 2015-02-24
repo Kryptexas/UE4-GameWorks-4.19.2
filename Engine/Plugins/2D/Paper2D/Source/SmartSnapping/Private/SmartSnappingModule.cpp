@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SmartSnappingPrivatePCH.h"
 #include "PlanarConstraintSnapPolicy.h"
@@ -14,6 +14,7 @@ class FSmartSnappingModule : public FDefaultModuleImpl
 public:
 	TSharedPtr<FPlanarConstraintSnapPolicy> PlanarPolicy;
 	FLevelEditorModule::FLevelEditorMenuExtender ViewMenuExtender;
+	FDelegateHandle ViewMenuExtenderHandle;
 
 	virtual void StartupModule() override
 	{
@@ -31,7 +32,9 @@ public:
 
 
 				FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
-				LevelEditor.GetAllLevelEditorToolbarViewMenuExtenders().Add(ViewMenuExtender);
+				auto& MenuExtenders = LevelEditor.GetAllLevelEditorToolbarViewMenuExtenders();
+				MenuExtenders.Add(ViewMenuExtender);
+				ViewMenuExtenderHandle = MenuExtenders.Last().GetHandle();
 			}
 		}
 	}
@@ -43,7 +46,7 @@ public:
 			// Unregister the level editor extensions
 			{
 				FLevelEditorModule& LevelEditor = FModuleManager::GetModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
-				LevelEditor.GetAllLevelEditorToolbarViewMenuExtenders().Remove(ViewMenuExtender);
+				LevelEditor.GetAllLevelEditorToolbarViewMenuExtenders().RemoveAll([=](const FLevelEditorModule::FLevelEditorMenuExtender& Extender) { return Extender.GetHandle() == ViewMenuExtenderHandle; });
 			}
 			
 			//
@@ -84,7 +87,7 @@ public:
 		Extender->AddMenuExtension(
 			"Snapping",
 			EExtensionHook::After,
-			NULL,
+			nullptr,
 			FMenuExtensionDelegate::CreateRaw(this, &FSmartSnappingModule::CreateSnappingOptionsMenu));
 	
 		return Extender;

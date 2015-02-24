@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -58,7 +58,7 @@ public:
 				[
 					SNew(STextBlock)
 						.ColorAndOpacity(this, &SUndoHistoryTableRow::HandleTitleTextColorAndOpacity)
-						.Text(Title.ToString())
+						.Text(Title)
 				];
 		}
 

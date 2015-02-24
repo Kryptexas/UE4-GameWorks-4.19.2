@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnArchive.cpp: Core archive classes.
@@ -59,7 +59,6 @@ FArchive::~FArchive()
 // Resets all of the base archive members
 void FArchive::Reset()
 {
-	ArUE3Ver							= VER_LAST_ENGINE_UE3;
 	ArNetVer							= GEngineNegotiationVersion;
 	ArUE4Ver							= GPackageFileUE4Version;
 	ArLicenseeUE4Ver					= GPackageFileLicenseeUE4Version;
@@ -98,7 +97,6 @@ void FArchive::Reset()
 
 void FArchive::CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveToCopy)
 {
-	ArUE3Ver                             = ArchiveToCopy.ArUE3Ver;
 	ArNetVer                             = ArchiveToCopy.ArNetVer;
 	ArUE4Ver                             = ArchiveToCopy.ArUE4Ver;
 	ArLicenseeUE4Ver                     = ArchiveToCopy.ArLicenseeUE4Ver;
@@ -195,7 +193,7 @@ void FArchive::ResetCustomVersions()
 	bCustomVersionsAreReset = true;
 }
 
-void FArchive::UsingCustomVersion(FGuid Key)
+void FArchive::UsingCustomVersion(const FGuid& Key)
 {
 	// If we're loading, we want to use the version that the archive was serialized with, not register a new one.
 	if (IsLoading())
@@ -210,7 +208,7 @@ void FArchive::UsingCustomVersion(FGuid Key)
 	const_cast<FCustomVersionContainer&>(GetCustomVersions()).SetVersion(Key, RegisteredVersion->Version, RegisteredVersion->FriendlyName);
 }
 
-int32 FArchive::CustomVer(FGuid Key) const
+int32 FArchive::CustomVer(const FGuid& Key) const
 {
 	auto* CustomVersion = GetCustomVersions().GetVersion(Key);
 
@@ -221,7 +219,7 @@ int32 FArchive::CustomVer(FGuid Key) const
 	return CustomVersion ? CustomVersion->Version : -1;
 }
 
-void FArchive::SetCustomVersion(FGuid Key, int32 Version, FString FriendlyName)
+void FArchive::SetCustomVersion(const FGuid&  Key, int32 Version, FString FriendlyName)
 {
 	const_cast<FCustomVersionContainer&>(GetCustomVersions()).SetVersion(Key, Version, FriendlyName);
 }
@@ -646,6 +644,7 @@ void FArchive::SerializeCompressed( void* V, int64 Length, ECompressionFlags Fla
 			check(CompressedSize < INT_MAX);
 			int32 CompressedSizeInt = (int32)CompressedSize;
 			verify( FCompression::CompressMemory( Flags, CompressedBuffer, CompressedSizeInt, Src, BytesToCompress ) );
+			CompressedSize = CompressedSizeInt;
 			// move to next chunk if not reading from file
 			if (!bTreatBufferAsFileReader)
 			{

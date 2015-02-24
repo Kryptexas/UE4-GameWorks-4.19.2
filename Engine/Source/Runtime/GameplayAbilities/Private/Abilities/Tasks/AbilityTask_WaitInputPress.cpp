@@ -1,3 +1,4 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitInputPress.h"
@@ -24,14 +25,6 @@ void UAbilityTask_WaitInputPress::OnPressCallback(int32 InputID)
 	{
 		//This key is for some other ability
 		return;
-	}
-
-	FScopedPredictionWindow	ScopedPrediction(MyAbility);
-
-	if (MyAbility->GetCurrentActivationInfo().ActivationMode != EGameplayAbilityActivationMode::Authority)
-	{
-		// Tell the server we pressed.
-		AbilitySystemComponent->ServerInputPress(MyAbility->GetCurrentAbilitySpecHandle(), ScopedPrediction.ScopedPredictionKey);
 	}
 
 	// We are done. Kill us so we don't keep getting broadcast messages

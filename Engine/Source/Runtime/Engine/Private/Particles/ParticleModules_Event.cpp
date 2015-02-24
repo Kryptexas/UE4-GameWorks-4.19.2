@@ -1,11 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Event.cpp: Particle event-related module implementations.
 =============================================================================*/
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
-#include "../DistributionHelpers.h"
 #include "Particles/Event/ParticleModuleEventBase.h"
 #include "Particles/Event/ParticleModuleEventGenerator.h"
 #include "Particles/Event/ParticleModuleEventReceiverBase.h"
@@ -317,16 +316,6 @@ void UParticleModuleEventReceiverSpawn::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleEventReceiverSpawn::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(SpawnCount.Distribution, TEXT("RequiredDistributionSpawnCount"), 0.0f);
-		FDistributionHelpers::RestoreDefaultConstant(InheritVelocityScale.Distribution, TEXT("RequiredDistributionInheritVelocityScale"), FVector(1.0f, 1.0f, 1.0f));
 	}
 }
 

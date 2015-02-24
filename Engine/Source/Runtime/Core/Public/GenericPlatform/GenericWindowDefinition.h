@@ -1,8 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Containers/UnrealString.h"
 #include "HAL/Platform.h"
+#include "GenericApplicationMessageHandler.h"
 
 struct CORE_API FGenericWindowDefinition
 {
@@ -32,4 +33,6 @@ struct CORE_API FGenericWindowDefinition
 	FString Title;
 	float Opacity;
 	int32 CornerRadius;
+
+	FWindowSizeLimits SizeLimits;
 };

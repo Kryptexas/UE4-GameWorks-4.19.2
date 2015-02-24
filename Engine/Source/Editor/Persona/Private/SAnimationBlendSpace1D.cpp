@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -10,6 +10,7 @@
 #include "DragAndDrop/AssetDragDropOp.h"
 #include "ScopedTransaction.h"
 #include "SNotificationList.h"
+#include "Animation/BlendSpaceBase.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlendSpace1D, Log, All);
 
@@ -353,7 +354,7 @@ int SBlendSpace1DWidget::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 		{
 			// consolidate all samples and sort them, so that we can handle from biggest weight to smallest
 			TArray<FBlendSampleData> SampleDataList;
-			const TArray<struct FBlendSample> & SampleData = BlendSpace->GetBlendSamples();
+			const TArray<struct FBlendSample>& SampleData = BlendSpace->GetBlendSamples();
 
 			// if no sample data is found, return 
 			if (BlendSpace->GetSamplesFromBlendInput(LastValidMouseEditorPoint, SampleDataList))
@@ -381,7 +382,7 @@ int SBlendSpace1DWidget::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 				{
 					ToolTipMessage = GetToolTipText(LastValidMouseEditorPoint, Seqs, Weights);
 				}
-				DrawToolTip( MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor(255, 255, 255), OutDrawElements, TooltipLayer);
+				DrawToolTip(MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor::White, OutDrawElements, TooltipLayer);
 			}
 		}
 		else if (bIsOnValidSample) // If I'm on top of a sample
@@ -389,7 +390,7 @@ int SBlendSpace1DWidget::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 			UAnimSequence * Seq = CachedSamples[HighlightedSampleIndex].Animation;
 			const FText Sequence = (Seq)? FText::FromString( Seq->GetName() ): LOCTEXT("None", "None");
 			const FText ToolTipMessage = FText::Format( LOCTEXT("Sequence", "{0}\nSequence ({1})"), GetInputText(LastValidMouseEditorPoint), Sequence );
-			DrawToolTip( MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor(255, 255, 255), OutDrawElements, TooltipLayer);
+			DrawToolTip(MousePos.GetValue(), ToolTipMessage, AllottedGeometry, MyClippingRect, FColor::White, OutDrawElements, TooltipLayer);
 		}
 	}
 
@@ -398,7 +399,10 @@ int SBlendSpace1DWidget::OnPaint( const FPaintArgs& Args, const FGeometry& Allot
 		if(CachedSamples.Num() > 0)
 		{
 			TOptional<FVector2D> PreviewBSInput = GetWidgetPosFromEditorPos(PreviewInput.Get(), WindowRect);
-			DrawSamplePoint(PreviewBSInput.GetValue(), EBlendSpaceSampleState::Highlighted, AllottedGeometry, MyClippingRect, OutDrawElements, HighlightLayer);
+			if (PreviewBSInput.IsSet())
+			{
+				DrawSamplePoint(PreviewBSInput.GetValue(), EBlendSpaceSampleState::Highlighted, AllottedGeometry, MyClippingRect, OutDrawElements, HighlightLayer);
+			}
 		}
 		
 		if(const FLineElement* LineElement = ElementGenerator.GetLineElementForBlendInput(PreviewInput.Get()))
@@ -458,7 +462,7 @@ TOptional<FVector2D> SBlendSpace1DWidget::GetWidgetPosFromEditorPos(const FVecto
 	return OutWidgetPos;
 }
 
-TOptional<FVector> SBlendSpace1DWidget::GetEditorPosFromWidgetPos(const FVector2D & WidgetPos, const FSlateRect& WindowRect) const
+TOptional<FVector> SBlendSpace1DWidget::GetEditorPosFromWidgetPos(const FVector2D& WidgetPos, const FSlateRect& WindowRect) const
 {
 	TOptional<FVector> OutGridPos;
 
@@ -511,7 +515,7 @@ void SBlendSpace1DWidget::ResampleData()
 
 SBlendSpaceEditor1D::~SBlendSpaceEditor1D()
 {
-	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandle);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandleDelegateHandle);
 }
 
 void SBlendSpaceEditor1D::Construct(const FArguments& InArgs)
@@ -523,7 +527,7 @@ void SBlendSpaceEditor1D::Construct(const FArguments& InArgs)
 
 	// Register to be notified when properties are edited
 	OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateRaw(this, &SBlendSpaceEditor1D::OnPropertyChanged);
-	FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
+	OnPropertyChangedHandleDelegateHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
 
 	bCachedDisplayVerticalValue = GetBlendSpace()->bDisplayEditorVertically;
 
@@ -625,40 +629,44 @@ void SBlendSpaceEditor1D::UpdateBlendParameters()
 		ParameterName = TEXT("X");
 	}
 
-	FString LabelFormat;
+	FText LabelFormat;
 	if(GetBlendSpace()->bDisplayEditorVertically)
 	{
-		LabelFormat = TEXT("%s\n[%0.2f]");
+		LabelFormat = FText::FromString(TEXT("{0}\n[{1}]"));
 	}
 	else
 	{
-		LabelFormat = TEXT("%s[%0.2f]");
+		LabelFormat = FText::FromString(TEXT("{0}[{1}]"));
 	}
 
-	Parameter_Min->SetText(FString::Printf(*LabelFormat, *ParameterName, BlendParam.Min));
-	Parameter_Max->SetText(FString::Printf(*LabelFormat, *ParameterName, BlendParam.Max));
+	static const FNumberFormattingOptions NumberFormat = FNumberFormattingOptions()
+		.SetMinimumFractionalDigits(2)
+		.SetMaximumFractionalDigits(2);
+
+	Parameter_Min->SetText(FText::Format(LabelFormat, FText::FromString(ParameterName), FText::AsNumber(BlendParam.Min, &NumberFormat)));
+	Parameter_Max->SetText(FText::Format(LabelFormat, FText::FromString(ParameterName), FText::AsNumber(BlendParam.Max, &NumberFormat)));
 
 	BlendSpaceWidget->ResampleData();
 }
 
-ESlateCheckBoxState::Type SBlendSpaceEditor1D::IsEditorDisplayedVertically() const
+ECheckBoxState SBlendSpaceEditor1D::IsEditorDisplayedVertically() const
 {
-	return GetBlendSpace()->bDisplayEditorVertically ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return GetBlendSpace()->bDisplayEditorVertically ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SBlendSpaceEditor1D::OnChangeDisplayedVertically( ESlateCheckBoxState::Type NewValue )
+void SBlendSpaceEditor1D::OnChangeDisplayedVertically( ECheckBoxState NewValue )
 {
 	bool bPreviousDisplayValue = GetBlendSpace()->bDisplayEditorVertically;
 	switch(NewValue)
 	{
-		case ESlateCheckBoxState::Checked:
+		case ECheckBoxState::Checked:
 		{
 			const FScopedTransaction Transaction( LOCTEXT("Undo_SetDisplayVertically", "Set Blend Space To Display Vertically") );
 			BlendSpace->Modify();
 			GetBlendSpace()->bDisplayEditorVertically = true;
 			break;
 		}
-		case ESlateCheckBoxState::Unchecked:
+		case ECheckBoxState::Unchecked:
 		{
 			const FScopedTransaction Transaction( LOCTEXT("Undo_UnsetDisplayVertically", "Set Blend Space To Not Display Vertically") );
 			BlendSpace->Modify();

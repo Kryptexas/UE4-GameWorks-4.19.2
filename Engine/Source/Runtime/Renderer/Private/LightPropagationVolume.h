@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include "UniformBuffer.h"
+
 #define LPV_MULTIPLE_BOUNCES  1
 #define LPV_VOLUME_TEXTURE    1
 #define LPV_GV_VOLUME_TEXTURE 1

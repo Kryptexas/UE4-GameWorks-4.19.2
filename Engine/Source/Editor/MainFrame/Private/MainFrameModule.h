@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -130,7 +130,7 @@ public:
 private:
 
 	// Handles the level editor module starting to recompile.
-	void HandleLevelEditorModuleCompileStarted( );
+	void HandleLevelEditorModuleCompileStarted( bool bIsAsyncCompile );
 
 	// Handles the user requesting the current compilation to be canceled
 	void OnCancelCodeCompilationClicked();

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -32,6 +32,7 @@
 #include "ComponentReregisterContext.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Layers/ILayers.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogObjectTools, Log, All);
 
@@ -801,6 +802,14 @@ namespace ObjectTools
 				UPackage* CurObjPackage = CurObjToConsolidate->GetOutermost();
 				FName CurObjName = CurObjToConsolidate->GetFName();
 
+				// null out the CDO of our current generated class so that DeleteSingleObject does not find it and set it's ClassGeneratedBy to the replacing type.
+				// That would trigger a type mismatch assertion...
+				UBlueprint* BlueprintToConsolidate = Cast<UBlueprint>(CurObjToConsolidate);
+				if (BlueprintToConsolidateTo != nullptr && BlueprintToConsolidate != nullptr && BlueprintToConsolidate->GeneratedClass != nullptr)
+				{
+					BlueprintToConsolidate->GeneratedClass->ClassDefaultObject = nullptr;
+				}
+
 				// Attempt to delete the object that was consolidated
 				if ( DeleteSingleObject( CurObjToConsolidate ) )
 				{
@@ -973,7 +982,7 @@ namespace ObjectTools
 					
 					// Display a dialog containing all referencers; the dialog is designed to destroy itself upon being closed, so this
 					// allocation is ok and not a memory leak
-					SGenericDialogWidget::OpenDialog(NSLOCTEXT("ObjectTools", "ShowReferencers", "Show Referencers"), SNew(STextBlock).Text( Ar ));
+					SGenericDialogWidget::OpenDialog(NSLOCTEXT("ObjectTools", "ShowReferencers", "Show Referencers"), SNew(STextBlock).Text( FText::FromString(Ar) ));
 				}
 				else
 				{
@@ -1079,7 +1088,7 @@ namespace ObjectTools
 
 					// Display the object references in a copy-friendly dialog; the dialog is designed to destroy itself upon being closed, so this
 					// allocation is ok and not a memory leak
-					SGenericDialogWidget::OpenDialog(NSLOCTEXT("ObjectTools", "ShowReferencedAssets", "Show Referenced Assets"), SNew(STextBlock).Text(OutString));
+					SGenericDialogWidget::OpenDialog(NSLOCTEXT("ObjectTools", "ShowReferencedAssets", "Show Referenced Assets"), SNew(STextBlock).Text(FText::FromString(OutString)));
 				}
 				else
 				{
@@ -1303,7 +1312,7 @@ namespace ObjectTools
 			for ( int32 PackageIdx = 0; PackageIdx < PackagesToDelete.Num(); ++PackageIdx )
 			{
 				UPackage* Package = PackagesToDelete[PackageIdx];
-				PackagesDialogModule.AddPackageItem(Package, Package->GetName(), ESlateCheckBoxState::Checked);
+				PackagesDialogModule.AddPackageItem(Package, Package->GetName(), ECheckBoxState::Checked);
 			}
 
 			// Display the delete dialog
@@ -1755,7 +1764,17 @@ namespace ObjectTools
 
 		GWarn->BeginSlowTask( NSLOCTEXT("UnrealEd", "Deleting", "Deleting"), true );
 
+		struct FSCSNodeToDelete
+		{
+			USimpleConstructionScript* SimpleConstructionScript;
+			USCS_Node* SCS_Node;
+		};
+
+		TArray<FSCSNodeToDelete> SCSNodesToDelete;
+		TArray<UActorComponent*> ComponentsToDelete;
+		TArray<AActor*> ActorsToDelete;
 		TArray<UObject*> ObjectsToDelete;
+		bool bNeedsGarbageCollection = false;
 	
 		// Clear audio components to allow previewed sounds to be consolidated
 		GEditor->ClearPreviewComponents();
@@ -1767,6 +1786,131 @@ namespace ObjectTools
 			GEditor->GetSelectedObjects()->Deselect( CurrentObject );
 
 			ObjectsToDelete.Add( CurrentObject );
+
+			// If the object about to be deleted is a Blueprint asset, make sure that any instances of the Blueprint class get deleted as well
+			UBlueprint* BlueprintObject = Cast<UBlueprint>(CurrentObject);
+			if ( BlueprintObject && BlueprintObject->GeneratedClass && BlueprintObject->GeneratedClass->ClassDefaultObject )
+			{
+				TArray<UObject*> InstancesToDelete;
+				BlueprintObject->GeneratedClass->ClassDefaultObject->GetArchetypeInstances( InstancesToDelete );
+
+				for ( TArray<UObject*>::TConstIterator InstanceItr( InstancesToDelete ); InstanceItr; ++InstanceItr )
+				{
+					UObject* CurrentInstance = *InstanceItr;
+
+					AActor* CurrentInstanceAsActor = Cast<AActor>( CurrentInstance );
+					UActorComponent* CurrentInstanceAsComponent = Cast<UActorComponent>(CurrentInstance);
+					if ( CurrentInstanceAsActor )
+					{
+						ActorsToDelete.Add( CurrentInstanceAsActor );
+					}
+					else if ( CurrentInstanceAsComponent )
+					{
+						ComponentsToDelete.Add( CurrentInstanceAsComponent );
+
+						// Find all the SCS_Node references that need to be destroyed before this component is destroyed.
+						UBlueprintGeneratedClass* UBGC = CurrentInstanceAsComponent->GetTypedOuter<UBlueprintGeneratedClass>();
+						if (UBGC && UBGC->SimpleConstructionScript)
+						{
+							TArray<USCS_Node*> SCSNodes = UBGC->SimpleConstructionScript->GetAllNodes();
+							for (int32 SCSNodeIndex = 0; SCSNodeIndex < SCSNodes.Num(); ++SCSNodeIndex)
+							{
+								USCS_Node* SCS_Node = SCSNodes[SCSNodeIndex];
+								if (SCS_Node && SCS_Node->ComponentTemplate == CurrentInstanceAsComponent)
+								{
+									FSCSNodeToDelete DeleteNode;
+									DeleteNode.SimpleConstructionScript = UBGC->SimpleConstructionScript;
+									DeleteNode.SCS_Node = SCS_Node;
+									SCSNodesToDelete.Add(DeleteNode);
+								}
+							}
+						}
+					}
+					else
+					{
+						ObjectsToDelete.Add( CurrentInstance );
+					}
+				}
+			}
+		}
+
+		// Destroy all SCSNodes
+		if (SCSNodesToDelete.Num() > 0)
+		{
+			for (TArray<FSCSNodeToDelete>::TConstIterator SCSNodeItr(SCSNodesToDelete); SCSNodeItr; ++SCSNodeItr)
+			{
+				FSCSNodeToDelete SCSNodeToDelete = *SCSNodeItr;
+				
+				SCSNodeToDelete.SimpleConstructionScript->RemoveNodeAndPromoteChildren(SCSNodeToDelete.SCS_Node);
+
+				GWarn->StatusUpdate(SCSNodeItr.GetIndex(), SCSNodesToDelete.Num(), NSLOCTEXT("UnrealEd", "ConsolidateAssetsUpdate_DeletingSCSNodes", "Deleting Blueprint Component references..."));
+			}
+		}
+
+		bool bSelectionChanged = false;
+
+		// Destroy all Components
+		if (ComponentsToDelete.Num() > 0)
+		{
+			for (TArray<UActorComponent*>::TConstIterator ComponentItr(ComponentsToDelete); ComponentItr; ++ComponentItr)
+			{
+				UActorComponent* CurComponent = *ComponentItr;
+
+				// Skip if already pending GC
+				if (!CurComponent->IsPendingKill())
+				{
+					// Deselect if active
+					USelection* SelectedComponents = GEditor->GetSelectedComponents();
+					if (SelectedComponents && CurComponent->IsSelected())
+					{
+						SelectedComponents->Deselect(CurComponent);
+
+						bSelectionChanged = true;
+					}
+
+					// Destroy the Component Instance
+					CurComponent->DestroyComponent(true);
+
+					bNeedsGarbageCollection = true;
+				}
+
+				GWarn->StatusUpdate(ComponentItr.GetIndex(), ComponentsToDelete.Num(), NSLOCTEXT("UnrealEd", "ConsolidateAssetsUpdate_DeletingComponentInstances", "Deleting Component Instances..."));
+			}
+		}
+
+		// Destroy all Actor instances
+		if ( ActorsToDelete.Num() > 0 )
+		{
+			for ( TArray<AActor*>::TConstIterator ActorItr( ActorsToDelete ); ActorItr; ++ActorItr )
+			{
+				AActor* CurActor = *ActorItr;
+
+				// Skip if already pending GC
+				if ( !CurActor->IsPendingKill() )
+				{
+					// Deselect if active
+					USelection* SelectedActors = GEditor->GetSelectedActors();
+					if ( SelectedActors && CurActor->IsSelected() )
+					{
+						SelectedActors->Deselect( CurActor );
+
+						bSelectionChanged = true;
+					}
+
+					// Destroy the Actor instance. This is similar to edactDeleteSelected(), but we don't request user confirmation here.
+					GEditor->Layers->DisassociateActorFromLayers( CurActor );
+					GEditor->GetEditorWorldContext().World()->EditorDestroyActor( CurActor, false );
+
+					bNeedsGarbageCollection = true;
+				}
+
+				GWarn->StatusUpdate( ActorItr.GetIndex(), ActorsToDelete.Num(), NSLOCTEXT( "UnrealEd", "ConsolidateAssetsUpdate_DeletingActorInstances", "Deleting Actor Instances..." ) );
+			}
+		}
+
+		if (bSelectionChanged)
+		{
+			GEditor->NoteSelectionChange();
 		}
 
 		// If the current editor world is in this list, transition to a new map and reload the world to finish the delete
@@ -1775,13 +1919,12 @@ namespace ObjectTools
 		{
 			int32 ReplaceableObjectsNum = 0;
 			{
-				bool bNeedsGarbageCollection = false;
 				TArray<UObject*> ObjectsToReplace = ObjectsToDelete;
 				for (TArray<UObject*>::TIterator ObjectItr(ObjectsToReplace); ObjectItr; ++ObjectItr)
 				{
 					UObject* CurObject = *ObjectItr;
 					
-					UBlueprint *BlueprintObject = Cast<UBlueprint>(CurObject);
+					UBlueprint* BlueprintObject = Cast<UBlueprint>(CurObject);
 					if (BlueprintObject)
 					{
 						// If we're a blueprint add our generated class as well
@@ -1818,13 +1961,6 @@ namespace ObjectTools
 					}
 				}
 
-				// Handle deferred garbage collection
-				if(bNeedsGarbageCollection)
-				{
-					CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
-					bNeedsGarbageCollection = false;
-				}
-
 				// Replacing references inside already loaded objects could cause rendering issues, so globally detach all components from their scenes for now
 				FGlobalComponentReregisterContext ReregisterContext;
 
@@ -1857,6 +1993,13 @@ namespace ObjectTools
 					ForceReplaceReferences(NULL, ObjectsToReplace, ReplaceInfo, false);
 					ReplaceableObjectsNum += ReplaceInfo.ReplaceableObjects.Num();
 				}
+			}
+
+			// Handle deferred garbage collection
+			if (bNeedsGarbageCollection)
+			{
+				CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+				bNeedsGarbageCollection = false;
 			}
 
 			// Load the asset tools module to get access to the browser type maps
@@ -3264,6 +3407,38 @@ namespace ObjectTools
 		return bResult;
 	}
 
+	bool IsClassValidForPlacing(const UClass* InClass)
+	{
+		check(InClass);
+
+		const bool bIsPlaceable = !InClass->HasAllClassFlags(CLASS_NotPlaceable) && (InClass->IsChildOf(AActor::StaticClass()) || InClass->IsChildOf(ABrush::StaticClass()) || InClass->IsChildOf(AVolume::StaticClass()));
+		const bool bIsAbstractOrDeprecated = InClass->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists);
+		const bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(InClass);
+		
+		return bIsPlaceable && !bIsAbstractOrDeprecated && !bIsSkeletonClass;
+	}
+
+	bool AreObjectsValidForReplace(const TArray<UObject*>& InProposedObjects)
+	{
+		if (InProposedObjects.Num() > 0)
+		{
+			// Make sure we don't have any blueprinted components
+			for (TArray<UObject*>::TConstIterator ProposedObjIter(InProposedObjects); ProposedObjIter; ++ProposedObjIter)
+			{
+				UObject* CurProposedObj = *ProposedObjIter;
+				check(CurProposedObj);
+				
+				const UBlueprint* BlueprintObject = Cast<UBlueprint>(CurProposedObj);
+				if (BlueprintObject && BlueprintObject->GeneratedClass->IsChildOf(UActorComponent::StaticClass()))
+				{
+					return false;
+				}
+			}
+		}
+		// If we haven't found any classes we deem illegal just make sure they are all the same type.
+		return AreObjectsOfEquivalantType(InProposedObjects);
+	}
+
 	bool AreObjectsOfEquivalantType( const TArray<UObject*>& InProposedObjects )
 	{
 		if ( InProposedObjects.Num() > 0 )
@@ -3724,9 +3899,6 @@ namespace ThumbnailTools
 		
 		// Seek the the part of the file where the thumbnail table lives
 		FileReader->Seek( FileSummary.ThumbnailTableOffset );
-
-		//make sure the filereader gets the corect version number (it defaults to latest version)
-		FileReader->SetUE3Ver(FileSummary.GetFileVersionUE3());
 
 		int32 LastFileOffset = -1;
 		// Load the thumbnail table of contents

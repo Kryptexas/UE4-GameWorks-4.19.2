@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "FeedbackContext.h"
@@ -78,9 +78,10 @@ void FFeedbackContext::EndSlowTask()
 }
 /**** End legacy API ****/
 
-void FScopedSlowTask::MakeDialog(bool bShowCancelButton)
+void FScopedSlowTask::MakeDialog(bool bShowCancelButton, bool bAllowInPIE)
 {
-	const bool bIsDialogAllowed = bEnabled && !GIsSilent && !GIsPlayInEditorWorld && !IsRunningCommandlet() && IsInGameThread();
+	const bool bIsDisabledByPIE = GIsPlayInEditorWorld && !bAllowInPIE;
+	const bool bIsDialogAllowed = bEnabled && !GIsSilent && !bIsDisabledByPIE && !IsRunningCommandlet() && IsInGameThread();
 	if (!GIsSlowTask && bIsDialogAllowed)
 	{
 		Context.StartSlowTask(GetCurrentMessage(), bShowCancelButton);

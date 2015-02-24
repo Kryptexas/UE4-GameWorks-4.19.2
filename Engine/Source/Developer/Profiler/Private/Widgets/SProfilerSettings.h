@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -36,8 +36,8 @@ private:
 	EVisibility OptionDefault_GetDiffersFromDefaultAsVisibility( const bool* ValuePtr, const bool* DefaultPtr ) const;
 	FReply OptionDefault_OnClicked( bool* ValuePtr, const bool* DefaultPtr );
 
-	void OptionValue_OnCheckStateChanged( ESlateCheckBoxState::Type CheckBoxState, bool* ValuePtr );
-	ESlateCheckBoxState::Type OptionValue_IsChecked( const bool* ValuePtr ) const;
+	void OptionValue_OnCheckStateChanged( ECheckBoxState CheckBoxState, bool* ValuePtr );
+	ECheckBoxState OptionValue_IsChecked( const bool* ValuePtr ) const;
 
 private:
 	/** Delegate to call when this profiler settings is closed. */

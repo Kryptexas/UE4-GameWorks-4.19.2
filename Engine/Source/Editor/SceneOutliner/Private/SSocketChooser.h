@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -91,7 +91,7 @@ public:
 				.FillWidth(1.f)
 				[
 					SNew(STextBlock)
-					.Text(SocketInfo->Description.Name.ToString())
+					.Text(FText::FromName(SocketInfo->Description.Name))
 				]
 			];
 	}

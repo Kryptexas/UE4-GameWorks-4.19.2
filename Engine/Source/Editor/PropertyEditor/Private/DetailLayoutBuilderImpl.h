@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 class FDetailCategoryImpl;
@@ -11,7 +11,7 @@ public:
 	/** IDetailLayoutBuilder Interface */
 	virtual const IDetailsView& GetDetailsView() const override;
 	virtual void GetObjectsBeingCustomized( TArray< TWeakObjectPtr<UObject> >& OutObjects ) const override;
-	virtual IDetailCategoryBuilder& EditCategory( FName CategoryName, const FString& NewLocalizedDisplayName = TEXT(""), ECategoryPriority::Type CategoryType = ECategoryPriority::Default );
+	virtual IDetailCategoryBuilder& EditCategory( FName CategoryName, const FText& NewLocalizedDisplayName = FText::GetEmpty(), ECategoryPriority::Type CategoryType = ECategoryPriority::Default );
 	virtual TSharedRef<IPropertyHandle> GetProperty( const FName PropertyPath, const UClass* ClassOutermost, FName InInstanceName ) override;
 	virtual void HideProperty( const TSharedPtr<IPropertyHandle> Property ) override;
 	virtual void HideProperty( FName PropertyPath, const UClass* ClassOutermost = NULL, FName InstanceName = NAME_None ) override;
@@ -138,7 +138,7 @@ public:
 	 *
 	 * @param InExternalRootNode	The node to add
 	 */
-	void AddExternalRootPropertyNode( TSharedRef<FObjectPropertyNode> InExternalRootNode );
+	void AddExternalRootPropertyNode( TSharedRef<FPropertyNode> InExternalRootNode );
 
 	/** @return The details view that owns this layout */
 	IDetailsViewPrivate& GetDetailsView() { return DetailsView; }

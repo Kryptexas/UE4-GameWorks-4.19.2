@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,15 +24,15 @@ public:
 	 */
 	void Construct(	const FArguments& InArgs, const FProjectLauncherModelRef& InModel, EVisibility InShowAdvanced = EVisibility::Visible );
 
-private:
-
-	// Callback for check state changes of the 'UnrealPak' check box.
-	void HandleUnrealPakCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState );
-
-	// Callback for determining the checked state of the 'UnrealPak' check box.
-	ESlateCheckBoxState::Type HandleUnrealPakCheckBoxIsChecked( ) const;
+protected:
 
 private:
+
+	/** Handles check state changes of the 'Incremental' check box. */
+	void HandleIncrementalCheckBoxCheckStateChanged( ECheckBoxState NewState );
+
+	/** Handles determining the checked state of the 'Incremental' check box. */
+	ECheckBoxState HandleIncrementalCheckBoxIsChecked( ) const;
 
 	// Holds a pointer to the data model.
 	FProjectLauncherModelPtr Model;

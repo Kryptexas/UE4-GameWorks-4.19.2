@@ -1,9 +1,20 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
+#include "ReflectionMetadata.h"
+
+#include "TextBinding.h"
+#include "FloatBinding.h"
+#include "BoolBinding.h"
+#include "BrushBinding.h"
+#include "ColorBinding.h"
+#include "Int32Binding.h"
+
 /////////////////////////////////////////////////////
 // UWidget
+
+TArray<TSubclassOf<UPropertyBinding>> UWidget::BinderClasses;
 
 UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -11,7 +22,7 @@ UWidget::UWidget(const FObjectInitializer& ObjectInitializer)
 	bIsEnabled = true;
 	bIsVariable = true;
 	bDesignTime = false;
-	Visiblity = ESlateVisibility::Visible;
+	Visiblity_DEPRECATED = Visibility = ESlateVisibility::Visible;	
 	RenderTransformPivot = FVector2D(0.5f, 0.5f);
 
 	//TODO UMG ToolTipWidget
@@ -104,20 +115,20 @@ bool UWidget::IsVisible() const
 	return false;
 }
 
-TEnumAsByte<ESlateVisibility::Type> UWidget::GetVisibility()
+ESlateVisibility UWidget::GetVisibility() const
 {
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
 	if (SafeWidget.IsValid())
 	{
-		return UWidget::ConvertRuntimeToSerializedVisiblity(SafeWidget->GetVisibility());
+		return UWidget::ConvertRuntimeToSerializedVisibility(SafeWidget->GetVisibility());
 	}
 
-	return Visiblity;
+	return Visibility;
 }
 
-void UWidget::SetVisibility(TEnumAsByte<ESlateVisibility::Type> InVisibility)
+void UWidget::SetVisibility(ESlateVisibility InVisibility)
 {
-	Visiblity = InVisibility;
+	Visibility = InVisibility;
 
 	TSharedPtr<SWidget> SafeWidget = GetCachedWidget();
 	if (SafeWidget.IsValid())
@@ -240,6 +251,8 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 		SafeWidget = RebuildWidget();
 		MyWidget = SafeWidget;
 
+		OnWidgetRebuilt();
+
 		bNewlyCreated = true;
 	}
 	else
@@ -279,6 +292,10 @@ TSharedRef<SWidget> UWidget::TakeWidget()
 
 		return SafeWidget.ToSharedRef();
 	}
+}
+
+void UWidget::OnWidgetRebuilt()
+{
 }
 
 TSharedPtr<SWidget> UWidget::GetCachedWidget() const
@@ -456,7 +473,7 @@ void UWidget::SynchronizeProperties()
 #endif
 	{
 		SafeWidget->SetEnabled(OPTIONAL_BINDING(bool, bIsEnabled));
-		SafeWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility::Type, Visiblity, EVisibility, ConvertVisibility));
+		SafeWidget->SetVisibility(OPTIONAL_BINDING_CONVERT(ESlateVisibility, Visibility, EVisibility, ConvertVisibility));
 	}
 
 	UpdateRenderTransform();
@@ -478,6 +495,10 @@ void UWidget::SynchronizeProperties()
 
 		Navigation->UpdateMetaData(MetaData.ToSharedRef());
 	}
+
+#if WITH_EDITOR
+	SafeWidget->AddMetadata<FReflectionMetaData>(MakeShareable(new FReflectionMetaData(GetFName(), GetClass(), WidgetGeneratedBy)));
+#endif
 }
 
 bool UWidget::IsDesignTime() const
@@ -490,7 +511,29 @@ void UWidget::SetIsDesignTime(bool bInDesignTime)
 	bDesignTime = bInDesignTime;
 }
 
-EVisibility UWidget::ConvertSerializedVisibilityToRuntime(ESlateVisibility::Type Input)
+UWorld* UWidget::GetWorld() const
+{
+	// UWidget's are given world scope by their owning user widget.  We can get that through the widget tree that should
+	// be the outer of this widget.
+	if ( UWidgetTree* OwningTree = Cast<UWidgetTree>(GetOuter()) )
+	{
+		return OwningTree->GetWorld();
+	}
+
+	return nullptr;
+}
+
+void UWidget::PostLoad()
+{
+	Super::PostLoad();
+
+	if ( GetLinkerUE4Version() < VER_UE4_RENAME_WIDGET_VISIBILITY )
+	{
+		Visibility = Visiblity_DEPRECATED;
+	}
+}
+
+EVisibility UWidget::ConvertSerializedVisibilityToRuntime(ESlateVisibility Input)
 {
 	switch ( Input )
 	{
@@ -505,12 +548,12 @@ EVisibility UWidget::ConvertSerializedVisibilityToRuntime(ESlateVisibility::Type
 	case ESlateVisibility::SelfHitTestInvisible:
 		return EVisibility::SelfHitTestInvisible;
 	default:
-		//check(false);
+		check(false);
 		return EVisibility::Visible;
 	}
 }
 
-ESlateVisibility::Type UWidget::ConvertRuntimeToSerializedVisiblity(const EVisibility& Input)
+ESlateVisibility UWidget::ConvertRuntimeToSerializedVisibility(const EVisibility& Input)
 {
 	if ( Input == EVisibility::Visible )
 	{
@@ -534,7 +577,7 @@ ESlateVisibility::Type UWidget::ConvertRuntimeToSerializedVisiblity(const EVisib
 	}
 	else
 	{
-		//check(false);
+		check(false);
 		return ESlateVisibility::Visible;
 	}
 }
@@ -598,4 +641,102 @@ UWidget* UWidget::FindChildContainingDescendant(UWidget* Root, UWidget* Descenda
 	}
 
 	return nullptr;
+}
+
+//bool UWidget::BindProperty(const FName& DestinationProperty, UObject* SourceObject, const FName& SourceProperty)
+//{
+//	UDelegateProperty* DelegateProperty = FindField<UDelegateProperty>(GetClass(), FName(*( DestinationProperty.ToString() + TEXT("Delegate") )));
+//
+//	if ( DelegateProperty )
+//	{
+//		FDynamicPropertyPath BindingPath(SourceProperty.ToString());
+//		return AddBinding(DelegateProperty, SourceObject, BindingPath);
+//	}
+//
+//	return false;
+//}
+
+TSubclassOf<UPropertyBinding> UWidget::FindBinderClassForDestination(UProperty* Property)
+{
+	if ( BinderClasses.Num() == 0 )
+	{
+		for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
+		{
+			if ( ClassIt->IsChildOf(UPropertyBinding::StaticClass()) )
+			{
+				BinderClasses.Add(*ClassIt);
+			}
+		}
+	}
+
+	for ( int32 ClassIndex = 0; ClassIndex < BinderClasses.Num(); ClassIndex++ )
+	{
+		if ( GetDefault<UPropertyBinding>(BinderClasses[ClassIndex])->IsSupportedDestination(Property))
+		{
+			return BinderClasses[ClassIndex];
+		}
+	}
+
+	return nullptr;
+}
+
+static UPropertyBinding* GenerateBinder(UDelegateProperty* DelegateProperty, UObject* Container, UObject* SourceObject, const FDynamicPropertyPath& BindingPath)
+{
+	FScriptDelegate* ScriptDelegate = DelegateProperty->GetPropertyValuePtr_InContainer(Container);
+	if ( ScriptDelegate )
+	{
+		// Only delegates that take no parameters have native binders.
+		UFunction* SignatureFunction = DelegateProperty->SignatureFunction;
+		if ( SignatureFunction->NumParms == 1 )
+		{
+			if ( UProperty* ReturnProperty = SignatureFunction->GetReturnProperty() )
+			{
+				TSubclassOf<UPropertyBinding> BinderClass = UWidget::FindBinderClassForDestination(ReturnProperty);
+				if ( BinderClass != nullptr )
+				{
+					UPropertyBinding* Binder = ConstructObject<UPropertyBinding>(BinderClass, Container);
+					Binder->SourceObject = SourceObject;
+					Binder->SourcePath = BindingPath;
+					Binder->Bind(ReturnProperty, ScriptDelegate);
+
+					return Binder;
+				}
+			}
+		}
+	}
+
+	return nullptr;
+}
+
+bool UWidget::AddBinding(UDelegateProperty* DelegateProperty, UObject* SourceObject, const FDynamicPropertyPath& BindingPath)
+{
+	if ( UPropertyBinding* Binder = GenerateBinder(DelegateProperty, this, SourceObject, BindingPath) )
+	{
+		// Remove any existing binding object for this property.
+		for ( int32 BindingIndex = 0; BindingIndex < NativeBindings.Num(); BindingIndex++ )
+		{
+			if ( NativeBindings[BindingIndex]->DestinationProperty == DelegateProperty->GetFName() )
+			{
+				NativeBindings.RemoveAt(BindingIndex);
+				break;
+			}
+		}
+
+		NativeBindings.Add(Binder);
+
+		// Only notify the bindings have changed if we've already create the underlying slate widget.
+		if ( MyWidget.IsValid() )
+		{
+			OnBindingChanged(DelegateProperty->GetFName());
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+void UWidget::OnBindingChanged(const FName& Property)
+{
+
 }

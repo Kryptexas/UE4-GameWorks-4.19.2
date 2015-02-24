@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "TileSetEditor.h"
@@ -8,6 +8,8 @@
 #include "TileMapEditing/EdModeTileMap.h"
 #include "GraphEditor.h"
 #include "SPaperEditorViewport.h"
+#include "CanvasTypes.h"
+#include "CanvasItem.h"
 
 #define LOCTEXT_NAMESPACE "TileSetEditor"
 
@@ -45,6 +47,7 @@ public:
 	FTileSetEditorViewportClient(UPaperTileSet* InTileSet)
 		: TileSetBeingEdited(InTileSet)
 		, bHasValidPaintRectangle(false)
+		, TileIndex(INDEX_NONE)
 	{
 	}
 
@@ -52,12 +55,17 @@ public:
 	virtual void Draw(FViewport* Viewport, FCanvas* Canvas) override;
 	// End of FViewportClient interface
 
+	// FEditorViewportClient interface
+	virtual FLinearColor GetBackgroundColor() const override;
+	// End of FEditorViewportClient interface
+
 public:
 	// Tile set
 	TWeakObjectPtr<UPaperTileSet> TileSetBeingEdited;
 
 	bool bHasValidPaintRectangle;
 	FViewportSelectionRectangle ValidPaintRectangle;
+	int32 TileIndex;
 };
 
 void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
@@ -67,14 +75,14 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 	// Can only proceed if we have a valid tile set
 	UPaperTileSet* TileSet = TileSetBeingEdited.Get();
-	if (TileSet == NULL)
+	if (TileSet == nullptr)
 	{
 		return;
 	}
 
 	UTexture2D* Texture = TileSet->TileSheet;
 
-	if (Texture != NULL)
+	if (Texture != nullptr)
 	{
 		const bool bUseTranslucentBlend = Texture->HasAlphaChannel();
 
@@ -120,6 +128,29 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 		FCanvasBoxItem BoxItem(FVector2D(X, Y), FVector2D(W, H));
 		BoxItem.SetColor(Rect.Color);
 		Canvas->DrawItem(BoxItem);
+
+	}
+
+	if (TileIndex != INDEX_NONE)
+	{
+		const FString TileIndexString = FString::Printf(TEXT("Tile# %d"), TileIndex);
+
+		int32 XL;
+		int32 YL;
+		StringSize(GEngine->GetLargeFont(), XL, YL, *TileIndexString);
+		Canvas->DrawShadowedString(4, Viewport->GetSizeXY().Y - YL - 4, *TileIndexString, GEngine->GetLargeFont(), FLinearColor::White);
+	}
+}
+
+FLinearColor FTileSetEditorViewportClient::GetBackgroundColor() const
+{
+	if (UPaperTileSet* TileSet = TileSetBeingEdited.Get())
+	{
+		return TileSet->BackgroundColor;
+	}
+	else
+	{
+		return FEditorViewportClient::GetBackgroundColor();
 	}
 }
 
@@ -128,12 +159,16 @@ void FTileSetEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
 
 STileSetSelectorViewport::~STileSetSelectorViewport()
 {
-	TypedViewportClient = NULL;
+	TypedViewportClient = nullptr;
 }
 
-void STileSetSelectorViewport::Construct(const FArguments& InArgs, UPaperTileSet* InTileSet)
+void STileSetSelectorViewport::Construct(const FArguments& InArgs, UPaperTileSet* InTileSet, FEdModeTileMap* InTileMapEditor)
 {
+	SelectionTopLeft = FIntPoint::ZeroValue;
+	SelectionDimensions = FIntPoint::ZeroValue;
+
 	TileSetPtr = InTileSet;
+	TileMapEditor = InTileMapEditor;
 
 	TypedViewportClient = MakeShareable(new FTileSetEditorViewportClient(InTileSet));
 
@@ -147,8 +182,15 @@ void STileSetSelectorViewport::Construct(const FArguments& InArgs, UPaperTileSet
 
 void STileSetSelectorViewport::ChangeTileSet(UPaperTileSet* InTileSet)
 {
-	TileSetPtr = InTileSet;
-	TypedViewportClient->TileSetBeingEdited = InTileSet;
+	if (InTileSet != TileSetPtr.Get())
+	{
+		TileSetPtr = InTileSet;
+		TypedViewportClient->TileSetBeingEdited = InTileSet;
+
+		// Update the selection rectangle
+		RefreshSelectionRectangle();
+		TypedViewportClient->Invalidate();
+	}
 }
 
 FText STileSetSelectorViewport::GetTitleText() const
@@ -165,27 +207,23 @@ FText STileSetSelectorViewport::GetTitleText() const
 void STileSetSelectorViewport::OnSelectionChanged(FMarqueeOperation Marquee, bool bIsPreview)
 {
 	UPaperTileSet* TileSetBeingEdited = TileSetPtr.Get();
-	if (TileSetBeingEdited == NULL)
+	if (TileSetBeingEdited == nullptr)
 	{
 		return;
 	}
 
-	FIntPoint SelectionTopLeft;
-	FIntPoint SelectionDimensions;
-
-	if (Marquee.IsValid())
+	const FVector2D TopLeftUnrounded = Marquee.Rect.GetUpperLeft();
+	const FVector2D BottomRightUnrounded = Marquee.Rect.GetLowerRight();
+	if ((TopLeftUnrounded != FVector2D::ZeroVector) || Marquee.IsValid())
 	{
-		const FVector2D TopLeftUnrounded = Marquee.Rect.GetUpperLeft();
-		const FVector2D BottomRightUnrounded = Marquee.Rect.GetLowerRight();
-
 		// Round down the top left corner
-		SelectionTopLeft.X = FMath::Clamp<int>((int)(TopLeftUnrounded.X / TileSetBeingEdited->TileWidth), 0, TileSetBeingEdited->GetTileCountX()-1);
-		SelectionTopLeft.Y = FMath::Clamp<int>((int)(TopLeftUnrounded.Y / TileSetBeingEdited->TileHeight), 0, TileSetBeingEdited->GetTileCountY()-1);
+		SelectionTopLeft.X = FMath::Clamp<int>((int)(TopLeftUnrounded.X / TileSetBeingEdited->TileWidth), 0, TileSetBeingEdited->GetTileCountX());
+		SelectionTopLeft.Y = FMath::Clamp<int>((int)(TopLeftUnrounded.Y / TileSetBeingEdited->TileHeight), 0, TileSetBeingEdited->GetTileCountY());
 
 		// Round up the bottom right corner
 		FIntPoint SelectionBottomRight;
-		SelectionBottomRight.X = FMath::Clamp<int>(FMath::DivideAndRoundUp((int)BottomRightUnrounded.X, TileSetBeingEdited->TileWidth), 0, TileSetBeingEdited->GetTileCountX()-1);
-		SelectionBottomRight.Y = FMath::Clamp<int>(FMath::DivideAndRoundUp((int)BottomRightUnrounded.Y, TileSetBeingEdited->TileHeight), 0, TileSetBeingEdited->GetTileCountY()-1);
+		SelectionBottomRight.X = FMath::Clamp<int>(FMath::DivideAndRoundUp((int)BottomRightUnrounded.X, TileSetBeingEdited->TileWidth), 0, TileSetBeingEdited->GetTileCountX());
+		SelectionBottomRight.Y = FMath::Clamp<int>(FMath::DivideAndRoundUp((int)BottomRightUnrounded.Y, TileSetBeingEdited->TileHeight), 0, TileSetBeingEdited->GetTileCountY());
 
 		// Compute the new selection dimensions
 		SelectionDimensions = SelectionBottomRight - SelectionTopLeft;
@@ -198,20 +236,41 @@ void STileSetSelectorViewport::OnSelectionChanged(FMarqueeOperation Marquee, boo
 		SelectionDimensions.Y = 0;
 	}
 
-	const bool bHasSelection = (SelectionDimensions.X + SelectionDimensions.Y > 0);
+	const bool bHasSelection = (SelectionDimensions.X * SelectionDimensions.Y) > 0;
 	if (bIsPreview && bHasSelection)
 	{
-		if (FEdModeTileMap* TileMapEditor = GLevelEditorModeTools().GetActiveModeTyped<FEdModeTileMap>(FEdModeTileMap::EM_TileMap))
+		if (TileMapEditor != nullptr)
 		{
 			TileMapEditor->SetActivePaint(TileSetBeingEdited, SelectionTopLeft, SelectionDimensions);
 
-			if (FTileSetEditorViewportClient* Client = TypedViewportClient.Get())
+			// Switch to paint brush mode if we were in the eraser mode since the user is trying to select some ink to paint with
+			if (TileMapEditor->GetActiveTool() == ETileMapEditorTool::Eraser)
 			{
-				Client->bHasValidPaintRectangle = true;
-				Client->ValidPaintRectangle.Color = FLinearColor::White;
-				Client->ValidPaintRectangle.Dimensions = FVector2D(SelectionDimensions.X * TileSetBeingEdited->TileWidth, SelectionDimensions.Y * TileSetBeingEdited->TileHeight);
-				Client->ValidPaintRectangle.TopLeft = FVector2D(SelectionTopLeft.X * TileSetBeingEdited->TileWidth, SelectionTopLeft.Y * TileSetBeingEdited->TileHeight);
+				TileMapEditor->SetActiveTool(ETileMapEditorTool::Paintbrush);
 			}
+		}
+
+		RefreshSelectionRectangle();
+	}
+}
+
+void STileSetSelectorViewport::RefreshSelectionRectangle()
+{
+	if (FTileSetEditorViewportClient* Client = TypedViewportClient.Get())
+	{
+		UPaperTileSet* TileSetBeingEdited = TileSetPtr.Get();
+
+		const bool bHasSelection = (SelectionDimensions.X * SelectionDimensions.Y) > 0;
+		Client->bHasValidPaintRectangle = bHasSelection && (TileSetBeingEdited != nullptr);
+
+		const int32 TileIndex = (bHasSelection && (TileSetBeingEdited != nullptr)) ? (SelectionTopLeft.X + SelectionTopLeft.Y * TileSetBeingEdited->GetTileCountX()) : INDEX_NONE;
+		Client->TileIndex = TileIndex;
+
+		if (bHasSelection)
+		{
+			Client->ValidPaintRectangle.Color = FLinearColor::White;
+			Client->ValidPaintRectangle.Dimensions = FVector2D(SelectionDimensions.X * TileSetBeingEdited->TileWidth, SelectionDimensions.Y * TileSetBeingEdited->TileHeight);
+			Client->ValidPaintRectangle.TopLeft = FVector2D(SelectionTopLeft.X * TileSetBeingEdited->TileWidth, SelectionTopLeft.Y * TileSetBeingEdited->TileHeight);
 		}
 	}
 }
@@ -237,10 +296,8 @@ public:
 	virtual TSharedRef<SWidget> CreateTabBody(const FWorkflowTabSpawnInfo& Info) const override
 	{
 		TSharedPtr<FTileSetEditor> TileSetEditorPtr = StaticCastSharedPtr<FTileSetEditor>(HostingApp.Pin());
-		//TSharedRef<FTileSetEditorViewportClient> ViewportClientPtr = MakeShareable(new FTileSetEditorViewportClient(TileSetEditorPtr));
-		//TWeakPtr<FTileSetEditorViewportClient> WeakViewportClient = ViewportClientPtr;
 
-		return SNew(STileSetSelectorViewport, TileSetEditorPtr->GetTileSetBeingEdited());
+		return SNew(STileSetSelectorViewport, TileSetEditorPtr->GetTileSetBeingEdited(), /*EdMode=*/ nullptr);
 	}
 };
 

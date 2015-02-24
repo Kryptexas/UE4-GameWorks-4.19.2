@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "StructMemberNodeHandlers.h"
@@ -28,7 +28,7 @@ static FBPTerminal* RegisterStructVar(FCompilerResultsLog& MessageLog, FKismetFu
 		//@TODO: Needed? Context.NetMap.Add(Net, Term);
 
 		// Read-only variables and variables in const classes are both const
-		if (BoundProperty->HasAnyPropertyFlags(CPF_BlueprintReadOnly) || Context.IsConstFunction())
+		if (BoundProperty->HasAnyPropertyFlags(CPF_BlueprintReadOnly) || (Context.IsConstFunction() && Context.NewClass->IsChildOf(SearchScope)))
 		{
 			Term->bIsConst = true;
 		}
@@ -64,7 +64,7 @@ static void ResolveAndRegisterScopedStructTerm(FCompilerResultsLog& MessageLog, 
 		Term->Context = ContextTerm;
 
 		// Read-only variables and variables in const classes are both const
-		if (BoundProperty->HasAnyPropertyFlags(CPF_BlueprintReadOnly) || Context.IsConstFunction())
+		if (BoundProperty->HasAnyPropertyFlags(CPF_BlueprintReadOnly) || (Context.IsConstFunction() && Context.NewClass->IsChildOf(StructType)))
 		{
 			Term->bIsConst = true;
 		}

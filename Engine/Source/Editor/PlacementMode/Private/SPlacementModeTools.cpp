@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PlacementModePrivatePCH.h"
 #include "AssetSelection.h"
@@ -11,6 +11,9 @@
 #include "EditorClassUtils.h"
 #include "SSearchBox.h"
 #include "SWidgetSwitcher.h"
+#include "GameFramework/Volume.h"
+#include "Engine/PostProcessVolume.h"
+#include "AssetToolsModule.h"
 
 /**
  * These are the tab indexes, if the tabs are reorganized you need to adjust the
@@ -39,43 +42,37 @@ public:
 	SLATE_BEGIN_ARGS( SPlacementAssetThumbnail )
 		: _Width( 32 )
 		, _Height( 32 )
+		, _AlwaysUseGenericThumbnail( false )
+		, _AssetTypeColorOverride()
 	{}
 
 	SLATE_ARGUMENT( uint32, Width )
 
 	SLATE_ARGUMENT( uint32, Height )
 
+	SLATE_ARGUMENT( FName, ClassThumbnailBrushOverride )
+
+	SLATE_ARGUMENT( bool, AlwaysUseGenericThumbnail )
+
+	SLATE_ARGUMENT( TOptional<FLinearColor>, AssetTypeColorOverride )
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, const FAssetData& InAsset )
+	void Construct( const FArguments& InArgs, const FAssetData& InAsset)
 	{
 		Asset = InAsset;
 
 		FLevelEditorModule& LevelEditorModule = FModuleManager::LoadModuleChecked<FLevelEditorModule>( "LevelEditor" );
 		TSharedPtr<FAssetThumbnailPool> ThumbnailPool = LevelEditorModule.GetFirstLevelEditor()->GetThumbnailPool();
 
-		Thumbnail = MakeShareable( new FAssetThumbnail( Asset, InArgs._Width, InArgs._Height, ThumbnailPool ) );
+		Thumbnail = MakeShareable(new FAssetThumbnail(Asset, InArgs._Width, InArgs._Height, ThumbnailPool));
 
-		bool bAllowFadeIn = false;
-		bool bForceGenericThumbnail = false;
-		EThumbnailLabel::Type ThumbnailLabel = EThumbnailLabel::ClassName;
-		const TAttribute< FText >& HighlightedText = TAttribute< FText >( FText::GetEmpty() );
-		const TAttribute< FLinearColor >& HintColorAndOpacity = FLinearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-		bool AllowHintText = true;
-		FName ClassThumbnailBrushOverride = NAME_None;
-		bool ShowBackground = false;
-
+		FAssetThumbnailConfig Config;
+		Config.bForceGenericThumbnail = InArgs._AlwaysUseGenericThumbnail;
+		Config.ClassThumbnailBrushOverride = InArgs._ClassThumbnailBrushOverride;
+		Config.AssetTypeColorOverride = InArgs._AssetTypeColorOverride;
 		ChildSlot
 		[
-			Thumbnail->MakeThumbnailWidget(
-			bAllowFadeIn,
-			bForceGenericThumbnail,
-			ThumbnailLabel,
-			HighlightedText,
-			HintColorAndOpacity,
-			AllowHintText,
-			ClassThumbnailBrushOverride,
-			ShowBackground )
+			Thumbnail->MakeThumbnailWidget( Config )
 		];
 	}
 
@@ -181,6 +178,9 @@ void SPlacementAssetEntry::Construct(const FArguments& InArgs, UActorFactory* In
 					.HeightOverride( 35 )
 					[
 						SNew( SPlacementAssetThumbnail, AssetData )
+						.ClassThumbnailBrushOverride( InArgs._ClassThumbnailBrushOverride )
+						.AlwaysUseGenericThumbnail( InArgs._AlwaysUseGenericThumbnail )
+						.AssetTypeColorOverride( InArgs._AssetTypeColorOverride )
 					]
 				]
 			]
@@ -376,7 +376,7 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 			SNew( SBox )
 			.AddMetaData<FTagMetaData>(FTagMetaData(TEXT("PMVisual")))
 			[
-				CreatePlacementGroupTab( (int32)EPlacementTab::Visual, NSLOCTEXT( "PlacementMode", "Visual", "Visual" ), false )
+				CreatePlacementGroupTab( (int32)EPlacementTab::Visual, NSLOCTEXT( "PlacementMode", "VisualEffects", "Visual Effects" ), false )
 			]
 		]
 
@@ -462,7 +462,7 @@ TSharedRef< SWidget > SPlacementModeTools::CreateStandardPanel()
 					]
 				]
 
-				// Visual
+				// Visual Effects
 				+ SWidgetSwitcher::Slot()
 				[
 					SNew( SScrollBox )
@@ -540,14 +540,14 @@ TSharedRef< SWidget > SPlacementModeTools::CreatePlacementGroupTab( int32 TabInd
 	];
 }
 
-ESlateCheckBoxState::Type SPlacementModeTools::GetPlacementTabCheckedState( int32 PlacementGroupIndex ) const
+ECheckBoxState SPlacementModeTools::GetPlacementTabCheckedState( int32 PlacementGroupIndex ) const
 {
-	return WidgetSwitcher->GetActiveWidgetIndex() == PlacementGroupIndex ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return WidgetSwitcher->GetActiveWidgetIndex() == PlacementGroupIndex ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SPlacementModeTools::OnPlacementTabChanged( ESlateCheckBoxState::Type NewState, int32 PlacementGroupIndex )
+void SPlacementModeTools::OnPlacementTabChanged( ECheckBoxState NewState, int32 PlacementGroupIndex )
 {
-	if ( NewState == ESlateCheckBoxState::Checked )
+	if ( NewState == ECheckBoxState::Checked )
 	{
 		WidgetSwitcher->SetActiveWidgetIndex( PlacementGroupIndex );
 
@@ -566,7 +566,8 @@ const FSlateBrush* SPlacementModeTools::PlacementGroupBorderImage( int32 Placeme
 {
 	if ( WidgetSwitcher->GetActiveWidgetIndex() == PlacementGroupIndex )
 	{
-		return FEditorStyle::GetBrush( "PlacementBrowser.ActiveTabBar" );
+		static FName PlacementBrowserActiveTabBarBrush( "PlacementBrowser.ActiveTabBar" );
+		return FEditorStyle::GetBrush( PlacementBrowserActiveTabBarBrush );
 	}
 	else
 	{
@@ -574,17 +575,22 @@ const FSlateBrush* SPlacementModeTools::PlacementGroupBorderImage( int32 Placeme
 	}
 }
 
-TSharedRef< SWidget > BuildDraggableAssetWidget( UClass* InAssetClass )
+TSharedRef< SPlacementAssetEntry > BuildDraggableAssetWidget( UClass* InAssetClass, TAttribute<FText> HightlightText = TAttribute<FText>() )
 {
 	UActorFactory* Factory = GEditor->FindActorFactoryByClass( InAssetClass );
 	FAssetData AssetData = FAssetData( Factory->GetDefaultActorClass( FAssetData() ) );
-	return SNew( SPlacementAssetEntry, Factory, AssetData );
+	return SNew( SPlacementAssetEntry, Factory, AssetData ).HighlightText( HightlightText );
 }
 
-TSharedRef< SWidget > BuildDraggableAssetWidget( UClass* InAssetClass, const FAssetData& InAssetData )
+
+TSharedRef< SPlacementAssetEntry > BuildDraggableAssetWidget( UClass* InAssetClass, const FAssetData& InAssetData, FName InClassThumbnailBrushOverride = NAME_None, TOptional<FLinearColor> InAssetTypeColorOverride = TOptional<FLinearColor>(), TAttribute<FText> HightlightText = TAttribute<FText>() ) 
 {
 	UActorFactory* Factory = GEditor->FindActorFactoryByClass( InAssetClass );
-	return SNew( SPlacementAssetEntry, Factory, InAssetData );
+	return SNew( SPlacementAssetEntry, Factory, InAssetData )
+		.ClassThumbnailBrushOverride( InClassThumbnailBrushOverride )
+		.AlwaysUseGenericThumbnail(true)
+		.AssetTypeColorOverride( InAssetTypeColorOverride )
+		.HighlightText( HightlightText );
 }
 
 TSharedRef< SWidget > SPlacementModeTools::BuildLightsWidget()
@@ -661,55 +667,95 @@ TSharedRef< SWidget > SPlacementModeTools::BuildVisualWidget()
 	];
 }
 
+static TOptional<FLinearColor> GetBasicShapeColorOverride()
+{
+	// Get color for basic shapes.  It should appear like all the other basic types
+	static TOptional<FLinearColor> BasicShapeColorOverride;
+	
+	if( !BasicShapeColorOverride.IsSet() )
+	{
+		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+		TSharedPtr<IAssetTypeActions> AssetTypeActions;
+		AssetTypeActions = AssetToolsModule.Get().GetAssetTypeActionsForClass(UClass::StaticClass()).Pin();
+		if (AssetTypeActions.IsValid())
+		{
+			BasicShapeColorOverride = TOptional<FLinearColor>(AssetTypeActions->GetTypeColor());
+		}
+	}
+	return BasicShapeColorOverride;
+}
+
 TSharedRef< SWidget > SPlacementModeTools::BuildBasicWidget()
 {
-	return SNew( SVerticalBox )
-
 	// Basics
-	+ SVerticalBox::Slot()
+	TSharedRef<SVerticalBox> VerticalBox = SNew( SVerticalBox )
+	+SVerticalBox::Slot()
 	.AutoHeight()
 	[
-		BuildDraggableAssetWidget( UActorFactoryCameraActor::StaticClass() )
+		BuildDraggableAssetWidget(UActorFactoryPointLight::StaticClass())
 	]
-
 	+ SVerticalBox::Slot()
 	.AutoHeight()
 	[
 		BuildDraggableAssetWidget( UActorFactoryPlayerStart::StaticClass() )
 	]
-
 	+ SVerticalBox::Slot()
 	.AutoHeight()
 	[
-		BuildDraggableAssetWidget(UActorFactoryPointLight::StaticClass())
+		// Cube
+		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData( LoadObject<UStaticMesh>(nullptr,*UActorFactoryBasicShape::BasicCube.ToString())), FName("ClassThumbnail.Cube"), GetBasicShapeColorOverride() )
 	]
-
-
-	// Triggers
+	+ SVerticalBox::Slot()
+	.AutoHeight()
+	[
+		// Sphere
+		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr,*UActorFactoryBasicShape::BasicSphere.ToString())), FName("ClassThumbnail.Sphere"), GetBasicShapeColorOverride() )
+	]
+	+ SVerticalBox::Slot()
+	.AutoHeight()
+	[
+		// Cylinder
+		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr,*UActorFactoryBasicShape::BasicCylinder.ToString())), FName("ClassThumbnail.Cylinder"), GetBasicShapeColorOverride() )
+	]
+	+ SVerticalBox::Slot()
+	.AutoHeight()
+	[
+		// Cone
+		BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr,*UActorFactoryBasicShape::BasicCone.ToString())), FName("ClassThumbnail.Cone"), GetBasicShapeColorOverride() )
+	]
 	+ SVerticalBox::Slot()
 	.AutoHeight()
 	[
 		BuildDraggableAssetWidget( UActorFactoryTriggerBox::StaticClass() )
 	]
-
 	+ SVerticalBox::Slot()
 	.AutoHeight()
 	[
 		BuildDraggableAssetWidget( UActorFactoryTriggerSphere::StaticClass() )
-	]
-
-	+ SVerticalBox::Slot()
-	.AutoHeight()
-	[
-		BuildDraggableAssetWidget( UActorFactoryTriggerCapsule::StaticClass() )
-	]
-
-
-	+ SVerticalBox::Slot()
-	.AutoHeight()
-	[
-		BuildDraggableAssetWidget( UActorFactoryTargetPoint::StaticClass() )
 	];
+
+	if( GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing )
+	{
+		VerticalBox->InsertSlot(0)
+		.AutoHeight()
+		[
+			BuildDraggableAssetWidget(UActorFactoryEmptyActor::StaticClass())
+		];
+
+		VerticalBox->InsertSlot(1)
+		.AutoHeight()
+		[
+			BuildDraggableAssetWidget(UActorFactoryCharacter::StaticClass())
+		];
+
+		VerticalBox->InsertSlot(2)
+		.AutoHeight()
+		[
+			BuildDraggableAssetWidget(UActorFactoryPawn::StaticClass())
+		];
+	}
+
+	return VerticalBox;
 }
 
 void SPlacementModeTools::UpdateRecentlyPlacedAssets( const TArray< FActorPlacementInfo >& RecentlyPlaced )
@@ -772,15 +818,15 @@ void SPlacementModeTools::RefreshVolumes()
 	FAssetData NoAssetData;
 	for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
 	{
-		// Don't offer skeleton classes
-		bool bIsSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(*ClassIt);
+		const UClass* Class = *ClassIt;
 
-		if ( !ClassIt->HasAllClassFlags( CLASS_NotPlaceable ) &&
-			 !ClassIt->HasAnyClassFlags( CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists ) &&
-			  ClassIt->IsChildOf( AVolume::StaticClass() ) )
+		if (!Class->HasAllClassFlags(CLASS_NotPlaceable) &&
+			!Class->HasAnyClassFlags(CLASS_Abstract | CLASS_Deprecated | CLASS_NewerVersionExists) &&
+			Class->IsChildOf(AVolume::StaticClass()) &&
+			Class->ClassGeneratedBy == nullptr )
 		{
-			UActorFactory* Factory = GEditor->FindActorFactoryByClassForActorClass( UActorFactoryBoxVolume::StaticClass(), *ClassIt );
-			Entries.Add( SNew( SPlacementAssetEntry, Factory, FAssetData( *ClassIt ) ) );
+			UActorFactory* Factory = GEditor->FindActorFactoryByClassForActorClass(UActorFactoryBoxVolume::StaticClass(), Class);
+			Entries.Add(SNew(SPlacementAssetEntry, Factory, FAssetData(Class)));
 		}
 	}
 
@@ -820,6 +866,8 @@ void SPlacementModeTools::RebuildPlaceableClassWidgetCache()
 
 	TArray< TSharedRef<SPlacementAssetEntry> > Entries;
 
+	TAttribute<FText> HighlightTextAttrib( this, &SPlacementModeTools::GetHighlightText );
+
 	// Add loaded classes
 	FText UnusedErrorMessage;
 	FAssetData NoAssetData;
@@ -844,7 +892,7 @@ void SPlacementModeTools::RebuildPlaceableClassWidgetCache()
 			{
 				UActorFactory* Factory = GEditor->FindActorFactoryByClassForActorClass(UActorFactoryBoxVolume::StaticClass(), *ClassIt);
 				Entry = SNew(SPlacementAssetEntry, Factory, FAssetData(*ClassIt))
-					.HighlightText(this, &SPlacementModeTools::GetHighlightText);
+					.HighlightText(HighlightTextAttrib);
 			}
 			else
 			{
@@ -853,12 +901,12 @@ void SPlacementModeTools::RebuildPlaceableClassWidgetCache()
 					if ( !ActorFactory )
 					{
 						Entry = SNew(SPlacementAssetEntry, nullptr, FAssetData(*ClassIt))
-							.HighlightText(this, &SPlacementModeTools::GetHighlightText);
+							.HighlightText(HighlightTextAttrib);
 					}
 					else
 					{
 						Entry = SNew(SPlacementAssetEntry, *ActorFactory, FAssetData(*ClassIt))
-							.HighlightText(this, &SPlacementModeTools::GetHighlightText);
+							.HighlightText(HighlightTextAttrib);
 					}
 				}
 			}
@@ -869,6 +917,16 @@ void SPlacementModeTools::RebuildPlaceableClassWidgetCache()
 			}
 		}
 	}
+
+
+	// Add empty types and shapes which have special actor factory requirements
+	Entries.Add(BuildDraggableAssetWidget(UActorFactoryEmptyActor::StaticClass(),HighlightTextAttrib));
+	Entries.Add(BuildDraggableAssetWidget(UActorFactoryCharacter::StaticClass(),HighlightTextAttrib));
+	Entries.Add(BuildDraggableAssetWidget(UActorFactoryPawn::StaticClass(),HighlightTextAttrib));
+	Entries.Add(BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicCube.ToString())), FName("ClassThumbnail.Cube"), GetBasicShapeColorOverride(),HighlightTextAttrib));
+	Entries.Add(BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicSphere.ToString())), FName("ClassThumbnail.Sphere"), GetBasicShapeColorOverride(),HighlightTextAttrib));
+	Entries.Add(BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicCylinder.ToString())), FName("ClassThumbnail.Cylinder"), GetBasicShapeColorOverride(),HighlightTextAttrib));
+	Entries.Add(BuildDraggableAssetWidget(UActorFactoryBasicShape::StaticClass(), FAssetData(LoadObject<UStaticMesh>(nullptr, *UActorFactoryBasicShape::BasicCone.ToString())), FName("ClassThumbnail.Cone"), GetBasicShapeColorOverride(),HighlightTextAttrib));
 
 	struct FCompareFactoryByDisplayName
 	{
@@ -914,7 +972,8 @@ void SPlacementModeTools::RefreshPlaceables()
 		// Filter out the widgets that don't belong
 		for ( int32 i = 0; i < PlaceableClassWidgets.Num(); i++ )
 		{
-			if ( PlaceableClassWidgets[i]->AssetDisplayName.ToString().Contains(SearchText.ToString()) )
+			const FString* SourceString = FTextInspector::GetSourceString(PlaceableClassWidgets[i]->AssetDisplayName);
+			if ( PlaceableClassWidgets[i]->AssetDisplayName.ToString().Contains( SearchText.ToString() ) || ( SourceString && SourceString->Contains( SearchText.ToString() ) ) )
 			{
 				SearchResultsContainer->AddSlot()
 				[

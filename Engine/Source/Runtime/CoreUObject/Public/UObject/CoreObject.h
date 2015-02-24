@@ -1,8 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "ObjectBase.h"
+#include "WorldCompositionUtility.h"
 
 /**
  * Structure to hold information about an external packages objects used in cross-level references
@@ -21,7 +22,7 @@ struct FLevelGuids
  */
 class COREUOBJECT_API UPackage : public UObject
 {
-	DECLARE_CLASS_INTRINSIC(UPackage,UObject,0,CoreUObject)
+	DECLARE_CASTED_CLASS_INTRINSIC(UPackage,UObject,0,CoreUObject, CASTCLASS_UPackage)
 
 public:
 	/** delegate type for package dirty state events.  ( Params: UPackage* ModifiedPackage ) */
@@ -86,7 +87,7 @@ public:
 	class UMetaData*	MetaData;
 	
 	// World browser information
-	TScopedPointer< class FWorldTileInfo > WorldTileInfo;
+	TScopedPointer< FWorldTileInfo > WorldTileInfo;
 
 #if WITH_EDITOR
 	/** Editor only: PIE instance ID this package belongs to, INDEX_NONE otherwise */

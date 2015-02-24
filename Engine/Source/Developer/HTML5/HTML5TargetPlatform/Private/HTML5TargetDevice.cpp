@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "HTML5TargetPlatformPrivatePCH.h"
 
@@ -36,7 +36,7 @@ FString FHTML5TargetDevice::GetName( ) const
 
 FString FHTML5TargetDevice::GetOperatingSystemName( )
 {
-	return TEXT("HTML5 Browser");
+	return OperatingSystemName;
 }
 
 

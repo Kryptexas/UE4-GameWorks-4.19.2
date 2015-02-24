@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Json.h"
@@ -89,6 +89,7 @@ typedef TArray<FString> FJsonSerializableArray;
 /** Maps a key to a value */
 typedef FOnlineKeyValuePairs<FString, FString> FJsonSerializableKeyValueMap;
 typedef FOnlineKeyValuePairs<FString, int32> FJsonSerializableKeyValueMapInt;
+typedef FOnlineKeyValuePairs<FString, FVariantData> FJsonSerializeableKeyValueMapVariant;
 
 /**
  * Base interface used to serialize to/from JSON. Hides the fact there are separate read/write classes

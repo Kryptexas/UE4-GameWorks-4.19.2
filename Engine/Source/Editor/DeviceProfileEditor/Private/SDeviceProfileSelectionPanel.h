@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -79,6 +79,9 @@ private:
 
 	/** The profile selected from the current list. */
 	TWeakObjectPtr< UDeviceProfile > SelectedProfile;
+
+	/** Handle to the registered RegenerateProfileList delegate */
+	FDelegateHandle RegenerateProfileListDelegateHandle;
 };
 
 

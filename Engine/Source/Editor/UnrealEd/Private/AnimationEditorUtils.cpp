@@ -1,9 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "AnimationEditorUtils.h"
 #include "AssetToolsModule.h"
-#include "ContentBrowserModule.h"
+#include "Animation/AnimComposite.h"
+#include "Animation/BlendSpace.h"
+#include "Animation/BlendSpace1D.h"
+#include "Animation/AimOffsetBlendSpace.h"
+#include "Animation/AimOffsetBlendSpace1D.h"
 
 #define LOCTEXT_NAMESPACE "AnimationEditorUtils"
 
@@ -318,47 +322,6 @@ namespace AnimationEditorUtils
 			{
 				AssetCreated.Execute(SkeletonsToSync);
 			}
-		}
-	}
-
-	template <typename TFactory, typename T>
-	void ExecuteNewAnimAsset(TArray<TWeakObjectPtr<USkeleton>> Objects, const FString InSuffix, FAnimAssetCreated AssetCreated, bool bInContentBrowser )
-	{
-		if(bInContentBrowser && Objects.Num() == 1)
-		{
-			auto Object = Objects[0].Get();
-
-			if(Object)
-			{
-				// Determine an appropriate name for inline-rename
-				FString Name;
-				FString PackageName;
-				CreateUniqueAssetName(Object->GetOutermost()->GetName(), InSuffix, PackageName, Name);
-
-				TFactory* Factory = ConstructObject<TFactory>(TFactory::StaticClass());
-				Factory->TargetSkeleton = Object;
-
-				FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
-				ContentBrowserModule.Get().CreateNewAsset(Name, FPackageName::GetLongPackagePath(PackageName), T::StaticClass(), Factory);
-
-				if(AssetCreated.IsBound())
-				{
-					// @TODO: this doesn't work
-					//FString LongPackagePath = FPackageName::GetLongPackagePath(PackageName);
-					UObject* 	Parent = FindPackage(NULL, *PackageName);
-					UObject* NewAsset = FindObject<UObject>(Parent, *Name, false);
-					if (NewAsset)
-					{
-						TArray<UObject*> NewAssets;
-						NewAssets.Add(NewAsset);
-						AssetCreated.Execute(NewAssets);
-					}
-				}
-			}
-		}
-		else
-		{
-			CreateAnimationAssets(Objects, T::StaticClass(), InSuffix, AssetCreated);
 		}
 	}
 

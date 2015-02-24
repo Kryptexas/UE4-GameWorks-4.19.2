@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/SCS_Node.h"
@@ -6,15 +6,35 @@
 #if WITH_EDITOR
 #include "Kismet2/CompilerResultsLog.h"
 #include "Kismet2/BlueprintEditorUtils.h"
+#include "Kismet2/ComponentEditorUtils.h"
 #include "Kismet2/Kismet2NameValidators.h"
 #endif
+#include "Engine/SimpleConstructionScript.h"
 
 //////////////////////////////////////////////////////////////////////////
 // USimpleConstructionScript
 
-#if WITH_EDITOR
-const FName USimpleConstructionScript::DefaultSceneRootVariableName = FName(TEXT("DefaultSceneRoot"));
-#endif
+namespace
+{
+	// Helper method to register instanced components post-construction
+	void RegisterInstancedComponent(UActorComponent* InstancedComponent)
+	{
+		if (!InstancedComponent->IsRegistered())
+		{
+			InstancedComponent->RegisterComponent();
+
+			// If this is a scene component, recursively register any child components as well
+			USceneComponent* InstancedSceneComponent = Cast<USceneComponent>(InstancedComponent);
+			if(InstancedSceneComponent != nullptr)
+			{
+				for(auto InstancedChildComponent : InstancedSceneComponent->AttachChildren)
+				{
+					RegisterInstancedComponent(InstancedChildComponent);
+				}
+			}
+		}
+	}
+}
 
 USimpleConstructionScript::USimpleConstructionScript(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -115,24 +135,22 @@ void USimpleConstructionScript::Serialize(FArchive& Ar)
 	}
 }
 
+void USimpleConstructionScript::PreloadChain()
+{
+	GetLinker()->Preload(this);
+
+	for (USCS_Node* Node : RootNodes)
+	{
+		Node->PreloadChain();
+	}
+}
+
 void USimpleConstructionScript::PostLoad()
 {
 	Super::PostLoad();
-
+	
 	int32 NodeIndex;
 	TArray<USCS_Node*> Nodes = GetAllNodes();
-
-	if (GetLinkerUE4Version() < VER_UE4_REMOVE_INPUT_COMPONENTS_FROM_BLUEPRINTS)
-	{
-		for (NodeIndex=0; NodeIndex < Nodes.Num(); ++NodeIndex)
-		{
-			USCS_Node* Node = Nodes[NodeIndex];
-			if (!Node->bIsNative_DEPRECATED && Node->ComponentTemplate->IsA<UInputComponent>())
-			{
-				RemoveNodeAndPromoteChildren(Node);
-			}
-		}
-	}
 
 #if WITH_EDITOR
 	// Get the Blueprint that owns the SCS
@@ -153,6 +171,7 @@ void USimpleConstructionScript::PostLoad()
 			Node->CategoryName = TEXT("Default");
 		}
 	}
+
 #endif // WITH_EDITOR
 	// Fix up native/inherited parent attachments, in case anything has changed
 	FixupRootNodeParentReferences();
@@ -231,7 +250,7 @@ void USimpleConstructionScript::FixupRootNodeParentReferences()
 				if(CDO != NULL)
 				{
 					// Look for the parent component in the CDO's components array
-					TArray<UActorComponent*> Components;
+					TInlineComponentArray<UActorComponent*> Components;
 					CDO->GetComponents(Components);
 
 					for (auto CompIter = Components.CreateConstIterator(); CompIter && !bWasFound; ++CompIter)
@@ -293,25 +312,41 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 {
 	if(RootNodes.Num() > 0)
 	{
+		TInlineComponentArray<UActorComponent*> InstancedComponents;
 		for(auto NodeIt = RootNodes.CreateIterator(); NodeIt; ++NodeIt)
 		{
 			USCS_Node* RootNode = *NodeIt;
-			if(RootNode != NULL)
+			if(RootNode != nullptr)
 			{
+				// Get all native scene components
+				TInlineComponentArray<USceneComponent*> Components;
+				Actor->GetComponents(Components);
+				for (int32 Index = Components.Num()-1; Index >= 0; --Index)
+				{
+					if (Components[Index]->CreationMethod == EComponentCreationMethod::Instance)
+					{
+						Components.RemoveAt(Index);
+					}
+				}
+
+				// Get the native root component; if it's not set, the first native scene component will be used as root. This matches what's done in the SCS editor.
+				USceneComponent* RootComponent = Actor->GetRootComponent();
+				if(RootComponent == nullptr && Components.Num() > 0)
+				{
+					RootComponent = Components[0];
+				}
+
 				// If the root node specifies that it has a parent
-				USceneComponent* ParentComponent = NULL;
+				USceneComponent* ParentComponent = nullptr;
 				if(RootNode->ParentComponentOrVariableName != NAME_None)
 				{
 					// Get the Actor class object
 					UClass* ActorClass = Actor->GetClass();
-					check(ActorClass != NULL);
+					check(ActorClass != nullptr);
 
 					// If the root node is parented to a "native" component (i.e. in the 'Components' array)
 					if(RootNode->bIsParentComponentNative)
 					{
-						TArray<USceneComponent*> Components;
-						Actor->GetComponents(Components);
-
 						for(int32 CompIndex = 0; CompIndex < Components.Num(); ++CompIndex)
 						{
 							// If we found a match, remember the index
@@ -326,7 +361,7 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 					{
 						// In the non-native case, the SCS node's variable name property is used as the parent identifier
 						UObjectPropertyBase* Property = FindField<UObjectPropertyBase>(ActorClass, RootNode->ParentComponentOrVariableName);
-						if(Property != NULL)
+						if(Property != nullptr)
 						{
 							// If we found a matching property, grab its value and use that as the parent for this node
 							ParentComponent = Cast<USceneComponent>(Property->GetObjectPropertyValue_InContainer(Actor));
@@ -334,15 +369,27 @@ void USimpleConstructionScript::ExecuteScriptOnActor(AActor* Actor, const FTrans
 					}
 				}
 
-				RootNode->ExecuteNodeOnActor(Actor, ParentComponent != NULL ? ParentComponent : Actor->GetRootComponent(), &RootTransform, bIsDefaultTransform);
+				// Create the new component instance and any child components it may have
+				UActorComponent* InstancedComponent = RootNode->ExecuteNodeOnActor(Actor, ParentComponent != nullptr ? ParentComponent : RootComponent, &RootTransform, bIsDefaultTransform);
+				if(InstancedComponent != nullptr)
+				{
+					InstancedComponents.Add(InstancedComponent);
+				}
 			}
+		}
+
+		// Register all instanced SCS components once SCS execution has finished; sorted in order to register the scene component hierarchy first, followed by the remaining actor components (in case they happen to depend on something in the scene hierarchy)
+		InstancedComponents.Sort([](const UActorComponent& A, const UActorComponent& B) { return A.IsA<USceneComponent>(); });
+		for(auto InstancedComponent : InstancedComponents)
+		{
+			RegisterInstancedComponent(InstancedComponent);
 		}
 	}
 	else if(Actor->GetRootComponent() == NULL) // Must have a root component at the end of SCS, so if we don't have one already (from base class), create a SceneComponent now
 	{
 		USceneComponent* SceneComp = NewObject<USceneComponent>(Actor);
 		SceneComp->SetFlags(RF_Transactional);
-		SceneComp->bCreatedByConstructionScript = true;
+		SceneComp->CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
 		SceneComp->SetWorldTransform(RootTransform);
 		Actor->SetRootComponent(SceneComp);
 		SceneComp->RegisterComponent();
@@ -541,50 +588,96 @@ USCS_Node* USimpleConstructionScript::FindParentNode(USCS_Node* InNode) const
 	return NULL;
 }
 
+USCS_Node* USimpleConstructionScript::FindSCSNode(const FName InName) const
+{
+	TArray<USCS_Node*> AllNodes = GetAllNodes();
+	USCS_Node* ReturnSCSNode = nullptr;
+
+	for( USCS_Node* SCSNode : AllNodes )
+	{
+		if (SCSNode->GetVariableName() == InName)
+		{
+			ReturnSCSNode = SCSNode;
+			break;
+		}
+	}
+	return ReturnSCSNode;
+}
+
+USCS_Node* USimpleConstructionScript::FindSCSNodeByGuid(const FGuid Guid) const
+{
+	TArray<USCS_Node*> AllNodes = GetAllNodes();
+	USCS_Node* ReturnSCSNode = nullptr;
+
+	for (USCS_Node* SCSNode : AllNodes)
+	{
+		if (SCSNode->VariableGuid == Guid)
+		{
+			ReturnSCSNode = SCSNode;
+			break;
+		}
+	}
+	return ReturnSCSNode;
+}
+
 void USimpleConstructionScript::ValidateSceneRootNodes()
 {
 #if WITH_EDITOR
 	UBlueprint* Blueprint = GetBlueprint();
 
-	if(DefaultSceneRootNode == NULL)
+	if(DefaultSceneRootNode == nullptr)
 	{
 		// If applicable, create a default scene component node
-		if(Blueprint != NULL
+		if(Blueprint != nullptr
 			&& FBlueprintEditorUtils::IsActorBased(Blueprint)
 			&& Blueprint->BlueprintType != BPTYPE_MacroLibrary)
 		{
-			DefaultSceneRootNode = CreateNode(USceneComponent::StaticClass(), DefaultSceneRootVariableName);
+			DefaultSceneRootNode = CreateNode(USceneComponent::StaticClass(), USceneComponent::GetDefaultSceneRootVariableName());
+			CastChecked<USceneComponent>(DefaultSceneRootNode->ComponentTemplate)->bVisualizeComponent = true;
 		}
 	}
 
-	if(DefaultSceneRootNode != NULL)
+	if(DefaultSceneRootNode != nullptr)
 	{
 		UClass* GeneratedClass = GetOwnerClass();
 
 		// Get the Blueprint class default object
-		AActor* CDO = NULL;
-		if(GeneratedClass != NULL)
+		AActor* CDO = nullptr;
+		if(GeneratedClass != nullptr)
 		{
 			CDO = Cast<AActor>(GeneratedClass->GetDefaultObject(false));
 		}
 
 		// If the generated class does not yet have a CDO, defer to the parent class
-		if(CDO == NULL && Blueprint->ParentClass != NULL)
+		if(CDO == nullptr && Blueprint->ParentClass != nullptr)
 		{
 			CDO = Cast<AActor>(Blueprint->ParentClass->GetDefaultObject(false));
 		}
 
-		// Check the native root component property; don't add the default scene root if it's set
-		bool bHasSceneComponentRootNodes = (CDO != NULL && CDO->GetRootComponent() != NULL);
+		// Check to see if we already have a native root component
+		bool bHasSceneComponentRootNodes = false;
+		if(CDO != nullptr)
+		{
+			// If the root component property is not set, the first available scene component will be used as the root. This matches what's done in the SCS editor.
+			bHasSceneComponentRootNodes = CDO->GetRootComponent() != nullptr;
+			if(!bHasSceneComponentRootNodes)
+			{
+				TInlineComponentArray<USceneComponent*> SceneComponents;
+				CDO->GetComponents(SceneComponents);
+				bHasSceneComponentRootNodes = SceneComponents.Num() > 0;
+			}
+		}
+
+		// Don't add the default scene root if we already have a native scene root component
 		if(!bHasSceneComponentRootNodes)
 		{
 			// Get the Blueprint hierarchy
 			TArray<UBlueprint*> BPStack;
-			if(Blueprint->GeneratedClass != NULL)
+			if(Blueprint->GeneratedClass != nullptr)
 			{
 				UBlueprint::GetBlueprintHierarchyFromClass(Blueprint->GeneratedClass, BPStack);
 			}
-			else if(Blueprint->ParentClass != NULL)
+			else if(Blueprint->ParentClass != nullptr)
 			{
 				UBlueprint::GetBlueprintHierarchyFromClass(Blueprint->ParentClass, BPStack);
 			}
@@ -609,9 +702,9 @@ void USimpleConstructionScript::ValidateSceneRootNodes()
 				for(int32 RootNodeIndex = 0; RootNodeIndex < SCSRootNodes.Num() && !bHasSceneComponentRootNodes; ++RootNodeIndex)
 				{
 					USCS_Node* RootNode = SCSRootNodes[RootNodeIndex];
-					bHasSceneComponentRootNodes = RootNode != NULL
+					bHasSceneComponentRootNodes = RootNode != nullptr
 						&& RootNode != DefaultSceneRootNode
-						&& RootNode->ComponentTemplate != NULL
+						&& RootNode->ComponentTemplate != nullptr
 						&& RootNode->ComponentTemplate->IsA<USceneComponent>();
 				}
 			}
@@ -648,8 +741,16 @@ USCS_Node* USimpleConstructionScript::CreateNode(UClass* NewComponentClass, FNam
 	check(NewComponentClass->IsChildOf(UActorComponent::StaticClass()));
 
 	ensure(NULL != Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass));
-	UActorComponent* NewComponentTemplate = ConstructObject<UActorComponent>(NewComponentClass, Blueprint->GeneratedClass);
-	NewComponentTemplate->SetFlags(RF_ArchetypeObject|RF_Transactional);
+
+	FName NewComponentName(NAME_None);
+	if (NewComponentClass->ClassGeneratedBy != nullptr)
+	{
+		const FString NewClassName = FBlueprintEditorUtils::GetClassNameWithoutSuffix(NewComponentClass);
+		NewComponentName = MakeUniqueObjectName(Blueprint->GeneratedClass, NewComponentClass, FName(*NewClassName));
+	}
+
+	UActorComponent* NewComponentTemplate = ConstructObject<UActorComponent>(NewComponentClass, Blueprint->GeneratedClass, NewComponentName);
+	NewComponentTemplate->SetFlags(RF_ArchetypeObject|RF_Transactional|RF_Public);
 
 	return CreateNode(NewComponentTemplate, NewComponentVariableName);
 }
@@ -668,11 +769,20 @@ USCS_Node* USimpleConstructionScript::CreateNode(UActorComponent* NewComponentTe
 		TArray<FName> CurrentNames;
 		NewNode->GenerateListOfExistingNames( CurrentNames );
 
+		if (NewComponentVariableName.ToString().EndsWith(TEXT("_C")))
+		{
+			const FString NameAsString = NewComponentVariableName.ToString();
+			const int32 NewStrLen = NameAsString.Len() - 2;
+			NewComponentVariableName = FName(*NameAsString.Left(NewStrLen));
+		}
+
 		// Now create a name for the new component.
 		NewNode->VariableName = NewNode->GenerateNewComponentName( CurrentNames, NewComponentVariableName );
 
 		// Note: This should match up with UEdGraphSchema_K2::VR_DefaultCategory
 		NewNode->CategoryName = TEXT("Default");
+
+		NewNode->VariableGuid = FGuid::NewGuid();
 
 		return NewNode;
 	}
@@ -708,7 +818,7 @@ void USimpleConstructionScript::ValidateNodeVariableNames(FCompilerResultsLog& M
 			// Replace missing or invalid component variable names
 			if( Node->VariableName == NAME_None
 				|| Node->bVariableNameAutoGenerated_DEPRECATED
-				|| !Node->IsValidVariableNameString(Node->VariableName.ToString()) )
+				|| !FComponentEditorUtils::IsValidVariableNameString(Node->ComponentTemplate, Node->VariableName.ToString()) )
 			{
 				FName OldName = Node->VariableName;
 
@@ -736,6 +846,31 @@ void USimpleConstructionScript::ValidateNodeVariableNames(FCompilerResultsLog& M
 
 				MessageLog.Warning(*FString::Printf(TEXT("Found a component variable with a conflicting name (%s) - changed to %s."), *OldName.ToString(), *Node->VariableName.ToString()));
 			}
+		}
+	}
+}
+
+void USimpleConstructionScript::ValidateNodeTemplates(FCompilerResultsLog& MessageLog)
+{
+	int32 NodeIndex;
+	TArray<USCS_Node*> Nodes = GetAllNodes();
+
+	for (NodeIndex = 0; NodeIndex < Nodes.Num(); ++NodeIndex)
+	{
+		USCS_Node* Node = Nodes[NodeIndex];
+
+		if (GetLinkerUE4Version() < VER_UE4_REMOVE_INPUT_COMPONENTS_FROM_BLUEPRINTS)
+		{
+			if (!Node->bIsNative_DEPRECATED && Node->ComponentTemplate->IsA<UInputComponent>())
+			{
+				RemoveNodeAndPromoteChildren(Node);
+			}
+		}
+
+		// Couldn't find the template the Blueprint or C++ class must have been deleted out from under us
+		if (Node->ComponentTemplate == nullptr)
+		{
+			RemoveNodeAndPromoteChildren(Node);
 		}
 	}
 }

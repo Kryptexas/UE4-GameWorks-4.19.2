@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WorldComposition.cpp: UWorldComposition implementation
@@ -6,12 +6,13 @@
 #include "EnginePrivate.h"
 #include "Engine/WorldComposition.h"
 #include "LevelUtils.h"
+#include "Engine/LevelStreamingKismet.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogWorldComposition, Log, All);
 
 #if WITH_EDITOR
-UWorldComposition::FWorldCompositionEvent UWorldComposition::OnWorldCompositionCreated;
-UWorldComposition::FWorldCompositionEvent UWorldComposition::OnWorldCompositionDestroyed;
+UWorldComposition::FEnableWorldCompositionEvent UWorldComposition::EnableWorldCompositionEvent;
+UWorldComposition::FWorldCompositionChangedEvent UWorldComposition::WorldCompositionChangedEvent;
 #endif // WITH_EDITOR
 
 UWorldComposition::UWorldComposition(const FObjectInitializer& ObjectInitializer)
@@ -201,8 +202,9 @@ void UWorldComposition::Rescan()
 	FString WorldRootFilename = FPackageName::LongPackageNameToFilename(WorldRoot);
 	FPlatformFileManager::Get().GetPlatformFile().IterateDirectoryRecursively(*WorldRootFilename, Gatherer);
 
-	FString PersistentLevelPackageName = OwningWorld->GetOutermost()->GetName();
-	
+	// Make sure we have persistent level name without PIE prefix
+	FString PersistentLevelPackageName = UWorld::StripPIEPrefixFromPackageName(OwningWorld->GetOutermost()->GetName(), OwningWorld->StreamingLevelsPrefix);
+		
 	// Add found tiles to a world composition, except persistent level
 	for (const auto& TilePackageName : Gatherer.TilesCollection)
 	{
@@ -556,27 +558,67 @@ void UWorldComposition::UpdateStreamingState(const FVector& InLocation)
 	}
 }
 
-void UWorldComposition::UpdateStreamingState(FSceneViewFamily* ViewFamily)
+void UWorldComposition::UpdateStreamingState()
 {
-	// Calculate centroid location
-	FVector ViewLocation(0,0,0);
-	if (ViewFamily &&
-		ViewFamily->Views.Num() > 0)
+	UWorld* PlayWorld = GetWorld();
+	check(PlayWorld);
+
+	// Dedicated server does not use distance based streaming and just loads everything
+	if (PlayWorld->GetNetMode() == NM_DedicatedServer)
 	{
-		// Iterate over all views in collection.
-		for (int32 ViewIndex=0; ViewIndex < ViewFamily->Views.Num(); ViewIndex++)
-		{
-			ViewLocation+= ViewFamily->Views[ViewIndex]->ViewMatrices.ViewOrigin;
-		}
-
-		ViewLocation/= ViewFamily->Views.Num();
-
-#if WITH_EDITOR
-	LastWorldToViewMatrix = ViewFamily->Views[0]->ViewMatrices.ViewMatrix;
-#endif //WITH_EDITOR
+		UpdateStreamingState(FVector::ZeroVector);
+		return;
 	}
 	
-	UpdateStreamingState(ViewLocation);
+	int32 NumPlayers = GEngine->GetNumGamePlayers(PlayWorld);
+	if (NumPlayers == 0)
+	{
+		return;
+	}
+
+	// calculate centroid location using local players views
+	int32 NumViews = 0;
+	FVector CentroidLocation = FVector::ZeroVector;
+	
+	for (int32 PlayerIndex = 0; PlayerIndex < NumPlayers; ++PlayerIndex)
+	{
+		ULocalPlayer* Player = GEngine->GetGamePlayer(PlayWorld, PlayerIndex);
+		if (Player && Player->PlayerController)
+		{
+			FVector ViewLocation;
+			FRotator ViewRotation;
+			Player->PlayerController->GetPlayerViewPoint(ViewLocation, ViewRotation);
+			CentroidLocation+= ViewLocation;
+			NumViews++;
+		}
+	}
+
+	// In case there is no valid views don't bother updating level streaming state
+	if (NumViews > 0)
+	{
+		CentroidLocation/= NumViews;
+		if (PlayWorld->GetWorldSettings()->bEnableWorldOriginRebasing)
+		{
+			EvaluateWorldOriginLocation(CentroidLocation);
+		}
+		
+		UpdateStreamingState(CentroidLocation);
+	}
+}
+
+void UWorldComposition::EvaluateWorldOriginLocation(const FVector& ViewLocation)
+{
+	UWorld* OwningWorld = GetWorld();
+	
+	FVector Location = ViewLocation;
+	// Consider only XY plane
+	Location.Z = 0.f;
+		
+	// Request to shift world in case current view is quite far from current origin
+	if (Location.Size() > HALF_WORLD_MAX1*0.5f)
+	{
+		OwningWorld->RequestNewWorldOrigin(FIntVector(Location.X, Location.Y, Location.Z) + OwningWorld->OriginLocation);
+	}
 }
 
 bool UWorldComposition::IsDistanceDependentLevel(FName PackageName) const
@@ -622,8 +664,13 @@ void UWorldComposition::CommitTileStreamingState(UWorld* PersistenWorld, int32 T
 	StreamingLevel->bShouldBeLoaded		= bShouldBeLoaded;
 	StreamingLevel->bShouldBeVisible	= bShouldBeVisible;
 	StreamingLevel->LevelLODIndex		= LODIdx;
-}
 
+	// dedicated server always block on load
+	if (PersistenWorld->GetNetMode() == NM_DedicatedServer && bShouldBeLoaded) 
+	{
+		StreamingLevel->bShouldBlockOnLoad = true;
+	}
+}
 
 void UWorldComposition::OnLevelAddedToWorld(ULevel* InLevel)
 {

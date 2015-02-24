@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PropertyEditorPrivatePCH.h"
@@ -243,7 +243,7 @@ void SPropertyTreeViewImpl::ConstructPropertyTree()
 						.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 						[
 							SNew(STextBlock)
-							.Text( NSLOCTEXT("PropertyEditor", "NameColumn", "Name").ToString() )
+							.Text( NSLOCTEXT("PropertyEditor", "NameColumn", "Name") )
 						]
 					]
 					+SHeaderRow::Column(PropertyTreeConstants::ColumnId_Property)
@@ -254,7 +254,7 @@ void SPropertyTreeViewImpl::ConstructPropertyTree()
 						.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 						[
 							SNew(STextBlock)
-							.Text( NSLOCTEXT("PropertyEditor", "PropertyColumn", "Value").ToString() )
+							.Text( NSLOCTEXT("PropertyEditor", "PropertyColumn", "Value") )
 						]
 					]
 				)
@@ -512,7 +512,7 @@ void SPropertyTreeViewImpl::RestoreColumnWidths()
 
 void SPropertyTreeViewImpl::EnqueueDeferredAction( FSimpleDelegate& DeferredAction )
 {
-	DeferredActions.AddUnique( DeferredAction );
+	DeferredActions.Add( DeferredAction );
 }
 
 void SPropertyTreeViewImpl::SetFromExistingTree( TSharedPtr<FObjectPropertyNode> RootNode, TSharedPtr<FPropertyNode> PropertyToView )

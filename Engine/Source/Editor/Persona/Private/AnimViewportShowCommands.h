@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __AnimViewportShowCommands_h_
@@ -59,6 +59,12 @@ public:
 
 	/** Show additive base pose */
 	TSharedPtr< FUICommandInfo > ShowAdditiveBaseBones;
+
+	/** Show non retargeted animation. */
+	TSharedPtr< FUICommandInfo > ShowSourceRawAnimation;
+
+	/** Show non retargeted animation. */
+	TSharedPtr< FUICommandInfo > ShowBakedAnimation;
 
 	/** Show skeletal mesh bone names */
 	TSharedPtr< FUICommandInfo > ShowBoneNames;

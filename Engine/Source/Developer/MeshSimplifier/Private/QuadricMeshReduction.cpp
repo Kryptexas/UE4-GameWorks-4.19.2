@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Engine.h"
 #include "RawMesh.h"
@@ -556,7 +556,7 @@ private:
 				Normals->GetTuple(WedgeIndex, (float*)&RawMesh.WedgeTangentZ[WedgeIndex]);
 				if (!bReverseWinding)
 				{
-					RawMesh.WedgeTangentZ[WedgeIndex] = (-RawMesh.WedgeTangentZ[WedgeIndex]).SafeNormal();
+					RawMesh.WedgeTangentZ[WedgeIndex] = (-RawMesh.WedgeTangentZ[WedgeIndex]).GetSafeNormal();
 				}
 			}
 		}

@@ -1,7 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "NavigationQueryFilter.generated.h"
+
+class UNavArea;
+class ANavigationData;
+struct FNavigationQueryFilter;
 
 USTRUCT()
 struct ENGINE_API FNavigationFilterArea
@@ -10,7 +14,7 @@ struct ENGINE_API FNavigationFilterArea
 
 	/** navigation area class */
 	UPROPERTY(EditAnywhere, Category=Area)
-	TSubclassOf<class UNavArea> AreaClass;
+	TSubclassOf<UNavArea> AreaClass;
 
 	/** override for travel cost */
 	UPROPERTY(EditAnywhere, Category=Area, meta=(EditCondition="bOverrideTravelCost",ClampMin=1))
@@ -106,7 +110,7 @@ public:
 	virtual void SetExcludeFlags(uint16 Flags) = 0;
 	virtual uint16 GetExcludeFlags() const = 0;
 
-	virtual class INavigationQueryFilterInterface* CreateCopy() const = 0;
+	virtual INavigationQueryFilterInterface* CreateCopy() const = 0;
 };
 
 struct ENGINE_API FNavigationQueryFilter : public TSharedFromThis<FNavigationQueryFilter>
@@ -166,7 +170,7 @@ public:
 		QueryFilterImpl = MakeShareable(new FilterType());
 	}
 
-	FORCEINLINE_DEBUGGABLE void SetFilterImplementation(const class INavigationQueryFilterInterface* InQueryFilterImpl)
+	FORCEINLINE_DEBUGGABLE void SetFilterImplementation(const INavigationQueryFilterInterface* InQueryFilterImpl)
 	{
 		QueryFilterImpl = MakeShareable(InQueryFilterImpl->CreateCopy());
 	}
@@ -212,13 +216,13 @@ class ENGINE_API UNavigationQueryFilter : public UObject
 	FNavigationFilterFlags ExcludeFlags;
 
 	/** get filter for given navigation data and initialize on first access */
-	TSharedPtr<const struct FNavigationQueryFilter> GetQueryFilter(const class ANavigationData* NavData) const;
+	TSharedPtr<const FNavigationQueryFilter> GetQueryFilter(const ANavigationData* NavData) const;
 	
 	/** helper functions for accessing filter */
-	static TSharedPtr<const struct FNavigationQueryFilter> GetQueryFilter(const class ANavigationData* NavData, UClass* FilterClass);
+	static TSharedPtr<const FNavigationQueryFilter> GetQueryFilter(const ANavigationData* NavData, UClass* FilterClass);
 
 	template<class T>
-	static TSharedPtr<const struct FNavigationQueryFilter> GetQueryFilter(const class ANavigationData* NavData, UClass* FilterClass = T::StaticClass())
+	static TSharedPtr<const FNavigationQueryFilter> GetQueryFilter(const ANavigationData* NavData, UClass* FilterClass = T::StaticClass())
 	{
 		return GetQueryFilter(NavData, FilterClass);
 	}
@@ -230,13 +234,13 @@ class ENGINE_API UNavigationQueryFilter : public UObject
 protected:
 
 	/** helper functions for adding area overrides */
-	void AddTravelCostOverride(TSubclassOf<class UNavArea> AreaClass, float TravelCost);
-	void AddEnteringCostOverride(TSubclassOf<class UNavArea> AreaClass, float EnteringCost);
-	void AddExcludedArea(TSubclassOf<class UNavArea> AreaClass);
+	void AddTravelCostOverride(TSubclassOf<UNavArea> AreaClass, float TravelCost);
+	void AddEnteringCostOverride(TSubclassOf<UNavArea> AreaClass, float EnteringCost);
+	void AddExcludedArea(TSubclassOf<UNavArea> AreaClass);
 
 	/** find index of area data */
-	int32 FindAreaOverride(TSubclassOf<class UNavArea> AreaClass) const;
+	int32 FindAreaOverride(TSubclassOf<UNavArea> AreaClass) const;
 
 	/** setup filter for given navigation data, use to create custom filters */
-	virtual void InitializeFilter(const class ANavigationData* NavData, struct FNavigationQueryFilter* Filter) const;
+	virtual void InitializeFilter(const ANavigationData* NavData, FNavigationQueryFilter* Filter) const;
 };

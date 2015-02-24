@@ -1,12 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Components/BrushComponent.h"
 #include "GameFramework/PhysicsVolume.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 APhysicsVolume::APhysicsVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = true;
 	static FName CollisionProfileName(TEXT("OverlapAllDynamic"));
 	GetBrushComponent()->SetCollisionProfileName(CollisionProfileName);
 
@@ -33,6 +34,29 @@ void APhysicsVolume::LoadedFromAnotherClass(const FName& OldClassName)
 	}
 }
 #endif
+
+void APhysicsVolume::PostInitializeComponents()
+{
+	Super::PostInitializeComponents();
+
+	UWorld* MyWorld = GetWorld();
+	if (MyWorld)
+	{
+		MyWorld->AddPhysicsVolume(this);
+	}
+}
+
+void APhysicsVolume::Destroyed()
+{
+	UWorld* MyWorld = GetWorld();
+	if (MyWorld)
+	{
+		MyWorld->RemovePhysicsVolume(this);
+	}
+
+	Super::Destroyed();
+}
+
 
 bool APhysicsVolume::IsOverlapInVolume(const class USceneComponent& TestComponent) const
 {

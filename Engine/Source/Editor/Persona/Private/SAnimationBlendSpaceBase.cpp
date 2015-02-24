@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -12,10 +12,17 @@
 #include "AnimPreviewInstance.h"
 #include "SExpandableArea.h"
 #include "SNotificationList.h"
+#include "Animation/BlendSpaceBase.h"
+#include "Animation/AimOffsetBlendSpace.h"
+#include "Animation/AimOffsetBlendSpace1D.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlendSpaceBase, Log, All);
 
-FSlateFontInfo SmallLayoutFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
+static FSlateFontInfo GetSmallLayoutFont()
+{
+	static FSlateFontInfo SmallLayoutFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
+	return SmallLayoutFont;
+}
 
 #define LOCTEXT_NAMESPACE "BlendSpaceEditorBase"
 
@@ -171,7 +178,7 @@ public:
 				.AutoWidth()
 				[
 					SNew(STextBlock)
-					.Text( Param.DisplayName )
+					.Text( FText::FromString(Param.DisplayName) )
 				]
 				+SHorizontalBox::Slot()
 				.AutoWidth()
@@ -302,7 +309,7 @@ void SBlendSpaceParameterWidget::ConstructParameterPanel()
 						[
 							SNew(STextBlock)
 							.Text(AxisNameLabel)
-							.Font(SmallLayoutFont)
+							.Font(GetSmallLayoutFont())
 						]
 					]
 
@@ -331,7 +338,7 @@ void SBlendSpaceParameterWidget::ConstructParameterPanel()
 							[
 								SNew(STextBlock)
 								.Text(AxisRangeLabel)
-								.Font(SmallLayoutFont)
+								.Font(GetSmallLayoutFont())
 							]
 						]
 
@@ -353,7 +360,7 @@ void SBlendSpaceParameterWidget::ConstructParameterPanel()
 									.VAlign(VAlign_Center)
 									[
 										SNew(STextBlock)
-										.Font( SmallLayoutFont )
+										.Font( GetSmallLayoutFont() )
 										.Text(LOCTEXT("MinValue - MaxValue Separator", " - "))
 									]
 
@@ -384,7 +391,7 @@ void SBlendSpaceParameterWidget::ConstructParameterPanel()
 							[
 								SNew(STextBlock)
 								.Text(AxisGridCountLabel)
-								.Font(SmallLayoutFont)
+								.Font(GetSmallLayoutFont())
 							]
 						]
 
@@ -494,7 +501,7 @@ void SBlendSpaceSamplesWidget::ConstructSamplesPanel()
 {
 	SampleDataPanel->ClearChildren();
 
-	const TArray<struct FBlendSample> & SampleData = BlendSpace->GetBlendSamples();
+	const TArray<struct FBlendSample>& SampleData = BlendSpace->GetBlendSamples();
 
 	for(int32 I=0; I<SampleData.Num(); ++I)
 	{
@@ -511,13 +518,13 @@ void SBlendSpaceSamplesWidget::ConstructSamplesPanel()
 				+SHorizontalBox::Slot() .HAlign(HAlign_Right)
 				[
 					SNew(STextBlock)
-					.Font( SmallLayoutFont )
-					.Text(FString::Printf(TEXT("%3d] "), I+1))
+					.Font( GetSmallLayoutFont() )
+					.Text(FText::Format(LOCTEXT("BlendSpaceSamplesLabel", "{0}]"), FText::AsNumber(I+1)))
 				]
 				+SHorizontalBox::Slot() .FillWidth(1) .HAlign(HAlign_Left)
 				[
 					SNew(SEditableText)
-					.Font( SmallLayoutFont )
+					.Font( GetSmallLayoutFont() )
 					.Text( FText::FromName(Sample.Animation->GetFName() ) )
 				]
 				+SHorizontalBox::Slot().AutoWidth() .HAlign(HAlign_Center)
@@ -740,7 +747,7 @@ FReply SBlendSpaceWidget::OnDragDetected( const FGeometry& MyGeometry, const FPo
 		{
 			check (CachedSamples.IsValidIndex(HighlightedSample));
 
-			FBlendSample & Sample = CachedSamples[HighlightedSample];
+			FBlendSample& Sample = CachedSamples[HighlightedSample];
 
 			TSharedRef<FSampleDragDropOp> Operation = FSampleDragDropOp::New();
 			Operation->OriginalSampleIndex = HighlightedSample;
@@ -837,7 +844,7 @@ void SBlendSpaceWidget::HandleSampleDrop(const FGeometry& MyGeometry, const FVec
 				const FScopedTransaction Transaction( LOCTEXT("MoveSample", "Move Sample") );
 				BlendSpace->Modify();
 
-				FBlendSample & Sample = CachedSamples[OriginalIndex];
+				FBlendSample& Sample = CachedSamples[OriginalIndex];
 				// otherwise overwrite current animation
 				BlendSpace->DeleteSample(Sample);
 				FBlendSample NewSample(DroppedSequence, LastValidMouseEditorPoint, true);
@@ -853,13 +860,13 @@ void SBlendSpaceWidget::HandleSampleDrop(const FGeometry& MyGeometry, const FVec
 			if(OriginalIndex != INDEX_NONE)
 			{
 				//Clean up dragging sample
-				FBlendSample & OriginalSample = CachedSamples[OriginalIndex];
+				FBlendSample& OriginalSample = CachedSamples[OriginalIndex];
 				BlendSpace->DeleteSample(OriginalSample);
 			}
 
 			check (CachedSamples.IsValidIndex(HighlightedIndex));
 
-			FBlendSample & HighlightedSample = CachedSamples[HighlightedIndex];
+			FBlendSample& HighlightedSample = CachedSamples[HighlightedIndex];
 			BlendSpace->DeleteSample(HighlightedSample);
 			HighlightedSample.Animation = DroppedSequence;
 			bAddSampleSuccess = BlendSpace->AddSample(HighlightedSample);
@@ -901,7 +908,7 @@ void SBlendSpaceWidget::ValidateSamplePositions()
 	}
 }
 
-void SBlendSpaceWidget::DrawToolTip(const FVector2D & LeftTopPos, const FText& Text, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, const FColor& InColor, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
+void SBlendSpaceWidget::DrawToolTip(const FVector2D& LeftTopPos, const FText& Text, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, const FColor& InColor, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
 {
 	if (bTooltipOn)
 	{
@@ -949,7 +956,7 @@ void SBlendSpaceWidget::DrawToolTip(const FVector2D & LeftTopPos, const FText& T
 	}
 }
 
-void SBlendSpaceWidget::DrawSamplePoint( const FVector2D & Point, EBlendSpaceSampleState::Type SampleState, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
+void SBlendSpaceWidget::DrawSamplePoint( const FVector2D& Point, EBlendSpaceSampleState::Type SampleState, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
 {
 	const FSlateBrush* StyleInfo = NULL;
 
@@ -1004,7 +1011,7 @@ void SBlendSpaceWidget::DrawSamplePoints( const FSlateRect& WindowRect, const FG
 	}
 }
 
-void SBlendSpaceWidget::DrawText( const FVector2D & Point, const FText& Text, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, const FColor& InColor, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
+void SBlendSpaceWidget::DrawText( const FVector2D& Point, const FText& Text, const FGeometry& AllottedGeometry, const FSlateRect& MyClippingRect, const FColor& InColor, FSlateWindowElementList& OutDrawElements, int32 LayerId ) const
 {
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 	FSlateFontInfo MyFont( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 10 );
@@ -1187,7 +1194,7 @@ void SBlendSpaceEditorBase::Construct(const FArguments& InArgs)
 */
 void SBlendSpaceEditorBase::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
-	BlendSpaceWidget->bPreviewOn = IsPreviewOn()==ESlateCheckBoxState::Checked;
+	BlendSpaceWidget->bPreviewOn = IsPreviewOn()==ECheckBoxState::Checked;
 	if (BlendSpaceWidget->bPreviewOn)
 	{
 		UpdatePreviewParameter();
@@ -1255,7 +1262,7 @@ TSharedRef<SWidget> SBlendSpaceEditorBase::MakeDisplayOptionsBox() const
 	DisplayOptionsPanel->AddCheckBoxSlot()
 	[
 		SNew(SCheckBox) 
-		.IsChecked( true ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked )
+		.IsChecked( true ? ECheckBoxState::Checked : ECheckBoxState::Unchecked )
 		.OnCheckStateChanged( this, &SBlendSpaceEditorBase::ShowToolTip_OnIsCheckedChanged)
 		[
 			SNew(STextBlock)
@@ -1265,7 +1272,7 @@ TSharedRef<SWidget> SBlendSpaceEditorBase::MakeDisplayOptionsBox() const
 	return DisplayOptionsPanel;
 }
 
-ESlateCheckBoxState::Type SBlendSpaceEditorBase::IsPreviewOn() const
+ECheckBoxState SBlendSpaceEditorBase::IsPreviewOn() const
 {
 	class UDebugSkelMeshComponent* Component = PersonaPtr.Pin()->GetPreviewMeshComponent();
 
@@ -1273,15 +1280,15 @@ ESlateCheckBoxState::Type SBlendSpaceEditorBase::IsPreviewOn() const
 	{
 		if (Component->PreviewInstance->CurrentAsset == BlendSpace)
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 	}
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void SBlendSpaceEditorBase::ShowPreview_OnIsCheckedChanged( ESlateCheckBoxState::Type NewValue )
+void SBlendSpaceEditorBase::ShowPreview_OnIsCheckedChanged( ECheckBoxState NewValue )
 {
-	bool bPreviewOn = (NewValue != ESlateCheckBoxState::Unchecked);
+	bool bPreviewOn = (NewValue != ECheckBoxState::Unchecked);
 	class UDebugSkelMeshComponent* Component = PersonaPtr.Pin()->GetPreviewMeshComponent();
 
 	if ( Component != NULL )
@@ -1290,11 +1297,11 @@ void SBlendSpaceEditorBase::ShowPreview_OnIsCheckedChanged( ESlateCheckBoxState:
 	}
 }
 
-void SBlendSpaceEditorBase::ShowToolTip_OnIsCheckedChanged( ESlateCheckBoxState::Type NewValue )
+void SBlendSpaceEditorBase::ShowToolTip_OnIsCheckedChanged( ECheckBoxState NewValue )
 {
 	if (BlendSpaceWidget.IsValid())
 	{
-		BlendSpaceWidget->bTooltipOn = (NewValue != ESlateCheckBoxState::Unchecked);
+		BlendSpaceWidget->bTooltipOn = (NewValue != ECheckBoxState::Unchecked);
 	}
 }
 

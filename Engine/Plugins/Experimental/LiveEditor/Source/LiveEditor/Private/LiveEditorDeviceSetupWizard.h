@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,7 +14,7 @@ public:
 	void Start( PmDeviceID _DeviceID, struct FLiveEditorDeviceData &Data );
 	void Configure( bool bHasButtons, bool bHasEndlessEncoders );
 
-	virtual FString GetAdvanceButtonText() const;
+	virtual FText GetAdvanceButtonText() const override;
 
 protected:
 	virtual void OnWizardFinished( struct FLiveEditorDeviceData &Data );

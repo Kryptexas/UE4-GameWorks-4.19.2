@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "EdGraph/EdGraphNode_Documentation.h"
@@ -50,9 +50,9 @@ FText UEdGraphNode_Documentation::GetNodeTitle( ENodeTitleType::Type TitleType )
 	return NodeTitle;
 }
 
-FString UEdGraphNode_Documentation::GetPinNameOverride(const UEdGraphPin& Pin) const
+FText UEdGraphNode_Documentation::GetPinNameOverride(const UEdGraphPin& Pin) const
 {
-	return GetNodeTitle( ENodeTitleType::ListView ).ToString();
+	return GetNodeTitle( ENodeTitleType::ListView );
 }
 
 void UEdGraphNode_Documentation::ResizeNode(const FVector2D& NewSize)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -77,6 +77,18 @@ namespace AutomationTool
         public P4ClientOption Options;
         public P4SubmitOption SubmitOptions;
         public List<KeyValuePair<string, string>> View = new List<KeyValuePair<string, string>>();
+
+		public bool Matches(P4ClientInfo Other)
+		{
+			return Name == Other.Name 
+				&& RootPath == Other.RootPath 
+				&& Host == Other.Host 
+				&& Owner == Other.Owner 
+				&& LineEnd == Other.LineEnd 
+				&& Options == Other.Options 
+				&& SubmitOptions == Other.SubmitOptions
+				&& Enumerable.SequenceEqual(View, Other.View);
+		}
 
 		public override string ToString()
 		{
@@ -183,6 +195,14 @@ namespace AutomationTool
 		public static readonly P4FileStat Invalid = new P4FileStat(P4FileType.Unknown, P4FileAttributes.None, P4Action.None);
 
 		public bool IsValid { get { return Type != P4FileType.Unknown; } }
+	}
+
+	public class P4WhereRecord
+	{
+		public bool bUnmap;
+		public string DepotFile;
+		public string ClientFile;
+		public string Path;
 	}
 
 	public partial class CommandUtils
@@ -1068,10 +1088,10 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="CL">Changelist to check the files out.</param>
 		/// <param name="CommandLine">Commandline for the command.</param>
-		public void Reconcile(int CL, string CommandLine)
+		public void Reconcile(int CL, string CommandLine, bool AllowSpew = true)
 		{
 			CheckP4Enabled();
-			LogP4("reconcile " + String.Format("-c {0} -ead -f ", CL) + CommandLine);
+			LogP4("reconcile " + String.Format("-c {0} -ead -f ", CL) + CommandLine, AllowSpew: AllowSpew);
 		}
 
         /// <summary>
@@ -1330,7 +1350,7 @@ namespace AutomationTool
 			CheckP4Enabled();
 			var ChangeSpec = "Change: new" + "\n";
 			ChangeSpec += "Client: " + ((Owner != null) ? Owner : "") + "\n";
-			ChangeSpec += "Description: \n " + ((Description != null) ? Description : "(none)") + "\n";
+			ChangeSpec += "Description: " + ((Description != null) ? Description.Replace("\n", "\n\t") : "(none)") + "\n";
 			string CmdOutput;
 			int CL = 0;
 			if(AllowSpew)
@@ -1661,13 +1681,14 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="Name">Name of the label.</param>
 		/// <param name="Description">Description of the label.</param>
+		/// <param name="AllowSpew">Whether to allow log spew</param>
 		/// <returns>Returns whether the label description could be retrieved.</returns>
-		public bool LabelDescription(string Name, out string Description)
+		public bool LabelDescription(string Name, out string Description, bool AllowSpew = true)
 		{
 			CheckP4Enabled();
 			string Output;
 			Description = "";
-			if (LogP4Output(out Output, "label -o " + Name))
+			if (LogP4Output(out Output, "label -o " + Name, AllowSpew: AllowSpew))
 			{
 				string Desc = "Description:";
 				int Start = Output.LastIndexOf(Desc);
@@ -1678,12 +1699,51 @@ namespace AutomationTool
 				int End = Output.LastIndexOf("Options:");
 				if (Start > 0 && End > 0 && End > Start)
 				{
-					Description = Output.Substring(Start, End - Start);
+					Description = Output.Substring(Start, End - Start).Replace("\n\t", "\n");
 					Description = Description.Trim();
 					return true;
 				}
 			}
 			return false;
+		}
+
+		/// <summary>
+		/// Updates a label description.
+		/// </summary>
+		/// <param name="Name">Name of the label</param>
+		/// <param name="Description">Description of the label.</param>
+		/// <param name="AllowSpew">Whether to allow log spew</param>
+		public void UpdateLabelDescription(string Name, string NewDescription, bool AllowSpew = true)
+		{
+			string LabelSpec;
+			if(!LogP4Output(out LabelSpec, "label -o " + Name, AllowSpew: AllowSpew))
+			{
+				throw new P4Exception("Couldn't describe existing label '{0}', output was:\n", Name, LabelSpec);
+			}
+			List<string> Lines = new List<string>(LabelSpec.Split('\n').Select(x => x.TrimEnd()));
+
+			// Find the description text, and remove it
+			int Idx = 0;
+			for(; Idx < Lines.Count; Idx++)
+			{
+				if(Lines[Idx].StartsWith("Description:"))
+				{
+					int EndIdx = Idx + 1;
+					while(EndIdx < Lines.Count && (Lines[EndIdx].Length == 0 || Char.IsWhiteSpace(Lines[EndIdx][0]) || Lines[EndIdx].IndexOf(':') == -1))
+					{
+						EndIdx++;
+					}
+					Lines.RemoveRange(Idx, EndIdx - Idx);
+					break;
+				}
+			}
+
+			// Insert the new description text
+			Lines.Insert(Idx, "Description:  " + NewDescription.Replace("\n", "\n\t"));
+			LabelSpec = String.Join("\n", Lines);
+
+			// Update the label
+			LogP4("label -i", Input: LabelSpec, AllowSpew: AllowSpew);
 		}
 
 		/* Pattern to parse P4 changes command output. */
@@ -1714,7 +1774,7 @@ namespace AutomationTool
 		}
 
 		/* Pattern to parse P4 labels command output. */
-		static readonly Regex LabelsListOutputPattern = new Regex(@"^Label\s+(?<name>[\w\/-]+)\s+(?<date>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})\s+'(?<description>.+)'\s*$", RegexOptions.Compiled | RegexOptions.Multiline);
+		static readonly Regex LabelsListOutputPattern = new Regex(@"^Label\s+(?<name>[\w\/\.-]+)\s+(?<date>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2})\s+'(?<description>.+)'\s*$", RegexOptions.Compiled | RegexOptions.Multiline);
 
 		/// <summary>
 		/// Gets all labels satisfying given filter.
@@ -1863,34 +1923,97 @@ namespace AutomationTool
         /// <summary>
         /// Given a file path in the depot, returns the local disk mapping for the current view
         /// </summary>
-        /// <param name="DepotFilepath">The full file path in depot naming form</param>
+		/// <param name="DepotFile">The full file path in depot naming form</param>
         /// <returns>The file's first reported path on disk or null if no mapping was found</returns>
-        public string DepotToLocalPath(string DepotFilepath)
+        public string DepotToLocalPath(string DepotFile, bool AllowSpew = true)
         {
-            CheckP4Enabled();
-            string Output;
-            string Command = "where " + DepotFilepath;
-            if (!LogP4Output(out Output, Command))
-            {
-                throw new P4Exception("p4.exe {0} failed.", Command);
-            }
-
-            string[] mappings = Output.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (string mapping in mappings)
-            {
-                if (mapping.EndsWith("not in client view."))
-                {
-                    return null;
-                }
-                string[] files = mapping.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                if (files.Length > 0)
-                {
-                    return files[files.Length - 1];
-                }
-            }
-
-            return null;
+			P4WhereRecord[] Records = Where(DepotFile, AllowSpew);
+			if (Records != null)
+			{
+				foreach (P4WhereRecord Record in Records)
+				{
+					if (!Record.bUnmap)
+					{
+						return Record.Path;
+					}
+				}
+			}
+			return null;
         }
+
+		/// <summary>
+		/// Determines the mappings for a depot file in the workspace, without that file having to exist. 
+		/// NOTE: This function originally allowed multiple depot paths at once. The "file(s) not in client view" messages are written to stderr 
+		/// rather than stdout, and buffering them separately garbles the output when they're merged together.
+		/// </summary>
+		/// <param name="DepotFile">Depot path</param>
+		/// <param name="AllowSpew">Allows logging</param>
+		/// <returns>List of records describing the file's mapping. Usually just one, but may be more.</returns>
+		public P4WhereRecord[] Where(string DepotFile, bool AllowSpew = true)
+		{
+			CheckP4Enabled();
+
+			//  P4 where outputs missing entries 
+			string Command = String.Format("-z tag where \"{0}\"", DepotFile);
+
+			// Run the command.
+			string Output;
+			if (!LogP4Output(out Output, Command, AllowSpew: AllowSpew))
+			{
+				throw new P4Exception("p4.exe {0} failed.", Command);
+			}
+
+			// Copy the results into the local paths lookup. Entries may occur more than once, and entries may be missing from the client view, or deleted in the client view.
+			string[] Lines = Output.Split(new char[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+
+			// Check for the file not existing
+			if(Lines.Length == 1 && Lines[0].EndsWith(" - file(s) not in client view."))
+			{
+				return null;
+			}
+
+			// Parse it into records
+			List<P4WhereRecord> Records = new List<P4WhereRecord>();
+			for (int LineIdx = 0; LineIdx < Lines.Length; )
+			{
+				P4WhereRecord Record = new P4WhereRecord();
+
+				// Parse an optional "... unmap"
+				if (Lines[LineIdx].Trim() == "... unmap")
+				{
+					Record.bUnmap = true;
+					LineIdx++;
+				}
+
+				// Parse "... depotFile <depot path>"
+				const string DepotFilePrefix = "... depotFile ";
+				if (LineIdx >= Lines.Length || !Lines[LineIdx].StartsWith(DepotFilePrefix))
+				{
+					throw new AutomationException("Unexpected output from p4 where: {0}", String.Join("\n", Lines.Skip(LineIdx)));
+				}
+				Record.DepotFile = Lines[LineIdx++].Substring(DepotFilePrefix.Length).Trim();
+
+				// Parse "... clientFile <client path>"
+				const string ClientFilePrefix = "... clientFile ";
+				if (LineIdx >= Lines.Length || !Lines[LineIdx].StartsWith(ClientFilePrefix))
+				{
+					throw new AutomationException("Unexpected output from p4 where: {0}", String.Join("\n", Lines.Skip(LineIdx)));
+				}
+				Record.ClientFile = Lines[LineIdx++].Substring(ClientFilePrefix.Length).Trim();
+
+				// Parse "... path <path to file>"
+				const string PathPrefix = "... path ";
+				if (LineIdx >= Lines.Length || !Lines[LineIdx].StartsWith(PathPrefix))
+				{
+					throw new AutomationException("Unexpected output from p4 where: {0}", String.Join("\n", Lines.Skip(LineIdx)));
+				}
+				Record.Path = Lines[LineIdx++].Substring(PathPrefix.Length).Trim();
+
+				// Add it to the output list
+				Records.Add(Record);
+			}
+			return Records.ToArray();
+		}
 
 		/// <summary>
 		/// Gets file stats.
@@ -2266,6 +2389,25 @@ namespace AutomationTool
 				}
 			}
 			return Result;
+		}
+
+		/// <summary>
+		/// Gets the contents of a particular file in the depot without syncing it
+		/// </summary>
+		/// <param name="DepotPath">Depot path to the file (with revision/range if necessary)</param>
+		/// <returns>Contents of the file</returns>
+		public string Print(string DepotPath, bool AllowSpew = true)
+		{
+			string Output;
+			if(!P4Output(out Output, "print -q " + DepotPath, AllowSpew: AllowSpew, WithClient: false))
+			{
+				throw new AutomationException("p4 print {0} failed", DepotPath);
+			}
+			if(!Output.Trim().Contains("\n") && Output.Contains("no such file(s)"))
+			{
+				throw new AutomationException("p4 print {0} failed", DepotPath);
+			}
+			return Output;
 		}
 
 		#region Utilities

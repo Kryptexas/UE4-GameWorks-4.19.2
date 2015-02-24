@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once 
 
@@ -31,6 +31,9 @@ class UTestPawnAction_Log : public UPawnAction
 	virtual bool Resume() override;
 	virtual void OnFinished(EPawnActionResult::Type WithResult) override;
 	virtual void OnChildFinished(UPawnAction& Action, EPawnActionResult::Type WithResult) override;
+
+	FAIResourcesSet& GetRequiredResourcesSet() { return RequiredResources; }
+	void SetRequiredResourcesSet(const FAIResourcesSet& InRequiredResources) { RequiredResources = InRequiredResources; }
 
 	/** Testing-hack to call protected function outside of protected environment */
 	void Terminate(EPawnActionResult::Type Result) { Finish(Result); }

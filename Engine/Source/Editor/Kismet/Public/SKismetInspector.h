@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -22,7 +22,8 @@ public:
 		, _ShowTitleArea(false)
 		{}
 
-		SLATE_ARGUMENT( TWeakPtr<FBlueprintEditor>, Kismet2 )
+		SLATE_ARGUMENT(TWeakPtr<FBlueprintEditor>, Kismet2)
+		SLATE_ARGUMENT(TWeakPtr<SMyBlueprint>, MyBlueprintWidget)
 		SLATE_ARGUMENT( bool, ShowPublicViewControl )
 		SLATE_ARGUMENT( bool, HideNameArea )
 		SLATE_ARGUMENT( FIsPropertyEditingEnabled, IsPropertyEditingEnabledDelegate )
@@ -37,16 +38,22 @@ public:
 	/** Options for ShowDetails */
 	struct FShowDetailsOptions
 	{
-		FString ForcedTitle;
+		FText ForcedTitle;
 		bool bForceRefresh;
+		bool bShowComponents;
 		bool bHideFilterArea;
 
-		FShowDetailsOptions(const FString& InForcedTitle = FString(), bool bInForceRefresh = false)
+		FShowDetailsOptions(const FText& InForcedTitle = FText::GetEmpty(), bool bInForceRefresh = false)
 			:ForcedTitle(InForcedTitle)
 			,bForceRefresh(bInForceRefresh)
+			,bShowComponents(true)
 			,bHideFilterArea(false)
 		{}
 	};
+
+	// SWidget interface
+	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override;
+	// End of SWidget interface
 
 	/** Update the inspector window to show information on the supplied object */
 	void ShowDetailsForSingleObject(UObject* Object, const FShowDetailsOptions& Options = FShowDetailsOptions());
@@ -62,21 +69,36 @@ public:
 
 	TSharedPtr<class IDetailsView> GetPropertyView() const { return PropertyView; }
 
+	void SetOwnerTab(TSharedRef<SDockTab> Tab);
+	TSharedPtr<SDockTab> GetOwnerTab() const;
+
+	/** @return true if the object is in the selection set. */
+	bool IsSelected(UObject* Object) const;
+
 protected:
 	/** Update the inspector window to show information on the supplied objects */
 	void UpdateFromObjects(const TArray<UObject*>& PropertyObjects, struct FKismetSelectionInfo& SelectionInfo, const FShowDetailsOptions& Options);
 
+	/** Add this property and all its child properties to SelectedObjectProperties */
+	void AddPropertiesRecursive(UProperty* Property);
+
 	/** Pointer back to the kismet 2 tool that owns us */
-	TWeakPtr<FBlueprintEditor> Kismet2Ptr;
+	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
+
+	/** The tab that owns this details view. */
+	TWeakPtr<SDockTab> OwnerTab;
 
 	/** String used as the title above the property window */
-	FString PropertyViewTitle;
+	FText PropertyViewTitle;
 
 	/** Should we currently show the property view */
 	bool bShowInspectorPropertyView;
 
-	/** State of CheckBox representing wether to show only the public variables*/
-	ESlateCheckBoxState::Type	PublicViewState;
+	/** Should we currently show components */
+	bool bShowComponents;
+
+	/** State of CheckBox representing whether to show only the public variables*/
+	ECheckBoxState	PublicViewState;
 
 	/** Property viewing widget */
 	TSharedPtr<class IDetailsView> PropertyView;
@@ -96,9 +118,24 @@ protected:
 	/** If true show the kismet inspector title widget */
 	bool bShowTitleArea;
 
+	/** Component details customization enabled. */
+	bool bComponenetDetailsCustomizationEnabled;
+
 	/** Set of object properties that should be visible */
 	TSet<TWeakObjectPtr<UProperty> > SelectedObjectProperties;
 	
+	/** User defined delegate for OnFinishedChangingProperties */
+	FOnFinishedChangingProperties::FDelegate UserOnFinishedChangingProperties;
+
+	/** When TRUE, the Kismet inspector needs to refresh the details view on Tick */
+	bool bRefreshOnTick;
+
+	/** Holds the property objects that need to be displayed by the inspector starting on the next tick */
+	TArray<UObject*> RefreshPropertyObjects;
+
+	/** Details options that are used by the inspector on the next refresh. */
+	FShowDetailsOptions RefreshOptions;
+
 protected:
 	/** Show properties of the selected object */
 	void SetPropertyWindowContents(TArray<UObject*> Objects);
@@ -115,8 +152,8 @@ protected:
 	/**
 	 * Generates the text for the title in the contextual editing widget
 	 */
-	FString GetContextualEditingWidgetTitle() const;
+	FText GetContextualEditingWidgetTitle() const;
 
-	ESlateCheckBoxState::Type GetPublicViewCheckboxState() const;
-	void SetPublicViewCheckboxState(ESlateCheckBoxState::Type InIsChecked);
+	ECheckBoxState GetPublicViewCheckboxState() const;
+	void SetPublicViewCheckboxState(ECheckBoxState InIsChecked);
 };

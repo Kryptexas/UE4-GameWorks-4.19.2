@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 
@@ -21,9 +21,9 @@ void UMeshComponent::BeginDestroy()
 
 UMaterialInterface* UMeshComponent::GetMaterial(int32 ElementIndex) const
 {
-	if (Materials.IsValidIndex(ElementIndex))
+	if (OverrideMaterials.IsValidIndex(ElementIndex))
 	{
-		return Materials[ElementIndex];
+		return OverrideMaterials[ElementIndex];
 	}
 	else
 	{
@@ -35,20 +35,20 @@ void UMeshComponent::SetMaterial(int32 ElementIndex, UMaterialInterface* Materia
 {
 	if (ElementIndex >= 0)
 	{
-		if (Materials.IsValidIndex(ElementIndex) && (Materials[ElementIndex] == Material))
+		if (OverrideMaterials.IsValidIndex(ElementIndex) && (OverrideMaterials[ElementIndex] == Material))
 		{
 			// Do nothing, the material is already set
 		}
 		else
 		{
 			// Grow the array if the new index is too large
-			if (Materials.Num() <= ElementIndex)
+			if (OverrideMaterials.Num() <= ElementIndex)
 			{
-				Materials.AddZeroed(ElementIndex + 1 - Materials.Num());
+				OverrideMaterials.AddZeroed(ElementIndex + 1 - OverrideMaterials.Num());
 			}
 
 			// Set the material and invalidate things
-			Materials[ElementIndex] = Material;
+			OverrideMaterials[ElementIndex] = Material;
 			MarkRenderStateDirty();
 
 			if (BodyInstance.IsValidBodyInstance())
@@ -73,6 +73,11 @@ FMaterialRelevance UMeshComponent::GetMaterialRelevance(ERHIFeatureLevel::Type I
 		Result |= MaterialInterface->GetRelevance_Concurrent(InFeatureLevel);
 	}
 	return Result;
+}
+
+int32 UMeshComponent::GetNumOverrideMaterials() const
+{
+	return OverrideMaterials.Num();
 }
 
 int32 UMeshComponent::GetNumMaterials() const
@@ -127,4 +132,10 @@ void UMeshComponent::SetTextureForceResidentFlag( bool bForceMiplevelsToBeReside
 			Texture2D->bForceMiplevelsToBeResident = bForceMiplevelsToBeResident;
 		}
 	}
+}
+
+
+TArray<class UMaterialInterface*> UMeshComponent::GetMaterials() const
+{
+	return OverrideMaterials;
 }

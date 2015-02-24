@@ -1,16 +1,16 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Spawn.cpp: Particle spawn-related module implementations.
 =============================================================================*/
 #include "EnginePrivate.h"
 #include "ParticleDefinitions.h"
-#include "../DistributionHelpers.h"
 #include "Particles/Spawn/ParticleModuleSpawn.h"
 #include "Particles/Spawn/ParticleModuleSpawnBase.h"
 #include "Particles/Spawn/ParticleModuleSpawnPerUnit.h"
 #include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Distributions/DistributionFloatConstantCurve.h"
 
 UParticleModuleSpawnBase::UParticleModuleSpawnBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -77,23 +77,6 @@ void UParticleModuleSpawn::PostLoad()
 		if (Rate.Distribution->IsA(UDistributionFloatConstant::StaticClass()) && Rate.GetValue() <= 1.0f)
 		{
 			bApplyGlobalSpawnRateScale = false;
-		}
-	}
-}
-
-void UParticleModuleSpawn::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(Rate.Distribution, TEXT("RequiredDistributionSpawnRate"), 20.0f);
-		FDistributionHelpers::RestoreDefaultConstant(RateScale.Distribution, TEXT("RequiredDistributionSpawnRateScale"), 1.0f);
-		FDistributionHelpers::RestoreDefaultConstant(BurstScale.Distribution, TEXT("BurstScaleDistribution"), 1.0f);
-		if (!BurstScale.Distribution)
-		{
-			UDistributionFloatConstant* BurstScaleDistribution = NewNamedObject<UDistributionFloatConstant>(this, TEXT("BurstScaleDistribution"));
-			BurstScaleDistribution->Constant = 1.0f;
-			BurstScale.Distribution = BurstScaleDistribution;
 		}
 	}
 }
@@ -295,15 +278,6 @@ void UParticleModuleSpawnPerUnit::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleSpawnPerUnit::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(SpawnPerUnit.Distribution, TEXT("RequiredDistributionSpawnPerUnit"), 0.0f);
 	}
 }
 

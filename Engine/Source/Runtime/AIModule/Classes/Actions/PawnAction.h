@@ -1,12 +1,17 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "BrainComponent.h"
 #include "PawnAction.generated.h"
 
+class APawn;
+class AController;
 class UPawnAction;
 class UPawnActionsComponent;
+class UBrainComponent;
+struct FPawnActionStack;
+struct FAIMessage;
 
 UENUM()
 namespace EPawnSubActionTriggeringPolicy
@@ -41,7 +46,7 @@ class AIMODULE_API UPawnAction : public UObject
 	GENERATED_UCLASS_BODY()
 
 	friend UPawnActionsComponent;
-	friend struct FPawnActionStack;
+	friend FPawnActionStack;
 
 private:
 	/** Current child node executing on top of this Action */
@@ -63,7 +68,7 @@ private:
 protected:
 	/** @Note: THIS IS HERE _ONLY_ BECAUSE OF THE WAY AI MESSAGING IS CURRENTLY IMPLEMENTED. WILL GO AWAY! */
 	UPROPERTY(Transient)
-	class UBrainComponent* BrainComp;
+	UBrainComponent* BrainComp;
 
 private:
 	/** stores registered message observers */
@@ -76,6 +81,9 @@ private:
 protected:
 
 	FAIRequestID RequestID;
+
+	/** specifies which resources will be locked by this action. */
+	FAIResourcesSet RequiredResources;
 
 	/** if this is FALSE and we're trying to push a new instance of a given class,
 	 *	but the top of the stack is already an instance of that class ignore the attempted push */
@@ -92,9 +100,9 @@ protected:
 private:
 	/** indicates whether action is in the process of abortion, and if so on what state */
 	EPawnActionAbortState::Type AbortState;
-
+	
 	EPawnActionResult::Type FinishResult;
-
+	
 	/** Used exclusively for action events sorting */
 	int32 IndexOnStack;
 	
@@ -155,8 +163,8 @@ public:
 	FORCEINLINE EPawnActionAbortState::Type GetAbortState() const { return AbortState; }
 	FORCEINLINE UPawnActionsComponent* GetOwnerComponent() const { return OwnerComponent; }
 	FORCEINLINE UObject* GetInstigator() const { return Instigator; }
-	class APawn* GetPawn();
-	class AController* GetController();
+	APawn* GetPawn();
+	AController* GetController();
 
 	template<class TActionClass>
 	static TActionClass* CreateActionInstance(UWorld& World)
@@ -169,9 +177,11 @@ public:
 	// messaging
 	//----------------------------------------------------------------------//
 	void WaitForMessage(FName MessageType, FAIRequestID RequestID = FAIRequestID::AnyRequest);
-	virtual void HandleAIMessage(UBrainComponent*, const struct FAIMessage&){};
+	// @note this function will change its signature once AI messaging is rewritten @todo
+	virtual void HandleAIMessage(UBrainComponent*, const FAIMessage&){};
 
 	void SetActionObserver(const FPawnActionEventDelegate& ActionObserver) { this->ActionObserver = ActionObserver; }
+	bool HasActionObserver() const { return ActionObserver.IsBound(); }
 
 	//----------------------------------------------------------------------//
 	// Blueprint interface
@@ -195,7 +205,7 @@ protected:
 	void OnPopped();
 
 	UFUNCTION(BlueprintCallable, Category = "AI|PawnActions")
-	void Finish(TEnumAsByte<EPawnActionResult::Type> WithResult);
+	virtual void Finish(TEnumAsByte<EPawnActionResult::Type> WithResult);
 
 	void SendEvent(EPawnActionEventType::Type Event);
 

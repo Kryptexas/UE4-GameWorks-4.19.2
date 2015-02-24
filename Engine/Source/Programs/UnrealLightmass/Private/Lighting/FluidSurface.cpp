@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "stdafx.h"
 #include "Importer.h"
@@ -18,9 +18,9 @@ namespace Lightmass
 		)
 	{
 		OutVertex.WorldPosition = LocalToWorld.TransformPosition(QuadCorners[VertexIndex]);
-		OutVertex.WorldTangentX = LocalToWorld.TransformVector(FVector4(1, 0, 0, 1)).SafeNormal();
-		OutVertex.WorldTangentY = LocalToWorld.TransformVector(FVector4(0, 1, 0, 1)).SafeNormal();
-		OutVertex.WorldTangentZ = LocalToWorldInverseTranspose.TransformVector(FVector4(0, 0, 1, 1)).SafeNormal();
+		OutVertex.WorldTangentX = LocalToWorld.TransformVector(FVector4(1, 0, 0, 1)).GetSafeNormal();
+		OutVertex.WorldTangentY = LocalToWorld.TransformVector(FVector4(0, 1, 0, 1)).GetSafeNormal();
+		OutVertex.WorldTangentZ = LocalToWorldInverseTranspose.TransformVector(FVector4(0, 0, 1, 1)).GetSafeNormal();
 
 		for(uint32 UVIndex = 0; UVIndex < 1; UVIndex++)
 		{

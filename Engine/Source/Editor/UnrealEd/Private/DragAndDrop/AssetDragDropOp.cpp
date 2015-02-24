@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "AssetDragDropOp.h"
@@ -120,6 +120,7 @@ TSharedPtr<SWidget> FAssetDragDropOp::GetDefaultDecorator() const
 					+ SHorizontalBox::Slot()
 					.AutoWidth()
 					.Padding(3.0f)
+					.VAlign(VAlign_Center)
 					[
 						SNew(SImage) 
 						.Image(this, &FAssetDragDropOp::GetIcon)

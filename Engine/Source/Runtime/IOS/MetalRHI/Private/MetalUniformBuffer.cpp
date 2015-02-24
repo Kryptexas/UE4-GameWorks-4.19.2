@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalConstantBuffer.cpp: Metal Constant buffer implementation.
@@ -267,8 +267,8 @@ void FMetalUniformBuffer::CacheResourcesInternal()
 					FMetalShaderResourceView* SRV = (FMetalShaderResourceView*)Resources[i].GetReference();
 					if (IsValidRef(SRV->SourceTexture))
 					{
-						FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(SRV->SourceTexture);
-						RawResources[i] = &Surface;
+						FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(SRV->SourceTexture);
+						RawResources[i] = Surface;
 					}
 					else
 					{
@@ -284,8 +284,8 @@ void FMetalUniformBuffer::CacheResourcesInternal()
 					// this is due to multiple inheritance nastiness, NEEDS CLEANUP
 					FRHITexture* TextureRHI = (FRHITexture*)Resources[i].GetReference();
 					TextureRHI->SetLastRenderTime(CurrentTime);
-					FMetalSurface& Surface = GetMetalSurfaceFromRHITexture(TextureRHI);
-					RawResources[i] = &Surface;
+					FMetalSurface* Surface = GetMetalSurfaceFromRHITexture(TextureRHI);
+					RawResources[i] = Surface;
 				}
 				break;
 

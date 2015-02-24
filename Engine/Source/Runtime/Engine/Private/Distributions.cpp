@@ -1,11 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Distributions.cpp: Implementation of distribution classes.
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "DistributionHelpers.h"
 #include "Distributions/DistributionVectorParameterBase.h"
 #include "Distributions/DistributionVectorConstantCurve.h"
 #include "Distributions/DistributionVectorUniformCurve.h"
@@ -14,11 +13,14 @@
 #include "Sound/SoundNode.h"
 
 #include "Particles/ParticleModule.h"
+#include "Distributions/DistributionFloatUniformCurve.h"
+#include "Distributions/DistributionFloatConstantCurve.h"
+#include "Distributions/DistributionFloatParameterBase.h"
 
 // Moving UDistributions to PostInitProps to not be default sub-objects:
 // Small enough value to be rounded to 0.0 in the editor 
 // but significant enough to properly detect uninitialized defaults.
-const float FDistributionHelpers::DefaultValue = 1.2345E-20f;
+const float UDistribution::DefaultValue = 1.2345E-20f;
 
 ENGINE_API uint32 GDistributionType = 1;
 
@@ -649,7 +651,7 @@ static void OptimizeLookupTable( FDistributionLookupTable* Table, float ErrorThr
 	*Table = OriginalTable;
 }
 
-void FRawDistribution::GetValue1(float Time, float* Value, int32 Extreme, class FRandomStream* InRandomStream) const
+void FRawDistribution::GetValue1(float Time, float* Value, int32 Extreme, struct FRandomStream* InRandomStream) const
 {
 	switch (LookupTable.Op)
 	{
@@ -669,7 +671,7 @@ void FRawDistribution::GetValue1(float Time, float* Value, int32 Extreme, class 
 	}
 }
 
-void FRawDistribution::GetValue3(float Time, float* Value, int32 Extreme, class FRandomStream* InRandomStream) const
+void FRawDistribution::GetValue3(float Time, float* Value, int32 Extreme, struct FRandomStream* InRandomStream) const
 {
 	switch (LookupTable.Op)
 	{
@@ -685,7 +687,7 @@ void FRawDistribution::GetValue3(float Time, float* Value, int32 Extreme, class 
 	}
 }
 
-void FRawDistribution::GetValue1Extreme(float Time, float* InValue, int32 Extreme, class FRandomStream* InRandomStream) const
+void FRawDistribution::GetValue1Extreme(float Time, float* InValue, int32 Extreme, struct FRandomStream* InRandomStream) const
 {
 	float* RESTRICT Value = InValue;
 	const float* Entry1;
@@ -699,7 +701,7 @@ void FRawDistribution::GetValue1Extreme(float Time, float* InValue, int32 Extrem
 	Value[0] = FMath::Lerp(NewEntry1[InitialElement + 0], NewEntry2[InitialElement + 0], LerpAlpha);
 }
 
-void FRawDistribution::GetValue3Extreme(float Time, float* InValue, int32 Extreme, class FRandomStream* InRandomStream) const
+void FRawDistribution::GetValue3Extreme(float Time, float* InValue, int32 Extreme, struct FRandomStream* InRandomStream) const
 {
 	float* RESTRICT Value = InValue;
 	const float* Entry1;
@@ -719,7 +721,7 @@ void FRawDistribution::GetValue3Extreme(float Time, float* InValue, int32 Extrem
 	Value[2] = T2;
 }
 
-void FRawDistribution::GetValue1Random(float Time, float* InValue, class FRandomStream* InRandomStream) const
+void FRawDistribution::GetValue1Random(float Time, float* InValue, struct FRandomStream* InRandomStream) const
 {
 	float* RESTRICT Value = InValue;
 	const float* Entry1;
@@ -735,7 +737,7 @@ void FRawDistribution::GetValue1Random(float Time, float* InValue, class FRandom
 	Value[0] = Value1 + (Value2 - Value1) * RandValue;
 }
 
-void FRawDistribution::GetValue3Random(float Time, float* InValue, class FRandomStream* InRandomStream) const
+void FRawDistribution::GetValue3Random(float Time, float* InValue, struct FRandomStream* InRandomStream) const
 {
 	float* RESTRICT Value = InValue;
 	const float* Entry1;
@@ -781,7 +783,7 @@ void FRawDistribution::GetValue3Random(float Time, float* InValue, class FRandom
 	Value[2] = Z0 + (Z1 - Z0) * RandValues[2];
 }
 
-void FRawDistribution::GetValue(float Time, float* Value, int32 NumCoords, int32 Extreme, class FRandomStream* InRandomStream) const
+void FRawDistribution::GetValue(float Time, float* Value, int32 NumCoords, int32 Extreme, struct FRandomStream* InRandomStream) const
 {
 	checkSlow(NumCoords == 3 || NumCoords == 1);
 	switch (LookupTable.Op)
@@ -892,7 +894,7 @@ void FRawDistributionFloat::Initialize()
 }
 #endif // WITH_EDITOR
 
-float FRawDistributionFloat::GetValue(float F, UObject* Data, class FRandomStream* InRandomStream)
+float FRawDistributionFloat::GetValue(float F, UObject* Data, struct FRandomStream* InRandomStream)
 {
 #if WITH_EDITOR
 	// make sure it's up to date
@@ -987,7 +989,7 @@ void UDistributionFloat::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 }
 #endif	// WITH_EDITOR
 
-float UDistributionFloat::GetValue( float F, UObject* Data, class FRandomStream* InRandomStream ) const
+float UDistributionFloat::GetValue( float F, UObject* Data, struct FRandomStream* InRandomStream ) const
 {
 	return 0.0;
 }
@@ -1070,7 +1072,7 @@ void FRawDistributionVector::Initialize()
 }
 #endif
 
-FVector FRawDistributionVector::GetValue(float F, UObject* Data, int32 Extreme, class FRandomStream* InRandomStream)
+FVector FRawDistributionVector::GetValue(float F, UObject* Data, int32 Extreme, struct FRandomStream* InRandomStream)
 {
 #if WITH_EDITOR
 	// make sure it's up to date
@@ -1163,7 +1165,7 @@ void UDistributionVector::PostEditChangeProperty(FPropertyChangedEvent& Property
 }
 #endif // WITH_EDITOR
 
-FVector UDistributionVector::GetValue(float F, UObject* Data, int32 Extreme, class FRandomStream* InRandomStream) const
+FVector UDistributionVector::GetValue(float F, UObject* Data, int32 Extreme, struct FRandomStream* InRandomStream) const
 {
 	return FVector::ZeroVector;
 }
@@ -1559,21 +1561,21 @@ void UDistributionFloatConstant::PostInitProperties()
 	{
 		// Set to a bogus value for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS
 		// to be able to restore to the previous default value.
-		Constant = FDistributionHelpers::DefaultValue;
+		Constant = UDistribution::DefaultValue;
 	}
 }
 
 void UDistributionFloatConstant::PostLoad()
 {
 	Super::PostLoad();
-	if (Constant == FDistributionHelpers::DefaultValue)
+	if (Constant == UDistribution::DefaultValue)
 	{
 		// Reset to default for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS.
 		Constant = 0.0f;
 	}
 }
 
-float UDistributionFloatConstant::GetValue( float F, UObject* Data, class FRandomStream* InRandomStream ) const
+float UDistributionFloatConstant::GetValue( float F, UObject* Data, struct FRandomStream* InRandomStream ) const
 {
 	return Constant;
 }
@@ -1610,7 +1612,7 @@ FColor UDistributionFloatConstant::GetKeyColor(int32 SubIndex, int32 KeyIndex, c
 	check( KeyIndex == 0 );
 
 	// Always return RED since there is only one key
-	return FColor(255,0,0);
+	return FColor::Red;
 }
 
 void UDistributionFloatConstant::GetInRange(float& MinIn, float& MaxIn) const
@@ -1686,7 +1688,7 @@ UDistributionFloatConstantCurve::UDistributionFloatConstantCurve(const FObjectIn
 {
 }
 
-float UDistributionFloatConstantCurve::GetValue( float F, UObject* Data, class FRandomStream* InRandomStream ) const
+float UDistributionFloatConstantCurve::GetValue( float F, UObject* Data, struct FRandomStream* InRandomStream ) const
 {
 	return ConstantCurve.Eval(F, 0.f);
 }
@@ -1723,7 +1725,7 @@ FColor UDistributionFloatConstantCurve::GetKeyColor(int32 SubIndex, int32 KeyInd
 	check( KeyIndex >= 0 && KeyIndex < ConstantCurve.Points.Num() );
 
 	// Always return RED since there is only one sub-curve.
-	return FColor(255,0,0);
+	return FColor::Red;
 }
 
 void UDistributionFloatConstantCurve::GetInRange(float& MinIn, float& MaxIn) const
@@ -1852,8 +1854,8 @@ void UDistributionFloatUniform::PostInitProperties()
 	{
 		// Set to a bogus value for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS
 		// to be able to restore to the previous default value.
-		Min = FDistributionHelpers::DefaultValue;
-		Max = FDistributionHelpers::DefaultValue;
+		Min = UDistribution::DefaultValue;
+		Max = UDistribution::DefaultValue;
 	}
 }
 
@@ -1861,17 +1863,17 @@ void UDistributionFloatUniform::PostLoad()
 {
 	Super::PostLoad();
 	// Reset to default for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS.
-	if (Min == FDistributionHelpers::DefaultValue)
+	if (Min == UDistribution::DefaultValue)
 	{
 		Min = 0.0f;
 	}
-	if (Max == FDistributionHelpers::DefaultValue)
+	if (Max == UDistribution::DefaultValue)
 	{
 		Max = 0.0f;
 	}
 }
 
-float UDistributionFloatUniform::GetValue( float F, UObject* Data, class FRandomStream* InRandomStream ) const
+float UDistributionFloatUniform::GetValue( float F, UObject* Data, struct FRandomStream* InRandomStream ) const
 {
 	return Max + (Min - Max) * DIST_GET_RANDOM_VALUE(InRandomStream);
 }
@@ -1916,11 +1918,11 @@ FColor UDistributionFloatUniform::GetSubCurveButtonColor(int32 SubCurveIndex, bo
 	{
 	case 0:
 		// Red
-		ButtonColor = bIsSubCurveHidden ? FColor(32, 0,  0) : FColor(255, 0, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor::Red;
 		break;
 	case 1:
 		// Green
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor(0, 255, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor::Green;
 		break;
 	default:
 		// A bad sub-curve index was given. 
@@ -1955,13 +1957,11 @@ FColor UDistributionFloatUniform::GetKeyColor(int32 SubIndex, int32 KeyIndex, co
 
 	if( 0 == SubIndex )
 	{
-		// RED
-		KeyColor = FColor(255,0,0);
+		KeyColor = FColor::Red;
 	} 
 	else
 	{
-		// GREEN
-		KeyColor = FColor(0,255,0);
+		KeyColor = FColor::Green;
 	}
 
 	return KeyColor;
@@ -2049,7 +2049,7 @@ UDistributionFloatUniformCurve::UDistributionFloatUniformCurve(const FObjectInit
 {
 }
 
-float UDistributionFloatUniformCurve::GetValue(float F, UObject* Data, class FRandomStream* InRandomStream) const
+float UDistributionFloatUniformCurve::GetValue(float F, UObject* Data, struct FRandomStream* InRandomStream) const
 {
 	FVector2D Val = ConstantCurve.Eval(F, FVector2D(0.f, 0.f));
 	return Val.X + (Val.Y - Val.X) * DIST_GET_RANDOM_VALUE(InRandomStream);
@@ -2107,11 +2107,11 @@ FColor UDistributionFloatUniformCurve::GetSubCurveButtonColor(int32 SubCurveInde
 	{
 	case 0:
 		// Red
-		ButtonColor = bIsSubCurveHidden ? FColor(32, 0,  0) : FColor(255, 0, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor::Red;
 		break;
 	case 1:
 		// Green
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor(0, 255, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor::Green;
 		break;
 	default:
 		// A bad sub-curve index was given. 
@@ -2150,11 +2150,11 @@ FColor UDistributionFloatUniformCurve::GetKeyColor(int32 SubIndex, int32 KeyInde
 
 	if (SubIndex == 0)
 	{
-		return FColor(255,0,0);
+		return FColor::Red;
 	}
 	else
 	{
-		return FColor(0,255,0);
+		return FColor::Green;
 	}
 }
 
@@ -2323,7 +2323,7 @@ void UDistributionVectorConstant::PostInitProperties()
 	{
 		// Set to a bogus value for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS
 		// to be able to restore to the previous default value.
-		Constant = FVector(FDistributionHelpers::DefaultValue);
+		Constant = FVector(UDistribution::DefaultValue);
 	}
 }
 
@@ -2331,13 +2331,13 @@ void UDistributionVectorConstant::PostLoad()
 {
 	Super::PostLoad();
 	// Reset to default for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS.
-	if (Constant == FVector(FDistributionHelpers::DefaultValue))
+	if (Constant == FVector(UDistribution::DefaultValue))
 	{
 		Constant = FVector::ZeroVector;
 	}
 }
 
-FVector UDistributionVectorConstant::GetValue(float F, UObject* Data, int32 Extreme, class FRandomStream* InRandomStream) const
+FVector UDistributionVectorConstant::GetValue(float F, UObject* Data, int32 Extreme, struct FRandomStream* InRandomStream) const
 {
 	switch (LockedAxes)
 	{
@@ -2386,15 +2386,15 @@ FColor UDistributionVectorConstant::GetSubCurveButtonColor(int32 SubCurveIndex, 
 	{
 	case 0:
 		// Red
-		ButtonColor = bIsSubCurveHidden ? FColor(32, 0,  0) : FColor(255, 0, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor::Red;
 		break;
 	case 1:
 		// Green
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor(0, 255, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor::Green;
 		break;
 	case 2:
 		// Blue
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor(0, 0, 255);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor::Blue;
 		break;
 	default:
 		// A bad sub-curve index was given. 
@@ -2455,12 +2455,18 @@ FColor UDistributionVectorConstant::GetKeyColor(int32 SubIndex, int32 KeyIndex, 
 	check( SubIndex >= 0 && SubIndex < 3);
 	check( KeyIndex == 0 );
 
-	if(SubIndex == 0)
-		return FColor(255,0,0);
-	else if(SubIndex == 1)
-		return FColor(0,255,0);
+	if (SubIndex == 0)
+	{
+		return FColor::Red;
+	}
+	else if (SubIndex == 1)
+	{
+		return FColor::Green;
+	}
 	else
-		return FColor(0,0,255);
+	{
+		return FColor::Blue;
+	}
 }
 
 void UDistributionVectorConstant::GetInRange(float& MinIn, float& MaxIn) const
@@ -2570,7 +2576,7 @@ UDistributionVectorConstantCurve::UDistributionVectorConstantCurve(const FObject
 {
 }
 
-FVector UDistributionVectorConstantCurve::GetValue(float F, UObject* Data, int32 Extreme, class FRandomStream* InRandomStream) const
+FVector UDistributionVectorConstantCurve::GetValue(float F, UObject* Data, int32 Extreme, struct FRandomStream* InRandomStream) const
 {
 	FVector Val = ConstantCurve.Eval(F, FVector::ZeroVector);
 	switch (LockedAxes)
@@ -2620,15 +2626,15 @@ FColor UDistributionVectorConstantCurve::GetSubCurveButtonColor(int32 SubCurveIn
 	{
 	case 0:
 		// Red
-		ButtonColor = bIsSubCurveHidden ? FColor(32, 0,  0) : FColor(255, 0, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor::Red;
 		break;
 	case 1:
 		// Green
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor(0, 255, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor::Green;
 		break;
 	case 2:
 		// Blue
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor(0, 0, 255);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor::Blue;
 		break;
 	default:
 		// A bad sub-curve index was given. 
@@ -2685,12 +2691,18 @@ FColor UDistributionVectorConstantCurve::GetKeyColor(int32 SubIndex, int32 KeyIn
 	check( SubIndex >= 0 && SubIndex < 3);
 	check( KeyIndex >= 0 && KeyIndex < ConstantCurve.Points.Num() );
 
-	if(SubIndex == 0)
-		return FColor(255,0,0);
-	else if(SubIndex == 1)
-		return FColor(0,255,0);
+	if (SubIndex == 0)
+	{
+		return FColor::Red;
+	}
+	else if (SubIndex == 1)
+	{
+		return FColor::Green;
+	}
 	else
-		return FColor(0,0,255);
+	{
+		return FColor::Blue;
+	}
 }
 
 void UDistributionVectorConstantCurve::GetInRange(float& MinIn, float& MaxIn) const
@@ -2930,8 +2942,8 @@ void UDistributionVectorUniform::PostInitProperties()
 	{
 		// Set to a bogus value for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS
 		// to be able to restore to the previous default value.
-		Min = FVector(FDistributionHelpers::DefaultValue);
-		Max = FVector(FDistributionHelpers::DefaultValue);
+		Min = FVector(UDistribution::DefaultValue);
+		Max = FVector(UDistribution::DefaultValue);
 	}
 }
 
@@ -2939,17 +2951,17 @@ void UDistributionVectorUniform::PostLoad()
 {
 	Super::PostLoad();
 	// Reset to default for distributions created before VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS.
-	if (Min == FVector(FDistributionHelpers::DefaultValue))
+	if (Min == FVector(UDistribution::DefaultValue))
 	{
 		Min = FVector::ZeroVector;
 	}
-	if (Max == FVector(FDistributionHelpers::DefaultValue))
+	if (Max == FVector(UDistribution::DefaultValue))
 	{
 		Max = FVector::ZeroVector;
 	}
 }
 
-FVector UDistributionVectorUniform::GetValue(float F, UObject* Data, int32 Extreme, class FRandomStream* InRandomStream) const
+FVector UDistributionVectorUniform::GetValue(float F, UObject* Data, int32 Extreme, struct FRandomStream* InRandomStream) const
 {
 	FVector LocalMax = Max;
 	FVector LocalMin = Min;
@@ -3253,7 +3265,7 @@ FColor UDistributionVectorUniform::GetSubCurveButtonColor(int32 SubCurveIndex, b
 	{
 	case 0:
 		// Red
-		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor(255, 0, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor::Red;
 		break;
 	case 1:
 		if (bShouldGroupMinAndMax)
@@ -3264,19 +3276,19 @@ FColor UDistributionVectorUniform::GetSubCurveButtonColor(int32 SubCurveIndex, b
 		else
 		{
 			// Green
-			ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor(0, 255, 0);
+			ButtonColor = bIsSubCurveHidden ? FColor(0, 32,  0) : FColor::Green;
 		}
 		break;
 	case 2:
 		if (bShouldGroupMinAndMax)
 		{
 			// Green
-			ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor(0, 255, 0);
+			ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor::Green;
 		}
 		else
 		{
 			// Blue
-			ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor(0, 0, 255);
+			ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor::Blue;
 		}
 		break;
 	case 3:
@@ -3285,7 +3297,7 @@ FColor UDistributionVectorUniform::GetSubCurveButtonColor(int32 SubCurveIndex, b
 		break;
 	case 4:
 		// Blue
-		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor(0, 0, 255);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor::Blue;
 		break;
 	case 5:
 		// Dark blue
@@ -3359,18 +3371,30 @@ FColor UDistributionVectorUniform::GetKeyColor(int32 SubIndex, int32 KeyIndex, c
 	check( SubIndex >= 0 && SubIndex < 6);
 	check( KeyIndex == 0 );
 
-	if(SubIndex == 0)
-		return FColor(128,0,0);
-	else if(SubIndex == 1)
-		return FColor(255,0,0);
-	else if(SubIndex == 2)
-		return FColor(0,128,0);
-	else if(SubIndex == 3)
-		return FColor(0,255,0);
-	else if(SubIndex == 4)
-		return FColor(0,0,128);
+	if (SubIndex == 0)
+	{
+		return FColor(128, 0, 0);
+	}
+	else if (SubIndex == 1)
+	{
+		return FColor::Red;
+	}
+	else if (SubIndex == 2)
+	{
+		return FColor(0, 128, 0);
+	}
+	else if (SubIndex == 3)
+	{
+		return FColor::Green;
+	}
+	else if (SubIndex == 4)
+	{
+		return FColor(0, 0, 128);
+	}
 	else
-		return FColor(0,0,255);
+	{
+		return FColor::Blue;
+	}
 }
 
 void UDistributionVectorUniform::GetInRange(float& MinIn, float& MaxIn) const
@@ -3513,7 +3537,7 @@ UDistributionVectorUniformCurve::UDistributionVectorUniformCurve(const FObjectIn
 	bUseExtremes = false;
 }
 
-FVector UDistributionVectorUniformCurve::GetValue(float F, UObject* Data, int32 Extreme, class FRandomStream* InRandomStream) const
+FVector UDistributionVectorUniformCurve::GetValue(float F, UObject* Data, int32 Extreme, struct FRandomStream* InRandomStream) const
 {
 	FTwoVectors	Val = ConstantCurve.Eval(F, FTwoVectors());
 
@@ -3649,7 +3673,7 @@ FColor UDistributionVectorUniformCurve::GetSubCurveButtonColor(int32 SubCurveInd
 	{
 	case 0:
 		// Red
-		ButtonColor = bIsSubCurveHidden ? FColor(32, 0,  0) : FColor(255, 0, 0);
+		ButtonColor = bIsSubCurveHidden ? FColor(32, 0, 0) : FColor::Red;
 		break;
 	case 1:
 		if (bShouldGroupMinAndMax)
@@ -3660,19 +3684,19 @@ FColor UDistributionVectorUniformCurve::GetSubCurveButtonColor(int32 SubCurveInd
 		else
 		{
 			// Green
-			ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor(0, 255, 0);
+			ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor::Green;
 		}
 		break;
 	case 2:
 		if (bShouldGroupMinAndMax)
 		{
 			// Green
-			ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor(0, 255, 0);
+			ButtonColor = bIsSubCurveHidden ? FColor(0, 32, 0) : FColor::Green;
 		}
 		else
 		{
 			// Blue
-			ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor(0, 0, 255);
+			ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor::Blue;
 		}
 		break;
 	case 3:
@@ -3681,7 +3705,7 @@ FColor UDistributionVectorUniformCurve::GetSubCurveButtonColor(int32 SubCurveInd
 		break;
 	case 4:
 		// Blue
-		ButtonColor = bIsSubCurveHidden ? FColor(  0,  0, 32) : FColor(0, 0, 255);
+		ButtonColor = bIsSubCurveHidden ? FColor(0, 0, 32) : FColor::Blue;
 		break;
 	case 5:
 		// Dark blue
@@ -3727,27 +3751,23 @@ FColor UDistributionVectorUniformCurve::GetKeyColor(int32 SubIndex, int32 KeyInd
 
 	if (SubIndex == 0)
 	{
-		return FColor(255,0,0);
+		return FColor::Red;
 	}
-	else 
-	if (SubIndex == 1)
+	else if (SubIndex == 1)
 	{
 		return FColor(128,0,0);
 	}
-	else
-	if (SubIndex == 2)
+	else if (SubIndex == 2)
 	{
-		return FColor(0,255,0);
+		return FColor::Green;
 	}
-	else
-	if (SubIndex == 3)
+	else if (SubIndex == 3)
 	{
 		return FColor(0,128,0);
 	}
-	else
-	if (SubIndex == 4)
+	else if (SubIndex == 4)
 	{
-		return FColor(0,0,255);
+		return FColor::Blue;
 	}
 	else
 	{
@@ -4078,7 +4098,7 @@ UDistributionFloatParameterBase::UDistributionFloatParameterBase(const FObjectIn
 	MaxOutput = 1.0f;
 }
 
-float UDistributionFloatParameterBase::GetValue( float F, UObject* Data, class FRandomStream* InRandomStream ) const
+float UDistributionFloatParameterBase::GetValue( float F, UObject* Data, struct FRandomStream* InRandomStream ) const
 {
 	float ParamFloat = 0.f;
 	bool bFoundParam = GetParamValue(Data, ParameterName, ParamFloat);
@@ -4117,7 +4137,7 @@ UDistributionVectorParameterBase::UDistributionVectorParameterBase(const FObject
 
 }
 
-FVector UDistributionVectorParameterBase::GetValue( float F, UObject* Data, int32 Extreme, class FRandomStream* InRandomStream ) const
+FVector UDistributionVectorParameterBase::GetValue( float F, UObject* Data, int32 Extreme, struct FRandomStream* InRandomStream ) const
 {
 	FVector ParamVector(0.f);
 	bool bFoundParam = GetParamValue(Data, ParameterName, ParamVector);

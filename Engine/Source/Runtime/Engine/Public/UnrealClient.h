@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnrealClient.h: Interface definition for platform specific client code.
@@ -13,6 +13,12 @@
 
 class FCanvas;
 class FViewportClient;
+
+class SWidget;
+class FCursorReply;
+
+enum class EPopupMethod : uint8;
+enum class EFocusCause : uint8;
 
 /**
  * A render target.
@@ -54,7 +60,7 @@ public:
 	* @param InRect - source rect of the image to capture
 	* @return True if the read succeeded.
 	*/
-	ENGINE_API bool ReadPixels(TArray< FColor >& OutImageData,FReadSurfaceDataFlags InFlags = FReadSurfaceDataFlags(), FIntRect InRect = FIntRect(0, 0, 0, 0) );
+	ENGINE_API bool ReadPixels(TArray< FColor >& OutImageData,FReadSurfaceDataFlags InFlags = FReadSurfaceDataFlags(RCM_UNorm, CubeFace_MAX), FIntRect InRect = FIntRect(0, 0, 0, 0) );
 
 	/**
 	* Reads the viewport's displayed pixels into a preallocated color buffer.
@@ -62,7 +68,7 @@ public:
 	* @param InSrcRect InSrcRect not specified means the whole rect
 	* @return True if the read succeeded.
 	*/
-	ENGINE_API bool ReadPixelsPtr(FColor* OutImageBytes, FReadSurfaceDataFlags InFlags = FReadSurfaceDataFlags(), FIntRect InSrcRect = FIntRect(0, 0, 0, 0));
+	ENGINE_API bool ReadPixelsPtr(FColor* OutImageBytes, FReadSurfaceDataFlags InFlags = FReadSurfaceDataFlags(RCM_UNorm, CubeFace_MAX), FIntRect InSrcRect = FIntRect(0, 0, 0, 0));
 
 	/**
 	 * Reads the viewport's displayed pixels into the given color buffer.
@@ -503,6 +509,9 @@ public:
   	 **/
 	ENGINE_API bool TakeHighResScreenShot();
 
+	/** Should return true, if stereo rendering is allowed in this viewport */
+	virtual bool IsStereoRenderingAllowed() const { return false; }
+
 protected:
 
 	/** The viewport's client. */
@@ -783,6 +792,20 @@ public:
 	 */
 	virtual EMouseCursor::Type GetCursor(FViewport* Viewport,int32 X,int32 Y) { return EMouseCursor::Default; }
 
+	/**
+	 * Called to map a cursor reply to an actual widget to render.
+	 *
+	 * @return	the widget that should be rendered for this cursor, return TOptional<TSharedRef<SWidget>>() if no mapping.
+	 */
+	virtual TOptional<TSharedRef<SWidget>> MapCursor(FViewport* Viewport, const FCursorReply& CursorReply) { return TOptional<TSharedRef<SWidget>>(); }
+	
+	/**
+	 * Called to determine if we should render the focus brush.
+	 *
+	 * @param InFocusCause	The cause of focus
+	 */
+	virtual TOptional<bool> QueryShowFocus(const EFocusCause InFocusCause) const { return TOptional<bool>(); }
+
 	virtual void LostFocus(FViewport* Viewport) {}
 	virtual void ReceivedFocus(FViewport* Viewport) {}
 	virtual bool IsFocused(FViewport* Viewport) { return true; }
@@ -886,6 +909,9 @@ public:
 	 * Gets whether or not the cursor is hidden when the viewport captures the mouse
 	 */
 	virtual bool HideCursorDuringCapture() { return false; }
+
+	/** Should we make new windows for popups or create an overlay in the current window. */
+	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const { return TOptional<EPopupMethod>(); }
 };
 
 /** Tracks the viewport client that should process the stat command, can be NULL */

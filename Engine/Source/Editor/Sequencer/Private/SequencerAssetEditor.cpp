@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SequencerPrivatePCH.h"
 #include "Toolkits/IToolkitHost.h"
@@ -98,6 +98,10 @@ void FSequencerAssetEditor::InitSequencerAssetEditor( const EToolkitMode::Type M
 	}
 }
 
+TSharedRef<ISequencer> FSequencerAssetEditor::GetSequencerInterface() const
+{ 
+	return Sequencer.ToSharedRef(); 
+}
 
 FSequencerAssetEditor::FSequencerAssetEditor()
 {

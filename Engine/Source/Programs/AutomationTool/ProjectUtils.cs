@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using UnrealBuildTool;
+using System.Diagnostics;
 
 namespace AutomationTool
 {
@@ -34,6 +35,11 @@ namespace AutomationTool
 		/// Whether the project uses Steam (todo: substitute with more generic functionality)
 		/// </summary>
 		public bool bUsesSteam;
+
+		/// <summary>
+		/// Whether the project uses CEF3
+		/// </summary>
+		public bool bUsesCEF3;
 
 		/// <summary>
 		/// Whether the project uses visual Slate UI (as opposed to the low level windowing/messaging which is always used)
@@ -357,6 +363,12 @@ namespace AutomationTool
 		private static void CompileAndLoadTargetsAssembly(ProjectProperties Properties, string TargetsDllFilename, bool DoNotCompile, List<string> TargetScripts)
 		{
 			CommandUtils.Log("Compiling targets DLL: {0}", TargetsDllFilename);
+
+			if (!DoNotCompile && GlobalCommandLine.NoCodeProject)
+			{
+				//throw new AutomationException("Building is not supported when -nocodeproject flag is provided.");
+			}
+
 			var ReferencedAssemblies = new List<string>() 
 					{ 
 						"System.dll", 
@@ -391,6 +403,7 @@ namespace AutomationTool
 					}
 
 					Properties.bUsesSteam |= Rules.bUsesSteam;
+					Properties.bUsesCEF3 |= Rules.bUsesCEF3;
 					Properties.bUsesSlate |= Rules.bUsesSlate;
                     Properties.bDebugBuildsActuallyUseDebugCRT |= Rules.bDebugBuildsActuallyUseDebugCRT;
 					Properties.bUsesSlateEditorStyle |= Rules.bUsesSlateEditorStyle;
@@ -466,6 +479,8 @@ namespace AutomationTool
             TargetRules.TargetType.Client,
             TargetRules.TargetType.Server,
         };
+
+		[DebuggerDisplay("{GameName}")]
         public class BranchUProject
         {
             public string GameName;
@@ -514,6 +529,7 @@ namespace AutomationTool
                 CommandUtils.Log("      FilePath          : " + FilePath);
                 CommandUtils.Log("      bIsCodeBasedProject  : " + (Properties.bIsCodeBasedProject ? "YES" : "NO"));
                 CommandUtils.Log("      bUsesSteam  : " + (Properties.bUsesSteam ? "YES" : "NO"));
+                CommandUtils.Log("      bUsesCEF3   : " + (Properties.bUsesCEF3 ? "YES" : "NO"));
                 CommandUtils.Log("      bUsesSlate  : " + (Properties.bUsesSlate ? "YES" : "NO"));
                 foreach (var HostPlatform in InHostPlatforms)
                 {
@@ -530,6 +546,7 @@ namespace AutomationTool
                         CommandUtils.Log("            TargetName          : " + ThisTarget.Value.TargetName);
                         CommandUtils.Log("              Type          : " + ThisTarget.Key.ToString());
                         CommandUtils.Log("              bUsesSteam  : " + (ThisTarget.Value.Rules.bUsesSteam ? "YES" : "NO"));
+                        CommandUtils.Log("              bUsesCEF3   : " + (ThisTarget.Value.Rules.bUsesCEF3 ? "YES" : "NO"));
                         CommandUtils.Log("              bUsesSlate  : " + (ThisTarget.Value.Rules.bUsesSlate ? "YES" : "NO"));
                         if (Array.IndexOf(MonolithicKinds, ThisTarget.Key) >= 0)
                         {
@@ -566,6 +583,11 @@ namespace AutomationTool
         public BranchUProject BaseEngineProject = null;
         public List<BranchUProject> CodeProjects = new List<BranchUProject>();
         public List<BranchUProject> NonCodeProjects = new List<BranchUProject>();
+
+		public IEnumerable<BranchUProject> AllProjects
+		{
+			get { return CodeProjects.Union(NonCodeProjects); }
+		}
 
         public BranchInfo(List<UnrealTargetPlatform> InHostPlatforms)
         {

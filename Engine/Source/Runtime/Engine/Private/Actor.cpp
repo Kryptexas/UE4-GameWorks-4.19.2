@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -18,6 +18,13 @@
 #include "VisualLogger/VisualLogger.h"
 #include "Animation/AnimInstance.h"
 #include "Engine/DemoNetDriver.h"
+#include "GameFramework/Pawn.h"
+#include "Components/PawnNoiseEmitterComponent.h"
+#include "Components/TimelineComponent.h"
+#include "Camera/CameraComponent.h"
+#include "GameFramework/DamageType.h"
+#include "Kismet/GameplayStatics.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 //DEFINE_LOG_CATEGORY_STATIC(LogActor, Log, All);
 DEFINE_LOG_CATEGORY(LogActor);
@@ -38,8 +45,19 @@ FMakeNoiseDelegate AActor::MakeNoiseDelegate = FMakeNoiseDelegate::CreateStatic(
 FOnProcessEvent AActor::ProcessEventDelegate;
 #endif
 
+AActor::AActor()
+{
+	InitializeDefaults();
+}
+
+
 AActor::AActor(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+{
+	// Forward to default constructor (we don't use ObjectInitializer for anything, this is for compatibility with inherited classes that call Super( ObjectInitializer )
+	InitializeDefaults();
+}
+
+void AActor::InitializeDefaults()
 {
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	// Default to no tick function, but if we set 'never ticks' to false (so there is a tick function) it is enabled by default
@@ -122,7 +140,7 @@ bool AActor::CheckActorComponents()
 	DEFINE_LOG_CATEGORY_STATIC(LogCheckComponents, Warning, All);
 
 	bool bResult = true;
-	TArray<UActorComponent*> Components;
+	TInlineComponentArray<UActorComponent*> Components;
 	GetComponents(Components);
 
 	for (int32 Index = 0; Index < Components.Num(); Index++)
@@ -151,9 +169,9 @@ bool AActor::CheckActorComponents()
 			}
 		}
 	}
-	for (int32 Index = 0; Index < SerializedComponents.Num(); Index++)
+	for (int32 Index = 0; Index < BlueprintCreatedComponents.Num(); Index++)
 	{
-		UActorComponent* Inner = SerializedComponents[Index];
+		UActorComponent* Inner = BlueprintCreatedComponents[Index];
 		if (!Inner)
 		{
 			continue;
@@ -425,45 +443,6 @@ void AActor::PostLoad()
 		Owner->Children.Add(this);
 	}
 
-	// For components created before we added the bCreatedByConstructionScript flag, we assume if you are not a default subobject, you can from a construction script
-	if(GetLinkerUE4Version() < VER_UE4_ADD_CREATEDBYCONSTRUCTIONSCRIPT)
-	{
-		TArray<UActorComponent*> Components;
-		GetComponents(Components);
-
-		for(int32 i=0; i<Components.Num(); i++)
-		{
-			UActorComponent* Component = Components[i];
-			if (!Component->IsDefaultSubobject())
-			{
-				Component->bCreatedByConstructionScript = true;
-			}
-		}
-	}
-
-	// For actors created before SimpleConstructionScript's default RootComponent, and the default BadBlueprintSprite are flagged as RF_Transactional and bCreatedByConstructionScript
-	if(GetLinkerUE4Version() < VER_UE4_DEFAULT_ROOT_COMP_TRANSACTIONAL)
-	{
-		if(RootComponent != NULL && !RootComponent->IsDefaultSubobject())
-		{
-			if(RootComponent->GetClass()==USceneComponent::StaticClass())
-			{
-				RootComponent->SetFlags(RF_Transactional);
-				RootComponent->bCreatedByConstructionScript = true;
-			}
-			else if(RootComponent->GetClass()==UBillboardComponent::StaticClass())
-			{
-				static const FName BadSpriteName(TEXT("BadBlueprintSprite"));
-				UBillboardComponent* SpriteRootComponent = static_cast<UBillboardComponent*>(RootComponent);
-				if(SpriteRootComponent->Sprite->GetFName() == BadSpriteName)
-				{
-					SpriteRootComponent->SetFlags(RF_Transactional);
-					SpriteRootComponent->bCreatedByConstructionScript = true;
-				}
-			}
-		}
-	}
-
 	if (GetLinkerUE4Version() < VER_UE4_CONSUME_INPUT_PER_BIND)
 	{
 		bBlockInput = (InputConsumeOption_DEPRECATED == ICO_ConsumeAll);
@@ -531,7 +510,8 @@ void AActor::PostLoadSubobjects(FObjectInstancingGraph* OuterInstanceGraph)
 void AActor::ProcessEvent(UFunction* Function, void* Parameters)
 {
 	#if WITH_EDITOR
-	const bool bAllowScriptExecution = GAllowActorScriptExecutionInEditor || Function->GetBoolMetaData( "CallInEditor" );
+	static const FName CallInEditorMeta(TEXT("CallInEditor"));
+	const bool bAllowScriptExecution = GAllowActorScriptExecutionInEditor || Function->GetBoolMetaData(CallInEditorMeta);
 	#else
 	const bool bAllowScriptExecution = GAllowActorScriptExecutionInEditor;
 	#endif
@@ -555,6 +535,9 @@ void AActor::ApplyWorldOffset(const FVector& InOffset, bool bWorldShift)
 	if (RootComponent != NULL && RootComponent->AttachParent == NULL)
 	{
 		RootComponent->ApplyWorldOffset(InOffset, bWorldShift);
+
+		UNavigationSystem::UpdateNavOctreeBounds(this);
+		UNavigationSystem::UpdateNavOctreeAll(this);
 	}
 }
 
@@ -596,7 +579,7 @@ void AActor::RegisterAllActorTickFunctions(bool bRegister, bool bDoComponents)
 
 		if (bDoComponents)
 		{
-			TArray<UActorComponent*> Components;
+			TInlineComponentArray<UActorComponent*> Components;
 			GetComponents(Components);
 
 			for (int32 Index = 0; Index < Components.Num(); Index++)
@@ -693,7 +676,7 @@ void AActor::Tick( float DeltaSeconds )
 		bool bOKToDestroy = true;
 
 		// @todo: naive implementation, needs improved
-		TArray<UActorComponent*> Components;
+		TInlineComponentArray<UActorComponent*> Components;
 		GetComponents(Components);
 
 		for (int32 CompIdx=0; CompIdx<Components.Num(); ++CompIdx)
@@ -779,20 +762,19 @@ void AActor::GetComponentsBoundingCylinder(float& OutCollisionRadius, float& Out
 	float Radius = 0.f;
 	float HalfHeight = 0.f;
 
-	TArray<UPrimitiveComponent*> Components;
-	GetComponents(Components);
-
-	for (int32 CompIdx = 0; CompIdx < Components.Num(); CompIdx++)
+	for (const UActorComponent* ActorComponent : GetComponents())
 	{
-		UPrimitiveComponent* PrimComp = Components[CompIdx];
-
-		// Only use collidable components to find collision bounding box.
-		if ((bIgnoreRegistration || PrimComp->IsRegistered()) && (bNonColliding || PrimComp->IsCollisionEnabled()))
+		const UPrimitiveComponent* PrimComp = Cast<const UPrimitiveComponent>(ActorComponent);
+		if (PrimComp)
 		{
-			float TestRadius, TestHalfHeight;
-			PrimComp->CalcBoundingCylinder(TestRadius, TestHalfHeight);
-			Radius = FMath::Max(Radius, TestRadius);
-			HalfHeight = FMath::Max(HalfHeight, TestHalfHeight);
+			// Only use collidable components to find collision bounding box.
+			if ((bIgnoreRegistration || PrimComp->IsRegistered()) && (bNonColliding || PrimComp->IsCollisionEnabled()))
+			{
+				float TestRadius, TestHalfHeight;
+				PrimComp->CalcBoundingCylinder(TestRadius, TestHalfHeight);
+				Radius = FMath::Max(Radius, TestRadius);
+				HalfHeight = FMath::Max(HalfHeight, TestHalfHeight);
+			}
 		}
 	}
 
@@ -830,11 +812,39 @@ bool AActor::IsBasedOnActor(const AActor* Other) const
 
 bool AActor::Modify( bool bAlwaysMarkDirty/*=true*/ )
 {
-	bool bSavedToTransactionBuffer = UObject::Modify( bAlwaysMarkDirty );
-	if( RootComponent )
+	// Any properties that reference a blueprint constructed component needs to avoid creating a reference to the component from the transaction
+	// buffer, so we temporarily switch the property to non-transactional while the modify occurs
+	TArray<UObjectProperty*> TemporarilyNonTransactionalProperties;
+	if (GUndo)
 	{
-		bSavedToTransactionBuffer = GetRootComponent()->Modify( bAlwaysMarkDirty ) || bSavedToTransactionBuffer;
+		for (TFieldIterator<UObjectProperty> PropertyIt(GetClass(), EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
+		{
+			UObjectProperty* ObjProp = *PropertyIt;
+			if (!ObjProp->HasAllPropertyFlags(CPF_NonTransactional))
+			{
+				UActorComponent* ActorComponent = Cast<UActorComponent>(ObjProp->GetObjectPropertyValue(ObjProp->ContainerPtrToValuePtr<void>(this)));
+				if (ActorComponent && ActorComponent->IsCreatedByConstructionScript())
+				{
+					ObjProp->SetPropertyFlags(CPF_NonTransactional);
+					TemporarilyNonTransactionalProperties.Add(ObjProp);
+				}
+			}
+		}
 	}
+
+	bool bSavedToTransactionBuffer = UObject::Modify( bAlwaysMarkDirty );
+
+	for (UObjectProperty* ObjProp : TemporarilyNonTransactionalProperties)
+	{
+		ObjProp->ClearPropertyFlags(CPF_NonTransactional);
+	}
+
+	// If the root component is blueprint constructed we don't save it to the transaction buffer
+	if( RootComponent && !RootComponent->IsCreatedByConstructionScript())
+	{
+		bSavedToTransactionBuffer = RootComponent->Modify( bAlwaysMarkDirty ) || bSavedToTransactionBuffer;
+	}
+
 	return bSavedToTransactionBuffer;
 }
 
@@ -842,17 +852,16 @@ FBox AActor::GetComponentsBoundingBox(bool bNonColliding) const
 {
 	FBox Box(0);
 
-	TArray<UPrimitiveComponent*> Components;
-	GetComponents(Components);
-
-	for(int32 CompIdx = 0; CompIdx < Components.Num(); CompIdx++)
+	for (const UActorComponent* ActorComponent : GetComponents())
 	{
-		UPrimitiveComponent* PrimComp = Components[CompIdx];
-
-		// Only use collidable components to find collision bounding box.
-		if( PrimComp->IsRegistered() && (bNonColliding || PrimComp->IsCollisionEnabled()) )
+		const UPrimitiveComponent* PrimComp = Cast<const UPrimitiveComponent>(ActorComponent);
+		if (PrimComp)
 		{
-			Box += PrimComp->Bounds.GetBox();
+			// Only use collidable components to find collision bounding box.
+			if (PrimComp->IsRegistered() && (bNonColliding || PrimComp->IsCollisionEnabled()))
+			{
+				Box += PrimComp->Bounds.GetBox();
+			}
 		}
 	}
 
@@ -898,6 +907,34 @@ bool AActor::CheckStillInWorld()
 void AActor::SetTickGroup(ETickingGroup NewTickGroup)
 {
 	PrimaryActorTick.TickGroup = NewTickGroup;
+}
+
+void AActor::ClearComponentOverlaps()
+{
+	TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
+	GetComponents(PrimitiveComponents);
+
+	// Remove owned components from overlap tracking
+	// We don't traverse the RootComponent attachment tree since that might contain
+	// components owned by other actors.
+	for (UPrimitiveComponent* const PrimComp : PrimitiveComponents)
+	{
+		TArray<UPrimitiveComponent*> OverlappingComponents;
+		PrimComp->GetOverlappingComponents(OverlappingComponents);
+
+		for (UPrimitiveComponent* const OverlapComp : OverlappingComponents)
+		{
+			if (OverlapComp)
+			{
+				PrimComp->EndComponentOverlap(OverlapComp, true, true);
+
+				if (IsPendingKill())
+				{
+					return;
+				}
+			}
+		}
+	}
 }
 
 void AActor::UpdateOverlaps(bool bDoNotifies)
@@ -1010,7 +1047,7 @@ void AActor::GetOverlappingComponents(TArray<UPrimitiveComponent*>& OutOverlappi
  */
 static void MarkOwnerRelevantComponentsDirty(AActor* TheActor)
 {
-	TArray<UPrimitiveComponent*> Components;
+	TInlineComponentArray<UPrimitiveComponent*> Components;
 	TheActor->GetComponents(Components);
 
 	for (int32 i = 0; i < Components.Num(); i++)
@@ -1037,14 +1074,11 @@ float AActor::GetLastRenderTime() const
 {
 	// return most recent of Components' LastRenderTime
 	// @todo UE4 maybe check base component and components attached to it instead?
-	TArray<UPrimitiveComponent*> Components;
-	GetComponents(Components);
-
 	float LastRenderTime = -1000.f;
-	for( int32 i=0; i<Components.Num(); i++ )
+	for (const UActorComponent* ActorComponent : GetComponents())
 	{
-		UPrimitiveComponent* PrimComp = Components[i];
-		if(PrimComp->IsRegistered())
+		const UPrimitiveComponent* PrimComp = Cast<const UPrimitiveComponent>(ActorComponent);
+		if (PrimComp && PrimComp->IsRegistered())
 		{
 			LastRenderTime = FMath::Max(LastRenderTime, PrimComp->LastRenderTime);
 		}
@@ -1212,7 +1246,7 @@ void AActor::DetachSceneComponentsFromParent(USceneComponent* InParentComponent,
 {
 	if (InParentComponent != NULL)
 	{
-		TArray<USceneComponent*> Components;
+		TInlineComponentArray<USceneComponent*> Components;
 		GetComponents(Components);
 
 		for (int32 Index = 0; Index < Components.Num(); ++Index)
@@ -1266,10 +1300,10 @@ void AActor::GetAttachedActors(TArray<class AActor*>& OutActors) const
 	if (RootComponent != NULL)
 	{
 		// Current set of components to check
-		TArray< USceneComponent*, TInlineAllocator<8> > CompsToCheck;
+		TArray< USceneComponent*, TInlineAllocator<NumInlinedActorComponents> > CompsToCheck;
 
 		// Set of all components we have checked
-		TArray< USceneComponent*, TInlineAllocator<8> > CheckedComps;
+		TArray< USceneComponent*, TInlineAllocator<NumInlinedActorComponents> > CheckedComps;
 
 		CompsToCheck.Push(RootComponent);
 
@@ -1470,7 +1504,7 @@ void AActor::PrestreamTextures( float Seconds, bool bEnableStreaming, int32 Cine
 	}
 
 	// Iterate over all components of that actor
-	TArray<UMeshComponent*> Components;
+	TInlineComponentArray<UMeshComponent*> Components;
 	GetComponents(Components);
 
 	for (int32 ComponentIndex=0; ComponentIndex < Components.Num(); ComponentIndex++)
@@ -1509,8 +1543,16 @@ void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	// Behaviors specific to an actor being unloaded due to a streaming level removal
 	if (EndPlayReason == EEndPlayReason::RemovedFromWorld)
 	{
+		ClearComponentOverlaps();
+
 		bActorInitialized = false;
 		GetWorld()->RemoveNetworkActor(this);
+
+		// Clear any ticking lifespan timers
+		if (InitialLifeSpan > 0.f)
+		{
+			SetLifeSpan(0.f);
+		}
 	}
 
 	UNavigationSystem::OnActorUnregistered(this);
@@ -1521,7 +1563,7 @@ FVector AActor::GetPlacementExtent() const
 	FVector Extent(0.f);
 	if( (RootComponent && GetRootComponent()->ShouldCollideWhenPlacing()) && bCollideWhenPlacing) 
 	{
-		TArray<USceneComponent*> Components;
+		TInlineComponentArray<USceneComponent*> Components;
 		GetComponents(Components);
 
 		FBox ActorBox(0.f);
@@ -1534,9 +1576,10 @@ FVector AActor::GetPlacementExtent() const
 			}
 		}
 
-		FVector BoxExtent = ActorBox.GetExtent();
-		float CollisionRadius = FMath::Sqrt( (BoxExtent.X * BoxExtent.X) + (BoxExtent.Y * BoxExtent.Y) );
-		Extent = FVector(CollisionRadius, CollisionRadius, BoxExtent.Z);
+		// Get box extent, adjusting for any difference between the center of the box and the actor pivot
+		FVector AdjustedBoxExtent = ActorBox.GetExtent() - ActorBox.GetCenter();
+		float CollisionRadius = FMath::Sqrt((AdjustedBoxExtent.X * AdjustedBoxExtent.X) + (AdjustedBoxExtent.Y * AdjustedBoxExtent.Y));
+		Extent = FVector(CollisionRadius, CollisionRadius, AdjustedBoxExtent.Z);
 	}
 	return Extent;
 }
@@ -1713,13 +1756,10 @@ float AActor::InternalTakePointDamage(float Damage, FPointDamageEvent const& Poi
 }
 
 /** Util to check if prim comp pointer is valid and still alive */
-static bool IsPrimCompValidAndAlive(UPrimitiveComponent* PrimComp)
-{
-	return (PrimComp != NULL) && !PrimComp->IsPendingKill();
-}
+extern bool IsPrimCompValidAndAlive(UPrimitiveComponent* PrimComp);
 
 /** Used to determine if it is ok to call a notification on this object */
-static bool IsActorValidToNotify(AActor* Actor)
+bool IsActorValidToNotify(AActor* Actor)
 {
 	return (Actor != NULL) && !Actor->IsPendingKill() && !Actor->GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists);
 }
@@ -1842,7 +1882,7 @@ void AActor::DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay
 	static FName NAME_Bones = FName(TEXT("Bones"));
 	if (DebugDisplay.IsDisplayOn(NAME_Animation) || DebugDisplay.IsDisplayOn(NAME_Bones))
 	{
-		TArray<USkeletalMeshComponent*> Components;
+		TInlineComponentArray<USkeletalMeshComponent*> Components;
 		GetComponents(Components);
 
 		if (DebugDisplay.IsDisplayOn(NAME_Animation))
@@ -1904,7 +1944,7 @@ void AActor::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 	if (bFindCameraComponentWhenViewTarget)
 	{
 		// Look for the first active camera component and use that for the view
-		TArray<UCameraComponent*> Cameras;
+		TInlineComponentArray<UCameraComponent*> Cameras;
 		GetComponents<UCameraComponent>(/*out*/ Cameras);
 
 		for (UCameraComponent* CameraComponent : Cameras)
@@ -1950,7 +1990,7 @@ enum ECollisionResponse AActor::GetComponentsCollisionResponseToChannel(enum ECo
 {
 	ECollisionResponse OutResponse = ECR_Ignore;
 
-	TArray<UPrimitiveComponent*> Components;
+	TInlineComponentArray<UPrimitiveComponent*> Components;
 	GetComponents(Components);
 
 	for (int32 i = 0; i < Components.Num(); i++)
@@ -1975,18 +2015,47 @@ void AActor::AddOwnedComponent(UActorComponent* Component)
 	{
 		ReplicatedComponents.AddUnique(Component);
 	}
+
+	if (Component->IsCreatedByConstructionScript())
+	{
+		BlueprintCreatedComponents.AddUnique(Component);
+	}
+	else if (Component->CreationMethod == EComponentCreationMethod::Instance)
+	{
+		InstanceComponents.AddUnique(Component);
+	}
 }
 
 void AActor::RemoveOwnedComponent(UActorComponent* Component)
 {
-	if (OwnedComponents.RemoveSwap(Component) == 0)
+	if (OwnedComponents.RemoveSwap(Component) > 0)
+	{
+		ReplicatedComponents.RemoveSwap(Component);
+		if (Component->IsCreatedByConstructionScript())
+		{
+			BlueprintCreatedComponents.RemoveSwap(Component);
+		}
+		else if (Component->CreationMethod == EComponentCreationMethod::Instance)
+		{
+			InstanceComponents.RemoveSwap(Component);
+		}
+	}
+	else
 	{
 		// If we didn't remove something we expected to then it probably got NULL through the
 		// property system so take the time to pull them out now
-		OwnedComponents.RemoveSwap(NULL);
-	}
+		OwnedComponents.RemoveSwap(nullptr);
 
-	ReplicatedComponents.RemoveSwap(Component);
+		ReplicatedComponents.RemoveSwap(nullptr);
+		if (Component->IsCreatedByConstructionScript())
+		{
+			BlueprintCreatedComponents.RemoveSwap(nullptr);
+		}
+		else if (Component->CreationMethod == EComponentCreationMethod::Instance)
+		{
+			InstanceComponents.RemoveSwap(nullptr);
+		}
+	}
 }
 
 #if DO_CHECK
@@ -2003,7 +2072,7 @@ const TArray<UActorComponent*>& AActor::GetReplicatedComponents() const
 
 void AActor::UpdateReplicatedComponent(UActorComponent* Component)
 {
-	check(Component->GetOwner() == this);
+	checkf(Component->GetOwner() == this, TEXT("UE-9568: Component %s being updated for Actor %s"), *Component->GetPathName(), *GetPathName() );
 	if (Component->GetIsReplicated())
 	{
 		ReplicatedComponents.AddUnique(Component);
@@ -2011,6 +2080,54 @@ void AActor::UpdateReplicatedComponent(UActorComponent* Component)
 	else
 	{
 		ReplicatedComponents.RemoveSwap(Component);
+	}
+}
+
+void AActor::UpdateAllReplicatedComponents()
+{
+	ReplicatedComponents.Empty();
+
+	for (UActorComponent* Component : OwnedComponents)
+	{
+		if (Component != NULL)
+		{
+			UpdateReplicatedComponent(Component);
+		}
+	}
+}
+
+const TArray<UActorComponent*>& AActor::GetInstanceComponents() const
+{
+	return InstanceComponents;
+}
+
+void AActor::AddInstanceComponent(UActorComponent* Component)
+{
+	Component->CreationMethod = EComponentCreationMethod::Instance;
+	InstanceComponents.AddUnique(Component);
+}
+
+void AActor::RemoveInstanceComponent(UActorComponent* Component)
+{
+	InstanceComponents.Remove(Component);
+}
+
+void AActor::ClearInstanceComponents(const bool bDestroyComponents)
+{
+	if (bDestroyComponents)
+	{
+		// Need to cache because calling destroy will remove them from InstanceComponents
+		TArray<UActorComponent*> CachedComponents(InstanceComponents);
+
+		// Run in reverse to reduce memory churn when the components are removed from InstanceComponents
+		for (int32 Index=CachedComponents.Num()-1; Index >= 0; --Index)
+		{
+			CachedComponents[Index]->DestroyComponent();
+		}
+	}
+	else
+	{
+		InstanceComponents.Empty();
 	}
 }
 
@@ -2046,13 +2163,20 @@ UActorComponent* AActor::GetComponentByClass(TSubclassOf<UActorComponent> Compon
 
 TArray<UActorComponent*> AActor::GetComponentsByClass(TSubclassOf<UActorComponent> ComponentClass) const
 {
+	TArray<UActorComponent*> ValidComponents;
+
+        // In the UActorComponent case we can skip the IsA checks for a slight performance benefit
 	if (ComponentClass == UActorComponent::StaticClass())
 	{
-		return OwnedComponents;
+		for (UActorComponent* Component : OwnedComponents)
+		{
+			if (Component)
+			{
+				ValidComponents.Add(Component);
+			}
+		}
 	}
-
-	TArray<UActorComponent*> ValidComponents;
-	if (*ComponentClass)
+	else if (*ComponentClass)
 	{
 		for (UActorComponent* Component : OwnedComponents)
 		{
@@ -2066,9 +2190,26 @@ TArray<UActorComponent*> AActor::GetComponentsByClass(TSubclassOf<UActorComponen
 	return ValidComponents;
 }
 
+TArray<UActorComponent*> AActor::GetComponentsByTag(TSubclassOf<UActorComponent> ComponentClass, FName Tag) const
+{
+	TArray<UActorComponent*> ComponentsByClass = GetComponentsByClass(ComponentClass);
+
+	TArray<UActorComponent*> ComponentsByTag;
+	ComponentsByTag.Reserve(ComponentsByClass.Num());
+	for (int i = 0; i < ComponentsByClass.Num(); ++i)
+	{
+		if (ComponentsByClass[i]->ComponentHasTag(Tag))
+		{
+			ComponentsByTag.Push(ComponentsByClass[i]);
+		}
+	}
+
+	return ComponentsByTag;
+}
+
 void AActor::DisableComponentsSimulatePhysics()
 {
-	TArray<UPrimitiveComponent*> Components;
+	TInlineComponentArray<UPrimitiveComponent*> Components;
 	GetComponents(Components);
 
 	for (UPrimitiveComponent* Component : Components)
@@ -2084,18 +2225,26 @@ void AActor::PostRegisterAllComponents()
 /** Util to call OnComponentCreated on components */
 static void DispatchOnComponentsCreated(AActor* NewActor)
 {
-	TArray<UActorComponent*> Components;
+	TInlineComponentArray<UActorComponent*> Components;
 	NewActor->GetComponents(Components);
 
-	for (int32 Idx = 0; Idx < Components.Num(); Idx++)
+	for (UActorComponent* ActorComp : Components)
 	{
-		UActorComponent* ActorComp = Components[Idx];
-		if (ActorComp != NULL)
+		if (ActorComp && !ActorComp->bHasBeenCreated)
 		{
 			ActorComp->OnComponentCreated();
 		}
 	}
 }
+
+#if WITH_EDITOR
+void AActor::PostEditImport()
+{
+	Super::PostEditImport();
+
+	DispatchOnComponentsCreated(this);
+}
+#endif
 
 void AActor::PostSpawnInitialize(FVector const& SpawnLocation, FRotator const& SpawnRotation, AActor* InOwner, APawn* InInstigator, bool bRemoteOwned, bool bNoFail, bool bDeferConstruction)
 {
@@ -2314,6 +2463,7 @@ void AActor::EnableInput(APlayerController* PlayerController)
 			InputComponent = ConstructObject<UInputComponent>(UInputComponent::StaticClass(), this);
 			InputComponent->RegisterComponent();
 			InputComponent->bBlockInput = bBlockInput;
+			InputComponent->Priority = InputPriority;
 
 			// Only do this if this actor is of a blueprint class
 			UBlueprintGeneratedClass* BGClass = Cast<UBlueprintGeneratedClass>(GetClass());
@@ -2426,7 +2576,7 @@ bool AActor::SetActorLocationAndRotation(FVector NewLocation, FRotator NewRotati
 	return false;
 }
 
-void AActor::SetActorScale3D(const FVector& NewScale3D)
+void AActor::SetActorScale3D(FVector NewScale3D)
 {
 	if (RootComponent)
 	{
@@ -2620,7 +2770,7 @@ void AActor::SetActorEnableCollision(bool bNewActorEnableCollision)
 		bActorEnableCollision = bNewActorEnableCollision;
 
 		// Notify components about the change
-		TArray<UActorComponent*> Components;
+		TInlineComponentArray<UActorComponent*> Components;
 		GetComponents(Components);
 
 		for(int32 CompIdx=0; CompIdx<Components.Num(); CompIdx++)
@@ -2641,7 +2791,15 @@ bool AActor::Destroy( bool bNetForce, bool bShouldModifyLevel )
 	// It's already pending kill, no need to beat the corpse
 	if (!IsPendingKill())
 	{
-		GetWorld()->DestroyActor( this, bNetForce, bShouldModifyLevel );
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			World->DestroyActor( this, bNetForce, bShouldModifyLevel );
+		}
+		else
+		{
+			UE_LOG(LogSpawn, Warning, TEXT("Destroying %s, which doesn't have a valid world pointer"), *GetPathName());
+		}
 	}
 	return IsPendingKill();
 }
@@ -2742,15 +2900,15 @@ void AActor::PlaySoundAtLocation(USoundCue* InSoundCue, FVector SoundLocation, f
 ENetMode AActor::GetNetMode() const
 {
 	UNetDriver *NetDriver = GetNetDriver();
-
-	if ( NetDriver != NULL )
+	if (NetDriver != NULL)
 	{
 		return NetDriver->GetNetMode();
 	}
 
-	if ( GetWorld() != NULL && GetWorld()->DemoNetDriver != NULL )
+	UWorld* World = GetWorld();
+	if (World != NULL && World->DemoNetDriver != NULL)
 	{
-		return GetWorld()->DemoNetDriver->GetNetMode();
+		return World->DemoNetDriver->GetNetMode();
 	}
 
 	return NM_Standalone;
@@ -3017,7 +3175,7 @@ void AActor::DispatchPhysicsCollisionHit(const FRigidBodyCollisionInfo& MyInfo, 
 
 void AActor::UnregisterAllComponents()
 {
-	TArray<UActorComponent*> Components;
+	TInlineComponentArray<UActorComponent*> Components;
 	GetComponents(Components);
 
 	for(int32 CompIdx = 0; CompIdx < Components.Num(); CompIdx++)
@@ -3086,7 +3244,7 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 
 	int32 NumTotalRegisteredComponents = 0;
 	int32 NumRegisteredComponentsThisRun = 0;
-	TArray<UActorComponent*> Components;
+	TInlineComponentArray<UActorComponent*> Components;
 	GetComponents(Components);
 	
 	for (int32 CompIdx = 0; CompIdx < Components.Num() && NumRegisteredComponentsThisRun < NumComponentsToRegister; CompIdx++)
@@ -3136,7 +3294,7 @@ bool AActor::HasValidRootComponent()
 void AActor::MarkComponentsAsPendingKill()
 {
 	// Iterate components and mark them all as pending kill.
-	TArray<UActorComponent*> Components;
+	TInlineComponentArray<UActorComponent*> Components;
 	GetComponents(Components);
 
 	for (int32 Index = 0; Index < Components.Num(); Index++)
@@ -3161,7 +3319,7 @@ void AActor::ReregisterAllComponents()
 
 void AActor::UpdateComponentTransforms()
 {
-	TArray<UActorComponent*> Components;
+	TInlineComponentArray<UActorComponent*> Components;
 	GetComponents(Components);
 
 	for (int32 Idx = 0; Idx < Components.Num(); Idx++)
@@ -3176,7 +3334,7 @@ void AActor::UpdateComponentTransforms()
 
 void AActor::MarkComponentsRenderStateDirty()
 {
-	TArray<UActorComponent*> Components;
+	TInlineComponentArray<UActorComponent*> Components;
 	GetComponents(Components);
 
 	for (int32 Idx = 0; Idx < Components.Num(); Idx++)
@@ -3191,7 +3349,7 @@ void AActor::MarkComponentsRenderStateDirty()
 
 void AActor::InitializeComponents()
 {
-	TArray<UActorComponent*> Components;
+	TInlineComponentArray<UActorComponent*> Components;
 	GetComponents(Components);
 
 	for (UActorComponent* ActorComp : Components)
@@ -3205,7 +3363,7 @@ void AActor::InitializeComponents()
 
 void AActor::UninitializeComponents()
 {
-	TArray<UActorComponent*> Components;
+	TInlineComponentArray<UActorComponent*> Components;
 	GetComponents(Components);
 
 	for (UActorComponent* ActorComp : Components)
@@ -3219,7 +3377,7 @@ void AActor::UninitializeComponents()
 
 void AActor::DrawDebugComponents(FColor const& BaseColor) const
 {
-	TArray<USceneComponent*> Components;
+	TInlineComponentArray<USceneComponent*> Components;
 	GetComponents(Components);
 
 	for(int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
@@ -3248,7 +3406,7 @@ void AActor::DrawDebugComponents(FColor const& BaseColor) const
 
 void AActor::InvalidateLightingCacheDetailed(bool bTranslationOnly)
 {
-	TArray<UActorComponent*> Components;
+	TInlineComponentArray<UActorComponent*> Components;
 	GetComponents(Components);
 
 	for(int32 ComponentIndex = 0;ComponentIndex < Components.Num();ComponentIndex++)
@@ -3263,7 +3421,7 @@ void AActor::InvalidateLightingCacheDetailed(bool bTranslationOnly)
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// Validate that we didn't change it during this action
-	TArray<UActorComponent*> NewComponents;
+	TInlineComponentArray<UActorComponent*> NewComponents;
 	GetComponents(NewComponents);
 	check(Components == NewComponents);
 #endif
@@ -3278,7 +3436,7 @@ bool AActor::ActorLineTraceSingle(struct FHitResult& OutHit, const FVector& Star
 	OutHit.TraceEnd = End;
 	bool bHasHit = false;
 	
-	TArray<UPrimitiveComponent*> Components;
+	TInlineComponentArray<UPrimitiveComponent*> Components;
 	GetComponents(Components);
 
 	for (int32 ComponentIndex=0; ComponentIndex<Components.Num(); ComponentIndex++)
@@ -3306,7 +3464,7 @@ float AActor::ActorGetDistanceToCollision(const FVector& Point, ECollisionChanne
 	ClosestPointOnCollision = Point;
 	float ClosestPointDistance = -1.f;
 
-	TArray<UPrimitiveComponent*> Components;
+	TInlineComponentArray<UPrimitiveComponent*> Components;
 	GetComponents(Components);
 
 	for (int32 ComponentIndex=0; ComponentIndex<Components.Num(); ComponentIndex++)
@@ -3360,11 +3518,11 @@ void AActor::SetLifeSpan( float InLifespan )
 	{
 		if( InLifespan > 0.0f)
 		{
-			GetWorldTimerManager().SetTimer( this, &AActor::LifeSpanExpired, InLifespan );
+			GetWorldTimerManager().SetTimer( TimerHandle_LifeSpanExpired, this, &AActor::LifeSpanExpired, InLifespan );
 		}
 		else
 		{
-			GetWorldTimerManager().ClearTimer( this, &AActor::LifeSpanExpired );		
+			GetWorldTimerManager().ClearTimer( TimerHandle_LifeSpanExpired );		
 		}
 	}
 }
@@ -3372,7 +3530,7 @@ void AActor::SetLifeSpan( float InLifespan )
 float AActor::GetLifeSpan() const
 {
 	// Timer remaining returns -1.0f if there is no such timer - return this as ZERO
-	float CurrentLifespan = GetWorldTimerManager().GetTimerRemaining( this, &AActor::LifeSpanExpired );
+	const float CurrentLifespan = GetWorldTimerManager().GetTimerRemaining(TimerHandle_LifeSpanExpired);
 	return ( CurrentLifespan != -1.0f ) ? CurrentLifespan : 0.0f;
 }
 
@@ -3383,6 +3541,8 @@ void AActor::PostInitializeComponents()
 		bActorInitialized = true;
 
 		UNavigationSystem::OnActorRegistered(this);
+		
+		UpdateAllReplicatedComponents();
 	}
 }
 
@@ -3404,12 +3564,6 @@ void AActor::PreInitializeComponents()
 	}
 }
 
-UWorld* AActor::K2_GetWorld() const
-{
-	// If an actor is pending kill we don't consider it to be in a world
-	return (!IsPendingKill() ? GetLevel()->OwningWorld : NULL);
-}
-
 float AActor::GetActorTimeDilation() const
 {
 	// get actor custom time dilation
@@ -3428,44 +3582,45 @@ UMaterialInstanceDynamic* AActor::MakeMIDForMaterial(class UMaterialInterface* P
 	return NULL;
 }
 
-float AActor::GetDistanceTo(AActor* OtherActor)
+float AActor::GetDistanceTo(const AActor* OtherActor) const
 {
 	return OtherActor ? (GetActorLocation() - OtherActor->GetActorLocation()).Size() : 0.f;
 }
 
-float AActor::GetHorizontalDistanceTo(AActor* OtherActor)
+float AActor::GetHorizontalDistanceTo(const AActor* OtherActor) const
 {
 	return OtherActor ? (GetActorLocation() - OtherActor->GetActorLocation()).Size2D() : 0.f;
 }
 
-float AActor::GetVerticalDistanceTo(AActor* OtherActor)
+float AActor::GetVerticalDistanceTo(const AActor* OtherActor) const
 {
 	return OtherActor ? FMath::Abs((GetActorLocation().Z - OtherActor->GetActorLocation().Z)) : 0.f;
 }
 
-float AActor::GetDotProductTo(AActor* OtherActor)
+float AActor::GetDotProductTo(const AActor* OtherActor) const
 {
 	if (OtherActor)
 	{
 		FVector Dir = GetActorForwardVector();
 		FVector Offset = OtherActor->GetActorLocation() - GetActorLocation();
-		Offset = Offset.SafeNormal();
+		Offset = Offset.GetSafeNormal();
 		return FVector::DotProduct(Dir, Offset);
 	}
 	return -2.0;
 }
 
-float AActor::GetHorizontalDotProductTo(AActor* OtherActor)
+float AActor::GetHorizontalDotProductTo(const AActor* OtherActor) const
 {
 	if (OtherActor)
 	{
 		FVector Dir = GetActorForwardVector();
 		FVector Offset = OtherActor->GetActorLocation() - GetActorLocation();
-		Offset = Offset.SafeNormal2D();
+		Offset = Offset.GetSafeNormal2D();
 		return FVector::DotProduct(Dir, Offset);
 	}
 	return -2.0;
 }
+
 
 #if WITH_EDITOR
 const int32 AActor::GetNumUncachedStaticLightingInteractions() const

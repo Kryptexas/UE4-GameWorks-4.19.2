@@ -1,9 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "BehaviorTreeTypes.h"
 #include "BehaviorTree/BTAuxiliaryNode.h"
 #include "BTDecorator.generated.h"
+
+class UBTNode;
+class UBehaviorTreeComponent;
+class FBehaviorDecoratorDetails; 
+struct FBehaviorTreeSearchData;
 
 /** 
  * Decorators are supporting nodes placed on parent-child connection, that receive notification about execution flow and can be ticked
@@ -31,19 +36,19 @@ class AIMODULE_API UBTDecorator : public UBTAuxiliaryNode
 	void InitializeDecorator(uint8 InChildIndex);
 
 	/** wrapper for node instancing: CalculateRawConditionValue */
-	bool WrappedCanExecute(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const;
+	bool WrappedCanExecute(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const;
 
 	/** wrapper for node instancing: OnNodeActivation  */
-	void WrappedOnNodeActivation(struct FBehaviorTreeSearchData& SearchData) const;
+	void WrappedOnNodeActivation(FBehaviorTreeSearchData& SearchData) const;
 	
 	/** wrapper for node instancing: OnNodeDeactivation */
-	void WrappedOnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) const;
+	void WrappedOnNodeDeactivation(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult) const;
 
 	/** wrapper for node instancing: OnNodeProcessed */
-	void WrappedOnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const;
+	void WrappedOnNodeProcessed(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult) const;
 
 	/** @return decorated child */
-	const class UBTNode* GetMyNode() const;
+	const UBTNode* GetMyNode() const;
 
 	/** @return index of child in parent's array */
 	uint8 GetChildIndex() const;
@@ -102,20 +107,26 @@ protected:
 
 	/** called when underlying node is activated
 	  * this function should be considered as const (don't modify state of object) if node is not instanced! */
-	virtual void OnNodeActivation(struct FBehaviorTreeSearchData& SearchData);
+	virtual void OnNodeActivation(FBehaviorTreeSearchData& SearchData);
 
 	/** called when underlying node has finished
 	 * this function should be considered as const (don't modify state of object) if node is not instanced! */
-	virtual void OnNodeDeactivation(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult);
+	virtual void OnNodeDeactivation(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type NodeResult);
 
 	/** called when underlying node was processed (deactivated or failed to activate)
 	 * this function should be considered as const (don't modify state of object) if node is not instanced! */
-	virtual void OnNodeProcessed(struct FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult);
+	virtual void OnNodeProcessed(FBehaviorTreeSearchData& SearchData, EBTNodeResult::Type& NodeResult);
 
 	/** calculates raw, core value of decorator's condition. Should not include calling IsInversed */
-	virtual bool CalculateRawConditionValue(class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const;
+	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const;
 
-	friend class FBehaviorDecoratorDetails;
+	friend FBehaviorDecoratorDetails;
+
+	//----------------------------------------------------------------------//
+	// DEPRECATED
+	//----------------------------------------------------------------------//
+	DEPRECATED(4.7, "This version is deprecated. Please use the one taking reference to UBehaviorTreeComponent rather than a pointer.")
+	virtual bool CalculateRawConditionValue(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory) const;
 };
 
 

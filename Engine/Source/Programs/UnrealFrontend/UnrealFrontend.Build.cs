@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -32,11 +32,21 @@ public class UnrealFrontend : ModuleRules
 				"Slate",
 				"SlateCore",
 				"SlateReflector",
+				"SourceCodeAccess",
 				"StandaloneRenderer",
 				"TargetDeviceServices",
 				"TargetPlatform",
 			}
 		);
+
+		if (Target.Platform == UnrealTargetPlatform.Mac)
+		{
+			PrivateDependencyModuleNames.Add("XCodeSourceCodeAccess");
+		}
+		else if (Target.Platform == UnrealTargetPlatform.Win64)
+		{
+			PrivateDependencyModuleNames.Add("VisualStudioSourceCodeAccess");
+		}
 
 		// @todo: allow for better plug-in support in standalone Slate apps
 		PrivateDependencyModuleNames.AddRange(

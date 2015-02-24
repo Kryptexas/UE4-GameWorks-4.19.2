@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //=============================================================================
 // ParticleEmitter
@@ -8,7 +8,10 @@
 #pragma once
 #include "Components/SceneComponent.h"
 #include "ParticleEmitterInstances.h"
+#include "Scalability.h"
 #include "ParticleEmitter.generated.h"
+
+class UInterpCurveEdSetup;
 
 //=============================================================================
 //	Burst emissions
@@ -166,6 +169,9 @@ class UParticleEmitter : public UObject
 	UPROPERTY()
 	uint32 bCookedOut:1;
 
+	/** When true, if the current LOD is disabled the emitter will be kept alive. Otherwise, the emitter will be considered complete if the current LOD is disabled. */
+	UPROPERTY(EditAnywhere, Category = Particle)
+	uint32 bDisabledLODsKeepEmitterAlive : 1;
 
 	// Begin UObject Interface
 #if WITH_EDITOR
@@ -318,6 +324,9 @@ class UParticleEmitter : public UObject
 		}
 		return Q;
 	}
+
+	/** Returns true if the is emitter has any enabled LODs, false otherwise. */
+	bool HasAnyEnabledLODs()const;
 };
 
 

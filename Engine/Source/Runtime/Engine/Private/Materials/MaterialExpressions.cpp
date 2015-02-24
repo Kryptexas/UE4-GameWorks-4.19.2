@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MaterialExpressions.cpp - Material expressions implementation.
@@ -126,6 +126,7 @@
 #include "Materials/MaterialExpressionViewSize.h"
 #include "Materials/MaterialExpressionWorldPosition.h"
 #include "Materials/MaterialFunction.h"
+#include "Materials/MaterialParameterCollection.h"
 
 #include "EditorSupportDelegates.h"
 #include "MaterialCompiler.h"
@@ -140,6 +141,8 @@
 #include "Engine/Font.h"
 #include "Engine/Texture2DDynamic.h"
 #include "Engine/TextureRenderTargetCube.h"
+#include "Engine/TextureRenderTarget2D.h"
+#include "Engine/TextureCube.h"
 
 #define LOCTEXT_NAMESPACE "MaterialExpression"
 
@@ -974,11 +977,11 @@ void UMaterialExpression::SetEditableName(const FString& NewName)
 bool UMaterialExpression::ContainsInputLoop()
 {
 	TArray<FMaterialExpressionKey> ExpressionStack;
-
-	return ContainsInputLoopInternal(ExpressionStack);
+	TSet<FMaterialExpressionKey> VisitedExpressions;
+	return ContainsInputLoopInternal(ExpressionStack, VisitedExpressions);
 }
 
-bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack)
+bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKey>& ExpressionStack, TSet<FMaterialExpressionKey>& VisitedExpressions)
 {
 	const TArray<FExpressionInput*> Inputs = GetInputs();
 	for (int32 Index = 0; Index < Inputs.Num(); ++Index)
@@ -991,10 +994,12 @@ bool UMaterialExpression::ContainsInputLoopInternal(TArray<FMaterialExpressionKe
 			{
 				return true;
 			}
-			else
+			// prevent recurring visits to expressions we've already checked
+			else if (!VisitedExpressions.Contains(InputExpressionKey))
 			{
+				VisitedExpressions.Add(InputExpressionKey);
 				ExpressionStack.Add(InputExpressionKey);
-				if (Input->Expression->ContainsInputLoopInternal(ExpressionStack))
+				if (Input->Expression->ContainsInputLoopInternal(ExpressionStack, VisitedExpressions))
 				{
 					return true;
 				}
@@ -2215,18 +2220,6 @@ UMaterialExpressionConstant3Vector::UMaterialExpressionConstant3Vector(const FOb
 	bCollapsed = false;
 }
 
-void UMaterialExpressionConstant3Vector::PostLoad()
-{
-	Super::PostLoad();
-
-	if(GetLinkerUE4Version() < VER_UE4_CHANGE_MATERIAL_EXPRESSION_CONSTANTS_TO_LINEARCOLOR)
-	{
-		Constant.R = R_DEPRECATED;
-		Constant.G = G_DEPRECATED;
-		Constant.B = B_DEPRECATED;
-	}
-}
-
 int32 UMaterialExpressionConstant3Vector::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
 	return Compiler->Constant3(Constant.R,Constant.G,Constant.B);
@@ -2268,19 +2261,6 @@ UMaterialExpressionConstant4Vector::UMaterialExpressionConstant4Vector(const FOb
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
 	MenuCategories.Add(ConstructorStatics.NAME_Vectors);
 	bCollapsed = false;
-}
-
-void UMaterialExpressionConstant4Vector::PostLoad()
-{
-	Super::PostLoad();
-
-	if(GetLinkerUE4Version() < VER_UE4_CHANGE_MATERIAL_EXPRESSION_CONSTANTS_TO_LINEARCOLOR)
-	{
-		Constant.R = R_DEPRECATED;
-		Constant.G = G_DEPRECATED;
-		Constant.B = B_DEPRECATED;
-		Constant.A = A_DEPRECATED;
-	}
 }
 
 int32 UMaterialExpressionConstant4Vector::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
@@ -2736,16 +2716,32 @@ UMaterialExpressionTime::UMaterialExpressionTime(const FObjectInitializer& Objec
 
 	MenuCategories.Add(ConstructorStatics.NAME_Constants);
 	bShaderInputData = true;
+	Period = 0.0f;
+	bOverride_Period = false;
 }
 
 int32 UMaterialExpressionTime::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	return bIgnorePause ? Compiler->RealTime() : Compiler->GameTime();
+	return bIgnorePause ? Compiler->RealTime(bOverride_Period, Period) : Compiler->GameTime(bOverride_Period, Period);
 }
 
 void UMaterialExpressionTime::GetCaption(TArray<FString>& OutCaptions) const
 {
-	OutCaptions.Add(TEXT("Time"));
+	if (bOverride_Period)
+	{
+		if (Period == 0.0f)
+		{
+			OutCaptions.Add(TEXT("Time (Stopped)"));
+		}
+		else
+		{
+			OutCaptions.Add(FString::Printf(TEXT("Time (Period of %.2f)"), Period));
+		}
+	}
+	else
+	{
+		OutCaptions.Add(TEXT("Time"));
+	}
 }
 
 
@@ -2877,7 +2873,7 @@ UMaterialExpressionPanner::UMaterialExpressionPanner(const FObjectInitializer& O
 
 int32 UMaterialExpressionPanner::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	int32 TimeArg = Time.Expression ? Time.Compile(Compiler) : Compiler->GameTime();
+	int32 TimeArg = Time.Expression ? Time.Compile(Compiler) : Compiler->GameTime(false, 0.0f);
 	int32 Arg1;
 	int32 Arg2;
 	if (bFractionalPart)
@@ -2937,8 +2933,8 @@ UMaterialExpressionRotator::UMaterialExpressionRotator(const FObjectInitializer&
 
 int32 UMaterialExpressionRotator::Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex)
 {
-	int32	Cosine = Compiler->Cosine(Compiler->Mul(Time.Expression ? Time.Compile(Compiler) : Compiler->GameTime(),Compiler->Constant(Speed))),
-		Sine = Compiler->Sine(Compiler->Mul(Time.Expression ? Time.Compile(Compiler) : Compiler->GameTime(),Compiler->Constant(Speed))),
+	int32	Cosine = Compiler->Cosine(Compiler->Mul(Time.Expression ? Time.Compile(Compiler) : Compiler->GameTime(false, 0.0f),Compiler->Constant(Speed))),
+		Sine = Compiler->Sine(Compiler->Mul(Time.Expression ? Time.Compile(Compiler) : Compiler->GameTime(false, 0.0f),Compiler->Constant(Speed))),
 		RowX = Compiler->AppendVector(Cosine,Compiler->Mul(Compiler->Constant(-1.0f),Sine)),
 		RowY = Compiler->AppendVector(Sine,Cosine),
 		Origin = Compiler->Constant2(CenterX,CenterY),
@@ -3254,23 +3250,6 @@ UMaterialExpressionBreakMaterialAttributes::UMaterialExpressionBreakMaterialAttr
 	for (int32 UVIndex = 0; UVIndex <= MP_CustomizedUVs7 - MP_CustomizedUVs0; UVIndex++)
 	{
 		Outputs.Add(FExpressionOutput(*FString::Printf(TEXT("CustomizedUV%u"), UVIndex), 1, 1, 1, 0, 0));
-	}
-}
-
-void  UMaterialExpressionBreakMaterialAttributes::Serialize( FArchive& Ar )
-{
-	Super::Serialize(Ar);
-
-	//Switch the connection over to the new input.
-	if( Ar.UE4Ver() < VER_UE4_MATERIAL_ATTRIBUTES_MULTIPLEX )
-	{
-		MaterialAttributes.Expression = Struct.Expression;
-		MaterialAttributes.OutputIndex = Struct.OutputIndex;
-		MaterialAttributes.Mask = Struct.Mask;
-		MaterialAttributes.MaskR = Struct.MaskR;
-		MaterialAttributes.MaskG = Struct.MaskG;
-		MaterialAttributes.MaskB = Struct.MaskB;
-		MaterialAttributes.MaskA = Struct.MaskA;
 	}
 }
 

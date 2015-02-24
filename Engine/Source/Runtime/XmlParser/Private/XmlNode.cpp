@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "XmlParserPrivatePCH.h"
 
@@ -75,6 +75,12 @@ const FString& FXmlNode::GetTag() const
 const FString& FXmlNode::GetContent() const
 {
 	return Content;
+}
+
+
+void FXmlNode::SetContent( const FString& InContent )
+{
+	Content = InContent;
 }
 
 FString FXmlNode::GetAttribute(const FString& InTag) const

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RendererInterface.h: Renderer interface definition.
@@ -439,7 +439,9 @@ enum EDrawRectangleFlags
 	// Rectangle is created by 2 triangles (diagonal can cause some slightly less efficient shader execution), this is the default as it has no artifacts
 	EDRF_Default,
 	//
-	EDRF_UseTriangleOptimization
+	EDRF_UseTriangleOptimization,
+	//
+	EDRF_UseTesselatedIndexBuffer
 };
 
 class ICustomVisibilityQuery: public IRefCountedObject
@@ -468,7 +470,7 @@ class IRendererModule : public IModuleInterface
 public:
 
 	/** Call from the game thread to send a message to the rendering thread to being rendering this view family. */
-	virtual void BeginRenderingViewFamily(FCanvas* Canvas,const FSceneViewFamily* ViewFamily) = 0;
+	virtual void BeginRenderingViewFamily(FCanvas* Canvas, FSceneViewFamily* ViewFamily) = 0;
 	
 	/**
 	 * Allocates a new instance of the private FScene implementation for the given world.

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	WinRTMisc.h: WinRT platform misc functions
@@ -43,7 +43,7 @@ struct CORE_API FWinRTMisc : public FGenericPlatformMisc
 	static void LowLevelOutputDebugString(const TCHAR *Message);
 	static void RequestExit(bool Force);
 	static const TCHAR* GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error);
-	static void CreateGuid(class FGuid& Result);
+	static void CreateGuid(struct FGuid& Result);
 	static int32 NumberOfCores();
 
 	/** Get the application root directory. */

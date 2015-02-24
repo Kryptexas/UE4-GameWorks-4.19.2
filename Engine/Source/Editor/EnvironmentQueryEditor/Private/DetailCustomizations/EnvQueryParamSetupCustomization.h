@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EnvironmentQuery/EnvQueryTypes.h"
@@ -33,8 +33,8 @@ protected:
 	void OnParamNumValueChanged(float FloatValue) const;
 	EVisibility GetParamNumValueVisibility() const;
 
-	ESlateCheckBoxState::Type GetParamBoolValue() const;
-	void OnParamBoolValueChanged(ESlateCheckBoxState::Type BoolValue) const;
+	ECheckBoxState GetParamBoolValue() const;
+	void OnParamBoolValueChanged(ECheckBoxState BoolValue) const;
 	EVisibility GetParamBoolValueVisibility() const;
 
 	void OnParamNameCommitted(const FText& ParamName, ETextCommit::Type CommitInfo);
@@ -42,6 +42,6 @@ protected:
 
 	FReply ToggleMode();
 	void OnModeChanged();
-	FString GetComboText() const;
-	FString GetComboTooltip() const;
+	FText GetComboText() const;
+	FText GetComboTooltip() const;
 };

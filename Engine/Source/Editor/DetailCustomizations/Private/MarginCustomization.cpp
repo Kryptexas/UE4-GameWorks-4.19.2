@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "MarginCustomization.h"
@@ -70,7 +70,7 @@ TSharedRef<SEditableTextBox> FMarginStructCustomization::MakePropertyWidget()
 	return
 		SAssignNew( MarginEditableTextBox,SEditableTextBox )
 		.Text( this, &FMarginStructCustomization::GetMarginText )
-		.ToolTipText( NSLOCTEXT( "UnrealEd", "MarginPropertyToolTip", "Margin values" ).ToString() )
+		.ToolTipText( NSLOCTEXT( "UnrealEd", "MarginPropertyToolTip", "Margin values" ) )
 		.OnTextCommitted( this, &FMarginStructCustomization::OnMarginTextCommitted )
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
 		.SelectAllTextWhenFocused( true )
@@ -83,7 +83,7 @@ TSharedRef<SWidget> FMarginStructCustomization::MakeChildPropertyWidget( int32 P
 		SNew( SNumericEntryBox<float> )
 		.Value( this, &FMarginStructCustomization::OnGetValue, PropertyIndex )
 		.Font( IDetailLayoutBuilder::GetDetailFont() )
-		.UndeterminedString( NSLOCTEXT( "PropertyEditor", "MultipleValues", "Multiple Values").ToString() )
+		.UndeterminedString( NSLOCTEXT( "PropertyEditor", "MultipleValues", "Multiple Values") )
 		.OnValueCommitted( this, &FMarginStructCustomization::OnValueCommitted, PropertyIndex )
 		.OnValueChanged( this, &FMarginStructCustomization::OnValueChanged, PropertyIndex )
 		.OnBeginSliderMovement( this, &FMarginStructCustomization::OnBeginSliderMovement )
@@ -198,7 +198,7 @@ void FMarginStructCustomization::OnMarginTextCommitted( const FText& InText, ETe
 				StructPropertyHandle->AccessRawData( RawData );
 
 				{
-					FScopedTransaction Transaction( FText::Format( NSLOCTEXT("FMarginStructCustomization", "SetMarginProperty", "Edit {0}"), FText::FromString( StructPropertyHandle->GetPropertyDisplayName() ) ) );
+					FScopedTransaction Transaction( FText::Format( NSLOCTEXT("FMarginStructCustomization", "SetMarginProperty", "Edit {0}"), StructPropertyHandle->GetPropertyDisplayName() ) );
 					StructPropertyHandle->NotifyPreChange();
 
 					for (void* Data : RawData)
@@ -279,7 +279,7 @@ void FMarginStructCustomization::OnBeginSliderMovement()
 {
 	bIsUsingSlider = true;
 
-	GEditor->BeginTransaction( FText::Format( NSLOCTEXT("FMarginStructCustomization", "SetMarginProperty", "Edit {0}"), FText::FromString( StructPropertyHandle->GetPropertyDisplayName() ) ) );
+	GEditor->BeginTransaction( FText::Format( NSLOCTEXT("FMarginStructCustomization", "SetMarginProperty", "Edit {0}"), StructPropertyHandle->GetPropertyDisplayName() ) );
 }
 
 void FMarginStructCustomization::OnEndSliderMovement( float NewValue )

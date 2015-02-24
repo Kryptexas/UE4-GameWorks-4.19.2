@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "GameplayAbilityTargetActor.h"
@@ -22,22 +22,25 @@ AGameplayAbilityWorldReticle_ActorVisualization::AGameplayAbilityWorldReticle_Ac
 	CollisionComponent->bAbsoluteScale = true;
 	//CollisionComponent->AlwaysLoadOnServer = true;
 	CollisionComponent->bCanEverAffectNavigation = false;
-	CollisionComponent->BodyInstance.bEnableCollision_DEPRECATED = false;
 	CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	//USceneComponent* SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("RootComponent0"));
 	RootComponent = CollisionComponent;
 }
 
-void AGameplayAbilityWorldReticle_ActorVisualization::InitializeReticleVisualizationInformation(AActor* VisualizationActor, UMaterialInterface *VisualizationMaterial)
+
+void AGameplayAbilityWorldReticle_ActorVisualization::InitializeReticleVisualizationInformation(AGameplayAbilityTargetActor* InTargetingActor, AActor* VisualizationActor, UMaterialInterface *VisualizationMaterial)
 {
 	if (VisualizationActor)
 	{
 		//Get components
-		TArray<UMeshComponent*> MeshComps;
+		TInlineComponentArray<UMeshComponent*> MeshComps;
 		USceneComponent* MyRoot = GetRootComponent();
 		VisualizationActor->GetComponents(MeshComps);
 		check(MyRoot);
+
+		TargetingActor = InTargetingActor;
+		AddTickPrerequisiteActor(TargetingActor);		//We want the reticle to tick after the targeting actor so that designers have the final say on the position
 
 		for (UMeshComponent* MeshComp : MeshComps)
 		{
@@ -64,10 +67,6 @@ void AGameplayAbilityWorldReticle_ActorVisualization::InitializeReticleVisualiza
 
 void AGameplayAbilityWorldReticle_ActorVisualization::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
-	TArray<UActorComponent*> CompArray;
-	GetComponents(CompArray);
-	CompArray.Num();
-
 	Super::EndPlay(EndPlayReason);
 }
 

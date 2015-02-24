@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashReportClientApp.h"
 #include "CrashDescription.h"
@@ -37,20 +37,6 @@ static FString ReportDirectoryAbsolutePath;
 
 /** Name of the game passed via the command line. */
 static FString GameNameFromCmd;
-
-/**
- * Upload the crash report with no user interaction
- */
-void RunCrashReportClientUnattended(FMainLoopTiming& MainLoop, const FPlatformErrorReport& ErrorReport)
-{
-	FCrashReportClientUnattended CrashReportClient( ErrorReport );
-
-	// loop until the app is ready to quit
-	while (!GIsRequestingExit)
-	{
-		MainLoop.Tick();
-	}
-}
 
 /**
  * Look for the report to upload, either in the command line or in the platform's report queue
@@ -108,6 +94,9 @@ FPlatformErrorReport LoadErrorReport()
 
 void RunCrashReportClient(const TCHAR* CommandLine)
 {
+	// Override the stack size for the thread pool.
+	FQueuedThreadPool::OverrideStackSize = 256 * 1024;
+
 	// Set up the main loop
 	GEngineLoop.PreInit(CommandLine);
 
@@ -124,6 +113,9 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	// Find the report to upload in the command line arguments
 	ParseCommandLine(CommandLine);
 
+	// Increase the HttpSendTimeout to 5 minutes
+	GConfig->SetFloat(TEXT("HTTP"), TEXT("HttpSendTimeout"), 5*60.0f, GEngineIni);
+
 	FPlatformErrorReport::Init();
 	auto ErrorReport = LoadErrorReport();
 	
@@ -136,8 +128,14 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 
 	if (bUnattended)
 	{
-		ErrorReport.SetUserComment( NSLOCTEXT( "CrashReportClient", "UnattendedMode", "Sent in the unattended mode" ) );
-		RunCrashReportClientUnattended(MainLoop, ErrorReport);
+		ErrorReport.SetUserComment( NSLOCTEXT( "CrashReportClient", "UnattendedMode", "Sent in the unattended mode" ), false );
+		FCrashReportClientUnattended CrashReportClient( ErrorReport );
+
+		// loop until the app is ready to quit
+		while (!GIsRequestingExit)
+		{
+			MainLoop.Tick();
+		}
 	}
 	else
 	{
@@ -165,7 +163,7 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 		Window->SetRequestDestroyWindowOverride(FRequestDestroyWindowOverride::CreateSP(CrashReportClient, &FCrashReportClient::RequestCloseWindow));
 
 		// Setting focus seems to have to happen after the Window has been added
-		ClientControl->SetDefaultFocus();
+		FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::Cleared);
 
 		// Debugging code
 		if (RunWidgetReflector)
@@ -197,9 +195,8 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 #endif // !CRASH_REPORT_UNATTENDED_ONLY
 	}
 
-	FPlatformProcess::Sleep( 2.0f );
-	GEngineLoop.AppExit();
 	FPlatformErrorReport::ShutDown();
+	GEngineLoop.AppExit();
 }
 
 void CrashReportClientCheck(bool bCondition, const TCHAR* Location)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Engine/CurveTable.h"
@@ -90,6 +90,15 @@ void UCurveTable::FinishDestroy()
 
 	EmptyTable(); // Free memory when UObject goes away
 }
+
+#if WITH_EDITORONLY_DATA
+void UCurveTable::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), ImportPath, FAssetRegistryTag::TT_Hidden) );
+
+	Super::GetAssetRegistryTags(OutTags);
+}
+#endif
 
 FString UCurveTable::GetTableAsString()
 {

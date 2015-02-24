@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintDelegateNodeSpawner.h"
@@ -7,6 +7,7 @@
 #include "ObjectEditorUtils.h"		// for GetCategory()
 #include "BlueprintEditorUtils.h"	// for FindBlueprintForNodeChecked()
 #include "EditorCategoryUtils.h"
+#include "K2Node_BaseMCDelegate.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintDelegateNodeSpawner"
 

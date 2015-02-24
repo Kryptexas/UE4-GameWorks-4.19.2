@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "GameplayDebuggingTypes.h"
@@ -22,6 +22,9 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 
 	UPROPERTY(config)
 	FString DebugComponentHUDClassName;
+
+	UPROPERTY(config)
+	FString DebugComponentControllerClassName;
 
 	UPROPERTY(config)
 	int32 MaxEQSQueries;
@@ -95,7 +98,7 @@ class GAMEPLAYDEBUGGER_API AGameplayDebuggingReplicator : public AActor
 
 	virtual class UNetConnection* GetNetConnection() override;
 
-	virtual bool IsNetRelevantFor(class APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation) override;
+	virtual bool IsNetRelevantFor(const APlayerController* RealViewer, const AActor* Viewer, const FVector& SrcLocation) const override;
 
 	virtual void PostInitializeComponents() override;
 
@@ -135,6 +138,6 @@ private:
 
 	TWeakObjectPtr<UClass> DebugComponentClass;
 	TWeakObjectPtr<UClass> DebugComponentHUDClass;
-
+	TWeakObjectPtr<UClass> DebugComponentControllerClass;
 	TWeakObjectPtr<AGameplayDebuggingHUDComponent>	DebugRenderer;
 };

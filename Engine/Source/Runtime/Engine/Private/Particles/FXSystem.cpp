@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FXSystem.cpp: Implementation of the effects system.
@@ -14,6 +14,7 @@
 #include "../GPUSort.h"
 #include "ParticleCurveTexture.h"
 #include "VectorField/VectorField.h"
+#include "Components/VectorFieldComponent.h"
 
 /*-----------------------------------------------------------------------------
 	External FX system interface.

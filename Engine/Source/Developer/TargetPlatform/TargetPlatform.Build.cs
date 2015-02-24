@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.IO;
@@ -20,6 +20,14 @@ public class TargetPlatform : ModuleRules
             DynamicallyLoadedModuleNames.Add("ShaderFormatOpenGL");
             DynamicallyLoadedModuleNames.Add("ImageWrapper");
 
+			if ((Target.Platform == UnrealTargetPlatform.Win64) || (Target.Platform == UnrealTargetPlatform.Win32))
+			{
+				if (UEBuildConfiguration.bCompileLeanAndMeanUE == false)
+				{
+					DynamicallyLoadedModuleNames.Add("TextureFormatIntelISPCTexComp");
+				}
+			}
+
             if (Target.Platform == UnrealTargetPlatform.Win32 ||
                 Target.Platform == UnrealTargetPlatform.Win64 ||
 				(Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32"))
@@ -32,6 +40,7 @@ public class TargetPlatform : ModuleRules
 				{
                     DynamicallyLoadedModuleNames.Add("TextureFormatDXT");
                     DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
+					DynamicallyLoadedModuleNames.Add("TextureFormatASTC");
 				}
 
 				DynamicallyLoadedModuleNames.Add("TextureFormatUncompressed");
@@ -52,11 +61,7 @@ public class TargetPlatform : ModuleRules
 					DynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
 					DynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
-
-					if (!UnrealBuildTool.UnrealBuildTool.RunningRocket() && !UnrealBuildTool.UnrealBuildTool.BuildingRocket())
-					{
-						DynamicallyLoadedModuleNames.Add("HTML5TargetPlatform");
-					}
+                    DynamicallyLoadedModuleNames.Add("HTML5TargetPlatform");
 				}
 			}
 			else if (Target.Platform == UnrealTargetPlatform.Mac)
@@ -65,6 +70,7 @@ public class TargetPlatform : ModuleRules
 				{
 					DynamicallyLoadedModuleNames.Add("TextureFormatDXT");
                     DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
+					DynamicallyLoadedModuleNames.Add("TextureFormatASTC");
 				}
 
 				DynamicallyLoadedModuleNames.Add("TextureFormatUncompressed");
@@ -76,15 +82,16 @@ public class TargetPlatform : ModuleRules
 
 				if (Target.Type == TargetRules.TargetType.Editor || Target.Type == TargetRules.TargetType.Program)
 				{
+					DynamicallyLoadedModuleNames.Add("AndroidTargetPlatform");
+					DynamicallyLoadedModuleNames.Add("Android_PVRTCTargetPlatform");
+					DynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
+					DynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
+					DynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
+					DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
 					DynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
+
 					if (!UnrealBuildTool.UnrealBuildTool.RunningRocket() && !UnrealBuildTool.UnrealBuildTool.BuildingRocket())
 					{
-						DynamicallyLoadedModuleNames.Add("AndroidTargetPlatform");
-						DynamicallyLoadedModuleNames.Add("Android_PVRTCTargetPlatform");
-						DynamicallyLoadedModuleNames.Add("Android_ATCTargetPlatform");
-						DynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
-						DynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
-						DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
 						DynamicallyLoadedModuleNames.Add("HTML5TargetPlatform");
 					}
 				}
@@ -95,6 +102,7 @@ public class TargetPlatform : ModuleRules
                 {
                     DynamicallyLoadedModuleNames.Add("TextureFormatDXT");
                     DynamicallyLoadedModuleNames.Add("TextureFormatPVR");
+					DynamicallyLoadedModuleNames.Add("TextureFormatASTC");
                 }
 
                 DynamicallyLoadedModuleNames.Add("TextureFormatUncompressed");

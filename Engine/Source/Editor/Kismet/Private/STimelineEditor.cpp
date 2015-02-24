@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintEditorPrivatePCH.h"
@@ -17,6 +17,11 @@
 #include "GenericCommands.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/TimelineTemplate.h"
+#include "Curves/CurveFloat.h"
+#include "Curves/CurveLinearColor.h"
+#include "Curves/CurveVector.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "STimelineEditor"
 
@@ -126,7 +131,7 @@ void STimelineEdTrack::Construct(const FArguments& InArgs, TSharedPtr<FTimelineE
 						// Name of track
 						SAssignNew(InlineTextBlock, SInlineEditableTextBlock)
 							.Text(FText::FromName(TrackBase->TrackName))
-							.ToolTipText(FString(TEXT("Enter track name")))
+							.ToolTipText(LOCTEXT("TrackNameTooltip", "Enter track name"))
 							.OnVerifyTextChanged(TimelineRef, &STimelineEditor::OnVerifyTrackNameCommit,TrackBase, this)
 							.OnTextCommitted(TimelineRef, &STimelineEditor::OnTrackNameCommitted,TrackBase, this)
 					]
@@ -519,9 +524,9 @@ FText STimelineEdTrack::GetExternalCurveName( ) const
 	return FText::FromString(ExternalCurveName);
 }
 
-FString STimelineEdTrack::GetExternalCurvePath( ) const
+FText STimelineEdTrack::GetExternalCurvePath( ) const
 {
-	return ExternalCurvePath;
+	return FText::FromString(ExternalCurvePath);
 }
 
 UCurveBase* STimelineEdTrack::CreateCurveAsset()
@@ -1199,16 +1204,16 @@ void STimelineEditor::OnItemScrolledIntoView( TSharedPtr<FTimelineEdTrack> InTra
 	}
 }
 
-ESlateCheckBoxState::Type STimelineEditor::IsAutoPlayChecked() const
+ECheckBoxState STimelineEditor::IsAutoPlayChecked() const
 {
-	return (TimelineObj && TimelineObj->bAutoPlay) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (TimelineObj && TimelineObj->bAutoPlay) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void STimelineEditor::OnAutoPlayChanged(ESlateCheckBoxState::Type NewType)
+void STimelineEditor::OnAutoPlayChanged(ECheckBoxState NewType)
 {
 	if(TimelineObj)
 	{
-		TimelineObj->bAutoPlay = (NewType == ESlateCheckBoxState::Checked) ? true : false;
+		TimelineObj->bAutoPlay = (NewType == ECheckBoxState::Checked) ? true : false;
 
 		// Refresh the node that owns this timeline template to cache play status
 		TSharedPtr<FBlueprintEditor> Kismet2 = Kismet2Ptr.Pin();
@@ -1222,16 +1227,16 @@ void STimelineEditor::OnAutoPlayChanged(ESlateCheckBoxState::Type NewType)
 }
 
 
-ESlateCheckBoxState::Type STimelineEditor::IsLoopChecked() const
+ECheckBoxState STimelineEditor::IsLoopChecked() const
 {
-	return (TimelineObj && TimelineObj->bLoop) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (TimelineObj && TimelineObj->bLoop) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void STimelineEditor::OnLoopChanged(ESlateCheckBoxState::Type NewType)
+void STimelineEditor::OnLoopChanged(ECheckBoxState NewType)
 {
 	if(TimelineObj)
 	{
-		TimelineObj->bLoop = (NewType == ESlateCheckBoxState::Checked) ? true : false;
+		TimelineObj->bLoop = (NewType == ECheckBoxState::Checked) ? true : false;
 
 		// Refresh the node that owns this timeline template to cache play status
 		TSharedPtr<FBlueprintEditor> Kismet2 = Kismet2Ptr.Pin();
@@ -1244,16 +1249,16 @@ void STimelineEditor::OnLoopChanged(ESlateCheckBoxState::Type NewType)
 	}
 }
 
-ESlateCheckBoxState::Type STimelineEditor::IsReplicatedChecked() const
+ECheckBoxState STimelineEditor::IsReplicatedChecked() const
 {
-	return (TimelineObj && TimelineObj->bReplicated) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (TimelineObj && TimelineObj->bReplicated) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void STimelineEditor::OnReplicatedChanged(ESlateCheckBoxState::Type NewType)
+void STimelineEditor::OnReplicatedChanged(ECheckBoxState NewType)
 {
 	if(TimelineObj)
 	{
-		TimelineObj->bReplicated = (NewType == ESlateCheckBoxState::Checked) ? true : false;
+		TimelineObj->bReplicated = (NewType == ECheckBoxState::Checked) ? true : false;
 
 		// Refresh the node that owns this timeline template to cache play status
 		TSharedPtr<FBlueprintEditor> Kismet2 = Kismet2Ptr.Pin();
@@ -1266,16 +1271,16 @@ void STimelineEditor::OnReplicatedChanged(ESlateCheckBoxState::Type NewType)
 	}
 }
 
-ESlateCheckBoxState::Type STimelineEditor::IsUseLastKeyframeChecked() const
+ECheckBoxState STimelineEditor::IsUseLastKeyframeChecked() const
 {
-	return (TimelineObj && TimelineObj->LengthMode == ETimelineLengthMode::TL_LastKeyFrame) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (TimelineObj && TimelineObj->LengthMode == ETimelineLengthMode::TL_LastKeyFrame) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void STimelineEditor::OnUseLastKeyframeChanged(ESlateCheckBoxState::Type NewType)
+void STimelineEditor::OnUseLastKeyframeChanged(ECheckBoxState NewType)
 {
 	if(TimelineObj)
 	{
-		TimelineObj->LengthMode = (NewType == ESlateCheckBoxState::Checked) ? ETimelineLengthMode::TL_LastKeyFrame : ETimelineLengthMode::TL_TimelineLength;
+		TimelineObj->LengthMode = (NewType == ECheckBoxState::Checked) ? ETimelineLengthMode::TL_LastKeyFrame : ETimelineLengthMode::TL_TimelineLength;
 	}
 }
 

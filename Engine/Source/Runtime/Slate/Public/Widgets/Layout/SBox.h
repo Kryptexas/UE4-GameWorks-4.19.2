@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -108,10 +108,11 @@ class SLATE_API SBox : public SPanel
 		/** See MaxDesiredHeight attribute */
 		void SetMaxDesiredHeight(TAttribute<FOptionalSize> InMaxDesiredHeight);
 
-private:
+protected:
 
 		FBoxSlot ChildSlot;
 
+private:
 		/** When specified, ignore the content's desired size and report the.WidthOverride as the Box's desired width. */
 		TAttribute<FOptionalSize> WidthOverride;
 

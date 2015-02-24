@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #ifndef __EnumEditorUtils_h__
 #define __EnumEditorUtils_h__
@@ -18,11 +18,20 @@ class UNREALED_API FEnumEditorUtils
 	static void CopyEnumeratorsWithoutMax(const UEnum* Enum, TArray<FName>& OutEnumNames);
 public:
 
-	class FEnumEditorManager : public FListenerManager<UUserDefinedEnum>
+	enum EEnumEditorChangeInfo
 	{
-		FEnumEditorManager();
+		Changed,
+	};
+
+	class FEnumEditorManager : public FListenerManager<UUserDefinedEnum, EEnumEditorChangeInfo>
+	{
+		FEnumEditorManager() {}
 	public:
 		UNREALED_API static FEnumEditorManager& Get();
+
+		class UNREALED_API ListenerType : public InnerListenerType<FEnumEditorManager>
+		{
+		};
 	};
 
 	typedef FEnumEditorManager::ListenerType INotifyOnEnumChanged;

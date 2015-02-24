@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PakFilePrivatePCH.h"
 #include "IPlatformFilePak.h"
@@ -677,8 +677,8 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 bool FPakPlatformFile::Mount(const TCHAR* InPakFilename, uint32 PakOrder, const TCHAR* InPath /*= NULL*/)
 {
 	bool bSuccess = false;
-	IFileHandle* PakHandle = LowerLevel->OpenRead(InPakFilename);
-	if (PakHandle != NULL)
+	TSharedPtr<IFileHandle> PakHandle = MakeShareable(LowerLevel->OpenRead(InPakFilename));
+	if (PakHandle.IsValid())
 	{
 		FPakFile* Pak = new FPakFile(LowerLevel, InPakFilename, bSigned);
 		if (Pak->IsValid())

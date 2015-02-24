@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -13,17 +13,24 @@
 #include "LevelEditor.h"
 #include "ModuleManager.h"
 #include "MainFrame.h"
+#include "FileManager.h"
 
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "BlueprintGraphClasses.h"
 
-#include "SlateWordWrapper.h"
 #include "AutomationCommon.h"
 #include "AutomationEditorCommon.h"
 #include "AutomationTest.h"
 
 #include "PackageTools.h"
+#include "Engine/PointLight.h"
+#include "Engine/Selection.h"
+#include "Engine/DirectionalLight.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/BlockingVolume.h"
+#include "Engine/StaticMeshActor.h"
+#include "EngineUtils.h"
 
 
 /**
@@ -41,7 +48,7 @@ struct PointLightParameters
 		, LightBrightness(5000.0f)
 		, LightRadius(1000.0f)
 		, LightLocation(FVector(0.0f, 0.0f, 0.0f))
-		, LightColor(FColor(255, 255, 255))
+		, LightColor(FColor::White)
 	{
 	}
 };
@@ -179,89 +186,6 @@ bool FGenericImportAssetsAutomationTest::RunTest(const FString& Parameters)
 	CurLogItemIndex = ExecutionInfo.LogItems.Num();
 
 	return CurTestSuccessful;
-}
-
-//////////////////////////////////////////////////////////////////////////
-
-/**
- * FTextWrappingAutomationTest
- * Simple unit test that wraps text using FSlateFontInfo::WrapTextToClippingWidth(). Cannot be run in a commandlet
- * as it executes code that routes through Slate.
- */
-IMPLEMENT_SIMPLE_AUTOMATION_TEST( FTextWrappingAutomationTest, "Engine.Rendering.Slate.Text Wrapping", EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_NonNullRHI )
-
-/** 
- * Execute the text wrapping test
- *
- * @return	true if the test was successful, false otherwise
- */
-bool FTextWrappingAutomationTest::RunTest(const FString& Parameters)
-{
-	struct FTestStruct
-	{
-		static bool TestMethod(const FSlateFontInfo& FontInfo, const float WrapWidth, const FString& TestString, const int32 ArgumentCount, ...)
-		{
-			va_list Arguments;
-			va_start(Arguments, ArgumentCount);
-
-			TArray<FString> CorrectLines;
-			for(int32 i = 0; i < ArgumentCount; ++i)
-			{
-				const TCHAR* const Fragment = va_arg(Arguments, const TCHAR* const);
-				CorrectLines.Add(Fragment);
-			}
-
-			va_end(Arguments);
-
-			FString Result = SlateWordWrapper::WrapText(TestString, FontInfo, WrapWidth, 1.0f);
-			TArray<FString> ResultLines;
-			Result.ParseIntoArray(&ResultLines, TEXT("\n"), false);
-
-			return ResultLines == CorrectLines;
-		}
-	};
-
-	const FSlateFontInfo FontInfo = FEditorStyle::GetFontStyle("NormalFont");
-
-	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
-	const float GlyphWidth = FontMeasureService->Measure( TEXT("A"), FontInfo).X;
-
-#define TEST(WrapWidth, TestString, ArgumentCount, ...)\
-	{\
-	if( !FTestStruct::TestMethod(FontInfo, (WrapWidth), (TestString), (ArgumentCount), __VA_ARGS__) )\
-		{\
-			AddError( TEXT("Testing string wrap failed, did not break line where expected.") );\
-		}\
-	}
-
-	TEST(GlyphWidth * 4, FString(TEXT("AAA    BBB CCC")), 3,   TEXT("AAA"),
-															TEXT("BBB"),
-															TEXT("CCC") );
-
-	TEST(GlyphWidth * 3, FString(TEXT("AAA BBB CCC")), 3,   TEXT("AAA"),
-															TEXT("BBB"),
-															TEXT("CCC") );
-
-	TEST(GlyphWidth * 2, FString(TEXT("AAA BBB CCC")), 6,   TEXT("AA"),
-															TEXT("A"),
-															TEXT("BB"),
-															TEXT("B"),
-															TEXT("CC"),
-															TEXT("C") );
-
-	TEST(GlyphWidth * 1, FString(TEXT("AAA BBB CCC")), 9,   TEXT("A"),
-															TEXT("A"),
-															TEXT("A"),
-															TEXT("B"),
-															TEXT("B"),
-															TEXT("B"),
-															TEXT("C"),
-															TEXT("C"),
-															TEXT("C") );
-
-#undef TEST
-
-	return true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -1441,20 +1365,18 @@ bool FLightPlacement::RunTest(const FString& Parameters)
 		}
 	}
 
-	{
-		//Gather assets.
-		UObject* Cube = (UStaticMesh*)StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/Engine/EngineMeshes/Cube.Cube"), NULL, LOAD_None, NULL);
-		//Add Cube mesh to the world
-		AStaticMeshActor* StaticMesh = Cast<AStaticMeshActor>(FActorFactoryAssetProxy::AddActorForAsset(Cube));
-		StaticMesh->TeleportTo(FVector(0.0f, 0.0f, 0.0f), FRotator(0, 0, 0));
-		StaticMesh->SetActorRelativeScale3D(FVector(3.0f, 3.0f, 1.75f));
-	}
+	//Gather assets.
+	UObject* Cube = (UStaticMesh*)StaticLoadObject(UStaticMesh::StaticClass(), NULL, TEXT("/Engine/EngineMeshes/Cube.Cube"), NULL, LOAD_None, NULL);
+	//Add Cube mesh to the world
+	AStaticMeshActor* StaticMesh = Cast<AStaticMeshActor>(FActorFactoryAssetProxy::AddActorForAsset(Cube));
+	StaticMesh->TeleportTo(FVector(0.0f, 0.0f, 0.0f), FRotator(0, 0, 0));
+	StaticMesh->SetActorRelativeScale3D(FVector(3.0f, 3.0f, 1.75f));
 
 	//Create the point light and set it's mobility, brightness, and light color.
 	const FTransform Transform(FVector(0.0f, 0.0f, 400.0f));
 	APointLight* PointLight = Cast<APointLight>(GEditor->AddActor(World->GetCurrentLevel(), APointLight::StaticClass(), Transform));
 	LightParameters.PointLight = PointLight;
-	LightParameters.LightColor = FColor(255, 0, 0);
+	LightParameters.LightColor = FColor::Red;
 	LightParameters.LightLocation = FVector(0.0f, 0.0f, 400.0f);
 	ADD_LATENT_AUTOMATION_COMMAND(PointLightUpdateCommand(LightParameters));
 
@@ -1489,14 +1411,14 @@ bool FLightPlacement::RunTest(const FString& Parameters)
 	//Update the original point light actor.
 	LightParameters.LightRadius = 500.0f;
 	LightParameters.LightLocation = FVector(500.0f, 300.0f, 500.0f);
-	LightParameters.LightColor = FColor(255, 255, 255);
+	LightParameters.LightColor = FColor::White;
 	ADD_LATENT_AUTOMATION_COMMAND(PointLightUpdateCommand(LightParameters));
 
 	//Wait
 	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(0.1f));
 
 	//Take a screenshot of the final scene.
-	//It is expected to show two moveable point lights (one red, one white) and a static mesh.
+	//It is expected to show two movable point lights (one red, one white) and a static mesh.
 	TakeLatentAutomationScreenshot(PointLightPlacementWindowParameters, BaseFileName, FString::Printf(TEXT("FinalPointLight")), FString::Printf(TEXT("04_Final")), true);
 
 	return true;
@@ -1961,7 +1883,7 @@ namespace StaticMeshUVTest
 		/** 
 		 * Callback when a package has finished loading
 		 */
-		void PackageLoadCallback(const FString& PackageName, UPackage* LoadedPackage)
+		void PackageLoadCallback(const FName& PackageName, UPackage* LoadedPackage)
 		{
 			CurrentPackage = LoadedPackage;
 			CurrentState = EStaticMeshUVTestState::PackageLoaded;
@@ -2063,5 +1985,128 @@ bool FStaticMeshUVsTest::RunTest(const FString& Parameters)
 {
 	TSharedPtr<StaticMeshUVTest::FUVTestHelper> TestHelper = MakeShareable(new StaticMeshUVTest::FUVTestHelper(this));
 	ADD_LATENT_AUTOMATION_COMMAND(FPerformUVTestCommand(TestHelper));
+	return true;
+}
+
+/**
+* Launches a map onto a specified device after making a change to it.
+*/
+IMPLEMENT_COMPLEX_AUTOMATION_TEST(FLaunchOnTest, "Editor.Launch On Test", (EAutomationTestFlags::ATF_Editor | EAutomationTestFlags::ATF_RequiresUser))
+
+void FLaunchOnTest::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FString>& OutTestCommands) const
+{
+	{
+		UAutomationTestSettings const* AutomationTestSettings = GetDefault<UAutomationTestSettings>();
+		check(AutomationTestSettings);
+
+		TArray<FString> MapToLaunch;
+		TArray<FString> DeviceToUse;
+		for (auto Iter = AutomationTestSettings->LaunchOnSettings.CreateConstIterator(); Iter; ++Iter)
+		{
+			if (Iter->LaunchOnTestmap.FilePath.Len() > 0 && !Iter->DeviceID.IsEmpty())
+			{
+				MapToLaunch.Add(Iter->LaunchOnTestmap.FilePath);
+				DeviceToUse.Add(Iter->DeviceID);
+			}
+
+			for (int32 i = 0; i < MapToLaunch.Num(); ++i)
+			{
+				//Get the location of the map being used.
+				FString Filename = FPaths::ConvertRelativePathToFull(MapToLaunch[i]);
+
+				//Get the DeviceID
+				FString DeviceID;
+				AutomationEditorCommonUtils::GetLaunchOnDeviceID(DeviceID, FPaths::GetBaseFilename(MapToLaunch[i]), DeviceToUse[i]);
+
+				if (!DeviceID.IsEmpty() && !DeviceID.Equals(TEXT("None")))
+				{
+					if (Filename.Contains(TEXT("/Engine/"), ESearchCase::IgnoreCase, ESearchDir::FromStart))
+					{
+						//If true it will proceed to add the asset to the test list.
+						//This will be false if the map is on a different drive.
+						if (FPaths::MakePathRelativeTo(Filename, *FPaths::EngineContentDir()))
+						{
+							FString ShortName = FPaths::GetBaseFilename(Filename);
+							FString PathName = FPaths::GetPath(Filename);
+							FString AssetName = FString::Printf(TEXT("/Game/%s/%s.%s %s"), *PathName, *ShortName, *ShortName, *DeviceID);
+
+							ShortName += (TEXT(" ( ") + DeviceID.Left(DeviceID.Find(TEXT("@"))) + TEXT(" ) "));
+
+							OutBeautifiedNames.Add(ShortName);
+							OutTestCommands.Add(AssetName);
+						}
+						else
+						{
+							UE_LOG(LogEditorAutomationTests, Error, TEXT("Invalid asset path: %s."), *Filename);
+						}
+					}
+					else
+					{
+						//If true it will proceed to add the asset to the test list.
+						//This will be false if the map is on a different drive.
+						if (FPaths::MakePathRelativeTo(Filename, *FPaths::GameContentDir()))
+						{
+							FString ShortName = FPaths::GetBaseFilename(Filename);
+							FString PathName = FPaths::GetPath(Filename);
+							FString AssetName = FString::Printf(TEXT("/Game/%s/%s.%s %s"), *PathName, *ShortName, *ShortName, *DeviceID);
+
+							ShortName += (TEXT(" (") + DeviceID.Left(DeviceID.Find(TEXT("@"))) + TEXT(") "));
+
+							OutBeautifiedNames.Add(ShortName);
+							OutTestCommands.Add(AssetName);
+						}
+						else
+						{
+							UE_LOG(LogEditorAutomationTests, Error, TEXT("Invalid asset path: %s."), *Filename);
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+bool FLaunchOnTest::RunTest(const FString& Parameters)
+{
+	//Get the map name and device id from the parameters.
+	FString MapName = Parameters.Left(Parameters.Find(TEXT(" ")));
+	FString DeviceID = Parameters.RightChop(Parameters.Find(TEXT(" ")));
+	DeviceID.Trim();
+
+	//Delete the Cooked, StagedBuilds, and Automation_TEMP folder if they exist.
+	FString CookedLocation = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("Cooked"));
+	FString StagedBuildsLocation = FPaths::Combine(*FPaths::GameSavedDir(), TEXT("StagedBuilds"));
+	FString TempMapLocation = FPaths::Combine(*FPaths::GameContentDir(), TEXT("Maps"), TEXT("Automation_TEMP"));
+	ADD_LATENT_AUTOMATION_COMMAND(FDeleteDirCommand(CookedLocation));
+	ADD_LATENT_AUTOMATION_COMMAND(FDeleteDirCommand(StagedBuildsLocation));
+	ADD_LATENT_AUTOMATION_COMMAND(FDeleteDirCommand(TempMapLocation));
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(2.0f));
+
+	//Load Map and get the time it took to take to load the map.
+	ADD_LATENT_AUTOMATION_COMMAND(FEditorLoadMap(MapName));
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
+
+	//Make an adjustment to the map and rebuild its lighting.
+	ADD_LATENT_AUTOMATION_COMMAND(FAddStaticMeshCommand);
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitLatentCommand(1.0f));
+	ADD_LATENT_AUTOMATION_COMMAND(FBuildLightingCommand);
+
+	//Save a copy of the map to the automation temp map folder location once the lighting build has finish.
+	ADD_LATENT_AUTOMATION_COMMAND(FSaveLevelCommand(FPaths::GetBaseFilename(MapName)));
+
+	//Launch onto device and get launch on times and cook times
+	ADD_LATENT_AUTOMATION_COMMAND(FLaunchOnCommand(DeviceID));
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitToFinishCookByTheBookCommand);
+	ADD_LATENT_AUTOMATION_COMMAND(FWaitToFinishBuildDeployCommand);
+
+	//@todo: Verify the game launched.
+
+	//@todo: Close the Launched on Game.
+
+	//Delete the Cooked, StagedBuilds, and Automation_TEMP folder if they exist.
+	ADD_LATENT_AUTOMATION_COMMAND(FDeleteDirCommand(CookedLocation));
+	ADD_LATENT_AUTOMATION_COMMAND(FDeleteDirCommand(StagedBuildsLocation));
+	ADD_LATENT_AUTOMATION_COMMAND(FDeleteDirCommand(TempMapLocation));
+
 	return true;
 }

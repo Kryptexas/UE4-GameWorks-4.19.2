@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "PhysicsPublic.h"
@@ -9,6 +9,7 @@
 
 #include "../PhysicsEngine/PhysXSupport.h"
 #include "PhysXVehicleManager.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 DEFINE_LOG_CATEGORY(LogVehicles);
 
@@ -121,8 +122,7 @@ void FPhysXVehicleManager::UpdateTireFrictionTableInternal()
 	PxVehicleDrivableSurfaceType		DrivableSurfaceTypes[MAX_NUM_MATERIALS];
 
 	// Gather all the physical materials
-	GPhysXSDK->getMaterials(AllPhysicsMaterials, MAX_NUM_MATERIALS);
-	uint32 NumMaterials = GPhysXSDK->getNbMaterials();
+	uint32 NumMaterials = GPhysXSDK->getMaterials(AllPhysicsMaterials, MAX_NUM_MATERIALS);
 
 	uint32 NumTireTypes = UTireType::AllTireTypes.Num();
 

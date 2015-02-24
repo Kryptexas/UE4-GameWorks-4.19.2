@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //
 // A network connection.
@@ -160,7 +160,6 @@ public:
 	FString			Challenge;				// Server-generated challenge.
 	FString			ClientResponse;			// Client-generated response.
 	int32			ResponseId;				// Id assigned by the server for linking responses to connections upon authentication
-	int32			NegotiatedVer;			// Negotiated version for new channels.
 	FString			RequestURL;				// URL requested by client
 
 	// Login state tracking
@@ -218,8 +217,6 @@ public:
 	int32			InPacketId;				// Full incoming packet index.
 	int32			OutPacketId;			// Most recently sent packet.
 	int32 			OutAckPacketId;			// Most recently acked outgoing packet.
-	int32			PartialPacketId;		// Sequencing number for partial packets
-	int32			LastPartialPacketId;	// Most recently received unrealiable partial packet id
 
 	uint32			PingAckDataCache[MAX_PACKETID/PING_ACK_PACKET_INTERVAL];	// Caches packet data on the server, for verifying pings
 	float			LastPingAck;												// The time of the most recent PingAck on the client
@@ -241,8 +238,7 @@ public:
 	TMap<TWeakObjectPtr<AActor>,class UActorChannel*> ActorChannels;
 
 	/** This holds a list of actor channels that want to fully shutdown, but need to continue processing bunches before doing so */
-	UPROPERTY()
-	TArray<class UActorChannel*> KeepProcessingActorChannelBunches;
+	TMap<FNetworkGUID,class UActorChannel*> KeepProcessingActorChannelBunchesMap;
 
 	/** Actors that have gone dormant on this connection	
 	 *  The only way to get on this list is when the actor channel closes. UActorChannel::Close.
@@ -484,7 +480,7 @@ public:
 	 * returns whether the client has initialized the level required for the given object
 	 * @return true if the client has initialized the level the object is in or the object is not in a level, false otherwise
 	 */
-	ENGINE_API virtual bool ClientHasInitializedLevelFor(const UObject* TestObject);
+	ENGINE_API virtual bool ClientHasInitializedLevelFor(const UObject* TestObject) const;
 
 	/**
 	 * Allows the connection to process the raw data that was received

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,12 +14,11 @@ public:
 	/**
 	 * Creates and initializes a new instance.
 	 *
-	 * @param Width
-	 * @param Height
-	 * @param StrideBytes
-	 * @param Padding
+	 * @param InWidth
+	 * @param InHeight
+	 * @param PaddingStyle
 	 */
-	FSlateTextureAtlasRHI( uint32 Width, uint32 Height, uint32 SrideBytes, ESlateTextureAtlasPaddingStyle PaddingStyle );
+	FSlateTextureAtlasRHI( uint32 InWidth, uint32 InHeight, ESlateTextureAtlasPaddingStyle PaddingStyle );
 
 	/**
 	 * Destructor.

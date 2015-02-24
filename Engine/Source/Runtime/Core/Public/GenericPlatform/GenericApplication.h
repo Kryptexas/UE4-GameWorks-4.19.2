@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "GenericPlatform/GenericApplicationMessageHandler.h"
@@ -7,6 +7,7 @@ class FGenericWindow;
 class ICursor;
 class ITextInputMethodSystem;
 class IForceFeedbackSystem;
+class IInputInterface;
 class IAnalyticsProvider;
 
 /**
@@ -30,6 +31,17 @@ namespace EModifierKey
 
 	/** Cmd key (Control key on Mac, Win key on Windows) */
 	const Type Command = 1 << 3;
+
+	FORCEINLINE EModifierKey::Type FromBools(const bool bControl, const bool bAlt, const bool bShift, const bool bCommand)
+	{
+		EModifierKey::Type ModifierMask = EModifierKey::None;
+		if (bControl)	ModifierMask |= EModifierKey::Control;
+		if (bAlt)		ModifierMask |= EModifierKey::Alt;
+		if (bShift)		ModifierMask |= EModifierKey::Shift;
+		if (bCommand)	ModifierMask |= EModifierKey::Command;
+
+		return ModifierMask;
+	}
 };
 
 namespace EPopUpOrientation
@@ -329,6 +341,9 @@ struct FDisplayMetrics
 	FVector2D ActionSafePaddingSize;
 
 	CORE_API static void GetDisplayMetrics(struct FDisplayMetrics& OutDisplayMetrics);
+
+	/** Logs out display metrics */
+	CORE_API void PrintToLog() const;
 };
 
 
@@ -423,7 +438,12 @@ public:
 	virtual void DestroyApplication() { }
 
 	/** Function to return the current implementation of the ForceFeedback system */
-	virtual IForceFeedbackSystem *GetForceFeedbackSystem() { return NULL; }
+	DEPRECATED(4.7, "Please use GetInputInterface()  ForceFeedbackSystem not accessible.")
+	virtual IForceFeedbackSystem* GetForceFeedbackSystem() { return nullptr; }
+
+	virtual IForceFeedbackSystem* DEPRECATED_GetForceFeedbackSystem() { return nullptr; }
+
+	virtual IInputInterface* GetInputInterface() { return nullptr; }	
 
 	/** Function to return the current implementation of the Text Input Method System */
 	virtual ITextInputMethodSystem *GetTextInputMethodSystem() { return NULL; }

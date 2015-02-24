@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EditorExperimentalSettings.h: Declares the UEditorExperimentalSettings class.
@@ -29,9 +29,17 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Editor Utility Blueprints (Blutility)"))
 	bool bEnableEditorUtilityBlueprints;
 
-	/** The Project Launcher provides advanced workflows for packaging, deploying and launching your projects. */
-	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Project Launcher"))
-	bool bProjectLauncher;
+	/** Enable In World BP Editing (WIP). */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "In World Blueprint Editing"))
+	bool bInWorldBPEditing;
+
+	/** Enable Single Layout BP Editor. */
+	UPROPERTY(EditAnywhere, config, Category = Tools, meta = ( DisplayName = "Single Layout Blueprint Editor" ))
+	bool bUnifiedBlueprintEditor;
+
+	/** Enable being able to subclass components in blueprints */
+	UPROPERTY(EditAnywhere, config, Category=Tools)
+	bool bBlueprintableComponents;
 
 	/** The Messaging Debugger provides a visual utility for debugging the messaging system. */
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Messaging Debugger"))
@@ -65,12 +73,8 @@ public:
 	UPROPERTY(EditAnywhere,config,Category=UserInterface,meta=(DisplayName="Allow ChunkID Assignments"))
 	bool bContextMenuChunkAssignments;
 
-	/** Enables the dynamic feature level switching functionality */
-	UPROPERTY(EditAnywhere, config, Category = Rendering, meta = (DisplayName = "Feature Level Preview"))
-	bool bFeatureLevelPreview;
-
 	/** Disable cook in the editor */
-	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Disable Cook In The Editor feature, requires editor restart (cooks from launch on will run in a seperate UE4Editor process)"))
+	UPROPERTY(EditAnywhere, config, Category = Cooking, meta = (DisplayName = "Disable Cook In The Editor feature, requires editor restart (cooks from launch on will be run in a separate process if disabled)"))
 	bool bDisableCookInEditor;
 
 	/** Enable cook on the side */
@@ -84,11 +88,7 @@ public:
 	/** Enables Environment Queries editor */
 	UPROPERTY(EditAnywhere, config, Category = AI, meta = (DisplayName = "Environment Querying System"))
 	bool bEQSEditor;
-
-	/** Enables the Blueprint merge tool */
-	UPROPERTY(EditAnywhere, config, Category = Blueprints, meta = (DisplayName = "Enable Blueprint Merge Tool"))
-	bool bEnableBlueprintMergeTool;
-
+	
 	/**
 	 * Returns an event delegate that is executed when a setting has changed.
 	 *

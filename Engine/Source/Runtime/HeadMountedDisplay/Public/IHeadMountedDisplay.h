@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,7 +17,8 @@ namespace EHMDDeviceType
 	{
 		DT_OculusRift,
 		DT_Morpheus,
-		DT_ES2GenericStereoMesh
+		DT_ES2GenericStereoMesh,
+		DT_NoPost						// don't register any post passes
 	};
 }
 

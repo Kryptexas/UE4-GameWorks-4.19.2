@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 
 #include "WorldTileModel.h"
@@ -13,8 +13,6 @@ FTileLODEntryDetails::FTileLODEntryDetails()
 	// Initialize properties with default values from FWorldTileLODInfo
 	: LODIndex(0)
 	, Distance(FWorldTileLODInfo().RelativeStreamingDistance)
-	, DetailsPercentage(FWorldTileLODInfo().GenDetailsPercentage)
-	, MaxDeviation(FWorldTileLODInfo().GenMaxDeviation)
 {
 }
 
@@ -29,21 +27,7 @@ UWorldTileDetails::UWorldTileDetails(const FObjectInitializer& ObjectInitializer
 	LOD4.LODIndex = 3;
 }
 
-static void SyncLODSettings(FTileLODEntryDetails& To, const FWorldTileLODInfo& From)
-{
-	To.Distance				= From.RelativeStreamingDistance;
-	To.DetailsPercentage	= From.GenDetailsPercentage;
-	To.MaxDeviation			= From.GenMaxDeviation;
-}
-
-static void SyncLODSettings(FWorldTileLODInfo& To, const FTileLODEntryDetails& From)
-{
-	To.RelativeStreamingDistance	= From.Distance;			
-	To.GenDetailsPercentage			= From.DetailsPercentage;
-	To.GenMaxDeviation				= From.MaxDeviation;		
-}
-
-void UWorldTileDetails::SetInfo(const FWorldTileInfo& Info)
+void UWorldTileDetails::SetInfo(const FWorldTileInfo& Info, ULevel* Level)
 {
 	ParentPackageName	= FName(*Info.ParentTilePackageName);
 	Position			= Info.Position;
@@ -55,9 +39,19 @@ void UWorldTileDetails::SetInfo(const FWorldTileInfo& Info)
 	// Sync LOD settings
 	NumLOD				= Info.LODList.Num();
 	FTileLODEntryDetails* LODEntries[WORLDTILE_LOD_MAX_INDEX] = {&LOD1, &LOD2, &LOD3, &LOD4};
-	for (int32 LODIdx = 0; LODIdx < Info.LODList.Num(); ++LODIdx)
+
+	for (int32 i = 0; i < WORLDTILE_LOD_MAX_INDEX; ++i)
 	{
-		SyncLODSettings(*LODEntries[LODIdx], Info.LODList[LODIdx]);
+		if (Info.LODList.IsValidIndex(i))
+		{
+			LODEntries[i]->Distance = Info.LODList[i].RelativeStreamingDistance;
+			LODEntries[i]->SimplificationDetails = Level ? Level->LevelSimplification[i] : FLevelSimplificationDetails();
+		}
+		else
+		{
+			LODEntries[i]->Distance = FWorldTileLODInfo().RelativeStreamingDistance;
+			LODEntries[i]->SimplificationDetails = FLevelSimplificationDetails();
+		}
 	}
 }
 	
@@ -75,9 +69,9 @@ FWorldTileInfo UWorldTileDetails::GetInfo() const
 	// Sync LOD settings
 	Info.LODList.SetNum(FMath::Clamp(NumLOD, 0, WORLDTILE_LOD_MAX_INDEX));
 	const FTileLODEntryDetails* LODEntries[WORLDTILE_LOD_MAX_INDEX] = {&LOD1, &LOD2, &LOD3, &LOD4};
-	for (int32 LODIdx = 0; LODIdx < Info.LODList.Num(); ++LODIdx)
+	for (int32 i = 0; i < Info.LODList.Num(); ++i)
 	{
-		SyncLODSettings(Info.LODList[LODIdx], *LODEntries[LODIdx]);
+		Info.LODList[i].RelativeStreamingDistance = LODEntries[i]->Distance;
 	}
 	
 	return Info;

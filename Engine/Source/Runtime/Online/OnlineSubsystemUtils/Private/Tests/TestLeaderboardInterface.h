@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -29,6 +29,10 @@
 	FOnLeaderboardFlushCompleteDelegate LeaderboardFlushDelegate;
 	/** Delegate called when a leaderboard has been successfully read */
 	FOnLeaderboardReadCompleteDelegate LeaderboardReadCompleteDelegate;
+
+	/** Handles to the above delegates */ 
+	FDelegateHandle LeaderboardFlushDelegateHandle;
+	FDelegateHandle LeaderboardReadCompleteDelegateHandle;
 
 	/** Current phase of testing */
 	int32 TestPhase;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ReferenceViewerPrivatePCH.h"
 #include "GraphEditor.h"
@@ -52,6 +52,8 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 	FEditorWidgetsModule& EditorWidgetsModule = FModuleManager::LoadModuleChecked<FEditorWidgetsModule>("EditorWidgets");
 	TSharedRef<SWidget> AssetDiscoveryIndicator = EditorWidgetsModule.CreateAssetDiscoveryIndicator(EAssetDiscoveryIndicatorScaleMode::Scale_None, FMargin(16, 8), false);
 
+	static const FName DefaultForegroundName("DefaultForeground");
+
 	ChildSlot
 	[
 		SNew(SVerticalBox)
@@ -71,7 +73,7 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 			[
 				SNew(SButton)
 				.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
-				.ForegroundColor( FEditorStyle::GetSlateColor("DefaultForeground") )
+				.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 				.ToolTipText( this, &SReferenceViewer::GetHistoryBackTooltip )
 				.ContentPadding( 0 )
 				.OnClicked(this, &SReferenceViewer::BackClicked)
@@ -89,7 +91,7 @@ void SReferenceViewer::Construct( const FArguments& InArgs )
 			[
 				SNew(SButton)
 				.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
-				.ForegroundColor( FEditorStyle::GetSlateColor("DefaultForeground") )
+				.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 				.ToolTipText( this, &SReferenceViewer::GetHistoryForwardTooltip )
 				.ContentPadding( 0 )
 				.OnClicked(this, &SReferenceViewer::ForwardClicked)
@@ -302,28 +304,22 @@ void SReferenceViewer::GraphNavigateHistoryForward()
 	ForwardClicked();
 }
 
-FString SReferenceViewer::GetHistoryBackTooltip() const
+FText SReferenceViewer::GetHistoryBackTooltip() const
 {
 	if ( HistoryManager.CanGoBack() )
 	{
-		return FText::Format( LOCTEXT("HistoryBackTooltip", "Back to {0}"), FText::FromString(HistoryManager.GetBackDesc()) ).ToString();
+		return FText::Format( LOCTEXT("HistoryBackTooltip", "Back to {0}"), HistoryManager.GetBackDesc() );
 	}
-	else
-	{
-		return FString();
-	}
+	return FText::GetEmpty();
 }
 
-FString SReferenceViewer::GetHistoryForwardTooltip() const
+FText SReferenceViewer::GetHistoryForwardTooltip() const
 {
 	if ( HistoryManager.CanGoForward() )
 	{
-		return FText::Format( LOCTEXT("HistoryForwardTooltip", "Forward to {0}"), FText::FromString(HistoryManager.GetForwardDesc()) ).ToString();
+		return FText::Format( LOCTEXT("HistoryForwardTooltip", "Forward to {0}"), HistoryManager.GetForwardDesc() );
 	}
-	else
-	{
-		return FString();
-	}
+	return FText::GetEmpty();
 }
 
 FText SReferenceViewer::GetAddressBarText() const
@@ -365,44 +361,44 @@ void SReferenceViewer::OnUpdateHistoryData(FReferenceViewerHistoryData& HistoryD
 		const TArray<FName>& CurrentGraphRootPackageNames = GraphObj->GetCurrentGraphRootPackageNames();
 		if ( CurrentGraphRootPackageNames.Num() == 1 )
 		{
-			HistoryData.HistoryDesc = FText::FromName(CurrentGraphRootPackageNames[0]).ToString();
+			HistoryData.HistoryDesc = FText::FromName(CurrentGraphRootPackageNames[0]);
 		}
 		else if ( CurrentGraphRootPackageNames.Num() > 1 )
 		{
-			HistoryData.HistoryDesc = FText::Format(LOCTEXT("AddressBarMultiplePackagesText", "{0} and {1} others"), FText::FromName(CurrentGraphRootPackageNames[0]), FText::AsNumber(CurrentGraphRootPackageNames.Num())).ToString();
+			HistoryData.HistoryDesc = FText::Format(LOCTEXT("AddressBarMultiplePackagesText", "{0} and {1} others"), FText::FromName(CurrentGraphRootPackageNames[0]), FText::AsNumber(CurrentGraphRootPackageNames.Num()));
 		}
 		else
 		{
-			HistoryData.HistoryDesc = TEXT("");
+			HistoryData.HistoryDesc = FText::GetEmpty();
 		}
 
 		HistoryData.PackageNames = CurrentGraphRootPackageNames;
 	}
 	else
 	{
-		HistoryData.HistoryDesc = TEXT("");
+		HistoryData.HistoryDesc = FText::GetEmpty();
 		HistoryData.PackageNames.Empty();
 	}
 }
 
-void SReferenceViewer::OnSearchDepthEnabledChanged( ESlateCheckBoxState::Type NewState )
+void SReferenceViewer::OnSearchDepthEnabledChanged( ECheckBoxState NewState )
 {
 	if ( GraphObj )
 	{
-		GraphObj->SetSearchDepthLimitEnabled(NewState == ESlateCheckBoxState::Checked);
+		GraphObj->SetSearchDepthLimitEnabled(NewState == ECheckBoxState::Checked);
 		GraphObj->RebuildGraph();
 	}
 }
 
-ESlateCheckBoxState::Type SReferenceViewer::IsSearchDepthEnabledChecked() const
+ECheckBoxState SReferenceViewer::IsSearchDepthEnabledChecked() const
 {
 	if ( GraphObj )
 	{
-		return GraphObj->IsSearchDepthLimited() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return GraphObj->IsSearchDepthLimited() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 	else
 	{
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 }
 
@@ -427,24 +423,24 @@ void SReferenceViewer::OnSearchDepthCommitted(int32 NewValue)
 	}
 }
 
-void SReferenceViewer::OnSearchBreadthEnabledChanged( ESlateCheckBoxState::Type NewState )
+void SReferenceViewer::OnSearchBreadthEnabledChanged( ECheckBoxState NewState )
 {
 	if ( GraphObj )
 	{
-		GraphObj->SetSearchBreadthLimitEnabled(NewState == ESlateCheckBoxState::Checked);
+		GraphObj->SetSearchBreadthLimitEnabled(NewState == ECheckBoxState::Checked);
 		GraphObj->RebuildGraph();
 	}
 }
 
-ESlateCheckBoxState::Type SReferenceViewer::IsSearchBreadthEnabledChecked() const
+ECheckBoxState SReferenceViewer::IsSearchBreadthEnabledChecked() const
 {
 	if ( GraphObj )
 	{
-		return GraphObj->IsSearchBreadthLimited() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return GraphObj->IsSearchBreadthLimited() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 	else
 	{
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 }
 

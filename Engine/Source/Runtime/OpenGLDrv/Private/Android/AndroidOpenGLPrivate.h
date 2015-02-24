@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AndroidOpenGLPrivate.h: Code shared betweeen AndroidOpenGL and AndroidGL4OpenGL
@@ -40,8 +40,13 @@ private:
 		if (!EGL->IsInitialized())
 		{
 			FAndroidAppEntry::PlatformInit();
+#if PLATFORM_ANDROIDES31
+			EGL->InitSurface(true);
+#endif
 		}
+#if !PLATFORM_ANDROIDES31
 		EGL->InitSurface(true);
+#endif
 		EGL->SetCurrentSharedContext();
 
 		// get extensions

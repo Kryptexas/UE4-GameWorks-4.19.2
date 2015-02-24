@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -44,7 +44,17 @@ public class HTML5Platform : Platform
             {
                 GameExe += "-HTML5-" + Params.ClientConfigsToBuild[0].ToString();
             }
-            GameExe += ".js";
+			GameExe += ".js";
+			
+			// ensure the ue4game binary exists, if applicable
+			string FullGameExePath = Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe);
+			if (!SC.IsCodeBasedProject && !FileExists_NoExceptions(FullGameExePath))
+			{
+				Log("Failed to find game application " + FullGameExePath);
+				AutomationTool.ErrorReporter.Error("Stage Failed.", (int)AutomationTool.ErrorCodes.Error_MissingExecutable);
+				throw new AutomationException("Could not find application {0}. You may need to build the UE4 project with your target configuration and platform.", FullGameExePath);
+			}
+
             if (Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe) != Path.Combine(PackagePath, GameExe))
             {
                 File.Copy(Path.Combine(Path.GetDirectoryName(Params.ProjectGameExeFilename), GameExe), Path.Combine(PackagePath, GameExe), true);
@@ -83,8 +93,8 @@ public class HTML5Platform : Platform
             string OutDir = PackagePath;
             File.Copy(JSDir + "/json2.js", OutDir + "/json2.js", true);
             File.SetAttributes(OutDir + "/json2.js", FileAttributes.Normal);
-            File.Copy(JSDir + "/jstorage.js", OutDir + "/jstorage.js", true);
-            File.SetAttributes(OutDir + "/jstorage.js", FileAttributes.Normal);
+            File.Copy(JSDir + "/jStorage.js", OutDir + "/jStorage.js", true);
+            File.SetAttributes(OutDir + "/jStorage.js", FileAttributes.Normal);
             File.Copy(JSDir + "/moz_binarystring.js", OutDir + "/moz_binarystring.js", true);
             File.SetAttributes(OutDir + "/moz_binarystring.js", FileAttributes.Normal);
             PrintRunTime();
@@ -127,7 +137,7 @@ public class HTML5Platform : Platform
 				{
 					InArguments = InArguments.Replace ("\"", "");
 					string[] Arguments = InArguments.Split(' ');
-					string ArgumentString = IsContentOnly ? "'" + InGameName + "/" + InGameName + ".uproject '," : "";
+					string ArgumentString = IsContentOnly ? "'../../../" + InGameName + "/" + InGameName + ".uproject '," : "";
 					for (int i = 0; i < Arguments.Length - 1; ++i)
 					{
 						ArgumentString += "'";
@@ -194,7 +204,7 @@ public class HTML5Platform : Platform
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(GameExe + ".mem"));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName("json2.js"));
-		SC.ArchiveFiles(PackagePath, Path.GetFileName("jstorage.js"));
+		SC.ArchiveFiles(PackagePath, Path.GetFileName("jStorage.js"));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName("moz_binarystring.js"));
 		SC.ArchiveFiles(PackagePath, Path.GetFileName(OutputFile));
 	}
@@ -285,10 +295,9 @@ public class HTML5Platform : Platform
 			ClientProcess.ProcessObject.Exited += delegate(System.Object o, System.EventArgs e)
 			{
 				System.Console.WriteLine("Browser Process Ended (PID={0})", ClientProcess.ProcessObject.Id);
-				var bFoundChildProcess = true;
+				var bFoundChildProcess = false;
 				if (bBrowserWillSpawnProcess)
 				{
-					bFoundChildProcess = false;
 					// Chrome spawns a process from the tab it opens and then lets the process we spawned die, so
 					// catch that process and attach to that instead.
 					var CurrentProcesses = Process.GetProcesses();
@@ -313,7 +322,7 @@ public class HTML5Platform : Platform
 
 				if (!bFoundChildProcess)
 				{
-					System.Console.WriteLine("- Killing Webserver", ClientProcess.ProcessObject.Id);
+					System.Console.WriteLine("- Killing Webserver PID({0})", Result.ProcessObject.Id);
 					Result.ProcessObject.StandardInput.Close();
 					Result.ProcessObject.Kill();
 				}
@@ -358,8 +367,13 @@ public class HTML5Platform : Platform
 
     public override PakType RequiresPak(ProjectParams Params)
     {
-        return PakType.Never;
+        return PakType.Always;
     }
+
+	public override string GetPlatformPakCommandLine()
+	{
+		return " -compress";
+	}
 
 	public override bool DeployLowerCaseFilenames(bool bUFSFile)
 	{

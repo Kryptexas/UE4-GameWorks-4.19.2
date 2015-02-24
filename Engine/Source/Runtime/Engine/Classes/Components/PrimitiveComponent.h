@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,6 +14,8 @@
 class FPrimitiveSceneProxy;
 class AController; 
 class UTexture;
+struct FEngineShowFlags;
+struct FConvexVolume;
 
 /** Information about a streaming texture that a primitive uses for rendering. */
 struct FStreamingTexturePrimitiveInfo
@@ -107,7 +109,7 @@ public:
 	/**
 	 * Default UObject constructor.
 	 */
-	UPrimitiveComponent(const FObjectInitializer& ObjectInitializer);
+	UPrimitiveComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
 
 	// Rendering
 	
@@ -137,15 +139,7 @@ public:
 	UPROPERTY()
 	TEnumAsByte<enum ESceneDepthPriorityGroup> ViewOwnerDepthPriorityGroup;
 
-private:
-	/** DEPRECATED, use bGenerateOverlapEvents instead */
-	UPROPERTY()
-	uint32 bNoEncroachCheck_DEPRECATED:1;
-
 public:
-	UPROPERTY()
-	uint32 bDisableAllRigidBody_DEPRECATED:1;
-
 	/** 
 	 * Indicates if we'd like to create physics state all the time (for collision and simulation). 
 	 * If you set this to false, it still will create physics state if collision or simulation activated. 
@@ -215,24 +209,16 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Rendering)
 	uint32 bRenderInMainPass:1;
 
-	/** Whether to completely hide the primitive in the game; if true, the primitive is not drawn, does not cast a shadow. */
-	UPROPERTY()
-	uint32 HiddenGame_DEPRECATED:1;
-
-	/** Whether to draw the primitive in game views, if the primitive isn't hidden. */
-	UPROPERTY()
-	uint32 DrawInGame_DEPRECATED:1;
-	
 	/** Whether the primitive receives decals. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Rendering)
 	uint32 bReceivesDecals:1;
 
 	/** If this is True, this component won't be visible when the view actor is the component's owner, directly or indirectly. */
-	UPROPERTY(EditDefaultsOnly, AdvancedDisplay, BlueprintReadOnly, Category=Rendering)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Rendering)
 	uint32 bOwnerNoSee:1;
 
 	/** If this is True, this component will only be visible when the view actor is the component's owner, directly or indirectly. */
-	UPROPERTY(EditDefaultsOnly, AdvancedDisplay, BlueprintReadOnly, Category=Rendering)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category = Rendering)
 	uint32 bOnlyOwnerSee:1;
 
 	/** Treat this primitive as part of the background for occlusion purposes. This can be used as an optimization to reduce the cost of rendering skyboxes, large ground planes that are part of the vista, etc. */
@@ -272,6 +258,10 @@ public:
 	/** Controls whether the primitive should inject light into the Light Propagation Volume.  This flag is only used if CastShadow is true. **/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, AdvancedDisplay, meta=(EditCondition="CastShadow"))
 	uint32 bAffectDynamicIndirectLighting:1;
+
+	/** Controls whether the primitive should affect dynamic distance field lighting methods.  This flag is only used if CastShadow is true. **/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, AdvancedDisplay, meta=(EditCondition="CastShadow"))
+	uint32 bAffectDistanceFieldLighting:1;
 
 	/** Controls whether the primitive should cast shadows in the case of non precomputed shadowing.  This flag is only used if CastShadow is true. **/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Lighting, AdvancedDisplay, meta=(EditCondition="CastShadow"))
@@ -563,15 +553,26 @@ public:
 	 */
 	virtual bool ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams = FCollisionObjectQueryParams::DefaultObjectQueryParam) const;
 
-	/** Event called when a component is touched */
+	/** 
+	 *	Event called when a component hits (or is hit by) something solid. This could happen due to things like Character movement, using Set Location with 'sweep' enabled, or physics simulation.
+	 *	For events when objects overlap (e.g. walking into a trigger) see the 'Overlap' event.
+	 *	@note For collisions during physics simulation to generate hit events, 'Simulation Generates Hit Events' must be enabled for this component
+	 */
 	UPROPERTY(BlueprintAssignable, Category="Collision")
 	FComponentHitSignature OnComponentHit;
 
-	/** Event called when something overlaps this component */
+	/** 
+	 *	Event called when something starts to overlaps this component, for example a player walking into a trigger.
+	 *	For events when objects have a blocking collision, for example a player hitting a wall, see 'Hit' events.
+	 *	@note Both this component and the other one must have bGenerateOverlapEvents set to true to generate overlap events.
+	 */
 	UPROPERTY(BlueprintAssignable, Category="Collision")
 	FComponentBeginOverlapSignature OnComponentBeginOverlap;
 
-	/** Event called when something ends overlapping this component */
+	/** 
+	 *	Event called when something stops overlapping this component 
+	 *	@note Both this component and the other one must have bGenerateOverlapEvents set to true to generate overlap events.
+	 */
 	UPROPERTY(BlueprintAssignable, Category="Collision")
 	FComponentEndOverlapSignature OnComponentEndOverlap;
 
@@ -681,6 +682,16 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	virtual void AddImpulse(FVector Impulse, FName BoneName = NAME_None, bool bVelChange = false);
+
+	/**
+	*	Add an angular impulse to a single rigid body. Good for one time instant burst.
+	*
+	*	@param	AngularImpulse	Magnitude and direction of impulse to apply. Direction is axis of rotation.
+	*	@param	BoneName	If a SkeletalMeshComponent, name of body to apply angular impulse to. 'None' indicates root body.
+	*	@param	bVelChange	If true, the Strength is taken as a change in angular velocity instead of an impulse (ie. mass will have no affect).
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Physics")
+	virtual void AddAngularImpulse(FVector Impulse, FName BoneName = NAME_None, bool bVelChange = false);
 
 	/**
 	 *	Add an impulse to a single rigid body at a specific location. 
@@ -926,10 +937,15 @@ public:
 	virtual bool IsEditorOnly() const override;
 	virtual bool ShouldCreatePhysicsState() const override;
 	virtual bool HasValidPhysicsState() const override;
+	virtual class FActorComponentInstanceData* GetComponentInstanceData() const override;
+	virtual FName GetComponentInstanceDataType() const override;
 	// End UActorComponent Interface
 
 	/** @return true if the owner is selected and this component is selectable */
 	virtual bool ShouldRenderSelected() const;
+
+	/** Component is directly selected in the editor separate from its parent actor */
+	bool IsComponentIndividuallySelected() const;
 
 	/**  @return True if a primitive's parameters as well as its position is static during gameplay, and can thus use static lighting. */
 	bool HasStaticLighting() const;
@@ -1126,9 +1142,42 @@ public:
 	virtual void UnWeldFromParent();
 
 	/**
+	*   Unwelds the children of this component. Attachment is maintained
+	*/
+	virtual void UnWeldChildren();
+
+	/**
 	*	Adds the bodies that are currently welded to the OutWeldedBodies array 
 	*/
 	virtual void GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedBodies, TArray<FName> & OutLabels);
+
+#if WITH_EDITOR
+	/**
+	 * Determines whether the supplied bounding box intersects with the component.
+	 * Used by the editor in orthographic viewports.
+	 *
+	 * @param	InSelBBox						Bounding box to test against
+	 * @param	ShowFlags						Engine ShowFlags for the viewport
+	 * @param	bConsiderOnlyBSP				If only BSP geometry should be tested
+	 * @param	bMustEncompassEntireComponent	Whether the component bounding box must lay wholly within the supplied bounding box
+	 *
+	 * @return	true if the supplied bounding box is determined to intersect the component (partially or wholly)
+	 */
+	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const;
+
+	/**
+	 * Determines whether the supplied frustum intersects with the component.
+	 * Used by the editor in perspective viewports.
+	 *
+	 * @param	InFrustum						Frustum to test against
+	 * @param	ShowFlags						Engine ShowFlags for the viewport
+	 * @param	bConsiderOnlyBSP				If only BSP geometry should be tested
+	 * @param	bMustEncompassEntireComponent	Whether the component bounding box must lay wholly within the supplied bounding box
+	 *
+	 * @return	true if the supplied bounding box is determined to intersect the component (partially or wholly)
+	 */
+	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const;
+#endif
 
 protected:
 
@@ -1208,6 +1257,12 @@ public:
 	virtual void PostLoad() override;
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	virtual SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
+
+	virtual void MarkAsEditorOnlySubobject() override
+	{
+		AlwaysLoadOnClient = false;
+		AlwaysLoadOnServer = false;
+	}
 
 #if WITH_EDITOR
 	/**
@@ -1336,6 +1391,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	virtual float GetAngularDamping() const;
 
+	/** Change the mass scale used to calculate the mass of a single physics body */
+	UFUNCTION(BlueprintCallable, Category="Physics")
+	virtual void SetMassScale(FName BoneName = NAME_None, float InMassScale = 1.f);
+
+	/** Change the mass scale used fo all bodies in this component */
+	UFUNCTION(BlueprintCallable, Category="Physics")
+	virtual void SetAllMassScale(float InMassScale = 1.f);
+
 	/** Returns the mass of this component in kg. */
 	UFUNCTION(BlueprintCallable, Category="Physics")
 	virtual float GetMass() const;
@@ -1397,6 +1460,12 @@ private:
 	 * Returns true if restored state is matching requested one (no velocity corrections required)
 	 */
 	bool ApplyRigidBodyState(const FRigidBodyState& NewState, const FRigidBodyErrorCorrection& ErrorCorrection, FVector& OutDeltaPos, FName BoneName = NAME_None);
+
+	/** Check if mobility is set to non-static. If it's static we trigger a PIE warning and return true*/
+	bool CheckStaticMobilityAndWarn(const FText& ActionText) const;
+
+	/** Check if mobility is set to non-static. If BodyInstanceRequiresSimulation is non-null we check that it is simulated. Triggers a PIE warning if conditions fails */
+	void WarnInvalidPhysicsOperations(const FText& ActionText, const FBodyInstance* BodyInstanceRequiresSimulation = nullptr) const;
 
 public:
 
@@ -1551,4 +1620,21 @@ public:
 	void DispatchOnReleased();
 	void DispatchOnInputTouchBegin(const ETouchIndex::Type Key);
 	void DispatchOnInputTouchEnd(const ETouchIndex::Type Key);
+};
+
+/** 
+ *  Component instance cached data base class for primitive components. 
+ *  Stores a list of instance components attached to the 
+ */
+class ENGINE_API FPrimitiveComponentInstanceData : public FSceneComponentInstanceData
+{
+public:
+	FPrimitiveComponentInstanceData(const UPrimitiveComponent* SourceComponent);
+			
+	virtual ~FPrimitiveComponentInstanceData()
+	{}
+
+	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override;
+
+	bool ContainsData() const;
 };

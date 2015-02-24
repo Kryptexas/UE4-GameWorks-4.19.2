@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 
@@ -60,6 +60,50 @@ UCollisionProfile* UCollisionProfile::Get()
 	return CollisionProfile;
 }
 
+void UCollisionProfile::GetProfileNames(TArray<TSharedPtr<FName>>& OutNameList)
+{
+	const UCollisionProfile* CollisionProfile = UCollisionProfile::Get();
+	check(CollisionProfile);
+
+	int32 NumProfiles = CollisionProfile->GetNumOfProfiles();
+
+	OutNameList.Empty(NumProfiles);
+
+	for (int32 ProfileId = 0; ProfileId < NumProfiles; ++ProfileId)
+	{
+		const FCollisionResponseTemplate* ProfileTemplate = CollisionProfile->GetProfileByIndex(ProfileId);
+		check(ProfileTemplate);
+
+		OutNameList.Add(MakeShareable(new FName(ProfileTemplate->Name)));
+	}
+}
+
+bool UCollisionProfile::GetChannelAndResponseParams(FName ProfileName, ECollisionChannel &CollisionChannel, FCollisionResponseParams &ResponseParams)
+{
+	const UCollisionProfile* CollisionProfile = UCollisionProfile::Get();
+	check(CollisionProfile);
+
+	FCollisionResponseTemplate Template;
+
+	if (CollisionProfile->GetProfileTemplate(ProfileName, Template))
+	{
+		CollisionChannel = Template.ObjectType;
+		ResponseParams = FCollisionResponseParams(Template.ResponseToChannels);
+		return true;
+	}
+
+	// Check for redirects
+	const FName* RedirectName = CollisionProfile->LookForProfileRedirect(ProfileName);
+	if (RedirectName && CollisionProfile->GetProfileTemplate(*RedirectName, Template))
+	{
+		CollisionChannel = Template.ObjectType;
+		ResponseParams = FCollisionResponseParams(Template.ResponseToChannels);
+		return true;
+	}
+
+	return false;
+}
+
 bool UCollisionProfile::GetProfileTemplate(FName ProfileName, struct FCollisionResponseTemplate& ProfileData) const
 {
 	// verify if it is in redirect first
@@ -95,6 +139,11 @@ bool UCollisionProfile::CheckRedirect(FName ProfileName, FBodyInstance& BodyInst
 	}
 
 	return false;
+}
+
+const FName* UCollisionProfile::LookForProfileRedirect(FName ProfileName) const
+{
+	return ProfileRedirectsMap.Find(ProfileName);
 }
 
 bool UCollisionProfile::FindProfileData(const TArray<FCollisionResponseTemplate>& ProfileList, FName ProfileName, struct FCollisionResponseTemplate& ProfileData) const
@@ -705,3 +754,12 @@ ETraceTypeQuery UCollisionProfile::ConvertToTraceType(ECollisionChannel Collisio
 
 	return TraceTypeQuery_MAX;
 }
+
+#if WITH_EDITOR
+void UCollisionProfile::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	LoadProfileConfig(false);
+
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+}
+#endif

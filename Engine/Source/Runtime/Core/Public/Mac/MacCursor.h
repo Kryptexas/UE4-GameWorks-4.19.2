@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,6 +21,11 @@ public:
 	virtual void SetPosition( const int32 X, const int32 Y ) override;
 
 	virtual void SetType( const EMouseCursor::Type InNewCursor ) override;
+
+	virtual EMouseCursor::Type GetType() const override
+	{
+		return CurrentType;
+	}
 
 	virtual void GetSize( int32& Width, int32& Height ) const override;
 
@@ -48,6 +53,8 @@ public:
 private:
 
 	void UpdateVisibility();
+
+	EMouseCursor::Type CurrentType;
 
 	/** Cursors */
 	NSCursor* CursorHandles[EMouseCursor::TotalCursorCount];

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*
  * MarkdownSharp
@@ -1143,6 +1143,19 @@ namespace MarkdownSharp
                                 relatedPagesCount = data.ProcessedDocumentCache.Metadata.RelatedLinks.Count,
                                 relativeHtmlPath = data.CurrentFolderDetails.RelativeHTMLPath
                             })),
+                        prereqPages = Templates.PrereqPages.Render(Hash.FromAnonymousObject(
+                            new
+                            {
+                                prereqPages = data.ProcessedDocumentCache.Metadata.PrereqLinks,
+                                prereqPagesCount = data.ProcessedDocumentCache.Metadata.PrereqLinks.Count,
+                                relativeHtmlPath = data.CurrentFolderDetails.RelativeHTMLPath
+                            })),
+                        versions = Templates.Versions.Render(Hash.FromAnonymousObject(
+                            new
+                            {
+                                versions = data.ProcessedDocumentCache.Metadata.EngineVersions,
+                                versionCount = data.ProcessedDocumentCache.Metadata.EngineVersions.Count
+                            })),
                         errors = ThisIsPreview
                                      ? Templates.ErrorDetails.Render(Hash.FromAnonymousObject(
                                          new
@@ -1392,6 +1405,35 @@ namespace MarkdownSharp
                 });
 
             foreach(var metadata in linkedDoc.PreprocessedData.Metadata.MetadataMap)
+            {
+                parameters.Add(metadata.Key, string.Join(", ", metadata.Value));
+            }
+
+            return parameters;
+        }
+
+        public Hash ProcessPrereqs(string path, TransformationData data)
+        {
+            ClosestFileStatus status;
+            var linkedDoc = data.ProcessedDocumentCache.GetClosest(path, out status);
+
+            if (status == ClosestFileStatus.FileMissing)
+            {
+                var errorId = data.ErrorList.Count;
+                data.ErrorList.Add(
+                    GenerateError(
+                        Language.Message("BadPrereqPageLink", path), MessageClass.Error, path, errorId, data));
+
+                return new Hash();
+            }
+
+            var parameters = Hash.FromAnonymousObject(
+                new
+                {
+                    relativeLink = linkedDoc.GetRelativeTargetPath(data.Document)
+                });
+
+            foreach (var metadata in linkedDoc.PreprocessedData.Metadata.MetadataMap)
             {
                 parameters.Add(metadata.Key, string.Join(", ", metadata.Value));
             }

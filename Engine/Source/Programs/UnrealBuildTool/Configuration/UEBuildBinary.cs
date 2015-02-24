@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Xml;
+using System.Globalization;
 
 namespace UnrealBuildTool
 {	
@@ -474,6 +475,26 @@ namespace UnrealBuildTool
 			bIncludeDependentLibrariesInLibrary = bInIncludeDependentLibrariesInLibrary;
 		}
 
+		bool IsBuildingDll(UEBuildBinaryType Type)
+		{
+			if (BuildConfiguration.bRunUnrealCodeAnalyzer)
+			{
+				return false;
+			}
+
+			return Type == UEBuildBinaryType.DynamicLinkLibrary;
+		}
+
+		bool IsBuildingLibrary(UEBuildBinaryType Type)
+		{
+			if (BuildConfiguration.bRunUnrealCodeAnalyzer)
+			{
+				return false;
+			}
+
+			return Type == UEBuildBinaryType.StaticLibrary;
+		}
+
 		/// <summary>
 		/// Builds the binary.
 		/// </summary>
@@ -482,165 +503,17 @@ namespace UnrealBuildTool
 		/// <returns></returns>
 		public override IEnumerable<FileItem> Build(IUEToolChain TargetToolChain, CPPEnvironment CompileEnvironment, LinkEnvironment LinkEnvironment)
 		{
-
-			// Determine the type of binary we're linking.
-			switch (Config.Type)
+			// UnrealCodeAnalyzer produces output files only for a specific module.
+			if (BuildConfiguration.bRunUnrealCodeAnalyzer && !(ModuleNames.Contains(BuildConfiguration.UCAModuleToAnalyze)))
 			{
-				case UEBuildBinaryType.DynamicLinkLibrary:
-					CompileEnvironment.Config.bIsBuildingDLL = true;
-					CompileEnvironment.Config.bIsBuildingLibrary = false;
-					break;
-				case UEBuildBinaryType.StaticLibrary:
-					CompileEnvironment.Config.bIsBuildingDLL = false;
-					CompileEnvironment.Config.bIsBuildingLibrary = true;
-					break;
-				default:
-					CompileEnvironment.Config.bIsBuildingDLL = false;
-					CompileEnvironment.Config.bIsBuildingLibrary = false;
-					break;
-			};
-
-			var OutputFiles = new List<FileItem>();
-
-			var BinaryCompileEnvironment = CompileEnvironment.DeepCopy();
-			var BinaryLinkEnvironment = LinkEnvironment.DeepCopy();
-
-			// Process each module that is linked into the binary.
-			var BinaryDependencies = new List<UEBuildBinary>();
-			var LinkEnvironmentVisitedModules = new Dictionary<UEBuildModule, bool>();
-
-			// @Hack: This to prevent UHT from listing CoreUObject.generated.cpp as its dependency.
-			// We flag the compile environment when we build UHT so that we don't need to check
-			// this for each file when generating their dependencies.
-			BinaryCompileEnvironment.bHackHeaderGenerator = (Target.GetAppName() == "UnrealHeaderTool");
-
-			// @todo: This should be in some Windows code somewhere...
-			// Set the original file name macro; used in PCLaunch.rc to set the binary metadata fields.
-			var OriginalFilename = (Config.OriginalOutputFilePaths != null) ?
-				Path.GetFileName(Config.OriginalOutputFilePaths[0]) :
-				Path.GetFileName(Config.OutputFilePaths[0]);
-			BinaryCompileEnvironment.Config.Definitions.Add("ORIGINAL_FILE_NAME=\"" + OriginalFilename + "\"");
-
-			foreach (var ModuleName in ModuleNames)
-			{
-				var Module = Target.GetModuleByName(ModuleName);
-
-				// Compile each module.
-				Log.TraceVerbose("Compile module: " + ModuleName);
-
-				var LinkInputFiles = Module.Compile(CompileEnvironment, BinaryCompileEnvironment, Config.bCompileMonolithic);
-
-				// NOTE: Because of 'Shared PCHs', in monolithic builds the same PCH file may appear as a link input
-				// multiple times for a single binary.  We'll check for that here, and only add it once.  This avoids
-				// a linker warning about redundant .obj files. 
-				foreach( var LinkInputFile in LinkInputFiles )
-				{
-					if( !BinaryLinkEnvironment.InputFiles.Contains( LinkInputFile ))
-					{
-						BinaryLinkEnvironment.InputFiles.Add( LinkInputFile );
-					}
-				}
-				
-				// Allow the module to modify the link environment for the binary.
-				Module.SetupPrivateLinkEnvironment(ref BinaryLinkEnvironment,ref BinaryDependencies,ref LinkEnvironmentVisitedModules);
+				return new List<FileItem>();
 			}
 
-			// Remove the default resource file on Windows (PCLaunch.rc) if the user has specified their own
-			if(BinaryLinkEnvironment.InputFiles.Select(Item => Path.GetFileName(Item.AbsolutePath).ToLower()).Any(Name => Name.EndsWith(".res") && !Name.EndsWith(".inl.res") && Name != "pclaunch.rc.res"))
-			{
-				BinaryLinkEnvironment.InputFiles.RemoveAll(x => Path.GetFileName(x.AbsolutePath).ToLower() == "pclaunch.rc.res");
-			}
+			// Setup linking environment.
+			var BinaryLinkEnvironment = SetupBinaryLinkEnvironment(LinkEnvironment, CompileEnvironment);
 
-			// Allow the binary dependencies to modify the link environment.
-			foreach(var BinaryDependency in BinaryDependencies)
-			{
-				BinaryDependency.SetupDependentLinkEnvironment(ref BinaryLinkEnvironment);
-			}
-
-			// Set the link output file.
-			BinaryLinkEnvironment.Config.OutputFilePaths = Config.OutputFilePaths != null ? (string[])Config.OutputFilePaths.Clone() : null;
-
-			// Set whether the link is allowed to have exports.
-			BinaryLinkEnvironment.Config.bHasExports = Config.bAllowExports;
-
-			// Set the output folder for intermediate files
-			BinaryLinkEnvironment.Config.IntermediateDirectory = Config.IntermediateDirectory;
-
-			// Put the non-executable output files (PDB, import library, etc) in the same directory as the production
-			BinaryLinkEnvironment.Config.OutputDirectory = Path.GetDirectoryName(Config.OutputFilePaths[0]);
-
-			// Determine the type of binary we're linking.
-			switch (Config.Type)
-			{
-				case UEBuildBinaryType.DynamicLinkLibrary:
-					BinaryLinkEnvironment.Config.bIsBuildingDLL = true;
-					BinaryLinkEnvironment.Config.bIsBuildingLibrary = false;
-					break;
-				case UEBuildBinaryType.StaticLibrary:
-					BinaryLinkEnvironment.Config.bIsBuildingDLL = false;
-					BinaryLinkEnvironment.Config.bIsBuildingLibrary = true;
-					break;
-				default:
-					BinaryLinkEnvironment.Config.bIsBuildingDLL = false;
-					BinaryLinkEnvironment.Config.bIsBuildingLibrary = false;
-					break;
-			};
-
-			if( ProjectFileGenerator.bGenerateProjectFiles )
-			{
-				// We're generating projects.  Since we only need include paths and definitions, there is no need
-				// to go ahead and run through the linking logic.
-				OutputFiles = BinaryLinkEnvironment.InputFiles;
-			}
-			else if( BuildConfiguration.bEnableCodeAnalysis )
-			{
-				// We're only analyzing code, so we won't actually link any executables.  Instead, our output
-				// files will simply be the .obj files that were compiled during static analysis.
-				OutputFiles = BinaryLinkEnvironment.InputFiles;
-			}
-			else
-			{
-				if(bCreateImportLibrarySeparately)
-				{
-					// Mark the link environment as cross-referenced.
-					BinaryLinkEnvironment.Config.bIsCrossReferenced = true;
-
-					if (BinaryLinkEnvironment.Config.Target.Platform != CPPTargetPlatform.Mac && BinaryLinkEnvironment.Config.Target.Platform != CPPTargetPlatform.Linux)
-					{
-						// Create the import library.
-						OutputFiles.AddRange(BinaryLinkEnvironment.LinkExecutable(true));
-					}
-				}
-
-				BinaryLinkEnvironment.Config.bIncludeDependentLibrariesInLibrary = bIncludeDependentLibrariesInLibrary;
-
-				// Link the binary.
-				FileItem[] Executables = BinaryLinkEnvironment.LinkExecutable(false);
-				OutputFiles.AddRange(Executables);
-
-				// Produce additional console app if requested
-				if (BinaryLinkEnvironment.Config.CanProduceAdditionalConsoleApp && UEBuildConfiguration.bBuildEditor)
-				{					
-					// Produce additional binary but link it as a console app
-					var ConsoleAppLinkEvironment = BinaryLinkEnvironment.DeepCopy();
-					ConsoleAppLinkEvironment.Config.bIsBuildingConsoleApplication = true;
-					ConsoleAppLinkEvironment.Config.WindowsEntryPointOverride = "WinMainCRTStartup";		// For WinMain() instead of "main()" for Launch module
-					for (int Index = 0; Index < Config.OutputFilePaths.Length; Index++)
-					{
-						ConsoleAppLinkEvironment.Config.OutputFilePaths[Index] = GetAdditionalConsoleAppPath(ConsoleAppLinkEvironment.Config.OutputFilePaths[Index]);
-					}
-
-					// Link the console app executable
-					OutputFiles.AddRange(ConsoleAppLinkEvironment.LinkExecutable(false));
-				}
-
-				foreach (var Executable in Executables)
-				{
-					OutputFiles.AddRange(TargetToolChain.PostBuild(Executable, BinaryLinkEnvironment));
-				}
-			}
-			
-			return OutputFiles;
+			// Return linked files.
+			return SetupOutputFiles(TargetToolChain, ref BinaryLinkEnvironment);
 		}
 
 		/// <summary>
@@ -710,6 +583,185 @@ namespace UnrealBuildTool
 		public override string ToString()
 		{
 			return Config.OutputFilePath;
+		}
+
+		private LinkEnvironment SetupBinaryLinkEnvironment(LinkEnvironment LinkEnvironment, CPPEnvironment CompileEnvironment)
+		{
+			var BinaryLinkEnvironment = LinkEnvironment.DeepCopy();
+			var LinkEnvironmentVisitedModules = new Dictionary<UEBuildModule, bool>();
+			var BinaryDependencies = new List<UEBuildBinary>();
+			CompileEnvironment.Config.bIsBuildingDLL = IsBuildingDll(Config.Type);
+			CompileEnvironment.Config.bIsBuildingLibrary = IsBuildingLibrary(Config.Type);
+
+			var BinaryCompileEnvironment = CompileEnvironment.DeepCopy();
+			// @Hack: This to prevent UHT from listing CoreUObject.generated.cpp as its dependency.
+			// We flag the compile environment when we build UHT so that we don't need to check
+			// this for each file when generating their dependencies.
+			BinaryCompileEnvironment.bHackHeaderGenerator = (Target.GetAppName() == "UnrealHeaderTool");
+
+			// @todo: This should be in some Windows code somewhere...
+			// Set the original file name macro; used in PCLaunch.rc to set the binary metadata fields.
+			var OriginalFilename = (Config.OriginalOutputFilePaths != null) ?
+				Path.GetFileName(Config.OriginalOutputFilePaths[0]) :
+				Path.GetFileName(Config.OutputFilePaths[0]);
+			BinaryCompileEnvironment.Config.Definitions.Add("ORIGINAL_FILE_NAME=\"" + OriginalFilename + "\"");
+
+			foreach (var ModuleName in ModuleNames)
+			{
+				var Module = Target.GetModuleByName(ModuleName);
+
+				// Compile each module.
+				Log.TraceVerbose("Compile module: " + ModuleName);
+
+				var LinkInputFiles = Module.Compile(CompileEnvironment, BinaryCompileEnvironment, Config.bCompileMonolithic);
+
+				// NOTE: Because of 'Shared PCHs', in monolithic builds the same PCH file may appear as a link input
+				// multiple times for a single binary.  We'll check for that here, and only add it once.  This avoids
+				// a linker warning about redundant .obj files. 
+				foreach (var LinkInputFile in LinkInputFiles)
+				{
+					if (!BinaryLinkEnvironment.InputFiles.Contains(LinkInputFile))
+					{
+						BinaryLinkEnvironment.InputFiles.Add(LinkInputFile);
+					}
+				}
+
+				if (!BuildConfiguration.bRunUnrealCodeAnalyzer)
+				{
+					// Allow the module to modify the link environment for the binary.
+					Module.SetupPrivateLinkEnvironment(ref BinaryLinkEnvironment, ref BinaryDependencies, ref LinkEnvironmentVisitedModules);
+				}
+			}
+
+
+			// Remove the default resource file on Windows (PCLaunch.rc) if the user has specified their own
+			if (BinaryLinkEnvironment.InputFiles.Select(Item => Path.GetFileName(Item.AbsolutePath).ToLower()).Any(Name => Name.EndsWith(".res") && !Name.EndsWith(".inl.res") && Name != "pclaunch.rc.res"))
+			{
+				BinaryLinkEnvironment.InputFiles.RemoveAll(x => Path.GetFileName(x.AbsolutePath).ToLower() == "pclaunch.rc.res");
+			}
+
+			// Allow the binary dependencies to modify the link environment.
+			foreach (var BinaryDependency in BinaryDependencies)
+			{
+				BinaryDependency.SetupDependentLinkEnvironment(ref BinaryLinkEnvironment);
+			}
+
+			// Set the link output file.
+			BinaryLinkEnvironment.Config.OutputFilePaths = Config.OutputFilePaths != null ? (string[])Config.OutputFilePaths.Clone() : null;
+
+			// Set whether the link is allowed to have exports.
+			BinaryLinkEnvironment.Config.bHasExports = Config.bAllowExports;
+
+			// Set the output folder for intermediate files
+			BinaryLinkEnvironment.Config.IntermediateDirectory = Config.IntermediateDirectory;
+
+			// Put the non-executable output files (PDB, import library, etc) in the same directory as the production
+			BinaryLinkEnvironment.Config.OutputDirectory = Path.GetDirectoryName(Config.OutputFilePaths[0]);
+
+			// Setup link output type
+			BinaryLinkEnvironment.Config.bIsBuildingDLL = IsBuildingDll(Config.Type);
+			BinaryLinkEnvironment.Config.bIsBuildingLibrary = IsBuildingLibrary(Config.Type);
+
+			return BinaryLinkEnvironment;
+		}
+
+		private List<FileItem> SetupOutputFiles(IUEToolChain TargetToolChain, ref LinkEnvironment BinaryLinkEnvironment)
+		{
+			// Early exits first
+			if (ProjectFileGenerator.bGenerateProjectFiles)
+			{
+				// We're generating projects.  Since we only need include paths and definitions, there is no need
+				// to go ahead and run through the linking logic.
+				return BinaryLinkEnvironment.InputFiles;
+			}
+
+			if (BuildConfiguration.bEnableCodeAnalysis)
+			{
+				// We're only analyzing code, so we won't actually link any executables.  Instead, our output
+				// files will simply be the .obj files that were compiled during static analysis.
+				return BinaryLinkEnvironment.InputFiles;
+			}
+
+			if (BuildConfiguration.bRunUnrealCodeAnalyzer)
+			{
+				//
+				// Create actions to analyze *.includes files and provide suggestions on how to modify PCH.
+				//
+				return CreateOutputFilesForUCA(BinaryLinkEnvironment);
+			}
+
+			//
+			// Regular linking action.
+			//
+			var OutputFiles = new List<FileItem>();
+			if (bCreateImportLibrarySeparately)
+			{
+				// Mark the link environment as cross-referenced.
+				BinaryLinkEnvironment.Config.bIsCrossReferenced = true;
+
+				if (BinaryLinkEnvironment.Config.Target.Platform != CPPTargetPlatform.Mac && BinaryLinkEnvironment.Config.Target.Platform != CPPTargetPlatform.Linux)
+				{
+					// Create the import library.
+					OutputFiles.AddRange(BinaryLinkEnvironment.LinkExecutable(true));
+				}
+			}
+
+			BinaryLinkEnvironment.Config.bIncludeDependentLibrariesInLibrary = bIncludeDependentLibrariesInLibrary;
+
+			// Link the binary.
+			FileItem[] Executables = BinaryLinkEnvironment.LinkExecutable(false);
+			OutputFiles.AddRange(Executables);
+
+			// Produce additional console app if requested
+			if (BinaryLinkEnvironment.Config.CanProduceAdditionalConsoleApp && UEBuildConfiguration.bBuildEditor)
+			{
+				// Produce additional binary but link it as a console app
+				var ConsoleAppLinkEvironment = BinaryLinkEnvironment.DeepCopy();
+				ConsoleAppLinkEvironment.Config.bIsBuildingConsoleApplication = true;
+				ConsoleAppLinkEvironment.Config.WindowsEntryPointOverride = "WinMainCRTStartup";		// For WinMain() instead of "main()" for Launch module
+				for (int Index = 0; Index < Config.OutputFilePaths.Length; Index++)
+				{
+					ConsoleAppLinkEvironment.Config.OutputFilePaths[Index] = GetAdditionalConsoleAppPath(ConsoleAppLinkEvironment.Config.OutputFilePaths[Index]);
+				}
+
+				// Link the console app executable
+				OutputFiles.AddRange(ConsoleAppLinkEvironment.LinkExecutable(false));
+			}
+
+			foreach (var Executable in Executables)
+			{
+				OutputFiles.AddRange(TargetToolChain.PostBuild(Executable, BinaryLinkEnvironment));
+			}
+
+			return OutputFiles;
+		}
+
+		private List<FileItem> CreateOutputFilesForUCA(LinkEnvironment BinaryLinkEnvironment)
+		{
+			var OutputFiles = new List<FileItem>();
+			var ModuleName = ModuleNames.First(Name => Name.CompareTo(BuildConfiguration.UCAModuleToAnalyze) == 0);
+			var ModuleCPP = (UEBuildModuleCPP)Target.GetModuleByName(ModuleName);
+			var ModulePrivatePCH = ModuleCPP.ProcessedDependencies.UniquePCHHeaderFile;
+			var IntermediatePath = Path.Combine(Target.ProjectIntermediateDirectory, ModuleName);
+			var OutputFileName = Target.OutputPath;
+			var OutputFile = FileItem.GetItemByPath(OutputFileName);
+
+			Action LinkAction = new Action(ActionType.Compile);
+			LinkAction.WorkingDirectory = Path.GetFullPath(".");
+			LinkAction.CommandPath = System.IO.Path.Combine(LinkAction.WorkingDirectory, @"..", @"Binaries", @"Win32", @"UnrealCodeAnalyzer.exe");
+			LinkAction.bIsVCCompiler = false;
+			LinkAction.ProducedItems.Add(OutputFile);
+			LinkAction.PrerequisiteItems.AddRange(BinaryLinkEnvironment.InputFiles);
+			LinkAction.CommandArguments = @"-AnalyzePCHFile -PCHFile=""" + ModulePrivatePCH.AbsolutePath + @""" -OutputFile=""" + OutputFileName + @""" -HeaderDataPath=""" + IntermediatePath + @""" -UsageThreshold " + BuildConfiguration.UCAUsageThreshold.ToString(CultureInfo.InvariantCulture);
+
+			foreach (string IncludeSearchPath in ModuleCPP.IncludeSearchPaths)
+			{
+				LinkAction.CommandArguments += @" /I""" + LinkAction.WorkingDirectory + @"\" + IncludeSearchPath + @"""";
+			}
+
+			OutputFiles.Add(OutputFile);
+
+			return OutputFiles;
 		}
 	};
 

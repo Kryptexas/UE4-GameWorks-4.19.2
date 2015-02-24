@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "stdafx.h"
 #include "Importer.h"
@@ -41,7 +41,7 @@ static FVector SplineEvalDir(const FVector& StartPos, const FVector& StartTangen
 
 	const float A2 = A  * A;
 
-	return ((C * A2) + (D * A) + E).SafeNormal();
+	return ((C * A2) + (D * A) + E).GetSafeNormal();
 }
 
 /** Calculate full transform that defines frame along spline, given the Z of a vertex. */
@@ -59,8 +59,8 @@ static FMatrix CalcSliceTransform(float ZPos, const FSplineMeshParams& SplinePar
 	const FVector SplineDir = SplineEvalDir( SplineParams.StartPos, SplineParams.StartTangent, SplineParams.EndPos, SplineParams.EndTangent, Alpha );
 
 	// Find base frenet frame
-	const FVector BaseXVec = (SplineParams.SplineUpDir ^ SplineDir).SafeNormal();
-	const FVector BaseYVec = (SplineDir ^ BaseXVec).SafeNormal();
+	const FVector BaseXVec = (SplineParams.SplineUpDir ^ SplineDir).GetSafeNormal();
+	const FVector BaseYVec = (SplineDir ^ BaseXVec).GetSafeNormal();
 
 	// Offset the spline by the desired amount
 	const FVector2D SliceOffset = FMath::Lerp<FVector2D>(SplineParams.StartOffset, SplineParams.EndOffset, HermiteAlpha);
@@ -111,8 +111,8 @@ static FMatrix CalcSliceRot(float ZPos, const FSplineMeshParams& SplineParams)
 	const FVector SplineDir = SplineEvalDir( SplineParams.StartPos, SplineParams.StartTangent, SplineParams.EndPos, SplineParams.EndTangent, Alpha );
 
 	// Find base frenet frame
-	const FVector BaseXVec = (SplineParams.SplineUpDir ^ SplineDir).SafeNormal();
-	const FVector BaseYVec = (SplineDir ^ BaseXVec).SafeNormal();
+	const FVector BaseXVec = (SplineParams.SplineUpDir ^ SplineDir).GetSafeNormal();
+	const FVector BaseYVec = (SplineDir ^ BaseXVec).GetSafeNormal();
 
 	// Apply roll to frame around spline
 	const float UseRoll = FMath::Lerp(SplineParams.StartRoll, SplineParams.EndRoll, HermiteAlpha);
@@ -178,22 +178,22 @@ static void GetStaticLightingVertex(
 		const FVector4 LocalSpaceTangentY = SliceRot.TransformVector(InVertex.TangentY);
 		const FVector4 LocalSpaceTangentZ = SliceRot.TransformVector(InVertex.TangentZ);
 
-		OutVertex.WorldTangentX = LocalToWorld.TransformVector(LocalSpaceTangentX).SafeNormal();
-		OutVertex.WorldTangentY = LocalToWorld.TransformVector(LocalSpaceTangentY).SafeNormal();
-		OutVertex.WorldTangentZ = LocalToWorldInverseTranspose.TransformVector(LocalSpaceTangentZ).SafeNormal();
+		OutVertex.WorldTangentX = LocalToWorld.TransformVector(LocalSpaceTangentX).GetSafeNormal();
+		OutVertex.WorldTangentY = LocalToWorld.TransformVector(LocalSpaceTangentY).GetSafeNormal();
+		OutVertex.WorldTangentZ = LocalToWorldInverseTranspose.TransformVector(LocalSpaceTangentZ).GetSafeNormal();
 	}
 	else
 	{
 		OutVertex.WorldPosition = LocalToWorld.TransformPosition(InVertex.Position);
-		OutVertex.WorldTangentX = LocalToWorld.TransformVector(InVertex.TangentX).SafeNormal();
-		OutVertex.WorldTangentY = LocalToWorld.TransformVector(InVertex.TangentY).SafeNormal();
-		OutVertex.WorldTangentZ = LocalToWorldInverseTranspose.TransformVector(InVertex.TangentZ).SafeNormal();
+		OutVertex.WorldTangentX = LocalToWorld.TransformVector(InVertex.TangentX).GetSafeNormal();
+		OutVertex.WorldTangentY = LocalToWorld.TransformVector(InVertex.TangentY).GetSafeNormal();
+		OutVertex.WorldTangentZ = LocalToWorldInverseTranspose.TransformVector(InVertex.TangentZ).GetSafeNormal();
 	}
 
 	// WorldTangentZ can end up a 0 vector if it was small to begin with and LocalToWorld contains large scale factors.
 	if (!OutVertex.WorldTangentZ.IsUnit3())
 	{
-		OutVertex.WorldTangentZ = (OutVertex.WorldTangentX ^ OutVertex.WorldTangentY).SafeNormal();
+		OutVertex.WorldTangentZ = (OutVertex.WorldTangentX ^ OutVertex.WorldTangentY).GetSafeNormal();
 	}
 
 	for(uint32 LightmapTextureCoordinateIndex = 0; LightmapTextureCoordinateIndex < ARRAY_COUNT(InVertex.UVs); LightmapTextureCoordinateIndex++)

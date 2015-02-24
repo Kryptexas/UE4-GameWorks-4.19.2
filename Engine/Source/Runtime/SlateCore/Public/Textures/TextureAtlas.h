@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,6 +14,19 @@ enum ESlateTextureAtlasPaddingStyle
 	DilateBorder,
 	/** One pixel uniform padding border filled with zeros. */
 	PadWithZero,
+};
+
+/** 
+ * The type of thread that owns a texture atlas - this is the only thread that can safely update it 
+ */
+enum class ESlateTextureAtlasOwnerThread : uint8
+{
+	/** Owner thread is currently unknown */
+	Unknown,
+	/** Atlas is owned by the game thread */
+	Game,
+	/** Atlas is owned by the render thread */
+	Render,
 };
 
 /**
@@ -56,14 +69,15 @@ struct FAtlasedTextureSlot
 class SLATECORE_API FSlateTextureAtlas
 {
 public:
-	FSlateTextureAtlas( uint32 InWidth, uint32 InHeight, uint32 StrideBytes, ESlateTextureAtlasPaddingStyle InPaddingStyle )
+	FSlateTextureAtlas( uint32 InWidth, uint32 InHeight, uint32 InBytesPerPixel, ESlateTextureAtlasPaddingStyle InPaddingStyle )
 		: AtlasData()
 		, RootNode( nullptr )
 		, AtlasWidth( InWidth )
 		, AtlasHeight( InHeight )
-		, Stride( StrideBytes )
+		, BytesPerPixel( InBytesPerPixel )
 		, PaddingStyle( InPaddingStyle )
 		, bNeedsUpdate( false )
+		, AtlasOwnerThread( ESlateTextureAtlasOwnerThread::Unknown )
 	{
 		InitAtlasData();
 	}
@@ -172,6 +186,11 @@ private:
 	 */
 	const FAtlasedTextureSlot* FindSlotForTexture( FAtlasedTextureSlot& Start, uint32 InWidth, uint32 InHeight );
 
+	/** Returns the amount of padding needed for the current padding style */
+	int32 GetPaddingAmount() const
+	{
+		return (PaddingStyle == ESlateTextureAtlasPaddingStyle::NoPadding) ? 0 : 1;
+	}
 protected:
 	/** Actual texture data contained in the atlas */
 	TArray<uint8> AtlasData;
@@ -181,14 +200,39 @@ protected:
 	uint32 AtlasWidth;
 	/** Height of the atlas */
 	uint32 AtlasHeight;
-	/** Stride of the atlas in bytes */
-	uint32 Stride;
+	/** Bytes per pixel in the atlas */
+	uint32 BytesPerPixel;
 	/** Padding style */
 	ESlateTextureAtlasPaddingStyle PaddingStyle;
 
 	/** True if this texture needs to have its rendering resources updated */
 	bool bNeedsUpdate;
 
-	/** ID of the thread that owns this atlas - this is the only thread that can safely update it */
-	uint32 AtlasOwnerThreadId;
+	/** 
+	 * The type of thread that owns this atlas - this is the only thread that can safely update it 
+	 * NOTE: We don't use the thread ID here, as the render thread can be recreated if it gets suspended and resumed, giving it a new ID
+	 */
+	ESlateTextureAtlasOwnerThread AtlasOwnerThread;
+};
+
+/**
+ * Interface to allow the Slate atlas visualizer to query atlas page information for an atlas provider
+ */
+class ISlateAtlasProvider
+{
+public:
+	/** Virtual destructor */
+	virtual ~ISlateAtlasProvider() {}
+
+	/** Get the number of atlas pages this atlas provider has available when calling GetAtlasPageResource */
+	virtual int32 GetNumAtlasPages() const = 0;
+
+	/** Get the size of each atlas page */
+	virtual FIntPoint GetAtlasPageSize() const = 0;
+
+	/** Get the page resource for the given index (verify with GetNumAtlasPages) */ 
+	virtual class FSlateShaderResource* GetAtlasPageResource(const int32 InIndex) const = 0;
+
+	/** Do the atlas page resources only contain alpha information? This affects how the atlas visualizer will sample them */
+	virtual bool IsAtlasPageResourceAlphaOnly() const = 0;
 };

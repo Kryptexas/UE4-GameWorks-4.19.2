@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+class FHittestGrid;
 
 
 /** Notification that a window has been activated */
@@ -97,7 +99,7 @@ public:
 		SLATE_ARGUMENT( bool, bDragAnywhere )
 
 		/** The windows auto-centering mode. If set to anything other than None, then the
-		    ScreenPosition value will be ignored */
+			ScreenPosition value will be ignored */
 		SLATE_ARGUMENT( EAutoCenter::Type, AutoCenter )
 
 		/** Screen-space position where the window should be initially located. */
@@ -136,13 +138,25 @@ public:
 		/** Can this window be minimized? */
 		SLATE_ARGUMENT( bool, SupportsMinimize )
 
+		/** The smallest width this window can be in Desktop Pixel Units. */
+		SLATE_ARGUMENT( TOptional<float>, MinWidth )
+		
+		/** The smallest height this window can be in Desktop Pixel Units. */
+		SLATE_ARGUMENT( TOptional<float>, MinHeight )
+		
+		/** The biggest width this window can be in Desktop Pixel Units. */
+		SLATE_ARGUMENT( TOptional<float>, MaxWidth )
+
+		/** The biggest height this window can be in Desktop Pixel Units. */
+		SLATE_ARGUMENT( TOptional<float>, MaxHeight )
+
 		/** True if we should initially create a traditional title bar area.  If false, the user must embed the title
-		    area content into the window manually, taking into account platform-specific considerations!  Has no
+			area content into the window manually, taking into account platform-specific considerations!  Has no
 			effect for certain types of windows (popups, tool-tips, etc.) */
 		SLATE_ARGUMENT( bool, CreateTitleBar )
 
 		/** If the window appears off screen or is too large to safely fit this flag will force realistic 
-		    constraints on the window and bring it back into view. */
+			constraints on the window and bring it back into view. */
 		SLATE_ARGUMENT( bool, SaneWindowPlacement )
 
 		/** The padding around the edges of the window applied to it's content. */
@@ -543,15 +557,15 @@ public:
 	/** Set modal window related flags - called by Slate app code during FSlateApplication::AddModalWindow() */
 	void SetAsModalWindow()
 	{
-        bIsModalWindow = true;
+		bIsModalWindow = true;
 		bHasMaximizeButton = false;
 		bHasMinimizeButton = false;
 	}
 
 	bool IsModalWindow()
-    {
-        return bIsModalWindow;
-    }
+	{
+		return bIsModalWindow;
+	}
 
 	void SetTitleBar( const TSharedPtr<IWindowTitleBar> InTitleBar )
 	{
@@ -653,7 +667,7 @@ public:
 	}
 
 	/**
-	 * Returns the viewport size, taking into consideration if the window size should drive the viewport size
+	 * Returns the viewport size, taking into consideration if the window size should drive the viewport size 
 	 */
 	inline FVector2D GetViewportSize() const
 	{
@@ -667,6 +681,17 @@ public:
 	{
 		ViewportSize = VP;
 	}
+
+	/**
+	 * Access the hittest acceleration data structure for this window.
+	 * The grid is filled out every time the window is painted.
+	 *
+	 * @see FHittestGrid for more details.
+	 */
+	TSharedRef<FHittestGrid> GetHittestGrid();
+
+	/** Optional constraints on min and max sizes that this window can be. */
+	FWindowSizeLimits GetSizeLimits() const;
 
 public:
 
@@ -724,7 +749,7 @@ protected:
 	bool bIsTopmostWindow : 1;
 
 	/** True if we expect the size of this window to change often, such as if its animated, or if it recycled for tool-tips,
-	    and we'd like to avoid costly GPU buffer resizes when that happens.  Enabling this may incur memory overhead or
+		and we'd like to avoid costly GPU buffer resizes when that happens.  Enabling this may incur memory overhead or
 		other platform-specific side effects */
 	bool bSizeWillChangeOften : 1;
 
@@ -754,9 +779,9 @@ protected:
 
 	/** True if this window displays thick edge that can be used to resize the window */
 	bool bHasSizingFrame : 1;
-    
-    /** True if the window is modal */
-    bool bIsModalWindow : 1;
+	
+	/** True if the window is modal */
+	bool bIsModalWindow : 1;
 
 	/** Initial desired position of the window's content in screen space */
 	FVector2D InitialDesiredScreenPosition;
@@ -822,7 +847,7 @@ protected:
 	SVerticalBox::FSlot* ContentSlot;
 
 	/** Widget to transfer keyboard focus to when this window becomes active, if any.  This is used to
-	    restore focus to a widget after a popup has been dismissed. */
+		restore focus to a widget after a popup has been dismissed. */
 	TWeakPtr< SWidget > WidgetToFocusOnActivate;
 
 	/** Style used to draw this window */
@@ -831,8 +856,14 @@ protected:
 
 private:
 
+	/** Min and Max values for Width and Height; all optional. */
+	FWindowSizeLimits SizeLimits;
+
 	/** The native window that is backing this Slate Window */
 	TSharedPtr<FGenericWindow> NativeWindow;
+
+	/** Each window has its own hittest grid for accelerated widget picking. */
+	TSharedRef<FHittestGrid> HittestGrid;
 	
 	/** Invoked when the window has been activated. */
 	FOnWindowActivated OnWindowActivated;
@@ -986,7 +1017,7 @@ private:
  */
 struct FScopedSwitchWorldHack
 {
-	FScopedSwitchWorldHack( FWidgetPath& WidgetPath )
+	FScopedSwitchWorldHack( const FWidgetPath& WidgetPath )
 		: Window( WidgetPath.TopLevelWindow )
 		, WorldId( -1 )
 	{

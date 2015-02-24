@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -104,6 +104,24 @@ struct dtTileCacheDistanceField
 	unsigned short maxDist;	///< Max distance
 	unsigned short* data;	///< distance for every cell in layer
 };
+
+class NAVMESH_API dtTileCacheLogContext
+{
+public:
+	/// Logs a message.
+	///  @param[in]		category	The category of the message.
+	///  @param[in]		format		The message.
+	void dtLog(const char* format, ...);
+
+protected:
+
+	/// Logs a message.
+	///  @param[in]		category	The category of the message.
+	///  @param[in]		msg			The formatted message.
+	///  @param[in]		len			The length of the formatted message.
+	virtual void doDtLog(const char* /*msg*/, const int /*len*/) {}
+};
+
 //@UE4 END
 
 struct NAVMESH_API dtTileCacheAlloc
@@ -237,6 +255,7 @@ NAVMESH_API dtStatus dtBuildTileCacheContours(dtTileCacheAlloc* alloc,
 								dtTileCacheClusterSet& lclusters);
 
 NAVMESH_API dtStatus dtBuildTileCachePolyMesh(dtTileCacheAlloc* alloc,
+								dtTileCacheLogContext* ctx,
 								dtTileCacheContourSet& lcset,
 								dtTileCachePolyMesh& mesh);
 

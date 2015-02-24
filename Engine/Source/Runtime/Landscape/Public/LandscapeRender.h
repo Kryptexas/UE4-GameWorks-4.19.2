@@ -1,11 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 LandscapeRender.h: New terrain rendering
 =============================================================================*/
 
-#ifndef _LANDSCAPERENDER_H
-#define _LANDSCAPERENDER_H
+#pragma once
 
 #include "UniformBuffer.h"
 
@@ -26,6 +25,9 @@ LandscapeRender.h: New terrain rendering
 #define LANDSCAPE_LOD_LEVELS 8
 #define LANDSCAPE_MAX_SUBSECTION_NUM 2
 
+// Forward declarations
+class FLandscapeComponentSceneProxy;
+
 #if WITH_EDITOR
 namespace ELandscapeViewMode
 {
@@ -39,6 +41,7 @@ namespace ELandscapeViewMode
 		DebugLayer,
 		LayerDensity,
 		LOD,
+		WireframeOnTop,
 	};
 }
 
@@ -48,13 +51,13 @@ namespace ELandscapeEditRenderMode
 {
 	enum Type
 	{
-		None				= 0x0,
-		Gizmo				= 0x1,
-		SelectRegion		= 0x2,
-		SelectComponent		= 0x4,
+		None = 0x0,
+		Gizmo = 0x1,
+		SelectRegion = 0x2,
+		SelectComponent = 0x4,
 		Select = SelectRegion | SelectComponent,
-		Mask				= 0x8, 
-		InvertedMask		= 0x10, // Should not be overlapped with other bits 
+		Mask = 0x8,
+		InvertedMask = 0x10, // Should not be overlapped with other bits 
 		BitMaskForMask = Mask | InvertedMask,
 
 	};
@@ -72,15 +75,15 @@ LANDSCAPE_API extern UTexture2D* GLandscapeBlackTexture;
 
 
 /** The uniform shader parameters for a landscape draw call. */
-BEGIN_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters,LANDSCAPE_API)
-	/** vertex shader parameters */
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,HeightmapUVScaleBias)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,WeightmapUVScaleBias)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,LandscapeLightmapScaleBias)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,SubsectionSizeVertsLayerUVPan)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,SubsectionOffsetParams)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4,LightmapSubsectionOffsetParams)
-	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix,LocalToWorldNoScaling)
+BEGIN_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters, LANDSCAPE_API)
+/** vertex shader parameters */
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, HeightmapUVScaleBias)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, WeightmapUVScaleBias)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, LandscapeLightmapScaleBias)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, SubsectionSizeVertsLayerUVPan)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, SubsectionOffsetParams)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FVector4, LightmapSubsectionOffsetParams)
+DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(FMatrix, LocalToWorldNoScaling)
 END_UNIFORM_BUFFER_STRUCT(FLandscapeUniformShaderParameters)
 
 /* Data needed for the landscape vertex factory to set the render state for an individual batch element */
@@ -90,7 +93,7 @@ struct FLandscapeBatchElementParams
 	const FMatrix* LocalToWorldNoScalingPtr;
 
 	// LOD calculation-related params
-	const class FLandscapeComponentSceneProxy* SceneProxy;
+	const FLandscapeComponentSceneProxy* SceneProxy;
 	int32 SubX;
 	int32 SubY;
 	int32	CurrentLOD;
@@ -121,8 +124,8 @@ public:
 	/**
 	* Set any shader data specific to this vertex factory
 	*/
-	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* PixelShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const override;
-	
+	virtual void SetMesh(FRHICommandList& RHICmdList, FShader* PixelShader, const FVertexFactory* VertexFactory, const FSceneView& View, const FMeshBatchElement& BatchElement, uint32 DataFlags) const override;
+
 	virtual uint32 GetSize() const override
 	{
 		return sizeof(*this);
@@ -141,12 +144,11 @@ class FLandscapeVertexFactory : public FVertexFactory
 
 public:
 
-	FLandscapeVertexFactory()
-	{
-	}
+	FLandscapeVertexFactory() {}
 
 	virtual ~FLandscapeVertexFactory()
 	{
+		// can only be destroyed from the render thread
 		ReleaseResource();
 	}
 
@@ -159,9 +161,9 @@ public:
 	};
 
 	/**
-	* Should we cache the material's shadertype on this platform with this vertex factory? 
+	* Should we cache the material's shadertype on this platform with this vertex factory?
 	*/
-	static bool ShouldCache(EShaderPlatform Platform, const class FMaterial* Material, const class FShaderType* ShaderType)
+	static bool ShouldCache(EShaderPlatform Platform, const FMaterial* Material, const FShaderType* ShaderType)
 	{
 		// only compile landscape materials for landscape vertex factory
 		// The special engine materials must be compiled for the landscape vertex factory because they are used with it for wireframe, etc.
@@ -194,10 +196,10 @@ public:
 		UpdateRHI();
 	}
 
-	virtual uint64 GetStaticBatchElementVisibility( const class FSceneView& View, const struct FMeshBatch* Batch ) const override;
+	virtual uint64 GetStaticBatchElementVisibility(const FSceneView& View, const FMeshBatch* Batch) const override;
 
 	/** stream component data bound to this vertex factory */
-	DataType Data;  
+	DataType Data;
 };
 
 
@@ -207,21 +209,9 @@ class FLandscapeXYOffsetVertexFactory : public FLandscapeVertexFactory
 	DECLARE_VERTEX_FACTORY_TYPE(FLandscapeXYOffsetVertexFactory);
 
 public:
+	FLandscapeXYOffsetVertexFactory() {}
+	virtual ~FLandscapeXYOffsetVertexFactory() {}
 
-	FLandscapeXYOffsetVertexFactory()
-	{
-	}
-
-	virtual ~FLandscapeXYOffsetVertexFactory()
-	{
-		ReleaseResource();
-	}
-
-	static FVertexFactoryShaderParameters* ConstructShaderParameters(EShaderFrequency ShaderFrequency);
-
-	/**
-	* Can be overridden by FVertexFactory subclasses to modify their compile environment just before compilation occurs.
-	*/
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment);
 };
 
@@ -241,11 +231,11 @@ class FLandscapeVertexBuffer : public FVertexBuffer
 	int32 SubsectionSizeVerts;
 	int32 NumSubsections;
 public:
-	
+
 	/** Constructor. */
 	FLandscapeVertexBuffer(int32 InSubsectionSizeVerts, int32 InNumSubsections)
-	: 	SubsectionSizeVerts(InSubsectionSizeVerts)
-	,	NumSubsections(InNumSubsections)
+		: SubsectionSizeVerts(InSubsectionSizeVerts)
+		, NumSubsections(InNumSubsections)
 	{
 		InitResource();
 	}
@@ -256,8 +246,8 @@ public:
 		ReleaseResource();
 	}
 
-	/** 
-	* Initialize the RHI for this rendering resource 
+	/**
+	* Initialize the RHI for this rendering resource
 	*/
 	virtual void InitRHI() override;
 };
@@ -323,14 +313,14 @@ struct FLandscapeEditToolRenderData
 	};
 
 	FLandscapeEditToolRenderData(ULandscapeComponent* InComponent)
-		:	ToolMaterial(NULL),
-			GizmoMaterial(NULL),
-			LandscapeComponent(InComponent),
-			SelectedType(ST_NONE),
-			DebugChannelR(INDEX_NONE),
-			DebugChannelG(INDEX_NONE),
-			DebugChannelB(INDEX_NONE),
-			DataTexture(NULL)
+		: ToolMaterial(NULL),
+		GizmoMaterial(NULL),
+		LandscapeComponent(InComponent),
+		SelectedType(ST_NONE),
+		DebugChannelR(INDEX_NONE),
+		DebugChannelG(INDEX_NONE),
+		DebugChannelB(INDEX_NONE),
+		DataTexture(NULL)
 	{}
 
 	// Material used to render the tool.
@@ -351,8 +341,8 @@ struct FLandscapeEditToolRenderData
 #endif
 
 	// Game thread update
-	LANDSCAPE_API void Update( UMaterialInterface* InNewToolMaterial );
-	LANDSCAPE_API void UpdateGizmo( UMaterialInterface* InNewGizmoMaterial );
+	LANDSCAPE_API void Update(UMaterialInterface* InNewToolMaterial);
+	LANDSCAPE_API void UpdateGizmo(UMaterialInterface* InNewGizmoMaterial);
 	// Allows game thread to queue the deletion by the render thread
 	void Cleanup();
 };
@@ -364,7 +354,29 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy
 {
 	friend class FLandscapeSharedBuffers;
 
-	class FLandscapeLCI : public FLightCacheInterface
+	// Key to uniquely identify the landscape to find the correct render proxy map
+	class FLandscapeKey
+	{
+		const UWorld* World;
+		const FGuid Guid;
+	public:
+		FLandscapeKey(const UWorld* InWorld, const FGuid& InGuid)
+		: World(InWorld)
+		, Guid(InGuid)
+		{}
+
+		friend inline uint32 GetTypeHash(const FLandscapeKey& LandscapeKey)
+		{
+			return HashCombine(GetTypeHash(LandscapeKey.World), GetTypeHash(LandscapeKey.Guid));
+		}
+
+		friend bool operator==(const FLandscapeKey& A, const FLandscapeKey& B)
+		{
+			return A.World == B.World && A.Guid == B.Guid;
+		}
+	};
+
+	class FLandscapeLCI final : public FLightCacheInterface
 	{
 	public:
 		/** Initialization constructor. */
@@ -375,12 +387,8 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy
 			IrrelevantLights = InComponent->IrrelevantLights;
 		}
 
-		virtual ~FLandscapeLCI()
-		{
-		}
-
 		// FLightCacheInterface
-		virtual FLightInteraction GetInteraction(const class FLightSceneProxy* LightSceneProxy) const;
+		virtual FLightInteraction GetInteraction(const FLightSceneProxy* LightSceneProxy) const;
 
 		virtual FLightMapInteraction GetLightMapInteraction(ERHIFeatureLevel::Type InFeatureLevel) const
 		{
@@ -403,15 +411,18 @@ class FLandscapeComponentSceneProxy : public FPrimitiveSceneProxy
 	};
 
 protected:
-	int32						MaxLOD;
-	int32						ComponentSizeQuads;	// Size of component in quads
-	int32						ComponentSizeVerts;
-	int32						NumSubsections;
-	int32						SubsectionSizeQuads;
-	int32						SubsectionSizeVerts;
-	FIntPoint					SectionBase;
+	FLandscapeKey				LandscapeKey;
+	bool						bAddedToSceneProxyMap;
+	int8						MaxLOD;
+	int8						NumSubsections;
+	int16						SubsectionSizeQuads;
+	int16						SubsectionSizeVerts;
+	int16						ComponentSizeQuads;	// Size of component in quads
+	int16						ComponentSizeVerts;
+	uint8						StaticLightingLOD;
 	float						StaticLightingResolution;
-	uint32						StaticLightingLOD;
+	FIntPoint					SectionBase;
+	FIntPoint					ComponentBase;
 	FMatrix						LocalToWorldNoScaling;
 
 	// Storage for static draw list batch params
@@ -419,16 +430,15 @@ protected:
 
 	// Precomputed values
 	float					LODDistance;
-	float					PrecomputedLODFactor;
 	float					DistDiff;
 
 	FVector4 WeightmapScaleBias;
 	float WeightmapSubsectionOffset;
-	TArray<class UTexture2D*> WeightmapTextures;
-	int32 NumWeightmapLayerAllocations;
+	TArray<UTexture2D*> WeightmapTextures;
+	int8 NumWeightmapLayerAllocations;
 
 	UTexture2D* NormalmapTexture; // PC : Heightmap, Mobile : Weightmap
-	
+
 	UTexture2D* HeightmapTexture; // PC : Heightmap, Mobile : Weightmap
 	FVector4 HeightmapScaleBias;
 	float HeightmapSubsectionOffsetU;
@@ -440,7 +450,7 @@ protected:
 	uint32						SharedBuffersKey;
 	FLandscapeSharedBuffers*	SharedBuffers;
 	FLandscapeVertexFactory*	VertexFactory;
-	
+
 	UMaterialInterface* MaterialInterface;
 	FMaterialRelevance MaterialRelevance;
 
@@ -449,20 +459,23 @@ protected:
 	static TMap<uint32, FLandscapeSharedBuffers*> SharedBuffersMap;
 	static TMap<uint32, FLandscapeSharedAdjacencyIndexBuffer*> SharedAdjacencyIndexBufferMap;
 
+	// Map of currently registered landscape proxies, used to register with our neighbors
+	static TMap<FLandscapeKey, TMap<FIntPoint, const FLandscapeComponentSceneProxy*> > SharedSceneProxyMap;
+
 	FLandscapeEditToolRenderData* EditToolRenderData;
 
 	// FLightCacheInterface
-	FLandscapeLCI* ComponentLightInfo;
+	TUniquePtr<FLandscapeLCI> ComponentLightInfo;
 
 	const ULandscapeComponent* LandscapeComponent;
 
-	FVector2D				NeighborPosition[LANDSCAPE_NEIGHBOR_NUM];
-	int32					ForcedLOD;
-	int32					LODBias;
-	uint8					ForcedNeighborLOD[LANDSCAPE_NEIGHBOR_NUM];
-	uint8					NeighborLODBias[LANDSCAPE_NEIGHBOR_NUM];
+	int8					ForcedLOD;
+	int8					LODBias;
 
-	enum ELandscapeLODFalloff::Type LODFalloff;
+	// Pointer to our neighbor's scene proxies in NWES order (nullptr if there is currently no neighbor)
+	mutable const FLandscapeComponentSceneProxy* Neighbors[4];
+
+	ELandscapeLODFalloff::Type LODFalloff;
 
 	TUniformBuffer<FLandscapeUniformShaderParameters> LandscapeUniformShaderParameters;
 
@@ -471,14 +484,6 @@ protected:
 
 	virtual ~FLandscapeComponentSceneProxy();
 
-	// Used for DrawDynamicElements
-	FMeshBatch DynamicMesh;			// Landscape Rendering using Dynamic path
-#if WITH_EDITOR
-	FMeshBatch DynamicMeshTools;	// Tool rendering, don't support tessellation for now
-#endif
-	TArray<FLandscapeBatchElementParams> DynamicMeshBatchParamArray;
-
-
 public:
 	// constructor
 	FLandscapeComponentSceneProxy(ULandscapeComponent* InComponent, FLandscapeEditToolRenderData* InEditToolRenderData);
@@ -486,8 +491,7 @@ public:
 	// FPrimitiveSceneProxy interface.
 	virtual void DrawStaticElements(FStaticPrimitiveDrawInterface* PDI) override;
 	virtual void GetDynamicMeshElements(const TArray<const FSceneView*>& Views, const FSceneViewFamily& ViewFamily, uint32 VisibilityMap, FMeshElementCollector& Collector) const override;
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override;
-	virtual uint32 GetMemoryFootprint( void ) const override { return( sizeof( *this ) + GetAllocatedSize() ); }
+	virtual uint32 GetMemoryFootprint() const override { return(sizeof(*this) + GetAllocatedSize()); }
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override;
 	virtual bool CanBeOccluded() const override;
 	virtual void GetLightRelevance(const FLightSceneProxy* LightSceneProxy, bool& bDynamic, bool& bRelevant, bool& bLightMapped, bool& bShadowMapped) const override;
@@ -503,13 +507,23 @@ public:
 	friend class FLandscapeVertexFactoryMobilePixelShaderParameters;
 
 	// FLandscapeComponentSceneProxy interface.
-	int32 CalcLODForSubsection(const class FSceneView& View, int32 SubX, int32 SubY, const FVector2D& CameraLocalPos) const;
-	int32 CalcLODForSubsectionNoForced(const class FSceneView& View, int32 SubX, int32 SubY, const FVector2D& CameraLocalPos) const;
-	void CalcLODParamsForSubsection(const class FSceneView& View, const FVector2D& CameraLocalPos, int32 SubX, int32 SubY, float& OutfLOD, FVector4& OutNeighborLODs, float& OutDistLOD) const;
-	uint64 GetStaticBatchElementVisibility( const class FSceneView& View, const struct FMeshBatch* Batch ) const;
+	float CalcDesiredLOD(const FSceneView& View, const FVector2D& CameraLocalPos, int32 SubX, int32 SubY) const;
+	int32 CalcLODForSubsection(const FSceneView& View, int32 SubX, int32 SubY, const FVector2D& CameraLocalPos) const;
+	void CalcLODParamsForSubsection(const FSceneView& View, const FVector2D& CameraLocalPos, int32 SubX, int32 SubY, int32 BatchLOD, float& OutfLOD, FVector4& OutNeighborLODs) const;
+	uint64 GetStaticBatchElementVisibility(const FSceneView& View, const FMeshBatch* Batch) const;
 
 	// FLandcapeSceneProxy
-	void ChangeLODDistanceFactor_RenderThread(FVector2D InLODDistanceFactors);
+	void ChangeLODDistanceFactor_RenderThread(float InLODDistanceFactor);
+
+	virtual void GetHeightfieldRepresentation(UTexture2D*& OutHeightmapTexture, FVector4& OutHeightfieldScaleBias, FVector4& OutMinMaxUV) override
+	{
+		OutHeightmapTexture = HeightmapTexture;
+		OutHeightfieldScaleBias = HeightmapScaleBias;
+		// Section base is in terms of quads, convert into texels
+		int32 TexelsSectionBaseX = SectionBase.X / SubsectionSizeQuads * SubsectionSizeVerts;
+		int32 TexelsSectionBaseY = SectionBase.Y / SubsectionSizeQuads * SubsectionSizeVerts;
+		OutMinMaxUV = FVector4(TexelsSectionBaseX * HeightmapScaleBias.X, TexelsSectionBaseY * HeightmapScaleBias.Y, (TexelsSectionBaseX + SubsectionSizeVerts - 1) * HeightmapScaleBias.X, (TexelsSectionBaseY + SubsectionSizeVerts - 1) * HeightmapScaleBias.Y);
+	}
 };
 
 class FLandscapeDebugMaterialRenderProxy : public FMaterialRenderProxy
@@ -524,9 +538,9 @@ public:
 	const FLinearColor B;
 
 	/** Initialization constructor. */
-	FLandscapeDebugMaterialRenderProxy(const FMaterialRenderProxy* InParent, const UTexture2D* TexR, const UTexture2D* TexG, const UTexture2D* TexB, 
-		const FLinearColor& InR, const FLinearColor& InG, const FLinearColor& InB ):
-	Parent(InParent),
+	FLandscapeDebugMaterialRenderProxy(const FMaterialRenderProxy* InParent, const UTexture2D* TexR, const UTexture2D* TexG, const UTexture2D* TexB,
+		const FLinearColor& InR, const FLinearColor& InG, const FLinearColor& InB) :
+		Parent(InParent),
 		RedTexture(TexR),
 		GreenTexture(TexG),
 		BlueTexture(TexB),
@@ -536,23 +550,23 @@ public:
 	{}
 
 	// FMaterialRenderProxy interface.
-	virtual const class FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
 	{
 		return Parent->GetMaterial(FeatureLevel);
 	}
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{
-		if (ParameterName == FName(TEXT("Landscape_RedMask") ) )
+		if (ParameterName == FName(TEXT("Landscape_RedMask")))
 		{
 			*OutValue = R;
 			return true;
 		}
-		else if (ParameterName == FName(TEXT("Landscape_GreenMask") ) )
+		else if (ParameterName == FName(TEXT("Landscape_GreenMask")))
 		{
 			*OutValue = G;
 			return true;
 		}
-		else if (ParameterName == FName(TEXT("Landscape_BlueMask") ) )
+		else if (ParameterName == FName(TEXT("Landscape_BlueMask")))
 		{
 			*OutValue = B;
 			return true;
@@ -566,21 +580,21 @@ public:
 	{
 		return Parent->GetScalarValue(ParameterName, OutValue, Context);
 	}
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetTextureValue(const FName ParameterName, const UTexture** OutValue, const FMaterialRenderContext& Context) const
 	{
 		// NOTE: These should be returning black textures when NULL. The material will
 		// use a white texture if they are.
-		if (ParameterName == FName(TEXT("Landscape_RedTexture")) )
+		if (ParameterName == FName(TEXT("Landscape_RedTexture")))
 		{
 			*OutValue = RedTexture;
 			return true;
 		}
-		else if (ParameterName == FName(TEXT("Landscape_GreenTexture"))  )
+		else if (ParameterName == FName(TEXT("Landscape_GreenTexture")))
 		{
 			*OutValue = GreenTexture;
 			return true;
 		}
-		else if (ParameterName == FName(TEXT("Landscape_BlueTexture"))  )
+		else if (ParameterName == FName(TEXT("Landscape_BlueTexture")))
 		{
 			*OutValue = BlueTexture;
 			return true;
@@ -599,19 +613,19 @@ public:
 	const UTexture2D* SelectTexture;
 
 	/** Initialization constructor. */
-	FLandscapeSelectMaterialRenderProxy(const FMaterialRenderProxy* InParent, const UTexture2D* InTexture):
-	Parent(InParent),
+	FLandscapeSelectMaterialRenderProxy(const FMaterialRenderProxy* InParent, const UTexture2D* InTexture) :
+		Parent(InParent),
 		SelectTexture(InTexture)
 	{}
 
 	// FMaterialRenderProxy interface.
-	virtual const class FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
 	{
 		return Parent->GetMaterial(FeatureLevel);
 	}
 	virtual bool GetVectorValue(const FName ParameterName, FLinearColor* OutValue, const FMaterialRenderContext& Context) const
 	{
-		if (ParameterName == FName(TEXT("HighlightColor")) )
+		if (ParameterName == FName(TEXT("HighlightColor")))
 		{
 			*OutValue = FLinearColor(1.f, 0.5f, 0.5f);
 			return true;
@@ -625,9 +639,9 @@ public:
 	{
 		return Parent->GetScalarValue(ParameterName, OutValue, Context);
 	}
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetTextureValue(const FName ParameterName, const UTexture** OutValue, const FMaterialRenderContext& Context) const
 	{
-		if (ParameterName == FName(TEXT("SelectedData")) )
+		if (ParameterName == FName(TEXT("SelectedData")))
 		{
 			*OutValue = SelectTexture;
 			return true;
@@ -647,14 +661,14 @@ public:
 	const bool bInverted;
 
 	/** Initialization constructor. */
-	FLandscapeMaskMaterialRenderProxy(const FMaterialRenderProxy* InParent, const UTexture2D* InTexture, const bool InbInverted):
-	Parent(InParent),
+	FLandscapeMaskMaterialRenderProxy(const FMaterialRenderProxy* InParent, const UTexture2D* InTexture, const bool InbInverted) :
+		Parent(InParent),
 		SelectTexture(InTexture),
 		bInverted(InbInverted)
 	{}
 
 	// FMaterialRenderProxy interface.
-	virtual const class FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
+	virtual const FMaterial* GetMaterial(ERHIFeatureLevel::Type FeatureLevel) const
 	{
 		return Parent->GetMaterial(FeatureLevel);
 	}
@@ -664,16 +678,16 @@ public:
 	}
 	virtual bool GetScalarValue(const FName ParameterName, float* OutValue, const FMaterialRenderContext& Context) const
 	{
-		if (ParameterName == FName(TEXT("bInverted")) )
+		if (ParameterName == FName(TEXT("bInverted")))
 		{
 			*OutValue = bInverted;
 			return true;
 		}
 		return Parent->GetScalarValue(ParameterName, OutValue, Context);
 	}
-	virtual bool GetTextureValue(const FName ParameterName,const UTexture** OutValue, const FMaterialRenderContext& Context) const
+	virtual bool GetTextureValue(const FName ParameterName, const UTexture** OutValue, const FMaterialRenderContext& Context) const
 	{
-		if (ParameterName == FName(TEXT("SelectedData")) )
+		if (ParameterName == FName(TEXT("SelectedData")))
 		{
 			*OutValue = SelectTexture;
 			return true;
@@ -685,7 +699,7 @@ public:
 	}
 };
 
-namespace 
+namespace
 {
 	// LightmapRes: Multiplier of lightmap size relative to landscape size
 	// X: (Output) PatchExpandCountX (at Lighting LOD)
@@ -702,13 +716,13 @@ namespace
 		int32 PixelPaddingX = GPixelFormats[PF_DXT1].BlockSizeX;
 		int32 PixelPaddingY = GPixelFormats[PF_DXT1].BlockSizeY;
 		int32 PatchExpandCountX = (LightMapRes >= 1.f) ? (PixelPaddingX) / LightMapRes : (PixelPaddingX);
-		int32 PatchExpandCountY = (LightMapRes >= 1.f )? (PixelPaddingY) / LightMapRes : (PixelPaddingY);
+		int32 PatchExpandCountY = (LightMapRes >= 1.f) ? (PixelPaddingY) / LightMapRes : (PixelPaddingY);
 
 		X = FMath::Max<int32>(1, PatchExpandCountX >> LightingLOD);
 		Y = FMath::Max<int32>(1, PatchExpandCountY >> LightingLOD);
 
-		DesiredSize = (LightMapRes >= 1.f) ? FMath::Min<int32>((int32)((ComponentSize + 1) * LightMapRes), 4096) : FMath::Min<int32>((int32)((LightmapSize) * LightMapRes), 4096);
-		int32 CurrentSize = (LightMapRes >= 1.f) ? FMath::Min<int32>((int32)((2*(X<<LightingLOD) + ComponentSize + 1) * LightMapRes), 4096) : FMath::Min<int32>((int32)((2*(X<<LightingLOD) + LightmapSize) * LightMapRes), 4096);
+		DesiredSize = (LightMapRes >= 1.f) ? FMath::Min<int32>((int32)((ComponentSize + 1) * LightMapRes), 4096) : FMath::Min<int32>((int32)((LightmapSize)* LightMapRes), 4096);
+		int32 CurrentSize = (LightMapRes >= 1.f) ? FMath::Min<int32>((int32)((2 * (X << LightingLOD) + ComponentSize + 1) * LightMapRes), 4096) : FMath::Min<int32>((int32)((2 * (X << LightingLOD) + LightmapSize) * LightMapRes), 4096);
 
 		// Find proper Lightmap Size
 		if (CurrentSize > DesiredSize)
@@ -718,11 +732,11 @@ namespace
 			while (DesiredSize > 0)
 			{
 				PriorSize = DesiredSize;
-				DesiredSize = DesiredSize & ~(DesiredSize & ~(DesiredSize-1));
+				DesiredSize = DesiredSize & ~(DesiredSize & ~(DesiredSize - 1));
 			}
 
 			DesiredSize = PriorSize << 1; // next bigger size
-			if ( CurrentSize * CurrentSize <= ((PriorSize * PriorSize) << 1)  )
+			if (CurrentSize * CurrentSize <= ((PriorSize * PriorSize) << 1))
 			{
 				DesiredSize = PriorSize;
 			}
@@ -733,6 +747,3 @@ namespace
 		return LightMapRatio;
 	}
 }
-
-
-#endif // _LANDSCAPERENDER_H

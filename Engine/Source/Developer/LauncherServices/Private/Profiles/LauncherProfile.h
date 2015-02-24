@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#define LAUNCHERSERVICES_ADDEDINCREMENTALDEPLOYVERSION 11
 
 /**
 * Implements a simple profile which controls the desired output of the Launcher for simple
@@ -398,9 +400,18 @@ public:
 		return BuildGame;
 	}
 
+	virtual bool IsBuildingUAT() const override
+	{
+		return BuildUAT;
+	}
+
 	virtual bool IsCookingIncrementally( ) const override
 	{
-		return CookIncremental;
+		if ( CookMode != ELauncherProfileCookModes::DoNotCook )
+		{
+			return CookIncremental;
+		}
+		return false;
 	}
 
 	virtual bool IsCookingUnversioned( ) const override
@@ -416,6 +427,11 @@ public:
 		}
 
 		return true;
+	}
+
+	virtual bool IsDeployingIncrementally( ) const override
+	{
+		return DeployIncremental;
 	}
 
 	virtual bool IsFileServerHidden( ) const override
@@ -472,7 +488,7 @@ public:
 
 		Archive	<< Version;
 
-		if (Version != LAUNCHERSERVICES_PROFILEVERSION)
+		if (Version < LAUNCHERSERVICES_MINPROFILEVERSION)
 		{
 			return false;
 		}
@@ -515,6 +531,11 @@ public:
 				<< BuildGame
                 << ForceClose
                 << Timeout;
+
+		if (Version >= LAUNCHERSERVICES_ADDEDINCREMENTALDEPLOYVERSION)
+		{
+			Archive << DeployIncremental;
+		}
 
 		DefaultLaunchRole->Serialize(Archive);
 
@@ -575,6 +596,7 @@ public:
 
 		// default build settings
 		BuildGame = false;
+		BuildUAT = false;
 
 		// default cook settings
 		CookConfiguration = FApp::GetBuildConfiguration();
@@ -601,6 +623,7 @@ public:
 		DeployWithUnrealPak = false;
 		DeployedDeviceGroupId = FGuid();
 		HideFileServerWindow = false;
+		DeployIncremental = false;
 
 		// default launch settings
 		LaunchMode = ELauncherProfileLaunchModes::DefaultRole;
@@ -626,6 +649,16 @@ public:
 		if (BuildGame != Build)
 		{
 			BuildGame = Build;
+
+			Validate();
+		}
+	}
+
+	virtual void SetBuildUAT(bool Build) override
+	{
+		if (BuildUAT != Build)
+		{
+			BuildUAT = Build;
 
 			Validate();
 		}
@@ -685,14 +718,14 @@ public:
 	{
 		if(DeployedDeviceGroup.IsValid())
 		{
-			DeployedDeviceGroup->OnDeviceAdded().RemoveRaw(this, &FLauncherProfile::OnLauncherDeviceGroupDeviceAdded);
-			DeployedDeviceGroup->OnDeviceRemoved().RemoveRaw(this, &FLauncherProfile::OnLauncherDeviceGroupDeviceRemove);
+			DeployedDeviceGroup->OnDeviceAdded().Remove(OnLauncherDeviceGroupDeviceAddedDelegateHandle);
+			DeployedDeviceGroup->OnDeviceRemoved().Remove(OnLauncherDeviceGroupDeviceRemoveDelegateHandle);
 		}
 		DeployedDeviceGroup = DeviceGroup;
 		if (DeployedDeviceGroup.IsValid())
 		{
-			DeployedDeviceGroup->OnDeviceAdded().AddRaw(this, &FLauncherProfile::OnLauncherDeviceGroupDeviceAdded);
-			DeployedDeviceGroup->OnDeviceRemoved().AddRaw(this, &FLauncherProfile::OnLauncherDeviceGroupDeviceRemove);
+			OnLauncherDeviceGroupDeviceAddedDelegateHandle   = DeployedDeviceGroup->OnDeviceAdded().AddRaw(this, &FLauncherProfile::OnLauncherDeviceGroupDeviceAdded);
+			OnLauncherDeviceGroupDeviceRemoveDelegateHandle  = DeployedDeviceGroup->OnDeviceRemoved().AddRaw(this, &FLauncherProfile::OnLauncherDeviceGroupDeviceRemove);
 			DeployedDeviceGroupId = DeployedDeviceGroup->GetId();
 		}
 		else
@@ -742,6 +775,16 @@ public:
 		if (CookIncremental != Incremental)
 		{
 			CookIncremental = Incremental;
+
+			Validate();
+		}
+	}
+
+	virtual void SetIncrementalDeploying( bool Incremental ) override
+	{
+		if (DeployIncremental != Incremental)
+		{
+			DeployIncremental = Incremental;
 
 			Validate();
 		}
@@ -967,7 +1010,7 @@ protected:
 		}
 
 		// Launch: when launching, all devices that the build is launched on must have content cooked for their platform
-		if ((LaunchMode != ELauncherProfileLaunchModes::DoNotLaunch) && (CookMode != ELauncherProfileCookModes::OnTheFly))
+		if ((LaunchMode != ELauncherProfileLaunchModes::DoNotLaunch) && (CookMode != ELauncherProfileCookModes::OnTheFly || CookMode != ELauncherProfileCookModes::OnTheFlyInEditor))
 		{
 			// @todo ensure that launched devices have cooked content
 		}
@@ -1074,6 +1117,9 @@ private:
 	// Holds a flag indicating whether the game should be built
 	bool BuildGame;
 
+	// Holds a flag indicating whether UAT should be built
+	bool BuildUAT;
+
 	// Holds a flag indicating whether only modified content should be cooked.
 	bool CookIncremental;
 
@@ -1098,8 +1144,15 @@ private:
 	// Holds a flag indicating whether content should be packaged with UnrealPak.
 	bool DeployWithUnrealPak;
 
+	// Holds a flag indicating whether to use incremental deployment
+	bool DeployIncremental;
+
 	// Holds the device group to deploy to.
 	ILauncherDeviceGroupPtr DeployedDeviceGroup;
+
+	// Delegate handles for registered DeployedDeviceGroup event handlers.
+	FDelegateHandle OnLauncherDeviceGroupDeviceAddedDelegateHandle;
+	FDelegateHandle OnLauncherDeviceGroupDeviceRemoveDelegateHandle;
 
 	// Holds the identifier of the deployed device group.
 	FGuid DeployedDeviceGroupId;

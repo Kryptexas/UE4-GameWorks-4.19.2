@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -76,8 +76,8 @@ namespace AutomationTool
 			Log("Copied UBT manifest to {0}", OutFile);
 
 
-			FileManifest Manifest = ReadManifest(ManifestName);
-			foreach (string Item in Manifest.FileManifestItems)
+			UnrealBuildTool.BuildManifest Manifest = ReadManifest(ManifestName);
+			foreach (string Item in Manifest.BuildProducts)
 			{
 				PrepareBuildProduct(Item);
 			}
@@ -89,8 +89,8 @@ namespace AutomationTool
 			{
 				throw new AutomationException("BUILD FAILED UBT Manifest {0} does not exist.", ManifestName);
 			}
-			FileManifest Manifest = ReadManifest(ManifestName);
-			foreach (string Item in Manifest.FileManifestItems)
+			UnrealBuildTool.BuildManifest Manifest = ReadManifest(ManifestName);
+			foreach (string Item in Manifest.BuildProducts)
 			{
 				if (!FileExists_NoExceptions(Item))
 				{
@@ -100,12 +100,13 @@ namespace AutomationTool
 			}
 		}
 
-
+		public static string BaseUBTDirectory = "";
+		
 		/// True if UBT is compiled and ready to build!
 		private bool bIsUBTReady = false;
-
+		
 		private void PrepareUBT()
-		{
+		{			
 			// Don't build UBT if we're running with pre-compiled binaries and if there's a debugger attached to this process.
 			// With the debugger attached, even though deleting the exe will work, the pdb files are still locked and the build will fail.
 			// Also, if we're running from VS then since UAT references UBT, we already have the most up-to-date version of UBT.exe
@@ -129,7 +130,7 @@ namespace AutomationTool
 
 		public class XGEItem
 		{
-			public FileManifest Manifest;
+			public UnrealBuildTool.BuildManifest Manifest;
 			public string CommandLine;
 			public UnrealBuildTool.UnrealTargetPlatform Platform;
 			public string Config;
@@ -139,7 +140,7 @@ namespace AutomationTool
 			public string OutputCaption;
 		}
 
-		XGEItem XGEPrepareBuildWithUBT(string ProjectName, string TargetName, UnrealBuildTool.UnrealTargetPlatform Platform, string Config, string UprojectPath, bool ForceMonolithic = false, bool ForceNonUnity = false, bool ForceDebugInfo = false, string InAddArgs = "", bool ForceUnity = false)
+		XGEItem XGEPrepareBuildWithUBT(string ProjectName, string TargetName, UnrealBuildTool.UnrealTargetPlatform Platform, string Config, string UprojectPath, bool ForceMonolithic = false, bool ForceNonUnity = false, bool ForceDebugInfo = false, string InAddArgs = "", bool ForceUnity = false, Dictionary<string, string> EnvVars = null)
 		{
 			string AddArgs = "";
 			if (string.IsNullOrEmpty(UprojectPath) == false)
@@ -163,6 +164,17 @@ namespace AutomationTool
 			{
 				AddArgs += " -forcedebuginfo";
 			}
+			if(AddArgs.Contains("PostedRocket"))
+			{
+				if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealBuildTool.UnrealTargetPlatform.Win64)
+				{
+					BaseUBTDirectory = @"Rocket/TempInst/Windows";
+				}
+				if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac)
+				{
+					BaseUBTDirectory = @"Rocket/TempInst/Mac";
+				}
+			}
 			PrepareUBT();
 
             string UBTManifest = GetUBTManifest(UprojectPath, AddArgs);
@@ -172,7 +184,7 @@ namespace AutomationTool
 
 			ClearExportedXGEXML();
 
-			RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-generatemanifest -nobuilduht -xgeexport" + AddArgs);
+			RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-generatemanifest -nobuilduht -xgeexport" + AddArgs, EnvVars: EnvVars);
 
 			PrepareManifest(UBTManifest);
 
@@ -217,7 +229,7 @@ namespace AutomationTool
 			// allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
 			Platform.Platforms[Item.Platform].PostBuildTarget(this, Item.ProjectName, Item.UProjectPath, Item.Config);
 
-			foreach (string ManifestItem in Item.Manifest.FileManifestItems)
+			foreach (string ManifestItem in Item.Manifest.BuildProducts)
 			{
 				if (!FileExists_NoExceptions(ManifestItem))
 				{
@@ -227,15 +239,15 @@ namespace AutomationTool
 			}
 		}
 
-		void XGEDeleteBuildProducts(FileManifest Manifest)
+		void XGEDeleteBuildProducts(UnrealBuildTool.BuildManifest Manifest)
 		{
-			foreach (string Item in Manifest.FileManifestItems)
+			foreach (string Item in Manifest.BuildProducts)
 			{
 				DeleteFile(Item);
 			}
 		}
 
-		void CleanWithUBT(string ProjectName, string TargetName, UnrealBuildTool.UnrealTargetPlatform Platform, string Config, string UprojectPath, bool ForceMonolithic = false, bool ForceNonUnity = false, bool ForceDebugInfo = false, string InAddArgs = "", bool ForceUnity = false)
+		void CleanWithUBT(string ProjectName, string TargetName, UnrealBuildTool.UnrealTargetPlatform Platform, string Config, string UprojectPath, bool ForceMonolithic = false, bool ForceNonUnity = false, bool ForceDebugInfo = false, string InAddArgs = "", bool ForceUnity = false, Dictionary<string, string> EnvVars = null)
 		{
 			string AddArgs = "";
 			if (string.IsNullOrEmpty(UprojectPath) == false)
@@ -266,10 +278,10 @@ namespace AutomationTool
 
 			PrepareUBT();
 
-			RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-clean" + AddArgs);
+			RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: Platform.ToString(), Config: Config, AdditionalArgs: "-clean" + AddArgs, EnvVars: EnvVars);
 		}
 
-		void BuildWithUBT(string ProjectName, string TargetName, UnrealBuildTool.UnrealTargetPlatform TargetPlatform, string Config, string UprojectPath, bool ForceMonolithic = false, bool ForceNonUnity = false, bool ForceDebugInfo = false, bool ForceFlushMac = false, bool DisableXGE = false, string InAddArgs = "", bool ForceUnity = false)
+		void BuildWithUBT(string ProjectName, string TargetName, UnrealBuildTool.UnrealTargetPlatform TargetPlatform, string Config, string UprojectPath, bool ForceMonolithic = false, bool ForceNonUnity = false, bool ForceDebugInfo = false, bool ForceFlushMac = false, bool DisableXGE = false, string InAddArgs = "", bool ForceUnity = false, Dictionary<string, string> EnvVars = null)
 		{
 			string AddArgs = "";
 			if (string.IsNullOrEmpty(UprojectPath) == false)
@@ -301,6 +313,17 @@ namespace AutomationTool
 			{
 				AddArgs += " -noxge";
 			}
+			if(AddArgs.Contains("PostedRocket"))
+			{
+				if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealBuildTool.UnrealTargetPlatform.Win64)
+				{
+					BaseUBTDirectory = @"Rocket/TempInst/Windows";
+				}
+				if (UnrealBuildTool.BuildHostPlatform.Current.Platform == UnrealBuildTool.UnrealTargetPlatform.Mac)
+				{
+					BaseUBTDirectory = @"Rocket/TempInst/Mac";
+				}
+			}
 
 			PrepareUBT();
 
@@ -313,12 +336,12 @@ namespace AutomationTool
 
 				DeleteFile(UBTManifest);
 
-				RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: "-generatemanifest" + AddArgs);
+				RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: "-generatemanifest" + AddArgs, EnvVars: EnvVars);
 
 				PrepareManifest(UBTManifest);
 			}
 
-			RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs);
+			RunUBT(CmdEnv, UBTExecutable: UBTExecutable, Project: ProjectName, Target: TargetName, Platform: TargetPlatform.ToString(), Config: Config, AdditionalArgs: AddArgs, EnvVars: EnvVars);
 
 			// allow the platform to perform any actions after building a target (seems almost like this should be done in UBT)
 			Platform.Platforms[TargetPlatform].PostBuildTarget(this, string.IsNullOrEmpty(ProjectName) ? TargetName : ProjectName, UprojectPath, Config);
@@ -483,16 +506,12 @@ namespace AutomationTool
 				{
 					Log("Updating {0} with:", VerFile);
 					Log(" #define	ENGINE_VERSION  {0}", ChangelistNumber.ToString());
-					Log(" #define	ENGINE_VERSION_HIWORD  {0}", (ChangelistNumber >> 16).ToString());
-					Log(" #define	ENGINE_VERSION_LOWORD  {0}", (ChangelistNumber & 0xFFFF).ToString());					
 					Log(" #define	BRANCH_NAME  {0}", Branch);
 					Log(" #define	BUILT_FROM_CHANGELIST  {0}", ChangelistString);
 					Log(" #define   ENGINE_IS_LICENSEE_VERSION  {0}", bIsLicenseeVersion ? "1" : "0");
 
 					VersionFileUpdater VersionH = new VersionFileUpdater(VerFile);
 					VersionH.ReplaceLine("#define ENGINE_VERSION ", ChangelistNumber.ToString());
-					VersionH.ReplaceLine("#define ENGINE_VERSION_HIWORD ", (ChangelistNumber >> 16).ToString());
-					VersionH.ReplaceLine("#define ENGINE_VERSION_LOWORD ", (ChangelistNumber & 0xFFFF).ToString());					
 					VersionH.ReplaceLine("#define BRANCH_NAME ", "\"" + Branch + "\"");
 					VersionH.ReplaceLine("#define BUILT_FROM_CHANGELIST ", ChangelistString);
 					VersionH.ReplaceOrAddLine("#define ENGINE_IS_LICENSEE_VERSION ", bIsLicenseeVersion ? "1" : "0");
@@ -706,7 +725,8 @@ namespace AutomationTool
 		public List<string> FindXGEFiles()
 		{
 			var Result = new List<string>();
-			Result.AddRange(FindFiles_NoExceptions("*.xge.xml", false, CombinePaths(CmdEnv.LocalRoot, @"\Engine\Intermediate\Build")));
+			var Root = CombinePaths(CmdEnv.LocalRoot, BaseUBTDirectory, @"\Engine\Intermediate\Build");			
+			Result.AddRange(FindFiles_NoExceptions("*.xge.xml", false, Root));
 			Result.Sort();
 			return Result;
 		}
@@ -1102,21 +1122,28 @@ namespace AutomationTool
 
 		public bool CanUseXGE(UnrealBuildTool.UnrealTargetPlatform Platform)
 		{
+			if (!UnrealBuildTool.UEBuildPlatform.BuildPlatformDictionary.ContainsKey(Platform))
+			{
+				return false;
+			}
+
 			return UnrealBuildTool.UEBuildPlatform.GetBuildPlatform(Platform).CanUseXGE();
 		}
 
-		public string[] GetExternalFileList(BuildAgenda Agenda)
+		public string GenerateExternalFileList(BuildAgenda Agenda)
 		{
-			// Create the file list
 			string AdditionalArguments = "";
 			foreach (var Target in Agenda.Targets)
 			{
 				RunUBT(CmdEnv, UBTExecutable, Target.UprojectPath, Target.TargetName, Target.Platform.ToString(), Target.Config.ToString(), "-generateexternalfilelist" + AdditionalArguments + " " + Target.UBTArgs);
 				AdditionalArguments = " -mergeexternalfilelist";
 			}
+			return CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"/Engine/Intermediate/Build/ExternalFiles.xml");
+		}
 
-			// Read it in, and return the filenames as an array of strings
-			string FileListPath = CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"/Engine/Intermediate/Build/ExternalFiles.xml");
+		public string[] GetExternalFileList(BuildAgenda Agenda)
+		{
+			string FileListPath = GenerateExternalFileList(Agenda);
 			return UnrealBuildTool.Utils.ReadClass<UnrealBuildTool.ExternalFileList>(FileListPath).FileNames.ToArray();
 		}
 
@@ -1127,8 +1154,13 @@ namespace AutomationTool
 		/// <param name="InDeleteBuildProducts">if specified, determines if the build products will be deleted before building. If not specified -clean parameter will be used,</param>
 		/// <param name="InUpdateVersionFiles">True if the version files are to be updated </param>
 		/// <param name="InForceNoXGE">If true will force XGE off</param>
-		public void Build(BuildAgenda Agenda, bool? InDeleteBuildProducts = null, bool InUpdateVersionFiles = true, bool InForceNoXGE = false, bool InForceNonUnity = false, bool InForceUnity = false)
+		public void Build(BuildAgenda Agenda, bool? InDeleteBuildProducts = null, bool InUpdateVersionFiles = true, bool InForceNoXGE = false, bool InForceNonUnity = false, bool InForceUnity = false, Dictionary<UnrealBuildTool.UnrealTargetPlatform, Dictionary<string, string>> PlatformEnvVars = null)
 		{
+			if (GlobalCommandLine.NoCodeProject)
+			{
+				throw new AutomationException("Building is not supported when -nocodeproject flag is provided.");
+			}
+
 			if (!CmdEnv.HasCapabilityToCompile)
 			{
 				throw new AutomationException("You are attempting to compile on a machine that does not have a supported compiler!");
@@ -1465,7 +1497,7 @@ namespace AutomationTool
 
             if ((GlobalCommandLine.Rocket || bForceRocket) && !String.IsNullOrEmpty(UProjectPath))
 			{
-				return Path.Combine(Path.GetDirectoryName(UProjectPath), "Intermediate/Build/Manifest.xml");
+				return Path.Combine(Path.GetDirectoryName(UProjectPath), "Intermediate/Build/Manifest.xml");				
 			}
 			else
 			{
@@ -1475,14 +1507,14 @@ namespace AutomationTool
 
 		public static string GetUBTExecutable()
 		{
-			return CommandUtils.CombinePaths(CmdEnv.LocalRoot, @"Engine/Binaries/DotNET/UnrealBuildTool.exe");
+			return CommandUtils.CombinePaths(CmdEnv.LocalRoot, BaseUBTDirectory, @"Engine/Binaries/DotNET/UnrealBuildTool.exe");
 		}
 
 		public string UBTExecutable
 		{
 			get
 			{
-				return GetUBTExecutable();
+				return GetUBTExecutable();							
 			}
 		}
 

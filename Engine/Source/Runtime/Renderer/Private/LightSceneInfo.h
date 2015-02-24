@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightSceneInfo.h: Light scene info definitions.
@@ -119,9 +119,6 @@ public:
 
 	/** Tile intersection buffer for distance field shadowing, stored on the light to avoid reallocating each frame. */
 	mutable TScopedPointer<class FLightTileIntersectionResources> TileIntersectionResources;
-
-	/** Culled object buffers for distance field shadowing, stored on the light to avoid reallocating each frame. */
-	mutable TScopedPointer<class FDistanceFieldObjectBuffers> DistanceFieldObjectBuffers;
 
 	/** True if the light is built. */
 	uint32 bPrecomputedLightingIsValid : 1;

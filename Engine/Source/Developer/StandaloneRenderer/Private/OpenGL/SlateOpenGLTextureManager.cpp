@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "StandaloneRendererPrivate.h"
 
@@ -311,4 +311,10 @@ FSlateShaderResourceProxy* FSlateOpenGLTextureManager::GetShaderResource( const 
 	}
 
 	return Texture;
+}
+
+ISlateAtlasProvider* FSlateOpenGLTextureManager::GetTextureAtlasProvider()
+{
+	// Texture atlases aren't implemented for the standalone OpenGL renderer
+	return nullptr;
 }

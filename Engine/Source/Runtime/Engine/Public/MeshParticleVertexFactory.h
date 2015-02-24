@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MeshParticleVertexFactory.h: Mesh particle vertex factory definitions.
@@ -75,12 +75,16 @@ public:
 	};
 
 	/** Default constructor. */
-	FMeshParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel)
+	FMeshParticleVertexFactory(EParticleVertexFactoryType InType, ERHIFeatureLevel::Type InFeatureLevel, int32 InDynamicVertexStride, int32 InDynamicParameterVertexStride)
 		: FParticleVertexFactoryBase(InType, InFeatureLevel)
+		, DynamicVertexStride(InDynamicVertexStride)
+		, DynamicParameterVertexStride(InDynamicParameterVertexStride)
 	{}
 
 	FMeshParticleVertexFactory()
 		: FParticleVertexFactoryBase(PVFT_MAX, ERHIFeatureLevel::Num)
+		, DynamicVertexStride(-1)
+		, DynamicParameterVertexStride(-1)
 	{}
 
 	/**
@@ -127,6 +131,15 @@ public:
 		return MeshParticleUniformBuffer;
 	}
 
+	/**
+	 * Update the data strides (MUST HAPPEN BEFORE InitRHI is called)
+	 */
+	void SetStrides(int32 InDynamicVertexStride, int32 InDynamicParameterVertexStride)
+	{
+		DynamicVertexStride = InDynamicVertexStride;
+		DynamicParameterVertexStride = InDynamicParameterVertexStride;
+	}
+	
 	 /**
 	 * Set the source vertex buffer that contains particle instance data.
 	 */
@@ -152,6 +165,11 @@ public:
 
 protected:
 	DataType Data;
+	
+	/** Stride information for instanced mesh particles */
+	int32 DynamicVertexStride;
+	int32 DynamicParameterVertexStride;
+	
 
 	/** Uniform buffer with mesh particle paramters. */
 	FUniformBufferRHIParamRef MeshParticleUniformBuffer;

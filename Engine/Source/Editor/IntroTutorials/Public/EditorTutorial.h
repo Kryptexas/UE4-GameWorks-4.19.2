@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -54,6 +54,10 @@ struct INTROTUTORIALS_API FTutorialCategory
 	/** Title of the category */
 	UPROPERTY(EditAnywhere, Category="Content")
 	FText Title;
+
+	/** Sort order, used by the tutorial browser - set in editor game-agnostic INI file */
+	UPROPERTY()
+	int32 SortOrder;
 
 	/** Localized text to use to describe this category */
 	UPROPERTY(EditAnywhere, Category="Content", meta=(MultiLine=true))
@@ -203,6 +207,10 @@ struct INTROTUTORIALS_API FTutorialStage
 	/** Text to display on the next button */
 	UPROPERTY(EditAnywhere, Category="Stage")
 	FText NextButtonText;
+	
+	/** Text to display on the back button */
+	UPROPERTY(EditAnywhere, Category = "Stage")
+	FText BackButtonText;	
 };
 
 /** An asset used to build a stage-by-stage tutorial in the editor */
@@ -214,6 +222,10 @@ class INTROTUTORIALS_API UEditorTutorial : public UObject
 	/** Title of this tutorial, used when presented to the user */
 	UPROPERTY(EditAnywhere, Category="Tutorial", AssetRegistrySearchable)
 	FText Title;
+
+	/** Sorting priority, used by the tutorial browser */
+	UPROPERTY(BlueprintReadOnly, EditDefaultsOnly, Category = "Tutorial")
+	int32 SortOrder;
 
 	/** Icon name for this tutorial, used when presented to the user in the tutorial browser. This is a name for the icon in the Slate editor style. Only used if there isn't a valid texture to use. */
 	UPROPERTY(EditAnywhere, Category="Tutorial")
@@ -238,6 +250,14 @@ class INTROTUTORIALS_API UEditorTutorial : public UObject
 	/** Tutorial to optionally chain onto after this tutorial completes */
 	UPROPERTY(EditAnywhere, Category="Tutorial", meta=(MetaClass="EditorTutorial"))
 	FStringClassReference NextTutorial;
+
+	/**
+	* Attempts to find the actor specified by PathToActor in the current editor world
+	* @param	PathToActor	The path to the actor (e.g. PersistentLevel.PlayerStart)
+	* @return	A reference to the actor, or none if it wasn't found
+	*/
+	UFUNCTION(BlueprintPure, Category = "Tutorial")
+	AActor* GetActorReference(FString PathToActor);
 
 	/** A standalone tutorial displays no navigation buttons and each content widget has a close button */
 	UPROPERTY(EditAnywhere, Category="Tutorial")
@@ -276,20 +296,20 @@ public:
 
 protected:
 	/** Event fired when a tutorial stage begins */
-	UFUNCTION(BlueprintImplementableEvent, Category="Tutorial")
-	void OnTutorialStageStarted(FName StageName) const;
+	UFUNCTION(BlueprintImplementableEvent, Category = "Tutorial")
+	void OnTutorialStageStarted(FName StageName);
 
 	/** Event fired when a tutorial stage ends */
-	UFUNCTION(BlueprintImplementableEvent, Category="Tutorial")
-	void OnTutorialStageEnded(FName StageName) const;
+	UFUNCTION(BlueprintImplementableEvent, Category = "Tutorial")
+	void OnTutorialStageEnded(FName StageName);
 
 	/** Event fired when a tutorial is launched */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Tutorial")
-	void OnTutorialLaunched() const;
+	void OnTutorialLaunched();
 
 	/** Event fired when a tutorial is closed */
 	UFUNCTION(BlueprintImplementableEvent, Category = "Tutorial")
-	void OnTutorialClosed() const;
+	void OnTutorialClosed();
 
 	/** Advance to the next stage of a tutorial */
 	UFUNCTION(BlueprintCallable, Category="Tutorial")

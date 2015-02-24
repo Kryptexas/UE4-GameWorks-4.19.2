@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*
 * Copyright 2009 Autodesk, Inc.  All Rights Reserved.
@@ -48,6 +48,11 @@ using namespace UnFbx;
 
 UTexture* UnFbx::FFbxImporter::ImportTexture( FbxFileTexture* FbxTexture, bool bSetupAsNormalMap )
 {
+	if( !FbxTexture )
+	{
+		return nullptr;
+	}
+	
 	// create an unreal texture asset
 	UTexture* UnrealTexture = NULL;
 	FString Filename1 = ANSI_TO_TCHAR(FbxTexture->GetFileName());
@@ -111,7 +116,7 @@ UTexture* UnFbx::FFbxImporter::ImportTexture( FbxFileTexture* FbxTexture, bool b
 	{
 		UE_LOG(LogFbxMaterialImport, Verbose, TEXT("Loading texture file %s"),*Filename);
 		const uint8* PtrTexture = DataBinary.GetData();
-		UTextureFactory* TextureFact = new UTextureFactory(FObjectInitializer());
+		auto TextureFact = NewObject<UTextureFactory>();
 		TextureFact->AddToRoot();
 
 		// save texture settings if texture exist
@@ -358,7 +363,7 @@ void UnFbx::FFbxImporter::FixupMaterial( FbxSurfaceMaterial& FbxMaterial, UMater
 //
 //-------------------------------------------------------------------------
 
-void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets)
+FString UnFbx::FFbxImporter::GetMaterialFullName(FbxSurfaceMaterial& FbxMaterial)
 {
 	FString MaterialFullName = ANSI_TO_TCHAR(MakeName(FbxMaterial.GetName()));
 
@@ -373,19 +378,25 @@ void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, 
 			if (SkinXXNumber.IsNumeric())
 			{
 				// remove the '_skinXX' suffix from the material name					
-				MaterialFullName = MaterialFullName.LeftChop(Offset+1);
+				MaterialFullName = MaterialFullName.LeftChop(Offset + 1);
 			}
 		}
 	}
 
 	MaterialFullName = ObjectTools::SanitizeObjectName(MaterialFullName);
 
+	return MaterialFullName;
+}
+
+void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, TArray<UMaterialInterface*>& OutMaterials, TArray<FString>& UVSets)
+{
 	// Make sure we have a parent
 	if ( !ensure(Parent) )
 	{
 		return;
 	}
 
+	FString MaterialFullName = GetMaterialFullName(FbxMaterial);
 	FString BasePackageName = FPackageName::GetLongPackagePath(Parent->GetOutermost()->GetName()) / MaterialFullName;
 	BasePackageName = PackageTools::SanitizePackageName(BasePackageName);
 
@@ -423,7 +434,7 @@ void UnFbx::FFbxImporter::CreateUnrealMaterial(FbxSurfaceMaterial& FbxMaterial, 
 	
 
 	// create an unreal material asset
-	UMaterialFactoryNew* MaterialFactory = new UMaterialFactoryNew(FObjectInitializer());
+	auto MaterialFactory = NewObject<UMaterialFactoryNew>();
 	
 	UMaterial* UnrealMaterial = (UMaterial*)MaterialFactory->FactoryCreateNew(
 		UMaterial::StaticClass(), Package, *MaterialFullName, RF_Standalone|RF_Public, NULL, GWarn );

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -42,6 +42,15 @@ public:
 
 	/** @return The preview widget. */
 	UUserWidget* GetPreview() const;
+
+	/** @return The preview scene that owns the preview widget. */
+	FPreviewScene* GetPreviewScene();
+
+	/**  */
+	bool IsSimulating() const;
+
+	/**  */
+	void SetIsSimulating(bool bSimulating);
 
 	/** Causes the preview to be destroyed and a new one to be created next tick */
 	void InvalidatePreview();
@@ -106,6 +115,10 @@ public:
 
 	float GetHoveredWidgetTime() const;
 
+	void AddPostDesignerLayoutAction(TFunction<void()> Action);
+
+	TArray< TFunction<void()> >& GetQueuedDesignerActions();
+
 public:
 	/** Fires whenever the selected set of widgets changing */
 	FOnSelectedWidgetsChanged OnSelectedWidgetsChanging;
@@ -140,7 +153,7 @@ private:
 
 private:
 	/** Called whenever the blueprint is structurally changed. */
-	virtual void OnBlueprintChanged(UBlueprint* InBlueprint) override;
+	virtual void OnBlueprintChangedImpl(UBlueprint* InBlueprint, bool bIsJustBeingCompiled = false ) override;
 
 	/** Called when objects need to be swapped out for new versions, like after a blueprint recompile. */
 	void OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap);
@@ -196,4 +209,12 @@ private:
 
 	/** The preview becomes invalid and needs to be rebuilt on the next tick. */
 	bool bPreviewInvalidated;
+
+	/**  */
+	bool bIsSimulateEnabled;
+
+	/**  */
+	bool bIsRealTime;
+
+	TArray< TFunction<void()> > QueuedDesignerActions;
 };

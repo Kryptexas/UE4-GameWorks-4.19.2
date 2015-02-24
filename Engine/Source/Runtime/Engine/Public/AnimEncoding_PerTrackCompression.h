@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimEncoding_PerTrackCompression.h: Per-track decompressor.
@@ -21,10 +21,7 @@ public:
 	 * @param	MemoryReader		The MemoryReader object to read from.
 	 * @param	SourceArVersion		The version of the archive that the data is coming from.
 	 */
-	virtual void ByteSwapIn(
-		UAnimSequence& Seq, 
-		FMemoryReader& MemoryReader,
-		int32 SourceArVersion);
+	virtual void ByteSwapIn(UAnimSequence& Seq, FMemoryReader& MemoryReader) override;
 
 	/**
 	 * Handles Byte-swapping outgoing animation data to an array of BYTEs
@@ -36,7 +33,7 @@ public:
 	virtual void ByteSwapOut(
 		UAnimSequence& Seq,
 		TArray<uint8>& SerializedData, 
-		bool ForceByteSwapping);
+		bool ForceByteSwapping) override;
 
 	/**
 	 * Extracts a single BoneAtom from an Animation Sequence.
@@ -50,7 +47,7 @@ public:
 		FTransform& OutAtom,
 		const UAnimSequence& Seq,
 		int32 TrackIndex,
-		float Time);
+		float Time) override;
 
 #if USE_ANIMATION_CODEC_BATCH_SOLVER
 
@@ -67,7 +64,7 @@ public:
 		FTransformArray& Atoms, 
 		const BoneTrackArray& DesiredPairs,
 		const UAnimSequence& Seq,
-		float Time);
+		float Time) override;
 
 	/**
 	 * Decompress all requested translation components from an Animation Sequence
@@ -82,7 +79,7 @@ public:
 		FTransformArray& Atoms, 
 		const BoneTrackArray& DesiredPairs,
 		const UAnimSequence& Seq,
-		float Time);
+		float Time) override;
 
 	/**
 	 * Decompress all requested Scale components from an Animation Sequence
@@ -97,7 +94,7 @@ public:
 		FTransformArray& Atoms, 
 		const BoneTrackArray& DesiredPairs,
 		const UAnimSequence& Seq,
-		float Time);
+		float Time) override;
 #endif
 
 protected:

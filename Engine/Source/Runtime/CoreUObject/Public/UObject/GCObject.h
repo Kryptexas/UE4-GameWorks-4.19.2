@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GCObject.h: Abstract base class to allow non-UObject objects reference
@@ -80,7 +80,7 @@ public:
 	{
 		if (GGCObjectReferencer == NULL)
 		{
-			GGCObjectReferencer = new UGCObjectReferencer(FObjectInitializer());
+			GGCObjectReferencer = NewObject<UGCObjectReferencer>();
 			GGCObjectReferencer->AddToRoot();
 		}
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,6 +13,7 @@
 #include "ThirdParty/openexr/Deploy/include/ImfHeader.h"
 #include "ThirdParty/openexr/Deploy/include/ImfStdIO.h"
 #include "ThirdParty/openexr/Deploy/include/ImfChannelList.h"
+#include "ThirdParty/openexr/Deploy/include/ImfRgbaFile.h"
 
 /**
  * OpenEXR implementation of the helper class
@@ -37,8 +38,6 @@ public:
 	virtual void Uncompress( const ERGBFormat::Type InFormat, int32 InBitDepth ) override;
 	
 	virtual bool SetCompressed( const void* InCompressedData, int32 InCompressedSize ) override;
-
-	virtual bool GetRaw( const ERGBFormat::Type InFormat, int32 InBitDepth, const TArray<uint8>*& OutRawData ) override;
 
 	// End FImageWrapper Interface
 

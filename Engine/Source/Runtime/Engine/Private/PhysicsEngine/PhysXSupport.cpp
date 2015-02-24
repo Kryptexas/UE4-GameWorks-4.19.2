@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysXSupport.cpp: PhysX
@@ -10,6 +10,8 @@
 #if WITH_PHYSX
 
 #include "PhysXSupport.h"
+#include "Components/DestructibleComponent.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 PxFoundation*			GPhysXFoundation = NULL;
 PxProfileZoneManager*	GPhysXProfileZoneManager = NULL;
@@ -711,7 +713,7 @@ SIZE_T GetPhysxObjectSize(PxBase* Obj, const PxCollection* SharedCollection)
 	PxCollection* Collection = PxCreateCollection();
 
 	Collection->add(*Obj);
-	PxSerialization::complete(*Collection, *Sr, SharedCollection, true);	// chase all other stuff (shared shaps, materials, etc) needed to serialize this collection
+	PxSerialization::complete(*Collection, *Sr, SharedCollection);	// chase all other stuff (shared shaps, materials, etc) needed to serialize this collection
 
 	FPhysXCountMemoryStream Out;
 	PxSerialization::serializeCollectionToBinary(Out, *Collection, *Sr, SharedCollection);

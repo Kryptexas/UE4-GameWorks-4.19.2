@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,22 +32,6 @@ public:
 	/** Used for various timing measurements, e.g. streaming latency. */
 	float Timer;
 
-	/** The width of the texture. */
-	UPROPERTY()
-	int32 SizeX_DEPRECATED;
-
-	/** The height of the texture. */
-	UPROPERTY()
-	int32 SizeY_DEPRECATED;
-
-	/** The original width of the texture source art we imported from.			*/
-	UPROPERTY()
-	int32 OriginalSizeX_DEPRECATED;
-
-	/** The original height of the texture source art we imported from.			*/
-	UPROPERTY()
-	int32 OriginalSizeY_DEPRECATED;
-
 private:
 	/**
 	 * The imported size of the texture. Only valid on cooked builds when texture source is not
@@ -80,10 +64,6 @@ private:
 	uint32 bTemporarilyDisableStreaming:1;
 
 public:
-	/** true if the texture's mips should be stored directly and not use the derived data cache. Used by procedurally generated textures. */
-	UPROPERTY()
-	uint32 bDisableDerivedDataCache_DEPRECATED:1;
-
 	/** Whether the texture is currently streamable or not.						*/
 	UPROPERTY(transient, NonTransactional)
 	uint32 bIsStreamable:1;
@@ -106,10 +86,6 @@ public:
 	uint32 bHasBeenPaintedInEditor:1;
 #endif // WITH_EDITORONLY_DATA
 
-	/** The format of the texture data. */
-	UPROPERTY()
-	TEnumAsByte<enum EPixelFormat> Format_DEPRECATED;
-
 	/** The addressing mode to use for the X axis.								*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture, meta=(DisplayName="X-axis Tiling Method"), AssetRegistrySearchable, AdvancedDisplay)
 	TEnumAsByte<enum TextureAddress> AddressX;
@@ -117,9 +93,6 @@ public:
 	/** The addressing mode to use for the Y axis.								*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Texture, meta=(DisplayName="Y-axis Tiling Method"), AssetRegistrySearchable, AdvancedDisplay)
 	TEnumAsByte<enum TextureAddress> AddressY;
-
-	/** ID generated whenever the texture is changed so that its bulk data can be updated in the TextureFileCache during cook */
-	FGuid TextureFileCacheGuid_DEPRECATED;
 
 public:
 	/** The derived data for this texture on this platform. */
@@ -430,13 +403,6 @@ public:
 	
 	/** creates and initializes a new Texture2D with the requested settings */
 	ENGINE_API static class UTexture2D* CreateTransient(int32 InSizeX, int32 InSizeY, EPixelFormat InFormat = PF_B8G8R8A8);
-
-#if WITH_EDITOR
-	/**
-	 * Legacy serialization.
-	 */
-	void LegacySerialize(class FArchive& Ar, class FStripDataFlags& StripDataFlags);
-#endif
 
 	/**
 	 * Gets the X size of the texture, in pixels

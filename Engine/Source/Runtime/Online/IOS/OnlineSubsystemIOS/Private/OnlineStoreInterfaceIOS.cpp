@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemIOSPrivatePCH.h"
 #include "OnlineStoreInterface.h"
@@ -51,42 +51,41 @@
 	UE_LOG(LogOnline, Log, TEXT( "FStoreKitHelper::completeTransaction" ));
 
     
-    [FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
-    {
-        IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(FName(TEXT("IOS")));
-        FOnlineStoreInterfaceIOS* StoreInterface = (FOnlineStoreInterfaceIOS*)OnlineSub->GetStoreInterface().Get();
-     
-        FIOSPurchaseReceipt Receipt;
-        Receipt.Identifier = transaction.transactionIdentifier;
-     
-        if( [IOSAppDelegate GetDelegate].OSVersion >= 7.0 )
-        {
-            NSURL* ReceiptUrl = [[NSBundle mainBundle] appStoreReceiptURL];
-            NSData* ReceiptData = [NSData dataWithContentsOfURL:ReceiptUrl];
-            NSString* nsEncodedReceiptData = [ReceiptData base64EncodedStringWithOptions:NSDataBase64EncodingEndLineWithLineFeed];
-     
-            Receipt.Data = nsEncodedReceiptData;
-        }
-        else
-        {
-            // If earlier than IOS 7, we will need to use the transactionReceipt
-            NSString* nsEncodedReceiptData = [transaction.transactionReceipt base64EncodedStringWithOptions:NSDataBase64EncodingEndLineWithLineFeed];
-            Receipt.Data = nsEncodedReceiptData;
-        }
-     
+	[FIOSAsyncTask CreateTaskWithBlock : ^ bool(void)
+	{
+		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get(FName(TEXT("IOS")));
+		FOnlineStoreInterfaceIOS* StoreInterface = (FOnlineStoreInterfaceIOS*)OnlineSub->GetStoreInterface().Get();
 
-        if (StoreInterface->CachedPurchaseStateObject.IsValid())
-        {
-            StoreInterface->CachedPurchaseStateObject->ReadState = EOnlineAsyncTaskState::Done;
-        }
+		if (StoreInterface->CachedPurchaseStateObject.IsValid())
+		{
+			FString ReceiptData;
+
+			if( [IOSAppDelegate GetDelegate].OSVersion >= 7.0 )
+			{
+				NSURL* nsReceiptUrl = [[NSBundle mainBundle] appStoreReceiptURL];
+				NSData* nsReceiptData = [NSData dataWithContentsOfURL : nsReceiptUrl];
+				NSString* nsEncodedReceiptData = [nsReceiptData base64EncodedStringWithOptions : NSDataBase64EncodingEndLineWithLineFeed];
      
-        StoreInterface->TriggerOnInAppPurchaseCompleteDelegates(EInAppPurchaseState::Success, &Receipt);
+				ReceiptData = nsEncodedReceiptData;
+			}
+			else
+			{
+				// If earlier than IOS 7, we will need to use the transactionReceipt
+				NSString* nsEncodedReceiptData = [transaction.transactionReceipt base64EncodedStringWithOptions:NSDataBase64EncodingEndLineWithLineFeed];
+				ReceiptData = nsEncodedReceiptData;
+			}
+
+			StoreInterface->CachedPurchaseStateObject->ProvidedProductInformation.ReceiptData = ReceiptData;
+			StoreInterface->CachedPurchaseStateObject->ReadState = EOnlineAsyncTaskState::Done;
+		}
      
-        return true;
-    }];
+		StoreInterface->TriggerOnInAppPurchaseCompleteDelegates(EInAppPurchaseState::Success);
+     
+		return true;
+	}];
  
-    // Remove the transaction from the payment queue.
-    [[SKPaymentQueue defaultQueue] finishTransaction: transaction];
+	// Remove the transaction from the payment queue.
+	[[SKPaymentQueue defaultQueue] finishTransaction: transaction];
 }
 
 
@@ -129,7 +128,7 @@
             StoreInterface->CachedPurchaseStateObject->ReadState = EOnlineAsyncTaskState::Done;
         }
 
-        StoreInterface->TriggerOnInAppPurchaseCompleteDelegates(CompletionState, nullptr);
+        StoreInterface->TriggerOnInAppPurchaseCompleteDelegates(CompletionState);
      
         return true;
      }];
@@ -251,16 +250,18 @@ bool FOnlineStoreInterfaceIOS::IsAllowedToMakePurchases()
 }
 
 
-bool FOnlineStoreInterfaceIOS::BeginPurchase(const FString& ProductId, FOnlineInAppPurchaseTransactionRef& InPurchaseStateObject)
+bool FOnlineStoreInterfaceIOS::BeginPurchase(const FInAppPurchaseProductRequest& ProductRequest, FOnlineInAppPurchaseTransactionRef& InPurchaseStateObject)
 {
 	UE_LOG(LogOnline, Verbose, TEXT( "FOnlineStoreInterfaceIOS::BeginPurchase" ));
 	bool bCreatedNewTransaction = false;
 	
+	const FString& ProductId = ProductRequest.ProductIdentifier;
+
 	if( bIsPurchasing || bIsProductRequestInFlight )
 	{
 		UE_LOG(LogOnline, Verbose, TEXT( "FOnlineStoreInterfaceIOS::BeginPurchase - cannot make a purchase whilst one is in transaction." ));
         
-		TriggerOnInAppPurchaseCompleteDelegates(EInAppPurchaseState::Failed, nullptr);
+		TriggerOnInAppPurchaseCompleteDelegates(EInAppPurchaseState::Failed);
 	}
 	else if( IsAllowedToMakePurchases() )
 	{
@@ -292,7 +293,7 @@ bool FOnlineStoreInterfaceIOS::BeginPurchase(const FString& ProductId, FOnlineIn
 		UE_LOG(LogOnline, Verbose, TEXT("This device is not able to make purchases."));
 		InPurchaseStateObject->ReadState = EOnlineAsyncTaskState::Failed;
         
-        TriggerOnInAppPurchaseCompleteDelegates(EInAppPurchaseState::NotAllowed, nullptr);
+        TriggerOnInAppPurchaseCompleteDelegates(EInAppPurchaseState::NotAllowed);
 	}
 
 	return bCreatedNewTransaction;

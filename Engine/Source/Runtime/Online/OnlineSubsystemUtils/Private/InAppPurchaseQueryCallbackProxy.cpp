@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 
@@ -25,8 +25,8 @@ void UInAppPurchaseQueryCallbackProxy::TriggerQuery(APlayerController* PlayerCon
 				bFailedToEvenSubmit = false;
 
 				// Register the completion callback
-				InAppPurchaseReadCompleteDelegate = FOnQueryForAvailablePurchasesCompleteDelegate::CreateUObject(this, &UInAppPurchaseQueryCallbackProxy::OnInAppPurchaseRead);
-				StoreInterface->AddOnQueryForAvailablePurchasesCompleteDelegate(InAppPurchaseReadCompleteDelegate);
+				InAppPurchaseReadCompleteDelegate       = FOnQueryForAvailablePurchasesCompleteDelegate::CreateUObject(this, &UInAppPurchaseQueryCallbackProxy::OnInAppPurchaseRead);
+				InAppPurchaseReadCompleteDelegateHandle = StoreInterface->AddOnQueryForAvailablePurchasesCompleteDelegate_Handle(InAppPurchaseReadCompleteDelegate);
 
 
 				ReadObject = MakeShareable(new FOnlineProductInformationRead());
@@ -70,7 +70,9 @@ void UInAppPurchaseQueryCallbackProxy::OnInAppPurchaseRead(bool bWasSuccessful)
 
 	if (UWorld* World = WorldPtr.Get())
 	{
-		World->GetTimerManager().SetTimer(this, &UInAppPurchaseQueryCallbackProxy::OnInAppPurchaseRead_Delayed, 0.001f, false);
+		// Use a local timer handle as we don't need to store it for later but we don't need to look for something to clear
+		FTimerHandle TimerHandle;
+		World->GetTimerManager().SetTimer(OnInAppPurchaseRead_DelayedTimerHandle, this, &UInAppPurchaseQueryCallbackProxy::OnInAppPurchaseRead_Delayed, 0.001f, false);
 	}
 
 	ReadObject = NULL;
@@ -97,7 +99,7 @@ void UInAppPurchaseQueryCallbackProxy::RemoveDelegate()
 			IOnlineStorePtr InAppPurchases = OnlineSub->GetStoreInterface();
 			if (InAppPurchases.IsValid())
 			{
-				InAppPurchases->ClearOnQueryForAvailablePurchasesCompleteDelegate(InAppPurchaseReadCompleteDelegate);
+				InAppPurchases->ClearOnQueryForAvailablePurchasesCompleteDelegate_Handle(InAppPurchaseReadCompleteDelegateHandle);
 			}
 		}
 	}

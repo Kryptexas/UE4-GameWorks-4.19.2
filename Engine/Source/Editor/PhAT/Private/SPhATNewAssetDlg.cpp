@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PhATModule.h"
 #include "SPhATNewAssetDlg.h"
@@ -60,7 +60,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "MinimumBoneSizeLabel", "Minimum Bone Size:").ToString())
+					.Text(NSLOCTEXT("PhAT", "MinimumBoneSizeLabel", "Minimum Bone Size:"))
 				]
 				+SUniformGridPanel::Slot(1, 0)
 				.VAlign(VAlign_Center)
@@ -73,19 +73,19 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "OrientAlongBoneLabel", "Orient Along Bone:").ToString())
+					.Text(NSLOCTEXT("PhAT", "OrientAlongBoneLabel", "Orient Along Bone:"))
 				]
 				+SUniformGridPanel::Slot(1, 1)
 				[
 					SNew(SCheckBox)
-					.IsChecked(NewBodyData->bAlignDownBone ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+					.IsChecked(NewBodyData->bAlignDownBone ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 					.OnCheckStateChanged(this, &SPhATNewAssetDlg::OnToggleOrientAlongBone)
 				]
 				+SUniformGridPanel::Slot(0, 2)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "CollisionGeometryLabel", "Collision Geometry:").ToString())
+					.Text(NSLOCTEXT("PhAT", "CollisionGeometryLabel", "Collision Geometry:"))
 				]
 				+SUniformGridPanel::Slot(1, 2)
 				.VAlign(VAlign_Center)
@@ -99,7 +99,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "UseVertsWithLabel", "Use Verts With:").ToString())
+					.Text(NSLOCTEXT("PhAT", "UseVertsWithLabel", "Use Verts With:"))
 				]
 				+SUniformGridPanel::Slot(1, 3)
 				.VAlign(VAlign_Center)
@@ -113,19 +113,19 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "CreateJointsLabel", "Create Joints:").ToString())
+					.Text(NSLOCTEXT("PhAT", "CreateJointsLabel", "Create Joints:"))
 				]
 				+SUniformGridPanel::Slot(1, 4)
 				[
 					SNew(SCheckBox)
-					.IsChecked(NewBodyData->bCreateJoints ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+					.IsChecked(NewBodyData->bCreateJoints ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 					.OnCheckStateChanged(this, &SPhATNewAssetDlg::OnToggleCreateJoints)
 				]
 				+SUniformGridPanel::Slot(0, 5)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "AngularConstraintMode", "Default Angular Constraint Mode:").ToString())
+					.Text(NSLOCTEXT("PhAT", "AngularConstraintMode", "Default Angular Constraint Mode:"))
 				]
 				+SUniformGridPanel::Slot(1, 5)
 				.VAlign(VAlign_Center)
@@ -139,24 +139,24 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "WalkPastSmallBonesLabel", "Walk Past Small Bones:").ToString())
+					.Text(NSLOCTEXT("PhAT", "WalkPastSmallBonesLabel", "Walk Past Small Bones:"))
 				]
 				+SUniformGridPanel::Slot(1, 6)
 				[
 					SNew(SCheckBox)
-					.IsChecked(NewBodyData->bWalkPastSmall ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+					.IsChecked(NewBodyData->bWalkPastSmall ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 					.OnCheckStateChanged(this, &SPhATNewAssetDlg::OnToggleWalkPastSmallBones)
 				]
 				+SUniformGridPanel::Slot(0, 7)
 				.VAlign(VAlign_Center)
 				[
 					SNew(STextBlock)
-					.Text(NSLOCTEXT("PhAT", "CreateBodyForAllBonesLabel", "Create Body For All Bones:").ToString())
+					.Text(NSLOCTEXT("PhAT", "CreateBodyForAllBonesLabel", "Create Body For All Bones:"))
 				]
 				+SUniformGridPanel::Slot(1, 7)
 				[
 					SNew(SCheckBox)
-					.IsChecked(NewBodyData->bBodyForAll ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked)
+					.IsChecked(NewBodyData->bBodyForAll ? ECheckBoxState::Checked : ECheckBoxState::Unchecked)
 					.OnCheckStateChanged(this, &SPhATNewAssetDlg::OnToggleCreateBodyForAllBones)
 				]
 				// Add in the UI options for the max hulls and the max verts on the hulls
@@ -165,7 +165,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Visibility(this, &SPhATNewAssetDlg::GetHullOptionsVisibility )
-						.Text( NSLOCTEXT("PhAT", "MaxNumHulls_ConvexDecomp", "Max Num Hulls").ToString() )
+						.Text( NSLOCTEXT("PhAT", "MaxNumHulls_ConvexDecomp", "Max Num Hulls") )
 					]
 				+SUniformGridPanel::Slot(1, 7)
 					[
@@ -181,7 +181,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 					[
 						SNew(STextBlock)
 						.Visibility(this, &SPhATNewAssetDlg::GetHullOptionsVisibility )
-						.Text( NSLOCTEXT("PhAT", "MaxHullVerts_ConvexDecomp", "Max Hull Verts").ToString() )
+						.Text( NSLOCTEXT("PhAT", "MaxHullVerts_ConvexDecomp", "Max Hull Verts") )
 					]
 				+SUniformGridPanel::Slot(1, 8)
 					[
@@ -205,7 +205,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				+SUniformGridPanel::Slot(0,0)
 				[
 					SNew(SButton)
-					.Text(NSLOCTEXT("PhAT", "OkButtonText", "Ok").ToString())
+					.Text(NSLOCTEXT("PhAT", "OkButtonText", "Ok"))
 					.HAlign(HAlign_Center)
 					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 					.OnClicked(FOnClicked::CreateSP<SPhATNewAssetDlg, EAppReturnType::Type>(this, &SPhATNewAssetDlg::OnClicked, EAppReturnType::Ok))
@@ -213,7 +213,7 @@ void SPhATNewAssetDlg::Construct(const FArguments& InArgs)
 				+SUniformGridPanel::Slot(1,0)
 				[
 					SNew(SButton)
-					.Text(NSLOCTEXT("PhAT", "CancelButtonText", "Cancel").ToString())
+					.Text(NSLOCTEXT("PhAT", "CancelButtonText", "Cancel"))
 					.HAlign(HAlign_Center)
 					.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 					.OnClicked(FOnClicked::CreateSP<SPhATNewAssetDlg, EAppReturnType::Type>(this, &SPhATNewAssetDlg::OnClicked, EAppReturnType::Cancel))
@@ -312,24 +312,24 @@ void SPhATNewAssetDlg::OnAngularConstraintModeSelectionChanged(TSharedPtr<FStrin
 	}
 }
 
-void SPhATNewAssetDlg::OnToggleOrientAlongBone(ESlateCheckBoxState::Type InCheckboxState)
+void SPhATNewAssetDlg::OnToggleOrientAlongBone(ECheckBoxState InCheckboxState)
 {
-	NewBodyData->bAlignDownBone = (InCheckboxState == ESlateCheckBoxState::Checked);
+	NewBodyData->bAlignDownBone = (InCheckboxState == ECheckBoxState::Checked);
 }
 
-void SPhATNewAssetDlg::OnToggleCreateJoints(ESlateCheckBoxState::Type InCheckboxState)
+void SPhATNewAssetDlg::OnToggleCreateJoints(ECheckBoxState InCheckboxState)
 {
-	NewBodyData->bCreateJoints = (InCheckboxState == ESlateCheckBoxState::Checked);
+	NewBodyData->bCreateJoints = (InCheckboxState == ECheckBoxState::Checked);
 }
 
-void SPhATNewAssetDlg::OnToggleWalkPastSmallBones(ESlateCheckBoxState::Type InCheckboxState)
+void SPhATNewAssetDlg::OnToggleWalkPastSmallBones(ECheckBoxState InCheckboxState)
 {
-	NewBodyData->bWalkPastSmall = (InCheckboxState == ESlateCheckBoxState::Checked);
+	NewBodyData->bWalkPastSmall = (InCheckboxState == ECheckBoxState::Checked);
 }
 
-void SPhATNewAssetDlg::OnToggleCreateBodyForAllBones(ESlateCheckBoxState::Type InCheckboxState)
+void SPhATNewAssetDlg::OnToggleCreateBodyForAllBones(ECheckBoxState InCheckboxState)
 {
-	NewBodyData->bBodyForAll = (InCheckboxState == ESlateCheckBoxState::Checked);
+	NewBodyData->bBodyForAll = (InCheckboxState == ECheckBoxState::Checked);
 }
 
 EVisibility SPhATNewAssetDlg::GetHullOptionsVisibility() const

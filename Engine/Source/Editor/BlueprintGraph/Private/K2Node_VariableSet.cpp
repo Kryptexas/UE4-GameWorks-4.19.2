@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -86,6 +86,11 @@ void UK2Node_VariableSet::AllocateDefaultPins()
 		{
 			CreatePinForSelf();
 		}
+
+		if(CreatePinForVariable(EGPD_Output, GetVariableOutputPinName()))
+		{
+			CreateOutputPinTooltip();
+		}
 	}
 
 	Super::AllocateDefaultPins();
@@ -107,6 +112,15 @@ void UK2Node_VariableSet::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*
 				return;
 			}
 		}
+
+		if(!CreatePinForVariable(EGPD_Output, GetVariableOutputPinName()))
+		{
+			if(!RecreatePinForVariable(EGPD_Output, OldPins, GetVariableOutputPinName()))
+			{
+				return;
+			}
+		}
+		CreateOutputPinTooltip();
 		CreatePinForSelf();
 	}
 }
@@ -340,6 +354,70 @@ FName UK2Node_VariableSet::GetRepNotifyName() const
 FNodeHandlingFunctor* UK2Node_VariableSet::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
 {
 	return new FKCHandler_VariableSet(CompilerContext);
+}
+
+FString UK2Node_VariableSet::GetVariableOutputPinName() const
+{
+	return TEXT("Output_Get");
+}
+
+void UK2Node_VariableSet::CreateOutputPinTooltip()
+{
+	UEdGraphPin* Pin = FindPin(GetVariableOutputPinName());
+	check(Pin);
+	Pin->PinToolTip = NSLOCTEXT("K2Node", "SetPinOutputTooltip", "Retrieves the value of the variable, can use instead of a separate Get node").ToString();
+}
+
+FText UK2Node_VariableSet::GetPinNameOverride(const UEdGraphPin& Pin) const
+{
+	// Stop the output pin for the variable, effectively the "get" pin, from displaying a name.
+	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
+	if(Pin.Direction == EGPD_Output || Pin.PinType.PinCategory == K2Schema->PC_Exec)
+	{
+		return FText::GetEmpty();
+	}
+
+	return !Pin.PinFriendlyName.IsEmpty() ? Pin.PinFriendlyName : FText::FromString(Pin.PinName);
+}
+
+void UK2Node_VariableSet::ExpandNode(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph)
+{
+	Super::ExpandNode(CompilerContext, SourceGraph);
+
+	if (CompilerContext.bIsFullCompile)
+	{
+		const UEdGraphSchema_K2* K2Schema = CompilerContext.GetSchema();
+
+		UEdGraphPin* Pin = FindPin(GetVariableOutputPinName());
+		if(Pin)
+		{
+			// If the output pin is linked, we need to spawn a separate "Get" node and hook it up.
+			if(Pin->LinkedTo.Num())
+			{
+				UProperty* VariableProperty = GetPropertyForVariable();
+
+				if(VariableProperty)
+				{
+					UK2Node_VariableGet* VariableGetNode = CompilerContext.SpawnIntermediateNode<UK2Node_VariableGet>(this, SourceGraph);
+					VariableGetNode->VariableReference = VariableReference;
+					VariableGetNode->AllocateDefaultPins();
+					CompilerContext.MessageLog.NotifyIntermediateObjectCreation(VariableGetNode, this);
+					CompilerContext.MovePinLinksToIntermediate(*Pin, *VariableGetNode->FindPin(GetVarNameString()));
+
+					// Duplicate the connection to the self pin.
+					UEdGraphPin* SetSelfPin = K2Schema->FindSelfPin(*this, EGPD_Input);
+					UEdGraphPin* GetSelfPin = K2Schema->FindSelfPin(*VariableGetNode, EGPD_Input);
+					if(SetSelfPin && GetSelfPin)
+					{
+						CompilerContext.CopyPinLinksToIntermediate(*SetSelfPin, *GetSelfPin);
+					}
+				}
+			}
+			Pins.Remove(Pin);
+		}
+		
+	}
+
 }
 
 #undef LOCTEXT_NAMESPACE

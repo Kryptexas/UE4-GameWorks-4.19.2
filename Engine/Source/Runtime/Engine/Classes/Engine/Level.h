@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Engine/World.h"
@@ -229,15 +229,58 @@ private:
 	friend class FLightmassProcessor;
 };
 
+USTRUCT()
+struct ENGINE_API FLevelSimplificationDetails
+{
+	GENERATED_USTRUCT_BODY()
+
+	// Percentage of details relative to main tile details
+	UPROPERTY(Category=ReductionSettings, EditAnywhere, meta=(ClampMin = "0", ClampMax = "100", UIMin = "0", UIMax = "100"))	
+	float DetailsPercentage;
+
+	// Whether to create separate packages for each generated asset. All in map package otherwise
+	UPROPERTY(Category=Landscape, EditAnywhere)
+	bool bCreatePackagePerAsset;
+	
+	// Landscape LOD to use for static mesh generation
+	UPROPERTY(Category=Landscape, EditAnywhere, meta=(ClampMin = "0", ClampMax = "7", UIMin = "0", UIMax = "7"))
+	int32 LandscapeExportLOD;
+
+	// Whether to generate normal map for landscape static mesh
+	UPROPERTY(Category=Landscape, EditAnywhere)
+	bool bGenerateLandscapeNormalMap;
+
+	// Whether to generate metallic map for landscape static mesh
+	UPROPERTY(Category=Landscape, EditAnywhere)
+	bool bGenerateLandscapeMetallicMap;
+
+	// Whether to generate roughness map for landscape static mesh
+	UPROPERTY(Category=Landscape, EditAnywhere)
+	bool bGenerateLandscapeRoughnessMap;
+	
+	// Whether to generate specular map for landscape static mesh
+	UPROPERTY(Category=Landscape, EditAnywhere)
+	bool bGenerateLandscapeSpecularMap;
+	
+	// Whether to bake foliage into landscape static mesh texture
+	UPROPERTY(Category=Landscape, EditAnywhere)
+	bool bBakeFoliageToLandscape;
+
+	FLevelSimplificationDetails();
+
+	bool operator == (const FLevelSimplificationDetails& Other) const;
+};
+
 //
 // The level object.  Contains the level's actor list, BSP information, and brush list.
+// Every Level has a World as its Outer and can be used as the PersistentLevel, however,
+// when a Level has been streamed in the OwningWorld represents the World that it is a part of.
 //
 
 
 /**
- * A Level contains actors, a blueprint representing the level logic, BSP information, and brushes.
- * Every Level has a World as its Outer and can be used as the PersistentLevel, however, 
- * when a Level has been streamed in the OwningWorld represents the World that it is a part of.
+ * A Level is a collection of Actors (lights, volumes, mesh instances etc.).
+ * Multiple Levels can be loaded and unloaded into the World to create a streaming experience.
  * 
  * @see https://docs.unrealengine.com/latest/INT/Engine/Levels
  * @see UActor
@@ -391,6 +434,12 @@ public:
 		return (OwningWorld && this == OwningWorld->CurrentLevelPendingVisibility);
 	}
 
+#if WITH_EDITORONLY_DATA
+	/** Level simplification settings for each LOD */
+	UPROPERTY()
+	FLevelSimplificationDetails LevelSimplification[WORLDTILE_LOD_MAX_INDEX];
+#endif //WITH_EDITORONLY_DATA
+
 #if PERF_TRACK_DETAILED_ASYNC_STATS
 	/** Mapping of how long each actor class takes to have UpdateComponents called on it */
 	TMap<const UClass*,struct FMapTimeEntry>		UpdateComponentsTimePerActorClass;
@@ -408,7 +457,6 @@ private:
 	FLevelBoundsActorUpdatedEvent LevelBoundsActorUpdatedEvent; 
 
 protected:
-
 	/** Array of all MovieSceneBindings that are used in this level.  These store the relationship between
 	    a MovieScene asset and possessed actors in this level. */
 	UPROPERTY()
@@ -424,9 +472,7 @@ protected:
 	UPROPERTY()
 	TArray<UAssetUserData*> AssetUserData;
 
-
 private:
-
 	// Actors awaiting input to be enabled once the appropriate PlayerController has been created
 	TArray<FPendingAutoReceiveInputActor> PendingAutoReceiveInputActors;
 
@@ -435,8 +481,8 @@ public:
 	ENGINE_API static FSimpleMulticastDelegate LevelDirtiedEvent;
 
 	// Constructor.
-	ENGINE_API ULevel(const FObjectInitializer& ObjectInitializer, const FURL& InURL );
-	ULevel(const FObjectInitializer& ObjectInitializer );
+	ENGINE_API void Initialize(const FURL& InURL);
+	ULevel(const FObjectInitializer& ObjectInitializer);
 	~ULevel();
 
 	// Begin UObject interface.
@@ -620,6 +666,11 @@ public:
 	 * @param	bDontCreate		If true, if no level scripting blueprint is found, none will be created
 	 */
 	ENGINE_API class ULevelScriptBlueprint* GetLevelScriptBlueprint(bool bDontCreate=false);
+
+	/**
+	 *  Returns a list of all blueprints contained within the level
+	 */
+	ENGINE_API TArray<class UBlueprint*> GetLevelBlueprints() const;
 
 	/**
 	 *  Called when the level script blueprint has been successfully changed and compiled.  Handles creating an instance of the blueprint class in LevelScriptActor

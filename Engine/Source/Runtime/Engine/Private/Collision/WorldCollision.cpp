@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	WorldCollision.cpp: UWorld collision implementation
@@ -293,6 +293,103 @@ bool UWorld::OverlapSingle(struct FOverlapResult& OutOverlap, const FVector& Pos
 	return false;
 #endif
 }
+
+// profile interfaces
+static void GetCollisionProfileChannelAndResponseParams(FName ProfileName, ECollisionChannel &CollisionChannel, FCollisionResponseParams &ResponseParams)
+{
+	if (UCollisionProfile::GetChannelAndResponseParams(ProfileName, CollisionChannel, ResponseParams))
+	{
+		return;
+	}
+
+	// No profile found
+	UE_LOG(LogPhysics, Warning, TEXT("COLLISION PROFILE [%s] is not found"), *ProfileName.ToString());
+
+	CollisionChannel = ECC_WorldStatic;
+	ResponseParams = FCollisionResponseParams::DefaultResponseParam;
+}
+
+bool UWorld::LineTraceTestByProfile(const FVector& Start, const FVector& End, FName ProfileName, const struct FCollisionQueryParams& Params) const
+{
+	ECollisionChannel TraceChannel;
+	FCollisionResponseParams ResponseParam;
+	GetCollisionProfileChannelAndResponseParams(ProfileName, TraceChannel, ResponseParam);
+
+	return LineTraceTest(Start, End, TraceChannel, Params, ResponseParam);
+}
+
+bool UWorld::LineTraceSingleByProfile(struct FHitResult& OutHit, const FVector& Start, const FVector& End, FName ProfileName, const struct FCollisionQueryParams& Params) const
+{
+	ECollisionChannel TraceChannel;
+	FCollisionResponseParams ResponseParam;
+	GetCollisionProfileChannelAndResponseParams(ProfileName, TraceChannel, ResponseParam);
+
+	return LineTraceSingle(OutHit, Start, End, TraceChannel, Params, ResponseParam);
+}
+
+bool UWorld::LineTraceMultiByProfile(TArray<struct FHitResult>& OutHits, const FVector& Start, const FVector& End, FName ProfileName, const struct FCollisionQueryParams& Params) const
+{
+	ECollisionChannel TraceChannel;
+	FCollisionResponseParams ResponseParam;
+	GetCollisionProfileChannelAndResponseParams(ProfileName, TraceChannel, ResponseParam);
+
+	return LineTraceMulti(OutHits, Start, End, TraceChannel, Params, ResponseParam);
+}
+
+bool UWorld::SweepTestByProfile(const FVector& Start, const FVector& End, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const
+{
+	ECollisionChannel TraceChannel;
+	FCollisionResponseParams ResponseParam;
+	GetCollisionProfileChannelAndResponseParams(ProfileName, TraceChannel, ResponseParam);
+
+	return SweepTest(Start, End, Rot, TraceChannel, CollisionShape, Params, ResponseParam);
+}
+
+bool UWorld::SweepSingleByProfile(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const
+{
+	ECollisionChannel TraceChannel;
+	FCollisionResponseParams ResponseParam;
+	GetCollisionProfileChannelAndResponseParams(ProfileName, TraceChannel, ResponseParam);
+
+	return SweepSingle(OutHit, Start, End, Rot, TraceChannel, CollisionShape, Params, ResponseParam);
+}
+
+bool UWorld::SweepMultiByProfile(TArray<FHitResult>& OutHits, const FVector& Start, const FVector& End, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const
+{
+	ECollisionChannel TraceChannel;
+	FCollisionResponseParams ResponseParam;
+	GetCollisionProfileChannelAndResponseParams(ProfileName, TraceChannel, ResponseParam);
+
+	return SweepMulti(OutHits, Start, End, Rot, TraceChannel, CollisionShape, Params, ResponseParam);
+}
+
+bool UWorld::OverlapTestByProfile(const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const
+{
+	ECollisionChannel TraceChannel;
+	FCollisionResponseParams ResponseParam;
+	GetCollisionProfileChannelAndResponseParams(ProfileName, TraceChannel, ResponseParam);
+
+	return OverlapTest(Pos, Rot, TraceChannel, CollisionShape, Params, ResponseParam);
+}
+
+bool UWorld::OverlapSingleByProfile(struct FOverlapResult& OutOverlap, const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const
+{
+	ECollisionChannel TraceChannel;
+	FCollisionResponseParams ResponseParam;
+	GetCollisionProfileChannelAndResponseParams(ProfileName, TraceChannel, ResponseParam);
+
+	return OverlapSingle(OutOverlap, Pos, Rot, TraceChannel, CollisionShape, Params, ResponseParam);
+}
+
+bool UWorld::OverlapMultiByProfile(TArray<struct FOverlapResult>& OutOverlaps, const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const
+{
+	ECollisionChannel TraceChannel;
+	FCollisionResponseParams ResponseParam;
+	GetCollisionProfileChannelAndResponseParams(ProfileName, TraceChannel, ResponseParam);
+
+	return OverlapMulti(OutOverlaps, Pos, Rot, TraceChannel, CollisionShape, Params, ResponseParam);
+}
+
 
 bool UWorld::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const class UPrimitiveComponent* PrimComp, const FVector& Pos, const FRotator& Rot, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AITestSuitePrivatePCH.h"
 
@@ -86,11 +86,7 @@ namespace FAITestHelpers
 //----------------------------------------------------------------------//
 FAITestBase::~FAITestBase()
 {
-	for (auto AutoDestroyedObject : SpawnedObjects)
-	{
-		AutoDestroyedObject->RemoveFromRoot();
-	}
-	SpawnedObjects.Reset();
+	check(bTearedDown && "Super implementation of TearDown not called!");
 }
 
 void FAITestBase::Test(const FString& Description, bool bValue)
@@ -104,21 +100,34 @@ void FAITestBase::Test(const FString& Description, bool bValue)
 #endif // ENSURE_FAILED_TESTS
 }
 
+void FAITestBase::TearDown()
+{
+	bTearedDown = true;
+	for (auto AutoDestroyedObject : SpawnedObjects)
+	{
+		AutoDestroyedObject->RemoveFromRoot();
+	}
+	SpawnedObjects.Reset();
+}
+
 //----------------------------------------------------------------------//
 // FAITest_SimpleBT
 //----------------------------------------------------------------------//
 FAITest_SimpleBT::FAITest_SimpleBT()
 {
-	AIBTUser = NewAutoDestroyObject<UMockAI_BT>();
-	BTAsset = &FBTBuilder::CreateBehaviorTree();
-
-	UMockAI_BT::ExecutionLog.Reset();
-
 	bUseSystemTicking = false;
+	
+	BTAsset = &FBTBuilder::CreateBehaviorTree();
 }
 
 void FAITest_SimpleBT::SetUp()
 {
+	FAITestBase::SetUp();
+
+	AIBTUser = NewAutoDestroyObject<UMockAI_BT>();
+
+	UMockAI_BT::ExecutionLog.Reset();
+
 	if (AIBTUser && BTAsset)
 	{
 		AIBTUser->RunBT(*BTAsset, EBTExecutionMode::SingleRun);
@@ -150,6 +159,7 @@ bool FAITest_SimpleBT::Update()
 void FAITest_SimpleBT::VerifyResults()
 {
 	const bool bMatch = (ExpectedResult == UMockAI_BT::ExecutionLog);
+	//ensure(bMatch && "VerifyResults failed!");
 	if (!bMatch)
 	{
 		FString DescriptionResult;

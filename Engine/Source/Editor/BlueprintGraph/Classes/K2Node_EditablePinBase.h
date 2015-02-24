@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "K2Node.h"
@@ -29,15 +29,8 @@ struct FUserPinInfo
 		{
 			Ar << Info.PinName;
 
-			if (Ar.UE4Ver() >= VER_UE4_ADD_PINTYPE_ARRAY )
-			{
-				Ar << Info.PinType.bIsArray;
-			}
-
-			if (Ar.UE4Ver() >= VER_UE4_ADD_PINTYPE_BYREF )
-			{
-				Ar << Info.PinType.bIsReference;
-			}
+			Ar << Info.PinType.bIsArray;
+			Ar << Info.PinType.bIsReference;
 
 			Ar << Info.PinType.PinCategory;
 			Ar << Info.PinType.PinSubCategory;

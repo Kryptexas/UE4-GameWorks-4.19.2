@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "SlateDelegates.h"
 
 /**
  * A border is an widget that can be used to contain other widgets.
@@ -74,7 +75,7 @@ public:
 	 *
 	 * @param	InContent	The widget to use as content for the border
 	 */
-	void SetContent( const TSharedRef< SWidget >& InContent );
+	virtual void SetContent( TSharedRef< SWidget > InContent );
 
 	/**
 	 * Gets the content for this border

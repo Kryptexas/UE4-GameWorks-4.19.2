@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -110,7 +110,7 @@ protected:
 	 *
 	 * @return Zoom label text
 	 */
-	FString GetZoomLabel() const;
+	FText GetZoomLabel() const;
 
 	/**
 	 * Callback used to get the current zoom slider value.
@@ -208,7 +208,7 @@ protected:
 	void OnBarGeometryChanged( FGeometry Geometry );
 
 	/** Gets the currently displayed hierarchy node name */
-	FString GetSelectedCategoryName() const;
+	FText GetSelectedCategoryName() const;
 
 	/** Checks if home button should be visible */
 	EVisibility GetHomeButtonVisibility() const;	

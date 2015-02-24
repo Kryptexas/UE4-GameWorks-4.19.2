@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	XeAudioDevice.cpp: Unreal XAudio2 Audio interface object.
@@ -417,7 +417,7 @@ void FXAudio2SoundSource::GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COU
 			if( WaveInstance->bUseSpatialization )
 			{
 				FVector UnnormalizedDirection = AudioDevice->InverseTransform.TransformPosition( WaveInstance->Location );
-				Direction = UnnormalizedDirection.SafeNormal();
+				Direction = UnnormalizedDirection.GetSafeNormal();
 				float Distance = UnnormalizedDirection.Size();
 				NormalizedOmniRadius = (Distance > 0) ? (WaveInstance->OmniRadius / Distance) : FLT_MAX;
 			}

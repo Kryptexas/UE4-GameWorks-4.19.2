@@ -1,11 +1,17 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "DynamicCastHandler.h"
 #include "EditorCategoryUtils.h"
+#include "BlueprintEditorSettings.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_DynamicCast"
+
+namespace UK2Node_DynamicCastImpl
+{
+	static const FString CastSuccessPinName("bSuccess");
+}
 
 UK2Node_DynamicCast::UK2Node_DynamicCast(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -52,6 +58,9 @@ void UK2Node_DynamicCast::AllocateDefaultPins()
 			CreatePin(EGPD_Output, K2Schema->PC_Object, TEXT(""), *TargetType, false, false, CastResultPinName);
 		}
 	}
+
+	UEdGraphPin* BoolSuccessPin = CreatePin(EGPD_Output, K2Schema->PC_Boolean, TEXT(""), nullptr, /*bIsArray =*/false, /*bIsReference =*/false, UK2Node_DynamicCastImpl::CastSuccessPinName);
+	BoolSuccessPin->bHidden = !bIsPureCast;
 
 	Super::AllocateDefaultPins();
 }
@@ -134,6 +143,14 @@ void UK2Node_DynamicCast::GetContextMenuActions(const FGraphNodeContextMenuBuild
 	Context.MenuBuilder->EndSection();
 }
 
+void UK2Node_DynamicCast::PostPlacedNewNode()
+{
+	Super::PostPlacedNewNode();
+
+	const UBlueprintEditorSettings* BlueprintSettings = GetDefault<UBlueprintEditorSettings>();
+	SetPurity(BlueprintSettings->bFavorPureCastNodes);
+}
+
 UEdGraphPin* UK2Node_DynamicCast::GetValidCastPin() const
 {
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
@@ -175,6 +192,14 @@ UEdGraphPin* UK2Node_DynamicCast::GetCastSourcePin() const
 	UEdGraphPin* Pin = FindPin(K2Schema->PN_ObjectToCast);
 	check(Pin != NULL);
 	check(Pin->Direction == EGPD_Input);
+	return Pin;
+}
+
+UEdGraphPin* UK2Node_DynamicCast::GetBoolSuccessPin() const
+{
+	UEdGraphPin* Pin = FindPin(UK2Node_DynamicCastImpl::CastSuccessPinName);
+	check(Pin != nullptr);
+	check(Pin->Direction == EGPD_Output);
 	return Pin;
 }
 

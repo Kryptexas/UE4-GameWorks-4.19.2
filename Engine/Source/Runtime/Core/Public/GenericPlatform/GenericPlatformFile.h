@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -116,6 +116,11 @@ public:
 	 * Performs initialization of the platform file after it has become the active (FPlatformFileManager.GetPlatformFile() will return this
 	 */
 	virtual void		InitializeAfterSetActive() { }
+
+	/**
+	 * Identifies any platform specific paths that are guaranteed to be local (i.e. cache, scratch space)
+	 */
+	virtual void		AddLocalDirectories(TArray<FString> &LocalDirectories) { }
 
 	/** Gets the platform file wrapped by this file. */
 	virtual IPlatformFile* GetLowerLevel() = 0;

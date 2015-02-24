@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -54,9 +54,10 @@ struct FDetailFilter
 		: bShowOnlyModifiedProperties(false)
 		, bShowAllAdvanced(false)
 		, bShowOnlyDiffering(false)
+		, bShowAllChildrenIfCategoryMatches(true)
 	{}
 
-	bool IsEmptyFilter() const { return FilterStrings.Num() == 0 && bShowOnlyModifiedProperties == false && bShowAllAdvanced == false && bShowOnlyDiffering == false; }
+	bool IsEmptyFilter() const { return FilterStrings.Num() == 0 && bShowOnlyModifiedProperties == false && bShowAllAdvanced == false && bShowOnlyDiffering == false && bShowAllChildrenIfCategoryMatches == false; }
 
 	/** Any user search terms that items must match */
 	TArray<FString> FilterStrings;
@@ -66,6 +67,8 @@ struct FDetailFilter
 	bool bShowAllAdvanced;
 	/** If we should only show differing properties */
 	bool bShowOnlyDiffering;
+	/** If we should show all the children if their category name matches the search */
+	bool bShowAllChildrenIfCategoryMatches;
 	TSet<FPropertyPath> WhitelistedProperties;
 };
 
@@ -350,14 +353,20 @@ protected:
 	/** @return true if show only differing is checked */
 	bool IsShowOnlyDifferingChecked() const { return CurrentFilter.bShowOnlyDiffering; }
 
+	/** @return true if show all advanced is checked */
+	bool IsShowAllChildrenIfCategoryMatchesChecked() const { return CurrentFilter.bShowAllChildrenIfCategoryMatches; }
+
 	/** Called when show only modified is clicked */
 	void OnShowOnlyModifiedClicked();
+
+	/** Called when show all advanced is clicked */
+	void OnShowAllAdvancedClicked();
 
 	/** Called when show only differing is clicked */
 	void OnShowOnlyDifferingClicked();
 
-	/** Called when show all advanced is clicked */
-	void OnShowAllAdvancedClicked();
+	/** Called when show all children if category matches is clicked */
+	void OnShowAllChildrenIfCategoryMatchesClicked();
 
 	/**
 	* Updates the details with the passed in filter
@@ -369,6 +378,9 @@ protected:
 
 	/** Called when the list of currently differing properties changes */
 	virtual void UpdatePropertiesWhitelist(const TSet<FPropertyPath> InWhitelistedProperties) override { CurrentFilter.WhitelistedProperties = InWhitelistedProperties; }
+
+	virtual TSharedPtr<SWidget> GetNameAreaWidget() override;
+	virtual TSharedPtr<SWidget> GetFilterAreaWidget() override;
 
 	/** 
 	 * Hides or shows properties based on the passed in filter text
@@ -390,6 +402,8 @@ protected:
 	FCustomDetailLayoutMap InstancedClassToDetailLayoutMap;
 	/** The current detail layout based on selection */
 	TSharedPtr<class FDetailLayoutBuilderImpl> DetailLayout;
+	/** Row for searching and view options */
+	TSharedPtr<SHorizontalBox>  FilterRow;
 	/** Search box */
 	TSharedPtr<SWidget> SearchBox;
 	/** Customization class instances currently active in this view */
@@ -445,7 +459,7 @@ protected:
 	TSharedPtr<IDetailPropertyExtensionHandler> ExtensionHandler;
 
 	/** External property nodes which need to validated each tick */
-	TArray< TWeakPtr<FObjectPropertyNode> > ExternalRootPropertyNodes;
+	TArray< TWeakPtr<FPropertyNode> > ExternalRootPropertyNodes;
 
 	/** The tree node that is currently highlighted, may be none: */
 	TWeakPtr< IDetailTreeNode > CurrentlyHighlightedNode;

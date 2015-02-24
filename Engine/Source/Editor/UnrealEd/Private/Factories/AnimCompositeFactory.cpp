@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimCompositeFactory.cpp: Factory for AnimComposite
@@ -8,6 +8,7 @@
 
 #include "AssetData.h"
 #include "ContentBrowserModule.h"
+#include "Animation/AnimComposite.h"
 
 #define LOCTEXT_NAMESPACE "AnimCompositeFactory"
 
@@ -38,9 +39,6 @@ bool UAnimCompositeFactory::ConfigureProperties()
 
 	/** The default view mode should be a list view */
 	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
-
-	/** The default scale for thumbnails. [0-1] range */
-	AssetPickerConfig.ThumbnailScale = 0.25f;
 
 	PickerWindow = SNew(SWindow)
 	.Title(LOCTEXT("CreateAnimCompositeOptions", "Pick Skeleton"))

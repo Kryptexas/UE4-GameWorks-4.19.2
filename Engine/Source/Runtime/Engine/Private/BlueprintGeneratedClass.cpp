@@ -1,8 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "BlueprintUtilities.h"
 #include "Engine/InputDelegateBinding.h"
+#include "Engine/TimelineTemplate.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/LevelScriptActor.h"
+#include "Engine/InheritableComponentHandler.h"
 
 #if WITH_EDITOR
 #include "BlueprintEditorUtils.h"
@@ -37,10 +42,21 @@ void UBlueprintGeneratedClass::PostLoad()
 	TArray<UObject*> SubObjects;
 	GetObjectsWithOuter(ClassCDO, SubObjects);
 
+	struct FCheckIfComponentChildHelper
+	{
+		static bool IsComponentChild(UObject* CurrObj, const UObject* CDO)
+		{
+			UObject*  OuterObject = CurrObj ? CurrObj->GetOuter() : nullptr;
+			const bool bValidOuter = OuterObject && (OuterObject != CDO);
+			return bValidOuter ? (OuterObject->IsDefaultSubobject() || IsComponentChild(OuterObject, CDO)) : false;
+		};
+	};
+
 	for( auto SubObjIt = SubObjects.CreateIterator(); SubObjIt; ++SubObjIt )
 	{
 		UObject* CurrObj = *SubObjIt;
-		if( !CurrObj->IsDefaultSubobject() && !CurrObj->IsRooted() )
+		const bool bComponentChild = FCheckIfComponentChildHelper::IsComponentChild(CurrObj, ClassCDO);
+		if (!CurrObj->IsDefaultSubobject() && !CurrObj->IsRooted() && !bComponentChild)
 		{
 			CurrObj->MarkPendingKill();
 		}
@@ -64,6 +80,34 @@ void UBlueprintGeneratedClass::PostLoad()
 		}
 	}
 #endif // WITH_EDITORONLY_DATA
+}
+
+void UBlueprintGeneratedClass::GetRequiredPreloadDependencies(TArray<UObject*>& DependenciesOut)
+{
+	Super::GetRequiredPreloadDependencies(DependenciesOut);
+
+	// the component templates are no longer needed as Preload() dependencies 
+	// (ULinkerLoad now handles these with placeholder export objects instead)...
+	// this change was prompted by a cyclic case, where creating the first
+	// component-template tripped the serialization of its class outer, before 
+	// another second component-template could be created (even though the 
+	// second component was listed in the ExportMap before the class)
+// 	for (UActorComponent* Component : ComponentTemplates)
+// 	{
+// 		// because of the linker's way of handling circular dependencies (with 
+// 		// placeholder blueprint classes), we need to ensure that class owned 
+// 		// blueprint components are created before the class's  is 
+// 		// ComponentTemplates member serialized in (otherwise, the component 
+// 		// would be created as a ULinkerPlaceholderClass instance)
+// 		//
+// 		// by returning these in the DependenciesOut array, we're making it 
+// 		// known that they should be prioritized in the package's ExportMap 
+// 		// before this class
+// 		if (Component->GetClass()->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+// 		{
+// 			DependenciesOut.Add(Component);
+// 		}
+// 	}
 }
 
 #if WITH_EDITOR
@@ -157,6 +201,11 @@ struct FConditionalRecompileClassHepler
 		{
 			// If my parent is native, my layout wasn't changed.
 			const UClass* ParentClass = *GeneratingBP->ParentClass;
+			if (!GeneratingBP->GeneratedClass || (GeneratingBP->GeneratedClass->GetSuperClass() != ParentClass))
+			{
+				return ENeededAction::Recompile;
+			}
+
 			if (ParentClass && ParentClass->HasAllClassFlags(CLASS_Native))
 			{
 				return ENeededAction::None;
@@ -215,6 +264,66 @@ bool UBlueprintGeneratedClass::IsFunctionImplementedInBlueprint(FName InFunction
 	return Function && Function->GetOuter() && Function->GetOuter()->IsA(UBlueprintGeneratedClass::StaticClass());
 }
 
+UInheritableComponentHandler* UBlueprintGeneratedClass::GetInheritableComponentHandler(const bool bCreateIfNecessary)
+{
+	static const FBoolConfigValueHelper EnableInheritableComponents(TEXT("Kismet"), TEXT("bEnableInheritableComponents"), GEngineIni);
+	if (!EnableInheritableComponents)
+	{
+		return nullptr;
+	}
+
+	if (!InheritableComponentHandler && bCreateIfNecessary)
+	{
+		InheritableComponentHandler = NewNamedObject<UInheritableComponentHandler>(this, FName(TEXT("InheritableComponentHandler")));
+	}
+
+	return InheritableComponentHandler;
+}
+
+
+UObject* UBlueprintGeneratedClass::FindArchetype(UClass* ArchetypeClass, const FName ArchetypeName) const
+{
+	UObject* Archetype = nullptr;
+
+	// There are some rogue LevelScriptActors that still have a SimpleConstructionScript
+	// and since preloading the SCS of a script in a world package is bad news, we need to filter them out
+	if (SimpleConstructionScript && !IsChildOf<ALevelScriptActor>())
+	{
+		UBlueprintGeneratedClass* Class = const_cast<UBlueprintGeneratedClass*>(this);
+		while (Class)
+		{
+			USimpleConstructionScript* ClassSCS = Class->SimpleConstructionScript;
+			if (ClassSCS->HasAnyFlags(RF_NeedLoad))
+			{
+				ClassSCS->PreloadChain();
+			}
+
+			USCS_Node* SCSNode = ClassSCS->FindSCSNode(ArchetypeName);
+			if (SCSNode)
+			{
+				Archetype = SCSNode->ComponentTemplate;
+			}
+			else if (UInheritableComponentHandler* ICH = Class->GetInheritableComponentHandler())
+			{
+				Archetype = ICH->GetOverridenComponentTemplate(ICH->FindKey(ArchetypeName));
+			}
+
+			if (Archetype == nullptr)
+			{
+				Archetype = static_cast<UObject*>(FindObjectWithOuter(Class, ArchetypeClass, ArchetypeName));
+				Class = (Archetype ? nullptr : Cast<UBlueprintGeneratedClass>(Class->GetSuperClass()));
+			}
+			else
+			{
+				Class = nullptr;
+			}
+		}
+	}
+
+
+	return Archetype;
+}
+
 UDynamicBlueprintBinding* UBlueprintGeneratedClass::GetDynamicBindingObject(UClass* Class) const
 {
 	UDynamicBlueprintBinding* DynamicBindingObject = NULL;
@@ -269,7 +378,7 @@ bool UBlueprintGeneratedClass::GetGeneratedClassesHierarchy(const UClass* InClas
 	return bNoErrors;
 }
 
-UActorComponent* UBlueprintGeneratedClass::FindComponentTemplateByName(const FName& TemplateName)
+UActorComponent* UBlueprintGeneratedClass::FindComponentTemplateByName(const FName& TemplateName) const
 {
 	for(int32 i = 0; i < ComponentTemplates.Num(); i++)
 	{
@@ -300,10 +409,10 @@ void UBlueprintGeneratedClass::CreateComponentsForActor(AActor* Actor) const
 			continue;
 		}
 
-		FName NewName = *(FString::Printf(TEXT("TimelineComp__%d"), Actor->SerializedComponents.Num() ) );
+		FName NewName = *(FString::Printf(TEXT("TimelineComp__%d"), Actor->BlueprintCreatedComponents.Num() ) );
 		UTimelineComponent* NewTimeline = NewNamedObject<UTimelineComponent>(Actor, NewName);
-		NewTimeline->bCreatedByConstructionScript = true; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
-		Actor->SerializedComponents.Add(NewTimeline); // Add to array so it gets saved
+		NewTimeline->CreationMethod = EComponentCreationMethod::UserConstructionScript; // Indicate it comes from a blueprint so it gets cleared when we rerun construction scripts
+		Actor->BlueprintCreatedComponents.Add(NewTimeline); // Add to array so it gets saved
 		NewTimeline->SetNetAddressable();	// This component has a stable name that can be referenced for replication
 
 		NewTimeline->SetPropertySetObject(Actor); // Set which object the timeline should drive properties on
@@ -410,7 +519,8 @@ uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunc
 		if (UberGraphFunction == FuncToCheck)
 		{
 			auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
-			checkSlow(PointerToUberGraphFrame && PointerToUberGraphFrame->RawPointer);
+			checkSlow(PointerToUberGraphFrame);
+			ensure(PointerToUberGraphFrame->RawPointer);
 			return PointerToUberGraphFrame->RawPointer;
 		}
 	}
@@ -419,26 +529,40 @@ uint8* UBlueprintGeneratedClass::GetPersistentUberGraphFrame(UObject* Obj, UFunc
 	return ParentClass->GetPersistentUberGraphFrame(Obj, FuncToCheck);
 }
 
-void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj) const
+void UBlueprintGeneratedClass::CreatePersistentUberGraphFrame(UObject* Obj, bool bCreateOnlyIfEmpty) const
 {
 	checkSlow(!UberGraphFramePointerProperty == !UberGraphFunction);
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
 	{
-		auto FrameMemory = (uint8*)FMemory::Malloc(UberGraphFunction->GetStructureSize());
-		FMemory::Memzero(FrameMemory, UberGraphFunction->GetStructureSize());
-		for (UProperty* Property = UberGraphFunction->PropertyLink; Property; Property = Property->PropertyLinkNext)
-		{
-			Property->InitializeValue_InContainer(FrameMemory);
-		}
-		
 		auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
-		checkSlow(PointerToUberGraphFrame && !PointerToUberGraphFrame->RawPointer);
-		PointerToUberGraphFrame->RawPointer = FrameMemory;
+		check(PointerToUberGraphFrame);
+		check(bCreateOnlyIfEmpty || !PointerToUberGraphFrame->RawPointer);
+		
+		if (!PointerToUberGraphFrame->RawPointer)
+		{
+			uint8* FrameMemory = NULL;
+			const bool bUberGraphFunctionIsReady = UberGraphFunction->HasAllFlags(RF_LoadCompleted); // is fully loaded
+			if (bUberGraphFunctionIsReady)
+			{
+				FrameMemory = (uint8*)FMemory::Malloc(UberGraphFunction->GetStructureSize());
+				FMemory::Memzero(FrameMemory, UberGraphFunction->GetStructureSize());
+				for (UProperty* Property = UberGraphFunction->PropertyLink; Property; Property = Property->PropertyLinkNext)
+				{
+					Property->InitializeValue_InContainer(FrameMemory);
+				}
+			}
+			else
+			{
+				UE_LOG(LogBlueprint, Warning, TEXT("Function '%s' is not ready to create frame for '%s'"),
+					*GetPathNameSafe(UberGraphFunction), *GetPathNameSafe(Obj));
+			}
+			PointerToUberGraphFrame->RawPointer = FrameMemory;
+		}
 	}
 
 	auto ParentClass = GetSuperClass();
 	checkSlow(ParentClass);
-	return ParentClass->CreatePersistentUberGraphFrame(Obj);
+	return ParentClass->CreatePersistentUberGraphFrame(Obj, bCreateOnlyIfEmpty);
 }
 
 void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj) const
@@ -447,15 +571,21 @@ void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj) con
 	if (Obj && UsePersistentUberGraphFrame() && UberGraphFramePointerProperty && UberGraphFunction)
 	{
 		auto PointerToUberGraphFrame = UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(Obj);
-		checkSlow(PointerToUberGraphFrame && PointerToUberGraphFrame->RawPointer);
+		checkSlow(PointerToUberGraphFrame);
 		auto FrameMemory = PointerToUberGraphFrame->RawPointer;
 		PointerToUberGraphFrame->RawPointer = NULL;
-
-		for (UProperty* Property = UberGraphFunction->PropertyLink; Property; Property = Property->PropertyLinkNext)
+		if (FrameMemory)
 		{
-			Property->DestroyValue_InContainer(FrameMemory);
+			for (UProperty* Property = UberGraphFunction->PropertyLink; Property; Property = Property->PropertyLinkNext)
+			{
+				Property->DestroyValue_InContainer(FrameMemory);
+			}
+			FMemory::Free(FrameMemory);
 		}
-		FMemory::Free(FrameMemory);
+		else
+		{
+			UE_LOG(LogBlueprint, Log, TEXT("Object '%s' had no Uber Graph Persistent Frame"), *GetPathNameSafe(Obj));
+		}
 	}
 
 	auto ParentClass = GetSuperClass();
@@ -465,6 +595,28 @@ void UBlueprintGeneratedClass::DestroyPersistentUberGraphFrame(UObject* Obj) con
 
 void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties)
 {
+	// Ensure that function netflags equate to any super function in a parent BP prior to linking; it may have been changed by the user
+	// and won't be reflected in the child class until it is recompiled. Without this, UClass::Link() will assert if they are out of sync.
+	for(UField* Field = Children; Field; Field = Field->Next)
+	{
+		Ar.Preload(Field);
+
+		UFunction* Function = dynamic_cast<UFunction*>(Field);
+		if(Function != nullptr)
+		{
+			UFunction* ParentFunction = Function->GetSuperFunction();
+			if(ParentFunction != nullptr)
+			{
+				const uint32 ParentNetFlags = (ParentFunction->FunctionFlags & FUNC_NetFuncFlags);
+				if(ParentNetFlags != (Function->FunctionFlags & FUNC_NetFuncFlags))
+				{
+					Function->FunctionFlags &= ~FUNC_NetFuncFlags;
+					Function->FunctionFlags |= ParentNetFlags;
+				}
+			}
+		}
+	}
+
 	Super::Link(Ar, bRelinkExistingProperties);
 
 	if (UsePersistentUberGraphFrame() && UberGraphFunction)
@@ -510,10 +662,12 @@ void UBlueprintGeneratedClass::AddReferencedObjectsInUbergraphFrame(UObject* InT
 			{
 				checkSlow(BPGC->UberGraphFunction);
 				auto PointerToUberGraphFrame = BPGC->UberGraphFramePointerProperty->ContainerPtrToValuePtr<FPointerToUberGraphFrame>(InThis);
-				checkSlow(PointerToUberGraphFrame && PointerToUberGraphFrame->RawPointer);
-
-				FSimpleObjectReferenceCollectorArchive ObjectReferenceCollector(InThis, Collector);
-				BPGC->UberGraphFunction->SerializeBin(ObjectReferenceCollector, PointerToUberGraphFrame->RawPointer, 0);
+				checkSlow(PointerToUberGraphFrame)
+				if (PointerToUberGraphFrame->RawPointer)
+				{
+					FSimpleObjectReferenceCollectorArchive ObjectReferenceCollector(InThis, Collector);
+					BPGC->UberGraphFunction->SerializeBin(ObjectReferenceCollector, PointerToUberGraphFrame->RawPointer, 0);
+				}
 			}
 		}
 		else if (CurrentClass->HasAllClassFlags(CLASS_Native))
@@ -542,4 +696,20 @@ bool UBlueprintGeneratedClass::UsePersistentUberGraphFrame()
 #else
 	return false;
 #endif
+}
+
+bool UBlueprintGeneratedClass::CompileSkeletonClassesInheritSkeletonClasses()
+{
+	static const FBoolConfigValueHelper SkeletonClassesInheritSkeletonClasses(TEXT("Kismet"), TEXT("bSkeletonInheritSkeletonClasses"), GEngineIni);
+	return SkeletonClassesInheritSkeletonClasses;
+}
+
+void UBlueprintGeneratedClass::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading() && 0 == (Ar.GetPortFlags() & PPF_Duplicate))
+	{
+		CreatePersistentUberGraphFrame(ClassDefaultObject, true);
+	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ExternalImagePickerPrivatePCH.h"
 #include "SExternalImagePicker.h"
@@ -64,7 +64,7 @@ void SExternalImagePicker::Construct(const FArguments& InArgs)
 			[
 				SNew(SButton)
 				.ButtonStyle( FEditorStyle::Get(), "HoverHintOnly" )
-				.ToolTipText( LOCTEXT( "FileButtonToolTipText", "Choose a file from this computer").ToString() )
+				.ToolTipText( LOCTEXT( "FileButtonToolTipText", "Choose a file from this computer") )
 				.OnClicked( FOnClicked::CreateSP(this, &SExternalImagePicker::OnPickFile) )
 				.ContentPadding( 2.0f )
 				.ForegroundColor( FSlateColor::UseForeground() )

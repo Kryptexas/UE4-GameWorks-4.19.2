@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,6 +9,8 @@
 #include "SkeletalMeshComponent.generated.h"
 
 class UAnimInstance;
+struct FEngineShowFlags;
+struct FConvexVolume;
 
 struct FAnimationEvaluationContext
 {
@@ -51,6 +53,7 @@ namespace physx
 { 
 	namespace apex 
 	{
+		class NxClothingAsset;
 		class NxClothingActor;
 		class NxClothingCollision;
 	}
@@ -86,7 +89,7 @@ public:
 	 * to check whether this actor is valid or not 
 	 * because clothing asset can be changed by editing 
 	 */
-	TSharedPtr<class FClothingAssetWrapper>	ParentClothingAsset;
+	physx::apex::NxClothingAsset*	ParentClothingAsset;
 	/** APEX clothing actor is created from APEX clothing asset for cloth simulation */
 	physx::apex::NxClothingActor*		ApexClothingActor;
 	FPhysScene * PhysScene;
@@ -260,7 +263,7 @@ struct FSkeletalMeshComponentPreClothTickFunction : public FTickFunction
 
 
 /**
- * SkeletalMeshComponent is used to create an instance of a USkeletalMesh.
+ * SkeletalMeshComponent is used to create an instance of an animated SkeletalMesh asset.
  *
  * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/SkeletalMeshes/
  * @see USkeletalMesh
@@ -443,10 +446,6 @@ public:
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
 	uint32 bNoSkeletonUpdate:1;
 
-	/** If true, tick anim nodes even when our Owner has not been rendered recently  */
-	UPROPERTY()
-	uint32 bTickAnimationWhenNotRendered_DEPRECATED:1;
-
 	/** pauses this component's animations (doesn't tick them, but still refreshes bones) */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Animation)
 	uint32 bPauseAnims:1;
@@ -501,6 +500,10 @@ public:
 	/** If bEnableLineCheckWithBounds is true, scale the bounds by this value before doing line check. */
 	UPROPERTY()
 	FVector LineCheckBoundsScale;
+
+	/** Threshold for physics asset bodies above which we use an aggregate for broadphase collisions */
+	UPROPERTY()
+	int32 RagdollAggregateThreshold;
 
 	/** Notification when constraint is broken. */
 	UPROPERTY(BlueprintAssignable)
@@ -636,7 +639,7 @@ public:
 	struct 
 	{
 		int32 BodyIndex;
-		int32 BoneIndex;
+		FTransform TransformToRoot;
 	} RootBodyData;
 
 	/** Set Root Body Index */
@@ -763,8 +766,10 @@ public:
 	typedef FOnSkeletalMeshPropertyChangedMulticaster::FDelegate FOnSkeletalMeshPropertyChanged;
 
 	/** Register / Unregister delegates called when the skeletal mesh property is changed */
-	void RegisterOnSkeletalMeshPropertyChanged(const FOnSkeletalMeshPropertyChanged& Delegate);
+	FDelegateHandle RegisterOnSkeletalMeshPropertyChanged(const FOnSkeletalMeshPropertyChanged& Delegate);
+	DELEGATE_DEPRECATED("This overload of UnregisterOnSkeletalMeshPropertyChanged is deprecated, instead pass the result of RegisterOnSkeletalMeshPropertyChanged.")
 	void UnregisterOnSkeletalMeshPropertyChanged(const FOnSkeletalMeshPropertyChanged& Delegate);
+	void UnregisterOnSkeletalMeshPropertyChanged(FDelegateHandle Handle);
 
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
@@ -829,8 +834,13 @@ public:
 	virtual void AddRadialImpulse(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff, bool bVelChange=false) override;
 	virtual void AddRadialForce(FVector Origin, float Radius, float Strength, ERadialImpulseFalloff Falloff) override;
 	virtual void SetAllPhysicsLinearVelocity(FVector NewVel,bool bAddToCurrent = false) override;
+	virtual void SetAllMassScale(float InMassScale = 1.f) override;
 	virtual float GetMass() const override;
 	virtual float CalculateMass(FName BoneName = NAME_None) override;
+#if WITH_EDITOR
+	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
+	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
+#endif
 protected:
 	virtual FTransform GetComponentTransformFromBodyInstance(FBodyInstance* UseBI) override;
 	// End UPrimitiveComponent interface.
@@ -1004,7 +1014,7 @@ public:
 	 *	Iterate over each physics body in the physics for this mesh, and for each 'kinematic' (ie fixed or default if owner isn't simulating) one, update its
 	 *	transform based on the animated transform.
 	 */
-	void UpdateKinematicBonesToPhysics(bool bTeleport, bool bNeedsSkinning, bool bForceUpdate = false);
+	void UpdateKinematicBonesToPhysics(const TArray<FTransform>& InSpaceBases, bool bTeleport, bool bNeedsSkinning, bool bForceUpdate = false);
 	
 	/**
 	 * Look up all bodies for broken constraints.
@@ -1045,7 +1055,7 @@ public:
 	* create only if became invalid
 	* BlendedData : added for cloth morph target but not used commonly
 	*/
-	bool CreateClothingActor(int32 AssetIndex, TSharedPtr<FClothingAssetWrapper> ClothingAsset, TArray<FVector>* BlendedDelta=NULL);
+	bool CreateClothingActor(int32 AssetIndex, physx::apex::NxClothingAsset* ClothingAsset, TArray<FVector>* BlendedDelta = NULL);
 	/** should call this method if occurred any changes in clothing assets */
 	void ValidateClothingActors();
 	/** add bounding box for cloth */
@@ -1153,9 +1163,9 @@ public:
 	void ParallelAnimationEvaluation() { PerformAnimationEvaluation(AnimEvaluationContext.SkeletalMesh, AnimEvaluationContext.AnimInstance, AnimEvaluationContext.SpaceBases, AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.VertexAnims, AnimEvaluationContext.RootBoneTranslation); }
 	void CompleteParallelAnimationEvaluation()
 	{
-		if (AnimEvaluationContext.AnimInstance == AnimScriptInstance && AnimEvaluationContext.SkeletalMesh == SkeletalMesh)
+		if ((AnimEvaluationContext.AnimInstance == AnimScriptInstance) && (AnimEvaluationContext.SkeletalMesh == SkeletalMesh) && (AnimEvaluationContext.SpaceBases.Num() == GetNumSpaceBases()))
 		{
-			Exchange(AnimEvaluationContext.SpaceBases, AnimEvaluationContext.bDoInterpolation ? CachedSpaceBases : SpaceBases);
+			Exchange(AnimEvaluationContext.SpaceBases, AnimEvaluationContext.bDoInterpolation ? CachedSpaceBases : GetEditableSpaceBases() );
 			Exchange(AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.bDoInterpolation ? CachedLocalAtoms : LocalAtoms);
 			Exchange(AnimEvaluationContext.VertexAnims, ActiveVertexAnims);
 			Exchange(AnimEvaluationContext.RootBoneTranslation, RootBoneTranslation);

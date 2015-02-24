@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -46,7 +46,7 @@ public:
 					+ SVerticalBox::Slot()
 						.AutoHeight()
 						[
-							InWindowPositionProperty->CreatePropertyNameWidget(LOCTEXT("WindowPosXLabel", "Left Position").ToString())
+							InWindowPositionProperty->CreatePropertyNameWidget(LOCTEXT("WindowPosXLabel", "Left Position"))
 						]
 
 					+ SVerticalBox::Slot()
@@ -66,7 +66,7 @@ public:
 					+ SVerticalBox::Slot()
 						.AutoHeight()
 						[
-							InWindowPositionProperty->CreatePropertyNameWidget(LOCTEXT("TopPositionLabel", "Top Position").ToString())
+							InWindowPositionProperty->CreatePropertyNameWidget(LOCTEXT("TopPositionLabel", "Top Position"))
 						]
 
 					+ SVerticalBox::Slot()
@@ -88,7 +88,7 @@ public:
 				.AutoWidth()
 				.VAlign(VAlign_Bottom)
 				[
-					InWindowPositionProperty->CreatePropertyNameWidget(LOCTEXT("CenterWindowLabel", "Always center window to screen").ToString())
+					InWindowPositionProperty->CreatePropertyNameWidget(LOCTEXT("CenterWindowLabel", "Always center window to screen"))
 				]
 		];
 	}
@@ -152,7 +152,7 @@ public:
 					+ SVerticalBox::Slot()
 						.AutoHeight()
 						[
-							WindowWidthProperty->CreatePropertyNameWidget(LOCTEXT("WindowWidthLabel", "Window Width").ToString())
+							WindowWidthProperty->CreatePropertyNameWidget(LOCTEXT("WindowWidthLabel", "Window Width"))
 						]
 
 					+ SVerticalBox::Slot()
@@ -171,7 +171,7 @@ public:
 					+ SVerticalBox::Slot()
 						.AutoHeight()
 						[
-							WindowHeightProperty->CreatePropertyNameWidget(LOCTEXT("WindowHeightLabel", "Window Height").ToString())
+							WindowHeightProperty->CreatePropertyNameWidget(LOCTEXT("WindowHeightLabel", "Window Height"))
 						]
 
 					+ SVerticalBox::Slot()
@@ -300,17 +300,17 @@ public:
 		IDetailCategoryBuilder& PlayInNewWindowCategory = LayoutBuilder.EditCategory("PlayInNewWindow");
 		{
 			// new window size
-			TSharedRef<IPropertyHandle> WindowHeightHandle = LayoutBuilder.GetProperty("NewWindowHeight");
-			TSharedRef<IPropertyHandle> WindowWidthHandle = LayoutBuilder.GetProperty("NewWindowWidth");
-			TSharedRef<IPropertyHandle> WindowPositionHandle = LayoutBuilder.GetProperty("NewWindowPosition");
-			TSharedRef<IPropertyHandle> CenterNewWindowHandle = LayoutBuilder.GetProperty("CenterNewWindow");
+			TSharedRef<IPropertyHandle> WindowHeightHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, NewWindowHeight));
+			TSharedRef<IPropertyHandle> WindowWidthHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, NewWindowWidth));
+			TSharedRef<IPropertyHandle> WindowPositionHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, NewWindowPosition));
+			TSharedRef<IPropertyHandle> CenterNewWindowHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, CenterNewWindow));
 
 			WindowHeightHandle->MarkHiddenByCustomization();
 			WindowWidthHandle->MarkHiddenByCustomization();
 			WindowPositionHandle->MarkHiddenByCustomization();
 			CenterNewWindowHandle->MarkHiddenByCustomization();
 
-			PlayInNewWindowCategory.AddCustomRow(LOCTEXT("NewWindowSizeRow", "New Window Size").ToString(), false)
+			PlayInNewWindowCategory.AddCustomRow(LOCTEXT("NewWindowSizeRow", "New Window Size"), false)
 				.NameContent()
 				[
 					SNew(STextBlock)
@@ -324,7 +324,7 @@ public:
 					SNew(SScreenResolutionCustomization, &LayoutBuilder, WindowHeightHandle, WindowWidthHandle)
 				];
 
-			PlayInNewWindowCategory.AddCustomRow(LOCTEXT("NewWindowPositionRow", "New Window Position").ToString(), false)
+			PlayInNewWindowCategory.AddCustomRow(LOCTEXT("NewWindowPositionRow", "New Window Position"), false)
 				.NameContent()
 				[
 					SNew(STextBlock)
@@ -343,13 +343,13 @@ public:
 		IDetailCategoryBuilder& PlayInStandaloneCategory = LayoutBuilder.EditCategory("PlayInStandaloneGame");
 		{
 			// standalone window size
-			TSharedRef<IPropertyHandle> WindowHeightHandle = LayoutBuilder.GetProperty("StandaloneWindowHeight");
-			TSharedRef<IPropertyHandle> WindowWidthHandle = LayoutBuilder.GetProperty("StandaloneWindowWidth");
+			TSharedRef<IPropertyHandle> WindowHeightHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, StandaloneWindowHeight));
+			TSharedRef<IPropertyHandle> WindowWidthHandle = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, StandaloneWindowWidth));
 
 			WindowHeightHandle->MarkHiddenByCustomization();
 			WindowWidthHandle->MarkHiddenByCustomization();
 
-			PlayInStandaloneCategory.AddCustomRow(LOCTEXT("PlayInStandaloneWindowDetails", "Standalone Window Size").ToString(), false)
+			PlayInStandaloneCategory.AddCustomRow(LOCTEXT("PlayInStandaloneWindowDetails", "Standalone Window Size"), false)
 				.NameContent()
 				[
 					SNew(STextBlock)
@@ -364,11 +364,11 @@ public:
 				];
 
 			// command line options
-			TSharedPtr<IPropertyHandle> DisableStandaloneSoundProperty = LayoutBuilder.GetProperty("DisableStandaloneSound");
+			TSharedPtr<IPropertyHandle> DisableStandaloneSoundProperty = LayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULevelEditorPlaySettings, DisableStandaloneSound));
 
 			DisableStandaloneSoundProperty->MarkHiddenByCustomization();
 
-			PlayInStandaloneCategory.AddCustomRow(LOCTEXT("AdditionalStandaloneDetails", "Additional Options").ToString(), true)
+			PlayInStandaloneCategory.AddCustomRow(LOCTEXT("AdditionalStandaloneDetails", "Additional Options"), true)
 				.NameContent()
 				[
 					SNew(STextBlock)
@@ -392,7 +392,7 @@ public:
 						.VAlign(VAlign_Center)
 						.AutoWidth()
 						[
-							DisableStandaloneSoundProperty->CreatePropertyNameWidget(LOCTEXT("DisableStandaloneSoundLabel", "Disable Sound (-nosound)").ToString())
+							DisableStandaloneSoundProperty->CreatePropertyNameWidget(LOCTEXT("DisableStandaloneSoundLabel", "Disable Sound (-nosound)"))
 						]
 		
 				];
@@ -403,15 +403,15 @@ public:
 		{
 			// Number of players
 			NetworkCategory.AddProperty("PlayNumberOfClients")
-				.DisplayName(TEXT("Number of Players"))
+				.DisplayName(LOCTEXT("NumberOfPlayersLabel", "Number of Players"))
 				.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandlePlayNumberOfClientsIsEnabled)));
 
 			NetworkCategory.AddProperty("AdditionalServerGameOptions")
-				.DisplayName(TEXT("Server Game Options"))
+				.DisplayName(LOCTEXT("ServerGameOptionsLabel", "Server Game Options"))
 				.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandleGameOptionsIsEnabled)));
 
 			NetworkCategory.AddProperty("PlayNetDedicated")
-				.DisplayName(TEXT("Run Dedicated Server"))
+				.DisplayName(LOCTEXT("RunDedicatedServerLabel", "Run Dedicated Server"))
 				.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandlePlayNetDedicatedPropertyIsEnabled)));
 
 			// client window size
@@ -422,7 +422,7 @@ public:
 			WindowWidthHandle->MarkHiddenByCustomization();
 
 			NetworkCategory.AddProperty("RouteGamepadToSecondWindow")
-				.DisplayName(TEXT("Route 1st Gamepad to 2nd Client"))
+				.DisplayName(LOCTEXT("RouteGamepadToSecondWindowLabel", "Route 1st Gamepad to 2nd Client"))
 				.IsEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandleRerouteInputToSecondWindowEnabled)))
 				.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandleRerouteInputToSecondWindowVisibility)));
 			
@@ -430,12 +430,12 @@ public:
 			if (GEditor && GEditor->bAllowMultiplePIEWorlds)
 			{
 				NetworkCategory.AddProperty("RunUnderOneProcess")
-					.DisplayName(TEXT("Use Single Process"));
+					.DisplayName(LOCTEXT("RunUnderOneProcessEnabledLabel", "Use Single Process"));
 			}
 			else
 			{
 				NetworkCategory.AddProperty("RunUnderOneProcess")
-					.DisplayName( TEXT("Run Under One Process is disabled.") )
+					.DisplayName( LOCTEXT("RunUnderOneProcessDisabledLabel", "Run Under One Process is disabled.") )
 					.Visibility( EVisibility::Collapsed )
 					.IsEnabled( false );
 			}
@@ -443,16 +443,16 @@ public:
 			// Net Mode
 			NetworkCategory.AddProperty("PlayNetMode")
 				.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandlePlayNetModeVisibility)))
-				.DisplayName(TEXT("Editor Multiplayer Mode"));
+				.DisplayName(LOCTEXT("PlayNetModeLabel", "Editor Multiplayer Mode"));
 
 			NetworkCategory.AddProperty("AdditionalLaunchOptions")
-				.DisplayName(TEXT("Command Line Arguments"))
+				.DisplayName(LOCTEXT("AdditionalLaunchOptionsLabel", "Command Line Arguments"))
 				.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandleCmdLineVisibility)));
 
-			NetworkCategory.AddCustomRow(LOCTEXT("PlayInNetworkWindowDetails", "Multiplayer Window Size").ToString(), false)
+			NetworkCategory.AddCustomRow(LOCTEXT("PlayInNetworkWindowDetails", "Multiplayer Window Size"), false)
 				.NameContent()
 				[
-					WindowHeightHandle->CreatePropertyNameWidget(LOCTEXT("ClientWindowSizeName", "Multiplayer Window Size (in pixels)").ToString(), LOCTEXT("ClientWindowSizeTooltip", "Width and Height to use when spawning additional windows.").ToString())
+					WindowHeightHandle->CreatePropertyNameWidget(LOCTEXT("ClientWindowSizeName", "Multiplayer Window Size (in pixels)"), LOCTEXT("ClientWindowSizeTooltip", "Width and Height to use when spawning additional windows."))
 				]
 				.ValueContent()
 				.MaxDesiredWidth(MaxPropertyWidth)
@@ -462,7 +462,7 @@ public:
 				.IsEnabled(TAttribute<bool>(this, &FLevelEditorPlaySettingsCustomization::HandleClientWindowSizePropertyIsEnabled))
 				.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FLevelEditorPlaySettingsCustomization::HandleClientWindowSizePropertyVisibility)));
 				
-			NetworkCategory.AddCustomRow(LOCTEXT("AdditionalMultiplayerDetails", "Additional Options").ToString(), true)
+			NetworkCategory.AddCustomRow(LOCTEXT("AdditionalMultiplayerDetails", "Additional Options"), true)
 				.NameContent()
 				[
 					SNew(STextBlock)
@@ -498,7 +498,7 @@ public:
 private:
 
 	// Callback for getting the description of the settings
-	FString HandleMultiplayerOptionsDescription( ) const
+	FText HandleMultiplayerOptionsDescription( ) const
 	{
 		const ULevelEditorPlaySettings* PlayInSettings = GetDefault<ULevelEditorPlaySettings>();
 		const bool CanRunUnderOneProcess = [&PlayInSettings]{ bool RunUnderOneProcess(false); return (PlayInSettings->GetRunUnderOneProcess(RunUnderOneProcess) && RunUnderOneProcess); }();
@@ -578,7 +578,7 @@ private:
 				}
 			}
 		}
-		return Desc;
+		return FText::FromString(Desc);
 	}
 
 	// Callback for checking whether the ClientWindowHeight and ClientWindowWidth properties are enabled.

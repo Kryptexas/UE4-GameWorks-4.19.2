@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -478,7 +478,7 @@ namespace UnrealBuildTool
 		 */
 		public static ExecutionResult ExecuteTaskFileWithProgressMarkup(string TaskFilePath, int NumActions, DataReceivedEventHandler OutputEventHandler)
 		{
-			using (ProgressWriter Writer = new ProgressWriter("Compiling source files...", false))
+			using (ProgressWriter Writer = new ProgressWriter("Compiling C++ source files...", false))
 			{
 				int NumCompletedActions = 0;
 

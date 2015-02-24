@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "BlackboardKeyType.generated.h"
+
+class UBlackboardComponent;
 
 namespace EBlackboardCompare
 {
@@ -141,5 +143,11 @@ protected:
 		*((TWeakObjectPtr<T>*)MemoryBlock) = Value;
 
 		return bChanged;
+	}
+
+	friend UBlackboardComponent;
+	void CopyValue(uint8* To, const uint8* From) const
+	{
+		FMemory::Memcpy(To, From, GetValueSize());
 	}
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "StandaloneRendererPrivate.h"
 
@@ -146,6 +146,14 @@ char const* const CompositedBlitFragmentShader = "#version 120\n"
 
 @end
 
+static void MacOpenGLContextReconfigurationCallBack(CGDirectDisplayID Display, CGDisplayChangeSummaryFlags Flags, void* UserInfo)
+{
+	FSlateOpenGLContext* Context = (FSlateOpenGLContext*)UserInfo;
+	if (Context)
+	{
+		Context->bNeedsUpdate = true;
+	}
+}
 
 FSlateOpenGLContext::FSlateOpenGLContext()
 :	View(NULL)
@@ -158,6 +166,7 @@ FSlateOpenGLContext::FSlateOpenGLContext()
 ,	TextureDirectionUniform(0)
 ,	CompositeTexture(0)
 ,	CompositeVAO(0)
+,	bNeedsUpdate(false)
 {
 }
 
@@ -189,11 +198,6 @@ void FSlateOpenGLContext::Initialize( void* InWindow, const FSlateOpenGLContext*
 			[View setAutoresizingMask:(NSViewWidthSizable | NSViewHeightSizable)];
 			
 			[SuperView addSubview:View];
-			
-			NSRect NewRect = [Window frame];
-			NewRect.size.height -= 22;
-			
-			[Window setFrame:NewRect display:YES];
 		}
 		else
 		{
@@ -299,6 +303,8 @@ void FSlateOpenGLContext::Initialize( void* InWindow, const FSlateOpenGLContext*
 			glBindTexture (GL_TEXTURE_2D, 0);
 		}
 	}
+
+	CGDisplayRegisterReconfigurationCallback(&MacOpenGLContextReconfigurationCallBack, this);
 }
 
 void FSlateOpenGLContext::Destroy()
@@ -332,6 +338,8 @@ void FSlateOpenGLContext::Destroy()
 		[View release];
 		View = NULL;
 
+		CGDisplayRemoveReconfigurationCallback(&MacOpenGLContextReconfigurationCallBack, this);
+
 		// PixelFormat and Context are released by View
 		PixelFormat = NULL;
 		Context = NULL;
@@ -340,5 +348,10 @@ void FSlateOpenGLContext::Destroy()
 
 void FSlateOpenGLContext::MakeCurrent()
 {
+	if (bNeedsUpdate)
+	{
+		[Context update];
+		bNeedsUpdate = false;
+	}
 	[Context makeCurrentContext];
 }

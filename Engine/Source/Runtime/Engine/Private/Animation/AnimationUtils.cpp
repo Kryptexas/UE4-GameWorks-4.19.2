@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationUtils.cpp: Skeletal mesh animation utilities.
@@ -7,13 +7,13 @@
 #include "EnginePrivate.h"
 #include "Animation/AnimCompress_BitwiseCompressOnly.h"
 #include "Animation/AnimCompress_PerTrackCompression.h"
-#include "Animation/AnimCompress_RevertToRaw.h"
 #include "Animation/AnimCompress_LeastDestructive.h"
 #include "Animation/AnimCompress_RemoveEverySecondKey.h"
 #include "Animation/AnimSet.h"
 #include "AnimationUtils.h"
 #include "AnimationCompression.h"
 #include "AnimEncoding.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 /** Array to keep track of SkeletalMeshes we have built metadata for, and log out the results just once. */
 //static TArray<USkeleton*> UniqueSkeletonsMetadataArray;
@@ -744,12 +744,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 		{
 			UAnimCompress* OriginalCompressionAlgorithm = AnimSeq->CompressionScheme ? AnimSeq->CompressionScheme : FAnimationUtils::GetDefaultAnimationCompressionAlgorithm();
 
-			if( OriginalCompressionAlgorithm->IsA(UDEPRECATED_AnimCompress_RevertToRaw::StaticClass()) )
-			{
-				UE_LOG(LogAnimation, Warning, TEXT("FAnimationUtils::CompressAnimSequence %s (%s) Not allowed to revert to RAW. Using default compression scheme."), *AnimSeq->GetName(), *AnimSeq->GetFullName());
-				OriginalCompressionAlgorithm = FAnimationUtils::GetDefaultAnimationCompressionAlgorithm();
-			}
-			else if( OriginalCompressionAlgorithm->IsA(UAnimCompress_LeastDestructive::StaticClass()) )
+			if( OriginalCompressionAlgorithm->IsA(UAnimCompress_LeastDestructive::StaticClass()) )
 			{
 				UE_LOG(LogAnimation, Warning, TEXT("FAnimationUtils::CompressAnimSequence %s (%s) Not allowed to least destructive. Using default compression scheme."), *AnimSeq->GetName(), *AnimSeq->GetFullName());
 				OriginalCompressionAlgorithm = FAnimationUtils::GetDefaultAnimationCompressionAlgorithm();

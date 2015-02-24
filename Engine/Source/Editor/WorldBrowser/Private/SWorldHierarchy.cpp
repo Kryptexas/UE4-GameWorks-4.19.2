@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 
 #include "Editor/LevelEditor/Public/LevelEditor.h"
@@ -203,7 +203,7 @@ public:
 			.AutoHeight()
 			[
 				SNew( SSearchBox )
-				.ToolTipText(LOCTEXT("FilterSearchToolTip", "Type here to search Levels").ToString())
+				.ToolTipText(LOCTEXT("FilterSearchToolTip", "Type here to search Levels"))
 				.HintText(LOCTEXT("FilterSearchHint", "Search Levels"))
 				.OnTextChanged(SearchBoxLevelFilter.Get(), &LevelTextFilter::SetRawFilterText)
 			]
@@ -443,7 +443,7 @@ private:
 	}
 
 	/** @return	Returns the filter status text */
-	FString GetFilterStatusText() const
+	FText GetFilterStatusText() const
 	{
 		const int32 SelectedLevelsCount = WorldModel->GetSelectedLevels().Num();
 		const int32 TotalLevelsCount = WorldModel->GetAllLevels().Num();
@@ -453,24 +453,24 @@ private:
 		{
 			if (SelectedLevelsCount == 0)
 			{
-				return FString::Printf( *LOCTEXT("ShowingAllLevels", "%d levels").ToString(), TotalLevelsCount );
+				return FText::Format( LOCTEXT("ShowingAllLevelsFmt", "{0} levels"), FText::AsNumber(TotalLevelsCount) );
 			}
 			else
 			{
-				return FString::Printf( *LOCTEXT("ShowingAllLevelsSelected", "%d levels (%d selected)").ToString(), TotalLevelsCount, SelectedLevelsCount );
+				return FText::Format( LOCTEXT("ShowingAllLevelsSelectedFmt", "{0} levels ({1} selected)"), FText::AsNumber(TotalLevelsCount), FText::AsNumber(SelectedLevelsCount) );
 			}
 		}
 		else if(WorldModel->IsFilterActive() && FilteredLevelsCount == 0)
 		{
-			return FString::Printf( *LOCTEXT("ShowingNoLevels", "No matching levels (%d total)").ToString(), TotalLevelsCount );
+			return FText::Format( LOCTEXT("ShowingNoLevelsFmt", "No matching levels ({0} total)"), FText::AsNumber(TotalLevelsCount) );
 		}
 		else if (SelectedLevelsCount != 0)
 		{
-			return FString::Printf( *LOCTEXT("ShowingOnlySomeLevelsSelected", "Showing %d of %d levels (%d selected)").ToString(), FilteredLevelsCount, TotalLevelsCount, SelectedLevelsCount );
+			return FText::Format( LOCTEXT("ShowingOnlySomeLevelsSelectedFmt", "Showing {0} of {1} levels ({2} selected)"), FText::AsNumber(FilteredLevelsCount), FText::AsNumber(TotalLevelsCount), FText::AsNumber(SelectedLevelsCount) );
 		}
 		else
 		{
-			return FString::Printf( *LOCTEXT("ShowingOnlySomeLevels", "Showing %d of %d levels").ToString(), FilteredLevelsCount, TotalLevelsCount );
+			return FText::Format( LOCTEXT("ShowingOnlySomeLevelsFmt", "Showing {0} of {1} levels"), FText::AsNumber(FilteredLevelsCount), FText::AsNumber(TotalLevelsCount) );
 		}
 	}
 
@@ -533,7 +533,10 @@ private:
 	/** @return the foreground color for the view button */
 	FSlateColor GetViewButtonForegroundColor() const
 	{
-		return ViewOptionsComboButton->IsHovered() ? FEditorStyle::GetSlateColor("InvertedForeground") : FEditorStyle::GetSlateColor("DefaultForeground");
+		static const FName InvertedForegroundName("InvertedForeground");
+		static const FName DefaultForegroundName("DefaultForeground");
+
+		return ViewOptionsComboButton->IsHovered() ? FEditorStyle::GetSlateColor(InvertedForegroundName) : FEditorStyle::GetSlateColor(DefaultForegroundName);
 	}
 
 	/** Toggles state of 'display path' */

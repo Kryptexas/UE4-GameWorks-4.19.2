@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,7 +26,7 @@ public:
 private:
 
 	/** Helper func to get the field from the localized name */
-	FString GetFieldNameLoc( const EField InField );
+	FText GetFieldNameLoc( const EField InField );
 
 	/** Handle when the column in the table has been clicked */
 	FReply OnTaskColumnClicked();

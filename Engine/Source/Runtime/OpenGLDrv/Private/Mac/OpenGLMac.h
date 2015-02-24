@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include <OpenGL/OpenGL.h>
@@ -14,6 +14,7 @@
 
 struct FMacOpenGL : public FOpenGL3
 {
+private:
 	static void MacGetQueryObject(GLuint QueryId, EQueryMode QueryMode, GLuint *OutResult);
 	static void MacQueryTimestampCounter(GLuint QueryID);
 	static void MacBeginQuery(GLenum QueryType, GLuint QueryId);
@@ -23,11 +24,50 @@ struct FMacOpenGL : public FOpenGL3
 	/** Must we employ a workaround for radr://15553950, TTP# 315197 */
 	static bool MustFlushTexStorage(void);
 	
+public:
+	static void ProcessQueryGLInt();
+	static void ProcessExtensions(const FString& ExtensionsString);
+	static uint64 GetVideoMemorySize();
+	
+	static FORCEINLINE EShaderPlatform GetShaderPlatform()
+	{
+		static bool bForceFeatureLevelES2 = FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2"));
+		if (bForceFeatureLevelES2)
+		{
+			return SP_OPENGL_PCES2;
+		}
+		
+		// Shader platform
+		switch(GetMajorVersion())
+		{
+			case 3:
+				return SP_OPENGL_SM4_MAC;
+			case 4:
+				return GetMinorVersion() > 2 ? SP_OPENGL_SM5 : SP_OPENGL_SM4_MAC;
+			default:
+				return SP_OPENGL_SM4_MAC;
+		}
+	}
+	
+	static FORCEINLINE bool SupportsSeparateAlphaBlend()				{ return bSupportsDrawBuffersBlend; }
+	static FORCEINLINE bool SupportsSeamlessCubeMap()					{ return true; }
+	static FORCEINLINE bool SupportsClientStorage()						{ return !bUsingApitrace; }
+	static FORCEINLINE bool SupportsTextureRange()						{ return !bUsingApitrace; }
+	static FORCEINLINE bool SupportsDepthBoundsTest()					{ return true; }
+	static FORCEINLINE bool SupportsDrawIndirect()						{ return bSupportsDrawIndirect; }
+	
+	static FORCEINLINE void Flush()
+	{
+		glFlushRenderAPPLE();
+	}
+	
+	static void DeleteTextures(GLsizei Number, const GLuint* Textures);
+	
 	static void BufferSubData(GLenum Target, GLintptr Offset, GLsizeiptr Size, const GLvoid* Data);
 	
 	static FORCEINLINE void ClearBufferfi(GLenum Buffer, GLint DrawBufferIndex, GLfloat Depth, GLint Stencil)
 	{
-		if(FPlatformMisc::IsRunningOnMavericks())
+		if(FPlatformMisc::IsRunningOnMavericks() || !GSupportsDepthFetchDuringDepthTest)
 		{
 			switch (Buffer)
 			{
@@ -79,8 +119,6 @@ struct FMacOpenGL : public FOpenGL3
 	{
 		MacGetQueryObject(QueryId, QueryMode, OutResult);
 	}
-	
-	static FORCEINLINE void InitDebugContext() UGL_OPTIONAL_VOID
 
 	static FORCEINLINE void LabelObject(GLenum Type, GLuint Object, const ANSICHAR* Name)
 	{
@@ -155,9 +193,10 @@ struct FMacOpenGL : public FOpenGL3
 		}
 	}
 	
-	static void DeleteTextures(GLsizei Number, const GLuint* Textures);
-
-	static FORCEINLINE bool SupportsSeparateAlphaBlend()				{ return bSupportsDrawBuffersBlend; }
+	static FORCEINLINE void TextureRange(GLenum Target, GLsizei Length, const GLvoid *Pointer)
+	{
+		glTextureRangeAPPLE(Target, Length, Pointer);
+	}
 	
 	static FORCEINLINE void BlendFuncSeparatei(GLuint Buf, GLenum SrcRGB, GLenum DstRGB, GLenum SrcAlpha, GLenum DstAlpha)
 	{
@@ -167,9 +206,10 @@ struct FMacOpenGL : public FOpenGL3
 		}
 		else
 		{
-			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3.2 contexts!"));
+			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3 contexts!"));
 		}
 	}
+	
 	static FORCEINLINE void BlendEquationSeparatei(GLuint Buf, GLenum ModeRGB, GLenum ModeAlpha)
 	{
 		if(glBlendEquationSeparatei)
@@ -178,9 +218,10 @@ struct FMacOpenGL : public FOpenGL3
 		}
 		else
 		{
-			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3.2 contexts!"));
+			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3 contexts!"));
 		}
 	}
+	
 	static FORCEINLINE void BlendFunci(GLuint Buf, GLenum Src, GLenum Dst)
 	{
 		if(glBlendFunci)
@@ -189,9 +230,10 @@ struct FMacOpenGL : public FOpenGL3
 		}
 		else
 		{
-			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3.2 contexts!"));
+			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3 contexts!"));
 		}
 	}
+	
 	static FORCEINLINE void BlendEquationi(GLuint Buf, GLenum Mode)
 	{
 		if(glBlendEquationi)
@@ -200,7 +242,7 @@ struct FMacOpenGL : public FOpenGL3
 		}
 		else
 		{
-			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3.2 contexts!"));
+			UE_LOG(LogRHI, Fatal, TEXT("OpenGL state on draw requires setting different blend operation or factors to different render targets. This is not supported on Mac OS X GL 3 contexts!"));
 		}
 	}
 	
@@ -212,50 +254,42 @@ struct FMacOpenGL : public FOpenGL3
 		}
 		else
 		{
-			UE_LOG(LogRHI, Fatal, TEXT("Tessellation not supported on Mac OS X GL 3.2 contexts!"));
+			UE_LOG(LogRHI, Fatal, TEXT("Tessellation not supported on Mac OS X GL 3 contexts!"));
 		}
 	}
 	
-	static FORCEINLINE void TextureRange(GLenum Target, GLsizei Length, const GLvoid *Pointer)
+	static FORCEINLINE void DepthBounds(GLfloat Min, GLfloat Max)
 	{
-		glTextureRangeAPPLE(Target, Length, Pointer);
+		glDepthBoundsEXT( Min, Max);
 	}
 	
-	static FORCEINLINE void Flush()
+	static FORCEINLINE void DrawArraysIndirect (GLenum Mode, const void *Offset)
 	{
-		glFlushRenderAPPLE();
-	}
-	
-	static FORCEINLINE bool SupportsSeamlessCubeMap()					{ return true; }
-	static FORCEINLINE bool SupportsClientStorage()						{ return true; }
-	static FORCEINLINE bool SupportsTextureRange()						{ return true; }
-	
-	static FORCEINLINE EShaderPlatform GetShaderPlatform()
-	{
-		static bool bForceFeatureLevelES2 = FParse::Param(FCommandLine::Get(), TEXT("FeatureLevelES2"));
-		if (bForceFeatureLevelES2)
+		if(glDrawArraysIndirect)
 		{
-			return SP_OPENGL_PCES2;
+			glDrawArraysIndirect( Mode, Offset);
 		}
-		
-		// Shader platform
-		switch(GetMajorVersion())
+		else
 		{
-			case 3:
-				return SP_OPENGL_SM4_MAC;
-			case 4:
-				return GetMinorVersion() > 2 ? SP_OPENGL_SM5 : SP_OPENGL_SM4_MAC;
-			default:
-				return SP_OPENGL_SM4_MAC;
+			UE_LOG(LogRHI, Fatal, TEXT("Draw Indirect not supported on Mac OS X GL 3 contexts!"));
 		}
 	}
 	
-	static uint64 GetVideoMemorySize();
-	
-	static void ProcessQueryGLInt();
-	static void ProcessExtensions(const FString& ExtensionsString);
+	static FORCEINLINE void DrawElementsIndirect (GLenum Mode, GLenum Type, const void *Offset)
+	{
+		if(glDrawElementsIndirect)
+		{
+			glDrawElementsIndirect( Mode, Type, Offset);
+		}
+		else
+		{
+			UE_LOG(LogRHI, Fatal, TEXT("Draw Indirect not supported on Mac OS X GL 3 contexts!"));
+		}
+	}
 	
 private:
+	/** Detects apitrace interception library & equivalents */
+	static bool bUsingApitrace;
 	/** GL_ARB_texture_cube_map_array */
 	static bool bSupportsTextureCubeMapArray;
 	/** GL_ARB_texture_storage */
@@ -274,6 +308,10 @@ private:
 	static PFNGLPOPGROUPMARKEREXTPROC glPopGroupMarkerEXT;
 	/** GL_ARB_tessellation_shader */
 	static PFNGLPATCHPARAMETERIPROC glPatchParameteri;
+	/** GL_ARB_draw_indirect */
+	static bool bSupportsDrawIndirect;
+	static PFNGLDRAWARRAYSINDIRECTPROC glDrawArraysIndirect;
+	static PFNGLDRAWELEMENTSINDIRECTPROC glDrawElementsIndirect;
 };
 
 

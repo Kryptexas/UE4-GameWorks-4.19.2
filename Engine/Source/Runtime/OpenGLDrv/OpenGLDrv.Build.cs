@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -27,11 +27,10 @@ public class OpenGLDrv : ModuleRules
 
 		if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
 		{
-			AddThirdPartyPrivateStaticDependencies(Target, "SDL");
-			AddThirdPartyPrivateStaticDependencies(Target, "ANGLE");
+		    AddThirdPartyPrivateStaticDependencies(Target, "ANGLE"); 
 		}
 
-		if (Target.Platform == UnrealTargetPlatform.Linux)
+		if (Target.Platform == UnrealTargetPlatform.Linux || Target.Platform == UnrealTargetPlatform.HTML5)
 		{
 			AddThirdPartyPrivateStaticDependencies(Target, "SDL2");
 		}

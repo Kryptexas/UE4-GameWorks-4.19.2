@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -41,8 +41,13 @@ public:
 
 	/**
 	 * Recompiles a single module
+	 *
+	 * @param InModuleName Name of the module to compile
+	 * @param bReloadAfterRecompile Should the module be reloaded after recompile
+	 * @param Ar Output device (logging)
+	 * @param bForceCodeProject Even if this is not code-based project compile with game project as the target for UBT (do not use UE4Editor target)
 	 */
-	virtual bool RecompileModule( const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar ) = 0;
+	virtual bool RecompileModule(const FName InModuleName, const bool bReloadAfterRecompile, FOutputDevice &Ar, bool bFailIfGeneratedCodeChanges = true, bool bForceCodeProject = false) = 0;
 
 	/**
 	 * Returns whether modules are currently being compiled
@@ -60,9 +65,11 @@ public:
 	virtual void AddHotReloadFunctionRemap(Native NewFunctionPointer, Native OldFunctionPointer) = 0;
 
 	/**
-	* Performs hot reload from the editor
+	* Performs hot reload from the editor of all currently loaded game modules.
+	* @param	bWaitForCompletion	True if RebindPackages should not return until the recompile and reload has completed
+	* @return	If bWaitForCompletion was set to true, this will return the result of the compilation, otherwise will return ECompilationResult::Unknown
 	*/
-	virtual void DoHotReloadFromEditor() = 0;
+	virtual ECompilationResult::Type DoHotReloadFromEditor(const bool bWaitForCompletion) = 0;
 
 	/**
 	* HotReload: Reloads the DLLs for given packages.
@@ -70,8 +77,10 @@ public:
 	* @param	DependentModules	Additional modules that don't contain UObjects, but rely on them
 	* @param	bWaitForCompletion	True if RebindPackages should not return until the recompile and reload has completed
 	* @param	Ar					Output device for logging compilation status
+	* 
+	* @return	If bWaitForCompletion was set to true, this will return the result of the compilation, otherwise will return ECompilationResult::Unknown
 	*/
-	virtual void RebindPackages(TArray<UPackage*> Packages, TArray<FName> DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar) = 0;
+	virtual ECompilationResult::Type RebindPackages(TArray<UPackage*> Packages, TArray<FName> DependentModules, const bool bWaitForCompletion, FOutputDevice &Ar) = 0;
 
 	/** Called when a Hot Reload event has completed. 
 	 * 
@@ -85,7 +94,7 @@ public:
 	 *
 	 * @return The event delegate.
 	 */
-	DECLARE_MULTICAST_DELEGATE(FModuleCompilerStartedEvent);
+	DECLARE_MULTICAST_DELEGATE_OneParam(FModuleCompilerStartedEvent, bool /*bIsAsyncCompile*/);
 	virtual FModuleCompilerStartedEvent& OnModuleCompilerStarted() = 0;
 
 	/**
@@ -102,6 +111,6 @@ public:
 	/**
 	 * Checks if there's any game modules currently loaded
 	 */
-	virtual bool IsAnyGameModuleLoaded() const = 0;
+	virtual bool IsAnyGameModuleLoaded() = 0;
 };
 

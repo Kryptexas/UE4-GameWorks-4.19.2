@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "PropertyEditorPrivatePCH.h"
 #include "PropertyTableObjectNameCell.h"
 #include "PropertyTableObjectNameColumn.h"
@@ -68,6 +68,16 @@ TWeakObjectPtr< UObject > FPropertyTableObjectNameCell::GetObject() const
 	}
 
 	return ObjectNode->GetUObject( 0 );
+}
+
+TSharedRef< class IPropertyTableColumn > FPropertyTableObjectNameCell::GetColumn() const
+{ 
+	return Column.Pin().ToSharedRef(); 
+}
+
+TSharedRef< class IPropertyTableRow > FPropertyTableObjectNameCell::GetRow() const
+{
+	return Row.Pin().ToSharedRef(); 
 }
 
 TSharedRef< class IPropertyTable > FPropertyTableObjectNameCell::GetTable() const

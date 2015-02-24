@@ -1,10 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AI/Navigation/NavAgentInterface.h"
 #include "Controller.generated.h"
 
-class UNavigationComponent;
 class UPathFollowingComponent;
 
 UDELEGATE(BlueprintAuthorityOnly)
@@ -170,6 +169,8 @@ public:
 
 public:
 
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
+
 	// Begin AActor interface
 	virtual void TickActor( float DeltaTime, enum ELevelTick TickType, FActorTickFunction& ThisTickFunction ) override;
 	virtual void K2_DestroyActor() override;
@@ -264,16 +265,14 @@ public:
 	virtual void FailedToSpawnPawn();
 
 	// Begin INavAgentInterface Interface
-	virtual const struct FNavAgentProperties* GetNavAgentProperties() const override;
+	virtual const struct FNavAgentProperties& GetNavAgentPropertiesRef() const override;
 	virtual FVector GetNavAgentLocation() const override;
 	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override;
+	virtual bool ShouldPostponePathUpdates() const override;
 	// End INavAgentInterface Interface
 
-	/** Allows agent to postpone any path updates (e.g. locked by gameplay). */
-	bool ShouldPostponePathUpdates() const;
-	
-	/** prepares path finding and path following components */
-	virtual void InitNavigationControl(UNavigationComponent*& PathFindingComp, UPathFollowingComponent*& PathFollowingComp);
+	/** prepares path following component */
+	virtual void InitNavigationControl(UPathFollowingComponent*& PathFollowingComp);
 
 	/** If controller has any navigation-related components then this function 
 	 *	makes them update their cached data */

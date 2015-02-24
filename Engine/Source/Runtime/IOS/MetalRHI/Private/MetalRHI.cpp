@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MetalRHI.cpp: Metal device RHI implementation.
@@ -46,8 +46,13 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	id<MTLDevice> Device = [IOSAppDelegate GetDelegate].IOSView->MetalDevice;
 	// A8 can use 256 bits of MRTs
 	bool bCanUseWideMRTs = [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v1];
+	bool bCanUseASTC = [Device supportsFeatureSet:MTLFeatureSet_iOS_GPUFamily2_v1] && !FParse::Param(FCommandLine::Get(),TEXT("noastc"));
+
+	bool bProjectSupportsMRTs = false;
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsMetalMRT"), bProjectSupportsMRTs, GEngineIni);
+
 	// only allow GBuffers, etc on A8s (A7s are just not going to cut it)
-	if (bCanUseWideMRTs && FParse::Param(FCommandLine::Get(),TEXT("metalmrt")))
+	if (bProjectSupportsMRTs && bCanUseWideMRTs && FParse::Param(FCommandLine::Get(),TEXT("metalmrt")))
 	{
 		GMaxRHIFeatureLevel = ERHIFeatureLevel::SM4;
 		GMaxRHIShaderPlatform = SP_METAL_MRT;
@@ -66,10 +71,6 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 		GEmitDrawEvents = true;
 	}
 
-	GPixelCenterOffset = 0.0f;
-	GSupportsVertexInstancing = false;
-	GSupportsEmulatedVertexInstancing = false;
-	GSupportsVertexTextureFetch = false;
 	GSupportsShaderFramebufferFetch = true;
 	GHardwareHiddenSurfaceRemoval = true;
 //	GRHIAdapterName = 
@@ -95,7 +96,7 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM4] = (GMaxRHIShaderPlatform == SP_METAL_MRT) ? SP_METAL_MRT : SP_NumPlatforms;
 	GShaderPlatformForFeatureLevel[ERHIFeatureLevel::SM5] = SP_NumPlatforms;
 
-	// @todo metal mrt:
+	// we cannot render to a volume texture without geometry shader support
 	GSupportsVolumeTextureRendering = false;
 
 // 	GDrawUPVertexCheckCount = MAX_uint16;
@@ -113,6 +114,18 @@ FMetalDynamicRHI::FMetalDynamicRHI()
 	GPixelFormats[PF_PVRTC2				].Supported			= true;
 	GPixelFormats[PF_PVRTC4				].PlatformFormat	= MTLPixelFormatPVRTC_RGBA_4BPP;
 	GPixelFormats[PF_PVRTC4				].Supported			= true;
+	GPixelFormats[PF_PVRTC4				].PlatformFormat	= MTLPixelFormatPVRTC_RGBA_4BPP;
+	GPixelFormats[PF_PVRTC4				].Supported			= true;
+	GPixelFormats[PF_ASTC_4x4			].PlatformFormat	= MTLPixelFormatASTC_4x4_LDR;
+	GPixelFormats[PF_ASTC_4x4			].Supported			= bCanUseASTC;
+	GPixelFormats[PF_ASTC_6x6			].PlatformFormat	= MTLPixelFormatASTC_6x6_LDR;
+	GPixelFormats[PF_ASTC_6x6			].Supported			= bCanUseASTC;
+	GPixelFormats[PF_ASTC_8x8			].PlatformFormat	= MTLPixelFormatASTC_8x8_LDR;
+	GPixelFormats[PF_ASTC_8x8			].Supported			= bCanUseASTC;
+	GPixelFormats[PF_ASTC_10x10			].PlatformFormat	= MTLPixelFormatASTC_10x10_LDR;
+	GPixelFormats[PF_ASTC_10x10			].Supported			= bCanUseASTC;
+	GPixelFormats[PF_ASTC_12x12			].PlatformFormat	= MTLPixelFormatASTC_12x12_LDR;
+	GPixelFormats[PF_ASTC_12x12			].Supported			= bCanUseASTC;
 	GPixelFormats[PF_UYVY				].PlatformFormat	= MTLPixelFormatInvalid;
 	GPixelFormats[PF_FloatRGB			].PlatformFormat	= MTLPixelFormatRGBA16Float;
 	GPixelFormats[PF_FloatRGB			].BlockBytes		= 8;

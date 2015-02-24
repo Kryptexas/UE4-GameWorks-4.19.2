@@ -1,18 +1,16 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 #include "K2Node.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
+#include "Engine/DataTable.h"
 #include "K2Node_GetDataTableRow.generated.h"
 
 UCLASS()
 class BLUEPRINTGRAPH_API UK2Node_GetDataTableRow : public UK2Node
 {
 	GENERATED_UCLASS_BODY()
-
-	UPROPERTY()
-	FDataTableRowHandle DataTableRowHandle;
 
 	// Begin UEdGraphNode interface.
 	virtual void AllocateDefaultPins() override;
@@ -33,6 +31,7 @@ class BLUEPRINTGRAPH_API UK2Node_GetDataTableRow : public UK2Node
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar& ActionRegistrar) const override;
 	virtual FText GetMenuCategory() const override;
 	virtual bool IsConnectionDisallowed(const UEdGraphPin* MyPin, const UEdGraphPin* OtherPin, FString& OutReason) const override;
+	virtual void EarlyValidation(class FCompilerResultsLog& MessageLog) const override;
 	// End UK2Node interface
 
 
@@ -55,9 +54,7 @@ class BLUEPRINTGRAPH_API UK2Node_GetDataTableRow : public UK2Node
 	/** Get the type of the TableRow to return */
 	UScriptStruct* GetDataTableRowStructType(const TArray<UEdGraphPin*>* InPinsToSearch = NULL) const;
 
-	/** Get the list of possible RowNames */
-	void GetDataTableRowNameList(TArray<TSharedPtr<FName>>& OutList, const TArray<UEdGraphPin*>* InPinsToSearch = NULL) const;
-
+	void OnDataTableRowListChanged(const UDataTable* DataTable);
 private:
 	/**
 	 * Takes the specified "MutatablePin" and sets its 'PinToolTip' field (according

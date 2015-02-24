@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetToolsPrivatePCH.h"
 #include "Toolkits/IToolkitHost.h"
@@ -12,7 +12,7 @@
 #include "SNotificationList.h"
 #include "SSkeletonWidget.h"
 #include "AnimationEditorUtils.h"
-
+#include "EditorAnimUtils.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/BlueprintEditorUtils.h"
 #include "Animation/Rig.h"
@@ -193,7 +193,7 @@ public:
 			.IsChecked( this, &SCreateRigDlg::IsCheckboxChecked, ButtonId )
 			.OnCheckStateChanged( this, &SCreateRigDlg::OnCheckboxChanged, ButtonId )
 			[
-				SNew(STextBlock).Text(Label)
+				SNew(STextBlock).Text(FText::FromString(Label))
 			];
 	}
 
@@ -203,9 +203,9 @@ public:
 	 * @param	ButtonId	The ID for the check box
 	 * @return				The status of the check box
 	 */
-	ESlateCheckBoxState::Type IsCheckboxChecked( int32 ButtonId ) const
+	ECheckBoxState IsCheckboxChecked( int32 ButtonId ) const
 	{
-		return CheckBoxInfoMap.FindChecked(ButtonId).bUsed ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return CheckBoxInfoMap.FindChecked(ButtonId).bUsed ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	/**
@@ -214,7 +214,7 @@ public:
 	 * @param	NewCheckboxState	The new state of the check box
 	 * @param	CheckboxThatChanged	The ID of the radio button that has changed. 
 	 */
-	void OnCheckboxChanged( ESlateCheckBoxState::Type NewCheckboxState, int32 CheckboxThatChanged )
+	void OnCheckboxChanged( ECheckBoxState NewCheckboxState, int32 CheckboxThatChanged )
 	{
 		FBoneCheckbox& Info = CheckBoxInfoMap.FindChecked(CheckboxThatChanged);
 		Info.bUsed = !Info.bUsed;
@@ -826,14 +826,11 @@ void FAssetTypeActions_Skeleton::RetargetSkeleton(TArray<FAssetToRemapSkeleton>&
 					UAnimSequenceBase * SequenceBase = Cast<UAnimSequenceBase>(AnimAsset);
 					if (SequenceBase)
 					{
-						// Copy curve data from source asset, preserving data in the target if present.
-						FSmartNameMapping* OldNameMapping = OldSkeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
-						FSmartNameMapping* NewNameMapping = NewSkeleton->SmartNames.GetContainer(USkeleton::AnimCurveMappingName);
-						SequenceBase->RawCurveData.UpdateLastObservedNames(OldNameMapping);
-
-						for(FFloatCurve& Curve : SequenceBase->RawCurveData.FloatCurves)
+						EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, SequenceBase, USkeleton::AnimCurveMappingName, FRawCurveTracks::FloatType);
+						
+						if (UAnimSequence * Sequence = Cast<UAnimSequence>(SequenceBase))
 						{
-							NewNameMapping->AddName(Curve.LastObservedName, Curve.CurveUid);
+							EditorAnimUtils::CopyAnimCurves(OldSkeleton, NewSkeleton, Sequence, USkeleton::AnimTrackCurveMappingName, FRawCurveTracks::TransformType);
 						}
 					}
 					

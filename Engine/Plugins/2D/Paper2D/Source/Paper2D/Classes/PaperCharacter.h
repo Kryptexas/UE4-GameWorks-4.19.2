@@ -1,12 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "GameFramework/Character.h"
 #include "PaperCharacter.generated.h"
 
 // APaperCharacter behaves like ACharacter, but uses a UPaperFlipbookComponent instead of a USkeletalMeshComponent as a visual representation
 // Note: The variable named Mesh will not be set up on this actor!
-UCLASS(EarlyAccessPreview)
+UCLASS()
 class PAPER2D_API APaperCharacter : public ACharacter
 {
 	GENERATED_UCLASS_BODY()

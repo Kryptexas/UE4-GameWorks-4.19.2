@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "stdafx.h"
 #include "LightingSystem.h"
@@ -309,15 +309,15 @@ bool FStaticLightingAggregateMesh::IntersectLightRay(
 		{
 			NumIterativeIntersections++;
 			// Clip the ray so it is now from the intersection point (plus some amount to avoid intersecting the same triangle again) to the original end of the ray
-			ClippedLightRay.ClipAgainstIntersectionFromEnd(ClosestIntersection.IntersectionVertex.WorldPosition + Scene.SceneConstants.VisibilityRayOffsetDistance * ClippedLightRay.Direction.UnsafeNormal3());
+			ClippedLightRay.ClipAgainstIntersectionFromEnd(ClosestIntersection.IntersectionVertex.WorldPosition + Scene.SceneConstants.VisibilityRayOffsetDistance * ClippedLightRay.Direction.GetUnsafeNormal3());
 			
-			if (ClosestIntersection.Mesh == LightRay.Mesh && ((ClosestIntersection.Mesh->LightingFlags & GI_INSTANCE_SELFSHADOWDISABLE) || (LightRay.TraceFlags & LIGHTRAY_SELFSHADOWDISABLE))
-				|| bDirectShadowingRay && ClosestIntersection.Mesh->IsIndirectlyShadowedOnly(ClosestIntersection.ElementIndex)
-				|| ClosestIntersection.Mesh != LightRay.Mesh && (ClosestIntersection.Mesh->LightingFlags & GI_INSTANCE_SELFSHADOWONLY))
+			if ((ClosestIntersection.Mesh == LightRay.Mesh && ((ClosestIntersection.Mesh->LightingFlags & GI_INSTANCE_SELFSHADOWDISABLE) || (LightRay.TraceFlags & LIGHTRAY_SELFSHADOWDISABLE)))
+				|| (bDirectShadowingRay && ClosestIntersection.Mesh->IsIndirectlyShadowedOnly(ClosestIntersection.ElementIndex))
+				|| (ClosestIntersection.Mesh != LightRay.Mesh && (ClosestIntersection.Mesh->LightingFlags & GI_INSTANCE_SELFSHADOWONLY)))
 			{
 				// Nothing more to do if we're just avoiding shadowing based on trace flags, just keep going
 			}
-			else if (ClosestIntersection.Mesh->IsMasked(ClosestIntersection.ElementIndex) || bDirectShadowingRay && ClosestIntersection.Mesh->IsCastingShadowsAsMasked(ClosestIntersection.ElementIndex))
+			else if (ClosestIntersection.Mesh->IsMasked(ClosestIntersection.ElementIndex) || (bDirectShadowingRay && ClosestIntersection.Mesh->IsCastingShadowsAsMasked(ClosestIntersection.ElementIndex)))
 			{
 				// look to see if we hit a hole or opaque part
  				if (ClosestIntersection.Mesh->EvaluateMaskedCollision(ClosestIntersection.IntersectionVertex.TextureCoordinates[0], ClosestIntersection.ElementIndex))
@@ -439,10 +439,10 @@ bool FStaticLightingAggregateMesh::IntersectLightRay(
 	while (ClosestIntersection.bIntersects 
 		&& (ClosestIntersection.Mesh->IsTranslucent(ClosestIntersection.ElementIndex) ||
 			ClosestIntersection.Mesh->IsMasked(ClosestIntersection.ElementIndex) ||
-			ClosestIntersection.Mesh == LightRay.Mesh && ((ClosestIntersection.Mesh->LightingFlags & GI_INSTANCE_SELFSHADOWDISABLE) || (LightRay.TraceFlags & LIGHTRAY_SELFSHADOWDISABLE)) ||
+			(ClosestIntersection.Mesh == LightRay.Mesh && ((ClosestIntersection.Mesh->LightingFlags & GI_INSTANCE_SELFSHADOWDISABLE) || (LightRay.TraceFlags & LIGHTRAY_SELFSHADOWDISABLE))) ||
 			// Continue tracing if we are only allowed to self shadow and intersected a different mesh
-			ClosestIntersection.Mesh != LightRay.Mesh && (ClosestIntersection.Mesh->LightingFlags & GI_INSTANCE_SELFSHADOWONLY) ||
-			bDirectShadowingRay && ClosestIntersection.Mesh->IsIndirectlyShadowedOnly(ClosestIntersection.ElementIndex))
+			(ClosestIntersection.Mesh != LightRay.Mesh && (ClosestIntersection.Mesh->LightingFlags & GI_INSTANCE_SELFSHADOWONLY)) ||
+			(bDirectShadowingRay && ClosestIntersection.Mesh->IsIndirectlyShadowedOnly(ClosestIntersection.ElementIndex)))
 		&& NumIterativeIntersections < MaxNumIterativeIntersections);
 
 	if (NumIterativeIntersections >= MaxNumIterativeIntersections)

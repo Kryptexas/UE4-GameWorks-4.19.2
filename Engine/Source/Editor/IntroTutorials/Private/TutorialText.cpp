@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "IntroTutorialsPrivatePCH.h"
 #include "TutorialText.h"
@@ -90,7 +90,7 @@ static void OnDocLinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata)
 			FEngineAnalytics::GetProvider().RecordEvent( TEXT("Rocket.Tutorials.DocLinkClicked"), EventAttributes );
 		}
 
-		IDocumentation::Get()->Open(*Url);
+		IDocumentation::Get()->Open(*Url, FDocumentationSourceInfo(TEXT("tutorials")));
 	}
 }
 

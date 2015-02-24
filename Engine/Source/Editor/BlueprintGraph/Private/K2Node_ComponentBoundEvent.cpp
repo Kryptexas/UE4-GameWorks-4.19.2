@@ -1,13 +1,21 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "Engine/ComponentDelegateBinding.h"
+#include "K2Node_ComponentBoundEvent.h"
 
 #define LOCTEXT_NAMESPACE "K2Node"
 
 UK2Node_ComponentBoundEvent::UK2Node_ComponentBoundEvent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+}
+
+bool UK2Node_ComponentBoundEvent::Modify(bool bAlwaysMarkDirty)
+{
+	CachedNodeTitle.MarkDirty();
+
+	return Super::Modify(bAlwaysMarkDirty);
 }
 
 FText UK2Node_ComponentBoundEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const

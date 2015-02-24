@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 
@@ -110,46 +110,68 @@ void ConsoleCommandLibrary_DumpLibrary(UWorld* InWorld, FExec& SubSystem, const 
 // Get a string from a text string.
 //
 bool FParse::Value(
-	const TCHAR* Stream, 
-	const TCHAR* Match,
-	TCHAR*		 Value,
-	int32			 MaxLen,
-	bool		 bShouldStopOnComma
+	const TCHAR*	Stream,
+	const TCHAR*	Match,
+	TCHAR*			Value,
+	int32			MaxLen,
+	bool			bShouldStopOnComma
 )
 {
 	const TCHAR* Found = FCString::Strfind(Stream,Match);
-	const TCHAR* Start;
 
-	if( Found )
+	if (!Found)
 	{
-		Start = Found + FCString::Strlen(Match);
-		if( *Start == '\x22' )
-		{
-			// Quoted string with spaces.
-			FCString::Strncpy( Value, Start+1, MaxLen );
-			Value[MaxLen-1]=0;
-			TCHAR* Temp = FCString::Strstr( Value, TEXT("\x22") );
-			if( Temp != NULL )
-				*Temp=0;
-		}
-		else
-		{
-			// Non-quoted string without spaces.
-			FCString::Strncpy( Value, Start, MaxLen );
-			Value[MaxLen-1]=0;
-			TCHAR* Temp;
-			Temp = FCString::Strstr( Value, TEXT(" ")  ); if( Temp ) *Temp=0;
-			Temp = FCString::Strstr( Value, TEXT("\r") ); if( Temp ) *Temp=0;
-			Temp = FCString::Strstr( Value, TEXT("\n") ); if( Temp ) *Temp=0;
-			Temp = FCString::Strstr( Value, TEXT("\t") ); if( Temp ) *Temp=0;
-			if (bShouldStopOnComma)
-			{
-				Temp = FCString::Strstr( Value, TEXT(",")  ); if( Temp ) *Temp=0;
-			}
-		}
-		return 1;
+		return false;
 	}
-	else return 0;
+
+	const TCHAR* Start = Found + FCString::Strlen(Match);
+
+	// Check for quoted arguments' string with spaces
+	// -Option="Value1 Value2"
+	//         ^~~~Start
+	bool bArgumentsQuoted = *Start == '"';
+
+	// Number of characters we can look back from found looking for first parenthesis.
+	uint32 AllowedBacktraceCharactersCount = Found - Stream;
+
+	// Check for fully quoted string with spaces
+	bool bFullyQuoted = 
+		// "Option=Value1 Value2"
+		//  ^~~~Found
+		(AllowedBacktraceCharactersCount > 0 && (*(Found - 1) == '"'))
+		// "-Option=Value1 Value2"
+		//   ^~~~Found
+		|| (AllowedBacktraceCharactersCount > 1 && ((*(Found - 1) == '-') && (*(Found - 2) == '"')));
+
+	if (bArgumentsQuoted || bFullyQuoted)
+	{
+		// Skip quote character if only params were quoted.
+		int32 QuoteCharactersToSkip = bArgumentsQuoted ? 1 : 0;
+		FCString::Strncpy(Value, Start + QuoteCharactersToSkip, MaxLen);
+
+		Value[MaxLen-1]=0;
+		TCHAR* Temp = FCString::Strstr( Value, TEXT("\x22") );
+		if (Temp != nullptr)
+		{
+			*Temp = 0;
+		}
+	}
+	else
+	{
+		// Non-quoted string without spaces.
+		FCString::Strncpy( Value, Start, MaxLen );
+		Value[MaxLen-1]=0;
+		TCHAR* Temp;
+		Temp = FCString::Strstr( Value, TEXT(" ")  ); if( Temp ) *Temp=0;
+		Temp = FCString::Strstr( Value, TEXT("\r") ); if( Temp ) *Temp=0;
+		Temp = FCString::Strstr( Value, TEXT("\n") ); if( Temp ) *Temp=0;
+		Temp = FCString::Strstr( Value, TEXT("\t") ); if( Temp ) *Temp=0;
+		if (bShouldStopOnComma)
+		{
+			Temp = FCString::Strstr( Value, TEXT(",")  ); if( Temp ) *Temp=0;
+		}
+	}
+	return true;
 }
 
 //
@@ -522,7 +544,7 @@ bool FParse::Bool( const TCHAR* Stream, const TCHAR* Match, bool& OnOff )
 //
 // Get a globally unique identifier.
 //
-bool FParse::Value( const TCHAR* Stream, const TCHAR* Match, class FGuid& Guid )
+bool FParse::Value( const TCHAR* Stream, const TCHAR* Match, struct FGuid& Guid )
 {
 	TCHAR Temp[256];
 	if( !FParse::Value( Stream, Match, Temp, ARRAY_COUNT(Temp) ) )

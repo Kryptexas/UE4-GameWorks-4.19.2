@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -113,6 +113,11 @@ public:
 	}
 
 	virtual IOnlinePresencePtr GetPresenceInterface() const override
+	{
+		return NULL;
+	}
+
+	virtual IOnlineChatPtr GetChatInterface() const override
 	{
 		return NULL;
 	}

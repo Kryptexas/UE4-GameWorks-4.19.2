@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*==============================================================================
 	VectorField.cpp: Implementation of vector fields.
@@ -19,6 +19,7 @@
 #include "VectorField/VectorFieldStatic.h"
 #include "SceneUtils.h"
 #include "ComponentReregisterContext.h"
+#include "Components/VectorFieldComponent.h"
 
 #define MAX_GLOBAL_VECTOR_FIELDS (16)
 DEFINE_LOG_CATEGORY(LogVectorField)
@@ -187,7 +188,7 @@ public:
 	 */
 	virtual void InitRHI() override
 	{
-		if (VolumeData && GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+		if (VolumeData && GetFeatureLevel() >= ERHIFeatureLevel::ES3_1)
 		{
 			const uint32 DataSize = SizeX * SizeY * SizeZ * sizeof(FFloat16Color);
 			FVectorFieldStaticResourceBulkDataInterface BulkDataInterface(VolumeData, DataSize);
@@ -325,6 +326,15 @@ void UVectorFieldStatic::PostEditChangeProperty(FPropertyChangedEvent& PropertyC
 }
 #endif // WITH_EDITOR
 
+#if WITH_EDITORONLY_DATA
+void UVectorFieldStatic::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	OutTags.Add( FAssetRegistryTag(SourceFileTagName(), SourceFilePath, FAssetRegistryTag::TT_Hidden) );
+
+	Super::GetAssetRegistryTags(OutTags);
+}
+#endif
+
 class FVectorFieldCollectorResources : public FOneFrameResource
 {
 public:
@@ -395,22 +405,6 @@ public:
 	}
 
 	/**
-	 * Draws the bounding box for the vector field.
-	 */
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
-	{	
-		QUICK_SCOPE_CYCLE_COUNTER( STAT_VectorFieldSceneProxy_DrawDynamicElements );
-
-		DrawVectorFieldBounds(PDI, View, VectorFieldInstance);
-
-		// Draw a visualization of the vectors contained in the field when selected.
-		if (IsSelected() || View->Family->EngineShowFlags.VectorFields)
-		{
-			DrawVectorField(PDI, View, &VisualizationVertexFactory, VectorFieldInstance);
-		}
-	}
-
-	/**
 	 * Computes view relevance for this scene proxy.
 	 */
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View) override
@@ -444,7 +438,6 @@ private:
 UVectorFieldComponent::UVectorFieldComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	BodyInstance.bEnableCollision_DEPRECATED = false;
 	SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	bHiddenInGame = true;
 	Intensity = 1.0f;
@@ -754,7 +747,7 @@ public:
 	 */
 	virtual void InitRHI() override
 	{
-		if (GetFeatureLevel() >= ERHIFeatureLevel::SM4)
+		if (GetFeatureLevel() >= ERHIFeatureLevel::ES3_1)
 		{
 			check(SizeX > 0);
 			check(SizeY > 0);

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 
@@ -6,6 +6,7 @@
 #include "MacTextInputMethodSystem.h"
 #include "CocoaTextView.h"
 #include "CocoaThread.h"
+#include "MacApplication.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogMacTextInputMethodSystem, Log, All);
 
@@ -17,13 +18,12 @@ namespace
 		FTextInputMethodChangeNotifier(const TSharedRef<ITextInputMethodContext>& InContext)
 		:	Context(InContext)
 		{
-			ContextWindow = Context.Pin()->GetWindow();
 		}
 		
 		virtual ~FTextInputMethodChangeNotifier() {}
 		
 		void SetContextWindow(TSharedPtr<FGenericWindow> Window);
-		TSharedPtr<FGenericWindow> GetContextWindow(void) const;
+		TSharedPtr<FGenericWindow> GetContextWindow();
 		
 		virtual void NotifyLayoutChanged(const ELayoutChangeType ChangeType) override;
 		virtual void NotifySelectionChanged() override;
@@ -40,32 +40,30 @@ namespace
 		ContextWindow = Window;
 	}
 	
-	TSharedPtr<FGenericWindow> FTextInputMethodChangeNotifier::GetContextWindow(void) const
+	TSharedPtr<FGenericWindow> FTextInputMethodChangeNotifier::GetContextWindow()
 	{
+		if (!ContextWindow.IsValid())
+		{
+			ContextWindow = Context.Pin()->GetWindow();
+		}
 		return ContextWindow;
 	}
 	
 	void FTextInputMethodChangeNotifier::NotifyLayoutChanged(const ELayoutChangeType ChangeType)
 	{
-		if(ContextWindow.IsValid())
+		if(ChangeType != ELayoutChangeType::Created && GetContextWindow().IsValid())
 		{
-			FCocoaWindow* CocoaWindow = (FCocoaWindow*)ContextWindow->GetOSWindowHandle();
-			MainThreadCall(^{
-				SCOPED_AUTORELEASE_POOL;
-				if(CocoaWindow && [CocoaWindow openGLView])
-				{
-					FCocoaTextView* TextView = (FCocoaTextView*)[CocoaWindow openGLView];
-					[[TextView inputContext] invalidateCharacterCoordinates];
-				}
-			}, UE4IMEEventMode, true);
+			FCocoaWindow* CocoaWindow = (FCocoaWindow*)GetContextWindow()->GetOSWindowHandle();
+			
+			MacApplication->InvalidateTextLayout( CocoaWindow );
 		}
 	}
 	
 	void FTextInputMethodChangeNotifier::NotifySelectionChanged()
 	{
-		if(ContextWindow.IsValid())
+		if(GetContextWindow().IsValid())
 		{
-			FCocoaWindow* CocoaWindow = (FCocoaWindow*)ContextWindow->GetOSWindowHandle();
+			FCocoaWindow* CocoaWindow = (FCocoaWindow*)GetContextWindow()->GetOSWindowHandle();
 			MainThreadCall(^{
 				SCOPED_AUTORELEASE_POOL;
 				if(CocoaWindow && [CocoaWindow openGLView])
@@ -79,9 +77,9 @@ namespace
 	
 	void FTextInputMethodChangeNotifier::NotifyTextChanged(const uint32 BeginIndex, const uint32 OldLength, const uint32 NewLength)
 	{
-		if(ContextWindow.IsValid())
+		if(GetContextWindow().IsValid())
 		{
-			FCocoaWindow* CocoaWindow = (FCocoaWindow*)ContextWindow->GetOSWindowHandle();
+			FCocoaWindow* CocoaWindow = (FCocoaWindow*)GetContextWindow()->GetOSWindowHandle();
 			MainThreadCall(^{
 				SCOPED_AUTORELEASE_POOL;
 				if(CocoaWindow && [CocoaWindow openGLView])
@@ -95,9 +93,9 @@ namespace
 	
 	void FTextInputMethodChangeNotifier::CancelComposition()
 	{
-		if(ContextWindow.IsValid())
+		if(GetContextWindow().IsValid())
 		{
-			FCocoaWindow* CocoaWindow = (FCocoaWindow*)ContextWindow->GetOSWindowHandle();
+			FCocoaWindow* CocoaWindow = (FCocoaWindow*)GetContextWindow()->GetOSWindowHandle();
 			MainThreadCall(^{
 				SCOPED_AUTORELEASE_POOL;
 				if(CocoaWindow && [CocoaWindow openGLView])

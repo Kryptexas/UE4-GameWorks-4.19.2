@@ -1,30 +1,30 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-namespace SceneOutliner
-{
-	struct TOutlinerTreeItem;
-}
+#include "SceneOutlinerFwd.h"
 
 /**
- *	
+ *	Interface for a scene outliner column
  */
 class ISceneOutlinerColumn : public TSharedFromThis< ISceneOutlinerColumn >
 {
-
 public:
+
 	virtual FName GetColumnID() = 0;
 
 	virtual SHeaderRow::FColumn::FArguments ConstructHeaderRowColumn() = 0;
 
-	virtual const TSharedRef< SWidget > ConstructRowWidget( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem ) = 0;
+	virtual const TSharedRef< SWidget > ConstructRowWidget( SceneOutliner::FTreeItemRef TreeItem, const STableRow<SceneOutliner::FTreeItemPtr>& Row ) = 0;
 
-	virtual bool ProvidesSearchStrings() = 0;
+	virtual void Tick(double InCurrentTime, float InDeltaTime) {}
 
-	virtual void PopulateActorSearchStrings( const AActor* const Actor, OUT TArray< FString >& OutSearchStrings ) const = 0;
+public:
+	/** Optionally overridden interface methods */
+	virtual void PopulateSearchStrings( const SceneOutliner::ITreeItem& Item, TArray< FString >& OutSearchStrings ) const {}
 
-	virtual bool SupportsSorting() const = 0;
+	virtual bool SupportsSorting() const { return false; }
 
-	virtual void SortItems(TArray<TSharedPtr<SceneOutliner::TOutlinerTreeItem>>& RootItems, const EColumnSortMode::Type SortMode) const = 0;
+	virtual void SortItems(TArray<SceneOutliner::FTreeItemPtr>& OutItems, const EColumnSortMode::Type SortMode) const {}
 };
+

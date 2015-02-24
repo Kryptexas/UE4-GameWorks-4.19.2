@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AnimGraphPrivatePCH.h"
 #include "AnimGraphNode_TwoBoneIK.h"
+#include "DebugRenderSceneProxy.h"
 
 // for customization details
 #include "../../PropertyEditor/Public/PropertyHandle.h"
@@ -27,6 +28,8 @@ public:
 	}
 };
 
+TSharedPtr<FTwoBoneIKDelegate> UAnimGraphNode_TwoBoneIK::TwoBoneIKDelegate = NULL;
+
 /////////////////////////////////////////////////////
 // UAnimGraphNode_TwoBoneIK
 
@@ -34,6 +37,7 @@ public:
 UAnimGraphNode_TwoBoneIK::UAnimGraphNode_TwoBoneIK(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	BoneSelectMode = BSM_EndEffector;
 }
 
 FText UAnimGraphNode_TwoBoneIK::GetControllerDescription() const
@@ -77,105 +81,243 @@ void UAnimGraphNode_TwoBoneIK::Draw( FPrimitiveDrawInterface* PDI, USkeletalMesh
 {
 	if (SkelMeshComp && SkelMeshComp->SkeletalMesh && SkelMeshComp->SkeletalMesh->Skeleton)
 	{
-		USkeleton* Skeleton = SkelMeshComp->SkeletalMesh->Skeleton;
+		USkeleton * Skeleton = SkelMeshComp->SkeletalMesh->Skeleton;
 
 		DrawTargetLocation(PDI, SkelMeshComp, Skeleton, Node.EffectorLocationSpace, Node.EffectorSpaceBoneName, Node.EffectorLocation, FColor(255, 128, 128), FColor(180, 128, 128));
 		DrawTargetLocation(PDI, SkelMeshComp, Skeleton, Node.JointTargetLocationSpace, Node.JointTargetSpaceBoneName, Node.JointTargetLocation, FColor(128, 255, 128), FColor(128, 180, 128));
 	}
 }
 
-void UAnimGraphNode_TwoBoneIK::DrawTargetLocation(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* SkelComp, USkeleton* Skeleton, uint8 SpaceBase, FName SpaceBoneName, const FVector& TargetLocation, const FColor& TargetColor, const FColor& BoneColor) const
+void UAnimGraphNode_TwoBoneIK::DrawTargetLocation(FPrimitiveDrawInterface* PDI, USkeletalMeshComponent* SkelComp, USkeleton * Skeleton, EBoneControlSpace SpaceBase, FName SpaceBoneName, const FVector & TargetLocation, const FColor & TargetColor, const FColor & BoneColor) const
 {
 	const bool bInBoneSpace = (SpaceBase == BCS_ParentBoneSpace) || (SpaceBase == BCS_BoneSpace);
 	const int32 SpaceBoneIndex = bInBoneSpace ? Skeleton->GetReferenceSkeleton().FindBoneIndex(SpaceBoneName) : INDEX_NONE;
 	// Transform EffectorLocation from EffectorLocationSpace to ComponentSpace.
 	FTransform TargetTransform = FTransform (TargetLocation);
 	FTransform CSTransform;
-	ConvertToComponentSpaceTransform(SkelComp, Skeleton, TargetTransform, CSTransform, SpaceBoneIndex, SpaceBase);
+
+	ConvertToComponentSpaceTransform(SkelComp, TargetTransform, CSTransform, SpaceBoneIndex, SpaceBase);
 
 	FTransform WorldTransform = CSTransform * SkelComp->ComponentToWorld;
 
+#if 0 // @TODO : remove this code because this doesn't show correct target location
 	DrawCoordinateSystem( PDI, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator(), 20.f, SDPG_Foreground );
 	DrawWireDiamond( PDI, WorldTransform.ToMatrixWithScale(), 2.f, TargetColor, SDPG_Foreground );
+#endif
 
 	if (bInBoneSpace)
 	{
-		ConvertToComponentSpaceTransform(SkelComp, Skeleton, FTransform::Identity, CSTransform, SpaceBoneIndex, SpaceBase);
+		ConvertToComponentSpaceTransform(SkelComp, FTransform::Identity, CSTransform, SpaceBoneIndex, SpaceBase);
 		WorldTransform = CSTransform * SkelComp->ComponentToWorld;
 		DrawCoordinateSystem( PDI, WorldTransform.GetLocation(), WorldTransform.GetRotation().Rotator(), 20.f, SDPG_Foreground );
 		DrawWireDiamond( PDI, WorldTransform.ToMatrixWithScale(), 2.f, BoneColor, SDPG_Foreground );
 	}
 }
 
-void UAnimGraphNode_TwoBoneIK::ConvertToComponentSpaceTransform(USkeletalMeshComponent* SkelComp, USkeleton* Skeleton, const FTransform& InTransform, FTransform& OutCSTransform, int32 BoneIndex, uint8 Space) const
+void UAnimGraphNode_TwoBoneIK::CopyNodeDataTo(FAnimNode_Base* AnimNode)
 {
-	switch( Space )
+	FAnimNode_TwoBoneIK* TwoBoneIK = static_cast<FAnimNode_TwoBoneIK*>(AnimNode);
+
+	// copies Pin values from the internal node to get data which are not compiled yet
+	TwoBoneIK->EffectorLocation = GetNodeValue(FString("EffectorLocation"), Node.EffectorLocation);
+	TwoBoneIK->JointTargetLocation = GetNodeValue(FString("JointTargetLocation"), Node.JointTargetLocation);
+}
+
+void UAnimGraphNode_TwoBoneIK::CopyNodeDataFrom(const FAnimNode_Base* InNewAnimNode)
+{
+	const FAnimNode_TwoBoneIK* TwoBoneIK = static_cast<const FAnimNode_TwoBoneIK*>(InNewAnimNode);
+	
+	if (BoneSelectMode == BSM_EndEffector)
 	{
-	case BCS_WorldSpace : 
-		{
-			OutCSTransform = InTransform;
-			OutCSTransform.SetToRelativeTransform(SkelComp->ComponentToWorld);
-		}
-		break;
-
-	case BCS_ComponentSpace :
-		{
-			// Component Space, no change.
-			OutCSTransform = InTransform;
-		}
-		break;
-
-	case BCS_ParentBoneSpace :
-		if( BoneIndex != INDEX_NONE )
-		{
-			const int32 ParentIndex = Skeleton->GetReferenceSkeleton().GetParentIndex(BoneIndex);
-			if( ParentIndex != INDEX_NONE )
-			{
-				const int32 MeshParentIndex = Skeleton->GetMeshBoneIndexFromSkeletonBoneIndex(SkelComp->SkeletalMesh, ParentIndex);
-				if (MeshParentIndex != INDEX_NONE)
-				{
-					const FTransform ParentTM = SkelComp->GetBoneTransform(MeshParentIndex);
-					OutCSTransform = InTransform * ParentTM;
-				}
-				else
-				{
-					OutCSTransform = InTransform;
-				}
-			}
-		}
-		break;
-
-	case BCS_BoneSpace :
-		if( BoneIndex != INDEX_NONE )
-		{
-			const int32 MeshBoneIndex = Skeleton->GetMeshBoneIndexFromSkeletonBoneIndex(SkelComp->SkeletalMesh, BoneIndex);
-			if (MeshBoneIndex != INDEX_NONE)
-			{
-				const FTransform BoneTM = SkelComp->GetBoneTransform(MeshBoneIndex);
-				OutCSTransform = InTransform * BoneTM;
-			}
-			else
-			{
-				OutCSTransform = InTransform;
-			}
-		}
-		break;
-
-	default:
-		if( SkelComp->SkeletalMesh )
-		{
-			UE_LOG(LogAnimation, Warning, TEXT("ConvertToComponentSpaceTransform: Unknown BoneSpace %d  for Mesh: %s"), Space, *SkelComp->SkeletalMesh->GetFName().ToString() );
-		}
-		else
-		{
-			UE_LOG(LogAnimation, Warning, TEXT("ConvertToComponentSpaceTransform: Unknown BoneSpace %d  for Skeleton: %s"), Space, *Skeleton->GetFName().ToString() );
-		}
-		break;
+		SetNodeValue(FString("EffectorLocation"), Node.EffectorLocation, TwoBoneIK->EffectorLocation);
+	}
+	else
+	{
+		SetNodeValue(FString("JointTargetLocation"), Node.JointTargetLocation, TwoBoneIK->JointTargetLocation);
 	}
 }
 
-// just for refreshing UIs when bone space was changed
-TSharedPtr<FTwoBoneIKDelegate> TwoBoneIKDelegate;
+
+FVector UAnimGraphNode_TwoBoneIK::GetWidgetLocation(const USkeletalMeshComponent* SkelComp, FAnimNode_SkeletalControlBase* AnimNode)
+{
+	EBoneControlSpace Space;
+	FName BoneName;
+	FVector Location;
+	 
+	if (BoneSelectMode == BSM_EndEffector)
+	{
+		Space = Node.EffectorLocationSpace;
+		Location = GetNodeValue(FString("EffectorLocation"), Node.EffectorLocation);
+		BoneName = Node.EffectorSpaceBoneName;
+
+	}
+	else // BSM_JointTarget
+	{
+		Space = Node.JointTargetLocationSpace;
+
+		if (Space == BCS_WorldSpace || Space == BCS_ComponentSpace)
+		{
+			return FVector::ZeroVector;
+		}
+		Location = GetNodeValue(FString("JointTargetLocation"), Node.JointTargetLocation);
+		BoneName = Node.JointTargetSpaceBoneName;
+	}
+
+	return ConvertWidgetLocation(SkelComp, AnimNode->ForwardedPose, BoneName, Location, Space);
+}
+
+int32 UAnimGraphNode_TwoBoneIK::GetWidgetMode(const USkeletalMeshComponent* SkelComp)
+{
+	int32 BoneIndex = SkelComp->GetBoneIndex(Node.IKBone.BoneName);
+	// Two bone IK node uses only Translate
+	if (BoneIndex != INDEX_NONE)
+	{
+		return FWidget::WM_Translate;
+	}
+
+	return FWidget::WM_None;
+}
+
+void UAnimGraphNode_TwoBoneIK::MoveSelectActorLocation(const USkeletalMeshComponent* SkelComp, FAnimNode_SkeletalControlBase* AnimNode)
+{
+	USkeleton * Skeleton = SkelComp->SkeletalMesh->Skeleton;
+
+	// create a bone select actor
+
+	if (!BoneSelectActor.IsValid())
+	{
+		if (Node.JointTargetLocationSpace == EBoneControlSpace::BCS_BoneSpace ||
+			Node.JointTargetLocationSpace == EBoneControlSpace::BCS_ParentBoneSpace)
+		{
+			int32 JointTargetIndex = Skeleton->GetReferenceSkeleton().FindBoneIndex(Node.JointTargetSpaceBoneName);
+
+			if (JointTargetIndex != INDEX_NONE)
+			{
+				UWorld* World = SkelComp->GetWorld();
+				check(World);
+
+				BoneSelectActor = World->SpawnActor<ABoneSelectActor>(FVector(0), FRotator(0, 0, 0));
+				check(BoneSelectActor.IsValid());
+			}
+		}
+	}
+
+	if (!BoneSelectActor.IsValid())
+	{
+		return;
+	}
+
+	// move the actor's position
+	if (BoneSelectMode == BSM_JointTarget)
+	{
+		FName BoneName;
+		int32 EffectorBoneIndex = SkelComp->GetBoneIndex(Node.EffectorSpaceBoneName);
+		if (EffectorBoneIndex != INDEX_NONE)
+		{
+			BoneName = Node.EffectorSpaceBoneName;
+		}
+		else
+		{
+			BoneName = Node.IKBone.BoneName;
+		}
+
+		FVector ActorLocation = ConvertWidgetLocation(SkelComp, AnimNode->ForwardedPose, BoneName, Node.EffectorLocation, Node.EffectorLocationSpace);
+		BoneSelectActor->SetActorLocation(ActorLocation + FVector(0, 10, 0));
+
+	}
+	else if (BoneSelectMode == BSM_EndEffector)
+	{
+		int32 JointTargetIndex = SkelComp->GetBoneIndex(Node.JointTargetSpaceBoneName);
+
+		if (JointTargetIndex != INDEX_NONE)
+		{
+			FVector ActorLocation = ConvertWidgetLocation(SkelComp, AnimNode->ForwardedPose, Node.JointTargetSpaceBoneName, Node.JointTargetLocation, Node.JointTargetLocationSpace);
+			BoneSelectActor->SetActorLocation(ActorLocation + FVector(0, 10, 0));
+		}
+	}
+}
+
+FName UAnimGraphNode_TwoBoneIK::FindSelectedBone()
+{
+	FName SelectedBone;
+
+	// should return mesh bone index
+	if (BoneSelectMode == BSM_EndEffector)
+	{
+		if (Node.EffectorLocationSpace == EBoneControlSpace::BCS_BoneSpace ||
+			Node.EffectorLocationSpace == EBoneControlSpace::BCS_ParentBoneSpace)
+		{
+			SelectedBone = Node.EffectorSpaceBoneName;
+		}
+		else
+		{
+			SelectedBone = Node.IKBone.BoneName;
+		}
+
+	}
+	else if (BoneSelectMode == BSM_JointTarget)
+	{
+		SelectedBone = Node.JointTargetSpaceBoneName;
+	}
+
+	return SelectedBone;
+}
+
+bool UAnimGraphNode_TwoBoneIK::IsActorClicked(HActor* ActorHitProxy)
+{
+	ABoneSelectActor* BoneActor = Cast<ABoneSelectActor>(ActorHitProxy->Actor);
+
+	if (BoneActor)
+	{
+		return true;
+	}
+
+	return false;
+}
+
+void UAnimGraphNode_TwoBoneIK::ProcessActorClick(HActor* ActorHitProxy)
+{
+	// toggle bone selection mode
+	if (BoneSelectMode == BSM_EndEffector)
+	{
+		BoneSelectMode = BSM_JointTarget;
+	}
+	else
+	{
+		BoneSelectMode = BSM_EndEffector;
+	}
+}
+
+void UAnimGraphNode_TwoBoneIK::DoTranslation(const USkeletalMeshComponent* SkelComp, FVector& Drag, FAnimNode_Base* InOutAnimNode)
+{
+	FAnimNode_TwoBoneIK* TwoBoneIK = static_cast<FAnimNode_TwoBoneIK*>(InOutAnimNode);
+
+	if (BoneSelectMode == BSM_EndEffector)
+	{
+		FVector Offset = ConvertCSVectorToBoneSpace(SkelComp, Drag, TwoBoneIK->ForwardedPose, FindSelectedBone(), Node.EffectorLocationSpace);
+
+		TwoBoneIK->EffectorLocation += Offset;
+		Node.EffectorLocation = TwoBoneIK->EffectorLocation;
+	}
+	else if (BoneSelectMode == BSM_JointTarget)
+	{
+		FVector Offset = ConvertCSVectorToBoneSpace(SkelComp, Drag, TwoBoneIK->ForwardedPose, FindSelectedBone(), Node.JointTargetLocationSpace);
+
+		TwoBoneIK->JointTargetLocation += Offset;
+		Node.JointTargetLocation = TwoBoneIK->JointTargetLocation;
+	}
+}
+
+void UAnimGraphNode_TwoBoneIK::DeselectActor(USkeletalMeshComponent* SkelComp)
+{
+	if(BoneSelectActor!=NULL)
+	{
+		if (SkelComp->GetWorld()->DestroyActor(BoneSelectActor.Get()))
+		{
+			BoneSelectActor = NULL;
+		}
+	}
+}
 
 void UAnimGraphNode_TwoBoneIK::CustomizeDetails(class IDetailLayoutBuilder& DetailBuilder)
 {
@@ -186,61 +328,72 @@ void UAnimGraphNode_TwoBoneIK::CustomizeDetails(class IDetailLayoutBuilder& Deta
 	}
 
 	EBoneControlSpace Space = Node.EffectorLocationSpace;
+	const FString TakeRotationPropName = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, bTakeRotationFromEffectorSpace));
+	const FString MaintainEffectorPropName = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, bMaintainEffectorRelRot));
+	const FString EffectorBoneName = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, EffectorSpaceBoneName));
+	const FString EffectorLocationPropName = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, EffectorLocation));
+
 	if (Space == BCS_BoneSpace || Space == BCS_ParentBoneSpace)
 	{
 		IDetailCategoryBuilder& IKCategory = DetailBuilder.EditCategory("IK");
 		IDetailCategoryBuilder& EffectorCategory = DetailBuilder.EditCategory("EndEffector");
 		TSharedPtr<IPropertyHandle> PropertyHandle;
-		PropertyHandle = DetailBuilder.GetProperty(FName("Node.bTakeRotationFromEffectorSpace"), GetClass());
+		PropertyHandle = DetailBuilder.GetProperty(*TakeRotationPropName, GetClass());
 		EffectorCategory.AddProperty(PropertyHandle);
-		PropertyHandle = DetailBuilder.GetProperty(FName("Node.bMaintainEffectorRelRot"), GetClass());
+		PropertyHandle = DetailBuilder.GetProperty(*MaintainEffectorPropName, GetClass());
 		EffectorCategory.AddProperty(PropertyHandle);
-		PropertyHandle = DetailBuilder.GetProperty(FName("Node.EffectorSpaceBoneName"), GetClass());
+		PropertyHandle = DetailBuilder.GetProperty(*EffectorBoneName, GetClass());
 		EffectorCategory.AddProperty(PropertyHandle);
 	}
 	else // hide all properties in EndEffector category
 	{
-		TSharedPtr<IPropertyHandle> PropertyHandle = DetailBuilder.GetProperty(FName("Node.EffectorLocation"), GetClass());
+		TSharedPtr<IPropertyHandle> PropertyHandle = DetailBuilder.GetProperty(*EffectorLocationPropName, GetClass());
 		DetailBuilder.HideProperty(PropertyHandle);
-		PropertyHandle = DetailBuilder.GetProperty(FName("Node.bTakeRotationFromEffectorSpace"), GetClass());
+		PropertyHandle = DetailBuilder.GetProperty(*TakeRotationPropName, GetClass());
 		DetailBuilder.HideProperty(PropertyHandle);
-		PropertyHandle = DetailBuilder.GetProperty(FName("Node.bMaintainEffectorRelRot"), GetClass());
+		PropertyHandle = DetailBuilder.GetProperty(*MaintainEffectorPropName, GetClass());
 		DetailBuilder.HideProperty(PropertyHandle);
-		PropertyHandle = DetailBuilder.GetProperty(FName("Node.EffectorSpaceBoneName"), GetClass());
+		PropertyHandle = DetailBuilder.GetProperty(*EffectorBoneName, GetClass());
 		DetailBuilder.HideProperty(PropertyHandle);
 	}
 
 	Space = Node.JointTargetLocationSpace;
+	bool bPinVisibilityChanged = false;
+	const FString JointTargetSpaceBoneName = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, JointTargetSpaceBoneName));
+	const FString JointTargetLocation = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, JointTargetLocation));
+
 	if (Space == BCS_BoneSpace || Space == BCS_ParentBoneSpace)
 	{
 		IDetailCategoryBuilder& IKCategory = DetailBuilder.EditCategory("IK");
 		IDetailCategoryBuilder& EffectorCategory = DetailBuilder.EditCategory("JointTarget");
 		TSharedPtr<IPropertyHandle> PropertyHandle;
-		PropertyHandle = DetailBuilder.GetProperty(FName("Node.JointTargetSpaceBoneName"), GetClass());
+		PropertyHandle = DetailBuilder.GetProperty(*JointTargetSpaceBoneName, GetClass());
 		EffectorCategory.AddProperty(PropertyHandle);
 
-		SetPinsVisibility(true);
+		bPinVisibilityChanged = SetPinsVisibility(true);
 	}
 	else // hide all properties in JointTarget category except for JointTargetLocationSpace
 	{
-		TSharedPtr<IPropertyHandle> PropertyHandle = DetailBuilder.GetProperty(FName("Node.JointTargetLocation"), GetClass());
+		TSharedPtr<IPropertyHandle> PropertyHandle = DetailBuilder.GetProperty(*JointTargetLocation, GetClass());
 		DetailBuilder.HideProperty(PropertyHandle);
-		PropertyHandle = DetailBuilder.GetProperty(FName("Node.JointTargetSpaceBoneName"), GetClass());
+		PropertyHandle = DetailBuilder.GetProperty(*JointTargetSpaceBoneName, GetClass());
 		DetailBuilder.HideProperty(PropertyHandle);
 
-		SetPinsVisibility(false);
+		bPinVisibilityChanged = SetPinsVisibility(false);
 	}
 
+	const FString EffectorLocationSpace = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, EffectorLocationSpace));
+	const FString JointTargetLocationSpace = FString::Printf(TEXT("Node.%s"), GET_MEMBER_NAME_STRING_CHECKED(FAnimNode_TwoBoneIK, JointTargetLocationSpace));
 
 	// refresh UIs when bone space is changed
-	TSharedRef<IPropertyHandle> EffectorLocHandle = DetailBuilder.GetProperty(FName("Node.EffectorLocationSpace"), GetClass());
+	TSharedRef<IPropertyHandle> EffectorLocHandle = DetailBuilder.GetProperty(*EffectorLocationSpace, GetClass());
 	if (EffectorLocHandle->IsValidHandle())
 	{
 		FSimpleDelegate UpdateEffectorSpaceDelegate = FSimpleDelegate::CreateSP(TwoBoneIKDelegate.Get(), &FTwoBoneIKDelegate::UpdateLocationSpace, &DetailBuilder);
 		EffectorLocHandle->SetOnPropertyValueChanged(UpdateEffectorSpaceDelegate);
 	}
 
-	TSharedRef<IPropertyHandle> JointTragetLocHandle = DetailBuilder.GetProperty(FName("Node.JointTargetLocationSpace"), GetClass());
+	TSharedRef<IPropertyHandle> JointTragetLocHandle = DetailBuilder.GetProperty(*JointTargetLocationSpace, GetClass());
 	if (JointTragetLocHandle->IsValidHandle())
 	{
 		FSimpleDelegate UpdateJointSpaceDelegate = FSimpleDelegate::CreateSP(TwoBoneIKDelegate.Get(), &FTwoBoneIKDelegate::UpdateLocationSpace, &DetailBuilder);
@@ -248,20 +401,31 @@ void UAnimGraphNode_TwoBoneIK::CustomizeDetails(class IDetailLayoutBuilder& Deta
 	}
 
 	// reconstruct node for showing/hiding Pins
-	ReconstructNode();
+	if (bPinVisibilityChanged)
+	{
+		ReconstructNode();
+	}
 }
 
-void UAnimGraphNode_TwoBoneIK::SetPinsVisibility(bool bShow)
+bool UAnimGraphNode_TwoBoneIK::SetPinsVisibility(bool bShow)
 {
+	bool bChanged = false;
+
 	for (FOptionalPinFromProperty& Pin : ShowPinForProperties)
 	{
-		if (Pin.PropertyName == "JointTargetLocation")
+		if (Pin.PropertyName == GET_MEMBER_NAME_CHECKED(FAnimNode_TwoBoneIK, JointTargetLocation))
 		{
 			PreEditChange(NULL);
-			Pin.bShowPin = bShow;
+			if (Pin.bShowPin != bShow)
+			{
+				Pin.bShowPin = bShow;
+				bChanged = true;
+			}
 			break;
 		}
 	}
+
+	return bChanged;
 }
 
 #undef LOCTEXT_NAMESPACE

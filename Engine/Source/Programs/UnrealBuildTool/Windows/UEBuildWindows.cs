@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -6,6 +6,7 @@ using System.Text;
 using System.Diagnostics;
 using System.IO;
 using Microsoft.Win32;
+using System.Linq;
 
 namespace UnrealBuildTool
 {
@@ -14,7 +15,7 @@ namespace UnrealBuildTool
     /// </summary>
     public enum WindowsCompiler
     {
-        /// Visual Studio 2012 (Visual C++ 11.0)
+        /// Visual Studio 2012 (Visual C++ 11.0). No longer supported for building on Windows, but required for other platform toolchains.
         VisualStudio2012,
 
         /// Visual Studio 2013 (Visual C++ 12.0)
@@ -39,15 +40,9 @@ namespace UnrealBuildTool
                 }
 
                 // First check if Visual Sudio 2013 is installed.
-                // If both 2012 and 2013 are installed, prefer 2013
                 if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2013)))
                 {
                     CachedCompiler = WindowsCompiler.VisualStudio2013;
-                }
-                // Next try Visual Studio 2012
-                else if (!String.IsNullOrEmpty(WindowsPlatform.GetVSComnToolsPath(WindowsCompiler.VisualStudio2012)))
-                {
-                    CachedCompiler = WindowsCompiler.VisualStudio2012;
                 }
                 // Finally assume 2013 is installed to defer errors somewhere else like VCToolChain
                 else
@@ -67,8 +62,15 @@ namespace UnrealBuildTool
 
         /// True if we're targeting Windows XP as a minimum spec.  In Visual Studio 2012 and higher, this may change how
         /// we compile and link the application (http://blogs.msdn.com/b/vcblog/archive/2012/10/08/10357555.aspx)
+		/// This is a flag to determine we should support XP if possible from XML
         [XmlConfig]
-        public static bool SupportWindowsXP = false;
+		public static bool SupportWindowsXPIfAvailable = false;
+
+		private static bool SupportWindowsXP;
+		public static bool IsWindowsXPSupported()
+		{
+			return SupportWindowsXP;
+		}
 
         /** True if VS EnvDTE is available (false when building using Visual Studio Express) */
         public static bool bHasVisualStudioDTE
@@ -93,6 +95,12 @@ namespace UnrealBuildTool
                 }
             }
         }
+
+		/** The current architecture */
+		public override string GetActiveArchitecture()
+		{
+			return IsWindowsXPSupported() ? "_XP" : base.GetActiveArchitecture();
+		}
 
         protected override SDKStatus HasRequiredManualSDKInternal()
         {
@@ -215,7 +223,14 @@ namespace UnrealBuildTool
                 case UEBuildBinaryType.StaticLibrary:
                     return ".lib";
                 case UEBuildBinaryType.Object:
-                    return ".obj";
+					if (!BuildConfiguration.bRunUnrealCodeAnalyzer)
+					{
+						return ".obj";
+					}
+					else
+					{
+						return @".includes";
+					}
                 case UEBuildBinaryType.PrecompiledHeader:
                     return ".pch";
             }
@@ -312,7 +327,34 @@ namespace UnrealBuildTool
 
         public override void ResetBuildConfiguration(UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration)
         {
-            UEBuildConfiguration.bCompileICU = true;
+			UEBuildConfiguration.bCompileICU = true;
+
+			// Should we enable Windows XP support
+			{
+				// If it wasnt set as an XML flag, check if it is requested from the commandline.
+				if (!SupportWindowsXPIfAvailable)
+				{
+					string[] CmdLine = Environment.GetCommandLineArgs();
+					SupportWindowsXPIfAvailable = CmdLine.Contains("-winxp", StringComparer.InvariantCultureIgnoreCase);
+
+					// ...check if it was supported from a config.
+					if( !SupportWindowsXPIfAvailable )
+					{
+						ConfigCacheIni Ini = new ConfigCacheIni(UnrealTargetPlatform.Win64, "Engine", UnrealBuildTool.GetUProjectPath());
+						string MinimumOS;
+						if (Ini.GetString("/Script/WindowsTargetPlatform.WindowsTargetSettings", "MinimumOSVersion", out MinimumOS))
+						{
+							if (string.IsNullOrEmpty(MinimumOS) == false)
+							{
+								SupportWindowsXPIfAvailable = MinimumOS == "MSOS_XP";
+							}
+						}
+					}
+				}
+
+				// Win32 XP is only supported at this time.
+				SupportWindowsXP = SupportWindowsXPIfAvailable && (GetCPPTargetPlatform(InPlatform) == CPPTargetPlatform.Win32);
+			}
         }
 
         public override void ValidateBuildConfiguration(CPPTargetConfiguration Configuration, CPPTargetPlatform Platform, bool bCreateDebugInfo)
@@ -381,10 +423,9 @@ namespace UnrealBuildTool
         {
             InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("WIN32=1");
 
-            // Win32 XP is only supported at this time.
-            SupportWindowsXP = SupportWindowsXP && InBuildTarget.Platform == UnrealTargetPlatform.Win32;
-
-            if( SupportWindowsXP )
+			// Win32 XP is only supported at this time.
+			SupportWindowsXP = SupportWindowsXPIfAvailable && (GetCPPTargetPlatform(InBuildTarget.Platform) == CPPTargetPlatform.Win32);
+			if (IsWindowsXPSupported())
             {
                 // Windows XP SP3 or higher required
                 InBuildTarget.GlobalCompileEnvironment.Config.Definitions.Add("_WIN32_WINNT=0x0502");
@@ -483,8 +524,8 @@ namespace UnrealBuildTool
                 InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("iphlpapi.lib");
                 InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("setupapi.lib"); //  Required for access monitor device enumeration
 
-                // Windows Vista/7 Desktop Windows Manager API for Slate Windows Compliance
-                if( !SupportWindowsXP )		// Windows XP does not support DWM
+				// Windows Vista/7 Desktop Windows Manager API for Slate Windows Compliance
+				if (IsWindowsXPSupported() == false)		// Windows XP does not support DWM
                 {
                     InBuildTarget.GlobalLinkEnvironment.Config.AdditionalLibraries.Add("dwmapi.lib");
                 }

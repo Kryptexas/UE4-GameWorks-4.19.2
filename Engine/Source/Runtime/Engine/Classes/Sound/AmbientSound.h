@@ -1,16 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AmbientSound.generated.h"
 
 /** A sound actor that can be placed in a level */
-UCLASS(AutoExpandCategories=Audio, ClassGroup=Sounds, MinimalAPI, hidecategories(Collision, Input, Game), showcategories=("Input|MouseInput", "Input|TouchInput", "Game|Damage"))
+UCLASS(AutoExpandCategories=Audio, ClassGroup=Sounds, MinimalAPI, hideCategories(Collision, Input, Game), showCategories=("Input|MouseInput", "Input|TouchInput", "Game|Damage"), ComponentWrapperClass)
 class AAmbientSound : public AActor
 {
 	GENERATED_UCLASS_BODY()
-
-	UPROPERTY()
-	uint32 bAutoPlay_DEPRECATED:1;
 
 private_subobject:
 	/** Audio component that handles sound playing */
@@ -19,11 +16,6 @@ private_subobject:
 	class UAudioComponent* AudioComponent;
 public:
 	
-	UPROPERTY(instanced)
-	class UDEPRECATED_SoundNodeAmbient* SoundNodeInstance_DEPRECATED;
-
-	ENGINE_API static bool bUE4AudioRefactorMigrationUnderway;
-	ENGINE_API void MigrateSoundNodeInstance();	
 	ENGINE_API FString GetInternalSoundCueName();
 
 	// Begin AActor interface.
@@ -31,7 +23,6 @@ public:
 	virtual void CheckForErrors() override;
 	virtual bool GetReferencedContentObjects( TArray<UObject*>& Objects ) const override;
 #endif
-	virtual void PostLoad() override;
 	virtual void PostRegisterAllComponents() override;
 	// End AActor interface.
 

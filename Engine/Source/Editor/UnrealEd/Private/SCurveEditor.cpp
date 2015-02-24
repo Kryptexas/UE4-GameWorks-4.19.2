@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -213,7 +213,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 							.IsEnabled(this, &SCurveEditor::GetInputEditEnabled)
 							.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
 							.Value(this, &SCurveEditor::OnGetTime)
-							.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values").ToString())
+							.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values"))
 							.OnValueCommitted(this, &SCurveEditor::OnTimeComitted)
 							.OnValueChanged(this, &SCurveEditor::OnTimeChanged)
 							.OnBeginSliderMovement(this, &SCurveEditor::OnBeginSliderMovement, LOCTEXT("SetValue", "Set New Time"))
@@ -229,7 +229,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 							.Label()
 							[
 								SNew(STextBlock)
-								.Text(LOCTEXT("Time", "Time"))
+								.Text(InArgs._XAxisName.IsSet() ? FText::FromString(InArgs._XAxisName.GetValue()) : LOCTEXT("Time", "Time"))
 							]
 						]
 					]
@@ -245,7 +245,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 							SNew(SNumericEntryBox<float>)
 							.Font(FEditorStyle::GetFontStyle("CurveEd.InfoFont"))
 							.Value(this, &SCurveEditor::OnGetValue)
-							.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values").ToString())
+							.UndeterminedString(LOCTEXT("MultipleValues", "Multiple Values"))
 							.OnValueCommitted(this, &SCurveEditor::OnValueComitted)
 							.OnValueChanged(this, &SCurveEditor::OnValueChanged)
 							.OnBeginSliderMovement(this, &SCurveEditor::OnBeginSliderMovement, LOCTEXT("SetValue", "Set New Value"))
@@ -261,7 +261,7 @@ void SCurveEditor::Construct(const FArguments& InArgs)
 							.Label()
 							[
 								SNew(STextBlock)
-								.Text(LOCTEXT("Value", "Value"))
+								.Text(InArgs._YAxisName.IsSet() ? FText::FromString(InArgs._YAxisName.GetValue()) : LOCTEXT("Value", "Value"))
 							]
 						]
 					]
@@ -302,14 +302,14 @@ FText SCurveEditor::GetIsCurveVisibleToolTip(TSharedPtr<FCurveViewModel> CurveVi
 		FText::Format(LOCTEXT("ShowFormat", "Show {0} curve"), FText::FromName(CurveViewModel->CurveInfo.CurveName));
 }
 
-ESlateCheckBoxState::Type SCurveEditor::IsCurveVisible(TSharedPtr<FCurveViewModel> CurveViewModel) const
+ECheckBoxState SCurveEditor::IsCurveVisible(TSharedPtr<FCurveViewModel> CurveViewModel) const
 {
-	return CurveViewModel->bIsVisible ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return CurveViewModel->bIsVisible ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SCurveEditor::OnCurveIsVisibleChanged(ESlateCheckBoxState::Type NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel)
+void SCurveEditor::OnCurveIsVisibleChanged(ECheckBoxState NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel)
 {
-	if (NewCheckboxState == ESlateCheckBoxState::Checked)
+	if (NewCheckboxState == ECheckBoxState::Checked)
 	{
 		CurveViewModel->bIsVisible = true;
 	}
@@ -327,14 +327,14 @@ FText SCurveEditor::GetIsCurveLockedToolTip(TSharedPtr<FCurveViewModel> CurveVie
 		FText::Format(LOCTEXT("LockFormat", "Lock {0} curve for editing"), FText::FromName(CurveViewModel->CurveInfo.CurveName));
 }
 
-ESlateCheckBoxState::Type SCurveEditor::IsCurveLocked(TSharedPtr<FCurveViewModel> CurveViewModel) const
+ECheckBoxState SCurveEditor::IsCurveLocked(TSharedPtr<FCurveViewModel> CurveViewModel) const
 {
-	return CurveViewModel->bIsLocked ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return CurveViewModel->bIsLocked ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SCurveEditor::OnCurveIsLockedChanged(ESlateCheckBoxState::Type NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel)
+void SCurveEditor::OnCurveIsLockedChanged(ECheckBoxState NewCheckboxState, TSharedPtr<FCurveViewModel> CurveViewModel)
 {
-	if (NewCheckboxState == ESlateCheckBoxState::Checked)
+	if (NewCheckboxState == ECheckBoxState::Checked)
 	{
 		CurveViewModel->bIsLocked = true;
 		RemoveCurveKeysFromSelection(CurveViewModel);
@@ -389,7 +389,7 @@ TSharedRef<SWidget> SCurveEditor::CreateCurveSelectionWidget() const
 					SNew(STextBlock)
 					.Font(FEditorStyle::GetFontStyle("CurveEd.LabelFont"))
 					.ColorAndOpacity(CurveViewModel->Color)
-					.Text(CurveViewModel->CurveInfo.CurveName.ToString())
+					.Text(FText::FromName(CurveViewModel->CurveInfo.CurveName))
 				]
 
 				+ SHorizontalBox::Slot()
@@ -1983,11 +1983,11 @@ TSharedPtr<FUICommandList> SCurveEditor::GetCommands()
 bool SCurveEditor::IsValidCurve( FRichCurve* Curve ) const
 {
 	bool bIsValid = false;
-	if(Curve)
+	if(Curve && CurveOwner)
 	{
 		for(auto CurveViewModel : CurveViewModels)
 		{
-			if(CurveViewModel->CurveInfo.CurveToEdit == Curve)
+			if(CurveViewModel->CurveInfo.CurveToEdit == Curve && CurveOwner->IsValidCurve(CurveViewModel->CurveInfo))
 			{
 				bIsValid = true;
 				break;
@@ -2268,7 +2268,6 @@ TArray<SCurveEditor::FSelectedCurveKey> SCurveEditor::GetEditableKeysWithinMarqu
 void SCurveEditor::BeginDragTransaction()
 {
 	TransactionIndex = GEditor->BeginTransaction( LOCTEXT("CurveEditor_Drag", "Mouse Drag") );
-	check( TransactionIndex >= 0 );
 	CurveOwner->ModifyOwner();
 }
 
@@ -2278,9 +2277,9 @@ void SCurveEditor::EndDragTransaction()
 	{
 		GEditor->EndTransaction();
 		TransactionIndex = -1;
-
-		CurveOwner->OnCurveChanged();
 	}
+
+	CurveOwner->OnCurveChanged();
 }
 
 bool SCurveEditor::FSelectedTangent::IsValid() const

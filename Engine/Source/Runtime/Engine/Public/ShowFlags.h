@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShowFlags.h: Show Flag Definitions.
@@ -6,6 +6,7 @@
 
 #pragma once
 
+#include "Engine/EngineBaseTypes.h"
 
 /** for FShowFlagData, order is not important, adding new elements requires updating some editor code */
 enum EShowFlagGroup

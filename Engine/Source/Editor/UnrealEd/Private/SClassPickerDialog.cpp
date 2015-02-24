@@ -1,11 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
 #include "Editor/ClassViewer/Private/SClassViewer.h"
+#include "Editor/UnrealEd/Classes/Settings/EditorExperimentalSettings.h"
 #include "SClassPickerDialog.h"
 #include "EditorClassUtils.h"
 #include "SExpandableArea.h"
+#include "ClassIconFinder.h"
 
 #define LOCTEXT_NAMESPACE "SClassPicker"
 
@@ -18,22 +20,30 @@ void SClassPickerDialog::Construct(const FArguments& InArgs)
 
 	ClassViewer = StaticCastSharedRef<SClassViewer>(FModuleManager::LoadModuleChecked<FClassViewerModule>("ClassViewer").CreateClassViewer(InArgs._Options, FOnClassPicked::CreateSP(this,&SClassPickerDialog::OnClassPicked)));
 
+	// Determine if components are allowed
+	const UEditorExperimentalSettings* ExperimentalSettings = GetDefault<UEditorExperimentalSettings>();
+	const bool bForBlueprint = (InArgs._AssetType != nullptr) && (InArgs._AssetType->IsChildOf(UBlueprint::StaticClass()));
+	const bool bAllowComponentSubclasses = !bForBlueprint || ExperimentalSettings->bBlueprintableComponents;
+
 	// Load in default settings
-	for(int ClassIdx = 0; ClassIdx < GUnrealEd->GetUnrealEdOptions()->NewAssetDefaultClasses.Num(); ++ClassIdx)
+	for (const FClassPickerDefaults& DefaultObj : GUnrealEd->GetUnrealEdOptions()->NewAssetDefaultClasses)
 	{
-		FClassPickerDefaults& DefaultObj = GUnrealEd->GetUnrealEdOptions()->NewAssetDefaultClasses[ClassIdx];
 		UClass* AssetType = LoadClass<UObject>(NULL, *DefaultObj.AssetClass, NULL, LOAD_None, NULL);
-		if (InArgs._AssetType->IsChildOf(AssetType))
+		UClass* AssetActualClass = LoadClass<UObject>(NULL, *DefaultObj.ClassName, NULL, LOAD_None, NULL);
+		const bool bIsComponent = AssetActualClass->IsChildOf(UActorComponent::StaticClass());
+
+		if (InArgs._AssetType->IsChildOf(AssetType) && (!bIsComponent || bAllowComponentSubclasses))
 		{
 			AssetDefaultClasses.Add(MakeShareable(new FClassPickerDefaults(DefaultObj)));
 		}
 	}
 
-	bool bHasDefaultClasses = AssetDefaultClasses.Num() > 0;
+	const bool bHasDefaultClasses = AssetDefaultClasses.Num() > 0;
+
 	bool bExpandDefaultClassPicker = true;
 	bool bExpandCustomClassPicker = !bHasDefaultClasses;
 
-	if(bHasDefaultClasses)
+	if (bHasDefaultClasses)
 	{
 		GConfig->GetBool(TEXT("/Script/UnrealEd.UnrealEdOptions"), TEXT("bExpandClassPickerDefaultClassList"), bExpandDefaultClassPicker, GEditorIni);
 		GConfig->GetBool(TEXT("/Script/UnrealEd.UnrealEdOptions"), TEXT("bExpandCustomClassPickerClassList"), bExpandCustomClassPicker, GEditorIni);
@@ -47,7 +57,7 @@ void SClassPickerDialog::Construct(const FArguments& InArgs)
 		[
 			SNew(SBox)
 			.Visibility(EVisibility::Visible)
-			.WidthOverride(500.0f)
+			.WidthOverride(520.0f)
 			[
 				SNew(SVerticalBox)
 				+SVerticalBox::Slot()
@@ -72,7 +82,7 @@ void SClassPickerDialog::Construct(const FArguments& InArgs)
 				.Padding(0.0f, 10.0f, 0.0f, 0.0f)
 				[
 					SNew(SExpandableArea)
-					.MaxHeight(385.f)
+					.MaxHeight(320.f)
 					.InitiallyCollapsed(!bExpandCustomClassPicker)
 					.AreaTitle(NSLOCTEXT("SClassPickerDialog", "AllClassesAreaTitle", "All Classes"))
 					.OnAreaExpansionChanged(this, &SClassPickerDialog::OnCustomAreaExpansionChanged)
@@ -92,19 +102,23 @@ void SClassPickerDialog::Construct(const FArguments& InArgs)
 					+SUniformGridPanel::Slot(0,0)
 					[
 						SNew(SButton)
-						.Text(NSLOCTEXT("SClassPickerDialog", "ClassPickerSelectButton", "Select").ToString())
+						.Text(NSLOCTEXT("SClassPickerDialog", "ClassPickerSelectButton", "Select"))
 						.HAlign(HAlign_Center)
 						.Visibility( this, &SClassPickerDialog::GetSelectButtonVisibility )
 						.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 						.OnClicked(this, &SClassPickerDialog::OnClassPickerConfirmed)
+						.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
+						.TextStyle(FEditorStyle::Get(), "FlatButton.DefaultTextStyle")
 					]
 					+SUniformGridPanel::Slot(1,0)
 					[
 						SNew(SButton)
-						.Text(NSLOCTEXT("SClassPickerDialog", "ClassPickerCancelButton", "Cancel").ToString())
+						.Text(NSLOCTEXT("SClassPickerDialog", "ClassPickerCancelButton", "Cancel"))
 						.HAlign(HAlign_Center)
 						.ContentPadding(FEditorStyle::GetMargin("StandardDialog.ContentPadding"))
 						.OnClicked(this, &SClassPickerDialog::OnClassPickerCanceled)
+						.ButtonStyle(FEditorStyle::Get(), "FlatButton.Default")
+						.TextStyle(FEditorStyle::Get(), "FlatButton.DefaultTextStyle")
 					]
 				]
 			]
@@ -153,6 +167,7 @@ TSharedRef<ITableRow> SClassPickerDialog::GenerateListRow(TSharedPtr<FClassPicke
 {
 	FClassPickerDefaults* Obj = InItem.Get();
 	UClass* ItemClass = LoadClass<UObject>(NULL, *Obj->ClassName, NULL, LOAD_None, NULL);
+	const FSlateBrush* ItemBrush = FClassIconFinder::FindIconForClass(ItemClass);
 
 	return 
 	SNew(STableRow< TSharedPtr<FClassPickerDefaults> >, OwnerTable)
@@ -160,7 +175,7 @@ TSharedRef<ITableRow> SClassPickerDialog::GenerateListRow(TSharedPtr<FClassPicke
 		SNew(SVerticalBox)
 		+SVerticalBox::Slot()
 		.MaxHeight(30.0f)
-		.Padding(0.0f, 6.0f, 0.0f, 4.0f)
+		.Padding(10.0f, 6.0f, 0.0f, 4.0f)
 		[
 			SNew(SHorizontalBox)
 			+SHorizontalBox::Slot()
@@ -178,7 +193,7 @@ TSharedRef<ITableRow> SClassPickerDialog::GenerateListRow(TSharedPtr<FClassPicke
 					.FillWidth(0.12f)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush(Obj->Image))
+						.Image(ItemBrush)
 					]
 					+SHorizontalBox::Slot()
 					.VAlign(VAlign_Center)
@@ -195,7 +210,7 @@ TSharedRef<ITableRow> SClassPickerDialog::GenerateListRow(TSharedPtr<FClassPicke
 			.Padding(10.0f, 0.0f)
 			[
 				SNew(STextBlock)
-				.Text(FString::Printf(*NSLOCTEXT("EditorFactories", "FClassPickerDefaults", "%s").ToString(), *Obj->GetDescription()))
+				.Text(Obj->GetDescription())
 				.AutoWrapText(true)
 			]
 			+SHorizontalBox::Slot()
@@ -203,13 +218,6 @@ TSharedRef<ITableRow> SClassPickerDialog::GenerateListRow(TSharedPtr<FClassPicke
 			[
 				FEditorClassUtils::GetDocumentationLinkWidget(ItemClass)
 			]
-		]
-		+SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(0.0f, 6.0f, 0.0f, 4.0f)
-		[
-			SNew(SSeparator)
-			.Orientation(Orient_Horizontal)
 		]
 	];
 }

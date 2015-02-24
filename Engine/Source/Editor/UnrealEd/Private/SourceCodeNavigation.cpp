@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
 #include "SourceCodeNavigation.h"
 #include "MainFrame.h"
 #include "ISourceCodeAccessModule.h"
+#include "Http.h"
 
 #if PLATFORM_WINDOWS
 #include "AllowWindowsPlatformTypes.h"
@@ -21,11 +22,17 @@
 #endif
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "GameFramework/Pawn.h"
+#include "DesktopPlatformModule.h"
 
 DEFINE_LOG_CATEGORY(LogSelectionDetails);
 
 #define LOCTEXT_NAMESPACE "SourceCodeNavigation"
 
+namespace SourceCodeNavigationDefs
+{
+	FString IDEInstallerFilename("UE4_SuggestedIDEInstaller");
+}
 
 /**
  * Caches information about source symbols for fast look-up
@@ -165,6 +172,102 @@ private:
 
 
 
+FSourceFileDatabase::FSourceFileDatabase()
+	: bIsDirty(true)
+{
+	// Register to be notified when new .Build.cs files are added to the project
+	FSourceCodeNavigation::AccessOnNewModuleAdded().AddRaw(this, &FSourceFileDatabase::OnNewModuleAdded);
+
+	UpdateIfNeeded();
+}
+
+FSourceFileDatabase::~FSourceFileDatabase()
+{
+	FSourceCodeNavigation::AccessOnNewModuleAdded().RemoveAll(this);
+}
+
+void FSourceFileDatabase::UpdateIfNeeded()
+{
+	if (!bIsDirty)
+	{
+		return;
+	}
+
+	bIsDirty = false;
+
+	ModuleNames.Reset();
+	DisallowedHeaderNames.Empty();
+
+	// Find all the build rules within the game and engine directories
+	FindRootFilesRecursive(ModuleNames, *(FPaths::EngineDir() / TEXT("Source") / TEXT("Developer")), TEXT("*.Build.cs"));
+	FindRootFilesRecursive(ModuleNames, *(FPaths::EngineDir() / TEXT("Source") / TEXT("Editor")), TEXT("*.Build.cs"));
+	FindRootFilesRecursive(ModuleNames, *(FPaths::EngineDir() / TEXT("Source") / TEXT("Runtime")), TEXT("*.Build.cs"));
+	FindRootFilesRecursive(ModuleNames, *(FPaths::GameDir() / TEXT("Source")), TEXT("*.Build.cs"));
+
+	// Find list of disallowed header names in native (non-plugin) directories
+	TArray<FString> HeaderFiles;
+	for (const FString& ModuleName : ModuleNames)
+	{
+		IFileManager::Get().FindFilesRecursive(HeaderFiles, *(FPaths::GetPath(ModuleName) / TEXT("Classes")), TEXT("*.h"), true, false, false);
+		IFileManager::Get().FindFilesRecursive(HeaderFiles, *(FPaths::GetPath(ModuleName) / TEXT("Public")), TEXT("*.h"), true, false, false);
+	}
+
+	for (const FString& HeaderFile : HeaderFiles)
+	{
+		DisallowedHeaderNames.Add(FPaths::GetBaseFilename(HeaderFile));
+	}
+
+	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
+	{
+		DisallowedHeaderNames.Remove(ClassIt->GetName());
+	}
+
+	// Find all the plugin directories
+	TArray<FString> PluginNames;
+
+	FindRootFilesRecursive(PluginNames, *(FPaths::EngineDir() / TEXT("Plugins")), TEXT("*.uplugin"));
+	FindRootFilesRecursive(PluginNames, *(FPaths::GameDir() / TEXT("Plugins")), TEXT("*.uplugin"));
+
+	// Add all the files within plugin directories
+	for (const FString& PluginName : PluginNames)
+	{
+		FindRootFilesRecursive(ModuleNames, *(FPaths::GetPath(PluginName) / TEXT("Source")), TEXT("*.Build.cs"));
+	}
+}
+
+
+void FSourceFileDatabase::FindRootFilesRecursive(TArray<FString> &FileNames, const FString &BaseDirectory, const FString &Wildcard)
+{
+	// Find all the files within this directory
+	TArray<FString> BasedFileNames;
+	IFileManager::Get().FindFiles(BasedFileNames, *(BaseDirectory / Wildcard), true, false);
+
+	// Append to the result if we have any, otherwise recurse deeper
+	if (BasedFileNames.Num() == 0)
+	{
+		TArray<FString> DirectoryNames;
+		IFileManager::Get().FindFiles(DirectoryNames, *(BaseDirectory / TEXT("*")), false, true);
+
+		for (int32 Idx = 0; Idx < DirectoryNames.Num(); Idx++)
+		{
+			FindRootFilesRecursive(FileNames, BaseDirectory / DirectoryNames[Idx], Wildcard);
+		}
+	}
+	else
+	{
+		for (int32 Idx = 0; Idx < BasedFileNames.Num(); Idx++)
+		{
+			FileNames.Add(BaseDirectory / BasedFileNames[Idx]);
+		}
+	}
+}
+
+void FSourceFileDatabase::OnNewModuleAdded(FName InModuleName)
+{
+	bIsDirty = true;
+}
+
+
 DECLARE_DELEGATE_RetVal( bool, FShouldAbortDelegate );
 
 
@@ -230,6 +333,15 @@ public:
 	/** The final symbol query in a batch completed */
 	void SymbolQueryFinished();
 
+	/** Handler called when the installer for the suggested IDE has finished downloading */
+	void OnSuggestedIDEInstallerDownloadComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FOnIDEInstallerDownloadComplete OnDownloadComplete);
+
+	/** Launches the IDE installer process */
+	void LaunchIDEInstaller(const FString& Filepath);
+
+	/** @return The name of the IDE installer file for the platform */
+	FString GetSuggestedIDEInstallerFileName();
+
 protected:
 	/** FTickableEditorObject interface */
 	virtual void Tick( float DeltaTime );
@@ -283,6 +395,9 @@ private:
 
 	/** Multi-cast delegate that fires after a compiler is not found. */
 	FSourceCodeNavigation::FOnCompilerNotFound OnCompilerNotFound;
+
+	/** Multi-cast delegate that fires after a new module (.Build.cs file) has been added */
+	FSourceCodeNavigation::FOnNewModuleAdded OnNewModuleAdded;
 
 	friend class FSourceCodeNavigation;
 };
@@ -533,6 +648,46 @@ void FSourceCodeNavigationImpl::NavigateToFunctionSource( const FString& Functio
 #endif	// PLATFORM_WINDOWS
 }
 
+
+void FSourceCodeNavigation::Initialize()
+{
+	class FAsyncInitializeSourceFileDatabase : public FNonAbandonableTask
+	{
+	public:
+		/** Performs work on thread */
+		void DoWork()
+		{
+			FSourceCodeNavigation::GetSourceFileDatabase();
+		}
+
+		/** Returns true if the task should be aborted.  Called from within the task processing code itself via delegate */
+		bool ShouldAbort() const
+		{
+			return false;
+		}
+
+		/** @return Queries the name of this task for for external event viewers */
+		static const TCHAR* Name()
+		{
+			return TEXT("FAsyncInitializeSourceFileDatabase");
+		}
+	};
+
+	// Initialize SourceFileDatabase instance asynchronously
+	(new FAutoDeleteAsyncTask<FAsyncInitializeSourceFileDatabase>)->StartBackgroundTask();
+}
+
+
+const FSourceFileDatabase& FSourceCodeNavigation::GetSourceFileDatabase()
+{
+	// Lock so that nothing may proceed while the AsyncTask is constructing the FSourceFileDatabase for the first time
+	static FCriticalSection CriticalSection;
+	FScopeLock Lock(&CriticalSection);
+
+	static FSourceFileDatabase Instance;
+	Instance.UpdateIfNeeded();
+	return Instance;
+}
 
 
 void FSourceCodeNavigation::NavigateToFunctionSourceAsync( const FString& FunctionSymbolName, const FString& FunctionModuleName, const bool bIgnoreLineNumber )
@@ -1332,6 +1487,42 @@ FString FSourceCodeNavigation::GetSuggestedSourceCodeIDEDownloadURL()
 	return SourceCodeIDEURL;
 }
 
+bool FSourceCodeNavigation::GetCanDirectlyInstallSourceCodeIDE()
+{
+#if PLATFORM_WINDOWS
+	return true;
+#else
+	return false;
+#endif
+}
+
+void FSourceCodeNavigation::DownloadAndInstallSuggestedIDE(FOnIDEInstallerDownloadComplete OnDownloadComplete)
+{
+	FSourceCodeNavigationImpl& SourceCodeNavImpl = FSourceCodeNavigationImpl::Get();
+
+	// Check to see if the file exists first
+	auto UserTempDir = FPaths::ConvertRelativePathToFull(FDesktopPlatformModule::Get()->GetUserTempPath());
+	FString InstallerFullPath = FString::Printf(TEXT("%s%s"), *UserTempDir, *SourceCodeNavImpl.GetSuggestedIDEInstallerFileName());
+
+	if (!IPlatformFile::GetPlatformPhysical().FileExists(*InstallerFullPath))
+	{
+		FString DownloadURL;
+		TSharedRef<IHttpRequest> HttpRequest = FHttpModule::Get().CreateRequest();
+
+		// Download the installer for the suggested IDE
+		HttpRequest->OnProcessRequestComplete().BindRaw(&SourceCodeNavImpl, &FSourceCodeNavigationImpl::OnSuggestedIDEInstallerDownloadComplete, OnDownloadComplete);
+		HttpRequest->SetVerb(TEXT("GET"));
+
+		HttpRequest->SetURL(GetSuggestedSourceCodeIDEDownloadURL());
+		HttpRequest->ProcessRequest();
+	}
+	else
+	{
+		SourceCodeNavImpl.LaunchIDEInstaller(InstallerFullPath);
+		OnDownloadComplete.ExecuteIfBound(true);
+	}
+}
+
 bool FSourceCodeNavigation::IsCompilerAvailable()
 {
 	ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
@@ -1357,13 +1548,22 @@ bool FSourceCodeNavigation::OpenSourceFiles(const TArray<FString>& AbsoluteSourc
 	if ( IsCompilerAvailable() )
 	{
 		ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
-		SourceCodeAccessModule.GetAccessor().OpenSourceFiles(AbsoluteSourcePaths);
-
-		return true;
+		return SourceCodeAccessModule.GetAccessor().OpenSourceFiles(AbsoluteSourcePaths);
 	}
 
 	// Let others know that we've failed to open some source files.
 	AccessOnCompilerNotFound().Broadcast();
+
+	return false;
+}
+
+bool FSourceCodeNavigation::AddSourceFiles(const TArray<FString>& AbsoluteSourcePaths)
+{
+	if ( IsCompilerAvailable() )
+	{
+		ISourceCodeAccessModule& SourceCodeAccessModule = FModuleManager::LoadModuleChecked<ISourceCodeAccessModule>("SourceCodeAccess");
+		return SourceCodeAccessModule.GetAccessor().AddSourceFiles(AbsoluteSourcePaths, GetSourceFileDatabase().GetModuleNames());
+	}
 
 	return false;
 }
@@ -1380,38 +1580,21 @@ FSourceCodeNavigation::FOnCompilerNotFound& FSourceCodeNavigation::AccessOnCompi
 	return FSourceCodeNavigationImpl::Get().OnCompilerNotFound;
 }
 
+FSourceCodeNavigation::FOnNewModuleAdded& FSourceCodeNavigation::AccessOnNewModuleAdded()
+{
+	return FSourceCodeNavigationImpl::Get().OnNewModuleAdded;
+}
+
 bool FSourceCodeNavigation::FindModulePath( const FString& ModuleName, FString &OutModulePath )
 {
-	// Find all the plugin directories
-	static TArray<FString> PluginFileNames;
-	static TArray<FString> FileNames;
-	static bool bHasScannedFiles = false;
-	if( !bHasScannedFiles )
-	{
-		FindRootFilesRecursive(PluginFileNames, *(FPaths::EngineDir() / TEXT("Plugins")), TEXT("*.uplugin"));
-		FindRootFilesRecursive(PluginFileNames, *(FPaths::GameDir() / TEXT("Plugins")), TEXT("*.uplugin"));
-
-		// Find all the build rules within the game and engine directories
-		FindRootFilesRecursive(FileNames, *(FPaths::EngineDir() / TEXT("Source")), TEXT("*.Build.cs"));
-		FindRootFilesRecursive(FileNames, *(FPaths::GameDir() / TEXT("Source")), TEXT("*.Build.cs"));
-
-		// Add all the files within plugin directories
-		for(int32 Idx = 0; Idx < PluginFileNames.Num(); Idx++)
-		{
-			FindRootFilesRecursive(FileNames, *(FPaths::GetPath(PluginFileNames[Idx]) / TEXT("Source")), TEXT("*.Build.cs"));
-		}
-
-		// Only do this once per session
-		bHasScannedFiles = true;
-	}
-
 	// Try to find a file matching the module name
+	const TArray<FString>& ModuleNames = GetSourceFileDatabase().GetModuleNames();
 	FString FindModuleSuffix = FString(TEXT("/")) + ModuleName + ".Build.cs";
-	for(int32 Idx = 0; Idx < FileNames.Num(); Idx++)
+	for (int32 Idx = 0; Idx < ModuleNames.Num(); Idx++)
 	{
-		if(FileNames[Idx].EndsWith(FindModuleSuffix))
+		if (ModuleNames[Idx].EndsWith(FindModuleSuffix))
 		{
-			OutModulePath = FileNames[Idx].Left(FileNames[Idx].Len() - FindModuleSuffix.Len());
+			OutModulePath = ModuleNames[Idx].Left(ModuleNames[Idx].Len() - FindModuleSuffix.Len());
 			return true;
 		}
 	}
@@ -1443,30 +1626,36 @@ bool FSourceCodeNavigation::FindClassHeaderPath( const UField *Field, FString &O
 	return false;
 }
 
-void FSourceCodeNavigation::FindRootFilesRecursive(TArray<FString> &FileNames, const FString &BaseDirectory, const FString &Wildcard)
+void FSourceCodeNavigationImpl::OnSuggestedIDEInstallerDownloadComplete(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bWasSuccessful, FOnIDEInstallerDownloadComplete OnDownloadComplete)
 {
-	// Find all the files within this directory
-	TArray<FString> BasedFileNames;
-	IFileManager::Get().FindFiles(BasedFileNames, *(BaseDirectory / Wildcard), true, false);
-
-	// Append to the result if we have any, otherwise recurse deeper
-	if(BasedFileNames.Num() == 0)
+	if (bWasSuccessful)
 	{
-		TArray<FString> DirectoryNames;
-		IFileManager::Get().FindFiles(DirectoryNames, *(BaseDirectory / TEXT("*")), false, true);
+		// Get the user's temp directory
+		auto UserTempDir = FDesktopPlatformModule::Get()->GetUserTempPath();
 
-		for(int32 Idx = 0; Idx < DirectoryNames.Num(); Idx++)
+		// Create the installer file in the temp dir
+		auto InstallerName = GetSuggestedIDEInstallerFileName();
+		FString Filepath = FString::Printf(TEXT("%s%s"), *UserTempDir, *InstallerName);
+		auto InstallerFileHandle = IPlatformFile::GetPlatformPhysical().OpenWrite(*Filepath);
+
+		// Copy the content from the response into the installer file
+		auto InstallerContent = Response->GetContent();
+
+		bool bWriteSucceeded = InstallerFileHandle->Write(InstallerContent.GetData(), InstallerContent.Num());
+		delete InstallerFileHandle;
+
+		if (bWriteSucceeded)
 		{
-			FindRootFilesRecursive(FileNames, BaseDirectory / DirectoryNames[Idx], Wildcard);
+			// Launch the created executable in a separate window to begin the installation
+			LaunchIDEInstaller(Filepath);
+		}
+		else
+		{
+			bWasSuccessful = false;
 		}
 	}
-	else
-	{
-		for(int32 Idx = 0; Idx < BasedFileNames.Num(); Idx++)
-		{
-			FileNames.Add(BaseDirectory / BasedFileNames[Idx]);
-		}
-	}
+
+	OnDownloadComplete.ExecuteIfBound(bWasSuccessful);
 }
 
 void FSourceCodeNavigationImpl::TryToGatherFunctions( const FString& ModuleName, const FString& ClassName, TArray< FString >& OutFunctionSymbolNames, bool& OutIsCompleteList )
@@ -1522,6 +1711,26 @@ void FSourceCodeNavigationImpl::SymbolQueryFinished()
 
 	// Let others know that we've gathered some new symbols
 	OnSymbolQueryFinished.Broadcast();
+}
+
+FString FSourceCodeNavigationImpl::GetSuggestedIDEInstallerFileName()
+{
+	FString Extension;
+#if PLATFORM_WINDOWS
+	Extension = "exe";
+#elif PLATFORM_MAC
+	Extension = "app";
+#endif
+
+	return FString::Printf(TEXT("%s.%s"), *SourceCodeNavigationDefs::IDEInstallerFilename, *Extension);
+}
+
+void FSourceCodeNavigationImpl::LaunchIDEInstaller(const FString& Filepath)
+{
+#if PLATFORM_WINDOWS
+	auto Params = TEXT("/PromptRestart");
+	FPlatformProcess::CreateProc(*Filepath, Params, true, false, false, nullptr, 0, nullptr, nullptr);
+#endif
 }
 
 void FSourceCodeNavigationImpl::Tick( float DeltaTime )

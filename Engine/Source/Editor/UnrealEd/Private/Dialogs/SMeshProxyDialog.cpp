@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "Dialogs/SMeshProxyDialog.h"
@@ -9,7 +9,9 @@
 #include "Editor/LevelEditor/Public/LevelEditor.h"
 #include "SNumericEntryBox.h"
 #include "STextComboBox.h"
-
+#include "Engine/StaticMeshActor.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/Selection.h"
 #define LOCTEXT_NAMESPACE "SMeshProxyDialog"
 
 
@@ -45,8 +47,8 @@ protected:
 	void ScreenSizeChanged(int32 NewValue);		//used with editable text block (Simplygon)
 
 	/** Recalculate Normals accessors */
-	ESlateCheckBoxState::Type GetRecalculateNormals() const;
-	void SetRecalculateNormals(ESlateCheckBoxState::Type NewValue);
+	ECheckBoxState GetRecalculateNormals() const;
+	void SetRecalculateNormals(ECheckBoxState NewValue);
 
 	/** Hard Angle Threshold accessors */
 	TOptional<float> GetHardAngleThreshold() const;
@@ -58,8 +60,8 @@ protected:
 	void MergeDistanceChanged(int32 NewValue);
 
 	/** Clipping Plane accessors */
-	ESlateCheckBoxState::Type GetUseClippingPlane() const;
-	void SetUseClippingPlane(ESlateCheckBoxState::Type NewValue);
+	ECheckBoxState GetUseClippingPlane() const;
+	void SetUseClippingPlane(ECheckBoxState NewValue);
 	bool UseClippingPlaneEnabled() const;
 	void SetClippingAxis(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 	TOptional<float> GetClippingLevel() const;
@@ -461,14 +463,14 @@ void SMeshProxyDialog::ScreenSizeChanged(int32 NewValue)
 }
 
 //Recalculate normals
-ESlateCheckBoxState::Type SMeshProxyDialog::GetRecalculateNormals() const
+ECheckBoxState SMeshProxyDialog::GetRecalculateNormals() const
 {
-	return ProxySettings.bRecalculateNormals ? ESlateCheckBoxState::Checked: ESlateCheckBoxState::Unchecked;
+	return ProxySettings.bRecalculateNormals ? ECheckBoxState::Checked: ECheckBoxState::Unchecked;
 }
 
-void SMeshProxyDialog::SetRecalculateNormals(ESlateCheckBoxState::Type NewValue)
+void SMeshProxyDialog::SetRecalculateNormals(ECheckBoxState NewValue)
 {
-	ProxySettings.bRecalculateNormals = (NewValue == ESlateCheckBoxState::Checked);
+	ProxySettings.bRecalculateNormals = (NewValue == ECheckBoxState::Checked);
 }
 
 //Hard Angle Threshold
@@ -504,14 +506,14 @@ void SMeshProxyDialog::MergeDistanceChanged(int32 NewValue)
 }
 
 //Clipping Plane
-ESlateCheckBoxState::Type SMeshProxyDialog::GetUseClippingPlane() const
+ECheckBoxState SMeshProxyDialog::GetUseClippingPlane() const
 {
-	return ProxySettings.bUseClippingPlane ? ESlateCheckBoxState::Checked: ESlateCheckBoxState::Unchecked;
+	return ProxySettings.bUseClippingPlane ? ECheckBoxState::Checked: ECheckBoxState::Unchecked;
 }
 
-void SMeshProxyDialog::SetUseClippingPlane(ESlateCheckBoxState::Type NewValue)
+void SMeshProxyDialog::SetUseClippingPlane(ECheckBoxState NewValue)
 {
-	ProxySettings.bUseClippingPlane = (NewValue == ESlateCheckBoxState::Checked);
+	ProxySettings.bUseClippingPlane = (NewValue == ECheckBoxState::Checked);
 }
 
 bool SMeshProxyDialog::UseClippingPlaneEnabled() const
@@ -600,7 +602,7 @@ FReply SMeshProxyDialog::OnMergeClicked()
 	{
 		GWarn->BeginSlowTask( LOCTEXT("MeshProxy_CreatingProxy", "Creating Mesh Proxy"), true);
 		GEditor->BeginTransaction( LOCTEXT( "MeshProxy_Create", "Creating Mesh Proxy" ) );
-
+		
 		FVector ProxyLocation = FVector::ZeroVector;
 		MeshUtilities.CreateProxyMesh(Actors, ProxySettings, NULL, ProxyPackageName, AssetsToSync, ProxyLocation);
 
@@ -658,7 +660,7 @@ void SMeshProxyDialog::GenerateNewProxyPackageName()
 		AActor* Actor = Cast<AActor>(*Iter);
 		if (Actor)
 		{
-			TArray<UStaticMeshComponent*> SMComponets; 
+			TInlineComponentArray<UStaticMeshComponent*> SMComponets; 
 			Actor->GetComponents<UStaticMeshComponent>(SMComponets);
 			for (UStaticMeshComponent* Component : SMComponets)
 			{
@@ -692,6 +694,11 @@ FText SMeshProxyDialog::GetProxyPackagName() const
 void SMeshProxyDialog::OnPackageNameTextCommited(const FText& InText, ETextCommit::Type InCommitType)
 {
 	ProxyPackageName = InText.ToString();
+
+	if (FPackageName::IsShortPackageName(ProxyPackageName))
+	{
+		ProxyPackageName = FPackageName::FilenameToLongPackageName(FPaths::GameContentDir()) + ProxyPackageName;
+	}
 }
 
 FReply SMeshProxyDialog::OnSelectPackageNameClicked()

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ProjectsPrivatePCH.h"
 
@@ -91,12 +91,6 @@ bool FProjectManager::LoadModulesForProject( const ELoadingPhase::Type LoadingPh
 			FMessageDialog::Open(EAppMsgType::Ok, FailureMessage);
 			bSuccess = false;
 		}
-	}
-
-	if (LoadingPhase == ELoadingPhase::PreDefault && (!CurrentProject.IsValid() || CurrentProject->Modules.Num() == 0))
-	{
-		// If this is not a code-project load default game project module.
-		FModuleManager::Get().LoadModuleChecked("UE4Game");
 	}
 
 	return bSuccess;

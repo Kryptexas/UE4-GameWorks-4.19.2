@@ -1,12 +1,15 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Tickable.h"
+#include "NavPathObserverInterface.h"
 #include "NavigationTestingActor.generated.h"
+
+class ANavigationTestingActor;
 
 struct FNavTestTickHelper : FTickableGameObject
 {
-	TWeakObjectPtr<class ANavigationTestingActor> Owner;
+	TWeakObjectPtr<ANavigationTestingActor> Owner;
 
 	FNavTestTickHelper() : Owner(NULL) {}
 	virtual void Tick(float DeltaTime);
@@ -150,7 +153,7 @@ public:
 #endif // WITH_EDITOR
 
 	// Begin INavAgentInterface Interface
-	virtual const struct FNavAgentProperties* GetNavAgentProperties() const override { return &NavAgentProps; }
+	virtual const FNavAgentProperties& GetNavAgentPropertiesRef() const override { return NavAgentProps; }
 	virtual FVector GetNavAgentLocation() const override;
 	virtual void GetMoveGoalReachTest(class AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override {}
 	// End INavAgentInterface Interface
@@ -161,8 +164,8 @@ public:
 
 	void UpdateNavData();
 	void UpdatePathfinding();
-	void GatherDetailedData(class ANavigationTestingActor* Goal);
-	void SearchPathTo(class ANavigationTestingActor* Goal);
+	void GatherDetailedData(ANavigationTestingActor* Goal);
+	void SearchPathTo(ANavigationTestingActor* Goal);
 
 	/*	Called when given path becomes invalid (via @see PathObserverDelegate)
 	 *	NOTE: InvalidatedPath doesn't have to be instance's current Path

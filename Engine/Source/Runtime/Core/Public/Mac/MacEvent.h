@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "Core.h"
@@ -9,6 +9,14 @@ enum EMacEventSendMethod
 	Async,
 	Sync
 };
+
+@interface NSEvent (FCachedWindowAccess)
+@property (readwrite, nonatomic) NSPoint windowPosition;
+
+-(void)CacheWindow;
+-(NSWindow*)GetWindow;
+-(void)ResetWindow;
+@end
 
 class FMacEvent
 {

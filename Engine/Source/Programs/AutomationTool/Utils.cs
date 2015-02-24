@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -276,13 +276,57 @@ namespace AutomationTool
 			return Result;
 		}
 
+		// @todo: This could be passed in from elsewhere, and this should be somehow done per ini section
+		// but this will get it so that games won't ship passwords
+		private static string[] LinesToFilter = new string[]
+		{
+			"KeyStorePassword",
+			"KeyPassword",
+		};
+
+		private static void FilterIniFile(string SourceName, string TargetName)
+		{
+			string[] Lines = File.ReadAllLines(SourceName);
+			StringBuilder NewLines = new StringBuilder("");
+
+			foreach (string Line in Lines)
+			{
+				// look for each filter on each line
+				bool bFiltered = false;
+				foreach (string Filter in LinesToFilter)
+				{
+					if (Line.StartsWith(Filter + "="))
+					{
+						bFiltered = true;
+						break;
+					}
+				}
+
+				// write out if it's not filtered out
+				if (!bFiltered)
+				{
+					NewLines.AppendLine(Line);
+				}
+			}
+
+			// now write out the final .ini file
+			if (File.Exists(TargetName))
+			{
+				File.Delete(TargetName);
+			}
+			File.WriteAllText(TargetName, NewLines.ToString());
+
+			// other code assumes same timestamp for source and dest
+			File.SetLastWriteTimeUtc(TargetName, File.GetLastWriteTimeUtc(SourceName));
+		}
+
 		/// <summary>
 		/// Copies a file.
 		/// </summary>
 		/// <param name="SourceName">Source name</param>
 		/// <param name="TargetName">Target name</param>
 		/// <returns>True if the operation was successful, false otherwise.</returns>
-		public static bool SafeCopyFile(string SourceName, string TargetName, bool bQuiet = false)
+		public static bool SafeCopyFile(string SourceName, string TargetName, bool bQuiet = false, bool bFilterSpecialLinesFromIniFiles = false)
 		{
 			if (!bQuiet)
 			{
@@ -295,51 +339,63 @@ namespace AutomationTool
 			do
 			{
 				Result = true;
-                bool Retry = true;
+				bool Retry = true;
 				try
 				{
-					File.Copy(SourceName, TargetName, overwrite: true);
-                    Retry = !File.Exists(TargetName);
-                    if (!Retry)
-                    {
-                        FileInfo SourceInfo = new FileInfo(SourceName);
-                        FileInfo TargetInfo = new FileInfo(TargetName);
-                        if (SourceInfo.Length != TargetInfo.Length)
-                        {
-                            Log.WriteLine(TraceEventType.Warning, "Size mismatch {0} = {1} to {2} = {3}", SourceName, SourceInfo.Length, TargetName, TargetInfo.Length);
-                            Retry = true;
-                        }
-                        if (!((SourceInfo.LastWriteTimeUtc - TargetInfo.LastWriteTimeUtc).TotalSeconds < 1 && (SourceInfo.LastWriteTimeUtc - TargetInfo.LastWriteTimeUtc).TotalSeconds > -1))
-                        {
-                            Log.WriteLine(TraceEventType.Warning, "Date mismatch {0} = {1} to {2} = {3}", SourceName, SourceInfo.LastWriteTimeUtc, TargetName, TargetInfo.LastWriteTimeUtc);
-                            Retry = true;
-                        }
-                    }
-                }
+					bool bSkipSizeCheck = false;
+					if (bFilterSpecialLinesFromIniFiles && Path.GetExtension(SourceName) == ".ini")
+					{
+						FilterIniFile(SourceName, TargetName);
+						// ini files may change size, don't check
+						bSkipSizeCheck = true;
+					}
+					else
+					{
+						File.Copy(SourceName, TargetName, overwrite: true);
+					}
+					Retry = !File.Exists(TargetName);
+					if (!Retry)
+					{
+						FileInfo SourceInfo = new FileInfo(SourceName);
+						FileInfo TargetInfo = new FileInfo(TargetName);
+						if (!bSkipSizeCheck && SourceInfo.Length != TargetInfo.Length)
+						{
+							Log.WriteLine(TraceEventType.Warning, "Size mismatch {0} = {1} to {2} = {3}", SourceName, SourceInfo.Length, TargetName, TargetInfo.Length);
+							Retry = true;
+						}
+						// Timestamps should be no more than 2 seconds out - assuming this as exFAT filesystems store timestamps at 2 second intervals:
+						// http://ntfs.com/exfat-time-stamp.htm
+						if (!((SourceInfo.LastWriteTimeUtc - TargetInfo.LastWriteTimeUtc).TotalSeconds < 2 && (SourceInfo.LastWriteTimeUtc - TargetInfo.LastWriteTimeUtc).TotalSeconds > -2))
+						{
+							Log.WriteLine(TraceEventType.Warning, "Date mismatch {0} = {1} to {2} = {3}", SourceName, SourceInfo.LastWriteTimeUtc, TargetName, TargetInfo.LastWriteTimeUtc);
+							Retry = true;
+						}
+					}
+				}
 				catch (Exception Ex)
 				{
-                    Log.WriteLine(System.Diagnostics.TraceEventType.Warning, "SafeCopyFile Exception was {0}", LogUtils.FormatException(Ex));
-                    Retry = true;
+					Log.WriteLine(System.Diagnostics.TraceEventType.Warning, "SafeCopyFile Exception was {0}", LogUtils.FormatException(Ex));
+					Retry = true;
 				}
 
-                if (Retry)
-                {
-                    if (Attempts + 1 < MaxAttempts)
-                    {
-                        Log.WriteLine(TraceEventType.Warning, "Failed to copy {0} to {1}, deleting, waiting 10s and retrying.", SourceName, TargetName);
-                        if (File.Exists(TargetName))
-                        {
-                            SafeDeleteFile(TargetName);
-                        }
-                        Thread.Sleep(10000);
-                    }
-                    else
-                    {
-                        Log.WriteLine(TraceEventType.Warning, "Failed to copy {0} to {1}", SourceName, TargetName);
-                    }
-                    Result = false;
-                }
-            }
+				if (Retry)
+				{
+					if (Attempts + 1 < MaxAttempts)
+					{
+						Log.WriteLine(TraceEventType.Warning, "Failed to copy {0} to {1}, deleting, waiting 10s and retrying.", SourceName, TargetName);
+						if (File.Exists(TargetName))
+						{
+							SafeDeleteFile(TargetName);
+						}
+						Thread.Sleep(10000);
+					}
+					else
+					{
+						Log.WriteLine(TraceEventType.Warning, "Failed to copy {0} to {1}", SourceName, TargetName);
+					}
+					Result = false;
+				}
+			}
 			while (Result == false && ++Attempts < MaxAttempts);
 
 			return Result;

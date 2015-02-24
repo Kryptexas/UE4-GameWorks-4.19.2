@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,6 +14,7 @@ public:
 	static const FLinearColor RedLabelBackgroundColor;
 	static const FLinearColor GreenLabelBackgroundColor;
 	static const FLinearColor BlueLabelBackgroundColor;
+	static const FText DefaultUndeterminedString;
 
 	/** Notification for numeric value change */
 	DECLARE_DELEGATE_OneParam( FOnValueChanged, NumericType );
@@ -29,7 +30,7 @@ public:
 		, _LabelPadding( FMargin(3,0) )
 		, _BorderForegroundColor(FCoreStyle::Get().GetSlateColor("InvertedForeground"))
 		, _BorderBackgroundColor(FLinearColor::White)
-		, _UndeterminedString( TEXT("---") )
+		, _UndeterminedString( SNumericEntryBox<NumericType>::DefaultUndeterminedString )
 		, _Font( FCoreStyle::Get().GetFontStyle( TEXT("NormalFont") ) )
 		, _AllowSpin(false)
 		, _Delta(0)
@@ -285,7 +286,7 @@ private:
 	 */
 	FText OnGetValueForTextBox() const
 	{
-		FString NewString = TEXT("");
+		FText NewText = FText::GetEmpty();
 
 		if( EditableText->GetVisibility() == EVisibility::Visible )
 		{
@@ -295,16 +296,16 @@ private:
 			if( Value.IsSet() == true )
 			{
 				auto CurrentValue = Value.GetValue();
-				NewString = TTypeToString<NumericType>::ToSanitizedString(CurrentValue);
+				NewText = FText::FromString(TTypeToString<NumericType>::ToSanitizedString(CurrentValue));
 			}
 			else
 			{
-				NewString = UndeterminedString;
+				NewText = UndeterminedString;
 			}
 		}
 
 		// The box isnt visible, just return an empty string
-		return FText::FromString(NewString);
+		return NewText;
 	}
 
 
@@ -451,7 +452,7 @@ private:
 	/** Delegate to call when the value is committed */
 	FOnValueCommitted OnValueCommitted;
 	/** The undetermined string to display when needed */
-	FString UndeterminedString;
+	FText UndeterminedString;
 	/** Styling: border image to draw when not hovered or focused */
 	const FSlateBrush* BorderImageNormal;
 	/** Styling: border image to draw when hovered */
@@ -471,3 +472,6 @@ const FLinearColor SNumericEntryBox<NumericType>::GreenLabelBackgroundColor(0.13
 
 template <typename NumericType>
 const FLinearColor SNumericEntryBox<NumericType>::BlueLabelBackgroundColor(0.0251f,0.207f,0.85f);
+
+template <typename NumericType>
+const FText SNumericEntryBox<NumericType>::DefaultUndeterminedString = FText::FromString(TEXT("---"));

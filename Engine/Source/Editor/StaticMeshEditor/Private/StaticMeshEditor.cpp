@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "StaticMeshEditorModule.h"
 #include "AssetRegistryModule.h"
@@ -29,6 +29,7 @@
 #include "STextComboBox.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshEditor"
 
@@ -112,8 +113,7 @@ void FStaticMeshEditor::InitStaticMeshEditor( const EToolkitMode::Type Mode, con
 	DetailsViewArgs.bAllowSearch = true;
 	DetailsViewArgs.bLockable = false;
 	DetailsViewArgs.bUpdatesFromSelection = false;
-	DetailsViewArgs.bHideActorNameArea = true;
-	DetailsViewArgs.bObjectsUseNameArea = false;
+	DetailsViewArgs.NameAreaSettings = FDetailsViewArgs::HideNameArea;
 	DetailsViewArgs.NotifyHook = this;
 
 	StaticMeshDetailsView = PropertyEditorModule.CreateDetailView( DetailsViewArgs );
@@ -713,6 +713,9 @@ void FStaticMeshEditor::DuplicateSelectedPrims(const FVector* InOffset)
 
 void FStaticMeshEditor::TranslateSelectedPrims(const FVector& InDrag)
 {
+	check(StaticMesh->BodySetup);
+	StaticMesh->BodySetup->InvalidatePhysicsData();
+
 	for (int32 PrimIdx = 0; PrimIdx < SelectedPrims.Num(); PrimIdx++)
 	{
 		const FPrimData& PrimData = SelectedPrims[PrimIdx];
@@ -725,10 +728,16 @@ void FStaticMeshEditor::TranslateSelectedPrims(const FVector& InDrag)
 
 		SetPrimTransform(PrimData, PrimTransform);
 	}
+
+	// refresh collision change back to staticmesh components
+	RefreshCollisionChange(StaticMesh);
 }
 
 void FStaticMeshEditor::RotateSelectedPrims(const FRotator& InRot)
 {
+	check(StaticMesh->BodySetup);
+	StaticMesh->BodySetup->InvalidatePhysicsData();
+
 	const FQuat DeltaQ = InRot.Quaternion();
 
 	for (int32 PrimIdx = 0; PrimIdx < SelectedPrims.Num(); PrimIdx++)
@@ -747,11 +756,15 @@ void FStaticMeshEditor::RotateSelectedPrims(const FRotator& InRot)
 
 		SetPrimTransform(PrimData, PrimTransform);
 	}
+
+	// refresh collision change back to staticmesh components
+	RefreshCollisionChange(StaticMesh);
 }
 
 void FStaticMeshEditor::ScaleSelectedPrims(const FVector& InScale)
 {
 	check(StaticMesh->BodySetup);
+	StaticMesh->BodySetup->InvalidatePhysicsData();
 
 	FKAggregateGeom* AggGeom = &StaticMesh->BodySetup->AggGeom;
 
@@ -784,6 +797,9 @@ void FStaticMeshEditor::ScaleSelectedPrims(const FVector& InScale)
 
 		StaticMesh->bCustomizedCollision = true;	//mark the static mesh for collision customization
 	}
+
+	// refresh collision change back to staticmesh components
+	RefreshCollisionChange(StaticMesh);
 }
 
 bool FStaticMeshEditor::CalcSelectedPrimsAABB(FBox &OutBox) const
@@ -1432,8 +1448,9 @@ void FStaticMeshEditor::OnCopyCollisionFromSelectedStaticMesh()
 				Viewport->GetViewportClient().SetShowWireframeCollision();
 			}
 
-			//Invalidate physics data
+			// Invalidate physics data and create new meshes
 			BodySetup->InvalidatePhysicsData();
+			BodySetup->CreatePhysicsMeshes(); 
 
 			// Mark static mesh as dirty, to help make sure it gets saved.
 			StaticMesh->MarkPackageDirty();
@@ -1528,6 +1545,10 @@ void FStaticMeshEditor::OnChangeMesh()
 		AddEditingObject(SelectedMesh);
 
 		SetEditorMesh(SelectedMesh);
+
+		// Clear selections made on previous mesh
+		ClearSelectedPrims();
+		GetSelectedEdges().Empty();
 
 		if(SocketManager.IsValid())
 		{

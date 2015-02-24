@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "AssetData.h"
@@ -16,7 +16,7 @@ UTileMapActorFactory::UTileMapActorFactory(const FObjectInitializer& ObjectIniti
 void UTileMapActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 {
 	APaperTileMapActor* TypedActor = CastChecked<APaperTileMapActor>(NewActor);
-	UPaperTileMapRenderComponent* RenderComponent = TypedActor->GetRenderComponent();
+	UPaperTileMapComponent* RenderComponent = TypedActor->GetRenderComponent();
 	check(RenderComponent);
 
 	if (UPaperTileMap* TileMap = Cast<UPaperTileMap>(Asset))
@@ -39,13 +39,18 @@ void UTileMapActorFactory::PostSpawnActor(UObject* Asset, AActor* NewActor)
 			RenderComponent->RegisterComponent();
 		}
 	}
+
+	if (RenderComponent->OwnsTileMap())
+	{
+		RenderComponent->TileMap->AddNewLayer();
+	}
 }
 
 void UTileMapActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 {
 	if (APaperTileMapActor* TypedActor = Cast<APaperTileMapActor>(CDO))
 	{
-		UPaperTileMapRenderComponent* RenderComponent = TypedActor->GetRenderComponent();
+		UPaperTileMapComponent* RenderComponent = TypedActor->GetRenderComponent();
 		check(RenderComponent);
 
 		if (UPaperTileMap* TileMap = Cast<UPaperTileMap>(Asset))
@@ -60,34 +65,31 @@ void UTileMapActorFactory::PostCreateBlueprint(UObject* Asset, AActor* CDO)
 				RenderComponent->TileMap->TileHeight = TileSet->TileHeight;
 			}
 		}
+
+		if (RenderComponent->OwnsTileMap())
+		{
+			RenderComponent->TileMap->AddNewLayer();
+		}
 	}
 }
 
 bool UTileMapActorFactory::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
 {
-	if (GetDefault<UPaperRuntimeSettings>()->bEnableTileMapEditing)
+	if (AssetData.IsValid())
 	{
-		if (AssetData.IsValid())
+		UClass* AssetClass = AssetData.GetClass();
+		if ((AssetClass != nullptr) && (AssetClass->IsChildOf(UPaperTileMap::StaticClass()) || AssetClass->IsChildOf(UPaperTileSet::StaticClass())))
 		{
-			UClass* AssetClass = AssetData.GetClass();
-			if ((AssetClass != nullptr) && (AssetClass->IsChildOf(UPaperTileMap::StaticClass()) || AssetClass->IsChildOf(UPaperTileSet::StaticClass())))
-			{
-				return true;
-			}
-			else
-			{
-				OutErrorMsg = NSLOCTEXT("Paper2D", "CanCreateActorFrom_NoTileMap", "No tile map was specified.");
-				return false;
-			}
+			return true;
 		}
 		else
 		{
-			return true;
+			OutErrorMsg = NSLOCTEXT("Paper2D", "CanCreateActorFrom_NoTileMap", "No tile map was specified.");
+			return false;
 		}
 	}
 	else
 	{
-		OutErrorMsg = NSLOCTEXT("Paper2D", "CanCreateActorFrom_Disabled", "Tile map support is disabled in the Paper2D settings.");
-		return false;
+		return true;
 	}
 }

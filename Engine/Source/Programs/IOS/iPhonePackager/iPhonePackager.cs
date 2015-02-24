@@ -1,5 +1,5 @@
 ﻿/**
- * Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+ * Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
  */
 
 using System;
@@ -61,6 +61,7 @@ namespace iPhonePackager
         Error_ObbNotFound = 53,
         Error_AndroidBuildToolsPathNotFound = 54,
         Error_NoApkSuitableForArchitecture = 55,
+		Error_FilesInstallFailed = 56,
 		Error_LauncherFailed = 100,
         Error_UATLaunchFailure = 101,
         Error_FailedToDeleteStagingDirectory = 102,
@@ -224,79 +225,154 @@ namespace iPhonePackager
 							case "-cookonthefly":
 								Config.bCookOnTheFly = true;
 								break;
+							case "-iterate":
+								Config.bIterate = true;
+								break;
 						}
 
 						// get the stage dir path
-						if (Arg == "-stagedir") {
+						if (Arg == "-stagedir")
+						{
 							// make sure there's at least one more arg
-							if (Arguments.Length > ArgIndex + 1) {
+							if (Arguments.Length > ArgIndex + 1)
+							{
 								Config.RepackageStagingDirectory = Arguments [++ArgIndex];
-							} else {
+							}
+							else
+							{
 								return false;
 							}
-						} else if (Arg == "-config") {
+						}
+						else if (Arg == "-manifest")
+						{
 							// make sure there's at least one more arg
-							if (Arguments.Length > ArgIndex + 1) {
+							if (Arguments.Length > ArgIndex + 1)
+							{
+								Config.DeltaManifest = Arguments[++ArgIndex];
+							}
+							else
+							{
+								return false;
+							}
+						}
+						else if (Arg == "-backup")
+						{
+							// make sure there's at least one more arg
+							if (Arguments.Length > ArgIndex + 1)
+							{
+								Config.FilesForBackup.Add(Arguments[++ArgIndex]);
+							}
+							else
+							{
+								return false;
+							}
+						}
+						else if (Arg == "-config")
+						{
+							// make sure there's at least one more arg
+							if (Arguments.Length > ArgIndex + 1)
+							{
 								GameConfiguration = Arguments [++ArgIndex];
-							} else {
+							}
+							else
+							{
 								return false;
 							}
 						}
 						// append a name to the bungle identifier and display name
-						else if (Arg == "-bundlename") {
-							if (Arguments.Length > ArgIndex + 1) {
+						else if (Arg == "-bundlename")
+						{
+							if (Arguments.Length > ArgIndex + 1)
+							{
 								Config.OverrideBundleName = Arguments [++ArgIndex];
-							} else {
+							}
+							else
+							{
 								return false;
 							}
-						} else if (Arg == "-mac") {
+						}
+						else if (Arg == "-mac")
+						{
 							// make sure there's at least one more arg
-							if (Arguments.Length > ArgIndex + 1) {
+							if (Arguments.Length > ArgIndex + 1)
+							{
 								Config.OverrideMacName = Arguments [++ArgIndex];
-							} else {
+							}
+							else
+							{
 								return false;
 							}
-						} else if (Arg == "-architecture" || Arg == "-arch") {
+						}
+						else if (Arg == "-architecture" || Arg == "-arch")
+						{
 							// make sure there's at least one more arg
-							if (Arguments.Length > ArgIndex + 1) {
+							if (Arguments.Length > ArgIndex + 1)
+							{
 								Architecture = "-" + Arguments [++ArgIndex];
-							} else {
+							}
+							else
+							{
 								return false;
 							}
-						} else if (Arg == "-project") {
+						}
+						else if (Arg == "-project")
+						{
 							// make sure there's at least one more arg
-							if (Arguments.Length > ArgIndex + 1) {
+							if (Arguments.Length > ArgIndex + 1)
+							{
 								Config.ProjectFile = Arguments [++ArgIndex];
-							} else {
+							}
+							else
+							{
 								return false;
 							}
-						} else if (Arg == "-device") {
+						}
+						else if (Arg == "-device")
+						{
 							// make sure there's at least one more arg
-							if (Arguments.Length > ArgIndex + 1) {
+							if (Arguments.Length > ArgIndex + 1)
+							{
 								Config.DeviceId = Arguments [++ArgIndex];
-							} else {
+							}
+							else
+							{
 								return false;
 							}
-						} else if (Arg == "-additionalcommandline") {
+						}
+						else if (Arg == "-additionalcommandline")
+						{
 							// make sure there's at least one more arg
-							if (Arguments.Length > ArgIndex + 1) {
+							if (Arguments.Length > ArgIndex + 1)
+							{
 								AdditionalCommandline = Arguments [++ArgIndex];
-							} else {
+							}
+							else
+							{
 								return false;
 							}
-						} else if (Arg == "-provision") {
+						}
+						else if (Arg == "-provision")
+						{
 							// make sure there's at least one more arg
-							if (Arguments.Length > ArgIndex + 1) {
+							if (Arguments.Length > ArgIndex + 1)
+							{
 								Config.Provision = Arguments [++ArgIndex];
 								Config.bProvision = true;
-							} else {
+							}
+							else
+							{
 								return false;
 							}
-						} else if (Arg == "-certificate") {
-							if (Arguments.Length > ArgIndex + 1) {
-							Config.Certificate = Arguments [++ArgIndex];
+						}
+						else if (Arg == "-certificate")
+						{
+							if (Arguments.Length > ArgIndex + 1)
+							{
+								Config.Certificate = Arguments [++ArgIndex];
 								Config.bCert = true;
-							} else {
+							}
+							else
+							{
 								return false;
 							}
 						}
@@ -306,6 +382,11 @@ namespace iPhonePackager
 						// RPC command
 						MainRPCCommand = Arguments[ArgIndex];
 					}
+				}
+				
+				if(!SSHCommandHelper.ParseSSHProperties(Arguments))
+				{
+					return false;
 				}
 			}
 	
@@ -597,7 +678,11 @@ namespace iPhonePackager
 						}
 						else
 						{
-							dllPath = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "iTunesMobileDeviceDLL", null) as string; 
+							dllPath = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "iTunesMobileDeviceDLL", null) as string;
+							if (String.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
+							{
+								dllPath = Microsoft.Win32.Registry.GetValue("HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Apple Inc.\\Apple Mobile Device Support\\Shared", "MobileDeviceDLL", null) as string;
+							}
 						}
 						if (String.IsNullOrEmpty(dllPath) || !File.Exists(dllPath))
 						{
@@ -691,6 +776,15 @@ namespace iPhonePackager
 						if (Config.bCert)
 						{
 							ToolsHub.TryInstallingCertificate_PromptForKey(Config.Certificate, false);
+						}
+						CodeSignatureBuilder.FindCertificates();
+						CodeSignatureBuilder.FindProvisions(Config.OverrideBundleName);
+						break;
+
+					case "certificates":
+						{
+							CodeSignatureBuilder.FindCertificates();
+							CodeSignatureBuilder.FindProvisions(Config.OverrideBundleName);
 						}
 						break;
 

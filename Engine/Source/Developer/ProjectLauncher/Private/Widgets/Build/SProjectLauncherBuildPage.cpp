@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ProjectLauncherPrivatePCH.h"
 #include "SExpandableArea.h"
@@ -97,15 +97,30 @@ void SProjectLauncherBuildPage::Construct( const FArguments& InArgs, const FProj
                 [
                     SNew(SVerticalBox)
 
-                    + SVerticalBox::Slot()
+/*                    + SVerticalBox::Slot()
                     .AutoHeight()
                     [
                         SNew(SButton)
                         .Text(LOCTEXT("GenDSYMText", "Generate DSYM"))
                         .IsEnabled( this, &SProjectLauncherBuildPage::HandleGenDSYMButtonEnabled )
                         .OnClicked( this, &SProjectLauncherBuildPage::HandleGenDSYMClicked )
-                    ]
-                ]
+                    ]*/
+					+ SVerticalBox::Slot()
+					.AutoHeight()
+					[
+						// build mode check box
+						SNew(SCheckBox)
+						.IsChecked(this, &SProjectLauncherBuildPage::HandleUATIsChecked)
+						.OnCheckStateChanged(this, &SProjectLauncherBuildPage::HandleUATCheckedStateChanged)
+						.Padding(FMargin(4.0f, 0.0f))
+						.ToolTipText(LOCTEXT("UATCheckBoxTooltip", "If checked, UAT will be built as part of the build."))
+						.Content()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("UATCheckBoxText", "Build UAT"))
+						]
+					]
+               ]
             ]
 
 		+ SVerticalBox::Slot()
@@ -151,18 +166,18 @@ bool SProjectLauncherBuildPage::GenerateDSYMForProject( const FString& ProjectNa
 /* SProjectLauncherBuildPage callbacks
  *****************************************************************************/
 
-void SProjectLauncherBuildPage::HandleBuildCheckedStateChanged( ESlateCheckBoxState::Type CheckState )
+void SProjectLauncherBuildPage::HandleBuildCheckedStateChanged( ECheckBoxState CheckState )
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
-		SelectedProfile->SetBuildGame(CheckState == ESlateCheckBoxState::Checked);
+		SelectedProfile->SetBuildGame(CheckState == ECheckBoxState::Checked);
 	}
 }
 
 
-ESlateCheckBoxState::Type SProjectLauncherBuildPage::HandleBuildIsChecked() const
+ECheckBoxState SProjectLauncherBuildPage::HandleBuildIsChecked() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -170,11 +185,11 @@ ESlateCheckBoxState::Type SProjectLauncherBuildPage::HandleBuildIsChecked() cons
 	{
 		if (SelectedProfile->IsBuilding())
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 
@@ -261,16 +276,16 @@ void SProjectLauncherBuildPage::HandleBuildConfigurationSelectorConfigurationSel
 }
 
 
-FString SProjectLauncherBuildPage::HandleBuildConfigurationSelectorText() const
+FText SProjectLauncherBuildPage::HandleBuildConfigurationSelectorText() const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
-		return EBuildConfigurations::ToString(SelectedProfile->GetBuildConfiguration());
+		return FText::FromString(EBuildConfigurations::ToString(SelectedProfile->GetBuildConfiguration()));
 	}
 
-	return FString();
+	return FText::GetEmpty();
 }
 
 
@@ -288,6 +303,33 @@ EVisibility SProjectLauncherBuildPage::HandleValidationErrorIconVisibility(ELaun
 
 	return EVisibility::Hidden;
 }
+
+void SProjectLauncherBuildPage::HandleUATCheckedStateChanged( ECheckBoxState CheckState )
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		SelectedProfile->SetBuildUAT(CheckState == ECheckBoxState::Checked);
+	}
+}
+
+
+ECheckBoxState SProjectLauncherBuildPage::HandleUATIsChecked() const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		if (SelectedProfile->IsBuildingUAT())
+		{
+			return ECheckBoxState::Checked;
+		}
+	}
+
+	return ECheckBoxState::Unchecked;
+}
+
 
 
 #undef LOCTEXT_NAMESPACE

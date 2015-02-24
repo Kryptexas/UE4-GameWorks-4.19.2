@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Engine.h: Unreal engine public header file.
@@ -215,7 +215,6 @@
 #include "Distributions/DistributionFloatConstant.h"
 #include "Distributions/DistributionFloatParameterBase.h"
 #include "Distributions/DistributionFloatParticleParameter.h"
-#include "Distributions/DistributionFloatSoundParameter.h"
 #include "Distributions/DistributionFloatConstantCurve.h"
 #include "Distributions/DistributionFloatUniform.h"
 #include "Distributions/DistributionFloatUniformCurve.h"
@@ -240,7 +239,6 @@
 #include "Engine/Level.h"
 #include "Engine/LevelStreaming.h"
 #include "Engine/LevelStreamingAlwaysLoaded.h"
-#include "Engine/LevelStreamingBounds.h"
 #include "Engine/LevelStreamingKismet.h"
 #include "Engine/LevelStreamingPersistent.h"
 #include "Lightmass/LightmappedSurfaceCollection.h"
@@ -319,3 +317,5 @@
 #include "CanvasTypes.h"							// Canvas.
 #include "EngineUtils.h"
 #include "TimerManager.h"					// Game play timers
+#include "SlateCore.h"
+#include "SlateBasics.h"

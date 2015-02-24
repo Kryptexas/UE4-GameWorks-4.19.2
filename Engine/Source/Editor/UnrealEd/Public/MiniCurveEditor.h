@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __MiniCurveEditor_h__
@@ -24,6 +24,8 @@ public:
 	virtual void FocusWindow(UObject* ObjectToFocusOn) override;
 	virtual bool CloseWindow() override;
 	virtual bool IsPrimaryEditor() const override { return true; };
+	virtual void InvokeTab(const struct FTabId& TabId) override {}
+
 private:
 
 	float ViewMinInput;

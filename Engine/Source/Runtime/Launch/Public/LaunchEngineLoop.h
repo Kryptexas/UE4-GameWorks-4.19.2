@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -79,12 +79,6 @@ public:
 
 	/** Removes references to any objects pending cleanup by deleting them. */
 	virtual void ClearPendingCleanupObjects() override;
-
-#if PLATFORM_XBOXONE
-	void OnResuming(_In_ Platform::Object^ Sender, _In_ Platform::Object^ Args);
-	void OnSuspending(_In_ Platform::Object^ Sender, _In_ Windows::ApplicationModel::SuspendingEventArgs^ Args);
-	void OnResourceAvailabilityChanged( _In_ Platform::Object^ Sender, _In_ Platform::Object^ Args );
-#endif // PLATFORM_XBOXONE
 
 #endif // WITH_ENGINE
 

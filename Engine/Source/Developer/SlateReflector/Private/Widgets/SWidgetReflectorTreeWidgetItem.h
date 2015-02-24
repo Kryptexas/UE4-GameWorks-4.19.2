@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -14,10 +14,12 @@ public:
 	SLATE_BEGIN_ARGS(SReflectorTreeWidgetItem)
 		: _WidgetInfoToVisualize()
 		, _SourceCodeAccessor()
+		, _AssetAccessor()
 	{ }
 
 		SLATE_ARGUMENT(TSharedPtr<FReflectorNode>, WidgetInfoToVisualize)
 		SLATE_ARGUMENT(FAccessSourceCode, SourceCodeAccessor)
+		SLATE_ARGUMENT(FAccessAsset, AssetAccessor)
 
 	SLATE_END_ARGS()
 
@@ -32,6 +34,7 @@ public:
 	{
 		this->WidgetInfo = InArgs._WidgetInfoToVisualize;
 		this->OnAccessSourceCode = InArgs._SourceCodeAccessor;
+		this->OnAccessAsset = InArgs._AssetAccessor;
 
 		SMultiColumnTableRow< TSharedPtr<FReflectorNode> >::Construct( SMultiColumnTableRow< TSharedPtr<FReflectorNode> >::FArguments().Padding(1), InOwnerTableView );
 	}
@@ -45,25 +48,25 @@ public:
 protected:
 
 	/** @return String representation of the widget we are visualizing */
-	FString GetWidgetType() const
+	FText GetWidgetType() const
 	{
 		return WidgetInfo.Get()->Widget.IsValid()
-			? WidgetInfo.Get()->Widget.Pin()->GetTypeAsString()
-			: TEXT("Null Widget");
+			? FText::FromString(WidgetInfo.Get()->Widget.Pin()->GetTypeAsString())
+			: NSLOCTEXT("SWidgetReflector", "NullWidget", "Null Widget");
 	}
 	
-	FString GetReadableLocation() const
+	virtual FString GetReadableLocation() const override;
+
+	FText GetReadableLocationAsText() const
 	{
-		return WidgetInfo.Get()->Widget.IsValid()
-			? WidgetInfo.Get()->Widget.Pin()->GetReadableLocation()
-			: FString();
+		return FText::FromString(GetReadableLocation());
 	}
 
-	FString GetWidgetFile() const
+	FText GetWidgetFile() const
 	{
 		return WidgetInfo.Get()->Widget.IsValid()
-			? WidgetInfo.Get()->Widget.Pin()->GetCreatedInFile()
-			: FString();
+			? FText::FromString(WidgetInfo.Get()->Widget.Pin()->GetCreatedInFile())
+			: FText::GetEmpty();
 	}
 
 	int32 GetWidgetLineNumber() const
@@ -73,12 +76,12 @@ protected:
 			: 0;
 	}
 
-	FString GetVisibilityAsString() const
+	FText GetVisibilityAsString() const
 	{
 		TSharedPtr<SWidget> TheWidget = WidgetInfo.Get()->Widget.Pin();
 		return TheWidget.IsValid()
-			? TheWidget->GetVisibility().ToString()
-			: FString();
+			? FText::FromString(TheWidget->GetVisibility().ToString())
+			: FText::GetEmpty();
 	}
 
 	/** @return The tint of the reflector node */
@@ -87,13 +90,7 @@ protected:
 		return WidgetInfo.Get()->Tint;
 	}
 
-	void HandleHyperlinkNavigate()
-	{
-		if(OnAccessSourceCode.IsBound())
-		{
-			OnAccessSourceCode.Execute(GetWidgetFile(), GetWidgetLineNumber(), 0);
-		}
-	}
+	void HandleHyperlinkNavigate();
 
 private:
 
@@ -101,4 +98,6 @@ private:
 	TAttribute< TSharedPtr<FReflectorNode> > WidgetInfo;
 
 	FAccessSourceCode OnAccessSourceCode;
+
+	FAccessAsset OnAccessAsset;
 };

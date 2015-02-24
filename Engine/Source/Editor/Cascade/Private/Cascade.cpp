@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CascadeModule.h"
 #include "FXSystem.h"
@@ -40,6 +40,16 @@
 #include "SNumericEntryBox.h"
 #include "STextEntryPopup.h"
 #include "GenericCommands.h"
+#include "Components/VectorFieldComponent.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/InterpCurveEdSetup.h"
+#include "Engine/Selection.h"
+#include "Particles/ParticleModule.h"
+#include "Distributions/DistributionFloatUniform.h"
+#include "Distributions/DistributionFloatUniformCurve.h"
+#include "Distributions/DistributionVectorUniform.h"
+#include "Distributions/DistributionVectorUniformCurve.h"
+#include "UnrealEngine.h"
 
 static const FName Cascade_PreviewViewportTab("Cascade_PreviewViewport");
 static const FName Cascade_EmmitterCanvasTab("Cascade_EmitterCanvas");
@@ -3684,7 +3694,7 @@ void FCascade::OnSetMotionRadius()
 	FString DefaultText = FString::Printf(TEXT("%.2f"), MotionModeRadius);
 	TSharedRef<STextEntryPopup> TextEntry = 
 		SNew(STextEntryPopup)
-		.Label(NSLOCTEXT("Cascade", "MotionRadius", "Motion Radius: ").ToString())
+		.Label(NSLOCTEXT("Cascade", "MotionRadius", "Motion Radius: "))
 		.DefaultText(FText::FromString( DefaultText ) )
 		.OnTextCommitted(this, &FCascade::MotionRadiusCommitted)
 		.SelectAllTextWhenFocused(true)
@@ -3907,7 +3917,7 @@ void FCascade::OnToggleWireframeSphere()
 		FString DefaultText = FString::Printf(TEXT("%.2f"), PreviewViewport->GetViewportClient()->GetWireSphereRadius());
 		TSharedRef<STextEntryPopup> TextEntry = 
 			SNew(STextEntryPopup)
-			.Label(NSLOCTEXT("Cascade", "SphereRadius", "Sphere Radius: ").ToString())
+			.Label(NSLOCTEXT("Cascade", "SphereRadius", "Sphere Radius: "))
 			.DefaultText(FText::FromString(DefaultText))
 			.OnTextCommitted(this, &FCascade::SphereRadiusCommitted)
 			.SelectAllTextWhenFocused(true)
@@ -4659,15 +4669,6 @@ bool FCascade::ConvertModuleToSeeded(UParticleSystem* ParticleSystem, UParticleE
 		{
 			NewModule = CastChecked<UParticleModule>(StaticDuplicateObject(ConvertModule, ParticleSystem, TEXT("None"), RF_AllFlags, InSeededClass));
 
-			// Get all the curve objects and fixup their archetypes
-			// Otherwise they will be pointing to the original distribution
-			TArray<FParticleCurvePair> Curves;
-			NewModule->GetCurveObjects(Curves);
-			for (int32 CurveIdx = 0; CurveIdx < Curves.Num(); CurveIdx++)
-			{
-				FParticleCurvePair& Pair = Curves[CurveIdx];
-			}
-
 			// Since we used the non-randomseed module to create, this flag won't be set during construction...
 			NewModule->bSupportsRandomSeed = true;
 
@@ -4680,6 +4681,7 @@ bool FCascade::ConvertModuleToSeeded(UParticleSystem* ParticleSystem, UParticleE
 		}
 
 		// Now we have to replace all instances of the module
+		LODLevel->Modify();
 		LODLevel->Modules[InModuleIdx] = NewModule;
 		for (int32 SubLODIdx = LODIdx + 1; SubLODIdx < InEmitter->LODLevels.Num(); SubLODIdx++)
 		{
@@ -4689,6 +4691,7 @@ bool FCascade::ConvertModuleToSeeded(UParticleSystem* ParticleSystem, UParticleE
 			{
 				if (SubLODLevel->Modules[InModuleIdx] == ConvertModule)
 				{
+					SubLODLevel->Modify();
 					SubLODLevel->Modules[InModuleIdx] = NewModule;
 				}
 			}
@@ -4708,6 +4711,7 @@ bool FCascade::ConvertModuleToSeeded(UParticleSystem* ParticleSystem, UParticleE
 						UParticleModule* OtherModule = OtherLODLevel->Modules[OtherModuleIdx];
 						if (OtherModule == ConvertModule)
 						{
+							OtherLODLevel->Modify();
 							OtherLODLevel->Modules[OtherModuleIdx] = NewModule;
 							for (int32 OtherSubLODIdx = LODIdx + 1; OtherSubLODIdx < OtherEmitter->LODLevels.Num(); OtherSubLODIdx++)
 							{
@@ -4717,6 +4721,7 @@ bool FCascade::ConvertModuleToSeeded(UParticleSystem* ParticleSystem, UParticleE
 								{
 									if (OtherSubLODLevel->Modules[InModuleIdx] == ConvertModule)
 									{
+										OtherSubLODLevel->Modify();
 										OtherSubLODLevel->Modules[InModuleIdx] = NewModule;
 									}
 								}
@@ -4814,7 +4819,7 @@ void FCascade::OnRenameEmitter()
 
 	TSharedRef<STextEntryPopup> TextEntry = 
 		SNew(STextEntryPopup)
-		.Label(NSLOCTEXT("Cascade", "SetEmitterName", "Emitter Name: ").ToString())
+		.Label(NSLOCTEXT("Cascade", "SetEmitterName", "Emitter Name: "))
 		.DefaultText(FText::FromName( SelectedEmitter->GetEmitterName() ))
 		.OnTextCommitted(this, &FCascade::EmitterNameCommitted)
 		.SelectAllTextWhenFocused(true)

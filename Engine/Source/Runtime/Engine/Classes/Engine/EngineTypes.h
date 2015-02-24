@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -7,7 +7,26 @@
  *	use in multiple files where the enum can't be mapped to a specific file.
  */
 #include "NetSerialization.h"
+#include "GameFramework/DamageType.h"
 #include "EngineTypes.generated.h"
+
+
+
+/**
+ * Default number of components to expect in TInlineAllocators used with AActor component arrays.
+ * Used by engine code to try to avoid allocations in AActor::GetComponents(), among others.
+ */
+enum { NumInlinedActorComponents = 24 };
+
+/**
+ * TInlineComponentArray is simply a TArray that reserves a fixed amount of space on the stack
+ * to try to avoid heap allocation when there are fewer than a specified number of elements expected in the result.
+ */
+template<class T, uint32 NumElements = NumInlinedActorComponents>
+class TInlineComponentArray : public TArray<T, TInlineAllocator<NumElements>>
+{
+};
+
 
 UENUM()
 enum EAspectRatioAxisConstraint
@@ -122,6 +141,25 @@ enum ETranslucencyLightingMode
 	TLM_MAX,
 };
 
+/**
+ * Enumerates available options for the translucency sort policy.
+ */
+UENUM()
+namespace ETranslucentSortPolicy
+{
+	enum Type
+	{
+		// Sort based on distance from camera centerpoint to bounding sphere centerpoint. (default, best for 3D games)
+		SortByDistance = 0,
+
+		// Sort based on the post-projection Z distance to the camera.
+		SortByProjectedZ = 1,
+
+		// Sort based on the projection onto a fixed axis. (best for 2D games)
+		SortAlongAxis = 2,
+	};
+}
+
 /** Controls the way that the width scale property affects anim trails */
 UENUM()
 enum ETrailWidthMode
@@ -141,6 +179,7 @@ enum EMaterialShadingModel
 	MSM_PreintegratedSkin	UMETA(DisplayName="Preintegrated Skin"),
 	MSM_ClearCoat			UMETA(DisplayName="Clear Coat"),
 	MSM_SubsurfaceProfile	UMETA(DisplayName="Subsurface Profile"),
+	MSM_TwoSidedFoliage		UMETA(DisplayName="Two Sided Foliage"),
 	MSM_MAX,
 };
 
@@ -316,11 +355,7 @@ enum ECollisionChannel
 	 /**
 	  * can't add displaynames because then it will show up in the collision channel option
 	  */
-	ECC_OverlapAll_Deprecated,
-	/** Like ECC_OverlapAll, but only returns objects that are NOT static */
-	ECC_OverlapAllDynamic_Deprecated,
-	/** Like ECC_OverlapAll, but only returns objects that are static */
-	ECC_OverlapAllStatic_Deprecated,
+	ECC_OverlapAll_Deprecated UMETA(Hidden),
 	ECC_MAX,
 };
 
@@ -690,6 +725,9 @@ struct ENGINE_API FCollisionResponseContainer
 	/** Set all channels to the specified response */
 	void SetAllChannels(ECollisionResponse NewResponse);
 
+	/** Replace the channels matching the old response with the new response */
+	void ReplaceChannels(ECollisionResponse OldResponse, ECollisionResponse NewResponse);
+
 	/** Returns the response set on the specified channel */
 	ECollisionResponse GetResponse(ECollisionChannel Channel) const;
 
@@ -1037,10 +1075,6 @@ struct FLightmassLightSettings
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Scale factor for the indirect lighting */
-	UPROPERTY()
-	float IndirectLightingScale_DEPRECATED;
-
 	/** 0 will be completely desaturated, 1 will be unchanged */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Lightmass, meta=(UIMin = "0.0", UIMax = "4.0"))
 	float IndirectLightingSaturation;
@@ -1050,8 +1084,7 @@ struct FLightmassLightSettings
 	float ShadowExponent;
 
 	FLightmassLightSettings()
-		: IndirectLightingScale_DEPRECATED(1.0f)
-		, IndirectLightingSaturation(1.0f)
+		: IndirectLightingSaturation(1.0f)
 		, ShadowExponent(2.0f)
 	{
 	}
@@ -1848,6 +1881,10 @@ struct FMeshBuildSettings
 {
 	GENERATED_USTRUCT_BODY()
 
+	/** If true, degenerate triangles will be removed. */
+	UPROPERTY(EditAnywhere, Category=BuildSettings)
+	bool bUseMikkTSpace;
+
 	/** If true, normals in the raw mesh are ignored and recomputed. */
 	UPROPERTY(EditAnywhere, Category=BuildSettings)
 	bool bRecomputeNormals;
@@ -1899,7 +1936,8 @@ struct FMeshBuildSettings
 
 	/** Default settings. */
 	FMeshBuildSettings()
-		: bRecomputeNormals(true)
+		: bUseMikkTSpace(true)
+		, bRecomputeNormals(true)
 		, bRecomputeTangents(true)
 		, bRemoveDegenerates(true)
 		, bUseFullPrecisionUVs(false)
@@ -1918,6 +1956,7 @@ struct FMeshBuildSettings
 	{
 		return bRecomputeNormals == Other.bRecomputeNormals
 			&& bRecomputeTangents == Other.bRecomputeTangents
+			&& bUseMikkTSpace == Other.bUseMikkTSpace
 			&& bRemoveDegenerates == Other.bRemoveDegenerates
 			&& bUseFullPrecisionUVs == Other.bUseFullPrecisionUVs
 			&& bGenerateLightmapUVs == Other.bGenerateLightmapUVs
@@ -2185,6 +2224,15 @@ namespace EAutoReceiveInput
 	};
 }
 
+UENUM()
+enum class EAutoPossessAI : uint8
+{
+	Disabled,				// Feature is disabled (do not automatically possess AI).
+	PlacedInWorld,			// Only possess by an AI Controller if Pawn is placed in the world.
+	Spawned,				// Only possess by an AI Controller if Pawn is spawned after the world has loaded.
+	PlacedInWorldOrSpawned, // Pawn is automatically possessed by an AI Controller whenever it is created.
+};
+
 UENUM(BlueprintType)
 namespace EEndPlayReason
 {
@@ -2198,6 +2246,8 @@ namespace EEndPlayReason
 	};
 
 }
+
+DECLARE_DYNAMIC_DELEGATE(FTimerDynamicDelegate);
 
 /** Replicated movement data of our RootComponent.
   * Struct used for efficient replication as velocity and location are generally replicated together (this saves a repindex) 

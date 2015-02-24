@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "DiffUtils.h"
 
 /* Enums to use when grouping the blueprint members in the list panel. The order here will determine the order in the list */
 namespace NodeSectionID
@@ -46,21 +48,26 @@ public:
 	virtual void RegisterCommands() override;
 };
 
-
-
 class SMyBlueprint : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS( SMyBlueprint ) {};
+	SLATE_BEGIN_ARGS( SMyBlueprint ) {}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor> InBlueprintEditor);
+	void Construct(const FArguments& InArgs, TWeakPtr<FBlueprintEditor> InBlueprintEditor, const UBlueprint* InBlueprint = nullptr);
+	~SMyBlueprint();
+
+	void SetInspector( TSharedPtr<SKismetInspector> InInspector ) { Inspector = InInspector ; }
+
+	/* SWidget interface */
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime);
 
 	/* Reset the last pin type settings to default. */
 	void ResetLastPinType();
 
 	/** Refreshes the graph action menu */
 	void Refresh();
+	void SetFocusedGraph(UEdGraph* InEdGraph) { EdGraph = InEdGraph; }
 	
 	/** Accessor for getting the current selection as a K2 graph */
 	FEdGraphSchemaAction_K2Graph* SelectionAsGraph() const;
@@ -79,6 +86,9 @@ public:
 
 	/** Accessor for getting the current selection as a K2 event */
 	FEdGraphSchemaAction_K2Event* SelectionAsEvent() const;
+	
+	/** Accessor for getting the current selection as a K2 Input Action */
+	FEdGraphSchemaAction_K2InputAction* SelectionAsInputAction() const;
 
 	/** Accessor for getting the current selection as a K2 local var */
 	FEdGraphSchemaAction_K2LocalVar* SelectionAsLocalVar() const;
@@ -93,10 +103,10 @@ public:
 	FEdGraphPinType& GetLastFunctionPinTypeUsed() {EnsureLastPinTypeValid(); return LastFunctionPinType;}
 
 	/** Accessor the blueprint object from the main editor */
-	UBlueprint* GetBlueprintObj() const {return BlueprintEditorPtr.Pin()->GetBlueprintObj();}
+	UBlueprint* GetBlueprintObj() const {return Blueprint;}
 
 	/** Gets whether we are showing user variables only or not */
-	bool ShowUserVarsOnly() const {return bShowUserVarsOnly;}
+	bool ShowUserVarsOnly() const { return !IsShowingInheritedVariables(); }
 
 	/** Gets our parent blueprint editor */
 	TWeakPtr<FBlueprintEditor> GetBlueprintEditor() {return BlueprintEditorPtr;}
@@ -124,16 +134,13 @@ public:
 
 	/** Move the category before the target category */
 	bool MoveCategoryBeforeCategory( const FString& CategoryToMove, const FString& TargetCategory );
-
 private:
 	/** Creates widgets for the graph schema actions */
 	TSharedRef<SWidget> OnCreateWidgetForAction(struct FCreateWidgetForActionData* const InCreateData);
 
-	/** Creates the local variable action list sub-widget */
-	TSharedRef<SWidget> ConstructLocalActionPanel();
-
 	/** Callback used to populate all actions list in SGraphActionMenu */
 	void CollectAllActions(FGraphActionListBuilderBase& OutAllActions);
+	void CollectStaticSections(TArray<int32>& StaticSectionIDs);
 	void GetChildGraphs(UEdGraph* EdGraph, FGraphActionListBuilderBase& OutAllActions, FString ParentCategory = FString());
 	void GetChildEvents(UEdGraph const* EdGraph, int32 const SectionId, FGraphActionListBuilderBase& OutAllActions) const;
 	void GetLocalVariables(FGraphActionListBuilderBase& OutAllActions) const;
@@ -145,18 +152,32 @@ private:
 	FReply OnActionDragged(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions, const FPointerEvent& MouseEvent);
 	FReply OnCategoryDragged(const FString& InCategory, const FPointerEvent& MouseEvent);
 	void OnActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
+	static void OnActionSelectedHelper(TSharedPtr<FEdGraphSchemaAction> InAction, UBlueprint* Blueprint, TSharedRef<SKismetInspector> Inspector);
 	void OnGlobalActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
-	void OnLocalActionSelected(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
 	void OnActionDoubleClicked(const TArray< TSharedPtr<FEdGraphSchemaAction> >& InActions);
+	void ExecuteAction(TSharedPtr<FEdGraphSchemaAction> InAction);
 	TSharedPtr<SWidget> OnContextMenuOpening();
+
+	TSharedRef<SWidget> CreateAddNewMenuWidget();
+	void BuildAddNewMenu(FMenuBuilder& MenuBuilder);
+	TSharedRef<SWidget> CreateAddToSectionButton(int32 InSectionID, TWeakPtr<SWidget> WeakRowWidget, FText AddNewText, FName MetaDataTag);
 
 	void OnCategoryNameCommitted(const FText& InNewText, ETextCommit::Type InTextCommit, TWeakPtr< struct FGraphActionNode > InAction );
 	bool CanRequestRenameOnActionNode(TWeakPtr<struct FGraphActionNode> InSelectedNode) const;
 	FText OnGetSectionTitle( int32 InSectionID );
+	TSharedRef<SWidget> OnGetSectionWidget( TSharedRef<SWidget> RowWidget, int32 InSectionID );
+	EVisibility OnGetSectionTextVisibility(TWeakPtr<SWidget> RowWidget, int32 InSectionID) const;
+	TSharedRef<SWidget> OnGetFunctionListMenu();
+	void BuildOverridableFunctionsMenu(FMenuBuilder& MenuBuilder);
+	FReply OnAddButtonClickedOnSection(int32 InSectionID);
 
 	/** Support functions for checkbox to manage displaying user variables only */
-	ESlateCheckBoxState::Type OnUserVarsCheckState() const;
-	void OnUserVarsCheckStateChanged(ESlateCheckBoxState::Type InNewState);
+	bool IsShowingInheritedVariables() const;
+	void OnToggleShowInheritedVariables();
+
+	/** Support functions for view options for Show Empty Sections */
+	void OnToggleShowEmptySections();
+	bool IsShowingEmptySections() const;
 	
 	/** Helper function to open the selected graph */
 	void OpenGraph(FDocumentTracker::EOpenDocumentCause InCause);
@@ -169,6 +190,8 @@ private:
 	void OnFocusNode();
 	void OnFocusNodeInNewTab();
 	void OnImplementFunction();
+	void ImplementFunction(TSharedPtr<FEdGraphSchemaAction_K2Graph> GraphAction);
+	void ImplementFunction(FEdGraphSchemaAction_K2Graph* GraphAction);
 	bool CanImplementFunction() const;
 	void OnFindEntry();
 	bool CanFindEntry() const;
@@ -202,6 +225,14 @@ private:
 
 	/** Helper function to delete a delegate in the MyBlueprint window */
 	void OnDeleteDelegate(FEdGraphSchemaAction_K2Delegate* InDelegateAction);
+
+	UEdGraph* GetFocusedGraph() const;
+
+	/** Delegate to hook us into non-structural Blueprint object post-change events */
+	void OnObjectPropertyChanged(UObject* InObject, FPropertyChangedEvent& InPropertyChangedEvent);
+
+	/** Helper function indicating whehter we're in editing mode, and can modify the target blueprint */
+	bool IsEditingMode() const;
 private:
 	/** Pointer back to the blueprint editor that owns us */
 	TWeakPtr<FBlueprintEditor> BlueprintEditorPtr;
@@ -209,11 +240,14 @@ private:
 	/** Graph Action Menu for displaying all our variables and functions */
 	TSharedPtr<class SGraphActionMenu> GraphActionMenu;
 
-	/** Graph Action Menu for displaying all local variables */
-	TSharedPtr<class SGraphActionMenu> LocalGraphActionMenu;
+	/** The +Function button in the function section */
+	TSharedPtr<SComboButton> FunctionSectionButton;
 
-	/** Whether or not we're only showing user-created variables */
-	bool bShowUserVarsOnly;
+	/** When we rebuild the view of members, we cache (but don't display) any overridable functions for user in popup menus. */
+	TArray< TSharedPtr<FEdGraphSchemaAction_K2Graph> > OverridableFunctionActions;
+
+	/** When we refresh the list of functions we cache off the implemented ones to ask questions for overridable functions. */
+	TSet<FName> ImplementedFunctionCache;
 
 	/** The last pin type used (including the function editor last pin type) */
 	FEdGraphPinType LastPinType;
@@ -225,9 +259,18 @@ private:
 	/** The filter box that handles filtering for both graph action menus. */
 	TSharedPtr< SSearchBox > FilterBox;
 
-	/** Contains both the GraphActionMenu and LocalGraphActionMenu */
-	TSharedPtr< SSplitter > ActionMenuContainer;
-
 	/** Enums created from 'blueprint' level */
 	TArray<TWeakObjectPtr<UUserDefinedStruct>> StructsAddedToBlueprint;
+
+	/** The blueprint being displayed: */
+	UBlueprint* Blueprint;
+
+	/** The Ed Graph being displayed: */
+	UEdGraph* EdGraph;
+
+	/** The Kismet Inspector used to display properties: */
+	TWeakPtr<SKismetInspector> Inspector;
+
+	/** Flag to indicate whether or not we need to refresh the panel */
+	bool bNeedsRefresh;
 };

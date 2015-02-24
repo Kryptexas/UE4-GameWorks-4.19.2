@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -104,17 +104,22 @@ public:
 	float RemainingLifeTime;
 };
 
+/** 
+ * The line batch component buffers and draws lines (and some other line-based shapes) in a scene. 
+ *	This can be useful for debug drawing, but is not very performant for runtime use.
+ */
 UCLASS(MinimalAPI)
 class ULineBatchComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
 
+	/** Buffer of lines to draw */
 	TArray<struct FBatchedLine> BatchedLines;
-
+	/** Buffer or points to draw */
 	TArray<struct FBatchedPoint> BatchedPoints;
-
+	/** Default time that lines/points will draw for */
 	float DefaultLifeTime;
-
+	/** Buffer of simple meshes to draw */
 	TArray<struct FBatchedMesh> BatchedMeshes;
 
 	/** Provide many lines to draw - faster than calling DrawLine many times. */
@@ -147,6 +152,7 @@ class ULineBatchComponent : public UPrimitiveComponent
 
 	/** Draw a box */
 	void DrawSolidBox(FBox const& Box, FTransform const& Xform, const FColor& Color, uint8 DepthPriority, float LifeTime);
+	/** Draw a mesh */
 	void DrawMesh(TArray<FVector> const& Verts, TArray<int32> const& Indices, FColor const& Color, uint8 DepthPriority, float LifeTime);
 
 	// Begin UPrimitiveComponent interface.
@@ -160,6 +166,7 @@ class ULineBatchComponent : public UPrimitiveComponent
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	// End UActorComponent interface.
 
+	/** Clear all batched lines, points and meshes */
 	ENGINE_API void Flush();
 };
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System;
@@ -27,7 +27,6 @@ public class Core : ModuleRules
 				"Runtime/Core/Public/Modules/Boilerplate",
 				"Runtime/Core/Public/ProfilingDebugging",
 				"Runtime/Core/Public/Serialization",
-				"Runtime/Core/Public/Serialization/Json",
 				"Runtime/Core/Public/Serialization/Csv",
 				"Runtime/Core/Public/Stats",
 				"Runtime/Core/Public/Templates",
@@ -145,11 +144,12 @@ public class Core : ModuleRules
 		else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture == "-win32")
 		{
             PublicIncludePaths.Add("Runtime/Core/Public/HTML5");
-			AddThirdPartyPrivateStaticDependencies(Target, "SDL");
+			AddThirdPartyPrivateStaticDependencies(Target, "SDL2");
 			AddThirdPartyPrivateStaticDependencies(Target, "OpenAL");
 		}
         else if (Target.Platform == UnrealTargetPlatform.HTML5 && Target.Architecture != "-win32")
         {
+            AddThirdPartyPrivateStaticDependencies(Target, "SDL2");
             PrivateDependencyModuleNames.Add("HTML5JS");
         }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BlueprintNodeHelpers.h"
@@ -7,11 +7,11 @@
 UBTTask_BlueprintBase::UBTTask_BlueprintBase(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	UClass* StopAtClass = UBTTask_BlueprintBase::StaticClass();
-	bImplementsReceiveTick = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveTick"), this, StopAtClass);
-	bImplementsReceiveExecute = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveExecute"), this, StopAtClass);
-	bImplementsReceiveAbort = BlueprintNodeHelpers::HasBlueprintFunction(TEXT("ReceiveAbort"), this, StopAtClass);
+	ReceiveTickImplementations = FBTNodeBPImplementationHelper::CheckEventImplementationVersion(TEXT("ReceiveTick"), TEXT("ReceiveTickAI"), this, StopAtClass);
+	ReceiveExecuteImplementations = FBTNodeBPImplementationHelper::CheckEventImplementationVersion(TEXT("ReceiveExecute"), TEXT("ReceiveExecuteAI"), this, StopAtClass);
+	ReceiveAbortImplementations = FBTNodeBPImplementationHelper::CheckEventImplementationVersion(TEXT("ReceiveAbort"), TEXT("ReceiveAbortAI"), this, StopAtClass);
 
-	bNotifyTick = bImplementsReceiveTick;
+	bNotifyTick = ReceiveTickImplementations != FBTNodeBPImplementationHelper::NoImplementation;
 	bShowPropertyDetails = true;
 
 	// all blueprint based nodes must create instances
@@ -29,16 +29,29 @@ void UBTTask_BlueprintBase::PostInitProperties()
 	NodeName = BlueprintNodeHelpers::GetNodeName(this);
 }
 
-EBTNodeResult::Type UBTTask_BlueprintBase::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UBTTask_BlueprintBase::SetOwner(AActor* InActorOwner) 
+{ 
+	ActorOwner = InActorOwner;
+	AIOwner = Cast<AAIController>(InActorOwner);
+}
+
+EBTNodeResult::Type UBTTask_BlueprintBase::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	// fail when task doesn't react to execution (start or tick)
-	CurrentCallResult = (bImplementsReceiveExecute || bImplementsReceiveTick) ? EBTNodeResult::InProgress : EBTNodeResult::Failed;
+	CurrentCallResult = (ReceiveExecuteImplementations != 0 || ReceiveTickImplementations != 0) ? EBTNodeResult::InProgress : EBTNodeResult::Failed;
 
-	if (bImplementsReceiveExecute)
+	if (ReceiveExecuteImplementations != FBTNodeBPImplementationHelper::NoImplementation)
 	{
 		bStoreFinishResult = true;
 
-		ReceiveExecute(OwnerComp->GetOwner());
+		if (AIOwner != nullptr && ReceiveExecuteImplementations & FBTNodeBPImplementationHelper::AISpecific)
+		{
+			ReceiveExecuteAI(AIOwner, AIOwner->GetPawn());
+		}
+		else if (ReceiveExecuteImplementations & FBTNodeBPImplementationHelper::Generic)
+		{
+			ReceiveExecute(ActorOwner);
+		}
 
 		bStoreFinishResult = false;
 	}
@@ -46,18 +59,26 @@ EBTNodeResult::Type UBTTask_BlueprintBase::ExecuteTask(UBehaviorTreeComponent* O
 	return CurrentCallResult;
 }
 
-EBTNodeResult::Type UBTTask_BlueprintBase::AbortTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UBTTask_BlueprintBase::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	// force dropping all pending latent actions associated with this blueprint
 	// we can't have those resuming activity when node is/was aborted
-	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
+	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, *this);
 
-	CurrentCallResult = bImplementsReceiveAbort ? EBTNodeResult::InProgress : EBTNodeResult::Aborted;
-	if (bImplementsReceiveAbort)
+	CurrentCallResult = ReceiveAbortImplementations != 0 ? EBTNodeResult::InProgress : EBTNodeResult::Aborted;
+
+	if (ReceiveAbortImplementations != FBTNodeBPImplementationHelper::NoImplementation)
 	{
 		bStoreFinishResult = true;
 
-		ReceiveAbort(OwnerComp->GetOwner());
+		if (AIOwner != nullptr && ReceiveAbortImplementations & FBTNodeBPImplementationHelper::AISpecific)
+		{
+			ReceiveAbortAI(AIOwner, AIOwner->GetPawn());
+		}
+		else if (ReceiveAbortImplementations & FBTNodeBPImplementationHelper::Generic)
+		{
+			ReceiveAbort(ActorOwner);
+		}
 
 		bStoreFinishResult = false;
 	}
@@ -65,11 +86,16 @@ EBTNodeResult::Type UBTTask_BlueprintBase::AbortTask(UBehaviorTreeComponent* Own
 	return CurrentCallResult;
 }
 
-void UBTTask_BlueprintBase::TickTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds) 
+void UBTTask_BlueprintBase::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
-	// skip flag, will be handled by bNotifyTick
-
-	ReceiveTick(OwnerComp->GetOwner(), DeltaSeconds);
+	if (AIOwner != nullptr && ReceiveTickImplementations & FBTNodeBPImplementationHelper::AISpecific)
+	{
+		ReceiveTickAI(AIOwner, AIOwner->GetPawn(), DeltaSeconds);
+	}
+	else if (ReceiveTickImplementations & FBTNodeBPImplementationHelper::Generic)
+	{
+		ReceiveTick(ActorOwner, DeltaSeconds);
+	}
 }
 
 void UBTTask_BlueprintBase::FinishExecute(bool bSuccess)
@@ -83,7 +109,7 @@ void UBTTask_BlueprintBase::FinishExecute(bool bSuccess)
 	}
 	else if (OwnerComp)
 	{
-		FinishLatentTask(OwnerComp, NodeResult);
+		FinishLatentTask(*OwnerComp, NodeResult);
 	}
 }
 
@@ -98,7 +124,7 @@ void UBTTask_BlueprintBase::FinishAbort()
 	}
 	else if (OwnerComp)
 	{
-		FinishLatentAbort(OwnerComp);
+		FinishLatentAbort(*OwnerComp);
 	}
 }
 
@@ -147,7 +173,7 @@ FString UBTTask_BlueprintBase::GetStaticDescription() const
 	return ReturnDesc;
 }
 
-void UBTTask_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
+void UBTTask_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const
 {
 	UBTTask_BlueprintBase* CDO = (UBTTask_BlueprintBase*)(GetClass()->GetDefaultObject());
 	if (CDO && CDO->PropertyData.Num())
@@ -156,10 +182,10 @@ void UBTTask_BlueprintBase::DescribeRuntimeValues(const UBehaviorTreeComponent* 
 	}
 }
 
-void UBTTask_BlueprintBase::OnInstanceDestroyed(UBehaviorTreeComponent* OwnerComp)
+void UBTTask_BlueprintBase::OnInstanceDestroyed(UBehaviorTreeComponent& OwnerComp)
 {
 	// force dropping all pending latent actions associated with this blueprint
-	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, this);
+	BlueprintNodeHelpers::AbortLatentActions(OwnerComp, *this);
 }
 
 #if WITH_EDITOR

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AssetData.h"
@@ -110,7 +110,7 @@ public:
 	virtual void ClearLoaded();
 
 	/** Load an entire subdirectory of assets into this object library. Returns number of assets loaded */
-	virtual int32 LoadAssetsFromPaths(TArray<FString> Paths);
+	virtual int32 LoadAssetsFromPaths(const TArray<FString>& Paths);
 
 	virtual int32 LoadAssetsFromPath(const FString& Path)
 	{
@@ -120,7 +120,7 @@ public:
 	}
 
 	/** Load an entire subdirectory of blueprints into this object library. Only loads blueprints of passed in class. Returns number of assets loaded */
-	virtual int32 LoadBlueprintsFromPaths(TArray<FString> Paths);
+	virtual int32 LoadBlueprintsFromPaths(const TArray<FString>& Paths);
 
 	virtual int32 LoadBlueprintsFromPath(const FString& Path)
 	{
@@ -130,7 +130,7 @@ public:
 	}
 
 	/** Gets asset data for assets in a subdirectory. Returns number of assets data loaded */
-	virtual int32 LoadAssetDataFromPaths(TArray<FString> Paths);
+	virtual int32 LoadAssetDataFromPaths(const TArray<FString>& Paths, bool bForceSynchronousScan = true);
 
 	virtual int32 LoadAssetDataFromPath(const FString& Path)
 	{
@@ -140,7 +140,7 @@ public:
 	}
 
 	/** Load an entire subdirectory of blueprints into this object library. Only loads asset data for blueprints of passed in class. Returns number of asset data loaded loaded */
-	virtual int32 LoadBlueprintAssetDataFromPaths(TArray<FString> Paths);
+	virtual int32 LoadBlueprintAssetDataFromPaths(const TArray<FString>& Paths, bool bForceSynchronousScan = true);
 
 	virtual int32 LoadBlueprintAssetDataFromPath(const FString& Path)
 	{
@@ -152,4 +152,14 @@ public:
 	/** Load all of the objects in asset data list into memory */
 	virtual int32 LoadAssetsFromAssetData();
 
+#if WITH_EDITOR
+	/** The paths that we will query again once assets are finished being discovered */
+	TArray<FString> DeferredAssetDataPaths;
+
+	/** True if we are running a build that is already scanning assets globally so we can perhaps avoid scanning paths synchronously */
+	bool bIsGlobalAsyncScanEnvironment;
+
+	/** Handler for when assets have finished scanning in the asset registry */
+	virtual void OnAssetRegistryFilesLoaded();
+#endif // WITH_EDITOR
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -42,7 +42,7 @@ public:
 	 * @param UserComment Information provided by the user to add to the report
 	 * @return Whether the comment was successfully written to the report
 	 */
-	bool SetUserComment(const FText& UserComment);
+	bool SetUserComment(const FText& UserComment, bool bAllowToBeContacted);
 
 	/**
 	 * Provide full paths to all the report files

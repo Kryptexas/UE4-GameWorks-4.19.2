@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -115,6 +115,15 @@ public:
 	 * @return An inset rectangle.
 	 */
 	FSlateRect InsetBy( const struct FMargin& InsetAmount ) const;
+
+	/**
+	 * Return a rectangle that is extended on each side by the amount specified in each margin.
+	 *
+	 * @param ExtendAmount The amount to extend the geometry.
+	 *
+	 * @return An extended rectangle.
+	 */
+	FSlateRect ExtendBy(const FMargin& ExtendAmount) const;
 
 	/**
 	 * Return a rectangle that is offset by the amount specified .

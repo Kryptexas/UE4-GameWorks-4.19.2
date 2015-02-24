@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnObj.cpp: Unreal object manager.
@@ -13,9 +13,11 @@
 #include "Serialization/ArchiveDescribeReference.h"
 #include "FindStronglyConnected.h"
 #include "HotReloadInterface.h"
+#include "UObject/TlsObjectInitializers.h"
 
 DEFINE_LOG_CATEGORY(LogObj);
 
+extern int32 GIsInConstructor;
 
 /** Stat group for dynamic objects cycle counters*/
 
@@ -48,6 +50,21 @@ static UPackage*			GObjTransientPkg								= NULL;
 UObject::UObject( EStaticConstructor, EObjectFlags InFlags )
 : UObjectBaseUtility(InFlags | RF_Native | RF_RootSet)
 {
+}
+
+UObject* UObject::CreateDefaultSubobject(FName SubobjectFName, UClass* ReturnType, UClass* ClassToCreateByDefault, bool bIsRequired, bool bAbstract, bool bIsTransient)
+{
+	UE_CLOG(!GIsInConstructor, LogObj, Fatal, TEXT("CreateDefultSubobject can only be used inside of UObject constructors. UObject constructing subobjects cannot be created using new or placement new operator."));
+	auto CurrentInitializer = FTlsObjectInitializers::Top();
+	UE_CLOG(!CurrentInitializer, LogObj, Fatal, TEXT("No object initializer found during construction."));
+	UE_CLOG(CurrentInitializer->Obj != this, LogObj, Fatal, TEXT("Using incorrect object initializer."));
+	return CurrentInitializer->CreateDefaultSubobject(this, SubobjectFName, ReturnType, ClassToCreateByDefault, bIsRequired, bAbstract, bIsTransient);
+}
+
+UObject* UObject::CreateEditorOnlyDefaultSubobjectImpl(FName SubobjectName, UClass* ReturnType, bool bTransient)
+{
+	auto CurrentInitializer = FTlsObjectInitializers::Top();
+	return CurrentInitializer->CreateEditorOnlyDefaultSubobject(this, SubobjectName, ReturnType, bTransient);
 }
 
 bool UObject::Rename( const TCHAR* InName, UObject* NewOuter, ERenameFlags Flags )
@@ -223,16 +240,24 @@ void UObject::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent
 
 void UObject::PreEditChange( FEditPropertyChain& PropertyAboutToChange )
 {
+	const bool bIsEditingArchetypeProperty = HasAnyFlags(RF_ClassDefaultObject | RF_ArchetypeObject) && 
+		(PropertyAboutToChange.GetActiveMemberNode() == PropertyAboutToChange.GetHead()) && !FApp::IsGame();
+
+	if (bIsEditingArchetypeProperty)
+	{
+		// this object must now be included in the undo/redo buffer (needs to be 
+		// done prior to the following PreEditChange() call, in case it attempts 
+		// to store this object in the undo/redo transaction buffer)
+		SetFlags(RF_Transactional);
+	}
+
 	// forward the notification to the UProperty* version of PreEditChange
 	PreEditChange(PropertyAboutToChange.GetActiveNode()->GetValue());
 
 	FCoreUObjectDelegates::OnPreObjectPropertyChanged.Broadcast(this, PropertyAboutToChange);
 
-	if ( HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) && PropertyAboutToChange.GetActiveMemberNode() == PropertyAboutToChange.GetHead() && !FApp::IsGame())
+	if (bIsEditingArchetypeProperty)
 	{
-		// this object must now be included in the undo/redo buffer
-		SetFlags(RF_Transactional);
-
 		// Get a list of all objects which will be affected by this change; 
 		TArray<UObject*> Objects;
 		GetArchetypeInstances(Objects);
@@ -705,24 +730,24 @@ bool UObject::Modify( bool bAlwaysMarkDirty/*=true*/ )
 
 	if (!GIsGarbageCollecting)
 	{
-	    // Do not consider PIE world objects or script packages, as they should never end up in the
-	    // transaction buffer and we don't want to mark them dirty here either.
+		// Do not consider PIE world objects or script packages, as they should never end up in the
+		// transaction buffer and we don't want to mark them dirty here either.
 		if ((GetOutermost()->PackageFlags & (PKG_PlayInEditor | PKG_ContainsScript | PKG_CompiledIn)) == 0)
-	    {
-		    // Attempt to mark the package dirty and save a copy of the object to the transaction
-		    // buffer. The save will fail if there isn't a valid transactor, the object isn't
-		    // transactional, etc.
-			bSavedToTransactionBuffer = SaveToTransactionBuffer(this, true);
-		
-		    // If we failed to save to the transaction buffer, but the user requested the package
-		    // marked dirty anyway, do so
-			if (!bSavedToTransactionBuffer && bAlwaysMarkDirty)
-		    {
-			    MarkPackageDirty();
-		    }
-	    }
+		{
+			// Attempt to mark the package dirty and save a copy of the object to the transaction
+			// buffer. The save will fail if there isn't a valid transactor, the object isn't
+			// transactional, etc.
+			bSavedToTransactionBuffer = SaveToTransactionBuffer(this, bAlwaysMarkDirty);
+
+			// If we failed to save to the transaction buffer, but the user requested the package
+			// marked dirty anyway, do so
+			if (!bSavedToTransactionBuffer || bAlwaysMarkDirty)
+			{
+				MarkPackageDirty();
+			}
+		}
 #if WITH_EDITOR
-	    FCoreUObjectDelegates::OnObjectModified.Broadcast(this);
+		FCoreUObjectDelegates::BroadcastOnObjectModified(this);
 #endif
 	}
 
@@ -802,12 +827,6 @@ void UObject::Serialize( FArchive& Ar )
 		}
 	}
 
-	if (Ar.UE4Ver() < VER_UE4_REMOVE_NET_INDEX && (!(Ar.GetPortFlags() & PPF_Duplicate)))
-	{
-		int32 OldNetIndex = 0;
-		Ar << OldNetIndex;
-	}
-
 	// Serialize object properties which are defined in the class.
 	if( !Class->IsChildOf(UClass::StaticClass()) )
 	{
@@ -818,10 +837,7 @@ void UObject::Serialize( FArchive& Ar )
 		// Handle derived UClass objects (exact UClass objects are native only and shouldn't be touched)
 		if (Class != UClass::StaticClass())
 		{
-			if (Ar.UE4Ver() >= VER_UE4_ADDED_SCRIPT_SERIALIZATION_FOR_BLUEPRINT_GENERATED_CLASSES)
-			{
-				SerializeScriptProperties(Ar);
-			}
+			SerializeScriptProperties(Ar);
 		}
 	}
 
@@ -1163,6 +1179,12 @@ void UObject::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 		OutTags.Add( FAssetRegistryTag("ResourceSize", FString::Printf(TEXT("%0.2f"), ResourceSize / 1024.f), FAssetRegistryTag::TT_Numerical) );
 	}
 	FAssetRegistryTag::GetAssetRegistryTagsFromSearchableProperties(this, OutTags);
+}
+
+const FName& UObject::SourceFileTagName()
+{
+	static const FName SourceFilePathName("SourceFile");
+	return SourceFilePathName;
 }
 
 bool UObject::IsAsset () const
@@ -1746,27 +1768,41 @@ FString UObject::GetDefaultConfigFilename() const
 	return FString::Printf(TEXT("%sDefault%s.ini"), *FPaths::SourceConfigDir(), *GetClass()->ClassConfigName.ToString());
 }
 
+FString UObject::GetGlobalUserConfigFilename() const
+{
+	return FString::Printf(TEXT("%sUnreal Engine/Engine/Config/User%s.ini"), FPlatformProcess::UserSettingsDir(), *GetClass()->ClassConfigName.ToString());
+}
+
 // @todo ini: Verify per object config objects
-void UObject::UpdateDefaultConfigFile()
+void UObject::UpdateSingleSectionOfConfigFile(const FString& ConfigIniName)
 {
 	// create a sandbox FConfigCache
-	FConfigCacheIni Config;
+	FConfigCacheIni Config(EConfigCacheType::Temporary);
 
 	// add an empty file to the config so it doesn't read in the original file (see FConfigCacheIni.Find())
-	FString DefaultIniName = GetDefaultConfigFilename();
-	FConfigFile& NewFile = Config.Add(DefaultIniName, FConfigFile());
+	FConfigFile& NewFile = Config.Add(ConfigIniName, FConfigFile());
 
 	// save the object properties to this file
-	SaveConfig(CPF_Config, *DefaultIniName, &Config);
+	SaveConfig(CPF_Config, *ConfigIniName, &Config);
 
 	ensureMsgf(Config.Num() == 1, TEXT("UObject::UpdateDefaultConfig() caused more files than expected in the Sandbox config cache!"));
 
 	// make sure SaveConfig wrote only to the file we expected
-	NewFile.UpdateSections(*DefaultIniName, *GetClass()->ClassConfigName.ToString());
+	NewFile.UpdateSections(*ConfigIniName, *GetClass()->ClassConfigName.ToString());
 
 	// reload the file, so that it refresh the cache internally.
 	FString FinalIniFileName;
 	GConfig->LoadGlobalIniFile(FinalIniFileName, *GetClass()->ClassConfigName.ToString(), NULL, NULL, true);
+}
+
+void UObject::UpdateDefaultConfigFile()
+{
+	UpdateSingleSectionOfConfigFile(GetDefaultConfigFilename());
+}
+
+void UObject::UpdateGlobalUserConfigFile()
+{
+	UpdateSingleSectionOfConfigFile(GetGlobalUserConfigFilename());
 }
 
 
@@ -2875,6 +2911,79 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 			Ar.Logf(TEXT("Non-permanent: %d objects, %d edges, %d strongly connected components, %d objects are included in cycles."), IndexSet.TempObjects.Num(), IndexSet.Edges.Num(), TotalCnt, TotalNum);
 			return true;
 		}
+		else if (FParse::Command(&Str, TEXT("VERIFYCOMPONENTS")))
+		{
+			Ar.Logf(TEXT("------------------------------------------------------------------------------"));
+
+			for (FObjectIterator It; It; ++It)
+			{
+				UObject* Target = *It;
+
+				// Skip objects that are trashed
+				if ((Target->GetOutermost() == GetTransientPackage())
+					|| Target->GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists)
+					|| Target->HasAnyFlags(RF_PendingKill))
+				{
+					continue;
+				}
+
+				TArray<UObject*> SubObjects;
+				GetObjectsWithOuter(Target, SubObjects);
+
+				TArray<FString> Errors;
+
+				for (auto SubObjIt : SubObjects)
+				{
+					const UObject* SubObj = SubObjIt;
+					const UClass* SubObjClass = SubObj->GetClass();
+					const FString SubObjName = SubObj->GetName();
+
+					if (SubObj->IsPendingKill())
+					{
+						continue;
+					}
+
+					if (SubObjClass->HasAnyClassFlags(CLASS_NewerVersionExists))
+					{
+						Errors.Add(FString::Printf(TEXT("  - %s has a stale class"), *SubObjName));
+					}
+
+					if (SubObjClass->GetOutermost() == GetTransientPackage())
+					{
+						Errors.Add(FString::Printf(TEXT("  - %s has a class in the transient package"), *SubObjName));
+					}
+
+					if (SubObj->GetOutermost() != Target->GetOutermost())
+					{
+						Errors.Add(FString::Printf(TEXT("  - %s has a different outer than its parent"), *SubObjName));
+					}
+					
+					if (SubObj->GetName().Find(TEXT("TRASH_")) != INDEX_NONE)
+					{
+						Errors.Add(FString::Printf(TEXT("  - %s is TRASH'd"), *SubObjName));
+					}
+
+					if (SubObj->GetName().Find(TEXT("REINST_")) != INDEX_NONE)
+					{
+						Errors.Add(FString::Printf(TEXT("  - %s is a REINST"), *SubObjName));
+					}
+				}
+
+				if (Errors.Num() > 0)
+				{
+					const FString ErrorStr = FString::Printf(TEXT("Errors for %s"), *Target->GetName());
+					Ar.Logf(*ErrorStr);
+
+					for (auto ErrorStr : Errors)
+					{
+						Ar.Logf(*(FString(TEXT("  - ") + ErrorStr)));
+					}
+				}
+			}
+
+			Ar.Logf(TEXT("------------------------------------------------------------------------------"));
+			return true;
+		}
 		else if( FParse::Command(&Str,TEXT("TRANSACTIONAL")) )
 		{
 			int32 Num=0;
@@ -3446,7 +3555,7 @@ void StaticUObjectInit()
 	UObjectBaseInit();
 
 	// Allocate special packages.
-	GObjTransientPkg = new( NULL, TEXT("/Engine/Transient") )UPackage(FObjectInitializer());
+	GObjTransientPkg = NewNamedObject<UPackage>(nullptr, TEXT("/Engine/Transient"));
 	GObjTransientPkg->AddToRoot();
 
 	if( FParse::Param( FCommandLine::Get(), TEXT("VERIFYGC") ) )
@@ -3497,8 +3606,12 @@ void StaticExit()
 		// Valid object.
 		GObjectCountDuringLastMarkPhase++;
 
-		// Mark as unreachable so purge phase will kill it.
-		It->SetFlags( RF_Unreachable );
+		UObject* Obj = *It;
+		if (Obj && !Obj->IsA<UField>()) // Skip Structures, properties, etc.. They could be still necessary while GC.
+		{
+			// Mark as unreachable so purge phase will kill it.
+			It->SetFlags(RF_Unreachable);
+		}
 	}
 
 	// Fully purge all objects, not using time limit.
@@ -3519,6 +3632,27 @@ void StaticExit()
 	}
 
 	IncrementalPurgeGarbage( false );
+
+	{
+		//Repeat GC for every object, including structures and properties.
+		for (FRawObjectIterator It; It; ++It)
+		{
+			// Mark as unreachable so purge phase will kill it.
+			It->SetFlags(RF_Unreachable);
+		}
+
+		for (FRawObjectIterator It; It; ++It)
+		{
+			UObject* Object = *It;
+			if (Object->HasAnyFlags(RF_Unreachable))
+			{
+				// Begin the object's asynchronous destruction.
+				Object->ConditionalBeginDestroy();
+			}
+		}
+
+		IncrementalPurgeGarbage(false);
+	}
 
 	UObjectBaseShutdown();
 	// Empty arrays to prevent falsely-reported memory leaks.

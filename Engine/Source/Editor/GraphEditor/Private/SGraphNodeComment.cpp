@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -114,7 +114,7 @@ void SGraphNodeComment::UpdateGraphNode()
 		TagName = FString::Printf(TEXT("GraphNode,%s,%s"), *LastOuter->GetFullName(), *GraphNode->NodeGuid.ToString());
 	}
 
-	TSharedPtr<SWidget> ErrorText = SetupErrorReporting();
+	SetupErrorReporting();
 
 	// Setup a meta tag for this node
 	FGraphNodeMetaData TagMeta(TEXT("Graphnode"));
@@ -122,7 +122,7 @@ void SGraphNodeComment::UpdateGraphNode()
 
 	bool bIsSet = GraphNode->IsA(UEdGraphNode_Comment::StaticClass());
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
-	this->ChildSlot
+	this->GetOrAddSlot( ENodeZone::Center )
 		.HAlign(HAlign_Fill)
 		.VAlign(VAlign_Fill)
 		[
@@ -166,7 +166,7 @@ void SGraphNodeComment::UpdateGraphNode()
 				.AutoHeight()
 				.Padding(1.0f)
 				[
-					ErrorText->AsShared()
+					ErrorReporting->AsWidget()
 				]
 				+SVerticalBox::Slot()
 				.AutoHeight()
@@ -179,6 +179,27 @@ void SGraphNodeComment::UpdateGraphNode()
 				]
 			]			
 		];
+	// Create comment bubble
+	TSharedPtr<SCommentBubble> CommentBubble;
+
+	SAssignNew( CommentBubble, SCommentBubble )
+	.GraphNode( GraphNode )
+	.Text( this, &SGraphNode::GetNodeComment )
+	.ColorAndOpacity( this, &SGraphNodeComment::GetCommentColor )
+	.AllowPinning( true )
+	.EnableTitleBarBubble( true )
+	.EnableBubbleCtrls( true )
+	.GraphLOD( this, &SGraphNode::GetCurrentLOD )
+	.IsGraphNodeHovered( this, &SGraphNode::IsHovered );
+
+	GetOrAddSlot( ENodeZone::TopCenter )
+	.SlotOffset( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetOffset ))
+	.SlotSize( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetSize ))
+	.AllowScaling( TAttribute<bool>( CommentBubble.Get(), &SCommentBubble::IsScalingAllowed ))
+	.VAlign( VAlign_Top )
+	[
+		CommentBubble.ToSharedRef()
+	];
 }
 
 FVector2D SGraphNodeComment::ComputeDesiredSize() const
@@ -209,45 +230,87 @@ FReply SGraphNodeComment::OnMouseButtonDoubleClick( const FGeometry& InMyGeometr
 	}
 }
 
+FReply SGraphNodeComment::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
+{
+	if ( (MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton) && bUserIsDragging )
+	{
+		bUserIsDragging = false;
+
+		// Resize the node	
+		UserSize.X = FMath::RoundToFloat(UserSize.X);
+		UserSize.Y = FMath::RoundToFloat(UserSize.Y);
+
+		GetNodeObj()->ResizeNode(UserSize);
+
+		// End resize transaction
+		ResizeTransactionPtr.Reset();
+
+		// Update contained child Nodes
+		HandleSelection( bIsSelected, true );
+
+		return FReply::Handled().ReleaseMouseCapture();
+	}
+	return FReply::Unhandled();
+}
+
+int32 SGraphNodeComment::GetSortDepth() const
+{
+	UEdGraphNode_Comment* CommentNode = Cast<UEdGraphNode_Comment>( GraphNode );
+	return CommentNode ? CommentNode->CommentDepth : -1;
+}
+
 void SGraphNodeComment::HandleSelection(bool bSelected, bool bUpdateNodesUnderComment) const
 {
-	if ((!this->bIsSelected && bSelected) || bUpdateNodesUnderComment)
+	const FVector2D NodeSize = GetDesiredSize();
+	// we only want to do this after the comment has a valid desired size
+	if( !NodeSize.IsZero() )
 	{
-		SGraphNodeComment* Comment = const_cast<SGraphNodeComment*> (this);
-
-		UEdGraphNode_Comment* CommentNode = Cast<UEdGraphNode_Comment>(GraphNode);
-
-		if (CommentNode)
+		if ((!this->bIsSelected && bSelected) || bUpdateNodesUnderComment)
 		{
+			SGraphNodeComment* Comment = const_cast<SGraphNodeComment*> (this);
+			UEdGraphNode_Comment* CommentNode = Cast<UEdGraphNode_Comment>(GraphNode);
 
-			// Get our geo
-			const FVector2D NodePosition = GetPosition();
-			const FVector2D NodeSize = GetDesiredSize();
-			const FSlateRect CommentRect( NodePosition.X, NodePosition.Y, NodePosition.X + NodeSize.X, NodePosition.Y + NodeSize.Y );
-
-			TSharedPtr< SGraphPanel > Panel = Comment->GetOwnerPanel();
-			FChildren* PanelChildren = Panel->GetChildren();
-			int32 NumChildren = PanelChildren->Num();
-			CommentNode->ClearNodesUnderComment();
-
-			for ( int32 NodeIndex=0; NodeIndex < NumChildren; ++NodeIndex )
+			if (CommentNode)
 			{
-				const TSharedRef<SGraphNode> SomeNodeWidget = StaticCastSharedRef<SGraphNode>(PanelChildren->GetChildAt(NodeIndex));
+				// Get our geo
+				const FVector2D NodePosition = GetPosition();
+				const FSlateRect CommentRect( NodePosition.X, NodePosition.Y, NodePosition.X + NodeSize.X, NodePosition.Y + NodeSize.Y );
 
-				UObject* GraphObject = SomeNodeWidget->GetObjectBeingDisplayed();
+				TSharedPtr<SGraphPanel> Panel = Comment->GetOwnerPanel();
+				FChildren* PanelChildren = Panel->GetAllChildren();
+				int32 NumChildren = PanelChildren->Num();
+				CommentNode->ClearNodesUnderComment();
+				int32 MinDepth = 0;
 
-				const FVector2D SomeNodePosition = SomeNodeWidget->GetPosition();
-				const FVector2D SomeNodeSize = SomeNodeWidget->GetDesiredSize();
-
-				const FSlateRect NodeGeometryGraphSpace( SomeNodePosition.X, SomeNodePosition.Y, SomeNodePosition.X + SomeNodeSize.X, SomeNodePosition.Y + SomeNodeSize.Y );
-				if ( FSlateRect::IsRectangleContained( CommentRect, NodeGeometryGraphSpace ) )
+				for ( int32 NodeIndex=0; NodeIndex < NumChildren; ++NodeIndex )
 				{
-					CommentNode->AddNodeUnderComment(GraphObject);
+					const TSharedRef<SGraphNode> SomeNodeWidget = StaticCastSharedRef<SGraphNode>(PanelChildren->GetChildAt(NodeIndex));
+
+					UObject* GraphObject = SomeNodeWidget->GetObjectBeingDisplayed();
+
+					if( GraphObject != CommentNode )
+					{
+						const FVector2D SomeNodePosition = SomeNodeWidget->GetPosition();
+						const FVector2D SomeNodeSize = SomeNodeWidget->GetDesiredSize();
+
+						const FSlateRect NodeGeometryGraphSpace( SomeNodePosition.X, SomeNodePosition.Y, SomeNodePosition.X + SomeNodeSize.X, SomeNodePosition.Y + SomeNodeSize.Y );
+						if( FSlateRect::DoRectanglesIntersect( CommentRect, NodeGeometryGraphSpace ) )
+						{
+							MinDepth = FMath::Min( MinDepth, SomeNodeWidget->GetSortDepth() - 1 );
+
+							if ( FSlateRect::IsRectangleContained( CommentRect, NodeGeometryGraphSpace ) )
+							{
+								CommentNode->AddNodeUnderComment(GraphObject);
+							}
+						}
+					}
 				}
+				// Fix Depth to include any overlapped comments
+				CommentNode->CommentDepth = FMath::Min( CommentNode->CommentDepth, MinDepth );
 			}
 		}
+		bIsSelected = bSelected;
 	}
-	this->bIsSelected = bSelected;
 }
 
 const FSlateBrush* SGraphNodeComment::GetShadowBrush(bool bSelected) const
@@ -321,11 +384,6 @@ FVector2D SGraphNodeComment::GetNodeMaximumSize() const
 	return FVector2D( UserSize.X + 100, UserSize.Y + 100 );
 }
 
-bool SGraphNodeComment::ShouldScaleNodeComment() const 
-{
-	return false;
-}
-
 FSlateColor SGraphNodeComment::GetCommentBodyColor() const
 {
 	UEdGraphNode_Comment* CommentNode = Cast<UEdGraphNode_Comment>(GraphNode);
@@ -358,7 +416,7 @@ FSlateColor SGraphNodeComment::GetCommentTitleBarColor() const
 bool SGraphNodeComment::CanBeSelected(const FVector2D& MousePositionInNode) const
 {
 	const EResizableWindowZone InMouseZone = FindMouseZone(MousePositionInNode);
-	return CRWZ_TitleBar == MouseZone;
+	return CRWZ_TitleBar == InMouseZone;
 }
 
 FVector2D SGraphNodeComment::GetDesiredSizeForMarquee() const

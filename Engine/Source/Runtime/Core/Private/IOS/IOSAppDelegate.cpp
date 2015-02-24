@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "IOSAppDelegate.h"
@@ -15,7 +15,7 @@
 #define GAME_THREAD_STACK_SIZE 1024 * 1024 
 
 DEFINE_LOG_CATEGORY(LogIOSAudioSession);
-DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogEngine, Log, All);
 
 extern bool GShowSplashScreen;
 
@@ -414,7 +414,7 @@ void InstallSignalHandlers()
 		[ImageString appendString:@"-IPhone6"];
 		if (!self.bDeviceInPortraitMode)
 		{
-			orient = UIImageOrientationLeft;
+			orient = UIImageOrientationRight;
 		}
 	}
 	else if (Device == FPlatformMisc::IOS_IPhone6Plus)
@@ -431,10 +431,14 @@ void InstallSignalHandlers()
 	}
 	else
 	{
-		if (MainFrame.size.height == 320 && !self.bDeviceInPortraitMode)
+		if (MainFrame.size.height == 320 && MainFrame.size.width != 480 && !self.bDeviceInPortraitMode)
 		{
 			[ImageString appendString:@"-568h"];
-			orient = UIImageOrientationLeft;
+			orient = UIImageOrientationRight;
+		}
+		else if (MainFrame.size.height == 320 && MainFrame.size.width == 480 && !self.bDeviceInPortraitMode)
+		{
+			orient = UIImageOrientationRight;
 		}
 		else if (MainFrame.size.height == 568)
 		{
@@ -500,10 +504,10 @@ void InstallSignalHandlers()
 	return YES;
 }
 
-- (BOOL)application:(UIApplication *)application handleOpenURL:(NSURL *)url
+- (BOOL)application:(UIApplication *)application openURL:(NSURL *)url sourceApplication:(NSString *)sourceApplication annotation:(id)annotation
 {
 #if !NO_LOGGING
-	NSLog(@"%s", "IOSAppDelegate handleOpenURL\n");
+	NSLog(@"%s", "IOSAppDelegate openURL\n");
 #endif
 
 	NSString* EncdodedURLString = [url absoluteString];
@@ -536,8 +540,8 @@ void InstallSignalHandlers()
 	 */
 
 	FCoreDelegates::ApplicationWillDeactivateDelegate.Broadcast();
+	[self ToggleSuspend:true];
 	[self ToggleAudioSession:false];
-    [self ToggleSuspend:true];
 }
 
 - (void)applicationDidEnterBackground:(UIApplication *)application

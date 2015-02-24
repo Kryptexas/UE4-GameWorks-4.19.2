@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "HttpPrivatePCH.h"
 #include "HTML5HTTP.h"
@@ -155,7 +155,7 @@ void FHTML5HttpRequest::SetContentAsString(const FString& ContentString)
 
 	FTCHARToUTF8 Converter(*ContentString);
 	RequestPayload.SetNum(Converter.Length());
-	FMemory::Memcpy(RequestPayload.GetTypedData(), (uint8*)(ANSICHAR*)Converter.Get(), RequestPayload.Num());
+	FMemory::Memcpy(RequestPayload.GetData(), (uint8*)(ANSICHAR*)Converter.Get(), RequestPayload.Num());
 }
 
 

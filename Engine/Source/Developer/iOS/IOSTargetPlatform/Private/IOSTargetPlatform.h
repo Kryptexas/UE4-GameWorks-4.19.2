@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	IOSTargetPlatform.h: Declares the FIOSTargetPlatform class.
@@ -149,6 +149,9 @@ private:
 
 	// Holds a delegate to be invoked when the widget ticks.
 	FTickerDelegate TickDelegate;
+
+	// Handle to the registered TickDelegate.
+	FDelegateHandle TickDelegateHandle;
 
 	// Holds the message endpoint used for communicating with the LaunchDaemon.
 	FMessageEndpointPtr MessageEndpoint;

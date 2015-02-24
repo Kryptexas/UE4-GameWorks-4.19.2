@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -109,28 +109,28 @@ private:
 	TSharedRef<ITableRow> MakeWidgetFromOption(TSharedPtr<FFoliageMeshUIInfo> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 
 	/** Sets the filter settings for if painting will occur on Landscapes. */
-	void OnCheckStateChanged_Landscape(ESlateCheckBoxState::Type InState);
+	void OnCheckStateChanged_Landscape(ECheckBoxState InState);
 
 	/** Retrieves the filter settings for painting on Landscapes. */
-	ESlateCheckBoxState::Type GetCheckState_Landscape() const;
+	ECheckBoxState GetCheckState_Landscape() const;
 
 	/** Sets the filter settings for if painting will occur on Static Meshes. */
-	void OnCheckStateChanged_StaticMesh(ESlateCheckBoxState::Type InState);
+	void OnCheckStateChanged_StaticMesh(ECheckBoxState InState);
 
 	/** Retrieves the filter settings for painting on Static Meshes. */
-	ESlateCheckBoxState::Type GetCheckState_StaticMesh() const;
+	ECheckBoxState GetCheckState_StaticMesh() const;
 
 	/** Sets the filter settings for if painting will occur on BSPs. */
-	void OnCheckStateChanged_BSP(ESlateCheckBoxState::Type InState);
+	void OnCheckStateChanged_BSP(ECheckBoxState InState);
 
 	/** Retrieves the filter settings for painting on BSPs. */
-	ESlateCheckBoxState::Type GetCheckState_BSP() const;
+	ECheckBoxState GetCheckState_BSP() const;
 
 	/** Sets the filter settings for if painting will occur on translucent meshes. */
-	void OnCheckStateChanged_Translucent(ESlateCheckBoxState::Type InState);
+	void OnCheckStateChanged_Translucent(ECheckBoxState InState);
 
 	/** Retrieves the filter settings for painting on translucent meshes. */
-	ESlateCheckBoxState::Type GetCheckState_Translucent() const;
+	ECheckBoxState GetCheckState_Translucent() const;
 
 	/** Checks if the text in the empty list overlay should appear. If the list is has items but the the drag and drop override is true, it will return EVisibility::Visible. */
 	EVisibility GetVisibility_EmptyList() const;
@@ -152,6 +152,7 @@ private:
 
 	/** Checks if the filters should appear. Dependant on the current tool being used. */
 	EVisibility GetVisibility_Filters() const;
+
 
 	/**
 	 * Checks if a static mesh can be added to the list of Static Meshes available.
@@ -187,4 +188,5 @@ private:
 
 	/** List of items currently being displayed. */
 	TArray<TSharedRef<SFoliageEditMeshDisplayItem>> DisplayItemList;
+
 };

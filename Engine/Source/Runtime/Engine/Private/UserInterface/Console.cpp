@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Interaction.cpp: See .UC for for info
@@ -9,6 +9,9 @@
 #include "Engine/LevelScriptActor.h"
 #include "SlateBasics.h"
 #include "DefaultValueHelper.h"
+#include "ConsoleSettings.h"
+#include "GameFramework/InputSettings.h"
+#include "Stats/StatsData.h"
 
 static const uint32 MAX_AUTOCOMPLETION_LINES = 20;
 
@@ -217,6 +220,25 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 		AutoCompleteList[NewIdx].Command = FString(TEXT("open 127.0.0.1"));
 		AutoCompleteList[NewIdx].Desc = FString(TEXT("open 127.0.0.1 (opens connection to localhost)"));
 	}
+
+#if STATS
+	// stat commands
+	{
+		const TSet<FName>& StatGroupNames = FStatGroupGameThreadNotifier::Get().StatGroupNames;
+
+		int32 NewIdx = AutoCompleteList.AddZeroed(StatGroupNames.Num());
+		for (const FName& StatGroupName : StatGroupNames)
+		{
+			FString Command = FString(TEXT("Stat "));
+			Command += StatGroupName.ToString().RightChop(sizeof("STATGROUP_") - 1);
+
+			AutoCompleteList[NewIdx].Command = Command;
+			AutoCompleteList[NewIdx].Desc = FString();
+			NewIdx++;
+		}
+	}
+#endif
+
 	// build the magic tree!
 	for (int32 ListIdx = 0; ListIdx < AutoCompleteList.Num(); ListIdx++)
 	{
@@ -1231,16 +1253,12 @@ void UConsole::FakeGotoState(FName NextStateName)
 	if (NextStateName == NAME_Typing)
 	{
 		BeginState_Typing(ConsoleState);
-		auto CurrentFocus = FSlateApplication::Get().GetKeyboardFocusedWidget();
-		FSlateApplication::Get().ResetToDefaultInputSettings();
-		FSlateApplication::Get().SetKeyboardFocus( CurrentFocus );
+		FSlateApplication::Get().ResetToDefaultPointerInputSettings();
 	}
 	else if (NextStateName == NAME_Open)
 	{
 		BeginState_Open(ConsoleState);
-		auto CurrentFocus = FSlateApplication::Get().GetKeyboardFocusedWidget();
-		FSlateApplication::Get().ResetToDefaultInputSettings();
-		FSlateApplication::Get().SetKeyboardFocus( CurrentFocus );
+		FSlateApplication::Get().ResetToDefaultPointerInputSettings();
 	}
 	else if( NextStateName == NAME_None )
 	{
@@ -1251,8 +1269,11 @@ void UConsole::FakeGotoState(FName NextStateName)
 		// Since the viewport may not be the current focus, we need to re-focus whatever the current focus is,
 		// in order to ensure it gets a chance to reapply any custom input settings
 		auto CurrentFocus = FSlateApplication::Get().GetKeyboardFocusedWidget();
-		FSlateApplication::Get().ClearKeyboardFocus( EFocusCause::SetDirectly );
-		FSlateApplication::Get().SetKeyboardFocus( CurrentFocus );
+		if (CurrentFocus.IsValid())
+		{
+			FSlateApplication::Get().ClearKeyboardFocus(EFocusCause::SetDirectly);
+			FSlateApplication::Get().SetKeyboardFocus(CurrentFocus);
+		}
 	}
 
 	ConsoleState = NextStateName;

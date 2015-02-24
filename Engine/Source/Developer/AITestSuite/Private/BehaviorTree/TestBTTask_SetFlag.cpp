@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AITestSuitePrivatePCH.h"
 #include "BehaviorTree/TestBTTask_SetFlag.h"
@@ -12,8 +12,8 @@ UTestBTTask_SetFlag::UTestBTTask_SetFlag(const FObjectInitializer& ObjectInitial
 	bValue = true;
 }
 
-EBTNodeResult::Type UTestBTTask_SetFlag::ExecuteTask(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+EBTNodeResult::Type UTestBTTask_SetFlag::ExecuteTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
-	OwnerComp->GetBlackboardComponent()->SetValueAsBool(KeyName, bValue);
+	OwnerComp.GetBlackboardComponent()->SetValue<UBlackboardKeyType_Bool>(KeyName, bValue);
 	return TaskResult;
 }

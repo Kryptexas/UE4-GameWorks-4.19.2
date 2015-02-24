@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "LandscapeInfo.generated.h"
@@ -241,5 +241,7 @@ public:
 	LANDSCAPE_API void FixupProxiesWeightmaps();
 
 	LANDSCAPE_API void RecreateCollisionComponents();
+
+	LANDSCAPE_API void RemoveXYOffsets();
 #endif
 };

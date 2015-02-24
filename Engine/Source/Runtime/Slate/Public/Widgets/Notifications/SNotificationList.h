@@ -1,9 +1,12 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "SlateFwd.h"
 #include "SCheckBox.h"
+
+// Forward declarations
+class INotificationWidget;
 
 /**
  * Interface class for an item in the event message list.
@@ -94,7 +97,8 @@ struct FNotificationInfo
 	 * @param	InText	Text string to display for this notification
 	 */
 	FNotificationInfo( const FText& InText )
-		: Text(InText),
+		: ContentWidget(),
+		Text(InText),
 		ButtonDetails(),
 		Image(nullptr),
 		FadeInDuration(0.5f),
@@ -105,13 +109,42 @@ struct FNotificationInfo
 		bUseLargeFont(true),
 		WidthOverride(),
 		bFireAndForget(true),
-		CheckBoxState(ESlateCheckBoxState::Unchecked),
+		CheckBoxState(ECheckBoxState::Unchecked),
 		CheckBoxStateChanged(),
 		CheckBoxText(),
 		Hyperlink(),
 		HyperlinkText( NSLOCTEXT("EditorNotification", "DefaultHyperlinkText", "Show Log") ),
 		bAllowThrottleWhenFrameRateIsLow(true)
 	{ };
+
+	/**
+	* FNotifcationInfo initialization constructor
+	*
+	* @param	InContentWidget	The content of the notification
+	*/
+	FNotificationInfo(TSharedPtr<INotificationWidget> InContentWidget)
+		: ContentWidget(InContentWidget),
+		Text(),
+		ButtonDetails(),
+		Image(nullptr),
+		FadeInDuration(0.5f),
+		FadeOutDuration(2.0f),
+		ExpireDuration(1.0f),
+		bUseThrobber(false),
+		bUseSuccessFailIcons(false),
+		bUseLargeFont(false),
+		WidthOverride(),
+		bFireAndForget(true),
+		CheckBoxState(ECheckBoxState::Unchecked),
+		CheckBoxStateChanged(),
+		CheckBoxText(),
+		Hyperlink(),
+		HyperlinkText(),
+		bAllowThrottleWhenFrameRateIsLow(true)
+	{ };
+
+	/** If set, overrides the entire content of the notification with this widget */
+	TSharedPtr<INotificationWidget> ContentWidget;
 
 	/** The text displayed in this text block */
 	FText Text;
@@ -147,7 +180,7 @@ struct FNotificationInfo
 	bool bFireAndForget;
 
 	/** When set this will display a check box on the notification; handles getting the current check box state */
-	TAttribute< ESlateCheckBoxState::Type > CheckBoxState;
+	TAttribute< ECheckBoxState > CheckBoxState;
 
 	/** When set this will display a check box on the notification; handles setting the new check box state */
 	FOnCheckStateChanged CheckBoxStateChanged;

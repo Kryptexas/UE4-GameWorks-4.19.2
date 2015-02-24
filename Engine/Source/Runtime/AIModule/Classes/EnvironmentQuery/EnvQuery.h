@@ -1,9 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "EnvQueryTypes.h"
 #include "EnvQuery.generated.h"
+
+class UEnvQueryOption;
+#if WITH_EDITORONLY_DATA
+class UEdGraph;
+#endif // WITH_EDITORONLY_DATA
 
 UCLASS()
 class AIMODULE_API UEnvQuery : public UObject
@@ -13,12 +18,12 @@ class AIMODULE_API UEnvQuery : public UObject
 #if WITH_EDITORONLY_DATA
 	/** Graph for query */
 	UPROPERTY()
-	class UEdGraph*	EdGraph;
+	UEdGraph*	EdGraph;
 #endif
 
 	UPROPERTY()
-	TArray<class UEnvQueryOption*> Options;
+	TArray<UEnvQueryOption*> Options;
 
 	/** Gather all required named params */
-	void CollectQueryParams(TArray<struct FEnvNamedValue>& NamedValues) const;
+	void CollectQueryParams(TArray<FEnvNamedValue>& NamedValues) const;
 };

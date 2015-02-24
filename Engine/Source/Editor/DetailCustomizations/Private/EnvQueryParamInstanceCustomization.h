@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,11 +27,11 @@ protected:
 	void OnParamNumValueChanged(float FloatValue) const;
 	EVisibility GetParamNumValueVisibility() const;
 
-	ESlateCheckBoxState::Type GetParamBoolValue() const;
-	void OnParamBoolValueChanged(ESlateCheckBoxState::Type BoolValue) const;
+	ECheckBoxState GetParamBoolValue() const;
+	void OnParamBoolValueChanged(ECheckBoxState BoolValue) const;
 	EVisibility GetParamBoolValueVisibility() const;
 
-	FString GetHeaderDesc() const;
+	FText GetHeaderDesc() const;
 	void OnTypeChanged();
 	void InitCachedTypes();
 

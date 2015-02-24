@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
 #include "FontBulkData.h"
@@ -8,7 +8,7 @@ UFontBulkData::UFontBulkData()
 	BulkData.SetBulkDataFlags(BULKDATA_SerializeCompressed);
 }
 
-UFontBulkData::UFontBulkData(const FString& InFontFilename)
+void UFontBulkData::Initialize(const FString& InFontFilename)
 {
 	BulkData.SetBulkDataFlags(BULKDATA_SerializeCompressed);
 
@@ -28,7 +28,7 @@ UFontBulkData::UFontBulkData(const FString& InFontFilename)
 	}
 }
 
-UFontBulkData::UFontBulkData(const void* const InFontData, const int32 InFontDataSizeBytes)
+void UFontBulkData::Initialize(const void* const InFontData, const int32 InFontDataSizeBytes)
 {
 	BulkData.SetBulkDataFlags(BULKDATA_SerializeCompressed);
 

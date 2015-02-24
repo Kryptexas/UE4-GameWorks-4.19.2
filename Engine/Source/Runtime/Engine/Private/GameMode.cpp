@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GameMode.cpp: AGameMode c++ code.
@@ -14,6 +14,12 @@
 #include "GameFramework/SpectatorPawn.h"
 #include "Engine/PlayerStartPIE.h"
 #include "GameFramework/EngineMessage.h"
+#include "GameFramework/GameState.h"
+#include "GameFramework/PlayerState.h"
+#include "GameFramework/GameSession.h"
+#include "GameFramework/CheatManager.h"
+#include "GameFramework/GameMode.h"
+#include "Engine/ChildConnection.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameMode, Log, All);
 
@@ -172,12 +178,9 @@ bool AGameMode::SetPause(APlayerController* PC, FCanUnpause CanUnpauseDelegate)
 {
 	if ( AllowPausing(PC) )
 	{
-		// Don't add the delegate twice (no need)
-		if (Pausers.Find(CanUnpauseDelegate) == INDEX_NONE)
-		{
-			// Not in the list so add it for querying
-			Pausers.Add(CanUnpauseDelegate);
-		}
+		// Add it for querying
+		Pausers.Add(CanUnpauseDelegate);
+
 		// Let the first one in "own" the pause state
 		AWorldSettings * WorldSettings = GetWorldSettings();
 		if (WorldSettings->Pauser == NULL)
@@ -385,11 +388,16 @@ AActor* AGameMode::FindPlayerStart( AController* Player, const FString& Incoming
 	return BestStart;
 }
 
+AActor* AGameMode::K2_FindPlayerStart( AController* Player )
+{
+	return FindPlayerStart(Player);
+}
+
 void AGameMode::PreInitializeComponents()
 {
 	Super::PreInitializeComponents();
 
-	GetWorldTimerManager().SetTimer(this, &AGameMode::DefaultTimer, GetWorldSettings()->GetEffectiveTimeDilation(), true);
+	GetWorldTimerManager().SetTimer(TimerHandle_DefaultTimer, this, &AGameMode::DefaultTimer, GetWorldSettings()->GetEffectiveTimeDilation(), true);
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.Instigator = Instigator;
 
@@ -585,7 +593,7 @@ void AGameMode::HandleMatchHasStarted()
 	}
 
 	// Make sure level streaming is up to date before triggering NotifyMatchStarted
-	GetWorld()->FlushLevelStreaming();
+	GEngine->BlockTillLevelStreamingCompleted(GetWorld());
 
 	// First fire BeginPlay, if we haven't already in waiting to start match
 	GetWorldSettings()->NotifyBeginPlay();
@@ -902,7 +910,7 @@ void AGameMode::ProcessServerTravel(const FString& URL, bool bAbsolute)
 	FString NextMap;
 	if (URL.ToUpper().Contains(TEXT("?RESTART")))
 	{
-		NextMap = GetOutermost()->GetName();
+		NextMap = UWorld::RemovePIEPrefix(GetOutermost()->GetName());
 	}
 	else
 	{
@@ -917,7 +925,7 @@ void AGameMode::ProcessServerTravel(const FString& URL, bool bAbsolute)
 		}
 	}
 	
-	// Handle short package names (convienience code so that short map names
+	// Handle short package names (convenience code so that short map names
 	// can still be specified in the console).
 	if (FPackageName::IsShortPackageName(NextMap))
 	{
@@ -964,6 +972,8 @@ void AGameMode::GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*>& Actor
 	{
 		// keep general game state until we transition to the final destination
 		ActorList.Add(World->GameState);
+		// keep the game session state until we transition to the final destination
+		ActorList.Add(GameSession);
 	}
 }
 
@@ -1706,3 +1716,7 @@ void AGameMode::DefaultTimer()
 {	
 }
 
+FString AGameMode::GetRedirectURL(const FString& MapName) const
+{
+	return FString();
+}

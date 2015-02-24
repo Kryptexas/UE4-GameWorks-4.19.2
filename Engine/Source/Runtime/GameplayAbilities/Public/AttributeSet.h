@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,18 +13,15 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayAttribute()
-		: Attribute(NULL)
+		: Attribute(nullptr)
 	{
 	}
 
-	FGameplayAttribute(UProperty *NewProperty)
-		: Attribute(NewProperty)
-	{
-	}
+	FGameplayAttribute(UProperty *NewProperty);
 
 	bool IsValid() const
 	{
-		return Attribute != NULL;
+		return Attribute != nullptr;
 	}
 
 	void SetUProperty(UProperty *NewProperty)
@@ -32,18 +29,20 @@ struct GAMEPLAYABILITIES_API FGameplayAttribute
 		Attribute = NewProperty;
 	}
 
-	UProperty * GetUProperty() const
+	UProperty* GetUProperty() const
 	{
 		return Attribute;
 	}
 
-	UClass * GetAttributeSetClass() const
+	UClass* GetAttributeSetClass() const
 	{
 		check(Attribute);
 		return CastChecked<UClass>(Attribute->GetOuter());
 	}
 
-	void SetNumericValueChecked(const float NewValue, class UAttributeSet* Dest) const;
+	bool IsSystemAttribute() const;
+
+	void SetNumericValueChecked(float NewValue, class UAttributeSet* Dest) const;
 
 	float GetNumericValueChecked(const UAttributeSet* Src) const;
 	
@@ -107,8 +106,10 @@ public:
 	 *	Called just before any modification happens to an attribute. This is lower level than PreAttributeModify/PostAttribute modify.
 	 *	There is no additional context provided here since anything can trigger this. Executed effects, duration based effects, effects being removed, immunity being applied, stacking rules changing, etc.
 	 *	This function is meant to enforce things like "Health = Clamp(Health, 0, MaxHealth)" and NOT things like "trigger this extra thing if damage is applied, etc".
+	 *	
+	 *	NewValue is a mutable reference so you are able to clamp the newly applied value as well.
 	 */
-	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float NewValue) { }
+	virtual void PreAttributeChange(const FGameplayAttribute& Attribute, float& NewValue) { }
 
 	/** 
 	 * Called to determine the set of gameplay attributes that the specified attribute requires as pre-requisites in order to accurately compute
@@ -129,6 +130,10 @@ public:
 	FGameplayAbilityActorInfo* GetActorInfo() const;
 
 	virtual void PrintDebug();
+
+	virtual void PreNetReceive();
+	
+	virtual void PostNetReceive();
 
 protected:
 	/** Is this attribute set safe to ID over the network by name?  */
@@ -156,7 +161,12 @@ struct GAMEPLAYABILITIES_API FScalableFloat
 		: Value(0.f)
 		, FinalCurve(NULL)
 	{
+	}
 
+	FScalableFloat(float InInitialValue)
+		: Value(InInitialValue)
+		, FinalCurve(NULL)
+	{
 	}
 
 public:
@@ -167,16 +177,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category=ScalableFloat)
 	FCurveTableRowHandle	Curve;
 
-	void FinalizeCurveData(const FGlobalCurveDataOverride *GlobalOverrides);
-
 	float GetValueAtLevel(float Level) const;
-
-	FScalableFloat MakeFinalizedCopy(const FGlobalCurveDataOverride *GlobalOverrides) const
-	{
-		FScalableFloat Copy(*this);
-		Copy.FinalizeCurveData(GlobalOverrides);
-		return Copy;
-	}
 
 	bool IsStatic() const
 	{
@@ -225,7 +226,8 @@ public:
 
 private:
 
-	FRichCurve * FinalCurve;
+	// Cached direct pointer to RichCurve we should evaluate
+	mutable FRichCurve* FinalCurve;
 };
 
 /**

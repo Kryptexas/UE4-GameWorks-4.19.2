@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -149,6 +149,12 @@ public:
 
 	// Called when a tab created from this factory is activated
 	virtual void OnTabActivated(TSharedPtr<SDockTab> Tab) const {}
+
+	// Called when a tab created from this factory is brought to the foreground
+	virtual void OnTabForegrounded(TSharedPtr<SDockTab> Tab) const {}
+
+	// Called when a tab created from this factory is sent to the background
+	virtual void OnTabBackgrounded(TSharedPtr<SDockTab> Tab) const {}
 
 	// Called when a tab created from this factory should be refreshed
 	virtual void OnTabRefreshed(TSharedPtr<SDockTab> Tab) const {}

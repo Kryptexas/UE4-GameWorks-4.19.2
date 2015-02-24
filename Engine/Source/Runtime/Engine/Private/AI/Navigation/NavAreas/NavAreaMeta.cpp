@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavAreas/NavAreaMeta.h"
@@ -7,7 +7,7 @@ UNavAreaMeta::UNavAreaMeta(const FObjectInitializer& ObjectInitializer) : Super(
 {
 }
 
-TSubclassOf<UNavArea> UNavAreaMeta::PickAreaClass(const class AActor* Actor, const FNavAgentProperties& NavAgent) const 
+TSubclassOf<UNavArea> UNavAreaMeta::PickAreaClass(const AActor* Actor, const FNavAgentProperties& NavAgent) const 
 { 
 	UE_LOG(LogNavigation, Warning, TEXT("UNavAreaMeta::PickAreaClass called. UNavAreaMeta is an abstract class and should never get used directly!"));
 

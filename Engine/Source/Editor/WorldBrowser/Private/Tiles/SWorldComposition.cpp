@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 #include "SNodePanel.h"
 #include "GraphEditor.h"
@@ -349,16 +349,17 @@ public:
 				FEditorStyle::GetBrush(TEXT("Graph.PlayInEditor")),
 				MyClippingRect
 				);
+		}
 
-			// Draw a current camera position
+		// Draw observer location
+		{
+			FVector ObserverPosition;
+			FRotator ObserverRotation;
+			if (WorldModel->GetObserverView(ObserverPosition, ObserverRotation))
 			{
-				const FSlateBrush* CameraImage = FEditorStyle::GetBrush(TEXT("WorldBrowser.SimulationViewPositon"));
-				FMatrix ObserverViewToWorld = WorldModel->GetObserverViewMatrix().Inverse();
-				FVector ObserverPosition	= ObserverViewToWorld.GetOrigin();
-				FRotator ObserverRotation	= ObserverViewToWorld.Rotator();
-								
 				FVector2D ObserverPositionScreen = GraphCoordToPanelCoord(FVector2D(ObserverPosition.X, ObserverPosition.Y));
-
+				const FSlateBrush* CameraImage = FEditorStyle::GetBrush(TEXT("WorldBrowser.SimulationViewPositon"));
+	
 				FPaintGeometry PaintGeometry = AllottedGeometry.ToPaintGeometry(
 					ObserverPositionScreen - CameraImage->ImageSize*0.5f, 
 					CameraImage->ImageSize
@@ -371,7 +372,7 @@ public:
 					CameraImage,
 					MyClippingRect,
 					ESlateDrawEffect::None,
-					FMath::DegreesToRadians(ObserverRotation.Yaw - 90.f), // 0 degrees pointing along +Y axis, arrow on the image pointing along +X axis
+					FMath::DegreesToRadians(ObserverRotation.Yaw),
 					CameraImage->ImageSize*0.5f,
 					FSlateDrawElement::RelativeToElement
 					);
@@ -1137,7 +1138,7 @@ TSharedRef<SWidget> SWorldComposition::ConstructContentWidget()
 				SNew(STextBlock)
 				.Visibility(this, &SWorldComposition::IsSimulationVisible)
 				.TextStyle( FEditorStyle::Get(), "Graph.SimulatingText" )
-				.Text(FString(TEXT("SIMULATING")))
+				.Text(LOCTEXT("SimulatingNotification", "SIMULATING"))
 			]
 		];
 }
@@ -1213,63 +1214,58 @@ FText SWorldComposition::GetZoomText() const
 	return GridView->GetZoomText();
 }
 
-FString SWorldComposition::GetCurrentOriginText() const
+FText SWorldComposition::GetCurrentOriginText() const
 {
 	UWorld* CurrentWorld = (TileWorldModel->IsSimulating() ? TileWorldModel->GetSimulationWorld() : TileWorldModel->GetWorld());
-	return FString::Printf(TEXT("%d, %d"), CurrentWorld->OriginLocation.X, CurrentWorld->OriginLocation.Y);
+	return FText::Format(LOCTEXT("PositionXYFmt", "{0}, {1}"), FText::AsNumber(CurrentWorld->OriginLocation.X), FText::AsNumber(CurrentWorld->OriginLocation.Y));
 }
 
-FString SWorldComposition::GetCurrentLevelText() const
+FText SWorldComposition::GetCurrentLevelText() const
 {
-	FString Text("");
 	UWorld* CurrentWorld = (TileWorldModel->IsSimulating() ? TileWorldModel->GetSimulationWorld() : TileWorldModel->GetWorld());
 
 	if (CurrentWorld->GetCurrentLevel())
 	{
 		UPackage* Package = CastChecked<UPackage>(CurrentWorld->GetCurrentLevel()->GetOutermost());
-		Text+= FPackageName::GetShortName(Package->GetName());
-	}
-	else
-	{
-		Text+= TEXT("None");
+		return FText::FromString(FPackageName::GetShortName(Package->GetName()));
 	}
 	
-	return Text;
+	return LOCTEXT("None", "None");
 }
 
-FString SWorldComposition::GetMouseLocationText() const
+FText SWorldComposition::GetMouseLocationText() const
 {
 	FVector2D MouseLocation = GridView->GetMouseWorldLocation();
-	return FString::Printf(TEXT("%d, %d"), FMath::RoundToInt(MouseLocation.X), FMath::RoundToInt(MouseLocation.Y));
+	return FText::Format(LOCTEXT("PositionXYFmt", "{0}, {1}"), FText::AsNumber(FMath::RoundToInt(MouseLocation.X)), FText::AsNumber(FMath::RoundToInt(MouseLocation.Y)));
 }
 
-FString	SWorldComposition::GetMarqueeSelectionSizeText() const
+FText SWorldComposition::GetMarqueeSelectionSizeText() const
 {
 	FVector2D MarqueeSize = GridView->GetMarqueeWorldSize();
 	
 	if (MarqueeSize.X > 0 && 
 		MarqueeSize.Y > 0)
 	{
-		return FString::Printf(TEXT("%d x %d"), FMath::RoundToInt(MarqueeSize.X), FMath::RoundToInt(MarqueeSize.Y));
+		return FText::Format(LOCTEXT("SizeXYFmt", "{0} x {1}"), FText::AsNumber(FMath::RoundToInt(MarqueeSize.X)), FText::AsNumber(FMath::RoundToInt(MarqueeSize.Y)));
 	}
 	else
 	{
-		return FString();
+		return FText::GetEmpty();
 	}
 }
 
-FString SWorldComposition::GetWorldSizeText() const
+FText SWorldComposition::GetWorldSizeText() const
 {
 	FIntPoint WorldSize = TileWorldModel->GetWorldSize();
 	
 	if (WorldSize.X > 0 && 
 		WorldSize.Y > 0)
 	{
-		return FString::Printf(TEXT("%d x %d"), WorldSize.X, WorldSize.Y);
+		return FText::Format(LOCTEXT("SizeXYFmt", "{0} x {1}"), FText::AsNumber(WorldSize.X), FText::AsNumber(WorldSize.Y));
 	}
 	else
 	{
-		return FString();
+		return FText::GetEmpty();
 	}
 }
 

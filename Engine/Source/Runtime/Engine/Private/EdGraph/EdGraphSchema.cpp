@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "EdGraph/EdGraph.h"
@@ -489,10 +489,10 @@ FPinConnectionResponse UEdGraphSchema::CopyPinLinks(UEdGraphPin& CopyFromPin, UE
 	return FinalResponse;
 }
 
-FString UEdGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const
+FText UEdGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const
 {
 	check(Pin != NULL);
-	return !Pin->PinFriendlyName.IsEmpty() ? Pin->PinFriendlyName.ToString() : Pin->PinName;
+	return !Pin->PinFriendlyName.IsEmpty() ? Pin->PinFriendlyName : FText::FromString(Pin->PinName);
 }
 
 void UEdGraphSchema::ConstructBasicPinTooltip(UEdGraphPin const& Pin, FText const& PinDescription, FString& TooltipOut) const
@@ -614,12 +614,10 @@ void UEdGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, const U
 				.VAlign(VAlign_Center)
 				.FillWidth( 1.0f )
 				[
-					SNew(SEditableTextBox)
+					SNew(SMultiLineEditableTextBox)
 					.Text( NodeCommentText )
 					.ToolTipText(LOCTEXT("NodeComment_ToolTip", "Comment for this node"))
 					.OnTextCommitted_Static(&Local::OnNodeCommentTextCommitted, SelectedNodeWeakPtr)
-					.MinDesiredWidth( 120.f )
-					//.IsReadOnly( !SelectedActors(0)->IsActorLabelEditable() )
 					.SelectAllTextWhenFocused( true )
 					.RevertTextOnEscape( true )
 				];

@@ -1,10 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "GameplayTags.h"
 #include "GameplayEffect.h"
-#include "GameplayCueNotify.h"
+#include "GameplayCueNotify_Actor.h"
 #include "GameplayCueManager.generated.h"
 
 /**
@@ -51,7 +51,7 @@ struct FGameplayCueNotifyData
 	GENERATED_USTRUCT_BODY()
 
 	FGameplayCueNotifyData()
-	: LoadedGameplayCueNotify(nullptr)
+	: LoadedGameplayCueClass(nullptr)
 	, ParentDataIdx( INDEX_NONE )
 	{
 	}
@@ -59,8 +59,8 @@ struct FGameplayCueNotifyData
 	UPROPERTY(VisibleDefaultsOnly, Category=GameplayCue, meta=(AllowedClasses="GameplayCueNotify"))
 	FStringAssetReference	GameplayCueNotifyObj;
 
-	UPROPERTY(transient)
-	UGameplayCueNotify*		LoadedGameplayCueNotify;
+	UPROPERTY()
+	UClass*					LoadedGameplayCueClass;
 
 	FGameplayTag			GameplayCueTag;
 
@@ -101,7 +101,10 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	TMap<FGameplayTag, int32>	GameplayCueDataMap;
 	
 	UPROPERTY(transient)
-	UObjectLibrary* GameplayCueNotifyObjectLibrary;
+	UObjectLibrary* GameplayCueNotifyActorObjectLibrary;
+
+	UPROPERTY(transient)
+	UObjectLibrary* GameplayCueNotifyStaticObjectLibrary;
 
 	// -------------------------------------------------------------
 	// Preload GameplayCue tags that we think we will need:
@@ -113,14 +116,8 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 
 	FStreamableManager	StreamableManager;
 
-	UPROPERTY(transient)
-	TArray<UGameplayCueNotify*>	LoadedObjects;
-
-	UPROPERTY(transient)
-	TArray<UGameplayCueNotify*>	InstantiatedObjects;
-
 	// Fixme: we can combine the AActor* and the int32 into a single struct with a decent hash and avoid double map lookups
-	TMap< TWeakObjectPtr<AActor>, TMap<int32, TWeakObjectPtr<UGameplayCueNotify> > >	NotifyMap;
+	TMap<TWeakObjectPtr<AActor>, TMap<int32, TWeakObjectPtr<AGameplayCueNotify_Actor>>>		NotifyMapActor;
 
 	static FGameplayTag	BaseGameplayCueTag();
 
@@ -134,11 +131,18 @@ class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 	void HandleAssetDeleted(UObject *Object);
 
 	bool RegisteredEditorCallbacks;
+
+	bool bAccelerationMapOutdated;
 #endif
 
 private:
 
 	virtual void HandleGameplayCueNotify_Internal(AActor* TargetActor, int32 DataIdx, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters);
+
+	#if WITH_EDITOR
+		//This handles the case where GameplayCueNotifications have changed between sessions, which is possible in editor.
+		void ReloadObjectLibrary(UWorld* World, const UWorld::InitializationValues IVS);
+	#endif
 
 	void LoadObjectLibrary_Internal();
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintActionFilter.h"
@@ -20,6 +20,7 @@
 #include "K2Node_Message.h"
 #include "K2Node_ExecutionSequence.h"
 #include "K2Node_DynamicCast.h"
+#include "K2Node_BaseAsyncTask.h"
 
 /*******************************************************************************
  * Static BlueprintActionFilter Helpers
@@ -48,6 +49,17 @@ namespace BlueprintActionFilterImpl
 	 * @return True if the ClassToTest is the same type as (or inherited from) TypeToCheckFor.
 	 */
 	static bool IsClassOfType(UClass const* ClassToTest, UClass const* TypeToCheckFor, bool const bNeedsExactMatch = false);
+
+	/**
+	 * This not only tells you if an interface is implemented by a class, but 
+	 * walks the class inheritance chain to find out which super class actually 
+	 * adds the interface.
+	 * 
+	 * @param  SubClass		The class you're querying for.
+	 * @param  Interface	The interface you want to look for.
+	 * @return Null if the class doesn't implement the function, otherwise the super class that adds it (could be the class passed in).
+	 */
+	static UClass const* FindInheritedInterfaceClass(UClass const* SubClass, TSubclassOf<UInterface> Interface);
 	
 	/**
 	 * Utility method to check and see if the specified node-spawner would 
@@ -359,6 +371,27 @@ static bool BlueprintActionFilterImpl::IsClassOfType(UClass const* ClassToTest, 
 }
 
 //------------------------------------------------------------------------------
+static UClass const* BlueprintActionFilterImpl::FindInheritedInterfaceClass(UClass const* SubClass, TSubclassOf<UInterface> Interface)
+{
+	UClass const* ImplementsInterface = nullptr;
+
+	UClass const* ClassToCheck = SubClass;
+	while ((ClassToCheck != nullptr) && (ImplementsInterface == nullptr))
+	{
+		for (FImplementedInterface const& ClassInterface : ClassToCheck->Interfaces)
+		{
+			UClass const* InterfaceClass = ClassInterface.Class;
+			if (InterfaceClass->IsChildOf(Interface))
+			{
+				ImplementsInterface = ClassToCheck;
+			}
+		}
+		ClassToCheck = ClassToCheck->GetSuperClass();
+	}
+	return ImplementsInterface;
+}
+
+//------------------------------------------------------------------------------
 static bool BlueprintActionFilterImpl::IsImpure(FBlueprintActionInfo& BlueprintAction)
 {
 	bool bIsImpure = false;
@@ -478,37 +511,53 @@ static bool BlueprintActionFilterImpl::IsFieldInaccessible(FBlueprintActionFilte
 
 	if (bIsMemberAction)
 	{
-		bool bIsProtected = Field->HasMetaData(FBlueprintMetadata::MD_Protected);
-		bool bIsPrivate = Field->HasMetaData(FBlueprintMetadata::MD_Private);
+		bool const bIsProtected = Field->HasMetaData(FBlueprintMetadata::MD_Protected);
+		bool const bIsPrivate   = Field->HasMetaData(FBlueprintMetadata::MD_Private);
+		bool const bIsPublic    = !bIsPrivate && !bIsProtected;
 
-		bool bIsPublic = !bIsPrivate && !bIsProtected;
-		if (UProperty const* Property = Cast<UProperty>(Field))
-		{
-			// CPF_DisableEditOnInstance corresponds to the eyeball/editable 
-			// checkbox available in the blueprint editor. It is poorly named. 
-			bIsPublic = !Property->HasAnyPropertyFlags(CPF_DisableEditOnInstance);
-
-			// If we've disabled editing on the instance, it's entirely possible that the variable has
-			// the flags, EditDefaultsOnly, BlueprintReadOnly, which should still be public, but only
-			// for getting the value.  This is for Native properties.
-			bIsPublic = bIsPublic || Property->HasAnyPropertyFlags(CPF_BlueprintReadOnly);
-
-			// When CPF_DisableEditOnInstance is *not* set, the user has tagged 
-			// the variable as 'editable' and it is treated as public (delegate 
-			// properties don't have the visibility check box, so they default
-			// to public):
-			bIsPublic = bIsPublic || (Cast<UMulticastDelegateProperty>(Property) != nullptr);
-
-			// If the variable is not public, and is not tagged as private, it should be protected
-			// by default. This branch handles variables declared in blueprints:
-			if( !bIsPublic )
-			{
-				if( !bIsPrivate )
-				{
-					bIsProtected = true; 
-				}
-			}
-		}
+		// @TODO: Trying to respect the "editable"/DisableEditOnInstance toggle
+		//        was a bad idea that lead to confusion amongst users (also this 
+		//        created a discrepancy between native and blueprint variables),
+		//        until we make this concept more understandable: hold off
+// 		if (UProperty const* Property = Cast<UProperty>(Field))
+// 		{
+// 			// default to assuming that this property is a native one (the
+// 			// accessibility there is a little more lax)
+// 			bool bIsNativeProperty = true;
+// 			if (UClass* PropertyClass = Property->GetOwnerClass())
+// 			{
+// 				bIsNativeProperty = (Cast<UBlueprintGeneratedClass>(PropertyClass) == nullptr);
+// 			}
+// 
+// 			// if this is a native property, then the user only should have to 
+// 			// specify BlueprintReadWrite or BlueprintReadOnly for it to be 
+// 			// accessible
+// 			if (bIsNativeProperty)
+// 			{
+// 				bIsPublic &= Property->HasAnyPropertyFlags(CPF_BlueprintVisible);
+// 			}
+// 			else
+// 			{
+// 				// however, if this is a blueprint variable, then the
+// 				// CPF_DisableEditOnInstance corresponds to the eyeball/editable 
+// 				// checkbox in the editor, and we don't want the variable to be 
+// 				// public until the user exposes it (delegates don't have an
+// 				// 'editable' toggle, so they should default to public)
+// 				bIsPublic &= !Property->HasAnyPropertyFlags(CPF_DisableEditOnInstance) ||
+// 					(Cast<UMulticastDelegateProperty>(Property) != nullptr);
+// 
+// 				// @TODO: allow users to choose "read-only" for blueprint 
+// 				//        variables ("private" might have provided this in the 
+// 				//        past, but that is just wrong, or needs to be renamed)
+// 			}
+// 
+// 			// If the variable is not public, and is not tagged as private, it should be protected
+// 			// by default. This branch handles variables declared in blueprints:
+// 			if (!bIsNativeProperty && !bIsPublic && !bIsPrivate)
+// 			{
+// 				bIsProtected = true;
+// 			}
+// 		}
 
 		if( !bIsPublic )
 		{
@@ -547,8 +596,15 @@ static bool BlueprintActionFilterImpl::IsRestrictedClassMember(FBlueprintActionF
 		if (ActionClass->HasMetaData(FBlueprintMetadata::MD_RestrictedToClasses))
 		{
 			FString const& ClassRestrictions = ActionClass->GetMetaData(FBlueprintMetadata::MD_RestrictedToClasses);
-			for (UClass const* TargetClass : Filter.TargetClasses)
+			for (UBlueprint const* TargetContext : FilterContext.Blueprints)
 			{
+				UClass* TargetClass = TargetContext->GeneratedClass;
+				if(!TargetClass)
+				{
+					// Skip possible null classes (e.g. macros, etc)
+					continue;
+				};
+
 				bool bIsClassListed = false;
 				
 				UClass const* QueryClass = TargetClass;
@@ -1048,7 +1104,7 @@ static bool BlueprintActionFilterImpl::IsFunctionMissingPinParam(FBlueprintActio
 				// want to flip the connotation here
 				bool const bWantsOutputConnection = (PinDir == EGPD_Input) ^ bIsEventSpawner;
 
-				if (K2Schema->FunctionHasParamOfType(AssociatedFunc, K2Node->GetBlueprint(), PinType, bWantsOutputConnection))
+				if (K2Schema->FunctionHasParamOfType(AssociatedFunc, K2Node->GetGraph(), PinType, bWantsOutputConnection))
 				{
 					bIsFilteredOut = false;
 				}
@@ -1287,11 +1343,19 @@ static bool BlueprintActionFilterImpl::IsExtraneousInterfaceCall(FBlueprintActio
 			bIsFilteredOut = (Filter.TargetClasses.Num() > 0);
 			for (const UClass* TargetClass : Filter.TargetClasses)
 			{
-				bool const bTargetIsBlueprint = (Cast<UBlueprint>(TargetClass->ClassGeneratedBy) != nullptr);
-				// Blueprints fold interface functions in with their other 
-				// functions, and we'd rather those get called (because it is more
-				// optimal, as it avoids a conversion between object/interface)
-				if (!bTargetIsBlueprint || !IsClassOfType(TargetClass, FuncClass))
+				UClass const* InterfaceImplementingClass = FindInheritedInterfaceClass(TargetClass, FuncClass);
+				// interfaces that are added directly to a Blueprint (even in 
+				// the case of an interface on a parent blueprint) have their 
+				// functions stubbed-out/added to the blueprint class directly;
+				// in that case, we want to favor a call to the blueprint 
+				// version (not this interface call) because we can circumvent 
+				// the extra work converting from a interface to an object.
+				//
+				// however, if the interface belongs to a native class, then the
+				// blueprint doesn't get those extra functions, so this is is 
+				// our only way of calling the interface methods.
+				bool const bImplementedByBlueprint = (InterfaceImplementingClass != nullptr) && (Cast<UBlueprint>(InterfaceImplementingClass->ClassGeneratedBy) != nullptr);
+				if (!bImplementedByBlueprint)
 				{
 					bIsFilteredOut = false;
 					break;

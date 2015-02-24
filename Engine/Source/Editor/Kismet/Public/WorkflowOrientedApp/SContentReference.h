@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -85,8 +85,8 @@ protected:
 	TSharedRef<SWidget> MakeAssetPickerMenu();
 	void OnAssetSelectedFromPicker(const FAssetData& AssetData);
 
-	FString GetAssetShortName() const;
-	FString GetAssetFullName() const;
+	FText GetAssetShortName() const;
+	FText GetAssetFullName() const;
 
 	const FSlateBrush* GetBorderImage() const;
 

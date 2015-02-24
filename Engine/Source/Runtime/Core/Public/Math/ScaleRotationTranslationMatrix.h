@@ -1,20 +1,24 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+
 /** Combined Scale rotation and translation matrix */
-class FScaleRotationTranslationMatrix : public FMatrix
+class FScaleRotationTranslationMatrix
+	: public FMatrix
 {
 public:
 
-	/** Constructor
-	*
-	* @param Scale scale to apply to matrix
-	* @param Rot rotation
-	* @param Origin translation to apply
-	*/
+	/**
+	 * Constructor.
+	 *
+	 * @param Scale scale to apply to matrix
+	 * @param Rot rotation
+	 * @param Origin translation to apply
+	 */
 	FScaleRotationTranslationMatrix(const FVector& Scale, const FRotator& Rot, const FVector& Origin);
 };
+
 
 FORCEINLINE FScaleRotationTranslationMatrix::FScaleRotationTranslationMatrix(const FVector& Scale, const FRotator& Rot, const FVector& Origin)
 {

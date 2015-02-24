@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Components/NiagaraComponent.h"
@@ -21,15 +21,15 @@ DECLARE_DWORD_COUNTER_STAT(TEXT("NumParticles"),STAT_NiagaraNumParticles,STATGRO
 FNiagaraSceneProxy::FNiagaraSceneProxy(const UNiagaraComponent* InComponent)
 		:	FPrimitiveSceneProxy(InComponent)
 {
-	UpdateEffectRenderers(InComponent->Effect);
+	UpdateEffectRenderers(InComponent->GetEffectInstance());
 }
 
-void FNiagaraSceneProxy::UpdateEffectRenderers(UNiagaraEffect *InEffect)
+void FNiagaraSceneProxy::UpdateEffectRenderers(FNiagaraEffectInstance *InEffect)
 {
 	EffectRenderers.Empty();
 	if (InEffect)
 	{
-		for (TSharedPtr<FNiagaraSimulation>Emitter : InEffect->Emitters)
+		for (TSharedPtr<FNiagaraSimulation>Emitter : InEffect->GetEmitters())
 		{
 			AddEffectRenderer(Emitter->GetEffectRenderer());
 		}
@@ -90,30 +90,6 @@ void FNiagaraSceneProxy::OnTransformChanged()
 	//WorldSpacePrimitiveUniformBuffer.ReleaseResource();
 }
 
-void FNiagaraSceneProxy::PreRenderView(const FSceneViewFamily* ViewFamily, const uint32 VisibilityMap, int32 FrameNumber)
-{
-	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
-	{
-		if (Renderer)
-		{
-			Renderer->PreRenderView(ViewFamily, VisibilityMap, FrameNumber, this);
-		}
-	}
-	return;
-}
-		  
-void FNiagaraSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI, const FSceneView* View) 
-{
-	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
-	{
-		if (Renderer)
-		{
-			Renderer->DrawDynamicElements(PDI, View, this);
-		}
-	}
-	return;
-}
-
 FPrimitiveViewRelevance FNiagaraSceneProxy::GetViewRelevance(const FSceneView* View)
 {
 	FPrimitiveViewRelevance Relevance;
@@ -153,7 +129,10 @@ void FNiagaraSceneProxy::GetDynamicMeshElements(const TArray<const FSceneView*>&
 {
 	for (NiagaraEffectRenderer *Renderer : EffectRenderers)
 	{
-		Renderer->GetDynamicMeshElements(Views, ViewFamily, VisibilityMap, Collector, this);
+		if (Renderer)
+		{
+			Renderer->GetDynamicMeshElements(Views, ViewFamily, VisibilityMap, Collector, this);
+		}
 	}
 }
 
@@ -189,27 +168,25 @@ void UNiagaraComponent::TickComponent(float DeltaSeconds, enum ELevelTick TickTy
 {
 //	EmitterAge += DeltaSeconds;
 
-	if (Effect)
+	if (EffectInstance)
 	{ 
 
 		//Todo, open this up to the UI and setting via code and BPs.
 		static FName Const_Zero(TEXT("ZERO"));
-		Effect->SetConstant(Const_Zero, FVector4(0.0f, 0.0f, 0.0f, 0.0f));	// zero constant
+		EffectInstance->SetConstant(Const_Zero, FVector4(0.0f, 0.0f, 0.0f, 0.0f));	// zero constant
 		static FName Const_DeltaTime(TEXT("Delta Time"));
-		Effect->SetConstant(Const_DeltaTime, FVector4(DeltaSeconds, DeltaSeconds, DeltaSeconds, DeltaSeconds));
+		EffectInstance->SetConstant(Const_DeltaTime, FVector4(DeltaSeconds, DeltaSeconds, DeltaSeconds, DeltaSeconds));
 		static FName Const_EmitterPos(TEXT("Emitter Position"));
-		Effect->SetConstant(Const_EmitterPos, FVector4(ComponentToWorld.GetTranslation()));
-		//static FName Const_Age(TEXT("Emitter Age"));
-		//Effect->SetConstant(Const_Age, FVector4(EmitterAge, EmitterAge, EmitterAge, EmitterAge));
+		EffectInstance->SetConstant(Const_EmitterPos, FVector4(ComponentToWorld.GetTranslation()));
 		static FName Const_EmitterX(TEXT("Emitter X Axis"));
-		Effect->SetConstant(Const_EmitterX, FVector4(ComponentToWorld.GetUnitAxis(EAxis::X)));
+		EffectInstance->SetConstant(Const_EmitterX, FVector4(ComponentToWorld.GetUnitAxis(EAxis::X)));
 		static FName Const_EmitterY(TEXT("Emitter Y Axis"));
-		Effect->SetConstant(Const_EmitterY, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Y)));
+		EffectInstance->SetConstant(Const_EmitterY, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Y)));
 		static FName Const_EmitterZ(TEXT("Emitter Z Axis"));
-		Effect->SetConstant(Const_EmitterZ, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Z)));
+		EffectInstance->SetConstant(Const_EmitterZ, FVector4(ComponentToWorld.GetUnitAxis(EAxis::Z)));
 		static FName Const_EmitterTransform(TEXT("Emitter Transform"));
-		Effect->SetConstant(Const_EmitterTransform, ComponentToWorld.ToMatrixWithScale());
-		Effect->Tick(DeltaSeconds);
+		EffectInstance->SetConstant(Const_EmitterTransform, ComponentToWorld.ToMatrixWithScale());
+		EffectInstance->Tick(DeltaSeconds);
 	}
 
 	UpdateComponentToWorld();
@@ -219,24 +196,30 @@ void UNiagaraComponent::TickComponent(float DeltaSeconds, enum ELevelTick TickTy
 void UNiagaraComponent::OnRegister()
 {
 	Super::OnRegister();
-	if (Effect)
+	if (Asset)
 	{
-		Effect->Init(this);
+		if (!EffectInstance)
+		{
+			EffectInstance = new FNiagaraEffectInstance(Asset, this);
+		}
+		{
+			EffectInstance->Init(this);
 
-		// initialize all render modules
-		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-			FChangeNiagaraRenderModule,
-			UNiagaraEffect*, InEffect, this->Effect,
-			UNiagaraComponent*, InComponent, this,
-			{
-				for (TSharedPtr<FNiagaraSimulation> Emitter : InEffect->Emitters)
+			// initialize all render modules
+			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+				FChangeNiagaraRenderModule,
+				FNiagaraEffectInstance*, InEffect, this->EffectInstance,
+				UNiagaraComponent*, InComponent, this,
 				{
-					Emitter->SetRenderModuleType(Emitter->GetProperties()->RenderModuleType, InComponent->GetWorld()->FeatureLevel);
+					for (TSharedPtr<FNiagaraSimulation> Emitter : InEffect->GetEmitters())
+					{
+						Emitter->SetRenderModuleType(Emitter->GetProperties()->RenderModuleType, InComponent->GetWorld()->FeatureLevel);
+					}
 				}
-			}
-		);
+			);
+		}
+		VectorVM::Init();
 	}
-	VectorVM::Init();
 }
 
 
@@ -247,21 +230,25 @@ void UNiagaraComponent::OnUnregister()
 
 void UNiagaraComponent::SendRenderDynamicData_Concurrent()
 {
-	if (Effect && SceneProxy)
+	if (EffectInstance && SceneProxy)
 	{
 		FNiagaraSceneProxy *NiagaraProxy = static_cast<FNiagaraSceneProxy*>(SceneProxy);
-		for (int32 i = 0; i < Effect->Emitters.Num(); i++)
+		for (int32 i = 0; i < EffectInstance->GetEmitters().Num(); i++)
 		{
-			FNiagaraSimulation *Emitter = Effect->GetEmitter(i);
-			FNiagaraDynamicDataBase* DynamicData = Emitter->GetEffectRenderer()->GenerateVertexData(Effect->Emitters[i]->GetData());
+			TSharedPtr<FNiagaraSimulation>Emitter = EffectInstance->GetEmitters()[i];
+			NiagaraEffectRenderer *Renderer = Emitter->GetEffectRenderer();
+			if (Renderer)
+			{
+				FNiagaraDynamicDataBase* DynamicData = Renderer->GenerateVertexData(Emitter->GetData());
 
-			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
-				FSendNiagaraDynamicData,
-				NiagaraEffectRenderer*, EffectRenderer, Emitter->GetEffectRenderer(),
-				FNiagaraDynamicDataBase*, DynamicData, DynamicData,
-				{
-				EffectRenderer->SetDynamicData_RenderThread(DynamicData);
-			});
+				ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+					FSendNiagaraDynamicData,
+					NiagaraEffectRenderer*, EffectRenderer, Emitter->GetEffectRenderer(),
+					FNiagaraDynamicDataBase*, DynamicData, DynamicData,
+					{
+					EffectRenderer->SetDynamicData_RenderThread(DynamicData);
+				});
+			}
 		}
 	}
 
@@ -296,7 +283,7 @@ FBoxSphereBounds UNiagaraComponent::CalcBounds(const FTransform& LocalToWorld) c
 FPrimitiveSceneProxy* UNiagaraComponent::CreateSceneProxy()
 {
 	FNiagaraSceneProxy *Proxy = new FNiagaraSceneProxy(this);
-	Proxy->UpdateEffectRenderers(Effect);
+	Proxy->UpdateEffectRenderers(EffectInstance);
 	return Proxy;
 }
 
@@ -308,3 +295,12 @@ void UNiagaraComponent::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 	FComponentReregisterContext ReregisterContext(this);
 }
 #endif // WITH_EDITOR
+
+
+
+void UNiagaraComponent::SetAsset(UNiagaraEffect *InAsset)
+{
+	Asset = InAsset;
+
+	EffectInstance = new FNiagaraEffectInstance(Asset, this);
+}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "ModuleInterface.h"
@@ -46,12 +46,12 @@ public:
 	 */
 	DECLARE_EVENT_OneParam(FWorldBrowserModule, FOnBrowseWorld, UWorld*);
 	FOnBrowseWorld OnBrowseWorld;
-		
+				
 private:
 	void OnWorldCreated(UWorld* InWorld);
 	void OnWorldDestroyed(UWorld* InWorld);
 	void OnWorldCompositionChanged(UWorld* InWorld);
-		
+				
 private:
 	TWeakPtr<class FLevelCollectionModel>	WorldModel;
 };

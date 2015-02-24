@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemNullPrivatePCH.h"
 #include "OnlineSubsystemNull.h"
@@ -108,6 +108,11 @@ IOnlinePresencePtr FOnlineSubsystemNull::GetPresenceInterface() const
 	return NULL;
 }
 
+IOnlineChatPtr FOnlineSubsystemNull::GetChatInterface() const
+{
+	return NULL;
+}
+
 bool FOnlineSubsystemNull::Tick(float DeltaTime)
 {
 	if (OnlineAsyncTaskThreadRunnable)
@@ -184,12 +189,12 @@ bool FOnlineSubsystemNull::Shutdown()
  	}
  
  	// Destruct the interfaces
+	DESTRUCT_INTERFACE(VoiceInterface);
 	DESTRUCT_INTERFACE(AchievementsInterface);
 	DESTRUCT_INTERFACE(IdentityInterface);
 	DESTRUCT_INTERFACE(LeaderboardsInterface);
  	DESTRUCT_INTERFACE(SessionInterface);
-	DESTRUCT_INTERFACE(VoiceInterface);
-
+	
 	#undef DESTRUCT_INTERFACE
 	
 	return true;

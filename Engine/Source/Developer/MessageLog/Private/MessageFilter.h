@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 /**
@@ -20,10 +20,10 @@ public:
 	FReply OnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
 	/** Gets the display state to send to a display filter check box */
-	virtual ESlateCheckBoxState::Type OnGetDisplayCheckState() const;
+	virtual ECheckBoxState OnGetDisplayCheckState() const;
 	
 	/** Sets the display state from a display filter check box */
-	virtual void OnDisplayCheckStateChanged(ESlateCheckBoxState::Type InNewState);
+	virtual void OnDisplayCheckStateChanged(ECheckBoxState InNewState);
 
 	/**
 	 * Returns a delegate to be invoked when the filter state changes.

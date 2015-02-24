@@ -1,8 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "SnappingUtils.h"
 #include "DynamicMeshBuilder.h"
+#include "CanvasTypes.h"
+#include "Materials/MaterialInstanceDynamic.h"
 
 IMPLEMENT_HIT_PROXY(HWidgetAxis,HHitProxy);
 
@@ -22,9 +24,9 @@ FWidget::FWidget()
 	AxisColorX = FLinearColor(0.594f,0.0197f,0.0f);
 	AxisColorY = FLinearColor(0.1349f,0.3959f,0.0f);
 	AxisColorZ = FLinearColor(0.0251f,0.207f,0.85f);
-	PlaneColorXY = FColor(255,255,0);
+	PlaneColorXY = FColor::Yellow;
 	ScreenSpaceColor  = FColor(196, 196, 196);
-	CurrentColor = FColor(255,255,0);
+	CurrentColor = FColor::Yellow;
 
 	UMaterial* AxisMaterialBase = GEngine->ArrowMaterial;
 
@@ -62,6 +64,7 @@ FWidget::FWidget()
 
 	bDragging = false;
 	bSnapEnabled = false;
+	bDefaultVisibility = true;
 }
 
 extern ENGINE_API void StringSize(UFont* Font,int32& XL,int32& YL,const TCHAR* Text, FCanvas* Canvas);
@@ -116,9 +119,9 @@ void FWidget::Render( const FSceneView* View,FPrimitiveDrawInterface* PDI, FEdit
 	//reset HUD text
 	HUDString.Empty();
 
-	bool bDrawModeSupportsWidgetDrawing = true;
+	bool bDrawModeSupportsWidgetDrawing = bDefaultVisibility;
 
-	if( EditorModeTools )
+	if( EditorModeTools && ActiveModes.Num() > 0)
 	{
 		bDrawModeSupportsWidgetDrawing = false;
 		// Check to see of any active modes support widget drawing
@@ -1437,7 +1440,8 @@ void FWidget::DrawPartialRotationArc(const FSceneView* View, FPrimitiveDrawInter
 	}
 	PDI->SetHitProxy( NULL );
 
-	if (bIsPerspective)
+	const bool bIsHitProxyView = View->Family->EngineShowFlags.HitProxies;
+	if (bIsPerspective && !bIsHitProxyView && !PDI->IsHitTesting())
 	{
 		FThickArcParams InnerArcParams(PDI, InLocation, GridMaterial, 0.0f, InnerRadius);
 		FColor InnerColor = InColor;

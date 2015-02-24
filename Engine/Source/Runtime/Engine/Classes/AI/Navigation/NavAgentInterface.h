@@ -1,6 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "AI/Navigation/NavigationTypes.h"
 #include "NavAgentInterface.generated.h"
 
 class AActor;
@@ -18,8 +20,10 @@ class INavAgentInterface
 
 	/**
 	 *	Retrieves FNavAgentProperties expressing navigation props and caps of represented agent
+	 *	@NOTE the function will be renamed to GetNavAgentProperties in 4.8. Current name was introduced
+	 *		to help with deprecating old GetNavAgentProperties function
 	 */
-	virtual const FNavAgentProperties* GetNavAgentProperties() const { return NULL;} //PURE_VIRTUAL(INavAgentInterface::GetNavAgentProperties,return NULL;);
+	virtual const FNavAgentProperties& GetNavAgentPropertiesRef() const { return FNavAgentProperties::DefaultProperties; }
 
 	/**
 	 *	Retrieves Agent's location
@@ -36,4 +40,13 @@ class INavAgentInterface
 	 * @param GoalHalfHeight - cylinder half height
 	 */
 	virtual void GetMoveGoalReachTest(AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const {}
+
+	/** Allows delaying repath requests */
+	virtual bool ShouldPostponePathUpdates() const { return false; }
+
+	//----------------------------------------------------------------------//
+	// DEPRECATED
+	//----------------------------------------------------------------------//
+	DEPRECATED(4.7, "This version is deprecated. Please use GetNavAgentPropertiesRef instead.")
+	virtual const FNavAgentProperties* GetNavAgentProperties() const { return &FNavAgentProperties::DefaultProperties; }
 };

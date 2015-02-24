@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -72,6 +72,8 @@ struct UNREALED_API FEditorDelegates
 	DECLARE_MULTICAST_DELEGATE_FiveParams(FOnAssetPreImport, UFactory*, UClass*, UObject*, const FName&, const TCHAR*);
 	/** delegate type fired when new assets have been (re-)imported. Note: InCreatedObject can be NULL if import failed. Params: UFactory* InFactory, UObject* InCreatedObject */
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnAssetPostImport, UFactory*, UObject*);
+	/** delegate type fired when new assets have been reimported. Note: InCreatedObject can be NULL if import failed. UObject* InCreatedObject */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetReimport, UObject*);
 	/** delegate type for finishing up construction of a new blueprint */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnFinishPickingBlueprintClass, UClass*);
 	/** delegate type for triggering when new actors are dropped on to the viewport */
@@ -129,8 +131,6 @@ struct UNREALED_API FEditorDelegates
 	static FOnEditorModeTransitioned EditorModeEnter;
 	/** Called when an editor mode is being exited */
 	static FOnEditorModeTransitioned EditorModeExit;
-	/** Sent after an undo/redo operation takes place */
-	static FSimpleMulticastDelegate Undo;
 	/** Sent when a PIE session is beginning */
 	static FOnPIEEvent BeginPIE;
 	/** Sent when a PIE session is ending */
@@ -159,6 +159,8 @@ struct UNREALED_API FEditorDelegates
 	static FOnAssetPreImport OnAssetPreImport;
 	/** Called when new assets have been (re-)imported. */
 	static FOnAssetPostImport OnAssetPostImport;
+	/** Called after an asset has been reimported */
+	static FOnAssetReimport OnAssetReimport;
 	/** Called when new actors are dropped on to the viewport */
 	static FOnNewActorsDropped OnNewActorsDropped;
 	/** Called when grid snapping is changed */
@@ -587,6 +589,17 @@ namespace EditorUtilities
 	 */
 	UNREALED_API AActor* GetSimWorldCounterpartActor( AActor* Actor );
 
+	/**
+	 * Guiven an actor in the editor world, and SourceComponent from Simulation or PIE world
+	 * find the matching component in the Editor World
+	 *
+	 * @param	SourceComponent	SouceCompoent in SIM world
+	 * @param	TargetActor		TargetActor in editor world
+	 *
+	 * @return	the sound editor component or NULL if we couldn't find
+	 */
+	UNREALED_API UActorComponent* FindMatchingComponentInstance( UActorComponent* SourceComponent, AActor* TargetActor );
+
 	/** Options for CopyActorProperties */
 	namespace ECopyOptions
 	{
@@ -608,7 +621,10 @@ namespace EditorUtilities
 			OnlyCopyEditOrInterpProperties = 1 << 3,
 
 			/** Propagate property changes to archetype instances if the target actor is a CDO */
-			PropagateChangesToArcheypeInstances = 1 << 4,
+			PropagateChangesToArchetypeInstances = 1 << 4,
+
+			/** Filters out Blueprint Read-only properties */
+			FilterBlueprintReadOnly = 1 << 5,
 		};
 	}
 

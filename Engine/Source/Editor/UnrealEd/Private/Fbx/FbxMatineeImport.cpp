@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*
 * Copyright 2010 Autodesk, Inc.  All Rights Reserved.
@@ -41,6 +41,7 @@
 #include "Matinee/InterpTrackInstFloatProp.h"
 
 #include "FbxImporter.h"
+#include "Camera/CameraActor.h"
 
 namespace UnFbx {
 
@@ -224,7 +225,7 @@ bool FFbxImporter::ImportMatineeSequence(AMatineeActor* InMatineeActor)
 		else
 		{
 			// Check to see if the scene node name matches a Matinee group name
-			InMatineeActor->FindFirstGroupInstByName( FString( Node->GetName() ) );
+			FoundGroupInst = InMatineeActor->FindFirstGroupInstByName( FString( Node->GetName() ) );
 		}
 
 		if( FoundGroupInst != NULL )

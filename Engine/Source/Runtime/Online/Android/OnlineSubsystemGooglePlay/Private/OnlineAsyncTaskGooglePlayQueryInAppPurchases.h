@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,4 +32,7 @@ private:
 
 	// The consume flags provided for this task
 	const TArray<bool> IsConsumableFlags;
+
+	/** Flag indicating that the request has been sent */
+	bool bWasRequestSent;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*================================================================================
 	LinuxPlatformProperties.h - Basic static properties of a platform 
@@ -91,7 +91,7 @@ struct FLinuxPlatformProperties
 
 	static FORCEINLINE bool HasFixedResolution()
 	{
-		return false;
+		return true; // Fullscreen on Linux is always WindowedFullscreen (to avoid badness happening when switching to various resolutions)
 	}
 
 	static FORCEINLINE bool SupportsWindowedMode()

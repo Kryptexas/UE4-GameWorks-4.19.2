@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "BehaviorTreeGraphNode_CompositeDecorator.generated.h"
@@ -37,6 +37,7 @@ class UBehaviorTreeGraphNode_CompositeDecorator : public UBehaviorTreeGraphNode
 	virtual void PrepareForCopying() override;
 	virtual void PostCopyNode() override;
 
+	int32 SpawnMissingNodes(const TArray<class UBTDecorator*>& NodeInstances, const TArray<struct FBTDecoratorLogic>& Operations, int32 StartIndex);
 	void CollectDecoratorData(TArray<class UBTDecorator*>& NodeInstances, TArray<struct FBTDecoratorLogic>& Operations) const;
 	void SetDecoratorData(class UBTCompositeNode* InParentNode, uint8 InChildIndex);
 	void InitializeDecorator(class UBTDecorator* InnerDecorator);

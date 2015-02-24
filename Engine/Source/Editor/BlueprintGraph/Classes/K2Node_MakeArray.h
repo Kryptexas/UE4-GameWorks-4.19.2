@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -48,6 +48,8 @@ protected:
 
 	/** If needed, will clear all pins to be wildcards */
 	void ClearPinTypeToWildcard();
+
+	bool CanResetToWildcard() const;
 
 	/** Propagates the pin type from the output (array) pin to the inputs, to make sure types are consistent */
 	void PropagatePinType();

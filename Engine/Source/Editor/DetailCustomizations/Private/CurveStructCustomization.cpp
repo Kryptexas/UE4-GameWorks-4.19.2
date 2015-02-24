@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "CurveStructCustomization.h"
@@ -7,6 +7,8 @@
 #include "MiniCurveEditor.h"
 #include "AssetRegistryModule.h"
 #include "SCurveEditor.h"
+#include "Curves/CurveFloat.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "CurveStructCustomization"
 
@@ -43,6 +45,21 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InS
 
 	if (StructPtrs.Num() == 1)
 	{
+		static const FName XAxisName(TEXT("XAxisName"));
+		static const FName YAxisName(TEXT("YAxisName"));
+
+		TOptional<FString> XAxisString;
+		if ( InStructPropertyHandle->HasMetaData(XAxisName) )
+		{
+			XAxisString = InStructPropertyHandle->GetMetaData(XAxisName);
+		}
+
+		TOptional<FString> YAxisString;
+		if ( InStructPropertyHandle->HasMetaData(YAxisName) )
+		{
+			YAxisString = InStructPropertyHandle->GetMetaData(YAxisName);
+		}
+
 		RuntimeCurve = reinterpret_cast<FRuntimeFloatCurve*>(StructPtrs[0]);
 
 		if (OuterObjects.Num() == 1)
@@ -53,7 +70,7 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InS
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), TEXT( "" ), false )
+				InStructPropertyHandle->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
 			]
 			.ValueContent()
 			.HAlign(HAlign_Fill)
@@ -68,6 +85,8 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InS
 					.ViewMaxInput(this, &FCurveStructCustomization::GetViewMaxInput)
 					.TimelineLength(this, &FCurveStructCustomization::GetTimelineLength)
 					.OnSetInputViewRange(this, &FCurveStructCustomization::SetInputViewRange)
+					.XAxisName(XAxisString)
+					.YAxisName(YAxisString)
 					.HideUI(false)
 					.DesiredSize(FVector2D(300, 150))
 				]
@@ -88,7 +107,7 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InS
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), TEXT( "" ), false )
+				InStructPropertyHandle->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
 			]
 			.ValueContent()
 			[
@@ -118,7 +137,7 @@ void FCurveStructCustomization::CustomizeChildren( TSharedRef<IPropertyHandle> I
 			FSimpleDelegate OnCurveChangedDelegate = FSimpleDelegate::CreateSP( this, &FCurveStructCustomization::OnExternalCurveChanged, InStructPropertyHandle );
 			Child->SetOnPropertyValueChanged(OnCurveChangedDelegate);
 
-			StructBuilder.AddChildContent(TEXT("ExternalCurve"))
+			StructBuilder.AddChildContent(LOCTEXT("ExternalCurveLabel", "ExternalCurve"))
 				.NameContent()
 				[
 					Child->CreatePropertyNameWidget()
@@ -208,6 +227,11 @@ void FCurveStructCustomization::MakeTransactional()
 void FCurveStructCustomization::OnCurveChanged()
 {
 	StructPropertyHandle->NotifyPostChange();
+}
+
+bool FCurveStructCustomization::IsValidCurve( FRichCurveEditInfo CurveInfo )
+{
+	return CurveInfo.CurveToEdit == &RuntimeCurve->EditorCurveData;
 }
 
 float FCurveStructCustomization::GetTimelineLength() const
@@ -349,7 +373,7 @@ FReply FCurveStructCustomization::OnCurvePreviewDoubleClick( const FGeometry& In
 			FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition( Anchor, FCurveStructCustomization::DEFAULT_WINDOW_SIZE, Orient_Horizontal );
 
 			TSharedPtr<SWindow> Window = SNew(SWindow)
-				.Title( FText::Format( LOCTEXT("WindowHeader", "{0} - Internal Curve Editor"), FText::FromString(StructPropertyHandle->GetPropertyDisplayName())) )
+				.Title( FText::Format( LOCTEXT("WindowHeader", "{0} - Internal Curve Editor"), StructPropertyHandle->GetPropertyDisplayName()) )
 				.ClientSize( FCurveStructCustomization::DEFAULT_WINDOW_SIZE )
 				.ScreenPosition(AdjustedSummonLocation)
 				.AutoCenter(EAutoCenter::None)

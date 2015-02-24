@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,9 +38,6 @@ protected:
 public:	
 	FAnimNode_LayeredBoneBlend()
 	{
-#if WITH_EDITOR
-		AddPose();
-#endif
 	}
 
 	// FAnimNode_Base interface
@@ -65,6 +62,11 @@ public:
 		BlendPoses.RemoveAt(PoseIndex);
 		LayerSetup.RemoveAt(PoseIndex);
 	}
+
+	// ideally you don't like to get to situation where it becomes inconsistent, but this happened, 
+	// and we don't know what caused this. Possibly copy/paste, but I tried copy/paste and that didn't work
+	// so here we add code to fix this up manually in editor, so that they can continue working on it. 
+	void ValidateData();
 #endif
 
 	void ReinitializeBoneBlendWeights(const FBoneContainer& RequiredBones, const USkeleton* Skeleton);

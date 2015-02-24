@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "UnrealEd.h"
 #include "ObjectTools.h"
 #include "Json.h"
@@ -336,6 +336,11 @@ public:
 			// move the blueprint to the transient package (to be picked up by garbage collection later)
 			FName UnloadedName = MakeUniqueObjectName(NewPackage, UBlueprint::StaticClass(), BlueprintObj->GetFName());
 			BlueprintObj->Rename(*UnloadedName.ToString(), NewPackage, REN_DontCreateRedirectors|REN_DoNotDirty);
+
+			// Rename() will mark the OldPackage dirty (since it is removing the
+			// blueprint from it), we don't want this to affect the dirty flag 
+			// (for if/when we load it again)
+			OldPackage->SetDirtyFlag(/*bIsDirty =*/false);
 
 			// make sure the blueprint is properly trashed so we can rerun tests on it
 			BlueprintObj->SetFlags(RF_Transient);
@@ -983,10 +988,10 @@ bool FBlueprintCompileOnLoadTest::RunTest(const FString& BlueprintAssetPath)
 		for (auto DiffIt(BlueprintDiffs.CreateIterator()); DiffIt; ++DiffIt)
 		{
 			// will be presented in the context of "what changed between the initial load and the second?"
-			FString DiffDescription = DiffIt->ToolTip;
-			if (DiffDescription != DiffIt->DisplayString)
+			FString DiffDescription = DiffIt->ToolTip.ToString();
+			if (DiffDescription != DiffIt->DisplayString.ToString())
 			{
-				DiffDescription = FString::Printf(TEXT("%s (%s)"), *DiffDescription, *DiffIt->DisplayString);
+				DiffDescription = FString::Printf(TEXT("%s (%s)"), *DiffDescription, *DiffIt->DisplayString.ToString());
 			}
 
 			const UEdGraphNode* NodeFromPin = DiffIt->Pin1 ? Cast<const UEdGraphNode>(DiffIt->Pin1->GetOuter()) : NULL;

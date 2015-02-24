@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "DeviceProfiles/DeviceProfile.h"
 
 #define LOCTEXT_NAMESPACE "DeviceProfileCreateProfilePanel"
 
@@ -58,7 +59,7 @@ public:
 	 *
 	 * @return The device profile parent name.
 	 */
-	FString SetBaseProfileComboBoxContent() const;
+	FText SetBaseProfileComboBoxContent() const;
 
 	/**
 	 * Handle base combo box generate widget.
@@ -83,7 +84,7 @@ public:
 	 *
 	 * @return The name of the class the created profile will be.
 	 */
-	FString SetProfileTypeComboBoxContent() const;
+	FText SetProfileTypeComboBoxContent() const;
 
 	/**
 	 * Handle profile type combo box generate widget.

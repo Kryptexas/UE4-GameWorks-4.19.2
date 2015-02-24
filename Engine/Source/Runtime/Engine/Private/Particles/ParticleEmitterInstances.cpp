@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleEmitterInstances.cpp: Particle emitter instance implementations.
@@ -1437,7 +1437,7 @@ void FParticleEmitterInstance::ResetParticleParameters(float DeltaTime)
 	{
 		DECLARE_PARTICLE(Particle, ParticleData + ParticleStride * ParticleIndices[ParticleIndex]);
 		Particle.Velocity		= Particle.BaseVelocity;
-		Particle.Size			= Particle.BaseSize;
+		Particle.Size = GetParticleBaseSize(Particle);
 		Particle.RotationRate	= Particle.BaseRotationRate;
 		Particle.Color			= Particle.BaseColor;
 		Particle.RelativeTime	+= Particle.OneOverMaxLifetime * DeltaTime;

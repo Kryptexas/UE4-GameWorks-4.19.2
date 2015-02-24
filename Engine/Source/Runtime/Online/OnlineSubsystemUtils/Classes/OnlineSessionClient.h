@@ -1,7 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
- * Everything a player controller will use to manage online sessions.
+ * Everything a local player will use to manage online sessions.
  */
 
 #pragma once
@@ -28,6 +28,13 @@ protected:
 	FOnDestroySessionCompleteDelegate OnDestroyForMainMenuCompleteDelegate;
 	/** Delegate after joining a session */
 	FOnJoinSessionCompleteDelegate OnJoinSessionCompleteDelegate;
+
+	// Handles to the above delegates
+	FDelegateHandle OnSessionInviteAcceptedDelegateHandle;
+	FDelegateHandle OnEndForJoinSessionCompleteDelegateHandle;
+	FDelegateHandle OnDestroyForJoinSessionCompleteDelegateHandle;
+	FDelegateHandle OnDestroyForMainMenuCompleteDelegateHandle;
+	FDelegateHandle OnJoinSessionCompleteDelegateHandle;
 
 	/** Cached invite/search result while in the process of tearing down an existing session */
 	FOnlineSessionSearchResult CachedSessionResult;
@@ -76,6 +83,16 @@ protected:
 	 */
 	void EndExistingSession(FName SessionName, FOnEndSessionCompleteDelegate& Delegate);
 
+private:
+	/**
+	 * Implementation of EndExistingSession
+	 *
+	 * @param SessionName name of session to end
+	 * @param Delegate delegate to call at session end
+	 */
+	FDelegateHandle EndExistingSession_Impl(FName SessionName, FOnEndSessionCompleteDelegate& Delegate);
+
+protected:
 	/**
 	 * Transition from destroying a session to joining a new one of the same name
 	 *
@@ -100,6 +117,17 @@ protected:
 	 */
 	void DestroyExistingSession(FName SessionName, FOnDestroySessionCompleteDelegate& Delegate);
 
+private:
+	/**
+	 * Implementation of DestroyExistingSession
+	 *
+	 * @param SessionName name of session to destroy
+	 * @param Delegate delegate to call at session destruction
+	 * @return Handle to the added delegate.
+	 */
+	FDelegateHandle DestroyExistingSession_Impl(FName SessionName, FOnDestroySessionCompleteDelegate& Delegate);
+
+protected:
 	/**
 	 * Delegate fired when the joining process for an online session has completed
 	 *
@@ -124,7 +152,7 @@ protected:
 	 * @param bWasSuccessful true if the async action completed without error, false if there was an error
 	 * @param SearchResult search result containing the invite data
 	 */
-	void OnSessionInviteAccepted(int32 LocalUserNum, bool bWasSuccessful, const class FOnlineSessionSearchResult& SearchResult);
+	virtual void OnSessionInviteAccepted(int32 LocalUserNum, bool bWasSuccessful, const class FOnlineSessionSearchResult& SearchResult);
 
 public:
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "StaticMeshResources.h"
@@ -7,26 +7,36 @@
 #include "MessageLog.h"
 #include "UObjectToken.h"
 #include "MapErrors.h"
+#if WITH_EDITOR
+#include "ShowFlags.h"
+#include "Collision.h"
+#include "ConvexVolume.h"
+#endif
 #include "ComponentInstanceDataCache.h"
 #include "LightMap.h"
 #include "ShadowMap.h"
 #include "ComponentReregisterContext.h"
+#include "Engine/ShadowMapTexture2D.h"
+#include "AI/Navigation/NavCollision.h"
+#include "Engine/StaticMeshSocket.h"
+#include "NavigationSystemHelpers.h"
 
 #define LOCTEXT_NAMESPACE "StaticMeshComponent"
 
-class FStaticMeshComponentInstanceData : public FComponentInstanceDataBase
+class FStaticMeshComponentInstanceData : public FSceneComponentInstanceData
 {
 public:
 	FStaticMeshComponentInstanceData(const UStaticMeshComponent* SourceComponent)
-		: FComponentInstanceDataBase(SourceComponent)
+		: FSceneComponentInstanceData(SourceComponent)
 		, StaticMesh(SourceComponent->StaticMesh)
 		, bHasCachedStaticLighting(false)
 	{
 	}
 
-	virtual bool MatchesComponent(const UActorComponent* Component) const override
+	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
 	{
-		return (CastChecked<UStaticMeshComponent>(Component)->StaticMesh == StaticMesh && FComponentInstanceDataBase::MatchesComponent(Component));
+		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
+		CastChecked<UStaticMeshComponent>(Component)->ApplyComponentInstanceData(this);
 	}
 
 	/** Add vertex color data for a specified LOD before RerunConstructionScripts is called */
@@ -129,7 +139,6 @@ UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectIniti
 {
 	PrimaryComponentTick.bCanEverTick = false;
 
-	BodyInstance.bEnableCollision_DEPRECATED = true;
 	// check BaseEngine.ini for profile setup
 	SetCollisionProfileName(UCollisionProfile::BlockAllDynamic_ProfileName);
 
@@ -332,10 +341,10 @@ void UStaticMeshComponent::CheckForErrors()
 			}
 		}
 
-		if (Materials.Num() > StaticMesh->Materials.Num())
+		if (OverrideMaterials.Num() > StaticMesh->Materials.Num())
 		{
 			FFormatNamedArguments Arguments;
-			Arguments.Add(TEXT("OverridenCount"), Materials.Num());
+			Arguments.Add(TEXT("OverridenCount"), OverrideMaterials.Num());
 			Arguments.Add(TEXT("ReferencedCount"), StaticMesh->Materials.Num());
 			Arguments.Add(TEXT("MeshName"), FText::FromString(StaticMesh->GetName()));
 			FMessageLog("MapCheck").Warning()
@@ -450,7 +459,7 @@ void UStaticMeshComponent::OnRegister()
 		}
 	}
 
-	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid())
+	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid() && GetScene())
 	{
 		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
 		{
@@ -463,7 +472,7 @@ void UStaticMeshComponent::OnRegister()
 
 void UStaticMeshComponent::OnUnregister()
 {
-	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid())
+	if (StaticMesh != NULL && StaticMesh->SpeedTreeWind.IsValid() && GetScene())
 	{
 		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
 		{
@@ -724,8 +733,7 @@ bool UStaticMeshComponent::RequiresOverrideVertexColorsFixup( TArray<int32>& Out
 void UStaticMeshComponent::RemoveInstanceVertexColorsFromLOD( int32 LODToRemoveColorsFrom )
 {
 #if WITH_EDITORONLY_DATA
-	if (( LODToRemoveColorsFrom < StaticMesh->GetNumLODs() ) &&
-		( LODToRemoveColorsFrom < LODData.Num() ))
+	if (StaticMesh && LODToRemoveColorsFrom < StaticMesh->GetNumLODs() && LODToRemoveColorsFrom < LODData.Num())
 	{
 		FStaticMeshComponentLODInfo& CurrentLODInfo = LODData[LODToRemoveColorsFrom];
 
@@ -755,16 +763,14 @@ void UStaticMeshComponent::CopyInstanceVertexColorsIfCompatible( UStaticMeshComp
 	{
 		Modify();
 
+		bool bRegistered = IsRegistered();
+		FComponentReregisterContext ReregisterContext(this);
+		if (bRegistered)
+		{
+			FlushRenderingCommands(); // don't sync threads unless we have to
+		}
 		// Remove any and all vertex colors from the target static mesh, if they exist.
-		if ( IsRenderStateCreated() )
-		{
-			FComponentReregisterContext ComponentReregisterContext( this );
-			RemoveInstanceVertexColors();
-		}
-		else
-		{
-			RemoveInstanceVertexColors();
-		}
+		RemoveInstanceVertexColors();
 
 		int32 NumSourceLODs = SourceComponent->StaticMesh->GetNumLODs();
 
@@ -1138,7 +1144,7 @@ void UStaticMeshComponent::PostLoad()
 
 #if WITH_EDITORONLY_DATA
 	// Remap the materials array if the static mesh materials may have been remapped to remove zero triangle sections.
-	if (StaticMesh && GetLinkerUE4Version() < VER_UE4_REMOVE_ZERO_TRIANGLE_SECTIONS && Materials.Num())
+	if (StaticMesh && GetLinkerUE4Version() < VER_UE4_REMOVE_ZERO_TRIANGLE_SECTIONS && OverrideMaterials.Num())
 	{
 		StaticMesh->ConditionalPostLoad();
 		if (StaticMesh->HasValidRenderData()
@@ -1147,8 +1153,8 @@ void UStaticMeshComponent::PostLoad()
 			TArray<UMaterialInterface*> OldMaterials;
 			const TArray<int32>& MaterialIndexToImportIndex = StaticMesh->RenderData->MaterialIndexToImportIndex;
 
-			Exchange(Materials,OldMaterials);
-			Materials.Empty(MaterialIndexToImportIndex.Num());
+			Exchange(OverrideMaterials,OldMaterials);
+			OverrideMaterials.Empty(MaterialIndexToImportIndex.Num());
 			for (int32 MaterialIndex = 0; MaterialIndex < MaterialIndexToImportIndex.Num(); ++MaterialIndex)
 			{
 				UMaterialInterface* Material = NULL;
@@ -1157,13 +1163,13 @@ void UStaticMeshComponent::PostLoad()
 				{
 					Material = OldMaterials[OldMaterialIndex];
 				}
-				Materials.Add(Material);
+				OverrideMaterials.Add(Material);
 			}
 		}
 
-		if (Materials.Num() > StaticMesh->Materials.Num())
+		if (OverrideMaterials.Num() > StaticMesh->Materials.Num())
 		{
-			Materials.RemoveAt(StaticMesh->Materials.Num(), Materials.Num() - StaticMesh->Materials.Num());
+			OverrideMaterials.RemoveAt(StaticMesh->Materials.Num(), OverrideMaterials.Num() - StaticMesh->Materials.Num());
 		}
 	}
 #endif // #if WITH_EDITORONLY_DATA
@@ -1234,7 +1240,7 @@ bool UStaticMeshComponent::UsesOnlyUnlitMaterials() const
 				UMaterialInterface*	MaterialInterface	= GetMaterial(LOD.Sections[ElementIndex].MaterialIndex);
 				UMaterial*			Material			= MaterialInterface ? MaterialInterface->GetMaterial() : NULL;
 
-				bUsesOnlyUnlitMaterials = Material && Material->GetShadingModel_Internal() == MSM_Unlit;
+				bUsesOnlyUnlitMaterials = Material && Material->GetShadingModel() == MSM_Unlit;
 			}
 		}
 		return bUsesOnlyUnlitMaterials;
@@ -1449,6 +1455,8 @@ bool UStaticMeshComponent::GetEstimatedLightAndShadowMapMemoryUsage(
 
 int32 UStaticMeshComponent::GetNumMaterials() const
 {
+	// @note : you don't have to consider Materials.Num()
+	// that only counts if overriden and it can't be more than StaticMesh->Materials. 
 	if(StaticMesh)
 	{
 		return StaticMesh->Materials.Num();
@@ -1459,13 +1467,25 @@ int32 UStaticMeshComponent::GetNumMaterials() const
 	}
 }
 
+TArray<class UMaterialInterface*> UStaticMeshComponent::GetMaterials() const
+{
+	TArray<class UMaterialInterface*> OutMaterials = Super::GetMaterials();
+
+	// if no material is overriden, look for mesh material;
+	if(OutMaterials.Num() == 0 && StaticMesh)
+	{
+		OutMaterials = StaticMesh->Materials;
+	}
+
+	return OutMaterials;
+}
 
 UMaterialInterface* UStaticMeshComponent::GetMaterial(int32 MaterialIndex) const
 {
 	// If we have a base materials array, use that
-	if(MaterialIndex < Materials.Num() && Materials[MaterialIndex])
+	if(MaterialIndex < OverrideMaterials.Num() && OverrideMaterials[MaterialIndex])
 	{
-		return Materials[MaterialIndex];
+		return OverrideMaterials[MaterialIndex];
 	}
 	// Otherwise get from static mesh
 	else
@@ -1490,10 +1510,10 @@ void UStaticMeshComponent::GetUsedMaterials(TArray<UMaterialInterface*>& OutMate
 	}
 }
 
-int32 UStaticMeshComponent::GetSerializedComponentIndex() const
+int32 UStaticMeshComponent::GetBlueprintCreatedComponentIndex() const
 {
 	int32 ComponentIndex = 0;
-	for(const auto& Component : GetOwner()->SerializedComponents)
+	for(const auto& Component : GetOwner()->BlueprintCreatedComponents)
 	{
 		if(Component == this)
 		{
@@ -1512,24 +1532,24 @@ FName UStaticMeshComponent::GetComponentInstanceDataType() const
 	return StaticMeshComponentInstanceDataName;
 }
 
-FComponentInstanceDataBase* UStaticMeshComponent::GetComponentInstanceData() const
+FActorComponentInstanceData* UStaticMeshComponent::GetComponentInstanceData() const
 {
-	FStaticMeshComponentInstanceData* InstanceData = nullptr;
+	FStaticMeshComponentInstanceData* StaticMeshInstanceData = nullptr;
 
 	// Don't back up static lighting if there isn't any
 	if(bHasCachedStaticLighting)
 	{
-		InstanceData = new FStaticMeshComponentInstanceData(this);
+		StaticMeshInstanceData = new FStaticMeshComponentInstanceData(this);
 
 		// Fill in info
-		InstanceData->bHasCachedStaticLighting = true;
-		InstanceData->CachedStaticLighting.Transform = ComponentToWorld;
-		InstanceData->CachedStaticLighting.IrrelevantLights = IrrelevantLights;
-		InstanceData->CachedStaticLighting.LODDataLightMap.Empty(LODData.Num());
+		StaticMeshInstanceData->bHasCachedStaticLighting = true;
+		StaticMeshInstanceData->CachedStaticLighting.Transform = ComponentToWorld;
+		StaticMeshInstanceData->CachedStaticLighting.IrrelevantLights = IrrelevantLights;
+		StaticMeshInstanceData->CachedStaticLighting.LODDataLightMap.Empty(LODData.Num());
 		for (const FStaticMeshComponentLODInfo& LODDataEntry : LODData)
 		{
-			InstanceData->CachedStaticLighting.LODDataLightMap.Add(LODDataEntry.LightMap);
-			InstanceData->CachedStaticLighting.LODDataShadowMap.Add(LODDataEntry.ShadowMap);
+			StaticMeshInstanceData->CachedStaticLighting.LODDataLightMap.Add(LODDataEntry.LightMap);
+			StaticMeshInstanceData->CachedStaticLighting.LODDataShadowMap.Add(LODDataEntry.ShadowMap);
 		}
 	}
 
@@ -1541,28 +1561,32 @@ FComponentInstanceDataBase* UStaticMeshComponent::GetComponentInstanceData() con
 
 		if ( LODInfo.OverrideVertexColors && LODInfo.OverrideVertexColors->GetNumVertices() > 0 && LODInfo.PaintedVertices.Num() > 0 )
 		{
-			if (!InstanceData)
+			if (!StaticMeshInstanceData)
 			{
-				InstanceData = new FStaticMeshComponentInstanceData(this);
+				StaticMeshInstanceData = new FStaticMeshComponentInstanceData(this);
 			}
 
-			InstanceData->AddVertexColorData(LODInfo, LODIndex);
+			StaticMeshInstanceData->AddVertexColorData(LODInfo, LODIndex);
 		}
 	}
 
-	return InstanceData;
+	return (StaticMeshInstanceData ? StaticMeshInstanceData : Super::GetComponentInstanceData());
 }
 
-void UStaticMeshComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
+void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstanceData* StaticMeshInstanceData)
 {
-	check(ComponentInstanceData);
+	check(StaticMeshInstanceData);
 
 	// Note: ApplyComponentInstanceData is called while the component is registered so the rendering thread is already using this component
 	// That means all component state that is modified here must be mirrored on the scene proxy, which will be recreated to receive the changes later due to MarkRenderStateDirty.
-	FStaticMeshComponentInstanceData* StaticMeshInstanceData  = static_cast<FStaticMeshComponentInstanceData*>(ComponentInstanceData);
+
+	if (StaticMesh != StaticMeshInstanceData->StaticMesh)
+	{
+		return;
+	}
 
 	// See if data matches current state
-	if(	StaticMeshInstanceData->bHasCachedStaticLighting && StaticMeshInstanceData->CachedStaticLighting.Transform.Equals(ComponentToWorld) )
+	if(	StaticMeshInstanceData->bHasCachedStaticLighting && StaticMeshInstanceData->CachedStaticLighting.Transform.Equals(ComponentToWorld, 1.e-3f) )
 	{
 		const int32 NumLODLightMaps = StaticMeshInstanceData->CachedStaticLighting.LODDataLightMap.Num();
 		SetLODDataCount(NumLODLightMaps, NumLODLightMaps);
@@ -1614,6 +1638,95 @@ bool UStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavigableGeom
 
 	return true;
 }
+
+#if WITH_EDITOR
+bool UStaticMeshComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	if (!bConsiderOnlyBSP && ShowFlags.StaticMeshes && StaticMesh != nullptr && StaticMesh->HasValidRenderData())
+	{
+		// Check if we are even inside it's bounding box, if we are not, there is no way we colliding via the more advanced checks we will do.
+		if (Super::ComponentIsTouchingSelectionBox(InSelBBox, ShowFlags, bConsiderOnlyBSP, false))
+		{
+			TArray<FVector> Vertex;
+
+			FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[0];
+			FIndexArrayView Indices = LODModel.IndexBuffer.GetArrayView();
+
+			for (const auto& Section : LODModel.Sections)
+			{
+				// Iterate over each triangle.
+				for (int32 TriangleIndex = 0; TriangleIndex < (int32)Section.NumTriangles; TriangleIndex++)
+				{
+					Vertex.Empty(3);
+
+					int32 FirstIndex = TriangleIndex * 3 + Section.FirstIndex;
+					for (int32 i = 0; i < 3; i++)
+					{
+						int32 VertexIndex = Indices[FirstIndex + i];
+						FVector LocalPosition = LODModel.PositionVertexBuffer.VertexPosition(VertexIndex);
+						Vertex.Emplace(ComponentToWorld.TransformPosition(LocalPosition));
+					}
+
+					// Check if the triangle is colliding with the bounding box.
+					FSeparatingAxisPointCheck ThePointCheck(Vertex, InSelBBox.GetCenter(), InSelBBox.GetExtent(), false);
+					if (!bMustEncompassEntireComponent && ThePointCheck.bHit)
+					{
+						// Needn't encompass entire component: any intersection, we consider as touching
+						return true;
+					}
+					else if (bMustEncompassEntireComponent && !ThePointCheck.bHit)
+					{
+						// Must encompass entire component: any non intersection, we consider as not touching
+						return false;
+					}
+				}
+			}
+
+			// If the selection box has to encompass all of the component and none of the component's verts failed the intersection test, this component
+			// is consider touching
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+bool UStaticMeshComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	if (!bConsiderOnlyBSP && ShowFlags.StaticMeshes && StaticMesh != nullptr && StaticMesh->HasValidRenderData())
+	{
+		// Check if we are even inside it's bounding box, if we are not, there is no way we colliding via the more advanced checks we will do.
+		if (Super::ComponentIsTouchingSelectionFrustum(InFrustum, ShowFlags, bConsiderOnlyBSP, false))
+		{
+			TArray<FVector> Vertex;
+
+			FStaticMeshLODResources& LODModel = StaticMesh->RenderData->LODResources[0];
+
+			uint32 NumVertices = LODModel.VertexBuffer.GetNumVertices();
+			for (uint32 VertexIndex = 0; VertexIndex < NumVertices; ++VertexIndex)
+			{
+				const FVector& LocalPosition = LODModel.PositionVertexBuffer.VertexPosition(VertexIndex);
+				const FVector WorldPosition = ComponentToWorld.TransformPosition(LocalPosition);
+				bool bLocationIntersected = InFrustum.IntersectSphere(WorldPosition, 0.0f);
+				if (bLocationIntersected && !bMustEncompassEntireComponent)
+				{
+					return true;
+				}
+				else if (!bLocationIntersected && bMustEncompassEntireComponent)
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+	}
+
+	return false;
+}
+#endif
+
 
 //////////////////////////////////////////////////////////////////////////
 // StaticMeshComponentLODInfo
@@ -1792,11 +1905,7 @@ FArchive& operator<<(FArchive& Ar,FStaticMeshComponentLODInfo& I)
 	if( !StripFlags.IsDataStrippedForServer() )
 	{
 		Ar << I.LightMap;
-
-		if (Ar.UE4Ver() >= VER_UE4_PRECOMPUTED_SHADOW_MAPS)
-		{
-			Ar << I.ShadowMap;
-		}
+		Ar << I.ShadowMap;
 	}
 
 	if( !StripFlags.IsClassDataStripped( OverrideColorsStripFlag ) )

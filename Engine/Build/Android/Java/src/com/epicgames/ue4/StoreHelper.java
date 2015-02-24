@@ -12,6 +12,7 @@ public abstract class StoreHelper
 	
 	public abstract void SetupIapService();
 	public abstract boolean QueryInAppPurchases(String[] ProductIDs, boolean[] bConsumable);
-	public abstract boolean BeginPurchase(String ProductIDs, boolean bConsumable);
+	public abstract boolean BeginPurchase(String ProductID, boolean bConsumable);
 	public abstract boolean IsAllowedToMakePurchases();
+	public abstract boolean onActivityResult(int requestCode, int resultCode, Intent data);
 }

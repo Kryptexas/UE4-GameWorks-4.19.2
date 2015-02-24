@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,7 +31,7 @@ private:
 
 	void OnEnumValueComboChange(int32 Index);
 	TSharedRef<SWidget> OnGetEnumValueContent() const;
-	FString GetCurrentEnumValueDesc() const;
+	FText GetCurrentEnumValueDesc() const;
 
 	TSharedPtr<IPropertyHandle> IntValueProperty;
 	TSharedPtr<IPropertyHandle> KeyIDProperty;

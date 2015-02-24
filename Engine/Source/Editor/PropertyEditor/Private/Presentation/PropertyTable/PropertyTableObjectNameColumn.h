@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "IPropertyTableUtilities.h"
@@ -9,6 +9,7 @@
 #include "PropertyTableObjectNameCell.h"
 #include "DataSource.h"
 #include "PropertyPath.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "ObjectNameColumnHeader"
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PaperJsonImporterPrivatePCH.h"
 #include "PaperSpriteSheet.h"
@@ -8,3 +8,14 @@ UPaperSpriteSheet::UPaperSpriteSheet(const FObjectInitializer& ObjectInitializer
 {
 }
 
+#if WITH_EDITORONLY_DATA
+void UPaperSpriteSheet::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
+{
+	if (AssetImportData)
+	{
+		OutTags.Add( FAssetRegistryTag(SourceFileTagName(), AssetImportData->SourceFilePath, FAssetRegistryTag::TT_Hidden) );
+	}
+
+	Super::GetAssetRegistryTags(OutTags);
+}
+#endif

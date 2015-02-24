@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	StaticMeshLight.cpp: Static mesh lighting code.
@@ -28,9 +28,9 @@ static void GetStaticLightingVertex(
 	)
 {
 	OutVertex.WorldPosition = LocalToWorld.TransformPosition(PositionVertexBuffer.VertexPosition(VertexIndex));
-	OutVertex.WorldTangentX = LocalToWorld.TransformVector(VertexBuffer.VertexTangentX(VertexIndex)).SafeNormal();
-	OutVertex.WorldTangentY = LocalToWorld.TransformVector(VertexBuffer.VertexTangentY(VertexIndex)).SafeNormal();
-	OutVertex.WorldTangentZ = LocalToWorldInverseTranspose.TransformVector(VertexBuffer.VertexTangentZ(VertexIndex)).SafeNormal();
+	OutVertex.WorldTangentX = LocalToWorld.TransformVector(VertexBuffer.VertexTangentX(VertexIndex)).GetSafeNormal();
+	OutVertex.WorldTangentY = LocalToWorld.TransformVector(VertexBuffer.VertexTangentY(VertexIndex)).GetSafeNormal();
+	OutVertex.WorldTangentZ = LocalToWorldInverseTranspose.TransformVector(VertexBuffer.VertexTangentZ(VertexIndex)).GetSafeNormal();
 
 	checkSlow(VertexBuffer.GetNumTexCoords() <= ARRAY_COUNT(OutVertex.TextureCoordinates));
 	for(uint32 LightmapTextureCoordinateIndex = 0;LightmapTextureCoordinateIndex < VertexBuffer.GetNumTexCoords();LightmapTextureCoordinateIndex++)
@@ -258,8 +258,7 @@ void FStaticMeshStaticLightingTextureMapping::Apply(FQuantizedLightmapData* Quan
 		}
 
 		// Build the list of statically irrelevant lights.
-		// TODO: This should be stored per LOD.
-		StaticMeshComponent->IrrelevantLights.Empty();
+		// IrrelevantLights was cleared in InvalidateLightingCacheDetailed
 
 		for(int32 LightIndex = 0;LightIndex < Mesh->RelevantLights.Num();LightIndex++)
 		{

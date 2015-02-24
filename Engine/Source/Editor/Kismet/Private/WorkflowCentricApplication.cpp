@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
 #include "BlueprintEditor.h"
@@ -92,6 +92,7 @@ void FWorkflowCentricApplication::PushTabFactories(FWorkflowAllowedTabSet& Facto
 		TSharedPtr<FWorkflowTabFactory> SomeFactory = FactoryIt.Value();
 		FTabSpawnerEntry& SpawnerEntry = TabManager->RegisterTabSpawner(SomeFactory->GetIdentifier(), FOnSpawnTab::CreateRaw(this, &FWorkflowCentricApplication::CreatePanelTab, SomeFactory))
 			.SetDisplayName(SomeFactory->ConstructTabName(SpawnInfo).Get())
+			.SetTooltipText(SomeFactory->GetTabToolTipText(SpawnInfo))
 			.SetGroup(CurrentAppModePtr->GetWorkspaceMenuCategory());
 		
 		// Add the tab icon to the menu entry if one was provided

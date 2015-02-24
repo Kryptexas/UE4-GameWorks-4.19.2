@@ -1,7 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "ISourceControlModule.h"
+#include "Components/BillboardComponent.h"
+#include "AI/Navigation/NavigationSystem.h"
+#include "Components/ArrowComponent.h"
 
 /* UContentBrowserSettings interface
  *****************************************************************************/
@@ -37,10 +40,10 @@ UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const FObjectI
 	: Super(ObjectInitializer)
 {
 	AnimPreviewLightingDirection = FRotator(-45.0f, 45.0f, 0);
-	AnimPreviewSkyColor = FColor(0, 0, 255);
+	AnimPreviewSkyColor = FColor::Blue;
 	AnimPreviewFloorColor = FColor(51, 51, 51);
 	AnimPreviewSkyBrightness = 0.2f * PI;
-	AnimPreviewDirectionalColor = FColor(255, 255, 255);
+	AnimPreviewDirectionalColor = FColor::White;
 	AnimPreviewLightBrightness = 1.0f * PI;
 }
 
@@ -50,9 +53,12 @@ UDestructableMeshEditorSettings::UDestructableMeshEditorSettings( const FObjectI
 
 UEditorExperimentalSettings::UEditorExperimentalSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
-{ 
-}
+	, bInWorldBPEditing(true)
+	, bUnifiedBlueprintEditor(true)
+	, bBlueprintableComponents(true)
 
+{
+}
 
 void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )
 {
@@ -88,8 +94,13 @@ void UEditorExperimentalSettings::PostEditChangeProperty( struct FPropertyChange
 
 UEditorLoadingSavingSettings::UEditorLoadingSavingSettings( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
+	, bMonitorContentDirectories(true)
+	, bAutoCreateAssets(true)
+	, bAutoDeleteAssets(true)
+	, bDeleteSourceFilesWithAssets(false)
 {
 	TextDiffToolPath.FilePath = TEXT("P4Merge.exe");
+	AutoReimportDirectories.Add("/Game/");
 }
 
 
@@ -98,7 +109,6 @@ void UEditorLoadingSavingSettings::SccHackInitialize()
 {
 	bSCCUseGlobalSettings = ISourceControlModule::Get().GetUseGlobalSettings();
 }
-
 
 void UEditorLoadingSavingSettings::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )
 {
@@ -190,6 +200,12 @@ ULevelEditorViewportSettings::ULevelEditorViewportSettings( const FObjectInitial
 	PreviewMeshes.Add(FStringAssetReference("/Engine/EditorMeshes/ColorCalibrator/SM_ColorCalibrator.SM_ColorCalibrator"));
 }
 
+void ULevelEditorViewportSettings::PostInitProperties()
+{
+	Super::PostInitProperties();
+	UBillboardComponent::SetEditorScale(BillboardScale);
+	UArrowComponent::SetEditorScale(BillboardScale);
+}
 
 void ULevelEditorViewportSettings::PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent )
 {

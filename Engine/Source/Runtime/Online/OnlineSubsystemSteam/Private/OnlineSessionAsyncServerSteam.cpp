@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemSteamPrivatePCH.h"
 #include "OnlineSessionInterfaceSteam.h"
@@ -939,8 +939,8 @@ void FOnlineAsyncTaskSteamFindServerBase::ParseSearchResult(class gameserveritem
 		FString GameTags(UTF8_TO_TCHAR(ServerDetails->m_szGameTags));
 
 		// Check for build compatibility
-		uint32 ServerBuildId = 0;
-		uint32 BuildUniqueId = GetBuildUniqueId();
+		int32 ServerBuildId = 0;
+		int32 BuildUniqueId = GetBuildUniqueId();
 
 		TArray<FString> TagArray;
 		GameTags.ParseIntoArray(&TagArray, TEXT(","), true);

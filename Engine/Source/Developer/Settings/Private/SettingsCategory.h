@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -87,10 +87,7 @@ public:
 		return Name;
 	}
 
-	virtual ISettingsSectionPtr GetSection( const FName& SectionName ) const override
-	{
-		return Sections.FindRef(SectionName);
-	}
+	virtual ISettingsSectionPtr GetSection( const FName& SectionName ) const override;
 
 	virtual int32 GetSections( TArray<ISettingsSectionPtr>& OutSections ) const override;
 

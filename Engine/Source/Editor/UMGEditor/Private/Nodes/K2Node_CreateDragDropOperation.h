@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,8 +17,9 @@ class UMGEDITOR_API UK2Node_CreateDragDropOperation : public UK2Node_ConstructOb
 	// End UEdGraphNode interface.
 
 	// Begin UK2Node interface
-	void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const;
+	virtual void GetMenuEntries(FGraphContextMenuBuilder& ContextMenuBuilder) const override;
 	virtual FText GetMenuCategory() const override;
+	virtual FName GetCornerIcon() const override;
 	// End UK2Node interface.
 
 protected:

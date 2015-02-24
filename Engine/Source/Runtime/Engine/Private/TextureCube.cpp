@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TextureCube.cpp: UTextureCube implementation.
@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "RenderUtils.h"
 #include "DDSLoader.h"
+#include "Engine/TextureCube.h"
 
 UTextureCube::UTextureCube(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -18,38 +19,13 @@ void UTextureCube::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	bool bCooked = false;
+	FStripDataFlags StripFlags(Ar);
+	bool bCooked = Ar.IsCooking();
+	Ar << bCooked;
 
-#if WITH_EDITOR
-	// Handle legacy serialization.
-	if (Ar.UE4Ver() < VER_UE4_TEXTURE_SOURCE_ART_REFACTOR)
+	if (bCooked || Ar.IsCooking())
 	{
-		TIndirectArray<FTexture2DMipMap> LegacyMips;
-		LegacyMips.Serialize( Ar, this );
-
-		if (Source.BulkData.GetBulkDataSize() > 0 &&
-			Source.GetNumSlices() == 1 &&
-			Source.GetFormat() == TSF_BGRA8)
-		{
-			Source.Format = TSF_BGRE8;
-		}
-		if (Source.GetFormat() == TSF_BGRE8 || Source.GetFormat() == TSF_RGBA16F)
-		{
-			CompressionSettings = TC_HDR;
-		}
-		Source.UseHashAsGuid();
-	}
-	else
-#endif // #if WITH_EDITOR
-	{
-		FStripDataFlags StripFlags(Ar);
-		bCooked = Ar.IsCooking();
-		Ar << bCooked;
-
-		if (bCooked || Ar.IsCooking())
-		{
-			SerializeCookedPlatformData(Ar);
-		}
+		SerializeCookedPlatformData(Ar);
 	}
 
 #if WITH_EDITOR

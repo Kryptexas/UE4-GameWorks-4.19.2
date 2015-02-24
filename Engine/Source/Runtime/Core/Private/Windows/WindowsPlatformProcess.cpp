@@ -1,8 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	WindowsPlatformProcess.cpp: Windows implementations of Process functions
-=============================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "EngineVersion.h"
@@ -28,8 +24,10 @@
 
 #pragma comment(lib, "psapi.lib")
 
+
 // static variables
 TArray<FString> FWindowsPlatformProcess::DllDirectoryStack;
+
 
 void FWindowsPlatformProcess::AddDllDirectory(const TCHAR* Directory)
 {
@@ -282,76 +280,90 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 {
 	//UE_LOG(LogWindows, Log,  TEXT("CreateProc %s %s"), URL, Parms );
 
-	FString CommandLine = FString::Printf(TEXT("\"%s\" %s"), URL, Parms);
-
-	PROCESS_INFORMATION ProcInfo;
+	// initialize process attributes
 	SECURITY_ATTRIBUTES Attr;
-	Attr.nLength = sizeof(SECURITY_ATTRIBUTES);
-	Attr.lpSecurityDescriptor = NULL;
-	Attr.bInheritHandle = true;
+	{
+		Attr.nLength = sizeof(SECURITY_ATTRIBUTES);
+		Attr.lpSecurityDescriptor = NULL;
+		Attr.bInheritHandle = true;
+	}
 
+	// initialize process creation flags
 	uint32 CreateFlags = NORMAL_PRIORITY_CLASS;
-	if (PriorityModifier < 0)
 	{
-		if (PriorityModifier == -1)
+		if (PriorityModifier < 0)
 		{
-			CreateFlags = BELOW_NORMAL_PRIORITY_CLASS;
+			CreateFlags = (PriorityModifier == -1) ? BELOW_NORMAL_PRIORITY_CLASS : IDLE_PRIORITY_CLASS;
 		}
-		else
+		else if (PriorityModifier > 0)
 		{
-			CreateFlags = IDLE_PRIORITY_CLASS;
+			CreateFlags = (PriorityModifier == 1) ? ABOVE_NORMAL_PRIORITY_CLASS : HIGH_PRIORITY_CLASS;
+		}
+
+		if (bLaunchDetached)
+		{
+			CreateFlags |= DETACHED_PROCESS;
 		}
 	}
-	else if (PriorityModifier > 0)
-	{
-		if (PriorityModifier == 1)
-		{
-			CreateFlags = ABOVE_NORMAL_PRIORITY_CLASS;
-		}
-		else
-		{
-			CreateFlags = HIGH_PRIORITY_CLASS;
-		}
-	}
-	if (bLaunchDetached)
-	{
-		CreateFlags |= DETACHED_PROCESS;
-	}
+
+	// initialize window flags
 	uint32 dwFlags = 0;
 	uint16 ShowWindowFlags = SW_HIDE;
-	if (bLaunchReallyHidden)
 	{
-		dwFlags = STARTF_USESHOWWINDOW;
-	}
-	else if (bLaunchHidden)
-	{
-		dwFlags = STARTF_USESHOWWINDOW;
-		ShowWindowFlags = SW_SHOWMINNOACTIVE;
-	}
-	if (PipeWrite)
-	{
-		dwFlags |= STARTF_USESTDHANDLES;
+		if (bLaunchReallyHidden)
+		{
+			dwFlags = STARTF_USESHOWWINDOW;
+		}
+		else if (bLaunchHidden)
+		{
+			dwFlags = STARTF_USESHOWWINDOW;
+			ShowWindowFlags = SW_SHOWMINNOACTIVE;
+		}
+
+		if (PipeWrite != nullptr)
+		{
+			dwFlags |= STARTF_USESTDHANDLES;
+		}
 	}
 
-	STARTUPINFO StartupInfo = { sizeof(STARTUPINFO), NULL, NULL, NULL,
-		CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT,
-		0, 0, 0, dwFlags, ShowWindowFlags, 0, NULL,
-		::GetStdHandle(ProcessConstants::WIN_STD_INPUT_HANDLE), HANDLE(PipeWrite), HANDLE(PipeWrite) };
-	if (!CreateProcess(NULL, CommandLine.GetCharArray().GetData(), &Attr, &Attr, true, CreateFlags,
-		NULL, OptionalWorkingDirectory, &StartupInfo, &ProcInfo ) )
+	// initialize startup info
+	STARTUPINFO StartupInfo = {
+		sizeof(STARTUPINFO),
+		NULL, NULL, NULL,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		0, 0, 0,
+		dwFlags,
+		ShowWindowFlags,
+		0, NULL,
+		::GetStdHandle(ProcessConstants::WIN_STD_INPUT_HANDLE),
+		HANDLE(PipeWrite),
+		HANDLE(PipeWrite)
+	};
+
+	// create the child process
+	FString CommandLine = FString::Printf(TEXT("\"%s\" %s"), URL, Parms);
+	PROCESS_INFORMATION ProcInfo;
+
+	if (!CreateProcess(NULL, CommandLine.GetCharArray().GetData(), &Attr, &Attr, true, CreateFlags, NULL, OptionalWorkingDirectory, &StartupInfo, &ProcInfo))
 	{
-		if (OutProcessID)
+		if (OutProcessID != nullptr)
 		{
 			*OutProcessID = 0;
 		}
+
 		return FProcHandle();
 	}
-	if (OutProcessID)
+
+	if (OutProcessID != nullptr)
 	{
 		*OutProcessID = ProcInfo.dwProcessId;
 	}
-	// Close the thread handle.
-	::CloseHandle( ProcInfo.hThread );
+
+	::CloseHandle(ProcInfo.hThread);
+
 	return FProcHandle(ProcInfo.hProcess);
 }
 
@@ -734,6 +746,21 @@ const TCHAR* FWindowsPlatformProcess::UserDir()
 		WindowsUserDir = FString(UserPath).Replace(TEXT("\\"), TEXT("/")) + TEXT("/");
 	}
 	return *WindowsUserDir;
+}
+
+const TCHAR* FWindowsPlatformProcess::UserTempDir()
+{
+	static FString WindowsUserTempDir;
+	if( !WindowsUserTempDir.Len() )
+	{
+		TCHAR TempPath[MAX_PATH];
+		ZeroMemory(TempPath, sizeof(TCHAR) * MAX_PATH);
+
+		::GetTempPath(MAX_PATH, TempPath);
+
+		WindowsUserTempDir = FString(TempPath).Replace(TEXT("\\"), TEXT("/"));
+	}
+	return *WindowsUserTempDir;
 }
 
 const TCHAR* FWindowsPlatformProcess::UserSettingsDir()

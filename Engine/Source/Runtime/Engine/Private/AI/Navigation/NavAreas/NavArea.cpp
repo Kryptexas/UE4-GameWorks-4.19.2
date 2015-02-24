@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "AI/Navigation/NavAreas/NavArea.h"
@@ -7,7 +7,7 @@ UNavArea::UNavArea(const FObjectInitializer& ObjectInitializer) : Super(ObjectIn
 {
 	DefaultCost = 1.f;
 	FixedAreaEnteringCost = 0.f;
-	DrawColor = FColor(255,0,255);
+	DrawColor = FColor::Magenta;
 	SupportedAgentsBits = 0xffffffff;
 	// NOTE! AreaFlags == 0 means UNWALKABLE!
 	AreaFlags = 1;  
@@ -33,7 +33,7 @@ void UNavArea::FinishDestroy()
 	Super::FinishDestroy();
 }
 
-FColor UNavArea::GetColor(class UClass* AreaDefinitionClass)
+FColor UNavArea::GetColor(UClass* AreaDefinitionClass)
 {
 	return AreaDefinitionClass ? AreaDefinitionClass->GetDefaultObject<UNavArea>()->DrawColor : FColor::Black;
 }

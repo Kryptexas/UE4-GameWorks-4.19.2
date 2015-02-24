@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "KismetCompiler.h"
@@ -61,7 +61,7 @@ void UK2Node_GetDataTableRow::SetPinToolTip(UEdGraphPin& MutatablePin, const FTe
 	if (K2Schema != nullptr)
 	{
 		MutatablePin.PinToolTip += TEXT(" ");
-		MutatablePin.PinToolTip += K2Schema->GetPinDisplayName(&MutatablePin);
+		MutatablePin.PinToolTip += K2Schema->GetPinDisplayName(&MutatablePin).ToString();
 	}
 
 	MutatablePin.PinToolTip += FString(TEXT("\n")) + PinDescription.ToString();
@@ -132,30 +132,23 @@ UScriptStruct* UK2Node_GetDataTableRow::GetDataTableRowStructType(const TArray<U
 	return RowStructType;
 }
 
-void UK2Node_GetDataTableRow::GetDataTableRowNameList(TArray<TSharedPtr<FName>>& RowNames, const TArray<UEdGraphPin*>* InPinsToSearch /*= NULL*/) const
+void UK2Node_GetDataTableRow::OnDataTableRowListChanged(const UDataTable* DataTable)
 {
-	const TArray<UEdGraphPin*>* PinsToSearch = InPinsToSearch ? InPinsToSearch : &Pins;
-
-	UEdGraphPin* DataTablePin = GetDataTablePin(PinsToSearch);
-	if (DataTablePin && DataTablePin->DefaultObject != NULL && DataTablePin->LinkedTo.Num() == 0)
+	UEdGraphPin* DataTablePin = GetDataTablePin();
+	if (DataTable && DataTablePin && DataTable == DataTablePin->DefaultObject)
 	{
-		if (DataTablePin->DefaultObject->IsA(UDataTable::StaticClass()))
+		auto RowNamePin = GetRowNamePin();
+		const bool TryRefresh = RowNamePin && !RowNamePin->LinkedTo.Num();
+		const FName CurrentName = RowNamePin ? FName(*RowNamePin->GetDefaultAsString()) : NAME_None;
+		if (TryRefresh && RowNamePin && !DataTable->GetRowNames().Contains(CurrentName))
 		{
-			UDataTable* DataTable = (UDataTable*)DataTablePin->DefaultObject;
-			if (DataTable)
+			if (auto BP = GetBlueprint())
 			{
-				/** Extract all the row names from the RowMap */
-				for (TMap<FName, uint8*>::TConstIterator Iterator(DataTable->RowMap); Iterator; ++Iterator)
-				{
-					/** Create a simple array of the row names */
-					TSharedPtr<FName> RowNameItem = MakeShareable(new FName(Iterator.Key()));
-					RowNames.Add(RowNameItem);
-				}
+				FBlueprintEditorUtils::MarkBlueprintAsModified(BP);
 			}
 		}
 	}
 }
-
 
 void UK2Node_GetDataTableRow::ReallocatePinsDuringReconstruction(TArray<UEdGraphPin*>& OldPins) 
 {
@@ -381,6 +374,38 @@ void UK2Node_GetDataTableRow::ExpandNode(class FKismetCompilerContext& CompilerC
     CompilerContext.MovePinLinksToIntermediate(*OriginalOutRowPin, *FunctionOutRowPin);
 
 	BreakAllNodeLinks();
+}
+
+void UK2Node_GetDataTableRow::EarlyValidation(class FCompilerResultsLog& MessageLog) const
+{
+	const auto DataTablePin = GetDataTablePin();
+	const auto RowNamePin = GetRowNamePin();
+	if (!DataTablePin || !RowNamePin)
+	{
+		MessageLog.Error(*LOCTEXT("MissingPins", "Missing pins in @@").ToString(), this);
+		return;
+	}
+
+	const auto DataTable = Cast<UDataTable>(DataTablePin->DefaultObject);
+	if (!DataTable)
+	{
+		MessageLog.Error(*LOCTEXT("NoDataTable", "No DataTable in @@").ToString(), this);
+		return;
+	}
+
+	if (!RowNamePin->LinkedTo.Num())
+	{
+		const FName CurrentName = FName(*RowNamePin->GetDefaultAsString());
+		if (!DataTable->GetRowNames().Contains(CurrentName))
+		{
+			const FString Msg = FString::Printf(
+				*LOCTEXT("WronRowName", "'%s' row name is not stored in '%s'. @@").ToString()
+				, *CurrentName.ToString()
+				, *GetFullNameSafe(DataTable));
+			MessageLog.Error(*Msg, this);
+			return;
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

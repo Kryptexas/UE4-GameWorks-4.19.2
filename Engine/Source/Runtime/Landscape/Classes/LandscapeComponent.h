@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,6 +11,8 @@
 class ULandscapeLayerInfoObject;
 class ULandscapeInfo;
 class ALandscapeProxy;
+struct FEngineShowFlags;
+struct FConvexVolume;
 
 class FLandscapeComponentDerivedData
 {
@@ -71,9 +73,6 @@ struct FWeightmapLayerAllocationInfo
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-	FName LayerName_DEPRECATED;
-
-	UPROPERTY()
 	ULandscapeLayerInfoObject* LayerInfo;
 
 	UPROPERTY()
@@ -104,10 +103,12 @@ UCLASS(hidecategories=(Display, Attachment, Physics, Debug, Collision, Movement,
 class ULandscapeComponent : public UPrimitiveComponent
 {
 	GENERATED_UCLASS_BODY()
-
+	
+	/** X offset from global components grid origin (in quads) */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=LandscapeComponent)
 	int32 SectionBaseX;
 
+	/** Y offset from global components grid origin (in quads) */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=LandscapeComponent)
 	int32 SectionBaseY;
 
@@ -160,10 +161,6 @@ class ULandscapeComponent : public UPrimitiveComponent
 	UPROPERTY(TextExportTransient)
 	class UTexture2D* HeightmapTexture;
 
-	/** Cached bounds, created at heightmap update time */
-	UPROPERTY()
-	FBoxSphereBounds CachedBoxSphereBounds_DEPRECATED;
-
 	/** Cached local-space bounding box, created at heightmap update time */
 	UPROPERTY()
 	FBox CachedLocalBox;
@@ -201,17 +198,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LandscapeComponent)
 	int32 ForcedLOD;
 
-	/** Neighbor LOD data to use when rendering, 255 is unspecified */
-	UPROPERTY()
-	uint8 NeighborLOD[8];
-
 	/** LOD level Bias to use when rendering */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=LandscapeComponent)
 	int32 LODBias;
-
-	/** Neighbor LOD bias to use when rendering, 128 is 0 bias, 0 is -128 bias, 255 is 127 bias */
-	UPROPERTY()
-	uint8 NeighborLODBias[8];
 
 	UPROPERTY()
 	FGuid StateId;
@@ -277,11 +266,13 @@ public:
 	virtual int32 GetNumMaterials() const override;
 	virtual class UMaterialInterface* GetMaterial(int32 ElementIndex) const override;
 	virtual void SetMaterial(int32 ElementIndex, class UMaterialInterface* Material) override;
+	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
+	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 #endif
 	// End UPrimitiveComponent interface.
 
 	// Begin USceneComponent interface.
-	virtual void DestroyComponent() override;
+	virtual void DestroyComponent(bool bPromoteChildren = false) override;
 	virtual FBoxSphereBounds CalcBounds(const FTransform& LocalToWorld) const override;
 	// End USceneComponent interface.
 

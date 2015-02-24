@@ -1,8 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	AllowWindowsPLatformTypes.h: Defines for alowwing the use of windows types.
-=============================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #ifndef WINDOWS_PLATFORM_TYPES_GUARD
 	#define WINDOWS_PLATFORM_TYPES_GUARD
@@ -16,8 +12,9 @@
 #define FLOAT ::FLOAT
 
 #ifndef TRUE
-#define TRUE 1
+	#define TRUE 1
 #endif
+
 #ifndef FALSE
-#define FALSE 0
+	#define FALSE 0
 #endif

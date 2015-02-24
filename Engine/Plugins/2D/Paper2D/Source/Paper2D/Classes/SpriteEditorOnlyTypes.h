@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -51,7 +51,7 @@ namespace ESpritePolygonMode
 		// Fully custom geometry; edited by hand
 		FullyCustom,
 
-		// Diced (split up into smaller squares, including only non-empty ones in the final geometry)
+		// Diced (split up into smaller squares, including only non-empty ones in the final geometry).  This option is only supported for Render geometry and will be ignored for Collision geometry.
 		Diced
 	};
 }

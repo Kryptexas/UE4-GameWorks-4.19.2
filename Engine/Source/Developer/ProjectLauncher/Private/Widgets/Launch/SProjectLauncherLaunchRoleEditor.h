@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -59,16 +59,16 @@ private:
 	}
 
 	// Callback for getting the name of the selected instance type.
-	FString HandleInstanceTypeComboButtonContentText( ) const
+	FText HandleInstanceTypeComboButtonContentText( ) const
 	{
 		ILauncherProfileLaunchRolePtr RolePtr = Role.Pin();
 
 		if (RolePtr.IsValid())
 		{
-			return ELauncherProfileRoleInstanceTypes::ToString(RolePtr->GetInstanceType());
+			return FText::FromString(ELauncherProfileRoleInstanceTypes::ToString(RolePtr->GetInstanceType()));
 		}
 
-		return FString();
+		return FText::GetEmpty();
 	}
 
 	// Callback for clicking an item in the 'Instance type' menu.
@@ -197,18 +197,18 @@ private:
 	}
 
 	// Callback for checking the specified 'No VSync' check box.
-	void HandleVsyncCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState )
+	void HandleVsyncCheckBoxCheckStateChanged( ECheckBoxState NewState )
 	{
 		ILauncherProfileLaunchRolePtr RolePtr = Role.Pin();
 
 		if (RolePtr.IsValid())
 		{
-			RolePtr->SetVsyncEnabled(NewState == ESlateCheckBoxState::Checked);
+			RolePtr->SetVsyncEnabled(NewState == ECheckBoxState::Checked);
 		}
 	}
 
 	// Callback for determining the checked state of the specified 'No VSync' check box.
-	ESlateCheckBoxState::Type HandleVsyncCheckBoxIsChecked( ) const
+	ECheckBoxState HandleVsyncCheckBoxIsChecked( ) const
 	{
 		ILauncherProfileLaunchRolePtr RolePtr = Role.Pin();
 
@@ -216,11 +216,11 @@ private:
 		{
 			if (RolePtr->IsVsyncEnabled())
 			{
-				return ESlateCheckBoxState::Checked;
+				return ECheckBoxState::Checked;
 			}
 		}
 
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 
 private:

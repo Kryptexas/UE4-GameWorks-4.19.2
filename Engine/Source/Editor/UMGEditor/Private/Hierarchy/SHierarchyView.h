@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -45,6 +45,7 @@ private:
 	void WidgetHierarchy_OnGetChildren(TSharedPtr<FHierarchyModel> InParent, TArray< TSharedPtr<FHierarchyModel> >& OutChildren);
 	TSharedRef< ITableRow > WidgetHierarchy_OnGenerateRow(TSharedPtr<FHierarchyModel> InItem, const TSharedRef<STableViewBase>& OwnerTable);
 	void WidgetHierarchy_OnSelectionChanged(TSharedPtr<FHierarchyModel> SelectedItem, ESelectInfo::Type SelectInfo);
+	void WidgetHierarchy_OnExpansionChanged(TSharedPtr<FHierarchyModel> Item, bool bExpanded);
 
 private:
 	/** @returns the current blueprint being edited */
@@ -86,9 +87,6 @@ private:
 	/** Called when a Blueprint is recompiled and live objects are swapped out for replacements */
 	void OnObjectsReplaced(const TMap<UObject*, UObject*>& ReplacementMap);
 
-	/** Saves the expansion of items into a list based on FName */
-	void SaveExpandedItems();
-
 	/** Restores the state of expanded items based on the saved expanded item state, then clears the expanded state cache. */
 	void RestoreExpandedItems();
 
@@ -123,9 +121,6 @@ private:
 
 	/** The filter used by the search box */
 	TSharedPtr<WidgetTextFilter> SearchBoxWidgetFilter;
-
-	/** Temporary expanded item state, used to restore expansion after tree rebuilds. */
-	TArray<FName> ExpandedItems;
 
 	/** Has a full refresh of the tree been requested?  This happens when the user is filtering the tree */
 	bool bRefreshRequested;

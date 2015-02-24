@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GlobalShader.cpp: Global shader implementation.
@@ -140,26 +140,41 @@ FGlobalShader::FGlobalShader(const ShaderMetaType::CompiledShaderInitializerType
 {
 }
 
-TArray<uint8>* BackupGlobalShaderMap(EShaderPlatform Platform)
+void BackupGlobalShaderMap(FGlobalShaderBackupData& OutGlobalShaderBackup)
 {
-	TArray<uint8>* ShaderData = new TArray<uint8>();
-	FMemoryWriter Ar(*ShaderData);
-	GGlobalShaderMap[Platform]->SerializeInline(Ar, true, true);
-	GGlobalShaderMap[Platform]->Empty();
+	for (int32 i = (int32)ERHIFeatureLevel::ES2; i < (int32)ERHIFeatureLevel::Num; ++i)
+	{
+		EShaderPlatform ShaderPlatform = GetFeatureLevelShaderPlatform((ERHIFeatureLevel::Type)i);
+		if (ShaderPlatform < EShaderPlatform::SP_NumPlatforms && GGlobalShaderMap[ShaderPlatform] != nullptr)
+		{
+			TArray<uint8>* ShaderData = new TArray<uint8>();
+			FMemoryWriter Ar(*ShaderData);
+			GGlobalShaderMap[ShaderPlatform]->SerializeInline(Ar, true, true);
+			GGlobalShaderMap[ShaderPlatform]->Empty();
+			OutGlobalShaderBackup.FeatureLevelShaderData[i] = ShaderData;
+		}
+	}
 
 	// Remove cached references to global shaders
-	for(TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList());It;It.Next())
+	for (TLinkedList<FGlobalBoundShaderStateResource*>::TIterator It(FGlobalBoundShaderStateResource::GetGlobalBoundShaderStateList()); It; It.Next())
 	{
 		BeginUpdateResourceRHI(*It);
 	}
-
-	return ShaderData;
 }
 
-void RestoreGlobalShaderMap(EShaderPlatform Platform, const TArray<uint8>& ShaderData)
+void RestoreGlobalShaderMap(const FGlobalShaderBackupData& GlobalShaderBackup)
 {
-	FMemoryReader Ar(ShaderData);
-	GGlobalShaderMap[Platform]->SerializeInline(Ar, true, true);
+	for (int32 i = (int32)ERHIFeatureLevel::ES2; i < (int32)ERHIFeatureLevel::Num; ++i)
+	{
+		EShaderPlatform ShaderPlatform = GetFeatureLevelShaderPlatform((ERHIFeatureLevel::Type)i);		
+		if (GlobalShaderBackup.FeatureLevelShaderData[i] != nullptr
+			&& ShaderPlatform < EShaderPlatform::SP_NumPlatforms
+			&& GGlobalShaderMap[ShaderPlatform] != nullptr)
+		{
+			FMemoryReader Ar(*GlobalShaderBackup.FeatureLevelShaderData[i]);
+			GGlobalShaderMap[ShaderPlatform]->SerializeInline(Ar, true, true);
+		}
+	}
 }
 
 /**
@@ -334,11 +349,14 @@ TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(EShaderPlatform Platform, bool
 	// If the global shader map hasn't been created yet, create it.
 	if(!GGlobalShaderMap[Platform])
 	{
-		// verify that all shader source files are intact
-		VerifyShaderSourceFiles();
-
 		// GetGlobalShaderMap is called the first time during startup in the main thread.
 		check(IsInGameThread());
+
+		FScopedSlowTask SlowTask(70);
+
+		// verify that all shader source files are intact
+		SlowTask.EnterProgressFrame(20);
+		VerifyShaderSourceFiles();
 
 		GGlobalShaderMap[Platform] = new TShaderMap<FGlobalShaderType>();
 
@@ -348,6 +366,8 @@ TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(EShaderPlatform Platform, bool
 		// This method is used exclusively with cooked content, since the DDC is not present
 		if (FPlatformProperties::RequiresCookedData())
 		{
+			SlowTask.EnterProgressFrame(50);
+
 			TArray<uint8> GlobalShaderData;
 			FString GlobalShaderCacheFilename = FPaths::GetRelativePathToRoot() / GetGlobalShaderCacheFilename(Platform);
 			FPaths::MakeStandardFilename(GlobalShaderCacheFilename);
@@ -381,9 +401,11 @@ TShaderMap<FGlobalShaderType>* GetGlobalShaderMap(EShaderPlatform Platform, bool
 			FGlobalShaderMapId ShaderMapId(Platform);
 
 			TArray<uint8> CachedData;
+			SlowTask.EnterProgressFrame(40);
 			const FString DataKey = GetGlobalShaderMapKeyString(ShaderMapId, Platform);
 
 			// Find the shader map in the derived data cache
+			SlowTask.EnterProgressFrame(10);
 			if (GetDerivedDataCacheRef().GetSynchronous(*DataKey, CachedData))
 			{
 				FMemoryReader Ar(CachedData, true);
@@ -628,7 +650,7 @@ void ProcessCompiledGlobalShaders(const TArray<FShaderCompileJob*>& CompilationR
 		}
 		else
 		{
-			UE_LOG(LogShaders, Fatal,TEXT("Failed to compile global shader %s"), GlobalShaderType->GetName());
+			UE_LOG(LogShaders, Fatal,TEXT("Failed to compile global shader %s.  Enable 'r.ShaderDevelopmentMode' in ConsoleVariables.ini for retries."), GlobalShaderType->GetName());
 		}
 	}
 

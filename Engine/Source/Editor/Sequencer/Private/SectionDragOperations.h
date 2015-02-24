@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,11 @@
 class FSequencerDragOperation
 {
 public:
+	FSequencerDragOperation()
+	{
+		SnapSettings = GetDefault<USequencerSnapSettings>();
+	}
+
 	virtual ~FSequencerDragOperation(){}
 	void BeginTransaction( UMovieSceneSection& Section, const FText& TransactionDesc );
 	void EndTransaction();
@@ -69,6 +74,9 @@ protected:
 	 * @return						The snap time that was snapped to, or potentially nothing if nothing snapped
 	 */
 	TOptional<float> SnapToTimes(float InitialTimes, const TArray<float>& SnapTimes, const FTimeToPixel& TimeToPixelConverter);
+
+	/** The current snap settings */
+	const USequencerSnapSettings* SnapSettings;
 };
 
 
@@ -79,10 +87,7 @@ protected:
 class FResizeSection : public FSequencerDragOperation
 {
 public:
-	FResizeSection( UMovieSceneSection& InSection, bool bInDraggingByEnd )
-		: Section( &InSection )
-		, bDraggingByEnd( bInDraggingByEnd )
-	{}
+	FResizeSection( UMovieSceneSection& InSection, bool bInDraggingByEnd );
 
 	/** FSequencerDragOperation interface */
 	virtual void OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode) override;
@@ -102,10 +107,7 @@ private:
 class FMoveSection : public FSequencerDragOperation
 {
 public:
-	FMoveSection( UMovieSceneSection& InSection )
-		: Section( &InSection )
-		, DragOffset(ForceInit)
-	{}
+	FMoveSection( UMovieSceneSection& InSection );
 
 	/** FSequencerDragOperation interface */
 	virtual void OnBeginDrag(const FVector2D& LocalMousePos, TSharedPtr<FTrackNode> SequencerNode) override;

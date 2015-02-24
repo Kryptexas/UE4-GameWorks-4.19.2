@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Player.cpp: Unreal player implementation.
@@ -9,11 +9,16 @@
 #include "SubtitleManager.h"
 #include "Net/UnrealNetwork.h"
 #include "GameFramework/HUD.h"
+#include "GameFramework/PlayerInput.h"
 #include "Engine/GameInstance.h"
 
 #include "RenderCore.h"
 #include "ColorList.h"
 #include "SlateBasics.h"
+#include "GameFramework/CheatManager.h"
+#include "GameFramework/Pawn.h"
+#include "GameFramework/GameState.h"
+#include "GameFramework/GameMode.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPlayer

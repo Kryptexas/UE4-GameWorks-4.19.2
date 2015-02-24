@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LandscapeEditorPrivatePCH.h"
 #include "LandscapeEdMode.h"
@@ -156,7 +156,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateRow(IDetailChildren
 	
 	if (Target->TargetType != ELandscapeToolTargetType::Weightmap)
 	{
-		ChildrenBuilder.AddChildContent(Target->TargetName.ToString())
+		ChildrenBuilder.AddChildContent(Target->TargetName)
 		[
 			SNew(SLandscapeEditorSelectableBorder)
 			.Padding(0)
@@ -195,7 +195,7 @@ void FLandscapeEditorCustomNodeBuilder_TargetLayers::GenerateRow(IDetailChildren
 	}
 	else
 	{
-		ChildrenBuilder.AddChildContent(Target->TargetName.ToString())
+		ChildrenBuilder.AddChildContent(Target->TargetName)
 		[
 			SNew(SLandscapeEditorSelectableBorder)
 			.Padding(0)
@@ -832,19 +832,19 @@ EVisibility FLandscapeEditorCustomNodeBuilder_TargetLayers::GetDebugModeColorCha
 	return EVisibility::Collapsed;
 }
 
-ESlateCheckBoxState::Type FLandscapeEditorCustomNodeBuilder_TargetLayers::DebugModeColorChannelIsChecked(const TSharedRef<FLandscapeTargetListInfo> Target, int32 Channel)
+ECheckBoxState FLandscapeEditorCustomNodeBuilder_TargetLayers::DebugModeColorChannelIsChecked(const TSharedRef<FLandscapeTargetListInfo> Target, int32 Channel)
 {
 	if (Target->DebugColorChannel == Channel)
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
-void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnDebugModeColorChannelChanged(ESlateCheckBoxState::Type NewCheckedState, const TSharedRef<FLandscapeTargetListInfo> Target, int32 Channel)
+void FLandscapeEditorCustomNodeBuilder_TargetLayers::OnDebugModeColorChannelChanged(ECheckBoxState NewCheckedState, const TSharedRef<FLandscapeTargetListInfo> Target, int32 Channel)
 {
-	if (NewCheckedState == ESlateCheckBoxState::Checked)
+	if (NewCheckedState == ECheckBoxState::Checked)
 	{
 		// Enable on us and disable colour channel on other targets
 		if (ensure(Target->LayerInfoObj != NULL))

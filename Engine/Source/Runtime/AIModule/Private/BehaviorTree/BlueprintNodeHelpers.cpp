@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BlueprintNodeHelpers.h"
@@ -129,6 +129,35 @@ namespace BlueprintNodeHelpers
 		}
 	}
 
+	bool HasAnyBlackboardSelectors(const UObject* Ob, const UClass* StopAtClass)
+	{
+		bool bResult = false;
+
+		for (UProperty* TestProperty = Ob->GetClass()->PropertyLink; TestProperty; TestProperty = TestProperty->PropertyLinkNext)
+		{
+			// stop when reaching base class
+			if (TestProperty->GetOuter() == StopAtClass)
+			{
+				break;
+			}
+
+			// skip properties without any setup data	
+			if (TestProperty->HasAnyPropertyFlags(CPF_Transient) ||
+				TestProperty->HasAnyPropertyFlags(CPF_DisableEditOnInstance))
+			{
+				continue;
+			}
+
+			const UStructProperty* StructProp = Cast<const UStructProperty>(TestProperty);
+			if (StructProp && StructProp->GetCPPType(NULL, CPPF_None).Contains(GET_STRUCT_NAME_CHECKED(FBlackboardKeySelector)))
+			{
+				bResult = true;
+			}
+		}
+
+		return bResult;
+	}
+
 #undef GET_STRUCT_NAME_CHECKED
 
 	FString CollectPropertyDescription(const UObject* Ob, const UClass* StopAtClass, const TArray<UProperty*>& PropertyData)
@@ -190,7 +219,7 @@ namespace BlueprintNodeHelpers
 
 		if (OwningActor && !bFound)
 		{
-			TArray<UBehaviorTreeComponent*> Components;
+			TInlineComponentArray<UBehaviorTreeComponent*> Components;
 			OwningActor->GetComponents(Components);
 			for (int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ComponentIndex++)
 			{
@@ -212,13 +241,27 @@ namespace BlueprintNodeHelpers
 		return bFound;
 	}
 
+	void AbortLatentActions(UActorComponent& OwnerOb, const UObject& Ob)
+	{
+		if (!OwnerOb.HasAnyFlags(RF_BeginDestroyed) && OwnerOb.GetOwner())
+		{
+			UWorld* MyWorld = OwnerOb.GetOwner()->GetWorld();
+			if (MyWorld)
+			{
+				MyWorld->GetLatentActionManager().RemoveActionsForObject(&Ob);
+				MyWorld->GetTimerManager().ClearAllTimersForObject(&Ob);
+			}
+		}
+	}
+
+	//----------------------------------------------------------------------//
+	// DEPRECATED
+	//----------------------------------------------------------------------//
 	void AbortLatentActions(UActorComponent* OwnerOb, const UObject* Ob)
 	{
-		if (OwnerOb && !OwnerOb->HasAnyFlags(RF_BeginDestroyed) && OwnerOb->GetOwner())
+		if (OwnerOb && Ob)
 		{
-			UWorld* MyWorld = OwnerOb->GetOwner()->GetWorld();
-			MyWorld->GetLatentActionManager().RemoveActionsForObject(Ob);
-			MyWorld->GetTimerManager().ClearAllTimersForObject(Ob);
+			AbortLatentActions(OwnerOb, Ob);
 		}
 	}
 }

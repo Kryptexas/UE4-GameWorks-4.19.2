@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RenderingThread.cpp: Rendering thread implementation.
@@ -137,6 +137,13 @@ FSuspendRenderingThread::FSuspendRenderingThread( bool bInRecreateThread )
 /** Destructor that starts the renderthread again */
 FSuspendRenderingThread::~FSuspendRenderingThread()
 {
+#if PLATFORM_MAC	// On OS X Apple's context sharing is a strict interpretation of the spec. so a resource is only properly visible to other contexts
+					// in the share group after a flush. Thus we call RHIFlushResources which will flush the current context's commands to GL (but not wait for them).
+	ENQUEUE_UNIQUE_RENDER_COMMAND(FlushCommand,
+		RHIFlushResources();
+	);
+#endif
+	
 	if ( bRecreateThread )
 	{
 		GUseThreadedRendering = bUseRenderingThread;
@@ -343,6 +350,8 @@ public:
 	// FRunnable interface.
 	virtual bool Init(void) 
 	{ 
+		GRenderThreadId = FPlatformTLS::GetCurrentThreadId();
+
 		// Acquire rendering context ownership on the current thread
 		RHIAcquireThreadOwnership();
 
@@ -353,6 +362,8 @@ public:
 	{
 		// Release rendering context ownership on the current thread
 		RHIReleaseThreadOwnership();
+
+		GRenderThreadId = 0;
 	}
 
 	virtual void Stop(void)
@@ -361,8 +372,6 @@ public:
 
 	virtual uint32 Run(void)
 	{
-		GRenderThreadId = FPlatformTLS::GetCurrentThreadId();
-
 		FPlatformProcess::SetupGameOrRenderThread(true);
 
 #if PLATFORM_WINDOWS
@@ -398,8 +407,6 @@ public:
 		FThreadStats::ExplicitFlush();
 		FThreadStats::Shutdown();
 #endif
-		GRenderThreadId = 0;
-
 		return 0;
 	}
 };

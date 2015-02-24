@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -28,12 +28,22 @@ enum ERotationGridMode
 UENUM()
 enum EWASDType
 {
-	WASD_Always UMETA(DisplayName="Use WASD for Camera Controls"),
+	WASD_Always  UMETA(DisplayName="Use WASD for Camera Controls"),
 	WASD_RMBOnly UMETA(DisplayName="Use WASD only when a Mouse Button is Pressed"),
-	WASD_Never UMETA(DisplayName="Never use WASD for Camera Controls"),
+	WASD_Never   UMETA(DisplayName="Never use WASD for Camera Controls"),
 	WASD_MAX,
 };
 
+/**
+ * Is Ctrl key required for editing landscape/foliage?
+ */
+UENUM()
+enum class ELandscapeFoliageEditorControlType : uint8
+{
+	IgnoreCtrl    UMETA(DisplayName = "Ignore Ctrl key (allow but don't require Ctrl held)"),
+	RequireCtrl   UMETA(DisplayName = "Require Ctrl held for tools"),
+	RequireNoCtrl UMETA(DisplayName = "Require Ctrl is not held"),
+};
 
 /**
  * Units used by measuring tool
@@ -42,8 +52,8 @@ UENUM()
 enum EMeasuringToolUnits
 {
 	MeasureUnits_Centimeters UMETA(DisplayName="Centimeters"),
-	MeasureUnits_Meters UMETA(DisplayName="Meters"),
-	MeasureUnits_Kilometers UMETA(DisplayName="Kilometers")
+	MeasureUnits_Meters      UMETA(DisplayName="Meters"),
+	MeasureUnits_Kilometers  UMETA(DisplayName="Kilometers")
 };
 
 
@@ -182,7 +192,15 @@ class UNREALED_API ULevelEditorViewportSettings
 
 	/** Enable the use of flight camera controls under various circumstances. */
 	UPROPERTY(EditAnywhere, config, Category=Controls)
-	TEnumAsByte<enum EWASDType> FlightCameraControlType;
+	TEnumAsByte<EWASDType> FlightCameraControlType;
+
+	/** Choose the control scheme for landscape tools (ignored for pen input) */
+	UPROPERTY(EditAnywhere, config, Category=Controls)
+	ELandscapeFoliageEditorControlType LandscapeEditorControlType;
+
+	/** Choose the control scheme for foliage tools */
+	UPROPERTY(EditAnywhere, config, Category=Controls)
+	ELandscapeFoliageEditorControlType FoliageEditorControlType;
 
 	/** If true, moves the canvas and shows the mouse.  If false, uses original camera movement. */
 	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Grab and Drag to Move Orthographic Cameras"), AdvancedDisplay)
@@ -221,7 +239,7 @@ class UNREALED_API ULevelEditorViewportSettings
 	uint32 bUseAbsoluteTranslation:1;
 
 	/** If enabled, the viewport will stream in levels automatically when the camera is moved. */
-	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Stream in Levels Automatically when Camera is Moved"), aDvancedDisplay)
+	UPROPERTY(EditAnywhere, config, Category=Controls, meta=(DisplayName = "Stream in Levels Automatically when Camera is Moved"), AdvancedDisplay)
 	bool bLevelStreamingVolumePrevis;
 
 	/** When checked, orbit the camera by using the L or U keys when unchecked, Alt and Left Mouse Drag will orbit around the look at point */
@@ -287,11 +305,11 @@ private:
 public:
 
 	/** If true actor snap will be enabled in the editor **/
-	UPROPERTY(config, Category=GridSnapping, VisibleDefaultsOnly)
+	UPROPERTY(config, Category=GridSnapping, VisibleDefaultsOnly,AdvancedDisplay)
 	uint32 bEnableActorSnap:1;
 
 	/** Global actor snap scale for the editor */
-	UPROPERTY(config, Category=GridSnapping, VisibleDefaultsOnly)
+	UPROPERTY(config, Category=GridSnapping, VisibleDefaultsOnly,AdvancedDisplay)
 	float ActorSnapScale;
 
 	/** Global actor snap distance setting for the editor */
@@ -331,7 +349,7 @@ public:
 	uint32 bEnableViewportHoverFeedback:1;
 
 	/** If enabled, selected objects will be highlighted with brackets in all modes rather than a special highlight color. */
-	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(DisplayName = "Highlight Selected Objects with Brackets"))
+	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, AdvancedDisplay, meta=(DisplayName = "Highlight Selected Objects with Brackets"))
 	uint32 bHighlightWithBrackets:1;
 
 	/** If checked all orthographic view ports are linked to the same position and move together. */
@@ -355,11 +373,11 @@ public:
 	float SelectionHighlightIntensity;
 
 	/** Sets the intensity of the overlay displayed when an object is selected */
-	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(DisplayName = "BSP Surface Highlight Intensity" ,ClampMin = "0", UIMin = "0", UIMax = "1"))
+	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, AdvancedDisplay, meta=(DisplayName = "BSP Surface Highlight Intensity" ,ClampMin = "0", UIMin = "0", UIMax = "1"))
 	float BSPSelectionHighlightIntensity;
 
 	/** Sets the intensity of the overlay displayed when an object is hovered */
-	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(DisplayName = "Hover Highlight Intensity" ,ClampMin = "0", UIMin = "0", UIMax = "20"))
+	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, AdvancedDisplay, meta=(DisplayName = "Hover Highlight Intensity" ,ClampMin = "0", UIMin = "0", UIMax = "20"))
 	float HoverHighlightIntensity;
 
 	/** Enables the editor perspective camera to be dropped at the last PlayInViewport cam position */
@@ -375,22 +393,22 @@ public:
 	float CameraPreviewSize;
 
 	/** Distance from the camera to place actors which are dropped on nothing in the view port. */
-	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(DisplayName = "Background Drop Distance"))
+	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, AdvancedDisplay, meta=(DisplayName = "Background Drop Distance"))
 	float BackgroundDropDistance;
 
 	/** A list of meshes that can be used as preview mesh in the editor view port by holding down the backslash key */
 	UPROPERTY(EditAnywhere, config, Category=Preview, meta=(AllowedClasses = "StaticMesh"))
 	TArray<FStringAssetReference> PreviewMeshes;
 
-	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(ClampMin = "0.01", UIMin = "0.01", UIMax = "5"))
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category=LookAndFeel, meta=(ClampMin = "0.01", UIMin = "0.01", UIMax = "5"))
 	float BillboardScale;
 
 	/** The size adjustment to apply to the translate/rotate/scale widgets (in Unreal units). */
-	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, meta=(ClampMin="-10",ClampMax="150") )
+	UPROPERTY(EditAnywhere, config, Category=LookAndFeel, AdvancedDisplay, meta=(ClampMin="-10",ClampMax="150") )
 	int32 TransformWidgetSizeAdjustment;
 
 	/** When enabled, engine stats that are enabled in level viewports are preserved between editor sessions */
-	UPROPERTY(EditAnywhere, config, Category = LookAndFeel)
+	UPROPERTY(EditAnywhere, config, AdvancedDisplay, Category = LookAndFeel)
 	uint32 bSaveEngineStats : 1;
 
 	/** Specify the units used by the measuring tool */
@@ -476,6 +494,7 @@ protected:
 
 	// UObject overrides
 
+	virtual void PostInitProperties() override;
 	virtual void PostEditChangeProperty( struct FPropertyChangedEvent& PropertyChangedEvent ) override;
 
 private:

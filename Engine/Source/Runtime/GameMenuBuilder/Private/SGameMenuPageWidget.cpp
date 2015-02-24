@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GameMenuBuilderPrivatePCH.h"
 #include "Engine/Console.h"
@@ -282,9 +282,9 @@ EVisibility SGameMenuPageWidget::GetMenuTitleVisibility() const
 	return CurrentMenuTitle.IsEmpty() || bMenuHidden == true ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
-FString SGameMenuPageWidget::GetMenuTitle() const 
+FText SGameMenuPageWidget::GetMenuTitle() const 
 {
-	return CurrentMenuTitle.ToString();
+	return CurrentMenuTitle;
 }
 
 void SGameMenuPageWidget::SetCurrentMenu(TSharedPtr< class FGameMenuPage > InMenu)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Polygon.cpp: FPoly implementation (Editor polygons).
@@ -10,6 +10,7 @@
 #if WITH_EDITOR
 #include "GeomTools.h"
 #endif
+#include "Engine/Polys.h"
 
 
 DEFINE_LOG_CATEGORY_STATIC(LogPolygon, Log, All);
@@ -41,12 +42,6 @@ FArchive& operator<<(FArchive& Ar, FLightmassPrimitiveSettings& Settings)
 	
 	Ar << Settings.EmissiveBoost;
 	Ar << Settings.DiffuseBoost;
-
-	if( Ar.UE4Ver() < VER_UE4_REMOVED_SPECULAR_BOOST )
-	{
-		float SpecularBoost;
-		Ar << SpecularBoost;
-	}
 
 	return Ar;
 }
@@ -458,8 +453,55 @@ void FPoly::Transform
 
 	// Transform normal.  Since the transformation coordinate system is
 	// orthogonal but not orthonormal, it has to be renormalized here.
-	Normal = Normal.SafeNormal();
+	Normal = Normal.GetSafeNormal();
 
+}
+
+
+void FPoly::Rotate
+(
+	const FVector&		PreSubtract,
+	const FRotator&		Rotation
+)
+{
+	// Rotate the vertices.
+	for (int32 Vertex = 0; Vertex < Vertices.Num(); Vertex++)
+	{
+		Vertices[Vertex] = PreSubtract + FRotationMatrix(Rotation).TransformVector(Vertices[Vertex] - PreSubtract);
+	}
+
+	Base = PreSubtract + FRotationMatrix(Rotation).TransformVector(Base - PreSubtract);
+
+	// Rotate the texture vectors.
+	TextureU = FRotationMatrix(Rotation).TransformVector(TextureU);
+	TextureV = FRotationMatrix(Rotation).TransformVector(TextureV);
+
+	// Rotate the normal.
+	Normal = FRotationMatrix(Rotation).TransformVector(Normal);
+	Normal = Normal.GetSafeNormal();
+}
+
+
+void FPoly::Scale
+(
+	const FVector&		PreSubtract,
+	const FVector&		Scale
+)
+{
+	// Scale the vertices.
+	for (int32 Vertex = 0; Vertex < Vertices.Num(); Vertex++)
+	{
+		Vertices[Vertex] = PreSubtract + (Vertices[Vertex] - PreSubtract) * Scale;
+	}
+
+	Base = PreSubtract + (Base - PreSubtract) * Scale;
+
+	// Scale the texture vectors.
+	TextureU *= Scale;
+	TextureV *= Scale;
+
+	// Renormalize the normal.
+	Normal = Normal.GetSafeNormal();
 }
 
 
@@ -791,7 +833,7 @@ FPoly FPoly::BuildAndCutInfiniteFPoly(const FPlane& InPlane, const TArray<FPlane
 	{
 		const FPlane* Plane = &InCutPlanes[p];
 
-		result = PolyMerged.SplitWithPlane( Plane->SafeNormal() * Plane->W, Plane->SafeNormal(), &Front, &Back, 1 );
+		result = PolyMerged.SplitWithPlane( Plane->GetSafeNormal() * Plane->W, Plane->GetSafeNormal(), &Front, &Back, 1 );
 
 		if( result == SP_Split )
 		{
@@ -885,8 +927,8 @@ int32 FPoly::Finalize( ABrush* InOwner, int32 NoError )
 	{
 		for( int32 i=1; i<Vertices.Num(); i++ )
 		{
-			TextureU = ((Vertices[0] - Vertices[i]) ^ Normal).SafeNormal();
-			TextureV = (Normal ^ TextureU).SafeNormal();
+			TextureU = ((Vertices[0] - Vertices[i]) ^ Normal).GetSafeNormal();
+			TextureV = (Normal ^ TextureU).GetSafeNormal();
 			if( TextureU.SizeSquared()!=0 && TextureV.SizeSquared()!=0 )
 				break;
 		}

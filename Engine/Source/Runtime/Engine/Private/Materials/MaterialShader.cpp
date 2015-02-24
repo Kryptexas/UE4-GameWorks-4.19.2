@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "DiagnosticTable.h"
@@ -41,6 +41,7 @@ FString GetShadingModelString(EMaterialShadingModel ShadingModel)
 		case MSM_PreintegratedSkin:	ShadingModelName = TEXT("MSM_PreintegratedSkin"); break;
 		case MSM_ClearCoat:			ShadingModelName = TEXT("MSM_ClearCoat"); break;
 		case MSM_SubsurfaceProfile:	ShadingModelName = TEXT("MSM_SubsurfaceProfile"); break;
+		case MSM_TwoSidedFoliage:	ShadingModelName = TEXT("MSM_TwoSidedFoliage"); break;
 		default: ShadingModelName = TEXT("Unknown"); break;
 	}
 	return ShadingModelName;
@@ -84,6 +85,7 @@ void UpdateMaterialShaderCompilingStats(const FMaterial* Material)
 		case MSM_PreintegratedSkin:
 		case MSM_ClearCoat:
 		case MSM_SubsurfaceProfile:
+		case MSM_TwoSidedFoliage:
 			INC_DWORD_STAT_BY(STAT_ShaderCompiling_NumLitMaterialShaders,1);
 			break;
 		default: break;
@@ -310,12 +312,9 @@ void FMaterialShaderMapId::Serialize(FArchive& Ar)
 	// Backwards compatibility only works with FMaterialShaderMapId's stored in packages.  
 	// You must bump MATERIALSHADERMAP_DERIVEDDATA_VER as well if changing the serialization of FMaterialShaderMapId.
 
-	if (Ar.UE4Ver() >= VER_UE4_ADDED_MATERIALSHADERMAP_USAGE)
-	{
-		uint32 UsageInt = Usage;
-		Ar << UsageInt;
-		Usage = (EMaterialShaderMapUsage::Type)UsageInt;
-	}
+	uint32 UsageInt = Usage;
+	Ar << UsageInt;
+	Usage = (EMaterialShaderMapUsage::Type)UsageInt;
 
 	Ar << BaseMaterialId;
 
@@ -324,7 +323,7 @@ void FMaterialShaderMapId::Serialize(FArchive& Ar)
 		Ar << (int32&)QualityLevel;
 		Ar << (int32&)FeatureLevel;
 	}
-	else if (Ar.UE4Ver() >= VER_UE4_MATERIAL_QUALITY_LEVEL_SWITCH)
+	else
 	{
 		uint8 LegacyQualityLevel;
 		Ar << LegacyQualityLevel;
@@ -332,27 +331,21 @@ void FMaterialShaderMapId::Serialize(FArchive& Ar)
 
 	ParameterSet.Serialize(Ar);
 
-	if (Ar.UE4Ver() >= VER_UE4_FUNCTIONS_IN_SHADERMAPID)
-	{
-		Ar << ReferencedFunctions;
-	}
+	Ar << ReferencedFunctions;
 
 	if (Ar.UE4Ver() >= VER_UE4_COLLECTIONS_IN_SHADERMAPID)
 	{
 		Ar << ReferencedParameterCollections;
 	}
 
-	if (Ar.UE4Ver() >= VER_UE4_REMOVED_PERSHADER_DDC)
-	{
-		Ar << ShaderTypeDependencies;
-		Ar << VertexFactoryTypeDependencies;
-	}
+	Ar << ShaderTypeDependencies;
+	Ar << VertexFactoryTypeDependencies;
 
 	if (Ar.UE4Ver() >= VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS)
 	{
 		Ar << TextureReferencesHash;
 	}
-	else if (Ar.UE4Ver() >= VER_UE4_HASHED_MATERIAL_OUTPUT)
+	else
 	{
 		FSHAHash LegacyHash;
 		Ar << LegacyHash;
@@ -1316,6 +1309,20 @@ bool FMaterialShaderMap::ProcessCompilationResults(const TArray<FShaderCompileJo
 		// The shader map can now be used on the rendering thread
 		bCompilationFinalized = true;
 
+		return true;
+	}
+
+	return false;
+}
+
+bool FMaterialShaderMap::TryToAddToExistingCompilationTask(FMaterial* Material)
+{
+	check(NumRefs > 0);
+	TArray<FMaterial*>* CorrespondingMaterials = FMaterialShaderMap::ShaderMapsBeingCompiled.Find(this);
+
+	if (CorrespondingMaterials)
+	{
+		CorrespondingMaterials->AddUnique(Material);
 		return true;
 	}
 

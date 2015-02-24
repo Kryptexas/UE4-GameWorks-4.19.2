@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -612,6 +612,12 @@ namespace UnrealBuildTool
 
 				// Add the additional frameworks so that the compiler can know about their #include paths
 				AdditionalFrameworks.AddRange(PublicAdditionalFrameworks);
+				
+				// Remember the module so we can refer to it when needed
+				foreach (var Framework in PublicAdditionalFrameworks)
+				{
+					Framework.OwningModule = this;
+				}
 			}
 		}
 
@@ -881,7 +887,7 @@ namespace UnrealBuildTool
 		}
 	};
 
-	/** A module that is compiled from C++ code. */
+	/** A module that is compiled from C++ code. */	
 	public class UEBuildModuleCPP : UEBuildModule
 	{
 		public class AutoGenerateCppInfoClass
@@ -978,9 +984,6 @@ namespace UnrealBuildTool
 		/** If true and unity builds are enabled, this module will build without unity. */
 		public bool bFasterWithoutUnity = false;
 
-		/** If true then the engine will call it's StartupModule at engine initialization automatically. */
-		public bool bIsAutoStartupModule = false;
-
 		/** Overrides BuildConfiguration.MinFilesUsingPrecompiledHeader if non-zero. */
 		public int MinFilesUsingPrecompiledHeaderOverride = 0;
 
@@ -989,6 +992,8 @@ namespace UnrealBuildTool
 
 		/** Path to this module's redist static library */
 		public string[] RedistStaticLibraryPaths = null;
+
+		public List<string> IncludeSearchPaths = new List<string>();
 
 		/** Whether we're building the redist static library (as well as using it). */
 		public bool bBuildingRedistStaticLibrary = false;
@@ -1001,6 +1006,9 @@ namespace UnrealBuildTool
 
 		/** The processed dependencies for the class */
 		public ProcessedDependenciesClass ProcessedDependencies = null;
+
+		/** @hack to skip adding definitions to compile environment. They will be baked into source code by external code. */
+		public bool bSkipDefinitionsForCompileEnvironment = false;
 
 		/** Categorizes source files into per-extension buckets */
 		private static void CategorizeSourceFiles(IEnumerable<FileItem> InSourceFiles, SourceFilesClass OutSourceFiles)
@@ -1072,7 +1080,6 @@ namespace UnrealBuildTool
 			bool InUseRTTI,
 			bool InEnableBufferSecurityChecks,
 			bool InFasterWithoutUnity,
-			bool InIsAutoStartupModule,
 			int InMinFilesUsingPrecompiledHeaderOverride,
 			bool InEnableExceptions,
 			bool bInBuildSourceFiles
@@ -1123,7 +1130,6 @@ namespace UnrealBuildTool
 			bUseRTTI                               = InUseRTTI;
 			bEnableBufferSecurityChecks 		   = InEnableBufferSecurityChecks;
 			bFasterWithoutUnity                    = InFasterWithoutUnity;
-			bIsAutoStartupModule                   = InIsAutoStartupModule;
 			MinFilesUsingPrecompiledHeaderOverride = InMinFilesUsingPrecompiledHeaderOverride;
 			bEnableExceptions                      = InEnableExceptions;
 		}
@@ -1147,6 +1153,8 @@ namespace UnrealBuildTool
 			}
 
 			var ModuleCompileEnvironment = CreateModuleCompileEnvironment(CompileEnvironment);
+			IncludeSearchPaths = ModuleCompileEnvironment.Config.CPPIncludeInfo.IncludePaths.ToList();
+			IncludeSearchPaths.AddRange(ModuleCompileEnvironment.Config.CPPIncludeInfo.SystemIncludePaths.ToList());
 
 			if( IntelliSenseGatherer != null )
 			{
@@ -1226,16 +1234,19 @@ namespace UnrealBuildTool
 
 
 			// Should we use unity build mode for this module?
-			bool bModuleUsesUnityBuild = BuildConfiguration.bUseUnityBuild;
-			if( bFasterWithoutUnity )
+			bool bModuleUsesUnityBuild = BuildConfiguration.bUseUnityBuild || BuildConfiguration.bForceUnityBuild;
+			if (!BuildConfiguration.bForceUnityBuild)
 			{
-				bModuleUsesUnityBuild = false;
-			}
-			else if( !BuildConfiguration.bForceUnityBuild && IsGameModule && SourceFilesToBuild.CPPFiles.Count < BuildConfiguration.MinGameModuleSourceFilesForUnityBuild )
-			{
-				// Game modules with only a small number of source files are usually better off having faster iteration times
-				// on single source file changes, so we forcibly disable unity build for those modules
-				bModuleUsesUnityBuild = false;
+				if (bFasterWithoutUnity)
+				{
+					bModuleUsesUnityBuild = false;
+				}
+				else if (IsGameModule && SourceFilesToBuild.CPPFiles.Count < BuildConfiguration.MinGameModuleSourceFilesForUnityBuild)
+				{
+					// Game modules with only a small number of source files are usually better off having faster iteration times
+					// on single source file changes, so we forcibly disable unity build for those modules
+					bModuleUsesUnityBuild = false;
+				}
 			}
 
 			// The environment with which to compile the CPP files
@@ -1799,6 +1810,13 @@ namespace UnrealBuildTool
 			// Setup the compile environment for the module.
 			SetupPrivateCompileEnvironment(ref Result.Config.CPPIncludeInfo.IncludePaths, ref Result.Config.CPPIncludeInfo.SystemIncludePaths, ref Result.Config.Definitions, ref Result.Config.AdditionalFrameworks);
 
+			// @hack to skip adding definitions to compile environment, they will be baked into source code files
+			if (bSkipDefinitionsForCompileEnvironment)
+			{
+				Result.Config.Definitions.Clear();
+				Result.Config.CPPIncludeInfo.IncludePaths = new HashSet<string>(BaseCompileEnvironment.Config.CPPIncludeInfo.IncludePaths);
+			}
+
 			return Result;
 		}
 
@@ -2153,7 +2171,6 @@ namespace UnrealBuildTool
 			bool InUseRTTI,
 			bool InEnableBufferSecurityChecks,
 			bool InFasterWithoutUnity,
-			bool InIsAutoStartupModule,
 			int InMinFilesUsingPrecompiledHeaderOverride,
 			bool InEnableExceptions,
 			bool bInBuildSourceFiles
@@ -2163,7 +2180,7 @@ namespace UnrealBuildTool
 			InPublicIncludePathModuleNames,InPublicDependencyModuleNames,InPublicDelayLoadDLLs,InPublicAdditionalLibraries,InPublicFrameworks,InPublicWeakFrameworks,InPublicAdditionalFrameworks,InPublicAdditionalShadowFiles,InPublicAdditionalBundleResources,
 			InPrivateIncludePaths,InPrivateIncludePathModuleNames,InPrivateDependencyModuleNames,
             InCircularlyReferencedDependentModules, InDynamicallyLoadedModuleNames, InPlatformSpecificDynamicallyLoadedModuleNames, InOptimizeCode,
-			InAllowSharedPCH, InSharedPCHHeaderFile, InUseRTTI, InEnableBufferSecurityChecks, InFasterWithoutUnity, InIsAutoStartupModule, InMinFilesUsingPrecompiledHeaderOverride,
+			InAllowSharedPCH, InSharedPCHHeaderFile, InUseRTTI, InEnableBufferSecurityChecks, InFasterWithoutUnity, InMinFilesUsingPrecompiledHeaderOverride,
 			InEnableExceptions, bInBuildSourceFiles)
 		{
 			PrivateAssemblyReferences = HashSetFromOptionalEnumerableStringParameter(InPrivateAssemblyReferences);
@@ -2228,14 +2245,16 @@ namespace UnrealBuildTool
 
 	public class UEBuildBundleResource
 	{
-		public UEBuildBundleResource(string InResourcePath, string InBundleContentsSubdir = "Resources")
+		public UEBuildBundleResource(string InResourcePath, string InBundleContentsSubdir = "Resources", bool bInShouldLog = true)
 		{
 			ResourcePath = InResourcePath;
 			BundleContentsSubdir = InBundleContentsSubdir;
+			bShouldLog = bInShouldLog;
 		}
 
 		public string ResourcePath			= null;
 		public string BundleContentsSubdir	= null;
+		public bool bShouldLog				= true;
 	}
 
 	public class PrecompileHeaderEnvironment

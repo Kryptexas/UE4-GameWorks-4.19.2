@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ProjectLauncherPrivatePCH.h"
 
@@ -108,31 +108,31 @@ TSharedRef<SWidget> SProjectLauncherProjectPicker::MakeProjectWidget()
 /* SProjectLauncherProjectPicker callbacks
  *****************************************************************************/
 
-FString SProjectLauncherProjectPicker::HandleProjectComboButtonText( ) const
+FText SProjectLauncherProjectPicker::HandleProjectComboButtonText( ) const
 {
 	if (LaunchProfileAttr.IsBound())
 	{
 		ILauncherProfilePtr Profile = LaunchProfileAttr.Get();
 		if (Profile.IsValid() && Profile->HasProjectSpecified())
 		{
-			return Profile->GetProjectName();
+			return FText::FromString(Profile->GetProjectName());
 		}
-		return TEXT("Any Project");
+		return LOCTEXT("AnyProjectAction", "Any Project");
 	}
 
 	FString Name = Model->GetProfileManager()->GetProjectName();
 	if (!Name.IsEmpty())
 	{
-		return Name;
+		return FText::FromString(Name);
 	}
 
-	return LOCTEXT("SelectProjectText", "Select...").ToString();
+	return LOCTEXT("SelectProjectText", "Select...");
 }
 
 
-FString SProjectLauncherProjectPicker::HandleProjectComboButtonToolTip( ) const
+FText SProjectLauncherProjectPicker::HandleProjectComboButtonToolTip( ) const
 {
-	return LOCTEXT("SelectProjectText", "Select or browse for a project").ToString();
+	return LOCTEXT("SelectProjectText", "Select or browse for a project");
 }
 
 

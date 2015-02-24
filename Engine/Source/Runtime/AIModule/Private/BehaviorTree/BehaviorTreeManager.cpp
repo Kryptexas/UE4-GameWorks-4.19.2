@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "BehaviorTree/Tasks/BTTask_RunBehavior.h"
@@ -363,25 +363,25 @@ void UBehaviorTreeManager::DumpUsageStats() const
 	AllNodesCounter.Print(TEXT(","));
 }
 
-void UBehaviorTreeManager::AddActiveComponent(UBehaviorTreeComponent* Component)
+void UBehaviorTreeManager::AddActiveComponent(UBehaviorTreeComponent& Component)
 {
-	ActiveComponents.AddUnique(Component);
+	ActiveComponents.AddUnique(&Component);
 }
 
-void UBehaviorTreeManager::RemoveActiveComponent(UBehaviorTreeComponent* Component)
+void UBehaviorTreeManager::RemoveActiveComponent(UBehaviorTreeComponent& Component)
 {
-	ActiveComponents.Remove(Component);
+	ActiveComponents.Remove(&Component);
 }
 
 UBehaviorTreeManager* UBehaviorTreeManager::GetCurrent(UWorld* World)
 {
-	UAISystem* AISys = UAISystem::GetCurrent(World, false);
+	UAISystem* AISys = UAISystem::GetCurrentSafe(World);
 	return AISys ? AISys->GetBehaviorTreeManager() : NULL;
 }
 
 UBehaviorTreeManager* UBehaviorTreeManager::GetCurrent(UObject* WorldContextObject)
 {
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject, false);
-	UAISystem* AISys = UAISystem::GetCurrent(World, false);
+	UAISystem* AISys = UAISystem::GetCurrentSafe(World);
 	return AISys ? AISys->GetBehaviorTreeManager() : NULL;
 }

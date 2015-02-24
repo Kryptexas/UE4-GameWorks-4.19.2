@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FogRendering.cpp: Fog rendering implementation.
@@ -871,6 +871,32 @@ void ApplyLightShaftBloom(FRHICommandListImmediate& RHICmdList, const FViewInfo&
 		EDRF_UseTriangleOptimization);
 
 	GSceneRenderTargets.FinishRenderingSceneColor(RHICmdList, false);
+}
+
+void FSceneViewState::TrimHistoryRenderTargets(const FScene* Scene)
+{
+	for (TMap<const ULightComponent*, TRefCountPtr<IPooledRenderTarget> >::TIterator It(LightShaftBloomHistoryRTs); It; ++It)
+	{
+		bool bLightIsUsed = false;
+
+		for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
+		{
+			const FLightSceneInfo* const LightSceneInfo = LightIt->LightSceneInfo;
+
+			if (LightSceneInfo->Proxy->GetLightComponent() == It.Key())
+			{
+				bLightIsUsed = true;
+				break;
+			}
+		}
+
+		if (!bLightIsUsed)
+		{
+			// Remove references to render targets for lights that are no longer in the scene
+			// This has to be done every frame instead of at light deregister time because the view states are not known by FScene
+			It.RemoveCurrent();
+		}
+	}
 }
 
 void FDeferredShadingSceneRenderer::RenderLightShaftBloom(FRHICommandListImmediate& RHICmdList)

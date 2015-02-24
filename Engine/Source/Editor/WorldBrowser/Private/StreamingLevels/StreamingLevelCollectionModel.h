@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "StreamingLevelModel.h"
+#include "EditorUndoClient.h"
 
 /** The non-UI solution specific presentation logic for a LevelsView */
 class FStreamingLevelCollectionModel 
@@ -80,6 +81,9 @@ private:
 	/** Handler for when a level is selected after invoking AddExistingLevel */
 	void HandleAddExistingLevelSelected(const TArray<FAssetData>& SelectedAssets, bool bRemoveInvalidSelectedLevelsAfter);
 
+	/** Handler for when the level picker dialog is cancelled */
+	void HandleAddExistingLevelCancelled();
+
 	/** Add Selected Actors to New Level; prompts for level save location */
 	void AddSelectedActorsToNewLevel_Executed();
 
@@ -113,6 +117,9 @@ private:
 
 	/** The current class to set new or added levels streaming method to. */
 	UClass*				AddedLevelStreamingClass;
+
+	/** Boolean indicating whether the asset dialog is currently open */
+	bool				bAssetDialogOpen;
 };
 
 

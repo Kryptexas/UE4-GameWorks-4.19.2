@@ -16,7 +16,7 @@
 	[
 		{
 			"Name" : "WmfMedia",
-			"Type" : "Runtime",
+			"Type" : "RuntimeNoCommandlet",
 			"LoadingPhase" : "PreLoadingScreen",
 			"WhitelistPlatforms" : [ "Win32", "Win64" ]
 		}

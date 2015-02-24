@@ -1,8 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "AI/Navigation/NavAreas/NavArea.h"
 #include "NavAreaMeta.generated.h"
+
+class AActor;
 
 /** Class containing definition of a navigation area */
 UCLASS(Abstract)
@@ -14,9 +17,9 @@ class ENGINE_API UNavAreaMeta : public UNavArea
 	 *	Picks an navigation area class that should be used for Actor when
 	 *	queried by NavAgent
 	 */
-	virtual TSubclassOf<UNavArea> PickAreaClass(const class AActor* Actor, const FNavAgentProperties& NavAgent) const;
+	virtual TSubclassOf<UNavArea> PickAreaClass(const AActor* Actor, const FNavAgentProperties& NavAgent) const;
 
-	FORCEINLINE static TSubclassOf<UNavArea> PickAreaClass(TSubclassOf<UNavArea> AreaClass, const class AActor* Actor, const FNavAgentProperties& NavAgent)
+	FORCEINLINE static TSubclassOf<UNavArea> PickAreaClass(TSubclassOf<UNavArea> AreaClass, const AActor* Actor, const FNavAgentProperties& NavAgent)
 	{
 		if (AreaClass->IsChildOf(UNavAreaMeta::StaticClass()))
 		{

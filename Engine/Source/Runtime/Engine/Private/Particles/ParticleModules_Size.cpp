@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Size.cpp: 
@@ -8,7 +8,6 @@
 #include "EnginePrivate.h"
 #include "Distributions/DistributionVectorConstantCurve.h"
 #include "ParticleDefinitions.h"
-#include "../DistributionHelpers.h"
 #include "Particles/Size/ParticleModuleSize_Seeded.h"
 #include "Particles/Size/ParticleModuleSizeMultiplyLife.h"
 #include "Particles/Size/ParticleModuleSizeScale.h"
@@ -16,6 +15,7 @@
 #include "Particles/TypeData/ParticleModuleTypeDataGpu.h"
 #include "Particles/ParticleLODLevel.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Particles/ParticleModuleRequired.h"
 
 UParticleModuleSizeBase::UParticleModuleSizeBase(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -58,15 +58,6 @@ void UParticleModuleSize::PostInitProperties()
 	}
 }
 
-void UParticleModuleSize::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultUniform(StartSize.Distribution, TEXT("DistributionStartSize"), FVector(1.0f, 1.0f, 1.0f), FVector(1.0f, 1.0f, 1.0f));
-	}
-}
-
 void UParticleModuleSize::CompileModule( FParticleEmitterBuildInfo& EmitterInfo )
 {
 	float MinSize = 0.0f;
@@ -92,12 +83,14 @@ void UParticleModuleSize::Spawn(FParticleEmitterInstance* Owner, int32 Offset, f
 	SpawnEx(Owner, Offset, SpawnTime, NULL, ParticleBase);
 }
 
-void UParticleModuleSize::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
+void UParticleModuleSize::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
 {
 	SPAWN_INIT;
 	FVector Size		 = StartSize.GetValue(Owner->EmitterTime, Owner->Component, 0, InRandomStream);
-	Particle.Size		+= Size;
-	Particle.BaseSize	+= Size;
+	Particle.Size	+= Size;
+
+	AdjustParticleBaseSizeForUVFlipping(Size, Owner->CurrentLODLevel->RequiredModule->UVFlippingMode);
+	Particle.BaseSize += Size;
 }
 
 /*-----------------------------------------------------------------------------
@@ -163,15 +156,6 @@ void UParticleModuleSizeMultiplyLife::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleSizeMultiplyLife::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(LifeMultiplier.Distribution, TEXT("DistributionLifeMultiplier"), FVector::ZeroVector);
 	}
 }
 
@@ -365,15 +349,6 @@ void UParticleModuleSizeScale::PostInitProperties()
 	}
 }
 
-void UParticleModuleSizeScale::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(SizeScale.Distribution, TEXT("DistributionSizeScale"), FVector::ZeroVector);
-	}
-}
-
 void UParticleModuleSizeScale::CompileModule( FParticleEmitterBuildInfo& EmitterInfo )
 {
 	EmitterInfo.SizeScale.Initialize( SizeScale.Distribution );
@@ -406,14 +381,14 @@ void UParticleModuleSizeScale::Spawn(FParticleEmitterInstance* Owner, int32 Offs
 {
 	SPAWN_INIT;
 	FVector ScaleFactor = SizeScale.GetValue(Particle.RelativeTime, Owner->Component);
-	Particle.Size = Particle.BaseSize * ScaleFactor;
+	Particle.Size = GetParticleBaseSize(*ParticleBase) * ScaleFactor;
 }
 
 void UParticleModuleSizeScale::Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime)
 {
 	BEGIN_UPDATE_LOOP;
 		FVector ScaleFactor = SizeScale.GetValue(Particle.RelativeTime, Owner->Component);
-		Particle.Size = Particle.BaseSize * ScaleFactor;
+		Particle.Size = GetParticleBaseSize(Particle) * ScaleFactor;
 	END_UPDATE_LOOP;
 }
 
@@ -447,7 +422,7 @@ void UParticleModuleSizeScaleBySpeed::Update(FParticleEmitterInstance* Owner, in
 		FVector Size = Scale * Particle.Velocity.Size();
 		Size = Size.ComponentMax(FVector(1.0f));
 		Size = Size.ComponentMin(ScaleMax);
-		Particle.Size = Particle.BaseSize * Size;
+		Particle.Size = GetParticleBaseSize(Particle) * Size;
 	END_UPDATE_LOOP;
 }
 

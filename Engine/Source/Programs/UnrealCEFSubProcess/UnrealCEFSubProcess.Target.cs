@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System.Collections.Generic;
 using System.IO;
@@ -17,6 +17,7 @@ public class UnrealCEFSubProcessTarget : TargetRules
 
 	public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
 	{
+		OutPlatforms.Add(UnrealTargetPlatform.Win32);
 		OutPlatforms.Add(UnrealTargetPlatform.Win64);
 		OutPlatforms.Add(UnrealTargetPlatform.Mac);
 		OutPlatforms.Add(UnrealTargetPlatform.Linux);

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ApexDestructibleAssetImport.cpp:
@@ -734,7 +734,7 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, NxDestructibl
 	for(TObjectIterator<UDestructibleComponent> It; It; ++It)
 	{
 		UDestructibleComponent* DestructibleComponent = *It;
-		if(DestructibleComponent->SkeletalMesh == &DestructibleMesh)
+		if(DestructibleComponent->SkeletalMesh == &DestructibleMesh && DestructibleComponent->IsPhysicsStateCreated())
 		{
 			DestructibleComponent->DestroyPhysicsState();
 		}
@@ -849,8 +849,6 @@ bool SetApexDestructibleAsset(UDestructibleMesh& DestructibleMesh, NxDestructibl
 		TArray<FVertInfluence> LODInfluences;
 		TArray<int32> LODPointToRawMap;
 		SkelMeshImportDataPtr->CopyLODImportData(LODPoints,LODWedges,LODFaces,LODInfluences,LODPointToRawMap);
-
-		#include "Developer/MeshUtilities/Public/MeshUtilities.h"
 
 		IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
 

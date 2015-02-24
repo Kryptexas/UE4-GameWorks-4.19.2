@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -88,7 +88,7 @@ private:
 	FReply HandleExecuteButtonClicked( TSharedPtr<FConsoleShortcutData> InShortcut );
 
 	/** Callback for when a shortcut name or command is being edited. */
-	void HandleEditCommandActionExecute( TSharedPtr<FConsoleShortcutData> InShortcut, bool bInEditCommand, FString InPromptTitle );
+	void HandleEditCommandActionExecute( TSharedPtr<FConsoleShortcutData> InShortcut, bool bInEditCommand, FText InPromptTitle );
 
 	/** Generates a row widget for a shortcut. */
 	TSharedRef<ITableRow> HandleShortcutListViewGenerateRow( TSharedPtr<FConsoleShortcutData> InItem, const TSharedRef<STableViewBase>& OwnerTable );

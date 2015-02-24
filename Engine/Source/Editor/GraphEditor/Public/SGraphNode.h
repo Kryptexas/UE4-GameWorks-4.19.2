@@ -1,13 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
-class SGraphPanel;
-class SGraphNode;
+#include "SNodePanel.h"
+
 class SGraphPin;
+class SGraphPanel;
 class UEdGraphNode;
 class FActorDragDropOp;
-
 
 /////////////////////////////////////////////////////
 // SNodeTitle
@@ -105,14 +105,20 @@ public:
 	/** @return the editable title for a node */
 	FText GetEditableNodeTitleAsText() const;
 
-	/** @return the tint for the node's title */
+	/** @return the tint for the node's title image */
 	FSlateColor GetNodeTitleColor() const;
 
 	/** @return the tint for the node's comment */
 	FSlateColor GetNodeCommentColor() const;
 
-	/** @return if node's comment should be effected by scaling of panel(zoom) */
-	virtual bool ShouldScaleNodeComment()const;
+	/** @return the tint for the node's main body */
+	FSlateColor GetNodeBodyColor() const;
+
+	/** @return the tint for the node's title icon */
+	FSlateColor GetNodeTitleIconColor() const;
+
+	/** @return the tint for the node's title text */
+	FLinearColor GetNodeTitleTextColor() const;
 
 	/** @return the tooltip to display when over the node */
 	FText GetNodeTooltip() const;
@@ -195,6 +201,12 @@ public:
 	/** Gets the unscaled position of the node from the last tick */
 	FVector2D GetUnscaledPosition() const {return CachedUnscaledPosition;}
 
+	/** Returns the current Node LOD or Highest LOD if unable to query */
+	EGraphRenderingLOD::Type GetCurrentLOD() const;
+
+	/** Called when GraphNode changes its error information, may be called when no change has actually occurred: */
+	void RefreshErrorInfo();
+
 protected:
 	SGraphNode();
 
@@ -212,7 +224,7 @@ protected:
 	 *
 	 *	@return string to be displayed as tooltip.
 	 */
-	FString GetErrorMsgToolTip() const;
+	FText GetErrorMsgToolTip() const;
 
 	/**
 	 * Add a new pin to this graph node. The pin must be newly created.
@@ -254,10 +266,13 @@ protected:
 	void UpdateErrorInfo();
 
 	/** Set-up the error reporting widget for the node */
-	TSharedPtr<SWidget>	SetupErrorReporting();
+	void SetupErrorReporting();
 
 	// Should we use low-detail node titles?
 	virtual bool UseLowDetailNodeTitles() const;
+
+	/** Return the desired comment bubble color */
+	virtual FSlateColor GetCommentColor() const { return FLinearColor::White; }
 
 	///// ADVANCED VIEW FUNCTIONS /////
 
@@ -268,10 +283,10 @@ protected:
 	EVisibility AdvancedViewArrowVisibility() const;
 
 	/** Show/hide advanced view */
-	void OnAdvancedViewChanged( const ESlateCheckBoxState::Type NewCheckedState );
+	void OnAdvancedViewChanged( const ECheckBoxState NewCheckedState );
 
 	/** hidden == unchecked, shown == checked */
-	ESlateCheckBoxState::Type IsAdvancedViewChecked() const;
+	ECheckBoxState IsAdvancedViewChecked() const;
 
 	/** Up when shown, down when hidden */
 	const FSlateBrush* GetAdvancedViewArrow() const;
@@ -350,6 +365,9 @@ protected:
 
 	/** Caches true position of node */
 	FVector2D CachedUnscaledPosition;
+
+	/** Cached icon color for the node */
+	FLinearColor IconColor;
 
 	/** Cached pointer to graph editor settings */
 	const class UGraphEditorSettings* Settings;

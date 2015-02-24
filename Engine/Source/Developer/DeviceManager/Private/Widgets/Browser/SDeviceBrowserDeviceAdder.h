@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -51,7 +51,7 @@ private:
 	void HandleDeviceNameTextBoxTextChanged ( const FString& Text );
 
 	// Callback for getting the name of the selected platform.
-	FString HandlePlatformComboBoxContentText( ) const;
+	FText HandlePlatformComboBoxContentText( ) const;
 
 	// Callback for generating widgets for the platforms combo box.
 	TSharedRef<SWidget> HandlePlatformComboBoxGenerateWidget( TSharedPtr<FString> StringItem );

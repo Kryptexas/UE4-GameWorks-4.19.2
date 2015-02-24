@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "Runtime/Engine/Public/ObjectEditorUtils.h"
@@ -9,6 +9,8 @@
 #include "Runtime/Engine/Classes/Particles/Spawn/ParticleModuleSpawn.h"
 #include "Runtime/AssetRegistry/Public/AssetRegistryModule.h"
 #include "Particles/ParticleLODLevel.h"
+#include "Distributions/DistributionFloatConstant.h"
+#include "Distributions/DistributionVectorConstant.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogParticleSystemAuditCommandlet, Log, All);
 

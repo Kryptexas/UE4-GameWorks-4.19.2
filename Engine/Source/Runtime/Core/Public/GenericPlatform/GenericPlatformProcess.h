@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -209,6 +209,9 @@ struct CORE_API FGenericPlatformProcess
 	static const TCHAR* UserDir();
 	/** Get the user settings directory.  NOTE: Only one return value is valid at a time! **/
 	static const TCHAR *UserSettingsDir();
+	/** Get the user temporary directory.  NOTE: Only one return value is valid at a time! **/
+	static const TCHAR *UserTempDir();
+
 	/** Get application settings directory.  NOTE: Only one return value is valid at a time! **/
 	static const TCHAR* ApplicationSettingsDir();
 	/** Get computer name.  NOTE: Only one return value is valid at a time! **/

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -294,14 +294,6 @@ namespace UnrealBuildTool
 			Result += " -fno-math-errno";               // do not assume that math ops have side effects
             Result += " -fno-rtti";                     // no run-time type info
 
-            // these needs to be removed ASAP
-            Result += " -Wno-delete-non-virtual-dtor";
-            Result += " -Wno-reorder";
-            Result += " -Wno-logical-op-parentheses";
-            Result += " -Wno-ignored-attributes";
-            Result += " -Wno-overloaded-virtual";
-            Result += " -Wno-unused-value";
-
             if (String.IsNullOrEmpty(ClangPath))
             {
                 // GCC only option
@@ -327,11 +319,6 @@ namespace UnrealBuildTool
 				{
 					Result += " -Wno-undefined-bool-conversion";	// hides checking if 'this' pointer is null
 				}
-
-                if (!CrossCompiling())
-                {
-                    Result += " -Wno-logical-op-parentheses";   // needed for external headers we can't change
-                }
             }
 
             Result += " -Wno-unused-variable";
@@ -468,6 +455,12 @@ namespace UnrealBuildTool
             {
                 // ignore unresolved symbols in shared libs
                 Result += string.Format(" -Wl,--unresolved-symbols=ignore-in-shared-libs");
+            }
+
+            if (UnrealBuildTool.BuildingRocket())
+            {
+                // strip symbols for Rocket in every configuration
+                Result += " -Wl,-s";
             }
 
             // RPATH for third party libs
@@ -1103,5 +1096,10 @@ namespace UnrealBuildTool
 
             return OutputFiles;
         }
-    }
+
+		public override UnrealTargetPlatform GetPlatform()
+		{
+			return UnrealTargetPlatform.Linux;
+		}
+	}
 }

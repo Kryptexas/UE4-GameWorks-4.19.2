@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -142,7 +142,7 @@ TSharedRef< SWidget > SRetargetSourceListRow::GenerateWidgetForColumn( const FNa
 			.VAlign( VAlign_Center )
 			[
 				SNew( STextBlock )
-				.Text( Item->GetReferenceMeshName() )
+				.Text( FText::FromString(Item->GetReferenceMeshName()) )
 				.HighlightText( RetargetSourceWindow->GetFilterText() )
 			];
 	}
@@ -173,7 +173,7 @@ void SRetargetSourceWindow::Construct(const FArguments& InArgs)
 		PersonaPtr.Pin()->RegisterOnPostUndo(FPersona::FOnPostUndo::CreateSP( this, &SRetargetSourceWindow::PostUndo ) );
 	}
 
-	FString SkeletonName = Skeleton ? Skeleton->GetName() : LOCTEXT( "RetargetSourceMeshNameLabel", "No Skeleton Present" ).ToString();
+	FText SkeletonName = Skeleton ? FText::FromString(Skeleton->GetName()) : LOCTEXT( "RetargetSourceMeshNameLabel", "No Skeleton Present" );
 
 	ChildSlot
 	[
@@ -237,10 +237,10 @@ void SRetargetSourceWindow::Construct(const FArguments& InArgs)
 			(
 				SNew( SHeaderRow )
 				+ SHeaderRow::Column( ColumnId_RetargetSourceNameLabel )
-				.DefaultLabel( LOCTEXT( "RetargetSourceNameLabel", "Retarget Source Name" ).ToString() )
+				.DefaultLabel( LOCTEXT( "RetargetSourceNameLabel", "Retarget Source Name" ) )
 
 				+ SHeaderRow::Column( ColumnID_BaseReferenceMeshLabel )
-				.DefaultLabel( LOCTEXT( "RetargetSourceWeightLabel", "Source Mesh" ).ToString() )
+				.DefaultLabel( LOCTEXT( "RetargetSourceWeightLabel", "Source Mesh" ) )
 			)
 		]
 	];
@@ -540,7 +540,6 @@ void SRetargetSourceWindow::OnAddRetargetSource()
 	AssetPickerConfig.OnAssetSelected = FOnAssetSelected::CreateSP(this, &SRetargetSourceWindow::OnAssetSelectedFromMeshPicker);
 	AssetPickerConfig.bAllowNullSelection = false;
 	AssetPickerConfig.InitialAssetViewType = EAssetViewType::Tile;
-	AssetPickerConfig.ThumbnailScale = 0.0f;
 
 	if(Skeleton)
 	{

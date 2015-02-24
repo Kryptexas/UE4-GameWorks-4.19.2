@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 
@@ -465,9 +465,10 @@ void FTextHistory_AsCurrency::Serialize( FArchive& Ar )
 ///////////////////////////////////////
 // FTextHistory_AsDate
 
-FTextHistory_AsDate::FTextHistory_AsDate(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const FCulturePtr InTargetCulture)
+FTextHistory_AsDate::FTextHistory_AsDate(const FDateTime& InSourceDateTime, const EDateTimeStyle::Type InDateStyle, const FString& InTimeZone, const FCulturePtr InTargetCulture)
 	: SourceDateTime(InSourceDateTime)
 	, DateStyle(InDateStyle)
+	, TimeZone(InTimeZone)
 	, TargetCulture(InTargetCulture)
 {
 }
@@ -485,6 +486,11 @@ void FTextHistory_AsDate::Serialize(FArchive& Ar)
 	int8 DateStyleInt8 = (int8)DateStyle;
 	Ar << DateStyleInt8;
 	DateStyle = (EDateTimeStyle::Type)DateStyleInt8;
+
+	if( Ar.UE4Ver() >= VER_UE4_FTEXT_HISTORY_DATE_TIMEZONE )
+	{
+		Ar << TimeZone;
+	}
 
 	if(Ar.IsSaving())
 	{
@@ -507,7 +513,7 @@ FText FTextHistory_AsDate::ToText(bool bInAsSource) const
 {
 	TSharedPtr< FCulture, ESPMode::ThreadSafe > CurrentCulture = bInAsSource? FInternationalization::Get().GetInvariantCulture() : TargetCulture;
 
-	return FText::AsDate(SourceDateTime, DateStyle, CurrentCulture);
+	return FText::AsDate(SourceDateTime, DateStyle, TimeZone, CurrentCulture);
 }
 ///////////////////////////////////////
 // FTextHistory_AsTime

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "Editor/UnrealEd/Public/DragAndDrop/ActorDragDropGraphEdOp.h"
@@ -82,14 +82,6 @@ protected:
 private:
 	
 	/**
-	 *	Gets the appropriate SlateColor for the specified button depending on the button's current state
-	 *
-	 *	@param	Button	The SButton Widget to get the Foreground Color for
-	 *	@return			The ForegroundColor
-	 */
-	FSlateColor GetForegroundColorForButton() const;
-
-	/**
 	 *	Returns the Color and Opacity for displaying the bound Layer's Name.
 	 *	The Color and Opacity changes depending on whether a drag/drop operation is occurring
 	 *
@@ -130,5 +122,8 @@ private:
 
 	/** Widget for displaying and editing the Layer name */
 	TSharedPtr< SInlineEditableTextBlock > InlineTextBlock;
+
+	/** Handle to the registered EnterEditingMode delegate */
+	FDelegateHandle EnterEditingModeDelegateHandle;
 };
 

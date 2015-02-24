@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GameInstance.cpp: Implementation of GameInstance class
@@ -12,6 +12,7 @@
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
+#include "Engine/GameEngine.h"
 
 
 UGameInstance::UGameInstance(const FObjectInitializer& ObjectInitializer)
@@ -120,33 +121,6 @@ bool UGameInstance::InitializePIE(bool bAnyBlueprintErrors, int32 PIEInstance)
 	return true;
 }
 
-
-/** Initializes streaming levels when PIE starts up based on the players start location */
-static void InitStreamingLevelsForPIEStartup(UGameViewportClient* GameViewportClient, UWorld* PlayWorld)
-{
-	check(PlayWorld);
-	ULocalPlayer* const Player = PlayWorld->GetFirstLocalPlayerFromController();
-	if (Player)
-	{
-		// Create a view family for the game viewport
-		FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
-			GameViewportClient->Viewport,
-			PlayWorld->Scene,
-			GameViewportClient->EngineShowFlags)
-			.SetRealtimeUpdate(true));
-
-
-		// Calculate a view where the player is to update the streaming from the players start location
-		FVector ViewLocation;
-		FRotator ViewRotation;
-		Player->CalcSceneView(&ViewFamily, /*out*/ ViewLocation, /*out*/ ViewRotation, GameViewportClient->Viewport);
-
-		// Update level streaming.
-		PlayWorld->FlushLevelStreaming(&ViewFamily);
-	}
-}
-
-
 bool UGameInstance::StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimulateInEditor, bool bAnyBlueprintErrors, bool bStartInSpectatorMode)
 {
 	UEditorEngine* const EditorEngine = CastChecked<UEditorEngine>(GetEngine());
@@ -208,17 +182,9 @@ bool UGameInstance::StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimu
 			FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("UnrealEd", "Error_FailedCreateEditorPreviewWorld", "Failed to create editor preview world."));
 			return false;
 		}
-
-		// Navigate PIE world to the Editor world origin location
-		// and stream in all relevant levels around that location
-		if (PlayWorld->WorldComposition)
-		{
-			PlayWorld->NavigateTo(PlayWorld->OriginLocation);
-		}
-		else
-		{
-			PlayWorld->FlushLevelStreaming();
-		}
+		
+		// Make sure "always loaded" sub-levels are fully loaded
+		PlayWorld->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 
 		UNavigationSystem::InitializeForWorld(PlayWorld, LocalPlayers.Num() > 0 ? FNavigationSystem::PIEMode : FNavigationSystem::SimulationMode);
 		PlayWorld->CreateAISystem();
@@ -240,7 +206,7 @@ bool UGameInstance::StartPIEGameInstance(ULocalPlayer* LocalPlayer, bool bInSimu
 		if (GameViewport != NULL && GameViewport->Viewport != NULL)
 		{
 			// Stream any levels now that need to be loaded before the game starts
-			InitStreamingLevelsForPIEStartup(GameViewport, PlayWorld);
+			GEngine->BlockTillLevelStreamingCompleted(PlayWorld);
 		}
 		
 		if (PlayNetMode == PIE_ListenServer)
@@ -484,7 +450,7 @@ bool UGameInstance::RemoveLocalPlayer(ULocalPlayer* ExistingPlayer)
 	// Do this after notifications, as some of them require the ViewportClient.
 	ExistingPlayer->ViewportClient = NULL;
 
-	UE_LOG(LogPlayerManagement, Log, TEXT("UGameInstance::RemovePlayer: Removed player %s with ControllerId %i at index %i (%i remaining players)"), *ExistingPlayer->GetName(), ExistingPlayer->ControllerId, OldIndex, LocalPlayers.Num());
+	UE_LOG(LogPlayerManagement, Log, TEXT("UGameInstance::RemovePlayer: Removed player %s with ControllerId %i at index %i (%i remaining players)"), *ExistingPlayer->GetName(), ExistingPlayer->GetControllerId(), OldIndex, LocalPlayers.Num());
 
 	return true;
 }
@@ -537,11 +503,11 @@ APlayerController* UGameInstance::GetFirstLocalPlayerController() const
 	return nullptr;
 }
 
-ULocalPlayer* UGameInstance::FindLocalPlayerFromControllerId(int32 ControllerId) const
+ULocalPlayer* UGameInstance::FindLocalPlayerFromControllerId(const int32 ControllerId) const
 {
 	for (ULocalPlayer * LP : LocalPlayers)
 	{
-		if (LP && (LP->ControllerId == ControllerId))
+		if (LP && (LP->GetControllerId() == ControllerId))
 		{
 			return LP;
 		}

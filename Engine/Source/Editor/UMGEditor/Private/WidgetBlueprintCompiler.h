@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,17 +10,12 @@ class UWidgetBlueprintGeneratedClass;
 //////////////////////////////////////////////////////////////////////////
 // FWidgetBlueprintCompiler
 
-DECLARE_MULTICAST_DELEGATE_OneParam( FOnWidgetBlueprintCompiled, UBlueprint* )
-
 class FWidgetBlueprintCompiler : public FKismetCompilerContext
 {
 protected:
 	typedef FKismetCompilerContext Super;
 
 public:
-	/** Delegate called when a widget blueprint is compiled */
-	static FOnWidgetBlueprintCompiled OnWidgetBlueprintCompiled;
-
 	FWidgetBlueprintCompiler(UWidgetBlueprint* SourceSketch, FCompilerResultsLog& InMessageLog, const FKismetCompilerOptions& InCompilerOptions, TArray<UObject*>* InObjLoaded);
 	virtual ~FWidgetBlueprintCompiler();
 

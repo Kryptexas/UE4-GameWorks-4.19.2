@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DynamicRHI.h: Dynamically bound Render Hardware Interface definitions.
@@ -7,7 +7,6 @@
 #ifndef __DYNAMICRHI_H__
 #define __DYNAMICRHI_H__
 
-#include "RHI.h"
 #include "ModuleInterface.h"
 
 #if USE_DYNAMIC_RHI

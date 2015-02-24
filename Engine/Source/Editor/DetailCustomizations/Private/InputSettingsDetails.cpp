@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "InputSettingsDetails.h"
 #include "ScopedTransaction.h"
 #include "IDocumentation.h"
+#include "GameFramework/InputSettings.h"
 
 #define LOCTEXT_NAMESPACE "InputSettingsDetails"
 
@@ -78,7 +79,7 @@ void FActionMappingsNodeBuilder::GenerateChildContent( IDetailChildrenBuilder& C
 		FString GroupNameString(TEXT("ActionMappings."));
 		MappingSet.SharedName.AppendString(GroupNameString);
 		FName GroupName(*GroupNameString);
-		IDetailGroup& ActionMappingGroup = ChildrenBuilder.AddChildGroup(GroupName, MappingSet.SharedName.ToString());
+		IDetailGroup& ActionMappingGroup = ChildrenBuilder.AddChildGroup(GroupName, FText::FromName(MappingSet.SharedName));
 		MappingSet.DetailGroup = &ActionMappingGroup;
 
 		TSharedRef<SWidget> AddButton = PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateSP(this, &FActionMappingsNodeBuilder::AddActionMappingToGroupButton_OnClick, MappingSet),
@@ -385,7 +386,7 @@ void FAxisMappingsNodeBuilder::GenerateChildContent( IDetailChildrenBuilder& Chi
 		FString GroupNameString(TEXT("AxisMappings."));
 		MappingSet.SharedName.AppendString(GroupNameString);
 		FName GroupName(*GroupNameString);
-		IDetailGroup& AxisMappingGroup = ChildrenBuilder.AddChildGroup(GroupName, MappingSet.SharedName.ToString());
+		IDetailGroup& AxisMappingGroup = ChildrenBuilder.AddChildGroup(GroupName, FText::FromName(MappingSet.SharedName));
 		MappingSet.DetailGroup = &AxisMappingGroup;
 
 		TSharedRef<SWidget> AddButton = PropertyCustomizationHelpers::MakeAddButton(FSimpleDelegate::CreateSP(this, &FAxisMappingsNodeBuilder::AddAxisMappingToGroupButton_OnClick, MappingSet),
@@ -640,7 +641,7 @@ void FInputSettingsDetails::CustomizeDetails(class IDetailLayoutBuilder& DetailB
 
 	IDetailCategoryBuilder& MappingsDetailCategoryBuilder = DetailBuilder.EditCategory(BindingsCategory);
 
-	MappingsDetailCategoryBuilder.AddCustomRow(TEXT("Action Axis Mappings"))
+	MappingsDetailCategoryBuilder.AddCustomRow(LOCTEXT("Mappings_Title", "Action Axis Mappings"))
 	[
 		SNew(SHorizontalBox)
 		+SHorizontalBox::Slot()

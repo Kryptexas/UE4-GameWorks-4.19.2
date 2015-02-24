@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Kismet/KismetMathLibrary.h"
@@ -690,7 +690,7 @@ FVector UKismetMathLibrary::GreaterGreater_VectorRotator(FVector A, FRotator B)
 
 FVector  UKismetMathLibrary::RotateAngleAxis(FVector InVect, float AngleDeg, FVector Axis)
 {
-	return InVect.RotateAngleAxis(AngleDeg, Axis.SafeNormal());
+	return InVect.RotateAngleAxis(AngleDeg, Axis.GetSafeNormal());
 }
 
 bool UKismetMathLibrary::EqualEqual_VectorVector(FVector A, FVector B, float ErrorTolerance)
@@ -705,13 +705,23 @@ bool UKismetMathLibrary::NotEqual_VectorVector(FVector A, FVector B, float Error
 
 float UKismetMathLibrary::Dot_VectorVector(FVector A, FVector B)
 {
-	return A | B;
+	return FVector::DotProduct(A, B);
 }	
 
 FVector UKismetMathLibrary::Cross_VectorVector(FVector A, FVector B)
 {
-	return A ^ B;
-}	
+	return FVector::CrossProduct(A, B);
+}
+
+float UKismetMathLibrary::DotProduct2D(FVector2D A, FVector2D B)
+{
+	return FVector2D::DotProduct(A, B);
+}
+
+float UKismetMathLibrary::CrossProduct2D(FVector2D A, FVector2D B)
+{
+	return FVector2D::CrossProduct(A, B);
+}
 
 float UKismetMathLibrary::VSize(FVector A)
 {
@@ -735,12 +745,12 @@ float UKismetMathLibrary::VSize2DSquared(FVector2D A)
 
 FVector UKismetMathLibrary::Normal(FVector A)
 {
-	return A.SafeNormal();
+	return A.GetSafeNormal();
 }
 
 FVector2D UKismetMathLibrary::Normal2D(FVector2D A)
 {
-	return A.SafeNormal();
+	return A.GetSafeNormal();
 }
 
 FVector UKismetMathLibrary::VLerp(FVector A, FVector B, float V)
@@ -763,6 +773,14 @@ FVector UKismetMathLibrary::VInterpTo_Constant(FVector Current, FVector Target, 
 	return FMath::VInterpConstantTo(Current, Target, DeltaTime, InterpSpeed);
 }
 
+FVector2D UKismetMathLibrary::Vector2DInterpTo(FVector2D Current, FVector2D Target, float DeltaTime, float InterpSpeed)
+{
+	return FMath::Vector2DInterpTo( Current, Target, DeltaTime, InterpSpeed );
+}
+FVector2D UKismetMathLibrary::Vector2DInterpTo_Constant(FVector2D Current, FVector2D Target, float DeltaTime, float InterpSpeed)
+{
+	return FMath::Vector2DInterpConstantTo( Current, Target, DeltaTime, InterpSpeed );
+}
 
 FVector UKismetMathLibrary::RandomUnitVector()
 {
@@ -833,7 +851,7 @@ FVector UKismetMathLibrary::NegateVector(FVector A)
 
 FVector UKismetMathLibrary::ClampVectorSize(FVector A, float Min, float Max)
 {
-	return A.ClampSize(Min, Max);
+	return A.GetClampedToSize(Min, Max);
 }
 
 float UKismetMathLibrary::GetMinElement(FVector A)
@@ -867,7 +885,7 @@ FVector UKismetMathLibrary::GetVectorArrayAverage(const TArray<FVector>& Vectors
 /** Find the unit direction vector from one position to another. */
 FVector UKismetMathLibrary::GetDirectionVector(FVector From, FVector To)
 {
-	return (To - From).SafeNormal();
+	return (To - From).GetSafeNormal();
 }
 
 
@@ -939,7 +957,7 @@ FRotator UKismetMathLibrary::NormalizedDeltaRotator(FRotator A, FRotator B)
 
 FRotator UKismetMathLibrary::RotatorFromAxisAndAngle(FVector Axis, float Angle)
 {
-	FVector SafeAxis = Axis.SafeNormal(); // Make sure axis is unit length
+	FVector SafeAxis = Axis.GetSafeNormal(); // Make sure axis is unit length
 	return FQuat(SafeAxis, FMath::DegreesToRadians(Angle)).Rotator();
 }
 
@@ -1760,6 +1778,11 @@ UObject* UKismetMathLibrary::SelectObject(UObject* A, UObject* B, bool bSelectA)
 	return bSelectA ? A : B;
 }
 
+UClass* UKismetMathLibrary::SelectClass(UClass* A, UClass* B, bool bSelectA)
+{
+	return bSelectA ? A : B;
+}
+
 FRotator UKismetMathLibrary::MakeRotationFromAxes(FVector Forward, FVector Right, FVector Up)
 {
 	Forward.Normalize();
@@ -1880,7 +1903,7 @@ void UKismetMathLibrary::MinimumAreaRectangle(class UObject* WorldContextObject,
 	// Minimum area rectangle as computed by http://www.geometrictools.com/Documentation/MinimumAreaRectangle.pdf
 	for( int32 Idx = 1; Idx < PolyVertIndices.Num() - 1; ++Idx )
 	{
-		SupportVectorA = (TransformedVerts[PolyVertIndices[Idx]] - TransformedVerts[PolyVertIndices[Idx-1]]).SafeNormal();
+		SupportVectorA = (TransformedVerts[PolyVertIndices[Idx]] - TransformedVerts[PolyVertIndices[Idx-1]]).GetSafeNormal();
 		SupportVectorA.Z = 0.f;
 		SupportVectorB.X = -SupportVectorA.Y;
 		SupportVectorB.Y = SupportVectorA.X;
@@ -1928,10 +1951,14 @@ void UKismetMathLibrary::MinimumAreaRectangle(class UObject* WorldContextObject,
 
 	if( bDebugDraw )
 	{
-		DrawDebugSphere(GEngine->GetWorldFromContextObject(WorldContextObject), OutRectCenter, 10.f, 12, FColor::Yellow, true);
-		DrawDebugCoordinateSystem(GEngine->GetWorldFromContextObject(WorldContextObject), OutRectCenter, SurfaceNormalMatrix.Rotator(), 100.f, true);
-		DrawDebugLine(GEngine->GetWorldFromContextObject(WorldContextObject), OutRectCenter - RectSideA * 0.5f + FVector(0,0,10.f), OutRectCenter + RectSideA * 0.5f + FVector(0,0,10.f), FColor::Green, true,-1, 0, 5.f);
-		DrawDebugLine(GEngine->GetWorldFromContextObject(WorldContextObject), OutRectCenter - RectSideB * 0.5f + FVector(0,0,10.f), OutRectCenter + RectSideB * 0.5f + FVector(0,0,10.f), FColor::Blue, true,-1, 0, 5.f);
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+		if(World != nullptr)
+		{
+			DrawDebugSphere(World, OutRectCenter, 10.f, 12, FColor::Yellow, true);
+			DrawDebugCoordinateSystem(World, OutRectCenter, SurfaceNormalMatrix.Rotator(), 100.f, true);
+			DrawDebugLine(World, OutRectCenter - RectSideA * 0.5f + FVector(0,0,10.f), OutRectCenter + RectSideA * 0.5f + FVector(0,0,10.f), FColor::Green, true,-1, 0, 5.f);
+			DrawDebugLine(World, OutRectCenter - RectSideB * 0.5f + FVector(0,0,10.f), OutRectCenter + RectSideB * 0.5f + FVector(0,0,10.f), FColor::Blue, true,-1, 0, 5.f);
+		}
 	}
 }
 
@@ -1992,4 +2019,14 @@ bool UKismetMathLibrary::LinePlaneIntersection_OriginNormal(const FVector& LineS
 	Intersection = LineStart + RayDir * T;
 
 	return true;
+}
+
+void UKismetMathLibrary::BreakRandomStream(const FRandomStream& InRandomStream, int32& InitialSeed)
+{
+	InitialSeed = InRandomStream.GetInitialSeed();
+}
+
+FRandomStream UKismetMathLibrary::MakeRandomStream(int32 InitialSeed)
+{
+	return FRandomStream(InitialSeed);
 }

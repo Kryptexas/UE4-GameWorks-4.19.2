@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "BehaviorTree/BTDecorator.h"
 #include "BTDecorator_Loop.generated.h"
@@ -27,7 +27,7 @@ class AIMODULE_API UBTDecorator_Loop : public UBTDecorator
 	bool bInfiniteLoop;
 
 	virtual uint16 GetInstanceMemorySize() const override;
-	virtual void DescribeRuntimeValues(const class UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
+	virtual void DescribeRuntimeValues(const UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, EBTDescriptionVerbosity::Type Verbosity, TArray<FString>& Values) const override;
 	virtual FString GetStaticDescription() const override;
 
 #if WITH_EDITOR
@@ -36,5 +36,5 @@ class AIMODULE_API UBTDecorator_Loop : public UBTDecorator
 
 protected:
 
-	virtual void OnNodeActivation(struct FBehaviorTreeSearchData& SearchData) override;
+	virtual void OnNodeActivation(FBehaviorTreeSearchData& SearchData) override;
 };

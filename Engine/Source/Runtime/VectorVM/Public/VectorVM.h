@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -61,7 +61,6 @@ namespace VectorVM
 			normalize,
 			random,
 			length,
-			sin4,
 			noise,
 			splatx,
 			splaty,
@@ -73,6 +72,7 @@ namespace VectorVM
 			composez,
 			composew,
 			output,
+			lessthan,
 			NumOpcodes
 	};
 

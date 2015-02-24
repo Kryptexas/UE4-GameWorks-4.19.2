@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,6 +22,7 @@ namespace EDesignerMessage
 class FDesignerExtension;
 class UPanelWidget;
 class UUserWidget;
+class SRuler;
 
 /**
  * The designer for widgets.  Allows for laying out widgets in a drag and drop environment.
@@ -35,6 +36,8 @@ public:
 
 	void Construct(const FArguments& InArgs, TSharedPtr<class FWidgetBlueprintEditor> InBlueprintEditor);
 	virtual ~SDesignerView();
+
+	TSharedRef<SWidget> CreateOverlayUI();
 
 	// SWidget interface
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
@@ -63,7 +66,9 @@ public:
 	virtual ETransformMode::Type GetTransformMode() const override;
 	virtual FGeometry GetDesignerGeometry() const override;
 	virtual bool GetWidgetGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const override;
+	virtual bool GetWidgetGeometry(const UWidget* PreviewWidget, FGeometry& Geometry) const override;
 	virtual bool GetWidgetParentGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const override;
+	virtual FGeometry MakeGeometryWindowLocal(const FGeometry& WidgetGeometry) const override;
 	virtual void MarkDesignModifed(bool bRequiresRecompile) override;
 	// End of IUMGDesigner interface
 
@@ -103,14 +108,11 @@ private:
 
 	void OnEditorSelectionChanged();
 
-	/** @returns Gets the widget under the cursor based on a mouse pointer event. */
-	FWidgetReference GetWidgetAtCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FArrangedWidget& ArrangedWidget);
-
 	/** Gets the blueprint being edited by the designer */
 	UWidgetBlueprint* GetBlueprint() const;
 
 	/** Called whenever the blueprint is recompiled */
-	void OnBlueprintCompiled(UBlueprint* InBlueprint);
+	void OnBlueprintReinstanced();
 
 	void PopulateWidgetGeometryCache(FArrangedWidget& Root);
 
@@ -136,6 +138,8 @@ private:
 	void HandleOnCustomResolutionSelected();
 	TSharedRef<SWidget> GetAspectMenu();
 
+	EVisibility PIENotification() const;
+
 	// Handles drawing selection and other effects a SPaintSurface widget injected into the hierarchy.
 	int32 HandleEffectsPainting(const FOnPaintHandlerParams& PaintArgs);
 	FReply HandleDPISettingsClicked();
@@ -147,7 +151,24 @@ private:
 	void EndTransaction(bool bCancel);
 
 private:
+	struct FWidgetHitResult
+	{
+	public:
+		FWidgetReference Widget;
+		FArrangedWidget WidgetArranged;
+
+		FName NamedSlot;
+
+	public:
+		FWidgetHitResult();
+	};
+
+	/** @returns Gets the widget under the cursor based on a mouse pointer event. */
+	bool FindWidgetUnderCursor(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent, FWidgetHitResult& HitResult);
+
+private:
 	FReply HandleZoomToFitClicked();
+	EVisibility GetRulerVisibility() const;
 
 private:
 	static const FString ConfigSectionName;
@@ -227,6 +248,12 @@ private:
 
 	/**  */
 	FWeakWidgetPath SelectedWidgetPath;
+
+	/** The ruler bar at the top of the designer. */
+	TSharedPtr<SRuler> TopRuler;
+
+	/** The ruler bar on the left side of the designer. */
+	TSharedPtr<SRuler> SideRuler;
 
 	/** */
 	EDesignerMessage::Type DesignerMessage;

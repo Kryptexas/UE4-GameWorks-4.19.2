@@ -1,3 +1,4 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_MoveToLocation.h"
@@ -13,11 +14,15 @@ UAbilityTask_MoveToLocation::UAbilityTask_MoveToLocation(const FObjectInitialize
 	bIsFinished = false;
 }
 
-UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(class UObject* WorldContextObject, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve)
+UAbilityTask_MoveToLocation* UAbilityTask_MoveToLocation::MoveToLocation(class UObject* WorldContextObject, FName TaskInstanceName, FVector Location, float Duration, UCurveFloat* OptionalInterpolationCurve)
 {
-	auto MyObj = NewTask<UAbilityTask_MoveToLocation>(WorldContextObject);
+	auto MyObj = NewTask<UAbilityTask_MoveToLocation>(WorldContextObject, TaskInstanceName);
 
-	MyObj->StartLocation = MyObj->GetAvatarActor()->GetActorLocation();
+	if (MyObj->GetAvatarActor() != nullptr)
+	{
+		MyObj->StartLocation = MyObj->GetAvatarActor()->GetActorLocation();
+	}
+
 	MyObj->TargetLocation = Location;
 	MyObj->DurationOfMovement = FMath::Max(Duration, 0.001f);		// Avoid negative or divide-by-zero cases
 	MyObj->TimeMoveStarted = MyObj->GetWorld()->GetTimeSeconds();
@@ -88,6 +93,11 @@ void UAbilityTask_MoveToLocation::TickTask(float DeltaTime)
 
 			MyActor->SetActorLocation(FMath::Lerp<FVector, float>(StartLocation, TargetLocation, MoveFraction));
 		}
+	}
+	else
+	{
+		bIsFinished = true;
+		EndTask();
 	}
 }
 

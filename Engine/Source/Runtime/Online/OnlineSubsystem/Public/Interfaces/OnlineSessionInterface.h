@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -90,17 +90,22 @@ typedef FOnFindSessionsComplete::FDelegate FOnFindSessionsCompleteDelegate;
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnCancelFindSessionsComplete, bool);
 typedef FOnCancelFindSessionsComplete::FDelegate FOnCancelFindSessionsCompleteDelegate;
 
-
-
+/** Possible results of a JoinSession attempt */
 namespace EOnJoinSessionCompleteResult
 {
 	enum Type
 	{
+		/** The join worked as expected */
 		Success,
-		RoomIsFull,
-		RoomDoesNotExist,
+		/** There are no open slots to join */
+		SessionIsFull,
+		/** The session couldn't be found on the service */
+		SessionDoesNotExist,
+		/** There was an error getting the session server's address */
 		CouldNotRetrieveAddress,
+		/** The user attempting to join is already a member of the session */
 		AlreadyInSession,
+		/** An error not covered above occurred */
 		UnknownError
 	};
 }
@@ -114,6 +119,17 @@ DECLARE_MULTICAST_DELEGATE_TwoParams(FOnJoinSessionComplete, FName, EOnJoinSessi
 typedef FOnJoinSessionComplete::FDelegate FOnJoinSessionCompleteDelegate;
 
 /**
+ * Delegate fired once a single search result is returned (ie friend invite / join)
+ * Session has not been joined at this point, and requires a call to JoinSession()
+ *
+ * @param LocalUserNum the controller number of the accepting user
+ * @param bWasSuccessful the session was found and is joinable, false otherwise
+ * @param SearchResult the search/settings for the session result we've been given
+ */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSingleSessionResultComplete, int32, bool, const FOnlineSessionSearchResult&);
+typedef FOnSingleSessionResultComplete::FDelegate FOnSingleSessionResultCompleteDelegate;
+
+/**
  * Delegate fired once the find friend task has completed
  * Session has not been joined at this point, and requires a call to JoinSession() 
  *
@@ -121,7 +137,7 @@ typedef FOnJoinSessionComplete::FDelegate FOnJoinSessionCompleteDelegate;
  * @param bWasSuccessful the session was found and is joinable, false otherwise
  * @param FriendSearchResult the search/settings for the session we're attempting to join
  */
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnFindFriendSessionComplete, int32, bool, const FOnlineSessionSearchResult&);
+typedef FOnSingleSessionResultComplete FOnFindFriendSessionComplete;
 typedef FOnFindFriendSessionComplete::FDelegate FOnFindFriendSessionCompleteDelegate;
 
 /**
@@ -141,21 +157,32 @@ typedef FOnPingSearchResultsComplete::FDelegate FOnPingSearchResultsCompleteDele
  * @param bWasSuccessful the session was found and is joinable, false otherwise
  * @param InviteResult the search/settings for the session we're joining via invite
  */
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSessionInviteAccepted, int32, bool, const FOnlineSessionSearchResult&);
+typedef FOnSingleSessionResultComplete FOnSessionInviteAccepted;
 typedef FOnSessionInviteAccepted::FDelegate FOnSessionInviteAcceptedDelegate;
 
 /**
-	* Called when a user accepts a session invitation. Allows the game code a chance
-	* to clean up any existing state before accepting the invite. The invite must be
-	* accepted by calling JoinSession() after clean up has completed
-	*
-	* @param bWasSuccessful true if the async action completed without error, false if there was an error
-	* @param ControllerId the controller number of the accepting user
-	* @param UserId the user being invited
-	* @param InviteResult the search/settings for the session we're joining via invite
-	*/
+ * Called when a user accepts a session invitation. Allows the game code a chance
+ * to clean up any existing state before accepting the invite. The invite must be
+ * accepted by calling JoinSession() after clean up has completed
+ *
+ * @param bWasSuccessful true if the async action completed without error, false if there was an error
+ * @param ControllerId the controller number of the accepting user
+ * @param UserId the user being invited
+ * @param InviteResult the search/settings for the session we're joining via invite
+ */
 DECLARE_MULTICAST_DELEGATE_FourParams(FOnSessionUserInviteAccepted, const bool, const int32, TSharedPtr< FUniqueNetId >, const FOnlineSessionSearchResult&);
 typedef FOnSessionUserInviteAccepted::FDelegate FOnSessionUserInviteAcceptedDelegate;
+
+/**
+ * Called when a user receives a session invitation. Allows the game code to decide
+ * on accepting the invite. The invite can be accepted by calling JoinSession()
+ *
+ * @param UserId the user being invited
+ * @param FromId the user that sent the invite
+ * @param InviteResult the search/settings for the session we're joining via invite
+ */
+DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSessionInviteReceived, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FromId*/, const FOnlineSessionSearchResult& /*InviteResult*/);
+typedef FOnSessionInviteReceived::FDelegate FOnSessionInviteReceivedDelegate;
 
 /**
  * Delegate fired when the session registration process has completed
@@ -608,6 +635,16 @@ public:
 	 * @param InviteResult the search/settings for the session we're joining via invite
 	 */
 	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnSessionUserInviteAccepted, const bool, const int32, TSharedPtr< FUniqueNetId >, const FOnlineSessionSearchResult&);
+
+	/**
+	 * Called when a user receives a session invitation. Allows the game code to decide
+	 * on accepting the invite. The invite can be accepted by calling JoinSession()
+	 *
+	 * @param UserId the user being invited
+	 * @param FromId the user that sent the invite
+	 * @param InviteResult the search/settings for the session we're joining via invite
+	 */
+	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnSessionInviteReceived, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FromId*/, const FOnlineSessionSearchResult& /*InviteResult*/);
 
 	/**
 	 * Returns the platform specific connection information for joining the match.

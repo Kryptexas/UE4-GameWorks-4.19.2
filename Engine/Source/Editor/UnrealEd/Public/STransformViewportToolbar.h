@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __STransformViewportToolBar_h__
@@ -78,14 +78,14 @@ private:
 	TSharedRef< SWidget > MakeSurfaceSnappingButton( FName ToolBarStyle );
 
 	/** Grid Snap checked state callbacks */
-	ESlateCheckBoxState::Type IsLocationGridSnapChecked() const;
-	ESlateCheckBoxState::Type IsRotationGridSnapChecked() const;
-	ESlateCheckBoxState::Type IsScaleGridSnapChecked() const;
+	ECheckBoxState IsLocationGridSnapChecked() const;
+	ECheckBoxState IsRotationGridSnapChecked() const;
+	ECheckBoxState IsScaleGridSnapChecked() const;
 
 	/** Grid snap toggle handlers */
-	void HandleToggleLocationGridSnap(ESlateCheckBoxState::Type InState);
-	void HandleToggleRotationGridSnap(ESlateCheckBoxState::Type InState);
-	void HandleToggleScaleGridSnap(ESlateCheckBoxState::Type InState);
+	void HandleToggleLocationGridSnap(ECheckBoxState InState);
+	void HandleToggleRotationGridSnap(ECheckBoxState InState);
+	void HandleToggleScaleGridSnap(ECheckBoxState InState);
 
 private:
 

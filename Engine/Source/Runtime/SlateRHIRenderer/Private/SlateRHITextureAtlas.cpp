@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateRHIRendererPrivatePCH.h"
 
@@ -6,10 +6,11 @@
 /* FSlateTextureAtlasRHI structors
  *****************************************************************************/
 
-FSlateTextureAtlasRHI::FSlateTextureAtlasRHI( uint32 Width, uint32 Height, uint32 StrideBytes, ESlateTextureAtlasPaddingStyle PaddingStyle )
-	: FSlateTextureAtlas(Width, Height, StrideBytes, PaddingStyle)
-	, AtlasTexture(new FSlateTexture2DRHIRef(Width, Height, PF_B8G8R8A8, NULL, TexCreate_SRGB, true)) 
-{ }
+FSlateTextureAtlasRHI::FSlateTextureAtlasRHI( uint32 InWidth, uint32 InHeight, ESlateTextureAtlasPaddingStyle PaddingStyle )
+	: FSlateTextureAtlas(InWidth, InHeight, GPixelFormats[PF_B8G8R8A8].BlockBytes, PaddingStyle)
+	, AtlasTexture(new FSlateTexture2DRHIRef(InWidth, InHeight, PF_B8G8R8A8, NULL, TexCreate_SRGB, true)) 
+{
+}
 
 
 FSlateTextureAtlasRHI::~FSlateTextureAtlasRHI( )
@@ -42,10 +43,12 @@ void FSlateTextureAtlasRHI::UpdateTexture_RenderThread( FSlateTextureData* Rende
 
 	check(AtlasTexture->IsInitialized());
 
-	uint32 Stride;
-	uint8* TempData = (uint8*)RHILockTexture2D(AtlasTexture->GetTypedResource(), 0, RLM_WriteOnly, Stride, false);
+	uint32 DestStride;
+	uint8* TempData = (uint8*)RHILockTexture2D(AtlasTexture->GetTypedResource(), 0, RLM_WriteOnly, /*out*/ DestStride, false);
+	// check(DestStride == (RenderThreadData->GetBytesPerPixel() * RenderThreadData->GetWidth())); // Temporarily disable check
 
-	FMemory::Memcpy(TempData, RenderThreadData->GetRawBytes().GetData(), RenderThreadData->GetStride() * RenderThreadData->GetWidth() * RenderThreadData->GetHeight());
+	FMemory::Memcpy(TempData, RenderThreadData->GetRawBytes().GetData(), RenderThreadData->GetBytesPerPixel() * RenderThreadData->GetWidth() * RenderThreadData->GetHeight());
+
 	RHIUnlockTexture2D(AtlasTexture->GetTypedResource(), 0, false);
 
 	delete RenderThreadData;
@@ -62,7 +65,7 @@ void FSlateTextureAtlasRHI::ConditionalUpdateTexture( )
 	if (bNeedsUpdate)
 	{
 		// Copy the game thread data. This is deleted on the render thread
-		FSlateTextureData* RenderThreadData = new FSlateTextureData( AtlasWidth, AtlasHeight, Stride, AtlasData ); 
+		FSlateTextureData* RenderThreadData = new FSlateTextureData( AtlasWidth, AtlasHeight, BytesPerPixel, AtlasData ); 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER( SlateUpdateAtlasTextureCommand,
 			FSlateTextureAtlasRHI&, Atlas, *this,
 			FSlateTextureData*, InRenderThreadData, RenderThreadData,

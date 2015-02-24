@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "IPropertyTableCell.h"
@@ -26,8 +26,8 @@ public:
 	virtual TWeakObjectPtr< UObject > GetObject() const override;
 
 	virtual TSharedPtr< class FPropertyNode > GetNode() const override { return NULL; }
-	virtual TSharedRef< class IPropertyTableColumn > GetColumn() const override { return Column.Pin().ToSharedRef(); }
-	virtual TSharedRef< class IPropertyTableRow > GetRow() const override { return Row.Pin().ToSharedRef(); }
+	virtual TSharedRef< class IPropertyTableColumn > GetColumn() const override;
+	virtual TSharedRef< class IPropertyTableRow > GetRow() const override;
 	virtual TSharedRef< class IPropertyTable > GetTable() const override;
 	virtual TSharedPtr< class IPropertyHandle > GetPropertyHandle() const override { return NULL; }
 

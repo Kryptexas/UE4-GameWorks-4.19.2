@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "PropertyEditorConstants.h"
@@ -19,7 +19,7 @@ public:
 	void GetDesiredWidth( float& OutMinDesiredWidth, float& OutMaxDesiredWidth );
 
 private:
-	FString GetValueAsString() const;
+	FText GetValueAsString() const;
 
 	/** @return True if the property can be edited */
 	bool CanEdit() const;

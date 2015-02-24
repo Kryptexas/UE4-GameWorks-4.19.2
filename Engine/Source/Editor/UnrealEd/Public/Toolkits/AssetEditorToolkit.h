@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -67,6 +67,7 @@ public:
 	virtual void FocusWindow(UObject* ObjectToFocusOn = NULL) override;
 	virtual bool CloseWindow() override;
 	virtual bool IsPrimaryEditor() const override { return true; };
+	virtual void InvokeTab(const struct FTabId& TabId) override;
 
 	/**
 	 * Fills in the supplied menu with commands for working with this asset file
@@ -117,6 +118,12 @@ public:
 	/** Called at the end of RegenerateMenusAndToolbars() */
 	virtual void PostRegenerateMenusAndToolbars() { }
 	
+	// Called when another toolkit (such as a ed mode toolkit) is being hosted in this asset editor toolkit
+	virtual void OnToolkitHostingStarted(const TSharedRef< class IToolkit >& Toolkit) {}
+
+	// Called when another toolkit (such as a ed mode toolkit) is no longer being hosted in this asset editor toolkit
+	virtual void OnToolkitHostingFinished(const TSharedRef< class IToolkit >& Toolkit) {}
+
 	/** Adds or removes extenders to the default menu or the toolbar menu this asset editor */
 	void AddMenuExtender(TSharedPtr<FExtender> Extender);
 	void RemoveMenuExtender(TSharedPtr<FExtender> Extender);
@@ -206,7 +213,7 @@ protected:
 
 	/** @return a pointer to the brush to use for the tab icon */
 	virtual const FSlateBrush* GetDefaultTabIcon() const;
-	
+
 private:
 	/** Spawns the toolbar tab */
 	TSharedRef<SDockTab> SpawnTab_Toolbar(const FSpawnTabArgs& Args);
@@ -232,6 +239,9 @@ protected:
 
 	/** Controls our internal layout */
 	TSharedPtr<FTabManager> TabManager;
+
+	/** Whether only dirty assets should be prompted about on save - otherwise all edited assets will be prompted to the user for save/check-out */
+	bool bCheckDirtyOnAssetSave;
 
 private:
 	/** The toolkit standalone host; may be NULL */

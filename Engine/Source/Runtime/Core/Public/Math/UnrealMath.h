@@ -1,10 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	UnMath.h: Unreal math Types and inline implementation 
-=============================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "Color.h"
 #include "ColorList.h"
 #include "IntPoint.h"
@@ -52,11 +49,11 @@
 #include "ScalarRegister.h"
 #include "ConvexHull2d.h"
 
+
 // FVector2D Implementation
 FORCEINLINE FVector2D::FVector2D( const FVector& V )
-: X(V.X), Y(V.Y)
-{
-}
+	: X(V.X), Y(V.Y)
+{ }
 
 inline FVector FVector2D::SphericalToUnitCartesian() const
 {
@@ -102,7 +99,7 @@ inline FPlane FPlane::TransformBy( const FMatrix& M ) const
 
 inline FPlane FPlane::TransformByUsingAdjointT( const FMatrix& M, float DetM, const FMatrix& TA ) const
 {
-	FVector newNorm = TA.TransformVector(*this).SafeNormal();
+	FVector newNorm = TA.TransformVector(*this).GetSafeNormal();
 
 	if(DetM < 0.f)
 	{

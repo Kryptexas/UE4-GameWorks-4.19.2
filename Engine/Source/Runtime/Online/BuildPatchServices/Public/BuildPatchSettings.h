@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 /**
@@ -20,6 +20,8 @@ struct FBuildPatchSettings
 	FString LaunchCommand;
 	// The path to a file containing a \r\n separated list of RootDirectory relative files to ignore.
 	FString IgnoreListFile;
+	// The path to a file containing a \r\n separated list of RootDirectory relative files to followed by attribute keywords.
+	FString AttributeListFile;
 	// The display name of the prerequisites installer
 	FString PrereqName;
 	// The path to the prerequisites installer

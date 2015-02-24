@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -84,6 +84,8 @@ public:
 #elif PLATFORM_HTML5_WIN32
 		FILE *fp;
 		fp=fopen("c:\\test.sav","rb");
+		if (!fp)
+			return false;
 			// obtain file size:
 		fseek (fp, 0 , SEEK_END);
 		int size = ftell (fp);

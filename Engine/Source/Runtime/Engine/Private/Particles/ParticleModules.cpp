@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules.cpp: Particle module implementation.
@@ -11,7 +11,6 @@
 #include "Distributions/DistributionVectorUniformCurve.h"
 #include "FXSystem.h"
 #include "ParticleDefinitions.h"
-#include "../DistributionHelpers.h"
 #include "Particles/Acceleration/ParticleModuleAcceleration.h"
 #include "Particles/Acceleration/ParticleModuleAccelerationBase.h"
 #include "Particles/Acceleration/ParticleModuleAccelerationConstant.h"
@@ -74,6 +73,9 @@
 #include "Particles/ParticleSpriteEmitter.h"
 #include "Particles/ParticleSystem.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Distributions/DistributionFloatUniformCurve.h"
+#include "Engine/InterpCurveEdSetup.h"
+#include "Distributions/DistributionFloatConstantCurve.h"
 
 /*-----------------------------------------------------------------------------
 	Abstract base modules used for categorization.
@@ -495,88 +497,6 @@ bool UParticleModule::ConvertVectorDistribution(UDistributionVector* VectorDist,
 	return true;
 }
 
-
-bool UParticleModule::IsIdentical_Deprecated(const UParticleModule* InModule) const
-{
-	// Valid module?
-	if (InModule == NULL)
-	{
-		return false;
-	}
-
-	// Same class?
-	if (InModule->GetClass() != GetClass())
-	{
-		return false;
-	}
-
-	for (UProperty* Prop = GetClass()->PropertyLink; Prop; Prop = Prop->PropertyLinkNext)
-	{
-		// only the properties that could have been modified in the editor should be compared
-		// (skipping the name and archetype properties, since name will almost always be different)
-		bool bConsiderProperty = Prop->ShouldDuplicateValue();
-		if (PropertyIsRelevantForIsIdentical_Deprecated(Prop->GetFName()) == false)
-		{
-			bConsiderProperty = false;
-		}
-
-		if (bConsiderProperty)
-		{
-			for (int32 i = 0; i < Prop->ArrayDim; i++)
-			{
-				if (!Prop->Identical_InContainer(this, InModule, i, PPF_DeepComparison))
-				{
-					return false;
-				}
-			}
-		}
-	}
-
-	return true;
-}
-
-
-bool UParticleModule::PropertyIsRelevantForIsIdentical_Deprecated(const FName& InPropName) const
-{
-	static TArray<FName> IdenticalIgnoreProperties_ParticleModule;
-	static TArray<FName> IdenticalIgnoreProperties_ParticleModuleRequired;
-	if( IdenticalIgnoreProperties_ParticleModule.Num() == 0 )
-	{
-		IdenticalIgnoreProperties_ParticleModule.Add(FName(TEXT("bSpawnModule")));
-		IdenticalIgnoreProperties_ParticleModule.Add(FName(TEXT("bUpdateModule")));
-		IdenticalIgnoreProperties_ParticleModule.Add(FName(TEXT("bFinalUpdateModule")));
-		IdenticalIgnoreProperties_ParticleModule.Add(FName(TEXT("bCurvesAsColor")));
-		IdenticalIgnoreProperties_ParticleModule.Add(FName(TEXT("b3DDrawMode")));
-		IdenticalIgnoreProperties_ParticleModule.Add(FName(TEXT("bSupported3DDrawMode")));
-		IdenticalIgnoreProperties_ParticleModule.Add(FName(TEXT("bEditable")));
-		IdenticalIgnoreProperties_ParticleModule.Add(FName(TEXT("ModuleEditorColor")));
-		IdenticalIgnoreProperties_ParticleModule.Add(FName(TEXT("IdenticalIgnoreProperties")));
-		IdenticalIgnoreProperties_ParticleModule.Add(FName(TEXT("LODValidity")));
-		IdenticalIgnoreProperties_ParticleModuleRequired.Add(FName(TEXT("SpawnRate")));
-		IdenticalIgnoreProperties_ParticleModuleRequired.Add(FName(TEXT("ParticleBurstMethod")));
-		IdenticalIgnoreProperties_ParticleModuleRequired.Add(FName(TEXT("BurstList")));
-	}
-	for (int32 IgnoreIndex = 0; IgnoreIndex < IdenticalIgnoreProperties_ParticleModule.Num(); IgnoreIndex++)
-	{
-		if (IdenticalIgnoreProperties_ParticleModule[IgnoreIndex] == InPropName)
-		{
-			return false;
-		}
-	}
-	if( IsA( UParticleModuleRequired::StaticClass() ) )
-	{
-		for (int32 IgnoreIndex = 0; IgnoreIndex < IdenticalIgnoreProperties_ParticleModuleRequired.Num(); IgnoreIndex++)
-		{
-			if (IdenticalIgnoreProperties_ParticleModuleRequired[IgnoreIndex] == InPropName)
-			{
-				return false;
-			}
-		}
-	}
-	return true;
-}
-
-
 UParticleModule* UParticleModule::GenerateLODModule(UParticleLODLevel* SourceLODLevel, UParticleLODLevel* DestLODLevel, float Percentage, 
 	bool bGenerateModuleData, bool bForceModuleConstruction)
 {
@@ -964,15 +884,6 @@ void UParticleModuleSourceMovement::PostInitProperties()
 	}
 }
 
-void UParticleModuleSourceMovement::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(SourceMovementScale.Distribution, TEXT("DistributionSourceMovementScale"), FVector(1.0f, 1.0f, 1.0f));
-	}
-}
-
 void UParticleModuleSourceMovement::FinalUpdate(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime)
 {
 	Super::FinalUpdate(Owner, Offset, DeltaTime);
@@ -1080,6 +991,7 @@ UParticleModuleRequired::UParticleModuleRequired(const FObjectInitializer& Objec
 	NormalsSphereCenter = FVector(0.0f, 0.0f, 100.0f);
 	NormalsCylinderDirection = FVector(0.0f, 0.0f, 1.0f);
 	bUseLegacyEmitterTime = true;
+	UVFlippingMode = EParticleUVFlipMode::None;
 }
 
 void UParticleModuleRequired::InitializeDefaults()
@@ -1096,15 +1008,6 @@ void UParticleModuleRequired::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleRequired::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(SpawnRate.Distribution, TEXT("RequiredDistributionSpawnRate"), 0.0f);
 	}
 }
 
@@ -1251,22 +1154,13 @@ void UParticleModuleMeshRotation::PostInitProperties()
 	}
 }
 
-void UParticleModuleMeshRotation::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultUniform(StartRotation.Distribution, TEXT("DistributionStartRotation"), FVector(0.0f, 0.0f, 0.0f), FVector(1.0f, 1.0f, 1.0f));
-	}
-}
-
 void UParticleModuleMeshRotation::Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase)
 {
 	SpawnEx(Owner, Offset, SpawnTime, NULL, ParticleBase);
 }
 
 
-void UParticleModuleMeshRotation::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
+void UParticleModuleMeshRotation::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
 {
 	SPAWN_INIT;
 	{
@@ -1358,21 +1252,12 @@ void UParticleModuleMeshRotationRate::PostInitProperties()
 	}
 }
 
-void UParticleModuleMeshRotationRate::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultUniform(StartRotationRate.Distribution, TEXT("DistributionStartRotationRate"), FVector(0.0f, 0.0f, 0.0f), FVector(360.0f, 360.0f, 360.0f));
-	}
-}
-
 void UParticleModuleMeshRotationRate::Spawn(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, FBaseParticle* ParticleBase)
 {
 	SpawnEx(Owner, Offset, SpawnTime, NULL, ParticleBase);
 }
 
-void UParticleModuleMeshRotationRate::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
+void UParticleModuleMeshRotationRate::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
 {
 	SPAWN_INIT;
 	{
@@ -1456,15 +1341,6 @@ void UParticleModuleMeshRotationRateMultiplyLife::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		LifeMultiplier.Distribution = NewNamedObject<UDistributionVectorConstant>(this, TEXT("DistributionLifeMultiplier"));
-	}
-}
-
-void UParticleModuleMeshRotationRateMultiplyLife::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(LifeMultiplier.Distribution, TEXT("DistributionLifeMultiplier"), FVector::ZeroVector);
 	}
 }
 
@@ -1628,15 +1504,6 @@ void UParticleModuleRotation::PostInitProperties()
 	}
 }
 
-void UParticleModuleRotation::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultUniform(StartRotation.Distribution, TEXT("DistributionStartRotation"), 0.0f, 1.0f);
-	}
-}
-
 #if WITH_EDITOR
 void UParticleModuleRotation::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -1650,7 +1517,7 @@ void UParticleModuleRotation::Spawn(FParticleEmitterInstance* Owner, int32 Offse
 	SpawnEx(Owner, Offset, SpawnTime, NULL, ParticleBase);
 }
 
-void UParticleModuleRotation::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
+void UParticleModuleRotation::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
 {
 	SPAWN_INIT;
 	{
@@ -1720,15 +1587,6 @@ void UParticleModuleRotationRate::PostInitProperties()
 	}
 }
 
-void UParticleModuleRotationRate::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(StartRotationRate.Distribution, TEXT("DistributionStartRotationRate"), 0.0f);
-	}
-}
-
 void UParticleModuleRotationRate::CompileModule( FParticleEmitterBuildInfo& EmitterInfo )
 {
 	float MinRate;
@@ -1754,7 +1612,7 @@ void UParticleModuleRotationRate::Spawn(FParticleEmitterInstance* Owner, int32 O
 	SpawnEx(Owner, Offset, SpawnTime, NULL, ParticleBase);
 }
 
-void UParticleModuleRotationRate::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
+void UParticleModuleRotationRate::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
 {
 	SPAWN_INIT;
 	{
@@ -1904,15 +1762,6 @@ void UParticleModuleSubUV::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		SubImageIndex.Distribution = NewNamedObject<UDistributionFloatConstant>(this, TEXT("DistributionSubImage"));
-	}
-}
-
-void UParticleModuleSubUV::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(SubImageIndex.Distribution, TEXT("DistributionSubImage"), 0.0f);
 	}
 }
 
@@ -2127,15 +1976,6 @@ void UParticleModuleSubUVMovie::PostInitProperties()
 	}
 }
 
-void UParticleModuleSubUVMovie::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(FrameRate.Distribution, TEXT("DistributionFrameRate"), 30.0f);
-	}
-}
-
 #if WITH_EDITOR
 void UParticleModuleSubUVMovie::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -2298,15 +2138,6 @@ void UParticleModuleRotationRateMultiplyLife::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleRotationRateMultiplyLife::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(LifeMultiplier.Distribution, TEXT("DistributionLifeMultiplier"), 0.0f);
 	}
 }
 
@@ -2473,15 +2304,6 @@ void UParticleModuleAccelerationDrag::PostInitProperties()
 	}
 }
 
-void UParticleModuleAccelerationDrag::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(DragCoefficient, TEXT("DistributionDragCoefficient"), 1.0f);
-	}
-}
-
 void UParticleModuleAccelerationDrag::CompileModule(FParticleEmitterBuildInfo& EmitterInfo)
 {
 	EmitterInfo.DragCoefficient.Initialize(DragCoefficient);
@@ -2547,16 +2369,6 @@ void UParticleModuleAccelerationDragScaleOverLife::PostInitProperties()
 	}
 }
 
-void UParticleModuleAccelerationDragScaleOverLife::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(DragScale, TEXT("DistributionDragScale"), 1.0f);
-	}
-}
-
-
 void UParticleModuleAccelerationDragScaleOverLife::CompileModule(FParticleEmitterBuildInfo& EmitterInfo)
 {
 	EmitterInfo.DragScale.ScaleByDistribution(DragScale);
@@ -2613,15 +2425,6 @@ void UParticleModuleAttractorPointGravity::PostInitProperties()
 	}
 }
 
-void UParticleModuleAttractorPointGravity::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(Strength, TEXT("DistributionStrength"), 1.0f);
-	}
-}
-
 void UParticleModuleAttractorPointGravity::CompileModule(FParticleEmitterBuildInfo& EmitterInfo)
 {
 	EmitterInfo.PointAttractorPosition = Position;
@@ -2674,15 +2477,6 @@ void UParticleModuleAcceleration::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleAcceleration::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultUniform(Acceleration.Distribution, TEXT("DistributionAcceleration"), FVector::ZeroVector, FVector::ZeroVector);
 	}
 }
 
@@ -2913,7 +2707,7 @@ void UParticleModuleLight::PostEditChangeProperty(FPropertyChangedEvent& Propert
 }
 #endif // WITH_EDITOR
 
-void UParticleModuleLight::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
+void UParticleModuleLight::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
 {
 	SPAWN_INIT;
 	PARTICLE_ELEMENT(FLightParticlePayload, LightData);
@@ -3023,7 +2817,7 @@ void UParticleModuleLight::Render3DPreview(FParticleEmitterInstance* Owner, cons
 				const FVector Size = Scale * Particle.Size;
 				const float LightRadius = LightPayload->RadiusScale * (Size.X + Size.Y) / 2.0f;
 
-				DrawWireSphere(PDI, LightPosition, FColor(255, 255, 255), LightRadius, 18, SDPG_World);
+				DrawWireSphere(PDI, LightPosition, FColor::White, LightRadius, 18, SDPG_World);
 			}
 		}
 	}
@@ -3206,16 +3000,6 @@ void UParticleModuleKillBox::PostInitProperties()
 	}
 }
 
-void UParticleModuleKillBox::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(LowerLeftCorner.Distribution, TEXT("DistributionLowerLeftCorner"), FVector::ZeroVector);
-		FDistributionHelpers::RestoreDefaultConstant(UpperRightCorner.Distribution, TEXT("DistributionUpperRightCorner"), FVector::ZeroVector);
-	}
-}
-
 #if WITH_EDITOR
 void UParticleModuleKillBox::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -3361,15 +3145,6 @@ void UParticleModuleKillHeight::PostInitProperties()
 	}
 }
 
-void UParticleModuleKillHeight::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(Height.Distribution, TEXT("DistributionHeight"), 0.0f);
-	}
-}
-
 #if WITH_EDITOR
 void UParticleModuleKillHeight::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -3493,15 +3268,6 @@ void UParticleModuleLifetime::PostInitProperties()
 	}
 }
 
-void UParticleModuleLifetime::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultUniform(Lifetime.Distribution, TEXT("DistributionLifetime"), 0.0f, 0.0f);
-	}
-}
-
 void UParticleModuleLifetime::CompileModule( struct FParticleEmitterBuildInfo& EmitterInfo )
 {
 	float MinLifetime;
@@ -3519,7 +3285,7 @@ void UParticleModuleLifetime::Spawn(FParticleEmitterInstance* Owner, int32 Offse
 	SpawnEx(Owner, Offset, SpawnTime, NULL, ParticleBase);
 }
 
-void UParticleModuleLifetime::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
+void UParticleModuleLifetime::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
 {
 	SPAWN_INIT;
 	{
@@ -3534,7 +3300,8 @@ void UParticleModuleLifetime::SpawnEx(FParticleEmitterInstance* Owner, int32 Off
 			// First module to modify lifetime.
 			Particle.OneOverMaxLifetime = MaxLifetime > 0.f ? 1.f / MaxLifetime : 0.f;
 		}
-		Particle.RelativeTime = SpawnTime * Particle.OneOverMaxLifetime;
+		//If the relative time is already > 1.0f then we don't want to be setting it. Some modules use this to mark a particle as dead during spawn.
+		Particle.RelativeTime = Particle.RelativeTime > 1.0f ? Particle.RelativeTime : SpawnTime * Particle.OneOverMaxLifetime;
 	}
 }
 
@@ -3656,16 +3423,6 @@ void UParticleModuleAttractorLine::PostInitProperties()
 	}
 }
 
-void UParticleModuleAttractorLine::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(Strength.Distribution, TEXT("DistributionStrength"), 0.0f);
-		FDistributionHelpers::RestoreDefaultConstant(Range.Distribution, TEXT("DistributionRange"), 0.0f);
-	}
-}
-
 #if WITH_EDITOR
 void UParticleModuleAttractorLine::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -3677,6 +3434,13 @@ void UParticleModuleAttractorLine::PostEditChangeProperty(FPropertyChangedEvent&
 void UParticleModuleAttractorLine::Update(FParticleEmitterInstance* Owner, int32 Offset, float DeltaTime)
 {
 	FVector Line = EndPoint1 - EndPoint0;
+
+	// if both end points are the same, we end up with NaNs in the results of the update
+	if (Line.Size() == 0.0f)
+	{
+		Line = FVector(SMALL_NUMBER, SMALL_NUMBER, SMALL_NUMBER);
+	}
+
 	FVector LineNorm = Line;
 	LineNorm.Normalize();
 
@@ -3804,16 +3568,6 @@ void UParticleModuleAttractorParticle::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleAttractorParticle::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(Range.Distribution, TEXT("DistributionRange"), 0.0f);
-		FDistributionHelpers::RestoreDefaultConstant(Strength.Distribution, TEXT("DistributionStrength"), 0.0f);
 	}
 }
 
@@ -4062,17 +3816,6 @@ void UParticleModuleAttractorPoint::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleAttractorPoint::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(Position.Distribution, TEXT("DistributionPosition"), FVector::ZeroVector);
-		FDistributionHelpers::RestoreDefaultConstant(Range.Distribution, TEXT("DistributionRange"), 0.0f);
-		FDistributionHelpers::RestoreDefaultConstant(Strength.Distribution, TEXT("DistributionStrength"), 0.0f);
 	}
 }
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 //////////////////////////////////////////////////////////////////////////
@@ -35,10 +35,9 @@ public:
 			];
 	}
 
-	FString GetHoverText() const
+	FText GetHoverText() const
 	{
-		FString HoverText = FString::Printf(TEXT("Bone %s"), *BoneName.GetPlainNameString());
-		return HoverText;
+		return FText::Format(NSLOCTEXT("BoneDragDropOp", "BoneHoverTextFmt", "Bone {0}"), FText::FromString(BoneName.GetPlainNameString()));
 	}
 
 	const FSlateBrush* GetIcon( ) const

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "IPropertyTableCellPresenter.h"
@@ -81,7 +81,7 @@ private:
 				[
 					SNew( STextBlock )
 					.Font( FEditorStyle::GetFontStyle( TextFontStyle ) )
-					.Text( DisplayNamePieces[ Index ] )
+					.Text( FText::FromString(DisplayNamePieces[ Index ]) )
 				];
 
 			if ( Index < DisplayNamePieces.Num() - 1 )

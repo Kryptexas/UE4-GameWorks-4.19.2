@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Character.cpp: ACharacter implementation
@@ -14,6 +14,8 @@
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimMontage.h"
 #include "Foliage/InstancedFoliageActor.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/DamageType.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCharacter, Log, All);
 DEFINE_LOG_CATEGORY_STATIC(LogAvatar, Log, All);
@@ -23,7 +25,7 @@ FName ACharacter::CharacterMovementComponentName(TEXT("CharMoveComp"));
 FName ACharacter::CapsuleComponentName(TEXT("CollisionCylinder"));
 
 ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	// Structure to hold one-time initialization
 	struct FConstructorStatics
@@ -32,7 +34,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 		FText NAME_Characters;
 		FConstructorStatics()
 			: ID_Characters(TEXT("Characters"))
-			, NAME_Characters(NSLOCTEXT( "SpriteCategory", "Characters", "Characters" ))
+			, NAME_Characters(NSLOCTEXT("SpriteCategory", "Characters", "Characters"))
 		{
 		}
 	};
@@ -44,16 +46,15 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 	bUseControllerRotationRoll = false;
 	bUseControllerRotationYaw = true;
 
-	CapsuleComponent = ObjectInitializer.CreateDefaultSubobject<UCapsuleComponent>(this, ACharacter::CapsuleComponentName);
+	CapsuleComponent = CreateDefaultSubobject<UCapsuleComponent>(ACharacter::CapsuleComponentName);
 	CapsuleComponent->InitCapsuleSize(34.0f, 88.0f);
-	CapsuleComponent->BodyInstance.bEnableCollision_DEPRECATED = true;
 
 	static FName CollisionProfileName(TEXT("Pawn"));
 	CapsuleComponent->SetCollisionProfileName(CollisionProfileName);
 
 	CapsuleComponent->CanCharacterStepUpOn = ECB_No;
 	CapsuleComponent->bShouldUpdatePhysicsVolume = true;
-	CapsuleComponent->bCheckAsyncSceneOnMove = false;	
+	CapsuleComponent->bCheckAsyncSceneOnMove = false;
 	CapsuleComponent->bCanEverAffectNavigation = false;
 	RootComponent = CapsuleComponent;
 
@@ -61,7 +62,7 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 	JumpMaxHoldTime = 0.0f;
 
 #if WITH_EDITORONLY_DATA
-	ArrowComponent = ObjectInitializer.CreateEditorOnlyDefaultSubobject<UArrowComponent>(this, TEXT("Arrow"));
+	ArrowComponent = CreateEditorOnlyDefaultSubobject<UArrowComponent>(TEXT("Arrow"));
 	if (ArrowComponent)
 	{
 		ArrowComponent->ArrowColor = FColor(150, 200, 255);
@@ -73,14 +74,14 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 	}
 #endif // WITH_EDITORONLY_DATA
 
-	CharacterMovement = ObjectInitializer.CreateDefaultSubobject<UCharacterMovementComponent>(this, ACharacter::CharacterMovementComponentName);
+	CharacterMovement = CreateDefaultSubobject<UCharacterMovementComponent>(ACharacter::CharacterMovementComponentName);
 	if (CharacterMovement)
 	{
 		CharacterMovement->UpdatedComponent = CapsuleComponent;
 		CrouchedEyeHeight = CharacterMovement->CrouchedHalfHeight * 0.80f;
 	}
 
-	Mesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, ACharacter::MeshComponentName);
+	Mesh = CreateOptionalDefaultSubobject<USkeletalMeshComponent>(ACharacter::MeshComponentName);
 	if (Mesh)
 	{
 		Mesh->AlwaysLoadOnClient = true;
@@ -98,7 +99,6 @@ ACharacter::ACharacter(const FObjectInitializer& ObjectInitializer)
 		Mesh->bCanEverAffectNavigation = false;
 	}
 }
-
 
 void ACharacter::PostInitializeComponents()
 {
@@ -119,7 +119,15 @@ void ACharacter::PostInitializeComponents()
 
 		if (CharacterMovement && CapsuleComponent)
 		{
-			CharacterMovement->UpdateNavAgent(CapsuleComponent);
+			CharacterMovement->UpdateNavAgent(*CapsuleComponent);
+		}
+
+		if (Controller == NULL && GetNetMode() != NM_Client)
+		{
+			if (CharacterMovement && CharacterMovement->bRunPhysicsWithNoController)
+			{
+				CharacterMovement->SetDefaultMovementMode();
+			}
 		}
 	}
 }
@@ -217,7 +225,7 @@ bool ACharacter::CanJumpInternal_Implementation() const
 {
 	const bool bCanHoldToJumpHigher = (GetJumpMaxHoldTime() > 0.0f) && IsJumpProvidingForce();
 
-	return !bIsCrouched && CharacterMovement && (CharacterMovement->IsMovingOnGround() || bCanHoldToJumpHigher) && CharacterMovement->CanEverJump() && !CharacterMovement->bWantsToCrouch;
+	return !bIsCrouched && CharacterMovement && (CharacterMovement->IsMovingOnGround() || bCanHoldToJumpHigher) && CharacterMovement->IsJumpAllowed() && !CharacterMovement->bWantsToCrouch;
 }
 
 void ACharacter::OnJumped_Implementation()
@@ -415,11 +423,9 @@ namespace MovementBaseUtility
 				}
 
 				// @TODO: We need to find a more efficient way of finding all ticking components in an actor.
-				TArray<UActorComponent*> Components;
-				NewBaseOwner->GetComponents(Components);
-				for (auto& Component : Components)
+				for (UActorComponent* Component : NewBaseOwner->GetComponents())
 				{
-					if (Component->PrimaryComponentTick.bCanEverTick)
+					if (Component && Component->PrimaryComponentTick.bCanEverTick)
 					{
 						BasedObjectTick.AddPrerequisite(Component, Component->PrimaryComponentTick);
 					}
@@ -445,11 +451,9 @@ namespace MovementBaseUtility
 				BasedObjectTick.RemovePrerequisite(OldBaseOwner, OldBaseOwner->PrimaryActorTick);
 
 				// @TODO: We need to find a more efficient way of finding all ticking components in an actor.
-				TArray<UActorComponent*> Components;
-				OldBaseOwner->GetComponents(Components);
-				for (auto& Component : Components)
+				for (UActorComponent* Component : OldBaseOwner->GetComponents())
 				{
-					if (Component->PrimaryComponentTick.bCanEverTick)
+					if (Component && Component->PrimaryComponentTick.bCanEverTick)
 					{
 						BasedObjectTick.RemovePrerequisite(Component, Component->PrimaryComponentTick);
 					}
@@ -638,6 +642,22 @@ void ACharacter::SaveRelativeBasedMovement(const FVector& NewRelativeLocation, c
 	BasedMovement.bRelativeRotation = bRelativeRotation;
 }
 
+FVector ACharacter::GetNavAgentLocation() const
+{
+	FVector AgentLocation = FNavigationSystem::InvalidLocation;
+
+	if (GetCharacterMovement() != nullptr)
+	{
+		AgentLocation = GetCharacterMovement()->GetActorFeetLocation();
+	}
+
+	if (FNavigationSystem::IsValidLocation(AgentLocation) == false && CapsuleComponent != nullptr)
+	{
+		AgentLocation = GetActorLocation() - FVector(0, 0, CapsuleComponent->GetScaledCapsuleHalfHeight());
+	}
+
+	return AgentLocation;
+}
 
 void ACharacter::TurnOff()
 {

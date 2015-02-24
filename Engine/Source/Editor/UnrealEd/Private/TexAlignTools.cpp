@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	TexAlignTools.cpp: Tools for aligning textures on surfaces
@@ -7,6 +7,7 @@
 #include "UnrealEd.h"
 #include "TexAlignTools.h"
 #include "BSPOps.h"
+#include "Engine/Polys.h"
 
 FTexAlignTools GTexAlignTools;
 
@@ -288,7 +289,7 @@ void UTexAlignerFit::AlignSurf( ETexAlign InTexAlignType, UModel* InModel, FBspS
 	{
 		const FVector& VertexA = FirstPolyVertex;
 		const FVector& VertexB = WorldSpacePolyVertices[ 1 ];
-		FVector UpVec = ( VertexB - VertexA ).SafeNormal();
+		FVector UpVec = ( VertexB - VertexA ).GetSafeNormal();
 		FVector RightVec = InPoly->Normal ^ UpVec;
 		WorldToPolyRotationMatrix.SetIdentity();
 		WorldToPolyRotationMatrix.SetAxes( &RightVec, &UpVec, &InPoly->Normal );
@@ -312,7 +313,7 @@ void UTexAlignerFit::AlignSurf( ETexAlign InTexAlignType, UModel* InModel, FBspS
 		const FVector& NextVertex = WorldSpacePolyVertices[ NextWindingVertexIndex ];
 
 		// Compute the corner angle
-		float AbsDotProduct = FMath::Abs( ( PrevVertex - CurVertex ).SafeNormal() | ( NextVertex - CurVertex ).SafeNormal() );
+		float AbsDotProduct = FMath::Abs( ( PrevVertex - CurVertex ).GetSafeNormal() | ( NextVertex - CurVertex ).GetSafeNormal() );
 
 		// Compute how 'positive' this vertex is relative to the bottom left position in the polygon's plane
 		FVector PolySpaceVertex = WorldToPolyRotationMatrix.InverseTransformVector( CurVertex - FirstPolyVertex );
@@ -352,7 +353,7 @@ void UTexAlignerFit::AlignSurf( ETexAlign InTexAlignType, UModel* InModel, FBspS
 	const int32 NextWindingVertexIndex = ( BestVertexIndex < WorldSpacePolyVertices.Num() - 1 ) ? ( BestVertexIndex + 1 ) : 0;
 	const FVector& NextVertex = WorldSpacePolyVertices[ NextWindingVertexIndex ];
 
-	FVector TextureUpVec = ( NextVertex - BestVertex ).SafeNormal();
+	FVector TextureUpVec = ( NextVertex - BestVertex ).GetSafeNormal();
 	FVector TextureRightVec = InPoly->Normal ^ TextureUpVec;
 
 	FMatrix WorldToTextureRotationMatrix;

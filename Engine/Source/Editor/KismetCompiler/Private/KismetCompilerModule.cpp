@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	KismetCompilerModule.cpp
@@ -15,6 +15,9 @@
 #include "UserDefinedStructureCompilerUtils.h"
 
 DEFINE_LOG_CATEGORY(LogK2Compiler);
+DECLARE_CYCLE_STAT(TEXT("Compile Time"), EKismetCompilerStats_CompileTime, STATGROUP_KismetCompiler);
+DECLARE_CYCLE_STAT(TEXT("Compile Skeleton Class"), EKismetCompilerStats_CompileSkeletonClass, STATGROUP_KismetCompiler);
+DECLARE_CYCLE_STAT(TEXT("Compile Generated Class"), EKismetCompilerStats_CompileGeneratedClass, STATGROUP_KismetCompiler);
 
 IMPLEMENT_MODULE( FKismet2CompilerModule, KismetCompiler );
 
@@ -57,20 +60,19 @@ void FKismet2CompilerModule::CompileBlueprintInner(class UBlueprint* Blueprint, 
 	else
 	{
 		// Loop through all external compiler delegates attempting to compile the blueprint.
-		FReply Handled = FReply::Unhandled();
-		for ( FBlueprintCompileDelegate& Compiler : Compilers )
+		bool Compiled = false;
+		for ( IBlueprintCompiler* Compiler : Compilers )
 		{
-			Handled = Compiler.Execute(Blueprint, CompileOptions, Results, ObjLoaded);
-
-			// Don't allow any other compiler to handle it if they reported it was handled.
-			if ( Handled.IsEventHandled() )
+			if ( Compiler->CanCompile(Blueprint) )
 			{
+				Compiled = true;
+				Compiler->Compile(Blueprint, CompileOptions, Results, ObjLoaded);
 				break;
 			}
 		}
 
 		// if no one handles it, then use the default blueprint compiler.
-		if ( !Handled.IsEventHandled() )
+		if ( !Compiled )
 		{
 			if ( UAnimBlueprint* AnimBlueprint = Cast<UAnimBlueprint>(Blueprint) )
 			{
@@ -108,9 +110,14 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 
 	const bool bIsBrandNewBP = (Blueprint->SkeletonGeneratedClass == NULL) && (Blueprint->GeneratedClass == NULL) && (Blueprint->ParentClass != NULL) && !CompileOptions.bIsDuplicationInstigated;
 
-	if ((CompileOptions.CompileType != EKismetCompileType::BytecodeOnly) && (CompileOptions.CompileType != EKismetCompileType::Cpp))
+	for ( IBlueprintCompiler* Compiler : Compilers )
 	{
-		BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Compile Skeleton Class"));
+		Compiler->PreCompile(Blueprint);
+	}
+
+	if (CompileOptions.CompileType != EKismetCompileType::Cpp)
+	{
+		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileSkeletonClass);
 
 		FBlueprintCompileReinstancer SkeletonReinstancer(Blueprint->SkeletonGeneratedClass);
 
@@ -124,7 +131,7 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 	// If this was a full compile, take appropriate actions depending on the success of failure of the compile
 	if( CompileOptions.IsGeneratedClassCompileType() )
 	{
-		BP_SCOPED_COMPILER_EVENT_NAME(TEXT("Compile Generated Class"));
+		BP_SCOPED_COMPILER_EVENT_STAT(EKismetCompilerStats_CompileGeneratedClass);
 
 		// Perform the full compile
 		CompileBlueprintInner(Blueprint, CompileOptions, Results, ObjLoaded);
@@ -180,6 +187,11 @@ void FKismet2CompilerModule::CompileBlueprint(class UBlueprint* Blueprint, const
 				StubReinstancer.ReinstanceObjects(!ReinstanceOnlyWhenNecessary);
 			}
 		}
+	}
+
+	for ( IBlueprintCompiler* Compiler : Compilers )
+	{
+		Compiler->PostCompile(Blueprint);
 	}
 
 	UPackage* Package = Blueprint->GetOutermost();

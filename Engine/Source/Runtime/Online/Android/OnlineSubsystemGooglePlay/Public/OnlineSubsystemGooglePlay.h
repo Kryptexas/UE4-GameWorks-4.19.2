@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -46,6 +46,7 @@ public:
 	virtual IOnlineUserPtr GetUserInterface() const override { return NULL; }
 	virtual IOnlineAchievementsPtr GetAchievementsInterface() const override;
 	virtual IOnlinePresencePtr GetPresenceInterface() const override { return NULL; }
+	virtual IOnlineChatPtr GetChatInterface() const override { return NULL; }
 
 	virtual class UObject* GetNamedInterface(FName InterfaceName) override { return NULL; }
 	virtual void SetNamedInterface(FName InterfaceName, class UObject* NewInterface) override {}
@@ -101,6 +102,9 @@ private:
 
 	/** Google callback when auth is complete */
 	void OnAuthActionFinished(gpg::AuthOperation Op, gpg::AuthStatus Status);
+
+	/** Android callback when an activity is finished */
+	void OnActivityResult(JNIEnv *env, jobject thiz, jobject activity, jint requestCode, jint resultCode, jobject data);
 
 	/** Online async task runnable */
 	TUniquePtr<class FOnlineAsyncTaskManagerGooglePlay> OnlineAsyncTaskThreadRunnable;

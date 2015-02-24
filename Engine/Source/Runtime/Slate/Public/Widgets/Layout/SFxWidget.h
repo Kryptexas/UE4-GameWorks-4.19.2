@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,26 +19,26 @@ public:
 	, _ColorAndOpacity( FLinearColor::White )
 	, _Content()
 	{}
-		/** Scale the visuals of this widget. Geometry is not affected. */
-		SLATE_ATTRIBUTE( float, RenderScale )
+	/** Scale the visuals of this widget. Geometry is not affected. */
+	SLATE_ATTRIBUTE( float, RenderScale )
 
-		/** The origin of the visual scale transform in the 0..1 range (0 being upper left, 1 being lower right)  */
-		SLATE_ATTRIBUTE( FVector2D, RenderScaleOrigin )
+	/** The origin of the visual scale transform in the 0..1 range (0 being upper left, 1 being lower right)  */
+	SLATE_ATTRIBUTE( FVector2D, RenderScaleOrigin )
 
-		/** Just like visual scale only affects Geometry. */
-		SLATE_ATTRIBUTE( float, LayoutScale )
+	/** Just like visual scale only affects Geometry. */
+	SLATE_ATTRIBUTE( float, LayoutScale )
 
-		/** Offset the widget by some fraction of its size in either dimension. */
-		SLATE_ATTRIBUTE( FVector2D, VisualOffset )
+	/** Offset the widget by some fraction of its size in either dimension. */
+	SLATE_ATTRIBUTE( FVector2D, VisualOffset )
 
-		/** Should the FX widget disable all clipping and show through regardless of its parents' bounds.*/
-		SLATE_ATTRIBUTE( bool, IgnoreClipping )
+	/** Should the FX widget disable all clipping and show through regardless of its parents' bounds.*/
+	SLATE_ATTRIBUTE( bool, IgnoreClipping )
 
-		/** Multiply the contents of the SFxWidget by this color and opacity when drawing */
-		SLATE_ATTRIBUTE( FLinearColor, ColorAndOpacity )
+	/** Multiply the contents of the SFxWidget by this color and opacity when drawing */
+	SLATE_ATTRIBUTE( FLinearColor, ColorAndOpacity )
 
-		/** The content that should be modified. */
-		SLATE_DEFAULT_SLOT( FArguments, Content )
+	/** The content that should be modified. */
+	SLATE_DEFAULT_SLOT( FArguments, Content )
 
 	SLATE_END_ARGS()
 

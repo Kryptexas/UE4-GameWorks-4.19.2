@@ -1,6 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+class UBehaviorTree;
+class UBehaviorTreeComponent;
 
 class FBehaviorTreeDebugger : public FTickableGameObject
 {
@@ -17,7 +20,7 @@ public:
 	/** Refresh the debugging information we are displaying (only when paused, as Tick() updates when running) */
 	void Refresh();
 
-	void Setup(class UBehaviorTree* InTreeAsset, TSharedRef<class FBehaviorTreeEditor> InEditorOwner);
+	void Setup(UBehaviorTree* InTreeAsset, TSharedRef<class FBehaviorTreeEditor> InEditorOwner);
 
 	/** Store the root node for easy access if we have not already */
 	void CacheRootNode();
@@ -29,12 +32,12 @@ public:
 
 	void OnObjectSelected(UObject* Object);
 	void OnAIDebugSelected(const APawn* Pawn);
-	void OnTreeStarted(const class UBehaviorTreeComponent* OwnerComp, const class UBehaviorTree* InTreeAsset);
+	void OnTreeStarted(const UBehaviorTreeComponent& OwnerComp, const UBehaviorTree& InTreeAsset);
 	void OnBeginPIE(const bool bIsSimulating);
 	void OnEndPIE(const bool bIsSimulating);
 
-	void OnBreakpointAdded(class UBehaviorTreeGraphNode* Node);
-	void OnBreakpointRemoved(class UBehaviorTreeGraphNode* Node);
+	void OnBreakpointAdded(UBehaviorTreeGraphNode* Node);
+	void OnBreakpointRemoved(UBehaviorTreeGraphNode* Node);
 
 	void StepBackInto();
 	void StepBackOver();
@@ -56,9 +59,9 @@ public:
 	static bool IsPIENotSimulating();
 
 	FString GetDebuggedInstanceDesc() const;
-	FString DescribeInstance(class UBehaviorTreeComponent* InstanceToDescribe) const;
-	void OnInstanceSelectedInDropdown(class UBehaviorTreeComponent* SelectedInstance);
-	void GetMatchingInstances(TArray<class UBehaviorTreeComponent*>& MatchingInstances);
+	FString DescribeInstance(UBehaviorTreeComponent& InstanceToDescribe) const;
+	void OnInstanceSelectedInDropdown(UBehaviorTreeComponent* SelectedInstance);
+	void GetMatchingInstances(TArray<UBehaviorTreeComponent*>& MatchingInstances);
 
 	void InitializeFromParent(class FBehaviorTreeDebugger* ParentDebugger);
 	bool HasContinuousNextStep() const;
@@ -85,7 +88,7 @@ private:
 	TWeakPtr<FBehaviorTreeEditor> EditorOwner;
 
 	/** asset for debugging */
-	class UBehaviorTree* TreeAsset;
+	UBehaviorTree* TreeAsset;
 
 	/** root node in asset's graph */
 	TWeakObjectPtr<class UBehaviorTreeGraphNode_Root> RootNode;
@@ -146,10 +149,10 @@ private:
 	void FindMatchingTreeInstance();
 
 	/** find index on execution instance stack of matching tree asset */
-	int32 FindMatchingDebuggerStack(class UBehaviorTreeComponent* TestInstance) const;
+	int32 FindMatchingDebuggerStack(UBehaviorTreeComponent& TestInstance) const;
 
 	/** find BT component in given actor */
-	class UBehaviorTreeComponent* FindInstanceInActor(AActor* TestActor);
+	UBehaviorTreeComponent* FindInstanceInActor(AActor* TestActor);
 
 	/** try to find pawn currently locked by ai debug tool */
 	void FindLockedDebugActor(class UWorld* World);

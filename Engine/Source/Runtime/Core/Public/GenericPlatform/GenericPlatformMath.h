@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 /*=============================================================================================
@@ -238,6 +238,9 @@ struct FGenericPlatformMath
 
 	/** Seeds future calls to SRand() */
 	static CORE_API void SRandInit( int32 Seed );
+
+	/** Returns the current seed for SRand(). */
+	static CORE_API int32 GetRandSeed();
 
 	/** Returns a seeded random float in the range [0,1), using the seed from SRandInit(). */
 	static CORE_API float SRand();

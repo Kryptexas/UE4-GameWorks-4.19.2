@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "GraphEditorCommon.h"
@@ -20,6 +20,8 @@ IMPLEMENT_MODULE(FGraphEditorModule, GraphEditor);
 
 void FGraphEditorModule::StartupModule()
 {
+	FGraphEditorCommands::Register();
+
 	TArray< TWeakPtr<SGraphEditor> >& Instances = SGraphEditor::AllInstances;
 	for (auto InstanceIt = SGraphEditor::AllInstances.CreateIterator(); InstanceIt; ++InstanceIt)
 	{

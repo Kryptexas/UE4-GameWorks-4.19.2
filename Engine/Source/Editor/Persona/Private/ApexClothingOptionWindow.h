@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -41,14 +41,14 @@ public:
 		return FReply::Handled();
 	}
 
-	ESlateCheckBoxState::Type IsCheckedLOD() const
+	ECheckBoxState IsCheckedLOD() const
 	{
-		return bUseLOD ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bUseLOD ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnUseLOD(ESlateCheckBoxState::Type CheckState)
+	void OnUseLOD(ECheckBoxState CheckState)
 	{
-		bUseLOD = (CheckState == ESlateCheckBoxState::Checked);
+		bUseLOD = (CheckState == ECheckBoxState::Checked);
 	}
 
 	bool CanImport() const

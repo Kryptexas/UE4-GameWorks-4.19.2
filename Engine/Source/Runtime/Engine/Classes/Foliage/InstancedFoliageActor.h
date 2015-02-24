@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -13,6 +13,7 @@
 class UFoliageType;
 struct FFoliageInstancePlacementInfo;
 struct FFoliageMeshInfo;
+class UFoliageType_InstancedStaticMesh;
 
 UCLASS(notplaceable, hidecategories = Object, MinimalAPI, NotBlueprintable)
 class AInstancedFoliageActor : public AActor
@@ -31,7 +32,7 @@ public:
 	virtual void Serialize(FArchive& Ar) override;
 	virtual void PostLoad() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
-	// Begin UObject interface. 
+	// End UObject interface. 
 
 	// Begin AActor interface.
 	// we don't want to have our components automatically destroyed by the Blueprint code
@@ -41,6 +42,7 @@ public:
 	// End AActor interface.
 
 #if WITH_EDITOR
+	virtual void PostEditUndo() override;
 
 	// Called in response to BSP rebuilds to migrate foliage from obsolete to new components.
 	ENGINE_API void MapRebuild();
@@ -68,7 +70,7 @@ public:
 	ENGINE_API FFoliageMeshInfo* FindOrAddMesh(UFoliageType* InType);
 
 	// Add a new static mesh.
-	ENGINE_API FFoliageMeshInfo* AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings = nullptr);
+	ENGINE_API FFoliageMeshInfo* AddMesh(UStaticMesh* InMesh, UFoliageType** OutSettings = nullptr, const UFoliageType_InstancedStaticMesh* DefaultSettings = nullptr);
 	ENGINE_API FFoliageMeshInfo* AddMesh(UFoliageType* InType);
 
 	// Remove the static mesh from the mesh list, and all its instances.
@@ -104,5 +106,8 @@ public:
 
 	// Get the instanced foliage actor for the specified streaming level. Never creates a new IFA.
 	static ENGINE_API AInstancedFoliageActor* GetInstancedFoliageActorForLevel(ULevel* Level);
+
+	/* Called to notify InstancedFoliageActor that a UFoliageType has been modified */
+	void NotifyFoliageTypeChanged(UFoliageType* FoliageType);
 #endif	//WITH_EDITOR
 };

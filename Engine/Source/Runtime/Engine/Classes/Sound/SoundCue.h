@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Sound/SoundBase.h"
@@ -63,8 +63,6 @@ class USoundCue : public USoundBase
 
 	/** EdGraph based representation of the SoundCue */
 	class USoundCueGraph* SoundCueGraph;
-
-	TMap<USoundNode*,FSoundNodeEditorData> EditorData_DEPRECATED;
 #endif
 
 private:

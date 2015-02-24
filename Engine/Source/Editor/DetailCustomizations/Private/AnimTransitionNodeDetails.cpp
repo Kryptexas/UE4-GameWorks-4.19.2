@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 
@@ -46,36 +46,36 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 
 	////////////////////////////////////////
 
-	IDetailCategoryBuilder& TransitionCategory = DetailBuilder.EditCategory("Transition", TEXT("Transition") );
+	IDetailCategoryBuilder& TransitionCategory = DetailBuilder.EditCategory("Transition", LOCTEXT("TransitionCategoryTitle", "Transition") );
 
 	if (bTransitionToConduit)
 	{
 		// Transitions to conduits are just shorthand for some other real transition;
 		// All of the blend related settings are ignored, so hide them.
-		DetailBuilder.HideProperty("Bidirectional");
-		DetailBuilder.HideProperty("CrossfadeDuration");
-		DetailBuilder.HideProperty("CrossfadeMode");
-		DetailBuilder.HideProperty("LogicType");
-		DetailBuilder.HideProperty("Priority Order");
+		DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, Bidirectional));
+		DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, CrossfadeDuration));
+		DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, CrossfadeMode));
+		DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, LogicType));
+		DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, PriorityOrder));
 	}
 	else
 	{
-		TransitionCategory.AddCustomRow( TEXT("Transition") )
+		TransitionCategory.AddCustomRow( LOCTEXT("TransitionEventPropertiesCategoryLabel", "Transition") )
 		[
 			SNew( STextBlock )
 			.Text( LOCTEXT("TransitionEventPropertiesCategoryLabel", "Transition") )
 			.Font( IDetailLayoutBuilder::GetDetailFontBold() )
 		];
 
-		TransitionCategory.AddProperty("PriorityOrder").DisplayName( TEXT("Priority Order") );
-		TransitionCategory.AddProperty("Bidirectional").DisplayName( TEXT("Bidirectional"));
-		TransitionCategory.AddProperty("LogicType").DisplayName( TEXT("Blend Logic") );
+		TransitionCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, PriorityOrder)).DisplayName(LOCTEXT("PriorityOrderLabel", "Priority Order"));
+		TransitionCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, Bidirectional)).DisplayName(LOCTEXT("BidirectionalLabel", "Bidirectional"));
+		TransitionCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, LogicType)).DisplayName(LOCTEXT("BlendLogicLabel", "Blend Logic") );
 
 		UAnimStateTransitionNode* TransNode = TransitionNode.Get();
 		if (TransitionNode != NULL)
 		{
 			// The sharing option for the rule
-			TransitionCategory.AddCustomRow( TEXT("Transition Rule Sharing") )
+			TransitionCategory.AddCustomRow( LOCTEXT("TransitionRuleSharingLabel", "Transition Rule Sharing") )
 			[
 				GetWidgetForInlineShareMenu(TEXT("Transition Rule Sharing"), TransNode->SharedRulesName, TransNode->bSharedRules,
 					FOnClicked::CreateSP(this, &FAnimTransitionNodeDetails::OnPromoteToSharedClick, true),
@@ -101,7 +101,7 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 					CanExecPin = ResultNode->FindPin(TEXT("bCanEnterTransition"));
 				}
 			}
-			TransitionCategory.AddCustomRow( CanExecPin ? CanExecPin->PinFriendlyName.ToString() : FString() )
+			TransitionCategory.AddCustomRow( CanExecPin ? CanExecPin->PinFriendlyName : FText::GetEmpty() )
 			[
 				SNew(SKismetLinearExpression, CanExecPin)
 			];
@@ -110,11 +110,11 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 
 
 
-		IDetailCategoryBuilder& CrossfadeCategory = DetailBuilder.EditCategory("BlendSettings", TEXT("BlendSettings") );
+		IDetailCategoryBuilder& CrossfadeCategory = DetailBuilder.EditCategory("BlendSettings", LOCTEXT("BlendSettingsCategoryTitle", "BlendSettings") );
 		if (TransitionNode != NULL)
 		{
 			// The sharing option for the crossfade settings
-			CrossfadeCategory.AddCustomRow( TEXT("Transition Crossfade Sharing") )
+			CrossfadeCategory.AddCustomRow( LOCTEXT("TransitionCrossfadeSharingLabel", "Transition Crossfade Sharing") )
 			[
 				GetWidgetForInlineShareMenu(TEXT("Transition Crossfade Sharing"), TransNode->SharedCrossfadeName, TransNode->bSharedCrossfade,
 					FOnClicked::CreateSP(this, &FAnimTransitionNodeDetails::OnPromoteToSharedClick, false), 
@@ -124,11 +124,11 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 		}
 
 		//@TODO: Gate editing these on shared non-authorative ones
-		CrossfadeCategory.AddProperty("CrossfadeDuration").DisplayName( TEXT("Duration") );
-		CrossfadeCategory.AddProperty("CrossfadeMode").DisplayName( TEXT("Mode") );
+		CrossfadeCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, CrossfadeDuration)).DisplayName( LOCTEXT("DurationLabel", "Duration") );
+		CrossfadeCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, CrossfadeMode)).DisplayName( LOCTEXT("ModeLabel", "Mode") );
 
 		// Add a button that is only visible when blend logic type is custom
-		CrossfadeCategory.AddCustomRow( LOCTEXT("EditBlendGraph", "Edit Blend Graph").ToString() )
+		CrossfadeCategory.AddCustomRow( LOCTEXT("EditBlendGraph", "Edit Blend Graph") )
 		[
 			SNew( SHorizontalBox )
 			+SHorizontalBox::Slot()
@@ -148,9 +148,9 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 
 
 
-		IDetailCategoryBuilder& NotificationCategory = DetailBuilder.EditCategory("Notifications", TEXT("Notifications") );
+		IDetailCategoryBuilder& NotificationCategory = DetailBuilder.EditCategory("Notifications", LOCTEXT("NotificationsCategoryTitle", "Notifications") );
 
-		NotificationCategory.AddCustomRow( TEXT("Start Transition Event") )
+		NotificationCategory.AddCustomRow( LOCTEXT("StartTransitionEventPropertiesCategoryLabel", "Start Transition Event") )
 		[
 			SNew( STextBlock )
 			.Text( LOCTEXT("StartTransitionEventPropertiesCategoryLabel", "Start Transition Event") )
@@ -159,7 +159,7 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 		CreateTransitionEventPropertyWidgets(NotificationCategory, TEXT("TransitionStart"));
 
 
-		NotificationCategory.AddCustomRow( TEXT("End Transition Event" ) ) 
+		NotificationCategory.AddCustomRow( LOCTEXT("EndTransitionEventPropertiesCategoryLabel", "End Transition Event" ) ) 
 		[
 			SNew( STextBlock )
 			.Text( LOCTEXT("EndTransitionEventPropertiesCategoryLabel", "End Transition Event" ) )
@@ -167,7 +167,7 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 		];
 		CreateTransitionEventPropertyWidgets(NotificationCategory, TEXT("TransitionEnd"));
 
-		NotificationCategory.AddCustomRow( TEXT("Interrupt Transition Event") )
+		NotificationCategory.AddCustomRow( LOCTEXT("InterruptTransitionEventPropertiesCategoryLabel", "Interrupt Transition Event") )
 		[
 			SNew( STextBlock )
 			.Text( LOCTEXT("InterruptTransitionEventPropertiesCategoryLabel", "Interrupt Transition Event") )
@@ -176,8 +176,8 @@ void FAnimTransitionNodeDetails::CustomizeDetails( IDetailLayoutBuilder& DetailB
 		CreateTransitionEventPropertyWidgets(NotificationCategory, TEXT("TransitionInterrupt"));
 	}
 
-	DetailBuilder.HideProperty("TransitionStart");
-	DetailBuilder.HideProperty("TransitionEnd");
+	DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, TransitionStart));
+	DetailBuilder.HideProperty(GET_MEMBER_NAME_CHECKED(UAnimStateTransitionNode, TransitionEnd));
 }
 END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
@@ -367,38 +367,9 @@ EVisibility FAnimTransitionNodeDetails::GetBlendGraphButtonVisibility() const
 void FAnimTransitionNodeDetails::CreateTransitionEventPropertyWidgets(IDetailCategoryBuilder& TransitionCategory, FString TransitionName)
 {
 	TSharedPtr<IPropertyHandle> NameProperty = TransitionCategory.GetParentLayout().GetProperty(*(TransitionName + TEXT(".NotifyName")));
-	TSharedPtr<IPropertyHandle> NotifyProperty = TransitionCategory.GetParentLayout().GetProperty(*(TransitionName + TEXT(".Notify")));
 
 	TransitionCategory.AddProperty( NameProperty )
-		.DisplayName( LOCTEXT("CreateTransition_CustomBlueprintEvent", "Custom Blueprint Event").ToString() )
-		.IsEnabled( TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP( this, &FAnimTransitionNodeDetails::ObjIsNULL, NotifyProperty ) ) );
-
-	TransitionCategory.AddProperty( NotifyProperty )
-		.DisplayName( LOCTEXT("CreateTransition_NotifyBlueprintName", "Blueprint Notify").ToString() )
-		.IsEnabled( TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP( this, &FAnimTransitionNodeDetails::NameIsNone, NameProperty ) ) );
-}
-
-bool FAnimTransitionNodeDetails::NameIsNone(TSharedPtr<IPropertyHandle> Property) const
-{
-	if (Property.IsValid())
-	{
-		FName Name = NAME_None;
-		FPropertyAccess::Result Result = Property->GetValue(Name);
-		return (Name == NAME_None);
-	}
-	return true;
-}
-
-bool FAnimTransitionNodeDetails::ObjIsNULL(TSharedPtr<IPropertyHandle> Property) const
-{
-	if (Property.IsValid())
-	{
-		UObject* Obj = NULL;
-		FPropertyAccess::Result Result = Property->GetValue(Obj);
-		return (Obj == NULL);
-
-	}
-	return true;
+		.DisplayName( LOCTEXT("CreateTransition_CustomBlueprintEvent", "Custom Blueprint Event") );
 }
 
 TSharedRef<SWidget> FAnimTransitionNodeDetails::GetWidgetForInlineShareMenu(FString TypeName, FString SharedName, bool bIsCurrentlyShared,  FOnClicked PromoteClick, FOnClicked DemoteClick, FOnGetContent GetContentMenu)
@@ -407,7 +378,7 @@ TSharedRef<SWidget> FAnimTransitionNodeDetails::GetWidgetForInlineShareMenu(FStr
 
 	return
 		SNew(SExpandableArea)
-		.AreaTitle(TypeName)
+		.AreaTitle(FText::FromString(TypeName))
 		.InitiallyCollapsed(true)
 		.BodyContent()
 		[

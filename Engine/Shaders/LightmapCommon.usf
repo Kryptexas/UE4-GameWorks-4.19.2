@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #if HQ_TEXTURE_LIGHTMAP || LQ_TEXTURE_LIGHTMAP
 
@@ -45,8 +45,10 @@ half4 GetLightMapColorLQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNor
 	return half4( Color, Luma );
 }
 
-half4 GetLightMapColorHQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNormal )
+void GetLightMapColorHQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNormal, out half3 OutDiffuseLighting, out half3 OutSubsurfaceLighting )
 {
+	OutSubsurfaceLighting = 0;
+
 	half4 Lightmap0 = Texture2DSample( LightMapTexture, LightMapSampler, LightmapUV0 );
 	half4 Lightmap1 = Texture2DSample( LightMapTexture, LightMapSampler, LightmapUV1 );
 
@@ -71,6 +73,11 @@ half4 GetLightMapColorHQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNor
 
 	// Sample SH with normal
 	half Directionality = max( 0.0, dot( SH, half4(WorldNormal.yzx, 1) ) );
+
+	#if MATERIAL_SHADINGMODEL_TWOSIDED_FOLIAGE
+		half SubsurfaceDirectionality = max( 0.0, dot( SH, half4(-WorldNormal.yzx, 1) ) );
+		OutSubsurfaceLighting = L * SubsurfaceDirectionality * UVW;
+	#endif
 #else
 	half Directionality = 0.6;
 #endif
@@ -78,7 +85,7 @@ half4 GetLightMapColorHQ( float2 LightmapUV0, float2 LightmapUV1, half3 WorldNor
 	half Luma = L * Directionality;
 	half3 Color = Luma * UVW;
 
-	return half4( Color, Luma );
+	OutDiffuseLighting = Color;
 }
 
 float4 GetSkyBentNormalAndOcclusion(float2 LightmapUV)
@@ -139,16 +146,17 @@ half GetPrimaryPrecomputedShadowMask(FVertexFactoryInterpolantsVSToPS Interpolan
 		half ShadowFactor = saturate( DistanceField * DistanceFieldParameters.x + DistanceFieldParameters.y );
 		return ShadowFactor * ShadowFactor;
 
+	#elif MOVABLE_DIRECTIONAL_LIGHT
+		// Do this before checking for lightmaps as we might have a lightmap + directional light
+		//@mw todo
+		// TODO: Filter shadowmap
+		return 1;
+
 	#elif HQ_TEXTURE_LIGHTMAP || LQ_TEXTURE_LIGHTMAP
 
 		// Mark as shadowed for lightmapped objects with no shadowmap
 		// This is necessary because objects inside a light's influence that were determined to be completely shadowed won't be rendered with STATICLIGHTING_TEXTUREMASK==1
 		return 0;
-
-	#elif MOVABLE_DIRECTIONAL_LIGHT
-		//@mw todo
-		// TODO: Filter shadowmap
-		return 1;
 
 	#else
 

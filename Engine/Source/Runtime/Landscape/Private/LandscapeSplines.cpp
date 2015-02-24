@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LandscapeSpline.cpp
@@ -119,7 +119,7 @@ public:
 		const FMatrix& LocalToWorld = GetLocalToWorld();
 
 		const FLinearColor SelectedSplineColor = GEngine->GetSelectedMaterialColor();
-		const FLinearColor SelectedControlPointSpriteColor = FLinearColor::White + (GEngine->GetSelectedMaterialColor() * GEngine->SelectionHighlightIntensityBillboards * 10); // copied from FSpriteSceneProxy::DrawDynamicElements()
+		const FLinearColor SelectedControlPointSpriteColor = FLinearColor::White + (GEngine->GetSelectedMaterialColor() * GEngine->SelectionHighlightIntensityBillboards * 10); 
 
 		for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 		{
@@ -268,157 +268,6 @@ public:
 				PDI->SetHitProxy(NULL);
 			}
 		}
-	}
-
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-	{
-		// Slight Depth Bias so that the splines show up when they exactly match the target surface
-		// e.g. someone playing with splines on a newly-created perfectly-flat landscape
-		static const float DepthBias = -0.0001;
-
-		const FMatrix& LocalToWorld = GetLocalToWorld();
-
-		const FLinearColor SelectedSplineColor = GEngine->GetSelectedMaterialColor();
-		const FLinearColor SelectedControlPointSpriteColor = FLinearColor::White + (GEngine->GetSelectedMaterialColor() * GEngine->SelectionHighlightIntensityBillboards * 10); // copied from FSpriteSceneProxy::DrawDynamicElements()
-
-		for (const FSegmentProxy& Segment : Segments)
-		{
-			const FLinearColor SegmentColor = Segment.bSelected ? SelectedSplineColor : SplineColor;
-
-			FLandscapeSplineInterpPoint OldPoint = Segment.Points[0];
-			OldPoint.Center       = LocalToWorld.TransformPosition(OldPoint.Center);
-			OldPoint.Left         = LocalToWorld.TransformPosition(OldPoint.Left);
-			OldPoint.Right        = LocalToWorld.TransformPosition(OldPoint.Right);
-			OldPoint.FalloffLeft  = LocalToWorld.TransformPosition(OldPoint.FalloffLeft);
-			OldPoint.FalloffRight = LocalToWorld.TransformPosition(OldPoint.FalloffRight);
-			for (int32 i = 1; i < Segment.Points.Num(); i++)
-			{
-				FLandscapeSplineInterpPoint NewPoint = Segment.Points[i];
-				NewPoint.Center       = LocalToWorld.TransformPosition(NewPoint.Center);
-				NewPoint.Left         = LocalToWorld.TransformPosition(NewPoint.Left);
-				NewPoint.Right        = LocalToWorld.TransformPosition(NewPoint.Right);
-				NewPoint.FalloffLeft  = LocalToWorld.TransformPosition(NewPoint.FalloffLeft);
-				NewPoint.FalloffRight = LocalToWorld.TransformPosition(NewPoint.FalloffRight);
-
-				// Draw lines from the last keypoint.
-				if (PDI->IsHitTesting()) PDI->SetHitProxy(Segment.HitProxy);
-
-				// center line
-				PDI->DrawLine(OldPoint.Center, NewPoint.Center, SegmentColor, GetDepthPriorityGroup(View), 0.0f, DepthBias);
-
-				// draw sides
-				PDI->DrawLine(OldPoint.Left, NewPoint.Left, SegmentColor, GetDepthPriorityGroup(View), 0.0f, DepthBias);
-				PDI->DrawLine(OldPoint.Right, NewPoint.Right, SegmentColor, GetDepthPriorityGroup(View), 0.0f, DepthBias);
-
-				if (PDI->IsHitTesting()) PDI->SetHitProxy(NULL);
-
-				// draw falloff sides
-				if (bDrawFalloff)
-				{
-					DrawDashedLine(PDI, OldPoint.FalloffLeft, NewPoint.FalloffLeft, SegmentColor, 100, GetDepthPriorityGroup(View), DepthBias);
-					DrawDashedLine(PDI, OldPoint.FalloffRight, NewPoint.FalloffRight, SegmentColor, 100, GetDepthPriorityGroup(View), DepthBias);
-				}
-
-				OldPoint = NewPoint;
-			}
-		}
-
-		for (const FControlPointProxy& ControlPoint : ControlPoints)
-		{
-			const float ControlPointSpriteScale = LocalToWorld.GetScaleVector().X * ControlPoint.SpriteScale;
-			const FVector ControlPointLocation = LocalToWorld.TransformPosition(ControlPoint.Location) + FVector(0, 0, ControlPointSpriteScale * 0.75f);
-
-			// Draw Sprite
-
-			const FLinearColor ControlPointSpriteColor = ControlPoint.bSelected ? SelectedControlPointSpriteColor : FLinearColor::White;
-
-			if (PDI->IsHitTesting()) PDI->SetHitProxy(ControlPoint.HitProxy);
-
-			PDI->DrawSprite(
-				ControlPointLocation,
-				ControlPointSpriteScale,
-				ControlPointSpriteScale,
-				ControlPointSprite->Resource,
-				ControlPointSpriteColor,
-				GetDepthPriorityGroup(View),
-				0, ControlPointSprite->Resource->GetSizeX(),
-				0, ControlPointSprite->Resource->GetSizeY(),
-				SE_BLEND_Masked);
-
-
-			// Draw Lines
-			const FLinearColor ControlPointColor = ControlPoint.bSelected ? SelectedSplineColor : SplineColor;
-
-			if (ControlPoint.Points.Num() == 1)
-			{
-				FLandscapeSplineInterpPoint NewPoint = ControlPoint.Points[0];
-				NewPoint.Center = LocalToWorld.TransformPosition(NewPoint.Center);
-				NewPoint.Left   = LocalToWorld.TransformPosition(NewPoint.Left);
-				NewPoint.Right  = LocalToWorld.TransformPosition(NewPoint.Right);
-				NewPoint.FalloffLeft  = LocalToWorld.TransformPosition(NewPoint.FalloffLeft);
-				NewPoint.FalloffRight = LocalToWorld.TransformPosition(NewPoint.FalloffRight);
-
-				// draw end for spline connection
-				PDI->DrawPoint(NewPoint.Center, ControlPointColor, 6.0f, GetDepthPriorityGroup(View));
-				PDI->DrawLine(NewPoint.Left, NewPoint.Center, ControlPointColor, GetDepthPriorityGroup(View), 0.0f, DepthBias);
-				PDI->DrawLine(NewPoint.Right, NewPoint.Center, ControlPointColor, GetDepthPriorityGroup(View), 0.0f, DepthBias);
-				if (bDrawFalloff)
-				{
-					DrawDashedLine(PDI, NewPoint.FalloffLeft, NewPoint.Left, ControlPointColor, 100, GetDepthPriorityGroup(View), DepthBias);
-					DrawDashedLine(PDI, NewPoint.FalloffRight, NewPoint.Right, ControlPointColor, 100, GetDepthPriorityGroup(View), DepthBias);
-				}
-			}
-			else if (ControlPoint.Points.Num() >= 2)
-			{
-				FLandscapeSplineInterpPoint OldPoint = ControlPoint.Points.Last();
-				//OldPoint.Left   = LocalToWorld.TransformPosition(OldPoint.Left);
-				OldPoint.Right  = LocalToWorld.TransformPosition(OldPoint.Right);
-				//OldPoint.FalloffLeft  = LocalToWorld.TransformPosition(OldPoint.FalloffLeft);
-				OldPoint.FalloffRight = LocalToWorld.TransformPosition(OldPoint.FalloffRight);
-
-				for (const FLandscapeSplineInterpPoint& Point : ControlPoint.Points)
-				{
-					FLandscapeSplineInterpPoint NewPoint = Point;
-					NewPoint.Center = LocalToWorld.TransformPosition(NewPoint.Center);
-					NewPoint.Left   = LocalToWorld.TransformPosition(NewPoint.Left);
-					NewPoint.Right  = LocalToWorld.TransformPosition(NewPoint.Right);
-					NewPoint.FalloffLeft  = LocalToWorld.TransformPosition(NewPoint.FalloffLeft);
-					NewPoint.FalloffRight = LocalToWorld.TransformPosition(NewPoint.FalloffRight);
-
-					if (PDI->IsHitTesting()) PDI->SetHitProxy(ControlPoint.HitProxy);
-
-					// center line
-					PDI->DrawLine(ControlPointLocation, NewPoint.Center, ControlPointColor, GetDepthPriorityGroup(View), 0.0f, DepthBias);
-
-					// draw sides
-					PDI->DrawLine(OldPoint.Right, NewPoint.Left, ControlPointColor, GetDepthPriorityGroup(View), 0.0f, DepthBias);
-
-					if (PDI->IsHitTesting()) PDI->SetHitProxy(NULL);
-
-					// draw falloff sides
-					if (bDrawFalloff)
-					{
-						DrawDashedLine(PDI, OldPoint.FalloffRight, NewPoint.FalloffLeft, ControlPointColor, 100, GetDepthPriorityGroup(View), DepthBias);
-					}
-
-					// draw end for spline connection
-					PDI->DrawPoint(NewPoint.Center, ControlPointColor, 6.0f, GetDepthPriorityGroup(View));
-					PDI->DrawLine(NewPoint.Left, NewPoint.Center, ControlPointColor, GetDepthPriorityGroup(View), 0.0f, DepthBias);
-					PDI->DrawLine(NewPoint.Right, NewPoint.Center, ControlPointColor, GetDepthPriorityGroup(View), 0.0f, DepthBias);
-					if (bDrawFalloff)
-					{
-						DrawDashedLine(PDI, NewPoint.FalloffLeft, NewPoint.Left, ControlPointColor, 100, GetDepthPriorityGroup(View), DepthBias);
-						DrawDashedLine(PDI, NewPoint.FalloffRight, NewPoint.Right, ControlPointColor, 100, GetDepthPriorityGroup(View), DepthBias);
-					}
-
-					//OldPoint = NewPoint;
-					OldPoint.Right = NewPoint.Right;
-					OldPoint.FalloffRight = NewPoint.FalloffRight;
-				}
-			}
-		}
-
-		if (PDI->IsHitTesting()) PDI->SetHitProxy(NULL);
 	}
 
 	virtual FPrimitiveViewRelevance GetViewRelevance(const FSceneView* View)
@@ -874,7 +723,7 @@ void ULandscapeSplineControlPoint::AutoSetConnections(bool bIncludingValid)
 				FVector StartLocation; FRotator StartRotation;
 				NearConnection.ControlPoint->GetConnectionLocationAndRotation(NearConnection.SocketName, StartLocation, StartRotation);
 
-				if (FVector::DotProduct((EndLocation - StartLocation).SafeNormal(), StartRotation.Vector()) < 0)
+				if (FVector::DotProduct((EndLocation - StartLocation).GetSafeNormal(), StartRotation.Vector()) < 0)
 				{
 					NearConnection.TangentLen = -NearConnection.TangentLen;
 				}
@@ -910,12 +759,12 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 {
 	ULandscapeSplinesComponent* OuterSplines = GetOuterULandscapeSplinesComponent();
 
-	if (MeshComponent == NULL && Mesh != NULL ||
-		MeshComponent != NULL &&
+	if ((MeshComponent == NULL && Mesh != NULL) ||
+		(MeshComponent != NULL &&
 			(MeshComponent->StaticMesh != Mesh ||
 			MeshComponent->RelativeLocation != Location ||
 			MeshComponent->RelativeRotation != Rotation ||
-			MeshComponent->RelativeScale3D  != MeshScale)
+			MeshComponent->RelativeScale3D  != MeshScale))
 		)
 	{
 		OuterSplines->Modify();
@@ -963,10 +812,10 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 
 	if (MeshComponent != NULL)
 	{
-		if (MeshComponent->Materials != MaterialOverrides)
+		if (MeshComponent->OverrideMaterials != MaterialOverrides)
 		{
 			MeshComponent->Modify();
-			MeshComponent->Materials = MaterialOverrides;
+			MeshComponent->OverrideMaterials = MaterialOverrides;
 			MeshComponent->MarkRenderStateDirty();
 			if (MeshComponent->BodyInstance.IsValidBodyInstance())
 			{
@@ -1007,7 +856,7 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 
 			const float Roll = FMath::DegreesToRadians(StartRotation.Roll);
 			const FVector Tangent = StartRotation.Vector();
-			const FVector BiNormal = FQuat(Tangent, -Roll).RotateVector((Tangent ^ FVector(0, 0, -1)).SafeNormal());
+			const FVector BiNormal = FQuat(Tangent, -Roll).RotateVector((Tangent ^ FVector(0, 0, -1)).GetSafeNormal());
 			const FVector LeftPos = StartLocation - BiNormal * Width;
 			const FVector RightPos = StartLocation + BiNormal * Width;
 			const FVector FalloffLeftPos = StartLocation - BiNormal * (Width + SideFalloff);
@@ -1028,7 +877,7 @@ void ULandscapeSplineControlPoint::UpdateSplinePoints(bool bUpdateCollision, boo
 
 		const float Roll = FMath::DegreesToRadians(StartRotation.Roll);
 		const FVector Tangent = StartRotation.Vector();
-		const FVector BiNormal = FQuat(Tangent, -Roll).RotateVector((Tangent ^ FVector(0, 0, -1)).SafeNormal());
+		const FVector BiNormal = FQuat(Tangent, -Roll).RotateVector((Tangent ^ FVector(0, 0, -1)).GetSafeNormal());
 		const FVector LeftPos = StartLocation - BiNormal * Width;
 		const FVector RightPos = StartLocation + BiNormal * Width;
 		const FVector FalloffLeftPos = StartLocation - BiNormal * (Width + SideFalloff);
@@ -1260,11 +1109,11 @@ void ULandscapeSplineSegment::AutoFlipTangents()
 	Connections[1].ControlPoint->GetConnectionLocationAndRotation(Connections[1].SocketName, EndLocation, EndRotation);
 
 	// Flipping the tangent is only allowed if not using a socket
-	if (Connections[0].SocketName == NAME_None && FVector::DotProduct((EndLocation - StartLocation).SafeNormal() * Connections[0].TangentLen, StartRotation.Vector()) < 0)
+	if (Connections[0].SocketName == NAME_None && FVector::DotProduct((EndLocation - StartLocation).GetSafeNormal() * Connections[0].TangentLen, StartRotation.Vector()) < 0)
 	{
 		Connections[0].TangentLen = -Connections[0].TangentLen;
 	}
-	if (Connections[1].SocketName == NAME_None && FVector::DotProduct((StartLocation - EndLocation).SafeNormal() * Connections[1].TangentLen, EndRotation.Vector()) < 0)
+	if (Connections[1].SocketName == NAME_None && FVector::DotProduct((StartLocation - EndLocation).GetSafeNormal() * Connections[1].TangentLen, EndRotation.Vector()) < 0)
 	{
 		Connections[1].TangentLen = -Connections[1].TangentLen;
 	}
@@ -1389,8 +1238,8 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 		const float NewKeyFalloff = FMath::Lerp(StartSideFalloff, EndSideFalloff, NewKeyCosInterp);
 		const float NewKeyRoll = FMath::Lerp(StartRoll, EndRoll, NewKeyCosInterp);
 		const FVector NewKeyPos = SplineInfo.Eval(NewKeyTime, FVector::ZeroVector);
-		const FVector NewKeyTangent = SplineInfo.EvalDerivative(NewKeyTime, FVector::ZeroVector).SafeNormal();
-		const FVector NewKeyBiNormal = FQuat(NewKeyTangent, -NewKeyRoll).RotateVector((NewKeyTangent ^ FVector(0, 0, -1)).SafeNormal());
+		const FVector NewKeyTangent = SplineInfo.EvalDerivative(NewKeyTime, FVector::ZeroVector).GetSafeNormal();
+		const FVector NewKeyBiNormal = FQuat(NewKeyTangent, -NewKeyRoll).RotateVector((NewKeyTangent ^ FVector(0, 0, -1)).GetSafeNormal());
 		const FVector NewKeyLeftPos = NewKeyPos - NewKeyBiNormal * NewKeyWidth;
 		const FVector NewKeyRightPos = NewKeyPos + NewKeyBiNormal * NewKeyWidth;
 		const FVector NewKeyFalloffLeftPos = NewKeyPos - NewKeyBiNormal * (NewKeyWidth + NewKeyFalloff);
@@ -1412,8 +1261,8 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 				const float NewFalloff = FMath::Lerp(StartSideFalloff, EndSideFalloff, NewCosInterp);
 				const float NewRoll = FMath::Lerp(StartRoll, EndRoll, NewCosInterp);
 				const FVector NewPos = SplineInfo.Eval(NewTime, FVector::ZeroVector);
-				const FVector NewTangent = SplineInfo.EvalDerivative(NewTime, FVector::ZeroVector).SafeNormal();
-				const FVector NewBiNormal = FQuat(NewTangent, -NewRoll).RotateVector((NewTangent ^ FVector(0, 0, -1)).SafeNormal());
+				const FVector NewTangent = SplineInfo.EvalDerivative(NewTime, FVector::ZeroVector).GetSafeNormal();
+				const FVector NewBiNormal = FQuat(NewTangent, -NewRoll).RotateVector((NewTangent ^ FVector(0, 0, -1)).GetSafeNormal());
 				const FVector NewLeftPos = NewPos - NewBiNormal * NewWidth;
 				const FVector NewRightPos = NewPos + NewBiNormal * NewWidth;
 				const FVector NewFalloffLeftPos = NewPos - NewBiNormal * (NewWidth + NewFalloff);
@@ -1542,7 +1391,7 @@ void ULandscapeSplineSegment::UpdateSplinePoints(bool bUpdateCollision)
 
 			MeshComponent->SetStaticMesh(Mesh);
 
-			MeshComponent->Materials = MeshEntry->MaterialOverrides;
+			MeshComponent->OverrideMaterials = MeshEntry->MaterialOverrides;
 			MeshComponent->MarkRenderStateDirty();
 			if (MeshComponent->BodyInstance.IsValidBodyInstance())
 			{
@@ -1830,8 +1679,8 @@ bool ULandscapeSplineSegment::FixSelfIntersection(FVector FLandscapeSplineInterp
 		{
 			const FLandscapeSplineInterpPoint& CurrentPoint = Points[i];
 			const FLandscapeSplineInterpPoint& NextPoint = Points[i+1];
-			const FVector Direction = (NextPoint.Center - CurrentPoint.Center).SafeNormal();
-			const FVector SideDirection = (NextPoint.*Side - CurrentPoint.*Side).SafeNormal();
+			const FVector Direction = (NextPoint.Center - CurrentPoint.Center).GetSafeNormal();
+			const FVector SideDirection = (NextPoint.*Side - CurrentPoint.*Side).GetSafeNormal();
 			bReversed = (SideDirection | Direction) < 0;
 		}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "WorldBrowserPrivatePCH.h"
 
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
@@ -10,12 +10,18 @@
 
 #include "StreamingLevelCustomization.h"
 #include "StreamingLevelCollectionModel.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/Selection.h"
+#include "Engine/LevelStreamingVolume.h"
+#include "Engine/LevelStreamingAlwaysLoaded.h"
+#include "Engine/LevelStreamingKismet.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 
 FStreamingLevelCollectionModel::FStreamingLevelCollectionModel(UEditorEngine* InEditor)
 	: FLevelCollectionModel(InEditor)
 	, AddedLevelStreamingClass(ULevelStreamingKismet::StaticClass())
+	, bAssetDialogOpen(false)
 {
 	const TSubclassOf<ULevelStreaming> DefaultLevelStreamingClass = GetDefault<ULevelEditorMiscSettings>()->DefaultLevelStreamingClass;
 	if ( DefaultLevelStreamingClass )
@@ -380,9 +386,14 @@ void FStreamingLevelCollectionModel::AddExistingLevel(bool bRemoveInvalidSelecte
 {
 	if (UEditorEngine::IsUsingWorldAssets())
 	{
-		FEditorFileUtils::FOnLevelsChosen LevelsChosenDelegate = FEditorFileUtils::FOnLevelsChosen::CreateSP(this, &FStreamingLevelCollectionModel::HandleAddExistingLevelSelected, bRemoveInvalidSelectedLevelsAfter);
-		const bool bAllowMultipleSelection = true;
-		FEditorFileUtils::OpenLevelPickingDialog(LevelsChosenDelegate, bAllowMultipleSelection);
+		if (!bAssetDialogOpen)
+		{
+			bAssetDialogOpen = true;
+			FEditorFileUtils::FOnLevelsChosen LevelsChosenDelegate = FEditorFileUtils::FOnLevelsChosen::CreateSP(this, &FStreamingLevelCollectionModel::HandleAddExistingLevelSelected, bRemoveInvalidSelectedLevelsAfter);
+			FEditorFileUtils::FOnLevelPickingCancelled LevelPickingCancelledDelegate = FEditorFileUtils::FOnLevelPickingCancelled::CreateSP(this, &FStreamingLevelCollectionModel::HandleAddExistingLevelCancelled);
+			const bool bAllowMultipleSelection = true;
+			FEditorFileUtils::OpenLevelPickingDialog(LevelsChosenDelegate, LevelPickingCancelledDelegate, bAllowMultipleSelection);
+		}
 	}
 	else
 	{
@@ -473,6 +484,8 @@ void FStreamingLevelCollectionModel::AddExistingLevel(bool bRemoveInvalidSelecte
 
 void FStreamingLevelCollectionModel::HandleAddExistingLevelSelected(const TArray<FAssetData>& SelectedAssets, bool bRemoveInvalidSelectedLevelsAfter)
 {
+	bAssetDialogOpen = false;
+
 	TArray<FString> PackageNames;
 	for (const auto& AssetData : SelectedAssets)
 	{
@@ -492,6 +505,11 @@ void FStreamingLevelCollectionModel::HandleAddExistingLevelSelected(const TArray
 		InvalidSelectedLevels = SavedInvalidSelectedLevels;
 		RemoveInvalidSelectedLevels_Executed();
 	}
+}
+
+void FStreamingLevelCollectionModel::HandleAddExistingLevelCancelled()
+{
+	bAssetDialogOpen = false;
 }
 
 void FStreamingLevelCollectionModel::AddSelectedActorsToNewLevel_Executed()

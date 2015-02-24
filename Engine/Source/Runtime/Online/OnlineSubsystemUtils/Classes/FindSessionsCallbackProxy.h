@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "OnlineSessionInterface.h"
@@ -57,6 +57,9 @@ private:
 
 	// The delegate executed by the online subsystem
 	FOnFindSessionsCompleteDelegate Delegate;
+
+	// Handle to the registered OnFindSessionsComplete delegate
+	FDelegateHandle DelegateHandle;
 
 	// Object to track search results
 	TSharedPtr<FOnlineSessionSearch> SearchObject;

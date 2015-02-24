@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/Generators/EnvQueryGenerator_ProjectedPoints.h"
@@ -13,6 +13,8 @@ UEnvQueryGenerator_ProjectedPoints::UEnvQueryGenerator_ProjectedPoints(const FOb
 
 void UEnvQueryGenerator_ProjectedPoints::ProjectAndFilterNavPoints(TArray<FVector>& Points, const ANavigationData* NavData) const
 {
+	const FVector VerticalOffset(0, 0, ProjectionData.PostProjectionVerticalOffset);
+
 	if (ProjectionData.TraceMode == EEnvQueryTrace::Navigation && NavData)
 	{
 		TSharedPtr<const FNavigationQueryFilter> NavigationFilter = UNavigationQueryFilter::GetQueryFilter(NavData, ProjectionData.NavigationFilter);	
@@ -48,7 +50,7 @@ void UEnvQueryGenerator_ProjectedPoints::ProjectAndFilterNavPoints(TArray<FVecto
 			}
 			else
 			{
-				Points[PointIndex] = Workload[PointIndex].OutLocation.Location;
+				Points[PointIndex] = Workload[PointIndex].OutLocation.Location + VerticalOffset;
 			}
 		}
 	}

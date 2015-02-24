@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "../GameProjectGenerationPrivatePCH.h"
 
@@ -7,6 +7,7 @@
 #include "../GameProjectUtils.h"
 #include "Tests/AutomationTestSettings.h"
 #include "AutomationEditorCommon.h"
+#include "GameFramework/PlayerStart.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGameProjectGenerationTests, Log, All);
 

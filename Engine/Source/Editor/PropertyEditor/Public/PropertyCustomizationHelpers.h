@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,7 +32,7 @@ namespace PropertyCustomizationHelpers
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeAssetPickerAnchorButton( FOnGetAllowedClasses OnGetAllowedClasses, FOnAssetSelected OnAssetSelectedFromPicker );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeAssetPickerWithMenu( const FAssetData& InitialObject, const bool AllowClear, const TArray<const UClass*>& AllowedClasses, const TArray<UFactory*>& NewAssetFactories, FOnShouldFilterAsset OnShouldFilterAsset, FOnAssetSelected OnSet, FSimpleDelegate OnClose );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeActorPickerAnchorButton( FOnGetActorFilters OnGetActorFilters, FOnActorSelected OnActorSelectedFromPicker );
-	PROPERTYEDITOR_API TSharedRef<SWidget> MakeActorPickerWithMenu( AActor* const InitialActor, const bool AllowClear, const TSharedPtr< SceneOutliner::FOutlinerFilters >& ActorFilters, FOnActorSelected OnSet, FSimpleDelegate OnClose, FSimpleDelegate OnUseSelected );
+	PROPERTYEDITOR_API TSharedRef<SWidget> MakeActorPickerWithMenu( AActor* const InitialActor, const bool AllowClear, FOnShouldFilterActor ActorFilter, FOnActorSelected OnSet, FSimpleDelegate OnClose, FSimpleDelegate OnUseSelected );
 	PROPERTYEDITOR_API TSharedRef<SWidget> MakeInteractiveActorPicker( FOnGetAllowedClasses OnGetAllowedClasses, FOnShouldFilterActor OnShouldFilterActor, FOnActorSelected OnActorSelectedFromPicker );
 
 	/** @return the UBoolProperty edit condition property if one exists. */
@@ -162,7 +162,7 @@ public:
 		, _DisplayResetToDefault( true )
 		{}
 		/** The display name to use in the default property widget */
-		SLATE_ATTRIBUTE( FString, DisplayName )
+		SLATE_ATTRIBUTE( FText, DisplayName )
 		/** Whether or not to display the property name */
 		SLATE_ARGUMENT( bool, ShouldDisplayName )
 		/** The widget to display for this property instead of the default */
@@ -228,7 +228,7 @@ public:
 		ArrayProperty->SetOnNumElementsChanged( Empty );
 	}
 
-	void SetDisplayName( const FString& InDisplayName )
+	void SetDisplayName( const FText& InDisplayName )
 	{
 		DisplayName = InDisplayName;
 	}
@@ -256,10 +256,10 @@ public:
 			const bool bDisplayResetToDefaultInNameContent = false;
 			TSharedPtr<SHorizontalBox> ContentHorizontalBox;
 			NodeRow
-			.FilterString(DisplayName.Len() > 0 ? DisplayName : BaseProperty->GetPropertyDisplayName())
+			.FilterString(!DisplayName.IsEmpty() ? DisplayName : BaseProperty->GetPropertyDisplayName())
 			.NameContent()
 			[
-				BaseProperty->CreatePropertyNameWidget(DisplayName, TEXT(""), bDisplayResetToDefaultInNameContent)
+				BaseProperty->CreatePropertyNameWidget(DisplayName, FText::GetEmpty(), bDisplayResetToDefaultInNameContent)
 			]
 			.ValueContent()
 			[
@@ -310,7 +310,7 @@ protected:
 		OnRebuildChildren.ExecuteIfBound();
 	}
 private:
-	FString DisplayName;
+	FText DisplayName;
 	FOnGenerateArrayElementWidget OnGenerateArrayElementWidgetDelegate;
 	TSharedPtr<IPropertyHandleArray> ArrayProperty;
 	TSharedRef<IPropertyHandle> BaseProperty;

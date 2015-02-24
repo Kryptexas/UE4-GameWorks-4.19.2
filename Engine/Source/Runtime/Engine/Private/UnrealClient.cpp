@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -370,8 +370,8 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	const bool bShowUnitTimeGraph = InViewport->GetClient() ? InViewport->GetClient()->IsStatEnabled(TEXT("UnitGraph")) : false;
 
 	// 0-34 ms: Green, 34-50 ms: Yellow, 50+ ms: Red
-	Color = FrameTime < 34.0f ? FColor(0, 255, 0) : (FrameTime < 50.0f ? FColor(255, 255, 0) : FColor(255, 0, 0));
-	InCanvas->DrawShadowedString(X1, InY, TEXT("Frame:"), Font, bShowUnitTimeGraph ? FColor(100, 255, 100) : FColor(255, 255, 255));
+	Color = FrameTime < 34.0f ? FColor::Green : (FrameTime < 50.0f ? FColor::Yellow : FColor::Red);
+	InCanvas->DrawShadowedString(X1, InY, TEXT("Frame:"), Font, bShowUnitTimeGraph ? FColor(100, 255, 100) : FColor::White);
 	InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), FrameTime), Font, Color);
 	if (bShowUnitMaxTimes)
 	{
@@ -379,8 +379,8 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	}
 	InY += RowHeight;
 
-	Color = GameThreadTime < 34.0f ? FColor(0, 255, 0) : (GameThreadTime < 50.0f ? FColor(255, 255, 0) : FColor(255, 0, 0));
-	InCanvas->DrawShadowedString(X1, InY, TEXT("Game:"), Font, bShowUnitTimeGraph ? FColor(255, 100, 100) : FColor(255, 255, 255));
+	Color = GameThreadTime < 34.0f ? FColor::Green : (GameThreadTime < 50.0f ? FColor::Yellow : FColor::Red);
+	InCanvas->DrawShadowedString(X1, InY, TEXT("Game:"), Font, bShowUnitTimeGraph ? FColor(255, 100, 100) : FColor::White);
 	InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GameThreadTime), Font, Color);
 	if (bShowUnitMaxTimes)
 	{
@@ -388,8 +388,8 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	}
 	InY += RowHeight;
 
-	Color = RenderThreadTime < 34.0f ? FColor(0, 255, 0) : (RenderThreadTime < 50.0f ? FColor(255, 255, 0) : FColor(255, 0, 0));
-	InCanvas->DrawShadowedString(X1, InY, TEXT("Draw:"), Font, bShowUnitTimeGraph ? FColor(100, 100, 255) : FColor(255, 255, 255));
+	Color = RenderThreadTime < 34.0f ? FColor::Green : (RenderThreadTime < 50.0f ? FColor::Yellow : FColor::Red);
+	InCanvas->DrawShadowedString(X1, InY, TEXT("Draw:"), Font, bShowUnitTimeGraph ? FColor(100, 100, 255) : FColor::White);
 	InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), RenderThreadTime), Font, Color);
 	if (bShowUnitMaxTimes)
 	{
@@ -400,8 +400,8 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	const bool bHaveGPUData = GPUCycles > 0;
 	if (bHaveGPUData)
 	{
-		Color = GPUFrameTime < 34.0f ? FColor(0, 255, 0) : (GPUFrameTime < 50.0f ? FColor(255, 255, 0) : FColor(255, 0, 0));
-		InCanvas->DrawShadowedString(X1, InY, TEXT("GPU:"), Font, bShowUnitTimeGraph ? FColor(255, 255, 100) : FColor(255, 255, 255));
+		Color = GPUFrameTime < 34.0f ? FColor::Green : (GPUFrameTime < 50.0f ? FColor::Yellow : FColor::Red);
+		InCanvas->DrawShadowedString(X1, InY, TEXT("GPU:"), Font, bShowUnitTimeGraph ? FColor(255, 255, 100) : FColor::White);
 		InCanvas->DrawShadowedString(X2, InY, *FString::Printf(TEXT("%3.2f ms"), GPUFrameTime), Font, Color);
 		if (bShowUnitMaxTimes)
 		{
@@ -629,9 +629,9 @@ int32 FStatHitchesData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32
 		{
 			if (When[i] > 0 && When[i] <= CurrentTime && When[i] >= CurrentTime - TravelTime)
 			{
-				FColor MyColor = FColor(0, 255, 0);
-				if (Hitches[i] > 0.2f) MyColor = FColor(255, 255, 0);
-				if (Hitches[i] > 0.3f) MyColor = FColor(255, 0, 0);
+				FColor MyColor = FColor::Green;
+				if (Hitches[i] > 0.2f) MyColor = FColor::Yellow;
+				if (Hitches[i] > 0.3f) MyColor = FColor::Red;
 				int32 MyY = InY + int32(float(MaxY - InY) * float((CurrentTime - When[i]) / TravelTime));
 				FString Hitch = FString::Printf(TEXT("%5d"), int32(Hitches[i] * 1000.0f));
 				InCanvas->DrawShadowedString(InX, MyY, *Hitch, GEngine->GetSmallFont(), MyColor);
@@ -938,34 +938,8 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 		// if this is a game viewport, and game rendering is disabled, then we don't want to actually draw anything
 		if ( World && World->IsGameWorld() && !bIsGameRenderingEnabled)
 		{
-			// since we aren't drawing the viewport, we still need to update streaming, which needs valid view info
-			FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( this, World->Scene, FEngineShowFlags(ESFIM_Game)) );
-			for( FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator )
-			{
-				APlayerController* PlayerController = *Iterator;
-				if( PlayerController )
-				{
-					ULocalPlayer* Player = Cast<ULocalPlayer>(PlayerController->Player);
-					if(Player)
-					{
-						// Calculate the player's view information.
-						FVector		ViewLocation;
-						FRotator	ViewRotation;
-						FSceneView* View = Player->CalcSceneView( &ViewFamily, ViewLocation, ViewRotation, this);
-
-						// if we have a valid view, use it for resource streaming
-						if(View)
-						{
-							// Add view information for resource streaming.
-							IStreamingManager::Get().AddViewInformation( View->ViewMatrices.ViewOrigin, View->ViewRect.Width(), View->ViewRect.Width() * View->ViewMatrices.ProjMatrix.M[0][0] );
-							World->ViewLocationsRenderedLastFrame.Add(View->ViewMatrices.ViewOrigin);
-						}
-					}
-				}
-			}
-	
-			// Update level streaming.
-			World->UpdateLevelStreaming( &ViewFamily );
+			// since we aren't drawing the viewport, we still need to update streaming
+			World->UpdateLevelStreaming();
 		}
 		else
 		{

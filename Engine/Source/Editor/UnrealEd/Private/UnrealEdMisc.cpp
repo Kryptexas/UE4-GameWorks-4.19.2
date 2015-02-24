@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "EditorSupportDelegates.h"
@@ -36,6 +36,8 @@
 #include "NavigationBuildingNotification.h"
 #include "HotReloadInterface.h"
 #include "PerformanceMonitor.h"
+#include "Engine/WorldComposition.h"
+#include "FeaturePack.h"
 
 #define LOCTEXT_NAMESPACE "UnrealEd"
 
@@ -176,7 +178,6 @@ void FUnrealEdMisc::OnInit()
 	// Register all callback notifications
 	FEditorDelegates::SelectedProps.AddRaw(this, &FUnrealEdMisc::CB_SelectedProps);
 	FEditorDelegates::DisplayLoadErrors.AddRaw(this, &FUnrealEdMisc::CB_DisplayLoadErrors);
-	FEditorDelegates::Undo.AddRaw(this, &FUnrealEdMisc::CB_Undo);
 	FEditorDelegates::MapChange.AddRaw(this, &FUnrealEdMisc::CB_MapChange);
 	FEditorDelegates::RefreshEditor.AddRaw(this, &FUnrealEdMisc::CB_RefreshEditor);
 	FEditorDelegates::PreSaveWorld.AddRaw(this, &FUnrealEdMisc::PreSaveWorld);
@@ -255,6 +256,10 @@ void FUnrealEdMisc::OnInit()
 	SlowTask.EnterProgressFrame(60);
 	{
 		bool bMapLoaded = false;
+
+		// Insert any feature packs if required. We need to do this before we try and load a map since any pack may contain a map
+		FFeaturePack FeaturePackHandler;
+		FeaturePackHandler.ImportPendingPacks();
 
 		FString ParsedMapName;
 		if ( FParse::Token(ParsedCmdLine, ParsedMapName, false) && 
@@ -423,7 +428,7 @@ void FUnrealEdMisc::OnInit()
 	FAssetNameToken::OnGotoAsset().BindRaw(this, &FUnrealEdMisc::OnGotoAsset);
 
 	// Register to receive notification of new key bindings
-	FInputBindingManager::Get().RegisterUserDefinedGestureChanged(FOnUserDefinedGestureChanged::FDelegate::CreateRaw( this, &FUnrealEdMisc::OnUserDefinedGestureChanged ));
+	OnUserDefinedGestureChangedDelegateHandle = FInputBindingManager::Get().RegisterUserDefinedGestureChanged(FOnUserDefinedGestureChanged::FDelegate::CreateRaw( this, &FUnrealEdMisc::OnUserDefinedGestureChanged ));
 
 	SlowTask.EnterProgressFrame(10);
 
@@ -431,13 +436,17 @@ void FUnrealEdMisc::OnInit()
 	InitEngineAnalytics();
 	
 	// Setup a timer for a heartbeat event to track if users are actually using the editor or it is idle.
-	float Seconds = 60.0f;
+	float Seconds = (float)FTimespan::FromMinutes(5.0).GetTotalSeconds();
 	FTimerDelegate Delegate;
 	Delegate.BindRaw( this, &FUnrealEdMisc::EditorAnalyticsHeartbeat );
-	GEditor->GetTimerManager()->SetTimer( Delegate, Seconds, true );
+
+	GEditor->GetTimerManager()->SetTimer( EditorAnalyticsHeartbeatTimerHandle, Delegate, Seconds, true );
 
 	// add handler to notify about navmesh building process
 	NavigationBuildingNotificationHandler = MakeShareable(new FNavigationBuildingNotificationImpl());
+
+	// Handles "Enable World Composition" option in WorldSettings
+	UWorldComposition::EnableWorldCompositionEvent.BindRaw(this, &FUnrealEdMisc::EnableWorldComposition);
 }
 
 void FUnrealEdMisc::InitEngineAnalytics()
@@ -613,6 +622,73 @@ void FUnrealEdMisc::TickAssetAnalytics()
 	}
 }
 
+bool FUnrealEdMisc::EnableWorldComposition(UWorld* InWorld, bool bEnable)
+{
+	if (InWorld == nullptr || InWorld->WorldType != EWorldType::Editor)
+	{
+		return false;
+	}
+			
+	if (!bEnable)
+	{
+		if (InWorld->WorldComposition != nullptr)
+		{
+			InWorld->FlushLevelStreaming();
+			InWorld->WorldComposition->MarkPendingKill();
+			InWorld->WorldComposition = nullptr;
+			UWorldComposition::WorldCompositionChangedEvent.Broadcast(InWorld);
+		}
+
+		return false;
+	}
+	
+	if (InWorld->WorldComposition == nullptr)
+	{
+		FString RootPackageName = InWorld->GetOutermost()->GetName();
+
+		// Map should be saved to disk
+		if (!FPackageName::DoesPackageExist(RootPackageName))
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("EnableWorldCompositionNotSaved_Message", "Please save your level to disk before enabling World Composition"));
+			return false;
+		}
+			
+		// All existing sub-levels on this map should be removed
+		int32 NumExistingSublevels = InWorld->StreamingLevels.Num();
+		if (NumExistingSublevels > 0)
+		{
+			FMessageDialog::Open(EAppMsgType::Ok, LOCTEXT("EnableWorldCompositionExistingSublevels_Message", "World Composition cannot be enabled because there are already sub-levels manually added to the persistent level. World Composition uses auto-discovery so you must first remove any manually added sub-levels from the Levels window"));
+			return false;
+		}
+			
+		UWorldComposition* WorldCompostion = ConstructObject<UWorldComposition>(UWorldComposition::StaticClass(), InWorld);
+		// All map files found in the same and folder and all sub-folders will be added ass sub-levels to this map
+		// Make sure user understands this
+		int32 NumFoundSublevels = WorldCompostion->GetTilesList().Num();
+		if (NumFoundSublevels)
+		{
+			FFormatNamedArguments Arguments;
+			Arguments.Add(TEXT("NumSubLevels"), NumFoundSublevels);
+			Arguments.Add(TEXT("FolderLocation"), FText::FromString(FPackageName::GetLongPackagePath(RootPackageName)));
+			const FText Message = FText::Format(LOCTEXT("EnableWorldCompositionPrompt_Message", "World Composition auto-discovers sub-levels by scanning the folder the level is saved in, and all sub-folders. {NumSubLevels} level files were found in {FolderLocation} and will be added as sub-levels. Do you want to continue?"), Arguments);
+			
+			auto AppResult = FMessageDialog::Open(EAppMsgType::OkCancel, Message);
+			if (AppResult != EAppReturnType::Ok)
+			{
+				WorldCompostion->MarkPendingKill();
+				return false;
+			}
+		}
+			
+		// 
+		InWorld->WorldComposition = WorldCompostion;
+		UWorldComposition::WorldCompositionChangedEvent.Broadcast(InWorld);
+	}
+	
+	return true;
+}
+
+
 /** Build and return the path to the current project (used for relaunching the editor.)	 */
 FString CreateProjectPath()
 {
@@ -678,7 +754,7 @@ void FUnrealEdMisc::OnExit()
 		FEditorViewportStats::SendUsageData();
 	}
 
-	FInputBindingManager::Get().UnregisterUserDefinedGestureChanged(FOnUserDefinedGestureChanged::FDelegate::CreateRaw( this, &FUnrealEdMisc::OnUserDefinedGestureChanged ));
+	FInputBindingManager::Get().UnregisterUserDefinedGestureChanged(OnUserDefinedGestureChangedDelegateHandle);
 	FMessageLog::OnMessageSelectionChanged().Unbind();
 	FUObjectToken::DefaultOnMessageTokenActivated().Unbind();
 	FUObjectToken::DefaultOnGetObjectDisplayName().Unbind();
@@ -698,7 +774,6 @@ void FUnrealEdMisc::OnExit()
 	// Unregister all events
 	FEditorDelegates::SelectedProps.RemoveAll(this);
 	FEditorDelegates::DisplayLoadErrors.RemoveAll(this);
-	FEditorDelegates::Undo.RemoveAll(this);
 	FEditorDelegates::MapChange.RemoveAll(this);
 	FEditorDelegates::RefreshEditor.RemoveAll(this);
 	FEditorDelegates::PreSaveWorld.RemoveAll(this);
@@ -721,7 +796,8 @@ void FUnrealEdMisc::OnExit()
 
 	ISourceControlModule::Get().GetProvider().Close();
 
-
+	UWorldComposition::EnableWorldCompositionEvent.Unbind();
+	
 	UnloadFBxLibraries();
 
 	const TMap<FString, FString>& IniRestoreFiles = GetConfigRestoreFilenames();
@@ -888,11 +964,6 @@ void FUnrealEdMisc::CB_LevelActorsAdded(AActor* InActor)
 		const UGeneralProjectSettings& ProjectSettings = *GetDefault<UGeneralProjectSettings>();
 		FEngineAnalytics::GetProvider().RecordEvent(FString("Editor.Usage.PawnPlacement"), FString( "ProjectId" ), ProjectSettings.ProjectID.ToString());
 	}
-}
-
-void FUnrealEdMisc::CB_Undo()
-{
-	GLevelEditorModeTools().PostUndo();
 }
 
 void FUnrealEdMisc::CB_PreAutomationTesting()
@@ -1396,7 +1467,7 @@ void FUnrealEdMisc::BeginPerformanceSurvey()
 
 	// Tell the level editor we want to be notified when selection changes
 	FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>( LevelEditorName );
-	LevelEditor.OnMapChanged().AddRaw( this, &FUnrealEdMisc::OnMapChanged );
+	OnMapChangedDelegateHandle = LevelEditor.OnMapChanged().AddRaw( this, &FUnrealEdMisc::OnMapChanged );
 
 	// Initialize survey variables
 	bIsSurveyingPerformance = true;
@@ -1479,7 +1550,7 @@ void FUnrealEdMisc::CancelPerformanceSurvey()
 	FrameRateSamples.Empty();
 
 	FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>( LevelEditorName );
-	LevelEditor.OnMapChanged().RemoveRaw( this, &FUnrealEdMisc::OnMapChanged );
+	LevelEditor.OnMapChanged().Remove( OnMapChangedDelegateHandle );
 }
 
 void FUnrealEdMisc::OnMapChanged( UWorld* World, EMapChangeType::Type MapChangeType )

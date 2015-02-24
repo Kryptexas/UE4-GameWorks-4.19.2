@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "EditorClassUtils.h"
@@ -74,6 +74,14 @@ TSharedRef<SWidget> FEditorClassUtils::GetDocumentationLinkWidget(const UClass* 
 
 TSharedRef<SWidget> FEditorClassUtils::GetSourceLink(const UClass* Class, const TWeakObjectPtr<UObject> ObjectWeakPtr)
 {
+	const FText BlueprintFormat = NSLOCTEXT("SourceHyperlink", "EditBlueprint", "Edit {0}");
+	const FText CodeFormat = NSLOCTEXT("SourceHyperlink", "GoToCode", "Open {0}");
+
+	return GetSourceLinkFormatted(Class, ObjectWeakPtr, BlueprintFormat, CodeFormat);
+}
+
+TSharedRef<SWidget> FEditorClassUtils::GetSourceLinkFormatted(const UClass* Class, const TWeakObjectPtr<UObject> ObjectWeakPtr, const FText& BlueprintFormat, const FText& CodeFormat)
+{
 	TSharedRef<SWidget> SourceHyperlink = SNew( SSpacer );
 	UBlueprint* Blueprint = (Class ? Cast<UBlueprint>(Class->ClassGeneratedBy) : nullptr);
 
@@ -100,10 +108,9 @@ TSharedRef<SWidget> FEditorClassUtils::GetSourceLink(const UClass* Class, const 
 		TWeakObjectPtr<UBlueprint> BlueprintPtr = Blueprint;
 
 		SourceHyperlink = SNew(SHyperlink)
-			.Style(FEditorStyle::Get(), "EditBPHyperlink")
-			.TextStyle(FEditorStyle::Get(), "DetailsView.EditBlueprintHyperlinkStyle")
+			.Style(FEditorStyle::Get(), "Common.GotoBlueprintHyperlink")
 			.OnNavigate_Static(&Local::OnEditBlueprintClicked, BlueprintPtr, ObjectWeakPtr)
-			.Text(FText::Format(NSLOCTEXT("SourceHyperlink", "EditBlueprint", "Edit {0}"), FText::FromString( Blueprint->GetName() ) ))
+			.Text(FText::Format(BlueprintFormat, FText::FromString(Blueprint->GetName())))
 			.ToolTipText(NSLOCTEXT("SourceHyperlink", "EditBlueprint_ToolTip", "Click to edit the blueprint"));
 	}
 	else if( FSourceCodeNavigation::IsCompilerAvailable() )
@@ -121,10 +128,9 @@ TSharedRef<SWidget> FEditorClassUtils::GetSourceLink(const UClass* Class, const 
 			};
 
 			SourceHyperlink = SNew(SHyperlink)
-				.Style(FCoreStyle::Get(), "Hyperlink")
-				.TextStyle(FEditorStyle::Get(), "DetailsView.GoToCodeHyperlinkStyle")
+				.Style(FEditorStyle::Get(), "Common.GotoNativeCodeHyperlink")
 				.OnNavigate_Static(&Local::OnEditCodeClicked, ClassHeaderPath)
-				.Text(FText::Format(NSLOCTEXT("SourceHyperlink", "GoToCode", "{0}" ), FText::FromString(FPaths::GetCleanFilename( *ClassHeaderPath ) ) ) )
+				.Text(FText::Format(CodeFormat, FText::FromString(FPaths::GetCleanFilename( *ClassHeaderPath ) ) ) )
 				.ToolTipText(NSLOCTEXT("SourceHyperlink", "GoToCode_ToolTip", "Click to open this source file in a text editor"));
 		}
 	}

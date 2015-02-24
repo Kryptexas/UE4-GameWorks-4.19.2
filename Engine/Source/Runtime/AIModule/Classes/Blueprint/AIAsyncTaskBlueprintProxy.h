@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#include "AITypes.h"
 #include "AI/Navigation/NavLinkDefinition.h"
 #include "Navigation/PathFollowingComponent.h"
 #include "AIAsyncTaskBlueprintProxy.generated.h"
@@ -34,4 +35,6 @@ public:
 	TWeakObjectPtr<AAIController> AIController;
 	FAIRequestID MoveRequestId;
 	TWeakObjectPtr<UWorld> MyWorld;
+
+	FTimerHandle TimerHandle_OnNoPath;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -95,6 +95,7 @@ public:
 	virtual FText GetToolTipHeading() const override;
 	virtual void GetNodeAttributes( TArray<TKeyValuePair<FString, FString>>& OutNodeAttributes ) const override;
 	virtual FText GetMenuCategory() const override;
+	virtual bool IsActionFilteredOut(class FBlueprintActionFilter const& Filter) override;
 	// End of UK2Node interface
 
 	/** Returns the UFunction that this class is pointing to */
@@ -191,8 +192,16 @@ private:
 	 */
 	void GeneratePinTooltip(UEdGraphPin& Pin) const;
 
+	/**
+	 * Connect Execute and Then pins for functions, which became pure.
+	 */
+	bool ReconnectPureExecPins(TArray<UEdGraphPin*>& OldPins);
+
 protected:
 	/** Helper function to ensure function is called in our context */
 	virtual void EnsureFunctionIsInBlueprint();
+
+	/** Helper function to find UFunction entries from the skeleton class, use with caution.. */
+	UFunction* GetTargetFunctionFromSkeletonClass() const;
 };
 

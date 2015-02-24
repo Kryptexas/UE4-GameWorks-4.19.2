@@ -1,3 +1,5 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 #include "BootstrapPackagedGame.h"
 
 #define IDI_EXEC_FILE 201

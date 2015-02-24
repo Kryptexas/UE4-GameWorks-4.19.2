@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -43,7 +43,9 @@ class dtPathQueue
 		/// State.
 		dtStatus status;
 		int keepAlive;
-		const dtQueryFilter* filter; ///< TODO: This is potentially dangerous!
+
+		const dtQueryFilter* filter;
+		TSharedPtr<dtQuerySpecialLinkFilter> linkFilter;
 	};
 	
 	static const int MAX_QUEUE = 8;
@@ -65,7 +67,8 @@ public:
 	
 	dtPathQueueRef request(dtPolyRef startRef, dtPolyRef endRef,
 						   const float* startPos, const float* endPos, 
-						   const dtQueryFilter* filter);
+						   const dtQueryFilter* filter,
+						   TSharedPtr<dtQuerySpecialLinkFilter> linkFilter);
 	
 	dtStatus getRequestStatus(dtPathQueueRef ref) const;
 	

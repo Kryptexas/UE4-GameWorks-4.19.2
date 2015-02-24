@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
+#include "DataProviders/AIDataProvider_QueryParams.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "EnvironmentQuery/EnvQueryContext.h"
 #include "EnvironmentQuery/Items/EnvQueryItemType.h"
@@ -28,7 +29,7 @@ FVector FEnvQueryResult::GetItemAsLocation(int32 Index) const
 		ItemType->IsChildOf(UEnvQueryItemType_VectorBase::StaticClass()))
 	{
 		UEnvQueryItemType_VectorBase* DefTypeOb = (UEnvQueryItemType_VectorBase*)ItemType->GetDefaultObject();
-		return DefTypeOb->GetLocation(RawData.GetData() + Items[Index].DataOffset);
+		return DefTypeOb->GetItemLocation(RawData.GetData() + Items[Index].DataOffset);
 	}
 
 	return FVector::ZeroVector;
@@ -60,36 +61,6 @@ FText UEnvQueryTypes::GetShortTypeName(const UObject* Ob)
 FText UEnvQueryTypes::DescribeContext(TSubclassOf<UEnvQueryContext> ContextClass)
 {
 	return GetShortTypeName(ContextClass);
-}
-
-FString UEnvQueryTypes::DescribeIntParam(const FEnvIntParam& Param)
-{
-	if (Param.IsNamedParam())
-	{
-		return Param.ParamName.ToString();
-	}
-
-	return FString::Printf(TEXT("%d"), Param.Value);
-}
-
-FString UEnvQueryTypes::DescribeFloatParam(const FEnvFloatParam& Param)
-{
-	if (Param.IsNamedParam())
-	{
-		return Param.ParamName.ToString();
-	}
-
-	return FString::Printf(TEXT("%.2f"), Param.Value);
-}
-
-FString UEnvQueryTypes::DescribeBoolParam(const FEnvBoolParam& Param)
-{
-	if (Param.IsNamedParam())
-	{
-		return Param.ParamName.ToString();
-	}
-
-	return Param.Value ? TEXT("true") : TEXT("false");
 }
 
 FText FEnvDirection::ToText() const
@@ -225,6 +196,43 @@ void FEnvTraceData::SetNavmeshOnly()
 	bCanDisableTrace = false;
 }
 
+void FEnvBoolParam::Convert(UObject* Owner, FAIDataProviderBoolValue& ValueProvider)
+{
+	ValueProvider.DefaultValue = Value;
+	if (IsNamedParam())
+	{
+		UAIDataProvider_QueryParams* ParamsProvider = NewObject<UAIDataProvider_QueryParams>(Owner);
+		ParamsProvider->ParamName = ParamName;
+		ValueProvider.DataBinding = ParamsProvider;
+		ValueProvider.DataField = GET_MEMBER_NAME_CHECKED(UAIDataProvider_QueryParams, BoolValue);
+	}
+}
+
+void FEnvIntParam::Convert(UObject* Owner, FAIDataProviderIntValue& ValueProvider)
+{
+	ValueProvider.DefaultValue = Value;
+	if (IsNamedParam())
+	{
+		UAIDataProvider_QueryParams* ParamsProvider = NewObject<UAIDataProvider_QueryParams>(Owner);
+		ParamsProvider->ParamName = ParamName;
+		ValueProvider.DataBinding = ParamsProvider;
+		ValueProvider.DataField = GET_MEMBER_NAME_CHECKED(UAIDataProvider_QueryParams, IntValue);
+	}
+}
+
+void FEnvFloatParam::Convert(UObject* Owner, FAIDataProviderFloatValue& ValueProvider)
+{
+	ValueProvider.DefaultValue = Value;
+	if (IsNamedParam())
+	{
+		UAIDataProvider_QueryParams* ParamsProvider = NewObject<UAIDataProvider_QueryParams>(Owner);
+		ParamsProvider->ParamName = ParamName;
+		ValueProvider.DataBinding = ParamsProvider;
+		ValueProvider.DataField = GET_MEMBER_NAME_CHECKED(UAIDataProvider_QueryParams, FloatValue);
+	}
+}
+
+
 //----------------------------------------------------------------------//
 // namespace FEQSHelpers
 //----------------------------------------------------------------------//
@@ -233,16 +241,18 @@ namespace FEQSHelpers
 	const ARecastNavMesh* FindNavMeshForQuery(FEnvQueryInstance& QueryInstance)
 	{
 		const UNavigationSystem* NavSys = QueryInstance.World->GetNavigationSystem();
+		
+		if (NavSys == nullptr)
+		{
+			return nullptr;
+		}
 
 		// try to match navigation agent for querier
 		INavAgentInterface* NavAgent = QueryInstance.Owner.IsValid() ? Cast<INavAgentInterface>(QueryInstance.Owner.Get()) : NULL;
 		if (NavAgent)
 		{
-			const FNavAgentProperties* NavAgentProps = NavAgent ? NavAgent->GetNavAgentProperties() : NULL;
-			if (NavAgentProps != NULL)
-			{
-				return Cast<const ARecastNavMesh>(NavSys->GetNavDataForProps(*NavAgentProps));
-			}
+			const FNavAgentProperties& NavAgentProps = NavAgent ? NavAgent->GetNavAgentPropertiesRef() : FNavAgentProperties::DefaultProperties;
+			return Cast<const ARecastNavMesh>(NavSys->GetNavDataForProps(NavAgentProps));
 		}
 
 		return Cast<const ARecastNavMesh>(NavSys->GetMainNavData());

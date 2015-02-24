@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HTML5OpenGL.h: Public OpenGL ES 2.0 definitions for HTML5-specific functionality
@@ -7,14 +7,13 @@
 #pragma once
 
 #define GL_GLEXT_PROTOTYPES 
-#include <GLES2/gl2.h>
-#include <GLES2/gl2ext.h>
+#include <SDL_opengles2.h>
 
 typedef char UGLsync; 
 typedef unsigned long long  GLuint64;
 
 // empty functions. 
-#if !PLATFORM_HTML5_WIN32 
+#if PLATFORM_HTML5_BROWSER 
 void glDeleteQueriesEXT(GLsizei n,  const GLuint * ids);
 void glGenQueriesEXT(GLsizei n,  GLuint * ids); 
 void glBeginQueryEXT(GLenum target,  GLuint id);
@@ -71,6 +70,7 @@ struct FHTML5OpenGL : public FOpenGLES2
 	static FORCEINLINE bool SupportsMapBuffer()							{ return false; }
 	static FORCEINLINE bool SupportsCombinedDepthStencilAttachment()	{ return bCombinedDepthStencilAttachment; }
 	static FORCEINLINE GLenum GetDepthFormat()							{ return GL_DEPTH_COMPONENT; }
+	static FORCEINLINE GLenum GetShadowDepthFormat()					{ return GL_DEPTH_COMPONENT; }
 	// Optional
 	static FORCEINLINE void BeginQuery(GLenum QueryType, GLuint QueryId) UGL_OPTIONAL_VOID
 	static FORCEINLINE void EndQuery(GLenum QueryType) UGL_OPTIONAL_VOID
@@ -108,6 +108,7 @@ struct FHTML5OpenGL : public FOpenGLES2
 		return 0;
 	}
 
+	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_FLOAT; }
 protected:
 	/** http://www.khronos.org/registry/webgl/extensions/WEBGL_depth_texture/ */
 	static bool bCombinedDepthStencilAttachment;

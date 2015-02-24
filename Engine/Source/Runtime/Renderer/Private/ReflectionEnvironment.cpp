@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Reflection Environment - feature that provides HDR glossy reflections on any surfaces, leveraging precomputation to prefilter cubemaps of the scene
@@ -44,6 +44,12 @@ static TAutoConsoleVariable<int32> CVarHalfResReflections(
 	0,
 	TEXT("Compute ReflectionEnvironment samples at half resolution.\n")
 	TEXT(" 0 is off (default), 1 is on"),
+	ECVF_RenderThreadSafe);
+
+static TAutoConsoleVariable<float> CVarSkySpecularOcclusionStrength(
+	TEXT("r.SkySpecularOcclusionStrength"),
+	1,
+	TEXT("Strength of skylight specular occlusion from DFAO"),
 	ECVF_RenderThreadSafe);
 
 // to avoid having direct access from many places
@@ -124,10 +130,11 @@ public:
 		BentNormalAOTexture.Bind(ParameterMap, TEXT("BentNormalAOTexture"));
 		BentNormalAOSampler.Bind(ParameterMap, TEXT("BentNormalAOSampler"));
 		ApplyBentNormalAO.Bind(ParameterMap, TEXT("ApplyBentNormalAO"));
+		InvSkySpecularOcclusionStrength.Bind(ParameterMap, TEXT("InvSkySpecularOcclusionStrength"));
 	}
 
 	template<typename ShaderRHIParamRef>
-	void SetParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef& ShaderRHI, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO )
+	void SetParameters(FRHICommandList& RHICmdList, const ShaderRHIParamRef& ShaderRHI, const TRefCountPtr<IPooledRenderTarget>& DynamicBentNormalAO, float SkySpecularOcclusionStrength)
 	{
 		FTextureRHIParamRef BentNormalAO = GWhiteTexture->TextureRHI;
 		bool bApplyBentNormalAO = false;
@@ -140,11 +147,12 @@ public:
 
 		SetTextureParameter(RHICmdList, ShaderRHI, BentNormalAOTexture, BentNormalAOSampler, TStaticSamplerState<SF_Point>::GetRHI(), BentNormalAO);
 		SetShaderValue(RHICmdList, ShaderRHI, ApplyBentNormalAO, bApplyBentNormalAO ? 1.0f : 0.0f);
+		SetShaderValue(RHICmdList, ShaderRHI, InvSkySpecularOcclusionStrength, 1.0f / FMath::Max(SkySpecularOcclusionStrength, .1f));
 	}
 
 	friend FArchive& operator<<(FArchive& Ar,FDistanceFieldAOSpecularOcclusionParameters& P)
 	{
-		Ar << P.BentNormalAOTexture << P.BentNormalAOSampler << P.ApplyBentNormalAO;
+		Ar << P.BentNormalAOTexture << P.BentNormalAOSampler << P.ApplyBentNormalAO << P.InvSkySpecularOcclusionStrength;
 		return Ar;
 	}
 
@@ -152,6 +160,7 @@ private:
 	FShaderResourceParameter BentNormalAOTexture;
 	FShaderResourceParameter BentNormalAOSampler;
 	FShaderParameter ApplyBentNormalAO;
+	FShaderParameter InvSkySpecularOcclusionStrength;
 };
 
 struct FReflectionCaptureSortData
@@ -324,7 +333,7 @@ public:
 		SetTextureParameter(RHICmdList, ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture);
 	
 		SkyLightParameters.SetParameters(RHICmdList, ShaderRHI, Scene, View.Family->EngineShowFlags.SkyLighting);
-		SpecularOcclusionParameters.SetParameters(RHICmdList, ShaderRHI, DynamicBentNormalAO);
+		SpecularOcclusionParameters.SetParameters(RHICmdList, ShaderRHI, DynamicBentNormalAO, CVarSkySpecularOcclusionStrength.GetValueOnRenderThread());
 	}
 
 	void UnsetParameters(FRHICommandList& RHICmdList)
@@ -446,7 +455,7 @@ public:
 		SetTextureParameter(RHICmdList, ShaderRHI, ScreenSpaceReflectionsTexture, ScreenSpaceReflectionsSampler, TStaticSamplerState<SF_Point>::GetRHI(), ScreenSpaceReflections );
 		SetTextureParameter(RHICmdList, ShaderRHI, PreIntegratedGF, PreIntegratedGFSampler, TStaticSamplerState<SF_Bilinear,AM_Clamp,AM_Clamp,AM_Clamp>::GetRHI(), GSystemTextures.PreintegratedGF->GetRenderTargetItem().ShaderResourceTexture );
 		
-		SpecularOcclusionParameters.SetParameters(RHICmdList, ShaderRHI, DynamicBentNormalAO);
+		SpecularOcclusionParameters.SetParameters(RHICmdList, ShaderRHI, DynamicBentNormalAO, CVarSkySpecularOcclusionStrength.GetValueOnRenderThread());
 	}
 
 	// FShader interface.

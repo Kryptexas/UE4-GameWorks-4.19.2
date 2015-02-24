@@ -1,9 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 struct FVector2D;
 class FSlateRect;
+enum class EPopupMethod : uint8;
+
 
 #define SLATE_USE_32BIT_INDICES !PLATFORM_USES_ES2
 #define SLATE_USE_FLOAT16 !PLATFORM_USES_ES2
@@ -230,6 +232,14 @@ public:
 	virtual class FSlateShaderResource* GetViewportRenderTargetTexture() const = 0;
 
 	/**
+	 * Does the texture returned by GetViewportRenderTargetTexture only have an alpha channel?
+	 */
+	virtual bool IsViewportTextureAlphaOnly() const
+	{
+		return false;
+	}
+
+	/**
 	 * Performs any ticking necessary by this handle                   
 	 */
 	virtual void Tick( const FGeometry& AllottedGeometry, double InCurrentTime, float DeltaTime )
@@ -249,6 +259,16 @@ public:
 	virtual FCursorReply OnCursorQuery( const FGeometry& MyGeometry, const FPointerEvent& CursorEvent )
 	{
 		return FCursorReply::Unhandled();
+	}
+
+	/**
+	 * After OnCursorQuery has specified a cursor type the system asks each widget under the mouse to map that cursor to a widget. This event is bubbled.
+	 * 
+	 * @return TOptional<TSharedRef<SWidget>>() if you don't have a mapping otherwise return the Widget to show.
+	 */
+	virtual TOptional<TSharedRef<SWidget>> OnMapCursor(const FCursorReply& CursorReply)
+	{
+		return TOptional<TSharedRef<SWidget>>();
 	}
 
 	/**
@@ -456,10 +476,30 @@ public:
 	}
 
 	/**
+	 * Called to determine if we should render the focus brush.
+	 *
+	 * @param InFocusCause	The cause of focus
+	 */
+	virtual TOptional<bool> OnQueryShowFocus(const EFocusCause InFocusCause) const
+	{
+		return TOptional<bool>();
+	}
+
+	/**
 	 * Called after all input for this frame is processed.
 	 */
 	virtual void OnFinishedPointerInput()
 	{
+	}
+
+	/**
+	 * Called to figure out whether we can make new windows for popups within this viewport.
+	 * Making windows allows us to have popups that go outside the parent window, but cannot
+	 * be used in fullscreen and do not have per-pixel alpha.
+	 */
+	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const
+	{
+		return TOptional<EPopupMethod>();
 	}
 
 	/**

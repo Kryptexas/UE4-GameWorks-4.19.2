@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 LandscapeRenderMobile.cpp: Landscape Rendering without using vertex texture fetch
@@ -77,8 +77,8 @@ public:
 		if( LodBiasParameter.IsBound() )
 		{
 			FVector4 LodBias(
-				SceneProxy->PrecomputedLODFactor,
-				1.f / (1.f - SceneProxy->PrecomputedLODFactor),
+				0.0f, // unused
+				0.0f, // unused
 				CameraLocalPos3D.X + SceneProxy->SectionBase.X,
 				CameraLocalPos3D.Y + SceneProxy->SectionBase.Y 
 				);
@@ -88,7 +88,6 @@ public:
 		// Calculate LOD params
 		FVector4 fCurrentLODs;
 		FVector4 CurrentNeighborLODs[4];
-		float DistLOD = 0.f;
 
 		if( BatchElementParams->SubX == -1 )
 		{
@@ -97,14 +96,14 @@ public:
 				for( int32 SubX = 0; SubX < SceneProxy->NumSubsections; SubX++ )
 				{
 					int32 SubIndex = SubX + 2 * SubY;
-					SceneProxy->CalcLODParamsForSubsection(View, CameraLocalPos, SubX, SubY, fCurrentLODs[SubIndex], CurrentNeighborLODs[SubIndex], DistLOD);
+					SceneProxy->CalcLODParamsForSubsection(View, CameraLocalPos, SubX, SubY, BatchElementParams->CurrentLOD, fCurrentLODs[SubIndex], CurrentNeighborLODs[SubIndex]);
 				}
 			}
 		}
 		else
 		{
 			int32 SubIndex = BatchElementParams->SubX + 2 * BatchElementParams->SubY;
-			SceneProxy->CalcLODParamsForSubsection(View, CameraLocalPos, BatchElementParams->SubX, BatchElementParams->SubY, fCurrentLODs[SubIndex], CurrentNeighborLODs[SubIndex], DistLOD);
+			SceneProxy->CalcLODParamsForSubsection(View, CameraLocalPos, BatchElementParams->SubX, BatchElementParams->SubY, BatchElementParams->CurrentLOD, fCurrentLODs[SubIndex], CurrentNeighborLODs[SubIndex]);
 		}
 
 		if( SectionLodsParameter.IsBound() )
@@ -120,10 +119,9 @@ public:
 		if( LodValuesParameter.IsBound() )
 		{
 			FVector4 LodValues(
-				DistLOD,
-				// convert current LOD coordinates into highest LOD coordinates
-				(float)SceneProxy->SubsectionSizeQuads / (float)(((SceneProxy->SubsectionSizeVerts) >> BatchElementParams->CurrentLOD)-1),
-				(float)SceneProxy->SubsectionSizeQuads, 
+				0.0f, // this is the mesh's LOD, ES2 always uses the LOD0 mesh
+				0.0f, // unused
+				(float)SceneProxy->SubsectionSizeQuads,
 				1.f / (float)SceneProxy->SubsectionSizeQuads );
 
 			SetShaderValue(RHICmdList, VertexShader->GetVertexShader(),LodValuesParameter,LodValues);
@@ -228,7 +226,10 @@ FLandscapeComponentSceneProxyMobile::FLandscapeComponentSceneProxyMobile(ULandsc
 		InComponent->MobileNormalmapTexture = WeightmapTextures[0];
 	}
 #endif
-	NormalmapTexture = WeightmapTextures[0]; // Use Weightmap0 as Normal/Weightmap Texture
+	if (WeightmapTextures.Num() > 0)
+	{
+		NormalmapTexture = WeightmapTextures[0]; // Use Weightmap0 as Normal/Weightmap Texture
+	}
 
 	BlendableLayerMask = InComponent->MobileBlendableLayerMask;
 }
@@ -268,20 +269,9 @@ void FLandscapeComponentSceneProxyMobile::CreateRenderThreadResources()
 
 	LandscapeVertexFactory->InitResource();
 	VertexFactory = LandscapeVertexFactory;
-	DynamicMesh.VertexFactory = VertexFactory;
-#if WITH_EDITOR
-	DynamicMeshTools.VertexFactory = VertexFactory;
-#endif
 
 	// Assign LandscapeUniformShaderParameters
 	LandscapeUniformShaderParameters.InitResource();
-
-	for( int32 ElementIdx=0;ElementIdx<DynamicMesh.Elements.Num();ElementIdx++ )
-	{
-		FMeshBatchElement& BatchElement = DynamicMesh.Elements[ElementIdx];
-		FLandscapeBatchElementParams* BatchElementParams = (FLandscapeBatchElementParams*)BatchElement.UserData;
-		BatchElementParams->LandscapeUniformShaderParametersResource = &LandscapeUniformShaderParameters;
-	}
 
 	PlatformData.Empty();
 }

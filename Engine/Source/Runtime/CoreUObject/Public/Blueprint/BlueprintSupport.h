@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -17,6 +17,15 @@ struct FBlueprintSupport
 	 * @param	Writer						duplicate writer instance to write the duplicated data to
 	 */
 	static void DuplicateAllFields(class UStruct* StructToDuplicate, class FDuplicateDataWriter& Writer);
+
+	/** 
+	 * A series of query functions that we can use to easily gate-off/disable 
+	 * aspects of the deferred loading (mostly for testing purposes). 
+	 */
+	static bool UseDeferredDependencyLoading();
+	static bool IsResolvingDeferredDependenciesDisabled();
+	static bool IsDeferredCDOSerializationDisabled();
+	static bool IsDeferredExportCreationDisabled();
 };
 
 #if WITH_EDITOR

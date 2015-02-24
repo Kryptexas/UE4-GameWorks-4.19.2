@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "NavigationTypes.generated.h"
@@ -169,6 +169,11 @@ struct FNavigationDirtyElement
 	}
 };
 
+//
+// Used to gather per instance transforms in a specific area
+//
+DECLARE_DELEGATE_TwoParams(FNavDataPerInstanceTransformDelegate, const FBox&, TArray<FTransform>&);
+
 //////////////////////////////////////////////////////////////////////////
 // Path
 
@@ -225,7 +230,7 @@ struct FNavPathPoint : public FNavLocation
 };
 
 /** path type data */
-struct FNavPathType
+struct ENGINE_API FNavPathType
 {
 	FNavPathType() : Id(++NextUniqueId) {}
 	FNavPathType(const FNavPathType& Src) : Id(Src.Id) {}
@@ -326,7 +331,7 @@ struct FMovementProperties
 
 /** Properties of representation of an 'agent' (or Pawn) used by AI navigation/pathfinding. */
 USTRUCT()
-struct FNavAgentProperties : public FMovementProperties
+struct ENGINE_API FNavAgentProperties : public FMovementProperties
 {
 	GENERATED_USTRUCT_BODY()
 
@@ -349,7 +354,7 @@ struct FNavAgentProperties : public FMovementProperties
 
 	void UpdateWithCollisionComponent(class UShapeComponent* CollisionComponent);
 
-	FORCEINLINE bool IsValid() const { return AgentRadius >= 0 && AgentHeight >= 0; }
+	FORCEINLINE bool IsValid() const { return AgentRadius >= 0.f && AgentHeight >= 0.f; }
 	FORCEINLINE bool HasStepHeightOverride() const { return AgentStepHeight >= 0.0f; }
 
 	FORCEINLINE bool IsEquivalent(const FNavAgentProperties& Other, float Precision = 5.f) const
@@ -368,6 +373,8 @@ struct FNavAgentProperties : public FMovementProperties
 	{
 		return FVector(AgentRadius, AgentRadius, AgentHeight / 2);
 	}
+
+	static const FNavAgentProperties DefaultProperties;
 };
 
 inline uint32 GetTypeHash(const FNavAgentProperties& A)
@@ -380,22 +387,22 @@ struct ENGINE_API FNavDataConfig : public FNavAgentProperties
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Display)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Display)
 	FName Name;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Display)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Display)
 	FColor Color;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Querying, config)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Querying)
 	FVector DefaultQueryExtent;
 
-	FNavDataConfig(float Radius = FNavigationSystem::FallbackAgentRadius, float Height = FNavigationSystem::FallbackAgentHeight)
-		: FNavAgentProperties(Radius, Height)
-		, Name(TEXT("Default"))
-		, Color(140,255,0,164)
-		, DefaultQueryExtent(DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_HORIZONTAL, DEFAULT_NAV_QUERY_EXTENT_VERTICAL)
-	{
-	}	
+	UPROPERTY(Transient, EditAnywhere, BlueprintReadOnly, Category = Navigation)
+	TSubclassOf<ANavigationData> NavigationDataClass;
+
+	UPROPERTY(config)
+	FStringClassReference NavigationDataClassName;
+
+	FNavDataConfig(float Radius = FNavigationSystem::FallbackAgentRadius, float Height = FNavigationSystem::FallbackAgentHeight);
 };
 
 struct FNavigationProjectionWork
@@ -446,7 +453,10 @@ struct ENGINE_API FPathFindingQuery
 	/** additional flags passed to navigation data handling request */
 	int32 NavDataFlags;
 
-	FPathFindingQuery();
+	/** if set, allow partial paths as a result */
+	uint32 bAllowPartialPaths : 1;
+
+	FPathFindingQuery() {}
 
 	FPathFindingQuery(const FPathFindingQuery& Source);
 

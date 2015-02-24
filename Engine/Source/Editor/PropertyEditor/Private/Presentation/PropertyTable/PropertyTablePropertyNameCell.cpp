@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "PropertyTablePropertyNameCell.h"
@@ -53,6 +53,11 @@ void FPropertyTablePropertyNameCell::EnterEditMode()
 {
 }
 
+TSharedRef< class IPropertyTableColumn > FPropertyTablePropertyNameCell::GetColumn() const
+{ 
+	return Column.Pin().ToSharedRef(); 
+}
+
 TWeakObjectPtr< UObject > FPropertyTablePropertyNameCell::GetObject() const
 {
 	if ( !ObjectNode.IsValid() )
@@ -61,6 +66,11 @@ TWeakObjectPtr< UObject > FPropertyTablePropertyNameCell::GetObject() const
 	}
 
 	return ObjectNode->GetUObject( 0 );
+}
+
+TSharedRef< class IPropertyTableRow > FPropertyTablePropertyNameCell::GetRow() const
+{ 
+	return Row.Pin().ToSharedRef(); 
 }
 
 void FPropertyTablePropertyNameCell::ExitEditMode()

@@ -1,10 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "OnlineSubsystemPackage.h"
-
-/** Name given to default OSS instances (disambiguates for PIE) */
-#define DEFAULT_INSTANCE FName(TEXT("DefaultInstance"))
 
 /** Maximum players supported on a given platform */
 #if PLATFORM_XBOXONE
@@ -1130,6 +1127,18 @@ public:
 };
 
 /**
+ * Friend user info returned via IOnlineFriends interface
+ */
+class FOnlineRecentPlayer : public FOnlineUser
+{
+public:
+	/**
+	 * @return last time the player was seen by the current user
+	 */
+	virtual FDateTime GetLastSeen() const = 0;
+};
+
+/**
  * Party user info returned via IOnlineParty interface
  */
 struct FOnlinePartyMember
@@ -1299,6 +1308,7 @@ namespace EOnlineStatusUpdatePrivacy
 
 class FJsonValue;
 
+
 /** Notification object, used to send messages between systems */
 struct FOnlineNotification
 {
@@ -1308,16 +1318,43 @@ struct FOnlineNotification
 	/** The payload of this notification */
 	TSharedPtr<FJsonValue> Payload;
 
-	FOnlineNotification() 
+	/** User to deliver the notification to.  Can be null for system notifications. */
+	TSharedPtr<FUniqueNetId> ToUserId;
+
+	/** User who sent the notification, optional. */
+	TSharedPtr<FUniqueNetId> FromUserId;
+
+	FOnlineNotification() :
+		Payload(nullptr),
+		ToUserId(nullptr),
+		FromUserId(nullptr)
 	{
 
 	}
 
+	// Treated as a system notification unless ToUserId is added
 	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload)
-		: TypeStr(InTypeStr), Payload(InPayload)
+		: TypeStr(InTypeStr), Payload(InPayload), ToUserId(nullptr), FromUserId(nullptr)
+	{
+
+	}
+
+	// Notification to a specific user.  FromUserId is optional
+	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<FUniqueNetId> InToUserId)
+		: TypeStr(InTypeStr), Payload(InPayload), ToUserId(InToUserId), FromUserId(nullptr)
+	{
+
+	}
+
+	FOnlineNotification(const FString& InTypeStr, const TSharedPtr<FJsonValue>& InPayload, TSharedPtr<FUniqueNetId> InToUserId, TSharedPtr<FUniqueNetId> InFromUserId)
+		: TypeStr(InTypeStr), Payload(InPayload), ToUserId(InToUserId), FromUserId(InFromUserId)
 	{
 
 	}
 };
 
+/**
+* unique identifier for notification transports
+*/
+typedef FString FNotificationTransportId;
 

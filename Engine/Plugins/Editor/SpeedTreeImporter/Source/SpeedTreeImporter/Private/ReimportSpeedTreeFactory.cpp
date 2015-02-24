@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SpeedTreeImporterPrivatePCH.h"
 #include "ReimportSpeedTreeFactory.h"
+#include "Engine/StaticMesh.h"
 
 
 
@@ -88,6 +89,11 @@ EReimportResult::Type UReimportSpeedTreeFactory::Reimport(UObject* Obj)
 	}
 #endif // #if WITH_SPEEDTREE
 	return EReimportResult::Failed;
+}
+
+int32 UReimportSpeedTreeFactory::GetPriority() const
+{
+	return ImportPriority;
 }
 
 #undef LOCTEXT_NAMESPACE

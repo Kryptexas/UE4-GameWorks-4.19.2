@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
 #include "SBlueprintLibraryPalette.h"
@@ -397,13 +397,13 @@ TSharedRef<SWidget> SBlueprintLibraryPalette::ConstructClassFilterDropdownConten
 }
 
 //------------------------------------------------------------------------------
-FString SBlueprintLibraryPalette::GetFilterClassName() const
+FText SBlueprintLibraryPalette::GetFilterClassName() const
 {
-	FString FilterDisplayString = TEXT("All");
+	FText FilterDisplayString = LOCTEXT("All", "All");
 	if (FilterClass != NULL)
 	{
 		UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(FilterClass.Get());
-		FilterDisplayString = (Blueprint != NULL) ? Blueprint->GetName() : FilterClass->GetName();
+		FilterDisplayString = FText::FromString((Blueprint != NULL) ? Blueprint->GetName() : FilterClass->GetName());
 	}
 
 	return FilterDisplayString;

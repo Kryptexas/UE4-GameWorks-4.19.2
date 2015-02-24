@@ -1,10 +1,4 @@
-//
-//  UE4CmdLineRun.m
-//  UE4CmdLineRun
-//
-//  Created by Josh Adams on 10/31/13.
-//  Copyright (c) 2013 EpicGames. All rights reserved.
-//
+// Copyright 2013-2015 Epic Games, Inc. All Rights Reserved.
 
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>

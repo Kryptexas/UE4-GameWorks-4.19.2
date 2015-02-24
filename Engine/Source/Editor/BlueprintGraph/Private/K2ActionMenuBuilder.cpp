@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "Engine/LevelScriptBlueprint.h"
@@ -27,6 +27,47 @@
 #include "K2Node_SetFieldsInStruct.h"
 
 #include "EdGraphSchema_K2_Actions.h"
+#include "K2Node_ClearDelegate.h"
+#include "K2Node_SpawnActorFromClass.h"
+#include "K2Node_InputAxisEvent.h"
+#include "K2Node_GetDataTableRow.h"
+#include "K2Node_InputAction.h"
+#include "K2Node_InputKey.h"
+#include "K2Node_InputTouch.h"
+#include "K2Node_MacroInstance.h"
+#include "K2Node_CreateDelegate.h"
+#include "K2Node_VariableSet.h"
+#include "K2Node_CommutativeAssociativeBinaryOperator.h"
+#include "K2Node_CallMaterialParameterCollectionFunction.h"
+#include "K2Node_CallDataTableFunction.h"
+#include "K2Node_CallFunctionOnMember.h"
+#include "K2Node_CallParentFunction.h"
+#include "K2Node_CallFunction.h"
+#include "K2Node_CallArrayFunction.h"
+#include "K2Node_IfThenElse.h"
+#include "K2Node_MakeArray.h"
+#include "K2Node_FormatText.h"
+#include "K2Node_EaseFunction.h"
+#include "K2Node_AssignmentStatement.h"
+#include "K2Node_Composite.h"
+#include "K2Node_Select.h"
+#include "K2Node_BreakStruct.h"
+#include "K2Node_SwitchInteger.h"
+#include "K2Node_SwitchName.h"
+#include "K2Node_VariableGet.h"
+#include "K2Node_FunctionEntry.h"
+#include "K2Node_Self.h"
+#include "K2Node_AddDelegate.h"
+#include "K2Node_RemoveDelegate.h"
+#include "K2Node_CallDelegate.h"
+#include "K2Node_Timeline.h"
+#include "K2Node_CustomEvent.h"
+#include "K2Node_Literal.h"
+#include "K2Node_ComponentBoundEvent.h"
+#include "K2Node_ActorBoundEvent.h"
+#include "K2Node_MatineeController.h"
+#include "K2Node_TemporaryVariable.h"
+#include "EditorStyleSettings.h"
 
 #define LOCTEXT_NAMESPACE "KismetSchema"
 
@@ -283,7 +324,7 @@ static void GetAddComponentClasses(UBlueprint const* BlueprintIn, FGraphActionLi
 		UClass* Class = *It;
 
 		// If this is a subclass of ActorComponent, not abstract, and tagged as spawnable from Kismet
-		if (Class->IsChildOf(UActorComponent::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract) && Class->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent) )
+		if (Class->IsChildOf(UActorComponent::StaticClass()) && !Class->HasAnyClassFlags(CLASS_Abstract) && Class->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent) && !FKismetEditorUtilities::IsClassABlueprintSkeleton(Class))
 		{
 			TSharedPtr<FEdGraphSchemaAction_K2AddComponent> NewAction = FK2ActionMenuBuilder::CreateAddComponentAction(ActionMenuBuilder.OwnerOfTemporaries, BlueprintIn, Class, /*Asset=*/ NULL);
 			ActionMenuBuilder.AddAction(NewAction);
@@ -1448,9 +1489,14 @@ void FK2ActionMenuBuilder::GetFuncNodesForClass(FGraphActionListBuilderBase& Lis
 		for (TFieldIterator<UFunction> FunctionIt(Class, SuperClassFlag); FunctionIt; ++FunctionIt)
 		{
 			UFunction* Function = *FunctionIt;
-			if( K2Schema->CanFunctionBeUsedInClass(Class, Function, DestGraph, FunctionTypes, bShowInherited, bCalledForEach, TargetInfo) )
+			if( K2Schema->CanFunctionBeUsedInGraph(Class, Function, DestGraph, FunctionTypes, bCalledForEach, TargetInfo) )
 			{
-				FK2ActionMenuBuilder::AddSpawnInfoForFunction(Function, false, TargetInfo, FMemberReference(), BaseCategory, K2Schema->AG_LevelReference, ListBuilder, bCalledForEach);
+				// Check if the function is hidden
+				const bool bFunctionHidden = FObjectEditorUtils::IsFunctionHiddenFromClass(Function, Class);
+				if (!bFunctionHidden)
+				{
+					FK2ActionMenuBuilder::AddSpawnInfoForFunction(Function, false, TargetInfo, FMemberReference(), BaseCategory, K2Schema->AG_LevelReference, ListBuilder, bCalledForEach);
+				}
 			}
 		}
 
@@ -1653,39 +1699,6 @@ void FK2ActionMenuBuilder::GetAnimNotifyMenuItems(FBlueprintGraphActionListBuild
 
 				UK2Node_Event* EventNode = ContextMenuBuilder.CreateTemplateNode<UK2Node_Event>();
 				FString SignatureName = FString::Printf(TEXT("AnimNotify_%s"), *Label);
-				EventNode->EventSignatureName = FName(*SignatureName);
-				EventNode->EventSignatureClass = UAnimInstance::StaticClass();
-				EventNode->CustomFunctionName = EventNode->EventSignatureName;
-				Action->NodeTemplate = EventNode;
-			}
-
-			// @todo anim: fix this to be same as notifies, save same list in the 
-			// add montage menus
-			// find all montages that uses current target skeleton
-			TArray<FName> BrancingPointHandlers;
-
-			for ( FObjectIterator Iter(UAnimMontage::StaticClass()); Iter; ++Iter )
-			{
-				UAnimMontage * Montage = CastChecked<UAnimMontage>(*Iter);
-				if ( Montage && Montage->GetSkeleton() == AnimBlueprint->TargetSkeleton )
-				{
-					// now add event handler if exists
-					for ( int32 I=0; I<Montage->BranchingPoints.Num(); ++I )
-					{
-						BrancingPointHandlers.AddUnique(Montage->BranchingPoints[I].EventName);
-					}
-				}
-			}
-
-			for ( int32 I=0; I<BrancingPointHandlers.Num(); ++I )
-			{
-				FName NotifyName = BrancingPointHandlers[I];
-				FString Label = NotifyName.ToString();
-
-				TSharedPtr<FEdGraphSchemaAction_K2NewNode> Action = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, K2ActionCategories::BranchPointCategory, FText::FromString(Label), TEXT(""));
-
-				UK2Node_Event* EventNode = ContextMenuBuilder.CreateTemplateNode<UK2Node_Event>();
-				FString SignatureName = FString::Printf(TEXT("MontageBranchingPoint_%s"), *Label);
 				EventNode->EventSignatureName = FName(*SignatureName);
 				EventNode->EventSignatureClass = UAnimInstance::StaticClass();
 				EventNode->CustomFunctionName = EventNode->EventSignatureName;
@@ -2128,16 +2141,13 @@ void FK2ActionMenuBuilder::GetEventsForBlueprint(FBlueprintPaletteListBuilder& A
 //------------------------------------------------------------------------------
 void FK2ActionMenuBuilder::GetLiteralsFromActorSelection(FBlueprintGraphActionListBuilder& ContextMenuBuilder) const
 {
-	const ULevelScriptBlueprint* LevelBlueprint = CastChecked<ULevelScriptBlueprint>(ContextMenuBuilder.Blueprint);
-	check(LevelBlueprint);
-
 	USelection* SelectedActors = GEditor->GetSelectedActors();
 
 	TArray<AActor*> ValidActors;
 	for(FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
 	{
 		AActor* Actor = Cast<AActor>(*Iter);
-		if( K2Schema->IsActorValidForLevelScriptRefs(Actor, LevelBlueprint) )
+		if( K2Schema->IsActorValidForLevelScriptRefs(Actor, ContextMenuBuilder.Blueprint) )
 		{
 			ValidActors.Add( Actor );
 		}
@@ -2173,9 +2183,6 @@ void FK2ActionMenuBuilder::GetLiteralsFromActorSelection(FBlueprintGraphActionLi
 //------------------------------------------------------------------------------
 void FK2ActionMenuBuilder::GetBoundEventsFromActorSelection(FBlueprintGraphActionListBuilder& ContextMenuBuilder) const
 {
-	const ULevelScriptBlueprint* LevelBlueprint = CastChecked<ULevelScriptBlueprint>(ContextMenuBuilder.Blueprint);
-	check(LevelBlueprint != NULL);
-
 	USelection* SelectedActors = GEditor->GetSelectedActors();
 
 	TArray<AActor*> ValidActors;
@@ -2183,7 +2190,7 @@ void FK2ActionMenuBuilder::GetBoundEventsFromActorSelection(FBlueprintGraphActio
 	{
 		// We only care about actors that are referenced in the world for bound events
 		AActor* Actor = Cast<AActor>(*Iter);
-		if( K2Schema->IsActorValidForLevelScriptRefs(Actor, LevelBlueprint) )
+		if( K2Schema->IsActorValidForLevelScriptRefs(Actor, ContextMenuBuilder.Blueprint) )
 		{
 			ValidActors.Add( Actor );
 		}
@@ -2350,16 +2357,12 @@ void FK2ActionMenuBuilder::GetMatineeControllers(FBlueprintGraphActionListBuilde
 //------------------------------------------------------------------------------
 void FK2ActionMenuBuilder::GetFunctionCallsOnSelectedActors(FBlueprintGraphActionListBuilder& ContextMenuBuilder) const
 {
-	const ULevelScriptBlueprint* LevelBlueprint = CastChecked<ULevelScriptBlueprint>(ContextMenuBuilder.Blueprint);
-	ULevel* BlueprintLevel = LevelBlueprint->GetLevel();
-	check(BlueprintLevel != NULL);
-
 	USelection* SelectedActors = GEditor->GetSelectedActors();
 	TArray<AActor*> ValidActors;
 	for(FSelectionIterator Iter(*SelectedActors); Iter; ++Iter)
 	{
 		AActor* Actor = Cast<AActor>(*Iter);
-		if ( Actor != NULL && Actor->GetLevel() == BlueprintLevel && K2Schema->IsActorValidForLevelScriptRefs(Actor, LevelBlueprint) )
+		if ( K2Schema->IsActorValidForLevelScriptRefs(Actor, ContextMenuBuilder.Blueprint) )
 		{
 			ValidActors.Add( Actor );
 		}
@@ -2441,7 +2444,7 @@ void FK2ActionMenuBuilder::GetMacroTools(FBlueprintPaletteListBuilder& ActionMen
 	{
 		UBlueprint* MacroBP = *BlueprintIt;
 		if ((ActionMenuBuilder.Blueprint == MacroBP) || //add local Macros
-			(MacroBP->BlueprintType == BPTYPE_MacroLibrary) && (ActionMenuBuilder.Blueprint->ParentClass->IsChildOf(MacroBP->ParentClass)))
+			((MacroBP->BlueprintType == BPTYPE_MacroLibrary) && (ActionMenuBuilder.Blueprint->ParentClass->IsChildOf(MacroBP->ParentClass))))
 		{
 			for (TArray<UEdGraph*>::TIterator GraphIt(MacroBP->MacroGraphs); GraphIt; ++GraphIt)
 			{
@@ -2480,7 +2483,7 @@ void FK2ActionMenuBuilder::GetPinAllowedMacros(FBlueprintGraphActionListBuilder&
 	{
 		UBlueprint* MacroBP = *BlueprintIt;
 		if ((MacroBP == ContextMenuBuilder.Blueprint) || //let local macros be added
-			(MacroBP->BlueprintType == BPTYPE_MacroLibrary) && (ContextMenuBuilder.Blueprint->ParentClass->IsChildOf(MacroBP->ParentClass)))
+			((MacroBP->BlueprintType == BPTYPE_MacroLibrary) && (ContextMenuBuilder.Blueprint->ParentClass->IsChildOf(MacroBP->ParentClass))))
 		{
 			// getting 'top-level' of the macros
 			for (TArray<UEdGraph*>::TIterator GraphIt(MacroBP->MacroGraphs); GraphIt; ++GraphIt)
@@ -2561,7 +2564,7 @@ void FK2ActionMenuBuilder::GetFuncNodesWithPinType(FBlueprintGraphActionListBuil
 			if (K2Schema->CanUserKismetCallFunction(Function))
 			{
 				if ((false == bPureOnly || Function->HasAnyFunctionFlags(FUNC_BlueprintPure)) && 
-					K2Schema->FunctionHasParamOfType(Function, ClassBlueprint, DesiredPinType, bWantOutput)) 
+					K2Schema->FunctionHasParamOfType(Function, ContextMenuBuilder.CurrentGraph, DesiredPinType, bWantOutput)) 
 				{
 					const bool bShowMakeOnTop = bUseNativeMake && Function->HasMetaData(NativeMakeFunc);
 					const bool bShowBrakeOnTop = bUseNativeBrake && Function->HasMetaData(NativeBrakeFunc);

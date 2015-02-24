@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "FlipbookEditor.h"
@@ -45,7 +45,7 @@ class SFlipbookEditorViewport : public SEditorViewport, public ICommonEditorView
 {
 public:
 	SLATE_BEGIN_ARGS(SFlipbookEditorViewport)
-		: _FlipbookBeingEdited((UPaperFlipbook*)NULL)
+		: _FlipbookBeingEdited((UPaperFlipbook*)nullptr)
 	{}
 
 		SLATE_ATTRIBUTE( UPaperFlipbook*, FlipbookBeingEdited )
@@ -180,7 +180,7 @@ public:
 	{
 		FlipbookEditorPtr = InFlipbookEditor;
 
-		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments());
+		SSingleObjectDetailsPanel::Construct(SSingleObjectDetailsPanel::FArguments(), /*bAutomaticallyObserveViaGetObjectToObserve=*/ true, /*bAllowSearch=*/ true);
 	}
 
 	// SSingleObjectDetailsPanel interface

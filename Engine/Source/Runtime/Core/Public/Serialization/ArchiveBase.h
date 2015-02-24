@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -532,11 +532,6 @@ public:
 	VARARG_DECL(void, void, {}, Logf, VARARG_NONE, const TCHAR*, VARARG_NONE, VARARG_NONE);
 
 	// Status accessors.
-	FORCEINLINE int32 UE3Ver() const
-	{ 
-		return ArUE3Ver;
-	}
-
 	FORCEINLINE int32 NetVer() const
 	{
 		return ArNetVer & 0x7fffffff;
@@ -558,7 +553,7 @@ public:
 	 *
 	 * @param Guid The guid of the custom version.  This must have previously been registered with FCustomVersionRegistration.
 	 */
-	void UsingCustomVersion(FGuid Guid);
+	void UsingCustomVersion(const struct FGuid& Guid);
 
 	/**
 	 * Queries a custom version from the archive.  If the archive is being used to write, the custom version must have already been registered.
@@ -566,7 +561,7 @@ public:
 	 * @param Key The guid of the custom version to query.
 	 * @return The version number, or 0 if the custom tag isn't stored in the archive.
 	 */
-	int32 CustomVer(FGuid Key) const;
+	int32 CustomVer(const struct FGuid& Key) const;
 
 	FORCEINLINE bool IsLoading() const
 	{
@@ -711,21 +706,10 @@ public:
 	}
 
 	/**
-	 * Sets the archive version number. Used by the code that makes sure that ULinkerLoad's internal 
-	 * archive versions match the file reader it creates.
-	 *
-	 * @param UE3Ver	new version number
-	 */
-	void SetUE3Ver(int32 InVer)
-	{
-		ArUE3Ver = InVer;
-	}
-
-	/**
 	 * Sets the archive licensee version number. Used by the code that makes sure that ULinkerLoad's 
 	 * internal archive versions match the file reader it creates.
 	 *
-	 * @param UE3Ver	new version number
+	 * @param UE4Ver	new version number
 	 */
 	void SetUE4Ver(int32 InVer)
 	{
@@ -767,7 +751,7 @@ public:
 	 * @param Version - The version number to set key to
 	 * @param FriendlyName - Friendly name corresponding to the key
 	 */
-	void SetCustomVersion(FGuid Key, int32 Version, FString FriendlyName);
+	void SetCustomVersion(const struct FGuid& Key, int32 Version, FString FriendlyName);
 
 	/**
 	 * Toggle saving as Unicode. This is needed when we need to make sure ANSI strings are saved as Unicode
@@ -887,6 +871,14 @@ public:
 	}
 
 	/**
+	 * Checks whether the archive wants to skip the property independent of the other flags
+	 */
+	virtual bool ShouldSkipProperty(const class UProperty* InProperty) const
+	{
+		return false;
+	}
+
+	/**
 	 * Sets the property that is currently being serialized
 	 * 
 	 * @param InProperty Pointer to the property that is currently being serialized
@@ -917,9 +909,6 @@ private:
 	void CopyTrivialFArchiveStatusMembers(const FArchive& ArchiveStatusToCopy);
 
 protected:
-
-	/** Status variables. */
-	int32 ArUE3Ver;
 
 	/** Holds the archive's network version. */
 	int32 ArNetVer;

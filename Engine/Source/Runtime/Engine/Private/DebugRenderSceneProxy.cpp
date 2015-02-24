@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DebugRenderSceneProxy.h: Useful scene proxy for rendering non performance-critical information.
@@ -7,14 +7,18 @@
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "DynamicMeshBuilder.h"
 #include "DebugRenderSceneProxy.h"
+#include "Debug/DebugDrawService.h"
 
 // FPrimitiveSceneProxy interface.
 
 FDebugRenderSceneProxy::FDebugRenderSceneProxy(const UPrimitiveComponent* InComponent) 
 	: FPrimitiveSceneProxy(InComponent)
 	, ViewFlagIndex(uint32(FEngineShowFlags::FindIndexByName(TEXT("Game"))))
+	, ViewFlagName(TEXT("Game"))
 	, TextWithoutShadowDistance(1500)
+	, DrawType(WireMesh)
 {
 
 }
@@ -22,14 +26,14 @@ FDebugRenderSceneProxy::FDebugRenderSceneProxy(const UPrimitiveComponent* InComp
 void FDebugRenderSceneProxy::RegisterDebugDrawDelgate()
 {
 	DebugTextDrawingDelegate = FDebugDrawDelegate::CreateRaw(this, &FDebugRenderSceneProxy::DrawDebugLabels);
-	UDebugDrawService::Register(*ViewFlagName, DebugTextDrawingDelegate);
+	DebugTextDrawingDelegateHandle = UDebugDrawService::Register(*ViewFlagName, DebugTextDrawingDelegate);
 }
 
 void FDebugRenderSceneProxy::UnregisterDebugDrawDelgate()
 {
 	if (DebugTextDrawingDelegate.IsBound())
 	{
-		UDebugDrawService::Unregister(DebugTextDrawingDelegate);
+		UDebugDrawService::Unregister(DebugTextDrawingDelegateHandle);
 	}
 }
 
@@ -41,8 +45,8 @@ uint32 FDebugRenderSceneProxy::GetAllocatedSize(void) const
 		Stars.GetAllocatedSize() + 
 		DashedLines.GetAllocatedSize() + 
 		Lines.GetAllocatedSize() + 
-		WireBoxes.GetAllocatedSize() + 
-		SolidSpheres.GetAllocatedSize() +
+		Boxes.GetAllocatedSize() + 
+		Spheres.GetAllocatedSize() +
 		Texts.GetAllocatedSize();
 }
 
@@ -75,158 +79,6 @@ void FDebugRenderSceneProxy::GetDynamicMeshElements(const TArray<const FSceneVie
 {
 	QUICK_SCOPE_CYCLE_COUNTER( STAT_DebugRenderSceneProxy_GetDynamicMeshElements );
 
-	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
-	{
-		if (VisibilityMap & (1 << ViewIndex))
-		{
-			const FSceneView* View = Views[ViewIndex];
-			FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
-
-			// Draw Lines
-			for(int32 LineIdx=0; LineIdx<Lines.Num(); LineIdx++)
-			{
-				const FDebugLine& Line = Lines[LineIdx];
-
-				PDI->DrawLine(Line.Start, Line.End, Line.Color, SDPG_World);
-			}
-
-			// Draw Arrows
-			for(int32 LineIdx=0; LineIdx<ArrowLines.Num(); LineIdx++)
-			{
-				const FArrowLine &Line = ArrowLines[LineIdx];
-
-				DrawLineArrow(PDI, Line.Start, Line.End, Line.Color, 8.0f);
-			}
-
-			// Draw Cylinders
-			for(int32 CylinderIdx=0; CylinderIdx<Cylinders.Num(); CylinderIdx++)
-			{
-				const FWireCylinder& Cylinder = Cylinders[CylinderIdx];
-
-				DrawWireCylinder( PDI, Cylinder.Base, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1),
-					Cylinder.Color, Cylinder.Radius, Cylinder.HalfHeight, 16, SDPG_World );
-			}
-
-			// Draw Stars
-			for(int32 StarIdx=0; StarIdx<Stars.Num(); StarIdx++)
-			{
-				const FWireStar& Star = Stars[StarIdx];
-
-				DrawWireStar(PDI, Star.Position, Star.Size, Star.Color, SDPG_World);
-			}
-
-			// Draw Dashed Lines
-			for(int32 DashIdx=0; DashIdx<DashedLines.Num(); DashIdx++)
-			{
-				const FDashedLine& Dash = DashedLines[DashIdx];
-
-				DrawDashedLine(PDI, Dash.Start, Dash.End, Dash.Color, Dash.DashSize, SDPG_World);
-			}
-
-			// Draw Boxes
-			for(int32 BoxIdx=0; BoxIdx<WireBoxes.Num(); BoxIdx++)
-			{
-				const FDebugBox& Box = WireBoxes[BoxIdx];
-
-				DrawWireBox( PDI, Box.Box, Box.Color, SDPG_World);
-			}
-
-			// Draw solid spheres
-			struct FMaterialCache
-			{
-				FMaterialCache() {}
-
-				FMaterialRenderProxy* operator[](FLinearColor Color) const
-				{
-					FMaterialRenderProxy* MeshColor = NULL;
-					const uint32 HashKey = GetTypeHash(Color);
-					if (MeshColorInstances.Contains(HashKey))
-					{
-						MeshColor = *MeshColorInstances.Find(HashKey);
-					}
-					else
-					{
-						MeshColor = new(FMemStack::Get()) FColoredMaterialRenderProxy(GEngine->DebugMeshMaterial->GetRenderProxy(false), Color);
-						MeshColorInstances.Add(HashKey, MeshColor);
-					}
-
-					return MeshColor;
-				}
-
-				mutable TMap<uint32, FMaterialRenderProxy*> MeshColorInstances;
-			};
-			const FMaterialCache MaterialCache;
-
-			for (auto It = SolidSpheres.CreateConstIterator(); It; ++It)
-			{
-				if (PointInView(It->Location, View))
-				{
-					GetSphereMesh(It->Location, FVector(It->Radius), 10, 7, MaterialCache[It->Color], SDPG_World, false, ViewIndex, Collector);
-				}
-			}
-		}
-	}
-}
-
-/** 
-* Draw the scene proxy as a dynamic element
-*
-* @param	PDI - draw interface to render to
-* @param	View - current view
-*/
-void FDebugRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-{
-	QUICK_SCOPE_CYCLE_COUNTER( STAT_DebugRenderSceneProxy_DrawDynamicElements );
-
-	// Draw Lines
-	for(int32 LineIdx=0; LineIdx<Lines.Num(); LineIdx++)
-	{
-		FDebugLine& Line = Lines[LineIdx];
-
-		PDI->DrawLine(Line.Start, Line.End, Line.Color, SDPG_World);
-	}
-
-	// Draw Arrows
-	for(int32 LineIdx=0; LineIdx<ArrowLines.Num(); LineIdx++)
-	{
-		FArrowLine &Line = ArrowLines[LineIdx];
-
-		DrawLineArrow(PDI, Line.Start, Line.End, Line.Color, 8.0f);
-	}
-
-	// Draw Cylinders
-	for(int32 CylinderIdx=0; CylinderIdx<Cylinders.Num(); CylinderIdx++)
-	{
-		FWireCylinder& Cylinder = Cylinders[CylinderIdx];
-
-		DrawWireCylinder( PDI, Cylinder.Base, FVector(1,0,0), FVector(0,1,0), FVector(0,0,1),
-			Cylinder.Color, Cylinder.Radius, Cylinder.HalfHeight, 16, SDPG_World );
-	}
-
-	// Draw Stars
-	for(int32 StarIdx=0; StarIdx<Stars.Num(); StarIdx++)
-	{
-		FWireStar& Star = Stars[StarIdx];
-
-		DrawWireStar(PDI, Star.Position, Star.Size, Star.Color, SDPG_World);
-	}
-
-	// Draw Dashed Lines
-	for(int32 DashIdx=0; DashIdx<DashedLines.Num(); DashIdx++)
-	{
-		FDashedLine& Dash = DashedLines[DashIdx];
-
-		DrawDashedLine(PDI, Dash.Start, Dash.End, Dash.Color, Dash.DashSize, SDPG_World);
-	}
-
-	// Draw Boxes
-	for(int32 BoxIdx=0; BoxIdx<WireBoxes.Num(); BoxIdx++)
-	{
-		FDebugBox& Box = WireBoxes[BoxIdx];
-
-		DrawWireBox( PDI, Box.Box, Box.Color, SDPG_World);
-	}
-
 	// Draw solid spheres
 	struct FMaterialCache
 	{
@@ -253,17 +105,133 @@ void FDebugRenderSceneProxy::DrawDynamicElements(FPrimitiveDrawInterface* PDI,co
 	};
 	const FMaterialCache MaterialCache;
 
-	for (auto It = SolidSpheres.CreateConstIterator(); It; ++It)
+	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
-		if (PointInView(It->Location, View))
+		if (VisibilityMap & (1 << ViewIndex))
 		{
-			DrawSphere(PDI, It->Location, FVector(It->Radius), 10, 7, MaterialCache[It->Color], SDPG_World);
+			const FSceneView* View = Views[ViewIndex];
+			FPrimitiveDrawInterface* PDI = Collector.GetPDI(ViewIndex);
+
+			// Draw Lines
+			const int32 LinesNum = Lines.Num();
+			PDI->AddReserveLines(SDPG_World, LinesNum, false, false);
+			for (const auto& CurrentLine : Lines)
+			{
+				PDI->DrawLine(CurrentLine.Start, CurrentLine.End, CurrentLine.Color, SDPG_World, CurrentLine.Thickness, 0, CurrentLine.Thickness > 0);
+			}
+
+			// Draw Dashed Lines
+			for(int32 DashIdx=0; DashIdx<DashedLines.Num(); DashIdx++)
+			{
+				const FDashedLine& Dash = DashedLines[DashIdx];
+
+				DrawDashedLine(PDI, Dash.Start, Dash.End, Dash.Color, Dash.DashSize, SDPG_World);
+			}
+
+			// Draw Arrows
+			const uint32 ArrowsNum = ArrowLines.Num();
+			PDI->AddReserveLines(SDPG_World, 5 * ArrowsNum, false, false);
+			for (const auto& CurrentArrow : ArrowLines)
+			{
+				DrawLineArrow(PDI, CurrentArrow.Start, CurrentArrow.End, CurrentArrow.Color, 8.0f);
+			}
+
+			// Draw Stars
+			for(int32 StarIdx=0; StarIdx<Stars.Num(); StarIdx++)
+			{
+				const FWireStar& Star = Stars[StarIdx];
+
+				DrawWireStar(PDI, Star.Position, Star.Size, Star.Color, SDPG_World);
+			}
+
+			// Draw Cylinders
+			for(const auto& Cylinder : Cylinders)
+			{
+				if (DrawType & SolidAndWireMeshes || DrawType & WireMesh)
+				{
+					DrawWireCylinder(PDI, Cylinder.Base, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Cylinder.Color, Cylinder.Radius, Cylinder.HalfHeight, (DrawType & SolidAndWireMeshes) ? 9 : 16, SDPG_World, DrawType & SolidAndWireMeshes ? 2 : 0, 0, true);
+				}
+
+				if (DrawType & SolidAndWireMeshes || DrawType & SolidMesh)
+				{
+					GetCylinderMesh(Cylinder.Base, FVector(1, 0, 0), FVector(0, 1, 0), FVector(0, 0, 1), Cylinder.Radius, Cylinder.HalfHeight, 16, MaterialCache[Cylinder.Color.WithAlpha(60)], SDPG_World, ViewIndex, Collector);
+				}
+			}
+
+			// Draw Boxes
+			for(const auto& Box :  Boxes)
+			{
+				if (DrawType & SolidAndWireMeshes || DrawType & WireMesh)
+				{
+					DrawWireBox(PDI, Box.Box, Box.Color, SDPG_World, DrawType & SolidAndWireMeshes ? 2 : 0, 0, true);
+				}
+				if (DrawType & SolidAndWireMeshes || DrawType & SolidMesh)
+				{
+					GetBoxMesh(FTransform(Box.Box.GetCenter()).ToMatrixNoScale(), Box.Box.GetExtent(), MaterialCache[Box.Color.WithAlpha(60)], SDPG_World, ViewIndex, Collector);
+				}
+			}
+
+			// Draw Boxes
+			TArray<FVector> Verts;
+			for (auto& CurrentCone : Cones)
+			{
+				if (DrawType & SolidAndWireMeshes || DrawType & WireMesh)
+				{
+					DrawWireCone(PDI, Verts, CurrentCone.ConeToWorld, 1, CurrentCone.Angle2, (DrawType & SolidAndWireMeshes) ? 9 : 16, CurrentCone.Color, SDPG_World, DrawType & SolidAndWireMeshes ? 2 : 0, 0, true);
+				}
+				if (DrawType & SolidAndWireMeshes || DrawType & SolidMesh)
+				{
+					GetConeMesh(CurrentCone.ConeToWorld, CurrentCone.Angle1, CurrentCone.Angle2, 16, MaterialCache[CurrentCone.Color.WithAlpha(60)], SDPG_World, ViewIndex, Collector);
+				}
+			}
+
+			for (auto It = Spheres.CreateConstIterator(); It; ++It)
+			{
+				if (PointInView(It->Location, View))
+				{
+					if (DrawType & SolidAndWireMeshes || DrawType & WireMesh)
+					{
+						DrawWireSphere(PDI, It->Location, It->Color.WithAlpha(255), It->Radius, 20, SDPG_World, DrawType & SolidAndWireMeshes ? 2 : 0, 0, true);
+					}
+					if (DrawType & SolidAndWireMeshes || DrawType & SolidMesh)
+					{
+						GetSphereMesh(It->Location, FVector(It->Radius), 20, 7, MaterialCache[It->Color.WithAlpha(60)], SDPG_World, false, ViewIndex, Collector);
+					}
+				}
+			}
+
+			for (auto It = Capsles.CreateConstIterator(); It; ++It)
+			{
+				if (PointInView(It->Location, View))
+				{
+					if (DrawType & SolidAndWireMeshes || DrawType & WireMesh)
+					{
+						const float HalfAxis = FMath::Max<float>(It->HalfHeight - It->Radius, 1.f);
+						const FVector BottomEnd = It->Location + It->Radius * It->Z;
+						const FVector TopEnd = BottomEnd + (2 * HalfAxis) * It->Z;
+						const float CylinderHalfHeight = (TopEnd - BottomEnd).Size() * 0.5;
+						const FVector CylinderLocation = BottomEnd + CylinderHalfHeight * It->Z;
+						DrawWireCapsule(PDI, CylinderLocation, It->X, It->Y, It->Z, It->Color, It->Radius, It->HalfHeight, (DrawType & SolidAndWireMeshes) ? 9 : 16, SDPG_World, DrawType & SolidAndWireMeshes ? 2 : 0, 0, true);
+					}
+					if (DrawType & SolidAndWireMeshes || DrawType & SolidMesh)
+					{
+						GetCapsuleMesh(It->Location, It->X, It->Y, It->Z, It->Color, It->Radius, It->HalfHeight, 16, MaterialCache[It->Color.WithAlpha(60)], SDPG_World, false, ViewIndex, Collector);
+					}
+				}
+			}
+
+			for (const auto& Mesh : Meshes)
+			{
+				FDynamicMeshBuilder MeshBuilder;
+				MeshBuilder.AddVertices(Mesh.Vertices);
+				MeshBuilder.AddTriangles(Mesh.Indices);
+
+				MeshBuilder.GetMesh(FMatrix::Identity, MaterialCache[Mesh.Color.WithAlpha(60)], SDPG_World, false, false, ViewIndex, Collector);
+			}
+
 		}
 	}
-
 }
-
-
 
 /**
 * Draws a line with an arrow at the end.

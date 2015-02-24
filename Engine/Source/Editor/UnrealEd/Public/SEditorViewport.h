@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -63,7 +63,7 @@ protected:
 	 *
 	 * @param CommandName				Name of the command
 	 */
-	virtual void ToggleStatCommand(FString CommandName){}
+	virtual void ToggleStatCommand(FString CommandName);
 
 	/**
 	 * Checks if Stat command is visible in this viewport
@@ -71,6 +71,21 @@ protected:
 	 * @param CommandName				Name of the command
 	 */
 	virtual bool IsStatCommandVisible(FString CommandName) const;
+
+	/**
+	 * Toggles a show flag in this viewport
+	 *
+	 * @param EngineShowFlagIndex	the ID to toggle
+	 */
+	void ToggleShowFlag( uint32 EngineShowFlagIndex );
+
+	/**
+	 * Checks if a show flag is enabled in this viewport
+	 *
+	 * @param EngineShowFlagIndex	the ID to check
+	 * @return true if the show flag is enabled, false otherwise
+	 */
+	bool IsShowFlagEnabled( uint32 EngineShowFlagIndex ) const;
 
 	/**
 	 * Changes the exposure setting for this viewport
@@ -125,6 +140,8 @@ protected:
 	 */
 	virtual void OnFocusViewportToSelection(){}
 
+	/** Gets the world this viewport is for */
+	virtual UWorld* GetWorld() const;
 
 	/**
 	 * Called when surface snapping has been enabled/disabled

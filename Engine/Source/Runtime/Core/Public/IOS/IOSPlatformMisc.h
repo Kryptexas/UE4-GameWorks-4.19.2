@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	IOSPlatformMisc.h: iOS platform misc functions
@@ -52,6 +52,15 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 	}
 #endif
 
+	/** Break into debugger. Returning false allows this function to be used in conditionals. */
+	FORCEINLINE static bool DebugBreakReturningFalse()
+	{
+#if !UE_BUILD_SHIPPING
+		DebugBreak();
+#endif
+		return false;
+	}
+
 	FORCEINLINE static void MemoryBarrier()
 	{
 		OSMemoryBarrier();
@@ -95,6 +104,7 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 		IOS_IPadMini,
 		IOS_IPadMini2,
 		IOS_IPadAir,
+		IOS_IPadAir2,
 		IOS_IPhone6,
 		IOS_IPhone6Plus,
 		IOS_Unknown,
@@ -117,6 +127,7 @@ struct CORE_API FIOSPlatformMisc : public FGenericPlatformMisc
 			L"IPadMini",
 			L"IPadMini2",
 			L"IPadAir",
+			L"IPadAir2",
 			L"IPhone6",
 			L"IPhone6Plus",
 			L"Unknown",

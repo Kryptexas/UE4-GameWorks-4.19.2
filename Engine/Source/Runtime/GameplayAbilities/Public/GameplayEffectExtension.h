@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,9 +10,8 @@
 
 struct FGameplayEffectModCallbackData
 {
-	FGameplayEffectModCallbackData(const FGameplayEffectSpec& InEffectSpec, const FModifierSpec& InModifierSpec, FGameplayModifierEvaluatedData& InEvaluatedData, UAbilitySystemComponent& InTarget)
+	FGameplayEffectModCallbackData(const FGameplayEffectSpec& InEffectSpec, FGameplayModifierEvaluatedData& InEvaluatedData, UAbilitySystemComponent& InTarget)
 		: EffectSpec(InEffectSpec)
-		, ModifierSpec(InModifierSpec)
 		, EvaluatedData(InEvaluatedData)
 		, Target(InTarget)
 	{
@@ -20,7 +19,6 @@ struct FGameplayEffectModCallbackData
 	}
 
 	const struct FGameplayEffectSpec&		EffectSpec;		// The spec that the mod came from
-	const struct FModifierSpec&				ModifierSpec;	// The mod we are going to apply
 	struct FGameplayModifierEvaluatedData&	EvaluatedData;	// The 'flat'/computed data to be applied to the target
 
 	class UAbilitySystemComponent &Target;		// Target we intend to apply to

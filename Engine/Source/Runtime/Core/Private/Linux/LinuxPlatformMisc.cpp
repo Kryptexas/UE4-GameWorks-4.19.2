@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GenericPlatformMisc.cpp: Generic implementations of misc platform functions
@@ -124,6 +124,7 @@ void FLinuxPlatformMisc::PlatformInit()
 	UE_LOG(LogInit, Log, TEXT(" - this process' id (pid) is %d, parent process' id (ppid) is %d"), static_cast< int32 >(getpid()), static_cast< int32 >(getppid()));
 	UE_LOG(LogInit, Log, TEXT(" - we are %srunning under debugger"), IsDebuggerPresent() ? TEXT("") : TEXT("not "));
 	UE_LOG(LogInit, Log, TEXT(" - machine network name is '%s'"), FPlatformProcess::ComputerName());
+	UE_LOG(LogInit, Log, TEXT(" - we're logged in %s"), FPlatformMisc::HasBeenStartedRemotely() ? TEXT("remotely") : TEXT("locally"));
 	UE_LOG(LogInit, Log, TEXT(" - Number of physical cores available for the process: %d"), FPlatformMisc::NumberOfCores());
 	UE_LOG(LogInit, Log, TEXT(" - Number of logical cores available for the process: %d"), FPlatformMisc::NumberOfCoresIncludingHyperthreads());
 	UE_LOG(LogInit, Log, TEXT(" - Memory allocator used: %s"), GMalloc->GetDescriptiveName());
@@ -145,6 +146,12 @@ void FLinuxPlatformMisc::PlatformInit()
 	{
 		PlatformInitMultimedia();
 	}
+
+	if (FPlatformMisc::HasBeenStartedRemotely())
+	{
+		// print output immediately
+		setvbuf(stdout, NULL, _IONBF, 0);
+	}
 }
 
 bool FLinuxPlatformMisc::PlatformInitMultimedia()
@@ -161,6 +168,9 @@ bool FLinuxPlatformMisc::PlatformInitMultimedia()
 			return false;
 		}
 
+		// Used to make SDL push SDL_TEXTINPUT events.
+		SDL_StartTextInput();
+
 		GInitializedSDL = true;
 
 		// needs to come after GInitializedSDL, otherwise it will recurse here
@@ -170,33 +180,7 @@ bool FLinuxPlatformMisc::PlatformInitMultimedia()
 			// dump information about screens for debug
 			FDisplayMetrics DisplayMetrics;
 			FDisplayMetrics::GetDisplayMetrics(DisplayMetrics);
-			
-			UE_LOG(LogInit, Log, TEXT("Display metrics:"));
-			UE_LOG(LogInit, Log, TEXT("  PrimaryDisplayWidth: %d"), DisplayMetrics.PrimaryDisplayWidth);
-			UE_LOG(LogInit, Log, TEXT("  PrimaryDisplayHeight: %d"), DisplayMetrics.PrimaryDisplayHeight);
-			UE_LOG(LogInit, Log, TEXT("  PrimaryDisplayWorkAreaRect:"));
-			UE_LOG(LogInit, Log, TEXT("    Left=%d, Top=%d, Right=%d, Bottom=%d"), 
-				DisplayMetrics.PrimaryDisplayWorkAreaRect.Left, DisplayMetrics.PrimaryDisplayWorkAreaRect.Top, 
-				DisplayMetrics.PrimaryDisplayWorkAreaRect.Right, DisplayMetrics.PrimaryDisplayWorkAreaRect.Bottom);
-			UE_LOG(LogInit, Log, TEXT("  VirtualDisplayRect:"));
-			UE_LOG(LogInit, Log, TEXT("    Left=%d, Top=%d, Right=%d, Bottom=%d"), 
-				DisplayMetrics.VirtualDisplayRect.Left, DisplayMetrics.VirtualDisplayRect.Top, 
-				DisplayMetrics.VirtualDisplayRect.Right, DisplayMetrics.VirtualDisplayRect.Bottom);
-			UE_LOG(LogInit, Log, TEXT("  TitleSafePaddingSize: %s"), *DisplayMetrics.TitleSafePaddingSize.ToString());
-			UE_LOG(LogInit, Log, TEXT("  ActionSafePaddingSize: %s"), *DisplayMetrics.ActionSafePaddingSize.ToString());
-
-			const int NumMonitors = DisplayMetrics.MonitorInfo.Num();
-			UE_LOG(LogInit, Log, TEXT("  Number of monitors: %d"), NumMonitors);
-			for (int MonitorIdx = 0; MonitorIdx < NumMonitors; ++MonitorIdx)
-			{
-				const FMonitorInfo & MonitorInfo = DisplayMetrics.MonitorInfo[MonitorIdx];
-				UE_LOG(LogInit, Log, TEXT("    Monitor %d"), MonitorIdx);
-				UE_LOG(LogInit, Log, TEXT("      Name: %s"), *MonitorInfo.Name);
-				UE_LOG(LogInit, Log, TEXT("      ID: %s"), *MonitorInfo.ID);
-				UE_LOG(LogInit, Log, TEXT("      NativeWidth: %d"), MonitorInfo.NativeWidth);
-				UE_LOG(LogInit, Log, TEXT("      NativeHeight: %d"), MonitorInfo.NativeHeight);
-				UE_LOG(LogInit, Log, TEXT("      bIsPrimary: %s"), MonitorInfo.bIsPrimary ? TEXT("true") : TEXT("false"));
-			}
+			DisplayMetrics.PrintToLog();
 		}
 	}
 
@@ -484,47 +468,54 @@ EAppReturnType::Type FLinuxPlatformMisc::MessageBoxExt(EAppMsgType::Type MsgType
 
 int32 FLinuxPlatformMisc::NumberOfCores()
 {
-	cpu_set_t AvailableCpusMask;
-	CPU_ZERO(&AvailableCpusMask);
-
-	if (0 != sched_getaffinity(0, sizeof(AvailableCpusMask), &AvailableCpusMask))
+	// WARNING: this function ignores edge cases like affinity mask changes (and even more fringe cases like CPUs going offline)
+	// in the name of performance (higher level code calls NumberOfCores() way too often...)
+	static int32 NumCoreIds = 0;
+	if (NumCoreIds == 0)
 	{
-		return 1;	// we are running on something, right?
-	}
+		cpu_set_t AvailableCpusMask;
+		CPU_ZERO(&AvailableCpusMask);
 
-	char FileNameBuffer[1024];
-	unsigned char PossibleCores[CPU_SETSIZE] = { 0 };
-
-	for(int32 CpuIdx = 0; CpuIdx < CPU_SETSIZE; ++CpuIdx)
-	{
-		if (CPU_ISSET(CpuIdx, &AvailableCpusMask))
+		if (0 != sched_getaffinity(0, sizeof(AvailableCpusMask), &AvailableCpusMask))
 		{
-			sprintf(FileNameBuffer, "/sys/devices/system/cpu/cpu%d/topology/core_id", CpuIdx);
-			
-			FILE* CoreIdFile = fopen(FileNameBuffer, "r");
-			unsigned int CoreId = 0;
-			if (CoreIdFile)
-			{
-				if (1 != fscanf(CoreIdFile, "%d", &CoreId))
-				{
-					CoreId = 0;
-				}
-				fclose(CoreIdFile);
-			}
-
-			if (CoreId >= ARRAY_COUNT(PossibleCores))
-			{
-				CoreId = 0;
-			}
-			
-			PossibleCores[ CoreId ] = 1;
+			NumCoreIds = 1;	// we are running on something, right?
 		}
-	}
+		else
+		{
+			char FileNameBuffer[1024];
+			unsigned char PossibleCores[CPU_SETSIZE] = { 0 };
 
-	int32 NumCoreIds = 0;
-	for(int32 Idx = 0; Idx < ARRAY_COUNT(PossibleCores); ++Idx)
-	{
-		NumCoreIds += PossibleCores[Idx];
+			for(int32 CpuIdx = 0; CpuIdx < CPU_SETSIZE; ++CpuIdx)
+			{
+				if (CPU_ISSET(CpuIdx, &AvailableCpusMask))
+				{
+					sprintf(FileNameBuffer, "/sys/devices/system/cpu/cpu%d/topology/core_id", CpuIdx);
+					
+					FILE* CoreIdFile = fopen(FileNameBuffer, "r");
+					unsigned int CoreId = 0;
+					if (CoreIdFile)
+					{
+						if (1 != fscanf(CoreIdFile, "%d", &CoreId))
+						{
+							CoreId = 0;
+						}
+						fclose(CoreIdFile);
+					}
+
+					if (CoreId >= ARRAY_COUNT(PossibleCores))
+					{
+						CoreId = 0;
+					}
+					
+					PossibleCores[ CoreId ] = 1;
+				}
+			}
+
+			for(int32 Idx = 0; Idx < ARRAY_COUNT(PossibleCores); ++Idx)
+			{
+				NumCoreIds += PossibleCores[Idx];
+			}
+		}
 	}
 
 	return NumCoreIds;
@@ -532,15 +523,25 @@ int32 FLinuxPlatformMisc::NumberOfCores()
 
 int32 FLinuxPlatformMisc::NumberOfCoresIncludingHyperthreads()
 {
-	cpu_set_t AvailableCpusMask;
-	CPU_ZERO(&AvailableCpusMask);
-
-	if (0 != sched_getaffinity(0, sizeof(AvailableCpusMask), &AvailableCpusMask))
+	// WARNING: this function ignores edge cases like affinity mask changes (and even more fringe cases like CPUs going offline)
+	// in the name of performance (higher level code calls NumberOfCores() way too often...)
+	static int32 NumCoreIds = 0;
+	if (NumCoreIds == 0)
 	{
-		return 1;	// we are running on something, right?
+		cpu_set_t AvailableCpusMask;
+		CPU_ZERO(&AvailableCpusMask);
+
+		if (0 != sched_getaffinity(0, sizeof(AvailableCpusMask), &AvailableCpusMask))
+		{
+			NumCoreIds = 1;	// we are running on something, right?
+		}
+		else
+		{
+			return CPU_COUNT(&AvailableCpusMask);
+		}
 	}
 
-	return CPU_COUNT(&AvailableCpusMask);
+	return NumCoreIds;
 }
 
 void FLinuxPlatformMisc::LoadPreInitModules()
@@ -644,3 +645,18 @@ bool FLinuxPlatformMisc::IsDebuggerPresent()
 	return bDebugging;
 }
 #endif // !UE_BUILD_SHIPPING
+
+bool FLinuxPlatformMisc::HasBeenStartedRemotely()
+{
+	static bool bHaveAnswer = false;
+	static bool bResult = false;
+
+	if (!bHaveAnswer)
+	{
+		const char * VarValue = secure_getenv("SSH_CONNECTION");
+		bResult = (VarValue && strlen(VarValue) != 0);
+		bHaveAnswer = true;
+	}
+
+	return bResult;
+}

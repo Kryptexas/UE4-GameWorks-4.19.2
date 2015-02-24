@@ -1,5 +1,6 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
+#include "Lightmass/LightmassPrimitiveSettingsObject.h"
 
 /** 
  * Surface Properties
@@ -159,13 +160,13 @@ private:
 	 * Called by the Preserve Scaling Ratio control when clicked
 	 * @param NewState			- The new state which the control has entered into
 	 */
-	void OnPreserveScaleRatioToggled( ESlateCheckBoxState::Type NewState );
+	void OnPreserveScaleRatioToggled( ECheckBoxState NewState );
 
 	/** 
 	 * called by the Preserve scaling ratio control to determine whether or not the control is toggled
 	 * @returns The appropriate Checked state for whether the control is toggled
 	 */
-	ESlateCheckBoxState::Type IsPreserveScaleRatioChecked() const;
+	ECheckBoxState IsPreserveScaleRatioChecked() const;
 
 	/** 
 	 * Constructs the internal Table rows of the Scale combobuttons menu. 
@@ -210,14 +211,14 @@ private:
 	 * Returns the correct checkbox state for the specified texture channels panning state.
 	 * @param Channel			- Texture Coordinate Channel this control operates on.
 	 */
-	ESlateCheckBoxState::Type IsUsingNegativePanning( TextureCoordChannel Channel ) const;
+	ECheckBoxState IsUsingNegativePanning( TextureCoordChannel Channel ) const;
 
 	/** 
 	 * Toggles the specified texture channels panning state.
 	 * @param NewState			- State of the toggled control. 
 	 * @param Channel			- Texture Coordinate Channel this control operates on.
 	 */
-	void OnTogglePanningDirection( ESlateCheckBoxState::Type NewState, TextureCoordChannel Channel );
+	void OnTogglePanningDirection( ECheckBoxState NewState, TextureCoordChannel Channel );
 
 	/** 
 	 * Returns the image to display on the Toggle Rotation Direction control.
@@ -227,13 +228,13 @@ private:
 	/** 
 	 * Returns the correct checkbox state for the current rotation directions state.
 	 */
-	ESlateCheckBoxState::Type IsUsingNegativeRotation() const;
+	ECheckBoxState IsUsingNegativeRotation() const;
 
 	/** 
 	 * Toggles the Rotation directions state.
 	 * @param NewValue			- Rotation value to be applied. 
 	 */
-	void OnToggleRotationDirection( ESlateCheckBoxState::Type NewState );
+	void OnToggleRotationDirection( ECheckBoxState NewState );
 
 	/** typedef to make it easier to handle the lightmass objects */
 	typedef TArray<ULightmassPrimitiveSettingsObject*> TLightmassSettingsObjectArray;

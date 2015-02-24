@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "K2Node_GetInputAxisKeyValue.h"
@@ -11,6 +11,7 @@ class UK2Node_GetInputVectorAxisValue : public UK2Node_GetInputAxisKeyValue
 
 	// Begin EdGraphNode interface
 	virtual FText GetTooltipText() const override;
+	virtual FString GetKeywords() const override;
 	// End EdGraphNode interface
 
 	// Begin UK2Node interface

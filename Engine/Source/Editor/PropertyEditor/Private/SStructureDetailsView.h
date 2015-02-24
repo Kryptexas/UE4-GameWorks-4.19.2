@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "SDetailsViewBase.h"
@@ -6,9 +6,9 @@
 
 class SStructureDetailsView : public SDetailsViewBase, public IStructureDetailsView
 {
-	TSharedPtr<struct FStructOnScope> StructData;
+	TSharedPtr<class FStructOnScope> StructData;
 	TSharedPtr<class FStructurePropertyNode> RootNode;
-	FString CustomName;
+	FText CustomName;
 public:
 
 	SLATE_BEGIN_ARGS(SStructureDetailsView)
@@ -16,7 +16,7 @@ public:
 		{}
 		/** The user defined args for the details view */
 		SLATE_ARGUMENT(FDetailsViewArgs, DetailsViewArgs)
-		SLATE_ARGUMENT(FString, CustomName)
+		SLATE_ARGUMENT(FText, CustomName)
 	SLATE_END_ARGS()
 
 	~SStructureDetailsView();
@@ -26,7 +26,7 @@ public:
 	 */
 	void Construct(const FArguments& InArgs);
 
-	UScriptStruct* GetBaseScriptStruct() const;
+	UStruct* GetBaseScriptStruct() const;
 
 	virtual bool IsConnected() const override;
 
@@ -63,7 +63,7 @@ public:
 	}
 
 	virtual void ForceRefresh() override;
-	virtual void AddExternalRootPropertyNode(TSharedRef<FObjectPropertyNode> ExternalRootNode) override {}
+	virtual void AddExternalRootPropertyNode(TSharedRef<FPropertyNode> ExternalRootNode) override {}
 
 	/** IDetailsView interface */
 	virtual UStruct* GetBaseStruct() const override
@@ -78,18 +78,15 @@ public:
 		return false;
 	}
 
-	virtual void SetOnObjectArrayChanged(FOnObjectArrayChanged OnObjectArrayChangedDelegate) override{}
+	virtual void SetOnObjectArrayChanged(FOnObjectArrayChanged OnObjectArrayChangedDelegate) override {}
 	virtual void RegisterInstancedCustomPropertyLayout(UClass* Class, FOnGetDetailCustomizationInstance DetailLayoutDelegate) override {}
 	virtual void UnregisterInstancedCustomPropertyLayout(UClass* Class) override {}
-	virtual void SetObjects(const TArray<UObject*>& InObjects, bool bForceRefresh = false) override{}
-	virtual void SetObjects(const TArray< TWeakObjectPtr< UObject > >& InObjects, bool bForceRefresh = false) override{}
+	virtual void SetObjects(const TArray<UObject*>& InObjects, bool bForceRefresh = false, bool bOverrideLock = false) override {}
+	virtual void SetObjects(const TArray< TWeakObjectPtr< UObject > >& InObjects, bool bForceRefresh = false, bool bOverrideLock = false) override {}
 	virtual void SetObject(UObject* InObject, bool bForceRefresh = false) override{}
+	virtual void RemoveInvalidObjects() override {}
 
 	virtual TSharedPtr<class FComplexPropertyNode> GetRootNode() override;
-
-	// Begin SWidget interface
-	virtual int32 OnPaint(const FPaintArgs& Args, FGeometry const& AllottedGeometry, FSlateRect const& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, FWidgetStyle const& InWidgetStyle, bool bParentEnabled) const override;
-	// End SWidget interface
 protected:
 	virtual void CustomUpdatePropertyMap() override;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -163,6 +163,15 @@ namespace AutomationTool
 			PopDir();
 
 			return ClientProcess;
+		}
+
+		/// <summary>
+		/// Allow platform specific clean-up or detection after client has run
+		/// </summary>
+		/// <param name="ClientRunFlags"></param>
+		public virtual void PostRunClient(ProcessResult Result, ProjectParams Params)
+		{
+			// do nothing in the default case
 		}
 
 		/// <summary>
@@ -368,6 +377,14 @@ namespace AutomationTool
 		}
 
 		/// <summary>
+		/// True if this platform can write to the abslog path that's on the host desktop.
+		/// </summary>
+		public virtual bool UseAbsLog
+		{
+			get { return true; }
+		}
+
+		/// <summary>
 		/// Remaps the given content directory to its final location
 		/// </summary>
 		public virtual string Remap(string Dest)
@@ -400,6 +417,16 @@ namespace AutomationTool
 		public virtual bool RequiresPackageToDeploy
 		{
 			get { return false; }
+		}
+
+		public virtual List<string> GetFilesForCRCCheck()
+		{
+			string CmdLine = "UE4CommandLine.txt";
+			if (DeployLowerCaseFilenames(true))
+			{
+				CmdLine = CmdLine.ToLowerInvariant();
+			}
+			return new List<string>() { CmdLine };
 		}
 
 		#region Hooks
@@ -435,6 +462,13 @@ namespace AutomationTool
         {
             return false;
         }
+
+		public virtual bool RetrieveDeployedManifests(ProjectParams Params, DeploymentContext SC, out List<string> UFSManifests, out List<string> NonUFSManifests)
+		{
+			UFSManifests = null;
+			NonUFSManifests = null;
+			return false;
+		}
 
 		#endregion
 

@@ -1,9 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-/*================================================================================
-	WindowsPlatformIncludes.h: Includes the platform specific headers for windows
-==================================================================================*/
 #pragma once
+
 #include "GenericPlatform/GenericPlatformAffinity.h"
 #include "GenericPlatform/GenericPlatformFramePacer.h"
 #include "Misc/Build.h"
@@ -27,21 +25,22 @@
 #include "Windows/WindowsPlatformSurvey.h"
 #include "Windows/WindowsPlatformHttp.h"
 
-typedef FGenericPlatformRHIFramePacer FPlatformRHIFramePacer;
 
+typedef FGenericPlatformRHIFramePacer FPlatformRHIFramePacer;
 typedef FGenericPlatformAffinity FPlatformAffinity;
 
-// include platform properties and typedef it for the runtime
 
+// include platform properties and typedef it for the runtime
 #include "Windows/WindowsPlatformProperties.h"
 
+
 #ifndef WITH_EDITORONLY_DATA
-#error "WITH_EDITORONLY_DATA must be defined"
+	#error "WITH_EDITORONLY_DATA must be defined"
 #endif
 
 #ifndef UE_SERVER
-#error "WITH_EDITORONLY_DATA must be defined"
+	#error "WITH_EDITORONLY_DATA must be defined"
 #endif
 
-typedef FWindowsPlatformProperties<WITH_EDITORONLY_DATA, UE_SERVER, !WITH_SERVER_CODE> FPlatformProperties;
 
+typedef FWindowsPlatformProperties<WITH_EDITORONLY_DATA, UE_SERVER, !WITH_SERVER_CODE> FPlatformProperties;

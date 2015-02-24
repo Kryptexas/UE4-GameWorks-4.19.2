@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
+#include "Components/SphereComponent.h"
 
 USphereComponent::USphereComponent(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -110,7 +111,7 @@ FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 					}
 					else
 					{
-						const FLinearColor DrawSphereColor = GetSelectionColor(SphereColor, IsSelected(), IsHovered(), /*bUseOverlayIntensity=*/false);
+						const FLinearColor DrawSphereColor = GetViewSelectionColor(SphereColor, *View, IsSelected(), IsHovered(), false, IsIndividuallySelected() );
 
 						float AbsScaleX = LocalToWorld.GetScaledAxis(EAxis::X).Size();
 						float AbsScaleY = LocalToWorld.GetScaledAxis(EAxis::Y).Size();
@@ -126,41 +127,6 @@ FPrimitiveSceneProxy* USphereComponent::CreateSceneProxy()
 						DrawCircle(PDI, LocalToWorld.GetOrigin(), ScaledY, ScaledZ, DrawSphereColor, SphereRadius, SphereSides, SDPG_World);
 					}
 				}
-			}
-		}
-
-		/** 
-		* Draw the scene proxy as a dynamic element
-		*
-		* @param	PDI - draw interface to render to
-		* @param	View - current view
-		*/
-		virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View) override
-		{
-			QUICK_SCOPE_CYCLE_COUNTER( STAT_SphereSceneProxy_DrawDynamicElements );
-
-			const FMatrix& LocalToWorld = GetLocalToWorld();
-			int32 SphereSides =  FMath::Clamp<int32>(SphereRadius/4.f, 16, 64);
-			if(ShapeMaterial && !View->Family->EngineShowFlags.Wireframe)
-			{
-				DrawSphere(PDI,LocalToWorld.GetOrigin(), FVector(SphereRadius), SphereSides, SphereSides/2, ShapeMaterial->GetRenderProxy(false), SDPG_World);
-			}
-			else
-			{
-				const FLinearColor DrawSphereColor = GetSelectionColor(SphereColor, IsSelected(), IsHovered(), /*bUseOverlayIntensity=*/false);
-				
-				float AbsScaleX = LocalToWorld.GetScaledAxis(EAxis::X).Size();
-				float AbsScaleY = LocalToWorld.GetScaledAxis(EAxis::Y).Size();
-				float AbsScaleZ = LocalToWorld.GetScaledAxis(EAxis::Z).Size();
-				float MinAbsScale = FMath::Min3(AbsScaleX, AbsScaleY, AbsScaleZ);
-
-				FVector ScaledX = LocalToWorld.GetUnitAxis(EAxis::X) * MinAbsScale;
-				FVector ScaledY = LocalToWorld.GetUnitAxis(EAxis::Y) * MinAbsScale;
-				FVector ScaledZ = LocalToWorld.GetUnitAxis(EAxis::Z) * MinAbsScale;
-
-				DrawCircle(PDI, LocalToWorld.GetOrigin(), ScaledX, ScaledY, DrawSphereColor, SphereRadius, SphereSides, SDPG_World);
-				DrawCircle(PDI, LocalToWorld.GetOrigin(), ScaledX, ScaledZ, DrawSphereColor, SphereRadius, SphereSides, SDPG_World);
-				DrawCircle(PDI, LocalToWorld.GetOrigin(), ScaledY, ScaledZ, DrawSphereColor, SphereRadius, SphereSides, SDPG_World);
 			}
 		}
 

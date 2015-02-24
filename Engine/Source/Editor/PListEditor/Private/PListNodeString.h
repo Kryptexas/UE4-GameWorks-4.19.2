@@ -1,9 +1,6 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
-#ifndef __PListNodeString_h__
-#define __PlistNodeString_h__
 
 #include "PListNode.h"
 
@@ -103,5 +100,3 @@ private:
 	/** Flag for valid value string */
 	bool bValueValid;
 };
-
-#endif

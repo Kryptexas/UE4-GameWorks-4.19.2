@@ -1,8 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "LayersPrivatePCH.h"
-#include "SceneOutlinerTreeItems.h"
+#include "SceneOutliner.h"
 
 #define LOCTEXT_NAMESPACE "SceneOutlinerLayerContentsColumn"
 
@@ -13,58 +13,40 @@ FSceneOutlinerLayerContentsColumn::FSceneOutlinerLayerContentsColumn( const TSha
 
 }
 
+FName FSceneOutlinerLayerContentsColumn::GetID()
+{
+	return FName( "LayerContents" );
+}
 
 FName FSceneOutlinerLayerContentsColumn::GetColumnID()
 {
-	return FName( "LayerContents" );
+	return GetID();
 }
 
 
 SHeaderRow::FColumn::FArguments FSceneOutlinerLayerContentsColumn::ConstructHeaderRowColumn()
 {
 	return SHeaderRow::Column( GetColumnID() )
-		.FillWidth( 48.0f )
+		.FillWidth( 2.f )
 		[
 			SNew( SSpacer )
 		];
 }
 
-const TSharedRef< SWidget > FSceneOutlinerLayerContentsColumn::ConstructRowWidget( const TSharedRef<SceneOutliner::TOutlinerTreeItem> TreeItem )
+TSharedRef<SWidget> FSceneOutlinerLayerContentsColumn::ConstructRowWidget(const TWeakObjectPtr< AActor >& Actor )
 {
-	if (TreeItem->Type == SceneOutliner::TOutlinerTreeItem::Actor)
-	{
-		auto ActorTreeItem = StaticCastSharedRef<SceneOutliner::TOutlinerActorTreeItem>(TreeItem);
-		return 	SNew( SButton )
-			.HAlign( HAlign_Center )
-			.VAlign( VAlign_Center )
-			.ButtonStyle( FEditorStyle::Get(), "LayerBrowserButton" )
-			.ContentPadding( 0 )
-			.OnClicked( this, &FSceneOutlinerLayerContentsColumn::OnRemoveFromLayerClicked, ConstCastSharedRef<SceneOutliner::TOutlinerActorTreeItem>(ActorTreeItem)->Actor )
-			.ToolTipText( LOCTEXT("RemoveFromLayerButtonText", "Remove from Layer").ToString() )
-			[
-				SNew( SImage )
-				.Image( FEditorStyle::GetBrush( TEXT( "LayerBrowser.Actor.RemoveFromLayer" ) ) )
-			]
-		;
-	}
-	else
-	{
-		return SNullWidget::NullWidget;
-	}
+	return SNew( SButton )
+		.HAlign( HAlign_Center )
+		.VAlign( VAlign_Center )
+		.ButtonStyle( FEditorStyle::Get(), "LayerBrowserButton" )
+		.ContentPadding( 0 )
+		.OnClicked( this, &FSceneOutlinerLayerContentsColumn::OnRemoveFromLayerClicked, Actor )
+		.ToolTipText( LOCTEXT("RemoveFromLayerButtonText", "Remove from Layer") )
+		[
+			SNew( SImage )
+			.Image( FEditorStyle::GetBrush( TEXT( "LayerBrowser.Actor.RemoveFromLayer" ) ) )
+		];
 }
-
-
-void FSceneOutlinerLayerContentsColumn::PopulateActorSearchStrings( const AActor* const InActor, OUT TArray< FString >& OutSearchStrings ) const
-{
-	
-}
-
-
-bool FSceneOutlinerLayerContentsColumn::ProvidesSearchStrings()
-{
-	return false;
-}
-
 
 FReply FSceneOutlinerLayerContentsColumn::OnRemoveFromLayerClicked( const TWeakObjectPtr< AActor > Actor )
 {

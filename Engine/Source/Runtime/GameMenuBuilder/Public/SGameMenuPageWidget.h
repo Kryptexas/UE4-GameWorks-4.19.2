@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -253,7 +253,7 @@ protected:
 	FString GetOptionText(TSharedPtr<class FGameMenuItem> MenuItem) const;
 
 	/** Gets current menu title string. */
-	FString GetMenuTitle() const; 
+	FText GetMenuTitle() const; 
 
 	/** Gets the menu title visibility based on if the title text is empty. */
 	EVisibility GetMenuTitleVisibility() const;

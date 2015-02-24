@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //
 // List of FPolys.
@@ -71,6 +71,16 @@ public:
 	 * addition, and a post-transformation addition.
 	 */
 	ENGINE_API void Transform(const FVector &PreSubtract,const FVector &PostAdd);
+
+	/**
+	 * Rotate an editor polygon with a pre-transformation addition.
+	 */
+	ENGINE_API void Rotate(const FVector &PreSubtract, const FRotator &Rotation);
+
+	/**
+	 * Scale an editor polygon with a pre-transformation addition.
+	 */
+	ENGINE_API void Scale(const FVector &PreSubtract, const FVector &Scale);
 
 	/**
 	 * Fix up an editor poly by deleting vertices that are identical.  Sets

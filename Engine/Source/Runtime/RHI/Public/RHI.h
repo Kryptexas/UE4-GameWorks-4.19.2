@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	RHI.h: Render Hardware Interface definitions.
@@ -52,11 +52,6 @@ extern	RHI_API int32		GMaxTextureMipCount;
 /** true if the RHI supports textures that may be bound as both a render target and a shader resource. */
 extern RHI_API bool GSupportsRenderDepthTargetableShaderResources;
 
-/**
-* true if the our renderer, the driver and the hardware supports the feature.
-*/
-extern RHI_API bool GSupportsVertexTextureFetch;
-
 /** true if the RHI supports binding depth as a texture when testing against depth */
 extern RHI_API bool GSupportsDepthFetchDuringDepthTest;
 
@@ -108,9 +103,6 @@ extern RHI_API bool GSupportsDepthRenderTargetWithoutColorRenderTarget;
 /** True if the RHI supports depth bounds testing */
 extern RHI_API bool GSupportsDepthBoundsTest;
 
-/** The offset from the upper left corner of a pixel to the position which is used to sample textures for fragments of that pixel. */
-extern RHI_API float GPixelCenterOffset;
-
 /** The minimum Z value in clip space for the RHI. */
 extern RHI_API float GMinClipZ;
 
@@ -157,15 +149,6 @@ extern RHI_API int32 GDrawUPVertexCheckCount;
  */
 extern RHI_API int32 GDrawUPIndexCheckCount;
 
-/** true if the rendering hardware supports vertex instancing. */
-extern RHI_API bool GSupportsVertexInstancing;
-
-/** true if the rendering hardware can emulate vertex instancing. */
-extern RHI_API bool GSupportsEmulatedVertexInstancing;
-
-/** If false code needs to patch up vertex declaration. */
-extern RHI_API bool GVertexElementsCanShareStreamOffset;
-
 /** true for each VET that is supported. One-to-one mapping with EVertexElementType */
 extern RHI_API class FVertexElementTypeSupportInfo GVertexElementTypeSupport;
 
@@ -201,6 +184,9 @@ extern RHI_API int32 GNumPrimitivesDrawnRHI;
 
 /** Whether or not the RHI can handle a non-zero BaseVertexIndex - extra SetStreamSource calls will be needed if this is false */
 extern RHI_API bool GRHISupportsBaseVertexIndex;
+
+/** Whether or not the RHI can handle a non-zero FirstInstance - extra SetStreamSource calls will be needed if this is false */
+extern RHI_API bool GRHISupportsFirstInstance;
 
 /** Whether or not the engine should set the BackBuffer as a render target early in the frame. */
 extern RHI_API bool GRHIRequiresEarlyBackBufferRenderTarget;
@@ -238,13 +224,10 @@ extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, F
 extern RHI_API void GetFeatureLevelName(ERHIFeatureLevel::Type InFeatureLevel, FName& OutName);
 
 // The maximum feature level and shader platform available on this system
+// GRHIFeatureLevel and GRHIShaderPlatform have been deprecated. There is no longer a current featurelevel/shaderplatform that
+// should be used for all rendering, rather a specific set for each view.
 extern RHI_API ERHIFeatureLevel::Type GMaxRHIFeatureLevel;
 extern RHI_API EShaderPlatform GMaxRHIShaderPlatform;
-
-// GRHIFeatureLevel and GRHIShaderPlatform have been deprecated. There is no longer a current featurelevel/shaderplatform that
-// should be used for all rendering, rather a specific set for each view. The deprecated names are being kept around temporarily 
-// while the last instances are removed.
-#define GRHIShaderPlatform_DEPRECATED GMaxRHIShaderPlatform
 
 /** Table for finding out which shader platform corresponds to a given feature level for this RHI. */
 extern RHI_API EShaderPlatform GShaderPlatformForFeatureLevel[ERHIFeatureLevel::Num];

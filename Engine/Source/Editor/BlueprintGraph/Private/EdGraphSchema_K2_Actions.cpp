@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 
@@ -8,6 +8,12 @@
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Editor/UnrealEd/Public/EdGraphUtilities.h"
 #include "EdGraph/EdGraphNode_Documentation.h"
+#include "EdGraphNode_Comment.h"
+#include "K2Node_Timeline.h"
+#include "K2Node_Literal.h"
+#include "K2Node_VariableGet.h"
+#include "K2Node_AddDelegate.h"
+#include "K2Node_CustomEvent.h"
 
 
 #define SNAP_GRID (16) // @todo ensure this is the same as SNodePanel::GetSnapGridSize()
@@ -297,8 +303,7 @@ UEdGraphNode* FEdGraphSchemaAction_K2AddComponent::PerformAction(class UEdGraph*
 
 		ensure(NULL != Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass));
 		// Then create a new template object, and add to array in
-		UActorComponent* NewTemplate = ConstructObject<UActorComponent>(ComponentClass, Blueprint->GeneratedClass);
-		NewTemplate->SetFlags(RF_ArchetypeObject);
+		UActorComponent* NewTemplate = ConstructObject<UActorComponent>(ComponentClass, Blueprint->GeneratedClass, NAME_None, RF_ArchetypeObject | RF_Public);
 		Blueprint->ComponentTemplates.Add(NewTemplate);
 
 		// Set the name of the template as the default for the TemplateName param

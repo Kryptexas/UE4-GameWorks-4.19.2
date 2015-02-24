@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "NiagaraEditorPrivatePCH.h"
 #include "Engine/NiagaraScript.h"
@@ -85,7 +85,7 @@ void FNiagaraEditor::InitNiagaraEditor( const EToolkitMode::Type Mode, const TSh
 	);
 
 	FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	const FDetailsViewArgs DetailsViewArgs(false, false, true, false, true, this);
+	const FDetailsViewArgs DetailsViewArgs(false, false, true, FDetailsViewArgs::HideNameArea, true, this);
 	NiagaraDetailsView = PropertyEditorModule.CreateDetailView(DetailsViewArgs);
 
 	const bool bCreateDefaultStandaloneMenu = true;
@@ -147,7 +147,7 @@ TSharedRef<SGraphEditor> FNiagaraEditor::CreateGraphEditorWidget(UEdGraph* InGra
 
 	// Create the appearance info
 	FGraphAppearanceInfo AppearanceInfo;
-	AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText", "NIAGARA").ToString();
+	AppearanceInfo.CornerText = LOCTEXT("AppearanceCornerText", "NIAGARA");
 
 	SGraphEditor::FGraphEditorEvents InEvents;
 	InEvents.OnSelectionChanged = SGraphEditor::FOnSelectionChanged::CreateSP(this, &FNiagaraEditor::OnSelectedNodesChanged);
@@ -270,9 +270,7 @@ void FNiagaraEditor::ExtendToolbar()
 
 FReply FNiagaraEditor::OnCompileClicked()
 {
-	FNiagaraEditorModule& NiagaraEditorModule = FModuleManager::LoadModuleChecked<FNiagaraEditorModule>( "NiagaraEditor" );
-	NiagaraEditorModule.CompileScript(Script);
-
+	Script->Source->Compile();
 	return FReply::Handled();
 }
 

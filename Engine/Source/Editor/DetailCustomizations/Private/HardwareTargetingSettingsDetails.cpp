@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 
@@ -105,7 +105,7 @@ public:
 
 			SettingRegions.Add(Settings.SettingsObject, EditPropertiesBlock);
 
-			FDetailWidgetRow& CategoryRow = PendingChangesCategory.AddCustomRow(Settings.CategoryHeading.ToString())
+			FDetailWidgetRow& CategoryRow = PendingChangesCategory.AddCustomRow(Settings.CategoryHeading)
 				.Visibility(TAttribute<EVisibility>::Create(&SRequiredDefaultConfig::GetAnyPendingChangesVisibility))
 				.NameContent()
 				[
@@ -156,7 +156,8 @@ public:
 
 			SettingRegions.FindChecked(Settings.SettingsObject)->SetText(Settings.Description);
 
-			if (!Settings.SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig))
+			// @todo userconfig: Should we check for GlobalUserConfig here? It's not ever going to be checked in...
+			if (!Settings.SettingsObject->GetClass()->HasAnyClassFlags(CLASS_Config | CLASS_DefaultConfig /*| CLASS_GlobalUserConfig*/))
 			{
 				continue;
 			}
@@ -206,7 +207,7 @@ void FHardwareTargetingSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& D
 
 	TSharedRef<SRequiredDefaultConfig> ConfigWidget = SNew(SRequiredDefaultConfig);
 	IHardwareTargetingModule& HardwareTargeting = IHardwareTargetingModule::Get();
-	PendingChangesCategory.AddCustomRow(FString())
+	PendingChangesCategory.AddCustomRow(FText::GetEmpty())
 	[
 		SNew(SVerticalBox)
 		+ SVerticalBox::Slot()
@@ -274,7 +275,7 @@ void FHardwareTargetingSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& D
 		);
 	}
 
-	HardwareTargetingCategory.AddCustomRow(LOCTEXT("HardwareTargetingOption", "Targeted Hardware:").ToString())
+	HardwareTargetingCategory.AddCustomRow(LOCTEXT("HardwareTargetingOption", "Targeted Hardware:"))
 	.NameContent()
 	[
 		SNew(STextBlock)

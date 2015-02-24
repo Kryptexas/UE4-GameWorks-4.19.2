@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GameplayDebuggerPrivate.h"
 #include "Engine/GameInstance.h"
@@ -98,7 +98,7 @@ void AGameplayDebuggingReplicator::GetLifetimeReplicatedProps(TArray< FLifetimeP
 #endif
 }
 
-bool AGameplayDebuggingReplicator::IsNetRelevantFor(class APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation)
+bool AGameplayDebuggingReplicator::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* Viewer, const FVector& SrcLocation) const
 {
 	return LocalPlayerOwner == RealViewer;
 }
@@ -198,7 +198,7 @@ void AGameplayDebuggingReplicator::BeginPlay()
 
 #if WITH_EDITOR
 	const UEditorEngine* EEngine = Cast<UEditorEngine>(GEngine);
-	if (EEngine && (EEngine->bIsSimulatingInEditor || EEngine->EditorWorld) && GetWorld() != EEngine->EditorWorld && !IsGlobalInWorld() && GCurrentLevelEditingViewportClient->EngineShowFlags.DebugAI)
+	if (EEngine && (EEngine->bIsSimulatingInEditor || EEngine->EditorWorld) && GetWorld() != EEngine->EditorWorld && !IsGlobalInWorld() && GCurrentLevelEditingViewportClient && GCurrentLevelEditingViewportClient->EngineShowFlags.DebugAI)
 	{
 		SetIsTemporarilyHiddenInEditor(false);
 		SetActorHiddenInGame(false);
@@ -210,6 +210,18 @@ void AGameplayDebuggingReplicator::BeginPlay()
 		if (DebugComponent)
 		{
 			DebugComponent->ServerReplicateData(EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);
+
+			FGameplayDebuggerSettings Settings = GameplayDebuggerSettings(this);
+			DebugComponent->ServerReplicateData(Settings.CheckFlag(EAIDebugDrawDataView::OverHead) ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, EAIDebugDrawDataView::OverHead);
+			DebugComponent->ServerReplicateData(Settings.CheckFlag(EAIDebugDrawDataView::Basic) ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, EAIDebugDrawDataView::Basic);
+			DebugComponent->ServerReplicateData(Settings.CheckFlag(EAIDebugDrawDataView::BehaviorTree) ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, EAIDebugDrawDataView::BehaviorTree);
+			DebugComponent->ServerReplicateData(Settings.CheckFlag(EAIDebugDrawDataView::EQS) ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, EAIDebugDrawDataView::EQS);
+			DebugComponent->ServerReplicateData(Settings.CheckFlag(EAIDebugDrawDataView::Perception) ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, EAIDebugDrawDataView::Perception);
+			DebugComponent->ServerReplicateData(Settings.CheckFlag(EAIDebugDrawDataView::GameView1) ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, EAIDebugDrawDataView::GameView1);
+			DebugComponent->ServerReplicateData(Settings.CheckFlag(EAIDebugDrawDataView::GameView2) ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, EAIDebugDrawDataView::GameView2);
+			DebugComponent->ServerReplicateData(Settings.CheckFlag(EAIDebugDrawDataView::GameView3) ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, EAIDebugDrawDataView::GameView3);
+			DebugComponent->ServerReplicateData(Settings.CheckFlag(EAIDebugDrawDataView::GameView4) ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, EAIDebugDrawDataView::GameView4);
+			DebugComponent->ServerReplicateData(Settings.CheckFlag(EAIDebugDrawDataView::GameView5) ? EDebugComponentMessage::ActivateDataView : EDebugComponentMessage::DeactivateDataView, EAIDebugDrawDataView::GameView5);
 		}
 	}
 	else
@@ -360,7 +372,12 @@ void AGameplayDebuggingReplicator::CreateTool()
 		UGameplayDebuggingControllerComponent*  GDC = FindComponentByClass<UGameplayDebuggingControllerComponent>();
 		if (!GDC)
 		{
-			GDC = ConstructObject<UGameplayDebuggingControllerComponent>(UGameplayDebuggingControllerComponent::StaticClass(), this);
+			DebugComponentControllerClass = StaticLoadClass(UGameplayDebuggingControllerComponent::StaticClass(), NULL, *DebugComponentControllerClassName, NULL, LOAD_None, NULL);
+			if (!DebugComponentControllerClass.IsValid())
+			{
+				DebugComponentControllerClass = AGameplayDebuggingHUDComponent::StaticClass();
+			}
+			GDC = ConstructObject<UGameplayDebuggingControllerComponent>(DebugComponentControllerClass.Get(), this);
 			GDC->SetPlayerOwner(LocalPlayerOwner);
 			GDC->RegisterComponent();
 		}
@@ -448,6 +465,11 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 
 	UEditorEngine* EEngine = Cast<UEditorEngine>(GEngine);
 	if (GFrameNumber == LastDrawAtFrame || !EEngine || !EEngine->bIsSimulatingInEditor)
+	{
+		return;
+	}
+
+	if (!Canvas || !Canvas->SceneView || Canvas->SceneView->bIsGameView == false)
 	{
 		return;
 	}

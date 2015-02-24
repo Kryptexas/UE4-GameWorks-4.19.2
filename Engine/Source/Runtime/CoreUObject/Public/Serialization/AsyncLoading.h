@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AsyncLoading.h: Unreal async loading definitions.
@@ -15,53 +15,7 @@ struct FAsyncPackage : public FGCObject
 	/**
 	 * Constructor
 	 */
-	FAsyncPackage(const FString& InPackageName, const FGuid* InPackageGuid, FName InPackageType, const FString& InPackageNameToLoad)
-	:	PackageName					( InPackageName			)
-	,	PackageNameToLoad			( InPackageNameToLoad	)
-	,	PackageGuid					( InPackageGuid != NULL ? *InPackageGuid : FGuid(0,0,0,0) )
-	,	PackageType					( InPackageType			)
-	,	Linker						( NULL					)
-	, DependencyRefCount	( 0						)
-	, LoadImportIndex			( 0						)
-	,	ImportIndex					( 0						)
-	,	ExportIndex					( 0						)
-	,	TimeLimit					( FLT_MAX				)
-	,	bUseTimeLimit				( false					)
-	,	bUseFullTimeLimit			( false					)
-	,	bTimeLimitExceeded			( false					)
-	,	bLoadHasFailed				( false					)
-	, bLoadHasFinished			( false					)
-	,	TickStartTime				( 0						)
-	,	LastObjectWorkWasPerformedOn( NULL					)
-	,	LastTypeOfWorkPerformed		( NULL					)
-	,	LoadStartTime				( 0.0					)
-	,	LoadPercentage				( 0						)
-	,	PackageFlags				( 0						)
-#if WITH_EDITOR
-	,	PIEInstanceID				( INDEX_NONE			)
-#endif	
-	
-#if PERF_TRACK_DETAILED_ASYNC_STATS
-	,	TickCount					( 0						)
-	,	TickLoopCount				( 0						)
-	,	CreateLinkerCount			( 0						)
-	,	FinishLinkerCount			( 0						)
-	,	CreateImportsCount			( 0						)
-	,	CreateExportsCount			( 0						)
-	,	PreLoadObjectsCount			( 0						)
-	,	PostLoadObjectsCount		( 0						)
-	,	FinishObjectsCount			( 0						)
-	,	TickTime					( 0.0					)
-	,	CreateLinkerTime			( 0.0					)
-	,	FinishLinkerTime			( 0.0					)
-	,	CreateImportsTime			( 0.0					)
-	,	CreateExportsTime			( 0.0					)
-	,	PreLoadObjectsTime			( 0.0					)
-	,	PostLoadObjectsTime			( 0.0					)
-	,	FinishObjectsTime			( 0.0					)
-#endif // PERF_TRACK_DETAILED_ASYNC_STATS
-	{
-	}
+	FAsyncPackage(const FName& InPackageName, const FGuid* InPackageGuid, FName InPackageType, const FName& InPackageNameToLoad);
 
 	/**
 	 * Ticks the async loading code.
@@ -92,7 +46,7 @@ struct FAsyncPackage : public FGCObject
 	/**
 	 * Returns the name of the package to load.
 	 */
-	const FString& GetPackageName() const
+	FORCEINLINE const FName& GetPackageName() const
 	{
 		return PackageName;
 	}
@@ -110,7 +64,7 @@ struct FAsyncPackage : public FGCObject
 		// This is to ensure that there is no one trying to subscribe to a already loaded package
 		check(!bLoadHasFinished && !bLoadHasFailed);
 		
-		CompletionCallbacks.AddUnique(Callback);
+		CompletionCallbacks.Add(Callback);
 	}
 
 	/**
@@ -148,9 +102,9 @@ struct FAsyncPackage : public FGCObject
 
 private:
 	/** Name of the UPackage to create.																	*/
-	FString						PackageName;
+	FName						PackageName;
 	/** Name of the package to load.																	*/
-	FString						PackageNameToLoad;
+	FName						PackageNameToLoad;
 	/** GUID of the package to load, or the zeroed invalid GUID for "don't care" */
 	FGuid						PackageGuid;
 	/** An abstract type name associated with this package, for tagging use								*/
@@ -332,13 +286,13 @@ private:
 	/**
 	 * Function called when pending import package has been loaded.
 	 */
-	void ImportFullyLoadedCallback(const FString& PackageName, UPackage* LoadedPackage);
+	void ImportFullyLoadedCallback(const FName& PackageName, UPackage* LoadedPackage);
 	/**
 	 * Adds dependency tree to the list if packages to wait for until their linkers have been created.
 	 *
 	 * @param ImportedPackage Package imported either directly or by one of the imported packages
 	 */
-	void AddDependencyTree(int32 CurrentPackageIndex, FAsyncPackage& ImportedPackage);
+	void AddDependencyTree(int32 CurrentPackageIndex, FAsyncPackage& ImportedPackage, TSet<FAsyncPackage*>& SearchedPackages);
 	/**
 	 * Adds a unique package to the list of packages to wait for until their linkers have been created.
 	 *
@@ -350,7 +304,7 @@ private:
 	 *
 	 * @param PendingImport Name of the package imported either directly or by one of the imported packages
 	 */
-	void AddImportDependency(int32 CurrentPackageIndex, const FString& PendingImport);
+	void AddImportDependency(int32 CurrentPackageIndex, const FName& PendingImport);
 	/**
 	 * Removes references to any imported packages.
 	 */

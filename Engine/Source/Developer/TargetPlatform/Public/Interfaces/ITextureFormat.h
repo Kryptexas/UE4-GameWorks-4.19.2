@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,7 +24,7 @@ class ITextureFormat
 public:
 
 	/**
-	 * Checks whether this audio format can compress in parallel.
+	 * Checks whether this texture format can compress in parallel.
 	 *
 	 * @return true if parallel compression is supported, false otherwise.
 	 */

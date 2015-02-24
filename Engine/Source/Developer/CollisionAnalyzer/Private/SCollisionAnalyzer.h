@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -94,19 +94,19 @@ public:
 
 	// Get delegates
 	const FSlateBrush* GetRecordButtonBrush() const;
-	FString GetStatusText() const;
-	ESlateCheckBoxState::Type GetDrawRecentState() const;
-	ESlateCheckBoxState::Type GetGroupByFrameState() const;
-	ESlateCheckBoxState::Type GetGroupByTagState() const;
-	ESlateCheckBoxState::Type GetGroupByOwnerState() const;
+	FText GetStatusText() const;
+	ECheckBoxState GetDrawRecentState() const;
+	ECheckBoxState GetGroupByFrameState() const;
+	ECheckBoxState GetGroupByTagState() const;
+	ECheckBoxState GetGroupByOwnerState() const;
 	EColumnSortMode::Type GetIDSortMode() const;
 	EColumnSortMode::Type GetTimeSortMode() const;
 	// Handler delegates
 	FReply OnRecordButtonClicked();
-	void OnDrawRecentChanged(ESlateCheckBoxState::Type NewState);
-	void OnGroupByFrameChanged(ESlateCheckBoxState::Type NewState);
-	void OnGroupByTagChanged(ESlateCheckBoxState::Type NewState);
-	void OnGroupByOwnerChanged(ESlateCheckBoxState::Type NewState);
+	void OnDrawRecentChanged(ECheckBoxState NewState);
+	void OnGroupByFrameChanged(ECheckBoxState NewState);
+	void OnGroupByTagChanged(ECheckBoxState NewState);
+	void OnGroupByOwnerChanged(ECheckBoxState NewState);
 	void FilterTextCommitted(const FText& CommentText, ETextCommit::Type CommitInfo);
 	void OnSortByChanged(const EColumnSortPriority::Type SortPriority, const FName& ColumnName, const EColumnSortMode::Type NewSortMode);
 	// Table delegates
@@ -127,7 +127,8 @@ public:
 	EQueryGroupMode::Type			GroupBy;
 	/** Current way we are sorting queries */
 	EQuerySortMode::Type			SortBy;
-
+	/** Current way we are setting ID sort direction */
+	EColumnSortMode::Type			SortDirection;
 private:
 	/** Called when the queries array in the CollisionAnalyzer change */
 	void OnQueriesChanged();

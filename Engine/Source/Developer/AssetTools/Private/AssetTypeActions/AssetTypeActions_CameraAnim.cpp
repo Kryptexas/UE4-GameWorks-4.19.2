@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetToolsPrivatePCH.h"
 #include "Toolkits/IToolkitHost.h"
@@ -8,6 +8,9 @@
 #include "Matinee/InterpTrackInst.h"
 #include "Matinee/InterpTrackAnimControl.h"
 #include "Matinee/MatineeActorCameraAnim.h"
+#include "Camera/CameraAnim.h"
+#include "Camera/CameraActor.h"
+#include "GameFramework/Pawn.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogCameraAnim, Log, All);
 
@@ -38,8 +41,8 @@ void FAssetTypeActions_CameraAnim::CreateCameraActorForCameraAnim(UCameraAnim* I
 		FLevelEditorViewportClient* ViewportClient = GEditor->LevelViewportClients[ViewportIndex];
 		if(ViewportClient != NULL && ViewportClient->ViewportType == LVT_Perspective)
 		{
-			ViewportCamLocation = ViewportClient->ViewTransform.GetLocation();
-			ViewportCamRotation = ViewportClient->ViewTransform.GetRotation();
+			ViewportCamLocation = ViewportClient->ViewTransformPerspective.GetLocation();
+			ViewportCamRotation = ViewportClient->ViewTransformPerspective.GetRotation();
 			break;
 		}
 	}
@@ -218,7 +221,7 @@ void FAssetTypeActions_CameraAnim::OpenAssetEditor( const TArray<UObject*>& InOb
 				GEditor->OpenMatinee(PreviewMatineeActor.Get());
 
 				// install our delegate so we can clean up when finished
-				FEditorDelegates::EditorModeExit.AddSP(this, &FAssetTypeActions_CameraAnim::OnMatineeEditorClosed);
+				OnMatineeEditorClosedDelegateHandle = FEditorDelegates::EditorModeExit.AddSP(this, &FAssetTypeActions_CameraAnim::OnMatineeEditorClosed);
 			}
 			else
 			{
@@ -253,7 +256,7 @@ void FAssetTypeActions_CameraAnim::OnMatineeEditorClosed(FEdMode* InEditorMode)
 		}
 
 		// remove our delegate
-		FEditorDelegates::EditorModeExit.RemoveSP(this, &FAssetTypeActions_CameraAnim::OnMatineeEditorClosed);
+		FEditorDelegates::EditorModeExit.Remove(OnMatineeEditorClosedDelegateHandle);
 	}
 }
 

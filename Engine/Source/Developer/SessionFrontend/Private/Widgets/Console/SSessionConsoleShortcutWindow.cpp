@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SessionFrontendPrivatePCH.h"
 #include "STextEntryPopup.h"
@@ -63,7 +63,7 @@ void SSessionConsoleShortcutWindow::AddShortcutInternal( const FString& InName, 
 }
 
 
-void SSessionConsoleShortcutWindow::HandleEditCommandActionExecute( TSharedPtr<FConsoleShortcutData> InShortcut, bool bInEditCommand, FString InPromptTitle )
+void SSessionConsoleShortcutWindow::HandleEditCommandActionExecute( TSharedPtr<FConsoleShortcutData> InShortcut, bool bInEditCommand, FText InPromptTitle )
 {
 	FString DefaultString = bInEditCommand ? InShortcut->Command : InShortcut->Name;
 
@@ -177,14 +177,14 @@ TSharedRef<ITableRow> SSessionConsoleShortcutWindow::HandleShortcutListViewGener
 			NSLOCTEXT("SessionFrontend", "ContextMenu.EditName", "Edit Name"),
 			FText(),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SSessionConsoleShortcutWindow::HandleEditCommandActionExecute, InItem, false, LOCTEXT("ShortcutOptionsEditNameTitle", "Name:").ToString()))
+			FUIAction(FExecuteAction::CreateSP(this, &SSessionConsoleShortcutWindow::HandleEditCommandActionExecute, InItem, false, LOCTEXT("ShortcutOptionsEditNameTitle", "Name:")))
 		);
 
 		ContextMenuBuilder.AddMenuEntry(
 			NSLOCTEXT("SessionFrontend", "ContextMenu.EditCommand", "Edit Command"),
 			FText(),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SSessionConsoleShortcutWindow::HandleEditCommandActionExecute, InItem, true, LOCTEXT("ShortcutOptionsEditCommandTitle", "Command:").ToString()))
+			FUIAction(FExecuteAction::CreateSP(this, &SSessionConsoleShortcutWindow::HandleEditCommandActionExecute, InItem, true, LOCTEXT("ShortcutOptionsEditCommandTitle", "Command:")))
 		);
 	}
 	ContextMenuBuilder.EndSection();
@@ -212,11 +212,11 @@ TSharedRef<ITableRow> SSessionConsoleShortcutWindow::HandleShortcutListViewGener
 					// execute button
 					SNew(SButton)
 						.VAlign(VAlign_Center)
-						.ToolTipText(InItem->Command)
+						.ToolTipText(FText::FromString(InItem->Command))
 						.OnClicked(FOnClicked::CreateSP(this, &SSessionConsoleShortcutWindow::HandleExecuteButtonClicked, InItem))
 						[
 							SNew(STextBlock)
-								.Text(InItem->Name)
+								.Text(FText::FromString(InItem->Name))
 						]
 				]
 

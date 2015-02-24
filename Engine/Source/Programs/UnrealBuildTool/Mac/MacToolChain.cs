@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections;
@@ -260,7 +260,19 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
-		static string GetLinkArguments_Global(LinkEnvironment LinkEnvironment)
+		string AddFrameworkToLinkCommand(string FrameworkName, string Arg = "-framework")
+		{
+			string Result = "";
+			if (FrameworkName.EndsWith(".framework"))
+			{
+				Result += " -F \"" + ConvertPath(Path.GetDirectoryName(Path.GetFullPath(FrameworkName))) + "\"";
+				FrameworkName = Path.GetFileNameWithoutExtension(FrameworkName);
+			}
+			Result += " " + Arg + " \"" + FrameworkName + "\"";
+			return Result;
+		}
+
+		string GetLinkArguments_Global(LinkEnvironment LinkEnvironment)
 		{
 			string Result = "";
 
@@ -278,19 +290,6 @@ namespace UnrealBuildTool
 			Result += " -headerpad_max_install_names";
 
 			Result += " -lc++";
-
-			foreach (string Framework in LinkEnvironment.Config.Frameworks)
-			{
-				Result += " -framework " + Framework;
-			}
-			foreach (UEBuildFramework Framework in LinkEnvironment.Config.AdditionalFrameworks)
-			{
-				Result += " -framework " + Framework.FrameworkName;
-			}
-			foreach (string Framework in LinkEnvironment.Config.WeakFrameworks)
-			{
-				Result += " -weak_framework " + Framework;
-			}
 
 			return Result;
 		}
@@ -582,9 +581,9 @@ namespace UnrealBuildTool
 		{
 			string LibraryDir = Path.GetDirectoryName(Library);
 			string ExeDir = Path.GetDirectoryName(ExeAbsolutePath);
-			if ((Library.Contains("/Plugins/") || Library.Contains("/Binaries/ThirdParty/")) && Library.EndsWith("dylib") && LibraryDir != ExeDir)
+			if (!Library.Contains("/Engine/Binaries/Mac/") && (Library.EndsWith("dylib") || Library.EndsWith(".framework")) && LibraryDir != ExeDir)
 			{
-				string RelativePath = Utils.MakePathRelativeTo(LibraryDir, ExeDir);
+				string RelativePath = Utils.MakePathRelativeTo(LibraryDir, ExeDir).Replace("\\", "/");
 				if (!RelativePath.Contains(LibraryDir) && !RPaths.Contains(RelativePath))
 				{
 					RPaths.Add(RelativePath);
@@ -594,7 +593,7 @@ namespace UnrealBuildTool
 					{
 						string PathInBundle = Path.Combine(Path.GetDirectoryName(ExeDir), "UE4/Engine/Binaries/Mac", RelativePath.Substring(9));
 						Utils.CollapseRelativeDirectories(ref PathInBundle);
-						string RelativePathInBundle = Utils.MakePathRelativeTo(PathInBundle, ExeDir);
+						string RelativePathInBundle = Utils.MakePathRelativeTo(PathInBundle, ExeDir).Replace("\\", "/");
 						LinkCommand += " -rpath \"@loader_path/" + RelativePathInBundle + "\"";
 					}
 				}
@@ -642,10 +641,6 @@ namespace UnrealBuildTool
 			string DylibsPath = "@rpath";
 
 			string AbsolutePath = OutputFile.AbsolutePath.Replace("\\", "/");
-			if (!AbsolutePath.Contains("/Engine/Binaries/Mac/"))
-			{
-				DylibsPath = AbsolutePath.Contains("/Plugins/") ? "@rpath" : "@loader_path";
-			}
 			if (!bIsBuildingLibrary)
 			{
 				LinkCommand += " -rpath @loader_path/ -rpath @executable_path/";
@@ -669,14 +664,28 @@ namespace UnrealBuildTool
 						throw new BuildException("Couldn't find required additional file to shadow: {0}", AdditionalShadowFile);
 					}
 				}
+
+				// Add any frameworks to be shadowed to the remote
+				foreach (string FrameworkPath in LinkEnvironment.Config.Frameworks)
+				{
+					if(FrameworkPath.EndsWith(".framework"))
+					{
+						foreach(string FrameworkFile in Directory.EnumerateFiles(FrameworkPath, "*", SearchOption.AllDirectories))
+						{
+							FileItem FrameworkFileItem = FileItem.GetExistingItemByPath(FrameworkFile);
+							QueueFileForBatchUpload(FrameworkFileItem);
+							LinkAction.PrerequisiteItems.Add(FrameworkFileItem);
+						}
+					}
+				}
 			}
 
 			bool bIsBuildingAppBundle = !LinkEnvironment.Config.bIsBuildingDLL && !LinkEnvironment.Config.bIsBuildingLibrary && !LinkEnvironment.Config.bIsBuildingConsoleApplication;
 
+			List<string> RPaths = new List<string>();
+
 			if (!bIsBuildingLibrary || LinkEnvironment.Config.bIncludeDependentLibrariesInLibrary)
 			{
-				List<string> RPaths = new List<string>();
-
 				// Add the additional libraries to the argument list.
 				foreach (string AdditionalLibrary in LinkEnvironment.Config.AdditionalLibraries)
 				{
@@ -705,8 +714,8 @@ namespace UnrealBuildTool
 						}
 					}
 					else if (Path.GetDirectoryName(AdditionalLibrary) != "" &&
-						(Path.GetDirectoryName(AdditionalLibrary).Contains("Binaries/Mac") ||
-						Path.GetDirectoryName(AdditionalLibrary).Contains("Binaries\\Mac")))
+					         (Path.GetDirectoryName(AdditionalLibrary).Contains("Binaries/Mac") ||
+					         Path.GetDirectoryName(AdditionalLibrary).Contains("Binaries\\Mac")))
 					{
 						// It's an engine or game dylib. Save it for later
 						EngineAndGameLibraries.Add(ConvertPath(Path.GetFullPath(AdditionalLibrary)));
@@ -725,9 +734,9 @@ namespace UnrealBuildTool
 							LinkAction.PrerequisiteItems.Add(EngineLibDependency);
 						}
 					}
-					else if (AdditionalLibrary.Contains(".framework/Versions"))
+					else if (AdditionalLibrary.Contains(".framework/"))
 					{
-						LinkCommand += string.Format(" " + AdditionalLibrary);
+						LinkCommand += string.Format(" \'{0}\'", AdditionalLibrary);
 					}
 					else
 					{
@@ -749,6 +758,36 @@ namespace UnrealBuildTool
 
 					AddLibraryPathToRPaths(AdditionalLibrary, AbsolutePath, ref RPaths, ref LinkCommand, bIsBuildingAppBundle);
 				}
+			}
+
+			// Add frameworks
+			Dictionary<string, bool> AllFrameworks = new Dictionary<string, bool>();
+			foreach (string Framework in LinkEnvironment.Config.Frameworks)
+			{
+				if (!AllFrameworks.ContainsKey(Framework))
+				{
+					AllFrameworks.Add(Framework, false);
+				}
+			}
+			foreach (UEBuildFramework Framework in LinkEnvironment.Config.AdditionalFrameworks)
+			{
+				if (!AllFrameworks.ContainsKey(Framework.FrameworkName))
+				{
+					AllFrameworks.Add(Framework.FrameworkName, false);
+				}
+			}
+			foreach (string Framework in LinkEnvironment.Config.WeakFrameworks)
+			{
+				if (!AllFrameworks.ContainsKey(Framework))
+				{
+					AllFrameworks.Add(Framework, true);
+				}
+			}
+
+			foreach (var Framework in AllFrameworks)
+			{
+				LinkCommand += AddFrameworkToLinkCommand(Framework.Key, Framework.Value ? "-weak_framework" : "-framework");
+				AddLibraryPathToRPaths(Framework.Key, AbsolutePath, ref RPaths, ref LinkCommand, bIsBuildingAppBundle);
 			}
 
 			// Add the input files to a response file, and pass the response file on the command-line.
@@ -1120,13 +1159,27 @@ namespace UnrealBuildTool
 			string SourcePath = Path.Combine(CopyAction.WorkingDirectory, Resource.ResourcePath);
 			string TargetPath = Path.Combine(BundlePath, "Contents", Resource.BundleContentsSubdir, Path.GetFileName(Resource.ResourcePath));
 
-			FileItem TargetItem = LocalToRemoteFileItem(FileItem.GetItemByPath(TargetPath), false);
+			FileItem TargetItem;
+			if(BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+			{
+				TargetItem = FileItem.GetItemByPath(TargetPath);
+			}
+			else
+			{
+				TargetItem = FileItem.GetRemoteItemByPath(TargetPath, RemoteToolChainPlatform);
+			}
 
-			CopyAction.CommandArguments = string.Format("-c 'cp -f -R \"{0}\" \"{1}\"; touch -c \"{2}\"'", SourcePath, Path.GetDirectoryName(TargetPath) + "/", TargetPath);
+			CopyAction.CommandArguments = string.Format("-c 'cp -f -R \"{0}\" \"{1}\"; touch -c \"{2}\"'", ConvertPath(SourcePath), Path.GetDirectoryName(TargetPath).Replace('\\', '/') + "/", TargetPath.Replace('\\', '/'));
 			CopyAction.PrerequisiteItems.Add(Executable);
 			CopyAction.ProducedItems.Add(TargetItem);
+			CopyAction.bShouldOutputStatusDescription = Resource.bShouldLog;
 			CopyAction.StatusDescription = string.Format("Copying {0} to app bundle", Path.GetFileName(Resource.ResourcePath));
 			CopyAction.bCanExecuteRemotely = false;
+
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+			{
+				CopyAction.ActionHandler = new Action.BlockingActionHandler(RPCUtilHelper.RPCActionHandler);
+			}
 
 			if (Directory.Exists(Resource.ResourcePath))
 			{
@@ -1188,7 +1241,7 @@ namespace UnrealBuildTool
 
 		static private string BundleContentsDirectory = "";
 
-        public override void AddFilesToManifest(ref FileManifest Manifest, UEBuildBinary Binary)
+        public override void AddFilesToManifest(BuildManifest Manifest, UEBuildBinary Binary)
 		{
 			if (Binary.Target.GlobalLinkEnvironment.Config.bIsBuildingConsoleApplication)
 			{
@@ -1218,10 +1271,7 @@ namespace UnrealBuildTool
 					if (Path.GetExtension(AdditionalLibrary) == ".dylib")
 					{
 						string Entry = BundleContentsDirectory + "MacOS/" + LibName;
-						if (!Manifest.FileManifestItems.Contains(Path.GetFullPath(Entry)))
-						{
-							Manifest.AddFileName(Entry);
-						}
+						Manifest.AddBuildProduct(Entry);
 					}
 				}
 			}
@@ -1232,25 +1282,25 @@ namespace UnrealBuildTool
 				{
 					foreach (string ResourceFile in Directory.GetFiles(Resource.ResourcePath, "*", SearchOption.AllDirectories))
 					{
-						Manifest.AddFileName(Path.Combine(BundleContentsDirectory, Resource.BundleContentsSubdir, ResourceFile.Substring(Path.GetDirectoryName(Resource.ResourcePath).Length + 1)));
+						Manifest.AddBuildProduct(Path.Combine(BundleContentsDirectory, Resource.BundleContentsSubdir, ResourceFile.Substring(Path.GetDirectoryName(Resource.ResourcePath).Length + 1)));
 					}
 				}
 				else
 				{
-					Manifest.AddFileName(Path.Combine(BundleContentsDirectory, Resource.BundleContentsSubdir, Path.GetFileName(Resource.ResourcePath)));
+					Manifest.AddBuildProduct(Path.Combine(BundleContentsDirectory, Resource.BundleContentsSubdir, Path.GetFileName(Resource.ResourcePath)));
 				}
 			}
 
 			if (Binary.Config.Type == UEBuildBinaryType.Executable)
 			{
 				// And we also need all the resources
-				Manifest.AddFileName(BundleContentsDirectory + "Info.plist");
-				Manifest.AddFileName(BundleContentsDirectory + "PkgInfo");
-				Manifest.AddFileName(BundleContentsDirectory + "Resources/UE4.icns");
+				Manifest.AddBuildProduct(BundleContentsDirectory + "Info.plist");
+				Manifest.AddBuildProduct(BundleContentsDirectory + "PkgInfo");
+				Manifest.AddBuildProduct(BundleContentsDirectory + "Resources/UE4.icns");
 
 				if (Binary.Config.TargetName.StartsWith("UE4Editor"))
 				{
-					Manifest.AddFileName(BundleContentsDirectory + "Resources/UProject.icns");
+					Manifest.AddBuildProduct(BundleContentsDirectory + "Resources/UProject.icns");
 				}
 			}
 		}
@@ -1311,15 +1361,15 @@ namespace UnrealBuildTool
 		{
 			var OutputFiles = base.PostBuild(Executable, BinaryLinkEnvironment);
 
+			foreach (UEBuildBundleResource Resource in BinaryLinkEnvironment.Config.AdditionalBundleResources)
+			{
+				OutputFiles.Add(CopyBundleResource(Resource, Executable));
+			}
+
 			// If building for Mac on a Mac, use actions to finalize the builds (otherwise, we use Deploy)
 			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
 			{
 				return OutputFiles;
-			}
-
-			foreach (UEBuildBundleResource Resource in BinaryLinkEnvironment.Config.AdditionalBundleResources)
-			{
-				OutputFiles.Add(CopyBundleResource(Resource, Executable));
 			}
 
 			if (BinaryLinkEnvironment.Config.bIsBuildingDLL || BinaryLinkEnvironment.Config.bIsBuildingLibrary)
@@ -1335,6 +1385,11 @@ namespace UnrealBuildTool
 			}
 
 			return OutputFiles;
+		}
+
+		public override UnrealTargetPlatform GetPlatform()
+		{
+			return UnrealTargetPlatform.Mac;
 		}
 	};
 }

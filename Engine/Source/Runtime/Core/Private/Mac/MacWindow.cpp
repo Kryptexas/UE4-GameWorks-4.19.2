@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "MacWindow.h"
@@ -10,17 +10,6 @@
 
 FMacWindow::~FMacWindow()
 {
-	// While on Windows invalid HWNDs fail silently, accessing an invalid NSWindow is fatal.
-	// So instead we release the window here.
-	if(WindowHandle)
-	{
-		NSWindow* Window = WindowHandle;
-		dispatch_async(dispatch_get_main_queue(), ^{
-			SCOPED_AUTORELEASE_POOL;
-			[Window release];
-		});
-		WindowHandle = nil;
-	}
 }
 
 TSharedRef<FMacWindow> FMacWindow::Make()
@@ -96,7 +85,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 		if( WindowHandle != nullptr )
 		{
 			[WindowHandle setReleasedWhenClosed:NO];
-			[WindowHandle setWindowMode: WindowMode];
+			[WindowHandle setWindowMode: EWindowMode::Windowed];
 			[WindowHandle setAcceptsInput: Definition->AcceptsInput];
 			[WindowHandle setDisplayReconfiguring: false];
 			[WindowHandle setAcceptsMouseMovedEvents: YES];
@@ -139,6 +128,9 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 			}
 
 			[WindowHandle setOpaque: NO];
+
+			[WindowHandle setMinSize:NSMakeSize(Definition->SizeLimits.GetMinWidth().Get(10.0f), Definition->SizeLimits.GetMinHeight().Get(10.0f))];
+			[WindowHandle setMaxSize:NSMakeSize(Definition->SizeLimits.GetMaxWidth().Get(10000.0f), Definition->SizeLimits.GetMaxHeight().Get(10000.0f))];
 
 			ReshapeWindow( X, Y, SizeX, SizeY );
 
@@ -206,7 +198,6 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 
 FMacWindow::FMacWindow()
 	: WindowHandle(NULL)
-	, WindowMode(EWindowMode::Windowed)
 	, bIsVisible(false)
 	, bIsClosed(false)
 {
@@ -227,7 +218,7 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 		const TSharedRef<FGenericApplicationMessageHandler> MessageHandler = OwningApplication->MessageHandler;
 		MessageHandler->BeginReshapingWindow( SharedThis( this ) );
 		
-		if(WindowMode == EWindowMode::Windowed || WindowMode == EWindowMode::WindowedFullscreen)
+		if(GetWindowMode() == EWindowMode::Windowed || GetWindowMode() == EWindowMode::WindowedFullscreen)
 		{
 			const int32 InvertedY = FPlatformMisc::ConvertSlateYPositionToCocoa(Y) - Height + 1;
 			NSRect Rect = NSMakeRect(X, InvertedY, FMath::Max(Width, 1), FMath::Max(Height, 1));
@@ -240,13 +231,13 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 			{
 				MainThreadCall(^{
 					SCOPED_AUTORELEASE_POOL;
-					BOOL DisplayIfNeeded = (WindowMode == EWindowMode::Windowed);
+					BOOL DisplayIfNeeded = (GetWindowMode() == EWindowMode::Windowed);
 					
 					[WindowHandle setFrame: Rect display:DisplayIfNeeded];
 					
 					// Force resize back to screen size in fullscreen - not ideally pretty but means we don't
 					// have to subvert the OS X or UE fullscreen handling events elsewhere.
-					if(WindowMode != EWindowMode::Windowed)
+					if(GetWindowMode() != EWindowMode::Windowed)
 					{
 						[WindowHandle setFrame: [WindowHandle screen].frame display:YES];
 					}
@@ -261,6 +252,17 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 			if ( !NSEqualRects(WindowHandle.PreFullScreenRect, NewRect) )
 			{
 				WindowHandle.PreFullScreenRect = NewRect;
+				MainThreadCall(^{
+					FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
+					if ( MacCursor )
+					{
+						NSSize WindowSize = [WindowHandle frame].size;
+						NSSize ViewSize = [WindowHandle openGLFrame].size;
+						float WidthScale = ViewSize.width / WindowSize.width;
+						float HeightScale = ViewSize.height / WindowSize.height;
+						MacCursor->SetMouseScaling(FVector2D(WidthScale, HeightScale));
+					}
+				}, UE4ResizeEventMode, true);
 				FMacEvent::SendToGameRunLoop([NSNotification notificationWithName:NSWindowDidResizeNotification object:WindowHandle], EMacEventSendMethod::Sync, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
 			}
 		}
@@ -272,7 +274,7 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 bool FMacWindow::GetFullScreenInfo( int32& X, int32& Y, int32& Width, int32& Height ) const
 {
 	SCOPED_AUTORELEASE_POOL;
-	bool const bIsFullscreen = (WindowMode == EWindowMode::Fullscreen);
+	bool const bIsFullscreen = (GetWindowMode() == EWindowMode::Fullscreen);
 	const NSRect Frame = (!bIsFullscreen) ? [WindowHandle screen].frame : PreFullscreenWindowRect;
 	X = Frame.origin.x;
 	Y = Frame.origin.y;
@@ -303,32 +305,14 @@ void FMacWindow::BringToFront( bool bForce )
 
 void FMacWindow::Destroy()
 {
-	if( WindowHandle )
+	if (WindowHandle)
 	{
 		SCOPED_AUTORELEASE_POOL;
-		FCocoaWindow* Window = WindowHandle;
-
 		bIsClosed = true;
-
-		if( MacApplication->OnWindowDestroyed( Window ) )
-		{
-			// This FMacWindow may have been destructed by now & so the WindowHandle will probably be invalid memory.
-			bool const bIsKey = [Window isKeyWindow];
-			
-			// Then change the focus to something useful, either the previous in the stack
-			TSharedPtr<FMacWindow> KeyWindow = MacApplication->GetKeyWindow();
-			if( KeyWindow.IsValid() && bIsKey && KeyWindow->GetOSWindowHandle() && ![(FCocoaWindow*)KeyWindow->GetOSWindowHandle() isMiniaturized] )
-			{
-				// Activate specified previous window if still present, provided it isn't minimized
-				KeyWindow->SetWindowFocus();
-			}
-			
-			// Close the window
-			MainThreadCall(^{
-				SCOPED_AUTORELEASE_POOL;
-				[Window destroy];
-			}, UE4CloseEventMode, true);
-		}
+		[WindowHandle setAlphaValue:0.0f];
+		[WindowHandle setBackgroundColor:[NSColor clearColor]];
+		MacApplication->OnWindowDestroyed(WindowHandle);
+		WindowHandle = nullptr;
 	}
 }
 
@@ -404,7 +388,7 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 
 	// In OS X fullscreen and windowed fullscreen are the same
 	bool bMakeFullscreen = NewWindowMode != EWindowMode::Windowed;
-	bool bIsFullscreen = WindowMode != EWindowMode::Windowed;
+	bool bIsFullscreen = GetWindowMode() != EWindowMode::Windowed;
 
 	if( bIsFullscreen != bMakeFullscreen )
 	{
@@ -445,9 +429,12 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 			Behaviour &= ~(NSWindowCollectionBehaviorFullScreenPrimary);
 			Behaviour |= NSWindowCollectionBehaviorFullScreenAuxiliary;
 		}
-		
-		WindowMode = NewWindowMode;
 	}
+}
+
+EWindowMode::Type FMacWindow::GetWindowMode() const
+{
+	return [WindowHandle windowMode];
 }
 
 bool FMacWindow::IsMaximized() const
@@ -560,16 +547,19 @@ bool FMacWindow::IsForegroundWindow() const
 
 void FMacWindow::SetText(const TCHAR* const Text)
 {
-	CFStringRef CFName = FPlatformString::TCHARToCFString( Text );
-	MainThreadCall(^{
-		SCOPED_AUTORELEASE_POOL;
-		[WindowHandle setTitle: (NSString*)CFName];
-		if(IsRegularWindow())
-		{
-			[NSApp changeWindowsItem: WindowHandle title: (NSString*)CFName filename: NO];
-		}
-		CFRelease( CFName );
-	}, UE4NilEventMode, true);
+	if( FString([WindowHandle title]) != FString(Text) )
+	{
+		CFStringRef CFName = FPlatformString::TCHARToCFString( Text );
+		MainThreadCall(^{
+			SCOPED_AUTORELEASE_POOL;
+			[WindowHandle setTitle: (NSString*)CFName];
+			if(IsRegularWindow())
+			{
+				[NSApp changeWindowsItem: WindowHandle title: (NSString*)CFName filename: NO];
+			}
+			CFRelease( CFName );
+		}, UE4NilEventMode, true);
+	}
 }
 
 bool FMacWindow::IsRegularWindow() const

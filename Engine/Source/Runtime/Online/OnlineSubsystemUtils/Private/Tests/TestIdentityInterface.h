@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,6 +18,9 @@
 	FOnLoginCompleteDelegate OnLoginCompleteDelegate;
 	/** Delegate to use for logging out a user */
 	FOnLogoutCompleteDelegate OnLogoutCompleteDelegate;
+	/** Handles to the above delegates */
+	FDelegateHandle OnLoginCompleteDelegateHandle;
+	FDelegateHandle OnLogoutCompleteDelegateHandle;
 	/** true if authentication test should be run */
 	bool bRunLoginTest;
 	/** true if logout test should be run */

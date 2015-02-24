@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -44,9 +44,9 @@ public:
 
 #if WITH_EDITOR
 	/**
-	 * Minimal initialization constructor.
+	 * Minimal initialization.
 	 */
-	UModelComponent( const FObjectInitializer& ObjectInitializer,UModel* InModel, uint16 InComponentIndex, uint32 MaskedSurfaceFlags, const TArray<uint16>& InNodes );
+	void InitializeModelComponent(UModel* InModel, uint16 InComponentIndex, uint32 MaskedSurfaceFlags, const TArray<uint16>& InNodes);
 #endif // WITH_EDITOR
 
 	/**

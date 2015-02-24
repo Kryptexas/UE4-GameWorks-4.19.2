@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -70,7 +70,7 @@ namespace AutomationTool
 			}
 			// Register all the classes inside UBT
 			Log.TraceVerbose("Registering UBT Classes.");
-			UnrealBuildTool.UnrealBuildTool.RegisterAllUBTClasses();
+			UnrealBuildTool.UnrealBuildTool.RegisterAllUBTClasses(GlobalCommandLine.NoCodeProject);
 			Environment.CurrentDirectory = OldCWD;
 
 			// Compile only if not disallowed.

@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 
 #include "Persona.h"
+#include "Engine/SkeletalMeshSocket.h"
 
 /** Enum which determines what type a tree row is. Value is 
 	used as a flag for filtering tree items, so each goes up 
@@ -172,7 +173,7 @@ private:
 	FLinearColor GetBoneTextColor( UDebugSkelMeshComponent* PreviewComponent ) const;
 
 	/** Function that returns the current tooltip for this bone, depending on how it's used by the mesh */
-	FString GetBoneToolTip();
+	FText GetBoneToolTip();
 
 	/** The actual bone data that we create Slate widgets to display */
 	FName BoneName;
@@ -181,7 +182,7 @@ private:
 	TSharedRef< SWidget > CreateBoneTranslationRetargetingModeMenu();
 
 	/** Get Title for Bone Translation Retargeting Mode menu. */
-	FString GetTranslationRetargetingModeMenuTitle() const;
+	FText GetTranslationRetargetingModeMenuTitle() const;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -266,7 +267,7 @@ protected:
 	void OnCommitSocketName( const FText& InText, ETextCommit::Type CommitInfo );
 
 	/** Function that returns the current tooltip for this socket */
-	FString GetSocketToolTip();
+	FText GetSocketToolTip();
 
 	/** Pointer to the socket */
 	USkeletalMeshSocket*	SocketData;
@@ -333,10 +334,10 @@ public:
 	UObject* GetAsset() const { return Asset; }
 
 	/** Accessor for SCheckBox **/
-	ESlateCheckBoxState::Type IsAssetDisplayed() const;
+	ECheckBoxState IsAssetDisplayed() const;
 
 	/** Called when user toggles checkbox **/
-	void OnToggleAssetDisplayed( ESlateCheckBoxState::Type InCheckboxState );
+	void OnToggleAssetDisplayed( ECheckBoxState InCheckboxState );
 
 	/** Called when we need to get the state-based-image to show for the asset displayed checkbox */
 	const FSlateBrush* OnGetAssetDisplayedButtonImage() const;
@@ -525,19 +526,19 @@ private:
 	bool IsSocketFilter( ESocketFilter::Type InSocketFilter ) const;
 
 	/** Returns the current text for the bone filter button - "All", "Mesh" or "Weighted" */
-	FString GetBoneFilterMenuTitle() const;
+	FText GetBoneFilterMenuTitle() const;
 
 	/** Returns the current text for the socket filter button - "All", "Mesh" or "Skeleton" */
-	FString GetSocketFilterMenuTitle() const;
+	FText GetSocketFilterMenuTitle() const;
 
 	/** We can only add sockets in Active, Skeleton or All mode (otherwise they just disappear) */
 	bool IsAddingSocketsAllowed() const;
 
 	/** Handler for "Show Retargeting Options" check box IsChecked functionality */
-	ESlateCheckBoxState::Type IsShowingRetargetingOptions() const;
+	ECheckBoxState IsShowingRetargetingOptions() const;
 
 	/**  Handler for when we change the "Show Retargeting Options" check box */
-	void OnChangeShowingRetargetingOptions(ESlateCheckBoxState::Type NewState);
+	void OnChangeShowingRetargetingOptions(ECheckBoxState NewState);
 
 	/** This replicates the socket filter to the previewcomponent so that the viewport can use the same settings */
 	void SetPreviewComponentSocketFilter() const;

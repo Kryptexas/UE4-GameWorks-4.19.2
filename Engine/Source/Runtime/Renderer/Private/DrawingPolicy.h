@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DrawingPolicy.h: Drawing policy definitions.
@@ -49,6 +49,7 @@ public:
 		bIsTwoSidedMaterial = Other.bIsTwoSidedMaterial;
 		bIsWireframeMaterial = Other.bIsWireframeMaterial;
 		bNeedsBackfacePass = Other.bNeedsBackfacePass;
+		bUsePositionOnlyVS = Other.bUsePositionOnlyVS;
 		bOverrideWithShaderComplexity = Other.bOverrideWithShaderComplexity;
 		return *this; 
 	}
@@ -64,6 +65,7 @@ public:
 			VertexFactory == OtherDrawer.VertexFactory &&
 			MaterialRenderProxy == OtherDrawer.MaterialRenderProxy &&
 			bIsTwoSidedMaterial == OtherDrawer.bIsTwoSidedMaterial && 
+			bUsePositionOnlyVS == OtherDrawer.bUsePositionOnlyVS && 
 			bIsWireframeMaterial == OtherDrawer.bIsWireframeMaterial;
 	}
 
@@ -131,6 +133,7 @@ protected:
 	uint32 bIsTwoSidedMaterial : 1;
 	uint32 bIsWireframeMaterial : 1;
 	uint32 bNeedsBackfacePass : 1;
+	uint32 bUsePositionOnlyVS : 1;
 	uint32 bOverrideWithShaderComplexity : 1;
 };
 

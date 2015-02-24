@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -56,6 +56,22 @@ struct SLATECORE_API FSlateDynamicImageBrush
 	{
 		bIsDynamicallyLoaded = true;
 	}
+
+	/**
+	* @param InTextureName		The name to use when registering the image data as a texture.
+	* @param InImageSize		How large should the image be (not necessarily the image size on disk)
+	* @param InImageData		The raw image data formatted as BGRA
+	* @param InTint				The tint of the image.
+	* @param InTiling			How do we tile if at all?
+	* @param InImageType		The type of image this this is
+	*/
+	static TSharedPtr<FSlateDynamicImageBrush> CreateWithImageData(
+		const FName InTextureName,
+		const FVector2D& InImageSize,
+		const TArray<uint8>& InImageData,
+		const FLinearColor& InTint = FLinearColor(1.0f, 1.0f, 1.0f, 1.0f),
+		ESlateBrushTileType::Type InTiling = ESlateBrushTileType::NoTile,
+		ESlateBrushImageType::Type InImageType = ESlateBrushImageType::FullColor);
 
 	/** Destructor. */
 	virtual ~FSlateDynamicImageBrush();

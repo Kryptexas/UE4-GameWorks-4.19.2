@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
 
@@ -140,6 +140,12 @@ bool FKismetDelegateDragDropAction::IsValid() const
 	return VariableSource.IsValid() &&
 		(VariableName != NAME_None) &&
 		(NULL != FindField<UMulticastDelegateProperty>(VariableSource.Get(), VariableName));
+}
+
+bool FKismetDelegateDragDropAction::IsSupportedBySchema(const class UEdGraphSchema* Schema) const
+{
+	auto SchemaK2 = Cast<UEdGraphSchema_K2>(Schema);
+	return SchemaK2 && SchemaK2->DoesSupportEventDispatcher();
 }
 
 #undef LOCTEXT_NAMESPACE

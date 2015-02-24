@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetToolsPrivatePCH.h"
 
@@ -13,6 +13,7 @@
 #include "FbxMeshUtils.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 

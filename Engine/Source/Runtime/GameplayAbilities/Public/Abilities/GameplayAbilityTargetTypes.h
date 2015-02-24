@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -65,7 +65,9 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData
 
 	TArray<FActiveGameplayEffectHandle> ApplyGameplayEffect(const UGameplayEffect* GameplayEffect, const FGameplayEffectContextHandle& InEffectContext, float Level, FPredictionKey PredictionKey = FPredictionKey());
 
-	virtual void AddTargetDataToContext(FGameplayEffectContextHandle& Context);
+	TArray<FActiveGameplayEffectHandle> ApplyGameplayEffectSpec(FGameplayEffectSpec& Spec, FPredictionKey PredictionKey = FPredictionKey());
+
+	virtual void AddTargetDataToContext(FGameplayEffectContextHandle& Context, bool bIncludeActorArray);
 
 	virtual TArray<TWeakObjectPtr<AActor> >	GetActors() const
 	{
@@ -243,45 +245,6 @@ struct TStructOpsTypeTraits<FGameplayAbilityTargetDataHandle> : public TStructOp
 	};
 };
 
-/*
-USTRUCT(BlueprintType)
-struct FGameplayAbilityTargetDataActorFilter
-{
-	GENERATED_USTRUCT_BODY()
-
-	virtual bool FilterPassesForActor(const AActor* ActorToBeFiltered) const
-	{
-		return true;
-	}
-};
-
-USTRUCT(BlueprintType)
-struct FGameplayAbilityTargetDataActorFilterHandleBase
-{
-	GENERATED_USTRUCT_BODY()
-
-	TSharedPtr<FGameplayAbilityTargetDataActorFilter>	Filter;
-
-	bool operator()(const TWeakObjectPtr<AActor> A) const
-	{
-		if (Filter.IsValid())
-		{
-			return Filter.Get()->FilterPassesForActor(A.Get());
-		}
-		return true;
-	}
-
-	bool operator()(const AActor* A) const
-	{
-		if (Filter.IsValid())
-		{
-			return Filter.Get()->FilterPassesForActor(A);
-		}
-		return true;
-	}
-};
-*/
-
 USTRUCT(BlueprintType)
 struct GAMEPLAYABILITIES_API FGameplayAbilityTargetingLocationInfo
 {
@@ -333,7 +296,6 @@ public:
 
 	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromHitResult(TWeakObjectPtr<UGameplayAbility> Ability, FHitResult HitResult) const;
 	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromHitResults(TWeakObjectPtr<UGameplayAbility> Ability, const TArray<FHitResult>& HitResults) const;
-
 	FGameplayAbilityTargetDataHandle MakeTargetDataHandleFromActors(TArray<TWeakObjectPtr<AActor>> TargetActors, bool OneActorPerHandle = false) const;
 
 	/** Type of location used - will determine what data is transmitted over the network and what fields are used when calculating position. */
@@ -481,7 +443,7 @@ struct GAMEPLAYABILITIES_API FGameplayAbilityTargetData_ActorArray : public FGam
 		{
 			if (TargetActorArray[i].IsValid())
 			{
-				FVector Direction = (TargetActorArray[i].Get()->GetActorLocation() - ReturnTransform.GetLocation()).SafeNormal();
+				FVector Direction = (TargetActorArray[i].Get()->GetActorLocation() - ReturnTransform.GetLocation()).GetSafeNormal();
 				if (Direction.IsNormalized())
 				{
 					ReturnTransform.SetRotation(Direction.Rotation().Quaternion());

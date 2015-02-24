@@ -1,11 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "PhysicsAssetUtils.h"
 #include "Developer/MeshUtilities/Public/MeshUtilities.h"
 #include "Editor/UnrealEd/Private/ConvexDecompTool.h"
 #include "MessageLog.h"
-
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "EngineLogs.h"
+#include "PhysicsEngine/BodySetup.h"
 
 void FPhysAssetCreateParams::Initialize()
 {
@@ -306,7 +309,7 @@ FVector ComputeEigenVector(const FMatrix& A)
 		}
 	}
 
-	return Bk.SafeNormal();
+	return Bk.GetSafeNormal();
 }
 
 
@@ -337,7 +340,7 @@ bool CreateCollisionFromBone( UBodySetup* bs, USkeletalMesh* skelMesh, int32 Bon
 			if(ChildPos.Size() > KINDA_SMALL_NUMBER)
 			{
 				// ZAxis for collision geometry lies down axis to child bone.
-				FVector ZAxis = ChildPos.SafeNormal();
+				FVector ZAxis = ChildPos.GetSafeNormal();
 
 				// Then we pick X and Y randomly. 
 				// JTODO: Should project all the vertices onto ZAxis plane and fit a bounding box using calipers or something...

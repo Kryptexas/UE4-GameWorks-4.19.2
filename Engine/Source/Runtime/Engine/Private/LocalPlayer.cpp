@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 
@@ -19,9 +19,10 @@
 #include "SceneViewExtension.h"
 #include "DataChannel.h"
 #include "GameFramework/OnlineSession.h"
+#include "GameFramework/PlayerInput.h"
+#include "GameFramework/GameMode.h"
 
 DEFINE_LOG_CATEGORY(LogPlayerManagement);
-DEFINE_LOG_CATEGORY_STATIC(LogEngine, Log, All);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
@@ -42,8 +43,6 @@ static TAutoConsoleVariable<int32> CVarViewportTest(
 
 bool GShouldLogOutAFrameOfMoveComponent = false;
 bool GShouldLogOutAFrameOfSetBodyTransform = false;
-
-extern int32 GetBoundFullScreenModeCVar();
 
 //////////////////////////////////////////////////////////////////////////
 // ULocalPlayer
@@ -229,6 +228,13 @@ bool ULocalPlayer::SpawnPlayActor(const FString& URL,FString& OutError, UWorld* 
 			PlayerURL.AddOption(*FString::Printf(TEXT("Name=%s"), *PlayerName));
 		}
 
+		// Send any game-specific url options for this player
+		FString GameUrlOptions = GetGameLoginOptions();
+		if (GameUrlOptions.Len() > 0)
+		{
+			PlayerURL.AddOption(*FString::Printf(TEXT("%s"), *GameUrlOptions));
+		}
+
 		// Get player unique id
 		TSharedPtr<FUniqueNetId> UniqueId = GetPreferredUniqueNetId();
 
@@ -404,7 +410,7 @@ public:
 			else
 			{
 				FMinimalViewInfo MinViewInfo;
-				Player->GetViewPoint(MinViewInfo);
+				Player->GetViewPoint(MinViewInfo, eSSP_FULL);
 				PlayerState.ViewPoint.Location = MinViewInfo.Location;
 				PlayerState.ViewPoint.Rotation = MinViewInfo.Rotation;
 				PlayerState.ViewPoint.FOV = MinViewInfo.FOV;
@@ -422,7 +428,7 @@ public:
 			else
 			{
 				FMinimalViewInfo MinViewInfo;
-				Player->GetViewPoint(MinViewInfo);
+				Player->GetViewPoint(MinViewInfo, eSSP_FULL);
 				PlayerState.ViewPoint.Location = MinViewInfo.Location;
 				PlayerState.ViewPoint.Rotation = MinViewInfo.Rotation;
 				PlayerState.ViewPoint.FOV = MinViewInfo.FOV;
@@ -618,7 +624,7 @@ FAutoConsoleCommand FLockedViewState::CmdCopyLockedViews(
 	FConsoleCommandDelegate::CreateStatic(FLockedViewState::CopyLockedViews)
 	);
 
-void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo)
+void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo, EStereoscopicPass StereoPass)
 {
 	if (FLockedViewState::Get().GetViewPoint(this, OutViewInfo.Location, OutViewInfo.Rotation, OutViewInfo.FOV) == false
 		&& PlayerController != NULL)
@@ -636,7 +642,7 @@ void ULocalPlayer::GetViewPoint(FMinimalViewInfo& OutViewInfo)
 	}
 
     // allow HMDs to override fov
-    if (GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
+    if ((StereoPass != eSSP_FULL) && GEngine->HMDDevice.IsValid() && GEngine->IsStereoscopic3D())
     {
 		float HFOV, VFOV;
         GEngine->HMDDevice->GetFieldOfView(HFOV, VFOV);
@@ -681,7 +687,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 	// Get the viewpoint...technically doing this twice
 	// but it makes GetProjectionData better
 	FMinimalViewInfo ViewInfo;
-	GetViewPoint(ViewInfo);
+	GetViewPoint(ViewInfo, StereoPass);
 	
 	OutViewLocation = ViewInfo.Location;
 	OutViewRotation = ViewInfo.Rotation;
@@ -754,53 +760,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 		//	NOTE: Matinee works through this channel
 		View->OverridePostProcessSettings(ViewInfo.PostProcessSettings, ViewInfo.PostProcessBlendWeight);
 
-		View->EndFinalPostprocessSettings();
-	}
-
-	// Upscaling or Super sampling
-	{
-		float LocalScreenPercentage = View->FinalPostProcessSettings.ScreenPercentage;
-
-		float Fraction = 1.0f;
-
-		// apply ScreenPercentage
-		if (LocalScreenPercentage != 100.f)
-		{
-			Fraction = FMath::Clamp(LocalScreenPercentage / 100.0f, 0.1f, 4.0f);
-		}
-
-		// Window full screen mode with upscaling
-		bool bFullscreen = false;
-		if (GEngine && GEngine->GameViewport && GEngine->GameViewport->GetWindow().IsValid())
-		{
-			bFullscreen = GEngine->GameViewport->GetWindow()->GetWindowMode() != EWindowMode::Windowed;
-		}
-
-		if (bFullscreen)
-		{
-			int32 WindowModeType = GetBoundFullScreenModeCVar();
-
-			// CVar mode 2 is fullscreen with upscale
-			if(WindowModeType == 2)
-			{
-				FIntPoint WindowSize = Viewport->GetSizeXY();
-
-				// allow only upscaling
-				float FractionX = FMath::Clamp((float)GSystemResolution.ResX / WindowSize.X, 0.1f, 4.0f);
-				float FractionY = FMath::Clamp((float)GSystemResolution.ResY / WindowSize.Y, 0.1f, 4.0f);
-
-				// maintain a pixel aspect ratio of 1:1 for easier internal computations
-				Fraction *= FMath::Max(FractionX, FractionY);
-			}
-		}
-
-		// Upscale if needed
-		if (Fraction != 1.0f)
-		{
-			// compute the view rectangle with the ScreenPercentage applied
-			const FIntRect ScreenPercentageAffectedViewRect = ViewInitOptions.GetConstrainedViewRect().Scale(Fraction);
-			View->SetScaledViewRect(ScreenPercentageAffectedViewRect);
-		}
+		View->EndFinalPostprocessSettings(ViewInitOptions);
 	}
 
 	for (int ViewExt = 0; ViewExt < ViewFamily->ViewExtensions.Num(); ViewExt++)
@@ -972,10 +932,10 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 
 	// Get the viewpoint.
 	FMinimalViewInfo ViewInfo;
-	GetViewPoint(/*out*/ ViewInfo);
+	GetViewPoint(/*out*/ ViewInfo, StereoPass);
 
 	// If stereo rendering is enabled, update the size and offset appropriately for this pass
-	const bool bNeedStereo = GEngine->IsStereoscopic3D() && (StereoPass != eSSP_FULL);
+	const bool bNeedStereo = (StereoPass != eSSP_FULL) && GEngine->IsStereoscopic3D();
 	if( bNeedStereo )
 	{
 		GEngine->StereoRenderingDevice->AdjustViewRect(StereoPass, X, Y, SizeX, SizeY);
@@ -985,7 +945,7 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 	PlayerController->LocalPlayerCachedLODDistanceFactor = ViewInfo.FOV / FMath::Max<float>(0.01f, (PlayerController->PlayerCameraManager != NULL) ? PlayerController->PlayerCameraManager->DefaultFOV : 90.f);
 	
     FVector StereoViewLocation = ViewInfo.Location;
-    if ((GEngine->IsStereoscopic3D() && StereoPass != eSSP_FULL) || (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed()))
+    if (bNeedStereo || (GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed()))
     {
         GEngine->StereoRenderingDevice->CalculateStereoViewOffset(StereoPass, ViewInfo.Rotation, GetWorld()->GetWorldSettings()->WorldToMeters, StereoViewLocation);
     }
@@ -1029,8 +989,9 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 			}
 			else
 			{
+				// Avoid divide by zero in the projection matrix calculation by clamping FOV
 				ProjectionData.ProjectionMatrix = FReversedZPerspectiveMatrix( 
-					ViewInfo.FOV * (float)PI / 360.0f,
+					FMath::Max(0.001f, ViewInfo.FOV) * (float)PI / 360.0f,
 					ViewInfo.AspectRatio,
 					1.0f,
 					GNearClippingPlane );
@@ -1038,7 +999,8 @@ bool ULocalPlayer::GetProjectionData(FViewport* Viewport, EStereoscopicPass Ster
 		}
 		else 
 		{
-			float MatrixFOV = ViewInfo.FOV * (float)PI / 360.0f;
+			// Avoid divide by zero in the projection matrix calculation by clamping FOV
+			float MatrixFOV = FMath::Max(0.001f, ViewInfo.FOV) * (float)PI / 360.0f;
 			float XAxisMultiplier;
 			float YAxisMultiplier;
 
@@ -1260,7 +1222,7 @@ bool ULocalPlayer::HandleListPawnComponentsCommand( const TCHAR* Cmd, FOutputDev
 		APawn *Pawn = *It;	
 		UE_LOG(LogPlayerManagement, Log, TEXT("Components for pawn: %s (collision component: %s)"),*Pawn->GetName(),*Pawn->GetRootComponent()->GetName());
 
-		TArray<UActorComponent*> Components;
+		TInlineComponentArray<UActorComponent*> Components;
 		Pawn->GetComponents(Components);
 
 		for (int32 CompIdx = 0; CompIdx < Components.Num(); CompIdx++)
@@ -1665,10 +1627,15 @@ void ULocalPlayer::AddReferencedObjects(UObject* InThis, FReferenceCollector& Co
 	ULocalPlayer* This = CastChecked<ULocalPlayer>(InThis);
 
 	FSceneViewStateInterface* Ref = This->ViewState.GetReference();
-
 	if(Ref)
 	{
 		Ref->AddReferencedObjects(Collector);
+	}
+
+	FSceneViewStateInterface* StereoRef = This->StereoViewState.GetReference();
+	if (StereoRef)
+	{
+		StereoRef->AddReferencedObjects(Collector);
 	}
 
 	UPlayer::AddReferencedObjects(This, Collector);

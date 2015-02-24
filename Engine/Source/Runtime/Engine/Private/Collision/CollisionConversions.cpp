@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 
@@ -7,6 +7,12 @@
 #include "PhysXCollision.h"
 #include "CollisionDebugDrawing.h"
 #include "CollisionConversions.h"
+#include "Components/DestructibleComponent.h"
+#include "Components/LineBatchComponent.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
+
+#define DRAW_OVERLAPPING_TRIS (!(UE_BUILD_SHIPPING || UE_BUILD_TEST))
+extern TAutoConsoleVariable<int32> CVarShowInitialOverlaps;
 
 // Sentinel for invalid query results.
 static const PxQueryHit InvalidQueryHit;
@@ -80,14 +86,14 @@ static PxVec3 TransformNormalToShapeSpace(const PxMeshScale& meshScale, const Px
 	}
 }
 
-static bool FindSimpleOpposingNormal(const PxLocationHit& PHit, const FVector& Direction, FVector& OutNormal)
+static bool FindSimpleOpposingNormal(const PxLocationHit& PHit, const FVector& TraceDirectionDenorm, FVector& OutNormal)
 {
-	bool bNormalData = PHit.flags & PxHitFlag::eNORMAL;
-	OutNormal = bNormalData ? P2UVector(PHit.normal) : -Direction;
+	const bool bNormalData = PHit.flags & PxHitFlag::eNORMAL;
+	OutNormal = bNormalData ? P2UVector(PHit.normal) : -TraceDirectionDenorm.GetSafeNormal();
 	return true;
 }
 
-static bool FindHeightFieldOpposingNormal(const PxLocationHit& PHit, const FVector& Direction, FVector& OutNormal)
+static bool FindHeightFieldOpposingNormal(const PxLocationHit& PHit, const FVector& TraceDirectionDenorm, FVector& OutNormal)
 {
 
 	PxHeightFieldGeometry PHeightFieldGeom;
@@ -111,7 +117,7 @@ static bool FindHeightFieldOpposingNormal(const PxLocationHit& PHit, const FVect
 	return false;
 }
 
-static bool FindConvexMeshOpposingNormal(const PxLocationHit& PHit, const FVector& Direction, FVector& OutNormal)
+static bool FindConvexMeshOpposingNormal(const PxLocationHit& PHit, const FVector& TraceDirectionDenorm, FVector& OutNormal)
 {
 	PxConvexMeshGeometry PConvexMeshGeom;
 	bool bSuccess = PHit.shape->getConvexMeshGeometry(PConvexMeshGeom);
@@ -149,7 +155,7 @@ static bool FindConvexMeshOpposingNormal(const PxLocationHit& PHit, const FVecto
 	return false;
 }
 
-static bool FindTriMeshOpposingNormal(const PxLocationHit& PHit, const FVector& Direction, FVector& OutNormal)
+static bool FindTriMeshOpposingNormal(const PxLocationHit& PHit, const FVector& TraceDirectionDenorm, FVector& OutNormal)
 {
 	PxTriangleMeshGeometry PTriMeshGeom;
 	bool bSuccess = PHit.shape->getTriangleMeshGeometry(PTriMeshGeom);
@@ -198,7 +204,7 @@ static bool FindTriMeshOpposingNormal(const PxLocationHit& PHit, const FVector& 
 		if (PTriMeshGeom.meshFlags & PxMeshGeometryFlag::eDOUBLE_SIDED)
 		{
 			//double sided mesh so we need to consider direction of query
-			float sign = FVector::DotProduct(OutNormal, Direction) > 0 ? -1.f : 1.f;
+			const float sign = FVector::DotProduct(OutNormal, TraceDirectionDenorm) > 0.f ? -1.f : 1.f;
 			OutNormal *= sign;
 		}
 
@@ -218,11 +224,11 @@ static bool FindTriMeshOpposingNormal(const PxLocationHit& PHit, const FVector& 
 /**
  * Util to find the normal of the face that we hit.
  * @param PHit - incoming hit from PhysX
- * @param Direction - direction of sweep test (not normalized)
+ * @param TraceDirectionDenorm - direction of sweep test (not normalized)
  * @param OutNormal - normal we may recompute based on the faceIndex of the hit
  * @return true if we compute a new normal for the geometry.
  */
-static bool FindGeomOpposingNormal(const PxLocationHit& PHit, const FVector& Direction, FVector& OutNormal)
+static bool FindGeomOpposingNormal(const PxLocationHit& PHit, const FVector& TraceDirectionDenorm, FVector& OutNormal)
 {
 	checkf(InvalidQueryHit.faceIndex == 0xFFFFffff, TEXT("Engine code needs fixing: PhysX invalid face index sentinel has changed or is not part of default PxQueryHit!"));
 	if (PHit.faceIndex == InvalidQueryHit.faceIndex)
@@ -235,10 +241,10 @@ static bool FindGeomOpposingNormal(const PxLocationHit& PHit, const FVector& Dir
 	{
 		case PxGeometryType::eSPHERE:
 		case PxGeometryType::eBOX:
-		case PxGeometryType::eCAPSULE:		return FindSimpleOpposingNormal(PHit, Direction, OutNormal);
-		case PxGeometryType::eCONVEXMESH:	return FindConvexMeshOpposingNormal(PHit, Direction, OutNormal);
-		case PxGeometryType::eHEIGHTFIELD:	return FindHeightFieldOpposingNormal(PHit, Direction, OutNormal);
-		case PxGeometryType::eTRIANGLEMESH:	return FindTriMeshOpposingNormal(PHit, Direction, OutNormal);
+		case PxGeometryType::eCAPSULE:		return FindSimpleOpposingNormal(PHit, TraceDirectionDenorm, OutNormal);
+		case PxGeometryType::eCONVEXMESH:	return FindConvexMeshOpposingNormal(PHit, TraceDirectionDenorm, OutNormal);
+		case PxGeometryType::eHEIGHTFIELD:	return FindHeightFieldOpposingNormal(PHit, TraceDirectionDenorm, OutNormal);
+		case PxGeometryType::eTRIANGLEMESH:	return FindTriMeshOpposingNormal(PHit, TraceDirectionDenorm, OutNormal);
 		default: check(false);	//unsupported geom type
 	}
 
@@ -282,7 +288,7 @@ static void SetHitResultFromShapeAndFaceIndex(const PxShape* PShape,  const PxRi
 		OutResult.Actor = OwningComponent->GetOwner();
 		OutResult.Component = OwningComponent;
 
-		if(bReturnPhysMat)
+		if (bReturnPhysMat)
 		{
 			// @fixme: only do this for InGameThread, otherwise, this will be done in AsyncTrace
 			if ( IsInGameThread() )
@@ -344,13 +350,13 @@ void ConvertQueryImpactHit(const PxLocationHit& PHit, FHitResult& OutResult, flo
 	const float HitTime = PHit.distance/CheckLength;
 
 	// figure out where the the "safe" location for this shape is by moving from the startLoc toward the ImpactPoint
-	const FVector TraceDir = EndLoc - StartLoc;
-	const FVector SafeLocationToFitShape = StartLoc + (HitTime * TraceDir);
+	const FVector TraceStartToEnd = EndLoc - StartLoc;
+	const FVector SafeLocationToFitShape = StartLoc + (HitTime * TraceStartToEnd);
 
 	// Other info
 	OutResult.Location = SafeLocationToFitShape;
 	OutResult.ImpactPoint = (PHit.flags & PxHitFlag::ePOSITION) ? P2UVector(PHit.position) : StartLoc;
-	OutResult.Normal = (PHit.flags & PxHitFlag::eNORMAL) ? P2UVector(PHit.normal) : -TraceDir.SafeNormal();
+	OutResult.Normal = (PHit.flags & PxHitFlag::eNORMAL) ? P2UVector(PHit.normal) : -TraceStartToEnd.GetSafeNormal();
 	OutResult.ImpactNormal = OutResult.Normal;
 
 	OutResult.TraceStart = StartLoc;
@@ -373,16 +379,19 @@ void ConvertQueryImpactHit(const PxLocationHit& PHit, FHitResult& OutResult, flo
 	// Special handling for swept-capsule results
 	if (GeometryType == PxGeometryType::eCAPSULE || GeometryType == PxGeometryType::eSPHERE)
 	{
-		FindGeomOpposingNormal(PHit, TraceDir, OutResult.ImpactNormal);
+		FindGeomOpposingNormal(PHit, TraceStartToEnd, OutResult.ImpactNormal);
 	}
 	
 	if( PHit.shape->getGeometryType() == PxGeometryType::eHEIGHTFIELD)
 	{
 		// Lookup physical material for heightfields
-		PxMaterial* HitMaterial = PHit.shape->getMaterialFromInternalFaceIndex(PHit.faceIndex);
-		if( HitMaterial != NULL )
+		if (PHit.faceIndex != InvalidQueryHit.faceIndex)
 		{
-			OutResult.PhysMaterial = FPhysxUserData::Get<UPhysicalMaterial>(HitMaterial->userData);
+			PxMaterial* HitMaterial = PHit.shape->getMaterialFromInternalFaceIndex(PHit.faceIndex);
+			if (HitMaterial != NULL)
+			{
+				OutResult.PhysMaterial = FPhysxUserData::Get<UPhysicalMaterial>(HitMaterial->userData);
+			}
 		}
 	}
 	else
@@ -423,7 +432,7 @@ void ConvertRaycastResults(int32 NumHits, PxRaycastHit* Hits, float CheckLength,
 	OutHits.Sort( FCompareFHitResultTime() );
 }
 
-bool AddSweepResults(int32 NumHits, PxSweepHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry& Geom, const PxTransform& QueryTM, float MaxDistance, bool bReturnPhysMat)
+bool AddSweepResults(int32 NumHits, const PxSweepHit* Hits, float CheckLength, const PxFilterData& QueryFilter, TArray<FHitResult>& OutHits, const FVector& StartLoc, const FVector& EndLoc, const PxGeometry& Geom, const PxTransform& QueryTM, float MaxDistance, bool bReturnPhysMat)
 {
 	OutHits.Reserve(NumHits);
 	bool bHadBlockingHit = false;
@@ -446,20 +455,21 @@ bool AddSweepResults(int32 NumHits, PxSweepHit* Hits, float CheckLength, const P
 	return bHadBlockingHit;
 }
 
-#define DRAW_OVERLAPPING_TRIS 0
-
 /* Function to find the best normal from the list of triangles that are overlapping our geom. */
 template<typename GeomType>
-FVector FindBestOverlappingNormal(const PxGeometry& Geom, const PxTransform& QueryTM, const GeomType& ShapeGeom, const PxTransform& PShapeWorldPose, PxU32* HitTris, int32 NumTrisHit)
+FVector FindBestOverlappingNormal(const PxGeometry& Geom, const PxTransform& QueryTM, const GeomType& ShapeGeom, const PxTransform& PShapeWorldPose, PxU32* HitTris, int32 NumTrisHit, bool bCanDrawOverlaps = false)
 {
 #if DRAW_OVERLAPPING_TRIS
-	TArray<FOverlapResult> Overlaps;
-	DrawGeomOverlaps(World, Geom, QueryTM, Overlaps);
-
-	TArray<FBatchedLine> Lines;
-	const FLinearColor LineColor = FLinearColor(1.f, 0.7f, 0.7f);
-	const FLinearColor NormalColor = FLinearColor(1.f, 1.f, 1.f);
 	const float Lifetime = 5.f;
+	bCanDrawOverlaps &= GWorld->IsGameWorld() && GWorld->PersistentLineBatcher && (GWorld->PersistentLineBatcher->BatchedLines.Num() < 2048);
+	if (bCanDrawOverlaps)
+	{
+		TArray<FOverlapResult> Overlaps;
+		DrawGeomOverlaps(GWorld, Geom, QueryTM, Overlaps, Lifetime);
+	}
+	const FLinearColor LineColor = FLinearColor::Green;
+	const FLinearColor NormalColor = FLinearColor::Red;
+	const FLinearColor PointColor = FLinearColor::Yellow;
 #endif // DRAW_OVERLAPPING_TRIS
 
 	// Track the best triangle plane distance
@@ -493,19 +503,23 @@ FVector FindBestOverlappingNormal(const PxGeometry& Geom, const PxTransform& Que
 		}
 
 #if DRAW_OVERLAPPING_TRIS
-		Lines.Add(FBatchedLine(A, B, LineColor, Lifetime, 0.1f, SDPG_Foreground));
-		Lines.Add(FBatchedLine(B, C, LineColor, Lifetime, 0.1f, SDPG_Foreground));
-		Lines.Add(FBatchedLine(C, A, LineColor, Lifetime, 0.1f, SDPG_Foreground));
-		Lines.Add(FBatchedLine(A, A + (50.f*TriNormal), NormalColor, Lifetime, 0.1f, SDPG_Foreground));
+		if (bCanDrawOverlaps && (GWorld->PersistentLineBatcher->BatchedLines.Num() < 2048))
+		{
+			static const float LineThickness = 0.9f;
+			static const float NormalThickness = 0.75f;
+			static const float PointThickness = 5.0f;
+			GWorld->PersistentLineBatcher->DrawLine(A, B, LineColor, SDPG_Foreground, LineThickness, Lifetime);
+			GWorld->PersistentLineBatcher->DrawLine(B, C, LineColor, SDPG_Foreground, LineThickness, Lifetime);
+			GWorld->PersistentLineBatcher->DrawLine(C, A, LineColor, SDPG_Foreground, LineThickness, Lifetime);
+			const FVector Centroid((A + B + C) / 3.f);
+			GWorld->PersistentLineBatcher->DrawLine(Centroid, Centroid + (35.0f*TriNormal), NormalColor, SDPG_Foreground, NormalThickness, Lifetime);
+			GWorld->PersistentLineBatcher->DrawPoint(Centroid + (35.0f*TriNormal), NormalColor, PointThickness, SDPG_Foreground, Lifetime);
+			GWorld->PersistentLineBatcher->DrawPoint(A, PointColor, PointThickness, SDPG_Foreground, Lifetime);
+			GWorld->PersistentLineBatcher->DrawPoint(B, PointColor, PointThickness, SDPG_Foreground, Lifetime);
+			GWorld->PersistentLineBatcher->DrawPoint(C, PointColor, PointThickness, SDPG_Foreground, Lifetime);
+		}
 #endif // DRAW_OVERLAPPING_TRIS
 	}
-
-#if DRAW_OVERLAPPING_TRIS
-	if (World->PersistentLineBatcher)
-	{
-		World->PersistentLineBatcher->DrawLines(Lines);
-	}
-#endif // DRAW_OVERLAPPING_TRIS
 
 	return BestPlaneNormal;
 }
@@ -564,6 +578,49 @@ static bool ComputeInflatedMTD(const float MtdInflation, const PxLocationHit& PH
 			return ComputeInflatedMTD_Internal(MtdInflation, PHit, OutResult, QueryTM, InflatedSphere, PShapeWorldPose);
 		}
 
+		case PxGeometryType::eCONVEXMESH:
+		{
+			// We can't exactly inflate the mesh (not easily), so try jittering it a bit to get an MTD result.
+			PxVec3 TraceDir = U2PVector(OutResult.TraceEnd - OutResult.TraceStart);
+			TraceDir.normalizeSafe();
+
+			// Try forward (in trace direction)
+			PxTransform JitteredTM = PxTransform(QueryTM.p + (TraceDir * MtdInflation), QueryTM.q);
+			if (ComputeInflatedMTD_Internal(MtdInflation, PHit, OutResult, JitteredTM, Geom, PShapeWorldPose))
+			{
+				return true;
+			}
+
+			// Try backward (opposite trace direction)
+			JitteredTM = PxTransform(QueryTM.p - (TraceDir * MtdInflation), QueryTM.q);
+			if (ComputeInflatedMTD_Internal(MtdInflation, PHit, OutResult, JitteredTM, Geom, PShapeWorldPose))
+			{
+				return true;
+			}
+
+			// Try axial directions.
+			// Start with -Z because this is the most common case (objects on the floor).
+			for (int32 i=2; i >= 0; i--)
+			{
+				PxVec3 Jitter(0.f);
+				Jitter[i] = MtdInflation;
+
+				JitteredTM = PxTransform(QueryTM.p - Jitter, QueryTM.q);
+				if (ComputeInflatedMTD_Internal(MtdInflation, PHit, OutResult, JitteredTM, Geom, PShapeWorldPose))
+				{
+					return true;
+				}
+
+				JitteredTM = PxTransform(QueryTM.p + Jitter, QueryTM.q);
+				if (ComputeInflatedMTD_Internal(MtdInflation, PHit, OutResult, JitteredTM, Geom, PShapeWorldPose))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 		default:
 		{
 			return false;
@@ -572,12 +629,108 @@ static bool ComputeInflatedMTD(const float MtdInflation, const PxLocationHit& PH
 }
 
 
+
+static bool CanFindOverlappedTriangle(const PxShape* PShape)
+{
+	return (PShape && (PShape->getGeometryType() == PxGeometryType::eTRIANGLEMESH || PShape->getGeometryType() == PxGeometryType::eHEIGHTFIELD));
+}
+
+
+static bool FindOverlappedTriangleNormal_Internal(const PxGeometry& Geom, const PxTransform& QueryTM, const PxShape* PShape, const PxTransform& PShapeWorldPose, FVector& OutNormal, bool bCanDrawOverlaps = false)
+{
+	if (CanFindOverlappedTriangle(PShape))
+	{
+		PxTriangleMeshGeometry PTriMeshGeom;
+		PxHeightFieldGeometry PHeightfieldGeom;
+
+		if (PShape->getTriangleMeshGeometry(PTriMeshGeom) || PShape->getHeightFieldGeometry(PHeightfieldGeom))
+		{
+			PxGeometryType::Enum GeometryType = PShape->getGeometryType();
+			const bool bIsTriMesh = (GeometryType == PxGeometryType::eTRIANGLEMESH);
+			PxU32 HitTris[64];
+			bool bOverflow = false;
+
+			const int32 NumTrisHit = bIsTriMesh ?
+				PxMeshQuery::findOverlapTriangleMesh(Geom, QueryTM, PTriMeshGeom, PShapeWorldPose, HitTris, ARRAY_COUNT(HitTris), 0, bOverflow) :
+				PxMeshQuery::findOverlapHeightField(Geom, QueryTM, PHeightfieldGeom, PShapeWorldPose, HitTris, ARRAY_COUNT(HitTris), 0, bOverflow);
+
+			if (NumTrisHit > 0)
+			{
+				if (bIsTriMesh)
+				{
+					OutNormal = FindBestOverlappingNormal(Geom, QueryTM, PTriMeshGeom, PShapeWorldPose, HitTris, NumTrisHit, bCanDrawOverlaps);
+				}
+				else
+				{
+					OutNormal = FindBestOverlappingNormal(Geom, QueryTM, PHeightfieldGeom, PShapeWorldPose, HitTris, NumTrisHit, bCanDrawOverlaps);
+				}
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
+
+static bool FindOverlappedTriangleNormal(const PxGeometry& Geom, const PxTransform& QueryTM, const PxShape* PShape, const PxTransform& PShapeWorldPose, FVector& OutNormal, float Inflation, bool bCanDrawOverlaps = false)
+{
+	bool bSuccess = false;
+
+	if (CanFindOverlappedTriangle(PShape))
+	{
+		if (Inflation <= 0.f)
+		{
+			bSuccess = FindOverlappedTriangleNormal_Internal(Geom, QueryTM, PShape, PShapeWorldPose, OutNormal, bCanDrawOverlaps);
+		}
+		else
+		{
+			// Try a slightly inflated test if possible.
+			switch (Geom.getType())
+			{
+				case PxGeometryType::eCAPSULE:
+				{
+					const PxCapsuleGeometry* InCapsule = static_cast<const PxCapsuleGeometry*>(&Geom);
+					PxCapsuleGeometry InflatedCapsule(InCapsule->radius + Inflation, InCapsule->halfHeight); // don't inflate halfHeight, radius is added all around.
+					bSuccess = FindOverlappedTriangleNormal_Internal(InflatedCapsule, QueryTM, PShape, PShapeWorldPose, OutNormal, bCanDrawOverlaps);
+					break;
+				}
+
+				case PxGeometryType::eBOX:
+				{
+					const PxBoxGeometry* InBox = static_cast<const PxBoxGeometry*>(&Geom);
+					PxBoxGeometry InflatedBox(InBox->halfExtents + PxVec3(Inflation));
+					bSuccess = FindOverlappedTriangleNormal_Internal(InflatedBox, QueryTM, PShape, PShapeWorldPose, OutNormal, bCanDrawOverlaps);
+					break;
+				}
+
+				case PxGeometryType::eSPHERE:
+				{
+					const PxSphereGeometry* InSphere = static_cast<const PxSphereGeometry*>(&Geom);
+					PxSphereGeometry InflatedSphere(InSphere->radius + Inflation);
+					bSuccess = FindOverlappedTriangleNormal_Internal(InflatedSphere, QueryTM, PShape, PShapeWorldPose, OutNormal, bCanDrawOverlaps);
+					break;
+				}
+
+				default:
+				{
+					// No inflation possible
+					break;
+				}
+			}
+		}
+	}
+
+	return bSuccess;
+}
+
+
 /** Util to convert an overlapped shape into a sweep hit result, returns whether it was a blocking hit. */
 static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const FVector& StartLoc, const FVector& EndLoc, FHitResult& OutResult, const PxGeometry& Geom, const PxTransform& QueryTM, const PxFilterData& QueryFilter, bool bReturnPhysMat)
 {
 	OutResult.TraceStart = StartLoc;
 	OutResult.TraceEnd = EndLoc;
-	const FVector TraceDir = EndLoc - StartLoc;
 
 	const PxShape* PShape = PHit.shape;
 	const PxRigidActor* PActor = PHit.actor;
@@ -618,50 +771,36 @@ static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const F
 		}
 	}
 
-	// Zero-distance hits are often valid hits and we can extract the hit normal from the face index
+#if DRAW_OVERLAPPING_TRIS
+	if (CVarShowInitialOverlaps.GetValueOnAnyThread() != 0 && GWorld->IsGameWorld())
+	{
+		FVector DummyNormal(0.f);
+		const PxTransform PShapeWorldPose = PxShapeExt::getGlobalPose(*PShape, *PActor);
+		FindOverlappedTriangleNormal(Geom, QueryTM, PShape, PShapeWorldPose, DummyNormal, 0.f, true);
+	}
+#endif
+
+	// Zero-distance hits are often valid hits and we can extract the hit normal.
 	// For invalid normals we can try other methods as well (get overlapping triangles).
-	static const float MtdInflation = 0.125f;
 
 	if (PHit.distance == 0.f || !bValidNormal)
 	{
-		const PxTransform PShapeWorldPose = PxShapeExt::getGlobalPose(*PShape, *PActor); 
-		PxTriangleMeshGeometry PTriMeshGeom;
-		PxHeightFieldGeometry PHeightfieldGeom;
+		const PxTransform PShapeWorldPose = PxShapeExt::getGlobalPose(*PShape, *PActor);
 
-		PxGeometryType::Enum GeometryType = PShape->getGeometryType();
+		// Try MTD with a small inflation for better accuracy, then a larger one in case the first one fails due to precision issues.
+		static const float SmallMtdInflation = 0.250f;
+		static const float LargeMtdInflation = 1.750f;
 
-		if (PShape->getTriangleMeshGeometry(PTriMeshGeom) || PShape->getHeightFieldGeometry(PHeightfieldGeom))
+		if (ComputeInflatedMTD(SmallMtdInflation, PHit, OutResult, QueryTM, Geom, PShapeWorldPose) ||
+			ComputeInflatedMTD(LargeMtdInflation, PHit, OutResult, QueryTM, Geom, PShapeWorldPose))
 		{
-			if (ComputeInflatedMTD(MtdInflation, PHit, OutResult, QueryTM, Geom, PShapeWorldPose))
-			{
-				// Success
-			}
-			else
-			{
-				const bool bIsTriMesh = GeometryType == PxGeometryType::eTRIANGLEMESH;
-				PxU32 HitTris[64];
-				bool bOverflow = false;
-
-				const int32 NumTrisHit =  bIsTriMesh? PxMeshQuery::findOverlapTriangleMesh(Geom, QueryTM, PTriMeshGeom,     PShapeWorldPose, HitTris, ARRAY_COUNT(HitTris), 0, bOverflow) :
-													  PxMeshQuery::findOverlapHeightField( Geom, QueryTM, PHeightfieldGeom, PShapeWorldPose, HitTris, ARRAY_COUNT(HitTris), 0, bOverflow);
-				if (NumTrisHit > 0)
-				{
-					if (bIsTriMesh)
-					{
-						OutResult.ImpactNormal = FindBestOverlappingNormal(Geom, QueryTM, PTriMeshGeom, PShapeWorldPose, HitTris, NumTrisHit);
-					}
-					else
-					{
-						OutResult.ImpactNormal = FindBestOverlappingNormal(Geom, QueryTM, PHeightfieldGeom, PShapeWorldPose, HitTris, NumTrisHit);
-					}
-
-				}
-			}
+			// Success
 		}
 		else
 		{
-			// Not a tri-mesh or heightfield
-			if (ComputeInflatedMTD(MtdInflation, PHit, OutResult, QueryTM, Geom, PShapeWorldPose))
+			static const float SmallOverlapInflation = 0.250f;
+			if (FindOverlappedTriangleNormal(Geom, QueryTM, PShape, PShapeWorldPose, OutResult.ImpactNormal, 0.f, false) ||
+				FindOverlappedTriangleNormal(Geom, QueryTM, PShape, PShapeWorldPose, OutResult.ImpactNormal, SmallOverlapInflation, false))
 			{
 				// Success
 			}
@@ -676,10 +815,10 @@ static bool ConvertOverlappedShapeToImpactHit(const PxLocationHit& PHit, const F
 				if (Distance < KINDA_SMALL_NUMBER)
 				{
 					UE_LOG(LogCollision, Verbose, TEXT("Warning: ConvertOverlappedShapeToImpactHit: Query origin inside shape, giving poor MTD."));
-					PClosestPoint = PxShapeExt::getWorldBounds(*PShape, *PActor).getCenter(); 
+					PClosestPoint = PxShapeExt::getWorldBounds(*PShape, *PActor).getCenter();
 				}
 
-				OutResult.ImpactNormal = (OutResult.Location - P2UVector(PClosestPoint)).SafeNormal();
+				OutResult.ImpactNormal = (OutResult.Location - P2UVector(PClosestPoint)).GetSafeNormal();
 			}
 		}
 	}

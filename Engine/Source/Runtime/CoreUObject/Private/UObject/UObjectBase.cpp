@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UObjectBase.cpp: Unreal UObject base class
@@ -339,8 +339,10 @@ bool UObjectBase::IsValidLowLevelFast(bool bRecursive /*= true*/) const
 
 void UObjectBase::EmitBaseReferences(UClass *RootClass)
 {
-	RootClass->EmitObjectReference(STRUCT_OFFSET(UObjectBase, Class), TEXT("Class"));
-	RootClass->EmitObjectReference(STRUCT_OFFSET(UObjectBase, Outer), TEXT("Outer"), GCRT_PersistentObject);
+	static const FName ClassPropertyName(TEXT("Class"));
+	static const FName OuterPropertyName(TEXT("Outer"));
+	RootClass->EmitObjectReference(STRUCT_OFFSET(UObjectBase, Class), ClassPropertyName);
+	RootClass->EmitObjectReference(STRUCT_OFFSET(UObjectBase, Outer), OuterPropertyName, GCRT_PersistentObject);
 }
 
 /** Enqueue the registration for this object. */

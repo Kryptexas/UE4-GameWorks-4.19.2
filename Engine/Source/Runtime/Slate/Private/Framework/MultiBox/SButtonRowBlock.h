@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,6 +34,9 @@ public:
 	 */
 	FButtonRowBlock( const TAttribute<FText>& InLabel, const TAttribute<FText>& InToolTip, const FSlateIcon& InIcon, const FUIAction& UIAction, const EUserInterfaceActionType::Type InUserInterfaceActionType );
 
+	/** FMultiBlock interface */
+	virtual bool HasIcon() const override;
+
 private:
 
 	/**
@@ -41,7 +44,7 @@ private:
 	 *
 	 * @return  MultiBlock widget object
 	 */
-	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const;
+	virtual TSharedRef< class IMultiBlockBaseWidget > ConstructWidget() const override;
 private:
 
 	// Friend our corresponding widget class
@@ -101,14 +104,14 @@ protected:
 	/**
 	 * Called by Slate when this tool bar check box button is toggled
 	 */
-	void OnCheckStateChanged( const ESlateCheckBoxState::Type NewCheckedState );
+	void OnCheckStateChanged( const ECheckBoxState NewCheckedState );
 
 	/**
 	 * Called by slate to determine if this button should appear checked
 	 *
-	 * @return ESlateCheckBoxState::Checked if it should be checked, ESlateCheckBoxState::Unchecked if not.
+	 * @return ECheckBoxState::Checked if it should be checked, ECheckBoxState::Unchecked if not.
 	 */
-	ESlateCheckBoxState::Type OnIsChecked() const;
+	ECheckBoxState OnIsChecked() const;
 
 	/**
 	 * Called by Slate to determine if this button is enabled

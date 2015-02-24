@@ -1,8 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateViewerApp.h"
 #include "ExceptionHandling.h"
 #include "CocoaThread.h"
+#if WITH_CEF3
+#import "include/cef_application_mac.h"
+#endif
 
 static FString GSavedCommandLine;
 
@@ -54,6 +57,33 @@ static FString GSavedCommandLine;
 
 @end
 
+#if WITH_CEF3
+@interface UE4Application : NSApplication<CefAppProtocol>
+{
+@private
+	BOOL bHandlingSendEvent;
+}
+@end
+
+@implementation UE4Application
+- (BOOL)isHandlingSendEvent
+{
+	return bHandlingSendEvent;
+}
+
+- (void)setHandlingSendEvent:(BOOL)handlingSendEvent
+{
+	bHandlingSendEvent = handlingSendEvent;
+}
+
+- (void)sendEvent:(NSEvent*)event
+{
+	CefScopedSendingEvent sendingEventScoper;
+	[super sendEvent:event];
+}
+@end
+#endif
+
 int main(int argc, char *argv[])
 {
 	for (int32 Option = 1; Option < argc; Option++)
@@ -78,7 +108,11 @@ int main(int argc, char *argv[])
 	}
 
 	SCOPED_AUTORELEASE_POOL;
+#if WITH_CEF3
+	[UE4Application sharedApplication];
+#else
 	[NSApplication sharedApplication];
+#endif
 	[NSApp setDelegate:[UE4AppDelegate new]];
 	[NSApp run];
 	return 0;

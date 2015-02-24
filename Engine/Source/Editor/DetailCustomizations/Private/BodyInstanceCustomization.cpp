@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "BodyInstanceCustomization.h"
 #include "ScopedTransaction.h"
 #include "Editor/Documentation/Public/IDocumentation.h"
+#include "Engine/CollisionProfile.h"
 
 #define LOCTEXT_NAMESPACE "BodyInstanceCustomization"
 
@@ -73,7 +74,7 @@ void FBodyInstanceCustomization::CustomizeChildren( TSharedRef<class IPropertyHa
 	const FString PresetsDocLink = TEXT("Shared/Collision");
 	TSharedPtr<SToolTip> ProfileTooltip = IDocumentation::Get()->CreateToolTip(LOCTEXT("SelectCollisionPreset", "Select collision presets. You can set this data in Project settings."), NULL, PresetsDocLink, TEXT("PresetDetail"));
 
-	IDetailGroup& CollisionGroup = StructBuilder.AddChildGroup( TEXT("Collision"), LOCTEXT("CollisionPresetsLabel", "Collision Presets").ToString() );
+	IDetailGroup& CollisionGroup = StructBuilder.AddChildGroup( TEXT("Collision"), LOCTEXT("CollisionPresetsLabel", "Collision Presets") );
 	CollisionGroup.HeaderRow()
 	.NameContent()
 	[
@@ -436,7 +437,7 @@ void FBodyInstanceCustomization::CreateCustomCollisionSetup( TSharedRef<class IP
 				.Content()
 				[
 					SNew(STextBlock)
-					.Text(DisplayName)
+					.Text(FText::FromString(DisplayName))
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
 				]
 			]
@@ -531,7 +532,7 @@ void FBodyInstanceCustomization::CreateCustomCollisionSetup( TSharedRef<class IP
 				.Content()
 				[
 					SNew(STextBlock)
-					.Text(DisplayName)
+					.Text(FText::FromString(DisplayName))
 					.Font( IDetailLayoutBuilder::GetDetailFont() )
 				]
 			]
@@ -603,7 +604,7 @@ END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 TSharedRef<SWidget> FBodyInstanceCustomization::MakeObjectTypeComboWidget( TSharedPtr<FString> InItem )
 {
-	return SNew(STextBlock) .Text( *InItem ) .Font( IDetailLayoutBuilder::GetDetailFont() );
+	return SNew(STextBlock) .Text( FText::FromString(*InItem) ) .Font( IDetailLayoutBuilder::GetDetailFont() );
 }
 
 void FBodyInstanceCustomization::OnObjectTypeChanged( TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo  )
@@ -626,22 +627,31 @@ void FBodyInstanceCustomization::OnObjectTypeChanged( TSharedPtr<FString> NewSel
 	}
 }
 
-FString FBodyInstanceCustomization::GetObjectTypeComboBoxContent() const
+FText FBodyInstanceCustomization::GetObjectTypeComboBoxContent() const
 {
 	FName ObjectTypeName;
 	if (ObjectTypeHandle->GetValue(ObjectTypeName) == FPropertyAccess::Result::MultipleValues)
 	{
-		return TEXT("Multiple Values");
+		return LOCTEXT("MultipleValues", "Multiple Values");
 	}
 
-	return *ObjectTypeComboBox.Get()->GetSelectedItem().Get();
+	return FText::FromString(*ObjectTypeComboBox.Get()->GetSelectedItem().Get());
 }
 
 TSharedRef<SWidget> FBodyInstanceCustomization::MakeCollisionProfileComboWidget(TSharedPtr<FString> InItem)
 {
+	FString ProfileMessage;
+
+	FCollisionResponseTemplate ProfileData;
+	if (CollisionProfile->GetProfileTemplate(FName(**InItem), ProfileData))
+	{
+		ProfileMessage = ProfileData.HelpMessage;
+	}
+
 	return
 		SNew(STextBlock)
-		.Text(*InItem)
+		.Text(FText::FromString(*InItem))
+		.ToolTipText(FText::FromString(ProfileMessage))
 		.Font(IDetailLayoutBuilder::GetDetailFont());
 }
 
@@ -777,7 +787,7 @@ EVisibility FBodyInstanceCustomization::ShouldShowResetToDefaultResponse(int32 V
 	{
 		const ECollisionResponse DefaultResponse = FCollisionResponseContainer::GetDefaultResponseContainer().GetResponse(ValidCollisionChannels[ValidIndex].CollisionChannel);
 
-		if (IsCollisionChannelChecked(ValidIndex, DefaultResponse) != ESlateCheckBoxState::Checked)
+		if (IsCollisionChannelChecked(ValidIndex, DefaultResponse) != ECheckBoxState::Checked)
 		{
 			return EVisibility::Visible;
 		}
@@ -802,18 +812,18 @@ EVisibility FBodyInstanceCustomization::ShouldShowCustomCollisionSetup() const
 	return EVisibility::Visible;//return (bDisplayAdvancedCollisionSettings)? EVisibility::Visible : EVisibility::Hidden;
 }
 
-FString FBodyInstanceCustomization::GetCollisionProfileComboBoxContent() const
+FText FBodyInstanceCustomization::GetCollisionProfileComboBoxContent() const
 {
 	FName ProfileName;
 	if (CollisionProfileNameHandle->GetValue(ProfileName) == FPropertyAccess::Result::MultipleValues)
 	{
-		return TEXT("Multiple Values");
+		return LOCTEXT("MultipleValues", "Multiple Values");
 	}
 
-	return (*GetProfileString(ProfileName).Get());
+	return FText::FromString(*GetProfileString(ProfileName).Get());
 }
 
-FString FBodyInstanceCustomization::GetCollisionProfileComboBoxToolTip() const
+FText FBodyInstanceCustomization::GetCollisionProfileComboBoxToolTip() const
 {
 	FName ProfileName;
 	if (CollisionProfileNameHandle->GetValue(ProfileName) == FPropertyAccess::Result::Success)
@@ -821,14 +831,15 @@ FString FBodyInstanceCustomization::GetCollisionProfileComboBoxToolTip() const
 		FCollisionResponseTemplate ProfileData;
 		if ( CollisionProfile->GetProfileTemplate(ProfileName, ProfileData) )
 		{
-			return ProfileData.HelpMessage;
+			return FText::FromString(ProfileData.HelpMessage);
 		}
+		return FText::GetEmpty();
 	}
 
-	return TEXT("Multiple Values");
+	return LOCTEXT("MultipleValues", "Multiple Values");
 }
 
-void FBodyInstanceCustomization::OnCollisionChannelChanged(ESlateCheckBoxState::Type InNewValue, int32 ValidIndex, ECollisionResponse InCollisionResponse)
+void FBodyInstanceCustomization::OnCollisionChannelChanged(ECheckBoxState InNewValue, int32 ValidIndex, ECollisionResponse InCollisionResponse)
 {
 	if ( ValidCollisionChannels.IsValidIndex(ValidIndex) )
 	{
@@ -852,7 +863,7 @@ void FBodyInstanceCustomization::SetResponse(int32 ValidIndex, ECollisionRespons
 	CollisionResponsesHandle->NotifyPostChange();
 }
 
-ESlateCheckBoxState::Type FBodyInstanceCustomization::IsCollisionChannelChecked( int32 ValidIndex, ECollisionResponse InCollisionResponse) const
+ECheckBoxState FBodyInstanceCustomization::IsCollisionChannelChecked( int32 ValidIndex, ECollisionResponse InCollisionResponse) const
 {
 	TArray<uint8> CollisionResponses;
 
@@ -869,35 +880,35 @@ ESlateCheckBoxState::Type FBodyInstanceCustomization::IsCollisionChannelChecked(
 		{
 			if (CollisionResponses[0] == InCollisionResponse)
 			{
-				return ESlateCheckBoxState::Checked;
+				return ECheckBoxState::Checked;
 			}
 			else
 			{
-				return ESlateCheckBoxState::Unchecked;
+				return ECheckBoxState::Unchecked;
 			}
 		}
 		else if (CollisionResponses.Contains(InCollisionResponse))
 		{
-			return ESlateCheckBoxState::Undetermined;
+			return ECheckBoxState::Undetermined;
 		}
 
 		// if it didn't contain and it's not found, return Unchecked
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 
-	return ESlateCheckBoxState::Undetermined;
+	return ECheckBoxState::Undetermined;
 }
 
-void FBodyInstanceCustomization::OnAllCollisionChannelChanged(ESlateCheckBoxState::Type InNewValue, ECollisionResponse InCollisionResponse)
+void FBodyInstanceCustomization::OnAllCollisionChannelChanged(ECheckBoxState InNewValue, ECollisionResponse InCollisionResponse)
 {
 	FCollisionResponseContainer NewContainer;
 	NewContainer.SetAllChannels(InCollisionResponse);
 	SetCollisionResponseContainer(NewContainer);
 }
 
-ESlateCheckBoxState::Type FBodyInstanceCustomization::IsAllCollisionChannelChecked(ECollisionResponse InCollisionResponse) const
+ECheckBoxState FBodyInstanceCustomization::IsAllCollisionChannelChecked(ECollisionResponse InCollisionResponse) const
 {
-	ESlateCheckBoxState::Type State = ESlateCheckBoxState::Undetermined;
+	ECheckBoxState State = ECheckBoxState::Undetermined;
 
 	uint32 TotalNumChildren = ValidCollisionChannels.Num();
 	if (TotalNumChildren >= 1)
@@ -908,7 +919,7 @@ ESlateCheckBoxState::Type FBodyInstanceCustomization::IsAllCollisionChannelCheck
 		{
 			if (State != IsCollisionChannelChecked(Index, InCollisionResponse))
 			{
-				State = ESlateCheckBoxState::Undetermined;
+				State = ECheckBoxState::Undetermined;
 				break;
 			}
 		}

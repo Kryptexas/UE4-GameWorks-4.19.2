@@ -1,10 +1,12 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OutputLogPrivatePCH.h"
 #include "SOutputLog.h"
 #include "SScrollBorder.h"
 #include "BaseTextLayoutMarshaller.h"
-
+#include "GameFramework/GameMode.h"
+#include "Engine/LocalPlayer.h"
+#include "GameFramework/GameState.h"
 /** Custom console editable text box whose only purpose is to prevent some keys from being typed */
 class SConsoleEditableTextBox : public SEditableTextBox
 {
@@ -231,7 +233,7 @@ TSharedRef<ITableRow> SConsoleInputBox::MakeSuggestionListItemWidget(TSharedPtr<
 			.WidthOverride(300)			// to enforce some minimum width, ideally we define the minimum, not a fixed width
 			[
 				SNew(STextBlock)
-				.Text(Combined)
+				.Text(FText::FromString(Combined))
 				.TextStyle( FEditorStyle::Get(), "Log.Normal")
 				.HighlightText(HighlightText)
 			]
@@ -729,6 +731,14 @@ bool SOutputLog::CreateLogMessages( const TCHAR* V, ELogVerbosity::Type Verbosit
 			Style = FName(TEXT("Log.Normal"));
 		}
 
+		// Determine how to format timestamps
+		static ELogTimes::Type LogTimestampMode = ELogTimes::None;
+		if (UObjectInitialized() && !GExitPurge)
+		{
+			// Logging can happen very late during shutdown, even after the UObject system has been torn down, hence the init check above
+			LogTimestampMode = GetDefault<UEditorStyleSettings>()->LogTimestampMode;
+		}
+
 		const int32 OldNumMessages = OutMessages.Num();
 
 		// handle multiline strings by breaking them apart by line
@@ -739,15 +749,15 @@ bool SOutputLog::CreateLogMessages( const TCHAR* V, ELogVerbosity::Type Verbosit
 		bool bIsFirstLineInMessage = true;
 		for (const FTextRange& LineRange : LineRanges)
 		{
-			if (LineRange.IsEmpty())
-				continue;
+			if (!LineRange.IsEmpty())
+			{
+				FString Line = CurrentLogDump.Mid(LineRange.BeginIndex, LineRange.Len());
+				Line = Line.ConvertTabsToSpaces(4);
 
-			FString Line = CurrentLogDump.Mid(LineRange.BeginIndex, LineRange.Len());
-			Line = Line.ConvertTabsToSpaces(4);
+				OutMessages.Add(MakeShareable(new FLogMessage(MakeShareable(new FString((bIsFirstLineInMessage) ? FOutputDevice::FormatLogLine(Verbosity, Category, *Line, LogTimestampMode) : Line)), Style)));
 
-			OutMessages.Add(MakeShareable(new FLogMessage(MakeShareable(new FString((bIsFirstLineInMessage) ? FOutputDevice::FormatLogLine(Verbosity, Category, *Line) : Line)), Style)));
-
-			bIsFirstLineInMessage = false;
+				bIsFirstLineInMessage = false;
+			}
 		}
 
 		return OldNumMessages != OutMessages.Num();

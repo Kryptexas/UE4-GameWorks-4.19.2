@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -245,7 +245,7 @@ FReply SRetargetManager::OnSaveRetargetBasePose()
 			const FScopedTransaction Transaction( LOCTEXT("SaveRetargetBasePose_Action", "Save Retarget Base Pose") );
 			PreviewMesh->Modify();
 			// get space bases and calculate local
-			const TArray<FTransform> & SpaceBases = PreviewMeshComp->SpaceBases;
+			const TArray<FTransform> & SpaceBases = PreviewMeshComp->GetSpaceBases();
 			// @todo check to see if skeleton vs preview mesh makes it different for missing bones
 			const FReferenceSkeleton& RefSkeleton = PreviewMesh->RefSkeleton;
 			TArray<FTransform> & NewRetargetBasePose = PreviewMesh->RetargetBasePose;

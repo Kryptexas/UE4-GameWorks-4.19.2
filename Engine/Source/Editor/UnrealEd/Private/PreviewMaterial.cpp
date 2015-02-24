@@ -1,8 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "Editor/MaterialEditor/Public/MaterialEditorModule.h"
 #include "ComponentReregisterContext.h"
+#include "Materials/MaterialInstanceConstant.h"
 
 /**
  * Class for rendering the material on the preview mesh in the Material Editor
@@ -572,9 +573,12 @@ void UMaterialEditorInstanceConstant::CopyToSourceInstance()
 		}
 
 		//Check for changes to see if we need to force a recompile
-		bool bForceRecompile = SourceInstance->BasePropertyOverrides.Update(BasePropertyOverrides);
-		bForceRecompile |= SourceInstance->bOverrideBaseProperties != bOverrideBaseProperties;
-		SourceInstance->bOverrideBaseProperties = bOverrideBaseProperties;
+		bool bForceRecompile = false;
+		if (SourceInstance->BasePropertyOverrides != BasePropertyOverrides)
+		{
+			bForceRecompile = true;
+			SourceInstance->BasePropertyOverrides = BasePropertyOverrides;
+		}
 		
 		FStaticParameterSet NewStaticParameters;
 		BuildStaticParametersForSourceInstance(NewStaticParameters);
@@ -671,9 +675,6 @@ void UMaterialEditorInstanceConstant::SetSourceInstance(UMaterialInstanceConstan
 	Parent = SourceInstance->Parent;
 	PhysMaterial = SourceInstance->PhysMaterial;
 
-	//Init the base property overrides.
-	BasePropertyOverrides.Init(*SourceInstance);
-	bOverrideBaseProperties = SourceInstance->bOverrideBaseProperties;
 	BasePropertyOverrides = SourceInstance->BasePropertyOverrides;
 
 	// Copy the Lightmass settings...

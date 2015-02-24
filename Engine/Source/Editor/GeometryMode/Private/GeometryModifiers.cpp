@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GeometryModePrivatePCH.h"
 #include "Engine/BrushShape.h"
@@ -10,6 +10,9 @@
 #include "ActorEditorUtils.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/Polys.h"
+#include "Engine/Selection.h"
+#include "Components/BrushComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogGeomModifier, Log, All);
 
@@ -398,6 +401,10 @@ bool UGeomModifier_Edit::InputDelta(FEditorViewportClient* InViewportClient,FVie
 	* vertices a little differently.
 	*/
 
+	// Only permit scaling if there is exactly one selected poly. Make a note of it here
+	FGeomPoly* SelectedPoly = nullptr;
+	int32 NumSelectedPolys = 0;
+
 	for( FEdModeGeometry::TGeomObjectIterator Itor( mode->GeomObjectItor() ) ; Itor ; ++Itor )
 	{
 		FGeomObject* go = *Itor;
@@ -407,6 +414,9 @@ bool UGeomModifier_Edit::InputDelta(FEditorViewportClient* InViewportClient,FVie
 			FGeomPoly* gp = &go->PolyPool[p];
 			if( gp->IsSelected() )
 			{
+				SelectedPoly = gp;
+				NumSelectedPolys++;
+
 				for( int32 e = 0 ; e < gp->EdgeIndices.Num() ; ++e )
 				{
 					FGeomEdge* ge = &go->EdgePool[ gp->EdgeIndices[e] ];
@@ -477,94 +487,56 @@ bool UGeomModifier_Edit::InputDelta(FEditorViewportClient* InViewportClient,FVie
 
 	FVector BBoxExtent = VertBBox.GetExtent();
 
-	FGeomVertex* vertex0 = UniqueVertexList[0];
-	const ABrush* Brush = vertex0->GetParentObject()->GetActualBrush();
-	FVector vertOffset = FVector(0, 0, 0);
-
-	//Calculate translation now so that it isn't done every iteration of the proceeding loop
-	
-	if( !InDrag.IsZero() )
-	{
-		// Volumes store their rotation locally, whereas normal brush rotations are always in worldspace, so we need to transform
-		// the drag vector into a volume's local space before applying it.
-		if( Brush->IsVolumeBrush() )
-		{
-			const FVector Wk = Brush->ActorToWorld().InverseTransformVector(InDrag);
-			vertOffset = Wk;
-		}
-		else
-		{
-			vertOffset = InDrag;
-		}
-	}
-
 	/**
-	* We first generate a list of unique vertices and then transform that list
-	* in one shot.  This prevents vertices from being touched more than once (which
-	* would result in them transforming x times as fast as others).
-	*/
+	 * We first generate a list of unique vertices and then transform that list
+	 * in one shot.  This prevents vertices from being touched more than once (which
+	 * would result in them transforming x times as fast as others).
+	 */
 	for( int32 x = 0 ; x < UniqueVertexList.Num() ; ++x )
 	{
 		FGeomVertex* vtx = UniqueVertexList[x];
-		//Translate
+		const ABrush* Brush = vtx->GetParentObject()->GetActualBrush();
 
-			*vtx += vertOffset;
+		// Translate
+
+		if (!InDrag.IsZero())
+		{
+			*vtx += Brush->ActorToWorld().InverseTransformVector(InDrag);
+		}
 
 		// Rotate
 
 		if( !FinalRot.IsZero() )
 		{
-			FRotationMatrix matrix( FinalRot );
+			const FRotationMatrix Matrix( FinalRot );
 
 			FVector Wk( vtx->X, vtx->Y, vtx->Z );
-			Wk = vtx->GetParentObject()->GetActualBrush()->ActorToWorld().TransformPosition( Wk );
+			Wk = Brush->ActorToWorld().TransformPosition(Wk);
 			Wk -= GLevelEditorModeTools().PivotLocation;
-			Wk = matrix.TransformPosition( Wk );
+			Wk = Matrix.TransformPosition( Wk );
 			Wk += GLevelEditorModeTools().PivotLocation;
-			*vtx = vtx->GetParentObject()->GetActualBrush()->ActorToWorld().InverseTransformPosition( Wk );
+			*vtx = Brush->ActorToWorld().InverseTransformPosition(Wk);
 		}
 
 		// Scale
 
-		if( !InScale.IsZero() )
+		if( !InScale.IsZero() && NumSelectedPolys == 1)
 		{
-			float XFactor = (InScale.X > 0.f) ? 1 : -1;
-			float YFactor = (InScale.Y > 0.f) ? 1 : -1;
-			float ZFactor = (InScale.Z > 0.f) ? 1 : -1;
-			float Strength;
+			// This is a quick fix for now.
+			// Scale needs to know the surface normal of the polys selected (and scale only makes sense on polys, not edges or verts),
+			// so remember one selected poly and use that transform.
+			// Since scaling is relative to the pivot, it would actually be horrible scaling multiple polys at once anyway.
+			const FScaleMatrix Matrix(InScale + 1.0f);
+			const FVector PivotInModelSpace = Brush->ActorToWorld().InverseTransformPosition(GLevelEditorModeTools().PivotLocation);
+			const FRotationMatrix GeomBaseTransform = FRotationMatrix(SelectedPoly->GetWidgetRotation());
 
-			FVector Wk( vtx->X, vtx->Y, vtx->Z );
-			Wk = vtx->GetParentObject()->GetActualBrush()->ActorToWorld().TransformPosition( Wk );
-
-			// Move vert to the origin
-
-			Wk -= GLevelEditorModeTools().PivotLocation;
-
-			// Move it along each axis based on it's distance from the origin
-
-			if( Wk.X != 0 )
-			{
-				Strength = (BBoxExtent.X / Wk.X) * XFactor;
-				Wk.X += GEditor->GetGridSize() * Strength;
-			}
-
-			if( Wk.Y != 0 )
-			{
-				Strength = (BBoxExtent.Y / Wk.Y) * YFactor;
-				Wk.Y += GEditor->GetGridSize() * Strength;
-			}
-
-			if( Wk.Z != 0 )
-			{
-				Strength = (BBoxExtent.Z / Wk.Z) * ZFactor;
-				Wk.Z += GEditor->GetGridSize() * Strength;
-			}
-
-			// Move it back into world space
-
-			Wk += GLevelEditorModeTools().PivotLocation;
-
-			*vtx = vtx->GetParentObject()->GetActualBrush()->ActorToWorld().InverseTransformPosition( Wk );
+			FVector Wk(vtx->X, vtx->Y, vtx->Z);
+			Wk -= PivotInModelSpace;
+			Wk = GeomBaseTransform.TransformPosition(Wk);
+			Wk = Matrix.TransformPosition(Wk);
+			Wk = GeomBaseTransform.InverseTransformPosition(Wk);
+			Wk += PivotInModelSpace;
+			*vtx = Wk;
 		}
 	}
 	
@@ -574,11 +546,12 @@ bool UGeomModifier_Edit::InputDelta(FEditorViewportClient* InViewportClient,FVie
 		for( int32 x = 0 ; x < UniqueVertexList.Num() ; ++x )
 		{
 			FGeomVertex* vtx = UniqueVertexList[x];
-			*vtx -= vertOffset;
+			const ABrush* Brush = vtx->GetParentObject()->GetActualBrush();
+			*vtx -= Brush->ActorToWorld().InverseTransformVector(InDrag);
 		}
 		
-		GLevelEditorModeTools().PivotLocation -= vertOffset;
-		GLevelEditorModeTools().SnappedLocation -= vertOffset;
+		GLevelEditorModeTools().PivotLocation -= InDrag;
+		GLevelEditorModeTools().SnappedLocation -= InDrag;
 	}
 
 	const bool bIsCtrlPressed = InViewportClient->IsCtrlPressed();
@@ -1401,6 +1374,136 @@ void UGeomModifier_Pen::Apply()
 	}
 }
 
+#if 0
+static bool DoesFinalLineIntersectWithShape(const TArray<FVector>& Vertices, const FVector& FinalVertex)
+{
+	// TODO: improve this, it often fails.
+
+	// Determine if the next line segment would intersect with any of the previous ones in the shape
+	for (int32 Index = 0; Index < Vertices.Num() - 1; Index++)
+	{
+		const FVector& Segment1Start = Vertices[Index];
+		const FVector& Segment1End = Vertices[Index + 1];
+		const FVector& Segment2Start = Vertices[Vertices.Num() - 1];
+		const FVector& Segment2End = FinalVertex;
+
+		// Check that the two line segments are coplanar
+		check(FMath::IsNearlyZero(FVector::DotProduct(Segment2Start - Segment1Start, FVector::CrossProduct(Segment1End - Segment1Start, Segment2End - Segment2Start))));
+
+		FVector Segment1Result;
+		FVector Segment2Result;
+		FMath::SegmentDistToSegmentSafe(Segment1Start, Segment1End, Segment2Start, Segment2End, Segment1Result, Segment2Result);
+		if (Segment1Result.Equals(Segment2Result) && !Segment1Result.Equals(Segment1Start) && !Segment1Result.Equals(Segment1End))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+#endif
+
+static bool DoLineSegmentsIntersect(const FVector2D& Segment1Start, const FVector2D& Segment1End, const FVector2D& Segment2Start, const FVector2D& Segment2End)
+{
+	const FVector2D Segment1Dir = Segment1End - Segment1Start;
+	const FVector2D Segment2Dir = Segment2End - Segment2Start;
+
+	const float Determinant = FVector2D::CrossProduct(Segment1Dir, Segment2Dir);
+	if (!FMath::IsNearlyZero(Determinant))
+	{
+		const FVector2D SegmentStartDelta = Segment2Start - Segment1Start;
+		const float OneOverDet = 1.0f / Determinant;
+		const float Seg1Intersection = FVector2D::CrossProduct(SegmentStartDelta, Segment2Dir) * OneOverDet;
+		const float Seg2Intersection = FVector2D::CrossProduct(SegmentStartDelta, Segment1Dir) * OneOverDet;
+
+		const float Epsilon = 1/128.0f;
+		return (Seg1Intersection > Epsilon && Seg1Intersection < 1.0f - Epsilon && Seg2Intersection > Epsilon && Seg2Intersection < 1.0f - Epsilon);
+	}
+
+	return false;
+}
+
+/**
+* Given an array of points forming an unclosed polygon, determines whether a line segment formed from the final polygon vertex and a given endpoint
+* intersects with any edge of the polygon in the 2D plane in which both segments lie.
+*
+* @param	Vertices		Array of vertices forming unclosed polygon
+* @param	EndVertex		Endpoint of line segment starting from final point of polygon
+*/
+static bool DoesFinalLineIntersectWithShape(const TArray<FVector>& Vertices, const FVector& EndVertex)
+{
+	// Can't intersect if there are fewer than 2 vertices
+	if (Vertices.Num() < 2)
+	{
+		return false;
+	}
+
+	// All line segments in the polygon ought to be coplanar. Hence the problem can be reduced to detecting intersections of line segments
+	// projected onto their common plane, using 2D coordinates.
+
+	// Line segment 1 is the line to test against the rest of the shape
+	const FVector& Segment1Start = Vertices[Vertices.Num() - 1];
+	const FVector& Segment1End = EndVertex;
+
+	const FVector Segment1Dir = Segment1End - Segment1Start;
+	const float Segment1Len = Segment1Dir.Size();
+	if (FMath::IsNearlyZero(Segment1Len))
+	{
+		// Treat zero length line segments as non-intersecting
+		return false;
+	}
+
+	// The direction of segment 1 on the plane will provide the X axis of the 2D basis on the plane
+	const FVector ProjectedXAxis = Segment1Dir / Segment1Len;
+
+	for (int32 Index = 0; Index < Vertices.Num() - 1; Index++)
+	{
+		// Line segment 2 is each edge of the shape
+		const FVector& Segment2Start = Vertices[Index];
+		const FVector& Segment2End = Vertices[Index + 1];
+		const FVector Segment2Dir = Segment2End - Segment2Start;
+
+		const FVector SegmentStartDelta = Segment2Start - Segment1Start;
+
+		// If line segments 1 and 2 are coplanar, the plane normal will be shared, and be calculated from a cross product of their two directions
+		FVector PlaneNormal = FVector::CrossProduct(Segment1Dir, Segment2Dir);
+
+		// Check that they are indeed coplanar
+		const bool bIsCoplanar = FMath::IsNearlyZero(FVector::DotProduct(SegmentStartDelta, PlaneNormal));
+		if (!bIsCoplanar)
+		{
+			// Non-coplanar line segments can't possibly intersect (ignoring the case of coincident start/end points)
+			return false;
+		}
+
+		// Parallel line segments will have yielded a zero normal. Attempt to calculate it from the segment start delta.
+		// If the lines are coincident, this will also yield a zero normal, resulting in a 1D basis (which is still sufficient to detect segment overlaps in projection space).
+		const bool bParallel = (FMath::IsNearlyZero(PlaneNormal.SizeSquared()));
+		if (bParallel)
+		{
+			PlaneNormal = FVector::CrossProduct(Segment1Dir, SegmentStartDelta);
+		}
+
+		// Get the Y axis of the 2D basis from the X axis and the plane normal
+		const FVector ProjectedYAxis = FVector::CrossProduct(PlaneNormal.GetSafeNormal(), ProjectedXAxis);
+
+		// Project 3d points onto plane
+		const FVector2D ProjectedSegment1Start(0.0f, 0.0f);
+		const FVector2D ProjectedSegment1End(Segment1Len, 0.0f);
+		const FVector2D ProjectedSegment2Start(FVector::DotProduct(ProjectedXAxis, SegmentStartDelta), FVector::DotProduct(ProjectedYAxis, SegmentStartDelta));
+		const FVector2D ProjectedSegment2End(FVector::DotProduct(ProjectedXAxis, Segment2End - Segment1Start), FVector::DotProduct(ProjectedYAxis, Segment2End - Segment1Start));
+
+		// Now check intersection of 2d segments.
+		if (DoLineSegmentsIntersect(ProjectedSegment1Start, ProjectedSegment1End, ProjectedSegment2Start, ProjectedSegment2End))
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
 /**
 * @return		true if the key was handled by this editor mode tool.
 */
@@ -1426,15 +1529,21 @@ bool UGeomModifier_Pen::InputKey(FEditorViewportClient* ViewportClient, FViewpor
 			}
 			if( ShapeVertices.Num() && MouseWorldSpacePos.Equals( ShapeVertices[0] ) )
 			{
-				Apply();
+				if (!DoesFinalLineIntersectWithShape(ShapeVertices, ShapeVertices[0]))
+				{
+					Apply();
+					bResult = true;
+				}
 			}
 			else
 			{
-				UsingViewportClient = ViewportClient;
-				ShapeVertices.Add( MouseWorldSpacePos );
+				if (!DoesFinalLineIntersectWithShape(ShapeVertices, MouseWorldSpacePos))
+				{
+					UsingViewportClient = ViewportClient;
+					ShapeVertices.Add( MouseWorldSpacePos );
+					bResult = true;
+				}
 			}
-
-			bResult = true;
 		}
 		else if( Key == EKeys::Escape || Key == EKeys::BackSpace )
 		{
@@ -1447,9 +1556,11 @@ bool UGeomModifier_Pen::InputKey(FEditorViewportClient* ViewportClient, FViewpor
 		}
 		else if( Key == EKeys::Enter )
 		{
-			Apply();
-
-			bResult = true;
+			if (!DoesFinalLineIntersectWithShape(ShapeVertices, ShapeVertices[0]))
+			{
+				Apply();
+				bResult = true;
+			}
 		}
 	}
 
@@ -1499,14 +1610,20 @@ void UGeomModifier_Pen::Render(const FSceneView* View,FViewport* Viewport,FPrimi
 
 	if( ShapeVertices.Num() )
 	{
-		// Draw a dashed line from the last placed vertex to the current mouse position
-		DrawDashedLine( PDI, ShapeVertices[ ShapeVertices.Num() - 1 ], MouseWorldSpacePos, FLinearColor(1,0.5f,0), GEditor->GetGridSize(), SDPG_Foreground );
+		if (!DoesFinalLineIntersectWithShape(ShapeVertices, MouseWorldSpacePos))
+		{
+			// Draw a dashed line from the last placed vertex to the current mouse position
+			DrawDashedLine(PDI, ShapeVertices[ShapeVertices.Num() - 1], MouseWorldSpacePos, FLinearColor(1, 0.5f, 0), GEditor->GetGridSize(), SDPG_Foreground);
+		}
 	}
 
 	if( ShapeVertices.Num() > 2 )
 	{
-		// Draw a darkened dashed line to show what the completed shape will look like
-		DrawDashedLine( PDI, ShapeVertices[ ShapeVertices.Num() - 1 ], ShapeVertices[ 0 ], FLinearColor(.5,0,0), GEditor->GetGridSize(), SDPG_Foreground );
+		if (!DoesFinalLineIntersectWithShape(ShapeVertices, ShapeVertices[0]))
+		{
+			// Draw a darkened dashed line to show what the completed shape will look like
+			DrawDashedLine(PDI, ShapeVertices[ShapeVertices.Num() - 1], ShapeVertices[0], FLinearColor(.5, 0, 0), GEditor->GetGridSize(), SDPG_Foreground);
+		}
 	}
 
 	// Draw a box where the next vertex will be placed
@@ -1701,7 +1818,8 @@ static ABrush* ClipBrushAgainstPlane( const FPlane& InPlane, ABrush* InBrush)
 	// perhaps there were additional brushes were selected. 
 	check( ClippedBrush->GetClass() == InBrush->GetClass() );
 
-	ClippedBrush->Brush = new( InBrush->GetOuter(), NAME_None )UModel( FObjectInitializer(),NULL );
+	ClippedBrush->Brush = NewObject<UModel>(InBrush->GetOuter());
+	ClippedBrush->Brush->Initialize(nullptr);
 	ClippedBrush->GetBrushComponent()->Brush = ClippedBrush->Brush;
 
 	GeometryClipping::BuildGiantAlignedBrush( *ClippedBrush, InPlane );
@@ -1751,7 +1869,7 @@ static ABrush* ClipBrushAgainstPlane( const FPlane& InPlane, ABrush* InBrush)
 
 		FPoly front, back;
 
-		int32 res = Poly.SplitWithPlane( PlaneBase, InPlane.SafeNormal(), &front, &back, true );
+		int32 res = Poly.SplitWithPlane( PlaneBase, InPlane.GetSafeNormal(), &front, &back, true );
 
 		switch( res )
 		{
@@ -2496,7 +2614,7 @@ bool UGeomModifier_Split::OnApply()
 
 		// Generate a base and a normal for the cutting plane
 
-		const FVector PlaneNormal( (Vtx1 - Vtx0).SafeNormal() );
+		const FVector PlaneNormal( (Vtx1 - Vtx0).GetSafeNormal() );
 		const FVector PlaneBase = 0.5f*(Vtx1 + Vtx0);
 
 		// Clip the selected polygon against the cutting plane
@@ -2574,7 +2692,7 @@ bool UGeomModifier_Split::OnApply()
 
 		const FVector v0 = *Vertex0->GetActualVertex( Vertex0->ActualVertexIndices[0] );
 		const FVector v1 = *Vertex1->GetActualVertex( Vertex1->ActualVertexIndices[0] );
-		const FVector PlaneNormal( (v1 - v0).SafeNormal() );
+		const FVector PlaneNormal( (v1 - v0).GetSafeNormal() );
 		const FVector PlaneBase = 0.5f*(v1 + v0);
 
 		ABrush* Brush = GeomObject->GetActualBrush();
@@ -3012,6 +3130,12 @@ bool UGeomModifier_Turn::OnApply()
 				for( int32 v = 0 ; v < Poly->Vertices.Num() ; ++v )
 				{
 					Quad.AddUnique( Poly->Vertices[v] );
+				}
+
+				// If the adjoining polys were coincident, don't try to turn the edge
+				if (Quad.Num() == 3)
+				{
+					continue;
 				}
 
 				// Create new polygons

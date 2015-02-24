@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -60,8 +60,10 @@ class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionCo
 		virtual ~FPhysXMeshRef();
 	};
 
+#if WITH_EDITORONLY_DATA
 	/** The collision mesh values. */
 	FWordBulkData								CollisionXYOffsetData; //  X, Y Offset in raw format...
+#endif //WITH_EDITORONLY_DATA
 
 	/** Physics engine version of heightfield data. */
 	TRefCountPtr<struct FPhysXMeshRef>			MeshRef;
@@ -72,7 +74,7 @@ class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionCo
 	// End UActorComponent interface.
 
 	// Begin USceneComponent interface.
-	virtual void DestroyComponent() override;
+	virtual void DestroyComponent(bool bPromoteChildren = false) override;
 	// End USceneComponent interface.
 
 	// Begin UPrimitiveComponent interface
@@ -86,7 +88,7 @@ class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionCo
 	virtual void ExportCustomProperties(FOutputDevice& Out, uint32 Indent) override;
 	virtual void ImportCustomProperties(const TCHAR* SourceText, FFeedbackContext* Warn) override;
 
-	virtual bool CookCollsionData(const FName& Format, bool bUseOnlyDefMaterial, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& OutMaterails) const override;
+	virtual bool CookCollsionData(const FName& Format, bool bUseOnlyDefMaterial, bool bCheckDDC, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& OutMaterials) const override;
 #endif
 	// End UObject Interface.
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "PropertyEditorHelpers.h"
@@ -22,10 +22,10 @@ SStructureDetailsView::~SStructureDetailsView()
 	SaveExpandedItems();
 }
 
-UScriptStruct* SStructureDetailsView::GetBaseScriptStruct() const
+UStruct* SStructureDetailsView::GetBaseScriptStruct() const
 {
-	const UScriptStruct* Struct = StructData.IsValid() ? StructData->GetStruct() : NULL;
-	return const_cast<UScriptStruct*>(Struct);
+	const UStruct* Struct = StructData.IsValid() ? StructData->GetStruct() : NULL;
+	return const_cast<UStruct*>(Struct);
 }
 
 void SStructureDetailsView::Construct(const FArguments& InArgs)
@@ -178,7 +178,7 @@ void SStructureDetailsView::SetStructureData(TSharedPtr<FStructOnScope> InStruct
 	//SET
 	StructData = InStructData;
 	RootNode->SetStructure(StructData);
-	if (!StructData.IsValid() || !StructData->IsValid())
+	if (!StructData.IsValid())
 	{
 		bIsLocked = false;
 	}
@@ -202,23 +202,6 @@ void SStructureDetailsView::SetStructureData(TSharedPtr<FStructOnScope> InStruct
 	RestoreExpandedItems();
 
 	UpdatePropertyMap();
-}
-
-int32 SStructureDetailsView::OnPaint(const FPaintArgs& Args, FGeometry const& AllottedGeometry, FSlateRect const& MyClippingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, FWidgetStyle const& InWidgetStyle, bool bParentEnabled) const
-{
-	int32 LayerIdOut = LayerId;
-	// if the details table is still in need of a refresh, then wait for it to
-	// update before we paint (the tree view is probably holding onto some out
-	// of date properties, and painting those rows could cause a crash)
-	//
-	// @TODO: this is a temp fix to get 4.3 out the door, we need to find a
-	//        better, lower level solution (this could happen for other detail panels)
-	if (!DetailTree->IsPendingRefresh())
-	{
-		LayerIdOut = SDetailsViewBase::OnPaint(Args, AllottedGeometry, MyClippingRect, OutDrawElements, LayerId, InWidgetStyle, bParentEnabled);
-	}
-	
-	return LayerIdOut;
 }
 
 void SStructureDetailsView::ForceRefresh()

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -13,7 +13,7 @@ public:
 		, _MaterialInfoList(NULL)
 	{}
 
-		SLATE_TEXT_ATTRIBUTE( TitleText )
+		SLATE_ATTRIBUTE( FText, TitleText )
 
 		SLATE_ARGUMENT( const TArray<TSharedPtr<FMaterialInfo>>*, MaterialInfoList )
 	SLATE_END_ARGS()

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "StaticMeshResources.h"
@@ -20,11 +20,20 @@
 // Classes
 #include "Foliage/InstancedFoliageActor.h"
 #include "Foliage/FoliageType.h"
+#include "LandscapeProxy.h"
 #include "LandscapeComponent.h"
 #include "LandscapeHeightfieldCollisionComponent.h"
 #include "LandscapeInfo.h"
 #include "Components/SplineMeshComponent.h"
+#include "Engine/StaticMeshActor.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/CollisionProfile.h"
+#include "Components/ModelComponent.h"
+#include "EngineUtils.h"
+#include "LandscapeDataAccess.h"
+#include "Foliage/FoliageType_InstancedStaticMesh.h"
 
+#define LOCTEXT_NAMESPACE "FoliageEdMode"
 #define FOLIAGE_SNAP_TRACE (10000.f)
 
 //
@@ -51,8 +60,9 @@ FEdModeFoliage::FEdModeFoliage()
 	SphereBrushComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	SphereBrushComponent->SetCollisionObjectType(ECC_WorldDynamic);
 	SphereBrushComponent->StaticMesh = StaticMesh;
-	SphereBrushComponent->Materials.Add(BrushMaterial);
+	SphereBrushComponent->OverrideMaterials.Add(BrushMaterial);
 	SphereBrushComponent->SetAbsolute(true, true, true);
+	SphereBrushComponent->CastShadow = false;
 
 	bBrushTraceValid = false;
 	BrushLocation = FVector::ZeroVector;
@@ -110,25 +120,8 @@ void FEdModeFoliage::Enter()
 
 	if (!Toolkit.IsValid())
 	{
-		// @todo: Remove this assumption when we make modes per level editor instead of global
-		auto ToolkitHost = FModuleManager::LoadModuleChecked< FLevelEditorModule >("LevelEditor").GetFirstLevelEditor();
 		Toolkit = MakeShareable(new FFoliageEdModeToolkit);
-		Toolkit->Init(ToolkitHost);
-	}
-
-	// Fixup any broken clusters
-	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld());
-	for (auto& MeshPair : IFA->FoliageMeshes)
-	{
-		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
-		for (FFoliageInstanceCluster& Cluster : MeshInfo.InstanceClusters)
-		{
-			if (Cluster.ClusterComponent == nullptr)
-			{
-				MeshInfo.ReallocateClusters(IFA, MeshPair.Key);
-				break;
-			}
-		}
+		Toolkit->Init(Owner->GetToolkitHost());
 	}
 }
 
@@ -172,7 +165,7 @@ void FEdModeFoliage::PostUndo()
 {
 	FEdMode::PostUndo();
 
-	StaticCastSharedPtr<FFoliageEdModeToolkit>(Toolkit)->PostUndo();
+	StaticCastSharedPtr<FFoliageEdModeToolkit>(Toolkit)->RefreshFullList();
 }
 
 /** When the user changes the active streaming level with the level browser */
@@ -255,9 +248,9 @@ void FEdModeFoliage::Tick(FEditorViewportClient* ViewportClient, float DeltaTime
 	}
 }
 
-static bool FoliageTrace(UWorld* InWorld, FHitResult& OutHit, FVector InStart, FVector InEnd, FName InTraceTag, bool InbReturnFaceIndex = false)
+static bool FoliageTrace(UWorld* InWorld, AInstancedFoliageActor* IFA, FHitResult& OutHit, FVector InStart, FVector InEnd, FName InTraceTag, bool InbReturnFaceIndex = false)
 {
-	FCollisionQueryParams QueryParams(InTraceTag, true, AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(InWorld, false));
+	FCollisionQueryParams QueryParams(InTraceTag, true, IFA);
 	QueryParams.bReturnFaceIndex = InbReturnFaceIndex;
 
 	bool bResult = true;
@@ -307,8 +300,9 @@ void FEdModeFoliage::FoliageBrushTrace(FEditorViewportClient* ViewportClient, in
 
 			FHitResult Hit;
 			UWorld* World = ViewportClient->GetWorld();
+			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(World, false);
 			static FName NAME_FoliageBrush = FName(TEXT("FoliageBrush"));
-			if (FoliageTrace(World, Hit, Start, End, NAME_FoliageBrush))
+			if (FoliageTrace(World, IFA, Hit, Start, End, NAME_FoliageBrush))
 			{
 				// Check filters
 				UPrimitiveComponent* PrimComp = Hit.Component.Get();
@@ -385,7 +379,7 @@ void FEdModeFoliage::GetRandomVectorInBrush(FVector& OutStart, FVector& OutEnd)
 // Number of buckets for layer weight histogram distribution.
 #define NUM_INSTANCE_BUCKETS 10
 
-bool CheckCollisionWithWorld(UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation, UWorld* InWorld)
+bool CheckCollisionWithWorld(UFoliageType* Settings, const FFoliageInstance& Inst, const FVector& HitNormal, const FVector& HitLocation, UWorld* InWorld, AInstancedFoliageActor* InIFA)
 {
 	FMatrix InstTransform = Inst.GetInstanceWorldTransform().ToMatrixWithScale();
 	FVector LocalHit = InstTransform.InverseTransformPosition(HitLocation);
@@ -406,7 +400,7 @@ bool CheckCollisionWithWorld(UFoliageType* Settings, const FFoliageInstance& Ins
 				FVector SamplePos = InstTransform.TransformPosition(FVector(Settings->LowBoundOriginRadius.X, Settings->LowBoundOriginRadius.Y, 2.f) + LocalSamplePos[i]);
 				float WorldRadius = (Settings->LowBoundOriginRadius.Z + 2.f)*FMath::Max(Inst.DrawScale3D.X, Inst.DrawScale3D.Y);
 				FVector NormalVector = Settings->AlignToNormal ? HitNormal : FVector(0, 0, 1);
-				if (FoliageTrace(InWorld, Hit, SamplePos, SamplePos - NormalVector*WorldRadius, NAME_None))
+				if (FoliageTrace(InWorld, InIFA, Hit, SamplePos, SamplePos - NormalVector*WorldRadius, NAME_None))
 				{
 					if (LocalHit.Z - Inst.ZOffset < Settings->LowBoundOriginRadius.Z)
 					{
@@ -423,7 +417,7 @@ bool CheckCollisionWithWorld(UFoliageType* Settings, const FFoliageInstance& Ins
 			MeshBox.Min.Z = FMath::Min(MeshBox.Max.Z, LocalHit.Z + Settings->MeshBounds.BoxExtent.Z * 0.05f);
 			FBoxSphereBounds ShrinkBound(MeshBox);
 			FBoxSphereBounds WorldBound = ShrinkBound.TransformBy(InstTransform);
-			//::DrawDebugBox(InWorld, WorldBound.Origin, WorldBound.BoxExtent, FColor(255, 0, 0), true, 10.f);
+			//::DrawDebugBox(InWorld, WorldBound.Origin, WorldBound.BoxExtent, FColor::Red, true, 10.f);
 			static FName NAME_FoliageCollisionWithWorld = FName(TEXT("FoliageCollisionWithWorld"));
 			if (InWorld->OverlapTest(WorldBound.Origin, FQuat(Inst.Rotation), FCollisionShape::MakeBox(ShrinkBound.BoxExtent * Inst.DrawScale3D * Settings->CollisionScale), FCollisionQueryParams(NAME_FoliageCollisionWithWorld, false), FCollisionObjectQueryParams(ECC_WorldStatic)))
 			{
@@ -450,7 +444,7 @@ struct FPotentialInstance
 		, HitWeight(InHitWeight)
 	{}
 
-	bool PlaceInstance(UFoliageType* Settings, FFoliageInstance& Inst, UWorld* InWorld)
+	bool PlaceInstance(UFoliageType* Settings, FFoliageInstance& Inst, UWorld* InWorld, AInstancedFoliageActor* InIFA, bool bSkipCollision = false)
 	{
 		if (Settings->UniformScale)
 		{
@@ -492,9 +486,19 @@ struct FPotentialInstance
 			Inst.Location = Inst.GetInstanceWorldTransform().TransformPosition(FVector(0, 0, Inst.ZOffset));
 		}
 
+		UModelComponent* ModelComponent = Cast<UModelComponent>(HitComponent);
+		if (ModelComponent)
+		{
+			ABrush* BrushActor = ModelComponent->GetModel()->FindBrush(HitLocation);
+			if (BrushActor)
+			{
+				HitComponent = BrushActor->GetBrushComponent();
+			}
+		}
+
 		Inst.Base = HitComponent;
 
-		return CheckCollisionWithWorld(Settings, Inst, HitNormal, HitLocation, InWorld);
+		return bSkipCollision || CheckCollisionWithWorld(Settings, Inst, HitNormal, HitLocation, InWorld, InIFA);
 	}
 };
 
@@ -653,7 +657,7 @@ void FEdModeFoliage::AddInstancesForBrush(UWorld* InWorld, AInstancedFoliageActo
 
 			FHitResult Hit;
 			static FName NAME_AddInstancesForBrush = FName(TEXT("AddInstancesForBrush"));
-			if (FoliageTrace(InWorld, Hit, Start, End, NAME_AddInstancesForBrush, true))
+			if (FoliageTrace(InWorld, IFA, Hit, Start, End, NAME_AddInstancesForBrush, true))
 			{
 				// Check filters
 				UPrimitiveComponent* PrimComp = Hit.Component.Get();
@@ -733,7 +737,7 @@ void FEdModeFoliage::AddInstancesForBrush(UWorld* InWorld, AInstancedFoliageActo
 			for (int32 Idx = 0; Idx < AdditionalInstances; Idx++)
 			{
 				FFoliageInstance Inst;
-				if (PotentialInstances[Idx].PlaceInstance(Settings, Inst, InWorld))
+				if (PotentialInstances[Idx].PlaceInstance(Settings, Inst, InWorld, IFA))
 				{
 					MeshInfo.AddInstance(IFA, Settings, Inst);
 				}
@@ -761,7 +765,7 @@ void FEdModeFoliage::RemoveInstancesForBrush(AInstancedFoliageActor* IFA, FFolia
 		// Filter PotentialInstancesToRemove
 		for (int32 Idx = 0; Idx < PotentialInstancesToRemove.Num(); Idx++)
 		{
-			UPrimitiveComponent* Base = MeshInfo.Instances[PotentialInstancesToRemove[Idx]].Base;
+			UPrimitiveComponent* Base = Cast<UPrimitiveComponent> (MeshInfo.Instances[PotentialInstancesToRemove[Idx]].Base);
 			UMaterialInterface* Material = Base ? Base->GetMaterial(0) : nullptr;
 
 			// Check if instance is candidate for removal based on filter settings
@@ -972,7 +976,7 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 				FVector ZAxis = Instance.Rotation.Quaternion().GetAxisZ();
 				FVector Start = Instance.Location + 16.f * ZAxis;
 				FVector End = Instance.Location - 16.f * ZAxis;
-				if (FoliageTrace(InWorld, Hit, Start, End, NAME_ReapplyInstancesForBrush, true))
+				if (FoliageTrace(InWorld, IFA, Hit, Start, End, NAME_ReapplyInstancesForBrush, true))
 				{
 					// Reapply the normal
 					if (bReapplyNormal)
@@ -1100,9 +1104,9 @@ void FEdModeFoliage::ReapplyInstancesForBrush(UWorld* InWorld, AInstancedFoliage
 				static const FName NAME_ReapplyInstancesForBrush = TEXT("ReapplyCollisionWithWorld");
 				FVector Start = Instance.Location + FVector(0.f, 0.f, 16.f);
 				FVector End = Instance.Location - FVector(0.f, 0.f, 16.f);
-				if (FoliageTrace(InWorld, Hit, Start, End, NAME_ReapplyInstancesForBrush))
+				if (FoliageTrace(InWorld, IFA, Hit, Start, End, NAME_ReapplyInstancesForBrush))
 				{
-					if (!CheckCollisionWithWorld(Settings, Instance, Hit.Normal, Hit.Location, InWorld))
+					if (!CheckCollisionWithWorld(Settings, Instance, Hit.Normal, Hit.Location, InWorld, IFA))
 					{
 						InstancesToDelete.Add(InstanceIndex);
 						continue;
@@ -1284,7 +1288,7 @@ void FEdModeFoliage::ApplyPaintBucket(AActor* Actor, bool bRemove)
 		// Remove all instances of the selected meshes
 		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(GetWorld());
 
-		TArray<UActorComponent*> Components;
+		TInlineComponentArray<UActorComponent*> Components;
 		Actor->GetComponents(Components);
 
 		for (int32 ComponentIdx = 0; ComponentIdx < Components.Num(); ComponentIdx++)
@@ -1311,7 +1315,7 @@ void FEdModeFoliage::ApplyPaintBucket(AActor* Actor, bool bRemove)
 		TMap<UPrimitiveComponent*, TArray<FFoliagePaintBucketTriangle> > ComponentPotentialTriangles;
 
 		// Check all the components of the hit actor
-		TArray<UStaticMeshComponent*> StaticMeshComponents;
+		TInlineComponentArray<UStaticMeshComponent*> StaticMeshComponents;
 		Actor->GetComponents(StaticMeshComponents);
 
 		for (int32 ComponentIdx = 0; ComponentIdx < StaticMeshComponents.Num(); ComponentIdx++)
@@ -1455,7 +1459,7 @@ void FEdModeFoliage::ApplyPaintBucket(AActor* Actor, bool bRemove)
 				for (int32 Idx = 0; Idx < InstancesToPlace.Num(); Idx++)
 				{
 					FFoliageInstance Inst;
-					if (InstancesToPlace[Idx].PlaceInstance(Settings, Inst, World))
+					if (InstancesToPlace[Idx].PlaceInstance(Settings, Inst, World, IFA))
 					{
 						MeshInfo.AddInstance(IFA, Settings, Inst);
 					}
@@ -1616,7 +1620,7 @@ bool FEdModeFoliage::RemoveFoliageMesh(UFoliageType* Settings)
 	FFoliageMeshInfo* MeshInfo = IFA->FindMesh(Settings);
 	if (MeshInfo != nullptr)
 	{
-		int32 InstancesNum = MeshInfo->Instances.Num() - MeshInfo->FreeInstanceIndices.Num();
+		int32 InstancesNum = MeshInfo->Instances.Num();
 
 		bool bProceed = true;
 		if (Settings->GetStaticMesh() != nullptr && InstancesNum > 0)
@@ -1651,7 +1655,7 @@ void FEdModeFoliage::BakeFoliage(UFoliageType* Settings, bool bSelectedOnly)
 		TArray<int32> InstancesToConvert;
 		if (bSelectedOnly)
 		{
-			InstancesToConvert = MeshInfo->SelectedIndices;
+			InstancesToConvert = MeshInfo->SelectedIndices.Array();
 		}
 		else
 		{
@@ -1766,7 +1770,7 @@ bool FEdModeFoliage::ReplaceStaticMesh(UFoliageType* OldSettings, UStaticMesh* N
 
 	if (OldMeshInfo != nullptr && OldSettings->GetStaticMesh() != NewStaticMesh)
 	{
-		int32 InstancesNum = OldMeshInfo->Instances.Num() - OldMeshInfo->FreeInstanceIndices.Num();
+		int32 InstancesNum = OldMeshInfo->Instances.Num();
 
 		// Look for the new mesh in the mesh list, and either create a new mesh or merge the instances.
 		UFoliageType* NewSettings = nullptr;
@@ -1784,7 +1788,7 @@ bool FEdModeFoliage::ReplaceStaticMesh(UFoliageType* OldSettings, UStaticMesh* N
 
 			GEditor->BeginTransaction(NSLOCTEXT("UnrealEd", "FoliageMode_ChangeStaticMeshTransaction", "Foliage Editing: Change StaticMesh"));
 			IFA->Modify();
-			NewMeshInfo = IFA->AddMesh(NewStaticMesh, &NewSettings);
+			NewMeshInfo = IFA->AddMesh(NewStaticMesh, &NewSettings, Cast<UFoliageType_InstancedStaticMesh>(OldSettings));
 			NewSettings->DisplayOrder = OldSettings->DisplayOrder;
 			NewSettings->ShowNothing = OldSettings->ShowNothing;
 			NewSettings->ShowPaintSettings = OldSettings->ShowPaintSettings;
@@ -1810,12 +1814,9 @@ bool FEdModeFoliage::ReplaceStaticMesh(UFoliageType* OldSettings, UStaticMesh* N
 			// copy instances from old to new.
 			for (FFoliageInstance& Instance : OldMeshInfo->Instances)
 			{
-				if (Instance.ClusterIndex != -1)
-				{
 					NewMeshInfo->AddInstance(IFA, NewSettings, Instance);
 				}
 			}
-		}
 
 		// Remove the old mesh.
 		IFA->RemoveMesh(OldSettings);
@@ -1824,6 +1825,8 @@ bool FEdModeFoliage::ReplaceStaticMesh(UFoliageType* OldSettings, UStaticMesh* N
 
 		// Update mesh list.
 		UpdateFoliageMeshList();
+
+		StaticCastSharedPtr<FFoliageEdModeToolkit>(Toolkit)->RefreshFullList();
 	}
 	return true;
 }
@@ -1834,11 +1837,20 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 {
 	if (UISettings.GetPaintToolSelected() || UISettings.GetReapplyToolSelected() || UISettings.GetLassoSelectToolSelected())
 	{
+		// Require Ctrl or not as per user preference
+		ELandscapeFoliageEditorControlType FoliageEditorControlType = GetDefault<ULevelEditorViewportSettings>()->FoliageEditorControlType;
+
 		if (Key == EKeys::LeftMouseButton && Event == IE_Pressed)
 		{
 			// Only activate tool if we're not already moving the camera and we're not trying to drag a transform widget
 			// Not using "if (!ViewportClient->IsMovingCamera())" because it's wrong in ortho viewports :D
-			if (!Viewport->KeyState(EKeys::MiddleMouseButton) && !Viewport->KeyState(EKeys::RightMouseButton) && !IsAltDown(Viewport) && ViewportClient->GetCurrentWidgetAxis() == EAxisList::None)
+			bool bMovingCamera = Viewport->KeyState(EKeys::MiddleMouseButton) || Viewport->KeyState(EKeys::RightMouseButton) || IsAltDown(Viewport);
+
+			if ((Viewport->IsPenActive() && Viewport->GetTabletPressure() > 0.f) ||
+				(!bMovingCamera && ViewportClient->GetCurrentWidgetAxis() == EAxisList::None &&
+					(FoliageEditorControlType == ELandscapeFoliageEditorControlType::IgnoreCtrl ||
+					 (FoliageEditorControlType == ELandscapeFoliageEditorControlType::RequireCtrl   && IsCtrlDown(Viewport)) ||
+					 (FoliageEditorControlType == ELandscapeFoliageEditorControlType::RequireNoCtrl && !IsCtrlDown(Viewport)))))
 			{
 				if (!bToolActive)
 				{
@@ -1873,7 +1885,8 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 			}
 		}
 
-		if (bToolActive && Key == EKeys::LeftMouseButton && Event == IE_Released)
+		if (bToolActive && Event == IE_Released &&
+			(Key == EKeys::LeftMouseButton || (FoliageEditorControlType == ELandscapeFoliageEditorControlType::RequireCtrl && (Key == EKeys::LeftControl || Key == EKeys::RightControl))))
 		{
 			//Set the cursor position to that of the slate cursor so it wont snap back
 			Viewport->SetPreCaptureMousePosFromSlateCursor();
@@ -1899,7 +1912,7 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 					FFoliageMeshInfo& Mesh = *MeshPair.Value;
 					if (Mesh.SelectedIndices.Num() > 0)
 					{
-						TArray<int32> InstancesToDelete = Mesh.SelectedIndices;
+						TArray<int32> InstancesToDelete = Mesh.SelectedIndices.Array();
 						Mesh.RemoveInstances(IFA, InstancesToDelete);
 					}
 				}
@@ -1917,10 +1930,12 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 				{
 					FFoliageMeshInfo& Mesh = *MeshPair.Value;
 
-					Mesh.PreMoveInstances(IFA, Mesh.SelectedIndices);
+					TArray<int32> SelectedIndices = Mesh.SelectedIndices.Array();
+
+					Mesh.PreMoveInstances(IFA, SelectedIndices);
 
 					UWorld* World = ViewportClient->GetWorld();
-					for (int32 SelectedInstanceIdx : Mesh.SelectedIndices)
+					for (int32 SelectedInstanceIdx : SelectedIndices)
 					{
 						FFoliageInstance& Instance = Mesh.Instances[SelectedInstanceIdx];
 
@@ -1928,7 +1943,7 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 						FVector End = Instance.Location - FVector(0.f, 0.f, FOLIAGE_SNAP_TRACE);
 
 						FHitResult Hit;
-						if (FoliageTrace(GetWorld(), Hit, Start, End, FName("FoliageSnap")))
+						if (FoliageTrace(GetWorld(), IFA, Hit, Start, End, FName("FoliageSnap")))
 						{
 							// Check current level
 							if ((Hit.Component.IsValid() && Hit.Component.Get()->GetOutermost() == World->GetCurrentLevel()->GetOutermost()) ||
@@ -1938,7 +1953,7 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 								Instance.ZOffset = 0.f;
 								Instance.Base = Hit.Component.Get();
 								// We cannot be based on an a blueprint component as these will disappear when the construction script is re-run
-								if (Instance.Base && Instance.Base->bCreatedByConstructionScript)
+								if (Instance.Base && Instance.Base->IsCreatedByConstructionScript())
 								{
 									Instance.Base = nullptr;
 								}
@@ -1954,7 +1969,7 @@ bool FEdModeFoliage::InputKey(FEditorViewportClient* ViewportClient, FViewport* 
 						bMovedInstance = true;
 					}
 
-					Mesh.PostMoveInstances(IFA, Mesh.SelectedIndices);
+					Mesh.PostMoveInstances(IFA, SelectedIndices);
 				}
 
 				if (bMovedInstance)
@@ -2070,6 +2085,7 @@ bool FEdModeFoliage::HandleClick(FEditorViewportClient* InViewportClient, HHitPr
 		return true;
 	}
 
+
 	return FEdMode::HandleClick(InViewportClient, HitProxy, Click);
 }
 
@@ -2121,16 +2137,18 @@ bool FEdModeFoliage::InputDelta(FEditorViewportClient* InViewportClient, FViewpo
 		for (auto& MeshPair : IFA->FoliageMeshes)
 		{
 			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
-			bFoundSelection |= MeshInfo.SelectedIndices.Num() > 0;
+			TArray<int32> SelectedIndices = MeshInfo.SelectedIndices.Array();
+
+			bFoundSelection |= SelectedIndices.Num() > 0;
 
 			if (bAltDown && bCanAltDrag && (InViewportClient->GetCurrentWidgetAxis() & EAxisList::XYZ))
 			{
-				MeshInfo.DuplicateInstances(IFA, MeshPair.Key, MeshInfo.SelectedIndices);
+				MeshInfo.DuplicateInstances(IFA, MeshPair.Key, SelectedIndices);
 			}
 
-			MeshInfo.PreMoveInstances(IFA, MeshInfo.SelectedIndices);
+			MeshInfo.PreMoveInstances(IFA, SelectedIndices);
 
-			for (int32 SelectedInstanceIdx : MeshInfo.SelectedIndices)
+			for (int32 SelectedInstanceIdx : SelectedIndices)
 			{
 				FFoliageInstance& Instance = MeshInfo.Instances[SelectedInstanceIdx];
 				Instance.Location += InDrag;
@@ -2139,7 +2157,7 @@ bool FEdModeFoliage::InputDelta(FEditorViewportClient* InViewportClient, FViewpo
 				Instance.DrawScale3D += InScale;
 			}
 
-			MeshInfo.PostMoveInstances(IFA, MeshInfo.SelectedIndices);
+			MeshInfo.PostMoveInstances(IFA, SelectedIndices);
 		}
 
 		// Only allow alt-drag on first InputDelta
@@ -2222,3 +2240,5 @@ void FFoliageUISettings::Save()
 	GConfig->SetBool(TEXT("FoliageEdit"), TEXT("bFilterBSP"), bFilterBSP, GEditorUserSettingsIni);
 	GConfig->SetBool(TEXT("FoliageEdit"), TEXT("bFilterTranslucent"), bFilterTranslucent, GEditorUserSettingsIni);
 }
+
+#undef LOCTEXT_NAMESPACE

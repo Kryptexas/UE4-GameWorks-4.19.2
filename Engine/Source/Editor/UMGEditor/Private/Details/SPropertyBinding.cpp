@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 #include "DetailLayoutBuilder.h"
@@ -8,6 +8,9 @@
 #include "WidgetGraphSchema.h"
 #include "BlueprintEditorUtils.h"
 #include "ScopedTransaction.h"
+#include "WidgetComponent.h"
+#include "WidgetAnimation.h"
+#include "PropertyBinding.h"
 
 
 #define LOCTEXT_NAMESPACE "UMG"
@@ -21,6 +24,9 @@ void SPropertyBinding::Construct(const FArguments& InArgs, TSharedRef<FWidgetBlu
 	Editor = InEditor;
 	Blueprint = InEditor->GetWidgetBlueprintObj();
 
+	GeneratePureBindings = InArgs._GeneratePureBindings;
+	BindableSignature = DelegateProperty->SignatureFunction;
+
 	TArray<UObject*> Objects;
 	Property->GetOuterObjects(Objects);
 
@@ -31,10 +37,10 @@ void SPropertyBinding::Construct(const FArguments& InArgs, TSharedRef<FWidgetBlu
 		SNew(SHorizontalBox)
 
 		+ SHorizontalBox::Slot()
-		.AutoWidth()
+		.FillWidth(1.0f)
 		[
 			SNew(SComboButton)
-			.OnGetMenuContent(this, &SPropertyBinding::OnGenerateDelegateMenu, Widget, Property, DelegateProperty->SignatureFunction, InArgs._GeneratePureBindings)
+			.OnGetMenuContent(this, &SPropertyBinding::OnGenerateDelegateMenu, Widget, Property)
 			.ContentPadding(1)
 			.ButtonContent()
 			[
@@ -76,144 +82,178 @@ void SPropertyBinding::Construct(const FArguments& InArgs, TSharedRef<FWidgetBlu
 	];
 }
 
-void SPropertyBinding::RefreshBlueprintMemberCache(const UFunction* DelegateSignature, bool bIsPure)
+static bool IsClassBlackListed(UClass* OwnerClass)
+{
+	if ( OwnerClass == UUserWidget::StaticClass() ||
+		OwnerClass == AActor::StaticClass() ||
+		OwnerClass == APawn::StaticClass() ||
+		OwnerClass == UObject::StaticClass() ||
+		OwnerClass == UPrimitiveComponent::StaticClass() ||
+		OwnerClass == USceneComponent::StaticClass() ||
+		OwnerClass == UActorComponent::StaticClass() ||
+		OwnerClass == UWidgetComponent::StaticClass() ||
+		OwnerClass == UStaticMeshComponent::StaticClass() ||
+		OwnerClass == UWidgetAnimation::StaticClass() )
+	{
+		return true;
+	}
+
+	return false;
+}
+
+static bool IsFieldFromBlackListedClass(UField* Field)
+{
+	return IsClassBlackListed(Field->GetOwnerClass());
+}
+
+static bool HasFunctionBinder(UFunction* Function, UFunction* BindableSignature)
+{
+	if ( Function->NumParms == 1 && BindableSignature->NumParms == 1 )
+	{
+		if ( UProperty* FunctionReturn = Function->GetReturnProperty() )
+		{
+			if ( UProperty* DelegateReturn = BindableSignature->GetReturnProperty() )
+			{
+				// Find the binder that can handle the delegate return type.
+				TSubclassOf<UPropertyBinding> Binder = UWidget::FindBinderClassForDestination(DelegateReturn);
+				if ( Binder != nullptr )
+				{
+					// Ensure that the binder also can handle binding from the property we care about.
+					if ( Binder->GetDefaultObject<UPropertyBinding>()->IsSupportedSource(FunctionReturn) )
+					{
+						return true;
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+template <typename Predicate>
+void SPropertyBinding::ForEachBindableFunction(UClass* FromClass, Predicate Pred) const
 {
 	const UWidgetGraphSchema* Schema = GetDefault<UWidgetGraphSchema>();
 	const FSlateFontInfo DetailFontInfo = IDetailLayoutBuilder::GetDetailFont();
 
-	BlueprintFunctionCache.Reset();
-	BlueprintPropertyCache.Reset();
+	UBlueprintGeneratedClass* SkeletonClass = Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass);
 
-	// Get the current skeleton class, think header for the blueprint.
-	UBlueprintGeneratedClass* SkeletonClass = Cast<UBlueprintGeneratedClass>(Blueprint->SkeletonGeneratedClass);
-
-	// Grab functions implemented by the blueprint
-	for ( int32 i = 0; i < Blueprint->FunctionGraphs.Num(); i++ )
+	// Walk up class hierarchy for native functions and properties
+	for ( TFieldIterator<UFunction> FuncIt(FromClass, EFieldIteratorFlags::IncludeSuper); FuncIt; ++FuncIt )
 	{
-		UEdGraph* Graph = Blueprint->FunctionGraphs[i];
-		check(Graph);
+		UFunction* Function = *FuncIt;
 
-		// Ignore the construction script, we just want user created functions.
-		if ( Graph->GetFName() == Schema->FN_UserConstructionScript )
+		// Stop processing functions after reaching a base class that it doesn't make sense to go beyond.
+		if ( IsFieldFromBlackListedClass(Function) )
+		{
+			break;
+		}
+
+		// Only allow binding pure functions if we're limited to pure function bindings.
+		if ( GeneratePureBindings && !Function->HasAnyFunctionFlags(FUNC_Const | FUNC_BlueprintPure) )
 		{
 			continue;
 		}
 
-		FName FunctionFName = Graph->GetFName();
-
-		UFunction* Function = SkeletonClass->FindFunctionByName(FunctionFName, EIncludeSuperFlag::IncludeSuper);
-		if ( Function == nullptr )
+		// Only bind to functions that are callable from blueprints
+		if ( !UEdGraphSchema_K2::CanUserKismetCallFunction(Function) )
 		{
 			continue;
 		}
 
 		// We ignore CPF_ReturnParm because all that matters for binding to script functions is that the number of out parameters match.
-		if ( Function->IsSignatureCompatibleWith(DelegateSignature, UFunction::GetDefaultIgnoredSignatureCompatibilityFlags() | CPF_ReturnParm) )
+		if ( Function->IsSignatureCompatibleWith(BindableSignature, UFunction::GetDefaultIgnoredSignatureCompatibilityFlags() | CPF_ReturnParm) ||
+			 HasFunctionBinder(Function, BindableSignature) )
 		{
-			// Only allow binding pure functions if we're limited to pure function bindings.
-			if ( bIsPure && !Function->HasAllFunctionFlags(FUNC_BlueprintPure) )
-			{
-				continue;
-			}
-			
-			FGraphDisplayInfo DisplayInfo;
-			Graph->GetSchema()->GetGraphDisplayInformation(*Graph, DisplayInfo);
+			TSharedPtr<FFunctionInfo> Info = MakeShareable(new FFunctionInfo());
+			Info->DisplayName = FText::FromName(Function->GetFName());
+			Info->Tooltip = Function->GetMetaData("Tooltip");
+			Info->FuncName = Function->GetFName();
+			Info->Function = Function;
 
-			TSharedPtr<FunctionInfo> NewFuncAction = MakeShareable(new FunctionInfo());
-			NewFuncAction->DisplayName = DisplayInfo.PlainName;
-			NewFuncAction->Tooltip = DisplayInfo.Tooltip;
-			NewFuncAction->FuncName = FunctionFName;
-			NewFuncAction->EdGraph = Graph;
-
-			BlueprintFunctionCache.Add(NewFuncAction);
+			Pred(Info);
 		}
 	}
+}
 
-	// Grab functions implemented by the blueprint
-	for ( TFieldIterator<UProperty> PropIt(SkeletonClass, EFieldIteratorFlags::ExcludeSuper); PropIt; ++PropIt )
+template <typename Predicate>
+void SPropertyBinding::ForEachBindableProperty(UStruct* InStruct, Predicate Pred) const
+{
+	UBlueprintGeneratedClass* SkeletonClass = Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass);
+
+	for ( TFieldIterator<UProperty> PropIt(InStruct, EFieldIteratorFlags::IncludeSuper); PropIt; ++PropIt )
 	{
-		UProperty* Prop = *PropIt;
+		UProperty* Property = *PropIt;
 
-		if ( UProperty* ReturnProperty = DelegateSignature->GetReturnProperty() )
+		// Stop processing properties after reaching the stoppped base class
+		if ( IsFieldFromBlackListedClass(Property) )
 		{
-			if ( ReturnProperty->SameType(Prop) )
+			break;
+		}
+
+		if ( !UEdGraphSchema_K2::CanUserKismetAccessVariable(Property, SkeletonClass, UEdGraphSchema_K2::CannotBeDelegate) )
+		{
+			continue;
+		}
+
+		// Also ignore advanced properties
+		if ( Property->HasAnyPropertyFlags(CPF_AdvancedDisplay | CPF_EditorOnly) )
+		{
+			continue;
+		}
+
+		// Add matching properties, ensure they return the same type as the property.
+		if ( UProperty* ReturnProperty = BindableSignature->GetReturnProperty() )
+		{
+			// Find the binder that can handle the delegate return type.
+			TSubclassOf<UPropertyBinding> Binder = UWidget::FindBinderClassForDestination(ReturnProperty);
+			if ( Binder != nullptr )
 			{
-				if ( Prop->HasAnyPropertyFlags(UP::BlueprintReadWrite) )
+				// Ensure that the binder also can handle binding from the property we care about.
+				if ( Binder->GetDefaultObject<UPropertyBinding>()->IsSupportedSource(Property) )
 				{
-					BlueprintPropertyCache.Add(Prop);
+					Pred(Property);
 				}
 			}
 		}
 	}
 }
 
-TSharedRef<SWidget> SPropertyBinding::OnGenerateDelegateMenu(UWidget* Widget, TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature, bool bIsPure)
+TSharedRef<SWidget> SPropertyBinding::OnGenerateDelegateMenu(UWidget* Widget, TSharedRef<IPropertyHandle> PropertyHandle)
 {
-	RefreshBlueprintMemberCache(DelegateSignature, bIsPure);
-
 	const bool bInShouldCloseWindowAfterMenuSelection = true;
-	FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterMenuSelection, NULL);
+	FMenuBuilder MenuBuilder(bInShouldCloseWindowAfterMenuSelection, nullptr);
 
-	static FName PropertyIcon(TEXT("Kismet.Tabs.Variables"));
-	static FName FunctionIcon(TEXT("GraphEditor.Function_16x"));
-
-	//FLinearColor ColorOut;
-	//const UClass* VarClass = PropertyHandle->GetPropertyClass();
-	//BrushOut = FBlueprintEditor::GetVarIconAndColor(VarClass, PropertyHandle->GetProperty()->GetFName(), ColorOut);
-
-	if ( CanRemoveBinding(PropertyHandle) )
+	MenuBuilder.BeginSection("BindingActions");
 	{
-		MenuBuilder.BeginSection("RemoveBinding");
+		if ( CanRemoveBinding(PropertyHandle) )
 		{
 			MenuBuilder.AddMenuEntry(
 				LOCTEXT("RemoveBinding", "Remove Binding"),
 				LOCTEXT("RemoveBindingToolTip", "Removes the current binding"),
-				FSlateIcon(),
+				FSlateIcon(FEditorStyle::GetStyleSetName(), "Cross"),
 				FUIAction(FExecuteAction::CreateSP(this, &SPropertyBinding::HandleRemoveBinding, PropertyHandle))
 				);
 		}
-		MenuBuilder.EndSection(); //RemoveBinding
-	}
 
-	MenuBuilder.BeginSection("CreateBinding");
-	{
 		MenuBuilder.AddMenuEntry(
 			LOCTEXT("CreateBinding", "Create Binding"),
-			LOCTEXT("CreateBindingToolTip", "Creates a new function for this property to be bound to"),
-			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateSP(this, &SPropertyBinding::HandleCreateAndAddBinding, Widget, PropertyHandle, DelegateSignature, bIsPure))
+			LOCTEXT("CreateBindingToolTip", "Creates a new function on the widget blueprint that will return the binding data for this property."),
+			FSlateIcon(FEditorStyle::GetStyleSetName(), "Plus"),
+			FUIAction(FExecuteAction::CreateSP(this, &SPropertyBinding::HandleCreateAndAddBinding, Widget, PropertyHandle))
 			);
 	}
 	MenuBuilder.EndSection(); //CreateBinding
 
-	MenuBuilder.BeginSection("Functions", LOCTEXT("Functions", "Functions"));
+	// Properties
 	{
-		for ( TSharedPtr<FunctionInfo>& Function : BlueprintFunctionCache )
-		{
-			MenuBuilder.AddMenuEntry(
-				Function->DisplayName,
-				FText::FromString(Function->Tooltip),
-				FSlateIcon(FEditorStyle::GetStyleSetName(), FunctionIcon),
-				FUIAction(FExecuteAction::CreateSP(this, &SPropertyBinding::HandleAddFunctionBinding, PropertyHandle, Function))
-				);
-		}
-	}
-	MenuBuilder.EndSection(); //Functions
+		// Get the current skeleton class, think header for the blueprint.
+		UBlueprintGeneratedClass* SkeletonClass = Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass);
 
-	MenuBuilder.BeginSection("Properties", LOCTEXT("Properties", "Properties"));
-	{
-		for ( UProperty* ExistingProperty : BlueprintPropertyCache )
-		{
-			MenuBuilder.AddMenuEntry(
-				ExistingProperty->GetDisplayNameText(),
-				ExistingProperty->GetToolTipText(),
-				FSlateIcon(FEditorStyle::GetStyleSetName(), PropertyIcon),
-				FUIAction(FExecuteAction::CreateSP(this, &SPropertyBinding::HandleAddPropertyBinding, PropertyHandle, ExistingProperty))
-				);
-		}
+		TArray<UField*> BindingChain;
+		FillPropertyMenu(MenuBuilder, PropertyHandle, SkeletonClass, BindingChain);
 	}
-	MenuBuilder.EndSection(); //Functions
-
 
 	FDisplayMetrics DisplayMetrics;
 	FSlateApplication::Get().GetDisplayMetrics(DisplayMetrics);
@@ -226,6 +266,142 @@ TSharedRef<SWidget> SPropertyBinding::OnGenerateDelegateMenu(UWidget* Widget, TS
 		[
 			MenuBuilder.MakeWidget()
 		];
+}
+
+void SPropertyBinding::FillPropertyMenu(FMenuBuilder& MenuBuilder, TSharedRef<IPropertyHandle> PropertyHandle, UStruct* OwnerStruct, TArray<UField*> BindingChain)
+{
+	bool bFoundEntry = false;
+
+	//---------------------------------------
+	// Function Bindings
+
+	if ( UClass* OwnerClass = Cast<UClass>(OwnerStruct) )
+	{
+		static FName FunctionIcon(TEXT("GraphEditor.Function_16x"));
+
+		MenuBuilder.BeginSection("Functions", LOCTEXT("Functions", "Functions"));
+		{
+			ForEachBindableFunction(OwnerClass, [&] (TSharedPtr<FFunctionInfo> Info) {
+				TArray<UField*> NewBindingChain(BindingChain);
+				NewBindingChain.Add(Info->Function);
+
+				bFoundEntry = true;
+
+				MenuBuilder.AddMenuEntry(
+					Info->DisplayName,
+					FText::FromString(Info->Tooltip),
+					FSlateIcon(FEditorStyle::GetStyleSetName(), FunctionIcon),
+					FUIAction(FExecuteAction::CreateSP(this, &SPropertyBinding::HandleAddFunctionBinding, PropertyHandle, Info, NewBindingChain))
+					);
+			});
+		}
+		MenuBuilder.EndSection(); //Functions
+	}
+
+	//---------------------------------------
+	// Property Bindings
+
+	// Get the current skeleton class, think header for the blueprint.
+	UBlueprintGeneratedClass* SkeletonClass = Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass);
+
+	// Only show bindable subobjects and variables if we're generating pure bindings.
+	if ( GeneratePureBindings )
+	{
+		UProperty* ReturnProperty = BindableSignature->GetReturnProperty();
+
+		// Find the binder that can handle the delegate return type, don't bother allowing people 
+		// to look for bindings that we don't support
+		if ( ensure(UWidget::FindBinderClassForDestination(ReturnProperty) != nullptr) )
+		{
+			static FName PropertyIcon(TEXT("Kismet.Tabs.Variables"));
+
+			MenuBuilder.BeginSection("Properties", LOCTEXT("Properties", "Properties"));
+			{
+				ForEachBindableProperty(OwnerStruct, [&] (UProperty* Property) {
+					TArray<UField*> NewBindingChain(BindingChain);
+					NewBindingChain.Add(Property);
+
+					bFoundEntry = true;
+
+					MenuBuilder.AddMenuEntry(
+						Property->GetDisplayNameText(),
+						Property->GetToolTipText(),
+						FSlateIcon(FEditorStyle::GetStyleSetName(), PropertyIcon),
+						FUIAction(FExecuteAction::CreateSP(this, &SPropertyBinding::HandleAddPropertyBinding, PropertyHandle, Property, NewBindingChain))
+						);
+				});
+			}
+			MenuBuilder.EndSection(); //Properties
+
+			MenuBuilder.BeginSection("SubObjectProperties", LOCTEXT("SubObjectProperties", "Sub-Object Properties"));
+			{
+				// Add all the properties that are not bindable, but are object or struct members that could contain children
+				// properties that are bindable.
+				for ( TFieldIterator<UProperty> PropIt(OwnerStruct, EFieldIteratorFlags::IncludeSuper); PropIt; ++PropIt )
+				{
+					UProperty* Property = *PropIt;
+
+					// Stop processing properties after reaching the user widget properties.
+					if ( IsFieldFromBlackListedClass(Property) )
+					{
+						break;
+					}
+
+					// If the owner is a class then use the blueprint scheme to determine if it's visible.
+					if ( !UEdGraphSchema_K2::CanUserKismetAccessVariable(Property, SkeletonClass, UEdGraphSchema_K2::CannotBeDelegate) )
+					{
+						continue;
+					}
+
+					if ( Property->HasAllPropertyFlags(CPF_BlueprintVisible) )
+					{
+						UObjectProperty* ObjectProperty = Cast<UObjectProperty>(Property);
+						UStructProperty* StructProperty = Cast<UStructProperty>(Property);
+
+						if ( ObjectProperty || StructProperty )
+						{
+							UStruct* Struct = ObjectProperty ? (UStruct*)ObjectProperty->PropertyClass : (UStruct*)StructProperty->Struct;
+
+							// Ignore any properties that are widgets, we don't want users binding widgets to other widgets.
+							// also ignore any class that is explicitly on the black list.
+							if ( ObjectProperty )
+							{
+								if ( IsClassBlackListed(ObjectProperty->PropertyClass) || ObjectProperty->PropertyClass->IsChildOf(UWidget::StaticClass()) )
+								{
+									continue;
+								}
+							}
+
+							// Stop processing properties after reaching the user widget properties.
+							if ( IsFieldFromBlackListedClass(Property) )
+							{
+								break;
+							}
+
+							TArray<UField*> NewBindingChain(BindingChain);
+							NewBindingChain.Add(Property);
+
+							bFoundEntry = true;
+
+							MenuBuilder.AddSubMenu(
+								Property->GetDisplayNameText(),
+								Property->GetToolTipText(),
+								FNewMenuDelegate::CreateSP(this, &SPropertyBinding::FillPropertyMenu, PropertyHandle, Struct, NewBindingChain)
+								);
+						}
+					}
+				}
+			}
+			MenuBuilder.EndSection(); //SubObjectProperties
+		}
+	}
+
+	if ( bFoundEntry == false && OwnerStruct != SkeletonClass )
+	{
+		MenuBuilder.BeginSection("None", OwnerStruct->GetDisplayNameText());
+		MenuBuilder.AddWidget(SNew(STextBlock).Text(LOCTEXT("None", "None")), FText::GetEmpty());
+		MenuBuilder.EndSection(); //None
+	}
 }
 
 const FSlateBrush* SPropertyBinding::GetCurrentBindingImage(TSharedRef<IPropertyHandle> PropertyHandle) const
@@ -265,7 +441,7 @@ const FSlateBrush* SPropertyBinding::GetCurrentBindingImage(TSharedRef<IProperty
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 FText SPropertyBinding::GetCurrentBindingText(TSharedRef<IPropertyHandle> PropertyHandle) const
@@ -279,7 +455,7 @@ FText SPropertyBinding::GetCurrentBindingText(TSharedRef<IPropertyHandle> Proper
 	for ( int32 ObjectIndex = 0; ObjectIndex < OuterObjects.Num(); ObjectIndex++ )
 	{
 		// Ignore null outer objects
-		if ( OuterObjects[ObjectIndex] == NULL )
+		if ( OuterObjects[ObjectIndex] == nullptr )
 		{
 			continue;
 		}
@@ -290,15 +466,39 @@ FText SPropertyBinding::GetCurrentBindingText(TSharedRef<IPropertyHandle> Proper
 		{
 			if ( Binding.ObjectName == OuterObjects[ObjectIndex]->GetName() && Binding.PropertyName == PropertyName )
 			{
-				if ( Binding.Kind == EBindingKind::Function )
+				if ( !Binding.SourcePath.IsEmpty() )
 				{
-					FName FoundName = Blueprint->GetFieldNameFromClassByGuid<UFunction>(Blueprint->GeneratedClass, Binding.MemberGuid);
-					return FText::FromString(FName::NameToDisplayString(FoundName.ToString(), false));
+					return Binding.SourcePath.GetDisplayText();
 				}
-				else // Property
+				else
 				{
-					FName FoundName = Blueprint->GetFieldNameFromClassByGuid<UProperty>(Blueprint->GeneratedClass, Binding.MemberGuid);
-					return FText::FromString(FName::NameToDisplayString(FoundName.ToString(), false));
+					if ( Binding.Kind == EBindingKind::Function )
+					{
+						if ( Binding.MemberGuid.IsValid() )
+						{
+							// Graph function, look up by Guid
+							FName FoundName = Blueprint->GetFieldNameFromClassByGuid<UFunction>(Blueprint->GeneratedClass, Binding.MemberGuid);
+							return FText::FromString(FName::NameToDisplayString(FoundName.ToString(), false));
+						}
+						else
+						{
+							// No GUID, native function, return function name.
+							return FText::FromName(Binding.FunctionName);
+						}
+					}
+					else // Property
+					{
+						if ( Binding.MemberGuid.IsValid() )
+						{
+							FName FoundName = Blueprint->GetFieldNameFromClassByGuid<UProperty>(Blueprint->GeneratedClass, Binding.MemberGuid);
+							return FText::FromString(FName::NameToDisplayString(FoundName.ToString(), false));
+						}
+						else
+						{
+							// No GUID, native property, return source property.
+							return FText::FromName(Binding.SourceProperty);
+						}
+					}
 				}
 			}
 		}
@@ -351,7 +551,13 @@ void SPropertyBinding::HandleRemoveBinding(TSharedRef<IPropertyHandle> PropertyH
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 }
 
-void SPropertyBinding::HandleAddFunctionBinding(TSharedRef<IPropertyHandle> PropertyHandle, TSharedPtr<FunctionInfo> SelectedFunction)
+void SPropertyBinding::HandleAddFunctionBinding(TSharedRef<IPropertyHandle> PropertyHandle, TSharedPtr<FFunctionInfo> SelectedFunction, TArray<UField*> BindingChain)
+{
+	FEditorPropertyPath BindingPath(BindingChain);
+	HandleAddFunctionBinding(PropertyHandle, SelectedFunction, BindingPath);
+}
+
+void SPropertyBinding::HandleAddFunctionBinding(TSharedRef<IPropertyHandle> PropertyHandle, TSharedPtr<FFunctionInfo> SelectedFunction, FEditorPropertyPath& BindingPath)
 {
 	const FScopedTransaction Transaction(LOCTEXT("BindDelegate", "Set Binding"));
 
@@ -365,7 +571,17 @@ void SPropertyBinding::HandleAddFunctionBinding(TSharedRef<IPropertyHandle> Prop
 		Binding.ObjectName = SelectedObject->GetName();
 		Binding.PropertyName = PropertyHandle->GetProperty()->GetFName();
 		Binding.FunctionName = SelectedFunction->FuncName;
-		Binding.MemberGuid = SelectedFunction->EdGraph->GraphGuid;
+
+		Binding.SourcePath = BindingPath;
+
+		if ( SelectedFunction->Function )
+		{
+			UBlueprint::GetGuidFromClassByFieldName<UFunction>(
+				SelectedFunction->Function->GetOwnerClass(),
+				SelectedFunction->Function->GetFName(),
+				Binding.MemberGuid);
+		}
+
 		Binding.Kind = EBindingKind::Function;
 
 		Blueprint->Bindings.Remove(Binding);
@@ -375,12 +591,12 @@ void SPropertyBinding::HandleAddFunctionBinding(TSharedRef<IPropertyHandle> Prop
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 }
 
-void SPropertyBinding::HandleAddPropertyBinding(TSharedRef<IPropertyHandle> PropertyHandle, UProperty* SelectedProperty)
+void SPropertyBinding::HandleAddPropertyBinding(TSharedRef<IPropertyHandle> PropertyHandle, UProperty* SelectedProperty, TArray<UField*> BindingChain)
 {
 	const FScopedTransaction Transaction(LOCTEXT("BindDelegate", "Set Binding"));
 
 	// Get the current skeleton class, think header for the blueprint.
-	UBlueprintGeneratedClass* SkeletonClass = Cast<UBlueprintGeneratedClass>(Blueprint->SkeletonGeneratedClass);
+	UBlueprintGeneratedClass* SkeletonClass = Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass);
 
 	Blueprint->Modify();
 
@@ -395,6 +611,7 @@ void SPropertyBinding::HandleAddPropertyBinding(TSharedRef<IPropertyHandle> Prop
 		Binding.ObjectName = SelectedObject->GetName();
 		Binding.PropertyName = PropertyHandle->GetProperty()->GetFName();
 		Binding.SourceProperty = SelectedProperty->GetFName();
+		Binding.SourcePath = FEditorPropertyPath(BindingChain);
 		Binding.MemberGuid = MemberGuid;
 		Binding.Kind = EBindingKind::Property;
 
@@ -405,13 +622,13 @@ void SPropertyBinding::HandleAddPropertyBinding(TSharedRef<IPropertyHandle> Prop
 	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
 }
 
-void SPropertyBinding::HandleCreateAndAddBinding(UWidget* Widget, TSharedRef<IPropertyHandle> PropertyHandle, UFunction* DelegateSignature, bool bIsPure)
+void SPropertyBinding::HandleCreateAndAddBinding(UWidget* Widget, TSharedRef<IPropertyHandle> PropertyHandle)
 {
 	const FScopedTransaction Transaction(LOCTEXT("CreateDelegate", "Create Binding"));
 
 	Blueprint->Modify();
 
-	FString Pre = bIsPure ? FString(TEXT("Get")) : FString(TEXT("On"));
+	FString Pre = GeneratePureBindings ? FString(TEXT("Get")) : FString(TEXT("On"));
 
 	FString WidgetName;
 	if ( Widget && !Widget->IsGeneratedName() )
@@ -432,17 +649,19 @@ void SPropertyBinding::HandleCreateAndAddBinding(UWidget* Widget, TSharedRef<IPr
 		UEdGraphSchema_K2::StaticClass());
 	
 	// Add the binding to the blueprint
-	TSharedPtr<FunctionInfo> SelectedFunction = MakeShareable(new FunctionInfo());
+	TSharedPtr<FFunctionInfo> SelectedFunction = MakeShareable(new FFunctionInfo());
 	SelectedFunction->FuncName = FunctionGraph->GetFName();
-	SelectedFunction->EdGraph = FunctionGraph;
 
-	HandleAddFunctionBinding(PropertyHandle, SelectedFunction);
+	FEditorPropertyPath BindingPath;
+	BindingPath.Segments.Add(FEditorPropertyPathSegment(FunctionGraph));
+
+	HandleAddFunctionBinding(PropertyHandle, SelectedFunction, BindingPath);
 
 	const bool bUserCreated = true;
-	FBlueprintEditorUtils::AddFunctionGraph(Blueprint, FunctionGraph, bUserCreated, DelegateSignature);
+	FBlueprintEditorUtils::AddFunctionGraph(Blueprint, FunctionGraph, bUserCreated, BindableSignature);
 
 	// Only mark bindings as pure that need to be.
-	if ( bIsPure )
+	if ( GeneratePureBindings )
 	{
 		const UEdGraphSchema_K2* Schema_K2 = Cast<UEdGraphSchema_K2>(FunctionGraph->GetSchema());
 		Schema_K2->AddExtraFunctionFlags(FunctionGraph, FUNC_BlueprintPure);
@@ -462,7 +681,7 @@ EVisibility SPropertyBinding::GetGotoBindingVisibility(TSharedRef<IPropertyHandl
 	for ( int32 ObjectIndex = 0; ObjectIndex < OuterObjects.Num(); ObjectIndex++ )
 	{
 		// Ignore null outer objects
-		if ( OuterObjects[ObjectIndex] == NULL )
+		if ( OuterObjects[ObjectIndex] == nullptr )
 		{
 			continue;
 		}
@@ -495,7 +714,7 @@ FReply SPropertyBinding::HandleGotoBindingClicked(TSharedRef<IPropertyHandle> Pr
 	for ( int32 ObjectIndex = 0; ObjectIndex < OuterObjects.Num(); ObjectIndex++ )
 	{
 		// Ignore null outer objects
-		if ( OuterObjects[ObjectIndex] == NULL )
+		if ( OuterObjects[ObjectIndex] == nullptr )
 		{
 			continue;
 		}

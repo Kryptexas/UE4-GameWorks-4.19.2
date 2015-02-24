@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -21,6 +21,7 @@ class UK2Node_DynamicCast : public UK2Node
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FName GetPaletteIcon(FLinearColor& OutColor) const override{ return TEXT("GraphEditor.Cast_16x"); }
 	virtual void GetContextMenuActions(const FGraphNodeContextMenuBuilder& Context) const override;
+	virtual void PostPlacedNewNode() override;
 	// End UEdGraphNode interface
 
 	// UK2Node interface
@@ -43,6 +44,9 @@ class UK2Node_DynamicCast : public UK2Node
 
 	/** Get the input object to be casted pin */
 	BLUEPRINTGRAPH_API virtual UEdGraphPin* GetCastSourcePin() const;
+
+	/** Get the boolean output pin that signifies a successful/failed cast. */
+	BLUEPRINTGRAPH_API virtual UEdGraphPin* GetBoolSuccessPin() const;
 
 	/**
 	 * Will change the node's purity, and reallocate pins accordingly (adding/

@@ -1,11 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+
 /** Rotation and translation matrix using quaternion rotation */
-class FQuatRotationTranslationMatrix : public FMatrix
+class FQuatRotationTranslationMatrix
+	: public FMatrix
 {
 public:
+
 	/** Constructor
 	*
 	* @param Q rotation
@@ -18,8 +21,8 @@ public:
 	{
 		return FQuatRotationTranslationMatrix(Q, Origin);
 	}
-
 };
+
 
 FORCEINLINE FQuatRotationTranslationMatrix::FQuatRotationTranslationMatrix(const FQuat& Q, const FVector& Origin)
 {

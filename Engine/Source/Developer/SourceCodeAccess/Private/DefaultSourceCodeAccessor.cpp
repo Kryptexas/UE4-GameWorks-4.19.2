@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SourceCodeAccessPrivatePCH.h"
 #include "DefaultSourceCodeAccessor.h"
@@ -36,6 +36,11 @@ bool FDefaultSourceCodeAccessor::OpenFileAtLine(const FString& FullPath, int32 L
 }
 
 bool FDefaultSourceCodeAccessor::OpenSourceFiles(const TArray<FString>& AbsoluteSourcePaths)
+{
+	return false;
+}
+
+bool FDefaultSourceCodeAccessor::AddSourceFiles(const TArray<FString>& AbsoluteSourcePaths, const TArray<FString>& AvailableModules)
 {
 	return false;
 }

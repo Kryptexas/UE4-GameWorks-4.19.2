@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,32 +18,38 @@ struct FMeshBatchElement
 	TUniformBufferRef<FPrimitiveUniformShaderParameters> PrimitiveUniformBuffer;
 
 	const FIndexBuffer* IndexBuffer;
+	uint32* InstanceRuns;
+	const void* UserData;
+	/** 
+	 *	DynamicIndexData - pointer to user memory containing the index data.
+	 *	Used for rendering dynamic data directly.
+	 */
+	const void* DynamicIndexData;
 	uint32 FirstIndex;
 	uint32 NumPrimitives;
 	uint32 NumInstances;
 	uint32 MinVertexIndex;
 	uint32 MaxVertexIndex;
 	int32 UserIndex;
-	const void* UserData;
 	float MinScreenSize;
 	float MaxScreenSize;
 
-	/** 
-	 *	DynamicIndexData - pointer to user memory containing the index data.
-	 *	Used for rendering dynamic data directly.
-	 */
-	const void* DynamicIndexData;
 	uint16 DynamicIndexStride;
+	uint8 InstancedLODIndex;
+	uint8 InstancedLODRange;
 	
 	FMeshBatchElement()
-	:	PrimitiveUniformBufferResource(NULL)
-	,	IndexBuffer(NULL)
+	:	PrimitiveUniformBufferResource(nullptr)
+	,	IndexBuffer(nullptr)
+	,	InstanceRuns(nullptr)
+	,	UserData(nullptr)
+	,	DynamicIndexData(nullptr)
 	,	NumInstances(1)
 	,	UserIndex(-1)
-	,	UserData(NULL)
 	,	MinScreenSize(0.0f)
 	,	MaxScreenSize(1.0f)
-	,	DynamicIndexData(NULL)
+	,	InstancedLODIndex(0)
+	,	InstancedLODRange(0)
 	{
 	}
 };
@@ -149,7 +155,17 @@ struct FMeshBatch
 		int32 Count=0;
 		for( int32 ElementIdx=0;ElementIdx<Elements.Num();ElementIdx++ )
 		{
-			Count += Elements[ElementIdx].NumPrimitives * Elements[ElementIdx].NumInstances;
+			if (Elements[ElementIdx].InstanceRuns)
+			{
+				for (uint32 Run = 0; Run < Elements[ElementIdx].NumInstances; Run++)
+				{
+					Count += Elements[ElementIdx].NumPrimitives * (Elements[ElementIdx].InstanceRuns[Run * 2 + 1] - Elements[ElementIdx].InstanceRuns[Run * 2] + 1);
+				}
+			}
+			else
+			{
+				Count += Elements[ElementIdx].NumPrimitives * Elements[ElementIdx].NumInstances;
+			}
 		}
 		return Count;
 	}

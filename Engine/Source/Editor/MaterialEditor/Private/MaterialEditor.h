@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Materials/MaterialExpression.h"
 #include "Toolkits/AssetEditorToolkit.h"
 #include "DragAndDrop.h"
 #include "Editor/GraphEditor/Public/GraphEditorDragDropAction.h"
+#include "EditorUndoClient.h"
 
 /**
  * Class for rendering previews of material expressions in the material editor's linked object viewport.
@@ -314,7 +315,7 @@ public:
 	virtual void ForceRefreshExpressionPreviews() override;
 	virtual void AddToSelection(UMaterialExpression* Expression) override;
 	virtual void DeleteSelectedNodes() override;
-	virtual FString GetOriginalObjectName() const override;
+	virtual FText GetOriginalObjectName() const override;
 	virtual void UpdateMaterialAfterGraphChange() override;
 	virtual bool CanPasteNodes() const override;
 	virtual void PasteNodesHere(const FVector2D& Location) override;
@@ -458,7 +459,7 @@ private:
 	void SaveEditorSettings();
 
 	/** Gets the text in the code view widget */
-	FString GetCodeViewText() const;
+	FText GetCodeViewText() const;
 
 	/** Copies all the HLSL Code View code to the clipboard */
 	FReply CopyCodeViewTextToClipboard();

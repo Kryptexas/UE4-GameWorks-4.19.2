@@ -1,11 +1,11 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "Containers/UnrealString.h"
 #include "Internationalization/CulturePointer.h"
 #include "Templates/SharedPointer.h"
 #include "UObject/NameTypes.h"
 
-class FTimespan;
+struct FTimespan;
 struct FDateTime;
 
 #define ENABLE_TEXT_ERROR_CHECKING_RESULTS (UE_BUILD_DEBUG | UE_BUILD_DEVELOPMENT | UE_BUILD_TEST )
@@ -95,11 +95,22 @@ struct CORE_API FNumberFormattingOptions
 	FNumberFormattingOptions();
 
 	bool UseGrouping;
+	FNumberFormattingOptions& SetUseGrouping( bool InValue ){ UseGrouping = InValue; return *this; }
+
 	ERoundingMode RoundingMode;
+	FNumberFormattingOptions& SetRoundingMode( ERoundingMode InValue ){ RoundingMode = InValue; return *this; }
+
 	int32 MinimumIntegralDigits;
+	FNumberFormattingOptions& SetMinimumIntegralDigits( int32 InValue ){ MinimumIntegralDigits = InValue; return *this; }
+
 	int32 MaximumIntegralDigits;
+	FNumberFormattingOptions& SetMaximumIntegralDigits( int32 InValue ){ MaximumIntegralDigits = InValue; return *this; }
+
 	int32 MinimumFractionalDigits;
+	FNumberFormattingOptions& SetMinimumFractionalDigits( int32 InValue ){ MinimumFractionalDigits = InValue; return *this; }
+
 	int32 MaximumFractionalDigits;
+	FNumberFormattingOptions& SetMaximumFractionalDigits( int32 InValue ){ MaximumFractionalDigits = InValue; return *this; }
 
 	friend FArchive& operator<<(FArchive& Ar, FNumberFormattingOptions& Value);
 };
@@ -112,7 +123,9 @@ public:
 
 	static const FText& GetEmpty()
 	{
-		static const FText StaticEmptyText = FText();
+		// This is initialized inside this function as we need to be able to control the initialization order of the empty FText instance
+		// If this were a file-scope static, we can end up with other statics trying to construct an empty FText before our empty FText has itself been constructed
+		static const FText StaticEmptyText = FText(FText::EInitToEmptyString::Value);
 		return StaticEmptyText;
 	}
 
@@ -164,7 +177,7 @@ public:
 	/**
 	 * Generate an FText that represents the passed number as a date and/or time in the current culture
 	 */
-	static FText AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle = EDateTimeStyle::Default, const FCulturePtr& TargetCulture = NULL);
+	static FText AsDate(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle = EDateTimeStyle::Default, const FString& TimeZone = TEXT(""), const FCulturePtr& TargetCulture = NULL);
 	static FText AsDateTime(const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle = EDateTimeStyle::Default, const EDateTimeStyle::Type TimeStyle = EDateTimeStyle::Default, const FString& TimeZone = TEXT(""), const FCulturePtr& TargetCulture = NULL);
 	static FText AsTime(const FDateTime& DateTime, const EDateTimeStyle::Type TimeStyle = EDateTimeStyle::Default, const FString& TimeZone = TEXT(""), const FCulturePtr& TargetCulture = NULL);
 	static FText AsTimespan(const FTimespan& Timespan, const FCulturePtr& TargetCulture = NULL);
@@ -286,6 +299,10 @@ public:
 	bool IsCultureInvariant() const { return (Flags & ETextFlag::CultureInvariant) != 0; }
 
 private:
+
+	/** Special constructor used to create StaticEmptyText without also allocating a history object */
+	enum class EInitToEmptyString : uint8 { Value };
+	explicit FText( EInitToEmptyString );
 
 	explicit FText( FString InSourceString );
 

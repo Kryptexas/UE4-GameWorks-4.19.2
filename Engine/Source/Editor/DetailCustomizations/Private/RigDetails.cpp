@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "RigDetails.h"
@@ -68,7 +68,7 @@ void FRigDetails::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
 	// add custom menu
 	// -> set all to world
 	// -> set all to default parent
-	TransformBaseCategory.AddCustomRow(TEXT(""))
+	TransformBaseCategory.AddCustomRow(FText::GetEmpty())
 	[
 		// two button 1. view 2. save to base pose
 		SNew(SHorizontalBox)
@@ -112,12 +112,12 @@ void FRigDetails::GenerateNodeArrayElementWidget(TSharedRef<IPropertyHandle> Pro
 
 	// the interface will be node [display name] [parent node]
 	// delegate for display name
-	FString NodeName, ParentNodeName, DisplayString;
-	check (NodeNameProp->GetValueAsDisplayString(NodeName) != FPropertyAccess::Fail);
-	check (ParentNameProp->GetValueAsDisplayString(ParentNodeName) != FPropertyAccess::Fail);
-	check (DisplayNameProp->GetValueAsDisplayString(DisplayString) != FPropertyAccess::Fail);
+	FText NodeName, ParentNodeName, DisplayString;
+	check (NodeNameProp->GetValueAsDisplayText(NodeName) != FPropertyAccess::Fail);
+	check (ParentNameProp->GetValueAsDisplayText(ParentNodeName) != FPropertyAccess::Fail);
+	check (DisplayNameProp->GetValueAsDisplayText(DisplayString) != FPropertyAccess::Fail);
 
-	ChildrenBuilder.AddChildContent(TEXT(""))
+	ChildrenBuilder.AddChildContent(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 
@@ -144,7 +144,7 @@ void FRigDetails::GenerateNodeArrayElementWidget(TSharedRef<IPropertyHandle> Pro
 			.Content()
 			[
 				SNew(STextBlock)
-				.Text(FString::Printf(TEXT(" [Parent : %s] "), *ParentNodeName))
+				.Text(FText::Format(LOCTEXT("ParentNameFmt", " [Parent : {0}] "), ParentNodeName))
 				.Font(DetailLayout->GetDetailFont())
 			]
 		]
@@ -154,7 +154,7 @@ void FRigDetails::GenerateNodeArrayElementWidget(TSharedRef<IPropertyHandle> Pro
 		.AutoWidth()
 		[
 			SNew(STextBlock)
-			.Text(FString(TEXT("Display Name")))
+			.Text(LOCTEXT("DisplayNameLabel", "Display Name"))
 			.Font(DetailLayout->GetDetailFontBold())
 		]
 
@@ -181,7 +181,7 @@ void FRigDetails::GenerateNodeArrayElementWidget(TSharedRef<IPropertyHandle> Pro
 		.AutoWidth()
 		[
 			SNew(STextBlock)
-			.Text(FString(TEXT("Advanced")))
+			.Text(LOCTEXT("AdvancedLabel", "Advanced"))
 			.Font(DetailLayout->GetDetailFontBold())
 		]
 
@@ -273,8 +273,9 @@ void FRigDetails::GenerateTransformBaseArrayElementWidget(TSharedRef<IPropertyHa
 
 	// the interface will be node [display name] [parent node]
 	// delegate for display name
-	FString NodeName, ParentNodeName_T, ParentNodeName_R;
-	check(NodeNameProp->GetValueAsDisplayString(NodeName) != FPropertyAccess::Fail);
+	FText NodeName;
+	FString ParentNodeName_T, ParentNodeName_R;
+	check(NodeNameProp->GetValueAsDisplayText(NodeName) != FPropertyAccess::Fail);
 	check(ParentNameProp_T->GetValueAsDisplayString(ParentNodeName_T) != FPropertyAccess::Fail);
 	check(ParentNameProp_R->GetValueAsDisplayString(ParentNodeName_R) != FPropertyAccess::Fail);
 
@@ -314,7 +315,7 @@ void FRigDetails::GenerateTransformBaseArrayElementWidget(TSharedRef<IPropertyHa
 		NodeIndex++;
 	}
 
-	ChildrenBuilder.AddChildContent(TEXT(""))
+	ChildrenBuilder.AddChildContent(FText::GetEmpty())
 	[
 		SNew(SHorizontalBox)
 
@@ -352,7 +353,7 @@ void FRigDetails::GenerateTransformBaseArrayElementWidget(TSharedRef<IPropertyHa
 					.Content()
 					[
 						SNew(STextBlock)
-						.Text(FString(TEXT("Translation")))
+						.Text(LOCTEXT("TranslationLabel", "Translation"))
 						.Font(DetailLayout->GetDetailFontBold())
 					]
 				]
@@ -395,7 +396,7 @@ void FRigDetails::GenerateTransformBaseArrayElementWidget(TSharedRef<IPropertyHa
 					.Content()
 					[
 						SNew(STextBlock)
-						.Text(FString(TEXT("Orientation")))
+						.Text(LOCTEXT("OrientationLabel", "Orientation"))
 						.Font(DetailLayout->GetDetailFontBold())
 					]
 				]
@@ -469,24 +470,24 @@ TSharedRef<SWidget> FRigDetails::MakeItemWidget(TSharedPtr<FString> StringItem)
 	check(StringItem.IsValid());
 
 	return SNew(STextBlock)
-		.Text(*StringItem.Get());
+		.Text(FText::FromString(*StringItem.Get()));
 }
 /** Helper method to get the text for a given item in the combo box */
-FString FRigDetails::GetSelectedTextLabel(TSharedRef<IPropertyHandle> ParentSpacePropertyHandle) const
+FText FRigDetails::GetSelectedTextLabel(TSharedRef<IPropertyHandle> ParentSpacePropertyHandle) const
 {
 	FString DisplayText;
 
 	if (ParentSpacePropertyHandle->GetValueAsDisplayString(DisplayText) != FPropertyAccess::Fail)
 	{
-		return DisplayText;
+		return FText::FromString(DisplayText);
 	}
 
-	return TEXT("Unknown");
+	return LOCTEXT("Unknown", "Unknown");
 }
 
 void FRigDetails::OnComboBoxOopening(TSharedRef<IPropertyHandle> ParentSpacePropertyHandle, int32 ArrayIndex, bool bTranslation)
 {
-	FString PropertyValue = GetSelectedTextLabel(ParentSpacePropertyHandle);
+	FString PropertyValue = GetSelectedTextLabel(ParentSpacePropertyHandle).ToString();
 
 	// now find exact data
 	TArray<TSharedPtr<FString>> & ParentOptions = ParentSpaceOptionList[ArrayIndex];
@@ -506,21 +507,21 @@ void FRigDetails::OnComboBoxOopening(TSharedRef<IPropertyHandle> ParentSpaceProp
 	ComboBox->SetSelectedItem(SelectedItem);
 }
 
-void FRigDetails::OnAdvancedCheckBoxStateChanged(ESlateCheckBoxState::Type NewState, TSharedRef<IPropertyHandle> PropertyHandle)
+void FRigDetails::OnAdvancedCheckBoxStateChanged(ECheckBoxState NewState, TSharedRef<IPropertyHandle> PropertyHandle)
 {
-	bool bValue = (NewState == ESlateCheckBoxState::Checked)? true : false;
+	bool bValue = (NewState == ECheckBoxState::Checked)? true : false;
 	PropertyHandle->SetValue(bValue);
 }
 
-ESlateCheckBoxState::Type FRigDetails::AdvancedCheckBoxIsChecked(TSharedRef<IPropertyHandle> PropertyHandle) const
+ECheckBoxState FRigDetails::AdvancedCheckBoxIsChecked(TSharedRef<IPropertyHandle> PropertyHandle) const
 {
 	bool bValue = false;
 	// multi value doesn't work in array, so i'm not handling multi value
 	if (PropertyHandle->GetValue(bValue) != FPropertyAccess::Fail)
 	{
-		return (bValue)? ESlateCheckBoxState::Checked: ESlateCheckBoxState::Unchecked;
+		return (bValue)? ECheckBoxState::Checked: ECheckBoxState::Unchecked;
 	}
 
-	return ESlateCheckBoxState::Undetermined;
+	return ECheckBoxState::Undetermined;
 }
 #undef LOCTEXT_NAMESPACE

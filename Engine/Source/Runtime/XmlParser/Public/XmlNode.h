@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -66,6 +66,19 @@ public:
 	const FString& GetTag() const;
 	/** Gets the value of the node */
 	const FString& GetContent() const;
+	/** Sets the new value of the node */
+	void SetContent(const FString& InContent);
+
+	/**
+	 * Gets all of the attributes in this node
+	 *
+	 * @return	List of attributes in this node
+	 */
+	const TArray<FXmlAttribute>& GetAttributes() const
+	{
+		return Attributes;
+	}
+
 	/** Gets an attribute that corresponds with the passed-in tag */
 	FString GetAttribute(const FString& InTag) const;
 	/** Adds a simple tag with content to the current node */

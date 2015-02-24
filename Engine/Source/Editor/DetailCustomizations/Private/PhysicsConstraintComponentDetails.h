@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -46,8 +46,8 @@ private:
 	FReply OnPrismaticClicked();
 	FReply OnBallSocketClicked();
 
-	ESlateCheckBoxState::Type IsLimitRadioChecked(TSharedPtr<IPropertyHandle> Property, uint8 Value) const ;
-	void OnLimitRadioChanged(ESlateCheckBoxState::Type CheckType, TSharedPtr<IPropertyHandle> Property, uint8 Value);
+	ECheckBoxState IsLimitRadioChecked(TSharedPtr<IPropertyHandle> Property, uint8 Value) const ;
+	void OnLimitRadioChanged(ECheckBoxState CheckType, TSharedPtr<IPropertyHandle> Property, uint8 Value);
 
 
 	TSharedPtr<IPropertyHandle> LinearPositionDriveProperty;

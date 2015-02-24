@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchManifest.cpp: Implements the manifest classes.
@@ -37,7 +37,7 @@ FString ToStringBlob( const DataType& DataVal )
 }
 
 /**
- * Helper functions to decide whether the passed in data is a JSON string we expect to deserialise a manifest from
+ * Helper functions to decide whether the passed in data is a JSON string we expect to deserialize a manifest from
  */
 bool BufferIsJsonManifest(const TArray<uint8>& DataInput)
 {
@@ -158,6 +158,8 @@ FFileManifestData::FFileManifestData()
 	, FileChunkParts()
 	, bIsUnixExecutable(false)
 	, SymlinkTarget(TEXT(""))
+	, bIsReadOnly(false)
+	, bIsCompressed(false)
 	, FileSize(INDEX_NONE)
 {
 }
@@ -482,6 +484,13 @@ FBuildPatchAppManifest::FBuildPatchAppManifest(const uint32& InAppID, const FStr
 	Data->AppName = AppName;
 }
 
+FBuildPatchAppManifest::FBuildPatchAppManifest(const FBuildPatchAppManifest& Other)
+{
+	Data = DuplicateObject<UBuildPatchManifest>(Other.Data, Other.Data->GetOuter());
+	InitLookups();
+	bNeedsResaving = Other.bNeedsResaving;
+}
+
 FBuildPatchAppManifest::~FBuildPatchAppManifest()
 {
 //	Data->MarkPendingKill(); ??? Mark for destory and run GC?
@@ -719,6 +728,14 @@ void FBuildPatchAppManifest::SerializeToJSON(FString& JSONOutput)
 				{
 					Writer->WriteValue(TEXT("bIsUnixExecutable"), FileManifest.bIsUnixExecutable);
 				}
+				if (FileManifest.bIsReadOnly)
+				{
+					Writer->WriteValue(TEXT("bIsReadOnly"), FileManifest.bIsReadOnly);
+				}
+				if (FileManifest.bIsCompressed)
+				{
+					Writer->WriteValue(TEXT("bIsCompressed"), FileManifest.bIsCompressed);
+				}
 				const bool bIsSymlink = !FileManifest.SymlinkTarget.IsEmpty();
 				if (bIsSymlink)
 				{
@@ -886,6 +903,8 @@ bool FBuildPatchAppManifest::DeserializeFromJSON( const FString& JSONInput )
 				AllDataGuids.Add(FileChunkPart.Guid);
 			}
 			FileManifest.bIsUnixExecutable = JsonFileManifest->HasField(TEXT("bIsUnixExecutable")) && JsonFileManifest->GetBoolField(TEXT("bIsUnixExecutable"));
+			FileManifest.bIsReadOnly = JsonFileManifest->HasField(TEXT("bIsReadOnly")) && JsonFileManifest->GetBoolField(TEXT("bIsReadOnly"));
+			FileManifest.bIsCompressed = JsonFileManifest->HasField(TEXT("bIsCompressed")) && JsonFileManifest->GetBoolField(TEXT("bIsCompressed"));
 			FileManifest.SymlinkTarget = JsonFileManifest->HasField(TEXT("SymlinkTarget")) ? JsonFileManifest->GetStringField(TEXT("SymlinkTarget")) : TEXT("");
 			FileManifest.Init();
 		}
@@ -1265,6 +1284,39 @@ const FString& FBuildPatchAppManifest::GetPrereqArgs() const
 IBuildManifestRef FBuildPatchAppManifest::Duplicate() const
 {
 	return MakeShareable(new FBuildPatchAppManifest(*this));
+}
+
+void FBuildPatchAppManifest::CopyCustomFields(IBuildManifestRef InOther, bool bClobber)
+{
+	// Cast manifest parameters
+	FBuildPatchAppManifestRef Other = StaticCastSharedRef< FBuildPatchAppManifest >(InOther);
+
+	// Use lookup to overwrite existing and list additional fields
+	TArray<FCustomFieldData> Extras;
+	for (const auto& CustomField : Other->Data->CustomFields)
+	{
+		if (CustomFieldLookup.Contains(CustomField.Key))
+		{
+			if (bClobber)
+			{
+				CustomFieldLookup[CustomField.Key]->Value = CustomField.Value;
+			}
+		}
+		else
+		{
+			Extras.Add(CustomField);
+		}
+	}
+
+	// Add the extra fields
+	Data->CustomFields.Append(Extras);
+
+	// Reset the loookup
+	CustomFieldLookup.Empty(Data->CustomFields.Num());
+	for (auto& CustomField : Data->CustomFields)
+	{
+		CustomFieldLookup.Add(CustomField.Key, &CustomField);
+	}
 }
 
 const IManifestFieldPtr FBuildPatchAppManifest::GetCustomField(const FString& FieldName) const

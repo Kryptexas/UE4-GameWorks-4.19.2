@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Editor/EditorWidgets/Public/ITransportControl.h"
 #include "SelectedKey.h"
+#include "EditorUndoClient.h"
 
 class UMovieScene;
 class IToolkitHost;
@@ -247,7 +248,7 @@ public:
 	bool IsSectionVisible(UMovieSceneSection* Section) const;
 
 	/** Gets the command bindings for the sequencer */
-	FUICommandList& GetCommandBindings() { return *SequencerCommandBindings; }
+	TSharedPtr<FUICommandList> GetCommandBindings() { return SequencerCommandBindings; }
 
 	/**
 	 * Builds up the context menu for object binding nodes in the outliner
@@ -351,7 +352,7 @@ protected:
 	 *
 	 * @param bInAllowAutoKey	The new auto key state
 	 */
-	void OnToggleAutoKey( bool bInAllowAutoKey );
+	void OnToggleAutoKey();
 	
 	/**
 	 * Called when auto-key is toggled by a user

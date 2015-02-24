@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "KismetWidgetsPrivatePCH.h"
 #include "UnrealEd.h"
 #include "ClassIconFinder.h"
@@ -28,27 +28,6 @@ void SPinTypeSelector::Construct(const FArguments& InArgs, FGetPinTypeTree GetPi
 	TreeViewHeight = InArgs._TreeViewHeight;
 
 	TargetPinType = InArgs._TargetPinType;
-
-	GetPinTypeTree.Execute(TypeTreeRoot, bAllowExec, bAllowWildcard);
-
-	// Remove read-only root items if they have no children; there will be no subtree to select non read-only items from in that case
-	int32 RootItemIndex = 0;
-	while(RootItemIndex < TypeTreeRoot.Num())
-	{
-		FPinTypeTreeItem TypeTreeItemPtr = TypeTreeRoot[RootItemIndex];
-		if(TypeTreeItemPtr.IsValid()
-			&& TypeTreeItemPtr->bReadOnly
-			&& TypeTreeItemPtr->Children.Num() == 0)
-		{
-			TypeTreeRoot.RemoveAt(RootItemIndex);
-		}
-		else
-		{
-			++RootItemIndex;
-		}
-	}
-
-	FilteredTypeTreeRoot = TypeTreeRoot;
 
 	this->ChildSlot
 	[
@@ -135,15 +114,15 @@ FSlateColor SPinTypeSelector::GetTypeIconColor() const
 	return Schema->GetPinTypeColor(TargetPinType.Get());
 }
 
-ESlateCheckBoxState::Type SPinTypeSelector::IsArrayChecked() const
+ECheckBoxState SPinTypeSelector::IsArrayChecked() const
 {
-	return TargetPinType.Get().bIsArray ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return TargetPinType.Get().bIsArray ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SPinTypeSelector::OnArrayCheckStateChanged(ESlateCheckBoxState::Type NewState)
+void SPinTypeSelector::OnArrayCheckStateChanged(ECheckBoxState NewState)
 {
 	FEdGraphPinType NewTargetPinType = TargetPinType.Get();
-	NewTargetPinType.bIsArray = (NewState == ESlateCheckBoxState::Checked)? true : false;
+	NewTargetPinType.bIsArray = (NewState == ECheckBoxState::Checked)? true : false;
 
 	OnTypeChanged.ExecuteIfBound(NewTargetPinType);
 }
@@ -154,15 +133,15 @@ TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InI
 {
 	const bool bHasChildren = (InItem->Children.Num() > 0);
 	const FText Description = InItem->GetDescription();
+	const FEdGraphPinType& PinType = InItem->GetPinType(false);
 
 	// Determine the best icon the to represents this item
-	const FSlateBrush* IconBrush = GetIconFromPin(InItem->GetPinType(false));
+	const FSlateBrush* IconBrush = GetIconFromPin(PinType);
 
 	// Use tooltip if supplied, otherwise just repeat description
 	const FText OrgTooltip = InItem->GetToolTip();
 	const FText Tooltip = !OrgTooltip.IsEmpty() ? OrgTooltip : Description;
 
-	const FEdGraphPinType& PinType = InItem->GetPinType(true);
 	const FString PinTooltipExcerpt = ((PinType.PinCategory != UEdGraphSchema_K2::PC_Byte || PinType.PinSubCategoryObject == nullptr) ? PinType.PinCategory : TEXT("Enum")); 
 
 	return SNew( SComboRow<FPinTypeTreeItem>, OwnerTree )
@@ -175,7 +154,7 @@ TSharedRef<ITableRow> SPinTypeSelector::GenerateTypeTreeRow(FPinTypeTreeItem InI
 			[
 				SNew(SImage)
 				.Image(IconBrush)
-				.ColorAndOpacity(Schema->GetPinTypeColor(InItem->GetPinType(false)))
+				.ColorAndOpacity(Schema->GetPinTypeColor(PinType))
 				.Visibility( InItem->bReadOnly ? EVisibility::Collapsed : EVisibility::Visible )
 			]
 			+SHorizontalBox::Slot()
@@ -249,8 +228,26 @@ void SPinTypeSelector::GetTypeChildren(FPinTypeTreeItem InItem, TArray<FPinTypeT
 
 TSharedRef<SWidget>	SPinTypeSelector::GetMenuContent()
 {
-	// Refresh the type tree, in case we've gotten any new valid types from other blueprints
 	GetPinTypeTree.Execute(TypeTreeRoot, bAllowExec, bAllowWildcard);
+
+	// Remove read-only root items if they have no children; there will be no subtree to select non read-only items from in that case
+	int32 RootItemIndex = 0;
+	while(RootItemIndex < TypeTreeRoot.Num())
+	{
+		FPinTypeTreeItem TypeTreeItemPtr = TypeTreeRoot[RootItemIndex];
+		if(TypeTreeItemPtr.IsValid()
+			&& TypeTreeItemPtr->bReadOnly
+			&& TypeTreeItemPtr->Children.Num() == 0)
+		{
+			TypeTreeRoot.RemoveAt(RootItemIndex);
+		}
+		else
+		{
+			++RootItemIndex;
+		}
+	}
+
+	FilteredTypeTreeRoot = TypeTreeRoot;
 
 	if( !MenuContent.IsValid() )
 	{
@@ -376,7 +373,7 @@ const FSlateBrush* SPinTypeSelector::GetIconFromPin( const FEdGraphPinType& PinT
 {
 	const FSlateBrush* IconBrush = FEditorStyle::GetBrush(TEXT("Kismet.VariableList.TypeIcon"));
 	const UObject* PinSubObject = PinType.PinSubCategoryObject.Get();
-	if( (PinType.bIsArray || (IsArrayChecked() == ESlateCheckBoxState::Checked)) && PinType.PinCategory != Schema->PC_Exec )
+	if( (PinType.bIsArray || (IsArrayChecked() == ECheckBoxState::Checked)) && PinType.PinCategory != Schema->PC_Exec )
 	{
 		IconBrush = FEditorStyle::GetBrush(TEXT("Kismet.VariableList.ArrayTypeIcon"));
 	}

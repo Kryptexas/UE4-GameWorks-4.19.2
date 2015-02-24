@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 #include "Slate/SlateBrushAsset.h"
@@ -17,7 +17,12 @@ UWidgetBlueprintLibrary::UWidgetBlueprintLibrary(const FObjectInitializer& Objec
 
 UUserWidget* UWidgetBlueprintLibrary::Create(UObject* WorldContextObject, TSubclassOf<UUserWidget> WidgetType, APlayerController* OwningPlayer)
 {
-	if ( OwningPlayer == NULL )
+	if ( WidgetType == nullptr || WidgetType->HasAnyClassFlags(CLASS_Abstract) )
+	{
+		return nullptr;
+	}
+
+	if ( OwningPlayer == nullptr )
 	{
 		UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
 		return CreateWidget<UUserWidget>(World, WidgetType);
@@ -343,6 +348,45 @@ UMaterialInstanceDynamic* UWidgetBlueprintLibrary::GetDynamicMaterial(FSlateBrus
 void UWidgetBlueprintLibrary::DismissAllMenus()
 {
 	FSlateApplication::Get().DismissAllMenus();
+}
+
+void UWidgetBlueprintLibrary::GetAllWidgetsOfClass(UObject* WorldContextObject, TArray<UUserWidget*>& FoundWidgets, TSubclassOf<UUserWidget> WidgetClass, bool TopLevelOnly)
+{
+	//Prevent possibility of an ever-growing array if user uses this in a loop
+	FoundWidgets.Empty();
+	
+	if ( !WidgetClass || !WorldContextObject )
+	{
+		return;
+	}
+	 
+	const UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if ( !World )
+	{
+		return;
+	}
+
+	for ( TObjectIterator<UUserWidget> Itr; Itr; ++Itr )
+	{
+		UUserWidget* LiveWidget = *Itr;
+
+		if ( LiveWidget->GetWorld() != World )
+		{
+			continue;
+		}
+		
+		if ( TopLevelOnly )
+		{
+			if ( LiveWidget->IsInViewport() )
+			{
+				FoundWidgets.Add(LiveWidget);
+			}
+		}
+		else
+		{
+			FoundWidgets.Add(LiveWidget);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

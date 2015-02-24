@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	MacPlatformMemory.cpp: Mac platform memory functions
@@ -21,13 +21,20 @@ void FMacPlatformMemory::Init()
 
 FMalloc* FMacPlatformMemory::BaseAllocator()
 {
+	if(getenv("UE4_FORCE_MALLOC_ANSI") != nullptr)
+	{
+		return new FMallocAnsi();
+	}
+	else
+	{
 #if FORCE_ANSI_ALLOCATOR || IS_PROGRAM
-	return new FMallocAnsi();
+		return new FMallocAnsi();
 #elif (WITH_EDITORONLY_DATA || IS_PROGRAM) && TBB_ALLOCATOR_ALLOWED
-	return new FMallocTBB();
+		return new FMallocTBB();
 #else
-	return new FMallocBinned((uint32)(GetConstants().PageSize&MAX_uint32), 0x100000000);
+		return new FMallocBinned((uint32)(GetConstants().PageSize&MAX_uint32), 0x100000000);
 #endif
+	}
 }
 
 FPlatformMemoryStats FMacPlatformMemory::GetStats()

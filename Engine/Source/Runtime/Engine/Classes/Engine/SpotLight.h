@@ -1,11 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "Engine/Light.h"
 #include "SpotLight.generated.h"
 
-UCLASS(ClassGroup=(Lights, SpotLights), MinimalAPI, meta=(ChildCanTick))
+UCLASS(ClassGroup=(Lights, SpotLights), MinimalAPI, ComponentWrapperClass, meta=(ChildCanTick))
 class ASpotLight : public ALight
 {
 	GENERATED_UCLASS_BODY()

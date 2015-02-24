@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -22,7 +22,7 @@ void USoundNode::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
 
-	if (!Ar.IsCooking() && Ar.UE4Ver() >= VER_UE4_SOUND_CUE_GRAPH_EDITOR)
+	if (!Ar.IsCooking())
 	{
 		Ar << GraphNode;
 	}

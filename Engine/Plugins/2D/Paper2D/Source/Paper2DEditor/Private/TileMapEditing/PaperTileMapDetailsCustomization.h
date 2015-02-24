@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -19,11 +19,18 @@ public:
 
 private:
 	TWeakObjectPtr<class UPaperTileMap> TileMapPtr;
+	TWeakObjectPtr<class UPaperTileMapComponent> TileMapComponentPtr;
+
+	IDetailLayoutBuilder* MyDetailLayout;
+
 private:
-	FReply AddLayerClicked();
-	FReply AddCollisionLayerClicked();
 	FReply EnterTileMapEditingMode();
+	FReply OnNewButtonClicked();
+	FReply OnPromoteButtonClicked();
+
 	EVisibility GetNonEditModeVisibility() const;
 
-	class UPaperTileLayer* AddLayer(bool bCollisionLayer);
+	EVisibility GetVisibilityForInstancedOnlyProperties() const;
+
+	EVisibility GetNewButtonVisiblity() const;
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "SnappingUtils.h"
@@ -7,6 +7,11 @@
 #include "Editor/LevelEditor/Public/LevelEditorActions.h"
 #include "VertexSnapping.h"
 #include "ViewportSnappingModule.h"
+#include "GameFramework/PhysicsVolume.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/Selection.h"
+#include "EngineUtils.h"
+#include "Engine/PostProcessVolume.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FEditorViewportSnapping
@@ -131,9 +136,9 @@ bool FEditorViewportSnapping::IsSnapToVertexEnabled()
 
 		const FInputGesture& Gesture = *Commands.HoldToEnableVertexSnapping->GetActiveGesture();
 
-		return (Gesture.bCtrl == GCurrentLevelEditingViewportClient->IsCtrlPressed() ) 
-			&& (Gesture.bAlt ==  GCurrentLevelEditingViewportClient->IsAltPressed() ) 
-			&& (Gesture.bShift == GCurrentLevelEditingViewportClient->IsShiftPressed() ) 
+		return (Gesture.NeedsControl() == GCurrentLevelEditingViewportClient->IsCtrlPressed() ) 
+			&& (Gesture.NeedsAlt() ==  GCurrentLevelEditingViewportClient->IsAltPressed() ) 
+			&& (Gesture.NeedsShift() == GCurrentLevelEditingViewportClient->IsShiftPressed() ) 
 			&& GCurrentLevelEditingViewportClient->Viewport->KeyState(Gesture.Key) == true;
 	}
 	else

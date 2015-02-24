@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "SFriendsListContainer.h"
@@ -27,66 +27,84 @@ public:
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
 			SNew(SVerticalBox)
+			.Visibility(ViewModelPtr, &FFriendListViewModel::GetListVisibility)
 			+ SVerticalBox::Slot()
 			.VAlign(VAlign_Center)
 			.AutoHeight()
 			[
-				SNew(SButton)
-				.OnClicked(this, &SFriendsListContainerImpl::HandleShowFriendsClicked)
-				.ButtonStyle(FCoreStyle::Get(), "NoBorder")
-				.Cursor(EMouseCursor::Hand)
+				SNew(SBorder)
+				.Padding(FriendStyle.BorderPadding)
+				.BorderImage(&FriendStyle.FriendListHeader)
 				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
-					.AutoWidth()
+					SNew(SButton)
+					.OnClicked(this, &SFriendsListContainerImpl::HandleShowFriendsClicked)
+					.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+					.Cursor(EMouseCursor::Hand)
 					[
-						SNew(SButton)
-						.OnClicked(this, &SFriendsListContainerImpl::HandleShowFriendsClicked)
-						.ButtonStyle(&FriendStyle.FriendListOpenButtonStyle)
-						.Visibility(this, &SFriendsListContainerImpl::GetFriendsListOpenVisbility, true)
-					]
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					[
-						SNew(SButton)
-						.OnClicked(this, &SFriendsListContainerImpl::HandleShowFriendsClicked)
-						.ButtonStyle(&FriendStyle.FriendListCloseButtonStyle)
-						.Visibility(this, &SFriendsListContainerImpl::GetFriendsListOpenVisbility, false)
-					]
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Left)
-					.VAlign(VAlign_Center)
-					.AutoWidth()
-					.Padding(FMargin(5, 0))
-					[
-						SNew(STextBlock)
-						.ColorAndOpacity(FLinearColor::White)
-						.Font(FriendStyle.FriendsFontStyle)
-						.Text(ViewModel->GetListName())
-					]
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Fill)
-					[
-						SNew(SSpacer)
-					]
-					+ SHorizontalBox::Slot()
-					.HAlign(HAlign_Right)
-					[
-						SNew(STextBlock)
-						.ColorAndOpacity(FLinearColor::White)
-						.Font(FriendStyle.FriendsFontStyle)
-						.Text(ViewModelPtr, &FFriendListViewModel::GetListCountText)
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						[
+							SNew(SButton)
+							.OnClicked(this, &SFriendsListContainerImpl::HandleShowFriendsClicked)
+							.ButtonStyle(&FriendStyle.FriendListOpenButtonStyle)
+							.Visibility(this, &SFriendsListContainerImpl::GetFriendsListOpenVisbility, true)
+						]
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						[
+							SNew(SButton)
+							.OnClicked(this, &SFriendsListContainerImpl::HandleShowFriendsClicked)
+							.ButtonStyle(&FriendStyle.FriendListCloseButtonStyle)
+							.Visibility(this, &SFriendsListContainerImpl::GetFriendsListOpenVisbility, false)
+						]
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Left)
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						.Padding(FMargin(5, 0))
+						[
+							SNew(STextBlock)
+							.ColorAndOpacity(FLinearColor::White)
+							.Font(FriendStyle.FriendsFontStyleBold)
+							.Text(ViewModel->GetListName())
+						]
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Fill)
+						[
+							SNew(SSpacer)
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.HAlign(HAlign_Right)
+						[
+							SNew(STextBlock)
+							.Visibility(ViewModel->GetOnlineCountVisibility())
+							.ColorAndOpacity(FLinearColor::White)
+							.Font(FriendStyle.FriendsFontStyleBold)
+							.Text(ViewModelPtr, &FFriendListViewModel::GetOnlineCountText)
+						]
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						.HAlign(HAlign_Right)
+						[
+							SNew(STextBlock)
+							.ColorAndOpacity(FLinearColor::White)
+							.Font(FriendStyle.FriendsFontStyleBold)
+							.Text(ViewModelPtr, &FFriendListViewModel::GetListCountText)
+						]
 					]
 				]
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
 			[
-				SNew(SBorder)
+				SNew(SBox)
+				.Padding(FMargin(0.0f, 2.0f, 0.0f, 8.0f))
 				.Visibility(this, &SFriendsListContainerImpl::GetFriendsVisibility)
 				[
 					CreateList()
@@ -119,16 +137,23 @@ private:
 private:
 	TSharedRef<SWidget> CreateList()
 	{
-		if(ViewModel->GetListType() == EFriendsDisplayLists::FriendRequestsDisplay)
+		switch(ViewModel->GetListType())
 		{
-			return SNew(SInvitesList, ViewModel.ToSharedRef())
-			.FriendStyle(&FriendStyle);
-		}
-		else
-		{
-			return SNew(SFriendsList, ViewModel.ToSharedRef())
-				.FriendStyle(&FriendStyle)
-				.Method(MenuMethod);
+			case EFriendsDisplayLists::FriendRequestsDisplay :
+			case EFriendsDisplayLists::OutgoingFriendInvitesDisplay :
+			case EFriendsDisplayLists::GameInviteDisplay :
+			case EFriendsDisplayLists::RecentPlayersDisplay :
+			{
+				return SNew(SInvitesList, ViewModel.ToSharedRef())
+				.FriendStyle(&FriendStyle);
+			}
+			break;
+			default:
+			{
+				return SNew(SFriendsList, ViewModel.ToSharedRef())
+					.FriendStyle(&FriendStyle)
+					.Method(MenuMethod);
+			}
 		}
 	}
 
@@ -140,7 +165,7 @@ private:
 
 	TSharedPtr<FFriendListViewModel> ViewModel;
 
-	SMenuAnchor::EMethod MenuMethod;
+	EPopupMethod MenuMethod;
 };
 
 TSharedRef<SFriendsListContainer> SFriendsListContainer::New()

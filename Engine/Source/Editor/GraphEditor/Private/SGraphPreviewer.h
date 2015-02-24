@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -9,7 +9,7 @@ public:
 	SLATE_BEGIN_ARGS(SGraphPreviewer)
 		: _ShowGraphStateOverlay(true)
 	{}
-		SLATE_ATTRIBUTE( FString, CornerOverlayText )
+		SLATE_ATTRIBUTE( FText, CornerOverlayText )
 		/** Show overlay elements for the graph state such as the PIE and read-only borders and text */
 		SLATE_ATTRIBUTE(bool, ShowGraphStateOverlay)
 		SLATE_ARGUMENT( TSharedPtr<SWidget>, TitleBar )

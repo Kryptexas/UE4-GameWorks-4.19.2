@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -16,7 +16,7 @@ public:
 	/** reloads textures used by slate renderer */
 	static void ReloadTextures();
 
-	/** @return The Slate style set for the Shooter game */
+	/** @return The Slate style set for the UMG Style */
 	static const ISlateStyle& Get();
 
 	static FName GetStyleSetName();

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -67,6 +67,15 @@ public:
 	/** Load (or reload) Translations from Archive file */ 
 	void LoadFromArchive(TArray<UTranslationUnit*>& InTranslationUnits, bool bTrackChanges = false, bool bReloadFromFile = false);
 
+	/** Get the history data for all translation units */
+	void GetHistoryForTranslationUnits();
+
+	/** Unload History information (in the case we reload it) */
+	void UnloadHistoryInformation();
+
+	/** Save the specified translations */
+	static bool SaveSelectedTranslations(TArray<UTranslationUnit*> TranslationUnitsToSave);
+
 private:
 	/** Read text file into a JSON file */
 	static TSharedPtr<FJsonObject> ReadJSONTextFile( const FString& InFilePath ) ;
@@ -78,9 +87,6 @@ private:
 
 	/** Write JSON file to text file */
 	bool WriteJSONToTextFile( TSharedRef<FJsonObject>& Output, const FString& Filename );
-
-	/** Get the history data for a given translation unit */
-	void GetHistoryForTranslationUnits( TArray<UTranslationUnit*>& TranslationUnits, const FString& ManifestFilePath );
 
 	/** Removes each UTranslationUnit in the passed array from the root set, allowing it to be garbage collected */
 	void RemoveTranslationUnitArrayfromRoot( TArray<UTranslationUnit*>& TranslationUnits );

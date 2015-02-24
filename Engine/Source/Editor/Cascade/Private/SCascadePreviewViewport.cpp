@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CascadeModule.h"
 #include "Cascade.h"
@@ -35,11 +35,6 @@ bool SCascadePreviewViewport::IsVisible() const
 	return ViewportWidget.IsValid() && (!ParentTab.IsValid() || ParentTab.Pin()->IsForeground());
 }
 
-EVisibility SCascadePreviewViewport::GetWidgetVisibility() const
-{
-	return IsVisible()? EVisibility::Visible: EVisibility::Collapsed;
-}
-
 TSharedPtr<FSceneViewport> SCascadePreviewViewport::GetViewport() const
 {
 	return SceneViewport;
@@ -72,7 +67,6 @@ TSharedPtr<SWidget> SCascadePreviewViewport::MakeViewportToolbar()
 	return
 	SNew(SCascadePreviewViewportToolBar)
 		.CascadePtr(CascadePtr)
-		.Visibility(this, &SCascadePreviewViewport::GetWidgetVisibility)
 		.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute());
 }
 

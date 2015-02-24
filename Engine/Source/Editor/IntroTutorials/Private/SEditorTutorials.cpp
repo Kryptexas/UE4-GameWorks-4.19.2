@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "IntroTutorialsPrivatePCH.h"
 #include "SEditorTutorials.h"
@@ -28,6 +28,8 @@ void SEditorTutorials::Construct(const FArguments& InArgs)
 	[
 		ContentBox.ToSharedRef()
 	];
+
+	RebuildCurrentContent();
 }
 
 void SEditorTutorials::LaunchTutorial(bool bInIsNavigationWindow, FSimpleDelegate InOnTutorialClosed, FSimpleDelegate InOnTutorialExited)
@@ -43,6 +45,8 @@ void SEditorTutorials::HideContent()
 {
 	HandleHomeClicked();
 	bIsNavigationWindow = false;
+
+	RebuildCurrentContent();
 }
 
 bool SEditorTutorials::IsNavigationVisible() const

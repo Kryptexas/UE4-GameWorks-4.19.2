@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -8,7 +8,10 @@
 #pragma once
 #include "Particles/Parameter/ParticleModuleParameterBase.h"
 #include "Particles/ParticleSystemComponent.h"
+#include "Distributions/DistributionFloatConstant.h"
 #include "ParticleModuleParameterDynamic.generated.h"
+
+class UDistributionFloatConstant;
 
 /**
  *	EmitterDynamicParameterValue
@@ -105,7 +108,6 @@ class UParticleModuleParameterDynamic : public UParticleModuleParameterBase
 	virtual void	PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif // WITH_EDITOR
 	virtual void	PostInitProperties() override;
-	virtual void	Serialize(FArchive& Ar) override;
 	// Begin UObject Interface
 
 	// Begin UParticleModule Interface
@@ -133,7 +135,7 @@ class UParticleModuleParameterDynamic : public UParticleModuleParameterBase
 	 *	@param	SpawnTime			The time of the spawn
 	 *	@param	InRandomStream		The random stream to use for retrieving random values
 	 */
-	void SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase);
+	void SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase);
 	
 	/**
 	 *	Update the parameter names with the given material...
@@ -155,7 +157,7 @@ class UParticleModuleParameterDynamic : public UParticleModuleParameterBase
 	 *
 	 *	@return	float			The value for the parameter.
 	 */
-	FORCEINLINE float GetParameterValue(FEmitterDynamicParameter& InDynParams, FBaseParticle& Particle, FParticleEmitterInstance* Owner, class FRandomStream* InRandomStream)
+	FORCEINLINE float GetParameterValue(FEmitterDynamicParameter& InDynParams, FBaseParticle& Particle, FParticleEmitterInstance* Owner, struct FRandomStream* InRandomStream)
 	{
 		float ScaleValue = 1.0f;
 		float DistributionValue = 1.0f;
@@ -193,7 +195,7 @@ class UParticleModuleParameterDynamic : public UParticleModuleParameterBase
 	 *
 	 *	@return	float			The value for the parameter.
 	 */
-	FORCEINLINE float GetParameterValue_UserSet(FEmitterDynamicParameter& InDynParams, FBaseParticle& Particle, FParticleEmitterInstance* Owner, class FRandomStream* InRandomStream)
+	FORCEINLINE float GetParameterValue_UserSet(FEmitterDynamicParameter& InDynParams, FBaseParticle& Particle, FParticleEmitterInstance* Owner, struct FRandomStream* InRandomStream)
 	{
 		return InDynParams.ParamValue.GetValue(InDynParams.bUseEmitterTime ? Owner->EmitterTime : Particle.RelativeTime, Owner->Component, InRandomStream);
 	}

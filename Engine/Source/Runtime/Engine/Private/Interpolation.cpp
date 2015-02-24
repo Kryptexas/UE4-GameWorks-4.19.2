@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Interpolation.cpp: Code for supporting interpolation of properties in-game.
@@ -76,6 +76,9 @@
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #endif
+#include "GameFramework/GameState.h"
+#include "Engine/Light.h"
+#include "Components/DecalComponent.h"
 
 DEFINE_LOG_CATEGORY(LogMatinee);
 
@@ -713,6 +716,18 @@ void AMatineeActor::UpdateInterp( float NewPosition, bool bPreview, bool bJump )
 			for( int32 GroupIndex = 0; GroupIndex < Groups.Num(); ++GroupIndex )
 			{
 				Groups[GroupIndex]->Group->UpdateGroup( NewPosition, Groups[GroupIndex], bPreview, bJump );
+
+				const bool bhasBeenTerminated = (GroupInst.Num() == 0);
+#if WITH_EDITORONLY_DATA
+				if (bhasBeenTerminated && !bIsBeingEdited)
+#else
+				if (bhasBeenTerminated)
+#endif
+				{
+					UE_LOG(LogMatinee, Log, TEXT("WARNING: A matinee was stopped while updating group '%s'; the next groups will not be updated."), *Groups[GroupIndex]->Group->GetFullGroupName(true));
+					InterpPosition = NewPosition;
+					return;
+				}
 			}
 		}
 
@@ -1142,7 +1157,7 @@ UInterpGroupInst* AMatineeActor::FindGroupInst(const AActor* Actor) const
 void AMatineeActor::PostEditChangeProperty( FPropertyChangedEvent& PropertyChangedEvent )
 {
 	Super::PostEditChangeProperty( PropertyChangedEvent );
-	if( PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == TEXT("MatineeData") )
+	if( PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(AMatineeActor, MatineeData) )
 	{
 		// Create new entries
 		if( MatineeData )
@@ -1168,22 +1183,6 @@ bool AMatineeActor::CanEditChange( const UProperty* Property ) const
 	return bIsEditable;
 }
 #endif	// WITH_EDITOR
-
-void AMatineeActor::PostLoadSubobjects( FObjectInstancingGraph* OuterInstanceGraph )
-{
-	Super::PostLoadSubobjects(OuterInstanceGraph);
-
-	if ( GetLinkerUE4Version() < VER_UE4_FIX_INTERPDATA_OUTERS )
-	{
-		// Fix up auto-created MatineeData such that it has the correct outer
-		// If the Outer of the MatineeData is the OuterMost (i.e the level) then we rename
-		if (MatineeData && GetOutermost() == MatineeData->GetOuter())
-		{
-			MatineeData->ConditionalPostLoad();
-			MatineeData->Rename(NULL, this, REN_DontCreateRedirectors | REN_NonTransactional | REN_ForceNoResetLoaders);
-		}
-	}
-}
 
 #if WITH_EDITOR
 
@@ -1599,6 +1598,8 @@ void AMatineeActor::InitGroupActorForGroup(class UInterpGroup* InGroup, class AA
 
 bool AMatineeActor::GetReferencedContentObjects( TArray<UObject*>& Objects ) const
 {
+	Super::GetReferencedContentObjects(Objects);
+
 	if (MatineeData)
 	{
 		Objects.Add(MatineeData);
@@ -1664,14 +1665,14 @@ AActor* AMatineeActor::FindViewedActor()
 void AMatineeActor::UpdateReplicatedData( bool bIsBeginningPlay )
 {
 	ForceNetUpdate();
-	
+
 	if (bIsPlaying || bIsBeginningPlay)
 	{
-		GetWorldTimerManager().SetTimer(this, &AMatineeActor::CheckPriorityRefresh, 1.0f, true);
+		GetWorldTimerManager().SetTimer(TimerHandle_CheckPriorityRefresh, this, &AMatineeActor::CheckPriorityRefresh, 1.0f, true);
 	}
 	else
 	{
-		GetWorldTimerManager().ClearTimer(this, &AMatineeActor::CheckPriorityRefresh);
+		GetWorldTimerManager().ClearTimer(TimerHandle_CheckPriorityRefresh);
 	}
 }
 
@@ -1813,9 +1814,6 @@ void UInterpData::PostLoad(void)
 	// Ensure the cached director group is emptied out
 	CachedDirectorGroup = NULL;
 
-#if WITH_EDITOR
-	UpdateBakeAndPruneStatus();
-#endif
 #if WITH_EDITORONLY_DATA
 	if (GIsEditor && DefaultFilters.Num() == 0)
 	{
@@ -1933,92 +1931,6 @@ void UInterpData::UpdateEventNames()
 	}
 }
 
-#if WITH_EDITOR
-void UInterpData::UpdateBakeAndPruneStatus()
-{
-	if (!GIsEditor)
-	{
-		return;
-	}
-
-#if 0 // @todoanim : bakeandprune
-	// Check for anim sets that are referenced
-	TMap<FString,bool> UsedAnimSetNames;
-	TMap<FString,bool> GroupAnimSetNames;
-	TArray<FString> FoundAnimSetNames;
-	for (int32 GroupIdx = 0; GroupIdx < InterpGroups.Num(); GroupIdx++)
-	{
-		UInterpGroup* Group = InterpGroups(GroupIdx);
-		if (Group != NULL)
-		{
-			if (Group->GroupAnimSets.Num() > 0)
-			{
-				for (int32 DumpIdx = 0; DumpIdx < Group->GroupAnimSets.Num(); DumpIdx++)
-				{
-					UAnimSet* FoundSet = Group->GroupAnimSets(DumpIdx);
-					if (FoundSet != NULL)
-					{
-						GroupAnimSetNames.Set(FoundSet->GetPathName(), true);
-						FoundAnimSetNames.AddUniqueItem(FoundSet->GetPathName());
-					}
-				}
-			}
-			// Iterate over all tracks to find anim control tracks and their anim sequences.
-			// We only want to tag animsets that are acutally used.
-			for (int32 TrackIndex = 0; TrackIndex < Group->InterpTracks.Num(); TrackIndex++)
-			{
-				UInterpTrack* InterpTrack = Group->InterpTracks(TrackIndex);
-				UInterpTrackAnimControl* AnimControl = Cast<UInterpTrackAnimControl>(InterpTrack);				
-				if (AnimControl != NULL)
-				{
-					// Iterate over all track key/ sequences and find the associated sequence.
-					for (int32 TrackKeyIndex = 0; TrackKeyIndex < AnimControl->AnimSeqs.Num(); TrackKeyIndex++)
-					{
-						const FAnimControlTrackKey& TrackKey = AnimControl->AnimSeqs[TrackKeyIndex];
-						UAnimSequence* AnimSequence = TrackKey.AnimSeq;
-						if (AnimSequence != NULL)
-						{
-							UsedAnimSetNames.Set(AnimSequence->GetPathName(), true);
-							FoundAnimSetNames.AddUniqueItem(AnimSequence->GetPathName());
-						}
-					}
-				}
-			}
-		}
-	}
-
-	// Add any new ones found
-	for (int32 AnimSetIdx = 0; AnimSetIdx < FoundAnimSetNames.Num(); AnimSetIdx++)
-	{
-		FString AnimSetName = FoundAnimSetNames(AnimSetIdx);
-		bool bUsed = (UsedAnimSetNames.Find(AnimSetName) != NULL);
-		bool bInGroupList = (GroupAnimSetNames.Find(AnimSetName) != NULL);
-		bool bFound = false;
-		for (int32 CheckIdx = 0; CheckIdx < BakeAndPruneStatus.Num(); CheckIdx++)
-		{
-			FAnimSetBakeAndPruneStatus& Status = BakeAndPruneStatus(CheckIdx);
-			if (Status.AnimSetName == AnimSetName)
-			{
-				bFound = true;
-				Status.bReferencedButUnused = !bUsed;
-				break;
-			}
-		}
-		if (bFound == false)
-		{
-			// Add it
-			int32 NewIdx = BakeAndPruneStatus.AddZeroed();
-			FAnimSetBakeAndPruneStatus& Status = BakeAndPruneStatus(NewIdx);
-			Status.AnimSetName = AnimSetName;
-			Status.bSkipBakeAndPrune = false;
-			Status.bReferencedButUnused = !bUsed;
-		}
-	}
-#endif
-}
-#endif
-
-
 /*-----------------------------------------------------------------------------
  UInterpGroup
 -----------------------------------------------------------------------------*/
@@ -2061,23 +1973,6 @@ void UInterpGroup::PostLoad()
 		}
 	}
 }
-
-#if WITH_EDITOR
-void UInterpGroup::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-
-	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == TEXT("GroupAnimSets"))
-	{
-		// Update the interp data bake and prune list
-		UInterpData* InterpData = Cast<UInterpData>(GetOuter());
-		if (InterpData != NULL)
-		{
-			InterpData->UpdateBakeAndPruneStatus();
-		}
-	}
-}
-#endif // WITH_EDITOR
 
 void UInterpGroup::UpdateGroup(float NewPosition, UInterpGroupInst* GrInst, bool bPreview, bool bJump)
 {
@@ -2908,8 +2803,8 @@ UInterpTrack::UInterpTrack(const FObjectInitializer& ObjectInitializer)
 	bVisible = true;
 	SetSelected( false );
 	bIsRecording = false;
-	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Float.MAT_Groups_Float"), NULL, LOAD_None, NULL ));
 #if WITH_EDITORONLY_DATA
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Float.MAT_Groups_Float"), NULL, LOAD_None, NULL ));
 	bIsCollapsed = false;
 #endif // WITH_EDITORONLY_DATA
 }
@@ -3407,7 +3302,9 @@ UInterpTrackMove::UInterpTrackMove(const FObjectInitializer& ObjectInitializer)
 	RotMode = IMR_Keyframed;
 	bShowTranslationOnCurveEd = true;
 	bShowRotationOnCurveEd = false;
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Move.MAT_Groups_Move"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 
 #if WITH_EDITORONLY_DATA
 	int32 NewArrayIndex0 = SupportedSubTracks.Add(FSupportedSubTrackInfo());
@@ -4711,7 +4608,7 @@ FRotator UInterpTrackMove::GetLookAtRotation(UInterpTrackInst* TrInst)
 			}
 
 			// Find Rotator that points at LookAtActor
-			FVector LookDir = (LookAtActor->GetActorLocation() - Actor->GetActorLocation()).SafeNormal();
+			FVector LookDir = (LookAtActor->GetActorLocation() - Actor->GetActorLocation()).GetSafeNormal();
 			LookAtRot = LookDir.Rotation();
 		}
 	}
@@ -5071,7 +4968,9 @@ UInterpTrackToggle::UInterpTrackToggle(const FObjectInitializer& ObjectInitializ
 	bFireEventsWhenBackwards = true;
 	bFireEventsWhenJumpingForwards = true;
 
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MAT_Groups_Toggle.MAT_Groups_Toggle"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackToggle::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -5530,7 +5429,9 @@ UInterpTrackFloatProp::UInterpTrackFloatProp(const FObjectInitializer& ObjectIni
 {
 	TrackInstClass = UInterpTrackInstFloatProp::StaticClass();
 	TrackTitle = TEXT("Float Property");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Float.MAT_Groups_Float"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackFloatProp::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -5690,10 +5591,11 @@ void UInterpTrackInstFloatProp::InitTrackInst(UInterpTrack* Track)
 UInterpTrackVectorProp::UInterpTrackVectorProp(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-
 	TrackInstClass = UInterpTrackInstVectorProp::StaticClass();
 	TrackTitle = TEXT("Vector Property");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Vector.MAT_Groups_Vector"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackVectorProp::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -5843,7 +5745,9 @@ UInterpTrackBoolProp::UInterpTrackBoolProp(const FObjectInitializer& ObjectIniti
 {
 	TrackInstClass = UInterpTrackInstBoolProp::StaticClass();
 	TrackTitle = TEXT("Bool Property");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Float.MAT_Groups_Float"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackBoolProp::AddKeyframe( float Time, UInterpTrackInst* TrackInst, EInterpCurveMode InitInterpMode )
@@ -6019,7 +5923,9 @@ UInterpTrackColorProp::UInterpTrackColorProp(const FObjectInitializer& ObjectIni
 
 	TrackInstClass = UInterpTrackInstColorProp::StaticClass();
 	TrackTitle = TEXT("Color Property");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_ColorTrack.MAT_ColorTrack"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackColorProp::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -6175,7 +6081,9 @@ UInterpTrackLinearColorProp::UInterpTrackLinearColorProp(const FObjectInitialize
 {
 	TrackInstClass = UInterpTrackInstLinearColorProp::StaticClass();
 	TrackTitle = TEXT("LinearColor Property");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_ColorTrack.MAT_ColorTrack"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackLinearColorProp::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -6332,7 +6240,9 @@ UInterpTrackEvent::UInterpTrackEvent(const FObjectInitializer& ObjectInitializer
 	TrackTitle = TEXT("Event");
 	bFireEventsWhenForwards = true;
 	bFireEventsWhenBackwards = true;
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Event.MAT_Groups_Event"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackEvent::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -6521,8 +6431,8 @@ UInterpTrackDirector::UInterpTrackDirector(const FObjectInitializer& ObjectIniti
 	TrackInstClass = UInterpTrackInstDirector::StaticClass();
 	TrackTitle = TEXT("Director");
 	bSimulateCameraCutsOnClients = true;
-	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Director.MAT_Groups_Director"), NULL, LOAD_None, NULL ));
 #if WITH_EDITORONLY_DATA
+	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Director.MAT_Groups_Director"), NULL, LOAD_None, NULL ));
 	PreviewCamera = NULL;
 #endif // WITH_EDITORONLY_DATA
 }
@@ -6856,7 +6766,9 @@ UInterpTrackFade::UInterpTrackFade(const FObjectInitializer& ObjectInitializer)
 	bDirGroupOnly = true;
 	TrackInstClass = UInterpTrackInstFade::StaticClass();
 	TrackTitle = TEXT("Fade");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Fade.MAT_Groups_Fade"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackFade::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -6947,7 +6859,9 @@ UInterpTrackSlomo::UInterpTrackSlomo(const FObjectInitializer& ObjectInitializer
 	bDirGroupOnly = true;
 	TrackInstClass = UInterpTrackInstSlomo::StaticClass();
 	TrackTitle = TEXT("Slomo");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Slomo.MAT_Groups_Slomo"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 
@@ -7079,7 +6993,9 @@ UInterpTrackAnimControl::UInterpTrackAnimControl(const FObjectInitializer& Objec
 	TrackInstClass = UInterpTrackInstAnimControl::StaticClass();
 	TrackTitle = TEXT("Anim");
 	bIsAnimControlTrack = true;
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Anim.MAT_Groups_Anim"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 void UInterpTrackAnimControl::PostLoad()
@@ -7680,7 +7596,9 @@ UInterpTrackSound::UInterpTrackSound(const FObjectInitializer& ObjectInitializer
 
 	TrackInstClass = UInterpTrackInstSound::StaticClass();
 	TrackTitle = TEXT("Sound");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Sound.MAT_Groups_Sound"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 
 	bAttach = true;
 }
@@ -8230,7 +8148,7 @@ static void AddMaterialRefsForActor(
 {
 	if (Actor && !Actor->IsRootComponentStatic())
 	{
-		TArray<USceneComponent*> Components;
+		TInlineComponentArray<USceneComponent*> Components;
 		Actor->GetComponents(Components);
 
 		for (int32 MaterialIndex = 0; MaterialIndex < Materials.Num(); MaterialIndex++)
@@ -8904,7 +8822,9 @@ UInterpTrackColorScale::UInterpTrackColorScale(const FObjectInitializer& ObjectI
 	bDirGroupOnly = true;
 	TrackInstClass = UInterpTrackInstColorScale::StaticClass();
 	TrackTitle = TEXT("Color Scale");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_Fade.MAT_Groups_Fade"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackColorScale::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -8988,7 +8908,9 @@ UInterpTrackAudioMaster::UInterpTrackAudioMaster(const FObjectInitializer& Objec
 	bDirGroupOnly = true;
 	TrackInstClass = UInterpTrackInstAudioMaster::StaticClass();
 	TrackTitle = TEXT("Audio Master");
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MatineeGroups/MAT_Groups_AudioMaster.MAT_Groups_AudioMaster"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 
@@ -9086,7 +9008,9 @@ UInterpTrackVisibility::UInterpTrackVisibility(const FObjectInitializer& ObjectI
 	bFireEventsWhenForwards = true;
 	bFireEventsWhenBackwards = true;
 	bFireEventsWhenJumpingForwards = true;
+#if WITH_EDITORONLY_DATA
 	TrackIcon = Cast<UTexture2D>(StaticLoadObject( UTexture2D::StaticClass(), NULL, TEXT("/Engine/EditorMaterials/MAT_Groups_Visibility.MAT_Groups_Visibility"), NULL, LOAD_None, NULL ));
+#endif // WITH_EDITORONLY_DATA
 }
 
 int32 UInterpTrackVisibility::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
@@ -9643,42 +9567,6 @@ UInterpGroupInstDirector::UInterpGroupInstDirector(const FObjectInitializer& Obj
 	: Super(ObjectInitializer)
 {
 }
-
-#if WITH_EDITOR
-void UInterpGroupCamera::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
-{
-#if WITH_EDITORONLY_DATA
-	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == TEXT("AnimSeqName"))
-	{
-		UCameraAnim * CameraAnim = CastChecked<UCameraAnim>(GetOuter());
-		UInterpGroup* Group = CameraAnim->PreviewInterpGroup;
-		// find first InterpGroup, not me
-		if ( Group )
-		{
-			TArray<UInterpTrack*> AnimTracks;
-			Group->FindTracksByClass(UInterpTrackAnimControl::StaticClass(), AnimTracks);
-			if (AnimTracks.Num() > 0)
-			{
-				UInterpTrackAnimControl* AnimTrack = CastChecked<UInterpTrackAnimControl>(AnimTracks[0]);
-				if (AnimTrack->AnimSeqs.Num() > 0)
-				{
-					FAnimControlTrackKey& SeqKey = AnimTrack->AnimSeqs[ 0 ];
-					SeqKey.AnimSeq = Target.AnimSeq;	
-				}
-				else
-				{
-					int32 KeyIndex = AnimTrack->AddKeyframe(0.0f, NULL, CIM_Linear);
-					FAnimControlTrackKey& NewSeqKey = AnimTrack->AnimSeqs[ KeyIndex ];
-					NewSeqKey.AnimSeq = Target.AnimSeq;	
-				}
-			}
-		}
-	}
-#endif
-
-	Super::PostEditChangeProperty(PropertyChangedEvent);
-}
-#endif // WITH_EDITOR
 
 #if WITH_EDITORONLY_DATA
 /** Returns SpriteComponent subobject **/

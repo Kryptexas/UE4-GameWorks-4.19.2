@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "FlipbookEditorViewportClient.h"
@@ -6,6 +6,7 @@
 
 #include "PreviewScene.h"
 #include "ScopedTransaction.h"
+#include "CanvasTypes.h"
 
 #define LOCTEXT_NAMESPACE "FlipbookEditor"
 
@@ -23,12 +24,14 @@ FFlipbookEditorViewportClient::FFlipbookEditorViewportClient(const TAttribute<UP
 
 	// Create a render component for the sprite being edited
 	AnimatedRenderComponent = NewObject<UPaperFlipbookComponent>();
+	AnimatedRenderComponent->SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	AnimatedRenderComponent->SetFlipbook(FlipbookBeingEdited.Get());
 	AnimatedRenderComponent->UpdateBounds();
 	PreviewScene->AddComponent(AnimatedRenderComponent.Get(), FTransform::Identity);
 
 	bShowPivot = false;
 	bDeferZoomToSprite = true;
+	DrawHelper.bDrawGrid = false;
 
 	EngineShowFlags.DisableAdvancedFeatures();
 	EngineShowFlags.CompositeEditorPrimitives = true;
@@ -41,7 +44,7 @@ void FFlipbookEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& 
 	const bool bIsHitTesting = Canvas.IsHitTesting();
 	if (!bIsHitTesting)
 	{
-		Canvas.SetHitProxy(NULL);
+		Canvas.SetHitProxy(nullptr);
 	}
 
 	int32 YPos = 42;
@@ -103,7 +106,6 @@ void FFlipbookEditorViewportClient::Tick(float DeltaSeconds)
 	}
 }
 
-
 bool FFlipbookEditorViewportClient::InputKey(FViewport* Viewport, int32 ControllerId, FKey Key, EInputEvent Event, float AmountDepressed, bool bGamepad)
 {
 	bool bHandled = false;
@@ -116,6 +118,11 @@ bool FFlipbookEditorViewportClient::InputKey(FViewport* Viewport, int32 Controll
 
 	// Pass keys to standard controls, if we didn't consume input
 	return (bHandled) ? true : FEditorViewportClient::InputKey(Viewport,  ControllerId, Key, Event, AmountDepressed, bGamepad);
+}
+
+FLinearColor FFlipbookEditorViewportClient::GetBackgroundColor() const
+{
+	return FEditorViewportClient::GetBackgroundColor();
 }
 
 //////////////////////////////////////////////////////////////////////////

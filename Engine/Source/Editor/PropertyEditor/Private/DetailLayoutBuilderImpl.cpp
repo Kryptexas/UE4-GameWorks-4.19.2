@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "PropertyNode.h"
@@ -16,15 +16,15 @@ FDetailLayoutBuilderImpl::FDetailLayoutBuilderImpl(FClassToPropertyMap& InProper
 
 }
 
-IDetailCategoryBuilder& FDetailLayoutBuilderImpl::EditCategory( FName CategoryName, const FString& NewLocalizedDisplayName, ECategoryPriority::Type CategoryType )
+IDetailCategoryBuilder& FDetailLayoutBuilderImpl::EditCategory( FName CategoryName, const FText& NewLocalizedDisplayName, ECategoryPriority::Type CategoryType )
 {
-	FString LocalizedDisplayName = NewLocalizedDisplayName;
+	FText LocalizedDisplayName = NewLocalizedDisplayName;
 
 	// Use a generic name if one was not specified
 	if( CategoryName == NAME_None )
 	{
-		static const FString GeneralString = NSLOCTEXT("DetailLayoutBuilderImpl", "General", "General").ToString();
-		static const FName GeneralName = *GeneralString;
+		static const FText GeneralString = NSLOCTEXT("DetailLayoutBuilderImpl", "General", "General");
+		static const FName GeneralName = *GeneralString.ToString();
 
 		CategoryName = GeneralName;
 		LocalizedDisplayName = GeneralString;
@@ -115,7 +115,7 @@ FDetailCategoryImpl& FDetailLayoutBuilderImpl::DefaultCategory( FName CategoryNa
 	}
 	
 
-	CategoryImpl->SetDisplayName( CategoryName, TEXT("") );
+	CategoryImpl->SetDisplayName( CategoryName, FText::GetEmpty() );
 	return *CategoryImpl;
 }
 
@@ -402,7 +402,7 @@ TSharedRef<IPropertyHandle> FDetailLayoutBuilderImpl::GetPropertyHandle( TShared
 	return PropertyHandle.ToSharedRef();
 }
 
-void FDetailLayoutBuilderImpl::AddExternalRootPropertyNode( TSharedRef<FObjectPropertyNode> InExternalRootNode )
+void FDetailLayoutBuilderImpl::AddExternalRootPropertyNode( TSharedRef<FPropertyNode> InExternalRootNode )
 {
 	DetailsView.AddExternalRootPropertyNode( InExternalRootNode );
 }
@@ -424,7 +424,7 @@ bool FDetailLayoutBuilderImpl::IsPropertyVisible( TSharedRef<IPropertyHandle> Pr
 	return false;
 }
 
-bool FDetailLayoutBuilderImpl::IsPropertyVisible( const FPropertyAndParent& PropertyAndParent ) const
+bool FDetailLayoutBuilderImpl::IsPropertyVisible( const struct FPropertyAndParent& PropertyAndParent ) const
 {
 	return DetailsView.IsPropertyVisible( PropertyAndParent );
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	GenericPlatformSplash.h: Generic platform splash screen...does nothing
@@ -60,6 +60,14 @@ struct CORE_API FGenericPlatformSplash
 	FORCEINLINE static void SetSplashText( const SplashTextType::Type InType, const TCHAR* InText )
 	{
 
+	}
+
+	/**
+	 * Return whether the splash screen is being shown or not
+	 */
+	FORCEINLINE static bool IsShown()
+	{
+		return true;
 	}
 
 };

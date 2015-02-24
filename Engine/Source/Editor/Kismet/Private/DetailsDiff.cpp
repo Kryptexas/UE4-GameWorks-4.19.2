@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
 #include "DetailsDiff.h"
@@ -29,6 +29,11 @@ FDetailsDiff::FDetailsDiff(const UObject* InObject, const TArray< FPropertyPath 
 	DetailsView->UpdatePropertiesWhitelist( TSet<FPropertyPath>(InDifferingProperties) );
 
 	DifferingProperties = DetailsView->GetPropertiesInOrderDisplayed();
+}
+
+FDetailsDiff::~FDetailsDiff()
+{
+	DetailsView->SetOnDisplayedPropertiesChanged(::FOnDisplayedPropertiesChanged());
 }
 
 void FDetailsDiff::HighlightProperty(const FPropertySoftPath& PropertyName)

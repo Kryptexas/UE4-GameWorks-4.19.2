@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnObj.cpp: Unreal object global data and functions
@@ -8,6 +8,7 @@
 #include "Misc/SecureHash.h"
 #include "UObject/ConstructorHelpers.h"
 #include "UObject/UObjectAnnotation.h"
+#include "UObject/TlsObjectInitializers.h"
 
 DEFINE_LOG_CATEGORY(LogUObjectGlobals);
 
@@ -60,6 +61,8 @@ FCoreUObjectDelegates::FOnPreObjectPropertyChanged FCoreUObjectDelegates::OnPreO
 FCoreUObjectDelegates::FOnObjectPropertyChanged FCoreUObjectDelegates::OnObjectPropertyChanged;
 
 #if WITH_EDITOR
+// Set of objects modified this frame
+TSet<UObject*> FCoreUObjectDelegates::ObjectsModifiedThisFrame;
 FCoreUObjectDelegates::FOnObjectModified FCoreUObjectDelegates::OnObjectModified;
 FCoreUObjectDelegates::FOnAssetLoaded FCoreUObjectDelegates::OnAssetLoaded;
 FCoreUObjectDelegates::FOnObjectSaved FCoreUObjectDelegates::OnObjectSaved;
@@ -447,6 +450,12 @@ UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName )
 	{
 		InName = PackageName;
 	}
+
+	if (InName.Contains(TEXT("//")))
+	{
+		UE_LOG(LogUObjectGlobals, Fatal, TEXT("Attempted to create a package with name containing double slashes. PackageName: %s"), PackageName);
+	}
+
 	if( InName.EndsWith( TEXT( "." ) ) )
 	{
 		FString InName2 = InName.Left( InName.Len() - 1 );
@@ -479,7 +488,7 @@ UPackage* CreatePackage( UObject* InOuter, const TCHAR* PackageName )
 			}
 			else
 			{
-				Result = new( InOuter, NewPackageName, RF_Public )UPackage(FObjectInitializer());
+				Result = NewNamedObject<UPackage>(InOuter, NewPackageName, RF_Public);
 			}
 		}
 	}
@@ -860,7 +869,19 @@ UPackage* LoadPackageInternal(UPackage* InOuter, const TCHAR* InLongPackageName,
 
 		SlowTask.EnterProgressFrame(30);
 
-		if( !(LoadFlags & LOAD_Verify) )
+		uint32 DoNotLoadExportsFlags = LOAD_Verify;
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+		// if this linker already has the DeferDependencyLoads flag, then we're
+		// already loading it earlier up the load chain (don't let it invoke any
+		// deeper loads that may introduce a circular dependency)
+		if ((Linker->LoadFlags & LOAD_DeferDependencyLoads))
+		{
+			DoNotLoadExportsFlags |= LOAD_DeferDependencyLoads;
+		}
+		// @TODO: what of cases where DeferDependencyLoads was specified, but not already set on the Linker?
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
+		if ((LoadFlags & DoNotLoadExportsFlags) == 0)
 		{
 			// Make sure we pass the property that's currently being serialized by the linker that owns the import 
 			// that triggered this LoadPackage call
@@ -1344,6 +1365,14 @@ UObject* StaticDuplicateObject(UObject const* SourceObject, UObject* DestOuter, 
 	{
 		Parameters.DestName = FName(DestName, FNAME_Add, true);
 	}
+	else if (SourceObject->GetOuter() != DestOuter)
+	{
+		// try to keep the object name consistent if possible
+		if (FindObjectFast<UObject>(DestOuter, SourceObject->GetFName()) == nullptr)
+		{
+			Parameters.DestName = SourceObject->GetFName();
+		}
+	}
 
 	if ( DestClass == NULL )
 	{
@@ -1699,7 +1728,7 @@ UObject* StaticAllocateObject
 				TEXT("Objects have the same fully qualified name but different paths.\n")
 				TEXT("\tNew Object: %s %s.%s\n")
 				TEXT("\tExisting Object: %s"),
-				*InClass->GetName(), InOuter ? *InOuter->GetPathName() : TEXT(""), *InName.GetPlainNameString(),
+				*InClass->GetName(), InOuter ? *InOuter->GetPathName() : TEXT(""), *InName.ToString(),
 				*Obj->GetFullName());
 		}
 	}
@@ -1839,6 +1868,16 @@ void UObject::PostInitProperties()
 #endif
 }
 
+UObject::UObject()
+{
+	FObjectInitializer* ObjectInitializerPtr = FTlsObjectInitializers::Top();
+	UE_CLOG(!ObjectInitializerPtr, LogUObjectGlobals, Fatal, TEXT("%s is not being constructed with either NewObject, NewNamedObject or ConstructObject."), *GetName());
+	FObjectInitializer& ObjectInitializer = *ObjectInitializerPtr;
+	check(!ObjectInitializer.Obj || ObjectInitializer.Obj == this);
+	const_cast<FObjectInitializer&>(ObjectInitializer).Obj = this;
+	const_cast<FObjectInitializer&>(ObjectInitializer).FinalizeSubobjectClassInitialization();
+}
+
 UObject::UObject(const FObjectInitializer& ObjectInitializer)
 {
 	check(!ObjectInitializer.Obj || ObjectInitializer.Obj == this);
@@ -1847,7 +1886,7 @@ UObject::UObject(const FObjectInitializer& ObjectInitializer)
 }
 
 /* Global flag so that FObjectFinders know if they are called from inside the UObject constructors or not. */
-static int32 GIsInConstructor = 0;
+int32 GIsInConstructor = 0;
 /* Object that is currently being constructed with ObjectInitializer */
 static UObject* GConstructedObject = NULL;
 
@@ -1863,6 +1902,7 @@ FObjectInitializer::FObjectInitializer() :
 	// Mark we're in the constructor now.	
 	GIsInConstructor++;
 	GConstructedObject = Obj;
+	FTlsObjectInitializers::Push(this);
 }	
 
 FObjectInitializer::FObjectInitializer(UObject* InObj, UObject* InObjectArchetype, bool bInCopyTransientsFromClassDefaults, bool bInShouldIntializeProps, struct FObjectInstancingGraph* InInstanceGraph) :
@@ -1878,6 +1918,7 @@ FObjectInitializer::FObjectInitializer(UObject* InObj, UObject* InObjectArchetyp
 	// Mark we're in the constructor now.
 	GIsInConstructor++;
 	GConstructedObject = Obj;
+	FTlsObjectInitializers::Push(this);
 }
 
 /**
@@ -1885,6 +1926,7 @@ FObjectInitializer::FObjectInitializer(UObject* InObj, UObject* InObjectArchetyp
  **/
 FObjectInitializer::~FObjectInitializer()
 {
+	FTlsObjectInitializers::Pop();
 	// Let the FObjectFinders know we left the constructor.
 	GIsInConstructor--;
 	check(GIsInConstructor >= 0);
@@ -2172,10 +2214,16 @@ UObject* StaticConstructObject
 	const bool bIsNativeFromCDO = InClass->HasAnyClassFlags(CLASS_Native | CLASS_Intrinsic) && 
 		(
 			!InTemplate || 
-			(InName != NAME_None && InTemplate == UObject::GetArchetypeFromRequiredInfo(InClass, InOuter, InName, !!(InFlags & RF_ClassDefaultObject)))
-		);
-	bool bRecycledSubobject = false;
-	Result = StaticAllocateObject(InClass, InOuter, InName, InFlags, bIsNativeFromCDO, &bRecycledSubobject);
+			(InName != NAME_None && InTemplate == UObject::GetArchetypeFromRequiredInfo(InClass, InOuter, InName, InFlags))
+		);	
+#if WITH_HOT_RELOAD
+	// Do not recycle subobjects when performing hot-reload as they may contain old property values.
+	const bool bCanRecycleSubobjects = bIsNativeFromCDO && !GIsHotReload;
+#else
+	const bool bCanRecycleSubobjects = bIsNativeFromCDO;
+#endif
+	bool bRecycledSubobject = false;	
+	Result = StaticAllocateObject(InClass, InOuter, InName, InFlags, bCanRecycleSubobjects, &bRecycledSubobject);
 	check(Result != NULL);
 	// Don't call the constructor on recycled subobjects, they haven't been destroyed.
 	if (!bRecycledSubobject)
@@ -2197,6 +2245,12 @@ UObject* StaticConstructObject
 void FObjectInitializer::AssertIfInConstructor(UObject* Outer, const TCHAR* ErrorMessage)
 {
 	UE_CLOG(GIsInConstructor && Outer == GConstructedObject, LogUObjectGlobals, Fatal, TEXT("%s"), ErrorMessage);
+}
+
+FObjectInitializer& FObjectInitializer::Get()
+{
+	UE_CLOG(!GIsInConstructor, LogUObjectGlobals, Fatal, TEXT("FObjectInitializer::Get() can only be used inside of UObject-derived class constructor."));
+	return FTlsObjectInitializers::TopChecked();
 }
 
 /**
@@ -2232,8 +2286,12 @@ void FScopedObjectFlagMarker::RestoreObjectFlags()
 
 void ConstructorHelpers::FailedToFind(const TCHAR* ObjectToFind)
 {
-	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("CDO Constructor: Failed to find %s\n"), ObjectToFind);
-	UClass::GetDefaultPropertiesFeedbackContext().Logf(ELogVerbosity::Error, TEXT("CDO Constructor: Failed to find %s"), ObjectToFind);
+	auto CurrentInitializer = FTlsObjectInitializers::Top();
+	const FString Message = FString::Printf(TEXT("CDO Constructor (%s): Failed to find %s\n"),
+		(CurrentInitializer && CurrentInitializer->GetClass()) ? *CurrentInitializer->GetClass()->GetName() : TEXT("Unknown"),
+		ObjectToFind);
+	FPlatformMisc::LowLevelOutputDebugString(*Message);
+	UClass::GetDefaultPropertiesFeedbackContext().Log(ELogVerbosity::Error, *Message);
 }
 
 void ConstructorHelpers::CheckFoundViaRedirect(UObject *Object, const FString& PathName, const TCHAR* ObjectToFind)
@@ -2244,8 +2302,14 @@ void ConstructorHelpers::CheckFoundViaRedirect(UObject *Object, const FString& P
 		FString NewString = Object->GetFullName();
 		NewString.ReplaceInline(TEXT(" "), TEXT("'"));
 		NewString += TEXT("'");
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("CDO Constructor: Followed redirector (%s), change code to new path (%s)\n"), ObjectToFind, *NewString);
-		UClass::GetDefaultPropertiesFeedbackContext().Logf(ELogVerbosity::Warning, TEXT("CDO Warning: Followed redirector (%s), change code to new path (%s)\n"), ObjectToFind, *NewString);
+
+		auto CurrentInitializer = FTlsObjectInitializers::Top();
+		const FString Message = FString::Printf(TEXT("CDO Constructor (%s): Followed redirector (%s), change code to new path (%s)\n"),
+			(CurrentInitializer && CurrentInitializer->GetClass()) ? *CurrentInitializer->GetClass()->GetName() : TEXT("Unknown"),
+			ObjectToFind, *NewString);
+
+		FPlatformMisc::LowLevelOutputDebugString(*Message);
+		UClass::GetDefaultPropertiesFeedbackContext().Log(ELogVerbosity::Warning, *Message);
 	}
 }
 
@@ -2597,4 +2661,20 @@ UObject* FObjectInitializer::CreateDefaultSubobject(UObject* Outer, FName Subobj
 		}
 	}
 	return Result;
+}
+
+UObject* FObjectInitializer::CreateEditorOnlyDefaultSubobject(UObject* Outer, FName SubobjectName, UClass* ReturnType, bool bTransient /*= false*/) const
+{
+#if WITH_EDITOR
+	if (GIsEditor)
+	{
+		UObject* EditorSubobject = CreateDefaultSubobject(Outer, SubobjectName, ReturnType, ReturnType, /*bIsRequired =*/ false, /*bIsAbstract =*/ false, bTransient);
+		if (EditorSubobject)
+		{
+			EditorSubobject->MarkAsEditorOnlySubobject();
+		}
+		return EditorSubobject;
+	}
+#endif
+	return nullptr;
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 typedef TSharedPtr< struct FPreviewInfoContainer > FSoundWaveCompressionListItemPtr;
@@ -39,7 +39,7 @@ private:
 
 	/** Progress Bar Callbacks */
 	TOptional<float> GetProgress() const;
-	FString GetProgressString() const;
+	FText GetProgressString() const;
 	EVisibility IsProgressBarVisible() const;
 
 	/** Button click callbacks. */

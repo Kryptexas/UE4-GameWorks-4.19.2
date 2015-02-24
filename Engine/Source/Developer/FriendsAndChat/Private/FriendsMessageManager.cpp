@@ -1,492 +1,496 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
-
+#include "OnlineChatInterface.h"
+#include "ChatItemViewModel.h"
 
 #define LOCTEXT_NAMESPACE "FriendsMessageManager"
+// Message expiry time for different message types
+static const int32 GlobalMessageLifetime = 5 * 60;  // 5 min
+static const int32 PartyMessageLifetime = 5 * 60;  // 5 min
+static const int32 WhisperMessageLifetime = 5 * 60;  // 5 min
+static const int32 MessageStore = 200;
+static const int32 GlobalMaxStore = 100;
+static const int32 WhisperMaxStore = 100;
+static const int32 PartyMaxStore = 100;
 
-
-/* FFriendsMessageManager structors
- *****************************************************************************/
-
-FFriendsMessageManager::FFriendsMessageManager( )
-	: bClearInvites( false )
-	, PingMcpInterval( 15.0f ) 
+class FFriendsMessageManagerImpl
+	: public FFriendsMessageManager
 {
-	PingMcpCountdown = 0;
-}
+public:
 
-
-FFriendsMessageManager::~FFriendsMessageManager( )
-{ }
-
-
-/* IFriendsMessageManager interface
- *****************************************************************************/
-
-void FFriendsMessageManager::StartupManager()
-{
-	FParse::Value( FCommandLine::Get(), TEXT( "LaunchGameMessage=" ), GameLaunchMessageID );
-}
-
-
-void FFriendsMessageManager::Init( FOnFriendsNotification& NotificationDelegate, bool bInCanJointGame )
-{
-	// Clear existing data
-	Logout();
-	FriendsListNotificationDelegate = &NotificationDelegate;
-	bCanJoinGame = bInCanJointGame;
-	bPollForMessages = false;
-
-	OnlineSubMcp = static_cast< FOnlineSubsystemMcp* >( IOnlineSubsystem::Get( TEXT( "MCP" ) ) );
-
-	if (OnlineSubMcp != nullptr &&
-		OnlineSubMcp->GetIdentityInterface().IsValid() &&
-		OnlineSubMcp->GetMessageInterface().IsValid())
+	virtual void LogIn() override
 	{
-		// Add our delegate for the async call
-		OnEnumerateMessagesCompleteDelegate = FOnEnumerateMessagesCompleteDelegate::CreateSP(this, &FFriendsMessageManager::OnEnumerateMessagesComplete);
-		OnReadMessageCompleteDelegate = FOnReadMessageCompleteDelegate::CreateSP(this, &FFriendsMessageManager::OnReadMessageComplete);
-		OnSendMessageCompleteDelegate = FOnSendMessageCompleteDelegate::CreateSP(this, &FFriendsMessageManager::OnSendMessageComplete);
-		OnDeleteMessageCompleteDelegate = FOnDeleteMessageCompleteDelegate::CreateSP(this, &FFriendsMessageManager::OnDeleteMessageComplete);
+		Initialize();
 
-		OnlineSubMcp->GetMessageInterface()->AddOnEnumerateMessagesCompleteDelegate(0, OnEnumerateMessagesCompleteDelegate);
-		OnlineSubMcp->GetMessageInterface()->AddOnReadMessageCompleteDelegate(0, OnReadMessageCompleteDelegate);
-		OnlineSubMcp->GetMessageInterface()->AddOnSendMessageCompleteDelegate(0, OnSendMessageCompleteDelegate);
-		OnlineSubMcp->GetMessageInterface()->AddOnDeleteMessageCompleteDelegate(0, OnDeleteMessageCompleteDelegate);
-
-		IOnlineIdentityPtr OnlineIdentity = OnlineSubMcp->GetIdentityInterface();
-
-		TSharedPtr<FUniqueNetId> UserId = OnlineIdentity->GetUniquePlayerId(0);
-		if ( UserId.IsValid() )
+		if (OnlineSub != nullptr &&
+			OnlineSub->GetIdentityInterface().IsValid())
 		{
-			DisplayName = OnlineIdentity->GetUserAccount( *UserId )->GetDisplayName();
+			LoggedInUser = OnlineSub->GetIdentityInterface()->GetUniquePlayerId(0);
 		}
 
-		if ( UpdateMessagesTickerDelegate.IsBound() == false )
+		for (auto RoomName : RoomJoins)
 		{
-			UpdateMessagesTickerDelegate = FTickerDelegate::CreateSP( this, &FFriendsMessageManager::Tick );
+			JoinPublicRoom(RoomName);
 		}
-
-		ManagerState = EFriendsMessageManagerState::Idle;
-
-		FTicker::GetCoreTicker().AddTicker( UpdateMessagesTickerDelegate );
 	}
-}
 
-
-void FFriendsMessageManager::SetMessagePolling( bool bStart )
-{
-	bPollForMessages = bStart;
-}
-
-
-bool FFriendsMessageManager::Tick( float Delta )
-{
-	PingMcpCountdown -= Delta;
-
-	if ( bPollForMessages && ManagerState == EFriendsMessageManagerState::Idle )
+	virtual void LogOut() override
 	{
-		// Countdown and ping if necessary
-		if ( MessagesToRead.Num() > 0 )
+		if (OnlineSub != nullptr &&
+			OnlineSub->GetChatInterface().IsValid() &&
+			LoggedInUser.IsValid())
 		{
-			SetState( EFriendsMessageManagerState::ReadingMessages );
-		}
-		else if ( MessagesToDelete.Num() > 0 )
-		{
-			SetState( EFriendsMessageManagerState::DeletingMessages );
-		}
-		else if ( GameInvitesToSend.Num() > 0 )
-		{
-			SetState( EFriendsMessageManagerState::SendingGameInvite );
-		}
-		else if ( ChatMessagesToSend.Num() > 0 )
-		{
-			SetState( EFriendsMessageManagerState::SendingMessages );
-		}
-		else if ( GameJoingRequestsToSend.Num() > 0 )
-		{
-			SetState( EFriendsMessageManagerState::SendingJoinGameRequest );
-		}
-		else if ( PingMcpCountdown < 0.f )
-		{
-			if ( UnhandledNetID.IsValid() )
+			// exit out of any rooms that we're in
+			TArray<FChatRoomId> JoinedRooms;
+			OnlineSub->GetChatInterface()->GetJoinedRooms(*LoggedInUser, JoinedRooms);
+			for (auto RoomId : JoinedRooms)
 			{
-				ResendMessage();
-			}
-			SetState( EFriendsMessageManagerState::EnumeratingMessages );
-			PingMcpCountdown = PingMcpInterval;
-		}
-	}
-	return true;
-}
-
-
-void FFriendsMessageManager::RequestEnumerateMessages()
-{
-	OnlineSubMcp->GetMessageInterface()->EnumerateMessages( 0 );
-}
-
-
-void FFriendsMessageManager::InviteFriendToGame( TSharedRef<FUniqueNetId> FriendID )
-{
-	GameInvitesToSend.AddUnique( FriendID );
-}
-
-
-void FFriendsMessageManager::RequestJoinAGame( TSharedRef<FUniqueNetId> FriendID )
-{
-	GameJoingRequestsToSend.AddUnique( FriendID );
-}
-
-
-void FFriendsMessageManager::SendGameInviteRequest()
-{
-	TSharedPtr<FUniqueNetId> UserId = OnlineSubMcp->GetIdentityInterface()->GetUniquePlayerId(0);
-	if ( GameInvitesToSend[ 0 ]->IsValid()  )
-	{
-		FOnlineMessagePayload InvitePayload;
-		TArray<TSharedRef<FUniqueNetId> > Recipients;
-		Recipients.Add( GameInvitesToSend[0] );
- 		InvitePayload.SetAttribute( TEXT("SenderID"), FVariantData( DisplayName ) );
-		InvitePayload.SetAttribute( TEXT("GameInvite"), FVariantData( UserId.Get()->ToString() ) );
-		OnlineSubMcp->GetMessageInterface()->SendMessage( 0, Recipients, TEXT("GameInvite"), InvitePayload );
-	}
-
-	GameInvitesToSend.RemoveAt( 0 );
-}
-
-
-void FFriendsMessageManager::SendGameJoinRequest()
-{
-	TSharedPtr<FUniqueNetId> UserId = OnlineSubMcp->GetIdentityInterface()->GetUniquePlayerId( 0 );
-	if ( GameJoingRequestsToSend[ 0 ]->IsValid() )
-	{
-		FOnlineMessagePayload TestPayload;
-		TArray<TSharedRef<FUniqueNetId> > Recipients;
-		Recipients.Add( GameJoingRequestsToSend[0] );
-
- 		TestPayload.SetAttribute(TEXT("GameInvite"), FVariantData(TEXT("Join your game")));
- 		TestPayload.SetAttribute(TEXT("SenderID"), FVariantData( DisplayName ) ); 
-		OnlineSubMcp->GetMessageInterface()->SendMessage(0, Recipients, TEXT("GameJoin"), TestPayload);
-	}
-
-	GameJoingRequestsToSend.RemoveAt( 0 );
-}
-
-
-void FFriendsMessageManager::SendChatMessageRequest()
-{
-	TSharedPtr<FUniqueNetId> UserId = OnlineSubMcp->GetIdentityInterface()->GetUniquePlayerId(0);
-
-	if ( ChatMessagesToSend.Num() > 0 )
-	{
-		FString DisplayMessage = DisplayName;
-		DisplayMessage += TEXT ( " says:\n" );
-		DisplayMessage += ChatMessagesToSend[0].Message.ToString();
-
-		ChatMessages.Add( MakeShareable ( new FFriendsAndChatMessage( DisplayMessage ) ) );
-
-		FOnlineMessagePayload TestPayload;
-		TArray<TSharedRef<FUniqueNetId> > Recipients;
-		Recipients.Add( ChatMessagesToSend[0].FriendID );
- 		TestPayload.SetAttribute(TEXT("STRINGValue"), FVariantData( ChatMessagesToSend[0].Message.ToString() ) ); 
- 		TestPayload.SetAttribute(TEXT("SenderID"), FVariantData( DisplayName ) ); 
-		OnlineSubMcp->GetMessageInterface()->SendMessage(0, Recipients, TEXT("TestType"), TestPayload);
-	}
-	ChatMessagesToSend.RemoveAt( 0 );
-}
-
-
-void FFriendsMessageManager::SendMessage( TSharedPtr< FFriendStuct > FriendID, const FText& Message )
-{
-	ChatMessagesToSend.Add( FOutGoingChatMessage( FriendID->GetOnlineUser()->GetUserId(), Message ) );
-}
-
-
-void FFriendsMessageManager::ClearGameInvites()
-{
-	bClearInvites = true;
-}
-
-
-void FFriendsMessageManager::SetUnhandledNotification( TSharedRef< FUniqueNetId > NetID )
-{
-	UnhandledNetID = NetID;
-}
-
-
-EFriendsMessageManagerState::Type FFriendsMessageManager::GetState()
-{
-	return ManagerState;
-}
-
-
-TArray< TSharedPtr< FFriendsAndChatMessage > > FFriendsMessageManager::GetChatMessages()
-{
-	return ChatMessages;
-}
-
-
-FOnMessagesUpdated& FFriendsMessageManager::OnChatListUpdated()
-{
-	return OChatListUpdatedDelegate;
-}
-
-
-void FFriendsMessageManager::SetState( EFriendsMessageManagerState::Type NewState )
-{
-	ManagerState = NewState;
-
-	switch ( NewState )
-	{
-	case EFriendsMessageManagerState::EnumeratingMessages:
-		{
-			RequestEnumerateMessages();
-		}
-		break;
-	case EFriendsMessageManagerState::DeletingMessages:
-		{
-			if ( MessagesToDelete.Num() > 0 )
-			{
-				OnlineSubMcp->GetMessageInterface()->DeleteMessage( 0, *MessagesToDelete[0] );
+				OnlineSub->GetChatInterface()->ExitRoom(*LoggedInUser, RoomId);
 			}
 		}
-		break;
-	case EFriendsMessageManagerState::ReadingMessages:
-		{
-			if ( MessagesToRead.Num() > 0 )
-			{
-				OnlineSubMcp->GetMessageInterface()->ReadMessage( 0, *MessagesToRead[0] );
-			}
-		}
-		break;
-	case EFriendsMessageManagerState::SendingGameInvite:
-		{
-			if ( GameInvitesToSend.Num() > 0 )
-			{
-				SendGameInviteRequest();
-			}
-		}
-		break;
-	case EFriendsMessageManagerState::SendingJoinGameRequest:
-		{
-			if ( GameJoingRequestsToSend.Num() > 0 )
-			{
-				SendGameJoinRequest();
-			}
-		}
-		break;
-	case EFriendsMessageManagerState::SendingMessages:
-		{
-			if ( ChatMessagesToSend.Num() > 0 )
-			{
-				SendChatMessageRequest();
-			}
-		}
-		break;
+		LoggedInUser.Reset();
+		UnInitialize();
 	}
-}
 
-
-void FFriendsMessageManager::Logout()
-{
-	FOnlineSubsystemMcp* OnlineSubMcp = static_cast< FOnlineSubsystemMcp* >( IOnlineSubsystem::Get( TEXT( "MCP" ) ) );
-	if ( OnlineSubMcp != nullptr )
+	virtual const TArray<TSharedRef<FChatItemViewModel> >& GetMessageList() const override
 	{
-		OnlineSubMcp->GetMessageInterface()->ClearOnEnumerateMessagesCompleteDelegate(0, OnEnumerateMessagesCompleteDelegate);
-		OnlineSubMcp->GetMessageInterface()->ClearOnReadMessageCompleteDelegate(0, OnReadMessageCompleteDelegate);
-		OnlineSubMcp->GetMessageInterface()->ClearOnSendMessageCompleteDelegate(0, OnSendMessageCompleteDelegate);
-		OnlineSubMcp->GetMessageInterface()->ClearOnDeleteMessageCompleteDelegate(0, OnDeleteMessageCompleteDelegate);
+		return ReceivedMessages;
 	}
-	FTicker::GetCoreTicker().RemoveTicker( UpdateMessagesTickerDelegate );
-}
 
-
-void FFriendsMessageManager::OnEnumerateMessagesComplete(int32 LocalPlayer, bool bWasSuccessful, const FString& ErrorStr)
-{
-	if ( bWasSuccessful )
+	virtual bool SendRoomMessage(const FString& RoomName, const FString& MsgBody) override
 	{
-		TArray< TSharedRef<FOnlineMessageHeader> > MessageHeaders;
-		if ( OnlineSubMcp->GetMessageInterface()->GetMessageHeaders( LocalPlayer, MessageHeaders ) )
+		if (OnlineSub != nullptr &&
+			LoggedInUser.IsValid())
 		{
-			bool bFoundLatentMessage = false;
-
-			// Log each message header data out
-			for ( int32 Index = 0; Index < MessageHeaders.Num(); Index++ )
+			IOnlineChatPtr ChatInterface = OnlineSub->GetChatInterface();
+			if (ChatInterface.IsValid())
 			{
-				const FOnlineMessageHeader& Header = *MessageHeaders[ Index ];
-
-				if( !bClearInvites && ( bCanJoinGame == true || LatentMessage.IsEmpty() ) )
+				if (!RoomName.IsEmpty())
 				{
-					// Add to list of messages to download
-					MessagesToRead.AddUnique( Header.MessageId );
-				}
-
-				if ( bClearInvites || LatentMessage != Header.MessageId->ToString() )
-				{
-					// Add to list of messages to delete
-					MessagesToDelete.AddUnique( &Header.MessageId.Get() );
+					TSharedPtr<FChatRoomInfo> RoomInfo = ChatInterface->GetRoomInfo(*LoggedInUser, FChatRoomId(RoomName));
+					if (RoomInfo.IsValid() &&
+						RoomInfo->IsJoined())
+					{
+						return ChatInterface->SendRoomChat(*LoggedInUser, FChatRoomId(RoomName), MsgBody);
+					}
 				}
 				else
 				{
-					bFoundLatentMessage = true;
-				}
-			}
-
-			if ( bClearInvites || bFoundLatentMessage == false )
-			{
-				bClearInvites = false;
-				LatentMessage = TEXT("");
-			}
-		}	
-		else
-		{
-			UE_LOG(LogOnline, Log, TEXT( "GetMessageHeaders(%d) failed" ), LocalPlayer );
-		}
-	}
-
-	SetState( EFriendsMessageManagerState::Idle );
-}
-
-
-void FFriendsMessageManager::OnReadMessageComplete(int32 LocalPlayer, bool bWasSuccessful, const FUniqueMessageId& MessageId, const FString& ErrorStr)
-{
-	if ( bWasSuccessful )
-	{
-		TSharedPtr<FOnlineMessage> TempMessage = OnlineSubMcp->GetMessageInterface()->GetMessage( 0, MessageId );
-		FOnlineMessagePayload Payload = TempMessage->Payload;
-		FVariantData TestValue;
-		Payload.GetAttribute(TEXT("STRINGValue"), TestValue);
-		FVariantData SenderName;
- 		Payload.GetAttribute(TEXT("SenderID"), SenderName );
-
-		FString DisplayMessage = SenderName.ToString();
-
-		FVariantData GameInvite;
- 		if ( Payload.GetAttribute(TEXT("GameInvite"), GameInvite ) )
-		{
-			TSharedPtr< FUniqueNetId > NetID = FFriendsAndChatManager::Get()->FindUserID( DisplayMessage);
-			if ( NetID.IsValid() )
-			{
-				DisplayMessage += TEXT ( " invited you to play" );
-				TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable( new FFriendsAndChatMessage( DisplayMessage, NetID.ToSharedRef() ) );
-				NotificationMessage->SetMessageType( EFriendsRequestType::JoinGame );
-				NotificationMessage->SetRequesterName( SenderName.ToString() );
-				NotificationMessage->SetSelfHandle( true );
-
-				// auto accept - for game launch
-				if ( bCanJoinGame && GameLaunchMessageID != TEXT("") && GameLaunchMessageID == MessageId.ToString() )
-				{
-					NotificationMessage->SetAutoAccept();
-				}
-				else if ( !bCanJoinGame )
-				{
-					// Send message ID
-					NotificationMessage->SetLaunchGameID( MessageId.ToString() );
-				}
-
-				FriendsListNotificationDelegate->Broadcast( NotificationMessage.ToSharedRef() );
-
-				// Chache, and don't delete game invites if the app cannot directly join a game
-				if ( bCanJoinGame == false && LatentMessage.IsEmpty() )
-				{
-					for ( int32 Index = 0; Index < MessagesToDelete.Num(); Index++ )
+					// send to all joined rooms
+					bool bAbleToSend = false;
+					TArray<FChatRoomId> JoinedRooms;
+					OnlineSub->GetChatInterface()->GetJoinedRooms(*LoggedInUser, JoinedRooms);
+					for (auto RoomId : JoinedRooms)
 					{
-						if ( *MessagesToDelete[Index] == MessageId )
+						if (ChatInterface->SendRoomChat(*LoggedInUser, RoomId, MsgBody))
 						{
-							LatentMessage = MessageId.ToString();
-							MessagesToDelete.RemoveAt( Index );
-							break;
+							bAbleToSend = true;
 						}
 					}
+					return bAbleToSend;
+				}
+
+			}
+		}
+		return false;
+	}
+
+	virtual bool SendPrivateMessage(TSharedPtr<FUniqueNetId> UserID, const FText UserName, const FText MessageText) override
+	{
+		if (OnlineSub != nullptr &&
+			LoggedInUser.IsValid())
+		{
+			IOnlineChatPtr ChatInterface = OnlineSub->GetChatInterface();
+			if(ChatInterface.IsValid())
+			{
+				TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+				ChatItem->FromName = UserName;
+				ChatItem->Message = MessageText;
+				ChatItem->MessageType = EChatMessageType::Whisper;
+				ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow(), EDateTimeStyle::Short);
+				ChatItem->ExpireTime = FDateTime::UtcNow() + FTimespan::FromSeconds(WhisperMessageLifetime);
+				ChatItem->bIsFromSelf = true;
+				ChatItem->SenderId = UserID;
+				AddMessage(ChatItem.ToSharedRef());
+				return ChatInterface->SendPrivateChat(*LoggedInUser, *UserID.Get(), MessageText.ToString());
+			}
+		}
+		return false;
+	}
+
+	virtual void InsertNetworkMessage(const FString& MsgBody) override
+	{
+		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+		ChatItem->FromName = FText::FromString("Game");
+		ChatItem->Message = FText::FromString(MsgBody);
+		ChatItem->MessageType = EChatMessageType::Party;
+		ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow(), EDateTimeStyle::Short);
+		ChatItem->ExpireTime = FDateTime::UtcNow() + FTimespan::FromSeconds(PartyMessageLifetime);
+		ChatItem->bIsFromSelf = false;
+		PartyMessagesCount++;
+		AddMessage(ChatItem.ToSharedRef());
+	}
+
+	virtual void JoinPublicRoom(const FString& RoomName) override
+	{
+		if (LoggedInUser.IsValid())
+		{
+			if (OnlineSub != nullptr &&
+				OnlineSub->GetChatInterface().IsValid())
+			{
+				// join the room to start receiving messages from it
+				FString NickName = OnlineSub->GetIdentityInterface()->GetPlayerNickname(*LoggedInUser);
+				OnlineSub->GetChatInterface()->JoinPublicRoom(*LoggedInUser, FChatRoomId(RoomName), NickName);
+			}
+		}
+		RoomJoins.AddUnique(RoomName);
+	}
+
+	DECLARE_DERIVED_EVENT(FFriendsMessageManagerImpl, FFriendsMessageManager::FOnChatMessageReceivedEvent, FOnChatMessageReceivedEvent)
+	virtual FOnChatMessageReceivedEvent& OnChatMessageRecieved() override
+	{
+		return MessageReceivedEvent;
+	}
+	DECLARE_DERIVED_EVENT(FFriendsMessageManagerImpl, FFriendsMessageManager::FOnChatPublicRoomJoinedEvent, FOnChatPublicRoomJoinedEvent)
+	virtual FOnChatPublicRoomJoinedEvent& OnChatPublicRoomJoined() override
+	{
+		return PublicRoomJoinedEvent;
+	}
+	DECLARE_DERIVED_EVENT(FFriendsMessageManagerImpl, FFriendsMessageManager::FOnChatPublicRoomExitedEvent, FOnChatPublicRoomExitedEvent)
+	virtual FOnChatPublicRoomExitedEvent& OnChatPublicRoomExited() override
+	{
+		return PublicRoomExitedEvent;
+	}
+
+	~FFriendsMessageManagerImpl()
+	{
+	}
+
+private:
+	FFriendsMessageManagerImpl( )
+		: OnlineSub(nullptr)
+		, bEnableEnterExitMessages(false)
+	{
+	}
+
+	void Initialize()
+	{
+		// Clear existing data
+		LogOut();
+
+		GlobalMessagesCount = 0;
+		WhisperMessagesCount = 0;
+		PartyMessagesCount = 0;
+		ReceivedMessages.Empty();
+
+		OnlineSub = IOnlineSubsystem::Get( TEXT( "MCP" ) );
+
+		if (OnlineSub != nullptr)
+		{
+			IOnlineChatPtr ChatInterface = OnlineSub->GetChatInterface();
+			if (ChatInterface.IsValid())
+			{
+				OnChatRoomJoinPublicDelegate         = FOnChatRoomJoinPublicDelegate        ::CreateSP(this, &FFriendsMessageManagerImpl::OnChatRoomJoinPublic);
+				OnChatRoomExitDelegate               = FOnChatRoomExitDelegate              ::CreateSP(this, &FFriendsMessageManagerImpl::OnChatRoomExit);
+				OnChatRoomMemberJoinDelegate         = FOnChatRoomMemberJoinDelegate        ::CreateSP(this, &FFriendsMessageManagerImpl::OnChatRoomMemberJoin);
+				OnChatRoomMemberExitDelegate         = FOnChatRoomMemberExitDelegate        ::CreateSP(this, &FFriendsMessageManagerImpl::OnChatRoomMemberExit);
+				OnChatRoomMemberUpdateDelegate       = FOnChatRoomMemberUpdateDelegate      ::CreateSP(this, &FFriendsMessageManagerImpl::OnChatRoomMemberUpdate);
+				OnChatRoomMessageReceivedDelegate    = FOnChatRoomMessageReceivedDelegate   ::CreateSP(this, &FFriendsMessageManagerImpl::OnChatRoomMessageReceived);
+				OnChatPrivateMessageReceivedDelegate = FOnChatPrivateMessageReceivedDelegate::CreateSP(this, &FFriendsMessageManagerImpl::OnChatPrivateMessageReceived);
+
+				OnChatRoomJoinPublicDelegateHandle         = ChatInterface->AddOnChatRoomJoinPublicDelegate_Handle        (OnChatRoomJoinPublicDelegate);
+				OnChatRoomExitDelegateHandle               = ChatInterface->AddOnChatRoomExitDelegate_Handle              (OnChatRoomExitDelegate);
+				OnChatRoomMemberJoinDelegateHandle         = ChatInterface->AddOnChatRoomMemberJoinDelegate_Handle        (OnChatRoomMemberJoinDelegate);
+				OnChatRoomMemberExitDelegateHandle         = ChatInterface->AddOnChatRoomMemberExitDelegate_Handle        (OnChatRoomMemberExitDelegate);
+				OnChatRoomMemberUpdateDelegateHandle       = ChatInterface->AddOnChatRoomMemberUpdateDelegate_Handle      (OnChatRoomMemberUpdateDelegate);
+				OnChatRoomMessageReceivedDelegateHandle    = ChatInterface->AddOnChatRoomMessageReceivedDelegate_Handle   (OnChatRoomMessageReceivedDelegate);
+				OnChatPrivateMessageReceivedDelegateHandle = ChatInterface->AddOnChatPrivateMessageReceivedDelegate_Handle(OnChatPrivateMessageReceivedDelegate);
+			}
+			IOnlinePresencePtr PresenceInterface = OnlineSub->GetPresenceInterface();
+			if (PresenceInterface.IsValid())
+			{
+				OnPresenceReceivedDelegate = FOnPresenceReceivedDelegate::CreateSP(this, &FFriendsMessageManagerImpl::OnPresenceReceived);
+				OnPresenceReceivedDelegateHandle = PresenceInterface->AddOnPresenceReceivedDelegate_Handle(OnPresenceReceivedDelegate);
+			}
+		}
+	}
+
+	void UnInitialize()
+	{
+		if (OnlineSub != nullptr)
+		{
+			IOnlineChatPtr ChatInterface = OnlineSub->GetChatInterface();
+			if( ChatInterface.IsValid())
+			{
+				ChatInterface->ClearOnChatRoomJoinPublicDelegate_Handle        (OnChatRoomJoinPublicDelegateHandle);
+				ChatInterface->ClearOnChatRoomExitDelegate_Handle              (OnChatRoomExitDelegateHandle);
+				ChatInterface->ClearOnChatRoomMemberJoinDelegate_Handle        (OnChatRoomMemberJoinDelegateHandle);
+				ChatInterface->ClearOnChatRoomMemberExitDelegate_Handle        (OnChatRoomMemberExitDelegateHandle);
+				ChatInterface->ClearOnChatRoomMemberUpdateDelegate_Handle      (OnChatRoomMemberUpdateDelegateHandle);
+				ChatInterface->ClearOnChatRoomMessageReceivedDelegate_Handle   (OnChatRoomMessageReceivedDelegateHandle);
+				ChatInterface->ClearOnChatPrivateMessageReceivedDelegate_Handle(OnChatPrivateMessageReceivedDelegateHandle);
+			}
+			IOnlinePresencePtr PresenceInterface = OnlineSub->GetPresenceInterface();
+			if (PresenceInterface.IsValid())
+			{
+				PresenceInterface->ClearOnPresenceReceivedDelegate_Handle(OnPresenceReceivedDelegateHandle);
+			}
+		}
+		OnlineSub = nullptr;
+	}
+
+	void OnChatRoomJoinPublic(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, bool bWasSuccessful, const FString& Error)
+	{
+		if (bWasSuccessful)
+		{
+			OnChatPublicRoomJoined().Broadcast(ChatRoomID);
+		}
+	}
+
+	void OnChatRoomExit(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, bool bWasSuccessful, const FString& Error)
+	{
+		if (bWasSuccessful)
+		{
+			OnChatPublicRoomExited().Broadcast(ChatRoomID);
+		}		
+	}
+
+	void OnChatRoomMemberJoin(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, const FUniqueNetId& MemberId)
+	{
+		if (bEnableEnterExitMessages &&
+			LoggedInUser.IsValid() &&
+			*LoggedInUser != MemberId)
+		{
+			TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+			TSharedPtr<FChatRoomMember> ChatMember = OnlineSub->GetChatInterface()->GetMember(UserId, ChatRoomID, MemberId);
+			if (ChatMember.IsValid())
+			{
+				ChatItem->FromName = FText::FromString(*ChatMember->GetNickname());
+			}
+			ChatItem->Message = FText::FromString(TEXT("entered room"));
+			ChatItem->MessageType = EChatMessageType::Global;
+			ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow(), EDateTimeStyle::Short);
+			ChatItem->ExpireTime = FDateTime::UtcNow() + GlobalMessageLifetime;
+			ChatItem->bIsFromSelf = false;
+			GlobalMessagesCount++;
+			AddMessage(ChatItem.ToSharedRef());
+		}
+	}
+
+	void OnChatRoomMemberExit(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, const FUniqueNetId& MemberId)
+	{
+		if (bEnableEnterExitMessages &&
+			LoggedInUser.IsValid() &&
+			*LoggedInUser != MemberId)
+		{
+			TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+			TSharedPtr<FChatRoomMember> ChatMember = OnlineSub->GetChatInterface()->GetMember(UserId, ChatRoomID, MemberId);
+			if (ChatMember.IsValid())
+			{
+				ChatItem->FromName = FText::FromString(*ChatMember->GetNickname());
+			}
+			ChatItem->Message = FText::FromString(TEXT("left room"));
+			ChatItem->MessageType = EChatMessageType::Global;
+			ChatItem->MessageTimeText = FText::AsTime(FDateTime::UtcNow(), EDateTimeStyle::Short);
+			ChatItem->ExpireTime = FDateTime::UtcNow() + GlobalMessageLifetime;
+			ChatItem->bIsFromSelf = false;
+			GlobalMessagesCount++;
+			AddMessage(ChatItem.ToSharedRef());
+		}
+	}
+
+	void OnChatRoomMemberUpdate(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, const FUniqueNetId& MemberId)
+	{
+	}
+
+	void OnChatRoomMessageReceived(const FUniqueNetId& UserId, const FChatRoomId& ChatRoomID, const TSharedRef<FChatMessage>& ChatMessage)
+	{
+		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+
+		ChatItem->FromName = FText::FromString(*ChatMessage->GetNickname());
+		ChatItem->Message = FText::FromString(*ChatMessage->GetBody());
+		ChatItem->MessageType = EChatMessageType::Global;
+		ChatItem->MessageTimeText = FText::AsTime(ChatMessage->GetTimestamp(), EDateTimeStyle::Short);
+		ChatItem->ExpireTime = ChatMessage->GetTimestamp() + FTimespan::FromSeconds(GlobalMessageLifetime);
+		ChatItem->bIsFromSelf = ChatMessage->GetUserId() == *LoggedInUser;
+		TSharedPtr<IFriendItem> FoundFriend = FFriendsAndChatManager::Get()->FindUser(ChatMessage->GetUserId());
+		if(FoundFriend.IsValid())
+		{
+			ChatItem->SenderId = FoundFriend->GetUniqueID();
+		}
+
+		ChatItem->MessageRef = ChatMessage;
+		GlobalMessagesCount++;
+		AddMessage(ChatItem.ToSharedRef());
+	}
+
+	void OnChatPrivateMessageReceived(const FUniqueNetId& UserId, const TSharedRef<FChatMessage>& ChatMessage)
+	{
+		TSharedPtr< FFriendChatMessage > ChatItem = MakeShareable(new FFriendChatMessage());
+		TSharedPtr<IFriendItem> FoundFriend = FFriendsAndChatManager::Get()->FindUser(ChatMessage->GetUserId());
+		// Ignore messages from unknown people
+		if(FoundFriend.IsValid())
+		{
+			ChatItem->FromName = FText::FromString(*FoundFriend->GetName());
+			ChatItem->SenderId = FoundFriend->GetUniqueID();
+			ChatItem->Message = FText::FromString(*ChatMessage->GetBody());
+			ChatItem->MessageType = EChatMessageType::Whisper;
+			ChatItem->MessageTimeText = FText::AsTime(ChatMessage->GetTimestamp(), EDateTimeStyle::Short);
+			ChatItem->ExpireTime = ChatMessage->GetTimestamp() + FTimespan::FromSeconds(WhisperMessageLifetime);
+			ChatItem->bIsFromSelf = false;
+			ChatItem->MessageRef = ChatMessage;
+			WhisperMessagesCount++;
+			AddMessage(ChatItem.ToSharedRef());
+
+			// Inform listers that we have received a chat message
+			FFriendsAndChatManager::Get()->SendChatMessageReceivedEvent(ChatItem->MessageType, FoundFriend);
+		}
+	}
+
+	void OnPresenceReceived(const FUniqueNetId& UserId, const TSharedRef<FOnlineUserPresence>& Presence)
+	{
+		if (LoggedInUser.IsValid() &&
+			*LoggedInUser == UserId)
+		{
+			if (Presence->bIsOnline)
+			{
+				for (auto RoomName : RoomJoins)
+				{
+					JoinPublicRoom(RoomName);
 				}
 			}
 		}
-		else
+	}
+
+	void AddMessage(TSharedRef< FFriendChatMessage > ChatItem)
+	{
+		TSharedRef<FChatItemViewModel> NewMessage = FChatItemViewModelFactory::Create(ChatItem);
+		if(ReceivedMessages.Add(NewMessage) > MessageStore)
 		{
-			DisplayMessage += TEXT ( " says:\n" );
-			DisplayMessage += TestValue.ToString();
-			TSharedPtr< FFriendsAndChatMessage > ChatMessage = MakeShareable( new FFriendsAndChatMessage( DisplayMessage ) );
-			ChatMessage->SetSelfHandle( false );
-			ChatMessages.Add( ChatMessage );
-			OChatListUpdatedDelegate.Broadcast();
+			bool bGlobalTimeFound = false;
+			bool bPartyTimeFound = false;
+			bool bWhisperFound = false;
+			FDateTime CurrentTime = FDateTime::UtcNow();
+			for(int32 Index = 0; Index < ReceivedMessages.Num(); Index++)
+			{
+				TSharedRef<FChatItemViewModel> Message = ReceivedMessages[Index];
+				if(Message->GetExpireTime() < CurrentTime)
+				{
+					RemoveMessage(Message);
+					Index--;
+				}
+				else
+				{
+					switch(Message->GetMessageType())
+					{
+						case EChatMessageType::Global :
+						{
+							if(GlobalMessagesCount > GlobalMaxStore)
+							{
+								RemoveMessage(Message);
+								Index--;
+							}
+							else
+							{
+								bGlobalTimeFound = true;
+							}
+						}
+						break;
+						case EChatMessageType::Party :
+						{
+							if(PartyMessagesCount > PartyMaxStore)
+							{
+								RemoveMessage(Message);
+								Index--;
+							}
+							else
+							{
+								bPartyTimeFound = true;
+							}
+						}
+						break;
+						case EChatMessageType::Whisper :
+						{
+							if(WhisperMessagesCount > WhisperMaxStore)
+							{
+								RemoveMessage(Message);
+								Index--;
+							}
+							else
+							{
+								bWhisperFound = true;
+							}
+						}
+						break;
+					}
+				}
+				if(ReceivedMessages.Num() < MessageStore || (bPartyTimeFound && bGlobalTimeFound && bWhisperFound))
+				{
+					break;
+				}
+			}
 		}
-
-		MessagesToRead.RemoveAt(0);
+		OnChatMessageRecieved().Broadcast(NewMessage);
 	}
 
-	SetState( EFriendsMessageManagerState::Idle );
-}
-
-
-void FFriendsMessageManager::OnSendMessageComplete(int32 LocalPlayer, bool bWasSuccessful, const FString& ErrorStr)
-{
-	if ( bWasSuccessful )
+	void RemoveMessage(TSharedRef<FChatItemViewModel> Message)
 	{
-		OChatListUpdatedDelegate.Broadcast();
+		switch(Message->GetMessageType())
+		{
+			case EChatMessageType::Global : GlobalMessagesCount--; break;
+			case EChatMessageType::Party : PartyMessagesCount--; break;
+			case EChatMessageType::Whisper : WhisperMessagesCount--; break;
+		}
+		ReceivedMessages.Remove(Message);
 	}
+private:
 
-	SetState( EFriendsMessageManagerState::Idle );
-}
+	// Incoming delegates
+	FOnChatRoomJoinPublicDelegate OnChatRoomJoinPublicDelegate;
+	FOnChatRoomExitDelegate OnChatRoomExitDelegate;
+	FOnChatRoomMemberJoinDelegate OnChatRoomMemberJoinDelegate;
+	FOnChatRoomMemberExitDelegate OnChatRoomMemberExitDelegate;
+	FOnChatRoomMemberUpdateDelegate OnChatRoomMemberUpdateDelegate;
+	FOnChatRoomMessageReceivedDelegate OnChatRoomMessageReceivedDelegate;
+	FOnChatPrivateMessageReceivedDelegate OnChatPrivateMessageReceivedDelegate;
+	FOnPresenceReceivedDelegate OnPresenceReceivedDelegate;
 
+	// Handles to the above registered delegates
+	FDelegateHandle OnChatRoomJoinPublicDelegateHandle;
+	FDelegateHandle OnChatRoomExitDelegateHandle;
+	FDelegateHandle OnChatRoomMemberJoinDelegateHandle;
+	FDelegateHandle OnChatRoomMemberExitDelegateHandle;
+	FDelegateHandle OnChatRoomMemberUpdateDelegateHandle;
+	FDelegateHandle OnChatRoomMessageReceivedDelegateHandle;
+	FDelegateHandle OnChatPrivateMessageReceivedDelegateHandle;
+	FDelegateHandle OnPresenceReceivedDelegateHandle;
 
-void FFriendsMessageManager::OnDeleteMessageComplete(int32 LocalPlayer, bool bWasSuccessful, const FUniqueMessageId& MessageId, const FString& ErrorStr)
+	// Outgoing events
+	FOnChatMessageReceivedEvent MessageReceivedEvent;
+	FOnChatPublicRoomJoinedEvent PublicRoomJoinedEvent;
+	FOnChatPublicRoomExitedEvent PublicRoomExitedEvent;
+
+	IOnlineSubsystem* OnlineSub;
+	TSharedPtr<FUniqueNetId> LoggedInUser;
+	TArray<FString> RoomJoins;
+
+	TArray<TSharedRef<FChatItemViewModel> > ReceivedMessages;
+
+	int32 GlobalMessagesCount;
+	int32 WhisperMessagesCount;
+	int32 PartyMessagesCount;
+
+	bool bEnableEnterExitMessages;
+
+private:
+	friend FFriendsMessageManagerFactory;
+};
+
+TSharedRef< FFriendsMessageManager > FFriendsMessageManagerFactory::Create()
 {
-	// done with this part of the test if no more messages to delete
-	MessagesToDelete.RemoveAt( 0 );
-	SetState( EFriendsMessageManagerState::Idle );
+	TSharedRef< FFriendsMessageManagerImpl > MessageManager(new FFriendsMessageManagerImpl());
+	return MessageManager;
 }
-
-
-FReply FFriendsMessageManager::HandleMessageAccepted( TSharedPtr< FFriendsAndChatMessage > InNotificationMessage )
-{
-	NotficationMessages.Remove( InNotificationMessage );
-	return FReply::Handled();
-}
-
-
-FReply FFriendsMessageManager::HandleMessageDeclined( TSharedPtr< FFriendsAndChatMessage > InNotificationMessage )
-{
-	NotficationMessages.Remove( InNotificationMessage );
-	return FReply::Handled();
-}
-
-
-void FFriendsMessageManager::ResendMessage()
-{
-	if ( UnhandledNetID.IsValid() )
-	{
-		TSharedPtr< FFriendsAndChatMessage > NotificationMessage = MakeShareable( new FFriendsAndChatMessage( TEXT(""), UnhandledNetID.ToSharedRef() ) );
-		NotificationMessage->SetMessageType( EFriendsRequestType::JoinGame );
-		NotificationMessage->SetSelfHandle( true );
-		NotificationMessage->SetAutoAccept();
-		FriendsListNotificationDelegate->Broadcast( NotificationMessage.ToSharedRef() );
-	}
-	UnhandledNetID.Reset();
-}
-
-
-/* FFriendsMessageManager system singletons
-*****************************************************************************/
-
-TSharedPtr< FFriendsMessageManager > FFriendsMessageManager::SingletonInstance = nullptr;
-
-TSharedRef< FFriendsMessageManager > FFriendsMessageManager::Get()
-{
-	if ( !SingletonInstance.IsValid() )
-	{
-		SingletonInstance = MakeShareable( new FFriendsMessageManager() );
-		SingletonInstance->StartupManager();
-	}
-	return SingletonInstance.ToSharedRef();
-}
-
-
-void FFriendsMessageManager::Shutdown()
-{
-	SingletonInstance.Reset();
-}
-
 
 #undef LOCTEXT_NAMESPACE

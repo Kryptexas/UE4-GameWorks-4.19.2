@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Functionality for capturing the scene into reflection capture cubemaps, and prefiltering
@@ -1185,7 +1185,7 @@ void CaptureSceneIntoScratchCubemap(FScene* Scene, FVector CapturePosition, bool
 		View->bIsReflectionCapture = true;
 		View->bStaticSceneOnly = bStaticSceneOnly;
 		View->StartFinalPostprocessSettings(CapturePosition);
-		View->EndFinalPostprocessSettings();
+		View->EndFinalPostprocessSettings(ViewInitOptions);
 
 		ViewFamily.Views.Add(View);
 

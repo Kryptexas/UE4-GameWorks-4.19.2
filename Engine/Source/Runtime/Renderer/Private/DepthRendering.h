@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	DepthRendering.h: Depth rendering definitions.
@@ -14,6 +14,8 @@ enum EDepthDrawingMode
 	DDM_NonMaskedOnly,
 	//
 	DDM_AllOccluders,
+	//
+	DDM_AllOpaque,
 };
 
 template<bool>
@@ -164,8 +166,6 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
-
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel);
 
 private:
 	/**

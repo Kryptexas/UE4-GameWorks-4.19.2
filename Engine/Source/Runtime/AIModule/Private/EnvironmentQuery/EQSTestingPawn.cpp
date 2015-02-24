@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "EnvironmentQuery/EnvQuery.h"
@@ -119,14 +119,14 @@ void AEQSTestingPawn::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 
 	if (QueryTemplate && !QueryInstance.IsValid())
 	{
-		UAISystem* AISys = UAISystem::GetCurrent(GetWorld());
+		UAISystem* AISys = UAISystem::GetCurrentSafe(GetWorld());
 		if (AISys)
 		{
 			RunEQSQuery();
 		}
 	}
 
-	if (QueryInstance.IsValid() && QueryInstance->Status == EEnvQueryStatus::Processing)
+	if (QueryInstance.IsValid() && QueryInstance->IsFinished() == false)
 	{
 		MakeOneStep();
 	}
@@ -145,13 +145,18 @@ void AEQSTestingPawn::PostLoad()
 
 void AEQSTestingPawn::RunEQSQuery()
 {
+	if (HasAnyFlags(RF_ClassDefaultObject) == true)
+	{
+		return;
+	}
+
 	Reset();
 	
 	// make one step if TimeLimitPerStep > 0.f, else all steps
 	do
 	{
 		MakeOneStep();
-	} while (TimeLimitPerStep <= 0.f && QueryInstance.IsValid() == true && QueryInstance->Status == EEnvQueryStatus::Processing);	
+	} while (TimeLimitPerStep <= 0.f && QueryInstance.IsValid() == true && QueryInstance->IsFinished() == false);
 }
 
 void AEQSTestingPawn::Reset()
@@ -182,12 +187,12 @@ void AEQSTestingPawn::MakeOneStep()
 	}
 
 	// possible still not valid 
-	if (QueryInstance.IsValid() == true && QueryInstance->Status == EEnvQueryStatus::Processing)
+	if (QueryInstance.IsValid() == true && QueryInstance->IsFinished() == false)
 	{
 		QueryInstance->ExecuteOneStep(double(TimeLimitPerStep));
 		StepResults.Add(*(QueryInstance.Get()));
 
-		if (QueryInstance->Status != EEnvQueryStatus::Processing)
+		if (QueryInstance->IsFinished())
 		{
 			StepToDebugDraw = StepResults.Num() - 1;
 			UpdateDrawing();
@@ -198,6 +203,10 @@ void AEQSTestingPawn::MakeOneStep()
 void AEQSTestingPawn::UpdateDrawing()
 {
 #if WITH_EDITORONLY_DATA
+	if (HasAnyFlags(RF_ClassDefaultObject) == true)
+	{
+		return;
+	}
 
 	UBillboardComponent* SpriteComponent = FindComponentByClass<UBillboardComponent>();
 	if (SpriteComponent != NULL)

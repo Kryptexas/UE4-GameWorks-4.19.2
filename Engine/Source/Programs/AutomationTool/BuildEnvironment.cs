@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -107,7 +107,7 @@ namespace AutomationTool
 			LogFolder = CommandUtils.GetEnvVar(EnvVarNames.LogFolder);
 			RobocopyExe = CommandUtils.CombinePaths(Environment.SystemDirectory, "robocopy.exe");
 			MountExe = CommandUtils.CombinePaths(Environment.SystemDirectory, "mount.exe");
-			CmdExe = CommandUtils.CombinePaths(Environment.SystemDirectory, "cmd.exe");
+			CmdExe = Utils.IsRunningOnMono ? "/bin/sh" : CommandUtils.CombinePaths(Environment.SystemDirectory, "cmd.exe");
 
 			if (String.IsNullOrEmpty(LogFolder))
 			{

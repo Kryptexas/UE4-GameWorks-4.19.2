@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2Node_MathExpression.h"
@@ -2397,7 +2397,9 @@ void UK2Node_MathExpression::RebuildExpression(FString InExpression)
 
 		// finally, recompile
 		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForNodeChecked(this);
-		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(Blueprint);
+		FBlueprintEditorUtils::MarkBlueprintAsModified(Blueprint);
+		// The UI needs a refresh, so notify any interested parties that the blueprint has changed
+		Blueprint->BroadcastChanged();
 	}
 }
 

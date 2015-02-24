@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
 */
@@ -21,6 +21,8 @@ public:
 	 * Returns a texture with the passed in name or NULL if it cannot be found.
 	 */
 	virtual FSlateShaderResourceProxy* GetShaderResource( const FSlateBrush& InBrush ) override;
+
+	virtual ISlateAtlasProvider* GetTextureAtlasProvider() override;
 
 	/**
 	 * Creates a 1x1 texture of the specified color

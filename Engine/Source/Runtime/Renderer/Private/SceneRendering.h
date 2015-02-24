@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneRendering.h: Scene rendering definitions.
@@ -576,9 +576,6 @@ public:
 	/** True if precomputed visibility was used when rendering the scene. */
 	bool bUsedPrecomputedVisibility;
 
-	/** Copy from main thread GFrameNumber to be accessible on renderthread side */
-	uint32 FrameNumber;
-
 	/** Feature level being rendered */
 	ERHIFeatureLevel::Type FeatureLevel;
 
@@ -597,12 +594,25 @@ public:
 
 	bool DoOcclusionQueries(ERHIFeatureLevel::Type InFeatureLevel) const;
 
+	/**
+	* Whether or not to composite editor objects onto the scene as a post processing step
+	*
+	* @param View The view to test against
+	*
+	* @return true if compositing is needed
+	*/
+	static bool ShouldCompositeEditorPrimitives(const FViewInfo& View);
+
 protected:
 
 	// Shared functionality between all scene renderers
 
 	/** Generates FProjectedShadowInfos for all wholesceneshadows on the given light.*/
-	void AddViewDependentWholeSceneShadowsForView(TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ShadowInfos, FVisibleLightInfo& VisibleLightInfo, FLightSceneInfo& LightSceneInfo);
+	void AddViewDependentWholeSceneShadowsForView(
+		TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ShadowInfos, 
+		TArray<FProjectedShadowInfo*, SceneRenderingAllocator>& ShadowInfosThatNeedCulling, 
+		FVisibleLightInfo& VisibleLightInfo, 
+		FLightSceneInfo& LightSceneInfo);
 
 	/**
 	* Used by RenderLights to figure out if projected shadows need to be rendered to the attenuation buffer.
@@ -719,6 +729,9 @@ protected:
 
 	/** Renders any necessary shadowmaps. */
 	void RenderShadowDepthMaps(FRHICommandListImmediate& RHICmdList);
+
+	/** Perform upscaling when post process is not used. */
+	void BasicPostProcess(FRHICommandListImmediate& RHICmdList, FViewInfo &View, bool bDoUpscale, bool bDoEditorPrimitives);
 
 	/**
 	  * Used by RenderShadowDepthMaps to render shadowmap for the given light.

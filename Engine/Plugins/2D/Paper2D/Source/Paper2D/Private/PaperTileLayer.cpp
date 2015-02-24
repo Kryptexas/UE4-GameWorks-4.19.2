@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DPrivatePCH.h"
 #include "PaperSprite.h"
+#include "ComponentReregisterContext.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UPaperTileLayer
@@ -35,9 +36,12 @@ void UPaperTileLayer::DestructiveAllocateMap(int32 NewWidth, int32 NewHeight)
 
 void UPaperTileLayer::ResizeMap(int32 NewWidth, int32 NewHeight)
 {
-	LayerWidth = NewWidth;
-	LayerHeight = NewHeight;
-	ReallocateAndCopyMap();
+	if ((LayerWidth != NewWidth) || (LayerHeight != NewHeight))
+	{
+		LayerWidth = NewWidth;
+		LayerHeight = NewHeight;
+		ReallocateAndCopyMap();
+	}
 }
 
 void UPaperTileLayer::ReallocateAndCopyMap()
@@ -66,9 +70,51 @@ void UPaperTileLayer::ReallocateAndCopyMap()
 }
 
 #if WITH_EDITOR
+
+/** Removes all components that use the specified tile map layer from their scenes for the lifetime of the class. */
+class FTileMapLayerReregisterContext
+{
+public:
+	/** Initialization constructor. */
+	FTileMapLayerReregisterContext(UPaperTileLayer* TargetAsset)
+	{
+		// Look at tile map components
+		for (TObjectIterator<UPaperTileMapComponent> MapIt; MapIt; ++MapIt)
+		{
+			if (UPaperTileMap* TestMap = (*MapIt)->TileMap)
+			{
+				if (TestMap->TileLayers.Contains(TargetAsset))
+				{
+					AddComponentToRefresh(*MapIt);
+				}
+			}
+		}
+	}
+
+protected:
+	void AddComponentToRefresh(UActorComponent* Component)
+	{
+		if (ComponentContexts.Num() == 0)
+		{
+			// wait until resources are released
+			FlushRenderingCommands();
+		}
+
+		new (ComponentContexts) FComponentReregisterContext(Component);
+	}
+
+private:
+	/** The recreate contexts for the individual components. */
+	TIndirectArray<FComponentReregisterContext> ComponentContexts;
+};
+
+
+
 void UPaperTileLayer::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
 {
-	FName PropertyName = (PropertyChangedEvent.Property != NULL) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
+	FTileMapLayerReregisterContext ReregisterExistingComponents(this);
+
+	FName PropertyName = (PropertyChangedEvent.Property != nullptr) ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
 	if ((PropertyName == GET_MEMBER_NAME_CHECKED(UPaperTileLayer, LayerWidth)) || (PropertyName == GET_MEMBER_NAME_CHECKED(UPaperTileLayer, LayerHeight)))
 	{

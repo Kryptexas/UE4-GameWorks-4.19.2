@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -21,6 +21,11 @@ public:
 	
 	UPROPERTY(EditAnywhere, Category = "Constant")
 	uint32 bNeedsDefault : 1;
+
+	UPROPERTY(EditAnywhere, Category = "Constant")
+	uint32 bExposeToEffectEditor : 1;
+
+	bool IsExposedToEffectEditor()	{ return bExposeToEffectEditor; }
 
 	// Begin UObject interface
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent);

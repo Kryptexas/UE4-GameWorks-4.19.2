@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AvfMediaPrivatePCH.h"
 
@@ -59,6 +59,7 @@ FAvfMediaPlayer::FAvfMediaPlayer()
     
     PlayerItem = nil;
     MediaPlayer = nil;
+	MediaHelper = nil;
 }
 
 
@@ -111,13 +112,13 @@ void FAvfMediaPlayer::Close()
 {
     CurrentTime = 0;
 	MediaUrl = FString();
-	
+    
     if( PlayerItem != nil )
-	{
+    {
 		[PlayerItem removeObserver:MediaHelper forKeyPath:@"status"];
         PlayerItem = nil;
     }
-	
+
 	if( MediaHelper )
 	{
 		[MediaHelper release];
@@ -242,14 +243,15 @@ bool FAvfMediaPlayer::Open( const FString& Url )
         MediaUrl = FPaths::GetCleanFilename(Url);
         
         MediaPlayer = [[AVPlayer alloc] init];
-		if( MediaPlayer )
+        if( MediaPlayer )
         {
 			MediaHelper = [[FMediaHelper alloc] initWithMediaPlayer: MediaPlayer];
 			check( MediaHelper != nil );
 			
             PlayerItem = [AVPlayerItem playerItemWithURL: nsMediaUrl];
             if( PlayerItem != nil )
-			{
+            {
+				[PlayerItem retain];
 				[PlayerItem addObserver:MediaHelper forKeyPath:@"status" options:0 context:nil];
                 Duration = FTimespan::FromSeconds( CMTimeGetSeconds( PlayerItem.asset.duration ) );
 
@@ -364,7 +366,11 @@ bool FAvfMediaPlayer::Tick( float DeltaTime )
 {
     if( ShouldAdvanceFrames() )
     {
-        CurrentTime = FTimespan::FromSeconds(CMTimeGetSeconds([[MediaPlayer currentItem] currentTime]));
+		AVPlayerItem* item = [MediaPlayer currentItem];
+	    if (item != nil)
+	    {
+	        CurrentTime = FTimespan::FromSeconds( CMTimeGetSeconds([item currentTime]) );
+	    }
         
         for (IMediaTrackRef& Track : Tracks)
         {

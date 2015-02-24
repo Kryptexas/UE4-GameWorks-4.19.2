@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -561,16 +561,16 @@
 		}
 
 #define SLATE_TEXT_ARGUMENT( ArgName ) \
-	FString _##ArgName; \
+	FText _##ArgName; \
 	WidgetArgsType& ArgName( FString InArg ) \
 	{ \
-		_##ArgName = InArg; \
+		_##ArgName = FText::FromString(InArg); \
 		return this->Me(); \
 	}\
 	\
 	WidgetArgsType& ArgName( FText InArg ) \
 	{ \
-		_##ArgName = InArg.ToString(); \
+		_##ArgName = InArg; \
 		return this->Me(); \
 	}
 

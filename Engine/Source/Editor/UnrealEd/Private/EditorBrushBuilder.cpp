@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UEditorBrushBuilder.cpp: UnrealEd brush builder.
@@ -10,6 +10,8 @@
 #include "SnappingUtils.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/Polys.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "BrushBuilder"
 
@@ -143,17 +145,17 @@ bool UEditorBrushBuilder::EndBrush( UWorld* InWorld, ABrush* InBrush )
 	return true;
 }
 
-int32 UEditorBrushBuilder::GetVertexCount()
+int32 UEditorBrushBuilder::GetVertexCount() const
 {
 	return Vertices.Num();
 }
 
-FVector UEditorBrushBuilder::GetVertex(int32 i)
+FVector UEditorBrushBuilder::GetVertex(int32 i) const
 {
 	return Vertices.IsValidIndex(i) ? Vertices[i] : FVector::ZeroVector;
 }
 
-int32 UEditorBrushBuilder::GetPolyCount()
+int32 UEditorBrushBuilder::GetPolyCount() const
 {
 	return Polys.Num();
 }
@@ -941,9 +943,9 @@ void UTetrahedronBuilder::Extrapolate( int32 a, int32 b, int32 c, int32 Count, f
 {
 	if( Count>1 )
 	{
-		int32 ab=Vertexv( InRadius*(GetVertex(a)+GetVertex(b)).SafeNormal() );
-		int32 bc=Vertexv( InRadius*(GetVertex(b)+GetVertex(c)).SafeNormal() );
-		int32 ca=Vertexv( InRadius*(GetVertex(c)+GetVertex(a)).SafeNormal() );
+		int32 ab=Vertexv( InRadius*(GetVertex(a)+GetVertex(b)).GetSafeNormal() );
+		int32 bc=Vertexv( InRadius*(GetVertex(b)+GetVertex(c)).GetSafeNormal() );
+		int32 ca=Vertexv( InRadius*(GetVertex(c)+GetVertex(a)).GetSafeNormal() );
 		Extrapolate(a,ab,ca,Count-1,InRadius);
 		Extrapolate(b,bc,ab,Count-1,InRadius);
 		Extrapolate(c,ca,bc,Count-1,InRadius);

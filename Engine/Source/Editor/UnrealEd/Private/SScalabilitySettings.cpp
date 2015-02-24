@@ -1,11 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "SScalabilitySettings.h"
 
 #define LOCTEXT_NAMESPACE "EngineScalabiltySettings"
 
-ESlateCheckBoxState::Type SScalabilitySettings::IsGroupQualityLevelSelected(const TCHAR* InGroupName, int32 InQualityLevel) const
+ECheckBoxState SScalabilitySettings::IsGroupQualityLevelSelected(const TCHAR* InGroupName, int32 InQualityLevel) const
 {
 	int32 QualityLevel = -1;
 
@@ -17,10 +17,10 @@ ESlateCheckBoxState::Type SScalabilitySettings::IsGroupQualityLevelSelected(cons
 	else if (FCString::Strcmp(InGroupName, TEXT("TextureQuality")) == 0) QualityLevel = CachedQualityLevels.TextureQuality;
 	else if (FCString::Strcmp(InGroupName, TEXT("EffectsQuality")) == 0) QualityLevel = CachedQualityLevels.EffectsQuality;
 
-	return (QualityLevel == InQualityLevel) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return (QualityLevel == InQualityLevel) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SScalabilitySettings::OnGroupQualityLevelChanged(ESlateCheckBoxState::Type NewState, const TCHAR* InGroupName, int32 InQualityLevel)
+void SScalabilitySettings::OnGroupQualityLevelChanged(ECheckBoxState NewState, const TCHAR* InGroupName, int32 InQualityLevel)
 {
 	if (FCString::Strcmp(InGroupName, TEXT("ResolutionQuality")) == 0) CachedQualityLevels.ResolutionQuality = InQualityLevel;
 	else if (FCString::Strcmp(InGroupName, TEXT("ViewDistanceQuality")) == 0) CachedQualityLevels.ViewDistanceQuality = InQualityLevel;
@@ -49,9 +49,9 @@ float SScalabilitySettings::GetResolutionScale() const
 	return (float)(CachedQualityLevels.ResolutionQuality - Scalability::MinResolutionScale) / (float)(Scalability::MaxResolutionScale - Scalability::MinResolutionScale);
 }
 
-FString SScalabilitySettings::GetResolutionScaleString() const
+FText SScalabilitySettings::GetResolutionScaleString() const
 {
-	return FString::Printf(TEXT("%i%%"), (int32)(100.0f * FMath::Square((float)CachedQualityLevels.ResolutionQuality / 100.0f)));
+	return FText::AsPercent(FMath::Square((float)CachedQualityLevels.ResolutionQuality / 100.0f));
 }
 
 TSharedRef<SWidget> SScalabilitySettings::MakeButtonWidget(const FText& InName, const TCHAR* InGroupName, int32 InQualityLevel, const FText& InToolTip)
@@ -122,15 +122,15 @@ SGridPanel::FSlot& SScalabilitySettings::MakeGridSlot(int32 InCol, int32 InRow, 
 		.ColumnSpan(InColSpan);
 }
 
-ESlateCheckBoxState::Type SScalabilitySettings::IsMonitoringPerformance() const
+ECheckBoxState SScalabilitySettings::IsMonitoringPerformance() const
 {
 	const bool bMonitorEditorPerformance = GEditor->GetEditorUserSettings().bMonitorEditorPerformance;
-	return bMonitorEditorPerformance ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bMonitorEditorPerformance ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SScalabilitySettings::OnMonitorPerformanceChanged(ESlateCheckBoxState::Type NewState)
+void SScalabilitySettings::OnMonitorPerformanceChanged(ECheckBoxState NewState)
 {
-	const bool bNewEnabledState = ( NewState == ESlateCheckBoxState::Checked );
+	const bool bNewEnabledState = ( NewState == ECheckBoxState::Checked );
 
 	auto& Settings = GEditor->AccessEditorUserSettings();
 	Settings.bMonitorEditorPerformance = bNewEnabledState;

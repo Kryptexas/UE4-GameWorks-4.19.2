@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PersonaPrivatePCH.h"
 
@@ -16,6 +16,18 @@
 #include "UnrealWidget.h"
 #include "MouseDeltaTracker.h"
 #include "ScopedTransaction.h"
+#include "Components/DirectionalLightComponent.h"
+#include "Components/ExponentialHeightFogComponent.h"
+#include "CanvasTypes.h"
+#include "Engine/TextureCube.h"
+#include "PhysicsEngine/PhysicsAsset.h"
+#include "Engine/CollisionProfile.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "EngineUtils.h"
+#include "GameFramework/WorldSettings.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "Components/WindDirectionalSourceComponent.h"
+#include "Engine/StaticMesh.h"
 
 namespace {
 	// Value from UE3
@@ -67,7 +79,7 @@ IMPLEMENT_HIT_PROXY( HPersonaBoneProxy, HHitProxy );
 // FAnimationViewportClient
 
 FAnimationViewportClient::FAnimationViewportClient( FPreviewScene& InPreviewScene, TWeakPtr<FPersona> InPersonaPtr )
-	: FEditorViewportClient(GLevelEditorModeTools(), &InPreviewScene)
+	: FEditorViewportClient(nullptr, &InPreviewScene)
 	, PersonaPtr( InPersonaPtr )
 	, bManipulating(false)
 	, bInTransaction(false)
@@ -77,6 +89,7 @@ FAnimationViewportClient::FAnimationViewportClient( FPreviewScene& InPreviewScen
 	, SelectedWindActor(NULL)
 	, bFocusOnDraw(false)
 	, BodyTraceDistance(100000.0f)
+	, bShouldUpdateDefaultValues(false)
 {
 	// load config
 	ConfigOption = UPersonaOptions::StaticClass()->GetDefaultObject<UPersonaOptions>();
@@ -413,7 +426,14 @@ void FAnimationViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 		{
 			DrawMeshBonesAdditiveBasePose(PreviewSkelMeshComp.Get(), PDI);
 		}
-
+		if(PreviewSkelMeshComp->bDisplayBakedAnimation)
+		{
+			DrawMeshBonesBakedAnimation(PreviewSkelMeshComp.Get(), PDI);
+		}
+		if(PreviewSkelMeshComp->bDisplaySourceAnimation)
+		{
+			DrawMeshBonesSourceRawAnimation(PreviewSkelMeshComp.Get(), PDI);
+		}
 		// Display normal vectors of each simulation vertex
 		if ( PreviewSkelMeshComp->bDisplayClothingNormals )
 		{
@@ -585,6 +605,174 @@ void FAnimationViewportClient::DrawUVsForMesh(FViewport* InViewport, FCanvas* In
 	DrawUVs(InViewport, InCanvas, InTextYPos, LODLevel, UVChannelToDraw, SelectedEdgeTexCoords, NULL, &PreviewSkelMeshComp->GetSkeletalMeshResource()->LODModels[LODLevel] );
 }
 
+FAnimNode_SkeletalControlBase* FAnimationViewportClient::FindSkeletalControlAnimNode(TWeakObjectPtr<UAnimGraphNode_SkeletalControlBase> AnimGraphNode) const
+{
+	FAnimNode_SkeletalControlBase* AnimNode = NULL;
+
+	if (!PreviewSkelMeshComp.IsValid() || !PreviewSkelMeshComp->GetAnimInstance())
+	{
+		return NULL;
+	}
+
+	if (AnimGraphNode.IsValid())
+	{
+		// find an anim node index from debug data
+		UAnimBlueprintGeneratedClass* AnimBlueprintClass = Cast<UAnimBlueprintGeneratedClass>(PreviewSkelMeshComp->GetAnimInstance()->GetClass());
+		if (AnimBlueprintClass)
+		{
+			FAnimBlueprintDebugData& DebugData = AnimBlueprintClass->GetAnimBlueprintDebugData();
+			int32* IndexPtr = DebugData.NodePropertyToIndexMap.Find(AnimGraphNode);
+
+			if (IndexPtr)
+			{
+				int32 AnimNodeIndex = *IndexPtr;
+				// reverse node index temporarily because of a bug in NodeGuidToIndexMap
+				AnimNodeIndex = AnimBlueprintClass->AnimNodeProperties.Num() - AnimNodeIndex - 1;
+
+				AnimNode = AnimBlueprintClass->AnimNodeProperties[AnimNodeIndex]->ContainerPtrToValuePtr<FAnimNode_SkeletalControlBase>(PreviewSkelMeshComp->GetAnimInstance());
+			}
+		}
+	}
+
+	return AnimNode;
+}
+
+void FAnimationViewportClient::FindSelectedAnimGraphNode()
+{
+	bool bSelected = false;
+	// finding a selected node
+	if (PersonaPtr.IsValid() && PreviewSkelMeshComp.IsValid())
+	{
+		const FGraphPanelSelectionSet SelectedNodes = PersonaPtr.Pin()->GetSelectedNodes();
+
+		// don't support multi-selection
+		if (SelectedNodes.Num() == 1)
+		{
+			FGraphPanelSelectionSet::TConstIterator NodeIt(SelectedNodes);
+			// first element
+			UAnimGraphNode_SkeletalControlBase* AnimGraphNode = Cast<UAnimGraphNode_SkeletalControlBase>(*NodeIt);
+
+			if (AnimGraphNode)
+			{
+				FAnimNode_SkeletalControlBase* AnimNode = FindSkeletalControlAnimNode(AnimGraphNode);
+
+				if (AnimNode)
+				{
+					bSelected = true;
+
+					// when selected first after AnimGraph is opened, assign previous data to current node
+					if (SelectedSkelControlAnimGraph != AnimGraphNode)
+					{
+						if (SelectedSkelControlAnimGraph.IsValid())
+						{
+							SelectedSkelControlAnimGraph->DeselectActor(PreviewSkelMeshComp.Get());
+						}
+
+						// make same values to ensure data consistency
+						AnimGraphNode->CopyNodeDataTo(AnimNode);
+
+						WidgetMode = (FWidget::EWidgetMode)AnimGraphNode->GetWidgetMode(PreviewSkelMeshComp.Get());
+						if (WidgetMode == FWidget::WM_Scale)
+						{
+							SetWidgetCoordSystemSpace(COORD_Local);
+						}
+						else
+						{
+							SetWidgetCoordSystemSpace(COORD_World);
+						}
+					}
+					else
+					{
+						if (bShouldUpdateDefaultValues)
+						{
+							// copy updated values into internal node to ensure data consistency
+							AnimGraphNode->CopyNodeDataFrom(AnimNode);
+							bShouldUpdateDefaultValues = false;
+						}
+					}
+
+					AnimGraphNode->MoveSelectActorLocation(PreviewSkelMeshComp.Get(), AnimNode);
+					SelectedSkelControlAnimGraph = AnimGraphNode;
+				}
+			}
+		}
+	}
+
+	if (!bSelected)
+	{
+		if (SelectedSkelControlAnimGraph.IsValid())
+		{
+			SelectedSkelControlAnimGraph->DeselectActor(PreviewSkelMeshComp.Get());
+		}
+		SelectedSkelControlAnimGraph.Reset();
+	}
+}
+
+void FAnimationViewportClient::ClearSelectedAnimGraphNode()
+{
+	if (SelectedSkelControlAnimGraph.IsValid())
+	{
+		SelectedSkelControlAnimGraph->DeselectActor(PreviewSkelMeshComp.Get());
+	}
+}
+
+void FAnimationViewportClient::PostUndo()
+{
+	// undo for skeletal controllers
+	// search all UAnimGraphNode_SkeletalControlBase nodes and apply data
+	UEdGraph* FocusedGraph = PersonaPtr.Pin()->GetFocusedGraph();
+
+	// @fixme : fix this to better way than looping all nodes
+	if (FocusedGraph)
+	{
+		// find UAnimGraphNode_SkeletalControlBase
+		for (UEdGraphNode* Node : FocusedGraph->Nodes)
+		{
+			UAnimGraphNode_SkeletalControlBase* AnimGraphNode = Cast<UAnimGraphNode_SkeletalControlBase>(Node);
+
+			if (AnimGraphNode)
+			{
+				FAnimNode_SkeletalControlBase* AnimNode = FindSkeletalControlAnimNode(AnimGraphNode);
+
+				if (AnimNode)
+				{
+					// copy undo data
+					AnimGraphNode->CopyNodeDataTo(AnimNode);
+				}
+			}
+		}
+	}
+}
+
+void FAnimationViewportClient::PostCompile()
+{
+	// reset the selected anim graph to copy 
+	SelectedSkelControlAnimGraph.Reset();
+
+	// if the user manipulated Pin values directly from the node, then should copy updated values to the internal node to retain data consistency
+	UEdGraph* FocusedGraph = PersonaPtr.Pin()->GetFocusedGraph();
+
+	// @fixme : fix this to better way than looping all nodes
+	if (FocusedGraph)
+	{
+		// find UAnimGraphNode_SkeletalControlBase
+		for (UEdGraphNode* Node : FocusedGraph->Nodes)
+		{
+			UAnimGraphNode_SkeletalControlBase* AnimGraphNode = Cast<UAnimGraphNode_SkeletalControlBase>(Node);
+
+			if (AnimGraphNode)
+			{
+				FAnimNode_SkeletalControlBase* AnimNode = FindSkeletalControlAnimNode(AnimGraphNode);
+
+				if (AnimNode)
+				{
+					AnimGraphNode->CopyNodeDataFrom(AnimNode);
+				}
+			}
+		}
+	}
+}
+
 void FAnimationViewportClient::Tick(float DeltaSeconds) 
 {
 	FEditorViewportClient::Tick(DeltaSeconds);
@@ -611,6 +799,9 @@ void FAnimationViewportClient::Tick(float DeltaSeconds)
 		FBoxSphereBounds Bounds = EditorFloorComp->CalcBounds(EditorFloorComp->GetRelativeTransform());
 		PreviewComp->ConsumeRootMotion(Bounds.GetBox().Min, Bounds.GetBox().Max);
 	}	
+
+	FindSelectedAnimGraphNode();
+
 }
 
 void FAnimationViewportClient::SetCameraTargetLocation(const FSphere &BoundSphere, float DeltaSeconds)
@@ -658,7 +849,7 @@ void FAnimationViewportClient::ShowBoneNames( FCanvas* Canvas, FSceneView* View 
 		const FColor BoneColor = FColor::White;
 		if (BoneColor.A != 0)
 		{
-			const FVector BonePos = PreviewSkelMeshComp->ComponentToWorld.TransformPosition(PreviewSkelMeshComp->SpaceBases[BoneIndex].GetLocation());
+			const FVector BonePos = PreviewSkelMeshComp->ComponentToWorld.TransformPosition(PreviewSkelMeshComp->GetSpaceBases()[BoneIndex].GetLocation());
 
 			const FPlane proj = View->Project(BonePos);
 			if (proj.W > 0.f)
@@ -756,6 +947,20 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 				CurYOffset += YL + 2;
 			}
 			CurYOffset += 2;
+		}
+	}
+
+	UAnimPreviewInstance* PreviewInstance = PreviewSkelMeshComp->PreviewInstance;
+	if( PreviewInstance )
+	{
+		// see if you have anim sequence that has transform curves
+		UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->CurrentAsset);
+		if ( Sequence && Sequence->DoesNeedRebake() )
+		{
+			FColor SubHeadlineColour(202, 66, 0);
+			InfoString = TEXT("Animation is being edited. To apply to raw animation data, click \"Apply\"");
+			Canvas->DrawShadowedString(CurXOffset, CurYOffset, *InfoString, GEngine->GetSmallFont(), SubHeadlineColour);
+			CurYOffset += YL + 2;
 		}
 	}
 
@@ -869,7 +1074,7 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 				const FName BoneName = PreviewSkelMeshComp->SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex);
 				FTransform ReferenceTransform = PreviewSkelMeshComp->SkeletalMesh->RefSkeleton.GetRefBonePose()[BoneIndex];
 				FTransform LocalTransform = PreviewSkelMeshComp->LocalAtoms[BoneIndex];
-				FTransform ComponentTransform = PreviewSkelMeshComp->SpaceBases[BoneIndex];
+				FTransform ComponentTransform = PreviewSkelMeshComp->GetSpaceBases()[BoneIndex];
 
 				CurYOffset += YL + 2;
 				InfoString = FString::Printf(TEXT("Local :%s"), *LocalTransform.ToString());
@@ -963,8 +1168,14 @@ void FAnimationViewportClient::DisplayInfo(FCanvas* Canvas, FSceneView* View, bo
 
 int32 FAnimationViewportClient::FindSelectedBone() const
 {
-	int32 SelectedBone = -1;
-	if (PreviewSkelMeshComp.IsValid() && (PreviewSkelMeshComp->BonesOfInterest.Num() == 1) )
+	int32 SelectedBone = INDEX_NONE;
+	if (SelectedSkelControlAnimGraph.IsValid())
+	{		
+		FName BoneName = SelectedSkelControlAnimGraph->FindSelectedBone();
+		SelectedBone = PreviewSkelMeshComp->GetBoneIndex(BoneName);
+	}
+
+	if (SelectedBone == INDEX_NONE && PreviewSkelMeshComp.IsValid() && (PreviewSkelMeshComp->BonesOfInterest.Num() == 1) )
 	{
 		SelectedBone = PreviewSkelMeshComp->BonesOfInterest[0];
 	}
@@ -1024,6 +1235,11 @@ void FAnimationViewportClient::ProcessClick(class FSceneView& View, class HHitPr
 				SharedPersona->DeselectAll();
 				SelectedWindActor = WindActor;
 			}
+			else if (SelectedSkelControlAnimGraph.IsValid() && SelectedSkelControlAnimGraph->IsActorClicked(ActorHitProxy))
+			{
+				// do some actions when hit
+				SelectedSkelControlAnimGraph->ProcessActorClick(ActorHitProxy);
+			}
 		}
 	}
 	else
@@ -1075,7 +1291,8 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 		{
 			FTransform CurrentSkelControlTM(
 				SelectedSocket ? SelectedSocket->RelativeRotation : SkelControl->Rotation,
-				SelectedSocket ? SelectedSocket->RelativeLocation : SkelControl->Translation);
+				SelectedSocket ? SelectedSocket->RelativeLocation : SkelControl->Translation,
+				SelectedSocket ? SelectedSocket->RelativeScale : SkelControl->Scale);
 
 			FTransform BaseTM;
 
@@ -1089,10 +1306,11 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 			}
 
 			// Remove SkelControl's orientation from BoneMatrix, as we need to translate/rotate in the non-SkelControlled space
-			BaseTM = BaseTM.Inverse() * CurrentSkelControlTM;
+			BaseTM = BaseTM.GetRelativeTransformReverse(CurrentSkelControlTM);
 
 			const bool bDoRotation    = WidgetMode == FWidget::WM_Rotate    || WidgetMode == FWidget::WM_TranslateRotateZ;
 			const bool bDoTranslation = WidgetMode == FWidget::WM_Translate || WidgetMode == FWidget::WM_TranslateRotateZ;
+			const bool bDoScale = WidgetMode == FWidget::WM_Scale;
 
 			if (bDoRotation)
 			{
@@ -1108,7 +1326,16 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 
 				FRotator NewRotation = ( CurrentSkelControlTM * FTransform( DeltaQuat )).Rotator();
 
-				if ( SelectedSocket )
+				if (SelectedSkelControlAnimGraph.IsValid())
+				{
+					FAnimNode_SkeletalControlBase* AnimNode = FindSkeletalControlAnimNode(SelectedSkelControlAnimGraph);
+					if (AnimNode)
+					{
+						SelectedSkelControlAnimGraph->DoRotation(PreviewSkelMeshComp.Get(), Rot, AnimNode);
+						bShouldUpdateDefaultValues = true;
+					}
+				}
+				else if ( SelectedSocket )
 				{
 					SelectedSocket->RelativeRotation = NewRotation;
 				}
@@ -1121,8 +1348,16 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 			if (bDoTranslation)
 			{
 				FVector4 BoneSpaceOffset = BaseTM.TransformVector(Drag);
-
-				if (SelectedSocket)
+				if (SelectedSkelControlAnimGraph.IsValid())
+				{
+					FAnimNode_SkeletalControlBase* AnimNode = FindSkeletalControlAnimNode(SelectedSkelControlAnimGraph);
+					if (AnimNode)
+					{
+						SelectedSkelControlAnimGraph->DoTranslation(PreviewSkelMeshComp.Get(), Drag, AnimNode);
+						bShouldUpdateDefaultValues = true;
+					}
+				}
+				else if (SelectedSocket)
 				{
 					SelectedSocket->RelativeLocation += BoneSpaceOffset;
 				}
@@ -1131,8 +1366,38 @@ bool FAnimationViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisList:
 					SkelControl->Translation += BoneSpaceOffset;
 				}
 			}
+			if(bDoScale)
+			{
+				FVector4 BoneSpaceScaleOffset;
 
-				//@TODO: ANIMATION: Add scaling support here
+				if (ModeTools->GetCoordSystem() == COORD_World)
+				{
+					BoneSpaceScaleOffset = BaseTM.TransformVector(Scale);
+				}
+				else
+				{
+					BoneSpaceScaleOffset = Scale;
+				}
+
+				if (SelectedSkelControlAnimGraph.IsValid())
+				{
+					FAnimNode_SkeletalControlBase* AnimNode = FindSkeletalControlAnimNode(SelectedSkelControlAnimGraph);
+					if (AnimNode)
+					{
+						SelectedSkelControlAnimGraph->DoScale(PreviewSkelMeshComp.Get(), Scale, AnimNode);
+						bShouldUpdateDefaultValues = true;
+					}
+				}
+				else if(SelectedSocket)
+				{
+					SelectedSocket->RelativeScale += BoneSpaceScaleOffset;
+				}
+				else
+				{
+					SkelControl->Scale += BoneSpaceScaleOffset;
+				}
+			}
+
 			}
 		else if( WindActor.IsValid() )
 		{
@@ -1262,12 +1527,25 @@ FWidget::EWidgetMode FAnimationViewportClient::GetWidgetMode() const
 	}
 	}
 
+	if (SelectedSkelControlAnimGraph.IsValid())
+	{
+		Mode = (FWidget::EWidgetMode)SelectedSkelControlAnimGraph->GetWidgetMode(PreviewSkelMeshComp.Get());
+	}
+
 	return Mode;
 }
 
 FVector FAnimationViewportClient::GetWidgetLocation() const
 {
-	if( PreviewSkelMeshComp->BonesOfInterest.Num() > 0 )
+	if (SelectedSkelControlAnimGraph.IsValid())
+	{
+		FAnimNode_SkeletalControlBase* AnimNode = FindSkeletalControlAnimNode(SelectedSkelControlAnimGraph.Get());
+		if (AnimNode)
+		{
+			return SelectedSkelControlAnimGraph->GetWidgetLocation(PreviewSkelMeshComp.Get(), AnimNode);
+		}
+	}
+	else if( PreviewSkelMeshComp->BonesOfInterest.Num() > 0 )
 	{
 		int32 BoneIndex = PreviewSkelMeshComp->BonesOfInterest.Last();
 		const FName BoneName = PreviewSkelMeshComp->SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex);
@@ -1299,6 +1577,15 @@ FMatrix FAnimationViewportClient::GetWidgetCoordSystem() const
 
 	if( bIsLocal )
 	{
+		if (SelectedSkelControlAnimGraph.IsValid())
+		{
+			FName BoneName = SelectedSkelControlAnimGraph->FindSelectedBone();
+			int32 BoneIndex = PreviewSkelMeshComp->GetBoneIndex(BoneName);
+			FTransform BoneMatrix = PreviewSkelMeshComp->GetBoneTransform(BoneIndex);
+
+			return BoneMatrix.ToMatrixNoScale().RemoveTranslation();
+		}
+		else
 		if ( PreviewSkelMeshComp->BonesOfInterest.Num() > 0 )
 		{
 			int32 BoneIndex = PreviewSkelMeshComp->BonesOfInterest.Last();
@@ -1327,12 +1614,12 @@ FMatrix FAnimationViewportClient::GetWidgetCoordSystem() const
 
 ECoordSystem FAnimationViewportClient::GetWidgetCoordSystemSpace() const
 { 
-	return GLevelEditorModeTools().GetCoordSystem();
+	return ModeTools->GetCoordSystem();
 }
 
 void FAnimationViewportClient::SetWidgetCoordSystemSpace(ECoordSystem NewCoordSystem)
 {
-	GLevelEditorModeTools().SetCoordSystem(NewCoordSystem);
+	ModeTools->SetCoordSystem(NewCoordSystem);
 	Invalidate();
 }
 
@@ -1366,7 +1653,24 @@ bool FAnimationViewportClient::InputKey( FViewport* Viewport, int32 ControllerId
 
 		if (SelectedBone >= 0 || SelectedSocket || SelectedWind.IsValid())
 		{
+			if (SelectedSkelControlAnimGraph.IsValid())
+			{
+				WidgetMode = (FWidget::EWidgetMode)SelectedSkelControlAnimGraph->ChangeToNextWidgetMode(PreviewSkelMeshComp.Get(), WidgetMode);
+				if (WidgetMode == FWidget::WM_Scale)
+				{
+					SetWidgetCoordSystemSpace(COORD_Local);
+				}
+				else
+				{
+					SetWidgetCoordSystemSpace(COORD_World);
+				}
+			}
+			else
 			if (WidgetMode == FWidget::WM_Rotate)
+			{
+				WidgetMode = FWidget::WM_Scale;
+			}
+			else if (WidgetMode == FWidget::WM_Scale)
 			{
 				WidgetMode = FWidget::WM_Translate;
 			}
@@ -1395,7 +1699,27 @@ bool FAnimationViewportClient::InputKey( FViewport* Viewport, int32 ControllerId
 
 void FAnimationViewportClient::SetWidgetMode(FWidget::EWidgetMode InMode)
 {
-	WidgetMode = InMode;
+	bool bAnimBPMode = PersonaPtr.Pin()->IsModeCurrent(FPersonaModes::AnimBlueprintEditMode);
+
+	// support WER keys to change gizmo mode for Bone Controller preivew in anim blueprint
+	if (bAnimBPMode)
+	{
+		if (!bManipulating)
+		{
+			int32 SelectedBone = FindSelectedBone();
+			if (SelectedBone >= 0 && SelectedSkelControlAnimGraph.IsValid())
+			{
+				if (SelectedSkelControlAnimGraph->SetWidgetMode(PreviewSkelMeshComp.Get(), InMode))
+				{
+					WidgetMode = InMode;
+				}
+			}
+		}
+	}
+	else
+	{
+		WidgetMode = InMode;
+	}
 
 	// Force viewport to redraw
 	Viewport->Invalidate();
@@ -1403,8 +1727,7 @@ void FAnimationViewportClient::SetWidgetMode(FWidget::EWidgetMode InMode)
 
 bool FAnimationViewportClient::CanSetWidgetMode(FWidget::EWidgetMode NewMode) const
 {
-	//@TODO: ANIMATION: Add scaling support here
-	return (NewMode != FWidget::WM_Scale);
+	return true;
 }
 
 void FAnimationViewportClient::SetLocalAxesMode(ELocalAxesMode::Type AxesMode)
@@ -1466,15 +1789,31 @@ void FAnimationViewportClient::DrawMeshBonesAdditiveBasePose(UDebugSkelMeshCompo
 	}
 }
 
+void FAnimationViewportClient::DrawMeshBonesSourceRawAnimation(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const
+{
+	if(MeshComponent && MeshComponent->SkeletalMesh)
+	{
+		DrawBonesFromTransforms(MeshComponent->SourceAnimationPoses, MeshComponent, PDI, FColor(195, 195, 195, 255), FColor(195, 159, 195, 255));
+	}
+}
+
+void FAnimationViewportClient::DrawMeshBonesBakedAnimation(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const
+{
+	if(MeshComponent && MeshComponent->SkeletalMesh)
+	{
+		DrawBonesFromTransforms(MeshComponent->BakedAnimationPoses, MeshComponent, PDI, FColor(0, 128, 192, 255), FColor(0, 128, 192, 255));
+	}
+}
+
 void FAnimationViewportClient::DrawMeshBones(USkeletalMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const
 {
 	if ( MeshComponent && MeshComponent->SkeletalMesh )
 	{
 		TArray<FTransform> WorldTransforms;
-		WorldTransforms.AddUninitialized(MeshComponent->SpaceBases.Num());
+		WorldTransforms.AddUninitialized(MeshComponent->GetNumSpaceBases());
 
 		TArray<FLinearColor> BoneColours;
-		BoneColours.AddUninitialized(MeshComponent->SpaceBases.Num());
+		BoneColours.AddUninitialized(MeshComponent->GetNumSpaceBases());
 
 		TArray<int32> SelectedBones;
 		if(UDebugSkelMeshComponent* DebugMeshComponent = Cast<UDebugSkelMeshComponent>(MeshComponent))
@@ -1488,7 +1827,7 @@ void FAnimationViewportClient::DrawMeshBones(USkeletalMeshComponent * MeshCompon
 			const int32 BoneIndex = MeshComponent->RequiredBones[Index];
 			const int32 ParentIndex = MeshComponent->SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
 
-			WorldTransforms[BoneIndex] = MeshComponent->SpaceBases[BoneIndex]*MeshComponent->ComponentToWorld;
+			WorldTransforms[BoneIndex] = MeshComponent->GetSpaceBases()[BoneIndex]*MeshComponent->ComponentToWorld;
 			
 			if(SelectedBones.Contains(BoneIndex))
 			{
@@ -1543,7 +1882,7 @@ void FAnimationViewportClient::DrawBones(const USkeletalMeshComponent* MeshCompo
 			//Render Sphere for bone end point and a cone between it and its parent.
 			PDI->SetHitProxy( new HPersonaBoneProxy( MeshComponent->SkeletalMesh->RefSkeleton.GetBoneName(BoneIndex)) );
 			DrawWireSphere(PDI, End, LineColor, SphereRadius, 10, SDPG_Foreground);
-			DrawWireCone(PDI, FRotationMatrix::MakeFromX(EndToStart)*FTranslationMatrix(End), ConeLength, Angle, 4, LineColor, SDPG_Foreground, Verts);
+			DrawWireCone(PDI, Verts, FRotationMatrix::MakeFromX(EndToStart)*FTranslationMatrix(End), ConeLength, Angle, 4, LineColor, SDPG_Foreground);
 			PDI->SetHitProxy( NULL );
 		
 			// draw gizmo
@@ -1586,15 +1925,18 @@ void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent*
 	if ( MeshComponent && MeshComponent->SkeletalMesh && BonesOfInterest.Num() > 0 )
 	{
 		TArray<FTransform> WorldTransforms;
-		WorldTransforms.AddUninitialized(MeshComponent->SpaceBases.Num());
+		WorldTransforms.AddUninitialized(MeshComponent->GetNumSpaceBases());
 
 		TArray<FLinearColor> BoneColours;
-		BoneColours.AddUninitialized(MeshComponent->SpaceBases.Num());
+		BoneColours.AddUninitialized(MeshComponent->GetNumSpaceBases());
 
 		TArray<FBoneIndexType> RequiredBones;
 
 		const FReferenceSkeleton& RefSkeleton = MeshComponent->SkeletalMesh->RefSkeleton;
-		const FSlateColor SelectionColor = FEditorStyle::GetSlateColor("SelectionColor");
+
+		static const FName SelectionColorName("SelectionColor");
+
+		const FSlateColor SelectionColor = FEditorStyle::GetSlateColor(SelectionColorName);
 		const FLinearColor LinearSelectionColor( SelectionColor.IsColorSpecified() ? SelectionColor.GetSpecifiedColor() : FLinearColor::White );
 
 		// we could cache parent bones as we calculate, but right now I'm not worried about perf issue of this
@@ -1615,7 +1957,7 @@ void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent*
 					//found a bone we are interested in
 					if(ParentIndex >= 0)
 					{
-						WorldTransforms[ParentIndex] = MeshComponent->SpaceBases[ParentIndex]*MeshComponent->ComponentToWorld;
+						WorldTransforms[ParentIndex] = MeshComponent->GetSpaceBases()[ParentIndex]*MeshComponent->ComponentToWorld;
 					}
 					BoneColours[BoneIndex] = LinearSelectionColor;
 					bDrawBone = true;
@@ -1633,7 +1975,7 @@ void FAnimationViewportClient::DrawMeshSubsetBones(const USkeletalMeshComponent*
 			{
 				//add to the list
 				RequiredBones.AddUnique(BoneIndex);
-				WorldTransforms[BoneIndex] = MeshComponent->SpaceBases[BoneIndex]*MeshComponent->ComponentToWorld;
+				WorldTransforms[BoneIndex] = MeshComponent->GetSpaceBases()[BoneIndex]*MeshComponent->ComponentToWorld;
 			}
 		}
 
@@ -1661,7 +2003,7 @@ void FAnimationViewportClient::DrawSockets( TArray<USkeletalMeshSocket*>& Socket
 			FVector Start, End;
 			if (ParentIndex >=0)
 			{
-				FTransform WorldTransformParent = DebugMeshComponent->SpaceBases[ParentIndex]*DebugMeshComponent->ComponentToWorld;
+				FTransform WorldTransformParent = DebugMeshComponent->GetSpaceBases()[ParentIndex]*DebugMeshComponent->ComponentToWorld;
 				Start = WorldTransformParent.GetLocation();
 				End = WorldTransformSocket.GetLocation();
 			}
@@ -1889,13 +2231,15 @@ float FAnimationViewportClient::GetWindStrengthSliderValue() const
 	return 0;
 }
 
-FString FAnimationViewportClient::GetWindStrengthLabel() const
+FText FAnimationViewportClient::GetWindStrengthLabel() const
 {
 	//Clamp slide value so that minimum value displayed is 0.00 and maximum is 1.0
 	float SliderValue = FMath::Clamp<float>(GetWindStrengthSliderValue(), 0.0f, 1.0f);
 
-	FString Value = FString::Printf(TEXT("%.2f%"),SliderValue);
-	return Value;
+	static const FNumberFormattingOptions FormatOptions = FNumberFormattingOptions()
+		.SetMinimumFractionalDigits(2)
+		.SetMaximumFractionalDigits(2);
+	return FText::AsNumber(SliderValue, &FormatOptions);
 }
 
 void FAnimationViewportClient::SetGravityScale( float SliderPos )
@@ -1916,13 +2260,15 @@ float FAnimationViewportClient::GetGravityScaleSliderValue() const
 	return GravityScaleSliderValue;
 }
 
-FString FAnimationViewportClient::GetGravityScaleLabel() const
+FText FAnimationViewportClient::GetGravityScaleLabel() const
 {
 	//Clamp slide value so that minimum value displayed is 0.00 and maximum is 4.0
 	float SliderValue = FMath::Clamp<float>(GetGravityScaleSliderValue()*4, 0.0f, 4.0f);
 
-	FString Value = FString::Printf(TEXT("%.2f%"),SliderValue);
-	return Value;
+	static const FNumberFormattingOptions FormatOptions = FNumberFormattingOptions()
+		.SetMinimumFractionalDigits(2)
+		.SetMaximumFractionalDigits(2);
+	return FText::AsNumber(SliderValue, &FormatOptions);
 }
 
 void FAnimationViewportClient::ToggleShowNormals()

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Actions/PawnAction_Move.h"
@@ -70,26 +70,26 @@ bool UPawnAction_Move::Start()
 	return bResult;
 }
 
-EPathFollowingRequestResult::Type UPawnAction_Move::RequestMove(AAIController* Controller)
+EPathFollowingRequestResult::Type UPawnAction_Move::RequestMove(AAIController& Controller)
 {
 	EPathFollowingRequestResult::Type RequestResult = EPathFollowingRequestResult::Failed;
 
 	if (GoalActor != NULL)
 	{
-		const bool bAtGoal = CheckAlreadyAtGoal(Controller, GoalActor, AcceptableRadius);
+		const bool bAtGoal = CheckAlreadyAtGoal(Controller, *GoalActor, AcceptableRadius);
 		RequestResult = bAtGoal ? EPathFollowingRequestResult::AlreadyAtGoal : 
-			bUpdatePathToGoal ? Controller->MoveToActor(GoalActor, AcceptableRadius, bFinishOnOverlap, bUsePathfinding, bAllowStrafe, FilterClass) :
-			Controller->MoveToLocation(GoalActor->GetActorLocation(), AcceptableRadius, bFinishOnOverlap, bUsePathfinding, bProjectGoalToNavigation, bAllowStrafe);
+			bUpdatePathToGoal ? Controller.MoveToActor(GoalActor, AcceptableRadius, bFinishOnOverlap, bUsePathfinding, bAllowStrafe, FilterClass) :
+			Controller.MoveToLocation(GoalActor->GetActorLocation(), AcceptableRadius, bFinishOnOverlap, bUsePathfinding, bProjectGoalToNavigation, bAllowStrafe);
 	}
 	else if (FAISystem::IsValidLocation(GoalLocation))
 	{
 		const bool bAtGoal = CheckAlreadyAtGoal(Controller, GoalLocation, AcceptableRadius);
 		RequestResult = bAtGoal ? EPathFollowingRequestResult::AlreadyAtGoal :
-			Controller->MoveToLocation(GoalLocation, AcceptableRadius, bFinishOnOverlap, bUsePathfinding, bProjectGoalToNavigation, bAllowStrafe, FilterClass);
+			Controller.MoveToLocation(GoalLocation, AcceptableRadius, bFinishOnOverlap, bUsePathfinding, bProjectGoalToNavigation, bAllowStrafe, FilterClass);
 	}
 	else
 	{
-		UE_VLOG(Controller, LogPawnAction, Warning, TEXT("UPawnAction_Move::Start: no valid move goal set"));
+		UE_VLOG(&Controller, LogPawnAction, Warning, TEXT("UPawnAction_Move::Start: no valid move goal set"));
 	}
 
 	return RequestResult;
@@ -103,14 +103,14 @@ bool UPawnAction_Move::PerformMoveAction()
 		return false;
 	}
 
-	if (MyController->ShouldPostponePathUpdates())
+	if (bUsePathfinding && MyController->ShouldPostponePathUpdates())
 	{
 		UE_VLOG(MyController, LogPawnAction, Log, TEXT("Can't path right now, waiting..."));
-		MyController->GetWorldTimerManager().SetTimer(this, &UPawnAction_Move::DeferredPerformMoveAction, 0.1f);
+		MyController->GetWorldTimerManager().SetTimer(TimerHandle_DeferredPerformMoveAction, this, &UPawnAction_Move::DeferredPerformMoveAction, 0.1f);
 		return true;
 	}
 
-	const EPathFollowingRequestResult::Type RequestResult = RequestMove(MyController);
+	const EPathFollowingRequestResult::Type RequestResult = RequestMove(*MyController);
 	bool bResult = true;
 
 	if (RequestResult == EPathFollowingRequestResult::RequestSuccessful)
@@ -158,6 +158,11 @@ bool UPawnAction_Move::Pause(const UPawnAction* PausedBy)
 
 bool UPawnAction_Move::Resume()
 {
+	if (GoalActor != NULL && GoalActor->IsPendingKillPending())
+	{
+		return false;
+	}
+
 	bool bResult = Super::Resume();
 	if (bResult)
 	{
@@ -168,6 +173,7 @@ bool UPawnAction_Move::Resume()
 			if (MyController->ResumeMove(RequestID) == false)
 			{
 				// try requesting a new move
+				UE_VLOG(MyController, LogPawnAction, Log, TEXT("Resume move failed, requesting a new one."));
 				StopWaitingForMessages();
 				
 				bResult = PerformMoveAction();
@@ -220,7 +226,7 @@ void UPawnAction_Move::ClearPath()
 	ClearPendingRepath();
 	if (Path.IsValid())
 	{
-		Path->RemoveObserver(PathObserver);
+		Path->RemoveObserver(PathObserverDelegateHandle);
 		Path = NULL;
 	}
 }
@@ -231,7 +237,7 @@ void UPawnAction_Move::SetPath(FNavPathSharedRef InPath)
 	{
 		ClearPath();
 		Path = InPath;
-		Path->AddObserver(PathObserver);
+		PathObserverDelegateHandle = Path->AddObserver(PathObserver);
 
 		// skip auto updates, it will be handled manually to include controller's ShouldPostponePathUpdates()
 		Path->EnableRecalculationOnInvalidation(false);
@@ -276,7 +282,7 @@ void UPawnAction_Move::TryToRepath()
 		}
 		else if (GetWorld())
 		{
-			GetWorld()->GetTimerManager().SetTimer(this, &UPawnAction_Move::TryToRepath, 0.25f);
+			GetWorld()->GetTimerManager().SetTimer(TimerHandle_TryToRepath, this, &UPawnAction_Move::TryToRepath, 0.25f);
 		}
 	}
 }
@@ -285,29 +291,29 @@ void UPawnAction_Move::ClearPendingRepath()
 {
 	if (GetWorld())
 	{
-		GetWorld()->GetTimerManager().ClearTimer(this, &UPawnAction_Move::TryToRepath);
+		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_TryToRepath);
 	}
 }
 
-bool UPawnAction_Move::CheckAlreadyAtGoal(AAIController* Controller, const FVector& TestLocation, float Radius)
+bool UPawnAction_Move::CheckAlreadyAtGoal(AAIController& Controller, const FVector& TestLocation, float Radius)
 {
-	const bool bAlreadyAtGoal = Controller->GetPathFollowingComponent()->HasReached(TestLocation, Radius);
+	const bool bAlreadyAtGoal = Controller.GetPathFollowingComponent()->HasReached(TestLocation, Radius);
 	if (bAlreadyAtGoal)
 	{
-		Controller->GetPathFollowingComponent()->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest, true, false, EPathFollowingMessage::OtherRequest);
-		Controller->GetPathFollowingComponent()->SetLastMoveAtGoal(true);
+		Controller.GetPathFollowingComponent()->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest, true, false, EPathFollowingMessage::OtherRequest);
+		Controller.GetPathFollowingComponent()->SetLastMoveAtGoal(true);
 	}
 
 	return bAlreadyAtGoal;
 }
 
-bool UPawnAction_Move::CheckAlreadyAtGoal(AAIController* Controller, const AActor* TestGoal, float Radius)
+bool UPawnAction_Move::CheckAlreadyAtGoal(AAIController& Controller, const AActor& TestGoal, float Radius)
 {
-	const bool bAlreadyAtGoal = Controller->GetPathFollowingComponent()->HasReached(TestGoal, Radius);
+	const bool bAlreadyAtGoal = Controller.GetPathFollowingComponent()->HasReached(TestGoal, Radius);
 	if (bAlreadyAtGoal)
 	{
-		Controller->GetPathFollowingComponent()->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest, true, false, EPathFollowingMessage::OtherRequest);
-		Controller->GetPathFollowingComponent()->SetLastMoveAtGoal(true);
+		Controller.GetPathFollowingComponent()->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest, true, false, EPathFollowingMessage::OtherRequest);
+		Controller.GetPathFollowingComponent()->SetLastMoveAtGoal(true);
 	}
 
 	return bAlreadyAtGoal;

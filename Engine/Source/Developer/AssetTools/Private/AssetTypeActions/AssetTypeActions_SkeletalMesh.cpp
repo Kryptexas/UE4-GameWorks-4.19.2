@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetToolsPrivatePCH.h"
 #include "Toolkits/AssetEditorManager.h"
@@ -14,6 +14,7 @@
 #include "AssetToolsModule.h"
 #include "Editor/UnrealEd/Public/FbxMeshUtils.h"
 #include "Editor/UnrealEd/Public/AssetNotifications.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -193,7 +194,7 @@ public:
 			.IsChecked( this, &SDlgMergeSkeleton::IsCheckboxChecked, ButtonId )
 			.OnCheckStateChanged( this, &SDlgMergeSkeleton::OnCheckboxChanged, ButtonId )
 			[
-				SNew(STextBlock).Text(Label)
+				SNew(STextBlock).Text(FText::FromString(Label))
 			];
 	}
 
@@ -203,9 +204,9 @@ public:
 	 * @param	ButtonId	The ID for the check box
 	 * @return				The status of the check box
 	 */
-	ESlateCheckBoxState::Type IsCheckboxChecked( int32 ButtonId ) const
+	ECheckBoxState IsCheckboxChecked( int32 ButtonId ) const
 	{
-		return CheckBoxInfoMap.FindChecked(ButtonId).bUsed ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return CheckBoxInfoMap.FindChecked(ButtonId).bUsed ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
 	/**
@@ -214,7 +215,7 @@ public:
 	 * @param	NewCheckboxState	The new state of the check box
 	 * @param	CheckboxThatChanged	The ID of the radio button that has changed. 
 	 */
-	void OnCheckboxChanged( ESlateCheckBoxState::Type NewCheckboxState, int32 CheckboxThatChanged )
+	void OnCheckboxChanged( ECheckBoxState NewCheckboxState, int32 CheckboxThatChanged )
 	{
 		FBoneCheckboxInfo& Info = CheckBoxInfoMap.FindChecked(CheckboxThatChanged);
 		Info.bUsed = !Info.bUsed;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -16,7 +16,10 @@
 #endif
 
 #include "PhysSubstepTasks.h"	//needed even if not substepping, contains common utility class for PhysX
-
+#include "PhysicsEngine/PhysicsCollisionHandler.h"
+#include "Components/DestructibleComponent.h"
+#include "Components/LineBatchComponent.h"
+#include "PhysicsEngine/PhysicsSettings.h"
 
 #define USE_ADAPTIVE_FORCES_FOR_ASYNC_SCENE			1
 #define USE_SPECIAL_FRICTION_MODEL_FOR_ASYNC_SCENE	0
@@ -222,6 +225,25 @@ void FPhysScene::SetKinematicTarget(FBodyInstance* BodyInstance, const FTransfor
 			SCOPED_SCENE_WRITE_LOCK(PRigidDynamic->getScene());
 			PRigidDynamic->setKinematicTarget(PNewPose);
 		}
+	}
+#endif
+}
+
+void FPhysScene::AddCustomPhysics(FBodyInstance* BodyInstance, FCalculateCustomPhysics& CalculateCustomPhysics)
+{
+#if WITH_PHYSX
+#if WITH_SUBSTEPPING
+	uint32 BodySceneType = SceneType(BodyInstance);
+	if (IsSubstepping(BodySceneType))
+	{
+		FPhysSubstepTask * PhysSubStepper = PhysSubSteppers[SceneType(BodyInstance)];
+		PhysSubStepper->AddCustomPhysics(BodyInstance, CalculateCustomPhysics);
+	}
+	else
+#endif
+	{
+		// Since physics frame is set up before "pre-physics" tick group is called, can just fetch delta time from there
+		CalculateCustomPhysics.ExecuteIfBound(this->DeltaSeconds, BodyInstance);
 	}
 #endif
 }
@@ -765,6 +787,7 @@ void FPhysScene::SyncComponentsToBodies(uint32 SceneType)
 #if WITH_APEX
 	if (ActiveDestructibleActors[SceneType].Num())
 	{
+		SCOPED_SCENE_READ_LOCK(GetPhysXScene(SceneType));
 		UDestructibleComponent::UpdateDestructibleChunkTM(ActiveDestructibleActors[SceneType]);
 	}
 #endif
@@ -1328,6 +1351,9 @@ void FPhysScene::TermPhysScene(uint32 SceneType)
 
 		// @todo block on any running scene before calling this
 		GPhysCommandHandler->DeferredRelease(PScene);
+
+		// Commands may have accumulated as the scene is terminated - flush any commands for this scene.
+		DeferredCommandHandler.Flush();
 
 		// Remove from the map
 		GPhysXSceneMap.Remove(PhysXSceneIndex[SceneType]);

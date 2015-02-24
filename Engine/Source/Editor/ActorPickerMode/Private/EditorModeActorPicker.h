@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -38,7 +38,7 @@ public:
 	virtual void Exit() override;
 
 	/** Delegate used to display information about picking near the cursor */
-	FString GetCursorDecoratorText() const;
+	FText GetCursorDecoratorText() const;
 
 	bool IsActorValid(const AActor *const Actor) const;
 

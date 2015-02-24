@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -18,6 +18,11 @@ public:
 
 	virtual void SetType( const EMouseCursor::Type InNewCursor ) override;
 
+	virtual EMouseCursor::Type GetType() const override
+	{
+		return CurrentType;
+	}
+
 	virtual void GetSize( int32& Width, int32& Height ) const override;
 
 	virtual void Show( bool bShow ) override;
@@ -26,7 +31,8 @@ public:
 
 
 private:
-	FVector2D Position;
+	EMouseCursor::Type CurrentType;
+	FVector2D Position;	
 	bool CursorStatus; 
 	bool LockStatus; 
 

@@ -1,5 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-// HlslLexer.h - Interface for scanning & tokenizing hlsl
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+/*=============================================================================
+	HlslLexer.cpp - Implementation for scanning & tokenizing hlsl
+=============================================================================*/
 
 
 #include "ShaderCompilerCommon.h"
@@ -39,6 +42,11 @@ namespace CrossCompiler
 		return Char >= '0' && Char <= '9';
 	}
 
+	static FORCEINLINE bool IsHexDigit(TCHAR Char)
+	{
+		return IsDigit(Char) || (Char >= 'a' && Char <= 'f') || (Char >= 'A' && Char <= 'F');
+	}
+
 	static FORCEINLINE bool IsAlphaOrDigit(TCHAR Char)
 	{
 		return IsAlpha(Char) || IsDigit(Char);
@@ -53,11 +61,6 @@ namespace CrossCompiler
 	};
 	typedef TMap<TCHAR, FKeywordToken> TCharKeywordTokenMap;
 	TCharKeywordTokenMap Keywords;
-
-/*
-	typedef TMap<TCHAR, EHlslToken> TCharTokenMap;
-	typedef TMap<TCHAR, TCharTokenMap > TCharCharTokenMap;
-	TCharCharTokenMap SymbolTokens;*/
 
 	static void InsertToken(const TCHAR* String, EHlslToken Token)
 	{
@@ -81,251 +84,314 @@ namespace CrossCompiler
 		}
 	}
 
-	static bool MatchSymbolToken(const TCHAR*& String, EHlslToken& OutToken)
+	static bool MatchSymbolToken(const TCHAR* InString, const TCHAR** OutString, EHlslToken& OutToken, FString* OutTokenString, bool bGreedy)
 	{
-		const TCHAR* OriginalString = String;
-		FKeywordToken* Found = Keywords.Find(*String);
+		const TCHAR* OriginalString = InString;
+		FKeywordToken* Found = Keywords.Find(*InString);
+
+		if (OutString)
+		{
+			*OutString = OriginalString;
+		}
+
 		if (!Found)
 		{
-			String = OriginalString;
 			return false;
 		}
 
 		do
 		{
-			++String;
+			++InString;
 			if (Found->Map)
 			{
 				auto* Map = (TCharKeywordTokenMap*)Found->Map;
-				FKeywordToken* NewFound = Map->Find(*String);
+				FKeywordToken* NewFound = Map->Find(*InString);
 				if (!NewFound)
 				{
 					if (Found->Current != EHlslToken::Invalid)
 					{
-						OutToken = Found->Current;
-						return true;
+						// Don't early out on a partial match (e.g., Texture1DSample should not be 2 tokens)
+						if (!bGreedy || !*InString)
+						{
+							OutToken = Found->Current;
+							if (OutTokenString)
+							{
+								*OutTokenString = TEXT("");
+								OutTokenString->AppendChars(OriginalString, InString - OriginalString);
+							}
+
+							if (OutString)
+							{
+								*OutString = InString;
+							}
+							return true;
+						}
 					}
 
-					String = OriginalString;
 					return false;
 				}
 				Found = NewFound;
 			}
+			else if (bGreedy && *InString)
+			{
+				break;
+			}
 			else
 			{
 				OutToken = Found->Current;
+				if (OutTokenString)
+				{
+					*OutTokenString = TEXT("");
+					OutTokenString->AppendChars(OriginalString, InString - OriginalString);
+				}
+
+				if (OutString)
+				{
+					*OutString = InString;
+				}
 				return true;
 			}
 		}
-		while (*String);
+		while (*InString);
 
-		String = OriginalString;
 		return false;
 	}
 
-	static void InitializeTokenTables()
+	namespace Tokens
 	{
-		// Math
-		InsertToken(TEXT("+"), EHlslToken::Plus);
-		InsertToken(TEXT("-"), EHlslToken::Minus);
-		InsertToken(TEXT("*"), EHlslToken::Times);
-		InsertToken(TEXT("/"), EHlslToken::Div);
-		InsertToken(TEXT("%"), EHlslToken::Mod);
-		InsertToken(TEXT("("), EHlslToken::LeftParenthesis);
-		InsertToken(TEXT(")"), EHlslToken::RightParenthesis);
+		static struct FStaticInitializer
+		{
+			FStaticInitializer()
+			{
+				// Math
+				InsertToken(TEXT("+"), EHlslToken::Plus);
+				InsertToken(TEXT("+="), EHlslToken::PlusEqual);
+				InsertToken(TEXT("-"), EHlslToken::Minus);
+				InsertToken(TEXT("-="), EHlslToken::MinusEqual);
+				InsertToken(TEXT("*"), EHlslToken::Times);
+				InsertToken(TEXT("*="), EHlslToken::TimesEqual);
+				InsertToken(TEXT("/"), EHlslToken::Div);
+				InsertToken(TEXT("/="), EHlslToken::DivEqual);
+				InsertToken(TEXT("%"), EHlslToken::Mod);
+				InsertToken(TEXT("%="), EHlslToken::ModEqual);
+				InsertToken(TEXT("("), EHlslToken::LeftParenthesis);
+				InsertToken(TEXT(")"), EHlslToken::RightParenthesis);
 
-		// Logical
-		InsertToken(TEXT("=="), EHlslToken::EqualEqual);
-		InsertToken(TEXT("!="), EHlslToken::NotEqual);
-		InsertToken(TEXT("<"), EHlslToken::Lower);
-		InsertToken(TEXT("<="), EHlslToken::LowerEqual);
-		InsertToken(TEXT(">"), EHlslToken::Greater);
-		InsertToken(TEXT(">="), EHlslToken::GreaterEqual);
-		InsertToken(TEXT("&&"), EHlslToken::AndAnd);
-		InsertToken(TEXT("||"), EHlslToken::OrOr);
+				// Logical
+				InsertToken(TEXT("=="), EHlslToken::EqualEqual);
+				InsertToken(TEXT("!="), EHlslToken::NotEqual);
+				InsertToken(TEXT("<"), EHlslToken::Lower);
+				InsertToken(TEXT("<="), EHlslToken::LowerEqual);
+				InsertToken(TEXT(">"), EHlslToken::Greater);
+				InsertToken(TEXT(">="), EHlslToken::GreaterEqual);
+				InsertToken(TEXT("&&"), EHlslToken::AndAnd);
+				InsertToken(TEXT("||"), EHlslToken::OrOr);
 
-		// Bit
-		InsertToken(TEXT("&"), EHlslToken::And);
-		InsertToken(TEXT("|"), EHlslToken::Or);
-		InsertToken(TEXT("!"), EHlslToken::Not);
-		InsertToken(TEXT("~"), EHlslToken::Neg);
-		InsertToken(TEXT("^"), EHlslToken::Xor);
+				// Bit
+				InsertToken(TEXT("<<"), EHlslToken::LowerLower);
+				InsertToken(TEXT("<<="), EHlslToken::LowerLowerEqual);
+				InsertToken(TEXT(">>"), EHlslToken::GreaterGreater);
+				InsertToken(TEXT(">>="), EHlslToken::GreaterGreaterEqual);
+				InsertToken(TEXT("&"), EHlslToken::And);
+				InsertToken(TEXT("&="), EHlslToken::And);
+				InsertToken(TEXT("|"), EHlslToken::Or);
+				InsertToken(TEXT("|="), EHlslToken::OrEqual);
+				InsertToken(TEXT("^"), EHlslToken::Xor);
+				InsertToken(TEXT("^="), EHlslToken::XorEqual);
+				InsertToken(TEXT("!"), EHlslToken::Not);
+				InsertToken(TEXT("~"), EHlslToken::Neg);
 
-		// Statements/Keywords
-		InsertToken(TEXT("="), EHlslToken::Equal);
-		InsertToken(TEXT("{"), EHlslToken::LeftBracket);
-		InsertToken(TEXT("}"), EHlslToken::RightBracket);
-		InsertToken(TEXT(";"), EHlslToken::Semicolon);
-		InsertToken(TEXT("if"), EHlslToken::If);
-		InsertToken(TEXT("for"), EHlslToken::For);
-		InsertToken(TEXT("while"), EHlslToken::While);
-		InsertToken(TEXT("do"), EHlslToken::Do);
-		InsertToken(TEXT("return"), EHlslToken::Return);
+				// Statements/Keywords
+				InsertToken(TEXT("="), EHlslToken::Equal);
+				InsertToken(TEXT("{"), EHlslToken::LeftBrace);
+				InsertToken(TEXT("}"), EHlslToken::RightBrace);
+				InsertToken(TEXT(";"), EHlslToken::Semicolon);
+				InsertToken(TEXT("if"), EHlslToken::If);
+				InsertToken(TEXT("else"), EHlslToken::Else);
+				InsertToken(TEXT("for"), EHlslToken::For);
+				InsertToken(TEXT("while"), EHlslToken::While);
+				InsertToken(TEXT("do"), EHlslToken::Do);
+				InsertToken(TEXT("return"), EHlslToken::Return);
+				InsertToken(TEXT("switch"), EHlslToken::Switch);
+				InsertToken(TEXT("case"), EHlslToken::Case);
+				InsertToken(TEXT("break"), EHlslToken::Break);
+				InsertToken(TEXT("default"), EHlslToken::Default);
+				InsertToken(TEXT("continue"), EHlslToken::Continue);
+				InsertToken(TEXT("goto"), EHlslToken::Goto);
 
-		// Unary
-		InsertToken(TEXT("++"), EHlslToken::PlusPlus);
-		InsertToken(TEXT("--"), EHlslToken::MinusMinus);
+				// Unary
+				InsertToken(TEXT("++"), EHlslToken::PlusPlus);
+				InsertToken(TEXT("--"), EHlslToken::MinusMinus);
 
-		// Types
-		InsertToken(TEXT("void"), EHlslToken::Void);
-		InsertToken(TEXT("const"), EHlslToken::Const);
+				// Types
+				InsertToken(TEXT("void"), EHlslToken::Void);
+				InsertToken(TEXT("const"), EHlslToken::Const);
 
-		InsertToken(TEXT("bool"), EHlslToken::Bool);
-		InsertToken(TEXT("bool1"), EHlslToken::Bool1);
-		InsertToken(TEXT("bool2"), EHlslToken::Bool2);
-		InsertToken(TEXT("bool3"), EHlslToken::Bool3);
-		InsertToken(TEXT("bool4"), EHlslToken::Bool4);
-		InsertToken(TEXT("bool1x1"), EHlslToken::Bool1x1);
-		InsertToken(TEXT("bool2x1"), EHlslToken::Bool2x1);
-		InsertToken(TEXT("bool3x1"), EHlslToken::Bool3x1);
-		InsertToken(TEXT("bool4x1"), EHlslToken::Bool4x1);
-		InsertToken(TEXT("bool1x2"), EHlslToken::Bool1x2);
-		InsertToken(TEXT("bool2x2"), EHlslToken::Bool2x2);
-		InsertToken(TEXT("bool3x2"), EHlslToken::Bool3x2);
-		InsertToken(TEXT("bool4x2"), EHlslToken::Bool4x2);
-		InsertToken(TEXT("bool1x3"), EHlslToken::Bool1x3);
-		InsertToken(TEXT("bool2x3"), EHlslToken::Bool2x3);
-		InsertToken(TEXT("bool3x3"), EHlslToken::Bool3x3);
-		InsertToken(TEXT("bool4x3"), EHlslToken::Bool4x3);
-		InsertToken(TEXT("bool1x4"), EHlslToken::Bool1x4);
-		InsertToken(TEXT("bool2x4"), EHlslToken::Bool2x4);
-		InsertToken(TEXT("bool3x4"), EHlslToken::Bool3x4);
-		InsertToken(TEXT("bool4x4"), EHlslToken::Bool4x4);
+				InsertToken(TEXT("bool"), EHlslToken::Bool);
+				InsertToken(TEXT("bool1"), EHlslToken::Bool1);
+				InsertToken(TEXT("bool2"), EHlslToken::Bool2);
+				InsertToken(TEXT("bool3"), EHlslToken::Bool3);
+				InsertToken(TEXT("bool4"), EHlslToken::Bool4);
+				InsertToken(TEXT("bool1x1"), EHlslToken::Bool1x1);
+				InsertToken(TEXT("bool2x1"), EHlslToken::Bool2x1);
+				InsertToken(TEXT("bool3x1"), EHlslToken::Bool3x1);
+				InsertToken(TEXT("bool4x1"), EHlslToken::Bool4x1);
+				InsertToken(TEXT("bool1x2"), EHlslToken::Bool1x2);
+				InsertToken(TEXT("bool2x2"), EHlslToken::Bool2x2);
+				InsertToken(TEXT("bool3x2"), EHlslToken::Bool3x2);
+				InsertToken(TEXT("bool4x2"), EHlslToken::Bool4x2);
+				InsertToken(TEXT("bool1x3"), EHlslToken::Bool1x3);
+				InsertToken(TEXT("bool2x3"), EHlslToken::Bool2x3);
+				InsertToken(TEXT("bool3x3"), EHlslToken::Bool3x3);
+				InsertToken(TEXT("bool4x3"), EHlslToken::Bool4x3);
+				InsertToken(TEXT("bool1x4"), EHlslToken::Bool1x4);
+				InsertToken(TEXT("bool2x4"), EHlslToken::Bool2x4);
+				InsertToken(TEXT("bool3x4"), EHlslToken::Bool3x4);
+				InsertToken(TEXT("bool4x4"), EHlslToken::Bool4x4);
 
-		InsertToken(TEXT("int"), EHlslToken::Int);
-		InsertToken(TEXT("int1"), EHlslToken::Int1);
-		InsertToken(TEXT("int2"), EHlslToken::Int2);
-		InsertToken(TEXT("int3"), EHlslToken::Int3);
-		InsertToken(TEXT("int4"), EHlslToken::Int4);
-		InsertToken(TEXT("int1x1"), EHlslToken::Int1x1);
-		InsertToken(TEXT("int2x1"), EHlslToken::Int2x1);
-		InsertToken(TEXT("int3x1"), EHlslToken::Int3x1);
-		InsertToken(TEXT("int4x1"), EHlslToken::Int4x1);
-		InsertToken(TEXT("int1x2"), EHlslToken::Int1x2);
-		InsertToken(TEXT("int2x2"), EHlslToken::Int2x2);
-		InsertToken(TEXT("int3x2"), EHlslToken::Int3x2);
-		InsertToken(TEXT("int4x2"), EHlslToken::Int4x2);
-		InsertToken(TEXT("int1x3"), EHlslToken::Int1x3);
-		InsertToken(TEXT("int2x3"), EHlslToken::Int2x3);
-		InsertToken(TEXT("int3x3"), EHlslToken::Int3x3);
-		InsertToken(TEXT("int4x3"), EHlslToken::Int4x3);
-		InsertToken(TEXT("int1x4"), EHlslToken::Int1x4);
-		InsertToken(TEXT("int2x4"), EHlslToken::Int2x4);
-		InsertToken(TEXT("int3x4"), EHlslToken::Int3x4);
-		InsertToken(TEXT("int4x4"), EHlslToken::Int4x4);
+				InsertToken(TEXT("int"), EHlslToken::Int);
+				InsertToken(TEXT("int1"), EHlslToken::Int1);
+				InsertToken(TEXT("int2"), EHlslToken::Int2);
+				InsertToken(TEXT("int3"), EHlslToken::Int3);
+				InsertToken(TEXT("int4"), EHlslToken::Int4);
+				InsertToken(TEXT("int1x1"), EHlslToken::Int1x1);
+				InsertToken(TEXT("int2x1"), EHlslToken::Int2x1);
+				InsertToken(TEXT("int3x1"), EHlslToken::Int3x1);
+				InsertToken(TEXT("int4x1"), EHlslToken::Int4x1);
+				InsertToken(TEXT("int1x2"), EHlslToken::Int1x2);
+				InsertToken(TEXT("int2x2"), EHlslToken::Int2x2);
+				InsertToken(TEXT("int3x2"), EHlslToken::Int3x2);
+				InsertToken(TEXT("int4x2"), EHlslToken::Int4x2);
+				InsertToken(TEXT("int1x3"), EHlslToken::Int1x3);
+				InsertToken(TEXT("int2x3"), EHlslToken::Int2x3);
+				InsertToken(TEXT("int3x3"), EHlslToken::Int3x3);
+				InsertToken(TEXT("int4x3"), EHlslToken::Int4x3);
+				InsertToken(TEXT("int1x4"), EHlslToken::Int1x4);
+				InsertToken(TEXT("int2x4"), EHlslToken::Int2x4);
+				InsertToken(TEXT("int3x4"), EHlslToken::Int3x4);
+				InsertToken(TEXT("int4x4"), EHlslToken::Int4x4);
 
-		InsertToken(TEXT("uint"), EHlslToken::Uint);
-		InsertToken(TEXT("uint1"), EHlslToken::Uint1);
-		InsertToken(TEXT("uint2"), EHlslToken::Uint2);
-		InsertToken(TEXT("uint3"), EHlslToken::Uint3);
-		InsertToken(TEXT("uint4"), EHlslToken::Uint4);
-		InsertToken(TEXT("uint1x1"), EHlslToken::Uint1x1);
-		InsertToken(TEXT("uint2x1"), EHlslToken::Uint2x1);
-		InsertToken(TEXT("uint3x1"), EHlslToken::Uint3x1);
-		InsertToken(TEXT("uint4x1"), EHlslToken::Uint4x1);
-		InsertToken(TEXT("uint1x2"), EHlslToken::Uint1x2);
-		InsertToken(TEXT("uint2x2"), EHlslToken::Uint2x2);
-		InsertToken(TEXT("uint3x2"), EHlslToken::Uint3x2);
-		InsertToken(TEXT("uint4x2"), EHlslToken::Uint4x2);
-		InsertToken(TEXT("uint1x3"), EHlslToken::Uint1x3);
-		InsertToken(TEXT("uint2x3"), EHlslToken::Uint2x3);
-		InsertToken(TEXT("uint3x3"), EHlslToken::Uint3x3);
-		InsertToken(TEXT("uint4x3"), EHlslToken::Uint4x3);
-		InsertToken(TEXT("uint1x4"), EHlslToken::Uint1x4);
-		InsertToken(TEXT("uint2x4"), EHlslToken::Uint2x4);
-		InsertToken(TEXT("uint3x4"), EHlslToken::Uint3x4);
-		InsertToken(TEXT("uint4x4"), EHlslToken::Uint4x4);
+				InsertToken(TEXT("uint"), EHlslToken::Uint);
+				InsertToken(TEXT("uint1"), EHlslToken::Uint1);
+				InsertToken(TEXT("uint2"), EHlslToken::Uint2);
+				InsertToken(TEXT("uint3"), EHlslToken::Uint3);
+				InsertToken(TEXT("uint4"), EHlslToken::Uint4);
+				InsertToken(TEXT("uint1x1"), EHlslToken::Uint1x1);
+				InsertToken(TEXT("uint2x1"), EHlslToken::Uint2x1);
+				InsertToken(TEXT("uint3x1"), EHlslToken::Uint3x1);
+				InsertToken(TEXT("uint4x1"), EHlslToken::Uint4x1);
+				InsertToken(TEXT("uint1x2"), EHlslToken::Uint1x2);
+				InsertToken(TEXT("uint2x2"), EHlslToken::Uint2x2);
+				InsertToken(TEXT("uint3x2"), EHlslToken::Uint3x2);
+				InsertToken(TEXT("uint4x2"), EHlslToken::Uint4x2);
+				InsertToken(TEXT("uint1x3"), EHlslToken::Uint1x3);
+				InsertToken(TEXT("uint2x3"), EHlslToken::Uint2x3);
+				InsertToken(TEXT("uint3x3"), EHlslToken::Uint3x3);
+				InsertToken(TEXT("uint4x3"), EHlslToken::Uint4x3);
+				InsertToken(TEXT("uint1x4"), EHlslToken::Uint1x4);
+				InsertToken(TEXT("uint2x4"), EHlslToken::Uint2x4);
+				InsertToken(TEXT("uint3x4"), EHlslToken::Uint3x4);
+				InsertToken(TEXT("uint4x4"), EHlslToken::Uint4x4);
 
-		InsertToken(TEXT("half"), EHlslToken::Half);
-		InsertToken(TEXT("half1"), EHlslToken::Half1);
-		InsertToken(TEXT("half2"), EHlslToken::Half2);
-		InsertToken(TEXT("half3"), EHlslToken::Half3);
-		InsertToken(TEXT("half4"), EHlslToken::Half4);
-		InsertToken(TEXT("half1x1"), EHlslToken::Half1x1);
-		InsertToken(TEXT("half2x1"), EHlslToken::Half2x1);
-		InsertToken(TEXT("half3x1"), EHlslToken::Half3x1);
-		InsertToken(TEXT("half4x1"), EHlslToken::Half4x1);
-		InsertToken(TEXT("half1x2"), EHlslToken::Half1x2);
-		InsertToken(TEXT("half2x2"), EHlslToken::Half2x2);
-		InsertToken(TEXT("half3x2"), EHlslToken::Half3x2);
-		InsertToken(TEXT("half4x2"), EHlslToken::Half4x2);
-		InsertToken(TEXT("half1x3"), EHlslToken::Half1x3);
-		InsertToken(TEXT("half2x3"), EHlslToken::Half2x3);
-		InsertToken(TEXT("half3x3"), EHlslToken::Half3x3);
-		InsertToken(TEXT("half4x3"), EHlslToken::Half4x3);
-		InsertToken(TEXT("half1x4"), EHlslToken::Half1x4);
-		InsertToken(TEXT("half2x4"), EHlslToken::Half2x4);
-		InsertToken(TEXT("half3x4"), EHlslToken::Half3x4);
-		InsertToken(TEXT("half4x4"), EHlslToken::Half4x4);
+				InsertToken(TEXT("half"), EHlslToken::Half);
+				InsertToken(TEXT("half1"), EHlslToken::Half1);
+				InsertToken(TEXT("half2"), EHlslToken::Half2);
+				InsertToken(TEXT("half3"), EHlslToken::Half3);
+				InsertToken(TEXT("half4"), EHlslToken::Half4);
+				InsertToken(TEXT("half1x1"), EHlslToken::Half1x1);
+				InsertToken(TEXT("half2x1"), EHlslToken::Half2x1);
+				InsertToken(TEXT("half3x1"), EHlslToken::Half3x1);
+				InsertToken(TEXT("half4x1"), EHlslToken::Half4x1);
+				InsertToken(TEXT("half1x2"), EHlslToken::Half1x2);
+				InsertToken(TEXT("half2x2"), EHlslToken::Half2x2);
+				InsertToken(TEXT("half3x2"), EHlslToken::Half3x2);
+				InsertToken(TEXT("half4x2"), EHlslToken::Half4x2);
+				InsertToken(TEXT("half1x3"), EHlslToken::Half1x3);
+				InsertToken(TEXT("half2x3"), EHlslToken::Half2x3);
+				InsertToken(TEXT("half3x3"), EHlslToken::Half3x3);
+				InsertToken(TEXT("half4x3"), EHlslToken::Half4x3);
+				InsertToken(TEXT("half1x4"), EHlslToken::Half1x4);
+				InsertToken(TEXT("half2x4"), EHlslToken::Half2x4);
+				InsertToken(TEXT("half3x4"), EHlslToken::Half3x4);
+				InsertToken(TEXT("half4x4"), EHlslToken::Half4x4);
 
-		InsertToken(TEXT("float"), EHlslToken::Float);
-		InsertToken(TEXT("float1"), EHlslToken::Float1);
-		InsertToken(TEXT("float2"), EHlslToken::Float2);
-		InsertToken(TEXT("float3"), EHlslToken::Float3);
-		InsertToken(TEXT("float4"), EHlslToken::Float4);
-		InsertToken(TEXT("float1x1"), EHlslToken::Float1x1);
-		InsertToken(TEXT("float2x1"), EHlslToken::Float2x1);
-		InsertToken(TEXT("float3x1"), EHlslToken::Float3x1);
-		InsertToken(TEXT("float4x1"), EHlslToken::Float4x1);
-		InsertToken(TEXT("float1x2"), EHlslToken::Float1x2);
-		InsertToken(TEXT("float2x2"), EHlslToken::Float2x2);
-		InsertToken(TEXT("float3x2"), EHlslToken::Float3x2);
-		InsertToken(TEXT("float4x2"), EHlslToken::Float4x2);
-		InsertToken(TEXT("float1x3"), EHlslToken::Float1x3);
-		InsertToken(TEXT("float2x3"), EHlslToken::Float2x3);
-		InsertToken(TEXT("float3x3"), EHlslToken::Float3x3);
-		InsertToken(TEXT("float4x3"), EHlslToken::Float4x3);
-		InsertToken(TEXT("float1x4"), EHlslToken::Float1x4);
-		InsertToken(TEXT("float2x4"), EHlslToken::Float2x4);
-		InsertToken(TEXT("float3x4"), EHlslToken::Float3x4);
-		InsertToken(TEXT("float4x4"), EHlslToken::Float4x4);
-		InsertToken(TEXT("Texture"), EHlslToken::Texture);
-		InsertToken(TEXT("Texture1D"), EHlslToken::Texture1D);
-		InsertToken(TEXT("Texture1DArray"), EHlslToken::Texture1DArray);
-		InsertToken(TEXT("Texture2D"), EHlslToken::Texture2D);
-		InsertToken(TEXT("Texture2DArray"), EHlslToken::Texture2DArray);
-		InsertToken(TEXT("Texture3D"), EHlslToken::Texture3D);
-		InsertToken(TEXT("TextureCube"), EHlslToken::TextureCube);
-		InsertToken(TEXT("TextureCubeArray"), EHlslToken::TextureCubeArray);
-		InsertToken(TEXT("Sampler"), EHlslToken::Sampler);
-		InsertToken(TEXT("Sampler1D"), EHlslToken::Sampler1D);
-		InsertToken(TEXT("Sampler2D"), EHlslToken::Sampler2D);
-		InsertToken(TEXT("Sampler3D"), EHlslToken::Sampler3D);
-		InsertToken(TEXT("SamplerCube"), EHlslToken::SamplerCube);
-		InsertToken(TEXT("SamplerState"), EHlslToken::SamplerState);
-		InsertToken(TEXT("SampleComparisonState"), EHlslToken::SampleComparisonState);
-		InsertToken(TEXT("Buffer"), EHlslToken::Buffer);
-		InsertToken(TEXT("AppendStructuredBuffer"), EHlslToken::AppendStructuredBuffer);
-		InsertToken(TEXT("ByteAddressBuffer"), EHlslToken::ByteAddressBuffer);
-		InsertToken(TEXT("ConsumeStructuredBuffer"), EHlslToken::ConsumeStructuredBuffer);
-		InsertToken(TEXT("InputPatch"), EHlslToken::InputPatch);
-		InsertToken(TEXT("OutputPatch"), EHlslToken::OutputPatch);
-		InsertToken(TEXT("RWBuffer"), EHlslToken::RWBuffer);
-		InsertToken(TEXT("RWByteAddressBuffer"), EHlslToken::RWByteAddressBuffer);
-		InsertToken(TEXT("RWStructuredBuffer"), EHlslToken::RWStructuredBuffer);
-		InsertToken(TEXT("RWTexture1D"), EHlslToken::RWTexture1D);
-		InsertToken(TEXT("RWTexture1DArray"), EHlslToken::RWTexture1DArray);
-		InsertToken(TEXT("RWTexture2D"), EHlslToken::RWTexture2D);
-		InsertToken(TEXT("RWTexture2DArray"), EHlslToken::RWTexture2DArray);
-		InsertToken(TEXT("RWTexture3D"), EHlslToken::RWTexture3D);
-		InsertToken(TEXT("StructuredBuffer"), EHlslToken::StructuredBuffer);
+				InsertToken(TEXT("float"), EHlslToken::Float);
+				InsertToken(TEXT("float1"), EHlslToken::Float1);
+				InsertToken(TEXT("float2"), EHlslToken::Float2);
+				InsertToken(TEXT("float3"), EHlslToken::Float3);
+				InsertToken(TEXT("float4"), EHlslToken::Float4);
+				InsertToken(TEXT("float1x1"), EHlslToken::Float1x1);
+				InsertToken(TEXT("float2x1"), EHlslToken::Float2x1);
+				InsertToken(TEXT("float3x1"), EHlslToken::Float3x1);
+				InsertToken(TEXT("float4x1"), EHlslToken::Float4x1);
+				InsertToken(TEXT("float1x2"), EHlslToken::Float1x2);
+				InsertToken(TEXT("float2x2"), EHlslToken::Float2x2);
+				InsertToken(TEXT("float3x2"), EHlslToken::Float3x2);
+				InsertToken(TEXT("float4x2"), EHlslToken::Float4x2);
+				InsertToken(TEXT("float1x3"), EHlslToken::Float1x3);
+				InsertToken(TEXT("float2x3"), EHlslToken::Float2x3);
+				InsertToken(TEXT("float3x3"), EHlslToken::Float3x3);
+				InsertToken(TEXT("float4x3"), EHlslToken::Float4x3);
+				InsertToken(TEXT("float1x4"), EHlslToken::Float1x4);
+				InsertToken(TEXT("float2x4"), EHlslToken::Float2x4);
+				InsertToken(TEXT("float3x4"), EHlslToken::Float3x4);
+				InsertToken(TEXT("float4x4"), EHlslToken::Float4x4);
 
-		// Modifiers
-		InsertToken(TEXT("in"), EHlslToken::In);
-		InsertToken(TEXT("out"), EHlslToken::Out);
-		InsertToken(TEXT("inout"), EHlslToken::InOut);
-		InsertToken(TEXT("static"), EHlslToken::Static);
+				InsertToken(TEXT("Texture"), EHlslToken::Texture);
+				InsertToken(TEXT("Texture1D"), EHlslToken::Texture1D);
+				InsertToken(TEXT("Texture1DArray"), EHlslToken::Texture1DArray);
+				InsertToken(TEXT("Texture2D"), EHlslToken::Texture2D);
+				InsertToken(TEXT("Texture2DArray"), EHlslToken::Texture2DArray);
+				InsertToken(TEXT("Texture2DMS"), EHlslToken::Texture2DMS);
+				InsertToken(TEXT("Texture2DMSArray"), EHlslToken::Texture2DMSArray);
+				InsertToken(TEXT("Texture3D"), EHlslToken::Texture3D);
+				InsertToken(TEXT("TextureCube"), EHlslToken::TextureCube);
+				InsertToken(TEXT("TextureCubeArray"), EHlslToken::TextureCubeArray);
 
-		// Misc
-		InsertToken(TEXT("["), EHlslToken::LeftSquareBracket);
-		InsertToken(TEXT("]"), EHlslToken::RightSquareBracket);
-		InsertToken(TEXT("?"), EHlslToken::Question);
-		InsertToken(TEXT(":"), EHlslToken::Colon);
-		InsertToken(TEXT(","), EHlslToken::Comma);
-		InsertToken(TEXT("."), EHlslToken::Dot);
-		InsertToken(TEXT("struct"), EHlslToken::Struct);
-		InsertToken(TEXT("cbuffer"), EHlslToken::CBuffer);
-		InsertToken(TEXT("groupshared"), EHlslToken::GroupShared);
+				InsertToken(TEXT("Sampler"), EHlslToken::Sampler);
+				InsertToken(TEXT("Sampler1D"), EHlslToken::Sampler1D);
+				InsertToken(TEXT("Sampler2D"), EHlslToken::Sampler2D);
+				InsertToken(TEXT("Sampler3D"), EHlslToken::Sampler3D);
+				InsertToken(TEXT("SamplerCube"), EHlslToken::SamplerCube);
+				InsertToken(TEXT("SamplerState"), EHlslToken::SamplerState);
+				InsertToken(TEXT("SamplerComparisonState"), EHlslToken::SamplerComparisonState);
+
+				InsertToken(TEXT("Buffer"), EHlslToken::Buffer);
+				InsertToken(TEXT("AppendStructuredBuffer"), EHlslToken::AppendStructuredBuffer);
+				InsertToken(TEXT("ByteAddressBuffer"), EHlslToken::ByteAddressBuffer);
+				InsertToken(TEXT("ConsumeStructuredBuffer"), EHlslToken::ConsumeStructuredBuffer);
+				InsertToken(TEXT("RWBuffer"), EHlslToken::RWBuffer);
+				InsertToken(TEXT("RWByteAddressBuffer"), EHlslToken::RWByteAddressBuffer);
+				InsertToken(TEXT("RWStructuredBuffer"), EHlslToken::RWStructuredBuffer);
+				InsertToken(TEXT("RWTexture1D"), EHlslToken::RWTexture1D);
+				InsertToken(TEXT("RWTexture1DArray"), EHlslToken::RWTexture1DArray);
+				InsertToken(TEXT("RWTexture2D"), EHlslToken::RWTexture2D);
+				InsertToken(TEXT("RWTexture2DArray"), EHlslToken::RWTexture2DArray);
+				InsertToken(TEXT("RWTexture3D"), EHlslToken::RWTexture3D);
+				InsertToken(TEXT("StructuredBuffer"), EHlslToken::StructuredBuffer);
+				InsertToken(TEXT("InputPatch"), EHlslToken::InputPatch);
+				InsertToken(TEXT("OutputPatch"), EHlslToken::OutputPatch);
+
+				// Modifiers
+				InsertToken(TEXT("in"), EHlslToken::In);
+				InsertToken(TEXT("out"), EHlslToken::Out);
+				InsertToken(TEXT("inout"), EHlslToken::InOut);
+				InsertToken(TEXT("static"), EHlslToken::Static);
+
+				// Misc
+				InsertToken(TEXT("["), EHlslToken::LeftSquareBracket);
+				InsertToken(TEXT("]"), EHlslToken::RightSquareBracket);
+				InsertToken(TEXT("?"), EHlslToken::Question);
+				InsertToken(TEXT(":"), EHlslToken::Colon);
+				InsertToken(TEXT(","), EHlslToken::Comma);
+				InsertToken(TEXT("."), EHlslToken::Dot);
+				InsertToken(TEXT("struct"), EHlslToken::Struct);
+				InsertToken(TEXT("cbuffer"), EHlslToken::CBuffer);
+				InsertToken(TEXT("groupshared"), EHlslToken::GroupShared);
+				InsertToken(TEXT("nointerpolation"), EHlslToken::NoInterpolation);
+				InsertToken(TEXT("row_major"), EHlslToken::RowMajor);
+			}
+		} GStaticInitializer;
 	}
 
 	struct FTokenizer
@@ -333,12 +399,14 @@ namespace CrossCompiler
 		FString Filename;
 		const TCHAR* Current;
 		const TCHAR* End;
+		const TCHAR* CurrentLineStart;
 		int32 Line;
 
 		FTokenizer(const FString& InString, const FString& InFilename = TEXT("")) :
 			Filename(InFilename),
 			Current(nullptr),
 			End(nullptr),
+			CurrentLineStart(nullptr),
 			Line(0)
 		{
 			if (InString.Len() > 0)
@@ -346,13 +414,7 @@ namespace CrossCompiler
 				Current = *InString;
 				End = *InString + InString.Len();
 				Line = 1;
-			}
-
-			static bool bInitialized = false;
-			if (!bInitialized)
-			{
-				InitializeTokenTables();
-				bInitialized = true;
+				CurrentLineStart = Current;
 			}
 		}
 
@@ -365,7 +427,7 @@ namespace CrossCompiler
 		{
 			while (HasCharsAvailable())
 			{
-				auto Char = *Current;
+				auto Char = Peek();
 				if (!IsSpaceOrTab(Char))
 				{
 					break;
@@ -381,45 +443,55 @@ namespace CrossCompiler
 			{
 				SkipWhitespaceInLine();
 				auto Char = Peek();
-				if (!IsEOL(Char))
+				if (IsEOL(Char))
 				{
-					if (Char == '/')
-					{
-						auto NextChar = Peek(1);
-						if (NextChar == '*')
-						{
-							// C Style comment, eat everything up to */
-							Current += 2;
-							bool bClosedComment = false;
-							while (HasCharsAvailable())
-							{
-								if (*Current == '*')
-								{
-									if (Peek(1) == '/')
-									{
-										bClosedComment = true;
-										Current += 2;
-										break;
-									}
-								}
-								++Current;
-							}
-							//@todo-rco: Error if no closing */ found and we got to EOL
-							//check(bClosedComment);
-						}
-						else if (NextChar == '/')
-						{
-							// C++Style comment
-							Current += 2;
-							this->SkipToNextLine();
-							continue;
-						}
-					}
-
-					break;
+					SkipToNextLine();
 				}
-				++Current;
-				++Line;
+				else
+				{
+					auto NextChar = Peek(1);
+					if (Char == '/' && NextChar == '/')
+					{
+						// C++ comment
+						Current += 2;
+						this->SkipToNextLine();
+						continue;
+					}
+					else if (Char == '/' && NextChar == '*')
+					{
+						// C Style comment, eat everything up to * /
+						Current += 2;
+						bool bClosedComment = false;
+						while (HasCharsAvailable())
+						{
+							if (Peek() == '*')
+							{
+								if (Peek(1) == '/')
+								{
+									bClosedComment = true;
+									Current += 2;
+									break;
+								}
+
+							}
+							else if (Peek() == '\n')
+							{
+								SkipToNextLine();
+
+								// Don't increment current!
+								continue;
+							}
+
+							++Current;
+						}
+						//@todo-rco: Error if no closing * / found and we got to EOL
+						//check(bClosedComment);
+					}
+					else
+					{
+						break;
+					}
+				}
 			}
 		}
 
@@ -448,16 +520,22 @@ namespace CrossCompiler
 		{
 			while (HasCharsAvailable())
 			{
-				auto Char = *Current;
+				auto Char = Peek();
 				++Current;
-				if (Char == '\n')
+				if (Char == '\r' && Peek() == '\n')
 				{
+					++Current;
 					break;
 				}
-				check(Char != '\r');
+				else if (Char == '\n')
+				{
+
+					break;
+				}
 			}
 
 			++Line;
+			CurrentLineStart = Current;
 		}
 
 		bool MatchString(const TCHAR* Target, int32 TargetLen)
@@ -475,35 +553,23 @@ namespace CrossCompiler
 
 		bool PeekDigit() const
 		{
-			return (HasCharsAvailable() && IsDigit(*Current));
+			return IsDigit(Peek());
 		}
 
-		bool MatchUnsignedIntegerNumber(uint32& OutNum)
+		bool MatchAndSkipDigits()
 		{
-			if (!PeekDigit())
+			auto* Original = Current;
+			while (PeekDigit())
 			{
-				return false;
-			}
-
-			OutNum = 0;
-			do
-			{
-				auto Next = *Current;
-				if (!IsDigit(Next))
-				{
-					break;
-				}
-				
-				OutNum = OutNum * 10 + Next - '0';
 				++Current;
 			}
-			while (HasCharsAvailable());
-			return true;
+
+			return Original != Current;
 		}
 
 		bool Match(TCHAR Char)
 		{
-			if (HasCharsAvailable() && Char == *Current)
+			if (Char == Peek())
 			{
 				++Current;
 				return true;
@@ -514,52 +580,108 @@ namespace CrossCompiler
 
 		bool MatchFloatNumber(float& OutNum)
 		{
-			if (!PeekDigit() && Peek() != '.')
+			auto* Original = Current;
+			TCHAR Char = Peek();
+
+			// \.[0-9]+([eE][+-]?[0-9]+)?[fF]?			-> Dot Digits+ Exp? F?
+			// [0-9]+\.([eE][+-]?[0-9]+)?[fF]?			-> Digits+ Dot Exp? F?
+			// [0-9]+\.[0-9]+([eE][+-]?[0-9]+)?[fF]?	-> Digits+ Dot Digits+ Exp? F?
+			// [0-9]+[eE][+-]?[0-9]+[fF]?				-> Digits+ Exp F?
+			// [0-9]+[fF]								-> Digits+ F
+			if (!IsDigit(Char) && Char != '.')
 			{
 				return false;
 			}
 
-			OutNum = FCString::Atof(Current);
-			uint32 DummyNum;
-			MatchUnsignedIntegerNumber(DummyNum);
-			if (Match('.'))
+			bool bExpOptional = false;
+			if (Match('.') && MatchAndSkipDigits())
 			{
-				MatchUnsignedIntegerNumber(DummyNum);
+				bExpOptional = true;
+			}
+			else if (MatchAndSkipDigits())
+			{
+				if (Match('.'))
+				{
+					bExpOptional = true;
+					MatchAndSkipDigits();
+				}
+				else
+				{
+					if (Match('f') || Match('F'))
+					{
+						goto Done;
+					}
+
+					bExpOptional = false;
+				}
+			}
+			else
+			{
+				goto NotFloat;
 			}
 
-			if (Match('E') || Match('e'))
 			{
-				Match('-');
-				MatchUnsignedIntegerNumber(DummyNum);
+				// Exponent [eE][+-]?[0-9]+
+				bool bExponentFound = false;
+				if (Match('e') || Match('E'))
+				{
+					Char = Peek();
+					if (Char == '+' || Char == '-')
+					{
+						++Current;
+					}
+
+					if (MatchAndSkipDigits())
+					{
+						bExponentFound = true;
+					}
+				}
+
+				if (!bExponentFound && !bExpOptional)
+				{
+					goto NotFloat;
+				}
 			}
 
+			// [fF]
+			Char = Peek();
+			if (Char == 'F' || Char == 'f')
+			{
+				++Current;
+			}
+
+		Done:
+			OutNum = FCString::Atof(Original);
 			return true;
+
+		NotFloat:
+			Current = Original;
+			return false;
 		}
 
 		bool MatchQuotedString(FString& OutString)
 		{
-			if (Peek() != '"')
+			if (!Match('"'))
 			{
 				return false;
 			}
 
 			OutString = TEXT("");
-			++Current;
 			while (Peek() != '"')
 			{
-				OutString += *Current;
+				OutString += Peek();
 				//@todo-rco: Check for \"
 				//@todo-rco: Check for EOL
 				++Current;
 			}
 
-			if (Peek() == '"')
+			if (Match('"'))
 			{
-				++Current;
 				return true;
 			}
 
 			//@todo-rco: Error!
+			check(0);
 			return false;
 		}
 
@@ -567,7 +689,7 @@ namespace CrossCompiler
 		{
 			if (HasCharsAvailable())
 			{
-				auto Char = *Current;
+				auto Char = Peek();
 				if (!IsAlpha(Char) && Char != '_')
 				{
 					return false;
@@ -578,7 +700,7 @@ namespace CrossCompiler
 				OutIdentifier += Char;
 				do
 				{
-					Char = *Current;
+					Char = Peek();
 					if (!IsAlphaOrDigit(Char) && Char != '_')
 					{
 						break;
@@ -593,11 +715,11 @@ namespace CrossCompiler
 			return false;
 		}
 
-		bool MatchSymbol(EHlslToken& OutToken)
+		bool MatchSymbol(EHlslToken& OutToken, FString& OutTokenString)
 		{
 			if (HasCharsAvailable())
 			{
-				if (MatchSymbolToken(Current, OutToken))
+				if (MatchSymbolToken(Current, &Current, OutToken, &OutTokenString, false))
 				{
 					return true;
 				}
@@ -613,9 +735,9 @@ namespace CrossCompiler
 			{
 				Tokenizer.SkipWhitespaceInLine();
 				uint32 Line = 0;
-				if (Tokenizer.MatchUnsignedIntegerNumber(Line))
+				if (Tokenizer.RuleInteger(Line))
 				{
-					Tokenizer.Line = Line;
+					Tokenizer.Line = Line - 1;
 					Tokenizer.SkipWhitespaceInLine();
 					FString Filename;
 					if (Tokenizer.MatchQuotedString(Filename))
@@ -626,59 +748,164 @@ namespace CrossCompiler
 				else
 				{
 					//@todo-rco: Warn malformed #line directive
+					check(0);
 				}
 			}
 			else
 			{
 				//@todo-rco: Warn about unknown pragma
+				check(0);
 			}
 
 			Tokenizer.SkipToNextLine();
 		}
-	};
 
-	struct FToken
-	{
-		EHlslToken Token;
-		FString String;
-		uint32 UnsignedInteger;
-		float Float;
+		bool RuleDecimalInteger(uint32& OutValue)
+		{
+			// [1-9][0-9]*
+			auto Char = Peek();
+			{
+				if (Char < '1' || Char > '9')
+				{
+					return false;
+				}
 
-		explicit FToken(const FString& Identifier) : Token(EHlslToken::Identifier), String(Identifier) { }
-		explicit FToken(EHlslToken InToken) : Token(InToken) { }
-		explicit FToken(uint32 InUnsignedInteger) : Token(EHlslToken::UnsignedInteger), UnsignedInteger(InUnsignedInteger) { }
-		explicit FToken(float InFloat) : Token(EHlslToken::Float), Float(InFloat) { }
-	};
+				++Current;
+				OutValue = Char - '0';
+			}
 
-	struct FHlslScanner::FHlslScannerData
-	{
-		TArray<FToken> Tokens;
+			while (HasCharsAvailable())
+			{
+				Char = Peek();
+				if (!IsDigit(Char))
+				{
+					break;
+				}
+				OutValue = OutValue * 10 + Char - '0';
+				++Current;
+			}
+
+			return true;
+		}
+
+		bool RuleOctalInteger(uint32& OutValue)
+		{
+			// 0[0-7]*
+			auto Char = Peek();
+			if (Char != '0')
+			{
+				return false;
+			}
+
+			OutValue = 0;
+			++Current;
+			while (HasCharsAvailable())
+			{
+				Char = Peek();
+				if (Char >= '0' && Char <= '7')
+				{
+					OutValue = OutValue * 8 + Char - '0';
+				}
+				else
+				{
+					break;
+				}
+				++Current;
+			}
+
+			return true;
+		}
+
+		bool RuleHexadecimalInteger(uint32& OutValue)
+		{
+			// 0[xX][0-9a-zA-Z]+
+			auto Char = Peek();
+			auto Char1 = Peek(1);
+			auto Char2 = Peek(2);
+			if (Char == '0' && (Char1 == 'x' || Char1 == 'X') && IsHexDigit(Char2))
+			{
+				Current += 2;
+				OutValue = 0;
+				do
+				{
+					Char = Peek();
+					if (IsDigit(Char))
+					{
+						OutValue = OutValue * 16 + Char - '0';
+					}
+					else if (Char >= 'a' && Char <= 'f')
+					{
+						OutValue = OutValue * 16 + Char - 'a' + 10;
+					}
+					else if (Char >= 'A' && Char <= 'F')
+					{
+						OutValue = OutValue * 16 + Char - 'A' + 10;
+					}
+					else
+					{
+						break;
+					}
+					++Current;
+				}
+				while (HasCharsAvailable());
+
+				return true;
+			}
+
+			return false;
+		}
+
+		bool RuleInteger(uint32& OutValue)
+		{
+			return RuleDecimalInteger(OutValue) || RuleHexadecimalInteger(OutValue) || RuleOctalInteger(OutValue);
+		}
+
+		bool MatchLiteralInteger(uint32& OutValue)
+		{
+			if (RuleInteger(OutValue))
+			{
+				auto Char = Peek();
+				if (Char == 'u' || Char == 'U')
+				{
+					++Current;
+				}
+
+				return true;
+			}
+
+			return false;
+		}
 	};
 
 	FHlslScanner::FHlslScanner() :
-		Data(nullptr)
+		CurrentToken(0)
 	{
 	}
 
 	FHlslScanner::~FHlslScanner()
 	{
-		if (Data)
-		{
-			delete Data;
-		}
 	}
 
-	void FHlslScanner::Lex(const FString& String)
+	inline void FHlslScanner::AddToken(const FHlslToken& Token, const FTokenizer& Tokenizer)
 	{
-		if (Data)
-		{
-			delete Data;
-		}
+		int32 TokenIndex = Tokens.Add(Token);
+		Tokens[TokenIndex].SourceInfo.Filename = &SourceFilenames.Last();
+		Tokens[TokenIndex].SourceInfo.Line = Tokenizer.Line;
+		Tokens[TokenIndex].SourceInfo.Column = (int32)(Tokenizer.Current - Tokenizer.CurrentLineStart) + 1;
+	}
 
-		Data = new FHlslScannerData();
+	void FHlslScanner::Clear(const FString& Filename)
+	{
+		Tokens.Empty();
+		new (SourceFilenames) FString(Filename);
+	}
 
+	bool FHlslScanner::Lex(const FString& String, const FString& Filename)
+	{
+		Clear(Filename);
+		
 		// Simple heuristic to avoid reallocating
-		Data->Tokens.Reserve(String.Len() / 4);
+		Tokens.Reserve(String.Len() / 4);
 
 		FTokenizer Tokenizer(String);
 		while (Tokenizer.HasCharsAvailable())
@@ -688,6 +915,10 @@ namespace CrossCompiler
 			if (Tokenizer.Peek() == '#')
 			{
 				FTokenizer::ProcessDirective(Tokenizer);
+				if (Tokenizer.Filename != SourceFilenames.Last())
+				{
+					new(SourceFilenames) FString(Tokenizer.Filename);
+				}
 			}
 			else
 			{
@@ -695,37 +926,148 @@ namespace CrossCompiler
 				EHlslToken SymbolToken;
 				uint32 UnsignedInteger;
 				float FloatNumber;
-				if (Tokenizer.MatchSymbol(SymbolToken))
+				if (Tokenizer.MatchFloatNumber(FloatNumber))
 				{
-					new(Data->Tokens) FToken(SymbolToken);
+					AddToken(FHlslToken(FloatNumber), Tokenizer);
+				}
+				else if (Tokenizer.MatchLiteralInteger(UnsignedInteger))
+				{
+					AddToken(FHlslToken(UnsignedInteger), Tokenizer);
 				}
 				else if (Tokenizer.MatchIdentifier(Identifier))
 				{
-					new(Data->Tokens) FToken(Identifier);
+					if (!FCString::Strcmp(*Identifier, TEXT("true")))
+					{
+						AddToken(FHlslToken(true), Tokenizer);
+					}
+					else if (!FCString::Strcmp(*Identifier, TEXT("false")))
+					{
+						AddToken(FHlslToken(false), Tokenizer);
+					}
+					else if (MatchSymbolToken(*Identifier, nullptr, SymbolToken, nullptr, true))
+					{
+						AddToken(FHlslToken(SymbolToken, Identifier), Tokenizer);
+					}
+					else
+					{
+						AddToken(FHlslToken(Identifier), Tokenizer);
+					}
 				}
-				else if (Tokenizer.MatchFloatNumber(FloatNumber))
+				else if (Tokenizer.MatchSymbol(SymbolToken, Identifier))
 				{
-					new (Data->Tokens) FToken(FloatNumber);
+					AddToken(FHlslToken(SymbolToken, Identifier), Tokenizer);
 				}
-				else if (Tokenizer.MatchUnsignedIntegerNumber(UnsignedInteger))
+				else if (Tokenizer.HasCharsAvailable())
 				{
-					new (Data->Tokens) FToken(UnsignedInteger);
+					//@todo-rco: Unknown token!
+					if (Tokenizer.Filename.Len() > 0)
+					{
+						FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Unknown token at line %d, file '%s'!"), Tokenizer.Line, *Tokenizer.Filename);
+					}
+					else
+					{
+						FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Unknown token at line %d!"), Tokenizer.Line);
+					}
+					return false;
 				}
 			}
 
 			check(Sanity != Tokenizer.Current);
 		}
+
+		return true;
 	}
 
 	void FHlslScanner::Dump()
 	{
-		if (Data)
+		for (int32 Index = 0; Index < Tokens.Num(); ++Index)
 		{
-			for (int32 Index = 0; Index < Data->Tokens.Num(); ++Index)
+			auto& Token = Tokens[Index];
+			switch (Token.Token)
 			{
-				auto& Token = Data->Tokens[Index];
+			case EHlslToken::UnsignedIntegerConstant:
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** %d: UnsignedIntegerConstant '%d'\n"), Index, Token.UnsignedInteger);
+				break;
+
+			case EHlslToken::FloatConstant:
+				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** %d: FloatConstant '%f'\n"), Index, Token.Float);
+				break;
+
+			default:
 				FPlatformMisc::LowLevelOutputDebugStringf(TEXT("** %d: %d '%s'\n"), Index, Token.Token, *Token.String);
+				break;
 			}
+		}
+	}
+
+	bool FHlslScanner::MatchToken(EHlslToken InToken)
+	{
+		const auto* Token = GetCurrentToken();
+		if (Token)
+		{
+			if (Token->Token == InToken)
+			{
+				++CurrentToken;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	const FHlslToken* FHlslScanner::PeekToken(uint32 LookAhead /*= 0*/) const
+	{
+		if (CurrentToken + LookAhead < (uint32)Tokens.Num())
+		{
+			return &Tokens[CurrentToken + LookAhead];
+		}
+
+		return nullptr;
+	}
+
+	bool FHlslScanner::HasMoreTokens() const
+	{
+		return CurrentToken < (uint32)Tokens.Num();
+	}
+
+	const FHlslToken* FHlslScanner::GetCurrentToken() const
+	{
+		if (CurrentToken < (uint32)Tokens.Num())
+		{
+			return &Tokens[CurrentToken];
+		}
+
+		return nullptr;
+	}
+
+	const FHlslToken* FHlslScanner::GetCurrentTokenAndAdvance()
+	{
+		if (CurrentToken < (uint32)Tokens.Num())
+		{
+			auto* Return = &Tokens[CurrentToken];
+			Advance();
+		}
+
+		return nullptr;
+	}
+
+	void FHlslScanner::SetCurrentTokenIndex(uint32 NewToken)
+	{
+		check(NewToken <= (uint32)Tokens.Num());
+		CurrentToken = NewToken;
+	}
+
+	void FHlslScanner::SourceError(const FString& Error)
+	{
+		if (CurrentToken < (uint32)Tokens.Num())
+		{
+			const auto& Token = Tokens[CurrentToken];
+			check(Token.SourceInfo.Filename);
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s(%d): (%d) %s\n"), **Token.SourceInfo.Filename, Token.SourceInfo.Line, Token.SourceInfo.Column, *Error);
+		}
+		else
+		{
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s\n"), *Error);
 		}
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PhysicsPublic.h
@@ -10,6 +10,7 @@
 #include "PhysxUserData.h"
 #include "DynamicMeshBuilder.h"
 #include "LocalVertexFactory.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 /**
  * Physics stats
  */
@@ -21,6 +22,7 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys SetBodyTransform"),STAT_SetBodyTransform,ST
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys SubstepStart"), STAT_SubstepSimulationStart,STATGROUP_Physics, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Phys SubstepEnd"), STAT_SubstepSimulationEnd, STATGROUP_Physics, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("SyncComponentsToBodies"), STAT_SyncComponentsToBodies, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Articulated"), STAT_InitArticulated, STATGROUP_Physics, );
 
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Broadphase Adds"), STAT_NumBroadphaseAdds, STATGROUP_Physics, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Broadphase Removes"), STAT_NumBroadphaseRemoves, STATGROUP_Physics, );
@@ -194,6 +196,8 @@ class FPhysCommandHandler
 {
 public:
 
+	~FPhysCommandHandler();
+	
 	/** Executes pending commands and clears buffer **/
 	void ENGINE_API Flush();
 
@@ -391,6 +395,9 @@ public:
 
 	/** Lets the scene update anything related to this BodyInstance as it's now being terminated */
 	void TermBody(FBodyInstance* BodyInstance);
+
+	/** Add a custom callback for next step that will be called on every substep */
+	void AddCustomPhysics(FBodyInstance* BodyInstance, FCalculateCustomPhysics& CalculateCustomPhysics);
 
 	/** Adds a force to a body - We need to go through scene to support substepping */
 	void AddForce(FBodyInstance* BodyInstance, const FVector& Force, bool bAllowSubstepping);

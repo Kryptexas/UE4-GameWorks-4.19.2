@@ -1,14 +1,15 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FriendsAndChatPrivatePCH.h"
 #include "SFriendsStatus.h"
+#include "SFriendsAndChatCombo.h"
 #include "FriendsStatusViewModel.h"
 
 #define LOCTEXT_NAMESPACE "SFriendsStatus"
 
 /**
  * Declares the Friends Status display widget
-*/
+ */
 class SFriendsStatusImpl : public SFriendsStatus
 {
 public:
@@ -20,111 +21,78 @@ public:
 
 		FFriendsStatusViewModel* ViewModelPtr = &ViewModel.Get();
 
+		const TArray<FFriendsStatusViewModel::FOnlineState>& StatusOptions = ViewModelPtr->GetStatusList();
+		SFriendsAndChatCombo::FItemsArray ComboMenuItems;
+		for (const auto& StatusOption : StatusOptions)
+		{
+			if (StatusOption.bIsDisplayed)
+			{
+				ComboMenuItems.AddItem(StatusOption.DisplayText, GetStatusBrush(StatusOption.State), FName(*StatusOption.DisplayText.ToString()));
+			}
+		}
+
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
-			SNew(SHorizontalBox)
-			+SHorizontalBox::Slot()
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Center)
-			.AutoWidth()
-			[
-				SNew(SImage)
-				.Visibility(this, &SFriendsStatusImpl::StatusVisibility, true)
-				.Image(&FriendStyle.OnlineBrush)
-			]
-			+ SHorizontalBox::Slot()
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Center)
-			.AutoWidth()
-			[
-				SNew(SImage)
-				.Visibility(this, &SFriendsStatusImpl::StatusVisibility, false)
-				.Image(&FriendStyle.OfflineBrush)
-			]
-			+ SHorizontalBox::Slot()
-			.HAlign(HAlign_Left)
-			.VAlign(VAlign_Center)
-			.AutoWidth()
-			[
-				SAssignNew(ActionMenu, SMenuAnchor)
-				.Placement(EMenuPlacement::MenuPlacement_ComboBox)
-				.Method(InArgs._Method)
-				.MenuContent(GetMenuContent())
-				[
-					SNew(SButton)
-					.HAlign(HAlign_Right)
-					.VAlign(VAlign_Center)
-					.OnClicked(this, &SFriendsStatusImpl::HandleVersionDropDownClicked)
-					.ButtonStyle(FCoreStyle::Get(), "NoBorder")
-					.Cursor(EMouseCursor::Hand)
-					[
-						SNew(SHorizontalBox)
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.AutoWidth()
-						[
-							SNew(STextBlock)
-							.Text(ViewModelPtr, &FFriendsStatusViewModel::GetStatusText)
-							.Font(FriendStyle.FriendsFontStyleSmall)
-							.ColorAndOpacity(FLinearColor::White)
-						]
-						+ SHorizontalBox::Slot()
-						.AutoWidth()
-						.VAlign(VAlign_Center)
-						.Padding(FMargin(5, 0))
-						[
-							SNew(SImage)
-							.ColorAndOpacity(FLinearColor::White)
-							.Image(&FriendStyle.FriendsComboDropdownImageBrush)
-						]
-					]
-				]
-			]
+			SNew(SFriendsAndChatCombo)
+			.FriendStyle(&FriendStyle)
+			.ButtonText(ViewModelPtr, &FFriendsStatusViewModel::GetStatusText)
+			.bShowIcon(true)
+			.IconBrush(this, &SFriendsStatusImpl::GetCurrentStatusBrush)
+			.DropdownItems(ComboMenuItems)
+			.bSetButtonTextToSelectedItem(false)
+			.bAutoCloseWhenClicked(true)
+			.ButtonSize(FriendStyle.StatusButtonSize)
+			.OnDropdownItemClicked(this, &SFriendsStatusImpl::HandleStatusChanged)
 		]);
 	}
 
 private:
-	FReply HandleVersionDropDownClicked() const
+	void HandleStatusChanged(FName ItemTag)
 	{
-		ActionMenu->SetIsOpen(true);
-		return FReply::Handled();
+		if (ViewModel.IsValid())
+		{
+			const TArray<FFriendsStatusViewModel::FOnlineState>& StatusOptions = ViewModel->GetStatusList();
+			
+			const FFriendsStatusViewModel::FOnlineState* FoundStatePtr = StatusOptions.FindByPredicate([ItemTag](const FFriendsStatusViewModel::FOnlineState& InOnlineState) -> bool
+			{
+				return InOnlineState.DisplayText.ToString() == ItemTag.ToString();
+			});
+
+			EOnlinePresenceState::Type OnlineState = EOnlinePresenceState::Offline;
+
+			if (FoundStatePtr != nullptr)
+			{
+				OnlineState =  FoundStatePtr->State;
+			}
+
+			ViewModel->SetOnlineStatus(OnlineState);
+		}
 	}
 
-	/**
-	* Generate the action menu.
-	* @return the action menu widget
-	*/
-	TSharedRef<SWidget> GetMenuContent()
+	const FSlateBrush* GetCurrentStatusBrush() const
 	{
-		return SNew(SBorder)
-			.Padding(FMargin(1, 5))
-			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot()
-				[
-					SNew(SButton)
-					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, true)
-					.Text(FText::FromString("Online"))
-				]
-				+ SVerticalBox::Slot()
-				[
-					SNew(SButton)
-					.OnClicked(this, &SFriendsStatusImpl::HandleStatusChanged, false)
-					.Text(FText::FromString("Away"))
-				]
-			];
+		if (ViewModel.IsValid())
+		{
+			return GetStatusBrush(ViewModel->GetOnlineStatus());
+		}
+		return nullptr;
 	}
 
-	FReply HandleStatusChanged(bool bOnline)
+	const FSlateBrush* GetStatusBrush(EOnlinePresenceState::Type OnlineState) const
 	{
-		ActionMenu->SetIsOpen(false);
-		ViewModel->SetOnlineStatus(bOnline);
-		return FReply::Handled();
-	}
-
-	EVisibility StatusVisibility(bool bOnline) const
-	{
-		return ViewModel->GetOnlineStatus() == bOnline ? EVisibility::Visible : EVisibility::Collapsed;
+		switch (OnlineState)
+		{	
+			case EOnlinePresenceState::Away:
+			case EOnlinePresenceState::ExtendedAway:
+				return &FriendStyle.AwayBrush;
+			case EOnlinePresenceState::Chat:
+			case EOnlinePresenceState::DoNotDisturb:
+			case EOnlinePresenceState::Online:
+				return &FriendStyle.OnlineBrush;
+			case EOnlinePresenceState::Offline:
+			default:
+				return &FriendStyle.OfflineBrush;
+		};
 	}
 
 private:

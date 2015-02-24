@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -30,6 +30,8 @@ public class Android_ES31TargetPlatform : ModuleRules
 			PrivateDependencyModuleNames.Add("Engine");
 			PrivateIncludePathModuleNames.Add("TextureCompressor");		//@todo android: AndroidTargetPlatform.Build
 		}
+
+		Definitions.Add("WITH_OGGVORBIS=1");
 
 		PrivateIncludePaths.AddRange(
 			new string[]

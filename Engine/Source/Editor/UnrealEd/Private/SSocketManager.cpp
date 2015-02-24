@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
@@ -14,6 +14,8 @@
 #include "EngineAnalytics.h"
 #include "SInlineEditableTextBlock.h"
 #include "GenericCommands.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/StaticMeshSocket.h"
 
 #define LOCTEXT_NAMESPACE "SSCSSocketManagerEditor"
 
@@ -183,9 +185,10 @@ void SSocketManager::Construct(const FArguments& InArgs)
 	FDetailsViewArgs Args;
 	Args.bHideSelectionTip = true;
 	Args.bLockable = false;
-	Args.bAllowSearch = true;
+	Args.bAllowSearch = false;
+	Args.bShowOptions = false;
 	Args.NotifyHook = this;
-	Args.bObjectsUseNameArea = true;
+	Args.NameAreaSettings = FDetailsViewArgs::HideNameArea;
 
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 	SocketDetailsView = PropertyModule.CreateDetailView(Args);
@@ -251,7 +254,7 @@ void SSocketManager::Construct(const FArguments& InArgs)
 						.Padding(5.0f, 0.0f, 4.0f, 0.0f)
 						[
 							SNew(SButton)
-							.Text(LOCTEXT("CreateSocket", "Create Socket").ToString())
+							.Text(LOCTEXT("CreateSocket", "Create Socket"))
 							.OnClicked(this, &SSocketManager::CreateSocket_Execute)
 						]
 						+SHorizontalBox::Slot()
@@ -260,7 +263,7 @@ void SSocketManager::Construct(const FArguments& InArgs)
 							.Padding(4.0f, 0.0f, 5.0f, 0.0f)
 							[
 								SNew(SButton)
-								.Text(LOCTEXT("DeleteSocket", "Delete Socket").ToString())
+								.Text(LOCTEXT("DeleteSocket", "Delete Socket"))
 								.OnClicked(this, &SSocketManager::DeleteSelectedSocket_Execute)
 							]
 					]
@@ -271,7 +274,7 @@ void SSocketManager::Construct(const FArguments& InArgs)
 					.Padding(0.0f, 12.0f, 0.0f, 4.0f)
 					[
 						SNew(STextBlock)
-						.Text(LOCTEXT("WorldSpaceRotation", "World Space Rotation").ToString())
+						.Text(LOCTEXT("WorldSpaceRotation", "World Space Rotation"))
 					]
 
 				+SVerticalBox::Slot()
@@ -283,7 +286,7 @@ void SSocketManager::Construct(const FArguments& InArgs)
 						.FillWidth(0.25f)
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("Pitch", "Pitch").ToString())
+							.Text(LOCTEXT("Pitch", "Pitch"))
 						]
 						+SHorizontalBox::Slot()
 							.FillWidth(1.0f)
@@ -305,7 +308,7 @@ void SSocketManager::Construct(const FArguments& InArgs)
 						.FillWidth(0.25f)
 						[
 							SNew(STextBlock)
-							.Text(LOCTEXT("Yaw", "Yaw").ToString())
+							.Text(LOCTEXT("Yaw", "Yaw"))
 						]
 						+SHorizontalBox::Slot()
 							.FillWidth(1.0f)
@@ -327,7 +330,7 @@ void SSocketManager::Construct(const FArguments& InArgs)
 						.FillWidth(0.25f)
 						[
 							SNew(STextBlock)
-								.Text(LOCTEXT("Roll", "Roll").ToString())
+								.Text(LOCTEXT("Roll", "Roll"))
 						]
 						+SHorizontalBox::Slot()
 							.FillWidth(1.0f)
@@ -627,7 +630,7 @@ FReply SSocketManager::DeleteSelectedSocket_Execute()
 	return FReply::Handled();
 }
 
-FString SSocketManager::GetSocketHeaderText() const
+FText SSocketManager::GetSocketHeaderText() const
 {
 	UStaticMesh* CurrentStaticMesh = nullptr;
 	TSharedPtr<IStaticMeshEditor> StaticMeshEditorPinned = StaticMeshEditorPtr.Pin();
@@ -635,7 +638,7 @@ FString SSocketManager::GetSocketHeaderText() const
 	{
 		CurrentStaticMesh = StaticMeshEditorPinned->GetStaticMesh();
 	}
-	return FString::Printf(*LOCTEXT("SocketHeader_Total", "Sockets (%d Total)").ToString(), (CurrentStaticMesh != nullptr) ? CurrentStaticMesh->Sockets.Num() : 0);
+	return FText::Format(LOCTEXT("SocketHeader_TotalFmt", "Sockets ({0} Total)"), FText::AsNumber((CurrentStaticMesh != nullptr) ? CurrentStaticMesh->Sockets.Num() : 0));
 }
 
 void SSocketManager::SocketName_TextChanged(const FText& InText)

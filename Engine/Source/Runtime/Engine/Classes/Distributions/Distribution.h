@@ -1,9 +1,18 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 #include "Math/CurveEdInterface.h"
 #include "Distribution.generated.h"
+
+UENUM()
+enum DistributionParamMode
+{
+	DPM_Normal,
+	DPM_Abs,
+	DPM_Direct,
+	DPM_MAX,
+};
 
 /** Lookup table for distributions. */
 #if !CPP      //noexport struct
@@ -50,6 +59,9 @@ UCLASS(DefaultToInstanced, collapsecategories, hidecategories=Object, editinline
 class UDistribution : public UObject, public FCurveEdInterface
 {
 	GENERATED_UCLASS_BODY()
+
+	/** Default value for initializing and checking correct values on UDistributions. */
+	static const float DefaultValue;
 
 };
 

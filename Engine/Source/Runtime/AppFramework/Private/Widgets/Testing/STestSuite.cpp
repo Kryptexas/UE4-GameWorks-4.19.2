@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AppFrameworkPrivatePCH.h"
 #include "STableViewTesting.h"
@@ -12,7 +12,6 @@
 #include "TransformCalculus3D.h"
 #include "SlateRenderTransform.h"
 #include "SlateLayoutTransform.h"
-#include "SWebBrowser.h"
 #include "SInlineEditableTextBlock.h"
 #include "STextEntryPopup.h"
 #include "SDPIScaler.h"
@@ -23,10 +22,11 @@
 #include "SVolumeControl.h"
 #include "SResponsiveGridPanel.h"
 #include "SColorPicker.h"
-
+#include "INotificationWidget.h"
 
 #define LOCTEXT_NAMESPACE "STestSuite"
 
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 namespace
 {
@@ -38,7 +38,7 @@ namespace
 	{
 		float uniScale = 5.8f;
 		FVector trans(5, 6, 7);
-		FQuat quat(FVector(1, 2, 3).SafeNormal(), 33.5f);
+		FQuat quat(FVector(1, 2, 3).GetSafeNormal(), 33.5f);
 		FRotator rot(7, 8, 9);
 		FMatrix mat = FRotationMatrix::Make(rot);
 
@@ -549,10 +549,10 @@ private:
 	{
 		TArray<FSlateGradientStop> GradientStops;
 
-		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.Size.X*.1f,0), FColor(255,255,0) ) );
-		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.Size.X*.25f,0), FColor(255,0,255) ) );
-		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.Size.X*.75f,0), FColor(0,0,255) ) );
-		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.Size.X*0.9f,0), FColor(0,255,0) ) );
+		GradientStops.Add( FSlateGradientStop(FVector2D(InParams.Geometry.Size.X*.1f, 0), FColor::Yellow) );
+		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.Size.X*.25f,0), FColor::Magenta ) );
+		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.Size.X*.75f,0), FColor::Blue ) );
+		GradientStops.Add( FSlateGradientStop( FVector2D(InParams.Geometry.Size.X*0.9f,0), FColor::Green) );
 
 		FSlateDrawElement::MakeGradient(
 			InParams.OutDrawElements,
@@ -583,7 +583,7 @@ private:
 			InParams.ClippingRect,
 			4.0f,
 			InParams.bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
-			FColor(255,255,255)
+			FColor::White
 		);
 
 	
@@ -603,7 +603,7 @@ private:
 			LinePoints,
 			InParams.ClippingRect,
 			InParams.bEnabled ? ESlateDrawEffect::None : ESlateDrawEffect::DisabledEffect,
-			FColor(255,0,255)
+			FColor::Magenta
 			);
 			
 
@@ -863,7 +863,6 @@ public:
 	 *
 	 * @param InArgs   Declartion from which to construct the widget
 	 */
-	BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 	void Construct(const FArguments& InArgs)
 	{
 		this->ChildSlot
@@ -1005,7 +1004,6 @@ public:
 			]
 		];
 	}
-	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 	SSplitterTest()
 		: Col0Row0Vis( new FVisibilityCycler() )
@@ -1176,14 +1174,14 @@ private:
 		return bIsReadOnly;
 	}
 
-	ESlateCheckBoxState::Type IsReadOnlyChecked() const
+	ECheckBoxState IsReadOnlyChecked() const
 	{
-		return (bIsReadOnly) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return (bIsReadOnly) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnReadOnlyCheckedStateChanged(ESlateCheckBoxState::Type InState)
+	void OnReadOnlyCheckedStateChanged(ECheckBoxState InState)
 	{
-		bIsReadOnly = (InState == ESlateCheckBoxState::Checked);
+		bIsReadOnly = (InState == ECheckBoxState::Checked);
 	}
 
 	bool bIsReadOnly;
@@ -1883,14 +1881,14 @@ public:
 		WrapWidth = Value;
 	}
 
-	ESlateCheckBoxState::Type ShouldWrapRichText() const
+	ECheckBoxState ShouldWrapRichText() const
 	{
-		return bShouldWrap ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bShouldWrap ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void ShouldWrapRichTextChanged( ESlateCheckBoxState::Type CheckState )
+	void ShouldWrapRichTextChanged( ECheckBoxState CheckState )
 	{
-		bShouldWrap = CheckState == ESlateCheckBoxState::Checked ? true : false;
+		bShouldWrap = CheckState == ECheckBoxState::Checked ? true : false;
 	}
 
 	float GetRichTextWrapWidthValue() const
@@ -2797,14 +2795,14 @@ protected:
 		StyleSelectedText();
 	}
 
-	ESlateCheckBoxState::Type IsFontStyleBold() const
+	ECheckBoxState IsFontStyleBold() const
 	{
-		return (FontStyle & FTextStyles::EFontStyle::Bold) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return (FontStyle & FTextStyles::EFontStyle::Bold) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnFontStyleBoldChanged(ESlateCheckBoxState::Type InState)
+	void OnFontStyleBoldChanged(ECheckBoxState InState)
 	{
-		if(InState == ESlateCheckBoxState::Checked)
+		if(InState == ECheckBoxState::Checked)
 		{
 			FontStyle |= FTextStyles::EFontStyle::Bold;
 		}
@@ -2815,14 +2813,14 @@ protected:
 		StyleSelectedText();
 	}
 
-	ESlateCheckBoxState::Type IsFontStyleItalic() const
+	ECheckBoxState IsFontStyleItalic() const
 	{
-		return (FontStyle & FTextStyles::EFontStyle::Italic) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return (FontStyle & FTextStyles::EFontStyle::Italic) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnFontStyleItalicChanged(ESlateCheckBoxState::Type InState)
+	void OnFontStyleItalicChanged(ECheckBoxState InState)
 	{
-		if(InState == ESlateCheckBoxState::Checked)
+		if(InState == ECheckBoxState::Checked)
 		{
 			FontStyle |= FTextStyles::EFontStyle::Italic;
 		}
@@ -2925,14 +2923,14 @@ protected:
 		return FReply::Handled();
 	}
 
-	ESlateCheckBoxState::Type IsEnableSyntaxHighlightingChecked() const
+	ECheckBoxState IsEnableSyntaxHighlightingChecked() const
 	{
-		return (SyntaxHighlighterMarshaller->IsSyntaxHighlightingEnabled()) ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return (SyntaxHighlighterMarshaller->IsSyntaxHighlightingEnabled()) ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnEnableSyntaxHighlightingChanged(ESlateCheckBoxState::Type InState)
+	void OnEnableSyntaxHighlightingChanged(ECheckBoxState InState)
 	{
-		SyntaxHighlighterMarshaller->EnableSyntaxHighlighting(InState == ESlateCheckBoxState::Checked);
+		SyntaxHighlighterMarshaller->EnableSyntaxHighlighting(InState == ECheckBoxState::Checked);
 	}
 
 protected:
@@ -3507,7 +3505,7 @@ class SFxTest : public SCompoundWidget
 		RenderScaleOrigin = FVector2D(0.5f, 0.5f);
 		LayoutScale = 1.0f;
 		VisualOffset = FVector2D::ZeroVector;
-		FxWidgetIgnoreClippingState = ESlateCheckBoxState::Checked;
+		FxWidgetIgnoreClippingState = ECheckBoxState::Checked;
 
 
 		this->ChildSlot
@@ -3660,10 +3658,10 @@ class SFxTest : public SCompoundWidget
 	}
 	END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
-	bool GetFxWidgetIgnoreClipping() const { return FxWidgetIgnoreClippingState == ESlateCheckBoxState::Checked; }
-	ESlateCheckBoxState::Type GetFxWidgetIgnoreClippingState() const { return FxWidgetIgnoreClippingState; }
-	void OnFxWidgetIgnoreClippingChanged( ESlateCheckBoxState::Type InValue ) { FxWidgetIgnoreClippingState = InValue; }
-	ESlateCheckBoxState::Type FxWidgetIgnoreClippingState;
+	bool GetFxWidgetIgnoreClipping() const { return FxWidgetIgnoreClippingState == ECheckBoxState::Checked; }
+	ECheckBoxState GetFxWidgetIgnoreClippingState() const { return FxWidgetIgnoreClippingState; }
+	void OnFxWidgetIgnoreClippingChanged( ECheckBoxState InValue ) { FxWidgetIgnoreClippingState = InValue; }
+	ECheckBoxState FxWidgetIgnoreClippingState;
 
 	float GetRenderScale() const { return RenderScale; }
 	void OnRenderScaleChanged( float InValue ) { RenderScale = InValue; }
@@ -3755,18 +3753,18 @@ class SDPIScalingTest : public SCompoundWidget
 		DPIScale = InScale;
 	}
 
-	ESlateCheckBoxState::Type IsFillChecked() const
+	ECheckBoxState IsFillChecked() const
 	{
 		const bool bIsFilling = (ScalerSlot->HAlignment == HAlign_Fill);
 		return (bIsFilling)
-			? ESlateCheckBoxState::Checked
-			: ESlateCheckBoxState::Unchecked;
+			? ECheckBoxState::Checked
+			: ECheckBoxState::Unchecked;
 	}
 
-	void OnFillChecked(ESlateCheckBoxState::Type InValue)
+	void OnFillChecked(ECheckBoxState InValue)
 	{
-		ScalerSlot->HAlign( (InValue == ESlateCheckBoxState::Checked) ? HAlign_Fill : HAlign_Center );
-		ScalerSlot->VAlign( (InValue == ESlateCheckBoxState::Checked) ? VAlign_Fill : VAlign_Center );
+		ScalerSlot->HAlign( (InValue == ECheckBoxState::Checked) ? HAlign_Fill : HAlign_Center );
+		ScalerSlot->VAlign( (InValue == ECheckBoxState::Checked) ? VAlign_Fill : VAlign_Center );
 	}
 
 	float DPIScale;
@@ -3874,6 +3872,55 @@ protected:
 	TSharedPtr<STextBlock> OutputTextBlock;
 };
 
+class STestNotificationWidget : public SCompoundWidget, public INotificationWidget
+{
+public:
+
+	SLATE_BEGIN_ARGS(STestNotificationWidget){}
+	SLATE_END_ARGS()
+
+		void Construct(const FArguments& InArgs)
+	{
+		ChildSlot
+			[
+				SNew(SBorder)
+				.Padding(15.0f)
+				.BorderImage(FCoreStyle::Get().GetBrush("NotificationList.ItemBackground"))
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(SImage)
+						.Image(FTestStyle::Get().GetBrush("UE4Icon"))
+					]
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(15.0f, 0.0f, 0.0f, 0.0f))
+					[
+						SNew(STextBlock)
+						.Text(LOCTEXT("TestingBigTextBigMargin", "Big notififcation text!"))
+						.Font(FSlateFontInfo(FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Bold.ttf"), 30))
+					]
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(15.0f, 0.0f, 0.0f, 0.0f))
+					[
+						SNew(SButton)
+						.Text(LOCTEXT("TestButtonInNotificaiton", "Button Test"))
+					]
+				]
+			];
+	}
+
+	virtual void OnSetCompletionState(SNotificationItem::ECompletionState State) override
+	{
+	}
+
+	virtual TSharedRef< SWidget > AsWidget() override
+	{
+		return SharedThis(this);
+	}
+};
+
 class SNotificationListTest : public SCompoundWidget
 {
 public:
@@ -3887,7 +3934,7 @@ public:
 		bAddDummyCheckBox = false;
 		bAddDummyHyperlink = false;
 
-		DummyCheckBoxState = ESlateCheckBoxState::Unchecked;
+		DummyCheckBoxState = ECheckBoxState::Unchecked;
 
 		this->ChildSlot
 		[
@@ -3912,6 +3959,13 @@ public:
 						.OnClicked(this, &SNotificationListTest::SpawnNotification2)
 						.Text( LOCTEXT("NotificationListTest-SpawnNotification2Label", "Spawn Notification2") )
 					]
+
+					+ SHorizontalBox::Slot().AutoWidth()
+						[
+							SNew(SButton)
+							.OnClicked(this, &SNotificationListTest::SpawnCustomNotification)
+							.Text(LOCTEXT("NotificationListTest-SpawnCustomNotificationLabel", "Spawn Custom Notification"))
+						]
 
 					+SHorizontalBox::Slot().AutoWidth()
 					[
@@ -3996,44 +4050,44 @@ public:
 	}
 
 protected:
-	ESlateCheckBoxState::Type IsUseLargeFontChecked() const
+	ECheckBoxState IsUseLargeFontChecked() const
 	{
-		return bUseLargeFont ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bUseLargeFont ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnUseLargeFontCheckStateChanged(ESlateCheckBoxState::Type NewState)
+	void OnUseLargeFontCheckStateChanged(ECheckBoxState NewState)
 	{
-		bUseLargeFont = (NewState == ESlateCheckBoxState::Checked);
+		bUseLargeFont = (NewState == ECheckBoxState::Checked);
 	}
 
-	ESlateCheckBoxState::Type IsAddDummyButtonsChecked() const
+	ECheckBoxState IsAddDummyButtonsChecked() const
 	{
-		return bAddDummyButtons ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bAddDummyButtons ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnAddDummyButtonsCheckStateChanged(ESlateCheckBoxState::Type NewState)
+	void OnAddDummyButtonsCheckStateChanged(ECheckBoxState NewState)
 	{
-		bAddDummyButtons = (NewState == ESlateCheckBoxState::Checked);
+		bAddDummyButtons = (NewState == ECheckBoxState::Checked);
 	}
 
-	ESlateCheckBoxState::Type IsAddDummyCheckBoxChecked() const
+	ECheckBoxState IsAddDummyCheckBoxChecked() const
 	{
-		return bAddDummyCheckBox ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bAddDummyCheckBox ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnAddDummyCheckBoxCheckStateChanged(ESlateCheckBoxState::Type NewState)
+	void OnAddDummyCheckBoxCheckStateChanged(ECheckBoxState NewState)
 	{
-		bAddDummyCheckBox = (NewState == ESlateCheckBoxState::Checked);
+		bAddDummyCheckBox = (NewState == ECheckBoxState::Checked);
 	}
 
-	ESlateCheckBoxState::Type IsAddDummyHyperlinkChecked() const
+	ECheckBoxState IsAddDummyHyperlinkChecked() const
 	{
-		return bAddDummyHyperlink ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+		return bAddDummyHyperlink ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 	}
 
-	void OnAddDummyHyperlinkCheckStateChanged(ESlateCheckBoxState::Type NewState)
+	void OnAddDummyHyperlinkCheckStateChanged(ECheckBoxState NewState)
 	{
-		bAddDummyHyperlink = (NewState == ESlateCheckBoxState::Checked);
+		bAddDummyHyperlink = (NewState == ECheckBoxState::Checked);
 	}
 
 	void SetNotificationInfoFlags(FNotificationInfo& Info)
@@ -4066,7 +4120,7 @@ protected:
 
 		if(bAddDummyCheckBox)
 		{
-			Info.CheckBoxState = TAttribute<ESlateCheckBoxState::Type>(this, &SNotificationListTest::GetDummyCheckBoxState);
+			Info.CheckBoxState = TAttribute<ECheckBoxState>(this, &SNotificationListTest::GetDummyCheckBoxState);
 			Info.CheckBoxStateChanged = FOnCheckStateChanged::CreateSP(this, &SNotificationListTest::OnDummyCheckBoxStateChanged);
 			Info.CheckBoxText = LOCTEXT("NotificationListTest-DummyCheckBoxText", "Dummy Check Box");
 		}
@@ -4078,12 +4132,12 @@ protected:
 		}
 	}
 
-	ESlateCheckBoxState::Type GetDummyCheckBoxState() const
+	ECheckBoxState GetDummyCheckBoxState() const
 	{
 		return DummyCheckBoxState;
 	}
 
-	void OnDummyCheckBoxStateChanged(ESlateCheckBoxState::Type NewState)
+	void OnDummyCheckBoxStateChanged(ECheckBoxState NewState)
 	{
 		DummyCheckBoxState = NewState;
 	}
@@ -4101,6 +4155,19 @@ protected:
 		FNotificationInfo Info( LOCTEXT("TestNotification02", "Another Notification" ));
 		SetNotificationInfoFlags(Info);
 		NotificationListPtr->AddNotification(Info);
+		return FReply::Handled();
+	}
+
+	FReply SpawnCustomNotification()
+	{
+		FNotificationInfo Info(SNew(STestNotificationWidget));
+		Info.bFireAndForget = true;
+		Info.ExpireDuration = 3.0f;
+		Info.FadeOutDuration = 3.0f;
+
+		SetNotificationInfoFlags(Info);
+		NotificationListPtr->AddNotification(Info);
+
 		return FReply::Handled();
 	}
 
@@ -4170,7 +4237,7 @@ protected:
 	/** The pending progress message */
 	TWeakPtr<SNotificationItem> PendingProgressPtr;
 	/** If showing a dummy check box, this maintains its state in the UI */
-	ESlateCheckBoxState::Type DummyCheckBoxState;
+	ECheckBoxState DummyCheckBoxState;
 };
 
 class SGridPanelTest : public SCompoundWidget
@@ -4316,17 +4383,14 @@ public:
 
 };
 
-namespace
+class SResponsiveGridPanelTestWidgetImpl : public SResponsiveGridPanelTestWidget
 {
-	class SResponsiveGridPanelTestWidgetImpl : public SResponsiveGridPanelTestWidget
-	{
-	public:
-		virtual void Construct(const FArguments& InArgs) override;
+public:
+	virtual void Construct(const FArguments& InArgs) override;
 
-	private:
-		TSharedRef<SWidget> ConstructBox(const FString& Text) const;
-	};
-}
+private:
+	TSharedRef<SWidget> ConstructBox(const FString& Text) const;
+};
 
 TSharedRef<SWidget> SResponsiveGridPanelTestWidgetImpl::ConstructBox(const FString& Text) const
 {
@@ -4672,29 +4736,29 @@ namespace
 	FShear2D Shear;
 	FQuat2D Rot;
 	FVector2D Offset(0,0);
-
-	class SRenderTransformManipulatorWidgetImpl : public SRenderTransformManipulatorWidget
-	{
-	public:
-		virtual void Construct(const FArguments& InArgs) override;
-
-		TSharedPtr<SImage> ImageWidget;
-	private:
-		static const ISlateStyle& GetStyle()
-		{
-			static FSlateStyleSet Style("RenderTransformManipulatorStyle");
-			static bool IsInit = false;
-			if (!IsInit)
-			{
-				check(IsInGameThread());
-				Style.SetContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));
-				Style.Set("UE4Icon", new FSlateImageBrush(Style.RootToContentDir(TEXT("Testing/UE4Icon.png")), FVector2D(50, 50)));
-				IsInit = true;
-			}
-			return Style;
-		}
-	};
 }
+
+class SRenderTransformManipulatorWidgetImpl : public SRenderTransformManipulatorWidget
+{
+public:
+	virtual void Construct(const FArguments& InArgs) override;
+
+	TSharedPtr<SImage> ImageWidget;
+private:
+	static const ISlateStyle& GetStyle()
+	{
+		static FSlateStyleSet Style("RenderTransformManipulatorStyle");
+		static bool IsInit = false;
+		if (!IsInit)
+		{
+			check(IsInGameThread());
+			Style.SetContentRoot(FPaths::EngineContentDir() / TEXT("Slate"));
+			Style.Set("UE4Icon", new FSlateImageBrush(Style.RootToContentDir(TEXT("Testing/UE4Icon.png")), FVector2D(50, 50)));
+			IsInit = true;
+		}
+		return Style;
+	}
+};
 
 /**
  * Global access here because we need other translation units to access this function.
@@ -4994,19 +5058,6 @@ TSharedRef<SDockTab> SpawnTab(const FSpawnTabArgs& Args, FName TabIdentifier)
 				]
 			];
 	}
-	else if (TabIdentifier == FName(TEXT("WebBrowserTab")))
-	{
-		const FString DocPath(FPaths::ConvertRelativePathToFull(FPaths::Combine(*FPaths::EngineDir(), TEXT("Documentation/HTML/INT/Resources/index.html"))));
-		return SNew(SDockTab)
-			.Label(LOCTEXT("WebBrowserTab", "Web Browser"))
-			.ToolTipText(LOCTEXT("WebBrowserTabToolTip", "Switches to the Web Browser to test its features."))
-			[
-				SNew(SWebBrowser)
-				.ParentWindow(Args.GetOwnerWindow())
-				//.InitialURL(DocPath)
-				//.InitialURL(TEXT("www.youtube.com"))
-			];
-	}
 #endif //WITH_FANCY_TEXT
 	else if (TabIdentifier == FName("LayoutRoundingTab"))
 	{
@@ -5245,10 +5296,6 @@ TSharedRef<SDockTab> SpawnTestSuite1( const FSpawnTabArgs& Args )
 		.SetDisplayName( NSLOCTEXT("TestSuite1", "RichEditableTextTab", "Rich Editable Text Test") )
 		.SetGroup(TestSuiteMenu::SuiteTabs);
 
-	TestSuite1TabManager->RegisterTabSpawner("WebBrowserTab", FOnSpawnTab::CreateStatic(&SpawnTab, FName("WebBrowserTab")))
-		.SetDisplayName(NSLOCTEXT("TestSuite1", "WebBrowserTab", "Web Browser test"))
-		.SetGroup(TestSuiteMenu::SuiteTabs);
-
 	TestSuite1TabManager->RegisterTabSpawner( "LayoutRoundingTab", FOnSpawnTab::CreateStatic( &SpawnTab, FName("LayoutRoundingTab") ) )
 		.SetDisplayName( NSLOCTEXT("TestSuite1", "LayoutRoundingTab", "Layout Rounding") )
 		.SetGroup(TestSuiteMenu::SuiteTabs);
@@ -5458,5 +5505,7 @@ void MakeSplitterTest()
 
 	FSlateApplication::Get().AddWindow( TestWindow );
 }
+
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 #undef LOCTEXT_NAMESPACE

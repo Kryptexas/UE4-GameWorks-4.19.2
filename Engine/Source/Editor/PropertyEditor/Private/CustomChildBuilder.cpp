@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "CustomChildBuilder.h"
@@ -15,7 +15,7 @@ IDetailChildrenBuilder& FCustomChildrenBuilder::AddChildCustomBuilder( TSharedRe
 	return *this;
 }
 
-IDetailGroup& FCustomChildrenBuilder::AddChildGroup( FName GroupName, const FString& LocalizedDisplayName )
+IDetailGroup& FCustomChildrenBuilder::AddChildGroup( FName GroupName, const FText& LocalizedDisplayName )
 {
 	FDetailLayoutCustomization NewCustomization;
 	NewCustomization.DetailGroup = MakeShareable( new FDetailGroup( GroupName, ParentCategory.Pin().ToSharedRef(), LocalizedDisplayName ) );
@@ -25,7 +25,7 @@ IDetailGroup& FCustomChildrenBuilder::AddChildGroup( FName GroupName, const FStr
 	return *NewCustomization.DetailGroup;
 }
 
-FDetailWidgetRow& FCustomChildrenBuilder::AddChildContent( const FString& SearchString )
+FDetailWidgetRow& FCustomChildrenBuilder::AddChildContent( const FText& SearchString )
 {
 	TSharedRef<FDetailWidgetRow> NewRow = MakeShareable( new FDetailWidgetRow );
 	FDetailLayoutCustomization NewCustomization;

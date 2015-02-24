@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetRegistryPCH.h"
 
@@ -41,13 +41,13 @@ bool FPackageReader::OpenPackageFile(const FString& InPackageFilename)
 	}
 
 	// Don't read packages that are too old
-	if( PackageFileSummary.GetFileVersionUE3() < VER_MIN_ENGINE_UE3 || PackageFileSummary.GetFileVersionUE4() < VER_UE4_OLDEST_LOADABLE_PACKAGE )
+	if( PackageFileSummary.GetFileVersionUE4() < VER_UE4_OLDEST_LOADABLE_PACKAGE )
 	{
 		return false;
 	}
 
 	// Don't read packages that were saved with an package version newer than the current one.
-	if( (PackageFileSummary.GetFileVersionUE3() > (int32)VER_LAST_ENGINE_UE3) || (PackageFileSummary.GetFileVersionUE4() > GPackageFileUE4Version) || (PackageFileSummary.GetFileVersionLicenseeUE4() > GPackageFileLicenseeUE4Version) )
+	if( (PackageFileSummary.GetFileVersionUE4() > GPackageFileUE4Version) || (PackageFileSummary.GetFileVersionLicenseeUE4() > GPackageFileLicenseeUE4Version) )
 	{
 		return false;
 	}
@@ -87,10 +87,8 @@ bool FPackageReader::OpenPackageFile(const FString& InPackageFilename)
 	}
 
 	//make sure the filereader gets the correct version number (it defaults to latest version)
-	SetUE3Ver(PackageFileSummary.GetFileVersionUE3());
 	SetUE4Ver(PackageFileSummary.GetFileVersionUE4());
 	SetLicenseeUE4Ver(PackageFileSummary.GetFileVersionLicenseeUE4());
-	Loader->SetUE3Ver(PackageFileSummary.GetFileVersionUE3());
 	Loader->SetUE4Ver(PackageFileSummary.GetFileVersionUE4());
 	Loader->SetLicenseeUE4Ver(PackageFileSummary.GetFileVersionLicenseeUE4());
 
@@ -104,13 +102,6 @@ bool FPackageReader::OpenPackageFile(const FString& InPackageFilename)
 bool FPackageReader::ReadAssetRegistryData (TArray<FBackgroundAssetData*>& AssetDataList)
 {
 	check(Loader);
-
-	// Make sure the package was created with a version of the engine that supports asset registry data
-	if( PackageFileSummary.GetFileVersionUE4() < VER_UE4_ASSET_REGISTRY_TAGS )
-	{
-		// Package was created by an older version of the engine; no asset registry data to load!
-		return false;
-	}
 
 	// Does the package contain asset registry tags
 	if( PackageFileSummary.AssetRegistryDataOffset == 0 )
@@ -148,7 +139,7 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FBackgroundAssetData*>& Asset
 		if (bLegacyPackage || bNoMapAsset)
 		{
 			const FString AssetName = FPackageName::GetLongPackageAssetName(PackageName);
-			TMap<FString, FString> TagsAndValues;
+			TMultiMap<FString, FString> TagsAndValues;
 			AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, TEXT(""), AssetName, TEXT("World"), TagsAndValues, PackageFileSummary.ChunkIDs));
 		}
 	}
@@ -163,7 +154,7 @@ bool FPackageReader::ReadAssetRegistryData (TArray<FBackgroundAssetData*>& Asset
 		*this << ObjectClassName;
 		*this << TagCount;
 
-		TMap<FString, FString> TagsAndValues;
+		TMultiMap<FString, FString> TagsAndValues;
 
 		for(int32 TagIdx = 0; TagIdx < TagCount; ++TagIdx)
 		{
@@ -253,7 +244,7 @@ bool FPackageReader::ReadAssetDataFromThumbnailCache(TArray<FBackgroundAssetData
 		}
 
 		// Create a new FBackgroundAssetData for this asset and update it with the gathered data
-		TMap<FString, FString> TagsAndValues;
+		TMultiMap<FString, FString> TagsAndValues;
 		AssetDataList.Add(new FBackgroundAssetData(PackageName, PackagePath, GroupNames, AssetName, AssetClassName, TagsAndValues, PackageFileSummary.ChunkIDs));
 	}
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
 #include "PropertyHelper.h"
@@ -117,6 +117,12 @@ FString UArrayProperty::GetCPPType( FString* ExtendedTypeText/*=NULL*/, uint32 C
 		*ExtendedTypeText = FString::Printf(TEXT("<%s%s>"), *InnerTypeText, *InnerExtendedTypeText);
 	}
 	return TEXT("TArray");
+}
+
+FString UArrayProperty::GetCPPTypeForwardDeclaration() const
+{
+	checkSlow(Inner);
+	return Inner->GetCPPTypeForwardDeclaration();
 }
 FString UArrayProperty::GetCPPMacroType( FString& ExtendedTypeText ) const
 {

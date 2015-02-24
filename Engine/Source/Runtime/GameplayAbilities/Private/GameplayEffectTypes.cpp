@@ -1,9 +1,25 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemInterface.h"
 #include "GameplayTagsModule.h"
 #include "GameplayEffectTypes.h"
+#include "AbilitySystemComponent.h"
+
+bool FGameplayEffectAttributeCaptureDefinition::operator==(const FGameplayEffectAttributeCaptureDefinition& Other) const
+{
+	return ((AttributeToCapture == Other.AttributeToCapture) && (AttributeSource == Other.AttributeSource) && (bSnapshot == Other.bSnapshot));
+}
+
+bool FGameplayEffectAttributeCaptureDefinition::operator!=(const FGameplayEffectAttributeCaptureDefinition& Other) const
+{
+	return ((AttributeToCapture != Other.AttributeToCapture) || (AttributeSource != Other.AttributeSource) || (bSnapshot != Other.bSnapshot));
+}
+
+FString FGameplayEffectAttributeCaptureDefinition::ToSimpleString() const
+{
+	return FString::Printf(TEXT("Attribute: %s, Capture: %s, Snapshot: %d"), *AttributeToCapture.GetName(), AttributeSource == EGameplayEffectAttributeCaptureSource::Source ? TEXT("Source") : TEXT("Target"), bSnapshot);
+}
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------
 //
@@ -18,11 +34,21 @@ void FGameplayEffectContext::AddInstigator(class AActor *InInstigator, class AAc
 	InstigatorAbilitySystemComponent = NULL;
 
 	// Cache off his AbilitySystemComponent.
-	IAbilitySystemInterface* AbilitySystemInterface = Cast<IAbilitySystemInterface>(Instigator);
+	IAbilitySystemInterface* AbilitySystemInterface = Cast<IAbilitySystemInterface>(Instigator.Get());
 	if (AbilitySystemInterface)
 	{
 		InstigatorAbilitySystemComponent = AbilitySystemInterface->GetAbilitySystemComponent();
 	}
+}
+
+void FGameplayEffectContext::AddActors(TArray<TWeakObjectPtr<AActor>> InActors, bool bReset)
+{
+	if (bReset && Actors.Num())
+	{
+		Actors.Reset();
+	}
+
+	Actors.Append(InActors);
 }
 
 void FGameplayEffectContext::AddHitResult(const FHitResult InHitResult, bool bReset)
@@ -30,16 +56,22 @@ void FGameplayEffectContext::AddHitResult(const FHitResult InHitResult, bool bRe
 	if (bReset && HitResult.IsValid())
 	{
 		HitResult.Reset();
+		bHasWorldOrigin = false;
 	}
 
 	check(!HitResult.IsValid());
 	HitResult = TSharedPtr<FHitResult>(new FHitResult(InHitResult));
+	if (bHasWorldOrigin == false)
+	{
+		AddOrigin(InHitResult.TraceStart);
+	}
 }
 
 bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
 {
 	Ar << Instigator;
 	Ar << EffectCauser;
+	Ar << Actors;
 
 	bool HasHitResults = HitResult.IsValid();
 	Ar << HasHitResults;
@@ -52,7 +84,7 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 				HitResult = TSharedPtr<FHitResult>(new FHitResult());
 			}
 		}
-		AddInstigator(Instigator, EffectCauser); // Just to initialize InstigatorAbilitySystemComponent
+		AddInstigator(Instigator.Get(), EffectCauser.Get()); // Just to initialize InstigatorAbilitySystemComponent
 	}
 
 	if (HasHitResults == 1)
@@ -69,10 +101,10 @@ bool FGameplayEffectContext::NetSerialize(FArchive& Ar, class UPackageMap* Map, 
 
 bool FGameplayEffectContext::IsLocallyControlled() const
 {
-	APawn* Pawn = Cast<APawn>(Instigator);
+	APawn* Pawn = Cast<APawn>(Instigator.Get());
 	if (!Pawn)
 	{
-		Pawn = Cast<APawn>(EffectCauser);
+		Pawn = Cast<APawn>(EffectCauser.Get());
 	}
 	if (Pawn)
 	{
@@ -85,6 +117,19 @@ void FGameplayEffectContext::AddOrigin(FVector InOrigin)
 {
 	bHasWorldOrigin = true;
 	WorldOrigin = InOrigin;
+}
+
+void FGameplayEffectContext::GetOwnedGameplayTags(OUT FGameplayTagContainer &TagContainer) const
+{
+	IGameplayTagAssetInterface* TagInterface = Cast<IGameplayTagAssetInterface>(Instigator.Get());
+	if (TagInterface)
+	{
+		TagInterface->GetOwnedGameplayTags(TagContainer);
+	}
+	else if (InstigatorAbilitySystemComponent)
+	{
+		InstigatorAbilitySystemComponent->GetOwnedGameplayTags(TagContainer);
+	}
 }
 
 bool FGameplayEffectContextHandle::NetSerialize(FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess)
@@ -102,7 +147,7 @@ bool FGameplayEffectContextHandle::NetSerialize(FArchive& Ar, class UPackageMap*
 			check(!Data.IsValid());
 
 			FGameplayEffectContext * NewData = (FGameplayEffectContext*)FMemory::Malloc(ScriptStruct->GetCppStructOps()->GetSize());
-			ScriptStruct->InitializeScriptStruct(NewData);
+			ScriptStruct->InitializeStruct(NewData);
 
 			Data = TSharedPtr<FGameplayEffectContext>(NewData);
 		}
@@ -149,7 +194,9 @@ bool FGameplayEffectContextHandle::NetSerialize(FArchive& Ar, class UPackageMap*
 FString EGameplayModOpToString(int32 Type)
 {
 	static UEnum *e = FindObject<UEnum>(ANY_PACKAGE, TEXT("EGameplayModOp"));
-	return e->GetEnum(Type).ToString();
+	FString Right;
+	e->GetEnum(Type).ToString().Split(TEXT("::"), nullptr, &Right);
+	return Right;
 }
 
 FString EGameplayModEffectToString(int32 Type)
@@ -170,121 +217,142 @@ FString EGameplayEffectStackingPolicyToString(int32 Type)
 	return e->GetEnum(Type).ToString();
 }
 
-bool FGameplayTagCountContainer::HasMatchingGameplayTag(FGameplayTag TagToCheck, EGameplayTagMatchType::Type TagMatchType) const
+bool FGameplayTagCountContainer::HasMatchingGameplayTag(FGameplayTag TagToCheck) const
 {
-	if (TagMatchType == EGameplayTagMatchType::Explicit)
-	{
-		// Search for TagToCheck
-		const int32* Count = GameplayTagCountMap.Find(TagToCheck);
-		if (Count && *Count > 0)
-		{
-			return true;
-		}
-	}
-	else if (TagMatchType == EGameplayTagMatchType::IncludeParentTags)
-	{
-		// Search for TagToCheck or any of its parent tags
-		FGameplayTagContainer TagAndParentsContainer = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagParents(TagToCheck);
-		for (auto TagIt = TagAndParentsContainer.CreateConstIterator(); TagIt; ++TagIt)
-		{
-			const int32* Count = GameplayTagCountMap.Find(*TagIt);
-			if (Count && *Count > 0)
-			{
-				return true;
-			}
-		}
-	}
-
-	return false;
+	return ExplicitTags.HasTag(TagToCheck, EGameplayTagMatchType::IncludeParentTags, EGameplayTagMatchType::Explicit);
 }
 
-bool FGameplayTagCountContainer::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, EGameplayTagMatchType::Type TagMatchType, bool bCountEmptyAsMatch) const
+bool FGameplayTagCountContainer::HasAllMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
 {
-	if (TagContainer.Num() == 0)
-		return bCountEmptyAsMatch;
-
-	for (auto It = TagContainer.CreateConstIterator(); It; ++It)
-	{
-		if (!HasMatchingGameplayTag(*It, TagMatchType))
-		{
-			return false;
-		}
-	}
-
-	return true;
+	return ExplicitTags.MatchesAll(TagContainer, bCountEmptyAsMatch);
 }
 
 
-bool FGameplayTagCountContainer::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, EGameplayTagMatchType::Type TagMatchType, bool bCountEmptyAsMatch) const
+bool FGameplayTagCountContainer::HasAnyMatchingGameplayTags(const FGameplayTagContainer& TagContainer, bool bCountEmptyAsMatch) const
 {
-	if (TagContainer.Num() == 0)
-		return bCountEmptyAsMatch;
-
-	for (auto It = TagContainer.CreateConstIterator(); It; ++It)
-	{
-		if (HasMatchingGameplayTag(*It, TagMatchType))
-		{
-			return true;
-		}
-	}
-
-	return false;
+	return ExplicitTags.MatchesAny(TagContainer, bCountEmptyAsMatch);
 }
 
-void FGameplayTagCountContainer::UpdateTagMap(const struct FGameplayTag& Tag, int32 CountDelta)
+void FGameplayTagCountContainer::UpdateTagCount(const FGameplayTag& Tag, int32 CountDelta)
 {
-	if (TagContainerType == EGameplayTagMatchType::Explicit)
+	if (CountDelta != 0)
 	{
-		// Update count of BaseTag
 		UpdateTagMap_Internal(Tag, CountDelta);
 	}
-	else if (TagContainerType == EGameplayTagMatchType::IncludeParentTags)
+}
+
+void FGameplayTagCountContainer::UpdateTagCount(const FGameplayTagContainer& Container, int32 CountDelta)
+{	
+	if (CountDelta != 0)
 	{
-		// Update count of BaseTag and all of its parent tags
-		FGameplayTagContainer TagAndParentsContainer = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagParents(Tag);
-		for (auto ParentTagIt = TagAndParentsContainer.CreateConstIterator(); ParentTagIt; ++ParentTagIt)
+		for (auto TagIt = Container.CreateConstIterator(); TagIt; ++TagIt)
 		{
-			UpdateTagMap_Internal(*ParentTagIt, CountDelta);
+			UpdateTagMap_Internal(*TagIt, CountDelta);
 		}
 	}
 }
 
-void FGameplayTagCountContainer::UpdateTagMap(const FGameplayTagContainer& Container, int32 CountDelta)
+FOnGameplayEffectTagCountChanged& FGameplayTagCountContainer::RegisterGameplayTagEvent(const FGameplayTag& Tag)
 {
-	for (auto TagIt = Container.CreateConstIterator(); TagIt; ++TagIt)
-	{
-		const FGameplayTag& BaseTag = *TagIt;
-		UpdateTagMap(BaseTag, CountDelta);
-	}
+	return GameplayTagEventMap.FindOrAdd(Tag);
+}
+
+FOnGameplayEffectTagCountChanged& FGameplayTagCountContainer::RegisterGenericGameplayEvent()
+{
+	return OnAnyTagChangeDelegate;
+}
+
+const FGameplayTagContainer& FGameplayTagCountContainer::GetExplicitGameplayTags() const
+{
+	return ExplicitTags;
 }
 
 void FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, int32 CountDelta)
 {
-	// Update count of Tag
-	int32& Count = GameplayTagCountMap.FindOrAdd(Tag);
+	const bool bTagAlreadyExplicitlyExists = ExplicitTags.HasTag(Tag, EGameplayTagMatchType::Explicit, EGameplayTagMatchType::Explicit);
 
-	bool WasZero = Count == 0;
-	Count = FMath::Max(Count + CountDelta, 0);
-
-	// If we went from 0->1 or 1->0
-	if (WasZero || Count == 0)
+	// Need special case handling to maintain the explicit tag list correctly, adding the tag to the list if it didn't previously exist and a
+	// positive delta comes in, and removing it from the list if it did exist and a negative delta comes in.
+	if (!bTagAlreadyExplicitlyExists)
 	{
-		OnAnyTagChangeDelegate.Broadcast(Tag, Count);
-
-		FOnGameplayEffectTagCountChanged *Delegate = GameplayTagEventMap.Find(Tag);
-		if (Delegate)
+		// Brand new tag with a positive delta needs to be explicitly added
+		if (CountDelta > 0)
 		{
-			Delegate->Broadcast(Tag, Count);
+			ExplicitTags.AddTag(Tag);
+		}
+		// Block attempted reduction of non-explicit tags, as they were never truly added to the container directly
+		else
+		{
+			ABILITY_LOG(Warning, TEXT("Attempted to remove tag: %s from tag count container, but it is not explicitly in the container!"), *Tag.ToString());
+			return;
+		}
+	}
+	else if (CountDelta < 0)
+	{
+		// Existing tag with a negative delta that would cause a complete removal needs to be explicitly removed; Count will be updated correctly below,
+		// so that part is skipped for now
+		int32& ExistingCount = GameplayTagCountMap.FindOrAdd(Tag);
+		if ((ExistingCount + CountDelta) <= 0)
+		{
+			ExplicitTags.RemoveTag(Tag);
+		}
+	}
+
+	// Check if change delegates are required to fire for the tag or any of its parents based on the count change
+	FGameplayTagContainer TagAndParentsContainer = IGameplayTagsModule::Get().GetGameplayTagsManager().RequestGameplayTagParents(Tag);
+	for (auto CompleteTagIt = TagAndParentsContainer.CreateConstIterator(); CompleteTagIt; ++CompleteTagIt)
+	{
+		const FGameplayTag& CurTag = *CompleteTagIt;
+
+		// Get the current count of the specified tag. NOTE: Stored as a reference, so subsequent changes propogate to the map.
+		int32& TagCount = GameplayTagCountMap.FindOrAdd(CurTag);
+
+		const int32 OldCount = TagCount;
+
+		// Apply the delta to the count in the map
+		TagCount = FMath::Max(TagCount + CountDelta, 0);
+
+		// If a significant change (new addition or total removal) occurred, trigger related delegates
+		if (OldCount == 0 || TagCount == 0)
+		{
+			OnAnyTagChangeDelegate.Broadcast(CurTag, TagCount);
+
+			FOnGameplayEffectTagCountChanged* CountChangeDelegate = GameplayTagEventMap.Find(CurTag);
+			if (CountChangeDelegate)
+			{
+				CountChangeDelegate->Broadcast(CurTag, TagCount);
+			}
 		}
 	}
 }
 
-bool FGameplayTagRequirements::RequirementsMet(FGameplayTagContainer Container) const
+bool FGameplayTagRequirements::RequirementsMet(const FGameplayTagContainer& Container) const
 {
 	bool HasRequired = Container.MatchesAll(RequireTags, true);
 	bool HasIgnored = Container.MatchesAny(IgnoreTags, false);
 
 	return HasRequired && !HasIgnored;
+}
+
+bool FGameplayTagRequirements::IsEmpty() const
+{
+	return (RequireTags.Num() == 0 && IgnoreTags.Num() == 0);
+}
+
+FString FGameplayTagRequirements::ToString() const
+{
+	FString Str;
+
+	if (RequireTags.Num() > 0)
+	{
+		Str += FString::Printf(TEXT("require: %s "), *RequireTags.ToStringSimple());
+	}
+	if (IgnoreTags.Num() >0)
+	{
+		Str += FString::Printf(TEXT("ignore: %s "), *IgnoreTags.ToStringSimple());
+	}
+
+	return Str;
 }
 
 void FActiveGameplayEffectsContainer::PrintAllGameplayEffects() const
@@ -313,4 +381,41 @@ void FGameplayEffectSpec::PrintAll() const
 	ABILITY_LOG(Log, TEXT("Period: %.2f"), GetPeriod());
 
 	ABILITY_LOG(Log, TEXT("Modifiers:"));
+}
+
+const FGameplayTagContainer* FTagContainerAggregator::GetAggregatedTags() const
+{
+	if (CacheIsValid == false)
+	{
+		CacheIsValid = true;
+		CachedAggregator.RemoveAllTags(CapturedActorTags.Num() + CapturedSpecTags.Num() + ScopedTags.Num());
+		CachedAggregator.AppendTags(CapturedActorTags);
+		CachedAggregator.AppendTags(CapturedSpecTags);
+		CachedAggregator.AppendTags(ScopedTags);
+	}
+
+	return &CachedAggregator;
+}
+
+FGameplayTagContainer& FTagContainerAggregator::GetActorTags()
+{
+	CacheIsValid = false;
+	return CapturedActorTags;
+}
+
+const FGameplayTagContainer& FTagContainerAggregator::GetActorTags() const
+{
+	return CapturedActorTags;
+}
+
+FGameplayTagContainer& FTagContainerAggregator::GetSpecTags()
+{
+	CacheIsValid = false;
+	return CapturedSpecTags;
+}
+
+const FGameplayTagContainer& FTagContainerAggregator::GetSpecTags() const
+{
+	CacheIsValid = false;
+	return CapturedSpecTags;
 }

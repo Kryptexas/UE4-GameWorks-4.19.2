@@ -1,11 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	HUD.cpp: Heads up Display related functionality
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Components/LineBatchComponent.h"
 #include "GameFramework/HUD.h"
+#include "GameFramework/GameMode.h"
 #include "Net/UnrealNetwork.h"
 #include "MessageLog.h"
 #include "UObjectToken.h"

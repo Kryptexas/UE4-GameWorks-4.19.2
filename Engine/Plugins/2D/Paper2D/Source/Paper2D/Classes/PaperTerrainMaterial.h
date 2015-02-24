@@ -1,7 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-
+#include "Engine/DataAsset.h"
 #include "PaperTerrainMaterial.generated.h"
 
 // Rule for a single section of a terrain material
@@ -37,6 +37,10 @@ struct FPaperTerrainMaterialRule
 	// How much should the collision be lofted from the spline (positive values go out from the spline, negative values go in to the spline)
 	UPROPERTY(Category=Sprite, EditAnywhere)
 	float CollisionOffset;
+
+	// Specify a draw order for different materials in a spline. Smaller draw orders are drawn first, negative values are allowed.
+	UPROPERTY(Category=Sprite, EditAnywhere)
+	int32 DrawOrder;
 
 #if WITH_EDITORONLY_DATA
 	// Readable description for the rule (unused anywhere, just for clarity when editing the material)

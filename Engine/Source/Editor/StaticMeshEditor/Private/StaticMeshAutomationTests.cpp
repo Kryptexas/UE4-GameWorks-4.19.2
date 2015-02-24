@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "StaticMeshEditorModule.h"
 
 #include "AutomationCommon.h"
 #include "SStaticMeshEditorViewport.h"
 #include "StaticMeshEditorViewportClient.h"
+#include "Engine/StaticMesh.h"
 
 namespace EditorViewButtonHelper
 {

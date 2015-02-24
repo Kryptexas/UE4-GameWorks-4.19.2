@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PrimitiveComponent.cpp: Primitive component implementation.
@@ -8,6 +8,11 @@
 #include "GameFramework/PhysicsVolume.h"
 #include "PhysicsPublic.h"
 #include "LevelUtils.h"
+#if WITH_EDITOR
+#include "ShowFlags.h"
+#include "Collision.h"
+#include "ConvexVolume.h"
+#endif
 #if WITH_PHYSX
 #include "PhysicsEngine/PhysXSupport.h"
 #include "Collision/PhysXCollision.h"
@@ -20,6 +25,8 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 #include "CollisionDebugDrawingPublic.h"
+#include "GameFramework/CheatManager.h"
+#include "GameFramework/DamageType.h"
 
 #define LOCTEXT_NAMESPACE "PrimitiveComponent"
 
@@ -30,8 +37,10 @@
 DEFINE_LOG_CATEGORY_STATIC(LogPrimitiveComponent, Log, All);
 
 static FAutoConsoleVariable CVarAllowCachedOverlaps(
-	TEXT("AllowCachedOverlaps"), 1,
-	TEXT("0: disable cached overlaps, 1: enable\n"));
+	TEXT("p.AllowCachedOverlaps"), 
+	1,
+	TEXT("Primitive Component physics\n")
+	TEXT("0: disable cached overlaps, 1: enable (default)"));
 
 static TAutoConsoleVariable<float> CVarInitialOverlapTolerance(
 	TEXT("p.InitialOverlapTolerance"),
@@ -42,7 +51,7 @@ static TAutoConsoleVariable<float> CVarInitialOverlapTolerance(
 	ECVF_Default);
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-static TAutoConsoleVariable<int32> CVarShowInitialOverlaps(
+TAutoConsoleVariable<int32> CVarShowInitialOverlaps(
 	TEXT("p.ShowInitialOverlaps"),
 	0,
 	TEXT("Show initial overlaps when moving a component, including estimated 'exit' direction.\n")
@@ -59,7 +68,7 @@ int32 UPrimitiveComponent::CurrentTag = 2147483647 / 4;
 // 0 is reserved to mean invalid
 uint64 UPrimitiveComponent::NextComponentId = 1;
 
-UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitializer)
+UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
 {
 	PostPhysicsComponentTick.bCanEverTick = false;
@@ -76,6 +85,7 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	CastShadow = false;
 	bCastDynamicShadow = true;
 	bAffectDynamicIndirectLighting = true;
+	bAffectDistanceFieldLighting = true;
 	LpvBiasMultiplier = 1.0f;
 	bCastStaticShadow = true;
 	bCastVolumetricTranslucentShadow = false;
@@ -83,7 +93,6 @@ UPrimitiveComponent::UPrimitiveComponent(const FObjectInitializer& ObjectInitial
 	bSelectable = true;
 	AlwaysLoadOnClient = true;
 	AlwaysLoadOnServer = true;
-	BodyInstance.bEnableCollision_DEPRECATED = true;
 	SetCollisionProfileName(UCollisionProfile::BlockAll_ProfileName);
 	bAlwaysCreatePhysicsState = false;
 	bRenderInMainPass = true;
@@ -318,6 +327,45 @@ void UPrimitiveComponent::OnUnregister()
 	}
 }
 
+FPrimitiveComponentInstanceData::FPrimitiveComponentInstanceData(const UPrimitiveComponent* SourceComponent)
+	: FSceneComponentInstanceData(SourceComponent)
+{
+}
+
+void FPrimitiveComponentInstanceData::ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase)
+{
+	FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
+
+	if (ContainsSavedProperties() && Component->IsRegistered())
+	{
+		Component->MarkRenderStateDirty();
+	}
+}
+
+bool FPrimitiveComponentInstanceData::ContainsData() const
+{
+	return (ContainsSavedProperties() || AttachedInstanceComponents.Num() > 0);
+}
+
+FActorComponentInstanceData* UPrimitiveComponent::GetComponentInstanceData() const
+{
+	FPrimitiveComponentInstanceData* InstanceData = new FPrimitiveComponentInstanceData(this);
+
+	if (!InstanceData->ContainsData())
+	{
+		delete InstanceData;
+		InstanceData = nullptr;
+	}
+
+	return InstanceData;
+}
+
+FName UPrimitiveComponent::GetComponentInstanceDataType() const
+{
+	static const FName PrimitiveComponentInstanceDataTypeName(TEXT("PrimitiveComponentInstanceData"));
+	return PrimitiveComponentInstanceDataTypeName;
+}
+
 void UPrimitiveComponent::OnAttachmentChanged()
 {
 	if (World && World->Scene)
@@ -421,6 +469,10 @@ void UPrimitiveComponent::SendPhysicsTransform(bool bTeleport)
 
 void UPrimitiveComponent::DestroyPhysicsState()
 {
+	// we remove welding related to this component
+	UnWeldFromParent();
+	UnWeldChildren();
+
 	// clean up physics engine representation
 	if(BodyInstance.IsValidBodyInstance())
 	{
@@ -483,7 +535,7 @@ void UPrimitiveComponent::PostEditChangeProperty(FPropertyChangedEvent& Property
 		}
 
 		// we need to reregister the primitive if the min draw distance changed to propagate the change to the rendering thread
-		if (PropertyThatChanged->GetName() == TEXT("MinDrawDistance"))
+		if (PropertyThatChanged->GetFName() == GET_MEMBER_NAME_CHECKED(UPrimitiveComponent, MinDrawDistance))
 		{
 			MarkRenderStateDirty();
 		}
@@ -626,8 +678,11 @@ void UPrimitiveComponent::ReceiveComponentDamage(float DamageAmount, FDamageEven
 		FPointDamageEvent* const PointDamageEvent = (FPointDamageEvent*) &DamageEvent;
 		if((DamageTypeCDO->DamageImpulse > 0.f) && !PointDamageEvent->ShotDirection.IsNearlyZero())
 		{
-			FVector const ImpulseToApply = PointDamageEvent->ShotDirection.SafeNormal() * DamageTypeCDO->DamageImpulse;
-			AddImpulseAtLocation( ImpulseToApply, PointDamageEvent->HitInfo.ImpactPoint, PointDamageEvent->HitInfo.BoneName );
+			if (IsSimulatingPhysics(PointDamageEvent->HitInfo.BoneName))
+			{
+				FVector const ImpulseToApply = PointDamageEvent->ShotDirection.GetSafeNormal() * DamageTypeCDO->DamageImpulse;
+				AddImpulseAtLocation(ImpulseToApply, PointDamageEvent->HitInfo.ImpactPoint, PointDamageEvent->HitInfo.BoneName);
+			}
 		}
 	}
 	else if (DamageEvent.IsOfType(FRadialDamageEvent::ClassID))
@@ -651,21 +706,6 @@ void UPrimitiveComponent::PostLoad()
 	if (IsTemplate()==false)
 	{
 		BodyInstance.FixupData(this);
-	}
-
-	if(UE4Version < VER_UE4_VISIBILITY_FLAG_CHANGES)
-	{
-		// copy visible flag if before it wans't hidden or drawingame was true
-		bVisible = !HiddenGame_DEPRECATED || DrawInGame_DEPRECATED;
-	}
-
-	if(UE4Version < VER_UE4_DEPRECATED_BNOENCROACHCHECK)
-	{
-		if (bNoEncroachCheck_DEPRECATED)
-		{
-			bGenerateOverlapEvents = false;
-		}
-		// else use defaults
 	}
 
 	if (UE4Version < VER_UE4_RENAME_CANBECHARACTERBASE)
@@ -825,25 +865,28 @@ bool UPrimitiveComponent::HasValidPhysicsState() const
 	return BodyInstance.IsValidBodyInstance();
 }
 
+bool UPrimitiveComponent::IsComponentIndividuallySelected() const
+{
+	bool bIndividuallySelected = false;
+#if WITH_EDITOR
+	if(SelectionOverrideDelegate.IsBound())
+	{
+		bIndividuallySelected = SelectionOverrideDelegate.Execute(this);
+	}
+#endif
+	return bIndividuallySelected;
+}
+
 bool UPrimitiveComponent::ShouldRenderSelected() const
 {
+	const AActor* Owner = GetOwner();
+	return(	bSelectable && 
+			Owner != NULL && 
 #if WITH_EDITOR
-	if (SelectionOverrideDelegate.IsBound())
-	{
-		return SelectionOverrideDelegate.Execute(this);
-	}
-	else
-#endif
-	{
-		const AActor* Owner = GetOwner();
-		return(	bSelectable && 
-				Owner != NULL && 
-#if WITH_EDITOR
-				(Owner->IsSelected() || (Owner->ParentComponentActor != NULL && Owner->ParentComponentActor->IsSelected())) );
+			(Owner->IsSelected() || (Owner->ParentComponentActor != NULL && Owner->ParentComponentActor->IsSelected())) );
 #else
-				Owner->IsSelected() );
+			Owner->IsSelected() );
 #endif
-	}
 }
 
 void UPrimitiveComponent::SetCastShadow(bool NewCastShadow)
@@ -869,7 +912,7 @@ void UPrimitiveComponent::PushSelectionToProxy()
 	//although this should only be called for attached components, some billboard components can get in without valid proxies
 	if (SceneProxy)
 	{
-		SceneProxy->SetSelection_GameThread(ShouldRenderSelected());
+		SceneProxy->SetSelection_GameThread(ShouldRenderSelected(),IsComponentIndividuallySelected());
 	}
 }
 
@@ -1164,7 +1207,7 @@ static bool ShouldIgnoreHitResult(const UWorld* InWorld, FHitResult const& TestH
 			const float DotTolerance = CVarInitialOverlapTolerance.GetValueOnGameThread();
 
 			// Dot product of movement direction against 'exit' direction
-			const FVector MovementDir = MovementDirDenormalized.SafeNormal();
+			const FVector MovementDir = MovementDirDenormalized.GetSafeNormal();
 			const float MoveDot = (TestHit.ImpactNormal | MovementDir);
 
 			const bool bMovingOut = MoveDot > DotTolerance;
@@ -1245,6 +1288,21 @@ FCollisionShape UPrimitiveComponent::GetCollisionShape(float Inflation) const
 	return FCollisionShape::MakeBox(Bounds.BoxExtent + Inflation);
 }
 
+bool UPrimitiveComponent::CheckStaticMobilityAndWarn(const FText& ActionText) const
+{
+	AActor* Actor = GetOwner();
+	// static things can move before they are registered (e.g. immediately after streaming), but not after.
+	if (Mobility == EComponentMobility::Static && Actor && Actor->bActorInitialized)
+	{
+		FMessageLog("PIE").Warning(FText::Format(LOCTEXT("InvalidStaticMove", "Mobility of {0} : {1} has to be 'Movable' if you'd like to {2}. "),
+			FText::FromString(GetNameSafe(GetOwner())), FText::FromString(GetName()), ActionText));
+
+		return true;
+	}
+
+	return false;
+}
+
 bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit, EMoveComponentFlags MoveFlags)
 {
 	SCOPE_CYCLE_COUNTER(STAT_MoveComponentTime);
@@ -1271,10 +1329,9 @@ bool UPrimitiveComponent::MoveComponent( const FVector& Delta, const FRotator& N
 	AActor* const Actor = GetOwner();
 
 	// static things can move before they are registered (e.g. immediately after streaming), but not after.
-	if (Mobility == EComponentMobility::Static && Actor && Actor->bActorInitialized)
+	// TODO: Static components without an owner can move, should they be able to?
+	if (CheckStaticMobilityAndWarn(LOCTEXT("InvalidMove", "move")))
 	{
-		// TODO: Static components without an owner can move, should they be able to?
-		UE_LOG(LogPrimitiveComponent, Warning, TEXT("Trying to move static component '%s' after initialization"), *GetFullName());
 		if (OutHit)
 		{
 			*OutHit = FHitResult();
@@ -1640,7 +1697,7 @@ void UPrimitiveComponent::SetCanEverAffectNavigation(bool bRelevant)
 //////////////////////////////////////////////////////////////////////////
 // COLLISION
 
-float DebugLineLifetime = 2.f;
+extern float DebugLineLifetime;
 
 
 bool UPrimitiveComponent::LineTraceComponent(struct FHitResult& OutHit, const FVector Start, const FVector End, const struct FCollisionQueryParams& Params)
@@ -1851,13 +1908,48 @@ bool UPrimitiveComponent::GetOverlapsWithActor(const AActor* Actor, TArray<FOver
 	return InitialCount != OutOverlaps.Num();
 }
 
-/** Used to determine if it is ok to call a notification on this object */
-static bool IsActorValidToNotify(AActor* Actor)
+#if WITH_EDITOR
+bool UPrimitiveComponent::ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
 {
-	return (Actor != NULL) && !Actor->IsPendingKill() && !Actor->GetClass()->HasAnyClassFlags(CLASS_NewerVersionExists);
+	if (!bConsiderOnlyBSP)
+	{
+		const FBox& ComponentBounds = Bounds.GetBox();
+
+		// Check the component bounds versus the selection box
+		// If the selection box must encompass the entire component, then both the min and max vector of the bounds must be inside in the selection
+		// box to be valid. If the selection box only has to touch the component, then it is sufficient to check if it intersects with the bounds.
+		if ((!bMustEncompassEntireComponent && InSelBBox.Intersect(ComponentBounds))
+			|| (bMustEncompassEntireComponent && InSelBBox.IsInside(ComponentBounds)))
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
+
+bool UPrimitiveComponent::ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const
+{
+	if (!bConsiderOnlyBSP)
+	{
+		bool bIsFullyContained;
+		if (InFrustum.IntersectBox(Bounds.Origin, Bounds.BoxExtent, bIsFullyContained))
+		{
+			return !bMustEncompassEntireComponent || bIsFullyContained;
+		}
+	}
+
+	return false;
+}
+#endif
+
+
+
+/** Used to determine if it is ok to call a notification on this object */
+extern bool IsActorValidToNotify(AActor* Actor);
+
 // @fixme, duplicated, make an inline member?
-static bool IsPrimCompValidAndAlive(UPrimitiveComponent* PrimComp)
+bool IsPrimCompValidAndAlive(UPrimitiveComponent* PrimComp)
 {
 	return (PrimComp != NULL) && !PrimComp->IsPendingKill();
 }
@@ -2112,7 +2204,7 @@ void UPrimitiveComponent::ClearMoveIgnoreActors()
 
 void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOverlaps, bool bDoNotifies, const TArray<FOverlapInfo>* OverlapsAtEndLocation)
 {
-	QUICK_SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
+	SCOPE_CYCLE_COUNTER(STAT_UpdateOverlaps); 
 
 	if (IsDeferringMovementUpdates())
 	{
@@ -2137,7 +2229,8 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 
 			// now generate full list of new touches, so we can compare to existing list and
 			// determine what changed
-			TArray<FOverlapInfo> NewOverlappingComponents;
+			typedef TArray<FOverlapInfo, TInlineAllocator<4>> TInlineOverlapInfoArray;
+			TInlineOverlapInfoArray NewOverlappingComponents;
 
 			// If pending kill, we should not generate any new overlaps
 			if (!IsPendingKill())
@@ -2176,30 +2269,35 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 				}
 			}
 
-			// make a copy of the old that we can manipulate to avoid n^2 searching later
-			TArray< FOverlapInfo > OldOverlappingComponents = OverlappingComponents;
-
-			// Now we want to compare the old and new overlap lists to determine 
-			// what overlaps are in old and not in new (need end overlap notifies), and 
-			// what overlaps are in new and not in old (need begin overlap notifies).
-			// We do this by removing common entries from both lists, since overlapping status has not changed for them.
-			// What is left over will be what has changed.
-			for (int32 CompIdx=0; CompIdx < OldOverlappingComponents.Num() && NewOverlappingComponents.Num() > 0; ++CompIdx)
+			if (OverlappingComponents.Num() > 0)
 			{
-				if (NewOverlappingComponents.RemoveSingleSwap(OldOverlappingComponents[CompIdx]) > 0)			// RemoveSingleSwap is ok, since it is not necessary to maintain order
+				// make a copy of the old that we can manipulate to avoid n^2 searching later
+				TInlineOverlapInfoArray OldOverlappingComponents(OverlappingComponents);
+
+				// Now we want to compare the old and new overlap lists to determine 
+				// what overlaps are in old and not in new (need end overlap notifies), and 
+				// what overlaps are in new and not in old (need begin overlap notifies).
+				// We do this by removing common entries from both lists, since overlapping status has not changed for them.
+				// What is left over will be what has changed.
+				for (int32 CompIdx=0; CompIdx < OldOverlappingComponents.Num() && NewOverlappingComponents.Num() > 0; ++CompIdx)
 				{
-					OldOverlappingComponents.RemoveAtSwap(CompIdx,1,false);
-					--CompIdx;
+					// RemoveSingleSwap is ok, since it is not necessary to maintain order
+					const bool bAllowShrinking = false;
+					if (NewOverlappingComponents.RemoveSingleSwap(OldOverlappingComponents[CompIdx], bAllowShrinking) > 0)
+					{
+						OldOverlappingComponents.RemoveAtSwap(CompIdx, 1, bAllowShrinking);
+						--CompIdx;
+					}
 				}
-			}
 
-			// OldOverlappingComponents now contains only previous overlaps that are confirmed to no longer be valid.
-			for (auto CompIt = OldOverlappingComponents.CreateIterator(); CompIt; ++CompIt)
-			{
-				const FOverlapInfo& OtherOverlap = *CompIt;
-				if (OtherOverlap.OverlapInfo.Component.IsValid())
+				// OldOverlappingComponents now contains only previous overlaps that are confirmed to no longer be valid.
+				for (auto CompIt = OldOverlappingComponents.CreateIterator(); CompIt; ++CompIt)
 				{
-					EndComponentOverlap(OtherOverlap, bDoNotifies, false);
+					const FOverlapInfo& OtherOverlap = *CompIt;
+					if (OtherOverlap.OverlapInfo.Component.IsValid())
+					{
+						EndComponentOverlap(OtherOverlap, bDoNotifies, false);
+					}
 				}
 			}
 
@@ -2250,14 +2348,18 @@ void UPrimitiveComponent::UpdateOverlaps(TArray<FOverlapInfo> const* PendingOver
 
 bool UPrimitiveComponent::ComponentOverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const UWorld* World, const FVector& Pos, const FRotator& Rot, ECollisionChannel TestChannel, const struct FComponentQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const
 {
+	FComponentQueryParams ParamsWithSelf = Params;
+	ParamsWithSelf.AddIgnoredComponent(this);
 	OutOverlaps.Reset();
-	return BodyInstance.OverlapMulti(OutOverlaps, World, /*pWorldToComponent=*/ nullptr, Pos, Rot, TestChannel, Params, FCollisionResponseParams(GetCollisionResponseToChannels()), ObjectQueryParams);
+	return BodyInstance.OverlapMulti(OutOverlaps, World, /*pWorldToComponent=*/ nullptr, Pos, Rot, TestChannel, ParamsWithSelf, FCollisionResponseParams(GetCollisionResponseToChannels()), ObjectQueryParams);
 }
 
 void UPrimitiveComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 {
 	if (bShouldUpdatePhysicsVolume && !IsPendingKill() && GetWorld())
 	{
+		SCOPE_CYCLE_COUNTER(STAT_UpdatePhysicsVolume);
+
 		if (bGenerateOverlapEvents && IsCollisionEnabled())
 		{
 			APhysicsVolume* BestVolume = GetWorld()->GetDefaultPhysicsVolume();

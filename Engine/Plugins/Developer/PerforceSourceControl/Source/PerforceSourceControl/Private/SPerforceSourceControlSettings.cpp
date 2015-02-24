@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PerforceSourceControlPrivatePCH.h"
 #include "SPerforceSourceControlSettings.h"
@@ -429,7 +429,7 @@ TSharedRef<ITableRow> SPerforceSourceControlSettings::OnGenerateWorkspaceRow(TSh
 			.Padding(2.0f)
 			[
 				SNew(STextBlock)
-				.Text(*InItem)
+				.Text(FText::FromString(*InItem))
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			]
 		];
@@ -444,9 +444,9 @@ void SPerforceSourceControlSettings::OnWorkspaceSelected(TSharedPtr<FString> InI
 	WorkspaceCombo->SetIsOpen(false);
 }
 
-FString SPerforceSourceControlSettings::OnGetButtonText() const
+FText SPerforceSourceControlSettings::OnGetButtonText() const
 {
-	return CurrentWorkspace;
+	return FText::FromString(CurrentWorkspace);
 }
 
 FReply SPerforceSourceControlSettings::OnCancelWorkspacesRequest()

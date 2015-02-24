@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -138,7 +138,7 @@ private:
 	 * @param GroupName - The name of the group all Cvars have been removed for.
 	 * @return Whether the event was handled
 	 */
-	FReply OnRemoveAllFromGroup(const TSharedPtr<FString> GroupName);
+	FReply OnRemoveAllFromGroup(FText GroupName);
 
 
 	/**

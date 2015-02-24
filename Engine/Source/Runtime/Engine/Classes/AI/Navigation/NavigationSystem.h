@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -40,7 +40,7 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogNavigation, Warning, All);
 DECLARE_MULTICAST_DELEGATE_OneParam(FOnNavAreaChanged, const UClass* /*AreaClass*/);
 
 /** Delegate to let interested parties know that Nav Data has been registered */
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNavDataRegistered, ANavigationData*, NavData);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnNavDataGenerigEvent, ANavigationData*, NavData);
 
 namespace NavigationDebugDrawing
 {
@@ -83,22 +83,29 @@ namespace ENavigationLockReason
 		MaterialUpdate			= 1 << 2,
 		LightingUpdate			= 1 << 3,
 		ContinuousEditorMove	= 1 << 4,
+		SpawnOnDragEnter		= 1 << 5,
 	};
 }
 
 class ENGINE_API FNavigationLockContext
 {
 public:
-	FNavigationLockContext(ENavigationLockReason::Type Reason = ENavigationLockReason::Unknown) 
-		: MyWorld(NULL), LockReason(Reason), bSingleWorld(false)
+	FNavigationLockContext(ENavigationLockReason::Type Reason = ENavigationLockReason::Unknown, bool bApplyLock = true) 
+		: MyWorld(NULL), LockReason(Reason), bSingleWorld(false), bIsLocked(false)
 	{
-		LockUpdates(); 
+		if (bApplyLock)
+		{
+			LockUpdates();
+		}
 	}
 
-	FNavigationLockContext(UWorld* InWorld, ENavigationLockReason::Type Reason = ENavigationLockReason::Unknown) 
-		: MyWorld(InWorld), LockReason(Reason), bSingleWorld(true)
+	FNavigationLockContext(UWorld* InWorld, ENavigationLockReason::Type Reason = ENavigationLockReason::Unknown, bool bApplyLock = true)
+		: MyWorld(InWorld), LockReason(Reason), bSingleWorld(true), bIsLocked(false)
 	{
-		LockUpdates(); 
+		if (bApplyLock)
+		{
+			LockUpdates();
+		}
 	}
 
 	~FNavigationLockContext()
@@ -110,6 +117,7 @@ private:
 	UWorld* MyWorld;
 	uint8 LockReason;
 	uint8 bSingleWorld : 1;
+	uint8 bIsLocked : 1;
 
 	void LockUpdates();
 	void UnlockUpdates();
@@ -125,15 +133,22 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 	UPROPERTY()
 	ANavigationData* MainNavData;
 
+	/** special navigation data for managing direct paths, not part of NavDataSet! */
+	UPROPERTY()
+	ANavigationData* AbstractNavData;
+
+protected:
 	/** Should navigation system spawn default Navigation Data when there's none and there are navigation bounds present? */
 	UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
 	uint32 bAutoCreateNavigationData:1;
 
-	/** Should navigation system rebuild navigation data at game/pie runtime? 
-	 *	It also includes spawning navigation data instances if there are none present. */
-	UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
-	uint32 bBuildNavigationAtRuntime:1;
+	/** gets set to true if gathering navigation data (like in navoctree) is required due to the need of navigation generation 
+	 *	Is always true in Editor Mode. In other modes it depends on bRebuildAtRuntime of every required NavigationData class' CDO
+	 */
+	UPROPERTY()
+	uint32 bSupportRebuilding : 1; 
 
+public:
 	/** if set to true will result navigation system not rebuild navigation until 
 	 *	a call to ReleaseInitialBuildingLock() is called. Does not influence 
 	 *	editor-time generation (i.e. does influence PIE and Game).
@@ -159,7 +174,7 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 	UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
 	uint32 bSkipAgentHeightCheckWhenPickingNavData:1;
 
-	UPROPERTY(config, EditAnywhere, Category=Agents)
+	UPROPERTY(config, EditAnywhere, Category = Agents)
 	TArray<FNavDataConfig> SupportedAgents;
 	
 	/** update frequency for dirty areas on navmesh */
@@ -178,14 +193,13 @@ class ENGINE_API UNavigationSystem : public UBlueprintFunctionLibrary
 	TArray<FNavigationBoundsUpdateRequest> PendingNavBoundsUpdates;
 
  	UPROPERTY(/*BlueprintAssignable, */Transient)
-	FOnNavDataRegistered OnNavDataRegisteredEvent;
+	FOnNavDataGenerigEvent OnNavDataRegisteredEvent;
 
+	UPROPERTY(BlueprintAssignable, Transient, meta = (displayname = OnNavigationGenerationFinished))
+	FOnNavDataGenerigEvent OnNavigationGenerationFinishedDelegate;
+	
 private:
 	TWeakObjectPtr<UCrowdManager> CrowdManager;
-
-	// required navigation data 
-	UPROPERTY(config)
-	TArray<FStringClassReference> RequiredNavigationDataClassNames;
 
 	/** set to true when navigation processing was blocked due to missing nav bounds */
 	uint32 bNavDataRemovedDueToMissingNavBounds:1;
@@ -195,8 +209,12 @@ private:
 
 public:
 	//----------------------------------------------------------------------//
-	// Kismet functions
+	// Blueprint functions
 	//----------------------------------------------------------------------//
+
+	UFUNCTION(BlueprintPure, Category = "AI|Navigation", meta = (WorldContext = "WorldContext"))
+	static UNavigationSystem* GetNavigationSystem(UObject* WorldContext);
+
 	/** Project a point onto the NavigationData */
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(WorldContext="WorldContext" ) )
 	static FVector ProjectPointToNavigation(UObject* WorldContext, const FVector& Point, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
@@ -274,17 +292,27 @@ public:
 	// Begin UObject Interface
 	virtual void PostInitProperties() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif // WITH_EDITOR
 	// End UObject Interface
 
-	virtual void Tick(float DeltaSeconds);
+	virtual void Tick(float DeltaSeconds);	
 
 	UWorld* GetWorld() const { return GetOuterUWorld(); }
 
 	UCrowdManager* GetCrowdManager() const { return CrowdManager.Get(); }
 
+protected:
 	/** spawn new crowd manager */
 	virtual void CreateCrowdManager();
 
+	/** Used to properly set navigation class for indicated agent and propagate information to other places
+	 *	(like project settings) that may need this information 
+	 */
+	void SetSupportedAgentsNavigationClass(int32 AgentIndex, TSubclassOf<ANavigationData> NavigationDataClass);
+
+public:
 	//----------------------------------------------------------------------//
 	// Public querying interface                                                                
 	//----------------------------------------------------------------------//
@@ -376,6 +404,8 @@ public:
 	/** Returns the world nav mesh object.  Creates one if it doesn't exist. */
 	const ANavigationData* GetMainNavData() const { return MainNavData; }
 
+	ANavigationData* GetAbstractNavData() const { return AbstractNavData; }
+
 	TSharedPtr<FNavigationQueryFilter> CreateDefaultQueryFilterCopy() const;
 
 	/** Super-hacky safety feature for threaded navmesh building. Will be gone once figure out why keeping TSharedPointer to Navigation Generator doesn't 
@@ -412,7 +442,10 @@ public:
 	/** checks if dirty navigation data can rebuild itself */
 	bool CanRebuildDirtyNavigation() const;
 
+	FORCEINLINE bool SupportsNavigationGeneration() const { return bSupportRebuilding; }
+
 	static bool DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, uint32 StartingIndex = 0);
+	static bool DoesPathIntersectBox(const FNavigationPath* Path, const FBox& Box, const FVector& AgentLocation, uint32 StartingIndex = 0);
 
 
 	//----------------------------------------------------------------------//
@@ -426,6 +459,16 @@ public:
 	void RequestRegistration(ANavigationData* NavData, bool bTriggerRegistrationProcessing = true);
 
 protected:
+
+	/** Processes all NavigationData instances in UWorld owning navigation system instance, and registers
+	 *	all previously unregistered */
+	void RegisterNavigationDataInstances();
+
+	/** called in places where we need to spawn the NavOctree, but is checking additional conditions if we really want to do that
+	 *	depending on project setup among others 
+	 *	@return true if NavOctree instance has been created, or if one is already present */
+	virtual bool ConditionallyCreateNavOctree();
+
 	/** Processes registration of candidates queues via RequestRegistration and stored in NavDataRegistrationQueue */
 	void ProcessRegistrationCandidates();
 
@@ -485,6 +528,9 @@ public:
 	/** force updating parent node and all its children */
 	void UpdateNavOctreeParentChain(UObject* ElementOwner);
 
+	/** update component bounds in navigation octree and mark only specified area as dirty, doesn't re-export component geometry */
+	bool UpdateNavOctreeElementBounds(UActorComponent* Comp, const FBox& NewBounds, const FBox& DirtyArea);
+
 	//----------------------------------------------------------------------//
 	// Custom navigation links
 	//----------------------------------------------------------------------//
@@ -538,7 +584,7 @@ public:
 	FORCEINLINE bool IsNavigationBuildingLocked() const { return bNavigationBuildingLocked || bInitialBuildingLockActive; }
 
 	// @todo document
-	UFUNCTION(BlueprintCallable, Category = Navigation)
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
 	void OnNavigationBoundsUpdated(ANavMeshBoundsVolume* NavVolume);
 	void OnNavigationBoundsAdded(ANavMeshBoundsVolume* NavVolume);
 	void OnNavigationBoundsRemoved(ANavMeshBoundsVolume* NavVolume);
@@ -546,15 +592,22 @@ public:
 	/** Used to display "navigation building in progress" notify */
 	bool IsNavigationBuildInProgress(bool bCheckDirtyToo = true);
 
+	void OnNavigationGenerationFinished(ANavigationData& NavData);
+
 	/** Used to display "navigation building in progress" counter */
 	int32 GetNumRemainingBuildTasks() const;
 
 	/** Number of currently running tasks */
 	int32 GetNumRunningBuildTasks() const;
 
+protected:
 	/** Sets up SuportedAgents and NavigationDataCreators. Override it to add additional setup, but make sure to call Super implementation */
 	virtual void DoInitialSetup();
 
+	/** spawn new crowd manager */
+	virtual void UpdateAbstractNavData();
+	
+public:
 	/** Called upon UWorld destruction to release what needs to be released */
 	void CleanUp(ECleanupMode Mode = ECleanupMode::CleanupUnsafe);
 
@@ -605,7 +658,7 @@ public:
 
 	static UNavigationSystem* GetCurrent(UWorld* World);
 	static UNavigationSystem* GetCurrent(UObject* WorldContextObject);
-
+	
 	/** try to create and setup navigation system */
 	static void InitializeForWorld(UWorld* World, FNavigationSystem::EMode Mode);
 
@@ -680,9 +733,6 @@ protected:
 	/** self-registering exec command to handle nav sys console commands */
 	static FNavigationSystemExec ExecHandler;
 #endif // !UE_BUILD_SHIPPING
-
-	/** collection of delegates to create all available navigation data types */
-	static TArray<TSubclassOf<ANavigationData> > NavDataClasses;
 	
 	/** whether seamless navigation building is enabled */
 	static bool bNavigationAutoUpdateEnabled;
@@ -748,7 +798,7 @@ private:
 
 	/** constructs a navigation data instance of specified NavDataClass, in passed World
 	 *	for supplied NavConfig */
-	virtual ANavigationData* CreateNavigationDataInstance(TSubclassOf<ANavigationData> NavDataClass, UWorld* World, const FNavDataConfig& NavConfig);
+	virtual ANavigationData* CreateNavigationDataInstance(const FNavDataConfig& NavConfig);
 
 	/** Triggers navigation building on all eligible navigation data. */
 	void RebuildAll();

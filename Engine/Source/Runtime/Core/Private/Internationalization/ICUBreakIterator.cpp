@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "ICUBreakIterator.h"
@@ -31,7 +31,10 @@ TWeakPtr<icu::BreakIterator> FICUBreakIteratorManager::CreateCharacterBoundaryIt
 {
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	TSharedRef<icu::BreakIterator> Iterator = MakeShareable(icu::BreakIterator::createCharacterInstance(icu::Locale::getDefault(), ICUStatus));
-	AllocatedIterators.Add(Iterator);
+	{
+		FScopeLock ScopeLock(&AllocatedIteratorsCS);
+		AllocatedIterators.Add(Iterator);
+	}
 	return Iterator;
 }
 
@@ -39,7 +42,10 @@ TWeakPtr<icu::BreakIterator> FICUBreakIteratorManager::CreateWordBreakIterator()
 {
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	TSharedRef<icu::BreakIterator> Iterator = MakeShareable(icu::BreakIterator::createWordInstance(icu::Locale::getDefault(), ICUStatus));
-	AllocatedIterators.Add(Iterator);
+	{
+		FScopeLock ScopeLock(&AllocatedIteratorsCS);
+		AllocatedIterators.Add(Iterator);
+	}
 	return Iterator;
 }
 
@@ -47,7 +53,10 @@ TWeakPtr<icu::BreakIterator> FICUBreakIteratorManager::CreateLineBreakIterator()
 {
 	UErrorCode ICUStatus = U_ZERO_ERROR;
 	TSharedRef<icu::BreakIterator> Iterator = MakeShareable(icu::BreakIterator::createLineInstance(icu::Locale::getDefault(), ICUStatus));
-	AllocatedIterators.Add(Iterator);
+	{
+		FScopeLock ScopeLock(&AllocatedIteratorsCS);
+		AllocatedIterators.Add(Iterator);
+	}
 	return Iterator;
 }
 
@@ -56,6 +65,7 @@ void FICUBreakIteratorManager::DestroyIterator(TWeakPtr<icu::BreakIterator>& InI
 	TSharedPtr<icu::BreakIterator> Iterator = InIterator.Pin();
 	if(Iterator.IsValid())
 	{
+		FScopeLock ScopeLock(&AllocatedIteratorsCS);
 		AllocatedIterators.Remove(Iterator);
 	}
 	InIterator.Reset();

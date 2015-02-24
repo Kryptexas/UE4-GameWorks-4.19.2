@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 
@@ -10,7 +10,7 @@ bool FText::IsWhitespace( const TCHAR Char )
 	return FChar::IsWhitespace(Char);
 }
 
-FText FText::AsDate( const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const FCulturePtr& TargetCulture )
+FText FText::AsDate( const FDateTime& DateTime, const EDateTimeStyle::Type DateStyle, const FString& TimeZone, const FCulturePtr& TargetCulture )
 {
 	checkf(FInternationalization::Get().IsInitialized() == true, TEXT("FInternationalization is not initialized. An FText formatting method was likely used in static object initialization - this is not supported."));
 	return FText::FromString( DateTime.ToString( TEXT("%Y.%m.%d") ) );
@@ -251,8 +251,7 @@ public:
 
 		const FString& PatternString = Pattern.ToString();
 
-		FText Result;
-		FString& ResultString = Result.DisplayString.Get();
+		FString ResultString;
 
 		EEscapeState::Type EscapeState = EEscapeState::None;
 		EBlockState::Type BlockState = EBlockState::None;
@@ -402,11 +401,11 @@ public:
 			}
 		}
 
+		FText Result = FText(MoveTemp(ResultString));
 		if (!GIsEditor)
 		{
 			Result.Flags = Result.Flags | ETextFlag::Transient;
 		}
-
 		return Result;
 	}
 };

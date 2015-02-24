@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
@@ -6,6 +6,7 @@
 #include "Toolkits/AssetEditorManager.h"
 #include "ObjectTools.h"
 #include "AssetSelection.h"
+#include "Engine/Polys.h"
 
 FArchiveGenerateReferenceGraph::FArchiveGenerateReferenceGraph( FReferenceGraph& OutGraph ) 
 	: CurrentObject(NULL),
@@ -552,5 +553,5 @@ TSharedRef< ITableRow > SReferenceTree::OnGenerateRowForReferenceTree( FReferenc
 	return
 		SNew( SReferenceTreeRow, OwnerTable )
 		.Item( Item )
-		.ToolTipText( Item->Object->GetFullName() );
+		.ToolTipText( FText::FromString(Item->Object->GetFullName()) );
 }

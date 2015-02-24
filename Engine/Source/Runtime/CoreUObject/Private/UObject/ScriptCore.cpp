@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScriptCore.cpp: Kismet VM execution and support code.
@@ -1860,6 +1860,13 @@ void UObject::execNoObject( FFrame& Stack, RESULT_DECL )
 	*(UObject**)Result = NULL;
 }
 IMPLEMENT_VM_FUNCTION( EX_NoObject, execNoObject );
+
+void UObject::execNullInterface(FFrame& Stack, RESULT_DECL)
+{
+	FScriptInterface& InterfaceValue = *(FScriptInterface*)Result;
+	InterfaceValue.SetObject(nullptr);
+}
+IMPLEMENT_VM_FUNCTION( EX_NoInterface, execNullInterface );
 
 void UObject::execIntConstByte( FFrame& Stack, RESULT_DECL )
 {

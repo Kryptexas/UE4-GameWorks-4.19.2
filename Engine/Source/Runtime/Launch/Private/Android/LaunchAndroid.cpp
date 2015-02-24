@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LaunchPrivatePCH.h"
 #include <string.h>
@@ -167,52 +167,6 @@ void InitHMDs()
 	}
 }
 
-
-void UpdateGameInterruptions()
-{
-	// Check for game suspension.
-	if(GHasInterruptionRequest)
-	{
-		// Suspend the renderer.
-		if(GUseThreadedRendering)
-		{
-			FlushRenderingCommands();
-			StopRenderingThread();
-		}
-		else
-		{
-			RHIReleaseThreadOwnership();
-		}
-
-		// Flag the suspended state.
-		GIsInterrupted = true;
-
-		// Wait for resume.
-		while(GHasInterruptionRequest)
-		{
-			FPlatformProcess::Sleep(0.1f);
-		}
-
-		// Flag the resume state.
-		GIsInterrupted = false;
-
-		// Reset the window surface.
-		RHIAcquireThreadOwnership();
-		RHIReleaseThreadOwnership();
-
-		// Resume the renderer.
-		if(GUseThreadedRendering)
-		{
-			StartRenderingThread();
-		}
-		else
-		{
-			UE_LOG(LogAndroid, Display, TEXT("Acquiring Thread Ownership"));
-			RHIAcquireThreadOwnership();
-		}
-	}
-}
-
 static void InitCommandLine()
 {
 	static const uint32 CMD_LINE_MAX = 16384u;
@@ -253,7 +207,7 @@ int32 AndroidMain(struct android_app* state)
 	FPlatformMisc::LowLevelOutputDebugString(L"Entered AndroidMain()");
 
 	// Force the first call to GetJavaEnv() to happen on the game thread, allowing subsequent calls to occur on any thread
-	GetJavaEnv();
+	FAndroidApplication::GetJavaEnv();
 
 	// adjust the file descriptor limits to allow as many open files as possible
 	rlimit cur_fd_limit;
@@ -333,6 +287,11 @@ int32 AndroidMain(struct android_app* state)
 
 	// ready for onCreate to complete
 	GEventHandlerInitialized = true;
+
+	// Initialize file system access (i.e. mount OBBs, etc.).
+	// We need to do this really early for Android so that files in the
+	// OBBs and APK are found.
+	IPlatformFile::GetPlatformPhysical().Initialize(nullptr, FCommandLine::Get());
 
 	// initialize the engine
 	GEngineLoop.PreInit(0, NULL, FCommandLine::Get());
@@ -554,7 +513,7 @@ static int32_t HandleInputCB(struct android_app* app, AInputEvent* event)
 			// make sure OpenGL context created before accepting touch events.. FAndroidWindow::GetScreenRect() may try to create it early from wrong thread if this is the first call
 			if (!GAndroidGPUInfoReady)
 			{
-				return 0;
+				return 1;
 			}
 			FPlatformRect ScreenRect = FAndroidWindow::GetScreenRect();
 
@@ -917,7 +876,7 @@ static int HandleSensorEvents(int fd, int events, void* data)
 
 		// Calc the tilt from the accelerometer as it's not
 		// available directly.
-		FVector accelerometer_dir = -current_accelerometer.SafeNormal();
+		FVector accelerometer_dir = -current_accelerometer.GetSafeNormal();
 		float current_pitch
 			= FMath::Atan2(accelerometer_dir.Y, accelerometer_dir.Z);
 		float current_roll
@@ -974,15 +933,6 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeConsoleCommand(JNIEnv*
 	jenv->ReleaseStringUTFChars(commandString, javaChars);
 }
 
-//This function is declared in the Java-defined class, GameActivity.java: "public native void nativeIsGooglePlayEnabled();"
-extern "C" jboolean Java_com_epicgames_ue4_GameActivity_nativeIsGooglePlayEnabled(JNIEnv* jenv, jobject thiz)
-{
-	bool bEnabled = false;
-	GConfig->GetBool(TEXT("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings"), TEXT("bEnableGooglePlaySupport"), bEnabled, GEngineIni);
-	UE_LOG(LogOnline, Log, TEXT("Checking whether Google Play is enabled. bEnableGooglePlaySupport = %d"), bEnabled);
-	return bEnabled;
-}
-
 // This is called from the Java UI thread for initializing VR HMDs
 extern "C" void Java_com_epicgames_ue4_GameActivity_nativeInitHMDs(JNIEnv* jenv, jobject thiz)
 {
@@ -1009,4 +959,9 @@ extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetAndroidVersionInfor
 	FString UEOSLanguage = FString(UTF8_TO_TCHAR(javaOSLanguage));
 
 	FAndroidMisc::SetVersionInfo( UEAndroidVersion, UEPhoneMake, UEPhoneModel, UEOSLanguage );
+}
+
+bool WaitForAndroidLoseFocusEvent(double TimeoutSeconds)
+{
+	return FAppEventManager::GetInstance()->WaitForEventInQueue(EAppEventState::APP_EVENT_STATE_WINDOW_LOST_FOCUS, TimeoutSeconds);
 }

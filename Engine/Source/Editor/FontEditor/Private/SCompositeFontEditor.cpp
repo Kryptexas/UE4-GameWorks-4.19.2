@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FontEditorModule.h"
 #include "SCompositeFontEditor.h"
@@ -7,6 +7,7 @@
 #include "SNumericEntryBox.h"
 #include "ScopedTransaction.h"
 #include "DesktopPlatformModule.h"
+#include "Engine/Font.h"
 
 #define LOCTEXT_NAMESPACE "FontEditor"
 
@@ -743,7 +744,8 @@ void STypefaceEntryEditor::OnTypefaceEntryFontPathPicked(const FString& InNewFon
 		CompositeFontEditorPtr->GetFontObject()->Modify();
 
 		// We need to allocate the bulk data with the font as its outer
-		const UFontBulkData* const BulkData = new(CompositeFontEditorPtr->GetFontObject()) UFontBulkData(InNewFontFilename);
+		UFontBulkData* const BulkData = NewObject<UFontBulkData>(CompositeFontEditorPtr->GetFontObject());
+		BulkData->Initialize(InNewFontFilename);
 
 		TypefaceEntryPtr->Font.SetFont(InNewFontFilename, BulkData);
 		CompositeFontEditorPtr->FlushCachedFont();

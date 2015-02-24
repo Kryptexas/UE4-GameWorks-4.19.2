@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimEncoding_VariableKeyLerp.h: Variable key compression.
@@ -24,14 +24,12 @@ public:
 	 * @param	MemoryReader	The FMemoryReader to read from.
 	 * @param	RotTrackData	The compressed rotation data stream.
 	 * @param	NumKeysRot		The number of keys present in the stream.
-	 * @param	SourceArVersion	The version number of the source archive stream.
 	 */
-	void ByteSwapRotationIn(
+	virtual void ByteSwapRotationIn(
 		UAnimSequence& Seq, 
 		FMemoryReader& MemoryReader,
 		uint8*& RotTrackData,
-		int32 NumKeysRot,
-		int32 SourceArVersion);
+		int32 NumKeysRot) override;
 
 	/**
 	 * Handles the ByteSwap of compressed translation data on import
@@ -40,14 +38,12 @@ public:
 	 * @param	MemoryReader	The FMemoryReader to read from.
 	 * @param	TransTrackData	The compressed translation data stream.
 	 * @param	NumKeysTrans	The number of keys present in the stream.
-	 * @param	SourceArVersion	The version number of the source archive stream.
 	 */
-	void ByteSwapTranslationIn(
+	virtual void ByteSwapTranslationIn(
 		UAnimSequence& Seq, 
 		FMemoryReader& MemoryReader,
 		uint8*& TransTrackData,
-		int32 NumKeysTrans,
-		int32 SourceArVersion);
+		int32 NumKeysTransn) override;
 
 	/**
 	 * Handles the ByteSwap of compressed Scale data on import
@@ -56,14 +52,12 @@ public:
 	 * @param	MemoryReader	The FMemoryReader to read from.
 	 * @param	ScaleTrackData	The compressed Scale data stream.
 	 * @param	NumKeysScale	The number of keys present in the stream.
-	 * @param	SourceArVersion	The version number of the source archive stream.
 	 */
-	void ByteSwapScaleIn(
+	virtual void ByteSwapScaleIn(
 		UAnimSequence& Seq, 
 		FMemoryReader& MemoryReader,
 		uint8*& ScaleTrackData,
-		int32 NumKeysScale,
-		int32 SourceArVersion);
+		int32 NumKeysScale) override;
 
 	/**
 	 * Handles the ByteSwap of compressed rotation data on export
@@ -73,11 +67,11 @@ public:
 	 * @param	RotTrackData	The compressed rotation data stream.
 	 * @param	NumKeysRot		The number of keys to write to the stream.
 	 */
-	void ByteSwapRotationOut(
+	virtual void ByteSwapRotationOut(
 		UAnimSequence& Seq, 
 		FMemoryWriter& MemoryWriter,
 		uint8*& RotTrackData,
-		int32 NumKeysRot);
+		int32 NumKeysRot) override;
 
 	/**
 	 * Handles the ByteSwap of compressed translation data on export
@@ -87,11 +81,11 @@ public:
 	 * @param	TransTrackData	The compressed translation data stream.
 	 * @param	NumKeysTrans	The number of keys to write to the stream.
 	 */
-	void ByteSwapTranslationOut(
+	virtual void ByteSwapTranslationOut(
 		UAnimSequence& Seq, 
 		FMemoryWriter& MemoryWriter,
 		uint8*& TransTrackData,
-		int32 NumKeysTrans);
+		int32 NumKeysTrans) override;
 
 	/**
 	 * Handles the ByteSwap of compressed Scale data on export
@@ -101,11 +95,11 @@ public:
 	 * @param	ScaleTrackData	The compressed Scale data stream.
 	 * @param	NumKeysScale	The number of keys to write to the stream.
 	 */
-	void ByteSwapScaleOut(
+	virtual void ByteSwapScaleOut(
 		UAnimSequence& Seq, 
 		FMemoryWriter& MemoryWriter,
 		uint8*& ScaleTrackData,
-		int32 NumKeysScale);
+		int32 NumKeysScale) override;
 };
 
 template<int32 FORMAT>
@@ -122,13 +116,13 @@ public:
 	 * @param	RelativePos		Current position within the animation to solve for in the range [0.0,1.0].
 	 * @return					None. 
 	 */
-	void GetBoneAtomRotation(	
+	virtual void GetBoneAtomRotation(	
 		FTransform& OutAtom,
 		const UAnimSequence& Seq,
 		const uint8* RESTRICT Stream,
 		int32 NumKeys,
 		float Time,
-		float RelativePos);
+		float RelativePos) override;
 
 	/**
 	 * Decompress the Translation component of a BoneAtom
@@ -140,13 +134,13 @@ public:
 	 * @param	RelativePos		Current position within the animation to solve for in the range [0.0,1.0].
 	 * @return					None. 
 	 */
-	void GetBoneAtomTranslation(	
+	virtual void GetBoneAtomTranslation(	
 		FTransform& OutAtom,
 		const UAnimSequence& Seq,
 		const uint8* RESTRICT Stream,
 		int32 NumKeys,
 		float Time,
-		float RelativePos);
+		float RelativePos) override;
 
 	
 	/**
@@ -159,13 +153,13 @@ public:
 	 * @param	RelativePos		Current position within the animation to solve for in the range [0.0,1.0].
 	 * @return					None. 
 	 */
-	void GetBoneAtomScale(	
+	virtual void GetBoneAtomScale(	
 		FTransform& OutAtom,
 		const UAnimSequence& Seq,
 		const uint8* RESTRICT Stream,
 		int32 NumKeys,
 		float Time,
-		float RelativePos);
+		float RelativePos) override;
 
 #if USE_ANIMATION_CODEC_BATCH_SOLVER
 
@@ -178,11 +172,11 @@ public:
 	 * @param	Time			Current time to solve for.
 	 * @return					None. 
 	 */
-	void GetPoseRotations(	
+	virtual void GetPoseRotations(	
 		FTransformArray& Atoms, 
 		const BoneTrackArray& DesiredPairs,
 		const UAnimSequence& Seq,
-		float RelativePos);
+		float RelativePos) override;
 
 	/**
 	 * Decompress all requested translation components from an Animation Sequence
@@ -193,11 +187,11 @@ public:
 	 * @param	Time			Current time to solve for.
 	 * @return					None. 
 	 */
-	void GetPoseTranslations(	
+	virtual void GetPoseTranslations(	
 		FTransformArray& Atoms,
 		const BoneTrackArray& DesiredPairs,
 		const UAnimSequence& Seq,
-		float RelativePos);
+		float RelativePos) override;
 
 	/**
 	 * Decompress all requested Scale components from an Animation Sequence
@@ -208,11 +202,11 @@ public:
 	 * @param	Time			Current time to solve for.
 	 * @return					None. 
 	 */
-	void GetPoseScales(	
+	virtual void GetPoseScales(	
 		FTransformArray& Atoms,
 		const BoneTrackArray& DesiredPairs,
 		const UAnimSequence& Seq,
-		float RelativePos);
+		float RelativePos) override;
 #endif
 
 };

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Spline.cpp
@@ -16,6 +16,10 @@ USplineComponent::USplineComponent(const FObjectInitializer& ObjectInitializer)
 	, Duration(1.0f)
 	, bStationaryEndpoints(false)
 	, bClosedLoop(false)
+#if WITH_EDITORONLY_DATA
+	, EditorUnselectedSplineSegmentColor(FLinearColor(1.0f, 1.0f, 1.0f))
+	, EditorSelectedSplineSegmentColor(FLinearColor(1.0f, 0.0f, 0.0f))
+#endif
 {
 	SplineInfo.Points.Reset(10);
 
@@ -360,6 +364,57 @@ void USplineComponent::SetWorldLocationAtSplinePoint(int32 PointIndex, const FVe
 	}
 }
 
+
+ESplinePointType::Type USplineComponent::GetSplinePointType(int32 PointIndex) const
+{
+	if ((PointIndex >= 0) && (PointIndex < SplineInfo.Points.Num()))
+	{
+		switch (SplineInfo.Points[PointIndex].InterpMode)
+		{
+			case CIM_CurveAuto:			return ESplinePointType::Curve;
+			case CIM_CurveAutoClamped:	return ESplinePointType::CurveClamped;
+			case CIM_Linear:			return ESplinePointType::Linear;
+		}
+	}
+
+	return ESplinePointType::Constant;
+}
+
+
+void USplineComponent::SetSplinePointType(int32 PointIndex, ESplinePointType::Type Type)
+{
+	EInterpCurveMode InterpMode = CIM_Constant;
+	switch (Type)
+	{
+		case ESplinePointType::Curve:			InterpMode = CIM_CurveAuto; break;
+		case ESplinePointType::CurveClamped:	InterpMode = CIM_CurveAutoClamped; break;
+		case ESplinePointType::Linear:			InterpMode = CIM_Linear; break;
+	}
+
+	const int32 NumPoints = SplineInfo.Points.Num();
+
+	if ((PointIndex >= 0) && (PointIndex < NumPoints))
+	{
+		SplineInfo.Points[PointIndex].InterpMode = InterpMode;
+
+		if (IsClosedLoop())
+		{
+			// In a closed loop, the first and last points are tied, so update one with the other
+			if (PointIndex == 0)
+			{
+				SplineInfo.Points[NumPoints - 1].InterpMode = InterpMode;
+			}
+			else if (PointIndex == NumPoints - 1)
+			{
+				SplineInfo.Points[0].InterpMode = InterpMode;
+			}
+		}
+
+		UpdateSpline();
+	}
+}
+
+
 int32 USplineComponent::GetNumSplinePoints() const
 {
 	return SplineInfo.Points.Num();
@@ -443,7 +498,7 @@ FVector USplineComponent::GetWorldTangentAtDistanceAlongSpline(float Distance) c
 FVector USplineComponent::GetWorldDirectionAtDistanceAlongSpline(float Distance) const
 {
 	const float Param = SplineReparamTable.Eval(Distance, 0.f);
-	const FVector Tangent = SplineInfo.EvalDerivative(Param, FVector::ZeroVector).SafeNormal();
+	const FVector Tangent = SplineInfo.EvalDerivative(Param, FVector::ZeroVector).GetSafeNormal();
 	return ComponentToWorld.TransformVectorNoScale(Tangent);
 }
 
@@ -486,7 +541,7 @@ FVector USplineComponent::GetWorldDirectionAtTime(float Time, bool bUseConstantV
 	}
 
 	const float TimeMultiplier = (SplineInfo.Points.Num() - 1.0f) / Duration;
-	const FVector Tangent = SplineInfo.EvalDerivative(Time * TimeMultiplier, FVector::ZeroVector).SafeNormal();
+	const FVector Tangent = SplineInfo.EvalDerivative(Time * TimeMultiplier, FVector::ZeroVector).GetSafeNormal();
 	return ComponentToWorld.TransformVectorNoScale(Tangent);
 }
 
@@ -508,12 +563,18 @@ void USplineComponent::RefreshSplineInputs()
 
 
 /** Used to store spline data during RerunConstructionScripts */
-class FSplineInstanceData : public FComponentInstanceDataBase
+class FSplineInstanceData : public FSceneComponentInstanceData
 {
 public:
 	explicit FSplineInstanceData(const USplineComponent* SourceComponent)
-		: FComponentInstanceDataBase(SourceComponent)
+		: FSceneComponentInstanceData(SourceComponent)
 	{
+	}
+
+	virtual void ApplyToComponent(UActorComponent* Component, const ECacheApplyPhase CacheApplyPhase) override
+	{
+		FSceneComponentInstanceData::ApplyToComponent(Component, CacheApplyPhase);
+		CastChecked<USplineComponent>(Component)->ApplyComponentInstanceData(this);
 	}
 
 	FInterpCurveVector SplineInfo;
@@ -526,23 +587,28 @@ FName USplineComponent::GetComponentInstanceDataType() const
 	return SplineInstanceDataTypeName;
 }
 
-FComponentInstanceDataBase* USplineComponent::GetComponentInstanceData() const
+FActorComponentInstanceData* USplineComponent::GetComponentInstanceData() const
 {
-	FSplineInstanceData* SplineInstanceData = nullptr;
+	FActorComponentInstanceData* InstanceData = nullptr;
 	if (bAllowSplineEditingPerInstance)
 	{
-		SplineInstanceData = new FSplineInstanceData(this);
+		FSplineInstanceData* SplineInstanceData = new FSplineInstanceData(this);
 		SplineInstanceData->SplineInfo = SplineInfo;
 		SplineInstanceData->bClosedLoop = bClosedLoop;
+
+		InstanceData = SplineInstanceData;
 	}
-	return SplineInstanceData;
+	else
+	{
+		InstanceData = Super::GetComponentInstanceData();
+	}
+	return InstanceData;
 }
 
-void USplineComponent::ApplyComponentInstanceData(FComponentInstanceDataBase* ComponentInstanceData)
+void USplineComponent::ApplyComponentInstanceData(FSplineInstanceData* SplineInstanceData)
 {
-	if (ComponentInstanceData)
+	if (SplineInstanceData)
 	{
-		FSplineInstanceData* SplineInstanceData  = static_cast<FSplineInstanceData*>(ComponentInstanceData);
 		if (bAllowSplineEditingPerInstance)
 		{
 			SplineInfo = SplineInstanceData->SplineInfo;

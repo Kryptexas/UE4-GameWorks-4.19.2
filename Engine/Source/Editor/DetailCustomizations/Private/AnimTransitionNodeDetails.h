@@ -1,9 +1,12 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "PreviewScene.h"
 #include "AnimGraphDefinitions.h"
+#include "IDetailCustomization.h"
+
+class UAnimStateTransitionNode;
 
 class FAnimTransitionNodeDetails : public IDetailCustomization
 {
@@ -15,10 +18,6 @@ public:
 	virtual void CustomizeDetails( IDetailLayoutBuilder& DetailBuilder ) override;
 
 protected:
-
-	bool NameIsNone(TSharedPtr<IPropertyHandle> Property) const;
-	bool ObjIsNULL(TSharedPtr<IPropertyHandle> Property) const;
-
 	void CreateTransitionEventPropertyWidgets(IDetailCategoryBuilder& TransitionCategory, FString TransitionName);
 
 	FReply OnClickEditBlendGraph();

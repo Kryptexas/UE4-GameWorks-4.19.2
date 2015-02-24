@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 
@@ -6,7 +6,7 @@ public class Slate : ModuleRules
 {
 	public Slate(TargetInfo Target)
 	{
-//		SharedPCHHeaderFile = "Runtime/Slate/Public/Slate.h";
+		SharedPCHHeaderFile = "Runtime/Slate/Public/SlateBasics.h";
 
 		PublicDependencyModuleNames.AddRange(
 			new string[] { 
@@ -18,7 +18,7 @@ public class Slate : ModuleRules
 			}
 		);
 
-        if (!UEBuildConfiguration.bBuildDedicatedServer && UEBuildConfiguration.bCompileFreeType)
+		if (Target.Type.Value != TargetRules.TargetType.Server && UEBuildConfiguration.bCompileFreeType)
         {
 			AddThirdPartyPrivateStaticDependencies(Target, "FreeType2");
 			Definitions.Add("WITH_FREETYPE=1");

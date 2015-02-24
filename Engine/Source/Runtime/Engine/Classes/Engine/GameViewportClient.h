@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -9,7 +9,6 @@
 #include "DebugDisplayProperty.h"
 #include "TitleSafeZone.h"
 #include "GameViewportDelegates.h"
-
 #include "GameViewportClient.generated.h"
 
 
@@ -143,9 +142,11 @@ public:
 	virtual bool InputTouch(FViewport* Viewport, int32 ControllerId, uint32 Handle, ETouchType::Type Type, const FVector2D& TouchLocation, FDateTime DeviceTimestamp, uint32 TouchpadIndex) override;
 	virtual bool InputMotion(FViewport* Viewport, int32 ControllerId, const FVector& Tilt, const FVector& RotationRate, const FVector& Gravity, const FVector& Acceleration) override;
 	virtual EMouseCursor::Type GetCursor(FViewport* Viewport, int32 X, int32 Y ) override;
+	virtual TOptional<TSharedRef<SWidget>> MapCursor(FViewport* Viewport, const FCursorReply& CursorReply) override;
 	virtual void Precache() override;
 	virtual void Draw(FViewport* Viewport,FCanvas* SceneCanvas) override;
 	virtual void ProcessScreenShots(FViewport* Viewport) override;
+	virtual TOptional<bool> QueryShowFocus(const EFocusCause InFocusCause) const override;
 	virtual void LostFocus(FViewport* Viewport) override;
 	virtual void ReceivedFocus(FViewport* Viewport) override;
 	virtual bool IsFocused(FViewport* Viewport) override;
@@ -254,11 +255,11 @@ public:
 	/** Returns access to this viewport's Slate window */
 	TSharedPtr< SWindow > GetWindow()
 	{
-	 	 return Window.Pin();
+		 return Window.Pin();
 	}
 	 
 	/** 
- 	 * Sets bDropDetail and other per-frame detail level flags on the current WorldSettings
+	 * Sets bDropDetail and other per-frame detail level flags on the current WorldSettings
 	 *
 	 * @param DeltaSeconds - amount of time passed since last tick
 	 * @see UWorld
@@ -470,7 +471,7 @@ public:
 	FViewportFrame* ViewportFrame;
 
 	/**
- 	 * Controls suppression of the blue transition text messages 
+	 * Controls suppression of the blue transition text messages 
 	 * 
 	 * @param bSuppress	Pass true to suppress messages
 	 */
@@ -587,6 +588,8 @@ public:
 		return bHideCursorDuringCapture;
 	}
 
+	virtual TOptional<EPopupMethod> OnQueryPopupMethod() const override;
+
 private:
 	/**
 	 * Set a specific stat to either enabled or disabled (returns the number of remaining enabled stats)
@@ -612,6 +615,9 @@ private:
 		return EnabledStats.Num();
 	}
 
+	/** Process the 'show collision' console command */
+	void ToggleShowCollision();
+
 	/** Delegate handler to see if a stat is enabled on this viewport */
 	void HandleViewportStatCheckEnabled(const TCHAR* InName, bool& bOutCurrentEnabled, bool& bOutOthersEnabled);
 
@@ -623,6 +629,12 @@ private:
 
 	/** Delegate handler for when all stats are disabled in a viewport */
 	void HandleViewportStatDisableAll(const bool bInAnyViewport);
+
+	/** Delegate handler for when an actor is spawned */
+	void ShowCollisionOnSpawnedActors(AActor* Actor);
+
+	/** Adds a cursor to the set based on the enum and the class reference to it. */
+	void AddCursor(EMouseCursor::Type Cursor, const FStringClassReference& CursorClass);
 
 private:
 	/** Slate window associated with this viewport client.  The same window may host more than one viewport client. */
@@ -636,6 +648,9 @@ private:
 
 	/** Weak pointer to the highres screenshot dialog if it's open */
 	TWeakPtr<SWindow> HighResScreenshotDialog;
+
+	/** Map of Cursor Widgets*/
+	TMap<EMouseCursor::Type, TSharedRef<SWidget>> CursorWidgets;
 
 	/* Function that handles bug screen-shot requests w/ or w/o extra HUD info (project-specific) */
 	bool RequestBugScreenShot(const TCHAR* Cmd, bool bDisplayHUDInfo);
@@ -668,6 +683,9 @@ private:
 	/** Those sound stat flags which are enabled on this viewport */
 	static ESoundShowFlags::Type SoundShowFlags;
 
+	/** Number of viewports which have enabled 'show collision' */
+	static int32 NumViewportsShowingCollision;
+
 	/** Disables splitscreen, useful when game code is in menus, and doesn't want splitscreen on */
 	bool bDisableSplitScreenOverride;
 
@@ -680,6 +698,8 @@ private:
 	/** Whether or not the cursor is hidden when the viewport captures the mouse */
 	bool bHideCursorDuringCapture;
 
+	/** Handle to the registered ShowCollisionOnSpawnedActors delegate */
+	FDelegateHandle ShowCollisionOnSpawnedActorsDelegateHandle;
 };
 
 

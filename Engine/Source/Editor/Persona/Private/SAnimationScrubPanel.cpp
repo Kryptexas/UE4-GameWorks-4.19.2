@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "PersonaPrivatePCH.h"
 #include "AnimGraphDefinitions.h"
 #include "AnimPreviewInstance.h"
@@ -503,7 +503,7 @@ void SAnimationScrubPanel::OnReZeroAnimSequence( )
 				AnimSequence->Modify();
 
 				// Find vector that would translate current root bone location onto origin.
-				FVector ApplyTranslation = -1.f * PreviewSkelComp->SpaceBases[0].GetLocation();
+				FVector ApplyTranslation = -1.f * PreviewSkelComp->GetSpaceBases()[0].GetLocation();
 
 				// Convert into world space and eliminate 'z' translation. Don't want to move character into ground.
 				FVector WorldApplyTranslation = PreviewSkelComp->ComponentToWorld.TransformVector(ApplyTranslation);

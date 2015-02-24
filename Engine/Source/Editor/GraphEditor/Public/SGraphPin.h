@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "SImage.h"
 
 class SGraphNode;
 
@@ -110,7 +111,7 @@ public:
 	FVector2D GetNodeOffset() const;
 
 protected:
-	FString GetPinLabel() const;
+	FText GetPinLabel() const;
 
 	/** If we should show the label on this pin */
 	EVisibility GetPinLabelVisibility() const
@@ -138,8 +139,11 @@ protected:
 	/** @return The color that we should use to draw this pin */
 	virtual FSlateColor GetPinColor() const;
 
+	/** @return The color that we should use to draw this pin's text */
+	virtual FSlateColor GetPinTextColor() const;
+
 	/** @return The tooltip to display for this pin */
-	FString GetTooltip() const;
+	FText GetTooltip() const;
 
 	TOptional<EMouseCursor::Type> GetPinCursor() const;
 
@@ -182,6 +186,9 @@ protected:
 	FVector2D CachedNodeOffset;
 
 	TSet< TWeakObjectPtr<UEdGraphPin> > HoverPinSet;
+
+	/** TRUE if the pin should use the Pin's color for the text */
+	bool bUsePinColorForText;
 
 	//@TODO: Want to cache these once for all SGraphPins, but still handle slate style updates
 	mutable const FSlateBrush* CachedImg_ArrayPin_ConnectedHovered;

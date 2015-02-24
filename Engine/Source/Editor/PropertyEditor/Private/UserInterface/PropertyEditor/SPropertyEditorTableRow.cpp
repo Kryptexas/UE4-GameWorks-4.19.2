@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SPropertyEditorTableRow.h"
@@ -34,7 +34,7 @@ void SPropertyEditorTableRow::Construct( const FArguments& InArgs, const TShared
 
 	PropertyPath = FPropertyNode::CreatePropertyPath( PropertyEditor->GetPropertyNode() );
 
-	this->SetToolTipText(TAttribute<FString>(PropertyEditor->GetToolTipText()));
+	this->SetToolTipText(PropertyEditor->GetToolTipText());
 
 	SMultiColumnTableRow< TSharedPtr<FPropertyNode*> >::Construct( FSuperRowType::FArguments(), InOwnerTable );
 }
@@ -193,15 +193,15 @@ const FSlateBrush* SPropertyEditorTableRow::OnGetFavoriteImage() const
 	return FEditorStyle::GetBrush(TEXT("PropertyWindow.Favorites_Disabled"));
 }
 
-void SPropertyEditorTableRow::OnEditConditionCheckChanged( ESlateCheckBoxState::Type CheckState )
+void SPropertyEditorTableRow::OnEditConditionCheckChanged( ECheckBoxState CheckState )
 {
-	PropertyEditor->SetEditConditionState( CheckState == ESlateCheckBoxState::Checked );
+	PropertyEditor->SetEditConditionState( CheckState == ECheckBoxState::Checked );
 }
 
-ESlateCheckBoxState::Type SPropertyEditorTableRow::OnGetEditConditionCheckState() const
+ECheckBoxState SPropertyEditorTableRow::OnGetEditConditionCheckState() const
 {
 	bool bEditConditionMet = PropertyEditor->IsEditConditionMet();
-	return bEditConditionMet ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bEditConditionMet ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 FReply SPropertyEditorTableRow::OnNameDoubleClicked()
@@ -289,7 +289,7 @@ TSharedRef<SWidget> SPropertyEditorTableRow::ConstructPropertyEditorWidget()
 		PropertyWidget = SNew( SPropertyEditor, PropertyEditorRef );
 	}
 
-	PropertyWidget->SetToolTipText( TAttribute<FString>(PropertyEditor->GetToolTipText()) );
+	PropertyWidget->SetToolTipText( PropertyEditor->GetToolTipText() );
 
 	return PropertyWidget.ToSharedRef();
 }

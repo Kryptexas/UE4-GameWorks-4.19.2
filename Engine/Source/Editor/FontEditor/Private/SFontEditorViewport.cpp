@@ -1,9 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "FontEditorModule.h"
 #include "MouseDeltaTracker.h"
 #include "SFontEditorViewport.h"
 #include "Runtime/Engine/Public/Slate/SceneViewport.h"
+#include "CanvasTypes.h"
+#include "Engine/Font.h"
+#include "Engine/Selection.h"
+#include "CanvasItem.h"
 
 #define LOCTEXT_NAMESPACE "FontEditor"
 

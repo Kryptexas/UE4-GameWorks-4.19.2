@@ -1,7 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "NavLinkStructCustomization.h"
+#include "AI/Navigation/NavLinkDefinition.h"
+#include "AI/Navigation/NavigationSystem.h"
 
 #define LOCTEXT_NAMESPACE "FNavLinkStructCustomization"
 
@@ -28,7 +30,7 @@ void FNavLinkStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> S
 	.MaxDesiredWidth(400.0f)
 	[
 		SNew(STextBlock)
-		.Text(Desc)
+		.Text(FText::FromString(Desc))
 		.Font(StructCustomizationUtils.GetRegularFont())
 	];
 }
@@ -52,8 +54,8 @@ void FNavLinkStructCustomization::CustomizeChildren( TSharedRef<class IPropertyH
 
 			if (AgentIdx >= 0 && AgentIdx < NumAgents)
 			{
-				FString PropName = LOCTEXT("SupportedAgent", "Supports Agent: ").ToString() + *DefNavSys->SupportedAgents[AgentIdx].Name.ToString();
-				StructBuilder.AddChildContent(TEXT("SupportedAgent"))
+				FText PropName = FText::Format(LOCTEXT("SupportedAgentFmt", "Supports Agent: {0}"), FText::FromName(DefNavSys->SupportedAgents[AgentIdx].Name));
+				StructBuilder.AddChildContent(PropName)
 					.NameContent()
 					[
 						SNew(STextBlock)

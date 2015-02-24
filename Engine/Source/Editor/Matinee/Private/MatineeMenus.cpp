@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MatineeModule.h"
 
@@ -52,6 +52,13 @@
 #include "NotificationManager.h"
 #include "SNumericEntryBox.h"
 #include "STextComboPopup.h"
+#include "Camera/CameraActor.h"
+#include "Engine/Light.h"
+#include "Engine/Selection.h"
+#include "Engine/InterpCurveEdSetup.h"
+#include "Engine/Selection.h"
+#include "Sound/SoundBase.h"
+#include "Camera/CameraAnim.h"
 
 
 #define LOCTEXT_NAMESPACE "MatineeMenus"
@@ -1732,6 +1739,7 @@ void FMatinee::OnContextGroupRenameCommitted(const FText& InText, ETextCommit::T
 		UInterpTrackDirector* DirTrack = DirGroup->GetDirectorTrack();
 		if(DirTrack)
 		{
+			DirTrack->Modify();
 			for(int32 i=0; i<DirTrack->CutTrack.Num(); i++)
 			{
 				FDirectorTrackCut& Cut = DirTrack->CutTrack[i];
@@ -2474,7 +2482,7 @@ void FMatinee::OnSetMoveKeyLookupGroup()
 
 		TSharedRef<STextComboPopup> TextEntryPopup = 
 			SNew(STextComboPopup)
-			.Label(NSLOCTEXT("Matinee.Popups", "SelectGroup", "Select Group").ToString())
+			.Label(NSLOCTEXT("Matinee.Popups", "SelectGroup", "Select Group"))
 			.TextOptions(GroupNames)
 			.OnTextChosen(this, &FMatinee::OnSetMoveKeyLookupGroupTextChosen, SelKey.KeyIndex, MoveTrack, MoveTrackAxis)
 			;
@@ -2871,7 +2879,7 @@ void FMatinee::OnContextSaveAsCameraAnimation()
 
 	TSharedRef<STextEntryPopup> TextEntry = 
 		SNew(STextEntryPopup)
-		.Label(NSLOCTEXT("Matinee.Popups", "ExportCameraAnim_Header", "Export To CameraAnim").ToString())
+		.Label(NSLOCTEXT("Matinee.Popups", "ExportCameraAnim_Header", "Export To CameraAnim"))
 		.DefaultText(  FText::FromString(PackageName) )
 		.OnTextCommitted(this, &FMatinee::ExportCameraAnimationNameCommitted)
 		.ClearKeyboardFocusOnCommit( false );
@@ -4380,7 +4388,7 @@ private:
 
 	void SetIntervalStart(float InStart) { IntervalStart = InStart; }
 	void SetIntervalEnd(float InEnd) { IntervalEnd = InEnd; }
-	void ToggleFullInterval(ESlateCheckBoxState::Type CheckState) { bFullInterval = (CheckState == ESlateCheckBoxState::Checked); }
+	void ToggleFullInterval(ECheckBoxState CheckState) { bFullInterval = (CheckState == ECheckBoxState::Checked); }
 
 	bool  UseFullInterval() { return bFullInterval; }
 	TOptional<float> GetIntervalStart() const {return IntervalStart; }

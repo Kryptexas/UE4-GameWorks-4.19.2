@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -44,6 +44,16 @@ public:
 	 * Gets the previous frames widget geometry.
 	 */
 	virtual bool GetWidgetGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const = 0;
+
+	/**
+	 * Gets the previous frames widget geometry.
+	 */
+	virtual bool GetWidgetGeometry(const UWidget* PreviewWidget, FGeometry& Geometry) const = 0;
+
+	/**
+	 * Takes geometry and adds the inverse of the window transform to get the geometry in the space of the window.
+	 */
+	virtual FGeometry MakeGeometryWindowLocal(const FGeometry& WidgetGeometry) const = 0;
 
 	/**
 	 * Gets the previous frames widget geometry of the parent of the provided widget.

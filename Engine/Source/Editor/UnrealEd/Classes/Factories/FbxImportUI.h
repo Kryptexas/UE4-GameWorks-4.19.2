@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  * Copyright 2010 Autodesk, Inc. All Rights Reserved.
@@ -108,8 +108,8 @@ class UFbxImportUI : public UObject
 	class UFbxAnimSequenceImportData* AnimSequenceImportData;
 
 	/** Type of asset to import from the FBX file */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Animation, meta=(editcondition="bImportAnimations", ImportType = "Animation"))
-	bool	bPreserveLocalTransform;
+	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Animation, meta=(editcondition="bImportAnimations", ImportType = "SkeletalMesh|Animation"))
+	bool bPreserveLocalTransform;
 
 	/** Import data used when importing textures */
 	UPROPERTY(EditAnywhere, Instanced, Category=Material)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintEditorPrivatePCH.h"
@@ -23,7 +23,7 @@
 #include "Engine/LevelScriptBlueprint.h"
 #include "Merge.h"
 #include "DesktopPlatformModule.h"
-#include "SThrobber.h"
+#include "SBlueprintRevisionMenu.h"
 
 #define LOCTEXT_NAMESPACE "KismetToolbar"
 
@@ -70,12 +70,7 @@ void FKismet2Menu::FillFileMenuBlueprintSection( FMenuBuilder& MenuBuilder, FBlu
 			LOCTEXT("BlueprintEditorDiffToolTip", "Diff against previous revisions"),
 			FOnGetContent::CreateStatic< FBlueprintEditor& >( &FKismet2Menu::MakeDiffMenu, Kismet),
 			FSlateIcon());
-
-		UBlueprint* BlueprintObj = Kismet.GetBlueprintObj();
-		if (BlueprintObj && IMerge::Get().PendingMerge( *BlueprintObj ) )
-		{
-			MenuBuilder.AddMenuEntry(FBlueprintEditorCommands::Get().BeginBlueprintMerge);
-		}
+		MenuBuilder.AddMenuEntry(FBlueprintEditorCommands::Get().BeginBlueprintMerge);
 	}
 	MenuBuilder.EndSection();
 
@@ -226,299 +221,83 @@ void FKismet2Menu::SetupBlueprintEditorMenu( TSharedPtr< FExtender > Extender, F
 	}
 }
 
-namespace EBlueprintDiffMenuState
+/** Delegate called to diff a specific revision with the current */
+static void OnDiffRevisionPicked(FRevisionInfo const& RevisionInfo, TWeakObjectPtr<UBlueprint> BlueprintObj)
 {
-	enum Type
+	if (BlueprintObj.IsValid())
 	{
-		NotQueried,
-		QueryInProgress,
-		Queried,
-	};
-}
+		bool const bIsLevelScriptBlueprint = FBlueprintEditorUtils::IsLevelScriptBlueprint(BlueprintObj.Get());
+		FString const Filename = SourceControlHelpers::PackageFilename(bIsLevelScriptBlueprint ? BlueprintObj.Get()->GetOuter()->GetPathName() : BlueprintObj.Get()->GetPathName());
 
-/**
- * Helper widget for managing & displaying source control history retrieval status
- */
-class SBlueprintDiffMenu : public SCompoundWidget
-{
-	SLATE_BEGIN_ARGS( SBlueprintDiffMenu ){}
+		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 
-	SLATE_ARGUMENT(UBlueprint*, BlueprintObj)
-
-	SLATE_END_ARGS()
-
-	~SBlueprintDiffMenu()
-	{
-		// cancel any operation if this widget is destroyed while in progress
-		if(State == EBlueprintDiffMenuState::QueryInProgress)
+		// Get the SCC state
+		FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Filename, EStateCacheUsage::Use);
+		if (SourceControlState.IsValid())
 		{
-			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-			if(UpdateStatusOperation.IsValid() && SourceControlProvider.CanCancelOperation(UpdateStatusOperation.ToSharedRef()))
+			for (int32 HistoryIndex = 0; HistoryIndex < SourceControlState->GetHistorySize(); HistoryIndex++)
 			{
-				SourceControlProvider.CancelOperation(UpdateStatusOperation.ToSharedRef());
-			}
-		}
-	}
-
-	void Construct(const FArguments& InArgs)
-	{
-		State = EBlueprintDiffMenuState::NotQueried;
-		BlueprintObj = InArgs._BlueprintObj;
-		bIsLevelScriptBlueprint = false;
-
-		ChildSlot	
-		[
-			SAssignNew(VerticalBox, SVerticalBox)
-			+SVerticalBox::Slot()
-			[
-				SNew(SBorder)
-				.Visibility(this, &SBlueprintDiffMenu::GetInProgressVisibility)
-				.BorderImage(FEditorStyle::GetBrush("Menu.Background"))
-				.Content()
-				[
-					SNew(SHorizontalBox)
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					[
-						SNew(SThrobber)
-					]
-					+SHorizontalBox::Slot()
-					.AutoWidth()
-					.VAlign(VAlign_Center)
-					.Padding(2.0f, 0.0f, 4.0f, 0.0f)
-					[
-						SNew(STextBlock)
-						.Text(LOCTEXT("DiffMenuOperationInProgress", "Updating history..."))
-					]
-					+SHorizontalBox::Slot()
-					.FillWidth(1.0f)
-					.HAlign(HAlign_Right)
-					.VAlign(VAlign_Center)
-					[
-						SNew(SButton)
-						.Visibility(this, &SBlueprintDiffMenu::GetCancelButtonVisibility)
-						.OnClicked(this, &SBlueprintDiffMenu::OnCancelButtonClicked)
-						.VAlign(VAlign_Center)
-						.HAlign(HAlign_Center)
-						.Content()
-						[
-							SNew(STextBlock)
-							.Text(LOCTEXT("DiffMenuCancelButton", "Cancel"))
-						]
-					]
-				]
-			]
-		];
-
-		if(BlueprintObj.IsValid())
-		{
-			bIsLevelScriptBlueprint = FBlueprintEditorUtils::IsLevelScriptBlueprint(BlueprintObj.Get());
-			Filename = SourceControlHelpers::PackageFilename(bIsLevelScriptBlueprint ? BlueprintObj.Get()->GetOuter()->GetPathName() : BlueprintObj.Get()->GetPathName());
-
-			// make sure the history info is up to date
-			UpdateStatusOperation = ISourceControlOperation::Create<FUpdateStatus>();
-			UpdateStatusOperation->SetUpdateHistory(true);
-			ISourceControlModule::Get().GetProvider().Execute(UpdateStatusOperation.ToSharedRef(), Filename, EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateSP(this, &SBlueprintDiffMenu::HandleSourceControlOperationComplete));
-
-			State = EBlueprintDiffMenuState::QueryInProgress;
-		}
-	}
-
-	/** Callback for when the source control operation is complete */
-	void HandleSourceControlOperationComplete( const FSourceControlOperationRef& InOperation, ECommandResult::Type InResult )
-	{
-		check(UpdateStatusOperation == InOperation);
-
-		if(InResult == ECommandResult::Succeeded)
-		{
-			// get the cached state
-			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-			FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Filename, EStateCacheUsage::Use);
-
-			//Add pop-out menu for each revision
-			FMenuBuilder MenuBuilder(true, NULL);
-
-			MenuBuilder.BeginSection("AddDiffRevision", LOCTEXT("Revisions", "Revisions") );
-
-			if (SourceControlState.IsValid() && SourceControlState->GetHistorySize() > 0)
-			{
-				// Figure out the highest revision # (so we can label it "Depot")
-				int32 LatestRevision = 0;
-				for(int32 HistoryIndex = 0; HistoryIndex < SourceControlState->GetHistorySize(); HistoryIndex++)
+				TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState->GetHistoryItem(HistoryIndex);
+				check(Revision.IsValid());
+				if (Revision->GetRevision() == RevisionInfo.Revision)
 				{
-					TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState->GetHistoryItem(HistoryIndex);
-					if(Revision.IsValid() && Revision->GetRevisionNumber() > LatestRevision)
+					// Get the revision of this package from source control
+					FString PreviousTempPkgName;
+					if (Revision->Get(PreviousTempPkgName))
 					{
-						LatestRevision = Revision->GetRevisionNumber();
-					}
-				}
+						// Forcibly disable compile on load in case we are loading old blueprints that might try to update/compile
+						TGuardValue<bool> DisableCompileOnLoad(GForceDisableBlueprintCompileOnLoad, true);
 
-				for(int32 HistoryIndex = 0; HistoryIndex < SourceControlState->GetHistorySize(); HistoryIndex++)
-				{
-					TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState->GetHistoryItem(HistoryIndex);
-					if(Revision.IsValid())
-					{
-						FInternationalization& I18N = FInternationalization::Get();
+						// Try and load that package
+						UPackage* PreviousTempPkg = LoadPackage(NULL, *PreviousTempPkgName, LOAD_None);
 
-						FText Label = FText::Format( LOCTEXT("RevisionNumber", "Revision {0}"), FText::AsNumber( Revision->GetRevisionNumber(), NULL, I18N.GetInvariantCulture() ) );
-
-						FFormatNamedArguments Args;
-						Args.Add( TEXT("CheckInNumber"), FText::AsNumber( Revision->GetCheckInIdentifier(), NULL, I18N.GetInvariantCulture() ) );
-						Args.Add( TEXT("UserName"), FText::FromString( Revision->GetUserName() ) );
-						Args.Add( TEXT("DateTime"), FText::AsDate( Revision->GetDate() ) );
-						Args.Add( TEXT("ChanglistDescription"), FText::FromString( Revision->GetDescription() ) );
-						const FText ToolTip = FText::Format( LOCTEXT("RevisionToolTip", "CL #{CheckInNumber} {UserName} \n{DateTime} \n{ChanglistDescription}"), Args );
-						
-						if(LatestRevision == Revision->GetRevisionNumber())
+						if (PreviousTempPkg != NULL)
 						{
-							Label = LOCTEXT("Depo", "Depot");
-						}
+							UObject* PreviousAsset = NULL;
 
-						MenuBuilder.AddMenuEntry(TAttribute<FText>(Label), ToolTip, FSlateIcon(), 
-									FUIAction(FExecuteAction::CreateSP(this, &SBlueprintDiffMenu::DiffAgainstRevision, Revision->GetRevisionNumber())));
-					}
-				}
-			}
-			else
-			{
-				// Show 'empty' item in toolbar
-				MenuBuilder.AddMenuEntry( LOCTEXT("NoRevisonHistory", "No revisions found"), 
-					FText(), FSlateIcon(), FUIAction() );
-			}
-
-			MenuBuilder.EndSection();
-
-			VerticalBox->AddSlot()
-			[
-				MenuBuilder.MakeWidget()
-			];
-		}
-
-		UpdateStatusOperation.Reset();
-		State = EBlueprintDiffMenuState::Queried;
-	}
-
-	/** Delegate called to diff a specific revision with the current */
-	void DiffAgainstRevision( int32 InOldRevision )
-	{
-		if(BlueprintObj.IsValid())
-		{
-			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-
-			// Get the SCC state
-			FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(Filename, EStateCacheUsage::Use);
-			if(SourceControlState.IsValid())
-			{
-				for ( int32 HistoryIndex = 0; HistoryIndex < SourceControlState->GetHistorySize(); HistoryIndex++ )
-				{
-					TSharedPtr<ISourceControlRevision, ESPMode::ThreadSafe> Revision = SourceControlState->GetHistoryItem(HistoryIndex);
-					check(Revision.IsValid());
-					if(Revision->GetRevisionNumber() == InOldRevision)
-					{
-						// Get the revision of this package from source control
-						FString PreviousTempPkgName;
-						if(Revision->Get(PreviousTempPkgName))
-						{
-							// Forcibly disable compile on load in case we are loading old blueprints that might try to update/compile
-							TGuardValue<bool> DisableCompileOnLoad(GForceDisableBlueprintCompileOnLoad, true);
-
-							// Try and load that package
-							UPackage* PreviousTempPkg = LoadPackage(NULL, *PreviousTempPkgName, LOAD_None);
-
-							if(PreviousTempPkg != NULL)
+							// If its a levelscript blueprint, find the previous levelscript blueprint in the map
+							if (bIsLevelScriptBlueprint)
 							{
-								UObject* PreviousAsset = NULL;
+								TArray<UObject *> ObjectsInOuter;
+								GetObjectsWithOuter(PreviousTempPkg, ObjectsInOuter);
 
-								// If its a levelscript blueprint, find the previous levelscript blueprint in the map
-								if (bIsLevelScriptBlueprint)
+								// Look for the level script blueprint for this package
+								for (int32 Index = 0; Index < ObjectsInOuter.Num(); Index++)
 								{
-									TArray<UObject *> ObjectsInOuter;
-									GetObjectsWithOuter(PreviousTempPkg, ObjectsInOuter);
-						
-									// Look for the level script blueprint for this package
-									for( int32 Index = 0; Index < ObjectsInOuter.Num(); Index++ )
+									UObject* Obj = ObjectsInOuter[Index];
+									if (ULevelScriptBlueprint* ObjAsBlueprint = Cast<ULevelScriptBlueprint>(Obj))
 									{
-										UObject* Obj = ObjectsInOuter[Index];
-										if (ULevelScriptBlueprint* ObjAsBlueprint = Cast<ULevelScriptBlueprint>(Obj))
-										{
-											PreviousAsset = ObjAsBlueprint;
-											break;
-										}
+										PreviousAsset = ObjAsBlueprint;
+										break;
 									}
 								}
-								// otherwise its a normal Blueprint
-								else
-								{
-									FString PreviousAssetName = FPaths::GetBaseFilename(Filename, true);
-									PreviousAsset = FindObject<UObject>(PreviousTempPkg, *PreviousAssetName);
-								}
-
-								if(PreviousAsset != NULL)
-								{
-									FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
-									FRevisionInfo OldRevision = {Revision->GetRevisionNumber(), Revision->GetCheckInIdentifier(), Revision->GetDate()};
-									FRevisionInfo CurrentRevision = {-1, Revision->GetCheckInIdentifier(), Revision->GetDate()};
-									AssetToolsModule.Get().DiffAssets(PreviousAsset, BlueprintObj.Get(), OldRevision, CurrentRevision );
-								}
 							}
+							// otherwise its a normal Blueprint
 							else
 							{
-								FMessageDialog::Open( EAppMsgType::Ok, NSLOCTEXT("SourceControl.HistoryWindow", "UnableToLoadAssets", "Unable to load assets to diff. Content may no longer be supported?"));
+								FString PreviousAssetName = FPaths::GetBaseFilename(Filename, true);
+								PreviousAsset = FindObject<UObject>(PreviousTempPkg, *PreviousAssetName);
+							}
+
+							if (PreviousAsset != NULL)
+							{
+								FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+								FRevisionInfo OldRevision = { Revision->GetRevision(), Revision->GetCheckInIdentifier(), Revision->GetDate() };
+								FRevisionInfo CurrentRevision = { TEXT(""), Revision->GetCheckInIdentifier(), Revision->GetDate() };
+								AssetToolsModule.Get().DiffAssets(PreviousAsset, BlueprintObj.Get(), OldRevision, CurrentRevision);
 							}
 						}
-						break;
+						else
+						{
+							FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("SourceControl.HistoryWindow", "UnableToLoadAssets", "Unable to load assets to diff. Content may no longer be supported?"));
+						}
 					}
+					break;
 				}
 			}
 		}
 	}
-
-	/** Delegate used to cancel a source control operation in progress */
-	FReply OnCancelButtonClicked() const
-	{
-		if(UpdateStatusOperation.IsValid())
-		{
-			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-			SourceControlProvider.CancelOperation(UpdateStatusOperation.ToSharedRef());
-		}
-
-		return FReply::Handled();
-	}
-
-	/** Delegate used to determine the visibility of the cancel button */
-	EVisibility GetCancelButtonVisibility() const
-	{
-		ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
-		return UpdateStatusOperation.IsValid() && SourceControlProvider.CanCancelOperation(UpdateStatusOperation.ToSharedRef()) ? EVisibility::Visible : EVisibility::Collapsed;
-	}
-
-	/** Delegate used to determine the visibility 'in progress' widgets */
-	EVisibility GetInProgressVisibility() const
-	{
-		return State == EBlueprintDiffMenuState::QueryInProgress ? EVisibility::Visible : EVisibility::Collapsed;
-	}
-
-private:
-
-	/** The source control operation in progress */
-	TSharedPtr<FUpdateStatus, ESPMode::ThreadSafe> UpdateStatusOperation;
-
-	/** The box we are using to display our menu */
-	TSharedPtr<SVerticalBox> VerticalBox;
-
-	/** The state of the SCC query */
-	EBlueprintDiffMenuState::Type State;
-
-	/** The Blueprint we are interested in */
-	TWeakObjectPtr<UBlueprint> BlueprintObj;
-
-	/** The name of the file we want to diff */
-	FString Filename;
-
-	/** We need to handle level script blueprints differently, so we cache this here */
-	bool bIsLevelScriptBlueprint;
-};
+}
 
 TSharedRef<SWidget> FKismet2Menu::MakeDiffMenu(FBlueprintEditor& Kismet)
 {
@@ -527,8 +306,10 @@ TSharedRef<SWidget> FKismet2Menu::MakeDiffMenu(FBlueprintEditor& Kismet)
 		UBlueprint* BlueprintObj = Kismet.GetBlueprintObj();
 		if(BlueprintObj)
 		{
+			TWeakObjectPtr<UBlueprint> BlueprintPtr = BlueprintObj;
 			// Add our async SCC task widget
-			return SNew(SBlueprintDiffMenu).BlueprintObj(BlueprintObj);
+			return SNew(SBlueprintRevisionMenu, BlueprintObj)
+				.OnRevisionSelected_Static(&OnDiffRevisionPicked, BlueprintPtr);
 		}
 		else
 		{
@@ -560,9 +341,11 @@ void FFullBlueprintEditorCommands::RegisterCommands()
 	UI_COMMAND(SaveOnCompile_Always, "Always", "Sets the save-on-compile option to 'Always', meaning that your Blueprints will be saved whenever they ar compiled (even if there were errors)", EUserInterfaceActionType::RadioButton, FInputGesture());
 
 	UI_COMMAND(SwitchToScriptingMode, "Graph", "Switches to Graph Editing Mode", EUserInterfaceActionType::ToggleButton, FInputGesture());
-	UI_COMMAND(SwitchToBlueprintDefaultsMode, "Defaults", "Switches to Blueprint Defaults Mode", EUserInterfaceActionType::ToggleButton, FInputGesture());
+	UI_COMMAND(SwitchToBlueprintDefaultsMode, "Defaults", "Switches to Class Defaults Mode", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(SwitchToComponentsMode, "Components", "Switches to Components Mode", EUserInterfaceActionType::ToggleButton, FInputGesture());
-	UI_COMMAND(EditGlobalOptions, "Blueprint Props", "Edit Blueprint Options", EUserInterfaceActionType::Button, FInputGesture());
+
+	UI_COMMAND(EditGlobalOptions, "Class Settings", "Edit Class Settings (Previously known as Blueprint Props)", EUserInterfaceActionType::ToggleButton, FInputGesture());
+	UI_COMMAND(EditClassDefaults, "Class Defaults", "Edit the initial values of your class.", EUserInterfaceActionType::ToggleButton, FInputGesture());
 
 	UI_COMMAND(JumpToErrorNode, "Jump to Error Node", "When enabled, then the Blueprint will snap focus to nodes producing an error during compilation", EUserInterfaceActionType::ToggleButton, FInputGesture());
 }
@@ -591,10 +374,10 @@ static TSharedRef<SWidget> BlueprintEditorToolbarImpl::GenerateCompileOptionsWid
 
 	MenuBuilder.AddMenuEntry(Commands.JumpToErrorNode);
 
-	MenuBuilder.AddSubMenu(
-		LOCTEXT("DevCompileSubMenu", "Developer"),
-		LOCTEXT("DevCompileSubMenu_ToolTip", "Advanced settings that aid in devlopment/debugging of the Blueprint system as a whole."),
-		FNewMenuDelegate::CreateStatic(&BlueprintEditorToolbarImpl::MakeCompileDeveloperSubMenu));
+// 	MenuBuilder.AddSubMenu(
+// 		LOCTEXT("DevCompileSubMenu", "Developer"),
+// 		LOCTEXT("DevCompileSubMenu_ToolTip", "Advanced settings that aid in devlopment/debugging of the Blueprint system as a whole."),
+// 		FNewMenuDelegate::CreateStatic(&BlueprintEditorToolbarImpl::MakeCompileDeveloperSubMenu));
 
 	return MenuBuilder.MakeWidget();
 }
@@ -619,13 +402,16 @@ static void BlueprintEditorToolbarImpl::MakeCompileDeveloperSubMenu(FMenuBuilder
 
 void FBlueprintEditorToolbar::AddBlueprintEditorModesToolbar(TSharedPtr<FExtender> Extender)
 {
-	TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = BlueprintEditor.Pin();
+	if ( !GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
+	{
+		TSharedPtr<FBlueprintEditor> BlueprintEditorPtr = BlueprintEditor.Pin();
 
-	Extender->AddToolBarExtension(
-		"Asset",
-		EExtensionHook::After,
-		BlueprintEditorPtr->GetToolkitCommands(),
-		FToolBarExtensionDelegate::CreateSP( this, &FBlueprintEditorToolbar::FillBlueprintEditorModesToolbar ) );
+		Extender->AddToolBarExtension(
+			"Asset",
+			EExtensionHook::After,
+			BlueprintEditorPtr->GetToolkitCommands(),
+			FToolBarExtensionDelegate::CreateSP(this, &FBlueprintEditorToolbar::FillBlueprintEditorModesToolbar));
+	}
 }
 
 void FBlueprintEditorToolbar::AddBlueprintGlobalOptionsToolbar(TSharedPtr<FExtender> Extender)
@@ -721,6 +507,11 @@ void FBlueprintEditorToolbar::FillBlueprintGlobalOptionsToolbar(FToolBarBuilder&
 	if(BlueprintObj != NULL)
 	{
 		ToolbarBuilder.AddToolBarButton(Commands.EditGlobalOptions);
+
+		if ( GetDefault<UEditorExperimentalSettings>()->bUnifiedBlueprintEditor )
+		{
+			ToolbarBuilder.AddToolBarButton(Commands.EditClassDefaults);
+		}
 	}
 	
 	ToolbarBuilder.EndSection();
@@ -895,7 +686,7 @@ TArray< TSharedPtr< SWidget> > FBlueprintEditorToolbar::GenerateToolbarWidgets(c
 			.OnSetActiveMode(ActiveModeSetter)
 			.CanBeSelected(BlueprintObj ? FBlueprintEditorUtils::DoesSupportDefaults(BlueprintObj) : false)
 			.ToolTip(IDocumentation::Get()->CreateToolTip(
-				LOCTEXT("BlueprintDefaultsModeButtonTooltip", "Switch to Blueprint Defaults Mode"),
+				LOCTEXT("BlueprintDefaultsModeButtonTooltip", "Switch to Class Defaults Mode"),
 				NULL,
 				TEXT("Shared/Editors/BlueprintEditor"),
 				TEXT("DefaultsMode")))

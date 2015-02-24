@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "WindowsApplication.h"
@@ -993,6 +993,18 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 				}
 			}
 			break;
+
+		case WM_GETMINMAXINFO:
+			{
+				MINMAXINFO* MinMaxInfo = (MINMAXINFO*)lParam;
+				FWindowSizeLimits SizeLimits = MessageHandler->GetSizeLimitsForWindow(CurrentNativeEventWindow);
+				MinMaxInfo->ptMinTrackSize.x = FMath::RoundToInt( SizeLimits.GetMinWidth().Get(MinMaxInfo->ptMinTrackSize.x) );
+				MinMaxInfo->ptMinTrackSize.y = FMath::RoundToInt( SizeLimits.GetMinHeight().Get(MinMaxInfo->ptMinTrackSize.y) );
+				MinMaxInfo->ptMaxTrackSize.x = FMath::RoundToInt( SizeLimits.GetMaxWidth().Get(MinMaxInfo->ptMaxTrackSize.x) );
+				MinMaxInfo->ptMaxTrackSize.y = FMath::RoundToInt( SizeLimits.GetMaxHeight().Get(MinMaxInfo->ptMaxTrackSize.y) );
+				return 0;
+			}
+			break;
 			
 		case WM_NCLBUTTONDOWN:
 		case WM_NCRBUTTONDOWN:
@@ -1728,7 +1740,7 @@ void FWindowsApplication::PollGameDeviceState( const float TimeDelta )
 	}
 }
 
-void FWindowsApplication::SetChannelValue (int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value)
+void FWindowsApplication::SetForceFeedbackChannelValue(int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value)
 {
 	// send vibration to externally-implemented devices
 	for( auto DeviceIt = ExternalInputDevices.CreateIterator(); DeviceIt; ++DeviceIt )
@@ -1737,7 +1749,7 @@ void FWindowsApplication::SetChannelValue (int32 ControllerId, FForceFeedbackCha
 	}
 }
 
-void FWindowsApplication::SetChannelValues (int32 ControllerId, const FForceFeedbackValues &Values)
+void FWindowsApplication::SetForceFeedbackChannelValues(int32 ControllerId, const FForceFeedbackValues &Values)
 {
 	const FForceFeedbackValues* InternalValues = &Values;
  

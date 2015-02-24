@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "ClassIconFinder.h"
@@ -37,7 +37,7 @@ public:
 					.AutoWidth()
 					[
 						SNew(STextBlock) 
-						.Text( ClassesToDrop[0]->GetName() )
+						.Text( FText::FromString(ClassesToDrop[0]->GetName()) )
 					]
 				];
 		}
@@ -51,7 +51,7 @@ public:
 				.AutoWidth()
 				[
 					SNew(STextBlock) 
-					.Text( ClassesToDrop[0]->GetName() )
+					.Text( FText::FromString(ClassesToDrop[0]->GetName()) )
 				]
 			];
 	}
@@ -102,7 +102,7 @@ public:
 				.AutoWidth()
 				[
 					SNew(STextBlock) 
-					.Text( (*AssetsToDrop.Get())[0].AssetName )
+					.Text( FText::FromString((*AssetsToDrop.Get())[0].AssetName) )
 				]
 			];
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AnimNotifyState.h"
@@ -14,6 +14,9 @@ class UAnimNotifyState_Trail : public UAnimNotifyState
 	/** The particle system to use for this trail. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Trail)
 	UParticleSystem* PSTemplate;
+
+	UFUNCTION(BlueprintImplementableEvent)
+	virtual UParticleSystem* OverridePSTemplate(class USkeletalMeshComponent * MeshComp, class UAnimSequenceBase * Animation) const;
 
 	/** Name of the first socket defining this trail. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Trail)

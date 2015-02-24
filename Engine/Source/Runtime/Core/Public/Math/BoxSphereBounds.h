@@ -1,8 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	BoxSphereBounds.h: Declares the FBoxSphereBounds structure.
-=============================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -23,10 +19,8 @@ struct FBoxSphereBounds
 
 public:
 
-	/**
-	 * Default constructor.
-	 */
-	FBoxSphereBounds( ) { }
+	/** Default constructor. */
+	FBoxSphereBounds() { }
 
 	/**
 	 * Creates and initializes a new instance.
@@ -136,11 +130,36 @@ public:
 	}
 
 	/**
+	 * Test whether the spheres from two BoxSphereBounds intersect/overlap.
+	 * 
+	 * @param  A First BoxSphereBounds to test.
+	 * @param  B Second BoxSphereBounds to test.
+	 * @param  Tolerance Error tolerance added to test distance.
+	 * @return true if spheres intersect, false otherwise.
+	 */
+	FORCEINLINE static bool SpheresIntersect(const FBoxSphereBounds& A, const FBoxSphereBounds& B, float Tolerance = KINDA_SMALL_NUMBER)
+	{
+		return (A.Origin - B.Origin).SizeSquared() <= FMath::Square(FMath::Max(0.f, A.SphereRadius + B.SphereRadius + Tolerance));
+	}
+
+	/**
+	 * Test whether the boxes from two BoxSphereBounds intersect/overlap.
+	 * 
+	 * @param  A First BoxSphereBounds to test.
+	 * @param  B Second BoxSphereBounds to test.
+	 * @return true if boxes intersect, false otherwise.
+	 */
+	FORCEINLINE static bool BoxesIntersect(const FBoxSphereBounds& A, const FBoxSphereBounds& B)
+	{
+		return A.GetBox().Intersect(B.GetBox());
+	}
+
+	/**
 	 * Gets the bounding box.
 	 *
 	 * @return The bounding box.
 	 */
-	FBox GetBox( ) const
+	FORCEINLINE FBox GetBox() const
 	{
 		return FBox(Origin - BoxExtent,Origin + BoxExtent);
 	}
@@ -166,7 +185,7 @@ public:
 	 *
 	 * @return The bounding sphere.
 	 */
-	FSphere GetSphere( ) const
+	FORCEINLINE FSphere GetSphere() const
 	{
 		return FSphere(Origin,SphereRadius);
 	}
@@ -203,7 +222,7 @@ public:
 	 *
 	 * @return Text describing the bounding box.
 	 */
-	FString ToString( ) const;
+	FString ToString() const;
 
 	/**
 	 * Constructs a bounding volume containing both A and B.
@@ -229,14 +248,14 @@ public:
 	}
 
 #if ENABLE_NAN_DIAGNOSTIC
-	FORCEINLINE void DiagnosticCheckNaN( ) const
+	FORCEINLINE void DiagnosticCheckNaN() const
 	{
 		checkf(!Origin.ContainsNaN(), TEXT("Origin contains NaN: %s"), *Origin.ToString());
 		checkf(!BoxExtent.ContainsNaN(), TEXT("BoxExtent contains NaN: %s"), *BoxExtent.ToString());
 		checkf(!FMath::IsNaN(SphereRadius) && FMath::IsFinite(SphereRadius), TEXT("SphereRadius contains NaN: %f"), SphereRadius);
 	}
 #else
-	FORCEINLINE void DiagnosticCheckNaN( ) const {}
+	FORCEINLINE void DiagnosticCheckNaN() const {}
 #endif
 
 public:
@@ -301,7 +320,7 @@ FORCEINLINE FBoxSphereBounds FBoxSphereBounds::operator+( const FBoxSphereBounds
 }
 
 
-FORCEINLINE FString FBoxSphereBounds::ToString( ) const
+FORCEINLINE FString FBoxSphereBounds::ToString() const
 {
 	return FString::Printf(TEXT("Origin=%s, BoxExtent=(%s), SphereRadius=(%f)"), *Origin.ToString(), *BoxExtent.ToString(), SphereRadius);
 }

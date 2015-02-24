@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	BuildPatchManifest.h: Declares the manifest classes.
@@ -183,6 +183,12 @@ struct FFileManifestData
 	UPROPERTY()
 	FString SymlinkTarget;
 
+	UPROPERTY()
+	bool bIsReadOnly;
+
+	UPROPERTY()
+	bool bIsCompressed;
+
 	FFileManifestData();
 
 	void Init();
@@ -339,6 +345,11 @@ public:
 	FBuildPatchAppManifest(const uint32& InAppID, const FString& AppName);
 
 	/**
+	 * Copy constructor
+	 */
+	FBuildPatchAppManifest(const FBuildPatchAppManifest& Other);
+
+	/**
 	 * Default destructor
 	 */
 	~FBuildPatchAppManifest();
@@ -357,11 +368,12 @@ public:
 	virtual void GetRemovableFiles(IBuildManifestRef OldManifest, TArray< FString >& RemovableFiles) const override;
 	virtual void GetRemovableFiles(const TCHAR* InstallPath, TArray< FString >& RemovableFiles) const override;
 	virtual bool NeedsResaving() const override;
-	virtual IBuildManifestRef Duplicate() const override;
+	virtual void CopyCustomFields(IBuildManifestRef Other, bool bClobber) override;
 	virtual const IManifestFieldPtr GetCustomField(const FString& FieldName) const override;
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const FString& Value) override;
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const double& Value) override;
 	virtual const IManifestFieldPtr SetCustomField(const FString& FieldName, const int64& Value) override;
+	virtual IBuildManifestRef Duplicate() const override;
 	// END IBuildManifest Interface
 
 	/**

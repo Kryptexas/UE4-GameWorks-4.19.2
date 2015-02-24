@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 // CrossCompilerTool.cpp: Driver for testing compilation of an individual shader
 
@@ -6,6 +6,9 @@
 #include "hlslcc.h"
 #include "MetalBackend.h"
 #include "GlslBackend.h"
+#include "HlslLexer.h"
+#include "HlslParser.h"
+#include "ShaderPreprocessor.h"
 
 #include "RequiredProgramMainCPPInclude.h"
 
@@ -15,12 +18,21 @@ IMPLEMENT_APPLICATION(CrossCompilerTool, "CrossCompilerTool");
 
 namespace CCT
 {
+	static bool Preprocess(const FString& InputFile, FString& Output)
+	{
+		FShaderCompilerInput CompilerInput;
+		CompilerInput.SourceFilename = InputFile;
+		FShaderCompilerOutput CompilerOutput;
+		TArray<FShaderCompilerError> Errors;
+		return PreprocessShaderFile(Output, Errors, InputFile);
+	}
+
 	static int32 Run(const FRunInfo& RunInfo)
 	{
 		ILanguageSpec* Language = nullptr;
 		FCodeBackend* Backend = nullptr;
 
-		int32 Flags = 0;
+		uint32 Flags = 0;
 
 		Flags |= RunInfo.bRunCPP ? 0 : HLSLCC_NoPreprocess;
 
@@ -47,15 +59,87 @@ namespace CCT
 		}
 
 		FString HLSLShaderSource;
-		if (!FFileHelper::LoadFileToString(HLSLShaderSource, *RunInfo.InputFile))
+		if (RunInfo.bUseNew)
 		{
-			UE_LOG(LogCrossCompilerTool, Error, TEXT("Couldn't load Input file!"));
-			return 1;
+			if (RunInfo.bList)
+			{
+				if (!FFileHelper::LoadFileToString(HLSLShaderSource, *RunInfo.InputFile))
+				{
+					UE_LOG(LogCrossCompilerTool, Error, TEXT("Couldn't load Input file '%s'!"), *RunInfo.InputFile);
+					return 1;
+				}
+
+				TArray<FString> List;
+
+				if (!FFileHelper::LoadANSITextFileToStrings(*RunInfo.InputFile, &IFileManager::Get(), List))
+				{
+					return 1;
+				}
+
+				int32 Count = 0;
+				for (auto& File : List)
+				{
+					FString HLSLShader;
+					if (!FFileHelper::LoadFileToString(HLSLShader, *File))
+					{
+						UE_LOG(LogCrossCompilerTool, Error, TEXT("Couldn't load Input file '%s'!"), *File);
+						continue;
+					}
+					UE_LOG(LogCrossCompilerTool, Log, TEXT("%d: %s!"), Count++, *File);
+
+					if (!CrossCompiler::Parser::Parse(HLSLShader, File, false))
+					{
+						UE_LOG(LogCrossCompilerTool, Log, TEXT("Error compiling '%s'!"), *File);
+						return 1;
+					}
+				}
+			}
+			else
+			{
+				if (RunInfo.bRunCPP)
+				{
+					//GMalloc->DumpAllocatorStats(*FGenericPlatformOutputDevices::GetLog());
+					if (!Preprocess(RunInfo.InputFile, HLSLShaderSource))
+					{
+						UE_LOG(LogCrossCompilerTool, Log, TEXT("Error during preprocessor on '%s'!"), *RunInfo.InputFile);
+						return 1;
+					}
+					//GMalloc->DumpAllocatorStats(*FGenericPlatformOutputDevices::GetLog());
+				}
+				else
+				{
+					if (!FFileHelper::LoadFileToString(HLSLShaderSource, *RunInfo.InputFile))
+					{
+						UE_LOG(LogCrossCompilerTool, Error, TEXT("Couldn't load Input file '%s'!"), *RunInfo.InputFile);
+						return 1;
+					}
+				}
+
+				if (RunInfo.bPreprocessOnly)
+				{
+					return 0;
+				}
+
+				if (!CrossCompiler::Parser::Parse(HLSLShaderSource, *RunInfo.InputFile, true))
+				{
+					UE_LOG(LogCrossCompilerTool, Log, TEXT("Error compiling '%s'!"), *RunInfo.InputFile);
+					return 1;
+				}
+			}
+			//Scanner.Dump();
+			return 0;
+		}
+		else
+		{
+			if (!FFileHelper::LoadFileToString(HLSLShaderSource, *RunInfo.InputFile))
+			{
+				UE_LOG(LogCrossCompilerTool, Error, TEXT("Couldn't load Input file '%s'!"), *RunInfo.InputFile);
+				return 1;
+			}
 		}
 
 		ANSICHAR* ShaderSource = 0;
 		ANSICHAR* ErrorLog = 0;
-
 		int Result = HlslCrossCompile(
 			TCHAR_TO_ANSI(*RunInfo.InputFile),
 			TCHAR_TO_ANSI(*HLSLShaderSource),
@@ -117,5 +201,7 @@ INT32_MAIN_INT32_ARGC_TCHAR_ARGV()
 		return 1;
 	}
 
-	return CCT::Run(RunInfo);
+	int32 Value = CCT::Run(RunInfo);
+	//FGenericPlatformOutputDevices::GetLog()->Flush();
+	return Value;
 }

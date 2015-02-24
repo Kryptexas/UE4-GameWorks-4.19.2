@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -36,7 +36,7 @@ struct FGizmoSelectData
 
 		FGizmoSelectData()
 		#if WITH_EDITORONLY_DATA
-		: Ratio(0.f), HeightData(0.f), WeightDataMap()
+		: Ratio(0.0f), HeightData(0.0f), WeightDataMap()
 		#endif
 		{
 		}

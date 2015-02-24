@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ScalabilityOptions.cpp: Unreal engine HW compat scalability system.
@@ -339,7 +339,7 @@ void FSystemSettings::Initialize( bool bSetupForEditor )
 
 	ApplyOverrides();
 
-	IConsoleManager::Get().RegisterConsoleVariableSink(FConsoleCommandDelegate::CreateRaw(this, &FSystemSettings::CVarSink));
+	IConsoleManager::Get().RegisterConsoleVariableSink_Handle(FConsoleCommandDelegate::CreateRaw(this, &FSystemSettings::CVarSink));
 
 	// intialize a critical texture streaming value used by texture loading, etc
 	int32 MinTextureResidentMipCount = 1;

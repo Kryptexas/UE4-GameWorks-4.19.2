@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -28,7 +28,15 @@ public:
 
 	/** GameplayEffects to apply and then remove while the animation is playing */
 	UPROPERTY(EditDefaultsOnly, Category = MontageAbility)
+	TArray<TSubclassOf<UGameplayEffect>> GameplayEffectClassesWhileAnimating;
+
+	/** Deprecated. Use GameplayEffectClassesWhileAnimating instead. */
+	UPROPERTY(VisibleDefaultsOnly, Category = Deprecated)
 	TArray<const UGameplayEffect*>	GameplayEffectsWhileAnimating;
 
 	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted, TWeakObjectPtr<UAbilitySystemComponent> AbilitySystemComponent, TArray<struct FActiveGameplayEffectHandle>	AppliedEffects);
+
+	void GetGameplayEffectsWhileAnimating(TArray<const UGameplayEffect*>& OutEffects) const;
+
+	virtual void ConvertDeprecatedGameplayEffectReferencesToBlueprintReferences(UGameplayEffect* OldGE, TSubclassOf<UGameplayEffect> NewGEClass) override;
 };

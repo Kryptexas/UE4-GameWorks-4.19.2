@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "IntroTutorialsPrivatePCH.h"
 #include "STutorialEditableText.h"
@@ -550,14 +550,14 @@ EVisibility STutorialEditableText::GetOpenAssetVisibility() const
 	return CurrentHyperlinkType.IsValid() && CurrentHyperlinkType->Type == EHyperlinkType::Asset ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
-void STutorialEditableText::HandleOpenAssetCheckStateChanged(ESlateCheckBoxState::Type InCheckState)
+void STutorialEditableText::HandleOpenAssetCheckStateChanged(ECheckBoxState InCheckState)
 {
 	bOpenAsset = !bOpenAsset;
 }
 
-ESlateCheckBoxState::Type STutorialEditableText::IsOpenAssetChecked() const
+ECheckBoxState STutorialEditableText::IsOpenAssetChecked() const
 {
-	return bOpenAsset ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return bOpenAsset ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 EVisibility STutorialEditableText::GetExcerptVisibility() const

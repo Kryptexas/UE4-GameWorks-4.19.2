@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -10,6 +10,7 @@
 #include "Animation/PreviewAssetAttachComponent.h"
 #include "BoneContainer.h"
 #include "Interfaces/Interface_CollisionDataProvider.h"
+#include "Interfaces/Interface_AssetUserData.h"
 #include "SkeletalMesh.generated.h"
 
 /** The maximum number of skeletal mesh LODs allowed. */
@@ -126,9 +127,9 @@ struct FBoneReference
 {
 	GENERATED_USTRUCT_BODY()
 
-		/** Name of bone to control. This is the main bone chain to modify from. **/
-		UPROPERTY(EditAnywhere, Category = BoneReference)
-		FName BoneName;
+	/** Name of bone to control. This is the main bone chain to modify from. **/
+	UPROPERTY(EditAnywhere, Category = BoneReference)
+	FName BoneName;
 
 	/** Cached bone index for run time - right now bone index of skeleton **/
 	int32 BoneIndex;
@@ -298,10 +299,6 @@ struct FSkeletalMeshLODInfo
 	UPROPERTY()
 	TArray<bool> bEnableShadowCasting_DEPRECATED;
 
-	/** Per-section sorting options */
-	UPROPERTY()
-	TArray<TEnumAsByte<enum ETriangleSortOption> > TriangleSorting_DEPRECATED;
-
 	UPROPERTY(EditAnywhere, editfixedsize, Category=SkeletalMeshLODInfo)
 	TArray<struct FTriangleSortSettings> TriangleSortSettings;
 
@@ -353,43 +350,6 @@ struct FMorphTargetMap
 		return (Name==Other.Name && MorphTarget == Other.MorphTarget);
 	}
 };
-
-#if WITH_APEX_CLOTHING
-class FClothingAssetWrapper
-{
-public:
-
-	FClothingAssetWrapper(physx::apex::NxClothingAsset* InApexClothingAsset)
-	:	ApexClothingAsset(InApexClothingAsset),bValid(true)
-	{}
-
-	ENGINE_API ~FClothingAssetWrapper();
-
-	physx::apex::NxClothingAsset* GetAsset()
-	{
-		return ApexClothingAsset;
-	}
-
-	//returns bone name converted to fbx style
-	FName GetConvertedBoneName(int32 BoneIndex);
-
-
-	bool	IsValid()
-	{ 
-		return bValid;
-	}
-
-	void	SetValid(bool valid)
-	{
-		bValid = valid;
-	}
-
-private:
-	physx::apex::NxClothingAsset* ApexClothingAsset;
-	bool						  bValid;
-};
-#endif // #if WITH_APEX_CLOTHING
-
 
 /** 
  * constrain Coefficients - max distance, collisionSphere radius, collision sphere distance 
@@ -500,7 +460,7 @@ struct FClothingAssetData
 	FClothPhysicsProperties PhysicsProperties;
 
 #if WITH_APEX_CLOTHING
-	TSharedPtr<FClothingAssetWrapper> ApexClothingAsset;
+	physx::apex::NxClothingAsset* ApexClothingAsset;
 
 	/** Collision volume data for showing to the users whether collision shape is correct or not */
 	TArray<FApexClothCollisionVolumeData> ClothCollisionVolumes;
@@ -516,6 +476,11 @@ struct FClothingAssetData
 	TArray<FClothVisualizationInfo> ClothVisualizationInfos;
 	/** currently mapped morph target name */
 	FName PreparedMorphTargetName;
+
+	FClothingAssetData()
+		:ApexClothingAsset(NULL)
+	{
+	}
 #endif// #if WITH_APEX_CLOTHING
 
 	// serialization
@@ -564,7 +529,7 @@ class FSkeletalMeshResource;
  * @see https://docs.unrealengine.com/latest/INT/Engine/Content/Types/SkeletalMeshes/
  */
 UCLASS(hidecategories=Object, MinimalAPI, BlueprintType)
-class USkeletalMesh : public UObject, public IInterface_CollisionDataProvider
+class USkeletalMesh : public UObject, public IInterface_CollisionDataProvider, public IInterface_AssetUserData
 {
 	GENERATED_UCLASS_BODY()
 
@@ -629,15 +594,10 @@ public:
 	 *	Physics and collision information used for this USkeletalMesh, set up in PhAT.
 	 *	This is used for per-bone hit detection, accurate bounding box calculation and ragdoll physics for example.
 	 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Physics)
+	UPROPERTY(EditAnywhere, AssetRegistrySearchable, BlueprintReadOnly, Category=Physics)
 	class UPhysicsAsset* PhysicsAsset;
 
 #if WITH_EDITORONLY_DATA
-	/** Asset used for previewing bounds in AnimSetViewer. Makes setting up LOD distance factors more reliable. 
-	 *  Removing this and use PhysicsAsset for preview from now on, but meanwhile, we will copy this info to PhysicsAsset (below)
-	 */
-	UPROPERTY()
-	class UPhysicsAsset* BoundsPreviewAsset_DEPRECATED;
 
 	/** Importing data and options used for this mesh */
 	UPROPERTY(EditAnywhere, Instanced, Category = Reimport)
@@ -670,12 +630,6 @@ public:
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=TextureStreaming)
 	float StreamingDistanceMultiplier;
-
-	/** This is serialized right now with strong pointer to Morph Target
-	 * Later on when memory is concerned, this can be transient array that is built based on MorphTarget loaded 
-	 */
-	UPROPERTY()
-	TArray<FMorphTargetMap> MorphTargetTable_DEPRECATED;
 
 	UPROPERTY(Category=Mesh, BlueprintReadWrite)
 	TArray<UMorphTarget*> MorphTargets;
@@ -713,6 +667,12 @@ public:
 	/** Clothing asset data */
 	UPROPERTY(EditAnywhere, editfixedsize, BlueprintReadOnly, Category=Clothing)
 	TArray<FClothingAssetData>		ClothingAssets;
+
+protected:
+
+	/** Array of user data stored with the asset */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, Instanced, Category=SkeletalMesh)
+	TArray<UAssetUserData*> AssetUserData;
 
 private:
 	/** Skeletal mesh source data */
@@ -898,6 +858,13 @@ public:
 		return true;
 	}
 	// End Interface_CollisionDataProvider Interface
+
+	// Begin IInterface_AssetUserData Interface
+	virtual void AddAssetUserData(UAssetUserData* InUserData) override;
+	virtual void RemoveUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	virtual UAssetUserData* GetAssetUserDataOfClass(TSubclassOf<UAssetUserData> InUserDataClass) override;
+	virtual const TArray<UAssetUserData*>* GetAssetUserDataArray() const override;
+	// End IInterface_AssetUserData Interface
 
 private:
 

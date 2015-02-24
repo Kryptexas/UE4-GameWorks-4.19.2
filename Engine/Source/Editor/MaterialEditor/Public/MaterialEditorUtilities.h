@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -73,7 +73,7 @@ public:
 	 *
 	 * @param	Graph	Graph representing a material or material function.
 	 */
-	static FString GetOriginalObjectName(const class UEdGraph* Graph);
+	static FText GetOriginalObjectName(const class UEdGraph* Graph);
 
 	/**
 	 * Re-links the material and updates its representation in the editor
@@ -148,11 +148,11 @@ public:
 	* @param	SwitchValueExpression	The switch expression to find the value for.
 	* @param	OutValue				The value for the switch expression.
 	* @param	OutExpressionID			The Guid of the expression that is input as the switch value.
-	* @param	FunctionInputs			optional An array of FFunctionExpressionInputs when parsing a switch within a function.
+	* @param	FunctionStack			The current function stack frame.
 	* 
 	* @return	Returns true if a value for the switch expression is found, otherwise returns false.
 	*/
-	static bool GetStaticSwitchExpressionValue(UMaterialInstance* MaterialInstance, UMaterialExpression *SwitchValueExpression, bool& OutValue, FGuid& OutExpressionID, const TArray<FFunctionExpressionInput>* FunctionInputs);
+	static bool GetStaticSwitchExpressionValue(UMaterialInstance* MaterialInstance, UMaterialExpression *SwitchValueExpression, bool& OutValue, FGuid& OutExpressionID, TArray<FGetVisibleMaterialParametersFunctionState*>& FunctionStack);
 
 	/**
 	 * Populates the specified material's Expressions array (eg if cooked out or old content).

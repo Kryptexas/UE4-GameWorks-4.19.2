@@ -1,5 +1,6 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
+#include "EditorUndoClient.h"
 
 /**
  * The non-UI solution specific presentation logic for a single Layer
@@ -34,7 +35,7 @@ public:
 	FName GetFName() const;
 
 	/**	@return	The Layer's display name as a FString */
-	FString GetName() const;
+	FText GetName() const;
 
 	/**	@return Whether the Layer is visible */
 	bool IsVisible() const;

@@ -149,6 +149,7 @@ BuildHLSLCC()
   # not building anymore P4Open hlslcc/bin/Linux/hlslcc_64
   P4Open hlslcc/lib/Linux/$TARGET_ARCH/libhlslcc.a
   cd hlslcc/projects/Linux
+  make $MAKE_ARGS clean
   make $MAKE_ARGS
   set +x
 }

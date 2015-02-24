@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AITestSuitePrivatePCH.h"
 #include "BehaviorTree/TestBTDecorator_DelayedAbort.h"
@@ -18,19 +18,19 @@ UTestBTDecorator_DelayedAbort::UTestBTDecorator_DelayedAbort(const FObjectInitia
 	FlowAbortMode = EBTFlowAbortMode::Self;
 }
 
-void UTestBTDecorator_DelayedAbort::OnBecomeRelevant(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory)
+void UTestBTDecorator_DelayedAbort::OnBecomeRelevant(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
 {
 	FBTDelayedAbortMemory* MyMemory = (FBTDelayedAbortMemory*)NodeMemory;
 	MyMemory->EndFrameIdx = FAITestHelpers::FramesCounter() + DelayTicks;
 }
 
-void UTestBTDecorator_DelayedAbort::TickNode(UBehaviorTreeComponent* OwnerComp, uint8* NodeMemory, float DeltaSeconds)
+void UTestBTDecorator_DelayedAbort::TickNode(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {
 	FBTDelayedAbortMemory* MyMemory = (FBTDelayedAbortMemory*)NodeMemory;
 
 	if (FAITestHelpers::FramesCounter() >= MyMemory->EndFrameIdx)
 	{
-		OwnerComp->RequestExecution(this);
+		OwnerComp.RequestExecution(this);
 		MyMemory->EndFrameIdx = bOnlyOnce ? MAX_uint64 : 0;
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Actions/PawnAction.h"
@@ -18,6 +18,7 @@ namespace
 
 UPawnAction::UPawnAction(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
+	, RequiredResources(FAIResourcesSet::AllResources)
 	, AbortState(EPawnActionAbortState::NeverStarted)
 	, FinishResult(EPawnActionResult::NotStarted)
 {
@@ -220,13 +221,21 @@ bool UPawnAction::Activate()
 	if (HasBeenStarted() && IsPaused())
 	{
 		bResult = Resume();
+		if (bResult == false)
+		{
+			UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> Failed to RESUME.")
+				, *GetName());
+			bFailedToStart = true;
+			SetFinishResult(EPawnActionResult::Failed);
+			SendEvent(EPawnActionEventType::FailedToStart);
+		}
 	}
 	else 
 	{
 		bResult = Start();
 		if (bResult == false)
 		{
-			UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> Failed to start.")
+			UE_VLOG(GetPawn(), LogPawnAction, Log, TEXT("%s> Failed to START.")
 				, *GetName());
 			bFailedToStart = true;
 			SetFinishResult(EPawnActionResult::Failed);

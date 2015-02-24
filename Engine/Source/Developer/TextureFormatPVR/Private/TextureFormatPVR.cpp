@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Core.h"
 #include "CoreMisc.h"
@@ -11,7 +11,6 @@
 #include "GenericPlatformProcess.h"
 
 
-#define DEFAULT_QUALITY 0
 #define MAX_QUALITY 4
 
 
@@ -227,18 +226,23 @@ static void UseOriginal(const FImage& InImage, FCompressedImage2D& OutCompressed
     FMemory::Memcpy(MipData, Image.RawData.GetData(), Image.SizeX * Image.SizeY * 4);
 }
 
-static FString GetPVRTCQualityString()
+static int32 GetDefaultCompressionValue()
 {
 	// start at default quality, then lookup in .ini file
-	int32 CompressionModeValue = DEFAULT_QUALITY;
+	int32 CompressionModeValue = 0;
 	GConfig->GetInt(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("DefaultPVRTCQuality"), CompressionModeValue, GEngineIni);
 
 	FParse::Value(FCommandLine::Get(), TEXT("-pvrtcquality="), CompressionModeValue);
 	CompressionModeValue = FMath::Min<uint32>(CompressionModeValue, MAX_QUALITY);
+	
+	return CompressionModeValue;
+}
 
+static FString GetPVRTCQualityString()
+{
 	// convert to a string
 	FString CompressionMode;
-	switch (CompressionModeValue)
+	switch (GetDefaultCompressionValue())
 	{
 		case 0:	CompressionMode = TEXT("fastest"); break;
 		case 1:	CompressionMode = TEXT("fast"); break;
@@ -253,15 +257,8 @@ static FString GetPVRTCQualityString()
 
 static uint16 GetPVRTCQualityForVersion()
 {
-	// start at default quality
-	int32 CompressionModeValue = DEFAULT_QUALITY;
-	GConfig->GetInt(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("DefaultPVRTCQuality"), CompressionModeValue, GEngineIni);
-
-	FParse::Value(FCommandLine::Get(), TEXT("-pvrtcquality="), CompressionModeValue);
-	CompressionModeValue = FMath::Min<uint32>(CompressionModeValue, MAX_QUALITY);
-
 	// top 3 bits for compression value
-	return CompressionModeValue << 13;
+	return GetDefaultCompressionValue() << 13;
 }
 
 /**

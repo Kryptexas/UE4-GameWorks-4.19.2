@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "IOSView.h"
@@ -26,7 +26,9 @@ id<MTLDevice> GMetalDevice = nil;
 #if HAS_METAL
 	// make sure the project setting has enabled Metal support (per-project user settings in the editor)
 	bool bSupportsMetal = false;
+	bool bSupportsMetalMRT = false;
 	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsMetal"), bSupportsMetal, GEngineIni);
+	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bSupportsMetalMRT"), bSupportsMetalMRT, GEngineIni);
 
 	// does commandline override?
 	bool bForceES2 = FParse::Param(FCommandLine::Get(), TEXT("ES2"));
@@ -169,6 +171,7 @@ id<MTLDevice> GMetalDevice = nil;
 
 
 		// handle Metal or GL sizing
+#if HAS_METAL
 		if (bIsUsingMetal)
 		{
 			CAMetalLayer* MetalLayer = (CAMetalLayer*)self.layer;
@@ -178,6 +181,7 @@ id<MTLDevice> GMetalDevice = nil;
 			MetalLayer.drawableSize = DrawableSize;
 		}
 		else
+#endif
 		{
 			// make sure this is current
 			[self MakeCurrent];
@@ -482,23 +486,18 @@ id<MTLDevice> GMetalDevice = nil;
 }
 
 /**
- * Tell the OS that our view controller can auto-rotate between the two landscape modes
+ * Tell the OS what the default supported orientations are
  */
-- (BOOL)shouldAutorotateToInterfaceOrientation:(UIInterfaceOrientation)interfaceOrientation
+- (NSUInteger)supportedInterfaceOrientations
 {
-	//BOOL bIsValidOrientation;
+	return UIInterfaceOrientationMaskAll;
+}
 
-	//// will the app let us rotate?
-	//BOOL bCanRotate = [IPhoneAppDelegate GetDelegate].bCanAutoRotate;
-	//
-	//// is it one of the valid orientations to rotate to?
-	//bIsValidOrientation = bCanRotate && 
-	//	(((interfaceOrientation == UIInterfaceOrientationLandscapeLeft) && ![IOSAppDelegate GetDelegate].bDeviceInPortraitMode) || 
-	//	((interfaceOrientation == UIInterfaceOrientationLandscapeRight) && ![IOSAppDelegate GetDelegate].bDeviceInPortraitMode) || 
-	//	((interfaceOrientation == UIInterfaceOrientationPortrait) && [IOSAppDelegate GetDelegate].bDeviceInPortraitMode) ||
-	//	((interfaceOrientation == UIInterfaceOrientationPortraitUpsideDown) && [IOSAppDelegate GetDelegate].bDeviceInPortraitMode));
-	//	
-	//return bIsValidOrientation;
+/**
+ * Tell the OS that our view controller can auto-rotate between supported orientations
+ */
+- (BOOL)shouldAutorotate
+{
 	return YES;
 }
 

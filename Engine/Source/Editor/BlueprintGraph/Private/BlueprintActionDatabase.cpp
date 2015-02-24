@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "BlueprintActionDatabase.h"
+#include "ComponentTypeRegistry.h"
 #include "EdGraphSchema_K2.h"       // for CanUserKismetCallFunction()
 #include "EditorCategoryUtils.h"
 #include "KismetEditorUtilities.h"	// for IsClassABlueprintSkeleton(), IsClassABlueprintInterface(), GetBoundsForSelectedNodes(), etc.
@@ -41,6 +42,7 @@
 // used below in BlueprintActionDatabaseImpl::GetNodeSpectificActions()
 #include "EdGraphNode_Comment.h"
 #include "EdGraph/EdGraphNode_Documentation.h"
+#include "K2Node_FunctionEntry.h"
 
 #define LOCTEXT_NAMESPACE "BlueprintActionDatabase"
 
@@ -340,16 +342,6 @@ namespace BlueprintActionDatabaseImpl
 	static void AddClassCastActions(UClass* const Class, FActionList& ActionListOut);
 
 	/**
-	 * Evolved from K2ActionMenuBuilder's GetAddComponentClasses(). If the
-	 * specified class is a component type (and can be spawned), then a 
-	 * UK2Node_AddComponent spawner is created and added to ActionListOut.
-	 *
-	 * @param  ComponentClass	The class who you want a spawner for (the component class).
-	 * @param  ActionListOut	The list you want populated with the new spawner.
-	 */
-	static void AddComponentClassActions(TSubclassOf<UActorComponent> const ComponentClass, FActionList& ActionListOut);
-
-	/**
 	 * Adds custom actions to operate on the provided skeleton. Used primarily
 	 * to find AnimNotify event vocabulary
 	 *
@@ -423,12 +415,28 @@ namespace BlueprintActionDatabaseImpl
 	static void OnAssetsPendingDelete(TArray<UObject*> const& ObjectsForDelete);
 
 	/**
-	 * Callback to refresh the database when an object has been delete (to clear 
-	 * any related classes that were stored in the database) 
+	 * Callback to refresh the database when an object has been deleted (to  
+	 * clear any related entries that were stored in the database) 
 	 * 
 	 * @param  AssetInfo	Data regarding the freshly removed asset.
 	 */
 	static void OnAssetRemoved(FAssetData const& AssetInfo);
+
+	/**
+	 * Callback to refresh the database when an object has been deleted/unloaded
+	 * (to clear any related entries that were stored in the database) 
+	 * 
+	 * @param  AssetObject	The object being removed/deleted/unloaded.
+	 */
+	static void OnAssetRemoved(UObject* AssetObject);
+
+	/**
+	 * Callback to refresh the database when a blueprint has been unloaded
+	 * (to clear any related entries that were stored in the database) 
+	 * 
+	 * @param  BlueprintObj	The blueprint being unloaded.
+	 */
+	static void OnBlueprintUnloaded(UBlueprint* BlueprintObj);
 
 	/**
 	 * Callback to refresh the database when an object has been renamed (to clear 
@@ -526,11 +534,6 @@ static void BlueprintActionDatabaseImpl::GetClassMemberActions(UClass* const Cla
 	}
 
 	AddClassCastActions(Class, ActionListOut);
-
-	if (Class->IsChildOf<UActorComponent>())
-	{
-		AddComponentClassActions(Class, ActionListOut);
-	}
 }
 
 //------------------------------------------------------------------------------
@@ -671,18 +674,6 @@ static void BlueprintActionDatabaseImpl::AddClassCastActions(UClass* Class, FAct
 }
 
 //------------------------------------------------------------------------------
-static void BlueprintActionDatabaseImpl::AddComponentClassActions(TSubclassOf<UActorComponent> const ComponentClass, FActionList& ActionListOut)
-{
-	if ((ComponentClass != nullptr) && !ComponentClass->HasAnyClassFlags(CLASS_Abstract) && ComponentClass->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent))
-	{
-		if (UBlueprintComponentNodeSpawner* NodeSpawner = UBlueprintComponentNodeSpawner::Create(ComponentClass))
-		{
-			ActionListOut.Add(NodeSpawner);
-		}
-	}
-}
-
-//------------------------------------------------------------------------------
 static void BlueprintActionDatabaseImpl::AddSkeletonActions(const USkeleton& Skeleton, FActionList& ActionListOut)
 {
 	for (int32 I = 0; I < Skeleton.AnimationNotifies.Num(); ++I)
@@ -692,31 +683,6 @@ static void BlueprintActionDatabaseImpl::AddSkeletonActions(const USkeleton& Ske
 
 		FString SignatureName = FString::Printf(TEXT("AnimNotify_%s"), *Label);
 		ActionListOut.Add(FBlueprintNodeSpawnerFactory::MakeAnimOwnedEventSpawner(FName(*SignatureName), FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::AnimNotify)));
-	}
-
-	// @todo anim: fix this to be same as notifies, save same list in the 
-	// add montage menus
-	// find all montages that uses current target skeleton
-	TArray<FName> BranchingPointHandlers;
-
-	for (FObjectIterator Iter(UAnimMontage::StaticClass()); Iter; ++Iter)
-	{
-		UAnimMontage * Montage = CastChecked<UAnimMontage>(*Iter);
-		if (Montage && Montage->GetSkeleton() == &Skeleton)
-		{
-			// now add event handler if exists
-			for (int32 I = 0; I < Montage->BranchingPoints.Num(); ++I)
-			{
-				BranchingPointHandlers.AddUnique(Montage->BranchingPoints[I].EventName);
-			}
-		}
-	}
-
-	for( auto NotifyName: BranchingPointHandlers )
-	{
-		FString Label = NotifyName.ToString();
-		FString SignatureName = FString::Printf(TEXT("MontageBranchingPoint_%s"), *Label);
-		ActionListOut.Add(FBlueprintNodeSpawnerFactory::MakeAnimOwnedEventSpawner(FName(*SignatureName),  FEditorCategoryUtils::GetCommonCategory(FCommonEditorCategory::BranchPoint)));
 	}
 }
 
@@ -863,13 +829,28 @@ static void BlueprintActionDatabaseImpl::OnAssetRemoved(FAssetData const& AssetI
 	if (AssetInfo.IsAssetLoaded())
 	{
 		UObject* AssetObject = AssetInfo.GetAsset();
-		// the delete went through, so we don't need to track these for re-add
-		PendingDelete.Remove(AssetObject);
+		OnAssetRemoved(AssetObject);
 	}
 	else
 	{
 		ActionDatabase.ClearUnloadedAssetActions(AssetInfo.ObjectPath);
 	}
+}
+
+//------------------------------------------------------------------------------
+static void BlueprintActionDatabaseImpl::OnAssetRemoved(UObject* AssetObject)
+{
+	FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
+	ActionDatabase.ClearAssetActions(AssetObject);
+
+	// the delete went through, so we don't need to track these for re-add
+	PendingDelete.Remove(AssetObject);
+}
+
+//------------------------------------------------------------------------------
+static void BlueprintActionDatabaseImpl::OnBlueprintUnloaded(UBlueprint* BlueprintObj)
+{
+	OnAssetRemoved(BlueprintObj);
 }
 
 //------------------------------------------------------------------------------
@@ -899,7 +880,11 @@ static void BlueprintActionDatabaseImpl::OnWorldDestroyed(UWorld* DestroyedWorld
 static bool BlueprintActionDatabaseImpl::IsObjectValidForDatabase(UObject const* Object)
 {
 	bool bReturn = false;
-	if(Object->IsAsset())
+	if( Object == nullptr )
+	{
+		bReturn = false;
+	}
+	else if(Object->IsAsset())
 	{
 		bReturn = true;
 	}
@@ -939,6 +924,7 @@ FBlueprintActionDatabase::FBlueprintActionDatabase()
 	AssetRegistry.OnAssetRenamed().AddStatic(&BlueprintActionDatabaseImpl::OnAssetRenamed);
 
 	FEditorDelegates::OnAssetsPreDelete.AddStatic(&BlueprintActionDatabaseImpl::OnAssetsPendingDelete);
+	FKismetEditorUtilities::OnBlueprintUnloaded.AddStatic(&BlueprintActionDatabaseImpl::OnBlueprintUnloaded);
 
 	GEngine->OnWorldDestroyed().AddStatic(&BlueprintActionDatabaseImpl::OnWorldDestroyed);
 }
@@ -1032,6 +1018,10 @@ void FBlueprintActionDatabase::RefreshAll()
 		FActionList& ClassActionList = ActionRegistry.FindOrAdd(*SkeletonIt);
 		BlueprintActionDatabaseImpl::AddSkeletonActions(**SkeletonIt, ClassActionList);
 	}
+
+	// this handles creating entries for components that were loaded before the database was alive:
+	FComponentTypeRegistry::Get().SubscribeToComponentList(ComponentTypes).AddRaw(this, &FBlueprintActionDatabase::RefreshComponentActions);
+	RefreshComponentActions();
 }
 
 //------------------------------------------------------------------------------
@@ -1132,6 +1122,13 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 
 	bool const bHadExistingEntry = ActionRegistry.Contains(AssetObject);
 	FActionList& AssetActionList = ActionRegistry.FindOrAdd(AssetObject);
+	for (UBlueprintNodeSpawner* Action : AssetActionList)
+	{
+		// because some asserts expect everything to be cleaned up in a 
+		// single GC pass, we need to ensure that any previously cached node templates
+		// are cleaned up here before we add any new node spawners.
+		Action->ClearCachedTemplateNode();
+	}
 	AssetActionList.Empty();
 
 	if(const USkeleton* Skeleton = Cast<USkeleton>(AssetObject))
@@ -1157,7 +1154,8 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 		// blueprint
 		if (!bHadExistingEntry)
 		{
-			BlueprintAsset->OnChanged().AddStatic(&BlueprintActionDatabaseImpl::OnBlueprintChanged);
+			BlueprintAsset->OnChanged().AddRaw(this, &FBlueprintActionDatabase::OnBlueprintChanged);
+			BlueprintAsset->OnCompiled().AddRaw(this, &FBlueprintActionDatabase::OnBlueprintChanged);
 		}
 	}
 
@@ -1169,7 +1167,11 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 	// Will clear up any unloaded asset actions associated with this object, if any
 	ClearUnloadedAssetActions(*AssetObject->GetPathName());
 
-	if (AssetActionList.Num() > 0)
+	if (AssetObject->IsPendingKill())
+	{
+		ClearAssetActions(AssetObject);
+	}
+	else if (AssetActionList.Num() > 0)
 	{
 		// queue these assets for priming
 		ActionPrimingQueue.Add(AssetObject, 0);
@@ -1186,6 +1188,21 @@ void FBlueprintActionDatabase::RefreshAssetActions(UObject* const AssetObject)
 	if (!bIsInitializing)
 	{
 		EntryRefreshDelegate.Broadcast(AssetObject);
+	}
+}
+
+//------------------------------------------------------------------------------
+void FBlueprintActionDatabase::RefreshComponentActions()
+{
+	check(ComponentTypes);
+	FActionList& ClassActionList = ActionRegistry.FindOrAdd(UBlueprintComponentNodeSpawner::StaticClass());
+	ClassActionList.Empty(ComponentTypes->Num());
+	for (const auto& ComponentType : *ComponentTypes)
+	{
+		if (UBlueprintComponentNodeSpawner* NodeSpawner = UBlueprintComponentNodeSpawner::Create(ComponentType))
+		{
+			ClassActionList.Add(NodeSpawner);
+		}
 	}
 }
 
@@ -1209,7 +1226,8 @@ void FBlueprintActionDatabase::ClearAssetActions(UObject* const AssetObject)
 
 	if (UBlueprint* BlueprintAsset = Cast<UBlueprint>(AssetObject))
 	{
-		BlueprintAsset->OnChanged().RemoveStatic(&BlueprintActionDatabaseImpl::OnBlueprintChanged);
+		BlueprintAsset->OnChanged().RemoveAll(this);
+		BlueprintAsset->OnCompiled().RemoveAll(this);
 	}
 
 	if (bHasEntry && (ActionList->Num() > 0) && !BlueprintActionDatabaseImpl::bIsInitializing)
@@ -1280,6 +1298,11 @@ void FBlueprintActionDatabase::RegisterAllNodeActions(FBlueprintActionDatabaseRe
 		TGuardValue< TSubclassOf<UEdGraphNode> > ScopedNodeClass(Registrar.GeneratingClass, NodeClass);
 		BlueprintActionDatabaseImpl::GetNodeSpecificActions(NodeClass, Registrar);
 	}
+}
+
+void FBlueprintActionDatabase::OnBlueprintChanged(UBlueprint* InBlueprint)
+{
+	BlueprintActionDatabaseImpl::OnBlueprintChanged(InBlueprint);
 }
 
 #undef LOCTEXT_NAMESPACE

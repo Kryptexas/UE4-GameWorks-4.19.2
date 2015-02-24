@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -22,7 +22,7 @@ public:
 	FReply OnClick(TWeakPtr<class FMaterialEditor> MaterialEditor);
 
 	/* Get Category for this search result */
-	FString GetCategory() const;
+	FText GetCategory() const;
 
 	/** Create an icon to represent the result */
 	TSharedRef<SWidget>	CreateIcon() const;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SoundCueGraphSchema.cpp
@@ -6,7 +6,6 @@
 
 #include "UnrealEd.h"
 #include "Sound/SoundNodeWavePlayer.h"
-#include "Sound/SoundNodeDeprecated.h"
 #include "SlateBasics.h"
 #include "AssetData.h"
 #include "GraphEditorActions.h"
@@ -14,6 +13,7 @@
 #include "SoundCueEditorUtilities.h"
 #include "ScopedTransaction.h"
 #include "GraphEditor.h"
+#include "Sound/SoundCue.h"
 
 #define LOCTEXT_NAMESPACE "SoundCueSchema"
 
@@ -491,8 +491,7 @@ void USoundCueGraphSchema::InitSoundNodeClasses()
 	for(TObjectIterator<UClass> It; It; ++It)
 	{
 		if(It->IsChildOf(USoundNode::StaticClass()) 
-			&& !It->HasAnyClassFlags(CLASS_Abstract)
-			&& !It->IsChildOf(UDEPRECATED_SoundNodeDeprecated::StaticClass()))
+			&& !It->HasAnyClassFlags(CLASS_Abstract))
 		{
 			SoundNodeClasses.Add(*It);
 		}

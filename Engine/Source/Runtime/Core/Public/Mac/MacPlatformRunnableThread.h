@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================================
 	MacPlatformThreading.h: Mac platform threading functions
@@ -30,7 +30,7 @@ private:
 	virtual int GetDefaultStackSize() override
 	{
 		// default is 512 KB, we need more
-		return 1024 * 1024;
+		return 2 * 1024 * 1024;
 	}
 
 	/**

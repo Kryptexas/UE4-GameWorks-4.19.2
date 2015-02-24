@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "WorldBrowserPrivatePCH.h"
 
 #include "StreamingLevelCollectionModel.h"
 #include "StreamingLevelModel.h"
+#include "Engine/LevelStreaming.h"
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "SDetailSingleItemRow.h"
@@ -17,12 +17,12 @@ class SConstrainedBox : public SCompoundWidget
 {
 public:
 	SLATE_BEGIN_ARGS( SConstrainedBox )
-		: _MinWidth(0)
-		, _MaxWidth(0)
+		: _MinWidth()
+		, _MaxWidth()
 	{}
 		SLATE_DEFAULT_SLOT( FArguments, Content )
-		SLATE_ATTRIBUTE( float, MinWidth )
-		SLATE_ATTRIBUTE( float, MaxWidth )
+		SLATE_ATTRIBUTE( TOptional<float>, MinWidth )
+		SLATE_ATTRIBUTE( TOptional<float>, MaxWidth )
 	SLATE_END_ARGS()
 
 	void Construct( const FArguments& InArgs )
@@ -38,10 +38,10 @@ public:
 
 	virtual FVector2D ComputeDesiredSize() const override
 	{
-		const float MinWidthVal = MinWidth.Get();
-		const float MaxWidthVal = MaxWidth.Get();
+		const float MinWidthVal = MinWidth.Get().Get(0.0f);
+		const float MaxWidthVal = MaxWidth.Get().Get(0.0f);
 
-		if( MinWidthVal == 0.0f && MaxWidthVal == 0.0f )
+		if ( MinWidthVal == 0.0f && MaxWidthVal == 0.0f )
 		{
 			return SCompoundWidget::ComputeDesiredSize();
 		}
@@ -59,8 +59,8 @@ public:
 		}
 	}
 private:
-	TAttribute<float> MinWidth;
-	TAttribute<float> MaxWidth;
+	TAttribute< TOptional<float> > MinWidth;
+	TAttribute< TOptional<float> > MaxWidth;
 };
 
 
@@ -105,9 +105,12 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 		}
 
 		TSharedRef<SWidget> KeyFrameButton = CreateKeyframeButton( *Customization, InOwnerTreeNode );
+		TAttribute<bool> IsPropertyEditingEnabled = InOwnerTreeNode->IsPropertyEditingEnabled();
 
 		if( bHasMultipleColumns )
 		{
+			NameWidget->SetEnabled(IsPropertyEditingEnabled);
+			KeyFrameButton->SetEnabled(IsPropertyEditingEnabled);
 			Widget = 
 				SNew( SSplitter )
 				.Style( FEditorStyle::Get(), "DetailsView.Splitter" )
@@ -125,6 +128,7 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 					.AutoWidth()
 					[
 						SNew( SExpanderArrow, SharedThis(this) )
+						.BaseIndentLevel(1)
 					]
 					+ SHorizontalBox::Slot()
 					.HAlign( Row.NameWidget.HorizontalAlignment )
@@ -147,7 +151,7 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 				.OnSlotResized( ColumnSizeData.OnWidthChanged )
 				[
 					SNew( SHorizontalBox )
-
+					.IsEnabled(IsPropertyEditingEnabled)
 					+ SHorizontalBox::Slot()
 					.Padding( DetailWidgetConstants::RightRowPadding )
 					.HAlign( Row.ValueWidget.HorizontalAlignment )
@@ -159,6 +163,8 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 		}
 		else
 		{
+			Row.WholeRowWidget.Widget->SetEnabled(IsPropertyEditingEnabled);
+			KeyFrameButton->SetEnabled(IsPropertyEditingEnabled);
 			Widget =
 				SNew( SHorizontalBox )
 				+ SHorizontalBox::Slot()
@@ -168,6 +174,7 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 				.AutoWidth()
 				[
 					SNew( SExpanderArrow, SharedThis(this) )
+					.BaseIndentLevel(1)
 				]
 				+ SHorizontalBox::Slot()
 				.HAlign( Row.WholeRowWidget.HorizontalAlignment )
@@ -191,7 +198,7 @@ void SDetailSingleItemRow::Construct( const FArguments& InArgs, FDetailLayoutCus
 	[	
 		SNew( SBorder )
 		.BorderImage( this, &SDetailSingleItemRow::GetBorderImage )
-		.Padding( 0.0f )
+		.Padding( FMargin( 0.0f, 0.0f, SDetailTableRowBase::ScrollbarPaddingSize, 0.0f ) )
 		[
 			Widget
 		]
@@ -325,8 +332,8 @@ TSharedRef<SWidget> SDetailSingleItemRow::CreateExtensionWidget(TSharedRef<SWidg
 					[
 						ValueWidget
 					]
-
-				+ SHorizontalBox::Slot()
+					
+					+ SHorizontalBox::Slot()
 					.AutoWidth()
 					[
 						ExtensionHandler->GenerateExtensionWidget(ObjectClass, Handle)

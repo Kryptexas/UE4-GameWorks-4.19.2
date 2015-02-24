@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGEditorPrivatePCH.h"
 #include "Blueprint/UserWidget.h"
@@ -71,6 +71,11 @@ void UK2Node_CreateWidget::GetMenuEntries(FGraphContextMenuBuilder& ContextMenuB
 
 	TSharedPtr<FEdGraphSchemaAction_K2NewNode> NodeAction = FK2ActionMenuBuilder::AddNewNodeAction(ContextMenuBuilder, Category, MenuDesc, Tooltip);
 	NodeAction->NodeTemplate = TemplateNode;
+}
+
+FName UK2Node_CreateWidget::GetCornerIcon() const
+{
+	return TEXT("Graph.Replication.ClientEvent");
 }
 
 UEdGraphPin* UK2Node_CreateWidget::GetOwningPlayerPin() const

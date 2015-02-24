@@ -1,10 +1,12 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
 #include "K2Node_Event.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_ComponentBoundEvent.generated.h"
+
+class UDynamicBlueprintBinding;
 
 UCLASS(MinimalAPI)
 class UK2Node_ComponentBoundEvent : public UK2Node_Event
@@ -18,6 +20,10 @@ class UK2Node_ComponentBoundEvent : public UK2Node_Event
 	/** Name of property in Blueprint class that pointer to component we want to bind to */
 	UPROPERTY()
 	FName ComponentPropertyName;
+
+	// Begin UObject interface
+	virtual bool Modify(bool bAlwaysMarkDirty = true) override;
+	// End UObject interface
 
 	// Begin UEdGraphNode interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;

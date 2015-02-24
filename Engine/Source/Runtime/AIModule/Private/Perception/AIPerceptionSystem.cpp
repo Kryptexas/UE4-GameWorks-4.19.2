@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AIModulePrivate.h"
 #include "Perception/AIPerceptionSystem.h"
@@ -14,24 +14,68 @@ DECLARE_CYCLE_STAT(TEXT("Perception System"),STAT_AI_PerceptionSys,STATGROUP_AI)
 DEFINE_LOG_CATEGORY(LogAIPerception);
 
 //----------------------------------------------------------------------//
+// UAISenseConfig
+//----------------------------------------------------------------------//
+FAISenseID UAISenseConfig::GetSenseID() const
+{
+	TSubclassOf<UAISense> SenseClass = GetSenseImplementation();
+	return UAISense::GetSenseID(SenseClass);
+}
+
+//----------------------------------------------------------------------//
 // UAIPerceptionSystem
 //----------------------------------------------------------------------//
 UAIPerceptionSystem::UAIPerceptionSystem(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, PerceptionAgingRate(0.3f)
-	, NextFreeListenerId(AIPerception::InvalidListenerId + 1)
+	, bSomeListenersNeedUpdateDueToStimuliAging(false)
 	, CurrentTime(0.f)
 {
-	if (HasAnyFlags(RF_ClassDefaultObject) == false)
+}
+
+void UAIPerceptionSystem::RegisterSenseClass(TSubclassOf<UAISense> SenseClass)
+{
+	check(SenseClass);
+	FAISenseID SenseID = UAISense::GetSenseID(SenseClass);
+	if (SenseID.IsValid() == false)
 	{
-		Senses.AddZeroed(ECorePerceptionTypes::MAX);
-		Senses[ECorePerceptionTypes::Hearing] = ConstructObject<UAISense>(UAISense_Hearing::StaticClass(), this);
-		Senses[ECorePerceptionTypes::Sight] = ConstructObject<UAISense>(UAISense_Sight::StaticClass(), this);
-		Senses[ECorePerceptionTypes::Damage] = ConstructObject<UAISense>(UAISense_Damage::StaticClass(), this);
-		Senses[ECorePerceptionTypes::Touch] = ConstructObject<UAISense>(UAISense_Touch::StaticClass(), this);		
-		Senses[ECorePerceptionTypes::Team] = ConstructObject<UAISense>(UAISense_Team::StaticClass(), this);		
-		Senses[ECorePerceptionTypes::Prediction] = ConstructObject<UAISense>(UAISense_Prediction::StaticClass(), this);
+		UAISense* SenseCDO = GetMutableDefault<UAISense>(SenseClass);
+		SenseID = SenseCDO->UpdateSenseID();
+
+		if (SenseID.IsValid() == false)
+		{
+			// @todo log a message here
+			return;
+		}
 	}
+
+	if (SenseID.Index >= Senses.Num())
+	{
+		const int32 ItemsToAdd = SenseID.Index - Senses.Num() + 1;
+		Senses.AddZeroed(ItemsToAdd);
+#if !UE_BUILD_SHIPPING
+		DebugSenseColors.AddZeroed(ItemsToAdd);
+#endif
+	}
+
+	if (Senses[SenseID] == nullptr)
+	{
+		Senses[SenseID] = ConstructObject<UAISense>(SenseClass, this);
+		check(Senses[SenseID]);
+#if !UE_BUILD_SHIPPING
+		DebugSenseColors[SenseID] = Senses[SenseID]->GetDebugColor();
+		PerceptionDebugLegend += Senses[SenseID]->GetDebugLegend();
+
+		// make senses v-log to perception system's log
+		REDIRECT_OBJECT_TO_VLOG(Senses[SenseID], this);
+		UE_VLOG(this, LogAIPerception, Log, TEXT("Registering sense %s"), *Senses[SenseID]->GetName());
+#endif
+	}
+}
+
+UWorld* UAIPerceptionSystem::GetWorld() const
+{
+	return Cast<UWorld>(GetOuter());
 }
 
 void UAIPerceptionSystem::PostInitProperties() 
@@ -43,14 +87,21 @@ void UAIPerceptionSystem::PostInitProperties()
 		UWorld* World = GEngine->GetWorldFromContextObject(GetOuter());
 		if (World)
 		{
-			World->GetTimerManager().SetTimer(this, &UAIPerceptionSystem::AgeStimuli, PerceptionAgingRate, /*inbLoop=*/true);
+			World->GetTimerManager().SetTimer(AgeStimuliTimerHandle, this, &UAIPerceptionSystem::AgeStimuli, PerceptionAgingRate, /*inbLoop=*/true);
 		}
 	}
 }
 
-void UAIPerceptionSystem::RegisterSource(FAISenseId SenseIndex, AActor& SourceActor)
+TStatId UAIPerceptionSystem::GetStatId() const
 {
-	SourcesToRegister.Add(FPerceptionSourceRegistration(SenseIndex, &SourceActor));
+	RETURN_QUICK_DECLARE_CYCLE_STAT(UAIPerceptionSystem, STATGROUP_Tickables);
+}
+
+
+void UAIPerceptionSystem::RegisterSource(FAISenseID SenseID, AActor& SourceActor)
+{
+	ensure(IsSenseInstantiated(SenseID));
+	SourcesToRegister.Add(FPerceptionSourceRegistration(SenseID, &SourceActor));
 }
 
 void UAIPerceptionSystem::PerformSourceRegistration()
@@ -62,7 +113,7 @@ void UAIPerceptionSystem::PerformSourceRegistration()
 		AActor* SourceActor = PercSource.Source.Get();
 		if (SourceActor)
 		{
-			Senses[PercSource.SenseId]->RegisterSource(*SourceActor);
+			Senses[PercSource.SenseID]->RegisterSource(*SourceActor);
 		}
 	}
 
@@ -72,9 +123,10 @@ void UAIPerceptionSystem::PerformSourceRegistration()
 void UAIPerceptionSystem::OnNewListener(const FPerceptionListener& NewListener)
 {
 	UAISense** SenseInstance = Senses.GetData();
-	for (int32 SenseIndex = 0; SenseIndex < Senses.Num(); ++SenseIndex, ++SenseInstance)
+	for (int32 SenseID = 0; SenseID < Senses.Num(); ++SenseID, ++SenseInstance)
 	{
-		if (*SenseInstance != NULL)
+		// @todo filter out the ones that do not declare using this sense
+		if (*SenseInstance != nullptr && NewListener.HasSense((*SenseInstance)->GetSenseID()))
 		{
 			(*SenseInstance)->OnNewListener(NewListener);
 		}
@@ -84,16 +136,16 @@ void UAIPerceptionSystem::OnNewListener(const FPerceptionListener& NewListener)
 void UAIPerceptionSystem::OnListenerUpdate(const FPerceptionListener& UpdatedListener)
 {
 	UAISense** SenseInstance = Senses.GetData();
-	for (int32 SenseIndex = 0; SenseIndex < Senses.Num(); ++SenseIndex, ++SenseInstance)
+	for (int32 SenseID = 0; SenseID < Senses.Num(); ++SenseID, ++SenseInstance)
 	{
-		if (*SenseInstance != NULL)
+		if (*SenseInstance != nullptr)
 		{
 			(*SenseInstance)->OnListenerUpdate(UpdatedListener);
 		}
 	}
 }
 
-void UAIPerceptionSystem::ManagerTick(float DeltaSeconds)
+void UAIPerceptionSystem::Tick(float DeltaSeconds)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_PerceptionSys);
 
@@ -102,62 +154,68 @@ void UAIPerceptionSystem::ManagerTick(float DeltaSeconds)
 
 	UWorld* World = GEngine->GetWorldFromContextObject(GetOuter());
 	check(World);
-	// cache it
-	CurrentTime = World->GetTimeSeconds();
 
-	bool bNeedsUpdate = false;
-
-	if (SourcesToRegister.Num() > 0)
+	if (World->bPlayersOnly == false)
 	{
-		PerformSourceRegistration();
-	}
+		// cache it
+		CurrentTime = World->GetTimeSeconds();
 
-	{
-		UAISense** SenseInstance = Senses.GetData();
-		for (int32 SenseIndex = 0; SenseIndex < Senses.Num(); ++SenseIndex, ++SenseInstance)
+		bool bNeedsUpdate = false;
+
+		if (SourcesToRegister.Num() > 0)
 		{
-			bNeedsUpdate |= *SenseInstance != NULL && (*SenseInstance)->ProgressTime(DeltaSeconds);
+			PerformSourceRegistration();
 		}
-	}
 
-	if (bNeedsUpdate)
-	{
-		// first update cached location of all listener, and remove invalid listeners
-		for (AIPerception::FListenerMap::TIterator ListenerIt(ListenerContainer); ListenerIt; ++ListenerIt)
 		{
-			if (ListenerIt->Value.Listener.IsValid())
+			UAISense** SenseInstance = Senses.GetData();
+			for (int32 SenseID = 0; SenseID < Senses.Num(); ++SenseID, ++SenseInstance)
 			{
-				ListenerIt->Value.CacheLocation();
-			}
-			else
-			{
-				OnListenerRemoved(ListenerIt->Value);
-				ListenerIt.RemoveCurrent();
+				bNeedsUpdate |= *SenseInstance != nullptr && (*SenseInstance)->ProgressTime(DeltaSeconds);
 			}
 		}
 
-		UAISense** SenseInstance = Senses.GetData();
-		for (int32 SenseIndex = 0; SenseIndex < Senses.Num(); ++SenseIndex, ++SenseInstance)
+		if (bNeedsUpdate)
 		{
-			if (*SenseInstance != NULL)
+			// first update cached location of all listener, and remove invalid listeners
+			for (AIPerception::FListenerMap::TIterator ListenerIt(ListenerContainer); ListenerIt; ++ListenerIt)
 			{
-				(*SenseInstance)->Tick();
+				if (ListenerIt->Value.Listener.IsValid())
+				{
+					ListenerIt->Value.CacheLocation();
+				}
+				else
+				{
+					OnListenerRemoved(ListenerIt->Value);
+					ListenerIt.RemoveCurrent();
+				}
+			}
+
+			UAISense** SenseInstance = Senses.GetData();
+			for (int32 SenseID = 0; SenseID < Senses.Num(); ++SenseID, ++SenseInstance)
+			{
+				if (*SenseInstance != nullptr)
+				{
+					(*SenseInstance)->Tick();
+				}
 			}
 		}
-	}
 
-	/** no point in soring in no new stimuli was processed */
-	bool bStimuliDelivered = DeliverDelayedStimuli(bNeedsUpdate ? RequiresSorting : NoNeedToSort);
+		/** no point in soring in no new stimuli was processed */
+		bool bStimuliDelivered = DeliverDelayedStimuli(bNeedsUpdate ? RequiresSorting : NoNeedToSort);
 
-	if (bNeedsUpdate || bStimuliDelivered)
-	{
-		for (AIPerception::FListenerMap::TIterator ListenerIt(ListenerContainer); ListenerIt; ++ListenerIt)
+		if (bNeedsUpdate || bStimuliDelivered || bSomeListenersNeedUpdateDueToStimuliAging)
 		{
-			check(ListenerIt->Value.Listener.IsValid())
-			if (ListenerIt->Value.HasAnyNewStimuli())
+			for (AIPerception::FListenerMap::TIterator ListenerIt(ListenerContainer); ListenerIt; ++ListenerIt)
 			{
-				ListenerIt->Value.ProcessStimuli();
+				check(ListenerIt->Value.Listener.IsValid())
+				if (ListenerIt->Value.HasAnyNewStimuli())
+				{
+					ListenerIt->Value.ProcessStimuli();
+				}
 			}
+
+			bSomeListenersNeedUpdateDueToStimuliAging = false;
 		}
 	}
 }
@@ -172,7 +230,12 @@ void UAIPerceptionSystem::AgeStimuli()
 		FPerceptionListener& Listener = ListenerIt->Value;
 		if (Listener.Listener.IsValid())
 		{
-			Listener.Listener->AgeStimuli(ConstPerceptionAgingRate);
+			// AgeStimuli will return true if this listener requires an update after stimuli aging
+			if (Listener.Listener->AgeStimuli(ConstPerceptionAgingRate))
+			{
+				Listener.MarkForStimulusProcessing();
+				bSomeListenersNeedUpdateDueToStimuliAging = true;
+			}
 		}
 	}
 }
@@ -181,7 +244,7 @@ UAIPerceptionSystem* UAIPerceptionSystem::GetCurrent(UObject* WorldContextObject
 {
 	UWorld* World = Cast<UWorld>(WorldContextObject);
 
-	if (World == NULL && WorldContextObject != NULL)
+	if (World == nullptr && WorldContextObject != nullptr)
 	{
 		World = GEngine->GetWorldFromContextObject(WorldContextObject);
 	}
@@ -194,72 +257,71 @@ UAIPerceptionSystem* UAIPerceptionSystem::GetCurrent(UObject* WorldContextObject
 		return AISys->GetPerceptionSystem();
 	}
 
-	return NULL;
+	return nullptr;
 }
 
-void UAIPerceptionSystem::UpdateListener(UAIPerceptionComponent* Listener)
+void UAIPerceptionSystem::UpdateListener(UAIPerceptionComponent& Listener)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_PerceptionSys);
 
-    if (Listener == NULL || Listener->IsPendingKill())
+	if (Listener.IsPendingKill())
     {
+		UnregisterListener(Listener);
         return;
     }
 
-    const int32 ListenerId = Listener->GetListenerId();
+	const FPerceptionListenerID ListenerId = Listener.GetListenerId();
 
-    if (ListenerId != AIPerception::InvalidListenerId)
+	if (ListenerId != FPerceptionListenerID::InvalidID())
     {
 		FPerceptionListener& ListenerEntry = ListenerContainer[ListenerId];
 		ListenerEntry.UpdateListenerProperties(Listener);
 		OnListenerUpdate(ListenerEntry);
 	}
 	else
-	{
-		const uint32 NewListenerId = NextFreeListenerId++;
-		Listener->StoreListenerId(NewListenerId);
-        ListenerContainer.Add(NewListenerId, FPerceptionListener(Listener));
-		
+	{			
+		const FPerceptionListenerID NewListenerId = FPerceptionListenerID::GetNextID();
+		Listener.StoreListenerId(NewListenerId);
+		FPerceptionListener& ListenerEntry = ListenerContainer.Add(NewListenerId, FPerceptionListener(Listener));
+		ListenerEntry.CacheLocation();
+				
 		OnNewListener(ListenerContainer[NewListenerId]);
     }
 }
 
-void UAIPerceptionSystem::UnregisterListener(UAIPerceptionComponent* Listener)
+void UAIPerceptionSystem::UnregisterListener(UAIPerceptionComponent& Listener)
 {
 	SCOPE_CYCLE_COUNTER(STAT_AI_PerceptionSys);
 
-    if (Listener != NULL)
-    {
-		const int32 ListenerId = Listener->GetListenerId();
+	const FPerceptionListenerID ListenerId = Listener.GetListenerId();
 
-		// can already be removed from ListenerContainer as part of cleaning up 
-		// listeners with invalid WeakObjectPtr to UAIPerceptionComponent
-		if (ListenerId != AIPerception::InvalidListenerId && ListenerContainer.Contains(ListenerId))
-		{
-			check(ListenerContainer[ListenerId].Listener.IsValid() == false
-				|| ListenerContainer[ListenerId].Listener.Get() == Listener);
-			OnListenerRemoved(ListenerContainer[ListenerId]);
-			ListenerContainer.Remove(ListenerId);
+	// can already be removed from ListenerContainer as part of cleaning up 
+	// listeners with invalid WeakObjectPtr to UAIPerceptionComponent
+	if (ListenerId != FPerceptionListenerID::InvalidID() && ListenerContainer.Contains(ListenerId))
+	{
+		check(ListenerContainer[ListenerId].Listener.IsValid() == false
+			|| ListenerContainer[ListenerId].Listener.Get() == &Listener);
+		OnListenerRemoved(ListenerContainer[ListenerId]);
+		ListenerContainer.Remove(ListenerId);
 
-			// make it as unregistered
-			Listener->StoreListenerId(AIPerception::InvalidListenerId);
-		}
+		// mark it as unregistered
+		Listener.StoreListenerId(FPerceptionListenerID::InvalidID());
 	}
 }
 
 void UAIPerceptionSystem::OnListenerRemoved(const FPerceptionListener& NewListener)
 {
 	UAISense** SenseInstance = Senses.GetData();
-	for (int32 SenseIndex = 0; SenseIndex < Senses.Num(); ++SenseIndex, ++SenseInstance)
+	for (int32 SenseID = 0; SenseID < Senses.Num(); ++SenseID, ++SenseInstance)
 	{
-		if (*SenseInstance != NULL)
+		if (*SenseInstance != nullptr)
 		{
 			(*SenseInstance)->OnListenerRemoved(NewListener);
 		}
 	}
 }
 
-void UAIPerceptionSystem::RegisterDelayedStimulus(uint32 ListenerId, float Delay, AActor* Instigator, const FAIStimulus& Stimulus)
+void UAIPerceptionSystem::RegisterDelayedStimulus(FPerceptionListenerID ListenerId, float Delay, AActor* Instigator, const FAIStimulus& Stimulus)
 {
 	FDelayedStimulus DelayedStimulus;
 	DelayedStimulus.DeliveryTimestamp = CurrentTime + Delay;
@@ -294,7 +356,7 @@ bool UAIPerceptionSystem::DeliverDelayedStimuli(UAIPerceptionSystem::EDelayedSti
 	{
 		FDelayedStimulus& DelayedStimulus = DelayedStimuli[Index];
 		
-		if (DelayedStimulus.ListenerId != AIPerception::InvalidListenerId && ListenerContainer.Contains(DelayedStimulus.ListenerId))
+		if (DelayedStimulus.ListenerId != FPerceptionListenerID::InvalidID() && ListenerContainer.Contains(DelayedStimulus.ListenerId))
 		{
 			FPerceptionListener& ListenerEntry = ListenerContainer[DelayedStimulus.ListenerId];
 			// this has been already checked during tick, so if it's no longer the case then it's a bug
@@ -314,7 +376,7 @@ bool UAIPerceptionSystem::DeliverDelayedStimuli(UAIPerceptionSystem::EDelayedSti
 
 void UAIPerceptionSystem::MakeNoiseImpl(AActor* NoiseMaker, float Loudness, APawn* NoiseInstigator, const FVector& NoiseLocation)
 {
-	check(NoiseMaker != NULL || NoiseInstigator != NULL);
+	check(NoiseMaker != nullptr || NoiseInstigator != nullptr);
 
 	UWorld* World = NoiseMaker ? NoiseMaker->GetWorld() : NoiseInstigator->GetWorld();
 
@@ -322,3 +384,84 @@ void UAIPerceptionSystem::MakeNoiseImpl(AActor* NoiseMaker, float Loudness, APaw
 			, NoiseLocation
 			, Loudness));
 }
+
+bool UAIPerceptionSystem::RegisterPerceptionStimuliSource(UObject* WorldContext, TSubclassOf<UAISense> Sense, AActor* Target)
+{
+	bool bResult = false;
+	if (Sense && Target)
+	{
+		UWorld* World = GEngine->GetWorldFromContextObject(WorldContext);
+		if (World && World->GetAISystem())
+		{
+			UAISystem* AISys = Cast<UAISystem>(World->GetAISystem());
+			if (AISys && AISys->GetPerceptionSystem())
+			{
+				const FAISenseID SenseID = UAISense::GetSenseID(Sense);
+				if (AISys->GetPerceptionSystem()->IsSenseInstantiated(SenseID) == false)
+				{
+					AISys->GetPerceptionSystem()->RegisterSenseClass(Sense);
+				}
+
+				AISys->GetPerceptionSystem()->RegisterSource(SenseID, *Target);
+				bResult = true;
+			}
+		}
+	}
+
+	return bResult;
+}
+
+TSubclassOf<UAISense> UAIPerceptionSystem::GetSenseClassForStimulus(UObject* WorldContext, const FAIStimulus& Stimulus)
+{
+	TSubclassOf<UAISense> Result = nullptr;
+	UAIPerceptionSystem* PercSys = GetCurrent(WorldContext);
+	if (PercSys && PercSys->Senses.IsValidIndex(Stimulus.Type))
+	{
+		Result = PercSys->Senses[Stimulus.Type]->GetClass();
+	}
+
+	return Result;
+}
+
+//----------------------------------------------------------------------//
+// Blueprint API
+//----------------------------------------------------------------------//
+void UAIPerceptionSystem::ReportEvent(UAISenseEvent* PerceptionEvent)
+{
+	if (PerceptionEvent)
+	{
+		const FAISenseID SenseID = PerceptionEvent->GetSenseID();
+		if (SenseID.IsValid() && Senses.IsValidIndex(SenseID) && Senses[SenseID] != nullptr)
+		{
+			Senses[SenseID]->RegisterWrappedEvent(*PerceptionEvent);
+		}
+		else
+		{
+			UE_VLOG(this, LogAIPerception, Log, TEXT("Skipping perception event %s since related sense class has not been registered (no listeners)")
+				, *PerceptionEvent->GetName());
+			PerceptionEvent->DrawToVLog(*this);
+		}
+	}
+}
+
+void UAIPerceptionSystem::ReportPerceptionEvent(UObject* WorldContext, UAISenseEvent* PerceptionEvent)
+{
+	UAIPerceptionSystem* PerceptionSys = GetCurrent(WorldContext);
+	if (PerceptionSys != nullptr)
+	{
+		PerceptionSys->ReportEvent(PerceptionEvent);
+	}
+}
+
+
+#if !UE_BUILD_SHIPPING
+FColor UAIPerceptionSystem::GetSenseDebugColor(FAISenseID SenseID) const
+{
+	return SenseID.IsValid() && Senses.IsValidIndex(SenseID) ? Senses[SenseID]->GetDebugColor() : FColor::Black;
+}
+
+FString UAIPerceptionSystem::GetSenseName(FAISenseID SenseID) const
+{
+	return SenseID.IsValid() && Senses.IsValidIndex(SenseID) ? *Senses[SenseID]->GetDebugName() : TEXT("Invalid");
+}
+#endif 

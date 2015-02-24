@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BehaviorTreeEditorPrivatePCH.h"
 #include "BlackboardSelectorDetails.h"
@@ -176,13 +176,13 @@ TSharedRef<SWidget> FBlackboardSelectorDetails::OnGetKeyContent() const
 	return MenuBuilder.MakeWidget();
 }
 
-FString FBlackboardSelectorDetails::GetCurrentKeyDesc() const
+FText FBlackboardSelectorDetails::GetCurrentKeyDesc() const
 {
 	FName NameValue;
 	MyKeyNameProperty->GetValue(NameValue);
 
 	const int32 KeyIdx = KeyValues.IndexOfByKey(NameValue);
-	return KeyValues.IsValidIndex(KeyIdx) ? KeyValues[KeyIdx].ToString() : NameValue.ToString();
+	return KeyValues.IsValidIndex(KeyIdx) ? FText::FromName(KeyValues[KeyIdx]) : FText::FromName(NameValue);
 }
 
 void FBlackboardSelectorDetails::OnKeyComboChange(int32 Index)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Engine/BrushBuilder.h"
@@ -14,9 +14,9 @@ public:
 	/** UBrushBuilder interface */
 	virtual void BeginBrush( bool InMergeCoplanars, FName InLayer ) override;
 	virtual bool EndBrush( UWorld* InWorld, ABrush* InBrush ) override;
-	virtual int32 GetVertexCount() override;
-	virtual FVector GetVertex( int32 i ) override;
-	virtual int32 GetPolyCount() override;
+	virtual int32 GetVertexCount() const override;
+	virtual FVector GetVertex( int32 i ) const override;
+	virtual int32 GetPolyCount() const override;
 	virtual bool BadParameters( const FText& msg ) override;
 	virtual int32 Vertexv( FVector v ) override;
 	virtual int32 Vertex3f( float X, float Y, float Z ) override;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "HTML5Win32PrivatePCH.h"
@@ -53,14 +53,6 @@ void ShutDownPhysXDLL()
 {
 	 
 }
-
-
-void LoadSDLDLL(const char* EngineRoot)
-{
-	std::string  DllRoot  =   std::string(EngineRoot)  +  std::string("Binaries/ThirdParty/SDL/Win32/SDL.dll");
-	LoadLibraryA( DllRoot.c_str()); 
-} 
-
 void LoadOpenAL(const char* EngineRoot)
 {
 	std::string  DllRoot  =   std::string(EngineRoot)  +  std::string("Binaries/ThirdParty/OpenAL/OpenAL32.dll");

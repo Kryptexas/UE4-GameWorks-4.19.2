@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -91,16 +91,22 @@ void FUnrealEdUtils::DrawWidget(const FSceneView* View,FPrimitiveDrawInterface* 
 	const float WidgetRadius = View->Project(WidgetOrigin).W * (UnrealEd_WidgetSize / ZoomFactor);
 
 	// Choose its color. Highlight manipulated axis in yellow.
-	FColor XColor(255, 0, 0);
-	FColor YColor(0, 255, 0);
-	FColor ZColor(0, 0, 255);
+	FColor XColor(FColor::Red);
+	FColor YColor(FColor::Green);
+	FColor ZColor(FColor::Blue);
 
-	if(HighlightAxis == EAxisList::X)
-		XColor = FColor(255, 255, 0);
-	else if(HighlightAxis == EAxisList::Y)
-		YColor = FColor(255, 255, 0);
-	else if(HighlightAxis == EAxisList::Z)
-		ZColor = FColor(255, 255, 0);
+	if (HighlightAxis == EAxisList::X)
+	{
+		XColor = FColor::Yellow;
+	}
+	else if (HighlightAxis == EAxisList::Y)
+	{
+		YColor = FColor::Yellow;
+	}
+	else if (HighlightAxis == EAxisList::Z)
+	{
+		ZColor = FColor::Yellow;
+	}
 
 	const FVector XAxis = WidgetMatrix.GetScaledAxis( EAxis::X ); 
 	const FVector YAxis = WidgetMatrix.GetScaledAxis( EAxis::Y ); 
@@ -146,9 +152,9 @@ void FUnrealEdUtils::DrawWidget(const FSceneView* View,FPrimitiveDrawInterface* 
 			FVector AlongY = WidgetOrigin + (YAxis * WidgetRadius * 0.3f);
 			FVector AlongZ = WidgetOrigin + (ZAxis * WidgetRadius * 0.3f);
 
-			PDI->DrawLine(AlongX, AlongY, FColor(255,255,255), SDPG_Foreground);
-			PDI->DrawLine(AlongY, AlongZ, FColor(255,255,255), SDPG_Foreground);
-			PDI->DrawLine(AlongZ, AlongX, FColor(255,255,255), SDPG_Foreground);
+			PDI->DrawLine(AlongX, AlongY, FColor::White, SDPG_Foreground);
+			PDI->DrawLine(AlongY, AlongZ, FColor::White, SDPG_Foreground);
+			PDI->DrawLine(AlongZ, AlongX, FColor::White, SDPG_Foreground);
 		}
 	}
 }

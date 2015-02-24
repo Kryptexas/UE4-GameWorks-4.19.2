@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LaunchPrivatePCH.h"
 #include "Internationalization/Internationalization.h"
@@ -20,6 +20,7 @@
 	#include "AutomationController.h"
 	#include "ProfilerClient.h"
 	#include "RemoteConfigIni.h"
+	#include "EditorCommandLineUtils.h"
 
 	#if PLATFORM_WINDOWS
 		#include "AllowWindowsPlatformTypes.h"
@@ -215,6 +216,13 @@ bool ParseGameProjectFromCommandLine(const TCHAR* InCmdLine, FString& OutProject
 			return true;
 		}
 	}
+
+#if WITH_EDITOR
+	if (FEditorCommandLineUtils::ParseGameProjectPath(InCmdLine, OutProjectFilePath, OutGameName))
+	{
+		return true;
+	}
+#endif
 	return false;
 }
 
@@ -326,9 +334,9 @@ void LaunchFixGameNameCase()
 			else
 			{
 				const FText Message = FText::Format(
-					NSLOCTEXT("Core", "MismatchedGameNames", "The name of the .uproject file ('{0}') must match the GameName key in the [URL] section of Config/DefaultEngine.ini (currently '{1}').  Please either change the ini or rename the .uproject to match each other (case-insensitive match)."),
-					FText::FromString(FApp::GetGameName()),
-					FText::FromString(GameName));
+					NSLOCTEXT("Core", "MismatchedGameNames", "The name of the .uproject file ('{0}') must match the name of the project passed in the command line ('{1}')."),
+					FText::FromString(*GameName),
+					FText::FromString(FApp::GetGameName()));
 				if (!GIsBuildMachine)
 				{
 					UE_LOG(LogInit, Warning, TEXT("%s"), *Message.ToString());
@@ -774,7 +782,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	FString Token				= FParse::Token( ParsedCmdLine, 0);
 
-#if	UE_EDITOR
+#if WITH_ENGINE
 	TArray<FString> Tokens;
 	TArray<FString> Switches;
 	UCommandlet::ParseCommandLine(CommandLineCopy, Tokens, Switches);
@@ -936,7 +944,23 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 
 	bHasEditorToken = !bIsNotEditor;
-#else	//UE_EDITOR
+#elif WITH_ENGINE
+	const TCHAR* CommandletCommandLine = NULL;
+	if (bHasCommandletToken)
+	{
+#if STATS
+		FThreadStats::MasterDisableForever();
+#endif
+		if (Token.StartsWith(TEXT("run=")))
+		{
+			Token = Token.RightChop(4);
+			if (!Token.EndsWith(TEXT("Commandlet")))
+			{
+				Token += TEXT("Commandlet");
+			}
+		}
+		CommandletCommandLine = ParsedCmdLine;
+	}
 #if WITH_EDITOR && WITH_EDITORONLY_DATA
 	// If a non-editor target build w/ WITH_EDITOR and WITH_EDITORONLY_DATA, use the old token check...
 	//@todo. Is this something we need to support?
@@ -1105,8 +1129,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		GIsServer = true;
 #if WITH_EDITOR
 		GIsEditor = true;
-		PRIVATE_GIsRunningCommandlet = true;
 #endif	//WITH_EDITOR
+		PRIVATE_GIsRunningCommandlet = true;
 
 		// We need to disregard the empty token as we try finding Token + "Commandlet" which would result in finding the
 		// UCommandlet class if Token is empty.
@@ -1146,8 +1170,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			GIsServer = false;
 #if WITH_EDITORONLY_DATA
 			GIsEditor = false;
-			PRIVATE_GIsRunningCommandlet = false;
 #endif
+			PRIVATE_GIsRunningCommandlet = false;
 		}
 	}
 
@@ -1155,8 +1179,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	{
 		GIsClient = false;
 		GIsServer = true;
-#if WITH_EDITOR
 		PRIVATE_GIsRunningCommandlet = false;
+#if WITH_EDITOR
 		GIsEditor = false;
 #endif
 		bIsSeekFreeDedicatedServer = FPlatformProperties::RequiresCookedData();
@@ -1261,6 +1285,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// Initialize shader types before loading any shaders
 		InitializeShaderTypes();
 
+		SlowTask.EnterProgressFrame(30);
+	
 		// Load the global shaders.
 		if (GetGlobalShaderMap(GMaxRHIFeatureLevel) == NULL && GIsRequestingExit)
 		{
@@ -1272,6 +1298,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		// package names from ini files and register them with FPackageName system.
 		FPackageName::RegisterShortPackageNamesForUObjectModules();
 
+		SlowTask.EnterProgressFrame(5);
 
 		// Make sure all UObject classes are registered and default properties have been initialized
 		ProcessNewlyLoadedUObjects();
@@ -1283,7 +1310,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		UMaterialInterface::AssertDefaultMaterialsPostLoaded();
 	}
 
-	SlowTask.EnterProgressFrame(10);
+	SlowTask.EnterProgressFrame(5);
 
 	// Tell the module manager is may now process newly-loaded UObjects when new C++ modules are loaded
 	FModuleManager::Get().StartProcessingNewlyLoadedObjects();
@@ -1351,7 +1378,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
         // do any post appInit processing, before the render thread is started.
         FPlatformMisc::PlatformPostInit(true);
     }
-	SlowTask.EnterProgressFrame(10);
+	SlowTask.EnterProgressFrame(5);
 
 	if (GUseThreadedRendering)
 	{
@@ -1381,9 +1408,8 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 	SetIsServerForOnlineSubsystemsDelegate(FQueryIsRunningServer::CreateStatic(&IsServerDelegateForOSS));
 
-	SlowTask.EnterProgressFrame(50);
+	SlowTask.EnterProgressFrame(5);
 
-#if WITH_EDITOR
 	if (!bHasEditorToken)
 	{
 		UClass* CommandletClass = NULL;
@@ -1402,6 +1428,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 				return 1;
 			}
 
+#if PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX
 			extern bool GIsConsoleExecutable;
 			if (GIsConsoleExecutable)
 			{
@@ -1413,6 +1440,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 				FPlatformMisc::SetGracefulTerminationHandler();
 			}
 			else
+#endif
 			{
 				// Bring up console unless we're a silent build.
 				if( GLogConsole && !GIsSilent )
@@ -1437,7 +1465,16 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 			GIsClient = Default->IsClient;
 			GIsServer = Default->IsServer;
+#if WITH_EDITOR
 			GIsEditor = Default->IsEditor;
+#else
+			if (Default->IsEditor)
+			{
+				UE_LOG(LogInit, Error, TEXT("Cannot run editor commandlet %s with game executable."), *CommandletClass->GetFullName());
+				GIsRequestingExit = true;
+				return 1;
+			}
+#endif
 			PRIVATE_GIsRunningCommandlet = true;
 			// Reset aux log if we don't want to log to the console window.
 			if( !Default->LogToConsole )
@@ -1451,6 +1488,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 			CommandletClass->GetDefaultObject<UCommandlet>()->CreateCustomEngine(CommandletCommandLine);
 			if ( GEngine == NULL )
 			{
+#if WITH_EDITOR
 				if ( GIsEditor )
 				{
 					UClass* EditorEngineClass = StaticLoadClass( UEditorEngine::StaticClass(), NULL, TEXT("engine-ini:/Script/Engine.Engine.EditorEngine"), NULL, LOAD_None, NULL );
@@ -1464,6 +1502,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 					UE_LOG(LogInit, Log, TEXT("Initializing Editor Engine Completed"));
 				}
 				else
+#endif
 				{
 					UClass* EngineClass = StaticLoadClass( UEngine::StaticClass(), NULL, TEXT("engine-ini:/Script/Engine.Engine.GameEngine"), NULL, LOAD_None, NULL );
 
@@ -1490,8 +1529,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 
 			// Execute the commandlet.
 			double CommandletExecutionStartTime = FPlatformTime::Seconds();
-
-			FModuleManager::Get().InitializeAutoStartupModules();
 
 			// Commandlets don't always handle -run= properly in the commandline so we'll provide them
 			// with a custom version that doesn't have it.
@@ -1601,8 +1638,6 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		}
 	}
 
-#endif	//WITH_EDITOR
-
 	// exit if wanted.
 	if( GIsRequestingExit )
 	{
@@ -1657,9 +1692,10 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	}
 #endif
 
+	// Init HighRes screenshot system.
+	GetHighResScreenshotConfig().Init();
 
 #else // WITH_ENGINE
-	FModuleManager::Get().InitializeAutoStartupModules();
 	EndInitTextLocalization();
 	FPlatformMisc::PlatformPostInit();
 #endif // WITH_ENGINE
@@ -1667,6 +1703,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 	//run automation smoke tests now that everything is setup to run
 	FAutomationTestFramework::GetInstance().RunSmokeTests();
 
+	// Note we still have 20% remaining on the slow task: this will be used by the Editor/Engine initialization next
 	return 0;
 }
 
@@ -1716,19 +1753,24 @@ void FEngineLoop::LoadPreInitModules()
 
 bool FEngineLoop::LoadStartupCoreModules()
 {
+	FScopedSlowTask SlowTask(100);
+
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Loading Startup Modules"), STAT_StartupModules, STATGROUP_LoadTime);
 
 	bool bSuccess = true;
 
 	// Load all Runtime modules
+	SlowTask.EnterProgressFrame(10);
 	{
 		FModuleManager::Get().LoadModule(TEXT("Core"));
 		FModuleManager::Get().LoadModule(TEXT("Networking"));
 	}
 
+	SlowTask.EnterProgressFrame(10);
 	FPlatformMisc::LoadStartupModules();
 
 	// initialize messaging
+	SlowTask.EnterProgressFrame(10);
 	if (FPlatformProcess::SupportsMultithreading())
 	{
 		FModuleManager::LoadModuleChecked<IMessagingModule>("Messaging");
@@ -1742,11 +1784,13 @@ bool FEngineLoop::LoadStartupCoreModules()
 		EngineService = new FEngineService();
 	}
 
+	SlowTask.EnterProgressFrame(10);
 #if WITH_EDITOR
 		FModuleManager::LoadModuleChecked<IEditorStyleModule>("EditorStyle");
 #endif //WITH_EDITOR
 
 	// Load all Development modules
+	SlowTask.EnterProgressFrame(30);
 	if (!IsRunningDedicatedServer())
 	{
 		FModuleManager::Get().LoadModule("Slate");
@@ -1763,6 +1807,7 @@ bool FEngineLoop::LoadStartupCoreModules()
 		FModuleManager::Get().LoadModule("FunctionalTesting");
 #endif	//WITH_UNREAL_DEVELOPER_TOOLS
 
+	SlowTask.EnterProgressFrame(30);
 #if (WITH_EDITOR && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
 	// HACK: load BT editor as early as possible for statically initialized assets (non cooked BT assets needs it)
 	// cooking needs this module too
@@ -1804,25 +1849,28 @@ bool FEngineLoop::LoadStartupCoreModules()
 
 bool FEngineLoop::LoadStartupModules()
 {
+	FScopedSlowTask SlowTask(3);
+
+	SlowTask.EnterProgressFrame(1);
 	// Load any modules that want to be loaded before default modules are loaded up.
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PreDefault) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PreDefault))
 	{
 		return false;
 	}
 
+	SlowTask.EnterProgressFrame(1);
 	// Load modules that are configured to load in the default phase
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::Default) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::Default))
 	{
 		return false;
 	}
 
+	SlowTask.EnterProgressFrame(1);
 	// Load any modules that want to be loaded after default modules are loaded up.
 	if (!IProjectManager::Get().LoadModulesForProject(ELoadingPhase::PostDefault) || !IPluginManager::Get().LoadModulesForEnabledPlugins(ELoadingPhase::PostDefault))
 	{
 		return false;
 	}
-
-	FModuleManager::Get().InitializeAutoStartupModules();
 
 	return true;
 }
@@ -2021,9 +2069,6 @@ void FEngineLoop::Exit()
 
 	AppPreExit();
 
-	// Shutdown and unregister all online subsystems
-	Online::ShutdownOnlineSubsystem();
-
 	TermGamePhys();
 	ParticleVertexFactoryPool_FreePool();
 	MotionBlur_Free();
@@ -2079,7 +2124,7 @@ void FEngineLoop::ProcessPlayerControllersSlateOperations() const
 					APlayerController* PlayerController = LocalPlayer->PlayerController;
 					if (PlayerController != nullptr)
 					{
-						FReply& TheReply = PlayerController->SlateOperations;
+						FReply& TheReply = *PlayerController->SlateOperations;
 
 						FWidgetPath PathToWidget;
 						SlateApp.GeneratePathToWidgetUnchecked(ViewportWidget.ToSharedRef(), PathToWidget);
@@ -2122,10 +2167,8 @@ bool FEngineLoop::ShouldUseIdleMode() const
 
 void FEngineLoop::Tick()
 {
-	// If a movie that is blocking the game thread has been playing,
-	// wait for it to finish before we tick again, otherwise we'll get
-	// multiple threads ticking simultaneously, which is bad
-	GetMoviePlayer()->WaitForMovieToFinish();
+	// Ensure we aren't starting a frame while loading or playing a loading movie
+	ensure(GetMoviePlayer()->IsLoadingFinished() && !GetMoviePlayer()->IsMovieCurrentlyPlaying());
 
 	// early in the Tick() to get the callbacks for cvar changes called
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
@@ -2167,9 +2210,6 @@ void FEngineLoop::Tick()
 
 	{ 
 		SCOPE_CYCLE_COUNTER( STAT_FrameTime );
-		
-		STAT(extern ENGINE_API void BeginOneFrameParticleStats());
-		STAT(BeginOneFrameParticleStats());
 
 		// Calculates average FPS/MS (outside STATS on purpose)
 		CalculateFPSTimings();
@@ -2210,7 +2250,12 @@ void FEngineLoop::Tick()
 		}
 
 		GEngine->Tick( FApp::GetDeltaTime(), bIdleMode );
-
+		
+		// If a movie that is blocking the game thread has been playing,
+		// wait for it to finish before we continue to tick or tick again
+		// We do this right after GEngine->Tick() because that is where user code would initiate a load / movie.
+		GetMoviePlayer()->WaitForMovieToFinish();
+		
 		if (GShaderCompilingManager)
 		{
 			// Process any asynchronous shader compile results that are ready, limit execution time
@@ -2309,11 +2354,6 @@ void FEngineLoop::Tick()
 			GEngine->TickDeferredCommands();		
 		}
 
-		{
-			STAT(extern ENGINE_API void FinishOneFrameParticleStats());
-			STAT(FinishOneFrameParticleStats());
-		} 
-
 		ENQUEUE_UNIQUE_RENDER_COMMAND(
 			EndFrame,
 		{
@@ -2336,42 +2376,6 @@ void FEngineLoop::ClearPendingCleanupObjects()
 	delete PendingCleanupObjects;
 	PendingCleanupObjects = NULL;
 }
-
-#if PLATFORM_XBOXONE
-
-void FEngineLoop::OnResuming(_In_ Platform::Object^ Sender, _In_ Platform::Object^ Args)
-{
-	// Make the call down to the RHI to Resume the GPU state
-	RHIResumeRendering();
-
-	// Notify application of resume
-	FCoreDelegates::ApplicationHasEnteredForegroundDelegate.Broadcast();
-}
-
-void FEngineLoop::OnSuspending(_In_ Platform::Object^ Sender, _In_ Windows::ApplicationModel::SuspendingEventArgs^ Args)
-{
-	// Get the Suspending Event
-	Windows::ApplicationModel::SuspendingDeferral^ SuspendingEvent = Args->SuspendingOperation->GetDeferral();
-	
-	// Notify application of suspend. Application should kick off an async save at this point.
-	FCoreDelegates::ApplicationWillEnterBackgroundDelegate.Broadcast();
-
-	// Flush the RenderingThread
-	FlushRenderingCommands();
-
-	// Make the call down to the RHI to Suspend the GPU state
-	RHISuspendRendering();
-
-	// @TODO Wait for async save to complete
-	// Flush the log so it's all written to disk
-	GLog->FlushThreadedLogs();
-	GLog->Flush();
-
-	// Tell the callback that we are done
-	SuspendingEvent->Complete();
-}
-
-#endif // PLATFORM_XBOXONE
 
 #endif // WITH_ENGINE
 
@@ -2442,6 +2446,10 @@ bool FEngineLoop::AppInit( )
 #endif // !UE_BUILD_SHIPPING
 
 #if PLATFORM_WINDOWS
+
+	// make sure that the log directory exists
+	IFileManager::Get().MakeDirectory( *FPaths::GameLogDir() );
+
 	// update the mini dump filename now that we have enough info to point it to the log folder even in installed builds
 	FCString::Strcpy(MiniDumpFilenameW, *IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*FString::Printf(TEXT("%sunreal-v%i-%s.dmp"), *FPaths::GameLogDir(), GEngineVersion.GetChangelist(), *FDateTime::Now().ToString())));
 #endif
@@ -2652,9 +2660,6 @@ bool FEngineLoop::AppInit( )
 	// For platform services that need D3D hooks like Steam
 	FModuleManager::Get().LoadModule(TEXT("OnlineSubsystem"));
 	FModuleManager::Get().LoadModule(TEXT("OnlineSubsystemUtils"));
-
-	// Init HighRes screenshot system.
-	GetHighResScreenshotConfig().Init();
 #endif
 
 	// Checks.

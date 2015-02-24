@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "BlueprintGraphPrivatePCH.h"
@@ -16,10 +16,17 @@ UK2Node_CastByteToEnum::UK2Node_CastByteToEnum(const FObjectInitializer& ObjectI
 {
 }
 
+void UK2Node_CastByteToEnum::ValidateNodeDuringCompilation(class FCompilerResultsLog& MessageLog) const
+{
+	Super::ValidateNodeDuringCompilation(MessageLog);
+	if (!Enum)
+	{
+		MessageLog.Error(*FString::Printf(*NSLOCTEXT("K2Node", "CastByteToNullEnumError", "Undefined Enum in @@").ToString()), this);
+	}
+}
+
 void UK2Node_CastByteToEnum::AllocateDefaultPins()
 {
-	check(Enum);
-
 	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 	
 	CreatePin(EGPD_Input, Schema->PC_Byte, TEXT(""), NULL, false, false, ByteInputPinName);
@@ -28,7 +35,11 @@ void UK2Node_CastByteToEnum::AllocateDefaultPins()
 
 FText UK2Node_CastByteToEnum::GetTooltipText() const
 {
-	if (CachedTooltip.IsOutOfDate())
+	if (Enum == nullptr)
+	{
+		return NSLOCTEXT("K2Node", "CastByteToEnum_NullTooltip", "Byte to Enum (bad enum)");
+	}
+	else if(CachedTooltip.IsOutOfDate())
 	{
 		// FText::Format() is slow, so we cache this to save on performance
 		CachedTooltip = FText::Format(
@@ -59,7 +70,7 @@ void UK2Node_CastByteToEnum::ExpandNode(class FKismetCompilerContext& CompilerCo
 {
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
-	if (bSafe)
+	if (bSafe && Enum)
 	{
 		const UEdGraphSchema_K2* Schema = CompilerContext.GetSchema();
 

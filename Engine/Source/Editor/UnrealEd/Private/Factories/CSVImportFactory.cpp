@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
@@ -6,6 +6,13 @@
 #include "ModuleManager.h"
 #include "DirectoryWatcherModule.h"
 #include "../../../DataTableEditor/Public/IDataTableEditor.h"
+#include "Curves/CurveVector.h"
+#include "Curves/CurveFloat.h"
+#include "Curves/CurveLinearColor.h"
+#include "Engine/DataTable.h"
+#include "Engine/CurveTable.h"
+#include "Engine/UserDefinedStruct.h"
+#include "DataTableEditorUtils.h"
 DEFINE_LOG_CATEGORY(LogCSVImportFactory);
 
 #define LOCTEXT_NAMESPACE "CSVImportFactory"
@@ -96,23 +103,7 @@ public:
 		ImportTypes.Add( MakeShareable(new ECSVImportType(ECSV_CurveVector)) );
 
 		// Find table row struct info
-		UScriptStruct* TableRowStruct = FindObjectChecked<UScriptStruct>(ANY_PACKAGE, TEXT("TableRowBase"));
-		if(TableRowStruct != NULL)
-		{
-			// Make combo of table rowstruct options
-			for (TObjectIterator<UScriptStruct> It; It; ++It)
-			{
-				UScriptStruct* Struct = *It;
-				// If a child of the table row struct base, but not itself
-				const bool bBasedOnTableRowBase = Struct->IsChildOf(TableRowStruct) && (Struct != TableRowStruct);
-				const bool bUDStruct = Struct->IsA<UUserDefinedStruct>();
-				const bool bValidStruct = (Struct->GetOutermost() != GetTransientPackage());
-				if ((bBasedOnTableRowBase || bUDStruct) && bValidStruct)
-				{
-					RowStructs.Add(Struct);
-				}
-			}
-		}
+		RowStructs = FDataTableEditorUtils::GetPossibleStructs();
 
 		// Create widget
 		this->ChildSlot
@@ -278,7 +269,7 @@ public:
 	TSharedRef<SWidget> MakeImportTypeItemWidget( TSharedPtr<ECSVImportType> Type )
 	{
 		return	SNew(STextBlock)
-				.Text(GetImportTypeText(Type));
+				.Text(FText::FromString(GetImportTypeText(Type)));
 	}
 
 	/** Called to create a widget for each struct */
@@ -286,7 +277,7 @@ public:
 	{
 		check( Struct != NULL );
 		return	SNew(STextBlock)
-				.Text(Struct->GetName());
+				.Text(FText::FromString(Struct->GetName()));
 	}
 
 	FString GetCurveTypeText (CurveInterpModePtr InterpMode) const
@@ -314,7 +305,7 @@ public:
 	TSharedRef<SWidget> MakeCurveTypeWidget( CurveInterpModePtr InterpMode )
 	{
 		FString Label = GetCurveTypeText(InterpMode);
-		return SNew(STextBlock) .Text( Label );
+		return SNew(STextBlock) .Text( FText::FromString(Label) );
 	}
 
 	/** Called when 'OK' button is pressed */
@@ -345,29 +336,29 @@ public:
 		return FReply::Handled();
 	}
 
-	FString GetSelectedItemText() const
+	FText GetSelectedItemText() const
 	{
 		TSharedPtr<ECSVImportType> SelectedType = ImportTypeCombo->GetSelectedItem();
 
 		return (SelectedType.IsValid())
-			? GetImportTypeText(SelectedType)
-			: FString();
+			? FText::FromString(GetImportTypeText(SelectedType))
+			: FText::GetEmpty();
 	}
 
-	FString GetSelectedRowOptionText() const
+	FText GetSelectedRowOptionText() const
 	{
 		UScriptStruct* SelectedScript = RowStructCombo->GetSelectedItem();
 		return (SelectedScript)
-			? SelectedScript->GetName()
-			: FString();
+			? FText::FromString(SelectedScript->GetName())
+			: FText::GetEmpty();
 	}
 
-	FString GetSelectedCurveTypeText() const
+	FText GetSelectedCurveTypeText() const
 	{
 		CurveInterpModePtr CurveModePtr = CurveInterpCombo->GetSelectedItem();
 		return (CurveModePtr.IsValid())
-			? GetCurveTypeText(CurveModePtr)
-			: FString();
+			? FText::FromString(GetCurveTypeText(CurveModePtr))
+			: FText::GetEmpty();
 	}
 };
 
@@ -636,11 +627,19 @@ void UReimportDataTableFactory::SetReimportPaths( UObject* Obj, const TArray<FSt
 
 EReimportResult::Type UReimportDataTableFactory::Reimport( UObject* Obj )
 {	
-	if(Cast<UDataTable>(Obj))
+	auto Result = EReimportResult::Failed;
+	if(auto DataTable = Cast<UDataTable>(Obj))
 	{
-		return UCSVImportFactory::ReimportCSV(Obj) ? EReimportResult::Succeeded : EReimportResult::Failed;
+		FDataTableEditorUtils::BroadcastPreChange(DataTable, FDataTableEditorUtils::EDataTableChangeInfo::RowList);
+		Result = UCSVImportFactory::ReimportCSV(DataTable) ? EReimportResult::Succeeded : EReimportResult::Failed;
+		FDataTableEditorUtils::BroadcastPostChange(DataTable, FDataTableEditorUtils::EDataTableChangeInfo::RowList);
 	}
-	return EReimportResult::Failed;
+	return Result;
+}
+
+int32 UReimportDataTableFactory::GetPriority() const
+{
+	return ImportPriority;
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -679,6 +678,11 @@ EReimportResult::Type UReimportCurveTableFactory::Reimport( UObject* Obj )
 	return EReimportResult::Failed;
 }
 
+int32 UReimportCurveTableFactory::GetPriority() const
+{
+	return ImportPriority;
+}
+
 ////////////////////////////////////////////////////////////////////////////
 //
 UReimportCurveFactory::UReimportCurveFactory(const FObjectInitializer& ObjectInitializer)
@@ -713,6 +717,11 @@ EReimportResult::Type UReimportCurveFactory::Reimport( UObject* Obj )
 		return UCSVImportFactory::ReimportCSV(Obj) ? EReimportResult::Succeeded : EReimportResult::Failed;
 	}
 	return EReimportResult::Failed;
+}
+
+int32 UReimportCurveFactory::GetPriority() const
+{
+	return ImportPriority;
 }
 
 

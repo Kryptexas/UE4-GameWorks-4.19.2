@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -32,6 +32,49 @@ namespace EDelegateInstanceType
 		Functor,
 	};
 }
+
+
+/**
+ * Class representing an handle to a delegate.
+ */
+class FDelegateHandle
+{
+public:
+	enum EGenerateNewHandleType
+	{
+		GenerateNewHandle
+	};
+
+	FDelegateHandle()
+		: ID(0)
+	{
+	}
+
+	explicit FDelegateHandle(EGenerateNewHandleType)
+		: ID(GenerateNewID())
+	{
+	}
+
+private:
+	friend bool operator==(const FDelegateHandle& Lhs, const FDelegateHandle& Rhs)
+	{
+		return Lhs.ID == Rhs.ID;
+	}
+
+	friend bool operator!=(const FDelegateHandle& Lhs, const FDelegateHandle& Rhs)
+	{
+		return Lhs.ID != Rhs.ID;
+	}
+
+	/**
+	 * Generates a new ID for use the delegate handle.
+	 *
+	 * @return A unique ID for the delegate.
+	 */
+	static CORE_API uint64 GenerateNewID();
+
+	uint64 ID;
+};
 
 
 /**
@@ -95,6 +138,11 @@ public:
 	 * @return True if the user object is still valid and it's safe to execute the function call
 	 */
 	virtual bool IsSafeToExecute( ) const = 0;
+
+	/**
+	 * Returns a handle for the delegate.
+	 */
+	virtual FDelegateHandle GetHandle() const = 0;
 
 public:
 

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UMGPrivatePCH.h"
 
@@ -18,7 +18,7 @@ UUserWidget::UUserWidget(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	ViewportAnchors = FAnchors(0, 0, 1, 1);
-	Visiblity = ESlateVisibility::SelfHitTestInvisible;
+	Visiblity_DEPRECATED = Visibility = ESlateVisibility::SelfHitTestInvisible;
 
 	bInitialized = false;
 	bSupportsKeyboardFocus = true;
@@ -46,6 +46,7 @@ void UUserWidget::Initialize()
 			BGClass->InitializeWidget(this);
 		}
 
+		// Map the named slot bindings to the available slots.
 		WidgetTree->ForEachWidget([&] (UWidget* Widget) {
 			if ( UNamedSlot* NamedWidet = Cast<UNamedSlot>(Widget) )
 			{
@@ -55,21 +56,48 @@ void UUserWidget::Initialize()
 					{
 						NamedWidet->ClearChildren();
 						NamedWidet->AddChild(Binding.Content);
-						continue;
+						return;
 					}
 				}
 			}
 		});
+
+		// TODO Find a way to remove the bindings from the table.  Currently they're still needed.
+		// Clear the named slot bindings table.
+		//NamedSlotBindings.Reset();
+	}
+}
+
+void UUserWidget::BeginDestroy()
+{
+	Super::BeginDestroy();
+
+	// If anyone ever calls BeginDestroy explicitly on a widget we need to immediately remove it from
+	// the the parent as it may be owned currently by a slate widget.  As long as it's the viewport we're
+	// fine.
+	RemoveFromParent();
+
+	// If it's not owned by the viewport we need to take more extensive measures.  If the GC widget still
+	// exists after this point we should just reset the widget, which will forcefully cause the SObjectWidget
+	// to lose access to this UObject.
+	TSharedPtr<SObjectWidget> SafeGCWidget = MyGCWidget.Pin();
+	if ( SafeGCWidget.IsValid() )
+	{
+		SafeGCWidget->ResetWidget();
 	}
 }
 
 void UUserWidget::PostEditImport()
 {
+	Super::PostEditImport();
+
 	Initialize();
 }
 
 void UUserWidget::PostDuplicate(bool bDuplicateForPIE)
 {
+	Super::PostDuplicate(bDuplicateForPIE);
+
 	Initialize();
 }
 
@@ -88,6 +116,8 @@ void UUserWidget::SynchronizeProperties()
 {
 	Super::SynchronizeProperties();
 
+	// We get the GCWidget directly because MyWidget could be the fullscreen host widget if we've been added
+	// to the viewport.
 	TSharedPtr<SObjectWidget> SafeGCWidget = MyGCWidget.Pin();
 	if ( SafeGCWidget.IsValid() )
 	{
@@ -128,7 +158,14 @@ void UUserWidget::PostInitProperties()
 
 UWorld* UUserWidget::GetWorld() const
 {
-	// Use the Player Context's world.
+	if ( HasAllFlags(RF_ClassDefaultObject) )
+	{
+		// If we are a CDO, we must return nullptr instead of calling Outer->GetWorld() to fool UObject::ImplementsGetWorld.
+		return nullptr;
+	}
+
+	// Use the Player Context's world, if a specific player context is given, otherwise fall back to
+	// following the outer chain.
 	if ( PlayerContext.IsValid() )
 	{
 		if ( UWorld* World = PlayerContext.GetWorld() )
@@ -137,13 +174,19 @@ UWorld* UUserWidget::GetWorld() const
 		}
 	}
 
-	// If the current player context doesn't have a world or isn't valid, return the game instance's world.
-	if (  UGameInstance* GameInstance = Cast<UGameInstance>(GetOuter()) )
+	// Could be a GameInstance, could be World, could also be a WidgetTree, so we're just going to follow
+	// the outer chain to find the world we're in.
+	UObject* Outer = GetOuter();
+
+	while ( Outer )
 	{
-		if ( UWorld* World = GameInstance->GetWorld() )
+		UWorld* World = Outer->GetWorld();
+		if ( World )
 		{
 			return World;
 		}
+
+		Outer = Outer->GetOuter();
 	}
 
 	return nullptr;
@@ -328,7 +371,12 @@ FEventReply UUserWidget::OnMotionDetected_Implementation(FGeometry MyGeometry, F
 	return UWidgetBlueprintLibrary::Unhandled();
 }
 
-void UUserWidget::PlayAnimation(const UWidgetAnimation* InAnimation)
+void UUserWidget::OnAnimationFinished_Implementation( const UWidgetAnimation* Animation )
+{
+	
+}
+
+void UUserWidget::PlayAnimation(const UWidgetAnimation* InAnimation, float StartAtTime, int32 NumberOfLoops)
 {
 	if( InAnimation )
 	{
@@ -344,11 +392,11 @@ void UUserWidget::PlayAnimation(const UWidgetAnimation* InAnimation)
 
 			NewPlayer->InitSequencePlayer( *InAnimation, *this );
 
-			NewPlayer->Play();
+			NewPlayer->Play( StartAtTime, NumberOfLoops );
 		}
 		else
 		{
-			(*FoundPlayer)->Play();
+			( *FoundPlayer )->Play( StartAtTime, NumberOfLoops );
 		}
 	}
 }
@@ -369,6 +417,7 @@ void UUserWidget::StopAnimation(const UWidgetAnimation* InAnimation)
 
 void UUserWidget::OnAnimationFinishedPlaying( UUMGSequencePlayer& Player )
 {
+	OnAnimationFinished( Player.GetAnimation() );
 	StoppedSequencePlayers.Add( &Player );
 }
 
@@ -411,13 +460,16 @@ TSharedRef<SWidget> UUserWidget::RebuildWidget()
 	// Add the first component to the root of the widget surface.
 	TSharedRef<SWidget> UserRootWidget = WidgetTree->RootWidget ? WidgetTree->RootWidget->TakeWidget() : TSharedRef<SWidget>(SNew(SSpacer));
 
-	if ( !IsDesignTime() )
+	return UserRootWidget;
+}
+
+void UUserWidget::OnWidgetRebuilt()
+{
+	if (!IsDesignTime())
 	{
 		// Notify the widget that it has been constructed.
 		Construct();
 	}
-
-	return UserRootWidget;
 }
 
 TSharedPtr<SWidget> UUserWidget::GetSlateWidgetFromName(const FName& Name) const
@@ -439,17 +491,19 @@ UWidget* UUserWidget::GetWidgetFromName(const FName& Name) const
 void UUserWidget::GetSlotNames(TArray<FName>& SlotNames) const
 {
 	// Only do this if this widget is of a blueprint class
-	UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass());
-	if ( BGClass != nullptr )
+	if ( UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass()) )
 	{
 		SlotNames.Append(BGClass->NamedSlots);
 	}
-
-	// Also add any existing bindings uniquely, templates don't have any components
-	// yet because they're never initialized because of their CDO status.
-	for ( const FNamedSlotBinding& Binding : NamedSlotBindings )
+	else // For non-blueprint widget blueprints we have to go through the widget tree to locate the named slots dynamically.
 	{
-		SlotNames.AddUnique( Binding.Name );
+		TArray<FName> NamedSlots;
+		WidgetTree->ForEachWidget([&] (UWidget* Widget) {
+			if ( Widget && Widget->IsA<UNamedSlot>() )
+			{
+				NamedSlots.Add(Widget->GetFName());
+			}
+		});
 	}
 }
 
@@ -562,7 +616,7 @@ UWidget* UUserWidget::GetRootWidget() const
 	return nullptr;
 }
 
-void UUserWidget::AddToViewport()
+void UUserWidget::AddToViewport(int32 ZOrder)
 {
 	if ( !FullScreenWidget.IsValid() )
 	{
@@ -577,7 +631,7 @@ void UUserWidget::AddToViewport()
 		{
 			if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
 			{
-				ViewportClient->AddViewportWidgetContent(RootWidget);
+				ViewportClient->AddViewportWidgetContent(RootWidget, 10 + ZOrder);
 			}
 		}
 	}
@@ -636,6 +690,14 @@ ULocalPlayer* UUserWidget::GetOwningLocalPlayer() const
 	return PC ? Cast<ULocalPlayer>(PC->Player) : nullptr;
 }
 
+void UUserWidget::SetOwningLocalPlayer(ULocalPlayer* LocalPlayer)
+{
+	if ( LocalPlayer )
+	{
+		PlayerContext = FLocalPlayerContext(LocalPlayer);
+	}
+}
+
 APlayerController* UUserWidget::GetOwningPlayer() const
 {
 	return PlayerContext.IsValid() ? PlayerContext.GetPlayerController() : nullptr;
@@ -655,8 +717,8 @@ void UUserWidget::SetPositionInViewport(FVector2D Position)
 {
 	float Scale = UWidgetLayoutLibrary::GetViewportScale(this);
 
-	ViewportOffsets.Left = Position.X * ( 1.0f / Scale );
-	ViewportOffsets.Top = Position.Y * ( 1.0f / Scale );
+	ViewportOffsets.Left = Position.X / Scale;
+	ViewportOffsets.Top = Position.Y / Scale;
 
 	ViewportAnchors = FAnchors(0, 0);
 }
@@ -703,6 +765,26 @@ FAnchors UUserWidget::GetViewportAnchors() const
 FVector2D UUserWidget::GetFullScreenAlignment() const
 {
 	return ViewportAlignment;
+}
+
+void UUserWidget::PreSave()
+{
+	Super::PreSave();
+
+	// Remove bindings that are no longer contained in the class.
+	if ( UWidgetBlueprintGeneratedClass* BGClass = Cast<UWidgetBlueprintGeneratedClass>(GetClass()) )
+	{
+		for ( int32 BindingIndex = 0; BindingIndex < NamedSlotBindings.Num(); BindingIndex++ )
+		{
+			const FNamedSlotBinding& Binding = NamedSlotBindings[BindingIndex];
+
+			if ( !BGClass->NamedSlots.Contains(Binding.Name) )
+			{
+				NamedSlotBindings.RemoveAt(BindingIndex);
+				BindingIndex--;
+			}
+		}
+	}
 }
 
 #if WITH_EDITOR

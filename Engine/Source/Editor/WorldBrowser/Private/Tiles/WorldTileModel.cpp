@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "WorldBrowserPrivatePCH.h"
 
@@ -7,9 +7,13 @@
 #include "WorldTileDetails.h"
 #include "WorldTileCollectionModel.h"
 #include "WorldTileModel.h"
-
+#include "Engine/LevelBounds.h"
 #include "Engine/WorldComposition.h"
 #include "Landscape.h"
+#include "GameFramework/WorldSettings.h"
+#include "Engine/LevelStreaming.h"
+#include "Engine/LevelStreamingKismet.h"
+
 
 #define LOCTEXT_NAMESPACE "WorldBrowser"
 DEFINE_LOG_CATEGORY_STATIC(WorldBrowser, Log, All);
@@ -42,7 +46,6 @@ FWorldTileModel::FWorldTileModel(const TWeakObjectPtr<UEditorEngine>& InEditor,
 	{
 		FWorldCompositionTile& Tile = WorldComposition->GetTilesList()[TileIdx];
 		
-		TileDetails->SetInfo(Tile.Info);
 		TileDetails->PackageName = Tile.PackageName;
 		TileDetails->bPersistentLevel = false;
 				
@@ -68,6 +71,8 @@ FWorldTileModel::FWorldTileModel(const TWeakObjectPtr<UEditorEngine>& InEditor,
 				}
 			}
 		}
+
+		TileDetails->SetInfo(Tile.Info, LoadedLevel.Get());
 	}
 	else
 	{
@@ -437,7 +442,7 @@ void FWorldTileModel::SetLevelPosition(const FIntPoint& InPosition)
 
 	if (IsLandscapeBased())
 	{
-		FixLandscapeSectionsOffset();
+		UpdateLandscapeSectionsOffset(Offset);
 	}
 	
 	// Transform child levels
@@ -449,10 +454,18 @@ void FWorldTileModel::SetLevelPosition(const FIntPoint& InPosition)
 	}
 }
 
-void FWorldTileModel::FixLandscapeSectionsOffset()
+void FWorldTileModel::UpdateLandscapeSectionsOffset(FIntPoint LevelOffset)
 {
-	check(IsLandscapeBased());
-	Editor->DeferredCommands.AddUnique(TEXT("UpdateLandscapeEditorData"));
+	ALandscapeProxy* LandscapeProxy = GetLandscape();
+	if (LandscapeProxy)
+	{
+		// Calculate new section coordinates for landscape
+		FVector	DrawScale = LandscapeProxy->GetRootComponent()->RelativeScale3D;
+		FIntPoint QuadsSpaceOffset;
+		QuadsSpaceOffset.X = FMath::RoundToInt(LevelOffset.X / DrawScale.X);
+		QuadsSpaceOffset.Y = FMath::RoundToInt(LevelOffset.Y / DrawScale.Y);
+		LandscapeProxy->SetAbsoluteSectionBase(QuadsSpaceOffset + LandscapeProxy->LandscapeSectionOffset);
+	}
 }
 
 void FWorldTileModel::Update()
@@ -464,11 +477,11 @@ void FWorldTileModel::Update()
 		LandscapeComponentSize = FVector2D(0.f, 0.f);
 		LandscapeComponentsRectXY = FIntRect(FIntPoint(MAX_int32, MAX_int32), FIntPoint(MIN_int32, MIN_int32));
 		
+		ULevel* Level = GetLevelObject();
 		// Receive tile info from world composition
 		FWorldTileInfo Info = LevelCollectionModel.GetWorld()->WorldComposition->GetTileInfo(TileDetails->PackageName);
-		TileDetails->SetInfo(Info);
-			
-		ULevel* Level = GetLevelObject();
+		TileDetails->SetInfo(Info, Level);
+						
 		if (Level != nullptr && Level->bIsVisible)
 		{
 			if (Level->LevelBoundsActor.IsValid())
@@ -642,6 +655,24 @@ void FWorldTileModel::OnLevelInfoUpdated()
 	if (!IsRootTile())
 	{
 		LevelCollectionModel.GetWorld()->WorldComposition->OnTileInfoUpdated(TileDetails->PackageName, TileDetails->GetInfo());
+		ULevel* Level = GetLevelObject();
+		if (Level)
+		{
+			bool bMarkDirty = false;
+			bMarkDirty|= !(Level->LevelSimplification[0] == TileDetails->LOD1.SimplificationDetails);
+			bMarkDirty|= !(Level->LevelSimplification[1] == TileDetails->LOD2.SimplificationDetails);
+			bMarkDirty|= !(Level->LevelSimplification[2] == TileDetails->LOD3.SimplificationDetails);
+			bMarkDirty|= !(Level->LevelSimplification[3] == TileDetails->LOD4.SimplificationDetails);
+			
+			if (bMarkDirty)
+			{
+				Level->LevelSimplification[0] = TileDetails->LOD1.SimplificationDetails;
+				Level->LevelSimplification[1] = TileDetails->LOD2.SimplificationDetails;
+				Level->LevelSimplification[2] = TileDetails->LOD3.SimplificationDetails;
+				Level->LevelSimplification[3] = TileDetails->LOD4.SimplificationDetails;
+				Level->MarkPackageDirty();
+			}
+		}
 	}
 }
 

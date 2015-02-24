@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "JoinSessionCallbackProxy.h"
@@ -31,7 +31,7 @@ void UJoinSessionCallbackProxy::Activate()
 		auto Sessions = Helper.OnlineSub->GetSessionInterface();
 		if (Sessions.IsValid())
 		{
-			Sessions->AddOnJoinSessionCompleteDelegate(Delegate);
+			DelegateHandle = Sessions->AddOnJoinSessionCompleteDelegate_Handle(Delegate);
 			Sessions->JoinSession(*Helper.UserID, GameSessionName, OnlineSearchResult);
 
 			// OnCompleted will get called, nothing more to do now
@@ -57,7 +57,7 @@ void UJoinSessionCallbackProxy::OnCompleted(FName SessionName, EOnJoinSessionCom
 		auto Sessions = Helper.OnlineSub->GetSessionInterface();
 		if (Sessions.IsValid())
 		{
-			Sessions->ClearOnJoinSessionCompleteDelegate(Delegate);
+			Sessions->ClearOnJoinSessionCompleteDelegate_Handle(DelegateHandle);
 
 			if (Result == EOnJoinSessionCompleteResult::Success)
 			{

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UAnimSingleNodeInstance.cpp: Single Node Tree Instance 
@@ -414,11 +414,15 @@ bool UAnimSingleNodeInstance::NativeEvaluateAnimation(FPoseContext& Output)
 		VertexAnims.Add(FActiveVertexAnim(CurrentVertexAnim, 1.f, CurrentTime));
 	}
 
-	PostEvaluateAnimEvent.ExecuteIfBound();
-
 	return true;
 }
 
+void UAnimSingleNodeInstance::PostAnimEvaluation()
+{
+	PostEvaluateAnimEvent.ExecuteIfBound();
+
+	Super::PostAnimEvaluation();
+}
 
 void UAnimSingleNodeInstance::Montage_Advance(float DeltaTime)
 {

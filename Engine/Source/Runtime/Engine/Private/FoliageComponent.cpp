@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FoliageComponent.cpp: Foliage rendering implementation.
@@ -8,6 +8,7 @@
 #include "StaticMeshResources.h"
 #include "Engine/InteractiveFoliageActor.h"
 #include "Components/InteractiveFoliageComponent.h"
+#include "Components/CapsuleComponent.h"
 
 /** Scene proxy class for UInteractiveFoliageComponent. */
 class FInteractiveFoliageSceneProxy : public FStaticMeshSceneProxy
@@ -82,7 +83,7 @@ float AInteractiveFoliageActor::TakeDamage(float DamageAmount, FDamageEvent cons
 	DamageEvent.GetBestHitInfo(this, (EventInstigator ? EventInstigator->GetPawn() : NULL), Hit, ImpulseDir);
 
 	// Discard the magnitude of the momentum and use Damage as the length instead
-	FVector DamageImpulse = ImpulseDir.SafeNormal() * DamageAmount * FoliageDamageImpulseScale;
+	FVector DamageImpulse = ImpulseDir.GetSafeNormal() * DamageAmount * FoliageDamageImpulseScale;
 
 	// Apply force magnitude clamps
 	DamageImpulse.X = FMath::Clamp(DamageImpulse.X, -MaxDamageImpulse, MaxDamageImpulse);
@@ -107,7 +108,7 @@ void AInteractiveFoliageActor::CapsuleTouched(AActor* Other, UPrimitiveComponent
 			const FVector CenterToTouching = FVector(TouchingActorCapsule->Bounds.Origin.X, TouchingActorCapsule->Bounds.Origin.Y, CapsuleComponent->Bounds.Origin.Z) - CapsuleComponent->Bounds.Origin;
 			// Keep track of the first position on the collision cylinder that the touching actor intersected
 			//@todo - need to handle multiple touching actors
-			TouchingActorEntryPosition = GetRootComponent()->Bounds.Origin + CenterToTouching.SafeNormal() * CapsuleComponent->GetScaledCapsuleRadius();
+			TouchingActorEntryPosition = GetRootComponent()->Bounds.Origin + CenterToTouching.GetSafeNormal() * CapsuleComponent->GetScaledCapsuleRadius();
 		}
 		// Bring this actor out of stasis so that it gets ticked now that a force has been applied
 		SetActorTickEnabled(true);
@@ -163,11 +164,11 @@ void AInteractiveFoliageActor::Tick(float DeltaSeconds)
 					// Which prevents strange movement that results from just comparing cylinder centers.
 					const FVector ProjectedTouchingActorPosition = (TouchingActorPosition - OppositeTouchingEntryPosition).ProjectOnTo(TouchingActorEntryPosition - OppositeTouchingEntryPosition) + OppositeTouchingEntryPosition;
 					// Find the furthest position on the cylinder of the touching actor from OppositeTouchingEntryPosition
-					const FVector TouchingActorFurthestPosition = ProjectedTouchingActorPosition + (TouchingActorEntryPosition - OppositeTouchingEntryPosition).SafeNormal() * TouchingActorCapsule->GetScaledCapsuleRadius();
+					const FVector TouchingActorFurthestPosition = ProjectedTouchingActorPosition + (TouchingActorEntryPosition - OppositeTouchingEntryPosition).GetSafeNormal() * TouchingActorCapsule->GetScaledCapsuleRadius();
 					// Construct the impulse as the distance between the furthest cylinder positions minus the two cylinder's diameters
 					const FVector ImpulseDirection = 
 						- (OppositeTouchingEntryPosition - TouchingActorFurthestPosition 
-						- (OppositeTouchingEntryPosition - TouchingActorFurthestPosition).SafeNormal() * 2.0f * (TouchingActorCapsule->GetScaledCapsuleRadius() + CapsuleComponent->GetScaledCapsuleRadius()));
+						- (OppositeTouchingEntryPosition - TouchingActorFurthestPosition).GetSafeNormal() * 2.0f * (TouchingActorCapsule->GetScaledCapsuleRadius() + CapsuleComponent->GetScaledCapsuleRadius()));
 
 					//DrawDebugLine(GetWorld(), GetRootComponent()->Bounds.Origin + FVector(0,0,100), GetRootComponent()->Bounds.Origin + ImpulseDirection + FVector(0,0,100), 100, 255, 100, false);
 
@@ -185,7 +186,7 @@ void AInteractiveFoliageActor::Tick(float DeltaSeconds)
 		FoliageForce += -FoliageStiffness * FoliagePosition;
 		// Apply spring quadratic stiffness, which increases in magnitude with the square of the distance to the origin
 		// This prevents the spring from being displaced too much by touch and damage forces
-		FoliageForce += -FoliageStiffnessQuadratic * FoliagePosition.SizeSquared() * FoliagePosition.SafeNormal();
+		FoliageForce += -FoliageStiffnessQuadratic * FoliagePosition.SizeSquared() * FoliagePosition.GetSafeNormal();
 		// Apply spring damping, which is like air resistance and causes the spring to lose energy over time
 		FoliageForce += -FoliageDamping * FoliageVelocity;
 
@@ -211,7 +212,7 @@ void AInteractiveFoliageActor::Tick(float DeltaSeconds)
 		const float RotationAngle = -FMath::Asin(FoliagePosition.Size() / IntersectionHeight);
 		// Use a rotation angle perpendicular to the impulse direction and the z axis
 		const FVector NormalizedRotationAxis = FoliagePosition.SizeSquared() > KINDA_SMALL_NUMBER ? 
-			(FoliagePosition ^ FVector(0,0,1)).SafeNormal() :
+			(FoliagePosition ^ FVector(0,0,1)).GetSafeNormal() :
 			FVector(0,0,1);
 
 		// Propagate the new rotation axis and angle to the rendering thread

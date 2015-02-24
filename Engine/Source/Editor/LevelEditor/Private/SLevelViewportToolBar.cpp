@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "LevelEditor.h"
@@ -9,7 +9,7 @@
 #include "LevelViewportActions.h"
 #include "LevelEditorActions.h"
 #include "Layers/ILayers.h"
-#include "Editor/SceneOutliner/Public/SceneOutlinerModule.h"
+#include "Editor/SceneOutliner/Public/SceneOutliner.h"
 #include "DelegateFilter.h"
 #include "Editor/SceneOutliner/Public/ISceneOutlinerColumn.h"
 #include "DeviceProfileServices.h"
@@ -112,13 +112,15 @@ void SLevelViewportToolBar::Construct( const FArguments& InArgs )
 	const FMargin ToolbarSlotPadding( 2.0f, 2.0f );
 	const FMargin ToolbarButtonPadding( 2.0f, 0.0f );
 
+	static const FName DefaultForegroundName("DefaultForeground");
+
 	ChildSlot
 	[
 		SNew( SBorder )
 		.BorderImage( FEditorStyle::GetBrush("NoBorder") )
 		// Color and opacity is changed based on whether or not the mouse cursor is hovering over the toolbar area
 		.ColorAndOpacity( this, &SViewportToolBar::OnGetColorAndOpacity )
-		.ForegroundColor( FEditorStyle::GetSlateColor("DefaultForeground") )
+		.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 		[
 			SNew( SVerticalBox )
 			+ SVerticalBox::Slot()
@@ -396,22 +398,20 @@ static void OnGenerateActorLockingMenuSection( TWeakPtr<SLevelViewport> Viewport
 
 	// Creates a scene outliner to fill the menu. The outliner lists only actors of class T and its children
 
-	FSceneOutlinerInitializationOptions InitOptions;
+	using namespace SceneOutliner;
+
+	SceneOutliner::FInitializationOptions InitOptions;
 	InitOptions.Mode = ESceneOutlinerMode::ActorPicker;			
 	InitOptions.bShowHeaderRow = false;
-	InitOptions.CustomColumnFixedWidth = SLevelViewport::GetActorLockSceneOutlinerColumnWidth();
-	InitOptions.CustomColumnFactory = FCreateSceneOutlinerColumnDelegate::CreateSP( Viewport.Pin().ToSharedRef(), &SLevelViewport::CreateActorLockSceneOutlinerColumn );
 
-	// Predicate for selecting actors by class
-	struct FActorClassPredicate
-	{
-		static bool IsLockableActor( const AActor* InActor )
-		{			
-			return InActor != NULL && InActor->IsA(ActorClass::StaticClass()) && !InActor->IsPendingKill();
-		}
-	};
+	InitOptions.ColumnMap.Add(FBuiltInColumnTypes::Label(), FColumnInfo(EColumnVisibility::Visible, 0) );
+	InitOptions.ColumnMap.Add("LockedToViewport", FColumnInfo(EColumnVisibility::Visible, 10,
+		FCreateSceneOutlinerColumn::CreateSP( Viewport.Pin().ToSharedRef(), &SLevelViewport::CreateActorLockSceneOutlinerColumn )) );
 
-	InitOptions.Filters->AddFilterPredicate( SceneOutliner::FActorFilterPredicate::CreateStatic(&FActorClassPredicate::IsLockableActor) );
+	/** Only show actors that are of the templated type */
+	InitOptions.Filters->AddFilterPredicate( FActorFilterPredicate::CreateStatic([](const AActor* InActor){
+		return InActor && InActor->IsA(ActorClass::StaticClass()) && !InActor->IsPendingKill();
+	}) );
 
 	// Create an outliner with the options from above. It sits in a box with a max height limit to stop it getting too tall when lots of actors are added.
 	FSceneOutlinerModule& SceneOutlinerModule = FModuleManager::LoadModuleChecked<FSceneOutlinerModule>("SceneOutliner");

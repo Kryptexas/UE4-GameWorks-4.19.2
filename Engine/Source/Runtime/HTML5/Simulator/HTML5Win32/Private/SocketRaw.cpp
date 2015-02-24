@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "HTML5Win32PrivatePCH.h"
 #include "SocketRaw.h"
@@ -350,22 +350,27 @@ bool FSocketRaw::IsValid()
 
 bool FSocketRaw::GetHostByName( const char *NAME, FInternetAddrRaw& Address )
 {
-	hostent* HostEnt = gethostbyname(NAME);
-	// Make sure it's a valid type
-	if (HostEnt->h_addrtype == PF_INET)
+	addrinfo* AddrInfo = nullptr;
+
+	// We are only interested in IPv4 addresses.
+	addrinfo HintAddrInfo;
+	memset(&HintAddrInfo, 0, sizeof(HintAddrInfo));
+	HintAddrInfo.ai_family = AF_INET;
+
+	int ErrorCode = getaddrinfo(NAME, nullptr, &HintAddrInfo, &AddrInfo);
+	if (ErrorCode != 0)
 	{
-		// Copy the data before letting go of the lock. This is safe only
-		// for the copy locally. If another thread is reading this while
-		// we are copying they will get munged data. This relies on the
-		// consumer of this class to call the resolved() accessor before
-		// attempting to read this data
-		(Address).SetIp(*(unsigned int *)(*HostEnt->h_addr_list));
+		if (AddrInfo->ai_addr == nullptr)
+		{
+			return false;
+		}
+
+		sockaddr_in* IPv4Address = reinterpret_cast<sockaddr_in*>(AddrInfo->ai_addr);
+		unsigned int HostIP = ntohl(IPv4Address->sin_addr.s_addr);
+		Address.SetIp(HostIP);
 		return true;
 	}
-	else
-	{
-		return false; 
-	}
+	return false;
 }
 
 bool FSocketRaw::GetHostName(const char *NAME )

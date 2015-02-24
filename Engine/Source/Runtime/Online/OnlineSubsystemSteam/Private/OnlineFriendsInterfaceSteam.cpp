@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemSteamPrivatePCH.h"
 #include "OnlineSubsystemSteam.h"
@@ -59,7 +59,7 @@ FOnlineFriendsSteam::FOnlineFriendsSteam(FOnlineSubsystemSteam* InSteamSubsystem
 	SteamFriendsPtr = SteamFriends();
 }
 
-bool FOnlineFriendsSteam::ReadFriendsList(int32 LocalUserNum, const FString& ListName)
+bool FOnlineFriendsSteam::ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate /*= FOnReadFriendsListComplete()*/)
 {
 	FString ErrorStr;
 	if (!ListName.Equals(DefaultFriendsList, ESearchCase::IgnoreCase))
@@ -71,7 +71,7 @@ bool FOnlineFriendsSteam::ReadFriendsList(int32 LocalUserNum, const FString& Lis
 		SteamUserPtr->BLoggedOn() &&
 		SteamFriendsPtr != NULL)
 	{
-		SteamSubsystem->QueueAsyncTask(new FOnlineAsyncTaskSteamReadFriendsList(this,LocalUserNum));
+		SteamSubsystem->QueueAsyncTask(new FOnlineAsyncTaskSteamReadFriendsList(this, LocalUserNum, Delegate));
 	}
 	else
 	{
@@ -79,27 +79,27 @@ bool FOnlineFriendsSteam::ReadFriendsList(int32 LocalUserNum, const FString& Lis
 	}
 	if (!ErrorStr.IsEmpty())
 	{
-		TriggerOnReadFriendsListCompleteDelegates(LocalUserNum, false, ListName, ErrorStr);
+		Delegate.ExecuteIfBound(LocalUserNum, false, ListName, ErrorStr);
 		return false;
 	}
 	return true;
 }
 
-bool FOnlineFriendsSteam::DeleteFriendsList(int32 LocalUserNum, const FString& ListName)
+bool FOnlineFriendsSteam::DeleteFriendsList(int32 LocalUserNum, const FString& ListName, const FOnDeleteFriendsListComplete& Delegate /*= FOnDeleteFriendsListComplete()*/)
 {
-	TriggerOnDeleteFriendsListCompleteDelegates(LocalUserNum, false, ListName, FString(TEXT("DeleteFriendsList() is not supported")));
+	Delegate.ExecuteIfBound(LocalUserNum, false, ListName, FString(TEXT("DeleteFriendsList() is not supported")));
 	return false;
 }
 
-bool FOnlineFriendsSteam::SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName)
+bool FOnlineFriendsSteam::SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnSendInviteComplete& Delegate /*= FOnSendInviteComplete()*/)
 {
-	TriggerOnSendInviteCompleteDelegates(LocalUserNum, false, FriendId, ListName, FString(TEXT("SendInvite() is not supported")));
+	Delegate.ExecuteIfBound(LocalUserNum, false, FriendId, ListName, FString(TEXT("SendInvite() is not supported")));
 	return false;
 }
 
-bool FOnlineFriendsSteam::AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName)
+bool FOnlineFriendsSteam::AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnAcceptInviteComplete& Delegate /*= FOnAcceptInviteComplete()*/)
 {
-	TriggerOnAcceptInviteCompleteDelegates(LocalUserNum, false, FriendId, ListName, FString(TEXT("AcceptInvite() is not supported")));
+	Delegate.ExecuteIfBound(LocalUserNum, false, FriendId, ListName, FString(TEXT("AcceptInvite() is not supported")));
 	return false;
 }
 
@@ -175,6 +175,20 @@ bool FOnlineFriendsSteam::IsFriend(int32 LocalUserNum, const FUniqueNetId& Frien
 	return bIsFriend;
 }
 
+bool FOnlineFriendsSteam::QueryRecentPlayers(const FUniqueNetId& UserId)
+{
+	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsSteam::QueryRecentPlayers()"));
+
+	TriggerOnQueryRecentPlayersCompleteDelegates(UserId, false, TEXT("not implemented"));
+
+	return false;
+}
+
+bool FOnlineFriendsSteam::GetRecentPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers)
+{
+	return false;
+}
+
 void FOnlineAsyncTaskSteamReadFriendsList::Finalize()
 {
 	FOnlineSubsystemSteam* SteamSubsystem = FriendsPtr->SteamSubsystem;
@@ -238,5 +252,5 @@ void FOnlineAsyncTaskSteamReadFriendsList::TriggerDelegates(void)
 {
 	FOnlineAsyncTask::TriggerDelegates();
 
-	FriendsPtr->TriggerOnReadFriendsListCompleteDelegates(LocalUserNum,true,DefaultFriendsList,FString());
+	Delegate.ExecuteIfBound(LocalUserNum, true, DefaultFriendsList, FString());
 }

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AbilitySystemPrivatePCH.h"
 #include "AbilitySystemComponent.h"
@@ -49,7 +49,7 @@ bool AGameplayAbilityTargetActor_GroundTrace::AdjustCollisionResultForShape(cons
 	UWorld *ThisWorld = GetWorld();
 	//Pull back toward player to find a better spot, accounting for the width of our object
 	FVector Movement = (OriginalEndPoint - OriginalStartPoint);
-	FVector MovementDirection = Movement.SafeNormal();
+	FVector MovementDirection = Movement.GetSafeNormal();
 	float MovementMagnitude2D = Movement.Size2D();
 
 	if (bDebug)
@@ -81,10 +81,10 @@ bool AGameplayAbilityTargetActor_GroundTrace::AdjustCollisionResultForShape(cons
 	{
 		TraceEnd = TraceStart = OriginalEndPoint - (LerpValue * Movement);
 		TraceEnd.Z -= 99999.0f;
-		SweepWithFilter(LocalResult, ThisWorld, Filter, TraceStart, TraceEnd, FQuat::Identity, TraceChannel, CollisionShape, Params);
+		SweepWithFilter(LocalResult, ThisWorld, Filter, TraceStart, TraceEnd, FQuat::Identity, CollisionShape, TraceProfile.Name, Params);
 		if (!LocalResult.bStartPenetrating)
 		{
-			if (!LocalResult.bBlockingHit || LocalResult.Actor.IsValid())
+			if (!LocalResult.bBlockingHit || (LocalResult.Actor.IsValid() && Cast<APawn>(LocalResult.Actor.Get())))
 			{
 				//Off the map, or hit an actor
 				if (bDebug)
@@ -149,10 +149,8 @@ FHitResult AGameplayAbilityTargetActor_GroundTrace::PerformTrace(AActor* InSourc
 	// ------------------------------------------------------
 
 	FHitResult ReturnHitResult;
-	FVector LineTraceStart = TraceStart;
-	FVector LineTraceEnd = TraceEnd;
 	//Use a line trace initially to see where the player is actually pointing
-	LineTraceWithFilter(ReturnHitResult, InSourceActor->GetWorld(), Filter, TraceStart, TraceEnd, TraceChannel, Params);
+	LineTraceWithFilter(ReturnHitResult, InSourceActor->GetWorld(), Filter, TraceStart, TraceEnd, TraceProfile.Name, Params);
 	//Default to end of trace line if we don't hit anything.
 	if (!ReturnHitResult.bBlockingHit)
 	{
@@ -160,11 +158,11 @@ FHitResult AGameplayAbilityTargetActor_GroundTrace::PerformTrace(AActor* InSourc
 	}
 
 	//Second trace, straight down. Consider using InSourceActor->GetWorld()->NavigationSystem->ProjectPointToNavigation() instead of just going straight down in the case of movement abilities (flag/bool).
-	TraceStart = ReturnHitResult.Location - (TraceEnd - TraceStart).SafeNormal();		//Pull back very slightly to avoid scraping down walls
+	TraceStart = ReturnHitResult.Location - (TraceEnd - TraceStart).GetSafeNormal();		//Pull back very slightly to avoid scraping down walls
 	TraceEnd = TraceStart;
 	TraceStart.Z += CollisionHeightOffset;
 	TraceEnd.Z -= 99999.0f;
-	LineTraceWithFilter(ReturnHitResult, InSourceActor->GetWorld(), Filter, TraceStart, TraceEnd, TraceChannel, Params);
+	LineTraceWithFilter(ReturnHitResult, InSourceActor->GetWorld(), Filter, TraceStart, TraceEnd, TraceProfile.Name, Params);
 	//if (!ReturnHitResult.bBlockingHit) then our endpoint may be off the map. Hopefully this is only possible in debug maps.
 
 	bLastTraceWasGood = true;		//So far, we're good. If we need a ground spot and can't find one, we'll come back.
@@ -183,11 +181,14 @@ FHitResult AGameplayAbilityTargetActor_GroundTrace::PerformTrace(AActor* InSourc
 		}
 	}
 
-	if (AActor* LocalReticleActor = ReticleActor.Get())
+	if (AGameplayAbilityWorldReticle* LocalReticleActor = ReticleActor.Get())
 	{
-		//TODO Special (for now) functionality: We should tell the reticle to turn red or something, indicating this isn't a valid location
+		LocalReticleActor->SetIsTargetValid(bLastTraceWasGood);
 		LocalReticleActor->SetActorLocation(ReturnHitResult.Location);
 	}
+
+	// Reset the trace start so the target data uses the correct origin
+	ReturnHitResult.TraceStart = StartLocation.GetTargetingTransform().GetLocation();
 
 	return ReturnHitResult;
 }

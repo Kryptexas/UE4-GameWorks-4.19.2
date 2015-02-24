@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	UnSkeletalComponent.cpp: Actor component implementation.
@@ -13,6 +13,8 @@
 #include "AnimTree.h"
 #include "Animation/VertexAnim/MorphTarget.h"
 #include "ComponentReregisterContext.h"
+#include "Engine/SkeletalMeshSocket.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogSkinnedMeshComp, Log, All);
 
@@ -157,26 +159,6 @@ void USkinnedMeshComponent::SendRenderDynamicData_Concurrent()
 		if ( SkeletalMesh->LODInfo[ UseLOD ].bHasBeenSimplified )
 		{
 			ActiveVertexAnims.Empty();
-		}
-
-		if( BoneVisibilityStates.Num() == SpaceBases.Num() )
-		{
-			// for invisible bones, I'll still need to update the transform, so that rendering can use it for skinning
-			uint8 const * BoneVisibilityState = BoneVisibilityStates.GetData();
-			FTransform* SpaceBase = SpaceBases.GetData();
-			for (int32 BoneIndex=0; BoneIndex<BoneVisibilityStates.Num(); ++BoneIndex, ++BoneVisibilityState, ++SpaceBase)
-			{
-				if (*BoneVisibilityState!=BVS_Visible)
-				{
-					if (BoneIndex != 0 )
-					{
-						// since they're invisible, copy parent transform to itself and scale set to be 0
-						int32 const ParentIndex =  SkeletalMesh->RefSkeleton.GetParentIndex(BoneIndex);
-						*SpaceBase = SpaceBases[ParentIndex];
-					}
-					SpaceBase->SetScale3D(FVector::ZeroVector);
-				}
-			}
 		}
 
 		MeshObject->Update(UseLOD,this,ActiveVertexAnims);  // send to rendering thread
@@ -332,13 +314,25 @@ void USkinnedMeshComponent::UpdateSlaveComponent()
 	MarkRenderDynamicDataDirty();
 }
 
+TArray<class UMaterialInterface*> USkinnedMeshComponent::GetMaterials() const
+{
+	TArray<class UMaterialInterface*> OutMaterials = Super::GetMaterials();
+
+	// if no material is overriden, look for mesh material;
+	if(OutMaterials.Num() == 0 && SkeletalMesh)
+	{
+		for (auto Material : SkeletalMesh->Materials)
+		{
+			OutMaterials.Add(Material.MaterialInterface);
+		}
+	}
+
+	return OutMaterials;
+}
+
 int32 USkinnedMeshComponent::GetNumMaterials() const
 {
-	if (Materials.Num() > 0)
-	{
-		return Materials.Num();
-	}
-	else if (SkeletalMesh)
+	if (SkeletalMesh)
 	{
 		return SkeletalMesh->Materials.Num();
 	}
@@ -348,9 +342,9 @@ int32 USkinnedMeshComponent::GetNumMaterials() const
 
 UMaterialInterface* USkinnedMeshComponent::GetMaterial(int32 MaterialIndex) const
 {
-	if(MaterialIndex < Materials.Num() && Materials[MaterialIndex])
+	if(MaterialIndex < OverrideMaterials.Num() && OverrideMaterials[MaterialIndex])
 	{
-		return Materials[MaterialIndex];
+		return OverrideMaterials[MaterialIndex];
 	}
 	else if (SkeletalMesh && MaterialIndex < SkeletalMesh->Materials.Num() && SkeletalMesh->Materials[MaterialIndex].MaterialInterface)
 	{
@@ -372,7 +366,7 @@ void USkinnedMeshComponent::GetStreamingTextureInfo(TArray<FStreamingTexturePrim
 	{
 		const float LocalTexelFactor = SkeletalMesh->GetStreamingTextureFactor(0) * StreamingDistanceMultiplier;
 		const float WorldTexelFactor = LocalTexelFactor * ComponentToWorld.GetMaximumAxisScale();
-		const int32 NumMaterials = FMath::Max(SkeletalMesh->Materials.Num(), Materials.Num());
+		const int32 NumMaterials = FMath::Max(SkeletalMesh->Materials.Num(), OverrideMaterials.Num());
 		for( int32 MatIndex = 0; MatIndex < NumMaterials; MatIndex++ )
 		{
 			UMaterialInterface* const MaterialInterface = GetMaterial(MatIndex);
@@ -473,7 +467,7 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset,
 	// Can only use the PhysicsAsset to calculate the bounding box if we are not non-uniformly scaling the mesh.
 	const bool bCanUsePhysicsAsset = DrawScale.IsUniform() && (SkeletalMesh != NULL)
 		// either space base exists or child component
-		&& ( (SpaceBases.Num() == SkeletalMesh->RefSkeleton.GetNum()) || (MasterPhysicsAsset) );
+		&& ( (GetNumSpaceBases() == SkeletalMesh->RefSkeleton.GetNum()) || (MasterPhysicsAsset) );
 
 	const bool bDetailModeAllowsRendering = (DetailMode <= GetCachedScalabilityCVars().DetailMode);
 	const bool bVisible = ( bDetailModeAllowsRendering && (ShouldRender() || bCastHiddenShadow));
@@ -503,21 +497,18 @@ FBoxSphereBounds USkinnedMeshComponent::CalcMeshBound(const FVector& RootOffset,
 	// For AnimSet Viewer, use 'bounds preview' physics asset if present.
 	else if(SkeletalMesh && bHasPhysBodies && bCanUsePhysicsAsset)
 	{
-		// @fixme UE4 this does not use LocalToWorld entered but ComponentToWorld
-		NewBounds = FBoxSphereBounds(PhysicsAsset->CalcAABB(this));
+		NewBounds = FBoxSphereBounds(PhysicsAsset->CalcAABB(this, LocalToWorld));
 	}
 #endif // WITH_EDITOR
 	// If we have a PhysicsAsset (with at least one matching bone), and we can use it, do so to calc bounds.
 	else if( bHasPhysBodies && bCanUsePhysicsAsset && UsePhysicsAsset )
 	{
-		// @fixme UE4 this does not use LocalToWorld entered but ComponentToWorld
-		NewBounds = FBoxSphereBounds(PhysicsAsset->CalcAABB(this));
+		NewBounds = FBoxSphereBounds(PhysicsAsset->CalcAABB(this, LocalToWorld));
 	}
 	// Use MasterPoseComponent's PhysicsAsset, if we don't have one and it does
 	else if(MasterPoseComponent.IsValid() && bCanUsePhysicsAsset && bMasterHasPhysBodies)
 	{
-		// @fixme UE4 this does not use LocalToWorld entered but ComponentToWorld		
-		NewBounds = FBoxSphereBounds(MasterPhysicsAsset->CalcAABB(this));
+		NewBounds = FBoxSphereBounds(MasterPhysicsAsset->CalcAABB(this, LocalToWorld));
 	}
 	// Fallback is to use the one from the skeletal mesh. Usually pretty bad in terms of Accuracy of where the SkelMesh Bounds are located (i.e. usually bigger than it needs to be)
 	else if( SkeletalMesh )
@@ -561,9 +552,9 @@ FMatrix USkinnedMeshComponent::GetBoneMatrix(int32 BoneIdx) const
 
 			// If ParentBoneIndex is valid, grab matrix from MasterPoseComponent.
 			if(	ParentBoneIndex != INDEX_NONE && 
-				ParentBoneIndex < MasterPoseComponent->SpaceBases.Num())
+				ParentBoneIndex < MasterPoseComponent->GetNumSpaceBases())
 			{
-				return MasterPoseComponent->SpaceBases[ParentBoneIndex].ToMatrixWithScale() * ComponentToWorld.ToMatrixWithScale();
+				return MasterPoseComponent->GetSpaceBases()[ParentBoneIndex].ToMatrixWithScale() * ComponentToWorld.ToMatrixWithScale();
 			}
 			else
 			{
@@ -579,9 +570,9 @@ FMatrix USkinnedMeshComponent::GetBoneMatrix(int32 BoneIdx) const
 	}
 	else
 	{
-		if( SpaceBases.Num() && BoneIdx < SpaceBases.Num() )
+		if( GetNumSpaceBases() && BoneIdx < GetNumSpaceBases() )
 		{
-			return SpaceBases[BoneIdx].ToMatrixWithScale() * ComponentToWorld.ToMatrixWithScale();
+			return GetSpaceBases()[BoneIdx].ToMatrixWithScale() * ComponentToWorld.ToMatrixWithScale();
 		}
 		else
 		{
@@ -591,16 +582,20 @@ FMatrix USkinnedMeshComponent::GetBoneMatrix(int32 BoneIdx) const
 	}
 }
 
-
 FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx) const
 {
-	if ( !IsRegistered() )
+	if (!IsRegistered())
 	{
 		// if not registered, we don't have SpaceBases yet. 
 		// also ComponentToWorld isn't set yet (They're set from relativelocation, relativerotation, relativescale)
 		return FTransform::Identity;
 	}
 
+	return GetBoneTransform(BoneIdx, ComponentToWorld);
+}
+
+FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx, const FTransform& LocalToWorld) const
+{
 	// Handle case of use a MasterPoseComponent - get bone matrix from there.
 	if(MasterPoseComponent.IsValid())
 	{
@@ -610,9 +605,9 @@ FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx) const
 
 			// If ParentBoneIndex is valid, grab matrix from MasterPoseComponent.
 			if(	ParentBoneIndex != INDEX_NONE && 
-				ParentBoneIndex < MasterPoseComponent->SpaceBases.Num())
+				ParentBoneIndex < MasterPoseComponent->GetNumSpaceBases())
 			{
-				return MasterPoseComponent->SpaceBases[ParentBoneIndex] * ComponentToWorld;
+				return MasterPoseComponent->GetSpaceBases()[ParentBoneIndex] * LocalToWorld;
 			}
 			else
 			{
@@ -628,9 +623,9 @@ FTransform USkinnedMeshComponent::GetBoneTransform(int32 BoneIdx) const
 	}
 	else
 	{
-		if( SpaceBases.Num() && BoneIdx < SpaceBases.Num() )
+		if( GetNumSpaceBases() && BoneIdx < GetNumSpaceBases() )
 		{
-			return SpaceBases[BoneIdx] * ComponentToWorld;
+			return GetSpaceBases()[BoneIdx] * LocalToWorld;
 		}
 		else
 		{
@@ -785,14 +780,17 @@ bool USkinnedMeshComponent::AllocateTransformData()
 	// Allocate transforms if not present.
 	if ( SkeletalMesh != NULL && MasterPoseComponent == NULL )
 	{
-		if( SpaceBases.Num() != SkeletalMesh->RefSkeleton.GetNum() )
+		if( GetNumSpaceBases() != SkeletalMesh->RefSkeleton.GetNum() )
 		{
-			SpaceBases.Empty( SkeletalMesh->RefSkeleton.GetNum() );
-			SpaceBases.AddUninitialized( SkeletalMesh->RefSkeleton.GetNum() );
-
-			for(int32 I=0; I<SkeletalMesh->RefSkeleton.GetNum(); ++I)
+			for (int32 BaseIndex = 0; BaseIndex < 2; ++BaseIndex)
 			{
-				SpaceBases[I].SetIdentity();
+				SpaceBasesArray[BaseIndex].Empty(SkeletalMesh->RefSkeleton.GetNum());
+				SpaceBasesArray[BaseIndex].AddUninitialized(SkeletalMesh->RefSkeleton.GetNum());
+
+				for (int32 I = 0; I < SkeletalMesh->RefSkeleton.GetNum(); ++I)
+				{
+					SpaceBasesArray[BaseIndex][I].SetIdentity();
+				}
 			}
  
 			BoneVisibilityStates.Empty( SkeletalMesh->RefSkeleton.GetNum() );
@@ -811,14 +809,16 @@ bool USkinnedMeshComponent::AllocateTransformData()
 	}
 	
 	// Reset the animation stuff when changing mesh.
-	SpaceBases.Empty();		
+	SpaceBasesArray[0].Empty();
+	SpaceBasesArray[1].Empty();
 
 	return false;
 }
 
 void USkinnedMeshComponent::DeallocateTransformData()
 {
-	SpaceBases.Empty();
+	SpaceBasesArray[0].Empty();
+	SpaceBasesArray[1].Empty();
 	BoneVisibilityStates.Empty();
 }
 
@@ -1073,9 +1073,9 @@ FQuat USkinnedMeshComponent::GetBoneQuaternion(FName BoneName, EBoneSpaces::Type
 				int32 ParentBoneIndex = MasterBoneMap[BoneIndex];
 				// If ParentBoneIndex is valid, grab matrix from MasterPoseComponent.
 				if(	ParentBoneIndex != INDEX_NONE && 
-					ParentBoneIndex < MasterPoseComponent->SpaceBases.Num())
+					ParentBoneIndex < MasterPoseComponent->GetNumSpaceBases())
 				{
-					BoneTransform = MasterPoseComponent->SpaceBases[ParentBoneIndex];
+					BoneTransform = MasterPoseComponent->GetSpaceBases()[ParentBoneIndex];
 				}
 				else
 				{
@@ -1089,7 +1089,7 @@ FQuat USkinnedMeshComponent::GetBoneQuaternion(FName BoneName, EBoneSpaces::Type
 		}
 		else
 		{
-			BoneTransform = SpaceBases[BoneIndex];
+			BoneTransform = GetSpaceBases()[BoneIndex];
 		}
 	}
 	else
@@ -1120,9 +1120,9 @@ FVector USkinnedMeshComponent::GetBoneLocation(FName BoneName, EBoneSpaces::Type
 				int32 ParentBoneIndex = MasterBoneMap[BoneIndex];
 				// If ParentBoneIndex is valid, grab transform from MasterPoseComponent.
 				if(	ParentBoneIndex != INDEX_NONE && 
-					ParentBoneIndex < MasterPoseComponent->SpaceBases.Num())
+					ParentBoneIndex < MasterPoseComponent->GetNumSpaceBases())
 				{
-					return MasterPoseComponent->SpaceBases[ParentBoneIndex].GetLocation();
+					return MasterPoseComponent->GetSpaceBases()[ParentBoneIndex].GetLocation();
 				}
 			}
 			
@@ -1131,7 +1131,7 @@ FVector USkinnedMeshComponent::GetBoneLocation(FName BoneName, EBoneSpaces::Type
 		}
 		else
 		{
-			return SpaceBases[BoneIndex].GetLocation();
+			return GetSpaceBases()[BoneIndex].GetLocation();
 		}
 	}
 	else if (Space == EBoneSpaces::WorldSpace)
@@ -1259,11 +1259,11 @@ FName USkinnedMeshComponent::FindClosestBone(FVector TestLocation, FVector* Bone
 		float IgnoreScaleSquared = FMath::Square(IgnoreScale);
 		float BestDistSquared = BIG_NUMBER;
 		int32 BestIndex = -1;
-		for (int32 i = 0; i < SpaceBases.Num(); i++)
+		for (int32 i = 0; i < GetNumSpaceBases(); i++)
 		{
-			if (IgnoreScale < 0.f || SpaceBases[i].GetScaledAxis( EAxis::X ).SizeSquared() > IgnoreScaleSquared)
+			if (IgnoreScale < 0.f || GetSpaceBases()[i].GetScaledAxis( EAxis::X ).SizeSquared() > IgnoreScaleSquared)
 			{
-				float DistSquared = (TestLocation - SpaceBases[i].GetLocation()).SizeSquared();
+				float DistSquared = (TestLocation - GetSpaceBases()[i].GetLocation()).SizeSquared();
 				if (DistSquared < BestDistSquared)
 				{
 					BestIndex = i;
@@ -1285,7 +1285,7 @@ FName USkinnedMeshComponent::FindClosestBone(FVector TestLocation, FVector* Bone
 			// transform the bone location into world space
 			if (BoneLocation != NULL)
 			{
-				*BoneLocation = (SpaceBases[BestIndex] * ComponentToWorld).GetLocation();
+				*BoneLocation = (GetSpaceBases()[BestIndex] * ComponentToWorld).GetLocation();
 			}
 			return SkeletalMesh->RefSkeleton.GetBoneName(BestIndex);
 		}
@@ -1351,7 +1351,7 @@ void USkinnedMeshComponent::GetUsedMaterials( TArray<UMaterialInterface*>& OutMa
 	if( SkeletalMesh )
 	{
 		// The max number of materials used is the max of the materials on the skeletal mesh and the materials on the mesh component
-		const int32 NumMaterials = FMath::Max( SkeletalMesh->Materials.Num(), Materials.Num() );
+		const int32 NumMaterials = FMath::Max( SkeletalMesh->Materials.Num(), OverrideMaterials.Num() );
 		for( int32 MatIdx = 0; MatIdx < NumMaterials; ++MatIdx )
 		{
 			// GetMaterial will determine the correct material to use for this index.  
@@ -1396,7 +1396,7 @@ FORCEINLINE FVector USkinnedMeshComponent::GetTypedSkinnedVertexPosition(const F
 				}
 				else
 				{
-					const FMatrix RefToLocal = SkeletalMesh->RefBasesInvMatrix[BoneIndex] * BaseComponent->SpaceBases[BoneIndex].ToMatrixWithScale();
+					const FMatrix RefToLocal = SkeletalMesh->RefBasesInvMatrix[BoneIndex] * BaseComponent->GetSpaceBases()[BoneIndex].ToMatrixWithScale();
 					SkinnedPos += RefToLocal.TransformPosition(VertexBufferGPUSkin.GetVertexPositionFast(SrcSoftVertex)) * Weight;
 				}
 			}
@@ -1421,7 +1421,7 @@ FORCEINLINE FVector USkinnedMeshComponent::GetTypedSkinnedVertexPosition(const F
 		}
 		else
 		{
-			const FMatrix RefToLocal = SkeletalMesh->RefBasesInvMatrix[BoneIndex] * BaseComponent->SpaceBases[BoneIndex].ToMatrixWithScale();
+			const FMatrix RefToLocal = SkeletalMesh->RefBasesInvMatrix[BoneIndex] * BaseComponent->GetSpaceBases()[BoneIndex].ToMatrixWithScale();
 			SkinnedPos = RefToLocal.TransformPosition(VertexBufferGPUSkin.GetVertexPositionFast(SrcRigidVertex));
 		}
 	}
@@ -1481,7 +1481,7 @@ void USkinnedMeshComponent::ComputeSkinnedPositions(TArray<FVector> & OutPositio
 	{
 		for (int32 MatrixIdx = 0; MatrixIdx < RefToLocals.Num(); ++MatrixIdx)
 		{
-			RefToLocals[MatrixIdx] = SkeletalMesh->RefBasesInvMatrix[MatrixIdx] * BaseComponent->SpaceBases[MatrixIdx].ToMatrixWithScale();
+			RefToLocals[MatrixIdx] = SkeletalMesh->RefBasesInvMatrix[MatrixIdx] * BaseComponent->GetSpaceBases()[MatrixIdx].ToMatrixWithScale();
 		}
 	}
 
@@ -1702,8 +1702,10 @@ TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const U
 	for(int32 AnimIdx=0; AnimIdx < ActiveAnims.Num(); AnimIdx++)
 	{
 		const FActiveVertexAnim& ActiveAnim = ActiveAnims[AnimIdx];
+		const float ActiveAnimAbsWeight = FMath::Abs(ActiveAnim.Weight);
+
 		// Check it has valid weight, and works on this SkeletalMesh
-		if(	ActiveAnim.Weight > MinVertexAnimBlendWeight &&
+		if (	ActiveAnimAbsWeight > MinVertexAnimBlendWeight &&
 			ActiveAnim.VertAnim != NULL &&
 			ActiveAnim.VertAnim->BaseSkelMesh == InSkeletalMesh)
 		{
@@ -1719,7 +1721,7 @@ TArray<FActiveVertexAnim> USkinnedMeshComponent::UpdateActiveVertexAnims(const U
 		const float& Weight	= (CurveIter).Value();
 
 		// If it has a valid weight
-		if(Weight > MinVertexAnimBlendWeight)
+		if(FMath::Abs(Weight) > MinVertexAnimBlendWeight)
 		{
 			// Find morph reference
 			UMorphTarget* Target = InSkeletalMesh ? InSkeletalMesh->FindMorphTarget(CurveName) : NULL;
@@ -1829,6 +1831,37 @@ void USkinnedMeshComponent::AnimUpdateRateSetParams(const bool & bRecentlyRender
 		}
 
 		AnimUpdateRateParams.Set(*Owner, DesiredEvaluationRate, DesiredEvaluationRate, true);
+	}
+}
+
+void USkinnedMeshComponent::FlipEditableSpaceBases()
+{
+	if (bNeedToFlipSpaceBaseBuffers)
+	{
+		bNeedToFlipSpaceBaseBuffers = false;
+		if (bDoubleBufferedBlendSpaces)
+		{
+			CurrentReadSpaceBases = CurrentEditableSpaceBases;
+			CurrentEditableSpaceBases = 1 - CurrentEditableSpaceBases;
+		}
+		else
+		{
+			CurrentReadSpaceBases = CurrentEditableSpaceBases = 0;
+		}
+	}
+}
+
+void USkinnedMeshComponent::SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBlendSpaces)
+{
+	bDoubleBufferedBlendSpaces = bInDoubleBufferedBlendSpaces;
+
+	if (bDoubleBufferedBlendSpaces)
+	{
+		CurrentEditableSpaceBases = 1 - CurrentReadSpaceBases;
+	}
+	else
+	{
+		CurrentEditableSpaceBases = CurrentReadSpaceBases;
 	}
 }
 

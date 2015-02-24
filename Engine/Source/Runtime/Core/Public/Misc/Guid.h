@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -59,7 +59,7 @@ enum class EGuidFormats
 /**
  * Implements a globally unique identifier.
  */
-class FGuid
+struct FGuid
 {
 public:
 

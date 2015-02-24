@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=======================================================================================
 	PhysXCollision.h: Collision related data structures/types specific to PhysX
@@ -79,7 +79,7 @@ class FPxQueryFilterCallback : public PxSceneQueryFilterCallback
 {
 public:
 	/** List of ActorIds for this query to ignore */
-	TArray<uint32, TInlineAllocator<1> >	IgnoreActors;
+	TArray<uint32, TInlineAllocator<1> >	IgnoreComponents;
 	PxSceneQueryHitType::Enum				PrefilterReturnValue;
 
 	/** Whether this is a raycastSingle or sweepSingle, because in 3.3 you can't return eTOUCH for single queries */
@@ -92,10 +92,11 @@ public:
 		bSingleQuery = false;
 	}
 
-	FPxQueryFilterCallback(const TArray<uint32, TInlineAllocator<1> > InIgnoreActors)
+	FPxQueryFilterCallback(const TArray<uint32, TInlineAllocator<1> > InIgnoreComponents)
 	{
 		PrefilterReturnValue = PxSceneQueryHitType::eNONE;
-		IgnoreActors = InIgnoreActors;
+		
+		IgnoreComponents = InIgnoreComponents;
 		bSingleQuery = false;
 	}
 
@@ -125,8 +126,8 @@ class FPxQueryFilterCallbackSweep : public FPxQueryFilterCallback
 public:
 	bool DiscardInitialOverlaps;
 
-	FPxQueryFilterCallbackSweep(const TArray<uint32, TInlineAllocator<1> > InIgnoreActors)
-		: FPxQueryFilterCallback(InIgnoreActors)
+	FPxQueryFilterCallbackSweep(const TArray<uint32, TInlineAllocator<1> > InIgnoreComponents)
+		: FPxQueryFilterCallback(InIgnoreComponents)
 	{
 		DiscardInitialOverlaps = false;
 	}

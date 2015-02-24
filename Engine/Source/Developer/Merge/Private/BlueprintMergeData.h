@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "IAssetTypeActions.h"
@@ -10,10 +10,11 @@ struct FBlueprintMergeData
 	FBlueprintMergeData()
 		: OwningEditor()
 		, BlueprintLocal(NULL)
+		, RevisionLocal(FRevisionInfo::InvalidRevision())
 		, BlueprintBase(NULL)
-		, RevisionBase()
+		, RevisionBase(FRevisionInfo::InvalidRevision())
 		, BlueprintRemote(NULL)
-		, RevisionRemote()
+		, RevisionRemote(FRevisionInfo::InvalidRevision())
 	{
 	}
 
@@ -27,16 +28,19 @@ struct FBlueprintMergeData
 	)
 		: OwningEditor(		InOwningEditor		)
 		, BlueprintLocal(	InBlueprintLocal	)
+		, RevisionLocal(	FRevisionInfo::InvalidRevision())
 		, BlueprintBase(	InBlueprintBase		)
 		, RevisionBase(		InRevisionBase		)
 		, BlueprintRemote(	InBlueprintRemote	)
-		, RevisionRemote(		InRevisionRemote)
+		, RevisionRemote(	InRevisionRemote	)
 	{
 	}
 
 	TWeakPtr<class FBlueprintEditor>	OwningEditor;
 	
 	const class UBlueprint*				BlueprintLocal;
+	FRevisionInfo						RevisionLocal;
+
 	const class UBlueprint*				BlueprintBase;
 	FRevisionInfo						RevisionBase;
 
@@ -48,17 +52,13 @@ namespace EMergeParticipant
 {
 	enum Type
 	{
-		MERGE_PARTICIPANT_REMOTE,
-		MERGE_PARTICIPANT_BASE,
-		MERGE_PARTICIPANT_LOCAL,
+		Remote,
+		Base,
+		Local,
+
+		Max_None,
 	};
 }
 
-class IMergeControl
-{
-public:
-	virtual void HighlightNextConflict() = 0;
-	virtual void HighlightPrevConflict() = 0;
-	virtual bool HasNextConflict() const = 0;
-	virtual bool HasPrevConflict() const = 0;
-};
+DECLARE_DELEGATE(FOnMergeNodeSelected);
+

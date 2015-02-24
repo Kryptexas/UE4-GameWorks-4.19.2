@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "BodySetupDetails.h"
 #include "ScopedTransaction.h"
 #include "ObjectEditorUtils.h"
 #include "IDocumentation.h"
+#include "PhysicsEngine/BodySetup.h"
 
 #define LOCTEXT_NAMESPACE "BodySetupDetails"
 
@@ -17,15 +18,15 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 {
 	// Customize collision section
 	{
-		if ( DetailBuilder.GetProperty("DefaultInstance")->IsValidHandle() )
+		if ( DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBodySetup, DefaultInstance))->IsValidHandle() )
 		{
 			IDetailCategoryBuilder& PhysicsCategory = DetailBuilder.EditCategory("Physics");
 			IDetailCategoryBuilder& CollisionCategory = DetailBuilder.EditCategory("Collision");
 
-			TSharedPtr<IPropertyHandle> BodyInstanceHandler = DetailBuilder.GetProperty("DefaultInstance");
+			TSharedPtr<IPropertyHandle> BodyInstanceHandler = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBodySetup, DefaultInstance));
 			DetailBuilder.HideProperty(BodyInstanceHandler);
 
-			TSharedPtr<IPropertyHandle> CollisionTraceHandler = DetailBuilder.GetProperty("CollisionTraceFlag");
+			TSharedPtr<IPropertyHandle> CollisionTraceHandler = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UBodySetup, CollisionTraceFlag));
 			DetailBuilder.HideProperty(CollisionTraceHandler);
 
 			// add physics properties to physics category
@@ -40,7 +41,7 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 			{
 				TSharedPtr<IPropertyHandle> ChildProperty = BodyInstanceHandler->GetChildHandle(ChildIndex);
 				FString Category = FObjectEditorUtils::GetCategory(ChildProperty->GetProperty());
-				if (ChildProperty->GetProperty()->GetName() == TEXT("bSimulatePhysics") || ChildProperty->GetProperty()->GetName() == TEXT("bAutoWeld"))
+				if (ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, bSimulatePhysics) || ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, bAutoWeld))
 				{
 					// skip bSimulatePhysics
 					// this is because we don't want bSimulatePhysics to show up 
@@ -50,9 +51,9 @@ void FBodySetupDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 					//also hide bAutoWeld for phat
 					continue;
 				}
-				else if (ChildProperty->GetProperty()->GetName() == TEXT("MassInKg"))
+				else if (ChildProperty->GetProperty()->GetFName() == GET_MEMBER_NAME_CHECKED(FBodyInstance, MassInKg))
 				{
-					PhysicsCategory.AddCustomRow(TEXT("Mass"), false)
+					PhysicsCategory.AddCustomRow(LOCTEXT("MassLabel", "Mass"), false)
 						.IsEnabled(TAttribute<bool>(this, &FBodySetupDetails::IsBodyMassEnabled))
 						.NameContent()
 						[

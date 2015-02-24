@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -55,6 +55,8 @@ public:
 		static FName NameG8(TEXT("G8"));
 		static FName NameVU8(TEXT("VU8"));
 		static FName NameRGBA16F(TEXT("RGBA16F"));
+		static FName NameBC6H(TEXT("BC6H"));
+		static FName NameBC7(TEXT("BC7"));
 
 		bool bNoCompression = Texture->CompressionNone				// Code wants the texture uncompressed.
 			|| (HasEditorOnlyData() && Texture->DeferCompression)	// The user wishes to defer compression, this is ok for the Editor only.
@@ -126,6 +128,14 @@ public:
 		{
 			TextureFormatName = NameG8;
 		}
+		else if ( Texture->CompressionSettings == TC_HDR_Compressed )
+		{
+			TextureFormatName = NameBC6H;
+		}
+		else if ( Texture->CompressionSettings == TC_BC7 )
+		{
+			TextureFormatName = NameBC7;
+		}
 		else if (Texture->CompressionNoAlpha)
 		{
 			TextureFormatName = NameDXT1;
@@ -151,7 +161,10 @@ public:
 	}
 #else //TEXTURERESOURCE_H_INCLUDED
 
-	FName GetDefaultTextureFormatName( const UTexture* Texture, const FConfigFile& EngineSettings ) const;
+	FName GetDefaultTextureFormatName( const UTexture* Texture, const FConfigFile& EngineSettings ) const
+	{
+		return NAME_None;
+	}
 
 #endif //TEXTURERESOURCE_H_INCLUDED
 #endif //WITH_ENGINE
@@ -194,6 +207,11 @@ public:
 	virtual float GetVariantPriority() const override
 	{
 		return 0.0f;
+	}
+
+	virtual bool SendLowerCaseFilePaths() const override
+	{
+		return false;
 	}
 
 protected:

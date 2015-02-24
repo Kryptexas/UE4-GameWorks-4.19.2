@@ -45,9 +45,10 @@ The steps below will take you through cloning your own private fork, then compil
    If you'd prefer not to use Git, you can get the source with the 'Download ZIP' button on the right. The built-in Windows zip utility will mark the contents of zip files 
    downloaded from the Internet as unsafe to execute, so right-click the zip file and select 'Properties...' and 'Unblock' before decompressing it. Third-party zip utilities don't normally do this.
 
-1. Install **Visual Studio 2013**. Any desktop edition of Visual Studio 2013 can build UE4, including [Visual Studio Community 2013](http://www.visualstudio.com/products/visual-studio-community-vs)
-   which is available for free. Make sure to include the MFC libraries as part of the install (it's enabled by default), which we need for ATL support.
-   
+1. Install **Visual Studio 2013**. 
+   All desktop editions of Visual Studio 2013 can build UE4, including [Visual Studio Community 2013](http://www.visualstudio.com/products/visual-studio-community-vs), which is available for free.
+   Be sure to include the MFC libraries as part of the install (it's included by default), which we need for ATL support.
+  
 1. Open your source folder in Explorer and run **Setup.bat**. 
    This will download binary content for the engine, as well as installing prerequisites and setting up Unreal file associations. 
    On Windows 8, a warning from SmartScreen may appear.  Click "More info", then "Run anyway" to continue.
@@ -76,7 +77,7 @@ The steps below will take you through cloning your own private fork, then compil
 1. Open your source folder in Finder and double-click on **Setup.command** to download binary content for the engine. You can close the Terminal window afterwards.
 
    If you downloaded the source as a .zip file, you may see a warning about it being from an unidentified developer (because .zip files on GitHub aren't digitally signed).
-   To work around it, right-click on GenerateProjectFiles.command, select Open, then click the Open button.
+   To work around it, right-click on Setup.command, select Open, then click the Open button.
 
 1. In the same folder, double-click **GenerateProjectFiles.command**.  It should take less than a minute to complete.  
 
@@ -99,7 +100,7 @@ The steps below will take you through cloning your own private fork, then compil
 
    **Cross-compiling** is handy when you are a Windows (Mac support planned too) developer who wants to package your game for Linux with minimal hassle, and it requires a [cross-compiler toolchain](http://cdn.unrealengine.com/qfe/v4_clang-3.5.0_ld-2.24_glibc-2.12.2.zip) to be installed (see the [Linux cross-compiling page on the wiki](https://wiki.unrealengine.com/Compiling_For_Linux)).
 
-   **Native compilation** is discussed in [a separate README](Engine/Build/BatchFiles/Linux/README.md) and [community wiki page](https://wiki.unrealengine.com/Building_On_Linux). Downloading the dependencies has now been automated, so you will only need to clone the repo and run **GenerateProjectFiles.sh** (provided that you have OAUTH_TOKEN set to your personal access token, see the above README for details).
+   **Native compilation** is discussed in [a separate README](Engine/Build/BatchFiles/Linux/README.md) and [community wiki page](https://wiki.unrealengine.com/Building_On_Linux). 
 
 
 
@@ -116,10 +117,19 @@ The steps below will take you through cloning your own private fork, then compil
 
 
 
+Contributing
+------------
+
+We welcome any contributions to Unreal Engine development through [pull requests](https://help.github.com/articles/using-pull-requests/) on GitHub. 
+
+Most of our active development is in the **master** branch, so we prefer to take pull requests there (particularly for new features). We try to make sure that all new code adheres to the [Epic coding standards](https://docs.unrealengine.com/latest/INT/Programming/Development/CodingStandard/). 
+
+Contributions are governed by terms in the [Unreal Engine EULA](https://www.unrealengine.com/eula).
+
+
+
 Additional Notes
 ----------------
-
-Visual Studio 2012 is supported by the Windows toolchain, though Visual Studio 2013 is recommended.
 
 The first time you start the editor from a fresh source build, you may experience long load times. 
 The engine is optimizing content for your platform to the _derived data cache_, and it should only happen once.

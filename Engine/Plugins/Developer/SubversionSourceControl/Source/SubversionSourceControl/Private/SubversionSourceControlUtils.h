@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -81,7 +81,7 @@ FDateTime GetDate(const FString& InDateString);
 /**
  * Parse the xml results of an 'svn log' command
  */
-void ParseLogResults(const FString& InFilename, const TArray<FXmlFile>& ResultsXml, const FString& UserName, FHistoryOutput& OutHistory);
+void ParseLogResults(const FString& InFilename, const TArray<FXmlFile>& ResultsXml, const FString& UserName, SubversionSourceControlUtils::FHistoryOutput& OutHistory);
 
 /**
  * Parse the xml results of an 'svn info' command

@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
 #include "SoundDefinitions.h"
 #include "Sound/SoundNodeEnveloper.h"
+#include "Distributions/DistributionFloatConstantCurve.h"
 
 /*-----------------------------------------------------------------------------
 USoundNodeEnveloper implementation.
@@ -32,18 +33,7 @@ void USoundNodeEnveloper::Serialize(FArchive& Ar)
 	Super::Serialize(Ar);
 	if (Ar.IsLoading())
 	{
-		if (Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-		{
-			if (VolumeInterpCurve_DEPRECATED != NULL && VolumeInterpCurve_DEPRECATED->ConstantCurve.Points.Num() == 0)
-			{
-				VolumeCurve.EditorCurveData.AddKey(0.0f, 1.0f);
-			}
-			if (PitchInterpCurve_DEPRECATED != NULL && PitchInterpCurve_DEPRECATED->ConstantCurve.Points.Num() == 0)
-			{
-				PitchCurve.EditorCurveData.AddKey(0.0f, 1.0f);
-			}
-		}
-		else if (Ar.UE4Ver() < VER_UE4_SOUND_NODE_ENVELOPER_CURVE_CHANGE)
+		if (Ar.UE4Ver() < VER_UE4_SOUND_NODE_ENVELOPER_CURVE_CHANGE)
 		{
 			if (VolumeInterpCurve_DEPRECATED)
 			{

@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
  
 #include "PersonaPrivatePCH.h"
 #include "SAnimBlueprintParentPlayerList.h"
 #include "PropertyEditorModule.h"
 #include "AnimGraphNodeDetails.h"
+#include "Animation/AnimBlueprintGeneratedClass.h"
 
 SAnimBlueprintParentPlayerList::SAnimBlueprintParentPlayerList()
 	: RootBlueprint(NULL)
@@ -17,6 +18,7 @@ SAnimBlueprintParentPlayerList::~SAnimBlueprintParentPlayerList()
 	if(RootBlueprint)
 	{
 		RootBlueprint->OnChanged().RemoveAll(this);
+		RootBlueprint->OnCompiled().RemoveAll(this);
 	}
 
 	if(CurrentBlueprint)
@@ -33,6 +35,7 @@ SAnimBlueprintParentPlayerList::~SAnimBlueprintParentPlayerList()
 		}
 
 		CurrentBlueprint->OnChanged().RemoveAll(this);
+		CurrentBlueprint->OnCompiled().RemoveAll(this);
 	}
 
 	TSharedPtr<FPersona> PersonaShared = PersonaPtr.Pin();
@@ -83,6 +86,7 @@ void SAnimBlueprintParentPlayerList::Construct(const FArguments& InArgs)
 		if(RootBlueprint != CurrentBlueprint)
 		{
 			RootBlueprint->OnChanged().AddSP(this, &SAnimBlueprintParentPlayerList::OnRootBlueprintChanged);
+			RootBlueprint->OnCompiled().AddSP(this, &SAnimBlueprintParentPlayerList::OnRootBlueprintChanged);
 		}
 		else
 		{
@@ -103,6 +107,7 @@ void SAnimBlueprintParentPlayerList::Construct(const FArguments& InArgs)
 
 		// Register a delegate for the current BP changing; so we can look for a root change.
 		CurrentBlueprint->OnChanged().AddSP(this, &SAnimBlueprintParentPlayerList::OnCurrentBlueprintChanged);
+		CurrentBlueprint->OnCompiled().AddSP(this, &SAnimBlueprintParentPlayerList::OnCurrentBlueprintChanged);
 	}
 	else
 	{

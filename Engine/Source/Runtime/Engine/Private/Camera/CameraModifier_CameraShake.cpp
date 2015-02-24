@@ -1,7 +1,8 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Camera/CameraAnimInst.h"
+#include "Camera/CameraModifier_CameraShake.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UCameraModifier_CameraShake
@@ -217,7 +218,7 @@ bool UCameraModifier_CameraShake::ModifyCamera(class APlayerCameraManager* Camer
 	return false;
 }
 
-float UCameraModifier_CameraShake::InitializeOffset( const FFOscillator& Param )
+float UCameraModifier_CameraShake::InitializeOffset( const FFOscillator& Param ) const
 {
 	switch( Param.InitialOffset )
 	{

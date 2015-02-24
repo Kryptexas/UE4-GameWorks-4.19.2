@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GammaUIPrivatePCH.h"
 #include "GammaUIPanel.h"
@@ -16,7 +16,7 @@ void SGammaUIPanel::Construct(const SGammaUIPanel::FArguments& InArgs)
 			.Padding( 0.0f, 4.0f, 0.0f, 4.0f )
 		[
 			SNew( STextBlock )
-				.Text( NSLOCTEXT( "GammaUI", "GammaUILabel", "Gamma" ).ToString() )
+				.Text( NSLOCTEXT( "GammaUI", "GammaUILabel", "Gamma" ) )
 		]
 
 		+ SVerticalBox::Slot()

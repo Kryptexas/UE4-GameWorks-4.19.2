@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -33,6 +33,8 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 {
 	GENERATED_UCLASS_BODY()
 
+public:
+
 	/** The anchoring information for the slot */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Canvas Slot)")
 	FAnchorData LayoutData;
@@ -45,43 +47,72 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category="Layout (Canvas Slot)")
 	int32 ZOrder;
 
-	void BuildSlot(TSharedRef<SConstraintCanvas> Canvas);
+public:
+	/** Sets the layout data of the slot */
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
+	void SetLayout(const FAnchorData& InLayoutData);
 
-	virtual void SetDesiredPosition(FVector2D InPosition) override;
-
-	virtual void SetDesiredSize(FVector2D InSize) override;
-
-	virtual void Resize(const FVector2D& Direction, const FVector2D& Amount) override;
-
-	virtual bool CanResize(const FVector2D& Direction) const override;
+	/** Gets the layout data of the slot */
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
+	FAnchorData GetLayout() const;
 
 	/** Sets the position of the slot */
 	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
 	void SetPosition(FVector2D InPosition);
 
+	/** Gets the position of the slot */
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
+	FVector2D GetPosition() const;
+
 	/** Sets the size of the slot */
 	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
 	void SetSize(FVector2D InSize);
 
-	/** Sets the position of the slot */
+	/** Gets the size of the slot */
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
+	FVector2D GetSize() const;
+
+	/** Sets the offset data of the slot, which could be position and size, or margins depending on the anchor points */
 	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
 	void SetOffsets(FMargin InOffset);
+
+	/** Gets the offset data of the slot, which could be position and size, or margins depending on the anchor points */
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
+	FMargin GetOffsets() const;
 	
 	/** Sets the anchors on the slot */
 	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
 	void SetAnchors(FAnchors InAnchors);
 
+	/** Gets the anchors on the slot */
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
+	FAnchors GetAnchors() const;
+
 	/** Sets the alignment on the slot */
 	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
 	void SetAlignment(FVector2D InAlignment);
 
-	/** Sets the slot to be auto-sized */
+	/** Gets the alignment on the slot */
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
+	FVector2D GetAlignment() const;
+
+	/** Sets if the slot to be auto-sized */
 	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
 	void SetAutoSize(bool InbAutoSize);
+
+	/** Gets if the slot to be auto-sized */
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
+	bool GetAutoSize() const;
 
 	/** Sets the z-order on the slot */
 	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
 	void SetZOrder(int32 InZOrder);
+
+	/** Gets the z-order on the slot */
+	UFUNCTION(BlueprintCallable, Category="Layout (Canvas Slot)")
+	int32 GetZOrder() const;
+
+public:
 
 	/** Sets the anchors on the slot */
 	UFUNCTION()
@@ -90,6 +121,10 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	/** Sets the anchors on the slot */
 	UFUNCTION()
 	void SetMaximum(FVector2D InMaximumAnchors);
+
+public:
+
+	void BuildSlot(TSharedRef<SConstraintCanvas> Canvas);
 
 	// UPanelSlot interface
 	virtual void SynchronizeProperties() override;
@@ -106,6 +141,8 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 	/** Stores the current layout information about the slot and parent canvas. */
 	void SaveBaseLayout();
 
+	void SetDesiredPosition(FVector2D InPosition);
+
 	/** Compares the saved base layout against the current state.  Updates the necessary properties to maintain a stable position. */
 	void RebaseLayout(bool PreserveSize = true);
 #endif
@@ -113,8 +150,10 @@ class UMG_API UCanvasPanelSlot : public UPanelSlot
 private:
 	SConstraintCanvas::FSlot* Slot;
 
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	FGeometry PreEditGeometry;
 	FAnchorData PreEditLayoutData;
+
+	TOptional<FVector2D> DesiredPosition;
 #endif
 };

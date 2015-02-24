@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,7 +26,7 @@ private:
 
 	void OnAbortModeChange(int32 Index);
 	TSharedRef<SWidget> OnGetAbortModeContent() const;
-	FString GetCurrentAbortModeDesc() const;
+	FText GetCurrentAbortModeDesc() const;
 
 	TSharedPtr<IPropertyHandle> ModeProperty;
 

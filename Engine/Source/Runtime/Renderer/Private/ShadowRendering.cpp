@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ShadowRendering.cpp: Shadow rendering implementation
@@ -297,7 +297,7 @@ public:
 
 	static bool ShouldCache(EShaderPlatform Platform,const FMaterial* Material,const FVertexFactoryType* VertexFactoryType)
 	{
-		return TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, false>::ShouldCache(Platform, Material, VertexFactoryType);
+		return TShadowDepthVS<VertexShadowDepth_OnePassPointLight, false, false>::ShouldCache(Platform, Material, VertexFactoryType) && RHISupportsGeometryShaders(Platform);
 	}
 
 	static void ModifyCompilationEnvironment(EShaderPlatform Platform, const FMaterial* Material, FShaderCompilerEnvironment& OutEnvironment)
@@ -546,6 +546,7 @@ public:
 			return (Material->IsSpecialEngineMaterial()
 					// Only compile for masked or lit translucent materials
 					|| Material->IsMasked()
+					|| (Material->MaterialMayModifyMeshPosition() && Material->IsUsedWithInstancedStaticMeshes())
 					// Perspective correct rendering needs a pixel shader and WPO materials can't be overridden with default material.
 					|| (ShaderMode == PixelShadowDepth_PerspectiveCorrect && Material->MaterialMayModifyMeshPosition()))
 				// Only compile one pass point light shaders for feature levels >= SM4
@@ -839,7 +840,7 @@ FShadowDepthDrawingPolicy<bRenderingReflectiveShadowMaps>::FShadowDepthDrawingPo
 	}
 
 	// Pixel shaders
-	if (!MaterialResource->IsMasked() && !bUsePerspectiveCorrectShadowDepths && !bRenderingReflectiveShadowMaps)
+	if (!MaterialResource->IsMasked() && !bUsePerspectiveCorrectShadowDepths && !bRenderingReflectiveShadowMaps && VertexFactory->SupportsNullPixelShader())
 	{
 		// No pixel shader necessary.
 		PixelShader = NULL;
@@ -1165,7 +1166,7 @@ void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, FDeferredShad
 			);
 
 		// Clear depth only.
-		RHICmdList.Clear(false, FColor(255, 255, 255), true, 1.0f, false, 0, FIntRect());
+		RHICmdList.Clear(false, FColor::White, true, 1.0f, false, 0, FIntRect());
 	}
 	else
 	{
@@ -1198,7 +1199,7 @@ void FProjectedShadowInfo::ClearDepth(FRHICommandList& RHICmdList, FDeferredShad
 				);
 
 			// Clear depth only.
-			RHICmdList.Clear(false, FColor(255, 255, 255), true, 1.0f, false, 0, FIntRect());
+			RHICmdList.Clear(false, FColor::White, true, 1.0f, false, 0, FIntRect());
 		}
 	}
 }
@@ -1296,54 +1297,13 @@ void FProjectedShadowInfo::RenderDepthDynamic(FRHICommandList& RHICmdList, FScen
 	// Draw the subject's dynamic elements.
 	SCOPE_CYCLE_COUNTER(STAT_WholeSceneDynamicShadowDepthsTime);
 
-	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+	FShadowDepthDrawingPolicyFactory::ContextType Context(this);
 
-	if (bUseGetMeshElements)
+	for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicSubjectMeshElements.Num(); MeshBatchIndex++)
 	{
-		FShadowDepthDrawingPolicyFactory::ContextType Context(this);
-
-		for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicSubjectMeshElements.Num(); MeshBatchIndex++)
-		{
-			const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicSubjectMeshElements[MeshBatchIndex];
-			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-			FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *FoundView, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-		}
-	}
-	else
-	{
-		uint32 DrawPrimitiveFlags = 0;
-		if (bReflectiveShadowmap)
-		{
-			// force lowest LOD for RSMs
-			DrawPrimitiveFlags = EDrawDynamicFlags::ForceLowestLOD;
-		}
-
-		TDynamicPrimitiveDrawer<FShadowDepthDrawingPolicyFactory> Drawer(RHICmdList, FoundView, FShadowDepthDrawingPolicyFactory::ContextType(this), true);
-		uint32 PrimitiveCount = SubjectPrimitives.Num();
-
-		for (uint32 PrimitiveIndex = 0; PrimitiveIndex < PrimitiveCount; ++PrimitiveIndex)
-		{
-			const FPrimitiveSceneInfo* PrimitiveSceneInfo = SubjectPrimitives[PrimitiveIndex];
-			const FPrimitiveSceneProxy* PrimitiveSceneProxy = PrimitiveSceneInfo->Proxy;
-
-			// Lookup the primitive's cached view relevance
-			FPrimitiveViewRelevance ViewRelevance = FoundView->PrimitiveViewRelevanceMap[PrimitiveSceneInfo->GetIndex()];
-
-			if (!ViewRelevance.bInitializedThisFrame)
-			{
-				// Compute the subject primitive's view relevance since it wasn't cached
-				ViewRelevance = PrimitiveSceneInfo->Proxy->GetViewRelevance(FoundView);
-			}
-
-			// Only draw if the subject primitive is shadow relevant.
-			if (ViewRelevance.bShadowRelevance)
-			{
-				FScopeCycleCounter Context(PrimitiveSceneProxy->GetStatId());
-				Drawer.SetPrimitive(PrimitiveSceneProxy);
-
-				SubjectPrimitives[PrimitiveIndex]->Proxy->DrawDynamicElements(&Drawer, FoundView, DrawPrimitiveFlags);
-			}
-		}
+		const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicSubjectMeshElements[MeshBatchIndex];
+		const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+		FShadowDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *FoundView, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 	}
 }
 
@@ -1501,14 +1461,14 @@ void FProjectedShadowInfo::SetStateForDepth(FRHICommandList& RHICmdList)
 static TAutoConsoleVariable<int32> CVarParallelShadows(
 	TEXT("r.ParallelShadows"),
 	0,
-	TEXT("Toggles parallel shadow rendering. Parallel rendering must be enabled for this to have an effect.\n"),
+	TEXT("Toggles parallel shadow rendering. Parallel rendering must be enabled for this to have an effect."),
 	ECVF_RenderThreadSafe
 	);
 
 static TAutoConsoleVariable<int32> CVarRHICmdShadowDeferredContexts(
 	TEXT("r.RHICmdShadowDeferredContexts"),
 	0,
-	TEXT("True to use deferred contexts to parallelize shadow command list execution.\n"));
+	TEXT("True to use deferred contexts to parallelize shadow command list execution."));
 
 class FShadowParallelCommandListSet : public FParallelCommandListSet
 {
@@ -1647,6 +1607,31 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 	// Backup properties of the view that we will override
 	TUniformBufferRef<FViewUniformShaderParameters> OriginalUniformBuffer = FoundView->UniformBuffer;
 	FMatrix OriginalViewMatrix = FoundView->ViewMatrices.ViewMatrix;
+	FIntRect OriginalViewRect = FoundView->ViewRect;
+	FoundView->ViewRect.Min.X = 0;
+	FoundView->ViewRect.Min.Y = 0;
+	FoundView->ViewRect.Max.X = ResolutionX;
+	FoundView->ViewRect.Max.Y =  ResolutionY;
+
+	float JitterX = FoundView->ViewMatrices.ProjMatrix.M[2][0];
+	float JitterY = FoundView->ViewMatrices.ProjMatrix.M[2][1];
+
+	FoundView->ViewMatrices.ProjMatrix.M[2][0] = 0.0f;
+	FoundView->ViewMatrices.ProjMatrix.M[2][1] = 0.0f;
+
+	{
+		// Compute the view projection matrix and its inverse.
+		FoundView->ViewProjectionMatrix = FoundView->ViewMatrices.ViewMatrix * FoundView->ViewMatrices.ProjMatrix;
+		FoundView->InvViewProjectionMatrix = FoundView->ViewMatrices.GetInvProjMatrix() * FoundView->InvViewMatrix;
+
+		/** The view transform, starting from world-space points translated by -ViewOrigin. */
+		FMatrix TranslatedViewMatrix = FTranslationMatrix(-FoundView->ViewMatrices.PreViewTranslation) * FoundView->ViewMatrices.ViewMatrix;
+
+		// Compute a transform from view origin centered world-space to clip space.
+		FoundView->ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * FoundView->ViewMatrices.ProjMatrix;
+		FoundView->ViewMatrices.InvTranslatedViewProjectionMatrix = FoundView->ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
+	}
+
 
 	// Override the view matrix so that billboarding primitives will be aligned to the light
 	//@todo - creating a new uniform buffer is expensive, only do this when the vertex factory needs an accurate view matrix (particle sprites)
@@ -1658,6 +1643,9 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 		VolumeBounds,
 		TVC_MAX);
 
+	// we are going to set this back now because we only want the correct view rect for the uniform buffer. For LOD calculations, we want the rendering viewrect and proj matrix.
+	FoundView->ViewRect = OriginalViewRect;
+
 	// Prevent materials from getting overridden during shadow casting in viewmodes like lighting only
 	// Lighting only should only affect the material used with direct lighting, not the indirect lighting
 	FoundView->bForceShowMaterials = true;
@@ -1667,6 +1655,22 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 	FoundView->bForceShowMaterials = false;
 	FoundView->UniformBuffer = OriginalUniformBuffer;
 	FoundView->ViewMatrices.ViewMatrix = OriginalViewMatrix;
+
+	FoundView->ViewMatrices.ProjMatrix.M[2][0] = JitterX;
+	FoundView->ViewMatrices.ProjMatrix.M[2][1] = JitterY;
+
+	{
+		// Compute the view projection matrix and its inverse.
+		FoundView->ViewProjectionMatrix = FoundView->ViewMatrices.ViewMatrix * FoundView->ViewMatrices.ProjMatrix;
+		FoundView->InvViewProjectionMatrix = FoundView->ViewMatrices.GetInvProjMatrix() * FoundView->InvViewMatrix;
+
+		/** The view transform, starting from world-space points translated by -ViewOrigin. */
+		FMatrix TranslatedViewMatrix = FTranslationMatrix(-FoundView->ViewMatrices.PreViewTranslation) * FoundView->ViewMatrices.ViewMatrix;
+
+		// Compute a transform from view origin centered world-space to clip space.
+		FoundView->ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * FoundView->ViewMatrices.ProjMatrix;
+		FoundView->ViewMatrices.InvTranslatedViewProjectionMatrix = FoundView->ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
+	}
 }
 
 void StencilingGeometry::DrawSphere(FRHICommandList& RHICmdList)
@@ -1879,27 +1883,22 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 			0xff,0xff
 			>::GetRHI(), 1);
 
-		// Draw the receiver's dynamic elements.
-		TDynamicPrimitiveDrawer<FDepthDrawingPolicyFactory> Drawer(RHICmdList, View, FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders), true);
-		const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
+		// Pre-shadows mask by receiver elements, self-shadow mask by subject elements.
+		// Note that self-shadow pre-shadows still mask by receiver elements.
+		const TArray<FMeshBatchAndRelevance,SceneRenderingAllocator>& DynamicMeshElements = bPreShadow ? DynamicReceiverMeshElements : DynamicSubjectMeshElements;
 
-		if (bUseGetMeshElements)
+		FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOccluders);
+
+		for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicMeshElements.Num(); MeshBatchIndex++)
 		{
-			const TArray<FMeshBatchAndRelevance,SceneRenderingAllocator>& DynamicMeshElements = bSelfShadowOnly ? DynamicSubjectMeshElements : DynamicReceiverMeshElements;
-
-			FDepthDrawingPolicyFactory::ContextType Context(DDM_AllOccluders);
-
-			for (int32 MeshBatchIndex = 0; MeshBatchIndex < DynamicMeshElements.Num(); MeshBatchIndex++)
-			{
-				const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicMeshElements[MeshBatchIndex];
-				const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
-				FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
-			}
+			const FMeshBatchAndRelevance& MeshBatchAndRelevance = DynamicMeshElements[MeshBatchIndex];
+			const FMeshBatch& MeshBatch = *MeshBatchAndRelevance.Mesh;
+			FDepthDrawingPolicyFactory::DrawDynamicMesh(RHICmdList, *View, Context, MeshBatch, false, true, MeshBatchAndRelevance.PrimitiveSceneProxy, MeshBatch.BatchHitProxyId);
 		}
 
-		// bPreShadow: only receive shadow on specific objects
-		// bSelfShadowOnly: only cast shadow on itself
-		const PrimitiveArrayType& MaskPrimitives = bSelfShadowOnly ? SubjectPrimitives : ReceiverPrimitives;
+		// Pre-shadows mask by receiver elements, self-shadow mask by subject elements.
+		// Note that self-shadow pre-shadows still mask by receiver elements.
+		const PrimitiveArrayType& MaskPrimitives = bPreShadow ? ReceiverPrimitives : SubjectPrimitives;
 
 		for (int32 PrimitiveIndex = 0, PrimitiveCount = MaskPrimitives.Num(); PrimitiveIndex < PrimitiveCount; PrimitiveIndex++)
 		{
@@ -1908,33 +1907,25 @@ void FProjectedShadowInfo::RenderProjection(FRHICommandListImmediate& RHICmdList
 			if (View->PrimitiveVisibilityMap[ReceiverPrimitiveSceneInfo->GetIndex()])
 			{
 				const FPrimitiveViewRelevance& ViewRelevance = View->PrimitiveViewRelevanceMap[ReceiverPrimitiveSceneInfo->GetIndex()];
-				if (ViewRelevance.bRenderInMainPass)
+
+				if (ViewRelevance.bRenderInMainPass && ViewRelevance.bStaticRelevance)
 				{
-					if (!bUseGetMeshElements && ViewRelevance.bDynamicRelevance)
+					for (int32 StaticMeshIdx = 0; StaticMeshIdx < ReceiverPrimitiveSceneInfo->StaticMeshes.Num(); StaticMeshIdx++)
 					{
-						Drawer.SetPrimitive(ReceiverPrimitiveSceneInfo->Proxy);
-						ReceiverPrimitiveSceneInfo->Proxy->DrawDynamicElements(&Drawer, View);
-					}
+						const FStaticMesh& StaticMesh = ReceiverPrimitiveSceneInfo->StaticMeshes[StaticMeshIdx];
 
-					if (ViewRelevance.bStaticRelevance)
-					{
-						for (int32 StaticMeshIdx = 0; StaticMeshIdx < ReceiverPrimitiveSceneInfo->StaticMeshes.Num(); StaticMeshIdx++)
+						if (View->StaticMeshVisibilityMap[StaticMesh.Id])
 						{
-							const FStaticMesh& StaticMesh = ReceiverPrimitiveSceneInfo->StaticMeshes[StaticMeshIdx];
-
-							if (View->StaticMeshVisibilityMap[StaticMesh.Id])
-							{
-								FDepthDrawingPolicyFactory::DrawStaticMesh(
-									RHICmdList, 
-									*View,
-									FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders),
-									StaticMesh,
-									StaticMesh.Elements.Num() == 1 ? 1 : View->StaticMeshBatchVisibility[StaticMesh.Id],
-									true,
-									ReceiverPrimitiveSceneInfo->Proxy,
-									StaticMesh.BatchHitProxyId
-									);
-							}
+							FDepthDrawingPolicyFactory::DrawStaticMesh(
+								RHICmdList, 
+								*View,
+								FDepthDrawingPolicyFactory::ContextType(DDM_AllOccluders),
+								StaticMesh,
+								StaticMesh.Elements.Num() == 1 ? 1 : View->StaticMeshBatchVisibility[StaticMesh.Id],
+								true,
+								ReceiverPrimitiveSceneInfo->Proxy,
+								StaticMesh.BatchHitProxyId
+								);
 						}
 					}
 				}
@@ -2344,8 +2335,8 @@ FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View) co
 			FPlane(0,						 -ShadowResolutionFractionY,0,									0),
 			FPlane(0,						0,							InvMaxSubjectDepth,	0),
 			FPlane(
-				(X + SHADOW_BORDER + GPixelCenterOffset) * InvBufferResolutionX + ShadowResolutionFractionX,
-				(Y + SHADOW_BORDER + GPixelCenterOffset) * InvBufferResolutionY + ShadowResolutionFractionY,
+				(X + SHADOW_BORDER) * InvBufferResolutionX + ShadowResolutionFractionX,
+				(Y + SHADOW_BORDER) * InvBufferResolutionY + ShadowResolutionFractionY,
 				0,
 				1
 			)
@@ -2355,7 +2346,7 @@ FMatrix FProjectedShadowInfo::GetScreenToShadowMatrix(const FSceneView& View) co
 
 FMatrix FProjectedShadowInfo::GetWorldToShadowMatrix(FVector4& ShadowmapMinMax, const FIntPoint* ShadowBufferResolutionOverride, bool bHasShadowBorder ) const
 {
-	FIntPoint ShadowBufferResolution = ( ShadowBufferResolutionOverride ) ? *ShadowBufferResolutionOverride : GSceneRenderTargets.GetShadowDepthTextureResolution();
+	FIntPoint ShadowBufferResolution = ( ShadowBufferResolutionOverride ) ? *ShadowBufferResolutionOverride : GetShadowBufferResolution();
 	float ShadowBorder = (bHasShadowBorder) ? SHADOW_BORDER : 0.0f;
 
 	const float InvBufferResolutionX = 1.0f / (float)ShadowBufferResolution.X;
@@ -2376,8 +2367,8 @@ FMatrix FProjectedShadowInfo::GetWorldToShadowMatrix(FVector4& ShadowmapMinMax, 
 			FPlane(0,						 -ShadowResolutionFractionY,0,									0),
 			FPlane(0,						0,							InvMaxSubjectDepth,	0),
 			FPlane(
-				(X + ShadowBorder + GPixelCenterOffset) * InvBufferResolutionX + ShadowResolutionFractionX,
-				(Y + ShadowBorder + GPixelCenterOffset) * InvBufferResolutionY + ShadowResolutionFractionY,
+				(X + ShadowBorder) * InvBufferResolutionX + ShadowResolutionFractionX,
+				(Y + ShadowBorder) * InvBufferResolutionY + ShadowResolutionFractionY,
 				0,
 				1
 			)
@@ -2395,6 +2386,11 @@ FMatrix FProjectedShadowInfo::GetWorldToShadowMatrix(FVector4& ShadowmapMinMax, 
 /** Returns the resolution of the shadow buffer used for this shadow, based on the shadow's type. */
 FIntPoint FProjectedShadowInfo::GetShadowBufferResolution() const
 {
+	if (bTranslucentShadow)
+	{
+		return GSceneRenderTargets.GetTranslucentShadowDepthTextureResolution();
+	}
+
 	const FTexture2DRHIRef& ShadowTexture = GSceneRenderTargets.GetShadowDepthZTexture(bAllocatedInPreshadowCache);
 
 	//prefer to return the actual size of the allocated texture if possible.  It may be larger than the size of a single shadowmap due to atlasing (see forward renderer CSM handling in InitDynamicShadows).

@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MaterialEditorModule.h"
 #include "Editor/PropertyEditor/Public/PropertyEditing.h"
 #include "MaterialEditor.h"
 #include "MaterialEditorDetailCustomization.h"
+#include "Materials/MaterialParameterCollection.h"
 
 #define LOCTEXT_NAMESPACE "MaterialEditor"
 
@@ -91,7 +92,7 @@ TSharedRef< ITableRow > FMaterialExpressionParameterDetails::MakeDetailsGroupVie
 {
 	return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
 		[
-			SNew(STextBlock) .Text(*Item.Get())
+			SNew(STextBlock) .Text(FText::FromString(*Item.Get()))
 		];
 }
 
@@ -138,36 +139,42 @@ FMaterialExpressionCollectionParameterDetails::FMaterialExpressionCollectionPara
 {
 }
 
-FString FMaterialExpressionCollectionParameterDetails::GetToolTipText() const
+FText FMaterialExpressionCollectionParameterDetails::GetToolTipText() const
 {
 	if (ParametersSource.Num() == 1)
 	{
-		return LOCTEXT("SpecifyCollection", "Specify a Collection to get parameter options").ToString();
+		return LOCTEXT("SpecifyCollection", "Specify a Collection to get parameter options");
 	}
 	else
 	{
-		return LOCTEXT("ChooseParameter", "Choose a parameter from the collection").ToString();
+		return LOCTEXT("ChooseParameter", "Choose a parameter from the collection");
 	}
 }
 
-FString FMaterialExpressionCollectionParameterDetails::GetParameterNameString() const
+FText FMaterialExpressionCollectionParameterDetails::GetParameterNameString() const
 {
 	FString CurrentParameterName;
 
 	FPropertyAccess::Result Result = ParameterNamePropertyHandle->GetValue(CurrentParameterName);
 	if( Result == FPropertyAccess::MultipleValues )
 	{
-		CurrentParameterName = NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values").ToString();
+		return NSLOCTEXT("PropertyEditor", "MultipleValues", "Multiple Values");
 	}
 
-	return CurrentParameterName;
+	return FText::FromString(CurrentParameterName);
 }
 
 bool FMaterialExpressionCollectionParameterDetails::IsParameterNameComboEnabled() const
 {
-	UObject* CollectionObject = NULL;
-	verify(CollectionPropertyHandle->GetValue(CollectionObject) == FPropertyAccess::Success);
-	UMaterialParameterCollection* Collection = Cast<UMaterialParameterCollection>(CollectionObject);
+	UMaterialParameterCollection* Collection = nullptr;
+	
+	if (CollectionPropertyHandle->IsValidHandle())
+	{
+		UObject* CollectionObject = nullptr;
+		verify(CollectionPropertyHandle->GetValue(CollectionObject) == FPropertyAccess::Success);
+		Collection = Cast<UMaterialParameterCollection>(CollectionObject);
+	}
+
 	return Collection != nullptr;
 }
 
@@ -184,7 +191,9 @@ void FMaterialExpressionCollectionParameterDetails::CustomizeDetails( IDetailLay
 
 	// Get a handle to the property we are about to edit
 	ParameterNamePropertyHandle = DetailLayout.GetProperty( "ParameterName" );
+	check(ParameterNamePropertyHandle.IsValid());
 	CollectionPropertyHandle = DetailLayout.GetProperty( "Collection" );
+	check(CollectionPropertyHandle.IsValid());
 
 	// Register a changed callback on the collection property since we need to update the PropertyName vertical box when it changes
 	FSimpleDelegate OnCollectionChangedDelegate = FSimpleDelegate::CreateSP( this, &FMaterialExpressionCollectionParameterDetails::OnCollectionChanged );
@@ -237,14 +246,19 @@ void FMaterialExpressionCollectionParameterDetails::CustomizeDetails( IDetailLay
 	ParameterComboButton = NewComboButton;
 	ParameterListView = NewListView;
 
-	NewComboButton->SetToolTipText(TAttribute<FString>(GetToolTipText()));
+	NewComboButton->SetToolTipText(GetToolTipText());
 }
 
 void FMaterialExpressionCollectionParameterDetails::PopulateParameters()
 {
-	UObject* CollectionObject = NULL;
-	verify(CollectionPropertyHandle->GetValue(CollectionObject) == FPropertyAccess::Success);
-	UMaterialParameterCollection* Collection = Cast<UMaterialParameterCollection>(CollectionObject);
+	UMaterialParameterCollection* Collection = nullptr;
+	
+	if (CollectionPropertyHandle->IsValidHandle())
+	{
+		UObject* CollectionObject = nullptr;
+		verify(CollectionPropertyHandle->GetValue(CollectionObject) == FPropertyAccess::Success);
+		Collection = Cast<UMaterialParameterCollection>(CollectionObject);
+	}
 
 	ParametersSource.Empty();
 
@@ -271,7 +285,7 @@ TSharedRef< ITableRow > FMaterialExpressionCollectionParameterDetails::MakeDetai
 {
 	return SNew(STableRow<TSharedPtr<FString>>, OwnerTable)
 		[
-			SNew(STextBlock) .Text(*Item.Get())
+			SNew(STextBlock) .Text(FText::FromString(*Item.Get()))
 		];
 }
 

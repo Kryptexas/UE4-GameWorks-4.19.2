@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "IMediaModule.h"
@@ -20,14 +20,14 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 	DetailBuilder.GetObjectsBeingCustomized(CustomizedMediaPlayers);
 
 	// customize 'Source' category
-	IDetailCategoryBuilder& SourceCategory = DetailBuilder.EditCategory("Source", TEXT(""));
+	IDetailCategoryBuilder& SourceCategory = DetailBuilder.EditCategory("Source");
 	{
 		// URL
 		UrlProperty = DetailBuilder.GetProperty("URL");
 		{
 			IDetailPropertyRow& UrlRow = SourceCategory.AddProperty(UrlProperty);
 
-			UrlRow.DisplayName(TEXT("URL"));
+			UrlRow.DisplayName(LOCTEXT("URLLabel", "URL"));
 			UrlRow.CustomWidget()
 				.NameContent()
 				[
@@ -73,10 +73,10 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 	}
 
 	// customize 'Information' category
-	IDetailCategoryBuilder& InformationCategory = DetailBuilder.EditCategory("Information", TEXT(""), ECategoryPriority::Uncommon);
+	IDetailCategoryBuilder& InformationCategory = DetailBuilder.EditCategory("Information", FText::GetEmpty(), ECategoryPriority::Uncommon);
 	{
 		// duration
-		InformationCategory.AddCustomRow(TEXT("Duration"))
+		InformationCategory.AddCustomRow(LOCTEXT("Duration", "Duration"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -93,7 +93,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 			];
 
 		// forward rates (thinned)
-		InformationCategory.AddCustomRow(TEXT("ForwardRatesThinned"))
+		InformationCategory.AddCustomRow(LOCTEXT("ForwardRatesThinned", "Forward Rates (Thinned)"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -110,7 +110,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 			];
 
 		// forward rates (unthinned)
-		InformationCategory.AddCustomRow(TEXT("ForwardRatesUnthinned"))
+		InformationCategory.AddCustomRow(LOCTEXT("ForwardRatesUnthinned", "Forward Rates (Unthinned)"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -127,7 +127,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 			];
 
 		// reverse rates (thinned)
-		InformationCategory.AddCustomRow(TEXT("ReverseRatesThinned"))
+		InformationCategory.AddCustomRow(LOCTEXT("ReverseRatesThinned", "Reverse Rates (Thinned)"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -144,7 +144,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 			];
 
 		// reverse rates (unthinned)
-		InformationCategory.AddCustomRow(TEXT("ReverseRatesUnthinned"))
+		InformationCategory.AddCustomRow(LOCTEXT("ReverseRatesUnthinned", "Reverse Rates (Unthinned)"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -161,7 +161,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 			];
 
 		// supports scrubbing
-		InformationCategory.AddCustomRow(TEXT("SupportsScrubbing"))
+		InformationCategory.AddCustomRow(LOCTEXT("SupportsScrubbing", "Supports Scrubbing"))
 			.NameContent()
 			[
 				SNew(STextBlock)
@@ -178,7 +178,7 @@ void FMediaPlayerCustomization::CustomizeDetails( IDetailLayoutBuilder& DetailBu
 			];
 
 		// supports seeking
-		InformationCategory.AddCustomRow(TEXT("SupportsSeeking"))
+		InformationCategory.AddCustomRow(LOCTEXT("SupportsSeeking", "Supports Seeking"))
 			.NameContent()
 			[
 				SNew(STextBlock)

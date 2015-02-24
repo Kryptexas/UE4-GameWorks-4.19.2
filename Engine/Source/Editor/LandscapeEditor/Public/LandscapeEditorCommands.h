@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -73,6 +73,7 @@ public:
 	TSharedPtr< FUICommandInfo > ViewModeLOD;
 	TSharedPtr< FUICommandInfo > ViewModeLayerDensity;
 	TSharedPtr< FUICommandInfo > ViewModeLayerDebug;
+	TSharedPtr< FUICommandInfo > ViewModeWireframeOnTop;
 
 	// Map
 	TMap<FName, TSharedPtr<FUICommandInfo>> NameToCommandMap;

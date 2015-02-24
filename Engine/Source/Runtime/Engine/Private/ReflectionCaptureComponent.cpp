@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	
@@ -18,6 +18,9 @@
 #include "Engine/PlaneReflectionCapture.h"
 #include "Engine/BoxReflectionCapture.h"
 #include "Components/PlaneReflectionCaptureComponent.h"
+#include "Components/ReflectionCaptureComponent.h"
+#include "Components/BoxComponent.h"
+#include "Components/SkyLightComponent.h"
 
 /** 
  * Size of all reflection captures.
@@ -83,7 +86,6 @@ AReflectionCapture::AReflectionCapture(const FObjectInitializer& ObjectInitializ
 		SpriteComponent->RelativeScale3D = FVector(0.5f, 0.5f, 0.5f);
 		SpriteComponent->bHiddenInGame = true;
 		SpriteComponent->bAbsoluteScale = true;
-		SpriteComponent->BodyInstance.bEnableCollision_DEPRECATED = false;	
 		SpriteComponent->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 		SpriteComponent->bIsScreenSizeScaled = true;
 	}
@@ -115,7 +117,6 @@ ASphereReflectionCapture::ASphereReflectionCapture(const FObjectInitializer& Obj
 	DrawInfluenceRadius->AttachParent = GetCaptureComponent();
 	DrawInfluenceRadius->bDrawOnlyIfSelected = true;
 	DrawInfluenceRadius->bUseEditorCompositing = true;
-	DrawInfluenceRadius->BodyInstance.bEnableCollision_DEPRECATED = false;
 	DrawInfluenceRadius->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	SphereComponent->PreviewInfluenceRadius = DrawInfluenceRadius;
 
@@ -123,7 +124,6 @@ ASphereReflectionCapture::ASphereReflectionCapture(const FObjectInitializer& Obj
 	DrawCaptureRadius->AttachParent = GetCaptureComponent();
 	DrawCaptureRadius->bDrawOnlyIfSelected = true;
 	DrawCaptureRadius->bUseEditorCompositing = true;
-	DrawCaptureRadius->BodyInstance.bEnableCollision_DEPRECATED = false;
 	DrawCaptureRadius->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	DrawCaptureRadius->ShapeColor = FColor(100, 90, 40);
 }
@@ -166,7 +166,6 @@ ABoxReflectionCapture::ABoxReflectionCapture(const FObjectInitializer& ObjectIni
 	DrawInfluenceBox->AttachParent = GetCaptureComponent();
 	DrawInfluenceBox->bDrawOnlyIfSelected = true;
 	DrawInfluenceBox->bUseEditorCompositing = true;
-	DrawInfluenceBox->BodyInstance.bEnableCollision_DEPRECATED = false;
 	DrawInfluenceBox->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	DrawInfluenceBox->InitBoxExtent(FVector(1, 1, 1));
 	BoxComponent->PreviewInfluenceBox = DrawInfluenceBox;
@@ -175,7 +174,6 @@ ABoxReflectionCapture::ABoxReflectionCapture(const FObjectInitializer& ObjectIni
 	DrawCaptureBox->AttachParent = GetCaptureComponent();
 	DrawCaptureBox->bDrawOnlyIfSelected = true;
 	DrawCaptureBox->bUseEditorCompositing = true;
-	DrawCaptureBox->BodyInstance.bEnableCollision_DEPRECATED = false;
 	DrawCaptureBox->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	DrawCaptureBox->ShapeColor = FColor(100, 90, 40);
 	DrawCaptureBox->InitBoxExtent(FVector(1, 1, 1));
@@ -199,7 +197,6 @@ APlaneReflectionCapture::APlaneReflectionCapture(const FObjectInitializer& Objec
 	DrawInfluenceRadius->bDrawOnlyIfSelected = true;
 	DrawInfluenceRadius->bAbsoluteScale = true;
 	DrawInfluenceRadius->bUseEditorCompositing = true;
-	DrawInfluenceRadius->BodyInstance.bEnableCollision_DEPRECATED = false;
 	DrawInfluenceRadius->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	PlaneComponent->PreviewInfluenceRadius = DrawInfluenceRadius;
 
@@ -207,7 +204,6 @@ APlaneReflectionCapture::APlaneReflectionCapture(const FObjectInitializer& Objec
 	DrawCaptureBox->AttachParent = GetCaptureComponent();
 	DrawCaptureBox->bDrawOnlyIfSelected = true;
 	DrawCaptureBox->bUseEditorCompositing = true;
-	DrawCaptureBox->BodyInstance.bEnableCollision_DEPRECATED = false;
 	DrawCaptureBox->SetCollisionProfileName(UCollisionProfile::NoCollision_ProfileName);
 	DrawCaptureBox->ShapeColor = FColor(100, 90, 40);
 	DrawCaptureBox->InitBoxExtent(FVector(1, 1, 1));
@@ -981,7 +977,7 @@ void UReflectionCaptureComponent::PostLoad()
 	Super::PostLoad();
 
 	bool bRetainAllFeatureLevelData = GIsEditor && GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4;
-	bool bEncodedDataRequired = (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 || GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1);
+	bool bEncodedDataRequired = bRetainAllFeatureLevelData || (GMaxRHIFeatureLevel == ERHIFeatureLevel::ES2 || GMaxRHIFeatureLevel == ERHIFeatureLevel::ES3_1);
 	bool bFullDataRequired = GMaxRHIFeatureLevel >= ERHIFeatureLevel::SM4;
 
 	// If we're loading on a platform that doesn't require cooked data, attempt to load missing data from the DDC
@@ -1016,7 +1012,7 @@ void UReflectionCaptureComponent::PostLoad()
 		// If we have full HDR data but not encoded HDR data, generate the encoded data now
 		if (FullHDRDerivedData 
 			&& !EncodedHDRDerivedData 
-			&& (bEncodedDataRequired))
+			&& bEncodedDataRequired)
 		{
 			EncodedHDRDerivedData = FReflectionCaptureEncodedHDRDerivedData::GenerateEncodedHDRData(*FullHDRDerivedData, StateId, Brightness);
 		}
@@ -1053,9 +1049,12 @@ void UReflectionCaptureComponent::PostLoad()
 		EncodedHDRCubemapTexture->SetupParameters(GReflectionCaptureSize, FMath::CeilLogTwo(GReflectionCaptureSize) + 1, PF_B8G8R8A8, &EncodedHDRDerivedData->CapturedData);
 		BeginInitResource(EncodedHDRCubemapTexture);
 
-		// Don't need the full HDR data for rendering on this feature level
-		delete FullHDRDerivedData;
-		FullHDRDerivedData = NULL;
+		// free up the full hdr data if we no longer need it.
+		if (FullHDRDerivedData && !bFullDataRequired)
+		{
+			delete FullHDRDerivedData;
+			FullHDRDerivedData = NULL;
+		}
 	}
 }
 
@@ -1109,7 +1108,7 @@ void UReflectionCaptureComponent::PostEditChangeProperty(FPropertyChangedEvent& 
 	// AActor::PostEditChange will ForceUpdateComponents()
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == TEXT("bVisible"))
+	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UReflectionCaptureComponent, bVisible))
 	{
 		SetCaptureIsDirty();
 	}
@@ -1263,7 +1262,10 @@ void UReflectionCaptureComponent::ReadbackFromGPUAndSaveDerivedData(UWorld* Worl
 
 		if (WorldToUpdate->FeatureLevel == ERHIFeatureLevel::SM4)
 		{
-			ReadbackFromSM4Cubemap(SM4FullHDRCubemapTexture, NewDerivedData);
+			if (SM4FullHDRCubemapTexture)
+			{
+				ReadbackFromSM4Cubemap(SM4FullHDRCubemapTexture, NewDerivedData);
+			}
 		}
 		else
 		{
@@ -1276,6 +1278,10 @@ void UReflectionCaptureComponent::ReadbackFromGPUAndSaveDerivedData(UWorld* Worl
 
 			// Update our copy in memory
 			UpdateDerivedData(NewDerivedData);
+		}
+		else
+		{
+			delete NewDerivedData;
 		}
 	}
 }
@@ -1439,7 +1445,7 @@ void USphereReflectionCaptureComponent::PostEditChangeProperty(FPropertyChangedE
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	if (PropertyChangedEvent.Property && 
-		(PropertyChangedEvent.Property->GetName() == TEXT("InfluenceRadius")))
+		(PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(USphereReflectionCaptureComponent, InfluenceRadius)))
 	{
 		SetCaptureIsDirty();
 	}
@@ -1471,7 +1477,7 @@ void UBoxReflectionCaptureComponent::PostEditChangeProperty(FPropertyChangedEven
 	// AActor::PostEditChange will ForceUpdateComponents()
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
-	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetName() == TEXT("BoxTransitionDistance"))
+	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UBoxReflectionCaptureComponent, BoxTransitionDistance))
 	{
 		SetCaptureIsDirty();
 	}
@@ -1547,12 +1553,12 @@ void FReflectionCaptureProxy::SetTransform(const FMatrix& InTransform)
 	const FVector4 PlaneNormal = InTransform.TransformVector(ForwardVector);
 
 	// Normalize the plane
-	ReflectionPlane = FPlane(Position, FVector(PlaneNormal).SafeNormal());
+	ReflectionPlane = FPlane(Position, FVector(PlaneNormal).GetSafeNormal());
 	const FVector ReflectionXAxis = InTransform.TransformVector(RightVector);
 	const FVector ScaleVector = InTransform.GetScaleVector();
 	BoxScales = ScaleVector;
 	// Include the owner's draw scale in the axes
-	ReflectionXAxisAndYScale = ReflectionXAxis.SafeNormal() * ScaleVector.Y;
+	ReflectionXAxisAndYScale = ReflectionXAxis.GetSafeNormal() * ScaleVector.Y;
 	ReflectionXAxisAndYScale.W = ScaleVector.Y / ScaleVector.Z;
 }
 

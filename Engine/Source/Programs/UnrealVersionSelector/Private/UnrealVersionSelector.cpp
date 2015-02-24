@@ -1,3 +1,5 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 #include "UnrealVersionSelector.h"
 #include "RequiredProgramMainCPPInclude.h"
 #include "DesktopPlatformModule.h"
@@ -26,7 +28,7 @@ bool RegisterCurrentEngineDirectory(bool bPromptForFileAssociations)
 	}
 
 	// If the launcher isn't installed, set up the file associations
-	if(!FDesktopPlatformModule::Get()->VerifyFileAssociations() || true)
+	if(!FDesktopPlatformModule::Get()->VerifyFileAssociations())
 	{
 		// Prompt for whether to update the file associations
 		if(!bPromptForFileAssociations || FPlatformMisc::MessageBoxExt(EAppMsgType::YesNo, TEXT("Register Unreal Engine file types?"), TEXT("File Types")) == EAppReturnType::Yes)
@@ -205,32 +207,32 @@ int Main(const TArray<FString>& Arguments)
 		// Add the current directory to the list of installations
 		bRes = RegisterCurrentEngineDirectoryWithPrompt();
 	}
-	else if (Arguments.Num() == 1 && Arguments[0] == TEXT("-register"))
+	else if (Arguments.Num() == 1 && Arguments[0] == TEXT("/register"))
 	{
 		// Add the current directory to the list of installations
 		bRes = RegisterCurrentEngineDirectory(true);
 	}
-	else if (Arguments.Num() == 1 && Arguments[0] == TEXT("-fileassociations"))
+	else if (Arguments.Num() == 1 && Arguments[0] == TEXT("/fileassociations"))
 	{
 		// Update all the settings.
 		bRes = UpdateFileAssociations();
 	}
-	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("-switchversion"))
+	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("/switchversion"))
 	{
 		// Associate with an engine label
 		bRes = SwitchVersion(Arguments[1]);
 	}
-	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("-editor"))
+	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("/editor"))
 	{
 		// Open a project with the editor
 		bRes = LaunchEditor(Arguments[1], L"");
 	}
-	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("-game"))
+	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("/game"))
 	{
 		// Play a game using the editor executable
 		bRes = LaunchEditor(Arguments[1], L"-game");
 	}
-	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("-projectfiles"))
+	else if (Arguments.Num() == 2 && Arguments[0] == TEXT("/projectfiles"))
 	{
 		// Generate Visual Studio project files
 		bRes = GenerateProjectFiles(Arguments[1]);
@@ -258,12 +260,7 @@ int Main(const TArray<FString>& Arguments)
 		TArray<FString> Arguments;
 		for (int Idx = 1; Idx < ArgC; Idx++)
 		{
-			FString Argument = ArgV[Idx];
-			if(Argument.Len() > 0 && Argument[0] == '/')
-			{
-				Argument[0] = '-';
-			}
-			Arguments.Add(Argument);
+			Arguments.Add(ArgV[Idx]);
 		}
 
 		return Main(Arguments);

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -27,7 +27,7 @@ public:
 	 * @param LocalizedDisplayName	The display name of the group
 	 * @param true if the group should appear in the advanced section of the category
 	 */
-	virtual class IDetailGroup& AddChildGroup( FName GroupName, const FString& LocalizedDisplayName ) = 0;
+	virtual class IDetailGroup& AddChildGroup( FName GroupName, const FText& LocalizedDisplayName ) = 0;
 
 	/**
 	 * Adds new custom content as a child to the struct
@@ -35,7 +35,7 @@ public:
 	 * @param SearchString	Search string that will be matched when users search in the details panel.  If the search string doesnt match what the user types, this row will be hidden
 	 * @return A row that accepts widgets
 	 */
-	virtual class FDetailWidgetRow& AddChildContent( const FString& SearchString ) = 0;
+	virtual class FDetailWidgetRow& AddChildContent( const FText& SearchString ) = 0;
 
 	/**
 	 * Adds a property to the struct

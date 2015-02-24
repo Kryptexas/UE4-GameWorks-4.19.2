@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -233,6 +233,11 @@ public:
 	int64 GetPos()
 	{
 		return Pos;
+	}
+
+	void Pop( FBitReader& Reader )
+	{
+		Reader.Pos = Pos;
 	}
 
 	void Copy( FBitReader& Reader, TArray<uint8> &Buffer );

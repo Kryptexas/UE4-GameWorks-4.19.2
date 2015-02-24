@@ -1,15 +1,16 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 
 #pragma once
+#include "RigidBodyBase.h"
 #include "PhysicsThruster.generated.h"
 
 /** 
  *	Attach one of these on an object using physics simulation and it will apply a force down the negative-X direction
  *	ie. point X in the direction you want the thrust in.
  */
-UCLASS(hidecategories=(Input,Collision,Replication), showcategories=("Input|MouseInput", "Input|TouchInput"))
+UCLASS(hideCategories=(Input,Collision,Replication), showCategories=("Input|MouseInput", "Input|TouchInput"), ComponentWrapperClass)
 class APhysicsThruster : public ARigidBodyBase
 {
 	GENERATED_UCLASS_BODY()

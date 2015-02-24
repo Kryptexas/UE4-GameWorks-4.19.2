@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -47,6 +47,12 @@ public:
 
 	/** Register that this widget was drawn this frame */
 	void WidgetWasDrawn(const FName& InName);
+
+	/** This is currently used for the "loading" widget */
+	void AttachWidget(TSharedPtr<SWidget> Widget);
+
+	/** This is currently used for the "loading" widget */
+	void DetachWidget();
 
 private:
 	/** Handle when the next button is clicked */

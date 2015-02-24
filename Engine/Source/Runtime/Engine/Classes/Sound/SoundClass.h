@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "SoundClass.generated.h"
@@ -170,9 +170,6 @@ class USoundClass : public UObject
 	/** SoundMix Modifiers to activate automatically when a sound of this class is playing. */
 	UPROPERTY(EditAnywhere, Category=SoundClass)
 	TArray<struct FPassiveSoundMixModifier> PassiveSoundMixModifiers;
-
-	UPROPERTY()
-	TArray<FName> ChildClassNames_DEPRECATED;
 
 public:
 	UPROPERTY()

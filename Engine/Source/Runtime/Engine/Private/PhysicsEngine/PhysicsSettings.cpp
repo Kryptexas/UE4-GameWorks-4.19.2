@@ -1,13 +1,17 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "GameFramework/MovementComponent.h"
+#include "PhysicsEngine/PhysicsSettings.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 
 UPhysicsSettings::UPhysicsSettings(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, DefaultGravityZ(-980.f)
 	, DefaultTerminalVelocity(4000.f)
 	, DefaultFluidFriction(0.3f)
+	, RagdollAggregateThreshold(4)
+	, TriangleMeshTriangleMinAreaThreshold(5.0f)
 	, bEnableAsyncScene(false)
 	, bEnable2DPhysics(false)
 	, bSimulateSkeletalMeshOnDedicatedServer(true)

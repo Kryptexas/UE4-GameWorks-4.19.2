@@ -1,9 +1,13 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
 #include "CubemapUnwrapUtils.h"			// FMipLevelBatchedElementParameters
 #include "NormalMapPreview.h"
+#include "CanvasItem.h"
+#include "CanvasTypes.h"
+#include "Engine/TextureCube.h"
+#include "Engine/TextureRenderTargetCube.h"
 
 UTextureThumbnailRenderer::UTextureThumbnailRenderer(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)

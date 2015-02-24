@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "Runtime/Online/OnlineSubsystem/Public/Interfaces/OnlineLeaderboardInterface.h"
@@ -43,6 +43,9 @@ private:
 	/** Delegate called when a leaderboard has been successfully read */
 	FOnLeaderboardReadCompleteDelegate LeaderboardReadCompleteDelegate;
 
+	/** LeaderboardReadComplete delegate handle */
+	FDelegateHandle LeaderboardReadCompleteDelegateHandle;
+
 	/** The leaderboard read request */
 	TSharedPtr<class FOnlineLeaderboardRead, ESPMode::ThreadSafe> ReadObject;
 
@@ -58,4 +61,6 @@ private:
 	// Did the read succeed?
 	bool bSavedWasSuccessful;
 	int32 SavedValue;
+
+	FTimerHandle OnStatsRead_DelayedTimerHandle;
 };

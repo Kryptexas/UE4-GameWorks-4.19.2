@@ -1,26 +1,114 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
 #include "HittestGrid.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogHittestDebug, Display, All);
 
-static const FVector2D CellSize(128.0f, 128.0f);
+//
+// Helper Functions
+//
+
+FVector2D ClosestPointOnSlateRotatedRect(const FVector2D &Point, const FSlateRotatedRect& RotatedRect)
+{
+	//no need to do any testing if we are inside of the rect
+	if (RotatedRect.IsUnderLocation(Point))
+	{
+		return Point;
+	}
+
+	const static int32 NumOfCorners = 4;
+	FVector2D Corners[NumOfCorners];
+	Corners[0] = RotatedRect.TopLeft;
+	Corners[1] = Corners[0] + RotatedRect.ExtentX;
+	Corners[2] = Corners[1] + RotatedRect.ExtentY;
+	Corners[3] = Corners[0] + RotatedRect.ExtentY;
+
+	FVector2D RetPoint;
+	float ClosestDistSq = FLT_MAX;
+	for (int32 i = 0; i < NumOfCorners; ++i)
+	{
+		//grab the closest point along the line segment
+		const FVector2D ClosestPoint = FMath::ClosestPointOnSegment2D(Point, Corners[i], Corners[(i + 1) % NumOfCorners]);
+
+		//get the distance between the two
+		const float TestDist = FVector2D::DistSquared(Point, ClosestPoint);
+
+		//if the distance is smaller than the current smallest, update our closest
+		if (TestDist < ClosestDistSq)
+		{
+			RetPoint = ClosestPoint;
+			ClosestDistSq = TestDist;
+		}
+	}
+
+	return RetPoint;
+}
+
+
+float DistanceSqToSlateRotatedRect(const FVector2D &Point, const FSlateRotatedRect& RotatedRect)
+{
+	return FVector2D::DistSquared(ClosestPointOnSlateRotatedRect(Point, RotatedRect), Point);
+}
+
+
+bool IsOverlappingSlateRotatedRect(const FVector2D& Point, const float Radius, const FSlateRotatedRect& RotatedRect)
+{
+	return DistanceSqToSlateRotatedRect( Point, RotatedRect ) <= (Radius * Radius);
+}
+
+
+bool ContainsInteractableWidget(const TArray<FWidgetAndPointer>& PathToTest)
+{
+	for (int32 i = PathToTest.Num() - 1; i >= 0; --i)
+	{
+		const FWidgetAndPointer& WidgetAndPointer = PathToTest[i];
+		if (WidgetAndPointer.Widget->IsInteractable())
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+
+
+//
+// FHittestGrid
+//
+
+const FVector2D CellSize(128.0f, 128.0f);
+
+struct FHittestGrid::FGridTestingParams
+{
+	/** Ctor */
+	FGridTestingParams()
+	: CellCoord(-1, -1)
+	, CursorPositionInGrid(FVector2D::ZeroVector)
+	, Radius(-1.0f)
+	, bTestWidgetIsInteractive(false)
+	{}
+
+	FIntPoint CellCoord;
+	FVector2D CursorPositionInGrid;
+	float Radius;
+	bool bTestWidgetIsInteractive;
+};
+
 
 struct FHittestGrid::FCachedWidget
 {
-	FCachedWidget( int32 InParentIndex, const FArrangedWidget& InWidget, const FSlateRect& InClippingRect )
+	FCachedWidget(int32 InParentIndex, const FArrangedWidget& InWidget, const FSlateRect& InClippingRect)
 	: WidgetPtr(InWidget.Widget)
-	, CachedGeometry( InWidget.Geometry )
-	, ClippingRect( InClippingRect )
+	, CachedGeometry(InWidget.Geometry)
+	, ClippingRect(InClippingRect)
 	, Children()
-	, ParentIndex( InParentIndex )
-	{
-	}
+	, ParentIndex(InParentIndex)
+	{}
 
-	void AddChild( const int32 ChildIndex )
+	void AddChild(const int32 ChildIndex)
 	{
-		Children.Add( ChildIndex );
+		Children.Add(ChildIndex);
 	}
 
 	TWeakPtr<SWidget> WidgetPtr;
@@ -39,118 +127,101 @@ FHittestGrid::FHittestGrid()
 {
 }
 
-TArray<FWidgetAndPointer> FHittestGrid::GetBubblePath( FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus )
+
+TArray<FWidgetAndPointer> FHittestGrid::GetBubblePath(FVector2D DesktopSpaceCoordinate, float CursorRadius, bool bIgnoreEnabledStatus)
 {
+	//grab the radius, and if we are non-zero
+	const bool bDirectTestingOnly = (CursorRadius <= 0.0f);
+
+	//calculate the cursor position in the grid
+	const FVector2D CursorPositionInGrid = DesktopSpaceCoordinate - GridOrigin;
+
 	if (WidgetsCachedThisFrame->Num() > 0 && Cells.Num() > 0)
 	{
-		const FVector2D CursorPositionInGrid = DesktopSpaceCoordinate - GridOrigin;
-		const FIntPoint CellCoordinate = FIntPoint(
-			FMath::Min( FMath::Max(FMath::FloorToInt(CursorPositionInGrid.X / CellSize.X), 0), NumCells.X-1),
-			FMath::Min( FMath::Max(FMath::FloorToInt(CursorPositionInGrid.Y / CellSize.Y), 0), NumCells.Y-1 ) );
-		
-		static FVector2D LastCoordinate = FVector2D::ZeroVector;
-		if ( LastCoordinate != CursorPositionInGrid )
+		//grab the path for direct testing first
+		FGridTestingParams DirectTestingParams;
+		DirectTestingParams.CursorPositionInGrid = CursorPositionInGrid;
+		DirectTestingParams.CellCoord = GetCellCoordinate(CursorPositionInGrid);
+		DirectTestingParams.Radius = 0.0f;
+		DirectTestingParams.bTestWidgetIsInteractive = false;
+
+		const FWidgetPathAndDist DirectBubblePathInfo = GetWidgetPathAndDist(DirectTestingParams, bIgnoreEnabledStatus);
+
+		//if we aren't doing a radius check, or we already have a direct path, use that
+		if (bDirectTestingOnly || ContainsInteractableWidget(DirectBubblePathInfo.BubblePath))
 		{
-			LastCoordinate = CursorPositionInGrid;
+			return DirectBubblePathInfo.BubblePath;
 		}
 
-		checkf( (CellCoordinate.Y*NumCells.X + CellCoordinate.X) < Cells.Num(), TEXT("Index out of range, CellCoordinate is: %d %d CursorPosition is: %f %f"), CellCoordinate.X, CellCoordinate.Y, CursorPositionInGrid.X, CursorPositionInGrid.Y );
+		//if we are here, we need to check other cells
+		const FVector2D RadiusVector(CursorRadius, CursorRadius);
+		const FIntPoint ULIndex = GetCellCoordinate(CursorPositionInGrid - RadiusVector);
+		const FIntPoint LRIndex = GetCellCoordinate(CursorPositionInGrid + RadiusVector);
 
-		const TArray<int32>& IndexesInCell = CellAt( CellCoordinate.X, CellCoordinate.Y ).CachedWidgetIndexes;
-		int32 HitWidgetIndex = INDEX_NONE;
-	
-		// Consider front-most widgets first for hittesting.
-		for ( int32 i = IndexesInCell.Num()-1; i>=0 && HitWidgetIndex==INDEX_NONE; --i )
+		//first, find all the overlapping cells
+		TArray<FIntPoint> CellIndexes;
+		CellIndexes.Reserve(16);
+
+		for (int32 YIndex = ULIndex.Y; YIndex <= LRIndex.Y; ++YIndex)
 		{
-			check( IndexesInCell[i] < WidgetsCachedThisFrame->Num() ); 
-
-			const FCachedWidget& TestCandidate = (*WidgetsCachedThisFrame)[IndexesInCell[i]];
-
-			// Compute the render space clipping rect (FGeometry exposes a layout space clipping rect).
-			FSlateRotatedRect DesktopOrientedClipRect = 
-				TransformRect(
-					Concatenate(
-						Inverse(TestCandidate.CachedGeometry.GetAccumulatedLayoutTransform()), 
-						TestCandidate.CachedGeometry.GetAccumulatedRenderTransform()
-					), 
-					FSlateRotatedRect(TestCandidate.CachedGeometry.GetClippingRect().IntersectionWith(TestCandidate.ClippingRect))
-				);
-
-			if (DesktopOrientedClipRect.IsUnderLocation(DesktopSpaceCoordinate) && TestCandidate.WidgetPtr.IsValid())
+			for (int32 XIndex = ULIndex.X; XIndex <= LRIndex.X; ++XIndex)
 			{
-				HitWidgetIndex = IndexesInCell[i];
-			}
-		}
-		
-		TArray<FWidgetAndPointer> BubblePath =[&]()
-		{
-			if( HitWidgetIndex != INDEX_NONE )
-			{
-				const FCachedWidget& PhysicallyHitWidget = (*WidgetsCachedThisFrame)[HitWidgetIndex];
-				if(PhysicallyHitWidget.CustomPath.IsValid())
+				const FIntPoint PointToTest(XIndex, YIndex);
+				if (IsValidCellCoord(PointToTest))
 				{
-					return PhysicallyHitWidget.CustomPath.Pin()->GetBubblePathAndVirtualCursors(PhysicallyHitWidget.CachedGeometry, DesktopSpaceCoordinate, bIgnoreEnabledStatus);
+					CellIndexes.Add(PointToTest);
 				}
 			}
+		}
 
-			return TArray<FWidgetAndPointer>();
+		//setup the radius testing params
+		FGridTestingParams RadiusTestingParams;
+		RadiusTestingParams.CursorPositionInGrid = CursorPositionInGrid;
+		RadiusTestingParams.Radius = CursorRadius;
+		RadiusTestingParams.bTestWidgetIsInteractive = true;
 
-		}();
-
-		if (HitWidgetIndex != INDEX_NONE)
+		//next, collect valid paths from all those cells
+		TArray<FWidgetPathAndDist> PathsAndDistances;
+		for (const FIntPoint& CellCoord : CellIndexes)
 		{
-			int32 CurWidgetIndex=HitWidgetIndex;
-			bool bPathUninterrupted = false;
-			do
-			{
-				check( CurWidgetIndex < WidgetsCachedThisFrame->Num() );
-				const FCachedWidget& CurCachedWidget = (*WidgetsCachedThisFrame)[CurWidgetIndex];
-				const TSharedPtr<SWidget> CachedWidgetPtr = CurCachedWidget.WidgetPtr.Pin();
+			//update the cell coord property
+			RadiusTestingParams.CellCoord = CellCoord;
 
-		
-				bPathUninterrupted = CachedWidgetPtr.IsValid();
-				if (bPathUninterrupted)
+			const FWidgetPathAndDist TestPath = GetWidgetPathAndDist(RadiusTestingParams, bIgnoreEnabledStatus);
+			if ( TestPath.IsValidPath() )
+			{
+				PathsAndDistances.Add(TestPath);
+			}
+		}
+
+		// We have paths from multiple cells; use the one that is closest to the cursor's center.
+		if (PathsAndDistances.Num() > 0)
+		{
+			//sort the paths, and get the closest one that is valid
+			PathsAndDistances.Sort([](const FWidgetPathAndDist& A, const FWidgetPathAndDist& B)
+			{
+				return A.DistToTopWidgetSq < B.DistToTopWidgetSq;
+			});
+
+			for (const FWidgetPathAndDist& TestPath : PathsAndDistances)
+			{
+				if (ContainsInteractableWidget(TestPath.BubblePath))
 				{
-					BubblePath.Insert( FWidgetAndPointer( FArrangedWidget(CachedWidgetPtr.ToSharedRef(), CurCachedWidget.CachedGeometry), TSharedPtr<FVirtualPointerPosition>() ), 0 );
-					CurWidgetIndex = CurCachedWidget.ParentIndex;
+					return TestPath.BubblePath;
 				}
 			}
-			while (CurWidgetIndex != INDEX_NONE && bPathUninterrupted);
-			
-			if (!bPathUninterrupted)
-			{
-				// A widget in the path to the root has been removed, so anything
-				// we thought we had hittest is no longer actually there.
-				// Pretend we didn't hit anything.
-				BubblePath = TArray<FWidgetAndPointer>();
-			}
+		}
 
-			// Disabling a widget disables all of its logical children
-			// This effect is achieved by truncating the path to the
-			// root-most enabled widget.
-			if ( !bIgnoreEnabledStatus )
-			{
-				const int32 DisabledWidgetIndex = BubblePath.IndexOfByPredicate( []( const FArrangedWidget& SomeWidget ){ return !SomeWidget.Widget->IsEnabled( ); } );
-				if (DisabledWidgetIndex != INDEX_NONE)
-				{
-					BubblePath.RemoveAt( DisabledWidgetIndex, BubblePath.Num() - DisabledWidgetIndex );
-				}
-			}
-			
-			return BubblePath;
-		}
-		else
-		{
-			return TArray<FWidgetAndPointer>();
-		}
+		return 	DirectBubblePathInfo.BubblePath;
 	}
 	else
 	{
+		// We didn't hit anything.
 		return TArray<FWidgetAndPointer>();
 	}
 }
 
-void FHittestGrid::BeginFrame( const FSlateRect& HittestArea )
+void FHittestGrid::ClearGridForNewFrame( const FSlateRect& HittestArea )
 {
 	//LogGrid();
 
@@ -164,57 +235,62 @@ void FHittestGrid::BeginFrame( const FSlateRect& HittestArea )
 
 int32 FHittestGrid::InsertWidget( const int32 ParentHittestIndex, const EVisibility& Visibility, const FArrangedWidget& Widget, const FVector2D InWindowOffset, const FSlateRect& InClippingRect )
 {
-	check( ParentHittestIndex < WidgetsCachedThisFrame->Num() );
-
-	// Update the FGeometry to transform into desktop space.
-	FArrangedWidget WindowAdjustedWidget(Widget);
-	WindowAdjustedWidget.Geometry.AppendTransform(FSlateLayoutTransform(InWindowOffset));
-	const FSlateRect WindowAdjustedRect = InClippingRect.OffsetBy(InWindowOffset);
-
-	// Remember this widget, its geometry, and its place in the logical hierarchy.
-	const int32 WidgetIndex = WidgetsCachedThisFrame->Add( FCachedWidget( ParentHittestIndex, WindowAdjustedWidget, WindowAdjustedRect ) );
-	check( WidgetIndex < WidgetsCachedThisFrame->Num() ); 
-	if (ParentHittestIndex != INDEX_NONE)
+	if ( ensureMsgf( ParentHittestIndex < WidgetsCachedThisFrame->Num(), TEXT("Widget '%s' being drawn before its parent."), *Widget.ToString() ) )
 	{
-		(*WidgetsCachedThisFrame)[ParentHittestIndex].AddChild( WidgetIndex );
-	}
-	
-	if (Visibility.IsHitTestVisible())
-	{
-		// Mark any cell that is overlapped by this widget.
+		// Update the FGeometry to transform into desktop space.
+		FArrangedWidget WindowAdjustedWidget(Widget);
+		WindowAdjustedWidget.Geometry.AppendTransform(FSlateLayoutTransform(InWindowOffset));
+		const FSlateRect WindowAdjustedRect = InClippingRect.OffsetBy(InWindowOffset);
 
-		// Compute the render space clipping rect, and compute it's aligned bounds so we can insert conservatively into the hit test grid.
-		FSlateRect GridRelativeBoundingClipRect = 
-			TransformRect(
-				Concatenate(
-					Inverse(WindowAdjustedWidget.Geometry.GetAccumulatedLayoutTransform()),
-					WindowAdjustedWidget.Geometry.GetAccumulatedRenderTransform()
-				),
-				FSlateRotatedRect(WindowAdjustedWidget.Geometry.GetClippingRect().IntersectionWith(WindowAdjustedRect))
-			)
-			.ToBoundingRect()
-			.OffsetBy(-GridOrigin);
 
-		// Starting and ending cells covered by this widget.	
-		const FIntPoint UpperLeftCell = FIntPoint(
-			FMath::Max(0, FMath::FloorToInt(GridRelativeBoundingClipRect.Left / CellSize.X)),
-			FMath::Max(0, FMath::FloorToInt(GridRelativeBoundingClipRect.Top / CellSize.Y)));
-
-		const FIntPoint LowerRightCell = FIntPoint(
-			FMath::Min( NumCells.X-1, FMath::FloorToInt(GridRelativeBoundingClipRect.Right / CellSize.X)),
-			FMath::Min( NumCells.Y-1, FMath::FloorToInt(GridRelativeBoundingClipRect.Bottom / CellSize.Y)));
-
-		for (int32 XIndex=UpperLeftCell.X; XIndex <= LowerRightCell.X; ++ XIndex )
+		// Remember this widget, its geometry, and its place in the logical hierarchy.
+		const int32 WidgetIndex = WidgetsCachedThisFrame->Add( FCachedWidget( ParentHittestIndex, WindowAdjustedWidget, WindowAdjustedRect ) );
+		check( WidgetIndex < WidgetsCachedThisFrame->Num() ); 
+		if (ParentHittestIndex != INDEX_NONE)
 		{
-			for(int32 YIndex=UpperLeftCell.Y; YIndex <= LowerRightCell.Y; ++YIndex)
+			(*WidgetsCachedThisFrame)[ParentHittestIndex].AddChild( WidgetIndex );
+		}
+	
+		if (Visibility.IsHitTestVisible())
+		{
+			// Mark any cell that is overlapped by this widget.
+
+			// Compute the render space clipping rect, and compute it's aligned bounds so we can insert conservatively into the hit test grid.
+			FSlateRect GridRelativeBoundingClipRect = 
+				TransformRect(
+					Concatenate(
+						Inverse(WindowAdjustedWidget.Geometry.GetAccumulatedLayoutTransform()),
+						WindowAdjustedWidget.Geometry.GetAccumulatedRenderTransform()
+					),
+					FSlateRotatedRect(WindowAdjustedWidget.Geometry.GetClippingRect().IntersectionWith(WindowAdjustedRect))
+				)
+				.ToBoundingRect()
+				.OffsetBy(-GridOrigin);
+
+			// Starting and ending cells covered by this widget.	
+			const FIntPoint UpperLeftCell = FIntPoint(
+				FMath::Max(0, FMath::FloorToInt(GridRelativeBoundingClipRect.Left / CellSize.X)),
+				FMath::Max(0, FMath::FloorToInt(GridRelativeBoundingClipRect.Top / CellSize.Y)));
+
+			const FIntPoint LowerRightCell = FIntPoint(
+				FMath::Min( NumCells.X-1, FMath::FloorToInt(GridRelativeBoundingClipRect.Right / CellSize.X)),
+				FMath::Min( NumCells.Y-1, FMath::FloorToInt(GridRelativeBoundingClipRect.Bottom / CellSize.Y)));
+
+			for (int32 XIndex=UpperLeftCell.X; XIndex <= LowerRightCell.X; ++ XIndex )
 			{
-				CellAt(XIndex, YIndex).CachedWidgetIndexes.Add( WidgetIndex );
+				for(int32 YIndex=UpperLeftCell.Y; YIndex <= LowerRightCell.Y; ++YIndex)
+				{
+					CellAt(XIndex, YIndex).CachedWidgetIndexes.Add( WidgetIndex );
+				}
 			}
 		}
-	}
-	
-	return WidgetIndex;
 
+		return WidgetIndex;
+	}
+	else
+	{
+		return INDEX_NONE;
+	}
 }
 
 void FHittestGrid::InsertCustomHitTestPath( TSharedRef<ICustomHitTestPath> CustomHitTestPath, int32 WidgetIndex )
@@ -472,6 +548,16 @@ const FHittestGrid::FCell& FHittestGrid::CellAt( const int32 X, const int32 Y ) 
 	return Cells[ Y*NumCells.X + X ];
 }
 
+bool FHittestGrid::IsValidCellCoord(const FIntPoint& CellCoord) const
+{
+	return IsValidCellCoord(CellCoord.X, CellCoord.Y);
+}
+
+bool FHittestGrid::IsValidCellCoord(const int32 XCoord, const int32 YCoord) const
+{
+	const int32 Index = (YCoord * NumCells.X) + XCoord;
+	return Cells.IsValidIndex(Index);
+}
 
 void FHittestGrid::LogGrid() const
 {
@@ -524,4 +610,123 @@ void FHittestGrid::LogChildren(int32 Index, int32 IndentLevel, const TArray<FCac
 	{
 		LogChildren( CachedWidget.Children[i], IndentLevel+1, WidgetsCachedThisFrame );
 	}
+}
+
+FHittestGrid::FWidgetPathAndDist FHittestGrid::GetWidgetPathAndDist(const FGridTestingParams& Params, const bool bIgnoreEnabledStatus) const
+{
+	//Also grab the Hit Index, and the distance to the top hit
+	const FIndexAndDistance HitIndex = GetHitIndexFromCellIndex(Params);
+	
+	if (HitIndex.WidgetIndex != INDEX_NONE)
+	{
+		// if we have a custom path, we want to do the testing for 3D Widgets
+		const FCachedWidget& PhysicallyHitWidget = (*WidgetsCachedThisFrame)[HitIndex.WidgetIndex];
+		if (PhysicallyHitWidget.CustomPath.IsValid())
+		{
+			const FVector2D DesktopSpaceCoordinate = Params.CursorPositionInGrid + GridOrigin;
+			TArray<FWidgetAndPointer> LogicalBubblePath = GetBubblePathFromHitIndex(HitIndex.WidgetIndex, bIgnoreEnabledStatus);
+			const TArray<FWidgetAndPointer> BubblePathExtension = PhysicallyHitWidget.CustomPath.Pin()->GetBubblePathAndVirtualCursors(PhysicallyHitWidget.CachedGeometry, DesktopSpaceCoordinate, bIgnoreEnabledStatus);
+			LogicalBubblePath.Append(BubblePathExtension);
+			return FWidgetPathAndDist(LogicalBubblePath, 0.0);
+		}
+		else
+		{
+			//get the path from the hit index, check if anything came back
+			const TArray<FWidgetAndPointer> BubblePath = GetBubblePathFromHitIndex(HitIndex.WidgetIndex, bIgnoreEnabledStatus);
+			return FWidgetPathAndDist(BubblePath, BubblePath.Num() > 0 ? HitIndex.DistanceSqToWidget : -1.0f);
+		}
+	}
+
+	//return if we have a valid path or not
+	return FWidgetPathAndDist();
+}
+
+FHittestGrid::FIndexAndDistance FHittestGrid::GetHitIndexFromCellIndex(const FGridTestingParams& Params) const
+{
+	//check if the cell coord 
+	if (IsValidCellCoord(Params.CellCoord))
+	{
+		const TArray<int32>& IndexesInCell = CellAt(Params.CellCoord.X, Params.CellCoord.Y).CachedWidgetIndexes;
+
+		// Consider front-most widgets first for hittesting.
+		for (int32 i = IndexesInCell.Num() - 1; i >= 0; --i)
+		{
+			const int32 WidgetIndex = IndexesInCell[i];
+
+			check(WidgetsCachedThisFrame->IsValidIndex(WidgetIndex));
+
+			const FHittestGrid::FCachedWidget& TestCandidate = (*WidgetsCachedThisFrame)[WidgetIndex];
+
+			// Compute the render space clipping rect (FGeometry exposes a layout space clipping rect).
+			const FSlateRotatedRect DesktopOrientedClipRect = TransformRect(
+				Concatenate(
+					Inverse(TestCandidate.CachedGeometry.GetAccumulatedLayoutTransform()),
+					TestCandidate.CachedGeometry.GetAccumulatedRenderTransform()),
+				FSlateRotatedRect(TestCandidate.CachedGeometry.GetClippingRect().IntersectionWith(TestCandidate.ClippingRect))
+			);
+
+			// When performing a point hittest, accept all hittestable widgets.
+			// When performing a hittest with a radius, only grab interactive widgets.
+			const bool bIsValidWidget = !Params.bTestWidgetIsInteractive || (TestCandidate.WidgetPtr.IsValid() && TestCandidate.WidgetPtr.Pin()->IsInteractable());
+
+			const FVector2D DesktopSpaceCoordinate = Params.CursorPositionInGrid + GridOrigin;
+			if( bIsValidWidget && IsOverlappingSlateRotatedRect( DesktopSpaceCoordinate, Params.Radius, DesktopOrientedClipRect ) )
+			{
+				// We are within the search radius!
+				const bool bNeedsDistanceSearch = Params.Radius > 0.0f;
+				// For non-0 radii also record the distance to cursor's center so that we can pick the closest hit from the results.
+				const float DistSq = (bNeedsDistanceSearch) ? DistanceSqToSlateRotatedRect( DesktopSpaceCoordinate, DesktopOrientedClipRect ) : 0.0f;
+				return FIndexAndDistance(WidgetIndex, DistSq);
+			}
+		}
+	}
+
+	return FIndexAndDistance();
+}
+
+TArray<FWidgetAndPointer> FHittestGrid::GetBubblePathFromHitIndex(const int32 HitIndex, const bool bIgnoreEnabledStatus) const
+{
+	TArray<FWidgetAndPointer> BubblePath;
+
+	if (WidgetsCachedThisFrame->IsValidIndex(HitIndex))
+	{
+		int32 CurWidgetIndex = HitIndex;
+		bool bPathUninterrupted = false;
+		do
+		{
+			check(CurWidgetIndex < WidgetsCachedThisFrame->Num());
+			const FHittestGrid::FCachedWidget& CurCachedWidget = (*WidgetsCachedThisFrame)[CurWidgetIndex];
+			const TSharedPtr<SWidget> CachedWidgetPtr = CurCachedWidget.WidgetPtr.Pin();
+
+
+			bPathUninterrupted = CachedWidgetPtr.IsValid();
+			if (bPathUninterrupted)
+			{
+				BubblePath.Insert(FWidgetAndPointer(FArrangedWidget(CachedWidgetPtr.ToSharedRef(), CurCachedWidget.CachedGeometry), TSharedPtr<FVirtualPointerPosition>()), 0);
+				CurWidgetIndex = CurCachedWidget.ParentIndex;
+			}
+		} while (CurWidgetIndex != INDEX_NONE && bPathUninterrupted);
+
+		if (!bPathUninterrupted)
+		{
+			// A widget in the path to the root has been removed, so anything
+			// we thought we had hittest is no longer actually there.
+			// Pretend we didn't hit anything.
+			BubblePath.Reset();
+		}
+
+		// Disabling a widget disables all of its logical children
+		// This effect is achieved by truncating the path to the
+		// root-most enabled widget.
+		if (!bIgnoreEnabledStatus)
+		{
+			const int32 DisabledWidgetIndex = BubblePath.IndexOfByPredicate([](const FArrangedWidget& SomeWidget){ return !SomeWidget.Widget->IsEnabled(); });
+			if (DisabledWidgetIndex != INDEX_NONE)
+			{
+				BubblePath.RemoveAt(DisabledWidgetIndex, BubblePath.Num() - DisabledWidgetIndex);
+			}
+		}
+	}
+
+	return BubblePath;
 }

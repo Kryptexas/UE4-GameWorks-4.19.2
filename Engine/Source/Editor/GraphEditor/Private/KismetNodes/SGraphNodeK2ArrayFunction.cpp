@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GraphEditorCommon.h"
 #include "SGraphNodeK2Base.h"
@@ -51,7 +51,7 @@ void SGraphNodeK2ArrayFunction::UpdateGraphNode()
 		OutputPins.Empty();
 
 		// error handling set-up
-		TSharedPtr<SWidget> ErrorText = SetupErrorReporting();
+		SetupErrorReporting();
 
 		// Reset variables that are going to be exposed, in case we are refreshing an already setup node.
 		RightNodeBox.Reset();
@@ -70,7 +70,7 @@ void SGraphNodeK2ArrayFunction::UpdateGraphNode()
 			.Text(this, &SGraphNodeK2ArrayFunction::GetNodeCompactTitle);
 
 		this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
-		this->ChildSlot
+		this->GetOrAddSlot( ENodeZone::Center )
 			.HAlign(HAlign_Center)
 			.VAlign(VAlign_Center)
 			[
@@ -160,7 +160,7 @@ void SGraphNodeK2ArrayFunction::UpdateGraphNode()
 					.AutoHeight()
 					.Padding( FMargin(5.0f, 1.0f) )
 					[
-						ErrorText->AsShared()
+						ErrorReporting->AsWidget()
 					]
 			];
 

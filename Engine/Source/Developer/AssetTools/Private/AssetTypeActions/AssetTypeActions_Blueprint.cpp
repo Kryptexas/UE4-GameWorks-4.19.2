@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AssetToolsPrivatePCH.h"
 #include "PackageTools.h"
@@ -10,6 +10,7 @@
 #include "SBlueprintDiff.h"
 #include "ISourceControlModule.h"
 #include "MessageLog.h"
+#include "Engine/BlueprintGeneratedClass.h"
 
 #define LOCTEXT_NAMESPACE "AssetTypeActions"
 
@@ -100,6 +101,21 @@ void FAssetTypeActions_Blueprint::Merge(UObject* InObject)
 	}
 }
 
+void FAssetTypeActions_Blueprint::Merge(UObject* BaseAsset, UObject* RemoteAsset, UObject* LocalAsset, const FOnMergeResolved& ResolutionCallback)
+{
+	UBlueprint* AsBlueprint = CastChecked<UBlueprint>(LocalAsset);
+	check(LocalAsset->GetClass() == BaseAsset->GetClass());
+	check(LocalAsset->GetClass() == RemoteAsset->GetClass());
+	
+	if (FAssetEditorManager::Get().OpenEditorForAsset(AsBlueprint))
+	{
+		FBlueprintEditorModule& BlueprintEditorModule = FModuleManager::LoadModuleChecked<FBlueprintEditorModule>("Kismet");
+
+		FBlueprintEditor* BlueprintEditor = static_cast<FBlueprintEditor*>(FAssetEditorManager::Get().FindEditorForAsset(AsBlueprint, /*bFocusIfOpen =*/false));
+		BlueprintEditor->CreateMergeToolTab(Cast<UBlueprint>(BaseAsset), Cast<UBlueprint>(RemoteAsset), ResolutionCallback);
+	}
+}
+
 bool FAssetTypeActions_Blueprint::CanCreateNewDerivedBlueprint() const
 {
 	return true;
@@ -138,7 +154,7 @@ void FAssetTypeActions_Blueprint::ExecuteEditDefaults(TArray<TWeakObjectPtr<UBlu
 	}
 
 	// Report errors
-	EditorErrors.Notify(LOCTEXT("OpenDefaults_Failed", "Opening Blueprint Defaults Failed!"));
+	EditorErrors.Notify(LOCTEXT("OpenDefaults_Failed", "Opening Class Defaults Failed!"));
 }
 
 void FAssetTypeActions_Blueprint::ExecuteNewDerivedBlueprint(TWeakObjectPtr<UBlueprint> InObject)
@@ -276,6 +292,35 @@ FText FAssetTypeActions_Blueprint::GetAssetDescription(const FAssetData& AssetDa
 	}
 
 	return FText::GetEmpty();
+}
+
+TWeakPtr<IClassTypeActions> FAssetTypeActions_Blueprint::GetClassTypeActions(const FAssetData& AssetData) const
+{
+	static const FName NativeParentClassTag = "NativeParentClass";
+	static const FName ParentClassTag = "ParentClass";
+
+	// Blueprints get the class type actions for their parent native class - this avoids us having to load the blueprint
+	UClass* ParentClass = nullptr;
+	const FString* ParentClassNamePtr = AssetData.TagsAndValues.Find(NativeParentClassTag);
+	if(!ParentClassNamePtr)
+	{
+		ParentClassNamePtr = AssetData.TagsAndValues.Find(ParentClassTag);
+	}
+	if(ParentClassNamePtr && !ParentClassNamePtr->IsEmpty())
+	{
+		UObject* Outer = nullptr;
+		FString ParentClassName = *ParentClassNamePtr;
+		ResolveName(Outer, ParentClassName, false, false);
+		ParentClass = FindObject<UClass>(ANY_PACKAGE, *ParentClassName);
+	}
+
+	if(ParentClass)
+	{
+		FAssetToolsModule& AssetToolsModule = FAssetToolsModule::GetModule();
+		return AssetToolsModule.Get().GetClassTypeActionsForClass(ParentClass);
+	}
+
+	return nullptr;
 }
 
 #undef LOCTEXT_NAMESPACE

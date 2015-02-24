@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	InterpCurveEdSetup.cpp: Implementation of distribution classes.
@@ -6,6 +6,7 @@
 
 #include "EnginePrivate.h"
 #include "Matinee/InterpTrack.h"
+#include "Engine/InterpCurveEdSetup.h"
 
 
 void UInterpCurveEdSetup::PostLoad()
@@ -22,28 +23,6 @@ void UInterpCurveEdSetup::PostLoad()
 			if(!EdInterface)
 			{
 				Tab.Curves.RemoveAt(j);
-			}
-		}
-	}
-}
-
-void UInterpCurveEdSetup::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-
-	if (Ar.IsLoading() && GetLinker() && (GetLinker()->UE3Ver() < 203))
-	{
-		for (int32 i=0; i<Tabs.Num(); i++)
-		{
-			FCurveEdTab& Tab = Tabs[i];
-			for(int32 j=Tab.Curves.Num()-1; j>=0; j--)
-			{
-				FCurveEdEntry& Entry = Tab.Curves[j];
-
-				if (Entry.bHideCurve)
-				{
-					Entry.bHideCurve	= 0x00000001;
-				}
 			}
 		}
 	}

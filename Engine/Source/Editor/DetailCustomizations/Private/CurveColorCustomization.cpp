@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "CurveColorCustomization.h"
@@ -7,6 +7,8 @@
 #include "MiniCurveEditor.h"
 #include "AssetRegistryModule.h"
 #include "SCurveEditor.h"
+#include "Curves/CurveLinearColor.h"
+#include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "CurveColorCustomization"
 
@@ -53,7 +55,7 @@ void FCurveColorCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InStr
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), TEXT( "" ), false )
+				InStructPropertyHandle->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
 			]
 			.ValueContent()
 			.HAlign(HAlign_Fill)
@@ -88,7 +90,7 @@ void FCurveColorCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InStr
 		HeaderRow
 			.NameContent()
 			[
-				InStructPropertyHandle->CreatePropertyNameWidget( TEXT( "" ), TEXT( "" ), false )
+				InStructPropertyHandle->CreatePropertyNameWidget( FText::GetEmpty(), FText::GetEmpty(), false )
 			]
 			.ValueContent()
 			[
@@ -118,7 +120,7 @@ void FCurveColorCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> InS
 			FSimpleDelegate OnCurveChangedDelegate = FSimpleDelegate::CreateSP( this, &FCurveColorCustomization::OnExternalCurveChanged, InStructPropertyHandle );
 			Child->SetOnPropertyValueChanged(OnCurveChangedDelegate);
 
-			StructBuilder.AddChildContent(TEXT("ExternalCurve"))
+			StructBuilder.AddChildContent(LOCTEXT("ExternalCurveLabel", "ExternalCurve"))
 				.NameContent()
 				[
 					Child->CreatePropertyNameWidget()
@@ -232,6 +234,15 @@ bool FCurveColorCustomization::HasAnyAlphaKeys() const
 		return RuntimeCurve->ColorCurves[3].GetNumKeys() > 0;
 	}
 	return false;
+}
+
+bool FCurveColorCustomization::IsValidCurve( FRichCurveEditInfo CurveInfo )
+{
+	return 
+		CurveInfo.CurveToEdit == &RuntimeCurve->ColorCurves[0] ||
+		CurveInfo.CurveToEdit == &RuntimeCurve->ColorCurves[1] ||
+		CurveInfo.CurveToEdit == &RuntimeCurve->ColorCurves[2] ||
+		CurveInfo.CurveToEdit == &RuntimeCurve->ColorCurves[3];
 }
 
 float FCurveColorCustomization::GetTimelineLength() const
@@ -382,7 +393,7 @@ FReply FCurveColorCustomization::OnCurvePreviewDoubleClick(const FGeometry& InMy
 			FVector2D AdjustedSummonLocation = FSlateApplication::Get().CalculatePopupWindowPosition( Anchor, FCurveColorCustomization::DEFAULT_WINDOW_SIZE, Orient_Horizontal );
 
 			TSharedPtr<SWindow> Window = SNew(SWindow)
-				.Title( FText::Format( LOCTEXT("WindowHeader", "{0} - Internal Color Curve Editor"), FText::FromString(StructPropertyHandle->GetPropertyDisplayName())) )
+				.Title( FText::Format( LOCTEXT("WindowHeader", "{0} - Internal Color Curve Editor"), StructPropertyHandle->GetPropertyDisplayName()) )
 				.ClientSize( FCurveColorCustomization::DEFAULT_WINDOW_SIZE )
 				.ScreenPosition(AdjustedSummonLocation)
 				.AutoCenter(EAutoCenter::None)

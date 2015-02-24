@@ -1,4 +1,4 @@
-ï»¿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+ï»¿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -105,12 +105,14 @@ namespace AutomationTool
 		public static CommandLineArg Preprocess = new CommandLineArg("-Preprocess");
 		public static CommandLineArg NoCompile = new CommandLineArg("-NoCompile");
 		public static CommandLineArg NoCompileEditor = new CommandLineArg("-NoCompileEditor");
+		public static CommandLineArg NoCodeProject = new CommandLineArg("-NoCodeProject");
 		public static CommandLineArg Help = new CommandLineArg("-Help");
 		public static CommandLineArg List = new CommandLineArg("-List");
 		public static CommandLineArg Rocket = new CommandLineArg("-Rocket");
 		public static CommandLineArg NoKill = new CommandLineArg("-NoKill");
 		public static CommandLineArg Installed = new CommandLineArg("-Installed");
 		public static CommandLineArg UTF8Output = new CommandLineArg("-UTF8Output");
+		public static CommandLineArg NoAutoSDK = new CommandLineArg("-NoAutoSDK");
 
 		/// <summary>
 		/// Force initialize static members by calling this.
@@ -283,6 +285,7 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			// Check for build machine override (force local)
 			IsBuildMachine = GlobalCommandLine.ForceLocal ? false : IsBuildMachine;
 			Log.TraceInformation("IsBuildMachine={0}", IsBuildMachine);
+			Environment.SetEnvironmentVariable("IsBuildMachine", IsBuildMachine ? "1" : "0");
 
 			// should we kill processes on exit
 			ShouldKillProcesses = !GlobalCommandLine.NoKill;
@@ -292,6 +295,12 @@ AutomationTool.exe [-verbose] [-compileonly] [-p4] Command0 [-Arg0 -Arg1 -Arg2 â
 			{
 				DisplayHelp();
 				return;
+			}
+
+			// Disable AutoSDKs if specified on the command line
+			if (GlobalCommandLine.NoAutoSDK)
+			{
+				UEBuildPlatform.bAllowAutoSDKSwitching = false;
 			}
 
 			// Setup environment

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 
@@ -158,7 +158,7 @@ void SGraphNodeK2Var::UpdateGraphNode()
 						.Text(TitleText);
 	}
 
-	TSharedPtr<SWidget> ErrorText = SetupErrorReporting();
+	SetupErrorReporting();
 
 	// Setup a meta tag for this node
 	FGraphNodeMetaData TagMeta(TEXT("Graphnode"));
@@ -173,7 +173,7 @@ void SGraphNodeK2Var::UpdateGraphNode()
 	//            |_______|________|
 	//
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
-	this->ChildSlot
+	this->GetOrAddSlot( ENodeZone::Center )
 	.HAlign(HAlign_Center)
 	.VAlign(VAlign_Center)
 	[
@@ -183,7 +183,7 @@ void SGraphNodeK2Var::UpdateGraphNode()
 		.AutoHeight() 
 		.Padding( FMargin(5.0f, 1.0f) )
 		[
-			ErrorText->AsShared()
+			ErrorReporting->AsWidget()
 		]
 		+SVerticalBox::Slot()
 		[
@@ -238,24 +238,61 @@ void SGraphNodeK2Var::UpdateGraphNode()
 		]
 	];
 
+	float VerticalPaddingAmount = 0.0f;
+
 	// Add padding widgets at the top of the pin boxes if it's a struct operation with a long title
 	if (bPadTitle)
+	{
+		VerticalPaddingAmount += 16.0f;
+	}
+
+	// Add padding to offset the exec pin so that it will align with other nodes
+	if (UK2Node* K2Node = Cast<UK2Node>(GraphNode))
+	{
+		if (!K2Node->IsNodePure())
+		{
+			VerticalPaddingAmount += 7.0f;
+		}
+	}
+
+	if (VerticalPaddingAmount > 0.0f)
 	{
 		LeftNodeBox->AddSlot()
 			.AutoHeight()
 			.HAlign(HAlign_Left)
 			.VAlign(VAlign_Center)
 			[
-				SNew(SSpacer).Size(FVector2D(0.0f, 16.0f))
+				SNew(SSpacer).Size(FVector2D(0.0f, VerticalPaddingAmount))
 			];
 		RightNodeBox->AddSlot()
 			.AutoHeight()
 			.HAlign(HAlign_Left)
 			.VAlign(VAlign_Center)
 			[
-				SNew(SSpacer).Size(FVector2D(0.0f, 16.0f))
+				SNew(SSpacer).Size(FVector2D(0.0f, VerticalPaddingAmount))
 			];
 	}
+	// Create comment bubble
+	TSharedPtr<SCommentBubble> CommentBubble;
+
+	SAssignNew( CommentBubble, SCommentBubble )
+	.GraphNode( GraphNode )
+	.Text( this, &SGraphNode::GetNodeComment )
+	.ColorAndOpacity( this, &SGraphNodeK2Var::GetCommentColor )
+	.AllowPinning( true )
+	.EnableTitleBarBubble( true )
+	.EnableBubbleCtrls( true )
+	.GraphLOD( this, &SGraphNode::GetCurrentLOD )
+	.IsGraphNodeHovered( this, &SGraphNode::IsHovered );
+
+	GetOrAddSlot( ENodeZone::TopCenter )
+	.SlotOffset( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetOffset ))
+	.SlotSize( TAttribute<FVector2D>( CommentBubble.Get(), &SCommentBubble::GetSize ))
+	.AllowScaling( TAttribute<bool>( CommentBubble.Get(), &SCommentBubble::IsScalingAllowed ))
+	.VAlign( VAlign_Top )
+	[
+		CommentBubble.ToSharedRef()
+	];
 
 	// Create widgets for each of the real pins
 	CreatePinWidgets();

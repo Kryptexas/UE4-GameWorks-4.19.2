@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "OnlineSubsystemFacebookPrivatePCH.h"
@@ -69,7 +69,7 @@ FOnlineFriendsFacebook::~FOnlineFriendsFacebook()
 	SharingInterface = NULL;
 }
 
-bool FOnlineFriendsFacebook::ReadFriendsList(int32 LocalUserNum, const FString& ListName)
+bool FOnlineFriendsFacebook::ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate /*= FOnReadFriendsListComplete()*/)
 {
 	bool bRequestTriggered = false;
 	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsFacebook::ReadFriendsList()"));
@@ -82,33 +82,34 @@ bool FOnlineFriendsFacebook::ReadFriendsList(int32 LocalUserNum, const FString& 
 		RequestFriendsReadPermissionsDelegate = FOnRequestNewReadPermissionsCompleteDelegate::CreateRaw(this, &FOnlineFriendsFacebook::OnReadFriendsPermissionsUpdated);
 		SharingInterface->AddOnRequestNewReadPermissionsCompleteDelegate(LocalUserNum, RequestFriendsReadPermissionsDelegate);
 		SharingInterface->RequestNewReadPermissions(LocalUserNum, EOnlineSharingReadCategory::Friends);
+		OnReadFriendsListCompleteDelegate = Delegate;
 	}
 	else
 	{
 		UE_LOG(LogOnline, Verbose, TEXT("Cannot read friends if we are not logged into facebook."));
 
 		// Cannot read friends if we are not logged into facebook.
-		TriggerOnReadFriendsListCompleteDelegates( LocalUserNum , false, ListName, TEXT("not logged in.") );
+		Delegate.ExecuteIfBound(LocalUserNum, false, ListName, TEXT("not logged in."));
 	}
 
 	return bRequestTriggered;
 }
 
-bool FOnlineFriendsFacebook::DeleteFriendsList(int32 LocalUserNum, const FString& ListName)
+bool FOnlineFriendsFacebook::DeleteFriendsList(int32 LocalUserNum, const FString& ListName, const FOnDeleteFriendsListComplete& Delegate /*= FOnDeleteFriendsListComplete()*/)
 {
-	TriggerOnDeleteFriendsListCompleteDelegates(LocalUserNum, false, ListName, FString(TEXT("DeleteFriendsList() is not supported")));
+	Delegate.ExecuteIfBound(LocalUserNum, false, ListName, FString(TEXT("DeleteFriendsList() is not supported")));
 	return false;
 }
 
-bool FOnlineFriendsFacebook::SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName)
+bool FOnlineFriendsFacebook::SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnSendInviteComplete& Delegate /*= FOnSendInviteComplete()*/)
 {
-	TriggerOnSendInviteCompleteDelegates(LocalUserNum, false, FriendId, ListName, FString(TEXT("SendInvite() is not supported")));
+	Delegate.ExecuteIfBound(LocalUserNum, false, FriendId, ListName, FString(TEXT("SendInvite() is not supported")));
 	return false;
 }
 
-bool FOnlineFriendsFacebook::AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName)
+bool FOnlineFriendsFacebook::AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnAcceptInviteComplete& Delegate /*= FOnAcceptInviteComplete()*/)
 {
-	TriggerOnAcceptInviteCompleteDelegates(LocalUserNum, false, FriendId, ListName, FString(TEXT("AcceptInvite() is not supported")));
+	Delegate.ExecuteIfBound(LocalUserNum, false, FriendId, ListName, FString(TEXT("AcceptInvite() is not supported")));
 	return false;
 }
 
@@ -167,6 +168,20 @@ bool FOnlineFriendsFacebook::IsFriend(int32 LocalUserNum, const FUniqueNetId& Fr
 	return false;
 }
 
+bool FOnlineFriendsFacebook::QueryRecentPlayers(const FUniqueNetId& UserId)
+{
+	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsFacebook::QueryRecentPlayers()"));
+
+	TriggerOnQueryRecentPlayersCompleteDelegates(UserId, false, TEXT("not implemented"));
+
+	return false;
+}
+
+bool FOnlineFriendsFacebook::GetRecentPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers)
+{
+	return false;
+}
+
 void FOnlineFriendsFacebook::OnReadFriendsPermissionsUpdated(int32 LocalUserNum, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsFacebook::OnReadPermissionsUpdated() - %d"), bWasSuccessful);
@@ -179,7 +194,7 @@ void FOnlineFriendsFacebook::OnReadFriendsPermissionsUpdated(int32 LocalUserNum,
 	else
 	{
 		// Permissions werent applied so we cannot read friends.
-		TriggerOnReadFriendsListCompleteDelegates(LocalUserNum, false, EFriendsLists::ToString(EFriendsLists::Default), TEXT("No read permissions"));
+		OnReadFriendsListCompleteDelegate.ExecuteIfBound(LocalUserNum, false, EFriendsLists::ToString(EFriendsLists::Default), TEXT("No read permissions"));
 	}
 }
 
@@ -254,7 +269,7 @@ void FOnlineFriendsFacebook::ReadFriendsUsingGraphPath(int32 LocalUserNum, const
 					}
 
 					// Did this operation complete? Let whoever is listening know.
-					TriggerOnReadFriendsListCompleteDelegates( LocalUserNum, bSuccess, ListName, FString() );
+					OnReadFriendsListCompleteDelegate.ExecuteIfBound(LocalUserNum, bSuccess, ListName, FString());
 				}
 			];
 		}

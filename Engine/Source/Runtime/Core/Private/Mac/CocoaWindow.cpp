@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #include "CocoaWindow.h"
@@ -353,6 +353,13 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	if(self.TargetWindowMode == EWindowMode::Windowed)
 	{
 		self.TargetWindowMode = EWindowMode::Fullscreen;
+#if WITH_EDITORONLY_DATA
+		if(GIsEditor)
+		{
+			self.TargetWindowMode = EWindowMode::WindowedFullscreen;
+		}
+#endif
+		self.PreFullScreenRect = [self openGLFrame];
 	}
 }
 
@@ -374,6 +381,14 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	}
 }
 
+- (void)windowWillExitFullScreen:(NSNotification *)Notification
+{
+	if(self.TargetWindowMode != EWindowMode::Windowed)
+	{
+		self.TargetWindowMode = EWindowMode::Windowed;
+	}
+}
+
 - (void)windowDidExitFullScreen:(NSNotification*)Notification
 {
 	WindowMode = EWindowMode::Windowed;
@@ -382,6 +397,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	{
 		FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async, @[ NSDefaultRunLoopMode, UE4FullscreenEventMode ]);
 	}
+	[self setFrame:self.PreFullScreenRect display:YES];
 	FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
 	if ( MacCursor )
 	{
@@ -534,7 +550,7 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 	// Really we shouldn't be doing this - on OS X only left-click changes focus,
 	// but for the moment it is easier than changing Slate.
 	SCOPED_AUTORELEASE_POOL;
-	if([self canBecomeKeyWindow])
+	if([self canBecomeKeyWindow] && self != [NSApp keyWindow])
 	{
 		[self makeKeyWindow];
 	}

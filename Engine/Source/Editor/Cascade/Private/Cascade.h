@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,11 +8,13 @@
 #include "CascadeParticleSystemComponent.h"
 #include "Particles/ParticleEmitter.h"
 #include "Particles/ParticleModule.h"
+#include "EditorUndoClient.h"
 
 class SCascadePreviewViewport;
 class SCascadeEmitterCanvas;
 class UCascadeParticleSystemComponent;
 class UCascadeConfiguration;
+class UVectorFieldComponent;
 
 
 DECLARE_LOG_CATEGORY_EXTERN(LogCascade, Log, All);

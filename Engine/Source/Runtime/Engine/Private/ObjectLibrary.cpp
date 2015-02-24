@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "AssetRegistryModule.h"
@@ -9,6 +9,22 @@ UObjectLibrary::UObjectLibrary(const FObjectInitializer& ObjectInitializer)
 {
 	bIsFullyLoaded = false;
 	bUseWeakReferences = false;
+
+#if WITH_EDITOR
+	if ( !HasAnyFlags(RF_ClassDefaultObject) )
+	{
+		bIsGlobalAsyncScanEnvironment = GIsEditor && !IsRunningCommandlet();
+
+		if ( bIsGlobalAsyncScanEnvironment )
+		{
+			// Listen for when the asset registry has finished discovering files
+			FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
+			IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
+
+			AssetRegistry.OnFilesLoaded().AddUObject(this, &UObjectLibrary::OnAssetRegistryFilesLoaded);
+		}
+	}
+#endif
 }
 
 #if WITH_EDITOR
@@ -182,7 +198,7 @@ bool UObjectLibrary::RemoveObject(UObject *ObjectToRemove)
 	return false;
 }
 
-int32 UObjectLibrary::LoadAssetsFromPaths(TArray<FString> Paths)
+int32 UObjectLibrary::LoadAssetsFromPaths(const TArray<FString>& Paths)
 {
 	int32 Count = 0;
 
@@ -218,7 +234,7 @@ int32 UObjectLibrary::LoadAssetsFromPaths(TArray<FString> Paths)
 	return Count;
 }
 
-int32 UObjectLibrary::LoadBlueprintsFromPaths(TArray<FString> Paths)
+int32 UObjectLibrary::LoadBlueprintsFromPaths(const TArray<FString>& Paths)
 {
 	int32 Count = 0;
 
@@ -259,16 +275,29 @@ int32 UObjectLibrary::LoadBlueprintsFromPaths(TArray<FString> Paths)
 	return Count;
 }
 
-int32 UObjectLibrary::LoadAssetDataFromPaths(TArray<FString> Paths)
+int32 UObjectLibrary::LoadAssetDataFromPaths(const TArray<FString>& Paths, bool bForceSynchronousScan)
 {
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
 
 #if WITH_EDITOR
 	// Cooked data has the asset data already set up
-	TArray<FString> ScanPaths;
-	ScanPaths.Append(Paths);
-	AssetRegistry.ScanPathsSynchronous(ScanPaths);
+	const bool bShouldDoSynchronousScan = !bIsGlobalAsyncScanEnvironment || bForceSynchronousScan;
+	if ( bShouldDoSynchronousScan )
+	{
+		AssetRegistry.ScanPathsSynchronous(Paths);
+	}
+	else
+	{
+		if ( AssetRegistry.IsLoadingAssets() )
+		{
+			// Keep track of the paths we asked for so once assets are discovered we will refresh the list
+			for ( const FString& Path : Paths )
+			{
+				DeferredAssetDataPaths.AddUnique(Path);
+			}
+		}
+	}
 #endif
 
 	FARFilter ARFilter;
@@ -292,12 +321,13 @@ int32 UObjectLibrary::LoadAssetDataFromPaths(TArray<FString> Paths)
 	ARFilter.bRecursivePaths = true;
 	ARFilter.bIncludeOnlyOnDiskAssets = true;
 
+	AssetDataList.Empty();
 	AssetRegistry.GetAssets(ARFilter, AssetDataList);
 
 	return AssetDataList.Num();
 }
 
-int32 UObjectLibrary::LoadBlueprintAssetDataFromPaths(TArray<FString> Paths)
+int32 UObjectLibrary::LoadBlueprintAssetDataFromPaths(const TArray<FString>& Paths, bool bForceSynchronousScan)
 {
 	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
 	IAssetRegistry& AssetRegistry = AssetRegistryModule.Get();
@@ -309,9 +339,22 @@ int32 UObjectLibrary::LoadBlueprintAssetDataFromPaths(TArray<FString> Paths)
 
 #if WITH_EDITOR
 	// Cooked data has the asset data already set up
-	TArray<FString> ScanPaths;
-	ScanPaths.Append(Paths);
-	AssetRegistry.ScanPathsSynchronous(ScanPaths);
+	const bool bShouldDoSynchronousScan = !bIsGlobalAsyncScanEnvironment || bForceSynchronousScan;
+	if ( bShouldDoSynchronousScan )
+	{
+		AssetRegistry.ScanPathsSynchronous(Paths);
+	}
+	else
+	{
+		if ( AssetRegistry.IsLoadingAssets() )
+		{
+			// Keep track of the paths we asked for so once assets are discovered we will refresh the list
+			for (const FString& Path : Paths)
+			{
+				DeferredAssetDataPaths.AddUnique(Path);
+			}
+		}
+	}
 #endif
 
 	FARFilter ARFilter;
@@ -341,37 +384,40 @@ int32 UObjectLibrary::LoadBlueprintAssetDataFromPaths(TArray<FString> Paths)
 		}
 	}*/
 
+	AssetDataList.Empty();
 	AssetRegistry.GetAssets(ARFilter, AssetDataList);
 
-	for(int32 AssetIdx=0; AssetIdx<AssetDataList.Num(); AssetIdx++)
+	// Filter out any blueprints found whose parent class is not derived from ObjectBaseClass
+	if (ObjectBaseClass)
 	{
-		FAssetData& Data = AssetDataList[AssetIdx];
-		
-		const FString* LoadedParentClass = Data.TagsAndValues.Find("ParentClass");
-		if (LoadedParentClass && !LoadedParentClass->IsEmpty())
+		TSet<FName> DerivedClassNames;
+		TArray<FName> ClassNames;
+		ClassNames.Add(ObjectBaseClass->GetFName());
+		AssetRegistry.GetDerivedClassNames(ClassNames, TSet<FName>(), DerivedClassNames);
+
+		for(int32 AssetIdx=AssetDataList.Num() - 1; AssetIdx >= 0; --AssetIdx)
 		{
-			UClass* Class = FindObject<UClass>(ANY_PACKAGE, **LoadedParentClass);
-			if ( Class == NULL )
+			FAssetData& Data = AssetDataList[AssetIdx];
+
+			bool bShouldRemove = true;
+			const FString* ParentClassFromData = Data.TagsAndValues.Find("ParentClass");
+			if (ParentClassFromData && !ParentClassFromData->IsEmpty())
 			{
-				Class = LoadObject<UClass>(NULL, **LoadedParentClass);
+				const FString ClassObjectPath = FPackageName::ExportTextPathToObjectPath(*ParentClassFromData);
+				const FString ClassName = FPackageName::ObjectPathToObjectName(ClassObjectPath);
+				if (DerivedClassNames.Contains(FName(*ClassName)))
+				{
+					// This asset is derived from ObjectBaseClass. Keep it.
+					bShouldRemove = false;
+				}
 			}
-			if (!Class || (ObjectBaseClass && !Class->IsChildOf(ObjectBaseClass)))
+
+			if ( bShouldRemove )
 			{
-				// Remove if class is wrong
 				AssetDataList.RemoveAt(AssetIdx);
-				AssetIdx--;
-				continue;
 			}
-		}
-		else
-		{
-			// Remove if class is wrong
-			AssetDataList.RemoveAt(AssetIdx);
-			AssetIdx--;
-			continue;
 		}
 	}
-
 
 	return AssetDataList.Num();
 }
@@ -441,3 +487,22 @@ void UObjectLibrary::GetAssetDataList(TArray<FAssetData>& OutAssetData)
 {
 	OutAssetData = AssetDataList;
 }
+
+#if WITH_EDITOR
+void UObjectLibrary::OnAssetRegistryFilesLoaded()
+{
+	if ( DeferredAssetDataPaths.Num() )
+	{
+		if ( bHasBlueprintClasses )
+		{
+			LoadBlueprintAssetDataFromPaths(DeferredAssetDataPaths, false);
+		}
+		else
+		{
+			LoadAssetDataFromPaths(DeferredAssetDataPaths, false);
+		}
+
+		DeferredAssetDataPaths.Empty();
+	}
+}
+#endif // WITH_EDITOR

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "stdafx.h"
 #include "Exporter.h"
@@ -779,7 +779,7 @@ public:
 
 						// Refine if the importance cone threshold is exceeded or there was a big enough brightness difference
 						if (MaxRelativeDifference > BrightnessThreshold 
-							|| bRefineForSkyOcclusion && MaxSkyOcclusionDifference > SkyOcclusionThreshold
+							|| (bRefineForSkyOcclusion && MaxSkyOcclusionDifference > SkyOcclusionThreshold)
 							|| bSuperSampleDueToImportanceCones)
 						{
 							FSimpleQuadTreeNode<FRefinementElement>* Node = &Cells[ThetaIndex * NumPhiSteps + PhiIndex].RootNode;
@@ -876,7 +876,7 @@ public:
 
 							// Refine if the importance cone threshold is exceeded or there was a big enough brightness difference
 							if (MaxRelativeDifference > BrightnessThreshold 
-								|| bRefineForSkyOcclusion && MaxSkyOcclusionDifference > SkyOcclusionThreshold
+								|| (bRefineForSkyOcclusion && MaxSkyOcclusionDifference > SkyOcclusionThreshold)
 								|| bSuperSampleDueToImportanceCones)
 							{
 								NextNodesToRefine->Add(FRefinementTraversalContext(
@@ -1656,7 +1656,7 @@ FFinalGatherSample FStaticLightingSystem::CachePointIncomingRadiance(
 						// FindNearbyPhotons only returns photons whose incident directions lie in this hemisphere, but the recalculated direction might not.
 						if (Dot3(NewDirection, Vertex.TriangleNormal) > 0.0f)
 						{
-							ImportancePhotonDirections.Add(NewDirection.UnsafeNormal3());
+							ImportancePhotonDirections.Add(NewDirection.GetUnsafeNormal3());
 						}
 					}
 				}

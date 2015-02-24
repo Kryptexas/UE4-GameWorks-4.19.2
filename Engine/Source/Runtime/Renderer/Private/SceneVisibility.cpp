@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	SceneVisibility.cpp: Scene visibility determination.
@@ -57,7 +57,7 @@ static TAutoConsoleVariable<int32> CVarTemporalAASamples(
 #if PLATFORM_MAC // @todo: disabled until rendering problems with HZB occlusion in OpenGL are solved
 static int32 GHZBOcclusion = 0;
 #else
-static int32 GHZBOcclusion = 1;
+static int32 GHZBOcclusion = 0;
 #endif
 static FAutoConsoleVariableRef CVarHZBOcclusion(
 	TEXT("r.HZBOcclusion"),
@@ -82,7 +82,7 @@ static TAutoConsoleVariable<int32> CVarLightShaftQuality(
 	1,
 	TEXT("Defines the light shaft quality.\n")
 	TEXT("  0: off\n")
-	TEXT("  1: on (default)\n"),
+	TEXT("  1: on (default)"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 static TAutoConsoleVariable<float> CVarStaticMeshLODDistanceScale(
@@ -171,7 +171,7 @@ static void UpdatePrimitiveFadingState(FPrimitiveFadingState& FadingState, FView
 		}
 	}
 
-	FadingState.FrameNumber = View.FrameNumber;
+	FadingState.FrameNumber = View.Family->FrameNumber;
 	FadingState.bIsVisible = bVisible;
 	FadingState.bValid = true;
 }
@@ -642,7 +642,6 @@ typedef TArray<int32, SceneRenderingAllocator> FRelevantStaticPrimitives;
  * @param ViewBit - Bit mask: 1 << ViewIndex where Views(ViewIndex) == View.
  * @param OutRelevantStaticPrimitives - Upon return contains a list of relevant
  *                                      static primitives.
- * @param OutPreRenderViewMasks - Primitives requiring the PreRenderView
  *                                callback for this view will have ViewBit set.
  */
 static void ComputeRelevanceForView(
@@ -651,7 +650,6 @@ static void ComputeRelevanceForView(
 	FViewInfo& View,
 	uint8 ViewBit,
 	FRelevantStaticPrimitives& OutRelevantStaticPrimitives,
-	FPrimitiveViewMasks& OutPreRenderViewMasks,
 	FPrimitiveViewMasks& OutHasDynamicMeshElementsMasks,
 	FPrimitiveViewMasks& OutHasDynamicEditorMeshElementsMasks
 	)
@@ -664,7 +662,6 @@ static void ComputeRelevanceForView(
 	// - Update last render time.
 	// But it's hard to say since the view relevance is going to be available right now.
 
-	check(OutPreRenderViewMasks.Num() == Scene->Primitives.Num());
 	check(OutHasDynamicMeshElementsMasks.Num() == Scene->Primitives.Num());
 
 	float CurrentWorldTime = View.Family->CurrentWorldTime;
@@ -693,11 +690,6 @@ static void ComputeRelevanceForView(
 		{
 			View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
 			continue;
-		}
-
-		if (ViewRelevance.bNeedsPreRenderView)
-		{
-			OutPreRenderViewMasks[BitIt.GetIndex()] |= ViewBit;
 		}
 
 		if (bEditorRelevance)
@@ -857,7 +849,6 @@ struct FRelevancePacket
 	const FViewInfo& View;
 	const uint8 ViewBit;
 	const FMarkRelevantStaticMeshesForViewData& ViewData;
-	FPrimitiveViewMasks& OutPreRenderViewMasks;
 	FPrimitiveViewMasks& OutHasDynamicMeshElementsMasks;
 	FPrimitiveViewMasks& OutHasDynamicEditorMeshElementsMasks;
 	uint8* RESTRICT MarkMasks;
@@ -879,7 +870,6 @@ struct FRelevancePacket
 		const FViewInfo& InView, 
 		uint8 InViewBit,
 		const FMarkRelevantStaticMeshesForViewData& InViewData,
-		FPrimitiveViewMasks& InOutPreRenderViewMasks,
 		FPrimitiveViewMasks& InOutHasDynamicMeshElementsMasks,
 		FPrimitiveViewMasks& InOutHasDynamicEditorMeshElementsMasks,
 		uint8* InMarkMasks)
@@ -891,7 +881,6 @@ struct FRelevancePacket
 		, View(InView)
 		, ViewBit(InViewBit)
 		, ViewData(InViewData)
-		, OutPreRenderViewMasks(InOutPreRenderViewMasks)
 		, OutHasDynamicMeshElementsMasks(InOutHasDynamicMeshElementsMasks)
 		, OutHasDynamicEditorMeshElementsMasks(InOutHasDynamicEditorMeshElementsMasks)
 		, MarkMasks(InMarkMasks)
@@ -931,11 +920,6 @@ struct FRelevancePacket
 			{
 				NotDrawRelevant.AddPrim(BitIndex);
 				continue;
-			}
-
-			if (ViewRelevance.bNeedsPreRenderView)
-			{
-				OutPreRenderViewMasks[BitIndex] |= ViewBit;
 			}
 
 			if (bEditorRelevance)
@@ -1176,7 +1160,7 @@ static TAutoConsoleVariable<int32> CVarParallelInitViews(
 #else
 	1,  
 #endif
-	TEXT("Toggles parallel init views.\n"),
+	TEXT("Toggles parallel init views."),
 	ECVF_RenderThreadSafe
 	);
 
@@ -1189,7 +1173,6 @@ static TAutoConsoleVariable<int32> CVarParallelInitViews(
  * @param ViewBit - Bit mask: 1 << ViewIndex where Views(ViewIndex) == View.
  * @param OutRelevantStaticPrimitives - Upon return contains a list of relevant
  *                                      static primitives.
- * @param OutPreRenderViewMasks - Primitives requiring the PreRenderView
  *                                callback for this view will have ViewBit set.
  */
 static void ComputeAndMarkRelevanceForViewParallel(
@@ -1197,13 +1180,10 @@ static void ComputeAndMarkRelevanceForViewParallel(
 	const FScene* Scene,
 	FViewInfo& View,
 	uint8 ViewBit,
-	FPrimitiveViewMasks& OutPreRenderViewMasks,
 	FPrimitiveViewMasks& OutHasDynamicMeshElementsMasks,
 	FPrimitiveViewMasks& OutHasDynamicEditorMeshElementsMasks
 	)
 {
-
-	check(OutPreRenderViewMasks.Num() == Scene->Primitives.Num());
 	check(OutHasDynamicMeshElementsMasks.Num() == Scene->Primitives.Num());
 
 	const FMarkRelevantStaticMeshesForViewData ViewData(View);
@@ -1235,7 +1215,6 @@ static void ComputeAndMarkRelevanceForViewParallel(
 				View, 
 				ViewBit,
 				ViewData,
-				OutPreRenderViewMasks,
 				OutHasDynamicMeshElementsMasks,
 				OutHasDynamicEditorMeshElementsMasks,
 				MarkMasks);
@@ -1273,7 +1252,6 @@ static void ComputeAndMarkRelevanceForViewParallel(
 							View, 
 							ViewBit,
 							ViewData,
-							OutPreRenderViewMasks,
 							OutHasDynamicMeshElementsMasks,
 							OutHasDynamicEditorMeshElementsMasks,
 							MarkMasks);
@@ -1489,34 +1467,6 @@ static void MarkRelevantStaticMeshesForView(
 }
 
 /**
- * Dispatches PreRenderView callbacks to all primitives with the provided view
- * masks.
- */
-static void DispatchPreRenderView(
-	const FScene* Scene,
-	const FSceneViewFamily* ViewFamily,
-	const FPrimitiveViewMasks& PreRenderViewMasks,
-	uint32 FrameNumber
-	)
-{
-	SCOPE_CYCLE_COUNTER(STAT_PreRenderView);
-
-	int32 NumPrimitives = Scene->Primitives.Num();
-	check(PreRenderViewMasks.Num() == NumPrimitives);
-
-	for (int32 PrimitiveIndex = 0; PrimitiveIndex < NumPrimitives; ++PrimitiveIndex)
-	{
-		uint8 ViewMask = PreRenderViewMasks[PrimitiveIndex];
-		if (ViewMask != 0)
-		{
-			FPrimitiveSceneInfo* PrimitiveSceneInfo = Scene->Primitives[PrimitiveIndex];
-			FScopeCycleCounter Context(PrimitiveSceneInfo->Proxy->GetStatId());
-			PrimitiveSceneInfo->Proxy->PreRenderView(ViewFamily, ViewMask, FrameNumber);
-		}
-	}
-}
-
-/**
  * Helper for InitViews to detect large camera movement, in both angle and position.
  */
 static bool IsLargeCameraMovement(FSceneView& View, const FMatrix& PrevViewMatrix, const FVector& PrevViewOrigin, float CameraRotationThreshold, float CameraTranslationThreshold)
@@ -1599,7 +1549,6 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 	for(int32 ViewIndex = 0;ViewIndex < Views.Num();ViewIndex++)
 	{
 		FViewInfo& View = Views[ViewIndex];
-		View.FrameNumber = FrameNumber;
 		FSceneViewState* ViewState = (FSceneViewState*) View.State;
 		static bool bEnableTimeScale = true;
 
@@ -1824,10 +1773,12 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 			}
 
 			ViewState->PrevFrameNumber = ViewState->PendingPrevFrameNumber;
-			ViewState->PendingPrevFrameNumber = View.FrameNumber;
+			ViewState->PendingPrevFrameNumber = View.Family->FrameNumber;
 
 			// This finishes the update of view state
 			ViewState->UpdateLastRenderTime(*View.Family);
+
+			ViewState->UpdateTemporalLODTransition(View);
 		}
 	}
 }
@@ -1835,7 +1786,7 @@ void FSceneRenderer::PreVisibilityFrameSetup(FRHICommandListImmediate& RHICmdLis
 static TAutoConsoleVariable<int32> CVarLegacySingleThreadedRelevance(
 	TEXT("r.LegacySingleThreadedRelevance"),
 	0,  
-	TEXT("Toggles the lgacy codepath for view relevance.\n"),
+	TEXT("Toggles the legacy codepath for view relevance."),
 	ECVF_RenderThreadSafe
 	);
 
@@ -1855,11 +1806,6 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 
 	int32 NumPrimitives = Scene->Primitives.Num();
 	float CurrentRealTime = ViewFamily.CurrentRealTime;
-
-	// This array contains a per-primitive mask specifying for which views a
-	// primitive must have PreRenderView called.
-	FPrimitiveViewMasks PreRenderViewMasks;
-	PreRenderViewMasks.AddZeroed(NumPrimitives);
 
 	FPrimitiveViewMasks HasDynamicMeshElementsMasks;
 	HasDynamicMeshElementsMasks.AddZeroed(NumPrimitives);
@@ -2037,13 +1983,13 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 			// Compute view relevance for all visible primitives.
 			if (!CVarLegacySingleThreadedRelevance.GetValueOnRenderThread())
 			{
-				ComputeAndMarkRelevanceForViewParallel(RHICmdList, Scene, View, ViewBit, PreRenderViewMasks, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks);
+				ComputeAndMarkRelevanceForViewParallel(RHICmdList, Scene, View, ViewBit, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks);
 			}
 			else
 			{
 				// This array contains a list of relevant static primities.
 				FRelevantStaticPrimitives RelevantStaticPrimitives;
-				ComputeRelevanceForView(RHICmdList, Scene, View, ViewBit, RelevantStaticPrimitives, PreRenderViewMasks, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks);
+				ComputeRelevanceForView(RHICmdList, Scene, View, ViewBit, RelevantStaticPrimitives, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks);
 				MarkRelevantStaticMeshesForView(Scene, View, RelevantStaticPrimitives);
 			}
 		}
@@ -2071,16 +2017,7 @@ void FSceneRenderer::ComputeViewVisibility(FRHICommandListImmediate& RHICmdList)
 #endif
 	}
 
-	const bool bUseGetMeshElements = ShouldUseGetDynamicMeshElements();
-
-	if (bUseGetMeshElements)
-	{
-		GatherDynamicMeshElements(Views, Scene, ViewFamily, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks, MeshCollector);
-	}
-	else
-	{
-		DispatchPreRenderView(Scene, &ViewFamily, PreRenderViewMasks, FrameNumber);
-	}
+	GatherDynamicMeshElements(Views, Scene, ViewFamily, HasDynamicMeshElementsMasks, HasDynamicEditorMeshElementsMasks, MeshCollector);
 
 	INC_DWORD_STAT_BY(STAT_ProcessedPrimitives,NumProcessedPrimitives);
 	INC_DWORD_STAT_BY(STAT_CulledPrimitives,NumCulledPrimitives);
@@ -2095,6 +2032,11 @@ void FSceneRenderer::PostVisibilityFrameSetup()
 
 		// sort the translucent primitives
 		View.TranslucentPrimSet.SortPrimitives();
+
+		if (View.State)
+		{
+			((FSceneViewState*)View.State)->TrimHistoryRenderTargets(Scene);
+		}
 	}
 
 	bool bCheckLightShafts = false;

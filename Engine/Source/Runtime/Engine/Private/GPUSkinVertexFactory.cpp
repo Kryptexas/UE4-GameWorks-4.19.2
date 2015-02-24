@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	GPUVertexFactory.cpp: GPU skin vertex factory implementation
@@ -375,6 +375,8 @@ public:
 	{
 		if(Shader->GetVertexShader())
 		{
+			uint32 FrameNumber = View.Family->FrameNumber;
+
 			const auto FeatureLevel = View.GetFeatureLevel();
 			const FGPUBaseSkinVertexFactory::ShaderDataType& ShaderData = ((const FGPUBaseSkinVertexFactory*)VertexFactory)->GetShaderData();
 
@@ -410,7 +412,7 @@ public:
 				// we are in the velocity rendering pass
 
 				// 0xffffffff or valid index
-				uint32 OldBoneDataIndex = ShaderData.GetOldBoneData(View.FrameNumber);
+				uint32 OldBoneDataIndex = ShaderData.GetOldBoneData(FrameNumber);
 
 				// Read old data if it was written last frame (normal data) or this frame (e.g. split screen)
 				bLocalPerBoneMotionBlur = (OldBoneDataIndex != 0xffffffff);
@@ -439,14 +441,14 @@ public:
 				}
 				FScopeLock Lock(&ShaderData.OldBoneDataLock);
 				// if we haven't copied the data yet we skip the update (e.g. split screen)
-				if(ShaderData.IsOldBoneDataUpdateNeeded(View.FrameNumber))
+				if(ShaderData.IsOldBoneDataUpdateNeeded(FrameNumber))
 				{
 					const FGPUBaseSkinVertexFactory* GPUVertexFactory = (const FGPUBaseSkinVertexFactory*)VertexFactory;
 
 					// copy the bone data and tell the instance where it can pick it up next frame
 					// append data to a buffer we bind next frame to read old matrix data for motion blur
 					uint32 OldBoneDataStartIndex = GPrevPerBoneMotionBlur.AppendData(ShaderData.BoneMatrices.GetData(), ShaderData.BoneMatrices.Num());
-					GPUVertexFactory->SetOldBoneDataStartIndex(View.FrameNumber, OldBoneDataStartIndex);
+					GPUVertexFactory->SetOldBoneDataStartIndex(FrameNumber, OldBoneDataStartIndex);
 				}
 			}
 

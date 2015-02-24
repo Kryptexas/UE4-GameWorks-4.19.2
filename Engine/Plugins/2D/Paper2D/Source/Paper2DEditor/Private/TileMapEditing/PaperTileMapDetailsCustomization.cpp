@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "PaperTileMapDetailsCustomization.h"
@@ -6,9 +6,11 @@
 #include "DetailCategoryBuilder.h"
 #include "EdModeTileMap.h"
 #include "PropertyEditing.h"
+#include "AssetToolsModule.h"
 
 #include "STileLayerList.h"
 #include "ScopedTransaction.h"
+#include "IPropertyUtilities.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
 
@@ -23,86 +25,159 @@ TSharedRef<IDetailCustomization> FPaperTileMapDetailsCustomization::MakeInstance
 void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailLayout)
 {
 	const TArray< TWeakObjectPtr<UObject> >& SelectedObjects = DetailLayout.GetDetailsView().GetSelectedObjects();
+	MyDetailLayout = &DetailLayout;
 	
-	UPaperTileMap* TileMap = NULL;
+	FNotifyHook* NotifyHook = DetailLayout.GetPropertyUtilities()->GetNotifyHook();
+
+	bool bEditingActor = false;
+
+	UPaperTileMap* TileMap = nullptr;
+	UPaperTileMapComponent* TileComponent = nullptr;
 	for (int32 ObjectIndex = 0; ObjectIndex < SelectedObjects.Num(); ++ObjectIndex)
 	{
-		if (AActor* CurrentActor = Cast<AActor>(SelectedObjects[ObjectIndex].Get()))
+		UObject* TestObject = SelectedObjects[ObjectIndex].Get();
+		if (AActor* CurrentActor = Cast<AActor>(TestObject))
 		{
-			if (UPaperTileMapRenderComponent* CurrentTileMap = CurrentActor->FindComponentByClass<UPaperTileMapRenderComponent>())
+			if (UPaperTileMapComponent* CurrentComponent = CurrentActor->FindComponentByClass<UPaperTileMapComponent>())
 			{
-				TileMap = CurrentTileMap->TileMap;
+				bEditingActor = true;
+				TileComponent = CurrentComponent;
+				TileMap = CurrentComponent->TileMap;
 				break;
 			}
 		}
+		else if (UPaperTileMapComponent* TestComponent = Cast<UPaperTileMapComponent>(TestObject))
+		{
+			TileComponent = TestComponent;
+			TileMap = TestComponent->TileMap;
+			break;
+		}
+		else if (UPaperTileMap* TestTileMap = Cast<UPaperTileMap>(TestObject))
+		{
+			TileMap = TestTileMap;
+			break;
+		}
 	}
 	TileMapPtr = TileMap;
+	TileMapComponentPtr = TileComponent;
 
-	IDetailCategoryBuilder& TileMapCategory = DetailLayout.EditCategory("TileMap");
+	IDetailCategoryBuilder& TileMapCategory = DetailLayout.EditCategory("Tile Map");
 
-	TileMapCategory
-	.AddCustomRow(TEXT("EnterEditMode"))
-	[
-		SNew(SVerticalBox)
-		+SVerticalBox::Slot()
-		[
-// 			SNew(SHorizontalBox)
-// 			+SHorizontalBox::Slot()
-// 			.AutoWidth()
-// 			.Padding(10,5)
-// 			[
-				SNew(SButton)
-				.ContentPadding(3)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
-				.OnClicked(this, &FPaperTileMapDetailsCustomization::EnterTileMapEditingMode)
-				.Visibility(this, &FPaperTileMapDetailsCustomization::GetNonEditModeVisibility)
-				.Text( LOCTEXT( "EnterTileMapEditMode", "Enter Edit Mode" ) )
-//			]
-		]
-	];
+	TAttribute<EVisibility> InternalInstanceVis = TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FPaperTileMapDetailsCustomization::GetVisibilityForInstancedOnlyProperties));
 
-	//@TODO: Handle showing layers when multiple tile maps are selected
-	if (TileMap != NULL)
+	if (TileComponent != nullptr)
 	{
-		IDetailCategoryBuilder& LayersCategory = DetailLayout.EditCategory("Tile Layers");
-
-		LayersCategory.AddCustomRow(TEXT("Tile layer list"))
-		[
-			SNew(STileLayerList, TileMap)
-		];
-
-		LayersCategory.AddCustomRow(TEXT("Add Layer, Add Collision Layer"))
+		TileMapCategory
+		.AddCustomRow(LOCTEXT( "TileMapInstancingControlsSearchText", "Edit New Promote Asset"))
 		[
 			SNew(SVerticalBox)
-			+SVerticalBox::Slot()
+			+ SVerticalBox::Slot()
+			.Padding(0.0f, 2.0f, 0.0f, 0.0f)
+			.FillHeight(1.0f)
+			.VAlign(VAlign_Center)
 			[
- 				SNew(SHorizontalBox)
- 				+SHorizontalBox::Slot()
- 				.AutoWidth()
- 				.Padding(10,5)
- 				[
+				SNew(SHorizontalBox)
+
+				// Edit button
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding( 2.0f, 0.0f )
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Left)
+				[
 					SNew(SButton)
-					.ContentPadding(3)
 					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.OnClicked(this, &FPaperTileMapDetailsCustomization::AddLayerClicked)
-					.Text( LOCTEXT( "AddLayer", "Add Layer" ) )
+					.OnClicked(this, &FPaperTileMapDetailsCustomization::EnterTileMapEditingMode)
+					.Visibility(this, &FPaperTileMapDetailsCustomization::GetNonEditModeVisibility)
+					.Text( LOCTEXT("EditAsset", "Edit") )
+					.ToolTipText( LOCTEXT("EditAssetToolTip", "Edit this tile map") )
 				]
 
+				// Create new tile map button
 				+SHorizontalBox::Slot()
- 				.AutoWidth()
- 				.Padding(10,5)
- 				[
+				.AutoWidth()
+				.Padding( 2.0f, 0.0f )
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Left)
+				[
 					SNew(SButton)
-					.ContentPadding(3)
 					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.OnClicked(this, &FPaperTileMapDetailsCustomization::AddCollisionLayerClicked)
-					.Text( LOCTEXT( "AddCollisionLayer", "Add Collision Layer" ) )
+					.OnClicked(this, &FPaperTileMapDetailsCustomization::OnNewButtonClicked)
+					.Visibility(this, &FPaperTileMapDetailsCustomization::GetNewButtonVisiblity)
+					.Text(LOCTEXT("CreateNewInstancedMap", "New"))
+					.ToolTipText( LOCTEXT("CreateNewInstancedMapToolTip", "Create a new tile map") )
+				]
+
+				// Promote to asset button
+				+SHorizontalBox::Slot()
+				.AutoWidth()
+				.Padding( 2.0f, 0.0f )
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Left)
+				[
+					SNew(SButton)
+					.VAlign(VAlign_Center)
+					.OnClicked(this, &FPaperTileMapDetailsCustomization::OnPromoteButtonClicked)
+					.Visibility(this, &FPaperTileMapDetailsCustomization::GetVisibilityForInstancedOnlyProperties)
+					.Text(LOCTEXT("PromoteToAsset", "Promote to asset"))
+					.ToolTipText(LOCTEXT("PromoteToAssetToolTip", "Save this tile map as a reusable asset"))
 				]
 			]
 		];
+
+		TileMapCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UPaperTileMapComponent, TileMap));
+	}
+
+	// Add the layer browser
+	if (TileMap != nullptr)
+	{
+		TAttribute<EVisibility> LayerBrowserVis;
+		LayerBrowserVis.Set(EVisibility::Visible);
+		if (TileComponent != nullptr)
+		{
+			LayerBrowserVis = InternalInstanceVis;
+		}
+
+		FText TileLayerListText = LOCTEXT("TileLayerList", "Tile layer list");
+		TileMapCategory.AddCustomRow(TileLayerListText)
+		.Visibility(LayerBrowserVis)
+		[
+			SNew(SVerticalBox)
+			+SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(STextBlock)
+				.Font(DetailLayout.GetDetailFont())
+				.Text(TileLayerListText)
+			]
+			+SVerticalBox::Slot()
+			[
+				SNew(STileLayerList, TileMap, NotifyHook)
+			]
+		];
+	}
+
+	// Add all of the properties from the inline tilemap
+	if ((TileComponent != nullptr) && (TileComponent->OwnsTileMap()))
+	{
+		TArray<UObject*> ListOfTileMaps;
+		ListOfTileMaps.Add(TileMap);
+
+		for (TFieldIterator<UProperty> PropIt(UPaperTileMap::StaticClass()); PropIt; ++PropIt)
+		{
+			UProperty* TestProperty = *PropIt;
+
+			if (TestProperty->HasAnyPropertyFlags(CPF_Edit))
+			{
+				FName CategoryName(*TestProperty->GetMetaData(TEXT("Category")));
+				IDetailCategoryBuilder& Category = DetailLayout.EditCategory(CategoryName);
+
+				if (IDetailPropertyRow* ExternalRow = Category.AddExternalProperty(ListOfTileMaps, TestProperty->GetFName()))
+				{
+					ExternalRow->Visibility(InternalInstanceVis);
+				}
+			}
+		}
 	}
 
 	// Make sure the setup category is near the top
@@ -111,20 +186,51 @@ void FPaperTileMapDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& D
 
 FReply FPaperTileMapDetailsCustomization::EnterTileMapEditingMode()
 {
-	GLevelEditorModeTools().ActivateMode(FEdModeTileMap::EM_TileMap);
+	if (UPaperTileMapComponent* TileMapComponent = TileMapComponentPtr.Get())
+	{
+		if (TileMapComponent->OwnsTileMap())
+		{
+			GLevelEditorModeTools().ActivateMode(FEdModeTileMap::EM_TileMap);
+		}
+		else
+		{
+			FAssetEditorManager::Get().OpenEditorForAsset(TileMapComponent->TileMap);
+		}
+	}
 	return FReply::Handled();
 }
 
-FReply FPaperTileMapDetailsCustomization::AddLayerClicked()
+FReply FPaperTileMapDetailsCustomization::OnNewButtonClicked()
 {
-	AddLayer(false);
+	if (UPaperTileMapComponent* TileMapComponent = TileMapComponentPtr.Get())
+	{
+		const FScopedTransaction Transaction(LOCTEXT("CreateNewTileMap", "New Tile Map"));
+		TileMapComponent->Modify();
+		TileMapComponent->CreateNewOwnedTileMap();
+
+		MyDetailLayout->ForceRefreshDetails();
+	}
 
 	return FReply::Handled();
 }
 
-FReply FPaperTileMapDetailsCustomization::AddCollisionLayerClicked()
+FReply FPaperTileMapDetailsCustomization::OnPromoteButtonClicked()
 {
-	AddLayer(true);
+	if (UPaperTileMapComponent* TileMapComponent = TileMapComponentPtr.Get())
+	{
+		if (TileMapComponent->OwnsTileMap())
+		{
+			if (TileMapComponent->TileMap != nullptr)
+			{
+				// Try promoting the tile map to be an asset (prompts for a name&path, creates a package and then calls the factory, which renames the existing asset and sets RF_Public)
+				UPaperTileMapPromotionFactory* PromotionFactory = NewObject<UPaperTileMapPromotionFactory>();
+				PromotionFactory->AssetToRename = TileMapComponent->TileMap;
+
+				FAssetToolsModule& AssetToolsModule = FAssetToolsModule::GetModule();
+				UObject* NewAsset = AssetToolsModule.Get().CreateAsset(PromotionFactory->GetSupportedClass(), PromotionFactory);
+			}
+		}
+	}
 
 	return FReply::Handled();
 }
@@ -134,29 +240,22 @@ EVisibility FPaperTileMapDetailsCustomization::GetNonEditModeVisibility() const
 	return GLevelEditorModeTools().IsModeActive(FEdModeTileMap::EM_TileMap) ? EVisibility::Collapsed : EVisibility::Visible;
 }
 
-UPaperTileLayer* FPaperTileMapDetailsCustomization::AddLayer(bool bCollisionLayer)
+EVisibility FPaperTileMapDetailsCustomization::GetNewButtonVisiblity() const
 {
-	UPaperTileLayer* NewLayer = NULL;
+	return (TileMapComponentPtr.Get() != nullptr) ? EVisibility::Visible : EVisibility::Collapsed;
+}
 
-	if (UPaperTileMap* TileMap = TileMapPtr.Get())
+EVisibility FPaperTileMapDetailsCustomization::GetVisibilityForInstancedOnlyProperties() const
+{
+	if (UPaperTileMapComponent* TileMapComponent = TileMapComponentPtr.Get())
 	{
-		const FScopedTransaction Transaction( LOCTEXT("TileMapAddLayer", "Add New Layer") );
-		TileMap->SetFlags(RF_Transactional);
-		TileMap->Modify();
-
-		NewLayer = NewObject<UPaperTileLayer>(TileMap);
-		NewLayer->SetFlags(RF_Transactional);
-
-		NewLayer->LayerWidth = TileMap->MapWidth;
-		NewLayer->LayerHeight = TileMap->MapHeight;
-		NewLayer->DestructiveAllocateMap(NewLayer->LayerWidth, NewLayer->LayerHeight);
-		NewLayer->LayerName = LOCTEXT("DefaultNewLayerName", "New Layer");
-		NewLayer->bCollisionLayer = bCollisionLayer;
-
-		TileMap->TileLayers.Add(NewLayer);
+		if (TileMapComponent->OwnsTileMap())
+		{
+			return EVisibility::Visible;
+		}
 	}
 
-	return NewLayer;
+	return EVisibility::Hidden;
 }
 
 //////////////////////////////////////////////////////////////////////////

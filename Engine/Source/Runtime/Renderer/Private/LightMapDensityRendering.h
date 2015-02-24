@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	LightMapDensityRendering.h: Definitions for rendering lightmap density.
 =============================================================================*/
 
 #pragma once
+#include "Engine/LightMapTexture2D.h"
 
 /**
  * The base shader type for vertex shaders that render the emissive color, and light-mapped/ambient lighting of a mesh.
@@ -438,14 +439,4 @@ public:
 		const FPrimitiveSceneProxy* PrimitiveSceneProxy,
 		FHitProxyId HitProxyId
 		);
-	static bool IsMaterialIgnored(const FMaterialRenderProxy* MaterialRenderProxy, ERHIFeatureLevel::Type InFeatureLevel)
-	{
-		// Note: MaterialModifiesMeshPosition may depend on feature level!
-		const FMaterial* Material = MaterialRenderProxy ? MaterialRenderProxy->GetMaterial(InFeatureLevel) : NULL;
-		return (Material && 
-				!(	Material->IsSpecialEngineMaterial() || 
-					Material->IsMasked() ||
-					Material->MaterialModifiesMeshPosition_RenderThread()
-				));
-	}
 };

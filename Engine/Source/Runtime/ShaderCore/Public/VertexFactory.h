@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	VertexFactory.h: Vertex factory definitions.
@@ -355,9 +355,19 @@ public:
 	void Set(FRHICommandList& RHICmdList) const;
 
 	/**
+	 * Call SetStreamSource on instance streams to offset the read pointer
+	 */
+	void OffsetInstanceStreams(FRHICommandList& RHICmdList, uint32 FirstVertex) const;
+
+	/**
 	* Sets the position stream as the current stream source.
 	*/
 	void SetPositionStream(FRHICommandList& RHICmdList) const;
+
+	/**
+	* Call SetStreamSource on instance streams to offset the read pointer
+	 */
+	void OffsetPositionInstanceStreams(FRHICommandList& RHICmdList, uint32 FirstVertex) const;
 
 	/**
 	* Can be overridden by FVertexFactory subclasses to modify their compile environment just before compilation occurs.
@@ -383,6 +393,9 @@ public:
 
 	/** Indicates whether the vertex factory supports a position-only stream. */
 	bool SupportsPositionOnlyStream() const { return !!PositionStream.Num(); }
+
+	/** Indicates whether the vertex factory supports a null pixel shader. */
+	virtual bool SupportsNullPixelShader() const { return true; }
 
 	/**
 	* Fill in array of strides from this factory's vertex streams without shadow/light maps
@@ -441,6 +454,7 @@ protected:
 		const FVertexBuffer* VertexBuffer;
 		uint32 Stride;
 		uint32 Offset;
+		bool bUseInstanceIndex;
 
 		friend bool operator==(const FVertexStream& A,const FVertexStream& B)
 		{
@@ -485,7 +499,7 @@ public:
 		delete Parameters;
 	}
 
-	void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const class FSceneView& View,const FMeshBatchElement& BatchElement,uint32 DataFlags) const
+	void SetMesh(FRHICommandList& RHICmdList, FShader* Shader,const FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags) const
 	{
 		if(Parameters)
 		{

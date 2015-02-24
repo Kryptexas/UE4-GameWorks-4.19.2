@@ -1,4 +1,6 @@
-﻿using System;
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -84,22 +86,11 @@ namespace UnrealBuildTool
 				EngineDirectory = BuildConfiguration.RelativeEnginePath;
 			}
 
-			foreach (var IniFileName in EnumerateCrossPlatformIniFileNames(ProjectDirectory, EngineDirectory, BaseIniName))
+			foreach (var IniFileName in EnumerateCrossPlatformIniFileNames(ProjectDirectory, EngineDirectory, Platform, BaseIniName))
 			{
 				if (File.Exists(IniFileName))
 				{
 					ParseIniFile(IniFileName);
-				}
-			}
-
-			if (Platform != UnrealTargetPlatform.Unknown)
-			{
-				foreach (var IniFileName in EnumeratePlatformSpecificIniFileNames(ProjectDirectory, EngineDirectory, Platform, BaseIniName))
-				{
-					if (File.Exists(IniFileName))
-					{
-						ParseIniFile(IniFileName);
-					}
 				}
 			}
 		}
@@ -266,6 +257,39 @@ namespace UnrealBuildTool
 			return Result;
 		}
 
+        private static bool ExtractPath(string Source, out string Path)
+        {
+            int start = Source.IndexOf('"');
+            int end = Source.LastIndexOf('"');    
+            if(start != 1 && end != -1 && start < end)
+            {
+                ++start;
+                Path = Source.Substring(start, end - start);
+                return true;
+            }
+            else
+            {
+                Path = "";
+            }
+
+            return false;
+        }
+
+        public bool GetPath(string SectionName, string Key, out string Value)
+        {
+            string temp;
+            if(GetString(SectionName, Key, out temp))
+            {
+                return ExtractPath(temp, out Value);
+            }
+            else
+            {
+                Value = "";
+            }
+
+            return false;
+        }
+
 		/// <summary>
 		/// List of actions that can be performed on a single line from ini file
 		/// </summary>
@@ -307,64 +331,75 @@ namespace UnrealBuildTool
 		/// </summary>
 		public void ParseIniFile(string Filename)
 		{
-			var IniLines = File.ReadAllLines(Filename);
-			IniSection CurrentSection = null;
-
-			// Line Index for exceptions
-			var LineIndex = 1;
-			var bMultiLine = false;
-			var SingleValue = "";
-			var Key = "";
-			var LastAction = ParseAction.None;
-
-			// Parse each line
-			foreach (var Line in IniLines)
+			String[] IniLines = null;
+			try
 			{
-				var TrimmedLine = Line.Trim();
-				// Multiline value support
-				bool bWasMultiLine = bMultiLine;
-				bMultiLine = TrimmedLine.EndsWith("\\");
-				if (bMultiLine)
+				IniLines = File.ReadAllLines(Filename);
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine("Error reading ini file: " + Filename + " Exception: " + ex.Message);
+			}
+			if (IniLines != null)
+			{
+				IniSection CurrentSection = null;
+
+				// Line Index for exceptions
+				var LineIndex = 1;
+				var bMultiLine = false;
+				var SingleValue = "";
+				var Key = "";
+				var LastAction = ParseAction.None;
+
+				// Parse each line
+				foreach (var Line in IniLines)
 				{
-					TrimmedLine = TrimmedLine.Substring(0, TrimmedLine.Length - 1).TrimEnd();
-				}
-				if (!bWasMultiLine)
-				{
-					if (TrimmedLine.StartsWith("["))
+					var TrimmedLine = Line.Trim();
+					// Multiline value support
+					bool bWasMultiLine = bMultiLine;
+					bMultiLine = TrimmedLine.EndsWith("\\");
+					if (bMultiLine)
 					{
-						CurrentSection = FindOrAddSection(TrimmedLine, Filename, LineIndex);
-						LastAction = ParseAction.None;
+						TrimmedLine = TrimmedLine.Substring(0, TrimmedLine.Length - 1).TrimEnd();
 					}
-					else
+					if (!bWasMultiLine)
 					{
-						if (LastAction != ParseAction.None)
+						if (TrimmedLine.StartsWith("["))
 						{
-							throw new IniParsingException("Parsing new key/value pair when the previous one has not yet been processed ({0}, {1}) in {2}, line {3}: {4}", Key, SingleValue, Filename, LineIndex, TrimmedLine);
+							CurrentSection = FindOrAddSection(TrimmedLine, Filename, LineIndex);
+							LastAction = ParseAction.None;
 						}
-						// Check if the line is empty or a comment, also remove any +/- markers
-						LastAction = GetActionForLine(ref TrimmedLine);
-						if (LastAction != ParseAction.None)
+						else
 						{
-							if (CurrentSection == null)
+							if (LastAction != ParseAction.None)
 							{
-								throw new IniParsingException("Trying to parse key/value pair that doesn't belong to any section in {0}, line {1}: {2}", Filename, LineIndex, TrimmedLine);
+								throw new IniParsingException("Parsing new key/value pair when the previous one has not yet been processed ({0}, {1}) in {2}, line {3}: {4}", Key, SingleValue, Filename, LineIndex, TrimmedLine);
 							}
-							ParseKeyValuePair(TrimmedLine, Filename, LineIndex, out Key, out SingleValue);
+							// Check if the line is empty or a comment, also remove any +/- markers
+							LastAction = GetActionForLine(ref TrimmedLine);
+							if (LastAction != ParseAction.None)
+							{
+								if (CurrentSection == null)
+								{
+									throw new IniParsingException("Trying to parse key/value pair that doesn't belong to any section in {0}, line {1}: {2}", Filename, LineIndex, TrimmedLine);
+								}
+								ParseKeyValuePair(TrimmedLine, Filename, LineIndex, out Key, out SingleValue);
+							}
 						}
 					}
+					if (bWasMultiLine)
+					{
+						SingleValue += TrimmedLine;
+					}
+					if (!bMultiLine && LastAction != ParseAction.None)
+					{
+						ProcessKeyValuePair(CurrentSection, Key, SingleValue, LastAction);
+						LastAction = ParseAction.None;
+						SingleValue = "";
+						Key = "";
+					}
+					LineIndex++;
 				}
-				if (bWasMultiLine)
-				{
-					SingleValue += TrimmedLine;
-				}
-				if (!bMultiLine && LastAction != ParseAction.None)
-				{
-					ProcessKeyValuePair(CurrentSection, Key, SingleValue, LastAction);
-					LastAction = ParseAction.None;
-					SingleValue = "";
-					Key = "";
-				}
-				LineIndex++;
 			}
 		}
 
@@ -470,7 +505,7 @@ namespace UnrealBuildTool
 		/// <summary>
 		/// Returns a list of INI filenames for the given project
 		/// </summary>
-		private static IEnumerable<string> EnumerateCrossPlatformIniFileNames(string ProjectDirectory, string EngineDirectory, string BaseIniName)
+		private static IEnumerable<string> EnumerateCrossPlatformIniFileNames(string ProjectDirectory, string EngineDirectory, UnrealTargetPlatform Platform, string BaseIniName)
 		{
 			// Engine/Config/Base.ini (included in every ini type, required)
 			yield return Path.Combine(EngineDirectory, "Config", "Base.ini");
@@ -478,23 +513,67 @@ namespace UnrealBuildTool
 			// Engine/Config/Base* ini
 			yield return Path.Combine(EngineDirectory, "Config", "Base" + BaseIniName + ".ini");
 
-			// Game/Config/Default* ini
-			yield return Path.Combine(ProjectDirectory, "Config", "Default" + BaseIniName + ".ini");
-		}
+			// Engine/Config/NotForLicensees/Base* ini
+			yield return Path.Combine(EngineDirectory, "Config", "NotForLicensees", "Base" + BaseIniName + ".ini");
 
-		/// <summary>
-		/// Returns a list of INI filenames for the given project
-		/// </summary>
-		private static IEnumerable<string> EnumeratePlatformSpecificIniFileNames(string ProjectDirectory, string EngineDirectory, UnrealTargetPlatform Platform, string BaseIniName)
-		{
+			// NOTE: 4.7: See comment in GetSourceIniHierarchyFilenames()
+			// Engine/Config/NoRedist/Base* ini
+			// yield return Path.Combine(EngineDirectory, "Config", "NoRedist", "Base" + BaseIniName + ".ini");
+
+			if(!String.IsNullOrEmpty(ProjectDirectory))
+			{
+				// Game/Config/Default* ini
+				yield return Path.Combine(ProjectDirectory, "Config", "Default" + BaseIniName + ".ini");
+			
+				// Game/Config/NotForLicensees/Default* ini
+				yield return Path.Combine(ProjectDirectory, "Config", "NotForLicensees", "Default" + BaseIniName + ".ini");
+
+				// Game/Config/NoRedist/Default* ini
+				yield return Path.Combine(ProjectDirectory, "Config", "NoRedist", "Default" + BaseIniName + ".ini");
+			}
+			
 			string PlatformName = GetIniPlatformName(Platform);			
+			if (Platform != UnrealTargetPlatform.Unknown)
+			{
+				// Engine/Config/Platform/Platform* ini
+				yield return Path.Combine(EngineDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
 
-			// Engine/Config/Platform/Platform* ini
-			yield return Path.Combine(EngineDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
+				if(!String.IsNullOrEmpty(ProjectDirectory))
+				{
+					// Game/Config/Platform/Platform* ini
+					yield return Path.Combine(ProjectDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
+				}
+			}
 
-			// Game/Config/Platform/Platform* ini
-			yield return Path.Combine(ProjectDirectory, "Config", PlatformName, PlatformName + BaseIniName + ".ini");
-		}		
+			string UserSettingsFolder = null; // Match FPlatformProcess::UserSettingsDir()
+			string PersonalFolder = null; // Match FPlatformProcess::UserDir()
+			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+			{
+				UserSettingsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Library", "Application Support", "Epic");
+				PersonalFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Documents");
+			}
+			else if (Environment.OSVersion.Platform == PlatformID.Unix)
+			{
+				UserSettingsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Epic");
+				PersonalFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Personal), "Documents");
+			}
+			else
+			{
+				UserSettingsFolder = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+				PersonalFolder = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+			}
+
+			// <AppData>/UE4/EngineConfig/User* ini
+			yield return Path.Combine(UserSettingsFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
+			// <Documents>/UE4/EngineConfig/User* ini
+			yield return Path.Combine(PersonalFolder, "Unreal Engine", "Engine", "Config", "User" + BaseIniName + ".ini");
+			
+			// Game/Config/User* ini
+            if (!String.IsNullOrEmpty(ProjectDirectory))
+            {
+				yield return Path.Combine(ProjectDirectory, "Config", "User" + BaseIniName + ".ini");
+			}
+		}
 
 		/// <summary>
 		/// Returns the platform name to use as part of platform-specific config files

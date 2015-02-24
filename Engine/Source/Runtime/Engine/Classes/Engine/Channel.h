@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 //
 // Base class of communication channels.
@@ -46,7 +46,6 @@ class ENGINE_API UChannel : public UObject
 	EChannelType		ChType;				// Type of this channel.
 	int32					NumInRec;			// Number of packets in InRec.
 	int32					NumOutRec;			// Number of packets in OutRec.
-	int32					NegotiatedVer;		// Negotiated version of engine = Min(client version, server version).
 	class FInBunch*		InRec;				// Incoming data with queued dependencies.
 	class FOutBunch*	OutRec;				// Outgoing reliable unacked data.
 	class FInBunch*		InPartialBunch;		// Partial bunch we are receiving (incoming partial bunches are appended to this)
@@ -101,6 +100,12 @@ class ENGINE_API UChannel : public UObject
 	 */
 	void ReceivedRawBunch( FInBunch & Bunch, bool & bOutSkipAck );
 	
+	/** Append any export bunches */
+	virtual void AppendExportBunches( TArray< FOutBunch* >& OutExportBunches );
+
+	/** Append any "must be mapped" guids to front of bunch. These are guids that the client will wait on before processing this bunch. */
+	virtual void AppendMustBeMappedGuids( FOutBunch* Bunch );
+
 	/** Send a bunch if it's not overflowed, and queue it if it's reliable. */
 	virtual FPacketIdRange SendBunch(FOutBunch* Bunch, bool Merge);
 	

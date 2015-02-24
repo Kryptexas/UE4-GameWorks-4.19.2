@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 // Core includes.
 #include "CorePrivatePCH.h"
@@ -642,7 +642,7 @@ void FCommandLine::Parse(const TCHAR* InCmdLine, TArray<FString>& Tokens, TArray
 	FString NextToken;
 	while (FParse::Token(InCmdLine, NextToken, false))
 	{
-		if ((**NextToken == TCHAR('-')) || (**NextToken == TCHAR('/')))
+		if ((**NextToken == TCHAR('-')))
 		{
 			new(Switches) FString(NextToken.Mid(1));
 		}

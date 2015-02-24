@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	FileManagerGeneric.cpp: Unreal generic file manager support code.
@@ -122,7 +122,11 @@ int64 FFileManagerGeneric::FileSize( const TCHAR* Filename )
 uint32 FFileManagerGeneric::Copy( const TCHAR* InDestFile, const TCHAR* InSrcFile, bool ReplaceExisting, bool EvenIfReadOnly, bool Attributes, FCopyProgress* Progress )
 {
 	uint32	Result = COPY_OK;
-	if( Progress )
+	if( FPaths::ConvertRelativePathToFull( InDestFile ) == FPaths::ConvertRelativePathToFull( InSrcFile ) )
+	{
+		Result = COPY_Fail;
+	}
+	else if( Progress )
 	{
 		Result = CopyWithProgress( InDestFile, InSrcFile, ReplaceExisting, EvenIfReadOnly, Attributes, Progress );
 	}

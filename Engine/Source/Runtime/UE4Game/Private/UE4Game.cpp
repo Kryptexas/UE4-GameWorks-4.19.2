@@ -1,3 +1,5 @@
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 #include "Core.h"
 #include "ModuleManager.h"
 
@@ -12,5 +14,3 @@ TCHAR GInternalGameName[64] = TEXT("");
 IMPLEMENT_DEBUGGAME()
 IMPLEMENT_FOREIGN_ENGINE_DIR()
 #endif
-
-REGISTER_AUTO_STARTUP_MODULE_LIST_GETTER();

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ProfilerClientManager.h: Declares the FProfilerClientManager class.
@@ -343,6 +343,9 @@ private:
 	/** Holds a delegate to be invoked when the widget ticks. */
 	FTickerDelegate TickDelegate;
 
+	/** Handle to the registered TickDelegate. */
+	FDelegateHandle TickDelegateHandle;
+
 	/** Amount of time between connection retries */
 	float RetryTime;
 
@@ -351,6 +354,9 @@ private:
 
 	/** Holds a delegate to be invoked when the widget ticks. */
 	FTickerDelegate MessageDelegate;
+
+	/** Handle to the registered MessageDelegate. */
+	FDelegateHandle MessageDelegateHandle;
 
 #if PROFILER_THREADED_LOAD
 	/** Loads a file asynchronously */

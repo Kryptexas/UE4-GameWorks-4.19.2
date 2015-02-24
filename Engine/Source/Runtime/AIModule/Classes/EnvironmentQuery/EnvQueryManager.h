@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EnvQueryTypes.h"
@@ -113,7 +113,7 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 
 	// We need to implement GetWorld() so that any EQS-related blueprints (such as blueprint contexts) can implement
 	// GetWorld() and so provide access to blueprint nodes using hidden WorldContextObject parameters.
-	virtual class UWorld* GetWorld() const;
+	virtual UWorld* GetWorld() const;
 
 	/** [FTickableGameObject] tick function */
 	virtual void Tick(float DeltaTime) override;
@@ -140,6 +140,9 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 
 	/** creates local context object */
 	UEnvQueryContext* PrepareLocalContext(TSubclassOf<UEnvQueryContext> ContextClass);
+
+	/** find value of named param stored with active query */
+	float FindNamedParam(int32 QueryId, FName ParamName) const;
 
 	/** execute query */
 	bool AbortQuery(int32 RequestID);

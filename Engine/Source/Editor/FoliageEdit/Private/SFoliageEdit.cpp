@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
@@ -12,8 +12,8 @@
 #include "Editor/UnrealEd/Public/DragAndDrop/AssetDragDropOp.h"
 #include "Editor/UnrealEd/Public/AssetSelection.h"
 #include "Editor/IntroTutorials/Public/IIntroTutorials.h"
-
 #include "SFoliageEditMeshDisplayItem.h"
+#include "Engine/StaticMesh.h"
 
 #define LOCTEXT_NAMESPACE "FoliageEd_Mode"
 
@@ -171,7 +171,6 @@ void SFoliageEdit::Construct(const FArguments& InArgs)
 						.OnValueChanged(this, &SFoliageEdit::SetPaintDensity)
 					]
 				]
-
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				[
@@ -587,6 +586,7 @@ float SFoliageEdit::GetPaintDensity() const
 	return FoliageEditMode->UISettings.GetPaintDensity();
 }
 
+
 void SFoliageEdit::SetEraseDensity(float InDensity)
 {
 	FoliageEditMode->UISettings.SetUnpaintDensity(InDensity);
@@ -669,49 +669,49 @@ FReply SFoliageEdit::OnDrop_ListView(const FGeometry& MyGeometry, const FDragDro
 	return FReply::Handled();
 }
 
-void SFoliageEdit::OnCheckStateChanged_Landscape(ESlateCheckBoxState::Type InState)
+void SFoliageEdit::OnCheckStateChanged_Landscape(ECheckBoxState InState)
 {
-	FoliageEditMode->UISettings.SetFilterLandscape(InState == ESlateCheckBoxState::Checked ? true : false);
+	FoliageEditMode->UISettings.SetFilterLandscape(InState == ECheckBoxState::Checked ? true : false);
 }
 
-ESlateCheckBoxState::Type SFoliageEdit::GetCheckState_Landscape() const
+ECheckBoxState SFoliageEdit::GetCheckState_Landscape() const
 {
-	return FoliageEditMode->UISettings.GetFilterLandscape() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageEditMode->UISettings.GetFilterLandscape() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SFoliageEdit::OnCheckStateChanged_StaticMesh(ESlateCheckBoxState::Type InState)
+void SFoliageEdit::OnCheckStateChanged_StaticMesh(ECheckBoxState InState)
 {
-	FoliageEditMode->UISettings.SetFilterStaticMesh(InState == ESlateCheckBoxState::Checked ? true : false);
+	FoliageEditMode->UISettings.SetFilterStaticMesh(InState == ECheckBoxState::Checked ? true : false);
 }
 
-ESlateCheckBoxState::Type SFoliageEdit::GetCheckState_StaticMesh() const
+ECheckBoxState SFoliageEdit::GetCheckState_StaticMesh() const
 {
-	return FoliageEditMode->UISettings.GetFilterStaticMesh() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageEditMode->UISettings.GetFilterStaticMesh() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SFoliageEdit::OnCheckStateChanged_BSP(ESlateCheckBoxState::Type InState)
+void SFoliageEdit::OnCheckStateChanged_BSP(ECheckBoxState InState)
 {
-	FoliageEditMode->UISettings.SetFilterBSP(InState == ESlateCheckBoxState::Checked ? true : false);
+	FoliageEditMode->UISettings.SetFilterBSP(InState == ECheckBoxState::Checked ? true : false);
 }
 
-ESlateCheckBoxState::Type SFoliageEdit::GetCheckState_BSP() const
+ECheckBoxState SFoliageEdit::GetCheckState_BSP() const
 {
-	return FoliageEditMode->UISettings.GetFilterBSP() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageEditMode->UISettings.GetFilterBSP() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
-void SFoliageEdit::OnCheckStateChanged_Translucent(ESlateCheckBoxState::Type InState)
+void SFoliageEdit::OnCheckStateChanged_Translucent(ECheckBoxState InState)
 {
-	FoliageEditMode->UISettings.SetFilterTranslucent(InState == ESlateCheckBoxState::Checked ? true : false);
+	FoliageEditMode->UISettings.SetFilterTranslucent(InState == ECheckBoxState::Checked ? true : false);
 }
 
-ESlateCheckBoxState::Type SFoliageEdit::GetCheckState_Translucent() const
+ECheckBoxState SFoliageEdit::GetCheckState_Translucent() const
 {
-	return FoliageEditMode->UISettings.GetFilterTranslucent() ? ESlateCheckBoxState::Checked : ESlateCheckBoxState::Unchecked;
+	return FoliageEditMode->UISettings.GetFilterTranslucent() ? ECheckBoxState::Checked : ECheckBoxState::Unchecked;
 }
 
 EVisibility SFoliageEdit::GetVisibility_Radius() const
 {
-	if (FoliageEditMode->UISettings.GetSelectToolSelected() || FoliageEditMode->UISettings.GetReapplyPaintBucketToolSelected() || FoliageEditMode->UISettings.GetPaintBucketToolSelected())
+	if (FoliageEditMode->UISettings.GetSelectToolSelected() || FoliageEditMode->UISettings.GetReapplyPaintBucketToolSelected() || FoliageEditMode->UISettings.GetPaintBucketToolSelected() )
 	{
 		return EVisibility::Collapsed;
 	}
@@ -748,6 +748,7 @@ EVisibility SFoliageEdit::GetVisibility_Filters() const
 
 	return EVisibility::Visible;
 }
+
 
 void SFoliageEdit::NotifyNewCurrentLevel()
 {

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #include "EnginePrivate.h"
 #include "HighResScreenshot.h"
 #include "Slate/SceneViewport.h"
@@ -31,6 +31,25 @@ void FHighResScreenshotConfig::Init()
 		ImageCompressorLDR = ImageWrapperModule->CreateImageWrapper(EImageFormat::PNG);
 		ImageCompressorHDR = ImageWrapperModule->CreateImageWrapper(EImageFormat::EXR);
 	}
+
+#if WITH_EDITOR
+	HighResScreenshotMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EngineMaterials/HighResScreenshot.HighResScreenshot"));
+	HighResScreenshotMaskMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EngineMaterials/HighResScreenshotMask.HighResScreenshotMask"));
+	HighResScreenshotCaptureRegionMaterial = LoadObject<UMaterial>(NULL, TEXT("/Engine/EngineMaterials/HighResScreenshotCaptureRegion.HighResScreenshotCaptureRegion"));
+
+	if (HighResScreenshotMaterial)
+	{
+		HighResScreenshotMaterial->AddToRoot();
+	}
+	if (HighResScreenshotMaskMaterial)
+	{
+		HighResScreenshotMaskMaterial->AddToRoot();
+	}
+	if (HighResScreenshotCaptureRegionMaterial)
+	{
+		HighResScreenshotCaptureRegionMaterial->AddToRoot();
+	}
+#endif
 }
 
 void FHighResScreenshotConfig::ChangeViewport(TWeakPtr<FSceneViewport> InViewport)

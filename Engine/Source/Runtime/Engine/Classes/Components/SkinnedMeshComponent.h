@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -153,9 +153,6 @@ class ENGINE_API USkinnedMeshComponent : public UMeshComponent
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Mesh")
 	class USkeletalMesh* SkeletalMesh;
 
-	/** Temporary array of of component-space bone matrices, update each frame and used for rendering the mesh. */
-	TArray<FTransform> SpaceBases;
-
 	//
 	// MasterPoseComponent.
 	//
@@ -167,7 +164,20 @@ class ENGINE_API USkinnedMeshComponent : public UMeshComponent
 	 */
 	TWeakObjectPtr< class USkinnedMeshComponent > MasterPoseComponent;
 
+private:
+	/** Temporary array of of component-space bone matrices, update each frame and used for rendering the mesh. */
+	TArray<FTransform> SpaceBasesArray[2];
+
+	/** The index for the space bases buffer we can currently write to */
+	int32 CurrentEditableSpaceBases;
+
+	/** The index for the space bases buffer we can currently read from */
+	int32 CurrentReadSpaceBases;
+
 protected:
+	/** Are we using double buffered blend spaces */
+	bool bDoubleBufferedBlendSpaces;
+
 	/** 
 	 * If set, this component has slave pose components that are associated with this 
 	 * Note this is weak object ptr, so it will go away unless you have other strong reference
@@ -295,14 +305,6 @@ public:
 	/** If true, when updating bounds from a PhysicsAsset, consider _all_ BodySetups, not just those flagged with bConsiderForBounds. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=SkeletalMesh)
 	uint32 bConsiderAllBodiesForBounds:1;
-
-	/** If true, update skeleton/attachments even when our Owner has not been rendered recently
-	 * @note if this is false, bone information may not be accurate, so be careful setting this to false if bone info is relevant to gameplay
-	 * @note you can use ForceSkelUpdate() to force an update
-	 * @note: In the output from SHOWSKELCOMPTICKTIME you want UpdatePoseTotal to be 0 when this is false for a specific component
-	 */
-	UPROPERTY()
-	uint32 bUpdateSkelWhenNotRendered_DEPRECATED:1;
 
 	/** This is update frequency flag even when our Owner has not been rendered recently
 	 * 
@@ -455,6 +457,10 @@ public:
 	virtual int32 GetNumMaterials() const override;
 	// End UPrimitiveComponent interface
 
+	// Begin MeshComponent interface
+	virtual TArray<class UMaterialInterface*> GetMaterials() const override;
+	// End MeshComponent interface
+
 	/**
 	 *	Sets the value of the bForceWireframe flag and reattaches the component as necessary.
 	 *
@@ -549,9 +555,27 @@ public:
 	 * Checks/updates material usage on proxy based on current morph target usage
 	 */
 	void UpdateMorphMaterialUsageOnProxy();
+	
+	/** Access Space Bases for reading */
+	const TArray<FTransform>& GetSpaceBases() const { return SpaceBasesArray[CurrentReadSpaceBases]; }
 
+	/** Get Access to the current editable space bases */
+	TArray<FTransform>& GetEditableSpaceBases() { return SpaceBasesArray[CurrentEditableSpaceBases]; }
+	const TArray<FTransform>& GetEditableSpaceBases() const { return SpaceBasesArray[CurrentEditableSpaceBases]; }
+
+	/** Get the number of space bases */
+	int32 GetNumSpaceBases() const { return GetSpaceBases().Num(); }
+
+	/** Flip the editable space base buffer */
+	void FlipEditableSpaceBases();
+
+	void SetSpaceBaseDoubleBuffering(bool bInDoubleBufferedBlendSpaces);
 
 protected:
+
+	/** Track whether we still need to flip to recently modified buffer */
+	bool bNeedToFlipSpaceBaseBuffers;
+
 	/**
 	* Combine CurveKeys (that reference morph targets by name) and ActiveAnims (that reference vertex anims by reference) into the ActiveVertexAnims array.
 	*/
@@ -675,6 +699,15 @@ public:
 	 * @return the matrix of the bone at the specified index 
 	 */
 	FMatrix GetBoneMatrix( int32 BoneIndex ) const;
+
+	/** 
+	 * Get world space bone transform from bone index, also specifying the component transform to use
+	 * 
+	 * @param BoneIndex Index of the bone
+	 *
+	 * @return the transform of the bone at the specified index 
+	 */
+	FTransform GetBoneTransform( int32 BoneIndex, const FTransform& LocalToWorld ) const;
 
 	/** 
 	 * Get Bone Transform from index

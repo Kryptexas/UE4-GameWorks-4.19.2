@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AITestSuitePrivatePCH.h"
 #include "MockAI_BT.h"
@@ -27,8 +27,11 @@ bool UMockAI_BT::IsRunning() const
 
 bool UMockAI_BT::RunBT(UBehaviorTree& BTAsset, EBTExecutionMode::Type RunType)
 {
-	BBComp->InitializeBlackboard(BTAsset.BlackboardAsset);
-	BBComp->CacheBrainComponent(BTComp);
+	if (BTAsset.BlackboardAsset)
+	{
+		BBComp->InitializeBlackboard(*BTAsset.BlackboardAsset);
+	}
+	BBComp->CacheBrainComponent(*BTComp);
 	BTComp->CacheBlackboardComponent(BBComp);
 
 	UWorld* World = FAITestHelpers::GetWorld();

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -51,7 +51,7 @@ public class UnrealSyncTarget : TargetRules
 
 		// Currently this app is not linking against the engine, so we'll compile out references from Core to the rest of the engine
 		UEBuildConfiguration.bCompileAgainstEngine = false;
-		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
+		UEBuildConfiguration.bCompileAgainstCoreUObject = true;
 
 		OutLinkEnvironmentConfiguration.bIsBuildingConsoleApplication = false;
 	}

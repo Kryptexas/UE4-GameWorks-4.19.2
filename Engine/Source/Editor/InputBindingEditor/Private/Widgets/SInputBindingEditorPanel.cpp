@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "InputBindingEditorPrivatePCH.h"
 #include "SSearchBox.h"
@@ -248,6 +248,7 @@ TSharedRef< ITableRow > SInputBindingEditorPanel::OnGenerateWidgetForTreeItem( T
 {
 	if( InTreeItem->IsContext() )
 	{
+		static const FName InvertedForegroundName("InvertedForeground");
 		// contexts do not need columns
 		return
 			SNew( STableRow< TSharedPtr<FGestureTreeItem> >, OwnerTable )
@@ -272,7 +273,7 @@ TSharedRef< ITableRow > SInputBindingEditorPanel::OnGenerateWidgetForTreeItem( T
 					[
 						SNew( STextBlock )
 						.Font( FEditorStyle::GetFontStyle( "InputBindingEditor.ContextFont" ) )
-						.ColorAndOpacity( FEditorStyle::GetSlateColor( "InvertedForeground" ) )
+						.ColorAndOpacity(FEditorStyle::GetSlateColor(InvertedForegroundName) )
 						.Text( InTreeItem->GetBindingContext()->GetContextDesc() )
 					]
 				]

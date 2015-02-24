@@ -1,21 +1,23 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "EnvironmentQuery/Generators/EnvQueryGenerator_ProjectedPoints.h"
 #include "EnvQueryGenerator_OnCircle.generated.h"
 
+struct FEnvQueryInstance;
+
 UCLASS()	
-class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
+class AIMODULE_API UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 {
 	GENERATED_UCLASS_BODY()
 
 	/** max distance of path between point and context */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
-	FEnvFloatParam Radius;
+	FAIDataProviderFloatValue CircleRadius;
 
 	/** items will be generated on a circle this much apart */
-	UPROPERTY(EditDefaultsOnly, Category=Generator)
-	FEnvFloatParam ItemSpacing;
+	UPROPERTY(EditDefaultsOnly, Category = Generator)
+	FAIDataProviderFloatValue SpaceBetween;
 
 	/** If you generate items on a piece of circle you define direction of Arc cut here */
 	UPROPERTY(EditDefaultsOnly, Category=Generator, meta=(EditCondition="bDefineArc"))
@@ -23,7 +25,7 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 
 	/** If you generate items on a piece of circle you define angle of Arc cut here */
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
-	FEnvFloatParam Angle;
+	FAIDataProviderFloatValue ArcAngle;
 	
 	UPROPERTY()
 	mutable float AngleRadians;
@@ -39,6 +41,17 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 	UPROPERTY()
 	uint32 bDefineArc:1;
 
+	// BEGIN: deprecated properties
+	UPROPERTY()
+	FEnvFloatParam Radius;
+
+	UPROPERTY()
+	FEnvFloatParam ItemSpacing;
+
+	UPROPERTY()
+	FEnvFloatParam Angle;
+	// END: deprecated properties
+
 	virtual void PostLoad() override;
 
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
@@ -51,10 +64,12 @@ class UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 #endif // WITH_EDITOR
 
 protected:
-	FVector CalcDirection(struct FEnvQueryInstance& QueryInstance) const;
+	FVector CalcDirection(FEnvQueryInstance& QueryInstance) const;
 
-private:
-	void GenerateItemsForCircle(const FVector& CenterLocation, const FVector& StartDirection,
-								int32 StepsCount, float AngleStep,
-								FEnvQueryInstance& OutQueryInstance) const;
+	void GenerateItemsForCircle(uint8* ContextRawData, UEnvQueryItemType* ContextItemType,
+		const FVector& CenterLocation, const FVector& StartDirection,
+		int32 StepsCount, float AngleStep, FEnvQueryInstance& OutQueryInstance) const;
+
+	virtual void AddItemDataForCircle(uint8* ContextRawData, UEnvQueryItemType* ContextItemType, 
+		const TArray<FVector>& Locations, FEnvQueryInstance& OutQueryInstance) const;
 };

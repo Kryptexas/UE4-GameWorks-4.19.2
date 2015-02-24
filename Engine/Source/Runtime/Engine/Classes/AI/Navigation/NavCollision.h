@@ -1,8 +1,12 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
+#include "NavigationTypes.h"
 #include "NavCollision.generated.h"
+
+class FPrimitiveDrawInterface;
+struct FCompositeNavModifier;
 
 USTRUCT()
 struct FNavCollisionCylinder
@@ -88,10 +92,10 @@ class ENGINE_API UNavCollision : public UObject
 	void Setup(class UBodySetup* BodySetup);
 
 	/** show cylinder and box collisions */
-	void DrawSimpleGeom(class FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FColor Color);
+	void DrawSimpleGeom(FPrimitiveDrawInterface* PDI, const FTransform& Transform, const FColor Color);
 
 	/** Get data for dynamic obstacle */
-	void GetNavigationModifier(struct FCompositeNavModifier& Modifier, const FTransform& LocalToWorld) const;
+	void GetNavigationModifier(FCompositeNavModifier& Modifier, const FTransform& LocalToWorld);
 
 	/** Read collisions data */
 	bool GatherCollision();

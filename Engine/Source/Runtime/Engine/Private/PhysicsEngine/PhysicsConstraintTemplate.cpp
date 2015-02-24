@@ -1,7 +1,9 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "PhysXSupport.h"
+#include "PhysicsEngine/PhysicsConstraintTemplate.h"
+#include "PhysicsEngine/PhysicsAsset.h"
 
 UPhysicsConstraintTemplate::UPhysicsConstraintTemplate(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -36,57 +38,6 @@ void UPhysicsConstraintTemplate::Serialize(FArchive& Ar)
 	}
 }
 
-void UPhysicsConstraintTemplate::PostLoad()
-{
-	Super::PostLoad();
-
-	//Check the version
-	if ( GetLinkerUE4Version() < VER_UE4_ANGULAR_CONSTRAINT_OPTIONS )
-	{
-		if ( DefaultInstance.bSwingLimited_DEPRECATED )
-		{
-			if (DefaultInstance.Swing1LimitAngle < RB_MinAngleToLockDOF)
-			{
-				DefaultInstance.AngularSwing1Motion = ACM_Locked;
-			}
-			else
-			{
-				DefaultInstance.AngularSwing1Motion = ACM_Limited;
-			}
-
-			if (DefaultInstance.Swing2LimitAngle < RB_MinAngleToLockDOF)
-			{
-				DefaultInstance.AngularSwing2Motion = ACM_Locked;
-			}
-			else
-			{
-				DefaultInstance.AngularSwing2Motion = ACM_Limited;
-			}
-		}
-		else
-		{
-			DefaultInstance.AngularSwing1Motion = ACM_Free;
-			DefaultInstance.AngularSwing2Motion = ACM_Free;
-		}
-
-		if ( DefaultInstance.bTwistLimited_DEPRECATED )
-		{
-			if (DefaultInstance.TwistLimitAngle < RB_MinAngleToLockDOF)
-			{
-				DefaultInstance.AngularTwistMotion = ACM_Locked;
-			}
-			else
-			{
-				DefaultInstance.AngularTwistMotion = ACM_Limited;
-			}
-		}
-		else
-		{
-			DefaultInstance.AngularTwistMotion = ACM_Free;
-		}
-	}
-}
-
 void UPhysicsConstraintTemplate::CopySetupPropsToInstance(FConstraintInstance* Instance)
 {
 	Instance->JointName			= JointName_DEPRECATED;
@@ -112,8 +63,6 @@ void UPhysicsConstraintTemplate::CopySetupPropsToInstance(FConstraintInstance* I
 	Instance->LinearLimitDamping			= LinearLimitDamping_DEPRECATED;
 	Instance->bLinearBreakable				= bLinearBreakable_DEPRECATED;
 	Instance->LinearBreakThreshold			= LinearBreakThreshold_DEPRECATED;
-	Instance->bSwingLimited_DEPRECATED		= bSwingLimited_DEPRECATED;
-	Instance->bTwistLimited_DEPRECATED		= bTwistLimited_DEPRECATED;
 	Instance->AngularSwing1Motion			= AngularSwing1Motion_DEPRECATED;
 	Instance->AngularSwing2Motion			= AngularSwing2Motion_DEPRECATED;
 	Instance->AngularTwistMotion			= AngularTwistMotion_DEPRECATED;

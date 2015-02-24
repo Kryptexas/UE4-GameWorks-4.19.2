@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -103,6 +103,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=AITest)
 	TArray<FAITestSpawnSet> SpawnSets;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = AITest, meta = (UIMin = "0.0"))
+	float SpawnLocationRandomizationRange;
+
 	UPROPERTY(BlueprintReadOnly, Category=AITest)
 	TArray<APawn*> SpawnedPawns;
 
@@ -138,6 +141,8 @@ public:
 	virtual FString GetReproString() const override;
 
 	void AddSpawnedPawn(APawn& SpawnedPawn);
+
+	FVector GetRandomizedLocation(const FVector& Location) const;
 
 protected:
 

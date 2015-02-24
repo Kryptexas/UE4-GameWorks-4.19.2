@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -20,9 +20,14 @@ class ENGINE_API UMeshComponent : public UPrimitiveComponent
 	GENERATED_UCLASS_BODY()
 
 	/** Per-Component material overrides.  These must NOT be set directly or a race condition can occur between GC and the rendering thread. */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Rendering, Meta=(ToolTip="Material overrides."))
-	TArray<class UMaterialInterface*> Materials;
+	UPROPERTY(EditAnywhere, Category=Rendering, Meta=(ToolTip="Material overrides."))
+	TArray<class UMaterialInterface*> OverrideMaterials;
+	
+	UFUNCTION(BlueprintCallable, Category="Components|Mesh")
+	virtual TArray<class UMaterialInterface*> GetMaterials() const;
 
+	/** Returns override Materials count */
+	virtual int32 GetNumOverrideMaterials() const;
 
 	// Begin UObject Interface
 	virtual void BeginDestroy() override;

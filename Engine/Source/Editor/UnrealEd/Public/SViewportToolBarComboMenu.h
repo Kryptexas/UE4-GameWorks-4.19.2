@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -26,7 +26,7 @@ public:
 		SLATE_EVENT( FOnCheckStateChanged, OnCheckStateChanged )
 			
 		/** Sets the current checked state of the checkbox */
-		SLATE_ATTRIBUTE( ESlateCheckBoxState::Type, IsChecked )
+		SLATE_ATTRIBUTE( ECheckBoxState, IsChecked )
 
 		/** Icon shown on the toggle button */
 		SLATE_ATTRIBUTE( FSlateIcon, Icon )

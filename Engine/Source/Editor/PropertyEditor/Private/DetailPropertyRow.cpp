@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PropertyEditorPrivatePCH.h"
 #include "DetailPropertyRow.h"
@@ -9,7 +9,7 @@
 #include "DetailGroup.h"
 #include "CustomChildBuilder.h"
 
-FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FObjectPropertyNode> InExternalRootNode )
+FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode, TSharedRef<FDetailCategoryImpl> InParentCategory, TSharedPtr<FPropertyNode> InExternalRootNode )
 	: CustomIsEnabledAttrib( true )
 	, PropertyNode( InPropertyNode )
 	, ParentCategory( InParentCategory )
@@ -52,7 +52,7 @@ FDetailPropertyRow::FDetailPropertyRow(TSharedPtr<FPropertyNode> InPropertyNode,
 	}
 }
 
-IDetailPropertyRow& FDetailPropertyRow::DisplayName( const FString& InDisplayName )
+IDetailPropertyRow& FDetailPropertyRow::DisplayName( const FText& InDisplayName )
 {
 	if (PropertyNode.IsValid())
 	{
@@ -61,7 +61,7 @@ IDetailPropertyRow& FDetailPropertyRow::DisplayName( const FString& InDisplayNam
 	return *this;
 }
 
-IDetailPropertyRow& FDetailPropertyRow::ToolTip( const FString& InToolTip )
+IDetailPropertyRow& FDetailPropertyRow::ToolTip( const FText& InToolTip )
 {
 	if (PropertyNode.IsValid())
 	{
@@ -318,16 +318,10 @@ void FDetailPropertyRow::MakeNameWidget( FDetailWidgetRow& Row, const TSharedPtr
 	EVerticalAlignment VerticalAlignment = VAlign_Center;
 	EHorizontalAlignment HorizontalAlignment = HAlign_Fill;
 
-	float MinWidth = 0.0f;
-	float MaxWidth = 0.0f;
-
 	if( InCustomRow.IsValid() )
 	{
 		VerticalAlignment = InCustomRow->NameWidget.VerticalAlignment;
 		HorizontalAlignment = InCustomRow->NameWidget.HorizontalAlignment;
-
-		MinWidth = InCustomRow->NameWidget.MinWidth;
-		MaxWidth = InCustomRow->NameWidget.MaxWidth;
 	}
 
 	TAttribute<bool> IsEnabledAttrib = CustomIsEnabledAttrib;
@@ -385,8 +379,8 @@ void FDetailPropertyRow::MakeValueWidget( FDetailWidgetRow& Row, const TSharedPt
 	EVerticalAlignment VerticalAlignment = VAlign_Center;
 	EHorizontalAlignment HorizontalAlignment = HAlign_Left;
 
-	float MinWidth = 0.0f;
-	float MaxWidth = 0.0f;
+	TOptional<float> MinWidth;
+	TOptional<float> MaxWidth;
 
 	if( InCustomRow.IsValid() )
 	{

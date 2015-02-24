@@ -1,11 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Timeline.cpp
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Curves/CurveLinearColor.h"
+#include "Curves/CurveVector.h"
 #include "Net/UnrealNetwork.h"
+#include "Components/TimelineComponent.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogTimeline, Log, All);
 

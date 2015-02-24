@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -57,9 +57,16 @@
 #include "GenericTeamAgentInterface.h"
 
 #include "Perception/AISense.h"
+#include "Perception/AISense_Sight.h"
+#include "Perception/AISense_Hearing.h"
+#include "Perception/AISenseEvent.h"
+#include "Perception/AISenseConfig.h"
 #include "Perception/AIPerceptionComponent.h"
 
 #include "VisualLogger/VisualLogger.h"
+
+#include "BlueprintNodeHelpers.h"
+#include "BehaviorTree/BTFunctionLibrary.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogAINavigation, Warning, All);
 DECLARE_LOG_CATEGORY_EXTERN(LogBehaviorTree, Display, All);

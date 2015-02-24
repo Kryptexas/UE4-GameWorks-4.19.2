@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OpenGLDrvPrivate.h"
 
@@ -119,21 +119,17 @@ static NSOpenGLContext* CreateContext( NSOpenGLContext* SharedContext )
 			bExplicitRendererSetup = true;
 		}
 		
+		if(DisplayMask || GMacExplicitRendererID || GNumActiveGPUsForRendering > 1 || GMacUseAutomaticGraphicsSwitching)
+		{
+			Attributes.Add(kCGLPFASupportsAutomaticGraphicsSwitching);
+			Attributes.Add(NSOpenGLPFAAllowOfflineRenderers);
+		}
+		
 		// Specify a single explicit renderer ID
 		if (GMacExplicitRendererID && (GNumActiveGPUsForRendering == 1) && !GMacUseAutomaticGraphicsSwitching)
 		{
 			Attributes.Add(NSOpenGLPFARendererID);
 			Attributes.Add(GMacExplicitRendererID);
-		}
-		
-		if(GMacUseAutomaticGraphicsSwitching)
-		{
-			Attributes.Add(kCGLPFASupportsAutomaticGraphicsSwitching);
-		}
-		
-		if(DisplayMask || GMacExplicitRendererID || GNumActiveGPUsForRendering > 1)
-		{
-			Attributes.Add(NSOpenGLPFAAllowOfflineRenderers);
 		}
 		
 		Attributes.Add(0);
@@ -433,22 +429,24 @@ void FPlatformOpenGLContext::VerifyCurrentContext()
 				PlatformContext->VendorID = 0x1002;
 			}
 			
-			if(FPlatformMisc::IsRunningOnMavericks())
+			// Renderer IDs matchup to driver kexts, so switching based on them will allow us to target workarouds to many GPUs
+			// which exhibit the same unfortunate driver bugs without having to parse their individual ID strings.
+			switch((PlatformContext->RendererID & kCGLRendererIDMatchingMask))
 			{
-				// Renderer IDs matchup to driver kexts, so switching based on them will allow us to target workarouds to many GPUs
-				// which exhibit the same unfortunate driver bugs without having to parse their individual ID strings.
-				switch((PlatformContext->RendererID & kCGLRendererIDMatchingMask))
+				case kCGLRendererATIRadeonX2000ID:
 				{
-					case kCGLRendererATIRadeonX4000ID:
-					{
-						// @todo: remove once AMD fix the AMDX4000 driver for GCN cards so that it is possible to sample the depth while also stencil testing to the same DEPTH_STENCIL texture - it works on all other cards we have.
-						PlatformContext->SupportsDepthFetchDuringDepthTest = false;
-						break;
-					}
-					default:
-					{
-						PlatformContext->SupportsDepthFetchDuringDepthTest = true;
-					}
+					PlatformContext->SupportsDepthFetchDuringDepthTest = false;
+					break;
+				}
+				case kCGLRendererATIRadeonX4000ID:
+				{
+					// @todo: remove once AMD fix the AMDX4000 driver for GCN cards so that it is possible to sample the depth while also stencil testing to the same DEPTH_STENCIL texture - it works on all other cards we have.
+					PlatformContext->SupportsDepthFetchDuringDepthTest = FPlatformMisc::IsRunningOnMavericks() ? false : true;
+					break;
+				}
+				default:
+				{
+					PlatformContext->SupportsDepthFetchDuringDepthTest = true;
 				}
 			}
 		}

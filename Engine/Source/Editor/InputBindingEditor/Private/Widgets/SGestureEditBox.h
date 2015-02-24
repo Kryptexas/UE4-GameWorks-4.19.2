@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -53,6 +53,9 @@ private:
 
 	/** @return content to be shown in the key binding conflict pop-up */
 	TSharedRef<SWidget> OnGetContentForConflictPopup();
+
+	/** Called when conflict popup opens or closes */
+	void OnConflictPopupOpenChanged(bool bIsOpen);
 
 	/** @return The visibility of the duplicate binding notification area */
 	EVisibility GetNotificationVisibility() const; 

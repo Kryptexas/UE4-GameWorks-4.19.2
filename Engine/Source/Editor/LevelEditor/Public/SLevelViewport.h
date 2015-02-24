@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -97,6 +97,7 @@ public:
 	/** SEditorViewport Interface */
 	virtual void OnFocusViewportToSelection() override;
 	virtual EVisibility GetTransformToolbarVisibility() const override;
+	virtual UWorld* GetWorld() const override;
 
 	/**
 	 * Called when the maximize command is executed                   
@@ -209,10 +210,7 @@ public:
 	/**
 	 * @return a new custom column for a scene outliner that indicates whether each actor is locked to this viewport
 	 */
-	TSharedRef< class ISceneOutlinerColumn > CreateActorLockSceneOutlinerColumn( const TWeakPtr< class ISceneOutliner >& SceneOutliner ) const;
-	
-	/** Gets the world this viewport is for */
-	UWorld* GetWorld() const;
+	TSharedRef< class ISceneOutlinerColumn > CreateActorLockSceneOutlinerColumn( class ISceneOutliner& SceneOutliner ) const;
 
 	/** Called when Preview Selected Cameras preference is changed.*/
 	void OnPreviewSelectedCamerasChange();
@@ -248,6 +246,9 @@ public:
 
 	/** @return The visibility of the current feature level preview text display */
 	EVisibility GetCurrentFeatureLevelPreviewTextVisibility() const;
+
+	/** @return The visibility of the viewport controls popup */
+	EVisibility GetViewportControlsVisibility() const;
 
 	/**
 	 * Sets the current layout on the parent tab that this viewport belongs to.
@@ -317,22 +318,6 @@ private:
 	void PreviewSelectedCameraActors();
 
 	/**
-	 * Called when stat rendering should be enabled in the viewport
-	 * NOTE: This enables realtime as well because we cant render stats without the viewport being realtime
-	 */
-	void OnToggleStats();
-
-	/**
-	 * @return true if stats are enabled in the viewport
-	 */
-	bool AreStatsEnabled() const;
-
-	/**
-	 * @return true if FPS is visible in the viewport                   
-	 */
-	bool IsShowingFPS() const;
-
-	/**
 	 * Called to create a cameraActor in the currently selected perspective viewport
 	 */
 	void OnCreateCameraActor();
@@ -346,21 +331,6 @@ private:
 	 * Called to check currently selected editor viewport is a perspective one
 	 */
 	bool IsPerspectiveViewport() const;
-	
-	/**
-	 * Toggles a show flag in this viewport
-	 *
-	 * @param EngineShowFlagIndex	the ID to toggle
-	 */
-	void ToggleShowFlag( uint32 EngineShowFlagIndex );
-
-	/**
-	 * Checks if a show flag is enabled in this viewport
-	 *
-	 * @param EngineShowFlagIndex	the ID to check
-	 * @return true if the show flag is enabled, false otherwise
-	 */
-	bool IsShowFlagEnabled( uint32 EngineShowFlagIndex ) const;
 
 	/**
 	 * Toggles all volume classes visibility
@@ -417,13 +387,6 @@ private:
 	 * @param Visible					true if Stats should be visible, false otherwise
 	 */
 	void OnToggleAllStatCommands(bool bVisible);
-
-	/**
-	 * Toggles Stat command visibility in this viewport
-	 *
-	 * @param CommandName				Name of the command
-	 */
-	virtual void ToggleStatCommand(FString CommandName) override;
 
 	/**
 	 * Called when show flags for this viewport should be reset to default, or the saved settings
@@ -517,7 +480,7 @@ private:
 	 *	@param DragDropEvent		The drag event.
 	 *	@param bCreateDropPreview	If true, a drop preview actor will be spawned instead of a normal actor.
 	 */
-	bool HandlePlaceDraggedObjects(const FDragDropEvent& DragDropEvent, bool bCreateDropPreview);
+	bool HandlePlaceDraggedObjects(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent, bool bCreateDropPreview);
 
 	/** SWidget Interface */
 	virtual FReply OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent ) override;

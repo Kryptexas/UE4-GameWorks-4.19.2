@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "Components/PanelSlot.h"
@@ -56,6 +56,14 @@ public:
 	bool ReplaceChildAt(int32 Index, UWidget* Content);
 
 #if WITH_EDITOR
+
+	/**
+	 * Swaps the child widget out of the slot, and replaces it with the new child widget.
+	 * @param CurrentChild The existing child widget being removed.
+	 * @param NewChild The new child widget being inserted.
+	 * @return true if the CurrentChild was found and the swap occurred, otherwise false.
+	 */
+	virtual bool ReplaceChild(UWidget* CurrentChild, UWidget* NewChild);
 
 	/**
 	 * Inserts a widget at a specific index.  This does not update the live slate version, it requires

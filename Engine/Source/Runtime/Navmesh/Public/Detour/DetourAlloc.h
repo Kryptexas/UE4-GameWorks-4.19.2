@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 // Modified version of Recast/Detour's source file
 
 //
@@ -71,7 +71,7 @@ public:
 
 	/// Constructs an instance with a null pointer.
 	inline dtScopedDelete() : ptr(0) {}
-	inline dtScopedDelete(int n) { ptr = (T*)dtAlloc(sizeof(T)*n, DT_ALLOC_TEMP); }
+	inline dtScopedDelete(int n) { ptr = n ? (T*)dtAlloc(sizeof(T)*n, DT_ALLOC_TEMP) : 0; }
 
 	/// Constructs an instance with the specified pointer.
 	///  @param[in]		p	An pointer to an allocated array.
@@ -81,6 +81,7 @@ public:
 	/// The root array pointer.
 	///  @return The root array pointer.
 	inline operator T*() { return ptr; }
+	inline T* get() { return ptr; }
 };
 
 /// A simple dynamic array of integers.

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  *
@@ -44,7 +44,7 @@ enum ReverbPreset
 };
 
 /** Struct encapsulating settings for reverb effects. */
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FReverbSettings
 {
 	GENERATED_USTRUCT_BODY()
@@ -94,8 +94,7 @@ struct TStructOpsTypeTraits<FReverbSettings> : public TStructOpsTypeTraitsBase
 };
 
 /** Struct encapsulating settings for interior areas. */
-//@warning: manually mirrored in Components.h
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FInteriorSettings
 {
 	GENERATED_USTRUCT_BODY()
@@ -148,10 +147,12 @@ struct FInteriorSettings
 		, InteriorLPFTime(0.5f)
 		{
 		}
-	
+
+	bool operator==(const FInteriorSettings& Other) const;
+	bool operator!=(const FInteriorSettings& Other) const;
 };
 
-UCLASS(hidecategories=(Advanced, Attachment, Collision, Volume))
+UCLASS(hidecategories=(Advanced, Attachment, Collision, Volume), MinimalAPI)
 class AAudioVolume : public AVolume
 {
 	GENERATED_UCLASS_BODY()

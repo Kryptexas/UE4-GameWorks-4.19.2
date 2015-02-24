@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -132,11 +132,6 @@ public class BuildCookRun : BuildCommand
 				ClientPlatformInstance.PlatformSetupParams(ref Params);
 			}
 		}
-
-        var configCache = new UnrealBuildTool.ConfigCacheIni("Game", Path.GetDirectoryName(ProjectPath));
-        bool obbInAPK = false;
-        configCache.GetBool("/Script/UnrealEd.ProjectPackagingSettings", "UseOBB_InAPK", out obbInAPK);
-        Params.OBBinAPK = obbInAPK;         
 
 		Params.ValidateAndLog();
 		return Params;

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 
@@ -279,6 +279,11 @@ void SButton::OnMouseLeave( const FPointerEvent& MouseEvent )
 	{
 		bIsPressed = false;
 	}
+}
+
+bool SButton::IsInteractable() const
+{
+	return IsEnabled() && SupportsKeyboardFocus();
 }
 
 bool SButton::IsPreciseTapOrClick(const FPointerEvent& MouseEvent) const

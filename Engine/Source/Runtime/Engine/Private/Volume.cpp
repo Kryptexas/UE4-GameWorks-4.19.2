@@ -1,24 +1,24 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Volume.cpp: AVolume and subclasses
 =============================================================================*/
 
 #include "EnginePrivate.h"
+#include "Components/BrushComponent.h"
 
 #if WITH_EDITOR
 /** Define static delegate */
 AVolume::FOnVolumeShapeChanged AVolume::OnVolumeShapeChanged;
 #endif
 
-DEFINE_LOG_CATEGORY_STATIC(LogVolume, Log, All);
+DEFINE_LOG_CATEGORY(LogVolume);
 
 AVolume::AVolume(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	GetBrushComponent()->AlwaysLoadOnClient = true;
 	GetBrushComponent()->AlwaysLoadOnServer = true;
-	GetBrushComponent()->BodyInstance.bEnableCollision_DEPRECATED = true;
 	static FName CollisionProfileName(TEXT("OverlapAll"));
 	GetBrushComponent()->SetCollisionProfileName(CollisionProfileName);
 	GetBrushComponent()->bGenerateOverlapEvents = true;

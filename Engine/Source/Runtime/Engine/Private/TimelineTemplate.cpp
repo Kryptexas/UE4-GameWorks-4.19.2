@@ -1,8 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
+#include "Curves/CurveLinearColor.h"
+#include "Curves/CurveVector.h"
 #include "BlueprintUtilities.h"
 #include "LatentActions.h"
+#include "Engine/TimelineTemplate.h"
 
 namespace
 {
@@ -227,15 +230,21 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 	}
 #endif // WITH_EDITOR
 
+	const bool bTransientPackage = GetOutermost() == GetTransientPackage();
+	// Prevent curves being duplicated during blueprint reinstancing
+	const bool bDuplicateCurves = !( bTransientPackage || GIsDuplicatingClassForReinstancing );
+
 	for(TArray<struct FTTFloatTrack>::TIterator It = FloatTracks.CreateIterator();It;++It)
 	{
 		FTTFloatTrack& Track = *It;
 		if( Track.CurveFloat != NULL )
 		{
-			// Do not duplicate external curves unless duplicating to a transient package
-			if(!Track.CurveFloat->GetOuter()->IsA(UPackage::StaticClass()) || GetOutermost() == GetTransientPackage())
+			if( bDuplicateCurves && !Track.bIsExternalCurve )
 			{
-				Track.CurveFloat = DuplicateObject<UCurveFloat>(Track.CurveFloat, NewCurveOuter, *MakeUniqueCurveName(Track.CurveFloat, NewCurveOuter));
+				if(!Track.CurveFloat->GetOuter()->IsA(UPackage::StaticClass()))
+				{
+					Track.CurveFloat = DuplicateObject<UCurveFloat>(Track.CurveFloat, NewCurveOuter, *MakeUniqueCurveName(Track.CurveFloat, NewCurveOuter));
+				}
 			}
 		}
 		else
@@ -249,10 +258,12 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 		FTTEventTrack& Track = *It;
 		if( Track.CurveKeys != NULL )
 		{
-			// Do not duplicate external curves unless duplicating to a transient package
-			if(!Track.CurveKeys->GetOuter()->IsA(UPackage::StaticClass()) || GetOutermost() == GetTransientPackage())
+			if( bDuplicateCurves && !Track.bIsExternalCurve )
 			{
-				Track.CurveKeys = DuplicateObject<UCurveFloat>(Track.CurveKeys, NewCurveOuter, *MakeUniqueCurveName(Track.CurveKeys, NewCurveOuter));
+				if(!Track.CurveKeys->GetOuter()->IsA(UPackage::StaticClass()))
+				{
+					Track.CurveKeys = DuplicateObject<UCurveFloat>(Track.CurveKeys, NewCurveOuter, *MakeUniqueCurveName(Track.CurveKeys, NewCurveOuter));
+				}
 			}
 		}
 		else
@@ -266,10 +277,12 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 		FTTVectorTrack& Track = *It;
 		if( Track.CurveVector != NULL )
 		{
-			// Do not duplicate external curves unless duplicating to a transient package
-			if(!Track.CurveVector->GetOuter()->IsA(UPackage::StaticClass()) || GetOutermost() == GetTransientPackage())
+			if( bDuplicateCurves && !Track.bIsExternalCurve )
 			{
-				Track.CurveVector = DuplicateObject<UCurveVector>(Track.CurveVector, NewCurveOuter, *MakeUniqueCurveName(Track.CurveVector, NewCurveOuter));
+				if(!Track.CurveVector->GetOuter()->IsA(UPackage::StaticClass()))
+				{
+					Track.CurveVector = DuplicateObject<UCurveVector>(Track.CurveVector, NewCurveOuter, *MakeUniqueCurveName(Track.CurveVector, NewCurveOuter));
+				}
 			}
 		}
 		else
@@ -283,10 +296,12 @@ void UTimelineTemplate::PostDuplicate(bool bDuplicateForPIE)
 		FTTLinearColorTrack& Track = *It;
 		if( Track.CurveLinearColor != NULL )
 		{
-			// Do not duplicate external curves unless duplicating to a transient package
-			if(!Track.CurveLinearColor->GetOuter()->IsA(UPackage::StaticClass()) || GetOutermost() == GetTransientPackage())
+			if( bDuplicateCurves && !Track.bIsExternalCurve )
 			{
-				Track.CurveLinearColor = DuplicateObject<UCurveLinearColor>(Track.CurveLinearColor, NewCurveOuter, *MakeUniqueCurveName(Track.CurveLinearColor, NewCurveOuter));
+				if(!Track.CurveLinearColor->GetOuter()->IsA(UPackage::StaticClass()))
+				{
+					Track.CurveLinearColor = DuplicateObject<UCurveLinearColor>(Track.CurveLinearColor, NewCurveOuter, *MakeUniqueCurveName(Track.CurveLinearColor, NewCurveOuter));
+				}
 			}
 		}
 		else
@@ -324,28 +339,43 @@ bool FTTTrackBase::operator==( const FTTTrackBase& T2 ) const
 		   (bIsExternalCurve == T2.bIsExternalCurve);
 }
 
-
 bool FTTEventTrack::operator==( const FTTEventTrack& T2 ) const
 {
-	return FTTTrackBase::operator==(T2) && (CurveKeys && T2.CurveKeys) && 
-		   (*CurveKeys == *T2.CurveKeys);
+	bool bKeyCurvesEqual = (CurveKeys == T2.CurveKeys);
+	if (!bKeyCurvesEqual && CurveKeys && T2.CurveKeys)
+	{
+		bKeyCurvesEqual = (*CurveKeys == *T2.CurveKeys);
+	}
+	return FTTTrackBase::operator==(T2) && bKeyCurvesEqual;
 }
 
 bool FTTFloatTrack::operator==( const FTTFloatTrack& T2 ) const
 {
-	return FTTTrackBase::operator==(T2) &&  (CurveFloat && T2.CurveFloat) && 
-		(*CurveFloat == *T2.CurveFloat);
+	bool bFloatCurvesEqual = (CurveFloat == T2.CurveFloat);
+	if (!bFloatCurvesEqual && CurveFloat && T2.CurveFloat)
+	{
+		bFloatCurvesEqual = (*CurveFloat == *T2.CurveFloat);
+	}
+	return FTTTrackBase::operator==(T2) && bFloatCurvesEqual;
 }
 
 bool FTTVectorTrack::operator==( const FTTVectorTrack& T2 ) const
 {
-	return FTTTrackBase::operator==(T2)  &&  (CurveVector && T2.CurveVector) && 
-		 (*CurveVector == *T2.CurveVector);
+	bool bVectorCurvesEqual = (CurveVector == T2.CurveVector);
+	if (!bVectorCurvesEqual && CurveVector && T2.CurveVector)
+	{
+		bVectorCurvesEqual = (*CurveVector == *T2.CurveVector);
+	}
+	return FTTTrackBase::operator==(T2) && bVectorCurvesEqual;
 }
 
 bool FTTLinearColorTrack::operator==( const FTTLinearColorTrack& T2 ) const
 {
-	return FTTTrackBase::operator==(T2)  &&  (CurveLinearColor && T2.CurveLinearColor) && 
-		 (*CurveLinearColor == *T2.CurveLinearColor);
+	bool bColorCurvesEqual = (CurveLinearColor == T2.CurveLinearColor);
+	if (!bColorCurvesEqual && CurveLinearColor && T2.CurveLinearColor)
+	{
+		bColorCurvesEqual = (*CurveLinearColor == *T2.CurveLinearColor);
+	}
+	return FTTTrackBase::operator==(T2) && bColorCurvesEqual;
 }
 

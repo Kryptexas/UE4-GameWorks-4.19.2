@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -56,6 +56,9 @@ class AIMODULE_API IGenericTeamAgentInterface
 {
 	GENERATED_IINTERFACE_BODY()
 
+	/** Assigns Team Agent to given TeamID */
+	virtual void SetGenericTeamId(const FGenericTeamId& TemaID) {}
+	
 	/** Retrieve team identifier in form of FGenericTeamId */
 	virtual FGenericTeamId GetGenericTeamId() const { return FGenericTeamId::NoTeam; }
 

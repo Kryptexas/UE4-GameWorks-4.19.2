@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "NavDataGenerator.h"
@@ -8,10 +8,11 @@
 #endif // WITH_RECAST
 #include "AI/NavigationSystemHelpers.h"
 #include "VisualLogger/VisualLogger.h"
+#include "AI/Navigation/NavCollision.h"
 
 namespace NavigationHelper
 {
-	void GatherCollision(class UBodySetup* RigidBody, TNavStatArray<FVector>& OutVertexBuffer, TNavStatArray<int32>& OutIndexBuffer, const FTransform& LocalToWorld)
+	void GatherCollision(UBodySetup* RigidBody, TNavStatArray<FVector>& OutVertexBuffer, TNavStatArray<int32>& OutIndexBuffer, const FTransform& LocalToWorld)
 	{
 		if (RigidBody == NULL)
 		{
@@ -22,7 +23,7 @@ namespace NavigationHelper
 #endif // WITH_RECAST
 	}
 
-	void GatherCollision(class UBodySetup* RigidBody, class UNavCollision* NavCollision)
+	void GatherCollision(UBodySetup* RigidBody, UNavCollision* NavCollision)
 	{
 		if (RigidBody == NULL || NavCollision == NULL)
 		{
@@ -61,7 +62,7 @@ namespace NavigationHelper
 		return FallDownHeight;
 	}
 
-	void DefaultNavLinkProcessorImpl(struct FCompositeNavModifier* OUT CompositeModifier, const class AActor* Actor, const TArray<FNavigationLink>& IN NavLinks)
+	void DefaultNavLinkProcessorImpl(FCompositeNavModifier* OUT CompositeModifier, const AActor* Actor, const TArray<FNavigationLink>& IN NavLinks)
 	{
 		const FTransform LocalToWorld = Actor->ActorToWorld();
 		FSimpleLinkNavModifier SimpleLink(NavLinks, LocalToWorld);
@@ -96,7 +97,7 @@ namespace NavigationHelper
 		CompositeModifier->Add(SimpleLink);
 	}
 
-	void DefaultNavLinkSegmentProcessorImpl(struct FCompositeNavModifier* OUT CompositeModifier, const class AActor* Actor, const TArray<FNavigationSegmentLink>& IN NavLinks)
+	void DefaultNavLinkSegmentProcessorImpl(FCompositeNavModifier* OUT CompositeModifier, const AActor* Actor, const TArray<FNavigationSegmentLink>& IN NavLinks)
 	{
 		const FTransform LocalToWorld = Actor->ActorToWorld();
 		FSimpleLinkNavModifier SimpleLink(NavLinks, LocalToWorld);
@@ -146,7 +147,7 @@ namespace NavigationHelper
 	FNavLinkProcessorDelegate NavLinkProcessor = FNavLinkProcessorDelegate::CreateStatic(DefaultNavLinkProcessorImpl);
 	FNavLinkSegmentProcessorDelegate NavLinkSegmentProcessor = FNavLinkSegmentProcessorDelegate::CreateStatic(DefaultNavLinkSegmentProcessorImpl);
 
-	void ProcessNavLinkAndAppend(struct FCompositeNavModifier* OUT CompositeModifier, const class AActor* Actor, const TArray<FNavigationLink>& IN NavLinks)
+	void ProcessNavLinkAndAppend(FCompositeNavModifier* OUT CompositeModifier, const AActor* Actor, const TArray<FNavigationLink>& IN NavLinks)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Navigation_AdjustingNavLinks);
 
@@ -157,7 +158,7 @@ namespace NavigationHelper
 		}
 	}
 
-	void ProcessNavLinkSegmentAndAppend(struct FCompositeNavModifier* OUT CompositeModifier, const class AActor* Actor, const TArray<FNavigationSegmentLink>& IN NavLinks)
+	void ProcessNavLinkSegmentAndAppend(FCompositeNavModifier* OUT CompositeModifier, const AActor* Actor, const TArray<FNavigationSegmentLink>& IN NavLinks)
 	{
 		SCOPE_CYCLE_COUNTER(STAT_Navigation_AdjustingNavLinks);
 

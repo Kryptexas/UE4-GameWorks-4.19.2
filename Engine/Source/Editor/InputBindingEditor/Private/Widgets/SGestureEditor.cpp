@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "InputBindingEditorPrivatePCH.h"
 
@@ -54,10 +54,7 @@ FReply SGestureEditor::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& 
 	
 		StartChangingText();
 
-		EditingInputGesture.bCtrl = InKeyEvent.IsControlDown();
-		EditingInputGesture.bAlt = InKeyEvent.IsAltDown();
-		EditingInputGesture.bShift = InKeyEvent.IsShiftDown();
-		EditingInputGesture.bCmd = InKeyEvent.IsCommandDown();
+		EditingInputGesture.ModifierKeys = EModifierKey::FromBools(InKeyEvent.IsControlDown(), InKeyEvent.IsAltDown(), InKeyEvent.IsShiftDown(), InKeyEvent.IsCommandDown());
 
 		LoadText();
 		//@todo checking the length of localized string is not valid, at the very least in this manner [10/11/2013 justin.sargent]

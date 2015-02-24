@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -37,7 +37,7 @@
 #include "GameplayDebuggingComponent.h"
 
 #if WITH_EDITOR
-#	include "Editor.h" //right now it's needed here because of ECoordSystem 
+#	include "UnrealEd.h" //right now it's needed here because of ECoordSystem 
 #endif
 
 DECLARE_LOG_CATEGORY_EXTERN(LogGDT, Warning, All);

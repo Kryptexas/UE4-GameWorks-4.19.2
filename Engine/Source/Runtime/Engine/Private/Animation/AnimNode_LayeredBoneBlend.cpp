@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "Animation/AnimNode_LayeredBoneBlend.h"
@@ -127,3 +127,38 @@ void FAnimNode_LayeredBoneBlend::GatherDebugData(FNodeDebugData& DebugData)
 		BlendPoses[ChildIndex].GatherDebugData(DebugData.BranchFlow(BlendWeights[ChildIndex]));
 	}
 }
+
+#if WITH_EDITOR
+void FAnimNode_LayeredBoneBlend::ValidateData()
+{
+	// ideally you don't like to get to situation where it becomes inconsistent, but this happened, 
+	// and we don't know what caused this. Possibly copy/paste, but I tried copy/paste and that didn't work
+	// so here we add code to fix this up manually in editor, so that they can continue working on it. 
+	int32 PoseNum = BlendPoses.Num();
+	int32 WeightNum = BlendWeights.Num();
+	int32 LayerNum = LayerSetup.Num();
+
+	int32 Max = FMath::Max3(PoseNum, WeightNum, LayerNum);
+	int32 Min = FMath::Min3(PoseNum, WeightNum, LayerNum);
+	// if they are not all same
+	if (Min != Max)
+	{
+		// we'd like to increase to all Max
+		// sadly we don't have add X for how many
+		for (int32 Index=PoseNum; Index<Max; ++Index)
+		{
+			BlendPoses.Add(FPoseLink());
+		}
+
+		for(int32 Index=WeightNum; Index<Max; ++Index)
+		{
+			BlendWeights.Add(1.f);
+		}
+
+		for(int32 Index=LayerNum; Index<Max; ++Index)
+		{
+			LayerSetup.Add(FInputBlendPose());
+		}
+	}
+}
+#endif

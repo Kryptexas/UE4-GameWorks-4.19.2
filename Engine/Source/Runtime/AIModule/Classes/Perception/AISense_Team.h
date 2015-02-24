@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -6,12 +6,14 @@
 #include "Perception/AISense.h"
 #include "AISense_Team.generated.h"
 
+class UAISense_Team;
+
 USTRUCT()
 struct AIMODULE_API FAITeamStimulusEvent
 {	
 	GENERATED_USTRUCT_BODY()
 
-	typedef class UAISense_Team FSenseClass;
+	typedef UAISense_Team FSenseClass;
 
 	FVector LastKnowLocation;
 private:
@@ -22,13 +24,13 @@ public:
 	FGenericTeamId TeamIdentifier;
 private:
 	UPROPERTY()
-	class AActor* Broadcaster;
+	AActor* Broadcaster;
 public:
 	UPROPERTY()
-	class AActor* Enemy;
+	AActor* Enemy;
 		
 	FAITeamStimulusEvent(){}	
-	FAITeamStimulusEvent(class AActor* InBroadcaster, class AActor* InEnemy, const FVector& InLastKnowLocation, float EventRange, float PassedInfoAge = 0.f);
+	FAITeamStimulusEvent(AActor* InBroadcaster, AActor* InEnemy, const FVector& InLastKnowLocation, float EventRange, float PassedInfoAge = 0.f);
 
 	FORCEINLINE void CacheBroadcastLocation()
 	{
@@ -49,9 +51,7 @@ class AIMODULE_API UAISense_Team : public UAISense
 	UPROPERTY()
 	TArray<FAITeamStimulusEvent> RegisteredEvents;
 
-public:
-	FORCEINLINE static FAISenseId GetSenseIndex() { return FAISenseId(ECorePerceptionTypes::Team); }
-		
+public:		
 	void RegisterEvent(const FAITeamStimulusEvent& Event);	
 
 protected:

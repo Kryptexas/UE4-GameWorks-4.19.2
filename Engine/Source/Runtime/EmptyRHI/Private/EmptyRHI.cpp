@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	EmptyRHI.cpp: Empty device RHI implementation.
@@ -28,10 +28,6 @@ FEmptyDynamicRHI::FEmptyDynamicRHI()
 
 	// Initialize the RHI capabilities.
 
-// 	GPixelCenterOffset = 0.0f;
-// 	GSupportsVertexInstancing = false;
-// 	GSupportsEmulatedVertexInstancing = false;
-// 	GSupportsVertexTextureFetch = false;
 //	GRHIAdapterName = 
 //	GRHIVendorId = 
 // 	GSupportsRenderTargetFormat_PF_G8 = false;

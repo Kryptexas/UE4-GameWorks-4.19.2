@@ -1,10 +1,16 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
 #include "DebugToolExec.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/PropertyEditor/Public/IDetailsView.h"
+#include "Engine/GameEngine.h"
+#include "GameFramework/PlayerController.h"
+#include "EngineUtils.h"
+#include "GameFramework/Pawn.h"
+#include "CollisionQueryParams.h"
+#include "Engine/EngineTypes.h"
 
 
 /**

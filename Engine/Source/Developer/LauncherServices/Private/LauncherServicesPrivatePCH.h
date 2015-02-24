@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -24,7 +24,8 @@
 #define LAUNCHERSERVICES_SIMPLEPROFILEVERSION 1
 
 /** Defines the launcher profile file version. */
-#define LAUNCHERSERVICES_PROFILEVERSION 10
+#define LAUNCHERSERVICES_PROFILEVERSION 11
+#define LAUNCHERSERVICES_MINPROFILEVERSION 10
 
 
 // profile manager

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -11,7 +11,7 @@ public:
 	SLATE_BEGIN_ARGS(SSingleObjectDetailsPanel) {}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, bool bAutomaticallyObserveViaGetObjectToObserve = true);
+	void Construct(const FArguments& InArgs, bool bAutomaticallyObserveViaGetObjectToObserve = true, bool bAllowSearch = false);
 
 	// SWidget interface
 	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;

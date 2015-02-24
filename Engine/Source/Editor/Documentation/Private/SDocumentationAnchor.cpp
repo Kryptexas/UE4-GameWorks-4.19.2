@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DocumentationModulePrivatePCH.h"
 #include "SDocumentationAnchor.h"
@@ -59,6 +59,6 @@ const FSlateBrush* SDocumentationAnchor::GetButtonImage() const
 
 FReply SDocumentationAnchor::OnClicked() const
 {
-	IDocumentation::Get()->Open( Link.Get() );
+	IDocumentation::Get()->Open(Link.Get(), FDocumentationSourceInfo(TEXT("doc_anchors")));
 	return FReply::Handled();
 }

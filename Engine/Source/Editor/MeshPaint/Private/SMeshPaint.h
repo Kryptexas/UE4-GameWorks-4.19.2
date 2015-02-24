@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -111,7 +111,7 @@ protected:
 	int32 GetEraseWeightIndex() const;
 
 	/** Returns a string representing the memory used selected actors vertex color data */
-	FString GetInstanceVertexColorsText() const;
+	FText GetInstanceVertexColorsText() const;
 
 	/** Called when the Mesh Paint Mode radio button selection is changed */
 	void OntMeshPaintResourceChanged(EMeshPaintResource::Type InPaintResource);
@@ -141,22 +141,22 @@ protected:
 	void OnFlowAmountChanged(float InFlowAmount);
 
 	/** Called to get the checked state of the ignore back-facing checkbox */
-	ESlateCheckBoxState::Type IsIgnoreBackfaceChecked() const;
+	ECheckBoxState IsIgnoreBackfaceChecked() const;
 
 	/** Called when the ignore back face checkbox value is changed */
-	void OnIgnoreBackfaceChanged(ESlateCheckBoxState::Type InCheckState);
+	void OnIgnoreBackfaceChanged(ECheckBoxState InCheckState);
 
 	/** Called to get the checked state of the seam painting checkbox */
-	ESlateCheckBoxState::Type IsSeamPaintingChecked() const;
+	ECheckBoxState IsSeamPaintingChecked() const;
 
 	/** Called when the seam painting checkbox value is changed */
-	void OnSeamPaintingChanged(ESlateCheckBoxState::Type InCheckState);
+	void OnSeamPaintingChanged(ECheckBoxState InCheckState);
 	
 	/** Called to get the checked state of the enable flow checkbox */
-	ESlateCheckBoxState::Type IsEnableFlowChecked() const;
+	ECheckBoxState IsEnableFlowChecked() const;
 
 	/** Called when the enable flow checkbox value is changed */
-	void OnEnableFlowChanged(ESlateCheckBoxState::Type InCheckState);
+	void OnEnableFlowChanged(ECheckBoxState InCheckState);
 
 	/** Called when the erase weight is modified */
 	void OnEraseWeightChanged(int32 InWeightIndex);
@@ -165,10 +165,10 @@ protected:
 	void OnPaintWeightChanged(int32 InWeightIndex);
 
 	/** Called to get the checked state of the write channel check boxes */
-	ESlateCheckBoxState::Type IsWriteColorChannelChecked(EMeshPaintWriteColorChannels::Type CheckBoxInfo) const;
+	ECheckBoxState IsWriteColorChannelChecked(EMeshPaintWriteColorChannels::Type CheckBoxInfo) const;
 
 	/** Called when the state of one of the write channel check boxes is modified */
-	void OnWriteColorChannelChanged(ESlateCheckBoxState::Type InNewValue, EMeshPaintWriteColorChannels::Type CheckBoxInfo);
+	void OnWriteColorChannelChanged(ECheckBoxState InNewValue, EMeshPaintWriteColorChannels::Type CheckBoxInfo);
 
 	/** Called when the fill button is clicked */
 	FReply FillInstanceVertexColorsButtonClicked();
@@ -257,7 +257,7 @@ protected:
 	/** returns a UV channel menu widget */
 	TSharedRef<SWidget> GetUVChannels();
 
-	FString GetCurrentUVChannel() const;
+	FText GetCurrentUVChannel() const;
 
 	/** returns a list of texture target menu widgets */
 	TSharedRef<SWidget> GetTextureTargets();
@@ -266,7 +266,7 @@ protected:
 	TSharedRef<SWidget> GetTextureTargetWidget( UTexture2D* TextureData );
 
 	/** returns a string containing currently selected texture */
-	FString GetCurrentTextureTargetText( UTexture2D* TextureData, int index ) const;
+	FText GetCurrentTextureTargetText( UTexture2D* TextureData, int index ) const;
 
 	/** returns a image containing currently selected texture image */
 	const FSlateBrush* GetCurrentTextureTargetImage( UTexture2D* TextureData ) const;
@@ -296,7 +296,7 @@ protected:
 	TSharedRef<SWidget> GetActorSelectionMenu();
 
 	/** Returns the currently editing actors label */
-	FString GetEditingActorLabel() const;
+	FText GetEditingActorLabel() const;
 
 	/** Called upon the user changing which mesh they wish to act upon */
 	void OnSetEditingActor( TWeakObjectPtr<AActor> InActor );
@@ -308,7 +308,7 @@ protected:
 	TSharedRef<SWidget> GetMaterialSelectionMenu();
 
 	/** Returns the currently editing materials index */
-	FString GetEditingMaterial() const;
+	FText GetEditingMaterial() const;
 
 	/** Called upon the user changing which material they wish to edit */
 	void OnSetEditingMaterial(int32 NewMaterialIndex);

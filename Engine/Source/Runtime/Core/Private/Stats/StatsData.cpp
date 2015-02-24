@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 #if STATS
@@ -459,7 +459,8 @@ void FStatPacketArray::Empty()
 {
 	for (int32 Index = 0; Index < Packets.Num(); Index++)
 	{
-		DEC_MEMORY_STAT_BY(STAT_StatMessagesMemory,Packets[Index]->StatMessages.GetAllocatedSize());
+		const uint32 PacketMemory = Packets[Index]->StatMessages.GetAllocatedSize();
+		DEC_MEMORY_STAT_BY(STAT_StatMessagesMemory, PacketMemory);
 		delete Packets[Index];
 	}
 	Packets.Empty();
@@ -642,28 +643,32 @@ void FStatsThreadState::ProcessNonFrameStats(FStatMessagesArray& Data, TSet<FNam
 				Op != EStatOperation::ChildrenEnd &&
 				Op != EStatOperation::Leaf &&
 				Op != EStatOperation::AdvanceFrameEventGameThread &&
-				Op != EStatOperation::AdvanceFrameEventRenderThread
+				Op != EStatOperation::AdvanceFrameEventRenderThread /*&&
+				Op != EStatOperation::Memory*/
 				))
 			{
 				UE_LOG(LogStats, Fatal, TEXT( "Stat %s was not cleared every frame, but was used with a scope cycle counter." ), *Item.NameAndInfo.GetRawName().ToString() );
 			}
 			else
 			{
-				FStatMessage* Result = NotClearedEveryFrame.Find(Item.NameAndInfo.GetRawName());
-				if (!Result)
+				if( Op != EStatOperation::Memory )
 				{
-					UE_LOG(LogStats, Error, TEXT( "Stat %s was cleared every frame, but we don't have metadata for it. Data loss." ), *Item.NameAndInfo.GetRawName().ToString() );
-				}
-				else
-				{
-					if (NonFrameStatsFound)
+					FStatMessage* Result = NotClearedEveryFrame.Find(Item.NameAndInfo.GetRawName());
+					if (!Result)
 					{
-						NonFrameStatsFound->Add(Item.NameAndInfo.GetRawName());
+						UE_LOG(LogStats, Error, TEXT( "Stat %s was cleared every frame, but we don't have metadata for it. Data loss." ), *Item.NameAndInfo.GetRawName().ToString() );
 					}
-					FStatsUtils::AccumulateStat(*Result, Item);
-					Item = *Result; // now just write the accumulated value back into the stream
-					check(Item.NameAndInfo.GetField<EStatOperation>() == EStatOperation::Set);
-				}
+					else
+					{
+						if (NonFrameStatsFound)
+						{
+							NonFrameStatsFound->Add(Item.NameAndInfo.GetRawName());
+						}
+						FStatsUtils::AccumulateStat(*Result, Item);
+						Item = *Result; // now just write the accumulated value back into the stream
+						check(Item.NameAndInfo.GetField<EStatOperation>() == EStatOperation::Set);
+					}
+				}			
 			}
 		}
 	}
@@ -736,7 +741,7 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 				// add the non frame stats as a new last packet
 
 				check(PacketToCopyForNonFrame);
-
+				FThreadStats* ThreadStats = FThreadStats::GetThreadStats();
 				FStatMessagesArray* NonFrameMessages = NULL;
 
 				for (TMap<FName, FStatMessage>::TConstIterator It(NotClearedEveryFrame); It; ++It)
@@ -748,11 +753,20 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 							const int32 NonFrameIndex = Frame.Packets.Add(new FStatPacket(*PacketToCopyForNonFrame));
 							NonFrameMessages = &Frame.Packets[NonFrameIndex]->StatMessages;
 						}
-						new (*NonFrameMessages) FStatMessage(It.Value());
+						
+						{
+							FStatMessageLock MessageLock(ThreadStats->MemoryMessageScope);
+							new (*NonFrameMessages) FStatMessage(It.Value());
+						}
+						
 					}
 				}
 
-				INC_MEMORY_STAT_BY(STAT_StatMessagesMemory,NonFrameMessages->GetAllocatedSize());
+				if(NonFrameMessages)
+				{
+					const uint32 PacketMemory = NonFrameMessages->GetAllocatedSize();
+					INC_MEMORY_STAT_BY(STAT_StatMessagesMemory, PacketMemory);
+				}
 
 				GoodFrames.Add(FrameNum);
 			}
@@ -798,6 +812,7 @@ void FStatsThreadState::AddToHistoryAndEmpty(FStatPacketArray& NewData)
 	for (auto It = History.CreateIterator(); It; ++It)
 	{
 		int64 ThisFrame = It.Key();
+		FStatPacketArray& StatPacketArray = It.Value();
 		if (ThisFrame <= LastFullFrameMetaAndNonFrame && ThisFrame < MinFrameToKeep)
 		{
 			check(ThisFrame <= LastFullFrameMetaAndNonFrame);
@@ -1032,6 +1047,64 @@ void FStatsThreadState::GetRawStackStats(int64 TargetFrame, FRawStatStackNode& R
 						check(Current->Meta.NameAndInfo.GetFlag(EStatMetaFlags::IsPackedCCAndDuration));
 						verify(Current == Stack.Pop());
 						Current = Stack.Last();
+					}
+				}
+				else if( Op == EStatOperation::Memory )
+				{
+					//const FStatMessage& ScopeStartMessage = *StartStack.Last();
+
+					// Experimental code used only to test the implementation.
+					// First memory operation is Alloc or Free
+					const uint64 EncodedPtr = Item.GetValue_Ptr();
+					const bool bIsAlloc = (EncodedPtr & (uint64)EMemoryOperation::Alloc) != 0;
+					const bool bIsFree = (EncodedPtr & (uint64)EMemoryOperation::Free) != 0;
+					const uint64 Ptr = EncodedPtr & ~(uint64)EMemoryOperation::Mask;
+					if( bIsAlloc )
+					{
+						// @see FStatsMallocProfilerProxy::TrackAlloc
+						// After alloc ptr message there is always alloc size message.
+						Index++;
+						const FStatMessage& AllocSizeMessage = Data[Index];
+						const int64 AllocSize = AllocSizeMessage.GetValue_int64();
+
+						// Check the non-sequential allocation map.
+						FAllocationInfoEx* NonSeqAllocationInfo = NonSequentialAllocationMap.Find(Ptr);
+						if( NonSeqAllocationInfo )
+						{
+							// We don't need to add this allocation again.
+							NonSequentialAllocationMap.Remove(Ptr);
+						}
+						else
+						{
+							FAllocationInfo* OldAllocationInfo = AllocationMap.Find(Ptr);
+							if( OldAllocationInfo != nullptr )
+							{
+								// Ignore for now...
+							}
+
+							// Add a new allocation.
+							AllocationMap.Add( Ptr, FAllocationInfo(AllocSize, Current->Meta.NameAndInfo.GetEncodedName()) );
+						}					
+					}
+					else if( bIsFree )
+					{
+						// Remove the allocation, check if exists.
+						const int32 NumRemoved = AllocationMap.Remove( Ptr );
+
+						// We removed non-existent allocation, 
+						// 1. the timestamp of the allocation is before we started memory profiling
+						// 2. the allocation has been done on different thread than we are currently processing
+						if( NumRemoved == 0 )
+						{
+							NonSequentialAllocationMap.Add(Ptr, FAllocationInfoEx(
+								0, 
+								Current->Meta.NameAndInfo.GetEncodedName(),
+								/*ScopeStartMessage.GetValue_int64()*/0));
+						}
+					}
+					else
+					{
+						UE_LOG(LogStats, Warning, TEXT("Pointer from a memory operation is invalid") );
 					}
 				}
 				else if (OutNonStackStats)
@@ -1502,62 +1575,78 @@ void FStatsUtils::AccumulateStat(FStatMessage& Dest, FStatMessage const& Item, E
 	check(Dest.NameAndInfo.GetFlag(EStatMetaFlags::IsPackedCCAndDuration) == Item.NameAndInfo.GetFlag(EStatMetaFlags::IsPackedCCAndDuration));
 	switch (Item.NameAndInfo.GetField<EStatDataType>())
 	{
-	case EStatDataType::ST_int64:
-		switch (Op)
-		{
-		case EStatOperation::Set:
-			Dest.GetValue_int64() = Item.GetValue_int64();
-			break;
-		case EStatOperation::Clear:
-			Dest.GetValue_int64() = 0;
-			break;
-		case EStatOperation::Add:
-			Dest.GetValue_int64() += Item.GetValue_int64();
-			break;
-		case EStatOperation::Subtract:
-			if (Dest.NameAndInfo.GetFlag(EStatMetaFlags::IsPackedCCAndDuration))
+		case EStatDataType::ST_int64:
+			switch (Op)
 			{
-				// we don't subtract call counts, only times
-				Dest.GetValue_int64() = ToPackedCallCountDuration(
-					FromPackedCallCountDuration_CallCount(Dest.GetValue_int64()),
-					FromPackedCallCountDuration_Duration(Dest.GetValue_int64()) - FromPackedCallCountDuration_Duration(Item.GetValue_int64()));
+				case EStatOperation::Set:
+					Dest.GetValue_int64() = Item.GetValue_int64();
+					break;
+				case EStatOperation::Clear:
+					Dest.GetValue_int64() = 0;
+					break;
+				case EStatOperation::Add:
+					Dest.GetValue_int64() += Item.GetValue_int64();
+					break;
+				case EStatOperation::Subtract:
+					if (Dest.NameAndInfo.GetFlag(EStatMetaFlags::IsPackedCCAndDuration))
+					{
+						// we don't subtract call counts, only times
+						Dest.GetValue_int64() = ToPackedCallCountDuration(
+							FromPackedCallCountDuration_CallCount(Dest.GetValue_int64()),
+							FromPackedCallCountDuration_Duration(Dest.GetValue_int64()) - FromPackedCallCountDuration_Duration(Item.GetValue_int64()));
+					}
+					else
+					{
+						Dest.GetValue_int64() -= Item.GetValue_int64();
+					}
+					break;
+				case EStatOperation::MaxVal:
+					StatOpMaxVal_Int64( Dest.NameAndInfo, Dest.GetValue_int64(), Item.GetValue_int64() );
+					break;
+
+				// Nothing here at this moment.
+				case EStatOperation::Memory:
+					break;
+
+				default:
+					check(0);
 			}
-			else
+			break;
+
+		case EStatDataType::ST_double:
+			switch (Op)
 			{
-				Dest.GetValue_int64() -= Item.GetValue_int64();
+				case EStatOperation::Set:
+					Dest.GetValue_double() = Item.GetValue_double();
+					break;
+				case EStatOperation::Clear:
+					Dest.GetValue_double() = 0;
+					break;
+				case EStatOperation::Add:
+					Dest.GetValue_double() += Item.GetValue_double();
+					break;
+				case EStatOperation::Subtract:
+					Dest.GetValue_double() -= Item.GetValue_double();
+					break;
+				case EStatOperation::MaxVal:
+					Dest.GetValue_double() = FMath::Max<double>(Dest.GetValue_double(), Item.GetValue_double());
+					break;
+
+				// Nothing here at this moment.
+				case EStatOperation::Memory:
+					break;
+
+				default:
+					check(0);
 			}
 			break;
-		case EStatOperation::MaxVal:
-			StatOpMaxVal_Int64( Dest.NameAndInfo, Dest.GetValue_int64(), Item.GetValue_int64() );
+
+		// Nothing here at this moment.
+		case EStatDataType::ST_Ptr:
 			break;
+
 		default:
 			check(0);
-		}
-		break;
-	case EStatDataType::ST_double:
-		switch (Op)
-		{
-		case EStatOperation::Set:
-			Dest.GetValue_double() = Item.GetValue_double();
-			break;
-		case EStatOperation::Clear:
-			Dest.GetValue_double() = 0;
-			break;
-		case EStatOperation::Add:
-			Dest.GetValue_double() += Item.GetValue_double();
-			break;
-		case EStatOperation::Subtract:
-			Dest.GetValue_double() -= Item.GetValue_double();
-			break;
-		case EStatOperation::MaxVal:
-			Dest.GetValue_double() = FMath::Max<double>(Dest.GetValue_double(), Item.GetValue_double());
-			break;
-		default:
-			check(0);
-		}
-		break;
-	default:
-		check(0);
 	}
 }
 

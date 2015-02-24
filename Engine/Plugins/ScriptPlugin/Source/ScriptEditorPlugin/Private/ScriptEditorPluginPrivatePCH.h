@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
 #include "IScriptEditorPlugin.h"
@@ -10,7 +10,7 @@
 #include "ScriptFactory.h"
 #include "ReimportScriptFactory.h"
 #include "AssetTypeActions_Base.h"
-#include "ScriptComponent.h"
+#include "ScriptPluginComponent.h"
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
 #include "Kismet2/KismetEditorUtilities.h"

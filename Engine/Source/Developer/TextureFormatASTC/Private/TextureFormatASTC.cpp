@@ -1,4 +1,4 @@
-// Copyright 1998-2013 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "Core.h"
 #include "CoreMisc.h"
@@ -10,6 +10,15 @@
 #include "TextureCompressorModule.h"
 #include "PixelFormat.h"
 #include "GenericPlatformProcess.h"
+
+
+// increment this if you change anything that will affect compression in this file, including FORCED_NORMAL_MAP_COMPRESSION_SIZE_VALUE
+#define BASE_FORMAT_VERSION 30
+
+#define MAX_QUALITY_BY_SIZE 4
+#define MAX_QUALITY_BY_SPEED 3
+#define FORCED_NORMAL_MAP_COMPRESSION_SIZE_VALUE 4
+
 
 DEFINE_LOG_CATEGORY_STATIC(LogTextureFormatASTC, Log, All);
 
@@ -58,6 +67,81 @@ DEFINE_LOG_CATEGORY_STATIC(LogTextureFormatASTC, Log, All);
 
 IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
 
+
+static int32 GetDefaultCompressionBySizeValue()
+{
+	// start at default quality, then lookup in .ini file
+	int32 CompressionModeValue = 0;
+	GConfig->GetInt(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("DefaultASTCQualityBySize"), CompressionModeValue, GEngineIni);
+	
+	FParse::Value(FCommandLine::Get(), TEXT("-astcqualitybysize="), CompressionModeValue);
+	CompressionModeValue = FMath::Min<uint32>(CompressionModeValue, MAX_QUALITY_BY_SIZE);
+	
+	return CompressionModeValue;
+}
+
+static int32 GetDefaultCompressionBySpeedValue()
+{
+	// start at default quality, then lookup in .ini file
+	int32 CompressionModeValue = 0;
+	GConfig->GetInt(TEXT("/Script/UnrealEd.CookerSettings"), TEXT("DefaultASTCQualityBySpeed"), CompressionModeValue, GEngineIni);
+	
+	FParse::Value(FCommandLine::Get(), TEXT("-astcqualitybyspeed="), CompressionModeValue);
+	CompressionModeValue = FMath::Min<uint32>(CompressionModeValue, MAX_QUALITY_BY_SPEED);
+	
+	return CompressionModeValue;
+}
+
+static FString GetQualityString(int32 OverrideSizeValue=-1, int32 OverrideSpeedValue=-1)
+{
+	// convert to a string
+	FString CompressionMode;
+	switch (OverrideSizeValue >= 0 ? OverrideSizeValue : GetDefaultCompressionBySizeValue())
+	{
+		case 0:	CompressionMode = TEXT("12x12"); break;
+		case 1:	CompressionMode = TEXT("10x10"); break;
+		case 2:	CompressionMode = TEXT("8x8"); break;
+		case 3:	CompressionMode = TEXT("6x6"); break;
+		case 4:	CompressionMode = TEXT("4x4"); break;
+		default: UE_LOG(LogTemp, Fatal, TEXT("ASTC size quality higher than expected"));
+	}
+	
+	switch (OverrideSpeedValue >= 0 ? OverrideSpeedValue : GetDefaultCompressionBySpeedValue())
+	{
+		case 0:	CompressionMode += TEXT(" -veryfast"); break;
+		case 1:	CompressionMode += TEXT(" -fast"); break;
+		case 2:	CompressionMode += TEXT(" -medium"); break;
+		case 3:	CompressionMode += TEXT(" -thorough"); break;
+		default: UE_LOG(LogTemp, Fatal, TEXT("ASTC speed quality higher than expected"));
+	}
+
+	return CompressionMode;
+}
+
+static EPixelFormat GetQualityFormat(int32 OverrideSizeValue=-1)
+{
+	// convert to a string
+	EPixelFormat Format = PF_Unknown;
+	switch (OverrideSizeValue >= 0 ? OverrideSizeValue : GetDefaultCompressionBySizeValue())
+	{
+		case 0:	Format = PF_ASTC_12x12; break;
+		case 1:	Format = PF_ASTC_10x10; break;
+		case 2:	Format = PF_ASTC_8x8; break;
+		case 3:	Format = PF_ASTC_6x6; break;
+		case 4:	Format = PF_ASTC_4x4; break;
+		default: UE_LOG(LogTemp, Fatal, TEXT("Max quality higher than expected"));
+	}
+	
+	return Format;
+}
+
+static uint16 GetQualityVersion()
+{
+	// top 3 bits for size compression value, and next 3 for speed
+	return (GetDefaultCompressionBySizeValue() << 13) | (GetDefaultCompressionBySpeedValue() << 10);
+}
+
+
 static bool CompressSliceToASTC(
 	const void* SourceData,
 	int32 SizeX,
@@ -80,7 +164,7 @@ static bool CompressSliceToASTC(
 	
 	// Compress and retrieve the PNG data to write out to disk
 	IImageWrapperPtr ImageWrapper = ImageWrapperModule.CreateImageWrapper(EImageFormat::PNG);
-	ImageWrapper->SetRaw(SourceData, SizeX * SizeY * 4, SizeX, SizeY);
+	ImageWrapper->SetRaw(SourceData, SizeX * SizeY * 4, SizeX, SizeY, ERGBFormat::RGBA, 8);
 	const TArray<uint8>& FileData = ImageWrapper->GetCompressed();
 	int32 FileDataSize = FileData.Num();
 
@@ -95,33 +179,37 @@ static bool CompressSliceToASTC(
 	FArchive* PNGFile = NULL;
 	while (!PNGFile)
 	{
-		PNGFile = GFileManager->CreateFileWriter(*InputFilePath);   // Occasionally returns NULL due to error code ERROR_SHARING_VIOLATION
+		PNGFile = IFileManager::Get().CreateFileWriter(*InputFilePath);   // Occasionally returns NULL due to error code ERROR_SHARING_VIOLATION
 		FPlatformProcess::Sleep(0.01f);                             // ... no choice but to wait for the file to become free to access
 	}
 	PNGFile->Serialize((void*)&FileData[0], FileDataSize);
 	delete PNGFile;
 
 	// Compress PNG file to ASTC (using the reference astcenc.exe from ARM)
-	FString Params = FString::Printf(TEXT("-c %s %s %s -thorough"),
+	FString Params = FString::Printf(TEXT("-c %s %s %s"),
 		*InputFilePath,
 		*OutputFilePath,
 		*CompressionParameters
 	);
 
-	// Give a debug message about the process
-	if (GIsUCC)
-	{
-		//UE_LOG(LogTextureFormatASTC, Display, TEXT("Compressing to ASTC_%s..."), *CompressionRate);
-	}
+	UE_LOG(LogTextureFormatASTC, Display, TEXT("Compressing to ASTC (%s)..."), *CompressionParameters);
 
 	// Start Compressor
-	FString compressorPath(FPaths::EngineDir() + TEXT("Binaries/ThirdParty/ARM/Win32/astcenc.exe"));
-	void* Proc = FPlatformProcess::CreateProc(compressorPath.GetCharArray().GetData(), *Params, true, false, false, NULL, -1, NULL, NULL);
+#if PLATFORM_MAC
+	FString CompressorPath(FPaths::EngineDir() + TEXT("Binaries/ThirdParty/ARM/Mac/astcenc"));
+#elif PLATFORM_LINUX
+	FString CompressorPath(FPaths::EngineDir() + TEXT("Binaries/ThirdParty/ARM/Linux32/astcenc"));
+#elif PLATFORM_WINDOWS
+	FString CompressorPath(FPaths::EngineDir() + TEXT("Binaries/ThirdParty/ARM/Win32/astcenc.exe"));
+#else
+#error Unsupported platform
+#endif
+	FProcHandle Proc = FPlatformProcess::CreateProc(*CompressorPath, *Params, true, false, false, NULL, -1, NULL, NULL);
 
 	// Failed to start the compressor process
-	if (Proc == NULL)
+	if (!Proc.IsValid())
 	{
-		UE_LOG(LogTextureFormatASTC, Error, TEXT("Failed to start astcenc.exe for compressing images (%s)"), compressorPath.GetCharArray().GetData());
+		UE_LOG(LogTextureFormatASTC, Error, TEXT("Failed to start astcenc for compressing images (%s)"), *CompressorPath);
 		return false;
 	}
 
@@ -159,14 +247,14 @@ static bool CompressSliceToASTC(
 			(Header->TexelCountZ[1] <<  8) + 
 			(Header->TexelCountZ[2] << 16);
 
-		//UE_LOG(LogTextureFormatASTC, Display, TEXT("    Compressed Texture Header:"));
-		//UE_LOG(LogTextureFormatASTC, Display, TEXT("             Magic: %x"), Header->Magic);
-		//UE_LOG(LogTextureFormatASTC, Display, TEXT("        BlockSizeX: %u"), Header->BlockSizeX);
-		//UE_LOG(LogTextureFormatASTC, Display, TEXT("        BlockSizeY: %u"), Header->BlockSizeY);
-		//UE_LOG(LogTextureFormatASTC, Display, TEXT("        BlockSizeZ: %u"), Header->BlockSizeZ);
-		//UE_LOG(LogTextureFormatASTC, Display, TEXT("       TexelCountX: %u"), TexelCountX);
-		//UE_LOG(LogTextureFormatASTC, Display, TEXT("       TexelCountY: %u"), TexelCountY);
-		//UE_LOG(LogTextureFormatASTC, Display, TEXT("       TexelCountZ: %u"), TexelCountZ);
+//		UE_LOG(LogTextureFormatASTC, Display, TEXT("    Compressed Texture Header:"));
+//		UE_LOG(LogTextureFormatASTC, Display, TEXT("             Magic: %x"), Header->Magic);
+//		UE_LOG(LogTextureFormatASTC, Display, TEXT("        BlockSizeX: %u"), Header->BlockSizeX);
+//		UE_LOG(LogTextureFormatASTC, Display, TEXT("        BlockSizeY: %u"), Header->BlockSizeY);
+//		UE_LOG(LogTextureFormatASTC, Display, TEXT("        BlockSizeZ: %u"), Header->BlockSizeZ);
+//		UE_LOG(LogTextureFormatASTC, Display, TEXT("       TexelCountX: %u"), TexelCountX);
+//		UE_LOG(LogTextureFormatASTC, Display, TEXT("       TexelCountY: %u"), TexelCountY);
+//		UE_LOG(LogTextureFormatASTC, Display, TEXT("       TexelCountZ: %u"), TexelCountZ);
 
 		// Calculate size of this mip in blocks
 		uint32 MipSizeX = (TexelCountX + Header->BlockSizeX - 1) / Header->BlockSizeX;
@@ -178,7 +266,7 @@ static bool CompressSliceToASTC(
 		// Copy the compressed data
 		OutCompressedData.Empty(MipSize);
 		OutCompressedData.AddUninitialized(MipSize);
-		void* MipData = OutCompressedData.GetTypedData();
+		void* MipData = OutCompressedData.GetData();
 
 		// Calculate the offset to get to the mip data
 		check(sizeof(FASTCHeader) == 16);
@@ -188,14 +276,14 @@ static bool CompressSliceToASTC(
 	else
 	{
 		UE_LOG(LogTextureFormatASTC, Error, TEXT("ASTC encoder failed with return code %d, mip size (%d, %d)"), ReturnCode, SizeX, SizeY);
-		GFileManager->Delete(*InputFilePath);
-		GFileManager->Delete(*OutputFilePath);
+		IFileManager::Get().Delete(*InputFilePath);
+		IFileManager::Get().Delete(*OutputFilePath);
 		return false;
 	}
 		
 	// Delete intermediate files
-	GFileManager->Delete(*InputFilePath);
-	GFileManager->Delete(*OutputFilePath);
+	IFileManager::Get().Delete(*InputFilePath);
+	IFileManager::Get().Delete(*OutputFilePath);
 	return true;
 }
 
@@ -204,17 +292,32 @@ static bool CompressSliceToASTC(
  */
 class FTextureFormatASTC : public ITextureFormat
 {
-	virtual bool AllowParallelBuild() const OVERRIDE
+	virtual bool AllowParallelBuild() const override
 	{
 		return true;
 	}
 
-	virtual uint16 GetVersion(FName Format) const OVERRIDE
+	virtual uint16 GetVersion(FName Format) const override
 	{
-		return 27;
+		return GetQualityVersion() + BASE_FORMAT_VERSION;
 	}
 
-	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const OVERRIDE
+//	// Since we want to have per texture [group] compression settings, we need to have the key based on the texture
+//	virtual FString GetDerivedDataKeyString(const class UTexture& Texture) const override
+//	{
+//		const int32 LODBias = GSystemSettings.TextureLODSettings.CalculateLODBias(Texture.Source.GetSizeX(), Texture.Source.GetSizeY(), Texture.LODGroup, Texture.LODBias, Texture.NumCinematicMipLevels, Texture.MipGenSettings);
+//		check(LODBias >= 0);
+//		return FString::Printf(TEXT("%02u%d_"), (uint32)LODBias, CVarVirtualTextureReducedMemoryEnabled->GetValueOnGameThread());
+//	}
+	
+	virtual FTextureFormatCompressorCaps GetFormatCapabilities() const override
+	{
+		FTextureFormatCompressorCaps RetCaps;
+		// use defaults
+		return RetCaps;
+	}
+
+	virtual void GetSupportedFormats(TArray<FName>& OutFormats) const override
 	{
 		for (int32 i = 0; i < ARRAY_COUNT(GSupportedTextureFormatNames); ++i)
 		{
@@ -227,7 +330,7 @@ class FTextureFormatASTC : public ITextureFormat
 			const struct FTextureBuildSettings& BuildSettings,
 			bool bImageHasAlphaChannel,
 			FCompressedImage2D& OutCompressedImage
-		) const OVERRIDE
+		) const override
 	{
 		// Get Raw Image Data from passed in FImage
 		FImage Image;
@@ -240,24 +343,24 @@ class FTextureFormatASTC : public ITextureFormat
 		if (BuildSettings.TextureFormatName == GTextureFormatNameASTC_RGB ||
 		  ((BuildSettings.TextureFormatName == GTextureFormatNameASTC_RGBAuto) && !bImageHasAlphaChannel))
 		{
-			CompressedPixelFormat = PF_ASTC_8x8;
-			CompressionParameters = TEXT("8x8 -esw bgra -ch 1 1 1 0");
+			CompressedPixelFormat = GetQualityFormat();
+			CompressionParameters = FString::Printf(TEXT("%s -esw bgra -ch 1 1 1 0"), *GetQualityString());
 		}
 		else if (BuildSettings.TextureFormatName == GTextureFormatNameASTC_RGBA ||
 			   ((BuildSettings.TextureFormatName == GTextureFormatNameASTC_RGBAuto) && bImageHasAlphaChannel))
 		{
-			CompressedPixelFormat = PF_ASTC_6x6;
-			CompressionParameters = TEXT("6x6 -esw bgra -ch 1 1 1 1 -alphablend");
+			CompressedPixelFormat = GetQualityFormat();
+			CompressionParameters = FString::Printf(TEXT("%s -esw bgra -ch 1 1 1 1 -alphablend"), *GetQualityString());
 		}
 		else if (BuildSettings.TextureFormatName == GTextureFormatNameASTC_NormalAG)
 		{
-			CompressedPixelFormat = PF_ASTC_6x6;
-			CompressionParameters = TEXT("6x6 -esw 0g0b -ch 0 1 0 1 -oplimit 1000 -mincorrel 0.99 -dblimit 60 -b 2.5 -v 3 1 1 0 50 0 -va 1 1 0 50");
+			CompressedPixelFormat = GetQualityFormat(FORCED_NORMAL_MAP_COMPRESSION_SIZE_VALUE);
+			CompressionParameters = FString::Printf(TEXT("%s -esw 0g0b -ch 0 1 0 1 -oplimit 1000 -mincorrel 0.99 -dblimit 60 -b 2.5 -v 3 1 1 0 50 0 -va 1 1 0 50"), *GetQualityString(FORCED_NORMAL_MAP_COMPRESSION_SIZE_VALUE, -1));
 		}
 		else if (BuildSettings.TextureFormatName == GTextureFormatNameASTC_NormalRG)
 		{
-			CompressedPixelFormat = PF_ASTC_6x6;
-			CompressionParameters = TEXT("6x6 -esw bg00 -ch 1 1 0 0 -oplimit 1000 -mincorrel 0.99 -dblimit 60 -b 2.5 -v 3 1 1 0 50 0 -va 1 1 0 50");
+			CompressedPixelFormat = GetQualityFormat(FORCED_NORMAL_MAP_COMPRESSION_SIZE_VALUE);
+			CompressionParameters = FString::Printf(TEXT("%s -esw bg00 -ch 1 1 0 0 -oplimit 1000 -mincorrel 0.99 -dblimit 60 -b 2.5 -v 3 1 1 0 50 0 -va 1 1 0 50"), *GetQualityString(FORCED_NORMAL_MAP_COMPRESSION_SIZE_VALUE, -1));
 		}
 
 		// Compress the image, slice by slice

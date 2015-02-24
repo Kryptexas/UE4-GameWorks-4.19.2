@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationGraphSchema.cpp
@@ -490,15 +490,17 @@ void UAnimationGraphSchema::GetContextMenuActions(const UEdGraph* CurrentGraph, 
 	Super::GetContextMenuActions(CurrentGraph, InGraphNode, InGraphPin, MenuBuilder, bIsDebugging);
 }
 
-FString UAnimationGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const 
+FText UAnimationGraphSchema::GetPinDisplayName(const UEdGraphPin* Pin) const 
 {
 	check(Pin != NULL);
 
-	FString DisplayName = Super::GetPinDisplayName(Pin);
+	FText DisplayName = Super::GetPinDisplayName(Pin);
 
 	if (UAnimGraphNode_Base* Node = Cast<UAnimGraphNode_Base>(Pin->GetOwningNode()))
 	{
-		Node->PostProcessPinName(Pin, DisplayName);
+		FString ProcessedDisplayName = DisplayName.ToString();
+		Node->PostProcessPinName(Pin, ProcessedDisplayName);
+		DisplayName = FText::FromString(ProcessedDisplayName);
 	}
 
 	return DisplayName;

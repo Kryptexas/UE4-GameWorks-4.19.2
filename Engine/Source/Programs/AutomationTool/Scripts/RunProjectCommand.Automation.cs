@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -326,6 +326,8 @@ public partial class Project : CommandUtils
 					Thread.Sleep(100);
 				}
 				while (ClientProcess.HasExited == false);
+
+				SC.StageTargetPlatform.PostRunClient(ClientProcess, Params);
 
 				if (ClientProcess.ExitCode != 0)
 				{
@@ -730,7 +732,7 @@ public partial class Project : CommandUtils
                 }
 				TempCmdLine += " ";
 
-				if (!Params.Stage)
+				if (!Params.CookOnTheFlyStreaming)
 				{
 					TempCmdLine += "-streaming ";
 				}
@@ -808,7 +810,7 @@ public partial class Project : CommandUtils
 		{
 			TempCmdLine += "-execcmds=\"automation list, automation runall\" ";
 		}
-		if (!SC.StageTargetPlatform.LaunchViaUFE)
+		if (SC.StageTargetPlatform.UseAbsLog)
 		{
 			TempCmdLine += "-abslog=" + CommandUtils.MakePathSafeToUseWithCommandLine(ClientLogFile) + " ";
 		}
@@ -825,6 +827,11 @@ public partial class Project : CommandUtils
 		{
 			TempCmdLine += "-nullrhi ";
 		}
+		if (Params.Deploy && SC.StageTargetPlatform.PlatformType == UnrealTargetPlatform.PS4)
+		{
+			TempCmdLine += "-deployedbuild ";
+		}
+
 		TempCmdLine += "-CrashForUAT ";
 		TempCmdLine += Params.RunCommandline;
 

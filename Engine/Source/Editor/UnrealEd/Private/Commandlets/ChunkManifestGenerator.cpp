@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "PackageHelperFunctions.h"
@@ -495,7 +495,7 @@ bool FChunkManifestGenerator::SaveCookedPackageAssetRegistry( const FString& San
 							// get the package name and see if we have already written it out this run
 							
 							FString CookedPackageName;
-							check( JsonPackage->TryGetStringField(TEXT("CookedPackageName"), CookedPackageName) );
+							verify( JsonPackage->TryGetStringField(TEXT("SourcePackageName"), CookedPackageName) );
 
 							const FName CookedPackageFName(*CookedPackageName);
 							if ( CookedPackages.Contains(CookedPackageFName))

@@ -1,17 +1,23 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
 #include "EnvironmentQuery/Items/EnvQueryItemType.h"
+#include "DataProviders/AIDataProvider.h"
 #include "EnvQueryTypes.generated.h"
 
+class ARecastNavMesh;
+class UNavigationQueryFilter;
 class UEnvQueryTest;
 class UEnvQueryGenerator;
 class UEnvQueryItemType_VectorBase;
 class UEnvQueryItemType_ActorBase;
+class UEnvQueryContext;
 struct FEnvQueryInstance;
+struct FEnvQueryOptionInstance;
+struct FEnvQueryItemDetails;
 
-AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Log, All);
+AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Warning, All);
 
 // If set, execution details will be processed by debugger
 #define USE_EQS_DEBUGGER				(1 && !(UE_BUILD_SHIPPING || UE_BUILD_TEST))
@@ -19,14 +25,14 @@ AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogEQS, Log, All);
 DECLARE_STATS_GROUP(TEXT("Environment Query"), STATGROUP_AI_EQS, STATCAT_Advanced);
 
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick"),STAT_AI_EQS_Tick,STATGROUP_AI_EQS, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick - EQS work"), STAT_AI_EQS_TickWork, STATGROUP_AI_EQS, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Tick - OnFinished delegates"), STAT_AI_EQS_TickNotifies, STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Load Time"),STAT_AI_EQS_LoadTime,STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Generator Time"),STAT_AI_EQS_GeneratorTime,STATGROUP_AI_EQS, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Test Time"),STAT_AI_EQS_TestTime,STATGROUP_AI_EQS, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Instances"),STAT_AI_EQS_NumInstances,STATGROUP_AI_EQS, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Num Items"),STAT_AI_EQS_NumItems,STATGROUP_AI_EQS, );
 DECLARE_MEMORY_STAT_EXTERN(TEXT("Instance memory"),STAT_AI_EQS_InstanceMemory,STATGROUP_AI_EQS, AIMODULE_API);
-
-class ARecastNavMesh;
 
 UENUM()
 namespace EEnvTestPurpose
@@ -48,18 +54,6 @@ namespace EEnvTestFilterType
 		Maximum,	// For numeric tests
 		Range,		// For numeric tests
 		Match		// For boolean tests
-	};
-}
-
-UENUM()
-namespace EEnvTestCondition
-{
-	enum Type
-	{
-		NoCondition		UMETA(DisplayName="Always pass"),
-		AtLeast			UMETA(DisplayName="At least"),
-		UpTo			UMETA(DisplayName="Up to"),
-		Match,
 	};
 }
 
@@ -94,7 +88,7 @@ namespace EEnvTestWeight
 		None,
 		Square,
 		Inverse,
-		Absolute,	// Removed after discussion with EGP folks
+		Unused			UMETA(Hidden),
 		Constant,
 		Skip			UMETA(DisplayName = "Do not weight"),
 	};
@@ -190,17 +184,11 @@ namespace EEnvQueryTestClamping
 	};
 }
 
+// DEPRECATED, will be removed soon - use AI Data Providers instead 
 USTRUCT()
 struct AIMODULE_API FEnvFloatParam
 {
 	GENERATED_USTRUCT_BODY();
-
-	typedef float FValueType;
-
-	FEnvFloatParam() :
-		Value(0.f)
-	{
-	}
 
 	/** default value */
 	UPROPERTY(EditDefaultsOnly, Category=Param)
@@ -211,19 +199,14 @@ struct AIMODULE_API FEnvFloatParam
 	FName ParamName;
 
 	bool IsNamedParam() const { return ParamName != NAME_None; }
+	void Convert(UObject* Owner, FAIDataProviderFloatValue& ValueProvider);
 };
 
+// DEPRECATED, will be removed soon - use AI Data Providers instead 
 USTRUCT()
 struct AIMODULE_API FEnvIntParam
 {
 	GENERATED_USTRUCT_BODY();
-
-	typedef int32 FValueType;
-
-	FEnvIntParam() :
-		Value(0)
-	{
-	}
 
 	/** default value */
 	UPROPERTY(EditDefaultsOnly, Category=Param)
@@ -234,19 +217,14 @@ struct AIMODULE_API FEnvIntParam
 	FName ParamName;
 
 	bool IsNamedParam() const { return ParamName != NAME_None; }
+	void Convert(UObject* Owner, FAIDataProviderIntValue& ValueProvider);
 };
 
+// DEPRECATED, will be removed soon - use AI Data Providers instead 
 USTRUCT()
 struct AIMODULE_API FEnvBoolParam
 {
 	GENERATED_USTRUCT_BODY();
-
-	typedef bool FValueType;
-
-	FEnvBoolParam() :
-		Value(false)
-	{
-	}
 
 	/** default value */
 	UPROPERTY(EditDefaultsOnly, Category=Param)
@@ -257,6 +235,7 @@ struct AIMODULE_API FEnvBoolParam
 	FName ParamName;
 
 	bool IsNamedParam() const { return ParamName != NAME_None; }
+	void Convert(UObject* Owner, FAIDataProviderBoolValue& ValueProvider);
 };
 
 USTRUCT(BlueprintType)
@@ -281,15 +260,15 @@ struct AIMODULE_API FEnvDirection
 
 	/** line A: start context */
 	UPROPERTY(EditDefaultsOnly, Category=Direction)
-	TSubclassOf<class UEnvQueryContext> LineFrom;
+	TSubclassOf<UEnvQueryContext> LineFrom;
 
 	/** line A: finish context */
 	UPROPERTY(EditDefaultsOnly, Category=Direction)
-	TSubclassOf<class UEnvQueryContext> LineTo;
+	TSubclassOf<UEnvQueryContext> LineTo;
 
 	/** line A: direction context */
 	UPROPERTY(EditDefaultsOnly, Category=Direction)
-	TSubclassOf<class UEnvQueryContext> Rotation;
+	TSubclassOf<UEnvQueryContext> Rotation;
 
 	/** defines direction of second line used by test */
 	UPROPERTY(EditDefaultsOnly, Category=Direction, meta=(DisplayName="Mode"))
@@ -317,7 +296,7 @@ struct AIMODULE_API FEnvTraceData
 
 	/** navigation filter for tracing */
 	UPROPERTY(EditDefaultsOnly, Category=Trace)
-	TSubclassOf<class UNavigationQueryFilter> NavigationFilter;
+	TSubclassOf<UNavigationQueryFilter> NavigationFilter;
 
 	/** search height: below point */
 	UPROPERTY(EditDefaultsOnly, Category=Trace, meta=(UIMin=0, ClampMin=0))
@@ -338,6 +317,13 @@ struct AIMODULE_API FEnvTraceData
 	/** shape parameter for trace */
 	UPROPERTY(EditDefaultsOnly, Category=Trace, meta=(UIMin=0, ClampMin=0))
 	float ExtentZ;
+
+	/** this value will be added to resulting location's Z axis. Can be useful when 
+	 *	projecting points to navigation since navmesh is just an approximation of level 
+	 *	geometry and items may end up being under collide-able geometry which would 
+	 *	for example falsify visibility tests.*/
+	UPROPERTY(EditDefaultsOnly, Category=Trace)
+	float PostProjectionVerticalOffset;
 
 	/** geometry trace channel */
 	UPROPERTY(EditDefaultsOnly, Category=Trace)
@@ -424,12 +410,14 @@ struct AIMODULE_API FEnvQueryResult
 	/** type of generated items */
 	TSubclassOf<UEnvQueryItemType> ItemType;
 
-	/** query status */
-	TEnumAsByte<EEnvQueryStatus::Type> Status;
-
 	/** raw data of items */
 	TArray<uint8> RawData;
 
+private:
+	/** query status */
+	TEnumAsByte<EEnvQueryStatus::Type> Status;
+
+public:
 	/** index of query option, that generated items */
 	int32 OptionIndex;
 
@@ -447,13 +435,21 @@ struct AIMODULE_API FEnvQueryResult
 
 	FEnvQueryResult() : ItemType(NULL), Status(EEnvQueryStatus::Processing), OptionIndex(0) {}
 	FEnvQueryResult(const EEnvQueryStatus::Type& InStatus) : ItemType(NULL), Status(InStatus), OptionIndex(0) {}
+
+	FORCEINLINE bool IsFinished() const { return Status != EEnvQueryStatus::Processing; }
+	FORCEINLINE bool IsAborted() const { return Status == EEnvQueryStatus::Aborted; }
+	FORCEINLINE void MarkAsMissingParam() { Status = EEnvQueryStatus::MissingParam; }
+	FORCEINLINE void MarkAsAborted() { Status = EEnvQueryStatus::Aborted; }
+	FORCEINLINE void MarkAsFailed() { Status = EEnvQueryStatus::Failed; }
+	FORCEINLINE void MarkAsFinishedWithoutIssues() { Status = EEnvQueryStatus::Success; }
+	FORCEINLINE void MarkAsOwnerLost() { Status = EEnvQueryStatus::OwnerLost; }
 };
 
 
 //////////////////////////////////////////////////////////////////////////
 // Runtime processing structures
 
-DECLARE_DELEGATE_OneParam(FQueryFinishedSignature, TSharedPtr<struct FEnvQueryResult>);
+DECLARE_DELEGATE_OneParam(FQueryFinishedSignature, TSharedPtr<FEnvQueryResult>);
 
 struct AIMODULE_API FEnvQuerySpatialData
 {
@@ -578,7 +574,7 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 	TMap<UClass*, FEnvQueryContextData> ContextCache;
 
 	/** list of options */
-	TArray<struct FEnvQueryOptionInstance> Options;
+	TArray<FEnvQueryOptionInstance> Options;
 
 	/** currently processed test (-1 = generator) */
 	int32 CurrentTest;
@@ -588,7 +584,7 @@ struct AIMODULE_API FEnvQueryInstance : public FEnvQueryResult
 	int32 CurrentTestStartingItem;
 
 	/** list of item details */
-	TArray<struct FEnvQueryItemDetails> ItemDetails;
+	TArray<FEnvQueryItemDetails> ItemDetails;
 
 	/** number of valid items on list */
 	int32 NumValidItems;
@@ -645,30 +641,6 @@ public:
 	bool IsInSingleItemFinalSearch() const { return !!bPassOnSingleResult; }
 	/** check if current test can batch its calculations */
 	bool CanBatchTest() const { return !IsInSingleItemFinalSearch(); }
-
-	/** access named params */
-	template<typename TEQSParam>
-	FORCEINLINE bool GetParamValue(const TEQSParam& Param, typename TEQSParam::FValueType& OutValue, const FString& ParamDesc)
-	{
-		if (Param.ParamName != NAME_None)
-		{
-			FNamedParamValueType* PtrValue = NamedParams.Find(Param.ParamName);
-			if (PtrValue == NULL)
-			{
-				EQSHEADERLOG(FString::Printf(TEXT("Query [%s] is missing param [%s] for [%s] property!"), *QueryName, *Param.ParamName.ToString(), *ParamDesc));				
-				Status = EEnvQueryStatus::MissingParam;
-				return false;
-			}
-
-			OutValue = *((typename TEQSParam::FValueType*)PtrValue);
-		}
-		else
-		{
-			OutValue = Param.Value;
-		}
-
-		return true;
-	}
 
 	/** raw data operations */
 	void ReserveItemData(int32 NumAdditionalItems);
@@ -806,12 +778,14 @@ public:
 			}
 
 			if (bPassedTest)
-			{	// If we passed the test, either we really did, or we're only scoring, so we can't truly "fail".	
+			{
+				// If we passed the test, either we really did, or we're only scoring, so we can't truly "fail".	
 				ItemScore += Score;
 				NumPartialScores++;
 			}
 			else
-			{	// We are ONLY filtering, and we failed
+			{
+				// We are ONLY filtering, and we failed
 				bPassed = false;
 			}
 		}
@@ -909,14 +883,12 @@ public:
 	protected:
 
 		FEnvQueryInstance* Instance;
-		//UEnvQueryTest* Test;
 		int32 CurrentItem;
 		int32 NumPartialScores;
 		double Deadline;
 		float ItemScore;
 		uint32 bPassed : 1;
 		uint32 bSkipped : 1;
-		uint32 bDiscardFailed : 1;
 
 		void InitItemScore()
 		{
@@ -951,23 +923,19 @@ public:
 namespace FEQSHelpers
 {
 #if WITH_RECAST
-	const ARecastNavMesh* FindNavMeshForQuery(struct FEnvQueryInstance& QueryInstance);
+	AIMODULE_API const ARecastNavMesh* FindNavMeshForQuery(FEnvQueryInstance& QueryInstance);
 #endif // WITH_RECAST
 }
 
-UCLASS(Abstract, CustomConstructor)
+UCLASS(Abstract)
 class AIMODULE_API UEnvQueryTypes : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
+public:
 	/** special test value assigned to items skipped by condition check */
 	static float SkippedItemValue;
 
-	UEnvQueryTypes(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
 	static FText GetShortTypeName(const UObject* Ob);
-
-	static FText DescribeContext(TSubclassOf<class UEnvQueryContext> ContextClass);
-	static FString DescribeIntParam(const FEnvIntParam& Param);
-	static FString DescribeFloatParam(const FEnvFloatParam& Param);
-	static FString DescribeBoolParam(const FEnvBoolParam& Param);
+	static FText DescribeContext(TSubclassOf<UEnvQueryContext> ContextClass);
 };

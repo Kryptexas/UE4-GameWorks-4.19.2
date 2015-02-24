@@ -48,9 +48,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
     partial void InsertCrash(Crash instance);
     partial void UpdateCrash(Crash instance);
     partial void DeleteCrash(Crash instance);
-    partial void InsertCrash_FunctionCall(Crash_FunctionCall instance);
-    partial void UpdateCrash_FunctionCall(Crash_FunctionCall instance);
-    partial void DeleteCrash_FunctionCall(Crash_FunctionCall instance);
     partial void InsertFunctionCall(FunctionCall instance);
     partial void UpdateFunctionCall(FunctionCall instance);
     partial void DeleteFunctionCall(FunctionCall instance);
@@ -137,14 +134,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			get
 			{
 				return this.GetTable<Crash>();
-			}
-		}
-		
-		public System.Data.Linq.Table<Crash_FunctionCall> Crash_FunctionCalls
-		{
-			get
-			{
-				return this.GetTable<Crash_FunctionCall>();
 			}
 		}
 		
@@ -1475,8 +1464,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		private EntitySet<Buggs_Crash> _Buggs_Crashes;
 		
-		private EntitySet<Crash_FunctionCall> _Crash_FunctionCalls;
-		
 		private EntityRef<User> _User;
 		
 		private EntityRef<User> _UserByName;
@@ -1564,7 +1551,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		public Crash()
 		{
 			this._Buggs_Crashes = new EntitySet<Buggs_Crash>(new Action<Buggs_Crash>(this.attach_Buggs_Crashes), new Action<Buggs_Crash>(this.detach_Buggs_Crashes));
-			this._Crash_FunctionCalls = new EntitySet<Crash_FunctionCall>(new Action<Crash_FunctionCall>(this.attach_Crash_FunctionCalls), new Action<Crash_FunctionCall>(this.detach_Crash_FunctionCalls));
 			this._User = default(EntityRef<User>);
 			this._UserByName = default(EntityRef<User>);
 			OnCreated();
@@ -2331,19 +2317,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 		}
 		
-		[global::System.Data.Linq.Mapping.AssociationAttribute(Name="Crash_Crash_FunctionCall", Storage="_Crash_FunctionCalls", ThisKey="Id", OtherKey="CrashId")]
-		public EntitySet<Crash_FunctionCall> Crash_FunctionCalls
-		{
-			get
-			{
-				return this._Crash_FunctionCalls;
-			}
-			set
-			{
-				this._Crash_FunctionCalls.Assign(value);
-			}
-		}
-		
 		[global::System.Data.Linq.Mapping.AssociationAttribute(Name="User_Crash", Storage="_User", ThisKey="UserNameId", OtherKey="Id", IsForeignKey=true)]
 		public User UserById
 		{
@@ -2443,186 +2416,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			this.SendPropertyChanging();
 			entity.Crash = null;
 		}
-		
-		private void attach_Crash_FunctionCalls(Crash_FunctionCall entity)
-		{
-			this.SendPropertyChanging();
-			entity.Crash = this;
-		}
-		
-		private void detach_Crash_FunctionCalls(Crash_FunctionCall entity)
-		{
-			this.SendPropertyChanging();
-			entity.Crash = null;
-		}
-	}
-	
-	[global::System.Data.Linq.Mapping.TableAttribute(Name="dbo.Crashes_FunctionCalls")]
-	public partial class Crash_FunctionCall : INotifyPropertyChanging, INotifyPropertyChanged
-	{
-		
-		private static PropertyChangingEventArgs emptyChangingEventArgs = new PropertyChangingEventArgs(String.Empty);
-		
-		private int _CrashId;
-		
-		private int _FunctionCallId;
-		
-		private EntityRef<Crash> _Crash;
-		
-		private EntityRef<FunctionCall> _FunctionCall;
-		
-    #region Extensibility Method Definitions
-    partial void OnLoaded();
-    partial void OnValidate(System.Data.Linq.ChangeAction action);
-    partial void OnCreated();
-    partial void OnCrashIdChanging(int value);
-    partial void OnCrashIdChanged();
-    partial void OnFunctionCallIdChanging(int value);
-    partial void OnFunctionCallIdChanged();
-    #endregion
-		
-		public Crash_FunctionCall()
-		{
-			this._Crash = default(EntityRef<Crash>);
-			this._FunctionCall = default(EntityRef<FunctionCall>);
-			OnCreated();
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_CrashId", DbType="Int NOT NULL", IsPrimaryKey=true)]
-		public int CrashId
-		{
-			get
-			{
-				return this._CrashId;
-			}
-			set
-			{
-				if ((this._CrashId != value))
-				{
-					if (this._Crash.HasLoadedOrAssignedValue)
-					{
-						throw new System.Data.Linq.ForeignKeyReferenceAlreadyHasValueException();
-					}
-					this.OnCrashIdChanging(value);
-					this.SendPropertyChanging();
-					this._CrashId = value;
-					this.SendPropertyChanged("CrashId");
-					this.OnCrashIdChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.ColumnAttribute(Storage="_FunctionCallId", DbType="Int NOT NULL", IsPrimaryKey=true)]
-		public int FunctionCallId
-		{
-			get
-			{
-				return this._FunctionCallId;
-			}
-			set
-			{
-				if ((this._FunctionCallId != value))
-				{
-					if (this._FunctionCall.HasLoadedOrAssignedValue)
-					{
-						throw new System.Data.Linq.ForeignKeyReferenceAlreadyHasValueException();
-					}
-					this.OnFunctionCallIdChanging(value);
-					this.SendPropertyChanging();
-					this._FunctionCallId = value;
-					this.SendPropertyChanged("FunctionCallId");
-					this.OnFunctionCallIdChanged();
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.AssociationAttribute(Name="Crash_Crash_FunctionCall", Storage="_Crash", ThisKey="CrashId", OtherKey="Id", IsForeignKey=true)]
-		public Crash Crash
-		{
-			get
-			{
-				return this._Crash.Entity;
-			}
-			set
-			{
-				Crash previousValue = this._Crash.Entity;
-				if (((previousValue != value) 
-							|| (this._Crash.HasLoadedOrAssignedValue == false)))
-				{
-					this.SendPropertyChanging();
-					if ((previousValue != null))
-					{
-						this._Crash.Entity = null;
-						previousValue.Crash_FunctionCalls.Remove(this);
-					}
-					this._Crash.Entity = value;
-					if ((value != null))
-					{
-						value.Crash_FunctionCalls.Add(this);
-						this._CrashId = value.Id;
-					}
-					else
-					{
-						this._CrashId = default(int);
-					}
-					this.SendPropertyChanged("Crash");
-				}
-			}
-		}
-		
-		[global::System.Data.Linq.Mapping.AssociationAttribute(Name="FunctionCall_Crash_FunctionCall", Storage="_FunctionCall", ThisKey="FunctionCallId", OtherKey="Id", IsForeignKey=true)]
-		public FunctionCall FunctionCall
-		{
-			get
-			{
-				return this._FunctionCall.Entity;
-			}
-			set
-			{
-				FunctionCall previousValue = this._FunctionCall.Entity;
-				if (((previousValue != value) 
-							|| (this._FunctionCall.HasLoadedOrAssignedValue == false)))
-				{
-					this.SendPropertyChanging();
-					if ((previousValue != null))
-					{
-						this._FunctionCall.Entity = null;
-						previousValue.Crash_FunctionCalls.Remove(this);
-					}
-					this._FunctionCall.Entity = value;
-					if ((value != null))
-					{
-						value.Crash_FunctionCalls.Add(this);
-						this._FunctionCallId = value.Id;
-					}
-					else
-					{
-						this._FunctionCallId = default(int);
-					}
-					this.SendPropertyChanged("FunctionCall");
-				}
-			}
-		}
-		
-		public event PropertyChangingEventHandler PropertyChanging;
-		
-		public event PropertyChangedEventHandler PropertyChanged;
-		
-		protected virtual void SendPropertyChanging()
-		{
-			if ((this.PropertyChanging != null))
-			{
-				this.PropertyChanging(this, emptyChangingEventArgs);
-			}
-		}
-		
-		protected virtual void SendPropertyChanged(String propertyName)
-		{
-			if ((this.PropertyChanged != null))
-			{
-				this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-			}
-		}
 	}
 	
 	[global::System.Data.Linq.Mapping.TableAttribute(Name="dbo.FunctionCalls")]
@@ -2634,8 +2427,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		private int _Id;
 		
 		private string _Call;
-		
-		private EntitySet<Crash_FunctionCall> _Crash_FunctionCalls;
 		
     #region Extensibility Method Definitions
     partial void OnLoaded();
@@ -2649,7 +2440,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		
 		public FunctionCall()
 		{
-			this._Crash_FunctionCalls = new EntitySet<Crash_FunctionCall>(new Action<Crash_FunctionCall>(this.attach_Crash_FunctionCalls), new Action<Crash_FunctionCall>(this.detach_Crash_FunctionCalls));
 			OnCreated();
 		}
 		
@@ -2693,19 +2483,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 		}
 		
-		[global::System.Data.Linq.Mapping.AssociationAttribute(Name="FunctionCall_Crash_FunctionCall", Storage="_Crash_FunctionCalls", ThisKey="Id", OtherKey="FunctionCallId")]
-		public EntitySet<Crash_FunctionCall> Crash_FunctionCalls
-		{
-			get
-			{
-				return this._Crash_FunctionCalls;
-			}
-			set
-			{
-				this._Crash_FunctionCalls.Assign(value);
-			}
-		}
-		
 		public event PropertyChangingEventHandler PropertyChanging;
 		
 		public event PropertyChangedEventHandler PropertyChanged;
@@ -2724,18 +2501,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			{
 				this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
 			}
-		}
-		
-		private void attach_Crash_FunctionCalls(Crash_FunctionCall entity)
-		{
-			this.SendPropertyChanging();
-			entity.FunctionCall = this;
-		}
-		
-		private void detach_Crash_FunctionCalls(Crash_FunctionCall entity)
-		{
-			this.SendPropertyChanging();
-			entity.FunctionCall = null;
 		}
 	}
 	

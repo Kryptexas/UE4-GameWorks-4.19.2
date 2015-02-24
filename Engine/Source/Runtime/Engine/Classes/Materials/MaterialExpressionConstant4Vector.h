@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #pragma once
@@ -10,24 +10,8 @@ class UMaterialExpressionConstant4Vector : public UMaterialExpression
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY()
-	float R_DEPRECATED;
-
-	UPROPERTY()
-	float G_DEPRECATED;
-
-	UPROPERTY()
-	float B_DEPRECATED;
-
-	UPROPERTY()
-	float A_DEPRECATED;
-
 	UPROPERTY(EditAnywhere, Category=MaterialExpressionConstant4Vector)
 	FLinearColor Constant;
-
-	// Begin UObject interface.
-	virtual void PostLoad() override;
-	// End UObject interface.
 
 	// Begin UMaterialExpression Interface
 	virtual int32 Compile(class FMaterialCompiler* Compiler, int32 OutputIndex, int32 MultiplexIndex) override;

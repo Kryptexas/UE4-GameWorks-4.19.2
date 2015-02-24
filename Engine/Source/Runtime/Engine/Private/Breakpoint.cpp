@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "EnginePrivate.h"
@@ -14,7 +14,7 @@ UBreakpoint::UBreakpoint(const FObjectInitializer& ObjectInitializer)
 	bStepOnce_RemoveAfterHit = false;
 }
 
-FString UBreakpoint::GetLocationDescription() const
+FText UBreakpoint::GetLocationDescription() const
 {
 #if WITH_EDITORONLY_DATA
 	if (Node != NULL)
@@ -30,13 +30,13 @@ FString UBreakpoint::GetLocationDescription() const
 			Result += Node->NodeComment;
 		}
 
-		return Result;
+		return FText::FromString(Result);
 	}
 	else
 	{
-		return TEXT("Error: Invalid location");
+		return NSLOCTEXT("UBreakpoint", "ErrorInvalidLocation", "Error: Invalid location");
 	}
 #else	//#if WITH_EDITORONLY_DATA
-	return TEXT("--- NO EDITOR DATA! ---");
+	return NSLOCTEXT("UBreakpoint", "NoEditorData", "--- NO EDITOR DATA! ---");
 #endif	//#if WITH_EDITORONLY_DATA
 }

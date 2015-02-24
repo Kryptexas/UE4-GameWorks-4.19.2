@@ -1,9 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DetailCustomizationsPrivatePCH.h"
 #include "VehicleTransmissionDataCustomization.h"
 #include "ScopedTransaction.h"
 #include "Editor/Documentation/Public/IDocumentation.h"
+#include "Vehicles/WheeledVehicleMovementComponent4W.h"
 
 #define LOCTEXT_NAMESPACE "VehicleTransmissionDataCustomization"
 
@@ -163,7 +164,7 @@ void FVehicleTransmissionDataCustomization::BuildColumnsHeaderHelper(TSharedRef<
 void FVehicleTransmissionDataCustomization::CreateGearUIDelegate(TSharedRef<IPropertyHandle> GearProperty, int32 GearIdx, IDetailChildrenBuilder& ChildrenBuilder)
 {
 	FText Label = FText::Format(LOCTEXT("TransmissionGear", "Gear {0}"), FText::AsNumber(GearIdx + 1));
-	CreateGearUIHelper(ChildrenBuilder.AddChildContent(Label.ToString()), Label, GearProperty, ForwardGear);
+	CreateGearUIHelper(ChildrenBuilder.AddChildContent(Label), Label, GearProperty, ForwardGear);
 }
 
 void FVehicleTransmissionDataCustomization::CustomizeChildren(TSharedRef<class IPropertyHandle> StructPropertyHandle, class IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
@@ -186,7 +187,7 @@ void FVehicleTransmissionDataCustomization::CustomizeChildren(TSharedRef<class I
 	StructPropertyHandle->GetNumChildren(NumChildren);
 
 	FName GearsSetupGroupName = TEXT("GearsSetup");
-	FString GearsSetupGroupLabel = LOCTEXT("GearSetupLabel", "Gears Setup").ToString();
+	FText GearsSetupGroupLabel = LOCTEXT("GearSetupLabel", "Gears Setup");
 	IDetailGroup * GearSetupGroup = NULL;
 	
 	for (uint32 ChildIdx = 0; ChildIdx < NumChildren; ++ChildIdx)
@@ -199,7 +200,7 @@ void FVehicleTransmissionDataCustomization::CustomizeChildren(TSharedRef<class I
 			if (GearSetupGroup == NULL)
 			{
 				GearSetupGroup = &StructBuilder.AddChildGroup(GearsSetupGroupName, GearsSetupGroupLabel);
-				BuildColumnsHeaderHelper(StructPropertyHandle, StructBuilder.AddChildContent(TEXT("GearSetup")));
+				BuildColumnsHeaderHelper(StructPropertyHandle, StructBuilder.AddChildContent(GearsSetupGroupLabel));
 			}
 
 			//determine which gear we're showing
@@ -221,8 +222,9 @@ void FVehicleTransmissionDataCustomization::CustomizeChildren(TSharedRef<class I
 				StructBuilder.AddChildCustomBuilder(GearsArrayBuilder);
 			}
 			else
-			{	
-				CreateGearUIHelper(StructBuilder.AddChildContent(PropertyName), FText::FromString(PropertyName), ChildProperty, GearType);
+			{
+				const FText PropertyNameText = FText::FromString(PropertyName);
+				CreateGearUIHelper(StructBuilder.AddChildContent(PropertyNameText), PropertyNameText, ChildProperty, GearType);
 			}
 
 

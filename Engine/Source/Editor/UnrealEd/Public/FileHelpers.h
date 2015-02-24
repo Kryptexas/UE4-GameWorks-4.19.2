@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -8,6 +8,7 @@
 class FFileName;
 class FString;
 class FAssetData;
+class ULevel;
 
 enum EFileInteraction
 {
@@ -48,13 +49,16 @@ public:
 	// Loading
 
 	DECLARE_DELEGATE_OneParam(FOnLevelsChosen, const TArray<FAssetData>& /*SelectedLevels*/);
+	DECLARE_DELEGATE(FOnLevelPickingCancelled);
+
 	/**
 	 * Opens a non-modal dialog to allow the user to choose a level
 	 *
 	 * @param	OnLevelsChosen				Delegate executed when one more more levels have been selected
+	 * @param	OnLevelPickingDialogClosed	Delegate executed when the level picking dialog is closed
 	 * @param	bAllowMultipleSelection		If true, more than one level can be chosen
 	 */
-	static UNREALED_API void OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsChosen, bool bAllowMultipleSelection);
+	static UNREALED_API void OpenLevelPickingDialog(const FOnLevelsChosen& OnLevelsChosen, const FOnLevelPickingCancelled& OnLevelPickingCancelled, bool bAllowMultipleSelection);
 
 	/**
 	 * Returns true if the specified map filename is valid for loading or saving.
@@ -343,9 +347,23 @@ public:
 	 * @param	OutPackages		All found package filenames and their source control state
 	 * @param	bIncludeMaps	If true, also adds maps to the list
 	 */
-	UNREALED_API static void FindAllSubmittablePackageFiles(TMap<FString, TSharedPtr<class ISourceControlState, ESPMode::ThreadSafe> >& OutPackages, const bool bIncludeMaps);
+	UNREALED_API static void FindAllSubmittablePackageFiles(TMap<FString, FSourceControlStatePtr>& OutPackages, const bool bIncludeMaps);
 
-	/** 
+	/**
+	 * Looks for config files for the current project.
+	 *
+	 * @param	OutConfigFiles	All found config filenames.
+	 */
+	UNREALED_API static void FindAllConfigFiles(TArray<FString>& OutConfigFiles);
+
+	/**
+	 * Looks for source control submittable config files for the current project.
+	 *
+	 * @param	OutConfigFiles	All found config filenames and their source control state.
+	 */
+	UNREALED_API static void FindAllSubmittableConfigFiles(TMap<FString, FSourceControlStatePtr>& OutConfigFiles);
+
+	/**
 	 * Helper function used to decide whether a package name is a map package or not. Map packages aren't added to the additional package list.
 	 *
 	 * @param	ObjectPath		The path to the package to test

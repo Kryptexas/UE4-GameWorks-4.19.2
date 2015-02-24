@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -40,10 +40,11 @@ struct FAITestBase
 private:
 	// internals
 	TArray<UObject*> SpawnedObjects;	
+	uint32 bTearedDown : 1;
 protected:
 	FAutomationTestBase* TestRunner;
 
-	FAITestBase() : TestRunner(nullptr)
+	FAITestBase() : bTearedDown(false), TestRunner(nullptr)
 	{}
 
 	template<typename ClassToSpawn>
@@ -73,7 +74,9 @@ public:
 	virtual ~FAITestBase();
 	virtual void SetUp() {}
 	virtual bool Update() { return true; }
-	virtual void TearDown() {}
+	virtual void InstantTest() {}
+	// must be called!
+	virtual void TearDown();
 };
 
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FAITestCommand_SetUpTest, FAITestBase*, AITest);
@@ -81,7 +84,7 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FAITestCommand_PerformTest, FAITe
 DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FAITestCommand_TearDownTest, FAITestBase*, AITest);
 
 // @note that TestClass needs to derive from FAITestBase
-#define IMPLEMENT_AI_TEST(TestClass, PrettyName) \
+#define IMPLEMENT_AI_LATENT_TEST(TestClass, PrettyName) \
 	IMPLEMENT_SIMPLE_AUTOMATION_TEST(TestClass##_Runner, PrettyName, (EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor)) \
 	bool TestClass##_Runner::RunTest(const FString& Parameters) \
 	{ \
@@ -94,6 +97,22 @@ DEFINE_LATENT_AUTOMATION_COMMAND_ONE_PARAMETER(FAITestCommand_TearDownTest, FAIT
 		ADD_LATENT_AUTOMATION_COMMAND(FAITestCommand_PerformTest(TestInstance)); \
 		/* run latent command to tear down */ \
 		ADD_LATENT_AUTOMATION_COMMAND(FAITestCommand_TearDownTest(TestInstance)); \
+		return true; \
+	} 
+
+#define IMPLEMENT_AI_INSTANT_TEST(TestClass, PrettyName) \
+	IMPLEMENT_SIMPLE_AUTOMATION_TEST(TestClass##Runner, PrettyName, (EAutomationTestFlags::ATF_Game | EAutomationTestFlags::ATF_Editor)) \
+	bool TestClass##Runner::RunTest(const FString& Parameters) \
+	{ \
+		/* spawn test instance. Setup should be done in test's constructor */ \
+		TestClass* TestInstance = new TestClass(); \
+		TestInstance->SetTestInstance(*this); \
+		/* set up */ \
+		TestInstance->SetUp(); \
+		/* call the instant-test code */ \
+		TestInstance->InstantTest(); \
+		/* tear down */ \
+		TestInstance->TearDown(); \
 		return true; \
 	} 
 

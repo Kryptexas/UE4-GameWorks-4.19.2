@@ -1,13 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*================================================================================
-	WindowsPlatformProperties.h - Basic static properties of a platform 
-	These are shared between:
-		the runtime platform - via FPlatformProperties
-		the target platforms - via ITargetPlatform
-==================================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "GenericPlatformProperties.h"
 
 

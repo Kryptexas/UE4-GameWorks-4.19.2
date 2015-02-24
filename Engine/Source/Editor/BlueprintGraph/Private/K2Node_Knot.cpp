@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintGraphPrivatePCH.h"
 #include "K2ActionMenuBuilder.h"
 #include "Kismet2NameValidators.h"
 #include "BlueprintNodeSpawner.h"
 #include "BlueprintActionDatabaseRegistrar.h"
+#include "K2Node_Knot.h"
 
 #define LOCTEXT_NAMESPACE "K2Node_Knot"
 
@@ -171,10 +172,10 @@ bool UK2Node_Knot::ShouldOverridePinNames() const
 	return true;
 }
 
-FString UK2Node_Knot::GetPinNameOverride(const UEdGraphPin& Pin) const
+FText UK2Node_Knot::GetPinNameOverride(const UEdGraphPin& Pin) const
 {
 	// Keep the pin size tiny
-	return FString();
+	return FText::GetEmpty();
 }
 
 void UK2Node_Knot::OnRenameNode(const FString& NewName)

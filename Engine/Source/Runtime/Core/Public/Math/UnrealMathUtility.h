@@ -1,12 +1,10 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	UnrealMathUtility.h: Unreal math utility routines
-=============================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "HAL/Platform.h"
 #include "HAL/PlatformMath.h"
+
 
 //#define IMPLEMENT_ASSIGNMENT_OPERATOR_MANUALLY
 
@@ -20,15 +18,15 @@
 -----------------------------------------------------------------------------*/
 
 // Forward declarations.
-class  FVector;
-class  FVector4;
-class  FPlane;
-class  FBox;
-class  FRotator;
-class  FMatrix;
-class  FQuat;
-class  FTwoVectors;
-class  FTransform;
+struct  FVector;
+struct  FVector4;
+struct  FPlane;
+struct  FBox;
+struct  FRotator;
+struct  FMatrix;
+struct  FQuat;
+struct  FTwoVectors;
+struct  FTransform;
 class  FSphere;
 struct FVector2D;
 struct FLinearColor;
@@ -860,6 +858,20 @@ struct FMath : public FPlatformMath
 	 * @return	point on the segment defined by (StartPoint, EndPoint) that is closest to Point.
 	 */
 	static CORE_API FVector ClosestPointOnSegment(const FVector &Point, const FVector &StartPoint, const FVector &EndPoint);
+
+	/**
+	* FVector2D version of ClosestPointOnSegment.
+	* Returns closest point on a segment to a given 2D point.
+	* The idea is to project point on line formed by segment.
+	* Then we see if the closest point on the line is outside of segment or inside.
+	*
+	* @param	Point			point for which we find the closest point on the segment
+	* @param	StartPoint		StartPoint of segment
+	* @param	EndPoint		EndPoint of segment
+	*
+	* @return	point on the segment defined by (StartPoint, EndPoint) that is closest to Point.
+	*/
+	static CORE_API FVector2D ClosestPointOnSegment2D(const FVector2D &Point, const FVector2D &StartPoint, const FVector2D &EndPoint);
 
 	/**
 	 * Returns distance from a point to the closest point on a segment.

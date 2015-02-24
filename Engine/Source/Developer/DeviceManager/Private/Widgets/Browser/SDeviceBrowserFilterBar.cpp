@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "DeviceManagerPrivatePCH.h"
 #include "SSearchBox.h"
@@ -89,26 +89,26 @@ void SDeviceBrowserFilterBar::HandleFilterStringTextChanged( const FText& NewTex
 }
 
 
-void SDeviceBrowserFilterBar::HandlePlatformListRowCheckStateChanged(ESlateCheckBoxState::Type CheckState, TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry)
+void SDeviceBrowserFilterBar::HandlePlatformListRowCheckStateChanged(ECheckBoxState CheckState, TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry)
 {
-	Filter->SetPlatformEnabled(PlatformEntry->PlatformName, CheckState == ESlateCheckBoxState::Checked);
+	Filter->SetPlatformEnabled(PlatformEntry->PlatformName, CheckState == ECheckBoxState::Checked);
 }
 
 
-ESlateCheckBoxState::Type SDeviceBrowserFilterBar::HandlePlatformListRowIsChecked(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const
+ECheckBoxState SDeviceBrowserFilterBar::HandlePlatformListRowIsChecked(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const
 {
 	if (Filter->IsPlatformEnabled(PlatformEntry->PlatformName))
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 
-FString SDeviceBrowserFilterBar::HandlePlatformListRowText(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const
+FText SDeviceBrowserFilterBar::HandlePlatformListRowText(TSharedPtr<FDeviceBrowserFilterEntry> PlatformEntry) const
 {
-	return FString::Printf(TEXT("%s (%i)"), *(PlatformEntry->PlatformName), Filter->GetServiceCountPerPlatform(PlatformEntry->PlatformName));
+	return FText::Format(LOCTEXT("PlatformListRowFmt", "{0} ({1})"), FText::FromString(PlatformEntry->PlatformName), FText::AsNumber(Filter->GetServiceCountPerPlatform(PlatformEntry->PlatformName)));
 }
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION

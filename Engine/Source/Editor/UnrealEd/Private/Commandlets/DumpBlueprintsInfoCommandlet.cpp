@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "ObjectEditorUtils.h"
@@ -29,6 +29,14 @@
 #include "PackageName.h"
 #include "PackageHelperFunctions.h" // for NORMALIZE_ExcludeMapPackages
 #include "K2Node_FunctionEntry.h"
+#include "Engine/LevelScriptActor.h"
+#include "Engine/Selection.h"
+#include "Engine/SimpleConstructionScript.h"
+#include "Engine/SCS_Node.h"
+#include "Engine/UserDefinedEnum.h"
+#include "Engine/UserDefinedStruct.h"
+#include "BlueprintFunctionNodeSpawner.h"
+#include "BlueprintVariableNodeSpawner.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogBlueprintInfoDump, Log, All);
 
@@ -1094,9 +1102,6 @@ static FString DumpBlueprintInfoUtils::BuildByteSizeString(int32 ByteSize)
 	return FString::Printf(Format, ConvertedSize, ByteUnits[UnitsIndex]);
 }
 
-#include "BlueprintFunctionNodeSpawner.h"
-#include "BlueprintVariableNodeSpawner.h"
-
 //------------------------------------------------------------------------------
 static bool DumpBlueprintInfoUtils::DumpActionDatabaseInfo(uint32 Indent, FArchive* FileOutWriter)
 {
@@ -1455,7 +1460,7 @@ static void DumpBlueprintInfoUtils::DumpInfoForClass(uint32 Indent, UClass* Blue
 		{
 			if (!FBlueprintEditorUtils::ImplementNewInterface(TempBlueprint, CommandOptions.InterfaceClass->GetFName()))
 			{
-				UE_LOG(LogBlueprintInfoDump, Warning, TEXT("Failed to add interface (%s), to class blueprint: '%s'"), *CommandOptions.InterfaceClass->GetName(), *ClassName);
+				UE_LOG(LogBlueprintInfoDump, Warning, TEXT("Failed to add interface (%s), to blueprint class: '%s'"), *CommandOptions.InterfaceClass->GetName(), *ClassName);
 			}
 		}		
 	}

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -76,7 +76,7 @@ public:
 				[
 					SNew(STextBlock)
 						.HighlightText(HighlightText)
-						.Text(TypeInfo->TypeName.ToString())
+						.Text(FText::FromName(TypeInfo->TypeName))
 				];
 		}
 		else if (ColumnName == "Visibility")
@@ -100,26 +100,26 @@ public:
 private:
 
 	/** Gets the text for the Messages column. */
-	FString HandleMessagesText() const
+	FText HandleMessagesText() const
 	{
-		return FString::Printf(TEXT("%i"), TypeInfo->Messages.Num());
+		return FText::AsNumber(TypeInfo->Messages.Num());
 	}
 
 	/** Handles changing the checked state of the visibility check box. */
-	void HandleVisibilityCheckBoxCheckStateChanged( ESlateCheckBoxState::Type CheckState )
+	void HandleVisibilityCheckBoxCheckStateChanged( ECheckBoxState CheckState )
 	{
-		Model->SetTypeVisibility(TypeInfo.ToSharedRef(), (CheckState == ESlateCheckBoxState::Checked));
+		Model->SetTypeVisibility(TypeInfo.ToSharedRef(), (CheckState == ECheckBoxState::Checked));
 	}
 
 	/** Gets the image for the visibility check box. */
-	ESlateCheckBoxState::Type HandleVisibilityCheckBoxIsChecked() const
+	ECheckBoxState HandleVisibilityCheckBoxIsChecked() const
 	{
 		if (Model->IsTypeVisible(TypeInfo.ToSharedRef()))
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 
-		return ESlateCheckBoxState::Unchecked;
+		return ECheckBoxState::Unchecked;
 	}
 
 private:

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -268,8 +268,8 @@ bool TLightingCache<SampleType>::InterpolateLighting(
 		// Query points behind the lighting record may have nearby occluders that the lighting record does not see.
 		const FVector4 RecordToVertexVector = Vertex.WorldPosition - LightingRecord.Vertex.WorldPosition;
 		// Use the average normal to handle surfaces with constant concavity
-		const FVector4 AverageNormal = (LightingRecord.Vertex.TriangleNormal + Vertex.TriangleNormal).SafeNormal();
-		const float PlaneDistance = Dot3(AverageNormal, RecordToVertexVector.SafeNormal());
+		const FVector4 AverageNormal = (LightingRecord.Vertex.TriangleNormal + Vertex.TriangleNormal).GetSafeNormal();
+		const float PlaneDistance = Dot3(AverageNormal, RecordToVertexVector.GetSafeNormal());
 		// Setup an error metric that goes from 0 if the points are coplanar, to 1 if the point being shaded is at the angle corresponding to MinCosPointBehindPlane behind the plane
 		const float PointBehindPlaneError = FMath::Max(PlaneDistance / MinCosPointBehindPlane, 0.0f);
 

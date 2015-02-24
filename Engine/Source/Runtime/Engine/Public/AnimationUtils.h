@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	AnimationUtils.h: Skeletal mesh animation utilities.
@@ -16,7 +16,7 @@ ENGINE_API DECLARE_LOG_CATEGORY_EXTERN(LogAnimNotify, Warning, All);
 // Forward declarations.
 class UAnimCompress;
 class UAnimSet;
-class FTransform;
+struct FTransform;
 
 /**
  * Encapsulates commonly useful data about bones.

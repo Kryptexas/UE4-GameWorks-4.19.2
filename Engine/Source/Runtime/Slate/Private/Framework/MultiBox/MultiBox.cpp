@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlatePrivatePCH.h"
 #include "MultiBox.h"
@@ -56,6 +56,37 @@ void FMultiBoxSettings::ToggleToolbarEditing()
 const FMultiBoxCustomization FMultiBoxCustomization::None( NAME_None );
 
 
+TSharedRef< SWidget > SMultiBlockBaseWidget::AsWidget()
+{
+	return this->AsShared();
+}
+
+TSharedRef< const SWidget > SMultiBlockBaseWidget::AsWidget() const
+{
+	return this->AsShared();
+}
+
+void SMultiBlockBaseWidget::SetOwnerMultiBoxWidget(TSharedRef< SMultiBoxWidget > InOwnerMultiBoxWidget)
+{
+	OwnerMultiBoxWidget = InOwnerMultiBoxWidget;
+}
+
+void SMultiBlockBaseWidget::SetMultiBlock(TSharedRef< const FMultiBlock > InMultiBlock)
+{
+	MultiBlock = InMultiBlock;
+}
+
+void SMultiBlockBaseWidget::SetMultiBlockLocation(EMultiBlockLocation::Type InLocation, bool bInSectionContainsIcons)
+{
+	Location = InLocation;
+	bSectionContainsIcons = bInSectionContainsIcons;
+}
+
+EMultiBlockLocation::Type SMultiBlockBaseWidget::GetMultiBlockLocation()
+{
+	return Location;
+}
+
 void SMultiBlockBaseWidget::OnDragEnter( const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent )
 {
 	if ( DragDropEvent.GetOperationAs<FUICommandDragDropOp>().IsValid() )
@@ -94,7 +125,7 @@ FReply SMultiBlockBaseWidget::OnDrop( const FGeometry& MyGeometry, const FDragDr
  *
  * @return  MultiBlock widget object
  */
-TSharedRef< IMultiBlockBaseWidget > FMultiBlock::MakeWidget( TSharedRef< SMultiBoxWidget > InOwnerMultiBoxWidget, EMultiBlockLocation::Type InLocation ) const
+TSharedRef< IMultiBlockBaseWidget > FMultiBlock::MakeWidget( TSharedRef< SMultiBoxWidget > InOwnerMultiBoxWidget, EMultiBlockLocation::Type InLocation, bool bSectionContainsIcons ) const
 {
 	TSharedRef< IMultiBlockBaseWidget > NewMultiBlockWidget = ConstructWidget();
 
@@ -105,7 +136,7 @@ TSharedRef< IMultiBlockBaseWidget > FMultiBlock::MakeWidget( TSharedRef< SMultiB
 	NewMultiBlockWidget->SetMultiBlock( AsShared() );
 
 	// Pass location information to widget.
-	NewMultiBlockWidget->SetMultiBlockLocation(InLocation);
+	NewMultiBlockWidget->SetMultiBlockLocation(InLocation, bSectionContainsIcons);
 
 	// Work out what style the widget should be using
 	const ISlateStyle* const StyleSet = InOwnerMultiBoxWidget->GetStyleSet();
@@ -404,13 +435,13 @@ bool SMultiBoxWidget::IsBlockBeingDragged( TSharedPtr<const FMultiBlock> Block )
 	return false;
 }
 
-void SMultiBoxWidget::AddBlockWidget( const FMultiBlock& Block, TSharedPtr<SHorizontalBox> HorizontalBox, TSharedPtr<SVerticalBox> VerticalBox, EMultiBlockLocation::Type InLocation )
+void SMultiBoxWidget::AddBlockWidget( const FMultiBlock& Block, TSharedPtr<SHorizontalBox> HorizontalBox, TSharedPtr<SVerticalBox> VerticalBox, EMultiBlockLocation::Type InLocation, bool bSectionContainsIcons )
 {
 	check( MultiBox.IsValid() );
 
 	bool bDisplayExtensionHooks = FMultiBoxSettings::DisplayMultiboxHooks.Get() && Block.GetExtensionHook() != NAME_None;
 
-	TSharedRef<SWidget> BlockWidget = Block.MakeWidget( SharedThis( this ), InLocation)->AsWidget();
+	TSharedRef<SWidget> BlockWidget = Block.MakeWidget(SharedThis(this), InLocation, bSectionContainsIcons)->AsWidget();
 
 	TWeakPtr<SWidget> BlockWidgetWeakPtr = BlockWidget;
 	TWeakPtr<const FMultiBlock> BlockWeakPtr = Block.AsShared();
@@ -596,10 +627,30 @@ void SMultiBoxWidget::BuildMultiBoxWidget()
 	bool bInsideGroup = false;
 
 	// Start building up the actual UI from each block in this MultiBox
-	bool bIsNextToStartBlock = false;
-	bool bIsNextToEndBlock = false;
+	bool bSectionContainsIcons = false;
+	int32 NextMenuSeparator = INDEX_NONE;
+
 	for( int32 Index = 0; Index < Blocks.Num(); Index++ )
 	{
+		// If we've passed the last menu separator, scan for the next one (the end of the list is also considered a menu separator for the purposes of this index)
+		if (NextMenuSeparator < Index)
+		{
+			bSectionContainsIcons = false;
+			for (++NextMenuSeparator; NextMenuSeparator < Blocks.Num(); ++NextMenuSeparator)
+			{
+				const FMultiBlock& TestBlock = *Blocks[NextMenuSeparator];
+				if (!bSectionContainsIcons && TestBlock.HasIcon())
+				{
+					bSectionContainsIcons = true;
+				}
+
+				if (TestBlock.GetType() == EMultiBlockType::MenuSeparator)
+				{
+					break;
+				}
+			}
+		}
+
 		const FMultiBlock& Block = *Blocks[Index];
 		EMultiBlockLocation::Type Location = EMultiBlockLocation::None;
 
@@ -616,8 +667,8 @@ void SMultiBoxWidget::BuildMultiBoxWidget()
 			}
 
 			// Check if we are next to a start or end block
-			bIsNextToStartBlock = false;
-			bIsNextToEndBlock = false;
+			bool bIsNextToStartBlock = false;
+			bool bIsNextToEndBlock = false;
 			if (Index + 1 < Blocks.Num())
 			{
 				const FMultiBlock& NextBlock = *Blocks[Index + 1];
@@ -664,13 +715,13 @@ void SMultiBoxWidget::BuildMultiBoxWidget()
 		{
 			// Add the drag preview before if we have it. This block shows where the custom block will be 
 			// added if the user drops it
-			AddBlockWidget( *DragPreview.PreviewBlock, HorizontalBox, VerticalBox, EMultiBlockLocation::None );
+			AddBlockWidget( *DragPreview.PreviewBlock, HorizontalBox, VerticalBox, EMultiBlockLocation::None, bSectionContainsIcons );
 		}
 		
 		// Do not add a block if it is being dragged
 		if( !IsBlockBeingDragged( Blocks[Index] ) )
 		{
-			AddBlockWidget( Block, HorizontalBox, VerticalBox, Location );
+			AddBlockWidget( Block, HorizontalBox, VerticalBox, Location, bSectionContainsIcons );
 		}
 	}
 
@@ -811,7 +862,7 @@ void SMultiBoxWidget::UpdateDropAreaPreviewBlock( TSharedRef<const FMultiBlock> 
 					MakeShareable(
 						new FDropPreviewBlock( 
 							NewBlock.ToSharedRef(), 
-							NewBlock->MakeWidget( SharedThis(this), EMultiBlockLocation::None ) )
+							NewBlock->MakeWidget( SharedThis(this), EMultiBlockLocation::None, NewBlock->HasIcon() ) )
 					);
 
 				bAddedNewBlock = true;

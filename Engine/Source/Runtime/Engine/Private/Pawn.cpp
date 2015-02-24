@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Pawn.cpp: APawn AI implementation
@@ -16,6 +16,11 @@
 #include "NetworkingDistanceConstants.h"
 #include "VisualLogger/VisualLogger.h"
 #include "Engine/InputDelegateBinding.h"
+#include "GameFramework/DamageType.h"
+#include "Interfaces/NetworkPredictionInterface.h"
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/PlayerState.h"
+#include "Components/PawnNoiseEmitterComponent.h"
 
 DEFINE_LOG_CATEGORY(LogDamage);
 DEFINE_LOG_CATEGORY_STATIC(LogPawn, Warning, All);
@@ -30,6 +35,9 @@ APawn::APawn(const FObjectInitializer& ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
+
+	AutoPossessAI = EAutoPossessAI::PlacedInWorld;
+
 	if (HasAnyFlags(RF_ClassDefaultObject) && GetClass() == APawn::StaticClass())
 	{
 		AIControllerClass = LoadClass<AController>(NULL, *((UEngine*)(UEngine::StaticClass()->GetDefaultObject()))->AIControllerClassName.ToString(), NULL, LOAD_None, NULL);
@@ -63,9 +71,9 @@ void APawn::PreInitializeComponents()
 
 	Instigator = this;
 
-	if (AutoPossess != EAutoReceiveInput::Disabled && GetNetMode() != NM_Client )
+	if (AutoPossessPlayer != EAutoReceiveInput::Disabled && GetNetMode() != NM_Client )
 	{
-		const int32 PlayerIndex = int32(AutoPossess.GetValue()) - 1;
+		const int32 PlayerIndex = int32(AutoPossessPlayer.GetValue()) - 1;
 
 		APlayerController* PC = UGameplayStatics::GetPlayerController(this, PlayerIndex);
 		if (PC)
@@ -89,11 +97,19 @@ void APawn::PostInitializeComponents()
 	{
 		GetWorld()->AddPawn( this );
 
-		// automatically add controller to pawns which were placed in level
-		// NOTE: pawns spawned during gameplay are not automatically possessed by a controller
-		if ( GetWorld()->bStartup )
+		// Automatically add Controller to AI Pawns if we are allowed to.
+		if (AutoPossessPlayer == EAutoReceiveInput::Disabled)
 		{
-			SpawnDefaultController();
+			if (AutoPossessAI != EAutoPossessAI::Disabled && Controller == NULL && GetNetMode() != NM_Client)
+			{
+				const bool bPlacedInWorld = (GetWorld()->bStartup);
+				if ((AutoPossessAI == EAutoPossessAI::PlacedInWorldOrSpawned) ||
+					(AutoPossessAI == EAutoPossessAI::PlacedInWorld && bPlacedInWorld) ||
+					(AutoPossessAI == EAutoPossessAI::Spawned && !bPlacedInWorld))
+				{
+					SpawnDefaultController();
+				}
+			}
 		}
 
 		// update movement component's nav agent values
@@ -128,7 +144,7 @@ void APawn::UpdateNavAgent()
 	if (RootComponent != NULL && MovementComponent != NULL && MovementComponent->ShouldUpdateNavAgentWithOwnersCollision())
 	{
 		RootComponent->UpdateBounds();
-		MovementComponent->UpdateNavAgent(this);
+		MovementComponent->UpdateNavAgent(*this);
 	}
 }
 
@@ -990,8 +1006,7 @@ void APawn::PostNetReceiveLocationAndRotation()
 		ReplicatedMovement.Location.Z += 0.01f;
 
 		const FVector OldLocation = GetActorLocation();
-		TeleportTo( ReplicatedMovement.Location, ReplicatedMovement.Rotation, false, true );
-		// SetActorLocationAndRotation(ReplicatedMovement.Location, ReplicatedMovement.Rotation); <-- preferred, but awaiting answer to question about UpdateNavOctree() missing in SceneComponent::MoveComponent
+		SetActorLocationAndRotation(ReplicatedMovement.Location, ReplicatedMovement.Rotation, /*bSweep=*/ false);
 
 		INetworkPredictionInterface* PredictionInterface = Cast<INetworkPredictionInterface>(GetMovementComponent());
 		if (PredictionInterface)
@@ -1015,7 +1030,7 @@ bool APawn::IsBasedOnActor(const AActor* Other) const
 }
 
 
-bool APawn::IsNetRelevantFor(APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation)
+bool APawn::IsNetRelevantFor(const APlayerController* RealViewer, const AActor* Viewer, const FVector& SrcLocation) const
 {
 	if( bAlwaysRelevant || RealViewer == Controller || IsOwnedBy(Viewer) || IsOwnedBy(RealViewer) || this==Viewer || Viewer==Instigator
 		|| IsBasedOnActor(Viewer) || (Viewer && Viewer->IsBasedOnActor(this)))
@@ -1076,7 +1091,7 @@ void APawn::PawnMakeNoise(float Loudness, FVector NoiseLocation, bool bUseNoiseM
 	NoiseMaker->MakeNoise(Loudness, this, bUseNoiseMakerLocation ? NoiseMaker->GetActorLocation() : NoiseLocation);
 }
 
-const struct FNavAgentProperties* APawn::GetNavAgentProperties() const
+const FNavAgentProperties& APawn::GetNavAgentPropertiesRef() const
 {
-	return GetMovementComponent() ? GetMovementComponent()->GetNavAgentProperties() : NULL;
+	return GetMovementComponent() ? GetMovementComponent()->GetNavAgentPropertiesRef() : FNavAgentProperties::DefaultProperties;
 }

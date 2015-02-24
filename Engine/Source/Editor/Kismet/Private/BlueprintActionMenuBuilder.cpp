@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "BlueprintEditorPrivatePCH.h"
 #include "BlueprintActionMenuBuilder.h"
@@ -16,7 +16,7 @@
 #include "SMyBlueprint.h"				// for SelectionAsVar()
 #include "BlueprintEditorUtils.h"		// for FindBlueprintForGraphChecked()
 #include "BlueprintEditor.h"			// for GetFocusedGraph()
-#include "BlueprintEditorSettings.h"	// for bUseLegacyMenuingSystem
+#include "BlueprintEditorSettings.h"	// for bForceLegacyMenuingSystem
 
 #define LOCTEXT_NAMESPACE "BlueprintActionMenuBuilder"
 
@@ -542,7 +542,7 @@ void FBlueprintActionMenuBuilder::RebuildActionList()
 	}
 	
 	const UBlueprintEditorSettings* BlueprintSettings = GetDefault<UBlueprintEditorSettings>();
-	if (!BlueprintSettings->bUseLegacyMenuingSystem)
+	if (!BlueprintSettings->bForceLegacyMenuingSystem)
 	{
 		FBlueprintActionDatabase::FActionRegistry const& ActionDatabase = FBlueprintActionDatabase::Get().GetAllActions();
 		for (auto const& ActionEntry : ActionDatabase)

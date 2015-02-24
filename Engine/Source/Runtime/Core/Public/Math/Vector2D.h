@@ -1,8 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*=============================================================================
-	Vector2D.h: Declares the FVector2D class.
-=============================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -31,7 +27,7 @@ public:
 	/**
 	 * Default constructor (no initialization).
 	 */
-	FORCEINLINE FVector2D( ) { }
+	FORCEINLINE FVector2D() { }
 
 	/**
 	 * Constructor using initial values for each component.
@@ -342,35 +338,35 @@ public:
 	 *
 	 * @return The maximum value of the vector's components.
 	 */
-	float GetMax( ) const;
+	float GetMax() const;
 
 	/**
 	 * Get the maximum absolute value of the vector's components.
 	 *
 	 * @return The maximum absolute value of the vector's components.
 	 */
-	float GetAbsMax( ) const;
+	float GetAbsMax() const;
 
 	/**
 	 * Get the minimum value of the vector's components.
 	 *
 	 * @return The minimum value of the vector's components.
 	 */
-	float GetMin( ) const;
+	float GetMin() const;
 
 	/**
 	 * Get the length (magnitude) of this vector.
 	 *
 	 * @return The length of this vector.
 	 */
-	float Size( ) const;
+	float Size() const;
 
 	/**
 	 * Get the squared length of this vector.
 	 *
 	 * @return The squared length of this vector.
 	 */
-	float SizeSquared( ) const;
+	float SizeSquared() const;
 
 	/**
 	 * Gets a normalized copy of the vector, checking it is safe to do so based on the length.
@@ -379,13 +375,16 @@ public:
 	 * @param Tolerance Minimum squared length of vector for normalization.
 	 * @return A normalized copy of the vector if safe, (0,0) otherwise.
 	 */
-	FVector2D SafeNormal( float Tolerance=SMALL_NUMBER ) const;
+	FVector2D GetSafeNormal( float Tolerance=SMALL_NUMBER ) const;
+
+	DEPRECATED(4.7, "Deprecated due to unclear name, use GetSafeNormal instead.")
+	FVector2D SafeNormal(float Tolerance = SMALL_NUMBER) const;
 
 	/**
 	 * Normalize this vector in-place if it is large enough, set it to (0,0) otherwise.
 	 *
 	 * @param Tolerance Minimum squared length of vector for normalization.
-	 * @see SafeNormal()
+	 * @see GetSafeNormal()
 	 */
 	void Normalize( float Tolerance=SMALL_NUMBER );
 
@@ -402,14 +401,14 @@ public:
 	 *
 	 * @return true if vector is exactly zero, otherwise false.
 	 */
-	bool IsZero( ) const;
+	bool IsZero() const;
 
 	/**
 	 * Get this vector as an Int Point.
 	 *
 	 * @return New Int Point from this vector.
 	 */
-	FIntPoint IntPoint( ) const;
+	FIntPoint IntPoint() const;
 
 	/**
 	 * Creates a copy of this vector with both axes clamped to the given range.
@@ -418,11 +417,19 @@ public:
 	FVector2D ClampAxes( float MinAxisVal, float MaxAxisVal ) const;
 
 	/**
+	* Get a copy of the vector as sign only.
+	* Each component is set to +1 or -1, with the sign of zero treated as +1.
+	*
+	* @param A copy of the vector with each component set to +1 or -1
+	*/
+	FORCEINLINE FVector2D GetSignVector() const;
+
+	/**
 	 * Get a textual representation of the vector.
 	 *
 	 * @return Text describing the vector.
 	 */
-	FString ToString( ) const;
+	FString ToString() const;
 
 	/**
 	 * Initialize this Vector based on an FString. The String is expected to contain X=, Y=.
@@ -448,12 +455,12 @@ public:
 	}
 
 #if ENABLE_NAN_DIAGNOSTIC
-	FORCEINLINE void DiagnosticCheckNaN( ) const
+	FORCEINLINE void DiagnosticCheckNaN() const
 	{
 		checkf(!ContainsNaN(), TEXT("FVector contains NaN: %s"), *ToString());
 	}
 #else
-	FORCEINLINE void DiagnosticCheckNaN( ) const {}
+	FORCEINLINE void DiagnosticCheckNaN() const {}
 #endif
 
 	/**
@@ -474,7 +481,7 @@ public:
 	CORE_API bool NetSerialize( FArchive& Ar, class UPackageMap* Map, bool& bOutSuccess );
 
 	/** Converts spherical coordinates on the unit sphere into a Cartesian unit length vector. */
-	inline FVector SphericalToUnitCartesian( ) const;
+	inline FVector SphericalToUnitCartesian() const;
 };
 
 
@@ -734,7 +741,7 @@ FORCEINLINE float FVector2D::SizeSquared() const
 }
 
 
-FORCEINLINE FVector2D FVector2D::SafeNormal(float Tolerance) const
+FORCEINLINE FVector2D FVector2D::GetSafeNormal(float Tolerance) const
 {	
 	const float SquareSum = X*X + Y*Y;
 	if( SquareSum > Tolerance )
@@ -743,6 +750,12 @@ FORCEINLINE FVector2D FVector2D::SafeNormal(float Tolerance) const
 		return FVector2D(X*Scale, Y*Scale);
 	}
 	return FVector2D(0.f, 0.f);
+}
+
+
+FORCEINLINE FVector2D FVector2D::SafeNormal(float Tolerance) const
+{
+	return GetSafeNormal(Tolerance);
 }
 
 
@@ -795,6 +808,16 @@ FORCEINLINE FIntPoint FVector2D::IntPoint() const
 FORCEINLINE FVector2D FVector2D::ClampAxes( float MinAxisVal, float MaxAxisVal ) const
 {
 	return FVector2D( FMath::Clamp(X, MinAxisVal, MaxAxisVal), FMath::Clamp(Y, MinAxisVal, MaxAxisVal) );
+}
+
+
+FORCEINLINE FVector2D FVector2D::GetSignVector() const
+{
+	return FVector2D
+		(
+		FMath::FloatSelect(X, 1.f, -1.f),
+		FMath::FloatSelect(Y, 1.f, -1.f)
+		);
 }
 
 

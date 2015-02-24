@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 
@@ -7,6 +7,8 @@
 #include "ImageUtils.h"
 
 #include "ISourceControlModule.h"
+#include "Engine/StaticMesh.h"
+#include "Engine/TextureCube.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogThumbnailManager, Log, All);
 

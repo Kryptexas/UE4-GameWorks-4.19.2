@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	ParticleModules_Velocity.cpp: 
@@ -10,7 +10,6 @@
 #include "Distributions/DistributionVectorConstantCurve.h"
 #include "Distributions/DistributionVectorUniform.h"
 #include "ParticleDefinitions.h"
-#include "../DistributionHelpers.h"
 #include "Particles/Lifetime/ParticleModuleLifetimeBase.h"
 #include "Particles/TypeData/ParticleModuleTypeDataMesh.h"
 #include "Particles/Velocity/ParticleModuleVelocity.h"
@@ -65,16 +64,6 @@ void UParticleModuleVelocity::PostInitProperties()
 	}
 }
 
-void UParticleModuleVelocity::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultUniform(StartVelocity.Distribution, TEXT("DistributionStartVelocity"), FVector::ZeroVector, FVector::ZeroVector);
-		FDistributionHelpers::RestoreDefaultUniform(StartVelocityRadial.Distribution, TEXT("DistributionStartVelocityRadial"), 0.0f, 0.0f);
-	}
-}
-
 #if WITH_EDITOR
 void UParticleModuleVelocity::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -88,12 +77,12 @@ void UParticleModuleVelocity::Spawn(FParticleEmitterInstance* Owner, int32 Offse
 	SpawnEx(Owner, Offset, SpawnTime, NULL, ParticleBase);
 }
 
-void UParticleModuleVelocity::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
+void UParticleModuleVelocity::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
 {
 	SPAWN_INIT;
 	{
 		FVector Vel = StartVelocity.GetValue(Owner->EmitterTime, Owner->Component, 0, InRandomStream);
-		FVector FromOrigin = (Particle.Location - Owner->EmitterToSimulation.GetOrigin()).SafeNormal();
+		FVector FromOrigin = (Particle.Location - Owner->EmitterToSimulation.GetOrigin()).GetSafeNormal();
 
 		FVector OwnerScale(1.0f);
 		if ((bApplyOwnerScale == true) && Owner && Owner->Component)
@@ -186,15 +175,6 @@ void UParticleModuleVelocityInheritParent::PostInitProperties()
 	if (!HasAnyFlags(RF_ClassDefaultObject | RF_NeedLoad))
 	{
 		InitializeDefaults();
-	}
-}
-
-void UParticleModuleVelocityInheritParent::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultConstant(Scale.Distribution, TEXT("DistributionScale"), FVector(1.0f, 1.0f, 1.0f));
 	}
 }
 
@@ -425,16 +405,6 @@ void UParticleModuleVelocityCone::PostInitProperties()
 	}
 }
 
-void UParticleModuleVelocityCone::Serialize(FArchive& Ar)
-{
-	Super::Serialize(Ar);
-	if (Ar.IsLoading() && Ar.UE4Ver() < VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS)
-	{
-		FDistributionHelpers::RestoreDefaultUniform(Angle.Distribution, TEXT("DistributionAngle"), 0.0f, 0.0f);
-		FDistributionHelpers::RestoreDefaultUniform(Velocity.Distribution, TEXT("DistributionVelocity"), 0.0f, 0.0f);
-	}
-}
-
 #if WITH_EDITOR
 void UParticleModuleVelocityCone::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -448,7 +418,7 @@ void UParticleModuleVelocityCone::Spawn(FParticleEmitterInstance* Owner, int32 O
 	SpawnEx(Owner, Offset, SpawnTime, NULL, ParticleBase);
 }
 
-void UParticleModuleVelocityCone::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, class FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
+void UParticleModuleVelocityCone::SpawnEx(FParticleEmitterInstance* Owner, int32 Offset, float SpawnTime, struct FRandomStream* InRandomStream, FBaseParticle* ParticleBase)
 {
 	static const float TwoPI = 2.0f * PI;
 	static const float ToRads = PI / 180.0f;
@@ -476,7 +446,7 @@ void UParticleModuleVelocityCone::SpawnEx(FParticleEmitterInstance* Owner, int32
 		const FVector DefaultSpawnDirection = DefaultDirectionRotation.TransformVector(DefaultDirection);
 
 		// Orientate the cone along the direction vector		
-		const FVector ForwardDirection = (Direction != FVector::ZeroVector)? Direction.SafeNormal(): DefaultDirection;
+		const FVector ForwardDirection = (Direction != FVector::ZeroVector)? Direction.GetSafeNormal(): DefaultDirection;
 		FVector UpDirection(0.0f, 0.0f, 1.0f);
 		FVector RightDirection(1.0f, 0.0f, 0.0f);
 
@@ -493,8 +463,8 @@ void UParticleModuleVelocityCone::SpawnEx(FParticleEmitterInstance* Owner, int32
 
 		FMatrix DirectionRotation;
 		DirectionRotation.SetIdentity();
-		DirectionRotation.SetAxis(0, RightDirection.SafeNormal());
-		DirectionRotation.SetAxis(1, UpDirection.SafeNormal());
+		DirectionRotation.SetAxis(0, RightDirection.GetSafeNormal());
+		DirectionRotation.SetAxis(1, UpDirection.GetSafeNormal());
 		DirectionRotation.SetAxis(2, ForwardDirection);
 		FVector SpawnDirection = DirectionRotation.TransformVector(DefaultSpawnDirection);
 	
@@ -543,7 +513,7 @@ void UParticleModuleVelocityCone::Render3DPreview(FParticleEmitterInstance* Owne
 
 	// Calculate direction transform
 	const FVector DefaultDirection(0.0f, 0.0f, 1.0f);
-	const FVector ForwardDirection = (Direction != FVector::ZeroVector)? Direction.SafeNormal(): DefaultDirection;
+	const FVector ForwardDirection = (Direction != FVector::ZeroVector)? Direction.GetSafeNormal(): DefaultDirection;
 	FVector UpDirection(0.0f, 0.0f, 1.0f);
 	FVector RightDirection(1.0f, 0.0f, 0.0f);
 
@@ -560,8 +530,8 @@ void UParticleModuleVelocityCone::Render3DPreview(FParticleEmitterInstance* Owne
 
 	FMatrix DirectionRotation;
 	DirectionRotation.SetIdentity();
-	DirectionRotation.SetAxis(0, RightDirection.SafeNormal());
-	DirectionRotation.SetAxis(1, UpDirection.SafeNormal());
+	DirectionRotation.SetAxis(0, RightDirection.GetSafeNormal());
+	DirectionRotation.SetAxis(1, UpDirection.GetSafeNormal());
 	DirectionRotation.SetAxis(2, ForwardDirection);
 
 	// Calculate the owning actor's scale and rotation
@@ -624,8 +594,8 @@ void UParticleModuleVelocityCone::Render3DPreview(FParticleEmitterInstance* Owne
 	TArray<FVector> InnerVerts;
 
 	// Draw inner and outer cones
-	DrawWireCone(PDI, Transform, ConeRadius, ConeMinAngle, ConeSides, ModuleEditorColor, SDPG_World, InnerVerts);
-	DrawWireCone(PDI, Transform, ConeRadius, ConeMaxAngle, ConeSides, ModuleEditorColor, SDPG_World, OuterVerts);
+	DrawWireCone(PDI, InnerVerts, Transform, ConeRadius, ConeMinAngle, ConeSides, ModuleEditorColor, SDPG_World);
+	DrawWireCone(PDI, OuterVerts, Transform, ConeRadius, ConeMaxAngle, ConeSides, ModuleEditorColor, SDPG_World);
 
 	// Draw radial spokes
 	for (int32 i = 0; i < ConeSides; ++i)

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "MediaPlayerEditorPrivatePCH.h"
 
@@ -35,7 +35,7 @@ UClass* FMediaSoundWaveActions::GetSupportedClass() const
 
 FColor FMediaSoundWaveActions::GetTypeColor() const
 {
-	return FColor(0, 0, 255);
+	return FColor(77, 93, 239);
 }
 
 

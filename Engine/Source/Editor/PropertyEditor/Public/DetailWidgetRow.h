@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -34,13 +34,13 @@ public:
 		return *this;
 	}
 
-	FDetailWidgetDecl& MinDesiredWidth( float InMinWidth )
+	FDetailWidgetDecl& MinDesiredWidth( TOptional<float> InMinWidth )
 	{
 		MinWidth = InMinWidth;
 		return *this;
 	}
 
-	FDetailWidgetDecl& MaxDesiredWidth( float InMaxWidth )
+	FDetailWidgetDecl& MaxDesiredWidth( TOptional<float> InMaxWidth )
 	{
 		MaxWidth = InMaxWidth;
 		return *this;
@@ -49,8 +49,8 @@ public:
 	TSharedRef<SWidget> Widget;
 	EHorizontalAlignment HorizontalAlignment;
 	EVerticalAlignment VerticalAlignment;
-	float MinWidth;
-	float MaxWidth;
+	TOptional<float> MinWidth;
+	TOptional<float> MaxWidth;
 private:
 	class FDetailWidgetRow& ParentDecl;
 };
@@ -110,7 +110,7 @@ public:
 	/**
 	 * Sets a string which should be used to filter the content when a user searches
 	 */
-	FDetailWidgetRow& FilterString( const FString& InFilterString )
+	FDetailWidgetRow& FilterString( const FText& InFilterString )
 	{
 		FilterTextString = InFilterString;
 		return *this;
@@ -195,7 +195,7 @@ public:
 	/** IsEnabled of the row */
 	TAttribute<bool> IsEnabledAttr;
 	/** String to filter with */
-	FString FilterTextString;
+	FText FilterTextString;
 	/** Action for coping data on this row */
 	FUIAction CopyMenuAction;
 	/** Action for pasting data on this row */

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -39,6 +39,7 @@ typedef TArray<TAutoWeakObjectPtr<APlayerController> >::TConstIterator FConstPla
 typedef TArray<TAutoWeakObjectPtr<APawn> >::TConstIterator FConstPawnIterator;	
 typedef TArray<TAutoWeakObjectPtr<ACameraActor> >::TConstIterator FConstCameraActorIterator;
 typedef TArray<class ULevel*>::TConstIterator FConstLevelIterator;
+typedef TArray<TAutoWeakObjectPtr<APhysicsVolume> >::TConstIterator FConstPhysicsVolumeIterator;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogSpawn, Warning, All);
 
@@ -143,7 +144,7 @@ private:
 	void CopyWorldData();
 
 	/** callback sent to async loading code to inform us when the level package is complete */
-	void SeamlessTravelLoadCallback(const FString& PackageName, UPackage* LevelPackage);
+	void SeamlessTravelLoadCallback(const FName& PackageName, UPackage* LevelPackage);
 
 	void SetHandlerLoadedData(UObject* InLevelPackage, UWorld* InLoadedWorld);
 
@@ -504,10 +505,6 @@ class ENGINE_API UWorld : public UObject, public FNetworkNotify
 	GENERATED_UCLASS_BODY()
 
 #if WITH_EDITORONLY_DATA
-	// List of the layer names which were checked when the level was last saved
-	UPROPERTY(config) 
-	FString VisibleLayers_DEPRECATED;
-	
 	/** List of all the layers referenced by the world's actors */
 	UPROPERTY()
 	TArray< class ULayer* > Layers; 
@@ -683,16 +680,19 @@ public:
 private:
 
 	/** List of all the controllers in the world. */
-	TArray<TAutoWeakObjectPtr<class AController> >	ControllerList;
+	TArray<TAutoWeakObjectPtr<class AController> > ControllerList;
 
 	/** List of all the player controllers in the world. */
-	TArray<TAutoWeakObjectPtr<class APlayerController> >	PlayerControllerList;
+	TArray<TAutoWeakObjectPtr<class APlayerController> > PlayerControllerList;
 
 	/** List of all the pawns in the world. */
-	TArray<TAutoWeakObjectPtr<class APawn> >			PawnList;	
+	TArray<TAutoWeakObjectPtr<class APawn> > PawnList;	
 
 	/** List of all the cameras in the world that auto-activate for players. */
 	TArray<TAutoWeakObjectPtr<ACameraActor> > AutoCameraActorList;
+
+	/** List of all physics volumes in the world. Does not include the DefaultPhysicsVolume. */
+	TArray<TAutoWeakObjectPtr<APhysicsVolume> > NonDefaultPhysicsVolumeList;
 
 	/** Physics scene for this world. */
 	FPhysScene*									PhysicsScene;
@@ -861,6 +861,9 @@ public:
 	/** If true, this is a preview world used for editor tools, and not an actual loaded map world */
 	TEnumAsByte<EWorldType::Type>				WorldType;
 
+	/** Force UsesGameHiddenFlags to return true. */
+	bool										bHack_Force_UsesGameHiddenFlags_True;
+
 	/** If true this world is in the process of running the construction script for an actor */
 	bool										bIsRunningConstructionScript;
 
@@ -997,14 +1000,6 @@ public:
 	 * UWorld default constructor
 	 */
 	UWorld( const FObjectInitializer& ObjectInitializer );
-
-	/**
-	 * UWorld constructor called at game startup and when creating a new world in the Editor.
-	 * Please note that this constructor does NOT get called when a world is loaded from disk.
-	 *
-	 * @param	InURL	URL associated with this world.
-	 */
-	UWorld( const FObjectInitializer& ObjectInitializer,const FURL& InURL );
 	
 	// LINE TRACE
 
@@ -1030,6 +1025,16 @@ public:
 	bool LineTraceTest(const FVector& Start,const FVector& End,const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
 
 	/**
+	 *  Trace a ray against the world using a specific profile and return if a blocking hit is found.
+	 *  @param  Start           Start location of the ray
+	 *  @param  End             End location of the ray
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if a blocking hit is found
+	 */
+	bool LineTraceTestByProfile(const FVector& Start, const FVector& End, FName ProfileName, const struct FCollisionQueryParams& Params) const;
+
+	/**
 	 *  Trace a ray against the world using a specific channel and return the first blocking hit
 	 *  @param  OutHit          First blocking hit found
 	 *  @param  Start           Start location of the ray
@@ -1051,6 +1056,17 @@ public:
 	 *  @return TRUE if any hit is found
 	 */
 	bool LineTraceSingle(struct FHitResult& OutHit,const FVector& Start,const FVector& End,const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
+
+	/**
+	 *  Trace a ray against the world using a specific profile and return the first blocking hit
+	 *  @param  OutHit          First blocking hit found
+	 *  @param  Start           Start location of the ray
+	 *  @param  End             End location of the ray
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if a blocking hit is found
+	 */
+	bool LineTraceSingleByProfile(struct FHitResult& OutHit, const FVector& Start, const FVector& End, FName ProfileName, const struct FCollisionQueryParams& Params) const;
 
 	/**
 	 *  Trace a ray against the world using a specific channel and return overlapping hits and then first blocking hit
@@ -1080,6 +1096,19 @@ public:
 	bool LineTraceMulti(TArray<struct FHitResult>& OutHits,const FVector& Start,const FVector& End,const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
 
 	/**
+	 *  Trace a ray against the world using a specific profile and return overlapping hits and then first blocking hit
+	 *  Results are sorted, so a blocking hit (if found) will be the last element of the array
+	 *  Only the single closest blocking result will be generated, no tests will be done after that
+	 *  @param  OutHits         Array of hits found between ray and the world
+	 *  @param  Start           Start location of the ray
+	 *  @param  End             End location of the ray
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if OutHits contains any blocking hit entries
+	 */
+	bool LineTraceMultiByProfile(TArray<struct FHitResult>& OutHits, const FVector& Start, const FVector& End, FName ProfileName, const struct FCollisionQueryParams& Params) const;
+
+	/**
 	 *  Sweep a sphere against the world using a specific channel and return if a blocking hit is found.
 	 *  @param  Start           Start location of the sphere
 	 *  @param  End             End location of the sphere
@@ -1101,6 +1130,17 @@ public:
 	 *  @return TRUE if any hit is found
 	 */
 	bool SweepTest(const FVector& Start, const FVector& End, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
+
+	/**
+	 *  Sweep a sphere against the world using a specific profile and return if a blocking hit is found.
+	 *  @param  Start           Start location of the sphere
+	 *  @param  End             End location of the sphere
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if a blocking hit is found
+	 */
+	bool SweepTestByProfile(const FVector& Start, const FVector& End, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
 
 	/**
 	 *  Sweep a sphere against the world and return the first blocking hit using a specific channel
@@ -1126,6 +1166,18 @@ public:
 	 *  @return TRUE if any hit is found
 	 */
 	bool SweepSingle(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
+
+	/**
+	 *  Sweep a sphere against the world and return the first blocking hit using a specific profile
+	 *  @param  OutHit          First blocking hit found
+	 *  @param  Start           Start location of the sphere
+	 *  @param  End             End location of the sphere
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if OutHits contains any blocking hit entries
+	 */
+	bool SweepSingleByProfile(struct FHitResult& OutHit, const FVector& Start, const FVector& End, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
 
 	/**
 	 *  Sweep a sphere against the world and return all initial overlaps using a specific channel (including blocking) if requested, then overlapping hits and then first blocking hit
@@ -1157,6 +1209,20 @@ public:
 	bool SweepMulti(TArray<struct FHitResult>& OutHits, const FVector& Start, const FVector& End, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
 
 	/**
+	 *  Sweep a sphere against the world and return all initial overlaps using a specific profile, then overlapping hits and then first blocking hit
+	 *  Results are sorted, so a blocking hit (if found) will be the last element of the array
+	 *  Only the single closest blocking result will be generated, no tests will be done after that
+	 *  @param  OutHits         Array of hits found between ray and the world
+	 *  @param  Start           Start location of the sphere
+	 *  @param  End             End location of the sphere
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if OutHits contains any blocking hit entries
+	 */
+	bool SweepMultiByProfile(TArray<FHitResult>& OutHits, const FVector& Start, const FVector& End, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
+
+	/**
 	 *  Test the collision of an AABB at the supplied location using a specific channel, and return if any blocking overlap is found
 	 *  @param  Pos             Location of center of box to test against the world
 	 *  @param  TraceChannel    The 'channel' that this query is in, used to determine which components to hit
@@ -1176,6 +1242,16 @@ public:
 	 *  @return TRUE if any hit is found
 	 */
 	bool OverlapTest(const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
+
+	/**
+	 *  Test the collision of an AABB at the supplied location using a specific profile, and return if any blocking overlap is found
+	 *  @param  Pos             Location of center of box to test against the world
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if any blocking results are found
+	 */
+	bool OverlapTestByProfile(const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
 
 	/**
 	 *  Test the collision of a sphere at the supplied location using a specific channel, and determine the set of components that it overlaps
@@ -1201,6 +1277,17 @@ public:
 	bool OverlapSingle(struct FOverlapResult& OutOverlap, const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
 
 	/**
+	 *  Test the collision of a sphere at the supplied location using a specific profile, and determine the set of components that it overlaps
+	 *  @param  OutOverlaps     Array of components found to overlap supplied box
+	 *  @param  Pos             Location of center of sphere to test against the world
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if OutOverlaps contains any blocking results
+	 */
+	bool OverlapSingleByProfile(struct FOverlapResult& OutOverlap, const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
+
+	/**
 	 *  Test the collision of a sphere at the supplied location using a specific channel, and determine the set of components that it overlaps
 	 *  @param  OutOverlaps     Array of components found to overlap supplied box
 	 *  @param  Pos             Location of center of sphere to test against the world
@@ -1223,6 +1310,17 @@ public:
 	 */
 	bool OverlapMulti(TArray<struct FOverlapResult>& OutOverlaps, const FVector& Pos, const FQuat& Rot, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params, const struct FCollisionObjectQueryParams& ObjectQueryParams) const;
 	
+	/**
+	 *  Test the collision of a sphere at the supplied location using a specific profile, and determine the set of components that it overlaps
+	 *  @param  OutOverlaps     Array of components found to overlap supplied box
+	 *  @param  Pos             Location of center of sphere to test against the world
+	 *  @param  ProfileName     The 'profile' used to determine which components to hit
+	 *  @param	CollisionShape	CollisionShape - supports Box, Sphere, Capsule
+	 *  @param  Params          Additional parameters used for the trace
+	 *  @return TRUE if OutOverlaps contains any blocking results
+	 */
+	bool OverlapMultiByProfile(TArray<struct FOverlapResult>& OutOverlaps, const FVector& Pos, const FQuat& Rot, FName ProfileName, const struct FCollisionShape& CollisionShape, const struct FCollisionQueryParams& Params) const;
+
 	// COMPONENT SWEEP
 
 	/**
@@ -1448,13 +1546,16 @@ public:
 	/** Returns an iterator for the controller list. */
 	FConstControllerIterator GetControllerIterator() const;
 
-	/** Returns an iterator for the pawn list. */
+	/** @return Returns an iterator for the pawn list. */
 	FConstPawnIterator GetPawnIterator() const;
 	
-	/** Returns an iterator for the player controller list. */
+	/** @return Returns the number of Pawns. */
+	int32 GetNumPawns() const;
+
+	/** @return Returns an iterator for the player controller list. */
 	FConstPlayerControllerIterator GetPlayerControllerIterator() const;
 	
-	/** Get the first player controller, or NULL if there is not one. */	
+	/** @return Returns the first player controller, or NULL if there is not one. */	
 	APlayerController* GetFirstPlayerController() const;
 
 	/*
@@ -1533,6 +1634,18 @@ public:
 	 * @return default physics volume
 	 */
 	APhysicsVolume* GetDefaultPhysicsVolume() const;
+
+	/** Add a physics volume to the list of those in the world. DefaultPhysicsVolume is not tracked. Used internally by APhysicsVolume. */
+	void AddPhysicsVolume(APhysicsVolume* Volume);
+
+	/** Removes a physics volume from the list of those in the world. */
+	void RemovePhysicsVolume(APhysicsVolume* Volume);
+
+	/** Get an iterator for all PhysicsVolumes in the world that are not a DefaultPhysicsVolume. */
+	FConstPhysicsVolumeIterator GetNonDefaultPhysicsVolumeIterator() const;
+
+	/** Get the count of all PhysicsVolumes in the world that are not a DefaultPhysicsVolume. */
+	int32 GetNonDefaultPhysicsVolumeCount() const;
 
 	/**
 	 * Returns the current (or specified) level's level scripting actor
@@ -1628,10 +1741,14 @@ public:
 	void RemoveNetworkActor( AActor* Actor );
 
 	/** Add a listener for OnActorSpawned events */
-	void AddOnActorSpawnedHandler( const FOnActorSpawned::FDelegate& InHandler );
+	FDelegateHandle AddOnActorSpawnedHandler( const FOnActorSpawned::FDelegate& InHandler );
 
 	/** Remove a listener for OnActorSpawned events */
+	DELEGATE_DEPRECATED("This overload of RemoveOnActorSpawnedHandler is deprecated, instead pass the result of AddOnActorSpawnedHandler.")
 	void RemoveOnActorSpawnedHandler( const FOnActorSpawned::FDelegate& InHandler );
+
+	/** Remove a listener for OnActorSpawned events */
+	void RemoveOnActorSpawnedHandler( FDelegateHandle InHandle );
 
 	/**
 	 * Returns whether the passed in actor is part of any of the loaded levels actors array.
@@ -1660,6 +1777,7 @@ public:
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 #if WITH_EDITOR
 	virtual bool Rename(const TCHAR* NewName = NULL, UObject* NewOuter = NULL, ERenameFlags Flags = REN_None) override;
+	virtual void GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const override;
 #endif
 	virtual void PostDuplicate(bool bDuplicateForPIE) override;
 	// End UObject Interface
@@ -1733,47 +1851,23 @@ public:
 	void RemoveFromWorld( ULevel* Level );
 
 	/**
-	 * Updates the all the visible worlds based on the current view location of the player and sets level LODs accordingly.	 
-	 *
-	 * @param ViewFamily	Optional collection of views to take into account
+	 * Updates sub-levels (load/unload/show/hide) using streaming levels current state
 	 */
-	void UpdateLevelStreaming( FSceneViewFamily* ViewFamily = NULL );
+	void UpdateLevelStreaming();
 
 private:
-	/**
-	 * Updates the world based on the current view location of the player and sets level LODs accordingly.	 
-	 * @param PersistentWorld	Persistent world
-	 * @param ViewFamily		Optional collection of views to take into account
-	 */
-	void UpdateLevelStreamingInner( UWorld* PersistentWorld, FSceneViewFamily* ViewFamily );
-
-	/**
-	 * Evaluates current world origin location against provided view information
-	 * Might issue request for world origin shifting
-	 *
-	 * @param ViewFamily	Collection of views to take into account
-	 */
-	void EvaluateWorldOriginLocation( const FSceneViewFamily& ViewFamily );
+	void UpdateLevelStreamingInner( ULevelStreaming* StreamingLevel );
 
 public:
-
-	/**
-	 * Keeps streaming levels list updated according to camera view
-	 *
-	 * @param ViewFamily Collection of views to take into account
-	 */
-	void UpdateWorldStreamingState(const FSceneViewFamily& ViewFamily);
-	
 	/**
 	 * Flushes level streaming in blocking fashion and returns when all levels are loaded/ visible/ hidden
 	 * so further calls to UpdateLevelStreaming won't do any work unless state changes. Basically blocks
 	 * on all async operation like updating components.
 	 *
-	 * @param ViewFamily				Optional collection of views to take into account
 	 * @param FlushType					Whether to only flush level visibility operations (optional)
 	 * @param ExcludeType				Exclude packages of this type from flushing
 	 */
-	void FlushLevelStreaming( FSceneViewFamily* ViewFamily = NULL, EFlushLevelStreamingType FlushType = EFlushLevelStreamingType::Full, FName ExcludeType = NAME_None );
+	void FlushLevelStreaming(EFlushLevelStreamingType FlushType = EFlushLevelStreamingType::Full, FName ExcludeType = NAME_None);
 
 	/**
 	 * Triggers a call to ULevel::BuildStreamingData(this,NULL,NULL) within a few seconds.
@@ -1882,7 +1976,7 @@ public:
 	/**
 	 * Static function that creates a new UWorld and returns a pointer to it
 	 */
-	static UWorld* CreateWorld( const EWorldType::Type InWorldType, bool bInformEngineOfWorld, FName WorldName = NAME_None, UPackage* InWorldPackage = NULL, bool bAddToRoot = true );
+	static UWorld* CreateWorld( const EWorldType::Type InWorldType, bool bInformEngineOfWorld, FName WorldName = NAME_None, UPackage* InWorldPackage = NULL, bool bAddToRoot = true, ERHIFeatureLevel::Type InFeatureLevel = ERHIFeatureLevel::Num );
 
 	/** 
 	 * Destroy this World instance. If destroying the world to load a different world, supply it here to prevent GC of the new world or it's sublevels.
@@ -2358,6 +2452,9 @@ public:
 	/** Returns true if this world is any kind of game world (including PIE worlds) */
 	bool IsGameWorld() const;
 
+	/** Returns true if this world should look at game hidden flags instead of editor hidden flags for the purposes of rendering */
+	bool UsesGameHiddenFlags() const;
+
 	// Return the URL of this level, which may possibly
 	// exist on a remote machine.
 	virtual FString GetAddressURL() const;
@@ -2539,7 +2636,22 @@ public:
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FWorldInitializationEvent, UWorld* /*World*/, const UWorld::InitializationValues /*IVS*/);
 	DECLARE_MULTICAST_DELEGATE_ThreeParams(FWorldCleanupEvent, UWorld* /*World*/, bool /*bSessionEnded*/, bool /*bCleanupResources*/);
 	DECLARE_MULTICAST_DELEGATE_OneParam(FWorldEvent, UWorld* /*World*/);
-	DECLARE_MULTICAST_DELEGATE_TwoParams(FWorldPostDuplicateEvent, UWorld* /*World*/, bool /*bDuplicateForPIE*/);
+
+	/**
+	 * Post UWorld duplicate event.
+	 *
+	 * Sometimes there is a need to duplicate additional element after
+	 * duplicating UWorld. If you do this using this event you need also fill
+	 * ReplacementMap and ObjectsToFixReferences in order to properly fix
+	 * duplicated objects references.
+	 */
+	typedef TMap<UObject*, UObject*> FReplacementMap; // Typedef needed so the macro below can properly digest comma in template parameters.
+	DECLARE_MULTICAST_DELEGATE_FourParams(FWorldPostDuplicateEvent, UWorld* /*World*/, bool /*bDuplicateForPIE*/, FReplacementMap& /*ReplacementMap*/, TArray<UObject*>& /*ObjectsToFixReferences*/);
+
+#if WITH_EDITOR
+	DECLARE_MULTICAST_DELEGATE_FiveParams(FWorldRenameEvent, UWorld* /*World*/, const TCHAR* /*InName*/, UObject* /*NewOuter*/, ERenameFlags /*Flags*/, bool& /*bShouldFailRename*/);
+#endif // WITH_EDITOR
+
 	// Delegate type for level change events
 	DECLARE_MULTICAST_DELEGATE_TwoParams(FOnLevelChanged, ULevel*, UWorld*);
 
@@ -2551,6 +2663,11 @@ public:
 	
 	// Callback for world initialization (post)
 	static FWorldInitializationEvent OnPostWorldInitialization;
+
+#if WITH_EDITOR
+	// Callback for world rename event (pre)
+	static FWorldRenameEvent OnPreWorldRename;
+#endif // WITH_EDITOR
 
 	// Post duplication event.
 	static FWorldPostDuplicateEvent OnPostDuplicate;

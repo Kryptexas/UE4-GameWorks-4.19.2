@@ -1,16 +1,23 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "TextureAtlas.h"
 
 /**
  * Stores a mapping of texture names to their loaded d3d resource.  Resources are loaded from disk and created on demand when needed                   
  */
-class FSlateD3DTextureManager : public FSlateShaderResourceManager
+class FSlateD3DTextureManager : public ISlateAtlasProvider, public FSlateShaderResourceManager
 {
 public:
 	FSlateD3DTextureManager();
 	virtual ~FSlateD3DTextureManager();
+
+	/** ISlateAtlasProvider */
+	virtual int32 GetNumAtlasPages() const override;
+	virtual FIntPoint GetAtlasPageSize() const override;
+	virtual FSlateShaderResource* GetAtlasPageResource(const int32 InIndex) const override;
+	virtual bool IsAtlasPageResourceAlphaOnly() const override;
 
 	/**
 	 * Loads and creates rendering resources for all used textures.  
@@ -25,6 +32,8 @@ public:
 	 * Returns a texture with the passed in name or NULL if it cannot be found.
 	 */
 	virtual FSlateShaderResourceProxy* GetShaderResource( const FSlateBrush& InBrush ) override;
+
+	virtual ISlateAtlasProvider* GetTextureAtlasProvider() override;
 
 	void CreateTextureNoAtlas( const FSlateBrush& InBrush );
 

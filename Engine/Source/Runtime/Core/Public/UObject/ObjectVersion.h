@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -12,229 +12,10 @@
 // This is useful as enum vales cannot be seen by the preprocessor.
 #define PREPROCESSOR_ENUM_PROTECT(a) ((unsigned int)(a))
 
-// this is the minimum UE3 version we can accept...no effective difference between this and 864
-#define VER_MIN_ENGINE_UE3	852
-
-// this is forever the UE3 engine version in UE4
-#define VER_LAST_ENGINE_UE3	864
-
-
 enum EUnrealEngineObjectUE4Version
 {
-	// Added array support to blueprints
-	VER_UE4_ADD_PINTYPE_ARRAY = 108,
-	// Remove redundant key from raw animation data
-	VER_UE4_REMOVE_REDUNDANT_KEY,
-	// Changing from WORDs to UINTs in the shader cache serialization, needs a new version
-	VER_UE4_SUPPORT_LARGE_SHADERS,
-	// Added material functions to FMaterialShaderMapId
-	VER_UE4_FUNCTIONS_IN_SHADERMAPID,
-	// Added asset registry tags to the package summary so the editor can learn more about the assets in the package without loading it
-	VER_UE4_ASSET_REGISTRY_TAGS,
-	// Removed DontSortCategories option to classes
-	VER_UE4_DONTSORTCATEGORIES_REMOVED,
-	// Added Tiled navmesh generation and redone navmesh serialization
-	VER_UE4_TILED_NAVMESH,
-	// Removed old pylon-based navigation mesh system
-	VER_UE4_REMOVED_OLD_NAVMESH,
-	// AnimNotify name change
-	VER_UE4_ANIMNOTIFY_NAMECHANGE,
-	// Removed/consolidated some properties used only in the header parser that should never be serialized
-	VER_UE4_CONSOLIDATE_HEADER_PARSER_ONLY_PROPERTIES,
-	// Made ComponentNameToDefaultObjectMap non-serialized
-	VER_UE4_STOPPED_SERIALIZING_COMPONENTNAMETODEFAULTOBJECTMAP,
-	// Reset ModifyFrequency on static lights
-	VER_UE4_RESET_MODIFYFREQUENCY_STATICLIGHTS,
-	// Add a GUID to SoundNodeWave
-	VER_UE4_ADD_SOUNDNODEWAVE_GUID,
-	// Add audio to DDC
-	VER_UE4_ADD_SOUNDNODEWAVE_TO_DDC,
-	// - Fix for Material Blend Mode override
-	VER_UE4_MATERIAL_BLEND_OVERRIDE,
-	// Ability to save cooked audio
-	VER_UE4_ADD_COOKED_TO_SOUND_NODE_WAVE,
-	// Update the derived data key for textures.
-	VER_UE4_TEXTURE_DERIVED_DATA2,
-	// Textures can now be cooked into packages
-	VER_UE4_ADD_COOKED_TO_TEXTURE2D,
-	// Ability to save cooked PhysX meshes
-	VER_UE4_ADD_COOKED_TO_BODY_SETUP,
-	// Blueprint saved before this may need Event Graph change to Local/Server Graph
-	VER_UE4_ADD_KISMETNETWORKGRAPHS,
-	// - Added material quality level switches
-	VER_UE4_MATERIAL_QUALITY_LEVEL_SWITCH,
-	// - Debugging material shader uniform expression sets.
-	VER_DEBUG_MATERIALSHADER_UNIFORM_EXPRESSIONS,
-	// Removed StripData
-	VER_UE4_REMOVED_STRIP_DATA,
-	// Setting RF_Transactional object flag on blueprint's SimpleConstructionScript
-	VER_UE4_FLAG_SCS_TRANSACTIONAL,
-	// - Fixing chunk bounding boxes in imported NxDestructibleAssets.
-	VER_UE4_NX_DESTRUCTIBLE_ASSET_CHUNK_BOUNDS_FIX,
-	// Add support for StaticMesh sockets
-	VER_UE4_STATIC_MESH_SOCKETS,
-	// - Removed extra skelmesh vert weights
-	VER_UE4_REMOVE_EXTRA_SKELMESH_VERTEX_INFLUENCES,
-	// - Change UCurve objects to use FRichCurve
-	VER_UE4_UCURVE_USING_RICHCURVES,
-	// Add support for inline shaders
-	VER_UE4_INLINE_SHADERS,
-	// Change additive types to include mesh rotation only to be baked
-	VER_UE4_ADDITIVE_TYPE_CHANGE, 
-	// Readd cooker versioning to package
-	VER_UE4_READD_COOKER,
-	// Serialize class properties
-	VER_UE4_ADDED_SCRIPT_SERIALIZATION_FOR_BLUEPRINT_GENERATED_CLASSES,
-	// Variable UBoolProperty size.
-	VER_UE4_VARIABLE_BITFIELD_SIZE,
-	// Fix skeletons which only list active bones in their required bones list.
-	VER_UE4_FIX_REQUIRED_BONES,
-	// Switched 'cooked package' version to simply be the package version itself.
-	VER_UE4_COOKED_PACKAGE_VERSION_IS_PACKAGE_VERSION,
-	// Refactor how texture source art is stored to better isolate editor-only data.
-	VER_UE4_TEXTURE_SOURCE_ART_REFACTOR,
-	// Add additional settings to static and skeletal mesh optimization struct (FStaticMeshOptimizationSettings and FSkeletalMeshOptimizationSettings)
-	VER_UE4_ADDED_EXTRA_MESH_OPTIMIZATION_SETTINGS,
-	// Add BodySetup to DestructibleMesh, use it to store the destructible physical material.
-	VER_UE4_DESTRUCTIBLE_MESH_BODYSETUP_HOLDS_PHYSICAL_MATERIAL,
-	// Remove USequence class and references
-	VER_UE4_REMOVE_USEQUENCE,
-	// Added by-ref parameters to blueprints
-	VER_UE4_ADD_PINTYPE_BYREF,
-	// Change to make public blueprint variables 'read only'
-	VER_UE4_PUBLIC_BLUEPRINT_VARS_READONLY,
-	// change HiddenGame, DrawInGame, DrawInEditor to bVisible, and bHiddenInGame
-	VER_UE4_VISIBILITY_FLAG_CHANGES,
-	// change Light/Fog/Blur bEnable to use bVisible
-	VER_UE4_REMOVE_COMPONENT_ENABLED_FLAG,
-	// change Particle/Audio/Thrust/RadialForce bEnable/bAutoPlay to use bAutoActivate
-	VER_UE4_CONFORM_COMPONENT_ACTIVATE_FLAG,
-	// make the 'mesh to import vertex map' in skelmesh always loaded so it can be used by vertex anim
-	VER_UE4_ADD_SKELMESH_MESHTOIMPORTVERTEXMAP,
-	// remove serialization for properties added with UE3 version 864 serialization
-	VER_UE4_REMOVE_UE3_864_SERIALIZATION,
-	// Spherical harmonic lightmaps
-	VER_UE4_SH_LIGHTMAPS,
-	// Removed per-shader DDC entries
-	VER_UE4_REMOVED_PERSHADER_DDC,
-	// Core split into Core and CoreUObject
-	VER_UE4_CORE_SPLIT,
-	// Removed some compile outputs being stored in FMaterial
-	VER_UE4_REMOVED_FMATERIAL_COMPILE_OUTPUTS,
-	// New physical material model
-	VER_UE4_PHYSICAL_MATERIAL_MODEL,
-	// Added a usage to FMaterialShaderMapId
-	VER_UE4_ADDED_MATERIALSHADERMAP_USAGE,
-	// Covert blueprint PropertyFlags from int32 to uint64
-	VER_UE4_BLUEPRINT_PROPERTYFLAGS_SIZE_CHANGE,
-	// Consolidate UpdateSkelWhenNotRendered and TickAnimationWhenNotRendered to enum
-	VER_UE4_CONSOLIDATE_SKINNEDMESH_UPDATE_FLAGS,
-	// Remove Internal Archetype
-	VER_UE4_REMOVE_INTERNAL_ARCHETYPE,
-	// Remove Internal Archetype
-	VER_UE4_REMOVE_ARCHETYPE_INDEX_FROM_LINKER_TABLES,
-	// Made change to UK2Node_Variable so that VariableSourceClass is NULL if bSelfContext is TRUE
-	VER_UE4_VARK2NODE_NULL_VARSRCCLASS_ON_SELF,
-	// Removed SpecularBoost
-	VER_UE4_REMOVED_SPECULAR_BOOST,
-	// Add CPF_BlueprintVisible flag
-	VER_UE4_ADD_KISMETVISIBLE,
-	// UDistribution* objects moved to PostInitProperties.
-	VER_UE4_MOVE_DISTRIBUITONS_TO_POSTINITPROPS,
-	// Add optimized shadow-only index buffers to static meshes.
-	VER_UE4_SHADOW_ONLY_INDEX_BUFFERS,
-	// Changed indirect lighting volume sample format
-	VER_UE4_CHANGED_VOLUME_SAMPLE_FORMAT,
-	/** Change bool bEnableCollision in BodyInstance to enum CollisionEnabled */
-	VER_UE4_CHANGE_BENABLECOLLISION_TO_COLLISIONENABLED,
-	// Changed irrelevant light guids
-	VER_UE4_CHANGED_IRRELEVANT_LIGHT_GUIDS,
-	/** Rename bDisableAllRigidBody to bCreatePhysicsState */
-	VER_UE4_RENAME_DISABLEALLRIGIDBODIES,
-	// Unified SoundNodeAttenuation settings with other attenuation settings
-	VER_UE4_SOUND_NODE_ATTENUATION_SETTINGS_CHANGE,
-	// Add a NodeGuid to EdGraphNode, upping version to generate for existing nodes 
-	VER_UE4_ADD_EDGRAPHNODE_GUID,
-	// Fix the outer of InterpData objects
-	VER_UE4_FIX_INTERPDATA_OUTERS,
-	// Natively serialize blueprint core classes
-	VER_UE4_BLUEPRINT_NATIVE_SERIALIZATION,
-	// Inherit SoundNode from EdGraphNOde
-	VER_UE4_SOUND_NODE_INHERIT_FROM_ED_GRAPH_NODE,
-	// Unify ambient sound actor classes in to single ambient actor class
-	VER_UE4_UNIFY_AMBIENT_SOUND_ACTORS,
-	// Lightmap compression
-	VER_UE4_LIGHTMAP_COMPRESSION,
-	// MorphTarget data type integration to curve
-	VER_UE4_MORPHTARGET_CURVE_INTEGRATION,
-	// Fix LevelScriptBlueprints being standalone
-	VER_UE4_CLEAR_STANDALONE_FROM_LEVEL_SCRIPT_BLUEPRINTS,
-	// Natively serialize blueprint core classes
-	VER_UE4_NO_INTERFACE_PROPERTY,
-	// Category field moved to metadata.
-	VER_UE4_CATEGORY_MOVED_TO_METADATA,
-	// We removed the ctor link flag, this just clears this flag on load for future use
-	VER_UE4_REMOVE_CTOR_LINK,
-	// Short to long package name associations removal.
-	VER_UE4_REMOVE_SHORT_PACKAGE_NAME_ASSOCIATIONS,
-	// Add bCreatedByConstructionScript flag to ActorComponent
-	VER_UE4_ADD_CREATEDBYCONSTRUCTIONSCRIPT,
-	// Fix loading of bogus NxDestructibleAssetAuthoring
-	VER_UE4_NX_DESTRUCTIBLE_ASSET_AUTHORING_LOAD_FIX,
-	// Added angular constraint options
-	VER_UE4_ANGULAR_CONSTRAINT_OPTIONS,
-	/** Changed material expression constants 3 and 4 to use a FLinearColor rather than separate floats to make it more artist friendly */
-	VER_UE4_CHANGE_MATERIAL_EXPRESSION_CONSTANTS_TO_LINEARCOLOR,
-	// Added built lighting flag to primitive component
-	VER_UE4_PRIMITIVE_BUILT_LIGHTING_FLAG,
-	// Added Counter for atmospheric fog
-	VER_UE4_ATMOSPHERIC_FOG_CACHE_TEXTURE,
-	// Ressurrected precomputed shadowmaps
-	VER_UE4_PRECOMPUTED_SHADOW_MAPS,
-	// Eliminated use of distribution for USoundNodeModulatorContinuous
-	VER_UE4_MODULATOR_CONTINUOUS_NO_DISTRIBUTION,
-	// Added a 4-byte magic number at the end of the package for file corruption validation
-	VER_UE4_PACKAGE_MAGIC_POSTTAG,
-	// Discard invalid irrelevant lights
-	VER_UE4_TOSS_IRRELEVANT_LIGHTS,
-	// Removed NetIndex
-	VER_UE4_REMOVE_NET_INDEX,
-	// Moved blueprint authoritative data from Skeleton CDO to the Generated CDO
-	VER_UE4_BLUEPRINT_CDO_MIGRATION,
-	// Bulkdata is stored at the end of package files and can be located at offsets > 2GB
-	VER_UE4_BULKDATA_AT_LARGE_OFFSETS,
-	// Explicitly track whether streaming texture data has been built
-	VER_UE4_EXPLICIT_STREAMING_TEXTURE_BUILT,
-	// Precomputed shadowmaps on bsp and landscape
-	VER_UE4_PRECOMPUTED_SHADOW_MAPS_BSP,
-	// Refactor of static mesh build pipeline.
-	VER_UE4_STATIC_MESH_REFACTOR,
-	// Remove cached static mesh streaming texture factors. They have been moved to derived data.
-	VER_UE4_REMOVE_CACHED_STATIC_MESH_STREAMING_FACTORS,
-	// Added Atmospheric fog Material support
-	VER_UE4_ATMOSPHERIC_FOG_MATERIAL,
-	// Fixup BSP brush type
-	VER_UE4_FIX_BSP_BRUSH_TYPE,
-	// Removed ClientDestroyedActorContent from UWorld
-	VER_UE4_REMOVE_CLIENTDESTROYEDACTORCONTENT,
-	// Added SoundCueGraph for new SoundCue editor
-	VER_UE4_SOUND_CUE_GRAPH_EDITOR,
-	// Strip TransLevelMoveBuffers out of Worlds
-	VER_UE4_STRIP_TRANS_LEVEL_MOVE_BUFFER,
-	// Deprecated PrimitiveComponent.bNoEncroachCheck
-	VER_UE4_DEPRECATED_BNOENCROACHCHECK,
-	// Light component bUseIESBrightness now defaults to false
-	VER_UE4_LIGHTS_USE_IES_BRIGHTNESS_DEFAULT_CHANGED,
-	// Material attributes multiplex
-	VER_UE4_MATERIAL_ATTRIBUTES_MULTIPLEX,
-	// Renamed & moved TSF_RGBA8/E8 to TSF_BGRA8/E8
-	VER_UE4_TEXTURE_FORMAT_RGBA_SWIZZLE,
-	// Package summary stores the offset to the beginning of the area where the bulkdata gets stored */
-	VER_UE4_SUMMARY_HAS_BULKDATA_OFFSET,
-	// The SimpleConstructionScript now marks the default root component as transactional, and bCreatedByConstructionScript true
-	VER_UE4_DEFAULT_ROOT_COMP_TRANSACTIONAL,
-	// Hashed material compile output stored in packages to detect mismatches
-	VER_UE4_HASHED_MATERIAL_OUTPUT,
+	VER_UE4_OLDEST_LOADABLE_PACKAGE = 214,
+
 	// Removed restriction on blueprint-exposed variables from being read-only
 	VER_UE4_BLUEPRINT_VARS_NOT_READ_ONLY,
 	// Added manually serialized element to UStaticMesh (precalculated nav collision)
@@ -632,6 +413,7 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_SLATE_COMPOSITE_FONTS,
 	// Remove UDEPRECATED_SaveGameSummary, required for UWorld::Serialize
 	VER_UE4_REMOVE_SAVEGAMESUMMARY,
+
 	//Remove bodyseutp serialization from skeletal mesh component
 	VER_UE4_REMOVE_SKELETALMESH_COMPONENT_BODYSETUP_SERIALIZATION,
 	// Made Slate font data use bulk data to store the embedded font data
@@ -640,6 +422,48 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ADD_PROJECTILE_FRICTION_BEHAVIOR,
 	// Add axis settings enum to MovementComponent.
 	VER_UE4_MOVEMENTCOMPONENT_AXIS_SETTINGS,
+	// Switch to new interactive comments, requires boundry conversion to preserve previous states
+	VER_UE4_GRAPH_INTERACTIVE_COMMENTBUBBLES,
+	// Landscape serializes physical materials for collision objects 
+	VER_UE4_LANDSCAPE_SERIALIZE_PHYSICS_MATERIALS,
+	// Rename Visiblity on widgets to Visibility
+	VER_UE4_RENAME_WIDGET_VISIBILITY,
+	// add track curves for animation
+	VER_UE4_ANIMATION_ADD_TRACKCURVES,
+	// Removed BranchingPoints from AnimMontages and converted them to regular AnimNotifies.
+	VER_UE4_MONTAGE_BRANCHING_POINT_REMOVAL,
+	// Enforce const-correctness in Blueprint implementations of native C++ const class methods
+	VER_UE4_BLUEPRINT_ENFORCE_CONST_IN_FUNCTION_OVERRIDES,
+	// Added pivot to widget components, need to load old versions as a 0,0 pivot, new default is 0.5,0.5
+	VER_UE4_ADD_PIVOT_TO_WIDGET_COMPONENT,
+	// Added finer control over when AI Pawns are automatically possessed. Also renamed Pawn.AutoPossess to Pawn.AutoPossessPlayer indicate this was a setting for players and not AI.
+	VER_UE4_PAWN_AUTO_POSSESS_AI,
+	// Added serialization of timezone to FTextHistory for AsDate operations.
+	VER_UE4_FTEXT_HISTORY_DATE_TIMEZONE,
+	// Sort ActiveBoneIndices on lods so that we can avoid doing it at run time
+	VER_UE4_SORT_ACTIVE_BONE_INDICES,
+	// Added per-frame material uniform expressions
+	VER_UE4_PERFRAME_MATERIAL_UNIFORM_EXPRESSIONS,
+	// Make MikkTSpace the default tangent space calculation method for static meshes.
+	VER_UE4_MIKKTSPACE_IS_DEFAULT,
+	// Only applies to cooked files, grass cooking support.
+	VER_UE4_LANDSCAPE_GRASS_COOKING,
+	// Fixed code for using the bOrientMeshEmitters property.
+	VER_UE4_FIX_SKEL_VERT_ORIENT_MESH_PARTICLES,
+	// Do not change landscape section offset on load under world composition
+	VER_UE4_LANDSCAPE_STATIC_SECTION_OFFSET,
+	// New options for navigation data runtime generation (static, modifiers only, dynamic)
+	VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION,
+	// Tidied up material's handling of masked blend mode.
+	VER_UE4_MATERIAL_MASKED_BLENDMODE_TIDY,
+	// Original version of VER_UE4_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7; renumbered to prevent blocking promotion in main.
+	VER_UE4_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7_DEPRECATED,
+	// Original version of VER_UE4_AFTER_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7; renumbered to prevent blocking promotion in main.
+	VER_UE4_AFTER_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7_DEPRECATED,
+	// After merging VER_UE4_ADD_MODIFIERS_RUNTIME_GENERATION into 4.7 branch
+	VER_UE4_MERGED_ADD_MODIFIERS_RUNTIME_GENERATION_TO_4_7,
+	// MovementComponent->UpdatedComponent changed from UPrimitiveComponent to USceneComponent
+	VER_UE4_MOVEMENTCOMPONENT_UPDATEDSCENECOMPONENT,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
@@ -658,8 +482,7 @@ enum EUnrealEngineObjectLicenseeUE4Version
 };
 
 #define VER_LATEST_ENGINE_UE4           PREPROCESSOR_ENUM_PROTECT(VER_UE4_AUTOMATIC_VERSION)
-#define VER_UE4_OLDEST_LOADABLE_PACKAGE PREPROCESSOR_ENUM_PROTECT(VER_UE4_ADD_PINTYPE_ARRAY)
-#define VER_UE4_DEPRECATED_PACKAGE      PREPROCESSOR_ENUM_PROTECT(VER_UE4_ADD_PINTYPE_ARRAY)
+#define VER_UE4_DEPRECATED_PACKAGE      PREPROCESSOR_ENUM_PROTECT(VER_UE4_OLDEST_LOADABLE_PACKAGE)
 #define VER_LATEST_ENGINE_LICENSEEUE4   PREPROCESSOR_ENUM_PROTECT(VER_LIC_AUTOMATIC_VERSION)
 
 // Minimum package version that contains legal bytecode

@@ -1,6 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+#include "Curves/CurveFloat.h"
 
 /** Query delegate to see if we are in picking mode */
 DECLARE_DELEGATE_RetVal_OneParam(bool, FOnIsPicking, FName& /* OutWidgetNameToHighlight */);
@@ -11,6 +12,7 @@ DECLARE_DELEGATE_RetVal_ThreeParams(bool, FOnValidatePickingCandidate, TSharedRe
 class UEditorTutorial;
 struct FTutorialContent;
 class STutorialRoot;
+class IClassTypeActions;
 
 class FIntroTutorials : public IIntroTutorials
 {
@@ -32,7 +34,13 @@ public:
 
 	void SummonTutorialBrowser();
 
-	static FString AnalyticsEventNameFromTutorial(const FString& BaseEventName, UEditorTutorial* Tutorial);
+	void DismissTutorialBrowser();
+
+	void AttachWidget(TSharedPtr<SWidget> Widget);
+
+	void DetachWidget();
+
+	static FString AnalyticsEventNameFromTutorial(UEditorTutorial* Tutorial);
 
 private:
 
@@ -89,6 +97,9 @@ private:
 	/** Spawn a tab for browsing tutorials */
 	TSharedRef<SDockTab> SpawnTutorialsBrowserTab(const FSpawnTabArgs& SpawnTabArgs);
 
+	/** When we create a tutorial browser tab, we only keep a weak pointer to it. This way, it can be closed/destroyed without our involvement, but we can also close/destroy it ourselves. */
+	TWeakPtr<SDockTab> TutorialBrowserDockTab;
+
 public:
 
 	// IIntroTutorials interface
@@ -96,6 +107,7 @@ public:
 	virtual void LaunchTutorial(UEditorTutorial* Tutorial, bool bRestart = true, TWeakPtr<SWindow> InNavigationWindow = nullptr, FSimpleDelegate OnTutorialClosed = FSimpleDelegate(), FSimpleDelegate OnTutorialExited = FSimpleDelegate()) override;
 	virtual void CloseAllTutorialContent() override;
 	virtual TSharedRef<SWidget> CreateTutorialsWidget(FName InContext, TWeakPtr<SWindow> InContextWindow = nullptr) const override;
+	virtual TSharedPtr<SWidget> CreateTutorialsLoadingWidget(TWeakPtr<SWindow> InContextWindow = nullptr) const override;
 	// End of IIntroTutorials interface
 private:
 	/** The tab id of the tutorial tab */
@@ -127,4 +139,7 @@ private:
 
 	/** Curve asset for intros */
 	TWeakObjectPtr<UCurveFloat> ContentIntroCurve;
+
+	/** The collection of registered class type actions. */
+	TArray<TSharedRef<IClassTypeActions>> RegisteredClassTypeActions;
 };

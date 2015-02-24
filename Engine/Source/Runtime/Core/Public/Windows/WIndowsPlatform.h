@@ -1,10 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
-
-/*================================================================================
-	WindowsPlatform.h: Setup for the windows platform
-==================================================================================*/
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 
 /**
 * Windows specific types
@@ -60,12 +57,13 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 #define PLATFORM_SUPPORTS_TBB								1
 #define PLATFORM_SUPPORTS_NAMED_PIPES						1
 #define PLATFORM_COMPILER_HAS_DEFAULTED_FUNCTIONS			0
-#if _MSC_VER >= 1800
-	#define PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES			1
+#if _MSC_VER >= 1800 || __clang__
+	#define PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES		1
+	#define PLATFORM_COMPILER_HAS_EXPLICIT_OPERATORS		1
 #else
-	#define PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES			0
+	#define PLATFORM_COMPILER_HAS_VARIADIC_TEMPLATES		0
+	#define PLATFORM_COMPILER_HAS_EXPLICIT_OPERATORS		0
 #endif
-#define PLATFORM_COMPILER_HAS_EXPLICIT_OPERATORS			0
 #define PLATFORM_COMPILER_HAS_TCHAR_WMAIN					1
 
 // Intrinsics for 128-bit atomics on Windows platform requires Windows 8 or higher (WINVER>0x0602)

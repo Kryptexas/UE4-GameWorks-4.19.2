@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.Collections.Generic;
@@ -34,6 +34,19 @@ namespace AutomationTool
 
 		public override string GetUE4ExePath(string UE4Exe)
 		{
+			int CmdExeIndex = UE4Exe.IndexOf("-Cmd.exe");
+			if (CmdExeIndex != -1)
+			{
+				UE4Exe = UE4Exe.Substring (0, CmdExeIndex);
+			}
+			else
+			{
+				CmdExeIndex = UE4Exe.IndexOf (".exe");
+				if (CmdExeIndex != -1)
+				{
+					UE4Exe = UE4Exe.Substring (0, CmdExeIndex);
+				}
+			}
 			return CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, RelativeBinariesFolder, UE4Exe);
 		}
 

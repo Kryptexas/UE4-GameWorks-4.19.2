@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "PhATModule.h"
 #include "PhAT.h"
@@ -12,13 +12,15 @@ void SPhATPreviewViewportToolBar::Construct(const FArguments& InArgs)
 {
 	PhATPtr = InArgs._PhATPtr;
 	
+	static const FName DefaultForegroundName("DefaultForeground");
+
 	this->ChildSlot
 	[
 		SNew(SBorder)
 		.BorderImage(FEditorStyle::GetBrush("NoBorder"))
 		// Color and opacity is changed based on whether or not the mouse cursor is hovering over the toolbar area
 		.ColorAndOpacity(this, &SViewportToolBar::OnGetColorAndOpacity)
-		.ForegroundColor(FEditorStyle::GetSlateColor("DefaultForeground"))
+		.ForegroundColor( FEditorStyle::GetSlateColor(DefaultForegroundName) )
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()

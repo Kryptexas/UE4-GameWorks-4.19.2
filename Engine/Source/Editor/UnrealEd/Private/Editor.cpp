@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -10,6 +10,7 @@
 #include "EditorSupportDelegates.h"
 #include "Factories.h"
 #include "BSPOps.h"
+#include "EditorCommandLineUtils.h"
 
 // needed for the RemotePropagator
 #include "SoundDefinitions.h"
@@ -31,6 +32,7 @@
 #include "Kismet2/KismetEditorUtilities.h"
 #include "Kismet2/KismetDebugUtilities.h"
 #include "Editor/Kismet/Public/BlueprintEditorModule.h"
+#include "Engine/InheritableComponentHandler.h"
 
 #include "BlueprintUtilities.h"
 
@@ -42,7 +44,7 @@
 #include "AnimationUtils.h"
 #include "AudioDecompress.h"
 #include "LevelEditor.h"
-#include "SCreateAssetFromActor.h"
+#include "SCreateAssetFromObject.h"
 
 #include "Editor/ActorPositioning.h"
 
@@ -91,6 +93,8 @@
 #include "HotReloadInterface.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
+#include "Engine/GameEngine.h"
+#include "Engine/TextureRenderTarget2D.h"
 
 DEFINE_LOG_CATEGORY_STATIC(LogEditor, Log, All);
 
@@ -114,7 +118,6 @@ FSimpleMulticastDelegate								FEditorDelegates::LoadSelectedAssetsIfNeeded;
 FSimpleMulticastDelegate								FEditorDelegates::DisplayLoadErrors;
 FEditorDelegates::FOnEditorModeTransitioned				FEditorDelegates::EditorModeEnter;
 FEditorDelegates::FOnEditorModeTransitioned				FEditorDelegates::EditorModeExit;
-FSimpleMulticastDelegate								FEditorDelegates::Undo;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::BeginPIE;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::EndPIE;
 FEditorDelegates::FOnPIEEvent							FEditorDelegates::PausePIE;
@@ -129,6 +132,7 @@ FEditorDelegates::FOnNewAssetCreation					FEditorDelegates::OnConfigureNewAssetP
 FEditorDelegates::FOnNewAssetCreation					FEditorDelegates::OnNewAssetCreated;
 FEditorDelegates::FOnAssetPreImport						FEditorDelegates::OnAssetPreImport;
 FEditorDelegates::FOnAssetPostImport					FEditorDelegates::OnAssetPostImport;
+FEditorDelegates::FOnAssetReimport						FEditorDelegates::OnAssetReimport;
 FEditorDelegates::FOnNewActorsDropped					FEditorDelegates::OnNewActorsDropped;
 FEditorDelegates::FOnGridSnappingChanged				FEditorDelegates::OnGridSnappingChanged;
 FSimpleMulticastDelegate								FEditorDelegates::OnLightingBuildStarted;
@@ -158,18 +162,56 @@ static inline USelection*& PrivateGetSelectedActors()
 	return SSelectedActors;
 };
 
+static inline USelection*& PrivateGetSelectedComponents()
+{
+	static USelection* SSelectedComponents = NULL;
+	return SSelectedComponents;
+}
+
 static inline USelection*& PrivateGetSelectedObjects()
 {
 	static USelection* SSelectedObjects = NULL;
 	return SSelectedObjects;
 };
 
+static void OnObjectSelected(UObject* Object)
+{
+	// Whenever an actor is unselected we must remove its components from the components selection
+	if (!Object->IsSelected())
+	{
+		TArray<UActorComponent*> ComponentsToDeselect;
+		for (FSelectionIterator It(*PrivateGetSelectedComponents()); It; ++It)
+		{
+			UActorComponent* Component = CastChecked<UActorComponent>(*It);
+			if (Component->GetOwner() == Object)
+			{
+				ComponentsToDeselect.Add(Component);
+			}
+		}
+		if (ComponentsToDeselect.Num() > 0)
+		{
+			PrivateGetSelectedComponents()->Modify();
+			PrivateGetSelectedComponents()->BeginBatchSelectOperation();
+			for (UActorComponent* Component : ComponentsToDeselect)
+			{
+				PrivateGetSelectedComponents()->Deselect(Component);
+			}
+			PrivateGetSelectedComponents()->EndBatchSelectOperation();
+		}
+	}
+}
+
 static void PrivateInitSelectedSets()
 {
-	PrivateGetSelectedActors() = new( GetTransientPackage(), TEXT("SelectedActors"), RF_Transactional ) USelection(FObjectInitializer());
+	PrivateGetSelectedActors() = NewNamedObject<USelection>(GetTransientPackage(), TEXT("SelectedActors"), RF_Transactional);
 	PrivateGetSelectedActors()->AddToRoot();
 
-	PrivateGetSelectedObjects() = new( GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional ) USelection(FObjectInitializer());
+	PrivateGetSelectedActors()->SelectObjectEvent.AddStatic(&OnObjectSelected);
+
+	PrivateGetSelectedComponents() = NewNamedObject<USelection>(GetTransientPackage(), TEXT("SelectedComponents"), RF_Transactional);
+	PrivateGetSelectedComponents()->AddToRoot();
+
+	PrivateGetSelectedObjects() = NewNamedObject<USelection>(GetTransientPackage(), TEXT("SelectedObjects"), RF_Transactional);
 	PrivateGetSelectedObjects()->AddToRoot();
 }
 
@@ -178,12 +220,14 @@ static void PrivateDestroySelectedSets()
 #if 0
 	PrivateGetSelectedActors()->RemoveFromRoot();
 	PrivateGetSelectedActors() = NULL;
+	PrivateGetSelectedComponents()->RemoveFromRoot();
+	PrivateGetSelectedComponents() = NULL;
 	PrivateGetSelectedObjects()->RemoveFromRoot();
 	PrivateGetSelectedObjects() = NULL;
 #endif
 }
 
-UEditorEngine::UEditorEngine(const class FObjectInitializer& ObjectInitializer)
+UEditorEngine::UEditorEngine(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
 	if (!IsRunningCommandlet())
@@ -230,6 +274,7 @@ UEditorEngine::UEditorEngine(const class FObjectInitializer& ObjectInitializer)
 	bPlayOnLocalPcSession = false;
 	bAllowMultiplePIEWorlds = true;
 	NumOnlinePIEInstances = 0;
+	DefaultWorldFeatureLevel = GMaxRHIFeatureLevel;
 }
 
 
@@ -273,6 +318,32 @@ FSelectionIterator UEditorEngine::GetSelectedActorIterator() const
 {
 	return FSelectionIterator( *GetSelectedActors() );
 };
+
+int32 UEditorEngine::GetSelectedComponentCount() const
+{
+	int32 NumSelectedComponents = 0;
+	for (FSelectionIterator It(GetSelectedComponentIterator()); It; ++It)
+	{
+		++NumSelectedComponents;
+	}
+
+	return NumSelectedComponents;
+}
+
+FSelectionIterator UEditorEngine::GetSelectedComponentIterator() const
+{
+	return FSelectionIterator(*GetSelectedComponents());
+};
+
+FSelectedEditableComponentIterator UEditorEngine::GetSelectedEditableComponentIterator() const
+{
+	return FSelectedEditableComponentIterator(*GetSelectedComponents());
+}
+
+USelection* UEditorEngine::GetSelectedComponents() const
+{
+	return PrivateGetSelectedComponents();
+}
 
 USelection* UEditorEngine::GetSelectedObjects() const
 {
@@ -373,35 +444,36 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	UEngine::Init(InEngineLoop);
 
 	// Specify "-ForceLauncher" on the command-line to always open the launcher, even in unusual cases.  This is useful for debugging the Launcher startup.
-	const bool bForceLauncherToOpen = FParse::Param( FCommandLine::Get(),TEXT( "ForceLauncher" ) );
+	const bool bForceLauncherToOpen = FParse::Param(FCommandLine::Get(), TEXT("ForceLauncher"));
 
-	if( bForceLauncherToOpen ||
+	if ( bForceLauncherToOpen ||
 		( !FEngineBuildSettings::IsInternalBuild() &&
-		  !FEngineBuildSettings::IsPerforceBuild() && 
-		  !FPlatformMisc::IsDebuggerPresent() &&	// Don't spawn launcher while running in the Visual Studio debugger by default
-		  !FApp::IsBenchmarking() &&
-		  !GIsDemoMode && 
-		  !IsRunningCommandlet() &&
-		  !FPlatformProcess::IsApplicationRunning(TEXT("UnrealEngineLauncher") ) &&
-		  !FPlatformProcess::IsApplicationRunning(TEXT("Unreal Engine Launcher") ) ) )
+		!FEngineBuildSettings::IsPerforceBuild() &&
+		!FPlatformMisc::IsDebuggerPresent() &&	// Don't spawn launcher while running in the Visual Studio debugger by default
+		!FApp::IsBenchmarking() &&
+		!GIsDemoMode &&
+		!IsRunningCommandlet() &&
+		!FPlatformProcess::IsApplicationRunning(TEXT("UnrealEngineLauncher")) &&
+		!FPlatformProcess::IsApplicationRunning(TEXT("Unreal Engine Launcher")) &&
+		!FPlatformProcess::IsApplicationRunning(TEXT("Epic Launcher")) ) )
 	{
 		IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
-		if( DesktopPlatform != NULL )
+		if ( DesktopPlatform != NULL )
 		{
-			DesktopPlatform->OpenLauncher( false, TEXT("") );
+			DesktopPlatform->OpenLauncher(false, TEXT(""));
 		}
 	}
-	
+
 	// Create selection sets.
 	PrivateInitSelectedSets();
-	
+
 	// Set slate options
 	FMultiBoxSettings::UseSmallToolBarIcons = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateStatic(&GetSmallToolBarIcons));
 	FMultiBoxSettings::DisplayMultiboxHooks = TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateStatic(&GetDisplayMultiboxHooks));
-	
-	if (FSlateApplication::IsInitialized())
+
+	if ( FSlateApplication::IsInitialized() )
 	{
-		FSlateApplication::Get().GetRenderer()->SetColorVisionDeficiencyType((uint32)(GetDefault<UEditorStyleSettings>()->ColorVisionDeficiencyPreviewType.GetValue()));
+		FSlateApplication::Get().GetRenderer()->SetColorVisionDeficiencyType((uint32)( GetDefault<UEditorStyleSettings>()->ColorVisionDeficiencyPreviewType.GetValue() ));
 		FSlateApplication::Get().EnableMenuAnimations(GetDefault<UEditorStyleSettings>()->bEnableWindowAnimations);
 	}
 
@@ -411,20 +483,23 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 	// Needs to be set early as materials can be cached with selected material color baked in
 	GEngine->SetSelectedMaterialColor(ViewportSettings->bHighlightWithBrackets ? FLinearColor::Black : StyleSettings->SelectionColor);
 	GEngine->SetSelectionOutlineColor(StyleSettings->SelectionColor);
+	GEngine->SetSubduedSelectionOutlineColor(StyleSettings->GetSubduedSelectionColor());
 	GEngine->SelectionHighlightIntensity = ViewportSettings->SelectionHighlightIntensity;
 	GEngine->BSPSelectionHighlightIntensity = ViewportSettings->BSPSelectionHighlightIntensity;
 	GEngine->HoverHighlightIntensity = ViewportSettings->HoverHighlightIntensity;
-	
+
 	// Set navigation system property indicating whether navigation is supposed to rebuild automatically 
 	FWorldContext &EditorContext = GEditor->GetEditorWorldContext();
-	UNavigationSystem::SetNavigationAutoUpdateEnabled(GetDefault<ULevelEditorMiscSettings>()->bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem() );
+	UNavigationSystem::SetNavigationAutoUpdateEnabled(GetDefault<ULevelEditorMiscSettings>()->bNavigationAutoUpdate, EditorContext.World()->GetNavigationSystem());
 
 	// Allocate temporary model.
-	TempModel = new UModel( FObjectInitializer(),NULL, 1 );
-	ConversionTempModel = new UModel( FObjectInitializer(),NULL, 1 );
+	TempModel = NewObject<UModel>();
+	TempModel->Initialize(nullptr, 1);
+	ConversionTempModel = NewObject<UModel>();
+	ConversionTempModel->Initialize(nullptr, 1);
 
 	// create the timer manager
-	TimerManager = MakeShareable( new FTimerManager() );
+	TimerManager = MakeShareable(new FTimerManager());
 
 	// Settings.
 	FBSPOps::GFastRebuild = 0;
@@ -444,6 +519,17 @@ void UEditorEngine::InitEditor(IEngineLoop* InEngineLoop)
 
 	// Load any modules that might be required by commandlets
 	FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
+
+	if ( FSlateApplication::IsInitialized() )
+	{
+		// Setup a delegate to handle requests for opening assets
+		FSlateApplication::Get().SetWidgetReflectorAssetAccessDelegate(FAccessAsset::CreateUObject(this, &UEditorEngine::HandleOpenAsset));
+	}
+}
+
+bool UEditorEngine::HandleOpenAsset(UObject* Asset)
+{
+	return FAssetEditorManager::Get().OpenEditorForAsset(Asset);
 }
 
 void UEditorEngine::HandleSettingChanged( FName Name )
@@ -461,6 +547,7 @@ void UEditorEngine::HandleSettingChanged( FName Name )
 		// Selection outline color and material color use the same color but sometimes the selected material color can be overidden so these need to be set independently
 		GEngine->SetSelectedMaterialColor(GetDefault<UEditorStyleSettings>()->SelectionColor);
 		GEngine->SetSelectionOutlineColor(GetDefault<UEditorStyleSettings>()->SelectionColor);
+		GEngine->SetSubduedSelectionOutlineColor(GetDefault<UEditorStyleSettings>()->GetSubduedSelectionColor());
 	}
 }
 
@@ -491,6 +578,8 @@ extern void StripUnusedPackagesFromList(TArray<FString>& PackageList, const FStr
 
 void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 {
+	FScopedSlowTask SlowTask(100);
+
 	DECLARE_SCOPE_CYCLE_COUNTER(TEXT("Editor Engine Initialized"), STAT_EditorEngineStartup, STATGROUP_LoadTime);
 
 	check(!HasAnyFlags(RF_ClassDefaultObject));
@@ -506,6 +595,7 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	FLevelStreamingGCHelper::OnGCStreamedOutLevels.AddUObject(this, &UEditorEngine::OnGCStreamedOutLevels);
 	
 	// Init editor.
+	SlowTask.EnterProgressFrame(40);
 	GEditor = this;
 	InitEditor(InEngineLoop);
 
@@ -517,60 +607,71 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	// Load all of the runtime modules that the game needs.  The game is part of the editor, so we'll need these loaded.
 	UGameEngine::LoadRuntimeEngineStartupModules();
 
+	SlowTask.EnterProgressFrame(50);
 
 	// Load all editor modules here
 	{
-		FModuleManager::Get().LoadModule(TEXT("Documentation"));
-		FModuleManager::Get().LoadModule(TEXT("WorkspaceMenuStructure"));
-		FModuleManager::Get().LoadModule(TEXT("MainFrame"));
-		FModuleManager::Get().LoadModule(TEXT("GammaUI"));
-		FModuleManager::Get().LoadModule(TEXT("OutputLog"));
-		FModuleManager::Get().LoadModule(TEXT("SourceControl"));
-		FModuleManager::Get().LoadModule(TEXT("TextureCompressor"));
-		FModuleManager::Get().LoadModule(TEXT("MeshUtilities"));
-		FModuleManager::Get().LoadModule(TEXT("MovieSceneTools"));
-		FModuleManager::Get().LoadModule(TEXT("ModuleUI"));
-		FModuleManager::Get().LoadModule(TEXT("Toolbox"));
-		FModuleManager::Get().LoadModule(TEXT("ClassViewer"));
-		FModuleManager::Get().LoadModule(TEXT("ContentBrowser"));
-		FModuleManager::Get().LoadModule(TEXT("AssetTools"));
-		FModuleManager::Get().LoadModule(TEXT("GraphEditor"));
-		FModuleManager::Get().LoadModule(TEXT("KismetCompiler"));
-		FModuleManager::Get().LoadModule(TEXT("Kismet"));
-		FModuleManager::Get().LoadModule(TEXT("Persona"));
-		FModuleManager::Get().LoadModule(TEXT("LevelEditor"));
-		FModuleManager::Get().LoadModule(TEXT("MainFrame"));
-		FModuleManager::Get().LoadModule(TEXT("PropertyEditor"));
-		FModuleManager::Get().LoadModule(TEXT("EditorStyle"));
-		FModuleManager::Get().LoadModule(TEXT("PackagesDialog"));
-		FModuleManager::Get().LoadModule(TEXT("AssetRegistry"));
-		FModuleManager::Get().LoadModule(TEXT("DetailCustomizations"));
-		FModuleManager::Get().LoadModule(TEXT("ComponentVisualizers"));
-		FModuleManager::Get().LoadModule(TEXT("Layers"));
-		FModuleManager::Get().LoadModule(TEXT("AutomationWindow"));
-		FModuleManager::Get().LoadModule(TEXT("AutomationController"));
-		FModuleManager::Get().LoadModule(TEXT("DeviceManager"));
-		FModuleManager::Get().LoadModule(TEXT("ProfilerClient"));
-//		FModuleManager::Get().LoadModule(TEXT("Search"));
-		FModuleManager::Get().LoadModule(TEXT("SessionFrontend"));
-		FModuleManager::Get().LoadModule(TEXT("ProjectLauncher"));
-		FModuleManager::Get().LoadModule(TEXT("SettingsEditor"));
-		FModuleManager::Get().LoadModule(TEXT("EditorSettingsViewer"));
-		FModuleManager::Get().LoadModule(TEXT("ProjectSettingsViewer"));
-		FModuleManager::Get().LoadModule(TEXT("AndroidRuntimeSettings"));
-		FModuleManager::Get().LoadModule(TEXT("AndroidPlatformEditor"));
-		FModuleManager::Get().LoadModule(TEXT("IOSRuntimeSettings"));
-		FModuleManager::Get().LoadModule(TEXT("IOSPlatformEditor"));
-		FModuleManager::Get().LoadModule(TEXT("Blutility"));
-		FModuleManager::Get().LoadModule(TEXT("OnlineBlueprintSupport"));
-		FModuleManager::Get().LoadModule(TEXT("XmlParser"));
-		FModuleManager::Get().LoadModule(TEXT("UserFeedback"));
-		FModuleManager::Get().LoadModule(TEXT("GameplayTagsEditor"));
-		FModuleManager::Get().LoadModule(TEXT("UndoHistory"));
-		FModuleManager::Get().LoadModule(TEXT("DeviceProfileEditor"));
-		FModuleManager::Get().LoadModule(TEXT("SourceCodeAccess"));
-		FModuleManager::Get().LoadModule(TEXT("BehaviorTreeEditor"));
-		FModuleManager::Get().LoadModule(TEXT("HardwareTargeting"));
+		static const TCHAR* ModuleNames[] =
+		{
+			TEXT("Documentation"),
+			TEXT("WorkspaceMenuStructure"),
+			TEXT("MainFrame"),
+			TEXT("GammaUI"),
+			TEXT("OutputLog"),
+			TEXT("SourceControl"),
+			TEXT("TextureCompressor"),
+			TEXT("MeshUtilities"),
+			TEXT("MovieSceneTools"),
+			TEXT("ModuleUI"),
+			TEXT("Toolbox"),
+			TEXT("ClassViewer"),
+			TEXT("ContentBrowser"),
+			TEXT("AssetTools"),
+			TEXT("GraphEditor"),
+			TEXT("KismetCompiler"),
+			TEXT("Kismet"),
+			TEXT("Persona"),
+			TEXT("LevelEditor"),
+			TEXT("MainFrame"),
+			TEXT("PropertyEditor"),
+			TEXT("EditorStyle"),
+			TEXT("PackagesDialog"),
+			TEXT("AssetRegistry"),
+			TEXT("DetailCustomizations"),
+			TEXT("ComponentVisualizers"),
+			TEXT("Layers"),
+			TEXT("AutomationWindow"),
+			TEXT("AutomationController"),
+			TEXT("DeviceManager"),
+			TEXT("ProfilerClient"),
+//			TEXT("Search"),
+			TEXT("SessionFrontend"),
+			TEXT("ProjectLauncher"),
+			TEXT("SettingsEditor"),
+			TEXT("EditorSettingsViewer"),
+			TEXT("ProjectSettingsViewer"),
+			TEXT("AndroidRuntimeSettings"),
+			TEXT("AndroidPlatformEditor"),
+			TEXT("IOSRuntimeSettings"),
+			TEXT("IOSPlatformEditor"),
+			TEXT("Blutility"),
+			TEXT("OnlineBlueprintSupport"),
+			TEXT("XmlParser"),
+			TEXT("UserFeedback"),
+			TEXT("GameplayTagsEditor"),
+			TEXT("UndoHistory"),
+			TEXT("DeviceProfileEditor"),
+			TEXT("SourceCodeAccess"),
+			TEXT("BehaviorTreeEditor"),
+			TEXT("HardwareTargeting")
+		};
+
+		FScopedSlowTask SlowTask(ARRAY_COUNT(ModuleNames));
+		for (const TCHAR* ModuleName : ModuleNames)
+		{
+			SlowTask.EnterProgressFrame(1);
+			FModuleManager::Get().LoadModule(ModuleName);
+		}
 
 		if (!IsRunningCommandlet())
 		{
@@ -597,8 +698,12 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			FModuleManager::Get().LoadModule(TEXT("GameplayAbilitiesEditor"));
 		}
 
+
+		FModuleManager::Get().LoadModule(TEXT("LogVisualizer"));
 		FModuleManager::Get().LoadModule(TEXT("HotReload"));
 	}
+
+	SlowTask.EnterProgressFrame(10);
 
 	float BSPTexelScale = 100.0f;
 	if( GetDefault<ULevelEditorViewportSettings>()->bUsePowerOf2SnapSize )
@@ -699,22 +804,10 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 	// Purge garbage.
 	Cleanse( false, 0, NSLOCTEXT("UnrealEd", "Startup", "Startup") );
 
-	// If specified, Lightmass has to be launched manually with -debug (e.g. through a debugger).
-	// This creates a job with a hard-coded GUID, and allows Lightmass to be executed multiple times (even stand-alone).
-	if ( FParse::Param(FCommandLine::Get(), TEXT("LIGHTMASSDEBUG")) )
-	{
-		extern bool GLightmassDebugMode;
-		GLightmassDebugMode = true;
-		UE_LOG(LogInit, Log, TEXT("Running Engine with Lightmass Debug Mode ENABLED"));
-	}
+	FEditorCommandLineUtils::ProcessEditorCommands(FCommandLine::Get());
 
-	// If specified, all participating Lightmass agents will report back detailed stats to the log.
-	if ( FParse::Param(FCommandLine::Get(), TEXT("LIGHTMASSSTATS")) )
-	{
-		extern bool GLightmassStatsMode;
-		GLightmassStatsMode = true;
-		UE_LOG(LogInit, Log, TEXT("Running Engine with Lightmass Stats Mode ENABLED"));
-	}
+	// for IsInitialized()
+	bIsInitialized = true;
 };
 
 
@@ -736,6 +829,12 @@ void UEditorEngine::InitBuilderBrush( UWorld* InWorld )
 	{
 		InWorld->GetCurrentLevel()->GetOutermost()->SetDirtyFlag( bOldDirtyState );
 	}
+}
+
+void UEditorEngine::BroadcastObjectReimported(UObject* InObject)
+{
+	ObjectReimportedEvent.Broadcast(InObject);
+	FEditorDelegates::OnAssetReimport.Broadcast(InObject);
 }
 
 void UEditorEngine::FinishDestroy()
@@ -809,6 +908,9 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	UWorld* CurrentGWorld = GWorld;
 	check( CurrentGWorld );
 	check( CurrentGWorld != PlayWorld || bIsSimulatingInEditor );
+
+	// Clear out the list of objects modified this frame, used for OnObjectModified notification.
+	FCoreUObjectDelegates::ObjectsModifiedThisFrame.Empty();
 
 	// Always ensure we've got adequate slack for any worlds that are going to get created in this frame so that
 	// our EditorContext reference doesn't get invalidated
@@ -1481,6 +1583,11 @@ float UEditorEngine::GetMaxTickRate( float DeltaTime, bool bAllowFrameRateSmooth
 	float MaxTickRate = 0.0f;
 	if( !ShouldThrottleCPUUsage() )
 	{
+		// do not limit fps in VR Preview mode
+		if (bUseVRPreviewForPlayWorld)
+		{
+			return 0.0f;
+		}
 		const float SuperMaxTickRate = Super::GetMaxTickRate( DeltaTime, bAllowFrameRateSmoothing );
 		if( SuperMaxTickRate != 0.0f )
 		{
@@ -1618,6 +1725,13 @@ bool UEditorEngine::UpdateSingleViewportClient(FEditorViewportClient* InViewport
 {
 	bool bUpdatedNonRealtimeViewport = false;
 
+	// Always submit view information for content streaming 
+	// otherwise content for editor view can be streamed out if there are other views (ex: thumbnails)
+	if (InViewportClient->IsPerspective())
+	{
+		IStreamingManager::Get().AddViewInformation( InViewportClient->GetViewLocation(), InViewportClient->Viewport->GetSizeXY().X, InViewportClient->Viewport->GetSizeXY().X / FMath::Tan(InViewportClient->ViewFOV) );
+	}
+	
 	// Only allow viewports to be drawn if we are not throttling for slate UI responsiveness or if the viewport client requested a redraw
 	// Note about bNeedsRedraw: Redraws can happen during some Slate events like checking a checkbox in a menu to toggle a view mode in the viewport.  In those cases we need to show the user the results immediately
 	if( FSlateThrottleManager::Get().IsAllowingExpensiveTasks() || InViewportClient->bNeedsRedraw )
@@ -1628,7 +1742,6 @@ bool UEditorEngine::UpdateSingleViewportClient(FEditorViewportClient* InViewport
 		// Add view information for perspective viewports.
 		if( InViewportClient->IsPerspective() )
 		{
-			IStreamingManager::Get().AddViewInformation( InViewportClient->GetViewLocation(), InViewportClient->Viewport->GetSizeXY().X, InViewportClient->Viewport->GetSizeXY().X / FMath::Tan(InViewportClient->ViewFOV) );
 			GWorld->ViewLocationsRenderedLastFrame.Add(InViewportClient->GetViewLocation());
 	
 			// If we're currently simulating in editor, then we'll need to make sure that sub-levels are streamed in.
@@ -1636,16 +1749,8 @@ bool UEditorEngine::UpdateSingleViewportClient(FEditorViewportClient* InViewport
 			// this ourselves!
 			if( PlayWorld != NULL && bIsSimulatingInEditor && InViewportClient->IsSimulateInEditorViewport() )
 			{
-				// Create a scene view to use when calculating listener position.
-				FSceneViewFamilyContext ViewFamily( FSceneViewFamily::ConstructionValues( 
-					InViewportClient->Viewport, 
-					InViewportClient->GetScene(), 
-					InViewportClient->EngineShowFlags )
-					.SetRealtimeUpdate( InViewportClient->IsRealtime() ));
-				const FSceneView& View = *InViewportClient->CalcSceneView( &ViewFamily );
-	
 				// Update level streaming.
-				GWorld->UpdateLevelStreaming( &ViewFamily );
+				GWorld->UpdateLevelStreaming();
 
 				// Also make sure hit proxies are refreshed for SIE viewports, as the user may be trying to grab an object or widget manipulator that's moving!
 				if( InViewportClient->IsRealtime() )
@@ -1715,11 +1820,22 @@ void UEditorEngine::PostEditChangeProperty(FPropertyChangedEvent& PropertyChange
 
 	const FName PropertyName = PropertyChangedEvent.Property ? PropertyChangedEvent.Property->GetFName() : NAME_None;
 
-	if( PropertyName == FName( TEXT( "MaximumLoopIterationCount" )))
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UEngine, MaximumLoopIterationCount))
 	{
 		// Clamp to a reasonable range and feed the new value to the script core
 		MaximumLoopIterationCount = FMath::Clamp( MaximumLoopIterationCount, 100, 10000000 );
 		FBlueprintCoreDelegates::SetScriptMaximumLoopIterations( MaximumLoopIterationCount );
+	}
+	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UEngine, bCanBlueprintsTickByDefault))
+	{
+		FScopedSlowTask SlowTask(100, LOCTEXT("DirtyingBlueprintsDueToTickChange", "InvalidatingAllBlueprints"));
+
+		// Flag all Blueprints as out of date (this doesn't dirty the package as needs saving but will force a recompile during PIE)
+		for (TObjectIterator<UBlueprint> BlueprintIt; BlueprintIt; ++BlueprintIt)
+		{
+			UBlueprint* Blueprint = *BlueprintIt;
+			Blueprint->Status = BS_Dirty;
+		}
 	}
 }
 
@@ -1839,7 +1955,7 @@ void UEditorEngine::PlayPreviewSound( USoundBase* Sound,  USoundNode* SoundNode 
 void UEditorEngine::PlayEditorSound( const FString& SoundAssetName )
 {
 	// Only play sounds if the user has that feature enabled
-	if( GetDefault<ULevelEditorMiscSettings>()->bEnableEditorSounds )
+	if( GetDefault<ULevelEditorMiscSettings>()->bEnableEditorSounds && !GIsSavingPackage )
 	{
 		USoundBase* Sound = Cast<USoundBase>( StaticFindObject( USoundBase::StaticClass(), NULL, *SoundAssetName ) );
 		if( Sound == NULL )
@@ -2153,54 +2269,44 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 		{
 			bTranslationOnly = false;
 
-			if( Brush )
+			if ( bDelta )
 			{
-				FBSPOps::RotateBrushVerts( Brush, InDeltaRot, true );
+				if( InActor->GetRootComponent() != NULL )
+				{
+					const FRotator OriginalRotation = InActor->GetRootComponent()->GetComponentRotation();
+
+					InActor->EditorApplyRotation( InDeltaRot, bAltDown, bShiftDown, bControlDown );
+
+					// Check to see if we should transform the rigid body
+					UPrimitiveComponent* RootPrimitiveComponent = Cast< UPrimitiveComponent >( InActor->GetRootComponent() );
+					if( bIsSimulatingInEditor && GIsPlayInEditorWorld && RootPrimitiveComponent != NULL )
+					{
+						FRotator ActorRotWind, ActorRotRem;
+						OriginalRotation.GetWindingAndRemainder(ActorRotWind, ActorRotRem);
+
+						const FQuat ActorQ = ActorRotRem.Quaternion();
+						const FQuat DeltaQ = InDeltaRot.Quaternion();
+						const FQuat ResultQ = DeltaQ * ActorQ;
+
+						const FRotator NewActorRotRem = FRotator( ResultQ );
+						FRotator DeltaRot = NewActorRotRem - ActorRotRem;
+						DeltaRot.Normalize();
+
+						// @todo SIE: Not taking into account possible offset between root component and actor
+						RootPrimitiveComponent->SetWorldRotation( OriginalRotation + DeltaRot );
+					}
+				}
+
+				FVector NewActorLocation = InActor->GetActorLocation();
+				NewActorLocation -= GLevelEditorModeTools().PivotLocation;
+				NewActorLocation = FRotationMatrix(InDeltaRot).TransformPosition(NewActorLocation);
+				NewActorLocation += GLevelEditorModeTools().PivotLocation;
+				NewActorLocation -= InActor->GetActorLocation();
+				InActor->EditorApplyTranslation(NewActorLocation, bAltDown, bShiftDown, bControlDown);
 			}
 			else
 			{
-				if ( bDelta )
-				{
-					if( InActor->GetRootComponent() != NULL )
-					{
-						const FRotator OriginalRotation = InActor->GetRootComponent()->GetComponentRotation();
-
-						InActor->EditorApplyRotation( InDeltaRot, bAltDown, bShiftDown, bControlDown );
-
-						// Check to see if we should transform the rigid body
-						UPrimitiveComponent* RootPrimitiveComponent = Cast< UPrimitiveComponent >( InActor->GetRootComponent() );
-						if( bIsSimulatingInEditor && GIsPlayInEditorWorld && RootPrimitiveComponent != NULL )
-						{
-							FRotator ActorRotWind, ActorRotRem;
-							OriginalRotation.GetWindingAndRemainder(ActorRotWind, ActorRotRem);
-
-							const FQuat ActorQ = ActorRotRem.Quaternion();
-							const FQuat DeltaQ = InDeltaRot.Quaternion();
-							const FQuat ResultQ = DeltaQ * ActorQ;
-
-							const FRotator NewActorRotRem = FRotator( ResultQ );
-							FRotator DeltaRot = NewActorRotRem - ActorRotRem;
-							DeltaRot.Normalize();
-
-							// @todo SIE: Not taking into account possible offset between root component and actor
-							RootPrimitiveComponent->SetWorldRotation( OriginalRotation + DeltaRot );
-						}
-					}
-				}
-				else
-				{
-					InActor->SetActorRotation( InDeltaRot );
-				}
-			}
-
-			if ( bDelta )
-			{
-				FVector NewActorLocation = InActor->GetActorLocation();
-				NewActorLocation -= GLevelEditorModeTools().PivotLocation;
-				NewActorLocation = FRotationMatrix( InDeltaRot ).TransformPosition( NewActorLocation );
-				NewActorLocation += GLevelEditorModeTools().PivotLocation;
-				NewActorLocation -= InActor->GetActorLocation();
-				InActor->EditorApplyTranslation( NewActorLocation, bAltDown, bShiftDown, bControlDown );
+				InActor->SetActorRotation( InDeltaRot );
 			}
 		}
 	}
@@ -2247,138 +2353,49 @@ void UEditorEngine::ApplyDeltaToActor(AActor* InActor,
 			// Note: With the new additive scaling method, this is handled in FLevelEditorViewportClient::ModifyScale
 			if( GEditor->UsePercentageBasedScaling() )
 			{
-			// Get actor box extents
-			const FBox BoundingBox = InActor->GetComponentsBoundingBox( true );
-			const FVector BoundsExtents = BoundingBox.GetExtent();
+				// Get actor box extents
+				const FBox BoundingBox = InActor->GetComponentsBoundingBox( true );
+				const FVector BoundsExtents = BoundingBox.GetExtent();
 
-			// Make sure scale on actors is clamped to a minimum and maximum size.
-			const float MinThreshold = 1.0f;
+				// Make sure scale on actors is clamped to a minimum and maximum size.
+				const float MinThreshold = 1.0f;
 
-			for (int32 Idx=0; Idx<3; Idx++)
-			{
-				if ( ( FMath::Pow(BoundsExtents[Idx], 2) ) > BIG_NUMBER)
+				for (int32 Idx=0; Idx<3; Idx++)
 				{
-					ModifiedScale[Idx] = 0.0f;
-				}
-				else if (SMALL_NUMBER < BoundsExtents[Idx])
-				{
-					const bool bBelowAllowableScaleThreshold = ((InDeltaScale[Idx] + 1.0f) * BoundsExtents[Idx]) < MinThreshold;
-
-					if(bBelowAllowableScaleThreshold)
+					if ( ( FMath::Pow(BoundsExtents[Idx], 2) ) > BIG_NUMBER)
 					{
-						ModifiedScale[Idx] = (MinThreshold / BoundsExtents[Idx]) - 1.0f;
+						ModifiedScale[Idx] = 0.0f;
+					}
+					else if (SMALL_NUMBER < BoundsExtents[Idx])
+					{
+						const bool bBelowAllowableScaleThreshold = ((InDeltaScale[Idx] + 1.0f) * BoundsExtents[Idx]) < MinThreshold;
+
+						if(bBelowAllowableScaleThreshold)
+						{
+							ModifiedScale[Idx] = (MinThreshold / BoundsExtents[Idx]) - 1.0f;
+						}
 					}
 				}
 			}
-			}
 
-			// If the actor is a brush, update the vertices.
-			if( Brush )
+			if ( bDelta )
 			{
-				// Scale all of the polygons of the brush.
-				const FScaleMatrix matrix( FVector( ModifiedScale.X , ModifiedScale.Y, ModifiedScale.Z ) );
-				
-				if(Brush->GetBrushComponent()->Brush && Brush->GetBrushComponent()->Brush->Polys)
-				{
-					// @todo UE4 : verify this code
-					// Brush Transform doesn't seem to change from this code path
-					// So I'm changing to caching it, but if this actorToWorld supposed to re-calculate
-					// from each poly transformation, this will have to be fixed. 
-					// if this causes any issue, please contact LH
-					FTransform BrushActorToWorld = Brush->ActorToWorld();
+				// Flag actors to use old-style scaling or not
+				// @todo: Remove this hack once we have decided on the scaling method to use.
+				AActor::bUsePercentageBasedScaling = GEditor->UsePercentageBasedScaling();
 
-					for( int32 poly = 0 ; poly < Brush->GetBrushComponent()->Brush->Polys->Element.Num() ; poly++ )
-					{
-						FPoly* Poly = &(Brush->GetBrushComponent()->Brush->Polys->Element[poly]);
+				InActor->EditorApplyScale( 
+					ModifiedScale,
+					&GLevelEditorModeTools().PivotLocation,
+					bAltDown,
+					bShiftDown,
+					bControlDown
+					);
 
-						FBox bboxBefore(0);
-						for( int32 vertex = 0 ; vertex < Poly->Vertices.Num() ; vertex++ )
-						{
-							bboxBefore += BrushActorToWorld.TransformPosition( Poly->Vertices[vertex] );
-						}
-
-						// Scale the vertices
-
-						for( int32 vertex = 0 ; vertex < Poly->Vertices.Num() ; vertex++ )
-						{
-							FVector Wk = BrushActorToWorld.TransformPosition( Poly->Vertices[vertex] );
-							Wk -= GLevelEditorModeTools().PivotLocation;
-							Wk += matrix.TransformPosition( Wk );
-							Wk += GLevelEditorModeTools().PivotLocation;
-							Poly->Vertices[vertex] = BrushActorToWorld.InverseTransformPosition( Wk );
-						}
-
-						FBox bboxAfter(0);
-						for( int32 vertex = 0 ; vertex < Poly->Vertices.Num() ; vertex++ )
-						{
-							bboxAfter += BrushActorToWorld.TransformPosition( Poly->Vertices[vertex] );
-						}
-
-						FVector Wk = BrushActorToWorld.TransformPosition( Poly->Base );
-						Wk -= GLevelEditorModeTools().PivotLocation;
-						Wk += matrix.TransformPosition( Wk );
-						Wk += GLevelEditorModeTools().PivotLocation;
-						Poly->Base = BrushActorToWorld.InverseTransformPosition( Wk );
-
-						// Scale the texture vectors
-
-						for( int32 a = 0 ; a < 3 ; ++a )
-						{
-							const float Before = bboxBefore.GetExtent()[a];
-							const float After = bboxAfter.GetExtent()[a];
-
-							if( After != 0.0 )
-							{
-								const float Pct = Before / After;
-
-								if( Pct != 0.0 )
-								{
-									Poly->TextureU[a] *= Pct;
-									Poly->TextureV[a] *= Pct;
-								}
-							}
-						}
-
-						// Recalc the normal for the poly
-
-						Poly->Normal = FVector::ZeroVector;
-						Poly->Finalize((ABrush*)InActor,0);
-					}
-
-					Brush->GetBrushComponent()->Brush->BuildBound();
-
-					if( !Brush->IsStaticBrush() )
-					{
-						FBSPOps::csgPrepMovingBrush( Brush );
-					}
-				}
-
-				// Brushes need to be re-registered so that the edges will line up with the vertices correctly.
-				// We need to invalidate the lighting cache BEFORE clearing the components!
-				InActor->InvalidateLightingCache();
-				InActor->ReregisterAllComponents();
 			}
-			else
+			else if( InActor->GetRootComponent() != NULL )
 			{
-				if ( bDelta )
-				{
-					// Flag actors to use old-style scaling or not
-					// @todo: Remove this hack once we have decided on the scaling method to use.
-					AActor::bUsePercentageBasedScaling = GEditor->UsePercentageBasedScaling();
-
-					InActor->EditorApplyScale( 
-						ModifiedScale,
-												&GLevelEditorModeTools().PivotLocation,
-												bAltDown,
-												bShiftDown,
-						bControlDown
-						);
-
-				}
-				else if( InActor->GetRootComponent() != NULL )
-				{
-					InActor->GetRootComponent()->SetRelativeScale3D( InDeltaScale );
-				}
+				InActor->GetRootComponent()->SetRelativeScale3D( InDeltaScale );
 			}
 		}
 	}
@@ -2545,6 +2562,7 @@ FReimportManager* FReimportManager::Instance()
 void FReimportManager::RegisterHandler( FReimportHandler& InHandler )
 {
 	Handlers.AddUnique( &InHandler );
+	bHandlersNeedSorting = true;
 }
 
 /**
@@ -2574,7 +2592,7 @@ bool FReimportManager::CanReimport( UObject* Obj ) const
 	return false;
 }
 
-bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing )
+bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing, bool bShowNotification )
 {
 	// Warn that were about to reimport, so prep for it
 	PreReimport.Broadcast( Obj );
@@ -2582,9 +2600,16 @@ bool FReimportManager::Reimport( UObject* Obj, bool bAskForNewFileIfMissing )
 	bool bSuccess = false;
 	if ( Obj )
 	{
-		bool bShowNotification = true;
+		if (bHandlersNeedSorting)
+		{
+			// Use > operator because we want higher priorities earlier in the list
+			Handlers.Sort([](const FReimportHandler& A, const FReimportHandler& B) { return A.GetPriority() > B.GetPriority(); });
+			bHandlersNeedSorting = false;
+		}
+		
 		bool bValidSourceFilename = false;
 		TArray<FString> SourceFilenames;
+
 		for( int32 HandlerIndex = 0; HandlerIndex < Handlers.Num(); ++HandlerIndex )
 		{
 			SourceFilenames.Empty();
@@ -2863,6 +2888,11 @@ FReimportManager::~FReimportManager()
 	Handlers.Empty();
 }
 
+int32 FReimportHandler::GetPriority() const
+{
+	return UFactory::DefaultImportPriority;
+}
+
 /*-----------------------------------------------------------------------------
 	PIE helpers.
 -----------------------------------------------------------------------------*/
@@ -3123,7 +3153,7 @@ void UEditorEngine::SyncToContentBrowser()
 }
 
 
-void UEditorEngine::GetReferencedAssetsForEditorSelection( TArray<UObject*>& Objects )
+void UEditorEngine::GetReferencedAssetsForEditorSelection(TArray<UObject*>& Objects, const bool bIgnoreOtherAssetsIfBPReferenced)
 {
 	for ( TSelectedSurfaceIterator<> It(GWorld) ; It ; ++It )
 	{
@@ -3140,7 +3170,25 @@ void UEditorEngine::GetReferencedAssetsForEditorSelection( TArray<UObject*>& Obj
 		AActor* Actor = static_cast<AActor*>( *It );
 		checkSlow( Actor->IsA(AActor::StaticClass()) );
 
-		Actor->GetReferencedContentObjects(Objects);
+		TArray<UObject*> ActorObjects;
+		Actor->GetReferencedContentObjects(ActorObjects);
+
+		// If Blueprint assets should take precedence over any other referenced asset, check if there are any blueprints in this actor's list
+		// and if so, add only those.
+		if (bIgnoreOtherAssetsIfBPReferenced && ActorObjects.ContainsByPredicate([](UObject* Obj) { return Obj->IsA(UBlueprint::StaticClass()); }))
+		{
+			for (UObject* Object : ActorObjects)
+			{
+				if (Object->IsA(UBlueprint::StaticClass()))
+				{
+					Objects.Add(Object);
+				}
+			}
+		}
+		else
+		{
+			Objects.Append(ActorObjects);
+		}
 	}
 }
 
@@ -3471,7 +3519,7 @@ struct FConvertStaticMeshActorInfo
 	// Component properties.
 	UStaticMesh*						StaticMesh;
 	USkeletalMesh*						SkeletalMesh;
-	TArray<UMaterialInterface*>			Materials;
+	TArray<UMaterialInterface*>			OverrideMaterials;
 	TArray<FGuid>						IrrelevantLights;
 	float								CachedMaxDrawDistance;
 	bool								CastShadow;
@@ -3524,7 +3572,7 @@ struct FConvertStaticMeshActorInfo
 
 		// Copy over component properties.
 		StaticMesh				= MeshComp->StaticMesh;
-		Materials				= MeshComp->Materials;
+		OverrideMaterials		= MeshComp->OverrideMaterials;
 		IrrelevantLights		= MeshComp->IrrelevantLights;
 		CachedMaxDrawDistance	= MeshComp->CachedMaxDrawDistance;
 		CastShadow				= MeshComp->CastShadow;
@@ -3568,7 +3616,7 @@ struct FConvertStaticMeshActorInfo
 
 		// Set component properties.
 		if ( bComponentPropsDifferFromDefaults[0] ) MeshComp->StaticMesh			= StaticMesh;
-		if ( bComponentPropsDifferFromDefaults[1] ) MeshComp->Materials				= Materials;
+		if ( bComponentPropsDifferFromDefaults[1] ) MeshComp->OverrideMaterials		= OverrideMaterials;
 		if ( bComponentPropsDifferFromDefaults[2] ) MeshComp->IrrelevantLights		= IrrelevantLights;
 		if ( bComponentPropsDifferFromDefaults[3] ) MeshComp->CachedMaxDrawDistance	= CachedMaxDrawDistance;
 		if ( bComponentPropsDifferFromDefaults[4] ) MeshComp->CastShadow			= CastShadow;
@@ -3627,7 +3675,7 @@ struct FConvertStaticMeshActorInfo
 
 		// Copy over component properties.
 		SkeletalMesh			= MeshComp->SkeletalMesh;
-		Materials				= MeshComp->Materials;
+		OverrideMaterials		= MeshComp->OverrideMaterials;
 		CachedMaxDrawDistance	= MeshComp->CachedMaxDrawDistance;
 		CastShadow				= MeshComp->CastShadow;
 
@@ -3651,7 +3699,7 @@ struct FConvertStaticMeshActorInfo
 
 		// Set component properties.
 		if ( bComponentPropsDifferFromDefaults[0] ) MeshComp->SkeletalMesh			= SkeletalMesh;
-		if ( bComponentPropsDifferFromDefaults[1] ) MeshComp->Materials				= Materials;
+		if ( bComponentPropsDifferFromDefaults[1] ) MeshComp->OverrideMaterials		= OverrideMaterials;
 		if ( bComponentPropsDifferFromDefaults[3] ) MeshComp->CachedMaxDrawDistance	= CachedMaxDrawDistance;
 		if ( bComponentPropsDifferFromDefaults[4] ) MeshComp->CastShadow			= CastShadow;
 		if ( bComponentPropsDifferFromDefaults[5] ) MeshComp->BodyInstance.CopyBodyInstancePropertiesFrom(&BodyInstance);
@@ -3984,26 +4032,26 @@ bool UEditorEngine::AttachActorToComponent(AActor* ParentActor, AActor* ChildAct
 
 	if(SkeletalMeshComponent && SkeletalMeshComponent->SkeletalMesh)
 	{
-	    USkeletalMeshSocket const* const Socket = SkeletalMeshComponent->SkeletalMesh->FindSocket(SocketName);
-	    if (Socket)
-	    {
-		    bAttachedToSocket = Socket->AttachActor(ChildActor, SkeletalMeshComponent);
-	    }
-	    else
-	    {
-		    // now search bone, if bone exists, snap to the bone
-		    int32 BoneIndex = SkeletalMeshComponent->SkeletalMesh->RefSkeleton.FindBoneIndex(SocketName);
-		    if (BoneIndex != INDEX_NONE)
-		    {
-			    ChildActor->GetRootComponent()->SnapTo(ParentActor->GetRootComponent(), SocketName);
-			    bAttachedToSocket = true;
-    
-    #if WITH_EDITOR
-			    ChildActor->PreEditChange(NULL);
-			    ChildActor->PostEditChange();
-    #endif // WITH_EDITOR
-		    }
-	    }
+		USkeletalMeshSocket const* const Socket = SkeletalMeshComponent->SkeletalMesh->FindSocket(SocketName);
+		if (Socket)
+		{
+			bAttachedToSocket = Socket->AttachActor(ChildActor, SkeletalMeshComponent);
+		}
+		else
+		{
+			// now search bone, if bone exists, snap to the bone
+			int32 BoneIndex = SkeletalMeshComponent->SkeletalMesh->RefSkeleton.FindBoneIndex(SocketName);
+			if (BoneIndex != INDEX_NONE)
+			{
+				ChildActor->GetRootComponent()->SnapTo(ParentActor->GetRootComponent(), SocketName);
+				bAttachedToSocket = true;
+	
+	#if WITH_EDITOR
+				ChildActor->PreEditChange(NULL);
+				ChildActor->PostEditChange();
+	#endif // WITH_EDITOR
+			}
+		}
 	}
 
 	return bAttachedToSocket;
@@ -4015,11 +4063,11 @@ bool UEditorEngine::AttachActorToComponent(AActor* ChildActor, UStaticMeshCompon
 
 	if(StaticMeshComponent && StaticMeshComponent->StaticMesh)
 	{
-	    UStaticMeshSocket const* const Socket = StaticMeshComponent->StaticMesh->FindSocket(SocketName);
-	    if (Socket)
-	    {
-		    bAttachedToSocket = Socket->AttachActor(ChildActor, StaticMeshComponent);
-	    }
+		UStaticMeshSocket const* const Socket = StaticMeshComponent->StaticMesh->FindSocket(SocketName);
+		if (Socket)
+		{
+			bAttachedToSocket = Socket->AttachActor(ChildActor, StaticMeshComponent);
+		}
 	}
 
 	return bAttachedToSocket;
@@ -5019,7 +5067,7 @@ namespace ReattachActorsHelper
 	}
 }
 
-void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetData& AssetData, UClass* NewActorClass)
+void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetData& AssetData)
 {
 	UObject* ObjectForFactory = NULL;
 
@@ -5028,7 +5076,7 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 	{
 		return;
 	}
-	else if (Factory != NULL)
+	else if (Factory != nullptr)
 	{
 		FText ActorErrorMsg;
 		if (!Factory->CanCreateActorFrom( AssetData, ActorErrorMsg))
@@ -5037,7 +5085,7 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 			return;
 		}
 	}
-	else if (NewActorClass == NULL)
+	else
 	{
 		UE_LOG(LogEditor, Error, TEXT("UEditorEngine::ReplaceSelectedActors() called with NULL parameters!"));
 		return;
@@ -5056,6 +5104,11 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 		}
 	}
 
+	ReplaceActors(Factory, AssetData, ActorsToReplace);
+}
+
+void UEditorEngine::ReplaceActors(UActorFactory* Factory, const FAssetData& AssetData, const TArray<AActor*> ActorsToReplace)
+{
 	// Cache for attachment info of all actors being converted.
 	TArray<ReattachActorsHelper::FActorAttachmentCache> AttachmentInfo;
 
@@ -5078,35 +5131,28 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 		ULevel* Level = OldActor->GetLevel();
 		AActor* NewActor = NULL;
 
+		const FName OldActorName = OldActor->GetFName();
+		const FName RenamedActorName = MakeUniqueObjectName( OldActor->GetOuter(), OldActor->GetClass(), *FString::Printf(TEXT("%s_REPLACED"), *OldActorName.ToString()) );
+		OldActor->Rename(*RenamedActorName.ToString());
+
 		const FTransform OldTransform = OldActor->ActorToWorld();
 
 		// create the actor
-		if (Factory != NULL)
+		NewActor = Factory->CreateActor( Asset, Level, OldTransform, RF_Transactional, OldActorName );
+		// For blueprints, try to copy over properties
+		if (Factory->IsA(UActorFactoryBlueprint::StaticClass()))
 		{
-			NewActor = Factory->CreateActor( Asset, Level, OldTransform);
-			// For blueprints, try to copy over properties
-			if (Factory->IsA(UActorFactoryBlueprint::StaticClass()))
+			UBlueprint* Blueprint = CastChecked<UBlueprint>(Asset);
+			// Only try to copy properties if this blueprint is based on the actor
+			UClass* OldActorClass = OldActor->GetClass();
+			if (Blueprint->GeneratedClass->IsChildOf(OldActorClass))
 			{
-				UBlueprint* Blueprint = CastChecked<UBlueprint>(Asset);
-				// Only try to copy properties if this blueprint is based on the actor
-				UClass* OldActorClass = OldActor->GetClass();
-				if (Blueprint->GeneratedClass->IsChildOf(OldActorClass))
-				{
-					NewActor->UnregisterAllComponents();
-					UEditorEngine::CopyPropertiesForUnrelatedObjects(OldActor, NewActor);
-					NewActor->RegisterAllComponents();
-				}
+				NewActor->UnregisterAllComponents();
+				UEditorEngine::CopyPropertiesForUnrelatedObjects(OldActor, NewActor);
+				NewActor->RegisterAllComponents();
 			}
 		}
-		else
-		{
-			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.OverrideLevel = Level;
 
-			const auto Rotation = OldTransform.GetRotation().Rotator();
-			const auto Translation = OldTransform.GetTranslation();
-			NewActor = World->SpawnActor( NewActorClass, &Translation, &Rotation, SpawnInfo );
-		}
 		if ( NewActor != NULL )
 		{
 			// The new actor might not have a root component
@@ -5136,8 +5182,11 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 			// Caches information for finding the new actor using the pre-converted actor.
 			ReattachActorsHelper::CacheActorConvert(OldActor, NewActor, ConvertedMap, AttachmentInfo[ActorIdx]);
 
-			SelectActor(OldActor, false, true);
-			SelectActor(NewActor, true, true);
+			if (SelectedActors->IsSelected(OldActor))
+			{
+				SelectActor(OldActor, false, true);
+				SelectActor(NewActor, true, true);
+			}
 
 			// Find compatible static mesh components and copy instance colors between them.
 			UStaticMeshComponent* NewActorStaticMeshComponent = NewActor->FindComponentByClass<UStaticMeshComponent>();
@@ -5151,8 +5200,22 @@ void UEditorEngine::ReplaceSelectedActors(UActorFactory* Factory, const FAssetDa
 			NewActor->PostEditMove(true);
 			NewActor->MarkPackageDirty();
 
+			// Replace references in the level script Blueprint with the new Actor
+			const bool bDontCreate = true;
+			ULevelScriptBlueprint* LSB = NewActor->GetLevel()->GetLevelScriptBlueprint(bDontCreate);
+			if( LSB )
+			{
+				// Only if the level script blueprint exists would there be references.  
+				FBlueprintEditorUtils::ReplaceAllActorRefrences(LSB, OldActor, NewActor);
+			}
+
 			GEditor->Layers->DisassociateActorFromLayers( OldActor );
 			World->EditorDestroyActor(OldActor, true);
+		}
+		else
+		{
+			// If creating the new Actor failed, put the old Actor's name back
+			OldActor->Rename(*OldActorName.ToString());
 		}
 	}
 
@@ -5190,7 +5253,7 @@ static void CopyLightComponentProperties( const AActor& InOldActor, AActor& InNe
 	UActorComponent* LightComponentToCopy = NULL;
 
 	// Go through the old actor's components and look for a light component to copy.
-	TArray<UActorComponent*> OldActorComponents;
+	TInlineComponentArray<UActorComponent*> OldActorComponents;
 	InOldActor.GetComponents(OldActorComponents);
 
 	for( int32 CompToCopyIdx = 0; CompToCopyIdx < OldActorComponents.Num(); ++CompToCopyIdx )
@@ -5214,7 +5277,7 @@ static void CopyLightComponentProperties( const AActor& InOldActor, AActor& InNe
 	// Dont do anything if there is no valid light component to copy from
 	if( LightComponentToCopy )
 	{
-		TArray<UActorComponent*> NewActorComponents;
+		TInlineComponentArray<UActorComponent*> NewActorComponents;
 		InNewActor.GetComponents(NewActorComponents);
 
 		// Find a light component to overwrite in the new actor
@@ -5450,11 +5513,11 @@ void CopyActorComponentProperties( const AActor* SourceActor, AActor* DestActor,
 
 		// Construct a mapping from the default actor of its relevant component names to its actual components. Here relevant component
 		// names are those that match a name provided as a parameter.
-		TArray<UActorComponent*> CDOComponents;
+		TInlineComponentArray<UActorComponent*> CDOComponents;
 		SrcActorDefaultActor->GetComponents(CDOComponents);
 
 		TMap<FString, const UActorComponent*> NameToDefaultComponentMap; 
-		for ( TArray<UActorComponent*>::TConstIterator CompIter( CDOComponents ); CompIter; ++CompIter )
+		for ( TInlineComponentArray<UActorComponent*>::TConstIterator CompIter( CDOComponents ); CompIter; ++CompIter )
 		{
 			const UActorComponent* CurComp = *CompIter;
 			check( CurComp );
@@ -5468,11 +5531,11 @@ void CopyActorComponentProperties( const AActor* SourceActor, AActor* DestActor,
 
 		// Construct a mapping from the source actor of its relevant component names to its actual components. Here relevant component names
 		// are those that match a name provided as a parameter.
-		TArray<UActorComponent*> SourceComponents;
+		TInlineComponentArray<UActorComponent*> SourceComponents;
 		SourceActor->GetComponents(SourceComponents);
 
 		TMap<FString, const UActorComponent*> NameToSourceComponentMap;
-		for ( TArray<UActorComponent*>::TConstIterator CompIter( SourceComponents ); CompIter; ++CompIter )
+		for ( TInlineComponentArray<UActorComponent*>::TConstIterator CompIter( SourceComponents ); CompIter; ++CompIter )
 		{
 			const UActorComponent* CurComp = *CompIter;
 			check( CurComp );
@@ -5486,11 +5549,11 @@ void CopyActorComponentProperties( const AActor* SourceActor, AActor* DestActor,
 
 		bool bCopiedAnyProperty = false;
 
-		TArray<UActorComponent*> DestComponents;
+		TInlineComponentArray<UActorComponent*> DestComponents;
 		DestActor->GetComponents(DestComponents);
 
 		// Iterate through all of the destination actor's components to find the ones which should have properties copied into them.
-		for ( TArray<UActorComponent*>::TIterator DestCompIter( DestComponents ); DestCompIter; ++DestCompIter )
+		for ( TInlineComponentArray<UActorComponent*>::TIterator DestCompIter( DestComponents ); DestCompIter; ++DestCompIter )
 		{
 			UActorComponent* CurComp = *DestCompIter;
 			check( CurComp );
@@ -5691,10 +5754,10 @@ void UEditorEngine::ConvertActors( const TArray<AActor*>& ActorsToConvert, UClas
 			.ToolTipText(LOCTEXT("SelectPathTooltip", "Select the path where the static mesh will be created"))
 			.ClientSize(FVector2D(400, 400));
 
-		TSharedPtr<SCreateAssetFromActor> CreateAssetFromActorWidget;
+		TSharedPtr<SCreateAssetFromObject> CreateAssetFromActorWidget;
 		CreateAssetFromActorWindow->SetContent
 			(
-			SAssignNew(CreateAssetFromActorWidget, SCreateAssetFromActor, CreateAssetFromActorWindow)
+			SAssignNew(CreateAssetFromActorWidget, SCreateAssetFromObject, CreateAssetFromActorWindow)
 			.AssetFilenameSuffix(TEXT("StaticMesh"))
 			.HeadingText(LOCTEXT("ConvertBrushesToStaticMesh_Heading", "Static Mesh Name:"))
 			.CreateButtonText(LOCTEXT("ConvertBrushesToStaticMesh_ButtonLabel", "Create Static Mesh"))
@@ -5769,6 +5832,7 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 		if( BrushList.Num() )
 		{
 			AActor* ConvertedBrushActor = ConvertBrushesToStaticMesh(InStaticMeshPackageName, BrushList, CachePivotLocation);
+			ConvertedActors.Add(ConvertedBrushActor);
 
 			// If only one brush is being converted, reattach it to whatever it was attached to before.
 			// Multiple brushes become impossible to reattach due to the single actor returned.
@@ -5957,13 +6021,38 @@ void UEditorEngine::DoConvertActors( const TArray<AActor*>& ActorsToConvert, UCl
 void UEditorEngine::NotifyToolsOfObjectReplacement(const TMap<UObject*, UObject*>& OldToNewInstanceMap)
 {
 	// This can be called early on during startup if blueprints need to be compiled.  
-	// If the property module isn't loaded then there arent any property windows to update
+	// If the property module isn't loaded then there aren't any property windows to update
 	if( FModuleManager::Get().IsModuleLoaded( "PropertyEditor" ) )
 	{
 		FPropertyEditorModule& PropertyEditorModule = FModuleManager::GetModuleChecked<FPropertyEditorModule>( "PropertyEditor" );
 		PropertyEditorModule.ReplaceViewedObjects( OldToNewInstanceMap );
 	}
 
+	// Check to see if any selected components were reinstanced
+	USelection* ComponentSelection = GetSelectedComponents();
+	if (ComponentSelection)
+	{
+		TArray<TWeakObjectPtr<UObject> > SelectedComponents;
+		ComponentSelection->GetSelectedObjects(SelectedComponents);
+
+		ComponentSelection->BeginBatchSelectOperation();
+		for (int32 i = 0; i < SelectedComponents.Num(); ++i)
+		{
+			UObject* Component = SelectedComponents[i].GetEvenIfUnreachable();
+
+			// If the component corresponds to a new instance in the map, update the selection accordingly
+			if (OldToNewInstanceMap.Contains(Component))
+			{
+				if (UActorComponent* NewComponent = CastChecked<UActorComponent>(OldToNewInstanceMap[Component], ECastCheckedType::NullAllowed))
+				{
+					ComponentSelection->Deselect(Component);
+					SelectComponent(NewComponent, true, false);
+				}
+			}
+		}
+		ComponentSelection->EndBatchSelectOperation();
+	}
+	
 	BroadcastObjectsReplaced(OldToNewInstanceMap);
 }
 
@@ -6033,6 +6122,12 @@ bool UEditorEngine::ShouldThrottleCPUUsage() const
 		{
 			return bShouldThrottle = AreAllWindowsHidden();
 		}
+	}
+
+	// Don't throttle during amortized export, greatly increases export time
+	if (IsLightingBuildCurrentlyExporting())
+	{
+		return false;
 	}
 
 	return bShouldThrottle;
@@ -6166,7 +6261,7 @@ TArray<AActor*> UEditorEngine::AddExportTextActors(const FString& ExportText, bo
 	}
 
 	// Use a level factory to spawn all the actors using the ExportText
-	ULevelFactory* Factory = new ULevelFactory(FObjectInitializer());
+	auto Factory = NewObject<ULevelFactory>();
 	FVector Location;
 	{
 		FScopedTransaction Transaction( NSLOCTEXT("UnrealEd", "AddActor", "Add Actor") );
@@ -6993,63 +7088,95 @@ namespace EditorUtilities
 	// TargetComponents array is passed in populated to avoid repeated refetching and StartIndex 
 	// is updated as an optimization based on the assumption that the standard use case is iterating 
 	// over two component arrays that will be parallel in order
-	UActorComponent* FindMatchingComponentInstance( UActorComponent* SourceComponent, AActor* TargetActor, const TArray<UActorComponent*>& TargetComponents, int32& StartIndex )
+	template<class AllocatorType = FDefaultAllocator>
+	UActorComponent* FindMatchingComponentInstance( UActorComponent* SourceComponent, AActor* TargetActor, const TArray<UActorComponent*, AllocatorType>& TargetComponents, int32& StartIndex )
 	{
 		UActorComponent* TargetComponent = StartIndex < TargetComponents.Num() ? TargetComponents[ StartIndex ] : NULL;
 
 		// If the source and target components do not match (e.g. context-specific), attempt to find a match in the target's array elsewhere
 		const int32 NumTargetComponents = TargetComponents.Num();
 		if( (SourceComponent != NULL) 
-			&& (TargetComponent != NULL) 
-			&& (SourceComponent->GetFName() != TargetComponent->GetFName()) )
+			&& ((TargetComponent == NULL) 
+				|| (SourceComponent->GetFName() != TargetComponent->GetFName()) ))
 		{
 			// Reset the target component since it doesn't match the source
 			TargetComponent = NULL;
 
-			// Attempt to locate a match elsewhere in the target's component list
-			const int32 StartingIndex = StartIndex + 1;
-			int32 FindTargetComponentIndex = (StartingIndex >= NumTargetComponents) ? 0 : StartingIndex;
-			do
+			if (NumTargetComponents > 0)
 			{
-				// If we found a match, update the target component and adjust the target index to the matching position
-				UActorComponent* FindTargetComponent = TargetComponents[ FindTargetComponentIndex ];
-				if( FindTargetComponent != NULL && SourceComponent->GetFName() == FindTargetComponent->GetFName() )
+				const bool bSourceIsArchetype = SourceComponent->HasAnyFlags(RF_ArchetypeObject);
+				// Attempt to locate a match elsewhere in the target's component list
+				const int32 StartingIndex = (bSourceIsArchetype ? StartIndex : StartIndex + 1);
+				int32 FindTargetComponentIndex = (StartingIndex >= NumTargetComponents) ? 0 : StartingIndex;
+				do
 				{
-					TargetComponent = FindTargetComponent;
-					StartIndex = FindTargetComponentIndex;
+					UActorComponent* FindTargetComponent = TargetComponents[ FindTargetComponentIndex ];
 
-					break;
-				}
+					// In the case that the SourceComponent is an Archetype there is a better than even chance the name won't match due to the way the SCS
+					// is set up, so we're actually going to reverse search
+					if (bSourceIsArchetype)
+					{
+						if ( SourceComponent == FindTargetComponent->GetArchetype())
+						{
+							TargetComponent = FindTargetComponent;
+							StartIndex = FindTargetComponentIndex;
+							break;
+						}
+					}
+					else
+					{
+						// If we found a match, update the target component and adjust the target index to the matching position
+						UActorComponent* FindTargetComponent = TargetComponents[ FindTargetComponentIndex ];
+						if( FindTargetComponent != NULL && SourceComponent->GetFName() == FindTargetComponent->GetFName() )
+						{
+							TargetComponent = FindTargetComponent;
+							StartIndex = FindTargetComponentIndex;
+							break;
+						}
+					}
 
-				// Increment the index counter, and loop back to 0 if necessary
-				if( ++FindTargetComponentIndex >= NumTargetComponents )
-				{
-					FindTargetComponentIndex = 0;
-				}
-			} while( FindTargetComponentIndex != StartIndex );
+					// Increment the index counter, and loop back to 0 if necessary
+					if( ++FindTargetComponentIndex >= NumTargetComponents )
+					{
+						FindTargetComponentIndex = 0;
+					}
 
-			// If we still haven't found a match and we're targeting a class default object
+				} while( FindTargetComponentIndex != StartIndex );
+			}
+
+			// If we still haven't found a match and we're targeting a class default object what we're really looking
+			// for is the Archetype
 			if(TargetComponent == NULL && TargetActor->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject))
 			{
-				// Check for a Blueprint inheritance hierarchy
-				TArray<UBlueprint*> ParentBPStack;
-				UBlueprint::GetBlueprintHierarchyFromClass(TargetActor->GetClass(), ParentBPStack);
-				for(int32 StackIndex = 0; StackIndex < ParentBPStack.Num() && TargetComponent == NULL; ++StackIndex)
+				TargetComponent = CastChecked<UActorComponent>(SourceComponent->GetArchetype(), ECastCheckedType::NullAllowed);
+
+				// If the returned target component is not from the direct class of the actor we're targeting, we need to insert an inheritable component
+				if (TargetComponent && (TargetComponent->GetOuter() != TargetActor->GetClass()))
 				{
-					// For each Blueprint in the hierarchy, look for a match in the SCS if valid
-					UBlueprint* Blueprint = ParentBPStack[StackIndex];
-					if(Blueprint != NULL && Blueprint->SimpleConstructionScript != NULL)
+					// This component doesn't exist in the hierarchy anywhere and we're not going to modify the CDO, so we'll drop it
+					if (TargetComponent->HasAnyFlags(RF_ClassDefaultObject))
 					{
-						const TArray<USCS_Node*> AllSCSNodes = Blueprint->SimpleConstructionScript->GetAllNodes();
-						for(int32 SCSNodeIndex = 0; SCSNodeIndex < AllSCSNodes.Num(); ++SCSNodeIndex)
+						TargetComponent = nullptr;
+					}
+					else
+					{
+						UBlueprintGeneratedClass* BPGC = CastChecked<UBlueprintGeneratedClass>(TargetActor->GetClass());
+						UBlueprint* Blueprint = CastChecked<UBlueprint>(BPGC->ClassGeneratedBy);
+						UInheritableComponentHandler* InheritableComponentHandler = Blueprint->GetInheritableComponentHandler(true);
+						if (InheritableComponentHandler)
 						{
-							USCS_Node* SCS_Node = AllSCSNodes[SCSNodeIndex];
-							if(SCS_Node != NULL && SourceComponent->GetFName() == SCS_Node->GetVariableName())
+							BPGC = Cast<UBlueprintGeneratedClass>(BPGC->GetSuperClass());
+							USCS_Node* SCSNode = nullptr;
+							while (BPGC)
 							{
-								// Found it!
-								TargetComponent = SCS_Node->ComponentTemplate;
-								break;
+								SCSNode = BPGC->SimpleConstructionScript->FindSCSNode(SourceComponent->GetFName());
+								BPGC = (SCSNode ? nullptr : Cast<UBlueprintGeneratedClass>(BPGC->GetSuperClass()));
 							}
+							check(SCSNode);
+
+							FComponentKey Key(SCSNode);
+							check(InheritableComponentHandler->GetOverridenComponentTemplate(Key) == nullptr);
+							TargetComponent = InheritableComponentHandler->CreateOverridenComponentTemplate(Key);
 						}
 					}
 				}
@@ -7062,12 +7189,12 @@ namespace EditorUtilities
 
 	UActorComponent* FindMatchingComponentInstance( UActorComponent* SourceComponent, AActor* TargetActor )
 	{
-		TArray<UActorComponent*> TargetComponents;
 		UActorComponent* MatchingComponent = NULL;
 		int32 StartIndex = 0;
 
 		if (TargetActor)
 		{
+			TInlineComponentArray<UActorComponent*> TargetComponents;
 			TargetActor->GetComponents(TargetComponents);
 			MatchingComponent = FindMatchingComponentInstance( SourceComponent, TargetActor, TargetComponents, StartIndex );
 		}
@@ -7109,7 +7236,7 @@ namespace EditorUtilities
 					else if (SourceObjectPropertyValue->IsA(UActorComponent::StaticClass()) && InTargetObject->IsA(AActor::StaticClass()))
 					{
 						AActor* const TargetActor = Cast<AActor>(InTargetObject);
-						TArray<UActorComponent*> TargetComponents;
+						TInlineComponentArray<UActorComponent*> TargetComponents;
 						TargetActor->GetComponents(TargetComponents);
 
 						// We can try and fix-up an actor component reference from the PIE world to instead be the version from the persistent world
@@ -7185,7 +7312,7 @@ namespace EditorUtilities
 
 		// Get archetype instances for propagation (if requested)
 		TArray<UObject*> ArchetypeInstances;
-		if( Options & ECopyOptions::PropagateChangesToArcheypeInstances )
+		if( Options & ECopyOptions::PropagateChangesToArchetypeInstances )
 		{
 			TargetActor->GetArchetypeInstances(ArchetypeInstances);
 		}
@@ -7201,10 +7328,10 @@ namespace EditorUtilities
 				const bool bIsTransient = !!( Property->PropertyFlags & CPF_Transient );
 				const bool bIsComponentContainer = !!( Property->PropertyFlags & CPF_ContainsInstancedReference );
 				const bool bIsComponentProp = !!( Property->PropertyFlags & ( CPF_InstancedReference | CPF_ContainsInstancedReference ) );
-				const bool bIsReadonly = !!( Property->PropertyFlags & CPF_BlueprintReadOnly );
+				const bool bIsBlueprintReadonly = !!(Options & ECopyOptions::FilterBlueprintReadOnly) && !!( Property->PropertyFlags & CPF_BlueprintReadOnly );
 				const bool bIsIdentical = Property->Identical_InContainer( SourceActor, TargetActor );
 
-				if( !bIsTransient && !bIsIdentical && !bIsComponentContainer && !bIsComponentProp && !bIsReadonly && Property->GetName() != TEXT( "Tag" ) )
+				if( !bIsTransient && !bIsIdentical && !bIsComponentContainer && !bIsComponentProp && !bIsBlueprintReadonly && Property->GetName() != TEXT( "Tag" ) )
 				{
 					const bool bIsSafeToCopy = !( Options & ECopyOptions::OnlyCopyEditOrInterpProperties ) || ( Property->HasAnyPropertyFlags( CPF_Edit | CPF_Interp ) );
 					if( bIsSafeToCopy )
@@ -7224,7 +7351,7 @@ namespace EditorUtilities
 
 							// Determine which archetype instances match the current property value of the target actor (before it gets changed). We only want to propagate the change to those instances.
 							TArray<UObject*> ArchetypeInstancesToChange;
-							if( Options & ECopyOptions::PropagateChangesToArcheypeInstances )
+							if( Options & ECopyOptions::PropagateChangesToArchetypeInstances )
 							{
 								for( int32 InstanceIndex = 0; InstanceIndex < ArchetypeInstances.Num(); ++InstanceIndex )
 								{
@@ -7244,7 +7371,7 @@ namespace EditorUtilities
 								TargetActor->PostEditChangeProperty( PropertyChangedEvent );
 							}
 
-							if( Options & ECopyOptions::PropagateChangesToArcheypeInstances )
+							if( Options & ECopyOptions::PropagateChangesToArchetypeInstances )
 							{
 								for( int32 InstanceIndex = 0; InstanceIndex < ArchetypeInstancesToChange.Num(); ++InstanceIndex )
 								{
@@ -7278,8 +7405,8 @@ namespace EditorUtilities
 		}
 
 		// Copy component properties from source to target if they match. Note that the component lists may not be 1-1 due to context-specific components (e.g. editor-only sprites, etc.).
-		TArray<UActorComponent*> SourceComponents;
-		TArray<UActorComponent*> TargetComponents;
+		TInlineComponentArray<UActorComponent*> SourceComponents;
+		TInlineComponentArray<UActorComponent*> TargetComponents;
 
 		SourceActor->GetComponents(SourceComponents);
 		TargetActor->GetComponents(TargetComponents);
@@ -7298,7 +7425,7 @@ namespace EditorUtilities
 
 				// Build a list of matching component archetype instances for propagation (if requested)
 				TArray<UActorComponent*> ComponentArchetypeInstances;
-				if( Options & ECopyOptions::PropagateChangesToArcheypeInstances )
+				if( Options & ECopyOptions::PropagateChangesToArchetypeInstances )
 				{
 					for( int32 InstanceIndex = 0; InstanceIndex < ArchetypeInstances.Num(); ++InstanceIndex )
 					{
@@ -7348,7 +7475,7 @@ namespace EditorUtilities
 
 								// Determine which component archetype instances match the current property value of the target component (before it gets changed). We only want to propagate the change to those instances.
 								TArray<UActorComponent*> ComponentArchetypeInstancesToChange;
-								if( Options & ECopyOptions::PropagateChangesToArcheypeInstances )
+								if( Options & ECopyOptions::PropagateChangesToArchetypeInstances )
 								{
 									for( int32 InstanceIndex = 0; InstanceIndex < ComponentArchetypeInstances.Num(); ++InstanceIndex )
 									{
@@ -7368,7 +7495,7 @@ namespace EditorUtilities
 									TargetActor->PostEditChangeProperty( PropertyChangedEvent );
 								}
 
-								if( Options & ECopyOptions::PropagateChangesToArcheypeInstances )
+								if( Options & ECopyOptions::PropagateChangesToArchetypeInstances )
 								{
 									for( int32 InstanceIndex = 0; InstanceIndex < ComponentArchetypeInstancesToChange.Num(); ++InstanceIndex )
 									{
@@ -7379,7 +7506,7 @@ namespace EditorUtilities
 											{
 												// Ensure that this instance will be included in any undo/redo operations, and record it into the transaction buffer.
 												// Note: We don't do this for components that originate from script, because they will be re-instanced from the template after an undo, so there is no need to record them.
-												if(!ComponentArchetypeInstance->bCreatedByConstructionScript)
+												if (!ComponentArchetypeInstance->IsCreatedByConstructionScript())
 												{
 													ComponentArchetypeInstance->SetFlags(RF_Transactional);
 													ComponentArchetypeInstance->Modify();
@@ -7416,6 +7543,10 @@ namespace EditorUtilities
 			}
 		}
 
+		if (!bIsPreviewing && CopiedPropertyCount > 0 && TargetActor->HasAnyFlags(RF_ClassDefaultObject|RF_ArchetypeObject) && TargetActor->GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
+		{
+			FBlueprintEditorUtils::PostEditChangeBlueprintActors(CastChecked<UBlueprint>(TargetActor->GetClass()->ClassGeneratedBy));
+		}
 
 		// If one of the changed properties was part of the actor's transformation, then we'll call PostEditMove too.
 		if( !bIsPreviewing && bTransformChanged )

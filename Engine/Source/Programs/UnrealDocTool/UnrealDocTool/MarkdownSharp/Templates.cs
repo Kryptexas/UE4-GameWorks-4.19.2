@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
@@ -343,6 +343,16 @@ namespace MarkdownSharp
         public static TemplateFile RelatedPages
         {
             get { return GetCached("relatedPages.html"); }
+        }
+
+        public static TemplateFile PrereqPages
+        {
+            get { return GetCached("prereqPages.html"); }
+        }
+
+        public static TemplateFile Versions
+        {
+            get { return GetCached("Version.html"); }
         }
 
         public static TemplateFile MissingTemplate

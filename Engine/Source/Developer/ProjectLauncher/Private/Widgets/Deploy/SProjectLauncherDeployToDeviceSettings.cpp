@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ProjectLauncherPrivatePCH.h"
 #include "SExpandableArea.h"
@@ -49,20 +49,20 @@ void SProjectLauncherDeployToDeviceSettings::Construct( const FArguments& InArgs
 								SNew(SVerticalBox)
 
 								+ SVerticalBox::Slot()
-									.AutoHeight()
+								.AutoHeight()
+								[
+									// incremental cook check box
+									SNew(SCheckBox)
+									.IsChecked(this, &SProjectLauncherDeployToDeviceSettings::HandleIncrementalCheckBoxIsChecked)
+									.OnCheckStateChanged(this, &SProjectLauncherDeployToDeviceSettings::HandleIncrementalCheckBoxCheckStateChanged)
+									.Padding(FMargin(4.0f, 0.0f))
+									.ToolTipText(LOCTEXT("IncrementalCheckBoxTooltip", "If checked, only modified content will be deployed, resulting in much faster deploy times. It is recommended to enable this option whenever possible."))
+									.Content()
 									[
-										// unreal pak check box
-										SNew(SCheckBox)
-											.IsChecked(this, &SProjectLauncherDeployToDeviceSettings::HandleUnrealPakCheckBoxIsChecked)
-											.OnCheckStateChanged(this, &SProjectLauncherDeployToDeviceSettings::HandleUnrealPakCheckBoxCheckStateChanged)
-											.Padding(FMargin(4.0f, 0.0f))
-											.ToolTipText(LOCTEXT("UnrealPakCheckBoxTooltip", "If checked, the content will be deployed as a single UnrealPak file instead of many separate files."))
-											.Content()
-											[
-												SNew(STextBlock)
-													.Text(LOCTEXT("UnrealPakCheckBoxText", "Store all content in a single file (UnrealPak)"))
-											]
+										SNew(STextBlock)
+										.Text(LOCTEXT("IncrementalCheckBoxText", "Only deploy modified content"))
 									]
+								]
 							]
 					]
 			]
@@ -73,31 +73,31 @@ void SProjectLauncherDeployToDeviceSettings::Construct( const FArguments& InArgs
 /* SProjectLauncherDeployToDeviceSettings callbacks
  *****************************************************************************/
 
-void SProjectLauncherDeployToDeviceSettings::HandleUnrealPakCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState )
+
+void SProjectLauncherDeployToDeviceSettings::HandleIncrementalCheckBoxCheckStateChanged( ECheckBoxState NewState )
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
-		SelectedProfile->SetDeployWithUnrealPak(NewState == ESlateCheckBoxState::Checked);
+		SelectedProfile->SetIncrementalDeploying(NewState == ECheckBoxState::Checked);
 	}
 }
 
 
-ESlateCheckBoxState::Type SProjectLauncherDeployToDeviceSettings::HandleUnrealPakCheckBoxIsChecked( ) const
+ECheckBoxState SProjectLauncherDeployToDeviceSettings::HandleIncrementalCheckBoxIsChecked( ) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
-		if (SelectedProfile->IsPackingWithUnrealPak())
+		if (SelectedProfile->IsDeployingIncrementally())
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
-
 
 #undef LOCTEXT_NAMESPACE

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemPrivatePCH.h"
 #include "LANBeacon.h"
@@ -130,7 +130,7 @@ bool FLANSession::Host(FOnValidQueryPacketDelegate& QueryDelegate)
 	LanBeacon = new FLanBeacon();
 	if (LanBeacon->Init(LanAnnouncePort))
 	{
-		AddOnValidQueryPacketDelegate(QueryDelegate);
+		AddOnValidQueryPacketDelegate_Handle(QueryDelegate);
 		// We successfully created everything so mark the socket as needing polling
 		LanBeaconState = ELanBeaconState::Hosting;
 		bSuccess = true;
@@ -178,8 +178,8 @@ bool FLANSession::Search(FNboSerializeToBuffer& Packet, FOnValidResponsePacketDe
 			// Set the timestamp for timing out a search
 			LanQueryTimeLeft = LanQueryTimeout;
 
-			AddOnValidResponsePacketDelegate(ResponseDelegate);
-			AddOnSearchingTimeoutDelegate(TimeoutDelegate);
+			AddOnValidResponsePacketDelegate_Handle(ResponseDelegate);
+			AddOnSearchingTimeoutDelegate_Handle(TimeoutDelegate);
 		}
 		else
 		{
@@ -212,6 +212,11 @@ void FLANSession::StopLANSession()
 
 void FLANSession::Tick(float DeltaTime)
 {
+	if (LanBeaconState == ELanBeaconState::NotUsingLanBeacon)
+	{
+		return;
+	}
+
 	uint8 PacketData[LAN_BEACON_MAX_PACKET_SIZE];
 	bool bShouldRead = true;
 	// Read each pending packet and pass it out for processing

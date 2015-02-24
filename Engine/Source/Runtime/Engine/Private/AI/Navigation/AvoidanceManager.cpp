@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "EnginePrivate.h"
 #include "GameFramework/MovementComponent.h"
@@ -22,7 +22,7 @@ FNavAvoidanceData::FNavAvoidanceData(UAvoidanceManager* Manager, IRVOAvoidanceIn
 		);
 }
 
-void FNavAvoidanceData::Init(class UAvoidanceManager* Avoidance, const FVector& InCenter, float InRadius, float InHeight,
+void FNavAvoidanceData::Init(UAvoidanceManager* Avoidance, const FVector& InCenter, float InRadius, float InHeight,
 							 const FVector& InVelocity, float InWeight,
 							 int32 InGroupMask, int32 InGroupsToAvoid, int32 InGroupsToIgnore,
 							 float InTestRadius2D)
@@ -108,7 +108,7 @@ void UAvoidanceManager::RequestUpdateTimer()
 	if (!bRequestedUpdateTimer && MyWorld)
 	{
 		bRequestedUpdateTimer = true;
-		MyWorld->GetTimerManager().SetTimer(this, &UAvoidanceManager::RemoveOutdatedObjects, DefaultTimeToLive * 0.5f, false);
+		MyWorld->GetTimerManager().SetTimer(TimerHandle_RemoveOutdatedObjects, this, &UAvoidanceManager::RemoveOutdatedObjects, DefaultTimeToLive * 0.5f, false);
 	}
 }
 
@@ -353,7 +353,7 @@ FVector UAvoidanceManager::GetAvoidanceVelocity_Internal(const FNavAvoidanceData
 			float RadiusB = OtherObject.Radius + inAvoidanceData.Radius;
 
 			PointBRelative.Z = 0.0f;
-			TowardB = PointBRelative.SafeNormal2D();		//Don't care about height for this game. Rough height-checking will come in later, but even then it will be acceptable to do this.
+			TowardB = PointBRelative.GetSafeNormal2D();		//Don't care about height for this game. Rough height-checking will come in later, but even then it will be acceptable to do this.
 			if (TowardB.IsZero())
 			{
 				//Already intersecting, or aligned vertically, scrap this whole object.

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "UnrealEd.h"
@@ -7,6 +7,7 @@
 #include "AnimPreviewInstance.h"
 #include "Animation/VertexAnim/VertexAnimation.h"
 #include "Animation/AnimInstance.h"
+#include "Animation/BlendSpace.h"
 
 //////////////////////////////////////////////////////////////////////////
 // FDebugSkelMeshSceneProxy
@@ -24,7 +25,7 @@ public:
 	* Constructor. 
 	* @param	Component - skeletal mesh primitive being added
 	*/
-	FDebugSkelMeshSceneProxy(const UDebugSkelMeshComponent* InComponent, FSkeletalMeshResource* InSkelMeshResource, const FColor& InWireframeOverlayColor = FColor(255, 255, 255)) :
+	FDebugSkelMeshSceneProxy(const UDebugSkelMeshComponent* InComponent, FSkeletalMeshResource* InSkelMeshResource, const FColor& InWireframeOverlayColor = FColor::White) :
 		FSkeletalMeshSceneProxy( InComponent, InSkelMeshResource )
 	{
 		SkeletalMeshComponent = InComponent;
@@ -56,33 +57,6 @@ public:
 					SkeletalMeshComponent->MeshObject->DrawVertexElements(Collector.GetPDI(ViewIndex), SkeletalMeshComponent->ComponentToWorld, SkeletalMeshComponent->bDrawNormals, SkeletalMeshComponent->bDrawTangents, SkeletalMeshComponent->bDrawBinormals);
 				}
 			}
-		}
-	}
-
-	/** 
-	* Draw the scene proxy as a dynamic element
-	*
-	* @param	PDI - draw interface to render to
-	* @param	View - current view
-	*/
-	virtual void DrawDynamicElements(FPrimitiveDrawInterface* PDI,const FSceneView* View)
-	{
-		// We don't want to draw the mesh geometry to the hit testing render target
-		// so that we can get to triangle strips that are partially obscured by other
-		// triangle strips easier.
-		if (!PDI->IsHitTesting())
-		{
-			if (SkeletalMeshComponent->bDrawMesh)
-			{
-				// Draw the mesh
-				FSkeletalMeshSceneProxy::DrawDynamicElements(PDI, View);
-			}
-			
-		}
-
-		if( SkeletalMeshComponent->MeshObject && (SkeletalMeshComponent->bDrawNormals || SkeletalMeshComponent->bDrawTangents || SkeletalMeshComponent->bDrawBinormals) )
-		{
-			SkeletalMeshComponent->MeshObject->DrawVertexElements(PDI, SkeletalMeshComponent->ComponentToWorld, SkeletalMeshComponent->bDrawNormals, SkeletalMeshComponent->bDrawTangents, SkeletalMeshComponent->bDrawBinormals);
 		}
 	}
 
@@ -129,7 +103,8 @@ FBoxSphereBounds UDebugSkelMeshComponent::CalcBounds(const FTransform& LocalToWo
 	{
 		// extend bounds by bones but without root bone
 		FBox BoundingBox(0);
-		for (int32 BoneIndex = 1; BoneIndex < SpaceBases.Num(); ++ BoneIndex)
+		const int32 NumBones = GetNumSpaceBases();
+		for (int32 BoneIndex = 1; BoneIndex < NumBones; ++BoneIndex)
 		{
 			BoundingBox += GetBoneMatrix(BoneIndex).GetOrigin();
 		}
@@ -424,49 +399,84 @@ void UDebugSkelMeshComponent::SetShowBoneWeight(bool bNewShowBoneWeight)
 	bDrawBoneInfluences = bNewShowBoneWeight;
 }
 
+void UDebugSkelMeshComponent::GenSpaceBases(TArray<FTransform>& OutSpaceBases)
+{
+	TArray<FTransform> TempLocalAtoms;
+	TArray<FActiveVertexAnim> TempVertexAnims;
+	FVector TempRootBoneTranslation;
+	PerformAnimationEvaluation(SkeletalMesh, AnimScriptInstance, OutSpaceBases, CachedLocalAtoms, TempVertexAnims, TempRootBoneTranslation);
+}
+
 void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
+	const bool bIsPreviewInstance = (PreviewInstance && PreviewInstance == AnimScriptInstance);
+
+	BakedAnimationPoses.Empty();
+	if(bDisplayBakedAnimation && bIsPreviewInstance && PreviewInstance->RequiredBones.IsValid())
+	{
+		if(UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->CurrentAsset))
+		{
+			BakedAnimationPoses.AddUninitialized(PreviewInstance->RequiredBones.GetNumBones());
+			bool bSavedUseSourceData = AnimScriptInstance->RequiredBones.ShouldUseSourceData();
+			AnimScriptInstance->RequiredBones.SetUseRAWData(true);
+			AnimScriptInstance->RequiredBones.SetUseSourceData(false);
+			PreviewInstance->EnableControllers(false);
+			GenSpaceBases(BakedAnimationPoses);
+			AnimScriptInstance->RequiredBones.SetUseRAWData(false);
+			AnimScriptInstance->RequiredBones.SetUseSourceData(bSavedUseSourceData);
+			PreviewInstance->EnableControllers(true);
+		}
+	}
+
+	SourceAnimationPoses.Empty();
+	if(bDisplaySourceAnimation && bIsPreviewInstance && PreviewInstance->RequiredBones.IsValid())
+	{
+		if(UAnimSequence* Sequence = Cast<UAnimSequence>(PreviewInstance->CurrentAsset))
+		{
+			SourceAnimationPoses.AddUninitialized(PreviewInstance->RequiredBones.GetNumBones());
+			bool bSavedUseSourceData = AnimScriptInstance->RequiredBones.ShouldUseSourceData();
+			AnimScriptInstance->RequiredBones.SetUseSourceData(true);
+			PreviewInstance->EnableControllers(false);
+			GenSpaceBases(SourceAnimationPoses);
+			AnimScriptInstance->RequiredBones.SetUseSourceData(bSavedUseSourceData);
+			PreviewInstance->EnableControllers(true);
+		}
+	}
+
+	bool bGenerateRAWAnimation = bDisplayRawAnimation && AnimScriptInstance && AnimScriptInstance->RequiredBones.IsValid();
+
+	if (bGenerateRAWAnimation)
+	{
+		AnimScriptInstance->RequiredBones.SetUseRAWData(true);
+	}
+
 	// Run regular update first so we get RequiredBones up to date.
 	Super::RefreshBoneTransforms(NULL); // Pass NULL so we force non threaded work
+
+	if (bGenerateRAWAnimation)
+	{
+		AnimScriptInstance->RequiredBones.SetUseRAWData(false);
+	}
 
 	// Non retargeted pose.
 	NonRetargetedSpaceBases.Empty();
 	if( bDisplayNonRetargetedPose && AnimScriptInstance && AnimScriptInstance->RequiredBones.IsValid() )
 	{
-		TArray<FTransform> BackupSpaceBases = SpaceBases;
-
+		NonRetargetedSpaceBases.AddUninitialized(PreviewInstance->RequiredBones.GetNumBones());
 		AnimScriptInstance->RequiredBones.SetDisableRetargeting(true);
-		Super::RefreshBoneTransforms(NULL);
+		GenSpaceBases(NonRetargetedSpaceBases);
 		AnimScriptInstance->RequiredBones.SetDisableRetargeting(false);
-
-		NonRetargetedSpaceBases = SpaceBases;
-		SpaceBases = BackupSpaceBases;
 	}
 
-	if( bDisplayRawAnimation )
+	if (bDisplayRawAnimation)
 	{
-		// save the transform in CompressedSpaceBases
-		CompressedSpaceBases = SpaceBases;
-
-		// use raw data now
-		if( AnimScriptInstance && AnimScriptInstance->RequiredBones.IsValid() )
-		{
-			AnimScriptInstance->RequiredBones.SetUseRAWData(true);
-			Super::RefreshBoneTransforms(NULL);
-			AnimScriptInstance->RequiredBones.SetUseRAWData(false);
-		}
-		// Otherwise we'll just get ref pose.
-		else
-		{
-			Super::RefreshBoneTransforms(NULL);
-		}
+		// Generate the normal compressed space bases
+		GenSpaceBases(CompressedSpaceBases);
 	}
 	else
 	{
 		CompressedSpaceBases.Empty();
 	}
-
-	const bool bIsPreviewInstance = (PreviewInstance && PreviewInstance == AnimScriptInstance);
 
 	// Only works in PreviewInstance, and not for anim blueprint. This is intended.
 	AdditiveBasePoses.Empty();

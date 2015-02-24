@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "GameFramework/Info.h"
@@ -208,8 +208,7 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 
 	/** 
 	 * Enables tools for composing a tiled world. 
-	 * Level has to be saved to enable this option.
-	 * Warning: Enabling this option will remove all streaming levels from your persistent level.
+	 * Level has to be saved and all sub-levels removed before enabling this option.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=World)
 	uint32 bEnableWorldComposition:1;
@@ -359,17 +358,9 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY()
 	class UBookMark* BookMarks[10];
 
-	/** Clip pad entries */
-	UPROPERTY()
-	TArray<class UDEPRECATED_ClipPadEntry*> ClipPadEntries_DEPRECATED;
-
 #endif // WITH_EDITORONLY_DATA
 	/************************************/
 
-	/** Level collection. ULevels are referenced by FName (Package name) to avoid serialized references. Also contains offsets in world units */
-	UPROPERTY()
-	TArray<class ULevelStreaming*> StreamingLevels_DEPRECATED;
-	
 	/** 
 	 * Normally 1 - scales real time passage.
 	 * Warning - most use cases should use GetEffectiveTimeDilation() instead of reading from this directly
@@ -466,8 +457,5 @@ private:
 	HIDE_ACTOR_TRANSFORM_FUNCTIONS();
 
 	virtual void Serialize( FArchive& Ar ) override;
-
-	/** Toggles world composition mode */
-	void EnabledWorldComposition(bool bEnable);
 };
 

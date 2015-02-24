@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "GraphEditorCommon.h"
 #include "SGraphNodeAnimState.h"
@@ -178,7 +178,7 @@ void SGraphNodeAnimState::UpdateGraphNode()
 	TSharedPtr<SNodeTitle> NodeTitle = SNew(SNodeTitle, GraphNode);
 
 	this->ContentScale.Bind( this, &SGraphNode::GetContentScale );
-	this->ChildSlot
+	this->GetOrAddSlot( ENodeZone::Center )
 		.HAlign(HAlign_Center)
 		.VAlign(VAlign_Center)
 		[
@@ -313,11 +313,11 @@ TSharedPtr<SToolTip> SGraphNodeAnimState::GetComplexTooltip()
 		];
 }
 
-FString SGraphNodeAnimState::GetPreviewCornerText() const
+FText SGraphNodeAnimState::GetPreviewCornerText() const
 {
 	UAnimStateNodeBase* StateNode = CastChecked<UAnimStateNodeBase>(GraphNode);
 
-	return FString::Printf(TEXT("%s state"), *StateNode->GetStateName());
+	return FText::Format(NSLOCTEXT("SGraphNodeAnimState", "PreviewCornerStateText", "{0} state"), FText::FromString(StateNode->GetStateName()));
 }
 
 const FSlateBrush* SGraphNodeAnimState::GetNameIcon() const
@@ -338,11 +338,11 @@ void SGraphNodeAnimConduit::GetNodeInfoPopups(FNodeInfoContext* Context, TArray<
 	// Intentionally empty.
 }
 
-FString SGraphNodeAnimConduit::GetPreviewCornerText() const
+FText SGraphNodeAnimConduit::GetPreviewCornerText() const
 {
 	UAnimStateNodeBase* StateNode = CastChecked<UAnimStateNodeBase>(GraphNode);
 
-	return FString::Printf(TEXT("%s conduit"), *StateNode->GetStateName());
+	return FText::Format(NSLOCTEXT("SGraphNodeAnimState", "PreviewCornerConduitText", "{0} conduit"), FText::FromString(StateNode->GetStateName()));
 }
 
 const FSlateBrush* SGraphNodeAnimConduit::GetNameIcon() const

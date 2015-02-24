@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	PoseableMeshComponent.cpp: UPoseableMeshComponent methods.
@@ -35,6 +35,7 @@ bool UPoseableMeshComponent::AllocateTransformData()
 		}
 
 		FillSpaceBases();
+		FlipEditableSpaceBases();
 
 		return true;
 	}
@@ -55,13 +56,14 @@ void UPoseableMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* 
 	}
 
 	// Do nothing more if no bones in skeleton.
-	if( SpaceBases.Num() == 0 )
+	if( GetNumSpaceBases() == 0 )
 	{
 		return;
 	}
 
 	// We need the mesh space bone transforms now for renderer to get delta from ref pose:
 	FillSpaceBases();
+	FlipEditableSpaceBases();
 
 	MarkRenderDynamicDataDirty();
 }
@@ -77,7 +79,7 @@ void UPoseableMeshComponent::FillSpaceBases()
 
 	// right now all this does is to convert to SpaceBases
 	check( SkeletalMesh->RefSkeleton.GetNum() == LocalAtoms.Num() );
-	check( SkeletalMesh->RefSkeleton.GetNum() == SpaceBases.Num() );
+	check( SkeletalMesh->RefSkeleton.GetNum() == GetNumSpaceBases());
 	check( SkeletalMesh->RefSkeleton.GetNum() == BoneVisibilityStates.Num() );
 
 	const int32 NumBones = LocalAtoms.Num();
@@ -89,9 +91,9 @@ void UPoseableMeshComponent::FillSpaceBases()
 #endif
 	// Build in 3 passes.
 	FTransform* LocalTransformsData = LocalAtoms.GetData(); 
-	FTransform* SpaceBasesData = SpaceBases.GetData();
+	FTransform* SpaceBasesData = GetEditableSpaceBases().GetData();
 	
-	SpaceBases[0] = LocalAtoms[0];
+	GetEditableSpaceBases()[0] = LocalAtoms[0];
 #if (UE_BUILD_DEBUG || UE_BUILD_DEVELOPMENT)
 	BoneProcessed[0] = 1;
 #endif
@@ -114,9 +116,10 @@ void UPoseableMeshComponent::FillSpaceBases()
 #endif
 		FTransform::Multiply(SpaceBasesData + BoneIndex, LocalTransformsData + BoneIndex, SpaceBasesData + ParentIndex);
 
-		checkSlow( SpaceBases[BoneIndex].IsRotationNormalized() );
-		checkSlow( !SpaceBases[BoneIndex].ContainsNaN() );
+		checkSlow(GetEditableSpaceBases()[BoneIndex].IsRotationNormalized());
+		checkSlow(!GetEditableSpaceBases()[BoneIndex].ContainsNaN());
 	}
+	bNeedToFlipSpaceBaseBuffers = true;
 }
 
 void UPoseableMeshComponent::SetBoneTransformByName(FName BoneName, const FTransform& InTransform, EBoneSpaces::Type BoneSpace)

@@ -1,9 +1,7 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "SlateCorePrivatePCH.h"
-
-// this define is the first step to complete removal of the below hack
-#define PLATFORM_SPECIFIC_HACK 	0
+#include "HittestGrid.h"
 
 namespace SWindowDefs
 {
@@ -200,6 +198,11 @@ void SWindow::Construct(const FArguments& InArgs)
 	this->bHasSizingFrame = !InArgs._IsPopupWindow && InArgs._SizingRule == ESizingRule::UserSized;
 	this->LayoutBorder = InArgs._LayoutBorder;
 	this->UserResizeBorder = InArgs._UserResizeBorder;
+	this->SizeLimits = FWindowSizeLimits()
+		.SetMinWidth(InArgs._MinWidth)
+		.SetMinHeight(InArgs._MinHeight)
+		.SetMaxWidth(InArgs._MaxWidth)
+		.SetMaxHeight(InArgs._MaxHeight);
 	
 	// calculate window size from client size
 	const bool bCreateTitleBar = InArgs._CreateTitleBar && !bIsPopupWindow && !bIsCursorDecoratorWindow && !bHasOSWindowBorder;
@@ -511,6 +514,15 @@ bool SWindow::HasActiveChildren() const
 	return false;
 }
 
+TSharedRef<FHittestGrid> SWindow::GetHittestGrid()
+{
+	return HittestGrid;
+}
+
+FWindowSizeLimits SWindow::GetSizeLimits() const
+{
+	return SizeLimits;
+}
 
 void SWindow::Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime )
 {
@@ -701,6 +713,15 @@ void SWindow::MoveWindowTo( FVector2D NewPosition )
 {
 	if (NativeWindow.IsValid())
 	{
+#if PLATFORM_LINUX
+		// Slate code often expects cached screen position to be accurate immediately after the move.
+		// This expectation is generally invalid (see UE-1308) as there may be a delay before the OS reports it back.
+		// This hack sets the position speculatively, keeping Slate happy while also giving the OS chance to report it
+		// correctly after or even during the actual call.
+		FVector2D SpeculativeScreenPosition(FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y));
+		SetCachedScreenPosition(SpeculativeScreenPosition);
+#endif // PLATFORM_LINUX
+
 		NativeWindow->MoveWindowTo( FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y) );
 	}
 	else
@@ -713,6 +734,15 @@ void SWindow::ReshapeWindow( FVector2D NewPosition, FVector2D NewSize )
 {
 	if (NativeWindow.IsValid())
 	{
+#if PLATFORM_LINUX
+		// Slate code often expects cached screen position to be accurate immediately after the move.
+		// This expectation is generally invalid (see UE-1308) as there may be a delay before the OS reports it back.
+		// This hack sets the position speculatively, keeping Slate happy while also giving the OS chance to report it
+		// correctly after or even during the actual call.
+		FVector2D SpeculativeScreenPosition(FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y));
+		SetCachedScreenPosition(SpeculativeScreenPosition);
+#endif // PLATFORM_LINUX
+
 		NativeWindow->ReshapeWindow( FMath::TruncToInt(NewPosition.X), FMath::TruncToInt(NewPosition.Y), FMath::TruncToInt(NewSize.X), FMath::TruncToInt(NewSize.Y) );
 	}
 	else
@@ -1373,6 +1403,7 @@ FReply SWindow::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEv
 #endif
 	if (bDragAnywhere && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
+		MoveResizeZone = WindowZone;
 		return FReply::Handled().CaptureMouse(SharedThis(this));
 	}
 	else
@@ -1383,15 +1414,9 @@ FReply SWindow::OnMouseButtonDown( const FGeometry& MyGeometry, const FPointerEv
 
 FReply SWindow::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-#if PLATFORM_SPECIFIC_HACK && PLATFORM_LINUX
-	if (MoveResizeZone != EWindowZone::Unspecified && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
-	{
-		MoveResizeZone =  EWindowZone::Unspecified;
-		return FReply::Handled().ReleaseMouseCapture();
-	}
-#endif
 	if (bDragAnywhere &&  this->HasMouseCapture() && MouseEvent.GetEffectingButton() == EKeys::LeftMouseButton)
 	{
+		MoveResizeZone =  EWindowZone::Unspecified;
 		return FReply::Handled().ReleaseMouseCapture();
 	}
 	else
@@ -1402,111 +1427,7 @@ FReply SWindow::OnMouseButtonUp( const FGeometry& MyGeometry, const FPointerEven
 
 FReply SWindow::OnMouseMove( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
 {
-#if PLATFORM_SPECIFIC_HACK && PLATFORM_LINUX
-	if (MoveResizeZone == EWindowZone::TopLeftBorder)
-	{
-		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
-		if (NativeWindow.IsValid())
-		{
-			NativeWindow->ReshapeWindow(
-				FMath::TruncToInt(MoveResizeRect.Left + MoveResizeOffset.X), FMath::TruncToInt(MoveResizeRect.Top + MoveResizeOffset.Y),
-				FMath::TruncToInt(MoveResizeRect.Right - MoveResizeRect.Left - MoveResizeOffset.X), FMath::TruncToInt(MoveResizeRect.Bottom - MoveResizeRect.Top - MoveResizeOffset.Y)
-				);
-		}
-		return FReply::Handled();
-	}
-	if (MoveResizeZone == EWindowZone::BottomRightBorder)
-	{
-		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
-		if (NativeWindow.IsValid())
-		{
-			NativeWindow->ReshapeWindow(
-				FMath::TruncToInt(MoveResizeRect.Left), FMath::TruncToInt(MoveResizeRect.Top),
-				FMath::TruncToInt(MoveResizeRect.Right - MoveResizeRect.Left + MoveResizeOffset.X), FMath::TruncToInt(MoveResizeRect.Bottom - MoveResizeRect.Top + MoveResizeOffset.Y)
-				);
-		}
-		return FReply::Handled();
-	}
-	if (MoveResizeZone == EWindowZone::BottomLeftBorder)
-	{
-		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
-		if (NativeWindow.IsValid())
-		{
-			NativeWindow->ReshapeWindow(
-				FMath::TruncToInt(MoveResizeRect.Left + MoveResizeOffset.X), FMath::TruncToInt(MoveResizeRect.Top),
-				FMath::TruncToInt(MoveResizeRect.Right - MoveResizeRect.Left - MoveResizeOffset.X), FMath::TruncToInt(MoveResizeRect.Bottom - MoveResizeRect.Top + MoveResizeOffset.Y)
-				);
-		}
-		return FReply::Handled();
-	}
-	if (MoveResizeZone == EWindowZone::TopRightBorder)
-	{
-		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
-		if (NativeWindow.IsValid())
-		{
-			NativeWindow->ReshapeWindow(
-				FMath::TruncToInt(MoveResizeRect.Left), FMath::TruncToInt(MoveResizeRect.Top + MoveResizeOffset.Y),
-				FMath::TruncToInt(MoveResizeRect.Right - MoveResizeRect.Left + MoveResizeOffset.X), FMath::TruncToInt(MoveResizeRect.Bottom - MoveResizeRect.Top - MoveResizeOffset.Y)
-				);
-		}
-		return FReply::Handled();
-	}
-	if (MoveResizeZone == EWindowZone::TopBorder)
-	{
-		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
-		if (NativeWindow.IsValid())
-		{
-			NativeWindow->ReshapeWindow(
-				FMath::TruncToInt(MoveResizeRect.Left), FMath::TruncToInt(MoveResizeRect.Top + MoveResizeOffset.Y),
-				FMath::TruncToInt(MoveResizeRect.Right - MoveResizeRect.Left), FMath::TruncToInt(MoveResizeRect.Bottom - MoveResizeRect.Top - MoveResizeOffset.Y)
-				);
-		}
-		return FReply::Handled();
-	}
-	if (MoveResizeZone == EWindowZone::BottomBorder)
-	{
-		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
-		if (NativeWindow.IsValid())
-		{
-			NativeWindow->ReshapeWindow(
-				FMath::TruncToInt(MoveResizeRect.Left), FMath::TruncToInt(MoveResizeRect.Top),
-				FMath::TruncToInt(MoveResizeRect.Right - MoveResizeRect.Left), FMath::TruncToInt(MoveResizeRect.Bottom - MoveResizeRect.Top + MoveResizeOffset.Y)
-				);
-		}
-		return FReply::Handled();
-	}
-	if (MoveResizeZone == EWindowZone::LeftBorder)
-	{
-		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
-		if (NativeWindow.IsValid())
-		{
-			NativeWindow->ReshapeWindow(
-				FMath::TruncToInt(MoveResizeRect.Left + MoveResizeOffset.X), FMath::TruncToInt(MoveResizeRect.Top),
-				FMath::TruncToInt(MoveResizeRect.Right - MoveResizeRect.Left - MoveResizeOffset.X), FMath::TruncToInt(MoveResizeRect.Bottom - MoveResizeRect.Top)
-				);
-		}
-		return FReply::Handled();
-	}
-	if (MoveResizeZone == EWindowZone::RightBorder)
-	{
-		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
-		if (NativeWindow.IsValid())
-		{
-			NativeWindow->ReshapeWindow(
-				FMath::TruncToInt(MoveResizeRect.Left), FMath::TruncToInt(MoveResizeRect.Top),
-				FMath::TruncToInt(MoveResizeRect.Right - MoveResizeRect.Left + MoveResizeOffset.X), FMath::TruncToInt(MoveResizeRect.Bottom - MoveResizeRect.Top)
-				);
-		}
-		return FReply::Handled();
-	}
-	if (MoveResizeZone == EWindowZone::TitleBar)
-	{
-		FVector2D MoveResizeOffset = MouseEvent.GetScreenSpacePosition() - MoveResizeStart;
-		this->MoveWindowTo( FVector2D(MoveResizeRect.Left, MoveResizeRect.Top) + MoveResizeOffset );
-		return FReply::Handled();
-	}
-#endif
-	if ( bDragAnywhere && this->HasMouseCapture() && MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) )
+	if ( bDragAnywhere && this->HasMouseCapture() && MouseEvent.IsMouseButtonDown(EKeys::LeftMouseButton) && MoveResizeZone != EWindowZone::TitleBar )
 	{
 		this->MoveWindowTo( ScreenPosition + MouseEvent.GetCursorDelta() );
 		return FReply::Handled();
@@ -1696,7 +1617,8 @@ EWindowZone::Type SWindow::GetCurrentWindowZone(FVector2D LocalMousePosition)
  * Default constructor. Protected because SWindows must always be used via TSharedPtr. Instead, use FSlateApplication::MakeWindow()
  */
 SWindow::SWindow()
-	: Opacity( 1.0f )
+	: bDragAnywhere( false )
+	, Opacity( 1.0f )
 	, SizingRule( ESizingRule::UserSized )
 	, bIsTransparent( false )
 	, bIsPopupWindow( false )
@@ -1723,6 +1645,7 @@ SWindow::SWindow()
 	, ContentSlot(nullptr)
 	, Style( &FCoreStyle::Get().GetWidgetStyle<FWindowStyle>("Window") )
 	, WindowBackground( &Style->BackgroundBrush )
+	, HittestGrid( MakeShareable(new FHittestGrid()) )
 	, bShouldShowWindowContentDuringOverlay( false )
 	, ExpectedMaxWidth( INDEX_NONE )
 	, ExpectedMaxHeight( INDEX_NONE )

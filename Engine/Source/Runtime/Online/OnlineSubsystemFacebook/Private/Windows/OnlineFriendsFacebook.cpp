@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "OnlineSubsystemFacebookPrivatePCH.h"
 #include "OnlineIdentityFacebook.h"
@@ -61,7 +61,7 @@ FOnlineFriendsFacebook::~FOnlineFriendsFacebook()
 {
 }
 
-bool FOnlineFriendsFacebook::ReadFriendsList(int32 LocalUserNum, const FString& ListName)
+bool FOnlineFriendsFacebook::ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate /*= FOnReadFriendsListComplete()*/)
 {
 	FString AccessToken;
 	FString ErrorStr;
@@ -96,7 +96,7 @@ bool FOnlineFriendsFacebook::ReadFriendsList(int32 LocalUserNum, const FString& 
 	if (!ErrorStr.IsEmpty())
 	{
 		UE_LOG_ONLINE(Warning, TEXT("ReadFriendsList request failed. %s"), *ErrorStr);
-		TriggerOnReadFriendsListCompleteDelegates(LocalUserNum, false, ListName, ErrorStr);
+		Delegate.ExecuteIfBound(LocalUserNum, false, ListName, ErrorStr);
 		return false;
 	}
 	
@@ -119,28 +119,28 @@ bool FOnlineFriendsFacebook::ReadFriendsList(int32 LocalUserNum, const FString& 
 	FriendsQueryUrl = FriendsQueryUrl.Replace(TEXT("`token"), *AccessToken, ESearchCase::IgnoreCase);
 	
 	// kick off http request to read friends
-	HttpRequest->OnProcessRequestComplete().BindRaw(this, &FOnlineFriendsFacebook::QueryFriendsList_HttpRequestComplete);
+	HttpRequest->OnProcessRequestComplete().BindRaw(this, &FOnlineFriendsFacebook::QueryFriendsList_HttpRequestComplete, Delegate);
 	HttpRequest->SetURL(FriendsQueryUrl);
 	HttpRequest->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
 	HttpRequest->SetVerb(TEXT("GET"));
 	return HttpRequest->ProcessRequest();
 }
 
-bool FOnlineFriendsFacebook::DeleteFriendsList(int32 LocalUserNum, const FString& ListName)
+bool FOnlineFriendsFacebook::DeleteFriendsList(int32 LocalUserNum, const FString& ListName, const FOnDeleteFriendsListComplete& Delegate /*= FOnDeleteFriendsListComplete()*/)
 {
-	TriggerOnDeleteFriendsListCompleteDelegates(LocalUserNum, false, ListName, FString(TEXT("DeleteFriendsList() is not supported")));
+	Delegate.ExecuteIfBound(LocalUserNum, false, ListName, FString(TEXT("DeleteFriendsList() is not supported")));
 	return false;
 }
 
-bool FOnlineFriendsFacebook::SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName)
+bool FOnlineFriendsFacebook::SendInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnSendInviteComplete& Delegate /*= FOnSendInviteComplete()*/)
 {
-	TriggerOnSendInviteCompleteDelegates(LocalUserNum, false, FriendId, ListName, FString(TEXT("SendInvite() is not supported")));
+	Delegate.ExecuteIfBound(LocalUserNum, false, FriendId, ListName, FString(TEXT("SendInvite() is not supported")));
 	return false;
 }
 
-bool FOnlineFriendsFacebook::AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName)
+bool FOnlineFriendsFacebook::AcceptInvite(int32 LocalUserNum, const FUniqueNetId& FriendId, const FString& ListName, const FOnAcceptInviteComplete& Delegate /*= FOnAcceptInviteComplete()*/)
 {
-	TriggerOnAcceptInviteCompleteDelegates(LocalUserNum, false, FriendId, ListName, FString(TEXT("AcceptInvite() is not supported")));
+	Delegate.ExecuteIfBound(LocalUserNum, false, FriendId, ListName, FString(TEXT("AcceptInvite() is not supported")));
 	return false;
 }
 
@@ -210,7 +210,21 @@ bool FOnlineFriendsFacebook::IsFriend(int32 LocalUserNum, const FUniqueNetId& Fr
 	return false;
 }
 
-void FOnlineFriendsFacebook::QueryFriendsList_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
+bool FOnlineFriendsFacebook::QueryRecentPlayers(const FUniqueNetId& UserId)
+{
+	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsFacebook::QueryRecentPlayers()"));
+
+	TriggerOnQueryRecentPlayersCompleteDelegates(UserId, false, TEXT("not implemented"));
+
+	return false;
+}
+
+bool FOnlineFriendsFacebook::GetRecentPlayers(const FUniqueNetId& UserId, TArray< TSharedRef<FOnlineRecentPlayer> >& OutRecentPlayers)
+{
+	return false;
+}
+
+void FOnlineFriendsFacebook::QueryFriendsList_HttpRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded, FOnReadFriendsListComplete Delegate)
 {
 	bool bResult = false;
 	FString ResponseStr, ErrorStr;
@@ -287,5 +301,5 @@ void FOnlineFriendsFacebook::QueryFriendsList_HttpRequestComplete(FHttpRequestPt
 		UE_LOG(LogOnline, Warning, TEXT("Query friends list request failed. %s"), *ErrorStr);
 	}
 
-	TriggerOnReadFriendsListCompleteDelegates(PendingFriendsQuery.LocalUserNum, bResult, EFriendsLists::ToString(EFriendsLists::Default), ErrorStr);
+	Delegate.ExecuteIfBound(PendingFriendsQuery.LocalUserNum, bResult, EFriendsLists::ToString(EFriendsLists::Default), ErrorStr);
 }

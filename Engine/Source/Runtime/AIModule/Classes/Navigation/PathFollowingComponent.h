@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AITypes.h"
@@ -8,6 +8,13 @@
 #include "PathFollowingComponent.generated.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogPathFollowing, Warning, All);
+
+class UNavMovementComponent;
+class UCanvas;
+class AActor;
+class INavLinkCustomInterface;
+class INavAgentInterface;
+class UNavigationComponent;
 
 UENUM(BlueprintType)
 namespace EPathFollowingStatus
@@ -147,7 +154,7 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	virtual void OnPathUpdated();
 
 	/** set associated movement component */
-	virtual void SetMovementComponent(class UNavMovementComponent* MoveComp);
+	virtual void SetMovementComponent(UNavMovementComponent* MoveComp);
 
 	/** get current focal point of movement */
 	virtual FVector GetMoveFocus(bool bAllowStrafe) const;
@@ -164,7 +171,7 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	 *  @param AcceptanceRadius - allowed 2D distance
 	 *  @param bExactSpot - false: increase AcceptanceRadius with agent's radius
 	 */
-	bool HasReached(const AActor* TestGoal, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bExactSpot = false) const;
+	bool HasReached(const AActor& TestGoal, float AcceptanceRadius = UPathFollowingComponent::DefaultAcceptanceRadius, bool bExactSpot = false) const;
 
 	/** update state of block detection */
 	void SetBlockDetectionState(bool bEnable);
@@ -213,6 +220,7 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	FVector GetPathDestination() const;
 
 	FORCEINLINE const FNavPathSharedPtr GetPath() const { return Path; }
+	bool HasDirectPath() const;
 
 	/** readable name of current status */
 	FString GetStatusDesc() const;
@@ -228,14 +236,14 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	virtual void GetDebugStringTokens(TArray<FString>& Tokens, TArray<EPathFollowingDebugTokens::Type>& Flags) const;
 	virtual FString GetDebugString() const;
 
-	virtual void DisplayDebug(class UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) const;
+	virtual void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) const;
 #if ENABLE_VISUAL_LOG
 	virtual void DescribeSelfToVisLog(struct FVisualLogEntry* Snapshot) const;
 #endif // ENABLE_VISUAL_LOG
 
 	/** called when moving agent collides with another actor */
 	UFUNCTION()
-	virtual void OnActorBump(class AActor* SelfActor, class AActor* OtherActor, FVector NormalImpulse, const FHitResult& Hit);
+	virtual void OnActorBump(AActor* SelfActor, AActor* OtherActor, FVector NormalImpulse, const FHitResult& Hit);
 
 	/** Called when movement is blocked by a collision with another actor.  */
 	virtual void OnMoveBlockedBy(const FHitResult& BlockingImpact) {}
@@ -243,12 +251,18 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	/** Called when falling movement ends. */
 	virtual void OnLanded() {}
 
+	/** Check if path following can be activated */
+	virtual bool IsPathFollowingAllowed() const;
+
 	/** call when moving agent finishes using custom nav link, returns control back to path following */
-	virtual void FinishUsingCustomLink(class INavLinkCustomInterface* CustomNavLink);
+	virtual void FinishUsingCustomLink(INavLinkCustomInterface* CustomNavLink);
+
+	/** called when owner is preparing new pathfinding request */
+	virtual void OnPathfindingQuery(FPathFindingQuery& Query) {}
 
 	// IAIResourceInterface begin
-	virtual void LockResource(EAILockSource::Type LockSource) override;
-	virtual void ClearResourceLock(EAILockSource::Type LockSource) override;
+	virtual void LockResource(EAIRequestPriority::Type LockSource) override;
+	virtual void ClearResourceLock(EAIRequestPriority::Type LockSource) override;
 	virtual void ForceUnlockResource() override;
 	virtual bool IsResourceLocked() const override;
 	// IAIResourceInterface end
@@ -257,11 +271,7 @@ protected:
 
 	/** associated movement component */
 	UPROPERTY(transient)
-	class UNavMovementComponent* MovementComp;
-
-	/** associated navigation component */
-	UPROPERTY(transient)
-	class UNavigationComponent* NavComp;
+	UNavMovementComponent* MovementComp;
 
 	/** currently traversed custom nav link */
 	FWeakObjectPtr CurrentCustomLinkOb;
@@ -301,7 +311,7 @@ protected:
 	TWeakObjectPtr<AActor> DestinationActor;
 
 	/** cached DestinationActor cast to INavAgentInterface. Use SetDestinationActor to set this */
-	const class INavAgentInterface* DestinationAgent;
+	const INavAgentInterface* DestinationAgent;
 
 	/** destination for current path segment */
 	FBasedPosition CurrentDestination;
@@ -330,6 +340,9 @@ protected:
 
 	/** set when UpdateMove() is called during paused move, will update path's start segment on resuming */
 	uint32 bPendingPathStartUpdate : 1;
+
+	/** if set, movment will be stopped on finishing path */
+	uint32 bStopMovementOnFinish : 1;
 
 	/** detect blocked movement when distance between center of location samples and furthest one (centroid radius) is below threshold */
 	float BlockDetectionDistance;
@@ -380,7 +393,7 @@ protected:
 	virtual void UpdatePathSegment();
 
 	/** next path segment if custom nav link, try passing control to it */
-	virtual void StartUsingCustomLink(class INavLinkCustomInterface* CustomNavLink, const FVector& DestPoint);
+	virtual void StartUsingCustomLink(INavLinkCustomInterface* CustomNavLink, const FVector& DestPoint);
 
 	/** update blocked movement detection, @returns true if new sample was added */
 	virtual bool UpdateBlockDetection();
@@ -392,7 +405,7 @@ protected:
 	bool HasReachedCurrentTarget(const FVector& CurrentLocation) const;
 
 	/** check if moving agent has reached goal defined by cylinder */
-	bool HasReachedInternal(const FVector& GoalLocation, float GoalRadius, float GoalHalfHeight, const FVector& AgentLocation, float RadiusThreshold, bool bUseAgentRadius) const;
+	bool HasReachedInternal(const FVector& GoalLocation, float GoalRadius, float GoalHalfHeight, const FVector& AgentLocation, float RadiusThreshold, bool bSuccessOnRadiusOverlap) const;
 
 	/** check if agent is on path */
 	virtual bool IsOnPath() const;

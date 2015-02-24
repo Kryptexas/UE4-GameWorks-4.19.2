@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AI/Navigation/NavLinkCustomInterface.h"
@@ -6,6 +6,11 @@
 #include "AI/Navigation/NavRelevantComponent.h"
 #include "Engine/EngineTypes.h"
 #include "NavLinkCustomComponent.generated.h"
+
+class UNavArea;
+class UPathFollowingComponent;
+class UNavigationComponent;
+struct FNavigationRelevantData;
 
 /**
  *  Encapsulates NavLinkCustomInterface interface, can be used with Actors not relevant for navigation
@@ -21,20 +26,20 @@ class ENGINE_API UNavLinkCustomComponent : public UNavRelevantComponent, public 
 {
 	GENERATED_UCLASS_BODY()
 
-	DECLARE_DELEGATE_ThreeParams(FOnMoveReachedLink, UNavLinkCustomComponent* /*ThisComp*/, class UPathFollowingComponent* /*PathComp*/, const FVector& /*DestPoint*/);
-	DECLARE_DELEGATE_TwoParams(FBroadcastFilter, UNavLinkCustomComponent* /*ThisComp*/, TArray<class UNavigationComponent*>& /*NotifyList*/);
+	DECLARE_DELEGATE_ThreeParams(FOnMoveReachedLink, UNavLinkCustomComponent* /*ThisComp*/, UPathFollowingComponent* /*PathComp*/, const FVector& /*DestPoint*/);
+	DECLARE_DELEGATE_TwoParams(FBroadcastFilter, UNavLinkCustomComponent* /*ThisComp*/, TArray<UPathFollowingComponent*>& /*NotifyList*/);
 
 	// BEGIN INavLinkCustomInterface
 	virtual void GetLinkData(FVector& LeftPt, FVector& RightPt, ENavLinkDirection::Type& Direction) const override;
 	virtual TSubclassOf<UNavArea> GetLinkAreaClass() const override;
 	virtual uint32 GetLinkId() const override;
 	virtual bool IsLinkPathfindingAllowed(const UObject* Querier) const override;
-	virtual bool OnLinkMoveStarted(class UPathFollowingComponent* PathComp, const FVector& DestPoint) override;
-	virtual void OnLinkMoveFinished(class UPathFollowingComponent* PathComp) override;
+	virtual bool OnLinkMoveStarted(UPathFollowingComponent* PathComp, const FVector& DestPoint) override;
+	virtual void OnLinkMoveFinished(UPathFollowingComponent* PathComp) override;
 	// END INavLinkCustomInterface
 
 	// BEGIN UNavRelevantComponent Interface
-	virtual void GetNavigationData(struct FNavigationRelevantData& Data) const;
+	virtual void GetNavigationData(FNavigationRelevantData& Data) const;
 	virtual void CalcBounds();
 	// END UNavRelevantComponent Interface
 
@@ -55,16 +60,16 @@ class ENGINE_API UNavLinkCustomComponent : public UNavRelevantComponent, public 
 	virtual FNavigationLink GetLinkModifier() const;
 
 	/** set area class to use when link is enabled */
-	void SetEnabledArea(TSubclassOf<class UNavArea> AreaClass);
+	void SetEnabledArea(TSubclassOf<UNavArea> AreaClass);
 	TSubclassOf<UNavArea> GetEnabledArea() const { return EnabledAreaClass; }
 
 	/** set area class to use when link is disabled */
-	void SetDisabledArea(TSubclassOf<class UNavArea> AreaClass);
+	void SetDisabledArea(TSubclassOf<UNavArea> AreaClass);
 	TSubclassOf<UNavArea> GetDisabledArea() const { return DisabledAreaClass; }
 
 	/** add box obstacle during generation of navigation data
 	  * this can be used to create empty area under doors */
-	void AddNavigationObstacle(TSubclassOf<class UNavArea> AreaClass, const FVector& BoxExtent, const FVector& BoxOffset = FVector::ZeroVector);
+	void AddNavigationObstacle(TSubclassOf<UNavArea> AreaClass, const FVector& BoxExtent, const FVector& BoxOffset = FVector::ZeroVector);
 
 	/** removes simple obstacle */
 	void ClearNavigationObstacle();
@@ -127,11 +132,11 @@ protected:
 
 	/** area class to use when link is enabled */
 	UPROPERTY(EditAnywhere, Category=SmartLink)
-	TSubclassOf<class UNavArea> EnabledAreaClass;
+	TSubclassOf<UNavArea> EnabledAreaClass;
 
 	/** area class to use when link is disabled */
 	UPROPERTY(EditAnywhere, Category=SmartLink)
-	TSubclassOf<class UNavArea> DisabledAreaClass;
+	TSubclassOf<UNavArea> DisabledAreaClass;
 
 	/** start point, relative to owner */
 	UPROPERTY(EditAnywhere, Category=SmartLink)
@@ -171,7 +176,7 @@ protected:
 
 	/** area class for simple box obstacle */
 	UPROPERTY(EditAnywhere, Category=Obstacle)
-	TSubclassOf<class UNavArea> ObstacleAreaClass;
+	TSubclassOf<UNavArea> ObstacleAreaClass;
 
 	/** radius of state change broadcast */
 	UPROPERTY(EditAnywhere, Category=Broadcast)
@@ -189,14 +194,17 @@ protected:
 	FBroadcastFilter OnBroadcastFilter;
 
 	/** list of agents moving though this link */
-	TArray<TWeakObjectPtr<class UPathFollowingComponent> > MovingAgents;
+	TArray<TWeakObjectPtr<UPathFollowingComponent> > MovingAgents;
 
 	/** delegate to call when link is reached */
 	FOnMoveReachedLink OnMoveReachedLink;
+
+	/** Handle for efficient management of BroadcastStateChange timer */
+	FTimerHandle TimerHandle_BroadcastStateChange;
 
 	/** notify nearby agents about link changing state */
 	void BroadcastStateChange();
 	
 	/** gather agents to notify about state change */
-	void CollectNearbyAgents(TArray<UNavigationComponent*>& NotifyList);
+	void CollectNearbyAgents(TArray<UPathFollowingComponent*>& NotifyList);
 };

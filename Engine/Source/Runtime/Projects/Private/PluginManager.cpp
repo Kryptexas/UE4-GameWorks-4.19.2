@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ProjectsPrivatePCH.h"
 
@@ -251,6 +251,28 @@ void FPluginManager::DiscoverAllPlugins()
 	}
 }
 
+// Helper class to find all pak files.
+class FPakFileSearchVisitor : public IPlatformFile::FDirectoryVisitor
+{
+	TArray<FString>& FoundFiles;
+public:
+	FPakFileSearchVisitor(TArray<FString>& InFoundFiles)
+		: FoundFiles(InFoundFiles)
+	{}
+	virtual bool Visit(const TCHAR* FilenameOrDirectory, bool bIsDirectory)
+	{
+		if (bIsDirectory == false)
+		{
+			FString Filename(FilenameOrDirectory);
+			if (Filename.MatchesWildcard(TEXT("*.pak")))
+			{
+				FoundFiles.Add(Filename);
+			}
+		}
+		return true;
+	}
+};
+
 bool FPluginManager::ConfigureEnabledPlugins()
 {
 	if(!bHaveConfiguredEnabledPlugins)
@@ -335,13 +357,30 @@ bool FPluginManager::ConfigureEnabledPlugins()
 				}
 			}
 		}
-
-		// Mount all the plugin content folders
+		
+		// Mount all the plugin content folders and pak files
+		TArray<FString>	FoundPaks;
+		FPakFileSearchVisitor PakVisitor(FoundPaks);
+		IPlatformFile& PlatformFile = FPlatformFileManager::Get().GetPlatformFile();
 		if( ContentFolders.Num() > 0 && ensure( RegisterMountPointDelegate.IsBound() ) )
 		{
 			for(const FPluginContentFolder& ContentFolder: ContentFolders)
 			{
 				RegisterMountPointDelegate.Execute(ContentFolder.RootPath, ContentFolder.ContentPath);
+
+				// Pak files are loaded from <PluginName>/Content/Paks/<PlatformName>
+				if (FPlatformProperties::RequiresCookedData())
+				{
+					FoundPaks.Reset();
+					PlatformFile.IterateDirectoryRecursively(*(ContentFolder.ContentPath / TEXT("Paks") / FPlatformProperties::PlatformName()), PakVisitor);
+					for (const auto& PakPath : FoundPaks)
+					{
+						if (FCoreDelegates::OnMountPak.IsBound())
+						{
+							FCoreDelegates::OnMountPak.Execute(PakPath, 0);
+						}
+					}
+				}
 			}
 		}
 	}
@@ -370,9 +409,13 @@ bool FPluginManager::LoadModulesForEnabledPlugins( const ELoadingPhase::Type Loa
 		return false;
 	}
 
+	FScopedSlowTask SlowTask(AllPlugins.Num());
+
 	// Load plugins!
 	for( const TSharedRef< FPluginInstance > Plugin : AllPlugins )
 	{
+		SlowTask.EnterProgressFrame(1);
+
 		if ( Plugin->bEnabled )
 		{
 			TMap<FName, EModuleLoadResult> ModuleLoadFailures;
@@ -491,6 +534,7 @@ TArray< FPluginStatus > FPluginManager::QueryStatusForAllPlugins() const
 		PluginStatus.bIsEnabledByDefault = PluginInfo.bEnabledByDefault;
 		PluginStatus.bIsBetaVersion = PluginInfo.bIsBetaVersion;
 		PluginStatus.bHasContentFolder = PluginInfo.bCanContainContent;
+		PluginStatus.Modules = PluginInfo.Modules;
 
 		// @todo plugedit: Maybe we should do the FileExists check ONCE at plugin load time and not at query time
 		const FString Icon128FilePath = FPaths::GetPath(Plugin->FileName) / PluginSystemDefs::RelativeIcon128FilePath;

@@ -1,5 +1,4 @@
-
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "UnrealEd.h"
 #include "Toolkits/IToolkit.h"
@@ -87,7 +86,7 @@ void SStandaloneAssetEditorToolkitHost::SetupInitialContent( const TSharedRef<FT
 
 		TSharedPtr<FExtender> MenuExtender = MakeShareable(new FExtender());
 
-		auto AssetEditorToolkit = StaticCastSharedRef< FAssetEditorToolkit >( HostedToolkit.ToSharedRef() );
+		auto AssetEditorToolkit = HostedAssetEditorToolkit.ToSharedRef();
 
 		// Add asset-specific menu items to the top of the "File" menu
 		MenuExtender->AddMenuExtension( "FileLoadAndSave", EExtensionHook::First, AssetEditorToolkit->GetToolkitCommands(), FMenuExtensionDelegate::CreateStatic( &Local::FillFileMenu, TWeakPtr< FAssetEditorToolkit >( AssetEditorToolkit ) ) );
@@ -207,6 +206,8 @@ SStandaloneAssetEditorToolkitHost::~SStandaloneAssetEditorToolkitHost()
 {
 	// Let the toolkit manager know that we're going away now
 	FToolkitManager::Get().OnToolkitHostDestroyed( this );
+	HostedToolkits.Reset();
+	HostedAssetEditorToolkit.Reset();
 }
 
 
@@ -231,36 +232,51 @@ TSharedRef< SDockTabStack > SStandaloneAssetEditorToolkitHost::GetTabSpot( const
 void SStandaloneAssetEditorToolkitHost::OnToolkitHostingStarted( const TSharedRef< class IToolkit >& Toolkit )
 {
 	// Keep track of the toolkit we're hosting
-	check( !HostedToolkit.IsValid() );
-	HostedToolkit = Toolkit;
+	HostedToolkits.Add(Toolkit);
 
 	// The tab manager needs to know how to spawn tabs from this toolkit
 	Toolkit->RegisterTabSpawners(MyTabManager.ToSharedRef());
+
+	if (!HostedAssetEditorToolkit.IsValid())
+	{
+		HostedAssetEditorToolkit = StaticCastSharedRef<FAssetEditorToolkit>(Toolkit);
+	}
+	else
+	{
+		HostedAssetEditorToolkit->OnToolkitHostingStarted(Toolkit);
+	}
 }
 
 
 void SStandaloneAssetEditorToolkitHost::OnToolkitHostingFinished( const TSharedRef< class IToolkit >& Toolkit )
 {
-	// No need to worry about the toolkit anymore
-	check( Toolkit == HostedToolkit );
-	
 	// The tab manager should forget how to spawn tabs from this toolkit
 	Toolkit->UnregisterTabSpawners(MyTabManager.ToSharedRef());
 
-	// Standalone Asset Editors close by shutting down their major tab.
-	const TSharedPtr<SDockTab> HostTab = HostTabPtr.Pin();
-	if (HostTab.IsValid())
-	{
-		HostTab->RequestCloseTab();
-	}
+	HostedToolkits.Remove(Toolkit);
 
-	HostedToolkit.Reset();
+	// Standalone Asset Editors close by shutting down their major tab.
+	if (Toolkit == HostedAssetEditorToolkit)
+	{
+		HostedAssetEditorToolkit.Reset();
+
+		const TSharedPtr<SDockTab> HostTab = HostTabPtr.Pin();
+		if (HostTab.IsValid())
+		{
+			HostTab->RequestCloseTab();
+		}
+	}
+	else if (HostedAssetEditorToolkit.IsValid())
+	{
+		HostedAssetEditorToolkit->OnToolkitHostingFinished(Toolkit);
+	}
 }
 
 
 UWorld* SStandaloneAssetEditorToolkitHost::GetWorld() const 
 {
 	// Currently, standalone asset editors never have a world
+	UE_LOG(LogInit, Warning, TEXT("IToolkitHost::GetWorld() doesn't make sense in SStandaloneAssetEditorToolkitHost currently"));
 	return NULL;
 }
 
@@ -269,9 +285,59 @@ FReply SStandaloneAssetEditorToolkitHost::OnKeyDown( const FGeometry& MyGeometry
 {
 	// Check to see if any of the actions for the level editor can be processed by the current event
 	// If we are in debug mode do not process commands
-	if( HostedToolkit.IsValid() && HostedToolkit->ProcessCommandBindings( InKeyEvent ) )
+	if (FSlateApplication::Get().IsNormalExecution())
 	{
-		return FReply::Handled();
+		// Figure out if any of our toolkit's tabs is the active tab.  This is important because we want
+		// the toolkit to have it's own keybinds (which may overlap the level editor's keybinds or any
+		// other toolkit).  When a toolkit tab is active, we give that toolkit a chance to process
+		// commands instead of the level editor.
+		TSharedPtr< IToolkit > ActiveToolkit;
+		{
+			const TSharedPtr<SDockableTab> CurrentActiveTab;// = FSlateApplication::xxxGetGlobalTabManager()->GetActiveTab();
+
+			for (auto HostedToolkitIt = HostedToolkits.CreateConstIterator(); HostedToolkitIt && !ActiveToolkit.IsValid(); ++HostedToolkitIt)
+			{
+				const auto& CurToolkit = *HostedToolkitIt;
+				if (CurToolkit.IsValid())
+				{
+					// Iterate over this toolkits spawned tabs
+					const auto& ToolkitTabsInSpots = CurToolkit->GetToolkitTabsInSpots();
+
+					for (auto CurSpotIt(ToolkitTabsInSpots.CreateConstIterator()); CurSpotIt && !ActiveToolkit.IsValid(); ++CurSpotIt)
+					{
+						const auto& TabsForSpot = CurSpotIt.Value();
+						for (auto CurTabIt(TabsForSpot.CreateConstIterator()); CurTabIt; ++CurTabIt)
+						{
+							const auto& PinnedTab = CurTabIt->Pin();
+							if (PinnedTab.IsValid())
+							{
+								if (PinnedTab == CurrentActiveTab)
+								{
+									ActiveToolkit = CurToolkit;
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		if (ActiveToolkit.IsValid())
+		{
+			// A toolkit tab is active, so direct all command processing to it
+			if (ActiveToolkit->ProcessCommandBindings(InKeyEvent))
+			{
+				return FReply::Handled();
+			}
+		}
+		else
+		{
+			// No toolkit tab is active, so let the underlying asset editor have a chance at the keystroke
+			if (HostedAssetEditorToolkit->ProcessCommandBindings(InKeyEvent))
+			{
+				return FReply::Handled();
+			}
+		}
 	}
 
 	return SCompoundWidget::OnKeyDown(MyGeometry, InKeyEvent);
@@ -282,10 +348,11 @@ void SStandaloneAssetEditorToolkitHost::OnTabClosed(TSharedRef<SDockTab> TabClos
 {
 	check(TabClosed == HostTabPtr.Pin());
 
-	const TSharedPtr<FAssetEditorToolkit> AssetEditorToolkit = StaticCastSharedPtr<FAssetEditorToolkit>(HostedToolkit);
-	if(AssetEditorToolkit.IsValid())
+	MyTabManager->SetMenuMultiBox(nullptr);
+	
+	if(HostedAssetEditorToolkit.IsValid())
 	{
-		const TArray<UObject*>* const ObjectsBeingEdited = AssetEditorToolkit->GetObjectsCurrentlyBeingEdited();
+		const TArray<UObject*>* const ObjectsBeingEdited = HostedAssetEditorToolkit->GetObjectsCurrentlyBeingEdited();
 		if(ObjectsBeingEdited)
 		{
 			const bool IsDockedAssetEditor = TabClosed->HasSiblingTab(FName("DockedToolkit"), false/*TreatIndexNoneAsWildcard*/);

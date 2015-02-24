@@ -1,10 +1,14 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 // Includes.
 #include "UnrealEd.h"
 #include "Editor/PropertyEditor/Public/PropertyEditorModule.h"
 #include "Editor/LevelEditor/Public/LevelEditor.h"
+#include "Engine/Selection.h"
+
+#include "LandscapeProxy.h"
+#include "LandscapeComponent.h"
 
 uint32			EngineThreadId;
 const TCHAR*	GItem;
@@ -45,14 +49,18 @@ void UUnrealEdEngine::UpdateFloatingPropertyWindows()
 		FSelectionIterator It( GetSelectedActorIterator() );
 		if ( It )
 		{
-			AActor* Actor = static_cast<AActor*>( *It );
-			checkSlow( Actor->IsA(AActor::StaticClass()) );
-
-			if ( !Actor->IsPendingKill() )
+			ALandscapeProxy* LP = Cast<ALandscapeProxy>(*It);
+			if (LP != NULL && !LP->IsPendingKill())
 			{
-				// Currently only for Landscape
-				// Landscape uses Component Selection
-				bProcessed = Actor->GetSelectedComponents(SelectedObjects);
+				ULandscapeInfo* Info = LP->GetLandscapeInfo(false);
+				if (Info && Info->bCurrentlyEditing)
+				{
+					for (ULandscapeComponent* LandscapeComponent : Info->GetSelectedComponents())
+					{
+						SelectedObjects.Add(LandscapeComponent);
+					}
+					bProcessed = true;
+				}
 			}
 		}
 	}
@@ -78,12 +86,7 @@ void UUnrealEdEngine::UpdateFloatingPropertyWindows()
 
 void UUnrealEdEngine::UpdateFloatingPropertyWindowsFromActorList( const TArray< UObject *>& ActorList )
 {
-	FPropertyEditorModule& PropertyEditorModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>( TEXT("PropertyEditor") );
-
-	PropertyEditorModule.UpdatePropertyViews( ActorList );
-
-	// Also update any selection listers in the level editor
-	FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>( TEXT("LevelEditor") );
+	FLevelEditorModule& LevelEditor = FModuleManager::LoadModuleChecked<FLevelEditorModule>(TEXT("LevelEditor"));
 
 	LevelEditor.BroadcastActorSelectionChanged( ActorList );
 }

@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using UnrealBuildTool;
 using System.Collections.Generic;
@@ -54,9 +54,16 @@ public class UnrealVersionSelectorTarget : TargetRules
 	}
     public override bool GUBP_AlwaysBuildWithTools(UnrealTargetPlatform InHostPlatform, bool bBuildingRocket, out bool bInternalToolOnly, out bool SeparateNode)
 	{
-		bInternalToolOnly = true;
-		SeparateNode = true;
-		return true;
+		if (InHostPlatform == UnrealTargetPlatform.Win32 || InHostPlatform == UnrealTargetPlatform.Win64)
+		{
+			bInternalToolOnly = true;
+			SeparateNode = true;
+			return true;
+		}
+
+		bInternalToolOnly = false;
+		SeparateNode = false;
+		return false;
 	}
 	public override List<UnrealTargetConfiguration> GUBP_ToolConfigs(UnrealTargetPlatform InHostPlatform)
 	{

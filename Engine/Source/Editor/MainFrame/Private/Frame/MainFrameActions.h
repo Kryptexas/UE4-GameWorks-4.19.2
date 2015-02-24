@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #ifndef __MainFrameActions_h__
@@ -261,15 +261,6 @@ protected:
 	 * @return the human readable error string
 	 */
 	static FString TranslateUATError(int32 ErrorCode);
-
-	/** Callback for ChoosePackagesToCheckIn(), continues to bring up UI once source control operations are complete */
-	static void ChoosePackagesToCheckInCallback(const FSourceControlOperationRef& InOperation, ECommandResult::Type InResult);
-
-	/** Called when the process has completed and we have packages to check in */
-	static void ChoosePackagesToCheckInCompleted(TArray<UPackage*> LoadedPackages, TArray<FString> PackageNames);
-
-	/** Delegate called when the user has decided to cancel the check in process */
-	static void ChoosePackagesToCheckInCancelled(FSourceControlOperationRef InOperation);
 
 private:
 

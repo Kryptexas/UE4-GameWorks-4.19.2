@@ -1,4 +1,4 @@
-﻿// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CorePrivatePCH.h"
 
@@ -192,12 +192,12 @@ FArchive& operator<<( FArchive& Ar, FFormatArgumentValue& Value )
 
 // These default values have been duplicated to the KismetTextLibrary functions for Blueprints. Please replicate any changes there!
 FNumberFormattingOptions::FNumberFormattingOptions()
-	:   UseGrouping(true),
-		RoundingMode(ERoundingMode::HalfToEven),
-		MinimumIntegralDigits(1),
-		MaximumIntegralDigits(DBL_MAX_10_EXP + DBL_DIG + 1),
-		MinimumFractionalDigits(0),
-		MaximumFractionalDigits(3)
+	: UseGrouping(true)
+	, RoundingMode(ERoundingMode::HalfToEven)
+	, MinimumIntegralDigits(1)
+	, MaximumIntegralDigits(DBL_MAX_10_EXP + DBL_DIG + 1)
+	, MinimumFractionalDigits(0)
+	, MaximumFractionalDigits(3)
 {
 
 }
@@ -233,6 +233,12 @@ const FText FText::UnEscapedCloseBraceOutsideOfArgumentBlock = LOCTEXT("Error_Un
 const FText FText::SerializationFailureError = LOCTEXT("Error_SerializationFailure", "ERR: Transient text cannot be serialized \"{0}\".");
 
 FText::FText()
+	: DisplayString( GetEmpty().DisplayString )
+	, Flags(0)
+{
+}
+
+FText::FText( EInitToEmptyString )
 	: DisplayString( new FString() )
 	, Flags(0)
 {

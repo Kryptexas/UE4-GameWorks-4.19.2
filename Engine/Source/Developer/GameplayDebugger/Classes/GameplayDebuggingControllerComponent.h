@@ -1,10 +1,11 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /**
  * GameplayDebuggingComponent is used to replicate debug data from server to client(s).
  */
 
 #pragma once
+#include "TimerManager.h"
 #include "GameplayDebuggingTypes.h"
 #include "GameplayDebugger.h"
 #include "GameplayDebuggingControllerComponent.generated.h"
@@ -41,8 +42,11 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingControllerComponent : public UActor
 	/** periodic update of navmesh data */
 	void UpdateNavMeshTimer();
 
+	float GetUpdateNavMeshTimeRemaining() const;
+
 	FOnChangeEQSQuery OnNextEQSQuery;
 	FOnChangeEQSQuery OnPreviousEQSQuery;
+
 protected:
 
 	UPROPERTY(Transient)
@@ -76,6 +80,9 @@ protected:
 	AGameplayDebuggingReplicator* GetDebuggingReplicator() const;
 
 	TWeakObjectPtr<APlayerController> PlayerOwner;
+
+	/** Handle for efficient management of UpdateNavMesh timer */
+	FTimerHandle TimerHandle_UpdateNavMeshTimer;
 
 	FInputChord ActivationKey;
 	const float KeyPressActivationTime;

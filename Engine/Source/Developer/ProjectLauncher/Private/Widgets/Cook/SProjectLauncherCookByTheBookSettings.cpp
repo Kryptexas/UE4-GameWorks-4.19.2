@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "ProjectLauncherPrivatePCH.h"
 #include "SHyperlink.h"
@@ -367,6 +367,23 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeComplexWidget()
 
 				+ SVerticalBox::Slot()
 					.AutoHeight()
+					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+					[
+						// unreal pak check box
+						SNew(SCheckBox)
+						.IsChecked(this, &SProjectLauncherCookByTheBookSettings::HandleUnrealPakCheckBoxIsChecked)
+						.OnCheckStateChanged(this, &SProjectLauncherCookByTheBookSettings::HandleUnrealPakCheckBoxCheckStateChanged)
+						.Padding(FMargin(4.0f, 0.0f))
+						.ToolTipText(LOCTEXT("UnrealPakCheckBoxTooltip", "If checked, the content will be deployed as a single UnrealPak file instead of many separate files."))
+						.Content()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("UnrealPakCheckBoxText", "Store all content in a single file (UnrealPak)"))
+						]
+					]
+
+				+ SVerticalBox::Slot()
+					.AutoHeight()
 					.Padding(0.0f, 12.0f, 0.0f, 0.0f)
 					[
 						SNew(SProjectLauncherFormLabel)
@@ -635,6 +652,23 @@ TSharedRef<SWidget> SProjectLauncherCookByTheBookSettings::MakeSimpleWidget()
 
 				+ SVerticalBox::Slot()
 					.AutoHeight()
+					.Padding(0.0f, 4.0f, 0.0f, 0.0f)
+					[
+						// unreal pak check box
+						SNew(SCheckBox)
+						.IsChecked(this, &SProjectLauncherCookByTheBookSettings::HandleUnrealPakCheckBoxIsChecked)
+						.OnCheckStateChanged(this, &SProjectLauncherCookByTheBookSettings::HandleUnrealPakCheckBoxCheckStateChanged)
+						.Padding(FMargin(4.0f, 0.0f))
+						.ToolTipText(LOCTEXT("UnrealPakCheckBoxTooltip", "If checked, the content will be deployed as a single UnrealPak file instead of many separate files."))
+						.Content()
+						[
+							SNew(STextBlock)
+							.Text(LOCTEXT("UnrealPakCheckBoxText", "Store all content in a single file (UnrealPak)"))
+						]
+					]
+
+				+ SVerticalBox::Slot()
+					.AutoHeight()
 					.Padding(0.0f, 12.0f, 0.0f, 0.0f)
 					[
 						SNew(SProjectLauncherFormLabel)
@@ -809,31 +843,31 @@ void SProjectLauncherCookByTheBookSettings::HandleCookConfigurationSelectorConfi
 }
 
 
-FString SProjectLauncherCookByTheBookSettings::HandleCookConfigurationSelectorText( ) const
+FText SProjectLauncherCookByTheBookSettings::HandleCookConfigurationSelectorText( ) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
-		return EBuildConfigurations::ToString(SelectedProfile->GetCookConfiguration());
+		return FText::FromString(EBuildConfigurations::ToString(SelectedProfile->GetCookConfiguration()));
 	}
 
-	return TEXT("");
+	return FText::GetEmpty();
 }
 
 
-void SProjectLauncherCookByTheBookSettings::HandleIncrementalCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState )
+void SProjectLauncherCookByTheBookSettings::HandleIncrementalCheckBoxCheckStateChanged( ECheckBoxState NewState )
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
-		SelectedProfile->SetIncrementalCooking(NewState == ESlateCheckBoxState::Checked);
+		SelectedProfile->SetIncrementalCooking(NewState == ECheckBoxState::Checked);
 	}
 }
 
 
-ESlateCheckBoxState::Type SProjectLauncherCookByTheBookSettings::HandleIncrementalCheckBoxIsChecked( ) const
+ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleIncrementalCheckBoxIsChecked( ) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -841,11 +875,11 @@ ESlateCheckBoxState::Type SProjectLauncherCookByTheBookSettings::HandleIncrement
 	{
 		if (SelectedProfile->IsCookingIncrementally())
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 
@@ -914,20 +948,20 @@ void SProjectLauncherCookByTheBookSettings::HandleProfileProjectChanged()
 	RefreshCultureList();
 }
 
-ESlateCheckBoxState::Type SProjectLauncherCookByTheBookSettings::HandleShowCheckBoxIsChecked( EShowMapsChoices::Type Choice ) const
+ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleShowCheckBoxIsChecked( EShowMapsChoices::Type Choice ) const
 {
 	if (ShowMapsChoice == Choice)
 	{
-		return ESlateCheckBoxState::Checked;
+		return ECheckBoxState::Checked;
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 
-void SProjectLauncherCookByTheBookSettings::HandleShowCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState, EShowMapsChoices::Type Choice )
+void SProjectLauncherCookByTheBookSettings::HandleShowCheckBoxCheckStateChanged( ECheckBoxState NewState, EShowMapsChoices::Type Choice )
 {
-	if (NewState == ESlateCheckBoxState::Checked)
+	if (NewState == ECheckBoxState::Checked)
 	{
 		ShowMapsChoice = Choice;
 		RefreshMapList();
@@ -935,18 +969,18 @@ void SProjectLauncherCookByTheBookSettings::HandleShowCheckBoxCheckStateChanged(
 }
 
 
-void SProjectLauncherCookByTheBookSettings::HandleUnversionedCheckBoxCheckStateChanged( ESlateCheckBoxState::Type NewState )
+void SProjectLauncherCookByTheBookSettings::HandleUnversionedCheckBoxCheckStateChanged( ECheckBoxState NewState )
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
 	if (SelectedProfile.IsValid())
 	{
-		SelectedProfile->SetUnversionedCooking((NewState == ESlateCheckBoxState::Checked));
+		SelectedProfile->SetUnversionedCooking((NewState == ECheckBoxState::Checked));
 	}
 }
 
 
-ESlateCheckBoxState::Type SProjectLauncherCookByTheBookSettings::HandleUnversionedCheckBoxIsChecked( ) const
+ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleUnversionedCheckBoxIsChecked( ) const
 {
 	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
 
@@ -954,11 +988,11 @@ ESlateCheckBoxState::Type SProjectLauncherCookByTheBookSettings::HandleUnversion
 	{
 		if (SelectedProfile->IsCookingUnversioned())
 		{
-			return ESlateCheckBoxState::Checked;
+			return ECheckBoxState::Checked;
 		}
 	}
 
-	return ESlateCheckBoxState::Unchecked;
+	return ECheckBoxState::Unchecked;
 }
 
 
@@ -1009,6 +1043,32 @@ void SProjectLauncherCookByTheBookSettings::HandleCookerOptionsCommitted(const F
 		}
 		SelectedProfile->SetCookOptions(useOptions);
 	}
+}
+
+void SProjectLauncherCookByTheBookSettings::HandleUnrealPakCheckBoxCheckStateChanged( ECheckBoxState NewState )
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		SelectedProfile->SetDeployWithUnrealPak(NewState == ECheckBoxState::Checked);
+	}
+}
+
+
+ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleUnrealPakCheckBoxIsChecked( ) const
+{
+	ILauncherProfilePtr SelectedProfile = Model->GetSelectedProfile();
+
+	if (SelectedProfile.IsValid())
+	{
+		if (SelectedProfile->IsPackingWithUnrealPak())
+		{
+			return ECheckBoxState::Checked;
+		}
+	}
+
+	return ECheckBoxState::Unchecked;
 }
 
 #undef LOCTEXT_NAMESPACE

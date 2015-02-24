@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 using System;
 using System.IO;
@@ -403,6 +403,24 @@ namespace UnrealBuildTool
 		public static string DistccExecutablesPath;
 
 		/// <summary>
+		/// Run UnrealCodeAnalyzer instead of regular compilation.
+		/// </summary>
+		[XmlConfig]
+		public static bool bRunUnrealCodeAnalyzer;
+
+		/// <summary>
+		/// Percentage of cpp files in module where header must be included to get included in PCH.
+		/// </summary>
+		[XmlConfig]
+		public static float UCAUsageThreshold;
+
+		/// <summary>
+		/// If specified, UnrealCodeAnalyzer will analyze only specific module.
+		/// </summary>
+		[XmlConfig]
+		public static string UCAModuleToAnalyze;
+
+		/// <summary>
 		/// Sets the configuration back to defaults.
 		/// </summary>
 		public static void LoadDefaults()
@@ -525,6 +543,12 @@ namespace UnrealBuildTool
 			// The normal Posix place to install distcc/dmucs would be /usr/local so start there
 			DistccExecutablesPath = "/usr/local/bin";
 
+			// By default compile code instead of analyzing it.
+			bRunUnrealCodeAnalyzer = false;
+
+			// If header is included in 30% or more cpp files in module it should be included in PCH.
+			UCAUsageThreshold = 0.3f;
+
 			// The default for normal Mac users should be to use DistCode which installs as an Xcode plugin and provides dynamic host management
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
@@ -568,11 +592,6 @@ namespace UnrealBuildTool
 			{
                 // Some build machines apparently have this turned on, so if you really want detailed stats, don't run with XGE
                 bLogDetailedActionStats = false;
-			}
-
-			if (UnrealBuildTool.RunningRocket())
-			{
-				bAllowXGE = false;
 			}
 
 			// PDB

@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -62,6 +62,7 @@ public:
 
 		void Initialize();
 		void SetupGeneralStyles();
+		void SetupGeneralIcons();
 		void SetupWindowStyles();
 		void SetupDockingStyles();
 		void SetupTutorialStyles();
@@ -122,6 +123,9 @@ public:
 		const FSlateColor SelectionColor_Inactive;
 		const FSlateColor SelectionColor_Pressed;
 
+		// These are common colors used thruout the editor in mutliple style elements
+		const FSlateColor InheritedFromBlueprintTextColor;
+
 		FTextBlockStyle NormalText;
 		FEditableTextBoxStyle NormalEditableTextBoxStyle;
 		FTableRowStyle NormalTableRowStyle;
@@ -139,7 +143,7 @@ public:
 		FCoreUObjectDelegates::OnObjectPropertyChanged.AddSP(NewStyle, &FSlateEditorStyle::FStyle::SettingsChanged);
 
 		return NewStyle;
-}
+	}
 
 	static TSharedPtr< FSlateEditorStyle::FStyle > StyleInstance;
 	static TWeakObjectPtr< UEditorStyleSettings > Settings;

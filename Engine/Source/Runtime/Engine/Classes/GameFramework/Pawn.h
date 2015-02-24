@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 #include "AI/Navigation/NavAgentInterface.h"
@@ -19,6 +19,7 @@ class UPawnMovementComponent;
 class UPawnNoiseEmitterComponent;
 class UPlayer;
 class UPrimitiveComponent;
+struct FNavAgentProperties;
 
 /** 
  * Pawn is the base class of all actors that can be possessed by players or AI.
@@ -26,16 +27,17 @@ class UPrimitiveComponent;
  *
  * @see https://docs.unrealengine.com/latest/INT/Gameplay/Framework/Pawn/
  */
-UCLASS(abstract, config=Game, BlueprintType, Blueprintable, hidecategories=(Navigation, "AI|Navigation"))
+UCLASS(config=Game, BlueprintType, Blueprintable, hideCategories=(Navigation), meta=(ShortTooltip="A Pawn is an actor that can be 'possessed' and receieve input from a controller."))
 class ENGINE_API APawn : public AActor, public INavAgentInterface
 {
 	GENERATED_BODY()
 public:
-
 	/**
-	 * Default UObject constructor.
-	 */
-	APawn(const FObjectInitializer& ObjectInitializer);
+	* Default UObject constructor.
+	*/
+	APawn(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
 
 	/** Return our PawnMovementComponent, if we have one. By default, returns the first PawnMovementComponent found. Native classes that create their own movement component should override this method for more efficiency. */
 	UFUNCTION(BlueprintCallable, meta=(Tooltip="Return our PawnMovementComponent, if we have one."), Category="Pawn")
@@ -74,9 +76,26 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
 	float BaseEyeHeight;
 
-	/* Specifies which player controller, if any, should automatically possess the pawn when the level starts or the pawn is spawned */
+	/**
+	 * Determines which PlayerController, if any, should automatically possess the pawn when the level starts or when the pawn is spawned.
+	 * @see AutoPossessAI
+	 */
 	UPROPERTY(EditAnywhere, Category=Pawn)
-	TEnumAsByte<EAutoReceiveInput::Type> AutoPossess;
+	TEnumAsByte<EAutoReceiveInput::Type> AutoPossessPlayer;
+
+	/**
+	 * Determines when the Pawn creates and is possessed by an AI Controller (on level start, when spawned, etc).
+	 * Only possible if AIControllerClass is set, and ignored if AutoPossessPlayer is enabled.
+	 * @see AutoPossessPlayer
+	 */
+	UPROPERTY(EditAnywhere, Category=Pawn)
+	EAutoPossessAI AutoPossessAI;
+
+	/**
+	 * Default class to use when pawn is controlled by AI.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta=(DisplayName="AI Controller Class"), Category=Pawn)
+	TSubclassOf<AController> AIControllerClass;
 
 public:
 
@@ -97,10 +116,6 @@ public:
 	*/
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category=AI)
 	void PawnMakeNoise(float Loudness, FVector NoiseLocation, bool bUseNoiseMakerLocation = true, AActor* NoiseMaker = NULL);
-
-	/** default class to use when pawn is controlled by AI. */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=AI)
-	TSubclassOf<AController>  AIControllerClass;
 
 	/** If Pawn is possessed by a player, points to his playerstate.  Needed for network play as controllers are not replicated to clients. */
 	UPROPERTY(replicatedUsing=OnRep_PlayerState, BlueprintReadOnly, Category="Pawn")
@@ -198,7 +213,7 @@ public:
 	virtual FString GetHumanReadableName() const override;
 	virtual float GetNetPriority(const FVector& ViewPos, const FVector& ViewDir, APlayerController* Viewer, UActorChannel* InChannel, float Time, bool bLowBandwidth) override;
 	virtual bool ShouldTickIfViewportsOnly() const override;
-	virtual bool IsNetRelevantFor(APlayerController* RealViewer, AActor* Viewer, const FVector& SrcLocation) override;
+	virtual bool IsNetRelevantFor(const APlayerController* RealViewer, const AActor* Viewer, const FVector& SrcLocation) const override;
 	virtual void PostNetReceiveLocationAndRotation() override;
 	virtual void PostNetReceiveVelocity(const FVector& NewVelocity) override;
 	virtual void DisplayDebug(UCanvas* Canvas, const FDebugDisplayInfo& DebugDisplay, float& YL, float& YPos) override;
@@ -222,22 +237,19 @@ public:
 
 	/** Use SetCanAffectNavigationGeneration to change this value at runtime.
 	 *	Note that calling this function at runtime will result in any navigation change only if runtime navigation generation is enabled. */
-	UFUNCTION(BlueprintCallable, Category="Navigation")
+	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
 	void SetCanAffectNavigationGeneration(bool bNewValue);
 
 	/** update all components relevant for navigation generators to match bCanAffectNavigationGeneration flag */
 	virtual void UpdateNavigationRelevance() {}
 
 	// Begin INavAgentInterface Interface
-	virtual const struct FNavAgentProperties* GetNavAgentProperties() const override;
+	virtual const FNavAgentProperties& GetNavAgentPropertiesRef() const override;
 	/** Basically retrieved pawn's location on navmesh */
 	UFUNCTION(BlueprintCallable, Category="Pawn")
 	virtual FVector GetNavAgentLocation() const override { return GetActorLocation() - FVector(0.f, 0.f, BaseEyeHeight); }
 	virtual void GetMoveGoalReachTest(AActor* MovingActor, const FVector& MoveOffset, FVector& GoalOffset, float& GoalRadius, float& GoalHalfHeight) const override;
 	// End INavAgentInterface Interface
-
-	/** Allows agent to postpone any path updates (e.g. locked by gameplay) */
-	virtual bool ShouldPostponePathUpdates() const { return false; }
 
 	/** updates MovementComponent's parameters used by navigation system */
 	void UpdateNavAgent();

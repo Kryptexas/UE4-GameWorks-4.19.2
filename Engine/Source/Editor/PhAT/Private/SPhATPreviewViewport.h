@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
 
@@ -30,7 +30,6 @@ public:
 
 	/** Returns true if the viewport is visible */
 	bool IsVisible() const;
-	EVisibility GetWidgetVisibility() const;
 
 	/** Accessors */
 	TSharedPtr<FSceneViewport> GetViewport() const;

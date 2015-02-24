@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
 	Engine.h: Unreal engine public header file.
@@ -165,6 +165,8 @@ protected:
 	TArray<AActor*> SpawnedActorArray;
 	/** The class type we are iterating, kept for filtering		*/
 	UClass* DesiredClass;
+	/** Handle to the registered OnActorSpawned delegate		*/
+	FDelegateHandle ActorSpawnedDelegateHandle;
 
 	/**
 	 * Default ctor, inits everything
@@ -183,12 +185,12 @@ protected:
 		GetObjectsOfClass(InClass, ObjectArray, true, ExcludeFlags);
 
 		ActorSpawnedDelegate = FOnActorSpawned::FDelegate::CreateRaw(this, &FActorIteratorBase::OnActorSpawned);
-		CurrentWorld->AddOnActorSpawnedHandler(ActorSpawnedDelegate);
+		ActorSpawnedDelegateHandle = CurrentWorld->AddOnActorSpawnedHandler(ActorSpawnedDelegate);
 	}
 
 	~FActorIteratorBase()
 	{
-		CurrentWorld->RemoveOnActorSpawnedHandler(ActorSpawnedDelegate);
+		CurrentWorld->RemoveOnActorSpawnedHandler(ActorSpawnedDelegateHandle);
 	}
 
 	void OnActorSpawned(AActor* InActor)
@@ -713,7 +715,7 @@ public:
 	 * @param InClassFlags - User defined per class flags .
 	 * @param InVersion - Minimal strip version required to serialize strip flags
 	 */
-	FStripDataFlags( FArchive& Ar, uint8 InClassFlags = 0, int32 InVersion = VER_UE4_REMOVED_STRIP_DATA );
+	FStripDataFlags( FArchive& Ar, uint8 InClassFlags = 0, int32 InVersion = VER_UE4_OLDEST_LOADABLE_PACKAGE );
 
 	/** 
 	 * Constructor.
@@ -724,7 +726,7 @@ public:
 	 * @param InClassFlags - User defined per class flags.
 	 * @param InVersion - Minimal version required to serialize strip flags
 	 */
-	FStripDataFlags( FArchive& Ar, uint8 InGlobalFlags, uint8 InClassFlags, int32 InVersion = VER_UE4_REMOVED_STRIP_DATA );
+	FStripDataFlags( FArchive& Ar, uint8 InGlobalFlags, uint8 InClassFlags, int32 InVersion = VER_UE4_OLDEST_LOADABLE_PACKAGE );
 
 	/**
 	 * Checks if FStripDataFlags::Editor flag is set or not

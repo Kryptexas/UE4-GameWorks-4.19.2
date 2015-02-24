@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "TargetDeviceServicesPrivatePCH.h"
 
@@ -14,7 +14,7 @@ FTargetDeviceProxyManager::FTargetDeviceProxyManager()
 	if (MessageEndpoint.IsValid())
 	{
 		TickDelegate = FTickerDelegate::CreateRaw(this, &FTargetDeviceProxyManager::HandleTicker);
-		FTicker::GetCoreTicker().AddTicker(TickDelegate, TARGET_DEVICE_SERVICES_PING_INTERVAL);
+		TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate, TARGET_DEVICE_SERVICES_PING_INTERVAL);
 
 		SendPing();
 	}
@@ -23,7 +23,7 @@ FTargetDeviceProxyManager::FTargetDeviceProxyManager()
 
 FTargetDeviceProxyManager::~FTargetDeviceProxyManager()
 {
-	FTicker::GetCoreTicker().RemoveTicker(TickDelegate);
+	FTicker::GetCoreTicker().RemoveTicker(TickDelegateHandle);
 }
 
 

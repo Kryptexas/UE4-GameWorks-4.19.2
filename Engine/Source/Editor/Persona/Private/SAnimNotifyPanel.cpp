@@ -1,4 +1,4 @@
-// Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 
 #include "PersonaPrivatePCH.h"
@@ -12,6 +12,7 @@
 #include "AssetSelection.h"
 #include "STextEntryPopup.h"
 #include "SExpandableArea.h"
+#include "Toolkits/AssetEditorManager.h"
 #include "BlueprintActionDatabase.h"
 
 // Track Panel drawing
@@ -168,6 +169,7 @@ private:
 	
 	FVector2D					TextSize;
 	float						LabelWidth;
+	FVector2D					BranchingPointIconSize;
 
 	/** Last position the user clicked in the widget */
 	FVector2D					LastMouseDownPosition;
@@ -335,6 +337,9 @@ protected:
 
 	/** Provides direct access to the notify menu from the context menu */
 	void OnManageNotifies();
+
+	/** Opens the supplied blueprint in an editor */
+	void OnOpenNotifySource(UBlueprint* InSourceBlueprint) const;
 
 	/**
 	 * Update the nodes to match the data that the panel is observing
@@ -933,6 +938,8 @@ void SAnimNotifyNode::Construct(const FArguments& InArgs)
 	ViewInputMax = InArgs._ViewInputMax;
 
 	MarkerBars = InArgs._MarkerBars;
+
+	SetToolTipText(TAttribute<FText>(this, &SAnimNotifyNode::GetNodeTooltip));
 }
 
 FReply SAnimNotifyNode::OnDragDetected( const FGeometry& MyGeometry, const FPointerEvent& MouseEvent )
@@ -996,13 +1003,22 @@ FText SAnimNotifyNode::GetNodeTooltip() const
 	const FText Frame = FText::AsNumber( (int32)(Percentage * Sequence->GetNumberOfFrames()) );
 	const FText Seconds = FText::AsNumber( Time );
 
+	FText ToolTipText;
 	if (NotifyEvent->GetDuration() > 0.0f)
 	{
 		const FText Duration = FText::AsNumber( NotifyEvent->GetDuration() );
-		return FText::Format( LOCTEXT("NodeToolTipLong", "@ {0} sec (frame {1}) for {2} sec"), Seconds, Frame, Duration );
+		ToolTipText = FText::Format( LOCTEXT("NodeToolTipLong", "@ {0} sec (frame {1}) for {2} sec"), Seconds, Frame, Duration );
+	}
+	else
+	{
+		ToolTipText = FText::Format(LOCTEXT("NodeToolTipShort", "@ {0} sec (frame {1})"), Seconds, Frame);
 	}
 
-	return FText::Format( LOCTEXT("NodeToolTipShort", "@ {0} sec (frame {1})"), Seconds, Frame );
+	if (NotifyEvent->IsBranchingPoint())
+	{
+		ToolTipText = FText::Format(LOCTEXT("AnimNotify_ToolTipBranchingPoint", "{0} (BranchingPoint)"), ToolTipText);
+	}
+	return ToolTipText;
 }
 
 /** @return the Node's position within the graph */
@@ -1086,18 +1102,23 @@ void SAnimNotifyNode::UpdateSizeAndPosition(const FGeometry& AllottedGeometry)
 
 	const TSharedRef< FSlateFontMeasure > FontMeasureService = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
 	TextSize = FontMeasureService->Measure( GetNotifyText(), Font );
+	LabelWidth = TextSize.X + (TextBorderSize.X * 2.f) + (ScrubHandleSize.X / 2.f);
 
-	LabelWidth = TextSize.X + (TextBorderSize.X * 2.f) + (ScrubHandleSize.X/2.f);
+	bool bDrawBranchingPoint = NotifyEvent->IsBranchingPoint();
+	BranchingPointIconSize = FVector2D(TextSize.Y, TextSize.Y);
+	if (bDrawBranchingPoint)
+	{
+		LabelWidth += BranchingPointIconSize.X + TextBorderSize.X * 2.f;
+	}
 
+	//Calculate scrub handle box size (the notional box around the scrub handle and the alignment marker)
+	float NotifyHandleBoxWidth = FMath::Max(ScrubHandleSize.X, AlignmentMarkerSize.X * 2);
 
 	// Work out where we will have to draw the tool tip
 	FVector2D Size = GetSize();
 	float LeftEdgeToNotify = NotifyTimePositionX;
 	float RightEdgeToNotify = AllottedGeometry.Size.X - NotifyTimePositionX;
 	bDrawTooltipToRight = (RightEdgeToNotify > LabelWidth) || (RightEdgeToNotify > LeftEdgeToNotify);
-
-	//Calculate scrub handle box size (the notional box around the scrub handle and the alignment marker)
-	float NotifyHandleBoxWidth = FMath::Max(ScrubHandleSize.X, AlignmentMarkerSize.X*2);
 
 	// Calculate widget width/position based on where we are drawing the tool tip
 	WidgetX = bDrawTooltipToRight ? (NotifyTimePositionX - (NotifyHandleBoxWidth / 2.f)) : (NotifyTimePositionX - LabelWidth);
@@ -1134,6 +1155,7 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 	int32 MarkerLayer = LayerId + 1;
 	int32 ScrubHandleID = MarkerLayer + 1;
 	int32 TextLayerID = ScrubHandleID + 1;
+	int32 BranchPointLayerID = TextLayerID + 1;
 
 	const FSlateBrush* StyleInfo = FEditorStyle::GetBrush( TEXT("SpecialEditableTextImageNormal") );
 	FSlateDrawElement::MakeBox( 
@@ -1180,15 +1202,18 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 		}
 	}
 
+	// Branching point
+	bool bDrawBranchingPoint = NotifyEvent->IsBranchingPoint();
+
 	// Background
 	FVector2D LabelSize = TextSize + TextBorderSize * 2.f;
-	LabelSize.X += HalfScrubHandleWidth;
+	LabelSize.X += HalfScrubHandleWidth + (bDrawBranchingPoint ? (BranchingPointIconSize.X + TextBorderSize.X * 2.f) : 0.f);
 
 	float LabelX = bDrawTooltipToRight ? NotifyScrubHandleCentre : NotifyScrubHandleCentre - LabelSize.X;
 	float BoxHeight = (NotifyDurationSizeX > 0.f) ? (NotifyHeight - LabelSize.Y) : ((NotifyHeight - LabelSize.Y) / 2.f);
 
-	FVector2D LabelPosition(LabelX, BoxHeight); 
-	
+	FVector2D LabelPosition(LabelX, BoxHeight);
+
 	FLinearColor NodeColor = SAnimNotifyNode::GetNotifyColor();
 
 	FSlateDrawElement::MakeBox( 
@@ -1249,7 +1274,7 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 	if(NotifyEvent->TriggerTimeOffset != 0.f) //Do we have an offset to render?
 	{
 		float NotifyTime = NotifyEvent->GetTime();
-		if(NotifyTime != 0.f && NotifyTime != Sequence->SequenceLength) //Don't render offset when we are at the start/end of the sequence, doesnt help the user
+		if(NotifyTime != 0.f && NotifyTime != Sequence->SequenceLength) //Don't render offset when we are at the start/end of the sequence, doesn't help the user
 		{
 			float HandleCentre = NotifyScrubHandleCentre;
 			float &Offset = NotifyEvent->TriggerTimeOffset;
@@ -1257,6 +1282,22 @@ int32 SAnimNotifyNode::OnPaint(const FPaintArgs& Args, const FGeometry& Allotted
 			DrawHandleOffset(NotifyEvent->TriggerTimeOffset, NotifyScrubHandleCentre, OutDrawElements, MarkerLayer, AllottedGeometry, MyClippingRect);
 		}
 	}
+
+	// Draw Branching Point
+	if (bDrawBranchingPoint)
+	{
+		FVector2D BranchPointIconPos = LabelPosition + LabelSize - BranchingPointIconSize - FVector2D(bDrawTooltipToRight ? TextBorderSize.X * 2.f : TextBorderSize.X * 4.f, 0.f);
+		FSlateDrawElement::MakeBox(
+			OutDrawElements,
+			BranchPointLayerID,
+			AllottedGeometry.ToPaintGeometry(BranchPointIconPos, BranchingPointIconSize),
+			FEditorStyle::GetBrush(TEXT("AnimNotifyEditor.BranchingPoint")),
+			MyClippingRect,
+			ESlateDrawEffect::None,
+			FLinearColor::White
+			);
+	}	
+
 	return TextLayerID;
 }
 
@@ -2164,6 +2205,27 @@ TSharedPtr<SWidget> SAnimNotifyTrack::SummonContextMenu(const FGeometry& MyGeome
 	}
 	MenuBuilder.EndSection(); //AnimEdit
 
+	if (NotifyIndex != INDEX_NONE)
+	{
+		FAnimNotifyEvent* Notify = AnimNotifies[NotifyIndex];
+		UObject* NotifyObject = Notify->Notify;
+		NotifyObject = NotifyObject ? NotifyObject : Notify->NotifyStateClass;
+
+		if (NotifyObject && Cast<UBlueprintGeneratedClass>(NotifyObject->GetClass()))
+		{
+			if (UBlueprint* Blueprint = Cast<UBlueprint>(NotifyObject->GetClass()->ClassGeneratedBy))
+			{
+				MenuBuilder.BeginSection("ViewSource", LOCTEXT("NotifyViewHeading", "View"));
+
+				NewAction.ExecuteAction.BindRaw(
+					this, &SAnimNotifyTrack::OnOpenNotifySource, Blueprint);
+				MenuBuilder.AddMenuEntry(LOCTEXT("OpenNotifyBlueprint", "Open Notify Blueprint"), LOCTEXT("OpenNotifyBlueprint", "Opens the source blueprint for this notify"), FSlateIcon(), NewAction);
+
+				MenuBuilder.EndSection(); //ViewSource
+			}
+		}
+	}
+
 	// Display the newly built menu
 	TWeakPtr<SWindow> ContextMenuWindow =
 		FSlateApplication::Get().PushMenu( SharedThis( this ), MenuBuilder.MakeWidget(), CursorPos, FPopupTransitionEffect( FPopupTransitionEffect::ContextMenu ));
@@ -2356,6 +2418,11 @@ void SAnimNotifyTrack::OnManageNotifies()
 	{
 		PersonalPin->GetTabManager()->InvokeTab( FPersonaTabs::SkeletonAnimNotifiesID );
 	}
+}
+
+void SAnimNotifyTrack::OnOpenNotifySource(UBlueprint* InSourceBlueprint) const
+{
+	FAssetEditorManager::Get().OpenEditorForAsset(InSourceBlueprint);
 }
 
 void SAnimNotifyTrack::SetTriggerWeight(const FText& TriggerWeight, ETextCommit::Type CommitInfo, int32 NotifyIndex)
@@ -2844,7 +2911,7 @@ void SNotifyEdTrack::Construct(const FArguments& InArgs)
 {
 	Sequence = InArgs._Sequence;
 	TrackIndex = InArgs._TrackIndex;
-	FAnimNotifyTrack & Track = Sequence->AnimNotifyTracks[InArgs._TrackIndex];
+	FAnimNotifyTrack& Track = Sequence->AnimNotifyTracks[InArgs._TrackIndex];
 	// @Todo anim: we need to fix this to allow track color to be customizable. 
 	// for now name, and track color are given
 	Track.TrackColor = ((TrackIndex & 1) != 0) ? FLinearColor(0.9f, 0.9f, 0.9f, 0.9f) : FLinearColor(0.5f, 0.5f, 0.5f);
@@ -2998,7 +3065,7 @@ void SAnimNotifyPanel::Construct(const FArguments& InArgs)
 	];
 
 	OnPropertyChangedHandle = FCoreUObjectDelegates::FOnObjectPropertyChanged::FDelegate::CreateSP(this, &SAnimNotifyPanel::OnPropertyChanged);
-	FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
+	OnPropertyChangedHandleDelegateHandle = FCoreUObjectDelegates::OnObjectPropertyChanged.Add(OnPropertyChangedHandle);
 
 	// Base notify classes used to search asset data for children.
 	NotifyClassNames.Add(TEXT("Class'/Script/Engine.AnimNotify'"));
@@ -3019,7 +3086,7 @@ SAnimNotifyPanel::~SAnimNotifyPanel()
 		PersonaPtr.Pin()->UnregisterOnGenericDelete(this);
 	}
 
-	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandle);
+	FCoreUObjectDelegates::OnObjectPropertyChanged.Remove(OnPropertyChangedHandleDelegateHandle);
 }
 
 FReply SAnimNotifyPanel::InsertTrack(int32 TrackIndexToInsert)
@@ -3027,7 +3094,7 @@ FReply SAnimNotifyPanel::InsertTrack(int32 TrackIndexToInsert)
 	// before insert, make sure everything behind is fixed
 	for (int32 I=TrackIndexToInsert; I<Sequence->AnimNotifyTracks.Num(); ++I)
 	{
-		FAnimNotifyTrack & Track = Sequence->AnimNotifyTracks[I];
+		FAnimNotifyTrack& Track = Sequence->AnimNotifyTracks[I];
 		for (int32 J=0; J<Track.Notifies.Num(); ++J)
 		{
 			// fix notifies indices
@@ -3058,7 +3125,7 @@ FReply SAnimNotifyPanel::DeleteTrack(int32 TrackIndexToDelete)
 			// before insert, make sure everything behind is fixed
 			for (int32 I=TrackIndexToDelete+1; I<Sequence->AnimNotifyTracks.Num(); ++I)
 			{
-				FAnimNotifyTrack & Track = Sequence->AnimNotifyTracks[I];
+				FAnimNotifyTrack& Track = Sequence->AnimNotifyTracks[I];
 				for (int32 J=0; J<Track.Notifies.Num(); ++J)
 				{
 					// fix notifies indices
@@ -3154,7 +3221,7 @@ void SAnimNotifyPanel::RefreshNotifyTracks()
 
 	for(int32 I=Sequence->AnimNotifyTracks.Num()-1; I>=0; --I)
 	{
-		FAnimNotifyTrack & Track = Sequence->AnimNotifyTracks[I];
+		FAnimNotifyTrack& Track = Sequence->AnimNotifyTracks[I];
 		TSharedPtr<SNotifyEdTrack> EdTrack;
 
 		NotifySlots->AddSlot()
