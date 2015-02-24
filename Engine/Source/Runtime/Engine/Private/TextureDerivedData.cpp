@@ -488,6 +488,7 @@ namespace ETextureCacheFlags
 		InlineMips		= 0x08,
 		AllowAsyncBuild	= 0x10,
 		ForDDCBuild		= 0x20,
+		RemoveSourceMipDataAfterCache = 0x40,
 	};
 };
 
@@ -680,6 +681,13 @@ class FTextureCacheDerivedDataWorker : public FNonAbandonableTask
 	/** Gathers information needed to build a texture. */
 	void GetBuildInfo()
 	{
+		if ( Texture.Source.HasHadBulkDataCleared() )
+		{
+			// don't do any work we can't reload this
+			UE_LOG(LogTexture, Warning, TEXT("Unable to load texture source data could be because it has been cleared. %s"), *Texture.GetName())
+			return;
+		}
+
 		// Dump any existing mips.
 		DerivedData->Mips.Empty();
 		
@@ -909,6 +917,8 @@ public:
 		{
 			GetBuildInfo();
 			BuildTexture();
+
+			check( bSucceeded );
 		}
 	}
 
@@ -958,7 +968,9 @@ void FTexturePlatformData::Cache(
 	bool bForceRebuild = (Flags & ETextureCacheFlags::ForceRebuild) != 0;
 	bool bAsync = !bForDDC && (Flags & ETextureCacheFlags::Async) != 0;
 	GetTextureDerivedDataKey(InTexture, InSettings, DerivedDataKey);
-	
+
+	UE_LOG(LogTemp, Warning, TEXT("FTexturePlatformData::Cache for %s with ID %s"), *InTexture.GetName(), *DerivedDataKey );
+
 	ITextureCompressorModule* Compressor = &FModuleManager::LoadModuleChecked<ITextureCompressorModule>(TEXTURE_COMPRESSOR_MODULENAME);
 
 	if (bAsync && !bForceRebuild)
@@ -1363,25 +1375,6 @@ void UTexture2D::GetMipData(int32 FirstMipToLoad, void** OutMipData)
 	}
 }
 
-
-
-void UTexture::CleanupCachedCookedPlatformData()
-{
-	TMap<FString, FTexturePlatformData*> *CookedPlatformDataPtr = GetCookedPlatformData();
-
-	if ( CookedPlatformDataPtr )
-	{
-		TMap<FString, FTexturePlatformData*> &CookedPlatformData = *CookedPlatformDataPtr;
-
-		for ( auto It : CookedPlatformData )
-		{
-			delete It.Value;
-		}
-
-		CookedPlatformData.Empty();
-	}
-}
-
 void UTexture::UpdateCachedLODBias( bool bIncTextureMips )
 {
 	CachedCombinedLODBias = GSystemSettings.TextureLODSettings.CalculateLODBias( this, bIncTextureMips );
@@ -1430,6 +1423,7 @@ void UTexture::BeginCachePlatformData()
 {
 	CachePlatformData(true);
 
+#if 0 // don't cache in post load, this increases our peak memory usage, instead cache just before we save the package
 	// enable caching in postload for derived data cache commandlet and cook by the book
 	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
 	if (TPM && (TPM->RestrictFormatsToRuntimeOnly() == false))
@@ -1442,6 +1436,7 @@ void UTexture::BeginCachePlatformData()
 			BeginCacheForCookedPlatformData(Platforms[FormatIndex]);
 		}
 	}
+#endif
 }
 
 void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform )
@@ -1467,10 +1462,7 @@ void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPla
 		for (int32 FormatIndex = 0; FormatIndex < PlatformFormats.Num(); ++FormatIndex)
 		{
 			BuildSettings.TextureFormatName = PlatformFormats[FormatIndex];
-			if (BuildSettings.TextureFormatName != NAME_None)
-			{
-				BuildSettingsToCache.Add(BuildSettings);
-			}
+			BuildSettingsToCache.Add(BuildSettings);
 		}
 
 		uint32 CacheFlags = ETextureCacheFlags::Async | ETextureCacheFlags::InlineMips;
@@ -1495,6 +1487,7 @@ void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPla
 
 			if ( PlatformData == NULL )
 			{
+				// UE_LOG(LogTemp, Warning, TEXT("Caching data for texture %s with id %s"), *GetName(), *DerivedDataKey);
 				uint32 CurrentCacheFlags = CacheFlags;
 				// if the cached data key exists already then we don't need to allowasync build
 				// if it doesn't then allow async builds
@@ -1520,6 +1513,73 @@ void UTexture::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPla
 	}
 }
 
+void UTexture::ClearCachedCookedPlatformData( const ITargetPlatform* TargetPlatform )
+{
+	// I feel like bobby fisher, always four moves ahead of
+	// my competition, listen they ain't gonna stop me ever
+	// I feel as large as Biggie, swear it could not get better, 
+	// I feel in charge like Biggie, wearing that Cosby sweater
+	TMap<FString, FTexturePlatformData*> *CookedPlatformDataPtr = GetCookedPlatformData();
+
+	if ( CookedPlatformDataPtr )
+	{
+
+		TMap<FString,FTexturePlatformData*>& CookedPlatformData = *CookedPlatformDataPtr;
+
+		// Make sure the pixel format enum has been cached.
+		UTexture::GetPixelFormatEnum();
+
+		// Retrieve formats to cache for targetplatform.
+
+		TArray<FName> PlatformFormats;
+
+
+		TArray<FTextureBuildSettings> BuildSettingsToCache;
+
+		FTextureBuildSettings BuildSettings;
+		GetTextureBuildSettings(*this, TargetPlatform->GetTextureLODSettings(), BuildSettings);
+		TargetPlatform->GetTextureFormats(this, PlatformFormats);
+		for (int32 FormatIndex = 0; FormatIndex < PlatformFormats.Num(); ++FormatIndex)
+		{
+			BuildSettings.TextureFormatName = PlatformFormats[FormatIndex];
+			// if (BuildSettings.TextureFormatName != NAME_None)
+			{
+				BuildSettingsToCache.Add(BuildSettings);
+			}
+		}
+
+		// Cull redundant settings by comparing derived data keys.
+		for (int32 SettingsIndex = 0; SettingsIndex < BuildSettingsToCache.Num(); ++SettingsIndex)
+		{
+			FString DerivedDataKey;
+			GetTextureDerivedDataKey(*this, BuildSettingsToCache[SettingsIndex], DerivedDataKey);
+
+			if ( CookedPlatformData.Contains( DerivedDataKey ) )
+			{
+				FTexturePlatformData *PlatformData = CookedPlatformData.FindAndRemoveChecked( DerivedDataKey );
+				delete PlatformData;
+			}
+		}
+	}
+}
+
+void UTexture::ClearAllCachedCookedPlatformData()
+{
+	TMap<FString, FTexturePlatformData*> *CookedPlatformDataPtr = GetCookedPlatformData();
+
+	if ( CookedPlatformDataPtr )
+	{
+		TMap<FString, FTexturePlatformData*> &CookedPlatformData = *CookedPlatformDataPtr;
+
+		for ( auto It : CookedPlatformData )
+		{
+			delete It.Value;
+		}
+
+		CookedPlatformData.Empty();
+	}
+}
+
 bool UTexture::IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPlatform ) 
 { 
 	const TMap<FString, FTexturePlatformData*> *CookedPlatformDataPtr = GetCookedPlatformData();
@@ -1541,14 +1601,50 @@ bool UTexture::IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPl
 
 		FTexturePlatformData *PlatformData= (*CookedPlatformDataPtr).FindRef(DerivedDataKey);
 
+		// begin cache hasn't been called
+		if ( !PlatformData )
+			return false;
+
 		if (PlatformData)
 		{
-			if ( (PlatformData->AsyncTask != NULL) && ( PlatformData->AsyncTask->IsWorkDone() == false ) )
+			if ( (PlatformData->AsyncTask != NULL) && ( PlatformData->AsyncTask->IsWorkDone() == true ) )
+			{
+				PlatformData->FinishCache();
+			}
+
+			if ( PlatformData->AsyncTask)
+			{
 				return false;
+			}
 		}
 	}
 	// if we get here all our stuff is cached :)
 	return true;
+}
+
+void UTexture2D::WillNeverCacheCookedPlatformDataAgain()
+{
+	Super::WillNeverCacheCookedPlatformDataAgain();
+#if WITH_EDITORONLY_DATA && 0 // enable this when I feel safe about it
+	// "Source" is only in WITH_EDITORONLY_DATA
+	UE_LOG(LogTemp, Warning, TEXT("Cleared source texture data for texture %s"), *GetName());
+	// clear source mips if we are in the editor then we don't have this luxury 
+	check( IsAsyncCacheComplete());
+
+	const TMap<FString, FTexturePlatformData*> *CookedPlatformDataPtr = GetCookedPlatformData();
+	if ( CookedPlatformDataPtr != NULL )
+	{
+		for ( const auto& TexturePlatformData : *CookedPlatformDataPtr )
+		{
+			check( TexturePlatformData.Value->AsyncTask == NULL);
+		}
+	}
+
+	if ( Source.IsBulkDataLoaded() )
+	{
+		Source.ReleaseSourceMemory();
+	}
+#endif
 }
 
 bool UTexture::IsAsyncCacheComplete()
@@ -1744,8 +1840,6 @@ void UTexture::SerializeCookedPlatformData(FArchive& Ar)
 
 			for (int32 i = 0; i < PlatformDataToSerialize.Num(); ++i)
 			{
-				
-
 				FTexturePlatformData* PlatformDataToSave = PlatformDataToSerialize[i];
 				PlatformDataToSave->FinishCache();
 				FName PixelFormatName = PixelFormatEnum->GetEnum(PlatformDataToSave->PixelFormat);

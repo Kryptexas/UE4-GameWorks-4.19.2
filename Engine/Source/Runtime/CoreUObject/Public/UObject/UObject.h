@@ -181,11 +181,6 @@ public:
 	virtual bool Modify( bool bAlwaysMarkDirty=true );
 
 #if WITH_EDITOR
-	/**
-	 * The cooker (or DDC commandlet) have dealt with this object and will never deal with it again.
-	 * The object should try to free memory
-	 */
-	virtual void CookerWillNeverCookAgain() {}
 	/** 
 	 * Called when the object was loaded from another class via active class redirects.
 	 */
@@ -682,7 +677,7 @@ public:
 	 *								subobjects and components for a subobject root.
 	 */
 	void ConditionalPostLoadSubobjects( struct FObjectInstancingGraph* OuterInstanceGraph=NULL );
-
+#if WITH_EDITOR
 	/**
 	 * Starts caching of platform specific data for the target platform
 	 * Called when cooking before serialization so that object can prepare platform specific data
@@ -691,6 +686,18 @@ public:
 	 * @param	TargetPlatform	target platform to cache platform specific data for
 	 */
 	virtual void BeginCacheForCookedPlatformData( const ITargetPlatform* TargetPlatform ) {  }
+	
+	/**
+	 * Have we finished loading all the cooked platform data for the target platforms requested in BeginCacheForCookedPlatformData
+	 * 
+	 * @param	TargetPlatform target platform to check for cooked platform data
+	 */
+	virtual bool IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPlatform ) { return true; }
+
+	/**
+	 * All caching has finished for this object (all IsCachedCookedPlatformDataLoaded functions have finished for all platforms)
+	 */
+	virtual void WillNeverCacheCookedPlatformDataAgain() { }
 
 	/**
 	 * Clears cached cooked platform data for specific platform
@@ -705,15 +712,7 @@ public:
 	 * @param	TargetPlatform	target platform to cache platform specific data for
 	 */
 	virtual void ClearAllCachedCookedPlatformData() { }
-
-	/**
-	 * Have we finished loading all the cooked platform data for the target platforms requested in BeginCacheForCookedPlatformData
-	 * 
-	 * @param	TargetPlatform target platform to check for cooked platform data
-	 */
-	virtual bool IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPlatform ) { return true; }
-
-
+#endif
 	/**
 	 * Determine if this object has SomeObject in its archetype chain.
 	 */

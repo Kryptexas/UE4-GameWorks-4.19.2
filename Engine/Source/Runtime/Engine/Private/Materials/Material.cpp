@@ -409,7 +409,7 @@ void UMaterialInterface::AssertDefaultMaterialsPostLoaded()
 	}
 }
 
-void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*,TArray<FMaterialResource*>>& PlatformMaterialResourcesToSave, FArchive& Ar, FMaterialResource* OutMaterialResourcesLoaded[][ERHIFeatureLevel::Num])
+void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*,TArray<FMaterialResource*>>* PlatformMaterialResourcesToSavePtr, FArchive& Ar, FMaterialResource* OutMaterialResourcesLoaded[][ERHIFeatureLevel::Num])
 {
 	if (Ar.IsSaving())
 	{
@@ -417,6 +417,9 @@ void SerializeInlineShaderMaps(const TMap<const ITargetPlatform*,TArray<FMateria
 		const TArray<FMaterialResource*> *MaterialResourcesToSavePtr = NULL;
 		if (Ar.IsCooking())
 		{
+			check( PlatformMaterialResourcesToSavePtr );
+			auto& PlatformMaterialResourcesToSave = *PlatformMaterialResourcesToSavePtr;
+
 			MaterialResourcesToSavePtr = PlatformMaterialResourcesToSave.Find( Ar.CookingTarget() );
 			check( MaterialResourcesToSavePtr != NULL || (Ar.GetLinker()==NULL) );
 			if (MaterialResourcesToSavePtr!= NULL )
@@ -1729,7 +1732,11 @@ void UMaterial::Serialize(FArchive& Ar)
 
 	if (Ar.UE4Ver() >= VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS)
 	{
-		SerializeInlineShaderMaps( CachedMaterialResourcesForCooking, Ar, MaterialResources );
+#if WITH_EDITOR
+		SerializeInlineShaderMaps( &CachedMaterialResourcesForCooking, Ar, MaterialResources );
+#else
+		SerializeInlineShaderMaps( NULL, Ar, MaterialResources );
+#endif
 	}
 	else
 	{
@@ -2036,7 +2043,7 @@ void UMaterial::PostLoad()
 	STAT(double MaterialLoadTime = 0);
 	{
 		SCOPE_SECONDS_COUNTER(MaterialLoadTime);
-
+#if WITH_EDITOR
 		// enable caching in postload for derived data cache commandlet and cook by the book
 		ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
 		if (TPM && (TPM->RestrictFormatsToRuntimeOnly() == false))
@@ -2048,7 +2055,7 @@ void UMaterial::PostLoad()
 				BeginCacheForCookedPlatformData(Platforms[FormatIndex]);
 			}
 		}
-
+#endif
 		//Don't compile shaders in post load for dev overhead materials.
 		if (FApp::CanEverRender() && !bIsMaterialEditorStatsMaterial)
 		{
@@ -2111,7 +2118,7 @@ void UMaterial::PropagateDataToMaterialProxy()
 		}
 	}
 }
-
+#if WITH_EDITOR
 void UMaterial::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform )
 {
 	TArray<FName> DesiredShaderFormats;
@@ -2186,7 +2193,7 @@ void UMaterial::ClearAllCachedCookedPlatformData()
 	}
 	CachedMaterialResourcesForCooking.Empty();
 }
-
+#endif
 #if WITH_EDITOR
 bool UMaterial::CanEditChange(const UProperty* InProperty) const
 {
@@ -2725,9 +2732,9 @@ void UMaterial::ReleaseResources()
 			CurrentResource = NULL;
 		}
 	}
-
+#if WITH_EDITOR
 	ClearAllCachedCookedPlatformData();
-
+#endif
 	for (int32 InstanceIndex = 0; InstanceIndex < 3; ++InstanceIndex)
 	{
 		if (DefaultMaterialInstances[InstanceIndex])

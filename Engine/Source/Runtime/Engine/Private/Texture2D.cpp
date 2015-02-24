@@ -405,12 +405,6 @@ void UTexture2D::UpdateResource()
 
 
 #if WITH_EDITOR
-void UTexture2D::CookerWillNeverCookAgain()
-{
-	Super::CookerWillNeverCookAgain();
-
-	CleanupCachedCookedPlatformData();
-}
 void UTexture2D::PostLinkerChange()
 {
 	// Changing the linker requires re-creating the resource to make sure streaming behavior is right.

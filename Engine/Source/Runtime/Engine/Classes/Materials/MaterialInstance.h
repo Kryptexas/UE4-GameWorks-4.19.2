@@ -231,10 +231,10 @@ private:
 	 * For example the material instance needs to support being rendered at different quality levels and feature levels within the same process.
 	 */
 	FMaterialResource* StaticPermutationMaterialResources[EMaterialQualityLevel::Num][ERHIFeatureLevel::Num];
-
+#if WITH_EDITOR
 	/** Material resources being cached for cooking. */
 	TMap<const class ITargetPlatform*, TArray<FMaterialResource*>> CachedMaterialResourcesForCooking;
-
+#endif
 	/** Fence used to guarantee that the RT is finished using various resources in this UMaterial before cleanup. */
 	FRenderCommandFence ReleaseFence;
 
@@ -300,10 +300,12 @@ public:
 	// Begin UObject interface.
 	virtual ENGINE_API SIZE_T GetResourceSize(EResourceSizeMode::Type Mode) override;
 	virtual ENGINE_API void PostInitProperties() override;	
+#if WITH_EDITOR
 	virtual ENGINE_API void BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatform) override;
 	virtual ENGINE_API bool IsCachedCookedPlatformDataLoaded(const ITargetPlatform* TargetPlatform) override;
 	virtual ENGINE_API void ClearCachedCookedPlatformData(const ITargetPlatform *TargetPlatform) override;
 	virtual ENGINE_API void ClearAllCachedCookedPlatformData() override;
+#endif
 	virtual ENGINE_API void Serialize(FArchive& Ar) override;
 	virtual ENGINE_API void PostLoad() override;
 	virtual ENGINE_API void BeginDestroy() override;

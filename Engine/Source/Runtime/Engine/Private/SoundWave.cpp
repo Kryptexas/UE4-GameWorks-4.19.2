@@ -400,14 +400,6 @@ bool USoundWave::IsLocalizedResource()
 
 #if WITH_EDITOR
 
-void USoundWave::CookerWillNeverCookAgain()
-{
-	Super::CookerWillNeverCookAgain();
-	RawData.RemoveBulkData();
-	CompressedFormatData.FlushData();
-	CleanupCachedCookedPlatformData();
-}
-
 void USoundWave::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 	Super::PostEditChangeProperty(PropertyChangedEvent);
@@ -527,7 +519,9 @@ void USoundWave::FinishDestroy()
 	Super::FinishDestroy();
 
 	CleanupCachedRunningPlatformData();
-	CleanupCachedCookedPlatformData();
+#if WITH_EDITOR
+	ClearAllCachedCookedPlatformData();
+#endif
 
 	IStreamingManager::Get().GetAudioStreamingManager().RemoveStreamingSoundWave(this);
 }

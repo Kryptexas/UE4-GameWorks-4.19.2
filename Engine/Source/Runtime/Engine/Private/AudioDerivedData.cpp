@@ -920,15 +920,6 @@ void USoundWave::CleanupCachedRunningPlatformData()
 	}
 }
 
-void USoundWave::CleanupCachedCookedPlatformData()
-{
-	for (auto It : CookedPlatformData)
-	{
-		delete It.Value;
-	}
-
-	CookedPlatformData.Empty();
-}
 
 void USoundWave::SerializeCookedPlatformData(FArchive& Ar)
 {
@@ -994,6 +985,7 @@ void USoundWave::BeginCachePlatformData()
 {
 	CachePlatformData(true);
 
+#if WITH_EDITOR
 	// enable caching in postload for derived data cache commandlet and cook by the book
 	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
 	if (TPM && (TPM->RestrictFormatsToRuntimeOnly() == false))
@@ -1006,7 +998,9 @@ void USoundWave::BeginCachePlatformData()
 			BeginCacheForCookedPlatformData(Platforms[FormatIndex]);
 		}
 	}
+#endif
 }
+#if WITH_EDITOR
 
 void USoundWave::BeginCacheForCookedPlatformData(const ITargetPlatform *TargetPlatform)
 {
@@ -1066,6 +1060,55 @@ bool USoundWave::IsCachedCookedPlatformDataLoaded( const ITargetPlatform* Target
 	}
 	return true; 
 }
+
+
+/**
+* Clear all the cached cooked platform data which we have accumulated with BeginCacheForCookedPlatformData calls
+* The data can still be cached again using BeginCacheForCookedPlatformData again
+*/
+void USoundWave::ClearAllCachedCookedPlatformData()
+{
+	Super::ClearAllCachedCookedPlatformData();
+
+	for (auto It : CookedPlatformData)
+	{
+		delete It.Value;
+	}
+
+	CookedPlatformData.Empty();
+}
+
+void USoundWave::ClearCachedCookedPlatformData( const ITargetPlatform* TargetPlatform )
+{
+	Super::ClearCachedCookedPlatformData(TargetPlatform);
+
+	if (TargetPlatform->SupportsFeature(ETargetPlatformFeatures::AudioStreaming) && IsStreaming())
+	{
+		// Retrieve format to cache for targetplatform.
+		FName PlatformFormat = TargetPlatform->GetWaveFormat(this);
+
+		// find format data by comparing derived data keys.
+		FString DerivedDataKey;
+		GetStreamedAudioDerivedDataKeySuffix(*this, PlatformFormat, DerivedDataKey);
+
+		
+		if ( CookedPlatformData.Contains(DerivedDataKey) )
+		{
+			FStreamedAudioPlatformData *PlatformData = CookedPlatformData.FindAndRemoveChecked( DerivedDataKey );
+			delete PlatformData;
+		}	
+	}
+}
+
+void USoundWave::WillNeverCacheCookedPlatformDataAgain()
+{
+	// this is called after we have finished caching the platform data but before we have saved the data
+	// so need to keep the cached platform data around 
+	Super::WillNeverCacheCookedPlatformDataAgain();
+	RawData.RemoveBulkData();
+	CompressedFormatData.FlushData();
+}
+#endif
 
 void USoundWave::FinishCachePlatformData()
 {

@@ -3713,11 +3713,12 @@ bool UPackage::SavePackage( UPackage* InOuter, UObject* Base, EObjectFlags TopLe
 
 				SlowTask.EnterProgressFrame();
 			
-
+#if WITH_EDITOR
 				for ( int CachedObjectIndex = 0; CachedObjectIndex < CachedObjects.Num(); ++CachedObjectIndex )
 				{
 					CachedObjects[CachedObjectIndex]->ClearCachedCookedPlatformData(TargetPlatform);
 				}
+#endif
 			}
 
 		}

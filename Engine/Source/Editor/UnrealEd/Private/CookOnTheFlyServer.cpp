@@ -960,6 +960,14 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			AllTargetPlatformNames.AddUnique(PlatformName);
 		}
 
+		for ( const auto &PlatformName : AllTargetPlatformNames )
+		{
+			if ( ToBuild.HasPlatform(PlatformName) == false )
+			{
+				ToBuild.AddPlatform(PlatformName);
+			}
+		}
+
 		bool bWasUpToDate = false;
 
 		bool bLastLoadWasMap = false;
@@ -1121,69 +1129,87 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 
 
 		bool bIsAllDataCached = true;
+
+		ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
+		TArray<const ITargetPlatform*> TargetPlatforms;
+		for ( const auto& TargetPlatformName : AllTargetPlatformNames )
+		{
+			TargetPlatforms.Add( TPM.FindTargetPlatform( TargetPlatformName.ToString() ) );
+		}
+
+
+		auto BeginPackageCacheForCookedPlatformData = [&]( const TArray<UObject*>& ObjectsInPackage )
+		{
+			for ( int I = 0; I < ObjectsInPackage.Num(); ++I )
+			{
+				const auto& Obj = ObjectsInPackage[I];
+				for ( const auto& TargetPlatform : TargetPlatforms )
+				{
+					Obj->BeginCacheForCookedPlatformData( TargetPlatform );
+				}
+
+				if ( Timer.IsTimeUp() )
+				{
+#if DEBUG_COOKONTHEFLY
+					UE_LOG(LogCook, Display, TEXT("Object %s took too long to cache"), *Obj->GetFullName());
+#endif
+					return false;
+				}
+			}
+			return true;
+		};
+
+		auto FinishPackageCacheForCookedPlatformData = [&]( const TArray<UObject*>& ObjectsInPackage )
+		{
+			
+			// if we get here and bIsAllDataCached is true then BeginCacheFOrCookedPlatformData has been called once on every object
+			// so now 
+			CurrentReentryData.bBeginCacheFinished = true;
+			for ( const auto& Obj : ObjectsInPackage )
+			{
+				for ( const auto& TargetPlatform : TargetPlatforms )
+				{
+					// These begin cache calls should be quick 
+					// because they will just be checking that the data is already cached and kicking off new multithreaded requests if not
+					// all sync requests should have been caught in the first begincache call above
+					Obj->BeginCacheForCookedPlatformData( TargetPlatform );
+					if ( Obj->IsCachedCookedPlatformDataLoaded(TargetPlatform) == false )
+					{
+#if DEBUG_COOKONTHEFLY
+						UE_LOG(LogCook, Display, TEXT("Object %s isn't cached yet"), *Obj->GetFullName());
+#endif
+						return false;
+					}
+				}
+
+				// if this objects data is cached then we can call FinishedCookedPLatformDataCache
+				// we can only safely call this when we are finished caching this object completely.
+				// this doesn't ever happen for cook in editor or cook on the fly mode
+				if ( bIsAllDataCached && (CurrentCookMode == ECookMode::CookByTheBook))
+				{
+					// this might be run multiple times for a single object
+					Obj->WillNeverCacheCookedPlatformDataAgain();
+				}
+			}
+			return true;
+		};
+
 		if ( PackagesToSave.Num() )
 		{
 			SCOPE_TIMER(CallBeginCacheForCookedPlatformData);
 			// cache the resources for this package for each platform
-			ITargetPlatformManagerModule& TPM = GetTargetPlatformManagerRef();
+			
 			TArray<UObject*> ObjectsInPackage;
 			GetObjectsWithOuter( PackagesToSave[0], ObjectsInPackage );
-			for ( const auto& TargetPlatformName : AllTargetPlatformNames )
-			{
-				// avoid hitches in the editor by calling BeginCacheForCookedPlatformData on each object once using time slicing, 
-				// then check if the objects are finished caching by not using time slicing
-				const ITargetPlatform* TargetPlatform = TPM.FindTargetPlatform( TargetPlatformName.ToString() );
-				if ( CurrentReentryData.bBeginCacheFinished == false )
-				{
-					for ( int I = 0; I < ObjectsInPackage.Num(); ++I )
-					{
-						if ( CurrentReentryData.BeginCacheCount >= I )
-						{
-							const auto& Obj = ObjectsInPackage[I];
-							Obj->BeginCacheForCookedPlatformData( TargetPlatform );
-							
-							if ( Timer.IsTimeUp() )
-							{
-#if DEBUG_COOKONTHEFLY
-								UE_LOG(LogCook, Display, TEXT("Object %s took too long to cache"), *Obj->GetFullName());
-#endif
-								bIsAllDataCached = false;
-								break;
-							}
-						}
-					}
-				}
-				
-				if ( bIsAllDataCached )
-				{
-					// if we get here and bIsAllDataCached is true then BeginCacheFOrCookedPlatformData has been called once on every object
-					// so now 
-					CurrentReentryData.bBeginCacheFinished = true;
-					for ( const auto& Obj : ObjectsInPackage )
-					{
-						// These begin cache calls should be quick 
-						// because they will just be checking that the data is already cached and kicking off new multithreaded requests if not
-						// all sync requests should have been caught in the first begincache call above
-						Obj->BeginCacheForCookedPlatformData( TargetPlatform );
-						if ( Obj->IsCachedCookedPlatformDataLoaded(TargetPlatform) == false )
-						{
-#if DEBUG_COOKONTHEFLY
-							UE_LOG(LogCook, Display, TEXT("Object %s isn't cached yet"), *Obj->GetFullName());
-#endif
-							bIsAllDataCached = false;
-						}
-					}
-				}
-				
 
-				if ( Timer.IsTimeUp() && (bIsAllDataCached == false) )
-				{
-					break; // break out of the target platform loop (can't break out of the main package tick loop here without requeing the request)
-				}
+			bIsAllDataCached &= BeginPackageCacheForCookedPlatformData(ObjectsInPackage);
+			if( bIsAllDataCached )
+			{
+				bIsAllDataCached &= FinishPackageCacheForCookedPlatformData(ObjectsInPackage);
 			}
 		}
 
-		if ( IsRealtimeMode() )
+		// if ( IsRealtimeMode() )
 		{
 			if ( bIsAllDataCached == false )
 			{
@@ -1225,7 +1251,7 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					{
 						Result |= COSR_RequiresGC;
 					}
-
+					
 					if (Package)
 					{
 						ACCUMULATE_TIMER_START(GetCachedName);
@@ -1270,11 +1296,6 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 			}
 		}
 
-		{
-			SCOPE_TIMER(GenerateManifestInfo);
-			// update manifest with cooked package info
-			GenerateManifestInfo( PackagesToSave[0], AllTargetPlatformNames );
-		}
 
 		bool bFinishedSave = true;
 
@@ -1322,6 +1343,12 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					}
 				}
 
+				{
+					SCOPE_TIMER(GenerateManifestInfo);
+					// update manifest with cooked package info
+					GenerateManifestInfo( PackagesToSave[I], AllTargetPlatformNames );
+				}
+
 				UPackage *Package = PackagesToSave[I];
 				FName PackageFName = GetCachedStandardPackageFileFName(Package);
 				TArray<FName> SaveTargetPlatformNames = AllTargetPlatformNames;
@@ -1340,6 +1367,22 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					continue;
 				}
 
+				// precache platform data for next package 
+				UPackage *NextPackage = PackagesToSave[FMath::Min( PackagesToSave.Num()-1, I + 1 )];
+				UPackage *NextNextPackage = PackagesToSave[FMath::Min( PackagesToSave.Num()-1, I + 2 )];
+				if ( NextPackage != Package )
+				{
+					TArray<UObject*> ObjectsInPackage;
+					GetObjectsWithOuter( NextPackage, ObjectsInPackage );
+					BeginPackageCacheForCookedPlatformData(ObjectsInPackage);
+				}
+				if ( NextNextPackage != NextPackage )
+				{
+					TArray<UObject*> ObjectsInPackage;
+					GetObjectsWithOuter( NextNextPackage, ObjectsInPackage );
+					BeginPackageCacheForCookedPlatformData(ObjectsInPackage);
+				}
+
 				SCOPE_TIMER(SaveCookedPackage);
 				if( SaveCookedPackage(Package, SAVE_KeepGUID | SAVE_Async | (IsCookFlagSet(ECookInitializationFlags::Unversioned) ? SAVE_Unversioned : 0), bWasUpToDate, AllTargetPlatformNames ) )
 				{
@@ -1355,6 +1398,16 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 					}
 				}
 				Timer.SavedPackage();
+
+				{
+					SCOPE_TIMER(ClearAllCachedCookedPlatformData);
+					TArray<UObject*> ObjectsInPackage;
+					GetObjectsWithOuter(Package, ObjectsInPackage);
+					for ( const auto& Object : ObjectsInPackage )
+					{
+						Object->ClearAllCachedCookedPlatformData();
+					}
+				}
 
 				//@todo ResetLoaders outside of this (ie when Package is NULL) causes problems w/ default materials
 				if (Package->HasAnyFlags(RF_RootSet) == false && ((CurrentCookMode==ECookMode::CookOnTheFly)) )

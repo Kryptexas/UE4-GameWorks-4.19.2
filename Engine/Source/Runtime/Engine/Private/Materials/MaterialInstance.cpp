@@ -1513,6 +1513,8 @@ void TrimToOverriddenOnly(TArray<ParameterType>& Parameters)
 	}
 }
 
+#if WITH_EDITOR
+
 void UMaterialInstance::BeginCacheForCookedPlatformData( const ITargetPlatform *TargetPlatform )
 {
 	TArray<FMaterialResource*> *CachedMaterialResourcesForPlatform = CachedMaterialResourcesForCooking.Find( TargetPlatform );
@@ -1584,6 +1586,8 @@ void UMaterialInstance::ClearAllCachedCookedPlatformData()
 	CachedMaterialResourcesForCooking.Empty();
 }
 
+#endif 
+
 void UMaterialInstance::Serialize(FArchive& Ar)
 {
 	Super::Serialize(Ar);
@@ -1594,8 +1598,12 @@ void UMaterialInstance::Serialize(FArchive& Ar)
 		if (Ar.UE4Ver() >= VER_UE4_PURGED_FMATERIAL_COMPILE_OUTPUTS)
 		{
 			StaticParameters.Serialize(Ar);
+#if WITH_EDITOR
+			SerializeInlineShaderMaps( &CachedMaterialResourcesForCooking, Ar, StaticPermutationMaterialResources );
+#else
+			SerializeInlineShaderMaps( NULL, Ar, StaticPermutationMaterialResources );
+#endif
 
-			SerializeInlineShaderMaps( CachedMaterialResourcesForCooking, Ar, StaticPermutationMaterialResources );
 		}
 		else
 		{
@@ -1702,7 +1710,7 @@ void UMaterialInstance::PostLoad()
 
 		// Make sure static parameters are up to date and shaders are cached for the current platform
 		InitStaticPermutation();
-
+#if WITH_EDITOR
 		// enable caching in postload for derived data cache commandlet and cook by the book
 		ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
 		if (TPM && (TPM->RestrictFormatsToRuntimeOnly() == false)) 
@@ -1715,6 +1723,7 @@ void UMaterialInstance::PostLoad()
 				BeginCacheForCookedPlatformData(Platforms[FormatIndex]);
 			}
 		}
+#endif
 	}
 
 	INC_FLOAT_STAT_BY(STAT_ShaderCompiling_MaterialLoading,(float)MaterialLoadTime);
@@ -1779,9 +1788,9 @@ void UMaterialInstance::FinishDestroy()
 			CurrentResource = NULL;
 		}
 	}
-
+#if WITH_EDITOR
 	ClearAllCachedCookedPlatformData();
-
+#endif
 	Super::FinishDestroy();
 }
 

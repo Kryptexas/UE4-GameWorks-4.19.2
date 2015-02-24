@@ -198,6 +198,7 @@ struct FTextureSource
 	FORCEINLINE ETextureSourceFormat GetFormat() const { return Format; }
 	FORCEINLINE bool IsPNGCompressed() const { return bPNGCompressed; }
 	FORCEINLINE int32 GetSizeOnDisk() const { return BulkData.GetBulkDataSize(); }
+	FORCEINLINE bool IsBulkDataLoaded() const { return BulkData.IsBulkDataLoaded(); }
 #endif
 
 private:
@@ -212,19 +213,22 @@ private:
 	uint8* LockedMipData;
 	/** Which mips are locked, if any. */
 	uint32 LockedMips;
-
 #if WITH_EDITOR
 	/** Return true if the source art is not png compressed but could be. */
 	bool CanPNGCompress() const;
-
 	/** Removes source data. */
 	void RemoveSourceData();
-
 	/** Retrieve the size and offset for a source mip. The size includes all slices. */
 	int32 CalcMipOffset(int32 MipIndex) const;
 
 	/** Uses a hash as the GUID, useful to prevent creating new GUIDs on load for legacy assets. */
 	void UseHashAsGuid();
+public:
+	void ReleaseSourceMemory(); // release the memory from the mips (does almost the same as remove source data except doesn't rebuild the guid)
+	FORCEINLINE bool HasHadBulkDataCleared() const { return bHasHadBulkDataCleared; }
+private:
+	/** Used while cooking to clear out unneeded memory after compression */
+	bool bHasHadBulkDataCleared;
 #endif
 
 #if WITH_EDITORONLY_DATA
@@ -259,6 +263,8 @@ private:
 	/** Format in which the source data is stored. */
 	UPROPERTY(VisibleAnywhere, Category=TextureSource)
 	TEnumAsByte<enum ETextureSourceFormat> Format;
+
+
 #endif // WITH_EDITORONLY_DATA
 };
 
@@ -587,7 +593,6 @@ public:
 	virtual TMap<FString, FTexturePlatformData*>* GetCookedPlatformData() { return NULL; }
 
 	void CleanupCachedRunningPlatformData();
-	void CleanupCachedCookedPlatformData();
 
 	/**
 	 * Serializes cooked platform data.
@@ -611,6 +616,22 @@ public:
 	 * @param	TargetPlatform target platform to check for cooked platform data
 	 */
 	ENGINE_API virtual bool IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPlatform ) override;
+
+
+	/**
+	 * Clears cached cooked platform data for specific platform
+	 * 
+	 * @param	TargetPlatform	target platform to cache platform specific data for
+	 */
+	ENGINE_API virtual void ClearCachedCookedPlatformData( const ITargetPlatform* TargetPlatform ) override;
+
+	/**
+	 * Clear all cached cooked platform data
+	 * 
+	 * @param	TargetPlatform	target platform to cache platform specific data for
+	 */
+	ENGINE_API virtual void ClearAllCachedCookedPlatformData() override;
+
 
 	/**
 	 * Begins caching platform data in the background.

@@ -1221,7 +1221,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 		if (NonMapPackageCountSinceLastGC > 0)
 		{
 			// We should GC if we have packages to collect and we've been idle for some time.
-			bShouldGC = (NonMapPackageCountSinceLastGC > PackagesPerGC) || 
+			bShouldGC |= (NonMapPackageCountSinceLastGC > PackagesPerGC) || 
 				((FPlatformTime::Seconds() - LastCookActionTime) >= IdleTimeToGC);
 		}
 
@@ -1397,7 +1397,8 @@ bool UCookCommandlet::Cook(const TArray<ITargetPlatform*>& Platforms, TArray<FSt
 						GetObjectsWithOuter(Pkg, ObjectsInPackage, true);
 						for( int32 IndexPackage = 0; IndexPackage < ObjectsInPackage.Num(); IndexPackage++ )
 						{
-							ObjectsInPackage[IndexPackage]->CookerWillNeverCookAgain();
+							ObjectsInPackage[IndexPackage]->WillNeverCacheCookedPlatformDataAgain();
+							ObjectsInPackage[IndexPackage]->ClearAllCachedCookedPlatformData();
 						}
 					}
 				}

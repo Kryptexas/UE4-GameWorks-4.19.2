@@ -330,7 +330,9 @@ void UTexture::FinishDestroy()
 	}
 
 	CleanupCachedRunningPlatformData();
-	CleanupCachedCookedPlatformData();
+#if WITH_EDITOR
+	ClearAllCachedCookedPlatformData();
+#endif
 }
 
 void UTexture::PreSave()
@@ -462,6 +464,9 @@ bool UTexture::ForceUpdateTextureStreaming()
 FTextureSource::FTextureSource()
 	: LockedMipData(NULL)
 	, LockedMips(0)
+#if WITH_EDITOR
+	, bHasHadBulkDataCleared(false)
+#endif
 #if WITH_EDITORONLY_DATA
 	, SizeX(0)
 	, SizeY(0)
@@ -775,6 +780,16 @@ void FTextureSource::ForceGenerateGuid()
 {
 	Id = FGuid::NewGuid();
 	bGuidIsHash = false;
+}
+
+void FTextureSource::ReleaseSourceMemory()
+{
+	bHasHadBulkDataCleared = true;
+	if (BulkData.IsLocked())
+	{
+		BulkData.Unlock();
+	}
+	BulkData.RemoveBulkData();
 }
 
 void FTextureSource::RemoveSourceData()

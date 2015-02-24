@@ -267,7 +267,6 @@ public:
 	virtual void FinishDestroy() override;
 	virtual void PostLoad() override;
 #if WITH_EDITOR
-	virtual void CookerWillNeverCookAgain() override;
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;	
 #endif // WITH_EDITOR
 	virtual bool IsLocalizedResource() override;
@@ -372,7 +371,6 @@ public:
 	void UpdatePlatformData();
 
 	void CleanupCachedRunningPlatformData();
-	void CleanupCachedCookedPlatformData();
 
 	/**
 	 * Serializes cooked platform data.
@@ -380,17 +378,30 @@ public:
 	void SerializeCookedPlatformData(class FArchive& Ar);
 
 #if WITH_EDITORONLY_DATA
-	/**
-	 * Caches platform data for the sound.
-	 */
-	void CachePlatformData(bool bAsyncCache = false);
-
+	
+#if WITH_EDITOR
 	/**
 	 * Begins caching platform data in the background for the platform requested
 	 */
 	virtual void BeginCacheForCookedPlatformData(  const ITargetPlatform *TargetPlatform ) override;
 
 	virtual bool IsCachedCookedPlatformDataLoaded( const ITargetPlatform* TargetPlatform ) override;
+
+	/**
+	 * Clear all the cached cooked platform data which we have accumulated with BeginCacheForCookedPlatformData calls
+	 * The data can still be cached again using BeginCacheForCookedPlatformData again
+	 */
+	virtual void ClearAllCachedCookedPlatformData() override;
+
+	virtual void ClearCachedCookedPlatformData( const ITargetPlatform* TargetPlatform ) override;
+
+	virtual void WillNeverCacheCookedPlatformDataAgain() override;
+#endif
+	
+	/**
+	 * Caches platform data for the sound.
+	 */
+	void CachePlatformData(bool bAsyncCache = false);
 
 	/**
 	 * Begins caching platform data in the background.
