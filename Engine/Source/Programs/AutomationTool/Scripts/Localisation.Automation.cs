@@ -20,7 +20,7 @@ class Localise : BuildCommand
         //Export
         if (file != null)
         {
-            ExportFileToDirectory(file, new DirectoryInfo(CmdEnv.LocalRoot + "/Engine/Content/Localization/" + ProjectName), projectGroup.EnabledCultures);
+            ExportFileToDirectory(file, new DirectoryInfo(CmdEnv.LocalRoot + "/Engine/Content/Localization/" + ProjectName), project.EnabledCultures);
         }
     }
 
