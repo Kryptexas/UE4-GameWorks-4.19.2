@@ -63,8 +63,6 @@ public:
 
 	virtual void SetOpacity( const float InOpacity ) override;
 
-	virtual void Enable( bool bEnable ) override;
-
 	virtual bool IsPointInWindow( int32 X, int32 Y ) const override;
 
 	virtual int32 GetWindowBorderSize() const override;

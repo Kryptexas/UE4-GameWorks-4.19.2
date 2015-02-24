@@ -475,14 +475,6 @@ void FMacWindow::SetOpacity( const float InOpacity )
 	}, UE4NilEventMode, true);
 }
 
-void FMacWindow::Enable( bool bEnable )
-{
-	MainThreadCall(^{
-		SCOPED_AUTORELEASE_POOL;
-		[WindowHandle setIgnoresMouseEvents: !bEnable];
-	}, UE4NilEventMode, true);
-}
-
 bool FMacWindow::IsPointInWindow( int32 X, int32 Y ) const
 {
 	SCOPED_AUTORELEASE_POOL;
