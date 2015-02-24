@@ -227,7 +227,7 @@ void UOnlineSessionClient::DestroyExistingSession_Impl(FDelegateHandle& OutResul
 	}
 	else
 	{
-		OutResult = FDelegateHandle();
+		OutResult.Reset();
 		Delegate.ExecuteIfBound(SessionName, true);
 	}
 }

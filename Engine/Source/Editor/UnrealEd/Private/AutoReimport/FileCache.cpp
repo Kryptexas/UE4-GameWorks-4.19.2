@@ -145,7 +145,7 @@ void FFileCache::Destroy()
 
 void FFileCache::UnbindWatcher()
 {
-	if (WatcherDelegate == FDelegateHandle())
+	if (!WatcherDelegate.IsValid())
 	{
 		return;
 	}
@@ -158,7 +158,7 @@ void FFileCache::UnbindWatcher()
 		}
 	}
 
-	WatcherDelegate = FDelegateHandle();
+	WatcherDelegate.Reset();
 }
 
 TOptional<FDirectoryState> FFileCache::ReadCache() const
