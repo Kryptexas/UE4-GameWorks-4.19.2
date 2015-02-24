@@ -200,7 +200,7 @@ void FObjectReplicator::InitWithObject( UObject* InObject, UNetConnection * InCo
 
 	InitRecentProperties( Source );
 
-	RepLayout->GetLifetimeCustomDeltaProperties( LifetimeCustomDeltaProperties );
+	RepLayout->GetLifetimeCustomDeltaProperties( LifetimeCustomDeltaProperties, LifetimeCustomDeltaPropertyConditions );
 }
 
 void FObjectReplicator::CleanUp()
@@ -222,6 +222,7 @@ void FObjectReplicator::CleanUp()
 	RecentCustomDeltaState.Empty();
 
 	LifetimeCustomDeltaProperties.Empty();
+	LifetimeCustomDeltaPropertyConditions.Empty();
 
 	if ( RepState != NULL )
 	{
@@ -782,7 +783,7 @@ static FORCEINLINE FPropertyRetirement ** UpdateAckedRetirements( FPropertyRetir
 	return Rec;
 }
 
-void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, int32& LastIndex, bool & bContentBlockWritten )
+void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, FReplicationFlags RepFlags, int32& LastIndex, bool & bContentBlockWritten )
 {
 	if ( LifetimeCustomDeltaProperties.Num() == 0 )
 	{
@@ -797,6 +798,24 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, int32
 
 	UNetConnection * OwningChannelConnection = OwningChannel->Connection;
 
+	// Initialize a map of which conditions are valid
+
+	bool ConditionMap[COND_Max];
+	const bool bIsInitial = RepFlags.bNetInitial ? true : false;
+	const bool bIsOwner = RepFlags.bNetOwner ? true : false;
+	const bool bIsSimulated = RepFlags.bNetSimulated ? true : false;
+	const bool bIsPhysics = RepFlags.bRepPhysics ? true : false;
+
+	ConditionMap[COND_None] = true;
+	ConditionMap[COND_InitialOnly] = bIsInitial;
+	ConditionMap[COND_OwnerOnly] = bIsOwner;
+	ConditionMap[COND_SkipOwner] = !bIsOwner;
+	ConditionMap[COND_SimulatedOnly] = bIsSimulated;
+	ConditionMap[COND_AutonomousOnly] = !bIsSimulated;
+	ConditionMap[COND_SimulatedOrPhysics] = bIsSimulated || bIsPhysics;
+	ConditionMap[COND_InitialOrOwner] = bIsInitial || bIsOwner;
+	ConditionMap[COND_Custom] = true;
+
 	// Replicate those properties.
 	for ( int32 i = 0; i < LifetimeCustomDeltaProperties.Num(); i++ )
 	{
@@ -806,6 +825,20 @@ void FObjectReplicator::ReplicateCustomDeltaProperties( FOutBunch & Bunch, int32
 		FRepRecord *			Rep			= &ObjectClass->ClassReps[RetireIndex];
 		UProperty *				It			= Rep->Property;
 		int32					Index		= Rep->Index;
+
+		if (LifetimeCustomDeltaPropertyConditions.IsValidIndex(i))
+		{
+			// Check the replication condition here
+			ELifetimeCondition RepCondition = LifetimeCustomDeltaPropertyConditions[i];
+
+			check(RepCondition >= 0 && RepCondition < COND_Max);
+
+			if (!ConditionMap[RepCondition])
+			{
+				// We didn't pass the condition so don't replicate us
+				continue;
+			}
+		}
 
 		const int32 BitsWrittenBeforeThis = Bunch.GetNumBits();
 
@@ -879,7 +912,7 @@ bool FObjectReplicator::ReplicateProperties( FOutBunch & Bunch, FReplicationFlag
 	int32	LastIndex				= 0;
 
 	// Replicate all the custom delta properties (fast arrays, etc)
-	ReplicateCustomDeltaProperties( Bunch, LastIndex, bContentBlockWritten );
+	ReplicateCustomDeltaProperties( Bunch, RepFlags, LastIndex, bContentBlockWritten );
 
 	// Replicate properties in the layout
 	RepLayout->ReplicateProperties( RepState, (uint8*)Object, ObjectClass, OwningChannel, Bunch, RepFlags, LastIndex, bContentBlockWritten );

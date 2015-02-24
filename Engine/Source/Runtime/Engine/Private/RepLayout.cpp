@@ -2668,9 +2668,10 @@ void FRepLayout::DestructProperties( FRepState * RepState ) const
 	RepState->StaticBuffer.Empty();
 }
 
-void FRepLayout::GetLifetimeCustomDeltaProperties( TArray< int32 > & OutCustom )
+void FRepLayout::GetLifetimeCustomDeltaProperties(TArray< int32 > & OutCustom, TArray< ELifetimeCondition >	& OutConditions)
 {
 	OutCustom.Empty();
+	OutConditions.Empty();
 
 	for ( int32 i = 0; i < Parents.Num(); i++ )
 	{
@@ -2678,7 +2679,8 @@ void FRepLayout::GetLifetimeCustomDeltaProperties( TArray< int32 > & OutCustom )
 		{
 			check( Parents[i].Property->RepIndex + Parents[i].ArrayIndex == i );
 
-			OutCustom.AddUnique( i );
+			OutCustom.Add(i);
+			OutConditions.Add(Parents[i].Condition);
 		}
 	}
 }

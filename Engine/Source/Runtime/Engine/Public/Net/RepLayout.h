@@ -304,7 +304,7 @@ public:
 
 	bool DiffProperties( FRepState * RepState, const void* RESTRICT Data, const bool bSync ) const;
 
-	void GetLifetimeCustomDeltaProperties( TArray< int32 > & OutCustom );
+	void GetLifetimeCustomDeltaProperties(TArray< int32 > & OutCustom, TArray< ELifetimeCondition >	& OutConditions);
 
 	// RPC support
 	void InitFromFunction( UFunction * InFunction );

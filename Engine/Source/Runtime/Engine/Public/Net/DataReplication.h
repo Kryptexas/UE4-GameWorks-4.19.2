@@ -65,6 +65,7 @@ public:
 	TMap<int32, TSharedPtr<INetDeltaBaseState> >	RecentCustomDeltaState;		// Stores dynamic properties such as TArray which can't fit in the Recent buffer
 
 	TArray< int32 >									LifetimeCustomDeltaProperties;
+	TArray< ELifetimeCondition >					LifetimeCustomDeltaPropertyConditions;
 
 	uint32											bLastUpdateEmpty	: 1;	// True if last update (ReplicateActor) produced no replicated properties
 	uint32											bOpenAckCalled		: 1;
@@ -110,7 +111,7 @@ public:
 	void	Serialize(FArchive& Ar);
 
 	/** Writes dirty properties to bunch */
-	void	ReplicateCustomDeltaProperties( FOutBunch & Bunch, int32& LastIndex, bool & bContentBlockWritten );
+	void	ReplicateCustomDeltaProperties( FOutBunch & Bunch, FReplicationFlags RepFlags, int32& LastIndex, bool & bContentBlockWritten );
 	bool	ReplicateProperties( FOutBunch & Bunch, FReplicationFlags RepFlags );
 	void	PostSendBunch(FPacketIdRange & PacketRange, uint8 bReliable);
 	
