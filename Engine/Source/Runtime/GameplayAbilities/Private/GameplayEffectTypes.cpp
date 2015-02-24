@@ -303,15 +303,17 @@ void FGameplayTagCountContainer::UpdateTagMap_Internal(const FGameplayTag& Tag, 
 			return;
 		}
 	}
-	else if (CountDelta < 0)
+
+	// Update the explicit tag count map. This has to be separate than the map below because otherwise the count of nested tags ends up wrong
+	int32& ExistingCount = ExplicitTagCountMap.FindOrAdd(Tag);
+
+	ExistingCount = FMath::Max(ExistingCount + CountDelta, 0);
+
+	// If our new count is 0, remove us from the explicit tag list
+	if (ExistingCount <= 0)
 	{
-		// Existing tag with a negative delta that would cause a complete removal needs to be explicitly removed; Count will be updated correctly below,
-		// so that part is skipped for now
-		int32& ExistingCount = GameplayTagCountMap.FindOrAdd(Tag);
-		if ((ExistingCount + CountDelta) <= 0)
-		{
-			ExplicitTags.RemoveTag(Tag);
-		}
+		// Remove from the explicit list
+		ExplicitTags.RemoveTag(Tag);
 	}
 
 	// Check if change delegates are required to fire for the tag or any of its parents based on the count change

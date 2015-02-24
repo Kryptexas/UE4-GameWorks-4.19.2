@@ -812,6 +812,9 @@ private:
 	/** Map of tag to active count of that tag */
 	TMap<FGameplayTag, int32> GameplayTagCountMap;
 
+	/** Map of tag to explicit count of that tag. Cannot share with above map because it's not safe to merge explicit and generic counts */
+	TMap<FGameplayTag, int32> ExplicitTagCountMap;
+
 	/** Delegate fired whenever any tag's count changes to or away from zero */
 	FOnGameplayEffectTagCountChanged OnAnyTagChangeDelegate;
 
