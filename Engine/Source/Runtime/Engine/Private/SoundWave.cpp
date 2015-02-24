@@ -491,18 +491,18 @@ FWaveInstance* USoundWave::HandleStart( FActiveSound& ActiveSound, const UPTRINT
 	// Add in the subtitle if they exist
 	if (ActiveSound.bHandleSubtitles && Subtitles.Num() > 0)
 	{
-		// TODO - Audio Threading. This would need to be a call back to the main thread.
-		if (ActiveSound.AudioComponent.IsValid() && ActiveSound.AudioComponent->OnQueueSubtitles.IsBound())
+		if (UAudioComponent* AudioComponent = ActiveSound.AudioComponent.Get())
 		{
-			// intercept the subtitles if the delegate is set
-			ActiveSound.AudioComponent->OnQueueSubtitles.ExecuteIfBound( Subtitles, Duration );
-		}
-		else
-		{
-			// otherwise, pass them on to the subtitle manager for display
-			// Subtitles are hashed based on the associated sound (wave instance).
-			if( ActiveSound.World.IsValid() )
+			// TODO - Audio Threading. This would need to be a call back to the main thread.
+			if (AudioComponent->OnQueueSubtitles.IsBound())
 			{
+				// intercept the subtitles if the delegate is set
+				ActiveSound.AudioComponent->OnQueueSubtitles.ExecuteIfBound( Subtitles, Duration );
+			}
+			else
+			{
+				// otherwise, pass them on to the subtitle manager for display
+				// Subtitles are hashed based on the associated sound (wave instance).
 				FSubtitleManager::GetSubtitleManager()->QueueSubtitles( ( PTRINT )WaveInstance, ActiveSound.SubtitlePriority, bManualWordWrap, bSingleLine, Duration, Subtitles, ActiveSound.World->GetAudioTimeSeconds() );
 			}
 		}
