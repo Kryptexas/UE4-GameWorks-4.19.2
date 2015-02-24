@@ -243,6 +243,7 @@ public:
 	FDebugDrawDelegate DebugTextDrawingDelegate;
 	FDelegateHandle DebugTextDrawingDelegateHandle;
 	EDrawType DrawType;
+	uint32 DrawAlpha;
 };
 
 #endif

@@ -1084,14 +1084,20 @@ void FNavMeshPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const
 	TArray<FVector> Verts;
 	for (int32 Idx = 0; Idx < PathCorridor.Num(); Idx++)
 	{
+		const uint8 AreaID = NavMesh->GetPolyAreaID(PathCorridor[Idx]);
+		const UClass* AreaClass = NavMesh->GetAreaClass(AreaID);
+		
 		Verts.Reset();
 		NavMesh->GetPolyVerts(PathCorridor[Idx], Verts);
+
+		const UNavArea* DefArea = AreaClass ? ((UClass*)AreaClass)->GetDefaultObject<UNavArea>() : NULL;
+		const FColor PolygonColor = AreaClass != UNavigationSystem::GetDefaultWalkableArea() ? (DefArea ? DefArea->DrawColor : NavMesh->GetConfig().Color) : FColorList::Cyan;
+
+		CorridorPoly.SetColor(PolygonColor);
 		CorridorPoly.Points.Reset();
 		CorridorPoly.Points.Append(Verts);
 		Snapshot->ElementsToDraw.Add(CorridorPoly);
 
-		const uint8 AreaID = NavMesh->GetPolyAreaID(PathCorridor[Idx]);
-		const UClass* AreaClass = NavMesh->GetAreaClass(AreaID);
 		if (AreaClass && AreaClass != UNavigationSystem::GetDefaultWalkableArea())
 		{
 			FVector CenterPt = FVector::ZeroVector;

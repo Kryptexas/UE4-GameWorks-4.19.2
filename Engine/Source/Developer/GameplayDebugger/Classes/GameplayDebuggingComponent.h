@@ -40,6 +40,12 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 
 	friend class AGameplayDebuggingHUDComponent;
 
+	struct FPathCorridorPolygons
+	{
+		TArray<FVector> Points;
+		FColor Color;
+	};
+
 	UPROPERTY(globalconfig)
 	FString DebugComponentClassName;
 
@@ -106,7 +112,7 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingComponent : public UPrimitiveCompon
 	UPROPERTY(ReplicatedUsing = OnRep_PathCorridorData)
 	TArray<uint8> PathCorridorData;
 	
-	TArray<TArray<FVector> > PathCorridorPolygons;
+	TArray<FPathCorridorPolygons> PathCorridorPolygons;
 	/** End path replication data*/
 	
 	UPROPERTY(ReplicatedUsing = OnRep_UpdateNavmesh)
