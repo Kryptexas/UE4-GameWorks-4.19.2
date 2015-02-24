@@ -1633,6 +1633,16 @@ void AInstancedFoliageActor::PostEditUndo()
 	}
 }
 
+bool AInstancedFoliageActor::ShouldExport()
+{
+	return false;
+}
+
+bool AInstancedFoliageActor::ShouldImport(FString* ActorPropString, bool IsMovingLevel)
+{
+	return false;
+}
+
 void AInstancedFoliageActor::ApplySelectionToComponents(bool bApply)
 {
 	for (auto& MeshPair : FoliageMeshes)
@@ -1886,7 +1896,19 @@ void AInstancedFoliageActor::PostLoad()
 {
 	Super::PostLoad();
 
-	GetLevel()->InstancedFoliageActor = this;
+	ULevel* OwningLevel = GetLevel();
+	if (!OwningLevel->InstancedFoliageActor.IsValid())
+	{
+		OwningLevel->InstancedFoliageActor = this;
+	}
+	else
+	{
+		// Warn that there is more than one foliage actor in the scene
+		UE_LOG(LogInstancedFoliage, Warning, TEXT("Level %s: has more than one instanced foliage actor: %s, %s"), 
+			*OwningLevel->GetOutermost()->GetName(), 
+			*OwningLevel->InstancedFoliageActor->GetName(),
+			*this->GetName());
+	}
 
 #if WITH_EDITOR
 	if (GIsEditor)
@@ -1977,13 +1999,6 @@ void AInstancedFoliageActor::PostLoad()
 
 	}
 #endif
-}
-
-void AInstancedFoliageActor::PostRegisterAllComponents()
-{
-	Super::PostRegisterAllComponents();
-	//
-	GetLevel()->InstancedFoliageActor = this;
 }
 
 #if WITH_EDITOR

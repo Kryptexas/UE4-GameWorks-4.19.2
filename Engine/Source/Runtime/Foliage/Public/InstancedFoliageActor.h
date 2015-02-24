@@ -39,7 +39,6 @@ public:
 	virtual void PostInitProperties() override;
 	virtual void BeginDestroy() override;
 	virtual void PostLoad() override;
-	virtual void PostRegisterAllComponents() override;
 	static void AddReferencedObjects(UObject* InThis, FReferenceCollector& Collector);
 	// End UObject interface. 
 
@@ -88,6 +87,8 @@ public:
 
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;
+	virtual bool ShouldExport() override;
+	virtual bool ShouldImport(FString* ActorPropString, bool IsMovingLevel) override;
 
 	// Called in response to BSP rebuilds to migrate foliage from obsolete to new components.
 	FOLIAGE_API void MapRebuild();
