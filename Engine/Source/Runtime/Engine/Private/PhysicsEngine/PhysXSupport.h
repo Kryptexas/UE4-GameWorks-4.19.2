@@ -591,6 +591,7 @@ public:
 
 	virtual void	onDamageNotify(const NxApexDamageEventReportData& damageEvent) override;
 	virtual void	onStateChangeNotify(const NxApexChunkStateEventData& visibilityEvent) override;
+	virtual bool	releaseOnNoChunksVisible(const NxDestructibleActor* destructible) override;
 };
 extern FApexChunkReport GApexChunkReport;
 #endif // #if WITH_APEX

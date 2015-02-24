@@ -758,6 +758,11 @@ void FApexChunkReport::onStateChangeNotify(const NxApexChunkStateEventData& visi
 	DestructibleComponent->OnVisibilityEvent(visibilityEvent);
 }
 
+bool FApexChunkReport::releaseOnNoChunksVisible(const NxDestructibleActor* destructible)
+{
+	return false;
+}
+
 ///////// FApexPhysX3Interface //////////////////////////////////
 void FApexPhysX3Interface::setContactReportFlags(physx::PxShape* PShape, physx::PxPairFlags PFlags, NxDestructibleActor* actor, PxU16 actorChunkIndex)
 {

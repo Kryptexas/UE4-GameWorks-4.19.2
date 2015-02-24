@@ -531,7 +531,7 @@ void SDestructibleMeshEditorViewport::RefreshViewport()
 		const NxRenderMeshAsset* ApexRenderMeshAsset = DestructibleMesh->ApexDestructibleAsset->getRenderMeshAsset();
 		if (ApexRenderMeshAsset != NULL)
 		{
-			IExplicitHierarchicalMesh& EHM =  DestructibleMesh->FractureSettings->ApexDestructibleAssetAuthoring->getExplicitHierarchicalMesh();
+			NxExplicitHierarchicalMesh& EHM =  DestructibleMesh->FractureSettings->ApexDestructibleAssetAuthoring->getExplicitHierarchicalMesh();
 			if (DestructibleMesh->ApexDestructibleAsset->getPartIndex(0) < ApexRenderMeshAsset->getPartCount())
 			{
 				const PxBounds3& Level0Bounds = ApexRenderMeshAsset->getBounds(DestructibleMesh->ApexDestructibleAsset->getPartIndex(0));

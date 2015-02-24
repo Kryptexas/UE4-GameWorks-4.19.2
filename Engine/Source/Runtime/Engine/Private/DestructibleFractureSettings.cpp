@@ -33,7 +33,7 @@ inline void Resize(TArray<ElementType>& Array, const ElementType& Item, uint32 S
 }
 
 #if WITH_APEX
-static void BuildApexRenderMesh(NxRenderMeshAssetAuthoring& RenderMeshAssetAuthor, IExplicitHierarchicalMesh& HMesh, NxRenderDataFormat::Enum VertexNormalFormat = NxRenderDataFormat::FLOAT3)
+static void BuildApexRenderMesh(NxRenderMeshAssetAuthoring& RenderMeshAssetAuthor, NxExplicitHierarchicalMesh& HMesh, NxRenderDataFormat::Enum VertexNormalFormat = NxRenderDataFormat::FLOAT3)
 {
 	// Create a mesh building descriptor
 	NxRenderMeshAssetAuthoring::MeshDesc MeshDesc;
@@ -196,11 +196,11 @@ public:
 	// End IProgressListener interface
 };
 
-class FExplicitHierarchicalMeshEmbedding : public IExplicitHierarchicalMesh::IEmbedding
+class FExplicitHierarchicalMeshEmbedding : public NxExplicitHierarchicalMesh::NxEmbedding
 {
 public:
-	virtual void	serialize(physx::general_PxIOStream2::PxFileBuf& stream, IExplicitHierarchicalMesh::IEmbedding::DataType type) const override {}
-	virtual void	deserialize(physx::general_PxIOStream2::PxFileBuf& stream, IExplicitHierarchicalMesh::IEmbedding::DataType type, physx::PxU32 version) override {}
+	virtual void	serialize(physx::general_PxIOStream2::PxFileBuf& stream, NxExplicitHierarchicalMesh::NxEmbedding::DataType type) const override {}
+	virtual void	deserialize(physx::general_PxIOStream2::PxFileBuf& stream, NxExplicitHierarchicalMesh::NxEmbedding::DataType type, physx::PxU32 version) override {}
 };
 
 #endif // WITH_APEX
@@ -309,7 +309,7 @@ void UDestructibleFractureSettings::BuildDestructibleAssetCookingDesc(NxDestruct
 {
 	//	Fracture code is only needed in editor
 	// Retrieve the authoring mesh
-	physx::IExplicitHierarchicalMesh& HMesh = ApexDestructibleAssetAuthoring->getExplicitHierarchicalMesh();
+	physx::NxExplicitHierarchicalMesh& HMesh = ApexDestructibleAssetAuthoring->getExplicitHierarchicalMesh();
 
 	if (ChunkParameters.Num() < (int32)HMesh.chunkCount())
 	{
@@ -365,7 +365,7 @@ bool UDestructibleFractureSettings::SetRootMesh(const TArray<NxExplicitRenderTri
 	if (ApexDestructibleAssetAuthoring != NULL)
 	{
 		Success = ApexDestructibleAssetAuthoring->setRootMesh(MeshTriangles.GetData(), MeshTriangles.Num(), SubmeshData.GetData(), 
-															  SubmeshData.Num(), (uint32*)MeshPartition.GetData(), MeshPartition.Num(), bFirstPartitionIsDepthZero);
+															  SubmeshData.Num(), (uint32*)MeshPartition.GetData(), MeshPartition.Num(), nullptr);	//todo: this is ignoring bFirstPartitionIsDepthZero. Need to find out more about the new parameters to this function
 		if (Success)
 		{
 			NxCollisionDesc CollisionDesc;
@@ -373,7 +373,7 @@ bool UDestructibleFractureSettings::SetRootMesh(const TArray<NxExplicitRenderTri
 		}
 
 		// Resize the chunk parameters
-		physx::IExplicitHierarchicalMesh& HMesh = ApexDestructibleAssetAuthoring->getExplicitHierarchicalMesh();
+		physx::NxExplicitHierarchicalMesh& HMesh = ApexDestructibleAssetAuthoring->getExplicitHierarchicalMesh();
 		ChunkParameters.Init(FDestructibleChunkParameters(), HMesh.chunkCount());
 	}
 
@@ -405,7 +405,7 @@ bool UDestructibleFractureSettings::BuildRootMeshFromApexDestructibleAsset(NxDes
 	{
 		Success = ApexDestructibleAssetAuthoring->importDestructibleAssetToRootMesh(ApexDestructibleAsset, 0);
 
-		IExplicitHierarchicalMesh& EHM = ApexDestructibleAssetAuthoring->getExplicitHierarchicalMesh();
+		NxExplicitHierarchicalMesh& EHM = ApexDestructibleAssetAuthoring->getExplicitHierarchicalMesh();
 
 		if (!(Options & EDestructibleImportOptions::PreserveSettings))
 		{
@@ -476,7 +476,7 @@ void UDestructibleFractureSettings::CreateVoronoiSitesInRootMesh()
 		// Progress listener for reporting progress - for now, just a dummy
 		FProgressListener ProgressListener;
 		check(sizeof(FVector) == sizeof(PxVec3));
-		ApexDestructibleAssetAuthoring->createVoronoiSitesInsideMesh((PxVec3*)VoronoiSites.GetData(), VoronoiSites.Num(), (PxU32*)&RandomSeed, NULL, ProgressListener);
+		ApexDestructibleAssetAuthoring->createVoronoiSitesInsideMesh((PxVec3*)VoronoiSites.GetData(), nullptr, VoronoiSites.Num(), (PxU32*)&RandomSeed, NULL, ProgressListener);
 	}
 }
 
@@ -487,11 +487,11 @@ bool UDestructibleFractureSettings::VoronoiSplitMesh()
 	if (ApexDestructibleAssetAuthoring != NULL)
 	{
 		// Fill MeshProcessingParameters
-		FractureTools::MeshProcessingParameters FTMeshProcessingParameters;
-		FTMeshProcessingParameters.mIslandGeneration = false;	// expose
+		FractureTools::NxMeshProcessingParameters FTMeshProcessingParameters;
+		FTMeshProcessingParameters.islandGeneration = false;	// expose
 
 		// Fill Voronoi splitting descriptor
-		FractureTools::FractureVoronoiDesc FTFractureVoronoiDesc;
+		FractureTools::NxFractureVoronoiDesc FTFractureVoronoiDesc;
 		FTFractureVoronoiDesc.siteCount = VoronoiSites.Num();
 		check(sizeof(FVector) == sizeof(PxVec3));
 		FTFractureVoronoiDesc.sites = (PxVec3*)VoronoiSites.GetData();
@@ -499,7 +499,7 @@ bool UDestructibleFractureSettings::VoronoiSplitMesh()
 		// Material descriptor
 		FractureMaterialDesc.FillNxFractureMaterialDesc(FTFractureVoronoiDesc.materialDesc);
 		// Retrieve the authoring mesh to see if the interiorSubmeshIndex is valid
-		physx::IExplicitHierarchicalMesh& HMesh = ApexDestructibleAssetAuthoring->getExplicitHierarchicalMesh();
+		physx::NxExplicitHierarchicalMesh& HMesh = ApexDestructibleAssetAuthoring->getExplicitHierarchicalMesh();
 		if (FTFractureVoronoiDesc.materialDesc.interiorSubmeshIndex >= HMesh.submeshCount())
 		{
 			// For now just copy the submesh data from the 0 submesh.

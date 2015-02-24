@@ -1,32 +1,16 @@
-// This code contains NVIDIA Confidential Information and is disclosed to you
-// under a form of NVIDIA software license agreement provided separately to you.
-//
-// Notice
-// NVIDIA Corporation and its licensors retain all intellectual property and
-// proprietary rights in and to this software and related documentation and
-// any modifications thereto. Any use, reproduction, disclosure, or
-// distribution of this software and related documentation without an express
-// license agreement from NVIDIA Corporation is strictly prohibited.
-//
-// ALL NVIDIA DESIGN SPECIFICATIONS, CODE ARE PROVIDED "AS IS.". NVIDIA MAKES
-// NO WARRANTIES, EXPRESSED, IMPLIED, STATUTORY, OR OTHERWISE WITH RESPECT TO
-// THE MATERIALS, AND EXPRESSLY DISCLAIMS ALL IMPLIED WARRANTIES OF NONINFRINGEMENT,
-// MERCHANTABILITY, AND FITNESS FOR A PARTICULAR PURPOSE.
-//
-// Information and code furnished is believed to be accurate and reliable.
-// However, NVIDIA Corporation assumes no responsibility for the consequences of use of such
-// information or for any infringement of patents or other rights of third parties that may
-// result from its use. No license is granted by implication or otherwise under any patent
-// or patent rights of NVIDIA Corporation. Details are subject to change without notice.
-// This code supersedes and replaces all information previously supplied.
-// NVIDIA Corporation products are not authorized for use as critical
-// components in life support devices or systems without express written approval of
-// NVIDIA Corporation.
-//
-// Copyright (c) 2008-2014 NVIDIA Corporation. All rights reserved.
+/*
+ * Copyright (c) 2008-2015, NVIDIA CORPORATION.  All rights reserved.
+ *
+ * NVIDIA CORPORATION and its licensors retain all intellectual property
+ * and proprietary rights in and to this software, related documentation
+ * and any modifications thereto.  Any use, reproduction, disclosure or
+ * distribution of this software and related documentation without an express
+ * license agreement from NVIDIA CORPORATION is strictly prohibited.
+ */
 
-#ifndef EXPLICIT_HIERARCHICAL_MESH_H
-#define EXPLICIT_HIERARCHICAL_MESH_H
+
+#ifndef NX_EXPLICIT_HIERARCHICAL_MESH_H
+#define NX_EXPLICIT_HIERARCHICAL_MESH_H
 
 #include "foundation/Px.h"
 #include "NxApexUserProgress.h"
@@ -200,79 +184,79 @@ struct NxExplicitVertexFormat
 		physx::PxU32 bi;
 		if (mHasStaticPositions)
 		{
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::POSITION));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::POSITION));
 			format->setBufferFormat(bi, NxRenderDataFormat::FLOAT3);
 			format->setBufferAccess(bi, mHasDynamicPositions ? NxRenderDataAccess::DYNAMIC :  NxRenderDataAccess::STATIC);
 		}
 		if (mHasStaticNormals)
 		{
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::NORMAL));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::NORMAL));
 			format->setBufferFormat(bi, NxRenderDataFormat::FLOAT3);
 			format->setBufferAccess(bi, mHasDynamicNormals ? NxRenderDataAccess::DYNAMIC :  NxRenderDataAccess::STATIC);
 		}
 		if (mHasStaticTangents)
 		{
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::TANGENT));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::TANGENT));
 			format->setBufferFormat(bi, NxRenderDataFormat::FLOAT3);
 			format->setBufferAccess(bi, mHasDynamicTangents ? NxRenderDataAccess::DYNAMIC :  NxRenderDataAccess::STATIC);
 		}
 		if (mHasStaticBinormals)
 		{
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BINORMAL));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BINORMAL));
 			format->setBufferFormat(bi, NxRenderDataFormat::FLOAT3);
 			format->setBufferAccess(bi, mHasDynamicBinormals ? NxRenderDataAccess::DYNAMIC :  NxRenderDataAccess::STATIC);
 		}
 		if (mHasStaticDisplacements)
 		{
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::DISPLACEMENT_TEXCOORD));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::DISPLACEMENT_TEXCOORD));
 			format->setBufferFormat(bi, NxRenderDataFormat::FLOAT3);
 			format->setBufferAccess(bi, mHasDynamicDisplacements ? NxRenderDataAccess::DYNAMIC : NxRenderDataAccess::STATIC);
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::DISPLACEMENT_FLAGS));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::DISPLACEMENT_FLAGS));
 			format->setBufferFormat(bi, NxRenderDataFormat::UINT1);
 			format->setBufferAccess(bi, mHasDynamicDisplacements ? NxRenderDataAccess::DYNAMIC : NxRenderDataAccess::STATIC);
 		}
 		if (mUVCount > 0)
 		{
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::TEXCOORD0));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::TEXCOORD0));
 			format->setBufferFormat(bi, NxRenderDataFormat::FLOAT2);
 		}
 		if (mUVCount > 1)
 		{
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::TEXCOORD1));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::TEXCOORD1));
 			format->setBufferFormat(bi, NxRenderDataFormat::FLOAT2);
 		}
 		if (mUVCount > 2)
 		{
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::TEXCOORD2));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::TEXCOORD2));
 			format->setBufferFormat(bi, NxRenderDataFormat::FLOAT2);
 		}
 		if (mUVCount > 3)
 		{
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::TEXCOORD3));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::TEXCOORD3));
 			format->setBufferFormat(bi, NxRenderDataFormat::FLOAT2);
 		}
 		switch (mBonesPerVertex)
 		{
 		case 1:
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BONE_INDEX));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BONE_INDEX));
 			format->setBufferFormat(bi, NxRenderDataFormat::USHORT1);
 			break;
 		case 2:
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BONE_INDEX));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BONE_INDEX));
 			format->setBufferFormat(bi, NxRenderDataFormat::USHORT2);
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BONE_WEIGHT));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BONE_WEIGHT));
 			format->setBufferFormat(bi, NxRenderDataFormat::FLOAT2);
 			break;
 		case 3:
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BONE_INDEX));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BONE_INDEX));
 			format->setBufferFormat(bi, NxRenderDataFormat::USHORT3);
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BONE_WEIGHT));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BONE_WEIGHT));
 			format->setBufferFormat(bi, NxRenderDataFormat::FLOAT3);
 			break;
 		case 4:
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BONE_INDEX));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BONE_INDEX));
 			format->setBufferFormat(bi, NxRenderDataFormat::USHORT4);
-			bi = format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BONE_WEIGHT));
+			bi = (physx::PxU32)format->addBuffer(format->getSemanticName(NxRenderVertexSemantic::BONE_WEIGHT));
 			format->setBufferFormat(bi, NxRenderDataFormat::FLOAT4);
 			break;
 		}
@@ -400,6 +384,13 @@ struct NxCollisionDesc
 	*/
 	physx::NxCollisionVolumeDesc*	mVolumeDescs;
 
+	/**
+		The maximum amount to trim overlapping collision hulls (as a percentage of the hulls' widths)
+
+		Default = 0.2f
+	*/
+	physx::PxF32					mMaximumTrimming;
+
 	/** Constructor sets default values. */
 			NxCollisionDesc()
 			{
@@ -411,6 +402,7 @@ struct NxCollisionDesc
 			{
 				mDepthCount = 0;
 				mVolumeDescs = NULL;
+				mMaximumTrimming = 0.2f;
 			}
 };
 
@@ -523,8 +515,8 @@ struct NxMaterialFrame
 				else
 				{
 					physx::PxU32 maxDir =  physx::PxAbs(plane.n.x) > physx::PxAbs(plane.n.y) ?
-						(physx::PxAbs(plane.n.x) > physx::PxAbs(plane.n.z) ? 0 : 2) :
-						(physx::PxAbs(plane.n.y) > physx::PxAbs(plane.n.z) ? 1 : 2);
+						(physx::PxAbs(plane.n.x) > physx::PxAbs(plane.n.z) ? 0u : 2u) :
+						(physx::PxAbs(plane.n.y) > physx::PxAbs(plane.n.z) ? 1u : 2u);
 					xAxis = physx::PxMat33::createIdentity()[(maxDir + 1) % 3];
 					yAxis = zAxis.cross(xAxis);
 					yAxis.normalize();
@@ -562,9 +554,9 @@ struct NxMaterialFrame
 	X, Y and Z offsets correspond to R, G, and B color channels
 
 	Various approaches can be used to generate the 3D noise field, in this case
-	Perlin noise is used, with appropriate settings specified by the FractureSliceDesc.
+	Perlin noise is used, with appropriate settings specified by the NxFractureSliceDesc.
 */
-class IDisplacementMapVolume
+class NxDisplacementMapVolume
 {
 public:
 	/** 
@@ -575,19 +567,19 @@ public:
 	*/
 	virtual void getData(physx::PxU32& width, physx::PxU32& height, physx::PxU32& depth, physx::PxU32& size, unsigned char const** ppData) const = 0;
 
-	virtual ~IDisplacementMapVolume() { }
+	virtual ~NxDisplacementMapVolume() { }
 };
 
 
 /**
-	IExplicitHierarchicalMesh
+	NxExplicitHierarchicalMesh
 
 	An interface to a representation of a render mesh that is used for authoring.
 
 	The "hierarchical" nature of this mesh is represtented by extra parent/child relations
 	among the parts that will become the parts of an NxRenderMeshAsset.
  */
-class IExplicitHierarchicalMesh
+class NxExplicitHierarchicalMesh
 {
 public:
 	/** Used in the visualize method to determine what to draw. */
@@ -629,28 +621,28 @@ public:
 		The user must implement this class to serialize and deserialize
 		the enumerated data type given.
 	*/
-	class IEmbedding
+	class NxEmbedding
 	{
 	public:
 		enum DataType
 		{
 			MaterialLibrary
 		};
-		virtual void	serialize(physx::general_PxIOStream2::PxFileBuf& stream, IEmbedding::DataType type) const = 0;
-		virtual void	deserialize(physx::general_PxIOStream2::PxFileBuf& stream, IEmbedding::DataType type, physx::PxU32 version) = 0;
+		virtual void	serialize(physx::general_PxIOStream2::PxFileBuf& stream, NxEmbedding::DataType type) const = 0;
+		virtual void	deserialize(physx::general_PxIOStream2::PxFileBuf& stream, NxEmbedding::DataType type, physx::PxU32 version) = 0;
 	};
 
 	/**
 		Used to access the collision data for each mesh part
 	*/
-	class IConvexHull
+	class NxConvexHull
 	{
 	protected:
-		IConvexHull()
+		NxConvexHull()
 		{
 		}
 
-		virtual ~IConvexHull()
+		virtual ~NxConvexHull()
 		{
 		}
 
@@ -707,36 +699,40 @@ public:
 		/**
 			Perform a ray cast against the convex hull.
 
-			in: this MUST be set to the minimum 'time' that you wish to have reported for intersection.
-				you may consider this an origin offset for the ray.
-				On exit, if the hull is intersected, this value will contain the time of intersection,
-				or its original value, which ever is larger.
+			\param in				this MUST be set to the minimum 'time' that you wish to have reported for intersection.
+										you may consider this an origin offset for the ray.
+										On exit, if the hull is intersected, this value will contain the time of intersection,
+										or its original value, which ever is larger.
 
-			out: this MUST be set to the maximum 'time' that you wish to have reported for intersection.
-				you may consider this the endpoint of a line segment intersection.
-				On exit, if the hull is intersected, this value will contain the time that the ray
-				exits the hull, or its original value, which ever is smaller.
+			\param out				this MUST be set to the maximum 'time' that you wish to have reported for intersection.
+										you may consider this the endpoint of a line segment intersection.
+										On exit, if the hull is intersected, this value will contain the time that the ray
+										exits the hull, or its original value, which ever is smaller.
 
-			orig, dir: describe the ray to intersect with the convex hull.
+			\param orig				describe the ray to intersect with the convex hull.
+			\param dir				describe the ray to intersect with the convex hull.
 
-			localToWorldRT: the rotation applied to the convex hull.
+			\param localToWorldRT	the rotation applied to the convex hull.
 
-			scale: the scale applied to the convex hull.
+			\param scale			the scale applied to the convex hull.
 
-			normal: if not NULL, *normal will contain the surface normal of the convex hull at the
-				point of intersection (at the 'in' time).  If the point on the ray at the 'in' time lies
-				within the volume of the convex hull, then *normal will be set to (0,0,0).
+			\param normal			if not NULL, *normal will contain the surface normal of the convex hull at the
+										point of intersection (at the 'in' time).  If the point on the ray at the 'in' time lies
+										within the volume of the convex hull, then *normal will be set to (0,0,0).
 
-			Return value: returns true if the line segment described by the user's supplied 'in' and 'out'
-			parameters along the ray intersects the convex hull, false otherwise.
+			\return					returns true if the line segment described by the user's supplied 'in' and 'out'
+										parameters along the ray intersects the convex hull, false otherwise.
 		*/
 		virtual bool					rayCast(physx::PxF32& in, physx::PxF32& out, const physx::PxVec3& orig, const physx::PxVec3& dir,
 		                                        const physx::PxMat44& localToWorldRT, const physx::PxVec3& scale, physx::PxVec3* normal = NULL) const = 0;
-
-		// Removes vertices from the hull until the bounds given in the function's parameters are met.
-		// If inflated = true, then the maximum counts given are compared with the cooked hull, which may have higher counts due to beveling.
-		// Note: a value of zero indicates no limit, effectively infinite.
-		// Return value: true if successful, i.e. the limits were met.  False otherwise.
+		/**
+			Removes vertices from the hull until the bounds given in the function's parameters are met.
+			If inflated = true, then the maximum counts given are compared with the cooked hull, which may have higher counts due to beveling.
+			
+			\note		a value of zero indicates no limit, effectively infinite.
+			
+			\return		true if successful, i.e. the limits were met.  False otherwise.
+		*/
 		virtual bool					reduceHull(physx::PxU32 maxVertexCount, physx::PxU32 maxEdgeCount, physx::PxU32 maxFaceCount, bool inflated) = 0;
 
 		/**
@@ -749,7 +745,7 @@ public:
 		"Resets" this object to its initial state, freeing all internal data.
 		If keepRoot is true, then parts up to the root depth will not be cleared.
 		(In this case, not all of the submesh data, etc. will be deleted.)
-		The root depth is set when the IExplicitHierarchicalMesh is first created.
+		The root depth is set when the NxExplicitHierarchicalMesh is first created.
 		Fracturing methods create pieces beyond the root depth.
 	*/
 	virtual void						clear(bool keepRoot = false) = 0;
@@ -832,8 +828,12 @@ public:
 
 	/**
 		Build collision volumes for all parts referenced by chunks at the root depth.
+
+		If aggregateRootChunkParentCollision, then every chunk which is the parent of root chunks
+		gets all of the collision hulls of its children.  Otherwise, all root chunks have their
+		collision volumes separately calculated.
 	*/
-	virtual void						buildCollisionGeometryForRootChunkParts(const NxCollisionDesc& desc) = 0;
+	virtual void						buildCollisionGeometryForRootChunkParts(const NxCollisionDesc& desc, bool aggregateRootChunkParentCollision = true) = 0;
 
 	/**
 		Calls IConvexMesh::reduceHull on all part convex hulls.  See IConvexMesh::reduceHull.
@@ -848,7 +848,7 @@ public:
 	/**
 		The convex hulls for the given part.
 	*/
-	virtual const IConvexHull**			convexHulls(physx::PxU32 partIndex) const = 0;
+	virtual const NxConvexHull**			convexHulls(physx::PxU32 partIndex) const = 0;
 
 	/**
 		The outward surface normal associated with the chunk mesh geometry.
@@ -858,7 +858,7 @@ public:
 	/**
 		The displacement map volume for the mesh.
 	*/
-	virtual const IDisplacementMapVolume&	displacementMapVolume() const = 0;
+	virtual const NxDisplacementMapVolume&	displacementMapVolume() const = 0;
 
 	/**
 		The number of submeshes.  The explicit mesh representation is just a list
@@ -892,16 +892,16 @@ public:
 	virtual physx::PxU32				addMaterialFrame() = 0;
 
 	/**
-		Serialization.  The user must instantiate IEmbedding in order to successfully
+		Serialization.  The user must instantiate NxEmbedding in order to successfully
 		serialize any embedded data.
 	*/
-	virtual void						serialize(physx::PxFileBuf& stream, IEmbedding& embedding) const = 0;
-	virtual void						deserialize(physx::PxFileBuf& stream, IEmbedding& embedding) = 0;
+	virtual void						serialize(physx::PxFileBuf& stream, NxEmbedding& embedding) const = 0;
+	virtual void						deserialize(physx::PxFileBuf& stream, NxEmbedding& embedding) = 0;
 
 	/**
 		Copies the input mesh in to this object.
 	*/
-	virtual void						set(const IExplicitHierarchicalMesh& mesh) = 0;
+	virtual void						set(const NxExplicitHierarchicalMesh& mesh) = 0;
 
 	/**
 		Creates an internal BSP representation of the mesh parts up to the root depth.
@@ -932,15 +932,15 @@ public:
 protected:
 	/**
 		Constructor and destructor are not public
-		Use createExplicitHierarchicalMesh() to instantiate an IExplicitHierarchicalMesh and
-		IExplicitHierarchicalMesh::release() to destroy it.
+		Use createExplicitHierarchicalMesh() to instantiate an NxExplicitHierarchicalMesh and
+		NxExplicitHierarchicalMesh::release() to destroy it.
 	*/
-	IExplicitHierarchicalMesh() {}
-	virtual								~IExplicitHierarchicalMesh() {}
+	NxExplicitHierarchicalMesh() {}
+	virtual								~NxExplicitHierarchicalMesh() {}
 
 private:
 	/** The assignment operator is disabled, use set() instead. */
-	IExplicitHierarchicalMesh&			operator = (const IExplicitHierarchicalMesh&)
+	NxExplicitHierarchicalMesh&			operator = (const NxExplicitHierarchicalMesh&)
 	{
 		return *this;
 	}
@@ -952,14 +952,5 @@ PX_POP_PACK
 }
 } // end namespace physx::apex
 
-namespace FractureTools
-{
-/** Instantiates an IExplicitHierarchicalMesh */
-physx::IExplicitHierarchicalMesh*	createExplicitHierarchicalMesh();
 
-/** Instantiates an IExplicitHierarchicalMesh::IConvexHull */
-physx::IExplicitHierarchicalMesh::IConvexHull*	createExplicitHierarchicalMeshConvexHull();
-} // namespace FractureTools
-
-
-#endif // EXPLICIT_HIERARCHICAL_MESH_H
+#endif // NX_EXPLICIT_HIERARCHICAL_MESH_H

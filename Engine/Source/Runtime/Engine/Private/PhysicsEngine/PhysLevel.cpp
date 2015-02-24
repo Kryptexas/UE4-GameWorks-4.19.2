@@ -412,7 +412,7 @@ void InitGamePhys()
 	GApexModuleDestructible->setMaxChunkCount((physx::PxU32)FMath::Max(CVarAPEXMaxDestructibleDynamicChunkCount.GetValueOnGameThread(), 0));
 	GApexModuleDestructible->setSortByBenefit(CVarAPEXSortDynamicChunksByBenefit.GetValueOnGameThread() != 0);
 
-	GApexModuleDestructible->setChunkReportSendChunkStateEvents(true);
+	GApexModuleDestructible->scheduleChunkStateEventCallback(NxDestructibleCallbackSchedule::FetchResults);
 
 	// APEX 1.3 to preserve 1.2 behavior
 	GApexModuleDestructible->setUseLegacyDamageRadiusSpread(true); 
