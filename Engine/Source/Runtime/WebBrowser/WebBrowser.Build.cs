@@ -6,8 +6,8 @@ public class WebBrowser : ModuleRules
 {
 	public WebBrowser(TargetInfo Target)
 	{
-		PublicIncludePaths.Add("Developer/WebBrowser/Public");
-		PrivateIncludePaths.Add("Developer/WebBrowser/Private");
+		PublicIncludePaths.Add("Runtime/WebBrowser/Public");
+		PrivateIncludePaths.Add("Runtime/WebBrowser/Private");
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
