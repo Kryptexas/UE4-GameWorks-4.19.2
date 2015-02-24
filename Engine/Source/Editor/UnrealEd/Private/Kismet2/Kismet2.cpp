@@ -496,26 +496,45 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 			UClass* WidgetClass = FindObject<UClass>(ANY_PACKAGE, TEXT("UserWidget"));
 			UClass* GameplayAbilityClass = FindObject<UClass>(ANY_PACKAGE, TEXT("GameplayAbility"));
 
+			int32 PositionY = 0;
 			if(NewBP->GeneratedClass->IsChildOf(AActor::StaticClass()))
 			{
-				UEdGraphNode* BeginPlayNode = FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveBeginPlay")), AActor::StaticClass());
-				UEdGraphNode* ActorBeginOverlapNode = FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveActorBeginOverlap")), AActor::StaticClass(), BeginPlayNode->NodePosY + BeginPlayNode->NodeHeight + 200);
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveTick")), AActor::StaticClass(), ActorBeginOverlapNode->NodePosY + ActorBeginOverlapNode->NodeHeight + 200);
+				if (UEdGraphNode* BeginPlayNode = FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveBeginPlay")), AActor::StaticClass()))
+				{
+					PositionY = BeginPlayNode->NodePosY + BeginPlayNode->NodeHeight + 200;
+				}
+
+				if (UEdGraphNode* ActorBeginOverlapNode = FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveActorBeginOverlap")), AActor::StaticClass(), PositionY))
+				{
+					PositionY = ActorBeginOverlapNode->NodePosY + ActorBeginOverlapNode->NodeHeight + 200;
+				}
+
+				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveTick")), AActor::StaticClass(), PositionY);
 			}
 			else if(NewBP->GeneratedClass->IsChildOf(UActorComponent::StaticClass()))
 			{
-				UEdGraphNode* ReceiveTickNode = FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveTick")), UActorComponent::StaticClass());
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveInitializeComponent")), UActorComponent::StaticClass(), ReceiveTickNode->NodePosY + ReceiveTickNode->NodeHeight + 200);
+				if (UEdGraphNode* ReceiveTickNode = FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveTick")), UActorComponent::StaticClass()))
+				{
+					PositionY = ReceiveTickNode->NodePosY + ReceiveTickNode->NodeHeight + 200;
+				}
+
+				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("ReceiveInitializeComponent")), UActorComponent::StaticClass(), PositionY);
 			}
 			else if(NewBP->GeneratedClass->IsChildOf(WidgetClass))
 			{
-				UEdGraphNode* EventNode = FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("Construct")), WidgetClass);
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("Tick")), WidgetClass, EventNode->NodePosY + EventNode->NodeHeight + 200);
+				if (UEdGraphNode* EventNode = FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("Construct")), WidgetClass))
+				{
+					PositionY = EventNode->NodePosY + EventNode->NodeHeight + 200;
+				}
+				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("Tick")), WidgetClass, PositionY);
 			}
 			else if(NewBP->GeneratedClass->IsChildOf(GameplayAbilityClass))
 			{
-				UEdGraphNode* EventNode = FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("K2_ActivateAbility")), GameplayAbilityClass);
-				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("K2_OnEndAbility")), GameplayAbilityClass, EventNode->NodePosY + EventNode->NodeHeight + 200);
+				if (UEdGraphNode* EventNode = FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("K2_ActivateAbility")), GameplayAbilityClass))
+				{
+					PositionY = EventNode->NodePosY + EventNode->NodeHeight + 200;
+				}
+				FKismetEditorUtilities::AddDefaultEventNode(NewBP, NewBP->UbergraphPages[0], FName(TEXT("K2_OnEndAbility")), GameplayAbilityClass, PositionY);
 			}
 		}
 	}
@@ -551,53 +570,61 @@ UBlueprint* FKismetEditorUtilities::CreateBlueprint(UClass* ParentClass, UObject
 
 UK2Node_Event* FKismetEditorUtilities::AddDefaultEventNode(UBlueprint* InBlueprint, UEdGraph* InGraph, FName InEventName, UClass* InEventClass, int32 InNodePosY/* = 0*/)
 {
-	const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
+	UK2Node_Event* NewEventNode = nullptr;
 
-	// Add a "Begin Play" event
-	UK2Node_Event* NewEventNode = NewObject<UK2Node_Event>(InGraph);
-	NewEventNode->EventSignatureClass = InEventClass;
-	NewEventNode->EventSignatureName = InEventName;
+	FMemberReference EventReference;
+	EventReference.SetExternalMember(InEventName, InEventClass);
 
-	// add update event graph
-	NewEventNode->bOverrideFunction=true;
-	NewEventNode->CreateNewGuid();
-	NewEventNode->PostPlacedNewNode();
-	NewEventNode->SetFlags(RF_Transactional);
-	NewEventNode->AllocateDefaultPins();
-	NewEventNode->bIsNodeEnabled = false;
-	NewEventNode->NodeComment = LOCTEXT("DisabledNodeComment", "This node is disabled and will not be called.\nDrag off pins to build functionality.").ToString();
-	NewEventNode->NodePosY = InNodePosY;
-	UEdGraphSchema_K2::SetNodeMetaData(NewEventNode, FNodeMetadata::DefaultGraphNode);
-
-	InGraph->AddNode(NewEventNode);
-
-	// Rebuild the skeleton class so we can determine if we are overriding the function from the parent
-	FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
-
-	// Get the function that the event node or function entry represents
-	FFunctionFromNodeHelper FunctionFromNode(NewEventNode);
-	if (FunctionFromNode.Function && Schema->GetCallableParentFunction(FunctionFromNode.Function))
+	// Prevent events that are hidden in the Blueprint's class from being auto-generated.
+	if(!FObjectEditorUtils::IsFunctionHiddenFromClass(EventReference.ResolveMember<UFunction>(InBlueprint), InBlueprint->ParentClass))
 	{
-		UFunction* ValidParent = Schema->GetCallableParentFunction(FunctionFromNode.Function);
-		FGraphNodeCreator<UK2Node_CallParentFunction> FunctionNodeCreator(*InGraph);
-		UK2Node_CallParentFunction* ParentFunctionNode = FunctionNodeCreator.CreateNode();
-		ParentFunctionNode->SetFromFunction(ValidParent);
-		ParentFunctionNode->AllocateDefaultPins();
+		const UEdGraphSchema_K2* Schema = GetDefault<UEdGraphSchema_K2>();
 
-		ParentFunctionNode->GetExecPin()->MakeLinkTo(NewEventNode->FindPin(Schema->PN_Then));
+		// Add the event
+		NewEventNode = NewObject<UK2Node_Event>(InGraph);
+		NewEventNode->EventSignatureClass = InEventClass;
+		NewEventNode->EventSignatureName = InEventName;
 
-		ParentFunctionNode->NodePosX = FunctionFromNode.Node->NodePosX + FunctionFromNode.Node->NodeWidth + 200;
-		ParentFunctionNode->NodePosY = FunctionFromNode.Node->NodePosY;
-		UEdGraphSchema_K2::SetNodeMetaData(ParentFunctionNode, FNodeMetadata::DefaultGraphNode);
-		FunctionNodeCreator.Finalize();
-
-		ParentFunctionNode->bIsNodeEnabled = false;
-
-		// Adding the call to parent and connecting it will reset this value
+		// add update event graph
+		NewEventNode->bOverrideFunction=true;
+		NewEventNode->CreateNewGuid();
+		NewEventNode->PostPlacedNewNode();
+		NewEventNode->SetFlags(RF_Transactional);
+		NewEventNode->AllocateDefaultPins();
 		NewEventNode->bIsNodeEnabled = false;
 		NewEventNode->NodeComment = LOCTEXT("DisabledNodeComment", "This node is disabled and will not be called.\nDrag off pins to build functionality.").ToString();
-	}
+		NewEventNode->NodePosY = InNodePosY;
+		UEdGraphSchema_K2::SetNodeMetaData(NewEventNode, FNodeMetadata::DefaultGraphNode);
 
+		InGraph->AddNode(NewEventNode);
+
+		// Rebuild the skeleton class so we can determine if we are overriding the function from the parent
+		FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified(InBlueprint);
+
+		// Get the function that the event node or function entry represents
+		FFunctionFromNodeHelper FunctionFromNode(NewEventNode);
+		if (FunctionFromNode.Function && Schema->GetCallableParentFunction(FunctionFromNode.Function))
+		{
+			UFunction* ValidParent = Schema->GetCallableParentFunction(FunctionFromNode.Function);
+			FGraphNodeCreator<UK2Node_CallParentFunction> FunctionNodeCreator(*InGraph);
+			UK2Node_CallParentFunction* ParentFunctionNode = FunctionNodeCreator.CreateNode();
+			ParentFunctionNode->SetFromFunction(ValidParent);
+			ParentFunctionNode->AllocateDefaultPins();
+
+			ParentFunctionNode->GetExecPin()->MakeLinkTo(NewEventNode->FindPin(Schema->PN_Then));
+
+			ParentFunctionNode->NodePosX = FunctionFromNode.Node->NodePosX + FunctionFromNode.Node->NodeWidth + 200;
+			ParentFunctionNode->NodePosY = FunctionFromNode.Node->NodePosY;
+			UEdGraphSchema_K2::SetNodeMetaData(ParentFunctionNode, FNodeMetadata::DefaultGraphNode);
+			FunctionNodeCreator.Finalize();
+
+			ParentFunctionNode->bIsNodeEnabled = false;
+
+			// Adding the call to parent and connecting it will reset this value
+			NewEventNode->bIsNodeEnabled = false;
+			NewEventNode->NodeComment = LOCTEXT("DisabledNodeComment", "This node is disabled and will not be called.\nDrag off pins to build functionality.").ToString();
+		}
+	}
 
 	return NewEventNode;
 }
