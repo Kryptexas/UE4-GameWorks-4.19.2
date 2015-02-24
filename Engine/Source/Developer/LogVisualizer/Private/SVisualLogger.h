@@ -128,5 +128,7 @@ protected:
 	bool bPausedLogger;
 	TArray<FVisualLogDevice::FVisualLogEntryItem> OnPauseCacheForEntries;
 
+	bool bGotHistogramData;
+
 	FDelegateHandle DrawOnCanvasDelegateHandle;
 };
