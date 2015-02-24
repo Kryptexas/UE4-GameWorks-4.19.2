@@ -80,6 +80,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
 	bool bDrawExtremesOnGraphs;
 
+	/** Whether to use PlayersOnly during Pause or not */
+	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
+	bool bUsePlayersOnlyForPause;
+
 	UPROPERTY(config)
 	FFiltersPreset PresistentPresets;
 

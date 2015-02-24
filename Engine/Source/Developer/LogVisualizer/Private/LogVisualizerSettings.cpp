@@ -18,6 +18,7 @@ ULogVisualizerSettings::ULogVisualizerSettings(const FObjectInitializer& ObjectI
 	GraphsBackgroundColor = FColor(0, 0, 0, 70);
 	bResetDataWithNewSession = false;
 	bDrawExtremesOnGraphs = false;
+	bUsePlayersOnlyForPause = true;
 }
 
 #if WITH_EDITOR

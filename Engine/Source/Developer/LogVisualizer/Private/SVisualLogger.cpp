@@ -107,6 +107,7 @@ void SVisualLogger::FVisualLoggerDevice::Serialize(const class UObject* LogOwner
 
 SVisualLogger::SVisualLogger() : SCompoundWidget(), CommandList(MakeShareable(new FUICommandList))
 { 
+	bPausedLogger = false;
 	InternalDevice = MakeShareable(new FVisualLoggerDevice(this));
 	FVisualLogger::Get().AddDevice(InternalDevice.Get());
 }
@@ -168,6 +169,8 @@ SVisualLogger::~SVisualLogger()
 
 void SVisualLogger::Construct(const FArguments& InArgs, const TSharedRef<SDockTab>& ConstructUnderMajorTab, const TSharedPtr<SWindow>& ConstructUnderWindow)
 {
+	bPausedLogger = false;
+
 	FLogVisualizer::Get().SetCurrentVisualizer(SharedThis(this));
 	//////////////////////////////////////////////////////////////////////////
 	// Visual Logger Events
@@ -509,17 +512,24 @@ bool SVisualLogger::HandleStopRecordingCommandIsVisible() const
 
 bool SVisualLogger::HandlePauseCommandCanExecute() const
 {
-	UWorld* World = FLogVisualizer::Get().GetWorld();
-	return FVisualLogger::Get().IsRecording() && World && !World->bPlayersOnly && !World->bPlayersOnlyPending;
+	return !bPausedLogger;
 }
 
 void SVisualLogger::HandlePauseCommandExecute()
 {
-	UWorld* World = FLogVisualizer::Get().GetWorld();
-	if (World != NULL)
+	if (ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bUsePlayersOnlyForPause)
 	{
-		World->bPlayersOnlyPending = true;
+		const TIndirectArray<FWorldContext>& WorldContexts = GEngine->GetWorldContexts();
+		for (const FWorldContext& Context : WorldContexts)
+		{
+			if (Context.World() != nullptr)
+			{
+				Context.World()->bPlayersOnlyPending = true;
+			}
+		}
 	}
+
+	bPausedLogger = true;
 }
 
 bool SVisualLogger::HandlePauseCommandIsVisible() const
@@ -529,18 +539,31 @@ bool SVisualLogger::HandlePauseCommandIsVisible() const
 
 bool SVisualLogger::HandleResumeCommandCanExecute() const
 {
-	UWorld* World = FLogVisualizer::Get().GetWorld();
-	return FVisualLogger::Get().IsRecording() && World && (World->bPlayersOnly || World->bPlayersOnlyPending);
+	return bPausedLogger;
 }
 
 void SVisualLogger::HandleResumeCommandExecute()
 {
-	UWorld* World = FLogVisualizer::Get().GetWorld();
-	if (World != NULL)
+	if (ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bUsePlayersOnlyForPause)
 	{
-		World->bPlayersOnly = false;
-		World->bPlayersOnlyPending = false;
+		const TIndirectArray<FWorldContext>& WorldContexts = GEngine->GetWorldContexts();
+		for (const FWorldContext& Context : WorldContexts)
+		{
+			if (Context.World() != nullptr)
+			{
+				Context.World()->bPlayersOnly = false;
+				Context.World()->bPlayersOnlyPending = false;
+			}
+		}
 	}
+
+	bPausedLogger = false;
+	for (const auto& CurrentEntry : OnPauseCacheForEntries)
+	{
+		OnNewLogEntry(CurrentEntry);
+	}
+	OnPauseCacheForEntries.Reset();
+
 }
 
 bool SVisualLogger::HandleResumeCommandIsVisible() const
@@ -756,8 +779,15 @@ void SVisualLogger::OnNewWorld(UWorld* NewWorld)
 
 void SVisualLogger::OnNewLogEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry)
 {
-	CollectNewCategories(Entry);
-	MainView->OnNewLogEntry(Entry);
+	if (!bPausedLogger)
+	{
+		CollectNewCategories(Entry);
+		MainView->OnNewLogEntry(Entry);
+	}
+	else
+	{
+		OnPauseCacheForEntries.Add(Entry);
+	}
 }
 
 void SVisualLogger::CollectNewCategories(const FVisualLogDevice::FVisualLogEntryItem& Item)

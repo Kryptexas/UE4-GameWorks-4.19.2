@@ -125,5 +125,8 @@ protected:
 	mutable TSharedPtr<SVisualLoggerLogsList> LogsList;
 	mutable TSharedPtr<SVisualLoggerStatusView> StatusView;
 
+	bool bPausedLogger;
+	TArray<FVisualLogDevice::FVisualLogEntryItem> OnPauseCacheForEntries;
+
 	FDelegateHandle DrawOnCanvasDelegateHandle;
 };
