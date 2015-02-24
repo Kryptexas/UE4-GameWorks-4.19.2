@@ -1520,6 +1520,8 @@ protected:
 	 */
 	virtual void OnUnableToFollowBaseMove(const FVector& DeltaPosition, const FVector& OldLocation, const FHitResult& MoveOnBaseHit);
 
+public:
+
 	/** Project a location to navmesh to find adjusted height
 	 * @param TestLocation		Location to project
 	 * @param NavFloorLocation	Location on navmesh
@@ -1527,7 +1529,6 @@ protected:
 	 */
 	bool FindNavFloor(const FVector& TestLocation, FNavLocation& NavFloorLocation) const;
 
-public:
 	// Movement functions broken out based on owner's network Role.
 	// TickComponent calls the correct version based on the Role.
 	// These may be called during move playback and correction during network updates.
