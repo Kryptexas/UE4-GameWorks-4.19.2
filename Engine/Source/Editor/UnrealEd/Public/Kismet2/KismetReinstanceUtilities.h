@@ -96,6 +96,7 @@ protected:
 		, OriginalCDO(NULL)
 		, bHasReinstanced(false)
 		, bSkipGarbageCollection(false)
+		, ClassToReinstanceDefaultValuesCRC(0)
 	{}
 
 	/** Sets the reinstancer up to work on every object of the specified class */

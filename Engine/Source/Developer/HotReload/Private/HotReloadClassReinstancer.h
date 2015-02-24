@@ -101,6 +101,12 @@ public:
 
 	/** Reinstances all objects of the hot-reloaded class and update their properties to match the new CDO */
 	void ReinstanceObjectsAndUpdateDefaults();
+
+	/** Creates the reinstancer as a sharable object */
+	static TSharedPtr<FHotReloadClassReinstancer> Create(UClass* InNewClass, UClass* InOldClass)
+	{
+		return MakeShareable(new FHotReloadClassReinstancer(InNewClass, InOldClass));
+	}
 };
 
 #endif // WITH_ENGINE

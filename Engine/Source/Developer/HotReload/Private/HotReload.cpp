@@ -842,11 +842,11 @@ ECompilationResult::Type FHotReloadModule::RebindPackagesInternal(TArray<UPackag
 #if WITH_ENGINE
 void FHotReloadModule::ReinstanceClass(UClass* OldClass, UClass* NewClass)
 {	
-	FHotReloadClassReinstancer ReinstanceHelper(NewClass, OldClass);
-	if (ReinstanceHelper.ClassNeedsReinstancing())
+	auto ReinstanceHelper = FHotReloadClassReinstancer::Create(NewClass, OldClass);
+	if (ReinstanceHelper->ClassNeedsReinstancing())
 	{
 		UE_LOG(LogHotReload, Log, TEXT("Re-instancing %s after hot-reload."), NewClass ? *NewClass->GetName() : *OldClass->GetName());
-		ReinstanceHelper.ReinstanceObjectsAndUpdateDefaults();
+		ReinstanceHelper->ReinstanceObjectsAndUpdateDefaults();
 	}
 }
 #endif
