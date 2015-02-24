@@ -2010,7 +2010,7 @@ void SMyBlueprint::ImplementFunction(FEdGraphSchemaAction_K2Graph* GraphAction)
 		}
 	}
 	check(OverrideFunc);
-	UClass* const OverrideFuncClass = CastChecked<UClass>(OverrideFunc->GetOuter());
+	UClass* const OverrideFuncClass = CastChecked<UClass>(OverrideFunc->GetOuter())->GetAuthoritativeClass();
 
 	if (UEdGraphSchema_K2::FunctionCanBePlacedAsEvent(OverrideFunc))
 	{
