@@ -345,7 +345,7 @@ void FMacPlatformMisc::ActivateApplication()
 {
 	MainThreadCall(^{
 		[NSApp activateIgnoringOtherApps:YES];
-	});
+	}, NSDefaultRunLoopMode, false);
 }
 
 bool FMacPlatformMisc::ControlScreensaver(EScreenSaverAction Action)
