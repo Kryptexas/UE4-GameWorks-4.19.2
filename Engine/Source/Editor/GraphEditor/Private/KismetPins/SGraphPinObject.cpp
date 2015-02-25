@@ -185,6 +185,22 @@ TSharedRef<SWidget> SGraphPinObject::GenerateAssetPicker()
 	AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
 	AssetPickerConfig.bAllowDragging = false;
 
+	// Check with the node to see if there is any "AllowClasses" metadata for the pin
+	FString ClassFilterString = GraphPinObj->GetOwningNode()->GetPinMetaData(GraphPinObj->PinName, FName(TEXT("AllowedClasses")));
+	if( !ClassFilterString.IsEmpty() )
+	{
+		// Clear out the allowed class names and have the pin's metadata override.
+		AssetPickerConfig.Filter.ClassNames.Empty();
+
+		// Parse and add the classes from the metadata
+		TArray<FString> CustomClassFilterNames;
+		ClassFilterString.ParseIntoArray(&CustomClassFilterNames, TEXT(","), true);
+		for(auto It = CustomClassFilterNames.CreateConstIterator(); It; ++It)
+		{
+			AssetPickerConfig.Filter.ClassNames.Add(FName(**It));
+		}
+	}
+
 	return
 		SNew(SBox)
 		.HeightOverride(300)

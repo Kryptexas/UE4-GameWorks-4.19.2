@@ -420,6 +420,9 @@ public:
 	 * @param OutTaggedMetaData		Built array of tagged meta data for the node
 	 */
 	virtual void AddSearchMetaDataInfo(TArray<struct FSearchTagDataPair>& OutTaggedMetaData) const;
+
+	/** Return the requested metadata for the pin if there is any */
+	virtual FString GetPinMetaData(FString InPinName, FName InKey) { return FString(); }
 #endif // WITH_EDITOR
 
 };

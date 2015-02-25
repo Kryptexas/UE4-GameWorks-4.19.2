@@ -15,7 +15,7 @@ class UK2Node_StructOperation : public UK2Node_Variable
 	UScriptStruct* StructType;
 
 	// Begin UEdGraphNode interface
-	//virtual FLinearColor GetNodeTitleColor() const override;
+	virtual FString GetPinMetaData(FString InPinName, FName InKey) override;
 	// End UEdGraphNode interface
 
 	// UK2Node interface
