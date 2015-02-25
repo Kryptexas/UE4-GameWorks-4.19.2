@@ -133,6 +133,7 @@ struct FOpenGLES2 : public FOpenGLBase
 	static FORCEINLINE int32 GetReadHalfFloatPixelsEnum()				{ return GL_HALF_FLOAT_OES; }
 
 	static FORCEINLINE GLenum GetVertexHalfFloatFormat()				{ return GL_HALF_FLOAT_OES; }
+	static FORCEINLINE bool NeedsVertexAttribRemapTable()				{ return bNeedsVertexAttribRemap; }
 
 	// On iOS both glMapBufferOES() and glBufferSubData() for immediate vertex and index data
 	// is the slow path (they both hit GPU sync and data cache flush in driver according to profiling in driver symbols).
@@ -472,6 +473,8 @@ protected:
 	/** GL_OES_standard_derivations */
 	static bool bSupportsStandardDerivativesExtension;
 
+	/** Vertex attributes need remapping if GL_MAX_VERTEX_ATTRIBS < 16 */
+	static bool bNeedsVertexAttribRemap;
 public:
 	/* This is a hack to remove the calls to "precision sampler" defaults which are produced by the cross compiler however don't compile on some android platforms */
 	static bool bRequiresDontEmitPrecisionForTextureSamplers;

@@ -359,7 +359,7 @@ inline uint32 GetTypeHash(FAnsiCharArray const& CharArray)
 	return FCrc::MemCrc32(CharArray.GetData(), CharArray.Num() * sizeof(ANSICHAR));
 }
 
-static void BindShaderLocations(GLenum TypeEnum, GLuint Resource, uint16 InOutMask)
+static void BindShaderLocations(GLenum TypeEnum, GLuint Resource, uint16 InOutMask, const uint8 * RemapTable = nullptr)
 {
 	if ( OpenGLShaderPlatformNeedsBindLocation(GMaxRHIShaderPlatform) )
 	{
@@ -386,7 +386,18 @@ static void BindShaderLocations(GLenum TypeEnum, GLuint Resource, uint16 InOutMa
 							Buf[13] = '0' + (Index % 10);
 							Buf[14] = 0;
 						}
-						glBindAttribLocation(Resource, Index, Buf);
+
+						if (FOpenGL::NeedsVertexAttribRemapTable())
+						{
+							check(RemapTable != nullptr);
+							uint32 MappedAttributeIndex = RemapTable[Index];
+							check(MappedAttributeIndex < NUM_OPENGL_VERTEX_STREAMS);
+							glBindAttribLocation(Resource, MappedAttributeIndex, Buf);
+						}
+						else
+						{
+							glBindAttribLocation(Resource, Index, Buf);
+						}
 					}
 					Index++;
 					Mask >>= 1;
@@ -1606,7 +1617,8 @@ static FOpenGLLinkedProgram* LinkProgram( const FOpenGLLinkedProgramConfiguratio
 			// Bind attribute indices.
 			if (Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Resource)
 			{
-				BindShaderLocations(GL_VERTEX_SHADER, Program, Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Bindings.InOutMask);
+				auto& VertexBindings = Config.Shaders[CrossCompiler::SHADER_STAGE_VERTEX].Bindings;
+				BindShaderLocations(GL_VERTEX_SHADER, Program, VertexBindings.InOutMask, VertexBindings.VertexAttributeRemap);
 			}
 
 			// Bind frag data locations.

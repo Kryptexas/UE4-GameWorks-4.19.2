@@ -1840,6 +1840,7 @@ void FOpenGLDynamicRHI::EnableVertexElementCached(
 	check( !(FOpenGL::SupportsVertexAttribBinding() && OpenGLConsoleVariables::bUseVAB));
 
 	GLuint AttributeIndex = VertexElement.AttributeIndex;
+	AttributeIndex = RemapVertexAttrib(AttributeIndex);
 	FOpenGLCachedAttr &Attr = ContextState.VertexAttrs[AttributeIndex];
 
 	if (!Attr.bEnabled)
@@ -1896,6 +1897,8 @@ void FOpenGLDynamicRHI::EnableVertexElementCachedZeroStride(FOpenGLContextState&
 	VERIFY_GL_SCOPE();
 
 	GLuint AttributeIndex = VertexElement.AttributeIndex;
+	AttributeIndex = RemapVertexAttrib(AttributeIndex);
+
 	FOpenGLCachedAttr &Attr = ContextState.VertexAttrs[AttributeIndex];
 	uint32 Stride = ZeroStrideVertexBuffer->GetSize();
 
@@ -1923,67 +1926,65 @@ void FOpenGLDynamicRHI::SetupVertexArrays(FOpenGLContextState& ContextState, uin
 	check(IsValidRef(PendingState.BoundShaderState));
 	check(IsValidRef(PendingState.BoundShaderState->VertexShader));
 	FOpenGLVertexDeclaration* VertexDeclaration = PendingState.BoundShaderState->VertexDeclaration;
-	uint32 AttributeMask = PendingState.BoundShaderState->VertexShader->Bindings.InOutMask;
 	for (int32 ElementIndex = 0; ElementIndex < VertexDeclaration->VertexElements.Num(); ElementIndex++)
 	{
 		FOpenGLVertexElement& VertexElement = VertexDeclaration->VertexElements[ElementIndex];
+		uint32 AttributeIndex = VertexElement.AttributeIndex;
+		const bool bAttribInUse = (PendingState.BoundShaderState->VertexShader->Bindings.InOutMask & (0x1 << AttributeIndex)) != 0;
+		if (!bAttribInUse)
+		{
+			continue; // skip unused attributes.
+		}
+
+		AttributeIndex = RemapVertexAttrib(AttributeIndex);
 
 		if ( VertexElement.StreamIndex < NumStreams)
 		{
 			FOpenGLStream* Stream = &Streams[VertexElement.StreamIndex];
 			uint32 Stride = Stream->Stride;
 
-			uint32 AttributeBit = (1 << VertexElement.AttributeIndex);
-			if ((AttributeBit & AttributeMask) == AttributeBit)
+			if( Stream->VertexBuffer->GetUsage() & BUF_ZeroStride )
 			{
-				if( Stream->VertexBuffer->GetUsage() & BUF_ZeroStride )
-				{
-					check(Stride == 0);
-					check(Stream->Offset == 0);
-					check(VertexElement.Offset == 0);
-					check(Stream->VertexBuffer->GetZeroStrideBuffer());
-					EnableVertexElementCachedZeroStride(
-						ContextState,
-						VertexElement,
-						MaxVertices,
-						Stream->VertexBuffer
-						);
-				}
-				else
-				{
-					check( Stride > 0 );
-					EnableVertexElementCached(
-						ContextState,
-						VertexElement,
-						Stride,
-						INDEX_TO_VOID(BaseVertexIndex * Stride + Stream->Offset + VertexElement.Offset),
-						Stream->VertexBuffer->Resource
-						);
-				}
-				UsedAttributes[VertexElement.AttributeIndex] = true;
+				check(Stride == 0);
+				check(Stream->Offset == 0);
+				check(VertexElement.Offset == 0);
+				check(Stream->VertexBuffer->GetZeroStrideBuffer());
+				EnableVertexElementCachedZeroStride(
+					ContextState,
+					VertexElement,
+					MaxVertices,
+					Stream->VertexBuffer
+					);
 			}
+			else
+			{
+				check( Stride > 0 );
+				EnableVertexElementCached(
+					ContextState,
+					VertexElement,
+					Stride,
+					INDEX_TO_VOID(BaseVertexIndex * Stride + Stream->Offset + VertexElement.Offset),
+					Stream->VertexBuffer->Resource
+					);
+			}
+			UsedAttributes[AttributeIndex] = true;
 		}
 		else
 		{
 			//workaround attributes with no streams
-			uint32 AttributeBit = (1 << VertexElement.AttributeIndex);
-			if ((AttributeBit & AttributeMask) == AttributeBit)
+			VERIFY_GL_SCOPE();
+
+			FOpenGLCachedAttr &Attr = ContextState.VertexAttrs[AttributeIndex];
+
+			if (Attr.bEnabled)
 			{
-				VERIFY_GL_SCOPE();
-
-				GLuint AttributeIndex = VertexElement.AttributeIndex;
-				FOpenGLCachedAttr &Attr = ContextState.VertexAttrs[AttributeIndex];
-
-				if (Attr.bEnabled)
-				{
-					glDisableVertexAttribArray(AttributeIndex);
-					Attr.bEnabled = false;
-				}
-
-				float data[4] = { 0.0f};
-
-				glVertexAttrib4fv( AttributeIndex, data );
+				glDisableVertexAttribArray(AttributeIndex);
+				Attr.bEnabled = false;
 			}
+
+			float data[4] = { 0.0f};
+
+			glVertexAttrib4fv(AttributeIndex, data);
 		}
 	}
 
@@ -2011,6 +2012,10 @@ void FOpenGLDynamicRHI::SetupVertexArraysVAB(FOpenGLContextState& ContextState, 
 	check(IsValidRef(PendingState.BoundShaderState->VertexShader));
 	FOpenGLVertexDeclaration* VertexDeclaration = PendingState.BoundShaderState->VertexDeclaration;
 	uint32 AttributeMask = PendingState.BoundShaderState->VertexShader->Bindings.InOutMask;
+	if (FOpenGL::NeedsVertexAttribRemapTable())
+	{
+		AttributeMask = PendingState.BoundShaderState->VertexShader->Bindings.VertexRemappedMask;
+	}
 
 	if (ContextState.VertexDecl != VertexDeclaration || AttributeMask != ContextState.ActiveAttribMask)
 	{
@@ -2023,13 +2028,19 @@ void FOpenGLDynamicRHI::SetupVertexArraysVAB(FOpenGLContextState& ContextState, 
 		for (int32 ElementIndex = 0; ElementIndex < VertexDeclaration->VertexElements.Num(); ElementIndex++)
 		{
 			FOpenGLVertexElement& VertexElement = VertexDeclaration->VertexElements[ElementIndex];
-			const uint32 AttributeIndex = VertexElement.AttributeIndex;
+			uint32 AttributeIndex = VertexElement.AttributeIndex;
+			const bool bAttribInUse = (PendingState.BoundShaderState->VertexShader->Bindings.InOutMask & (0x1 << AttributeIndex)) != 0;
+			if (bAttribInUse)
+			{
+				AttributeIndex = RemapVertexAttrib(AttributeIndex);
+			}
+
 			const uint32 StreamIndex = VertexElement.StreamIndex;
 
 			ContextState.MaxActiveAttrib = FMath::Max( ContextState.MaxActiveAttrib, AttributeIndex);
 
 			//only setup/track attributes actually in use
-			if (AttributeMask & (0x1 << AttributeIndex))
+			if (bAttribInUse)
 			{
 				if (VertexElement.StreamIndex < NumStreams)
 				{
@@ -2158,16 +2169,18 @@ void FOpenGLDynamicRHI::SetupVertexArraysUP(FOpenGLContextState& ContextState, v
 	check(IsValidRef(PendingState.BoundShaderState));
 	check(IsValidRef(PendingState.BoundShaderState->VertexShader));
 	FOpenGLVertexDeclaration* VertexDeclaration = PendingState.BoundShaderState->VertexDeclaration;
-	uint32 AttributeMask = PendingState.BoundShaderState->VertexShader->Bindings.InOutMask;
+
 	for (int32 ElementIndex = 0; ElementIndex < VertexDeclaration->VertexElements.Num(); ElementIndex++)
 	{
 		FOpenGLVertexElement &VertexElement = VertexDeclaration->VertexElements[ElementIndex];
 		check(VertexElement.StreamIndex < 1);
 
-		uint32 AttributeBit = (1 << VertexElement.AttributeIndex);
-		if ((AttributeBit & AttributeMask) == AttributeBit)
+		uint32 AttributeIndex = VertexElement.AttributeIndex;
+		const bool bAttribInUse = (PendingState.BoundShaderState->VertexShader->Bindings.InOutMask & (0x1 << AttributeIndex)) != 0;
+		if (bAttribInUse)
 		{
-			check( Stride > 0 );
+			AttributeIndex = RemapVertexAttrib(AttributeIndex);
+			check(Stride > 0);
 			EnableVertexElementCached(
 				ContextState,
 				VertexElement,
@@ -2175,7 +2188,7 @@ void FOpenGLDynamicRHI::SetupVertexArraysUP(FOpenGLContextState& ContextState, v
 				(void*)(((char*)Buffer) + VertexElement.Offset),
 				0
 				);
-			UsedAttributes[VertexElement.AttributeIndex] = true;
+			UsedAttributes[AttributeIndex] = true;
 		}
 	}
 

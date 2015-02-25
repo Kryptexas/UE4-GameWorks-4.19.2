@@ -490,6 +490,18 @@ private:
 
 	/** Consumes about 100ms of GPU time (depending on resolution and GPU), useful for making sure we're not CPU bound when GPU profiling. */
 	void IssueLongGPUTask();
+
+	/** Remaps vertex attributes on devices where GL_MAX_VERTEX_ATTRIBS < 16 */
+	uint32 RemapVertexAttrib(uint32 VertexAttributeIndex)
+	{
+		if (FOpenGL::NeedsVertexAttribRemapTable())
+		{
+			check(VertexAttributeIndex < ARRAY_COUNT(PendingState.BoundShaderState->VertexShader->Bindings.VertexAttributeRemap));
+			VertexAttributeIndex = PendingState.BoundShaderState->VertexShader->Bindings.VertexAttributeRemap[VertexAttributeIndex];
+			check(VertexAttributeIndex < NUM_OPENGL_VERTEX_STREAMS); // check that this attribute has remaped correctly.
+		}
+		return VertexAttributeIndex;
+	}
 };
 
 /** Implements the OpenGLDrv module as a dynamic RHI providing module. */

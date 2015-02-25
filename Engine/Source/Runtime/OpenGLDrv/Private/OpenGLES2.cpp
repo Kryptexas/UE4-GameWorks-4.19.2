@@ -124,6 +124,9 @@ bool FOpenGLES2::bSupportsStandardDerivativesExtension = false;
 /* This is a hack to remove the gl_FragCoord if shader will fail to link if exceeding the max varying on android platforms */
 bool FOpenGLES2::bRequiresGLFragCoordVaryingLimitHack = false;
 
+/** Vertex attributes need remapping if GL_MAX_VERTEX_ATTRIBS < 16 */
+bool FOpenGLES2::bNeedsVertexAttribRemap = false;
+
 bool FOpenGLES2::SupportsDisjointTimeQueries()
 {
 	bool bAllowDisjointTimerQueries = false;
@@ -133,6 +136,17 @@ bool FOpenGLES2::SupportsDisjointTimeQueries()
 
 void FOpenGLES2::ProcessQueryGLInt()
 {
+	GLint MaxVertexAttribs;
+	LOG_AND_GET_GL_INT(GL_MAX_VERTEX_ATTRIBS, 0, MaxVertexAttribs);
+	bNeedsVertexAttribRemap = MaxVertexAttribs < 16;
+	if (bNeedsVertexAttribRemap)
+	{
+		UE_LOG(LogRHI, Warning,
+			TEXT("Device reports support for %d vertex attributes, UE4 requires 16. Rendering artifacts may occur."),
+			MaxVertexAttribs
+			);
+	}
+
 	LOG_AND_GET_GL_INT(GL_MAX_VARYING_VECTORS, 0, MaxVaryingVectors);
 	LOG_AND_GET_GL_INT(GL_MAX_VERTEX_UNIFORM_VECTORS, 0, MaxVertexUniformComponents);
 	LOG_AND_GET_GL_INT(GL_MAX_FRAGMENT_UNIFORM_VECTORS, 0, MaxPixelUniformComponents);

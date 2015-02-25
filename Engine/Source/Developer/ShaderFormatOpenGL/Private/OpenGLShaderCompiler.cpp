@@ -666,6 +666,27 @@ static void BuildShaderOutput(
         }
 	}
 
+	// Generate vertex attribute remapping table.
+	// This is used on devices where GL_MAX_VERTEX_ATTRIBS < 16
+	if (Frequency == SF_Vertex)
+	{
+		uint32 AttributeMask = Header.Bindings.InOutMask;
+		int32 NextAttributeSlot = 0;
+		Header.Bindings.VertexRemappedMask = 0;
+		for (int32 AttributeIndex = 0; AttributeIndex<16; AttributeIndex++, AttributeMask >>= 1)
+		{
+			if (AttributeMask & 0x1)
+			{
+				Header.Bindings.VertexRemappedMask |= (1 << NextAttributeSlot);
+				Header.Bindings.VertexAttributeRemap[AttributeIndex] = NextAttributeSlot++;
+			}
+			else
+			{
+				Header.Bindings.VertexAttributeRemap[AttributeIndex] = -1;
+			}
+		}
+	}
+
 	// Then the list of outputs.
 	if (FCStringAnsi::Strncmp(ShaderSource, OutputsPrefix, OutputsPrefixLen) == 0)
 	{
