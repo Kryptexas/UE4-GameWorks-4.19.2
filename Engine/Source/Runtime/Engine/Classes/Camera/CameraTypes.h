@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Engine/Scene.h"
+#include "Engine/EngineTypes.h"
 #include "CameraTypes.generated.h"
 
 //@TODO: Document
