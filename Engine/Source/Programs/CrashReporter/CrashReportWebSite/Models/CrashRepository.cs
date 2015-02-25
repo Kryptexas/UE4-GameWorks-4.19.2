@@ -923,48 +923,51 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <param name="CrashInstance">A crash that was recently added to the database.</param>
 		public void BuildPattern( Crash CrashInstance )
 		{
-			List<string> Pattern = new List<string>();
-
-			// Get an array of callstack items
-			CallStackContainer CallStack = new CallStackContainer( CrashInstance );
-			CallStack.bDisplayFunctionNames = true;
-
-			if( CrashInstance.Pattern == null )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Crash=" + CrashInstance.Id + ")" ) )
 			{
-				// Set the module based on the modules in the callstack
-				CrashInstance.Module = CallStack.GetModuleName();
-				try
-				{
-					foreach( CallStackEntry Entry in CallStack.CallStackEntries )
-					{
-						FunctionCall CurrentFunctionCall = new FunctionCall();
+				List<string> Pattern = new List<string>();
 
-						if( FunctionCalls.Where( f => f.Call == Entry.FunctionName ).Count() > 0 )
+				// Get an array of callstack items
+				CallStackContainer CallStack = new CallStackContainer( CrashInstance );
+				CallStack.bDisplayFunctionNames = true;
+
+				if( CrashInstance.Pattern == null )
+				{
+					// Set the module based on the modules in the callstack
+					CrashInstance.Module = CallStack.GetModuleName();
+					try
+					{
+						foreach( CallStackEntry Entry in CallStack.CallStackEntries )
 						{
-							CurrentFunctionCall = FunctionCalls.Where( f => f.Call == Entry.FunctionName ).First();
+							FunctionCall CurrentFunctionCall = new FunctionCall();
+
+							if( FunctionCalls.Where( f => f.Call == Entry.FunctionName ).Count() > 0 )
+							{
+								CurrentFunctionCall = FunctionCalls.Where( f => f.Call == Entry.FunctionName ).First();
+							}
+							else
+							{
+								CurrentFunctionCall = new FunctionCall();
+								CurrentFunctionCall.Call = Entry.FunctionName;
+								FunctionCalls.InsertOnSubmit( CurrentFunctionCall );
+							}
+
+							SubmitChanges();
+
+							Pattern.Add( CurrentFunctionCall.Id.ToString() );
 						}
-						else
-						{
-							CurrentFunctionCall = new FunctionCall();
-							CurrentFunctionCall.Call = Entry.FunctionName;
-							FunctionCalls.InsertOnSubmit( CurrentFunctionCall );
-						}
+
+						//CrashInstance.Pattern = "+";
+						CrashInstance.Pattern = string.Join( "+", Pattern );
+						// We need something like this +1+2+3+5+ for searching for exact pattern like +5+
+						//CrashInstance.Pattern += "+";
 
 						SubmitChanges();
-
-						Pattern.Add( CurrentFunctionCall.Id.ToString() );
 					}
-
-					//CrashInstance.Pattern = "+";
-					CrashInstance.Pattern = string.Join( "+", Pattern );
-					// We need something like this +1+2+3+5+ for searching for exact pattern like +5+
-					//CrashInstance.Pattern += "+";
-
-					SubmitChanges();
-				}
-				catch( Exception Ex )
-				{
-					FLogger.WriteException( "BuildPattern: " + Ex.ToString() );
+					catch( Exception Ex )
+					{
+						FLogger.WriteException( "BuildPattern: " + Ex.ToString() );
+					}
 				}
 			}
 		}
