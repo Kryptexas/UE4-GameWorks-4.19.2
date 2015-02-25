@@ -739,7 +739,7 @@ void UAbilitySystemComponent::GetActivatableGameplayAbilitySpecsByAllMatchingTag
 		{
 			// Do NOT consider abilities that are blocked by tags currently.  That way, we can use the blocking to find
 			// an appropriate ability based on tags when we have more than one ability that match the GameplayTagContainer.
-			if (Spec.Ability->DoesAbilitySatisfyTagRequirements(*this, FGameplayTagContainer(), FGameplayTagContainer()))
+			if (Spec.Ability->DoesAbilitySatisfyTagRequirements(*this))
 			{
 				MatchingGameplayAbilities.Add(const_cast<FGameplayAbilitySpec*>(&Spec));
 			}
@@ -836,12 +836,12 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	// TODO: We should run this on on the non instanced, but run it on the instance once for now, need to fixup data
 	// (Always do a non instanced CanActivate check)
 
-	FGameplayTagContainer SourceTags;
-	FGameplayTagContainer TargetTags;
+	const FGameplayTagContainer* SourceTags = nullptr;
+	const FGameplayTagContainer* TargetTags = nullptr;
 	if (TriggerEventData != nullptr)
 	{
-		SourceTags = TriggerEventData->InstigatorTags;
-		TargetTags = TriggerEventData->TargetTags;
+		SourceTags = &TriggerEventData->InstigatorTags;
+		TargetTags = &TriggerEventData->TargetTags;
 	}
 
 	if (InstancedAbility)

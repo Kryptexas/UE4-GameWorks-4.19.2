@@ -146,7 +146,7 @@ bool UGameplayAbility::IsSupportedForNetworking() const
 	return Supported;
 }
 
-bool UGameplayAbility::DoesAbilitySatisfyTagRequirements(const UAbilitySystemComponent& AbilitySystemComponent, FGameplayTagContainer SourceTags, FGameplayTagContainer TargetTags, OUT FGameplayTagContainer* OptionalRelevantTags) const
+bool UGameplayAbility::DoesAbilitySatisfyTagRequirements(const UAbilitySystemComponent& AbilitySystemComponent, const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags, OUT FGameplayTagContainer* OptionalRelevantTags) const
 {
 	bool bBlocked = false, bMissing = false;
 
@@ -177,29 +177,35 @@ bool UGameplayAbility::DoesAbilitySatisfyTagRequirements(const UAbilitySystemCom
 		}
 	}
 
-	if (SourceBlockedTags.Num() || SourceRequiredTags.Num())
+	if (SourceTags != nullptr)
 	{
-		if (SourceTags.MatchesAny(SourceBlockedTags, false))
+		if (SourceBlockedTags.Num() || SourceRequiredTags.Num())
 		{
-			bBlocked = true;
-		}
+			if (SourceTags->MatchesAny(SourceBlockedTags, false))
+			{
+				bBlocked = true;
+			}
 
-		if (!SourceTags.MatchesAll(SourceRequiredTags, true))
-		{
-			bMissing = true;
+			if (!SourceTags->MatchesAll(SourceRequiredTags, true))
+			{
+				bMissing = true;
+			}
 		}
 	}
 
-	if (TargetBlockedTags.Num() || TargetRequiredTags.Num())
+	if (TargetTags != nullptr)
 	{
-		if (TargetTags.MatchesAny(TargetBlockedTags, false))
+		if (TargetBlockedTags.Num() || TargetRequiredTags.Num())
 		{
-			bBlocked = true;
-		}
+			if (TargetTags->MatchesAny(TargetBlockedTags, false))
+			{
+				bBlocked = true;
+			}
 
-		if (!TargetTags.MatchesAll(TargetRequiredTags, true))
-		{
-			bMissing = true;
+			if (!TargetTags->MatchesAll(TargetRequiredTags, true))
+			{
+				bMissing = true;
+			}
 		}
 	}
 
@@ -223,7 +229,7 @@ bool UGameplayAbility::DoesAbilitySatisfyTagRequirements(const UAbilitySystemCom
 	return true;
 }
 
-bool UGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, FGameplayTagContainer SourceTags, FGameplayTagContainer TargetTags, OUT FGameplayTagContainer* OptionalRelevantTags) const
+bool UGameplayAbility::CanActivateAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayTagContainer* SourceTags, const FGameplayTagContainer* TargetTags, OUT FGameplayTagContainer* OptionalRelevantTags) const
 {
 	// Don't set the actor info, CanActivate is called on the CDO
 

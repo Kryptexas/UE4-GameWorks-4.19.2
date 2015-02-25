@@ -1361,7 +1361,7 @@ void UAbilitySystemComponent::DisplayDebug(class UCanvas* Canvas, const class FD
 				StatusText = TEXT(" (TagBlocked)");
 				AbilityTextColor = FColor::Red;
 			}
-			else if (AbilitySpec.Ability->CanActivateAbility(AbilitySpec.Handle, AbilityActorInfo.Get(), FGameplayTagContainer(), FGameplayTagContainer()) == false)
+			else if (AbilitySpec.Ability->CanActivateAbility(AbilitySpec.Handle, AbilityActorInfo.Get()) == false)
 			{
 				StatusText = TEXT(" (CantActivate)");
 				AbilityTextColor = FColor::Red;
