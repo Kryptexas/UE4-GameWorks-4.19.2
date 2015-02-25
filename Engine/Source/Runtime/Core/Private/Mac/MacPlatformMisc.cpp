@@ -211,6 +211,7 @@ static MacApplicationInfo GMacAppInfo;
 
 UpdateCachedMacMenuStateProc FMacPlatformMisc::UpdateCachedMacMenuState = nullptr;
 bool FMacPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
+id<NSObject> FMacPlatformMisc::CommandletActivity = nil;
 
 void FMacPlatformMisc::PlatformPreInit()
 {
@@ -312,6 +313,21 @@ void FMacPlatformMisc::PlatformPostInit(bool ShowSplashScreen)
 		[AppMenuItem setSubmenu:AppMenu];
 
 		UpdateWindowMenu();
+	}
+
+	if (!MacApplication)
+	{
+		// No MacApplication means that app is a dedicated server, commandline tool or the editor running a commandlet. In these cases we don't want OS X to put our app into App Nap mode.
+		CommandletActivity = [[NSProcessInfo processInfo] beginActivityWithOptions:NSActivityUserInitiated reason:IsRunningCommandlet() ? @"Running commandlet" : @"Running dedicated server"];
+	}
+}
+
+void FMacPlatformMisc::PlatformTearDown()
+{
+	if (CommandletActivity)
+	{
+		[[NSProcessInfo processInfo] endActivity:CommandletActivity];
+		CommandletActivity = nil;
 	}
 }
 

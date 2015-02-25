@@ -18,6 +18,7 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static void PlatformPreInit();
 	static void PlatformInit();
 	static void PlatformPostInit(bool ShowSplashScreen = false);
+	static void PlatformTearDown();
 	static class GenericApplication* CreateApplication();
 	static void GetEnvironmentVariable(const TCHAR* VariableName, TCHAR* Result, int32 ResultLength);
 	static void SetEnvironmentVar(const TCHAR* VariableName, const TCHAR* Value);
@@ -173,6 +174,8 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	static FString GetOperatingSystemId();
 
 	static bool bChachedMacMenuStateNeedsUpdate;
+
+	static id<NSObject> CommandletActivity;
 };
 
 #ifdef __OBJC__
