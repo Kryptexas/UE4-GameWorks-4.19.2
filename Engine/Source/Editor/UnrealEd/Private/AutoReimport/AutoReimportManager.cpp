@@ -283,8 +283,8 @@ FText FAutoReimportManager::GetProgressText() const
 	}
 
 	{
-		const int32 Total = Utils::Reduce(DirectoryMonitors, [](const FContentDirectoryMonitor& Monitor, int32 Total){
-			return Total + Monitor.GetTotalWork();
+		const int32 Total = Utils::Reduce(DirectoryMonitors, [](const FContentDirectoryMonitor& Monitor, int32 InTotal){
+			return InTotal + Monitor.GetTotalWork();
 		}, 0);
 
 		Args.Add(Total);
@@ -558,8 +558,8 @@ void FAutoReimportManager::SetUpDirectoryMonitors()
 		if (FileManager.DirectoryExists(*ThisPath.Path))
 		{
 			// Set the mounted path if necessary
-			auto* Pair = MountedPaths.FindByPredicate([&](const TPair<FString, FString>& Pair){
-				return ThisPath.Path.StartsWith(Pair.Key);
+			auto* Pair = MountedPaths.FindByPredicate([&](const TPair<FString, FString>& InPair){
+				return ThisPath.Path.StartsWith(InPair.Key);
 			});
 
 			if (Pair)

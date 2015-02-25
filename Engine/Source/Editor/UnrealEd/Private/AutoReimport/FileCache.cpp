@@ -361,12 +361,12 @@ TOptional<FUpdateCacheTransaction> FFileCache::ProcessChange(const FString& File
 				return X.Action == FFileChangeData::FCA_Removed && X.Filename == TransactionFilename;
 			});
 
-			const auto Action = NumRemoved == 0 ? FFileChangeData::FCA_Added : FFileChangeData::FCA_Modified;
+			const auto FileChangeAction = NumRemoved == 0 ? FFileChangeData::FCA_Added : FFileChangeData::FCA_Modified;
 
 			// If it's a modification (remove then add) or the file doesn't already exist in the cache, we can create a transaction
-			if (Action == FFileChangeData::FCA_Modified || !CachedDirectoryState.Files.Find(TransactionFilename))
+			if (FileChangeAction == FFileChangeData::FCA_Modified || !CachedDirectoryState.Files.Find(TransactionFilename))
 			{
-				return FUpdateCacheTransaction(TransactionFilename, Action, FileManager.GetTimeStamp(*Filename));
+				return FUpdateCacheTransaction(TransactionFilename, FileChangeAction, FileManager.GetTimeStamp(*Filename));
 			}
 		}
 		break;

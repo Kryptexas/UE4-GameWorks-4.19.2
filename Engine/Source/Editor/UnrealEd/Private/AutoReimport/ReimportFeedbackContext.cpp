@@ -137,8 +137,7 @@ class SWidgetStack : public SVerticalBox
 			const float Alpha = 1.f - SlideCurve.GetLerp();
 			float PositionSoFar = AllottedGeometry.GetLocalSize().Y + Alpha * StartSlideOffset;
 
-			int32 Index = 0;
-			for (; PositionSoFar > 0 && Index < NumSlots(); ++Index)
+			for (int32 Index = 0; PositionSoFar > 0 && Index < NumSlots(); ++Index)
 			{
 				const SBoxPanel::FSlot& CurChild = Children[Index];
 				const EVisibility ChildVisibility = CurChild.GetWidget()->GetVisibility();

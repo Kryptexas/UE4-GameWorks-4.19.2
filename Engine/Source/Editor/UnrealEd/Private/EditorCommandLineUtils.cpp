@@ -673,9 +673,9 @@ static void EditorCommandLineUtilsImpl::RunAssetMerge(FMergeAsset const& Base, F
 	// we use a lambda delegate to route the call into MergeHandler (we require 
 	// this intermediate to hold onto a MergeHandler ref, so it doesn't get 
 	// prematurely destroyed at the end of this function)
-	auto HandleEditorClose = [](TSharedRef<FMergeResolutionHandler> MergeHandler)
+	auto HandleEditorClose = [](TSharedRef<FMergeResolutionHandler> InMergeHandler)
 	{
-		MergeHandler->HandleEditorClose();
+		InMergeHandler->HandleEditorClose();
 	};	
 	// have to copy the file into the expected result file when we're done
 	FEditorDelegates::OnShutdownPostPackagesSaved.AddStatic(HandleEditorClose, MergeHandler);

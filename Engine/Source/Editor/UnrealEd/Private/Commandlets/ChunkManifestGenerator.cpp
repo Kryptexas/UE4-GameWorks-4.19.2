@@ -198,7 +198,7 @@ void FChunkManifestGenerator::Initialize(bool InGenerateChunks)
 	}
 }
 
-void FChunkManifestGenerator::AddPackageToChunkManifest(UPackage* Package, const FString& SandboxFilename, const FString& LastLoadedMapName, FSandboxPlatformFile* SandboxFile)
+void FChunkManifestGenerator::AddPackageToChunkManifest(UPackage* Package, const FString& SandboxFilename, const FString& LastLoadedMapName, FSandboxPlatformFile* InSandboxFile)
 {
 	TArray<int32> TargetChunks;
 	TArray<int32> ExistingChunkIDs;
@@ -277,10 +277,10 @@ void FChunkManifestGenerator::CleanManifestDirectories()
 	}
 }
 
-bool FChunkManifestGenerator::SaveManifests(FSandboxPlatformFile* SandboxFile)
+bool FChunkManifestGenerator::SaveManifests(FSandboxPlatformFile* InSandboxFile)
 {
 	// Always do package dependency work, is required to modify asset registry
-	FixupPackageDependenciesForChunks(SandboxFile);
+	FixupPackageDependenciesForChunks(InSandboxFile);
 
 	if (bGenerateChunks)
 	{
@@ -726,7 +726,7 @@ void FChunkManifestGenerator::NotifyPackageWasCooked(const FString& PackageSandb
 	AllCookedPackages.Add(PackageName, PackageSandboxPath);
 }
 
-void FChunkManifestGenerator::FixupPackageDependenciesForChunks(FSandboxPlatformFile* SandboxFile)
+void FChunkManifestGenerator::FixupPackageDependenciesForChunks(FSandboxPlatformFile* InSandboxFile)
 {
 	for (int32 ChunkID = 0, MaxChunk = ChunkManifests.Num(); ChunkID < MaxChunk; ++ChunkID)
 	{
@@ -738,7 +738,7 @@ void FChunkManifestGenerator::FixupPackageDependenciesForChunks(FSandboxPlatform
 		FinalChunkManifests[ChunkID] = new FChunkPackageSet();
 		for (auto It = ChunkManifests[ChunkID]->CreateConstIterator(); It; ++It)
 		{
-			AddPackageAndDependenciesToChunk(FinalChunkManifests[ChunkID], It.Key(), It.Value(), ChunkID, SandboxFile);
+			AddPackageAndDependenciesToChunk(FinalChunkManifests[ChunkID], It.Key(), It.Value(), ChunkID, InSandboxFile);
 		}
 	}
 
@@ -755,7 +755,7 @@ void FChunkManifestGenerator::FixupPackageDependenciesForChunks(FSandboxPlatform
 	auto RemainingAssets = UnassignedPackageSet;
 	for (auto It = RemainingAssets.CreateConstIterator(); It; ++It)
 	{
-		AddPackageAndDependenciesToChunk(FinalChunkManifests[0], It.Key(), It.Value(), 0, SandboxFile);
+		AddPackageAndDependenciesToChunk(FinalChunkManifests[0], It.Key(), It.Value(), 0, InSandboxFile);
 	}
 
 	//Finally, if the previous step may added any extra packages to the 0 chunk. Pull them out of other chunks and save space
@@ -792,10 +792,10 @@ void FChunkManifestGenerator::FixupPackageDependenciesForChunks(FSandboxPlatform
 	}
 }
 
-void FChunkManifestGenerator::AddPackageAndDependenciesToChunk(FChunkPackageSet* ThisPackageSet, FName InPkgName, const FString& SandboxFile, int32 ChunkID, FSandboxPlatformFile* SandboxPlatformFile)
+void FChunkManifestGenerator::AddPackageAndDependenciesToChunk(FChunkPackageSet* ThisPackageSet, FName InPkgName, const FString& InSandboxFile, int32 ChunkID, FSandboxPlatformFile* SandboxPlatformFile)
 {
 	//Add this asset
-	ThisPackageSet->Add(InPkgName, SandboxFile);
+	ThisPackageSet->Add(InPkgName, InSandboxFile);
 
 	//Only gather dependencies if we're chunking
 	if (!bGenerateChunks)

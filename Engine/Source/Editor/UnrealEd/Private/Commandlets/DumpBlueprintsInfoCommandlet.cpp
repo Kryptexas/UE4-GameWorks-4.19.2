@@ -1187,20 +1187,22 @@ static bool DumpBlueprintInfoUtils::DumpActionDatabaseInfo(uint32 Indent, FArchi
 			}
 		}
 
-		int32 SpawnerCount = 0;
-		for (TObjectIterator<UBlueprintNodeSpawner> NodeSpawnerIt; NodeSpawnerIt; ++NodeSpawnerIt)
-		{
-			++SpawnerCount;
-			// @TODO: doesn't account for any allocated memory (for delegates, text strings, etc.)
-			EstimatedSystemSize += sizeof(**NodeSpawnerIt);
-		}
-
 		FString const OriginalIndent = BuildIndentString(Indent);
 		FString const IndentedNewline = "\n" + BuildIndentString(Indent + 1);
 
-		FString DatabaseInfoHeading = FString::Printf(TEXT("%s\"ActionDatabaseInfo\" : {%s\"TotalNodeSpawnerCount\" : %d,"), 
-			*OriginalIndent, *IndentedNewline, SpawnerCount);
-		FileOutWriter->Serialize(TCHAR_TO_ANSI(*DatabaseInfoHeading), DatabaseInfoHeading.Len());
+		{
+			int32 SpawnerCount = 0;
+			for (TObjectIterator<UBlueprintNodeSpawner> NodeSpawnerIt; NodeSpawnerIt; ++NodeSpawnerIt)
+			{
+				++SpawnerCount;
+				// @TODO: doesn't account for any allocated memory (for delegates, text strings, etc.)
+				EstimatedSystemSize += sizeof(**NodeSpawnerIt);
+			}
+
+			FString DatabaseInfoHeading = FString::Printf(TEXT("%s\"ActionDatabaseInfo\" : {%s\"TotalNodeSpawnerCount\" : %d,"), 
+				*OriginalIndent, *IndentedNewline, SpawnerCount);
+			FileOutWriter->Serialize(TCHAR_TO_ANSI(*DatabaseInfoHeading), DatabaseInfoHeading.Len());
+		}
 
 		//--------------------------------------
 		// Dumping Database Stats
@@ -2449,19 +2451,19 @@ int32 UDumpBlueprintsInfoCommandlet::Main(FString const& Params)
 	// closing out the writer (and diffing the resultant file if the user deigns us to do so)
 	auto CloseFileStream = [bDiffGeneratedFile, &ActiveFilePath, &CommandOptions](FArchive** FileOutPtr)
 	{
-		FArchive*& FileOut = (*FileOutPtr);
-		if (FileOut != nullptr)
+		FArchive*& ArFileOut = (*FileOutPtr);
+		if (ArFileOut != nullptr)
 		{
-			FileOut->Serialize(TCHAR_TO_ANSI(TEXT("\n}")), 2);
-			FileOut->Close();
+			ArFileOut->Serialize(TCHAR_TO_ANSI(TEXT("\n}")), 2);
+			ArFileOut->Close();
 
 			if (bDiffGeneratedFile)
 			{
 				check(!ActiveFilePath.IsEmpty());
 				DumpBlueprintInfoUtils::DiffDumpFiles(ActiveFilePath, CommandOptions.DiffPath, CommandOptions.DiffCommand);
 			}
-			delete FileOut;
-			FileOut = nullptr;
+			delete ArFileOut;
+			ArFileOut = nullptr;
 		}
 	};
 
