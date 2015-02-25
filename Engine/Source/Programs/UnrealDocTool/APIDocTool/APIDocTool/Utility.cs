@@ -95,7 +95,7 @@ namespace APIDocTool
 				}
 				catch (IOException Ex)
 				{
-					Console.WriteLine("Failed to delete directory '{0}':\n{1}", Path, Ex);
+					Console.WriteLine("Failed to delete directory '{0}':\n{1}", Dir, Ex);
 					bResult = false;
 				}
 			}
