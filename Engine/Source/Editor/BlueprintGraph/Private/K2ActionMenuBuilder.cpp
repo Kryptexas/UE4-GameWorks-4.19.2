@@ -1581,7 +1581,9 @@ void FK2ActionMenuBuilder::GetAllActionsForClass(FBlueprintPaletteListBuilder& P
 					const FString PropertyCategory = FObjectEditorUtils::GetCategory(Property);
 
 					TSharedPtr<FEdGraphSchemaAction_K2Var> NewVarAction = TSharedPtr<FEdGraphSchemaAction_K2Var>(new FEdGraphSchemaAction_K2Var(PropertyCategory, FText::FromString(PropertyDesc), PropertyTooltip, 0));
-					NewVarAction->SetVariableInfo(Property->GetFName(), InClass);
+					const UArrayProperty* ArrayProperty = Cast<const UArrayProperty>(Property);
+					const UProperty* TestProperty = ArrayProperty ? ArrayProperty->Inner : Property;
+					NewVarAction->SetVariableInfo(Property->GetFName(), InClass, Cast<UBoolProperty>(TestProperty) != nullptr);
 
 					PaletteBuilder.AddAction(NewVarAction);
 				}

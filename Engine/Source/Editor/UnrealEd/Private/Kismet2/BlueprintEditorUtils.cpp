@@ -3966,6 +3966,7 @@ FBPVariableDescription FBlueprintEditorUtils::DuplicateVariableDescription(UBlue
 	// Now create new variable
 	FBPVariableDescription NewVar = InVariableDescription;
 	NewVar.VarName = DuplicatedVariableName;
+	NewVar.FriendlyName = FName::NameToDisplayString( NewVar.VarName.ToString(), NewVar.VarType.PinCategory == GetDefault<UEdGraphSchema_K2>()->PC_Boolean);
 	NewVar.VarGuid = FGuid::NewGuid();
 
 	return NewVar;
