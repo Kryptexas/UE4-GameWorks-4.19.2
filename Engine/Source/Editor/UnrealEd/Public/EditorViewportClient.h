@@ -578,6 +578,9 @@ public:
 	 */
 	virtual void DrawCanvas(FViewport& InViewport, FSceneView& View, FCanvas& Canvas);
 
+	// Draws a visualization of the preview light if it was recently moved
+	virtual void DrawPreviewLightVisualization(const FSceneView* View, FPrimitiveDrawInterface* PDI);
+
 	/**
 	 * Render the drag tool in the viewport
 	 */
@@ -1419,7 +1422,12 @@ protected:
 	FVector DefaultOrbitLocation;
 	FVector DefaultOrbitZoom;
 	FVector DefaultOrbitLookAt;
-	
+
+protected:
+	// Used for the display of the current preview light after it has been adjusted
+	FVector2D MovingPreviewLightSavedScreenPos;
+	float MovingPreviewLightTimer;
+
 public:
 	/* Default view mode for perspective viewports */
 	static const EViewModeIndex DefaultPerspectiveViewMode;
