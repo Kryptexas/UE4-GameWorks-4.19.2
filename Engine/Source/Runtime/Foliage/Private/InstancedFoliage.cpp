@@ -620,7 +620,11 @@ void FFoliageMeshInfo::AddInstance(AInstancedFoliageActor* InIFA, const UFoliage
 		UpdateComponentSettings(InSettings);
 
 		Component->AttachTo(InIFA->GetRootComponent());
-		Component->RegisterComponent();
+		
+		if (InIFA->GetRootComponent()->IsRegistered())
+		{
+			Component->RegisterComponent();
+		}
 
 		// Use only instance translation as a component transform
 		Component->SetWorldTransform(InIFA->GetRootComponent()->ComponentToWorld);
@@ -846,7 +850,11 @@ void FFoliageMeshInfo::ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliag
 		}
 	}
 
-	InIFA->RegisterAllComponents();
+	// Register components if foliage level is visible
+	if (InIFA->GetLevel()->bIsVisible)
+	{
+		InIFA->RegisterAllComponents();
+	}
 }
 
 void FFoliageMeshInfo::ReapplyInstancesToComponent()
