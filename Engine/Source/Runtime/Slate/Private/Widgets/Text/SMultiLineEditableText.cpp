@@ -1718,22 +1718,7 @@ void SMultiLineEditableText::OnEnter()
 {
 	if ( FSlateApplication::Get().GetModifierKeys().AreModifersDown(ModiferKeyForNewLine) )
 	{
-		if ( AnyTextSelected() )
-		{
-			// Delete selected text
-			DeleteSelectedText();
-		}
-
-		const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
-		if ( TextLayout->SplitLineAt(CursorInteractionPosition) )
-		{
-			// Adjust the cursor position to be at the beginning of the new line
-			const FTextLocation NewCursorPosition = FTextLocation(CursorInteractionPosition.GetLineIndex() + 1, 0);
-			CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
-		}
-
-		ClearSelection();
-		UpdateCursorHighlight();
+		InsertNewLineAtCursorImpl();
 	}
 	else
 	{
@@ -1877,7 +1862,7 @@ void SMultiLineEditableText::InsertTextAtCursorImpl(const FString& InString)
 		{
 			if (*Character == '\n')
 			{
-				OnEnter();
+				InsertNewLineAtCursorImpl();
 			}
 			else
 			{
@@ -1885,6 +1870,26 @@ void SMultiLineEditableText::InsertTextAtCursorImpl(const FString& InString)
 			}
 		}
 	}
+}
+
+void SMultiLineEditableText::InsertNewLineAtCursorImpl()
+{
+	if ( AnyTextSelected() )
+	{
+		// Delete selected text
+		DeleteSelectedText();
+	}
+
+	const FTextLocation CursorInteractionPosition = CursorInfo.GetCursorInteractionLocation();
+	if ( TextLayout->SplitLineAt(CursorInteractionPosition) )
+	{
+		// Adjust the cursor position to be at the beginning of the new line
+		const FTextLocation NewCursorPosition = FTextLocation(CursorInteractionPosition.GetLineIndex() + 1, 0);
+		CursorInfo.SetCursorLocationAndCalculateAlignment(TextLayout, NewCursorPosition);
+	}
+
+	ClearSelection();
+	UpdateCursorHighlight();
 }
 
 bool SMultiLineEditableText::CanExecuteUndo() const

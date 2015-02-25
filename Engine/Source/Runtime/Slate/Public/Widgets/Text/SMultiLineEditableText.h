@@ -466,6 +466,9 @@ private:
 	/** Insert the given text at the current cursor position, correctly taking into account new line characters */
 	void InsertTextAtCursorImpl(const FString& InString);
 
+	/** Insert a new-line at the current cursor position */
+	void InsertNewLineAtCursorImpl();
+
 	/**
 	 * Given a location and a Direction to offset, return a new location.
 	 *
