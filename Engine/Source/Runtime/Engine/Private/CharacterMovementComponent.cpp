@@ -673,6 +673,8 @@ void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMo
 	{
 		SetNavWalkingPhysics(true);
 		GroundMovementMode = MovementMode;
+		// Walking uses only XY velocity
+		Velocity.Z = 0.f;
 	}
 	else if (PreviousMovementMode == MOVE_NavWalking)
 	{
