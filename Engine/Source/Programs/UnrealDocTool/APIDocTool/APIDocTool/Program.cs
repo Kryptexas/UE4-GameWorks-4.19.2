@@ -41,14 +41,14 @@ namespace APIDocTool
 			}
 		}
 
-		static string FilenameForKey(string Key)
+		static string SnippetFilenameForKey(string Key)
 		{
 			return (SnippetTextDirectory + "\\" + Key.Replace(':', '-') + ".txt");
 		}
 
-		public static List<string> LoadSnippetTextForFunction(string Key)
+		public static List<string> LoadSnippetTextForSymbol(string Key)
 		{
-			string Filename = FilenameForKey(Key);
+			string Filename = SnippetFilenameForKey(Key);
 			if (!File.Exists(Filename))
 			{
 				return null;
@@ -76,7 +76,7 @@ namespace APIDocTool
 			}
 			foreach (string Key in SnippetDictionary.Keys)
 			{
-				using (StreamWriter OutStream = new StreamWriter(FilenameForKey(Key)))
+				using (StreamWriter OutStream = new StreamWriter(SnippetFilenameForKey(Key)))
 				{
 					OutStream.AutoFlush = true;
 					SnippetDictionary[Key].WriteToStream(OutStream);
