@@ -10,6 +10,16 @@
 //////////////////////////////////////////////////////////////////////////
 // FKCHandler_ActorBoundEventEntry
 
+struct FActorBoundEventHelper
+{
+	static UClass* GetSignatureClass(const UK2Node_ActorBoundEvent* Node)
+	{
+		check(Node);
+		auto EventOwnerClass = Node->EventOwner ? Node->EventOwner->GetClass() : nullptr;
+		return Node->EventSignatureClass ? Node->EventSignatureClass : EventOwnerClass;
+	}
+};
+
 class FKCHandler_ActorBoundEventEntry : public FKCHandler_EventEntry
 {
 public:
@@ -152,11 +162,17 @@ void UK2Node_ActorBoundEvent::InitializeActorBoundEventParams(AActor* InEventOwn
 
 UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegatePropertyConst() const
 {
-	return Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(EventSignatureClass, DelegatePropertyName));
+	return Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(FActorBoundEventHelper::GetSignatureClass(this), DelegatePropertyName));
 }
 
 UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegateProperty()
 {
+	auto ActualEventSignatureClass = FActorBoundEventHelper::GetSignatureClass(this);
+	if (!EventSignatureClass && ActualEventSignatureClass)
+	{
+		EventSignatureClass = ActualEventSignatureClass;
+	}
+
 	UMulticastDelegateProperty* TargetDelegateProp = Cast<UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(EventSignatureClass, DelegatePropertyName));
 
 	// If we couldn't find the target delegate, then try to find it in the property remap table
@@ -192,7 +208,7 @@ FMulticastScriptDelegate* UK2Node_ActorBoundEvent::GetTargetDelegate()
 
 bool UK2Node_ActorBoundEvent::IsUsedByAuthorityOnlyDelegate() const
 {
-	const UMulticastDelegateProperty* TargetDelegateProp = Cast<const UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>( EventSignatureClass, DelegatePropertyName ));
+	const UMulticastDelegateProperty* TargetDelegateProp = Cast<const UMulticastDelegateProperty>(FindField<UMulticastDelegateProperty>(FActorBoundEventHelper::GetSignatureClass(this), DelegatePropertyName));
 	return (TargetDelegateProp && TargetDelegateProp->HasAnyPropertyFlags(CPF_BlueprintAuthorityOnly));
 }
 
