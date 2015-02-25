@@ -474,6 +474,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_BLUEPRINT_GENERATED_CLASS_COMPONENT_TEMPLATES_PUBLIC,
 	// Split out creation method on ActorComponents to distinguish between native, instance, and simple or user construction script
 	VER_UE4_ACTOR_COMPONENT_CREATION_METHOD,
+	// K2Node_Event now uses FMemberReference for handling references
+	VER_UE4_K2NODE_EVENT_MEMBER_REFERENCE,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

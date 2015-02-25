@@ -197,36 +197,19 @@ bool UK2Node_ActorBoundEvent::IsUsedByAuthorityOnlyDelegate() const
 
 void UK2Node_ActorBoundEvent::Serialize(FArchive& Ar)
 {
-	// This deprecation warning suppression is due to the workaround. For more
-	// details read comment in K2Node_Event.h near EventSignatureName property
-	// definition.
-
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-
-	// Workaround, so fields EventSignatureName and EventSignatureClass work
-	// until ObjectVersion.h lock is lifted.
-	if (Ar.IsSaving())
-	{
-		EventSignatureName = EventReference.GetMemberName();
-		EventSignatureClass = DelegateOwnerClass;
-		Super::Super::Serialize(Ar);
-		return;
-	}
-
 	Super::Serialize(Ar);
 
 	// Fix up legacy nodes that may not yet have a delegate pin
 	if(Ar.IsLoading())
 	{
-		DelegateOwnerClass = EventSignatureClass;
-		UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
-		if(TargetDelegateProp)
+		if(Ar.UE4Ver() < VER_UE4_K2NODE_EVENT_MEMBER_REFERENCE)
 		{
+			DelegateOwnerClass = EventSignatureClass_DEPRECATED;
+			UMulticastDelegateProperty* TargetDelegateProp = GetTargetDelegateProperty();
+			check(TargetDelegateProp);
 			EventReference.SetFromField<UFunction>(TargetDelegateProp->SignatureFunction, false);
 		}
 	}
-
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 #undef LOCTEXT_NAMESPACE

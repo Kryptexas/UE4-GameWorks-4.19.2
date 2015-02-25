@@ -13,30 +13,17 @@ class UK2Node_Event : public UK2Node_EditablePinBase
 	GENERATED_UCLASS_BODY()
 	BLUEPRINTGRAPH_API static const FString DelegateOutputName;
 
-	/******************************************************************************/
-
-	/**
-	 * Properties EventSignatureName and EventSignatureClass should be deprecated.
-	 * In order to do this we need to edit ObjectVersion.h which is locked for a
-	 * while. After lock lift those properties will be deprecated and eventually
-	 * removed. Please use EventReference instead and it will be translated into
-	 * EventReference accordingly.
-	 */
-
 	/** Name of function signature that this event implements */
-	DEPRECATED(4.7, "This field is deprecated, please use EventReference instead. For details read comment above.")
 	UPROPERTY()
-	FName EventSignatureName;
+	FName EventSignatureName_DEPRECATED;
 
 	/** Class that the function signature is from. */
-	DEPRECATED(4.7, "This field is deprecated, please use EventReference instead. For details read comment above.")
 	UPROPERTY()
-	TSubclassOf<class UObject> EventSignatureClass;
+	TSubclassOf<class UObject> EventSignatureClass_DEPRECATED;
 
 	/** Reference for the function this event is linked to */
-	UPROPERTY(Transient)
+	UPROPERTY()
 	FMemberReference EventReference;
-	/******************************************************************************/
 
 	/** If true, we are actually overriding this function, not making a new event with a signature that matches */
 	UPROPERTY()

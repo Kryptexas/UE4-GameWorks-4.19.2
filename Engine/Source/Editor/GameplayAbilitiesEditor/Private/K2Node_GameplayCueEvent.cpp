@@ -19,6 +19,19 @@ UK2Node_GameplayCueEvent::UK2Node_GameplayCueEvent(const FObjectInitializer& Obj
 	EventReference.SetExternalMember(GAMEPLAYABILITIES_BlueprintCustomHandler, UGameplayCueInterface::StaticClass());
 }
 
+void UK2Node_GameplayCueEvent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if(Ar.IsLoading())
+	{
+		if(Ar.UE4Ver() < VER_UE4_K2NODE_EVENT_MEMBER_REFERENCE && EventSignatureName_DEPRECATED.IsNone() && EventSignatureClass_DEPRECATED == nullptr)
+		{
+			EventReference.SetExternalMember(GAMEPLAYABILITIES_BlueprintCustomHandler, UGameplayCueInterface::StaticClass());
+		}
+	}
+}
+
 FText UK2Node_GameplayCueEvent::GetTooltipText() const
 {
 	return LOCTEXT("GameplayCueEvent_Tooltip", "Handle GameplayCue Event");

@@ -41,28 +41,6 @@ UK2Node_Event::UK2Node_Event(const FObjectInitializer& ObjectInitializer)
 
 void UK2Node_Event::Serialize(FArchive& Ar)
 {
-	// This deprecation warning suppression is due to the workaround. For more
-	// details read comment in K2Node_Event.h near EventSignatureName property
-	// definition.
-
-	PRAGMA_DISABLE_DEPRECATION_WARNINGS
-
-	// Workaround, so fields EventSignatureName and EventSignatureClass work
-	// until ObjectVersion.h lock is lifted.
-	if (Ar.IsSaving())
-	{
-		EventSignatureName = EventReference.GetMemberName();
-		EventSignatureClass = EventReference.GetMemberParentClass(this);
-	}
-
-	FName OldEventSignatureName;
-	TSubclassOf<class UObject> OldEventSignatureClass;
-	if (Ar.IsLoading())
-	{
-		OldEventSignatureName = EventSignatureName;
-		OldEventSignatureClass = EventSignatureClass;
-	}
-
 	Super::Serialize(Ar);
 
 	// Fix up legacy nodes that may not yet have a delegate pin
@@ -74,13 +52,11 @@ void UK2Node_Event::Serialize(FArchive& Ar)
 			CreatePin(EGPD_Output, K2Schema->PC_Delegate, TEXT(""), NULL, false, false, DelegateOutputName);
 		}
 
-		if (EventSignatureName != OldEventSignatureName || EventSignatureClass != OldEventSignatureClass)
+		if(Ar.UE4Ver() < VER_UE4_K2NODE_EVENT_MEMBER_REFERENCE)
 		{
-			EventReference.SetExternalMember(EventSignatureName, EventSignatureClass);
+			EventReference.SetExternalMember(EventSignatureName_DEPRECATED, EventSignatureClass_DEPRECATED);
 		}
 	}
-
-	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 FNodeHandlingFunctor* UK2Node_Event::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
