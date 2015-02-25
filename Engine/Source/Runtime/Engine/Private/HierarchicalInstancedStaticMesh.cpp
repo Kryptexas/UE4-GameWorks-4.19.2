@@ -1288,11 +1288,7 @@ FBoxSphereBounds UHierarchicalInstancedStaticMeshComponent::CalcBounds(const FTr
 		// make sure we have instances
 		PerInstanceSMData.Num() > 0 &&
 		// make sure we have an actual staticmesh
-		StaticMesh &&
-		StaticMesh->HasValidRenderData() &&
-		// You really can't use hardware instancing on the consoles with multiple elements because they share the same index buffer. 
-		// @todo: Level error or something to let LDs know this
-		1;//StaticMesh->LODModels(0).Elements.Num() == 1;
+		StaticMesh;
 
 	const TArray<FClusterNode>& ClusterTree = *ClusterTreePtr;
 
@@ -1491,15 +1487,11 @@ bool UHierarchicalInstancedStaticMeshComponent::ShouldCreatePhysicsState() const
 void UHierarchicalInstancedStaticMeshComponent::BuildTree()
 {
 	// Verify that the mesh is valid before using it.
-	const bool bMeshIsValid = 
+	const bool bMeshIsValid =
 		// make sure we have instances
 		PerInstanceSMData.Num() > 0 &&
 		// make sure we have an actual staticmesh
-		StaticMesh &&
-		StaticMesh->HasValidRenderData() &&
-		// You really can't use hardware instancing on the consoles with multiple elements because they share the same index buffer. 
-		// @todo: Level error or something to let LDs know this
-		1;//StaticMesh->LODModels(0).Elements.Num() == 1;
+		StaticMesh;
 
 	if(bMeshIsValid)
 	{
@@ -1576,15 +1568,11 @@ void UHierarchicalInstancedStaticMeshComponent::AcceptPrebuiltTree(
 	SortedInstances.Empty();
 
 	// Verify that the mesh is valid before using it.
-	const bool bMeshIsValid = 
+	const bool bMeshIsValid =
 		// make sure we have instances
 		PerInstanceSMData.Num() > 0 &&
 		// make sure we have an actual staticmesh
-		StaticMesh &&
-		StaticMesh->HasValidRenderData() &&
-		// You really can't use hardware instancing on the consoles with multiple elements because they share the same index buffer. 
-		// @todo: Level error or something to let LDs know this
-		1;//StaticMesh->LODModels(0).Elements.Num() == 1;
+		StaticMesh;
 
 	if(bMeshIsValid)
 	{
@@ -1610,15 +1598,11 @@ void UHierarchicalInstancedStaticMeshComponent::AcceptPrebuiltTree(
 void UHierarchicalInstancedStaticMeshComponent::BuildFlatTree(const TArray<int32>& LeafInstanceCounts)
 {
 	// Verify that the mesh is valid before using it.
-	const bool bMeshIsValid = 
+	const bool bMeshIsValid =
 		// make sure we have instances
 		PerInstanceSMData.Num() > 0 &&
 		// make sure we have an actual staticmesh
-		StaticMesh &&
-		StaticMesh->HasValidRenderData() &&
-		// You really can't use hardware instancing on the consoles with multiple elements because they share the same index buffer. 
-		// @todo: Level error or something to let LDs know this
-		1;//StaticMesh->LODModels(0).Elements.Num() == 1;
+		StaticMesh;
 
 	if(bMeshIsValid)
 	{
@@ -1761,11 +1745,7 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeAsync()
 		// make sure we have instances
 		PerInstanceSMData.Num() > 0 &&
 		// make sure we have an actual staticmesh
-		StaticMesh &&
-		StaticMesh->HasValidRenderData() &&
-		// You really can't use hardware instancing on the consoles with multiple elements because they share the same index buffer. 
-		// @todo: Level error or something to let LDs know this
-		1;//StaticMesh->LODModels(0).Elements.Num() == 1;
+		StaticMesh;
 
 	if (bMeshIsValid)
 	{
@@ -1808,15 +1788,12 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeAsync()
 FPrimitiveSceneProxy* UHierarchicalInstancedStaticMeshComponent::CreateSceneProxy()
 {
 	// Verify that the mesh is valid before using it.
-	const bool bMeshIsValid = 
+	const bool bMeshIsValid =
 		// make sure we have instances
 		PerInstanceSMData.Num() > 0 &&
 		// make sure we have an actual staticmesh
 		StaticMesh &&
-		StaticMesh->HasValidRenderData() &&
-		// You really can't use hardware instancing on the consoles with multiple elements because they share the same index buffer. 
-		// @todo: Level error or something to let LDs know this
-		1;//StaticMesh->LODModels(0).Elements.Num() == 1;
+		StaticMesh->HasValidRenderData();
 
 	if(bMeshIsValid)
 	{
