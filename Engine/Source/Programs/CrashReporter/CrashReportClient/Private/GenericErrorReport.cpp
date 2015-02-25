@@ -118,12 +118,6 @@ TArray<FString> FGenericErrorReport::GetFilesToUpload() const
 
 	for (const auto& Filename: ReportFilenames)
 	{
-		if (FRocketSupport::IsRocket() && Filename.EndsWith(TEXT(".log")))
-		{
-			// Temporarily side-step privacy concerns by not uploading UE4 release builds' logs
-			continue;
-		}
-
 		FilesToUpload.Push(ReportDirectory / Filename);
 	}
 	return FilesToUpload;
