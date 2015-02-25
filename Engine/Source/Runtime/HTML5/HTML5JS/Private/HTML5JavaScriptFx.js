@@ -66,8 +66,8 @@ var UE_JavaScriptLibary =
 		var _name = Pointer_stringify(name);
 		// local storage only takes strings, we need to convert string to base64 before storing.
 		var b64encoded = $.jStorage.get(_name);
-		if (typeof b64encoded == null)
-			return false;
+		if (typeof b64encoded == null || b64encoded == null)
+		    return false;
 		var decodedArray = base64DecToArr(b64encoded);
 		// copy back the decoded array.
 		var outdata = Module._malloc(decodedArray.length);
