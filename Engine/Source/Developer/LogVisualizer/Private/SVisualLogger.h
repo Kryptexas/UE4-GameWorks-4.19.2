@@ -108,4 +108,5 @@ protected:
 	mutable TSharedPtr<SVisualLoggerStatusView> StatusView;
 
 	FDelegateHandle DrawOnCanvasDelegateHandle;
+	bool bGotHistogramData;
 };
