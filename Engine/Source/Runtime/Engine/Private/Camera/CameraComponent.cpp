@@ -140,9 +140,19 @@ void UCameraComponent::RefreshVisualRepresentation()
 {
 	if (DrawFrustum != NULL)
 	{
-		DrawFrustum->FrustumAngle = (ProjectionMode == ECameraProjectionMode::Perspective) ? FieldOfView : 0.0f;
-		DrawFrustum->FrustumStartDist = 10.f;
-		DrawFrustum->FrustumEndDist = 1000.f;
+		const float FrustumDrawDistance = 1000.0f;
+		if (ProjectionMode == ECameraProjectionMode::Perspective)
+		{
+			DrawFrustum->FrustumAngle = FieldOfView;
+			DrawFrustum->FrustumStartDist = 10.f;
+			DrawFrustum->FrustumEndDist = DrawFrustum->FrustumStartDist + FrustumDrawDistance;
+		}
+		else
+		{
+			DrawFrustum->FrustumAngle = -OrthoWidth;
+			DrawFrustum->FrustumStartDist = OrthoNearClipPlane;
+			DrawFrustum->FrustumEndDist = FMath::Min(OrthoFarClipPlane - OrthoNearClipPlane, FrustumDrawDistance);
+		}
 		DrawFrustum->FrustumAspectRatio = AspectRatio;
 		DrawFrustum->MarkRenderStateDirty();
 	}
