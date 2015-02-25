@@ -299,7 +299,8 @@ void SDetailsView::SetObjects( const TArray<UObject*>& InObjects, bool bForceRef
 			ObjectWeakPtrs.Add( *ObjectIter );
 		}
 
- 		if( bForceRefresh || ShouldSetNewObjects( ObjectWeakPtrs ) )
+		// Temporary fix for UE-10298. It doesn't break API and can be used in 4.7.1. The line should restored in 4.8 
+ 		// if( bForceRefresh || ShouldSetNewObjects( ObjectWeakPtrs ) )
 		{
 			SetObjectArrayPrivate( ObjectWeakPtrs );
 		}
@@ -310,7 +311,8 @@ void SDetailsView::SetObjects( const TArray< TWeakObjectPtr< UObject > >& InObje
 {
 	if (!IsLocked() || bOverrideLock)
 	{
-		if( bForceRefresh || ShouldSetNewObjects( InObjects ) )
+		// Temporary fix for UE-10298. It doesn't break API and can be used in 4.7.1. The line should restored in 4.8 
+		// if( bForceRefresh || ShouldSetNewObjects( InObjects ) )
 		{
 			SetObjectArrayPrivate( InObjects );
 		}
