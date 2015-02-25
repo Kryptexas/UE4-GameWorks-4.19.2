@@ -618,6 +618,25 @@ float UKismetMathLibrary::Lerp(float A, float B, float V)
 	return A + V*(B-A);
 }	
 
+float UKismetMathLibrary::InverseLerp(float A, float B, float Value)
+{
+	if (FMath::IsNearlyEqual(A, B))
+	{
+		if (Value < A)
+		{
+			return 0;
+		}
+		else
+		{
+			return 1;
+		}
+	}
+	else
+	{
+		return ((Value - A) / (B - A));
+	}
+}
+
 float UKismetMathLibrary::Ease(float A, float B, float Alpha, TEnumAsByte<EEasingFunc::Type> EasingFunc, float BlendExp, int32 Steps)
 {
 	return Lerp(A, B, EaseAlpha(Alpha, EasingFunc, BlendExp, Steps));
