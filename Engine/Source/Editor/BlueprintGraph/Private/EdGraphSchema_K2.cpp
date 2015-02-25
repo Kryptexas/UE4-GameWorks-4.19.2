@@ -1294,12 +1294,6 @@ void UEdGraphSchema_K2::GetContextMenuActions(const UEdGraph* CurrentGraph, cons
 					MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().ReconstructNodes );
 					MenuBuilder->AddMenuEntry( FGraphEditorCommands::Get().BreakNodeLinks );
 
-					// tunnel nodes have option to open function editor
-					if (InGraphNode->IsA(UK2Node_Tunnel::StaticClass()))
-					{
-						MenuBuilder->AddMenuEntry(FGraphEditorCommands::Get().EditTunnel );
-					}
-
 					// Conditionally add the action to add an execution pin, if this is an execution node
 					if( InGraphNode->IsA(UK2Node_ExecutionSequence::StaticClass()) || InGraphNode->IsA(UK2Node_Switch::StaticClass()) )
 					{

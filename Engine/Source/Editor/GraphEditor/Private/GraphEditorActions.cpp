@@ -69,8 +69,6 @@ void FGraphEditorCommandsImpl::RegisterCommands()
 
 	UI_COMMAND( OpenRelatedAsset, "Open Asset", "Opens the asset related to this node", EUserInterfaceActionType::Button, FInputGesture() )
 
-	UI_COMMAND( EditTunnel, "Edit Tunnel", "Edit input and output pins for tunnel", EUserInterfaceActionType::Button, FInputGesture() )
-
 	UI_COMMAND( CreateComment, "Create Comment", "Create a comment box", EUserInterfaceActionType::Button, FInputGesture(EKeys::C))
 
 	UI_COMMAND( FindInstancesOfCustomEvent, "Find Instances of Event", "Find the instances of this custom event", EUserInterfaceActionType::Button, FInputGesture() )

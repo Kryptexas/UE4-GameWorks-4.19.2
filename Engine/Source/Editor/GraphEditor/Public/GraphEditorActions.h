@@ -99,9 +99,6 @@ public:
 	// option for opening the asset related to the graph node
 	TSharedPtr< FUICommandInfo > OpenRelatedAsset;
 
-	//open function editor
-	TSharedPtr< FUICommandInfo > EditTunnel;
-
 	//create a comment node
 	TSharedPtr< FUICommandInfo > CreateComment;
 

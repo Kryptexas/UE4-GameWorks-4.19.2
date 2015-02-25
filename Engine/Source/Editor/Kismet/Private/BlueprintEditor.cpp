@@ -1090,10 +1090,6 @@ TSharedRef<SGraphEditor> FBlueprintEditor::CreateGraphEditorWidget(TSharedRef<FT
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnOpenRelatedAsset )
 				);
 
-			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().EditTunnel,
-				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnEditTunnel )
-				);
-
 			GraphEditorCommands->MapAction( FGraphEditorCommands::Get().CreateComment,
 				FExecuteAction::CreateSP( this, &FBlueprintEditor::OnCreateComment )
 				);
@@ -6997,19 +6993,6 @@ bool FBlueprintEditor::CanRecompileModules()
 {
 	// We're not able to recompile if a compile is already in progress!
 	return !IHotReloadModule::Get().IsCurrentlyCompiling();
-}
-
-void FBlueprintEditor::OnEditTunnel()
-{
-	auto GraphEditor = FocusedGraphEdPtr.Pin();
-	if (GraphEditor.IsValid())
-	{
-		TSharedPtr<SWidget> TitleBar = GraphEditor->GetTitleBar();
-		if (TitleBar.IsValid())
-		{
-			StaticCastSharedPtr<SGraphTitleBar>(TitleBar)->BeginEditing();
-		}
-	}
 }
 
 void FBlueprintEditor::OnCreateComment()
