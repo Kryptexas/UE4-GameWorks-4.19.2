@@ -100,23 +100,11 @@ void FDynamicResourceMap::ReleaseResources()
 		BeginReleaseResource(It.Value()->RHIRefTexture);
 	}
 	
-	for (TMap<UObject*, TSharedPtr<FSlateUTextureResource> >::TIterator It(UTextureResourceMap); It; ++It)
+	for (TMap<TWeakObjectPtr<UTexture2D>, TSharedPtr<FSlateUTextureResource> >::TIterator It(UTextureResourceMap); It; ++It)
 	{
 		It.Value()->UpdateRenderResource(nullptr);
 	}
 
-}
-
-void FDynamicResourceMap::AddReferencedObjects(FReferenceCollector& Collector)
-{
-	for(TMap<UObject*, TSharedPtr<FSlateUTextureResource> >::TIterator It(UTextureResourceMap); It; ++It)
-	{
-		TSharedPtr<FSlateUTextureResource>& Resource = It.Value();
-		if (Resource.IsValid() && Resource->TextureObject != nullptr)
-		{
-			Collector.AddReferencedObject(Resource->TextureObject);
-		}
-	}
 }
 
 
@@ -369,9 +357,16 @@ static void LoadUObjectForBrush( const FSlateBrush& InBrush )
 		// Set the texture object to a default texture to prevent constant loading of missing textures
 		if( !TextureObject )
 		{
+			UE_LOG(LogSlate, Warning, TEXT("Error loading loading UTexture from path: %s not found"), *Path);
 			TextureObject = GEngine->DefaultTexture;
 		}
+		else
+		{
+			// We do this here because this deprecated system of loading textures will not report references and we dont want the Slate RHI resource manager to manage references
+			TextureObject->AddToRoot();
+		}
 
+		
 		Brush->SetResourceObject(TextureObject);
 
 		UE_LOG(LogSlate, Warning, TEXT("The texture:// method of loading UTextures for use in Slate is deprecated.  Please convert %s to a Brush Asset"), *Path);
