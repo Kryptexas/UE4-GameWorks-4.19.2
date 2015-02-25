@@ -32,7 +32,7 @@ EChunkProgressReportingType::Type GetChunkAvailabilityProgressType(EAssetAvailab
 }
 
 FAssetRegistry::FAssetRegistry()
-	: PathTreeRoot(TEXT(""))
+	: PathTreeRoot(FString())
 	, PreallocatedAssetDataBuffer(NULL)
 {
 	const double StartupStartTime = FPlatformTime::Seconds();
