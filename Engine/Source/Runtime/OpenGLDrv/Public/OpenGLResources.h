@@ -878,11 +878,6 @@ public:
 			Tex.Z = InSizeZ;
 			switch(InTarget)
 			{
-				case GL_TEXTURE_1D:
-				{
-					Tex.Type = SCTT_Texture1D;
-					break;
-				}
 				case GL_TEXTURE_2D:
 				case GL_TEXTURE_2D_MULTISAMPLE:
 				{
@@ -897,11 +892,6 @@ public:
 				case GL_TEXTURE_CUBE_MAP:
 				{
 					Tex.Type = SCTT_TextureCube;
-					break;
-				}
-				case GL_TEXTURE_1D_ARRAY:
-				{
-					Tex.Type = SCTT_Texture1DArray;
 					break;
 				}
 				case GL_TEXTURE_2D_ARRAY:
