@@ -66,28 +66,39 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, int32 InFrameIndex, TSharedPtr<const FUICommandList> InCommandList);
+	void Construct(const FArguments& InArgs, int32 InFrameIndex, TSharedPtr<FUICommandList> InCommandList);
 
+	// SWidget interface
 	virtual FReply OnMouseButtonDown(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
-
 	virtual FReply OnDragDetected(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent) override;
+	virtual FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
+	// End of SWidget interface
 
-	FReply OnDrop(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
-
+protected:
 	FReply KeyframeOnMouseButtonUp(const FGeometry& MyGeometry, const FPointerEvent& MouseEvent);
 
+	FText GetKeyframeAssetName() const;
 	FText GetKeyframeTooltip() const;
 
 	TSharedRef<SWidget> GenerateContextMenu();
 
 	FOptionalSize GetFrameWidth() const;
 
+	void OpenSpritePickerMenu(class FMenuBuilder& MenuBuilder);
+	void OnAssetSelected(const class FAssetData& AssetData);
+	void CloseMenu();
+	void ShowInContentBrowser();
+	void EditKeyFrame();
+
+	// Can return null
+	const struct FPaperFlipbookKeyFrame* GetKeyFrameData() const;
+
 protected:
 	int32 FrameIndex;
 	TAttribute<float> SlateUnitsPerFrame;
 	TAttribute<class UPaperFlipbook*> FlipbookBeingEdited;
 	FOnFlipbookKeyframeSelectionChanged OnSelectionChanged;
-	TSharedPtr<const FUICommandList> CommandList;
+	TSharedPtr<FUICommandList> CommandList;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -107,7 +118,7 @@ public:
 
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TSharedPtr<const FUICommandList> InCommandList);
+	void Construct(const FArguments& InArgs, TSharedPtr<FUICommandList> InCommandList);
 
 	virtual void Tick( const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime ) override
 	{
@@ -132,5 +143,5 @@ private:
 	float HandleWidth;
 
 	FOnFlipbookKeyframeSelectionChanged OnSelectionChanged;
-	TSharedPtr<const FUICommandList> CommandList;
+	TSharedPtr<FUICommandList> CommandList;
 };

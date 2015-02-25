@@ -20,7 +20,7 @@ public:
 		SLATE_EVENT(FOnFlipbookKeyframeSelectionChanged, OnSelectionChanged)
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, TSharedPtr<const FUICommandList> InCommandList);
+	void Construct(const FArguments& InArgs, TSharedPtr<FUICommandList> InCommandList);
 
 	// SWidget interface
 	virtual void OnDragEnter(const FGeometry& MyGeometry, const FDragDropEvent& DragDropEvent) override;
@@ -38,7 +38,7 @@ private:
 private:
 	TAttribute<class UPaperFlipbook*> FlipbookBeingEdited;
 	TAttribute<float> PlayTime;
-	TSharedPtr<const FUICommandList> CommandList;
+	TSharedPtr<FUICommandList> CommandList;
 	FOnFlipbookKeyframeSelectionChanged OnSelectionChanged;
 	int32 SlateUnitsPerFrame;
 };

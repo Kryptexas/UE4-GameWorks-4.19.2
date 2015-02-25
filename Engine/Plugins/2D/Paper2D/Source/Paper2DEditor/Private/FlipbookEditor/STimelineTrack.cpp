@@ -6,36 +6,66 @@
 #include "FlipbookEditorCommands.h"
 #include "SFlipbookTrackHandle.h"
 #include "AssetDragDropOp.h"
+#include "PropertyCustomizationHelpers.h"
 
 #define LOCTEXT_NAMESPACE "FlipbookEditor"
 
+//////////////////////////////////////////////////////////////////////////
+// SFlipbookKeyframeWidget
+
 TSharedRef<SWidget> SFlipbookKeyframeWidget::GenerateContextMenu()
 {
+	const FFlipbookEditorCommands& Commands = FFlipbookEditorCommands::Get();
+
 	OnSelectionChanged.ExecuteIfBound(FrameIndex);
 
 	FMenuBuilder MenuBuilder(true, CommandList);
-	MenuBuilder.BeginSection("KeyframeActions", LOCTEXT("KeyframeActionsSectionHeader", "Keyframe Actions"));
+	{
+		FNumberFormattingOptions NoCommas;
+		NoCommas.UseGrouping = false;
+		
+		const FText KeyframeSectionTitle = FText::Format(LOCTEXT("KeyframeActionsSectionHeader", "Keyframe #{0} Actions"), FText::AsNumber(FrameIndex, &NoCommas));
+		MenuBuilder.BeginSection("KeyframeActions", KeyframeSectionTitle);
 
-	// 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Cut);
-	// 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Copy);
-	// 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Paste);
-	MenuBuilder.AddMenuEntry(FGenericCommands::Get().Duplicate);
-	MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete);
+		// 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Cut);
+		// 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Copy);
+		// 		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Paste);
+		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Duplicate);
+		MenuBuilder.AddMenuEntry(FGenericCommands::Get().Delete);
 
-	MenuBuilder.AddMenuSeparator();
+		MenuBuilder.AddMenuSeparator();
 
-	MenuBuilder.AddMenuEntry(FFlipbookEditorCommands::Get().AddNewFrameBefore);
-	MenuBuilder.AddMenuEntry(FFlipbookEditorCommands::Get().AddNewFrameAfter);
+		MenuBuilder.AddMenuEntry(Commands.AddNewFrameBefore);
+		MenuBuilder.AddMenuEntry(Commands.AddNewFrameAfter);
 
-	MenuBuilder.EndSection();
+		MenuBuilder.EndSection();
+	}
 
+	CommandList->MapAction(Commands.ShowInContentBrowser, FExecuteAction::CreateSP(this, &SFlipbookKeyframeWidget::ShowInContentBrowser));
+	CommandList->MapAction(Commands.EditSpriteFrame, FExecuteAction::CreateSP(this, &SFlipbookKeyframeWidget::EditKeyFrame));
+
+	{
+		TAttribute<FText> CurrentAssetTitle = TAttribute<FText>::Create(TAttribute<FText>::FGetter::CreateSP(this, &SFlipbookKeyframeWidget::GetKeyframeAssetName));
+		MenuBuilder.BeginSection("KeyframeAssetActions", CurrentAssetTitle);
+
+		MenuBuilder.AddMenuEntry(Commands.ShowInContentBrowser);
+		MenuBuilder.AddMenuEntry(Commands.EditSpriteFrame);
+
+		MenuBuilder.AddSubMenu(
+			Commands.PickNewSpriteFrame->GetLabel(),
+			Commands.PickNewSpriteFrame->GetDescription(),
+			FNewMenuDelegate::CreateSP(this, &SFlipbookKeyframeWidget::OpenSpritePickerMenu));
+
+		MenuBuilder.EndSection();
+	}
 	return MenuBuilder.MakeWidget();
 }
 
-void SFlipbookKeyframeWidget::Construct(const FArguments& InArgs, int32 InFrameIndex, TSharedPtr<const FUICommandList> InCommandList)
+void SFlipbookKeyframeWidget::Construct(const FArguments& InArgs, int32 InFrameIndex, TSharedPtr<FUICommandList> InCommandList)
 {
 	FrameIndex = InFrameIndex;
-	CommandList = InCommandList;
+	CommandList = MakeShareable(new FUICommandList);
+	CommandList->Append(InCommandList.ToSharedRef());
 	SlateUnitsPerFrame = InArgs._SlateUnitsPerFrame;
 	FlipbookBeingEdited = InArgs._FlipbookBeingEdited;
 	OnSelectionChanged = InArgs._OnSelectionChanged;
@@ -154,19 +184,41 @@ FReply SFlipbookKeyframeWidget::KeyframeOnMouseButtonUp(const FGeometry& MyGeome
 	return FReply::Unhandled();
 }
 
-FText SFlipbookKeyframeWidget::GetKeyframeTooltip() const
+// Can return null
+const FPaperFlipbookKeyFrame* SFlipbookKeyframeWidget::GetKeyFrameData() const
 {
 	UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
 	if ((Flipbook != nullptr) && Flipbook->IsValidKeyFrameIndex(FrameIndex))
 	{
-		const FPaperFlipbookKeyFrame& KeyFrame = Flipbook->GetKeyFrameChecked(FrameIndex);
+		return &(Flipbook->GetKeyFrameChecked(FrameIndex));
+	}
 
-		FText SpriteLine = (KeyFrame.Sprite != nullptr) ? FText::FromString(KeyFrame.Sprite->GetName()) : LOCTEXT("NoSprite", "(none)");
+	return nullptr;
+}
+
+FText SFlipbookKeyframeWidget::GetKeyframeAssetName() const
+{
+	if (const FPaperFlipbookKeyFrame* KeyFrame = GetKeyFrameData())
+	{
+		const FText SpriteLine = (KeyFrame->Sprite != nullptr) ? FText::FromString(KeyFrame->Sprite->GetName()) : LOCTEXT("NoSprite", "(none)");
+		return FText::Format(LOCTEXT("KeyFrameAssetName", "Current Asset: {0}"), SpriteLine);
+	}
+	else
+	{
+		return LOCTEXT("KeyFrameAssetName_None", "Current Asset: (none)");
+	}
+}
+
+FText SFlipbookKeyframeWidget::GetKeyframeTooltip() const
+{
+	if (const FPaperFlipbookKeyFrame* KeyFrame = GetKeyFrameData())
+	{
+		const FText SpriteLine = (KeyFrame->Sprite != nullptr) ? FText::FromString(KeyFrame->Sprite->GetName()) : LOCTEXT("NoSprite", "(none)");
 
 		return FText::Format(LOCTEXT("KeyFrameTooltip", "Sprite: {0}\nIndex: {1}\nDuration: {2} frame(s)"),
 			SpriteLine,
 			FText::AsNumber(FrameIndex),
-			FText::AsNumber(KeyFrame.FrameRun));
+			FText::AsNumber(KeyFrame->FrameRun));
 	}
 	else
 	{
@@ -176,17 +228,86 @@ FText SFlipbookKeyframeWidget::GetKeyframeTooltip() const
 
 FOptionalSize SFlipbookKeyframeWidget::GetFrameWidth() const
 {
-	UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get();
-	if (Flipbook && Flipbook->IsValidKeyFrameIndex(FrameIndex))
+	if (const FPaperFlipbookKeyFrame* KeyFrame = GetKeyFrameData())
 	{
-		const FPaperFlipbookKeyFrame& KeyFrame = Flipbook->GetKeyFrameChecked(FrameIndex);
-		return FMath::Max<float>(0, KeyFrame.FrameRun * SlateUnitsPerFrame.Get() - FFlipbookUIConstants::HandleWidth);
+		return FMath::Max<float>(0, KeyFrame->FrameRun * SlateUnitsPerFrame.Get() - FFlipbookUIConstants::HandleWidth);
 	}
 	else
 	{
 		return 1;
 	}
 }
+
+void SFlipbookKeyframeWidget::OpenSpritePickerMenu(FMenuBuilder& MenuBuilder)
+{
+	const bool bAllowClear = true;
+
+	TArray<const UClass*> AllowedClasses;
+	AllowedClasses.Add(UPaperSprite::StaticClass());
+
+	FAssetData CurrentAssetData;
+	if (const FPaperFlipbookKeyFrame* KeyFrame = GetKeyFrameData())
+	{
+		CurrentAssetData = FAssetData(KeyFrame->Sprite);
+	}
+
+	TSharedRef<SWidget> AssetPickerWidget = PropertyCustomizationHelpers::MakeAssetPickerWithMenu(CurrentAssetData,
+		bAllowClear,
+		AllowedClasses,
+		PropertyCustomizationHelpers::GetNewAssetFactoriesForClasses(AllowedClasses),
+		FOnShouldFilterAsset(),
+		FOnAssetSelected::CreateSP(this, &SFlipbookKeyframeWidget::OnAssetSelected),
+		FSimpleDelegate::CreateSP(this, &SFlipbookKeyframeWidget::CloseMenu));
+
+	MenuBuilder.AddWidget(AssetPickerWidget, FText::GetEmpty(), /*bNoIndent=*/ true);
+}
+
+void SFlipbookKeyframeWidget::CloseMenu()
+{
+	FSlateApplication::Get().DismissAllMenus();
+}
+
+void SFlipbookKeyframeWidget::OnAssetSelected(const FAssetData& AssetData)
+{
+	if (UPaperFlipbook* Flipbook = FlipbookBeingEdited.Get())
+	{
+		FScopedFlipbookMutator EditLock(Flipbook);
+
+		if (EditLock.KeyFrames.IsValidIndex(FrameIndex))
+		{
+			UPaperSprite* NewSprite = Cast<UPaperSprite>(AssetData.GetAsset());
+
+			EditLock.KeyFrames[FrameIndex].Sprite = NewSprite;
+		}
+	}
+}
+
+void SFlipbookKeyframeWidget::ShowInContentBrowser()
+{
+	if (const FPaperFlipbookKeyFrame* KeyFrame = GetKeyFrameData())
+	{
+		if (KeyFrame->Sprite != nullptr)
+		{
+			TArray<UObject*> ObjectsToSync;
+			ObjectsToSync.Add(KeyFrame->Sprite);
+			GEditor->SyncBrowserToObjects(ObjectsToSync);
+		}
+	}
+}
+
+void SFlipbookKeyframeWidget::EditKeyFrame()
+{
+	if (const FPaperFlipbookKeyFrame* KeyFrame = GetKeyFrameData())
+	{
+		if (KeyFrame->Sprite != nullptr)
+		{
+			FAssetEditorManager::Get().OpenEditorForAsset(KeyFrame->Sprite);
+		}
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////
+// FFlipbookKeyFrameDragDropOp
 
 TSharedPtr<SWidget> FFlipbookKeyFrameDragDropOp::GetDefaultDecorator() const
 {
@@ -268,7 +389,10 @@ FFlipbookKeyFrameDragDropOp::FFlipbookKeyFrameDragDropOp() : Transaction(LOCTEXT
 
 }
 
-void SFlipbookTimelineTrack::Construct(const FArguments& InArgs, TSharedPtr<const FUICommandList> InCommandList)
+//////////////////////////////////////////////////////////////////////////
+// SFlipbookTimelineTrack
+
+void SFlipbookTimelineTrack::Construct(const FArguments& InArgs, TSharedPtr<FUICommandList> InCommandList)
 {
 	CommandList = InCommandList;
 	SlateUnitsPerFrame = InArgs._SlateUnitsPerFrame;

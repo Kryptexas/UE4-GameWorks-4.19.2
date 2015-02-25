@@ -33,4 +33,9 @@ public:
 	TSharedPtr<FUICommandInfo> AddNewFrame;
 	TSharedPtr<FUICommandInfo> AddNewFrameBefore;
 	TSharedPtr<FUICommandInfo> AddNewFrameAfter;
+
+	// Asset commands
+	TSharedPtr<FUICommandInfo> PickNewSpriteFrame;
+	TSharedPtr<FUICommandInfo> EditSpriteFrame;
+	TSharedPtr<FUICommandInfo> ShowInContentBrowser;
 };
