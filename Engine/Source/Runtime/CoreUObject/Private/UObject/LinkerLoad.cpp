@@ -3732,6 +3732,20 @@ UObject* ULinkerLoad::CreateImport( int32 Index )
 			}
 		}
 
+		// >>> Temporary workaround for UE-10283. It doesn't break api, it can be used in 4.7.1, it should be removed in 4.8.
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+		const bool bCheckIfOuterIsPlaceholder = (Import.XObject == nullptr) && Import.OuterIndex.IsImport();
+		const UObject* PotentialPlaceholder = bCheckIfOuterIsPlaceholder ? ImportMap[Import.OuterIndex.ToImport()].XObject : nullptr;
+		if (PotentialPlaceholder && PotentialPlaceholder->IsA<ULinkerPlaceholderClass>())
+		{
+			UE_LOG(LogLinker, Warning, TEXT("CreateImport: Object '%s' isn't imported, because its outer is a placeholder. Archive: '%s'")
+				, *Import.ObjectName.ToString()
+				, *GetArchiveName());
+		}
+		else
+#endif	// USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+		// <<< Temporary workaround for UE-10283...
+
 		if( Import.XObject == NULL )
 		{
 			EVerifyResult VerifyImportResult = VERIFY_Success;
