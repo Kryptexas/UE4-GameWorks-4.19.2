@@ -448,6 +448,11 @@ TArray<USCS_Node*> USimpleConstructionScript::GetAllNodes() const
 	return AllNodes;
 }
 
+TArray<const USCS_Node*> USimpleConstructionScript::GetAllNodesConst() const
+{
+	return TArray<const USCS_Node*>(GetAllNodes());
+}
+
 void USimpleConstructionScript::AddNode(USCS_Node* Node)
 {
 	if(!RootNodes.Contains(Node))
@@ -731,63 +736,135 @@ void USimpleConstructionScript::ValidateSceneRootNodes()
 }
 
 #if WITH_EDITOR
+void USimpleConstructionScript::GenerateListOfExistingNames(TArray<FName>& CurrentNames) const
+{
+	TArray<const USCS_Node*> ChildrenNodes = GetAllNodesConst();
+	const UBlueprintGeneratedClass* OwnerClass = Cast<const UBlueprintGeneratedClass>(GetOuter());
+	const UBlueprint* Blueprint = Cast<const UBlueprint>(OwnerClass ? OwnerClass->ClassGeneratedBy : NULL);
+	// >>> Backwards Compatibility:  VER_UE4_EDITORONLY_BLUEPRINTS
+	if (!Blueprint)
+	{
+		Blueprint = Cast<UBlueprint>(GetOuter());
+	}
+	// <<< End Backwards Compatibility
+	check(Blueprint);
+
+	TArray<UObject*> NativeCDOChildren;
+	UClass* FirstNativeClass = FBlueprintEditorUtils::FindFirstNativeClass(Blueprint->ParentClass);
+	GetObjectsWithOuter(FirstNativeClass->GetDefaultObject(), NativeCDOChildren, false);
+
+	for (UObject* NativeCDOChild : NativeCDOChildren)
+	{
+		CurrentNames.Add(NativeCDOChild->GetFName());
+	}
+
+	if (Blueprint->SkeletonGeneratedClass)
+	{
+		// First add the class variables.
+		FBlueprintEditorUtils::GetClassVariableList(Blueprint, CurrentNames, true);
+		// Then the function names.
+		FBlueprintEditorUtils::GetFunctionNameList(Blueprint, CurrentNames);
+	}
+
+	// And add their names
+	for (int32 NodeIndex = 0; NodeIndex < ChildrenNodes.Num(); ++NodeIndex)
+	{
+		const USCS_Node* ChildNode = ChildrenNodes[NodeIndex];
+		if (ChildNode)
+		{
+			if (ChildNode->VariableName != NAME_None)
+			{
+				CurrentNames.Add(ChildNode->VariableName);
+			}
+		}
+	}
+
+	if (GetDefaultSceneRootNode())
+	{
+		CurrentNames.AddUnique(GetDefaultSceneRootNode()->GetVariableName());
+	}
+}
+
+FName USimpleConstructionScript::GenerateNewComponentName(const UClass* ComponentClass, FName DesiredName ) const
+{
+	TArray<FName> CurrentNames;
+	GenerateListOfExistingNames(CurrentNames);
+
+	FName NewName;
+	if (ComponentClass)
+	{
+		if (DesiredName != NAME_None && !CurrentNames.Contains(DesiredName))
+		{
+			NewName = DesiredName;
+		}
+		else
+		{
+			FString ComponentName;
+			if (DesiredName != NAME_None)
+			{
+				ComponentName = DesiredName.ToString();
+			}
+			else
+			{
+				ComponentName = ComponentClass->GetName();
+
+				if (!ComponentClass->HasAnyClassFlags(CLASS_CompiledFromBlueprint))
+				{
+					ComponentName.RemoveFromEnd(TEXT("Component"));
+				}
+				else
+				{
+					ComponentName.RemoveFromEnd("_C");
+				}
+			}
+
+			NewName = *ComponentName;
+			int32 Counter = 1;
+			while (CurrentNames.Contains(NewName))
+			{
+				NewName = FName(*(FString::Printf(TEXT("%s%d"), *ComponentName, Counter++)));
+			}
+		}
+	}
+	return NewName;
+}
+
+USCS_Node* USimpleConstructionScript::CreateNodeImpl(UActorComponent* NewComponentTemplate, FName ComponentVariableName)
+{
+	auto NewNode = NewObject<USCS_Node>(this, MakeUniqueObjectName(this, USCS_Node::StaticClass()));
+	NewNode->SetFlags(RF_Transactional);
+	NewNode->ComponentTemplate = NewComponentTemplate;
+
+	// Now create a name for the new component.
+	NewNode->VariableName = GenerateNewComponentName(NewComponentTemplate->GetClass(), ComponentVariableName);
+
+	// Note: This should match up with UEdGraphSchema_K2::VR_DefaultCategory
+	NewNode->CategoryName = TEXT("Default");
+	NewNode->VariableGuid = FGuid::NewGuid();
+	return NewNode;
+}
 
 USCS_Node* USimpleConstructionScript::CreateNode(UClass* NewComponentClass, FName NewComponentVariableName)
 {
 	UBlueprint* Blueprint = GetBlueprint();
-	check(Blueprint != NULL);
-
-	// Ensure that the given class is of type UActorComponent
+	check(Blueprint);
 	check(NewComponentClass->IsChildOf(UActorComponent::StaticClass()));
+	ensure(Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass));
 
-	ensure(NULL != Cast<UBlueprintGeneratedClass>(Blueprint->GeneratedClass));
-
-	FName NewComponentName(NAME_None);
-	if (NewComponentClass->ClassGeneratedBy != nullptr)
-	{
-		const FString NewClassName = FBlueprintEditorUtils::GetClassNameWithoutSuffix(NewComponentClass);
-		NewComponentName = MakeUniqueObjectName(Blueprint->GeneratedClass, NewComponentClass, FName(*NewClassName));
-	}
-
-	auto NewComponentTemplate = NewObject<UActorComponent>(Blueprint->GeneratedClass, NewComponentClass, NewComponentName);
+	auto NewComponentTemplate = NewObject<UActorComponent>(Blueprint->GeneratedClass, NewComponentClass, *(FGuid::NewGuid().ToString()) /*NewComponentName*/);
 	NewComponentTemplate->SetFlags(RF_ArchetypeObject|RF_Transactional|RF_Public);
 
-	return CreateNode(NewComponentTemplate, NewComponentVariableName);
+	return CreateNodeImpl(NewComponentTemplate, NewComponentVariableName);
 }
 
-USCS_Node* USimpleConstructionScript::CreateNode(UActorComponent* NewComponentTemplate, FName NewComponentVariableName)
+USCS_Node* USimpleConstructionScript::CreateNodeAndRenameComponent(UActorComponent* NewComponentTemplate)
 {
-	if(NewComponentTemplate)
-	{
-		// Create a node for the script, and save a pointer to the template
-		// NewNamedObject to work around the fact we shouldn't use NewObject for default subobjects
-		auto NewNode = NewObject<USCS_Node>(this, MakeUniqueObjectName(this, USCS_Node::StaticClass()));
-		NewNode->SetFlags(RF_Transactional);
-		NewNode->ComponentTemplate = NewComponentTemplate;
+	check(NewComponentTemplate);
 
-		// Get a list of names currently in use.
-		TArray<FName> CurrentNames;
-		NewNode->GenerateListOfExistingNames( CurrentNames );
+	// Relocate the instance from the transient package to the BPGC and assign it a unique object name
+	NewComponentTemplate->Rename(*(FGuid::NewGuid().ToString()), GetBlueprint()->GeneratedClass, REN_DontCreateRedirectors | REN_DoNotDirty);
 
-		if (NewComponentVariableName.ToString().EndsWith(TEXT("_C")))
-		{
-			const FString NameAsString = NewComponentVariableName.ToString();
-			const int32 NewStrLen = NameAsString.Len() - 2;
-			NewComponentVariableName = FName(*NameAsString.Left(NewStrLen));
-		}
-
-		// Now create a name for the new component.
-		NewNode->VariableName = NewNode->GenerateNewComponentName( CurrentNames, NewComponentVariableName );
-
-		// Note: This should match up with UEdGraphSchema_K2::VR_DefaultCategory
-		NewNode->CategoryName = TEXT("Default");
-
-		NewNode->VariableGuid = FGuid::NewGuid();
-
-		return NewNode;
-	}
-
-	return NULL;
+	return CreateNodeImpl(NewComponentTemplate, NAME_None);
 }
 
 void USimpleConstructionScript::ValidateNodeVariableNames(FCompilerResultsLog& MessageLog)
@@ -822,12 +899,8 @@ void USimpleConstructionScript::ValidateNodeVariableNames(FCompilerResultsLog& M
 			{
 				FName OldName = Node->VariableName;
 
-				// Get a list of names currently in use.
-				TArray<FName> CurrentNames;
-				Node->GenerateListOfExistingNames( CurrentNames );
-
 				// Generate a new default variable name for the component.
-				Node->VariableName = Node->GenerateNewComponentName( CurrentNames );
+				Node->VariableName = GenerateNewComponentName(Node->ComponentTemplate->GetClass());
 				Node->bVariableNameAutoGenerated_DEPRECATED = false;
 
 				if( OldName != NAME_None )

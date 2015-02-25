@@ -40,6 +40,9 @@ class USimpleConstructionScript : public UObject
 	/** Return all nodes in tree as a flat list */
 	ENGINE_API TArray<USCS_Node*> GetAllNodes() const;
 
+	/** Return immutable references to nodes in tree as a flat list */
+	ENGINE_API TArray<const USCS_Node*> GetAllNodesConst() const;
+
 	/** Provides read-only access to the root node set */
 	const ENGINE_API TArray<USCS_Node*>& GetRootNodes() const { return RootNodes; }
 
@@ -87,12 +90,21 @@ private:
 	TArray<USCS_Node*> ActorComponentNodes_DEPRECATED;
 
 #if WITH_EDITOR
+	/** Helper function for generating list of currently used names */
+	void GenerateListOfExistingNames(TArray<FName>& CurrentNames) const;
+
+	/** Helper function for generating a name for a new node, DesiredName can be used to optionally request a name, ComponentClass is mandatory */
+	FName GenerateNewComponentName(const UClass* ComponentClass, FName DesiredName = NAME_None) const;
+
+	/** Helper function to perform actions that all node creation functions have in common */
+	USCS_Node* CreateNodeImpl(UActorComponent* NewComponentTemplate, FName ComponentVariableName);
+
 public:
 	/** Creates a new SCS node using the given class to create the component template */
 	ENGINE_API USCS_Node* CreateNode(class UClass* NewComponentClass, FName NewComponentVariableName = NAME_None);
 
 	/** Creates a new SCS node using the given component template instance */
-	ENGINE_API USCS_Node* CreateNode(UActorComponent* NewComponentTemplate, FName NewComponentVariableName = NAME_None);
+	ENGINE_API USCS_Node* CreateNodeAndRenameComponent(UActorComponent* ExistingTemplate);
 
 	/** Ensures that all nodes in the SCS have valid names for compilation/replication */
 	ENGINE_API void ValidateNodeVariableNames(class FCompilerResultsLog& MessageLog);

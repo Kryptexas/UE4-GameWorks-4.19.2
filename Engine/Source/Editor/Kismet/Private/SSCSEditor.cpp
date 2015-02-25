@@ -4711,11 +4711,8 @@ void SSCSEditor::PasteNodes()
 			UActorComponent* NewActorComponent = NewObjectIt->Value;
 			check(NewActorComponent);
 
-			// Relocate the instance from the transient package to the BPGC and assign it a unique object name
-			NewActorComponent->Rename(NULL, Blueprint->GeneratedClass, REN_DontCreateRedirectors | REN_DoNotDirty);
-
 			// Create a new SCS node to contain the new component and add it to the tree
-			NewActorComponent = AddNewNode(Blueprint->SimpleConstructionScript->CreateNode(NewActorComponent), NULL, false, false);
+			NewActorComponent = AddNewNode(Blueprint->SimpleConstructionScript->CreateNodeAndRenameComponent(NewActorComponent), NULL, false, false);
 
 			if (NewActorComponent)
 			{
