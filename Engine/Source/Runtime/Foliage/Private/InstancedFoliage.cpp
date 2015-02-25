@@ -821,12 +821,9 @@ void FFoliageMeshInfo::RemoveFromBaseHash(int32 InstanceIndex)
 // Destroy existing clusters and reassign all instances to new clusters
 void FFoliageMeshInfo::ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliageType* InSettings)
 {
-	// Detach all components
-
-	InIFA->UnregisterAllComponents();
-
 	if (Component != nullptr)
 	{
+		Component->UnregisterComponent();
 		Component->bAutoRegister = false;
 		Component = nullptr;
 	}
@@ -848,12 +845,6 @@ void FFoliageMeshInfo::ReallocateClusters(AInstancedFoliageActor* InIFA, UFoliag
 		{
 			AddInstance(InIFA, InSettings, Instance);
 		}
-	}
-
-	// Register components if foliage level is visible
-	if (InIFA->GetLevel()->bIsVisible)
-	{
-		InIFA->RegisterAllComponents();
 	}
 }
 
