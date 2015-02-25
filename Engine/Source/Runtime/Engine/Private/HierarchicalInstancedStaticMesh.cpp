@@ -1369,7 +1369,7 @@ UHierarchicalInstancedStaticMeshComponent::~UHierarchicalInstancedStaticMeshComp
 	if (ProxySize)
 	{
 		DEC_DWORD_STAT_BY(STAT_FoliageInstanceBuffers, ProxySize);
-	}
+}
 	ProxySize = 0;
 }
 
@@ -1384,6 +1384,17 @@ void UHierarchicalInstancedStaticMeshComponent::Serialize(FArchive& Ar)
 	}
 	TArray<FClusterNode>& ClusterTree = *ClusterTreePtr;
 	ClusterTree.BulkSerialize(Ar);
+}
+
+void UHierarchicalInstancedStaticMeshComponent::PostLoad()
+{
+	Super::PostLoad();
+
+	// For some reason we don't have a tree. Build one now!
+	if (PerInstanceSMData.Num() > 0 && ClusterTreePtr.IsValid() && ClusterTreePtr->Num() == 0 && !IsAsyncBuilding())
+	{
+		BuildTreeAsync();
+	}
 }
 
 SIZE_T UHierarchicalInstancedStaticMeshComponent::GetResourceSize( EResourceSizeMode::Type Mode )
@@ -1473,7 +1484,7 @@ bool UHierarchicalInstancedStaticMeshComponent::UpdateInstanceTransform(int32 In
 
 	if (StaticMesh)
 	{
-		UnbuiltInstanceBounds += StaticMesh->GetBounds().GetBox().TransformBy(NewInstanceTransform);
+	UnbuiltInstanceBounds += StaticMesh->GetBounds().GetBox().TransformBy(NewInstanceTransform);
 	}
 
 	if (!IsAsyncBuilding())
