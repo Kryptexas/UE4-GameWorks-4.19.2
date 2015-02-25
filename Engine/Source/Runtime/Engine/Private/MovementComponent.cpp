@@ -310,7 +310,7 @@ bool UMovementComponent::OverlapTest(const FVector& Location, const FQuat& Rotat
 	FCollisionQueryParams QueryParams(NAME_TestOverlap, false, IgnoreActor);
 	FCollisionResponseParams ResponseParam;
 	InitCollisionParams(QueryParams, ResponseParam);
-	return GetWorld()->OverlapBlockingTest(Location, RotationQuat, CollisionChannel, CollisionShape, QueryParams, ResponseParam);
+	return GetWorld()->OverlapBlockingTestByChannel(Location, RotationQuat, CollisionChannel, CollisionShape, QueryParams, ResponseParam);
 }
 
 bool UMovementComponent::IsExceedingMaxSpeed(float MaxSpeed) const

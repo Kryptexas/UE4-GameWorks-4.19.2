@@ -77,7 +77,7 @@ bool USoundBase::IsAudible( const FVector &SourceLocation, const FVector &Listen
 			static FName NAME_IsAudible(TEXT("IsAudible"));
 
 			// simple trace occlusion check - reduce max audible distance if occluded
-			bIsOccluded = SourceActor->GetWorld()->LineTraceTest(ModifiedSourceLocation, ListenerLocation, ECC_Visibility, FCollisionQueryParams(NAME_IsAudible, true, SourceActor));
+			bIsOccluded = SourceActor->GetWorld()->LineTraceTestByChannel(ModifiedSourceLocation, ListenerLocation, ECC_Visibility, FCollisionQueryParams(NAME_IsAudible, true, SourceActor));
 		}
 		return true;
 	}

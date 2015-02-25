@@ -540,7 +540,7 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 			BoxParams.AddIgnoredActor(OutVT.Target);
 			FHitResult Result;
 
-			GetWorld()->SweepSingle(Result, Loc, Pos, FQuat::Identity, ECC_Camera, FCollisionShape::MakeBox(FVector(12.f)), BoxParams);
+			GetWorld()->SweepSingleByChannel(Result, Loc, Pos, FQuat::Identity, ECC_Camera, FCollisionShape::MakeBox(FVector(12.f)), BoxParams);
 			OutVT.POV.Location = !Result.bBlockingHit ? Pos : Result.Location;
 			OutVT.POV.Rotation = Rotator;
 

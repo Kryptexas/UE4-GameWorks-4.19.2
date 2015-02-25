@@ -1716,7 +1716,7 @@ void UCharacterMovementComponent::Crouch(bool bClientSimulation)
 			FCollisionQueryParams CapsuleParams(NAME_CrouchTrace, false, CharacterOwner);
 			FCollisionResponseParams ResponseParam;
 			InitCollisionParams(CapsuleParams, ResponseParam);
-			const bool bEncroached = GetWorld()->OverlapBlockingTest(CharacterOwner->GetActorLocation() - FVector(0.f,0.f,ScaledHalfHeightAdjust), FQuat::Identity,
+			const bool bEncroached = GetWorld()->OverlapBlockingTestByChannel(CharacterOwner->GetActorLocation() - FVector(0.f,0.f,ScaledHalfHeightAdjust), FQuat::Identity,
 				UpdatedComponent->GetCollisionObjectType(), GetPawnCapsuleCollisionShape(SHRINK_None), CapsuleParams, ResponseParam);
 
 			// If encroached, cancel
@@ -1792,7 +1792,7 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 		if (!bCrouchMaintainsBaseLocation)
 		{
 			// Expand in place
-			bEncroached = GetWorld()->OverlapBlockingTest(PawnLocation, FQuat::Identity, CollisionChannel, StandingCapsuleShape, CapsuleParams, ResponseParam);
+			bEncroached = GetWorld()->OverlapBlockingTestByChannel(PawnLocation, FQuat::Identity, CollisionChannel, StandingCapsuleShape, CapsuleParams, ResponseParam);
 		
 			if (bEncroached)
 			{
@@ -1808,7 +1808,7 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 
 					FHitResult Hit(1.f);
 					const FCollisionShape ShortCapsuleShape = GetPawnCapsuleCollisionShape(SHRINK_HeightCustom, ShrinkHalfHeight);
-					const bool bBlockingHit = GetWorld()->SweepSingle(Hit, PawnLocation, PawnLocation + Down, FQuat::Identity, CollisionChannel, ShortCapsuleShape, CapsuleParams);
+					const bool bBlockingHit = GetWorld()->SweepSingleByChannel(Hit, PawnLocation, PawnLocation + Down, FQuat::Identity, CollisionChannel, ShortCapsuleShape, CapsuleParams);
 					if (Hit.bStartPenetrating)
 					{
 						bEncroached = true;
@@ -1818,7 +1818,7 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 						// Compute where the base of the sweep ended up, and see if we can stand there
 						const float DistanceToBase = (Hit.Time * TraceDist) + ShortCapsuleShape.Capsule.HalfHeight;
 						const FVector NewLoc = FVector(PawnLocation.X, PawnLocation.Y, PawnLocation.Z - DistanceToBase + PawnHalfHeight + SweepInflation + MIN_FLOOR_DIST / 2.f);
-						bEncroached = GetWorld()->OverlapBlockingTest(NewLoc, FQuat::Identity, CollisionChannel, StandingCapsuleShape, CapsuleParams, ResponseParam);
+						bEncroached = GetWorld()->OverlapBlockingTestByChannel(NewLoc, FQuat::Identity, CollisionChannel, StandingCapsuleShape, CapsuleParams, ResponseParam);
 						if (!bEncroached)
 						{
 							// Intentionally not using MoveUpdatedComponent, where a horizontal plane constraint would prevent the base of the capsule from staying at the same spot.
@@ -1832,7 +1832,7 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 		{
 			// Expand while keeping base location the same.
 			FVector StandingLocation = PawnLocation + FVector(0.f, 0.f, StandingCapsuleShape.GetCapsuleHalfHeight() - CurrentCrouchedHalfHeight);
-			bEncroached = GetWorld()->OverlapBlockingTest(StandingLocation, FQuat::Identity, CollisionChannel, StandingCapsuleShape, CapsuleParams, ResponseParam);
+			bEncroached = GetWorld()->OverlapBlockingTestByChannel(StandingLocation, FQuat::Identity, CollisionChannel, StandingCapsuleShape, CapsuleParams, ResponseParam);
 
 			if (bEncroached)
 			{
@@ -1843,7 +1843,7 @@ void UCharacterMovementComponent::UnCrouch(bool bClientSimulation)
 					if (CurrentFloor.bBlockingHit && CurrentFloor.FloorDist > MinFloorDist)
 					{
 						StandingLocation.Z -= CurrentFloor.FloorDist - MinFloorDist;
-						bEncroached = GetWorld()->OverlapBlockingTest(StandingLocation, FQuat::Identity, CollisionChannel, StandingCapsuleShape, CapsuleParams, ResponseParam);
+						bEncroached = GetWorld()->OverlapBlockingTestByChannel(StandingLocation, FQuat::Identity, CollisionChannel, StandingCapsuleShape, CapsuleParams, ResponseParam);
 					}
 				}				
 			}
@@ -2892,7 +2892,7 @@ FVector UCharacterMovementComponent::FindWaterLine(FVector InWater, FVector Outo
 
 	TArray<FHitResult> Hits;
 	static const FName NAME_FindWaterLine = FName(TEXT("FindWaterLine"));
-	GetWorld()->LineTraceMulti(Hits, OutofWater, InWater, UpdatedComponent->GetCollisionObjectType(), FCollisionQueryParams(NAME_FindWaterLine, true, CharacterOwner));
+	GetWorld()->LineTraceMultiByChannel(Hits, OutofWater, InWater, UpdatedComponent->GetCollisionObjectType(), FCollisionQueryParams(NAME_FindWaterLine, true, CharacterOwner));
 
 	for( int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++ )
 	{
@@ -3235,7 +3235,7 @@ bool UCharacterMovementComponent::FindAirControlImpact(float DeltaTime, float Ad
 		const FVector CapsuleLocation = UpdatedComponent->GetComponentLocation();
 		const FCollisionShape CapsuleShape = GetPawnCapsuleCollisionShape(SHRINK_None);
 		
-		if (GetWorld()->SweepSingle(OutHitResult, CapsuleLocation, CapsuleLocation + TestWalk, FQuat::Identity, UpdatedComponent->GetCollisionObjectType(), CapsuleShape, CapsuleQuery, ResponseParam))
+		if (GetWorld()->SweepSingleByChannel(OutHitResult, CapsuleLocation, CapsuleLocation + TestWalk, FQuat::Identity, UpdatedComponent->GetCollisionObjectType(), CapsuleShape, CapsuleQuery, ResponseParam))
 		{
 			return true;
 		}
@@ -3281,13 +3281,13 @@ bool UCharacterMovementComponent::CheckLedgeDirection(const FVector& OldLocation
 	FCollisionShape CapsuleShape = GetPawnCapsuleCollisionShape(SHRINK_None);
 	const ECollisionChannel CollisionChannel = UpdatedComponent->GetCollisionObjectType();
 	FHitResult Result(1.f);
-	GetWorld()->SweepSingle(Result, OldLocation, SideDest, FQuat::Identity, CollisionChannel, CapsuleShape, CapsuleParams, ResponseParam);
+	GetWorld()->SweepSingleByChannel(Result, OldLocation, SideDest, FQuat::Identity, CollisionChannel, CapsuleShape, CapsuleParams, ResponseParam);
 
 	if ( !Result.bBlockingHit || IsWalkable(Result) )
 	{
 		if ( !Result.bBlockingHit )
 		{
-			GetWorld()->SweepSingle(Result, SideDest, SideDest + GravDir * (MaxStepHeight + LedgeCheckThreshold), FQuat::Identity, CollisionChannel, CapsuleShape, CapsuleParams, ResponseParam);
+			GetWorld()->SweepSingleByChannel(Result, SideDest, SideDest + GravDir * (MaxStepHeight + LedgeCheckThreshold), FQuat::Identity, CollisionChannel, CapsuleShape, CapsuleParams, ResponseParam);
 		}
 		if ( (Result.Time < 1.f) && IsWalkable(Result) )
 		{
@@ -3908,7 +3908,7 @@ void UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSeconds,
 			// influence navmesh generation
 			FCollisionQueryParams Params;
 			FCollisionObjectQueryParams ObjectQueryParams(FCollisionObjectQueryParams::AllStaticObjects);
-			GetWorld()->LineTraceSingle(CachedProjectedNavMeshHitResult, InOutLocation + RayCastOffset, InOutLocation - RayCastOffset, Params, ObjectQueryParams);
+			GetWorld()->LineTraceSingleByObjectType(CachedProjectedNavMeshHitResult, InOutLocation + RayCastOffset, InOutLocation - RayCastOffset, ObjectQueryParams, Params);
 
 			// discard result if we were already inside something
 			if (CachedProjectedNavMeshHitResult.bStartPenetrating)
@@ -4363,7 +4363,7 @@ bool UCharacterMovementComponent::CheckWaterJump(FVector CheckPoint, FVector& Wa
 	InitCollisionParams(CapsuleParams, ResponseParam);
 	FCollisionShape CapsuleShape = GetPawnCapsuleCollisionShape(SHRINK_None);
 	const ECollisionChannel CollisionChannel = UpdatedComponent->GetCollisionObjectType();
-	bool bHit = GetWorld()->SweepSingle( HitInfo, CharacterOwner->GetActorLocation(), CheckPoint, FQuat::Identity, CollisionChannel, CapsuleShape, CapsuleParams, ResponseParam);
+	bool bHit = GetWorld()->SweepSingleByChannel( HitInfo, CharacterOwner->GetActorLocation(), CheckPoint, FQuat::Identity, CollisionChannel, CapsuleShape, CapsuleParams, ResponseParam);
 	
 	if ( bHit && !Cast<APawn>(HitInfo.GetActor()) )
 	{
@@ -4375,7 +4375,7 @@ bool UCharacterMovementComponent::CheckWaterJump(FVector CheckPoint, FVector& Wa
 		FCollisionQueryParams LineParams(CheckWaterJumpName, true, CharacterOwner);
 		FCollisionResponseParams LineResponseParam;
 		InitCollisionParams(LineParams, LineResponseParam);
-		bHit = GetWorld()->LineTraceSingle( HitInfo, Start, CheckPoint, CollisionChannel, LineParams, LineResponseParam );
+		bHit = GetWorld()->LineTraceSingleByChannel( HitInfo, Start, CheckPoint, CollisionChannel, LineParams, LineResponseParam );
 		// if no high obstruction, or it's a valid floor, then pawn can jump out of water
 		return !bHit || IsWalkable(HitInfo);
 	}
@@ -4672,7 +4672,7 @@ void UCharacterMovementComponent::ComputeFloorDist(const FVector& CapsuleLocatio
 		QueryParams.TraceTag = FloorLineTraceName;
 
 		FHitResult Hit(1.f);
-		bBlockingHit = GetWorld()->LineTraceSingle(Hit, LineTraceStart, LineTraceStart + Down, CollisionChannel, QueryParams, ResponseParam);
+		bBlockingHit = GetWorld()->LineTraceSingleByChannel(Hit, LineTraceStart, LineTraceStart + Down, CollisionChannel, QueryParams, ResponseParam);
 
 		if (bBlockingHit)
 		{
@@ -4809,7 +4809,7 @@ bool UCharacterMovementComponent::FloorSweepTest(
 
 	if (!bUseFlatBaseForFloorChecks)
 	{
-		bBlockingHit = GetWorld()->SweepSingle(OutHit, Start, End, FQuat::Identity, TraceChannel, CollisionShape, Params, ResponseParam);
+		bBlockingHit = GetWorld()->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, TraceChannel, CollisionShape, Params, ResponseParam);
 	}
 	else
 	{
@@ -4819,13 +4819,13 @@ bool UCharacterMovementComponent::FloorSweepTest(
 		const FCollisionShape BoxShape = FCollisionShape::MakeBox(FVector(CapsuleRadius * 0.707f, CapsuleRadius * 0.707f, CapsuleHeight));
 
 		// First test with the box rotated so the corners are along the major axes (ie rotated 45 degrees).
-		bBlockingHit = GetWorld()->SweepSingle(OutHit, Start, End, FQuat(FVector(0.f, 0.f, -1.f), PI * 0.25f), TraceChannel, BoxShape, Params, ResponseParam);
+		bBlockingHit = GetWorld()->SweepSingleByChannel(OutHit, Start, End, FQuat(FVector(0.f, 0.f, -1.f), PI * 0.25f), TraceChannel, BoxShape, Params, ResponseParam);
 
 		if (!bBlockingHit)
 		{
 			// Test again with the same box, not rotated.
 			OutHit.Reset(1.f, false);			
-			bBlockingHit = GetWorld()->SweepSingle(OutHit, Start, End, FQuat::Identity, TraceChannel, BoxShape, Params, ResponseParam);
+			bBlockingHit = GetWorld()->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, TraceChannel, BoxShape, Params, ResponseParam);
 		}
 	}
 

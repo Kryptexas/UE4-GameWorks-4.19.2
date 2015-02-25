@@ -163,9 +163,9 @@ float UAISense_Sight::Update()
 							, FCollisionQueryParams(NAME_AILineOfSight, true, Listener.Listener->GetBodyActor())
 							, FCollisionObjectQueryParams(ECC_WorldStatic));*/
 						FHitResult HitResult;
-						const bool bHit = World->LineTraceSingle(HitResult, Listener.CachedLocation, TargetLocation
-							, FCollisionQueryParams(NAME_AILineOfSight, true, Listener.Listener->GetBodyActor())
-							, FCollisionObjectQueryParams(ECC_WorldStatic));
+						const bool bHit = World->LineTraceSingleByObjectType(HitResult, Listener.CachedLocation, TargetLocation
+							, FCollisionObjectQueryParams(ECC_WorldStatic)
+							, FCollisionQueryParams(NAME_AILineOfSight, true, Listener.Listener->GetBodyActor()));
 
 						++TracesCount;
 

@@ -1787,7 +1787,7 @@ FNetViewer::FNetViewer(UNetConnection* InConnection, float DeltaSeconds) :
 				World = ViewerPawn->GetWorld();
 			}
 			check( World );
-			World->LineTraceSingle(Hit, ViewLocation, Hit.Location, FCollisionQueryParams(NAME_ServerForwardView, true, ViewTarget), FCollisionObjectQueryParams(ECC_WorldStatic));
+			World->LineTraceSingleByObjectType(Hit, ViewLocation, Hit.Location, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionQueryParams(NAME_ServerForwardView, true, ViewTarget));
 			ViewLocation = Hit.Location;
 		}
 	}

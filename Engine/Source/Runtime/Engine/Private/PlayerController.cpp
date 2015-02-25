@@ -1948,7 +1948,7 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 			FVector WorldDirection;
 			SceneView->DeprojectFVector2D(ScreenPosition, WorldOrigin, WorldDirection);
 
-			return GetWorld()->LineTraceSingle(HitResult, WorldOrigin, WorldOrigin + WorldDirection * 100000.f, TraceChannel, CollisionQueryParams);
+			return GetWorld()->LineTraceSingleByChannel(HitResult, WorldOrigin, WorldOrigin + WorldDirection * 100000.f, TraceChannel, CollisionQueryParams);
 		}
 	}
 
@@ -2000,7 +2000,7 @@ bool APlayerController::GetHitResultAtScreenPosition(const FVector2D ScreenPosit
 
 			FCollisionObjectQueryParams ObjParam(ObjectTypes);
 			
-			return GetWorld()->LineTraceSingle(HitResult, WorldOrigin, WorldOrigin + WorldDirection * 100000.f, FCollisionQueryParams("ClickableTrace", bTraceComplex), ObjParam);
+			return GetWorld()->LineTraceSingleByObjectType(HitResult, WorldOrigin, WorldOrigin + WorldDirection * 100000.f, ObjParam, FCollisionQueryParams("ClickableTrace", bTraceComplex));
 		}
 	}
 

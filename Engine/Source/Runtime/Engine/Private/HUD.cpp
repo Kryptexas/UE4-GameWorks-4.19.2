@@ -330,7 +330,7 @@ void AHUD::ShowDebugInfo(float& YL, float& YPos)
 
 			FCollisionQueryParams TraceParams(NAME_None, true, PlayerOwner->PlayerCameraManager->ViewTarget.Target);
 			FHitResult Hit;
-			bool bHit = GetWorld()->LineTraceSingle(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_WorldDynamic, TraceParams);
+			bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_WorldDynamic, TraceParams);
 			if (bHit)
 			{
 				AActor* HitActor = Hit.Actor.Get();

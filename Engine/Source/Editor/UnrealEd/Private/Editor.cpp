@@ -6371,7 +6371,7 @@ void UEditorEngine::UpdatePreviewMesh()
 		static FName UpdatePreviewMeshTrace = FName(TEXT("UpdatePreviewMeshTrace"));
 		FCollisionQueryParams LineParams(UpdatePreviewMeshTrace, true);
 		LineParams.bTraceComplex = false;
-		if ( GWorld->LineTraceSingle(Hit, LineCheckStart, LineCheckEnd, LineParams, FCollisionObjectQueryParams(ECC_WorldStatic)) ) 
+		if ( GWorld->LineTraceSingleByObjectType(Hit, LineCheckStart, LineCheckEnd, FCollisionObjectQueryParams(ECC_WorldStatic), LineParams) ) 
 		{
 			// Dirty the transform so UpdateComponent will actually update the transforms. 
 			PreviewMeshComp->SetRelativeLocation(Hit.Location);

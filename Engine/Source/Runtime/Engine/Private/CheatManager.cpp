@@ -57,7 +57,7 @@ void UCheatManager::Teleport()
 	static FName NAME_TeleportTrace = FName(TEXT("TeleportTrace"));
 	FCollisionQueryParams TraceParams(NAME_TeleportTrace, true, AssociatedPawn);
 
-	bool bHit = GetWorld()->LineTraceSingle(Hit, ViewLocation, ViewLocation + 1000000.f * ViewRotation.Vector(), ECC_Pawn, TraceParams);
+	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, ViewLocation, ViewLocation + 1000000.f * ViewRotation.Vector(), ECC_Pawn, TraceParams);
 	if ( bHit )
 	{
 		Hit.Location += Hit.Normal * 4.0f;
@@ -197,7 +197,7 @@ void UCheatManager::DamageTarget(float DamageAmount)
 
 	FCollisionQueryParams TraceParams(NAME_None, true, MyPC->GetPawn());
 	FHitResult Hit;
-	bool bHit = GetWorld()->LineTraceSingle(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_Pawn, TraceParams);
+	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_Pawn, TraceParams);
 	if (bHit)
 	{
 		check(Hit.GetActor() != NULL);
@@ -223,7 +223,7 @@ void UCheatManager::DestroyTarget()
 
 	FCollisionQueryParams TraceParams(NAME_None, true, MyPC->GetPawn());
 	FHitResult Hit;
-	bool bHit = GetWorld()->LineTraceSingle(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_Pawn, TraceParams);
+	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_Pawn, TraceParams);
 	if (bHit)
 	{
 		check(Hit.GetActor() != NULL);
@@ -278,7 +278,7 @@ void UCheatManager::DestroyAllPawnsExceptTarget()
 	FCollisionQueryParams TraceParams(NAME_None, true, MyPC->GetPawn());
 	FHitResult Hit;
 	APawn* HitPawnTarget = NULL;
-	bool bHit = GetWorld()->LineTraceSingle(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_Pawn, TraceParams);
+	bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, CamRot.Vector() * 100000.f + CamLoc, ECC_Pawn, TraceParams);
 	if (bHit)
 	{
 		check(Hit.GetActor() != NULL);
@@ -713,7 +713,7 @@ void UCheatManager::TickCollisionDebug()
 			{
 				// If we get a hit, draw the capsule
 				FHitResult Result;
-				bool bHit = GetWorld()->SweepSingle(Result, ViewLoc, End, FQuat::Identity, DebugTraceChannel, FCollisionShape::MakeCapsule(DebugCapsuleRadius, DebugCapsuleHalfHeight), CapsuleParams);
+				bool bHit = GetWorld()->SweepSingleByChannel(Result, ViewLoc, End, FQuat::Identity, DebugTraceChannel, FCollisionShape::MakeCapsule(DebugCapsuleRadius, DebugCapsuleHalfHeight), CapsuleParams);
 				if(bHit)
 				{
 					AddCapsuleSweepDebugInfo(ViewLoc, End, Result.ImpactPoint, Result.Normal, Result.ImpactNormal, Result.Location, DebugCapsuleHalfHeight, DebugCapsuleRadius, false, (Result.bStartPenetrating && Result.bBlockingHit)? true: false);

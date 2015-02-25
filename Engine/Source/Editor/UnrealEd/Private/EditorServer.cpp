@@ -4595,7 +4595,7 @@ bool UEditorEngine::SnapObjectTo( FActorOrComponent Object, const bool InAlign, 
 		Params.AddIgnoredComponent( Cast<UPrimitiveComponent>(Object.Component) );
 	}
 
-	if (Object.GetWorld()->SweepSingle(Hit, StartLocation, StartLocation + Direction*WORLD_MAX, FQuat::Identity, ECC_WorldStatic, FCollisionShape::MakeBox(Extent), Params))
+	if (Object.GetWorld()->SweepSingleByChannel(Hit, StartLocation, StartLocation + Direction*WORLD_MAX, FQuat::Identity, ECC_WorldStatic, FCollisionShape::MakeBox(Extent), Params))
 	{
 		FVector NewLocation = Hit.Location - LocationOffset;
 		NewLocation.Z += KINDA_SMALL_NUMBER;	// Move the new desired location up by an error tolerance

@@ -286,7 +286,7 @@ void FActiveSound::CheckOcclusion( const FVector ListenerLocation, const FVector
 	{
 		LastOcclusionCheckTime = WorldPtr->GetTimeSeconds();
 		static FName NAME_SoundOcclusion = FName(TEXT("SoundOcclusion"));
-		const bool bNowOccluded = WorldPtr->LineTraceTest(SoundLocation, ListenerLocation, ECC_Visibility, FCollisionQueryParams(NAME_SoundOcclusion, true));
+		const bool bNowOccluded = WorldPtr->LineTraceTestByChannel(SoundLocation, ListenerLocation, ECC_Visibility, FCollisionQueryParams(NAME_SoundOcclusion, true));
 		if( bNowOccluded != bOccluded )
 		{
 			bOccluded = bNowOccluded;

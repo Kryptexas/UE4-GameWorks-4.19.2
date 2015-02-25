@@ -149,7 +149,7 @@ void ANavigationObjectBase::FindBase()
 
 		static FName NAME_NavFindBase = FName(TEXT("NavFindBase"));
 
-		GetWorld()->SweepSingle( Hit, TraceStart, TraceEnd, FQuat::Identity, FCollisionShape::MakeBox(CollisionSlice), FCollisionQueryParams(NAME_NavFindBase, false), FCollisionObjectQueryParams(ECC_WorldStatic));
+		GetWorld()->SweepSingleByObjectType( Hit, TraceStart, TraceEnd, FQuat::Identity, FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionShape::MakeBox(CollisionSlice), FCollisionQueryParams(NAME_NavFindBase, false));
 
 		// @fixme, ensure object is on the navmesh?
 // 		if( Hit.Actor != NULL )
@@ -191,7 +191,7 @@ void ANavigationObjectBase::Validate()
 		FHitResult Hit(ForceInit);
 		const FVector TraceStart = GetActorLocation();
 		const FVector TraceEnd = GetActorLocation() - FVector(0.f,0.f, 4.f * CapsuleComponent->GetScaledCapsuleHalfHeight());
-		GetWorld()->SweepSingle(Hit, TraceStart, TraceEnd, FQuat::Identity, ECC_Pawn, FCollisionShape::MakeBox(Slice), FCollisionQueryParams(NAME_None, false, this));
+		GetWorld()->SweepSingleByChannel(Hit, TraceStart, TraceEnd, FQuat::Identity, ECC_Pawn, FCollisionShape::MakeBox(Slice), FCollisionQueryParams(NAME_None, false, this));
 		if( Hit.bBlockingHit )
 		{
 			const FVector HitLocation = TraceStart + (TraceEnd - TraceStart) * Hit.Time;

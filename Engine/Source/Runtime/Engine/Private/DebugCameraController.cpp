@@ -422,7 +422,7 @@ void ADebugCameraController::SelectTargetedObject()
 
 	FHitResult Hit;
 	FCollisionQueryParams TraceParams(NAME_None, true, this);
-	bool const bHit = GetWorld()->LineTraceSingle(Hit, CamLoc, CamRot.Vector() * 5000.f * 20.f + CamLoc, ECC_Pawn, TraceParams);
+	bool const bHit = GetWorld()->LineTraceSingleByChannel(Hit, CamLoc, CamRot.Vector() * 5000.f * 20.f + CamLoc, ECC_Pawn, TraceParams);
 	if( bHit)
 	{
 		Select(Hit);

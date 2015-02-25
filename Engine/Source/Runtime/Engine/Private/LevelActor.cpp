@@ -688,7 +688,7 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 		if (Capsule)
 		{
 			FCollisionQueryParams Params(NAME_EncroachingBlockingGeometry, false, TestActor);
-			bFoundBlockingHit = OverlapMulti(Overlaps, TestLocation, FQuat::Identity, BlockingChannel, FCollisionShape::MakeCapsule(FMath::Max(Capsule->GetScaledCapsuleRadius() - Epsilon, 0.1f), FMath::Max(Capsule->GetScaledCapsuleHalfHeight() - Epsilon, 0.1f)), Params);
+			bFoundBlockingHit = OverlapMultiByChannel(Overlaps, TestLocation, FQuat::Identity, BlockingChannel, FCollisionShape::MakeCapsule(FMath::Max(Capsule->GetScaledCapsuleRadius() - Epsilon, 0.1f), FMath::Max(Capsule->GetScaledCapsuleHalfHeight() - Epsilon, 0.1f)), Params);
 		}
 		else
 		{
@@ -696,13 +696,13 @@ bool UWorld::EncroachingBlockingGeometry(AActor* TestActor, FVector TestLocation
 			if (Sphere)
 			{
 				FCollisionQueryParams Params(NAME_EncroachingBlockingGeometry, false, TestActor);
-				bFoundBlockingHit = OverlapMulti(Overlaps, TestLocation, FQuat::Identity, BlockingChannel, FCollisionShape::MakeSphere(FMath::Max(Sphere->GetScaledSphereRadius() - Epsilon, 0.1f)), Params);
+				bFoundBlockingHit = OverlapMultiByChannel(Overlaps, TestLocation, FQuat::Identity, BlockingChannel, FCollisionShape::MakeSphere(FMath::Max(Sphere->GetScaledSphereRadius() - Epsilon, 0.1f)), Params);
 			}
 			else if (PrimComp->IsRegistered())
 			{
 				// must be registered
 				FComponentQueryParams Params(NAME_EncroachingBlockingGeometry, TestActor);
-				bFoundBlockingHit = ComponentOverlapMulti(Overlaps, PrimComp, TestLocation, TestActor->GetActorRotation(), BlockingChannel, Params);
+				bFoundBlockingHit = ComponentOverlapMultiByChannel(Overlaps, PrimComp, TestLocation, TestActor->GetActorRotation(), BlockingChannel, Params);
 			}
 			else
 			{

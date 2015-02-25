@@ -272,13 +272,13 @@ void UNavLinkCustomComponent::CollectNearbyAgents(TArray<UPathFollowingComponent
 	const float DistThresholdSq = FMath::Square(BroadcastRadius * 0.25f);
 	if (LinkDistSq > DistThresholdSq)
 	{
-		GetWorld()->OverlapMulti(OverlapsL, LocationL, FQuat::Identity, BroadcastChannel, FCollisionShape::MakeSphere(BroadcastRadius), Params);
-		GetWorld()->OverlapMulti(OverlapsR, LocationR, FQuat::Identity, BroadcastChannel, FCollisionShape::MakeSphere(BroadcastRadius), Params);
+		GetWorld()->OverlapMultiByChannel(OverlapsL, LocationL, FQuat::Identity, BroadcastChannel, FCollisionShape::MakeSphere(BroadcastRadius), Params);
+		GetWorld()->OverlapMultiByChannel(OverlapsR, LocationR, FQuat::Identity, BroadcastChannel, FCollisionShape::MakeSphere(BroadcastRadius), Params);
 	}
 	else
 	{
 		const FVector MidPoint = (LocationL + LocationR) * 0.5f;
-		GetWorld()->OverlapMulti(OverlapsL, MidPoint, FQuat::Identity, BroadcastChannel, FCollisionShape::MakeSphere(BroadcastRadius), Params);
+		GetWorld()->OverlapMultiByChannel(OverlapsL, MidPoint, FQuat::Identity, BroadcastChannel, FCollisionShape::MakeSphere(BroadcastRadius), Params);
 	}
 
 	TArray<APawn*> PawnList;

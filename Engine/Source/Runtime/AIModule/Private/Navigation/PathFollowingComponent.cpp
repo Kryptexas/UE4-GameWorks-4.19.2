@@ -713,7 +713,7 @@ int32 UPathFollowingComponent::OptimizeSegmentVisibility(int32 StartIndex)
 		else
 		{
 			FHitResult Result;
-			if (GetWorld()->SweepSingle(Result, PawnLocation, AdjustedDestination, FQuat::Identity, ECC_WorldStatic, CollisionShape, CapsuleParams))
+			if (GetWorld()->SweepSingleByChannel(Result, PawnLocation, AdjustedDestination, FQuat::Identity, ECC_WorldStatic, CollisionShape, CapsuleParams))
 			{
 				break;
 			}

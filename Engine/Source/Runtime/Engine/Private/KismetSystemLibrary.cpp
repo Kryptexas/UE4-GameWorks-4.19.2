@@ -790,7 +790,7 @@ bool UKismetSystemLibrary::SphereOverlapComponents_DEPRECATED(UObject* WorldCont
 	FCollisionObjectQueryParams::InitType InitType = FCollisionObjectQueryParams::GetCollisionChannelFromOverlapFilter(Filter);
 	
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	World->OverlapMulti(Overlaps, SpherePos, FQuat::Identity, FCollisionShape::MakeSphere(SphereRadius), Params, FCollisionObjectQueryParams(InitType));
+	World->OverlapMultiByObjectType(Overlaps, SpherePos, FQuat::Identity, FCollisionObjectQueryParams(InitType), FCollisionShape::MakeSphere(SphereRadius), Params);
 	
 	for (int32 OverlapIdx=0; OverlapIdx<Overlaps.Num(); ++OverlapIdx)
 	{
@@ -837,7 +837,7 @@ bool UKismetSystemLibrary::BoxOverlapComponents_DEPRECATED(UObject* WorldContext
 	FCollisionObjectQueryParams::InitType InitType = FCollisionObjectQueryParams::GetCollisionChannelFromOverlapFilter(Filter);
 	
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	World->OverlapMulti(Overlaps, BoxPos, FQuat::Identity, FCollisionShape::MakeBox(BoxExtent), Params, FCollisionObjectQueryParams(InitType));
+	World->OverlapMultiByObjectType(Overlaps, BoxPos, FQuat::Identity, FCollisionObjectQueryParams(InitType), FCollisionShape::MakeBox(BoxExtent), Params);
 
 	for (int32 OverlapIdx=0; OverlapIdx<Overlaps.Num(); ++OverlapIdx)
 	{
@@ -883,7 +883,7 @@ bool UKismetSystemLibrary::CapsuleOverlapComponents_DEPRECATED(UObject* WorldCon
 	FCollisionObjectQueryParams::InitType InitType = FCollisionObjectQueryParams::GetCollisionChannelFromOverlapFilter(Filter);
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );	
-	World->OverlapMulti(Overlaps, CapsulePos, FQuat::Identity, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params, FCollisionObjectQueryParams(InitType));
+	World->OverlapMultiByObjectType(Overlaps, CapsulePos, FQuat::Identity, FCollisionObjectQueryParams(InitType), FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
 
 	for (int32 OverlapIdx=0; OverlapIdx<Overlaps.Num(); ++OverlapIdx)
 	{
@@ -980,7 +980,7 @@ bool UKismetSystemLibrary::SphereOverlapComponents_NEW(UObject* WorldContextObje
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 	if(World != nullptr)
 	{
-		World->OverlapMulti(Overlaps, SpherePos, FQuat::Identity, FCollisionShape::MakeSphere(SphereRadius), Params, ObjectParams);
+		World->OverlapMultiByObjectType(Overlaps, SpherePos, FQuat::Identity, ObjectParams, FCollisionShape::MakeSphere(SphereRadius), Params);
 	}
 
 	for (int32 OverlapIdx=0; OverlapIdx<Overlaps.Num(); ++OverlapIdx)
@@ -1035,7 +1035,7 @@ bool UKismetSystemLibrary::BoxOverlapComponents_NEW(UObject* WorldContextObject,
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
 	if (World != nullptr)
 	{
-		World->OverlapMulti(Overlaps, BoxPos, FQuat::Identity, FCollisionShape::MakeBox(BoxExtent), Params, ObjectParams);
+		World->OverlapMultiByObjectType(Overlaps, BoxPos, FQuat::Identity, ObjectParams, FCollisionShape::MakeBox(BoxExtent), Params);
 	}
 
 	for (int32 OverlapIdx=0; OverlapIdx<Overlaps.Num(); ++OverlapIdx)
@@ -1089,7 +1089,7 @@ bool UKismetSystemLibrary::CapsuleOverlapComponents_NEW(UObject* WorldContextObj
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );	
 	if (World != nullptr)
 	{
-		World->OverlapMulti(Overlaps, CapsulePos, FQuat::Identity, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params, ObjectParams);
+		World->OverlapMultiByObjectType(Overlaps, CapsulePos, FQuat::Identity, ObjectParams, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
 	}
 
 	for (int32 OverlapIdx=0; OverlapIdx<Overlaps.Num(); ++OverlapIdx)
@@ -1197,7 +1197,7 @@ bool UKismetSystemLibrary::LineTraceSingle_DEPRECATED(UObject* WorldContextObjec
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	bool const bHit = World->LineTraceSingle(OutHit, Start, End, TraceChannel, Params);
+	bool const bHit = World->LineTraceSingleByChannel(OutHit, Start, End, TraceChannel, Params);
 
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
@@ -1260,7 +1260,7 @@ bool UKismetSystemLibrary::LineTraceMulti_DEPRECATED(UObject* WorldContextObject
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );	
-	bool const bHit = World->LineTraceMulti(OutHits, Start, End, TraceChannel, Params);
+	bool const bHit = World->LineTraceMultiByChannel(OutHits, Start, End, TraceChannel, Params);
 
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
@@ -1364,7 +1364,7 @@ bool UKismetSystemLibrary::BoxTraceSingle(UObject* WorldContextObject, const FVe
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	bool const bHit = World ? World->SweepSingle(OutHit, Start, End, Orientation.Quaternion(), UEngineTypes::ConvertToCollisionChannel(TraceChannel), FCollisionShape::MakeBox(HalfSize), Params) : false;
+	bool const bHit = World ? World->SweepSingleByChannel(OutHit, Start, End, Orientation.Quaternion(), UEngineTypes::ConvertToCollisionChannel(TraceChannel), FCollisionShape::MakeBox(HalfSize), Params) : false;
 
 	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
 	{
@@ -1419,7 +1419,7 @@ bool UKismetSystemLibrary::BoxTraceMulti(UObject* WorldContextObject, const FVec
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	bool const bHit = World ? World->SweepMulti(OutHits, Start, End, Orientation.Quaternion(), UEngineTypes::ConvertToCollisionChannel(TraceChannel), FCollisionShape::MakeBox(HalfSize), Params) : false;
+	bool const bHit = World ? World->SweepMultiByChannel(OutHits, Start, End, Orientation.Quaternion(), UEngineTypes::ConvertToCollisionChannel(TraceChannel), FCollisionShape::MakeBox(HalfSize), Params) : false;
 
 	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
 	{
@@ -1488,7 +1488,7 @@ bool UKismetSystemLibrary::SphereTraceSingle_DEPRECATED(UObject* WorldContextObj
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	bool const bHit = World->SweepSingle(OutHit, Start, End, FQuat::Identity, TraceChannel, FCollisionShape::MakeSphere(Radius), Params);
+	bool const bHit = World->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, TraceChannel, FCollisionShape::MakeSphere(Radius), Params);
 
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
@@ -1550,7 +1550,7 @@ bool UKismetSystemLibrary::SphereTraceMulti_DEPRECATED(UObject* WorldContextObje
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	bool const bHit = World->SweepMulti(OutHits, Start, End, FQuat::Identity, TraceChannel, FCollisionShape::MakeSphere(Radius), Params);
+	bool const bHit = World->SweepMultiByChannel(OutHits, Start, End, FQuat::Identity, TraceChannel, FCollisionShape::MakeSphere(Radius), Params);
 
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
@@ -1619,7 +1619,7 @@ bool UKismetSystemLibrary::CapsuleTraceSingle_DEPRECATED(UObject* WorldContextOb
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	bool const bHit = World->SweepSingle(OutHit, Start, End, FQuat::Identity, TraceChannel, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
+	bool const bHit = World->SweepSingleByChannel(OutHit, Start, End, FQuat::Identity, TraceChannel, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
 
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
@@ -1687,7 +1687,7 @@ bool UKismetSystemLibrary::CapsuleTraceMulti_DEPRECATED(UObject* WorldContextObj
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	bool const bHit = World->SweepMulti(OutHits, Start, End, FQuat::Identity, TraceChannel, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
+	bool const bHit = World->SweepMultiByChannel(OutHits, Start, End, FQuat::Identity, TraceChannel, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
 
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
@@ -1792,7 +1792,7 @@ bool UKismetSystemLibrary::LineTraceSingleByObject_DEPRECATED(UObject* WorldCont
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	bool const bHit = World->LineTraceSingle(OutHit, Start, End, Params, ObjectParams);
+	bool const bHit = World->LineTraceSingleByObjectType(OutHit, Start, End, ObjectParams, Params);
 
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
@@ -1883,7 +1883,7 @@ bool UKismetSystemLibrary::LineTraceMultiByObject_DEPRECATED(UObject* WorldConte
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );	
-	bool const bHit = World->LineTraceMulti(OutHits, Start, End, Params, ObjectParams);
+	bool const bHit = World->LineTraceMultiByObjectType(OutHits, Start, End, ObjectParams, Params);
 
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
@@ -1985,7 +1985,7 @@ bool UKismetSystemLibrary::SphereTraceSingleByObject_DEPRECATED(UObject* WorldCo
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	bool const bHit = World->SweepSingle(OutHit, Start, End, FQuat::Identity, FCollisionShape::MakeSphere(Radius), Params, ObjectParams);
+	bool const bHit = World->SweepSingleByObjectType(OutHit, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeSphere(Radius), Params);
 
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
@@ -2075,7 +2075,7 @@ bool UKismetSystemLibrary::SphereTraceMultiByObject_DEPRECATED(UObject* WorldCon
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	bool const bHit = World->SweepMulti(OutHits, Start, End, FQuat::Identity, FCollisionShape::MakeSphere(Radius), Params, ObjectParams);
+	bool const bHit = World->SweepMultiByObjectType(OutHits, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeSphere(Radius), Params);
 
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
@@ -2165,7 +2165,7 @@ bool UKismetSystemLibrary::BoxTraceSingleForObjects(UObject* WorldContextObject,
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	bool const bHit = World ? World->SweepSingle(OutHit, Start, End, Orientation.Quaternion(), FCollisionShape::MakeBox(HalfSize), Params, ObjectParams) : false;
+	bool const bHit = World ? World->SweepSingleByObjectType(OutHit, Start, End, Orientation.Quaternion(), ObjectParams, FCollisionShape::MakeBox(HalfSize), Params) : false;
 
 	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
 	{
@@ -2248,7 +2248,7 @@ bool UKismetSystemLibrary::BoxTraceMultiForObjects(UObject* WorldContextObject, 
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	bool const bHit = World ? World->SweepMulti(OutHits, Start, End, Orientation.Quaternion(), FCollisionShape::MakeBox(HalfSize), Params, ObjectParams) : false;
+	bool const bHit = World ? World->SweepMultiByObjectType(OutHits, Start, End, Orientation.Quaternion(), ObjectParams, FCollisionShape::MakeBox(HalfSize), Params) : false;
 
 	if (DrawDebugType != EDrawDebugTrace::None && (World != nullptr))
 	{
@@ -2345,7 +2345,7 @@ bool UKismetSystemLibrary::CapsuleTraceSingleByObject_DEPRECATED(UObject* WorldC
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	bool const bHit = World->SweepSingle(OutHit, Start, End, FQuat::Identity, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params, ObjectParams);
+	bool const bHit = World->SweepSingleByObjectType(OutHit, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
 
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{
@@ -2440,7 +2440,7 @@ bool UKismetSystemLibrary::CapsuleTraceMultiByObject_DEPRECATED(UObject* WorldCo
 	}
 
 	UWorld* World = GEngine->GetWorldFromContextObject( WorldContextObject );
-	bool const bHit = World->SweepMulti(OutHits, Start, End, FQuat::Identity, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params, ObjectParams);
+	bool const bHit = World->SweepMultiByObjectType(OutHits, Start, End, FQuat::Identity, ObjectParams, FCollisionShape::MakeCapsule(Radius, HalfHeight), Params);
 
 	if (DrawDebugType != EDrawDebugTrace::None)
 	{

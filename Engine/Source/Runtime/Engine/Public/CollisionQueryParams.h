@@ -79,6 +79,9 @@ struct ENGINE_API FCollisionQueryParams
 	{
 		return FString::Printf(TEXT("[%s:%s] TraceAsync(%d), TraceComplex(%d)"), *OwnerTag.ToString(), *TraceTag.ToString(), bTraceAsyncScene, bTraceComplex );
 	}
+
+	/** static variable for default data to be used without reconstructing everytime **/
+	static FCollisionQueryParams DefaultQueryParam;
 };
 
 /** Structure when performing a collision query using a component's geometry */
@@ -93,6 +96,9 @@ struct ENGINE_API FComponentQueryParams : public FCollisionQueryParams
 	: FCollisionQueryParams(InTraceTag, false, InIgnoreActor)
 	{
 	}
+
+	/** static variable for default data to be used without reconstructing everytime **/
+	static FComponentQueryParams DefaultComponentQueryParams;
 };
 
 /** Structure that defines response container for the query. Advanced option. */

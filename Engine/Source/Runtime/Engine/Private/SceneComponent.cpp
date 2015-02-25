@@ -1488,12 +1488,12 @@ void USceneComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 				const UPrimitiveComponent* SelfAsPrimitive = Cast<UPrimitiveComponent>(this);
 				if (SelfAsPrimitive)
 				{
-					MyWorld->ComponentOverlapMulti(Hits, SelfAsPrimitive, GetComponentLocation(), GetComponentRotation(), GetCollisionObjectType(), Params);
+					MyWorld->ComponentOverlapMultiByChannel(Hits, SelfAsPrimitive, GetComponentLocation(), GetComponentRotation(), GetCollisionObjectType(), Params);
 				}
 				else
 				{
 					bOverlappedOrigin = true;
-					MyWorld->OverlapMulti(Hits, GetComponentLocation(), FQuat::Identity, GetCollisionObjectType(), FCollisionShape::MakeSphere(0.f), Params);
+					MyWorld->OverlapMultiByChannel(Hits, GetComponentLocation(), FQuat::Identity, GetCollisionObjectType(), FCollisionShape::MakeSphere(0.f), Params);
 				}				
 				
 				for (int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++)

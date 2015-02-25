@@ -112,7 +112,7 @@ bool UEnvQueryTest_Trace::RunLineTraceTo(const FVector& ItemPos, const FVector& 
 	FCollisionQueryParams TraceParams(Params);
 	TraceParams.AddIgnoredActor(ItemActor);
 
-	const bool bHit = World->LineTraceTest(ContextPos, ItemPos, Channel, TraceParams);
+	const bool bHit = World->LineTraceTestByChannel(ContextPos, ItemPos, Channel, TraceParams);
 	return bHit;
 }
 
@@ -121,7 +121,7 @@ bool UEnvQueryTest_Trace::RunLineTraceFrom(const FVector& ItemPos, const FVector
 	FCollisionQueryParams TraceParams(Params);
 	TraceParams.AddIgnoredActor(ItemActor);
 
-	const bool bHit = World->LineTraceTest(ItemPos, ContextPos, Channel, TraceParams);
+	const bool bHit = World->LineTraceTestByChannel(ItemPos, ContextPos, Channel, TraceParams);
 	return bHit;
 }
 
@@ -130,7 +130,7 @@ bool UEnvQueryTest_Trace::RunBoxTraceTo(const FVector& ItemPos, const FVector& C
 	FCollisionQueryParams TraceParams(Params);
 	TraceParams.AddIgnoredActor(ItemActor);
 
-	const bool bHit = World->SweepTest(ContextPos, ItemPos, FQuat((ItemPos - ContextPos).Rotation()), Channel, FCollisionShape::MakeBox(Extent), TraceParams);
+	const bool bHit = World->SweepTestByChannel(ContextPos, ItemPos, FQuat((ItemPos - ContextPos).Rotation()), Channel, FCollisionShape::MakeBox(Extent), TraceParams);
 	return bHit;
 }
 
@@ -139,7 +139,7 @@ bool UEnvQueryTest_Trace::RunBoxTraceFrom(const FVector& ItemPos, const FVector&
 	FCollisionQueryParams TraceParams(Params);
 	TraceParams.AddIgnoredActor(ItemActor);
 
-	const bool bHit = World->SweepTest(ItemPos, ContextPos, FQuat((ContextPos - ItemPos).Rotation()), Channel, FCollisionShape::MakeBox(Extent), TraceParams);
+	const bool bHit = World->SweepTestByChannel(ItemPos, ContextPos, FQuat((ContextPos - ItemPos).Rotation()), Channel, FCollisionShape::MakeBox(Extent), TraceParams);
 	return bHit;
 }
 
@@ -148,7 +148,7 @@ bool UEnvQueryTest_Trace::RunSphereTraceTo(const FVector& ItemPos, const FVector
 	FCollisionQueryParams TraceParams(Params);
 	TraceParams.AddIgnoredActor(ItemActor);
 
-	const bool bHit = World->SweepTest(ContextPos, ItemPos, FQuat::Identity, Channel, FCollisionShape::MakeSphere(Extent.X), TraceParams);
+	const bool bHit = World->SweepTestByChannel(ContextPos, ItemPos, FQuat::Identity, Channel, FCollisionShape::MakeSphere(Extent.X), TraceParams);
 	return bHit;
 }
 
@@ -157,7 +157,7 @@ bool UEnvQueryTest_Trace::RunSphereTraceFrom(const FVector& ItemPos, const FVect
 	FCollisionQueryParams TraceParams(Params);
 	TraceParams.AddIgnoredActor(ItemActor);
 
-	const bool bHit = World->SweepTest(ItemPos, ContextPos, FQuat::Identity, Channel, FCollisionShape::MakeSphere(Extent.X), TraceParams);
+	const bool bHit = World->SweepTestByChannel(ItemPos, ContextPos, FQuat::Identity, Channel, FCollisionShape::MakeSphere(Extent.X), TraceParams);
 	return bHit;
 }
 
@@ -166,7 +166,7 @@ bool UEnvQueryTest_Trace::RunCapsuleTraceTo(const FVector& ItemPos, const FVecto
 	FCollisionQueryParams TraceParams(Params);
 	TraceParams.AddIgnoredActor(ItemActor);
 
-	const bool bHit = World->SweepTest(ContextPos, ItemPos, FQuat::Identity, Channel, FCollisionShape::MakeCapsule(Extent.X, Extent.Z), TraceParams);
+	const bool bHit = World->SweepTestByChannel(ContextPos, ItemPos, FQuat::Identity, Channel, FCollisionShape::MakeCapsule(Extent.X, Extent.Z), TraceParams);
 	return bHit;
 }
 
@@ -175,7 +175,7 @@ bool UEnvQueryTest_Trace::RunCapsuleTraceFrom(const FVector& ItemPos, const FVec
 	FCollisionQueryParams TraceParams(Params);
 	TraceParams.AddIgnoredActor(ItemActor);
 
-	const bool bHit = World->SweepTest(ItemPos, ContextPos, FQuat::Identity, Channel, FCollisionShape::MakeCapsule(Extent.X, Extent.Z), TraceParams);
+	const bool bHit = World->SweepTestByChannel(ItemPos, ContextPos, FQuat::Identity, Channel, FCollisionShape::MakeCapsule(Extent.X, Extent.Z), TraceParams);
 	return bHit;
 }
 

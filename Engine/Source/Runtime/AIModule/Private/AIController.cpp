@@ -301,7 +301,7 @@ bool AAIController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool b
 	FCollisionQueryParams CollisionParams(NAME_LineOfSight, true, this->GetPawn());
 	CollisionParams.AddIgnoredActor(Other);
 
-	bool bHit = GetWorld()->LineTraceTest(ViewPoint, TargetLocation, ECC_Visibility, CollisionParams);
+	bool bHit = GetWorld()->LineTraceTestByChannel(ViewPoint, TargetLocation, ECC_Visibility, CollisionParams);
 	if (!bHit)
 	{
 		return true;
@@ -333,7 +333,7 @@ bool AAIController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool b
 	if (!bAlternateChecks || !bLOSflag)
 	{
 		//try viewpoint to head
-		bHit = GetWorld()->LineTraceTest(ViewPoint, OtherActorLocation + FVector(0.f, 0.f, OtherHeight), ECC_Visibility, CollisionParams);
+		bHit = GetWorld()->LineTraceTestByChannel(ViewPoint, OtherActorLocation + FVector(0.f, 0.f, OtherHeight), ECC_Visibility, CollisionParams);
 		if (!bHit)
 		{
 			return true;
@@ -376,7 +376,7 @@ bool AAIController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool b
 		{
 			if ((PointIndex != IndexMin) && (PointIndex != IndexMax))
 			{
-				bHit = GetWorld()->LineTraceTest(ViewPoint, Points[PointIndex], ECC_Visibility, CollisionParams);
+				bHit = GetWorld()->LineTraceTestByChannel(ViewPoint, Points[PointIndex], ECC_Visibility, CollisionParams);
 				if (!bHit)
 				{
 					return true;

@@ -172,7 +172,7 @@ static bool ComponentIsDamageableFrom(UPrimitiveComponent* VictimComp, FVector c
 		// tiny nudge so LineTraceSingle doesn't early out with no hits
 		TraceStart.Z += 0.01f;
 	}
-	bool const bHadBlockingHit = World->LineTraceSingle(OutHitResult, TraceStart, TraceEnd, TraceChannel, LineParams);
+	bool const bHadBlockingHit = World->LineTraceSingleByChannel(OutHitResult, TraceStart, TraceEnd, TraceChannel, LineParams);
 	//::DrawDebugLine(World, TraceStart, TraceEnd, FLinearColor::Red, true);
 
 	// If there was a blocking hit, it will be the last one
@@ -215,7 +215,7 @@ bool UGameplayStatics::ApplyRadialDamageWithFalloff(UObject* WorldContextObject,
 	// query scene to see what we hit
 	TArray<FOverlapResult> Overlaps;
 	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
-	World->OverlapMulti(Overlaps, Origin, FQuat::Identity, FCollisionShape::MakeSphere(DamageOuterRadius), SphereParams, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllDynamicObjects));
+	World->OverlapMultiByObjectType(Overlaps, Origin, FQuat::Identity, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllDynamicObjects), FCollisionShape::MakeSphere(DamageOuterRadius), SphereParams);
 
 	// collate into per-actor list of hit components
 	TMap<AActor*, TArray<FHitResult> > OverlapComponentMap;
@@ -1301,7 +1301,7 @@ bool UGameplayStatics::SuggestProjectileVelocity(UObject* WorldContextObject, FV
 
 					FCollisionQueryParams QueryParams(NAME_SuggestProjVelTrace, true);
 					QueryParams.AddIgnoredActors(ActorsToIgnore);
-					if (World->SweepTest(TraceStart, TraceEnd, FQuat::Identity, ECC_WorldDynamic, FCollisionShape::MakeSphere(CollisionRadius), QueryParams, ResponseParam))
+					if (World->SweepTestByChannel(TraceStart, TraceEnd, FQuat::Identity, ECC_WorldDynamic, FCollisionShape::MakeSphere(CollisionRadius), QueryParams, ResponseParam))
 					{
 						// hit something, failed
 						bFailedTrace = true;

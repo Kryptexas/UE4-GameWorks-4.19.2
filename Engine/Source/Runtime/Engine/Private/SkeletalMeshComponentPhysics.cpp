@@ -3073,7 +3073,7 @@ void USkeletalMeshComponent::ProcessClothCollisionWithEnvironment()
 	static FName ClothOverlapComponentsName(TEXT("ClothOverlapComponents"));
 	FCollisionQueryParams Params(ClothOverlapComponentsName, false);
 
-	GetWorld()->OverlapMulti(Overlaps, Bounds.Origin, FQuat::Identity, FCollisionShape::MakeBox(Bounds.BoxExtent), Params, ObjectParams);
+	GetWorld()->OverlapMultiByObjectType(Overlaps, Bounds.Origin, FQuat::Identity, ObjectParams, FCollisionShape::MakeBox(Bounds.BoxExtent), Params);
 
 	for (int32 OverlapIdx=0; OverlapIdx<Overlaps.Num(); ++OverlapIdx)
 	{

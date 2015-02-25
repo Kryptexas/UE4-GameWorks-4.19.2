@@ -1179,7 +1179,7 @@ void FLevelEditorActionCallbacks::GoHere_Clicked( const FVector* Point )
 				static FName FocusOnPoint = FName(TEXT("FocusOnPoint"));
 				FCollisionQueryParams LineParams(FocusOnPoint, true);
 
-				if(GCurrentLevelEditingViewportClient->GetWorld()->LineTraceSingle(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HALF_WORLD_MAX, LineParams, FCollisionObjectQueryParams(ECC_WorldStatic)))
+				if(GCurrentLevelEditingViewportClient->GetWorld()->LineTraceSingleByObjectType(HitResult, WorldOrigin, WorldOrigin + WorldDirection * HALF_WORLD_MAX, FCollisionObjectQueryParams(ECC_WorldStatic), LineParams))
 				{
 					ZoomToPoint = HitResult.ImpactPoint;
 				}

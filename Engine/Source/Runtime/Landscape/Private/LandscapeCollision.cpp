@@ -1054,7 +1054,7 @@ void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(AInstancedFol
 					UWorld* World = GetWorld();
 					check(World);
 					// Editor specific landscape heightfield uses ECC_Visibility collision channel
-					World->LineTraceMulti(Results, Start, End, FCollisionQueryParams(TraceTag, true), FCollisionObjectQueryParams(ECollisionChannel::ECC_Visibility));
+					World->LineTraceMultiByObjectType(Results, Start, End, FCollisionObjectQueryParams(ECollisionChannel::ECC_Visibility), FCollisionQueryParams(TraceTag, true));
 
 					bool bFoundHit = false;
 					for (const FHitResult& Hit : Results)

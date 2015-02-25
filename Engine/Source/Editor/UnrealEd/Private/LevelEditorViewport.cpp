@@ -1870,7 +1870,7 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 		{
 			FHitResult CheckResult(ForceInit);
 			FCollisionQueryParams BoxParams(ProcessClickTrace, false, ((HGeomPolyProxy*)HitProxy)->GeomObject->ActualBrush);
-			bool bHit = GWorld->SweepSingle(CheckResult, Click.GetOrigin(), Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX, FQuat::Identity, FCollisionShape::MakeBox(FVector(1.f)), BoxParams, FCollisionObjectQueryParams(ECC_WorldStatic));
+			bool bHit = GWorld->SweepSingleByObjectType(CheckResult, Click.GetOrigin(), Click.GetOrigin() + Click.GetDirection() * HALF_WORLD_MAX, FQuat::Identity,FCollisionObjectQueryParams(ECC_WorldStatic), FCollisionShape::MakeBox(FVector(1.f)), BoxParams);
 
 			if( bHit )
 			{

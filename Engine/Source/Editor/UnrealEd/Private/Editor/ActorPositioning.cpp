@@ -99,7 +99,7 @@ FActorPositionTraceResult FActorPositioning::TraceWorldForPosition(const UWorld&
 	}
 
 	FActorPositionTraceResult Results;
-	if ( InWorld.LineTraceMulti(Hits, RayStart, RayEnd, Param, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects)) )
+	if ( InWorld.LineTraceMultiByObjectType(Hits, RayStart, RayEnd, FCollisionObjectQueryParams(FCollisionObjectQueryParams::InitType::AllObjects), Param) )
 	{
 		{
 			// Filter out anything that should be ignored

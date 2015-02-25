@@ -172,7 +172,7 @@ bool AController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool bAl
 	FCollisionQueryParams CollisionParms(NAME_LineOfSight, true, Other);
 	CollisionParms.AddIgnoredActor(this->GetPawn());
 	FVector TargetLocation = Other->GetTargetLocation(Pawn);
-	bool bHit = GetWorld()->LineTraceTest(ViewPoint, TargetLocation, ECC_Visibility, CollisionParms);
+	bool bHit = GetWorld()->LineTraceTestByChannel(ViewPoint, TargetLocation, ECC_Visibility, CollisionParms);
 	if( !bHit )
 	{
 		return true;
@@ -198,7 +198,7 @@ bool AController::LineOfSightTo(const AActor* Other, FVector ViewPoint, bool bAl
 	Other->GetSimpleCollisionCylinder(OtherRadius, OtherHeight);
 	
 	//try viewpoint to head
-	bHit = GetWorld()->LineTraceTest(ViewPoint,  Other->GetActorLocation() + FVector(0.f,0.f,OtherHeight), ECC_Visibility, CollisionParms);
+	bHit = GetWorld()->LineTraceTestByChannel(ViewPoint,  Other->GetActorLocation() + FVector(0.f,0.f,OtherHeight), ECC_Visibility, CollisionParms);
 	return !bHit;
 }
 
