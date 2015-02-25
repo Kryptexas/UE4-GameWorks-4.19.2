@@ -5718,10 +5718,10 @@ public class GUBP : BuildCommand
                 throw new AutomationException("we were asked to make a rocket build, but this branch does not have a shared promotable.");
             }
 
+			AddNode(new NonUnityTestNode(HostPlatform));
+
             if (DoASharedPromotable)
             {
-                AddNode(new NonUnityTestNode(HostPlatform));
-
                 var AgentSharingGroup = "Shared_EditorTests" + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
 
                 var Options = Branch.BaseEngineProject.Options(HostPlatform);
