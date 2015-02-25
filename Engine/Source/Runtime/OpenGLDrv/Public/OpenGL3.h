@@ -712,6 +712,10 @@ struct FOpenGL3 : public FOpenGLBase
 	{
 		glGetProgramPipelineInfoLog(Pipeline, BufSize, Length, InfoLog);
 	}
+	static FORCEINLINE bool IsProgramPipeline(GLuint Pipeline)
+	{
+		return (glIsProgramPipeline(Pipeline) == GL_TRUE);
+	}
 
 	static FORCEINLINE ERHIFeatureLevel::Type GetFeatureLevel()
 	{
