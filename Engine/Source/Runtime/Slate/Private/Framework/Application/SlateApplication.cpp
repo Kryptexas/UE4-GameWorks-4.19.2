@@ -3575,8 +3575,12 @@ TSharedRef<SWidget> FSlateApplication::MakeWindowTitleBar( const TSharedRef<SWin
 
 TSharedRef<IToolTip> FSlateApplication::MakeToolTip( const TAttribute<FString>& ToolTipString )
 {
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
 	return SNew(SToolTip)
 		.Text(ToolTipString);
+
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 }
 
 
