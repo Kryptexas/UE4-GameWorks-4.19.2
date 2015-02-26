@@ -83,7 +83,7 @@ video {
     </div>
 
     <div class="emscripten">
-      <input type="button" value="Fullscreen" onclick="Module.requestFullScreen(false)">
+      <input type="button" value="Fullscreen" id="fullscreen_request">
       <input type="button" value="Pause" onclick="Module['pauseMainLoop']();">
       <input type="button" value="Resume" onclick="Module['resumeMainLoop']();">
       <!--input type="button" value="Quit" onclick="__exit(0)" -->
@@ -125,7 +125,7 @@ var UE4 = {
     } catch(e) {
         return function() {}
     }
-  }
+  },
 };
 
 function resizeListener(width, height) {

@@ -4,6 +4,7 @@
 #include <SDL.h>
 #if !PLATFORM_HTML5_WIN32
 #include <emscripten.h>
+#include <html5.h>
 #endif
 
 DEFINE_LOG_CATEGORY_STATIC(LogHTML5OpenGL, Log, All);
@@ -151,10 +152,15 @@ struct FPlatformOpenGLContext
 	}
 };
 
+extern "C"
+EM_BOOL request_fullscreen_callback(int eventType, const EmscriptenMouseEvent* evt, void* user);
+
 struct FPlatformOpenGLDevice
 {
 	FPlatformOpenGLDevice()
 	{
+		emscripten_set_click_callback("fullscreen_request", nullptr, true, request_fullscreen_callback);
+
 		SharedContext = new FPlatformOpenGLContext; 
 
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_EGL, 1);
@@ -336,16 +342,30 @@ void PlatformRestoreDesktopDisplayMode()
 {
 }
 
+#if PLATFORM_HTML5_BROWSER
 extern "C"
 {
-#if PLATFORM_HTML5_BROWSER
 	// callback from javascript. 
 	void resize_game(int w, int h)
 	{
       	// to-do: remove this separate code path. 
 		UE_LOG(LogHTML5OpenGL, Verbose, TEXT("resize_game(%d, %d) callback"), w, h);
 	}
-#endif 
+
+	EM_BOOL request_fullscreen_callback(int eventType, const EmscriptenMouseEvent* evt, void* user)
+	{
+		
+		EmscriptenFullscreenStrategy FSStrat;
+		FMemory::Memzero(FSStrat);
+		FSStrat.scaleMode = EMSCRIPTEN_FULLSCREEN_SCALE_STRETCH;//EMSCRIPTEN_FULLSCREEN_SCALE_ASPECT;// : EMSCRIPTEN_FULLSCREEN_SCALE_STRETCH;
+		FSStrat.canvasResolutionScaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_HIDEF;
+		FSStrat.filteringMode = EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT;
+		emscripten_request_fullscreen_strategy("canvas", true, &FSStrat);
+		
+		//emscripten_request_fullscreen("canvas", true);
+		return 0;
+	}
 }
+#endif
 
 

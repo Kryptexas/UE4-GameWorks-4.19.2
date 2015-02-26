@@ -60,10 +60,26 @@ TSharedRef< FHTML5InputInterface > FHTML5InputInterface::Create(  const TSharedR
 	return MakeShareable( new FHTML5InputInterface( InMessageHandler, InCursor ) );
 }
 
+EM_BOOL mouse_move_callback(int evType, const EmscriptenMouseEvent* evt, void* userData) {
+	/* rescale (in case canvas is being scaled)*/
+	double client_w, client_h, xscale, yscale;
+	int canvas_w, canvas_h, canvas_fs;
+	emscripten_get_canvas_size(&canvas_w, &canvas_h, &canvas_fs);
+	emscripten_get_element_css_size(NULL, &client_w, &client_h);
+	xscale = canvas_w/client_w;
+	yscale = canvas_h/client_h;
+	int calc_x = (int)(evt->canvasX*xscale + .5);
+	int calc_y = (int)(evt->canvasY*yscale + .5);
+	UE_LOG(LogHTML5Input, Verbose, TEXT("MouseMoveCB Pos(%d or %d, %d or %d) XRel:%d YRel:%d"), evt->canvasX, calc_x, evt->canvasY, calc_y, evt->movementX, evt->movementY);
+	(*((const TSharedPtr< ICursor >*)userData))->SetPosition(calc_x, calc_y);
+	return 0;
+}
+
 FHTML5InputInterface::FHTML5InputInterface( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler, const TSharedPtr< ICursor >& InCursor )
 	: MessageHandler( InMessageHandler )
 	, Cursor( InCursor )
 {
+	emscripten_set_mousemove_callback("canvas", (void*)&Cursor, 1, mouse_move_callback);
 }
 
 void FHTML5InputInterface::SetMessageHandler( const TSharedRef< FGenericApplicationMessageHandler >& InMessageHandler )
@@ -236,7 +252,7 @@ void FHTML5InputInterface::Tick(float DeltaTime, const SDL_Event& Event,TSharedR
 			break; 
 		case SDL_MOUSEMOTION:
 			{
-				Cursor->SetPosition(Event.motion.x, Event.motion.y);
+				//Cursor->SetPosition(Event.motion.x, Event.motion.y);
 				MessageHandler->OnRawMouseMove(Event.motion.xrel, Event.motion.yrel);
 				MessageHandler->OnMouseMove(); 
 				UE_LOG(LogHTML5Input, Verbose, TEXT("MouseMotion Pos(%d, %d) XRel:%d YRel:%d"), Event.motion.x, Event.motion.y, Event.motion.xrel, Event.motion.yrel);
