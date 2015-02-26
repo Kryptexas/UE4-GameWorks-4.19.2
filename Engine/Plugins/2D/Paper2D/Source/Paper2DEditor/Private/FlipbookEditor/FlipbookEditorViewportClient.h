@@ -34,10 +34,14 @@ public:
 	void ToggleShowPivot() { bShowPivot = !bShowPivot; Invalidate(); }
 	bool IsShowPivotChecked() const { return bShowPivot; }
 
+	void ToggleShowSockets() { bShowSockets = !bShowSockets; Invalidate(); }
+	bool IsShowSocketsChecked() const { return bShowSockets; }
+
 	UPaperFlipbookComponent* GetPreviewComponent() const
 	{
 		return AnimatedRenderComponent.Get();
 	}
+
 private:
 
 	// The preview scene
@@ -54,6 +58,9 @@ private:
 
 	// Should we show the sprite pivot?
 	bool bShowPivot;
+
+	// Should we show sockets?
+	bool bShowSockets;
 
 	// Should we zoom to the sprite next tick?
 	bool bDeferZoomToSprite;

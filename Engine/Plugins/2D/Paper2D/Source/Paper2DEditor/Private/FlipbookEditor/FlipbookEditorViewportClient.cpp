@@ -7,6 +7,7 @@
 #include "PreviewScene.h"
 #include "ScopedTransaction.h"
 #include "CanvasTypes.h"
+#include "PaperEditorShared/SocketEditing.h"
 
 #define LOCTEXT_NAMESPACE "FlipbookEditor"
 
@@ -30,6 +31,7 @@ FFlipbookEditorViewportClient::FFlipbookEditorViewportClient(const TAttribute<UP
 	PreviewScene->AddComponent(AnimatedRenderComponent.Get(), FTransform::Identity);
 
 	bShowPivot = false;
+	bShowSockets = true;
 	bDeferZoomToSprite = true;
 	DrawHelper.bDrawGrid = false;
 
@@ -58,6 +60,11 @@ void FFlipbookEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& 
 		TextItem.Draw(&Canvas);
 		YPos += 36;
 	}
+
+	if (bShowSockets)
+	{
+		FSocketEditingHelper::DrawSocketNames(AnimatedRenderComponent.Get(), Viewport, View, Canvas);
+	}
 }
 
 void FFlipbookEditorViewportClient::Draw(FViewport* Viewport, FCanvas* Canvas)
@@ -72,6 +79,11 @@ void FFlipbookEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawI
 	if (bShowPivot && AnimatedRenderComponent.IsValid())
 	{
 		FUnrealEdUtils::DrawWidget(View, PDI, AnimatedRenderComponent->ComponentToWorld.ToMatrixWithScale(), 0, 0, EAxisList::Screen, EWidgetMovementMode::WMM_Translate);
+	}
+
+	if (bShowSockets)
+	{
+		FSocketEditingHelper::DrawSockets(AnimatedRenderComponent.Get(), View, PDI);
 	}
 }
 

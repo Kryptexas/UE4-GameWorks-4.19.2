@@ -121,6 +121,12 @@ void SFlipbookEditorViewport::BindCommands()
 		FExecuteAction::CreateSP( EditorViewportClientRef, &FFlipbookEditorViewportClient::ToggleShowPivot ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( EditorViewportClientRef, &FFlipbookEditorViewportClient::IsShowPivotChecked ) );
+
+	CommandList->MapAction(
+		Commands.SetShowSockets,
+		FExecuteAction::CreateSP( EditorViewportClientRef, &FFlipbookEditorViewportClient::ToggleShowSockets ),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP( EditorViewportClientRef, &FFlipbookEditorViewportClient::IsShowSocketsChecked ) );
 }
 
 TSharedRef<FEditorViewportClient> SFlipbookEditorViewport::MakeEditorViewportClient()

@@ -13,6 +13,7 @@
 #include "AssetRegistryModule.h"
 #include "CanvasTypes.h"
 #include "CanvasItem.h"
+#include "PaperEditorShared/SocketEditing.h"
 
 #define LOCTEXT_NAMESPACE "SpriteEditor"
 
@@ -41,25 +42,7 @@ static int32 GetVertexIndexFromHash(int32 PolygonVertexHash)
 const FName FSelectionTypes::Vertex(TEXT("Vertex"));
 const FName FSelectionTypes::Edge(TEXT("Edge"));
 const FName FSelectionTypes::Pivot(TEXT("Pivot"));
-const FName FSelectionTypes::Socket(TEXT("Socket"));
 const FName FSelectionTypes::SourceRegion(TEXT("SourceRegion"));
-
-//////////////////////////////////////////////////////////////////////////
-// HSpriteSelectableObjectHitProxy
-
-struct HSpriteSelectableObjectHitProxy : public HHitProxy
-{
-	DECLARE_HIT_PROXY( PAPER2DEDITOR_API );
-
-	TSharedPtr<FSelectedItem> Data;
-
-	HSpriteSelectableObjectHitProxy(TSharedPtr<FSelectedItem> InData)
-		: HHitProxy(HPP_UI)
-		, Data(InData)
-	{
-	}
-};
-IMPLEMENT_HIT_PROXY(HSpriteSelectableObjectHitProxy, HHitProxy);
 
 //////////////////////////////////////////////////////////////////////////
 // FSpriteEditorViewportClient
@@ -593,79 +576,6 @@ void FSpriteEditorViewportClient::DrawBoundsAsText(FViewport& InViewport, FScene
 	YPos += 18;
 }
 
-void FSpriteEditorViewportClient::DrawSockets(const FSceneView* View, FPrimitiveDrawInterface* PDI)
-{
-	UPaperSprite* Sprite = GetSpriteBeingEdited();
-
-	const bool bIsHitTesting = PDI->IsHitTesting();
-
-	const float DiamondSize = 5.0f;
-	const FColor DiamondColor(255, 128, 128);
-
-	const FTransform SpritePivotToWorld = Sprite->GetPivotToWorld();
-	for (int32 SocketIndex = 0; SocketIndex < Sprite->Sockets.Num(); SocketIndex++)
-	{
-		const FPaperSpriteSocket& Socket = Sprite->Sockets[SocketIndex];
-		const FMatrix SocketTM = (Socket.LocalTransform * SpritePivotToWorld).ToMatrixWithScale();
-		
-		if (bIsHitTesting)
-		{
-			TSharedPtr<FSpriteSelectedSocket> Data = MakeShareable(new FSpriteSelectedSocket);
-			Data->SpritePtr = Sprite;
-			Data->SocketName = Socket.SocketName;
-			PDI->SetHitProxy(new HSpriteSelectableObjectHitProxy(Data));
-		}
-		
-		DrawWireDiamond(PDI, SocketTM, DiamondSize, DiamondColor, SDPG_Foreground);
-		
-		PDI->SetHitProxy(nullptr);
-	}
-}
-
-void FSpriteEditorViewportClient::DrawSocketNames(FViewport& InViewport, FSceneView& View, FCanvas& Canvas)
-{
-	UPaperSprite* Sprite = GetSpriteBeingEdited();
-
-	const int32 HalfX = Viewport->GetSizeXY().X / 2;
-	const int32 HalfY = Viewport->GetSizeXY().Y / 2;
-
-	const FColor SocketNameColor(255,196,196);
-
-	// Draw socket names if desired.
-	const FTransform SpritePivotToWorld = Sprite->GetPivotToWorld();
-	for (int32 SocketIndex = 0; SocketIndex < Sprite->Sockets.Num(); SocketIndex++)
-	{
-		const FPaperSpriteSocket& Socket = Sprite->Sockets[SocketIndex];
-
-		const FVector SocketWorldPos = SpritePivotToWorld.TransformPosition(Socket.LocalTransform.GetLocation());
-		
-		const FPlane Proj = View.Project(SocketWorldPos);
-		if (Proj.W > 0.f)
-		{
-			const int32 XPos = HalfX + (HalfX * Proj.X);
-			const int32 YPos = HalfY + (HalfY * (-Proj.Y));
-
-			FCanvasTextItem Msg(FVector2D(XPos, YPos), FText::FromString(Socket.SocketName.ToString()), GEngine->GetMediumFont(), SocketNameColor);
-			Canvas.DrawItem(Msg);
-
-			//@TODO: Draws the current value of the rotation (probably want to keep this!)
-// 			if (bManipulating && StaticMeshEditorPtr.Pin()->GetSelectedSocket() == Socket)
-// 			{
-// 				// Figure out the text height
-// 				FTextSizingParameters Parameters(GEngine->GetSmallFont(), 1.0f, 1.0f);
-// 				UCanvas::CanvasStringSize(Parameters, *Socket->SocketName.ToString());
-// 				int32 YL = FMath::TruncToInt(Parameters.DrawYL);
-// 
-// 				DrawAngles(&Canvas, XPos, YPos + YL, 
-// 					Widget->GetCurrentAxis(), 
-// 					GetWidgetMode(),
-// 					Socket->RelativeRotation,
-// 					Socket->RelativeLocation);
-// 			}
-		}
-	}
-}
-
 void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& View, FCanvas& Canvas)
 {
 	FEditorViewportClient::DrawCanvas(Viewport, View, Canvas);
@@ -815,7 +725,7 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 
 	if (bShowSockets)
 	{
-		DrawSocketNames(Viewport, View, Canvas);
+		FSocketEditingHelper::DrawSocketNames(RenderSpriteComponent, Viewport, View, Canvas);
 	}
 }
 
@@ -832,7 +742,7 @@ void FSpriteEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInt
 
 	if (bShowSockets)
 	{
-		DrawSockets(View, PDI);
+		FSocketEditingHelper::DrawSockets(RenderSpriteComponent, View, PDI);
 	}
 }
 

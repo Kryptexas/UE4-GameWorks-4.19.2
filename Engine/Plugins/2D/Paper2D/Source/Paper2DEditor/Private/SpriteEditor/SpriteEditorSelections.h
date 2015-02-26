@@ -2,6 +2,8 @@
 
 #pragma once
 
+#include "PaperEditorShared/AssetEditorSelectedItem.h"
+
 //////////////////////////////////////////////////////////////////////////
 // FSelectionTypes
 
@@ -11,74 +13,10 @@ public:
 	static const FName Vertex;
 	static const FName Edge;
 	static const FName Pivot;
-	static const FName Socket;
 	static const FName SourceRegion;
 private:
 	FSelectionTypes() {}
 };
-
-class FSpriteSelectedVertex;
-
-//////////////////////////////////////////////////////////////////////////
-// FSelectedItem
-
-class FSelectedItem
-{
-protected:
-	FSelectedItem(FName InTypeName)
-		: TypeName(InTypeName)
-	{
-	}
-
-protected:
-	FName TypeName;
-public:
-	virtual bool IsA(FName TestType) const
-	{
-		return TestType == TypeName;
-	}
-
-	virtual uint32 GetTypeHash() const
-	{
-		return 0;
-	}
-
-	virtual bool Equals(const FSelectedItem& OtherItem) const
-	{
-		return false;
-	}
-
-	virtual void ApplyDelta(const FVector2D& Delta)
-	{
-	}
-
-	//@TODO: Doesn't belong here in base!
-	virtual void SplitEdge()
-	{
-	}
-
-	virtual FVector GetWorldPos() const
-	{
-		return FVector::ZeroVector;
-	}
-
-	virtual const FSpriteSelectedVertex* CastSelectedVertex() const
-	{
-		return nullptr;
-	}
-
-	virtual ~FSelectedItem() {}
-};
-
-inline uint32 GetTypeHash(const FSelectedItem& Vertex)
-{
-	return Vertex.GetTypeHash();
-}
-
-inline bool operator==(const FSelectedItem& V1, const FSelectedItem& V2)
-{
-	return V1.Equals(V2);
-}
 
 //////////////////////////////////////////////////////////////////////////
 // FSpriteSelectedSourceRegion
@@ -436,71 +374,5 @@ public:
 				}
 			}
 		}
-	}
-};
-
-
-
-//////////////////////////////////////////////////////////////////////////
-// FSpriteSelectedSocket
-
-class FSpriteSelectedSocket : public FSelectedItem
-{
-public:
-	FName SocketName;
-	TWeakObjectPtr<UPaperSprite> SpritePtr;
-
-public:
-	FSpriteSelectedSocket()
-		: FSelectedItem(FSelectionTypes::Socket)
-	{
-	}
-
-	virtual bool Equals(const FSelectedItem& OtherItem) const override
-	{
-		if (OtherItem.IsA(FSelectionTypes::Socket))
-		{
-			const FSpriteSelectedSocket& S1 = *this;
-			const FSpriteSelectedSocket& S2 = *(FSpriteSelectedSocket*)(&OtherItem);
-
-			return (S1.SocketName == S2.SocketName) && (S1.SpritePtr == S2.SpritePtr);
-		}
-		else
-		{
-			return false;
-		}
-	}
-
-	//@TODO: Currently sockets are in unflipped pivot space,
-	virtual void ApplyDelta(const FVector2D& Delta) override
-	{
-		if (UPaperSprite* Sprite = SpritePtr.Get())
-		{
-			if (FPaperSpriteSocket* Socket = Sprite->FindSocket(SocketName))
-			{
-				const FVector Delta3D_UU = (PaperAxisX * Delta.X) + (PaperAxisY * -Delta.Y);
-				const FVector Delta3D = Delta3D_UU * Sprite->GetPixelsPerUnrealUnit();
-				Socket->LocalTransform.SetLocation(Socket->LocalTransform.GetLocation() + Delta3D);
-			}
-		}
-	}
-
-	FVector GetWorldPos() const override
-	{
-		if (UPaperSprite* Sprite = SpritePtr.Get())
-		{
-			if (FPaperSpriteSocket* Socket = Sprite->FindSocket(SocketName))
-			{
- 				const FVector PivotSpacePos = Socket->LocalTransform.GetLocation();
-				return Sprite->GetPivotToWorld().TransformPosition(PivotSpacePos);
-			}
-		}
-
-		return FVector::ZeroVector;
-	}
-
-	virtual void SplitEdge() override
-	{
-		// Nonsense operation on a socket, do nothing
 	}
 };
