@@ -426,6 +426,9 @@ public:
 	/** Returns whether or not the blueprint supports default values (IE has a CDO) */
 	static bool DoesSupportDefaults(UBlueprint const* Blueprint);
 
+	/** Returns whether or not the blueprint graph supports local variables */
+	static bool DoesSupportLocalVariables(UEdGraph const* InGraph);
+
 	// Returns a descriptive name of the type of blueprint passed in
 	static FString GetBlueprintTypeDescription(const UBlueprint* Blueprint);
 

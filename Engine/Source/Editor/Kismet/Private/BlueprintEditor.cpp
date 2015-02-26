@@ -6590,9 +6590,7 @@ bool FBlueprintEditor::NewDocument_IsVisibleForType(ECreatedDocumentType GraphTy
 	case CGT_NewEventGraph:
 		return FBlueprintEditorUtils::DoesSupportEventGraphs(GetBlueprintObj());
 	case CGT_NewLocalVariable:
-		return (GetBlueprintObj()->BlueprintType != BPTYPE_Interface) 
-			&& (GetFocusedGraph() && GetFocusedGraph()->GetSchema()->GetGraphType(GetFocusedGraph()) == EGraphType::GT_Function)
-			&& !GetFocusedGraph()->IsA(UAnimationTransitionGraph::StaticClass()) 
+		return FBlueprintEditorUtils::DoesSupportLocalVariables(GetFocusedGraph()) 
 			&& IsFocusedGraphEditable();
 	}
 

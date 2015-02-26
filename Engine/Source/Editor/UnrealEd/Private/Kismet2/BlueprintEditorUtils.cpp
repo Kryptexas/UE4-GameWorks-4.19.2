@@ -18,6 +18,7 @@
 #include "AnimationGraph.h"
 #include "AnimationGraphSchema.h"
 #include "AnimationStateMachineGraph.h"
+#include "AnimationTransitionGraph.h"
 #include "AnimStateConduitNode.h"
 #include "AnimGraphNode_StateMachine.h"
 #include "Editor/UnrealEd/Public/Kismet2/KismetEditorUtilities.h"
@@ -2648,6 +2649,18 @@ bool FBlueprintEditorUtils::DoesSupportDefaults(UBlueprint const* Blueprint)
 		&& Blueprint->BlueprintType != BPTYPE_FunctionLibrary;
 }
 
+bool FBlueprintEditorUtils::DoesSupportLocalVariables(UEdGraph const* InGraph)
+{
+	if(InGraph)
+	{
+		UBlueprint* Blueprint = FBlueprintEditorUtils::FindBlueprintForGraph(InGraph);
+		return Blueprint->BlueprintType != BPTYPE_Interface
+			&& InGraph->GetSchema()->GetGraphType(InGraph) == EGraphType::GT_Function
+			&& !InGraph->IsA(UAnimationTransitionGraph::StaticClass());
+	}
+	return false;
+}
+
 // Returns a descriptive name of the type of blueprint passed in
 FString FBlueprintEditorUtils::GetBlueprintTypeDescription(const UBlueprint* Blueprint)
 {
@@ -3408,22 +3421,22 @@ void FBlueprintEditorUtils::GetNewVariablesOfType( const UBlueprint* Blueprint, 
 
 void FBlueprintEditorUtils::GetLocalVariablesOfType( const UEdGraph* Graph, const FEdGraphPinType& Type, TArray<FName>& OutVars)
 {
-	if ((Graph != nullptr) && (Graph->GetSchema()->GetGraphType(Graph) == GT_Function))
+	if (DoesSupportLocalVariables(Graph))
 	{
+		// Grab the function graph, so we can find the function entry node for local variables
+		UEdGraph* FunctionGraph = FBlueprintEditorUtils::GetTopLevelGraph(Graph);
+
 		TArray<UK2Node_FunctionEntry*> GraphNodes;
-		Graph->GetNodesOfClass<UK2Node_FunctionEntry>(GraphNodes);
+		FunctionGraph->GetNodesOfClass<UK2Node_FunctionEntry>(GraphNodes);
 
-		if (GraphNodes.Num() > 0)
+		// There should only be one entry node
+		check(GraphNodes.Num() == 1);
+
+		for (const FBPVariableDescription& LocalVar : GraphNodes[0]->LocalVariables)
 		{
-			// If there is an entry node, there should only be one
-			check(GraphNodes.Num() == 1);
-
-			for (const FBPVariableDescription& LocalVar : GraphNodes[0]->LocalVariables)
+			if (LocalVar.VarType == Type)
 			{
-				if (LocalVar.VarType == Type)
-				{
-					OutVars.Add(LocalVar.VarName);
-				}
+				OutVars.Add(LocalVar.VarName);
 			}
 		}
 	}
@@ -4137,10 +4150,11 @@ FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(UBlueprint* InB
 FBPVariableDescription* FBlueprintEditorUtils::FindLocalVariable(const UBlueprint* InBlueprint, const UEdGraph* InScopeGraph, const FName& InVariableName, class UK2Node_FunctionEntry** OutFunctionEntry)
 {
 	FBPVariableDescription* ReturnVariable = NULL;
-	if(InScopeGraph)
+	if(DoesSupportLocalVariables(InScopeGraph))
 	{
+		UEdGraph* FunctionGraph = GetTopLevelGraph(InScopeGraph);
 		TArray<UK2Node_FunctionEntry*> GraphNodes;
-		InScopeGraph->GetNodesOfClass<UK2Node_FunctionEntry>(GraphNodes);
+		FunctionGraph->GetNodesOfClass<UK2Node_FunctionEntry>(GraphNodes);
 
 		bool bFoundLocalVariable = false;
 
