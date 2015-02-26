@@ -52,7 +52,7 @@ class UFbxImportUI : public UObject
 	bool bImportAsSkeletal;
 
 	/** Whether to import the mesh. Allows animation only import when importing a skeletal mesh. */
-	UPROPERTY(EditAnywhere, config, Category=Mesh, meta=(ImportType="SkeletalMesh"))
+	UPROPERTY(EditAnywhere, Category=Mesh, meta=(ImportType="SkeletalMesh"))
 	bool bImportMesh;
 
 	/** For static meshes, enabling this option will combine all meshes in the FBX into a single monolithic mesh in Unreal */

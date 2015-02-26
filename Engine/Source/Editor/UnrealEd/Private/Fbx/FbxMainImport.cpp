@@ -92,6 +92,7 @@ FBXImportOptions* GetImportOptions( UnFbx::FFbxImporter* FbxImporter, UFbxImport
 		}
 
 		ImportUI->bImportAsSkeletal = ImportUI->MeshTypeToImport == FBXIT_SkeletalMesh;
+		ImportUI->bImportMesh = ImportUI->MeshTypeToImport != FBXIT_Animation;
 		ImportUI->bIsObjImport = bIsObjFormat;
 
 		TSharedPtr<SWindow> ParentWindow;
