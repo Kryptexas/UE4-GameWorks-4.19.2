@@ -287,7 +287,7 @@ void UAudioComponent::PlaybackCompleted(bool bFailedToStart)
 	}
 }
 
-bool UAudioComponent::IsPlaying( void )
+bool UAudioComponent::IsPlaying() const
 {
 	return bIsActive;
 }

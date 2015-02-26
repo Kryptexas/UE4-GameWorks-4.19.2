@@ -190,7 +190,7 @@ class ENGINE_API UAudioComponent : public USceneComponent
 
 	/** @return true if this component is currently playing a SoundCue. */
 	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio")
-	bool IsPlaying();
+	bool IsPlaying() const;
 
 	/** This will allow one to adjust the volume of an AudioComponent on the fly */
 	UFUNCTION(BlueprintCallable, Category="Audio|Components|Audio")
