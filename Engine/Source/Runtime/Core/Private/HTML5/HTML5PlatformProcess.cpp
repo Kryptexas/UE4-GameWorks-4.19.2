@@ -94,3 +94,8 @@ void FHTML5PlatformProcess::LaunchURL(const TCHAR* URL, const TCHAR* Parms, FStr
 	auto TmpURL = StringCast<ANSICHAR>(URL);
 	EM_ASM_ARGS({var InUrl = Pointer_stringify($0); console.log("Opening "+InUrl); window.open(InUrl);}, (ANSICHAR*)TmpURL.Get());
 }
+
+const TCHAR* FHTML5PlatformProcess::ExecutableName(bool bRemoveExtension)
+{
+	return FApp::GetGameName();
+}

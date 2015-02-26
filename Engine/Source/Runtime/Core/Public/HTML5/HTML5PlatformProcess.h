@@ -37,6 +37,7 @@ struct CORE_API FHTML5PlatformProcess : public FGenericPlatformProcess
 	static class FRunnableThread* CreateRunnableThread();
 	static bool SupportsMultithreading();
 	static void LaunchURL( const TCHAR* URL, const TCHAR* Parms, FString* Error );
+	static const TCHAR* ExecutableName(bool bRemoveExtension = true);
 };
 
 typedef FHTML5PlatformProcess FPlatformProcess;
