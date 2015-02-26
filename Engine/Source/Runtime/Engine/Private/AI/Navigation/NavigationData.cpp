@@ -251,6 +251,7 @@ void ANavigationData::TickActor(float DeltaTime, enum ELevelTick TickType, FActo
 			if (PathNavAgent && PathNavAgent->ShouldPostponePathUpdates())
 			{
 				PostponedRequests.Add(RecalcRequest);
+				continue;
 			}
 
 			FPathFindingQuery Query(RecalcRequest.Path);
