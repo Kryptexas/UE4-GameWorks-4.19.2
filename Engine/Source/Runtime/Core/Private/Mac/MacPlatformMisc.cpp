@@ -1326,7 +1326,7 @@ void FMacCrashContext::GenerateWindowsErrorReport(char const* WERPath) const
 		WriteUTF16String(ReportFile, ItoTCHAR(ENGINE_MINOR_VERSION, 10));
 		WriteUTF16String(ReportFile, TEXT("."));
 		WriteUTF16String(ReportFile, ItoTCHAR(ENGINE_PATCH_VERSION, 10));
-		WriteLine(ReportFile, TEXT(".0</Parameter1>"));
+		WriteLine(ReportFile, TEXT("</Parameter1>"));
 
 		// App time stamp
 		WriteLine(ReportFile, TEXT("\t\t<Parameter2>528f2d37</Parameter2>"));													// FIXME: supply valid?

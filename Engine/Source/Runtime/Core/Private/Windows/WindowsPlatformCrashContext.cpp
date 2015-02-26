@@ -91,7 +91,7 @@ void GetCrashDescription(WER_REPORT_INFORMATION& ReportInformation)
  */
 void GetModuleVersion( TCHAR* ModuleName, TCHAR* StringBuffer, DWORD MaxSize )
 {
-	StringCchCopy( StringBuffer, MaxSize, TEXT( "0.0.0.0" ) );
+	StringCchCopy( StringBuffer, MaxSize, TEXT( "0.0.0" ) );
 	
 	DWORD Handle = 0;
 	DWORD InfoSize = GetFileVersionInfoSize( ModuleName, &Handle );
@@ -107,8 +107,8 @@ void GetModuleVersion( TCHAR* ModuleName, TCHAR* StringBuffer, DWORD MaxSize )
 			UINT InfoLength = 0;
 			if( VerQueryValue( VersionInfo.GetData(), TEXT( "\\" ), ( void** )&FixedFileInfo, &InfoLength ) )
 			{
-				StringCchPrintf( StringBuffer, MaxSize, TEXT( "%u.%u.%u.%u" ), 
-					HIWORD( FixedFileInfo->dwProductVersionMS ), LOWORD( FixedFileInfo->dwProductVersionMS ), HIWORD( FixedFileInfo->dwProductVersionLS ), LOWORD( FixedFileInfo->dwProductVersionLS ) );
+				StringCchPrintf( StringBuffer, MaxSize, TEXT( "%u.%u.%u" ), 
+					HIWORD( FixedFileInfo->dwProductVersionMS ), LOWORD( FixedFileInfo->dwProductVersionMS ), HIWORD( FixedFileInfo->dwProductVersionLS ) );
 			}
 		}
 	}
