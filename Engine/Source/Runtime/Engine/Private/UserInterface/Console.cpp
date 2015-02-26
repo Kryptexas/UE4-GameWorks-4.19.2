@@ -239,6 +239,35 @@ void UConsole::BuildRuntimeAutoCompleteList(bool bForce)
 	}
 #endif
 
+	// Add all showflag commands.
+	{
+		struct FIterSink
+		{
+			FIterSink(TArray<FAutoCompleteCommand>& InAutoCompleteList)
+				: AutoCompleteList(InAutoCompleteList)
+			{
+			}
+			
+			bool OnEngineShowFlag(uint32 InIndex, const FString& InName)
+			{
+				// Get localized name.
+				FText LocName;
+				FEngineShowFlags::FindShowFlagDisplayName(InName, LocName);
+				
+				int32 NewIdx = AutoCompleteList.AddZeroed(1);
+				AutoCompleteList[NewIdx].Command = TEXT("show ") + InName;
+				AutoCompleteList[NewIdx].Desc = FString::Printf(TEXT("show %s (toggles the %s showflag)"),*InName, *LocName.ToString());
+				
+				return true;
+			}
+			
+			TArray<FAutoCompleteCommand>& AutoCompleteList;
+		};
+		
+		FIterSink Sink(AutoCompleteList);
+		FEngineShowFlags::IterateAllFlags(Sink);
+	}
+
 	// build the magic tree!
 	for (int32 ListIdx = 0; ListIdx < AutoCompleteList.Num(); ListIdx++)
 	{
