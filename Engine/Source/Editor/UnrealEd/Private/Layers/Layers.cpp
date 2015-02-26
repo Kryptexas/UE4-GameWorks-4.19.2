@@ -92,7 +92,7 @@ void FLayers::RemoveLevelLayerInformation( const TWeakObjectPtr< ULevel >& Level
 
 bool FLayers::IsActorValidForLayer( const TWeakObjectPtr< AActor >& Actor )
 {
-	if( !Actor.IsValid() )
+	if( !Actor.IsValid() || Actor->GetClass() == nullptr || Actor->GetWorld() == nullptr)
 	{
 		return false;
 	}
