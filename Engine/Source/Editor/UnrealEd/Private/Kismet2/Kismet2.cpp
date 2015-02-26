@@ -637,6 +637,11 @@ UBlueprint* FKismetEditorUtilities::ReloadBlueprint(UBlueprint* StaleBlueprint)
 
 UBlueprint* FKismetEditorUtilities::ReplaceBlueprint(UBlueprint* Target, UBlueprint const* ReplacementArchetype)
 {
+	if (Target == ReplacementArchetype)
+	{
+		return Target;
+	}
+
 	UPackage* BlueprintPackage = Target->GetOutermost();
 	check(BlueprintPackage != GetTransientPackage());
 	const FString BlueprintName = Target->GetName();
@@ -645,7 +650,7 @@ UBlueprint* FKismetEditorUtilities::ReplaceBlueprint(UBlueprint* Target, UBluepr
 	Unloader.UnloadBlueprint(/*bResetPackage =*/false);
 
 	UBlueprint* Replacement = Cast<UBlueprint>(StaticDuplicateObject(ReplacementArchetype, BlueprintPackage, *BlueprintName));
-
+	
 	Unloader.ReplaceStaleRefs(Replacement);
 	return Replacement;
 }
