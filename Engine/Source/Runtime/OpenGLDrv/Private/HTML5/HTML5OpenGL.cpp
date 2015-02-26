@@ -354,15 +354,16 @@ extern "C"
 
 	EM_BOOL request_fullscreen_callback(int eventType, const EmscriptenMouseEvent* evt, void* user)
 	{
-		
+#if __EMCC_VER__ >= 1290
 		EmscriptenFullscreenStrategy FSStrat;
 		FMemory::Memzero(FSStrat);
 		FSStrat.scaleMode = EMSCRIPTEN_FULLSCREEN_SCALE_STRETCH;//EMSCRIPTEN_FULLSCREEN_SCALE_ASPECT;// : EMSCRIPTEN_FULLSCREEN_SCALE_STRETCH;
 		FSStrat.canvasResolutionScaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_HIDEF;
 		FSStrat.filteringMode = EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT;
 		emscripten_request_fullscreen_strategy("canvas", true, &FSStrat);
-		
-		//emscripten_request_fullscreen("canvas", true);
+#else		
+		emscripten_request_fullscreen("canvas", true);
+#endif
 		return 0;
 	}
 }

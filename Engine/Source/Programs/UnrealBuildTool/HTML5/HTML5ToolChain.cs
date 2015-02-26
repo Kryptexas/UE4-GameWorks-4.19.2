@@ -13,6 +13,7 @@ namespace UnrealBuildTool
 	{
         static string EMCCPath;
         static string PythonPath;
+		static string EMSDKVersionString;
         // Debug options -- TODO: add these to SDK/Project setup?
         static bool   bEnableTracing = false;
 
@@ -22,7 +23,8 @@ namespace UnrealBuildTool
             if (HTML5SDKInfo.IsSDKInstalled() && HTML5SDKInfo.IsPythonInstalled())
             {
                     EMCCPath = "\"" + HTML5SDKInfo.EmscriptenCompiler() + "\"";
-					PythonPath = HTML5SDKInfo.PythonPath(); 
+					PythonPath = HTML5SDKInfo.PythonPath();
+					EMSDKVersionString = HTML5SDKInfo.EmscriptenVersion().Replace(".", "");
 
 					// set some environment variable we'll need
 					//Environment.SetEnvironmentVariable("EMCC_DEBUG", "cache");
@@ -321,6 +323,8 @@ namespace UnrealBuildTool
 			{
 				Arguments += string.Format(" -D__EMSCRIPTEN_TRACING__");
 			}
+
+			Arguments += string.Format(" -D__EMCC_VER__={0}", EMSDKVersionString);
 
         
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatformForCPPTargetPlatform(CompileEnvironment.Config.Target.Platform);
