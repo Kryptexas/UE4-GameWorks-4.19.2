@@ -276,7 +276,7 @@ void FDefaultGameMoviePlayer::WaitForMovieToFinish()
 		// explicitly set the loading screen they want (rather than have stale loading screens)
 		LoadingScreenAttributes = FLoadingScreenAttributes();
 
-		OnMoviePlaybackFinishedDelegate.Broadcast();
+		BroadcastMoviePlaybackFinished();
 	}
 	else
 	{	
