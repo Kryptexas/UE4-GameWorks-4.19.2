@@ -16,7 +16,7 @@ struct FActorBoundEventHelper
 	{
 		check(Node);
 		auto EventOwnerClass = Node->EventOwner ? Node->EventOwner->GetClass() : nullptr;
-		return Node->EventSignatureClass ? Node->EventSignatureClass : EventOwnerClass;
+		return Node->EventSignatureClass ? (UClass*)Node->EventSignatureClass : EventOwnerClass;
 	}
 };
 
