@@ -669,10 +669,14 @@ bool FProfilerClientManager::HandleMessagesTicker( float DeltaTime )
 	{
 		FServiceConnection& Connection = It.Value();
 
-		while (Connection.PendingMessages.Contains(Connection.CurrentFrame+1))
+		TArray<int64> Frames;
+		Connection.PendingMessages.GenerateKeyArray( Frames );
+		Frames.Sort();
+
+		for( int32 Index = 0; Index < Frames.Num(); Index++ )
 		{
-			TArray<uint8>& Data = *Connection.PendingMessages.Find(Connection.CurrentFrame+1);
-			Connection.CurrentFrame++;
+			int64 FrameNum = Frames[Index];
+			TArray<uint8>& Data = *Connection.PendingMessages.Find( FrameNum );
 
 			// pass the data to the visualization code
 			FArrayReader Reader(true);
@@ -710,7 +714,7 @@ bool FProfilerClientManager::HandleMessagesTicker( float DeltaTime )
 			// send the data out
 			ProfilerDataDelegate.Broadcast(Connection.InstanceId, Connection.CurrentData,0.0f);
 
-			Connection.PendingMessages.Remove(Connection.CurrentFrame);
+			Connection.PendingMessages.Remove( FrameNum );
 		}
 	}
 
@@ -744,7 +748,6 @@ void FProfilerClientManager::HandleServicePreviewAckMessage( const FProfilerServ
 	if (ActiveSessionId.IsValid() && Connections.Find(Message.InstanceId) != NULL)
 	{
 		FServiceConnection& Connection = *Connections.Find(Message.InstanceId);
-		Connection.CurrentFrame = Message.Frame;
 	}
 #endif
 }

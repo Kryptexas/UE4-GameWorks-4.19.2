@@ -496,8 +496,7 @@ void FProfilerServiceManager::SetPreviewState( const FMessageAddress& ClientAddr
 				Client->Preview = true;
 				if (MessageEndpoint.IsValid())
 				{
-					Client->CurrentFrame = FStats::GameThreadStatsFrame;
-					MessageEndpoint->Send( new FProfilerServicePreviewAck( InstanceId, FStats::GameThreadStatsFrame ), ClientAddress );
+					MessageEndpoint->Send( new FProfilerServicePreviewAck( InstanceId ), ClientAddress );
 				}
 				SendMetaData(ClientAddress);
 			}
@@ -709,22 +708,17 @@ void FProfilerServiceManager::HandleNewFrame(int64 Frame)
 		{
 			FClientData& Client = *ClientData.Find(*It);
 
-			while(Client.CurrentFrame < Frame)
+			Client.StatsWriteFile.ResetData();
+			bool bNeedFullMetadata = false;
+			if( Client.MetadataSize < CurrentMetadataSize )
 			{
-				Client.CurrentFrame++;
-				Client.StatsWriteFile.ResetData();
-
-				bool bNeedFullMetadata = false;
-				if( Client.MetadataSize < CurrentMetadataSize )
-				{
-					// Write the whole metadata.
-					bNeedFullMetadata = true;
-					Client.MetadataSize = CurrentMetadataSize;
-				}
-
-				Client.StatsWriteFile.WriteFrame( Client.CurrentFrame, bNeedFullMetadata );
-				MessageEndpoint->Send( new FProfilerServiceData2( InstanceId, Client.CurrentFrame, Client.StatsWriteFile.GetOutData() ), PreviewClients );
+				// Write the whole metadata.
+				bNeedFullMetadata = true;
+				Client.MetadataSize = CurrentMetadataSize;
 			}
+
+			Client.StatsWriteFile.WriteFrame( Frame, bNeedFullMetadata );
+			MessageEndpoint->Send( new FProfilerServiceData2( InstanceId, Frame, Client.StatsWriteFile.GetOutData() ), PreviewClients );
 		}
 	}
 #endif
