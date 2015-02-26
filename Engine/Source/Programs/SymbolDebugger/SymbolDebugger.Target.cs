@@ -53,7 +53,7 @@ public class SymbolDebuggerTarget : TargetRules
 
 		// SymbolDebugger doesn't ever compile with the engine linked in
 		UEBuildConfiguration.bCompileAgainstEngine = false;
-		UEBuildConfiguration.bCompileAgainstCoreUObject = false;
+		UEBuildConfiguration.bCompileAgainstCoreUObject = true;
 
 		UEBuildConfiguration.bIncludeADO = true;
 
