@@ -669,7 +669,7 @@ ULinkerLoad* GetPackageLinker
 	}
 
 	// Verify compatibility.
-	if( CompatibleGuid && Result->Summary.Guid!=*CompatibleGuid )
+	if (Result && CompatibleGuid && Result->Summary.Guid != *CompatibleGuid)
 	{
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("AssetName"), FText::FromString(InOuter->GetName()));

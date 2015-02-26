@@ -640,13 +640,15 @@ ULinkerLoad::ELinkerStatus ULinkerLoad::Tick( float InTimeLimit, bool bInUseTime
 			);
 	}
 
-#if WITH_EDITOR
 	if (Status == LINKER_Failed)
 	{
+		GObjPendingLoaders.Remove(LinkerRoot);
+#if WITH_EDITOR
+
 		delete LoadProgressScope;
-		LoadProgressScope = nullptr;
-	}
+		LoadProgressScope = nullptr;	
 #endif
+	}
 
 	// Return whether we completed or not.
 	return Status;
