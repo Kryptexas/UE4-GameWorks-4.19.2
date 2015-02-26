@@ -2279,15 +2279,16 @@ FVector2D SMultiLineEditableText::ComputeDesiredSize( float ) const
 	const float FontMaxCharHeight = FTextEditHelper::GetFontHeight(TextStyle.Font);
 	const float CaretWidth = FTextEditHelper::CalculateCaretWidth(FontMaxCharHeight);
 
+	// If a wrapping width has been provided, then we need to report the wrapped size as the desired width
+	// (rather than the actual text layout size as that can have non-breaking lines that extend beyond the wrap width)
+	// Note: We don't do this when auto-wrapping as it would cause a feedback loop in the Slate sizing logic
+	const float WrappingWidth = WrapTextAt.Get();
+	const FVector2D TextLayoutBaseSize = WrappingWidth > 0 ? TextLayout->GetWrappedSize() : TextLayout->GetSize();
+	const FVector2D TextLayoutSize = TextLayoutBaseSize + FVector2D(CaretWidth, 0);
+
 	// The layouts current margin size. We should not report a size smaller then the margins.
 	const FMargin Margin = TextLayout->GetMargin();
-	const FVector2D TextLayoutSize = TextLayout->GetSize();
-	const float WrappingWidth = WrapTextAt.Get();
-
-	// If a wrapping width has been provided that should be reported as the desired width.
-	float DesiredWidth = TextLayoutSize.X + CaretWidth;
-	DesiredWidth = FMath::Max(Margin.GetTotalSpaceAlong<Orient_Horizontal>(), DesiredWidth);
-
+	float DesiredWidth = FMath::Max(Margin.GetTotalSpaceAlong<Orient_Horizontal>(), TextLayoutSize.X);
 	float DesiredHeight = FMath::Max(Margin.GetTotalSpaceAlong<Orient_Vertical>(), TextLayoutSize.Y);
 	DesiredHeight = FMath::Max(DesiredHeight, FontMaxCharHeight);
 	
