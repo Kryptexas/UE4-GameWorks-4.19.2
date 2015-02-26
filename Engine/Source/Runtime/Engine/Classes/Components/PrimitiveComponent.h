@@ -1305,6 +1305,18 @@ public:
 	// End UObject interface.
 
 	//Begin USceneComponent Interface
+	/**
+	 * Tries to move the component by a movement vector (Delta) and sets rotation to NewRotation.
+	 * Assumes that the component's current location is valid and that the component does fit in its current Location.
+	 * Dispatches blocking hit notifications (if bSweep is true), and calls UpdateOverlaps() after movement to update overlap state.
+	 * 
+	 * @param Delta			The desired location change in world space.
+	 * @param NewRotation	The new desired rotation in world space.
+	 * @param bSweep		Should we sweep to the destination location, stopping short of the target if blocked by something. Note:If the component has no collision this will have no effect.
+	 * @param Hit			Optional output describing the blocking hit that stopped the move, if any.
+	 * @param MoveFlags		Flags controlling behavior of the move. @see EMoveComponentFlags
+	 * @return				True if some movement occurred, false if no movement occurred.
+	 */
 	virtual bool MoveComponent(const FVector& Delta, const FRotator& NewRotation, bool bSweep, FHitResult* OutHit = NULL, EMoveComponentFlags MoveFlags = MOVECOMP_NoFlags) override;
 	virtual bool IsWorldGeometry() const override;
 	virtual ECollisionEnabled::Type GetCollisionEnabled() const override;

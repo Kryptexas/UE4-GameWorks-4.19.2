@@ -620,7 +620,7 @@ public:
 	/** 
 	 *	Move the Actor to the specified location.
 	 *	@param NewLocation	The new location to move the Actor to.
-	 *	@param bSweep		Should we sweep to the destination location, stopping short of the target if blocked by something.
+	 *	@param bSweep		Should we sweep to the destination location, stopping short of the target if blocked by something. Note:If the root component has no collision this will have no effect.
 	 *  @param SweepHitResult	The hit result from the move if swept.
 	 *	@return	Whether the location was successfully set (if not swept), or whether movement occurred at all (if swept).
 	 */
