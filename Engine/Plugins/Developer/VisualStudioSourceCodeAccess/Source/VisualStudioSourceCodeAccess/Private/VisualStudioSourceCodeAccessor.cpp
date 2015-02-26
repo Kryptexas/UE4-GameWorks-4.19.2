@@ -931,6 +931,13 @@ bool FVisualStudioSourceCodeAccessor::AddSourceFiles(const TArray<FString>& Abso
 								bSuccess &= true;
 							}
 						}
+
+						// Save the updated project to avoid a message when closing VS
+						CComPtr<EnvDTE::Project> Project;
+						if (SUCCEEDED(ModuleProjectFolder->get_ContainingProject(&Project)) && Project)
+						{
+							Project->Save(nullptr);
+						}
 					}
 					else
 					{
