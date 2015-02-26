@@ -238,7 +238,7 @@ void SCommentBubble::UpdateBubble()
 				[
 					SNew(SImage)
 					.Image( CommentCalloutArrowBrush )
-					.ColorAndOpacity( ColorAndOpacity )
+					.ColorAndOpacity( this, &SCommentBubble::GetBubbleColor )
 				]
 			]
 		];
