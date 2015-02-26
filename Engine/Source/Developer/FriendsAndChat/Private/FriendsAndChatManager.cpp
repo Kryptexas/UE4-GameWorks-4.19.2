@@ -817,10 +817,14 @@ bool FFriendsAndChatManager::JoinGameAllowed(FString ClientID)
 	}
 	else
 	{
-		TSharedPtr<IFriendsApplicationViewModel> FriendsApplicationViewModel = *ApplicationViewModels.Find(ClientID);
-		if (FriendsApplicationViewModel.IsValid())
-	{
-			return FriendsApplicationViewModel->IsAppJoinable();
+		TSharedPtr<IFriendsApplicationViewModel>* FriendsApplicationViewModelRawPtr = ApplicationViewModels.Find(ClientID);
+		if (FriendsApplicationViewModelRawPtr != nullptr)
+		{
+			TSharedPtr<IFriendsApplicationViewModel> FriendsApplicationViewModel = *FriendsApplicationViewModelRawPtr;
+			if (FriendsApplicationViewModel.IsValid())
+			{
+				return FriendsApplicationViewModel->IsAppJoinable();
+			}
 		}
 	}
 	return false;
@@ -1735,11 +1739,16 @@ void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& Fri
 	// notify for further processing of join game request 
 	OnFriendsJoinGame().Broadcast(*FriendItem->GetUniqueID(), FriendItem->GetGameSessionId());
 
-	TSharedPtr<IFriendsApplicationViewModel> FriendsApplicationViewModel = *ApplicationViewModels.Find(FriendItem->GetClientId());
-	if (FriendsApplicationViewModel.IsValid())
+	TSharedPtr<IFriendsApplicationViewModel>* FriendsApplicationViewModelRawPtr = ApplicationViewModels.Find(FriendItem->GetClientId());
+	if (FriendsApplicationViewModelRawPtr != nullptr)
 	{
-		const FString AdditionalCommandline = TEXT("-invitesession=") + FriendItem->GetGameSessionId() + TEXT(" -invitefrom=") + FriendItem->GetUniqueID()->ToString();
-		FriendsApplicationViewModel->LaunchFriendApp(AdditionalCommandline);
+		TSharedPtr<IFriendsApplicationViewModel> FriendsApplicationViewModel = *FriendsApplicationViewModelRawPtr;
+		if (FriendsApplicationViewModel.IsValid())
+		{
+			const FString AdditionalCommandline = TEXT("-invitesession=") + FriendItem->GetGameSessionId() + TEXT(" -invitefrom=") + FriendItem->GetUniqueID()->ToString();
+			FriendsApplicationViewModel->LaunchFriendApp(AdditionalCommandline);
+		}
+
 	}
 
 	Analytics.RecordGameInvite(*FriendItem->GetUniqueID(), TEXT("Social.GameInvite.Accept"));

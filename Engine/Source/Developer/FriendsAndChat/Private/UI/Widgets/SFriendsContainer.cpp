@@ -141,7 +141,6 @@ public:
 				]
 			]
 			+ SVerticalBox::Slot()
-			.HAlign(HAlign_Center)
 			.AutoHeight()
 			[
 				SNew(SBorder)
@@ -149,9 +148,14 @@ public:
 				.BorderImage(&FriendStyle.FriendsContainerBackground)
 				.Visibility(this, &SFriendsContainerImpl::GetGlobalChatButtonVisibility)
 				[
-					SNew(SButton)
-					.ButtonStyle(&FriendStyle.GlobalChatButtonStyle)
-					.OnClicked(this, &SFriendsContainerImpl::OnGlobalChatButtonClicked)
+					SNew(SVerticalBox)
+					+ SVerticalBox::Slot()
+					.HAlign(HAlign_Center)
+					[
+						SNew(SButton)
+						.ButtonStyle(&FriendStyle.GlobalChatButtonStyle)
+						.OnClicked(this, &SFriendsContainerImpl::OnGlobalChatButtonClicked)
+					]
 				]
 			]
 			+ SVerticalBox::Slot()
