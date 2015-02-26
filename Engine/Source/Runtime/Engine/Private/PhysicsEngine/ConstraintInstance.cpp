@@ -1304,4 +1304,18 @@ FConstraintInstance * FConstraintInstance::Alloc()
 	return new (Memory)FConstraintInstance();
 }
 
+void FConstraintInstance::EnableProjection()
+{
+	SCOPED_SCENE_WRITE_LOCK(ConstraintData->getScene());
+	ConstraintData->setProjectionLinearTolerance(ProjectionLinearTolerance);
+	ConstraintData->setProjectionAngularTolerance(ProjectionAngularTolerance);
+	ConstraintData->setConstraintFlag(PxConstraintFlag::ePROJECTION, true);
+}
+
+void FConstraintInstance::DisableProjection()
+{
+	SCOPED_SCENE_WRITE_LOCK(ConstraintData->getScene());
+	ConstraintData->setConstraintFlag(PxConstraintFlag::ePROJECTION, false);
+}
+
 #undef LOCTEXT_NAMESPACE

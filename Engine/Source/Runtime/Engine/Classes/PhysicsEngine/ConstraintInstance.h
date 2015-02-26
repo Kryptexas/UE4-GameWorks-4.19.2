@@ -488,6 +488,10 @@ public:
 
 	void OnConstraintBroken();
 
+	void EnableProjection();
+
+	void DisableProjection();
+
 	//Hacks to easily get zeroed memory for special case when we don't use GC
 	static void Free(FConstraintInstance * Ptr);
 	static FConstraintInstance * Alloc();
