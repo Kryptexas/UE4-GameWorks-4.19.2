@@ -218,7 +218,7 @@ void FGenericCrashContext::AddFooter()
 {
 	EndSection( TEXT( "FGenericCrashContext" ) );
 }
-\
+
 void FGenericCrashContext::BeginSection( const TCHAR* SectionName )
 {
 	CommonBuffer += TEXT( "<" );
