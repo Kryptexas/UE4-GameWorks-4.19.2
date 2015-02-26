@@ -425,7 +425,7 @@ public:
 	 * @return Get the names of all the sockets on the component.
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation", meta=(Keywords="Bone"))
-	virtual TArray<FName> GetAllSocketNames() const;
+	TArray<FName> GetAllSocketNames() const;
 
 	/** 
 	 * Get world-space socket transform.

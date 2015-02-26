@@ -1263,9 +1263,9 @@ void USceneComponent::PostInterpChange(UProperty* PropertyThatChanged)
 {
 	Super::PostInterpChange(PropertyThatChanged);
 
-	static FName RelativeScale3D(TEXT("RelativeScale3D"));
+	static FName RelativeScale3D(GET_MEMBER_NAME_CHECKED(USceneComponent, RelativeScale3D));
 
-	if(PropertyThatChanged->GetFName() == RelativeScale3D)
+	if (PropertyThatChanged->GetFName() == RelativeScale3D)
 	{
 		UpdateComponentToWorld();
 	}
@@ -1273,7 +1273,18 @@ void USceneComponent::PostInterpChange(UProperty* PropertyThatChanged)
 
 TArray<FName> USceneComponent::GetAllSocketNames() const
 {
-	return TArray<FName>();
+	TArray<FComponentSocketDescription> SocketList;
+	QuerySupportedSockets(/*out*/ SocketList);
+
+	TArray<FName> ResultList;
+	ResultList.Reserve(SocketList.Num());
+
+	for (const FComponentSocketDescription& SocketDesc : SocketList)
+	{
+		ResultList.Add(SocketDesc.Name);
+	}
+
+	return ResultList;
 }
 
 FTransform USceneComponent::GetSocketTransform(FName SocketName, ERelativeTransformSpace TransformSpace) const

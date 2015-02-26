@@ -1100,19 +1100,6 @@ void USkinnedMeshComponent::UpdateMasterBoneMap()
 	}
 }
 
-TArray<FName> USkinnedMeshComponent::GetAllSocketNames() const
-{
-	TArray<FName> SocketNames;
-	if( SkeletalMesh )
-	{
-		for( auto It=SkeletalMesh->Skeleton->Sockets.CreateConstIterator(); It; ++It )
-		{
-			SocketNames.Add( (*It)->SocketName ) ;
-		}
-	}
-	return SocketNames;
-}
-
 FTransform USkinnedMeshComponent::GetSocketTransform(FName InSocketName, ERelativeTransformSpace TransformSpace) const
 {
 	FTransform OutSocketTransform = ComponentToWorld;

@@ -246,7 +246,6 @@ public:
 		// return IsCollisionEnabled() && (StaticMesh != NULL);
 		return false;
 	}
-	virtual TArray<FName> GetAllSocketNames() const override;
 	// End USceneComponent Interface
 
 	// Begin UActorComponent interface.
@@ -438,12 +437,6 @@ public:
 	 * @return UStaticMeshSocket of named socket on the static mesh component. None if not found.
 	 */
 	class UStaticMeshSocket const* GetSocketByName( FName InSocketName ) const;
-
-	/**
-	 * Returns true if component is attached to the static mesh.
-	 * @return	true if Component is attached to StaticMesh.
-	 */
-	bool IsComponentAttached( FName SocketName = NAME_None );
 
 	/** Returns the wireframe color to use for this component. */
 	FColor GetWireframeColor() const;

@@ -203,19 +203,6 @@ void UStaticMeshComponent::QuerySupportedSockets(TArray<FComponentSocketDescript
 	}
 }
 
-TArray<FName> UStaticMeshComponent::GetAllSocketNames() const
-{
-	TArray<FName> SocketNames;
-	if( StaticMesh )
-	{
-		for( auto It=StaticMesh->Sockets.CreateConstIterator(); It; ++It )
-		{
-			SocketNames.Add( (*It)->SocketName ) ;
-		}
-	}
-	return SocketNames;
-}
-
 FString UStaticMeshComponent::GetDetailedInfoInternal() const
 {
 	FString Result;  
