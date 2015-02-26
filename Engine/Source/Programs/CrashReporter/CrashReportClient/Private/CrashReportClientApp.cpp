@@ -196,7 +196,11 @@ void RunCrashReportClient(const TCHAR* CommandLine)
 	}
 
 	FPlatformErrorReport::ShutDown();
-	GEngineLoop.AppExit();
+
+	FEngineLoop::AppPreExit();
+	FTaskGraphInterface::Shutdown();
+
+	FEngineLoop::AppExit();
 }
 
 void CrashReportClientCheck(bool bCondition, const TCHAR* Location)
