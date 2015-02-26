@@ -2,6 +2,8 @@
 
 #include "Paper2DEditorPrivatePCH.h"
 #include "SFlipbookEditorViewportToolbar.h"
+#include "SEditorViewport.h"
+#include "FlipbookEditorCommands.h"
 
 #define LOCTEXT_NAMESPACE "SFlipbookEditorViewportToolbar"
 
