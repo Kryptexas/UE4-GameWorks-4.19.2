@@ -97,7 +97,7 @@ void FTransaction::FObjectRecord::Restore( FTransaction* Owner )
 	{
 		bRestored = true;
 		TArray<uint8> FlipData;
-		TArray<UObject*> FlipReferencedObjects;
+		TArray<FReferencedObject> FlipReferencedObjects;
 		TArray<FName> FlipReferencedNames;
 		TSharedPtr<ITransactionObjectAnnotation> FlipObjectAnnotation;
 		if( Owner->bFlip )
@@ -164,22 +164,46 @@ FArchive& operator<<( FArchive& Ar, FTransaction::FObjectRecord& R )
 	return Ar;
 }
 
+FTransaction::FObjectRecord::FReferencedObject::FReferencedObject(UObject* InObject)
+{
+	UActorComponent* Component = Cast<UActorComponent>(InObject);
+	if (Component && Component->IsCreatedByConstructionScript())
+	{
+		Object = Component->GetOuter();
+		ComponentName = Component->GetFName();
+	}
+	else
+	{
+		Object = InObject;
+	}
+}
+
+UObject* FTransaction::FObjectRecord::FReferencedObject::GetObject() const
+{
+	return (ComponentName.IsNone() ? Object : FindObjectFast<UActorComponent>(Object, ComponentName));
+}
+
+void FTransaction::FObjectRecord::FReferencedObject::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	Collector.AddReferencedObject(Object);
+}
+
 void FTransaction::FObjectRecord::AddReferencedObjects( FReferenceCollector& Collector )
 {
 	UObject* Obj = Object.Get();
 	Collector.AddReferencedObject(Obj);
 	Object = Obj;
-	for( int32 ObjIndex = 0; ObjIndex < ReferencedObjects.Num(); ObjIndex++ )
+	for( FReferencedObject& ReferencedObject : ReferencedObjects )
 	{
-		Collector.AddReferencedObject( ReferencedObjects[ ObjIndex ] );
+		ReferencedObject.AddReferencedObjects(Collector);
 	}
 }
 
 void FTransaction::AddReferencedObjects( FReferenceCollector& Collector )
 {
-	for( int32 Index = 0; Index < Records.Num(); Index++ )
+	for( FObjectRecord& ObjectRecord : Records )
 	{
-		Records[ Index ].AddReferencedObjects( Collector );
+		ObjectRecord.AddReferencedObjects( Collector );
 	}
 	Collector.AddReferencedObjects(ObjectMap);
 }
