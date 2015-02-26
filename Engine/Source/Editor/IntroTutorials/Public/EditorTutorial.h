@@ -329,4 +329,16 @@ protected:
 	 */
 	UFUNCTION(BlueprintCallable, Category="Tutorial")
 	static void OpenAsset(UObject* Asset);
+
+	/**
+	 * Sets the visibility of the engine folder in the content browser
+	 */
+	UFUNCTION(BlueprintCallable, Category="Tutorial")
+	static void SetEngineFolderVisibilty(bool bNewVisibility);
+
+	/**
+	 * Returns the visibility of the engine folder in the content browser
+	 */
+	UFUNCTION(BlueprintCallable, Category="Tutorial")
+	static bool GetEngineFolderVisibilty();
 };

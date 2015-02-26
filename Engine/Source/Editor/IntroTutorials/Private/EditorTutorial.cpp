@@ -81,3 +81,28 @@ AActor* UEditorTutorial::GetActorReference(FString PathToActor)
 	return nullptr;
 #endif //WITH_EDITOR
 }
+
+void UEditorTutorial::SetEngineFolderVisibilty(bool bNewVisibility)
+{
+	bool bDisplayEngine = GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
+	// If we cannot change the vis state, or it matches the new request leave it
+	if (bDisplayEngine == bNewVisibility)
+	{
+		return;
+	}
+	if (bNewVisibility)
+	{
+		GetMutableDefault<UContentBrowserSettings>()->SetDisplayEngineFolder(true);
+	}
+	else
+	{
+		GetMutableDefault<UContentBrowserSettings>()->SetDisplayEngineFolder(false);
+		GetMutableDefault<UContentBrowserSettings>()->SetDisplayEngineFolder(false, true);
+	}
+	GetMutableDefault<UContentBrowserSettings>()->PostEditChange();
+}
+
+bool UEditorTutorial::GetEngineFolderVisibilty()
+{
+	return GetDefault<UContentBrowserSettings>()->GetDisplayEngineFolder();
+}
