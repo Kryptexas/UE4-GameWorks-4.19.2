@@ -31,7 +31,7 @@ public:
 		return false;
 	}
 
-	virtual void ApplyDelta(const FVector2D& Delta)
+	virtual void ApplyDelta(const FVector2D& Delta, const FRotator& Rotation, const FVector& Scale3D, FWidget::EWidgetMode MoveMode)
 	{
 	}
 

@@ -171,9 +171,12 @@ public:
 		return Result;
 	}
 
-	virtual void ApplyDelta(const FVector2D& Delta) override
+	virtual void ApplyDelta(const FVector2D& Delta, const FRotator& Rotation, const FVector& Scale3D, FWidget::EWidgetMode MoveMode) override
 	{
-		ApplyDeltaIndexed(Delta, VertexIndex);
+		if (MoveMode == FWidget::WM_Translate)
+		{
+			ApplyDeltaIndexed(Delta, VertexIndex);
+		}
 	}
 
 	FVector GetWorldPos() const override
@@ -294,9 +297,12 @@ public:
 		return Result;
 	}
 
-	virtual void ApplyDelta(const FVector2D& Delta) override
+	virtual void ApplyDelta(const FVector2D& Delta, const FRotator& Rotation, const FVector& Scale3D, FWidget::EWidgetMode MoveMode) override
 	{
-		ApplyDeltaIndexed(Delta, VertexIndex);
+		if (MoveMode == FWidget::WM_Translate)
+		{
+			ApplyDeltaIndexed(Delta, VertexIndex);
+		}
 	}
 
 	FVector GetWorldPos() const override
@@ -340,7 +346,7 @@ public:
 		}
 	}
 
-	virtual void ApplyDelta(const FVector2D& Delta) override
+	virtual void ApplyDelta(const FVector2D& Delta, const FRotator& Rotation, const FVector& Scale3D, FWidget::EWidgetMode MoveMode) override
 	{
 		ApplyDeltaIndexed(Delta, VertexIndex);
 		ApplyDeltaIndexed(Delta, VertexIndex+1);

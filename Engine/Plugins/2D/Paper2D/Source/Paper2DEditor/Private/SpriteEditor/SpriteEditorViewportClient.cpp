@@ -58,7 +58,7 @@ FSpriteEditorViewportClient::FSpriteEditorViewportClient(TWeakPtr<FSpriteEditor>
 
 	SetRealtime(true);
 
-	WidgetMode = FWidget::WM_Translate;
+	DesiredWidgetMode = FWidget::WM_Translate;
 	bManipulating = false;
 	bManipulationDirtiedSomething = false;
 	ScopedTransaction = nullptr;
@@ -1223,6 +1223,8 @@ bool FSpriteEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisLis
 	{
 		bHandled = true;
 
+		const FWidget::EWidgetMode MoveMode = GetWidgetMode();
+
 		// Negate Y because vertices are in source texture space, not world space
 		const FVector2D Drag2D(FVector::DotProduct(Drag, PaperAxisX), -FVector::DotProduct(Drag, PaperAxisY));
 
@@ -1230,7 +1232,7 @@ bool FSpriteEditorViewportClient::InputWidgetDelta(FViewport* Viewport, EAxisLis
 		for (auto SelectionIt = SelectionSet.CreateConstIterator(); SelectionIt; ++SelectionIt)
 		{
 			TSharedPtr<FSelectedItem> SelectedItem = *SelectionIt;
-			SelectedItem->ApplyDelta(Drag2D);
+			SelectedItem->ApplyDelta(Drag2D, Rot, Scale, MoveMode);
 		}
 
 		if (SelectionSet.Num() > 0)
@@ -1272,7 +1274,26 @@ void FSpriteEditorViewportClient::TrackingStopped()
 
 FWidget::EWidgetMode FSpriteEditorViewportClient::GetWidgetMode() const
 {
-	return (SelectionSet.Num() > 0) ? FWidget::WM_Translate : FWidget::WM_None;
+	return (SelectionSet.Num() > 0) ? DesiredWidgetMode : FWidget::WM_None;
+}
+
+void FSpriteEditorViewportClient::SetWidgetMode(FWidget::EWidgetMode NewMode)
+{
+	DesiredWidgetMode = NewMode;
+}
+
+bool FSpriteEditorViewportClient::CanSetWidgetMode(FWidget::EWidgetMode NewMode) const
+{
+	return CanCycleWidgetMode();
+}
+
+bool FSpriteEditorViewportClient::CanCycleWidgetMode() const
+{
+	if (!Widget->IsDragging())
+	{
+		return (SelectionSet.Num() > 0);
+	}
+	return false;
 }
 
 FVector FSpriteEditorViewportClient::GetWidgetLocation() const
