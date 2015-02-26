@@ -5,6 +5,16 @@
 
 #include "EditorLoadingSavingSettings.generated.h"
 
+UENUM()
+namespace ELoadLevelAtStartup
+{
+	enum Type
+	{
+		None,
+		ProjectDefault,
+		LastOpened
+	};
+}
 
 /**
  * Implements the Level Editor's loading and saving settings.
@@ -17,9 +27,9 @@ class UNREALED_API UEditorLoadingSavingSettings
 
 public:
 
-	/** Whether to load a default example map at startup */
+	/** Whether to load a default example map at startup  */
 	UPROPERTY(EditAnywhere, config, Category=Startup)
-	uint32 bLoadDefaultLevelAtStartup:1;
+	TEnumAsByte<ELoadLevelAtStartup::Type> LoadLevelAtStartup;
 
 	/** Whether to restore previously open assets at startup */
 	UPROPERTY(EditAnywhere, config, Category=Startup)

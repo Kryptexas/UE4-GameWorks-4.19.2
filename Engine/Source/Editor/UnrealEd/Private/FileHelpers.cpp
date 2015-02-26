@@ -1962,6 +1962,9 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 		return;
 	}
 
+	// Save last opened level name.
+	GConfig->SetString(TEXT("EditorStartup"), TEXT("LastLevel"), *LongMapPackageName, GEditorUserSettingsIni);
+
 	// Deactivate any editor modes when loading a new map
 	GLevelEditorModeTools().DeactivateAllModes();
 
@@ -3132,7 +3135,16 @@ bool FEditorFileUtils::IsFilenameValidForSaving( const FString& Filename, FText&
 
 void FEditorFileUtils::LoadDefaultMapAtStartup()
 {
-	FString EditorStartupMap = GetDefault<UGameMapsSettings>()->EditorStartupMap;
+	FString EditorStartupMap;
+	// Last opened map.
+	if (GetDefault<UEditorLoadingSavingSettings>()->LoadLevelAtStartup == ELoadLevelAtStartup::LastOpened)
+	{
+		GConfig->GetString(TEXT("EditorStartup"), TEXT("LastLevel"), EditorStartupMap, GEditorUserSettingsIni);
+	}
+	// Default project map.
+	if (EditorStartupMap.IsEmpty()) {
+		EditorStartupMap = GetDefault<UGameMapsSettings>()->EditorStartupMap;
+	}
 	
 	const bool bIncludeReadOnlyRoots = true;
 	if ( FPackageName::IsValidLongPackageName(EditorStartupMap, bIncludeReadOnlyRoots) )

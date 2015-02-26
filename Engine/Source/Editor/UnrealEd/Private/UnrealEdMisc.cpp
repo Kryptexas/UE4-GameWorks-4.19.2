@@ -294,7 +294,7 @@ void FUnrealEdMisc::OnInit()
 			{
 				const FString& StartupMap = GetDefault<UGameMapsSettings>()->EditorStartupMap;
 
-				if ((StartupMap.Len() > 0) && GetDefault<UEditorLoadingSavingSettings>()->bLoadDefaultLevelAtStartup)
+				if ((StartupMap.Len() > 0) && (GetDefault<UEditorLoadingSavingSettings>()->LoadLevelAtStartup != ELoadLevelAtStartup::None))
 				{
 					FEditorFileUtils::LoadDefaultMapAtStartup();
 					BeginPerformanceSurvey();
