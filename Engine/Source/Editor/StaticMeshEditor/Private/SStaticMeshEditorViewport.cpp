@@ -158,14 +158,16 @@ void SStaticMeshEditorViewport::UpdatePreviewSocketMeshes()
 					SocketPreviewMeshComponent = NewObject<UStaticMeshComponent>();
 					PreviewScene.AddComponent(SocketPreviewMeshComponent, FTransform::Identity);
 					SocketPreviewMeshComponents.Add(SocketPreviewMeshComponent);
+					SocketPreviewMeshComponent->SnapTo(PreviewMeshComponent, Socket->SocketName);
 				}
 				else
 				{
 					SocketPreviewMeshComponent = SocketPreviewMeshComponents[i];
+					// Force component to world update to take into account the new socket position.
+					SocketPreviewMeshComponent->UpdateComponentToWorld();
 				}
 
 				SocketPreviewMeshComponent->SetStaticMesh(Socket->PreviewStaticMesh);
-				SocketPreviewMeshComponent->SnapTo(PreviewMeshComponent, Socket->SocketName);
 			}
 		}
 	}
