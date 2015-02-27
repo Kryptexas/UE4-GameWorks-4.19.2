@@ -87,7 +87,7 @@ void FWebBrowserWindow::SetViewportSize(FIntPoint WindowSize)
 		if (UpdatableTexture != nullptr)
 		{
 			UpdatableTexture->ResizeTexture(ViewportSize.X, ViewportSize.Y);
-			UpdatableTexture->UpdateTexture(TextureData);
+			UpdatableTexture->UpdateTextureThreadSafe(TextureData);
 		}
 		if (IsValid())
 		{
@@ -424,7 +424,7 @@ void FWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const C
 
 	if (UpdatableTexture != nullptr)
 	{
-		UpdatableTexture->UpdateTexture(TextureData);
+		UpdatableTexture->UpdateTextureThreadSafe(TextureData);
 	}
 
 	bHasBeenPainted = true;
