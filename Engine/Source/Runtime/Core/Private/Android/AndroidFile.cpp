@@ -41,6 +41,8 @@ static int32 GPackagePatchVersion = 0;
 
 // External File Path base - setup during load
 FString GFilePathBase;
+// External File Direcory Path (for application) - setup during load
+FString GExternalFilePath;
 // External font path base - setup during load
 FString GFontPathBase;
 
