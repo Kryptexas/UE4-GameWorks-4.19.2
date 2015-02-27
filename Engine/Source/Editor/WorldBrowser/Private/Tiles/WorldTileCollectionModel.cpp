@@ -1627,16 +1627,13 @@ void FWorldTileCollectionModel::ImportTiledLandscape_Executed()
 
 					if (NewLandscape)
 					{
-						// Set landscape actor location at min corner of bounding rect, so it will be centered around origin
+						// Set bounds of a tile
+						NewTileModel->TileDetails->Bounds = NewLandscape->GetComponentsBoundingBox();
+						
+						// Calculate this tile offset from world origin
 						FIntRect NewLandscapeRect = NewLandscape->GetBoundingRect();
 						float WidthX = NewLandscapeRect.Width()*TileScale.X;
 						float WidthY = NewLandscapeRect.Height()*TileScale.Y;
-						NewLandscape->SetActorLocation(-FVector(WidthX, WidthY, 0.f)*0.5f);
-						
-						// Set bounds of a tile
-						NewTileModel->TileDetails->Bounds = NewLandscape->GetComponentsBoundingBox();
-
-						// Calculate this tile offset from world origin
 						FIntPoint TileCoordinates = ImportSettings.TileCoordinates[TileIndex] + ImportSettings.TilesCoordinatesOffset;
 						FIntPoint TileOffset = FIntPoint(TileCoordinates.X*WidthX, TileCoordinates.Y*WidthY);
 						
