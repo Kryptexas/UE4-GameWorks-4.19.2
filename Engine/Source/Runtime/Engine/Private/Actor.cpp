@@ -1512,13 +1512,13 @@ void AActor::RouteEndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (bActorInitialized)
 	{
-		UninitializeComponents();
-
 		UWorld* World = GetWorld();
 		if (World && World->HasBegunPlay())
 		{
 			EndPlay(EndPlayReason);
 		}
+
+		UninitializeComponents();
 	}
 }
 
