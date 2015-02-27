@@ -284,14 +284,17 @@ namespace UnrealBuildTool
 
 				if (!Directory.Exists(MasterProjectRelativePath + "/Source"))
 				{
-					if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+					if (!Directory.Exists(MasterProjectRelativePath + "/Intermediate/Source"))
 					{
-						MasterProjectRelativePath = Path.GetFullPath(Path.Combine (Utils.GetExecutingAssemblyDirectory (), "..", "..", "..", "Engine"));
-						GameProjectName = "UE4Game";
-					}
-					if (!Directory.Exists(MasterProjectRelativePath + "/Source"))
-					{
-						throw new BuildException ("Directory '{0}' is missing 'Source' folder.", MasterProjectRelativePath);
+						if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
+						{
+							MasterProjectRelativePath = Path.GetFullPath(Path.Combine(Utils.GetExecutingAssemblyDirectory(), "..", "..", "..", "Engine"));
+							GameProjectName = "UE4Game";
+						}
+						if (!Directory.Exists(MasterProjectRelativePath + "/Source"))
+						{
+							throw new BuildException("Directory '{0}' is missing 'Source' folder.", MasterProjectRelativePath);
+						}
 					}
 				}
 				IntermediateProjectFilesPath = Path.Combine(MasterProjectRelativePath, "Intermediate", "ProjectFiles");
@@ -313,7 +316,10 @@ namespace UnrealBuildTool
 
 				if (!Directory.Exists(MasterProjectRelativePath + "/Source"))
 				{
-					throw new BuildException("Directory '{0}' is missing 'Source' folder.", MasterProjectRelativePath);
+					if (!Directory.Exists(MasterProjectRelativePath + "/Intermediate/Source"))
+					{
+						throw new BuildException("Directory '{0}' is missing 'Source' folder.", MasterProjectRelativePath);
+					}
 				}
 			}
 

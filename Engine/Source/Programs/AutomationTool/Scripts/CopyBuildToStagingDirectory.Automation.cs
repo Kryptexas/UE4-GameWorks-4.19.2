@@ -450,7 +450,7 @@ public partial class Project : CommandUtils
 	{
         // const string Iso8601DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ"; // probably should work
 		// const string Iso8601DateTimeFormat = "o"; // predefined universal Iso standard format (has too many millisecond spaces for our read code in FDateTime.ParseISO8601
-        const string Iso8601DateTimeFormat = "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffzzz";
+        const string Iso8601DateTimeFormat = "yyyy'-'MM'-'dd'T'HH':'mm':'ss'.'fffZ";
 
         
         if (Mapping.Count > 0)
@@ -881,7 +881,7 @@ public partial class Project : CommandUtils
 
 	private static string GetIntermediateCommandlineDir(DeploymentContext SC)
 	{
-		return CombinePaths(SC.LocalRoot, "Engine/Intermediate/UAT", SC.FinalCookPlatform);
+		return CombinePaths(SC.ProjectRoot, "Intermediate/UAT", SC.FinalCookPlatform);
 	}
 
 	public static void WriteStageCommandline(string IntermediateCmdLineFile, ProjectParams Params, DeploymentContext SC)

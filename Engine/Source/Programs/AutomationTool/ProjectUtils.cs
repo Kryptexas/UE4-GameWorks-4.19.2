@@ -81,6 +81,11 @@ namespace AutomationTool
 		/// </summary>
 		public List<SingleTargetProperties> Programs = new List<SingleTargetProperties>();
 
+		/// <summary>
+		/// Specifies if the target files were generated
+		/// </summary>
+		public bool bWasGenerated = false;
+
 		internal ProjectProperties()
 		{
 		}
@@ -109,7 +114,7 @@ namespace AutomationTool
 		/// </summary>
 		/// <param name="RawProjectPath">Full project path.</param>
 		/// <returns>Properties of the project.</returns>
-		public static ProjectProperties GetProjectProperties(string RawProjectPath)
+		public static ProjectProperties GetProjectProperties(string RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms = null)
 		{
 			string ProjectKey = "UE4";
 			if (!String.IsNullOrEmpty(RawProjectPath))
@@ -119,7 +124,7 @@ namespace AutomationTool
 			ProjectProperties Properties;
 			if (PropertiesCache.TryGetValue(ProjectKey, out Properties) == false)
 			{
-				Properties = DetectProjectProperties(RawProjectPath);
+				Properties = DetectProjectProperties(RawProjectPath, ClientTargetPlatforms);
 				PropertiesCache.Add(ProjectKey, Properties);
 			}
 			return Properties;
@@ -132,7 +137,7 @@ namespace AutomationTool
 		/// <returns>True if the project is a UProject file with source code.</returns>
 		public static bool IsCodeBasedUProjectFile(string RawProjectPath)
 		{
-			return GetProjectProperties(RawProjectPath).bIsCodeBasedProject;
+			return GetProjectProperties(RawProjectPath, null).bIsCodeBasedProject;
 		}
 
 		/// <summary>
@@ -150,19 +155,82 @@ namespace AutomationTool
 			return ProjectClientBinariesPath;
 		}
 
+		private static bool RequiresTempTarget(string RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms)
+		{
+			if (ClientTargetPlatforms == null || ClientTargetPlatforms.Count < 1)
+			{
+				foreach (UnrealTargetPlatform TargetPlatformType in Enum.GetValues(typeof(UnrealTargetPlatform)))
+				{
+					if (TargetPlatformType != UnrealTargetPlatform.Unknown)
+					{
+						IUEBuildPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(TargetPlatformType, true);
+						if (BuildPlat != null && !(BuildPlat as UEBuildPlatform).HasDefaultBuildConfig(TargetPlatformType, Path.GetDirectoryName(RawProjectPath)))
+						{
+							return true;
+						}
+					}
+				}
+			}
+			else
+			{
+				foreach (UnrealTargetPlatform TargetPlatformType in ClientTargetPlatforms)
+				{
+					IUEBuildPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(TargetPlatformType, true);
+					if (BuildPlat != null && !(BuildPlat as UEBuildPlatform).HasDefaultBuildConfig(TargetPlatformType, Path.GetDirectoryName(RawProjectPath)))
+					{
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+
+		private static void GenerateTempTarget(string RawProjectPath)
+		{
+			// read in the template target cs file
+			var TempCSFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LocalRoot, "Engine", "Build", "Target.cs.template");
+			string TargetCSFile = File.ReadAllText(TempCSFile);
+
+			// replace {GAME_NAME} with the game name
+			TargetCSFile = TargetCSFile.Replace("{GAME_NAME}", Path.GetFileNameWithoutExtension(RawProjectPath));
+
+			// write out the file in a new Source directory
+			string FileName = CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath), "Intermediate", "Source", Path.GetFileNameWithoutExtension(RawProjectPath) + ".Target.cs");
+			if (!Directory.Exists(Path.GetDirectoryName(FileName)))
+			{
+				Directory.CreateDirectory(Path.GetDirectoryName(FileName));
+			}
+
+			File.WriteAllText(FileName, TargetCSFile);
+		}
+
 		/// <summary>
 		/// Attempts to autodetect project properties.
 		/// </summary>
 		/// <param name="RawProjectPath">Full project path.</param>
 		/// <returns>Project properties.</returns>
-		private static ProjectProperties DetectProjectProperties(string RawProjectPath)
+		private static ProjectProperties DetectProjectProperties(string RawProjectPath, List<UnrealTargetPlatform> ClientTargetPlatforms)
 		{
 			var Properties = new ProjectProperties();
 			Properties.RawProjectPath = RawProjectPath;
 
+			// detect if the project is content only, but has non-default build settings
+			List<string> ExtraSearchPaths = null;
+			if (RequiresTempTarget(RawProjectPath, ClientTargetPlatforms))
+			{
+				GenerateTempTarget(RawProjectPath);
+				Properties.bWasGenerated = true;
+				ExtraSearchPaths = new List<string>();
+				ExtraSearchPaths.Add(CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath), "Intermediate", "Source"));
+			}
+			else if (File.Exists(Path.Combine(Path.GetDirectoryName(RawProjectPath), "Intermediate", "Source", Path.GetFileNameWithoutExtension(RawProjectPath) + ".Target.cs")))
+			{
+				File.Delete(Path.Combine(Path.GetDirectoryName(RawProjectPath), "Intermediate", "Source", Path.GetFileNameWithoutExtension(RawProjectPath) + ".Target.cs"));
+			}
+
 			if (CommandUtils.CmdEnv.HasCapabilityToCompile)
 			{
-				DetectTargetsForProject(Properties);
+				DetectTargetsForProject(Properties, ExtraSearchPaths);
 				Properties.bIsCodeBasedProject = !CommandUtils.IsNullOrEmpty(Properties.Targets) || !CommandUtils.IsNullOrEmpty(Properties.Programs);
 			}
 			else
@@ -173,14 +241,14 @@ namespace AutomationTool
 					throw new AutomationException("Cannot dtermine engine targets if we can't compile.");
 				}
 
-				Properties.bIsCodeBasedProject = false;
+				Properties.bIsCodeBasedProject = Properties.bWasGenerated;
 				// if there's a Source directory with source code in it, then mark us as having source code
 				string SourceDir = CommandUtils.CombinePaths(Path.GetDirectoryName(RawProjectPath), "Source");
 				if (Directory.Exists(SourceDir))
 				{
 					string[] CppFiles = Directory.GetFiles(SourceDir, "*.cpp", SearchOption.AllDirectories);
 					string[] HFiles = Directory.GetFiles(SourceDir, "*.h", SearchOption.AllDirectories);
-					Properties.bIsCodeBasedProject = CppFiles.Length > 0 || HFiles.Length > 0;
+					Properties.bIsCodeBasedProject |= (CppFiles.Length > 0 || HFiles.Length > 0);
 				}
 			}
 

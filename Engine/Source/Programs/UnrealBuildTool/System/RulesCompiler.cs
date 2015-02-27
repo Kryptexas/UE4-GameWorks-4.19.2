@@ -1067,6 +1067,8 @@ namespace UnrealBuildTool
 				{
 					var GameSourceFolder = Path.GetFullPath(Path.Combine( GameFolder, "Source" ));
 					Folders.Add( GameSourceFolder );
+					var GameIntermediateSourceFolder = Path.GetFullPath(Path.Combine(GameFolder, "Intermediate", "Source"));
+					Folders.Add(GameIntermediateSourceFolder);
 				}
 			}
 
@@ -1219,6 +1221,12 @@ namespace UnrealBuildTool
 					if( Directory.Exists( ProjectSourceDirectory ) )
 					{
 						AdditionalSearchPaths.Add( ProjectSourceDirectory );
+					}
+					// Add the games project's intermediate source folder
+					var ProjectIntermediateSourceDirectory = Path.Combine(UnrealBuildTool.GetUProjectPath(), "Intermediate", "Source");
+					if (Directory.Exists(ProjectIntermediateSourceDirectory))
+					{
+						AdditionalSearchPaths.Add(ProjectIntermediateSourceDirectory);
 					}
 				}
 				var ModuleFileNames = FindAllRulesSourceFiles(RulesFileType.Module, AdditionalSearchPaths);

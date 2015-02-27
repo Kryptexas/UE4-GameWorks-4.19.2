@@ -251,8 +251,12 @@ namespace iPhonePackager
 			// make sure this .mobileprovision file is newer than any other .mobileprovision file on the Mac (this file gets multiple games named the same file, 
 			// so the time stamp checking can fail when moving between games, a la the buildmachines!)
 			File.SetLastWriteTime(FinalMobileProvisionFilename, DateTime.UtcNow);
-
-			FileOperations.CopyRequiredFile(Config.RootRelativePath + @"Engine\Intermediate\IOS\UE4.xcodeproj\project.pbxproj", Path.Combine(Config.PCXcodeStagingDir, @"project.pbxproj.datecheck"));
+			string ProjectFile = Config.RootRelativePath + @"Engine\Intermediate\IOS\UE4.xcodeproj\project.pbxproj";
+			if (Program.GameName != "UE4Game")
+			{
+				ProjectFile = Config.IntermediateDirectory + @"\" + Program.GameName + @".xcodeproj\project.pbxproj";
+			}
+			FileOperations.CopyRequiredFile(ProjectFile, Path.Combine(Config.PCXcodeStagingDir, @"project.pbxproj.datecheck"));
 			
 			// needs Mac line endings so it can be executed
 			string SrcPath = @"..\..\..\Build\IOS\XcodeSupportFiles\prepackage.sh";

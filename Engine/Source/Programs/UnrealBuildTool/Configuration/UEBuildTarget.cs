@@ -584,7 +584,7 @@ namespace UnrealBuildTool
 
 
 		/** 
-		 * Look for all folders ending in "Game" in the branch root that have a "Source" subfolder
+		 * Look for all folders with a uproject file, these are valid games
 		 * This is defined as a valid game
 		 */
 		public static List<string> DiscoverAllGameFolders()
@@ -2772,9 +2772,10 @@ namespace UnrealBuildTool
 			// tell the compiled code the name of the UBT platform (this affects folder on disk, etc that the game may need to know)
 			GlobalCompileEnvironment.Config.Definitions.Add("UBT_COMPILED_PLATFORM=" + Platform.ToString());
 
-			// Initialize the compile and link environments for the platform and configuration.
+			// Initialize the compile and link environments for the platform, configuration, and project.
 			SetUpPlatformEnvironment();
 			SetUpConfigurationEnvironment();
+			SetUpProjectEnvironment();
 
 			// Validates current settings and updates if required.
 			BuildConfiguration.ValidateConfiguration(
@@ -2813,6 +2814,11 @@ namespace UnrealBuildTool
 			bool bIsBuildingLibrary = UpperExtension == ".LIB";
 			GlobalCompileEnvironment.Config.bIsBuildingLibrary = bIsBuildingLibrary;
 			GlobalLinkEnvironment.Config.bIsBuildingLibrary = bIsBuildingLibrary;
+		}
+
+		void SetUpProjectEnvironment()
+		{
+			UEBuildPlatform.GetBuildPlatform(Platform).SetUpProjectEnvironment(Platform);
 		}
 
 		/** Constructs a TargetInfo object for this target. */
