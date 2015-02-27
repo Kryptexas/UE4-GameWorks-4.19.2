@@ -23,6 +23,27 @@ enum class EAsyncExecution
 
 
 /**
+ * Template for setting a promise's value from a function.
+ */
+template<typename ResultType>
+void SetPromise(TPromise<ResultType>& Promise, TFunction<ResultType()> Function)
+{
+	Promise.SetValue(Function());
+}
+
+
+/**
+ * Template for setting a promise's value from a function (specialization for void results).
+ */
+template<>
+void SetPromise(TPromise<void>& Promise, TFunction<void()> Function)
+{
+	Function();
+	Promise.SetValue();
+}
+
+
+/**
  * Base class for asynchronous functions that are executed in the Task Graph system.
  */
 class FAsyncTaskBase
@@ -91,7 +112,7 @@ public:
 	 */
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
 	{
-		Promise.SetValue(Function());
+		SetPromise(Promise, Function);
 	}
 
 	/**
@@ -181,7 +202,7 @@ public:
 
 	virtual void DoThreadedWork() override
 	{
-		Promise.SetValue(Function());
+		SetPromise(Promise, Function);
 		delete this;
 	}
 
@@ -280,9 +301,10 @@ TFuture<ResultType> Async(EAsyncExecution Execution, TFunction<ResultType()> Fun
 	return MoveTemp(Future);
 }
 
+
 template<typename ResultType> uint32 TAsyncRunnable<ResultType>::Run()
 {
-	Promise.SetValue( Function() );
+	SetPromise(Promise, Function);
 
 	FRunnableThread* Thread = ThreadFuture.Get();
 

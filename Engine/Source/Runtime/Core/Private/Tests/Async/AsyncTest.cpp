@@ -41,5 +41,12 @@ bool FAsyncTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("Thread pool task must return expected value"), Result, 123);
 	}
 
+	TFunction<void()> VoidTask = []() {};
+	
+	// TAsync<void>
+	{
+		auto Future = Async(EAsyncExecution::TaskGraph, VoidTask);
+	}
+
 	return true;
 }
