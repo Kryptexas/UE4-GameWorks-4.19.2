@@ -22,6 +22,7 @@ struct FPropertyTag
 	int32		Size;       // Property size.
 	int32		ArrayIndex;	// Index if an array; else 0.
 	int32		SizeOffset;	// location in stream of tag size member
+	FGuid	StructGuid;
 
 	// Constructors.
 	FPropertyTag()
@@ -53,6 +54,7 @@ struct FPropertyTag
 			if (UStructProperty* StructProperty = Cast<UStructProperty>(Property))
 			{
 				StructName = StructProperty->Struct->GetFName();
+				StructGuid = StructProperty->Struct->GetCustomGuid();
 			}
 			else if (UByteProperty* ByteProp = Cast<UByteProperty>(Property))
 			{
@@ -95,6 +97,10 @@ struct FPropertyTag
 		if (Tag.Type == NAME_StructProperty)
 		{
 			Ar << Tag.StructName;
+			if (Ar.UE4Ver() >= VER_UE4_STRUCT_GUID_IN_PROPERTY_TAG)
+			{
+				Ar << Tag.StructGuid;
+			}
 		}
 		// only need to serialize this for bools
 		else if (Tag.Type == NAME_BoolProperty)

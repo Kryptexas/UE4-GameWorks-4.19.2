@@ -1093,6 +1093,8 @@ public:
 	void ClearScriptStruct(void* Dest, int32 ArrayDim = 1) const;
 
 	virtual COREUOBJECT_API void RecursivelyPreload();
+
+	virtual COREUOBJECT_API FGuid GetCustomGuid() const;
 };
 
 class FStructOnScope

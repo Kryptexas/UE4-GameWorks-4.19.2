@@ -37,6 +37,7 @@ UUserDefinedStruct* FStructureEditorUtils::CreateUserDefinedStruct(UObject* InPa
 		Struct->EditorData = NewObject<UUserDefinedStructEditorData>(Struct, NAME_None, RF_Transactional);
 		check(Struct->EditorData);
 
+		Struct->Guid = FGuid::NewGuid();
 		Struct->SetMetaData(TEXT("BlueprintType"), TEXT("true"));
 		Struct->Bind();
 		Struct->StaticLink(true);

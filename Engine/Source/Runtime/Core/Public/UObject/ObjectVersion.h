@@ -476,6 +476,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_ACTOR_COMPONENT_CREATION_METHOD,
 	// K2Node_Event now uses FMemberReference for handling references
 	VER_UE4_K2NODE_EVENT_MEMBER_REFERENCE,
+	// FPropertyTag stores GUID of struct
+	VER_UE4_STRUCT_GUID_IN_PROPERTY_TAG,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

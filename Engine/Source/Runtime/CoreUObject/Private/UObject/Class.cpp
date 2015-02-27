@@ -799,6 +799,16 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				break;
 			}
 
+			auto CanSerializeFromStructWithDifferentName = [](const FArchive& Ar, const FPropertyTag& PropertyTag, const UStructProperty* StructProperty)
+			{
+				if (Ar.UE4Ver() < VER_UE4_STRUCT_GUID_IN_PROPERTY_TAG)
+				{
+					// Old Implementation
+					return !StructProperty->UseBinaryOrNativeSerialization(Ar);
+				}
+				return PropertyTag.StructGuid.IsValid() && StructProperty && StructProperty->Struct && (PropertyTag.StructGuid == StructProperty->Struct->GetCustomGuid());
+			};
+
 			// Move to the next property to be serialized
 			if( AdvanceProperty && --RemainingArrayDim <= 0 )
 			{
@@ -1137,7 +1147,7 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				}
 			}
 			else if( Tag.Type==NAME_StructProperty && Tag.StructName!=CastChecked<UStructProperty>(Property)->Struct->GetFName() 
-				&& CastChecked<UStructProperty>(Property)->UseBinaryOrNativeSerialization(Ar) )
+				&& !CanSerializeFromStructWithDifferentName(Ar, Tag, CastChecked<UStructProperty>(Property)))
 			{
 				UE_LOG(LogClass, Warning, TEXT("Property %s of %s struct type mismatch %s/%s for package:  %s. If that property got renamed, add an ActiveStructRedirect."), *Tag.Name.ToString(), *GetName(), *Tag.StructName.ToString(), *CastChecked<UStructProperty>(Property)->Struct->GetName(), *Ar.GetArchiveName() );
 			}
@@ -2300,6 +2310,11 @@ void UScriptStruct::DestroyStruct(void* Dest, int32 ArrayDim) const
 }
 
 void UScriptStruct::RecursivelyPreload() {}
+
+FGuid UScriptStruct::GetCustomGuid() const
+{
+	return FGuid();
+}
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UScriptStruct, UStruct,
 	{

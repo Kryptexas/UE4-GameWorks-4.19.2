@@ -32,11 +32,22 @@ void UUserDefinedStruct::Serialize(FArchive& Ar)
 void UUserDefinedStruct::PostDuplicate(bool bDuplicateForPIE)
 {
 	Super::PostDuplicate(bDuplicateForPIE);
+	if (!bDuplicateForPIE)
+	{
+		Guid = FGuid::NewGuid();
+	}
 	if (!bDuplicateForPIE && (GetOuter() != GetTransientPackage()))
 	{
 		SetMetaData(TEXT("BlueprintType"), TEXT("true"));
 		FStructureEditorUtils::OnStructureChanged(this);
 	}
+}
+
+void UUserDefinedStruct::PostLoad()
+{
+	Super::PostLoad();
+
+	ValidateGuid();
 }
 
 void UUserDefinedStruct::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
@@ -57,6 +68,22 @@ UProperty* UUserDefinedStruct::CustomFindProperty(const FName Name) const
 void UUserDefinedStruct::InitializeDefaultValue(uint8* StructData) const
 {
 	FStructureEditorUtils::Fill_MakeStructureDefaultValue(this, StructData);
+}
+
+void UUserDefinedStruct::ValidateGuid()
+{
+	// Backward compatibility:
+	// The guid is created in an deterministic way using existing name.
+	if (!Guid.IsValid() && (GetFName() != NAME_None))
+	{
+		const FString HashString = GetFName().ToString();
+		ensure(HashString.Len());
+
+		const uint32 BufferLength = HashString.Len() * sizeof(HashString[0]);
+		uint32 HashBuffer[5];
+		FSHA1::HashBuffer(*HashString, BufferLength, reinterpret_cast<uint8*>(HashBuffer));
+		Guid = FGuid(HashBuffer[1], HashBuffer[2], HashBuffer[3], HashBuffer[4]);
+	}
 }
 
 #endif	// WITH_EDITOR
@@ -146,4 +173,9 @@ void UUserDefinedStruct::RecursivelyPreload()
 			StaticLink(true);
 		}
 	}
+}
+
+FGuid UUserDefinedStruct::GetCustomGuid() const
+{
+	return Guid;
 }
