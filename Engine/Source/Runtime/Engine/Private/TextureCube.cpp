@@ -59,6 +59,7 @@ void UTextureCube::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) cons
 
 	const FString Dimensions = FString::Printf(TEXT("%dx%d"), SizeX, SizeY);
 	OutTags.Add( FAssetRegistryTag("Dimensions", Dimensions, FAssetRegistryTag::TT_Dimensional) );
+	OutTags.Add( FAssetRegistryTag("Format", GPixelFormats[GetPixelFormat()].Name, FAssetRegistryTag::TT_Alphabetical) );
 
 	Super::GetAssetRegistryTags(OutTags);
 }

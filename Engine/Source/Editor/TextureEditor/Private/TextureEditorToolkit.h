@@ -246,9 +246,12 @@ private:
 	TSharedPtr<STextBlock> ImportedText;
 	TSharedPtr<STextBlock> CurrentText;
 	TSharedPtr<STextBlock> MaxInGameText;
+	TSharedPtr<STextBlock> SizeText;
 	TSharedPtr<STextBlock> MethodText;
 	TSharedPtr<STextBlock> FormatText;
 	TSharedPtr<STextBlock> LODBiasText;
+	TSharedPtr<STextBlock> HasAlphaChannelText;
+	TSharedPtr<STextBlock> NumMipsText;
 
 	/** If true, displays the red channel */
 	bool bIsRedChannel;

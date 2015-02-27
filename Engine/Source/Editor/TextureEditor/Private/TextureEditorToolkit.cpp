@@ -360,6 +360,13 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 	MipLevel = FMath::Max(GetMipLevel(), Texture->GetCachedLODBias());
 	CalculateEffectiveTextureDimensions(MipLevel, PreviewEffectiveTextureWidth, PreviewEffectiveTextureHeight);
 
+	// Texture asset size
+	const SIZE_T Size = Texture->GetResourceSize(EResourceSizeMode::Exclusive);
+
+	FNumberFormattingOptions SizeOptions;
+	SizeOptions.UseGrouping = false;
+	SizeOptions.MaximumFractionalDigits = 0;
+
 	// Cubes are previewed as unwrapped 2D textures.
 	// These have 2x the width of a cube face.
 	PreviewEffectiveTextureWidth *= IsCubeTexture() ? 2 : 1;
@@ -370,9 +377,10 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 	ImportedText->SetText(FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Imported", "Imported: {0}x{1}"), FText::AsNumber(ImportedWidth, &Options), FText::AsNumber(ImportedHeight, &Options)));
 	CurrentText->SetText(FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Displayed", "Displayed: {0}x{1}"), FText::AsNumber(FMath::Max((uint32)1, ActualWidth >> MipLevel), &Options ), FText::AsNumber(FMath::Max((uint32)1, ActualHeight >> MipLevel), &Options)));
 	MaxInGameText->SetText(FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_MaxInGame", "Max In-Game: {0}x{1}"), FText::AsNumber(MaxInGameWidth, &Options), FText::AsNumber(MaxInGameHeight, &Options)));
-	MethodText->SetText(FText::Format( NSLOCTEXT("TextureEditor", "QuickInfo_Method", "Method: {0}"), Texture->NeverStream ? NSLOCTEXT("TextureEditor", "QuickInfo_MethodNotStreamed", "Not Streamed") : NSLOCTEXT("TextureEditor", "QuickInfo_MethodStreamed", "Streamed")));
+	SizeText->SetText(FText::Format(NSLOCTEXT("TextureEditor", "QuickInfo_ResourceSize", "Resource Size: {0}kb"), FText::AsNumber((Size + 512) / 1024, &SizeOptions)));
+	MethodText->SetText(FText::Format(NSLOCTEXT("TextureEditor", "QuickInfo_Method", "Method: {0}"), Texture->NeverStream ? NSLOCTEXT("TextureEditor", "QuickInfo_MethodNotStreamed", "Not Streamed") : NSLOCTEXT("TextureEditor", "QuickInfo_MethodStreamed", "Streamed")));
 	LODBiasText->SetText(FText::Format(NSLOCTEXT("TextureEditor", "QuickInfo_LODBias", "Combined LOD Bias: {0}"), FText::AsNumber(Texture->GetCachedLODBias())));
-	
+
 	int32 TextureFormatIndex = PF_MAX;
 	
 	if (Texture2D)
@@ -392,6 +400,26 @@ void FTextureEditorToolkit::PopulateQuickInfo( )
 	{
 		FormatText->SetText(FText::Format(NSLOCTEXT("TextureEditor", "QuickInfo_Format", "Format: {0}"), FText::FromString(GPixelFormats[TextureFormatIndex].Name)));
 	}
+
+	int32 NumMips = 1;
+	if (Texture2D)
+	{
+		NumMips = Texture2D->GetNumMips();
+	}
+	else if (TextureCube)
+	{
+		NumMips = TextureCube->GetNumMips();
+	}
+
+	NumMipsText->SetText(FText::Format(NSLOCTEXT("TextureEditor", "QuickInfo_NumMips", "Number of Mips: {0}"), FText::AsNumber(NumMips)));
+
+	if (Texture2D)
+	{
+		HasAlphaChannelText->SetText(FText::Format(NSLOCTEXT("TextureEditor", "QuickInfo_HasAlphaChannel", "Has Alpha Channel: {0}"),
+			Texture2D->HasAlphaChannel() ? NSLOCTEXT("TextureEditor", "True", "True") : NSLOCTEXT("TextureEditor", "False", "False")));
+	}
+
+	HasAlphaChannelText->SetVisibility(Texture2D ? EVisibility::Visible : EVisibility::Collapsed);
 }
 
 
@@ -583,85 +611,109 @@ void FTextureEditorToolkit::CreateInternalWidgets( )
 	TextureProperties = SNew(SVerticalBox)
 
 	+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(2.0f)
+	.AutoHeight()
+	.Padding(2.0f)
+	[
+		SNew(SBorder)
 		[
-			SNew(SBorder)
-				[
-					SNew(SHorizontalBox)
+			SNew(SHorizontalBox)
 
-					+ SHorizontalBox::Slot()
-						.FillWidth(0.5f)
-						[
-							SNew(SVerticalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(0.5f)
+			[
+				SNew(SVerticalBox)
 
-							+ SVerticalBox::Slot()
-								.AutoHeight()
-								.VAlign(VAlign_Center)
-								.Padding(4.0f)
-								[
-									SAssignNew(ImportedText, STextBlock)
-								]
-
-							+ SVerticalBox::Slot()
-								.AutoHeight()
-								.VAlign(VAlign_Center)
-								.Padding(4.0f)
-								[
-									SAssignNew(CurrentText, STextBlock)
-								]
-
-							+ SVerticalBox::Slot()
-								.AutoHeight()
-								.VAlign(VAlign_Center)
-								.Padding(4.0f)
-								[
-									SAssignNew(MaxInGameText, STextBlock)
-								]
-						]
-
-					+ SHorizontalBox::Slot()
-						.FillWidth(0.5f)
-						[
-							SNew(SVerticalBox)
-
-							+ SVerticalBox::Slot()
-								.AutoHeight()
-								.VAlign(VAlign_Center)
-								.Padding(4.0f)
-								[
-									SAssignNew(MethodText, STextBlock)
-								]
-
-							+ SVerticalBox::Slot()
-								.AutoHeight()
-								.VAlign(VAlign_Center)
-								.Padding(4.0f)
-								[
-									SAssignNew(FormatText, STextBlock)
-								]
-
-							+ SVerticalBox::Slot()
-								.AutoHeight()
-								.VAlign(VAlign_Center)
-								.Padding(4.0f)
-								[
-									SAssignNew(LODBiasText, STextBlock)
-								]
-						]
-				]
-		]
-
-	+ SVerticalBox::Slot()
-		.FillHeight(1.0f)
-		.Padding(2.0f)
-		[
-			SNew(SBorder)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.VAlign(VAlign_Center)
 				.Padding(4.0f)
 				[
-					BuildTexturePropertiesWidget()
+					SAssignNew(ImportedText, STextBlock)
 				]
-		];
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.VAlign(VAlign_Center)
+				.Padding(4.0f)
+				[
+					SAssignNew(CurrentText, STextBlock)
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.VAlign(VAlign_Center)
+				.Padding(4.0f)
+				[
+					SAssignNew(MaxInGameText, STextBlock)
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.VAlign(VAlign_Center)
+				.Padding(4.0f)
+				[
+					SAssignNew(SizeText, STextBlock)
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.VAlign(VAlign_Center)
+				.Padding(4.0f)
+				[
+					SAssignNew(HasAlphaChannelText, STextBlock)
+				]
+			]
+
+			+ SHorizontalBox::Slot()
+			.FillWidth(0.5f)
+			[
+				SNew(SVerticalBox)
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.VAlign(VAlign_Center)
+				.Padding(4.0f)
+				[
+					SAssignNew(MethodText, STextBlock)
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.VAlign(VAlign_Center)
+				.Padding(4.0f)
+				[
+					SAssignNew(FormatText, STextBlock)
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.VAlign(VAlign_Center)
+				.Padding(4.0f)
+				[
+					SAssignNew(LODBiasText, STextBlock)
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.VAlign(VAlign_Center)
+				.Padding(4.0f)
+				[
+					SAssignNew(NumMipsText, STextBlock)
+				]
+			]
+		]
+	]
+
+	+ SVerticalBox::Slot()
+	.FillHeight(1.0f)
+	.Padding(2.0f)
+	[
+		SNew(SBorder)
+		.Padding(4.0f)
+		[
+			BuildTexturePropertiesWidget()
+		]
+	];
 }
 
 
