@@ -140,17 +140,7 @@ public:
 
 	// FRunnable interface
 
-	virtual uint32 Run() override
-	{
-		Promise.SetValue(Function());
-
-		FRunnableThread* Thread = ThreadFuture.Get();
-
-		delete Thread;
-		delete this;
-
-		return 0;
-	}
+	virtual uint32 Run() override;
 
 private:
 
@@ -288,4 +278,21 @@ TFuture<ResultType> Async(EAsyncExecution Execution, TFunction<ResultType()> Fun
 	}
 
 	return MoveTemp(Future);
+}
+
+template<typename ResultType> uint32 TAsyncRunnable<ResultType>::Run()
+{
+	Promise.SetValue( Function() );
+
+	FRunnableThread* Thread = ThreadFuture.Get();
+
+	// Enqueue deletion of the thread to a different thread.
+	Async<bool>( EAsyncExecution::TaskGraph, [=]()
+	{
+		delete Thread;
+		delete this;
+		return true;
+	} );
+
+	return 0;
 }
