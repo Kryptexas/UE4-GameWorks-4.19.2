@@ -331,7 +331,6 @@ private:
 	bool bCanExecuteSCCHistory;
 	bool bCanExecuteSCCRevert;
 	bool bCanExecuteSCCSync;
-	bool bCurrentWorldSelected;
 	/** */
 	int32 ChunkIDSelected;
 };
