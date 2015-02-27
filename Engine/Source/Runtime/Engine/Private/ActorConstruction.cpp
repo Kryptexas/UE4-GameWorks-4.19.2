@@ -184,9 +184,23 @@ void AActor::DestroyConstructedComponents()
 	// Remove all existing components
 	TInlineComponentArray<UActorComponent*> PreviouslyAttachedComponents;
 	GetComponents(PreviouslyAttachedComponents);
-	for (int32 i = 0; i < PreviouslyAttachedComponents.Num(); i++)
+
+	// We need the hierarchy to be torn down in attachment order, so do a quick sort
+	PreviouslyAttachedComponents.Remove(nullptr);
+	PreviouslyAttachedComponents.Sort([](UActorComponent& A, UActorComponent& B)
 	{
-		UActorComponent* Component = PreviouslyAttachedComponents[i];
+		if (USceneComponent* BSC = Cast<USceneComponent>(&B))
+		{
+			if (BSC->AttachParent == &A)
+			{
+				return false;
+			}
+		}
+		return true;
+	});
+
+	for (UActorComponent* Component : PreviouslyAttachedComponents)
+	{
 		if (Component)
 		{
 			bool bDestroyComponent = false;

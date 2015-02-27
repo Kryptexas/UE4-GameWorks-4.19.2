@@ -19,25 +19,25 @@ void SMergeTreeView::Construct(const FArguments InArgs
 	// EMergeParticipant::Remote
 	{
 		SCSViews.Push(
-			FSCSDiff(InData.BlueprintRemote)
+			MakeShareable(new FSCSDiff(InData.BlueprintRemote))
 			);
 	}
 	// EMergeParticipant::Base
 	{
 		SCSViews.Push(
-			FSCSDiff(InData.BlueprintBase)
+			MakeShareable(new FSCSDiff(InData.BlueprintBase))
 			);
 	}
 	// EMergeParticipant::Local
 	{
 		SCSViews.Push(
-			FSCSDiff(InData.BlueprintLocal)
+			MakeShareable(new FSCSDiff(InData.BlueprintLocal))
 			);
 	}
 
-	TArray< FSCSResolvedIdentifier > RemoteHierarchy = GetRemoteView().GetDisplayedHierarchy();
-	TArray< FSCSResolvedIdentifier > BaseHierarchy = GetBaseView().GetDisplayedHierarchy();
-	TArray< FSCSResolvedIdentifier > LocalHierarchy = GetLocalView().GetDisplayedHierarchy();
+	TArray< FSCSResolvedIdentifier > RemoteHierarchy = GetRemoteView()->GetDisplayedHierarchy();
+	TArray< FSCSResolvedIdentifier > BaseHierarchy = GetBaseView()->GetDisplayedHierarchy();
+	TArray< FSCSResolvedIdentifier > LocalHierarchy = GetLocalView()->GetDisplayedHierarchy();
 
 	FSCSDiffRoot RemoteDifferingProperties;
 	DiffUtils::CompareUnrelatedSCS(InData.BlueprintBase, BaseHierarchy, InData.BlueprintRemote, RemoteHierarchy, RemoteDifferingProperties );
@@ -254,15 +254,15 @@ void SMergeTreeView::Construct(const FArguments InArgs
 		SNew(SSplitter)
 			+ SSplitter::Slot()
 			[
-				GetRemoteView().TreeWidget()
+				GetRemoteView()->TreeWidget()
 			]
 		+ SSplitter::Slot()
 			[
-				GetBaseView().TreeWidget()
+				GetBaseView()->TreeWidget()
 			]
 		+ SSplitter::Slot()
 			[
-				GetLocalView().TreeWidget()
+				GetLocalView()->TreeWidget()
 			]
 	];
 }
@@ -271,21 +271,21 @@ void SMergeTreeView::HighlightDifference(FSCSIdentifier TreeIdentifier, FPropert
 {
 	for (auto& View : SCSViews)
 	{
-		View.HighlightProperty(TreeIdentifier.Name, Property);
+		View->HighlightProperty(TreeIdentifier.Name, Property);
 	}
 }
 
-FSCSDiff& SMergeTreeView::GetRemoteView()
+TSharedRef<FSCSDiff>& SMergeTreeView::GetRemoteView()
 {
 	return SCSViews[EMergeParticipant::Remote];
 }
 
-FSCSDiff& SMergeTreeView::GetBaseView()
+TSharedRef<FSCSDiff>& SMergeTreeView::GetBaseView()
 {
 	return SCSViews[EMergeParticipant::Base];
 }
 
-FSCSDiff& SMergeTreeView::GetLocalView()
+TSharedRef<FSCSDiff>& SMergeTreeView::GetLocalView()
 {
 	return SCSViews[EMergeParticipant::Local];
 }

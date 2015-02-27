@@ -3118,7 +3118,7 @@ void FLevelEditorViewportClient::ApplyDeltaToComponent(USceneComponent* InCompon
 
 	// If necessary, transform the editor pivot location to be relative to the component's parent
 	const bool bIsRootComponent = InComponent->GetOwner()->GetRootComponent() == InComponent;
-	FVector RelativePivotLocation = bIsRootComponent ? EditorWorldPivotLocation : InComponent->GetAttachParent()->GetComponentToWorld().Inverse().TransformPosition(EditorWorldPivotLocation);
+	FVector RelativePivotLocation = bIsRootComponent || !InComponent->GetAttachParent() ? EditorWorldPivotLocation : InComponent->GetAttachParent()->GetComponentToWorld().Inverse().TransformPosition(EditorWorldPivotLocation);
 
 	GEditor->ApplyDeltaToComponent(
 		InComponent,

@@ -320,6 +320,8 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bAlwaysReinstance)
 
 					if ((!Obj->IsTemplate() || bIsComponent) && !Obj->IsPendingKill())
 					{
+						const bool bIsSelected = bIsActor ? Obj->IsSelected() : false;
+
 						Obj->SetClass(ClassToReinstance);
 
 						if (bIsActor)
@@ -327,6 +329,11 @@ void FBlueprintCompileReinstancer::ReinstanceObjects(bool bAlwaysReinstance)
 							auto Actor = CastChecked<AActor>(Obj);
 							Actor->ReregisterAllComponents();
 							Actor->RerunConstructionScripts();
+
+							if (bIsSelected)
+							{
+								GEditor->SelectActor(Actor, /*bInSelected =*/true, /*bNotify =*/true);
+							}
 						}
 
 						if (bIsAnimInstance)

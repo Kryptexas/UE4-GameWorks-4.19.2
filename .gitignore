@@ -137,6 +137,7 @@
 # Ignore sample and template projects
 /Samples/**
 /Templates/**
+/FeaturePacks/**
 
 # Ignore Unix backup files
 *~

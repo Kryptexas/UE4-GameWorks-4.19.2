@@ -373,7 +373,8 @@ bool UBlackboardComponent::IsCompatibleWith(UBlackboardData* TestAsset) const
 
 EBlackboardCompare::Type UBlackboardComponent::CompareKeyValues(TSubclassOf<UBlackboardKeyType> KeyType, FBlackboard::FKey KeyA, FBlackboard::FKey KeyB) const
 {	
-	return GetDefault<UBlackboardKeyType>()->Compare(GetKeyRawData(KeyA), GetKeyRawData(KeyB));
+	// no point in checking KeyType. If it was null it would explode a lot sooner.
+	return KeyType->GetDefaultObject<UBlackboardKeyType>()->Compare(GetKeyRawData(KeyA), GetKeyRawData(KeyB));
 }
 
 FString UBlackboardComponent::GetDebugInfoString(EBlackboardDescription::Type Mode) const 

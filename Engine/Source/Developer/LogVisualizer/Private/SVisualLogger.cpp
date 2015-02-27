@@ -143,6 +143,7 @@ void SVisualLogger::FVisualLoggerDevice::Serialize(const class UObject* LogOwner
 
 SVisualLogger::SVisualLogger() : SCompoundWidget(), CommandList(MakeShareable(new FUICommandList))
 { 
+	bGotHistogramData = false;
 	InternalDevice = MakeShareable(new FVisualLoggerDevice(this));
 	FVisualLogger::Get().AddDevice(InternalDevice.Get());
 }
@@ -166,6 +167,8 @@ void SVisualLogger::OnTabLosed()
 
 void SVisualLogger::Construct(const FArguments& InArgs, const TSharedRef<SDockTab>& ConstructUnderMajorTab, const TSharedPtr<SWindow>& ConstructUnderWindow)
 {
+	bGotHistogramData = false;
+
 	//////////////////////////////////////////////////////////////////////////
 	// Visual Logger Events
 	FVisualLoggerEvents VisualLoggerEvents;
@@ -195,9 +198,9 @@ void SVisualLogger::Construct(const FArguments& InArgs, const TSharedRef<SDockTa
 		FIsActionButtonVisible::CreateRaw(this, &SVisualLogger::HandleCameraCommandCanExecute));
 	ActionList.MapAction(Commands.ToggleGraphs,
 		FExecuteAction::CreateLambda([](){bool& bEnableGraphsVisualization = ULogVisualizerSessionSettings::StaticClass()->GetDefaultObject<ULogVisualizerSessionSettings>()->bEnableGraphsVisualization; bEnableGraphsVisualization = !bEnableGraphsVisualization; }),
-		FCanExecuteAction(),
+		FCanExecuteAction::CreateLambda([this]()->bool{return bGotHistogramData; }),
 		FIsActionChecked::CreateLambda([]()->bool{return ULogVisualizerSessionSettings::StaticClass()->GetDefaultObject<ULogVisualizerSessionSettings>()->bEnableGraphsVisualization; }),
-		FIsActionButtonVisible());
+		FIsActionButtonVisible::CreateLambda([this]()->bool{return bGotHistogramData; }));
 
 
 	// Tab Spawners
@@ -632,6 +635,7 @@ void SVisualLogger::OnNewLogEntry(const FVisualLogDevice::FVisualLogEntryItem& E
 {
 	CollectNewCategories(Entry);
 	MainView->OnNewLogEntry(Entry);
+	bGotHistogramData = bGotHistogramData || Entry.Entry.HistogramSamples.Num() > 0;
 }
 
 void SVisualLogger::CollectNewCategories(const FVisualLogDevice::FVisualLogEntryItem& Item)

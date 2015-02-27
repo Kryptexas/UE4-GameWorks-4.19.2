@@ -1164,10 +1164,11 @@ bool USceneComponent::IsAttachedTo(class USceneComponent* TestComp) const
 FSceneComponentInstanceData::FSceneComponentInstanceData(const USceneComponent* SourceComponent)
 	: FActorComponentInstanceData(SourceComponent)
 {
+	AActor* SourceOwner = SourceComponent->GetOwner();
 	for (int32 i = SourceComponent->AttachChildren.Num()-1; i >= 0; --i)
 	{
 		USceneComponent* SceneComponent = SourceComponent->AttachChildren[i];
-		if (SceneComponent && !SceneComponent->IsCreatedByConstructionScript())
+		if (SceneComponent && SceneComponent->GetOwner() == SourceOwner && !SceneComponent->IsCreatedByConstructionScript())
 		{
 			AttachedInstanceComponents.Add(SceneComponent);
 		}
@@ -1441,8 +1442,7 @@ void USceneComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 		SCOPE_CYCLE_COUNTER(STAT_UpdatePhysicsVolume);
 
 		UWorld* const MyWorld = GetWorld();
-		APhysicsVolume *NewVolume = MyWorld->GetDefaultPhysicsVolume();
-		
+		APhysicsVolume* NewVolume = MyWorld->GetDefaultPhysicsVolume();
 		// Avoid doing anything if there are no other physics volumes in the world.
 		if (MyWorld->GetNonDefaultPhysicsVolumeCount() > 0)
 		{
@@ -1451,14 +1451,17 @@ void USceneComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 			for (auto VolumeIter = MyWorld->GetNonDefaultPhysicsVolumeIterator(); VolumeIter && !bAnyPotentialOverlap; ++VolumeIter)
 			{
 				const APhysicsVolume* Volume = *VolumeIter;
-				const USceneComponent* VolumeRoot = Volume->GetRootComponent();
-				if (VolumeRoot)
+				if( Volume != nullptr )
 				{
-					if (FBoxSphereBounds::SpheresIntersect(VolumeRoot->Bounds, Bounds))
+					const USceneComponent* VolumeRoot = Volume->GetRootComponent();
+					if (VolumeRoot)
 					{
-						if (FBoxSphereBounds::BoxesIntersect(VolumeRoot->Bounds, Bounds))
+						if (FBoxSphereBounds::SpheresIntersect(VolumeRoot->Bounds, Bounds))
 						{
-							bAnyPotentialOverlap = true;
+							if (FBoxSphereBounds::BoxesIntersect(VolumeRoot->Bounds, Bounds))
+							{
+								bAnyPotentialOverlap = true;
+							}
 						}
 					}
 				}
@@ -1482,8 +1485,8 @@ void USceneComponent::UpdatePhysicsVolume( bool bTriggerNotifiers )
 				{
 					bOverlappedOrigin = true;
 					MyWorld->OverlapMulti(Hits, GetComponentLocation(), FQuat::Identity, GetCollisionObjectType(), FCollisionShape::MakeSphere(0.f), Params);
-				}
-
+				}				
+				
 				for (int32 HitIdx = 0; HitIdx < Hits.Num(); HitIdx++)
 				{
 					const FOverlapResult& Link = Hits[HitIdx];
