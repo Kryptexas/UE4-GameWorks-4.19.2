@@ -981,6 +981,11 @@ void FEdModeFoliage::SelectInstancesForBrush(UWorld* InWorld, const UFoliageType
 	}
 }
 
+void FEdModeFoliage::SelectInstances(const UFoliageType* Settings, bool bSelect)
+{
+	SelectInstances(GetWorld(), Settings, bSelect);
+}
+
 void FEdModeFoliage::SelectInstances(UWorld* InWorld, bool bSelect)
 {
 	for (auto& FoliageMeshUI : FoliageMeshList)

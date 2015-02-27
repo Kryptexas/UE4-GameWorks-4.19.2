@@ -159,6 +159,12 @@ private:
 	/** Handler for 'Replace' command  */
 	void OnReplaceFoliageTypeSelected(const class FAssetData& AssetData);
 
+	/** Handler for 'Select All' command  */
+	void OnSelectAllInstances();
+
+	/** Handler for 'Deselect All' command  */
+	void OnDeselectAllInstances();
+
 private:
 	/** Foliage mesh tree widget  */
 	TSharedPtr<SFoliageMeshTree>	MeshTreeWidget;

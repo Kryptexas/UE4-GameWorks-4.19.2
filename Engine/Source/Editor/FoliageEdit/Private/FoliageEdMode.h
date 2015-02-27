@@ -316,6 +316,9 @@ public:
 	/** Save the settings object as an asset */
 	UFoliageType* SaveSettingsObject(UFoliageType* Settings);
 
+	/** Set/Clear selection for foliage instances of specific type  */
+	void SelectInstances(const UFoliageType* Settings, bool bSelect);
+
 	/** Add desired instances. Uses foliage settings to determine location/scale/rotation and whether instances should be ignored */
 	static void AddInstances(UWorld* InWorld, const TArray<FDesiredFoliageInstance>& DesiredInstances);
 

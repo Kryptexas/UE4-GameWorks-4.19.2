@@ -433,6 +433,17 @@ void SFoliageEdit::BindCommands()
 		FCanExecuteAction(),
 		FIsActionChecked());
 
+	UICommandList->MapAction(
+		Commands.SelectAllInstances,
+		FExecuteAction::CreateSP(this, &SFoliageEdit::OnSelectAllInstances),
+		FCanExecuteAction(),
+		FIsActionChecked());
+
+	UICommandList->MapAction(
+		Commands.DeselectAllInstances,
+		FExecuteAction::CreateSP(this, &SFoliageEdit::OnDeselectAllInstances),
+		FCanExecuteAction(),
+		FIsActionChecked());
 }
 
 TSharedRef<SWidget> SFoliageEdit::BuildToolBar()
@@ -646,8 +657,14 @@ TSharedPtr<SWidget> SFoliageEdit::ConstructFoliageMeshContextMenu() const
 		LOCTEXT( "ReplaceFoliageType", "Replace Foliage Type" ),
 		LOCTEXT ("ReplaceFoliageType_ToolTip", "Replaces selected foliage type with another foliage type asset"),
 		FNewMenuDelegate::CreateSP(this, &SFoliageEdit::FillReplaceFoliageTypeSubmenu));
-	
+
 	MenuBuilder.AddMenuEntry(Commands.ShowFoliageTypeInCB);
+
+	if (IsSelectTool() || IsLassoSelectTool())
+	{
+		MenuBuilder.AddMenuEntry(Commands.SelectAllInstances);
+		MenuBuilder.AddMenuEntry(Commands.DeselectAllInstances);
+	}
 
 	return MenuBuilder.MakeWidget();
 }
@@ -843,6 +860,28 @@ void SFoliageEdit::OnShowFoliageTypeInCB()
 	if (SelectedAssets.Num())
 	{
 		GEditor->SyncBrowserToObjects(SelectedAssets);
+	}
+}
+
+void SFoliageEdit::OnSelectAllInstances()
+{
+	TArray<UObject*> SelectedAssets;
+	auto MeshUIList = MeshTreeWidget->GetSelectedItems();
+	for (FFoliageMeshUIInfoPtr MeshUIPtr : MeshUIList)
+	{
+		UFoliageType* FoliageType = MeshUIPtr->Settings;
+		FoliageEditMode->SelectInstances(FoliageType, true);
+	}
+}
+
+void SFoliageEdit::OnDeselectAllInstances()
+{
+	TArray<UObject*> SelectedAssets;
+	auto MeshUIList = MeshTreeWidget->GetSelectedItems();
+	for (FFoliageMeshUIInfoPtr MeshUIPtr : MeshUIList)
+	{
+		UFoliageType* FoliageType = MeshUIPtr->Settings;
+		FoliageEditMode->SelectInstances(FoliageType, false);
 	}
 }
 

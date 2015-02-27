@@ -40,7 +40,8 @@ public:
 	/** FoliageType commands */
 	TSharedPtr< FUICommandInfo > RemoveFoliageType;
 	TSharedPtr< FUICommandInfo > ShowFoliageTypeInCB;
-
+	TSharedPtr< FUICommandInfo > SelectAllInstances;
+	TSharedPtr< FUICommandInfo > DeselectAllInstances;
 	/**
 	 * Initialize commands
 	 */
