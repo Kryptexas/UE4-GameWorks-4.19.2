@@ -85,7 +85,7 @@ struct FPlatformOpenGLDevice
         {
             if( FrameReadyEvent == nullptr )
             {
-                FrameReadyEvent = FPlatformProcess::CreateSynchEvent();
+                FrameReadyEvent = FPlatformProcess::GetSynchEventFromPool();
                 FIOSPlatformRHIFramePacer::InitWithEvent( FrameReadyEvent );
             }
         }
