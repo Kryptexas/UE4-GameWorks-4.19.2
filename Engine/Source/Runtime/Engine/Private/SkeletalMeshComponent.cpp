@@ -28,6 +28,9 @@
 
 TAutoConsoleVariable<int32> CVarUseParallelAnimationEvaluation(TEXT("a.ParallelAnimEvaluation"), 1, TEXT("If 1, animation evaluation will be run across the task graph system. If 0, evaluation will run purely on the game thread"));
 
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Anim Instance Spawn Time"), STAT_AnimSpawnTime, STATGROUP_Anim, );
+DEFINE_STAT(STAT_AnimSpawnTime);
+
 class FParallelAnimationEvaluationTask
 {
 	TWeakObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent;
@@ -244,6 +247,7 @@ void USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 	{
 		if (NeedToSpawnAnimScriptInstance(bForceReinit))
 		{
+			SCOPE_CYCLE_COUNTER(STAT_AnimSpawnTime);
 			AnimScriptInstance = NewObject<UAnimInstance>(this, AnimBlueprintGeneratedClass);
 
 			if (AnimScriptInstance)
@@ -253,6 +257,8 @@ void USkeletalMeshComponent::InitializeAnimScriptInstance(bool bForceReinit)
 		}
 		else if (AnimationMode == EAnimationMode::AnimationSingleNode)
 		{
+			SCOPE_CYCLE_COUNTER(STAT_AnimSpawnTime);
+
 			UAnimSingleNodeInstance* OldInstance = NULL;
 			if (!bForceReinit)
 			{
@@ -363,6 +369,7 @@ void USkeletalMeshComponent::PostEditChangeProperty(FPropertyChangedEvent& Prope
 				{
 					if (NeedToSpawnAnimScriptInstance(false))
 					{
+						SCOPE_CYCLE_COUNTER(STAT_AnimSpawnTime);
 						AnimScriptInstance = NewObject<UAnimInstance>(this, AnimBlueprintGeneratedClass);
 						AnimScriptInstance->InitializeAnimation();
 					}
