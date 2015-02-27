@@ -1940,6 +1940,7 @@ bool ARecastNavMesh::HasValidNavmesh() const
 //----------------------------------------------------------------------//
 // RecastNavMesh: Active Tiles 
 //----------------------------------------------------------------------//
+#if WITH_RECAST
 void ARecastNavMesh::UpdateActiveTiles(const TArray<FNavigationInvokerRaw>& InvokerLocations)
 {
 	if (HasValidNavmesh() == false)
@@ -2062,6 +2063,7 @@ void ARecastNavMesh::RebuildTile(const TArray<FIntPoint>& Tiles)
 		}
 	}
 }
+#endif
 
 //----------------------------------------------------------------------//
 // FRecastNavMeshCachedData

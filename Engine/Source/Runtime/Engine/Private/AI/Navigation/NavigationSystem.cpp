@@ -3651,6 +3651,7 @@ void UNavigationSystem::UpdateInvokers()
 #endif // ENABLE_VISUAL_LOG
 		}
 
+#if WITH_RECAST
 		const double UpdateStartTime = FPlatformTime::Seconds();
 		for (TActorIterator<ARecastNavMesh> It(GetWorld()); It; ++It)
 		{
@@ -3658,7 +3659,8 @@ void UNavigationSystem::UpdateInvokers()
 		}
 		const double UpdateEndTime = FPlatformTime::Seconds();
 		UE_VLOG(this, LogNavigation, Log, TEXT("Marking tiles to update %fms (%d invokers)"), (UpdateEndTime - UpdateStartTime) * 1000, InvokerLocations.Num());
-		
+#endif
+
 		// once per second
 		NextInvokersUpdateTime = CurrentTime + ActiveTilesUpdateInterval;
 	}
