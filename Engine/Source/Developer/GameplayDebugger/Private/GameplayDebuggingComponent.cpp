@@ -149,7 +149,6 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const FObjectInitialize
 	bEnableClientEQSSceneProxy = false;
 	NextTargrtSelectionTime = 0;
 	ReplicateViewDataCounters.Init(0, EAIDebugDrawDataView::MAX);
-#endif
 
 	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
 	if (Replicator)
@@ -161,7 +160,7 @@ UGameplayDebuggingComponent::UGameplayDebuggingComponent(const FObjectInitialize
 			ReplicateViewDataCounters[Index] = Settings.CheckFlag(Index);
 		}
 	}
-
+#endif
 }
 
 void UGameplayDebuggingComponent::Activate(bool bReset)
@@ -425,6 +424,7 @@ void UGameplayDebuggingComponent::CollectBasicData()
 
 void UGameplayDebuggingComponent::CollectBasicMovementData(APawn* MyPawn)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	UCharacterMovementComponent* CharMovement = Cast<UCharacterMovementComponent>(MyPawn->GetMovementComponent());
 	if (CharMovement)
 	{
@@ -439,10 +439,12 @@ void UGameplayDebuggingComponent::CollectBasicMovementData(APawn* MyPawn)
 		MovementBaseInfo = TEXT("");
 		MovementModeInfo = TEXT("");
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingComponent::CollectBasicPathData(APawn* MyPawn)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(MyPawn->GetWorld());
 	AAIController* MyAIController = Cast<AAIController>(MyPawn->GetController());
 
@@ -495,10 +497,12 @@ void UGameplayDebuggingComponent::CollectBasicPathData(APawn* MyPawn)
 	{
 		PathFollowingInfo = TEXT("");
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingComponent::CollectBasicBehaviorData(APawn* MyPawn)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	AAIController* MyAIController = Cast<AAIController>(MyPawn->GetController());
 	UBehaviorTreeComponent* BTC = MyAIController ? Cast<UBehaviorTreeComponent>(MyAIController->BrainComponent) : nullptr;
 	bIsUsingBehaviorTree = (BTC != nullptr);
@@ -515,10 +519,12 @@ void UGameplayDebuggingComponent::CollectBasicBehaviorData(APawn* MyPawn)
 		CurrentAIState = TEXT("");
 		CurrentAIAssets = TEXT("");
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingComponent::CollectBasicAbilityData(APawn* MyPawn)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	UAbilitySystemComponent* AbilityComp = MyPawn->FindComponentByClass<UAbilitySystemComponent>();
 	bIsUsingAbilities = (AbilityComp != nullptr);
 
@@ -550,12 +556,15 @@ void UGameplayDebuggingComponent::CollectBasicAbilityData(APawn* MyPawn)
 	{
 		AbilityInfo = TEXT("None");
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingComponent::CollectBasicAnimationData(APawn* MyPawn)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	ACharacter* MyChar = Cast<ACharacter>(MyPawn);
 	MontageInfo = MyChar ? GetNameSafe(MyChar->GetCurrentMontage()) : TEXT("");
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingComponent::CollectBehaviorTreeData()
@@ -796,6 +805,7 @@ void UGameplayDebuggingComponent::ServerReplicateData(uint32 InMessage, uint32  
 //////////////////////////////////////////////////////////////////////////
 void UGameplayDebuggingComponent::OnChangeEQSQuery()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
 	if (++CurrentEQSIndex >= EQSLocalData.Num())
 	{
@@ -804,6 +814,7 @@ void UGameplayDebuggingComponent::OnChangeEQSQuery()
 
 	UpdateBounds();
 	MarkRenderStateDirty();
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 const FEnvQueryResult* UGameplayDebuggingComponent::GetQueryResult() const
@@ -939,9 +950,11 @@ void UGameplayDebuggingComponent::CollectEQSData()
 //----------------------------------------------------------------------//
 void UGameplayDebuggingComponent::OnRep_UpdateNavmesh()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	NavMeshBounds = FBox(FVector(-HALF_WORLD_MAX, -HALF_WORLD_MAX, -HALF_WORLD_MAX), FVector(HALF_WORLD_MAX, HALF_WORLD_MAX, HALF_WORLD_MAX));
 	UpdateBounds();
 	MarkRenderStateDirty();
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 bool UGameplayDebuggingComponent::ServerCollectNavmeshData_Validate(FVector_NetQuantize10 TargetLocation)
@@ -1086,6 +1099,7 @@ FORCEINLINE bool LineInCorrectDistance(const FVector& PlayerLoc, const FVector& 
 #if WITH_RECAST
 ARecastNavMesh* UGameplayDebuggingComponent::GetNavData()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
 	if (NavSys == NULL)
 	{
@@ -1102,6 +1116,9 @@ ARecastNavMesh* UGameplayDebuggingComponent::GetNavData()
 
 	// If it wasn't found, just get the main nav-mesh data.
 	return Cast<ARecastNavMesh>(NavSys->GetMainNavData(FNavigationSystem::DontCreate));
+#else
+	return NULL;
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 #endif
 
@@ -1382,6 +1399,7 @@ public:
 FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 {
 	FDebugRenderSceneCompositeProxy* CompositeProxy = NULL;
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner());
 	if (!World || World->GetNetMode() == NM_DedicatedServer)
 	{
@@ -1483,6 +1501,7 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 		CompositeProxy->AddChild(DebugSceneProxy);
 	}
 
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	return CompositeProxy;
 }
 

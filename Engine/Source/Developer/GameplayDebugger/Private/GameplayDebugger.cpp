@@ -335,6 +335,7 @@ void FGameplayDebugger::RemoveReplicator(UWorld* InWorld, AGameplayDebuggingRepl
 
 void FGameplayDebugger::WorldAdded(UWorld* InWorld)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bool bIsServer = InWorld && InWorld->GetNetMode() < ENetMode::NM_Client; // (Only server code)
 	if (!bIsServer)
 	{
@@ -369,10 +370,12 @@ void FGameplayDebugger::WorldAdded(UWorld* InWorld)
 		DestActor->SetAsGlobalInWorld(true);
 		AddReplicator(InWorld, DestActor);
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void FGameplayDebugger::WorldDestroyed(UWorld* InWorld)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bool bIsServer = InWorld && InWorld->GetNetMode() < ENetMode::NM_Client; // (Only work on  server)
 	if (!bIsServer)
 	{
@@ -381,7 +384,9 @@ void FGameplayDebugger::WorldDestroyed(UWorld* InWorld)
 
 	// remove global replicator from level
 	AllReplilcatorsPerWorlds.Remove(InWorld);
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
+
 #if WITH_EDITOR
 void FGameplayDebugger::OnLevelActorAdded(AActor* InActor)
 {
@@ -431,6 +436,7 @@ void FGameplayDebugger::OnLevelActorDeleted(AActor* InActor)
 
 bool FGameplayDebugger::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& Ar)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bool bHandled = false;
 
 	
@@ -599,6 +605,9 @@ bool FGameplayDebugger::Exec(UWorld* Inworld, const TCHAR* Cmd, FOutputDevice& A
 	}
 
 	return bHandled;
+#else
+	return false;
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 #undef LOCTEXT_NAMESPACE

@@ -17,6 +17,7 @@ UGameplayDebuggingControllerComponent::UGameplayDebuggingControllerComponent(con
 	: Super(ObjectInitializer)
 	, KeyPressActivationTime(0.4f)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	PrimaryComponentTick.bCanEverTick = true;
 	bWantsInitializeComponent = true;
 	bAutoActivate = false;
@@ -30,13 +31,16 @@ UGameplayDebuggingControllerComponent::UGameplayDebuggingControllerComponent(con
 
 	ControlKeyPressedTime = 0;
 	ActivationKey = FInputChord(EKeys::Apostrophe, false, false, false, false);
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingControllerComponent::OnRegister()
 {
 	Super::OnRegister();
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	BindActivationKeys();
 	SetActiveViews(GameplayDebuggerSettings().DebuggerShowFlags);
+#endif
 }
 
 AGameplayDebuggingReplicator* UGameplayDebuggingControllerComponent::GetDebuggingReplicator() const
@@ -46,6 +50,7 @@ AGameplayDebuggingReplicator* UGameplayDebuggingControllerComponent::GetDebuggin
 
 void UGameplayDebuggingControllerComponent::BeginDestroy()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	AHUD* GameHUD = PlayerOwner.IsValid() ? PlayerOwner->GetHUD() : NULL;
 	if (GameHUD)
 	{
@@ -78,6 +83,7 @@ void UGameplayDebuggingControllerComponent::BeginDestroy()
 		}
 		GetDebuggingReplicator()->ServerReplicateMessage(DebugAITargetActor, EDebugComponentMessage::DisableExtendedView);
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 
 	Super::BeginDestroy();
 }
@@ -94,6 +100,7 @@ uint32 UGameplayDebuggingControllerComponent::GetActiveViews()
 
 void UGameplayDebuggingControllerComponent::SetActiveViews(uint32 InActiveViews)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	GameplayDebuggerSettings(GetDebuggingReplicator()).DebuggerShowFlags = InActiveViews;
 
 	if (GetDebuggingReplicator())
@@ -104,10 +111,12 @@ void UGameplayDebuggingControllerComponent::SetActiveViews(uint32 InActiveViews)
 			EnableActiveView(CurrentView, IsViewActive(CurrentView));
 		}
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingControllerComponent::EnableActiveView(EAIDebugDrawDataView::Type View, bool bEnable)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	bEnable ? GameplayDebuggerSettings(GetDebuggingReplicator()).SetFlag(View) : GameplayDebuggerSettings(GetDebuggingReplicator()).ClearFlag(View);
 
 	if (GetDebuggingReplicator())
@@ -120,10 +129,12 @@ void UGameplayDebuggingControllerComponent::EnableActiveView(EAIDebugDrawDataVie
 		}
 #endif // WITH_EQS
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingControllerComponent::BindActivationKeys()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (PlayerOwner.IsValid() && PlayerOwner->InputComponent && PlayerOwner->PlayerInput)
 	{
 		// find current activation key used for 'EnableGDT' binding
@@ -142,10 +153,12 @@ void UGameplayDebuggingControllerComponent::BindActivationKeys()
 		PlayerOwner->InputComponent->BindKey(ActivationKey, IE_Pressed, this, &UGameplayDebuggingControllerComponent::OnActivationKeyPressed);
 		PlayerOwner->InputComponent->BindKey(ActivationKey, IE_Released, this, &UGameplayDebuggingControllerComponent::OnActivationKeyReleased);
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingControllerComponent::OnActivationKeyPressed()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (GetDebuggingReplicator() && PlayerOwner.IsValid())
 	{
 		if (!bToolActivated)
@@ -161,10 +174,12 @@ void UGameplayDebuggingControllerComponent::OnActivationKeyPressed()
 		ControlKeyPressedTime = GetWorld()->GetTimeSeconds();
 		EnableTargetSelection(true);
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingControllerComponent::OnActivationKeyReleased()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	const float KeyPressedTime = GetWorld()->GetTimeSeconds() - ControlKeyPressedTime;
 
 	EnableTargetSelection(false);
@@ -183,19 +198,22 @@ void UGameplayDebuggingControllerComponent::OnActivationKeyReleased()
 			}
 		}
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingControllerComponent::OpenDebugTool()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (GetDebuggingReplicator() && IsActive())
 	{
 		bToolActivated = true;
 	}
-
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingControllerComponent::CloseDebugTool()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (GetDebuggingReplicator())
 	{
 		Deactivate();
@@ -205,11 +223,14 @@ void UGameplayDebuggingControllerComponent::CloseDebugTool()
 		GetDebuggingReplicator()->ServerReplicateMessage(NULL, EDebugComponentMessage::DeactivateReplilcation, EAIDebugDrawDataView::Empty);
 		bToolActivated = false;
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingControllerComponent::EnableTargetSelection(bool bEnable)
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	GetDebuggingReplicator()->ClientEnableTargetSelection(bEnable, PlayerOwner.Get());
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 void UGameplayDebuggingControllerComponent::BindAIDebugViewKeys()
@@ -335,6 +356,7 @@ void UGameplayDebuggingControllerComponent::TickComponent(float DeltaTime, enum 
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	if (GetWorld()->GetTimeSeconds() - ControlKeyPressedTime > KeyPressActivationTime && !bToolActivated)
 	{
 		OpenDebugTool();
@@ -344,15 +366,21 @@ void UGameplayDebuggingControllerComponent::TickComponent(float DeltaTime, enum 
 	{
 		return;
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
 float UGameplayDebuggingControllerComponent::GetUpdateNavMeshTimeRemaining() const
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	return GetWorld()->GetTimerManager().GetTimerRemaining(TimerHandle_UpdateNavMeshTimer);
+#else
+	return FLT_MAX;
+#endif
 }
 
 void UGameplayDebuggingControllerComponent::UpdateNavMeshTimer()
 {
+#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	const APawn* PlayerPawn = PlayerOwner.IsValid() ? PlayerOwner->GetPawnOrSpectator() : NULL;
 	UGameplayDebuggingComponent* DebuggingComponent = GetDebuggingReplicator() ? GetDebuggingReplicator()->GetDebugComponent() : NULL;
 	if (DebuggingComponent)
@@ -371,4 +399,5 @@ void UGameplayDebuggingControllerComponent::UpdateNavMeshTimer()
 			DebuggingComponent->ServerCollectNavmeshData(AdditionalTargetLoc);
 		}
 	}
+#endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
