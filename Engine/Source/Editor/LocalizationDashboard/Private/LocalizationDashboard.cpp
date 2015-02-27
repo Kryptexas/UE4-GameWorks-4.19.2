@@ -356,8 +356,14 @@ namespace
 		for (ULocalizationTarget* const LocalizationTarget : Settings->TargetObjects)
 		{
 			// Save unsaved packages.
+			const bool bPromptUserToSave = true;
+			const bool bSaveMapPackages = true;
+			const bool bSaveContentPackages = true;
+			const bool bFastSave = false;
+			const bool bNotifyNoPackagesSaved = false;
+			const bool bCanBeDeclined = true;
 			bool DidPackagesNeedSaving;
-			const bool WerePackagesSaved = FEditorFileUtils::SaveDirtyPackages(true, true, true, false, false, &DidPackagesNeedSaving);
+			const bool WerePackagesSaved = FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages, bFastSave, bNotifyNoPackagesSaved, bCanBeDeclined, &DidPackagesNeedSaving);
 
 			if (DidPackagesNeedSaving && !WerePackagesSaved)
 			{

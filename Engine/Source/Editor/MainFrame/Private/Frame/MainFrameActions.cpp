@@ -184,7 +184,8 @@ void FMainFrameActionCallbacks::ChoosePackagesToSave()
 	const bool bFastSave = false;
 	const bool bClosingEditor = false;
 	const bool bNotifyNoPackagesSaved = true;
-	FEditorFileUtils::SaveDirtyPackages( bPromptUserToSave, bSaveMapPackages, bSaveContentPackages, bFastSave, bNotifyNoPackagesSaved );
+	const bool bCanBeDeclined = false;
+	FEditorFileUtils::SaveDirtyPackages( bPromptUserToSave, bSaveMapPackages, bSaveContentPackages, bFastSave, bNotifyNoPackagesSaved, bCanBeDeclined );
 }
 
 void FMainFrameActionCallbacks::ChoosePackagesToCheckIn()
@@ -214,7 +215,9 @@ void FMainFrameActionCallbacks::SaveAll()
 	const bool bSaveMapPackages = true;
 	const bool bSaveContentPackages = true;
 	const bool bFastSave = false;
-	FEditorFileUtils::SaveDirtyPackages( bPromptUserToSave, bSaveMapPackages, bSaveContentPackages, bFastSave );
+	const bool bNotifyNoPackagesSaved = false;
+	const bool bCanBeDeclined = false;
+	FEditorFileUtils::SaveDirtyPackages( bPromptUserToSave, bSaveMapPackages, bSaveContentPackages, bFastSave, bNotifyNoPackagesSaved, bCanBeDeclined );
 }
 
 TArray<FString> FMainFrameActionCallbacks::ProjectNames;

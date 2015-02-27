@@ -121,7 +121,8 @@ public:
 					const bool bSaveContentPackages = true;
 					const bool bFastSave = false;
 					const bool bNotifyNoPackagesSaved = false;
-					bOkToExit = bOkToExit && FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages, bFastSave, bNotifyNoPackagesSaved, &bHadPackagesToSave);
+					const bool bCanBeDeclined = true;
+					bOkToExit = bOkToExit && FEditorFileUtils::SaveDirtyPackages(bPromptUserToSave, bSaveMapPackages, bSaveContentPackages, bFastSave, bNotifyNoPackagesSaved, bCanBeDeclined, &bHadPackagesToSave);
 				}
 
 				// If there were packages to save, or switching project, then the user already had a chance to bail out of exiting.

@@ -632,7 +632,10 @@ bool ContentBrowserUtils::SaveDirtyPackages()
 	const bool bPromptUserToSave = true;
 	const bool bSaveMapPackages = true;
 	const bool bSaveContentPackages = true;
-	return FEditorFileUtils::SaveDirtyPackages( bPromptUserToSave, bSaveMapPackages, bSaveContentPackages );
+	const bool bFastSave = false;
+	const bool bNotifyNoPackagesSaved = false;
+	const bool bCanBeDeclined = false;
+	return FEditorFileUtils::SaveDirtyPackages( bPromptUserToSave, bSaveMapPackages, bSaveContentPackages, bFastSave, bNotifyNoPackagesSaved, bCanBeDeclined );
 }
 
 TArray<UPackage*> ContentBrowserUtils::LoadPackages(const TArray<FString>& PackageNames)
