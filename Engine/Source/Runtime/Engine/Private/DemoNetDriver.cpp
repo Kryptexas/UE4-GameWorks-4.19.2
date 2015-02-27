@@ -45,6 +45,7 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 		Time					= 0;
 		bIsRecordingDemoFrame	= false;
 		bDemoPlaybackDone		= false;
+		bChannelsArePaused		= false;
 
 		ResetDemoState();
 
@@ -687,19 +688,43 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	*FileAr << EndCount;
 }
 
+void UDemoNetDriver::PauseChannels( const bool bPause )
+{
+	if ( bPause == bChannelsArePaused )
+	{
+		return;
+	}
+
+	// Pause all non player controller actors
+	for ( int32 i = ServerConnection->OpenChannels.Num() - 1; i >= 0; i-- )
+	{
+		UChannel* OpenChannel = ServerConnection->OpenChannels[i];
+		if ( OpenChannel != NULL )
+		{
+			UActorChannel* ActorChannel = Cast< UActorChannel >( OpenChannel );
+			if ( ActorChannel != NULL && ActorChannel->GetActor() != NULL )
+			{
+				if ( Cast< APlayerController >( ActorChannel->GetActor() ) == NULL )
+				{
+					// Better way to pause each actor?
+					ActorChannel->GetActor()->CustomTimeDilation = bPause ? 0.0f : 1.0f;
+				}
+			}
+		}
+	}
+
+	bChannelsArePaused = bPause;
+}
+
 bool UDemoNetDriver::ReadDemoFrame()
 {
 	if ( !ReplayStreamer->IsDataAvailable() )
 	{
+		PauseChannels( true );
 		return false;
-	}
+	} 
 
-	const uint32 TotalDemoTimeInMS = ReplayStreamer->GetTotalDemoTime();
-
-	if ( TotalDemoTimeInMS > 0 )
-	{
-		DemoTotalTime = (float)TotalDemoTimeInMS / 1000.0f;
-	}
+	PauseChannels( false );
 
 	FArchive* FileAr = ReplayStreamer->GetStreamingArchive();
 
@@ -709,28 +734,10 @@ bool UDemoNetDriver::ReadDemoFrame()
 		return false;
 	}
 
-	if ( FileAr->AtEnd() )
+	if ( FileAr->AtEnd() )		// FIXME: Resolve how we're going to really do this with the streamers
 	{
 		bDemoPlaybackDone = true;
-
-		// Pause all non player controller actors
-		for ( int32 i = ServerConnection->OpenChannels.Num() - 1; i >= 0; i-- )
-		{
-			UChannel* OpenChannel = ServerConnection->OpenChannels[i];
-			if ( OpenChannel != NULL )
-			{
-				UActorChannel* ActorChannel = Cast< UActorChannel >( OpenChannel );
-				if ( ActorChannel != NULL && ActorChannel->GetActor() != NULL )
-				{
-					if ( Cast< APlayerController >( ActorChannel->GetActor() ) == NULL )
-					{
-						// Better way to pause each actor?
-						ActorChannel->GetActor()->CustomTimeDilation = 0.0f;
-					}
-				}
-			}
-		}
-
+		PauseChannels( true );
 		return false;
 	}
 
@@ -856,8 +863,20 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 		return;
 	}
 
+	const uint32 TotalDemoTimeInMS = ReplayStreamer->GetTotalDemoTime();
+
+	if ( TotalDemoTimeInMS > 0 )
+	{
+		DemoTotalTime = (float)TotalDemoTimeInMS / 1000.0f;
+	}
+
 	DemoDeltaTime += DeltaSeconds;
 	DemoCurrentTime += DeltaSeconds;
+
+	if ( DemoCurrentTime >= DemoTotalTime )
+	{
+		DemoCurrentTime = DemoTotalTime;
+	}
 
 	while ( true )
 	{
