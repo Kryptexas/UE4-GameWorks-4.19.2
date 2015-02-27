@@ -37,6 +37,9 @@ struct ENGINE_API FAnimNode_RotationMultiplier : public FAnimNode_SkeletalContro
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Multiplier)
 	TEnumAsByte<EBoneAxis> RotationAxisToRefer;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Multiplier)
+	bool bIsAdditive;	
 
 	FAnimNode_RotationMultiplier();
 

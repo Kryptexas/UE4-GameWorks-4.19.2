@@ -133,6 +133,12 @@ void FAnimNode_RotationMultiplier::EvaluateBoneTransforms(USkeletalMeshComponent
 		MultiplyQuatBasedOnSourceIndex(LocalRefPose, MeshBases, RotationAxisToRefer, SourceBone.BoneIndex, Multiplier, RefQuat, NewQuat);
 
 		FTransform NewLocalTransform = MeshBases.GetLocalSpaceTransform(TargetBone.BoneIndex);
+		
+		if (bIsAdditive)
+		{
+			NewQuat = NewLocalTransform.GetRotation() * NewQuat;
+		}
+		
 		NewLocalTransform.SetRotation(NewQuat);
 
 		const int32 ParentIndex = RequiredBones.GetParentBoneIndex(TargetBone.BoneIndex);
