@@ -2424,7 +2424,7 @@ void AActor::PostNetInit()
 	}
 	check(RemoteRole == ROLE_Authority);
 
-	if (GetWorld() && GetWorld()->HasBegunPlay())
+	if (!HasActorBegunPlay() && GetWorld() && GetWorld()->HasBegunPlay())
 	{
 		BeginPlay();
 	}
