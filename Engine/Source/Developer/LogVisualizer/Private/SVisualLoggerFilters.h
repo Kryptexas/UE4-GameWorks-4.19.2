@@ -5,21 +5,6 @@
 /**
 * A list of filters currently applied to an asset view.
 */
-struct FSimpleGraphFilter
-{
-	FSimpleGraphFilter(FName InName) : Name(InName), bEnabled(true) {}
-	FSimpleGraphFilter(FName InName, bool InEnabled) : Name(InName), bEnabled(InEnabled) {}
-
-	FName Name;
-	uint32 bEnabled : 1;
-};
-
-FORCEINLINE bool operator==(const FSimpleGraphFilter& Left, const FSimpleGraphFilter& Right)
-{
-	return Left.Name == Right.Name;
-}
-
-
 class SFilterWidget;
 class SVisualLoggerFilters : public SCompoundWidget
 {
@@ -31,8 +16,6 @@ public:
 	void AddFilter(const FString& InFilterName);
 	void AddFilter(const FString& GraphName, const FString& DataName);
 	uint32 GetCategoryIndex(const FString& InFilterName) const;
-	bool IsFilterEnabled(const FString& InFilterName, TEnumAsByte<ELogVerbosity::Type> Verbosity = ELogVerbosity::All);
-	bool IsFilterEnabled(const FString& InGraphName, const FString& InDataName, TEnumAsByte<ELogVerbosity::Type> Verbosity = ELogVerbosity::All);
 	void OnFiltersSearchChanged(const FText& Filter);
 	void OnSearchChanged(const FText& Filter);
 	bool GraphSubmenuVisibility(const FName MenuName);
@@ -52,7 +35,7 @@ protected:
 	/** The horizontal box which contains all the filters */
 	TSharedPtr<SWrapBox> FilterBox;
 	TArray<TSharedRef<SFilterWidget> > Filters;
-	TMap<FName, TArray<FSimpleGraphFilter> > GraphFilters;
+	TMap<FName, TArray<FString> > GraphFilters;
 	TSharedPtr<SComboButton> GraphsFilterCombo;
 	FString GraphsFilter;
 };

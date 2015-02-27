@@ -84,7 +84,7 @@ void FVisualLoggerCanvasRenderer::DrawOnCanvas(class UCanvas* Canvas, class APla
 	for (const auto CurrentData : SelectedEntry.DataBlocks)
 	{
 		const FName TagName = CurrentData.TagName;
-		const bool bIsValidByFilter = FLogVisualizer::Get().GetVisualLoggerInterface()->IsValidCategory(CurrentData.Category.ToString(), ELogVerbosity::All) && FLogVisualizer::Get().GetVisualLoggerInterface()->IsValidCategory(CurrentData.TagName.ToString(), ELogVerbosity::All);
+		const bool bIsValidByFilter = FCategoryFiltersManager::Get().MatchCategoryFilters(CurrentData.Category.ToString(), ELogVerbosity::All) && FCategoryFiltersManager::Get().MatchCategoryFilters(CurrentData.TagName.ToString(), ELogVerbosity::All);
 		FVisualLogExtensionInterface* Extension = FVisualLogger::Get().GetExtensionForTag(TagName);
 		if (!Extension)
 		{
@@ -169,7 +169,9 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 			const FName CurrentGraphName = CurrentSample.GraphName;
 			const FName CurrentDataName = CurrentSample.DataName;
 
-			const bool bIsValidByFilter = FLogVisualizer::Get().GetVisualLoggerInterface()->IsValidCategory(CurrentSample.GraphName.ToString(), CurrentSample.DataName.ToString(), ELogVerbosity::All);
+			FString GraphFilterName = CurrentSample.GraphName.ToString() +TEXT("$") + CurrentSample.DataName.ToString();
+			const bool bIsValidByFilter = FCategoryFiltersManager::Get().MatchCategoryFilters(GraphFilterName, ELogVerbosity::All);
+
 			if (bIsValidByFilter)
 			{
 				FGraphData &GraphData = CollectedGraphs.FindOrAdd(CurrentSample.GraphName);
@@ -199,7 +201,8 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 			const FName CurrentGraphName = CurrentSample.GraphName;
 			const FName CurrentDataName = CurrentSample.DataName;
 
-			const bool bIsValidByFilter = FLogVisualizer::Get().GetVisualLoggerInterface()->IsValidCategory(CurrentSample.GraphName.ToString(), CurrentSample.DataName.ToString(), ELogVerbosity::All);
+			FString GraphFilterName = CurrentSample.GraphName.ToString() + TEXT("_") + CurrentSample.DataName.ToString();
+			const bool bIsValidByFilter = FCategoryFiltersManager::Get().MatchCategoryFilters(GraphFilterName, ELogVerbosity::All);
 			if (bIsValidByFilter)
 			{
 				FGraphData &GraphData = CollectedGraphs.FindOrAdd(CurrentSample.GraphName);

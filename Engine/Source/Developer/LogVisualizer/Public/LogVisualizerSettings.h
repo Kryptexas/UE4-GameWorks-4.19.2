@@ -9,30 +9,46 @@ GameplayDebuggerSettings.h: Declares the UGameplayDebuggerSettings class.
 #include "LogVisualizerSettings.generated.h"
 
 USTRUCT()
-struct FFiltersPreset
+struct FCategoryFilter
 {
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY(config)
-	FString FilterName;
+	FString CategoryName;
 
+	UPROPERTY(config)
+	int32 LogVerbosity;
+
+	UPROPERTY(config)
+	bool Enabled;
+};
+
+USTRUCT()
+struct FVisualLoggerFilters
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(config)
+	FString SearchBoxFilter;
+	
 	UPROPERTY(config)
 	FString ObjectNameFilter;
-
+	
 	UPROPERTY(config)
-	FString DataFilter;
-
-	UPROPERTY(config)
-	TArray<FString> CategoryFilters;
-
+	TArray<FCategoryFilter> Categories;
+	
 	UPROPERTY(config)
 	TArray<FString> SelectedClasses;
 };
+
+struct FCategoryFiltersManager;
 
 UCLASS(config = EditorUserSettings)
 class LOGVISUALIZER_API ULogVisualizerSettings : public UObject
 {
 	GENERATED_UCLASS_BODY()
+	friend struct FCategoryFiltersManager;
+
 public:
 	DECLARE_EVENT_OneParam(ULogVisualizerSettings, FSettingChangedEvent, FName /*PropertyName*/);
 	FSettingChangedEvent& OnSettingChanged() { return SettingChangedEvent; }
@@ -69,9 +85,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
 	FColor GraphsBackgroundColor;
 
-	UPROPERTY(config)
-	TArray<FFiltersPreset> FilterPresets;
-
 	/**Whether to store all filter settings on exit*/
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
 	bool bPresistentFilters;
@@ -84,19 +97,51 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = "VisualLogger")
 	bool bUsePlayersOnlyForPause;
 
-	UPROPERTY(config)
-	FFiltersPreset PresistentPresets;
-
-	FFiltersPreset CurrentPresets;
-
 	// UObject overrides
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
+
+protected:
+	FVisualLoggerFilters CurrentFilters;
+	
+	UPROPERTY(config)
+	FVisualLoggerFilters PresistentFilters;
 
 private:
 
 	// Holds an event delegate that is executed when a setting has changed.
 	FSettingChangedEvent SettingChangedEvent;
 
+};
+
+struct FCategoryFiltersManager
+{
+	static FCategoryFiltersManager& Get() { return StaticManager; }
+
+	bool MatchCategoryFilters(FString String, ELogVerbosity::Type Verbosity = ELogVerbosity::All);
+	bool MatchObjectName(FString String);
+	bool MatchSearchString(FString String);
+
+	void SetSearchString(FString InString);
+	FString GetSearchString();
+
+	void SetObjectFilterString(FString InFilterString);
+	FString GetObjectFilterString();
+
+	void AddCategory(FString InName, ELogVerbosity::Type InVerbosity);
+	void RemoveCategory(FString InName);
+	bool IsValidCategory(FString InName);
+	FCategoryFilter& GetCategory(FString InName);
+
+	void SelectObject(FString ObjectName);
+	void RemoveObjectFromSelection(FString ObjectName);
+	const TArray<FString>& GetSelectedObjects();
+
+	void SavePresistentData();
+	void ClearPresistentData();
+	void LoadPresistentData();
+
+protected:
+	static FCategoryFiltersManager StaticManager;
 };

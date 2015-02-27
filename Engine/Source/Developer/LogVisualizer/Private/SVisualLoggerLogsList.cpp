@@ -127,7 +127,7 @@ FText SVisualLoggerLogsList::GetFilterText() const
 {
 	static FText NoText;
 	const bool bSearchInsideLogs = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bSearchInsideLogs;
-	return bSearchInsideLogs ? FText::FromString(ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->CurrentPresets.DataFilter) : NoText;
+	return bSearchInsideLogs ? FText::FromString(FCategoryFiltersManager::Get().GetSearchString()) : NoText;
 }
 
 void SVisualLoggerLogsList::OnFiltersSearchChanged(const FText& Filter)
@@ -142,19 +142,32 @@ void SVisualLoggerLogsList::OnItemSelectionChanged(const FVisualLogDevice::FVisu
 
 	TArray<FVisualLoggerCategoryVerbosityPair> OutCategories;
 	FVisualLoggerHelpers::GetCategories(LogEntry.Entry, OutCategories);
-	if (FLogVisualizer::Get().GetVisualLoggerInterface()->HasValidCategories(OutCategories) == false)
+	bool bHasValidCategory = false;
+	for (auto& CurrentCategory : OutCategories)
+	{
+		bHasValidCategory |= FCategoryFiltersManager::Get().MatchCategoryFilters(CurrentCategory.CategoryName.ToString(), CurrentCategory.Verbosity);
+	}
+	
+	if (!bHasValidCategory)
 	{
 		return;
 	}
 
 	CurrentLogEntry = LogEntry;
 	const FVisualLogLine* LogLine = LogEntry.Entry.LogLines.GetData();
+	const bool bSearchInsideLogs = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->bSearchInsideLogs;
 	for (int LineIndex = 0; LineIndex < LogEntry.Entry.LogLines.Num(); ++LineIndex, ++LogLine)
 	{
-		bool bShowLine = true;
-
-		FString CurrentCategory = LogLine->Category.ToString();
-		bShowLine = FLogVisualizer::Get().GetVisualLoggerInterface()->IsValidCategory(CurrentCategory, LogLine->Verbosity) /*&& (bHistogramGraphsFilter || (QuickFilterText.Len() == 0 || CurrentCategory.Find(QuickFilterText) != INDEX_NONE))*/;
+		bool bShowLine = FCategoryFiltersManager::Get().MatchCategoryFilters(LogLine->Category.ToString(), LogLine->Verbosity);
+		if (bSearchInsideLogs)
+		{
+			FString String = FCategoryFiltersManager::Get().GetSearchString();
+			if (String.Len() > 0)
+			{
+				bShowLine &= LogLine->Line.Find(String) != INDEX_NONE || LogLine->Category.ToString().Find(String) != INDEX_NONE;
+			}
+		}
+		
 
 		if (bShowLine)
 		{
@@ -172,10 +185,7 @@ void SVisualLoggerLogsList::OnItemSelectionChanged(const FVisualLogDevice::FVisu
 
 	for (auto& Event : LogEntry.Entry.Events)
 	{
-		bool bShowLine = true;
-
-		FString CurrentCategory = Event.Name;
-		bShowLine = FLogVisualizer::Get().GetVisualLoggerInterface()->IsValidCategory(Event.Name, Event.Verbosity) /*&& (bHistogramGraphsFilter || (QuickFilterText.Len() == 0 || CurrentCategory.Find(QuickFilterText) != INDEX_NONE))*/;
+		bool bShowLine = FCategoryFiltersManager::Get().MatchCategoryFilters(Event.Name, Event.Verbosity);
 
 		if (bShowLine)
 		{
@@ -196,7 +206,6 @@ void SVisualLoggerLogsList::OnItemSelectionChanged(const FVisualLogDevice::FVisu
 
 	}
 
-	//SetCurrentViewedTime(LogEntry.Entry.TimeStamp);
 	LogsLinesWidget->RequestListRefresh();
 }
 #undef LOCTEXT_NAMESPACE

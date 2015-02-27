@@ -7,7 +7,6 @@
 /** Constructs this widget with InArgs */
 void SFilterWidget::Construct(const FArguments& InArgs)
 {
-	bEnabled = true;
 	OnFilterChanged = InArgs._OnFilterChanged;
 	OnRequestRemove = InArgs._OnRequestRemove;
 	OnRequestEnableOnly = InArgs._OnRequestEnableOnly;
@@ -15,7 +14,6 @@ void SFilterWidget::Construct(const FArguments& InArgs)
 	OnRequestRemoveAll = InArgs._OnRequestRemoveAll;
 	FilterName = InArgs._FilterName;
 	ColorCategory = InArgs._ColorCategory;
-	Verbosity = ELogVerbosity::All;
 	BorderBackgroundColor = FLinearColor(0.2f, 0.2f, 0.2f, 0.2f);
 
 	// Get the tooltip and color of the type represented by this filter
@@ -53,8 +51,9 @@ void SFilterWidget::Construct(const FArguments& InArgs)
 FText SFilterWidget::GetCaptionString() const
 {
 	FString CaptionString;
-	const FString VerbosityStr = FOutputDevice::VerbosityToString(Verbosity);
-	if (Verbosity != ELogVerbosity::VeryVerbose)
+	FCategoryFilter& Filter = FCategoryFiltersManager::Get().GetCategory(GetFilterNameAsString());
+	const FString VerbosityStr = FOutputDevice::VerbosityToString((ELogVerbosity::Type)Filter.LogVerbosity);
+	if (Filter.LogVerbosity != ELogVerbosity::VeryVerbose)
 	{
 		CaptionString = FString::Printf(TEXT("%s [%s]"), *GetFilterNameAsString().Replace(TEXT("Log"), TEXT(""), ESearchCase::CaseSensitive), *VerbosityStr.Mid(0, 1));
 	}
@@ -67,9 +66,12 @@ FText SFilterWidget::GetCaptionString() const
 
 FText SFilterWidget::GetTooltipString() const
 {
+	FCategoryFilter& Filter = FCategoryFiltersManager::Get().GetCategory(GetFilterNameAsString());
+	const FString VerbosityStr = FOutputDevice::VerbosityToString((ELogVerbosity::Type)Filter.LogVerbosity);
+
 	return FText::FromString(
 		IsEnabled() ?
-		FString::Printf(TEXT("Enabled '%s' category for '%s' verbosity and lower\nRight click to change verbosity"), *GetFilterNameAsString(), FOutputDevice::VerbosityToString(Verbosity))
+		FString::Printf(TEXT("Enabled '%s' category for '%s' verbosity and lower\nRight click to change verbosity"), *GetFilterNameAsString(), *VerbosityStr)
 		:
 		FString::Printf(TEXT("Disabled '%s' category"), *GetFilterNameAsString())
 		);
@@ -100,4 +102,34 @@ TSharedRef<SWidget> SFilterWidget::GetRightClickMenuContent()
 
 	return MenuBuilder.MakeWidget();
 }
+
+bool SFilterWidget::IsEnabled() const 
+{ 
+	FCategoryFilter& Filter = FCategoryFiltersManager::Get().GetCategory(GetFilterNameAsString());
+	return Filter.Enabled;
+}
+
+void SFilterWidget::SetEnabled(bool InEnabled)
+{
+	FCategoryFilter& Filter = FCategoryFiltersManager::Get().GetCategory(GetFilterNameAsString());
+	if (InEnabled != Filter.Enabled)
+	{
+		Filter.Enabled = InEnabled;
+		OnFilterChanged.ExecuteIfBound();
+	}
+}
+
+void SFilterWidget::FilterToggled(ECheckBoxState NewState)
+{
+	FCategoryFilter& Filter = FCategoryFiltersManager::Get().GetCategory(GetFilterNameAsString());
+	SetEnabled(NewState == ECheckBoxState::Checked);
+}
+
+void SFilterWidget::SetVerbosityFilter(int32 SelectedVerbosityIndex)
+{
+	FCategoryFilter& Filter = FCategoryFiltersManager::Get().GetCategory(GetFilterNameAsString());
+	Filter.LogVerbosity = (ELogVerbosity::Type)SelectedVerbosityIndex;
+	OnFilterChanged.ExecuteIfBound();
+}
+
 #undef LOCTEXT_NAMESPACE

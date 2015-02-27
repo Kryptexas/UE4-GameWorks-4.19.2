@@ -118,7 +118,6 @@ protected:
 
 	TWeakObjectPtr<class AVisualLoggerCameraController> CameraController;
 	TSharedPtr<struct FVisualLoggerCanvasRenderer> VisualLoggerCanvasRenderer;
-	TSharedPtr<IVisualLoggerInterface> VisualLoggerInterface;
 
 	mutable TSharedPtr<SVisualLoggerFilters> VisualLoggerFilters;
 	mutable TSharedPtr<SVisualLoggerView> MainView;

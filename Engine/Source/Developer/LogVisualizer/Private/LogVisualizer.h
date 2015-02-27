@@ -34,14 +34,6 @@ struct FVisualLoggerEvents
 	FOnObjectSelectionChanged OnObjectSelectionChanged;
 };
 
-struct IVisualLoggerInterface
-{
-	virtual ~IVisualLoggerInterface() {}
-	virtual bool HasValidCategories(TArray<FVisualLoggerCategoryVerbosityPair> Categories) = 0;
-	virtual bool IsValidCategory(const FString& InCategoryName, TEnumAsByte<ELogVerbosity::Type> Verbosity = ELogVerbosity::All) = 0;
-	virtual bool IsValidCategory(const FString& InGraphName, const FString& InDataName, TEnumAsByte<ELogVerbosity::Type> Verbosity = ELogVerbosity::All) = 0;
-};
-
 class FVisualLoggerTimeSliderController;
 struct LOGVISUALIZER_API FLogVisualizer
 {
@@ -57,8 +49,6 @@ struct LOGVISUALIZER_API FLogVisualizer
 	class AActor* GetVisualLoggerHelperActor();
 	FVisualLoggerEvents& GetVisualLoggerEvents() { return VisualLoggerEvents; }
 
-	TSharedPtr<IVisualLoggerInterface> GetVisualLoggerInterface() { return VisualLoggerInterface.Pin(); }
-	void SetVisualLoggerInterface(TSharedPtr<IVisualLoggerInterface> InVisualLoggerInterface) { VisualLoggerInterface = InVisualLoggerInterface; }
 	void SetCurrentVisualizer(TSharedPtr<class SVisualLogger> Visualizer) { CurrentVisualizer = Visualizer; }
 
 	void OnObjectSelectionChanged(TSharedPtr<class STimeline> TimeLine) { CurrentTimeLine = TimeLine; }
@@ -72,7 +62,6 @@ protected:
 	
 	TSharedPtr<FVisualLoggerTimeSliderController> TimeSliderController;
 	FVisualLoggerEvents VisualLoggerEvents;
-	TWeakPtr<IVisualLoggerInterface> VisualLoggerInterface;
 	TWeakPtr<class STimeline> CurrentTimeLine;
 	TWeakPtr<class SVisualLogger> CurrentVisualizer;
 };

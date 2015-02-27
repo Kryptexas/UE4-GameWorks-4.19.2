@@ -76,7 +76,7 @@ void STimeline::UpdateVisibility()
 {
 	ULogVisualizerSettings* Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
 	const bool bJustIgnore = Settings->bIgnoreTrivialLogs && Entries.Num() <= Settings->TrivialLogsThreshold;
-	const bool bVisibleByOwnerClasses = Settings->CurrentPresets.SelectedClasses.Num() == 0 || Settings->CurrentPresets.SelectedClasses.Find(OwnerClassName.ToString()) != INDEX_NONE;
+	const bool bVisibleByOwnerClasses = FCategoryFiltersManager::Get().MatchObjectName(OwnerClassName.ToString());
 	const bool bIsCollapsed = bJustIgnore || HiddenEntries.Num() == Entries.Num() || (SearchFilter.Len() > 0 && Name.ToString().Find(SearchFilter) == INDEX_NONE);
 
 	SetVisibility(bIsCollapsed || !bVisibleByOwnerClasses ? EVisibility::Collapsed : EVisibility::Visible);
@@ -90,7 +90,7 @@ void STimeline::UpdateVisibilityForItems()
 {
 	HiddenEntries.Reset();
 	ULogVisualizerSettings* Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
-	const FString QuickSearchStrng = Settings->CurrentPresets.DataFilter;
+	const FString QuickSearchStrng = FCategoryFiltersManager::Get().GetSearchString(); 
 
 	for (auto& CurrentEntry : Entries)
 	{
@@ -100,7 +100,6 @@ void STimeline::UpdateVisibilityForItems()
 
 void STimeline::OnFiltersSearchChanged(const FText& Filter)
 {
-	//QuickSearchStrng = Filter.ToString();
 	OnFiltersChanged();
 }
 
@@ -130,7 +129,11 @@ void STimeline::UpdateVisibilityForEntry(FVisualLogDevice::FVisualLogEntryItem& 
 {
 	TArray<FVisualLoggerCategoryVerbosityPair> OutCategories;
 	FVisualLoggerHelpers::GetCategories(CurrentEntry.Entry, OutCategories);
-	bool bHasValidCategories = FLogVisualizer::Get().GetVisualLoggerInterface()->HasValidCategories(OutCategories);
+	bool bHasValidCategories = false;
+	for (FVisualLoggerCategoryVerbosityPair& Categoryair : OutCategories)
+	{
+		bHasValidCategories = bHasValidCategories || FCategoryFiltersManager::Get().MatchCategoryFilters(Categoryair.CategoryName.ToString(), Categoryair.Verbosity);
+	}
 
 	if (bSearchInsideLogs && bHasValidCategories && SearchString.Len() > 0)
 	{
@@ -174,7 +177,8 @@ void STimeline::AddEntry(const FVisualLogDevice::FVisualLogEntryItem& Entry)
 	Entries.Add(Entry); 
 
 	ULogVisualizerSettings* Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
-	UpdateVisibilityForEntry(Entries[Entries.Num() - 1], Settings->CurrentPresets.DataFilter, Settings->bSearchInsideLogs);
+	
+	UpdateVisibilityForEntry(Entries[Entries.Num() - 1], FCategoryFiltersManager::Get().GetSearchString(), Settings->bSearchInsideLogs);
 	UpdateVisibility();
 
 	if (Settings->bStickToRecentData && IsSelected())

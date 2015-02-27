@@ -99,7 +99,6 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 
 
 	ULogVisualizerSettings* Settings = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>();
-	FFiltersPreset& CurrentPresets = Settings->CurrentPresets;
 
 	ChildSlot
 		[
@@ -129,7 +128,7 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 							.VAlign(VAlign_Center)
 							[
 								SNew(SImage)
-								.Visibility_Lambda([this]()->EVisibility{ return ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->CurrentPresets.SelectedClasses.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed; })
+								.Visibility_Lambda([]()->EVisibility{ return FCategoryFiltersManager::Get().GetSelectedObjects().Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed; })
 								.Image(FLogVisualizerStyle::Get().GetBrush("Filters.FilterIcon"))
 							]
 							+ SHorizontalBox::Slot()
@@ -138,7 +137,7 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 							.AutoWidth()
 							[
 								SAssignNew(ClassesComboButton, SComboButton)
-								.Visibility_Lambda([this]()->EVisibility{ return TimelinesContainer.IsValid() && TimelinesContainer->GetAllNodes().Num() > 1 ? EVisibility::Visible : EVisibility::Collapsed; })
+								.Visibility_Lambda([this]()->EVisibility{ return TimelinesContainer.IsValid() && (TimelinesContainer->GetAllNodes().Num() > 1 || FCategoryFiltersManager::Get().GetSelectedObjects().Num() > 0) ? EVisibility::Visible : EVisibility::Collapsed; })
 								.ComboButtonStyle(FLogVisualizerStyle::Get(), "Filters.Style")
 								.ForegroundColor(FLinearColor::White)
 								.ContentPadding(0)
@@ -220,7 +219,6 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 						[
 							SNew(SHorizontalBox)
 							+ SHorizontalBox::Slot()
-							//.Visibility(EVisibility::HitTestInvisible)
 							.FillWidth(TAttribute<float>(this, &SVisualLoggerView::GetAnimationOutlinerFillPercentage))
 							[
 								// Take up space but display nothing. This is required so that all areas dependent on time align correctly
@@ -265,8 +263,8 @@ void SVisualLoggerView::Construct(const FArguments& InArgs, const TSharedRef<FUI
 				]
 			]
 		];
-
-		SearchBox->SetText(FText::FromString(CurrentPresets.DataFilter));
+		
+		SearchBox->SetText(FText::FromString(FCategoryFiltersManager::Get().GetSearchString()));
 }
 
 void SVisualLoggerView::SetAnimationOutlinerFillPercentage(float FillPercentage) 
@@ -376,19 +374,21 @@ TSharedRef<SWidget> SVisualLoggerView::MakeClassesFilterMenu()
 				FUIAction(
 				FExecuteAction::CreateLambda([this, OwnerClassName]()
 				{
-					TArray<FString>& SelectedOwnerClasses = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->CurrentPresets.SelectedClasses;
-					if (SelectedOwnerClasses.Find(OwnerClassName) != INDEX_NONE)
-						SelectedOwnerClasses.Remove(OwnerClassName);
+				if (FCategoryFiltersManager::Get().MatchObjectName(OwnerClassName) && FCategoryFiltersManager::Get().GetSelectedObjects().Num() != 0)
+					{
+						FCategoryFiltersManager::Get().RemoveObjectFromSelection(OwnerClassName);
+					}
 					else
-						SelectedOwnerClasses.AddUnique(OwnerClassName);
+					{
+						FCategoryFiltersManager::Get().SelectObject(OwnerClassName);
+					}
 
 					OnChangedClassesFilter();
 				}),
 				FCanExecuteAction(),
 				FIsActionChecked::CreateLambda([OwnerClassName]()->bool
 				{
-					TArray<FString>& SelectedOwnerClasses = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->CurrentPresets.SelectedClasses;
-					return SelectedOwnerClasses.Find(OwnerClassName) != INDEX_NONE;
+					return FCategoryFiltersManager::Get().GetSelectedObjects().Find(OwnerClassName) != INDEX_NONE;
 				}),
 				FIsActionButtonVisible()),
 				NAME_None,
@@ -397,7 +397,43 @@ TSharedRef<SWidget> SVisualLoggerView::MakeClassesFilterMenu()
 			UniqueClasses.AddUnique(OwnerClassName);
 		}
 	}
-	MenuBuilder.EndSection(); //ContentBrowserFilterBasicAsset
+	//show any classes from persistent data
+	for (const FString& SelectedObj : FCategoryFiltersManager::Get().GetSelectedObjects())
+	{
+		if (UniqueClasses.Find(SelectedObj) == INDEX_NONE)
+		{
+			FText LabelText = FText::FromString(SelectedObj);
+			MenuBuilder.AddMenuEntry(
+			LabelText,
+			FText::Format(LOCTEXT("FilterByClassPrefix", "Toggle {0} class"), LabelText),
+			FSlateIcon(),
+			FUIAction(
+			FExecuteAction::CreateLambda([this, SelectedObj]()
+			{
+				if (FCategoryFiltersManager::Get().MatchObjectName(SelectedObj) && FCategoryFiltersManager::Get().GetSelectedObjects().Num() != 0)
+				{
+					FCategoryFiltersManager::Get().RemoveObjectFromSelection(SelectedObj);
+				}
+				else
+				{
+					FCategoryFiltersManager::Get().SelectObject(SelectedObj);
+				}
+
+				OnChangedClassesFilter();
+			}),
+			FCanExecuteAction(),
+			FIsActionChecked::CreateLambda([SelectedObj]()->bool
+			{
+				return FCategoryFiltersManager::Get().GetSelectedObjects().Find(SelectedObj) != INDEX_NONE;
+			}),
+			FIsActionButtonVisible()),
+			NAME_None,
+			EUserInterfaceActionType::ToggleButton
+			);
+			UniqueClasses.AddUnique(SelectedObj);
+		}
+	}
+	MenuBuilder.EndSection(); 
 
 
 	FDisplayMetrics DisplayMetrics;
