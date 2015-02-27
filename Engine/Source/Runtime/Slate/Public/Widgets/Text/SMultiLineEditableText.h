@@ -548,6 +548,12 @@ private:
 	void OnHScrollBarMoved(const float InScrollOffsetFraction);
 	void OnVScrollBarMoved(const float InScrollOffsetFraction);
 
+	/**
+	 * Ensure that we will get a Tick() soon (either due to having active focus, or something having changed progmatically and requiring an update)
+	 * Does nothing if the active tick timer is already enabled
+	 */
+	void EnsureActiveTick();
+
 private:
 
 	/** The text displayed in this text block */
@@ -665,6 +671,9 @@ private:
 
 	/** The optional modifier key necessary to create a newline when typing into the editor. */
 	EModifierKey::Type ModiferKeyForNewLine;
+
+	/** The timer that is actively driving this widget to Tick() even when Slate is idle */
+	TWeakPtr<FActiveTimerHandle> ActiveTickTimer;
 };
 
 

@@ -467,11 +467,32 @@ void SMultiLineEditableText::OnVScrollBarMoved(const float InScrollOffsetFractio
 	OnVScrollBarUserScrolled.ExecuteIfBound(InScrollOffsetFraction);
 }
 
+void SMultiLineEditableText::EnsureActiveTick()
+{
+	TSharedPtr<FActiveTimerHandle> ActiveTickTimerPin = ActiveTickTimer.Pin();
+	if(ActiveTickTimerPin.IsValid())
+	{
+		return;
+	}
+
+	auto DoActiveTick = [this](double InCurrentTime, float InDeltaTime) -> EActiveTimerReturnType
+	{
+		// Continue if we still have focus, otherwise treat as a fire-and-forget Tick() request
+		const bool bShouldAppearFocused = HasKeyboardFocus() || ActiveContextMenu.IsValid();
+		return (bShouldAppearFocused) ? EActiveTimerReturnType::Continue : EActiveTimerReturnType::Stop;
+	};
+
+	ActiveTickTimer = RegisterActiveTimer(0.5f, FWidgetActiveTimerDelegate::CreateLambda(DoActiveTick));
+}
+
 FReply SMultiLineEditableText::OnFocusReceived( const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent )
 {
 	// Skip the focus received code if it's due to the context menu closing
 	if ( !ActiveContextMenu.IsValid() )
 	{
+		// We need to Tick() while we have focus to keep some things up-to-date
+		EnsureActiveTick();
+
 		FSlateApplication& SlateApplication = FSlateApplication::Get();
 		if (FPlatformMisc::GetRequiresVirtualKeyboard())
 		{
@@ -486,7 +507,6 @@ FReply SMultiLineEditableText::OnFocusReceived( const FGeometry& MyGeometry, con
 				TextInputMethodSystem->ActivateContext(TextInputMethodContext.ToSharedRef());
 			}
 		}
-
 
 		UpdateCursorHighlight();
 
@@ -1008,6 +1028,7 @@ FReply SMultiLineEditableText::MoveCursor( FMoveCursor Args )
 void SMultiLineEditableText::UpdateCursorHighlight()
 {
 	PositionToScrollIntoView = FScrollInfo(CursorInfo.GetCursorInteractionLocation(), CursorInfo.GetCursorAlignment());
+	EnsureActiveTick();
 
 	RemoveCursorHighlight();
 
@@ -1344,6 +1365,7 @@ void SMultiLineEditableText::ScrollTo(const FTextLocation& NewLocation)
 		if (NewLocation.GetOffset() <= Line.Text->Len())
 		{
 			PositionToScrollIntoView = FScrollInfo(NewLocation, ECursorAlignment::Left);
+			EnsureActiveTick();
 		}
 	}
 }
