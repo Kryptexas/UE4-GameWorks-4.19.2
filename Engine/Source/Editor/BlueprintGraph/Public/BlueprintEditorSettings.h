@@ -74,6 +74,10 @@ public:
 	/** If set will spawn default nodes in new Blueprints */
 	UPROPERTY(EditAnywhere, config, Category=Workflow)
 	bool bSpawnDefaultBlueprintNodes;
+
+	/** If set will exclude components added in a Blueprint class Construction Script from the component details view */
+	UPROPERTY(EditAnywhere, config, Category=Workflow)
+	bool bHideConstructionScriptComponentsInDetailsView;
 // Compiler Settings
 public:
 	/** Determines when to save Blueprints post-compile */
