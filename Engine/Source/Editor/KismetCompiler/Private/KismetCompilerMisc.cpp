@@ -661,7 +661,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 				return ExistingObject;
 			}
 			
-			if (Struct && !Struct->IsA<UFunction>())
+			if (Struct && !Struct->IsA<UFunction>() && (UBlueprintGeneratedClass::GetUberGraphFrameName() != Name))
 			{
 				if (auto Field = FindField<UField>(Struct ? Struct->GetSuperStruct() : nullptr, Name))
 				{
