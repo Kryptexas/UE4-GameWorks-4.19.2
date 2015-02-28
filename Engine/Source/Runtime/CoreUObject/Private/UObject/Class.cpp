@@ -8,6 +8,7 @@
 #include "PropertyTag.h"
 #include "HotReloadInterface.h"
 #include "LinkerPlaceholderClass.h"
+#include "LinkerPlaceholderFunction.h"
 #include "StructScriptLoader.h"
 
 DECLARE_LOG_CATEGORY_EXTERN(LogScriptSerialization, Log, All);
@@ -1488,9 +1489,13 @@ bool UStruct::GetStringMetaDataHierarchical(const FName& Key, FString* OutValue)
 	static void HandlePlaceholderScriptRef(ScriptPointerType& ScriptPtr)
 	{
 		UObject*& ExprPtrRef = (UObject*&)ScriptPtr;
-		if (ULinkerPlaceholderClass* PlaceholderObj = Cast<ULinkerPlaceholderClass>(ExprPtrRef)) \
+		if (ULinkerPlaceholderClass* PlaceholderObj = Cast<ULinkerPlaceholderClass>(ExprPtrRef))
 		{
 			PlaceholderObj->AddReferencingScriptExpr((ULinkerPlaceholderClass**)(&ExprPtrRef));
+		}
+		else if (ULinkerPlaceholderFunction* PlaceholderFunc = Cast<ULinkerPlaceholderFunction>(ExprPtrRef))
+		{
+			PlaceholderFunc->AddReferencingScriptExpr((ULinkerPlaceholderFunction**)(&ExprPtrRef));
 		}
 	}
 

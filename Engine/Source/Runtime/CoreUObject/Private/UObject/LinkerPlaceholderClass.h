@@ -3,6 +3,7 @@
 #pragma once
 #include "Class.h"
 #include "Set.h"
+#include "LinkerPlaceholderBase.h"
 
 // Forward declarations
 class FObjectInitializer;
@@ -14,7 +15,7 @@ class UObjectPropertyBase;
  * Holds on to references where this is currently being utilized, so we can 
  * easily replace references to it later (once the real class is available).
  */ 
-class ULinkerPlaceholderClass : public UClass
+class ULinkerPlaceholderClass : public UClass, public FLinkerPlaceholderBase
 {
 public:
 	DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR(ULinkerPlaceholderClass, UClass, /*TStaticFlags =*/0, CoreUObject, /*TStaticCastFlags =*/0, NO_API)
@@ -32,13 +33,9 @@ public:
  	virtual void Bind() override;
 	// End of UField interface.
 
-	/**
-	 * Caches off the supplied property so that we can later replace it's use of
-	 * this class with another (real) class.
-	 * 
-	 * @param  ReferencingProperty    A property that uses and stores this class.
-	 */
-	void AddReferencingProperty(UProperty* ReferencingProperty);
+	// FLinkerPlaceholderBase 
+	virtual int32 GetRefCount() const override;
+	// End of FLinkerPlaceholderBase
 
 	/**
 	 * Records a raw pointer, directly to the UClass* script expression (so that
@@ -55,41 +52,6 @@ public:
 	void AddReferencingScriptExpr(ULinkerPlaceholderClass** ExpressionPtr);
 
 	/**
-	 * A query method that let's us check to see if this class is currently 
-	 * being referenced by anything (if this returns false, then a referencing 
-	 * property could have forgotten to add itself... or, we've replaced all
-	 * references).
-	 * 
-	 * @return True if this has anything stored in its ReferencingProperties container, otherwise false.
-	 */
-	bool HasReferences() const;
-
-	/**
-	 * Query method that retrieves the current number of KNOWN references to 
-	 * this placeholder class.
-	 * 
-	 * @return The number of references that this class is currently tracking.
-	 */
-	int32 GetRefCount() const;
-
-	/**
-	 * Checks to see if 1) this placeholder has had RemoveTrackedReference() 
-	 * called on it, and 2) it doesn't have any more references that have since 
-	 * been added.
-	 * 
-	 * @return True if ReplaceTrackedReferences() has been ran, and no KNOWN references have been added.
-	 */
-	bool HasBeenResolved() const;
-
-	/**
-	 * Removes the specified property from this class's internal tracking list 
-	 * (which aims to keep track of properties utilizing this class).
-	 * 
-	 * @param  ReferencingProperty    A property that used to use this class, and now no longer does.
-	 */
-	void RemovePropertyReference(UProperty* ReferencingProperty);
-
-	/**
 	 * Iterates over all referencing properties and attempts to replace their 
 	 * references to this class with a new (hopefully proper) class.
 	 * 
@@ -98,16 +60,7 @@ public:
 	 */
 	int32 ReplaceTrackedReferences(UClass* ReplacementClass);
 
-public:
-	/** Set by the ULinkerLoad that created this instance, tracks what import this was used in place of. */
-	int32 ImportIndex;
-
 private:
-	/** Links to UProperties that are currently using this class */
-	TSet<UProperty*> ReferencingProperties;
-
-	/** Used to catch references that are added after we've already resolved all references */
-	bool bResolvedReferences;
 
 	/** Points directly at UClass* refs that we're serialized in as part of script bytecode */
 	TSet<UClass**> ReferencingScriptExpressions;

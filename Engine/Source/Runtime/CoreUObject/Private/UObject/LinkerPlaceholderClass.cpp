@@ -1,13 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CoreUObjectPrivate.h"
-#include "LinkerPlaceholderClass.h"
-#include "Blueprint/BlueprintSupport.h"
+#include "LinkerPlaceholderFunction.h"
 
 //------------------------------------------------------------------------------
 ULinkerPlaceholderClass::ULinkerPlaceholderClass(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
-	, bResolvedReferences(false)
 {
 }
 
@@ -64,32 +62,6 @@ void ULinkerPlaceholderClass::Bind()
 }
 
 //------------------------------------------------------------------------------
-void ULinkerPlaceholderClass::AddReferencingProperty(UProperty* ReferencingProperty)
-{
-#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-	FObjectImport* PlaceholderImport = nullptr;
-	if (ULinkerLoad* PropertyLinker = ReferencingProperty->GetLinker())
-	{
-		for (FObjectImport& Import : PropertyLinker->ImportMap)
-		{
-			if (Import.XObject == this)
-			{
-				PlaceholderImport = &Import;
-				break;
-			}
-		}
-		check(GetOuter() == PropertyLinker->LinkerRoot);
-		check((PropertyLinker->LoadFlags & LOAD_DeferDependencyLoads) || FBlueprintSupport::IsResolvingDeferredDependenciesDisabled());
-	}
-	// if this check hits, then we're adding dependencies after we've 
-	// already resolved the placeholder (it won't be resolved again)
-	check(!bResolvedReferences); 	
-#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-
-	ReferencingProperties.Add(ReferencingProperty);
-}
-
-//------------------------------------------------------------------------------
 void ULinkerPlaceholderClass::AddReferencingScriptExpr(ULinkerPlaceholderClass** ExpressionPtr)
 {
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
@@ -97,30 +69,6 @@ void ULinkerPlaceholderClass::AddReferencingScriptExpr(ULinkerPlaceholderClass**
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 	ReferencingScriptExpressions.Add((UClass**)ExpressionPtr);
-}
-
-//------------------------------------------------------------------------------
-bool ULinkerPlaceholderClass::HasReferences() const
-{
-	return (GetRefCount() > 0);
-}
-
-//------------------------------------------------------------------------------
-int32 ULinkerPlaceholderClass::GetRefCount() const
-{
-	return ReferencingProperties.Num() + ReferencingScriptExpressions.Num();
-}
-
-//------------------------------------------------------------------------------
-bool ULinkerPlaceholderClass::HasBeenResolved() const
-{
-	return !HasReferences() && bResolvedReferences;
-}
-
-//------------------------------------------------------------------------------
-void ULinkerPlaceholderClass::RemovePropertyReference(UProperty* ReferencingProperty)
-{
-	ReferencingProperties.Remove(ReferencingProperty);
 }
 
 //------------------------------------------------------------------------------
@@ -169,4 +117,10 @@ int32 ULinkerPlaceholderClass::ReplaceTrackedReferences(UClass* ReplacementClass
 
 	bResolvedReferences = true;
 	return ReplacementCount;
+}
+
+//------------------------------------------------------------------------------
+int32 ULinkerPlaceholderClass::GetRefCount() const
+{
+	return FLinkerPlaceholderBase::GetRefCount() + ReferencingScriptExpressions.Num();
 }

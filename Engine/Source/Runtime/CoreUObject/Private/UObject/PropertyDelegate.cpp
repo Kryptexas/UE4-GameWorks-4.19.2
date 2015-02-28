@@ -2,6 +2,7 @@
 
 #include "CoreUObjectPrivate.h"
 #include "PropertyHelper.h"
+#include "LinkerPlaceholderFunction.h"
 
 /*-----------------------------------------------------------------------------
 	UDelegateProperty.
@@ -106,12 +107,35 @@ void UDelegateProperty::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 	Ar << SignatureFunction;
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (Ar.IsLoading() || Ar.IsObjectReferenceCollector())
+	{
+		if (auto PlaceholderFunc = Cast<ULinkerPlaceholderFunction>(SignatureFunction))
+		{
+			PlaceholderFunc->AddReferencingProperty(this);
+		}
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
 bool UDelegateProperty::SameType(const UProperty* Other) const
 {
 	return Super::SameType(Other) && (SignatureFunction == ((UDelegateProperty*)Other)->SignatureFunction);
 }
+
+void UDelegateProperty::BeginDestroy()
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (auto PlaceholderFunc = Cast<ULinkerPlaceholderFunction>(SignatureFunction))
+	{
+		PlaceholderFunc->RemovePropertyReference(this);
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
+	Super::BeginDestroy();
+}
+
 
 IMPLEMENT_CORE_INTRINSIC_CLASS(UDelegateProperty, UProperty,
 	{

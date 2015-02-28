@@ -2606,6 +2606,7 @@ public:
 
 	// UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
+	virtual void BeginDestroy() override;
 	// End of UObject interface
 
 	// UProperty interface
@@ -2652,6 +2653,7 @@ public:
 
 	// UObject interface
 	virtual void Serialize( FArchive& Ar ) override;
+	virtual void BeginDestroy() override;
 	// End of UObject interface
 
 	// UProperty interface

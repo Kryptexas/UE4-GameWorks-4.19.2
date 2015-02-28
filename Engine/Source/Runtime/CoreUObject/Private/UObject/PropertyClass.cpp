@@ -56,7 +56,7 @@ void UClassProperty::SetMetaClass(UClass* NewMetaClass)
 		NewPlaceholderClass->AddReferencingProperty(this);
 	}
 
-	if (ULinkerPlaceholderClass* OldPlaceholderClass = Cast<ULinkerPlaceholderClass>(NewMetaClass))
+	if (ULinkerPlaceholderClass* OldPlaceholderClass = Cast<ULinkerPlaceholderClass>(MetaClass))
 	{
 		OldPlaceholderClass->RemovePropertyReference(this);
 	}

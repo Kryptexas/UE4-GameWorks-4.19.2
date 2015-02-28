@@ -217,6 +217,7 @@
 		case EX_FinalFunction:
 		{
 			XFER_FUNC_POINTER;											// Stack node.
+			FIXUP_EXPR_OBJECT_POINTER(UStruct*);
 			while( SerializeExpr( iCode, Ar ) != EX_EndFunctionParms ); // Parms.
 			break;
 		}
@@ -229,6 +230,7 @@
 		case EX_CallMulticastDelegate:
 		{
 			XFER_FUNC_POINTER;											// Stack node.
+			FIXUP_EXPR_OBJECT_POINTER(UStruct*);
 			while( SerializeExpr( iCode, Ar ) != EX_EndFunctionParms ); // Parms.
 			break;
 		}

@@ -2,6 +2,7 @@
 
 #include "CoreUObjectPrivate.h"
 #include "PropertyHelper.h"
+#include "LinkerPlaceholderFunction.h"
 
 /*-----------------------------------------------------------------------------
 	UMulticastDelegateProperty.
@@ -247,11 +248,32 @@ const TCHAR* UMulticastDelegateProperty::ImportText_Remove( const TCHAR* Buffer,
 }
 
 
-
 void UMulticastDelegateProperty::Serialize( FArchive& Ar )
 {
 	Super::Serialize( Ar );
 	Ar << SignatureFunction;
+
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (Ar.IsLoading() || Ar.IsObjectReferenceCollector())
+	{
+		if (auto PlaceholderFunc = Cast<ULinkerPlaceholderFunction>(SignatureFunction))
+		{
+			PlaceholderFunc->AddReferencingProperty(this);
+		}
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+}
+
+void UMulticastDelegateProperty::BeginDestroy()
+{
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+	if (auto PlaceholderFunc = Cast<ULinkerPlaceholderFunction>(SignatureFunction))
+	{
+		PlaceholderFunc->RemovePropertyReference(this);
+	}
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
+	Super::BeginDestroy();
 }
 
 bool UMulticastDelegateProperty::SameType(const UProperty* Other) const
