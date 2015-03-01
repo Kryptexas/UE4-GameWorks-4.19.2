@@ -518,6 +518,11 @@ void FTimerManager::Tick(float DeltaTime)
 				}
 			}
 
+			if (!CurrentlyExecutingTimer.TimerDelegate.IsBound())
+			{
+				continue;
+			}
+
 			if( CurrentlyExecutingTimer.bLoop && 
 				(CurrentlyExecutingTimer.TimerHandle.IsValid() ||
 				 CurrentlyExecutingTimer.TimerDelegate.IsBound()) && 							// did not get cleared during execution
