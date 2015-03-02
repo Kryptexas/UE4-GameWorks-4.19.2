@@ -235,6 +235,17 @@ void FSceneRenderTargets::Allocate(const FSceneViewFamily& ViewFamily)
 
 	int32 MaxShadowResolution = GetCachedScalabilityCVars().MaxShadowResolution;
 
+	if (ViewFamily.Scene->ShouldUseDeferredRenderer() == false)
+	{
+		// ensure there is always enough space for forward renderer's tiled shadow maps
+		// by reducing the shadow map resolution.
+		int32 MaxShadowDepthBufferDim = FMath::Max(GMaxShadowDepthBufferSizeX, GMaxShadowDepthBufferSizeY);
+		if (MaxShadowResolution * 2 >  MaxShadowDepthBufferDim)
+		{
+			MaxShadowResolution = MaxShadowDepthBufferDim / 2;
+		}
+	}
+
 	int32 TranslucencyLightingVolumeDim = GTranslucencyLightingVolumeDim;
 
 	uint32 Mobile32bpp = !IsMobileHDR() || IsMobileHDR32bpp();

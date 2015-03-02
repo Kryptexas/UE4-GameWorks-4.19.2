@@ -2257,7 +2257,7 @@ void FForwardShadingSceneRenderer::InitDynamicShadows(FRHICommandListImmediate& 
 					AddViewDependentWholeSceneShadowsForView(ViewDependentWholeSceneShadows, ViewDependentWholeSceneShadowsThatNeedCulling, VisibleLightInfo, *LightSceneInfo);					
 				}
 
-				const int32 NumShadows = VisibleLightInfo.AllProjectedShadows.Num();
+				const int32 NumShadows = FMath::Min(VisibleLightInfo.AllProjectedShadows.Num(), MAX_FORWARD_SHADOWCASCADES);
 				if (NumShadows > 0)
 				{
 					//create the shadow depth texture and/or surface
