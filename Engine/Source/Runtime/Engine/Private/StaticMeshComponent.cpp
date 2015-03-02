@@ -1852,7 +1852,7 @@ void FStaticMeshComponentLODInfo::ImportText(const TCHAR** SourceText)
 		bool bValidInput = true;
 
 		// Tokenize the text
-		SourceTextStr.ParseIntoArray(&Tokens, TEXT(","), false);
+		SourceTextStr.ParseIntoArray(Tokens, TEXT(","), false);
 
 		// There should be 11 tokens per vertex
 		check(Tokens.Num() * 11 >= VertCount);
