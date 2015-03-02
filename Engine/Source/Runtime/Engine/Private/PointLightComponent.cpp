@@ -235,6 +235,11 @@ bool UPointLightComponent::CanEditChange(const UProperty* InProperty) const
 	{
 		FString PropertyName = InProperty->GetName();
 
+		if (PropertyName == GET_MEMBER_NAME_STRING_CHECKED(ULightComponent, bCastShadowsFromCinematicObjectsOnly) && bUseRayTracedDistanceFieldShadows)
+		{
+			return false;
+		}
+
 		if (FCString::Strcmp(*PropertyName, TEXT("LightFalloffExponent")) == 0)
 		{
 			return !bUseInverseSquaredFalloff;

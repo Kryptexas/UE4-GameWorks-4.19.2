@@ -82,6 +82,14 @@ class ENGINE_API ULightComponent : public ULightComponentBase
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay)
 	uint32 CastTranslucentShadows:1;
 
+	/** 
+	 * Whether the light should only cast shadows from components marked as bCastCinematicShadows. 
+	 * This is useful for setting up cinematic Movable spotlights aimed at characters and avoiding the shadow depth rendering costs of the background.
+	 * Note: this only works with dynamic shadow maps, not with static shadowing or Ray Traced Distance Field shadows.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Light, AdvancedDisplay)
+	uint32 bCastShadowsFromCinematicObjectsOnly:1;
+
 	/**
 	 * Whether the light should be injected into the Light Propagation Volume
 	 **/

@@ -299,6 +299,13 @@ public:
 	uint32 bCastInsetShadow:1;
 
 	/** 
+	 * Whether this component should cast shadows from lights that have bCastShadowsFromCinematicObjectsOnly enabled.
+	 * This is useful for characters in a cinematic with special cinematic lights, where the cost of shadowmap rendering of the environment is undesired.
+	 */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=Lighting, meta=(EditCondition="CastShadow"))
+	uint32 bCastCinematicShadow:1;
+
+	/** 
 	 *	If true, the primitive will cast shadows even if bHidden is true.
 	 *	Controls whether the primitive should cast shadows when hidden.
 	 *	This flag is only used if CastShadow is true.

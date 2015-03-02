@@ -371,6 +371,7 @@ public:
 	inline bool CastsShadowAsTwoSided() const { return bCastShadowAsTwoSided; }
 	inline bool CastsSelfShadowOnly() const { return bSelfShadowOnly; }
 	inline bool CastsInsetShadow() const { return bCastInsetShadow; }
+	inline bool CastsCinematicShadow() const { return bCastCinematicShadow; }
 	inline bool CastsFarShadow() const { return bCastFarShadow; }
 	inline bool LightAttachmentsAsGroup() const { return bLightAttachmentsAsGroup; }
 	inline bool StaticElementsAlwaysUseProxyPrimitiveUniformBuffer() const { return bStaticElementsAlwaysUseProxyPrimitiveUniformBuffer; }
@@ -559,6 +560,12 @@ protected:
 
 	/** Whether this component should create a per-object shadow that gives higher effective shadow resolution. true if bSelfShadowOnly is true. */
 	uint32 bCastInsetShadow : 1;
+
+	/** 
+	 * Whether this component should create a per-object shadow that gives higher effective shadow resolution. 
+	 * Useful for cinematic character shadowing. Assumed to be enabled if bSelfShadowOnly is enabled.
+	 */
+	uint32 bCastCinematicShadow : 1;
 
 	/* When enabled, the component will be rendering into the distant shadow cascades (only for directional lights). */
 	uint32 bCastFarShadow : 1;

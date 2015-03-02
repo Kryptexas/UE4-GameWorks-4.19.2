@@ -241,5 +241,10 @@ bool FLightSceneInfoCompact::AffectsPrimitive(const FPrimitiveSceneInfoCompact& 
 		return false;
 	}
 
+	if (LightSceneInfo->Proxy->CastsShadowsFromCinematicObjectsOnly() && !CompactPrimitiveSceneInfo.Proxy->CastsCinematicShadow())
+	{
+		return false;
+	}
+
 	return true;
 }
