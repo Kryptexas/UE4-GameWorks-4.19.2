@@ -1694,6 +1694,7 @@ void FProjectedShadowInfo::RenderDepth(FRHICommandList& RHICmdList, FSceneRender
 	FoundView->UniformBuffer = FoundView->CreateUniformBuffer(
 		nullptr,
 		ShadowViewMatrix, 
+		ShadowViewMatrix.Inverse(),
 		VolumeBounds,
 		TVC_MAX);
 

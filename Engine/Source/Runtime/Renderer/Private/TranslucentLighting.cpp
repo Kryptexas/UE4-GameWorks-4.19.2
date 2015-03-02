@@ -513,6 +513,7 @@ void FProjectedShadowInfo::RenderTranslucencyDepths(FRHICommandList& RHICmdList,
 	FoundView->UniformBuffer = FoundView->CreateUniformBuffer(
 		nullptr,
 		ShadowViewMatrix, 
+		ShadowViewMatrix.Inverse(),
 		VolumeBounds,
 		TVC_MAX);
 		

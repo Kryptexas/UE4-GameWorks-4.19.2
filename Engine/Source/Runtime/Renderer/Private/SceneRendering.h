@@ -501,6 +501,7 @@ public:
 	TUniformBufferRef<FViewUniformShaderParameters> CreateUniformBuffer(
 		const TArray<FProjectedShadowInfo*, SceneRenderingAllocator>* DirectionalLightShadowInfo,
 		const FMatrix& EffectiveTranslatedViewMatrix, 
+		const FMatrix& EffectiveViewToTranslatedWorld, 
 		FBox* OutTranslucentCascadeBoundsArray, 
 		int32 NumTranslucentCascades) const;
 
