@@ -26,6 +26,8 @@ enum EBulkDataFlags
 	BULKDATA_ForceInlinePayload					= 1<<6,
 	/** Flag to check if either compression mode is specified						*/
 	BULKDATA_SerializeCompressed				= (BULKDATA_SerializeCompressedZLIB),
+	/** Forces the payload to be always streamed, regardless of its size */
+	BULKDATA_ForceStreamPayload = 1 << 7,
 
 };
 
@@ -312,6 +314,16 @@ struct COREUOBJECT_API FUntypedBulkData
 	-----------------------------------------------------------------------------*/
 
 protected:
+
+	/**
+	* Serializes all elements, a single element at a time, allowing backward compatible serialization
+	* and endian swapping to be performed.
+	*
+	* @param Ar			Archive to serialize with
+	* @param Data			Base pointer to data
+	*/
+	virtual void SerializeElements(FArchive& Ar, void* Data);
+
 	/**
 	 * Serializes a single element at a time, allowing backward compatible serialization
 	 * and endian swapping to be performed. Needs to be overloaded by derived classes.
@@ -382,6 +394,9 @@ private:
 	/** Resets async loading state */
 	void ResetAsyncData();
 	
+	/** Returns true if bulk data should be loaded asynchronously */
+	bool ShouldStreamBulkData();
+
 	/*-----------------------------------------------------------------------------
 		Member variables.
 	-----------------------------------------------------------------------------*/
