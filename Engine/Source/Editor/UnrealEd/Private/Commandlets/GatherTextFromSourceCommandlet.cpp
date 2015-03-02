@@ -296,7 +296,7 @@ bool UGatherTextFromSourceCommandlet::ParseSourceText(const FString& Text, const
 
 	// Split the file into lines of 
 	TArray<FString> TextLines;
-	Text.ParseIntoArray(&TextLines, LINE_TERMINATOR, false);
+	Text.ParseIntoArrayLines(TextLines, false);
 
 	// Move through the text lines looking for the tokens that denote the items in the Parsables list
 	for (int32 LineIdx = 0; LineIdx < TextLines.Num(); LineIdx++)
