@@ -15,38 +15,31 @@ float3 SimplePointLightDiffuse( FScreenSpaceData ScreenSpaceData )
 	return Diffuse_Lambert(ScreenSpaceData.GBuffer.DiffuseColor);
 }
 
-float3 LightingForOneLight(FMaterialPixelParameters Parameters, FSimpleDeferredLightData LightData, FScreenSpaceData ScreenSpaceData)
+float3 LightingForOneLight(FMaterialPixelParameters Parameters, uint LightIndex, FScreenSpaceData ScreenSpaceData)
 {
 	float3 CameraVector = normalize(Parameters.WorldPosition - View.ViewOrigin.xyz);
-
-	// At the moment we only support very simple lighting (no shadows, phong, no area lights, basic attenuation).
-	// Later we can extend this function.
-
-	float3 Surface = GetSimpleDynamicLighting(Parameters.WorldPosition, CameraVector, ScreenSpaceData, LightData);
-	// todo: investigate why this doesn't work
-//	float3 Surface = GetSimpleDynamicLighting(Parameters.WorldPosition, Parameters.CameraVector, ScreenSpaceData, LightData);
-
-	// todo: cleanup (share with former code)
-
-	// assuming inverse square falloff
-
-	half Opacity = GetMaterialOpacity(Parameters);
-	float3 ToLight = LightData.LightPositionAndInvRadius.xyz - Parameters.WorldPosition;
-
-	// Sphere falloff (technically just 1/d2 but this avoids inf)
-	float DistanceSqr = dot( ToLight, ToLight );
-	float DistanceAttenuation = 1 / ( DistanceSqr + 1 );
 	
-	float LightRadiusMask = Square( saturate( 1 - Square( DistanceSqr * Square(LightData.LightPositionAndInvRadius.w) ) ) );
+	FDeferredLightData LightData = (FDeferredLightData)0;
+	LightData.LightPositionAndInvRadius = ForwardLightData.LightPositionAndInvRadius[LightIndex];
+	LightData.LightColorAndFalloffExponent = ForwardLightData.LightColorAndFalloffExponent[LightIndex];
+	{
+		float4 Value = ForwardLightData.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex];
+		LightData.LightDirection = Value.xyz;
+		LightData.bSpotLight = Value.w > 0;
+		LightData.MinRoughness = abs(Value.w);
+	}
+	LightData.SpotAnglesAndSourceRadius = float4( ForwardLightData.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex].xyz, 0 );
+	// currently we don't support shadows
+	LightData.ShadowMapChannelMask = 0;
+	LightData.bInverseSquared = ForwardLightData.LightColorAndFalloffExponent[LightIndex].w == 0;
+	// Only radial lights supported with tiled deferred
+	LightData.bRadialLight = true;
+	// The only type of shadowing supported for lights using tiled is static shadowing, so the light should only compute shadowing if it has static shadowing
+	LightData.bShadowed = dot(LightData.ShadowMapChannelMask, float4(1, 1, 1, 1));
+	
+	float2 ScreenUV = Parameters.SVPosition.xy * View.ViewSizeAndSceneTexelSize.zw;
 
-	float SubsurfaceAttenuation	= DistanceAttenuation * LightRadiusMask;
-
-	float3 Subsurface = (1 - Opacity) * LightData.LightColorAndFalloffExponent.rgb * SubsurfaceAttenuation
-		* TwoSidedFoliageShadingSubsurface(ScreenSpaceData.GBuffer.DiffuseColor, normalize(ToLight), -CameraVector, ScreenSpaceData.GBuffer.WorldNormal);
-
-
-	return Subsurface + Surface;
-
+	return GetDynamicLighting(Parameters.WorldPosition, CameraVector, ScreenUV, ScreenSpaceData, ScreenSpaceData.GBuffer.ShadingModelID, LightData, float4(1, 1, 1, 1), uint2(0,0)).rgb;
 }
 
 // @param WorldNormal is not assumed to be normalized
@@ -68,6 +61,13 @@ float3 AccumulateForwardLights(FMaterialPixelParameters Parameters, float3 Diffu
 	ScreenSpaceData.GBuffer.Roughness = Roughness;
 	ScreenSpaceData.GBuffer.SpecularColor = SpecularColor;
 	ScreenSpaceData.GBuffer.DiffuseColor = DiffuseColor;
+	ScreenSpaceData.GBuffer.BaseColor = 1;
+	ScreenSpaceData.GBuffer.Specular = 1;
+	ScreenSpaceData.GBuffer.Opacity = GetMaterialOpacity(Parameters);
+	ScreenSpaceData.GBuffer.PrecomputedShadowFactors = 1;
+//	ScreenSpaceData.GBuffer.ShadingModelID = SHADINGMODELID_DEFAULT_LIT;
+	ScreenSpaceData.GBuffer.ShadingModelID = SHADINGMODELID_TWOSIDED_FOLIAGE;
+	ScreenSpaceData.GBuffer.CustomData = DiffuseColor;
 	ScreenSpaceData.AmbientOcclusion = 1;
 
 	// todo: support more than 32 lights
@@ -79,12 +79,7 @@ float3 AccumulateForwardLights(FMaterialPixelParameters Parameters, float3 Diffu
 
 		culling &= ~(1 << LightIndex);
 
-		FSimpleDeferredLightData LightData = (FSimpleDeferredLightData)0;
-		LightData.LightPositionAndInvRadius = ForwardLightData.LightPositionAndInvRadius[LightIndex];
-		LightData.LightColorAndFalloffExponent = ForwardLightData.LightColorAndFalloffExponent[LightIndex];
-		LightData.bInverseSquared = true;
-
-		Ret += LightingForOneLight(Parameters, LightData, ScreenSpaceData);
+		Ret += LightingForOneLight(Parameters, LightIndex, ScreenSpaceData);
 	}
 #endif
 

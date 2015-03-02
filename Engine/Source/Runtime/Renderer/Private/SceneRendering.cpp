@@ -701,8 +701,12 @@ void FViewInfo::CreateForwardLightDataUniformBuffer(FForwardLightData &OutForwar
 
 	FScene* Scene = (FScene*)(Family->Scene);
 
-	if(Scene)
+	// Reflection override skips direct specular because it tends to be blindingly bright with a perfectly smooth surface
+	if(Scene && !Family->EngineShowFlags.ReflectionOverride)
 	{
+		// we test after adding each light so we need at least space for one element
+		check(GMaxNumForwardLights > 0);
+
 		// Build a list of visible lights.
 		for (TSparseArray<FLightSceneInfoCompact>::TConstIterator LightIt(Scene->Lights); LightIt; ++LightIt)
 		{
@@ -711,27 +715,79 @@ void FViewInfo::CreateForwardLightDataUniformBuffer(FForwardLightData &OutForwar
 
 			if(!LightSceneInfoCompact.Color.IsAlmostBlack()
 				// Only render lights with dynamic lighting or unbuilt static lights
-				&& (!LightSceneInfo->Proxy->HasStaticLighting() || !LightSceneInfo->bPrecomputedLightingIsValid)
-				// Reflection override skips direct specular because it tends to be blindingly bright with a perfectly smooth surface
-				&& !Family->EngineShowFlags.ReflectionOverride
-				&& LightSceneInfoCompact.LightType == LightType_Point)		// for now we only handle point lights
+				&& (!LightSceneInfo->Proxy->HasStaticLighting() || !LightSceneInfo->bPrecomputedLightingIsValid))
 			{
-				// Check if the light is visible in this view.
-				if(LightSceneInfo->ShouldRenderLight(*this))
+				const ELightComponentType LightType = (const ELightComponentType)LightSceneInfoCompact.LightType;
+
+				FVector NormalizedLightDirection;
+				FVector2D SpotAngles;
+				float SourceRadius;
+				float SourceLength;
+				float MinRoughness;
+
+				// Get the light parameters
+				LightSceneInfo->Proxy->GetParameters(
+					OutForwardLightData.LightPositionAndInvRadius[LightIndex],
+					OutForwardLightData.LightColorAndFalloffExponent[LightIndex],
+					NormalizedLightDirection,
+					SpotAngles,
+					SourceRadius,
+					SourceLength,
+					MinRoughness);
+
+				if(LightType == LightType_Point || LightType == LightType_Spot)
 				{
+					// Check if the light is visible in this view.
+					if(!LightSceneInfo->ShouldRenderLight(*this))
+					{
+						continue;
+					}
+
 					FVector4 BoundingSphereVector = *(FVector4*)&LightSceneInfoCompact.BoundingSphereVector;
 
 					float InvRadius = 1.0f / BoundingSphereVector.W;
 
 					OutForwardLightData.LightPositionAndInvRadius[LightIndex] = FVector4(FVector(BoundingSphereVector), InvRadius);
-					OutForwardLightData.LightColorAndFalloffExponent[LightIndex] = LightSceneInfoCompact.Color;
-					++LightIndex;
 
-					if(LightIndex >= GMaxNumForwardLights)
+					// SpotlightMaskAndMinRoughness, >0:Spotlight, MinRoughness = abs();
+					float W = FMath::Max(0.0001f, MinRoughness) * ((LightType == LightType_Spot) ? 1 : -1);
+
+					OutForwardLightData.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex] = FVector4(NormalizedLightDirection, W);
+					OutForwardLightData.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex] = FVector4(SpotAngles.X, SpotAngles.Y, SourceRadius, 0);
+
+					if (LightSceneInfo->Proxy->IsInverseSquared())
 					{
-						// we cannot handle more lights this way
-						break;
+						// Correction for lumen units
+						OutForwardLightData.LightColorAndFalloffExponent[LightIndex].X *= 16.0f;
+						OutForwardLightData.LightColorAndFalloffExponent[LightIndex].Y *= 16.0f;
+						OutForwardLightData.LightColorAndFalloffExponent[LightIndex].Z *= 16.0f;
+						OutForwardLightData.LightColorAndFalloffExponent[LightIndex].W = 0;
 					}
+				}
+				else
+				{
+//					FVector Direction = -LightSceneInfo->Proxy->GetDirection();
+
+					// we don't handle directional light types yet
+					continue;
+				}
+
+				{
+					// SpotlightMaskAndMinRoughness, >0:Spotlight, MinRoughness = abs();
+					float W = FMath::Max(0.0001f, MinRoughness) * ((LightSceneInfo->Proxy->GetLightType() == LightType_Spot) ? 1 : -1);
+
+					OutForwardLightData.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex] = FVector4(NormalizedLightDirection, W);
+				}
+
+				OutForwardLightData.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex] = FVector4(SpotAngles.X, SpotAngles.Y, SourceRadius, 0);
+
+				// we want to add one light
+				++LightIndex;
+
+				if(LightIndex >= GMaxNumForwardLights)
+				{
+					// we cannot handle more lights this way
+					break;
 				}
 			}
 		}
