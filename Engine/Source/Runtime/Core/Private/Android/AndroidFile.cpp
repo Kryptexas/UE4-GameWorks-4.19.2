@@ -1588,7 +1588,8 @@ private:
 		if (!AndroidPath.IsEmpty())
 		{
 			if ((AllowLocal && AndroidPath.StartsWith(TEXT("/"))) ||
-				AndroidPath.StartsWith(GFontPathBase))
+				AndroidPath.StartsWith(GFontPathBase) ||
+				AndroidPath.StartsWith(GExternalFilePath))
 			{
 				// Absolute paths are only local.
 				LocalPath = AndroidPath;
