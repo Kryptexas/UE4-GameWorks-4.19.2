@@ -135,12 +135,12 @@ void UK2Node_CallArrayFunction::GetArrayPins(TArray< FArrayPropertyPinCombo >& O
 	check(TargetFunction);
 	FString ArrayPointerMetaData = TargetFunction->GetMetaData(TEXT("ArrayParm"));
 	TArray<FString> ArrayPinComboNames;
-	ArrayPointerMetaData.ParseIntoArray(&ArrayPinComboNames, TEXT(","), true);
+	ArrayPointerMetaData.ParseIntoArray(ArrayPinComboNames, TEXT(","), true);
 
 	for(auto Iter = ArrayPinComboNames.CreateConstIterator(); Iter; ++Iter)
 	{
 		TArray<FString> ArrayPinNames;
-		Iter->ParseIntoArray(&ArrayPinNames, TEXT("|"), true);
+		Iter->ParseIntoArray(ArrayPinNames, TEXT("|"), true);
 
 		FArrayPropertyPinCombo ArrayInfo;
 		ArrayInfo.ArrayPin = FindPin(ArrayPinNames[0]);
@@ -162,12 +162,12 @@ bool UK2Node_CallArrayFunction::IsWildcardProperty(UFunction* InArrayFunction, c
 	{
 		FString ArrayPointerMetaData = InArrayFunction->GetMetaData(TEXT("ArrayParm"));
 		TArray<FString> ArrayPinComboNames;
-		ArrayPointerMetaData.ParseIntoArray(&ArrayPinComboNames, TEXT(","), true);
+		ArrayPointerMetaData.ParseIntoArray(ArrayPinComboNames, TEXT(","), true);
 
 		for(auto Iter = ArrayPinComboNames.CreateConstIterator(); Iter; ++Iter)
 		{
 			TArray<FString> ArrayPinNames;
-			Iter->ParseIntoArray(&ArrayPinNames, TEXT("|"), true);
+			Iter->ParseIntoArray(ArrayPinNames, TEXT("|"), true);
 
 			if(ArrayPinNames[0] == InProperty->GetName())
 			{
@@ -187,7 +187,7 @@ void UK2Node_CallArrayFunction::GetArrayTypeDependentPins(TArray<UEdGraphPin*>& 
 
 	const FString DependentPinMetaData = TargetFunction->GetMetaData(TEXT("ArrayTypeDependentParams"));
 	TArray<FString> TypeDependentPinNames;
-	DependentPinMetaData.ParseIntoArray(&TypeDependentPinNames, TEXT(","), true);
+	DependentPinMetaData.ParseIntoArray(TypeDependentPinNames, TEXT(","), true);
 
 	for(TArray<UEdGraphPin*>::TConstIterator it(Pins); it; ++it)
 	{

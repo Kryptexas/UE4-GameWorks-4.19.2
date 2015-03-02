@@ -369,7 +369,7 @@ void FObjectPropertyNode::InternalInitChildNodes( FName SinglePropertyName )
 		{
 			// Figure out the nesting level for this category
 			TArray< FString > FullCategoryPathStrings;
-			FullCategoryPath.ToString().ParseIntoArray( &FullCategoryPathStrings, *CategoryDelimiterString, true );
+			FullCategoryPath.ToString().ParseIntoArray( FullCategoryPathStrings, *CategoryDelimiterString, true );
 
 			TSharedPtr<FPropertyNode> ParentLevelNode = SharedThis(this);
 			FString CurCategoryPathString;

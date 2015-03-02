@@ -1510,7 +1510,7 @@ void FK2ActionMenuBuilder::GetFuncNodesForClass(FGraphActionListBuilderBase& Lis
 				if(ObjProp->HasAllPropertyFlags(CPF_BlueprintVisible) && ExposeFuncCatsString.Len() > 0)
 				{
 					TArray<FString> ExposeFuncCats;
-					ExposeFuncCatsString.ParseIntoArray(&ExposeFuncCats, TEXT( "," ), true);
+					ExposeFuncCatsString.ParseIntoArray(ExposeFuncCats, TEXT( "," ), true);
 
 					// Look for functions in those categories
 					UClass* ObjClass = ObjProp->PropertyClass;
@@ -2056,7 +2056,7 @@ void FK2ActionMenuBuilder::GetEventsForBlueprint(FBlueprintPaletteListBuilder& A
 		if( Blueprint->ParentClass->HasMetaData(*ExclusionListKeyName) )
 		{
 			const FString ExcludedEventNameString = Blueprint->ParentClass->GetMetaData(*ExclusionListKeyName);
-			ExcludedEventNameString.ParseIntoArray(&ExcludedEventNames, TEXT(","), true);
+			ExcludedEventNameString.ParseIntoArray(ExcludedEventNames, TEXT(","), true);
 		}
 
 		// Start the name list by first adding all events already on the graph

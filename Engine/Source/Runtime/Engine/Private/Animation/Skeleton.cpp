@@ -694,7 +694,7 @@ void USkeleton::CollectAnimationNotifies()
 			if (const FString* Value = Asset.TagsAndValues.Find(USkeleton::AnimNotifyTag))
 			{
 				TArray<FString> NotifyList;
-				Value->ParseIntoArray(&NotifyList, *USkeleton::AnimNotifyTagDelimiter, true);
+				Value->ParseIntoArray(NotifyList, *USkeleton::AnimNotifyTagDelimiter, true);
 				for (auto NotifyIter = NotifyList.CreateConstIterator(); NotifyIter; ++NotifyIter)
 				{
 					FString NotifyName = *NotifyIter;

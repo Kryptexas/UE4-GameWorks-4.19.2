@@ -438,7 +438,7 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 	UE_LOG(LogHAL, Verbose, TEXT("FLinuxPlatformProcess::CreateProc: '%s'"), *Commandline);
 
 	TArray<FString> ArgvArray;
-	int Argc = Commandline.ParseIntoArray(&ArgvArray, TEXT(" "), true);
+	int Argc = Commandline.ParseIntoArray(ArgvArray, TEXT(" "), true);
 	char* Argv[PlatformProcessLimits::MaxArgvParameters + 1] = { NULL };	// last argument is NULL, hence +1
 	struct CleanupArgvOnExit
 	{
@@ -819,7 +819,7 @@ bool FLinuxPlatformProcess::IsApplicationRunning( const TCHAR* ProcName )
 bool FLinuxPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, int32* OutReturnCode, FString* OutStdOut, FString* OutStdErr )
 {
 	TArray<FString> ArgsArray;
-	FString(Params).ParseIntoArray(&ArgsArray, TEXT(" "), true);
+	FString(Params).ParseIntoArray(ArgsArray, TEXT(" "), true);
 	char *args[ArgsArray.Num()];
 
 	for(int i = 0; i < ArgsArray.Num(); i++)

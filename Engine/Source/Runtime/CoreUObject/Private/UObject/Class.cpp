@@ -3607,7 +3607,7 @@ void UClass::GetHideFunctions(TArray<FString>& OutHideFunctions) const
 	if (HasMetaData(NAME_HideFunctions))
 	{
 		const FString& HideFunctions = GetMetaData(NAME_HideFunctions);
-		HideFunctions.ParseIntoArray(&OutHideFunctions, TEXT(" "), true);
+		HideFunctions.ParseIntoArray(OutHideFunctions, TEXT(" "), true);
 	}
 }
 
@@ -3628,7 +3628,7 @@ void UClass::GetAutoExpandCategories(TArray<FString>& OutAutoExpandCategories) c
 	if (HasMetaData(NAME_AutoExpandCategories))
 	{
 		const FString& AutoExpandCategories = GetMetaData(NAME_AutoExpandCategories);
-		AutoExpandCategories.ParseIntoArray(&OutAutoExpandCategories, TEXT(" "), true);
+		AutoExpandCategories.ParseIntoArray(OutAutoExpandCategories, TEXT(" "), true);
 	}
 }
 
@@ -3649,7 +3649,7 @@ void UClass::GetAutoCollapseCategories(TArray<FString>& OutAutoCollapseCategorie
 	if (HasMetaData(NAME_AutoCollapseCategories))
 	{
 		const FString& AutoCollapseCategories = GetMetaData(NAME_AutoCollapseCategories);
-		AutoCollapseCategories.ParseIntoArray(&OutAutoCollapseCategories, TEXT(" "), true);
+		AutoCollapseCategories.ParseIntoArray(OutAutoCollapseCategories, TEXT(" "), true);
 	}
 }
 
@@ -3670,7 +3670,7 @@ void UClass::GetClassGroupNames(TArray<FString>& OutClassGroupNames) const
 	if (HasMetaData(NAME_ClassGroupNames))
 	{
 		const FString& ClassGroupNames = GetMetaData(NAME_ClassGroupNames);
-		ClassGroupNames.ParseIntoArray(&OutClassGroupNames, TEXT(" "), true);
+		ClassGroupNames.ParseIntoArray(OutClassGroupNames, TEXT(" "), true);
 	}
 }
 

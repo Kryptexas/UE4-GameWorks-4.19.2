@@ -1318,7 +1318,7 @@ bool ULocalPlayer::Exec(UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 		int32 NewLineIndex;
 		if (CmdString.FindChar(TEXT(';'),NewLineIndex))
 		{
-			CmdString.ParseIntoArray(&Lines,TEXT(";"),true);
+			CmdString.ParseIntoArray(Lines,TEXT(";"),true);
 		}
 		else
 		{
@@ -1328,7 +1328,7 @@ bool ULocalPlayer::Exec(UWorld* InWorld, const TCHAR* Cmd,FOutputDevice& Ar)
 		for (int32 LineIndex = 0; LineIndex < Lines.Num(); ++LineIndex)
 		{
 			TArray<FString> Args;
-			Lines[LineIndex].ParseIntoArrayWS(&Args);
+			Lines[LineIndex].ParseIntoArrayWS(Args);
 			FLockedViewState::Get().LockView(this,Args);
 		}
 		if (Lines.Num() > 1)

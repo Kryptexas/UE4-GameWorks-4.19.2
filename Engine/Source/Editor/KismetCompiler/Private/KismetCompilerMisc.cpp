@@ -46,12 +46,12 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 				// Check for the magic ArrayParm property, which always matches array types
 				FString ArrayPointerMetaData = OwningFunction->GetMetaData(TEXT("ArrayParm"));
 				TArray<FString> ArrayPinComboNames;
-				ArrayPointerMetaData.ParseIntoArray(&ArrayPinComboNames, TEXT(","), true);
+				ArrayPointerMetaData.ParseIntoArray(ArrayPinComboNames, TEXT(","), true);
 
 				for(auto Iter = ArrayPinComboNames.CreateConstIterator(); Iter; ++Iter)
 				{
 					TArray<FString> ArrayPinNames;
-					Iter->ParseIntoArray(&ArrayPinNames, TEXT("|"), true);
+					Iter->ParseIntoArray(ArrayPinNames, TEXT("|"), true);
 
 					if( ArrayPinNames[0] == SourcePin->PinName )
 					{
@@ -80,7 +80,7 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 		// Check to see if this param is type dependent on an array parameter
 		const FString DependentParams = OwningFunction->GetMetaData(TEXT("ArrayTypeDependentParams"));
 		TArray<FString>	DependentParamNames;
-		DependentParams.ParseIntoArray(&DependentParamNames, TEXT(","), true);
+		DependentParams.ParseIntoArray(DependentParamNames, TEXT(","), true);
 		if (DependentParamNames.Find(SourcePin->PinName) != INDEX_NONE)
 		{
 			//@todo:  This assumes that the wildcard coersion has done its job...I'd feel better if there was some easier way of accessing the target array type

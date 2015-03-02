@@ -897,7 +897,7 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 					if (ImportError.Len() > 0)
 					{
 						TArray<FString> ImportErrors;
-						ImportError.ParseIntoArray(&ImportErrors, LINE_TERMINATOR, true);
+						ImportError.ParseIntoArray(ImportErrors, LINE_TERMINATOR, true);
 
 						for ( int32 ErrorIndex = 0; ErrorIndex < ImportErrors.Num(); ErrorIndex++ )
 						{
@@ -1100,7 +1100,7 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 					if (ImportError.Len() > 0)
 					{
 						TArray<FString> ImportErrors;
-						ImportError.ParseIntoArray(&ImportErrors,LINE_TERMINATOR,true);
+						ImportError.ParseIntoArray(ImportErrors,LINE_TERMINATOR,true);
 
 						for ( int32 ErrorIndex = 0; ErrorIndex < ImportErrors.Num(); ErrorIndex++ )
 						{
@@ -1132,7 +1132,7 @@ const TCHAR* UProperty::ImportSingleProperty( const TCHAR* Str, void* DestData, 
 					if (ImportError.Len() > 0)
 					{
 						TArray<FString> ImportErrors;
-						ImportError.ParseIntoArray(&ImportErrors, LINE_TERMINATOR, true);
+						ImportError.ParseIntoArray(ImportErrors, LINE_TERMINATOR, true);
 
 						for ( int32 ErrorIndex = 0; ErrorIndex < ImportErrors.Num(); ErrorIndex++ )
 						{

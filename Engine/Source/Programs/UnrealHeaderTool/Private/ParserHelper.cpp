@@ -202,7 +202,7 @@ FAdvancedDisplayParameterHandler::FAdvancedDisplayParameterHandler(const TMap<FN
 		const FString* FoundString = MetaData->Find(FName(TEXT("AdvancedDisplay")));
 		if(FoundString)
 		{
-			FoundString->ParseIntoArray(&ParametersNames, TEXT(","), true);
+			FoundString->ParseIntoArray(ParametersNames, TEXT(","), true);
 			for(int32 NameIndex = 0; NameIndex < ParametersNames.Num();)
 			{
 				FString& ParameterName = ParametersNames[NameIndex];

@@ -597,7 +597,7 @@ void FPakPlatformFile::GetPakFolders(const TCHAR* CmdLine, TArray<FString>& OutP
 	if (FParse::Value(CmdLine, TEXT("-pakdir="), PakDirs))
 	{
 		TArray<FString> CmdLineFolders;
-		PakDirs.ParseIntoArray(&CmdLineFolders, TEXT("*"), true);
+		PakDirs.ParseIntoArray(CmdLineFolders, TEXT("*"), true);
 		OutPakFolders.Append(CmdLineFolders);
 	}
 #endif
@@ -658,7 +658,7 @@ bool FPakPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine)
 	FString CmdLinePaksToLoad;
 	if (FParse::Value(CmdLine, TEXT("-paklist="), CmdLinePaksToLoad))
 	{
-		CmdLinePaksToLoad.ParseIntoArray(&PaksToLoad, TEXT("+"), true);
+		CmdLinePaksToLoad.ParseIntoArray(PaksToLoad, TEXT("+"), true);
 	}
 #endif
 

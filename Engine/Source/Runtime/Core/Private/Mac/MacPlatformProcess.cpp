@@ -237,7 +237,7 @@ bool FMacPlatformProcess::ExecProcess( const TCHAR* URL, const TCHAR* Params, in
 		[ProcessHandle setLaunchPath: LaunchPath];
 		
 		TArray<FString> ArgsArray;
-		FString(Params).ParseIntoArray(&ArgsArray, TEXT(" "), true);
+		FString(Params).ParseIntoArray(ArgsArray, TEXT(" "), true);
 		
 		NSMutableArray *Arguments = [[NSMutableArray new] autorelease];
 		
@@ -390,7 +390,7 @@ FProcHandle FMacPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* Parm
 		else
 		{
 			TArray<FString> ArgsArray;
-			FString(Parms).ParseIntoArray(&ArgsArray, TEXT(" "), true);
+			FString(Parms).ParseIntoArray(ArgsArray, TEXT(" "), true);
 
 			FString MultiPartArg;
 			for (int32 Index = 0; Index < ArgsArray.Num(); Index++)

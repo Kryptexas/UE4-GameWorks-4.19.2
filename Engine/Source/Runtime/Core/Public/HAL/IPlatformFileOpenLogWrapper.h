@@ -45,7 +45,7 @@ public:
 			TArray<FString> PlatformNames;
 			if (!(PlatformStr == TEXT("None") || PlatformStr == TEXT("All")))
 			{
-				PlatformStr.ParseIntoArray(&PlatformNames, TEXT("+"), true);
+				PlatformStr.ParseIntoArray(PlatformNames, TEXT("+"), true);
 			}
 
 			for (int32 Platform = 0;Platform < PlatformNames.Num(); ++Platform)

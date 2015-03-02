@@ -305,7 +305,7 @@ void FFbxImportUIDetails::CollectChildPropertiesRecursive(TSharedPtr<IPropertyHa
 bool FFbxImportUIDetails::IsImportTypeMetaDataValid(EFBXImportType& ImportType, FString& MetaData)
 {
 	TArray<FString> Types;
-	MetaData.ParseIntoArray(&Types, TEXT("|"), 1);
+	MetaData.ParseIntoArray(Types, TEXT("|"), 1);
 	switch(ImportType)
 	{
 		case FBXIT_StaticMesh:

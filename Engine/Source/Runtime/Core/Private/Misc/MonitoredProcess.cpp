@@ -82,7 +82,7 @@ void FMonitoredProcess::ProcessOutput( const FString& Output )
 {
 	TArray<FString> LogLines;
 
-	Output.ParseIntoArray(&LogLines, TEXT("\n"), false);
+	Output.ParseIntoArray(LogLines, TEXT("\n"), false);
 
 	for (int32 LogIndex = 0; LogIndex < LogLines.Num(); ++LogIndex)
 	{

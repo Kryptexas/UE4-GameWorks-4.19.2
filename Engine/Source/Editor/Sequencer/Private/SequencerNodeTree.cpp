@@ -279,7 +279,7 @@ void FSequencerNodeTree::FilterNodes( const FString& InFilter )
 		FilterString.Trim();
 		FilterString.TrimTrailing();
 		const bool bCullEmpty = true;
-		FilterString.ParseIntoArray( &FilterStrings, TEXT(" "), bCullEmpty );
+		FilterString.ParseIntoArray( FilterStrings, TEXT(" "), bCullEmpty );
 
 		for( auto It = ObjectBindingMap.CreateIterator(); It; ++It )
 		{

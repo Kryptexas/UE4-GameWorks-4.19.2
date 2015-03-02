@@ -79,7 +79,7 @@ void UGameplayTagsManager::GetAllNodesForTag( const FString& Tag, TArray< TShare
 	TArray<FString> Tags;
 	TArray<TSharedPtr<FGameplayTagNode>>& GameplayRootTags = GameplayRootTag->GetChildTagNodes();
 	OutTagArray.Empty();
-	if(Tag.ParseIntoArray( &Tags, TEXT( "." ), true ) > 0)
+	if(Tag.ParseIntoArray( Tags, TEXT( "." ), true ) > 0)
 	{
 		int32 CurrentTagDepth = 0;
 		// find the first node of the tag
@@ -324,7 +324,7 @@ void UGameplayTagsManager::AddTagTableRow(const FGameplayTagTableRow& TagRow)
 	// Split the tag text on the "." delimiter to establish tag depth and then insert each tag into the
 	// gameplay tag tree
 	TArray<FString> SubTags;
-	TagRow.Tag.ParseIntoArray(&SubTags, TEXT("."), true);
+	TagRow.Tag.ParseIntoArray(SubTags, TEXT("."), true);
 
 	if (SubTags.Num() > 0)
 	{
@@ -445,7 +445,7 @@ void UGameplayTagsManager::GetFilteredGameplayRootTags( const FString& InFilterS
 	TArray<TSharedPtr<FGameplayTagNode>>& GameplayRootTags = GameplayRootTag->GetChildTagNodes();
 
 	OutTagArray.Empty();
-	if( InFilterString.ParseIntoArray( &Filters, TEXT( "," ), true ) > 0 )
+	if( InFilterString.ParseIntoArray( Filters, TEXT( "," ), true ) > 0 )
 	{
 		// Check all filters in the list
 		for (int32 iFilter = 0; iFilter < Filters.Num(); ++iFilter)

@@ -714,7 +714,7 @@ int32 FEngineLoop::PreInit( const TCHAR* CmdLine )
 		if (FParse::Value(FCommandLine::Get(), TEXT("testexit="), ExitPhrases))
 		{
 			TArray<FString> ExitPhrasesList;
-			if (ExitPhrases.ParseIntoArray(&ExitPhrasesList, TEXT("+"), true) > 0)
+			if (ExitPhrases.ParseIntoArray(ExitPhrasesList, TEXT("+"), true) > 0)
 			{
 				GScopedTestExit = new FOutputDeviceTestExit(ExitPhrasesList);
 				GLog->AddOutputDevice(GScopedTestExit.GetOwnedPointer());

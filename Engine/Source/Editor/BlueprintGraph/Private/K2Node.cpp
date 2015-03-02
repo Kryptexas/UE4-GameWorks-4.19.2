@@ -784,7 +784,7 @@ void UK2Node::InitFieldRedirectMap()
 					FFieldRemapInfo OldFieldRemap;
 					{
 						TArray<FString> OldFieldPath;
-						OldFieldPathString.ParseIntoArray(&OldFieldPath, TEXT("."), true);
+						OldFieldPathString.ParseIntoArray(OldFieldPath, TEXT("."), true);
 
 						if (OldFieldPath.Num() == 1)
 						{
@@ -803,7 +803,7 @@ void UK2Node::InitFieldRedirectMap()
 					FFieldRemapInfo NewFieldRemap;
 					{
 						TArray<FString> NewFieldPath;
-						NewFieldPathString.ParseIntoArray(&NewFieldPath, TEXT("."), true);
+						NewFieldPathString.ParseIntoArray(NewFieldPath, TEXT("."), true);
 
 						if( NewFieldPath.Num() == 1 )
 						{
@@ -852,8 +852,8 @@ void UK2Node::InitFieldRedirectMap()
 
 					TArray<FString> OldParamValuesList;
 					TArray<FString> NewParamValuesList;
-					OldParamValues.ParseIntoArray(&OldParamValuesList, TEXT(";"), false);
-					NewParamValues.ParseIntoArray(&NewParamValuesList, TEXT(";"), false);
+					OldParamValues.ParseIntoArray(OldParamValuesList, TEXT(";"), false);
+					NewParamValues.ParseIntoArray(NewParamValuesList, TEXT(";"), false);
 
 					if (OldParamValuesList.Num() != NewParamValuesList.Num())
 					{

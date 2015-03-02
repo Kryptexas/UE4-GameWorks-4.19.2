@@ -337,7 +337,7 @@ void ProcessOrderFile(int32 ArgC, TCHAR* ArgV[], TMap<FString, uint64>& OrderMap
 		{
 			// Read all lines
 			TArray<FString> Lines;
-			Text.ParseIntoArray(&Lines, TEXT("\n"), true);
+			Text.ParseIntoArray(Lines, TEXT("\n"), true);
 			for (int32 EntryIndex = 0; EntryIndex < Lines.Num(); EntryIndex++)
 			{
 				Lines[EntryIndex].ReplaceInline(TEXT("\r"), TEXT(""));
@@ -434,7 +434,7 @@ void ProcessCommandLine(int32 ArgC, TCHAR* ArgV[], TArray<FPakInputPair>& Entrie
 				// Remove all carriage return characters.
 				Text.ReplaceInline(TEXT("\r"), TEXT(""));
 				// Read all lines
-				Text.ParseIntoArray(&Lines, TEXT("\n"), true);
+				Text.ParseIntoArray(Lines, TEXT("\n"), true);
 			}
 			else
 			{
@@ -697,7 +697,7 @@ FArchive* CreatePakWriter(const TCHAR* Filename)
 		if (KeyFilename.StartsWith(TEXT("0x")))
 		{
 			TArray<FString> KeyValueText;
-			if (KeyFilename.ParseIntoArray(&KeyValueText, TEXT("+"), true) == 3)
+			if (KeyFilename.ParseIntoArray(KeyValueText, TEXT("+"), true) == 3)
 			{
 				Pair.PrivateKey.Exponent.Parse(KeyValueText[0]);
 				Pair.PrivateKey.Modulus.Parse(KeyValueText[1]);

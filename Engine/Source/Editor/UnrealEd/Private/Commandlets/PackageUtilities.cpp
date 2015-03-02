@@ -1009,7 +1009,7 @@ void FPkgInfoReporter_Log::GeneratePackageReport( ULinkerLoad* InLinker/*=NULL*/
 		if ( FParse::Value(FCommandLine::Get(), TEXT("SORT="), SortingParms) )
 		{
 			TArray<FString> SortValues;
-			SortingParms.ParseIntoArray(&SortValues, TEXT(","), true);
+			SortingParms.ParseIntoArray(SortValues, TEXT(","), true);
 
 			for ( int32 i = 0; i < EXPORTSORT_MAX; i++ )
 			{

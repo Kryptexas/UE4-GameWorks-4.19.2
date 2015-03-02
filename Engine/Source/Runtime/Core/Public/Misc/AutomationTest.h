@@ -256,7 +256,7 @@ private:
 	{
 		//Split New Test Name into string array
 		TArray<FString> Pieces;
-		InTestInfo.ParseIntoArray(&Pieces, TEXT(","), true);
+		InTestInfo.ParseIntoArray(Pieces, TEXT(","), true);
 
 		// We should always have at least 3 parameters
 		check( Pieces.Num() >= 3 )

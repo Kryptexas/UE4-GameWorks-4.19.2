@@ -960,7 +960,7 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 		{
 			FString Tmp = ANSI_TO_TCHAR(ErrorLog);
 			TArray<FString> ErrorLines;
-			Tmp.ParseIntoArray(&ErrorLines, TEXT("\n"), true);
+			Tmp.ParseIntoArray(ErrorLines, TEXT("\n"), true);
 			for (int32 LineIndex = 0; LineIndex < ErrorLines.Num(); ++LineIndex)
 			{
 				const FString& Line = ErrorLines[LineIndex];

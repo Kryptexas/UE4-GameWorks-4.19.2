@@ -169,7 +169,7 @@ void FRawStatStackNode::AddNameHierarchy(int32 CurrentPrefixDepth)
 				else
 				{
 					Name.ReplaceInline(TEXT("/"), TEXT("."));
-					Name.ParseIntoArray(&Parts, TEXT("."), true);
+					Name.ParseIntoArray(Parts, TEXT("."), true);
 					check(Parts.Num());
 					ParsedNames.Empty(Parts.Num());
 					for (int32 PartIndex = 0; PartIndex < Parts.Num(); PartIndex++)

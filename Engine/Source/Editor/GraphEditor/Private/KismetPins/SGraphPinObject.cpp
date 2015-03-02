@@ -194,7 +194,7 @@ TSharedRef<SWidget> SGraphPinObject::GenerateAssetPicker()
 
 		// Parse and add the classes from the metadata
 		TArray<FString> CustomClassFilterNames;
-		ClassFilterString.ParseIntoArray(&CustomClassFilterNames, TEXT(","), true);
+		ClassFilterString.ParseIntoArray(CustomClassFilterNames, TEXT(","), true);
 		for(auto It = CustomClassFilterNames.CreateConstIterator(); It; ++It)
 		{
 			AssetPickerConfig.Filter.ClassNames.Add(FName(**It));

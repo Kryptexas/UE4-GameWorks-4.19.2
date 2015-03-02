@@ -178,7 +178,7 @@ static bool BlueprintActionMenuUtilsImpl::IsUnexposedMemberAction(FBlueprintActi
 				}
 
 				TArray<FString> PropertyExposedCategories;
-				ExposedCategoryMetadata.ParseIntoArray(&PropertyExposedCategories, TEXT(","), true);
+				ExposedCategoryMetadata.ParseIntoArray(PropertyExposedCategories, TEXT(","), true);
 				AllExposedCategories.Append(PropertyExposedCategories);
 			}
 		}

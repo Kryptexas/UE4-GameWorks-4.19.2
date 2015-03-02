@@ -1170,7 +1170,7 @@ ECheckBoxState SFindInBlueprints::OnGetFindModeChecked() const
 void SFindInBlueprints::InitiateSearch()
 {
 	TArray<FString> Tokens;
-	if(SearchValue.Contains("\"") && SearchValue.ParseIntoArray(&Tokens, TEXT("\""), true)>0)
+	if(SearchValue.Contains("\"") && SearchValue.ParseIntoArray(Tokens, TEXT("\""), true)>0)
 	{
 		for( auto &TokenIt : Tokens )
 		{
@@ -1194,7 +1194,7 @@ void SFindInBlueprints::InitiateSearch()
 	else
 	{
 		// unquoted search equivalent to a match-any-of search
-		SearchValue.ParseIntoArray(&Tokens, TEXT(" "), true);
+		SearchValue.ParseIntoArray(Tokens, TEXT(" "), true);
 	}
 
 	if(ItemsFound.Num())

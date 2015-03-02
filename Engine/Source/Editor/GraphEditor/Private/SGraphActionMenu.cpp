@@ -637,7 +637,7 @@ void SGraphActionMenu::GenerateFilteredItems(bool bPreserveExpansion)
 
 	// Tokenize the search box text into a set of terms; all of them must be present to pass the filter
 	TArray<FString> FilterTerms;
-	TrimmedFilterString.ParseIntoArray(/*out*/ &FilterTerms, TEXT(" "), true);
+	TrimmedFilterString.ParseIntoArray(FilterTerms, TEXT(" "), true);
 	
 	// Generate a list of sanitized versions of the strings
 	TArray<FString> SanitizedFilterTerms;
@@ -772,22 +772,22 @@ int32 SGraphActionMenu::GetActionFilteredWeight( const FGraphActionListBuilderBa
 		SearchText = SearchText.Replace( TEXT( " " ), TEXT( "" ) );
 
 		// First the keywords
-		InCurrentAction.Actions[Action]->Keywords.ParseIntoArray( &EachEntry.Array, TEXT(" "), true );
+		InCurrentAction.Actions[Action]->Keywords.ParseIntoArray( EachEntry.Array, TEXT(" "), true );
 		EachEntry.Weight = 10;
 		WeightedArrayList.Add( EachEntry );
 
 		// The description
-		InCurrentAction.Actions[Action]->MenuDescription.ToString().ParseIntoArray( &EachEntry.Array, TEXT(" "), true );
+		InCurrentAction.Actions[Action]->MenuDescription.ToString().ParseIntoArray( EachEntry.Array, TEXT(" "), true );
 		EachEntry.Weight = DescriptionWeight;
 		WeightedArrayList.Add( EachEntry );
 
 		// The node search title weight
-		InCurrentAction.Actions[Action]->GetSearchTitle().ToString().ParseIntoArray( &EachEntry.Array, TEXT(" "), true );
+		InCurrentAction.Actions[Action]->GetSearchTitle().ToString().ParseIntoArray( EachEntry.Array, TEXT(" "), true );
 		EachEntry.Weight = NodeTitleWeight;
 		WeightedArrayList.Add( EachEntry );
 
 		// The category
-		InCurrentAction.Actions[Action]->Category.ParseIntoArray( &EachEntry.Array, TEXT(" "), true );
+		InCurrentAction.Actions[Action]->Category.ParseIntoArray( EachEntry.Array, TEXT(" "), true );
 		EachEntry.Weight = CategoryWeight;
 		WeightedArrayList.Add( EachEntry );
 

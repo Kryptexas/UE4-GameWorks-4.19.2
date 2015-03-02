@@ -1948,7 +1948,7 @@ void FBuildDataGenerator::StripIgnoredFiles( TArray< FString >& AllFiles, const 
 	FString IgnoreFileList = TEXT( "" );
 	FFileHelper::LoadFileToString( IgnoreFileList, *IgnoreListFile );
 	TArray< FString > IgnoreFiles;
-	IgnoreFileList.ParseIntoArray( &IgnoreFiles, TEXT( "\r\n" ), true );
+	IgnoreFileList.ParseIntoArray( IgnoreFiles, TEXT( "\r\n" ), true );
 
 	// Normalize all paths first
 	for (FString& Filename : AllFiles)

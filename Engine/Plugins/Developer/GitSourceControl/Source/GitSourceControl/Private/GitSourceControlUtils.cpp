@@ -104,8 +104,8 @@ static bool RunCommandInternal(const FString& InCommand, const FString& InPathTo
 	FString Errors;
 
 	bResult = RunCommandInternalRaw(InCommand, InPathToGitBinary, InRepositoryRoot, InParameters, InFiles, Results, Errors);
-	Results.ParseIntoArray(&OutResults, TEXT("\n"), true);
-	Errors.ParseIntoArray(&OutErrorMessages, TEXT("\n"), true);
+	Results.ParseIntoArray(OutResults, TEXT("\n"), true);
+	Errors.ParseIntoArray(OutErrorMessages, TEXT("\n"), true);
 
 	return bResult;
 }

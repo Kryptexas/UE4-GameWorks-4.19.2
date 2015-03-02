@@ -523,7 +523,7 @@ bool GenerateTestNamesFromCommandLine(const TCHAR* InTestCommands, TArray<FStrin
 	//Split the test names up
 	TArray<FString> TestList;
 	const FString StringCommand = InTestCommands;
-	StringCommand.ParseIntoArray(&TestList, TEXT(","), true);
+	StringCommand.ParseIntoArray(TestList, TEXT(","), true);
 
 	//Get the list of valid names
 	TArray<FAutomationTestInfo> TestInfo;

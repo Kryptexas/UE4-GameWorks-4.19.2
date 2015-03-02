@@ -163,7 +163,7 @@ FString SMatineeRecordMovie::CustomResolutionStr( TEXT("Custom") );
 static void ParseResolutionString( const FString& ResStr, uint32 &OutWidth, uint32& OutHeight )
 {
 	TArray<FString> Res;
-	if( ResStr.ParseIntoArray( &Res, TEXT("x"), 0 ) == 2 )
+	if( ResStr.ParseIntoArray( Res, TEXT("x"), 0 ) == 2 )
 	{
 		OutWidth = FCString::Atof(Res[0].GetCharArray().GetData());
 		OutHeight = FCString::Atof(Res[1].GetCharArray().GetData());

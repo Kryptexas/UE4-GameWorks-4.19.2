@@ -875,7 +875,7 @@ bool FVisualStudioSourceCodeAccessor::AddSourceFiles(const TArray<FString>& Abso
 						{
 							const FString ProjectRelativeSourceFilePath = SourceFile.Mid(ModuleNewSourceFiles.ModuleNameAndPath.ModulePath.Len());
 							TArray<FString> SourceFileParts;
-							ProjectRelativeSourceFilePath.ParseIntoArray(&SourceFileParts, TEXT("/"), true);
+							ProjectRelativeSourceFilePath.ParseIntoArray(SourceFileParts, TEXT("/"), true);
 					
 							if (SourceFileParts.Num() == 0)
 							{

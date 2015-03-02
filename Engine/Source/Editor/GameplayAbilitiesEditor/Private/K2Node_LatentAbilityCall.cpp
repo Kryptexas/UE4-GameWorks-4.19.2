@@ -234,7 +234,7 @@ void UK2Node_LatentAbilityCall::CreatePinsForClass(UClass* InClass)
 	
 		if (!IgnorePropertyListStr.IsEmpty())
 		{
-			IgnorePropertyListStr.ParseIntoArray(&IgnorePropertyList, TEXT(","), true);
+			IgnorePropertyListStr.ParseIntoArray(IgnorePropertyList, TEXT(","), true);
 		}
 	}
 

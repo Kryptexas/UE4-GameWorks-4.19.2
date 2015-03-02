@@ -519,7 +519,7 @@ static void InitRHICapabilitiesForGL()
 		// Log supported GL extensions
 		UE_LOG(LogRHI, Log, TEXT("OpenGL Extensions:"));
 		TArray<FString> GLExtensionArray;
-		ExtensionsString.ParseIntoArray(&GLExtensionArray, TEXT(" "), true);
+		ExtensionsString.ParseIntoArray(GLExtensionArray, TEXT(" "), true);
 		for (int ExtIndex = 0; ExtIndex < GLExtensionArray.Num(); ExtIndex++)
 		{
 			UE_LOG(LogRHI, Log, TEXT("  %s"), *GLExtensionArray[ExtIndex]);

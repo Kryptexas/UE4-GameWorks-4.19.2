@@ -460,7 +460,7 @@ void SDetailsViewBase::FilterView(const FString& InFilterText)
 	// Remove whitespace from the front and back of the string
 	ParseString.Trim();
 	ParseString.TrimTrailing();
-	ParseString.ParseIntoArray(&CurrentFilterStrings, TEXT(" "), true);
+	ParseString.ParseIntoArray(CurrentFilterStrings, TEXT(" "), true);
 
 	bHasActiveFilter = CurrentFilterStrings.Num() > 0;
 
@@ -922,7 +922,7 @@ void SDetailsViewBase::RestoreExpandedItems(TSharedPtr<FPropertyNode> InitialSta
 	{
 		GConfig->GetString(TEXT("DetailCustomWidgetExpansion"), *BestBaseStruct->GetName(), ExpandedCustomItems, GEditorUserSettingsIni);
 		TArray<FString> ExpandedCustomItemsArray;
-		ExpandedCustomItems.ParseIntoArray(&ExpandedCustomItemsArray, TEXT(","), true);
+		ExpandedCustomItems.ParseIntoArray(ExpandedCustomItemsArray, TEXT(","), true);
 
 		ExpandedDetailNodes.Append(ExpandedCustomItemsArray);
 	}

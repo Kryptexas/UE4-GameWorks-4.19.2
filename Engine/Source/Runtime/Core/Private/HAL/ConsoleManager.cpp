@@ -973,7 +973,7 @@ bool FConsoleManager::ProcessUserConsoleInput(const TCHAR* InInput, FOutputDevic
 		// Process command
 		// Build up argument list
 		TArray< FString > Args;
-		FString( It ).ParseIntoArrayWS( &Args );
+		FString( It ).ParseIntoArrayWS( Args );
 
 		const bool bShowHelp = Args.Num() == 1 && Args[0] == TEXT("?");
 		if( bShowHelp )

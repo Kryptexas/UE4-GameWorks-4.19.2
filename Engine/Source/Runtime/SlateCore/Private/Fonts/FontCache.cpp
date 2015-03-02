@@ -806,7 +806,7 @@ private:
 				{
 					// Parse out the font attributes
 					TArray<FString> Styles;
-					FString(FaceAndMemory->Face->style_name).ParseIntoArray(&Styles, TEXT(" "), true);
+					FString(FaceAndMemory->Face->style_name).ParseIntoArray(Styles, TEXT(" "), true);
 
 					for (const FString& Style : Styles)
 					{

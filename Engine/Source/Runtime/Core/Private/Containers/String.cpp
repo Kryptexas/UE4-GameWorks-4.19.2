@@ -501,12 +501,11 @@ bool FString::IsNumeric() const
  *
  * @return	The number of elements in InArray
  */
-int32 FString::ParseIntoArray( TArray<FString>* InArray, const TCHAR* pchDelim, bool InCullEmpty ) const
+int32 FString::ParseIntoArray( TArray<FString>& OutArray, const TCHAR* pchDelim, bool InCullEmpty ) const
 {
 	// Make sure the delimit string is not null or empty
 	check(pchDelim);
-	check(InArray);
-	InArray->Empty();
+	OutArray.Empty();
 	const TCHAR *Start = Data.GetData();
 	int32 DelimLength = FCString::Strlen(pchDelim);
 	if (Start && DelimLength)
@@ -515,101 +514,17 @@ int32 FString::ParseIntoArray( TArray<FString>* InArray, const TCHAR* pchDelim, 
 		{
 			if (!InCullEmpty || At-Start)
 			{
-				new (*InArray) FString(At-Start,Start);
+				new (OutArray) FString(At-Start,Start);
 			}
 			Start += DelimLength + (At-Start);
 		}
 		if (!InCullEmpty || *Start)
 		{
-			new(*InArray) FString(Start);
+			new(OutArray) FString(Start);
 		}
 
 	}
-	return InArray->Num();
-}
-
-/**
- * Takes a string, and skips over all instances of white space and returns the new string
- *
- * @param	WhiteSpace		An array of white space strings
- * @param	NumWhiteSpaces	The length of the WhiteSpace array
- * @param	S				The input and output string
- */
-static void SkipOver(const TCHAR** WhiteSpace, int32 NumWhiteSpaces, FString& S)
-{
-	bool bStop = false;
-
-	// keep going until we hit non-white space
-	while (!bStop)
-	{
-		// we stop it we don't find any white space
-		bStop = true;
-		// loop over all possible white spaces to search for
-		for (int32 iWS = 0; iWS < NumWhiteSpaces; iWS++)
-		{
-			// get the length (tiny optimization)
-			int32 WSLen = FCString::Strlen(WhiteSpace[iWS]);
-
-			// if we start with this bit of whitespace, chop it off, and keep looking for more whitespace
-			if (FCString::Strnicmp(*S, WhiteSpace[iWS], WSLen) == 0)
-			{
-				// chop it off
-				S = S.Mid(WSLen);
-				// keep looking!
-				bStop = false;
-				break;
-			}
-		}
-	}
-}
-
-/**
- * Splits the input string on the first bit of white space, and returns the initial token
- * (to the left of the white space), and the rest (white space and to the right)
- *
- * @param	WhiteSpace		An array of white space strings
- * @param	NumWhiteSpaces	The length of the WhiteSpace array
- * @param	Token			The first token before any white space
- * @param	S				The input and outputted remainder string
- *
- * @return	Was there a valid token before the end of the string?
- */
-static bool SplitOn( const TCHAR** WhiteSpace, int32 NumWhiteSpaces, FString& Token, FString& S, TCHAR& InCh )
-{
-	// this is the index of the first instance of whitespace
-	int32 SmallestToken = MAX_int32;
-	InCh = TEXT(' ');
-
-	// loop through all possible white spaces
-	for (int32 iWS = 0; iWS < NumWhiteSpaces; iWS++)
-	{
-		// look for the first instance of it
-		int32 NextWS = S.Find(WhiteSpace[iWS]);
-
-		// if shouldn't be at the start of the string, because SkipOver should have been called
-		check(NextWS != 0);
-
-		// if we found this white space, and it is before any other white spaces, remember it
-		if (NextWS > 0 && NextWS < SmallestToken)
-		{
-			SmallestToken = NextWS;
-			InCh = *WhiteSpace[iWS];
-		}
-	}
-
-	// if we found some white space, SmallestToken is pointing to the the first one
-	if (SmallestToken != MAX_int32)
-	{
-		// get the token before the white space
-		Token = S.Left(SmallestToken);
-		// update out string with the remainder
-		S = S.Mid(SmallestToken);
-		// we found a token
-		return true;
-	}
-
-	// we failed to find a token
-	return false;
+	return OutArray.Num();
 }
 
 bool FString::MatchesWildcard(const FString& InWildcard, ESearchCase::Type SearchCase) const
@@ -690,7 +605,7 @@ bool FString::MatchesWildcard(const FString& InWildcard, ESearchCase::Type Searc
 
 
 /** Caution!! this routine is O(N^2) allocations...use it for parsing very short text or not at all */
-int32 FString::ParseIntoArrayWS( TArray<FString>* InArray, const TCHAR* pchExtraDelim ) const
+int32 FString::ParseIntoArrayWS( TArray<FString>& OutArray, const TCHAR* pchExtraDelim, bool InCullEmpty ) const
 {
 	// default array of White Spaces, the last entry can be replaced with the optional pchExtraDelim string
 	// (if you want to split on white space and another character)
@@ -711,86 +626,85 @@ int32 FString::ParseIntoArrayWS( TArray<FString>* InArray, const TCHAR* pchExtra
 		WhiteSpace[NumWhiteSpaces++] = pchExtraDelim;
 	}
 
-	return ParseIntoArray(InArray, WhiteSpace, NumWhiteSpaces);
+	return ParseIntoArray(OutArray, WhiteSpace, NumWhiteSpaces, InCullEmpty);
 }
 
-int32 FString::ParseIntoArrayLines(TArray<FString>* InArray) const
+int32 FString::ParseIntoArrayLines(TArray<FString>& OutArray, bool InCullEmpty) const
 {
 	// default array of LineEndings
 	static const TCHAR* LineEndings[] =
 	{				
+		TEXT("\r\n"),
 		TEXT("\r"),
 		TEXT("\n"),	
 	};
 
 	// start with just the standard line endings
 	int32 NumLineEndings = ARRAY_COUNT(LineEndings);	
-	return ParseIntoArray(InArray, LineEndings, NumLineEndings);
+	return ParseIntoArray(OutArray, LineEndings, NumLineEndings, InCullEmpty);
 }
 
-int32 FString::ParseIntoArray(TArray<FString>* InArray, const TCHAR** DelimArray, int32 NumDelims) const
+int32 FString::ParseIntoArray(TArray<FString>& OutArray, const TCHAR** DelimArray, int32 NumDelims, bool InCullEmpty) const
 {
+	// Make sure the delimit string is not null or empty
 	check(DelimArray);
-	check(InArray);
-	InArray->Empty();
-
-	// this is our temporary workhorse string
-	FString S = *this;
-
-	bool bStop = false;
-	// keep going until we run out of tokens
-	while (!bStop)
+	OutArray.Empty();
+	const TCHAR *Start = Data.GetData();
+	const int32 Length = Len();
+	if (Start)
 	{
-		// skip over any white space at the beginning of the string
-		SkipOver(DelimArray, NumDelims, S);
+		int32 SubstringBeginIndex = 0;
 
-		// find the first token in the string, and if we get one, add it to the output array of tokens
-		FString Token;
-		TCHAR ch;
-		if (SplitOn(DelimArray, NumDelims, Token, S, ch))
+		// Iterate through string.
+		for(int32 i = 0; i < Len();)
 		{
-			if (Token[0] == TEXT('"'))
-			{
-				int32 SaveSz = Token.Len();
+			int32 SubstringEndIndex = INDEX_NONE;
+			int32 DelimiterLength = 0;
 
-				FString Wk = FString::Printf(TEXT("%s%c"), *Token, ch);
-				for (int32 x = 1; x < S.Len(); ++x)
+			// Attempt each delimiter.
+			for(int32 DelimIndex = 0; DelimIndex < NumDelims; ++DelimIndex)
+			{
+				DelimiterLength = FCString::Strlen(DelimArray[DelimIndex]);
+
+				// If we found a delimiter...
+				if (FCString::Strncmp(Start + i, DelimArray[DelimIndex], DelimiterLength) == 0)
 				{
-					if (S[x] == TEXT('"'))
-					{
-						Wk += TEXT("\"");
-						break;
-					}
-					else
-					{
-						Wk = Wk + S.Mid(x, 1);
-					}
+					// Mark the end of the substring.
+					SubstringEndIndex = i;
+					break;
 				}
-
-				Token = Wk;
-
-				int32 DiffSz = Token.Len() - SaveSz;
-				S = S.Mid(DiffSz);
 			}
 
-			// stick it on the end
-			new(*InArray)FString(Token);
-		}
-		else
-		{
-			// if the remaining string is not empty, then we need to add the last token
-			if (S.Len())
+			if (SubstringEndIndex != INDEX_NONE)
 			{
-				new(*InArray)FString(S);
+				const int32 SubstringLength = SubstringEndIndex - SubstringBeginIndex;
+				// If we're not culling empty strings or if we are but the string isn't empty anyways...
+				if(!InCullEmpty || SubstringLength != 0)
+				{
+					// ... add new string from substring beginning up to the beginning of this delimiter.
+					new (OutArray) FString(SubstringEndIndex - SubstringBeginIndex, Start + SubstringBeginIndex);
+				}
+				// Next substring begins at the end of the discovered delimiter.
+				SubstringBeginIndex = SubstringEndIndex + DelimiterLength;
+				i = SubstringBeginIndex;
 			}
+			else
+			{
+				++i;
+			}
+		}
 
-			// and, we're done this crazy ride
-			bStop = true;
+		// Add any remaining characters after the last delimiter.
+		const int32 SubstringLength = Length - SubstringBeginIndex;
+		// If we're not culling empty strings or if we are but the string isn't empty anyways...
+		if(!InCullEmpty || SubstringLength != 0)
+		{
+			// ... add new string from substring beginning up to the beginning of this delimiter.
+			new (OutArray) FString(Start + SubstringBeginIndex);
 		}
 	}
 
-	// simply return the number of elements in the output array
-	return InArray->Num();
+	return OutArray.Num();
 }
 
 FString FString::Replace(const TCHAR* From, const TCHAR* To, ESearchCase::Type SearchCase) const

@@ -78,7 +78,7 @@ void FClass::GetHideCategories(TArray<FString>& OutHideCategories) const
 	if (HasMetaData(NAME_HideCategories))
 	{
 		const FString& HideCategories = GetMetaData(NAME_HideCategories);
-		HideCategories.ParseIntoArray(&OutHideCategories, TEXT(" "), true);
+		HideCategories.ParseIntoArray(OutHideCategories, TEXT(" "), true);
 	}
 }
 
@@ -88,6 +88,6 @@ void FClass::GetShowCategories(TArray<FString>& OutShowCategories) const
 	if (HasMetaData(NAME_ShowCategories))
 	{
 		const FString& ShowCategories = GetMetaData(NAME_ShowCategories);
-		ShowCategories.ParseIntoArray(&OutShowCategories, TEXT(" "), true);
+		ShowCategories.ParseIntoArray(OutShowCategories, TEXT(" "), true);
 	}
 }

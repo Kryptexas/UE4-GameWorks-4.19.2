@@ -226,7 +226,7 @@ bool FCheckOutTest::RunTest(const FString& Parameters)
 	// parameter is the provider we want to use followed by the filename
 	const FString Delimiter(TEXT(" "));
 	TArray<FString> ParamArray;
-	Parameters.ParseIntoArray(&ParamArray, *Delimiter, true);
+	Parameters.ParseIntoArray(ParamArray, *Delimiter, true);
 	ensure(ParamArray.Num() == 2);
 
 	// check to see if we should restore the read only status after this test
@@ -377,7 +377,7 @@ bool FMarkForAddTest::RunTest(const FString& Parameters)
 	// parameter is the provider we want to use followed by the filename
 	const FString Delimiter(TEXT(" "));
 	TArray<FString> ParamArray;
-	Parameters.ParseIntoArray(&ParamArray, *Delimiter, true);
+	Parameters.ParseIntoArray(ParamArray, *Delimiter, true);
 	ensure(ParamArray.Num() == 2);
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
@@ -450,7 +450,7 @@ bool FDeleteTest::RunTest(const FString& Parameters)
 	// parameter is the provider we want to use followed by the filename
 	const FString Delimiter(TEXT(" "));
 	TArray<FString> ParamArray;
-	Parameters.ParseIntoArray(&ParamArray, *Delimiter, true);
+	Parameters.ParseIntoArray(ParamArray, *Delimiter, true);
 	ensure(ParamArray.Num() == 2);
 
 	// check to see if we should restore the read only status after this test
@@ -551,7 +551,7 @@ bool FCheckInTest::RunTest(const FString& Parameters)
 	// parameter is the provider we want to use followed by the filename
 	const FString Delimiter(TEXT(" "));
 	TArray<FString> ParamArray;
-	Parameters.ParseIntoArray(&ParamArray, *Delimiter, true);
+	Parameters.ParseIntoArray(ParamArray, *Delimiter, true);
 	ensure(ParamArray.Num() == 2);
 
 	// check to see if we should restore the read only status after this test
@@ -621,7 +621,7 @@ bool FSyncTest::RunTest(const FString& Parameters)
 	// parameter is the provider we want to use followed by the filename
 	const FString Delimiter(TEXT(" "));
 	TArray<FString> ParamArray;
-	Parameters.ParseIntoArray(&ParamArray, *Delimiter, true);
+	Parameters.ParseIntoArray(ParamArray, *Delimiter, true);
 	ensure(ParamArray.Num() == 2);
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
@@ -644,7 +644,7 @@ bool FRevertTest::RunTest(const FString& Parameters)
 	// parameter is the provider we want to use followed by the filename
 	const FString Delimiter(TEXT(" "));
 	TArray<FString> ParamArray;
-	Parameters.ParseIntoArray(&ParamArray, *Delimiter, true);
+	Parameters.ParseIntoArray(ParamArray, *Delimiter, true);
 	ensure(ParamArray.Num() == 2);
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
@@ -739,7 +739,7 @@ bool FUpdateStatusTest::RunTest(const FString& Parameters)
 	// parameter is the provider we want to use followed by the filename
 	const FString Delimiter(TEXT(" "));
 	TArray<FString> ParamArray;
-	Parameters.ParseIntoArray(&ParamArray, *Delimiter, true);
+	Parameters.ParseIntoArray(ParamArray, *Delimiter, true);
 	ensure(ParamArray.Num() == 2);
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));
@@ -823,7 +823,7 @@ bool FGetLabelTest::RunTest(const FString& Parameters)
 	// parameter is the provider we want to use followed by the label
 	const FString Delimiter(TEXT(" "));
 	TArray<FString> ParamArray;
-	Parameters.ParseIntoArray(&ParamArray, *Delimiter, true);
+	Parameters.ParseIntoArray(ParamArray, *Delimiter, true);
 	ensure(ParamArray.Num() == 2);
 
 	TArray<FString> FilesToGet;
@@ -868,7 +868,7 @@ bool FSyncLabelTest::RunTest(const FString& Parameters)
 	// parameter is the provider we want to use followed by the label
 	const FString Delimiter(TEXT(" "));
 	TArray<FString> ParamArray;
-	Parameters.ParseIntoArray(&ParamArray, *Delimiter, true);
+	Parameters.ParseIntoArray(ParamArray, *Delimiter, true);
 	ensure(ParamArray.Num() == 2);
 
 	TArray<FString> FilesToGet;
@@ -934,7 +934,7 @@ bool FGetRevisionTest::RunTest(const FString& Parameters)
 	// parameter is the provider we want to use followed by the filename
 	const FString Delimiter(TEXT(" "));
 	TArray<FString> ParamArray;
-	Parameters.ParseIntoArray(&ParamArray, *Delimiter, true);
+	Parameters.ParseIntoArray(ParamArray, *Delimiter, true);
 	ensure(ParamArray.Num() == 2);
 
 	ADD_LATENT_AUTOMATION_COMMAND(FSetProviderLatentCommand(FName(*ParamArray[0])));

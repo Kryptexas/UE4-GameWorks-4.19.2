@@ -2723,7 +2723,7 @@ namespace ObjectTools
 
 			// Parse the format into its extension and description parts
 			TArray<FString> FormatComponents;
-			CurFormat.ParseIntoArray( &FormatComponents, TEXT(";"), false );
+			CurFormat.ParseIntoArray( FormatComponents, TEXT(";"), false );
 
 			for ( int32 ComponentIndex = 0; ComponentIndex < FormatComponents.Num(); ComponentIndex += 2 )
 			{

@@ -381,7 +381,7 @@ public:
 		close( Handle );
 
 		TArray<FString> Lines;
-		EntireFile.ParseIntoArrayLines(&Lines);
+		EntireFile.ParseIntoArrayLines(Lines);
 
 #if LOG_ANDROID_FILE_MANIFEST
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("Loaded manifest file %s"), *ManifestFileName);

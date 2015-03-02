@@ -406,7 +406,7 @@ bool UK2Node_Event::CanPasteHere(const UEdGraph* TargetGraph) const
 			if(Blueprint->ParentClass->HasMetaData(*ExclusionListKeyName))
 			{
 				const FString ExcludedEventNameString = Blueprint->ParentClass->GetMetaData(*ExclusionListKeyName);
-				ExcludedEventNameString.ParseIntoArray(&ExcludedEventNames, TEXT(","), true);
+				ExcludedEventNameString.ParseIntoArray(ExcludedEventNames, TEXT(","), true);
 			}
 
 			// Gather all interfaces implemented by the Blueprint class

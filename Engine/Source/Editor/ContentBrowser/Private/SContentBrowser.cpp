@@ -1901,7 +1901,7 @@ void SContentBrowser::UpdatePath()
 	if ( SourcesData.PackagePaths.Num() > 0 )
 	{
 		TArray<FString> Crumbs;
-		SourcesData.PackagePaths[0].ToString().ParseIntoArray(&Crumbs, TEXT("/"), true);
+		SourcesData.PackagePaths[0].ToString().ParseIntoArray(Crumbs, TEXT("/"), true);
 
 		FString CrumbPath = TEXT("/");
 		for ( auto CrumbIt = Crumbs.CreateConstIterator(); CrumbIt; ++CrumbIt )

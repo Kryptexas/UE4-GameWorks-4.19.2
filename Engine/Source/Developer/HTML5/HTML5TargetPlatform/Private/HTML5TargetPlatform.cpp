@@ -353,7 +353,7 @@ void FHTML5TargetPlatform::RefreshAvailableDevices()
 				FString DevicePath;
 				It.Value.RemoveFromStart(TEXT("("));
 				It.Value.RemoveFromEnd(TEXT(")"));
-				It.Value.ParseIntoArray(&ValueArray, TEXT(","), 1);
+				It.Value.ParseIntoArray(ValueArray, TEXT(","), 1);
 				for (auto& Value : ValueArray)
 				{
 					if (Value.StartsWith(TEXT("DeviceName=")))

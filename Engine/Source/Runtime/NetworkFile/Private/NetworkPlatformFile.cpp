@@ -61,7 +61,7 @@ bool FNetworkPlatformFile::Initialize(IPlatformFile* Inner, const TCHAR* CmdLine
 	if (FParse::Value(CmdLine, TEXT("-FileHostIP="), HostIpString))
 	{
 		TArray<FString> HostIpList;
-		if (HostIpString.ParseIntoArray(&HostIpList, TEXT("+"), true) > 0)
+		if (HostIpString.ParseIntoArray(HostIpList, TEXT("+"), true) > 0)
 		{
 			for (int32 HostIpIndex = 0; !bResult && HostIpIndex < HostIpList.Num(); ++HostIpIndex)
 			{

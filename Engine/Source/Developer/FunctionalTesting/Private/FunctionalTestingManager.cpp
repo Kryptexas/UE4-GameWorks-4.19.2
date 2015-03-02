@@ -293,7 +293,7 @@ bool UFunctionalTestingManager::RunFirstValidTest()
 		{
 			TArray<FString> TestParams;
 			const FString SingleTestReproString = TestReproStrings.Pop(/*bAllowShrinking=*/false);
-			SingleTestReproString.ParseIntoArray(&TestParams, TEXT("#"), /*InCullEmpty=*/true);
+			SingleTestReproString.ParseIntoArray(TestParams, TEXT("#"), /*InCullEmpty=*/true);
 			
 			if (TestParams.Num() == 0)
 			{
@@ -366,7 +366,7 @@ void UFunctionalTestingManager::SetReproString(FString ReproString)
 	StartingReproString = ReproString;
 	if (ReproString.IsEmpty() == false)
 	{
-		ReproString.ParseIntoArray(&TestReproStrings, FFunctionalTesting::ReproStringTestSeparator, /*InCullEmpty=*/true);
+		ReproString.ParseIntoArray(TestReproStrings, FFunctionalTesting::ReproStringTestSeparator, /*InCullEmpty=*/true);
 	}
 }
 

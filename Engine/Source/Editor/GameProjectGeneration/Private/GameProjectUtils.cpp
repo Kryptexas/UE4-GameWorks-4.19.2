@@ -3097,7 +3097,7 @@ void GameProjectUtils::HarvestCursorSyncLocation( FString& FinalOutput, FString&
 
 	// Determine the cursor focus location if this file will by synced after creation
 	TArray<FString> Lines;
-	FinalOutput.ParseIntoArray( &Lines, TEXT( "\n" ), false );
+	FinalOutput.ParseIntoArray( Lines, TEXT( "\n" ), false );
 	for( int32 LineIdx = 0; LineIdx < Lines.Num(); ++LineIdx )
 	{
 		const FString& Line = Lines[ LineIdx ];

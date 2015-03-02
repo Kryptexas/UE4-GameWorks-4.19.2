@@ -408,7 +408,7 @@ FReply SLevelEditorBuildAndSubmit::OnBuildClicked()
 		BuildAndSubmitErrors.NewPage(LOCTEXT("BuildAndSubmitErrorsNewPage", "Build and Submit"));
 
 		TArray<FString> Errors;
-		ErrorMessage.ToString().Replace(LINE_TERMINATOR, TEXT("\n")).ParseIntoArray(&Errors, TEXT("\n"), true);
+		ErrorMessage.ToString().Replace(LINE_TERMINATOR, TEXT("\n")).ParseIntoArray(Errors, TEXT("\n"), true);
 
 		for (int32 ErrorIdx = 0; ErrorIdx < Errors.Num(); ErrorIdx++)
 		{

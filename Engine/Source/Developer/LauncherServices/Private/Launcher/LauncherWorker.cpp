@@ -46,7 +46,7 @@ uint32 FLauncherWorker::Run( )
 			// process the string to break it up in to lines
 			Line += NewLine;
 			TArray<FString> StringArray;
-			int32 count = Line.ParseIntoArray(&StringArray, TEXT("\n"), true);
+			int32 count = Line.ParseIntoArray(StringArray, TEXT("\n"), true);
 			if (count > 1)
 			{
 				for (int32 Index = 0; Index < count-1; ++Index)
@@ -70,7 +70,7 @@ uint32 FLauncherWorker::Run( )
 				// process the string to break it up in to lines
 				Line += NewLine;
 				TArray<FString> StringArray;
-				int32 count = Line.ParseIntoArray(&StringArray, TEXT("\n"), true);
+				int32 count = Line.ParseIntoArray(StringArray, TEXT("\n"), true);
 				if (count > 1)
 				{
 					for (int32 Index = 0; Index < count-1; ++Index)

@@ -193,7 +193,7 @@ FString SGraphPinVector::GetValue( ETextBoxIndex Index ) const
 	//Parse string to split its contents separated by ','
 	DefaultString.Trim();
 	DefaultString.TrimTrailing();
-	DefaultString.ParseIntoArray(&ResultString, TEXT(","), true);
+	DefaultString.ParseIntoArray(ResultString, TEXT(","), true);
 
 	if(Index < ResultString.Num())
 	{

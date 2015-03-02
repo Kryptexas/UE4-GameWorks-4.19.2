@@ -796,7 +796,7 @@ void UEdGraphSchema_K2::GetAutoEmitTermParameters(const UFunction* Function, TAr
 	if( Function->HasMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm) )
 	{
 		FString MetaData = Function->GetMetaData(FBlueprintMetadata::MD_AutoCreateRefTerm);
-		MetaData.ParseIntoArray(&AutoEmitParameterNames, TEXT(","), true);
+		MetaData.ParseIntoArray(AutoEmitParameterNames, TEXT(","), true);
 	}
 }
 
@@ -5475,7 +5475,7 @@ void UEdGraphSchema_K2::SplitPin(UEdGraphPin* Pin) const
 		if (   StructType == GetBaseStructure(TEXT("Vector"))
 			|| StructType == GetBaseStructure(TEXT("Rotator")))
 		{
-			Pin->DefaultValue.ParseIntoArray(&OriginalDefaults, TEXT(","), false);
+			Pin->DefaultValue.ParseIntoArray(OriginalDefaults, TEXT(","), false);
 			for (FString& Default : OriginalDefaults)
 			{
 				Default = FString::SanitizeFloat(FCString::Atof(*Default));

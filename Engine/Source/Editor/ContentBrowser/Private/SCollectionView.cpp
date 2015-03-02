@@ -277,7 +277,7 @@ void SCollectionView::LoadSettings(const FString& IniFilename, const FString& In
 	if ( GConfig->GetString(*IniSection, *(SettingsString + TEXT(".SelectedCollections")), SelectedCollectionsString, IniFilename) )
 	{
 		TArray<FString> NewSelectedCollectionStrings;
-		SelectedCollectionsString.ParseIntoArray(&NewSelectedCollectionStrings, TEXT(","), /*bCullEmpty*/true);
+		SelectedCollectionsString.ParseIntoArray(NewSelectedCollectionStrings, TEXT(","), /*bCullEmpty*/true);
 
 		for ( auto CollectionIt = NewSelectedCollectionStrings.CreateConstIterator(); CollectionIt; ++CollectionIt )
 		{

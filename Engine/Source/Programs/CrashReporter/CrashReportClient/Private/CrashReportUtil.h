@@ -94,7 +94,7 @@ struct FCrashReportUtil
 		if( !Assertion.IsEmpty() )
 		{
 			TArray<FString> MultilineAssertion;
-			Assertion.ParseIntoArray( &MultilineAssertion, TEXT( "#" ), true );
+			Assertion.ParseIntoArray( MultilineAssertion, TEXT( "#" ), true );
 
 			for( const auto& AssertionLine : MultilineAssertion )
 			{

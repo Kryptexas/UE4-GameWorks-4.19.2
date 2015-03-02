@@ -6309,7 +6309,7 @@ TSharedRef<SWidget> FBlueprintEditorUtils::ConstructBlueprintInterfaceClassPicke
 			FString const& ProhibitedList = Blueprint->ParentClass->GetMetaData(FBlueprintMetadata::MD_ProhibitedInterfaces);
 
 			TArray<FString> ProhibitedInterfaceNames;
-			ProhibitedList.ParseIntoArray(&ProhibitedInterfaceNames, TEXT(","), true);
+			ProhibitedList.ParseIntoArray(ProhibitedInterfaceNames, TEXT(","), true);
 
 			// loop over all the prohibited interfaces
 			for (int32 ExclusionIndex = 0; ExclusionIndex < ProhibitedInterfaceNames.Num(); ++ExclusionIndex)

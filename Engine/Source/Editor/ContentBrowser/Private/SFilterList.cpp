@@ -653,8 +653,8 @@ void SFilterList::LoadSettings(const FString& IniFilename, const FString& IniSec
 		// Parse comma delimited strings into arrays
 		TArray<FString> TypeFilterNames;
 		TArray<FString> EnabledTypeFilterNames;
-		ActiveTypeFilterString.ParseIntoArray(&TypeFilterNames, TEXT(","), /*bCullEmpty=*/true);
-		EnabledTypeFilterString.ParseIntoArray(&EnabledTypeFilterNames, TEXT(","), /*bCullEmpty=*/true);
+		ActiveTypeFilterString.ParseIntoArray(TypeFilterNames, TEXT(","), /*bCullEmpty=*/true);
+		EnabledTypeFilterString.ParseIntoArray(EnabledTypeFilterNames, TEXT(","), /*bCullEmpty=*/true);
 
 		// Get the list of all asset type actions
 		FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools");
@@ -691,8 +691,8 @@ void SFilterList::LoadSettings(const FString& IniFilename, const FString& IniSec
 		// Parse comma delimited strings into arrays
 		TArray<FString> FrontendFilterNames;
 		TArray<FString> EnabledFrontendFilterNames;
-		ActiveFrontendFilterString.ParseIntoArray(&FrontendFilterNames, TEXT(","), /*bCullEmpty=*/true);
-		EnabledFrontendFilterString.ParseIntoArray(&EnabledFrontendFilterNames, TEXT(","), /*bCullEmpty=*/true);
+		ActiveFrontendFilterString.ParseIntoArray(FrontendFilterNames, TEXT(","), /*bCullEmpty=*/true);
+		EnabledFrontendFilterString.ParseIntoArray(EnabledFrontendFilterNames, TEXT(","), /*bCullEmpty=*/true);
 
 		// For each FrontendFilter, add any that were active and enable any that were previously enabled
 		for ( auto FrontendFilterIt = AllFrontendFilters.CreateConstIterator(); FrontendFilterIt; ++FrontendFilterIt )

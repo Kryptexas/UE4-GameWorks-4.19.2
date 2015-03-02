@@ -610,7 +610,7 @@ void FXmlFile::AddAttribute(const FString& InToken, TArray<FXmlAttribute>& OutAt
 	TArray<FString> Tokens;
 	if(InToken.Contains(TEXT("=")))
 	{
-		InToken.ParseIntoArray(&Tokens, TEXT("="), true);
+		InToken.ParseIntoArray(Tokens, TEXT("="), true);
 		if(Tokens.Num() == 2)
 		{
 			bool bQuotesRemoved = false;

@@ -165,7 +165,7 @@ static FString EncodeCallstack( const TArray<FName>& Callstack )
 
 static void DecodeCallstack( const FName& EncodedCallstack, TArray<FString>& out_DecodedCallstack )
 {
-	EncodedCallstack.ToString().ParseIntoArray( &out_DecodedCallstack, CallstackSeparator, true );
+	EncodedCallstack.ToString().ParseIntoArray( out_DecodedCallstack, CallstackSeparator, true );
 }
 
 /** Simple allocation info. Assumes the sequence tag are unique and doesn't wrap. */

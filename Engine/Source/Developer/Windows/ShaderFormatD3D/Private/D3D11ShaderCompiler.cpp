@@ -50,7 +50,7 @@ static void D3D11FilterShaderCompileWarnings(const FString& CompileWarnings, TAr
 {
 	TArray<FString> WarningArray;
 	FString OutWarningString = TEXT("");
-	CompileWarnings.ParseIntoArray(&WarningArray, TEXT("\n"), true);
+	CompileWarnings.ParseIntoArray(WarningArray, TEXT("\n"), true);
 	
 	//go through each warning line
 	for (int32 WarningIndex = 0; WarningIndex < WarningArray.Num(); WarningIndex++)

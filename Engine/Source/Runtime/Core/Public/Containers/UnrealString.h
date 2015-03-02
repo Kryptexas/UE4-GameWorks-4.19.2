@@ -1202,7 +1202,7 @@ public:
 	 *
 	 * @return	The number of elements in InArray
 	 */
-	int32 ParseIntoArray( TArray<FString>* InArray, const TCHAR* pchDelim, bool InCullEmpty ) const;
+	int32 ParseIntoArray( TArray<FString>& OutArray, const TCHAR* pchDelim, bool InCullEmpty = true ) const;
 
 	/**
 	 * Breaks up a delimited string into elements of a string array, using any whitespace and an 
@@ -1214,7 +1214,7 @@ public:
 	 *
 	 * @return	The number of elements in InArray
 	 */
-	int32 ParseIntoArrayWS( TArray<FString>* InArray, const TCHAR* pchExtraDelim = nullptr ) const;
+	int32 ParseIntoArrayWS( TArray<FString>& OutArray, const TCHAR* pchExtraDelim = nullptr, bool InCullEmpty = true ) const;
 
 	/**
 	* Breaks up a delimited string into elements of a string array, using line ending characters
@@ -1224,7 +1224,7 @@ public:
 	*
 	* @return	The number of elements in InArray
 	*/
-	int32 ParseIntoArrayLines(TArray<FString>* InArray) const;
+	int32 ParseIntoArrayLines(TArray<FString>& OutArray, bool InCullEmpty = true) const;
 
 	/**
 	* Breaks up a delimited string into elements of a string array, using the given delimiters
@@ -1236,7 +1236,7 @@ public:
 	*
 	* @return	The number of elements in InArray
 	*/
-	int32 ParseIntoArray(TArray<FString>* InArray, const TCHAR** DelimArray, int32 NumDelims) const;
+	int32 ParseIntoArray(TArray<FString>& OutArray, const TCHAR** DelimArray, int32 NumDelims, bool InCullEmpty = true) const;
 
 	/**
 	 * Takes an array of strings and removes any zero length entries.

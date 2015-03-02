@@ -34,14 +34,14 @@ struct FWindowsReportParser
 		const FString FileAsString = reinterpret_cast<TCHAR*>(FileData.GetData());
 
 		TArray<FString> String;
-		FileAsString.ParseIntoArray( &String, TEXT( "\r\n" ), true );
+		FileAsString.ParseIntoArray( String, TEXT( "\r\n" ), true );
 
 		for( const auto& StringLine : String )
 		{
 			if( StringLine.Contains( Marker ) )
 			{
 				TArray<FString> SeparatedParameters;
-				StringLine.ParseIntoArray( &SeparatedParameters, Marker, true );
+				StringLine.ParseIntoArray( SeparatedParameters, Marker, true );
 
 				FString MatchedValue;
 				const bool bFound = FParse::Value( *StringLine, Marker, MatchedValue );

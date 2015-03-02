@@ -286,7 +286,7 @@ bool FLiveEditorManager::ConnectToRemoteHost( FString IPAddress )
 	IPAddress.Replace( TEXT(" "), TEXT("") );
 
 	TArray<FString> Parts;
-	IPAddress.ParseIntoArray( &Parts, TEXT("."), true );
+	IPAddress.ParseIntoArray( Parts, TEXT("."), true );
 	if ( Parts.Num() != 4 )
 		return false;
 

@@ -33,7 +33,7 @@ bool FPathTreeNode::CachePath(const FString& Path)
 	if (IsUsingExperimentalFNameTreeNodes())
 	{
 		TArray<FString> PathElementStrings;
-		Path.ParseIntoArray(&PathElementStrings, TEXT("/"), /*InCullEmpty=*/true);
+		Path.ParseIntoArray(PathElementStrings, TEXT("/"), /*InCullEmpty=*/true);
 
 		TArray<FName> PathElements;
 		PathElements.Reserve(PathElementStrings.Num());
@@ -47,7 +47,7 @@ bool FPathTreeNode::CachePath(const FString& Path)
 	else
 	{
 		TArray<FString> PathElements;
-		Path.ParseIntoArray(&PathElements, TEXT("/"), /*InCullEmpty=*/true);
+		Path.ParseIntoArray(PathElements, TEXT("/"), /*InCullEmpty=*/true);
 
 		return CachePath_Recursive(PathElements);
 	}
@@ -58,7 +58,7 @@ bool FPathTreeNode::RemoveFolder(const FString& Path)
 	if (IsUsingExperimentalFNameTreeNodes())
 	{
 		TArray<FString> PathElementStrings;
-		Path.ParseIntoArray(&PathElementStrings, TEXT("/"), /*InCullEmpty=*/true);
+		Path.ParseIntoArray(PathElementStrings, TEXT("/"), /*InCullEmpty=*/true);
 
 		TArray<FName> PathElements;
 		PathElements.Reserve(PathElementStrings.Num());
@@ -72,7 +72,7 @@ bool FPathTreeNode::RemoveFolder(const FString& Path)
 	else
 	{
 		TArray<FString> PathElements;
-		Path.ParseIntoArray(&PathElements, TEXT("/"), /*InCullEmpty=*/true);
+		Path.ParseIntoArray(PathElements, TEXT("/"), /*InCullEmpty=*/true);
 
 		return RemoveFolder_Recursive(PathElements);
 	}
@@ -83,7 +83,7 @@ bool FPathTreeNode::GetSubPaths(const FString& BasePath, TSet<FName>& OutPaths, 
 	if (IsUsingExperimentalFNameTreeNodes())
 	{
 		TArray<FString> PathElementStrings;
-		BasePath.ParseIntoArray(&PathElementStrings, TEXT("/"), /*InCullEmpty=*/true);
+		BasePath.ParseIntoArray(PathElementStrings, TEXT("/"), /*InCullEmpty=*/true);
 
 		TArray<FName> PathElements;
 		PathElements.Reserve(PathElementStrings.Num());
@@ -113,7 +113,7 @@ bool FPathTreeNode::GetSubPaths(const FString& BasePath, TSet<FName>& OutPaths, 
 	else
 	{
 		TArray<FString> PathElements;
-		BasePath.ParseIntoArray(&PathElements, TEXT("/"), /*InCullEmpty=*/true);
+		BasePath.ParseIntoArray(PathElements, TEXT("/"), /*InCullEmpty=*/true);
 
 		const FPathTreeNode* BasePathNode = FindNode_Recursive(PathElements);
 

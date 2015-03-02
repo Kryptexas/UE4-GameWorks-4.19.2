@@ -186,7 +186,7 @@ public:
 				{
 					TArray<FString> PlatformNames;
 
-					PlatformStr.ParseIntoArray(&PlatformNames, TEXT("+"), true);
+					PlatformStr.ParseIntoArray(PlatformNames, TEXT("+"), true);
 
 					// for nicer user response
 					FString AvailablePlatforms;
@@ -665,7 +665,7 @@ protected:
 			InstallManifestFile->Serialize(FileMem, FileSize);
 
 			FString FileAsString(ANSI_TO_TCHAR(FileMem));
-			FileAsString.ParseIntoArrayLines(&FileLines);
+			FileAsString.ParseIntoArrayLines(FileLines);
 
 			FMemory::Free(FileMem);
 			InstallManifestFile->Close();
@@ -707,7 +707,7 @@ protected:
 				EnvVarFile->Serialize(FileMem, FileSize);
 
 				FString FileAsString(ANSI_TO_TCHAR(FileMem));
-				FileAsString.ParseIntoArrayLines(&FileLines);
+				FileAsString.ParseIntoArrayLines(FileLines);
 
 				FMemory::Free(FileMem);
 				EnvVarFile->Close();				
@@ -758,7 +758,7 @@ protected:
 
 			const TCHAR* PathDelimiter = FPlatformMisc::GetPathVarDelimiter();
 			TArray<FString> PathVars;
-			OrigPathVar.ParseIntoArray(&PathVars, PathDelimiter, true);
+			OrigPathVar.ParseIntoArray(PathVars, PathDelimiter, true);
 
 			TArray<FString> ModifiedPathVars;
 			ModifiedPathVars = PathVars;
@@ -865,7 +865,7 @@ protected:
 		}
 
 		TArray<FString> PlatArray;
-		SDKStatusMessage.ParseIntoArrayWS(&PlatArray);
+		SDKStatusMessage.ParseIntoArrayWS(PlatArray);
 		for (int Index = 0; Index < PlatArray.Num()-2; ++Index)
 		{
             FString Item = PlatArray[Index];

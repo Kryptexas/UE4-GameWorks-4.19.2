@@ -3052,7 +3052,7 @@ void UEditorEngine::ParseMapSectionIni(const TCHAR* InCmdParams, TArray<FString>
 		if (SectionStr.Contains(TEXT("+")))
 		{
 			TArray<FString> Sections;
-			SectionStr.ParseIntoArray(&Sections,TEXT("+"),true);
+			SectionStr.ParseIntoArray(Sections,TEXT("+"),true);
 			for (int32 Index = 0; Index < Sections.Num(); Index++)
 			{
 				LoadMapListFromIni(Sections[Index], OutMapList);
@@ -6588,7 +6588,7 @@ void UEditorEngine::UpdateAutoLoadProject()
 		FPlatformMisc::GetOSVersions(OSVersion, OSSubVersion);
 		
 		TArray<FString> Components;
-		OSVersion.ParseIntoArray(&Components, TEXT("."), true);
+		OSVersion.ParseIntoArray(Components, TEXT("."), true);
 		uint8 ComponentValues[3] = {0};
 		
 		for(uint32 i = 0; i < Components.Num() && i < 3; i++)

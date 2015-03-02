@@ -281,7 +281,7 @@ int32 UKismetStringLibrary::GetCharacterAsNumber(const FString& SourceString, in
 TArray<FString> UKismetStringLibrary::ParseIntoArray(const FString& SourceString, const FString& Delimiter, const bool CullEmptyStrings)
 {
 	TArray<FString> SeparatedStrings;
-	const int32 nArraySize = SourceString.ParseIntoArray(&SeparatedStrings, *Delimiter, CullEmptyStrings);
+	const int32 nArraySize = SourceString.ParseIntoArray(SeparatedStrings, *Delimiter, CullEmptyStrings);
 	return SeparatedStrings;
 }
 

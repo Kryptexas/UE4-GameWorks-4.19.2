@@ -40,7 +40,7 @@ void FFeaturePack::ParsePacks()
 	{
 		PackData EachPackData;
 		TArray<FString> PackEntries;
-		PacksToAdd[iPackEntry].ParseIntoArray(&PackEntries, TEXT(","), true);
+		PacksToAdd[iPackEntry].ParseIntoArray(PackEntries, TEXT(","), true);
 		FString PackSource;
 		FString PackName;
 		// Parse the pack name and source

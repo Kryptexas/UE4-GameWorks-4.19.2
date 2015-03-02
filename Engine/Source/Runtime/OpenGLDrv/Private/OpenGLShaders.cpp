@@ -1941,7 +1941,7 @@ static void BindShaderStage(FOpenGLLinkedProgramConfiguration::ShaderInfo& Shade
 					
 					TArray<FString> PrevLines;
 					FString PrevSource = GetShaderStageSource<TOpenGLStage1>(PrevStage);
-					PrevSource.ParseIntoArrayLines(&PrevLines);
+					PrevSource.ParseIntoArrayLines(PrevLines);
 					bool const bOutputElimination = OutputElimination.Num() > 0;
 					for(FOpenGLShaderVarying Output : OutputElimination)
 					{

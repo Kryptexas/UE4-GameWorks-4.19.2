@@ -2014,7 +2014,7 @@ bool UCookOnTheFlyServer::GetCurrentIniVersionStrings( const ITargetPlatform* Ta
 	{
 
 		TArray<FString> IniVersionedArray;
-		IniVersioned.ParseIntoArray(&IniVersionedArray, TEXT(":"), false);
+		IniVersioned.ParseIntoArray(IniVersionedArray, TEXT(":"), false);
 
 		if ( IniVersionedArray.Num() != 3 )
 		{

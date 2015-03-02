@@ -320,7 +320,7 @@ namespace AutomationEditorCommonUtils
 				}
 
 				TArray<FString> PropertyChain;
-				FactorySettings[i].SettingName.ParseIntoArray(&PropertyChain, TEXT("."), false);
+				FactorySettings[i].SettingName.ParseIntoArray(PropertyChain, TEXT("."), false);
 				ApplyCustomFactorySetting(InFactory, PropertyChain, FactorySettings[i].Value);
 			}
 		}
@@ -420,7 +420,7 @@ namespace AutomationEditorCommonUtils
 		{
 			UE_LOG(LogEditorAutomationTests, VeryVerbose, TEXT("Loading and parsing the data from '%s' into an array."), *InFileLocation);
 			FFileHelper::LoadFileToString(RawData, *InFileLocation);
-			RawData.ParseIntoArray(&OutArray, TEXT(","), false);
+			RawData.ParseIntoArray(OutArray, TEXT(","), false);
 		}
 
 		UE_LOG(LogEditorAutomationTests, Warning, TEXT("Unable to create an array.  '%s' does not exist."), *InFileLocation);

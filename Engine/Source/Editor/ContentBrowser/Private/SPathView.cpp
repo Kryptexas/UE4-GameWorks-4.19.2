@@ -178,7 +178,7 @@ void SPathView::SetSelectedPaths(const TArray<FString>& Paths)
 		const FString& Path = Paths[PathIdx];
 
 		TArray<FString> PathItemList;
-		Path.ParseIntoArray(&PathItemList, TEXT("/"), /*InCullEmpty=*/true);
+		Path.ParseIntoArray(PathItemList, TEXT("/"), /*InCullEmpty=*/true);
 
 		if ( PathItemList.Num() )
 		{
@@ -283,7 +283,7 @@ TSharedPtr<FTreeItem> SPathView::AddPath(const FString& Path, bool bUserNamed)
 	}
 
 	TArray<FString> PathItemList;
-	Path.ParseIntoArray(&PathItemList, TEXT("/"), /*InCullEmpty=*/true);
+	Path.ParseIntoArray(PathItemList, TEXT("/"), /*InCullEmpty=*/true);
 
 	if ( PathItemList.Num() )
 	{
@@ -584,7 +584,7 @@ void SPathView::LoadSettings(const FString& IniFilename, const FString& IniSecti
 	TArray<FString> NewSelectedPaths;
 	if ( GConfig->GetString(*IniSection, *(SettingsString + TEXT(".SelectedPaths")), SelectedPathsString, IniFilename) )
 	{
-		SelectedPathsString.ParseIntoArray(&NewSelectedPaths, TEXT(","), /*bCullEmpty*/true);
+		SelectedPathsString.ParseIntoArray(NewSelectedPaths, TEXT(","), /*bCullEmpty*/true);
 	}
 
 	if ( NewSelectedPaths.Num() > 0 )
@@ -682,7 +682,7 @@ bool SPathView::ExplicitlyAddPathToSelection(const FString& Path)
 	}
 
 	TArray<FString> PathItemList;
-	Path.ParseIntoArray(&PathItemList, TEXT("/"), /*InCullEmpty=*/true);
+	Path.ParseIntoArray(PathItemList, TEXT("/"), /*InCullEmpty=*/true);
 
 	if ( PathItemList.Num() )
 	{

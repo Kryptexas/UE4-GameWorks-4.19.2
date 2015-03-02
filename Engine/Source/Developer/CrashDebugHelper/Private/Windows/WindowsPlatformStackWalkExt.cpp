@@ -88,7 +88,7 @@ FString FWindowsPlatformStackWalkExt::ExtractRelativePath( const TCHAR* BaseName
 	FullPath = FullPath.Replace( TEXT( "\\" ), TEXT( "/" ) );
 
 	TArray<FString> Components;
-	int32 Count = FullPath.ParseIntoArray( &Components, TEXT( "/" ), true );
+	int32 Count = FullPath.ParseIntoArray( Components, TEXT( "/" ), true );
 	FullPath = TEXT( "" );
 
 	for( int32 Index = 0; Index < Count; Index++ )
@@ -369,7 +369,7 @@ void FWindowsPlatformStackWalkExt::SetSymbolPathsFromModules()
 
 	Symbol->GetSymbolPathWide( SymbolPath, ARRAY_COUNT(SymbolPath), NULL );
 	TArray<FString> SymbolPaths;
-	FString( SymbolPath ).ParseIntoArray(&SymbolPaths, TEXT(";"), true );
+	FString( SymbolPath ).ParseIntoArray(SymbolPaths, TEXT(";"), true );
 
 	UE_LOG( LogCrashDebugHelper, Log, TEXT( "Symbol paths" ) );
 	for( const auto& It : SymbolPaths )
@@ -379,7 +379,7 @@ void FWindowsPlatformStackWalkExt::SetSymbolPathsFromModules()
 
 	Symbol->GetImagePathWide( SymbolPath, ARRAY_COUNT( SymbolPath ), NULL );
 	TArray<FString> ImagePaths;
-	FString( SymbolPath ).ParseIntoArray( &ImagePaths, TEXT( ";" ), true );
+	FString( SymbolPath ).ParseIntoArray( ImagePaths, TEXT( ";" ), true );
 	
 	UE_LOG( LogCrashDebugHelper, Log, TEXT( "Image paths" ) );
 	for( const auto& It : ImagePaths )

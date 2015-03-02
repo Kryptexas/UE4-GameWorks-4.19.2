@@ -399,7 +399,7 @@ bool ICrashDebugHelper::ReadSourceFile( const TCHAR* InFilename, TArray<FString>
 	if( FFileHelper::LoadFileToString( Line, InFilename ) )
 	{
 		Line = Line.Replace( TEXT( "\r" ), TEXT( "" ) );
-		Line.ParseIntoArray( &OutStrings, TEXT( "\n" ), false );
+		Line.ParseIntoArray( OutStrings, TEXT( "\n" ), false );
 		
 		return true;
 	}

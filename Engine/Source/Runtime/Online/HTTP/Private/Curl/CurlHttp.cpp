@@ -99,7 +99,7 @@ FString FCurlHttpRequest::GetURLParameter(const FString& ParameterName)
 {
 	TArray<FString> StringElements;
 
-	int32 NumElems = URL.ParseIntoArray(&StringElements, TEXT("&"), true);
+	int32 NumElems = URL.ParseIntoArray(StringElements, TEXT("&"), true);
 	check(NumElems == StringElements.Num());
 	
 	FString ParamValDelimiter(TEXT("="));

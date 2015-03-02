@@ -117,7 +117,7 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 
 		// Now split up the log into multiple lines
 		TArray<FString> LogLines;
-		OutputMessage.ParseIntoArray(&LogLines, LINE_TERMINATOR, true);
+		OutputMessage.ParseIntoArray(LogLines, LINE_TERMINATOR, true);
 		
 		// format of the line being read here!!
 		bool bCerts = false;
@@ -125,7 +125,7 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 		{
 			FString& Line = LogLines[Index];
 			TArray<FString> Fields;
-			Line.ParseIntoArray(&Fields, TEXT(","), true);
+			Line.ParseIntoArray(Fields, TEXT(","), true);
 			if (Line.Contains(TEXT("CERTIFICATE-"), ESearchCase::CaseSensitive))
 			{
 				CertificatePtr Cert = MakeShareable<FCertificate>(new FCertificate());

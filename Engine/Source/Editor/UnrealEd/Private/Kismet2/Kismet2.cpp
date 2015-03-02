@@ -1769,7 +1769,7 @@ bool FKismetEditorUtilities::CanBlueprintImplementInterface(UBlueprint const* Bl
 			FString const& ProhibitedList = Blueprint->ParentClass->GetMetaData(FBlueprintMetadata::MD_ProhibitedInterfaces);
 			
 			TArray<FString> ProhibitedInterfaceNames;
-			ProhibitedList.ParseIntoArray(&ProhibitedInterfaceNames, TEXT(","), true);
+			ProhibitedList.ParseIntoArray(ProhibitedInterfaceNames, TEXT(","), true);
 
 			FString const& InterfaceName = Class->GetName();
 			// loop over all the prohibited interfaces

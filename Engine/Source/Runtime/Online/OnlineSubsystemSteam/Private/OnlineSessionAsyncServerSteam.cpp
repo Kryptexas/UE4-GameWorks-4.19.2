@@ -943,7 +943,7 @@ void FOnlineAsyncTaskSteamFindServerBase::ParseSearchResult(class gameserveritem
 		int32 BuildUniqueId = GetBuildUniqueId();
 
 		TArray<FString> TagArray;
-		GameTags.ParseIntoArray(&TagArray, TEXT(","), true);
+		GameTags.ParseIntoArray(TagArray, TEXT(","), true);
 		if (TagArray.Num() > 0 && TagArray[0].StartsWith(STEAMKEY_BUILDUNIQUEID))
 		{
 			ServerBuildId = FCString::Atoi(*TagArray[0].Mid(ARRAY_COUNT(STEAMKEY_BUILDUNIQUEID)));

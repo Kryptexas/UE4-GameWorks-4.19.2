@@ -721,9 +721,9 @@ bool FPaths::MakePathRelativeTo( FString& InPath, const TCHAR* InRelativeTo )
 	Target.ReplaceInline(TEXT("\\"), TEXT("/"), ESearchCase::CaseSensitive);
 
 	TArray<FString> TargetArray;
-	Target.ParseIntoArray(&TargetArray, TEXT("/"), true);
+	Target.ParseIntoArray(TargetArray, TEXT("/"), true);
 	TArray<FString> SourceArray;
-	Source.ParseIntoArray(&SourceArray, TEXT("/"), true);
+	Source.ParseIntoArray(SourceArray, TEXT("/"), true);
 
 	if (TargetArray.Num() && SourceArray.Num())
 	{

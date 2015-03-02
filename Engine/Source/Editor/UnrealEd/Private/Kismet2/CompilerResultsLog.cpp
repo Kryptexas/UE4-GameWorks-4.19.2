@@ -344,7 +344,7 @@ TArray< TSharedRef<FTokenizedMessage> > FCompilerResultsLog::ParseCompilerLogDum
 	TArray< TSharedRef<FTokenizedMessage> > Messages;
 
 	TArray< FString > MessageLines;
-	LogDump.ParseIntoArray(&MessageLines, TEXT("\n"), false);
+	LogDump.ParseIntoArray(MessageLines, TEXT("\n"), false);
 
 	// delete any trailing empty lines
 	for (int32 i = MessageLines.Num()-1; i >= 0; --i)

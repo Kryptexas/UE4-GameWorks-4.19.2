@@ -432,7 +432,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 		TArray<FString> ManifestsArr;
 		if (ManifestsList.Len() > 0)
 		{
-			ManifestsList.ParseIntoArray(&ManifestsArr, TEXT(","), true);
+			ManifestsList.ParseIntoArray(ManifestsArr, TEXT(","), true);
 		}
 		else if (ManifestsFile.Len() > 0)
 		{
@@ -441,7 +441,7 @@ int32 BuildPatchToolMain( const TCHAR* CommandLine )
 			if (FFileHelper::LoadFileToString(Temp, *ManifestsFilePath))
 			{
 				Temp.ReplaceInline(TEXT("\r"), TEXT("\n"));
-				Temp.ParseIntoArray(&ManifestsArr, TEXT("\n"), true);
+				Temp.ParseIntoArray(ManifestsArr, TEXT("\n"), true);
 			}
 			else
 			{

@@ -84,7 +84,7 @@ FCrashDescription::FCrashDescription( FString WERXMLFilepath ) :
 				const FString Parameter8Value = Parameter8Node->GetContent();
 
 				TArray<FString> ParsedParameters8;
-				Parameter8Value.ParseIntoArray( &ParsedParameters8, TEXT( "!" ), false );
+				Parameter8Value.ParseIntoArray( ParsedParameters8, TEXT( "!" ), false );
 
 				if( ParsedParameters8.Num() > 1 )
 				{
@@ -103,7 +103,7 @@ FCrashDescription::FCrashDescription( FString WERXMLFilepath ) :
 				const FString Parameter9Value = Parameter9Node->GetContent();
 
 				TArray<FString> ParsedParameters9;
-				Parameter9Value.ParseIntoArray( &ParsedParameters9, TEXT( "!" ), false );
+				Parameter9Value.ParseIntoArray( ParsedParameters9, TEXT( "!" ), false );
 
 				if( ParsedParameters9.Num() > 0 )
 				{
@@ -122,7 +122,7 @@ FCrashDescription::FCrashDescription( FString WERXMLFilepath ) :
 					const FString BaseDir = ParsedParameters9[1];
 
 					TArray<FString> SubDirs;
-					BaseDir.ParseIntoArray( &SubDirs, TEXT( "/" ), true );
+					BaseDir.ParseIntoArray( SubDirs, TEXT( "/" ), true );
 					const int SubDirsNum = SubDirs.Num();
 					const FString PlatformName = SubDirsNum > 0 ? SubDirs[SubDirsNum - 1] : TEXT("");
 					if( Product.Len() > 0 )
@@ -178,7 +178,7 @@ void FCrashDescription::InitializeEngineVersion()
 	uint16 Patch = 0;
 
 	TArray<FString> ParsedBuildVersion;
-	BuildVersion.ParseIntoArray( &ParsedBuildVersion, TEXT( "." ), false );
+	BuildVersion.ParseIntoArray( ParsedBuildVersion, TEXT( "." ), false );
 
 	if( ParsedBuildVersion.Num() >= 3 )
 	{

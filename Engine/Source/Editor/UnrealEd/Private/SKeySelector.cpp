@@ -344,7 +344,7 @@ void SKeySelector::OnFilterTextCommitted(const FText& NewText, ETextCommit::Type
 
 void SKeySelector::GetSearchTokens(const FString& SearchString, TArray<FString>& OutTokens) const
 {
-	if (SearchString.Contains("\"") && SearchString.ParseIntoArray(&OutTokens, TEXT("\""), true) > 0)
+	if (SearchString.Contains("\"") && SearchString.ParseIntoArray(OutTokens, TEXT("\""), true) > 0)
 	{
 		for (auto &TokenIt : OutTokens)
 		{
@@ -368,7 +368,7 @@ void SKeySelector::GetSearchTokens(const FString& SearchString, TArray<FString>&
 	else
 	{
 		// unquoted search equivalent to a match-any-of search
-		SearchString.ParseIntoArray(&OutTokens, TEXT(" "), true);
+		SearchString.ParseIntoArray(OutTokens, TEXT(" "), true);
 	}
 }
 

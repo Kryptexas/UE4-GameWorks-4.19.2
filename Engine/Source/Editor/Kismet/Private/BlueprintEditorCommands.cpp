@@ -95,7 +95,7 @@ namespace NodeSpawnInfoHelpers
 		if( InBlueprint->ParentClass->HasMetaData(*ExclusionListKeyName) )
 		{
 			const FString ExcludedEventNameString = InBlueprint->ParentClass->GetMetaData(*ExclusionListKeyName);
-			ExcludedEventNameString.ParseIntoArray(&ExcludedEventNames, TEXT(","), true);
+			ExcludedEventNameString.ParseIntoArray(ExcludedEventNames, TEXT(","), true);
 		}
 
 		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();

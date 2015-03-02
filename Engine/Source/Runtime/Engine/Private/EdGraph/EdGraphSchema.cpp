@@ -67,14 +67,14 @@ void FGraphActionListBuilderBase::ActionGroup::GetCategoryChain(TArray<FString>&
 {
 #if WITH_EDITOR
 	static FString const CategoryDelim("|");
-	FEditorCategoryUtils::GetCategoryDisplayString(RootCategory).ParseIntoArray(&HierarchyOut, *CategoryDelim, true);
+	FEditorCategoryUtils::GetCategoryDisplayString(RootCategory).ParseIntoArray(HierarchyOut, *CategoryDelim, true);
 
 	if (Actions.Num() > 0)
 	{
 		TArray<FString> SubCategoryChain;
 
 		FString SubCategory = FEditorCategoryUtils::GetCategoryDisplayString(Actions[0]->Category);
-		SubCategory.ParseIntoArray(&SubCategoryChain, *CategoryDelim, true);
+		SubCategory.ParseIntoArray(SubCategoryChain, *CategoryDelim, true);
 
 		HierarchyOut.Append(SubCategoryChain);
 	}

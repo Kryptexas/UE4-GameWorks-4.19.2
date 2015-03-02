@@ -965,7 +965,7 @@ FString FHeaderParser::FormatCommentForToolTip(const FString& Input)
 
 	// get rid of uniform leading whitespace and all trailing whitespace, on each line
 	TArray<FString> Lines;
-	Result.ParseIntoArray(&Lines, TEXT("\n"), false);
+	Result.ParseIntoArray(Lines, TEXT("\n"), false);
 
 	for (auto& Line : Lines)
 	{
@@ -4382,7 +4382,7 @@ void FHeaderParser::CompileClassDeclaration(FClasses& AllClasses)
 				if (HideCategories.Remove(Value) == 0)
 				{
 					TArray<FString> SubCategoryList;
-					Value.ParseIntoArray(&SubCategoryList, TEXT("|"), true);
+					Value.ParseIntoArray(SubCategoryList, TEXT("|"), true);
 
 					FString SubCategoryPath;
 					// look to see if any of the parent paths are excluded in the HideCategories list

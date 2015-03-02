@@ -151,7 +151,7 @@ void FNativeClassHierarchy::GatherMatchingNodesForPaths(const TArray<FName>& InC
 			TSharedPtr<FNativeClassHierarchyNode> CurrentNode;
 
 			TArray<FString> ClassPathParts;
-			ClassPath.ToString().ParseIntoArray(&ClassPathParts, TEXT("/"), true);
+			ClassPath.ToString().ParseIntoArray(ClassPathParts, TEXT("/"), true);
 			for(const FString& ClassPathPart : ClassPathParts)
 			{
 				// Try and find the node associated with this part of the path...
@@ -286,7 +286,7 @@ void FNativeClassHierarchy::AddClass(UClass* InClass, const TSet<FName>& InGameM
 
 	// Split the class path and ensure we have nodes for each part
 	TArray<FString> HierarchyPathParts;
-	ClassHierarchyPath.ParseIntoArray(&HierarchyPathParts, TEXT("/"), true);
+	ClassHierarchyPath.ParseIntoArray(HierarchyPathParts, TEXT("/"), true);
 	TSharedPtr<FNativeClassHierarchyNode> CurrentNode = RootNode;
 	for(const FString& HierarchyPathPart : HierarchyPathParts)
 	{
@@ -311,7 +311,7 @@ void FNativeClassHierarchy::AddFolder(const FString& InClassPath)
 
 	// Split the class path and ensure we have nodes for each part
 	TArray<FString> ClassPathParts;
-	InClassPath.ParseIntoArray(&ClassPathParts, TEXT("/"), true);
+	InClassPath.ParseIntoArray(ClassPathParts, TEXT("/"), true);
 	TSharedPtr<FNativeClassHierarchyNode> CurrentNode;
 	for(const FString& ClassPathPart : ClassPathParts)
 	{
@@ -335,7 +335,7 @@ bool FNativeClassHierarchy::GetFileSystemPath(const FString& InClassPath, FStrin
 {
 	// Split the class path into its component parts
 	TArray<FString> ClassPathParts;
-	InClassPath.ParseIntoArray(&ClassPathParts, TEXT("/"), true);
+	InClassPath.ParseIntoArray(ClassPathParts, TEXT("/"), true);
 	
 	// We need to have at least two sections (a root, and a module name) to be able to resolve a file system path
 	if(ClassPathParts.Num() < 2)

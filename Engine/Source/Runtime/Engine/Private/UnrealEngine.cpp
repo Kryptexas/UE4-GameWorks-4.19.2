@@ -773,7 +773,7 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 	if( FParse::Value(FCommandLine::Get(), TEXT("ExecCmds="), ExecCmds, false) )
 	{
 		TArray<FString> CommandArray;
-		ExecCmds.ParseIntoArray( &CommandArray, TEXT(","), true );
+		ExecCmds.ParseIntoArray( CommandArray, TEXT(","), true );
 
 		for( int32 Cx = 0; Cx < CommandArray.Num(); ++Cx )
 		{
@@ -5115,11 +5115,11 @@ bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 				//@todo: add support to FParse::Value() for specifying characters that should be ignored
 				if ( FParse::Value(Cmd, TEXT("HIDE="), Value/*, TEXT(",")*/) )
 				{
-					Value.ParseIntoArray(&HiddenCategories,TEXT(","),1);
+					Value.ParseIntoArray(HiddenCategories,TEXT(","),1);
 				}
 				else if ( FParse::Value(Cmd, TEXT("SHOW="), Value/*, TEXT(",")*/) )
 				{
-					Value.ParseIntoArray(&ShowingCategories,TEXT(","),1);
+					Value.ParseIntoArray(ShowingCategories,TEXT(","),1);
 				}
 #endif
 				UClass* LastOwnerClass = NULL;
@@ -9104,7 +9104,7 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	if (MutatorString)
 	{
 		TArray<FString> Mutators;
-		FString(MutatorString).ParseIntoArray(&Mutators, TEXT(","), true);
+		FString(MutatorString).ParseIntoArray(Mutators, TEXT(","), true);
 
 		for (int32 MutatorIndex = 0; MutatorIndex < Mutators.Num(); MutatorIndex++)
 		{

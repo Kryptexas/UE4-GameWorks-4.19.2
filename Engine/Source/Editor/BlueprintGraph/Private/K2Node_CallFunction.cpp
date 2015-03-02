@@ -34,7 +34,7 @@ struct FCustomStructureParamHelper
 			FString MetaDataValue = Function->GetMetaData(GetCustomStructureParamName());
 			if (!MetaDataValue.IsEmpty())
 			{
-				MetaDataValue.ParseIntoArray(&OutNames, TEXT(","), true);
+				MetaDataValue.ParseIntoArray(OutNames, TEXT(","), true);
 			}
 		}
 	}

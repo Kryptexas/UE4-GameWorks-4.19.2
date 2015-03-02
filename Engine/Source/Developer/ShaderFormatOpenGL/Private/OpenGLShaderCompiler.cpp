@@ -1416,7 +1416,7 @@ static void PrecompileShader(FShaderCompilerOutput& ShaderOutput, const FShaderC
 					RawCompileLog.AddZeroed(LogLength);
 					glGetShaderInfoLog(Shader, LogLength, /*OutLength=*/ NULL, RawCompileLog.GetData());
 					CompileLog = ANSI_TO_TCHAR(RawCompileLog.GetData());
-					CompileLog.ParseIntoArray(&LogLines, TEXT("\n"), true);
+					CompileLog.ParseIntoArray(LogLines, TEXT("\n"), true);
 
 					for (int32 Line = 0; Line < LogLines.Num(); ++Line)
 					{
@@ -1773,7 +1773,7 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 
 			FString Tmp = ANSI_TO_TCHAR(ErrorLog);
 			TArray<FString> ErrorLines;
-			Tmp.ParseIntoArray(&ErrorLines, TEXT("\n"), true);
+			Tmp.ParseIntoArray(ErrorLines, TEXT("\n"), true);
 			for (int32 LineIndex = 0; LineIndex < ErrorLines.Num(); ++LineIndex)
 			{
 				const FString& Line = ErrorLines[LineIndex];

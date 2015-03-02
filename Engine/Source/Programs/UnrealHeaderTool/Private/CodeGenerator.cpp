@@ -102,9 +102,9 @@ static struct FFlagAudit
 			{
 				FStringOutputDevice MisMatches;
 				TArray<FString> VerifyLines;
-				Verify.ParseIntoArray(&VerifyLines, TEXT("\n"), true);
+				Verify.ParseIntoArray(VerifyLines, TEXT("\n"), true);
 				TArray<FString> RefLines;
-				Ref.ParseIntoArray(&RefLines, TEXT("\n"), true);
+				Ref.ParseIntoArray(RefLines, TEXT("\n"), true);
 				check(VerifyLines.Num() == RefLines.Num()); // we aren't doing a sophisticated diff
 				for (int32 Index = 0; Index < RefLines.Num(); Index++)
 				{
@@ -129,7 +129,7 @@ static FString Tabify(const TCHAR *Input)
 	Result.ReplaceInline(TEXT("\r\n"), TEXT("\n"));
 
 	TArray<FString> Lines;
-	Result.ParseIntoArray( &Lines, TEXT( "\n" ), false );
+	Result.ParseIntoArray( Lines, TEXT( "\n" ), false );
 
 	Result = TEXT("");
 	for (int32 Index = 0; Index < Lines.Num(); Index++)

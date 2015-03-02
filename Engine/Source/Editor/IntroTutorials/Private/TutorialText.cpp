@@ -135,7 +135,7 @@ static void ParseCodeLink(const FString &InternalLink)
 	int32 Col = 0;
 
 	TArray<FString> Tokens;
-	InternalLink.ParseIntoArray(&Tokens, TEXT(","), 0);
+	InternalLink.ParseIntoArray(Tokens, TEXT(","), 0);
 	int32 TokenStringsCount = Tokens.Num();
 	if (TokenStringsCount > 0)
 	{

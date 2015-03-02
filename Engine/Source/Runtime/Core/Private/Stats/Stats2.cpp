@@ -1012,7 +1012,7 @@ void FThreadStats::CheckForCollectingStartupStats()
 			break;
 		}
 		TArray<FString> CmdsArray;
-		Cmds.ParseIntoArray(&CmdsArray, TEXT( "," ), true);
+		Cmds.ParseIntoArray(CmdsArray, TEXT( "," ), true);
 		for (int32 Index = 0; Index < CmdsArray.Num(); Index++)
 		{
 			FString StatCmd = FString("stat ") + CmdsArray[Index].Trim();

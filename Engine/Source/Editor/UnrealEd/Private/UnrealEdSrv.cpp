@@ -1147,7 +1147,7 @@ bool UUnrealEdEngine::Exec( UWorld* InWorld, const TCHAR* Stream, FOutputDevice&
 		if (FParse::Value(Str, TEXT("Find="), SearchTermStr, false))
 		{
 			TArray<FString> SearchTerms;
-			SearchTermStr.ParseIntoArray( &SearchTerms, TEXT(","), true );
+			SearchTermStr.ParseIntoArray( SearchTerms, TEXT(","), true );
 
 			TArray<UObject*> ModifiedObjects;
 			if( SearchTerms.Num() )

@@ -175,7 +175,7 @@ int32 UResavePackagesCommandlet::InitializeResaveParameters( const TArray<FStrin
 		if ( FParse::Value(*CurrentSwitch, TEXT("RESAVECLASS="), ClassList, false) )
 		{
 			TArray<FString> ClassNames;
-			ClassList.ParseIntoArray(&ClassNames, TEXT(","), true);
+			ClassList.ParseIntoArray(ClassNames, TEXT(","), true);
 			for ( int32 Idx = 0; Idx < ClassNames.Num(); Idx++ )
 			{
 				ResaveClasses.AddUnique(*ClassNames[Idx]);

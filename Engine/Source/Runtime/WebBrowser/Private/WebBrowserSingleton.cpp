@@ -24,7 +24,7 @@ FWebBrowserSingleton::FWebBrowserSingleton()
 	CefMainArgs MainArgs(hInstance);
 #elif PLATFORM_MAC || PLATFORM_LINUX
     //TArray<FString> Args;
-    //int ArgCount = GSavedCommandLine.ParseIntoArray(&Args, TEXT(" "), true);
+    //int ArgCount = GSavedCommandLine.ParseIntoArray(Args, TEXT(" "), true);
     CefMainArgs MainArgs(0, nullptr);
 #endif
 

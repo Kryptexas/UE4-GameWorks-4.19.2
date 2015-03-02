@@ -91,7 +91,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		else
 		{
 			TArray<FString> CustomClassFilterNames;
-			ClassFilterString.ParseIntoArray(&CustomClassFilterNames, TEXT(","), true);
+			ClassFilterString.ParseIntoArray(CustomClassFilterNames, TEXT(","), true);
 
 			for(auto It = CustomClassFilterNames.CreateConstIterator(); It; ++It)
 			{

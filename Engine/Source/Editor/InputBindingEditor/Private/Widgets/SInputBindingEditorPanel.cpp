@@ -123,7 +123,7 @@ void SInputBindingEditorPanel::OnSearchChanged( const FText& NewSearch )
 	// Remove whitespace from the front and back of the string
 	ParseString.Trim();
 	ParseString.TrimTrailing();
-	ParseString.ParseIntoArray(&FilterStrings, TEXT(" "), true);
+	ParseString.ParseIntoArray(FilterStrings, TEXT(" "), true);
 
 	FilterVisibleContextList();
 }

@@ -1263,7 +1263,7 @@ bool FUDNParser::ParseCodeLink(FString &InternalLink)
 	int32 Col = 0;
 
 	TArray<FString> Tokens;
-	InternalLink.ParseIntoArray(&Tokens, TEXT(","), 0);
+	InternalLink.ParseIntoArray(Tokens, TEXT(","), 0);
 	int32 TokenStringsCount = Tokens.Num();
 	if (TokenStringsCount > 0)
 	{
@@ -1317,7 +1317,7 @@ bool FUDNParser::ParseCodeLink(FString &InternalLink)
 bool FUDNParser::ParseAssetLink(FString &InternalLink)
 {
 	TArray<FString> Token;
-	InternalLink.ParseIntoArray(&Token, TEXT(","), 0);
+	InternalLink.ParseIntoArray(Token, TEXT(","), 0);
 	
 	if (Token.Num() >= 2)
 	{

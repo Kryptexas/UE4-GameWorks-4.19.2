@@ -497,12 +497,12 @@ bool FWordCountReportData::FromCSV( const FString& InString )
 	// Note, we do a trivial parse here and assume every delimiter we see separates entries/rows and is not contained within an entry
 	TArray<FString> CSVRows;
 
-	int32 NumRows = CSVString.ParseIntoArray( &CSVRows, NewLineDelimiter, true );
+	int32 NumRows = CSVString.ParseIntoArray( CSVRows, NewLineDelimiter, true );
 
 	for(int32 RowIdx = 0; RowIdx < NumRows; RowIdx++ )
 	{
 		TArray< FString > RowEntriesArray;
-		CSVRows[RowIdx].ParseIntoArray( &RowEntriesArray, EntryDelimiter, false);
+		CSVRows[RowIdx].ParseIntoArray( RowEntriesArray, EntryDelimiter, false);
 		Data.Add(RowEntriesArray);
 	}
 

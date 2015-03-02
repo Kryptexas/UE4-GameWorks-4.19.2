@@ -2637,7 +2637,7 @@ void FFoliageUISettings::Load()
 	if (GConfig->GetString(TEXT("FoliageEdit"), TEXT("WindowPosition"), WindowPositionString, GEditorUserSettingsIni))
 	{
 		TArray<FString> PositionValues;
-		if (WindowPositionString.ParseIntoArray(&PositionValues, TEXT(","), true) == 4)
+		if (WindowPositionString.ParseIntoArray(PositionValues, TEXT(","), true) == 4)
 		{
 			WindowX = FCString::Atoi(*PositionValues[0]);
 			WindowY = FCString::Atoi(*PositionValues[1]);

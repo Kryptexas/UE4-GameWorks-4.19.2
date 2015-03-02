@@ -1976,7 +1976,7 @@ void SAssetView::OnAssetRegistryPathAdded(const FString& Path)
 					const FString SubPath = Path.RightChop(SourcePath.Len());
 					
 					TArray<FString> SubPathItemList;
-					SubPath.ParseIntoArray(&SubPathItemList, TEXT("/"), /*InCullEmpty=*/true);
+					SubPath.ParseIntoArray(SubPathItemList, TEXT("/"), /*InCullEmpty=*/true);
 
 					if(SubPathItemList.Num() > 0)
 					{

@@ -51,7 +51,7 @@ void FUniqueObjectGuid::FromString(const FString& From)
 {
 	TArray<FString> Split;
 	Split.Empty(4);
-	if( From.ParseIntoArray( &Split, TEXT("-"), false ) == 4 )
+	if( From.ParseIntoArray( Split, TEXT("-"), false ) == 4 )
 	{
 		Guid.A=FParse::HexNumber(*Split[0]);
 		Guid.B=FParse::HexNumber(*Split[1]);

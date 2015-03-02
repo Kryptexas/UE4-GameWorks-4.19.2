@@ -454,7 +454,7 @@ bool ReadKeysFromFile(const TCHAR* KeyFilename, FKeyPair& OutKeys)
 	if (FFileHelper::LoadFileToString(KeyFileContents, KeyFilename))
 	{
 		TArray<FString> KeyValues;
-		KeyFileContents.ParseIntoArrayWS(&KeyValues);
+		KeyFileContents.ParseIntoArrayWS(KeyValues);
 		if (KeyValues.Num() != 3)
 		{
 			UE_LOG(LogPakFile, Error, TEXT("Expecting 3 values in %s, got %d."), KeyFilename, KeyValues.Num());

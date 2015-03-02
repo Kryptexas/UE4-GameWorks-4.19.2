@@ -92,7 +92,7 @@ public:
 		OutputDesc += TEXT("Description:\n");
 		{
 			TArray<FString> DescLines;
-			Description.ToString().ParseIntoArray(&DescLines, TEXT("\n"), false);
+			Description.ToString().ParseIntoArray(DescLines, TEXT("\n"), false);
 			for (const FString& DescLine : DescLines)
 			{
 				OutputDesc += TEXT("\t");

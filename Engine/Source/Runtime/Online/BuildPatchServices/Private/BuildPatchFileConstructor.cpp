@@ -58,7 +58,7 @@ public:
 			FString PrevResumeData;
 			TArray< FString > ResumeDataLines;
 			FFileHelper::LoadFileToString( PrevResumeData, *ResumeDataFile );
-			PrevResumeData.ParseIntoArray( &ResumeDataLines, TEXT( "\n" ), true );
+			PrevResumeData.ParseIntoArray( ResumeDataLines, TEXT( "\n" ), true );
 			// Line 1 will be the previously attempted version
 			bHasResumeData = ( ResumeDataLines.Num() >= 1 ) && ResumeDataLines[0] == PatchVersion;
 			if( bHasResumeData )

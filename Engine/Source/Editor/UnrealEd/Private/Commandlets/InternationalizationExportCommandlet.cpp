@@ -470,7 +470,7 @@ bool FPortableObjectHeader::FromLocPOEntry( const TSharedRef<const FPortableObje
 
 	// The POEntry would store header info inside the MsgStr[0]
 	TArray<FString> HeaderLinesToProcess;
-	LocEntry->MsgStr[0].ReplaceEscapedCharWithChar().ParseIntoArray( &HeaderLinesToProcess, NewLineDelimiter, true );
+	LocEntry->MsgStr[0].ReplaceEscapedCharWithChar().ParseIntoArray( HeaderLinesToProcess, NewLineDelimiter, true );
 
 	for( const FString& PotentialHeaderEntry : HeaderLinesToProcess )
 	{
@@ -569,7 +569,7 @@ bool FPortableObjectFormatDOM::FromString( const FString& InStr )
 	FString ParseString = InStr.Replace(TEXT("\r\n"), NewLineDelimiter);
 
 	TArray<FString> LinesToProcess;
-	ParseString.ParseIntoArray( &LinesToProcess, NewLineDelimiter, false );
+	ParseString.ParseIntoArray( LinesToProcess, NewLineDelimiter, false );
 
 	TSharedRef<FPortableObjectEntry> ProcessedEntry = MakeShareable( new FPortableObjectEntry );
 	bool bHasMsgId = false;
@@ -932,7 +932,7 @@ void FPortableObjectEntry::AddExtractedComment( const FString& InComment )
 
 	//// Extracted comments can contain multiple references in a single line so we parse those out.
 	//TArray<FString> CommentsToProcess;
-	//InComment.ParseIntoArray( &CommentsToProcess, TEXT(" "), true );
+	//InComment.ParseIntoArray( CommentsToProcess, TEXT(" "), true );
 	//for( const FString& ExtractedComment : CommentsToProcess )
 	//{
 	//	ExtractedComments.AddUnique( ExtractedComment );
@@ -948,7 +948,7 @@ void FPortableObjectEntry::AddReference( const FString& InReference )
 	
 	//// Reference comments can contain multiple references in a single line so we parse those out.
 	//TArray<FString> ReferencesToProcess;
-	//InReference.ParseIntoArray( &ReferencesToProcess, TEXT(" "), true );
+	//InReference.ParseIntoArray( ReferencesToProcess, TEXT(" "), true );
 	//for( const FString& Reference : ReferencesToProcess )
 	//{
 	//	ReferenceComments.AddUnique( Reference );

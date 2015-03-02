@@ -91,7 +91,7 @@ FAnalyticsProviderMulticast::FAnalyticsProviderMulticast(const FAnalyticsMultica
 	if (GetConfigValue.IsBound())
 	{
 		TArray<FString> ModuleNamesArray;
-		ConfigValues.ProviderModuleNames.ParseIntoArray(&ModuleNamesArray, TEXT(","), true);
+		ConfigValues.ProviderModuleNames.ParseIntoArray(ModuleNamesArray, TEXT(","), true);
 		for (TArray<FString>::TConstIterator it(ModuleNamesArray);it;++it)
 		{
 			TSharedPtr<IAnalyticsProvider> NewProvider = FAnalytics::Get().CreateAnalyticsProvider(FName(**it), GetConfigValue);
@@ -170,7 +170,7 @@ bool FAnalyticsProviderMulticast::SetSessionID(const FString& InSessionID)
 	// parse out the format from GetSessionID and set the SessionID in each provider.
 	TArray<FString> SessionIDs;
 	// parse out the module/session pairs
-	InSessionID.ParseIntoArray(&SessionIDs, TEXT("##"), true);
+	InSessionID.ParseIntoArray(SessionIDs, TEXT("##"), true);
 	for (TArray<FString>::TConstIterator it(SessionIDs);it;++it)
 	{
 		FString ModuleName, SessionID;

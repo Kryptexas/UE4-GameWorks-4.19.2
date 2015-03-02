@@ -1092,7 +1092,7 @@ bool UCookCommandlet::NewCook( const TArray<ITargetPlatform*>& Platforms, TArray
 	{
 		if (SectionStr.Contains(TEXT("+")))
 		{
-			SectionStr.ParseIntoArray(&CmdLineIniSections,TEXT("+"),true);
+			SectionStr.ParseIntoArray(CmdLineIniSections,TEXT("+"),true);
 		}
 		else
 		{

@@ -54,7 +54,7 @@ FBlueprintNodeSignature::FBlueprintNodeSignature(FString const& UserString)
 	SanitizedSignature.RemoveFromEnd(SignatureClosingStr);
 
 	TArray<FString> SignatureElements;
-	SanitizedSignature.ParseIntoArray(&SignatureElements, *SignatureElementDelim, 1);
+	SanitizedSignature.ParseIntoArray(SignatureElements, *SignatureElementDelim, 1);
 
 	for (FString& SignatureElement : SignatureElements)
 	{

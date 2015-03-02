@@ -88,7 +88,7 @@ void FOpenAssetEditors::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FS
 	FString EngineContentFolderLocation = FPaths::ConvertRelativePathToFull(*FPaths::EngineContentDir());
 	//Put the Engine Content Folder Location into an array.  
 	TArray<FString> EngineContentFolderLocationArray;
-	EngineContentFolderLocation.ParseIntoArray(&EngineContentFolderLocationArray, TEXT("/"), true);
+	EngineContentFolderLocation.ParseIntoArray(EngineContentFolderLocationArray, TEXT("/"), true);
 
 	for (int32 i = 0; i < AssetNames.Num(); ++i)
 	{
@@ -100,7 +100,7 @@ void FOpenAssetEditors::GetTests(TArray<FString>& OutBeautifiedNames, TArray <FS
 
 		//Put File location into an array.  
 		TArray<FString> FilenameArray;
-		Filename.ParseIntoArray(&FilenameArray, TEXT("/"), true);
+		Filename.ParseIntoArray(FilenameArray, TEXT("/"), true);
 
 		//Loop through the location array's and compare each element.  
 		//The loop runs while the index is less than the number of elements in the EngineContentFolderLocation array.

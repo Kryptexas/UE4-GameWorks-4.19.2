@@ -791,7 +791,7 @@ static void GenerateBlueprintAPIUtils::DumpActionMenuItem(uint32 Indent, FGraphA
 	}
 
 	TArray<FString> Categories;
-	ActionCategory.ParseIntoArray(&Categories, TEXT("|"), true);
+	ActionCategory.ParseIntoArray(Categories, TEXT("|"), true);
 
 	for (const FString& Category : Categories)
 	{
