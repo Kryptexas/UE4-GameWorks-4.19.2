@@ -1931,6 +1931,7 @@ public:
 		InterpolationRadiusScale.Bind(Initializer.ParameterMap, TEXT("InterpolationRadiusScale"));
 		NormalizedOffsetToPixelCenter.Bind(Initializer.ParameterMap, TEXT("NormalizedOffsetToPixelCenter"));
 		HackExpand.Bind(Initializer.ParameterMap, TEXT("HackExpand"));
+		InterpolationBoundingDirection.Bind(Initializer.ParameterMap, TEXT("InterpolationBoundingDirection"));
 		AOParameters.Bind(Initializer.ParameterMap);
 	}
 
@@ -1957,6 +1958,9 @@ public:
 		const FVector2D HackExpandValue(.5f / AOViewRectSize.X, .5f / AOViewRectSize.Y);
 		SetShaderValue(RHICmdList, ShaderRHI, HackExpand, HackExpandValue);
 
+		// Must push the bounding geometry toward the camera with depth testing, to be in front of any potential receivers
+		SetShaderValue(RHICmdList, ShaderRHI, InterpolationBoundingDirection, GAOInterpolationDepthTesting ? -1.0f : 1.0f);
+
 		AOParameters.Set(RHICmdList, ShaderRHI, Parameters);
 	}
 
@@ -1971,6 +1975,7 @@ public:
 		Ar << InterpolationRadiusScale;
 		Ar << NormalizedOffsetToPixelCenter;
 		Ar << HackExpand;
+		Ar << InterpolationBoundingDirection;
 		Ar << AOParameters;
 		return bShaderHasOutdatedParameters;
 	}
@@ -1984,6 +1989,7 @@ private:
 	FShaderParameter InterpolationRadiusScale;
 	FShaderParameter NormalizedOffsetToPixelCenter;
 	FShaderParameter HackExpand;
+	FShaderParameter InterpolationBoundingDirection;
 	FAOParameters AOParameters;
 };
 
