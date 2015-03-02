@@ -434,6 +434,15 @@ void FMainFrameActionCallbacks::PackageProject( const FName InPlatformInfoName )
 				);
 			}
 
+			if ((Result & ETargetPlatformReadyStatus::ManifestNotFound) != 0)
+			{
+				AddMessageLog(
+					LOCTEXT("ManifestNotFound", "Manifest not found."),
+					LOCTEXT("ManifestNotFoundMessageDetail", "The generated application manifest could not be found."),
+					NotInstalledTutorialLink
+					);
+			}
+
 			// report to main frame
 			bool UnrecoverableError = false;
 
