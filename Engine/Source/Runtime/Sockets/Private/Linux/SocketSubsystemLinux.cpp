@@ -106,7 +106,13 @@ TSharedRef<FInternetAddr> FSocketSubsystemLinux::GetLocalHostAddr(FOutputDevice&
 	TCHAR Home[256]=TEXT("");
 	if (FParse::Value(FCommandLine::Get(),TEXT("MULTIHOME="),Home,ARRAY_COUNT(Home)))
 	{
-		return Addr;
+		TSharedRef<FInternetAddr> TempAddr = CreateInternetAddr();
+		bool bIsValid = false;
+		TempAddr->SetIp(Home, bIsValid);
+		if (bIsValid)
+		{
+			return Addr;
+		}
 	}
 
 	// we need to go deeper...  (see http://unixhelp.ed.ac.uk/CGI/man-cgi?netdevice+7)
