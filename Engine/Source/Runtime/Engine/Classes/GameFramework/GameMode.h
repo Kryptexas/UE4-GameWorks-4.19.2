@@ -254,6 +254,10 @@ protected:
 	UPROPERTY(config)
 	float InactivePlayerStateLifeSpan;
 
+	/** If true, dedicated servers will record replays when HandleMatchHasStarted/HandleMatchHasStopped is called */
+	UPROPERTY(config)
+	bool bHandleDedicatedServerReplays;
+
 public:
 
 	/** Alters the synthetic bandwidth limit for a running game. */
@@ -615,6 +619,9 @@ public:
 
 	/** Called periodically, overridden by subclasses */
 	virtual void DefaultTimer();	
+
+	/** Returns true if replays will start/stop during gameplay starting/stopping */
+	virtual bool IsHandlingReplays();
 
 protected:
 

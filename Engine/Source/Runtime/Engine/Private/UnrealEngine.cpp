@@ -9180,12 +9180,15 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 	IStreamingManager::Get().RemoveStreamingViews( RemoveStreamingViews_All );
 	
 	// See if we need to record network demos
-	const TCHAR* DemoRecName = URL.GetOption( TEXT( "DemoRec=" ), NULL );
-
-	if ( DemoRecName != NULL )
+	if ( WorldContext.World()->GetAuthGameMode() == NULL || !WorldContext.World()->GetAuthGameMode()->IsHandlingReplays() )
 	{
-		// Play the demo
-		GEngine->Exec( WorldContext.World(), *FString::Printf( TEXT("DEMOREC %s"), DemoRecName ) );
+		const TCHAR* DemoRecName = URL.GetOption( TEXT( "DemoRec=" ), NULL );
+
+		if ( DemoRecName != NULL )
+		{
+			// Record the demo
+			GEngine->Exec( WorldContext.World(), *FString::Printf( TEXT("DEMOREC %s"), DemoRecName ) );
+		}
 	}
 
 	MALLOC_PROFILER( FMallocProfiler::SnapshotMemoryLoadMapEnd( URL.Map ); )

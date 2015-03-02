@@ -620,6 +620,11 @@ void AGameMode::HandleMatchHasStarted()
 			}
 		}
 	}
+
+	if (IsHandlingReplays())
+	{
+		GEngine->Exec(GetWorld(), TEXT("DEMOREC %m"));
+	}
 }
 
 bool AGameMode::ReadyToEndMatch()
@@ -641,6 +646,11 @@ void AGameMode::EndMatch()
 void AGameMode::HandleMatchHasEnded()
 {
 	GameSession->HandleMatchHasEnded();
+
+	if (IsHandlingReplays())
+	{
+		GEngine->Exec(GetWorld(), TEXT("DEMOSTOP"));
+	}
 }
 
 void AGameMode::StartToLeaveMap()
@@ -1736,4 +1746,9 @@ void AGameMode::DefaultTimer()
 FString AGameMode::GetRedirectURL(const FString& MapName) const
 {
 	return FString();
+}
+
+bool AGameMode::IsHandlingReplays()
+{
+	return bHandleDedicatedServerReplays && GetNetMode() == ENetMode::NM_DedicatedServer;
 }
