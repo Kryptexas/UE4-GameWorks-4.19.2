@@ -130,12 +130,15 @@ class ENGINE_API UStaticMeshComponent : public UMeshComponent
 	UPROPERTY()
 	int32 PreviousLODLevel;
 
+	/** Whether to override the MinLOD setting of the static mesh asset with the MinLOD of this component. */
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=LOD)
+	bool bOverrideMinLOD;
+
 	/** 
 	 * Specifies the smallest LOD that will be used for this component.  
-	 * If -1 (default), the MinLOD of the static mesh asset will be used instead.
 	 * This is ignored if ForcedLodModel is enabled.
 	 */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=LOD)
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadOnly, Category=LOD, meta=(editcondition = "bOverrideMinLOD"))
 	int32 MinLOD;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=StaticMesh, ReplicatedUsing=OnRep_StaticMesh)

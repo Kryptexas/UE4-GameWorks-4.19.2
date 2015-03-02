@@ -874,7 +874,8 @@ protected:
 	 */
 	int32 ForcedLodModel;
 
-	int32 MinLOD;
+	/** Minimum LOD index to use.  Clamped to valid range [0, NumLODs - 1]. */
+	int32 ClampedMinLOD;
 
 	FVector TotalScale3D;
 
