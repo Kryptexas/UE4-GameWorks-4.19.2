@@ -201,6 +201,7 @@ void UBlackboardComponent::PopulateSynchronizedKeys()
 	
 	UAISystem* AISystem = UAISystem::GetCurrentSafe(GetWorld());
 	check(AISystem);
+	AISystem->RegisterBlackboardComponent(*BlackboardAsset, *this);
 
 	for (auto Iter = AISystem->CreateBlackboardDataToComponentsIterator(*BlackboardAsset); Iter; ++Iter)
 	{
