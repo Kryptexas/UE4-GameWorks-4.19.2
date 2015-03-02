@@ -8,18 +8,20 @@
 void FLinkerPlaceholderBase::AddReferencingProperty(UProperty* ReferencingProperty)
 {
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	UObject* ThisAsObject = GetPlaceholderAsUObject();
+	check(ThisAsObject);
 	FObjectImport* PlaceholderImport = nullptr;
 	if (ULinkerLoad* PropertyLinker = ReferencingProperty->GetLinker())
 	{
 		for (FObjectImport& Import : PropertyLinker->ImportMap)
 		{
-			if (Import.XObject == this)
+			if (Import.XObject == ThisAsObject)
 			{
 				PlaceholderImport = &Import;
 				break;
 			}
 		}
-		check(GetOuter() == PropertyLinker->LinkerRoot);
+		check(ThisAsObject->GetOuter() == PropertyLinker->LinkerRoot);
 		check((PropertyLinker->LoadFlags & LOAD_DeferDependencyLoads) || FBlueprintSupport::IsResolvingDeferredDependenciesDisabled());
 	}
 	// if this check hits, then we're adding dependencies after we've 

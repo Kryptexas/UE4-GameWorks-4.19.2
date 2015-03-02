@@ -58,6 +58,8 @@ public:
 	 */
 	void RemovePropertyReference(UProperty* ReferencingProperty);
 
+	virtual UObject* GetPlaceholderAsUObject() PURE_VIRTUAL(FLinkerPlaceholderBase::GetPlaceholderUObject, return nullptr;);
+
 public:
 	/** Set by the ULinkerLoad that created this instance, tracks what import this was used in place of. */
 	int32 ImportIndex;

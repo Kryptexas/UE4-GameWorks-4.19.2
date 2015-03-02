@@ -35,6 +35,10 @@ public:
 
 	// FLinkerPlaceholderBase 
 	virtual int32 GetRefCount() const override;
+	virtual UObject* GetPlaceholderAsUObject() override
+	{
+		return this;
+	}
 	// End of FLinkerPlaceholderBase
 
 	/**
