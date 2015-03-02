@@ -138,6 +138,10 @@ namespace GitDependencies
 			if(String.IsNullOrEmpty(ProxyUrl))
 			{
 				ProxyUrl = Environment.GetEnvironmentVariable("HTTP_PROXY");
+				if(String.IsNullOrEmpty(ProxyUrl))
+				{
+					ProxyUrl = Environment.GetEnvironmentVariable("http_proxy");
+				}
 			}
 
 			// Create a URI for the proxy. If there's no included username/password, accept them as separate parameters for legacy reasons.
