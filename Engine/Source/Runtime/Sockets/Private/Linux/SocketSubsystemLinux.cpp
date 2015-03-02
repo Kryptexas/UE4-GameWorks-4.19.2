@@ -94,14 +94,21 @@ TSharedRef<FInternetAddr> FSocketSubsystemLinux::GetLocalHostAddr(FOutputDevice&
 	// get parent address first
 	TSharedRef<FInternetAddr> Addr = FSocketSubsystemBSD::GetLocalHostAddr(Out, bCanBindAll);
 
-	// if the address is not a loopback one (or none), return it
+	// If the address is not a loopback one (or none), return it.
 	uint32 ParentIp = 0;
 	Addr->GetIp(ParentIp); // will return in host order
 	if (ParentIp != 0 && (ParentIp & 0xff000000) != 0x7f000000)
 	{
 		return Addr;
 	}
-	
+
+	// If superclass got the address from command line, honor that override
+	TCHAR Home[256]=TEXT("");
+	if (FParse::Value(FCommandLine::Get(),TEXT("MULTIHOME="),Home,ARRAY_COUNT(Home)))
+	{
+		return Addr;
+	}
+
 	// we need to go deeper...  (see http://unixhelp.ed.ac.uk/CGI/man-cgi?netdevice+7)
 	int TempSocket = socket(PF_INET, SOCK_STREAM, 0);
 	if (TempSocket)
