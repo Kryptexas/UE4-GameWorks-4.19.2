@@ -266,7 +266,7 @@ DEFINE_STAT(STAT_StaticMeshVertexMemory);
 DEFINE_STAT(STAT_ResourceVertexColorMemory);
 DEFINE_STAT(STAT_InstVertexColorMemory);
 DEFINE_STAT(STAT_StaticMeshIndexMemory);
-
+DEFINE_STAT(STAT_StaticMeshDistanceFieldMemory);
 
 
 /** Threading stats objects */
