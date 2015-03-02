@@ -475,7 +475,7 @@ void FSceneViewport::OnMouseLeave( const FPointerEvent& MouseEvent )
 	{
 		ViewportClient->MouseLeave( this );
 	
-		if ( IsPlayInEditorViewport() )
+		if ( (FApp::IsGame() && !GIsEditor) || IsPlayInEditorViewport() )
 		{
 			CachedMousePos = FIntPoint(-1, -1);
 		}
