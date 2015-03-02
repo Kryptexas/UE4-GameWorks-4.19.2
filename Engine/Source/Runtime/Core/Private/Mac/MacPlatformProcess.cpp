@@ -616,6 +616,33 @@ bool FMacPlatformProcess::IsThisApplicationForeground()
 	return [NSApp isActive] && MacApplication && MacApplication->IsWorkspaceSessionActive();
 }
 
+bool FMacPlatformProcess::IsSandboxedApplication()
+{
+	SCOPED_AUTORELEASE_POOL;
+	
+	bool bIsSandboxedApplication = false;
+
+	SecStaticCodeRef SecCodeObj = nullptr;
+	NSURL* BundleURL = [[NSBundle mainBundle] bundleURL];
+    OSStatus Err = SecStaticCodeCreateWithPath((CFURLRef)BundleURL, kSecCSDefaultFlags, &SecCodeObj);
+	if (SecCodeObj)
+	{
+		check(Err == errSecSuccess);
+		
+		SecRequirementRef SandboxRequirement = nullptr;
+		Err = SecRequirementCreateWithString(CFSTR("entitlement[\"com.apple.security.app-sandbox\"] exists"), kSecCSDefaultFlags, &SandboxRequirement);
+		check(Err == errSecSuccess && SandboxRequirement);
+		
+		Err = SecStaticCodeCheckValidityWithErrors(SecCodeObj, kSecCSDefaultFlags, SandboxRequirement, nullptr);
+		
+		bIsSandboxedApplication = (Err == errSecSuccess);
+		
+		CFRelease(SecCodeObj);
+	}
+	
+	return bIsSandboxedApplication;
+}
+
 void FMacPlatformProcess::CleanFileCache()
 {
 	bool bShouldCleanShaderWorkingDirectory = true;

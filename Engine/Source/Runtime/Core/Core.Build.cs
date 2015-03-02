@@ -79,9 +79,10 @@ public class Core : ModuleRules
 			AddThirdPartyPrivateStaticDependencies(Target, 
 				"IntelTBB",
 				"zlib",
-				"OpenGL"
+				"OpenGL",
+				"PLCrashReporter"
 				);
-			PublicFrameworks.AddRange(new string[] { "Cocoa", "Carbon", "IOKit" });
+			PublicFrameworks.AddRange(new string[] { "Cocoa", "Carbon", "IOKit", "Security" });
 			
 			if (UEBuildConfiguration.bBuildEditor == true)
 			{

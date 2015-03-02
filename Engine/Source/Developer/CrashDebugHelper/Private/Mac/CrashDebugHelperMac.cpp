@@ -4,6 +4,7 @@
 #include "Database.h"
 #include "EngineVersion.h"
 #include "ApplePlatformSymbolication.h"
+#include "CrashReporter.h"
 #include <cxxabi.h>
 
 #include "ISourceControlModule.h"
@@ -127,7 +128,24 @@ static int32 ParseGraphics(TCHAR const* CrashLog, FString& OutGPUDetails)
 static int32 ParseError(TCHAR const* CrashLog, FString& OutErrorDetails)
 {
 	bool bFound = false;
-	TCHAR const* Line = FCStringWide::Strstr(CrashLog, TEXT("Application Specific Information:"));
+	TCHAR const* Line = FCStringWide::Strstr(CrashLog, TEXT("Exception Codes:"));
+	if (Line)
+	{
+		Line += FCStringWide::Strlen(TEXT("Exception Codes:"));
+		check(Line);
+		TCHAR const* End = FCStringWide::Strchr(Line, TEXT('\r'));
+		if(!End)
+		{
+			End = FCStringWide::Strchr(Line, TEXT('\n'));
+		}
+		check(End);
+		
+		int32 Length = FMath::Min(PATH_MAX, (int32)((uintptr_t)(End - Line)));
+		OutErrorDetails.Append(Line, Length);
+		
+		bFound = true;
+	}
+	Line = FCStringWide::Strstr(CrashLog, TEXT("Application Specific Information:"));
 	if (Line)
 	{
 		Line = FCStringWide::Strchr(Line, TEXT('\n'));
@@ -141,6 +159,7 @@ static int32 ParseError(TCHAR const* CrashLog, FString& OutErrorDetails)
 		check(End);
 		
 		int32 Length = FMath::Min(PATH_MAX, (int32)((uintptr_t)(End - Line)));
+		OutErrorDetails += TEXT(" ");
 		OutErrorDetails.Append(Line, Length);
 		
 		bFound = true;
@@ -155,7 +174,11 @@ static int32 ParseExceptionCode(TCHAR const* CrashLog, uint32& OutExceptionCode)
 	if(Line)
 	{
 		TCHAR Buffer[257] = {0};
-		Found = swscanf(Line, TEXT("%*s %*s %*d (%256ls)"), Buffer);
+		Found = swscanf(Line, TEXT("%*s %*s %*s (%256ls)"), Buffer);
+		if(!Found)
+		{
+			Found = swscanf(Line, TEXT("%*s %*s %256ls"), Buffer);
+		}
 		if(Found)
 		{
 			TCHAR* End = FCStringWide::Strchr(Buffer, TEXT(')'));
@@ -195,9 +218,13 @@ static int32 ParseExceptionCode(TCHAR const* CrashLog, uint32& OutExceptionCode)
 			{
 				OutExceptionCode = SIGABRT;
 			}
-			else
+			else if(FString(Buffer).IsNumeric())
 			{
 				Found = swscanf(Buffer, TEXT("%u"), &OutExceptionCode);
+			}
+			else
+			{
+				OutExceptionCode = SIGUSR1;
 			}
 		}
 	}
@@ -258,7 +285,17 @@ static int32 ParseThreadStackLine(TCHAR const* StackLine, FString& OutModuleName
 	TCHAR FunctionName[1025];
 	TCHAR FileName[257];
 	
-	int32 Found = swscanf(StackLine, TEXT("%*d %256ls 0x%lx %1024ls + %*d (%256ls:%d)"), ModuleName, &OutProgramCounter, FunctionName, FileName, &OutLineNumber);
+	int32 Found = swscanf(StackLine, TEXT("%*d %256ls 0x%lx"), ModuleName, &OutProgramCounter);
+	if(Found == 2)
+	{
+		uint64 FunctionAddress = 0;
+		uint32 FunctionOffset = 0;
+		if(swscanf(StackLine, TEXT("%*d %*ls %*lx 0x%lx + %d"), &FunctionAddress, &FunctionOffset) == 0)
+		{
+			Found += swscanf(StackLine, TEXT("%*d %*ls %*lx %1024ls + %*d (%256ls:%d)"), FunctionName, FileName, &OutLineNumber);
+		}
+	}
+	
 	switch(Found)
 	{
 		case 5:
@@ -391,6 +428,14 @@ static bool ParseModuleLine(TCHAR const* ModuleLine, FCrashModuleInfo& OutModule
 				++UUIDStart;
 				int32 Length = FMath::Min(64, (int32)((uintptr_t)(UUIDEnd - UUIDStart)));
 				OutModule.Report.Append(UUIDStart, Length);
+				if(!OutModule.Report.Contains(TEXT("-")))
+				{
+					OutModule.Report.InsertAt(8, TEXT('-'));
+					OutModule.Report.InsertAt(13, TEXT('-'));
+					OutModule.Report.InsertAt(18, TEXT('-'));
+					OutModule.Report.InsertAt(23, TEXT('-'));
+				}
+				OutModule.Report = OutModule.Report.ToUpper();
 				Found++;
 			}
 			
@@ -437,6 +482,8 @@ FCrashDebugHelperMac::~FCrashDebugHelperMac()
 
 bool FCrashDebugHelperMac::ParseCrashDump(const FString& InCrashDumpName, FCrashDebugInfo& OutCrashDebugInfo)
 {
+	SCOPED_AUTORELEASE_POOL;
+
 	if (bInitialized == false)
 	{
 		UE_LOG(LogCrashDebugHelper, Warning, TEXT("ParseCrashDump: CrashDebugHelper not initialized"));
@@ -444,12 +491,26 @@ bool FCrashDebugHelperMac::ParseCrashDump(const FString& InCrashDumpName, FCrash
 	}
 	
 	FString CrashDump;
-	if ( FFileHelper::LoadFileToString( CrashDump, *InCrashDumpName ) )
+	
+	NSString* CrashDumpPath = InCrashDumpName.GetNSString();
+	NSError* Error = nil;
+    NSData* Data = [NSData dataWithContentsOfFile: CrashDumpPath options: NSMappedRead error: &Error];
+	if(Data && !Error)
+	{
+		PLCrashReport* CrashLog = [[PLCrashReport alloc] initWithData: Data error: &Error];
+		if(CrashLog && !Error)
+		{
+			NSString* Report = [PLCrashReportTextFormatter stringValueForCrashReport: CrashLog withTextFormat: PLCrashReportTextFormatiOS];
+			CrashDump = FString(Report);
+		}
+	}
+	
+	if ( !CrashDump.IsEmpty() || FFileHelper::LoadFileToString( CrashDump, *InCrashDumpName ) )
 	{
 		// Only supports Apple crash report version 11
 		int32 ReportVersion = 0;
 		int32 Result = ParseReportVersion(*CrashDump, ReportVersion);
-		if(Result == 1 && ReportVersion == 11)
+		if(Result == 1 && (ReportVersion == 11 || ReportVersion == 104))
 		{
 			int32 Major = 0;
 			int32 Minor = 0;
@@ -506,11 +567,25 @@ bool FCrashDebugHelperMac::CreateMinidumpDiagnosticReport( const FString& InCras
 	bool bOK = false;
 	
 	FString CrashDump;
-	if ( FFileHelper::LoadFileToString( CrashDump, *InCrashDumpName ) )
+	
+	NSString* CrashDumpPath = InCrashDumpName.GetNSString();
+	NSError* Error = nil;
+    NSData* Data = [NSData dataWithContentsOfFile: CrashDumpPath options: NSMappedRead error: &Error];
+	if(Data && !Error)
+	{
+		PLCrashReport* CrashLog = [[PLCrashReport alloc] initWithData: Data error: &Error];
+		if(CrashLog && !Error)
+		{
+			NSString* Report = [PLCrashReportTextFormatter stringValueForCrashReport: CrashLog withTextFormat: PLCrashReportTextFormatiOS];
+			CrashDump = FString(Report);
+		}
+	}
+	
+	if ( !CrashDump.IsEmpty() || FFileHelper::LoadFileToString( CrashDump, *InCrashDumpName ) )
 	{
 		int32 ReportVersion = 0;
 		int32 Result = ParseReportVersion(*CrashDump, ReportVersion);
-		if(Result == 1 && ReportVersion == 11)
+		if(Result == 1 && (ReportVersion == 11 || ReportVersion == 104))
 		{
 			FString Error;
 			FString ModulePath;

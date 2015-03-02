@@ -42,6 +42,7 @@ extern "C"
 	CSSymbolicatorRef CSSymbolicatorCreateWithPid(pid_t pid);
 	CSSymbolicatorRef CSSymbolicatorCreateWithPathAndArchitecture(const char* path, cpu_type_t type);
 	
+	CSSymbolRef CSSymbolicatorGetSymbolWithAddressAtTime(CSSymbolicatorRef Symbolicator, vm_address_t Address, uint64_t Time);
 	CSSourceInfoRef CSSymbolicatorGetSourceInfoWithAddressAtTime(CSSymbolicatorRef Symbolicator, vm_address_t Address, uint64_t Time);
 	CSSymbolRef CSSymbolicatorGetSymbolWithMangledNameFromSymbolOwnerWithNameAtTime(CSSymbolicatorRef Symbolicator, const char* Symbol, const char* Name, uint64_t Time);
 	CSSymbolOwnerRef CSSymbolicatorGetSymbolOwnerWithUUIDAtTime(CSSymbolicatorRef Symbolicator, CFUUIDRef UUID, uint64_t Time);
@@ -51,6 +52,7 @@ extern "C"
 	CSSymbolOwnerRef CSSourceInfoGetSymbolOwner(CSSourceInfoRef Info);
 	
 	const char* CSSymbolOwnerGetName(CSSymbolOwnerRef symbol);
+	vm_address_t CSSymbolOwnerGetBaseAddress(CSSymbolOwnerRef Owner);
 	
 	int CSSourceInfoGetLineNumber(CSSourceInfoRef Info);
 	const char* CSSourceInfoGetPath(CSSourceInfoRef Info);
@@ -194,39 +196,38 @@ bool FApplePlatformSymbolication::SymbolInfoForStrippedSymbol(FApplePlatformSymb
 			CSSymbolOwnerRef SymbolOwner = CSSymbolicatorGetSymbolOwnerWithUUIDAtTime(Symbolicator, UUID, kCSNow);
 			if(!CSIsNull(SymbolOwner))
 			{
-				CSSourceInfoRef Symbol = CSSymbolicatorGetSourceInfoWithAddressAtTime(Symbolicator, (vm_address_t)ProgramCounter, kCSNow);
+				vm_address_t BaseAddress = CSSymbolOwnerGetBaseAddress(SymbolOwner);
 				
+				CSSymbolRef Symbol = CSSymbolicatorGetSymbolWithAddressAtTime(Symbolicator, ((vm_address_t)ProgramCounter) + BaseAddress, kCSNow);
 				if(!CSIsNull(Symbol))
 				{
-					Info.LineNumber = CSSourceInfoGetLineNumber(Symbol);
+					ANSICHAR const* DylibName = CSSymbolOwnerGetName(SymbolOwner);
+					FCStringAnsi::Strcpy(Info.ModuleName, DylibName);
 					
-					CSRange CodeRange = CSSourceInfoGetRange(Symbol);
-					Info.SymbolDisplacement = (ProgramCounter - CodeRange.Location);
-					
-					ANSICHAR const* FileName = CSSourceInfoGetPath(Symbol);
-					if(FileName)
+					ANSICHAR const* FunctionName = CSSymbolGetName(Symbol);
+					if(FunctionName)
 					{
-						FCStringAnsi::Sprintf(Info.Filename, FileName);
+						FCStringAnsi::Sprintf(Info.FunctionName, FunctionName);
 					}
 					
-					CSSymbolRef SymbolData = CSSourceInfoGetSymbol(Symbol);
-					if(!CSIsNull(SymbolData))
+					CSRange Range = CSSymbolGetRange(Symbol);
+					Info.SymbolDisplacement = (ProgramCounter - Range.Location);
+					Info.OffsetInModule = Range.Location;
+					Info.ProgramCounter = ProgramCounter;
+					
+					CSSourceInfoRef SymbolInfo = CSSymbolicatorGetSourceInfoWithAddressAtTime(Symbolicator, ((vm_address_t)ProgramCounter) + BaseAddress, kCSNow);
+					if(!CSIsNull(SymbolInfo))
 					{
-						ANSICHAR const* FunctionName = CSSymbolGetName(SymbolData);
-						if(FunctionName)
+						Info.LineNumber = CSSourceInfoGetLineNumber(SymbolInfo);
+						
+						ANSICHAR const* FileName = CSSourceInfoGetPath(SymbolInfo);
+						if(FileName)
 						{
-							FCStringAnsi::Sprintf(Info.FunctionName, FunctionName);
+							FCStringAnsi::Sprintf(Info.Filename, FileName);
 						}
 					}
 					
-					CSSymbolOwnerRef Owner = CSSourceInfoGetSymbolOwner(Symbol);
-					if(!CSIsNull(Owner))
-					{
-						ANSICHAR const* DylibName = CSSymbolOwnerGetName(Owner);
-						FCStringAnsi::Strcpy(Info.ModuleName, DylibName);
-						
-						bOK = Info.LineNumber != 0;
-					}
+					bOK = true;
 				}
 			}
 			

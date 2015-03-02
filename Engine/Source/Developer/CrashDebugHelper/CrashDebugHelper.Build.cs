@@ -7,6 +7,7 @@ public class CrashDebugHelper : ModuleRules
 	public CrashDebugHelper(TargetInfo Target)
 	{
 		PrivateIncludePaths.Add("Developer/CrashDebugHelper/Private");
+		PrivateIncludePaths.Add("ThirdParty/PLCrashReporter/plcrashreporter-master-5ae3b0a/Source");
 
 		PrivateDependencyModuleNames.AddRange(
 			new string[] {
