@@ -287,6 +287,10 @@ private:
 	void OnLODCountCommitted(int32 InValue, ETextCommit::Type CommitInfo);
 	int32 GetLODCount() const;
 
+	void OnMinLODChanged(int32 NewValue);
+	void OnMinLODCommitted(int32 InValue, ETextCommit::Type CommitInfo);
+	int32 GetMinLOD() const;
+
 	float GetLODScreenSize(int32 LODIndex)const;
 	FText GetLODScreenSizeTitle(int32 LODIndex) const;
 	bool CanChangeLODScreenSize() const;
@@ -305,6 +309,7 @@ private:
 	void OnImportLOD(TSharedPtr<FString> NewValue, ESelectInfo::Type SelectInfo);
 	void UpdateLODNames();
 	FText GetLODCountTooltip() const;
+	FText GetMinLODTooltip() const;
 
 private:
 

@@ -309,6 +309,10 @@ class UStaticMesh : public UObject, public IInterface_CollisionDataProvider, pub
 	UPROPERTY()
 	FName LODGroup;
 
+	/** Minimum LOD to use for rendering.  This is the default setting for the mesh and can be overridden by component settings. */
+	UPROPERTY()
+	int32 MinLOD;
+
 	/** If true, the distances at which LODs swap are computed automatically. */
 	UPROPERTY()
 	uint32 bAutoComputeLODScreenSize:1;

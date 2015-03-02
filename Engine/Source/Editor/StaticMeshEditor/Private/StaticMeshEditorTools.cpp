@@ -1495,6 +1495,26 @@ void FLevelOfDetailSettingsLayout::AddToDetailsPanel( IDetailLayoutBuilder& Deta
 			.OnSelectionChanged(this, &FLevelOfDetailSettingsLayout::OnImportLOD)
 		];
 
+	LODSettingsCategory.AddCustomRow( LOCTEXT("MinLOD", "Minimum LOD") )
+	.NameContent()
+	[
+		SNew(STextBlock)
+		.Font( IDetailLayoutBuilder::GetDetailFont() )
+		.Text(LOCTEXT("MinLOD", "Minimum LOD"))
+	]
+	.ValueContent()
+	[
+		SNew(SSpinBox<int32>)
+		.Font( IDetailLayoutBuilder::GetDetailFont() )
+		.Value(this, &FLevelOfDetailSettingsLayout::GetMinLOD)
+		.OnValueChanged(this, &FLevelOfDetailSettingsLayout::OnMinLODChanged)
+		.OnValueCommitted(this, &FLevelOfDetailSettingsLayout::OnMinLODCommitted)
+		.MinValue(0)
+		.MaxValue(MAX_STATIC_MESH_LODS)
+		.ToolTipText(this, &FLevelOfDetailSettingsLayout::GetMinLODTooltip)
+		.IsEnabled(FLevelOfDetailSettingsLayout::GetLODCount() > 1)
+	];
+
 	// Add Number of LODs slider.
 	const int32 MinAllowedLOD = 1;
 	LODSettingsCategory.AddCustomRow( LOCTEXT("NumberOfLODs", "Number of LODs") )
@@ -2044,6 +2064,37 @@ FText FLevelOfDetailSettingsLayout::GetLODCountTooltip() const
 	}
 
 	return LOCTEXT("LODCountTooltip_Disabled", "Auto mesh reduction is unavailable! Please provide a mesh reduction interface such as Simplygon to use this feature or manually import LOD levels.");
+}
+
+int32 FLevelOfDetailSettingsLayout::GetMinLOD() const
+{
+	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
+	check(StaticMesh);
+
+	return StaticMesh->MinLOD;
+}
+
+void FLevelOfDetailSettingsLayout::OnMinLODChanged(int32 NewValue)
+{
+	UStaticMesh* StaticMesh = StaticMeshEditor.GetStaticMesh();
+	check(StaticMesh);
+
+	{
+		FStaticMeshComponentRecreateRenderStateContext ReregisterContext(StaticMesh,false);
+		StaticMesh->MinLOD = FMath::Clamp<int32>(NewValue, 0, MAX_STATIC_MESH_LODS - 1);
+		StaticMesh->Modify();
+	}
+	StaticMeshEditor.RefreshViewport();
+}
+
+void FLevelOfDetailSettingsLayout::OnMinLODCommitted(int32 InValue, ETextCommit::Type CommitInfo)
+{
+	OnMinLODChanged(InValue);
+}
+
+FText FLevelOfDetailSettingsLayout::GetMinLODTooltip() const
+{
+	return LOCTEXT("MinLODTooltip", "The minimum LOD to use for rendering.  This can be overridden in components.");
 }
 
 #undef LOCTEXT_NAMESPACE

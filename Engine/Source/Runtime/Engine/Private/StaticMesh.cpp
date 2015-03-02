@@ -1223,6 +1223,7 @@ UStaticMesh::UStaticMesh(const FObjectInitializer& ObjectInitializer)
 #endif // #if WITH_EDITORONLY_DATA
 	LightMapResolution = 4;
 	LpvBiasMultiplier = 1.0f;
+	MinLOD = 0;
 }
 
 /**

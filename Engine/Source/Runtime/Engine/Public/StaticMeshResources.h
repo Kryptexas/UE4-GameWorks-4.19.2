@@ -874,6 +874,8 @@ protected:
 	 */
 	int32 ForcedLodModel;
 
+	int32 MinLOD;
+
 	FVector TotalScale3D;
 
 	uint32 bCastShadow : 1;

@@ -144,6 +144,7 @@ UStaticMeshComponent::UStaticMeshComponent(const FObjectInitializer& ObjectIniti
 
 	WireframeColorOverride = FColor(255, 255, 255, 255);
 
+	MinLOD = -1;
 	bOverrideLightMapRes = false;
 	OverriddenLightMapRes = 64;
 	SubDivisionStepSize = 32;
