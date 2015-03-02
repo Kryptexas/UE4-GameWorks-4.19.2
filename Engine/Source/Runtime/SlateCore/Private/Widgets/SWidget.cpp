@@ -327,11 +327,11 @@ void SWidget::OnFinishedKeyInput()
 FNavigationReply SWidget::OnNavigation(const FGeometry& MyGeometry, const FNavigationEvent& InNavigationEvent)
 {
 	EUINavigation Type = InNavigationEvent.GetNavigationType();
-	TSharedPtr<FNavigationMetaData> MetaData = GetMetaData<FNavigationMetaData>();
-	if (MetaData.IsValid())
+	TSharedPtr<FNavigationMetaData> NavigationMetaData = GetMetaData<FNavigationMetaData>();
+	if (NavigationMetaData.IsValid())
 	{
-		TSharedPtr<SWidget> Widget = MetaData->GetFocusRecipient(Type).Pin();
-		return FNavigationReply(MetaData->GetBoundaryRule(Type), Widget, MetaData->GetFocusDelegate(Type));
+		TSharedPtr<SWidget> Widget = NavigationMetaData->GetFocusRecipient(Type).Pin();
+		return FNavigationReply(NavigationMetaData->GetBoundaryRule(Type), Widget, NavigationMetaData->GetFocusDelegate(Type));
 	}
 	return FNavigationReply::Escape();
 }

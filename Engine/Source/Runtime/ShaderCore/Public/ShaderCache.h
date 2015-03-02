@@ -323,7 +323,7 @@ public:
 	
 	static FORCEINLINE void LogShader(EShaderPlatform Platform, EShaderFrequency Frequency, FSHAHash Hash, TArray<uint8> const& Code)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalLogShader(Platform, Frequency, Hash, Code);
@@ -332,7 +332,7 @@ public:
 	
 	static FORCEINLINE void LogVertexDeclaration(const FVertexDeclarationElementList& VertexElements, FVertexDeclarationRHIParamRef VertexDeclaration)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalLogVertexDeclaration(VertexElements, VertexDeclaration);
@@ -347,7 +347,7 @@ public:
 												FGeometryShaderRHIParamRef GeometryShader,
 												FBoundShaderStateRHIParamRef BoundState)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalLogBoundShaderState(Platform, VertexDeclaration, VertexShader, PixelShader, HullShader, DomainShader, GeometryShader, BoundState);
@@ -356,7 +356,7 @@ public:
 	
 	static FORCEINLINE void LogBlendState(FBlendStateInitializerRHI const& Init, FBlendStateRHIParamRef State)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalLogBlendState(Init, State);
@@ -364,7 +364,7 @@ public:
 	}
 	static FORCEINLINE void LogRasterizerState(FRasterizerStateInitializerRHI const& Init, FRasterizerStateRHIParamRef State)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalLogRasterizerState(Init, State);
@@ -372,7 +372,7 @@ public:
 	}
 	static FORCEINLINE void LogDepthStencilState(FDepthStencilStateInitializerRHI const& Init, FDepthStencilStateRHIParamRef State)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalLogDepthStencilState(Init, State);
@@ -380,7 +380,7 @@ public:
 	}
 	static FORCEINLINE void LogSamplerState(FSamplerStateInitializerRHI const& Init, FSamplerStateRHIParamRef State)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalLogSamplerState(Init, State);
@@ -388,7 +388,7 @@ public:
 	}
 	static FORCEINLINE void LogTexture(FShaderTextureKey const& Init, FTextureRHIParamRef State)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalLogTexture(Init, State);
@@ -396,7 +396,7 @@ public:
 	}
 	static FORCEINLINE void LogSRV(FShaderResourceViewRHIParamRef SRV, FTextureRHIParamRef Texture, uint8 StartMip, uint8 NumMips, uint8 Format)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalLogSRV(SRV, Texture, StartMip, NumMips, Format);
@@ -404,7 +404,7 @@ public:
 	}
 	static FORCEINLINE void LogSRV(FShaderResourceViewRHIParamRef SRV, FVertexBufferRHIParamRef Vb, uint32 Stride, uint8 Format)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalLogSRV(SRV, Vb, Stride, Format);
@@ -412,7 +412,7 @@ public:
 	}
 	static FORCEINLINE void RemoveSRV(FShaderResourceViewRHIParamRef SRV)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalRemoveSRV(SRV);
@@ -420,7 +420,7 @@ public:
 	}
 	static FORCEINLINE void RemoveTexture(FTextureRHIParamRef Texture)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalRemoveTexture(Texture);
@@ -428,7 +428,7 @@ public:
 	}
 	static FORCEINLINE void SetBlendState(FBlendStateRHIParamRef State)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalSetBlendState(State);
@@ -436,7 +436,7 @@ public:
 	}
 	static FORCEINLINE void SetRasterizerState(FRasterizerStateRHIParamRef State)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalSetRasterizerState(State);
@@ -444,7 +444,7 @@ public:
 	}
 	static FORCEINLINE void SetDepthStencilState(FDepthStencilStateRHIParamRef State)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalSetDepthStencilState(State);
@@ -452,7 +452,7 @@ public:
 	}
 	static FORCEINLINE void SetRenderTargets( uint32 NumSimultaneousRenderTargets, const FRHIRenderTargetView* NewRenderTargetsRHI, const FRHIDepthRenderTargetView* NewDepthStencilTargetRHI )
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalSetRenderTargets(NumSimultaneousRenderTargets, NewRenderTargetsRHI, NewDepthStencilTargetRHI);
@@ -460,7 +460,7 @@ public:
 	}
 	static FORCEINLINE void SetSamplerState(EShaderFrequency Frequency, uint32 Index, FSamplerStateRHIParamRef State)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalSetSamplerState(Frequency, Index, State);
@@ -468,7 +468,7 @@ public:
 	}
 	static FORCEINLINE void SetTexture(EShaderFrequency Frequency, uint32 Index, FTextureRHIParamRef State)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalSetTexture(Frequency, Index, State);
@@ -476,7 +476,7 @@ public:
 	}
 	static FORCEINLINE void SetSRV(EShaderFrequency Frequency, uint32 Index, FShaderResourceViewRHIParamRef SRV)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalSetSRV(Frequency, Index, SRV);
@@ -484,7 +484,7 @@ public:
 	}
 	static FORCEINLINE void SetBoundShaderState(FBoundShaderStateRHIParamRef State)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalSetBoundShaderState(State);
@@ -492,7 +492,7 @@ public:
 	}
 	static FORCEINLINE void SetViewport(uint32 MinX, uint32 MinY, float MinZ, uint32 MaxX, uint32 MaxY, float MaxZ)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalSetViewport(MinX, MinY, MinZ, MaxX, MaxY, MaxZ);
@@ -500,7 +500,7 @@ public:
 	}
 	static FORCEINLINE void LogDraw(uint8 IndexType)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalLogDraw(IndexType);
@@ -508,7 +508,7 @@ public:
 	}
 	static FORCEINLINE void PreDrawShaders(FRHICommandList& RHICmdList)
 	{
-		FShaderCache* Cache = GetShaderCache();
+		FShaderCache* ShaderCache = GetShaderCache();
 		if ( Cache )
 		{
 			Cache->InternalPreDrawShaders(RHICmdList);

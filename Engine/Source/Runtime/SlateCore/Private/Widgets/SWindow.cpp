@@ -608,8 +608,8 @@ FGeometry SWindow::GetWindowGeometryInWindow() const
 	// FGeometry expects Size in Local space, but our size is stored in screen space (same as window space + screen offset).
 	// So we need to transform Size into the window's local space for FGeometry.
 	FSlateLayoutTransform LocalToWindow = GetLocalToWindowTransform();
-	FVector2D Size = GetViewportSize();
-	return FGeometry::MakeRoot( TransformVector(Inverse(LocalToWindow), Size), LocalToWindow );
+	FVector2D ViewportSize = GetViewportSize();
+	return FGeometry::MakeRoot( TransformVector(Inverse(LocalToWindow), ViewportSize), LocalToWindow );
 }
 
 FSlateLayoutTransform SWindow::GetLocalToScreenTransform() const
@@ -674,8 +674,8 @@ FVector2D SWindow::GetClientSizeInScreen() const
 
 FSlateRect SWindow::GetClippingRectangleInWindow() const
 {
-	FVector2D Size = GetViewportSize();
-	return FSlateRect( 0, 0, Size.X, Size.Y );
+	FVector2D ViewportSize = GetViewportSize();
+	return FSlateRect( 0, 0, ViewportSize.X, ViewportSize.Y );
 }
 
 

@@ -468,30 +468,30 @@ TSharedRef<class FJsonObject> FVariantData::ToJson() const
 	{
 		case EOnlineKeyValuePairDataType::Int32:
 		{
-			int32 Value;
-			GetValue(Value);
-			JsonObject->SetNumberField(ValueStr, (double)Value);
+			int32 FieldValue;
+			GetValue(FieldValue);
+			JsonObject->SetNumberField(ValueStr, (double)FieldValue);
 			break;
 		}
 		case EOnlineKeyValuePairDataType::Float:
 		{
-			float Value;
-			GetValue(Value);
-			JsonObject->SetNumberField(ValueStr, (double)Value);
+			float FieldValue;
+			GetValue(FieldValue);
+			JsonObject->SetNumberField(ValueStr, (double)FieldValue);
 			break;
 		}
 		case EOnlineKeyValuePairDataType::String:
 		{
-			FString Value;
-			GetValue(Value);
-			JsonObject->SetStringField(ValueStr, Value);
+			FString FieldValue;
+			GetValue(FieldValue);
+			JsonObject->SetStringField(ValueStr, FieldValue);
 			break;
 		}
 		case EOnlineKeyValuePairDataType::Bool:
 		{
-			bool Value;
-			GetValue(Value);
-			JsonObject->SetBoolField(ValueStr, Value);
+			bool FieldValue;
+			GetValue(FieldValue);
+			JsonObject->SetBoolField(ValueStr, FieldValue);
 			break;
 		}
 		case EOnlineKeyValuePairDataType::Int64:
@@ -501,9 +501,9 @@ TSharedRef<class FJsonObject> FVariantData::ToJson() const
 		}
 		case EOnlineKeyValuePairDataType::Double:
 		{
-			double Value;
-			GetValue(Value);
-			JsonObject->SetNumberField(ValueStr, (double)Value);
+			double FieldValue;
+			GetValue(FieldValue);
+			JsonObject->SetNumberField(ValueStr, (double)FieldValue);
 			break;
 		}
 		case EOnlineKeyValuePairDataType::Empty:
