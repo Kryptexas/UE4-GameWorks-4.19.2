@@ -1752,7 +1752,7 @@ SCurveEditor::FSelectedCurveKey SCurveEditor::HitTestKeys(const FGeometry& InMyG
 	return SelectedKey;
 }
 
-void SCurveEditor::MoveSelectedKeys(FVector2D NewLocation)
+void SCurveEditor::MoveSelectedKeys(FVector2D InNewLocation)
 {
 	const FScopedTransaction Transaction( LOCTEXT("CurveEditor_MoveKeys", "Move Keys") );
 	CurveOwner->ModifyOwner();
@@ -1760,7 +1760,7 @@ void SCurveEditor::MoveSelectedKeys(FVector2D NewLocation)
 	// track all unique curves encountered so their tangents can be updated later
 	TSet<FRichCurve*> UniqueCurves;
 
-	FVector2D SnappedNewLocation = SnapLocation(NewLocation);
+	FVector2D SnappedNewLocation = SnapLocation(InNewLocation);
 
 	// The total move distance for all keys is the difference between the current snapped location
 	// and the start location of the key which was actually dragged.

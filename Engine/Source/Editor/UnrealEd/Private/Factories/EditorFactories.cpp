@@ -7181,15 +7181,15 @@ bool UDataTableFactory::ConfigureProperties()
 	public:
 		FDataTableFactoryUI() : ResultStruct(NULL) {}
 
-		TSharedRef<SWidget> MakeRowStructItemWidget(class UScriptStruct* Struct) const
+		TSharedRef<SWidget> MakeRowStructItemWidget(class UScriptStruct* InStruct) const
 		{
-			return SNew(STextBlock).Text(Struct ? Struct->GetDisplayNameText() : FText::GetEmpty());
+			return SNew(STextBlock).Text(InStruct ? InStruct->GetDisplayNameText() : FText::GetEmpty());
 		}
 
 		FText GetSelectedRowOptionText() const
 		{
-			UScriptStruct* Struct = RowStructCombo.IsValid() ? RowStructCombo->GetSelectedItem() : NULL;
-			return Struct ? Struct->GetDisplayNameText() : FText::GetEmpty();
+			UScriptStruct* RowStruct = RowStructCombo.IsValid() ? RowStructCombo->GetSelectedItem() : NULL;
+			return RowStruct ? RowStruct->GetDisplayNameText() : FText::GetEmpty();
 		}
 
 		FReply OnCreate()

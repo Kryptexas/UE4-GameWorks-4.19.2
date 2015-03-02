@@ -1453,9 +1453,6 @@ void UUnrealEdEngine::AttemptModifiedPackageNotification()
 
 		if( bCanPrompt )
 		{
-			check(GUnrealEd != nullptr);
-			const TMap<TWeakObjectPtr<UPackage>, uint8>& PackageToNotifyState = GUnrealEd->PackageToNotifyState;
-
 			bool bNeedWarningDialog = false;
 			for (const auto& Entry : PackageToNotifyState)
 			{

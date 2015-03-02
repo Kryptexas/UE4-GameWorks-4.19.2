@@ -785,17 +785,17 @@ bool SDesignerView::GetWidgetParentGeometry(const FWidgetReference& Widget, FGeo
 
 bool SDesignerView::GetWidgetGeometry(const FWidgetReference& Widget, FGeometry& Geometry) const
 {
-	if ( const UWidget* PreviewWidget = Widget.GetPreview() )
+	if ( const UWidget* WidgetPreview = Widget.GetPreview() )
 	{
-		return GetWidgetGeometry(PreviewWidget, Geometry);
+		return GetWidgetGeometry(WidgetPreview, Geometry);
 	}
 
 	return false;
 }
 
-bool SDesignerView::GetWidgetGeometry(const UWidget* PreviewWidget, FGeometry& Geometry) const
+bool SDesignerView::GetWidgetGeometry(const UWidget* InPreviewWidget, FGeometry& Geometry) const
 {
-	TSharedPtr<SWidget> CachedPreviewWidget = PreviewWidget->GetCachedWidget();
+	TSharedPtr<SWidget> CachedPreviewWidget = InPreviewWidget->GetCachedWidget();
 	if ( CachedPreviewWidget.IsValid() )
 	{
 		const FArrangedWidget* ArrangedWidget = CachedWidgetGeometry.Find(CachedPreviewWidget.ToSharedRef());
@@ -1389,9 +1389,11 @@ void SDesignerView::Tick( const FGeometry& AllottedGeometry, const double InCurr
 	UpdatePreviewWidget(bForceUpdate);
 
 	// Perform an arrange children pass to cache the geometry of all widgets so that we can query it later.
-	CachedWidgetGeometry.Reset();
-	FArrangedWidget WindowWidgetGeometry(PreviewHitTestRoot.ToSharedRef(), AllottedGeometry);
-	PopulateWidgetGeometryCache(WindowWidgetGeometry);
+	{
+		CachedWidgetGeometry.Reset();
+		FArrangedWidget WindowWidgetGeometry(PreviewHitTestRoot.ToSharedRef(), AllottedGeometry);
+		PopulateWidgetGeometryCache(WindowWidgetGeometry);
+	}
 
 	TArray< TFunction<void()> >& QueuedActions = BlueprintEditor.Pin()->GetQueuedDesignerActions();
 	for ( TFunction<void()>& Action : QueuedActions )

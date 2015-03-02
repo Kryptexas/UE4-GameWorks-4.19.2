@@ -354,7 +354,7 @@ bool UCookOnTheFlyServer::ClearPackageFilenameCacheForPackage( const UPackage* P
 	return PackageFilenameCache.Remove( Package->GetFName() ) >= 1;
 }
 
-const FString& UCookOnTheFlyServer::GetCachedSandboxFilename( const UPackage* Package, TAutoPtr<class FSandboxPlatformFile>& SandboxFile ) const 
+const FString& UCookOnTheFlyServer::GetCachedSandboxFilename( const UPackage* Package, TAutoPtr<class FSandboxPlatformFile>& InSandboxFile ) const 
 {
 	FName PackageFName = Package->GetFName();
 	static TMap<FName, FString> CachedSandboxFilenames;
@@ -766,12 +766,12 @@ void UCookOnTheFlyServer::GenerateManifestInfo( UPackage* Package, const TArray<
 
 		for ( const auto& PackageName : NewPackagesToCook)
 		{
-			UPackage* Package = LoadPackage( NULL, *PackageName, LOAD_None );
+			UPackage* PackageToCook = LoadPackage( NULL, *PackageName, LOAD_None );
 
-			RootPackages.Add( Package );
-			//GetDependencies( Package, Dependencies );
+			RootPackages.Add( PackageToCook );
+			//GetDependencies( PackageToCook, Dependencies );
 
-			// Dependencies.Add(Package);
+			// Dependencies.Add(PackageToCook);
 		}
 
 		LastLoadedMapName = Package->GetName();
@@ -994,11 +994,13 @@ uint32 UCookOnTheFlyServer::TickCookOnTheSide( const float TimeSlice, uint32 &Co
 		{
 			SCOPE_TIMER(AllOfLoadPackage);
 
-			FString PackageName;
 			UPackage *Package = NULL;
-			if ( FPackageName::TryConvertFilenameToLongPackageName(BuildFilename, PackageName) )
 			{
-				Package = FindObject<UPackage>( ANY_PACKAGE, *PackageName );
+				FString PackageName;
+				if ( FPackageName::TryConvertFilenameToLongPackageName(BuildFilename, PackageName) )
+				{
+					Package = FindObject<UPackage>( ANY_PACKAGE, *PackageName );
+				}
 			}
 
 #if DEBUG_COOKONTHEFLY

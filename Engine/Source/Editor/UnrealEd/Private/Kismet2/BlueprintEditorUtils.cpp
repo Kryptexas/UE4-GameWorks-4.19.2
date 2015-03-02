@@ -2263,7 +2263,7 @@ UK2Node_Event* FBlueprintEditorUtils::FindOverrideForFunction(const UBlueprint* 
 	return NULL;
 }
 
-void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* Blueprint, TSet<TWeakObjectPtr<UBlueprint>>& Dependencies)
+void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* InBlueprint, TSet<TWeakObjectPtr<UBlueprint>>& Dependencies)
 {
 	struct FGatherDependenciesHelper
 	{
@@ -2279,14 +2279,14 @@ void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* Blueprint, TSet
 			return UBlueprint::GetBlueprintFromClass(BPGC);
 		}
 
-		static void ProcessHierarchy(const UStruct* Struct, TSet<TWeakObjectPtr<UBlueprint>>& Dependencies)
+		static void ProcessHierarchy(const UStruct* Struct, TSet<TWeakObjectPtr<UBlueprint>>& InDependencies)
 		{
 			for (UBlueprint* Blueprint = GetGeneratingBlueprint(Struct);
 				Blueprint;
 				Blueprint = UBlueprint::GetBlueprintFromClass(Cast<UBlueprintGeneratedClass>(Blueprint->ParentClass)))
 			{
 				bool bAlreadyProcessed = false;
-				Dependencies.Add(Blueprint, &bAlreadyProcessed);
+				InDependencies.Add(Blueprint, &bAlreadyProcessed);
 				if (bAlreadyProcessed)
 				{
 					return;
@@ -2295,9 +2295,9 @@ void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* Blueprint, TSet
 		}
 	};
 
-	check(Blueprint);
+	check(InBlueprint);
 	Dependencies.Empty();
-	for (const auto& InterfaceDesc : Blueprint->ImplementedInterfaces)
+	for (const auto& InterfaceDesc : InBlueprint->ImplementedInterfaces)
 	{
 		UBlueprint* InterfaceBP = InterfaceDesc.Interface ? Cast<UBlueprint>(InterfaceDesc.Interface->ClassGeneratedBy) : NULL;
 		if (InterfaceBP)
@@ -2307,7 +2307,7 @@ void FBlueprintEditorUtils::GatherDependencies(const UBlueprint* Blueprint, TSet
 	}
 
 	TArray<UEdGraph*> Graphs;
-	Blueprint->GetAllGraphs(Graphs);
+	InBlueprint->GetAllGraphs(Graphs);
 	for (auto Graph : Graphs)
 	{
 		if (Graph && !FBlueprintEditorUtils::IsGraphIntermediate(Graph))
@@ -7119,11 +7119,11 @@ bool FBlueprintEditorUtils::CheckIfGraphHasLatentFunctions(UEdGraph* InGraph)
 {
 	struct Local
 	{
-		static bool CheckIfGraphHasLatentFunctions(UEdGraph* InGraph, TArray<UEdGraph*>& InspectedGraphList)
+		static bool CheckIfGraphHasLatentFunctions(UEdGraph* InGraphToCheck, TArray<UEdGraph*>& InspectedGraphList)
 		{
 			TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode;
 			TWeakObjectPtr<UK2Node_EditablePinBase> ResultNode;
-			GetEntryAndResultNodes(InGraph, EntryNode, ResultNode);
+			GetEntryAndResultNodes(InGraphToCheck, EntryNode, ResultNode);
 
 			UK2Node_Tunnel* TunnelNode = ExactCast<UK2Node_Tunnel>(EntryNode.Get());
 			if(!TunnelNode)
@@ -7139,9 +7139,9 @@ bool FBlueprintEditorUtils::CheckIfGraphHasLatentFunctions(UEdGraph* InGraph)
 			else
 			{
 				// Add all graphs to the list of already inspected, this prevents circular inclusion issues.
-				InspectedGraphList.Add(InGraph);
+				InspectedGraphList.Add(InGraphToCheck);
 
-				for( const UEdGraphNode* Node : InGraph->Nodes )
+				for( const UEdGraphNode* Node : InGraphToCheck->Nodes )
 				{
 					if(const UK2Node_CallFunction* CallFunctionNode = Cast<UK2Node_CallFunction>(Node))
 					{

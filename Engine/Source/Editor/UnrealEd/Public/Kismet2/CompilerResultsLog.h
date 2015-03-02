@@ -224,12 +224,14 @@ public:
 	}
 };
 
+#define SCOPED_COMPILER_EVENT_TOKENPASTE_INNER(x,y) x##y
+#define SCOPED_COMPILER_EVENT_TOKENPASTE(x,y) SCOPED_COMPILER_EVENT_TOKENPASTE_INNER(x,y)
 #if STATS
 #define BP_SCOPED_COMPILER_EVENT_STAT(Stat) \
 	SCOPE_CYCLE_COUNTER(Stat); \
-	FScopedCompilerEvent ScopedCompilerEvent(GET_STATDESCRIPTION(Stat))
+	FScopedCompilerEvent SCOPED_COMPILER_EVENT_TOKENPASTE(ScopedCompilerEvent,__LINE__)(GET_STATDESCRIPTION(Stat))
 #else
 #define BP_SCOPED_COMPILER_EVENT_STAT(Stat) \
-	FScopedCompilerEvent ScopedCompilerEvent(ANSI_TO_TCHAR(#Stat))
+	FScopedCompilerEvent SCOPED_COMPILER_EVENT_TOKENPASTE(ScopedCompilerEvent,__LINE__)(ANSI_TO_TCHAR(#Stat))
 #endif
 #endif	//#if WITH_EDITOR
