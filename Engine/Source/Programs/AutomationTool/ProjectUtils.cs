@@ -214,10 +214,10 @@ namespace AutomationTool
 			var Properties = new ProjectProperties();
 			Properties.RawProjectPath = RawProjectPath;
 
+			List<string> ExtraSearchPaths = null;
 			// detect if the project is content only, but has non-default build settings
 			if (!string.IsNullOrEmpty(RawProjectPath))
 			{
-				List<string> ExtraSearchPaths = null;
 				if (RequiresTempTarget(RawProjectPath, ClientTargetPlatforms))
 				{
 					GenerateTempTarget(RawProjectPath);
