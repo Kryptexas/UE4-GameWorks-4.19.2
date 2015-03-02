@@ -594,9 +594,9 @@ DECLARE_MULTICAST_DELEGATE_OneParam(FAbilityTargetData, FGameplayAbilityTargetDa
 /** Generic callback for returning when target data is available */
 DECLARE_MULTICAST_DELEGATE_TwoParams(FAbilityTargetDataSetDelegate, FGameplayAbilityTargetDataHandle, FGameplayTag);
 
-/** These are generic, nonpayload carrying events that the client can send to the server via ServerSetReplicatedClientEvent. */
+/** These are generic, nonpayload carrying events that are replicated between the client and server */
 UENUM()
-namespace EAbilityReplicatedClientEvent
+namespace EAbilityGenericReplicatedEvent
 {
 	enum Type
 	{	
@@ -608,6 +608,10 @@ namespace EAbilityReplicatedClientEvent
 		InputPressed,	
 		/** Input release event of the ability */
 		InputReleased,
+		/** A generic event from the client */
+		GenericSignalFromClient,
+		/** A generic event from the server */
+		GenericSignalFromServer,		
 
 		MAX
 	};
@@ -623,7 +627,7 @@ struct FAbilityReplicatedData
 };
 
 /** Struct defining the cached data for a specific gameplay ability. This data is generally syncronized client->server in a network game. */
-struct FAbilityClientDataCache
+struct FAbilityReplicatedDataCache
 {
 	/** What elements this activation is targeting */
 	FGameplayAbilityTargetDataHandle TargetData;
@@ -644,9 +648,9 @@ struct FAbilityClientDataCache
 	FSimpleMulticastDelegate TargetCancelledDelegate;
 
 	/** Generic events that contain no payload data */
-	FAbilityReplicatedData	GenericEvents[EAbilityReplicatedClientEvent::MAX];
+	FAbilityReplicatedData	GenericEvents[EAbilityGenericReplicatedEvent::MAX];
 
-	FAbilityClientDataCache() : bTargetConfirmed(false), bTargetCancelled(false) {}
+	FAbilityReplicatedDataCache() : bTargetConfirmed(false), bTargetCancelled(false) {}
 
 	/** Resets any cached data, leaves delegates up */
 	void Reset()
@@ -654,7 +658,7 @@ struct FAbilityClientDataCache
 		bTargetConfirmed = bTargetCancelled = false;
 		TargetData = FGameplayAbilityTargetDataHandle();
 		ApplicationTag = FGameplayTag();
-		for (int32 i=0; i < (int32) EAbilityReplicatedClientEvent::MAX; ++i)
+		for (int32 i=0; i < (int32) EAbilityGenericReplicatedEvent::MAX; ++i)
 		{
 			GenericEvents[i].bTriggered = false;
 		}

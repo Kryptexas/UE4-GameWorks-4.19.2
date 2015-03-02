@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "GameplayAbility.h"
+#include "AbilitySystemComponent.h"
 #include "AbilityTask.generated.h"
 
 
@@ -154,7 +155,7 @@ protected:
 
 	/** Helper method for registering client replicated callbacks */
 	
-	bool CallOrAddReplicatedDelegate(EAbilityReplicatedClientEvent::Type Event, FSimpleMulticastDelegate::FDelegate Delegate);
+	bool CallOrAddReplicatedDelegate(EAbilityGenericReplicatedEvent::Type Event, FSimpleMulticastDelegate::FDelegate Delegate);
 };
 
 //For searching through lists of ability instances

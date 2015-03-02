@@ -147,7 +147,6 @@ void UAbilityTask_WaitTargetData::FinalizeTargetActor(AGameplayAbilityTargetActo
 	check(Ability.IsValid());
 
 	// User ability activation is inhibited while this is active
-	AbilitySystemComponent->SetUserAbilityActivationInhibited(true);
 	AbilitySystemComponent->SpawnedTargetActors.Push(SpawnedActor);
 
 	SpawnedActor->StartTargeting(Ability.Get());
@@ -260,7 +259,7 @@ void UAbilityTask_WaitTargetData::OnTargetDataReadyCallback(FGameplayAbilityTarg
 		else if (ConfirmationType == EGameplayTargetingConfirmation::UserConfirmed)
 		{
 			// We aren't going to send the target data, but we will send a generic confirmed message.
-			AbilitySystemComponent->ServerSetReplicatedClientEvent(EAbilityReplicatedClientEvent::GenericConfirm, GetAbilitySpecHandle(), GetActivationPredictionKey(), AbilitySystemComponent->ScopedPredictionKey);
+			AbilitySystemComponent->ServerSetReplicatedEvent(EAbilityGenericReplicatedEvent::GenericConfirm, GetAbilitySpecHandle(), GetActivationPredictionKey(), AbilitySystemComponent->ScopedPredictionKey);
 		}
 	}
 
@@ -279,7 +278,15 @@ void UAbilityTask_WaitTargetData::OnTargetDataCancelledCallback(FGameplayAbility
 
 	if (IsPredictingClient())
 	{
-		AbilitySystemComponent->ServerSetReplicatedTargetDataCancelled(GetAbilitySpecHandle(), GetActivationPredictionKey(), AbilitySystemComponent->ScopedPredictionKey );
+		if (!TargetActor->ShouldProduceTargetDataOnServer)
+		{
+			AbilitySystemComponent->ServerSetReplicatedTargetDataCancelled(GetAbilitySpecHandle(), GetActivationPredictionKey(), AbilitySystemComponent->ScopedPredictionKey );
+		}
+		else
+		{
+			// We aren't going to send the target data, but we will send a generic confirmed message.
+			AbilitySystemComponent->ServerSetReplicatedEvent(EAbilityGenericReplicatedEvent::GenericCancel, GetAbilitySpecHandle(), GetActivationPredictionKey(), AbilitySystemComponent->ScopedPredictionKey);
+		}
 	}
 	Cancelled.Broadcast(Data);
 	EndTask();
@@ -310,8 +317,6 @@ void UAbilityTask_WaitTargetData::ExternalCancel()
 
 void UAbilityTask_WaitTargetData::OnDestroy(bool AbilityEnded)
 {
-	AbilitySystemComponent->SetUserAbilityActivationInhibited(false);
-
 	if (TargetActor.IsValid())
 	{
 		TargetActor->Destroy();
@@ -337,4 +342,3 @@ bool UAbilityTask_WaitTargetData::ShouldReplicateDataToServer() const
 
 
 // --------------------------------------------------------------------------------------
-

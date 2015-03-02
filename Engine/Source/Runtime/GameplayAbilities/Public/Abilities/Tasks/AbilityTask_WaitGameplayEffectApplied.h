@@ -21,7 +21,11 @@ class UAbilityTask_WaitGameplayEffectApplied : public UAbilityTask
 	FGameplayTagRequirements TargetTagRequirements;
 	bool TriggerOnce;
 
+	void SetExternalActor(AActor* InActor);
+
 protected:
+
+	UAbilitySystemComponent* GetASC();
 
 	virtual void BroadcastDelegate(AActor* Avatar, FGameplayEffectSpecHandle SpecHandle, FActiveGameplayEffectHandle ActiveHandle) { }
 	virtual void RegisterDelegate() { }
@@ -30,4 +34,7 @@ protected:
 	virtual void OnDestroy(bool AbilityEnded) override;
 
 	bool RegisteredCallback;
+	bool UseExternalOwner;
+
+	TWeakObjectPtr<UAbilitySystemComponent> ExternalOwner;
 };

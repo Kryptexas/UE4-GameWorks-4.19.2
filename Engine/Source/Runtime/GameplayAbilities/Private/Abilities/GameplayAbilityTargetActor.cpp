@@ -20,6 +20,28 @@ AGameplayAbilityTargetActor::AGameplayAbilityTargetActor(const FObjectInitialize
 	bDestroyOnConfirmation = true;
 }
 
+void AGameplayAbilityTargetActor::Destroyed()
+{
+	// We must remove ourselves from GenericLocalConfirmCallbacks/GenericLocalCancelCallbacks, since while these are bound they will inhibit any *other* abilities
+	// that are bound to the same key.
+
+	if (OwningAbility)
+	{
+		const FGameplayAbilityActorInfo* Info = OwningAbility->GetCurrentActorInfo();
+		if (Info && Info->IsLocallyControlled())
+		{
+			UAbilitySystemComponent* ASC = Info->AbilitySystemComponent.Get();
+			if (ASC)
+			{
+				ASC->GenericLocalConfirmCallbacks.RemoveDynamic(this, &AGameplayAbilityTargetActor::ConfirmTargeting);
+				ASC->GenericLocalCancelCallbacks.RemoveDynamic(this, &AGameplayAbilityTargetActor::CancelTargeting);
+			}
+		}
+	}
+
+	Super::Destroyed();
+}
+
 void AGameplayAbilityTargetActor::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -51,7 +73,7 @@ void AGameplayAbilityTargetActor::ConfirmTargetingAndContinue()
 void AGameplayAbilityTargetActor::ConfirmTargeting()
 {
 	UAbilitySystemComponent* ASC = OwningAbility->GetCurrentActorInfo()->AbilitySystemComponent.Get();
-	ASC->AbilityReplicatedEventDelegate(EAbilityReplicatedClientEvent::GenericConfirm, OwningAbility->GetCurrentAbilitySpecHandle(), OwningAbility->GetCurrentActivationInfo().GetActivationPredictionKey() ).Remove(GenericConfirmHandle);
+	ASC->AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::GenericConfirm, OwningAbility->GetCurrentAbilitySpecHandle(), OwningAbility->GetCurrentActivationInfo().GetActivationPredictionKey() ).Remove(GenericConfirmHandle);
 
 	if (IsConfirmTargetingAllowed())
 	{
@@ -67,7 +89,7 @@ void AGameplayAbilityTargetActor::ConfirmTargeting()
 void AGameplayAbilityTargetActor::CancelTargeting()
 {
 	UAbilitySystemComponent* ASC = OwningAbility->GetCurrentActorInfo()->AbilitySystemComponent.Get();
-	ASC->AbilityReplicatedEventDelegate(EAbilityReplicatedClientEvent::GenericCancel, OwningAbility->GetCurrentAbilitySpecHandle(), OwningAbility->GetCurrentActivationInfo().GetActivationPredictionKey() ).Remove(GenericCancelHandle);
+	ASC->AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::GenericCancel, OwningAbility->GetCurrentAbilitySpecHandle(), OwningAbility->GetCurrentActivationInfo().GetActivationPredictionKey() ).Remove(GenericCancelHandle);
 
 	CanceledDelegate.Broadcast(FGameplayAbilityTargetDataHandle());
 	Destroy();
@@ -128,15 +150,15 @@ void AGameplayAbilityTargetActor::BindToConfirmCancelInputs()
 			FGameplayAbilitySpecHandle Handle = OwningAbility->GetCurrentAbilitySpecHandle();
 			FPredictionKey PredKey = OwningAbility->GetCurrentActivationInfo().GetActivationPredictionKey();
 
-			GenericConfirmHandle = ASC->AbilityReplicatedEventDelegate(EAbilityReplicatedClientEvent::GenericConfirm, Handle, PredKey ).AddUObject(this, &AGameplayAbilityTargetActor::ConfirmTargeting);
-			GenericCancelHandle = ASC->AbilityReplicatedEventDelegate(EAbilityReplicatedClientEvent::GenericCancel, Handle, PredKey ).AddUObject(this, &AGameplayAbilityTargetActor::CancelTargeting);
+			GenericConfirmHandle = ASC->AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::GenericConfirm, Handle, PredKey ).AddUObject(this, &AGameplayAbilityTargetActor::ConfirmTargeting);
+			GenericCancelHandle = ASC->AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::GenericCancel, Handle, PredKey ).AddUObject(this, &AGameplayAbilityTargetActor::CancelTargeting);
 			
-			if (ASC->CallReplicatedEventDelegateIfSet(EAbilityReplicatedClientEvent::GenericConfirm, Handle, PredKey))
+			if (ASC->CallReplicatedEventDelegateIfSet(EAbilityGenericReplicatedEvent::GenericConfirm, Handle, PredKey))
 			{
 				return;
 			}
 			
-			if (ASC->CallReplicatedEventDelegateIfSet(EAbilityReplicatedClientEvent::GenericCancel, Handle, PredKey))
+			if (ASC->CallReplicatedEventDelegateIfSet(EAbilityGenericReplicatedEvent::GenericCancel, Handle, PredKey))
 			{
 				return;
 			}

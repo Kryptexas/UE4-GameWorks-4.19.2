@@ -56,12 +56,6 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	/** Used to register callbacks to confirm/cancel input */
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FAbilityConfirmOrCancel);
 
-	/** Used to notify ability state tasks that a state is being ended - should not be used directly */
-	DECLARE_MULTICAST_DELEGATE_OneParam(FAbilityStateEnded, FName);
-
-	/** Used to notify ability state tasks that an interrupt is occurring - should not be used directly */
-	DECLARE_MULTICAST_DELEGATE(FAbilityStateInterrupted);
-
 	friend struct FActiveGameplayEffectAction_Add;
 	friend FGameplayEffectSpec;
 	friend class AAbilitySystemDebugHUD;
@@ -276,6 +270,9 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	// (most likely we want to catch this on the backend - when damage is applied we can get a full dump/history of how the number got to where it is. But still we may need polling methods like below (how much would my damage be)
 	UFUNCTION(BlueprintCallable, Category = GameplayEffects)
 	float GetGameplayEffectMagnitude(FActiveGameplayEffectHandle Handle, FGameplayAttribute Attribute) const;
+
+	/** Returns current stack count of an already applied GE */
+	int32 GetCurrentStackCount(FActiveGameplayEffectHandle Handle) const;
 
 	/**
 	 * Get the source tags from the gameplay spec represented by the specified handle, if possible
@@ -494,10 +491,13 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	 */
 
 	/** Grants Ability. Returns handle that can be used in TryActivateAbility, etc. */
-	FGameplayAbilitySpecHandle GiveAbility(FGameplayAbilitySpec AbilitySpec);
+	virtual FGameplayAbilitySpecHandle GiveAbility(FGameplayAbilitySpec AbilitySpec);
 
 	/** Grants an ability and attempts to activate it exactly one time, which will cause it to be removed. Only valid on the server! */
 	FGameplayAbilitySpecHandle GiveAbilityAndActivateOnce(FGameplayAbilitySpec AbilitySpec);
+
+	/** Sets an ability spec to remove when its finished. If the spec is not currently active, it terminates it immediately. Also clears InputID of the Spec. */
+	void SetRemoveAbilityOnEnd(FGameplayAbilitySpecHandle AbilitySpecHandle);
 
 	// Gets all Activatable Gameplay Abilities that match all tags in GameplayTagContainer AND for which
 	// DoesAbilitySatisfyTagRequirements() is true.  The latter requirement allows this function to find the correct
@@ -532,14 +532,8 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	// Ability Cancelling/Interrupts
 	// --------------------------------------------
 
-	/** Used by the ability state task to handle when a state is ended - should not use directly */
-	FAbilityStateEnded OnAbilityStateEnded;
-
-	/** Used by the ability state task to handle when a state is interrupted - should not use directly */
-	FAbilityStateInterrupted OnAbilityStateInterrupted;
-
-	/** Cancels the specified ability. */
-	void CancelAbility(UGameplayAbility* Ability);
+	/** Cancels the specified ability CDO. */
+	void CancelAbility(UGameplayAbility* Ability);	
 
 	/** Cancel all abilities with the specified tags. Will not cancel the Ignore instance */
 	void CancelAbilities(const FGameplayTagContainer* WithTags=nullptr, const FGameplayTagContainer* WithoutTags=nullptr, UGameplayAbility* Ignore=nullptr);
@@ -576,7 +570,12 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	UPROPERTY()
 	TArray<UGameplayAbility*>	AllReplicatedInstancedAbilities;
 
-	void NotifyAbilityEnded(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability);
+	virtual void NotifyAbilityEnded(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability);
+
+	void IncrementAbilityListLock();
+	void DecrementAbilityListLock();
+
+protected:
 
 	/**
 	 *	The abilities we can activate. 
@@ -587,13 +586,12 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	 *	without an AbilitySystemComponent. For example an ability could be written to execute on a StaticMeshActor. As long as the ability doesn't require 
 	 *	instancing or anything else that the AbilitySystemComponent would provide, then it doesn't need the component to function.
 	 */
-protected:
 
 	UPROPERTY(ReplicatedUsing=OnRep_ActivateAbilities, BlueprintReadOnly, Category = "Abilities")
 	FGameplayAbilitySpecContainer	ActivatableAbilities;
 
 	/** Maps from an ability spec to the target data. Used to track replicated data and callbacks */
-	TMap<FGameplayAbilitySpecHandleAndPredictionKey, FAbilityClientDataCache> AbilityClientDataMap;
+	TMap<FGameplayAbilitySpecHandleAndPredictionKey, FAbilityReplicatedDataCache> AbilityTargetDataMap;
 
 	/** Will be called from GiveAbility or from OnRep. Initializes events (triggers and inputs) with the given ability */
 	virtual void OnGiveAbility(FGameplayAbilitySpec& AbilitySpec);
@@ -609,6 +607,10 @@ protected:
 
 	/** Creates a new instance of an ability, storing it in the spec */
 	UGameplayAbility* CreateNewInstanceOfAbility(FGameplayAbilitySpec& Spec, const UGameplayAbility* Ability);
+
+	int32 AbilityScopeLockCount;
+	TArray<FGameplayAbilitySpecHandle, TInlineAllocator<2> > AbilityPendingRemoves;
+	TArray<FGameplayAbilitySpec, TInlineAllocator<2> > AbilityPendingAdds;
 
 public:
 
@@ -633,17 +635,23 @@ public:
 	UFUNCTION(Server, reliable, WithValidation)
 	void	ServerTryActivateAbilityWithEventData(FGameplayAbilitySpecHandle AbilityToActivate, FPredictionKey PredictionKey, FGameplayEventData TriggerEventData);
 
-	/** Replicate that an ability has ended, to the client or server as appropriate */
-	void	ReplicateEndAbility(FGameplayAbilitySpecHandle Handle, FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ability);
+	/** Replicate that an ability has ended/canceled, to the client or server as appropriate */
+	void	ReplicateEndOrCancelAbility(FGameplayAbilitySpecHandle Handle, FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ability, bool bWasCanceled);
 
-	/** Called by ServerEndAbility and ClientEndAbility; avoids code duplication. */
-	void	RemoteEndAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo);
+	/** Called by ServerEndAbility/ServerCancelAbility and ClientEndAbility/ClientCancelAbility; avoids code duplication. */
+	void	RemoteEndOrCancelAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, bool bWasCanceled);
 
 	UFUNCTION(Server, reliable, WithValidation)
 	void	ServerEndAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, FPredictionKey PredictionKey);
 
 	UFUNCTION(Client, reliable)
 	void	ClientEndAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo);
+
+	UFUNCTION(Server, reliable, WithValidation)
+	void    ServerCancelAbility(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo);
+
+	UFUNCTION(Client, reliable)
+	void    ClientCancelAbility(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo);
 
 	UFUNCTION(Client, Reliable)
 	void	ClientActivateAbilityFailed(FGameplayAbilitySpecHandle AbilityToActivate, int16 PredictionKey);
@@ -677,17 +685,19 @@ public:
 	
 	virtual void BindAbilityActivationToInputComponent(UInputComponent* InputComponent, FGameplayAbiliyInputBinds BindInfo);
 
-	void AbilityLocalInputPressed(int32 InputID);
+	virtual void AbilityLocalInputPressed(int32 InputID);
 
-	void AbilityLocalInputReleased(int32 InputID);
+	virtual void AbilityLocalInputReleased(int32 InputID);
 
 	void TryActivateInputHeldAbilities();
+	
+	virtual void LocalInputConfirm();
+	
+	virtual void LocalInputCancel();
 
-	UFUNCTION(BlueprintCallable, Category="Abilities")
-	void LocalInputConfirm();
-
-	UFUNCTION(BlueprintCallable, Category="Abilities")
-	void LocalInputCancel();
+	/** InputID for binding GenericConfirm/Cancel events */
+	int32 GenericConfirmInputID;
+	int32 GenericCancelInputID;
 
 	/** Generic local callback for generic ConfirmEvent that any ability can listen to */
 	FAbilityConfirmOrCancel	GenericLocalConfirmCallbacks;
@@ -862,7 +872,7 @@ public:
 	 *	
 	 *	There are a few ways active abilities on clients communicate with the server through the AbilitySystemComponent.
 	 *	1. Through TargetData events. Either that client sends TargetData via ServerSetReplicatedTargetData or cancels it via ServerSetReplicatedTargetDataCancelled.
-	 *	2. Through Generic Client Events. These are non payload carrying events defined by the EAbilityReplicatedClientEvent enum.
+	 *	2. Through Generic Replicated Events. These are non payload carrying events defined by the EAbilityReplicatedClientEvent enum.
 	 *	
 	 *	The general pattern is:
 	 *		-Clients and server register with these events via AbilityTargetDataSetDelegate / AbilityReplicatedEventDelegate.
@@ -871,6 +881,7 @@ public:
 	 *		-The server may get the replicated event before the server is actually listening for it! We store whether the event was recevied or not, for the given ability spec/prediction key pair.
 	 *			-Use functions like CallReplicatedEventDelegateIfSet/CallReplicatedTargetDataDelegatesIfSet after registering the delegates on the server. This invokes the delegates if they were already received.
 	 *			-Alternatively, use CallOrAddReplicatedDelegate to do it in one fell swoop (not good if you need multiple callbacks though).
+	 *		-Note we also support server -> client Generic Replicated Event via ClientSetReplicatedEvent.
 	 *	
 	 *	3. Through direct input replication (assuming you are using the provided input binding code in AbilitySystemComponent). 
 	 *	   This is a per ability setting defined by UGameplayAbility::bReplicateInputDirectly. It is generally NOT a good idea too use this! It is better to use the above Generic Client Eveents.
@@ -879,16 +890,20 @@ public:
 	 *	   and ultimately pipe down in UGameplayAbility::InputPressed/Released.
 	 *	   
 	 *	   This is useful if you truly need to maintain tracked input state on the server. For example if your ability logic requires polling of input state and arbitrary times (anim events, touched event, etc).
-	 *	   If your ability just requires event based input (button was pressed, released) then it is better to use Generic Client Events which will only replicate when the ability is listening for those events.
+	 *	   If your ability just requires event based input (button was pressed, released) then it is better to use Generic Replicated Events which will only replicate when the ability is listening for those events.
 	 *		
 	 */
 
-	/** Replicates the Generic CLient Event to the server. */
+	/** Replicates the Generic Replicated Event to the server. */
 	UFUNCTION(Server, reliable, WithValidation)
-	void ServerSetReplicatedClientEvent(EAbilityReplicatedClientEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FPredictionKey CurrentPredictionKey);
+	void ServerSetReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FPredictionKey CurrentPredictionKey);
 
-	/** Calls local callbacks that are registered with the given Generic Client Event */
-	void InvokeReplicatedClientEvent(EAbilityReplicatedClientEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
+	/** Replicates the Generic Replicated Event to the server. */
+	UFUNCTION(Client, reliable)
+	void ClientSetReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
+
+	/** Calls local callbacks that are registered with the given Generic Replicated Event */
+	bool InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 
 	/**  */
 	UFUNCTION(Server, reliable, WithValidation)
@@ -905,25 +920,25 @@ public:
 	void CancelAbilityTargetData(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 
 	/** Deletes all cached ability client data (Was: ConsumeAbilityTargetData)*/
-	void ConsumeAllClientReplicatedData(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
+	void ConsumeAllReplicatedData(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 
 	/** Consumes cached TargetData from client (only TargetData) */
 	void ConsumeClientReplicatedTargetData(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 
-	/** Consumes the given Generic Client Event (unsets it). */
-	void ConsumeClientReplicatedEvent(EAbilityReplicatedClientEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
+	/** Consumes the given Generic Replicated Event (unsets it). */
+	void ConsumeGenericReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 	
-	/** Calls any ClientReplicated delegates that have been sent (TargetData or Generic Client Events). Note this can be dangerous if multiple places in an ability register events and then call this function. */
+	/** Calls any Replicated delegates that have been sent (TargetData or Generic Replicated Events). Note this can be dangerous if multiple places in an ability register events and then call this function. */
 	void CallAllReplicatedDelegatesIfSet(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 
 	/** Calls the TargetData Confirm/Cancel events if they have been sent. */
 	bool CallReplicatedTargetDataDelegatesIfSet(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 
-	/** Calls a given Generic Client Event delegate if the event has already been sent */
-	bool CallReplicatedEventDelegateIfSet(EAbilityReplicatedClientEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
+	/** Calls a given Generic Replicated Event delegate if the event has already been sent */
+	bool CallReplicatedEventDelegateIfSet(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 
 	/** Calls passed in delegate if the Client Event has already been sent. If not, it adds the delegate to our multicast callback that will fire when it does. */
-	bool CallOrAddReplicatedDelegate(EAbilityReplicatedClientEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FSimpleMulticastDelegate::FDelegate Delegate);
+	bool CallOrAddReplicatedDelegate(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FSimpleMulticastDelegate::FDelegate Delegate);
 
 	/** Returns TargetDataSet delegate for a given Ability/PredictionKey pair */
 	FAbilityTargetDataSetDelegate& AbilityTargetDataSetDelegate(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
@@ -931,10 +946,10 @@ public:
 	/** Returns TargetData Cancelled delegate for a given Ability/PredictionKey pair */
 	FSimpleMulticastDelegate& AbilityTargetDataCancelledDelegate(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 
-	/** Returns Generic Client Event for a given Ability/PredictionKey pair */
-	FSimpleMulticastDelegate& AbilityReplicatedEventDelegate(EAbilityReplicatedClientEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
+	/** Returns Generic Replicated Event for a given Ability/PredictionKey pair */
+	FSimpleMulticastDelegate& AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey);
 
-	// Direct Input state replication. These will be called if bReplicateInputDirectly is true on the ability and is generally not a good thing to use. (Instead, prefer to use Generic Client Events).
+	// Direct Input state replication. These will be called if bReplicateInputDirectly is true on the ability and is generally not a good thing to use. (Instead, prefer to use Generic Replicated Events).
 	UFUNCTION(Server, reliable, WithValidation)
 	void ServerSetInputPressed(FGameplayAbilitySpecHandle AbilityHandle);
 
@@ -976,7 +991,8 @@ protected:
 	bool IsOwnerActorAuthoritative() const;
 
 	void OnAttributeGameplayEffectSpecExected(const FGameplayAttribute &Attribute, const struct FGameplayEffectSpec &Spec, struct FGameplayModifierEvaluatedData &Data);
-
+		
+	TArray<TWeakObjectPtr<UAbilityTask> >&	GetAbilityActiveTasks(UGameplayAbility* Ability);
 	// --------------------------------------------
 	
 	// Contains all of the gameplay effects that are currently active on this component

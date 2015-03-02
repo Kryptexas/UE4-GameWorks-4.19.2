@@ -450,23 +450,36 @@ void UGameplayAbility::SetShouldBlockOtherAbilities(bool bShouldBlockAbilities)
 	}
 }
 
-void UGameplayAbility::CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo)
+void UGameplayAbility::CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateCancelAbility)
 {
 	if (CanBeCanceled())
 	{
-		// Gives the Ability BP a chance to perform custom logic/cleanup when any active ability states are active
-		UAbilitySystemComponent* Comp = ActorInfo->AbilitySystemComponent.Get();
-		if (Comp && Comp->OnAbilityStateInterrupted.IsBound())
+		// Replicate the the server/client if needed
+		if (bReplicateCancelAbility)
 		{
-			Comp->OnAbilityStateInterrupted.Broadcast();
+			ActorInfo->AbilitySystemComponent->ReplicateEndOrCancelAbility(Handle, ActivationInfo, this, true);
 		}
 
-		EndAbility(Handle, ActorInfo, ActivationInfo, true);
+		// Gives the Ability BP a chance to perform custom logic/cleanup when any active ability states are active
+		if (OnGameplayAbilityCancelled.IsBound())
+		{
+			OnGameplayAbilityCancelled.Broadcast();
+		}
+
+		// End the ability but don't replicate it, we replicate the CancelAbility call directly
+		EndAbility(Handle, ActorInfo, ActivationInfo, false);
 	}
 }
 
 void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateEndAbility)
-{ 
+{
+	// Protect against EndAbility being called multiple times
+	// Ending an AbilityState may cause this to be invoked again
+	if (bIsActive == false && GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
+	{
+		return;
+	}
+
 	// check to see if this is an NonInstanced or if the ability is active.
 	FGameplayAbilitySpec* Spec = ActorInfo->AbilitySystemComponent->FindAbilitySpecFromHandle(Handle);
 	if ((Spec != nullptr) ? Spec->IsActive() : IsActive())
@@ -486,8 +499,13 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 		OnGameplayAbilityEnded.ExecuteIfBound(this);
 		OnGameplayAbilityEnded.Unbind();
 
+		if (GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
+		{
+			bIsActive = false;
+		}
+
 		// Tell all our tasks that we are finished and they should cleanup
-		for (int32 TaskIdx = ActiveTasks.Num() - 1; TaskIdx >= 0; --TaskIdx)
+		for (int32 TaskIdx = ActiveTasks.Num() - 1; TaskIdx >= 0 && ActiveTasks.Num() > 0; --TaskIdx)
 		{
 			TWeakObjectPtr<UAbilityTask> Task = ActiveTasks[TaskIdx];
 			if (Task.IsValid())
@@ -497,20 +515,22 @@ void UGameplayAbility::EndAbility(const FGameplayAbilitySpecHandle Handle, const
 		}
 		ActiveTasks.Reset();	// Empty the array but dont resize memory, since this object is probably going to be destroyed very soon anyways.
 
-		if (GetInstancingPolicy() != EGameplayAbilityInstancingPolicy::NonInstanced)
-		{
-			bIsActive = false;
-		}
-
 		if (ActorInfo && ActorInfo->AbilitySystemComponent.IsValid())
 		{
 			if (bReplicateEndAbility)
 			{
-				ActorInfo->AbilitySystemComponent->ReplicateEndAbility(Handle, ActivationInfo, this);
+				ActorInfo->AbilitySystemComponent->ReplicateEndOrCancelAbility(Handle, ActivationInfo, this, false);
 			}
 
 			// Remove tags we added to owner
 			ActorInfo->AbilitySystemComponent->RemoveLooseGameplayTags(ActivationOwnedTags);
+
+			// Remove tracked GameplayCues that we added
+			for (FGameplayTag& GameplayCueTag : TrackedGameplayCues)
+			{
+				ActorInfo->AbilitySystemComponent->RemoveGameplayCue(GameplayCueTag);
+			}
+			TrackedGameplayCues.Empty();
 
 			if (CanBeCanceled())
 			{
@@ -1024,10 +1044,9 @@ void UGameplayAbility::EndAbilityState(FName OptionalStateNameToEnd)
 {
 	check(CurrentActorInfo);
 
-	UAbilitySystemComponent* ASC = CurrentActorInfo->AbilitySystemComponent.Get();
-	if (ASC && ASC->OnAbilityStateEnded.IsBound())
+	if (OnGameplayAbilityStateEnded.IsBound())
 	{
-		ASC->OnAbilityStateEnded.Broadcast(OptionalStateNameToEnd);
+		OnGameplayAbilityStateEnded.Broadcast(OptionalStateNameToEnd);
 	}
 }
 
@@ -1050,16 +1069,23 @@ void UGameplayAbility::K2_ExecuteGameplayCue(FGameplayTag GameplayCueTag, FGamep
 	CurrentActorInfo->AbilitySystemComponent->ExecuteGameplayCue(GameplayCueTag, Context);
 }
 
-void UGameplayAbility::K2_AddGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context)
+void UGameplayAbility::K2_AddGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context, bool bRemoveOnAbilityEnd)
 {
 	check(CurrentActorInfo);
 	CurrentActorInfo->AbilitySystemComponent->AddGameplayCue(GameplayCueTag, Context);
+
+	if (bRemoveOnAbilityEnd)
+	{
+		TrackedGameplayCues.Add(GameplayCueTag);
+	}
 }
 
 void UGameplayAbility::K2_RemoveGameplayCue(FGameplayTag GameplayCueTag)
 {
 	check(CurrentActorInfo);
 	CurrentActorInfo->AbilitySystemComponent->RemoveGameplayCue(GameplayCueTag);
+
+	TrackedGameplayCues.Remove(GameplayCueTag);
 }
 
 FGameplayEffectContextHandle UGameplayAbility::GetContextFromOwner(FGameplayAbilityTargetDataHandle OptionalTargetData) const

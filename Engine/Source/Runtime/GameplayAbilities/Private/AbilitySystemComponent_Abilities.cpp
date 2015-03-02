@@ -155,6 +155,7 @@ void UAbilitySystemComponent::InitAbilityActorInfo(AActor* InOwnerActor, AActor*
 
 	if (AvatarChanged)
 	{
+		ABILITYLIST_SCOPE_LOCK();
 		for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
 		{
 			if (Spec.Ability)
@@ -230,6 +231,13 @@ FGameplayAbilitySpecHandle UAbilitySystemComponent::GiveAbility(FGameplayAbility
 {	
 	check(Spec.Ability);
 	check(IsOwnerActorAuthoritative());	// Should be called on authority
+
+	// If locked, add to pending list. The Spec.Handle is not regenerated when we receive, so returning this is ok.
+	if (AbilityScopeLockCount > 0)
+	{
+		AbilityPendingAdds.Add(Spec);
+		return Spec.Handle;
+	}
 	
 	FGameplayAbilitySpec& OwnedSpec = ActivatableAbilities.Items[ActivatableAbilities.Items.Add(Spec)];
 	
@@ -283,9 +291,27 @@ FGameplayAbilitySpecHandle UAbilitySystemComponent::GiveAbilityAndActivateOnce(F
 	return AddedAbilityHandle;
 }
 
+void UAbilitySystemComponent::SetRemoveAbilityOnEnd(FGameplayAbilitySpecHandle AbilitySpecHandle)
+{
+	FGameplayAbilitySpec* FoundSpec = FindAbilitySpecFromHandle(AbilitySpecHandle);
+	if (FoundSpec)
+	{
+		if (FoundSpec->IsActive())
+		{
+			FoundSpec->RemoveAfterActivation = true;
+			FoundSpec->InputID = INDEX_NONE;
+		}
+		else
+		{
+			ClearAbility(AbilitySpecHandle);
+		}
+	}
+}
+
 void UAbilitySystemComponent::ClearAllAbilities()
 {
 	check(IsOwnerActorAuthoritative());	// Should be called on authority
+	check(AbilityScopeLockCount == 0);	// We should never be calling this from a scoped lock situation.
 
 	// Note we aren't marking any old abilities pending kill. This shouldn't matter since they will be garbage collected.
 	for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
@@ -308,11 +334,22 @@ void UAbilitySystemComponent::ClearAbility(const FGameplayAbilitySpecHandle& Han
 		check(ActivatableAbilities.Items[Idx].Handle.IsValid());
 		if (ActivatableAbilities.Items[Idx].Handle == Handle)
 		{
-			OnRemoveAbility(ActivatableAbilities.Items[Idx]);
-			ActivatableAbilities.Items.RemoveAtSwap(Idx);
-			ActivatableAbilities.MarkArrayDirty();
+			if (AbilityScopeLockCount > 0)
+			{
+				if (ActivatableAbilities.Items[Idx].PendingRemove == false)
+				{
+					ActivatableAbilities.Items[Idx].PendingRemove = true;
+					AbilityPendingRemoves.Add(Handle);
+				}
+			}
+			else
+			{
 
-			CheckForClearedAbilities();
+				OnRemoveAbility(ActivatableAbilities.Items[Idx]);
+				ActivatableAbilities.Items.RemoveAtSwap(Idx);
+				ActivatableAbilities.MarkArrayDirty();
+				CheckForClearedAbilities();
+			}
 			return;
 		}
 	}
@@ -459,6 +496,28 @@ void UAbilitySystemComponent::CheckForClearedAbilities()
 	}
 }
 
+void UAbilitySystemComponent::IncrementAbilityListLock()
+{
+	AbilityScopeLockCount++;
+}
+void UAbilitySystemComponent::DecrementAbilityListLock()
+{
+	if (--AbilityScopeLockCount == 0)
+	{
+		TArray<FGameplayAbilitySpec, TInlineAllocator<2> > LocalPendingAdds(MoveTemp(AbilityPendingAdds));
+		for (FGameplayAbilitySpec& Spec : LocalPendingAdds)
+		{
+			GiveAbility(Spec);
+		}
+
+		TArray<FGameplayAbilitySpecHandle, TInlineAllocator<2> > LocalPendingRemoves(MoveTemp(AbilityPendingRemoves));
+		for (FGameplayAbilitySpecHandle& Handle : LocalPendingRemoves)
+		{
+			ClearAbility(Handle);
+		}
+	}
+}
+
 const TArray<FGameplayAbilitySpec>& UAbilitySystemComponent::GetActivatableAbilities() const
 {
 	return ActivatableAbilities.Items;
@@ -481,7 +540,15 @@ FGameplayAbilitySpec* UAbilitySystemComponent::FindAbilitySpecFromHandle(FGamepl
 
 void UAbilitySystemComponent::MarkAbilitySpecDirty(FGameplayAbilitySpec& Spec)
 {
-	ActivatableAbilities.MarkItemDirty(Spec);
+	if (IsOwnerActorAuthoritative())
+	{
+		ActivatableAbilities.MarkItemDirty(Spec);
+	}
+	else
+	{
+		// Clients predicting should call MarkArrayDirty to force the internal replication map to be rebuilt.
+		ActivatableAbilities.MarkArrayDirty();
+	}
 }
 
 FGameplayAbilitySpec* UAbilitySystemComponent::FindAbilitySpecFromInputID(int32 InputID)
@@ -526,8 +593,16 @@ UGameplayAbility* UAbilitySystemComponent::CreateNewInstanceOfAbility(FGameplayA
 
 void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Handle, UGameplayAbility* Ability)
 {
+	check(Ability);
 	FGameplayAbilitySpec* Spec = FindAbilitySpecFromHandle(Handle);
+	if (Spec == nullptr)
+	{
+		// The ability spec may have been removed while we were ending. We can assume everything was cleaned up if the spec isnt here.
+		return;
+	}
 	check(Spec);
+	check(Ability);
+
 	check(Ability);
 	ENetRole OwnerRole = GetOwnerRole();
 
@@ -584,6 +659,7 @@ void UAbilitySystemComponent::NotifyAbilityEnded(FGameplayAbilitySpecHandle Hand
 
 void UAbilitySystemComponent::CancelAbility(UGameplayAbility* Ability)
 {
+	ABILITYLIST_SCOPE_LOCK();
 	for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
 	{
 		if (Spec.Ability == Ability)
@@ -595,6 +671,7 @@ void UAbilitySystemComponent::CancelAbility(UGameplayAbility* Ability)
 
 void UAbilitySystemComponent::CancelAbilities(const FGameplayTagContainer* WithTags, const FGameplayTagContainer* WithoutTags, UGameplayAbility* Ignore)
 {
+	ABILITYLIST_SCOPE_LOCK();
 	for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
 	{
 		if (!Spec.IsActive() || Spec.Ability == nullptr)
@@ -624,20 +701,21 @@ void UAbilitySystemComponent::CancelAbilitySpec(FGameplayAbilitySpec& Spec, UGam
 		{
 			if (InstanceAbility && Ignore != InstanceAbility)
 			{
-				InstanceAbility->CancelAbility(Spec.Handle, ActorInfo, InstanceAbility->GetCurrentActivationInfo());
+				InstanceAbility->CancelAbility(Spec.Handle, ActorInfo, InstanceAbility->GetCurrentActivationInfo(), true);
 			}
 		}
 	}
 	else
 	{
 		// Try to cancel the non instanced, this may not necessarily work
-		Spec.Ability->CancelAbility(Spec.Handle, ActorInfo, FGameplayAbilityActivationInfo());
+		Spec.Ability->CancelAbility(Spec.Handle, ActorInfo, FGameplayAbilityActivationInfo(), true);
 	}
 	MarkAbilitySpecDirty(Spec);
 }
 
 void UAbilitySystemComponent::CancelAllAbilities(UGameplayAbility* Ignore)
 {
+	ABILITYLIST_SCOPE_LOCK();
 	for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
 	{
 		if (Spec.Ability && Spec.Ability->IsActive())
@@ -938,6 +1016,13 @@ bool UAbilitySystemComponent::TryActivateAbility(FGameplayAbilitySpecHandle Hand
 	}
 	else if (Ability->GetNetExecutionPolicy() == EGameplayAbilityNetExecutionPolicy::ServerInitiated)
 	{
+		if (NetMode != ROLE_Authority)
+		{
+			// Client hasn't technically activated the ability yet, so he shouldn't have advanced the active count.
+			// (this is ugly but the only case where this happens, and we want the ActiveCount to increment prior to activating the ability in the other case).
+			Spec->ActiveCount--;
+		}
+
 		// Tell the server to start the ability, this will return to the client 
 		if (TriggerEventData)
 		{
@@ -1048,7 +1133,7 @@ void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpe
 	}
 
 	// Consume any pending target info, to clear out cancels from old executions
-	ConsumeAllClientReplicatedData(Handle, PredictionKey);
+	ConsumeAllReplicatedData(Handle, PredictionKey);
 
 	FScopedPredictionWindow ScopedPredictionWindow(this, PredictionKey);
 
@@ -1126,7 +1211,7 @@ void UAbilitySystemComponent::InternalServerTryActiveAbility(FGameplayAbilitySpe
 	MarkAbilitySpecDirty(*Spec);
 }
 
-void UAbilitySystemComponent::ReplicateEndAbility(FGameplayAbilitySpecHandle Handle, FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ability)
+void UAbilitySystemComponent::ReplicateEndOrCancelAbility(FGameplayAbilitySpecHandle Handle, FGameplayAbilityActivationInfo ActivationInfo, UGameplayAbility* Ability, bool bWasCanceled)
 {
 	if (Ability->NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::LocalPredicted || Ability->NetExecutionPolicy == EGameplayAbilityNetExecutionPolicy::ServerInitiated)
 	{
@@ -1135,20 +1220,34 @@ void UAbilitySystemComponent::ReplicateEndAbility(FGameplayAbilitySpecHandle Han
 		{
 			if (!AbilityActorInfo->IsLocallyControlled())
 			{
-				// Only tell the client about the end ability if we're not the local controller
-				ClientEndAbility(Handle, ActivationInfo);
+				// Only tell the client about the end/cancel ability if we're not the local controller
+				if (bWasCanceled)
+				{
+					ClientCancelAbility(Handle, ActivationInfo);
+				}
+				else
+				{
+					ClientEndAbility(Handle, ActivationInfo);
+				}
 			}
 		}
 		else
 		{
 			// This passes up the current prediction key if we have one
-			ServerEndAbility(Handle, ActivationInfo, ScopedPredictionKey);
+			if (bWasCanceled)
+			{
+				ServerCancelAbility(Handle, ActivationInfo);
+			}
+			else
+			{
+				ServerEndAbility(Handle, ActivationInfo, ScopedPredictionKey);
+			}
 		}
 	}
 }
 
-//This is only called when ending an ability in response to a remote instruction.
-void UAbilitySystemComponent::RemoteEndAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo)
+//This is only called when ending or canceling an ability in response to a remote instruction.
+void UAbilitySystemComponent::RemoteEndOrCancelAbility(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, bool bWasCanceled)
 {
 	FGameplayAbilitySpec* AbilitySpec = FindAbilitySpecFromHandle(AbilityToEnd);
 	if (AbilitySpec && AbilitySpec->Ability && AbilitySpec->IsActive())
@@ -1160,8 +1259,17 @@ void UAbilitySystemComponent::RemoteEndAbility(FGameplayAbilitySpecHandle Abilit
 			// Check if the ability is the same prediction key (can both by 0) and has been confirmed. If so cancel it.
 			if (Instance->CurrentActivationInfo.GetActivationPredictionKey() == ActivationInfo.GetActivationPredictionKey() && Instance->CurrentActivationInfo.bCanBeEndedByOtherInstance)
 			{
-				// End the ability but don't replicate it back to whoever called us
-				Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+				// End/Cancel the ability but don't replicate it back to whoever called us
+				if (bWasCanceled)
+				{
+					// Since this was a remote cancel, we should force it through. We do not support 'server says ability was cancelled but client disagrees that it can be'.
+					Instance->SetCanBeCanceled(true);
+					Instance->CancelAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+				}
+				else
+				{
+					Instance->EndAbility(Instance->CurrentSpecHandle, Instance->CurrentActorInfo, Instance->CurrentActivationInfo, false);
+				}
 			}
 		}
 	}
@@ -1170,8 +1278,8 @@ void UAbilitySystemComponent::RemoteEndAbility(FGameplayAbilitySpecHandle Abilit
 void UAbilitySystemComponent::ServerEndAbility_Implementation(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, FPredictionKey PredictionKey)
 {
 	FScopedPredictionWindow ScopedPrediction(this, PredictionKey);
-
-	RemoteEndAbility(AbilityToEnd, ActivationInfo);
+	
+	RemoteEndOrCancelAbility(AbilityToEnd, ActivationInfo, false);
 }
 
 bool UAbilitySystemComponent::ServerEndAbility_Validate(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo, FPredictionKey PredictionKey)
@@ -1181,7 +1289,22 @@ bool UAbilitySystemComponent::ServerEndAbility_Validate(FGameplayAbilitySpecHand
 
 void UAbilitySystemComponent::ClientEndAbility_Implementation(FGameplayAbilitySpecHandle AbilityToEnd, FGameplayAbilityActivationInfo ActivationInfo)
 {
-	RemoteEndAbility(AbilityToEnd, ActivationInfo);
+	RemoteEndOrCancelAbility(AbilityToEnd, ActivationInfo, false);
+}
+
+void UAbilitySystemComponent::ServerCancelAbility_Implementation(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo)
+{
+	RemoteEndOrCancelAbility(AbilityToCancel, ActivationInfo, true);
+}
+
+bool UAbilitySystemComponent::ServerCancelAbility_Validate(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo)
+{
+	return true;
+}
+
+void UAbilitySystemComponent::ClientCancelAbility_Implementation(FGameplayAbilitySpecHandle AbilityToCancel, FGameplayAbilityActivationInfo ActivationInfo)
+{
+	RemoteEndOrCancelAbility(AbilityToCancel, ActivationInfo, true);
 }
 
 static_assert(sizeof(int16) == sizeof(FPredictionKey::KeyType), "Sizeof PredictionKey::KeyType does not match RPC parameters in AbilitySystemComponent ClientActivateAbilityFailed_Implementation");
@@ -1569,22 +1692,48 @@ void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputCompon
 	}
 
 	// Bind Confirm/Cancel. Note: these have to come last!
+	if (BindInfo.ConfirmTargetCommand.IsEmpty() == false)
 	{
 		FInputActionBinding AB(FName(*BindInfo.ConfirmTargetCommand), IE_Pressed);
 		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::LocalInputConfirm);
 		InputComponent->AddActionBinding(AB);
 	}
 	
+	if (BindInfo.CancelTargetCommand.IsEmpty() == false)
 	{
 		FInputActionBinding AB(FName(*BindInfo.CancelTargetCommand), IE_Pressed);
 		AB.ActionDelegate.GetDelegateForManualSet().BindUObject(this, &UAbilitySystemComponent::LocalInputCancel);
 		InputComponent->AddActionBinding(AB);
 	}
 
+	if (BindInfo.CancelTargetInputID >= 0)
+	{
+		GenericCancelInputID = BindInfo.CancelTargetInputID;
+	}
+	if (BindInfo.ConfirmTargetInputID >= 0)
+	{
+		GenericConfirmInputID = BindInfo.ConfirmTargetInputID;
+	}
 }
 
 void UAbilitySystemComponent::AbilityLocalInputPressed(int32 InputID)
 {
+	// Consume the input if this InputID is overloaded with GenericConfirm/Cancel and the GenericConfim/Cancel callback is bound
+	if (InputID == GenericConfirmInputID && GenericLocalConfirmCallbacks.IsBound())
+	{
+		LocalInputConfirm();
+		return;
+	}
+
+	if (InputID == GenericCancelInputID && GenericLocalCancelCallbacks.IsBound())
+	{
+		LocalInputCancel();
+		return;
+	}
+
+	// ---------------------------------------------------------
+
+	ABILITYLIST_SCOPE_LOCK();
 	for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
 	{
 		if (Spec.InputID == InputID)
@@ -1602,15 +1751,12 @@ void UAbilitySystemComponent::AbilityLocalInputPressed(int32 InputID)
 					AbilitySpecInputPressed(Spec);
 
 					// Invoke the InputPressed event. This is not replicated here. If someone is listening, they may replicate the InputPressed event to the server.
-					InvokeReplicatedClientEvent(EAbilityReplicatedClientEvent::InputPressed, Spec.Handle, Spec.ActivationInfo.GetActivationPredictionKey());					
+					InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputPressed, Spec.Handle, Spec.ActivationInfo.GetActivationPredictionKey());					
 				}
 				else
 				{
 					// Ability is not active, so try to activate it
-					if (!TryActivateAbility(Spec.Handle))
-					{
-						Spec.InputPressed = false;
-					}
+					TryActivateAbility(Spec.Handle);
 				}
 			}
 		}
@@ -1619,6 +1765,7 @@ void UAbilitySystemComponent::AbilityLocalInputPressed(int32 InputID)
 
 void UAbilitySystemComponent::AbilityLocalInputReleased(int32 InputID)
 {
+	ABILITYLIST_SCOPE_LOCK();
 	for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
 	{
 		if (Spec.InputID == InputID)
@@ -1633,7 +1780,7 @@ void UAbilitySystemComponent::AbilityLocalInputReleased(int32 InputID)
 
 				AbilitySpecInputReleased(Spec);
 				
-				InvokeReplicatedClientEvent(EAbilityReplicatedClientEvent::InputReleased, Spec.Handle, Spec.ActivationInfo.GetActivationPredictionKey());
+				InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::InputReleased, Spec.Handle, Spec.ActivationInfo.GetActivationPredictionKey());
 			}
 		}
 	}
@@ -1716,6 +1863,7 @@ void UAbilitySystemComponent::TryActivateInputHeldAbilities()
 
 	if (PC && PC->PlayerInput)
 	{
+		ABILITYLIST_SCOPE_LOCK();
 		for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
 		{
 			if ((Spec.InputID == INDEX_NONE) || !Spec.InputPressed || Spec.IsActive() || !Spec.Ability)
@@ -1734,11 +1882,13 @@ void UAbilitySystemComponent::TryActivateInputHeldAbilities()
 void UAbilitySystemComponent::LocalInputConfirm()
 {
 	GenericLocalConfirmCallbacks.Broadcast();
+	GenericLocalConfirmCallbacks.Clear();
 }
 
 void UAbilitySystemComponent::LocalInputCancel()
 {	
 	GenericLocalCancelCallbacks.Broadcast();
+	GenericLocalCancelCallbacks.Clear();
 }
 
 void UAbilitySystemComponent::TargetConfirm()
@@ -2251,7 +2401,7 @@ UGameplayAbility* UAbilitySystemComponent::GetAnimatingAbility()
 
 void UAbilitySystemComponent::ConfirmAbilityTargetData(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, const FGameplayAbilityTargetDataHandle& TargetData, const FGameplayTag& ApplicationTag)
 {
-	FAbilityClientDataCache* CachedData = AbilityClientDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
+	FAbilityReplicatedDataCache* CachedData = AbilityTargetDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
 	if (CachedData)
 	{
 		CachedData->TargetSetDelegate.Broadcast(TargetData, ApplicationTag);
@@ -2260,7 +2410,7 @@ void UAbilitySystemComponent::ConfirmAbilityTargetData(FGameplayAbilitySpecHandl
 
 void UAbilitySystemComponent::CancelAbilityTargetData(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
 {
-	FAbilityClientDataCache* CachedData = AbilityClientDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
+	FAbilityReplicatedDataCache* CachedData = AbilityTargetDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
 	if (CachedData)
 	{
 		CachedData->Reset();
@@ -2268,9 +2418,9 @@ void UAbilitySystemComponent::CancelAbilityTargetData(FGameplayAbilitySpecHandle
 	}
 }
 
-void UAbilitySystemComponent::ConsumeAllClientReplicatedData(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
+void UAbilitySystemComponent::ConsumeAllReplicatedData(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
 {
-	FAbilityClientDataCache* CachedData = AbilityClientDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
+	FAbilityReplicatedDataCache* CachedData = AbilityTargetDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
 	if (CachedData)
 	{
 		CachedData->Reset();
@@ -2279,7 +2429,7 @@ void UAbilitySystemComponent::ConsumeAllClientReplicatedData(FGameplayAbilitySpe
 
 void UAbilitySystemComponent::ConsumeClientReplicatedTargetData(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
 {
-	FAbilityClientDataCache* CachedData = AbilityClientDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
+	FAbilityReplicatedDataCache* CachedData = AbilityTargetDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
 	if (CachedData)
 	{
 		CachedData->TargetData.Clear();
@@ -2288,9 +2438,9 @@ void UAbilitySystemComponent::ConsumeClientReplicatedTargetData(FGameplayAbility
 	}
 }
 
-void UAbilitySystemComponent::ConsumeClientReplicatedEvent(EAbilityReplicatedClientEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
+void UAbilitySystemComponent::ConsumeGenericReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
 {
-	FAbilityClientDataCache* CachedData = AbilityClientDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
+	FAbilityReplicatedDataCache* CachedData = AbilityTargetDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
 	if (CachedData)
 	{
 		CachedData->GenericEvents[EventType].bTriggered = false;
@@ -2299,27 +2449,43 @@ void UAbilitySystemComponent::ConsumeClientReplicatedEvent(EAbilityReplicatedCli
 
 // --------------------------------------------------------------------------
 
-void UAbilitySystemComponent::ServerSetReplicatedClientEvent_Implementation(EAbilityReplicatedClientEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey,  FPredictionKey CurrentPredictionKey)
+void UAbilitySystemComponent::ServerSetReplicatedEvent_Implementation(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey,  FPredictionKey CurrentPredictionKey)
 {
 	FScopedPredictionWindow ScopedPrediction(this, CurrentPredictionKey);
 
-	InvokeReplicatedClientEvent(EventType, AbilityHandle, AbilityOriginalPredictionKey);
+	InvokeReplicatedEvent(EventType, AbilityHandle, AbilityOriginalPredictionKey);
 }
 
-void UAbilitySystemComponent::InvokeReplicatedClientEvent(EAbilityReplicatedClientEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
+bool UAbilitySystemComponent::InvokeReplicatedEvent(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
 {
-	FAbilityClientDataCache& ReplicatedData = AbilityClientDataMap.FindOrAdd(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
+	FAbilityReplicatedDataCache& ReplicatedData = AbilityTargetDataMap.FindOrAdd(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
 	ReplicatedData.GenericEvents[(uint8)EventType].bTriggered = true;
-	ReplicatedData.GenericEvents[EventType].Delegate.Broadcast();
+
+	if (ReplicatedData.GenericEvents[EventType].Delegate.IsBound())
+	{
+		ReplicatedData.GenericEvents[EventType].Delegate.Broadcast();
+		return true;
+	}
+	else
+	{
+		return false;
+	}
 }
 
-bool UAbilitySystemComponent::ServerSetReplicatedClientEvent_Validate(EAbilityReplicatedClientEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey,  FPredictionKey CurrentPredictionKey)
+bool UAbilitySystemComponent::ServerSetReplicatedEvent_Validate(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey,  FPredictionKey CurrentPredictionKey)
 {
-	if (EventType >= EAbilityReplicatedClientEvent::MAX)
+	if (EventType >= EAbilityGenericReplicatedEvent::MAX)
 	{
 		return false;
 	}
 	return true;
+}
+
+// -------
+
+void UAbilitySystemComponent::ClientSetReplicatedEvent_Implementation(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
+{
+	InvokeReplicatedEvent(EventType, AbilityHandle, AbilityOriginalPredictionKey);
 }
 
 // -------
@@ -2329,7 +2495,7 @@ void UAbilitySystemComponent::ServerSetReplicatedTargetData_Implementation(FGame
 	FScopedPredictionWindow ScopedPrediction(this, CurrentPredictionKey);
 
 	// Always adds to cache to store the new data
-	FAbilityClientDataCache& ReplicatedData = AbilityClientDataMap.FindOrAdd(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
+	FAbilityReplicatedDataCache& ReplicatedData = AbilityTargetDataMap.FindOrAdd(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
 
 	ReplicatedData.TargetData = ReplicatedTargetData;
 	ReplicatedData.ApplicationTag = ApplicationTag;
@@ -2350,7 +2516,7 @@ void UAbilitySystemComponent::ServerSetReplicatedTargetDataCancelled_Implementat
 	FScopedPredictionWindow ScopedPrediction(this, CurrentPredictionKey);
 
 	// Always adds to cache to store the new data
-	FAbilityClientDataCache& ReplicatedData = AbilityClientDataMap.FindOrAdd(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
+	FAbilityReplicatedDataCache& ReplicatedData = AbilityTargetDataMap.FindOrAdd(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
 
 	ReplicatedData.Reset();
 	ReplicatedData.bTargetCancelled = true;
@@ -2364,7 +2530,7 @@ bool UAbilitySystemComponent::ServerSetReplicatedTargetDataCancelled_Validate(FG
 
 void UAbilitySystemComponent::CallAllReplicatedDelegatesIfSet(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
 {
-	FAbilityClientDataCache* CachedData = AbilityClientDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
+	FAbilityReplicatedDataCache* CachedData = AbilityTargetDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
 	if (CachedData)
 	{
 		if (CachedData->bTargetConfirmed)
@@ -2376,7 +2542,7 @@ void UAbilitySystemComponent::CallAllReplicatedDelegatesIfSet(FGameplayAbilitySp
 			CachedData->TargetCancelledDelegate.Broadcast();
 		}
 
-		for (int32 idx=0; idx < EAbilityReplicatedClientEvent::MAX; ++idx)
+		for (int32 idx=0; idx < EAbilityGenericReplicatedEvent::MAX; ++idx)
 		{
 			if (CachedData->GenericEvents[idx].bTriggered)
 			{
@@ -2389,7 +2555,7 @@ void UAbilitySystemComponent::CallAllReplicatedDelegatesIfSet(FGameplayAbilitySp
 bool UAbilitySystemComponent::CallReplicatedTargetDataDelegatesIfSet(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
 {
 	bool CalledDelegate = false;
-	FAbilityClientDataCache* CachedData = AbilityClientDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
+	FAbilityReplicatedDataCache* CachedData = AbilityTargetDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
 	if (CachedData)
 	{
 		if (CachedData->bTargetConfirmed)
@@ -2407,9 +2573,9 @@ bool UAbilitySystemComponent::CallReplicatedTargetDataDelegatesIfSet(FGameplayAb
 	return CalledDelegate;
 }
 
-bool UAbilitySystemComponent::CallReplicatedEventDelegateIfSet(EAbilityReplicatedClientEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
+bool UAbilitySystemComponent::CallReplicatedEventDelegateIfSet(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
 {
-	FAbilityClientDataCache* CachedData = AbilityClientDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
+	FAbilityReplicatedDataCache* CachedData = AbilityTargetDataMap.Find(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
 	if (CachedData && CachedData->GenericEvents[EventType].bTriggered)
 	{
 		// Already triggered, fire off delegate
@@ -2419,9 +2585,9 @@ bool UAbilitySystemComponent::CallReplicatedEventDelegateIfSet(EAbilityReplicate
 	return false;
 }
 
-bool UAbilitySystemComponent::CallOrAddReplicatedDelegate(EAbilityReplicatedClientEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FSimpleMulticastDelegate::FDelegate Delegate)
+bool UAbilitySystemComponent::CallOrAddReplicatedDelegate(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey, FSimpleMulticastDelegate::FDelegate Delegate)
 {
-	FAbilityClientDataCache& CachedData = AbilityClientDataMap.FindOrAdd(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
+	FAbilityReplicatedDataCache& CachedData = AbilityTargetDataMap.FindOrAdd(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey));
 	if (CachedData.GenericEvents[EventType].bTriggered)
 	{
 		// Already triggered, fire off delegate
@@ -2436,17 +2602,17 @@ bool UAbilitySystemComponent::CallOrAddReplicatedDelegate(EAbilityReplicatedClie
 
 FAbilityTargetDataSetDelegate& UAbilitySystemComponent::AbilityTargetDataSetDelegate(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
 {
-	return AbilityClientDataMap.FindOrAdd(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey)).TargetSetDelegate;
+	return AbilityTargetDataMap.FindOrAdd(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey)).TargetSetDelegate;
 }
 
 FSimpleMulticastDelegate& UAbilitySystemComponent::AbilityTargetDataCancelledDelegate(FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
 {
-	return AbilityClientDataMap.FindOrAdd(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey)).TargetCancelledDelegate;
+	return AbilityTargetDataMap.FindOrAdd(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey)).TargetCancelledDelegate;
 }
 
-FSimpleMulticastDelegate& UAbilitySystemComponent::AbilityReplicatedEventDelegate(EAbilityReplicatedClientEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
+FSimpleMulticastDelegate& UAbilitySystemComponent::AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::Type EventType, FGameplayAbilitySpecHandle AbilityHandle, FPredictionKey AbilityOriginalPredictionKey)
 {
-	return AbilityClientDataMap.FindOrAdd(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey)).GenericEvents[EventType].Delegate;
+	return AbilityTargetDataMap.FindOrAdd(FGameplayAbilitySpecHandleAndPredictionKey(AbilityHandle, AbilityOriginalPredictionKey)).GenericEvents[EventType].Delegate;
 }
 
 

@@ -18,6 +18,7 @@
 
 class UAbilitySystemComponent;
 class UGameplayEffect;
+class UGameplayAbility;
 
 struct FGameplayEffectSpec;
 struct FGameplayEffectModCallbackData;
@@ -734,7 +735,7 @@ DECLARE_DELEGATE_RetVal_OneParam(FOnGameplayEffectTagCountChanged&, FRegisterGam
  * while simultaneously tracking the count of parent tags as well. Events/delegates are fired whenever the tag counts
  * of any tag (explicit or parent) are modified.
  */
-struct FGameplayTagCountContainer
+struct GAMEPLAYABILITIES_API FGameplayTagCountContainer
 {
 	// Constructor
 	FGameplayTagCountContainer()
@@ -834,11 +835,11 @@ struct GAMEPLAYABILITIES_API FGameplayTagRequirements
 	GENERATED_USTRUCT_BODY()
 
 	/** All of these tags must be present */
-	UPROPERTY(EditAnywhere, Category = GameplayModifier)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayModifier)
 	FGameplayTagContainer RequireTags;
 
 	/** None of these tags may be present */
-	UPROPERTY(EditAnywhere, Category = GameplayModifier)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GameplayModifier)
 	FGameplayTagContainer IgnoreTags;
 
 	bool	RequirementsMet(const FGameplayTagContainer& Container) const;

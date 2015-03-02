@@ -37,6 +37,8 @@ class UAbilityTask_StartAbilityState : public UAbilityTask
 
 	virtual void Activate() override;
 
+	virtual void ExternalCancel() override;
+
 	virtual FString GetDebugString() const override;
 
 	/**
@@ -53,11 +55,13 @@ private:
 	FDelegateHandle EndStateHandle;
 	FDelegateHandle InterruptStateHandle;
 
+	bool bWasEnded;
+	bool bWasInterrupted;
+
 	bool bEndCurrentState;
 
 	virtual void OnDestroy(bool AbilityEnded) override;
 
 	void OnEndState(FName StateNameToEnd);
-
 	void OnInterruptState();
 };

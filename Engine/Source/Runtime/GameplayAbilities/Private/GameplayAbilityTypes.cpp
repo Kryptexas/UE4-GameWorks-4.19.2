@@ -159,3 +159,25 @@ void FGameplayAbilitySpecContainer::RegisterWithOwner(UAbilitySystemComponent* O
 {
 	this->Owner = Owner;
 }
+
+// ----------------------------------------------------
+
+FGameplayAbilitySpec:: FGameplayAbilitySpec(FGameplayAbilitySpecDef& InDef, FActiveGameplayEffectHandle InGameplayEffectHandle)
+	: FGameplayAbilitySpec(InDef.Ability ? InDef.Ability->GetDefaultObject<UGameplayAbility>() : nullptr, InDef.Level, InDef.InputID, InDef.SourceObject)
+{
+	InDef.AssignedHandle = Handle;
+	GameplayEffectHandle = InGameplayEffectHandle;
+}
+
+// ----------------------------------------------------
+
+FScopedAbilityListLock::FScopedAbilityListLock(UAbilitySystemComponent& InAbilitySystemComponent)
+	: AbilitySystemComponent(InAbilitySystemComponent)
+{
+	AbilitySystemComponent.IncrementAbilityListLock();
+}
+
+FScopedAbilityListLock::~FScopedAbilityListLock()
+{
+	AbilitySystemComponent.DecrementAbilityListLock();
+}

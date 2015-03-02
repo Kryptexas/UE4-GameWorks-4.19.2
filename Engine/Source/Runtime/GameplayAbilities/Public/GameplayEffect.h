@@ -7,6 +7,7 @@
 #include "GameplayTagContainer.h"
 #include "TimerManager.h"
 #include "GameplayEffectTypes.h"
+#include "GameplayAbilitySpec.h"
 #include "GameplayEffectAggregator.h"
 #include "GameplayEffectCalculation.h"
 #include "ActiveGameplayEffectIterator.h"
@@ -525,11 +526,11 @@ public:
 
 #if WITH_EDITORONLY_DATA
 	/** Template to derive starting values and editing customization from */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Template)
+	UPROPERTY()
 	UGameplayEffectTemplate*	Template;
 
 	/** When false, show a limited set of properties for editing, based on the template we are derived from */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Template)
+	UPROPERTY()
 	bool ShowAllProperties;
 #endif
 
@@ -680,6 +681,13 @@ public:
 	/** Policy for how the effect period should be reset (or not) while stacking */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stacking)
 	EGameplayEffectStackingPeriodPolicy StackPeriodResetPolicy;
+
+	// ----------------------------------------------------------------------
+	//	Granted abilities
+	// ----------------------------------------------------------------------
+	
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Granted Abilities")
+	TArray<FGameplayAbilitySpecDef>	GrantedAbilities;
 };
 
 /** Holds evaluated magnitude from a GameplayEffect modifier */
@@ -1087,6 +1095,9 @@ public:
 	/** Whether the duration of the spec is locked or not; If it is, attempts to set it will fail */
 	UPROPERTY(NotReplicated)
 	uint32 bDurationLocked : 1;
+
+	UPROPERTY(NotReplicated)
+	TArray<FGameplayAbilitySpecDef> GrantedAbilitySpecs;
 
 private:
 

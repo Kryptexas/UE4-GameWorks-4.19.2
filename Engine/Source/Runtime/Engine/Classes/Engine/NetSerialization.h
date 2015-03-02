@@ -397,9 +397,17 @@ bool FFastArraySerializer::FastArrayDeltaSerialize( TArray<Type> &Items, FNetDel
 			ArraySerializer.ItemMap.Empty();
 			for (int32 i=0; i < Items.Num(); ++i)
 			{
-				if ( Items[i].ReplicationID == INDEX_NONE )
+				if ( Items[i].ReplicationID == INDEX_NONE  )
 				{
-					UE_LOG( LogNetSerialization, Warning, TEXT( "FastArrayDeltaSerialize: Item with uninitialized ReplicationID. Struct: %s, ItemIndex: %i" ), *InnerStruct->GetOwnerStruct()->GetName(), i );
+					if (Parms.Writer)
+					{
+						UE_LOG( LogNetSerialization, Warning, TEXT( "FastArrayDeltaSerialize: Item with uninitialized ReplicationID. Struct: %s, ItemIndex: %i" ), *InnerStruct->GetOwnerStruct()->GetName(), i );
+					}
+					else
+					{
+						// This is benign for clients, they may add things to their local array without assigning a ReplicationID
+						continue;
+					}
 				}
 				ArraySerializer.ItemMap.Add( Items[i].ReplicationID, i );
 			}

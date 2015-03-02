@@ -19,7 +19,7 @@ void UAbilityTask_WaitConfirmCancel::OnConfirmCallback()
 	
 	if (AbilitySystemComponent.IsValid())
 	{
-		AbilitySystemComponent->ConsumeClientReplicatedEvent(EAbilityReplicatedClientEvent::GenericConfirm, GetAbilitySpecHandle(), GetActivationPredictionKey());
+		AbilitySystemComponent->ConsumeGenericReplicatedEvent(EAbilityGenericReplicatedEvent::GenericConfirm, GetAbilitySpecHandle(), GetActivationPredictionKey());
 		OnConfirm.Broadcast();
 		EndTask();
 	}
@@ -29,7 +29,7 @@ void UAbilityTask_WaitConfirmCancel::OnCancelCallback()
 {
 	if (AbilitySystemComponent.IsValid())
 	{
-		AbilitySystemComponent->ConsumeClientReplicatedEvent(EAbilityReplicatedClientEvent::GenericCancel, GetAbilitySpecHandle(), GetActivationPredictionKey());
+		AbilitySystemComponent->ConsumeGenericReplicatedEvent(EAbilityGenericReplicatedEvent::GenericCancel, GetAbilitySpecHandle(), GetActivationPredictionKey());
 		OnCancel.Broadcast();
 		EndTask();
 	}
@@ -39,7 +39,7 @@ void UAbilityTask_WaitConfirmCancel::OnLocalConfirmCallback()
 {
 	if (AbilitySystemComponent.IsValid() && IsPredictingClient())
 	{
-		AbilitySystemComponent->ServerSetReplicatedClientEvent(EAbilityReplicatedClientEvent::GenericConfirm, GetAbilitySpecHandle(), GetActivationPredictionKey() ,AbilitySystemComponent->ScopedPredictionKey);
+		AbilitySystemComponent->ServerSetReplicatedEvent(EAbilityGenericReplicatedEvent::GenericConfirm, GetAbilitySpecHandle(), GetActivationPredictionKey() ,AbilitySystemComponent->ScopedPredictionKey);
 	}
 	OnConfirmCallback();
 }
@@ -48,7 +48,7 @@ void UAbilityTask_WaitConfirmCancel::OnLocalCancelCallback()
 {
 	if (AbilitySystemComponent.IsValid() && IsPredictingClient())
 	{
-		AbilitySystemComponent->ServerSetReplicatedClientEvent(EAbilityReplicatedClientEvent::GenericCancel, GetAbilitySpecHandle(), GetActivationPredictionKey() ,AbilitySystemComponent->ScopedPredictionKey);
+		AbilitySystemComponent->ServerSetReplicatedEvent(EAbilityGenericReplicatedEvent::GenericCancel, GetAbilitySpecHandle(), GetActivationPredictionKey() ,AbilitySystemComponent->ScopedPredictionKey);
 	}
 	OnCancelCallback();
 }
@@ -75,12 +75,12 @@ void UAbilityTask_WaitConfirmCancel::Activate()
 		}
 		else
 		{
-			if (CallOrAddReplicatedDelegate(EAbilityReplicatedClientEvent::GenericConfirm,  FSimpleMulticastDelegate::FDelegate::CreateUObject(this, &UAbilityTask_WaitConfirmCancel::OnConfirmCallback)) )
+			if (CallOrAddReplicatedDelegate(EAbilityGenericReplicatedEvent::GenericConfirm,  FSimpleMulticastDelegate::FDelegate::CreateUObject(this, &UAbilityTask_WaitConfirmCancel::OnConfirmCallback)) )
 			{
 				// GenericConfirm was already received from the client and we just called OnConfirmCallback. The task is done.
 				return;
 			}
-			if (CallOrAddReplicatedDelegate(EAbilityReplicatedClientEvent::GenericCancel,  FSimpleMulticastDelegate::FDelegate::CreateUObject(this, &UAbilityTask_WaitConfirmCancel::OnCancelCallback)) )
+			if (CallOrAddReplicatedDelegate(EAbilityGenericReplicatedEvent::GenericCancel,  FSimpleMulticastDelegate::FDelegate::CreateUObject(this, &UAbilityTask_WaitConfirmCancel::OnCancelCallback)) )
 			{
 				// GenericCancel was already received from the client and we just called OnCancelCallback. The task is done.
 				return;

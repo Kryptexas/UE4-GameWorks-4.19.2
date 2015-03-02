@@ -2,9 +2,7 @@
 
 #include "AbilitySystemPrivatePCH.h"
 #include "Abilities/Tasks/AbilityTask_WaitGameplayEffectApplied.h"
-
 #include "AbilitySystemComponent.h"
-
 #include "Abilities/GameplayAbility.h"
 #include "GameplayEffectExtension.h"
 
@@ -15,7 +13,7 @@ UAbilityTask_WaitGameplayEffectApplied::UAbilityTask_WaitGameplayEffectApplied(c
 
 void UAbilityTask_WaitGameplayEffectApplied::Activate()
 {
-	if (AbilitySystemComponent.IsValid())
+	if (GetASC())
 	{
 		RegisterDelegate();
 	}
@@ -50,10 +48,28 @@ void UAbilityTask_WaitGameplayEffectApplied::OnApplyGameplayEffectCallback(UAbil
 
 void UAbilityTask_WaitGameplayEffectApplied::OnDestroy(bool AbilityEnded)
 {
-	if (AbilitySystemComponent.IsValid())
+	if (GetASC())
 	{
 		RemoveDelegate();
 	}
 
 	Super::OnDestroy(AbilityEnded);
+}
+
+void UAbilityTask_WaitGameplayEffectApplied::SetExternalActor(AActor* InActor)
+{
+	if (InActor)
+	{
+		UseExternalOwner = true;
+		ExternalOwner  = UAbilitySystemGlobals::GetAbilitySystemComponentFromActor(InActor);
+	}
+}
+
+UAbilitySystemComponent* UAbilityTask_WaitGameplayEffectApplied::GetASC()
+{
+	if (UseExternalOwner)
+	{
+		return ExternalOwner.Get();
+	}
+	return AbilitySystemComponent.Get();
 }

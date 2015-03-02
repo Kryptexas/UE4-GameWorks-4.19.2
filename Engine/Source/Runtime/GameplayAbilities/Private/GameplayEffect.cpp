@@ -11,6 +11,7 @@
 #include "GameplayEffectExecutionCalculation.h"
 #if ENABLE_VISUAL_LOG
 #include "VisualLoggerTypes.h"
+//#include "VisualLogger/VisualLogger.h"
 #endif // ENABLE_VISUAL_LOG
 
 const float UGameplayEffect::INFINITE_DURATION = -1.f;
@@ -449,6 +450,9 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 		TargetEffectSpecs.Add(FGameplayEffectSpecHandle(new FGameplayEffectSpec(TargetDef, EffectContext, Level)));
 	}
 
+	// Make Granted AbilitySpecs (caller may modify these specs after creating spec, which is why we dont just reference them from the def)
+	GrantedAbilitySpecs = InDef->GrantedAbilities;
+
 	// Everything is setup now, capture data from our source
 	CaptureDataFromSource();
 }
@@ -474,6 +478,7 @@ FGameplayEffectSpec::FGameplayEffectSpec(FGameplayEffectSpec&& Other)
 	, bCompletedSourceAttributeCapture(Other.bCompletedSourceAttributeCapture)
 	, bCompletedTargetAttributeCapture(Other.bCompletedTargetAttributeCapture)
 	, bDurationLocked(Other.bDurationLocked)
+	, GrantedAbilitySpecs(MoveTemp(Other.GrantedAbilitySpecs))
 	, SetByCallerMagnitudes(MoveTemp(Other.SetByCallerMagnitudes))
 	, EffectContext(Other.EffectContext)
 	, Level(Other.Level)
@@ -498,6 +503,7 @@ FGameplayEffectSpec& FGameplayEffectSpec::operator=(FGameplayEffectSpec&& Other)
 	bCompletedSourceAttributeCapture = Other.bCompletedSourceAttributeCapture;
 	bCompletedTargetAttributeCapture = Other.bCompletedTargetAttributeCapture;
 	bDurationLocked = Other.bDurationLocked;
+	GrantedAbilitySpecs = MoveTemp(Other.GrantedAbilitySpecs);
 	SetByCallerMagnitudes = MoveTemp(Other.SetByCallerMagnitudes);
 	EffectContext = Other.EffectContext;
 	Level = Other.Level;
@@ -521,6 +527,7 @@ FGameplayEffectSpec& FGameplayEffectSpec::operator=(const FGameplayEffectSpec& O
 	bCompletedSourceAttributeCapture = Other.bCompletedSourceAttributeCapture;
 	bCompletedTargetAttributeCapture = Other.bCompletedTargetAttributeCapture;
 	bDurationLocked = Other.bDurationLocked;
+	GrantedAbilitySpecs =  Other.GrantedAbilitySpecs;
 	SetByCallerMagnitudes = Other.SetByCallerMagnitudes;
 	EffectContext = Other.EffectContext;
 	Level = Other.Level;
@@ -1614,6 +1621,7 @@ void FActiveGameplayEffectsContainer::OnMagnitudeDependencyChange(FActiveGamepla
 
 void FActiveGameplayEffectsContainer::OnStackCountChange(FActiveGameplayEffect& ActiveEffect)
 {
+	MarkItemDirty(ActiveEffect);
 	UpdateAllAggregatorModMagnitudes(ActiveEffect);
 }
 
@@ -1663,7 +1671,7 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::FindStackableActiveGamep
 	EGameplayEffectStackingType StackingType = GEDef->StackingType;
 
 	UAbilitySystemComponent* SourceASC = Spec.GetContext().GetInstigatorAbilitySystemComponent();
-	if (SourceASC && StackingType != EGameplayEffectStackingType::None && Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION)
+	if (StackingType != EGameplayEffectStackingType::None && Spec.GetDuration() != UGameplayEffect::INSTANT_APPLICATION)
 	{
 		// Iterate through GameplayEffects to see if we find a match. Note that we could cache off a handle in a map but we would still
 		// do a linear search through GameplayEffects to find the actual FActiveGameplayEffect (due to unstable nature of the GameplayEffects array).
@@ -1672,7 +1680,7 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::FindStackableActiveGamep
 		for (FActiveGameplayEffect& ActiveEffect: this)
 		{
 			// Aggregate by source stacking additionally requires the source ability component to match
-			if (ActiveEffect.Spec.Def == Spec.Def && ((StackingType == EGameplayEffectStackingType::AggregateByTarget) || (SourceASC == ActiveEffect.Spec.GetContext().GetInstigatorAbilitySystemComponent())))
+			if (ActiveEffect.Spec.Def == Spec.Def && ((StackingType == EGameplayEffectStackingType::AggregateByTarget) || (SourceASC && SourceASC == ActiveEffect.Spec.GetContext().GetInstigatorAbilitySystemComponent())))
 			{
 				StackableGE = &ActiveEffect;
 				break;
@@ -1995,10 +2003,11 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 		}
 
 		FGameplayEffectSpec& ExistingSpec = ExistingStackableGE->Spec;
-
-		int32 NewStackCount = ExistingSpec.StackCount;
-
-		// Process overflow if already at the stack limit; Overflow can potentially reject the application outright
+		
+		// How to apply multiple stacks at once? What if we trigger an overflow which can reject the application?
+		// We still want to apply the stacks that didnt push us over, but we also want to call HandleActiveGameplayEffectStackOverflow.
+		
+		// For now: call HandleActiveGameplayEffectStackOverflow only if we are ALREADY at the limit. Else we just clamp stack limit to max.
 		if (ExistingSpec.StackCount == ExistingSpec.Def->StackLimitCount)
 		{
 			if (!HandleActiveGameplayEffectStackOverflow(*ExistingStackableGE, ExistingSpec, Spec))
@@ -2006,9 +2015,11 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 				return nullptr;
 			}
 		}
-		else
+		
+		int32 NewStackCount = ExistingSpec.StackCount + Spec.StackCount;
+		if (ExistingSpec.Def->StackLimitCount > 0)
 		{
-			++NewStackCount;
+			NewStackCount = FMath::Min(NewStackCount, ExistingSpec.Def->StackLimitCount);
 		}
 
 		// Need to unregister callbacks because the source aggregators could potentially be different with the new application. They will be
@@ -2019,9 +2030,15 @@ FActiveGameplayEffect* FActiveGameplayEffectsContainer::ApplyGameplayEffectSpec(
 		// and cause a removal and add of only the ones that have changed. For now, ensure on this happening and come
 		// back to this later.
 		ensureMsgf(ExistingSpec.DynamicGrantedTags == Spec.DynamicGrantedTags, TEXT("While adding a stack of the gameplay effect: %s, the old stack and the new application had different dynamically granted tags, which is currently not resolved properly!"), *Spec.Def->GetName());
+		
+		// We only grant abilities on the first apply. So we *dont* want the new spec's GrantedAbilitySpecs list
+		TArray<FGameplayAbilitySpecDef>	GrantedSpecTempArray(MoveTemp(ExistingStackableGE->Spec.GrantedAbilitySpecs));
 
 		ExistingStackableGE->Spec = Spec;
 		ExistingStackableGE->Spec.StackCount = NewStackCount;
+
+		// Swap in old granted ability spec
+		ExistingStackableGE->Spec.GrantedAbilitySpecs = MoveTemp(GrantedSpecTempArray);
 		
 		AppliedActiveGE = ExistingStackableGE;
 
@@ -2276,7 +2293,7 @@ bool FActiveGameplayEffectsContainer::RemoveActiveGameplayEffect(FActiveGameplay
 			return true;
 		}
 	}
-	ABILITY_LOG(Warning, TEXT("RemoveActiveGameplayEffect called with invalid Handle: %s"), *Handle.ToString());
+	ABILITY_LOG(Log, TEXT("RemoveActiveGameplayEffect called with invalid Handle: %s"), *Handle.ToString());
 	return false;
 }
 
@@ -2306,6 +2323,24 @@ bool FActiveGameplayEffectsContainer::InternalRemoveActiveGameplayEffect(int32 I
 		// Mark the effect as pending removal
 		Effect.IsPendingRemove = true;
 
+		// Remove Granted Abilities
+		for (FGameplayAbilitySpecDef& AbilitySpecDef : Effect.Spec.GrantedAbilitySpecs)
+		{
+			if (AbilitySpecDef.AssignedHandle.IsValid())
+			{
+				switch(AbilitySpecDef.RemovalPolicy)
+				{
+				case EGameplayEffectGrantedAbilityRemovePolicy::CancelAbilityImmediately:
+					Owner->ClearAbility(AbilitySpecDef.AssignedHandle);
+					break;
+				case EGameplayEffectGrantedAbilityRemovePolicy::RemoveAbilityOnEnd:
+					Owner->SetRemoveAbilityOnEnd(AbilitySpecDef.AssignedHandle);
+					break;
+				}
+			}
+		}
+
+		// Invoke Remove GameplayCue event
 		bool ShouldInvokeGameplayCueEvent = true;
 		const bool bIsNetAuthority = IsNetAuthority();
 		if (!bIsNetAuthority && Effect.PredictionKey.IsValidKey() && Effect.PredictionKey.WasReceived() == false)

@@ -67,6 +67,12 @@
 /** Notification delegate definition for when the gameplay ability ends */
 DECLARE_DELEGATE_OneParam(FOnGameplayAbilityEnded, UGameplayAbility*);
 
+/** Notification delegate definition for when the gameplay ability is cancelled */
+DECLARE_MULTICAST_DELEGATE(FOnGameplayAbilityCancelled);
+
+/** Used to notify ability state tasks that a state is being ended */
+DECLARE_MULTICAST_DELEGATE_OneParam(FOnGameplayAbilityStateEnded, FName);
+
 /** TriggerData */
 USTRUCT()
 struct FAbilityTriggerData
@@ -209,6 +215,12 @@ public:
 	/** Notification that the ability has ended.  Set using TryActivateAbility. */
 	FOnGameplayAbilityEnded OnGameplayAbilityEnded;
 
+	/** Notification that the ability is being cancelled.  Called before OnGameplayAbilityEnded. */
+	FOnGameplayAbilityCancelled OnGameplayAbilityCancelled;
+
+	/** Used by the ability state task to handle when a state is ended */
+	FOnGameplayAbilityStateEnded OnGameplayAbilityStateEnded;
+
 	/** This ability has these tags */
 	UPROPERTY(EditDefaultsOnly, Category = Tags)
 	FGameplayTagContainer AbilityTags;
@@ -252,6 +264,13 @@ public:
 	/** If true, this ability will always replicate input press/release events to the server. */
 	UPROPERTY(EditDefaultsOnly, Category = Input)
 	bool bReplicateInputDirectly;
+
+	// --------------------------------------
+	//	CancelAbility
+	// --------------------------------------
+
+	/** Destroys instanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Any active ability state tasks receive the 'OnAbilityStateInterrupted' event. Non instance abilities - what can we do? */
+	virtual void CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, bool bReplicateCancelAbility);
 
 protected:
 
@@ -361,13 +380,6 @@ public:
 	/** Do boilerplate init stuff and then call ActivateAbility */
 	virtual void PreActivate(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo, FOnGameplayAbilityEnded* OnGameplayAbilityEndedDelegate);
 
-	// --------------------------------------
-	//	CancelAbility
-	// --------------------------------------
-
-	/** Destroys instanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Any active ability state tasks receive the 'OnAbilityStateInterrupted' event. Non instance abilities - what can we do? */
-	virtual void CancelAbility(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo);
-
 protected:
 	/** Destroys instanced-per-execution abilities. Instance-per-actor abilities should 'reset'. Non instance abilities - what can we do? */
 	UFUNCTION(BlueprintCallable, Category = Ability)
@@ -466,7 +478,7 @@ protected:
 	virtual void K2_ExecuteGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context);
 
 	UFUNCTION(BlueprintCallable, Category = Ability, meta=(GameplayTagFilter="GameplayCue"), FriendlyName="AddGameplayCue")
-	virtual void K2_AddGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context);
+	virtual void K2_AddGameplayCue(FGameplayTag GameplayCueTag, FGameplayEffectContextHandle Context, bool bRemoveOnAbilityEnd = true);
 
 	UFUNCTION(BlueprintCallable, Category = Ability, meta=(GameplayTagFilter="GameplayCue"), FriendlyName="RemoveGameplayCue")
 	virtual void K2_RemoveGameplayCue(FGameplayTag GameplayCueTag);
@@ -755,6 +767,9 @@ protected:
 	mutable const FGameplayAbilityActorInfo* CurrentActorInfo;
 
 	mutable FGameplayAbilitySpecHandle CurrentSpecHandle;
+
+	/** GameplayCues that were added during this ability that will get automatically removed when it ends */
+	TSet<FGameplayTag> TrackedGameplayCues;
 
 	/** Active montage being played by this ability */
 	UPROPERTY()

@@ -33,6 +33,26 @@ void UAbilityTask_PlayMontageAndWait::OnMontageEnded(UAnimMontage* Montage, bool
 	EndTask();
 }
 
+void UAbilityTask_PlayMontageAndWait::OnMontageInterrupted()
+{
+	// Check if the montage is still playing
+	// The ability would have been interrupted, in which case we should automatically stop the montage
+	if (AbilitySystemComponent.IsValid() && Ability.IsValid())
+	{
+		if (AbilitySystemComponent->IsAnimatingAbility(Ability.Get())
+			&& AbilitySystemComponent->GetCurrentMontage() == MontageToPlay)
+		{
+			// Unbind the delegate in this case so OnMontageEnded does not get called as well
+			BlendingOutDelegate.Unbind();
+
+			AbilitySystemComponent->CurrentMontageStop();
+
+			// Let the BP handle the interrupt as well
+			OnInterrupted.Broadcast();
+		}
+	}
+}
+
 UAbilityTask_PlayMontageAndWait* UAbilityTask_PlayMontageAndWait::CreatePlayMontageAndWaitProxy(UObject* WorldContextObject,
 	FName TaskInstanceName, UAnimMontage *MontageToPlay, float Rate, FName StartSection)
 {
@@ -53,7 +73,14 @@ void UAbilityTask_PlayMontageAndWait::Activate()
 		{
 			if (AbilitySystemComponent->PlayMontage(Ability.Get(), Ability->GetCurrentActivationInfo(), MontageToPlay, Rate, StartSection) > 0.f)
 			{
-				FOnMontageBlendingOutStarted BlendingOutDelegate;
+				// Playing a montage could potentially fire off a callback into game code which could kill this ability! Early out if we are  pending kill.
+				if (IsPendingKill())
+				{
+					return;
+				}
+
+				InterruptedHandle = Ability->OnGameplayAbilityCancelled.AddUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageInterrupted);
+
 				BlendingOutDelegate.BindUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageEnded);
 				ActorInfo->AnimInstance->Montage_SetBlendingOutDelegate(BlendingOutDelegate);
 			}
@@ -76,6 +103,12 @@ void UAbilityTask_PlayMontageAndWait::OnDestroy(bool AbilityEnded)
 {
 	// Note: Clearing montage end delegate isn't necessary since its not a multicast and will be cleared when the next montage plays.
 	// (If we are destroyed, it will detect this and not do anything)
+
+	// This delegate, however, should be cleared as it is a multicast
+	if (Ability.IsValid())
+	{
+		Ability->OnGameplayAbilityCancelled.Remove(InterruptedHandle);
+	}
 
 	Super::OnDestroy(AbilityEnded);
 }

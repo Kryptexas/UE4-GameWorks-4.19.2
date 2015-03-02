@@ -8,6 +8,8 @@ UAbilityTask_StartAbilityState::UAbilityTask_StartAbilityState(const FObjectInit
 : Super(ObjectInitializer)
 {
 	bEndCurrentState = true;
+	bWasEnded = false;
+	bWasInterrupted = false;
 }
 
 UAbilityTask_StartAbilityState* UAbilityTask_StartAbilityState::StartAbilityState(UObject* WorldContextObject, FName StateName, bool bEndCurrentState)
@@ -19,61 +21,59 @@ UAbilityTask_StartAbilityState* UAbilityTask_StartAbilityState::StartAbilityStat
 
 void UAbilityTask_StartAbilityState::Activate()
 {
-	UAbilitySystemComponent* ASC = AbilitySystemComponent.Get();
-
-	if (ASC)
+	if (Ability.IsValid())
 	{
-		if (bEndCurrentState && ASC->OnAbilityStateEnded.IsBound())
+		if (bEndCurrentState && Ability->OnGameplayAbilityStateEnded.IsBound())
 		{
-			ASC->OnAbilityStateEnded.Broadcast(NAME_None);
+			Ability->OnGameplayAbilityStateEnded.Broadcast(NAME_None);
 		}
 
-		EndStateHandle = ASC->OnAbilityStateEnded.AddUObject(this, &UAbilityTask_StartAbilityState::OnEndState);
-		InterruptStateHandle = ASC->OnAbilityStateInterrupted.AddUObject(this, &UAbilityTask_StartAbilityState::OnInterruptState);
+		EndStateHandle = Ability->OnGameplayAbilityStateEnded.AddUObject(this, &UAbilityTask_StartAbilityState::OnEndState);
+		InterruptStateHandle = Ability->OnGameplayAbilityCancelled.AddUObject(this, &UAbilityTask_StartAbilityState::OnInterruptState);
 	}
 }
 
 void UAbilityTask_StartAbilityState::OnDestroy(bool AbilityEnded)
-{	
-	// If the ability was ended, make sure to first notify the BP via 'OnStateEnded'
-	if (AbilityEnded && OnStateEnded.IsBound())
+{
+	Super::OnDestroy(AbilityEnded);
+
+	if (bWasInterrupted && OnStateInterrupted.IsBound())
+	{
+		OnStateInterrupted.Broadcast();
+	}
+	else if ((bWasEnded || AbilityEnded) && OnStateEnded.IsBound())
 	{
 		OnStateEnded.Broadcast();
 	}
 
-	UAbilitySystemComponent* ASC = AbilitySystemComponent.Get();
-
-	if (ASC)
+	if (Ability.IsValid())
 	{
-		ASC->OnAbilityStateInterrupted.Remove(InterruptStateHandle);
-		ASC->OnAbilityStateEnded.Remove(EndStateHandle);
+		Ability->OnGameplayAbilityCancelled.Remove(InterruptStateHandle);
+		Ability->OnGameplayAbilityStateEnded.Remove(EndStateHandle);
 	}
-
-	Super::OnDestroy(AbilityEnded);
 }
 
 void UAbilityTask_StartAbilityState::OnEndState(FName StateNameToEnd)
 {
-	// All states end if 'Name_NONE' is passed to this delegate
+	// All states end if 'NAME_None' is passed to this delegate
 	if (StateNameToEnd.IsNone() || StateNameToEnd == InstanceName)
 	{
-		EndTask();
+		bWasEnded = true;
 
-		if (OnStateEnded.IsBound())
-		{
-			OnStateEnded.Broadcast();
-		}
+		EndTask();
 	}
 }
 
 void UAbilityTask_StartAbilityState::OnInterruptState()
 {
-	EndTask();
+	bWasInterrupted = true;
+}
 
-	if (OnStateInterrupted.IsBound())
-	{
-		OnStateInterrupted.Broadcast();
-	}
+void UAbilityTask_StartAbilityState::ExternalCancel()
+{
+	bWasInterrupted = true;
+
+	Super::ExternalCancel();
 }
 
 FString UAbilityTask_StartAbilityState::GetDebugString() const
