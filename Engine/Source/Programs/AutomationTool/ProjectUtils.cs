@@ -623,6 +623,11 @@ namespace AutomationTool
                     var Target = Properties.Targets[TargetRules.TargetType.Editor];
                     Options = Target.Rules.GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(HostPlatform);
                 }
+				else if(Properties.Targets.ContainsKey(TargetRules.TargetType.Game))
+				{
+					var Target = Properties.Targets[TargetRules.TargetType.Game];
+					Options = Target.Rules.GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(HostPlatform);
+				}
                 return Options;
             }
             public void Dump(List<UnrealTargetPlatform> InHostPlatforms)
