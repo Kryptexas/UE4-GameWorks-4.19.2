@@ -2528,6 +2528,12 @@ bool UWorld::HandleLogActorCountsCommand( const TCHAR* Cmd, FOutputDevice& Ar, U
 
 bool UWorld::HandleDemoRecordCommand( const TCHAR* Cmd, FOutputDevice& Ar, UWorld* InWorld )
 {
+	if ( FParse::Param( FCommandLine::Get(),TEXT( "NOREPLAYS" ) ) )
+	{
+		UE_LOG( LogWorld, Warning, TEXT( "HandleDemoRecordCommand: Rejected due to -noreplays option" ) );
+		return true;
+	}
+
 	FURL DemoURL;
 	FString DemoName;
 
