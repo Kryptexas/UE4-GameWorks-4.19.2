@@ -92,8 +92,10 @@ void FAssetEditorToolkit::InitAssetEditor( const EToolkitMode::Type Mode, const 
 		{
 			static_assert(sizeof(EAssetEditorToolkitTabLocation) == sizeof(int32), "EAssetEditorToolkitTabLocation is the incorrect size");
 
+			const UEditorStyleSettings* StyleSettings = GetDefault<UEditorStyleSettings>();
+
 			// Work out where we should create this asset editor
-			EAssetEditorToolkitTabLocation SavedAssetEditorToolkitTabLocation = EAssetEditorToolkitTabLocation::Docked;
+			EAssetEditorToolkitTabLocation SavedAssetEditorToolkitTabLocation = StyleSettings->bOpenTabsInNewWindow ? EAssetEditorToolkitTabLocation::Standalone : EAssetEditorToolkitTabLocation::Docked;
 			GConfig->GetInt(
 				TEXT("AssetEditorToolkitTabLocation"), 
 				*ObjectsToEdit[0]->GetPathName(), 
