@@ -75,6 +75,7 @@ public:
 		UI_COMMAND( AddsActors, "Select Actors", "Adds the Actors in the selected Levels from the viewport's existing selection", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( RemovesActors, "Deselect Actors", "Removes the Actors in the selected Levels from the viewport's existing selection", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( MoveActorsToSelected, "Move Selected Actors to Level", "Moves the selected actors to this level", EUserInterfaceActionType::Button, FInputGesture() );
+		UI_COMMAND( MoveFoliageToSelected, "Move Selected Foliage to Level", "Moves the selected foliage instances to this level. Keeps cross-level references to original bases", EUserInterfaceActionType::Button, FInputGesture() );
 		UI_COMMAND( SelectStreamingVolumes, "Select Streaming Volumes", "Selects the streaming volumes associated with the selected levels", EUserInterfaceActionType::Button, FInputGesture() );
 
 		//visibility
@@ -227,6 +228,9 @@ public:
 	/** Moves the selected actors to the selected level */
 	TSharedPtr< FUICommandInfo > MoveActorsToSelected;
 
+	/** Moves the selected foliage instances to the selected level */
+	TSharedPtr< FUICommandInfo > MoveFoliageToSelected;
+	
 	/** Selects the streaming volumes associated with the selected levels */
 	TSharedPtr< FUICommandInfo > SelectStreamingVolumes;
 	

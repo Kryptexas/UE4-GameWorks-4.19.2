@@ -1339,6 +1339,42 @@ void AInstancedFoliageActor::MoveInstancesToNewComponent(UPrimitiveComponent* In
 	}
 }
 
+void AInstancedFoliageActor::MoveSelectedInstancesToLevel(ULevel* InTargetLevel)
+{
+	if (InTargetLevel == GetLevel() || !HasSelectedInstances())
+	{
+		return;
+	}
+		
+	AInstancedFoliageActor* TargetIFA = GetInstancedFoliageActorForLevel(InTargetLevel, /*bCreateIfNone*/ true);
+	
+	Modify();
+	TargetIFA->Modify();
+	
+	// Do move
+	for (auto& MeshPair : FoliageMeshes)
+	{
+		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+		UFoliageType* FoliageType = MeshPair.Key;
+
+		if (MeshInfo.SelectedIndices.Num())
+		{
+			FFoliageMeshInfo* TargetMeshInfo = nullptr;
+			UFoliageType* TargetFoliageType = TargetIFA->AddFoliageType(FoliageType, &TargetMeshInfo);
+
+			// Add selected instances to the target actor
+			for (int32 InstanceIndex : MeshInfo.SelectedIndices)
+			{
+				FFoliageInstance& Instance = MeshInfo.Instances[InstanceIndex];
+				TargetMeshInfo->AddInstance(TargetIFA, TargetFoliageType, Instance, InstanceBaseCache.GetInstanceBasePtr(Instance.BaseId).Get());
+			}
+
+			// Remove selected instances from this actor
+			MeshInfo.RemoveInstances(this, MeshInfo.SelectedIndices.Array());
+		}
+	}
+}
+
 TMap<UFoliageType*, TArray<const FFoliageInstancePlacementInfo*>> AInstancedFoliageActor::GetInstancesForComponent(UActorComponent* InComponent)
 {
 	TMap<UFoliageType*, TArray<const FFoliageInstancePlacementInfo*>> Result;
@@ -1618,6 +1654,19 @@ void AInstancedFoliageActor::SelectInstance(UInstancedStaticMeshComponent* InCom
 			}
 		}
 	}
+}
+
+bool AInstancedFoliageActor::HasSelectedInstances() const
+{
+	for (const auto& MeshPair : FoliageMeshes)
+	{
+		if (MeshPair.Value->SelectedIndices.Num() > 0)
+		{
+			return true;
+		}
+	}
+	
+	return false;
 }
 
 void AInstancedFoliageActor::PostEditUndo()

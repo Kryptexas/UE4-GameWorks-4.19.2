@@ -100,6 +100,9 @@ public:
 	// The instances keep the same world locations
 	FOLIAGE_API void MoveInstancesToNewComponent(UPrimitiveComponent* InOldComponent, UPrimitiveComponent* InNewComponent);
 
+	// Move selected instances to a foliage actor in target level
+	FOLIAGE_API void MoveSelectedInstancesToLevel(ULevel* InTargetLevel);
+	
 	// Move instances based on a component that has just been moved.
 	void MoveInstancesForMovedComponent(UActorComponent* InComponent);
 	
@@ -127,6 +130,9 @@ public:
 
 	// Select an individual instance.
 	FOLIAGE_API void SelectInstance(UInstancedStaticMeshComponent* InComponent, int32 InComponentInstanceIndex, bool bToggle);
+
+	// Whether actor has selected instances
+	FOLIAGE_API bool HasSelectedInstances() const;
 
 	// Propagate the selected instances to the actual render components
 	FOLIAGE_API void ApplySelectionToComponents(bool bApply);

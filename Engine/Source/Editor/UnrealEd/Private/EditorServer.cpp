@@ -2833,6 +2833,38 @@ void UEditorEngine::DoMoveSelectedActorsToLevel( ULevel* InDestLevel )
 	GEditor->Trans->End();
 }
 
+void UEditorEngine::MoveSelectedFoliageToLevel(ULevel* InTargetLevel)
+{
+	// Can't move into a locked level
+	if (FLevelUtils::IsLevelLocked(InTargetLevel))
+	{
+		FNotificationInfo Info(NSLOCTEXT("UnrealEd", "CannotMoveFoliageIntoLockedLevel", "Cannot move the selected foliage into a locked level"));
+		Info.bUseThrobber = false;
+		FSlateNotificationManager::Get().AddNotification(Info)->SetCompletionState(SNotificationItem::CS_Fail);
+		return;
+	}
+
+	const FScopedTransaction Transaction(NSLOCTEXT("UnrealEd", "MoveSelectedFoliageToSelectedLevel", "Move Selected Foliage to Level"));
+
+	// Get a world context
+	UWorld* World = InTargetLevel->OwningWorld;
+	
+	// Iterate over all foliage actors in the world and move selected instances to a foliage actor in the target level
+	const int32 NumLevels = World->GetNumLevels();
+	for (int32 LevelIdx = 0; LevelIdx < NumLevels; ++LevelIdx)
+	{
+		ULevel* Level = World->GetLevel(LevelIdx);
+		if (Level != InTargetLevel)
+		{
+			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Level, /*bCreateIfNone*/ false);
+			if (IFA && IFA->HasSelectedInstances())
+			{
+				IFA->MoveSelectedInstancesToLevel(InTargetLevel);
+			}
+		}
+	}
+}
+
 ULevel*  UEditorEngine::CreateTransLevelMoveBuffer( UWorld* InWorld )
 {
 	ULevel* BufferLevel = NewObject<ULevel>(GetTransientPackage(), TEXT("TransLevelMoveBuffer"));

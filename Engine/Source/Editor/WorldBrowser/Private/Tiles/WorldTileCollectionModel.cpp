@@ -358,6 +358,7 @@ void FWorldTileCollectionModel::BuildWorldCompositionMenu(FMenuBuilder& InMenuBu
 		if (IsOneLevelSelected())
 		{
 			InMenuBuilder.AddMenuEntry(Commands.MoveActorsToSelected);
+			InMenuBuilder.AddMenuEntry(Commands.MoveFoliageToSelected);
 		}
 	}
 	InMenuBuilder.EndSection();
@@ -468,6 +469,7 @@ void FWorldTileCollectionModel::BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) 
 		if (IsOneLevelSelected())
 		{
 			InMenuBuilder.AddMenuEntry( Commands.MoveActorsToSelected );
+			InMenuBuilder.AddMenuEntry( Commands.MoveFoliageToSelected );
 		}
 	}
 	InMenuBuilder.EndSection();

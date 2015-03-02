@@ -1810,6 +1810,13 @@ public:
 	void MoveSelectedActorsToLevel( ULevel* InLevel );
 
 	/**
+	 * Moves selected foliage instances to the target level.
+	 *
+	 * @param	InLevel		The target level.
+	 */
+	void MoveSelectedFoliageToLevel( ULevel* InTargetLevel );
+
+	/**
 	 * Checks to see whether it's possible to perform a copy operation on the selected actors.
 	 *
 	 * @param InWorld		World to get the selected actors from

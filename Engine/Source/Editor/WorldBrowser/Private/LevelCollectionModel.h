@@ -212,7 +212,10 @@ public:
 	bool AreActorsSelected() const;
 
 	/** @return whether moving the selected actors to the selected level is a valid action */
-	bool IsValidMoveActorsToLevel();
+	bool IsValidMoveActorsToLevel() const;
+
+	/** @return whether moving the selected foliage to the selected level is a valid action */
+	bool IsValidMoveFoliageToLevel() const;
 
 	/** delegate used to pickup when the selection has changed */
 	void OnActorSelectionChanged(UObject* obj);
@@ -306,6 +309,9 @@ protected:
 
 	/** Moves the selected actors to this level */
 	void MoveActorsToSelected_Executed();
+
+	/** Moves the selected foliage to this level */
+	void MoveFoliageToSelected_Executed();
 
 	/** Saves selected levels */
 	void SaveSelectedLevels_Executed();
@@ -523,7 +529,7 @@ protected:
 	mutable bool						bCanExecuteSCC;
 
 	/** Flag for whether the selection of levels or actors has changed */
-	bool								bSelectionHasChanged;
+	mutable bool						bSelectionHasChanged;
 
 	/** Guard to avoid recursive level selection updates */
 	bool								bUpdatingLevelsSelection;
