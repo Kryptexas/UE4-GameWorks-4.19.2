@@ -382,6 +382,55 @@ void FDistanceFieldAsyncQueue::AddTask(FAsyncDistanceFieldTask* Task)
 #endif
 }
 
+void FDistanceFieldAsyncQueue::BlockUntilBuildCompleteAndReleaseData(UStaticMesh* StaticMesh)
+{
+	bool bReferenced = false;
+	bool bHadToBlock = false;
+	double StartTime = 0;
+
+	do 
+	{
+		ProcessAsyncTasks();
+
+		bReferenced = false;
+
+		for (int TaskIndex = 0; TaskIndex < ReferencedTasks.Num(); TaskIndex++)
+		{
+			bReferenced = bReferenced || ReferencedTasks[TaskIndex]->StaticMesh == StaticMesh;
+			bReferenced = bReferenced || ReferencedTasks[TaskIndex]->GenerateSource == StaticMesh;
+		}
+
+		if (bReferenced)
+		{
+			if (!bHadToBlock)
+			{
+				StartTime = FPlatformTime::Seconds();
+			}
+
+			bHadToBlock = true;
+			FPlatformProcess::Sleep(.01f);
+		}
+	} 
+	while (bReferenced);
+
+	for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
+	{
+		FDistanceFieldVolumeData* DistanceFieldData = StaticMesh->RenderData->LODResources[LODIndex].DistanceFieldData;
+
+		if (DistanceFieldData)
+		{
+			DistanceFieldData->VolumeTexture.Release();
+		}
+	}
+
+	if (bHadToBlock)
+	{
+		UE_LOG(LogStaticMesh, Warning, TEXT("Main thread blocked for %.3fs for async distance field build of %s to complete!  This can happen if the mesh is rebuilt excessively."),
+			(float)(FPlatformTime::Seconds() - StartTime), 
+			*StaticMesh->GetName());
+	}
+}
+
 void FDistanceFieldAsyncQueue::Build(FAsyncDistanceFieldTask* Task, FQueuedThreadPool& ThreadPool)
 {
 #if WITH_EDITOR

@@ -1700,6 +1700,14 @@ void UStaticMesh::CacheDerivedData()
 	ITargetPlatform* RunningPlatform = TargetPlatformManager.GetRunningTargetPlatform();
 	check(RunningPlatform);
 	const FStaticMeshLODSettings& LODSettings = RunningPlatform->GetStaticMeshLODSettings();
+
+	if (RenderData)
+	{
+		// Finish any previous async builds before modifying RenderData
+		// This can happen during import as the mesh is rebuilt redundantly
+		GDistanceFieldAsyncQueue->BlockUntilBuildCompleteAndReleaseData(this);
+	}
+
 	RenderData = new FStaticMeshRenderData();
 	RenderData->Cache(this, LODSettings);
 
