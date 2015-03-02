@@ -740,6 +740,20 @@ public:
 	UPROPERTY(Transient)
 	float NavMeshProjectionTimer;
 
+	/**
+	 * Scale of the total capsule height to use for projection from navmesh to underlying geometry in the upward direction.
+	 * In other words, start the trace at [CapsuleHeight * NavMeshProjectionCapsuleHeightScaleUp] above nav mesh.
+	 */
+	UPROPERTY(Category = "NavMesh Movement", EditAnywhere, BlueprintReadOnly, meta=(editcondition = "bProjectNavMeshWalking"))
+	float NavMeshProjectionCapsuleHeightScaleUp;
+
+	/**
+	 * Scale of the total capsule height to use for projection from navmesh to underlying geometry in the downward direction.
+	 * In other words, trace down to [CapsuleHeight * NavMeshProjectionCapsuleHeightScaleDown] below nav mesh.
+	 */
+	UPROPERTY(Category = "NavMesh Movement", EditAnywhere, BlueprintReadOnly, meta=(editcondition = "bProjectNavMeshWalking"))
+	float NavMeshProjectionCapsuleHeightScaleDown;
+
 	/** Change avoidance state and registers in RVO manager if needed */
 	UFUNCTION(BlueprintCallable, Category = "Pawn|Components|CharacterMovement", meta = (UnsafeDuringActorConstruction = "true"))
 	void SetAvoidanceEnabled(bool bEnable);
@@ -1129,7 +1143,7 @@ protected:
 	 * navmesh can differ quite significantly from geometry).
 	 * Updates CachedProjectedNavMeshHitResult, access this for more info about hits.
 	 */
-	virtual void ProjectLocationFromNavMesh(float DeltaSeconds, FVector& InOutLocation);
+	virtual void ProjectLocationFromNavMesh(float DeltaSeconds, FVector& InOutLocation, float UpOffset, float DownOffset);
 
 public:
 
@@ -1522,7 +1536,8 @@ protected:
 
 public:
 
-	/** Project a location to navmesh to find adjusted height
+	/**
+	 * Project a location to navmesh to find adjusted height.
 	 * @param TestLocation		Location to project
 	 * @param NavFloorLocation	Location on navmesh
 	 * @return True if projection was performed (successfully or not)
