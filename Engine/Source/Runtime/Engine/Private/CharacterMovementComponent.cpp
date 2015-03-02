@@ -285,8 +285,8 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 	OldBaseLocation = FVector::ZeroVector;
 
 	NavMeshProjectionInterval = 0.1f;
-	NavMeshProjectionCapsuleHeightScaleUp = 1.0f;
-	NavMeshProjectionCapsuleHeightScaleDown = 1.0f;
+	NavMeshProjectionHeightScaleUp = 1.0f;
+	NavMeshProjectionHeightScaleDown = 1.0f;
 }
 
 void UCharacterMovementComponent::PostLoad()
@@ -3851,8 +3851,8 @@ void UCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iteratio
 		{
 			SCOPE_CYCLE_COUNTER(STAT_CharNavProjectLocation);
 			const float TotalCapsuleHeight = CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.0f;
-			const float UpOffset = TotalCapsuleHeight * NavMeshProjectionCapsuleHeightScaleUp;
-			const float DownOffset = TotalCapsuleHeight * NavMeshProjectionCapsuleHeightScaleDown;
+			const float UpOffset = TotalCapsuleHeight * FMath::Max(0.f, NavMeshProjectionHeightScaleUp);
+			const float DownOffset = TotalCapsuleHeight * FMath::Max(0.f, NavMeshProjectionHeightScaleDown);
 			ProjectLocationFromNavMesh(deltaTime, NewLocation, UpOffset, DownOffset);
 		}
 
