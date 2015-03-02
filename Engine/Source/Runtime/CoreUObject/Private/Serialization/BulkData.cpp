@@ -798,7 +798,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 #else
 				check(Linker.IsValid());				
 #endif // WITH_EDITOR
-				if (!Filename.IsEmpty() && GetBulkDataSize() > MinBulkDataSizeForAsyncLoading.Value && MinBulkDataSizeForAsyncLoading.Value >= 0)
+				if (FPlatformProperties::RequiresCookedData() && !Filename.IsEmpty() && GetBulkDataSize() > MinBulkDataSizeForAsyncLoading.Value && MinBulkDataSizeForAsyncLoading.Value >= 0)
 				{
 					// Start serializing immediately
 					StartSerializingBulkData(Ar, Owner, Idx, bPayloadInline);
@@ -823,7 +823,7 @@ void FUntypedBulkData::Serialize( FArchive& Ar, UObject* Owner, int32 Idx )
 				{
 					Filename = Owner->GetLinker()->Filename;
 				}
-				if (!Filename.IsEmpty() && GetBulkDataSize() > MinBulkDataSizeForAsyncLoading.Value && MinBulkDataSizeForAsyncLoading.Value >= 0)
+				if (FPlatformProperties::RequiresCookedData() && !Filename.IsEmpty() && GetBulkDataSize() > MinBulkDataSizeForAsyncLoading.Value && MinBulkDataSizeForAsyncLoading.Value >= 0)
 				{
 					StartSerializingBulkData(Ar, Owner, Idx, bPayloadInline);
 				}
