@@ -125,7 +125,7 @@ FText FMacErrorReport::DiagnoseReport() const
 		FString CrashDump;
 		FString DiagnosticsPath = ReportDirectory / FCrashReportClientConfig::Get().GetDiagnosticsFilename();
 		CrashDebugHelper->CrashInfo.GenerateReport( DiagnosticsPath );
-		if ( FFileHelper::LoadFileToString( CrashDump, *(ReportDirectory / FCrashReportClientConfig::Get().GetDiagnosticsFilename() ) )
+		if ( FFileHelper::LoadFileToString( CrashDump, *(ReportDirectory / FCrashReportClientConfig::Get().GetDiagnosticsFilename() ) ) )
 		{
 			return FText::FromString(CrashDump);
 		}
