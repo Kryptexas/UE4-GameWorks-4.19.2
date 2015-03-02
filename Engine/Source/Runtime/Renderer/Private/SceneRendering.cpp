@@ -735,41 +735,31 @@ void FViewInfo::CreateForwardLightDataUniformBuffer(FForwardLightData &OutForwar
 					SourceLength,
 					MinRoughness);
 
-				if(LightType == LightType_Point || LightType == LightType_Spot)
+				// Check if the light is visible in this view.
+				if(!LightSceneInfo->ShouldRenderLight(*this))
 				{
-					// Check if the light is visible in this view.
-					if(!LightSceneInfo->ShouldRenderLight(*this))
-					{
-						continue;
-					}
-
-					FVector4 BoundingSphereVector = *(FVector4*)&LightSceneInfoCompact.BoundingSphereVector;
-
-					float InvRadius = 1.0f / BoundingSphereVector.W;
-
-					OutForwardLightData.LightPositionAndInvRadius[LightIndex] = FVector4(FVector(BoundingSphereVector), InvRadius);
-
-					// SpotlightMaskAndMinRoughness, >0:Spotlight, MinRoughness = abs();
-					float W = FMath::Max(0.0001f, MinRoughness) * ((LightType == LightType_Spot) ? 1 : -1);
-
-					OutForwardLightData.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex] = FVector4(NormalizedLightDirection, W);
-					OutForwardLightData.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex] = FVector4(SpotAngles.X, SpotAngles.Y, SourceRadius, 0);
-
-					if (LightSceneInfo->Proxy->IsInverseSquared())
-					{
-						// Correction for lumen units
-						OutForwardLightData.LightColorAndFalloffExponent[LightIndex].X *= 16.0f;
-						OutForwardLightData.LightColorAndFalloffExponent[LightIndex].Y *= 16.0f;
-						OutForwardLightData.LightColorAndFalloffExponent[LightIndex].Z *= 16.0f;
-						OutForwardLightData.LightColorAndFalloffExponent[LightIndex].W = 0;
-					}
-				}
-				else
-				{
-//					FVector Direction = -LightSceneInfo->Proxy->GetDirection();
-
-					// we don't handle directional light types yet
 					continue;
+				}
+
+				FVector4 BoundingSphereVector = *(FVector4*)&LightSceneInfoCompact.BoundingSphereVector;
+
+				float InvRadius = 1.0f / BoundingSphereVector.W;
+
+				OutForwardLightData.LightPositionAndInvRadius[LightIndex] = FVector4(FVector(BoundingSphereVector), InvRadius);
+
+				// SpotlightMaskAndMinRoughness, >0:Spotlight, MinRoughness = abs();
+				float W = FMath::Max(0.0001f, MinRoughness) * ((LightType == LightType_Spot) ? 1 : -1);
+
+				OutForwardLightData.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex] = FVector4(NormalizedLightDirection, W);
+				OutForwardLightData.SpotAnglesAndSourceRadiusAndDir[LightIndex] = FVector4(SpotAngles.X, SpotAngles.Y, SourceRadius, LightType == LightType_Directional);
+
+				if(LightSceneInfo->Proxy->IsInverseSquared())
+				{
+					// Correction for lumen units
+					OutForwardLightData.LightColorAndFalloffExponent[LightIndex].X *= 16.0f;
+					OutForwardLightData.LightColorAndFalloffExponent[LightIndex].Y *= 16.0f;
+					OutForwardLightData.LightColorAndFalloffExponent[LightIndex].Z *= 16.0f;
+					OutForwardLightData.LightColorAndFalloffExponent[LightIndex].W = 0;
 				}
 
 				{
@@ -778,8 +768,6 @@ void FViewInfo::CreateForwardLightDataUniformBuffer(FForwardLightData &OutForwar
 
 					OutForwardLightData.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex] = FVector4(NormalizedLightDirection, W);
 				}
-
-				OutForwardLightData.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex] = FVector4(SpotAngles.X, SpotAngles.Y, SourceRadius, 0);
 
 				// we want to add one light
 				++LightIndex;

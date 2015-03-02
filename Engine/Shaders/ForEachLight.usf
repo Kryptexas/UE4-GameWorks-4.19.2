@@ -28,12 +28,12 @@ float3 LightingForOneLight(FMaterialPixelParameters Parameters, uint LightIndex,
 		LightData.bSpotLight = Value.w > 0;
 		LightData.MinRoughness = abs(Value.w);
 	}
-	LightData.SpotAnglesAndSourceRadius = float4( ForwardLightData.SpotAnglesAndSourceRadiusAndSimpleLighting[LightIndex].xyz, 0 );
+	LightData.SpotAnglesAndSourceRadius = float4( ForwardLightData.SpotAnglesAndSourceRadiusAndDir[LightIndex].xyz, 0 );
 	// currently we don't support shadows
 	LightData.ShadowMapChannelMask = 0;
 	LightData.bInverseSquared = ForwardLightData.LightColorAndFalloffExponent[LightIndex].w == 0;
 	// Only radial lights supported with tiled deferred
-	LightData.bRadialLight = true;
+	LightData.bRadialLight = ForwardLightData.SpotAnglesAndSourceRadiusAndDir[LightIndex].w == 0;
 	// The only type of shadowing supported for lights using tiled is static shadowing, so the light should only compute shadowing if it has static shadowing
 	LightData.bShadowed = dot(LightData.ShadowMapChannelMask, float4(1, 1, 1, 1));
 	
