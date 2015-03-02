@@ -697,7 +697,9 @@ error:
                                                                 baseAddress: image->base_address
                                                                        size: image->size
                                                                        name: [NSString stringWithUTF8String: image->name]
-                                                                       uuid: uuid] autorelease];
+                                                                       uuid: uuid
+                                                                       version: image->version
+                                                                       compatibility: image->compatibility] autorelease];
         [images addObject: imageInfo];
     }
 

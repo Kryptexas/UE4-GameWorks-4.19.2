@@ -850,12 +850,19 @@ cleanup:
     _applicationIdentifier = [applicationIdentifier retain];
     _applicationVersion = [applicationVersion retain];
     
-    /* No occurances of '/' should ever be in a bundle ID, but just to be safe, we escape them */
-    NSString *appIdPath = [applicationIdentifier stringByReplacingOccurrencesOfString: @"/" withString: @"_"];
-    
-    NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
-    NSString *cacheDir = [paths objectAtIndex: 0];
-    _crashReportDirectory = [[[cacheDir stringByAppendingPathComponent: PLCRASH_CACHE_DIR] stringByAppendingPathComponent: appIdPath] retain];
+    if(configuration.crashReportFolder)
+    {
+        _crashReportDirectory = configuration.crashReportFolder;
+    }
+    else
+    {
+        /* No occurances of '/' should ever be in a bundle ID, but just to be safe, we escape them */
+        NSString *appIdPath = [applicationIdentifier stringByReplacingOccurrencesOfString: @"/" withString: @"_"];
+        
+        NSArray *paths = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
+        NSString *cacheDir = [paths objectAtIndex: 0];
+        _crashReportDirectory = [[[cacheDir stringByAppendingPathComponent: PLCRASH_CACHE_DIR] stringByAppendingPathComponent: appIdPath] retain];
+    }
     
     return self;
 }
@@ -882,13 +889,11 @@ cleanup:
             return nil;
         }
 
-        NSDEBUG(@"Warning -- bundle identifier, using process name %s", progname);
         bundleIdentifier = [NSString stringWithUTF8String: progname];
     }
 
     /* Verify that the version is available */
     if (bundleVersion == nil) {
-        NSDEBUG(@"Warning -- bundle version unavailable");
         bundleVersion = @"";
     }
     
@@ -1050,7 +1055,14 @@ cleanup:
  * Return the path to live crash report (which may not yet, or ever, exist).
  */
 - (NSString *) crashReportPath {
-    return [[self crashReportDirectory] stringByAppendingPathComponent: PLCRASH_LIVE_CRASHREPORT];
+    if(_config.crashReportName)
+    {
+        return [[self crashReportDirectory] stringByAppendingPathComponent: _config.crashReportName];
+    }
+    else
+    {
+        return [[self crashReportDirectory] stringByAppendingPathComponent: PLCRASH_LIVE_CRASHREPORT];
+    }
 }
 
 

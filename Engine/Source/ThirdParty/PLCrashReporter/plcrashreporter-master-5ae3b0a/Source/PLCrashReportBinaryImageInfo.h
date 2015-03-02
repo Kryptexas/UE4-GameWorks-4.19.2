@@ -48,13 +48,21 @@
 
     /** 128-bit object UUID. May be nil. */
     NSString *_imageUUID;
+    
+    /** Binary version number. May be 0. */
+    uint32_t _version;
+    
+    /** Compatibility version number. May be 0. */
+    uint32_t _compatibility;
 }
 
 - (id) initWithCodeType: (PLCrashReportProcessorInfo *) processorInfo
             baseAddress: (uint64_t) baseAddress 
                    size: (uint64_t) imageSize
                    name: (NSString *) imageName
-                   uuid: (NSData *) uuid;
+                   uuid: (NSData *) uuid
+                   version: (uint32_t) version
+                   compatibility: (uint32_t) compatibility;
 
 /**
  * Image code type, or nil if unavailable.
@@ -86,5 +94,15 @@
  * 128-bit object UUID (matches Mach-O DWARF dSYM files). May be nil if unavailable.
  */
 @property(nonatomic, readonly) NSString *imageUUID;
+
+/**
+ * Binary version number. May be 0.
+ */
+@property(nonatomic, readonly) uint32_t version;
+
+/**
+ * Compatibility version number. May be 0.
+ */
+@property(nonatomic, readonly) uint32_t compatibility;
 
 @end

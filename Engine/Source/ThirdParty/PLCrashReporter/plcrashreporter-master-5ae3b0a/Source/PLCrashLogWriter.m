@@ -152,6 +152,12 @@ enum {
     /** CrashReport.BinaryImage.code_type */
     PLCRASH_PROTO_BINARY_IMAGE_CODE_TYPE_ID = 5,
 
+    /** CrashReport.BinaryImage.version */
+    PLCRASH_PROTO_BINARY_IMAGE_VERSION_ID = 6,
+
+    /** CrashReport.BinaryImage.compatibility */
+    PLCRASH_PROTO_BINARY_IMAGE_COMPATIBILITY_ID = 7,
+
     
     /** CrashReport.exception */
     PLCRASH_PROTO_EXCEPTION_ID = 5,
@@ -1027,6 +1033,19 @@ static size_t plcrash_writer_write_binary_image (plcrash_async_file_t *file, plc
     /* Write the header and message */
     rv += plcrash_writer_pack(file, PLCRASH_PROTO_BINARY_IMAGE_CODE_TYPE_ID, PLPROTOBUF_C_TYPE_MESSAGE, &msgsize);
     rv += plcrash_writer_write_processor_info(file, cpu_type, cpu_subtype);
+
+    /* Versioning */
+    struct dylib_command* load;
+    load = plcrash_async_macho_find_command(image, LC_LOAD_DYLIB);
+    if (load != NULL) {
+        /* Dylib version */
+        uint32_t current_version = load->dylib.current_version;
+        rv += plcrash_writer_pack(file, PLCRASH_PROTO_BINARY_IMAGE_VERSION_ID, PLPROTOBUF_C_TYPE_UINT32, &current_version);
+    
+        /* Dylib compatibility version */
+        uint32_t compatibility_version = load->dylib.compatibility_version;
+        rv += plcrash_writer_pack(file, PLCRASH_PROTO_BINARY_IMAGE_COMPATIBILITY_ID, PLPROTOBUF_C_TYPE_UINT32, &compatibility_version);
+    }
 
     return rv;
 }

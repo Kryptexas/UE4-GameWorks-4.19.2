@@ -39,6 +39,8 @@
 @synthesize imageName = _imageName;
 @synthesize hasImageUUID = _hasImageUUID;
 @synthesize imageUUID = _imageUUID;
+@synthesize version = _version;
+@synthesize compatibility = _compatibility;
 
 /**
  * Initialize with the given binary image properties.
@@ -49,12 +51,16 @@
  * @param name The image's name (absolute path).
  * @param uuid The image's UUID, or nil if unavailable. In the case of Mach-O, this will be the 128-bit
  * object UUID, which is also used to match against the corresponding Mach-O DWARF dSYM file.
+ * @param version The image's version number.
+ * @param compatibility The image's compatibility number.
  */
 - (id) initWithCodeType: (PLCrashReportProcessorInfo *) processorInfo
             baseAddress: (uint64_t) baseAddress 
                    size: (uint64_t) size
                    name: (NSString *) name
                    uuid: (NSData *) uuid
+                   version: (uint32_t) version
+                   compatibility: (uint32_t) compatibility
 {
     if ((self = [super init]) == nil)
         return nil;
@@ -63,6 +69,8 @@
     _imageSize = size;
     _imageName = [name retain];
     _processorInfo = [processorInfo retain];
+    _version = version;
+    _compatibility = compatibility;
 
     if (uuid != nil) {
         _hasImageUUID = YES;

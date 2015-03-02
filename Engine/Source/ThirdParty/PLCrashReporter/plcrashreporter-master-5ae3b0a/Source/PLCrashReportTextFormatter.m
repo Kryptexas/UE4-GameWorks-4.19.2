@@ -418,9 +418,9 @@ NSInteger binaryImageSort(id binary1, id binary2, void *context);
         /* base_address - terminating_address [designator]file_name arch <uuid> file_path */
         NSString *fmt = nil;
         if (lp64) {
-            fmt = @"%18#" PRIx64 " - %18#" PRIx64 " %@%@ %@  <%@> %@\n";
+            fmt = @"%18#" PRIx64 " - %18#" PRIx64 " %@%@ %@ (%hu.%hhu.%hhu - %hu.%hhu.%hhu) <%@> %@\n";
         } else {
-            fmt = @"%10#" PRIx64 " - %10#" PRIx64 " %@%@ %@  <%@> %@\n";
+            fmt = @"%10#" PRIx64 " - %10#" PRIx64 " %@%@ %@ (%hu.%hhu.%hhu - %hu.%hhu.%hhu) <%@> %@\n";
         }
 
         [text appendFormat: fmt,
@@ -429,6 +429,12 @@ NSInteger binaryImageSort(id binary1, id binary2, void *context);
                             binaryDesignator,
                             [imageInfo.imageName lastPathComponent],
                             archName,
+                            (imageInfo.version >> 16) & 0xffff,
+                            (imageInfo.version >> 8) & 0xff,
+                            imageInfo.version & 0xff,
+                            (imageInfo.compatibility >> 16) & 0xffff,
+                            (imageInfo.compatibility >> 8) & 0xff,
+                            imageInfo.compatibility & 0xff,
                             uuid,
                             imageInfo.imageName];
     }
