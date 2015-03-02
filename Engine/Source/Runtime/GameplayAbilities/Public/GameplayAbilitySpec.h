@@ -98,19 +98,19 @@ struct FGameplayAbilitySpecDef
 
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditDefaultsOnly, Category="Ability Definition")
+	UPROPERTY(EditDefaultsOnly, Category="Ability Definition", NotReplicated)
 	TSubclassOf<UGameplayAbility> Ability;
 	
-	UPROPERTY(EditDefaultsOnly, Category="Ability Definition")
+	UPROPERTY(EditDefaultsOnly, Category="Ability Definition", NotReplicated)
 	int32 Level; 
 	
-	UPROPERTY(EditDefaultsOnly, Category="Ability Definition")
+	UPROPERTY(EditDefaultsOnly, Category="Ability Definition", NotReplicated)
 	int32 InputID;
 
-	UPROPERTY(EditDefaultsOnly, Category="Ability Definition")
+	UPROPERTY(EditDefaultsOnly, Category="Ability Definition", NotReplicated)
 	EGameplayEffectGrantedAbilityRemovePolicy RemovalPolicy;
 	
-	UPROPERTY()
+	UPROPERTY(NotReplicated)
 	UObject* SourceObject;
 
 	/** This handle can be set if the SpecDef is used to create a real FGameplaybilitySpec */

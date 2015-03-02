@@ -1096,7 +1096,7 @@ public:
 	UPROPERTY(NotReplicated)
 	uint32 bDurationLocked : 1;
 
-	UPROPERTY(NotReplicated)
+	UPROPERTY()
 	TArray<FGameplayAbilitySpecDef> GrantedAbilitySpecs;
 
 private:
