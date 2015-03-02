@@ -657,7 +657,7 @@ namespace UnrealBuildTool
 
 
 										// Set whether this project configuration should be built when the user initiates "build solution"
-										if( MatchingProjectTarget != null )
+										if( MatchingProjectTarget != null && CurProject.ShouldBuildByDefaultForSolutionTargets )
 										{
 											VCSolutionFileContent.Append(
 													"		" + CurProjectGUID + "." + SolutionConfigCombination.VCSolutionConfigAndPlatformName + ".Build.0 = " + ProjectConfigAndPlatformPair + ProjectFileGenerator.NewLine );
