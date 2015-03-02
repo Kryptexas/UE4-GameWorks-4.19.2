@@ -422,6 +422,8 @@ void InitDebugContext()
 #if defined(GL_ARB_debug_output)
 	if (glDebugMessageCallbackARB)
 	{
+		// Synchronous output can slow things down, but we'll get better callstack if breaking in or crashing in the callback. This is debug only after all.
+		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 		glDebugMessageCallbackARB(GLDEBUGPROCARB(OpenGLDebugMessageCallbackARB), /*UserParam=*/ NULL);
 		bDebugOutputInitialized = (glGetError() == GL_NO_ERROR);
 	}

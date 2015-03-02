@@ -80,14 +80,9 @@ class TOpenGLBuffer : public BaseType
 
 	GLenum GetAccess()
 	{
-		GLenum Access = GL_STATIC_DRAW;
-
-		if (Type != GL_ARRAY_BUFFER || !OpenGLConsoleVariables::bUseStagingBuffer)
-		{
-			Access = bStreamDraw ? GL_STREAM_DRAW : (IsDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
-		}
-		
-		return Access;
+		// Previously there was special-case logic to always use GL_STATIC_DRAW for vertex buffers allocated from staging buffer.
+		// However it seems to be incorrect as NVidia drivers complain (via debug output callback) about VIDEO->HOST copying for buffers with such hints
+		return bStreamDraw ? GL_STREAM_DRAW : (IsDynamic() ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
 	}
 public:
 
