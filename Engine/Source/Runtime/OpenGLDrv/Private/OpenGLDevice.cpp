@@ -312,6 +312,12 @@ static void APIENTRY OpenGLDebugMessageCallbackARB(
 				ANSI_TO_TCHAR(Message)
 				);
 		}
+
+		// this is a debugging code to catch VIDEO->HOST copying
+		if (Id == 131186)
+		{
+			int A = 5;
+		}
 	}
 #endif
 }
@@ -480,7 +486,7 @@ static void InitRHICapabilitiesForGL()
 
 	GTexturePoolSize = 0;
 	GPoolSizeVRAMPercentage = 0;
-#if PLATFORM_WINDOWS
+#if PLATFORM_WINDOWS || PLATFORM_LINUX
 	GConfig->GetInt( TEXT( "TextureStreaming" ), TEXT( "PoolSizeVRAMPercentage" ), GPoolSizeVRAMPercentage, GEngineIni );	
 #endif
 
@@ -1187,7 +1193,7 @@ void FOpenGLDynamicRHI::Init()
 		ResourceIt->InitRHI();
 	}
 
-#if PLATFORM_WINDOWS || PLATFORM_MAC
+#if PLATFORM_WINDOWS || PLATFORM_MAC || PLATFORM_LINUX
 
 	extern int64 GOpenGLDedicatedVideoMemory;
 	extern int64 GOpenGLTotalGraphicsMemory;
