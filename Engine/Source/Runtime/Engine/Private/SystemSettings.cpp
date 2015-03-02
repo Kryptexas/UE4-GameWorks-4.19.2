@@ -344,8 +344,8 @@ void FSystemSettings::Initialize( bool bSetupForEditor )
 	IConsoleManager::Get().RegisterConsoleVariableSink_Handle(FConsoleCommandDelegate::CreateRaw(this, &FSystemSettings::CVarSink));
 
 	// intialize a critical texture streaming value used by texture loading, etc
-	int32 MinTextureResidentMipCount = 1;
-	verify(GConfig->GetInt(TEXT("TextureStreaming"), TEXT("MinTextureResidentMipCount"), MinTextureResidentMipCount, GEngineIni));
+	int32 MinTextureResidentMipCount = 7;
+	GConfig->GetInt(TEXT("TextureStreaming"), TEXT("MinTextureResidentMipCount"), MinTextureResidentMipCount, GEngineIni);
 	UTexture2D::SetMinTextureResidentMipCount(MinTextureResidentMipCount);
 }
 
