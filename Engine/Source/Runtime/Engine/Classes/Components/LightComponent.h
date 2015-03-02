@@ -170,6 +170,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
 	void SetIntensity(float NewIntensity);
 
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
+	void SetIndirectLightingIntensity(float NewIntensity);
+
 	/** Set color of the light */
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
 	void SetLightColor(FLinearColor NewLightColor);

@@ -476,6 +476,17 @@ void USkyLightComponent::SetIntensity(float NewIntensity)
 	}
 }
 
+void USkyLightComponent::SetIndirectLightingIntensity(float NewIntensity)
+{
+	// Can't set brightness on a static light
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
+		&& IndirectLightingIntensity != NewIntensity)
+	{
+		IndirectLightingIntensity = NewIntensity;
+		UpdateLimitedRenderingStateFast();
+	}
+}
+
 /** Set color of the light */
 void USkyLightComponent::SetLightColor(FLinearColor NewLightColor)
 {

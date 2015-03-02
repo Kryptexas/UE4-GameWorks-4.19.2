@@ -687,6 +687,23 @@ void ULightComponent::SetIntensity(float NewIntensity)
 	}
 }
 
+void ULightComponent::SetIndirectLightingIntensity(float NewIntensity)
+{
+	// Can't set brightness on a static light
+	if ((IsRunningUserConstructionScript() || !(IsRegistered() && Mobility == EComponentMobility::Static))
+		&& IndirectLightingIntensity != NewIntensity)
+	{
+		IndirectLightingIntensity = NewIntensity;
+
+		// Use lightweight color and brightness update 
+		if( World && World->Scene )
+		{
+			//@todo - remove from scene if brightness or color becomes 0
+			World->Scene->UpdateLightColorAndBrightness( this );
+		}
+	}
+}
+
 /** Set color of the light */
 void ULightComponent::SetLightColor(FLinearColor NewLightColor)
 {
