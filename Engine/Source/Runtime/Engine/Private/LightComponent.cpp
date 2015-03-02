@@ -731,6 +731,16 @@ void ULightComponent::SetLightFunctionFadeDistance(float NewLightFunctionFadeDis
 	}
 }
 
+void ULightComponent::SetLightFunctionDisabledBrightness(float NewValue)
+{
+	if (AreDynamicDataChangesAllowed()
+		&& NewValue != DisabledBrightness)
+	{
+		DisabledBrightness = NewValue;
+		MarkRenderStateDirty();
+	}
+}
+
 void ULightComponent::SetAffectDynamicIndirectLighting(bool bNewValue)
 {
 	if (AreDynamicDataChangesAllowed()

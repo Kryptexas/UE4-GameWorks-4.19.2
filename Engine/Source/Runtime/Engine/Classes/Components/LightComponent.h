@@ -176,6 +176,9 @@ public:
 	void SetLightFunctionFadeDistance(float NewLightFunctionFadeDistance);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
+	void SetLightFunctionDisabledBrightness(float NewValue);
+
+	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
 	void SetAffectDynamicIndirectLighting(bool bNewValue);
 
 	UFUNCTION(BlueprintCallable, Category="Rendering|Components|Light")
