@@ -504,7 +504,7 @@ public:
 		FFileIterator(const FPakFile& InPakFile)
 		:	PakFile(InPakFile)
 		, IndexIt(PakFile.GetIndex())
-		, DirectoryIt((IndexIt ? IndexIt.Value() : FPakDirectory().CreateConstIterator()))
+		, DirectoryIt((IndexIt ? FPakDirectory::TConstIterator(IndexIt.Value()): FPakDirectory()))
 		{
 		}
 
