@@ -243,9 +243,9 @@ protected:
 
 	/** 
 	 * Function works only if subclass UActorComponent.
-	 * If InitializeComponent or UninitializeComponent event is defined, force bWantsInitializeComponent.
+	 * If BeginPlay or EndPlay event is defined on the Component, force bWantsBeginPlay.
 	 */
-	void SetWantsInitialize() const;
+	void SetWantsBeginPlay() const;
 
 	/** Scan FunctionList and return Entry point, for matching one  */
 	const UK2Node_FunctionEntry* FindLocalEntryPoint(const UFunction* Function) const;

@@ -3579,7 +3579,7 @@ void FKismetCompilerContext::Compile()
 
 		CopyTermDefaultsToDefaultObject(NewCDO);
 		SetCanEverTick();
-		SetWantsInitialize();
+		SetWantsBeginPlay();
 		FKismetCompilerUtilities::ValidateEnumProperties(NewCDO, MessageLog);
 	}
 
@@ -3851,7 +3851,7 @@ void FKismetCompilerContext::SetCanEverTick() const
 	}
 }
 
-void FKismetCompilerContext::SetWantsInitialize() const
+void FKismetCompilerContext::SetWantsBeginPlay() const
 {
 	UActorComponent* CDComponent = Cast<UActorComponent>(NewClass->GetDefaultObject());
 
@@ -3860,26 +3860,26 @@ void FKismetCompilerContext::SetWantsInitialize() const
 		return;
 	}
 
-	const bool bOldFlag = CDComponent->bWantsInitializeComponent;
+	const bool bOldFlag = CDComponent->bWantsBeginPlay;
 
-	CDComponent->bWantsInitializeComponent = NewClass->GetSuperClass()->GetDefaultObject<UActorComponent>()->bWantsInitializeComponent;
+	CDComponent->bWantsBeginPlay = NewClass->GetSuperClass()->GetDefaultObject<UActorComponent>()->bWantsBeginPlay;
 
-	if (!CDComponent->bWantsInitializeComponent)
+	if (!CDComponent->bWantsBeginPlay)
 	{
-		static FName ReceiveInitializeComponentName(GET_FUNCTION_NAME_CHECKED(UActorComponent, ReceiveInitializeComponent));
-		static FName ReceiveUninitializeComponentName(GET_FUNCTION_NAME_CHECKED(UActorComponent, ReceiveUninitializeComponent));
-		const UFunction* ReciveInitializeComponentEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveInitializeComponentName, NewClass);
-		const UFunction* ReciveUninitializeComponentEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveUninitializeComponentName, NewClass);
-		if (ReciveInitializeComponentEvent || ReciveUninitializeComponentEvent)
+		static FName ReceiveBeginPlayName(GET_FUNCTION_NAME_CHECKED(UActorComponent, ReceiveBeginPlay));
+		static FName ReceiveEndPlayName(GET_FUNCTION_NAME_CHECKED(UActorComponent, ReceiveEndPlay));
+		const UFunction* ReciveBeginPlayEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveBeginPlayName, NewClass);
+		const UFunction* ReciveEndPlayEvent = FKismetCompilerUtilities::FindOverriddenImplementableEvent(ReceiveEndPlayName, NewClass);
+		if (ReciveBeginPlayEvent || ReciveEndPlayEvent)
 		{
-			CDComponent->bWantsInitializeComponent = true;
+			CDComponent->bWantsBeginPlay = true;
 		}
 	}
 
-	if(CDComponent->bWantsInitializeComponent != bOldFlag)
+	if(CDComponent->bWantsBeginPlay != bOldFlag)
 	{
-		UE_LOG(LogK2Compiler, Verbose, TEXT("Overridden flag for class '%s': bWantsInitializeComponent %s "), *NewClass->GetName(),
-			CDComponent->bWantsInitializeComponent ? *(GTrue.ToString()) : *(GFalse.ToString()) );
+		UE_LOG(LogK2Compiler, Verbose, TEXT("Overridden flag for class '%s': bWantsBeginPlay %s "), *NewClass->GetName(),
+			CDComponent->bWantsBeginPlay ? *(GTrue.ToString()) : *(GFalse.ToString()) );
 	}
 }
 

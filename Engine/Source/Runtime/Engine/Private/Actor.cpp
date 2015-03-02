@@ -1531,6 +1531,17 @@ void AActor::EndPlay(const EEndPlayReason::Type EndPlayReason)
 		// Dispatch the blueprint events
 		ReceiveEndPlay(EndPlayReason);
 		OnEndPlay.Broadcast(EndPlayReason);
+
+		TInlineComponentArray<UActorComponent*> Components;
+		GetComponents(Components);
+
+		for (UActorComponent* Component : Components)
+		{
+			if (Component->HasBegunPlay())
+			{
+				Component->EndPlay(EndPlayReason);
+			}
+		}
 	}
 
 	// Behaviors specific to an actor being unloaded due to a streaming level removal
@@ -1603,7 +1614,7 @@ FTransform AActor::GetTransform() const
 
 void AActor::Destroyed()
 {
-	RouteEndPlay(EEndPlayReason::ActorDestroyed);
+	RouteEndPlay(EEndPlayReason::Destroyed);
 
 	ReceiveDestroyed();
 	OnDestroyed.Broadcast();
@@ -2228,7 +2239,7 @@ static void DispatchOnComponentsCreated(AActor* NewActor)
 
 	for (UActorComponent* ActorComp : Components)
 	{
-		if (ActorComp && !ActorComp->bHasBeenCreated)
+		if (ActorComp && !ActorComp->HasBeenCreated())
 		{
 			ActorComp->OnComponentCreated();
 		}
@@ -2448,6 +2459,14 @@ void AActor::BeginPlay()
 {
 	ensure(!bActorHasBegunPlay);
 	SetLifeSpan( InitialLifeSpan );
+
+	TInlineComponentArray<UActorComponent*> Components;
+	GetComponents(Components);
+
+	for (UActorComponent* Component : Components)
+	{
+		Component->BeginPlay();
+	}
 
 	ReceiveBeginPlay();
 
@@ -3378,7 +3397,7 @@ void AActor::UninitializeComponents()
 
 	for (UActorComponent* ActorComp : Components)
 	{
-		if (ActorComp->bHasBeenInitialized)
+		if (ActorComp->HasBeenInitialized())
 		{
 			ActorComp->UninitializeComponent();
 		}

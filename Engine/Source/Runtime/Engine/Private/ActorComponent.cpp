@@ -353,6 +353,11 @@ FString UActorComponent::GetReadableName() const
 
 void UActorComponent::BeginDestroy()
 {
+	if (bHasBegunPlay)
+	{
+		EndPlay(EEndPlayReason::Destroyed);
+	}
+
 	// Ensure that we call UninitializeComponent before we destroy this component
 	if (bHasBeenInitialized)
 	{
@@ -362,7 +367,7 @@ void UActorComponent::BeginDestroy()
 	ExecuteUnregisterEvents();
 
 	// Ensure that we call OnComponentDestroyed before we destroy this component
-	if(bHasBeenCreated)
+	if (bHasBeenCreated)
 	{
 		OnComponentDestroyed();
 	}
@@ -560,8 +565,6 @@ void UActorComponent::InitializeComponent()
 	check(bRegistered);
 	check(!bHasBeenInitialized);
 
-	ReceiveInitializeComponent();
-
 	bHasBeenInitialized = true;
 }
 
@@ -569,13 +572,30 @@ void UActorComponent::UninitializeComponent()
 {
 	check(bHasBeenInitialized);
 
+	bHasBeenInitialized = false;
+}
+
+void UActorComponent::BeginPlay()
+{
+	check(bRegistered);
+	check(!bHasBegunPlay);
+
+	ReceiveBeginPlay();
+
+	bHasBegunPlay = true;
+}
+
+void UActorComponent::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	check(bHasBegunPlay);
+
 	// If we're already pending kill blueprints don't get to be notified
 	if (!HasAnyFlags(RF_BeginDestroyed))
 	{
-		ReceiveUninitializeComponent();
+		ReceiveEndPlay(EndPlayReason);
 	}
 
-	bHasBeenInitialized = false;
+	bHasBegunPlay = false;
 }
 
 FActorComponentInstanceData* UActorComponent::GetComponentInstanceData() const
@@ -761,6 +781,14 @@ void UActorComponent::RegisterComponentWithWorld(UWorld* InWorld)
 		}
 	}
 
+	if (Owner && Owner->HasActorBegunPlay())
+	{
+		if (bWantsBeginPlay)
+		{
+			BeginPlay();
+		}
+	}
+
 	// If this is a blueprint created component and it has component children they can miss getting registered in some scenarios
 	if (IsCreatedByConstructionScript())
 	{
@@ -816,6 +844,11 @@ void UActorComponent::UnregisterComponent()
 
 void UActorComponent::DestroyComponent(bool bPromoteChildren/*= false*/)
 {
+	if (bHasBegunPlay)
+	{
+		EndPlay(EEndPlayReason::Destroyed);
+	}
+
 	// Ensure that we call UninitializeComponent before we destroy this component
 	if (bHasBeenInitialized)
 	{

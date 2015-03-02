@@ -115,15 +115,28 @@ public:
 	UPROPERTY(transient, ReplicatedUsing=OnRep_IsActive)
 	uint32 bIsActive:1;
 
-	/** If TRUE, we call the virtual InitializeComponent */
-	UPROPERTY()
+	/** If true, we call the virtual InitializeComponent */
 	uint32 bWantsInitializeComponent:1;
 
+	/** If true, we call the virtual BeginPlay */
+	UPROPERTY()
+	uint32 bWantsBeginPlay:1;
+
+private:
 	/** Indicates that OnCreatedComponent has been called, but OnDestroyedComponent has not yet */
 	uint32 bHasBeenCreated:1;
 
 	/** Indicates that InitializeComponent has been called, but UninitializeComponent has not yet */
 	uint32 bHasBeenInitialized:1;
+
+	/** Indicates that BeginPlay has been called, but EndPlay has not yet */
+	uint32 bHasBegunPlay:1;
+
+public:
+
+	bool HasBeenCreated() const { return bHasBeenCreated; }
+	bool HasBeenInitialized() const { return bHasBeenInitialized; }
+	bool HasBegunPlay() const { return bHasBegunPlay; }
 
 	UPROPERTY()
 	EComponentCreationMethod CreationMethod;
@@ -291,24 +304,42 @@ protected:
 
 public:
 	/**
-	 * Starts gameplay for this component.
-	 * Requires component to be registered, and bWantsInitializeComponent to be TRUE.
+	 * Initializes the component.  Occurs at level startup. This is before BeginPlay (Actor or Component).  
+	 * All Components in the level will be Initialized on load before any Actor/Component gets BeginPlay
+	 * Requires component to be registered, and bWantsInitializeComponent to be true.
 	 */
 	virtual void InitializeComponent();
 
-	/** Event when the component is initialized, either via creation or its Actor's BeginPlay. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(Keywords = "Begin", FriendlyName = "Initialize Component"))
-	virtual void ReceiveInitializeComponent();
+	/**
+	 * BeginsPlay for the component.  Occurs at level startup. This is before BeginPlay (Actor or Component).  
+	 * All Components (that want initialization) in the level will be Initialized on load before any 
+	 * Actor/Component gets BeginPlay.
+	 * Requires component to be registered and initialized.
+	 */
+	virtual void BeginPlay();
+
+	/** 
+	 * Blueprint implementable event for when the component is beginning play, called before its Owner's BeginPlay on Actor BeginPlay 
+	 * or when the component is dynamically created if the Actor has already BegunPlay. 
+	 */
+	UFUNCTION(BlueprintImplementableEvent, meta=(FriendlyName = "Begin Play"))
+	virtual void ReceiveBeginPlay();
 
 	/**
 	 * Ends gameplay for this component.
+	 * Called from AActor::EndPlay only if bHasBegunPlay is true
+	 */
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason);
+
+	/**
+	 * Handle this component being Uninitialized.
 	 * Called from AActor::EndPlay only if bHasBeenInitialized is true
 	 */
 	virtual void UninitializeComponent();
 
-	/** Event when the component is uninitialized, generally via descruction or its Actor's EndPlay. */
-	UFUNCTION(BlueprintImplementableEvent, meta=(Keywords = "End Delete", FriendlyName = "Uninitialize Component"))
-	virtual void ReceiveUninitializeComponent();
+	/** Blueprint implementable event for when the component ends play, generally via destruction or its Actor's EndPlay. */
+	UFUNCTION(BlueprintImplementableEvent, meta=(Keywords = "delete", FriendlyName = "End Play"))
+	virtual void ReceiveEndPlay(EEndPlayReason::Type EndPlayReason);
 	
 	/**
 	 * When called, will call the virtual call chain to register all of the tick functions
