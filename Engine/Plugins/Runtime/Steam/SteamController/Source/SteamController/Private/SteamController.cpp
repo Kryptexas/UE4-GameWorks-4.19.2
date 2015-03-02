@@ -7,7 +7,7 @@ DEFINE_LOG_CATEGORY_STATIC(LogSteamController, Log, All);
 #if WITH_STEAM_CONTROLLER
 
 /** Name of the current Steam SDK version in use (matches directory name) */
-#define STEAM_SDK_VER TEXT("Steamv130")
+#define STEAM_SDK_VER TEXT("Steamv132")
 
 /** @todo - do something about this define */
 #ifndef MAX_STEAM_CONTROLLERS

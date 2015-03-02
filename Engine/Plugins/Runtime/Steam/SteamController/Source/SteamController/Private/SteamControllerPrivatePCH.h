@@ -13,7 +13,12 @@
 #pragma warning(disable:4996)
 #endif
 
+#pragma push_macro("ARRAY_COUNT")
+#undef ARRAY_COUNT
+
 #include <steam/steam_api.h>
+
+#pragma pop_macro("ARRAY_COUNT")
 
 #ifdef _MSC_VER
 #pragma warning(pop)

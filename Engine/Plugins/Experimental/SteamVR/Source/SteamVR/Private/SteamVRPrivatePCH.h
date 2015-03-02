@@ -3,7 +3,7 @@
 #pragma once
 
 /** Name of the current Steam SDK version in use (matches directory name) */
-#define STEAM_SDK_VER TEXT("Steamv130")
+#define STEAM_SDK_VER TEXT("Steamv132")
 
 #include "Engine.h"
 #include "IHeadMountedDisplay.h"
@@ -17,8 +17,13 @@
 #pragma warning(disable:4996)
 #endif
 
+#pragma push_macro("ARRAY_COUNT")
+#undef ARRAY_COUNT
+
 #include "steam/steam_api.h"
 #include "steam/steamvr.h"
+
+#pragma pop_macro("ARRAY_COUNT")
 
 // @todo Steam: See above
 #ifdef _MSC_VER
