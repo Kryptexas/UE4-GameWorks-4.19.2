@@ -131,6 +131,11 @@
 /Engine/Source/ThirdParty/**/*.pak
 /Engine/Source/ThirdParty/**/*.framework
 /Engine/Source/ThirdParty/**/*.tga
+/Engine/Source/ThirdParty/**/*.tiff
+/Engine/Source/ThirdParty/**/*.icns
+
+# Ignore PLCrashReporter binaries
+/Engine/Source/ThirdParty/PLCrashReporter/**/bin/**
 
 # Ignore LinuxNativeDialogs build files (all extensions)
 /Engine/Source/ThirdParty/LinuxNativeDialogs/UELinuxNativeDialogs/build/**
