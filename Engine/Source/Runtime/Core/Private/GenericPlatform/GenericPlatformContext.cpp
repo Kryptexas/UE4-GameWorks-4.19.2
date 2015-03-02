@@ -234,3 +234,16 @@ void FGenericCrashContext::EndSection( const TCHAR* SectionName )
 	CommonBuffer += TEXT( ">" );
 	CommonBuffer += LINE_TERMINATOR;
 }
+
+
+FProgramCounterSymbolInfoEx::FProgramCounterSymbolInfoEx( FString InModuleName, FString InFunctionName, FString InFilename, uint32 InLineNumber, uint64 InSymbolDisplacement, uint64 InOffsetInModule, uint64 InProgramCounter ) :
+	ModuleName( InModuleName ),
+	FunctionName( InFunctionName ),
+	Filename( InFilename ),
+	LineNumber( InLineNumber ),
+	SymbolDisplacement( InSymbolDisplacement ),
+	OffsetInModule( InOffsetInModule ),
+	ProgramCounter( InProgramCounter )
+{
+
+}

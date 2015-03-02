@@ -9,7 +9,7 @@ class FString;
  * FString version.
  * To be used by external tools.
  */
-struct FProgramCounterSymbolInfoEx
+struct CORE_API FProgramCounterSymbolInfoEx
 {
 	/** Module name. */
 	FString	ModuleName;

@@ -1,13 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "CrashDebugHelperPrivatePCH.h"
-#include "Database.h"
+#include "CrashDebugHelperMac.h"
 #include "EngineVersion.h"
 #include "ApplePlatformSymbolication.h"
 #include "CrashReporter.h"
 #include <cxxabi.h>
-
-#include "ISourceControlModule.h"
 
 static int32 ParseReportVersion(TCHAR const* CrashLog, int32& OutVersion)
 {
@@ -542,26 +540,6 @@ bool FCrashDebugHelperMac::ParseCrashDump(const FString& InCrashDumpName, FCrash
 	return false;
 }
 
-bool FCrashDebugHelperMac::SyncAndDebugCrashDump(const FString& InCrashDumpName)
-{
-	if (bInitialized == false)
-	{
-		UE_LOG(LogCrashDebugHelper, Warning, TEXT("SyncAndDebugCrashDump: CrashDebugHelper not initialized"));
-		return false;
-	}
-
-	FCrashDebugInfo CrashDebugInfo;
-	
-	// Parse the crash dump if it hasn't already been...
-	if (ParseCrashDump(InCrashDumpName, CrashDebugInfo) == false)
-	{
-		UE_LOG(LogCrashDebugHelper, Warning, TEXT("SyncAndDebugCrashDump: Failed to parse crash dump %s"), *InCrashDumpName);
-		return false;
-	}
-
-	return true;
-}
-
 bool FCrashDebugHelperMac::CreateMinidumpDiagnosticReport( const FString& InCrashDumpName )
 {
 	bool bOK = false;
@@ -606,7 +584,7 @@ bool FCrashDebugHelperMac::CreateMinidumpDiagnosticReport( const FString& InCras
 			int32 Result = ParseVersion(*CrashDump, Major, Minor, Build, CLNumber, Branch);
 			if(Result >= 3)
 			{
-				CrashInfo.ProductVersion = FEngineVersion(Major, Minor, Build, CLNumber, Branch).ToString();
+				CrashInfo.EngineVersion = FEngineVersion(Major, Minor, Build, CLNumber, Branch).ToString();
 			}
 			
 			if(Result >= 4)

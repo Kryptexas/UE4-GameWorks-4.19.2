@@ -8,6 +8,7 @@
 #pragma once
 #include "HAL/Platform.h"
 
+class FString;
 struct FGenericCrashContext;
 
 /**
@@ -34,9 +35,9 @@ struct FStackWalkModuleInfo
 };
 
 /**
- * Symbol information associated with a program counter.
+ * Symbol information associated with a program counter. ANSI version.
  */
-struct FProgramCounterSymbolInfo /*final*/
+struct FProgramCounterSymbolInfo final
 {
 	enum
 	{
@@ -68,6 +69,8 @@ struct FProgramCounterSymbolInfo /*final*/
 	/** Default constructor. */
 	FProgramCounterSymbolInfo();
 };
+
+struct FProgramCounterSymbolInfoEx;
 
 /**
  * Generic implementation for most platforms
@@ -104,6 +107,29 @@ struct CORE_API FGenericPlatformStackWalk
 	 * @return	true if the symbol was found, otherwise false
 	 */ 
 	static bool ProgramCounterToHumanReadableString( int32 CurrentCallDepth, uint64 ProgramCounter, ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize, FGenericCrashContext* Context = nullptr );
+
+	/**
+	 * Converts the passed in symbol information to a human readable string and appends it to the passed in one.
+	 * @warning: The code assumes that HumanReadableString is large enough to contain the information.
+	 * @warning: Please, do not override this method. Can't be modified or altered without notice.
+	 * 
+	 * This method is the same for all platforms to simplify parsing by the crash processor.
+	 * 
+	 * Example formatted line:
+	 *
+	 * UE4Editor_Core!FOutputDeviceWindowsError::Serialize() (0xddf1bae5) + 620 bytes [\engine\source\runtime\core\private\windows\windowsplatformoutputdevices.cpp:110]
+	 * ModuleName!FunctionName (ProgramCounter) + offset bytes [StrippedFilepath:LineNumber]
+	 *
+	 * @param	SymbolInfo				Symbol information
+	 * @param	HumanReadableString		String to concatenate information with
+	 * @param	HumanReadableStringSize size of string in characters
+	 * @param	Context					Pointer to crash context, if any
+	 * @return	true if the symbol was found, otherwise false
+	 */ 
+	static bool SymbolInfoToHumanReadableString( const FProgramCounterSymbolInfo& SymbolInfo, ANSICHAR* HumanReadableString, SIZE_T HumanReadableStringSize );
+
+	/** Same as above, but can be used with external applications. */
+	static bool SymbolInfoToHumanReadableStringEx( const FProgramCounterSymbolInfoEx& SymbolInfo, FString& out_HumanReadableString );
 
 	/**
 	 * Converts the passed in program counter address to a symbol info struct, filling in module and filename, line number and displacement.
