@@ -2203,6 +2203,7 @@ void UCookOnTheFlyServer::PopulateCookedPackagesFromDisk( const TArray<ITargetPl
 		{
 			FString CookedFilename = TimestampIt.Key();
 			FDateTime CookedTimestamp = TimestampIt.Value();
+			CookedFilename = FPaths::ConvertRelativePathToFull(CookedFilename);
 			FString StandardCookedFilename = CookedFilename.Replace(*SandboxDirectory, *(FPaths::GetRelativePathToRoot()));
 			FDateTime DependentTimestamp;
 
