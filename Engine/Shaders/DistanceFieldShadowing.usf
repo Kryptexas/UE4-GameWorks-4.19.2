@@ -601,6 +601,9 @@ void DistanceFieldShadowingCS(
 Texture2D ShadowFactorsTexture;
 SamplerState ShadowFactorsSampler;
 
+float FadePlaneOffset;
+float InvFadePlaneLength;
+
 void DistanceFieldShadowingUpsamplePS(
 	in float4 UVAndScreenPos : TEXCOORD0,
 	in float4 SVPos : SV_POSITION,
@@ -608,6 +611,7 @@ void DistanceFieldShadowingUpsamplePS(
 {
 	// Distance field shadowing was computed at 0,0 regardless of viewrect min
 	float2 DistanceFieldUVs = UVAndScreenPos.xy - ScissorRectMinAndSize.xy * View.ViewSizeAndSceneTexelSize.zw;
+	float SceneDepth = CalcSceneDepth(UVAndScreenPos.xy);
 
 #define BILATERAL_UPSAMPLE 1
 #if BILATERAL_UPSAMPLE && UPSAMPLE_REQUIRED
@@ -630,7 +634,6 @@ void DistanceFieldShadowingUpsamplePS(
 	float Epsilon = .0001f;
 
 	float4 CornerDepths = abs(float4(TextureValues00.y, TextureValues10.y, TextureValues01.y, TextureValues11.y));
-	float SceneDepth = CalcSceneDepth(UVAndScreenPos.xy);
 	float4 DepthWeights = 1.0f / (abs(CornerDepths - SceneDepth.xxxx) + Epsilon);
 	float4 FinalWeights = CornerWeights * DepthWeights;
 
@@ -647,5 +650,7 @@ void DistanceFieldShadowingUpsamplePS(
 	float Output = Texture2DSampleLevel(ShadowFactorsTexture, ShadowFactorsSampler, DistanceFieldUVs, 0).x;
 #endif
 
-	OutColor = EncodeLightAttenuation(half4(Output, Output, Output, Output));
+	float BlendFactor = 1.0f - saturate((SceneDepth - FadePlaneOffset) * InvFadePlaneLength);
+	Output = lerp(1, Output, BlendFactor);
+	OutColor = EncodeLightAttenuation(half4(Output, Output, Output, BlendFactor));
 }
