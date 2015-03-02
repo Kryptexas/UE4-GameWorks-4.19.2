@@ -3,7 +3,7 @@
 #include "AbilityTask.h"
 #include "Abilities/GameplayAbilityTypes.h"
 #include "GameplayEffect.h"
-#include "AbilityTask_WaitgameplayTagBase.h"
+#include "AbilityTask_WaitGameplayTagBase.h"
 #include "AbilityTask_WaitGameplayTag.generated.h"
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FWaitGameplayTagDelegate);
