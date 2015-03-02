@@ -35,7 +35,7 @@ FName BuildCurveName( TSharedPtr<FSectionKeyAreaNode> KeyAreaNode )
 	TArray<FString> NameParts;
 	while ( CurrentNameNode.IsValid() )
 	{
-		NameParts.Add( CurrentNameNode->GetDisplayName().ToString() );
+		NameParts.Insert( CurrentNameNode->GetDisplayName().ToString(), 0);
 		CurrentNameNode = CurrentNameNode->GetParent();
 	}
 	return FName(*FString::Join(NameParts, TEXT(" - ")));
