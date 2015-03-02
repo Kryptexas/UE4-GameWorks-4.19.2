@@ -1,8 +1,9 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-
 #ifndef _UNBULKDATA_H
 #define _UNBULKDATA_H
+
+#include "Async/Async.h"
 
 /**
  * Flags serialized with the bulk data.
@@ -176,6 +177,13 @@ struct COREUOBJECT_API FUntypedBulkData
 	 * @return true if bulk data is loaded, false otherwise
 	 */
 	bool IsBulkDataLoaded() const;
+
+	/**
+	* Returns whether the bulk data asynchronous load has completed.
+	*
+	* @return true if bulk data has been loaded or async loading was not used to load this data, false otherwise
+	*/
+	bool IsAsyncLoadingComplete();
 
 	/**
 	* Returns whether this bulk data is used
@@ -362,6 +370,18 @@ private:
 	 */
 	void LoadDataIntoMemory( void* Dest );
 
+	/** Starts serializing bulk data asynchronously */
+	void StartSerializingBulkData(FArchive& Ar, UObject* Owner, int32 Idx, bool bPayloadInline);
+
+	/** Flushes any pending async load of bulk data  and copies the data to Dest buffer*/
+	bool FlushAsyncLoading(void* Dest);
+
+	/** Waits until pending async load finishes */
+	void WaitForAsyncLoading();
+
+	/** Resets async loading state */
+	void ResetAsyncData();
+	
 	/*-----------------------------------------------------------------------------
 		Member variables.
 	-----------------------------------------------------------------------------*/
@@ -377,9 +397,13 @@ private:
 
 	/** Pointer to cached bulk data																						*/
 	void*				BulkData;
+	/** Pointer to cached async bulk data																						*/
+	void*				BulkDataAsync;
 	/** Current lock status																								*/
 	uint32				LockStatus;
-	
+	/** Async helper for loading bulk data on a separate thread */
+	TFuture<bool> SerializeFuture;
+
 protected:
 	/** true when data has been allocated internally by the bulk data and does not come from a preallocated resource	*/
 	bool				bShouldFreeOnEmpty;
