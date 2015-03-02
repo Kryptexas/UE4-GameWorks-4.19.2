@@ -636,6 +636,11 @@ void FStaticMeshRenderData::Serialize(FArchive& Ar, UStaticMesh* Owner, bool bCo
 		FStripDataFlags StripFlags( Ar );
 		if ( !StripFlags.IsDataStrippedForServer() )
 		{
+			if (Ar.IsSaving())
+			{
+				GDistanceFieldAsyncQueue->BlockUntilBuildComplete(Owner, false);
+			}
+
 			for (int32 ResourceIndex = 0; ResourceIndex < LODResources.Num(); ResourceIndex++)
 			{
 				FStaticMeshLODResources& LOD = LODResources[ResourceIndex];
@@ -1705,7 +1710,18 @@ void UStaticMesh::CacheDerivedData()
 	{
 		// Finish any previous async builds before modifying RenderData
 		// This can happen during import as the mesh is rebuilt redundantly
-		GDistanceFieldAsyncQueue->BlockUntilBuildCompleteAndReleaseData(this);
+		GDistanceFieldAsyncQueue->BlockUntilBuildComplete(this, true);
+
+		for (int32 LODIndex = 0; LODIndex < RenderData->LODResources.Num(); ++LODIndex)
+		{
+			FDistanceFieldVolumeData* DistanceFieldData = RenderData->LODResources[LODIndex].DistanceFieldData;
+
+			if (DistanceFieldData)
+			{
+				// Release before destroying RenderData
+				DistanceFieldData->VolumeTexture.Release();
+			}
+		}
 	}
 
 	RenderData = new FStaticMeshRenderData();
