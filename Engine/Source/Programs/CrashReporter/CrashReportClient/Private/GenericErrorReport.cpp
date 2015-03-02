@@ -138,7 +138,7 @@ bool FGenericErrorReport::LoadWindowsReportXmlFile( FString& OutString ) const
 bool FGenericErrorReport::TryReadDiagnosticsFile(FText& OutReportDescription)
 {
 	FString FileContent;
-	if (!FFileHelper::LoadFileToString(FileContent, *(ReportDirectory / GDiagnosticsFilename)))
+	if (!FFileHelper::LoadFileToString(FileContent, *(ReportDirectory / FCrashReportClientConfig::Get().GetDiagnosticsFilename())))
 	{
 		// No diagnostics file
 		return false;
