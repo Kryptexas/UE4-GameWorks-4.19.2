@@ -20,7 +20,7 @@ public:
 	void Tick( float DeltaTime );
 
 	/** Begins playing or restarts an animation */
-	void Play( float StartAtTime, int32 InNumLoopsToPlay );
+	void Play( float StartAtTime, int32 InNumLoopsToPlay, EUMGSequencePlayMode::Type InPlayMode);
 
 	/** Stops a running animation and resets time */
 	void Stop();
@@ -71,4 +71,10 @@ private:
 
 	/** The number of loops completed since the last call to Play() */
 	int32 NumLoopsCompleted;
+
+	/** The current playback mode. */
+	EUMGSequencePlayMode::Type PlayMode;
+
+	/** True if the animation is playing forward, otherwise false and it's playing in reverse. */
+	bool bIsPlayingForward;
 };
