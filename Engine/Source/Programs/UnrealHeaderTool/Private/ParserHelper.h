@@ -1366,6 +1366,9 @@ public:
 		, bConstructorDeclared(false)
 		, bDefaultConstructorDeclared(false)
 		, bObjectInitializerConstructorDeclared(false)
+#if WITH_HOT_RELOAD_CTORS
+		, bCustomVTableHelperConstructorDeclared(false)
+#endif // WITH_HOT_RELOAD_CTORS
 		, GeneratedBodyMacroAccessSpecifier(ACCESS_NotAnAccessSpecifier)
 	{
 	}
@@ -1642,6 +1645,11 @@ public:
 
 	// Is ObjectInitializer constructor (i.e. a constructor with only one parameter of type FObjectInitializer) declared?
 	bool bObjectInitializerConstructorDeclared;
+
+#if WITH_HOT_RELOAD_CTORS
+	// Is custom VTable helper constructor declared?
+	bool bCustomVTableHelperConstructorDeclared;
+#endif // WITH_HOT_RELOAD_CTORS
 
 	// GENERATED_BODY access specifier to preserve.
 	EAccessSpecifier GeneratedBodyMacroAccessSpecifier;

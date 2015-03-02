@@ -173,7 +173,16 @@ public:
 	static void ComputeFunctionParametersSize(UClass* InClass);
 
 	// Parse all headers for classes that are inside LimitOuter.
-	static ECompilationResult::Type ParseAllHeadersInside(FClasses& ModuleClasses, FFeedbackContext* Warn, UPackage* LimitOuter, const FManifestModule& Module, TArray<class IScriptGeneratorPluginInterface*>& ScriptPlugins);
+	static ECompilationResult::Type ParseAllHeadersInside(
+		FClasses& ModuleClasses,
+		FFeedbackContext* Warn,
+		UPackage* LimitOuter,
+		const FManifestModule& Module,
+		TArray<class IScriptGeneratorPluginInterface*>& ScriptPlugins
+#if WITH_HOT_RELOAD_CTORS
+		, bool bExportVTableConstructors
+#endif // WITH_HOT_RELOAD_CTORS
+	);
 
 	// Performs a preliminary parse of the text in the specified buffer, pulling out:
 	//   Class name and parent class name
@@ -448,7 +457,14 @@ protected:
 	 * @param	CurrentPackage	the package being compiled
 	 * @param	AllClasses		the class tree for CurrentPackage
 	 */
-	static void ExportNativeHeaders( UPackage* CurrentPackage, FClasses& AllClasses, bool bAllowSaveExportedHeaders );
+	static void ExportNativeHeaders(
+		UPackage* CurrentPackage,
+		FClasses& AllClasses,
+		bool bAllowSaveExportedHeaders
+#if WITH_HOT_RELOAD_CTORS
+		, bool bExportVTableConstructors
+#endif // WITH_HOT_RELOAD_CTORS
+	);
 
 	// FContextSupplier interface.
 	virtual FString GetContext() override;

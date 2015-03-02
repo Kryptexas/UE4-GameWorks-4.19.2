@@ -50,7 +50,35 @@ static UPackage*			GObjTransientPkg								= NULL;
 UObject::UObject( EStaticConstructor, EObjectFlags InFlags )
 : UObjectBaseUtility(InFlags | RF_Native | RF_RootSet)
 {
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+	EnsureNotRetrievingVTablePtr();
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
 }
+
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+UObject::UObject(FVTableHelper& Helper)
+{
+	EnsureRetrievingVTablePtr();
+
+	static struct FUseVTableConstructorsCache
+	{
+		FUseVTableConstructorsCache()
+		{
+			bUseVTableConstructors = false;
+			GConfig->GetBool(TEXT("Core.System"), TEXT("UseVTableConstructors"), bUseVTableConstructors, GEngineIni);
+		}
+
+		bool bUseVTableConstructors;
+	} UseVTableConstructorsCache;
+
+	UE_CLOG(!UseVTableConstructorsCache.bUseVTableConstructors, LogCore, Fatal, TEXT("This constructor is disabled."));
+}
+
+void UObject::EnsureNotRetrievingVTablePtr() const
+{
+	UE_CLOG(GIsRetrievingVTablePtr, LogCore, Fatal, TEXT("We are currently retrieving VTable ptr. Please use FVTableHelper constructor instead."));
+}
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
 
 UObject* UObject::CreateDefaultSubobject(FName SubobjectFName, UClass* ReturnType, UClass* ClassToCreateByDefault, bool bIsRequired, bool bAbstract, bool bIsTransient)
 {

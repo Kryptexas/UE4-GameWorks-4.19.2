@@ -1867,14 +1867,95 @@ void ExportCopyConstructorDefinition(FStringOutputDevice& Out, FClass* Class, co
 	Out.Logf(TEXT("public:\r\n"));
 }
 
+#if WITH_HOT_RELOAD_CTORS
+/**
+ * Generates vtable helper constructor declaration.
+ *
+ * @param Out Output device to generate to.
+ * @param Class Class to generate constructor for.
+ * @param API API string for this constructor.
+ */
+void ExportVTableHelperConstructorDecl(FStringOutputDevice& Out, FClass* Class, const FString& API)
+{
+	auto* ClassData = GScriptHelper.FindClassData(Class);
+	if (!ClassData->bCustomVTableHelperConstructorDeclared)
+	{
+		Out.Logf(TEXT("%sDECLARE_VTABLE_PTR_HELPER_CTOR(%s_API, %s);" LINE_TERMINATOR), FCString::Spc(4), *API, NameLookupCPP.GetNameCPP(Class));
+	}
+}
+
+/**
+ * Generates vtable helper ctor caller.
+ *
+ * @param Out Output device to generate to.
+ * @param Class Class to generate for.
+ */
+void ExportVTableHelperCtorCaller(FStringOutputDevice& Out, FClass* Class)
+{
+	Out.Logf(TEXT("DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER(%s);" LINE_TERMINATOR), NameLookupCPP.GetNameCPP(Class));
+}
+
+/**
+ * Generates vtable helper ctor caller dummy.
+ *
+ * @param Out Output device to generate to.
+ */
+void ExportVTableHelperCtorCallerDummy(FStringOutputDevice& Out)
+{
+	Out.Logf(TEXT("DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER_DUMMY();" LINE_TERMINATOR));
+}
+
+/**
+ * Generates vtable helper constructor body.
+ *
+ * @param Out Output device to generate to.
+ * @param Class Class to generate constructor for.
+ * @param API API string for this constructor.
+ */
+void ExportVTableHelperConstructorBody(FStringOutputDevice& Out, FClass* Class)
+{
+	auto* ClassData = GScriptHelper.FindClassData(Class);
+	if (!ClassData->bCustomVTableHelperConstructorDeclared)
+	{
+		Out.Logf(TEXT("%sDEFINE_VTABLE_PTR_HELPER_CTOR(%s);" LINE_TERMINATOR), FCString::Spc(4), NameLookupCPP.GetNameCPP(Class));
+	}
+}
+
+/**
+ * Generates vtable helper caller and eventual constructor body.
+ *
+ * @param Out Output device to generate to.
+ * @param Class Class to generate for.
+ * @param API API string.
+ * @param bExportVTableConstructors Tells if we are going to export constructors as well.
+ */
+void ExportVTableHelperCtorAndCaller(FStringOutputDevice& Out, FClass* Class, const FString& API, bool bExportVTableConstructors)
+{
+	if (bExportVTableConstructors)
+	{
+		ExportVTableHelperConstructorDecl(Out, Class, API);
+		ExportVTableHelperCtorCaller(Out, Class);
+	}
+	else
+	{
+		ExportVTableHelperCtorCallerDummy(Out);
+	}
+}
+#endif // WITH_HOT_RELOAD_CTORS
+
 /**
  * Generates standard constructor declaration.
  *
  * @param Out Output device to generate to.
  * @param Class Class to generate constructor for.
  * @param API API string for this constructor.
+ * @param bExportVTableConstructors Export VTable constructors.
  */
-void ExportStandardConstructorsMacro(FStringOutputDevice& Out, FClass* Class, const FString& API)
+void ExportStandardConstructorsMacro(FStringOutputDevice& Out, FClass* Class, const FString& API
+#if WITH_HOT_RELOAD_CTORS
+		, bool bExportVTableConstructors
+#endif // WITH_HOT_RELOAD_CTORS
+)
 {
 	if (!Class->HasAnyClassFlags(CLASS_CustomConstructor))
 	{
@@ -1882,6 +1963,11 @@ void ExportStandardConstructorsMacro(FStringOutputDevice& Out, FClass* Class, co
 		Out.Logf(TEXT("%s%s_API %s(const FObjectInitializer& ObjectInitializer);\r\n"), FCString::Spc(4), *API, NameLookupCPP.GetNameCPP(Class));
 	}
 	Out.Logf(TEXT("%sDEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(%s)\r\n"), FCString::Spc(4), NameLookupCPP.GetNameCPP(Class));
+
+#if WITH_HOT_RELOAD_CTORS
+	ExportVTableHelperCtorAndCaller(Out, Class, API, bExportVTableConstructors);
+#endif // WITH_HOT_RELOAD_CTORS
+
 	ExportCopyConstructorDefinition(Out, Class, API);
 }
 
@@ -1957,10 +2043,20 @@ void ExportDefaultConstructorCallDefinition(FStringOutputDevice& Out, FClass* Cl
  * @param Out Output device to generate to.
  * @param Class Class to generate constructor for.
  * @param API API string for this constructor.
+ * @param bExportVTableConstructors Export VTable constructors.
  */
-void ExportEnhancedConstructorsMacro(FStringOutputDevice& Out, FClass* Class, const FString& API)
+void ExportEnhancedConstructorsMacro(FStringOutputDevice& Out, FClass* Class, const FString& API
+#if WITH_HOT_RELOAD_CTORS
+		, bool bExportVTableConstructors
+#endif // WITH_HOT_RELOAD_CTORS
+)
 {
 	ExportConstructorDefinition(Out, Class, API);
+	
+#if WITH_HOT_RELOAD_CTORS
+	ExportVTableHelperCtorAndCaller(Out, Class, API, bExportVTableConstructors);
+#endif // WITH_HOT_RELOAD_CTORS
+	
 	ExportDefaultConstructorCallDefinition(Out, Class);
 }
 
@@ -2015,8 +2111,18 @@ void FNativeClassHeaderGenerator::ExportConstructorsMacros(const FString& Constr
 	FString StdMacroName = ConstructorsMacroPrefix + TEXT("_STANDARD_CONSTRUCTORS");
 	FString EnhMacroName = ConstructorsMacroPrefix + TEXT("_ENHANCED_CONSTRUCTORS");
 
+#if WITH_HOT_RELOAD_CTORS
+	ExportStandardConstructorsMacro(StdMacro, Class, APIArg, bExportVTableConstructors);
+	ExportEnhancedConstructorsMacro(EnhMacro, Class, APIArg, bExportVTableConstructors);
+
+	if (bExportVTableConstructors)
+	{
+		ExportVTableHelperConstructorBody(GetGeneratedFunctionTextDevice(), Class);
+	}
+#else // WITH_HOT_RELOAD_CTORS
 	ExportStandardConstructorsMacro(StdMacro, Class, APIArg);
 	ExportEnhancedConstructorsMacro(EnhMacro, Class, APIArg);
+#endif // WITH_HOT_RELOAD_CTORS
 
 	GeneratedHeaderText.Log(*Macroize(*StdMacroName, *StdMacro));
 	GeneratedHeaderText.Log(*Macroize(*EnhMacroName, *EnhMacro));
@@ -4124,12 +4230,23 @@ FStringOutputDevice& FNativeClassHeaderGenerator::GetGeneratedFunctionTextDevice
 }
 
 // Constructor.
-FNativeClassHeaderGenerator::FNativeClassHeaderGenerator(UPackage* InPackage, const TArray<FUnrealSourceFile*>& SourceFiles, FClasses& AllClasses, bool InAllowSaveExportedHeaders)
+FNativeClassHeaderGenerator::FNativeClassHeaderGenerator(
+	UPackage* InPackage,
+	const TArray<FUnrealSourceFile*>& SourceFiles,
+	FClasses& AllClasses,
+	bool InAllowSaveExportedHeaders
+#if WITH_HOT_RELOAD_CTORS
+	, bool bExportVTableConstructors
+#endif // WITH_HOT_RELOAD_CTORS
+)
 	: API                                   (FPackageName::GetShortName(InPackage).ToUpper())
 	, Package                               (InPackage)
 	, bIsExportingForOffsetDeterminationOnly(false)
 	, bAllowSaveExportedHeaders             (InAllowSaveExportedHeaders)
 	, bFailIfGeneratedCodeChanges           (false)
+#if WITH_HOT_RELOAD_CTORS
+	, bExportVTableConstructors				(bExportVTableConstructors)
+#endif // WITH_HOT_RELOAD_CTORS
 {
 	const FString PackageName = FPackageName::GetShortName(Package);
 
@@ -4960,7 +5077,23 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 					FClasses AllClasses(Package);
 					AllClasses.Validate();
 
+#if WITH_HOT_RELOAD_CTORS
+					static struct FUseVTableConstructorsCache
+					{
+						FUseVTableConstructorsCache()
+						{
+							bUseVTableConstructors = false;
+							GConfig->GetBool(TEXT("Core.System"), TEXT("UseVTableConstructors"), bUseVTableConstructors, GEngineIni);
+						}
+
+						bool bUseVTableConstructors;
+					} UseVTableConstructorsCache;
+
+					Result = FHeaderParser::ParseAllHeadersInside(AllClasses, GWarn, Package, Module, ScriptPlugins,
+						Module.ModuleType != EBuildModuleType::Game || UseVTableConstructorsCache.bUseVTableConstructors);
+#else // WITH_HOT_RELOAD_CTORS
 					Result = FHeaderParser::ParseAllHeadersInside(AllClasses, GWarn, Package, Module, ScriptPlugins);
+#endif // WITH_HOT_RELOAD_CTORS
 					if (Result != ECompilationResult::Succeeded)
 					{
 						++NumFailures;

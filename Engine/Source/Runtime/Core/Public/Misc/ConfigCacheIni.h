@@ -172,6 +172,12 @@ class CORE_API FConfigCacheIni : public TMap<FString,FConfigFile>
 public:
 	// Basic functions.
 	FConfigCacheIni(EConfigCacheType Type);
+
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
+	FConfigCacheIni();
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+
 	virtual ~FConfigCacheIni();
 
 	/**

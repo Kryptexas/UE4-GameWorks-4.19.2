@@ -34,6 +34,15 @@ UGameplayDebuggingControllerComponent::UGameplayDebuggingControllerComponent(con
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
 
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+UGameplayDebuggingControllerComponent::UGameplayDebuggingControllerComponent(FVTableHelper& Helper)
+	: Super(Helper)
+	, KeyPressActivationTime(0.0f)
+{
+
+}
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+
 void UGameplayDebuggingControllerComponent::OnRegister()
 {
 	Super::OnRegister();

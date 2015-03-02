@@ -6547,7 +6547,14 @@ TArray<FUnrealSourceFile*> GetSourceFilesWithInheritanceOrdering(UPackage* Curre
 }
 
 // Begins the process of exporting C++ class declarations for native classes in the specified package
-void FHeaderParser::ExportNativeHeaders( UPackage* CurrentPackage, FClasses& AllClasses, bool bAllowSaveExportedHeaders )
+void FHeaderParser::ExportNativeHeaders(
+	UPackage* CurrentPackage,
+	FClasses& AllClasses,
+	bool bAllowSaveExportedHeaders
+#if WITH_HOT_RELOAD_CTORS
+	, bool bExportVTableConstructors
+#endif // WITH_HOT_RELOAD_CTORS
+)
 {
 	// Build a list of header filenames
 	TArray<FString>	ClassHeaderFilenames;
@@ -6582,7 +6589,15 @@ void FHeaderParser::ExportNativeHeaders( UPackage* CurrentPackage, FClasses& All
 		}
 
 		// Export native class definitions to package header files.
-		FNativeClassHeaderGenerator(CurrentPackage, SourceFiles, AllClasses, bAllowSaveExportedHeaders);
+		FNativeClassHeaderGenerator(
+			CurrentPackage,
+			SourceFiles,
+			AllClasses,
+			bAllowSaveExportedHeaders
+#if WITH_HOT_RELOAD_CTORS
+			, bExportVTableConstructors
+#endif // WITH_HOT_RELOAD_CTORS
+		);
 	}
 }
 
@@ -6702,7 +6717,16 @@ void ExportClassTreeToScriptPlugins(const FClassTree* Node, const FManifestModul
 }
 
 // Parse all headers for classes that are inside CurrentPackage.
-ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FClasses& ModuleClasses, FFeedbackContext* Warn, UPackage* CurrentPackage, const FManifestModule& Module, TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins)
+ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(
+	FClasses& ModuleClasses,
+	FFeedbackContext* Warn,
+	UPackage* CurrentPackage,
+	const FManifestModule& Module,
+	TArray<IScriptGeneratorPluginInterface*>& ScriptPlugins
+#if WITH_HOT_RELOAD_CTORS
+	, bool bExportVTableConstructors
+#endif // WITH_HOT_RELOAD_CTORS
+)
 {
 	// Disable loading of objects outside of this package (or more exactly, objects which aren't UFields, CDO, or templates)
 	TGuardValue<bool> AutoRestoreVerifyObjectRefsFlag(GVerifyObjectReferencesOnly, true);
@@ -6748,7 +6772,14 @@ ECompilationResult::Type FHeaderParser::ParseAllHeadersInside(FClasses& ModuleCl
 			// from the feedback context.
 			Warn->SetContext(NULL);
 
-			ExportNativeHeaders(CurrentPackage, ModuleClasses, Module.SaveExportedHeaders);
+			ExportNativeHeaders(
+				CurrentPackage,
+				ModuleClasses,
+				Module.SaveExportedHeaders
+#if WITH_HOT_RELOAD_CTORS
+				, bExportVTableConstructors
+#endif // WITH_HOT_RELOAD_CTORS
+			);
 
 			// Done with header generation
 			if (HeaderParser.LinesParsed > 0)
@@ -6898,6 +6929,13 @@ void FHeaderParser::SimplifiedClassParse(const TCHAR* InBuffer, TArray<FSimplifi
 				bKeepPreprocessorDirectives = false;
 				bNotCPP = true;
 			}
+#if WITH_HOT_RELOAD_CTORS
+			else if (bIf && FParse::Command(&Str, TEXT("WITH_HOT_RELOAD")))
+			{
+				Target = &ClassHeaderTextStrippedOfCppText;
+				bKeepPreprocessorDirectives = false;
+			}
+#endif // WITH_HOT_RELOAD_CTORS
 			else if (bIf && (FParse::Command(&Str,TEXT("WITH_EDITORONLY_DATA")) || FParse::Command(&Str,TEXT("WITH_EDITOR"))))
 			{
 				Target = &ClassHeaderTextStrippedOfCppText;
@@ -7456,13 +7494,20 @@ bool FHeaderParser::TryToMatchConstructorParameterList(FToken Token)
 
 	auto* ClassData = GScriptHelper.FindClassData(GetCurrentClass());
 
-	ClassData->bConstructorDeclared = true;
+	bool bOICtor = false;
+#if WITH_HOT_RELOAD_CTORS
+	bool bVTCtor = false;
+#endif // WITH_HOT_RELOAD_CTORS
 
 	if (!ClassData->bDefaultConstructorDeclared && MatchSymbol(TEXT(")")))
 	{
 		ClassData->bDefaultConstructorDeclared = true;
 	}
-	else if (!ClassData->bObjectInitializerConstructorDeclared)
+	else if (!ClassData->bObjectInitializerConstructorDeclared
+#if WITH_HOT_RELOAD_CTORS
+		|| !ClassData->bCustomVTableHelperConstructorDeclared
+#endif // WITH_HOT_RELOAD_CTORS
+	)
 	{
 		FToken ObjectInitializerParamParsingToken;
 
@@ -7475,7 +7520,10 @@ bool FHeaderParser::TryToMatchConstructorParameterList(FToken Token)
 			// Template instantiation or additional parameter excludes ObjectInitializer constructor.
 			if (ObjectInitializerParamParsingToken.Matches(TEXT(",")) || ObjectInitializerParamParsingToken.Matches(TEXT("<")))
 			{
-				ClassData->bObjectInitializerConstructorDeclared = false;
+				bOICtor = false;
+#if WITH_HOT_RELOAD_CTORS
+				bVTCtor = false;
+#endif // WITH_HOT_RELOAD_CTORS
 				break;
 			}
 
@@ -7507,8 +7555,15 @@ bool FHeaderParser::TryToMatchConstructorParameterList(FToken Token)
 				|| ObjectInitializerParamParsingToken.Matches(TEXT("FPostConstructInitializeProperties")) // Deprecated, but left here, so it won't break legacy code.
 				)
 			{
-				ClassData->bObjectInitializerConstructorDeclared = true;
+				bOICtor = true;
 			}
+
+#if WITH_HOT_RELOAD_CTORS
+			if (ObjectInitializerParamParsingToken.Matches(TEXT("FVTableHelper")))
+			{
+				bVTCtor = true;
+			}
+#endif // WITH_HOT_RELOAD_CTORS
 		}
 
 		// Parse until finish.
@@ -7527,8 +7582,18 @@ bool FHeaderParser::TryToMatchConstructorParameterList(FToken Token)
 			}
 		}
 
-		ClassData->bObjectInitializerConstructorDeclared = ClassData->bObjectInitializerConstructorDeclared && bIsRef && bIsConst;
+		ClassData->bObjectInitializerConstructorDeclared = ClassData->bObjectInitializerConstructorDeclared || (bOICtor && bIsRef && bIsConst);
+#if WITH_HOT_RELOAD_CTORS
+		ClassData->bCustomVTableHelperConstructorDeclared = ClassData->bCustomVTableHelperConstructorDeclared || (bVTCtor && bIsRef);
+#endif // WITH_HOT_RELOAD_CTORS
 	}
+
+	ClassData->bConstructorDeclared =
+#if WITH_HOT_RELOAD_CTORS
+		ClassData->bConstructorDeclared || !bVTCtor;
+#else // WITH_HOT_RELOAD_CTORS
+		true;
+#endif // WITH_HOT_RELOAD_CTORS
 
 	// Optionally match semicolon.
 	if (!MatchSymbol(TEXT(";")))

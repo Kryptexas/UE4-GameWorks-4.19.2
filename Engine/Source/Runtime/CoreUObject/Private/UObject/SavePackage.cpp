@@ -2217,6 +2217,9 @@ static bool ValidateConformCompatibility(UPackage* NewPackage, ULinkerLoad* OldL
 		if (OldClass != NULL && NewClass != NULL && OldClass->HasAnyFlags(RF_Native) && NewClass->HasAnyFlags(RF_Native))
 		{
 			OldClass->ClassConstructor = NewClass->ClassConstructor;
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+			OldClass->ClassVTableHelperCtorCaller = NewClass->ClassVTableHelperCtorCaller;
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
 			OldClass->ClassAddReferencedObjects = NewClass->ClassAddReferencedObjects;
 		}
 	}

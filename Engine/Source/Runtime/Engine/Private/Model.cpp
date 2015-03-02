@@ -514,6 +514,20 @@ UModel::UModel(const FObjectInitializer& ObjectInitializer)
 
 }
 
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+UModel::UModel(FVTableHelper& Helper)
+	: Super(Helper)
+	, Nodes(this)
+	, Verts(this)
+	, Vectors(this)
+	, Points(this)
+	, Surfs(this)
+	, VertexBuffer(this)
+{
+
+}
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+
 void UModel::Initialize(ABrush* Owner, bool InRootOutside)
 {
 	LightingGuid = FGuid::NewGuid();

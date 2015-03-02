@@ -37,6 +37,12 @@ class COREUOBJECT_API UObject : public UObjectBaseUtility
 	// Declarations.
 	DECLARE_CLASS(UObject,UObject,CLASS_Abstract|CLASS_NoExport,CASTCLASS_None,CoreUObject,NO_API)
 	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(UObject)
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+	static UObject* __VTableCtorCaller(FVTableHelper& Helper)
+	{
+		return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) UObject(Helper);
+	}
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
 
 	typedef UObject WithinClass;
 	static const TCHAR* StaticConfigName() {return TEXT("Engine");}
@@ -45,6 +51,10 @@ class COREUOBJECT_API UObject : public UObjectBaseUtility
 	UObject();
 	UObject(const FObjectInitializer& ObjectInitializer);
 	UObject( EStaticConstructor, EObjectFlags InFlags );
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
+	UObject(FVTableHelper& Helper);
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
 
 	static void StaticRegisterNativesUObject() 
 	{
@@ -760,6 +770,15 @@ private:
 	 * Saves just the section(s) for this class into the given ini file for the class (with just the changes from base)
 	 */
 	void UpdateSingleSectionOfConfigFile(const FString& ConfigIniName);
+
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+	/**
+	 * Ensures that current thread is NOT during vtable ptr retrieval process
+	 * of some UClass.
+	 */
+	void EnsureNotRetrievingVTablePtr() const;
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+
 public:
 	
 	/**

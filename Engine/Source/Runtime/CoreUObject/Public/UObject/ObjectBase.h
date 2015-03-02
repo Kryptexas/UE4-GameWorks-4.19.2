@@ -98,6 +98,19 @@ enum EStaticConstructor				{EC_StaticConstructor};
 enum EInternal						{EC_InternalUseOnlyConstructor};
 enum ECppProperty					{EC_CppProperty};
 
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+/** DO NOT USE. Helper class to invoke specialized hot-reload constructor. */
+class FVTableHelper
+{
+public:
+	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
+	COREUOBJECT_API FVTableHelper()
+	{
+		EnsureRetrievingVTablePtr();
+	}
+};
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+
 /** Empty API definition.  Used as a placeholder parameter when no DLL export/import API is needed for a UObject class */
 #define NO_API
 
@@ -1157,11 +1170,11 @@ namespace UM
 #define RELAY_CONSTRUCTOR(TClass, TSuperClass) TClass(const FObjectInitializer& ObjectInitializer) : TSuperClass(ObjectInitializer) {}
 
 #if !USE_COMPILED_IN_NATIVES
-	#define COMPILED_IN_FLAGS(TStaticFlags) (TStaticFlags& ~(CLASS_Intrinsic))
-	#define COMPILED_IN_INTRINSIC 0
+#define COMPILED_IN_FLAGS(TStaticFlags) (TStaticFlags& ~(CLASS_Intrinsic))
+#define COMPILED_IN_INTRINSIC 0
 #else
-	#define COMPILED_IN_FLAGS(TStaticFlags) (TStaticFlags | CLASS_Intrinsic)
-	#define COMPILED_IN_INTRINSIC 1
+#define COMPILED_IN_FLAGS(TStaticFlags) (TStaticFlags | CLASS_Intrinsic)
+#define COMPILED_IN_INTRINSIC 1
 #endif
 
 #define DECLARE_SERIALIZER( TClass ) \
@@ -1220,47 +1233,140 @@ public: \
 #define DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
 	static void __DefaultConstructor(const FObjectInitializer& X) { new((EInternal*)X.GetObj())TClass(X); }
 
-#define DECLARE_CLASS_INTRINSIC_NO_CTOR(TClass,TSuperClass,TStaticFlags,TPackage) \
-	DECLARE_CLASS(TClass, TSuperClass, TStaticFlags | CLASS_Intrinsic, CASTCLASS_None, TPackage, NO_API) \
-	enum { IsIntrinsic = 1 }; \
-	static void StaticRegisterNatives##TClass() {} \
-	DECLARE_SERIALIZER(TClass) \
-	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass)
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+	#define DECLARE_VTABLE_PTR_HELPER_CTOR(API, TClass) \
+		/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */ \
+		API TClass(FVTableHelper& Helper);
 
-#define DECLARE_CLASS_INTRINSIC(TClass,TSuperClass,TStaticFlags,TPackage) \
-	DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,CASTCLASS_None,TPackage,NO_API ) \
-	RELAY_CONSTRUCTOR(TClass, TSuperClass) \
-	enum {IsIntrinsic=1}; \
-	static void StaticRegisterNatives##TClass() {} \
-	DECLARE_SERIALIZER(TClass) \
-	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass)
+	#define DEFINE_VTABLE_PTR_HELPER_CTOR(TClass) \
+		TClass::TClass(FVTableHelper& Helper) : Super(Helper) {};
 
-#define DECLARE_CASTED_CLASS_INTRINSIC_WITH_API_NO_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
-	DECLARE_CLASS(TClass, TSuperClass, TStaticFlags | CLASS_Intrinsic, TStaticCastFlags, TPackage, TRequiredAPI) \
-	enum { IsIntrinsic = 1 }; \
-	static void StaticRegisterNatives##TClass() {} \
-	DECLARE_SERIALIZER(TClass) \
-	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass)
+	#define DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER(TClass) \
+		static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
+		{ \
+			return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
+		}
 
-#define DECLARE_CASTED_CLASS_INTRINSIC_WITH_API( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
-	DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,TStaticCastFlags,TPackage,TRequiredAPI ) \
-	RELAY_CONSTRUCTOR(TClass, TSuperClass) \
-	enum {IsIntrinsic=1}; \
-	static void StaticRegisterNatives##TClass() {} \
-	DECLARE_SERIALIZER(TClass) \
-	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass)
+	#define DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER_DUMMY() \
+		static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
+		{ \
+			return nullptr; \
+		}
+
+	#define DECLARE_CLASS_INTRINSIC_NO_CTOR(TClass,TSuperClass,TStaticFlags,TPackage) \
+		DECLARE_CLASS(TClass, TSuperClass, TStaticFlags | CLASS_Intrinsic, CASTCLASS_None, TPackage, NO_API) \
+		enum { IsIntrinsic = 1 }; \
+		static void StaticRegisterNatives##TClass() {} \
+		DECLARE_SERIALIZER(TClass) \
+		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+		static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
+		{ \
+			return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
+		}
+
+	#define DECLARE_CLASS_INTRINSIC(TClass,TSuperClass,TStaticFlags,TPackage) \
+		DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,CASTCLASS_None,TPackage,NO_API ) \
+		RELAY_CONSTRUCTOR(TClass, TSuperClass) \
+		/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */ \
+		TClass(FVTableHelper& Helper) : Super(Helper) {}; \
+		enum {IsIntrinsic=1}; \
+		static void StaticRegisterNatives##TClass() {} \
+		DECLARE_SERIALIZER(TClass) \
+		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+		static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
+		{ \
+			return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
+		}
+
+	#define DECLARE_CASTED_CLASS_INTRINSIC_WITH_API_NO_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
+		DECLARE_CLASS(TClass, TSuperClass, TStaticFlags | CLASS_Intrinsic, TStaticCastFlags, TPackage, TRequiredAPI) \
+		enum { IsIntrinsic = 1 }; \
+		static void StaticRegisterNatives##TClass() {} \
+		DECLARE_SERIALIZER(TClass) \
+		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+		static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
+		{ \
+			return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
+		}
+
+	#define DECLARE_CASTED_CLASS_INTRINSIC_WITH_API( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
+		DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,TStaticCastFlags,TPackage,TRequiredAPI ) \
+		RELAY_CONSTRUCTOR(TClass, TSuperClass) \
+		/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */ \
+		TClass(FVTableHelper& Helper) : Super(Helper) {}; \
+		enum {IsIntrinsic=1}; \
+		static void StaticRegisterNatives##TClass() {} \
+		DECLARE_SERIALIZER(TClass) \
+		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+		static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
+		{ \
+			return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
+		}
+
+	#define DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR_NO_VTABLE_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
+		DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,TStaticCastFlags,TPackage, TRequiredAPI ) \
+		enum {IsIntrinsic=1}; \
+		static void StaticRegisterNatives##TClass() {} \
+		DECLARE_SERIALIZER(TClass) \
+		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+		static UObject* __VTableCtorCaller(FVTableHelper& Helper) \
+		{ \
+			return new (EC_InternalUseOnlyConstructor, (UObject*)GetTransientPackage(), NAME_None, RF_NeedLoad | RF_ClassDefaultObject | RF_TagGarbageTemp) TClass(Helper); \
+		}
+
+	#define DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
+		DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR_NO_VTABLE_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
+		/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */ \
+		TClass(FVTableHelper& Helper) : Super(Helper) {}; \
+
+#else // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+	#define DECLARE_VTABLE_PTR_HELPER_CTOR(API, TClass)
+	#define DEFINE_VTABLE_PTR_HELPER_CTOR(TClass)
+	#define DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER(TClass)
+	#define DEFINE_VTABLE_PTR_HELPER_CTOR_CALLER_DUMMY()
+
+	#define DECLARE_CLASS_INTRINSIC_NO_CTOR(TClass,TSuperClass,TStaticFlags,TPackage) \
+		DECLARE_CLASS(TClass, TSuperClass, TStaticFlags | CLASS_Intrinsic, CASTCLASS_None, TPackage, NO_API) \
+		enum { IsIntrinsic = 1 }; \
+		static void StaticRegisterNatives##TClass() {} \
+		DECLARE_SERIALIZER(TClass) \
+		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+
+	#define DECLARE_CLASS_INTRINSIC(TClass,TSuperClass,TStaticFlags,TPackage) \
+		DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,CASTCLASS_None,TPackage,NO_API ) \
+		RELAY_CONSTRUCTOR(TClass, TSuperClass) \
+		enum {IsIntrinsic=1}; \
+		static void StaticRegisterNatives##TClass() {} \
+		DECLARE_SERIALIZER(TClass) \
+		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+
+	#define DECLARE_CASTED_CLASS_INTRINSIC_WITH_API_NO_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
+		DECLARE_CLASS(TClass, TSuperClass, TStaticFlags | CLASS_Intrinsic, TStaticCastFlags, TPackage, TRequiredAPI) \
+		enum { IsIntrinsic = 1 }; \
+		static void StaticRegisterNatives##TClass() {} \
+		DECLARE_SERIALIZER(TClass) \
+		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+
+	#define DECLARE_CASTED_CLASS_INTRINSIC_WITH_API( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
+		DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,TStaticCastFlags,TPackage,TRequiredAPI ) \
+		RELAY_CONSTRUCTOR(TClass, TSuperClass) \
+		enum {IsIntrinsic=1}; \
+		static void StaticRegisterNatives##TClass() {} \
+		DECLARE_SERIALIZER(TClass) \
+		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+
+	#define DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
+		DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,TStaticCastFlags,TPackage, TRequiredAPI ) \
+		enum {IsIntrinsic=1}; \
+		static void StaticRegisterNatives##TClass() {} \
+		DECLARE_SERIALIZER(TClass) \
+		DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass) \
+
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+
 
 #define DECLARE_CASTED_CLASS_INTRINSIC( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags ) \
 	DECLARE_CASTED_CLASS_INTRINSIC_WITH_API( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, NO_API) \
-
-#define DECLARE_CASTED_CLASS_INTRINSIC_NO_CTOR( TClass, TSuperClass, TStaticFlags, TPackage, TStaticCastFlags, TRequiredAPI ) \
-	DECLARE_CLASS(TClass,TSuperClass,TStaticFlags|CLASS_Intrinsic,TStaticCastFlags,TPackage, TRequiredAPI ) \
-	enum {IsIntrinsic=1}; \
-	static void StaticRegisterNatives##TClass() {} \
-	DECLARE_SERIALIZER(TClass) \
-	DEFINE_DEFAULT_OBJECT_INITIALIZER_CONSTRUCTOR_CALL(TClass)
-
-
 
 // Declare that objects of class being defined reside within objects of the specified class.
 #define DECLARE_WITHIN( TWithinClass ) \

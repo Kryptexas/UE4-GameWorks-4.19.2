@@ -199,6 +199,11 @@ extern CORE_API bool GIsInitialLoad;
 /** true when we are routing ConditionalPostLoad/PostLoad to objects */
 extern CORE_API bool GIsRoutingPostLoad;
 
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+/** true when we are retrieving VTablePtr from UClass */
+extern CORE_API bool GIsRetrievingVTablePtr;
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+
 /** Steadily increasing frame counter. */
 extern CORE_API uint64 GFrameCounter;
 
@@ -276,3 +281,11 @@ extern CORE_API double GBlueprintCompileTime;
 
 /** Stack names from the VM to be unrolled when we assert */
 extern CORE_API TArray<FScriptTraceStackNode> GScriptStack;
+
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+/**
+ * Ensures that current thread is during retrieval of vtable ptr
+ * of some UClass.
+ */
+CORE_API void EnsureRetrievingVTablePtr();
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS

@@ -2,6 +2,9 @@
 
 #pragma once
 
+#include "LightMap.h"
+#include "ShadowMap.h"
+
 #include "SceneTypes.h"
 #include "StaticLighting.h"
 #include "Components/PrimitiveComponent.h"

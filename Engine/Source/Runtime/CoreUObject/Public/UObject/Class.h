@@ -1749,9 +1749,18 @@ public:
 
 	friend class FRestoreClassInfo;
 
-	void(*ClassConstructor)(const FObjectInitializer&);
+	typedef void		(*ClassConstructorType)				(const FObjectInitializer&);
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+	typedef UObject*	(*ClassVTableHelperCtorCallerType)	(FVTableHelper& Helper);
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+	typedef void		(*ClassAddReferencedObjectsType)	(UObject*, class FReferenceCollector&);
+
+	ClassConstructorType ClassConstructor;
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+	ClassVTableHelperCtorCallerType ClassVTableHelperCtorCaller;
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
 	/** Pointer to a static AddReferencedObjects method. */
-	void(*ClassAddReferencedObjects)(UObject*, class FReferenceCollector&);
+	ClassAddReferencedObjectsType ClassAddReferencedObjects;
 
 	// Class flags; See EClassFlags for more information
 	uint32 ClassFlags;
@@ -1853,8 +1862,11 @@ public:
 	UClass(const FObjectInitializer& ObjectInitializer);
 	explicit UClass(const FObjectInitializer& ObjectInitializer, UClass* InSuperClass);
 	UClass( EStaticConstructor, FName InName, uint32 InSize, uint32 InClassFlags, EClassCastFlags InClassCastFlags,
-		const TCHAR* InClassConfigName, EObjectFlags InFlags, void(*InClassConstructor)(const FObjectInitializer&),
-		void(*InClassAddReferencedObjects)(UObject*, class FReferenceCollector&));
+		const TCHAR* InClassConfigName, EObjectFlags InFlags, ClassConstructorType InClassConstructor,
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+		ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+		ClassAddReferencedObjectsType InClassAddReferencedObjects);
 
 #if WITH_HOT_RELOAD
 	/**
@@ -1872,8 +1884,11 @@ public:
 		uint32			InClassFlags,
 		EClassCastFlags	InClassCastFlags,
 		const TCHAR*    InConfigName,
-		void			(*InClassConstructor)(const FObjectInitializer&),
-		void			(*InAddReferencedObjects)(UObject*, class FReferenceCollector&),
+		ClassConstructorType InClassConstructor,
+#if WITH_HOT_RELOAD_CTORS
+		ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
+#endif // WITH_HOT_RELOAD_CTORS
+		ClassAddReferencedObjectsType InClassAddReferencedObjects,
 		class UClass* TClass_Super_StaticClass,
 		class UClass* TClass_WithinClass_StaticClass
 		);
@@ -2255,6 +2270,17 @@ void InternalConstructor( const FObjectInitializer& X )
 	T::__DefaultConstructor(X);
 }
 
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+/**
+ * Helper template to call the vtable ctor caller for a class
+ */
+template<class T>
+UObject* InternalVTableHelperCtorCaller(FVTableHelper& Helper)
+{
+	return T::__VTableCtorCaller(Helper);
+}
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+
 COREUOBJECT_API void InitializePrivateStaticClass(
 	class UClass* TClass_Super_StaticClass,
 	class UClass* TClass_PrivateStaticClass,
@@ -2290,7 +2316,10 @@ void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UCl
 				TClass::StaticClassFlags,
 				TClass::StaticClassCastFlags(),
 				TClass::StaticConfigName(),
-				(void(*)(const FObjectInitializer&))InternalConstructor<TClass>,
+				(UClass::ClassConstructorType)InternalConstructor<TClass>,
+#if WITH_HOT_RELOAD_CTORS
+				(UClass::ClassVTableHelperCtorCallerType)InternalVTableHelperCtorCaller<TClass>,
+#endif // WITH_HOT_RELOAD_CTORS
 				&TClass::AddReferencedObjects,
 				TClass::Super::StaticClass(),
 				TClass::WithinClass::StaticClass()
@@ -2318,7 +2347,10 @@ void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UCl
 		TClass::StaticClassCastFlags(),
 		TClass::StaticConfigName(),
 		EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet),
-		(void(*)(const FObjectInitializer&))InternalConstructor<TClass>,
+		(UClass::ClassConstructorType)InternalConstructor<TClass>,
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+		(UClass::ClassVTableHelperCtorCallerType)InternalVTableHelperCtorCaller<TClass>,
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
 		&TClass::AddReferencedObjects
 		);
 	check(ReturnClass);

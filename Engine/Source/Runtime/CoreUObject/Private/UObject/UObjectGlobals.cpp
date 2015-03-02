@@ -1914,6 +1914,10 @@ void UObject::PostInitProperties()
 
 UObject::UObject()
 {
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+	EnsureNotRetrievingVTablePtr();
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+
 	FObjectInitializer* ObjectInitializerPtr = FTlsObjectInitializers::Top();
 	UE_CLOG(!ObjectInitializerPtr, LogUObjectGlobals, Fatal, TEXT("%s is not being constructed with either NewObject, NewNamedObject or ConstructObject."), *GetName());
 	FObjectInitializer& ObjectInitializer = *ObjectInitializerPtr;
@@ -1924,6 +1928,10 @@ UObject::UObject()
 
 UObject::UObject(const FObjectInitializer& ObjectInitializer)
 {
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+	EnsureNotRetrievingVTablePtr();
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+
 	check(!ObjectInitializer.Obj || ObjectInitializer.Obj == this);
 	const_cast<FObjectInitializer&>(ObjectInitializer).Obj = this;
 	const_cast<FObjectInitializer&>(ObjectInitializer).FinalizeSubobjectClassInitialization();

@@ -1334,6 +1334,13 @@ FConfigCacheIni::FConfigCacheIni(EConfigCacheType InType)
 {
 }
 
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+FConfigCacheIni::FConfigCacheIni()
+{
+	EnsureRetrievingVTablePtr();
+}
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+
 FConfigCacheIni::~FConfigCacheIni()
 {
 	Flush( 1 );

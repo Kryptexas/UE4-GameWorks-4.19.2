@@ -109,6 +109,11 @@ private:
 	/** If true, any change in the generated headers will result in UHT failure. */
 	bool bFailIfGeneratedCodeChanges;
 
+#if WITH_HOT_RELOAD_CTORS
+	/** If true, then generate vtable constructors and it's callers. */
+	bool bExportVTableConstructors;
+#endif // WITH_HOT_RELOAD_CTORS
+
 	/** All properties that need to be forward declared. */
 	TArray<UProperty*>	ForwardDeclarations;
 
@@ -516,7 +521,15 @@ private:
 public:
 
 	// Constructor
-	FNativeClassHeaderGenerator(UPackage* InPackage, const TArray<FUnrealSourceFile*>& SourceFiles, FClasses& AllClasses, bool InAllowSaveExportedHeaders);
+	FNativeClassHeaderGenerator(
+		UPackage* InPackage,
+		const TArray<FUnrealSourceFile*>& SourceFiles,
+		FClasses& AllClasses,
+		bool InAllowSaveExportedHeaders
+#if WITH_HOT_RELOAD_CTORS
+		, bool bExportVTableConstructors
+#endif // WITH_HOT_RELOAD_CTORS
+	);
 
 	/**
 	 * Gets string with function return type.

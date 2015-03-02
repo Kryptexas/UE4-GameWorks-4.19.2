@@ -81,6 +81,14 @@ FHierarchicalLODBuilder::FHierarchicalLODBuilder(class UWorld* InWorld)
 :	World(InWorld)
 {}
 
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+FHierarchicalLODBuilder::FHierarchicalLODBuilder()
+	: World(nullptr)
+{
+	EnsureRetrievingVTablePtr();
+}
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+
 // build hierarchical cluster
 void FHierarchicalLODBuilder::Build()
 {

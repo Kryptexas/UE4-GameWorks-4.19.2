@@ -150,14 +150,23 @@ public:
 		: Object( InObject )
 		, SharedReferenceCount( InObject )
 	{
-		// If the following assert goes off, it means a TSharedRef was initialized from a nullptr object pointer.
-		// Shared references must never be nullptr, so either pass a valid object or consider using TSharedPtr instead.
-		check( InObject != nullptr );
-
-		// If the object happens to be derived from TSharedFromThis, the following method
-		// will prime the object with a weak pointer to itself.
-		SharedPointerInternals::EnableSharedFromThis( this, InObject, InObject );
+		Init(InObject);
 	}
+
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+	/**
+	 * Constructs default shared reference that owns the default object for specified type.
+	 *
+	 * Used internally only. Please do not use!
+	 */
+	TSharedRef()
+		: Object(new ObjectType())
+		, SharedReferenceCount(Object)
+	{
+		EnsureRetrievingVTablePtr();
+		Init(Object);
+	}
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
 
 	/**
 	 * Constructs a shared reference using a proxy reference to a raw pointer. (See MakeShareable())
@@ -347,6 +356,17 @@ public:
 	}
 
 private:
+	template<class OtherType>
+	void Init(OtherType* InObject)
+	{
+		// If the following assert goes off, it means a TSharedRef was initialized from a nullptr object pointer.
+		// Shared references must never be nullptr, so either pass a valid object or consider using TSharedPtr instead.
+		check(InObject != nullptr);
+
+		// If the object happens to be derived from TSharedFromThis, the following method
+		// will prime the object with a weak pointer to itself.
+		SharedPointerInternals::EnableSharedFromThis(this, InObject, InObject);
+	}
 
 	/**
 	 * Converts a shared pointer to a shared reference.  The pointer *must* be valid or an assertion will trigger.

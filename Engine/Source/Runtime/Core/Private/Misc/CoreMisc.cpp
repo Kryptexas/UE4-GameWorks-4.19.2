@@ -17,7 +17,6 @@
 #include "Ticker.h"
 #include "DerivedDataCacheInterface.h"
 
-
 DEFINE_LOG_CATEGORY(LogSHA);
 DEFINE_LOG_CATEGORY(LogStats);
 DEFINE_LOG_CATEGORY(LogStreaming);
@@ -29,6 +28,7 @@ DEFINE_LOG_CATEGORY(LogLocalization);
 DEFINE_LOG_CATEGORY(LogLongPackageNames);
 DEFINE_LOG_CATEGORY(LogProcess);
 DEFINE_LOG_CATEGORY(LogLoad);
+DEFINE_LOG_CATEGORY(LogCore);
 
 
 /*-----------------------------------------------------------------------------
@@ -986,3 +986,12 @@ FBoolConfigValueHelper::FBoolConfigValueHelper(const TCHAR* Section, const TCHAR
 {
 	GConfig->GetBool(Section, Key, bValue, Filename);
 }
+
+#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+bool GIsRetrievingVTablePtr = false;
+
+void EnsureRetrievingVTablePtr()
+{
+	UE_CLOG(!GIsRetrievingVTablePtr, LogCore, Fatal, TEXT("This should be used only during vtable ptr retrieval process."));
+}
+#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
