@@ -77,47 +77,51 @@ namespace iPhonePackager
 			bHasOverridesFile = File.Exists(Config.GetPlistOverrideFilename());
 			bNameMatch = false;
 
-			// Load Info.plist, which guides nearly everything else
-			string plistFile = Config.EngineBuildDirectory + "/UE4Game-Info.plist";
-			if (!string.IsNullOrEmpty(Config.ProjectFile))
-			{
-				plistFile = Path.GetDirectoryName(Config.ProjectFile) + "/Intermediate/IOS/" + Path.GetFileNameWithoutExtension(Config.ProjectFile) + "-Info.plist";
+			string CFBundleIdentifier = Config.OverrideBundleName;
 
-				if (!File.Exists(plistFile))
+			if (string.IsNullOrEmpty(CFBundleIdentifier))
+			{
+				// Load Info.plist, which guides nearly everything else
+				string plistFile = Config.EngineBuildDirectory + "/UE4Game-Info.plist";
+				if (!string.IsNullOrEmpty(Config.ProjectFile))
 				{
-					plistFile = Config.IntermediateDirectory + "/UE4Game-Info.plist";
+					plistFile = Path.GetDirectoryName(Config.ProjectFile) + "/Intermediate/IOS/" + Path.GetFileNameWithoutExtension(Config.ProjectFile) + "-Info.plist";
+
 					if (!File.Exists(plistFile))
 					{
-						plistFile = Config.EngineBuildDirectory + "/UE4Game-Info.plist";
+						plistFile = Config.IntermediateDirectory + "/UE4Game-Info.plist";
+						if (!File.Exists(plistFile))
+						{
+							plistFile = Config.EngineBuildDirectory + "/UE4Game-Info.plist";
+						}
 					}
 				}
-			}
-			Utilities.PListHelper Info = null;
-			try
-			{
-				string RawInfoPList = File.ReadAllText(plistFile, Encoding.UTF8);
-				Info = new Utilities.PListHelper(RawInfoPList);;
-			}
-			catch (Exception ex)
-			{
-				Console.WriteLine(ex.Message);
-			}
+				Utilities.PListHelper Info = null;
+				try
+				{
+					string RawInfoPList = File.ReadAllText(plistFile, Encoding.UTF8);
+					Info = new Utilities.PListHelper(RawInfoPList); ;
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine(ex.Message);
+				}
 
-			if (Info == null)
-			{
-				return false;
-			}
+				if (Info == null)
+				{
+					return false;
+				}
 
-			// Get the name of the bundle
-			string CFBundleIdentifier = null;
-			Info.GetString("CFBundleIdentifier", out CFBundleIdentifier);
-			if (CFBundleIdentifier == null)
-			{
-				return false;
-			}
-			else
-			{
-				CFBundleIdentifier = CFBundleIdentifier.Replace("${BUNDLE_IDENTIFIER}", Path.GetFileNameWithoutExtension(Config.ProjectFile));
+				// Get the name of the bundle
+				Info.GetString("CFBundleIdentifier", out CFBundleIdentifier);
+				if (CFBundleIdentifier == null)
+				{
+					return false;
+				}
+				else
+				{
+					CFBundleIdentifier = CFBundleIdentifier.Replace("${BUNDLE_IDENTIFIER}", Path.GetFileNameWithoutExtension(Config.ProjectFile));
+				}
 			}
 
 			// Check for a mobile provision

@@ -1541,6 +1541,17 @@ bool FInternalPlayWorldCommandCallbacks::IsReadyToLaunchOnDevice(FString DeviceI
 			UnrecoverableError = true;
 		}
 
+		if ((Result & ETargetPlatformReadyStatus::ManifestNotFound) != 0)
+		{
+			AddMessageLog(
+				LOCTEXT("ManifestNotFound", "Manifest not found."),
+				LOCTEXT("ManifestNotFoundMessageDetail", "The generated application manifest could not be found."),
+				NotInstalledTutorialLink
+				);
+
+			UnrecoverableError = true;
+		}
+
 		if (UnrecoverableError)
 		{
 			return false;
