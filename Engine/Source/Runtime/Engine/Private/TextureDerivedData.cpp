@@ -969,8 +969,6 @@ void FTexturePlatformData::Cache(
 	bool bAsync = !bForDDC && (Flags & ETextureCacheFlags::Async) != 0;
 	GetTextureDerivedDataKey(InTexture, InSettings, DerivedDataKey);
 
-	UE_LOG(LogTemp, Warning, TEXT("FTexturePlatformData::Cache for %s with ID %s"), *InTexture.GetName(), *DerivedDataKey );
-
 	ITextureCompressorModule* Compressor = &FModuleManager::LoadModuleChecked<ITextureCompressorModule>(TEXTURE_COMPRESSOR_MODULENAME);
 
 	if (bAsync && !bForceRebuild)
