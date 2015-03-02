@@ -6945,6 +6945,19 @@ FWorldContext& UEditorEngine::GetEditorWorldContext(bool bEnsureIsGWorld)
 	return CreateNewWorldContext(EWorldType::Editor);
 }
 
+FWorldContext* UEditorEngine::GetPIEWorldContext()
+{
+	for(auto& WorldContext : WorldList)
+	{
+		if(WorldContext.WorldType == EWorldType::PIE)
+		{
+			return &WorldContext;
+		}
+	}
+
+	return nullptr;
+}
+
 namespace EditorUtilities
 {
 	AActor* GetEditorWorldCounterpartActor( AActor* Actor )

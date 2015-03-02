@@ -2262,6 +2262,9 @@ public:
 	 */
 	FWorldContext &GetEditorWorldContext(bool bEnsureIsGWorld = false);
 
+	/** Returns the WorldContext for the PIE world.
+	*/
+	FWorldContext* GetPIEWorldContext();
 
 	/** 
 	 * mostly done to check if PIE is being set up, go GWorld is going to change, and it's not really _the_G_World_

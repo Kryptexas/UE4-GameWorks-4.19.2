@@ -51,7 +51,9 @@ FPhysicsManipulationEdMode::~FPhysicsManipulationEdMode()
 
 void FPhysicsManipulationEdMode::Enter()
 {
-	HandleComp->RegisterComponentWithWorld(GetWorld());
+	FWorldContext* PIEWorldContext = GEditor->GetPIEWorldContext();
+	check(PIEWorldContext && PIEWorldContext->World());
+	HandleComp->RegisterComponentWithWorld(PIEWorldContext->World());
 }
 
 void FPhysicsManipulationEdMode::Exit()
