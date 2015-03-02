@@ -479,6 +479,8 @@ enum EUnrealEngineObjectUE4Version
 	// FPropertyTag stores GUID of struct
 	VER_UE4_STRUCT_GUID_IN_PROPERTY_TAG,
 
+	// Remove unused UPolys from UModel cooked content
+	VER_UE4_REMOVE_UNUSED_UPOLYS_FROM_UMODEL,
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,
