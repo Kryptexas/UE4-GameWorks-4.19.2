@@ -1084,7 +1084,7 @@ void FShaderCache::SetShaderSamplerTextures( FRHICommandList& RHICmdList, FShade
 
 void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundState const& Shader, TSet<int32> const& DrawStates)
 {
-	FBoundShaderStateRHIRef BoundShaderState = BoundShaderStates.FindRef( Shader );
+	FBoundShaderStateRHIRef ShaderBoundState = BoundShaderStates.FindRef( Shader );
 	{
 		uint32 VertexBufferSize = 0;
 		for( auto VertexDec : Shader.VertexDeclaration )
@@ -1178,7 +1178,7 @@ void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundS
 			
 			RHICmdList.SetRenderTargets(NewNumRenderTargets, RenderTargets, bDepthStencilTarget ? &DepthStencilTarget : nullptr, 0, nullptr);
 			
-			if ( !IsValidRef(BoundShaderState) )
+			if ( !IsValidRef(ShaderBoundState) )
 			{
 				FVertexShaderRHIRef VertexShader = Shader.VertexShader.bActive ? CachedVertexShaders.FindRef(Shader.VertexShader) : nullptr;
 				FPixelShaderRHIRef PixelShader = Shader.PixelShader.bActive ? CachedPixelShaders.FindRef(Shader.PixelShader) : nullptr;
@@ -1200,7 +1200,7 @@ void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundS
 					
 					if ( bOK )
 					{
-						BoundShaderState = RHICreateBoundShaderState( VertexDeclaration,
+						ShaderBoundState = RHICreateBoundShaderState( VertexDeclaration,
 																	 VertexShader,
 																	 HullShader,
 																	 DomainShader,
@@ -1210,9 +1210,9 @@ void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundS
 				}
 			}
 			
-			if ( IsValidRef( BoundShaderState ) )
+			if ( IsValidRef( ShaderBoundState ) )
 			{
-				RHICmdList.SetBoundShaderState(BoundShaderState);
+				RHICmdList.SetBoundShaderState(ShaderBoundState);
 			}
 			else
 			{
@@ -1264,7 +1264,7 @@ void FShaderCache::PreDrawShader(FRHICommandList& RHICmdList, FShaderCacheBoundS
 			}
 		}
 		
-		if( IsValidRef( BoundShaderState ) && DrawStates.Num() )
+		if( IsValidRef( ShaderBoundState ) && DrawStates.Num() )
 		{
 			if ( Shader.VertexShader.bActive )
 			{

@@ -1442,9 +1442,9 @@ void FRawProfilerSession::ProcessMemoryOperations( const TMap<int64, FStatPacket
 
 							// Create a callstack.
 							TArray<FName> StatsBasedCallstack;
-							for( const auto& RawName : StackState->Stack )
+							for( const auto& StackRawName : StackState->Stack )
 							{
-								StatsBasedCallstack.Add(RawName);
+								StatsBasedCallstack.Add(StackRawName);
 							}
 
 							// Add a new allocation.
@@ -1467,9 +1467,9 @@ void FRawProfilerSession::ProcessMemoryOperations( const TMap<int64, FStatPacket
 
 							// Create a callstack.
 							TArray<FName> StatsBasedCallstack;
-							for( const auto& RawName : StackState->Stack )
+							for( const auto& StackRawName : StackState->Stack )
 							{
-								StatsBasedCallstack.Add(RawName);
+								StatsBasedCallstack.Add(StackRawName);
 							}
 
 							// Add a new free.

@@ -272,7 +272,7 @@ bool FApplePlatformSymbolication::LoadSymbolDatabaseForBinary(FString SourceFold
 	return bOK;
 }
 
-bool FApplePlatformSymbolication::SaveSymbolDatabaseForBinary(FString TargetFolder, FString Name, FApplePlatformSymbolDatabase& Database)
+bool FApplePlatformSymbolication::SaveSymbolDatabaseForBinary(FString TargetFolder, FString InName, FApplePlatformSymbolDatabase& Database)
 {
 	__block bool bOK = true;
 	if(GAllowApplePlatformSymbolication)
@@ -360,7 +360,7 @@ bool FApplePlatformSymbolication::SaveSymbolDatabaseForBinary(FString TargetFold
 	
 	if(bOK)
 	{
-		bOK = FGenericPlatformSymbolication::SaveSymbolDatabaseForBinary(TargetFolder, Name, Database.GenericDB);
+		bOK = FGenericPlatformSymbolication::SaveSymbolDatabaseForBinary(TargetFolder, InName, Database.GenericDB);
 	}
 	
 	return bOK;

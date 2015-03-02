@@ -460,8 +460,8 @@ FString FFileManagerGeneric::DefaultConvertToRelativePath( const TCHAR* Filename
 	FPaths::NormalizeFilename(RelativePath);
 
 	// See whether it is a relative path.
-	FString RootDir( FPlatformMisc::RootDir() );
-	FPaths::NormalizeFilename(RootDir);
+	FString RootDirectory( FPlatformMisc::RootDir() );
+	FPaths::NormalizeFilename(RootDirectory);
 
 	//the default relative directory it to the app root which is 3 directories up from the starting directory
 	int32 NumberOfDirectoriesToGoUp = 3;
@@ -470,26 +470,26 @@ FString FFileManagerGeneric::DefaultConvertToRelativePath( const TCHAR* Filename
 	int32 CurrentSlashPosition;
 
 	//while we haven't run out of parent directories until we which a drive name
-	while( ( CurrentSlashPosition = RootDir.Find( TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd ) ) != INDEX_NONE )
+	while( ( CurrentSlashPosition = RootDirectory.Find( TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd ) ) != INDEX_NONE )
 	{
-		if( RelativePath.StartsWith( RootDir ) )
+		if( RelativePath.StartsWith( RootDirectory ) )
 		{
 			FString BinariesDir = FString(FPlatformProcess::BaseDir());
 			FPaths::MakePathRelativeTo( RelativePath, *BinariesDir );
 			break;
 		}
-		int32 PositionOfNextSlash = RootDir.Find( TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd, CurrentSlashPosition );
+		int32 PositionOfNextSlash = RootDirectory.Find( TEXT("/"), ESearchCase::CaseSensitive, ESearchDir::FromEnd, CurrentSlashPosition );
 		//if there is another slash to find
 		if( PositionOfNextSlash != INDEX_NONE )
 		{
 			//move up a directory and on an extra .. TEXT("/")
 			// the +1 from "InStr" moves to include the "\" at the end of the directory name
 			NumberOfDirectoriesToGoUp++;
-			RootDir = RootDir.Left( PositionOfNextSlash + 1 );
+			RootDirectory = RootDirectory.Left( PositionOfNextSlash + 1 );
 		}
 		else
 		{
-			RootDir.Empty();
+			RootDirectory.Empty();
 		}
 	}
 	return RelativePath;

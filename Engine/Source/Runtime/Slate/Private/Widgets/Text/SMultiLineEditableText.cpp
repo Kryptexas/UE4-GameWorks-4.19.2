@@ -8,7 +8,7 @@
 #include "PlainTextLayoutMarshaller.h"
 #include "GenericCommands.h"
 
-void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment(const TSharedPtr<FTextLayout>& TextLayout, const FTextLocation& InCursorPosition)
+void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment(const TSharedPtr<FTextLayout>& InTextLayout, const FTextLocation& InCursorPosition)
 {
 	FTextLocation NewCursorPosition = InCursorPosition;
 	ECursorAlignment NewAlignment = ECursorAlignment::Left;
@@ -17,9 +17,9 @@ void SMultiLineEditableText::FCursorInfo::SetCursorLocationAndCalculateAlignment
 	const int32 CursorOffset = InCursorPosition.GetOffset();
 
 	// A CursorOffset of zero could mark the end of an empty line, but we don't need to adjust the cursor for an empty line
-	if (TextLayout.IsValid() && CursorOffset > 0)
+	if (InTextLayout.IsValid() && CursorOffset > 0)
 	{
-		const TArray< FTextLayout::FLineModel >& Lines = TextLayout->GetLineModels();
+		const TArray< FTextLayout::FLineModel >& Lines = InTextLayout->GetLineModels();
 		const FTextLayout::FLineModel& Line = Lines[CursorLineIndex];
 		if (Line.Text->Len() == CursorOffset)
 		{
@@ -2309,9 +2309,9 @@ FVector2D SMultiLineEditableText::ComputeDesiredSize( float ) const
 	const FVector2D TextLayoutSize = TextLayoutBaseSize + FVector2D(CaretWidth, 0);
 
 	// The layouts current margin size. We should not report a size smaller then the margins.
-	const FMargin Margin = TextLayout->GetMargin();
-	float DesiredWidth = FMath::Max(Margin.GetTotalSpaceAlong<Orient_Horizontal>(), TextLayoutSize.X);
-	float DesiredHeight = FMath::Max(Margin.GetTotalSpaceAlong<Orient_Vertical>(), TextLayoutSize.Y);
+	const FMargin TextLayoutMargin = TextLayout->GetMargin();
+	float DesiredWidth = FMath::Max(TextLayoutMargin.GetTotalSpaceAlong<Orient_Horizontal>(), TextLayoutSize.X);
+	float DesiredHeight = FMath::Max(TextLayoutMargin.GetTotalSpaceAlong<Orient_Vertical>(), TextLayoutSize.Y);
 	DesiredHeight = FMath::Max(DesiredHeight, FontMaxCharHeight);
 	
 	return FVector2D(DesiredWidth, DesiredHeight);

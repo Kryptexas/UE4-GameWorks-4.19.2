@@ -650,13 +650,13 @@ void FUntypedBulkData::StartSerializingBulkData(FArchive& Ar, UObject* Owner, in
 			BulkDataAsync = FMemory::Realloc(BulkDataAsync, GetBulkDataSize());
 		}
 
-		FArchive* Ar = IFileManager::Get().CreateFileReader(*Filename, FILEREAD_Silent);
-		checkf(Ar != NULL, TEXT("Attempted to load bulk data from an invalid filename '%s'."), *Filename);
+		FArchive* FileReaderAr = IFileManager::Get().CreateFileReader(*Filename, FILEREAD_Silent);
+		checkf(FileReaderAr != NULL, TEXT("Attempted to load bulk data from an invalid filename '%s'."), *Filename);
 
 		// Seek to the beginning of the bulk data in the file.
-		Ar->Seek(BulkDataOffsetInFile);
-		SerializeBulkData(*Ar, BulkDataAsync);
-		delete Ar;
+		FileReaderAr->Seek(BulkDataOffsetInFile);
+		SerializeBulkData(*FileReaderAr, BulkDataAsync);
+		delete FileReaderAr;
 
 		return true;
 	});

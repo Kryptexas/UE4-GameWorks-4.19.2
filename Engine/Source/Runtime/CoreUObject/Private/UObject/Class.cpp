@@ -800,12 +800,12 @@ void UStruct::SerializeTaggedProperties(FArchive& Ar, uint8* Data, UStruct* Defa
 				break;
 			}
 
-			auto CanSerializeFromStructWithDifferentName = [](const FArchive& Ar, const FPropertyTag& PropertyTag, const UStructProperty* StructProperty)
+			auto CanSerializeFromStructWithDifferentName = [](const FArchive& InAr, const FPropertyTag& PropertyTag, const UStructProperty* StructProperty)
 			{
-				if (Ar.UE4Ver() < VER_UE4_STRUCT_GUID_IN_PROPERTY_TAG)
+				if (InAr.UE4Ver() < VER_UE4_STRUCT_GUID_IN_PROPERTY_TAG)
 				{
 					// Old Implementation
-					return !StructProperty->UseBinaryOrNativeSerialization(Ar);
+					return !StructProperty->UseBinaryOrNativeSerialization(InAr);
 				}
 				return PropertyTag.StructGuid.IsValid() && StructProperty && StructProperty->Struct && (PropertyTag.StructGuid == StructProperty->Struct->GetCustomGuid());
 			};

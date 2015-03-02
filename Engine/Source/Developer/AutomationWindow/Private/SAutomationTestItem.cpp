@@ -73,18 +73,18 @@ void SAutomationHistoryCell::RebuildContentArea()
 
 	// Create an overview of the previous results in icon form.
 	const TArray<TSharedPtr<FAutomationHistoryItem>> History = HistoryItem->GetHistory();
-	for (const TSharedPtr<FAutomationHistoryItem> HistoryItem : History)
+	for (const TSharedPtr<FAutomationHistoryItem> AutomationHistoryItem : History)
 	{
 		FFormatNamedArguments Args;
-		Args.Add(TEXT("Date"), FText::AsDateTime(HistoryItem->RunDate));
+		Args.Add(TEXT("Date"), FText::AsDateTime(AutomationHistoryItem->RunDate));
 
 		const FSlateBrush* ResultIcon = nullptr;
-		if (HistoryItem->RunResult == FAutomationHistoryItem::EAutomationHistoryResult::Errors)
+		if (AutomationHistoryItem->RunResult == FAutomationHistoryItem::EAutomationHistoryResult::Errors)
 		{
 			Args.Add(TEXT("Result"), LOCTEXT("HasErrors", "had errors"));
 			ResultIcon = FEditorStyle::GetBrush("Automation.Fail");
 		}
-		else if (HistoryItem->RunResult == FAutomationHistoryItem::EAutomationHistoryResult::Warnings)
+		else if (AutomationHistoryItem->RunResult == FAutomationHistoryItem::EAutomationHistoryResult::Warnings)
 		{
 			Args.Add(TEXT("Result"), LOCTEXT("HasWarnings", "had warnings"));
 			ResultIcon = FEditorStyle::GetBrush("Automation.Warning");
