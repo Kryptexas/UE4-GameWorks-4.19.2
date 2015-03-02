@@ -358,10 +358,10 @@ FString FMediaPlayerCustomization::HandleUrlPickerFileTypeFilter() const
 		return Filter;
 	}
 
-	FMediaFormats SupportedFormats;
-	MediaModule->GetSupportedFormats(SupportedFormats);
+	FMediaFileTypes FileTypes;
+	MediaModule->GetSupportedFileTypes(FileTypes);
 
-	if (SupportedFormats.Num() == 0)
+	if (FileTypes.Num() == 0)
 	{
 		return Filter;
 	}
@@ -369,7 +369,7 @@ FString FMediaPlayerCustomization::HandleUrlPickerFileTypeFilter() const
 	FString AllExtensions;
 	FString AllFilters;
 			
-	for (auto& Format : SupportedFormats)
+	for (auto& Format : FileTypes)
 	{
 		if (!AllExtensions.IsEmpty())
 		{

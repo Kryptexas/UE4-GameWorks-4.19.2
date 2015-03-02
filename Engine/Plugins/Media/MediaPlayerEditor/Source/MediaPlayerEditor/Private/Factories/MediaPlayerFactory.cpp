@@ -52,10 +52,10 @@ void UMediaPlayerFactory::ReloadMediaFormats()
 
 	if (MediaModule != nullptr)
 	{
-		FMediaFormats SupportedFormats;
-		MediaModule->GetSupportedFormats(SupportedFormats);
+		FMediaFileTypes FileTypes;
+		MediaModule->GetSupportedFileTypes(FileTypes);
 
-		for (auto& Format : SupportedFormats)
+		for (auto& Format : FileTypes)
 		{
 			Formats.Add(Format.Key + TEXT(";") + Format.Value.ToString());
 		}
@@ -70,6 +70,7 @@ void UMediaPlayerFactory::HandleMediaPlayerFactoryAdded()
 {
 	ReloadMediaFormats();
 }
+
 
 void UMediaPlayerFactory::HandleMediaPlayerFactoryRemoved()
 {
