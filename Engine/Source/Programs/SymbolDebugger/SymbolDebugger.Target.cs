@@ -16,6 +16,7 @@ public class SymbolDebuggerTarget : TargetRules
     public override bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
     {
         OutPlatforms.Add(UnrealTargetPlatform.Win64);
+        OutPlatforms.Add(UnrealTargetPlatform.Mac);
         return true;
     }
 

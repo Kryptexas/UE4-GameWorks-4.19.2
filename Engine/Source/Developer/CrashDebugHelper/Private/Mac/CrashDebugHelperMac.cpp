@@ -222,6 +222,7 @@ static int32 ParseExceptionCode(TCHAR const* CrashLog, uint32& OutExceptionCode)
 			}
 			else
 			{
+				ensure(false);
 				OutExceptionCode = SIGUSR1;
 			}
 		}
@@ -335,7 +336,7 @@ static int32 ParseThreadStackLine(TCHAR const* StackLine, FString& OutModuleName
 	return Found;
 }
 
-static int32 SymboliseStackInfo(FApplePlatformSymbolCache* SymbolCache, TArray<FCrashModuleInfo> const& ModuleInfo, FString ModuleName, uint64 const ProgramCounter, FString& OutFunctionName, FString& OutFileName, int32& OutLineNumber)
+static int32 SymboliseStackInfo(FPlatformSymbolDatabaseSet& SymbolCache, TArray<FCrashModuleInfo> const& ModuleInfo, FString ModuleName, uint64 const ProgramCounter, FString& OutFunctionName, FString& OutFileName, int32& OutLineNumber)
 {
 	FProgramCounterSymbolInfo Info;
 	int32 ValuesSymbolised = 0;
@@ -349,8 +350,18 @@ static int32 SymboliseStackInfo(FApplePlatformSymbolCache* SymbolCache, TArray<F
 			break;
 		}
 	}
-
-	if((Module.Name.Len() > 0) && FApplePlatformSymbolication::SymbolInfoForStrippedSymbol(SymbolCache, (ProgramCounter - Module.BaseOfImage), TCHAR_TO_UTF8(*Module.Name), TCHAR_TO_UTF8(*Module.Report), Info))
+	
+	FApplePlatformSymbolDatabase* Db = SymbolCache.Find(Module.Report);
+	if(!Db)
+	{
+		FApplePlatformSymbolDatabase Database;
+		if(FPlatformSymbolication::LoadSymbolDatabaseForBinary(TEXT(""), Module.Name, Module.Report, Database))
+		{
+			SymbolCache.Add(Database);
+			Db = SymbolCache.Find(Module.Report);
+		}
+	}
+	if((Module.Name.Len() > 0) && Db && FPlatformSymbolication::SymbolInfoForStrippedSymbol(*Db, ProgramCounter, Module.BaseOfImage, Module.Report, Info))
 	{
 		if(FCStringAnsi::Strlen(Info.FunctionName) > 0)
 		{
@@ -643,7 +654,8 @@ bool FCrashDebugHelperMac::CreateMinidumpDiagnosticReport( const FString& InCras
 				}
 			}
 			
-			FApplePlatformSymbolCache* SymbolCache = FApplePlatformSymbolication::CreateSymbolCache();
+			
+			FPlatformSymbolDatabaseSet SymbolCache;
 			
 			TCHAR const* ThreadStackLine = FindCrashedThreadStack(*CrashDump);
 			while(ThreadStackLine)
@@ -694,8 +706,6 @@ bool FCrashDebugHelperMac::CreateMinidumpDiagnosticReport( const FString& InCras
 						break;
 				}
 			}
-			
-			FApplePlatformSymbolication::DestroySymbolCache(SymbolCache);
 			
 			CrashInfo.Threads.Push(ThreadInfo);
 			

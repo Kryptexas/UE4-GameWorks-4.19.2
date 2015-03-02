@@ -847,7 +847,15 @@ void FModuleManager::FindModulePathsInDirectory(const FString& InDirectoryName, 
 	for (int32 Idx = 0; Idx < FullFileNames.Num(); Idx++)
 	{
 		const FString &FullFileName = FullFileNames[Idx];
-
+	
+		// On Mac OS X the separate debug symbol format is the dSYM bundle, which is a bundle folder hierarchy containing a .dylib full of Mach-O formatted DWARF debug symbols, these are not loadable modules, so we mustn't ever try and use them. If we don't eliminate this here then it will appear in the module paths & cause errors later on which cannot be recovered from.
+	#if PLATFORM_MAC
+		if(FullFileName.Contains(".dSYM"))
+		{
+			continue;
+		}
+	#endif
+		
 		FString FileName = FPaths::GetCleanFilename(FullFileName);
 		if (FileName.StartsWith(ModulePrefix) && FileName.EndsWith(ModuleSuffix))
 		{

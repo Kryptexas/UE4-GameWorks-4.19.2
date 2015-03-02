@@ -88,7 +88,6 @@ public class Core : ModuleRules
 			{
 				PublicAdditionalLibraries.Add("/System/Library/PrivateFrameworks/MultitouchSupport.framework/Versions/Current/MultitouchSupport");
 			}
-			PublicAdditionalLibraries.Add("/System/Library/PrivateFrameworks/CoreSymbolication.framework/Versions/Current/CoreSymbolication");
 		}
 		else if (Target.Platform == UnrealTargetPlatform.IOS)
 		{

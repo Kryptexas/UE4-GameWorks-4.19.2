@@ -178,6 +178,8 @@ struct FMacApplicationInfo
 		uint32 Status = notify_register_dispatch(kIOPSNotifyPowerSource, &PowerSourceNotification, dispatch_get_main_queue(), PowerSourceNotifyHandler);
 		check(Status == NOTIFY_STATUS_OK);
 		
+		NumCores = FPlatformMisc::NumberOfCores();
+		
 		NSString* PLCrashReportFile = [TemporaryCrashReportFolder().GetNSString() stringByAppendingPathComponent:TemporaryCrashReportName().GetNSString()];
 		[PLCrashReportFile getCString:PLCrashReportPath maxLength:PATH_MAX encoding:NSUTF8StringEncoding];
 	}
@@ -315,6 +317,8 @@ void FMacPlatformMisc::PlatformPreInit()
 	{
 		UE_LOG(LogInit, Warning, TEXT("Failed to change open file limit, UE4 may be unstable."));
 	}
+	
+	FApplePlatformSymbolication::EnableCoreSymbolication(!FPlatformProcess::IsSandboxedApplication() && IS_PROGRAM);
 }
 
 void FMacPlatformMisc::PlatformInit()
@@ -398,6 +402,7 @@ void FMacPlatformMisc::PlatformTearDown()
 		[[NSProcessInfo processInfo] endActivity:CommandletActivity];
 		CommandletActivity = nil;
 	}
+	FApplePlatformSymbolication::EnableCoreSymbolication(false);
 }
 
 void FMacPlatformMisc::UpdateWindowMenu()
@@ -1234,7 +1239,8 @@ static void DefaultCrashHandler(FMacCrashContext const& Context)
 /** True system-specific crash handler that gets called first */
 static void PlatformCrashHandler(siginfo_t* Info, ucontext_t* Uap, void* Context)
 {
-	FApplePlatformSymbolication::SetSymbolicationAllowed( false );
+	// Disable CoreSymbolication
+	FApplePlatformSymbolication::EnableCoreSymbolication( false );
 	
 	FMacCrashContext CrashContext;
 	CrashContext.InitFromSignal((int32)Info->si_signo, Info, Context);
@@ -1665,6 +1671,26 @@ void FMacCrashContext::GenerateCrashInfoAndLaunchReporter() const
 		}
 		// We no longer wait here because on return the OS will scribble & crash again due to the behaviour of the XPC function
 		// OS X uses internally to launch/wait on the CrashReportClient. It is simpler, easier & safer to just die here like a good little Mac.app.
+	}
+	
+	// Sandboxed applications re-raise the signal to trampoline into the system crash reporter as suppressing it may fall foul of Apple's Mac App Store rules.
+	// @todo Submit an application to the MAS & see whether Apple's reviewers highlight our crash reporting or trampolining to the system reporter.
+	if(GMacAppInfo.bIsSandboxed)
+	{
+		struct sigaction Action;
+		FMemory::Memzero(&Action, sizeof(struct sigaction));
+		Action.sa_handler = SIG_DFL;
+		sigemptyset(&Action.sa_mask);
+		sigaction(SIGQUIT, &Action, NULL);
+		sigaction(SIGILL, &Action, NULL);
+		sigaction(SIGEMT, &Action, NULL);
+		sigaction(SIGFPE, &Action, NULL);
+		sigaction(SIGBUS, &Action, NULL);
+		sigaction(SIGSEGV, &Action, NULL);
+		sigaction(SIGSYS, &Action, NULL);
+		sigaction(SIGABRT, &Action, NULL);
+	
+		raise(Signal);
 	}
 	
 	_Exit(0);

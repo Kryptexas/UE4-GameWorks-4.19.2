@@ -1077,6 +1077,13 @@ namespace UnrealBuildTool
 				}
 			}
 
+			// For Mac, generate the dSYM file if the config file is set to do so
+			if (BuildConfiguration.bGeneratedSYMFile == true && (!bIsBuildingLibrary || LinkEnvironment.Config.bIsBuildingDLL))
+			{
+				Log.TraceInformation("Generating dSYM file for {0} - this will add some time to your build...", Path.GetFileName(OutputFile.AbsolutePath));
+				RemoteOutputFile = GenerateDebugInfo(OutputFile);
+			}
+
 			return RemoteOutputFile;
 		}
 
@@ -1123,9 +1130,60 @@ namespace UnrealBuildTool
 			return RemoteOutputFile;
 		}
 
+		private static Dictionary<Action, string> DebugOutputMap = new Dictionary<Action, string>();
+		static public void RPCDebugInfoActionHandler(Action Action, out int ExitCode, out string Output)
+		{
+			RPCUtilHelper.RPCActionHandler (Action, out ExitCode, out Output);
+			if (DebugOutputMap.ContainsKey (Action)) 
+			{
+				if (ExitCode == 0) 
+				{
+					RPCUtilHelper.CopyDirectory (Action.ProducedItems[0].AbsolutePath, DebugOutputMap[Action], RPCUtilHelper.ECopyOptions.None);
+				}
+				DebugOutputMap.Remove (Action);
+			}
+		}
+
+		/**
+		 * Generates debug info for a given executable
+		 * 
+		 * @param MachOBinary FileItem describing the executable or dylib to generate debug info for
+		 */
+		public FileItem GenerateDebugInfo(FileItem MachOBinary)
+		{
+			// Make a file item for the source and destination files
+			string FullDestPath = MachOBinary.AbsolutePath + ".dSYM";
+
+			FileItem OutputFile = FileItem.GetItemByPath(FullDestPath);
+			FileItem DestFile = LocalToRemoteFileItem(OutputFile, false);
+			FileItem InputFile = LocalToRemoteFileItem(MachOBinary, false);
+
+			// Make the compile action
+			Action GenDebugAction = new Action(ActionType.GenerateDebugInfo);
+			if (BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)
+			{
+				DebugOutputMap.Add (GenDebugAction, OutputFile.AbsolutePath);
+				GenDebugAction.ActionHandler = new Action.BlockingActionHandler(MacToolChain.RPCDebugInfoActionHandler);
+			}
+			GenDebugAction.WorkingDirectory = Path.GetFullPath(".");
+			GenDebugAction.CommandPath = "sh";
+
+			// note that the source and dest are switched from a copy command
+			GenDebugAction.CommandArguments = string.Format("-c '\"{0}\"usr/bin/xcrun dsymutil \"{1}\" -o \"{2}\"; \"{0}\"usr/bin/xcrun strip -S -X -x \"{1}\"'",
+				XcodeDeveloperDir,
+				InputFile.AbsolutePath,
+				DestFile.AbsolutePath);
+			GenDebugAction.PrerequisiteItems.Add(InputFile);
+			GenDebugAction.ProducedItems.Add(DestFile);
+			GenDebugAction.StatusDescription = GenDebugAction.CommandArguments;
+			GenDebugAction.bCanExecuteRemotely = false;
+
+			return DestFile;
+		}
+
 		/**
 		 * Creates app bundle for a given executable
-		 * 
+		 *
 		 * @param Executable FileItem describing the executable to generate app bundle for
 		 */
 		FileItem FinalizeAppBundle(LinkEnvironment LinkEnvironment, FileItem Executable, FileItem FixDylibOutputFile)
