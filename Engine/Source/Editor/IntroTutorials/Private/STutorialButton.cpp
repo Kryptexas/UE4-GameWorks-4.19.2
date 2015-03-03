@@ -274,16 +274,17 @@ void STutorialButton::DismissAlert()
 	if (CachedAttractTutorial != nullptr)
 	{
 		GetMutableDefault<UTutorialStateSettings>()->DismissTutorial(CachedAttractTutorial, bDismissAcrossSessions);
+		CachedAttractTutorial = nullptr;
 	}
 	if( CachedLaunchTutorial != nullptr)
 	{
 		GetMutableDefault<UTutorialStateSettings>()->DismissTutorial(CachedLaunchTutorial, bDismissAcrossSessions);
+		CachedLaunchTutorial = nullptr;
 	}
 	GetMutableDefault<UTutorialStateSettings>()->SaveProgress();
 	bTutorialDismissed = true;
 
-	FIntroTutorials& IntroTutorials = FModuleManager::GetModuleChecked<FIntroTutorials>(TEXT("IntroTutorials"));
-	IntroTutorials.CloseAllTutorialContent();
+	RefreshStatus();
 }
 
 void STutorialButton::LaunchTutorial()
