@@ -257,10 +257,6 @@ public:
 	/** Input binding stub. */
 	virtual void InputReleased(const FGameplayAbilitySpecHandle Handle, const FGameplayAbilityActorInfo* ActorInfo, const FGameplayAbilityActivationInfo ActivationInfo) {};
 
-	/** If this is set, the ability will try to activate if the input is held. */
-	UPROPERTY(EditDefaultsOnly, Category = Input)
-	bool bActivateOnInputHeld;
-
 	/** If true, this ability will always replicate input press/release events to the server. */
 	UPROPERTY(EditDefaultsOnly, Category = Input)
 	bool bReplicateInputDirectly;

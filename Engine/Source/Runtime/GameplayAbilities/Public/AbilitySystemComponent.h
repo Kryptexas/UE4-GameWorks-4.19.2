@@ -274,6 +274,12 @@ class GAMEPLAYABILITIES_API UAbilitySystemComponent : public UActorComponent, pu
 	/** Returns current stack count of an already applied GE */
 	int32 GetCurrentStackCount(FActiveGameplayEffectHandle Handle) const;
 
+	/** Returns current stack count of an already applied GE, but given the ability spec handle that was granted by the GE */
+	int32 GetCurrentStackCount(FGameplayAbilitySpecHandle Handle) const;
+
+	/** Gets the GE Handle of the GE that granted the passed in Ability */
+	FActiveGameplayEffectHandle FindActiveGameplayEffectHandle(FGameplayAbilitySpecHandle Handle) const;
+
 	/**
 	 * Get the source tags from the gameplay spec represented by the specified handle, if possible
 	 * 
@@ -686,18 +692,17 @@ public:
 	virtual void BindAbilityActivationToInputComponent(UInputComponent* InputComponent, FGameplayAbiliyInputBinds BindInfo);
 
 	virtual void AbilityLocalInputPressed(int32 InputID);
-
 	virtual void AbilityLocalInputReleased(int32 InputID);
-
-	void TryActivateInputHeldAbilities();
 	
 	virtual void LocalInputConfirm();
-	
 	virtual void LocalInputCancel();
 
 	/** InputID for binding GenericConfirm/Cancel events */
 	int32 GenericConfirmInputID;
 	int32 GenericCancelInputID;
+
+	bool IsGenericConfirmInputBound(int32 InputID) const	{ return ((InputID == GenericConfirmInputID) && GenericLocalConfirmCallbacks.IsBound()); }
+	bool IsGenericCancelInputBound(int32 InputID) const		{ return ((InputID == GenericCancelInputID) && GenericLocalCancelCallbacks.IsBound()); }
 
 	/** Generic local callback for generic ConfirmEvent that any ability can listen to */
 	FAbilityConfirmOrCancel	GenericLocalConfirmCallbacks;

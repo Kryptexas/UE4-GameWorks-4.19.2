@@ -52,7 +52,6 @@ UGameplayAbility::UGameplayAbility(const FObjectInitializer& ObjectInitializer)
 #endif
 
 	bServerRespectsRemoteAbilityCancellation = true;
-	bActivateOnInputHeld = false;
 	bReplicateInputDirectly = false;
 }
 

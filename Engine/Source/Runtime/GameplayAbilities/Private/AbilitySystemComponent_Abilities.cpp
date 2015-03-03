@@ -1719,13 +1719,13 @@ void UAbilitySystemComponent::BindAbilityActivationToInputComponent(UInputCompon
 void UAbilitySystemComponent::AbilityLocalInputPressed(int32 InputID)
 {
 	// Consume the input if this InputID is overloaded with GenericConfirm/Cancel and the GenericConfim/Cancel callback is bound
-	if (InputID == GenericConfirmInputID && GenericLocalConfirmCallbacks.IsBound())
+	if (IsGenericConfirmInputBound(InputID))
 	{
 		LocalInputConfirm();
 		return;
 	}
 
-	if (InputID == GenericCancelInputID && GenericLocalCancelCallbacks.IsBound())
+	if (IsGenericCancelInputBound(InputID))
 	{
 		LocalInputCancel();
 		return;
@@ -1852,28 +1852,6 @@ void UAbilitySystemComponent::AbilitySpecInputReleased(FGameplayAbilitySpec& Spe
 			for (UGameplayAbility* Instance : Instances)
 			{
 				Instance->InputReleased(Spec.Handle, AbilityActorInfo.Get(), Spec.ActivationInfo);
-			}
-		}
-	}
-}
-
-void UAbilitySystemComponent::TryActivateInputHeldAbilities()
-{
-	APlayerController* PC = AbilityActorInfo.IsValid() ? AbilityActorInfo->PlayerController.Get() : nullptr;
-
-	if (PC && PC->PlayerInput)
-	{
-		ABILITYLIST_SCOPE_LOCK();
-		for (FGameplayAbilitySpec& Spec : ActivatableAbilities.Items)
-		{
-			if ((Spec.InputID == INDEX_NONE) || !Spec.InputPressed || Spec.IsActive() || !Spec.Ability)
-			{
-				continue;
-			}
-
-			if (Spec.Ability->bActivateOnInputHeld)
-			{
-				TryActivateAbility(Spec.Handle);
 			}
 		}
 	}

@@ -770,12 +770,36 @@ float UAbilitySystemComponent::GetGameplayEffectMagnitude(FActiveGameplayEffectH
 
 int32 UAbilitySystemComponent::GetCurrentStackCount(FActiveGameplayEffectHandle Handle) const
 {
-	const FActiveGameplayEffect* ActiveGE = ActiveGameplayEffects.GetActiveGameplayEffect(Handle);
-	if (ActiveGE)
+	if (const FActiveGameplayEffect* ActiveGE = ActiveGameplayEffects.GetActiveGameplayEffect(Handle))
 	{
 		return ActiveGE->Spec.StackCount;
 	}
 	return 0;
+}
+
+int32 UAbilitySystemComponent::GetCurrentStackCount(FGameplayAbilitySpecHandle Handle) const
+{
+	FActiveGameplayEffectHandle GEHandle = FindActiveGameplayEffectHandle(Handle);
+	if (GEHandle.IsValid())
+	{
+		return GetCurrentStackCount(GEHandle);
+	}
+	return 0;
+}
+
+FActiveGameplayEffectHandle UAbilitySystemComponent::FindActiveGameplayEffectHandle(FGameplayAbilitySpecHandle Handle) const
+{
+	for (const FActiveGameplayEffect& ActiveGE : &ActiveGameplayEffects)
+	{
+		for (const FGameplayAbilitySpecDef& AbiilitySpecDef : ActiveGE.Spec.GrantedAbilitySpecs)
+		{
+			if (AbiilitySpecDef.AssignedHandle == Handle)
+			{
+				return ActiveGE.Handle;
+			}
+		}
+	}
+	return FActiveGameplayEffectHandle();
 }
 
 void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayEffectSpecForRPC &Spec, EGameplayCueEvent::Type EventType)
