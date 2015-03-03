@@ -74,16 +74,7 @@ FReply SWidget::OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& 
 	return FReply::Unhandled();
 }
 
-FReply SWidget::OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InFocusEvent)
-{
-	return FReply::Unhandled();
-}
-
 void SWidget::OnFocusLost(const FFocusEvent& InFocusEvent)
-{
-}
-
-void SWidget::OnKeyboardFocusLost(const FKeyboardFocusEvent& InFocusEvent)
 {
 }
 

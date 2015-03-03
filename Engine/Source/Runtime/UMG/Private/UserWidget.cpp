@@ -221,17 +221,7 @@ FEventReply UUserWidget::OnFocusReceived_Implementation(FGeometry MyGeometry, FF
 	return UWidgetBlueprintLibrary::Unhandled();
 }
 
-FEventReply UUserWidget::OnKeyboardFocusReceived_Implementation(FGeometry MyGeometry, FKeyboardFocusEvent InKeyboardFocusEvent)
-{
-	return UWidgetBlueprintLibrary::Unhandled();
-}
-
 void UUserWidget::OnFocusLost_Implementation(FFocusEvent InFocusEvent)
-{
-
-}
-
-void UUserWidget::OnKeyboardFocusLost_Implementation(FKeyboardFocusEvent InKeyboardFocusEvent)
 {
 
 }

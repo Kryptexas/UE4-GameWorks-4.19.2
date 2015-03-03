@@ -263,10 +263,6 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Input")
 	FEventReply OnFocusReceived(FGeometry MyGeometry, FFocusEvent InFocusEvent);
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, meta = (DeprecatedFunction, DeprecationMessage = "Use OnFocusReceived() instead"), Category = "Keyboard")
-	FEventReply OnKeyboardFocusReceived(FGeometry MyGeometry, FKeyboardFocusEvent InKeyboardFocusEvent);
-
-
 	/**
 	 * Called when this widget loses focus.  This event does not bubble.
 	 *
@@ -274,10 +270,6 @@ public:
 	 */
 	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, Category="Input")
 	void OnFocusLost(FFocusEvent InFocusEvent);
-
-	UFUNCTION(BlueprintNativeEvent, BlueprintCosmetic, meta = (DeprecatedFunction, DeprecationMessage = "Use OnFocusLost() instead"), Category = "Keyboard")
-	void OnKeyboardFocusLost(FKeyboardFocusEvent InKeyboardFocusEvent);
-
 
 	/**
 	 * Called after a character is entered while this widget has focus

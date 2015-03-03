@@ -148,9 +148,6 @@ public:
 	 */
 	virtual FReply OnFocusReceived(const FGeometry& MyGeometry, const FFocusEvent& InFocusEvent);
 
-	DEPRECATED(4.6, "SWidget::OnKeyboardFocusReceived() is deprecated, implement SWidget::OnFocusReceived() instead.")
-	virtual FReply OnKeyboardFocusReceived(const FGeometry& MyGeometry, const FKeyboardFocusEvent& InFocusEvent);
-
 	/**
 	 * Called when this widget loses focus.  This event does not bubble.
 	 *
@@ -158,14 +155,8 @@ public:
 	 */
 	virtual void OnFocusLost(const FFocusEvent& InFocusEvent);
 
-	DEPRECATED(4.6, "SWidget::OnKeyboardFocusLost() is deprecated, implement SWidget::OnFocusLost() instead.")
-	virtual void OnKeyboardFocusLost(const FKeyboardFocusEvent& InFocusEvent);
-
 	/** Called whenever a focus path is changing on all the widgets within the old and new focus paths */
 	virtual void OnFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath);
-
-	DEPRECATED(4.6, "SWidget::OnKeyboardFocusChanging() is deprecated, implement SWidget::OnFocusChanging() instead.")
-	virtual void OnKeyboardFocusChanging(const FWeakWidgetPath& PreviousFocusPath, const FWidgetPath& NewWidgetPath);
 
 	/**
 	 * Called after a character is entered while this widget has keyboard focus
