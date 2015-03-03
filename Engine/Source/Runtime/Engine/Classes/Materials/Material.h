@@ -857,7 +857,7 @@ private:
 	/** Sets up transient properties in MaterialResources. */
 	void UpdateResourceAllocations();
 
-	/** to share code for PostLoad() and PostEditChangeProperty() */
+	/** to share code for PostLoad() and PostEditChangeProperty(), and UMaterialInstance::InitResources(), needs to be refactored */
 	void PropagateDataToMaterialProxy();
 
 public:

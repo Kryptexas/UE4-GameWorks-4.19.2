@@ -159,16 +159,18 @@ bool FMaterialInstanceResource::GetScalarValue(
 	{
 		const USubsurfaceProfilePointer SubsurfaceProfileRT = GetSubsurfaceProfileRT();
 
+		int32 AllocationId = 0;
 		if (SubsurfaceProfileRT)
 		{
 			// can be optimized (cached)
-			*OutValue = GSubsufaceProfileTextureObject.FindAllocationId(SubsurfaceProfileRT) / 255.0f;
+			AllocationId = GSubsufaceProfileTextureObject.FindAllocationId(SubsurfaceProfileRT);
 		}
 		else
 		{
 			// no profile specified means we use the default one stored at [0] which is human skin
-			*OutValue = 0.0f;
+			AllocationId = 0;
 		}
+		*OutValue = AllocationId / 255.0f;
 
 		return true;
 	}
@@ -475,6 +477,8 @@ void UMaterialInstance::InitResources()
 	GameThread_InitMIParameters(this, VectorParameterValues);
 	GameThread_InitMIParameters(this, TextureParameterValues);
 	GameThread_InitMIParameters(this, FontParameterValues);
+	PropagateDataToMaterialProxy();
+
 	CacheMaterialInstanceUniformExpressions(this);
 }
 

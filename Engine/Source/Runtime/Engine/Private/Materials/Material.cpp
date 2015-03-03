@@ -230,16 +230,19 @@ public:
 			{
 				const USubsurfaceProfilePointer SubsurfaceProfileRT = GetSubsurfaceProfileRT();
 
+				int32 AllocationId = 0;
 				if(SubsurfaceProfileRT)
 				{
 					// can be optimized (cached)
-					*OutValue = GSubsufaceProfileTextureObject.FindAllocationId(SubsurfaceProfileRT) / 255.0f;
+					AllocationId = GSubsufaceProfileTextureObject.FindAllocationId(SubsurfaceProfileRT);
 				}
 				else
 				{
 					// no profile specified means we use the default one stored at [0] which is human skin
-					*OutValue = 0.0f;
+					AllocationId = 0;
 				}
+
+				*OutValue = AllocationId / 255.0f;
 
 				return true;
 			}
@@ -2038,6 +2041,7 @@ void UMaterial::PostLoad()
 	}
 #endif // #if WITH_EDITOR
 
+	// needed for UMaterial as it doesn't have the InitResources() override where this is called
 	PropagateDataToMaterialProxy();
 
 	STAT(double MaterialLoadTime = 0);
@@ -2379,6 +2383,7 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 		}
 	}
 
+	// needed for UMaterial as it doesn't have the InitResources() override where this is called
 	PropagateDataToMaterialProxy();
 
 	// many property changes can require rebuild of graph so always mark as changed
