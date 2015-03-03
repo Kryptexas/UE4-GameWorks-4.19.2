@@ -30,6 +30,30 @@ struct FNetworkReplayStreamInfo
 	bool bIsLive;
 };
 
+namespace ENetworkReplayError
+{
+	enum Type
+	{
+		/** There are currently no issues */
+		None,
+
+		/** The backend service supplying the stream is unavailable, or connection interrupted */
+		ServiceUnavailable,
+	};
+
+	inline const TCHAR* ToString( const ENetworkReplayError::Type FailureType )
+	{
+		switch ( FailureType )
+		{
+			case None:
+				return TEXT( "None" );
+			case ServiceUnavailable:
+				return TEXT( "ServiceUnavailable" );
+		}
+		return TEXT( "Unknown ENetworkReplayError error" );
+	}
+}
+
 DECLARE_MULTICAST_DELEGATE_TwoParams( FOnStreamReady, bool, bool );
 typedef FOnStreamReady::FDelegate FOnStreamReadyDelegate;
 
@@ -79,6 +103,9 @@ public:
 	 * @param Delegate A delegate that will be executed if bound when the list of streams is available
 	 */
 	virtual void EnumerateStreams( const FString& VersionString, const FOnEnumerateStreamsComplete& Delegate ) = 0;
+
+	/** Returns the last error that occurred while streaming replays */
+	virtual ENetworkReplayError::Type GetLastError() const = 0;
 };
 
 /** Replay streamer factory */

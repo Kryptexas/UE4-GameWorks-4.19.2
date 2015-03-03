@@ -59,7 +59,8 @@ FHttpNetworkReplayStreamer::FHttpNetworkReplayStreamer() :
 	bStopStreamingCalled( false ), 
 	bStreamIsLive( false ),
 	NumDownloadChunks( 0 ),
-	DemoTimeInMS( 0 )
+	DemoTimeInMS( 0 ),
+	StreamerLastError( ENetworkReplayError::None )
 {
 	// Initialize the server URL
 	GConfig->GetString( TEXT( "HttpNetworkReplayStreaming" ), TEXT( "ServerURL" ), ServerURL, GEngineIni );
@@ -350,6 +351,17 @@ void FHttpNetworkReplayStreamer::RefreshViewer()
 	LastRefreshViewerTime = FPlatformTime::Seconds();
 }
 
+void FHttpNetworkReplayStreamer::SetLastError( const ENetworkReplayError::Type InLastError )
+{
+	StreamerState		= EStreamerState::Idle;
+	StreamerLastError	= InLastError;
+}
+
+ENetworkReplayError::Type FHttpNetworkReplayStreamer::GetLastError() const
+{
+	return StreamerLastError;
+}
+
 FArchive* FHttpNetworkReplayStreamer::GetHeaderArchive()
 {
 	return ( HeaderArchive.IsSaving() || HeaderArchive.Pos < HeaderArchive.Buffer.Num() ) ? &HeaderArchive : NULL;
@@ -429,7 +441,8 @@ void FHttpNetworkReplayStreamer::HttpStartUploadingFinished( FHttpRequestPtr Htt
 	}
 	else
 	{
-		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpStartUploadingFinished. FAILED" ) );
+		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpStartUploadingFinished. FAILED" ) );
+		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
 }
 
@@ -447,7 +460,8 @@ void FHttpNetworkReplayStreamer::HttpStopUploadingFinished( FHttpRequestPtr Http
 	}
 	else
 	{
-		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpStopUploadingFinished. FAILED" ) );
+		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpStopUploadingFinished. FAILED" ) );
+		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
 
 	StreamArchive.ArIsLoading = false;
@@ -474,11 +488,8 @@ void FHttpNetworkReplayStreamer::HttpHeaderUploadFinished( FHttpRequestPtr HttpR
 	}
 	else
 	{
-		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpHeaderUploadFinished. FAILED" ) );
-
-		StreamerState = EStreamerState::Idle;
-
-		// FIXME: Notify demo driver with delegate
+		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpHeaderUploadFinished. FAILED" ) );
+		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
 }
 
@@ -511,8 +522,8 @@ void FHttpNetworkReplayStreamer::HttpUploadFinished( FHttpRequestPtr , FHttpResp
 	}
 	else
 	{
-		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpUploadFinished. FAILED" ) );
-		StreamerState = EStreamerState::Idle;
+		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpUploadFinished. FAILED" ) );
+		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
 }
 
@@ -552,20 +563,19 @@ void FHttpNetworkReplayStreamer::HttpStartDownloadingFinished( FHttpRequestPtr H
 			// Reset delegate
 			StartStreamingDelegate = FOnStreamReadyDelegate();
 
-			StreamerState = EStreamerState::Idle;
+			SetLastError( ENetworkReplayError::ServiceUnavailable );
 		}
 	}
 	else
 	{
-		// FAIL
-		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpStartDownloadingFinished. FAILED" ) );
+		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpStartDownloadingFinished. FAILED" ) );
 
 		StartStreamingDelegate.ExecuteIfBound( false, StreamArchive.IsSaving() );
 
 		// Reset delegate
 		StartStreamingDelegate = FOnStreamReadyDelegate();
 
-		StreamerState = EStreamerState::Idle;
+		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
 }
 
@@ -589,12 +599,12 @@ void FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished( FHttpRequestPtr Htt
 	else
 	{
 		// FAIL
-		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished. FAILED." ) );
+		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadHeaderFinished. FAILED." ) );
 
 		StreamArchive.Buffer.Empty();
 		StartStreamingDelegate.ExecuteIfBound( false, StreamArchive.IsSaving() );
 
-		StreamerState = EStreamerState::Idle;
+		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
 
 	// Reset delegate
@@ -631,20 +641,16 @@ void FHttpNetworkReplayStreamer::HttpDownloadFinished( FHttpRequestPtr HttpReque
 		}
 		else
 		{
-			UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. FAILED." ) );
+			UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. FAILED." ) );
 			StreamArchive.Buffer.Empty();
-			StreamerState = EStreamerState::Idle;
-
-			// FIXME: Report error to engine
+			SetLastError( ENetworkReplayError::ServiceUnavailable );
 		}		
 	}
 	else
 	{
-		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. FAILED." ) );
+		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpDownloadFinished. FAILED." ) );
 		StreamArchive.Buffer.Empty();
-		StreamerState = EStreamerState::Idle;
-
-		// FIXME: Report error to engine
+		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
 }
 
@@ -657,8 +663,8 @@ void FHttpNetworkReplayStreamer::HttpRefreshViewerFinished( FHttpRequestPtr Http
 
 	if ( !bSucceeded || HttpResponse->GetResponseCode() != EHttpResponseCodes::Ok )
 	{
-		// FAIL
-		UE_LOG( LogHttpReplay, Warning, TEXT( "FHttpNetworkReplayStreamer::HttpRefreshViewerFinished. FAILED." ) );
+		UE_LOG( LogHttpReplay, Error, TEXT( "FHttpNetworkReplayStreamer::HttpRefreshViewerFinished. FAILED." ) );
+		SetLastError( ENetworkReplayError::ServiceUnavailable );
 	}
 }
 

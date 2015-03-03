@@ -42,6 +42,7 @@ public:
 	virtual bool		IsLive( const FString& StreamName ) const override;
 	virtual void		DeleteFinishedStream( const FString& StreamName, const FOnDeleteFinishedStreamComplete& Delegate ) const override;
 	virtual void		EnumerateStreams( const FString& VersionString, const FOnEnumerateStreamsComplete& Delegate ) override;
+	virtual ENetworkReplayError::Type GetLastError() const override;
 
 	/** FHttpNetworkReplayStreamer */
 	void UploadHeader();
@@ -49,6 +50,7 @@ public:
 	void DownloadHeader();
 	void DownloadNextChunk();
 	void RefreshViewer();
+	void SetLastError( const ENetworkReplayError::Type InLastError );
 
 	/** Delegates */
 	void HttpStartDownloadingFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
@@ -107,6 +109,8 @@ public:
 	int32					NumDownloadChunks;
 	uint32					DemoTimeInMS;
 	FString					ViewerName;
+
+	ENetworkReplayError::Type		StreamerLastError;
 
 	FOnStreamReadyDelegate			StartStreamingDelegate;		// Delegate passed in to StartStreaming
 	FOnEnumerateStreamsComplete		EnumerateStreamsDelegate;
