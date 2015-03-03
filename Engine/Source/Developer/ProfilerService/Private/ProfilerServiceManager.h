@@ -16,6 +16,9 @@ struct FClientData
 #if STATS
 	FStatsWriteFile StatsWriteFile;
 
+	/** Current frame of data sent */
+	int64 CurrentFrame;
+
 	/** Stats metadata size. */
 	int32 MetadataSize;
 #endif

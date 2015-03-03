@@ -496,7 +496,7 @@ void FProfilerServiceManager::SetPreviewState( const FMessageAddress& ClientAddr
 				Client->Preview = true;
 				if (MessageEndpoint.IsValid())
 				{
-					MessageEndpoint->Send( new FProfilerServicePreviewAck( InstanceId ), ClientAddress );
+					MessageEndpoint->Send( new FProfilerServicePreviewAck( InstanceId, 0 ), ClientAddress );
 				}
 				SendMetaData(ClientAddress);
 			}

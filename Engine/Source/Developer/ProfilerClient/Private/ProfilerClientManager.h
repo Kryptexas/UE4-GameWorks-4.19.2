@@ -14,6 +14,7 @@ struct FServiceConnection
 		, ReadMessages(0)
 	{
 		MetaData.CriticalSection = &CriticalSection;
+		CurrentFrame = 0;
 	}
 
 	~FServiceConnection()
@@ -24,6 +25,7 @@ struct FServiceConnection
 	FServiceConnection(const FServiceConnection& InConnnection)
 	{
 		MetaData.CriticalSection = &CriticalSection;
+		CurrentFrame = 0;
 	}
 
 	/** Instance Id */
@@ -65,6 +67,9 @@ struct FServiceConnection
 
 	/** Current data loading progress. */
 	float DataLoadingProgress;
+
+	/** Current frame of data to process */
+	int64 CurrentFrame;
 
 	/** Current number of read messages. */
 	uint64 ReadMessages;

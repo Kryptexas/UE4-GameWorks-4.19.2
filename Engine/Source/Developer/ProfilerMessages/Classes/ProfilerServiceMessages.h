@@ -199,6 +199,10 @@ struct FProfilerServicePreviewAck
 	UPROPERTY()
 	FGuid InstanceId;
 
+	UPROPERTY()
+	int64 Frame;
+
+
 	/**
 	 * Default constructor.
 	 */
@@ -207,8 +211,9 @@ struct FProfilerServicePreviewAck
 	/**
 	 * Creates and initializes a new instance.
 	 */
-	FProfilerServicePreviewAck( const FGuid& InInstance )
+	FProfilerServicePreviewAck( const FGuid& InInstance, int64 InFrame )
 		: InstanceId(InInstance)
+		, Frame(InFrame)
 	{
 	}
 };
