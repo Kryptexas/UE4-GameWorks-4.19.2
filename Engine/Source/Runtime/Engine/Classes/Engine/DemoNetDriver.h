@@ -49,7 +49,14 @@ class UDemoNetDriver
 	UPROPERTY(config)
 	FString DemoSpectatorClass;
 
+	/** Our network replay streamer */
 	TSharedPtr< class INetworkReplayStreamer > ReplayStreamer;
+
+	/** Internal debug timing/tracking */
+	double		AccumulatedRecordTime;
+	double		LastRecordAvgFlush;
+	double		MaxRecordTime;
+	int32		RecordCountSinceFlush;
 
 public:
 
