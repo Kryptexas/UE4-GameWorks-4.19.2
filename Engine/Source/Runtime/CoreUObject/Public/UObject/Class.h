@@ -1750,15 +1750,15 @@ public:
 	friend class FRestoreClassInfo;
 
 	typedef void		(*ClassConstructorType)				(const FObjectInitializer&);
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 	typedef UObject*	(*ClassVTableHelperCtorCallerType)	(FVTableHelper& Helper);
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS
 	typedef void		(*ClassAddReferencedObjectsType)	(UObject*, class FReferenceCollector&);
 
 	ClassConstructorType ClassConstructor;
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 	ClassVTableHelperCtorCallerType ClassVTableHelperCtorCaller;
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS
 	/** Pointer to a static AddReferencedObjects method. */
 	ClassAddReferencedObjectsType ClassAddReferencedObjects;
 
@@ -1863,9 +1863,9 @@ public:
 	explicit UClass(const FObjectInitializer& ObjectInitializer, UClass* InSuperClass);
 	UClass( EStaticConstructor, FName InName, uint32 InSize, uint32 InClassFlags, EClassCastFlags InClassCastFlags,
 		const TCHAR* InClassConfigName, EObjectFlags InFlags, ClassConstructorType InClassConstructor,
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 		ClassVTableHelperCtorCallerType InClassVTableHelperCtorCaller,
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS
 		ClassAddReferencedObjectsType InClassAddReferencedObjects);
 
 #if WITH_HOT_RELOAD
@@ -2270,7 +2270,7 @@ void InternalConstructor( const FObjectInitializer& X )
 	T::__DefaultConstructor(X);
 }
 
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 /**
  * Helper template to call the vtable ctor caller for a class
  */
@@ -2279,7 +2279,7 @@ UObject* InternalVTableHelperCtorCaller(FVTableHelper& Helper)
 {
 	return T::__VTableCtorCaller(Helper);
 }
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS
 
 COREUOBJECT_API void InitializePrivateStaticClass(
 	class UClass* TClass_Super_StaticClass,
@@ -2348,9 +2348,9 @@ void GetPrivateStaticClassBody( const TCHAR* PackageName, const TCHAR* Name, UCl
 		TClass::StaticConfigName(),
 		EObjectFlags(RF_Public | RF_Standalone | RF_Transient | RF_Native | RF_RootSet),
 		(UClass::ClassConstructorType)InternalConstructor<TClass>,
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 		(UClass::ClassVTableHelperCtorCallerType)InternalVTableHelperCtorCaller<TClass>,
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS
 		&TClass::AddReferencedObjects
 		);
 	check(ReturnClass);

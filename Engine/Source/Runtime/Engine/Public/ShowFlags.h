@@ -138,14 +138,14 @@ struct FEngineShowFlags
 		Init(InitMode);
 	}
 
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	FEngineShowFlags()
 	{
 		EnsureRetrievingVTablePtr();
 		Init(ESFIM_Game);
 	}
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS
 
 	static bool CanBeToggledInEditor(const TCHAR* Name)
 	{

@@ -17,10 +17,10 @@ class GAMEPLAYDEBUGGER_API UGameplayDebuggingControllerComponent : public UActor
 {
 	GENERATED_UCLASS_BODY()
 
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	UGameplayDebuggingControllerComponent(FVTableHelper& Helper);
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS
 
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void BeginDestroy() override;

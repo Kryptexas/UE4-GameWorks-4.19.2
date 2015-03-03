@@ -140,10 +140,10 @@ class ENGINE_API ULocalPlayer : public UPlayer
 {
 	GENERATED_UCLASS_BODY()
 
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	ULocalPlayer(FVTableHelper& Helper) : Super(Helper), SlateOperations(FReply::Unhandled()) {}
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS
 
 	/** The FUniqueNetId which this player is associated with. */
 	TSharedPtr<class FUniqueNetId> CachedUniqueNetId;

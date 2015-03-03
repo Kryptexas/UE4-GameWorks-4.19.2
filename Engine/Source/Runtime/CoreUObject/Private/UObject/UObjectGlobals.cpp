@@ -1914,9 +1914,9 @@ void UObject::PostInitProperties()
 
 UObject::UObject()
 {
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 	EnsureNotRetrievingVTablePtr();
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS
 
 	FObjectInitializer* ObjectInitializerPtr = FTlsObjectInitializers::Top();
 	UE_CLOG(!ObjectInitializerPtr, LogUObjectGlobals, Fatal, TEXT("%s is not being constructed with either NewObject, NewNamedObject or ConstructObject."), *GetName());
@@ -1928,9 +1928,9 @@ UObject::UObject()
 
 UObject::UObject(const FObjectInitializer& ObjectInitializer)
 {
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 	EnsureNotRetrievingVTablePtr();
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS
 
 	UE_CLOG(ObjectInitializer.Obj != nullptr && ObjectInitializer.Obj != this, LogUObjectGlobals, Fatal, TEXT("UObject(const FObjectInitializer&) constructor called but it's not the object that's currently being constructed with NewObject. Maybe you trying to construct it on the stack which is not supported."));
 	const_cast<FObjectInitializer&>(ObjectInitializer).Obj = this;

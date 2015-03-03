@@ -153,7 +153,7 @@ public:
 		Init(InObject);
 	}
 
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 	/**
 	 * Constructs default shared reference that owns the default object for specified type.
 	 *
@@ -166,7 +166,7 @@ public:
 		EnsureRetrievingVTablePtr();
 		Init(Object);
 	}
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS
 
 	/**
 	 * Constructs a shared reference using a proxy reference to a raw pointer. (See MakeShareable())

@@ -987,11 +987,11 @@ FBoolConfigValueHelper::FBoolConfigValueHelper(const TCHAR* Section, const TCHAR
 	GConfig->GetBool(Section, Key, bValue, Filename);
 }
 
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 bool GIsRetrievingVTablePtr = false;
 
 void EnsureRetrievingVTablePtr()
 {
 	UE_CLOG(!GIsRetrievingVTablePtr, LogCore, Fatal, TEXT("This should be used only during vtable ptr retrieval process."));
 }
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS

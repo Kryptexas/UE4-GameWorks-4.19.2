@@ -532,7 +532,7 @@ UModel::UModel(const FObjectInitializer& ObjectInitializer)
 
 }
 
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 UModel::UModel(FVTableHelper& Helper)
 	: Super(Helper)
 	, Nodes(this)
@@ -544,7 +544,7 @@ UModel::UModel(FVTableHelper& Helper)
 {
 
 }
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS
 
 void UModel::Initialize(ABrush* Owner, bool InRootOutside)
 {

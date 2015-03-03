@@ -7,10 +7,10 @@ class TQuadTree
 	typedef TQuadTree<ElementType, NodeCapacity> TreeType;
 public:
 
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	TQuadTree();
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS
 
 	TQuadTree(const FBox2D& InBox);
 
@@ -134,13 +134,13 @@ TQuadTree<ElementType, NodeCapacity>::TQuadTree(const FBox2D& Box)
 	SubTrees[0] = SubTrees[1] = SubTrees[2] = SubTrees[3] = nullptr;
 }
 
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 template <typename ElementType, int32 NodeCapacity>
 TQuadTree<ElementType, NodeCapacity>::TQuadTree()
 {
 	EnsureRetrievingVTablePtr();
 }
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS
 
 template <typename ElementType, int32 NodeCapacity>
 TQuadTree<ElementType, NodeCapacity>::~TQuadTree()

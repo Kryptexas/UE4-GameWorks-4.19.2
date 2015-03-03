@@ -732,10 +732,10 @@ public:
 	/** Initialization constructor. */
 	TOctree(const FVector& InOrigin,float InExtent);
 
-#if WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#if WITH_HOT_RELOAD_CTORS
 	/** DO NOT USE. This constructor is for internal usage only for hot-reload purposes. */
 	TOctree();
-#endif // WITH_HOT_RELOAD && WITH_HOT_RELOAD_CTORS
+#endif // WITH_HOT_RELOAD_CTORS
 			
 private:
 
