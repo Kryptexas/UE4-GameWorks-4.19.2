@@ -160,12 +160,12 @@ void UK2Node_InputAxisEvent::GetMenuActions(FBlueprintActionDatabaseRegistrar& A
 			FEditorDelegates::OnActionAxisMappingsChanged.AddStatic(RefreshClassActions);
 		}
 
-		for (FName const InputAxisName : AxisNames)
+		for (FName const AxisName : AxisNames)
 		{
 			UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(GetClass());
 			check(NodeSpawner != nullptr);
 
-			NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, InputAxisName);
+			NodeSpawner->CustomizeNodeDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(CustomizeInputNodeLambda, AxisName);
 			ActionRegistrar.AddBlueprintAction(ActionKey, NodeSpawner);
 		}
 	}

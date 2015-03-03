@@ -134,12 +134,12 @@ static UBlueprintNodeSpawner* FBlueprintNodeSpawnerFactory::MakeMacroNodeSpawner
 	UBlueprintNodeSpawner* NodeSpawner = UBlueprintNodeSpawner::Create(UK2Node_MacroInstance::StaticClass());
 	check(NodeSpawner != nullptr);
 
-	auto CustomizeMacroNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UEdGraph> MacroGraph)
+	auto CustomizeMacroNodeLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, TWeakObjectPtr<UEdGraph> InMacroGraph)
 	{
 		UK2Node_MacroInstance* MacroNode = CastChecked<UK2Node_MacroInstance>(NewNode);
-		if (MacroGraph.IsValid())
+		if (InMacroGraph.IsValid())
 		{
-			MacroNode->SetMacroGraph(MacroGraph.Get());
+			MacroNode->SetMacroGraph(InMacroGraph.Get());
 		}
 	};
 

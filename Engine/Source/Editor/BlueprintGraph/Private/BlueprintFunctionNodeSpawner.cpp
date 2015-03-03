@@ -95,9 +95,9 @@ static bool BlueprintFunctionNodeSpawnerImpl::BindFunctionNode(UK2Node_CallFunct
 		}
 		else if (AActor* BoundActor = Cast<AActor>(BoundObject))
 		{
-			auto PostSpawnSetupLambda = [](UEdGraphNode* NewNode, bool /*bIsTemplateNode*/, AActor* ActorInst)
+			auto PostSpawnSetupLambda = [](UEdGraphNode* InNewNode, bool /*bIsTemplateNode*/, AActor* ActorInst)
 			{
-				UK2Node_Literal* ActorRefNode = CastChecked<UK2Node_Literal>(NewNode);
+				UK2Node_Literal* ActorRefNode = CastChecked<UK2Node_Literal>(InNewNode);
 				ActorRefNode->SetObjectRef(ActorInst);
 			};
 			UBlueprintNodeSpawner::FCustomizeNodeDelegate PostSpawnDelegate = UBlueprintNodeSpawner::FCustomizeNodeDelegate::CreateStatic(PostSpawnSetupLambda, BoundActor);

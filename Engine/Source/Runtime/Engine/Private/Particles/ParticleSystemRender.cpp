@@ -885,10 +885,10 @@ void GatherParticleLightData(const FDynamicSpriteEmitterReplayDataBase& Source, 
 							//If this is the first time we've needed to add these then we need to fill data up to this light.
 							int32 NumLights = OutParticleLights.InstanceData.Num();
 							OutParticleLights.InstancePerViewDataIndices.AddUninitialized(OutParticleLights.InstanceData.Num());
-							for (int32 i = 0; i < NumLights; ++i)
+							for (int32 LightIndex = 0; LightIndex < NumLights; ++LightIndex)
 							{
-								OutParticleLights.InstancePerViewDataIndices[i].PerViewIndex = i;
-								OutParticleLights.InstancePerViewDataIndices[i].bHasPerViewData = false;
+								OutParticleLights.InstancePerViewDataIndices[LightIndex].PerViewIndex = LightIndex;
+								OutParticleLights.InstancePerViewDataIndices[LightIndex].bHasPerViewData = false;
 							}
 						}
 
@@ -969,7 +969,7 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 		if (SourceData->EmitterRenderMode == ERM_Normal)
 		{
 			// Determine how many vertices and indices are needed to render.
-			const int32 ParticleCount = SourceData->ActiveParticleCount;
+			int32 ParticleCount = SourceData->ActiveParticleCount;
 			const int32 VertexSize = GetDynamicVertexStride(FeatureLevel);
 			const int32 DynamicParameterVertexSize = sizeof(FParticleVertexDynamicParameter);
 			const int32 VertexPerParticle = bInstanced ? 1 : 4;
@@ -1034,16 +1034,13 @@ void FDynamicSpriteEmitterData::GetDynamicMeshElementsEmitter(const FParticleSys
 				PerViewUniformParameters.MacroUVParameters = FVector4(ObjectNDCPosition.X, ObjectNDCPosition.Y, ObjectMacroUVScales.X, ObjectMacroUVScales.Y);
 				CollectorResources.UniformBuffer = FParticleSpriteUniformBufferRef::CreateUniformBufferImmediate(PerViewUniformParameters, UniformBuffer_SingleFrame);
 
-				const FDynamicSpriteEmitterReplayDataBase* SourceData = GetSourceData();
-				check(SourceData);
-
 				FParticleSpriteVertexFactory* SpriteVertexFactory = &CollectorResources.VertexFactory;
 
 				// Don't render if the material will be ignored
 				const bool bIsWireframe = ViewFamily.EngineShowFlags.Wireframe;
 
 				// Calculate the number of particles that must be drawn.
-				int32 ParticleCount = Source.ActiveParticleCount;
+				ParticleCount = Source.ActiveParticleCount;
 				if ((Source.MaxDrawCount >= 0) && (ParticleCount > Source.MaxDrawCount))
 				{
 					ParticleCount = Source.MaxDrawCount;

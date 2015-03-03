@@ -508,8 +508,8 @@ void FAssetRenameManager::RenameReferencingStringAssetReferences(const TArray<UP
 {
 	struct FStringAssetReferenceRenameSerializer : public FArchiveUObject
 	{
-		FStringAssetReferenceRenameSerializer(const FString& OldAssetPath, const FString& NewAssetPath)
-			: OldAssetPath(OldAssetPath), NewAssetPath(NewAssetPath)
+		FStringAssetReferenceRenameSerializer(const FString& InOldAssetPath, const FString& InNewAssetPath)
+			: OldAssetPath(InOldAssetPath), NewAssetPath(InNewAssetPath)
 		{ }
 
 		FArchive& operator<<(FStringAssetReference& Reference) override

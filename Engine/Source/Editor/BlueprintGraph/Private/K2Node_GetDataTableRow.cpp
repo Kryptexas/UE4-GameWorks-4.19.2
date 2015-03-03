@@ -90,7 +90,6 @@ void UK2Node_GetDataTableRow::SetReturnTypeForStruct(UScriptStruct* RowStruct)
 		ResultPin->BreakAllPinLinks();
 
 		// Change class of output pin
-		UEdGraphPin* ResultPin = GetResultPin();
 		ResultPin->PinType.PinSubCategoryObject = RowStruct;
 
 		// When the DataTable pin gets a new value assigned, we need to update the Slate UI so that SGraphNodeCallParameterCollectionFunction will update the ParameterName drop down

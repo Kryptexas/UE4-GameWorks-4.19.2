@@ -439,10 +439,10 @@ void FProfilerManager::SessionManager_OnInstanceSelectionChanged()
 
 				ProfilerSessionInstances.Add( ProfilerSession->GetInstanceID(), ProfilerSession );
 				ProfilerClient->Track( ProfilerInstanceID );
-				TSharedPtr<SProfilerWindow> ProfilerWindow = GetProfilerWindow();
-				if (ProfilerWindow.IsValid())
+				TSharedPtr<SProfilerWindow> ProfilerWindowPtr = GetProfilerWindow();
+				if (ProfilerWindowPtr.IsValid())
 				{
-					ProfilerWindow->ManageEventGraphTab(ProfilerInstanceID, true, ProfilerSession->GetName());
+					ProfilerWindowPtr->ManageEventGraphTab(ProfilerInstanceID, true, ProfilerSession->GetName());
 				}
 			}
 		}

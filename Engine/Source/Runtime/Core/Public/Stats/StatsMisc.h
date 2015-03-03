@@ -74,14 +74,17 @@ protected:
 	EScopeLogTimeUnits Units;
 };
 
+#define SCOPE_LOG_TOKENPASTE_INNER(x,y) x##y
+#define SCOPE_LOG_TOKENPASTE(x,y) SCOPE_LOG_TOKENPASTE_INNER(x,y)
+
 #define SCOPE_LOG_TIME(Name,CumulativePtr) \
-	FScopeLogTime ScopeLogTime(Name,CumulativePtr);
+	FScopeLogTime SCOPE_LOG_TOKENPASTE(ScopeLogTime,__LINE__)(Name,CumulativePtr);
 
 #define SCOPE_LOG_TIME_IN_SECONDS(Name,CumulativePtr) \
-	FScopeLogTime ScopeLogTime(Name, CumulativePtr, FScopeLogTime::ScopeLog_Seconds);
+	FScopeLogTime SCOPE_LOG_TOKENPASTE(ScopeLogTime,__LINE__)(Name, CumulativePtr, FScopeLogTime::ScopeLog_Seconds);
 
 #define SCOPE_LOG_TIME_FUNC() \
-	FScopeLogTime ScopeLogTime(__FUNCTION__);
+	FScopeLogTime SCOPE_LOG_TOKENPASTE(ScopeLogTime,__LINE__)(__FUNCTION__);
 
 #define SCOPE_LOG_TIME_FUNC_WITH_GLOBAL(CumulativePtr) \
-	FScopeLogTime ScopeLogTime(__FUNCTION__,CumulativePtr);
+	FScopeLogTime SCOPE_LOG_TOKENPASTE(ScopeLogTime,__LINE__)(__FUNCTION__,CumulativePtr);

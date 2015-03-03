@@ -749,18 +749,18 @@ static bool BlueprintActionFilterImpl::IsFieldCategoryHidden(FBlueprintActionFil
 
 	if (UFunction const* Function = BlueprintAction.GetAssociatedFunction())
 	{
-		auto IsFunctionHiddenLambda = [](UClass* Class, UFunction const* Function)->bool
+		auto IsFunctionHiddenLambda = [](UClass* Class, UFunction const* InFunction)->bool
 		{
 			// Only hide functions that are not static
-			return !Function->HasAnyFunctionFlags(FUNC_Static) && FObjectEditorUtils::IsFunctionHiddenFromClass(Function, Class->GetAuthoritativeClass());
+			return !InFunction->HasAnyFunctionFlags(FUNC_Static) && FObjectEditorUtils::IsFunctionHiddenFromClass(InFunction, Class->GetAuthoritativeClass());
 		};
 		IsFieldHiddenDelegate = FIsFieldHiddenDelegate::CreateStatic(IsFunctionHiddenLambda, Function);
 	}
 	else if (UProperty const* Property = BlueprintAction.GetAssociatedProperty())
 	{
-		auto IsPropertyHiddenLambda = [](UClass* Class, UProperty const* Property)->bool
+		auto IsPropertyHiddenLambda = [](UClass* Class, UProperty const* InProperty)->bool
 		{
-			return FObjectEditorUtils::IsVariableCategoryHiddenFromClass(Property, Class->GetAuthoritativeClass());
+			return FObjectEditorUtils::IsVariableCategoryHiddenFromClass(InProperty, Class->GetAuthoritativeClass());
 		};
 		IsFieldHiddenDelegate = FIsFieldHiddenDelegate::CreateStatic(IsPropertyHiddenLambda, Property);
 	}

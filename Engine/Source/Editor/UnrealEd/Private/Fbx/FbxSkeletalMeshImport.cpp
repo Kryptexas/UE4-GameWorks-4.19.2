@@ -2024,7 +2024,6 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 	
 	bool OddNegativeScale = IsOddNegativeScale(TotalMatrix);
 	
-	int32 VertexIndex;
 	int32 TriangleCount = Mesh->GetPolygonCount();
 	int32 ExistFaceNum = ImportData.Faces.Num();
 	ImportData.Faces.AddUninitialized( TriangleCount );
@@ -2057,7 +2056,7 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 			}
 		}
 
-		for (VertexIndex=0; VertexIndex<3; VertexIndex++)
+		for (int32 VertexIndex=0; VertexIndex<3; VertexIndex++)
 		{
 			// If there are odd number negative scale, invert the vertex order for triangles
 			int32 UnrealVertexIndex = OddNegativeScale ? 2 - VertexIndex : VertexIndex;
@@ -2153,7 +2152,7 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 		}
 	
 		Triangle.AuxMatIndex = 0;
-		for (VertexIndex=0; VertexIndex<3; VertexIndex++)
+		for (int32 VertexIndex=0; VertexIndex<3; VertexIndex++)
 		{
 			// If there are odd number negative scale, invert the vertex order for triangles
 			int32 UnrealVertexIndex = OddNegativeScale ? 2 - VertexIndex : VertexIndex;
@@ -2175,7 +2174,7 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 			if (LayerElementUV[UVLayerIndex] != NULL) 
 			{
 				// Get each UV from the layer
-				for (VertexIndex=0;VertexIndex<3;VertexIndex++)
+				for (int32 VertexIndex=0;VertexIndex<3;VertexIndex++)
 				{
 					// If there are odd number negative scale, invert the vertex order for triangles
 					int32 UnrealVertexIndex = OddNegativeScale ? 2 - VertexIndex : VertexIndex;
@@ -2196,7 +2195,7 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 				// Set all UV's to zero.  If we are here the mesh had no UV sets so we only need to do this for the
 				// first UV set which always exists.
 
-				for(VertexIndex=0; VertexIndex<3; VertexIndex++)
+				for (int32 VertexIndex=0; VertexIndex<3; VertexIndex++)
 				{
 					TmpWedges[VertexIndex].UVs[UVLayerIndex].X = 0.0f;
 					TmpWedges[VertexIndex].UVs[UVLayerIndex].Y = 0.0f;
@@ -2211,8 +2210,7 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 			{
 			case FbxLayerElement::eByControlPoint:
 				{
-					int32 VertexIndex;
-					for (VertexIndex=0;VertexIndex<3;VertexIndex++)
+					for (int32 VertexIndex=0;VertexIndex<3;VertexIndex++)
 					{
 						int32 UnrealVertexIndex = OddNegativeScale ? 2 - VertexIndex : VertexIndex;
 
@@ -2229,8 +2227,7 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 				break;
 			case FbxLayerElement::eByPolygonVertex:
 				{	
-					int32 VertexIndex;
-					for (VertexIndex=0;VertexIndex<3;VertexIndex++)
+					for (int32 VertexIndex=0;VertexIndex<3;VertexIndex++)
 					{
 						int32 UnrealVertexIndex = OddNegativeScale ? 2 - VertexIndex : VertexIndex;
 
@@ -2251,7 +2248,7 @@ bool UnFbx::FFbxImporter::FillSkelMeshImporterFromFbx( FSkeletalMeshImportData& 
 		//
 		// basic wedges matching : 3 unique per face. TODO Can we do better ?
 		//
-		for (VertexIndex=0; VertexIndex<3; VertexIndex++)
+		for (int32 VertexIndex=0; VertexIndex<3; VertexIndex++)
 		{
 			int32 w;
 			

@@ -145,20 +145,20 @@ bool UBlueprintBoundEventNodeSpawner::IsBindingCompatible(UObject const* Binding
 bool UBlueprintBoundEventNodeSpawner::BindToNode(UEdGraphNode* Node, UObject* Binding) const
 {
 	bool bWasBound = false;
-	if (UK2Node_ComponentBoundEvent* EventNode = Cast<UK2Node_ComponentBoundEvent>(Node))
+	if (UK2Node_ComponentBoundEvent* ComponentEventNode = Cast<UK2Node_ComponentBoundEvent>(Node))
 	{
 		if (UObjectProperty const* BoundProperty = Cast<UObjectProperty>(Binding))
 		{
-			EventNode->InitializeComponentBoundEventParams(BoundProperty, EventDelegate);
+			ComponentEventNode->InitializeComponentBoundEventParams(BoundProperty, EventDelegate);
 			bWasBound = true;
 			Node->ReconstructNode();
 		}
 	}
-	else if (UK2Node_ActorBoundEvent* EventNode = CastChecked<UK2Node_ActorBoundEvent>(Node))
+	else if (UK2Node_ActorBoundEvent* ActorEventNode = CastChecked<UK2Node_ActorBoundEvent>(Node))
 	{
 		if (AActor* BoundActor = Cast<AActor>(Binding))
 		{
-			EventNode->InitializeActorBoundEventParams(BoundActor, EventDelegate);
+			ActorEventNode->InitializeActorBoundEventParams(BoundActor, EventDelegate);
 			bWasBound = true;
 			Node->ReconstructNode();
 		}

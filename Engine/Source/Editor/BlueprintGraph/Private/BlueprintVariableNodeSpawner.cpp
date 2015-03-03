@@ -203,17 +203,17 @@ UEdGraphNode* UBlueprintVariableNodeSpawner::Invoke(UEdGraph* ParentGraph, FBind
 	//        conform to UBlueprintFieldNodeSpawner
 	if (IsLocalVariable())
 	{
-		auto LocalVarSetupLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, FName VarName, UObject const* VarOuter, FGuid VarGuid, FCustomizeNodeDelegate UserDelegate)
+		auto LocalVarSetupLambda = [](UEdGraphNode* InNewNode, bool bIsTemplateNode, FName VarName, UObject const* VarOuter, FGuid VarGuid, FCustomizeNodeDelegate UserDelegate)
 		{
-			UK2Node_Variable* VarNode = CastChecked<UK2Node_Variable>(NewNode);
+			UK2Node_Variable* VarNode = CastChecked<UK2Node_Variable>(InNewNode);
 			VarNode->VariableReference.SetLocalMember(VarName, VarOuter->GetName(), VarGuid);
-			UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
+			UserDelegate.ExecuteIfBound(InNewNode, bIsTemplateNode);
 		};
 
 		FCustomizeNodeDelegate PostSpawnDelegate = CustomizeNodeDelegate;
-		if (UObject const* LocalVarOuter = GetVarOuter())
+		if (UObject const* LocalVariableOuter = GetVarOuter())
 		{
-			PostSpawnDelegate = FCustomizeNodeDelegate::CreateStatic(LocalVarSetupLambda, LocalVarDesc.VarName, LocalVarOuter, LocalVarDesc.VarGuid, CustomizeNodeDelegate);
+			PostSpawnDelegate = FCustomizeNodeDelegate::CreateStatic(LocalVarSetupLambda, LocalVarDesc.VarName, LocalVariableOuter, LocalVarDesc.VarGuid, CustomizeNodeDelegate);
 		}
 
 		NewNode = UBlueprintNodeSpawner::SpawnNode<UEdGraphNode>(NodeClass, ParentGraph, Bindings, Location, PostSpawnDelegate);

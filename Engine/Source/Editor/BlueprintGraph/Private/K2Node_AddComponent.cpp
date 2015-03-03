@@ -299,11 +299,11 @@ FText UK2Node_AddComponent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 		if (UActorComponent* SourceTemplate = Blueprint->FindTemplateByName(FName(*TemplateName)))
 		{
-			CachedNodeTitle = SourceTemplate->GetClass()->GetDisplayNameText();
-
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("ComponentType"), SourceTemplate->GetClass()->GetDisplayNameText());
-			CachedNodeTitle = FText::Format(LOCTEXT("AddClass", "Add {ComponentType}"), Args);
+			{
+				FFormatNamedArguments Args;
+				Args.Add(TEXT("ComponentType"), SourceTemplate->GetClass()->GetDisplayNameText());
+				CachedNodeTitle = FText::Format(LOCTEXT("AddClass", "Add {ComponentType}"), Args);
+			}
 
 			UChildActorComponent* SubActorComp = Cast<UChildActorComponent>(SourceTemplate);
 

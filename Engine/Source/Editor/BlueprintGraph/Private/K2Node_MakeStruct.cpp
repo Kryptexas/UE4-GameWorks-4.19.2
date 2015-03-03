@@ -248,7 +248,6 @@ UK2Node::ERedirectType UK2Node_MakeStruct::DoPinsMatchForReconstruction(const UE
 	}
 	else if ((ERedirectType_None == Result) && NewPin && OldPin)
 	{
-		const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		if ((EGPD_Output == NewPin->Direction) && (EGPD_Output == OldPin->Direction))
 		{
 			const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();

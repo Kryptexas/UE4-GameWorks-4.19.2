@@ -128,12 +128,12 @@ void UK2Node_LatentAbilityCall::GetMenuActions(FBlueprintActionDatabaseRegistrar
 					UK2Node_LatentAbilityCall* AsyncTaskNode = CastChecked<UK2Node_LatentAbilityCall>(NewNode);
 					if (FunctionPtr.IsValid())
 					{
-						UFunction* Function = FunctionPtr.Get();
-						UObjectProperty* ReturnProperty = CastChecked<UObjectProperty>(Function->GetReturnProperty());
+						UFunction* Func = FunctionPtr.Get();
+						UObjectProperty* ReturnProp = CastChecked<UObjectProperty>(Func->GetReturnProperty());
 						
-						AsyncTaskNode->ProxyFactoryFunctionName = Function->GetFName();
-						AsyncTaskNode->ProxyFactoryClass        = Function->GetOuterUClass();
-						AsyncTaskNode->ProxyClass               = ReturnProperty->PropertyClass;
+						AsyncTaskNode->ProxyFactoryFunctionName = Func->GetFName();
+						AsyncTaskNode->ProxyFactoryClass        = Func->GetOuterUClass();
+						AsyncTaskNode->ProxyClass               = ReturnProp->PropertyClass;
 					}
 				};
 				

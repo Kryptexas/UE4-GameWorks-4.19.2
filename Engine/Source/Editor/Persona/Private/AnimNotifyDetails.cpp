@@ -127,9 +127,9 @@ void FAnimNotifyDetails::CustomizeDetails( IDetailLayoutBuilder& DetailBuilder )
 
 	for (FPropVisPair& NotifyPair : TriggerSettingNames)
 	{
-		TSharedRef<IPropertyHandle> NotifyPropHandle = DetailBuilder.GetProperty(NotifyPair.NotifyName);
-		DetailBuilder.HideProperty(NotifyPropHandle);
-		TriggerSettingCategory.AddProperty(NotifyPropHandle).Visibility(NotifyPair.Visibility);
+		TSharedRef<IPropertyHandle> NotifyPropertyHandle = DetailBuilder.GetProperty(NotifyPair.NotifyName);
+		DetailBuilder.HideProperty(NotifyPropertyHandle);
+		TriggerSettingCategory.AddProperty(NotifyPropertyHandle).Visibility(NotifyPair.Visibility);
 	}
 }
 

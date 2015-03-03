@@ -191,17 +191,17 @@ UEdGraphNode* UBlueprintEventNodeSpawner::Invoke(UEdGraph* ParentGraph, FBinding
 	// if there is no existing node, then we can happily spawn one into the graph
 	if (EventNode == nullptr)
 	{
-		auto PostSpawnLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UFunction const* EventFunc, FName EventName, FCustomizeNodeDelegate UserDelegate)
+		auto PostSpawnLambda = [](UEdGraphNode* NewNode, bool bIsTemplateNode, UFunction const* InEventFunc, FName InEventName, FCustomizeNodeDelegate UserDelegate)
 		{
-			UK2Node_Event* EventNode = CastChecked<UK2Node_Event>(NewNode);
-			if (EventFunc != nullptr)
+			UK2Node_Event* K2EventNode = CastChecked<UK2Node_Event>(NewNode);
+			if (InEventFunc != nullptr)
 			{
-				EventNode->EventReference.SetFromField<UFunction>(EventFunc, false);
-				EventNode->bOverrideFunction   = true;
+				K2EventNode->EventReference.SetFromField<UFunction>(InEventFunc, false);
+				K2EventNode->bOverrideFunction   = true;
 			}
 			else if (!bIsTemplateNode)
 			{
-				EventNode->CustomFunctionName = EventName;
+				K2EventNode->CustomFunctionName = InEventName;
 			}
 
 			UserDelegate.ExecuteIfBound(NewNode, bIsTemplateNode);
