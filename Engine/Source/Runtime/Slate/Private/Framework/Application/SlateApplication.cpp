@@ -3297,14 +3297,14 @@ const FSlateBrush* FSlateApplication::GetAppIcon() const
 }
 
 
-void FSlateApplication::ShowVirtualKeyboard( bool bShow, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget )
+void FSlateApplication::ShowVirtualKeyboard( bool bShow, int32 UserIndex, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget )
 {
 	if(SlateTextField == nullptr)
 	{
 		SlateTextField = new FPlatformTextField();
 	}
 
-	SlateTextField->ShowVirtualKeyboard(bShow, TextEntryWidget);
+	SlateTextField->ShowVirtualKeyboard(bShow, UserIndex, TextEntryWidget);
 }
 
 FSlateRect FSlateApplication::GetPreferredWorkArea() const

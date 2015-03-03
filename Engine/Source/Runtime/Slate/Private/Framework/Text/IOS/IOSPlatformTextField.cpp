@@ -17,7 +17,7 @@ FIOSPlatformTextField::~FIOSPlatformTextField()
 	}
 }
 
-void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget)
+void FIOSPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget)
 {
 	if(TextField == nullptr)
 	{

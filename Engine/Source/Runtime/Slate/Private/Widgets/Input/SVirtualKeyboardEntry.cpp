@@ -252,7 +252,7 @@ FReply SVirtualKeyboardEntry::OnFocusReceived( const FGeometry& MyGeometry, cons
 
 	int32 CaretPosition = EditedText.ToString().Len();
 	FSlateApplication& CurrentApp = FSlateApplication::Get();
-	CurrentApp.ShowVirtualKeyboard(true, SharedThis(this));
+	CurrentApp.ShowVirtualKeyboard(true, InFocusEvent.GetUser(), SharedThis(this));
 
 	return FReply::Handled();
 }
@@ -283,7 +283,7 @@ void SVirtualKeyboardEntry::OnFocusLost( const FFocusEvent& InFocusEvent )
 	}
 
 	FSlateApplication& CurrentApp = FSlateApplication::Get();
-	CurrentApp.ShowVirtualKeyboard(false);
+	CurrentApp.ShowVirtualKeyboard(false, InFocusEvent.GetUser());
 
 	OnTextCommitted.ExecuteIfBound( EditedText, TextAction );
 }

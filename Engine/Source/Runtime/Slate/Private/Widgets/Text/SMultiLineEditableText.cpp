@@ -497,7 +497,7 @@ FReply SMultiLineEditableText::OnFocusReceived( const FGeometry& MyGeometry, con
 		if (FPlatformMisc::GetRequiresVirtualKeyboard())
 		{
 			// @TODO: Create ITextInputMethodSystem derivations for mobile
-			SlateApplication.ShowVirtualKeyboard(true, SharedThis(this));
+			SlateApplication.ShowVirtualKeyboard(true, InFocusEvent.GetUser(), SharedThis(this));
 		}
 		else
 		{
@@ -530,7 +530,7 @@ void SMultiLineEditableText::OnFocusLost( const FFocusEvent& InFocusEvent )
 		FSlateApplication& SlateApplication = FSlateApplication::Get();
 		if (FPlatformMisc::GetRequiresVirtualKeyboard())
 		{
-			SlateApplication.ShowVirtualKeyboard(false);
+			SlateApplication.ShowVirtualKeyboard(false, InFocusEvent.GetUser());
 		}
 		else
 		{

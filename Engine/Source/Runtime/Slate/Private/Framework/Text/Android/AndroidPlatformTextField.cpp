@@ -17,7 +17,7 @@
 #define TYPE_TEXT_FLAG_NO_SUGGESTIONS		0x00080000
 
 
-void FAndroidPlatformTextField::ShowVirtualKeyboard(bool bShow, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget)
+void FAndroidPlatformTextField::ShowVirtualKeyboard(bool bShow, int32 UserIndex, TSharedPtr<IVirtualKeyboardEntry> TextEntryWidget)
 {
 	if(bShow)
 	{
