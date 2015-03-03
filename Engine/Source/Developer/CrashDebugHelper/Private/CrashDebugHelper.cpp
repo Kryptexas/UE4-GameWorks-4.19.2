@@ -16,6 +16,14 @@
 
 const TCHAR* ICrashDebugHelper::P4_DEPOT_PREFIX = TEXT( "//depot/" );
 
+void ICrashDebugHelper::SetDepotIndex( FString& PathToChange )
+{
+	FString CmdDepotIndex;
+	FParse::Value( FCommandLine::Get(), TEXT( "DepotIndex=" ), CmdDepotIndex );
+	// %DEPOT_INDEX% - Index of the depot, when multiple processor are used.
+	PathToChange.ReplaceInline( TEXT( "%DEPOT_INDEX%" ), *CmdDepotIndex );
+}
+
 bool ICrashDebugHelper::Init()
 {
 	bInitialized = true;
@@ -80,8 +88,11 @@ bool ICrashDebugHelper::Init()
 	UE_CLOG( !bCanUseSearchPatterns, LogCrashDebugHelper, Warning, TEXT( "Search patterns don't match" ) );
 
 	GConfig->GetString( TEXT( "Engine.CrashDebugHelper" ), TEXT( "DepotRoot" ), DepotRoot, GEngineIni );
+	ICrashDebugHelper::SetDepotIndex( DepotRoot );
+
 	const bool bHasDepotRoot = IFileManager::Get().DirectoryExists( *DepotRoot );
 	UE_CLOG( !bHasDepotRoot, LogCrashDebugHelper, Warning, TEXT( "DepotRoot: %s is not valid" ), *DepotRoot );
+	UE_LOG( LogCrashDebugHelper, Log, TEXT( "DepotRoot: %s" ), *DepotRoot );
 
 	if( bCanUseSearchPatterns && bHasDepotRoot )
 	{

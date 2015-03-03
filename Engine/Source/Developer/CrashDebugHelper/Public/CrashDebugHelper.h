@@ -224,6 +224,9 @@ class CRASHDEBUGHELPER_API ICrashDebugHelper
 public:
 	static const TCHAR* P4_DEPOT_PREFIX;
 
+	/** Replaces %DEPOT_INDEX% with the command line DepotIndex in the specified path. */
+	static void SetDepotIndex( FString& PathToChange );
+
 protected:
 	/** Depot root, only used in conjunction with the PDB Cache. */
 	FString DepotRoot;

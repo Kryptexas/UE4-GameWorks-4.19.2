@@ -33,6 +33,8 @@ void FPDBCache::Init()
 			UE_LOG( LogCrashDebugHelper, Warning, TEXT( "Failed to get PDBCachePath from ini file" ) );
 			bUsePDBCache = false;
 		}
+
+		ICrashDebugHelper::SetDepotIndex( PDBCachePath );
 	}
 
 	if( bUsePDBCache )
@@ -63,7 +65,7 @@ void FPDBCache::Init()
 		const int32 TotalDiscSpaceGB = int32( TotalNumberOfBytes >> 30 );
 		const int32 DiskFreeSpaceGB = int32( NumberOfFreeBytes >> 30 );
 
-		if( DiskFreeSpaceGB < MinDiskFreeSpaceGB )
+		if( DiskFreeSpaceGB < MinDiskFreeSpaceGB || TotalNumberOfBytes == 0 )
 		{
 			// There is not enough free space, calculate the current PDB cache usage and try removing the old data.
 			const int32 CurrentPDBCacheSizeGB = GetPDBCacheSizeGB();
@@ -80,17 +82,19 @@ void FPDBCache::Init()
 			else
 			{
 				// Clean the PDB cache until we get enough free space.
-				CleanPDBCache( DaysToDeleteUnusedFilesFromPDBCache, MinDiskFreeSpaceGB - DiskFreeSpaceGB );
+				const int32 MinSpaceRequirement = FMath::Max( MinDiskFreeSpaceGB - DiskFreeSpaceGB, 0 );
+				const int32 CacheSpaceRequirement = FMath::Max( CurrentPDBCacheSizeGB - PDBCacheSizeGB, 0 );
+				CleanPDBCache( DaysToDeleteUnusedFilesFromPDBCache, FMath::Max( MinSpaceRequirement, CacheSpaceRequirement ) );
 			}
 		}
 	}
 
 	if( bUsePDBCache )
 	{
-		UE_LOG( LogCrashDebugHelper, Log, TEXT( "PDBCachePath=%s" ), *PDBCachePath );
-		UE_LOG( LogCrashDebugHelper, Log, TEXT( "PDBCacheSizeGB=%i" ), PDBCacheSizeGB );
-		UE_LOG( LogCrashDebugHelper, Log, TEXT( "MinDiskFreeSpaceGB=%i" ), MinDiskFreeSpaceGB );
-		UE_LOG( LogCrashDebugHelper, Log, TEXT( "DaysToDeleteUnusedFilesFromPDBCache=%i" ), DaysToDeleteUnusedFilesFromPDBCache );
+		UE_LOG( LogCrashDebugHelper, Log, TEXT( "PDBCachePath: %s" ), *PDBCachePath );
+		UE_LOG( LogCrashDebugHelper, Log, TEXT( "PDBCacheSizeGB: %i" ), PDBCacheSizeGB );
+		UE_LOG( LogCrashDebugHelper, Log, TEXT( "MinDiskFreeSpaceGB: %i" ), MinDiskFreeSpaceGB );
+		UE_LOG( LogCrashDebugHelper, Log, TEXT( "DaysToDeleteUnusedFilesFromPDBCache: %i" ), DaysToDeleteUnusedFilesFromPDBCache );
 	}
 }
 
