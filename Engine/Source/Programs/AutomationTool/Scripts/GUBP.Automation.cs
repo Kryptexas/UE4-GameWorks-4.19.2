@@ -2173,7 +2173,10 @@ public class GUBP : BuildCommand
                         }
                         else if (Options.bTestWithShared)
                         {
-                            AddDependency(EditorGameNode.StaticGetFullName(HostPlatform, CodeProj)); // if we are just testing, we will still include the editor stuff
+							if (!Options.bIsNonCode)
+							{
+								AddDependency(EditorGameNode.StaticGetFullName(HostPlatform, CodeProj)); // if we are just testing, we will still include the editor stuff
+							}
                         }
                     }
                 }
@@ -6020,7 +6023,7 @@ public class GUBP : BuildCommand
                     AgentShareName = "Shared";
                 }
 
-				if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform))
+				if (!BranchOptions.ExcludePlatformsForEditor.Contains(HostPlatform) && !Options.bIsNonCode)
 				{
 					AddNode(new EditorGameNode(this, HostPlatform, CodeProj));
 				}
