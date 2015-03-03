@@ -3177,7 +3177,7 @@ void SAnimNotifyPanel::DeleteNotify(FAnimNotifyEvent* Notify)
 {
 	for (int32 I=0; I<Sequence->Notifies.Num(); ++I)
 	{
-		if (*Notify == Sequence->Notifies[I])
+		if (Notify == &(Sequence->Notifies[I]))
 		{
 			Sequence->Notifies.RemoveAt(I);
 			Sequence->MarkPackageDirty();
