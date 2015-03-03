@@ -11,9 +11,10 @@
 #include "Engine/BrushBuilder.h"
 #include "ActorEditorUtils.h"
 #include "Components/BrushComponent.h"
-#include "Editor.h"
 
 #if WITH_EDITOR
+#include "Editor.h"
+
 /** Define static delegate */
 ABrush::FOnBrushRegistered ABrush::OnBrushRegistered;
 
