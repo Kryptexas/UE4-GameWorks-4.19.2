@@ -11,6 +11,7 @@
 #include "Engine/BrushBuilder.h"
 #include "ActorEditorUtils.h"
 #include "Components/BrushComponent.h"
+#include "Editor.h"
 
 #if WITH_EDITOR
 /** Define static delegate */
