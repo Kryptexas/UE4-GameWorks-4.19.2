@@ -80,8 +80,6 @@ public:
 	// destructor
 	~FSubsurfaceProfileTexture();
 
-	void SetRendererModule(class IRendererModule* InRendererModule) { RendererModule = InRendererModule; }
-
 	// convenience, can be optimized 
 	int32 AddOrUpdateProfile(const FSubsurfaceProfileStruct Settings, const USubsurfaceProfilePointer Profile)
 	{
@@ -148,8 +146,6 @@ private:
 		USubsurfaceProfilePointer GameThreadObject;
 	};
 
-	// 0 if there if no user of the feature
-	IRendererModule* RendererModule;
 	//
 	TArray<FSubsurfaceProfileEntry> SubsurfaceProfileEntries;
 

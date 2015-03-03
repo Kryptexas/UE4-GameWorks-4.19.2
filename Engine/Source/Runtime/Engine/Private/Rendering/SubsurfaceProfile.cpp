@@ -4,6 +4,7 @@
 #include "SeparableSSS.h"
 #include "RendererInterface.h"
 #include "Engine/SubsurfaceProfile.h"
+#include "EngineModule.h" // GetRendererModule()
 
 DEFINE_LOG_CATEGORY_STATIC(LogSubsurfaceProfile, Log, All);
 
@@ -15,7 +16,6 @@ static TRefCountPtr<IPooledRenderTarget> GSSProfiles;
 
 
 FSubsurfaceProfileTexture::FSubsurfaceProfileTexture()
-	: RendererModule(0)
 {
 	FSubsurfaceProfileStruct DefaultSkin;
 
@@ -91,9 +91,6 @@ void FSubsurfaceProfileTexture::UpdateProfile(int32 AllocationId, const FSubsurf
 		return;
 	}
 
-	// call SetRendererModule() is missing
-	check(RendererModule);
-
 	check(AllocationId < SubsurfaceProfileEntries.Num());
 
 	SubsurfaceProfileEntries[AllocationId].Settings = Settings;
@@ -103,12 +100,6 @@ void FSubsurfaceProfileTexture::UpdateProfile(int32 AllocationId, const FSubsurf
 
 const IPooledRenderTarget* FSubsurfaceProfileTexture::GetTexture(FRHICommandListImmediate& RHICmdList)
 {
-	if(!RendererModule)
-	{
-		// call SetRendererModule() is missing, thiscan be if no SubsurfaceProfile was used yet but VisualizeSubsurface requests the texture
-		return 0;
-	}
-
 	if (!GSSProfiles)
 	{
 		CreateTexture(RHICmdList);
@@ -135,9 +126,6 @@ static float GetNextSmallerPositiveFloat(float x)
 
 void FSubsurfaceProfileTexture::CreateTexture(FRHICommandListImmediate& RHICmdList)
 {
-	// call SetRendererModule() is missing
-	check(RendererModule);
-
 	uint32 Height = SubsurfaceProfileEntries.Num();
 
 	check(Height);
@@ -155,7 +143,7 @@ void FSubsurfaceProfileTexture::CreateTexture(FRHICommandListImmediate& RHICmdLi
 		Desc.Format = PF_A16B16G16R16;
 	}
 
-	RendererModule->RenderTargetPoolFindFreeElement(Desc, GSSProfiles, TEXT("SSProfiles"));
+	GetRendererModule().RenderTargetPoolFindFreeElement(Desc, GSSProfiles, TEXT("SSProfiles"));
 
 	// Write the contents of the texture.
 	uint32 DestStride;

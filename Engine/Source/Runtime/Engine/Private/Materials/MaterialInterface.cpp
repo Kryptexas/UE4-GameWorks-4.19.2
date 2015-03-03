@@ -320,43 +320,21 @@ void UMaterialInterface::UpdateMaterialRenderProxy(FMaterialRenderProxy& Proxy)
 			Settings = LocalSubsurfaceProfile->Settings;
 		}
 
-		// this can be improved, it doesn't support Renderer hot reload
+		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
+			UpdateMaterialRenderProxySubsurface,
+			const FSubsurfaceProfileStruct, Settings, Settings,
+			USubsurfaceProfilePointer, LocalSubsurfaceProfile, (USubsurfaceProfilePointer)LocalSubsurfaceProfile,
+			FMaterialRenderProxy&, Proxy, Proxy,
 		{
-			static bool bFirst = true;
+			uint32 AllocationId = 0;
 
-			if (bFirst)
+			if (LocalSubsurfaceProfile)
 			{
-				bFirst = false;
+				AllocationId = GSubsufaceProfileTextureObject.AddOrUpdateProfile(Settings, LocalSubsurfaceProfile);
 
-				static const FName RendererModuleName("Renderer");
-				IRendererModule& RendererModule = FModuleManager::GetModuleChecked<IRendererModule>(RendererModuleName);
-
-				ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-					UpdateMaterialRenderProxySubsurfaceSetup,
-					IRendererModule&, RendererModule, RendererModule,
-					{
-					GSubsufaceProfileTextureObject.SetRendererModule(&RendererModule);
-				});
+				check(AllocationId >= 0 && AllocationId <= 255);
 			}
-		}
-
-		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
-				UpdateMaterialRenderProxySubsurface,
-				const FSubsurfaceProfileStruct, Settings, Settings,
-				USubsurfaceProfilePointer, LocalSubsurfaceProfile, (USubsurfaceProfilePointer)LocalSubsurfaceProfile,
-				FMaterialRenderProxy&, Proxy, Proxy,
-			{
-				uint32 AllocationId = 0;
-
-				if (LocalSubsurfaceProfile)
-				{
-					AllocationId = GSubsufaceProfileTextureObject.AddOrUpdateProfile(Settings, LocalSubsurfaceProfile);
-
-					check(AllocationId >= 0 && AllocationId <= 255);
-				}
-				Proxy.SetSubsurfaceProfileRT(LocalSubsurfaceProfile);
-			});
-		}
+			Proxy.SetSubsurfaceProfileRT(LocalSubsurfaceProfile);
+		});
 	}
 }
