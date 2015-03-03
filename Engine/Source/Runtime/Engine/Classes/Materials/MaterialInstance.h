@@ -136,7 +136,7 @@ class UMaterialInstance : public UMaterialInterface
 	class UMaterialInterface* Parent;
 
 	/**
-	 * Delegate for custom static paramters getter.
+	 * Delegate for custom static parameters getter.
 	 *
 	 * @param OutStaticParameterSet Parameter set to append.
 	 * @param Material Material instance to collect parameters.
