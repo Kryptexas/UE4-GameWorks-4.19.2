@@ -426,14 +426,9 @@ bool UK2Node_MacroInstance::CanPasteHere(const UEdGraph* TargetGraph) const
 
 	if ((MacroBlueprint != nullptr) && (TargetBlueprint != nullptr))
 	{
-		UClass* TargetClass = (TargetBlueprint->GeneratedClass != nullptr) ? TargetBlueprint->GeneratedClass : TargetBlueprint->ParentClass;
-		UClass* MacroBaseClass = ((MacroBlueprint->BlueprintType == BPTYPE_MacroLibrary) || (MacroBlueprint->GeneratedClass == nullptr)) ? 
-			MacroBlueprint->ParentClass : MacroBlueprint->GeneratedClass;
-		
-		if ((MacroBaseClass != nullptr) && (TargetClass != nullptr))
-		{
-			bCanPaste = TargetClass->IsChildOf(MacroBaseClass);
-		}
+		// Only allow "local" macro instances or instances from a macro library blueprint with the same parent class
+		check(MacroBlueprint->ParentClass != nullptr && TargetBlueprint->ParentClass != nullptr);
+		bCanPaste = (MacroBlueprint == TargetBlueprint) || (MacroBlueprint->BlueprintType == BPTYPE_MacroLibrary && TargetBlueprint->ParentClass->IsChildOf(MacroBlueprint->ParentClass));
 	}
 
 	// Macro Instances are not allowed in it's own graph
