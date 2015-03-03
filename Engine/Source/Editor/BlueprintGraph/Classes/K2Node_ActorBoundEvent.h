@@ -16,7 +16,7 @@ class UK2Node_ActorBoundEvent : public UK2Node_Event
 	FName DelegatePropertyName;
 
 	/** Delegate property's owner class that this event is associated with */
-	UPROPERTY(Transient)
+	UPROPERTY()
 	UClass* DelegateOwnerClass;
 
 	/** The event that this event is bound to */
