@@ -323,7 +323,7 @@ void UMaterialInterface::UpdateMaterialRenderProxy(FMaterialRenderProxy& Proxy)
 		ENQUEUE_UNIQUE_RENDER_COMMAND_THREEPARAMETER(
 			UpdateMaterialRenderProxySubsurface,
 			const FSubsurfaceProfileStruct, Settings, Settings,
-			USubsurfaceProfilePointer, LocalSubsurfaceProfile, (USubsurfaceProfilePointer)LocalSubsurfaceProfile,
+			USubsurfaceProfile*, LocalSubsurfaceProfile, LocalSubsurfaceProfile,
 			FMaterialRenderProxy&, Proxy, Proxy,
 		{
 			uint32 AllocationId = 0;

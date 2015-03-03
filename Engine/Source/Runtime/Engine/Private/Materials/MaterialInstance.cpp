@@ -157,7 +157,7 @@ bool FMaterialInstanceResource::GetScalarValue(
 	static FName NameSubsurfaceProfile(TEXT("__SubsurfaceProfile"));
 	if (ParameterName == NameSubsurfaceProfile)
 	{
-		const USubsurfaceProfilePointer SubsurfaceProfileRT = GetSubsurfaceProfileRT();
+		const USubsurfaceProfile* SubsurfaceProfileRT = GetSubsurfaceProfileRT();
 
 		int32 AllocationId = 0;
 		if (SubsurfaceProfileRT)

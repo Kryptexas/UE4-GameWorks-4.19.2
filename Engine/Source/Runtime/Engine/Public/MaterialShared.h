@@ -1257,7 +1257,6 @@ struct FUniformExpressionCache
 };
 
 class USubsurfaceProfile;
-typedef void* USubsurfaceProfilePointer;
 
 /**
  * A material render proxy used by the renderer.
@@ -1322,8 +1321,8 @@ public:
 		return MaterialRenderProxyMap;
 	}
 
-	void SetSubsurfaceProfileRT(const USubsurfaceProfilePointer Ptr) { SubsurfaceProfileRT = Ptr; }
-	USubsurfaceProfilePointer GetSubsurfaceProfileRT() const { return SubsurfaceProfileRT; }
+	void SetSubsurfaceProfileRT(const USubsurfaceProfile* Ptr) { SubsurfaceProfileRT = Ptr; }
+	const USubsurfaceProfile* GetSubsurfaceProfileRT() const { return SubsurfaceProfileRT; }
 
 private:
 
@@ -1331,8 +1330,8 @@ private:
 	bool bSelected : 1;
 	/** true if the material is hovered. */
 	bool bHovered : 1;
-	/** 0 if not set, for the render thread */
-	USubsurfaceProfilePointer SubsurfaceProfileRT;
+	/** 0 if not set, game thread pointer, do not dereference, only for comparison */
+	const USubsurfaceProfile* SubsurfaceProfileRT;
 
 	/** 
 	 * Tracks all material render proxies in all scenes, can only be accessed on the rendering thread.
