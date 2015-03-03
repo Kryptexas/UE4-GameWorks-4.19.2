@@ -439,7 +439,7 @@ EWindowMode::Type FMacWindow::GetWindowMode() const
 
 bool FMacWindow::IsMaximized() const
 {
-	return WindowHandle->bZoomed;
+	return WindowHandle && WindowHandle->bZoomed;
 }
 
 bool FMacWindow::IsMinimized() const
