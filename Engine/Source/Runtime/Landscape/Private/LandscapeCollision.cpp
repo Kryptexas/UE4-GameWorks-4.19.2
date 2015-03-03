@@ -1305,6 +1305,22 @@ void ULandscapeHeightfieldCollisionComponent::PostLoad()
 	{
 		bShouldSaveCookedDataToDDC[0] = true;
 		bShouldSaveCookedDataToDDC[1] = true;
+
+		ALandscapeProxy* LandscapeProxy = GetLandscapeProxy();
+		if (ensure(LandscapeProxy) && GIsEditor)
+		{
+			// This is to ensure that component relative location is exact section base offset value
+			float CheckRelativeLocationX = float(SectionBaseX - LandscapeProxy->LandscapeSectionOffset.X);
+			float CheckRelativeLocationY = float(SectionBaseY - LandscapeProxy->LandscapeSectionOffset.Y);
+			if (CheckRelativeLocationX != RelativeLocation.X || 
+				CheckRelativeLocationY != RelativeLocation.Y)
+			{
+				UE_LOG(LogLandscape, Warning, TEXT("ULandscapeHeightfieldCollisionComponent RelativeLocation disagrees with its section base, attempted automated fix: '%s', %f,%f vs %f,%f."),
+					*GetFullName(), RelativeLocation.X, RelativeLocation.Y, CheckRelativeLocationX, CheckRelativeLocationY);
+				RelativeLocation.X = CheckRelativeLocationX;
+				RelativeLocation.Y = CheckRelativeLocationY;
+			}
+		}
 	}
 #endif//WITH_EDITOR
 }
