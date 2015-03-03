@@ -285,7 +285,8 @@ UCharacterMovementComponent::UCharacterMovementComponent(const FObjectInitialize
 	OldBaseLocation = FVector::ZeroVector;
 
 	NavMeshProjectionInterval = 0.1f;
-	NavMeshProjectionHeightScaleUp = 1.0f;
+	NavMeshProjectionInterpSpeed = 12.f;
+	NavMeshProjectionHeightScaleUp = 0.67f;
 	NavMeshProjectionHeightScaleDown = 1.0f;
 }
 
@@ -3853,7 +3854,7 @@ void UCharacterMovementComponent::PhysNavWalking(float deltaTime, int32 Iteratio
 			const float TotalCapsuleHeight = CharacterOwner->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() * 2.0f;
 			const float UpOffset = TotalCapsuleHeight * FMath::Max(0.f, NavMeshProjectionHeightScaleUp);
 			const float DownOffset = TotalCapsuleHeight * FMath::Max(0.f, NavMeshProjectionHeightScaleDown);
-			ProjectLocationFromNavMesh(deltaTime, NewLocation, UpOffset, DownOffset);
+			NewLocation = ProjectLocationFromNavMesh(deltaTime, OldLocation, NewLocation, UpOffset, DownOffset);
 		}
 
 		FVector AdjustedDelta = NewLocation - OldLocation;
@@ -3914,9 +3915,11 @@ bool UCharacterMovementComponent::FindNavFloor(const FVector& TestLocation, FNav
 	return true;
 }
 
-void UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSeconds, FVector& InOutLocation, float UpOffset, float DownOffset)
+FVector UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSeconds, const FVector& CurrentFeetLocation, const FVector& TargetNavLocation, float UpOffset, float DownOffset)
 {
 	SCOPE_CYCLE_COUNTER(STAT_CharNavProjectLocation);
+
+	FVector NewLocation = TargetNavLocation;
 
 	const FVector RayCastOffsetUp(0.0f, 0.0f, UpOffset);
 	const FVector RayCastOffsetDown(0.0f, 0.0f, DownOffset);
@@ -3924,11 +3927,11 @@ void UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSeconds,
 	NavMeshProjectionTimer -= DeltaSeconds;
 	if (NavMeshProjectionTimer <= 0.0f)
 	{
-		// We can skip this trace if we are at the same location as the last trace (ie, we haven't moved).
+		// We can skip this trace if we are checking at the same location as the last trace (ie, we haven't moved).
 		const bool bCachedLocationStillValid = (!bAlwaysCheckFloor &&
 												CachedProjectedNavMeshHitResult.bBlockingHit &&
-												CachedProjectedNavMeshHitResult.TraceStart == (InOutLocation + RayCastOffsetUp) &&
-												CachedProjectedNavMeshHitResult.TraceEnd == (InOutLocation - RayCastOffsetDown));
+												CachedProjectedNavMeshHitResult.TraceStart == (TargetNavLocation + RayCastOffsetUp) &&
+												CachedProjectedNavMeshHitResult.TraceEnd == (TargetNavLocation - RayCastOffsetDown));
 
 		if (!bCachedLocationStillValid)
 		{
@@ -3939,7 +3942,7 @@ void UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSeconds,
 			// influence navmesh generation
 			FCollisionQueryParams Params;
 			FCollisionObjectQueryParams ObjectQueryParams(FCollisionObjectQueryParams::AllStaticObjects);
-			GetWorld()->LineTraceSingleByObjectType(CachedProjectedNavMeshHitResult, InOutLocation + RayCastOffsetUp, InOutLocation - RayCastOffsetDown, ObjectQueryParams, Params);
+			GetWorld()->LineTraceSingleByObjectType(CachedProjectedNavMeshHitResult, TargetNavLocation + RayCastOffsetUp, TargetNavLocation - RayCastOffsetDown, ObjectQueryParams, Params);
 
 			// discard result if we were already inside something
 			if (CachedProjectedNavMeshHitResult.bStartPenetrating)
@@ -3966,13 +3969,21 @@ void UCharacterMovementComponent::ProjectLocationFromNavMesh(float DeltaSeconds,
 	// project to last plane we found
 	if (CachedProjectedNavMeshHitResult.bBlockingHit)
 	{
-		FVector ProjectedPoint = FMath::LinePlaneIntersection(InOutLocation + RayCastOffsetUp, InOutLocation - RayCastOffsetDown, CachedProjectedNavMeshHitResult.Location, CachedProjectedNavMeshHitResult.Normal);
+		FVector ProjectedPoint = FMath::LinePlaneIntersection(TargetNavLocation + RayCastOffsetUp, TargetNavLocation - RayCastOffsetDown, CachedProjectedNavMeshHitResult.Location, CachedProjectedNavMeshHitResult.Normal);
 
 		// Limit to not be too far above or below NavMesh location
-		ProjectedPoint.Z = FMath::Clamp(ProjectedPoint.Z, InOutLocation.Z - DownOffset, InOutLocation.Z + UpOffset);
-		
-		InOutLocation.Z = ProjectedPoint.Z;
+		ProjectedPoint.Z = FMath::Clamp(ProjectedPoint.Z, TargetNavLocation.Z - DownOffset, TargetNavLocation.Z + UpOffset);
+
+		// Interp for smoother updates (less "pop" when trace hits something new). 0 interp speed is instant.
+		const float InterpSpeed = FMath::Max(0.f, NavMeshProjectionInterpSpeed);
+		ProjectedPoint.Z = FMath::FInterpTo(CurrentFeetLocation.Z, ProjectedPoint.Z, DeltaSeconds, InterpSpeed);
+		ProjectedPoint.Z = FMath::Clamp(ProjectedPoint.Z, TargetNavLocation.Z - DownOffset, TargetNavLocation.Z + UpOffset);
+
+		// Final result
+		NewLocation.Z = ProjectedPoint.Z;
 	}
+
+	return NewLocation;
 }
 
 void UCharacterMovementComponent::PhysCustom(float deltaTime, int32 Iterations)

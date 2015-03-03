@@ -734,24 +734,28 @@ public:
 	FHitResult CachedProjectedNavMeshHitResult;
 
 	/** How often we should raycast to project from navmesh to underlying geometry */
-	UPROPERTY(Category = "NavMesh Movement", EditAnywhere, BlueprintReadOnly, meta=(editcondition = "bProjectNavMeshWalking"))
+	UPROPERTY(Category = "NavMesh Movement", EditAnywhere, BlueprintReadWrite, meta=(editcondition = "bProjectNavMeshWalking"))
 	float NavMeshProjectionInterval;
 
 	UPROPERTY(Transient)
 	float NavMeshProjectionTimer;
 
+	/** Speed at which to interpolate agent navmesh offset between traces. 0: Instant (no interp) > 0: Interp speed") */
+	UPROPERTY(Category = "NavMesh Movement", EditAnywhere, BlueprintReadWrite, meta=(editcondition = "bProjectNavMeshWalking", ClampMin="0", UIMin="0"))
+	float NavMeshProjectionInterpSpeed;
+
 	/**
 	 * Scale of the total capsule height to use for projection from navmesh to underlying geometry in the upward direction.
 	 * In other words, start the trace at [CapsuleHeight * NavMeshProjectionHeightScaleUp] above nav mesh.
 	 */
-	UPROPERTY(Category = "NavMesh Movement", EditAnywhere, BlueprintReadOnly, meta=(editcondition = "bProjectNavMeshWalking", ClampMin="0", UIMin="0"))
+	UPROPERTY(Category = "NavMesh Movement", EditAnywhere, BlueprintReadWrite, meta=(editcondition = "bProjectNavMeshWalking", ClampMin="0", UIMin="0"))
 	float NavMeshProjectionHeightScaleUp;
 
 	/**
 	 * Scale of the total capsule height to use for projection from navmesh to underlying geometry in the downward direction.
 	 * In other words, trace down to [CapsuleHeight * NavMeshProjectionHeightScaleDown] below nav mesh.
 	 */
-	UPROPERTY(Category = "NavMesh Movement", EditAnywhere, BlueprintReadOnly, meta=(editcondition = "bProjectNavMeshWalking", ClampMin="0", UIMin="0"))
+	UPROPERTY(Category = "NavMesh Movement", EditAnywhere, BlueprintReadWrite, meta=(editcondition = "bProjectNavMeshWalking", ClampMin="0", UIMin="0"))
 	float NavMeshProjectionHeightScaleDown;
 
 	/** Change avoidance state and registers in RVO manager if needed */
@@ -1143,7 +1147,7 @@ protected:
 	 * navmesh can differ quite significantly from geometry).
 	 * Updates CachedProjectedNavMeshHitResult, access this for more info about hits.
 	 */
-	virtual void ProjectLocationFromNavMesh(float DeltaSeconds, FVector& InOutLocation, float UpOffset, float DownOffset);
+	virtual FVector ProjectLocationFromNavMesh(float DeltaSeconds, const FVector& CurrentFeetLocation, const FVector& TargetNavLocation, float UpOffset, float DownOffset);
 
 public:
 
