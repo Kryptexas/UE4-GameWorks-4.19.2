@@ -120,7 +120,7 @@ bool STimeline::IsEntryHidden(const FVisualLogDevice::FVisualLogEntryItem& Entry
 	return HiddenEntries.Contains(&EntryItem);
 }
 
-void STimeline::HandleLogVisualizerSettingChanged(FName Name)
+void STimeline::HandleLogVisualizerSettingChanged(FName InName)
 {
 	UpdateVisibility();
 }

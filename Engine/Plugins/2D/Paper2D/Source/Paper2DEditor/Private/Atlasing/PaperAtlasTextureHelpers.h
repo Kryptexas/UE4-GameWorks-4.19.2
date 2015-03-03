@@ -20,11 +20,13 @@ static void CopyTextureData(const uint8* Source, uint8* Dest, uint32 SizeX, uint
 // Read sprite data into the 4 bytes per pixel target array
 static bool ReadSpriteTexture(TArray<uint8>& TargetBuffer, FIntPoint& OutSpriteSize, UPaperSprite* Sprite)
 {
-	const int32 BytesPerPixel = 4;
 	const FVector2D SpriteSizeFloat = Sprite->GetSourceSize();
 	const FIntPoint SpriteSize(FMath::TruncToInt(SpriteSizeFloat.X), FMath::TruncToInt(SpriteSizeFloat.Y));
-	TargetBuffer.Empty();
-	TargetBuffer.AddZeroed(SpriteSize.X * SpriteSize.Y * BytesPerPixel);
+	{
+		const int32 BytesPerPixel = 4;
+		TargetBuffer.Empty();
+		TargetBuffer.AddZeroed(SpriteSize.X * SpriteSize.Y * BytesPerPixel);
+	}
 
 	check(Sprite->GetSourceTexture());
 	FTextureSource& SourceData = Sprite->GetSourceTexture()->Source;

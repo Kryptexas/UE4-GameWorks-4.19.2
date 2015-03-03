@@ -217,7 +217,6 @@ static bool ParseFramesFromSpriteArray(const TArray<TSharedPtr<FJsonValue>>& Arr
 	bool bLoadedSuccessfully = true;
 
 	// Parse all of the frames
-	int32 FrameCount = 0;
 	for (int32 FrameCount = 0; FrameCount < ArrayBlock.Num(); ++FrameCount)
 	{
 		GWarn->StatusUpdate(FrameCount, ArrayBlock.Num(), NSLOCTEXT("Paper2D", "PaperJsonImporterFactory_ParsingSprites", "Parsing Sprite Frames"));
@@ -322,10 +321,10 @@ FPaperJsonSpriteSheetImporter::FPaperJsonSpriteSheetImporter() : bIsReimporting(
 {
 }
 
-void FPaperJsonSpriteSheetImporter::SetReimportData(const FString& ExistingTextureName, UTexture2D* ExistingTexture, const TArray<FString>& ExistingSpriteNames, const TArray< TAssetPtr<class UPaperSprite> >& ExistingSpriteAssetPtrs)
+void FPaperJsonSpriteSheetImporter::SetReimportData(const FString& InExistingTextureName, UTexture2D* InExistingTexture, const TArray<FString>& ExistingSpriteNames, const TArray< TAssetPtr<class UPaperSprite> >& ExistingSpriteAssetPtrs)
 {
-	this->ExistingTextureName = ExistingTextureName;
-	this->ExistingTexture = ExistingTexture;
+	ExistingTextureName = InExistingTextureName;
+	ExistingTexture = InExistingTexture;
 
 	check(ExistingSpriteNames.Num() == ExistingSpriteAssetPtrs.Num());
 	if (ExistingSpriteNames.Num() == ExistingSpriteAssetPtrs.Num())

@@ -217,7 +217,6 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 	}
 
 	const float GoldenRatioConjugate = 0.618033988749895f;
-	int32 GraphIndex = 0;
 	if (CollectedGraphs.Num() > 0)
 	{
 		const FColor GraphsBackgroundColor = ULogVisualizerSettings::StaticClass()->GetDefaultObject<ULogVisualizerSettings>()->GraphsBackgroundColor;
@@ -281,9 +280,9 @@ void FVisualLoggerCanvasRenderer::DrawHistogramGraphs(class UCanvas* Canvas, cla
 				HistogramGraph->GetGraphLine(LineIndex)->LeftExtreme = LinesIt->Value.LeftExtreme;
 				HistogramGraph->GetGraphLine(LineIndex)->RightExtreme = LinesIt->Value.RightExtreme;
 
-				int32 DummyY, CurrentX;
-				StringSize(Font, CurrentX, DummyY, *LinesIt->Value.DataName.ToString());
-				MaxStringSize = CurrentX > MaxStringSize ? CurrentX : MaxStringSize;
+				int32 DummyY, StringSizeX;
+				StringSize(Font, StringSizeX, DummyY, *LinesIt->Value.DataName.ToString());
+				MaxStringSize = StringSizeX > MaxStringSize ? StringSizeX : MaxStringSize;
 
 				++LineIndex;
 			}

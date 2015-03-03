@@ -203,11 +203,13 @@ void AVisualLoggerRenderingActor::OnItemSelectionChanged(const FVisualLogDevice:
 	AddDebugRendering();
 #endif
 
-	const float Length = 100;
-	const FVector DirectionNorm = FVector(0, 0, 1).GetSafeNormal();
-	FVector YAxis, ZAxis;
-	DirectionNorm.FindBestAxisVectors(YAxis, ZAxis);
-	Cones.Add(FDebugRenderSceneProxy::FCone(FScaleMatrix(FVector(Length)) * FMatrix(DirectionNorm, YAxis, ZAxis, Entry->Location), 5, 5, FColor::Red));
+	{
+		const float Length = 100;
+		const FVector DirectionNorm = FVector(0, 0, 1).GetSafeNormal();
+		FVector YAxis, ZAxis;
+		DirectionNorm.FindBestAxisVectors(YAxis, ZAxis);
+		Cones.Add(FDebugRenderSceneProxy::FCone(FScaleMatrix(FVector(Length)) * FMatrix(DirectionNorm, YAxis, ZAxis, Entry->Location), 5, 5, FColor::Red));
+	}
 
 	if (LogEntriesPath.Num())
 	{

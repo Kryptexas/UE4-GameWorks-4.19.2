@@ -1572,10 +1572,10 @@ void UPaperSprite::SetRotated(bool bRotated)
 	RebuildCollisionData();
 }
 
-void UPaperSprite::SetPivotMode(ESpritePivotMode::Type PivotMode, FVector2D CustomTextureSpacePivot)
+void UPaperSprite::SetPivotMode(ESpritePivotMode::Type InPivotMode, FVector2D InCustomTextureSpacePivot)
 {
-	this->PivotMode = PivotMode;
-	this->CustomPivotPoint = CustomTextureSpacePivot;
+	PivotMode = InPivotMode;
+	CustomPivotPoint = InCustomTextureSpacePivot;
 	RebuildRenderData();
 	RebuildCollisionData();
 }
@@ -1825,7 +1825,7 @@ void UPaperSprite::ValidateSocketNames()
 	TSet<FName> SocketNames;
 	struct Local
 	{
-		static FName GetUniqueName(const TSet<FName>& SocketNames, FName Name)
+		static FName GetUniqueName(const TSet<FName>& InSocketNames, FName Name)
 		{
 			int Counter = Name.GetNumber();
 			FName TestName;
@@ -1833,7 +1833,7 @@ void UPaperSprite::ValidateSocketNames()
 			{
 				TestName = Name;
 				TestName.SetNumber(++Counter);
-			} while (SocketNames.Contains(TestName));
+			} while (InSocketNames.Contains(TestName));
 
 			return TestName;
 		}

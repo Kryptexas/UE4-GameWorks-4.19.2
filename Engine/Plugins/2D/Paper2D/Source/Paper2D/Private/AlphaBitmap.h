@@ -7,10 +7,10 @@
 
 struct FAlphaBitmap
 {
-	FAlphaBitmap(UTexture2D* SourceTexture, uint8 DefaultValue = 0)
+	FAlphaBitmap(UTexture2D* SourceTexture, uint8 InDefaultValue = 0)
 		: Width(0)
 		, Height(0)
-		, DefaultValue(DefaultValue)
+		, DefaultValue(InDefaultValue)
 	{
 		ExtractFromTexture(SourceTexture);
 	}
@@ -67,10 +67,10 @@ struct FAlphaBitmap
 	}
 
 	// Create an empty bitmap
-	FAlphaBitmap(int Width, int Height, int DefaultValue = 0)
-		: Width(Width)
-		, Height(Height)
-		, DefaultValue(DefaultValue)
+	FAlphaBitmap(int InWidth, int InHeight, int InDefaultValue = 0)
+		: Width(InWidth)
+		, Height(InHeight)
+		, DefaultValue(InDefaultValue)
 	{
 		RawData.SetNumZeroed(Width * Height);
 		ClearToDefaultValue();
@@ -203,12 +203,12 @@ struct FAlphaBitmap
 	}
 
 	// Sets pixels to 1 marking the rectangle outline
-	void DrawRectOutline(int StartX, int StartY, int Width, int Height)
+	void DrawRectOutline(int StartX, int StartY, int InWidth, int InHeight)
 	{
 		const int X0 = StartX;
 		const int Y0 = StartY;
-		const int X1 = StartX + Width - 1;
-		const int Y1 = StartY + Height - 1;
+		const int X1 = StartX + InWidth - 1;
+		const int Y1 = StartY + InHeight - 1;
 		for (int Y = Y0; Y <= Y1; ++Y)
 		{
 			SetPixel(X0, Y, 1);
@@ -221,12 +221,12 @@ struct FAlphaBitmap
 		}
 	}
 
-	void FillRect(int StartX, int StartY, int Width, int Height)
+	void FillRect(int StartX, int StartY, int InWidth, int InHeight)
 	{
 		const int X0 = StartX;
 		const int Y0 = StartY;
-		const int X1 = StartX + Width - 1;
-		const int Y1 = StartY + Height - 1;
+		const int X1 = StartX + InWidth - 1;
+		const int Y1 = StartY + InHeight - 1;
 		for (int Y = Y0; Y <= Y1; ++Y)
 		{
 			for (int X = X0; X <= X1; ++X)
@@ -323,15 +323,15 @@ struct FAlphaBitmap
 	}
 
 	// Checks the image to determine if it is suitable for opaque, masked or translucent rendering
-	void AnalyzeImage(int32 StartX, int32 StartY, int32 Width, int32 Height, bool& bOutHasZeros, bool& bOutHasIntermediateValues)
+	void AnalyzeImage(int32 StartX, int32 StartY, int32 InWidth, int32 InHeight, bool& bOutHasZeros, bool& bOutHasIntermediateValues)
 	{
 		bOutHasZeros = false;
 		bOutHasIntermediateValues = false;
 
 		const int32 X0 = StartX;
 		const int32 Y0 = StartY;
-		const int32 X1 = StartX + Width;
-		const int32 Y1 = StartY + Height;
+		const int32 X1 = StartX + InWidth;
+		const int32 Y1 = StartY + InHeight;
 		for (int Y = Y0; Y < Y1; ++Y)
 		{
 			for (int X = X0; X < X1; ++X)

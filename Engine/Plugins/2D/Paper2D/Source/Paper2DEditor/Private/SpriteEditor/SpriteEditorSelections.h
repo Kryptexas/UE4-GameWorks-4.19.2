@@ -213,17 +213,14 @@ public:
 	{
 	}
 
-	virtual bool IsValidInEditor(UPaperSprite* Sprite, bool bRenderData) const
+	virtual bool IsValidInEditor(UPaperSprite* Sprite, bool bInRenderData) const
 	{
-		if (SpritePtr == Sprite && this->bRenderData == bRenderData)
+		if (Sprite && SpritePtr == Sprite && bRenderData == bInRenderData)
 		{
-			if (UPaperSprite* Sprite = SpritePtr.Get())
+			FSpritePolygonCollection& Geometry = bRenderData ? Sprite->RenderGeometry : Sprite->CollisionGeometry;
+			if (Geometry.Polygons.IsValidIndex(PolygonIndex) && Geometry.Polygons[PolygonIndex].Vertices.IsValidIndex(VertexIndex))
 			{
-				FSpritePolygonCollection& Geometry = bRenderData ? Sprite->RenderGeometry : Sprite->CollisionGeometry;
-				if (Geometry.Polygons.IsValidIndex(PolygonIndex) && Geometry.Polygons[PolygonIndex].Vertices.IsValidIndex(VertexIndex))
-				{
-					return true;
-				}
+				return true;
 			}
 		}
 		return false;

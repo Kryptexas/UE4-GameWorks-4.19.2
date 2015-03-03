@@ -1175,8 +1175,8 @@ TSharedRef<IPropertyTypeCustomization> FSlateBrushStructCustomization::MakeInsta
 	return MakeShareable( new FSlateBrushStructCustomization(bIncludePreview) );
 }
 
-FSlateBrushStructCustomization::FSlateBrushStructCustomization(bool bIncludePreview)
-	: bIncludePreview(bIncludePreview)
+FSlateBrushStructCustomization::FSlateBrushStructCustomization(bool bInIncludePreview)
+	: bIncludePreview(bInIncludePreview)
 {
 }
 

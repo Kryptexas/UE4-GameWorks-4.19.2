@@ -564,10 +564,10 @@ void FTranslationDataManager::PreviewAllTranslationsInEditor()
 
 	FString ConfigFilePath = ConfigDirectory / "Localization" / "Regenerate" + FPaths::GetBaseFilename(ManifestFilePath) + ".ini";
 
-	FJsonInternationalizationArchiveSerializer ArchiveSerializer;
-	FJsonInternationalizationManifestSerializer ManifestSerializer;
+	FJsonInternationalizationArchiveSerializer LocalizationArchiveSerializer;
+	FJsonInternationalizationManifestSerializer LocalizationManifestSerializer;
 
-	FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath, ArchiveSerializer, ManifestSerializer);
+	FTextLocalizationManager::Get().RegenerateResources(ConfigFilePath, LocalizationArchiveSerializer, LocalizationManifestSerializer);
 }
 
 void FTranslationDataManager::PopulateSearchResultsUsingFilter(const FString& SearchFilter)

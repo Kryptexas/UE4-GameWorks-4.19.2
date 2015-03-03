@@ -488,8 +488,6 @@ void FPaperRenderSceneProxy::GetBatchMesh(const FSceneView* View, bool bUseOverr
 			BatchElement.PrimitiveUniformBuffer = GetUniformBuffer();
 			BatchElement.NumPrimitives = VertexArray.Vertices.Num() / 3;
 
-			const bool bIsWireframeView = View->Family->EngineShowFlags.Wireframe;
-
 			Collector.AddMesh(ViewIndex, Mesh);
 		}
 	}

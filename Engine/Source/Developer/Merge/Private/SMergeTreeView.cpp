@@ -204,9 +204,9 @@ void SMergeTreeView::Construct(const FArguments InArgs
 			.ColorAndOpacity(Entry.bConflicted ? DiffViewUtils::Conflicting() : DiffViewUtils::Differs());
 	};
 
-	const auto FocusSCSDifferenceEntry = [](FSCSMergeEntry Entry, SMergeTreeView* Parent, FOnMergeNodeSelected SelectionCallback)
+	const auto FocusSCSDifferenceEntry = [](FSCSMergeEntry Entry, SMergeTreeView* Parent, FOnMergeNodeSelected InSelectionCallback)
 	{
-		SelectionCallback.ExecuteIfBound();
+		InSelectionCallback.ExecuteIfBound();
 		Parent->HighlightDifference(Entry.Identifier, Entry.PropertyIdentifier);
 	};
 	
@@ -230,10 +230,10 @@ void SMergeTreeView::Construct(const FArguments InArgs
 
 	DifferingProperties.Entries.Sort(SortTreePredicate);
 
-	const auto ForwardSelection = [](FOnMergeNodeSelected SelectionCallback)
+	const auto ForwardSelection = [](FOnMergeNodeSelected InSelectionCallback)
 	{
 		// This allows the owning control to focus the correct tab (or do whatever else it likes):
-		SelectionCallback.ExecuteIfBound();
+		InSelectionCallback.ExecuteIfBound();
 	};
 
 	const bool bHasDiffferences = Children.Num() != 0;

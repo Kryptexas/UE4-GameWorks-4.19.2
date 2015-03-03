@@ -1164,18 +1164,16 @@ void FPhATSharedData::DeleteBody(int32 DelBodyIndex, bool bRefreshComponent)
 
 		UBodySetup * ParentBody = ParentBodyIndex != INDEX_NONE ? PhysicsAsset->BodySetup[ParentBodyIndex] : NULL;
 
-		for (int32 i = 0; i < Constraints.Num(); ++i)
+		for (const int32 ConstraintIndex : Constraints)
 		{
-			int32 ConstraintIndex = Constraints[i];
 			UPhysicsConstraintTemplate * Constraint = PhysicsAsset->ConstraintSetup[ConstraintIndex];
 			Constraint->Modify();
 
 			if (ParentBody)
 			{
 				//for all constraints that contain a nearest child of this body, create a copy of the constraint between the child and parent
-				for (int32 i = 0; i < NearestBodiesBelow.Num(); ++i)
+				for (const int32 BodyBelowIndex : NearestBodiesBelow)
 				{
-					int32 BodyBelowIndex = NearestBodiesBelow[i];
 					UBodySetup * BodyBelow = PhysicsAsset->BodySetup[BodyBelowIndex];
 
 					if (Constraint->DefaultInstance.ConstraintBone1 == BodyBelow->BoneName)

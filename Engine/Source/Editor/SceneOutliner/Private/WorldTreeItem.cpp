@@ -89,17 +89,17 @@ void FWorldTreeItem::CreateFolder(TWeakPtr<SSceneOutliner> WeakOutliner)
 	}
 }
 
-FDragValidationInfo FWorldTreeItem::ValidateDrop(FDragDropPayload& DraggedObjects, UWorld& World) const
+FDragValidationInfo FWorldTreeItem::ValidateDrop(FDragDropPayload& DraggedObjects, UWorld& InWorld) const
 {
 	// Dropping on the world means 'moving to the root' in folder terms
 	FFolderDropTarget Target(NAME_None);
-	return Target.ValidateDrop(DraggedObjects, World);
+	return Target.ValidateDrop(DraggedObjects, InWorld);
 }
 
-void FWorldTreeItem::OnDrop(FDragDropPayload& DraggedObjects, UWorld& World, const FDragValidationInfo& ValidationInfo, TSharedRef<SWidget> DroppedOnWidget)
+void FWorldTreeItem::OnDrop(FDragDropPayload& DraggedObjects, UWorld& InWorld, const FDragValidationInfo& ValidationInfo, TSharedRef<SWidget> DroppedOnWidget)
 {
 	FFolderDropTarget Target(NAME_None);
-	return Target.OnDrop(DraggedObjects, World, ValidationInfo, DroppedOnWidget);
+	return Target.OnDrop(DraggedObjects, InWorld, ValidationInfo, DroppedOnWidget);
 }
 
 void FWorldTreeItem::OpenWorldSettings() const

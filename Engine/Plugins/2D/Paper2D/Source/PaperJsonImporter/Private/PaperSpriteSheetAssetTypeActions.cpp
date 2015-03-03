@@ -86,28 +86,31 @@ void FPaperSpriteSheetAssetTypeActions::ExecuteCreateFlipbooks(TArray<TWeakObjec
 			bool useSpriteNames = (SpriteSheet->SpriteNames.Num() == SpriteSheet->Sprites.Num());
 
 			// Create a list of sprites and sprite names to feed into paper flipbook helpers
-			TArray<UPaperSprite*> Sprites;
-			TArray<FString> SpriteNames;
-
-			for (int SpriteIndex = 0; SpriteIndex < SpriteSheet->Sprites.Num(); ++SpriteIndex)
-			{
-				auto SpriteAssetPtr = SpriteSheet->Sprites[SpriteIndex];
-				FStringAssetReference SpriteStringRef = SpriteAssetPtr.ToStringReference();
-				UPaperSprite* Sprite = nullptr;
-				if (!SpriteStringRef.ToString().IsEmpty())
-				{
-					Sprite = Cast<UPaperSprite>(StaticLoadObject(UPaperSprite::StaticClass(), nullptr, *SpriteStringRef.ToString(), nullptr, LOAD_None, nullptr));
-				}
-				if (Sprite != nullptr)
-				{
-					const FString SpriteName = useSpriteNames ? SpriteSheet->SpriteNames[SpriteIndex] : Sprite->GetName();
-					Sprites.Add(Sprite);
-					SpriteNames.Add(SpriteName);
-				}
-			}
-
 			TMap<FString, TArray<UPaperSprite*> > SpriteFlipbookMap;
-			FPaperFlipbookHelpers::ExtractFlipbooksFromSprites(/*out*/SpriteFlipbookMap, Sprites, SpriteNames);
+
+			{
+				TArray<UPaperSprite*> Sprites;
+				TArray<FString> SpriteNames;
+
+				for (int SpriteIndex = 0; SpriteIndex < SpriteSheet->Sprites.Num(); ++SpriteIndex)
+				{
+					auto SpriteAssetPtr = SpriteSheet->Sprites[SpriteIndex];
+					FStringAssetReference SpriteStringRef = SpriteAssetPtr.ToStringReference();
+					UPaperSprite* Sprite = nullptr;
+					if (!SpriteStringRef.ToString().IsEmpty())
+					{
+						Sprite = Cast<UPaperSprite>(StaticLoadObject(UPaperSprite::StaticClass(), nullptr, *SpriteStringRef.ToString(), nullptr, LOAD_None, nullptr));
+					}
+					if (Sprite != nullptr)
+					{
+						const FString SpriteName = useSpriteNames ? SpriteSheet->SpriteNames[SpriteIndex] : Sprite->GetName();
+						Sprites.Add(Sprite);
+						SpriteNames.Add(SpriteName);
+					}
+				}
+
+				FPaperFlipbookHelpers::ExtractFlipbooksFromSprites(/*out*/SpriteFlipbookMap, Sprites, SpriteNames);
+			}
 
 			// Create one flipbook for every grouped flipbook name
 			if (SpriteFlipbookMap.Num() > 0)

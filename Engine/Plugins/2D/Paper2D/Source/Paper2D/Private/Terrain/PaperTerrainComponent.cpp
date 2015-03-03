@@ -403,10 +403,10 @@ void UPaperTerrainComponent::OnSplineEdited()
 			TArray<const UPaperSprite*> ValidBodies;
 			TArray<float> ValidBodyWidths;
 
-			int32 GenerateBodyIndex(FRandomStream& RandomStream) const
+			int32 GenerateBodyIndex(FRandomStream& InRandomStream) const
 			{
 				check(ValidBodies.Num() > 0);
-				return RandomStream.GetUnsignedInt() % ValidBodies.Num();
+				return InRandomStream.GetUnsignedInt() % ValidBodies.Num();
 			}
 		};
 

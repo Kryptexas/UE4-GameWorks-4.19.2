@@ -141,10 +141,9 @@ void SVisualLoggerFilters::GraphFilterCategoryClicked(FName MenuCategory)
 	if (GraphFilters.Contains(MenuCategory))
 	{
 		bool bChanged = false;
-		auto &Filters = GraphFilters[MenuCategory];
-		for (int32 Index = 0; Index < Filters.Num(); ++Index)
+		for (const FString &Filter : GraphFilters[MenuCategory])
 		{
-			FString GraphFilterName = MenuCategory.ToString() + TEXT("$") + Filters[Index];
+			const FString GraphFilterName = MenuCategory.ToString() + TEXT("$") + Filter;
 			FCategoryFiltersManager::Get().GetCategory(GraphFilterName).Enabled = bNewSet;
 			bChanged = true;
 		}
@@ -161,10 +160,9 @@ bool SVisualLoggerFilters::IsGraphFilterCategoryInUse(FName MenuCategory) const
 	bool bInUse = false;
 	if (GraphFilters.Contains(MenuCategory))
 	{
-		auto &Filters = GraphFilters[MenuCategory];
-		for (int32 Index = 0; Index < Filters.Num(); ++Index)
+		for (const FString& Filter : GraphFilters[MenuCategory])
 		{
-			FString GraphFilterName = MenuCategory.ToString() + TEXT("$") + Filters[Index];
+			const FString GraphFilterName = MenuCategory.ToString() + TEXT("$") + Filter;
 			bInUse |= FCategoryFiltersManager::Get().GetCategory(GraphFilterName).Enabled;
 		}
 	}
@@ -200,14 +198,13 @@ void SVisualLoggerFilters::FilterByTypeClicked(FName InGraphName, FName InDataNa
 	if (GraphFilters.Contains(InGraphName))
 	{
 		bool bChanged = false;
-		auto &Filters = GraphFilters[InGraphName];
-		for (int32 Index = 0; Index < Filters.Num(); ++Index)
+		for (const FString& Filter : GraphFilters[InGraphName])
 		{
-			if (Filters[Index] == InDataName.ToString())
+			if (Filter == InDataName.ToString())
 			{
-				FString GraphFilterName = InGraphName.ToString() + TEXT("$") + Filters[Index];
-				FCategoryFilter& Filter = FCategoryFiltersManager::Get().GetCategory(GraphFilterName);
-				Filter.Enabled = !Filter.Enabled;
+				const FString GraphFilterName = InGraphName.ToString() + TEXT("$") + Filter;
+				FCategoryFilter& CategoryFilter = FCategoryFiltersManager::Get().GetCategory(GraphFilterName);
+				CategoryFilter.Enabled = !CategoryFilter.Enabled;
 				bChanged = true;
 			}
 		}
@@ -223,12 +220,11 @@ bool SVisualLoggerFilters::IsAssetTypeActionsInUse(FName InGraphName, FName InDa
 {
 	if (GraphFilters.Contains(InGraphName))
 	{
-		auto &Filters = GraphFilters[InGraphName];
-		for (int32 Index = 0; Index < Filters.Num(); ++Index)
+		for (const FString& Filter : GraphFilters[InGraphName])
 		{
-			if (Filters[Index] == InDataName.ToString())
+			if (Filter == InDataName.ToString())
 			{
-				FString GraphFilterName = InGraphName.ToString() + TEXT("$") + Filters[Index];
+				const FString GraphFilterName = InGraphName.ToString() + TEXT("$") + Filter;
 				return FCategoryFiltersManager::Get().GetCategory(GraphFilterName).Enabled;
 			}
 		}

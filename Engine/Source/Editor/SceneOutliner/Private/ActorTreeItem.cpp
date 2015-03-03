@@ -39,9 +39,9 @@ FDragValidationInfo FActorDropTarget::ValidateDrop(FDragDropPayload& DraggedObje
 	bool bDraggedOntoAttachmentParent = true;
 
 	const auto& DragActors = DraggedObjects.Actors.GetValue();
-	for (const auto& Actor : DragActors)
+	for (const auto& DragActorPtr : DragActors)
 	{
-		AActor* DragActor = Actor.Get();
+		AActor* DragActor = DragActorPtr.Get();
 		if (DragActor)
 		{
 			if (bCanAttach)

@@ -321,7 +321,7 @@ void SVisualLogger::HandleTabManagerPersistLayout(const TSharedRef<FTabManager::
 	FLayoutSaveRestore::SaveToConfig(GEditorLayoutIni, LayoutToSave);
 }
 
-void SVisualLogger::FillFileMenu(FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> TabManager)
+void SVisualLogger::FillFileMenu(FMenuBuilder& MenuBuilder, const TSharedPtr<FTabManager> InTabManager)
 {
 	MenuBuilder.BeginSection("LogFile", LOCTEXT("FileMenu", "Log File"));
 	{

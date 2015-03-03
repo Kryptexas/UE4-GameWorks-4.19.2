@@ -1244,8 +1244,8 @@ namespace SceneOutliner
 
 			const bool bMoveToRootValid = FFolderDropTarget(FName()).ValidateDrop(DraggedObjects, *SharedData->RepresentingWorld).IsValid();
 
-			MiniSceneOutlinerInitOptions.Filters->AddFilterPredicate(FWorldFilterPredicate::CreateStatic([](const UWorld*, bool bMoveToRootValid){
-				return bMoveToRootValid;
+			MiniSceneOutlinerInitOptions.Filters->AddFilterPredicate(FWorldFilterPredicate::CreateStatic([](const UWorld*, bool bInMoveToRootValid){
+				return bInMoveToRootValid;
 			}, bMoveToRootValid), EDefaultFilterBehaviour::Pass);
 		}
 

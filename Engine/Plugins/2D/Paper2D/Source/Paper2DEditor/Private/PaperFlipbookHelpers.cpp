@@ -156,8 +156,7 @@ void FPaperFlipbookHelpers::ExtractFlipbooksFromSprites(TMap<FString, TArray<UPa
 	OutSpriteFlipbookMap.GetKeys(Keys);
 	for (auto SpriteName : Keys)
 	{
-		TArray<UPaperSprite*>& Sprites = OutSpriteFlipbookMap[SpriteName];
-		Sprites.Sort(FSpriteSortPredicate());
+		OutSpriteFlipbookMap[SpriteName].Sort(FSpriteSortPredicate());
 	}
 
 	// Create a flipbook from all remaining sprites
