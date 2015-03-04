@@ -198,6 +198,7 @@ public class GUBP : BuildCommand
 			public List<UnrealTargetPlatform> ExcludePlatformsForEditor = new List<UnrealTargetPlatform>();
 			public bool bNoAutomatedTesting = false;
 			public bool bNoDocumentation = false;
+			public bool bMakeFormalBuildWithoutLabelPromotable = false;
 			public int QuantumOverride = 0;
         }
         public virtual void ModifyOptions(GUBP bp, ref BranchOptions Options, string Branch)
@@ -2175,8 +2176,8 @@ public class GUBP : BuildCommand
                         {
 							if (!Options.bIsNonCode)
 							{
-								AddDependency(EditorGameNode.StaticGetFullName(HostPlatform, CodeProj)); // if we are just testing, we will still include the editor stuff
-							}
+                                AddDependency(EditorGameNode.StaticGetFullName(HostPlatform, CodeProj)); // if we are just testing, we will still include the editor stuff
+                            }
                         }
                     }
                 }
@@ -2974,7 +2975,7 @@ public class GUBP : BuildCommand
 
             var AllTargetPlatforms = new List<UnrealTargetPlatform>();
 			var Options = InGameProj.Options(HostPlatform);
-			if(!Options.bSeparateGamePromotion)
+			if(!Options.bSeparateGamePromotion && !bp.BranchOptions.bMakeFormalBuildWithoutLabelPromotable)
 			{
 				AddPseudodependency(WaitForFormalUserInput.StaticGetFullName());				
 			}
@@ -5084,29 +5085,29 @@ public class GUBP : BuildCommand
         var StartTime = DateTime.UtcNow;
 
         var ECProps = new List<string>();
-        EMails = "";
-        var AdditonalEmails = "";
-		string Causers = "";
-        string AddEmails = ParseParamValue("AddEmails");
-        if (!String.IsNullOrEmpty(AddEmails))
-        {
-            AdditonalEmails = GUBPNode.MergeSpaceStrings(AddEmails, AdditonalEmails);
-        }
-        EMails = GetEMailListForNode(this, NodeToDo, AdditonalEmails, Causers);
+        EMails = "";		
+		var AdditonalEmails = "";
+		string Causers = "";				
+		string AddEmails = ParseParamValue("AddEmails");
+		if (!String.IsNullOrEmpty(AddEmails))
+		{
+			AdditonalEmails = GUBPNode.MergeSpaceStrings(AddEmails, AdditonalEmails);
+		}
+		EMails = GetEMailListForNode(this, NodeToDo, AdditonalEmails, Causers);
 		ECProps.Add("FailEmails/" + NodeToDo + "=" + EMails);
-
-        if (!OnlyLateUpdates)
-        {
+	
+		if (!OnlyLateUpdates)
+		{
 			string AgentReq = GUBPNodes[NodeToDo].ECAgentString();
 			if(ParseParamValue("AgentOverride") != "" && !GUBPNodes[NodeToDo].GetFullName().Contains("OnMac"))
 			{
 				AgentReq = ParseParamValue("AgentOverride");
 			}
-            ECProps.Add(string.Format("AgentRequirementString/{0}={1}", NodeToDo, AgentReq));
-            ECProps.Add(string.Format("RequiredMemory/{0}={1}", NodeToDo, GUBPNodes[NodeToDo].AgentMemoryRequirement(this)));
-            ECProps.Add(string.Format("Timeouts/{0}={1}", NodeToDo, GUBPNodes[NodeToDo].TimeoutInMinutes()));
-            ECProps.Add(string.Format("JobStepPath/{0}={1}", NodeToDo, GetJobStepPath(NodeToDo)));
-        }
+			ECProps.Add(string.Format("AgentRequirementString/{0}={1}", NodeToDo, AgentReq));
+			ECProps.Add(string.Format("RequiredMemory/{0}={1}", NodeToDo, GUBPNodes[NodeToDo].AgentMemoryRequirement(this)));
+			ECProps.Add(string.Format("Timeouts/{0}={1}", NodeToDo, GUBPNodes[NodeToDo].TimeoutInMinutes()));
+			ECProps.Add(string.Format("JobStepPath/{0}={1}", NodeToDo, GetJobStepPath(NodeToDo)));
+		}
 		
         var BuildDuration = (DateTime.UtcNow - StartTime).TotalMilliseconds;
         return ECProps;
@@ -5586,7 +5587,7 @@ public class GUBP : BuildCommand
 				}
 				AddNode(new ToolsNode(HostPlatform));            
 				AddNode(new InternalToolsNode(HostPlatform));
-				if (HostPlatform == UnrealTargetPlatform.Win64)
+			if (HostPlatform == UnrealTargetPlatform.Win64 && ActivePlatforms.Contains(UnrealTargetPlatform.Linux))
 				{
 					if (!BranchOptions.ExcludePlatformsForEditor.Contains(UnrealTargetPlatform.Linux))
 					{
@@ -6032,26 +6033,26 @@ public class GUBP : BuildCommand
                 {
 					if (CodeProj.Properties.Targets.ContainsKey(TargetRules.TargetType.Editor))
 					{
-                    var EditorTests = CodeProj.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetEditorTests_EditorTypeOnly(HostPlatform);
-                    var EditorTestNodes = new List<string>();
-                    string AgentSharingGroup = "";
-                    if (EditorTests.Count > 1)
-                    {
-                        AgentSharingGroup = AgentShareName + "_EditorTests" + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
-                    }
-                    foreach (var Test in EditorTests)
-                    {
-                        EditorTestNodes.Add(AddNode(new UATTestNode(this, HostPlatform, CodeProj, Test.Key, Test.Value, AgentSharingGroup)));
-						if (!Options.bTestWithShared)
+						var EditorTests = CodeProj.Properties.Targets[TargetRules.TargetType.Editor].Rules.GUBP_GetEditorTests_EditorTypeOnly(HostPlatform);
+						var EditorTestNodes = new List<string>();
+						string AgentSharingGroup = "";
+						if (EditorTests.Count > 1)
 						{
-							RemovePseudodependencyFromNode((UATTestNode.StaticGetFullName(HostPlatform, CodeProj, Test.Key)), WaitForTestShared.StaticGetFullName());
+							AgentSharingGroup = AgentShareName + "_EditorTests" + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
 						}
-                    }
-                    if (EditorTestNodes.Count > 0)
-                    {                        
-                        AddNode(new GameAggregateNode(this, HostPlatform, CodeProj, "AllEditorTests", EditorTestNodes, 0.0f));
-                    }
-                }
+						foreach (var Test in EditorTests)
+						{
+							EditorTestNodes.Add(AddNode(new UATTestNode(this, HostPlatform, CodeProj, Test.Key, Test.Value, AgentSharingGroup)));
+							if (!Options.bTestWithShared)
+							{
+								RemovePseudodependencyFromNode((UATTestNode.StaticGetFullName(HostPlatform, CodeProj, Test.Key)), WaitForTestShared.StaticGetFullName());
+							}
+						}
+						if (EditorTestNodes.Count > 0)
+						{
+							AddNode(new GameAggregateNode(this, HostPlatform, CodeProj, "AllEditorTests", EditorTestNodes, 0.0f));
+						}
+					}
                 }
 
                 var CookedAgentSharingGroup = AgentShareName + "_CookedTests" + HostPlatformNode.StaticGetHostPlatformSuffix(HostPlatform);
@@ -6292,7 +6293,7 @@ public class GUBP : BuildCommand
 				//AddNode(new IOSOnPCTestNode(this)); - Disable IOSOnPCTest until a1011 crash is fixed
 			}
 			AddNode(new VSExpressTestNode(this));
-			if (!BranchOptions.ExcludePlatformsForEditor.Contains(UnrealTargetPlatform.Linux))
+			if (ActivePlatforms.Contains(UnrealTargetPlatform.Linux) && !BranchOptions.ExcludePlatformsForEditor.Contains(UnrealTargetPlatform.Linux))
 			{
 				AddNode(new RootEditorCrossCompileLinuxNode(UnrealTargetPlatform.Win64));
 			}

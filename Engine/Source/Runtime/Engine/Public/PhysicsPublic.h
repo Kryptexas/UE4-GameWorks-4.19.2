@@ -31,9 +31,11 @@ DECLARE_CYCLE_STAT_EXTERN(TEXT("Term Body"), STAT_TermBody, STATGROUP_Physics, )
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Materials"), STAT_UpdatePhysMats, STATGROUP_Physics, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Update Materials Scene Interaction"), STAT_UpdatePhysMatsSceneInteraction, STATGROUP_Physics, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Filter Update"), STAT_UpdatePhysFilter, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Filter Update (PhysX Code)"), STAT_UpdatePhysFilterPhysX, STATGROUP_Physics, );
 
-DECLARE_CYCLE_STAT_EXTERN(TEXT("Bulk Body Init"), STAT_BulkInit, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Init Bodies"), STAT_InitBodies, STATGROUP_Physics, );
 DECLARE_CYCLE_STAT_EXTERN(TEXT("Bulk Body Scene Add"), STAT_BulkSceneAdd, STATGROUP_Physics, );
+DECLARE_CYCLE_STAT_EXTERN(TEXT("Static Init Bodies"), STAT_StaticInitBodies, STATGROUP_Physics, );
 
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Broadphase Adds"), STAT_NumBroadphaseAdds, STATGROUP_Physics, );
 DECLARE_DWORD_COUNTER_STAT_EXTERN(TEXT("Broadphase Removes"), STAT_NumBroadphaseRemoves, STATGROUP_Physics, );
@@ -315,6 +317,15 @@ public:
 	 *	@param SceneType - The scene type to add the actor to
 	 */
 	void DeferAddActor(FBodyInstance* OwningInstance, PxActor* Actor, EPhysicsSceneType SceneType);
+
+	/** Defer the addition of a group of actors to a scene, this will actually be performed before the *next*
+	 *  Physics tick. 
+	 *
+	 *	@param OwningInstance - The FBodyInstance that owns the actor
+	 *	@param Actor - The actual PhysX actor to add
+	 *	@param SceneType - The scene type to add the actor to
+	 */
+	void DeferAddActors(TArray<FBodyInstance*>& OwningInstances, TArray<PxActor*>& Actors, EPhysicsSceneType SceneType);
 
 	/** Defer the removal of an actor to a scene, this will actually be performed before the *next*
 	 *  Physics tick

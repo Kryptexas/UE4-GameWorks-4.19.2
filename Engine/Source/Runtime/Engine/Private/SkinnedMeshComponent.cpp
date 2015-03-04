@@ -32,6 +32,8 @@ namespace FAnimUpdateRateManager
 	// Global counter to spread SkinnedMeshComponent tick updates.
 	static uint8 UpdateRateGroupCount = 0;
 
+	static float TargetFrameTimeForUpdateRate = 1.f / 30.f; //Target frame rate for lookahead URO
+
 	struct FAnimUpdateRateParametersTracker
 	{
 		FAnimUpdateRateParameters UpdateRateParameters;
@@ -152,7 +154,7 @@ namespace FAnimUpdateRateManager
 			if (bUsingRootMotionFromEverything && DesiredEvaluationRate > 1)
 			{
 				//Use look ahead mode that allows us to rate limit updates even when using root motion
-				Tracker->UpdateRateParameters.SetLookAheadMode(DeltaTime, Tracker->GetAnimUpdateRateShiftTag(), DeltaTime*DesiredEvaluationRate);
+				Tracker->UpdateRateParameters.SetLookAheadMode(DeltaTime, Tracker->GetAnimUpdateRateShiftTag(), TargetFrameTimeForUpdateRate*DesiredEvaluationRate);
 			}
 			else
 			{
@@ -343,7 +345,7 @@ void USkinnedMeshComponent::SendRenderDynamicData_Concurrent()
 		}
 
 		// Are morph targets disabled for this LOD?
-		if ( SkeletalMesh->LODInfo[ UseLOD ].bHasBeenSimplified )
+		if ( SkeletalMesh->LODInfo[ UseLOD ].bHasBeenSimplified || bDisableMorphTarget )
 		{
 			ActiveVertexAnims.Empty();
 		}
@@ -1966,10 +1968,11 @@ void FAnimUpdateRateParameters::SetLookAheadMode(float DeltaTime, uint8 UpdateRa
 
 	if (TickedPoseOffestTime < 0.f)
 	{
+		LookAheadAmount = FMath::Max(TickedPoseOffestTime*-1.f, LookAheadAmount);
 		AdditionalTime = LookAheadAmount;
 		TickedPoseOffestTime += LookAheadAmount;
 
-		bool bValid = (TickedPoseOffestTime > 0.f);
+		bool bValid = (TickedPoseOffestTime >= 0.f);
 		if (!bValid)
 		{
 			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("TPO Time: %.3f | Orig TPO Time: %.3f | DT: %.3f | LookAheadAmount: %.3f\n"), TickedPoseOffestTime, OriginalTickedPoseOffestTime, DeltaTime, LookAheadAmount);

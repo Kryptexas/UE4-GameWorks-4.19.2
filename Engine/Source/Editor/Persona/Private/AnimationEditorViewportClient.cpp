@@ -1515,9 +1515,9 @@ FMatrix FAnimationViewportClient::GetWidgetCoordSystem() const
 			int32 BoneIndex = PreviewSkelMeshComp->GetBoneIndex(BoneName);
 			if (BoneIndex != INDEX_NONE)
 			{
-				FTransform BoneMatrix = PreviewSkelMeshComp->GetBoneTransform(BoneIndex);
-				return BoneMatrix.ToMatrixNoScale().RemoveTranslation();
-			}
+			FTransform BoneMatrix = PreviewSkelMeshComp->GetBoneTransform(BoneIndex);
+			return BoneMatrix.ToMatrixNoScale().RemoveTranslation();
+		}
 		}
 		else if ( PreviewSkelMeshComp->BonesOfInterest.Num() > 0 )
 		{

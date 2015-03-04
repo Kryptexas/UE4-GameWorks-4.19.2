@@ -17,12 +17,13 @@ enum ESpeedTreeGeometryType
 UENUM()
 enum ESpeedTreeWindType
 {
-	STW_None	UMETA(DisplayName="None"),
-	STW_Fastest	UMETA(DisplayName="Fastest"),
-	STW_Fast	UMETA(DisplayName="Fast"),
-	STW_Better	UMETA(DisplayName="Better"),
-	STW_Best	UMETA(DisplayName="Best"),
-	STW_Palm	UMETA(DisplayName="Palm")
+	STW_None		UMETA(DisplayName="None"),
+	STW_Fastest		UMETA(DisplayName="Fastest"),
+	STW_Fast		UMETA(DisplayName="Fast"),
+	STW_Better		UMETA(DisplayName="Better"),
+	STW_Best		UMETA(DisplayName="Best"),
+	STW_Palm		UMETA(DisplayName="Palm"),
+	STW_BestPlus	UMETA(DisplayName="BestPlus"),
 };
 
 UENUM()

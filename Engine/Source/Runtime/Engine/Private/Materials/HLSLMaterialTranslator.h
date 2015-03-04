@@ -198,9 +198,9 @@ protected:
 	uint32 bUsesTransformVector : 1;
 	// True if the current property requires last frame's information
 	uint32 bCompilingPreviousFrame : 1;
-	uint32 bUsesPixelDepthOffset : 1;
 	/** True if material will output accurate velocities during base pass rendering. */
 	uint32 bOutputsBasePassVelocities : 1;
+	uint32 bUsesPixelDepthOffset : 1;
 	/** Tracks the number of texture coordinates used by this material. */
 	uint32 NumUserTexCoords;
 	/** Tracks the number of texture coordinates used by the vertex shader in this material. */
@@ -243,8 +243,8 @@ public:
 	,	bUsesParticleColor(false)
 	,	bUsesTransformVector(false)
 	,	bCompilingPreviousFrame(false)
-	,	bUsesPixelDepthOffset(false)
 	,	bOutputsBasePassVelocities(true)
+	,	bUsesPixelDepthOffset(false)
 	,	NumUserTexCoords(0)
 	,	NumUserVertexTexCoords(0)
 	{}

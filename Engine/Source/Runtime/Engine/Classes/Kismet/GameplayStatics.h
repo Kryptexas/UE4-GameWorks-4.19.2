@@ -114,7 +114,11 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	/** Returns level streaming object with specified level package name */
 	UFUNCTION(BlueprintPure, meta=(WorldContext="WorldContextObject"), Category="Game")
 	static class ULevelStreaming* GetStreamingLevel(UObject* WorldContextObject, FName PackageName);
-	
+
+	/** Flushes level streaming in blocking fashion and returns when all sub-levels are loaded / visible / hidden */
+	UFUNCTION(BlueprintCallable, meta=(WorldContext="WorldContextObject"), Category = "Game")
+	static void FlushLevelStreaming(UObject* WorldContextObject);
+		
 	/** Cancels all currently queued streaming packages */
 	UFUNCTION(BlueprintCallable, Category = "Game")
 	static void CancelAsyncLoading();
@@ -184,7 +188,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @return true if damage was applied to at least one actor.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Game|Damage", meta=(WorldContext="WorldContextObject", AutoCreateRefTerm="IgnoreActors"))
-		static bool ApplyRadialDamage(UObject* WorldContextObject, float BaseDamage, const FVector& Origin, float DamageRadius, TSubclassOf<class UDamageType> DamageTypeClass, const TArray<AActor*>& IgnoreActors, AActor* DamageCauser = NULL, AController* InstigatedByController = NULL, bool bDoFullDamage = false, ECollisionChannel DamagePreventionChannel = ECC_Visibility);
+	static bool ApplyRadialDamage(UObject* WorldContextObject, float BaseDamage, const FVector& Origin, float DamageRadius, TSubclassOf<class UDamageType> DamageTypeClass, const TArray<AActor*>& IgnoreActors, AActor* DamageCauser = NULL, AController* InstigatedByController = NULL, bool bDoFullDamage = false, ECollisionChannel DamagePreventionChannel = ECC_Visibility);
 	
 	/** Hurt locally authoritative actors within the radius. Will only hit components that block the Visibility channel.
 	 * @param BaseDamage - The base damage to apply, i.e. the damage at the origin.
@@ -200,7 +204,7 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @return true if damage was applied to at least one actor.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintAuthorityOnly, Category="Game|Damage", meta=(WorldContext="WorldContextObject", AutoCreateRefTerm="IgnoreActors"))
-		static bool ApplyRadialDamageWithFalloff(UObject* WorldContextObject, float BaseDamage, float MinimumDamage, const FVector& Origin, float DamageInnerRadius, float DamageOuterRadius, float DamageFalloff, TSubclassOf<class UDamageType> DamageTypeClass, const TArray<AActor*>& IgnoreActors, AActor* DamageCauser = NULL, AController* InstigatedByController = NULL, ECollisionChannel DamagePreventionChannel = ECC_Visibility);
+	static bool ApplyRadialDamageWithFalloff(UObject* WorldContextObject, float BaseDamage, float MinimumDamage, const FVector& Origin, float DamageInnerRadius, float DamageOuterRadius, float DamageFalloff, TSubclassOf<class UDamageType> DamageTypeClass, const TArray<AActor*>& IgnoreActors, AActor* DamageCauser = NULL, AController* InstigatedByController = NULL, ECollisionChannel DamagePreventionChannel = ECC_Visibility);
 	
 
 	/** Hurts the specified actor with the specified impact.
@@ -529,5 +533,17 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	/** Requests a new location for a world origin */
 	UFUNCTION(BlueprintCallable, Category="Game", meta=(WorldContext="WorldContextObject"))
 	static void SetWorldOriginLocation(UObject* WorldContextObject, FIntVector NewLocation);
+
+	/**
+	* Counts how many grass foliage instances overlap a given sphere.
+	*
+	* @param	Mesh			The static mesh we are interested in counting
+	* @param	CenterPosition	The center position of the sphere
+	* @param	Radius			The radius of the sphere.
+	*
+	* @return number of foliage instances with their mesh set to Mesh that overlap the sphere
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Foliage", meta = (WorldContext = "WorldContextObject", UnsafeDuringActorConstruction = "true"))
+	static int32 GrassOverlappingSphereCount(UObject* WorldContextObject, const UStaticMesh* StaticMesh, FVector CenterPosition, float Radius);
 };
 

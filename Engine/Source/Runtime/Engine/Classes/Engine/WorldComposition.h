@@ -73,6 +73,8 @@ class ENGINE_API UWorldComposition : public UObject
 	
 	/** Adds or removes level streaming objects to world based on distance settings from current view point */
 	void UpdateStreamingState(const FVector& InLocation);
+	void UpdateStreamingState(const FVector* InLocation, int32 Num);
+	void UpdateStreamingStateCinematic(const FVector* InLocation, int32 Num);
 
 #if WITH_EDITOR
 	/** Simulates streaming in editor world, only visibility, no loading/unloading, no LOD sub-levels 
@@ -89,6 +91,7 @@ class ENGINE_API UWorldComposition : public UObject
 
 	/** Returns currently visible and hidden levels based on distance based streaming */
 	void GetDistanceVisibleLevels(const FVector& InLocation, TArray<FDistanceVisibleLevel>& OutVisibleLevels, TArray<FDistanceVisibleLevel>& OutHiddenLevels) const;
+	void GetDistanceVisibleLevels(const FVector* InLocations, int32 Num, TArray<FDistanceVisibleLevel>& OutVisibleLevels, TArray<FDistanceVisibleLevel>& OutHiddenLevels) const;
 
 	/** @returns Whether specified streaming level is distance dependent */
 	bool IsDistanceDependentLevel(FName PackageName) const;
@@ -182,10 +185,14 @@ private:
 	 * Finds tile by package name 
 	 * @return Pointer to a found tile 
 	 */
+	int32 FindTileIndexByName(const FName& InPackageName) const;
 	FWorldCompositionTile* FindTileByName(const FName& InPackageName) const;
+	
+	/** @returns Whether specified streaming level is distance dependent */
+	bool IsDistanceDependentLevel(int32 TileIdx) const;
 
 	/** Attempts to set new streaming state for a particular tile, could be rejected if state change on 'cooldown' */
-	void CommitTileStreamingState(UWorld* PersistenWorld, int32 TileIdx, bool bShouldBeLoaded, bool bShouldBeVisible, int32 LODIdx);
+	bool CommitTileStreamingState(UWorld* PersistenWorld, int32 TileIdx, bool bShouldBeLoaded, bool bShouldBeVisible, bool bShouldBlock, int32 LODIdx);
 
 public:
 #if WITH_EDITOR
@@ -209,4 +216,9 @@ public:
 	// Time threshold between tile streaming state changes
 	UPROPERTY(config)
 	double						TilesStreamingTimeThreshold;
+
+	// Whether all distance dependent tiles should be loaded and visible during cinematic
+	UPROPERTY(config)
+	bool						bLoadAllTilesDuringCinematic;
+
 };

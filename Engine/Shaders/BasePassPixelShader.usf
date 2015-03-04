@@ -89,12 +89,14 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 	float4 SpecularIBL = TextureCubeSampleLevel(ReflectionCubemap, ReflectionCubemapSampler, MaterialParameters.ReflectionVector, AbsoluteSpecularMip);
 #endif
 
+#if ALLOW_STATIC_LIGHTING
 	FLATTEN
 	if (View.UseLightmaps > 0)
 	{
 		// Note: make sure this matches the lightmap mixing done on opaque (ReflectionEnvironmentTiledDeferredMain)
 		SpecularIBL.rgb *= IndirectIrradiance;
 	}
+#endif
 
 #if ENABLE_SKY_LIGHT
 	BRANCH
@@ -116,27 +118,30 @@ half3 GetImageBasedReflectionLighting(FMaterialPixelParameters MaterialParameter
 #endif
 
 #if MATERIAL_SSR
-	//uint FrameRandom = (uint)(View.TemporalAAParams.r * 1551);
-	uint FrameRandom = (View.FrameNumber & 15) * 1551;
-
-	uint Morton = MortonCode( (uint)MaterialParameters.SVPosition.x & 3 ) | ( MortonCode( (uint)MaterialParameters.SVPosition.y & 3 ) * 2 );
-	uint PixelIndex = reversebits( Morton ) >> 28;
-	//uint PixelIndex = ( (uint)MaterialParameters.SVPosition.x & 3 ) | ( ( (uint)MaterialParameters.SVPosition.y & 3 ) * 2 );
-	//PixelIndex = ( PixelIndex * 1551 ) & 15;
-
-	uint Offset = ( PixelIndex + FrameRandom ) & 15;
-	float StepOffset = Offset / 15.0;
-	StepOffset -= 0.5;
-		
-	float4 HitUVzTime = RayCastCheap( HZBTexture, HZBSampler, MaterialParameters.ReflectionVector, MaterialParameters.ScreenPosition.w, MaterialParameters.WorldPosition_CamRelative, StepOffset );
-	//float4 HitUVzTime = RayCast( HZBTexture, HZBSampler, MaterialParameters.ReflectionVector, 0, MaterialParameters.ScreenPosition.w, MaterialParameters.WorldPosition_CamRelative, 12, StepOffset );
-
-	// if there was a hit
-	BRANCH if( HitUVzTime.w < 1 )
+	if( View.CameraCut == 0 )
 	{
-		float4 SSR = SampleScreenColor( PrevSceneColor, PrevSceneColorSampler, HitUVzTime.xyz );
-		SSR *= saturate( 2 - 6.6 * Roughness );
-		SpecularIBL.rgb = SpecularIBL.rgb * (1 - SSR.a) + SSR.rgb;
+		//uint FrameRandom = (uint)(View.TemporalAAParams.r * 1551);
+		uint FrameRandom = (View.FrameNumber & 15) * 1551;
+
+		uint Morton = MortonCode( (uint)MaterialParameters.SVPosition.x & 3 ) | ( MortonCode( (uint)MaterialParameters.SVPosition.y & 3 ) * 2 );
+		uint PixelIndex = reversebits( Morton ) >> 28;
+		//uint PixelIndex = ( (uint)MaterialParameters.SVPosition.x & 3 ) | ( ( (uint)MaterialParameters.SVPosition.y & 3 ) * 2 );
+		//PixelIndex = ( PixelIndex * 1551 ) & 15;
+
+		uint Offset = ( PixelIndex + FrameRandom ) & 15;
+		float StepOffset = Offset / 15.0;
+		StepOffset -= 0.5;
+		
+		//float4 HitUVzTime = RayCastCheap( HZBTexture, HZBSampler, MaterialParameters.ReflectionVector, MaterialParameters.ScreenPosition.w, MaterialParameters.WorldPosition_CamRelative, StepOffset );
+		float4 HitUVzTime = RayCast( HZBTexture, HZBSampler, MaterialParameters.ReflectionVector, 0, MaterialParameters.ScreenPosition.w, MaterialParameters.WorldPosition_CamRelative, 12, StepOffset );
+
+		// if there was a hit
+		BRANCH if( HitUVzTime.w < 1 )
+		{
+			float4 SSR = SampleScreenColor( PrevSceneColor, PrevSceneColorSampler, HitUVzTime.xyz );
+			SSR *= saturate( 2 - 6.6 * Roughness );
+			SpecularIBL.rgb = SpecularIBL.rgb * (1 - SSR.a) + SSR.rgb;
+		}
 	}
 #endif
 

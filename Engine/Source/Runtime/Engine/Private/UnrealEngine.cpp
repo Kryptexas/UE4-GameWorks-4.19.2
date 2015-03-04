@@ -953,6 +953,7 @@ void UEngine::PreExit()
 
 void UEngine::TickDeferredCommands()
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_UEngine_TickDeferredCommands);
 	// Execute all currently queued deferred commands (allows commands to be queued up for next frame).
 	const int32 DeferredCommandsCount = DeferredCommands.Num();
 	for( int32 DeferredCommandsIndex=0; DeferredCommandsIndex<DeferredCommandsCount; DeferredCommandsIndex++ )
@@ -4607,7 +4608,19 @@ struct FHierarchy
 // @TODO yrx 2014-09-15 Move to ObjectCommads.cpp or ObjectExec.cpp
 bool UEngine::HandleObjCommand( const TCHAR* Cmd, FOutputDevice& Ar )
 {
-	if (FParse::Command(&Cmd,TEXT("LIST2")))
+	if( FParse::Command(&Cmd,TEXT("GARBAGE")) || FParse::Command(&Cmd,TEXT("GC")) )
+	{
+		// Purge unclaimed objects.
+		Ar.Logf(TEXT("Collecting garbage and resetting GC timers on all worlds."));
+		CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
+		for (TObjectIterator<UWorld> It; It; ++It)
+		{
+			UWorld* CurrentWorld = *It;
+			CurrentWorld->TimeSinceLastPendingKillPurge = 0;
+		}
+		return true;
+	}
+	else if (FParse::Command(&Cmd,TEXT("LIST2")))
 	{			
 		UClass* ClassToCheck = NULL;
 		ParseObject<UClass>(Cmd, TEXT("CLASS="  ), ClassToCheck, ANY_PACKAGE );
@@ -9199,6 +9212,8 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 void UEngine::BlockTillLevelStreamingCompleted(UWorld* InWorld)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_UEngine_BlockTillLevelStreamingCompleted);
+
 	check(InWorld);
 	
 	// Update streaming levels state using streaming volumes

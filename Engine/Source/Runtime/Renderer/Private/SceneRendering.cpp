@@ -569,6 +569,7 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 	static const auto CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.DiffuseFromCaptures"));
 	const bool bUseLightmaps = CVar->GetInt() == 0;
 
+	ViewUniformShaderParameters.CameraCut = bCameraCut ? 1 : 0;
 	ViewUniformShaderParameters.UseLightmaps = bUseLightmaps ? 1 : 0;
 
 	if(State)
@@ -1347,27 +1348,34 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 		}
 
 #if STATS
-		// Update scene memory stats that couldn't be tracked continuously
-		SET_MEMORY_STAT(STAT_StaticDrawListMemory, FStaticMeshDrawListBase::TotalBytesUsed);
-		SET_MEMORY_STAT(STAT_RenderingSceneMemory, SceneRenderer->Scene->GetSizeBytes());
-
-		SIZE_T ViewStateMemory = 0;
-		for (int32 ViewIndex = 0; ViewIndex < SceneRenderer->Views.Num(); ViewIndex++)
 		{
-			if (SceneRenderer->Views[ViewIndex].State)
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderViewFamily_RenderThread_MemStats);
+
+			// Update scene memory stats that couldn't be tracked continuously
+			SET_MEMORY_STAT(STAT_StaticDrawListMemory, FStaticMeshDrawListBase::TotalBytesUsed);
+			SET_MEMORY_STAT(STAT_RenderingSceneMemory, SceneRenderer->Scene->GetSizeBytes());
+
+			SIZE_T ViewStateMemory = 0;
+			for (int32 ViewIndex = 0; ViewIndex < SceneRenderer->Views.Num(); ViewIndex++)
 			{
-				ViewStateMemory += SceneRenderer->Views[ViewIndex].State->GetSizeBytes();
+				if (SceneRenderer->Views[ViewIndex].State)
+				{
+					ViewStateMemory += SceneRenderer->Views[ViewIndex].State->GetSizeBytes();
+				}
 			}
+			SET_MEMORY_STAT(STAT_ViewStateMemory, ViewStateMemory);
+			SET_MEMORY_STAT(STAT_RenderingMemStackMemory, FMemStack::Get().GetByteCount());
+			SET_MEMORY_STAT(STAT_LightInteractionMemory, FLightPrimitiveInteraction::GetMemoryPoolSize());
 		}
-		SET_MEMORY_STAT(STAT_ViewStateMemory, ViewStateMemory);
-		SET_MEMORY_STAT(STAT_RenderingMemStackMemory, FMemStack::Get().GetByteCount());
-		SET_MEMORY_STAT(STAT_LightInteractionMemory, FLightPrimitiveInteraction::GetMemoryPoolSize());
 #endif
 
 		GRenderTargetPool.SetEventRecordingActive(false);
 
 		// Delete the scene renderer.
-		delete SceneRenderer;
+		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_DeleteSceneRenderer);
+			delete SceneRenderer;
+		}
 		{
 			QUICK_SCOPE_CYCLE_COUNTER(STAT_DeleteSceneRenderer_Dispatch);
 			FRHICommandListExecutor::GetImmediateCommandList().ImmediateFlush(EImmediateFlushType::DispatchToRHIThread); // we want to make sure this all gets to the GPU this frame and doesn't hang around
@@ -1375,6 +1383,7 @@ static void RenderViewFamily_RenderThread(FRHICommandListImmediate& RHICmdList, 
 	}
 
 #if STATS
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_RenderViewFamily_RenderThread_RHIGetGPUFrameCycles);
 	if (FPlatformProperties::SupportsWindowedMode() == false)
 	{
 		/** Update STATS with the total GPU time taken to render the last frame. */

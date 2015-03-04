@@ -2018,7 +2018,7 @@ static TAutoConsoleVariable<int32> CVarTonemapper709(
 	TEXT("r.Tonemapper709"),
 	0,
 	TEXT("0: use sRGB on PC monitor output\n")
-	TEXT("1: use Rec.709 for HDTV/projector output (requires r.TonemapperPhoto 1)"),
+	TEXT("1: use Rec.709 for HDTV/projector output"),
 	ECVF_Scalability | ECVF_RenderThreadSafe);
 
 

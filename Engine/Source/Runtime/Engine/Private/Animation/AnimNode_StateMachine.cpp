@@ -770,9 +770,9 @@ void FAnimNode_StateMachine::SetState(const FAnimationBaseContext& Context, int3
 	if (NewStateIndex != CurrentState)
 	{
 		const int32 PrevStateIndex = CurrentState;
-		if(CurrentState != INDEX_NONE && CurrentState < OnGraphStatesEntered.Num())
+		if(CurrentState != INDEX_NONE && CurrentState < OnGraphStatesExited.Num())
 		{
-			OnGraphStatesEntered[CurrentState].ExecuteIfBound(*this, CurrentState, NewStateIndex);
+			OnGraphStatesExited[CurrentState].ExecuteIfBound(*this, CurrentState, NewStateIndex);
 		}
 
 		// Determine if the new state is active or not
@@ -791,9 +791,9 @@ void FAnimNode_StateMachine::SetState(const FAnimationBaseContext& Context, int3
 			StatePoseLinks[NewStateIndex].CacheBones(CacheBoneContext);
 		}
 
-		if(CurrentState != INDEX_NONE && CurrentState < OnGraphStatesExited.Num())
+		if(CurrentState != INDEX_NONE && CurrentState < OnGraphStatesEntered.Num())
 		{
-			OnGraphStatesExited[CurrentState].ExecuteIfBound(*this, PrevStateIndex, CurrentState);
+			OnGraphStatesEntered[CurrentState].ExecuteIfBound(*this, PrevStateIndex, CurrentState);
 		}
 	}
 }

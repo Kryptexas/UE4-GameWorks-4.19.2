@@ -399,7 +399,14 @@ bool FFileHelper::CreateBitmap( const TCHAR* Pattern, int32 SourceWidth, int32 S
 		IH.biHeight             = INTEL_ORDER32((uint32) Height);
 		IH.biPlanes             = INTEL_ORDER16((uint16) 1);
 		IH.biBitCount           = INTEL_ORDER16((uint16) BytesPerPixel * 8);
-		IH.biCompression        = INTEL_ORDER32((uint32) 3); //BI_BITFIELDS
+		if(bInWriteAlpha)
+		{
+			IH.biCompression    = INTEL_ORDER32((uint32) 3); //BI_BITFIELDS
+		}
+		else
+		{
+			IH.biCompression    = INTEL_ORDER32((uint32) 0); //BI_RGB
+		}
 		IH.biSizeImage          = INTEL_ORDER32((uint32) BytesPerLine * Height);
 		IH.biXPelsPerMeter      = INTEL_ORDER32((uint32) 0);
 		IH.biYPelsPerMeter      = INTEL_ORDER32((uint32) 0);
@@ -765,46 +772,6 @@ FTicker& FTicker::GetCoreTicker()
 	return Singleton;
 }
 
-// Josh, delete this once you have a real usage of tickers
-#if 0
-
-struct FTestTicker
-{
-	FTestTicker()
-		: StartTime(FPlatformTime::Seconds())
-	{
-		FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FTestTicker::OneSecond), 1.0f);
-		FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FTestTicker::FiveSecond), 5.0f);
-		FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FTestTicker::EveryFrame), 0.0f);
-		FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FTestTicker::TwentyTimes), 0.0f);
-	}
-
-	bool OneSecond(float DeltaTime)
-	{
-		UE_LOG(LogTemp, Display, TEXT("OneSecond %f"), float(FPlatformTime::Seconds() - StartTime));
-		return true;
-	}
-	bool FiveSecond(float DeltaTime)
-	{
-		UE_LOG(LogTemp, Display, TEXT("FiveSecond %f"), float(FPlatformTime::Seconds() - StartTime));
-		return true;
-	}
-	bool EveryFrame(float DeltaTime)
-	{
-		UE_LOG(LogTemp, Display, TEXT("EveryFrame %f  (%f)"), float(FPlatformTime::Seconds() - StartTime), DeltaTime);
-		return true;
-	}
-	bool TwentyTimes(float DeltaTime)
-	{
-		static int32 Count = 0;
-		UE_LOG(LogTemp, Display, TEXT("TwentyTimes %f"), float(FPlatformTime::Seconds() - StartTime));
-		return ++Count < 20;
-	}
-
-	double StartTime;
-} TestTicker;
-
-#endif
 
 /*----------------------------------------------------------------------------
 	Runtime functions.

@@ -1856,23 +1856,23 @@ static FORCEINLINE float PointDistToSegment2DSquared(const float* PT, const floa
  * Traverses given tile's edges and detects the ones that are either poly (i.e. not triangle, but whole navmesh polygon) 
  * or navmesh edge. Returns a pair of verts for each edge found.
  */
-void FPImplRecastNavMesh::GetDebugPolyEdges(const dtMeshTile* Tile, bool bInternalEdges, bool bNavMeshEdges, TArray<FVector>& InternalEdgeVerts, TArray<FVector>& NavMeshEdgeVerts) const
+void FPImplRecastNavMesh::GetDebugPolyEdges(const dtMeshTile& Tile, bool bInternalEdges, bool bNavMeshEdges, TArray<FVector>& InternalEdgeVerts, TArray<FVector>& NavMeshEdgeVerts) const
 {
 	static const float thr = FMath::Square(0.01f);
 
 	ensure(bInternalEdges || bNavMeshEdges);
 	const bool bExportAllEdges = bInternalEdges && !bNavMeshEdges;
 	
-	for (int i = 0; i < Tile->header->polyCount; ++i)
+	for (int i = 0; i < Tile.header->polyCount; ++i)
 	{
-		const dtPoly* Poly = &Tile->polys[i];
+		const dtPoly* Poly = &Tile.polys[i];
 
 		if (Poly->getType() != DT_POLYTYPE_GROUND)
 		{
 			continue;
 		}
 
-		const dtPolyDetail* pd = &Tile->detailMeshes[i];		
+		const dtPolyDetail* pd = &Tile.detailMeshes[i];
 		for (int j = 0, nj = (int)Poly->vertCount; j < nj; ++j)
 		{
 			bool bIsExternal = !bExportAllEdges && (Poly->neis[j] == 0 || Poly->neis[j] & DT_EXT_LINK);
@@ -1881,8 +1881,8 @@ void FPImplRecastNavMesh::GetDebugPolyEdges(const dtMeshTile* Tile, bool bIntern
 			if (Poly->getArea() == RECAST_NULL_AREA)
 			{
 				if (Poly->neis[j] && !(Poly->neis[j] & DT_EXT_LINK) &&
-					Poly->neis[j] <= Tile->header->offMeshBase &&
-					Tile->polys[Poly->neis[j] - 1].getArea() != RECAST_NULL_AREA)
+					Poly->neis[j] <= Tile.header->offMeshBase &&
+					Tile.polys[Poly->neis[j] - 1].getArea() != RECAST_NULL_AREA)
 				{
 					bIsExternal = true;
 					bIsConnected = false;
@@ -1898,7 +1898,7 @@ void FPImplRecastNavMesh::GetDebugPolyEdges(const dtMeshTile* Tile, bool bIntern
 				unsigned int k = Poly->firstLink;
 				while (k != DT_NULL_LINK)
 				{
-					const dtLink& link = DetourNavMesh->getLink(Tile, k);
+					const dtLink& link = DetourNavMesh->getLink(&Tile, k);
 					k = link.next;
 
 					if (link.edge == j)
@@ -1916,25 +1916,25 @@ void FPImplRecastNavMesh::GetDebugPolyEdges(const dtMeshTile* Tile, bool bIntern
 				continue;
 			}
 
-			const float* V0 = &Tile->verts[Poly->verts[j]*3];
-			const float* V1 = &Tile->verts[Poly->verts[(j+1) % nj]*3];
+			const float* V0 = &Tile.verts[Poly->verts[j] * 3];
+			const float* V1 = &Tile.verts[Poly->verts[(j + 1) % nj] * 3];
 
 			// Draw detail mesh edges which align with the actual poly edge.
 			// This is really slow.
 			for (int32 k = 0; k < pd->triCount; ++k)
 			{
-				const unsigned char* t = &(Tile->detailTris[(pd->triBase+k)*4]);
+				const unsigned char* t = &(Tile.detailTris[(pd->triBase + k) * 4]);
 				const float* tv[3];
 
 				for (int32 m = 0; m < 3; ++m)
 				{
 					if (t[m] < Poly->vertCount)
 					{
-						tv[m] = &Tile->verts[Poly->verts[t[m]]*3];
+						tv[m] = &Tile.verts[Poly->verts[t[m]] * 3];
 					}
 					else
 					{
-						tv[m] = &Tile->detailVerts[(pd->vertBase+(t[m] - Poly->vertCount))*3];
+						tv[m] = &Tile.detailVerts[(pd->vertBase + (t[m] - Poly->vertCount)) * 3];
 					}
 				}
 				for (int m = 0, n = 2; m < 3; n=m++)
@@ -1956,19 +1956,19 @@ void FPImplRecastNavMesh::GetDebugPolyEdges(const dtMeshTile* Tile, bool bIntern
 	}
 }
 
-uint8 GetValidEnds(const dtNavMesh* NavMesh, const dtMeshTile* Tile, const dtPoly* Poly)
+uint8 GetValidEnds(const dtNavMesh& NavMesh, const dtMeshTile& Tile, const dtPoly& Poly)
 {
-	if ((Poly->getType() & DT_POLYTYPE_GROUND) != 0)
+	if ((Poly.getType() & DT_POLYTYPE_GROUND) != 0)
 	{
 		return false;
 	}
 
 	uint8 ValidEnds = FRecastDebugGeometry::OMLE_None;
 
-	unsigned int k = Poly->firstLink;
+	unsigned int k = Poly.firstLink;
 	while (k != DT_NULL_LINK)
 	{
-		const dtLink& link = NavMesh->getLink(Tile, k);
+		const dtLink& link = NavMesh.getLink(&Tile, k);
 		k = link.next;
 
 		if (link.edge == 0)
@@ -1992,23 +1992,73 @@ uint8 GetValidEnds(const dtNavMesh* NavMesh, const dtMeshTile* Tile, const dtPol
  */
 void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, int32 TileIndex) const
 {
-	if (DetourNavMesh)
+	if (DetourNavMesh == nullptr || TileIndex >= DetourNavMesh->getMaxTiles())
 	{
-		if (TileIndex >= DetourNavMesh->getMaxTiles())
-		{
-			return;
-		}
+		return;
+	}
 				
-		check(NavMeshOwner);
-		dtNavMesh const* ConstNavMesh = DetourNavMesh;
-		
-		// presize our tarrays for efficiency
-		const int32 NumTiles = TileIndex == INDEX_NONE ? DetourNavMesh->getMaxTiles() : TileIndex + 1;
-		const int32 StartingTile = TileIndex == INDEX_NONE ? 0 : TileIndex;
+	check(NavMeshOwner);
 
-		int32 NumVertsToReserve = 0;
-		int32 NumIndicesToReserve = 0;
-		for (int32 TileIdx=StartingTile; TileIdx < NumTiles; ++TileIdx)
+	const dtNavMesh* const ConstNavMesh = DetourNavMesh;
+		
+	// presize our tarrays for efficiency
+	const int32 NumTiles = TileIndex == INDEX_NONE ? ConstNavMesh->getMaxTiles() : TileIndex + 1;
+	const int32 StartingTile = TileIndex == INDEX_NONE ? 0 : TileIndex;
+
+	int32 NumVertsToReserve = 0;
+	int32 NumIndicesToReserve = 0;
+	int32 NumClusters = 0;
+
+	const FRecastNavMeshGenerator* Generator = static_cast<const FRecastNavMeshGenerator*>(NavMeshOwner->GetGenerator());
+
+	if (Generator && Generator->IsBuildingRestrictedToActiveTiles())
+	{
+		const TArray<FIntPoint>& ActiveTiles = NavMeshOwner->GetActiveTiles();
+		for (const FIntPoint& TileLocation : ActiveTiles)
+		{
+			const int32 LayersCount = ConstNavMesh->getTileCountAt(TileLocation.X, TileLocation.Y);
+
+			for (int32 Layer = 0; Layer < LayersCount; ++Layer)
+			{
+				dtMeshTile const* const Tile = ConstNavMesh->getTileAt(TileLocation.X, TileLocation.Y, Layer);
+				if (Tile != nullptr && Tile->header != nullptr)
+				{
+					NumVertsToReserve += Tile->header->vertCount + Tile->header->detailVertCount;
+
+					for (int32 PolyIdx = 0; PolyIdx < Tile->header->polyCount; ++PolyIdx)
+					{
+						dtPolyDetail const* const DetailPoly = &Tile->detailMeshes[PolyIdx];
+						NumIndicesToReserve += (DetailPoly->triCount * 3);
+					}
+
+					NumClusters = FMath::Max(Tile->header->clusterCount, NumClusters);
+				}
+			}
+		}
+
+		OutGeometry.MeshVerts.Reserve(NumVertsToReserve);
+		OutGeometry.AreaIndices[0].Reserve(NumIndicesToReserve);
+		OutGeometry.BuiltMeshIndices.Reserve(NumIndicesToReserve);
+		OutGeometry.Clusters.AddZeroed(NumClusters);
+
+		uint32 AllTilesVertBase = 0;
+		for (const FIntPoint& TileLocation : ActiveTiles)
+		{
+			const int32 LayersCount = ConstNavMesh->getTileCountAt(TileLocation.X, TileLocation.Y);
+
+			for (int32 Layer = 0; Layer < LayersCount; ++Layer)
+			{
+				dtMeshTile const* const Tile = ConstNavMesh->getTileAt(TileLocation.X, TileLocation.Y, Layer);
+				if (Tile != nullptr && Tile->header != nullptr)
+				{
+					AllTilesVertBase += GetTilesDebugGeometry(Generator, *Tile, AllTilesVertBase, OutGeometry);
+				}
+			}
+		}
+	}
+	else
+	{
+		for (int32 TileIdx = StartingTile; TileIdx < NumTiles; ++TileIdx)
 		{
 			dtMeshTile const* const Tile = ConstNavMesh->getTile(TileIdx);
 			dtMeshHeader const* const Header = Tile->header;
@@ -2017,21 +2067,12 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 			{
 				NumVertsToReserve += Header->vertCount + Header->detailVertCount;
 
-				for (int32 PolyIdx=0; PolyIdx < Header->polyCount; ++PolyIdx)
+				for (int32 PolyIdx = 0; PolyIdx < Header->polyCount; ++PolyIdx)
 				{
 					dtPolyDetail const* const DetailPoly = &Tile->detailMeshes[PolyIdx];
 					NumIndicesToReserve += (DetailPoly->triCount * 3);
 				}
-			}
-		}
-		int32 NumClusters = 0;
-		for (int32 TileIdx=StartingTile; TileIdx < NumTiles; ++TileIdx)
-		{
-			dtMeshTile const* const Tile = ConstNavMesh->getTile(TileIdx);
-			dtMeshHeader const* const Header = Tile->header;
 
-			if (Header != NULL)
-			{
 				NumClusters = FMath::Max(Header->clusterCount, NumClusters);
 			}
 		}
@@ -2041,179 +2082,185 @@ void FPImplRecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, in
 		OutGeometry.BuiltMeshIndices.Reserve(NumIndicesToReserve);
 		OutGeometry.Clusters.AddZeroed(NumClusters);
 
-		const FRecastNavMeshGenerator* Generator = NavMeshOwner ? (const FRecastNavMeshGenerator*)(NavMeshOwner->GetGenerator()) : NULL;
-
 		// spin through all polys in all tiles and draw them
 		// @see drawMeshTile() in recast code for reference
 		uint32 AllTilesVertBase = 0;
-		for (int32 TileIdx=StartingTile; TileIdx < NumTiles; ++TileIdx)
+		for (int32 TileIdx = StartingTile; TileIdx < NumTiles; ++TileIdx)
 		{
 			dtMeshTile const* const Tile = ConstNavMesh->getTile(TileIdx);
-			dtMeshHeader const* const Header = Tile->header;
 
-			if (Header == NULL)
+			if (Tile == nullptr || Tile->header == nullptr)
 			{
 				continue;
 			}
 
-			const bool bIsBeingBuilt = Generator != NULL && !!NavMeshOwner->bDistinctlyDrawTilesBeingBuilt 
-				&& Generator->IsTileChanged(TileIdx);
-			
-			// add all the poly verts
-			float* F = Tile->verts;
-			for (int32 VertIdx=0; VertIdx < Header->vertCount; ++VertIdx)
-			{
-				FVector const VertPos = Recast2UnrVector(F);
-				OutGeometry.MeshVerts.Add(VertPos);
-				F += 3;
-			}
-			int32 const DetailVertIndexBase = Header->vertCount;
-			// add the detail verts
-			F = Tile->detailVerts;
-			for (int32 DetailVertIdx=0; DetailVertIdx < Header->detailVertCount; ++DetailVertIdx)
-			{
-				FVector const VertPos = Recast2UnrVector(F);
-				OutGeometry.MeshVerts.Add(VertPos);
-				F += 3;
-			}
-
-			// add all the indices
-			for (int32 PolyIdx=0; PolyIdx < Header->polyCount; ++PolyIdx)
-			{
-				dtPoly const* const Poly = &Tile->polys[PolyIdx];
-				
-				if (Poly->getType() == DT_POLYTYPE_GROUND)
-				{
-					dtPolyDetail const* const DetailPoly = &Tile->detailMeshes[PolyIdx];
-
-					TArray<int32>* Indices = bIsBeingBuilt ? &OutGeometry.BuiltMeshIndices : &OutGeometry.AreaIndices[Poly->getArea()];
-
-					// one triangle at a time
-					for (int32 TriIdx=0; TriIdx < DetailPoly->triCount; ++TriIdx)
-					{
-						int32 DetailTriIdx = (DetailPoly->triBase + TriIdx) * 4;
-						const unsigned char* DetailTri = &Tile->detailTris[DetailTriIdx];
-
-						// calc indices into the vert buffer we just populated
-						int32 TriVertIndices[3];
-						for (int32 TriVertIdx=0; TriVertIdx<3; ++TriVertIdx)
-						{
-							if (DetailTri[TriVertIdx] < Poly->vertCount)
-							{
-								TriVertIndices[TriVertIdx] = AllTilesVertBase + Poly->verts[ DetailTri[TriVertIdx] ];
-							}
-							else
-							{
-								TriVertIndices[TriVertIdx] = AllTilesVertBase + DetailVertIndexBase + (DetailPoly->vertBase + DetailTri[TriVertIdx] - Poly->vertCount);
-							}
-						}
-
-						Indices->Add(TriVertIndices[0]);
-						Indices->Add(TriVertIndices[1]);
- 						Indices->Add(TriVertIndices[2]);
-
-						if (Tile->polyClusters && OutGeometry.Clusters.IsValidIndex(Tile->polyClusters[PolyIdx]))
-						{
-							TArray<int32>& ClusterIndices = OutGeometry.Clusters[Tile->polyClusters[PolyIdx]].MeshIndices;
-							ClusterIndices.Add(TriVertIndices[0]);
-							ClusterIndices.Add(TriVertIndices[1]);
-							ClusterIndices.Add(TriVertIndices[2]);
-						}
- 					}
-				}
- 			}
-
-			for (int32 i = 0; i < Header->offMeshConCount; ++i)
-			{
-				const dtOffMeshConnection* OffMeshConnection = &Tile->offMeshCons[i];
-
-				if (OffMeshConnection != NULL)
-				{
-					dtPoly const* const LinkPoly = &Tile->polys[OffMeshConnection->poly];
-					const float* va = &Tile->verts[LinkPoly->verts[0]*3]; //OffMeshConnection->pos;
-					const float* vb = &Tile->verts[LinkPoly->verts[1]*3]; //OffMeshConnection->pos[3];
-
-					const FRecastDebugGeometry::FOffMeshLink Link = {
-						Recast2UnrVector(va)
-						, Recast2UnrVector(vb)
-						, LinkPoly->getArea()
-						, (uint8)OffMeshConnection->getBiDirectional()
-						, GetValidEnds(DetourNavMesh, Tile, LinkPoly)
-						, OffMeshConnection->rad
-					};
-
-					OutGeometry.OffMeshLinks.Add(Link);
-				}
-			}
-
-			for (int32 i = 0; i < Header->offMeshSegConCount; ++i)
-			{
-				const dtOffMeshSegmentConnection* OffMeshSeg = &Tile->offMeshSeg[i];
-				if (OffMeshSeg != NULL)
-				{
-					const int32 polyBase = Header->offMeshSegPolyBase + OffMeshSeg->firstPoly;
-					for (int32 j = 0; j < OffMeshSeg->npolys; j++)
-					{
-						dtPoly const* const LinkPoly = &Tile->polys[polyBase + j];
-
-						FRecastDebugGeometry::FOffMeshSegment Link;
-						Link.LeftStart  = Recast2UnrealPoint(&Tile->verts[LinkPoly->verts[0]*3]);
-						Link.LeftEnd    = Recast2UnrealPoint(&Tile->verts[LinkPoly->verts[1]*3]);
-						Link.RightStart = Recast2UnrealPoint(&Tile->verts[LinkPoly->verts[2]*3]);
-						Link.RightEnd   = Recast2UnrealPoint(&Tile->verts[LinkPoly->verts[3]*3]);
-						Link.AreaID		= LinkPoly->getArea();
-						Link.Direction	= (uint8)OffMeshSeg->getBiDirectional();
-						Link.ValidEnds  = GetValidEnds(DetourNavMesh, Tile, LinkPoly);
-						
-						const int LinkIdx = OutGeometry.OffMeshSegments.Add(Link);
-						OutGeometry.OffMeshSegmentAreas[Link.AreaID].Add(LinkIdx);
-					}
-				}
-			}
- 
-			for (int32 i = 0; i < Header->clusterCount; i++)
-			{
-				const dtCluster& c0 = Tile->clusters[i];
-				uint32 iLink = c0.firstLink;
-				while (iLink != DT_NULL_LINK)
-				{
-					const dtClusterLink& link = DetourNavMesh->getClusterLink(Tile, iLink);
-					iLink = link.next;
-
-					dtMeshTile const* const OtherTile = ConstNavMesh->getTileByRef(link.ref);
-					if (OtherTile)
-					{
-						int32 linkedIdx = ConstNavMesh->decodeClusterIdCluster(link.ref);
-						const dtCluster& c1 = OtherTile->clusters[linkedIdx];
-
-						FRecastDebugGeometry::FClusterLink LinkGeom;
-						LinkGeom.FromCluster = Recast2UnrealPoint(c0.center);
-						LinkGeom.ToCluster = Recast2UnrealPoint(c1.center);
-
-						if (linkedIdx > i || TileIdx > (int32)ConstNavMesh->decodeClusterIdTile(link.ref))
-						{
-							FVector UpDir(0,0,1.0f);
-							FVector LinkDir = (LinkGeom.ToCluster - LinkGeom.FromCluster).GetSafeNormal();
-							FVector SideDir = FVector::CrossProduct(LinkDir, UpDir);
-							LinkGeom.FromCluster += SideDir * 40.0f;
-							LinkGeom.ToCluster += SideDir * 40.0f;
-						}
-
-						OutGeometry.ClusterLinks.Add(LinkGeom);
-					}
-				}
-			}
-
- 			// Get tile edges and navmesh edges
-			if (OutGeometry.bGatherPolyEdges || OutGeometry.bGatherNavMeshEdges)
-			{
-				GetDebugPolyEdges(Tile, !!OutGeometry.bGatherPolyEdges, !!OutGeometry.bGatherNavMeshEdges
-					, OutGeometry.PolyEdges, OutGeometry.NavMeshEdges);
-			}
- 
- 			AllTilesVertBase += Header->vertCount + Header->detailVertCount;
+			AllTilesVertBase += GetTilesDebugGeometry(Generator, *Tile, AllTilesVertBase, OutGeometry, TileIdx);
 		}
- 	}
+	}
+}
+
+int32 FPImplRecastNavMesh::GetTilesDebugGeometry(const FRecastNavMeshGenerator* Generator, const dtMeshTile& Tile, int32 VertBase, FRecastDebugGeometry& OutGeometry, int32 TileIdx) const
+{
+	check(NavMeshOwner && DetourNavMesh);
+	dtMeshHeader const* const Header = Tile.header;
+	check(Header);
+	
+	const bool bIsBeingBuilt = Generator != nullptr && !!NavMeshOwner->bDistinctlyDrawTilesBeingBuilt
+		&& Generator->IsTileChanged(TileIdx == INDEX_NONE ? DetourNavMesh->decodePolyIdTile(DetourNavMesh->getTileRef(&Tile)) : TileIdx);
+
+	// add all the poly verts
+	float* F = Tile.verts;
+	for (int32 VertIdx = 0; VertIdx < Header->vertCount; ++VertIdx)
+	{
+		FVector const VertPos = Recast2UnrVector(F);
+		OutGeometry.MeshVerts.Add(VertPos);
+		F += 3;
+	}
+	int32 const DetailVertIndexBase = Header->vertCount;
+	// add the detail verts
+	F = Tile.detailVerts;
+	for (int32 DetailVertIdx = 0; DetailVertIdx < Header->detailVertCount; ++DetailVertIdx)
+	{
+		FVector const VertPos = Recast2UnrVector(F);
+		OutGeometry.MeshVerts.Add(VertPos);
+		F += 3;
+	}
+
+	// add all the indices
+	for (int32 PolyIdx = 0; PolyIdx < Header->polyCount; ++PolyIdx)
+	{
+		dtPoly const* const Poly = &Tile.polys[PolyIdx];
+
+		if (Poly->getType() == DT_POLYTYPE_GROUND)
+		{
+			dtPolyDetail const* const DetailPoly = &Tile.detailMeshes[PolyIdx];
+
+			TArray<int32>* Indices = bIsBeingBuilt ? &OutGeometry.BuiltMeshIndices : &OutGeometry.AreaIndices[Poly->getArea()];
+
+			// one triangle at a time
+			for (int32 TriIdx = 0; TriIdx < DetailPoly->triCount; ++TriIdx)
+			{
+				int32 DetailTriIdx = (DetailPoly->triBase + TriIdx) * 4;
+				const unsigned char* DetailTri = &Tile.detailTris[DetailTriIdx];
+
+				// calc indices into the vert buffer we just populated
+				int32 TriVertIndices[3];
+				for (int32 TriVertIdx = 0; TriVertIdx < 3; ++TriVertIdx)
+				{
+					if (DetailTri[TriVertIdx] < Poly->vertCount)
+					{
+						TriVertIndices[TriVertIdx] = VertBase + Poly->verts[DetailTri[TriVertIdx]];
+					}
+					else
+					{
+						TriVertIndices[TriVertIdx] = VertBase + DetailVertIndexBase + (DetailPoly->vertBase + DetailTri[TriVertIdx] - Poly->vertCount);
+					}
+				}
+
+				Indices->Add(TriVertIndices[0]);
+				Indices->Add(TriVertIndices[1]);
+				Indices->Add(TriVertIndices[2]);
+
+				if (Tile.polyClusters && OutGeometry.Clusters.IsValidIndex(Tile.polyClusters[PolyIdx]))
+				{
+					TArray<int32>& ClusterIndices = OutGeometry.Clusters[Tile.polyClusters[PolyIdx]].MeshIndices;
+					ClusterIndices.Add(TriVertIndices[0]);
+					ClusterIndices.Add(TriVertIndices[1]);
+					ClusterIndices.Add(TriVertIndices[2]);
+				}
+			}
+		}
+	}
+
+	for (int32 i = 0; i < Header->offMeshConCount; ++i)
+	{
+		const dtOffMeshConnection* OffMeshConnection = &Tile.offMeshCons[i];
+
+		if (OffMeshConnection != NULL)
+		{
+			dtPoly const* const LinkPoly = &Tile.polys[OffMeshConnection->poly];
+			const float* va = &Tile.verts[LinkPoly->verts[0] * 3]; //OffMeshConnection->pos;
+			const float* vb = &Tile.verts[LinkPoly->verts[1] * 3]; //OffMeshConnection->pos[3];
+
+			const FRecastDebugGeometry::FOffMeshLink Link = {
+				Recast2UnrVector(va)
+				, Recast2UnrVector(vb)
+				, LinkPoly->getArea()
+				, (uint8)OffMeshConnection->getBiDirectional()
+				, GetValidEnds(*DetourNavMesh, Tile, *LinkPoly)
+				, OffMeshConnection->rad
+			};
+
+			OutGeometry.OffMeshLinks.Add(Link);
+		}
+	}
+
+	for (int32 i = 0; i < Header->offMeshSegConCount; ++i)
+	{
+		const dtOffMeshSegmentConnection* OffMeshSeg = &Tile.offMeshSeg[i];
+		if (OffMeshSeg != NULL)
+		{
+			const int32 polyBase = Header->offMeshSegPolyBase + OffMeshSeg->firstPoly;
+			for (int32 j = 0; j < OffMeshSeg->npolys; j++)
+			{
+				dtPoly const* const LinkPoly = &Tile.polys[polyBase + j];
+
+				FRecastDebugGeometry::FOffMeshSegment Link;
+				Link.LeftStart = Recast2UnrealPoint(&Tile.verts[LinkPoly->verts[0] * 3]);
+				Link.LeftEnd = Recast2UnrealPoint(&Tile.verts[LinkPoly->verts[1] * 3]);
+				Link.RightStart = Recast2UnrealPoint(&Tile.verts[LinkPoly->verts[2] * 3]);
+				Link.RightEnd = Recast2UnrealPoint(&Tile.verts[LinkPoly->verts[3] * 3]);
+				Link.AreaID = LinkPoly->getArea();
+				Link.Direction = (uint8)OffMeshSeg->getBiDirectional();
+				Link.ValidEnds = GetValidEnds(*DetourNavMesh, Tile, *LinkPoly);
+
+				const int LinkIdx = OutGeometry.OffMeshSegments.Add(Link);
+				OutGeometry.OffMeshSegmentAreas[Link.AreaID].Add(LinkIdx);
+			}
+		}
+	}
+
+	/*for (int32 i = 0; i < Header->clusterCount; i++)
+	{
+		const dtCluster& c0 = Tile.clusters[i];
+		uint32 iLink = c0.firstLink;
+		while (iLink != DT_NULL_LINK)
+		{
+			const dtClusterLink& link = DetourNavMesh->getClusterLink(&Tile, iLink);
+			iLink = link.next;
+
+			dtMeshTile const* const OtherTile = DetourNavMesh->getTileByRef(link.ref);
+			if (OtherTile)
+			{
+				int32 linkedIdx = DetourNavMesh->decodeClusterIdCluster(link.ref);
+				const dtCluster& c1 = OtherTile->clusters[linkedIdx];
+
+				FRecastDebugGeometry::FClusterLink LinkGeom;
+				LinkGeom.FromCluster = Recast2UnrealPoint(c0.center);
+				LinkGeom.ToCluster = Recast2UnrealPoint(c1.center);
+
+				if (linkedIdx > i || TileIdx > (int32)DetourNavMesh->decodeClusterIdTile(link.ref))
+				{
+					FVector UpDir(0, 0, 1.0f);
+					FVector LinkDir = (LinkGeom.ToCluster - LinkGeom.FromCluster).GetSafeNormal();
+					FVector SideDir = FVector::CrossProduct(LinkDir, UpDir);
+					LinkGeom.FromCluster += SideDir * 40.0f;
+					LinkGeom.ToCluster += SideDir * 40.0f;
+				}
+
+				OutGeometry.ClusterLinks.Add(LinkGeom);
+			}
+		}
+	}*/
+
+	// Get tile edges and navmesh edges
+	if (OutGeometry.bGatherPolyEdges || OutGeometry.bGatherNavMeshEdges)
+	{
+		GetDebugPolyEdges(Tile, !!OutGeometry.bGatherPolyEdges, !!OutGeometry.bGatherNavMeshEdges
+			, OutGeometry.PolyEdges, OutGeometry.NavMeshEdges);
+	}
+
+	return Header->vertCount + Header->detailVertCount;
 }
 
 FBox FPImplRecastNavMesh::GetNavMeshBounds() const

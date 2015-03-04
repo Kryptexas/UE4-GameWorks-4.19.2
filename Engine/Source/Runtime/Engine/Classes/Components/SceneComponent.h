@@ -417,7 +417,7 @@ public:
 	 *   @param bMaintainWorldTransform	If true, update the relative location/rotation of this component to keep its world position the same *	
 	 */
 	UFUNCTION(BlueprintCallable, Category="Utilities|Transformation")
-	virtual void DetachFromParent(bool bMaintainWorldPosition = false);
+	virtual void DetachFromParent(bool bMaintainWorldPosition = false, bool bCallModify = true);
 
 
 	/** 

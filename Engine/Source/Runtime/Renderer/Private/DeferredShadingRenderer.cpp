@@ -644,12 +644,15 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 	SCOPED_DRAW_EVENT(RHICmdList, Scene);
 	
-	// Initialize global system textures (pass-through if already initialized).
-	GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_Render_Init);
 
-	// Allocate the maximum scene render target space for the current view family.
-	GSceneRenderTargets.Allocate(ViewFamily);
+		// Initialize global system textures (pass-through if already initialized).
+		GSystemTextures.InitializeTextures(RHICmdList, FeatureLevel);
 
+		// Allocate the maximum scene render target space for the current view family.
+		GSceneRenderTargets.Allocate(ViewFamily);
+	}
 	// Find the visible primitives.
 	InitViews(RHICmdList);
 
@@ -662,6 +665,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	if (ShouldPrepareForDistanceFieldAO() || ShouldPrepareForDistanceFieldShadows())
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_DistanceFieldAO_Init);
 		GDistanceFieldVolumeTextureAtlas.UpdateAllocations();
 		UpdateGlobalDistanceFieldObjectBuffers(RHICmdList);
 
@@ -730,8 +734,11 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	const bool bIsOcclusionTesting = DoOcclusionQueries(FeatureLevel) && (!bIsWireframe || bIsViewFrozen || bHasViewParent);
 
 	// Dynamic vertex and index buffers need to be committed before rendering.
-	FGlobalDynamicVertexBuffer::Get().Commit();
-	FGlobalDynamicIndexBuffer::Get().Commit();
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_FGlobalDynamicVertexBuffer_Commit);
+		FGlobalDynamicVertexBuffer::Get().Commit();
+		FGlobalDynamicIndexBuffer::Get().Commit();
+	}
 
 	// Notify the FX system that the scene is about to be rendered.
 	if (Scene->FXSystem)
@@ -754,12 +761,17 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	
 	const bool bShouldRenderVelocities = ShouldRenderVelocities();
 	const bool bUseVelocityGBuffer = FVelocityRendering::OutputsToGBuffer();
-	GSceneRenderTargets.PreallocGBufferTargets(bShouldRenderVelocities && bUseVelocityGBuffer);
-	GSceneRenderTargets.AllocGBufferTargets();
+
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_AllocGBufferTargets);
+		GSceneRenderTargets.PreallocGBufferTargets(bShouldRenderVelocities && bUseVelocityGBuffer);
+		GSceneRenderTargets.AllocGBufferTargets();
+	}
 	
 	// Clear LPVs for all views
 	if ( FeatureLevel >= ERHIFeatureLevel::SM5 )
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_ClearLPVs);
 		ClearLPVs(RHICmdList);
 	}
 
@@ -770,6 +782,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	if(bDBuffer)
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_DBuffer);
 		GSceneRenderTargets.ResolveSceneDepthTexture(RHICmdList);
 		GSceneRenderTargets.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
 
@@ -785,6 +798,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	bool bIsGBufferCurrent = false;
 	if (bRequiresRHIClear)
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_SetAndClearViewGBuffer);
 		// set GBuffer to be current, and clear it
 		SetAndClearViewGBuffer(RHICmdList, Views[0], !bDepthWasCleared);
 
@@ -812,24 +826,25 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	RenderBasePass(RHICmdList);
 	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterBasePass));
 
-	if(ViewFamily.EngineShowFlags.VisualizeLightCulling)
-	{
-		// clear out emissive and baked lighting (not too efficient but simple and only needed for this debug view)
-		GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
-		RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 0, false, 0, FIntRect());
-	}
+	  if(ViewFamily.EngineShowFlags.VisualizeLightCulling)
+	  {
+		  // clear out emissive and baked lighting (not too efficient but simple and only needed for this debug view)
+		  GSceneRenderTargets.BeginRenderingSceneColor(RHICmdList);
+		  RHICmdList.Clear(true, FLinearColor(0, 0, 0, 0), false, 0, false, 0, FIntRect());
+	  }
 
-	GSceneRenderTargets.DBufferA.SafeRelease();
-	GSceneRenderTargets.DBufferB.SafeRelease();
-	GSceneRenderTargets.DBufferC.SafeRelease();
+	  GSceneRenderTargets.DBufferA.SafeRelease();
+	  GSceneRenderTargets.DBufferB.SafeRelease();
+	  GSceneRenderTargets.DBufferC.SafeRelease();
 
-	// only temporarily available after early z pass and until base pass
-	check(!GSceneRenderTargets.DBufferA);
-	check(!GSceneRenderTargets.DBufferB);
-	check(!GSceneRenderTargets.DBufferC);
+	  // only temporarily available after early z pass and until base pass
+	  check(!GSceneRenderTargets.DBufferA);
+	  check(!GSceneRenderTargets.DBufferB);
+	  check(!GSceneRenderTargets.DBufferC);
 
 	if (bRequiresFarZQuadClear)
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_ClearGBufferAtMaxZ);
 		// Clears view by drawing quad at maximum Z
 		// TODO: if all the platforms have fast color clears, we can replace this with an RHICmdList.Clear.
 		ClearGBufferAtMaxZ(RHICmdList);
@@ -837,14 +852,17 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		bRequiresFarZQuadClear = false;
 	}
 	
-	GSceneRenderTargets.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
-	GSceneRenderTargets.ResolveSceneDepthTexture(RHICmdList);
-	GSceneRenderTargets.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_Resolve_After_Basepass);
 
-	GSceneRenderTargets.FinishRenderingGBuffer(RHICmdList);
-	
-	RenderCustomDepthPass(RHICmdList);
+		GSceneRenderTargets.ResolveSceneColor(RHICmdList, FResolveRect(0, 0, ViewFamily.FamilySizeX, ViewFamily.FamilySizeY));
+		GSceneRenderTargets.ResolveSceneDepthTexture(RHICmdList);
+		GSceneRenderTargets.ResolveSceneDepthToAuxiliaryTexture(RHICmdList);
 
+		GSceneRenderTargets.FinishRenderingGBuffer(RHICmdList);
+
+		RenderCustomDepthPass(RHICmdList);
+	}
 	// Notify the FX system that opaque primitives have been rendered and we now have a valid depth buffer.
 	if (Scene->FXSystem && Views.IsValidIndex(0))
 	{
@@ -858,7 +876,10 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 
 	// Update the quarter-sized depth buffer with the current contents of the scene depth texture.
 	// This needs to happen before occlusion tests, which makes use of the small depth buffer.
-	UpdateDownsampledDepthSurface(RHICmdList);
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_UpdateDownsampledDepthSurface);
+		UpdateDownsampledDepthSurface(RHICmdList);
+	}
 
 	for (int32 ViewIndex = 0; ViewIndex < Views.Num(); ViewIndex++)
 	{
@@ -899,6 +920,8 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 		&& bGBuffer
 		)
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_Lighting);
+
 		GRenderTargetPool.AddPhaseEvent(TEXT("Lighting"));
 
 		// Pre-lighting composition lighting stage
@@ -958,12 +981,14 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Draw Lightshafts
 	if (ViewFamily.EngineShowFlags.LightShafts)
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_RenderLightShaftOcclusion);
 		LightShaftOutput = RenderLightShaftOcclusion(RHICmdList);
 	}
 
 	// Draw atmosphere
 	if(ShouldRenderAtmosphere(ViewFamily))
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_RenderAtmosphere);
 		if (Scene->AtmosphericFog)
 		{
 			// Update RenderFlag based on LightShaftTexture is valid or not
@@ -991,6 +1016,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	// Draw fog.
 	if(ShouldRenderFog(ViewFamily))
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_RenderFog);
 		RenderFog(RHICmdList, LightShaftOutput);
 	}
 
@@ -1018,6 +1044,7 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	}
 	if (ViewFamily.EngineShowFlags.LightShafts)
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_RenderLightShaftBloom);
 		RenderLightShaftBloom(RHICmdList);
 	}
 
@@ -1063,13 +1090,17 @@ void FDeferredShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 	//grab the new transform out of the proxies for next frame
 	if (VelocityRT)
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_UpdateMotionBlurCache);
 		Scene->MotionBlurInfoData.UpdateMotionBlurCache(Scene);
 	}
 
 	VelocityRT.SafeRelease();
 
-	RenderFinish(RHICmdList);
-	RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterFrame));
+	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_RenderFinish);
+		RenderFinish(RHICmdList);
+		RHICmdList.SetCurrentStat(GET_STATID(STAT_CLM_AfterFrame));
+	}
 }
 
 bool FDeferredShadingSceneRenderer::RenderPrePassViewDynamic(FRHICommandList& RHICmdList, const FViewInfo& View)
@@ -1323,6 +1354,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 
 	if (FVelocityRendering::OutputsToGBuffer())
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_RenderBasePass_GPrevPerBoneMotionBlur_LockData);
 		GPrevPerBoneMotionBlur.LockData();
 	}
 
@@ -1361,6 +1393,7 @@ bool FDeferredShadingSceneRenderer::RenderBasePass(FRHICommandListImmediate& RHI
 
 	if (FVelocityRendering::OutputsToGBuffer())
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FDeferredShadingSceneRenderer_RenderBasePass_GPrevPerBoneMotionBlur_UnlockData);
 		GPrevPerBoneMotionBlur.UnlockData();
 	}
 

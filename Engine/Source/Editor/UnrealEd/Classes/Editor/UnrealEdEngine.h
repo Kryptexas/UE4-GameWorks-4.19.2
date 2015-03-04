@@ -651,6 +651,11 @@ class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 	 * @return true if only editor-visible levels should be loaded in Play-In-Editor sessions
 	 */
 	virtual bool OnlyLoadEditorVisibleLevelsInPIE() const;
+
+	/**
+	 * @return true if level streaming should prefer to stream levels from disk instead of duplicating them from editor world
+	 */
+	virtual bool PreferToStreamLevelsInPIE() const override;
 	
 	/**
 	 * If all selected actors belong to the same level, that level is made the current level.

@@ -346,9 +346,8 @@ public:
 	static bool bAIIgnorePlayers;
 
 public:
-	/** Returns NavComponent subobject **/
-	UNavigationComponent* GetNavComponent() const;
 	/** Returns PathFollowingComponent subobject **/
+	UFUNCTION(BlueprintCallable, Category="AI|Navigation")
 	UPathFollowingComponent* GetPathFollowingComponent() const;
 	/** Returns ActionsComp subobject **/
 	UPawnActionsComponent* GetActionsComp() const;

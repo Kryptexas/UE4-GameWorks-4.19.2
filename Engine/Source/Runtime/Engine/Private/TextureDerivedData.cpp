@@ -1313,16 +1313,19 @@ void FTexturePlatformData::SerializeCooked(FArchive& Ar, UTexture* Owner, bool b
 /** Initialization constructor. */
 FAsyncStreamDerivedMipWorker::FAsyncStreamDerivedMipWorker(
 	const FString& InDerivedDataKey,
-	void* InDestMipData,
+	void** InDestMipDataPointer,
 	int32 InMipSize,
 	FThreadSafeCounter* InThreadSafeCounter
 	)
 	: DerivedDataKey(InDerivedDataKey)
-	, DestMipData(InDestMipData)
+	, DestMipDataPointer(InDestMipDataPointer)
 	, ExpectedMipSize(InMipSize)
 	, bRequestFailed(false)
 	, ThreadSafeCounter(InThreadSafeCounter)
 {
+	check(DestMipDataPointer != NULL);
+
+	// Make sure the pixel format enum is cached -- we access it on another thread.
 	UTexture::GetPixelFormatEnum();
 }
 
@@ -1334,10 +1337,18 @@ void FAsyncStreamDerivedMipWorker::DoWork()
 	if (GetDerivedDataCacheRef().GetSynchronous(*DerivedDataKey, DerivedMipData))
 	{
 		FMemoryReader Ar(DerivedMipData, true);
+
 		int32 MipSize = 0;
 		Ar << MipSize;
-		checkf(ExpectedMipSize == ExpectedMipSize, TEXT("MipSize(%d) == ExpectedSize(%d)"), MipSize, ExpectedMipSize);
-		Ar.Serialize(DestMipData, MipSize);
+		checkf(MipSize == ExpectedMipSize, TEXT("MipSize(%d) == ExpectedSize(%d)"), MipSize, ExpectedMipSize);
+
+		// Allocate memory for the mip unless the caller has already done so.
+		if (*DestMipDataPointer == NULL)
+		{
+			*DestMipDataPointer = FMemory::Malloc(MipSize);
+		}
+
+		Ar.Serialize(*DestMipDataPointer, MipSize);
 	}
 	else
 	{

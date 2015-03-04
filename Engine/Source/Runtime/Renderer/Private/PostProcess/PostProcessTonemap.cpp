@@ -91,6 +91,20 @@ static uint32 TonemapperConfBitmaskPC[22] = {
 	TonemapperContrast +
 	TonemapperColorMatrix +
 	TonemapperShadowTint +
+	TonemapperGrainJitter +
+	TonemapperGrainIntensity +
+	TonemapperGrainQuantization +
+	TonemapperVignette +
+	TonemapperVignetteColor +
+	TonemapperColorFringe +
+	TonemapperColorGrading +
+	Tonemapper709 +
+	0,
+
+	TonemapperBloom + 
+	TonemapperContrast + 
+	TonemapperColorMatrix + 
+	TonemapperShadowTint +
 	TonemapperVignette +
 	TonemapperGrainQuantization +
 	TonemapperColorFringe +
@@ -99,21 +113,15 @@ static uint32 TonemapperConfBitmaskPC[22] = {
 
 	TonemapperBloom + 
 	TonemapperContrast + 
-	TonemapperColorMatrix + 
+	TonemapperColorMatrix +
 	TonemapperShadowTint +
 	TonemapperGrainQuantization +
 	TonemapperColorGrading +
 	0,
 
 	TonemapperBloom + 
-	TonemapperContrast + 
-	TonemapperColorMatrix +
-	TonemapperGrainQuantization +
-	TonemapperColorGrading +
-	0,
-
-	TonemapperBloom	+ 
 	TonemapperContrast +
+	TonemapperColorMatrix +
 	TonemapperGrainQuantization +
 	TonemapperColorGrading +
 	0,
@@ -136,6 +144,19 @@ static uint32 TonemapperConfBitmaskPC[22] = {
 	TonemapperContrast +
 	TonemapperColorMatrix +
 	TonemapperShadowTint +
+	TonemapperGrainJitter +
+	TonemapperGrainIntensity +
+	TonemapperVignette +
+	TonemapperVignetteColor +
+	TonemapperColorFringe +
+	TonemapperColorGrading +
+	Tonemapper709 +
+	0,
+
+	TonemapperBloom + 
+	TonemapperContrast + 
+	TonemapperColorMatrix + 
+	TonemapperShadowTint +
 	TonemapperVignette +
 	TonemapperColorFringe +
 	TonemapperColorGrading +
@@ -143,19 +164,14 @@ static uint32 TonemapperConfBitmaskPC[22] = {
 
 	TonemapperBloom + 
 	TonemapperContrast + 
-	TonemapperColorMatrix + 
+	TonemapperColorMatrix +
 	TonemapperShadowTint +
 	TonemapperColorGrading +
 	0,
 
 	TonemapperBloom + 
-	TonemapperContrast + 
-	TonemapperColorMatrix +
-	TonemapperColorGrading +
-	0,
-
-	TonemapperBloom	+ 
 	TonemapperContrast +
+	TonemapperColorMatrix +
 	TonemapperColorGrading +
 	0,
 	
@@ -711,32 +727,7 @@ static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool b
 
 		if(Value > 0)
 		{
-			// Remove settings not compatible.
-			Bitmask &= ~(TonemapperColorMatrix|TonemapperShadowTint|TonemapperContrast|TonemapperColorGrading|TonemapperMsaa);
-			Bitmask |= TonemapperPhoto | Tonemapper709;
-		}
-	}
-
-	{
-		static TConsoleVariableData<float>* CVar = IConsoleManager::Get().FindTConsoleVariableDataFloat(TEXT("r.TonemapperGamma"));
-		float Value = CVar->GetValueOnRenderThread();
-		if(Value > 0.0f)
-		{
-			// Remove settings not compatible.
-			Bitmask &= ~(TonemapperColorMatrix|TonemapperShadowTint|TonemapperContrast|TonemapperColorGrading|TonemapperMsaa);
-			Bitmask |= TonemapperPhoto | TonemapperGamma;
-		}
-	}
-
-	{
-		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperPhoto"));
-		int32 Value = CVar->GetValueOnRenderThread();
-
-		if(Value > 0)
-		{
-			// Remove settings not compatible.
-			Bitmask &= ~(TonemapperColorMatrix|TonemapperShadowTint|TonemapperContrast|TonemapperColorGrading|TonemapperMsaa);
-			Bitmask |= TonemapperPhoto;
+			Bitmask |= Tonemapper709;
 		}
 	}
 
@@ -755,6 +746,18 @@ static uint32 TonemapperGenerateBitmaskPC(const FViewInfo* RESTRICT View, bool b
 	if(bUseLUT)
 	{
 		Bitmask |= TonemapperColorGrading;
+	}
+
+	{
+		static TConsoleVariableData<int32>* CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.TonemapperPhoto"));
+		int32 Value = CVar->GetValueOnRenderThread();
+
+		if(Value > 0)
+		{
+			// Remove settings not compatible.
+			Bitmask &= ~(TonemapperColorMatrix|TonemapperShadowTint|TonemapperContrast|TonemapperColorGrading|TonemapperMsaa);
+			Bitmask |= TonemapperPhoto;
+		}
 	}
 
 	return Bitmask + TonemapperGenerateBitmaskPost(View);
@@ -816,6 +819,10 @@ void FilmPostSetConstants(FVector4* RESTRICT const Constants, const uint32 Confi
 	uint32 UseShadowTint  = TonemapperIsDefined(ConfigBitmask, TonemapperShadowTint);
 	uint32 UseContrast    = TonemapperIsDefined(ConfigBitmask, TonemapperContrast);
 
+	// DON'T CHECK INTO MAIN: NEEDS A PERMUTATION TO AVOID NON-BACKWARDS COMPATIBLE CHANGES
+	// This corrects so the linear segment is linear in log space!
+	float In18Grey = FMath::Log2(1.0f+0.18f);
+
 	// Must insure inputs are in correct range (else possible generation of NaNs).
 	float InExposure = 1.0f;
 	FVector InWhitePoint(FinalPostProcessSettings->FilmWhitePoint);
@@ -826,9 +833,9 @@ void FilmPostSetConstants(FVector4* RESTRICT const Constants, const uint32 Confi
 	FVector InMatrixB(FinalPostProcessSettings->FilmChannelMixerBlue);
 	float InContrast = FMath::Clamp(FinalPostProcessSettings->FilmContrast, 0.0f, 1.0f) + 1.0f;
 	float InDynamicRange = powf(2.0f, FMath::Clamp(FinalPostProcessSettings->FilmDynamicRange, 1.0f, 4.0f));
-	float InToe = (1.0f - FMath::Clamp(FinalPostProcessSettings->FilmToeAmount, 0.0f, 1.0f)) * 0.18f;
-	InToe = FMath::Clamp(InToe, 0.18f/8.0f, 0.18f * (15.0f/16.0f));
-	float InHeal = 1.0f - (FMath::Max(1.0f/32.0f, 1.0f - FMath::Clamp(FinalPostProcessSettings->FilmHealAmount, 0.0f, 1.0f)) * (1.0f - 0.18f)); 
+	float InToe = (1.0f - FMath::Clamp(FinalPostProcessSettings->FilmToeAmount, 0.0f, 1.0f)) * In18Grey;
+	InToe = FMath::Clamp(InToe, In18Grey/8.0f, In18Grey * (15.0f/16.0f));
+	float InHeal = 1.0f - (FMath::Max(1.0f/32.0f, 1.0f - FMath::Clamp(FinalPostProcessSettings->FilmHealAmount, 0.0f, 1.0f)) * (1.0f - In18Grey)); 
 	FVector InShadowTint(FinalPostProcessSettings->FilmShadowTint);
 	float InShadowTintBlend = FMath::Clamp(FinalPostProcessSettings->FilmShadowTintBlend, 0.0f, 1.0f) * 64.0f;
 
@@ -908,7 +915,7 @@ void FilmPostSetConstants(FVector4* RESTRICT const Constants, const uint32 Confi
 	float OutColorCurveCm2;
 
 	// Line for linear section.
-	float FilmLineOffset = 0.18f - 0.18f*InContrast;
+	float FilmLineOffset = In18Grey - In18Grey*InContrast;
 	float FilmXAtY0 = -FilmLineOffset/InContrast;
 	float FilmXAtY1 = (1.0f - FilmLineOffset) / InContrast;
 	float FilmXS = FilmXAtY1 - FilmXAtY0;
@@ -1083,6 +1090,13 @@ BEGIN_UNIFORM_BUFFER_STRUCT(FBloomDirtMaskParameters,)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_SAMPLER(SamplerState,MaskSampler)
 END_UNIFORM_BUFFER_STRUCT(FBloomDirtMaskParameters)
 IMPLEMENT_UNIFORM_BUFFER_STRUCT(FBloomDirtMaskParameters,TEXT("BloomDirtMask"));
+
+
+static TAutoConsoleVariable<float> CVarGamma(
+	TEXT("r.Gamma"),
+	1.0f,
+	TEXT("Gamma on output"),
+	ECVF_RenderThreadSafe);
 
 /**
  * Encapsulates the post processing tonemapper pixel shader.

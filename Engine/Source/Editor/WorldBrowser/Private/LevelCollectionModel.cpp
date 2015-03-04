@@ -210,12 +210,10 @@ void FLevelCollectionModel::PopulateFilteredLevelsList()
 	FilteredLevelsList.Empty();
 
 	// Filter out our flat list
-	for (auto It = AllLevelsList.CreateIterator(); It; ++It)
+	for (auto& LevelModel : AllLevelsList)
 	{
-		TSharedPtr<FLevelModel> LevelModel = (*It);
-		
 		LevelModel->SetLevelFilteredOutFlag(true);
-		if (LevelModel->IsPersistent() || PassesAllFilters(LevelModel))
+		if (LevelModel->IsPersistent() || PassesAllFilters(*LevelModel))
 		{
 			FilteredLevelsList.Add(LevelModel);
 			LevelModel->SetLevelFilteredOutFlag(false);
@@ -335,9 +333,9 @@ void FLevelCollectionModel::SetSelectedLevels(const FLevelModelList& InList)
 	SelectedLevelsList.Empty(); 
 	
 	// Set selection flag to selected levels	
-	for (auto LevelModel : InList)
+	for (auto& LevelModel : InList)
 	{
-		if (LevelModel.IsValid() && PassesAllFilters(LevelModel))
+		if (LevelModel.IsValid() && PassesAllFilters(*LevelModel))
 		{
 			LevelModel->SetLevelSelectionFlag(true);
 			SelectedLevelsList.Add(LevelModel);
@@ -656,9 +654,9 @@ TSharedPtr<FLevelDragDropOp> FLevelCollectionModel::CreateDragDropOp() const
 	return TSharedPtr<FLevelDragDropOp>();
 }
 
-bool FLevelCollectionModel::PassesAllFilters(TSharedPtr<FLevelModel> Item) const
+bool FLevelCollectionModel::PassesAllFilters(const FLevelModel& Item) const
 {
-	if (Item->IsPersistent() || Filters->PassesAllFilters(Item))
+	if (Item.IsPersistent() || Filters->PassesAllFilters(&Item))
 	{
 		return true;
 	}

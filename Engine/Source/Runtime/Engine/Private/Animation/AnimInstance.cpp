@@ -34,6 +34,7 @@ DEFINE_STAT(STAT_UpdateLocalToWorldAndOverlaps);
 DEFINE_STAT(STAT_SkelComposeTime);
 DEFINE_STAT(STAT_GetAnimationPose);
 DEFINE_STAT(STAT_AnimNativeEvaluatePoses);
+DEFINE_STAT(STAT_AnimTriggerAnimNotifies);
 DEFINE_STAT(STAT_AnimNativeBlendPoses);
 DEFINE_STAT(STAT_AnimNativeCopyPoses);
 DEFINE_STAT(STAT_AnimGraphEvaluate);
@@ -1285,6 +1286,7 @@ void UAnimInstance::AddCurveValue(const USkeleton::AnimCurveUID Uid, float Value
 
 void UAnimInstance::TriggerAnimNotifies(float DeltaSeconds)
 {
+	SCOPE_CYCLE_COUNTER(STAT_AnimTriggerAnimNotifies);
 	USkeletalMeshComponent * SkelMeshComp = GetSkelMeshComponent();
 
 	// Array that will replace the 'ActiveAnimNotifyState' at the end of this function.

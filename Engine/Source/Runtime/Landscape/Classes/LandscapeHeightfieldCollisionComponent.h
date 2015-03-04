@@ -6,6 +6,7 @@
 class ULandscapeLayerInfoObject;
 class AInstancedFoliageActor;
 
+#include "AI/Navigation/NavigationTypes.h"
 #include "LandscapeHeightfieldCollisionComponent.generated.h"
 
 #if WITH_PHYSX
@@ -106,6 +107,13 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	 *  For editor and full version of collision objects
 	 */
 	mutable bool								bShouldSaveCookedDataToDDC[2];
+
+	/**
+	  * Async DCC load for cooked collision representation. We speculatively
+	  * load this to remove hitch when streaming 
+	  */
+	mutable TSharedPtr<FAsyncPreRegisterDDCRequest>	SpeculativeDDCRequest;
+
 #endif //WITH_EDITORONLY_DATA
 
 	/** 
@@ -120,6 +128,11 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	
 	/** Physics engine version of heightfield data. */
 	TRefCountPtr<struct FPhysXHeightfieldRef>	HeightfieldRef;
+	
+	/** Cached PxHeightFieldSamples values for navmesh generation. Note that it's being used only if navigation octree is set up for lazy geometry exporting */
+	int32 HeightfieldRowsCount;
+	int32 HeightfieldColumnsCount;
+	mutable FNavHeightfieldSamples CachedHeightFieldSamples;
 
 	enum ECollisionQuadFlags
 	{
@@ -144,12 +157,19 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 	// End USceneComponent interface.
 
 	// Begin UPrimitiveComponent interface
-	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const override;
+	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
 #if WITH_EDITOR
 	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InFrustum, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 #endif
 	//End UPrimitiveComponent interface
+
+	// Begin INavRelevantInterface interface
+	virtual bool SupportsGatheringGeometrySlices() const override { return true; }
+	virtual void GatherGeometrySlice(FNavigableGeometryExport& GeomExport, const FBox& SliceBox) const override;
+	virtual ENavDataGatheringMode GetGeometryGatheringMode() const override;
+	virtual void PrepareGeometryExportSync() override;
+	// End INavRelevantInterface interface
 
 	// Begin UObject Interface.
 	virtual void Serialize(FArchive& Ar) override;
@@ -168,6 +188,9 @@ class ULandscapeHeightfieldCollisionComponent : public UPrimitiveComponent
 
 	// @todo document
 	class ULandscapeInfo* GetLandscapeInfo(bool bSpawnNewActor = true) const;
+
+	/**  We speculatively async load collision object from DDC to remove hitch when streaming */
+	void SpeculativelyLoadAsyncDDCCollsionData();
 
 	/** 
 	 * Cooks raw height data into collision object binary stream

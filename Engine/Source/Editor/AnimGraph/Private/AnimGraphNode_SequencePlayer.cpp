@@ -86,32 +86,33 @@ FText UAnimGraphNode_SequencePlayer::GetNodeTitle(ENodeTitleType::Type TitleType
 	{
 		return LOCTEXT("SequenceNullTitle", "Play (None)");
 	}
-	// @TODO: the bone can be altered in the property editor, so we have to 
-	//        choose to mark this dirty when that happens for this to properly work
-	else //if (!CachedNodeTitles.IsTitleCached(TitleType))
+	else
 	{
-		if(SyncGroup.GroupName == NAME_None)
-		{
-			TitleType = ENodeTitleType::ListView;
+		const bool bAdditive = Node.Sequence->IsValidAdditive();
+		const FText BasicTitle = GetTitleGivenAssetInfo(FText::FromName(Node.Sequence->GetFName()), bAdditive);
 
-			if(TitleType == ENodeTitleType::ListView || TitleType == ENodeTitleType::MenuTitle)
+		if (SyncGroup.GroupName == NAME_None)
+		{
+			return BasicTitle;
+		}
+		else
+		{
+			const FText SyncGroupName = FText::FromName(SyncGroup.GroupName);
+
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("Title"), BasicTitle);
+			Args.Add(TEXT("SyncGroup"), SyncGroupName);
+
+			if (TitleType == ENodeTitleType::FullTitle)
 			{
-				const bool bAdditive = Node.Sequence->IsValidAdditive();
-				// FText::Format() is slow, so we cache this to save on performance
-				CachedNodeTitles.SetCachedTitle(TitleType, GetTitleGivenAssetInfo(FText::FromName(Node.Sequence->GetFName()), bAdditive));
+				return FText::Format(LOCTEXT("SequenceNodeGroupWithSubtitleFull", "{Title}\nSync group {SyncGroup}"), Args);
+			}
+			else
+			{
+				return FText::Format(LOCTEXT("SequenceNodeGroupWithSubtitleList", "{Title} (Sync group {SyncGroup})"), Args);
 			}
 		}
-		else if (TitleType == ENodeTitleType::FullTitle)
-		{
-			FFormatNamedArguments Args;
-			Args.Add(TEXT("Title"), CachedNodeTitles[ENodeTitleType::ListView]);
-			Args.Add(TEXT("SyncGroup"), FText::FromName(SyncGroup.GroupName));
-
-			// FText::Format() is slow, so we cache this to save on performance
-			CachedNodeTitles.SetCachedTitle(TitleType, FText::Format(LOCTEXT("SequenceNodeGroupWithSubtitle", "{Title}\nSync group {SyncGroup}"), Args));
-		}
 	}
-	return CachedNodeTitles[TitleType];
 }
 
 FText UAnimGraphNode_SequencePlayer::GetTitleGivenAssetInfo(const FText& AssetName, bool bKnownToBeAdditive)

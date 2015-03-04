@@ -2831,13 +2831,14 @@ namespace MaterialExportUtils
 		return true;
 	}
 
-	UTexture2D* CreateTexture(UPackage* Outer, const FString& AssetLongName, FIntPoint Size, const TArray<FColor>& Samples, TextureCompressionSettings CompressionSettings, TextureGroup LODGroup, EObjectFlags Flags, bool bSRGB)
+	UTexture2D* CreateTexture(UPackage* Outer, const FString& AssetLongName, FIntPoint Size, const TArray<FColor>& Samples, TextureCompressionSettings CompressionSettings, TextureGroup LODGroup, EObjectFlags Flags, bool bSRGB, const FGuid& SourceGuidHash)
 	{
 		FCreateTexture2DParameters TexParams;
 		TexParams.bUseAlpha = false;
 		TexParams.CompressionSettings = CompressionSettings;
 		TexParams.bDeferCompression = true;
 		TexParams.bSRGB = bSRGB;
+		TexParams.SourceGuidHash = SourceGuidHash;
 
 		if (Outer == nullptr)
 		{

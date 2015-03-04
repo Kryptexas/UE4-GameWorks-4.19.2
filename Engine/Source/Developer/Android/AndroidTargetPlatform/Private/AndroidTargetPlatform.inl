@@ -305,6 +305,8 @@ inline void FAndroidTargetPlatform<TPlatformProperties>::AddTextureFormatIfSuppo
 template<class TPlatformProperties>
 inline bool FAndroidTargetPlatform<TPlatformProperties>::HandleTicker( float DeltaTime )
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FAndroidTargetPlatform_HandleTicker);
+
 	if (DeviceDetection == nullptr)
 	{
 		DeviceDetection = FModuleManager::LoadModuleChecked<IAndroidDeviceDetectionModule>("AndroidDeviceDetection").GetAndroidDeviceDetection();

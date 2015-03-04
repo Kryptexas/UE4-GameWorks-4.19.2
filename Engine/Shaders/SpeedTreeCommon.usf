@@ -96,6 +96,7 @@ FSpeedTreeData GetPreviousSpeedTreeData()
 #define SPEEDTREE_WIND_TYPE_BETTER 3
 #define SPEEDTREE_WIND_TYPE_BEST 4
 #define SPEEDTREE_WIND_TYPE_PALM 5
+#define SPEEDTREE_WIND_TYPE_BEST_PLUS 6
 
 #define SPEEDTREE_GEOMETRY_TYPE_BRANCH 0
 #define SPEEDTREE_GEOMETRY_TYPE_FROND 1
@@ -573,7 +574,7 @@ float3 LeafRipple(float3 vPos,
 
 ///////////////////////////////////////////////////////////////////////  
 //  LeafTumble
-
+      
 float3 LeafTumble(FSpeedTreeData STData,
 	float3 vPos, 
 	inout float3 vDirection, 
@@ -586,7 +587,8 @@ float3 LeafTumble(FSpeedTreeData STData,
 	float fTwist, 
 	float fAdherence, 
 	float3 vTwitch, 
-	float4 vRoll, 
+	float4 vRoll,
+	int WindType,
 	bool bTwitch, 
 	bool bRoll)
 {
@@ -603,30 +605,34 @@ float3 LeafTumble(FSpeedTreeData STData,
  	float fOsc = vOscillations.x + vOscillations.y * vOscillations.y;
  	float3x3 matTumble = RotationMatrix(vGrowthDir, fScale * fTwist * fOsc);
 
-	// with wind
-	float3 vAxis = wind_cross(vGrowthDir, STData.WindVector.xyz);
-	float fDot = clamp(dot(STData.WindVector.xyz, vGrowthDir), -1.0, 1.0);
-	#ifdef SPEEDTREE_Z_UP
+	if (WindType >= SPEEDTREE_WIND_TYPE_BEST_PLUS)
+	{
+		// with wind
+		float3 vAxis = wind_cross(vGrowthDir, STData.WindVector.xyz);
+		float fDot = clamp(dot(STData.WindVector.xyz, vGrowthDir), -1.0, 1.0);
+#ifdef SPEEDTREE_Z_UP
 		vAxis.z += fDot;
-	#else
+#else
 		vAxis.y += fDot;
-	#endif
-	vAxis = normalize(vAxis);
+#endif
+		vAxis = normalize(vAxis);
 
-	float fAngle = acos(fDot);
+		float fAngle = acos(fDot);
 
-	float fAdherenceScale = 1.0;
-	//if (bRoll)
-	//	fAdherenceScale = Roll(fAdherenceScale, vRoll.x, vRoll.y, vRoll.z, vRoll.w, vAnchor.xyz, fTime/* + fOffset*/);
+		float fAdherenceScale = 1.0;
+		//if (bRoll)
+		//	fAdherenceScale = Roll(fAdherenceScale, vRoll.x, vRoll.y, vRoll.z, vRoll.w, vAnchor.xyz, fTime/* + fOffset*/);
 
-	fOsc = vOscillations.y - vOscillations.x * vOscillations.x;
+		fOsc = vOscillations.y - vOscillations.x * vOscillations.x;
 
-	float fTwitch = 0.0;
-	if (bTwitch)
-		fTwitch = Twitch(vAnchor.xyz, vTwitch.x, vTwitch.y, vTwitch.z + fOffset);
+		float fTwitch = 0.0;
+		if (bTwitch)
+			fTwitch = Twitch(vAnchor.xyz, vTwitch.x, vTwitch.y, vTwitch.z + fOffset);
 
-	matTumble = mul_float3x3_float3x3(matTumble, RotationMatrix(vAxis, fScale * (fAngle * fAdherence * fAdherenceScale + fOsc * fFlip + fTwitch)));
-//	matTumble = mul_float3x3_float3x3(matTumble, RotationMatrix(vAxis, fAngle));
+
+		matTumble = mul_float3x3_float3x3(matTumble, RotationMatrix(vAxis, fScale * (fAngle * fAdherence * fAdherenceScale + fOsc * fFlip + fTwitch)));
+		//	matTumble = mul_float3x3_float3x3(matTumble, RotationMatrix(vAxis, fAngle));
+	}
  
  	vDirection = mul_float3x3_float3(matTumble, vDirection);
 	vOriginPos = mul_float3x3_float3(matTumble, vOriginPos);
@@ -757,13 +763,17 @@ float3 LeafWind(FSpeedTreeData STData,
 	float fRippleTrigOffset,
 	int WindType)
 {
+	
+	if (WindType >= SPEEDTREE_WIND_TYPE_BEST_PLUS)
+	{
+		vPos = LeafRipple(vPos, vDirection, fScale, fPackedRippleDir,
+			(bLeaf2 ? STData.WindLeaf2Ripple.x : STData.WindLeaf1Ripple.x),
+			(bLeaf2 ? STData.WindLeaf2Ripple.y : STData.WindLeaf1Ripple.y),
+			false, fRippleTrigOffset);
+	}
 
-	vPos = LeafRipple(vPos, vDirection, fScale, fPackedRippleDir, 
-							(bLeaf2 ? STData.WindLeaf2Ripple.x : STData.WindLeaf1Ripple.x),
-							(bLeaf2 ? STData.WindLeaf2Ripple.y : STData.WindLeaf1Ripple.y),
-							false, fRippleTrigOffset);
 
-	if (WindType == SPEEDTREE_WIND_TYPE_BEST)
+	if (WindType >= SPEEDTREE_WIND_TYPE_BEST)
 	{
 		float3 vGrowthDir = UnpackNormalFromFloat(fPackedGrowthDir);
 		vPos = LeafTumble(STData, vPos, vDirection, fScale, vAnchor, vGrowthDir, fPackedGrowthDir,
@@ -773,6 +783,7 @@ float3 LeafWind(FSpeedTreeData STData,
 						  (bLeaf2 ? STData.WindLeaf2Tumble.w : STData.WindLeaf1Tumble.w),
 						  (bLeaf2 ? STData.WindLeaf2Twitch.xyz : STData.WindLeaf1Twitch.xyz), 
 						  0.0f,
+						  WindType,
 						  (bLeaf2 ? true : true), 
 						  (bLeaf2 ? true : true));
 	}

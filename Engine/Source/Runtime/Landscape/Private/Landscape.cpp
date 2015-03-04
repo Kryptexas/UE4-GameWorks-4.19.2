@@ -1727,6 +1727,9 @@ void ULandscapeInfo::RegisterActorComponent(ULandscapeComponent* Component, bool
 		FMessageLog("MapCheck").Warning()
 			->AddToken(FUObjectToken::Create(OurProxy))
 			->AddToken(FTextToken::Create(FText::Format(LOCTEXT("MapCheck_Message_LandscapeComponentPostLoad_Warning", "Landscape {ProxyName1} of {LevelName1} has overlapping render components with {ProxyName2} of {LevelName2} at location ({XLocation}, {YLocation})."), Arguments)))
+#if WITH_EDITOR
+			->AddToken(FActionToken::Create(LOCTEXT("MapCheck_RemoveDuplicateLandscapeComponent", "Delete Duplicate"), LOCTEXT("MapCheck_RemoveDuplicateLandscapeComponentDesc", "Deletes the duplicate landscape component."), FOnActionTokenExecuted::CreateUObject(OurProxy, &ALandscapeProxy::RemoveOverlappingComponent, Component), true))
+#endif
 			->AddToken(FMapErrorToken::Create(FMapErrors::LandscapeComponentPostLoad_Warning));
 
 		// Show MapCheck window
@@ -2217,6 +2220,23 @@ ULandscapeMeshProxyComponent::ULandscapeMeshProxyComponent(const FObjectInitiali
 }
 
 #if WITH_EDITOR
+
+void ULandscapeComponent::SerializeStateHashes(FArchive& Ar)
+{
+	if (MaterialInstance)
+	{
+		Ar << MaterialInstance->GetMaterial()->StateId;
+	}
+
+	FGuid HeightmapGuid = HeightmapTexture->Source.GetId();
+	Ar << HeightmapGuid;
+	for (auto WeightmapTexture : WeightmapTextures)
+	{
+		FGuid WeightmapGuid = WeightmapTexture->Source.GetId();
+		Ar << WeightmapGuid;
+	}
+}
+
 void ALandscapeProxy::UpdateBakedTextures()
 {
 	// See if we can render
@@ -2231,11 +2251,30 @@ void ALandscapeProxy::UpdateBakedTextures()
 		return;
 	}
 
+	// Stores the components and their state hash data for a single atlas
+	struct FBakedTextureSourceInfo
+	{
+		// pointer as FMemoryWriter caches the address of the FBufferArchive, and this struct could be relocated on a realloc.
+		FBufferArchive* ComponentStateAr;
+		TArray<ULandscapeComponent*> Components;
+
+		FBakedTextureSourceInfo()
+		{
+			ComponentStateAr = new FBufferArchive();
+		}
+		~FBakedTextureSourceInfo()
+		{
+			delete ComponentStateAr;
+		}
+	};
+
 	// Group components by heightmap texture
-	TMap<UTexture2D*, TArray<ULandscapeComponent*>> ComponentsByHeightmap;
+	TMap<UTexture2D*, FBakedTextureSourceInfo> ComponentsByHeightmap;
 	for (ULandscapeComponent* Component : LandscapeComponents)
 	{
-		ComponentsByHeightmap.FindOrAdd(Component->HeightmapTexture).Add(Component);
+		FBakedTextureSourceInfo& Info = ComponentsByHeightmap.FindOrAdd(Component->HeightmapTexture);
+		Info.Components.Add(Component);
+		Component->SerializeStateHashes(*Info.ComponentStateAr);
 	}
 
 	TotalComponentsNeedingTextureBaking -= NumComponentsNeedingTextureBaking;
@@ -2244,8 +2283,10 @@ void ALandscapeProxy::UpdateBakedTextures()
 
 	for (auto It = ComponentsByHeightmap.CreateConstIterator(); It; ++It)
 	{
-		bool bHaveComponentsToUpdate = false;
-		for (ULandscapeComponent* Component : It.Value())
+		const FBakedTextureSourceInfo& Info = It.Value();
+
+		bool bCanBake = true;
+		for (ULandscapeComponent* Component : Info.Components)
 		{
 			// not registered; ignore this component
 			if (!Component->SceneProxy)
@@ -2255,71 +2296,88 @@ void ALandscapeProxy::UpdateBakedTextures()
 
 			// Check we can render the material
 			UMaterialInstance* MaterialInstance = Component->MaterialInstance;
-
-			if (!MaterialInstance || !MaterialInstance->GetMaterialResource(World->FeatureLevel)->HasValidGameThreadShaderMap())
+			if (!MaterialInstance)
 			{
 				// Cannot render this component yet as it doesn't have a material; abandon the atlas for this heightmap
-				bHaveComponentsToUpdate = false;
+				bCanBake = false;
 				break;
 			}
 
-			if (Component->BakedTextureMaterialGuid == MaterialInstance->GetMaterial()->StateId)
+			FMaterialResource* MaterialResource = MaterialInstance->GetMaterialResource(World->FeatureLevel);
+			if (!MaterialResource || !MaterialResource->HasValidGameThreadShaderMap())
 			{
-				// up to date
-				continue;
+				// Cannot render this component yet as its shaders aren't compiled; abandon the atlas for this heightmap
+				bCanBake = false;
+				break;
 			}
-
-			bHaveComponentsToUpdate = true;
 		}
 
-		if (bHaveComponentsToUpdate)
+		if (bCanBake)
 		{
-			// We throttle, baking only one atlas per frame
-			if (NumGenerated > 0)
-			{
-				NumComponentsNeedingTextureBaking += It.Value().Num();
-			}
-			else
-			{
-				UTexture2D* HeightmapTexture = It.Key();
-				// 1/8 the res of the heightmap
-				FIntPoint AtlasSize(HeightmapTexture->GetSizeX() >> 3, HeightmapTexture->GetSizeY() >> 3);
+			// Calculate a combined Guid-like ID we can use for this component
+			uint32 Hash[5];
+			FSHA1::HashBuffer(Info.ComponentStateAr->GetData(), Info.ComponentStateAr->Num(), (uint8*)Hash);
+			FGuid CombinedStateId = FGuid(Hash[0] ^ Hash[4], Hash[1], Hash[2], Hash[3]);
 
-				TArray<FColor> AtlasSamples;
-				AtlasSamples.AddZeroed(AtlasSize.X * AtlasSize.Y);
-
-				for (ULandscapeComponent* Component : It.Value())
+			bool bNeedsBake = false;
+			for (ULandscapeComponent* Component : Info.Components)
+			{
+				if (Component->BakedTextureMaterialGuid != CombinedStateId)
 				{
-					// not registered; ignore this component
-					if (!Component->SceneProxy)
-					{
-						continue;
-					}
-
-					int32 ComponentSamples = (SubsectionSizeQuads + 1) * NumSubsections;
-					check(FMath::IsPowerOfTwo(ComponentSamples));
-
-					int32 BakeSize = ComponentSamples >> 3;
-					TArray<FColor> Samples;
-					if (MaterialExportUtils::ExportBaseColor(Component, BakeSize, Samples))
-					{
-						int32 AtlasOffsetX = FMath::RoundToInt(Component->HeightmapScaleBias.Z * (float)HeightmapTexture->GetSizeX()) >> 3;
-						int32 AtlasOffsetY = FMath::RoundToInt(Component->HeightmapScaleBias.W * (float)HeightmapTexture->GetSizeY()) >> 3;
-						for (int32 y = 0; y < BakeSize; y++)
-						{
-							FMemory::Memcpy(&AtlasSamples[(y + AtlasOffsetY)*AtlasSize.X + AtlasOffsetX], &Samples[y*BakeSize], sizeof(FColor)* BakeSize);
-						}
-						NumGenerated++;
-					}
+					bNeedsBake = true;
+					break;
 				}
-				UTexture2D* AtlasTexture = MaterialExportUtils::CreateTexture(GetOutermost(), HeightmapTexture->GetName() + TEXT("_BaseColor"), AtlasSize, AtlasSamples, TC_Default, TEXTUREGROUP_World, RF_Public, true);
-				AtlasTexture->MarkPackageDirty();
-
-				for (ULandscapeComponent* Component : It.Value())
+			}
+			
+			if (bNeedsBake)
+			{
+				// We throttle, baking only one atlas per frame
+				if (NumGenerated > 0)
 				{
-					Component->BakedTextureMaterialGuid = Component->MaterialInstance->GetMaterial()->StateId;
-					Component->GIBakedBaseColorTexture = AtlasTexture;
-					Component->MarkRenderStateDirty();
+					NumComponentsNeedingTextureBaking += Info.Components.Num();
+				}
+				else
+				{
+					UTexture2D* HeightmapTexture = It.Key();
+					// 1/8 the res of the heightmap
+					FIntPoint AtlasSize(HeightmapTexture->GetSizeX() >> 3, HeightmapTexture->GetSizeY() >> 3);
+
+					TArray<FColor> AtlasSamples;
+					AtlasSamples.AddZeroed(AtlasSize.X * AtlasSize.Y);
+
+					for (ULandscapeComponent* Component : Info.Components)
+					{
+						// not registered; ignore this component
+						if (!Component->SceneProxy)
+						{
+							continue;
+						}
+
+						int32 ComponentSamples = (SubsectionSizeQuads + 1) * NumSubsections;
+						check(FMath::IsPowerOfTwo(ComponentSamples));
+
+						int32 BakeSize = ComponentSamples >> 3;
+						TArray<FColor> Samples;
+						if (MaterialExportUtils::ExportBaseColor(Component, BakeSize, Samples))
+						{
+							int32 AtlasOffsetX = FMath::RoundToInt(Component->HeightmapScaleBias.Z * (float)HeightmapTexture->GetSizeX()) >> 3;
+							int32 AtlasOffsetY = FMath::RoundToInt(Component->HeightmapScaleBias.W * (float)HeightmapTexture->GetSizeY()) >> 3;
+							for (int32 y = 0; y < BakeSize; y++)
+							{
+								FMemory::Memcpy(&AtlasSamples[(y + AtlasOffsetY)*AtlasSize.Y + AtlasOffsetX], &Samples[y*BakeSize], sizeof(FColor)* BakeSize);
+							}
+							NumGenerated++;
+						}
+					}
+					UTexture2D* AtlasTexture = MaterialExportUtils::CreateTexture(GetOutermost(), HeightmapTexture->GetName() + TEXT("_BaseColor"), AtlasSize, AtlasSamples, TC_Default, TEXTUREGROUP_World, RF_Public, true, CombinedStateId);
+					AtlasTexture->MarkPackageDirty();
+
+					for (ULandscapeComponent* Component : Info.Components)
+					{
+						Component->BakedTextureMaterialGuid = CombinedStateId;
+						Component->GIBakedBaseColorTexture = AtlasTexture;
+						Component->MarkRenderStateDirty();
+					}
 				}
 			}
 		}

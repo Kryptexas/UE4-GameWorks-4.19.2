@@ -36,6 +36,7 @@ FWorldTileModel::FWorldTileModel(const TWeakObjectPtr<UEditorEngine>& InEditor,
 	TileDetails->ParentPackageNameChangedEvent.AddRaw(this, &FWorldTileModel::OnParentPackageNamePropertyChanged);
 	TileDetails->LODSettingsChangedEvent.AddRaw(this, &FWorldTileModel::OnLODSettingsPropertyChanged);
 	TileDetails->ZOrderChangedEvent.AddRaw(this, &FWorldTileModel::OnZOrderPropertyChanged);
+	TileDetails->HideInTileViewChangedEvent.AddRaw(this, &FWorldTileModel::OnHideInTileViewChanged);
 			
 	// Initialize tile details
 	if (WorldComposition->GetTilesList().IsValidIndex(TileIdx))
@@ -652,6 +653,11 @@ void FWorldTileModel::OnParentChanged()
 	OnLevelInfoUpdated();
 }
 
+bool FWorldTileModel::IsVisibleInCompositionView() const
+{
+	return !TileDetails->bHideInTileView && LevelCollectionModel.PassesAllFilters(*this);
+}
+
 void FWorldTileModel::OnLevelBoundsActorUpdated()
 {
 	Update();
@@ -755,6 +761,11 @@ void FWorldTileModel::OnLODSettingsPropertyChanged()
 }
 
 void FWorldTileModel::OnZOrderPropertyChanged()
+{
+	OnLevelInfoUpdated();
+}
+
+void FWorldTileModel::OnHideInTileViewChanged()
 {
 	OnLevelInfoUpdated();
 }

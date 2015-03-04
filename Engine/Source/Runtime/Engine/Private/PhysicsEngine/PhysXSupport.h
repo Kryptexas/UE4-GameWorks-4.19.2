@@ -21,6 +21,8 @@
 #define PHYSX_MEMORY_STATS		0
 #endif
 
+#define PHYSX_MEMORY_STAT_ONLY (0)
+
 #if USE_SCENE_LOCK
 
 /** Scoped scene read lock - we use this instead of PxSceneReadLock because it handles NULL scene */
@@ -352,7 +354,11 @@ public:
 
 		return (uint8*)AllocationHeader + 16;
 #else
-		return FMemory::Malloc(size, 16);
+		void* ptr = FMemory::Malloc(size, 16);
+		#if PHYSX_MEMORY_STAT_ONLY
+			INC_DWORD_STAT_BY(STAT_MemoryPhysXTotalAllocationSize, FMemory::GetAllocSize(ptr));
+		#endif
+		return ptr;
 #endif
 	}
 	 
@@ -368,6 +374,9 @@ public:
 			FMemory::Free(AllocationHeader);
 		}
 #else
+		#if PHYSX_MEMORY_STAT_ONLY
+			DEC_DWORD_STAT_BY(STAT_MemoryPhysXTotalAllocationSize, FMemory::GetAllocSize(ptr));
+		#endif
 		FMemory::Free(ptr);
 #endif
 	}
@@ -629,3 +638,35 @@ ENGINE_API SIZE_T GetPhysxObjectSize(PxBase* Obj, const PxCollection* SharedColl
 
 
 #include "../Collision/PhysicsFiltering.h"
+
+/** Helper struct holding physics body filter data during initialisation */
+struct FShapeFilterData
+{
+	PxFilterData SimFilter;
+	PxFilterData QuerySimpleFilter;
+	PxFilterData QueryComplexFilter;
+};
+
+/** Helper object to hold initialisation data for shapes */
+struct FShapeData
+{
+	FShapeData()
+		: SyncShapeFlags(0)
+		, AsyncShapeFlags(0)
+		, SimpleShapeFlags(0)
+		, ComplexShapeFlags(0)
+		, SyncBodyFlags(0)
+		, AsyncBodyFlags(0)
+	{
+
+	}
+
+	TEnumAsByte<ECollisionEnabled::Type> CollisionEnabled;
+	FShapeFilterData FilterData;
+	PxShapeFlags SyncShapeFlags;
+	PxShapeFlags AsyncShapeFlags;
+	PxShapeFlags SimpleShapeFlags;
+	PxShapeFlags ComplexShapeFlags;
+	PxRigidBodyFlags SyncBodyFlags;
+	PxRigidBodyFlags AsyncBodyFlags;
+};

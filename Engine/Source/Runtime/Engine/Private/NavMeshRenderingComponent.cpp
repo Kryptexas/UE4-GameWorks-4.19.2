@@ -34,12 +34,11 @@ bool UNavMeshRenderingComponent::NeedsLoadForServer() const
 	return false;
 }
 
-void UNavMeshRenderingComponent::TimerFunction()
+bool UNavMeshRenderingComponent::IsNavigationShowFlagSet(const UWorld* World)
 {
 	bool bShowNavigation = false;
 
-	UWorld* MyWorld = GetWorld();
-	FWorldContext* WorldContext = GEngine->GetWorldContextFromWorld(MyWorld);
+	FWorldContext* WorldContext = GEngine->GetWorldContextFromWorld(World);
 
 #if WITH_EDITOR
 	if (GEditor && WorldContext && WorldContext->WorldType == EWorldType::Editor)
@@ -58,6 +57,13 @@ void UNavMeshRenderingComponent::TimerFunction()
 	{
 		bShowNavigation = WorldContext && WorldContext->GameViewport && WorldContext->GameViewport->EngineShowFlags.Navigation;
 	}
+
+	return bShowNavigation;
+}
+
+void UNavMeshRenderingComponent::TimerFunction()
+{
+	const bool bShowNavigation = IsNavigationShowFlagSet(GetWorld());
 
 	if (bShowNavigation != !!bCollectNavigationData)
 	{
@@ -108,27 +114,8 @@ FPrimitiveSceneProxy* UNavMeshRenderingComponent::CreateSceneProxy()
 #if WITH_RECAST && !UE_BUILD_SHIPPING && !UE_BUILD_TEST
 	FPrimitiveSceneProxy* SceneProxy = NULL;
 
-	UWorld* MyWorld = GetWorld();
-	FWorldContext* WorldContext = GEngine->GetWorldContextFromWorld(MyWorld);
+	const bool bShowNavigation = IsNavigationShowFlagSet(GetWorld());
 
-	bool bShowNavigation = false;
-#if WITH_EDITOR
-	if (GEditor && WorldContext && WorldContext->WorldType == EWorldType::Editor)
-	{
-		for (FEditorViewportClient* CurrentViewpoer : GEditor->AllViewportClients)
-		{
-			if (CurrentViewpoer->EngineShowFlags.Navigation)
-			{
-				bShowNavigation = true;
-				break;
-			}
-		}
-	}
-	else
-#endif //WITH_EDITOR
-	{
-		bShowNavigation = WorldContext && WorldContext->GameViewport && WorldContext->GameViewport->EngineShowFlags.Navigation;
-	}
 	bCollectNavigationData = bShowNavigation;
 
 	if (bCollectNavigationData && IsVisible())
@@ -198,6 +185,7 @@ FBoxSphereBounds UNavMeshRenderingComponent::CalcBounds(const FTransform& LocalT
 
 void UNavMeshRenderingComponent::GatherData(FNavMeshSceneProxyData& CurrentData) const
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_NavMesh_GatherDebugDrawingGeometry);
 #if WITH_RECAST
 	const ARecastNavMesh* NavMesh = Cast<ARecastNavMesh>(GetOwner());
 
@@ -483,9 +471,9 @@ void UNavMeshRenderingComponent::GatherData(FNavMeshSceneProxyData& CurrentData)
 				for (FNavigationOctree::ElementConstIt ElementIt(Node.GetElementIt()); ElementIt; ElementIt++)
 				{
 					const FNavigationOctreeElement& Element = *ElementIt;
-					if (Element.ShouldUseGeometry(NavMesh->GetConfig()) && Element.Data.CollisionData.Num())
+					if (Element.ShouldUseGeometry(NavMesh->GetConfig()) && Element.Data->CollisionData.Num())
 					{
-						const FRecastGeometryCache CachedGeometry(Element.Data.CollisionData.GetData());
+						const FRecastGeometryCache CachedGeometry(Element.Data->CollisionData.GetData());
 						AppendGeometry(PathCollidingGeomVerts, PathCollidingGeomIndices, CachedGeometry.Verts, CachedGeometry.Header.NumVerts, CachedGeometry.Indices, CachedGeometry.Header.NumFaces);
 					}
 				}

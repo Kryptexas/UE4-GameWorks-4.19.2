@@ -41,7 +41,7 @@ FArchive& operator<<( FArchive& Ar, FWorldTileInfo& D )
 	
 	if (Ar.UE4Ver() >= VER_UE4_WORLD_LEVEL_INFO_UPDATED)
 	{
-		Ar << D.Reserved0 << D.ParentTilePackageName;
+		Ar << D.bHideInTileView << D.ParentTilePackageName;
 	}
 
 	if (Ar.UE4Ver() >= VER_UE4_WORLD_LEVEL_INFO_LOD_LIST)

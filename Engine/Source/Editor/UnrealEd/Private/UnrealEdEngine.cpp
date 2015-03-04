@@ -815,6 +815,10 @@ bool UUnrealEdEngine::OnlyLoadEditorVisibleLevelsInPIE() const
 	return GetDefault<ULevelEditorPlaySettings>()->bOnlyLoadVisibleLevelsInPIE;
 }
 
+bool UUnrealEdEngine::PreferToStreamLevelsInPIE() const
+{
+	return GetDefault<ULevelEditorPlaySettings>()->bPreferToStreamLevelsInPIE;
+}
 
 void UUnrealEdEngine::RedrawLevelEditingViewports(bool bInvalidateHitProxies)
 {

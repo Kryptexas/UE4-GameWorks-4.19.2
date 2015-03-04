@@ -16,7 +16,11 @@ struct FGrassVariety
 	UPROPERTY(EditAnywhere, Category=Grass)
 	float GrassDensity;
 
+	/* If true, use a jittered grid sequence for placement, otherwise use a halton sequence. */
 	UPROPERTY(EditAnywhere, Category=Grass)
+	bool bUseGrid;
+
+	UPROPERTY(EditAnywhere, Category=Grass, meta = (EditCondition = "bUseGrid", UIMin = 0, ClampMin = 0, UIMax = 1, ClampMax = 1))
 	float PlacementJitter;
 
 	/* The distance where instances will begin to fade out if using a PerInstanceFadeAmount material node. 0 disables. */
@@ -29,6 +33,13 @@ struct FGrassVariety
 	 */
 	UPROPERTY(EditAnywhere, Category = Grass)
 	int32 EndCullDistance;
+
+	/** 
+	 * Specifies the smallest LOD that will be used for this component.  
+	 * If -1 (default), the MinLOD of the static mesh asset will be used instead.
+	 */
+	UPROPERTY(EditAnywhere, Category = Grass)
+	int32 MinLOD;
 
 	UPROPERTY(EditAnywhere, Category = Grass)
 	bool RandomRotation;
@@ -43,8 +54,10 @@ struct FGrassVariety
 		StartCullDistance = 10000.0f;
 		EndCullDistance = 10000.0f;
 		PlacementJitter = 1.0f;
+		MinLOD = -1;
 		RandomRotation = true;
 		AlignToSurface = true;
+		bUseGrid = true;
 	}
 };
 

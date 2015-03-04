@@ -72,6 +72,10 @@
 #include "Particles/ParticleSystemComponent.h"
 #include "Particles/ParticleSystemReplay.h"
 #include "ContentStreaming.h"
+#include "Matinee/InterpTrackFloatAnimBPParam.h"
+#include "Matinee/InterpTrackInstFloatAnimBPParam.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimBlueprintGeneratedClass.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -2019,7 +2023,7 @@ void UInterpGroup::UpdateGroup(float NewPosition, UInterpGroupInst* GrInst, bool
 	check( InterpTracks.Num() == GrInst->TrackInst.Num() );
 
 	// Update animation state of Actor.
-#if WITH_EDITORONLY_DATA
+#if 0
 	// if in editor and preview and anim control exists, let them update weight before update track
 	if ( GIsEditor && bPreview && HasAnimControlTrack() )
 	{
@@ -2047,8 +2051,10 @@ void UInterpGroup::UpdateGroup(float NewPosition, UInterpGroupInst* GrInst, bool
 		}
 	}
 
+#if 0
 	// Update animation state of Actor.
 	UpdateAnimWeights(NewPosition, GrInst, bPreview, bJump);
+#endif // disable this, it doesn't w
 }
 
 bool UInterpGroup::HasSelectedTracks() const
@@ -6811,6 +6817,8 @@ void UInterpTrackInstDirector::TermTrackInst(UInterpTrack* Track)
 UInterpTrackFade::UInterpTrackFade(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	FadeColor = FLinearColor::Black;
+	
 	bOnePerGroup = true;
 	bDirGroupOnly = true;
 	TrackInstClass = UInterpTrackInstFade::StaticClass();
@@ -6851,10 +6859,7 @@ void UInterpTrackFade::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, 
 		APlayerController* PC = Cast<APlayerController>(GrInst->GetGroupActor());
 		if(PC && PC->PlayerCameraManager && !PC->PlayerCameraManager->IsPendingKill())
 		{
-			PC->PlayerCameraManager->bEnableFading = true;
-			PC->PlayerCameraManager->FadeAmount = GetFadeAmountAtTime(NewPosition);
-			// disable the Kismet fade control so that we don't thrash
-			PC->PlayerCameraManager->FadeTimeRemaining = 0.0f;
+			PC->PlayerCameraManager->SetManualCameraFade(GetFadeAmountAtTime(NewPosition), FadeColor, bFadeAudio);
 		}
 	}
 }
@@ -6879,12 +6884,12 @@ void UInterpTrackInstFade::TermTrackInst(UInterpTrack* Track)
 	UInterpTrackFade *FadeTrack = Cast<UInterpTrackFade>(Track);
 	if (FadeTrack == NULL || !FadeTrack->bPersistFade)
 	{
-		UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>( GetOuter() );
-		APlayerController* PC = Cast<APlayerController>(GrInst->GroupActor);
+		UInterpGroupInst* const GrInst = CastChecked<UInterpGroupInst>(GetOuter());
+		APlayerController* const PC = Cast<APlayerController>(GrInst->GroupActor);
 		if(PC && PC->PlayerCameraManager && !PC->PlayerCameraManager->IsPendingKill())
 		{
-			PC->PlayerCameraManager->bEnableFading = false;
-			PC->PlayerCameraManager->FadeAmount = 0.f;
+			PC->PlayerCameraManager->StopCameraFade();
+
 			// if the player is remote, ensure they got it
 			// this handles cases where the LDs stream out this level immediately afterwards,
 			// which can mean the client never gets the matinee replication if it was temporarily unresponsive
@@ -7287,14 +7292,18 @@ void UInterpTrackAnimControl::PreviewUpdateTrack(float NewPosition, class UInter
 	int32 ChannelIndex = CalcChannelIndex();
 
 	UAnimSequence* NewAnimSeq = NULL;
-	float NewAnimPosition, TimeElapsed = 0.f;
+
+	UInterpGroupInst* GrInst = CastChecked<UInterpGroupInst>(TrInst->GetOuter());
+	AMatineeActor* MatineeActor = CastChecked<AMatineeActor>(GrInst->GetOuter());
+	bool bJump = !( MatineeActor->bIsPlaying );
+	float NewAnimPosition, TimeElapsed = (bJump || NewPosition < AnimInst->LastUpdatePosition)? 0.f : NewPosition - AnimInst->LastUpdatePosition;
 	bool bNewLooping;
 	bool bResetTime = GetAnimForTime(NewPosition, &NewAnimSeq, NewAnimPosition, bNewLooping);
 
 	if( NewAnimSeq != NULL )
 	{
 		// if we're going backward or if not @ the first frame of the animation
-		bool bFireNotifier = !bSkipAnimNotifiers && (TimeElapsed < 0.f || !bResetTime) ;
+		bool bFireNotifier = !bSkipAnimNotifiers && (!bResetTime) ;
 		IMatineeAnimInterface * IMAI = Cast<IMatineeAnimInterface>(Actor);
 		if (IMAI)
 		{
@@ -8000,7 +8009,9 @@ void UInterpTrackSound::PreviewUpdateTrack(float NewPosition, UInterpTrackInst* 
 	if ( bTimeChangedDrastically && MatineeActor->bIsScrubbing )
 	{
 		FSoundTrackKey& SoundTrackKey = GetSoundTrackKeyAtPosition(NewPosition);
-		const bool bIsInRange = NewPosition >= SoundTrackKey.Time && NewPosition <= ( SoundTrackKey.Time + SoundTrackKey.Sound->Duration );
+		const bool bIsInRange = (SoundTrackKey.Sound)
+				? (NewPosition >= SoundTrackKey.Time && NewPosition <= (SoundTrackKey.Time + SoundTrackKey.Sound->Duration))
+				: false;
 
 		USoundCue* TempPlaybackAudioCue = NewObject<USoundCue>();
 		UAudioComponent* Component = FAudioDevice::CreateComponent(TempPlaybackAudioCue, NULL, NULL, false, false);
@@ -9624,3 +9635,178 @@ UBillboardComponent* AMatineeActor::GetSpriteComponent() const { return SpriteCo
 /** Returns SpriteComponent subobject **/
 UBillboardComponent* AMaterialInstanceActor::GetSpriteComponent() const { return SpriteComponent; }
 #endif
+
+
+/*-----------------------------------------------------------------------------
+	Float anim BP parameter track.
+-----------------------------------------------------------------------------*/
+UInterpTrackFloatAnimBPParam::UInterpTrackFloatAnimBPParam(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, bRefreshParamter(false)
+{
+	TrackInstClass = UInterpTrackInstFloatAnimBPParam::StaticClass();
+	TrackTitle = TEXT("Float AnimBP Param");
+}
+
+#if WITH_EDITOR
+
+void UInterpTrackFloatAnimBPParam::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	UProperty* PropertyThatChanged = PropertyChangedEvent.Property;
+	FName PropertyName = PropertyThatChanged != NULL ? PropertyThatChanged->GetFName() : NAME_None;
+
+	if (PropertyName == GET_MEMBER_NAME_CHECKED(UInterpTrackFloatAnimBPParam, ParamName) ||
+		PropertyName == GET_MEMBER_NAME_CHECKED(UInterpTrackFloatAnimBPParam, AnimBlueprintClass))
+	{
+		bRefreshParamter = true;
+	}
+}
+#endif // WITH_EDITOR
+
+int32 UInterpTrackFloatAnimBPParam::AddKeyframe(float Time, UInterpTrackInst* TrInst, EInterpCurveMode InitInterpMode)
+{
+	int32 NewKeyIndex = FloatTrack.AddPoint( Time, 0.f );
+	FloatTrack.Points[NewKeyIndex].InterpMode = InitInterpMode;
+	if ( NewKeyIndex > 0 )
+	{
+		if ( NewKeyIndex < FloatTrack.Points.Num() - 1 )
+		{
+			const float Duration = FloatTrack.Points[NewKeyIndex+1].InVal - FloatTrack.Points[NewKeyIndex-1].InVal;
+			const float Remaining = FloatTrack.Points[NewKeyIndex+1].InVal - FloatTrack.Points[NewKeyIndex].InVal;
+			const float DurationPct = ( Duration > 0.f ? ((Duration - Remaining) / Duration) : 0.f );
+			if( FloatTrack.Points[NewKeyIndex-1].InterpMode == CIM_Linear || FloatTrack.Points[NewKeyIndex-1].InterpMode == CIM_Constant )	// Linear or Constant interpolation
+			{
+				FloatTrack.Points[NewKeyIndex].OutVal = FMath::Lerp<float>(FloatTrack.Points[NewKeyIndex-1].OutVal, FloatTrack.Points[NewKeyIndex+1].OutVal, DurationPct);
+			}
+			else	// Cubic Interpolation
+			{
+				FloatTrack.Points[NewKeyIndex].OutVal = FMath::CubicInterp<float>(FloatTrack.Points[NewKeyIndex-1].OutVal, FloatTrack.Points[NewKeyIndex-1].LeaveTangent * Duration, FloatTrack.Points[NewKeyIndex+1].OutVal, FloatTrack.Points[NewKeyIndex+1].ArriveTangent * Duration, DurationPct);
+			}
+		}
+		else	// Same position as previous point
+		{
+			FloatTrack.Points[NewKeyIndex].OutVal = FloatTrack.Points[NewKeyIndex-1].OutVal;
+		}
+	}
+	else if ( NewKeyIndex < FloatTrack.Points.Num() - 1 )	// Same position as next point
+	{
+		FloatTrack.Points[NewKeyIndex].OutVal = FloatTrack.Points[NewKeyIndex+1].OutVal;
+	}
+	FloatTrack.AutoSetTangents(CurveTension);
+	return NewKeyIndex;
+}
+
+
+void UInterpTrackFloatAnimBPParam::PreviewUpdateTrack(float NewPosition, UInterpTrackInst* TrInst)
+{
+	if (bRefreshParamter)
+	{
+		UInterpTrackInstFloatAnimBPParam* ParamTrackInst = Cast<UInterpTrackInstFloatAnimBPParam>(TrInst);
+		if(ParamTrackInst != NULL)
+		{
+			ParamTrackInst->RefreshParameter(this);
+		}
+
+		bRefreshParamter = false;
+	}
+
+	UpdateTrack(NewPosition, TrInst, false);
+}
+
+
+void UInterpTrackFloatAnimBPParam::UpdateTrack(float NewPosition, UInterpTrackInst* TrInst, bool bJump)
+{
+	UInterpTrackInstFloatAnimBPParam* ParamTrackInst = Cast<UInterpTrackInstFloatAnimBPParam>(TrInst);
+	if (ParamTrackInst != NULL)
+	{
+		float NewFloatValue = FloatTrack.Eval(NewPosition, 0.f);
+		// set value
+		ParamTrackInst->SetValue(NewFloatValue);
+	}
+}
+
+UInterpTrackInstFloatAnimBPParam::UInterpTrackInstFloatAnimBPParam(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+	, AnimScriptInstance(nullptr)
+	, ResetFloat(0.f)
+	, ParamProperty(nullptr)
+{
+}
+
+void UInterpTrackInstFloatAnimBPParam::InitTrackInst(UInterpTrack* Track)
+{
+	Super::InitTrackInst(Track);
+	RefreshParameter(Track);
+}
+
+void UInterpTrackInstFloatAnimBPParam::RefreshParameter(UInterpTrack* Track)
+{
+	// if currently has correct setup, restore actor state
+	RestoreActorState(Track);
+
+	AnimScriptInstance = nullptr;
+	ParamProperty = nullptr;
+
+	UInterpTrackFloatAnimBPParam* ParamTrack = Cast<UInterpTrackFloatAnimBPParam>(Track);
+	if(ParamTrack != nullptr && ParamTrack->ParamName != NAME_None)
+	{
+		AActor* Actor=GetGroupActor();
+		if(Actor)
+		{
+			TInlineComponentArray<USkeletalMeshComponent*> SkeletalMeshComponents;
+			Actor->GetComponents(SkeletalMeshComponents);
+
+			if(SkeletalMeshComponents.Num() > 0)
+			{
+				UAnimInstance* NewAnimInstance = SkeletalMeshComponents[0]->GetAnimInstance();
+
+				if(NewAnimInstance && NewAnimInstance->GetClass() == ParamTrack->AnimBlueprintClass)
+				{
+					AnimScriptInstance = NewAnimInstance;
+					// make sure the class has the parameter
+					ParamProperty = NewAnimInstance->GetClass()->FindPropertyByName(ParamTrack->ParamName);
+				}
+			}
+		}
+	}
+
+	// save actor state since now property might have changed
+	SaveActorState(Track);
+}
+
+void UInterpTrackInstFloatAnimBPParam::SetValue(float InValue)
+{
+	if (AnimScriptInstance && ParamProperty)
+	{
+		float* Value = ParamProperty->ContainerPtrToValuePtr<float>(AnimScriptInstance);
+		if(Value)
+		{
+			*Value = InValue;
+		}
+	}
+}
+
+float UInterpTrackInstFloatAnimBPParam::GetValue() const
+{
+	if(AnimScriptInstance && ParamProperty)
+	{
+		float* Value = ParamProperty->ContainerPtrToValuePtr<float>(AnimScriptInstance);
+		if(Value)
+		{
+			return *Value;
+		}
+	}
+
+	return 0.f;
+}
+
+void UInterpTrackInstFloatAnimBPParam::SaveActorState(UInterpTrack* Track) 
+{
+	ResetFloat = GetValue();
+}
+void UInterpTrackInstFloatAnimBPParam::RestoreActorState(UInterpTrack* Track)
+{
+	SetValue(ResetFloat);
+}

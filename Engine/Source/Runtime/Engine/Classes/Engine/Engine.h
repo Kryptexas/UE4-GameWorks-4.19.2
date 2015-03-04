@@ -1309,10 +1309,6 @@ public:
 	UPROPERTY(config)
 	float MaxOcclusionPixelsFraction;
 
-	/** Do not use Ageia PhysX hardware */
-	UPROPERTY(globalconfig)
-	uint32 bDisablePhysXHardwareSupport:1;
-
 	/** Whether to pause the game if focus is lost. */
 	UPROPERTY(config)
 	uint32 bPauseOnLossOfFocus:1;
@@ -1912,6 +1908,14 @@ public:
 	{
 		// The editor may override this to apply the user's preference state
 		return true;
+	}
+
+	/**
+	 * @return true if level streaming should prefer to stream levels from disk instead of duplicating them from editor world
+	 */
+	virtual bool PreferToStreamLevelsInPIE() const
+	{
+		return false;
 	}
 
 	/**

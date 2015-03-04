@@ -485,10 +485,10 @@ EPathFollowingRequestResult::Type AAIController::MoveToActor(AActor* Goal, float
 	MoveReq.SetCanStrafe(bCanStrafe);
 
 	return MoveTo(MoveReq);
-}
+	}
 
 EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& Dest, float AcceptanceRadius, bool bStopOnOverlap, bool bUsePathfinding, bool bProjectDestinationToNavigation, bool bCanStrafe, TSubclassOf<UNavigationQueryFilter> FilterClass, bool bAllowPartialPaths)
-{
+		{
 	FAIMoveRequest MoveReq(Dest);
 	MoveReq.SetUsePathfinding(bUsePathfinding);
 	MoveReq.SetAllowPartialPath(bAllowPartialPaths);
@@ -499,7 +499,7 @@ EPathFollowingRequestResult::Type AAIController::MoveToLocation(const FVector& D
 	MoveReq.SetCanStrafe(bCanStrafe);
 
 	return MoveTo(MoveReq);
-}
+	}
 
 EPathFollowingRequestResult::Type AAIController::MoveTo(const FAIMoveRequest& MoveRequest)
 {
@@ -513,26 +513,26 @@ EPathFollowingRequestResult::Type AAIController::MoveTo(const FAIMoveRequest& Mo
 	if (!MoveRequest.HasGoalActor())
 	{
 		if (MoveRequest.GetGoalLocation().ContainsNaN() || FAISystem::IsValidLocation(MoveRequest.GetGoalLocation()) == false)
-		{
+	{
 			UE_VLOG(this, LogAINavigation, Error, TEXT("AAIController::MoveTo: Destination is not valid! Goal(%s)"), TEXT_AI_LOCATION(MoveRequest.GetGoalLocation()));
+		bCanRequestMove = false;
+	}
+
+	// fail if projection to navigation is required but it failed
+		if (bCanRequestMove && MoveRequest.IsProjectingGoal())
+	{
+		UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+		const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
+		FNavLocation ProjectedLocation;
+
+			if (NavSys && !NavSys->ProjectPointToNavigation(MoveRequest.GetGoalLocation(), ProjectedLocation, AgentProps.GetExtent(), &AgentProps))
+		{
+				UE_VLOG_LOCATION(this, LogAINavigation, Error, MoveRequest.GetGoalLocation(), 30.f, FLinearColor::Red, TEXT("AAIController::MoveTo failed to project destination location to navmesh"));
 			bCanRequestMove = false;
 		}
 
-		// fail if projection to navigation is required but it failed
-		if (bCanRequestMove && MoveRequest.IsProjectingGoal())
-		{
-			UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
-			const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
-			FNavLocation ProjectedLocation;
-
-			if (NavSys && !NavSys->ProjectPointToNavigation(MoveRequest.GetGoalLocation(), ProjectedLocation, AgentProps.GetExtent(), &AgentProps))
-			{
-				UE_VLOG_LOCATION(this, LogAINavigation, Error, MoveRequest.GetGoalLocation(), 30.f, FLinearColor::Red, TEXT("AAIController::MoveTo failed to project destination location to navmesh"));
-				bCanRequestMove = false;
-			}
-
 			MoveRequest.UpdateGoalLocation(ProjectedLocation.Location);
-		}
+	}
 
 		bAlreadyAtGoal = bCanRequestMove && PathFollowingComponent &&
 			PathFollowingComponent->HasReached(MoveRequest.GetGoalLocation(), MoveRequest.GetAcceptanceRadius(), !MoveRequest.CanStopOnOverlap());
@@ -551,7 +551,7 @@ EPathFollowingRequestResult::Type AAIController::MoveTo(const FAIMoveRequest& Mo
 		PathFollowingComponent->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest);
 
 		PathFollowingComponent->SetLastMoveAtGoal(true);
-		
+
 		OnMoveCompleted(FAIRequestID::CurrentRequest, EPathFollowingResult::Success);
 		Result = EPathFollowingRequestResult::AlreadyAtGoal;
 	}
@@ -701,12 +701,12 @@ FAIRequestID AAIController::RequestPathAndMove(const FAIMoveRequest& MoveRequest
 				if (MoveRequest.IsUsingPathfinding())
 				{
 					if (MoveRequest.HasGoalActor())
-					{
+				{
 						PathResult.Path->SetGoalActorObservation(*MoveRequest.GetGoalActor(), 100.0f);
-					}
-
-					PathResult.Path->EnableRecalculationOnInvalidation(true);
 				}
+
+				PathResult.Path->EnableRecalculationOnInvalidation(true);
+			}
 
 				RequestID = RequestMove(MoveRequest, PathResult.Path);
 			}

@@ -163,6 +163,7 @@ FArchive& operator<<( FArchive& Ar, FPrecomputedVolumeDistanceField& D )
 
 FLevelSimplificationDetails::FLevelSimplificationDetails()
  : DetailsPercentage(70.f)
+ , bCreatePackagePerAsset(true)
  , LandscapeExportLOD(7)
  , bGenerateLandscapeNormalMap(true)
  , bGenerateLandscapeMetallicMap(false)
@@ -691,6 +692,9 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 		bool bAllComponentsRegistered = true;
 		if (Actor)
 		{
+#if PERF_TRACK_DETAILED_ASYNC_STATS
+			FScopeCycleCounterUObject ContextScope(Actor);
+#endif
 			bAllComponentsRegistered = Actor->IncrementalRegisterComponents(NumComponentsToUpdate);
 		}
 
@@ -714,6 +718,9 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 		CurrentActorIndexForUpdateComponents	= 0;
 		bAreComponentsCurrentlyRegistered		= true;
 		
+#if PERF_TRACK_DETAILED_ASYNC_STATS
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevel_IncrementalUpdateComponents_RerunConstructionScripts);
+#endif
 		if (bRerunConstructionScripts && !IsTemplate() && !GIsUCCMakeStandaloneHeaderGenerator)
 		{
 			// Don't rerun construction scripts until after all actors' components have been registered.  This
@@ -723,6 +730,9 @@ void ULevel::IncrementalUpdateComponents(int32 NumComponentsToUpdate, bool bReru
 			{
 				if (Actor)
 				{
+#if PERF_TRACK_DETAILED_ASYNC_STATS
+					FScopeCycleCounterUObject ContextScope(Actor);
+#endif
 					Actor->RerunConstructionScripts();
 				}
 			}
@@ -1732,8 +1742,11 @@ bool ULevel::IsCurrentLevel() const
 
 void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
 {
-	if (bTextureStreamingBuilt)
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevel_ApplyWorldOffset);
+
+	if (bTextureStreamingBuilt && !InWorldOffset.IsZero())
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevel_ApplyWorldOffset_TextureStreaming);
 		// Update texture streaming data to account for the move
 		for (TMap< UTexture2D*, TArray<FStreamableTextureInstance> >::TIterator It(TextureToInstancesMap); It; ++It)
 		{
@@ -1743,51 +1756,68 @@ void ULevel::ApplyWorldOffset(const FVector& InWorldOffset, bool bWorldShift)
 				TextureInfo[i].BoundingSphere.Center+= InWorldOffset;
 			}
 		}
-		
-		// Re-add level data to a manager
-		IStreamingManager::Get().AddPreparedLevel( this );
+
+		// Re-add level data to a manager, in case level is visible it this point
+		if (bIsVisible)
+		{
+			IStreamingManager::Get().AddPreparedLevel( this );
+		}
 	}
 
 	// Move precomputed light samples
-	if (PrecomputedLightVolume)
+	if (PrecomputedLightVolume && !InWorldOffset.IsZero())
 	{
-		if (!PrecomputedLightVolume->IsAddedToScene())
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevel_ApplyWorldOffset_PrecomputedLightVolume);
+		// Shift light volume only if it's going to be used
+		static const auto AllowStaticLightingVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.AllowStaticLighting"));
+		const bool bAllowStaticLighting = (!AllowStaticLightingVar || AllowStaticLightingVar->GetValueOnGameThread() != 0);
+		if (bAllowStaticLighting) 
 		{
-			PrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
-		}
-		// At world origin rebasing all registered volumes will be moved during FScene shifting
-		// Otherwise we need to send a command to move just this volume
-		else if (!bWorldShift) 
-		{
-			ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
- 				ApplyWorldOffset_PLV,
- 				FPrecomputedLightVolume*, InPrecomputedLightVolume, PrecomputedLightVolume,
- 				FVector, InWorldOffset, InWorldOffset,
- 			{
-				InPrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
- 			});
+			if (!PrecomputedLightVolume->IsAddedToScene())
+			{
+				PrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
+			}
+			// At world origin rebasing all registered volumes will be moved during FScene shifting
+			// Otherwise we need to send a command to move just this volume
+			else if (!bWorldShift) 
+			{
+				ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
+ 					ApplyWorldOffset_PLV,
+ 					FPrecomputedLightVolume*, InPrecomputedLightVolume, PrecomputedLightVolume,
+ 					FVector, InWorldOffset, InWorldOffset,
+ 				{
+					InPrecomputedLightVolume->ApplyWorldOffset(InWorldOffset);
+ 				});
+			}
 		}
 	}
 
-	// Iterate over all actors in the level and move them
-	for (int32 ActorIndex = 0; ActorIndex < Actors.Num(); ActorIndex++)
 	{
-		AActor* Actor = Actors[ActorIndex];
-		if (Actor)
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevel_ApplyWorldOffset_Actors);
+		// Iterate over all actors in the level and move them
+		for (int32 ActorIndex = 0; ActorIndex < Actors.Num(); ActorIndex++)
 		{
-			FVector Offset = (bWorldShift && Actor->bIgnoresOriginShifting) ? FVector::ZeroVector : InWorldOffset;
-						
-			if (!Actor->IsA(ANavigationData::StaticClass())) // Navigation data will be moved in NavigationSystem
+			AActor* Actor = Actors[ActorIndex];
+			if (Actor)
 			{
-				Actor->ApplyWorldOffset(Offset, bWorldShift);
+				FVector Offset = (bWorldShift && Actor->bIgnoresOriginShifting) ? FVector::ZeroVector : InWorldOffset;
+
+				if (!Actor->IsA(ANavigationData::StaticClass())) // Navigation data will be moved in NavigationSystem
+				{
+					FScopeCycleCounterUObject Context(Actor);
+					Actor->ApplyWorldOffset(Offset, bWorldShift);
+				}
 			}
 		}
 	}
 	
-	// Move model geometry
-	for (int32 CompIdx = 0; CompIdx < ModelComponents.Num(); ++CompIdx)
 	{
-		ModelComponents[CompIdx]->ApplyWorldOffset(InWorldOffset, bWorldShift);
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_ULevel_ApplyWorldOffset_Model);
+		// Move model geometry
+		for (int32 CompIdx = 0; CompIdx < ModelComponents.Num(); ++CompIdx)
+		{
+			ModelComponents[CompIdx]->ApplyWorldOffset(InWorldOffset, bWorldShift);
+		}
 	}
 }
 

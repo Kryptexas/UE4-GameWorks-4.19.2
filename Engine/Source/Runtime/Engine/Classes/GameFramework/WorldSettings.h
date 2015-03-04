@@ -399,7 +399,6 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=VR)
 	float WorldToMeters;
 
-#if WITH_EDITORONLY_DATA
 	/************************************/
 	/** EDITOR ONLY SETTINGS **/
 	
@@ -407,7 +406,6 @@ class ENGINE_API AWorldSettings : public AInfo, public IInterface_AssetUserData
 	UPROPERTY()
 	class UBookMark* BookMarks[10];
 
-#endif // WITH_EDITORONLY_DATA
 	/************************************/
 
 	/** 

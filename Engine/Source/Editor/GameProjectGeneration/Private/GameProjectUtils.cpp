@@ -1505,6 +1505,9 @@ bool GameProjectUtils::NameContainsOnlyLegalCharacters(const FString& TestName, 
 
 bool GameProjectUtils::NameContainsUnderscoreAndXB1Installed(const FString& TestName)
 {
+	// disabled for now so people with the SDK installed can use the editor
+	return false;
+
 	bool bContainsIllegalCharacters = false;
 
 	// Only allow alphanumeric characters in the project name

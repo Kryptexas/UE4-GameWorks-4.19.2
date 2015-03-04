@@ -16,6 +16,7 @@
 #include "MaterialUniformExpressions.h"
 #include "Developer/TargetPlatform/Public/TargetPlatform.h"
 #include "ComponentReregisterContext.h"
+#include "ComponentRecreateRenderStateContext.h"
 #include "EngineModule.h"
 #include "Engine/Font.h"
 
@@ -1961,10 +1962,16 @@ void FMaterial::RestoreEditorLoadedMaterialShadersFromMemory(const TMap<FMateria
 FMaterialUpdateContext::FMaterialUpdateContext(uint32 Options, EShaderPlatform InShaderPlatform)
 {
 	bool bReregisterComponents = (Options & EOptions::ReregisterComponents) != 0;
+	bool bRecreateRenderStates = (Options & EOptions::RecreateRenderStates) != 0;
+
 	bSyncWithRenderingThread = (Options & EOptions::SyncWithRenderingThread) != 0;
 	if (bReregisterComponents)
 	{
 		ComponentReregisterContext = new FGlobalComponentReregisterContext();
+	}
+	else if (bRecreateRenderStates)
+	{
+		ComponentRecreateRenderStateContext = new FGlobalComponentRecreateRenderStateContext();
 	}
 	if (bSyncWithRenderingThread)
 	{
@@ -2016,7 +2023,7 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 	TArray<const FMaterial*> MaterialResourcesToUpdate;
 	TArray<UMaterialInstance*> InstancesToUpdate;
 
-	bool bUpdateStaticDrawLists = ComponentReregisterContext == NULL;
+	bool bUpdateStaticDrawLists = !ComponentReregisterContext.IsValid() && !ComponentRecreateRenderStateContext.IsValid();
 
 	// If static draw lists must be updated, gather material resources from all updated materials.
 	if (bUpdateStaticDrawLists)
@@ -2104,11 +2111,13 @@ FMaterialUpdateContext::~FMaterialUpdateContext()
 		// safe, e.g. while a component is being registered.
 		GetRendererModule().UpdateStaticDrawListsForMaterials(MaterialResourcesToUpdate);
 	}
-	else
+	else if (ComponentReregisterContext.IsValid())
 	{
-		// We must be reregistering components in which case static draw lists will be recreated.
-		check(ComponentReregisterContext != NULL);
 		ComponentReregisterContext.Reset();
+	}
+	else if (ComponentRecreateRenderStateContext.IsValid())
+	{
+		ComponentRecreateRenderStateContext.Reset();
 	}
 
 	double EndTime = FPlatformTime::Seconds();

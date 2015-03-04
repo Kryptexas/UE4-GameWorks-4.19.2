@@ -231,6 +231,8 @@ ARecastNavMesh::ARecastNavMesh(const FObjectInitializer& ObjectInitializer)
 	LayerPartitioning = ERecastPartitioning::Watershed;
 	RegionChunkSplits = 2;
 	LayerChunkSplits = 2;
+	MaxSimultaneousTileGenerationJobsCount = 1024;
+	bDoFullyAsyncNavDataGathering = false;
 
 #if RECAST_ASYNC_REBUILDING
 	BatchQueryCounter = 0;
@@ -453,7 +455,7 @@ void ARecastNavMesh::UpdateNavMeshDrawing()
 		}
 	}
 #else // DO_NAVMESH_DEBUG_DRAWING_PER_TILE
-	if (RenderingComp != NULL && RenderingComp->bVisible)
+	if (RenderingComp != NULL && RenderingComp->bVisible && UNavMeshRenderingComponent::IsNavigationShowFlagSet(GetWorld()))
 	{
 		RenderingComp->MarkRenderStateDirty();
 	}
@@ -464,7 +466,11 @@ void ARecastNavMesh::UpdateNavMeshDrawing()
 void ARecastNavMesh::CleanUp()
 {
 	Super::CleanUp();
-	NavDataGenerator.Reset();
+	if (NavDataGenerator.IsValid())
+	{
+		NavDataGenerator->CancelBuild();
+		NavDataGenerator.Reset();
+	}
 	DestroyRecastPImpl();
 }
 
@@ -1270,13 +1276,16 @@ void ARecastNavMesh::GetDebugGeometry(FRecastDebugGeometry& OutGeometry, int32 T
 void ARecastNavMesh::RequestDrawingUpdate()
 {
 #if !UE_BUILD_SHIPPING
-	DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Requesting navmesh redraw"),
+	if (UNavMeshRenderingComponent::IsNavigationShowFlagSet(GetWorld()))
+	{
+		DECLARE_CYCLE_STAT(TEXT("FSimpleDelegateGraphTask.Requesting navmesh redraw"),
 		STAT_FSimpleDelegateGraphTask_RequestingNavmeshRedraw,
-		STATGROUP_TaskGraphTasks);
+			STATGROUP_TaskGraphTasks);
 
-	FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
-		FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &ARecastNavMesh::UpdateDrawing),
-		GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingNavmeshRedraw), NULL, ENamedThreads::GameThread);
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+			FSimpleDelegateGraphTask::FDelegate::CreateUObject(this, &ARecastNavMesh::UpdateDrawing),
+			GET_STATID(STAT_FSimpleDelegateGraphTask_RequestingNavmeshRedraw), NULL, ENamedThreads::GameThread);
+	}
 #endif // !UE_BUILD_SHIPPING
 }
 
@@ -1476,6 +1485,20 @@ uint16 ARecastNavMesh::GetDefaultForbiddenFlags() const
 void ARecastNavMesh::SetDefaultForbiddenFlags(uint16 ForbiddenAreaFlags)
 {
 	FPImplRecastNavMesh::SetFilterForbiddenFlags((FRecastQueryFilter*)DefaultQueryFilter->GetImplementation(), ForbiddenAreaFlags);
+}
+
+void ARecastNavMesh::SetMaxSimultaneousTileGenerationJobsCount(int32 NewJobsCountLimit) 
+{
+	const int32 NewCount = NewJobsCountLimit > 0 ? NewJobsCountLimit : 1;
+	if (MaxSimultaneousTileGenerationJobsCount != NewCount)
+	{
+		MaxSimultaneousTileGenerationJobsCount = NewCount;
+		if (GetGenerator() != nullptr)
+		{
+			FRecastNavMeshGenerator* MyGenerator = static_cast<FRecastNavMeshGenerator*>(GetGenerator());
+			MyGenerator->SetMaxTileGeneratorTasks(NewCount);
+		}
+	}
 }
 
 bool ARecastNavMesh::FilterPolys(TArray<NavNodeRef>& PolyRefs, const FRecastQueryFilter* Filter, const UObject* QueryOwner) const
@@ -1862,7 +1885,7 @@ void ARecastNavMesh::PostEditChangeProperty(FPropertyChangedEvent& PropertyChang
 bool ARecastNavMesh::NeedsRebuild() const
 {
 	bool bLooksLikeNeeded = !RecastNavMeshImpl || RecastNavMeshImpl->GetRecastMesh() == 0;
-	if (NavDataGenerator)
+	if (NavDataGenerator.IsValid())
 	{
 		return bLooksLikeNeeded || NavDataGenerator->GetNumRemaningBuildTasks() > 0;
 	}
@@ -1892,7 +1915,7 @@ void ARecastNavMesh::ConditionalConstructGenerator()
 	const bool bRequiresGenerator = SupportsRuntimeGeneration() || !World->IsGameWorld();
 	if (bRequiresGenerator)
 	{
-		NavDataGenerator.Reset(new FRecastNavMeshGenerator(*this));
+		NavDataGenerator = MakeShareable(new FRecastNavMeshGenerator(*this));
 
 		if (World->GetNavigationSystem())
 		{

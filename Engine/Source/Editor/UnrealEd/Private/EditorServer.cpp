@@ -1123,55 +1123,55 @@ UTransactor* UEditorEngine::CreateTrans()
 void UEditorEngine::PostUndo (bool bSuccess)
 {
 	//Update the actor selection followed by the component selection if needed (note: order is important)
-
-	//Get the list of all selected actors after the operation
-	TArray<AActor*> SelectedActors;
-	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
-	{
-		AActor* Actor = CastChecked<AActor>(*It);
-		//if this actor is NOT in a hidden level add it to the list - otherwise de-select it
-		if (FLevelUtils::IsLevelLocked(Actor) == false)
+		
+		//Get the list of all selected actors after the operation
+		TArray<AActor*> SelectedActors;
+		for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
 		{
-			SelectedActors.Add(Actor);
+			AActor* Actor = CastChecked<AActor>(*It);
+			//if this actor is NOT in a hidden level add it to the list - otherwise de-select it
+			if (FLevelUtils::IsLevelLocked(Actor) == false)
+			{
+				SelectedActors.Add(Actor);
+			}
+			else
+			{
+				GetSelectedActors()->Select(Actor, false);
+			}
 		}
-		else
+
+		USelection* Selection = GetSelectedActors();
+		Selection->BeginBatchSelectOperation();
+
+		//Deselect all of the actors that were selected prior to the operation
+		for (int32 OldSelectedActorIndex = OldSelectedActors.Num() - 1; OldSelectedActorIndex >= 0; --OldSelectedActorIndex)
 		{
-			GetSelectedActors()->Select(Actor, false);
+			AActor* Actor = OldSelectedActors[OldSelectedActorIndex];
+
+			//To stop us from unselecting and then reselecting again (causing two force update components, we will remove (from both lists) any object that was selected and should continue to be selected
+			int32 FoundIndex;
+			if (SelectedActors.Find(Actor, FoundIndex))
+			{
+				OldSelectedActors.RemoveAt(OldSelectedActorIndex);
+				SelectedActors.RemoveAt(FoundIndex);
+			}
+			else
+			{
+				SelectActor(Actor, false, false);//First false is to deselect, 2nd is to notify
+				Actor->UpdateComponentTransforms();
+			}
 		}
-	}
 
-	USelection* Selection = GetSelectedActors();
-	Selection->BeginBatchSelectOperation();
-
-	//Deselect all of the actors that were selected prior to the operation
-	for (int32 OldSelectedActorIndex = OldSelectedActors.Num() - 1; OldSelectedActorIndex >= 0; --OldSelectedActorIndex)
-	{
-		AActor* Actor = OldSelectedActors[OldSelectedActorIndex];
-
-		//To stop us from unselecting and then reselecting again (causing two force update components, we will remove (from both lists) any object that was selected and should continue to be selected
-		int32 FoundIndex;
-		if (SelectedActors.Find(Actor, FoundIndex))
+		//Select all of the actors in SelectedActors
+		for (int32 SelectedActorIndex = 0; SelectedActorIndex < SelectedActors.Num(); ++SelectedActorIndex)
 		{
-			OldSelectedActors.RemoveAt(OldSelectedActorIndex);
-			SelectedActors.RemoveAt(FoundIndex);
-		}
-		else
-		{
-			SelectActor(Actor, false, false);//First false is to deselect, 2nd is to notify
+			AActor* Actor = SelectedActors[SelectedActorIndex];
+			SelectActor(Actor, true, false);	//false is to stop notify which is done below if bOpWasSuccessful
 			Actor->UpdateComponentTransforms();
 		}
-	}
 
-	//Select all of the actors in SelectedActors
-	for (int32 SelectedActorIndex = 0; SelectedActorIndex < SelectedActors.Num(); ++SelectedActorIndex)
-	{
-		AActor* Actor = SelectedActors[SelectedActorIndex];
-		SelectActor(Actor, true, false);	//false is to stop notify which is done below if bOpWasSuccessful
-		Actor->UpdateComponentTransforms();
-	}
-
-	OldSelectedActors.Empty();
-	Selection->EndBatchSelectOperation();
+		OldSelectedActors.Empty();
+		Selection->EndBatchSelectOperation();
 	
 	if (GetSelectedComponentCount() > 0)
 	{
@@ -1611,72 +1611,72 @@ void UEditorEngine::RebuildAlteredBSP()
 {
 	if( GUndo && !GIsTransacting )
 	{
-		// Early out if BSP auto-updating is disabled
-		if (!GetDefault<ULevelEditorMiscSettings>()->bBSPAutoUpdate)
-		{
-			return;
-		}
+	// Early out if BSP auto-updating is disabled
+	if (!GetDefault<ULevelEditorMiscSettings>()->bBSPAutoUpdate)
+	{
+		return;
+	}
 
-		FlushRenderingCommands();
+	FlushRenderingCommands();
 
-		// A list of all the levels that need to be rebuilt
-		TArray< TWeakObjectPtr< ULevel > > LevelsToRebuild;
+	// A list of all the levels that need to be rebuilt
+	TArray< TWeakObjectPtr< ULevel > > LevelsToRebuild;
 		ABrush::NeedsRebuild(&LevelsToRebuild);
 
-		// Determine which levels need to be rebuilt
-		for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
-		{
-			AActor* Actor = static_cast<AActor*>(*It);
+	// Determine which levels need to be rebuilt
+	for (FSelectionIterator It(GetSelectedActorIterator()); It; ++It)
+	{
+		AActor* Actor = static_cast<AActor*>(*It);
 			checkSlow(Actor->IsA(AActor::StaticClass()));
 
 			ABrush* SelectedBrush = Cast< ABrush >(Actor);
-			if (SelectedBrush && !FActorEditorUtils::IsABuilderBrush(Actor))
+		if (SelectedBrush && !FActorEditorUtils::IsABuilderBrush(Actor))
+		{
+			ULevel* Level = SelectedBrush->GetLevel();
+			if (Level)
 			{
-				ULevel* Level = SelectedBrush->GetLevel();
-				if (Level)
-				{
-					LevelsToRebuild.AddUnique(Level);
-				}
+				LevelsToRebuild.AddUnique(Level);
 			}
-			else
-			{
-				// In addition to any selected brushes, any brushes attached to a selected actor should be rebuilt
-				TArray<AActor*> AttachedActors;
+		}
+		else
+		{
+			// In addition to any selected brushes, any brushes attached to a selected actor should be rebuilt
+			TArray<AActor*> AttachedActors;
 				Actor->GetAttachedActors(AttachedActors);
 
-				const bool bExactClass = true;
-				TArray<AActor*> AttachedBrushes;
-				// Get any brush actors attached to the selected actor
+			const bool bExactClass = true;
+			TArray<AActor*> AttachedBrushes;
+			// Get any brush actors attached to the selected actor
 				if (ContainsObjectOfClass(AttachedActors, ABrush::StaticClass(), bExactClass, &AttachedBrushes))
-				{
+			{
 					for (int32 BrushIndex = 0; BrushIndex < AttachedBrushes.Num(); ++BrushIndex)
-					{
+				{
 						ULevel* Level = CastChecked<ABrush>(AttachedBrushes[BrushIndex])->GetLevel();
-						if (Level)
-						{
-							LevelsToRebuild.AddUnique(Level);
-						}
+					if (Level)
+					{
+						LevelsToRebuild.AddUnique(Level);
 					}
 				}
-
 			}
 
 		}
 
-		// Rebuild the levels
-		for (int32 LevelIdx = 0; LevelIdx < LevelsToRebuild.Num(); ++LevelIdx)
-		{
-			TWeakObjectPtr< ULevel > LevelToRebuild = LevelsToRebuild[LevelIdx];
-			if (LevelToRebuild.IsValid())
-			{
-				RebuildLevel(*LevelToRebuild.Get());
-			}
-		}
-
-		RedrawLevelEditingViewports();
-
-		ABrush::OnRebuildDone();
 	}
+
+	// Rebuild the levels
+	for (int32 LevelIdx = 0; LevelIdx < LevelsToRebuild.Num(); ++LevelIdx)
+	{
+		TWeakObjectPtr< ULevel > LevelToRebuild = LevelsToRebuild[LevelIdx];
+			if (LevelToRebuild.IsValid())
+		{
+			RebuildLevel(*LevelToRebuild.Get());
+		}
+	}
+
+	RedrawLevelEditingViewports();
+
+	ABrush::OnRebuildDone();
+}
 	else
 	{
  		ensureMsgf(0, TEXT("Rebuild BSP ignored. Not in a transaction") );
@@ -4631,7 +4631,7 @@ bool UEditorEngine::SnapObjectTo( FActorOrComponent Object, const bool InAlign, 
 	{
 		FVector NewLocation = Hit.Location - LocationOffset;
 		NewLocation.Z += KINDA_SMALL_NUMBER;	// Move the new desired location up by an error tolerance
-
+		
 		Object.SetWorldLocation( NewLocation );
 		//InActor->TeleportTo( NewLocation, InActor->GetActorRotation(), false,true );
 		
@@ -4799,7 +4799,7 @@ bool UEditorEngine::Exec_Camera( const TCHAR* Str, FOutputDevice& Ar )
 		{
 			SelectedObject.Actor = GEditor->GetSelectedActors()->GetTop<AActor>();
 		}
-		
+
 		if (SelectedObject.IsValid())
 		{
 			// Set perspective viewport camera parameters to that of the selected camera.
@@ -5904,6 +5904,12 @@ bool UEditorEngine::HandleJumpToCommand( const TCHAR* Str, FOutputDevice& Ar )
 
 bool UEditorEngine::HandleBugItGoCommand( const TCHAR* Str, FOutputDevice& Ar )
 {
+	if (PlayWorld)
+	{
+		// in PIE, let the in-game codepath handle it
+		return false;
+	}
+
 	const TCHAR* Stream = Str;
 	FVector Loc;
 	Stream = GetFVECTORSpaceDelimited( Stream, Loc );

@@ -180,8 +180,9 @@ void FCameraMotionParameters::Set(FRHICommandList& RHICmdList, const FSceneView&
 	PrevProj.M[2][0] = 0.0f;
 	PrevProj.M[2][1] = 0.0f;
 
-	FMatrix ViewProj = ( View.ViewMatrices.ViewMatrix * Proj ).GetTransposed();
-	FMatrix PrevViewProj = ( ViewState->PrevViewMatrices.ViewMatrix * PrevProj ).GetTransposed();
+	FVector DeltaTranslation = ViewState->PrevViewMatrices.PreViewTranslation - View.ViewMatrices.PreViewTranslation;
+	FMatrix ViewProj = ( View.ViewMatrices.TranslatedViewMatrix * Proj ).GetTransposed();
+	FMatrix PrevViewProj = ( FTranslationMatrix(DeltaTranslation) * ViewState->PrevViewMatrices.TranslatedViewMatrix * PrevProj ).GetTransposed();
 
 	double InvViewProj[16];
 	Inverse4x4( InvViewProj, (float*)ViewProj.M );

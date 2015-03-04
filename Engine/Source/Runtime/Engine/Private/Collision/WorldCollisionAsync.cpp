@@ -391,6 +391,7 @@ void UWorld::WaitForAllAsyncTraceTasks()
 	AsyncTraceData& DataBufferExecuted = AsyncTraceState.GetBufferForPreviousFrame();
 	if (DataBufferExecuted.AsyncTraceCompletionEvent.Num() > 0)
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_WaitForAllAsyncTraceTasks);
 		FTaskGraphInterface::Get().WaitUntilTasksComplete(DataBufferExecuted.AsyncTraceCompletionEvent,ENamedThreads::GameThread);
 		DataBufferExecuted.AsyncTraceCompletionEvent.Reset();
 	}

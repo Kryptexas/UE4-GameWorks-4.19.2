@@ -493,6 +493,39 @@ struct ENGINE_API FWorldAsyncTraceState
 	int32 NextAvailableOverlapIndex;
 };
 
+#if WITH_EDITOR
+/* FAsyncPreRegisterDDCRequest - info about an async DDC request that we're going to wait on before registering components */
+class ENGINE_API FAsyncPreRegisterDDCRequest
+{
+	/* DDC Key used for the request */
+	FString DDCKey;
+
+	/* Handle for Async DDC request. 0 if no longer invalid. */
+	uint32 Handle;
+public:
+	/** constructor */
+	FAsyncPreRegisterDDCRequest(const FString& InKey, uint32 InHandle)
+	: DDCKey(InKey)
+	, Handle(InHandle)
+	{}
+
+	/** destructor */
+	~FAsyncPreRegisterDDCRequest();
+
+	/** returns true if the request is complete */
+	bool PollAsynchronousCompletion();
+
+	/** waits until the request is complete */
+	void WaitAsynchronousCompletion();
+
+	/** returns true if the DDC returned the results requested. Must only be called once. */
+	bool GetAsynchronousResults(TArray<uint8>& OutData);
+
+	/** get the DDC key associated with this request */
+	const FString& GetKey() const { return DDCKey; }
+};
+#endif
+
 /** 
  * The World is the top level object representing a map or a sandbox in which Actors and Components will exist and be rendered.  
  *
@@ -508,6 +541,8 @@ UCLASS(customConstructor, config=Engine)
 class ENGINE_API UWorld : public UObject, public FNetworkNotify
 {
 	GENERATED_UCLASS_BODY()
+
+	~UWorld();
 
 #if WITH_EDITORONLY_DATA
 	/** List of all the layers referenced by the world's actors */
@@ -1005,6 +1040,14 @@ public:
 	/** Keeps track whether actors moved via PostEditMove and therefore constraint syncup should be performed. */
 	UPROPERTY(transient)
 	uint32 bAreConstraintsDirty:1;
+
+	/** Coordinates async tasks started in post load that we want completed before we register components.  May not be here for long; currently used to convert foliage instance buffers.*/
+	FThreadSafeCounter AsyncPreRegisterLevelStreamingTasks;
+
+#if WITH_EDITORONLY_DATA
+	/** List of DDC async requests we need to wait on before we register components. Game thread only. */
+	TArray<TSharedPtr<FAsyncPreRegisterDDCRequest>> AsyncPreRegisterDDCRequests;
+#endif
 
 	/**
 	 * UWorld default constructor

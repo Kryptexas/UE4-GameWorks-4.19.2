@@ -21,7 +21,7 @@ namespace ECrowdAvoidanceQuality
 	};
 }
 
-UCLASS()
+UCLASS(BlueprintType)
 class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, public ICrowdAgentInterface
 {
 	GENERATED_UCLASS_BODY()
@@ -61,6 +61,7 @@ class AIMODULE_API UCrowdFollowingComponent : public UPathFollowingComponent, pu
 	virtual void ApplyCrowdAgentPosition(const FVector& NewPosition);
 
 	/** master switch for crowd steering & avoidance */
+	UFUNCTION(BlueprintCallable, Category = "Crowd")
 	virtual void SuspendCrowdSteering(bool bSuspend);
 
 	/** switch between crowd simulation and parent implementation (following path segments) */

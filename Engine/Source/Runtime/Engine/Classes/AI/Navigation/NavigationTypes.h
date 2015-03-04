@@ -1,6 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+#include "Containers/BitArray.h"
 #include "NavigationTypes.generated.h"
 
 #define INVALID_NAVNODEREF (0)
@@ -167,6 +169,22 @@ struct FNavigationDirtyElement
 	{
 		return GetTypeHash(Info.Owner);
 	}
+};
+
+UENUM()
+enum class ENavDataGatheringMode : uint8
+{
+	Default,
+	Instant,
+	Lazy
+};
+
+UENUM()
+enum class ENavDataGatheringModeConfig : uint8
+{
+	Invalid UMETA(Hidden),
+	Instant,
+	Lazy
 };
 
 //
@@ -665,4 +683,17 @@ struct FNavigationInvoker
 
 	FNavigationInvoker();
 	FNavigationInvoker(AActor& InActor, float InGenerationRadius, float InRemovalRadius);
+};
+
+//----------------------------------------------------------------------//
+// generic "landscape" support
+//----------------------------------------------------------------------//
+struct ENGINE_API FNavHeightfieldSamples
+{
+	TNavStatArray<int16> Heights;
+	TBitArray<> Holes;
+
+	FNavHeightfieldSamples();
+
+	FORCEINLINE bool IsEmpty() const { return Heights.Num() == 0; }
 };

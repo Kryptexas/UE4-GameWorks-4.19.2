@@ -39,6 +39,11 @@ half3 FilmPostProcess(half3 LinearColor)
 			MatrixColor = LinearColor * ColorMatrixB_ColorCurveCm2.rgb;
 		#endif
 	#endif
+
+	// DON'T CHECK INTO MAIN: NEEDS A PERMUTATION TO AVOID NON-BACKWARDS COMPATIBLE CHANGES
+	// This corrects so the linear segment is linear in log space!
+	MatrixColor = log2(1.0+MatrixColor);
+
 	// Apply color curve (includes tonemapping).
 	#if USE_CONTRAST == 1
 		// Full path.
@@ -59,6 +64,11 @@ half3 FilmPostProcess(half3 LinearColor)
 		half3 MatrixColorM = min(MatrixColor, ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3.zzz);
 		half3 CurveColor = (MatrixColorH*ColorCurve_Ch1_Ch2.xxx + ColorCurve_Ch1_Ch2.yyy) * rcp(MatrixColorH + ColorCurve_Cm0Cd0_Cd2_Ch0Cm1_Ch3.www) + MatrixColorM;
 	#endif
+
+	// DON'T CHECK INTO MAIN: NEEDS A PERMUTATION TO AVOID NON-BACKWARDS COMPATIBLE CHANGES
+	// This corrects so the linear segment is linear in log space!
+	CurveColor = exp2(CurveColor)-1.0;
+
 	return CurveColor;
 }
 
@@ -116,6 +126,7 @@ half3 FilmPostProcessPhoto(half3 LinearColor)
 	half Over = (PhotoTint_Over.a*OverLuma) / (PhotoOverTint_OneMinusMid.a+OverLuma);
 	PhotoColor = lerp(PhotoColor, PhotoOverTint_OneMinusMid.rgb*OverLuma, Over);
 	// Highlight compression without change of mid-tone.
-	PhotoColor *= 1.0/(PhotoOverTint_OneMinusMid.a+PhotoColor);    
+	const float WhiteScale = 1.1;
+	PhotoColor *= WhiteScale/(PhotoOverTint_OneMinusMid.a*WhiteScale+PhotoColor);    
 	return PhotoColor;
 }

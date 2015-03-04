@@ -3628,6 +3628,21 @@ bool FMeshUtilities::BuildSkeletalMesh( FStaticLODModel& LODModel, const FRefere
 #endif
 }
 
+static bool NonOpaqueMaterialPredicate(UStaticMeshComponent* InMesh)
+{
+	TArray<UMaterialInterface*> OutMaterials;
+	InMesh->GetUsedMaterials(OutMaterials);
+	for (auto Material : OutMaterials)
+	{
+		if (Material == nullptr || Material->GetBlendMode() != BLEND_Opaque)
+		{
+			return true;
+		}
+	}
+
+	return false; 
+}
+
 void FMeshUtilities::CreateProxyMesh( 
 	const TArray<AActor*>& SourceActors, 
 	const struct FMeshProxySettings& InProxySettings,
@@ -3670,6 +3685,8 @@ void FMeshUtilities::CreateProxyMesh(
 			Actor->GetComponents<UStaticMeshComponent>(Components);
 			// TODO: support instanced static meshes
 			Components.RemoveAll([](UStaticMeshComponent* Val){ return Val->IsA(UInstancedStaticMeshComponent::StaticClass()); });
+			// TODO: support non-opaque materials
+			Components.RemoveAll(&NonOpaqueMaterialPredicate);
 			//
 			ComponentsToMerge.Append(Components);
 		}

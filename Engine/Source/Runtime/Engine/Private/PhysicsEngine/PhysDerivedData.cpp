@@ -43,8 +43,13 @@ void FDerivedDataPhysXCooker::InitCooker()
 #endif
 }
 
+DECLARE_CYCLE_STAT(TEXT("PhysX Cooking"), STAT_PhysXCooking, STATGROUP_Physics);
+
+
 bool FDerivedDataPhysXCooker::Build( TArray<uint8>& OutData )
 {
+	SCOPE_CYCLE_COUNTER(STAT_PhysXCooking);
+
 	check(Cooker != NULL);
 
 	FMemoryWriter Ar( OutData );

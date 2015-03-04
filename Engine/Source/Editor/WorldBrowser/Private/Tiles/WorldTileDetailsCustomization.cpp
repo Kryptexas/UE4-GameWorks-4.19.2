@@ -104,6 +104,10 @@ void FWorldTileDetailsCustomization::CustomizeDetails(IDetailLayoutBuilder& Deta
 		TileCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UWorldTileDetails, ZOrder))
 			.IsEnabled(IsPropertyEnabled);
 		
+		// Hide in tile view
+		TileCategory.AddProperty(GET_MEMBER_NAME_CHECKED(UWorldTileDetails, bHideInTileView))
+			.IsEnabled(IsPropertyEnabled);
+		
 		// bTileEditable (invisible property to control other properties editable state)
 		TileEditableHandle = DetailLayoutBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(UWorldTileDetails, bTileEditable));
 		TileCategory.AddProperty(TileEditableHandle)

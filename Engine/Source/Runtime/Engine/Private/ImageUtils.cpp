@@ -153,6 +153,12 @@ UTexture2D* FImageUtils::CreateTexture2D(int32 SrcWidth, int32 SrcHeight, const 
 	}
 	Tex2D->Source.UnlockMip(0);
 
+	// Set the Source Guid/Hash if specified
+	if (InParams.SourceGuidHash.IsValid())
+	{
+		Tex2D->Source.SetId(InParams.SourceGuidHash, true);
+	}
+
 	// Set compression options.
 	Tex2D->SRGB = InParams.bSRGB;
 	Tex2D->CompressionSettings	= InParams.CompressionSettings;

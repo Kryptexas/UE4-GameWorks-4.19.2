@@ -3153,7 +3153,7 @@ void FSlateEditorStyle::FStyle::SetupPropertyEditorStyles()
 			.SetSelectedTextColor( InvertedForeground )
 			);
 	}
-}
+	}
 
 void FSlateEditorStyle::FStyle::SetupProfilerStyle()
 {
@@ -3373,8 +3373,8 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 		Set( "Graph.Node.CommentFont", TTF_CORE_FONT( "Fonts/Roboto-Regular", 10 ) );
 		Set( "Graph.Node.Comment.BubbleOffset", FMargin(8,0,0,0) );
 		Set( "Graph.Node.Comment.PinIconPadding", FMargin(0,2,0,0) );
-		Set( "Graph.Node.Comment.BubblePadding", FVector2D(3,3) );
-		Set( "Graph.Node.Comment.BubbleWidgetMargin", FMargin(4,4) );
+		Set("Graph.Node.Comment.BubblePadding", FVector2D(3, 3));
+		Set("Graph.Node.Comment.BubbleWidgetMargin", FMargin(4, 4));
 
 		const FCheckBoxStyle CommentTitleButton = FCheckBoxStyle()
 			.SetCheckBoxType( ESlateCheckBoxType::CheckBox )
@@ -3973,7 +3973,7 @@ void FSlateEditorStyle::FStyle::SetupGraphEditorStyles()
 		}
 	}
 
-	// SCSEditor
+		// SCSEditor
 	{
 		Set("SCSEditor.ToggleComponentEditing", new IMAGE_BRUSH("Icons/icon_translate_40x", Icon40x40));
 		Set("SCSEditor.ToggleComponentEditing.Small", new IMAGE_BRUSH("Icons/icon_translate_40x", Icon20x20));

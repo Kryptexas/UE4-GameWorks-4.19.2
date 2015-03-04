@@ -193,10 +193,10 @@ public:
 	virtual const TArray<class FWindSourceSceneProxy*>& GetWindSources_RenderThread() const = 0;
 
 	/** Accesses wind parameters.  XYZ will contain wind direction * Strength, W contains wind speed. */
-	virtual FVector4 GetWindParameters(const FVector& Position) const = 0;
+	virtual void GetWindParameters(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const = 0;
 
 	/** Same as GetWindParameters, but ignores point wind sources. */
-	virtual FVector4 GetDirectionalWindParameters() const = 0;
+	virtual void GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const = 0;
 
 	/** 
 	 * Adds a SpeedTree wind computation object to the scene.

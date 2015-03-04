@@ -474,7 +474,7 @@ public:
 	ENGINE_API virtual void ReleaseResources();
 
 	/**
-	 * Returns the scale dependent texture factor used by the texture streaming code.
+	 * Returns the scale dependent texture factor used by the texture streaLODg code.
 	 *
 	 * @param RequestedUVIndex UVIndex to look at
 	 * @return scale dependent texture factor

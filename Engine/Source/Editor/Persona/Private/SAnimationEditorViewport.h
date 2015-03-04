@@ -202,6 +202,11 @@ private:
 
 	bool IsShowingBones() const;
 
+	/** Show Morphtarget of SkeletalMesh **/
+	void OnShowMorphTargets();
+
+	bool IsShowingMorphTargets() const;
+
 	/** Show Raw Animation on top of Compressed Animation **/
 	void OnShowRawAnimation();
 

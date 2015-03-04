@@ -2,7 +2,7 @@
 
 #include "UnrealEd.h"
 #include "Editor/MaterialEditor/Public/MaterialEditorModule.h"
-#include "ComponentReregisterContext.h"
+#include "ComponentRecreateRenderStateContext.h"
 #include "Materials/MaterialInstanceConstant.h"
 
 /**
@@ -178,8 +178,8 @@ void UMaterialEditorInstanceConstant::PostEditChangeProperty(FPropertyChangedEve
 		{
 			UpdateSourceInstanceParent();
 
-			FGlobalComponentReregisterContext RecreateComponents;
-			// Fully update static parameters before re-registering the scene's components
+			FGlobalComponentRecreateRenderStateContext RecreateComponentsRenderState;
+			// Fully update static parameters before recreating render state for all components
 			SetSourceInstance(SourceInstance);
 		}
 

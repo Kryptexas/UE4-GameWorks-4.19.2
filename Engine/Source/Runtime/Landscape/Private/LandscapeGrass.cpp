@@ -45,11 +45,6 @@ static TAutoConsoleVariable<float> CVarMinTimeToKeepGrass(
 	5.0f,
 	TEXT("Minimum number of seconds before cached grass can be discarded; used to prevent thrashing."));
 
-static TAutoConsoleVariable<int32> CVarMinInstancesPerLeaf(
-	TEXT("grass.MinInstancesPerLeaf"),
-	256,
-	TEXT("Used to control the depth of hierarchical culling tree for grass. Clamped to 16-32000; a reasonable range."));
-
 static TAutoConsoleVariable<int32> CVarMaxInstancesPerComponent(
 	TEXT("grass.MaxInstancesPerComponent"),
 	65536,
@@ -59,6 +54,16 @@ static TAutoConsoleVariable<int32> CVarMaxAsyncTasks(
 	TEXT("grass.MaxAsyncTasks"),
 	4,
 	TEXT("Used to control the number of hierarchical components created at a time."));
+
+static TAutoConsoleVariable<int32> CVarUseHaltonDistribution(
+	TEXT("grass.UseHaltonDistribution"),
+	0,
+	TEXT("Used to control the distribution of grass instances. If non-zero, use a halton sequence."));
+
+static TAutoConsoleVariable<float> CVarGrassDensityScale(
+	TEXT("grass.densityScale"),
+	1,
+	TEXT("Multiplier on all grass densities.  Do a grass.flushcache or grass.flushcachepie afterwards as appropriate."));
 
 static TAutoConsoleVariable<int32> CVarGrassEnable(
 	TEXT("grass.Enable"),
@@ -859,7 +864,9 @@ struct FGrassBuilderBase
 	FGrassBuilderBase(ALandscapeProxy* Landscape, ULandscapeComponent* Component, const FGrassVariety& GrassVariety, int32 SqrtSubsections = 1, int32 SubX = 0, int32 SubY = 0)
 	{
 		bHaveValidData = true;
-		GrassDensity = GrassVariety.GrassDensity;
+
+		const float DensityScale = CVarGrassDensityScale.GetValueOnAnyThread();
+		GrassDensity = GrassVariety.GrassDensity * DensityScale;
 
 		DrawScale = Landscape->GetRootComponent()->RelativeScale3D;
 		DrawLoc = Landscape->GetActorLocation();
@@ -928,6 +935,21 @@ private:
 	int32 Stride;
 };
 
+template<uint32 Base>
+static FORCEINLINE float Halton(uint32 Index)
+{
+	float Result = 0.0f;
+	float InvBase = 1.0f / Base;
+	float Fraction = InvBase;
+	while( Index > 0 )
+	{
+		Result += ( Index % Base ) * Fraction;
+		Index /= Base;
+		Fraction *= InvBase;
+	}
+	return Result;
+}
+
 struct FAsyncGrassBuilder : public FGrassBuilderBase
 {
 	FLandscapeComponentGrassAccess GrassData;
@@ -937,17 +959,19 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 	FRandomStream RandomStream;
 	FMatrix XForm;
 	FBox MeshBox;
+	int32 DesiredInstancesPerLeaf;
 
 	double RasterTime;
 	double BuildTime;
 	double InstanceTime;
 	int32 TotalInstances;
+	uint32 HaltonBaseIndex;
 
 	// output
 	FStaticMeshInstanceData InstanceBuffer;
 	TArray<FClusterNode> ClusterTree;
 
-	FAsyncGrassBuilder(ALandscapeProxy* Landscape, ULandscapeComponent* Component, const ULandscapeGrassType* GrassType, const FGrassVariety& GrassVariety, UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent, int32 SqrtSubsections, int32 SubX, int32 SubY)
+	FAsyncGrassBuilder(ALandscapeProxy* Landscape, ULandscapeComponent* Component, const ULandscapeGrassType* GrassType, const FGrassVariety& GrassVariety, UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent, int32 SqrtSubsections, int32 SubX, int32 SubY, uint32 InHaltonBaseIndex)
 		: FGrassBuilderBase(Landscape, Component, GrassVariety, SqrtSubsections, SubX, SubY)
 		, GrassData(Component, GrassType)
 	{
@@ -960,11 +984,10 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 		RandomStream.Initialize(HierarchicalInstancedStaticMeshComponent->InstancingRandomSeed);
 
 		MeshBox = GrassVariety.GrassMesh->GetBounds().GetBox();
+		DesiredInstancesPerLeaf = HierarchicalInstancedStaticMeshComponent->DesiredInstancesPerLeaf();
 
-		RasterTime = 0.0;
-		BuildTime = 0.0;
-		InstanceTime = 0.0;
 		TotalInstances = 0;
+		HaltonBaseIndex = InHaltonBaseIndex;
 	}
 
 	void Build()
@@ -974,131 +997,203 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 		RasterTime -= FPlatformTime::Seconds();
 
 		float Div = 1.0f / float(SqrtMaxInstances);
-		float MaxJitter1D = FMath::Clamp<float>(PlacementJitter, 0.0f, .99f) * Div * .5f;
-		FVector MaxJitter(MaxJitter1D, MaxJitter1D, 0.0f);
-		MaxJitter *= Extent;
-		Origin += Extent * (Div * 0.5f);
-		struct FInstanceLocal
+		TArray<FMatrix> InstanceTransforms;
+		if (HaltonBaseIndex)
 		{
-			FVector Pos;
-			bool bKeep;
-		};
-		TArray<FInstanceLocal> Instances;
-		Instances.AddUninitialized(SqrtMaxInstances * SqrtMaxInstances);
-		int32 NumKept = 0;
-		{
-			int32 InstanceIndex = 0;
-			for (int32 xStart = 0; xStart < SqrtMaxInstances; xStart++)
+			if (Extent.X < 0)
 			{
-				for (int32 yStart = 0; yStart < SqrtMaxInstances; yStart++)
+				Origin.X += Extent.X;
+				Extent.X *= -1.0f;
+			}
+			if (Extent.Y < 0)
+			{
+				Origin.Y += Extent.Y;
+				Extent.Y *= -1.0f;
+			}
+			int32 MaxNum = SqrtMaxInstances * SqrtMaxInstances;
+			InstanceTransforms.Reserve(MaxNum);
+			FVector DivExtent(Extent * Div);
+			for (int32 InstanceIndex = 0; InstanceIndex < MaxNum; InstanceIndex++)
+			{
+				float HaltonX = Halton<2>(InstanceIndex + HaltonBaseIndex);
+				float HaltonY = Halton<3>(InstanceIndex + HaltonBaseIndex);
+				FVector Location(Origin.X + HaltonX * Extent.X, Origin.Y + HaltonY * Extent.Y, 0.0f);
+				FVector LocationWithHeight;
+				float Weight = GetLayerWeightAtLocationLocal(Location, &LocationWithHeight);
+				bool bKeep = Weight > 0.0f && Weight >= RandomStream.GetFraction();
+				if (bKeep)
 				{
-					FVector Location(Origin.X + float(xStart) * Div * Extent.X, Origin.Y + float(yStart) * Div * Extent.Y, 0.0f);
-					Location += FVector(RandomStream.GetFraction() * 2.0f - 1.0f, RandomStream.GetFraction() * 2.0f - 1.0f, 0.0f) * MaxJitter;
-
-					FInstanceLocal& Instance = Instances[InstanceIndex];
-					float Weight = GetLayerWeightAtLocationLocal(Location, &Instance.Pos);
-					Instance.bKeep = Weight > 0.0f && Weight >= RandomStream.GetFraction();
-					if (Instance.bKeep)
+					float Rot = RandomRotation ? RandomStream.GetFraction() * 360.0f : 0.0f;
+					FMatrix OutXForm;
+					if (AlignToSurface)
 					{
-						NumKept++;
+						FVector LocationWithHeightDX;
+						FVector LocationDX(Location);
+						LocationDX.X = FMath::Clamp<float>(LocationDX.X + (HaltonX < 0.5f ? DivExtent.X : -DivExtent.X), Origin.X, Origin.X + Extent.X);
+						GetLayerWeightAtLocationLocal(LocationDX, &LocationWithHeightDX, false);
+
+						FVector LocationWithHeightDY;
+						FVector LocationDY(Location);
+						LocationDY.Y = FMath::Clamp<float>(LocationDX.Y + (HaltonY < 0.5f ? DivExtent.Y : -DivExtent.Y), Origin.Y, Origin.Y + Extent.Y);
+						GetLayerWeightAtLocationLocal(LocationDY, &LocationWithHeightDY, false);
+
+						if (LocationWithHeight != LocationWithHeightDX && LocationWithHeight != LocationWithHeightDY)
+						{
+							FVector NewZ = ((LocationWithHeight - LocationWithHeightDX) ^ (LocationWithHeight - LocationWithHeightDY)).GetSafeNormal();
+							NewZ *= FMath::Sign(NewZ.Z);
+
+							const FVector NewX = (FVector(0, -1, 0) ^ NewZ).GetSafeNormal();
+							const FVector NewY = NewZ ^ NewX;
+
+							FMatrix Align = FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
+							OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * Align * FTranslationMatrix(LocationWithHeight) * XForm;
+						}
+						else
+						{
+							OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(LocationWithHeight) * XForm;
+						}
 					}
-					InstanceIndex++;
+					else
+					{
+						OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(LocationWithHeight) * XForm;
+					}
+					InstanceTransforms.Add(OutXForm);
+				}
+			}
+			if (InstanceTransforms.Num())
+			{
+				TotalInstances += InstanceTransforms.Num();
+				InstanceBuffer.AllocateInstances(InstanceTransforms.Num());
+				for (int32 InstanceIndex = 0; InstanceIndex < InstanceTransforms.Num(); InstanceIndex++)
+				{
+					const FMatrix& OutXForm = InstanceTransforms[InstanceIndex];
+					FInstanceStream* RenderData = InstanceBuffer.GetInstanceWriteAddress(InstanceIndex);
+					RenderData->SetInstance(OutXForm, RandomStream.GetFraction());
 				}
 			}
 		}
-		RasterTime += FPlatformTime::Seconds();
-
-		if (NumKept)
+		else
 		{
-			TArray<FMatrix> InstanceTransforms;
-			InstanceTransforms.AddUninitialized(NumKept);
-			TotalInstances += NumKept;
-
+			int32 NumKept = 0;
+			float MaxJitter1D = FMath::Clamp<float>(PlacementJitter, 0.0f, .99f) * Div * .5f;
+			FVector MaxJitter(MaxJitter1D, MaxJitter1D, 0.0f);
+			MaxJitter *= Extent;
+			Origin += Extent * (Div * 0.5f);
+			struct FInstanceLocal
 			{
-				InstanceTime -= FPlatformTime::Seconds();
-				InstanceBuffer.AllocateInstances(NumKept);
+				FVector Pos;
+				bool bKeep;
+			};
+			TArray<FInstanceLocal> Instances;
+			Instances.AddUninitialized(SqrtMaxInstances * SqrtMaxInstances);
+			{
 				int32 InstanceIndex = 0;
-				int32 OutInstanceIndex = 0;
 				for (int32 xStart = 0; xStart < SqrtMaxInstances; xStart++)
 				{
 					for (int32 yStart = 0; yStart < SqrtMaxInstances; yStart++)
 					{
-						const FInstanceLocal& Instance = Instances[InstanceIndex];
+						FVector Location(Origin.X + float(xStart) * Div * Extent.X, Origin.Y + float(yStart) * Div * Extent.Y, 0.0f);
+						Location += FVector(RandomStream.GetFraction() * 2.0f - 1.0f, RandomStream.GetFraction() * 2.0f - 1.0f, 0.0f) * MaxJitter;
+
+						FInstanceLocal& Instance = Instances[InstanceIndex];
+						float Weight = GetLayerWeightAtLocationLocal(Location, &Instance.Pos);
+						Instance.bKeep = Weight > 0.0f && Weight >= RandomStream.GetFraction();
 						if (Instance.bKeep)
 						{
-							float Rot = RandomRotation ? RandomStream.GetFraction() * 360.0f : 0.0f;
-							FMatrix OutXForm;
-							if (AlignToSurface)
+							NumKept++;
+						}
+						InstanceIndex++;
+					}
+				}
+			}
+			if (NumKept)
+			{
+				InstanceTransforms.AddUninitialized(NumKept);
+				TotalInstances += NumKept;
+				{
+					InstanceBuffer.AllocateInstances(NumKept);
+					int32 InstanceIndex = 0;
+					int32 OutInstanceIndex = 0;
+					for (int32 xStart = 0; xStart < SqrtMaxInstances; xStart++)
+					{
+						for (int32 yStart = 0; yStart < SqrtMaxInstances; yStart++)
+						{
+							const FInstanceLocal& Instance = Instances[InstanceIndex];
+							if (Instance.bKeep)
 							{
-								FVector PosX1 = xStart ? Instances[InstanceIndex - SqrtMaxInstances].Pos : Instance.Pos;
-								FVector PosX2 = (xStart + 1 < SqrtMaxInstances) ? Instances[InstanceIndex + SqrtMaxInstances].Pos : Instance.Pos;
-								FVector PosY1 = yStart ? Instances[InstanceIndex - 1].Pos : Instance.Pos;
-								FVector PosY2 = (yStart + 1 < SqrtMaxInstances) ? Instances[InstanceIndex + 1].Pos : Instance.Pos;
-
-								if (PosX1 != PosX2 && PosY1 != PosY2)
+								float Rot = RandomRotation ? RandomStream.GetFraction() * 360.0f : 0.0f;
+								FMatrix OutXForm;
+								if (AlignToSurface)
 								{
-									FVector NewZ = ((PosX1 - PosX2) ^ (PosY1 - PosY2)).GetSafeNormal();
-									NewZ *= FMath::Sign(NewZ.Z);
+									FVector PosX1 = xStart ? Instances[InstanceIndex - SqrtMaxInstances].Pos : Instance.Pos;
+									FVector PosX2 = (xStart + 1 < SqrtMaxInstances) ? Instances[InstanceIndex + SqrtMaxInstances].Pos : Instance.Pos;
+									FVector PosY1 = yStart ? Instances[InstanceIndex - 1].Pos : Instance.Pos;
+									FVector PosY2 = (yStart + 1 < SqrtMaxInstances) ? Instances[InstanceIndex + 1].Pos : Instance.Pos;
 
-									const FVector NewX = (FVector(0, -1, 0) ^ NewZ).GetSafeNormal();
-									const FVector NewY = NewZ ^ NewX;
+									if (PosX1 != PosX2 && PosY1 != PosY2)
+									{
+										FVector NewZ = ((PosX1 - PosX2) ^ (PosY1 - PosY2)).GetSafeNormal();
+										NewZ *= FMath::Sign(NewZ.Z);
 
-									FMatrix Align = FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
-									OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * Align * FTranslationMatrix(Instance.Pos) * XForm;
+										const FVector NewX = (FVector(0, -1, 0) ^ NewZ).GetSafeNormal();
+										const FVector NewY = NewZ ^ NewX;
+
+										FMatrix Align = FMatrix(NewX, NewY, NewZ, FVector::ZeroVector);
+										OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * Align * FTranslationMatrix(Instance.Pos) * XForm;
+									}
+									else
+									{
+										OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(Instance.Pos) * XForm;
+									}
 								}
 								else
 								{
 									OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(Instance.Pos) * XForm;
 								}
+								InstanceTransforms[OutInstanceIndex] = OutXForm;
+								FInstanceStream* RenderData = InstanceBuffer.GetInstanceWriteAddress(OutInstanceIndex++);
+								RenderData->SetInstance(OutXForm, RandomStream.GetFraction());
 							}
-							else
-							{
-								OutXForm = FRotationMatrix(FRotator(0.0f, Rot, 0.0f)) * FTranslationMatrix(Instance.Pos) * XForm;
-							}
-							InstanceTransforms[OutInstanceIndex] = OutXForm;
-							FInstanceStream* RenderData = InstanceBuffer.GetInstanceWriteAddress(OutInstanceIndex++);
-							RenderData->SetInstance(OutXForm, RandomStream.GetFraction());
+							InstanceIndex++;
 						}
-						InstanceIndex++;
 					}
 				}
-				InstanceTime += FPlatformTime::Seconds();
 			}
+		}
+
+		int32 NumInstances = InstanceTransforms.Num();
+		if (NumInstances)
+		{
+			TArray<int32> SortedInstances;
+			TArray<int32> InstanceReorderTable;
+			UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(InstanceTransforms, MeshBox, ClusterTree, SortedInstances, InstanceReorderTable, DesiredInstancesPerLeaf);
+
+			// in-place sort the instances
+			FInstanceStream SwapBuffer;
+			int32 FirstUnfixedIndex = 0;
+			for (int32 FirstUnfixedIndex = 0; FirstUnfixedIndex < NumInstances; FirstUnfixedIndex++)
 			{
-				BuildTime -= FPlatformTime::Seconds();
-				TArray<int32> SortedInstances;
-				TArray<int32> InstanceReorderTable;
-				UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(InstanceTransforms, MeshBox, ClusterTree, SortedInstances, InstanceReorderTable, FMath::Clamp<int32>(CVarMinInstancesPerLeaf.GetValueOnAnyThread(), 16, 256 * 128));
-
-				// in-place sort the instances
-				FInstanceStream SwapBuffer;
-				int32 FirstUnfixedIndex = 0;
-				for (int32 FirstUnfixedIndex = 0; FirstUnfixedIndex < NumKept; FirstUnfixedIndex++)
+				int32 LoadFrom = SortedInstances[FirstUnfixedIndex];
+				if (LoadFrom != FirstUnfixedIndex)
 				{
-					int32 LoadFrom = SortedInstances[FirstUnfixedIndex];
-					if (LoadFrom != FirstUnfixedIndex)
-					{
-						check(LoadFrom > FirstUnfixedIndex);
-						FMemory::Memcpy(&SwapBuffer, InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), sizeof(FInstanceStream));
-						FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), InstanceBuffer.GetInstanceWriteAddress(LoadFrom), sizeof(FInstanceStream));
-						FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(LoadFrom), &SwapBuffer, sizeof(FInstanceStream));
+					check(LoadFrom > FirstUnfixedIndex);
+					FMemory::Memcpy(&SwapBuffer, InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), sizeof(FInstanceStream));
+					FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(FirstUnfixedIndex), InstanceBuffer.GetInstanceWriteAddress(LoadFrom), sizeof(FInstanceStream));
+					FMemory::Memcpy(InstanceBuffer.GetInstanceWriteAddress(LoadFrom), &SwapBuffer, sizeof(FInstanceStream));
 
-						int32 SwapGoesTo = InstanceReorderTable[FirstUnfixedIndex];
-						check(SwapGoesTo > FirstUnfixedIndex);
-						check(SortedInstances[SwapGoesTo] == FirstUnfixedIndex);
-						SortedInstances[SwapGoesTo] = LoadFrom;
-						InstanceReorderTable[LoadFrom] = SwapGoesTo;
+					int32 SwapGoesTo = InstanceReorderTable[FirstUnfixedIndex];
+					check(SwapGoesTo > FirstUnfixedIndex);
+					check(SortedInstances[SwapGoesTo] == FirstUnfixedIndex);
+					SortedInstances[SwapGoesTo] = LoadFrom;
+					InstanceReorderTable[LoadFrom] = SwapGoesTo;
 
-						InstanceReorderTable[FirstUnfixedIndex] = FirstUnfixedIndex;
-						SortedInstances[FirstUnfixedIndex] = FirstUnfixedIndex;
-					}
+					InstanceReorderTable[FirstUnfixedIndex] = FirstUnfixedIndex;
+					SortedInstances[FirstUnfixedIndex] = FirstUnfixedIndex;
 				}
-
-				BuildTime += FPlatformTime::Seconds();
 			}
 		}
 	}
-	FORCEINLINE_DEBUGGABLE float GetLayerWeightAtLocationLocal(const FVector& InLocation, FVector* OutLocation)
+	FORCEINLINE_DEBUGGABLE float GetLayerWeightAtLocationLocal(const FVector& InLocation, FVector* OutLocation, bool bWeight = true)
 	{
 		// Find location
 		float TestX = InLocation.X / DrawScale.X - (float)SectionBase.X;
@@ -1119,7 +1214,8 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 		float LerpX = FMath::Fractional(TestX);
 		float LerpY = FMath::Fractional(TestY);
 
-		float Result;
+		float Result = 0.0f;
+		if (bWeight)
 		{
 			// sample
 			float Sample11 = GrassData.GetWeight(IdxX1, IdxY1);
@@ -1168,6 +1264,7 @@ void ALandscapeProxy::FlushGrassComponents(const TSet<ULandscapeComponent*>* Onl
 				{
 					SCOPE_CYCLE_COUNTER(STAT_FoliageGrassDestoryComp);
 					Used->ClearInstances();
+					Used->DetachFromParent(false, false);
 					Used->DestroyComponent();
 				}
 				Iter.RemoveCurrent();
@@ -1197,6 +1294,7 @@ void ALandscapeProxy::FlushGrassComponents(const TSet<ULandscapeComponent*>* Onl
 		{
 			SCOPE_CYCLE_COUNTER(STAT_FoliageGrassDestoryComp);
 			Component->ClearInstances();
+			Component->DetachFromParent(false, false);
 			Component->DestroyComponent();
 		}
 
@@ -1210,6 +1308,8 @@ void ALandscapeProxy::FlushGrassComponents(const TSet<ULandscapeComponent*>* Onl
 		for (USceneComponent* Component : AttachedFoliageComponents)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_FoliageGrassDestoryComp);
+			CastChecked<UHierarchicalInstancedStaticMeshComponent>(Component)->ClearInstances();
+			Component->DetachFromParent(false, false);
 			Component->DestroyComponent();
 		}
 
@@ -1345,6 +1445,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 					if (GrassType)
 					{
 						int32 GrassVarietyIndex = -1;
+						uint32 HaltonBaseIndex = 1;
 						for (auto& GrassVariety : GrassType->GrassVarieties)
 						{
 							GrassVarietyIndex++;
@@ -1355,7 +1456,9 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 								float MustHaveDistance = GuardBand * (float)GrassVariety.EndCullDistance;
 								float DiscardDistance = DiscardGuardBand * (float)GrassVariety.EndCullDistance;
 
-								if (MinDistanceToComp > DiscardDistance)
+								bool bUseHalton = !GrassVariety.bUseGrid;
+
+								if (!bUseHalton && MinDistanceToComp > DiscardDistance)
 								{
 									continue;
 								}
@@ -1367,6 +1470,13 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 								if (ForSubsectionMath.bHaveValidData && ForSubsectionMath.SqrtMaxInstances > 0)
 								{
 									SqrtSubsections = FMath::Clamp<int32>(FMath::CeilToInt(float(ForSubsectionMath.SqrtMaxInstances) / FMath::Sqrt((float)MaxInstancesPerComponent)), 1, 16);
+								}
+								int32 MaxInstancesSub = FMath::Square(ForSubsectionMath.SqrtMaxInstances / SqrtSubsections);
+
+								if (bUseHalton && MinDistanceToComp > DiscardDistance)
+								{
+									HaltonBaseIndex += MaxInstancesSub * SqrtSubsections * SqrtSubsections;
+									continue;
 								}
 
 								FBox LocalBox = Component->CachedLocalBox;
@@ -1398,6 +1508,11 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 												MinDistanceToSubComp = FMath::Min<float>(MinDistanceToSubComp, ComputeSquaredDistanceFromBoxToPoint(WorldSubBox.Min, WorldSubBox.Max, Pos));
 											}
 											MinDistanceToSubComp = FMath::Sqrt(MinDistanceToSubComp);
+										}
+
+										if (bUseHalton)
+										{
+											HaltonBaseIndex += MaxInstancesSub;  // we are going to pre-increment this for all of the continues...however we need to subtract later if we actually do this sub
 										}
 
 										if (MinDistanceToSubComp > DiscardDistance)
@@ -1472,7 +1587,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										UHierarchicalInstancedStaticMeshComponent* HierarchicalInstancedStaticMeshComponent;
 										{
 											QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassCreateComp);
-											HierarchicalInstancedStaticMeshComponent = NewObject<UHierarchicalInstancedStaticMeshComponent>(this); //, NAME_None, RF_Transactional);
+											HierarchicalInstancedStaticMeshComponent = NewObject<UHierarchicalInstancedStaticMeshComponent>(this);
 										}
 										NewComp.Foliage = HierarchicalInstancedStaticMeshComponent;
 										FoliageCache.CachedGrassComps.Add(NewComp);
@@ -1480,6 +1595,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 										HierarchicalInstancedStaticMeshComponent->Mobility = EComponentMobility::Static;
 
 										HierarchicalInstancedStaticMeshComponent->StaticMesh = GrassVariety.GrassMesh;
+										HierarchicalInstancedStaticMeshComponent->MinLOD = GrassVariety.MinLOD;
 										HierarchicalInstancedStaticMeshComponent->bSelectable = false;
 										HierarchicalInstancedStaticMeshComponent->bHasPerInstanceHitProxies = true;
 										static FName NoCollision(TEXT("NoCollision"));
@@ -1518,7 +1634,14 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 
 										{
 											QUICK_SCOPE_CYCLE_COUNTER(STAT_GrassCreateBuilder);
-											Builder = new FAsyncGrassBuilder(this, Component, GrassType, GrassVariety, HierarchicalInstancedStaticMeshComponent, SqrtSubsections, SubX, SubY);
+
+											uint32 HaltonIndexForSub = 0;
+											if (bUseHalton)
+											{
+												check(HaltonBaseIndex > (uint32)MaxInstancesSub);
+												HaltonIndexForSub = HaltonBaseIndex - (uint32)MaxInstancesSub;
+											}
+											Builder = new FAsyncGrassBuilder(this, Component, GrassType, GrassVariety, HierarchicalInstancedStaticMeshComponent, SqrtSubsections, SubX, SubY, HaltonIndexForSub);
 										}
 
 										if (Builder->bHaveValidData)
@@ -1652,6 +1775,7 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 				{
 					SCOPE_CYCLE_COUNTER(STAT_FoliageGrassDestoryComp);
 					HComponent->ClearInstances();
+					HComponent->DetachFromParent(false, false);
 					HComponent->DestroyComponent();
 					FoliageComponents.Remove(HComponent);
 				}
@@ -1681,10 +1805,12 @@ void ALandscapeProxy::UpdateGrass(const TArray<FVector>& Cameras, bool bForceSyn
 				{
 					if (Inner.Builder->InstanceBuffer.Num())
 					{
-						Exchange(HierarchicalInstancedStaticMeshComponent->WriteOncePrebuiltInstanceBuffer, Inner.Builder->InstanceBuffer);
+						QUICK_SCOPE_CYCLE_COUNTER(STAT_FoliageGrassEndComp_AcceptPrebuiltTree);
+						FMemory::Memswap(&HierarchicalInstancedStaticMeshComponent->WriteOncePrebuiltInstanceBuffer, &Inner.Builder->InstanceBuffer, sizeof(FStaticMeshInstanceData));
 						HierarchicalInstancedStaticMeshComponent->AcceptPrebuiltTree(Inner.Builder->ClusterTree);
 						if (bForceSync && GetWorld())
 						{
+							QUICK_SCOPE_CYCLE_COUNTER(STAT_FoliageGrassEndComp_SyncUpdate);
 							HierarchicalInstancedStaticMeshComponent->RecreateRenderState_Concurrent();
 						}
 					}
@@ -1727,11 +1853,30 @@ static void FlushGrass(const TArray<FString>& Args)
 	}
 }
 
+static void FlushGrassPIE(const TArray<FString>& Args)
+{
+	for (TObjectIterator<ALandscapeProxy> It; It; ++It)
+	{
+		ALandscapeProxy* Landscape = *It;
+		if (Landscape && !Landscape->IsTemplate() && !Landscape->IsPendingKill())
+		{
+			Landscape->FlushGrassComponents(nullptr, false);
+		}
+	}
+}
+
 static FAutoConsoleCommand FlushGrassCmd(
 	TEXT("grass.FlushCache"),
 	TEXT("Flush the grass cache, debugging."),
 	FConsoleCommandWithArgsDelegate::CreateStatic(&FlushGrass)
 	);
+
+static FAutoConsoleCommand FlushGrassCmdPIE(
+	TEXT("grass.FlushCachePIE"),
+	TEXT("Flush the grass cache, debugging."),
+	FConsoleCommandWithArgsDelegate::CreateStatic(&FlushGrassPIE)
+	);
+
 
 
 #undef LOCTEXT_NAMESPACE

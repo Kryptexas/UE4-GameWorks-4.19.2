@@ -127,7 +127,12 @@ struct FLandscapeComponentGrassData
 
 	SIZE_T GetAllocatedSize() const
 	{
-		return sizeof(*this) + HeightData.GetAllocatedSize() + WeightData.GetAllocatedSize();
+		SIZE_T WeightSize = 0; 
+		for (auto It = WeightData.CreateConstIterator(); It; ++It)
+		{
+			WeightSize += It.Value().GetAllocatedSize();
+		}
+		return sizeof(*this) + HeightData.GetAllocatedSize() + WeightData.GetAllocatedSize() + WeightSize;
 	}
 
 	friend FArchive& operator<<(FArchive& Ar, FLandscapeComponentGrassData& Data);
@@ -352,6 +357,9 @@ public:
 
 	/* Is the grassmap data outdated, eg by a material */
 	bool IsGrassMapOutdated() const;
+
+	/* Serialize all hashes/guids that record the current state of this component */
+	void SerializeStateHashes(FArchive& Ar);
 #endif
 
 	/** @todo document */

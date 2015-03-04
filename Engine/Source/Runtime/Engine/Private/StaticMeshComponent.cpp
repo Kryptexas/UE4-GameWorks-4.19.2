@@ -1195,6 +1195,9 @@ bool UStaticMeshComponent::SetStaticMesh(UStaticMesh* NewMesh)
 	// Update physics representation right away
 	RecreatePhysicsState();
 
+	// update navigation relevancy
+	bNavigationRelevant = IsNavigationRelevant();
+
 	// Notify the streaming system. Don't use Update(), because this may be the first time the mesh has been set
 	// and the component may have to be added to the streaming system for the first time.
 	IStreamingManager::Get().NotifyPrimitiveAttached( this, DPT_Spawned );
@@ -1604,7 +1607,7 @@ void UStaticMeshComponent::ApplyComponentInstanceData(FStaticMeshComponentInstan
 }
 
 #include "AI/Navigation/RecastHelpers.h"
-bool UStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const
+bool UStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
 {
 	if (StaticMesh != NULL && StaticMesh->NavCollision != NULL)
 	{
@@ -1620,10 +1623,10 @@ bool UStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavigableGeom
 			// if any of scales is 0 there's no point in exporting it
 			if (!Scale3D.IsZero())
 			{
-				GeomExport->ExportCustomMesh(NavCollision->ConvexCollision.VertexBuffer.GetData(), NavCollision->ConvexCollision.VertexBuffer.Num(),
+				GeomExport.ExportCustomMesh(NavCollision->ConvexCollision.VertexBuffer.GetData(), NavCollision->ConvexCollision.VertexBuffer.Num(),
 					NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(), ComponentToWorld);
 
-				GeomExport->ExportCustomMesh(NavCollision->TriMeshCollision.VertexBuffer.GetData(), NavCollision->TriMeshCollision.VertexBuffer.Num(),
+				GeomExport.ExportCustomMesh(NavCollision->TriMeshCollision.VertexBuffer.GetData(), NavCollision->TriMeshCollision.VertexBuffer.Num(),
 					NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(), ComponentToWorld);
 			}
 
@@ -1633,6 +1636,11 @@ bool UStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavigableGeom
 	}
 
 	return true;
+}
+
+bool UStaticMeshComponent::IsNavigationRelevant() const
+{
+	return StaticMesh != nullptr && Super::IsNavigationRelevant();
 }
 
 void UStaticMeshComponent::GetNavigationData(FNavigationRelevantData& Data) const

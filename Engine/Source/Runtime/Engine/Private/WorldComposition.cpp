@@ -341,13 +341,15 @@ void UWorldComposition::Reset()
 	TilesStreaming.Empty();
 }
 
-FWorldCompositionTile* UWorldComposition::FindTileByName(const FName& InPackageName) const
+int32 UWorldComposition::FindTileIndexByName(const FName& InPackageName) const
 {
-	for (const FWorldCompositionTile& Tile : Tiles)
+	for (int32 TileIdx = 0; TileIdx < Tiles.Num(); ++TileIdx)
 	{
+		const FWorldCompositionTile& Tile = Tiles[TileIdx];
+
 		if (Tile.PackageName == InPackageName)
 		{
-			return const_cast<FWorldCompositionTile*>(&Tile);
+			return TileIdx;
 		}
 		
 		// Check LOD names
@@ -355,12 +357,25 @@ FWorldCompositionTile* UWorldComposition::FindTileByName(const FName& InPackageN
 		{
 			if (LODPackageName == InPackageName)
 			{
-				return const_cast<FWorldCompositionTile*>(&Tile);
+				return TileIdx;
 			}
 		}
 	}
-	
-	return nullptr;
+
+	return INDEX_NONE;
+}
+
+FWorldCompositionTile* UWorldComposition::FindTileByName(const FName& InPackageName) const
+{
+	int32 TileIdx = FindTileIndexByName(InPackageName);
+	if (TileIdx != INDEX_NONE)
+	{
+		return const_cast<FWorldCompositionTile*>(&Tiles[TileIdx]);
+	}
+	else
+	{
+		return nullptr;
+	}
 }
 
 #if WITH_EDITOR
@@ -481,6 +496,15 @@ void UWorldComposition::GetDistanceVisibleLevels(
 	TArray<FDistanceVisibleLevel>& OutVisibleLevels,
 	TArray<FDistanceVisibleLevel>& OutHiddenLevels) const
 {
+	GetDistanceVisibleLevels(&InLocation, 1, OutVisibleLevels, OutHiddenLevels);
+}
+
+void UWorldComposition::GetDistanceVisibleLevels(
+	const FVector* InLocations,
+	int32 NumLocations,
+	TArray<FDistanceVisibleLevel>& OutVisibleLevels,
+	TArray<FDistanceVisibleLevel>& OutHiddenLevels) const
+{
 	const UWorld* OwningWorld = GetWorld();
 
 	FIntPoint WorldOriginLocationXY = FIntPoint(OwningWorld->OriginLocation.X, OwningWorld->OriginLocation.Y);
@@ -490,7 +514,7 @@ void UWorldComposition::GetDistanceVisibleLevels(
 		const FWorldCompositionTile& Tile = Tiles[TileIdx];
 		
 		// Skip non distance based levels
-		if (!Tile.Info.Layer.DistanceStreamingEnabled)
+		if (!IsDistanceDependentLevel(TileIdx))
 		{
 			continue;
 		}
@@ -526,18 +550,26 @@ void UWorldComposition::GetDistanceVisibleLevels(
 			LevelBounds.Max.Z = +WORLD_MAX;
 				
 			int32 NumAvailableLOD = FMath::Min(Tile.Info.LODList.Num(), Tile.LODPackageNames.Num());
-			// Find highest visible LOD entry
+			// Find LOD
 			// INDEX_NONE for original non-LOD level
 			for (int32 LODIdx = INDEX_NONE; LODIdx < NumAvailableLOD; ++LODIdx)
 			{
-				int32 TileStreamingDistance = Tile.Info.GetStreamingDistance(LODIdx);
-				FSphere QuerySphere(InLocation, TileStreamingDistance);
-		
-				if (FMath::SphereAABBIntersection(QuerySphere, LevelBounds))
+				if (bIsVisible && LODIdx > VisibleLevel.LODIndex)
 				{
-					VisibleLevel.LODIndex = LODIdx;
-					bIsVisible = true;
+					// no point to loop more, we have visible tile with best possible LOD
 					break;
+				}
+				
+				int32 TileStreamingDistance = Tile.Info.GetStreamingDistance(LODIdx);
+				for (int32 LocationIdx = 0; LocationIdx < NumLocations; ++LocationIdx)
+				{
+					FSphere QuerySphere(InLocations[LocationIdx], TileStreamingDistance);
+					if (FMath::SphereAABBIntersection(QuerySphere, LevelBounds))
+					{
+						VisibleLevel.LODIndex = LODIdx;
+						bIsVisible = true;
+						break;
+					}
 				}
 			}
 		}
@@ -555,23 +587,64 @@ void UWorldComposition::GetDistanceVisibleLevels(
 
 void UWorldComposition::UpdateStreamingState(const FVector& InLocation)
 {
+	UpdateStreamingState(&InLocation, 1);
+}
+
+void UWorldComposition::UpdateStreamingState(const FVector* InLocations, int32 Num)
+{
+	UWorld* OwningWorld = GetWorld();
+
 	// Get the list of visible and hidden levels from current view point
 	TArray<FDistanceVisibleLevel> DistanceVisibleLevels;
 	TArray<FDistanceVisibleLevel> DistanceHiddenLevels;
-	GetDistanceVisibleLevels(InLocation, DistanceVisibleLevels, DistanceHiddenLevels);
-
-	UWorld* OwningWorld = GetWorld();
-
+	GetDistanceVisibleLevels(InLocations, Num, DistanceVisibleLevels, DistanceHiddenLevels);
+	
+	// Dedicated server always blocks on load
+	bool bShouldBlock = (OwningWorld->GetNetMode() == NM_DedicatedServer);
+	
 	// Set distance hidden levels to unload
 	for (const auto& Level : DistanceHiddenLevels)
 	{
-		CommitTileStreamingState(OwningWorld, Level.TileIdx, false, false, Level.LODIndex);
+		CommitTileStreamingState(OwningWorld, Level.TileIdx, false, false, bShouldBlock, Level.LODIndex);
 	}
 
 	// Set distance visible levels to load
 	for (const auto& Level : DistanceVisibleLevels)
 	{
-		CommitTileStreamingState(OwningWorld, Level.TileIdx, true, true, Level.LODIndex);
+		CommitTileStreamingState(OwningWorld, Level.TileIdx, true, true, bShouldBlock, Level.LODIndex);
+	}
+}
+
+void UWorldComposition::UpdateStreamingStateCinematic(const FVector* InLocations, int32 Num)
+{
+	if (!bLoadAllTilesDuringCinematic)
+	{
+		UpdateStreamingState(InLocations, Num);
+		return;
+	}
+
+	// Cinematic always blocks on load
+	bool bShouldBlock = true;
+	bool bStreamingStateChanged = false;
+		
+	// All tiles should be loaded and visible regardless of distance
+	for (int32 TileIdx = 0; TileIdx < Tiles.Num(); TileIdx++)
+	{
+		FWorldCompositionTile& Tile = Tiles[TileIdx];
+		// Skip non distance based levels
+		if (!IsDistanceDependentLevel(TileIdx))
+		{
+			continue;
+		}
+		// Reset streaming state cooldown to ensure that new state will be committed
+		Tile.StreamingLevelStateChangeTime = 0.0;
+		//
+		bStreamingStateChanged|= CommitTileStreamingState(GetWorld(), TileIdx, true, true, bShouldBlock, INDEX_NONE);
+	}
+
+	if (bStreamingStateChanged)
+	{
+		GetWorld()->FlushLevelStreaming(EFlushLevelStreamingType::Full);
 	}
 }
 
@@ -594,9 +667,10 @@ void UWorldComposition::UpdateStreamingState()
 	}
 
 	// calculate centroid location using local players views
-	int32 NumViews = 0;
+	bool bCinematic = false;
 	FVector CentroidLocation = FVector::ZeroVector;
-	
+	TArray<FVector, TInlineAllocator<16>> Locations;
+		
 	for (int32 PlayerIndex = 0; PlayerIndex < NumPlayers; ++PlayerIndex)
 	{
 		ULocalPlayer* Player = GEngine->GetGamePlayer(PlayWorld, PlayerIndex);
@@ -605,21 +679,29 @@ void UWorldComposition::UpdateStreamingState()
 			FVector ViewLocation;
 			FRotator ViewRotation;
 			Player->PlayerController->GetPlayerViewPoint(ViewLocation, ViewRotation);
+			Locations.Add(ViewLocation);
 			CentroidLocation+= ViewLocation;
-			NumViews++;
+			bCinematic|= Player->PlayerController->bCinematicMode;
 		}
 	}
 
 	// In case there is no valid views don't bother updating level streaming state
-	if (NumViews > 0)
+	if (Locations.Num())
 	{
-		CentroidLocation/= NumViews;
+		CentroidLocation/= Locations.Num();
 		if (PlayWorld->GetWorldSettings()->bEnableWorldOriginRebasing)
 		{
 			EvaluateWorldOriginLocation(CentroidLocation);
 		}
 		
-		UpdateStreamingState(CentroidLocation);
+		if (bCinematic)
+		{
+			UpdateStreamingStateCinematic(Locations.GetData(), Locations.Num());
+		}
+		else
+		{
+			UpdateStreamingState(Locations.GetData(), Locations.Num());
+		}
 	}
 }
 
@@ -684,17 +766,29 @@ void UWorldComposition::EvaluateWorldOriginLocation(const FVector& ViewLocation)
 	}
 }
 
-bool UWorldComposition::IsDistanceDependentLevel(FName PackageName) const
+bool UWorldComposition::IsDistanceDependentLevel(int32 TileIdx) const
 {
-	FWorldCompositionTile* Tile = FindTileByName(PackageName);
-	return (Tile && Tile->Info.Layer.DistanceStreamingEnabled);
+	if (TileIdx != INDEX_NONE)
+	{
+		return (Tiles[TileIdx].Info.Layer.DistanceStreamingEnabled && !TilesStreaming[TileIdx]->bDisableDistanceStreaming);
+	}
+	else
+	{
+		return false;
+	}
 }
 
-void UWorldComposition::CommitTileStreamingState(UWorld* PersistenWorld, int32 TileIdx, bool bShouldBeLoaded, bool bShouldBeVisible, int32 LODIdx)
+bool UWorldComposition::IsDistanceDependentLevel(FName PackageName) const
+{
+	int32 TileIdx = FindTileIndexByName(PackageName);
+	return IsDistanceDependentLevel(TileIdx);
+}
+
+bool UWorldComposition::CommitTileStreamingState(UWorld* PersistenWorld, int32 TileIdx, bool bShouldBeLoaded, bool bShouldBeVisible, bool bShouldBlock, int32 LODIdx)
 {
 	if (!Tiles.IsValidIndex(TileIdx))
 	{
-		return;
+		return false;
 	}
 
 	FWorldCompositionTile& Tile = Tiles[TileIdx];
@@ -703,9 +797,10 @@ void UWorldComposition::CommitTileStreamingState(UWorld* PersistenWorld, int32 T
 	// Quit early in case state is not going to be changed
 	if (StreamingLevel->bShouldBeLoaded == bShouldBeLoaded &&
 		StreamingLevel->bShouldBeVisible == bShouldBeVisible &&
+		StreamingLevel->bShouldBlockOnLoad == bShouldBlock &&
 		StreamingLevel->LevelLODIndex == LODIdx)
 	{
-		return;
+		return false;
 	}
 
 	// Quit early in case we have cooldown on streaming state changes
@@ -716,7 +811,7 @@ void UWorldComposition::CommitTileStreamingState(UWorld* PersistenWorld, int32 T
 		const double TimePassed = CurrentTime - Tile.StreamingLevelStateChangeTime;
 		if (TimePassed < TilesStreamingTimeThreshold)
 		{
-			return;
+			return false;
 		}
 
 		// Save current time as state change time for this tile
@@ -724,15 +819,11 @@ void UWorldComposition::CommitTileStreamingState(UWorld* PersistenWorld, int32 T
 	}
 
 	// Commit new state
+	StreamingLevel->bShouldBlockOnLoad	= bShouldBlock;
 	StreamingLevel->bShouldBeLoaded		= bShouldBeLoaded;
 	StreamingLevel->bShouldBeVisible	= bShouldBeVisible;
 	StreamingLevel->LevelLODIndex		= LODIdx;
-
-	// dedicated server always block on load
-	if (PersistenWorld->GetNetMode() == NM_DedicatedServer && bShouldBeLoaded) 
-	{
-		StreamingLevel->bShouldBlockOnLoad = true;
-	}
+	return true;
 }
 
 void UWorldComposition::OnLevelAddedToWorld(ULevel* InLevel)

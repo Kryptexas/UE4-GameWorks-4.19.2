@@ -841,6 +841,12 @@ void FTextureSource::UseHashAsGuid()
 	}
 }
 
+void FTextureSource::SetId(const FGuid& InId, bool bInGuidIsHash)
+{
+	Id = InId;
+	bGuidIsHash = bInGuidIsHash;
+}
+
 uint32 UTexture::GetMaximumDimension() const
 {
 	return GetMax2DTextureDimension();

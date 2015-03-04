@@ -87,9 +87,10 @@ namespace MaterialExportUtils
 	 * @param LODGroup				LODGroup for the new texture
 	 * @param Flags					ObjectFlags for the new texture
 	 * @param bSRGB					Whether to set the bSRGB flag on the new texture
+	 * @param SourceGuidHash		(optional) Hash (stored as Guid) to use part of the texture source's DDC key.
 	 * @return						The new texture.
 	 */
-	UNREALED_API UTexture2D* CreateTexture(UPackage* Outer, const FString& AssetLongName, FIntPoint Size, const TArray<FColor>& Samples, TextureCompressionSettings CompressionSettings, TextureGroup LODGroup, EObjectFlags Flags, bool bSRGB);
+	UNREALED_API UTexture2D* CreateTexture(UPackage* Outer, const FString& AssetLongName, FIntPoint Size, const TArray<FColor>& Samples, TextureCompressionSettings CompressionSettings, TextureGroup LODGroup, EObjectFlags Flags, bool bSRGB, const FGuid& SourceGuidHash = FGuid());
 
 	/**
 	* Creates bakes textures for a ULandscapeComponent

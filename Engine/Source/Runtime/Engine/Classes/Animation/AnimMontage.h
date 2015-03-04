@@ -290,13 +290,13 @@ public:
 
 	// reference has to be managed manually
 	void AddReferencedObjects( FReferenceCollector& Collector );
-private:
-	/** Called by blueprint functions that modify the montages current position. */
-	void OnMontagePositionChanged(FName const & ToSectionName);
 
 	/** Delegate function handlers
 	 */
 	void HandleEvents(float PreviousTrackPos, float CurrentTrackPos, const FBranchingPointMarker* BranchingPointMarker);
+private:
+	/** Called by blueprint functions that modify the montages current position. */
+	void OnMontagePositionChanged(FName const & ToSectionName);
 	
 	/** Updates ActiveStateBranchingPoints array and triggers Begin/End notifications based on CurrentTrackPosition */
 	void UpdateActiveStateBranchingPoints(float CurrentTrackPosition);

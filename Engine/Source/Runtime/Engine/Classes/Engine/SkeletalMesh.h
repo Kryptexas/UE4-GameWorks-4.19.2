@@ -785,6 +785,12 @@ public:
 	 */
 	ENGINE_API TArray<USkeletalMeshSocket*>& GetMeshOnlySocketList();
 
+	/**
+	* Returns the "active" socket list - all sockets from this mesh plus all non-duplicates from the skeleton
+	* Const ref return value as this cannot be modified externally
+	*/
+	ENGINE_API TArray<USkeletalMeshSocket*> GetActiveSocketList() const;
+
 #if WITH_EDITOR
 	/** Retrieves the source model for this skeletal mesh. */
 	ENGINE_API FStaticLODModel& GetSourceModel();
@@ -794,12 +800,6 @@ public:
 	 * making destructive changes to the mesh's geometry, e.g. simplification.
 	 */
 	ENGINE_API FStaticLODModel& PreModifyMesh();
-
-	/**
-	 * Returns the "active" socket list - all sockets from this mesh plus all non-duplicates from the skeleton
-	 * Const ref return value as this cannot be modified externally
-	 */
-	ENGINE_API const TArray<USkeletalMeshSocket*>& GetActiveSocketList() const;
 
 	/**
 	* Makes sure all attached objects are valid and removes any that aren't.
@@ -872,10 +872,8 @@ public:
 
 private:
 
-#if WITH_EDITOR
 	/** Utility function to help with building the combined socket list */
 	bool IsSocketOnMesh( const FName& InSocketName ) const;
-#endif
 
 	/**
 	* Flush current render state

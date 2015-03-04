@@ -150,6 +150,9 @@ public:
 
 	/** Sets level color, used for visualization. (Show -> Advanced -> Level Coloration) */
 	virtual void SetLevelColor(FLinearColor InColor);
+
+	/** Whether level should be drawn in world composition view */
+	virtual bool IsVisibleInCompositionView() const;
 	
 	/**	@return Whether level has associated blueprint script */
 	bool HasKismet() const;

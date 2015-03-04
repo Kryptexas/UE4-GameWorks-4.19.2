@@ -28,7 +28,7 @@
 #include "UObjectAnnotation.h"
 #include "MaterialCompiler.h"
 #include "TargetPlatform.h"
-#include "ComponentReregisterContext.h"
+#include "ComponentRecreateRenderStateContext.h"
 #include "ShaderCompiler.h"
 #include "Materials/MaterialParameterCollection.h"
 #if WITH_EDITOR
@@ -2374,12 +2374,12 @@ void UMaterial::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEve
 			UpdateLightmassTextureTracking();
 		}
 
-		// Ensure that any components with static elements using this material are reregistered so changes
-		// are propagated to them. The preview material is only applied to the preview mesh component,
+		// Ensure that any components with static elements using this material have their render state recreated
+		// so changes are propagated to them. The preview material is only applied to the preview mesh component,
 		// and that reregister is handled by the material editor.
 		if (!bIsPreviewMaterial && !bIsMaterialEditorStatsMaterial)
 		{
-			FGlobalComponentReregisterContext RecreateComponents;
+			FGlobalComponentRecreateRenderStateContext RecreateComponentsRenderState;
 		}
 	}
 

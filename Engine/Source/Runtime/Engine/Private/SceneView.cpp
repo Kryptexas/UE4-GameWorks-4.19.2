@@ -377,6 +377,7 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 	}
 	
 	// Compute a transform from view origin centered world-space to clip space.
+	ViewMatrices.TranslatedViewMatrix = TranslatedViewMatrix;
 	ViewMatrices.TranslatedViewProjectionMatrix = TranslatedViewMatrix * ViewMatrices.ProjMatrix;
 	ViewMatrices.InvTranslatedViewProjectionMatrix = ViewMatrices.TranslatedViewProjectionMatrix.Inverse();
 
@@ -463,6 +464,8 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 		bIsGameView = (Family && Family->Scene && Family->Scene->GetWorld() ) ? Family->Scene->GetWorld()->IsGameWorld() : false;
 	}
 
+	bUseFieldOfViewForLOD = InitOptions.bUseFieldOfViewForLOD;
+
 #if WITH_EDITOR
 	EditorViewBitflag = InitOptions.EditorViewBitflag;
 
@@ -470,10 +473,19 @@ FSceneView::FSceneView(const FSceneViewInitOptions& InitOptions)
 #endif
 }
 
+static TAutoConsoleVariable<int32> CVarCompensateForFOV(
+	TEXT("lod.CompensateForFOV"),
+	1,
+	TEXT("When not 0 account for FOV in LOD calculations."));
+
 float FSceneView::GetLODDistanceFactor() const
 {
-	const float ScreenMultiple = FMath::Max(ViewRect.Width() / 2.0f * ViewMatrices.ProjMatrix.M[0][0],
-		ViewRect.Height() / 2.0f * ViewMatrices.ProjMatrix.M[1][1]);
+	bool bCompensateForFOV = bUseFieldOfViewForLOD && CVarCompensateForFOV.GetValueOnAnyThread() != 0;
+	float ScreenScaleX = bCompensateForFOV ? ViewMatrices.ProjMatrix.M[0][0] : 1.0f;
+	float ScreenScaleY = bCompensateForFOV ? ViewMatrices.ProjMatrix.M[1][1] : (ViewRect.Width() / ViewRect.Height());
+
+	const float ScreenMultiple = FMath::Max(ViewRect.Width() / 2.0f * ScreenScaleX,
+		ViewRect.Height() / 2.0f * ScreenScaleY);
 	float Fac = PI * ScreenMultiple * ScreenMultiple / ViewRect.Area();
 	return Fac;
 }

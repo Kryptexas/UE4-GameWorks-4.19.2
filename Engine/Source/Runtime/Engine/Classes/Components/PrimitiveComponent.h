@@ -16,6 +16,7 @@ class AController;
 class UTexture;
 struct FEngineShowFlags;
 struct FConvexVolume;
+struct FNavigableGeometryExport;
 
 /** Information about a streaming texture that a primitive uses for rendering. */
 struct FStreamingTexturePrimitiveInfo
@@ -1655,8 +1656,8 @@ public:
 	}
 
 	// Begin INavRelevantInterface Interface
-	virtual FBox GetNavigationBounds() const;
-	virtual bool IsNavigationRelevant() const;
+	virtual FBox GetNavigationBounds() const override;
+	virtual bool IsNavigationRelevant() const override;
 	// End INavRelevantInterface Interface
 
 	FORCEINLINE EHasCustomNavigableGeometry::Type HasCustomNavigableGeometry() const { return bHasCustomNavigableGeometry; }
@@ -1665,7 +1666,11 @@ public:
 
 	/** Collects custom navigable geometry of component.
 	 *	@return true if regular navigable geometry exporting should be run as well */
-	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const { return true; }
+	DEPRECATED(4.8, "UPrimitiveComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport* GeomExport) is deprecated, use UPrimitiveComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) instead (takes ref instead of a pointer)")
+	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport* GeomExport) const { return DoCustomNavigableGeometryExport(*GeomExport); }
+	/** Collects custom navigable geometry of component.
+	*	@return true if regular navigable geometry exporting should be run as well */
+	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const { return true; }
 
 	static void DispatchMouseOverEvents(UPrimitiveComponent* CurrentComponent, UPrimitiveComponent* NewComponent);
 	static void DispatchTouchOverEvents(ETouchIndex::Type FingerIndex, UPrimitiveComponent* CurrentComponent, UPrimitiveComponent* NewComponent);

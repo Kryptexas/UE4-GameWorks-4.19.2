@@ -306,6 +306,8 @@ void FPrimitiveSceneInfo::UpdateStaticMeshes(FRHICommandListImmediate& RHICmdLis
 	checkSlow(bNeedsStaticMeshUpdate);
 	bNeedsStaticMeshUpdate = false;
 
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FPrimitiveSceneInfo_UpdateStaticMeshes);
+
 	// Remove the primitive's static meshes from the draw lists they're currently in, and re-add them to the appropriate draw lists.
 	for (int32 MeshIndex = 0; MeshIndex < StaticMeshes.Num(); MeshIndex++)
 	{

@@ -180,6 +180,7 @@ public:
 				STATGROUP_TaskGraphTasks);
 
 			// dispatch the tick group on another thread, that way, the game thread can be processing ticks while ticks are being queued by another thread
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_ReleaseTickGroup);
 			FTaskGraphInterface::Get().WaitUntilTaskCompletes(
 				FDelegateGraphTask::CreateAndDispatchWhenReady(
 					FDelegateGraphTask::FDelegate::CreateRaw(this, &FTickTaskSequencer::DispatchTickGroup, WorldTickGroup),
@@ -191,6 +192,7 @@ public:
 		{
 			if (bBlockTillComplete || SingleThreadedMode())
 			{
+				QUICK_SCOPE_CYCLE_COUNTER(STAT_ReleaseTickGroup_Block);
 				FTaskGraphInterface::Get().WaitUntilTasksComplete(TickCompletionEvents[WorldTickGroup],ENamedThreads::GameThread);
 			}
 			else

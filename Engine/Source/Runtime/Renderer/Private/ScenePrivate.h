@@ -1553,8 +1553,8 @@ public:
 	virtual void AddWindSource(UWindDirectionalSourceComponent* WindComponent);
 	virtual void RemoveWindSource(UWindDirectionalSourceComponent* WindComponent);
 	virtual const TArray<FWindSourceSceneProxy*>& GetWindSources_RenderThread() const;
-	virtual FVector4 GetWindParameters(const FVector& Position) const;
-	virtual FVector4 GetDirectionalWindParameters() const;
+	virtual void GetWindParameters(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override;
+	virtual void GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const override;
 	virtual void AddSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh);
 	virtual void RemoveSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh);
 	virtual void RemoveSpeedTreeWind_RenderThread(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh);

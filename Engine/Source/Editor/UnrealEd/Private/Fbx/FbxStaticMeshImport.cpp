@@ -1232,6 +1232,25 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		StaticMesh->LODGroup = ImportOptions->StaticMeshLODGroup;
 		StaticMesh->Build(false);
 		
+		// this is damage control. After build, we'd like to absolutely sure that 
+		// all index is pointing correctly and they're all used. Otherwise we remove them
+		FMeshSectionInfoMap OldSectionInfoMap = StaticMesh->SectionInfoMap;
+		StaticMesh->SectionInfoMap.Clear();
+		// fix up section data
+		for (int32 LODIndex = 0; LODIndex<StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
+		{
+			FStaticMeshLODResources& LOD = StaticMesh->RenderData->LODResources[LODIndex];
+			int32 NumSections = LOD.Sections.Num();
+			for(int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
+			{
+				FMeshSectionInfo Info = OldSectionInfoMap.Get(LODIndex, SectionIndex);
+				if (StaticMesh->Materials.IsValidIndex(Info.MaterialIndex))
+				{
+					StaticMesh->SectionInfoMap.Set(LODIndex, SectionIndex, Info);
+				}
+			}
+		}
+
 		// The code to check for bad lightmap UVs doesn't scale well with number of triangles.
 		// Skip it here because Lightmass will warn about it during a light build anyway.
 		bool bWarnOnBadLightmapUVs = false;

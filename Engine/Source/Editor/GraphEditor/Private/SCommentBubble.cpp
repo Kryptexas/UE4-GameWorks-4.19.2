@@ -120,9 +120,9 @@ void SCommentBubble::UpdateBubble()
 	if( GraphNode->bCommentBubbleVisible )
 	{
 		const FSlateBrush* CommentCalloutArrowBrush = FEditorStyle::GetBrush(TEXT("Graph.Node.CommentArrow"));
-		const FMargin BubblePadding = FEditorStyle::GetMargin(TEXT("Graph.Node.Comment.BubbleWidgetMargin"));
-		const FMargin PinIconPadding = FEditorStyle::GetMargin(TEXT("Graph.Node.Comment.PinIconPadding"));
-		const FMargin BubbleOffset = FEditorStyle::GetMargin(TEXT("Graph.Node.Comment.BubbleOffset"));
+		const FMargin BubblePadding = FEditorStyle::GetMargin( TEXT("Graph.Node.Comment.BubbleWidgetMargin"));
+		const FMargin PinIconPadding = FEditorStyle::GetMargin( TEXT("Graph.Node.Comment.PinIconPadding"));
+		const FMargin BubbleOffset = FEditorStyle::GetMargin( TEXT("Graph.Node.Comment.BubbleOffset"));
 		// Conditionally create bubble controls
 		TSharedPtr<SWidget> BubbleControls = SNullWidget::NullWidget;
 
@@ -280,8 +280,8 @@ FVector2D SCommentBubble::GetOffset() const
 {
 	if( GraphNode->bCommentBubbleVisible || OpacityValue > 0.f )
 	{
-		return FVector2D( 0.f, -GetDesiredSize().Y );
-	}
+	return FVector2D( 0.f, -GetDesiredSize().Y );
+}
 	return FVector2D::ZeroVector;
 }
 

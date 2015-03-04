@@ -1033,7 +1033,7 @@ void UDestructibleComponent::ApplyRadiusDamage(float BaseDamage, const FVector& 
 #endif
 }
 
-bool UDestructibleComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport* GeomExport) const
+bool UDestructibleComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
 {
 #if WITH_APEX
 	if (ApexDestructibleActor == NULL)
@@ -1087,7 +1087,7 @@ bool UDestructibleComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 									++ShapesExportedCount;
 
 									// @todo address Geometry.scale not being used here
-									GeomExport->ExportPxConvexMesh(Geometry.convexMesh, LocalToWorld);
+									GeomExport.ExportPxConvexMesh(Geometry.convexMesh, LocalToWorld);
 								}
 							}
 							break;
@@ -1101,11 +1101,11 @@ bool UDestructibleComponent::DoCustomNavigableGeometryExport(FNavigableGeometryE
 
 									if ((Geometry.triangleMesh->getTriangleMeshFlags()) & PxTriangleMeshFlag::eHAS_16BIT_TRIANGLE_INDICES)
 									{
-										GeomExport->ExportPxTriMesh16Bit(Geometry.triangleMesh, LocalToWorld);
+										GeomExport.ExportPxTriMesh16Bit(Geometry.triangleMesh, LocalToWorld);
 									}
 									else
 									{
-										GeomExport->ExportPxTriMesh32Bit(Geometry.triangleMesh, LocalToWorld);
+										GeomExport.ExportPxTriMesh32Bit(Geometry.triangleMesh, LocalToWorld);
 									}
 								}
 							}

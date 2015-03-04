@@ -1582,6 +1582,8 @@ class FMaterialUpdateContext
 	TSet<UMaterialInterface*> UpdatedMaterialInterfaces;
 	/** Active global component reregister context, if any. */
 	TScopedPointer<class FGlobalComponentReregisterContext> ComponentReregisterContext;
+	/** Active global component render state recreation context, if any. */
+	TScopedPointer<class FGlobalComponentRecreateRenderStateContext> ComponentRecreateRenderStateContext;
 	/** The shader platform that was being processed - can control if we need to update components */
 	EShaderPlatform ShaderPlatform;
 	/** True if the SyncWithRenderingThread option was specified. */
@@ -1602,8 +1604,10 @@ public:
 			 * you have already flushed rendering commands.
 			 */
 			SyncWithRenderingThread = 0x2,
-			/** Default options: reregister components, sync with rendering thread. */
-			Default = ReregisterComponents | SyncWithRenderingThread,
+			/* Recreates only the render state for all components (mutually exclusive with ReregisterComponents) */
+			RecreateRenderStates = 0x4,
+			/** Default options: Recreate render state, sync with rendering thread. */
+			Default = RecreateRenderStates | SyncWithRenderingThread,
 		};
 	};
 

@@ -123,7 +123,7 @@ void FWindowsPlatformMemory::GetStatsForMallocProfiler( FGenericMemoryStats& out
 	FPlatformMemoryStats Stats = GetStats();
 
 	// Windows specific stats.
-	out_Stats.Add( GET_STATDESCRIPTION( STAT_WindowsSpecificMemoryStat ), Stats.WindowsSpecificMemoryStat );
+	out_Stats.Add(TEXT("Windows Specific Memory Stat"), Stats.WindowsSpecificMemoryStat );
 #endif // STATS
 }
 
@@ -153,11 +153,26 @@ const FPlatformMemoryConstants& FWindowsPlatformMemory::GetConstants()
 
 void FWindowsPlatformMemory::UpdateStats()
 {
-	FGenericPlatformMemory::UpdateStats();
+#if STATS
+	if (FThreadStats::IsCollectingData(GET_STATID(STAT_TotalPhysical)))
+	{
+		FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
+		SET_MEMORY_STAT(STAT_TotalPhysical,MemoryStats.TotalPhysical);
+		SET_MEMORY_STAT(STAT_TotalVirtual,MemoryStats.TotalVirtual);
+		SET_MEMORY_STAT(STAT_PageSize,MemoryStats.PageSize);
+		SET_MEMORY_STAT(STAT_TotalPhysicalGB,MemoryStats.TotalPhysicalGB);
 
-	// Windows specific stats.
-	FPlatformMemoryStats MemoryStats = FPlatformMemory::GetStats();
-	SET_MEMORY_STAT(STAT_WindowsSpecificMemoryStat,MemoryStats.WindowsSpecificMemoryStat);
+		SET_MEMORY_STAT(STAT_AvailablePhysical,MemoryStats.AvailablePhysical);
+		SET_MEMORY_STAT(STAT_AvailableVirtual,MemoryStats.AvailableVirtual);
+		SET_MEMORY_STAT(STAT_UsedPhysical,MemoryStats.UsedPhysical);
+		SET_MEMORY_STAT(STAT_PeakUsedPhysical,MemoryStats.PeakUsedPhysical);
+		SET_MEMORY_STAT(STAT_UsedVirtual,MemoryStats.UsedVirtual);
+		SET_MEMORY_STAT(STAT_PeakUsedVirtual,MemoryStats.PeakUsedVirtual);
+
+		// Windows specific stats.
+		SET_MEMORY_STAT(STAT_WindowsSpecificMemoryStat,MemoryStats.WindowsSpecificMemoryStat);
+	}
+#endif
 }
 
 void* FWindowsPlatformMemory::BinnedAllocFromOS( SIZE_T Size )

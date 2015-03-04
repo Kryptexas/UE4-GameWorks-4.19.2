@@ -32,6 +32,7 @@ UCameraComponent::UCameraComponent(const FObjectInitializer& ObjectInitializer)
 	OrthoNearClipPlane = 0.0f;
 	OrthoFarClipPlane = WORLD_MAX;
 	bConstrainAspectRatio = false;
+	bUseFieldOfViewForLOD = true;
 	PostProcessBlendWeight = 1.0f;
 	bUseControllerViewRotation_DEPRECATED = true; // the previous default value before bUsePawnControlRotation replaced this var.
 	bUsePawnControlRotation = false;
@@ -210,6 +211,7 @@ void UCameraComponent::GetCameraView(float DeltaTime, FMinimalViewInfo& DesiredV
 	DesiredView.FOV = FieldOfView;
 	DesiredView.AspectRatio = AspectRatio;
 	DesiredView.bConstrainAspectRatio = bConstrainAspectRatio;
+	DesiredView.bUseFieldOfViewForLOD = bUseFieldOfViewForLOD;
 	DesiredView.ProjectionMode = ProjectionMode;
 	DesiredView.OrthoWidth = OrthoWidth;
 	DesiredView.OrthoNearClipPlane = OrthoNearClipPlane;

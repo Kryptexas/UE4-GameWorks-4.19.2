@@ -481,7 +481,9 @@ void APlayerCameraManager::UpdateViewTarget(FTViewTarget& OutVT, float DeltaTime
 	OutVT.POV.FOV = DefaultFOV;
 	OutVT.POV.OrthoWidth = DefaultOrthoWidth;
 	OutVT.POV.bConstrainAspectRatio = false;
+	OutVT.POV.bUseFieldOfViewForLOD = true;
 	OutVT.POV.ProjectionMode = bIsOrthographic ? ECameraProjectionMode::Orthographic : ECameraProjectionMode::Perspective;
+	OutVT.POV.PostProcessSettings.SetBaseValues();
 	OutVT.POV.PostProcessBlendWeight = 1.0f;
 
 
@@ -593,12 +595,19 @@ void APlayerCameraManager::UpdateCameraLensEffects(const FTViewTarget& OutVT)
 	}
 }
 
-
 void APlayerCameraManager::ApplyAudioFade()
 {
 	if (GEngine && GEngine->GetAudioDevice() )
 	{
-		GEngine->GetAudioDevice()->TransientMasterVolume = 1.0 - FadeAmount;
+		GEngine->GetAudioDevice()->TransientMasterVolume = 1.f - FadeAmount;
+	}
+}
+
+void APlayerCameraManager::StopAudioFade()
+{
+	if (GEngine && GEngine->GetAudioDevice())
+	{
+		GEngine->GetAudioDevice()->TransientMasterVolume = 1.f;
 	}
 }
 
@@ -850,21 +859,26 @@ void APlayerCameraManager::DoUpdateCamera(float DeltaTime)
 	// Cache results
 	FillCameraCache(NewPOV);
 
-	if (bEnableFading && FadeTimeRemaining > 0.0f)
+	if (bEnableFading)
 	{
-		FadeTimeRemaining = FMath::Max(FadeTimeRemaining - DeltaTime, 0.0f);
-		if (FadeTime > 0.0f)
+		if (bAutoAnimateFade)
 		{
-			FadeAmount = FadeAlpha.X + ((1.f - FadeTimeRemaining/FadeTime) * (FadeAlpha.Y - FadeAlpha.X));
+			FadeTimeRemaining = FMath::Max(FadeTimeRemaining - DeltaTime, 0.0f);
+			if (FadeTime > 0.0f)
+			{
+				FadeAmount = FadeAlpha.X + ((1.f - FadeTimeRemaining / FadeTime) * (FadeAlpha.Y - FadeAlpha.X));
+			}
+
+			if ((bHoldFadeWhenFinished == false) && (FadeTimeRemaining <= 0.f))
+			{
+				// done
+				StopCameraFade();
+			}
 		}
 
 		if (bFadeAudio)
 		{
 			ApplyAudioFade();
-			if (FadeAmount == 0)
-			{
-				bFadeAudio = false;
-			}
 		}
 	}
 }
@@ -1058,8 +1072,6 @@ void APlayerCameraManager::ClearCameraLensEffects()
  *  Camera Shakes
  *  ------------------------------------------------------------ */
 
-
-
 void APlayerCameraManager::PlayCameraShake(TSubclassOf<UCameraShake> Shake, float Scale, ECameraAnimPlaySpace::Type PlaySpace, FRotator UserPlaySpaceRot)
 {
 	if ((Shake != nullptr) && (Scale > 0.0f))
@@ -1126,6 +1138,48 @@ void APlayerCameraManager::ClearAllCameraShakes()
 	CameraShakeCamMod->RemoveAllCameraShakes();
 //	StopAllCameraAnims(true);
 }
+
+/** ------------------------------------------------------------
+ *  Camera fades
+ *  ------------------------------------------------------------ */
+
+void APlayerCameraManager::StartCameraFade(float FromAlpha, float ToAlpha, float InFadeTime, FLinearColor InFadeColor, bool bInFadeAudio, bool bInHoldWhenFinished)
+{
+	bEnableFading = true;
+
+	FadeColor = InFadeColor;
+	FadeAlpha = FVector2D(FromAlpha, ToAlpha);
+	FadeTime = InFadeTime;
+	FadeTimeRemaining = InFadeTime;
+	bFadeAudio = bInFadeAudio;
+
+	bAutoAnimateFade = true;
+	bHoldFadeWhenFinished = bInHoldWhenFinished;
+}
+
+void APlayerCameraManager::StopCameraFade()
+{
+	if (bEnableFading == true)
+	{
+		// Make sure FadeAmount finishes at the desired value
+		FadeAmount = FadeAlpha.Y;
+		bEnableFading = false;
+		StopAudioFade();
+	}
+}
+
+void APlayerCameraManager::SetManualCameraFade(float InFadeAmount, FLinearColor Color, bool bInFadeAudio)
+{
+	bEnableFading = true;
+	FadeColor = Color;
+	FadeAmount = InFadeAmount;
+	bFadeAudio = bInFadeAudio;
+
+	bAutoAnimateFade = false;
+	StopAudioFade();
+	FadeTimeRemaining = 0.0f;
+}
+
 
 //////////////////////////////////////////////////////////////////////////
 // FTViewTarget

@@ -410,7 +410,7 @@ void ANavigationData::RebuildAll()
 {
 	ConditionalConstructGenerator(); //recreate generator
 	
-	if (NavDataGenerator)
+	if (NavDataGenerator.IsValid())
 	{
 		NavDataGenerator->RebuildAll();
 	}
@@ -418,7 +418,7 @@ void ANavigationData::RebuildAll()
 
 void ANavigationData::EnsureBuildCompletion()
 {
-	if (NavDataGenerator)
+	if (NavDataGenerator.IsValid())
 	{
 		NavDataGenerator->EnsureBuildCompletion();
 	}
@@ -426,7 +426,7 @@ void ANavigationData::EnsureBuildCompletion()
 
 void ANavigationData::CancelBuild()
 {
-	if (NavDataGenerator)
+	if (NavDataGenerator.IsValid())
 	{
 		NavDataGenerator->CancelBuild();
 	}
@@ -440,7 +440,7 @@ void ANavigationData::OnNavigationBoundsChanged()
 		ConditionalConstructGenerator();
 	}
 	
-	if (NavDataGenerator)
+	if (NavDataGenerator.IsValid())
 	{
 		NavDataGenerator->OnNavigationBoundsChanged();
 	}
@@ -448,7 +448,7 @@ void ANavigationData::OnNavigationBoundsChanged()
 
 void ANavigationData::TickAsyncBuild(float DeltaSeconds)
 {
-	if (NavDataGenerator)
+	if (NavDataGenerator.IsValid())
 	{
 		NavDataGenerator->TickAsyncBuild(DeltaSeconds);
 	}
@@ -458,8 +458,8 @@ void ANavigationData::RebuildDirtyAreas(const TArray<FNavigationDirtyArea>& Dirt
 {
 	// the 'bWantsUpdate' mechanics allows us to skip first requested update after data is loaded
 	// Can be also used to manually control navigation rebuilding, by for example forcing bWantsUpdate 
-	//	to false in Tick function effectively supressing rebuilding
-	if (bWantsUpdate == true && NavDataGenerator)
+	//	to false in Tick function effectively suppressing rebuilding
+	if (bWantsUpdate == true && NavDataGenerator.IsValid())
 	{
 		NavDataGenerator->RebuildDirtyAreas(DirtyAreas);
 	}
@@ -689,7 +689,7 @@ uint32 ANavigationData::LogMemUsed() const
 
 	UE_LOG(LogNavigation, Display, TEXT("%s: ANavigationData: %u\n    self: %d"), *GetName(), MemUsed, sizeof(ANavigationData));	
 
-	if (NavDataGenerator)
+	if (NavDataGenerator.IsValid())
 	{
 		NavDataGenerator->LogMemUsed();
 	}

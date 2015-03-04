@@ -206,7 +206,7 @@ public:
 
 	/** Color to fade to (when bEnableFading == true). */
 	UPROPERTY()
-	FColor FadeColor;
+	FLinearColor FadeColor;
 
 	/** Amount of fading to apply (when bEnableFading == true). */
 	UPROPERTY()
@@ -268,7 +268,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Debug)
 	FVector FreeCamOffset;
 
-	/** Current camera fade alpha value (when bEnableFading == true) */
+	/** Current camera fade alpha range, where X = starting alpha and Y = final alpha (when bEnableFading == true) */
 	UPROPERTY()
 	FVector2D FadeAlpha;
 
@@ -358,6 +358,15 @@ public:
 	UPROPERTY()
 	uint32 bFadeAudio:1;
 
+protected:
+	/** True if camera fade hold at it's final value when finished. */
+	UPROPERTY()
+	uint32 bHoldFadeWhenFinished: 1;
+
+	UPROPERTY()
+	uint32 bAutoAnimateFade : 1;
+
+public:
 	/** True to turn on scaling of color channels in final image using ColorScale property. */
 	UPROPERTY()
 	uint32 bEnableColorScaling:1;
@@ -494,6 +503,7 @@ public:
 	virtual void InitializeFor(class APlayerController* PC);
 	
 	/** @return Returns the camera's current full FOV angle, in degrees. */
+	UFUNCTION(BlueprintCallable, Category = "Camera")
 	virtual float GetFOVAngle() const;
 	
 	/** 
@@ -551,6 +561,7 @@ protected:
 	
 	/** Internal. Applies appropriate audio fading to the audio system. */
 	virtual void ApplyAudioFade();
+	virtual void StopAudioFade();
 	
 	/**
 	 * Internal helper to blend two viewtargets.
@@ -637,6 +648,36 @@ public:
 
 	/** Stops playing all camera shakes. */
 	virtual void ClearAllCameraShakes();
+
+	//
+	//  CameraAnim fades.
+	//
+
+	/** 
+	 * Does a camera fade to/from a solid color.  Animates automatically.
+	 * @param FromAlpha - Alpha at which to begin the fade. Range [0..1], where 0 is fully transparent and 1 is fully opaque solid color.
+	 * @param ToAlpha - Alpha at which to finish the fade.
+	 * @param Duration - How long the fade should take, in seconds.
+	 * @param Color - Color to fade to/from.
+	 * @param bShouldFadeAudio - True to fade audio volume along with the alpha of the solid color.
+	 * @param bHoldWhenFinished - True for fade to hold at the ToAlpha until explicitly stopped (e.g. with StopCameraFade)
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Camera")
+	virtual void StartCameraFade(float FromAlpha, float ToAlpha, float Duration, FLinearColor Color, bool bShouldFadeAudio = false, bool bHoldWhenFinished = false);
+
+	/** 
+	 * Stops camera fading.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Camera")
+	virtual void StopCameraFade();
+
+	/** 
+	 * Turns on camera fading at the given opacity. Does not auto-animate, allowing user to animate themselves.
+	 * Call StopCameraFade to turn fading back off.
+	*/
+	UFUNCTION(BlueprintCallable, Category = "Camera")
+	virtual void SetManualCameraFade(float InFadeAmount, FLinearColor Color, bool bInFadeAudio);
+
 
 	//
 	//  CameraAnim support.

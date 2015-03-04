@@ -3260,6 +3260,9 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 	// Register RootComponent first so all other components can reliable use it (ie call GetLocation) when they register
 	if( RootComponent != NULL && !RootComponent->IsRegistered() )
 	{
+#if PERF_TRACK_DETAILED_ASYNC_STATS
+		FScopeCycleCounterUObject ContextScope(RootComponent);
+#endif
 		// An unregistered root component is bad news
 		check(RootComponent->bAutoRegister);
 
@@ -3290,6 +3293,9 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 				CompIdx--;
 				NumTotalRegisteredComponents--; // because we will try to register the parent again later...
 			}
+#if PERF_TRACK_DETAILED_ASYNC_STATS
+			FScopeCycleCounterUObject ContextScope(Component);
+#endif
 				
 			//Before we register our component, save it to our transaction buffer so if "undone" it will return to an unregistered state.
 			//This should prevent unwanted components hanging around when undoing a copy/paste or duplication action.
@@ -3306,6 +3312,9 @@ bool AActor::IncrementalRegisterComponents(int32 NumComponentsToRegister)
 	// See whether we are done
 	if (Components.Num() == NumTotalRegisteredComponents)
 	{
+#if PERF_TRACK_DETAILED_ASYNC_STATS
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_AActor_IncrementalRegisterComponents_PostRegisterAllComponents);
+#endif
 		// Finally, call PostRegisterAllComponents
 		PostRegisterAllComponents();
 		return true;

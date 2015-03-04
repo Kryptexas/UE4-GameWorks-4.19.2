@@ -375,6 +375,11 @@ void FLevelModel::SetLevelColor(FLinearColor InColor)
 	// Currently not all base classes have the requisite support, so I've not made it pure virtual.
 }
 
+bool FLevelModel::IsVisibleInCompositionView() const
+{
+	return false;
+}
+
 bool FLevelModel::HasKismet() const
 {
 	return (GetLevelObject() != NULL);
@@ -439,14 +444,14 @@ void FLevelModel::OnFilterChanged()
 {
 	FilteredChildren.Empty();
 	
-	for (auto It = AllChildren.CreateConstIterator(); It; ++It)
+	for (const auto& LevelModel : AllChildren)
 	{
-		(*It)->OnFilterChanged();
+		LevelModel->OnFilterChanged();
 
 		// Item will pass filtering regardless of filter settings if it has children that passes filtering
-		if ((*It)->GetChildren().Num() > 0 || LevelCollectionModel.PassesAllFilters(*It))
+		if (LevelModel->GetChildren().Num() > 0 || LevelCollectionModel.PassesAllFilters(*LevelModel))
 		{
-			FilteredChildren.Add(*It);
+			FilteredChildren.Add(LevelModel);
 		}
 	}
 }
@@ -482,7 +487,7 @@ void FLevelModel::AddChild(TSharedPtr<FLevelModel> InChild)
 {
 	AllChildren.AddUnique(InChild);
 
-	if (LevelCollectionModel.PassesAllFilters(InChild))
+	if (LevelCollectionModel.PassesAllFilters(*InChild))
 	{
 		FilteredChildren.Add(InChild);
 	}

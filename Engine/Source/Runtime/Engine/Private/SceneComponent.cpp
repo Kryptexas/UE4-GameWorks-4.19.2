@@ -1088,7 +1088,7 @@ void USceneComponent::SnapTo(class USceneComponent* Parent, FName InSocketName)
 	AttachTo(Parent, InSocketName, EAttachLocation::SnapToTarget);
 }
 
-void USceneComponent::DetachFromParent(bool bMaintainWorldPosition)
+void USceneComponent::DetachFromParent(bool bMaintainWorldPosition, bool bCallModify)
 {
 	if(AttachParent != NULL)
 	{
@@ -1100,8 +1100,11 @@ void USceneComponent::DetachFromParent(bool bMaintainWorldPosition)
 		// Make sure parent points to us if we're registered
 		checkf(!bRegistered || AttachParent->AttachChildren.Contains(this), TEXT("Attempt to detach SceneComponent '%s' owned by '%s' from AttachParent '%s' while not attached."), *GetName(), (GetOwner() ? *GetOwner()->GetName() : TEXT("Unowned")), *AttachParent->GetName());
 
-		Modify();
-		AttachParent->Modify();
+		if (bCallModify)
+		{
+			Modify();
+			AttachParent->Modify();
+		}
 
 		PrimaryComponentTick.RemovePrerequisite(AttachParent, AttachParent->PrimaryComponentTick); // no longer required to tick after the attachment
 

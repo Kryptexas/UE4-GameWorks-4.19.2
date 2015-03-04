@@ -1508,39 +1508,43 @@ float ULandscapeComponent::GetLayerWeightAtLocation(const FVector& InLocation, U
 
 	// Find location
 	// TODO: Root landscape isn't always loaded, would Proxy suffice?
-	ALandscape* Landscape = GetLandscapeActor();
-	const FVector DrawScale = Landscape->GetRootComponent()->RelativeScale3D;
-	float TestX = (InLocation.X - Landscape->GetActorLocation().X) / DrawScale.X - (float)GetSectionBase().X;
-	float TestY = (InLocation.Y - Landscape->GetActorLocation().Y) / DrawScale.Y - (float)GetSectionBase().Y;
+	if (ALandscape* Landscape = GetLandscapeActor())
+	{
+		const FVector DrawScale = Landscape->GetRootComponent()->RelativeScale3D;
+		float TestX = (InLocation.X - Landscape->GetActorLocation().X) / DrawScale.X - (float)GetSectionBase().X;
+		float TestY = (InLocation.Y - Landscape->GetActorLocation().Y) / DrawScale.Y - (float)GetSectionBase().Y;
 
-	// Find data
-	int32 X1 = FMath::FloorToInt(TestX);
-	int32 Y1 = FMath::FloorToInt(TestY);
-	int32 X2 = FMath::CeilToInt(TestX);
-	int32 Y2 = FMath::CeilToInt(TestY);
+		// Find data
+		int32 X1 = FMath::FloorToInt(TestX);
+		int32 Y1 = FMath::FloorToInt(TestY);
+		int32 X2 = FMath::CeilToInt(TestX);
+		int32 Y2 = FMath::CeilToInt(TestY);
 
-	int32 Stride = (SubsectionSizeQuads + 1) * NumSubsections;
+		int32 Stride = (SubsectionSizeQuads + 1) * NumSubsections;
 
-	// Min is to prevent the sampling of the final column from overflowing
-	int32 IdxX1 = FMath::Min<int32>(((X1 / SubsectionSizeQuads) * (SubsectionSizeQuads + 1)) + (X1 % SubsectionSizeQuads), Stride - 1);
-	int32 IdxY1 = FMath::Min<int32>(((Y1 / SubsectionSizeQuads) * (SubsectionSizeQuads + 1)) + (Y1 % SubsectionSizeQuads), Stride - 1);
-	int32 IdxX2 = FMath::Min<int32>(((X2 / SubsectionSizeQuads) * (SubsectionSizeQuads + 1)) + (X2 % SubsectionSizeQuads), Stride - 1);
-	int32 IdxY2 = FMath::Min<int32>(((Y2 / SubsectionSizeQuads) * (SubsectionSizeQuads + 1)) + (Y2 % SubsectionSizeQuads), Stride - 1);
+		// Min is to prevent the sampling of the final column from overflowing
+		int32 IdxX1 = FMath::Min<int32>(((X1 / SubsectionSizeQuads) * (SubsectionSizeQuads + 1)) + (X1 % SubsectionSizeQuads), Stride - 1);
+		int32 IdxY1 = FMath::Min<int32>(((Y1 / SubsectionSizeQuads) * (SubsectionSizeQuads + 1)) + (Y1 % SubsectionSizeQuads), Stride - 1);
+		int32 IdxX2 = FMath::Min<int32>(((X2 / SubsectionSizeQuads) * (SubsectionSizeQuads + 1)) + (X2 % SubsectionSizeQuads), Stride - 1);
+		int32 IdxY2 = FMath::Min<int32>(((Y2 / SubsectionSizeQuads) * (SubsectionSizeQuads + 1)) + (Y2 % SubsectionSizeQuads), Stride - 1);
 
-	// sample
-	float Sample11 = (float)((*LayerCache)[IdxX1 + Stride*IdxY1]) / 255.0f;
-	float Sample21 = (float)((*LayerCache)[IdxX2 + Stride*IdxY1]) / 255.0f;
-	float Sample12 = (float)((*LayerCache)[IdxX1 + Stride*IdxY2]) / 255.0f;
-	float Sample22 = (float)((*LayerCache)[IdxX2 + Stride*IdxY2]) / 255.0f;
+		// sample
+		float Sample11 = (float)((*LayerCache)[IdxX1 + Stride*IdxY1]) / 255.0f;
+		float Sample21 = (float)((*LayerCache)[IdxX2 + Stride*IdxY1]) / 255.0f;
+		float Sample12 = (float)((*LayerCache)[IdxX1 + Stride*IdxY2]) / 255.0f;
+		float Sample22 = (float)((*LayerCache)[IdxX2 + Stride*IdxY2]) / 255.0f;
 
-	float LerpX = FMath::Fractional(TestX);
-	float LerpY = FMath::Fractional(TestY);
+		float LerpX = FMath::Fractional(TestX);
+		float LerpY = FMath::Fractional(TestY);
 
 		// Bilinear interpolate
-	return FMath::Lerp(
+		return FMath::Lerp(
 			FMath::Lerp(Sample11, Sample21, LerpX),
 			FMath::Lerp(Sample12, Sample22, LerpX),
 			LerpY);
+	}
+	
+	return 0.f;	//if landscape is null we just return 0 instead of crashing. Seen cases where this happens, seems like a bug?
 }
 
 void ULandscapeComponent::GetComponentExtent(int32& MinX, int32& MinY, int32& MaxX, int32& MaxY) const
@@ -4684,6 +4688,20 @@ UTexture2D* ALandscapeProxy::CreateLandscapeTexture(int32 InSizeX, int32 InSizeY
 	NewTexture->LODGroup = InLODGroup;
 
 	return NewTexture;
+}
+
+void ALandscapeProxy::RemoveOverlappingComponent(ULandscapeComponent* Component)
+{
+	Modify();
+	Component->Modify();
+	if (Component->CollisionComponent.IsValid() && (Component->CollisionComponent->RenderComponent.Get() == Component || Component->CollisionComponent->RenderComponent.IsNull()))
+	{
+		Component->CollisionComponent->Modify();
+		CollisionComponents.Remove(Component->CollisionComponent.Get());
+		Component->CollisionComponent.Get()->DestroyComponent();
+	}
+	LandscapeComponents.Remove(Component);
+	Component->DestroyComponent();
 }
 
 #endif //WITH_EDITOR

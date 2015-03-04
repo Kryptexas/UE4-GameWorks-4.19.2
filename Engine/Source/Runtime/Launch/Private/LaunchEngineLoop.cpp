@@ -2183,7 +2183,12 @@ void FEngineLoop::Tick()
 	ensure(GetMoviePlayer()->IsLoadingFinished() && !GetMoviePlayer()->IsMovieCurrentlyPlaying());
 
 	// early in the Tick() to get the callbacks for cvar changes called
-	IConsoleManager::Get().CallAllConsoleVariableSinks();
+	{
+#if WITH_ENGINE
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_CallAllConsoleVariableSinks);
+#endif
+		IConsoleManager::Get().CallAllConsoleVariableSinks();
+	}
 
 	{ 
 		SCOPE_CYCLE_COUNTER( STAT_FrameTime );	
@@ -2197,8 +2202,13 @@ void FEngineLoop::Tick()
 			RHICmdList.BeginFrame();
 		});
 
-		// Flush debug output which has been buffered by other threads.
-		GLog->FlushThreadedLogs();
+		{
+#if WITH_ENGINE
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_FlushThreadedLogs);
+#endif
+			// Flush debug output which has been buffered by other threads.
+			GLog->FlushThreadedLogs();
+		}
 
 		// Exit if frame limit is reached in benchmark mode.
 		if( (FApp::IsBenchmarking() && MaxFrameCounter && (GFrameCounter > MaxFrameCounter))
@@ -2208,11 +2218,24 @@ void FEngineLoop::Tick()
 			FPlatformMisc::RequestExit(0);
 		}
 
-		// Set FApp::CurrentTime, FApp::DeltaTime and potentially wait to enforce max tick rate.
-		GEngine->UpdateTimeAndHandleMaxTickRate();
+		{
+#if WITH_ENGINE
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_UpdateTimeAndHandleMaxTickRate);
+#endif
+			// Set FApp::CurrentTime, FApp::DeltaTime and potentially wait to enforce max tick rate.
+			GEngine->UpdateTimeAndHandleMaxTickRate();
+		}
 
-		GEngine->TickFPSChart( FApp::GetDeltaTime() );
+		{
+#if WITH_ENGINE
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_TickFPSChart);
+#endif
+			GEngine->TickFPSChart( FApp::GetDeltaTime() );
+		}
 
+#if WITH_ENGINE
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Malloc_UpdateStats);
+#endif
 		// Update platform memory and memory allocator stats.
 		FPlatformMemory::UpdateStats();
 		GMalloc->UpdateStats();
@@ -2245,16 +2268,26 @@ void FEngineLoop::Tick()
 			FPlatformMisc::PumpMessages(true);
 		}
 
-		// Idle mode prevents ticking and rendering completely
-		const bool bIdleMode = ShouldUseIdleMode();
-		if (bIdleMode)
+		bool bIdleMode;
 		{
-			// Yield CPU time
-			FPlatformProcess::Sleep(.1f);
+
+#if WITH_ENGINE
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Idle);
+#endif
+			// Idle mode prevents ticking and rendering completely
+			bIdleMode = ShouldUseIdleMode();
+			if (bIdleMode)
+			{
+				// Yield CPU time
+				FPlatformProcess::Sleep(.1f);
+			}
 		}
 
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{
+#if WITH_ENGINE
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_SlateInput);
+#endif
 			FSlateApplication& SlateApp = FSlateApplication::Get();
 			SlateApp.PollGameDeviceState();
 			// Gives widgets a chance to process any accumulated input
@@ -2266,21 +2299,35 @@ void FEngineLoop::Tick()
 		// If a movie that is blocking the game thread has been playing,
 		// wait for it to finish before we continue to tick or tick again
 		// We do this right after GEngine->Tick() because that is where user code would initiate a load / movie.
-		GetMoviePlayer()->WaitForMovieToFinish();
+		{
+#if WITH_ENGINE
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_WaitForMovieToFinish);
+#endif
+			GetMoviePlayer()->WaitForMovieToFinish();
+		}
 		
 		if (GShaderCompilingManager)
 		{
 			// Process any asynchronous shader compile results that are ready, limit execution time
+#if WITH_ENGINE
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_GShaderCompilingManager);
+#endif
 			GShaderCompilingManager->ProcessAsyncResults(true, false);
 		}
 
 		if (GDistanceFieldAsyncQueue)
 		{
+#if WITH_ENGINE
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_GDistanceFieldAsyncQueue);
+#endif
 			GDistanceFieldAsyncQueue->ProcessAsyncTasks();
 		}
 
 		if (FSlateApplication::IsInitialized() && !bIdleMode)
 		{
+#if WITH_ENGINE
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_ProcessPlayerControllersSlateOperations);
+#endif
 			check(!IsRunningDedicatedServer());
 			
 			// Process slate operations accumulated in the world ticks.
@@ -2299,6 +2346,9 @@ void FEngineLoop::Tick()
 #if WITH_EDITOR
 		if( GIsEditor )
 		{
+#if WITH_ENGINE
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_AutomationController);
+#endif
 			static FName AutomationController("AutomationController");
 			//Check if module loaded to support the change to allow this to be hot compilable.
 			if (FModuleManager::Get().IsModuleLoaded(AutomationController))
@@ -2310,11 +2360,16 @@ void FEngineLoop::Tick()
 
 #if WITH_ENGINE
 #if WITH_AUTOMATION_WORKER
-		//Check if module loaded to support the change to allow this to be hot compilable.
-		static const FName AutomationWorkerModuleName = TEXT("AutomationWorker");
-		if (FModuleManager::Get().IsModuleLoaded(AutomationWorkerModuleName))
 		{
-			FModuleManager::GetModuleChecked<IAutomationWorkerModule>(AutomationWorkerModuleName).Tick();
+#if WITH_ENGINE
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FEngineLoop_Tick_AutomationWorker);
+#endif
+			//Check if module loaded to support the change to allow this to be hot compilable.
+			static const FName AutomationWorkerModuleName = TEXT("AutomationWorker");
+			if (FModuleManager::Get().IsModuleLoaded(AutomationWorkerModuleName))
+			{
+				FModuleManager::GetModuleChecked<IAutomationWorkerModule>(AutomationWorkerModuleName).Tick();
+			}
 		}
 #endif
 #endif //WITH_ENGINE

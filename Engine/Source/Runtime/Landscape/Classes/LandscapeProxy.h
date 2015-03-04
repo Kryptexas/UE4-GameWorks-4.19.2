@@ -17,6 +17,7 @@
 #include "LandscapeLayerInfoObject.h"
 #include "LandscapeGrassType.h"
 #include "Tickable.h"
+#include "AI/Navigation/NavigationTypes.h"
 
 #include "LandscapeProxy.generated.h"
 
@@ -454,6 +455,9 @@ public:
 	UPROPERTY(EditAnywhere, Category=Landscape)
 	uint32 bUsedForNavigation:1;
 
+	UPROPERTY(EditAnywhere, Category = Landscape, AdvancedDisplay)
+	ENavDataGatheringMode NavigationGeometryGatheringMode;
+
 	UPROPERTY(EditAnywhere, Category=LOD)
 	TEnumAsByte<enum ELandscapeLODFalloff::Type> LODFalloff;
 
@@ -659,6 +663,9 @@ public:
 	/* For the texture baking notification */
 	int32 NumComponentsNeedingTextureBaking;
 	LANDSCAPE_API static int32 TotalComponentsNeedingTextureBaking;
+
+	/** remove an overlapping component. Called from MapCheck. */
+	LANDSCAPE_API void RemoveOverlappingComponent(ULandscapeComponent* Component);
 #endif
 };
 

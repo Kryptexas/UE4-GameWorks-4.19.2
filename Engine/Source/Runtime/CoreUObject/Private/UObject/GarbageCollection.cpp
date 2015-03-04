@@ -516,6 +516,7 @@ public:
 					ChunkTasks.Add(TGraphTask<FGCTask>::CreateTask().ConstructAndDispatchWhenReady(this, &ObjectsToSerialize, StartIndex, NumPerChunk));
 					StartIndex += NumPerChunk;
 				}
+				QUICK_SCOPE_CYCLE_COUNTER(STAT_GC_Subtask_Wait);
 				FTaskGraphInterface::Get().WaitUntilTasksComplete(ChunkTasks, ENamedThreads::GameThread_Local);
 				GIsRunningParallelReachability = false;
 			}

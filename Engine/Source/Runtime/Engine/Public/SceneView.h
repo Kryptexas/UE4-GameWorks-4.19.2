@@ -99,6 +99,9 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 	// Whether world origin was rebased this frame?
 	bool bOriginOffsetThisFrame;
 
+	// Whether to use FOV when computing mesh LOD.
+	bool bUseFieldOfViewForLOD;
+
 #if WITH_EDITOR
 	// default to 0'th view index, which is a bitfield of 1
 	uint64 EditorViewBitflag;
@@ -125,6 +128,7 @@ struct FSceneViewInitOptions : public FSceneViewProjectionData
 		, OverrideFarClippingPlaneDistance(-1.0f)
 		, bInCameraCut(false)
 		, bOriginOffsetThisFrame(false)
+		, bUseFieldOfViewForLOD(true)
 #if WITH_EDITOR
 		, EditorViewBitflag(1)
 		, OverrideLODViewOrigin(ForceInitToZero)
@@ -156,6 +160,8 @@ struct FViewMatrices
 	FMatrix		ProjMatrix;
 	// WorldToView..
 	FMatrix		ViewMatrix;
+	/** WorldToView with PreViewTranslation. */
+	FMatrix		TranslatedViewMatrix;
 	/** The view-projection transform, starting from world-space points translated by -ViewOrigin. */
 	FMatrix		TranslatedViewProjectionMatrix;
 	/** The inverse view-projection transform, ending with world-space points translated by -ViewOrigin. */
@@ -298,6 +304,7 @@ BEGIN_UNIFORM_BUFFER_STRUCT_WITH_CONSTRUCTOR(FViewUniformShaderParameters,ENGINE
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(float,RealTime)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,Random)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER(uint32,FrameNumber)
+	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,CameraCut, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,UseLightmaps, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(float,UnlitViewmodeMask, EShaderPrecisionModifier::Half)
 	DECLARE_UNIFORM_BUFFER_STRUCT_MEMBER_EX(FLinearColor,DirectionalLightColor, EShaderPrecisionModifier::Half)
@@ -416,6 +423,9 @@ public:
 
 	/** Whether this view should render the first instance only of any meshes using instancing. */
 	bool bRenderFirstInstanceOnly;
+
+	// Whether to use FOV when computing mesh LOD.
+	bool bUseFieldOfViewForLOD;
 
 	/** Current buffer visualization mode */
 	FName CurrentBufferVisualizationMode;

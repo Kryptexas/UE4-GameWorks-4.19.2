@@ -16,6 +16,7 @@
 #define RECAST_VERY_SMALL_AGENT_RADIUS 0.0f
 
 class ARecastNavMesh;
+class FRecastNavMeshGenerator;
 class dtNavMesh;
 struct dtMeshTile;
 
@@ -76,7 +77,7 @@ public:
 
 	/** Debug rendering. */
 	void GetDebugGeometry(FRecastDebugGeometry& OutGeometry, int32 TileIndex = INDEX_NONE) const;
-
+	
 	/** Returns bounding box for the whole navmesh. */
 	FBox GetNavMeshBounds() const;
 
@@ -221,7 +222,7 @@ public:
 	dtNavMesh* DetourNavMesh;
 
 	/** Compressed layers data, can be reused for tiles generation */
-	TMap<FIntPoint, TArray<FNavMeshTileData>> CompressedTileCacheLayers;
+	TMap<FIntPoint, TArray<FNavMeshTileData> > CompressedTileCacheLayers;
 
 	/** query used for searching data on game thread */
 	mutable dtNavMeshQuery SharedNavQuery;
@@ -246,10 +247,13 @@ public:
 		const FVector& RecastStart, FVector& RecastEnd,
 		dtQueryResult& PathResult) const;
 
-	void GetDebugPolyEdges(const dtMeshTile* Tile, bool bInternalEdges, bool bNavMeshEdges, TArray<FVector>& InternalEdgeVerts, TArray<FVector>& NavMeshEdgeVerts) const;
+	void GetDebugPolyEdges(const dtMeshTile& Tile, bool bInternalEdges, bool bNavMeshEdges, TArray<FVector>& InternalEdgeVerts, TArray<FVector>& NavMeshEdgeVerts) const;
 
 	/** workhorse function finding portal edges between corridor polys */
 	void GetEdgesForPathCorridorImpl(const TArray<NavNodeRef>* PathCorridor, TArray<FNavigationPortalEdge>* PathCorridorEdges, const dtNavMeshQuery& NavQuery) const;
+
+protected:
+	int32 GetTilesDebugGeometry(const FRecastNavMeshGenerator* Generator, const dtMeshTile& Tile, int32 VertBase, FRecastDebugGeometry& OutGeometry, int32 TileIdx = INDEX_NONE) const;
 };
 
 #endif	// WITH_RECAST

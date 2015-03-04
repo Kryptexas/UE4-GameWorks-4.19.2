@@ -95,9 +95,13 @@ void UBodySetup::AddCollisionFrom(class UBodySetup* FromSetup)
 	}
 }
 
+DECLARE_CYCLE_STAT(TEXT("Create Physics Meshes"), STAT_CreatePhysicsMeshes, STATGROUP_Physics);
+
 
 void UBodySetup::CreatePhysicsMeshes()
 {
+	SCOPE_CYCLE_COUNTER(STAT_CreatePhysicsMeshes);
+
 #if WITH_PHYSX
 	// Create meshes from cooked data if not already done
 	if(bCreatedPhysicsMeshes)
@@ -503,7 +507,7 @@ void UBodySetup::AddConvexElemsToRigidActor(PxRigidActor* PDestActor, const FTra
 	}
 }
 
-void UBodySetup::AddTriMeshToRigidActor(PxRigidActor* PDestActor, const FVector& Scale3D, const FVector& Scale3DAbs) const
+void UBodySetup::AddTriMeshToRigidActor(PxRigidActor* PDestActor, const FVector& Scale3D, const FVector& Scale3DAbs, TArray<PxShape*>* NewShapes) const
 {
 	float ContactOffsetFactor, MaxContactOffset;
 	GetContactOffsetParams(ContactOffsetFactor, MaxContactOffset);
@@ -544,6 +548,11 @@ void UBodySetup::AddTriMeshToRigidActor(PxRigidActor* PDestActor, const FVector&
 				{
 					NewShape->setLocalPose(PLocalPose);
 					NewShape->setContactOffset(MaxContactOffset);
+
+					if(NewShapes)
+					{
+						NewShapes->Add(NewShape);
+					}
 				}
 				else
 				{
@@ -558,7 +567,7 @@ void UBodySetup::AddTriMeshToRigidActor(PxRigidActor* PDestActor, const FVector&
 	}
 }
 
-void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3D, const FTransform& RelativeTM /* = FTransform::Identity */, TArray<physx::PxShape*>* NewShapes /* = NULL */ )
+void UBodySetup::AddShapesToRigidActor(FBodyInstance* OwningInstance, physx::PxRigidActor* PDestActor, EPhysicsSceneType SceneType, FVector& Scale3D, physx::PxMaterial* SimpleMaterial, TArray<UPhysicalMaterial*>& ComplexMaterials, FShapeData& ShapeData, const FTransform& RelativeTM, TArray<physx::PxShape*>* NewShapes)
 {
 #if WITH_RUNTIME_PHYSICS_COOKING || WITH_EDITOR
 	// in editor, there are a lot of things relying on body setup to create physics meshes
@@ -568,6 +577,7 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 	float MinScale;
 	float MinScaleAbs;
 	FVector Scale3DAbs;
+	TArray<PxShape*> Shapes;
 	SetupNonUniformHelper(Scale3D, MinScale, MinScaleAbs, Scale3DAbs);
 
 	{
@@ -588,18 +598,85 @@ void UBodySetup::AddShapesToRigidActor(PxRigidActor* PDestActor, FVector& Scale3
 	// for simple queries as well
 	if (CollisionTraceFlag != ECollisionTraceFlag::CTF_UseComplexAsSimple)
 	{
-		AddSpheresToRigidActor(PDestActor, RelativeTM, MinScale, MinScaleAbs, NewShapes);
-		AddBoxesToRigidActor(PDestActor, RelativeTM, Scale3D, Scale3DAbs, NewShapes);
-		AddSphylsToRigidActor(PDestActor, RelativeTM, Scale3D, Scale3DAbs, NewShapes);
-		AddConvexElemsToRigidActor(PDestActor, RelativeTM, Scale3D, Scale3DAbs, NewShapes);
+		AddSpheresToRigidActor(PDestActor, RelativeTM, MinScale, MinScaleAbs, &Shapes);
+		AddBoxesToRigidActor(PDestActor, RelativeTM, Scale3D, Scale3DAbs, &Shapes);
+		AddSphylsToRigidActor(PDestActor, RelativeTM, Scale3D, Scale3DAbs, &Shapes);
+		AddConvexElemsToRigidActor(PDestActor, RelativeTM, Scale3D, Scale3DAbs, &Shapes);
 	}
-
 
 	// Create tri-mesh shape, when we are not using simple collision shapes for 
 	// complex queries as well
 	if( CollisionTraceFlag != ECollisionTraceFlag::CTF_UseSimpleAsComplex )
 	{
-		AddTriMeshToRigidActor(PDestActor, Scale3D, Scale3DAbs);
+		AddTriMeshToRigidActor(PDestActor, Scale3D, Scale3DAbs, &Shapes);
+	}
+
+	for(PxShape* Shape : Shapes)
+	{
+		FShapeFilterData& Filters = ShapeData.FilterData;
+		// Apply provided materials
+		// If a triangle mesh, need to get array of materials...
+		if(Shape->getGeometryType() == PxGeometryType::eTRIANGLEMESH)
+		{
+			TArray<PxMaterial*> PComplexMats;
+			PComplexMats.AddUninitialized(ComplexMaterials.Num());
+			for(int MatIdx = 0; MatIdx < ComplexMaterials.Num(); MatIdx++)
+			{
+				check(ComplexMaterials[MatIdx] != NULL);
+				PComplexMats[MatIdx] = ComplexMaterials[MatIdx]->GetPhysXMaterial();
+				check(PComplexMats[MatIdx] != NULL);
+			}
+
+			if(PComplexMats.Num())
+			{
+				Shape->setMaterials(PComplexMats.GetData(), PComplexMats.Num());
+			}
+			else
+			{
+				UE_LOG(LogPhysics, Warning, TEXT("FBodyInstance::UpdatePhysicalMaterials : PComplexMats is empty - falling back on simple physical material."));
+				Shape->setMaterials(&SimpleMaterial, 1);
+			}
+
+			Shape->setQueryFilterData(Filters.QueryComplexFilter);
+			
+			if(SceneType == PST_Sync)
+			{
+				Shape->setFlags(ShapeData.SyncShapeFlags | ShapeData.ComplexShapeFlags);
+			}
+			else
+			{
+				Shape->setFlags(ShapeData.AsyncShapeFlags | ShapeData.ComplexShapeFlags);
+			}
+		}
+		// Simple shape, 
+		else
+		{
+			Shape->setMaterials(&SimpleMaterial, 1);
+			Shape->setQueryFilterData(Filters.QuerySimpleFilter);
+
+			if(SceneType == PST_Sync)
+			{
+				Shape->setFlags(ShapeData.SyncShapeFlags | ShapeData.SimpleShapeFlags);
+			}
+			else
+			{
+				Shape->setFlags(ShapeData.AsyncShapeFlags | ShapeData.SimpleShapeFlags);
+			}
+		}
+		Shape->setSimulationFilterData(Filters.SimFilter);
+
+		if(OwningInstance)
+		{
+			if(PxRigidBody* RigidBody = OwningInstance->GetPxRigidActor()->is<PxRigidBody>())
+			{
+				RigidBody->setRigidBodyFlags(ShapeData.SyncBodyFlags);
+			}
+		}
+	}
+
+	if(NewShapes)
+	{
+		(*NewShapes) = MoveTemp(Shapes);
 	}
 }
 

@@ -306,8 +306,15 @@ void UPrimitiveComponent::OnRegister()
 
 	if (bCanEverAffectNavigation)
 	{
-		bNavigationRelevant = IsNavigationRelevant();
-		UNavigationSystem::OnComponentRegistered(this);	
+		const bool bNavRelevant = bNavigationRelevant = IsNavigationRelevant();
+		if (bNavRelevant)
+		{
+			UNavigationSystem::OnComponentRegistered(this);
+		}
+	}
+	else
+	{
+		bNavigationRelevant = false;
 	}
 }
 

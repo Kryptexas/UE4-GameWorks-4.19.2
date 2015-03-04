@@ -216,6 +216,8 @@ FAnalyticsProviderET::FAnalyticsProviderET(const FAnalyticsET::Config& ConfigVal
 
 bool FAnalyticsProviderET::Tick(float DeltaSeconds)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FAnalyticsProviderET_Tick);
+
 	if (CachedEvents.Num() > 0)
 	{
 		// Countdown to flush

@@ -68,6 +68,10 @@ struct FMinimalViewInfo
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
 	uint32 bConstrainAspectRatio:1; 
 
+	// If true, account for the field of view angle when computing which level of detail to use for meshes.
+	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=CameraSettings)
+	uint32 bUseFieldOfViewForLOD:1;
+
 	// The type of camera
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Camera)
 	TEnumAsByte<ECameraProjectionMode::Type> ProjectionMode;
@@ -89,6 +93,7 @@ struct FMinimalViewInfo
 		, OrthoFarClipPlane(WORLD_MAX)
 		, AspectRatio(1.33333333f)
 		, bConstrainAspectRatio(false)
+		, bUseFieldOfViewForLOD(true)
 		, ProjectionMode(ECameraProjectionMode::Perspective)
 		, PostProcessBlendWeight(0.0f)
 	{

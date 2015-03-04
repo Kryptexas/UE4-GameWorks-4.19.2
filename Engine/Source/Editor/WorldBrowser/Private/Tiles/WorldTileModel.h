@@ -83,6 +83,7 @@ public:
 	virtual void OnLevelAddedToWorld(ULevel* InLevel) override;
 	virtual void OnLevelRemovedFromWorld() override;
 	virtual void OnParentChanged() override;
+	virtual bool IsVisibleInCompositionView() const override;
 	// FLevelModel interface end
 	
 	/** Adds new streaming level*/
@@ -182,8 +183,11 @@ private:
 	/** Handler for LOD settings changes event from Tile details object  */
 	void OnLODSettingsPropertyChanged();
 	
-	/** Handler for ZOrder chnages event from Tile details object  */
+	/** Handler for ZOrder changes event from Tile details object  */
 	void OnZOrderPropertyChanged();
+
+	/** Handler for bHideInTileView changes event from Tile details object  */
+	void OnHideInTileViewChanged();
 
 	/** Set the asset name based on the passed in package name */
 	void SetAssetName(const FName& PackageName);

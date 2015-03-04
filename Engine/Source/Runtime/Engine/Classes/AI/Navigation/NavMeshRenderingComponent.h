@@ -32,10 +32,12 @@ public:
 
 	void GatherData(FNavMeshSceneProxyData& DebugDrawData) const;
 
+	static bool IsNavigationShowFlagSet(const UWorld* World);
+
 protected:
 	void TimerFunction();
 
 protected:
-	int32 bCollectNavigationData : 1;
+	uint32 bCollectNavigationData : 1;
 	FTimerHandle TimerHandle;
 };

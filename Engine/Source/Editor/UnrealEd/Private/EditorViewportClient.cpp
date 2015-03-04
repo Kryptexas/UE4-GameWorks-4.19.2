@@ -710,6 +710,11 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 	ViewInitOptions.OverrideLODViewOrigin = FVector::ZeroVector;
 	ViewInitOptions.bUseFauxOrthoViewPos = true;
 
+	if (bUseControllingActorViewInfo)
+	{
+		ViewInitOptions.bUseFieldOfViewForLOD = ControllingActorViewInfo.bUseFieldOfViewForLOD;
+	}
+
 	ViewInitOptions.OverrideFarClippingPlaneDistance = FarPlane;
 	ViewInitOptions.CursorPos = CurrentMousePos;
 

@@ -78,7 +78,7 @@ class ULandscapeMeshCollisionComponent : public ULandscapeHeightfieldCollisionCo
 	// End USceneComponent interface.
 
 	// Begin UPrimitiveComponent interface
-	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const override;
+	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
 	//End UPrimitiveComponent interface
 
 	// Begin UObject Interface.

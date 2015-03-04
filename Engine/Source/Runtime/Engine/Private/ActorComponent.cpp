@@ -9,6 +9,7 @@
 #include "UObjectToken.h"
 #include "MapErrors.h"
 #include "ComponentReregisterContext.h"
+#include "ComponentRecreateRenderStateContext.h"
 #include "Engine/SimpleConstructionScript.h"
 
 #define LOCTEXT_NAMESPACE "ActorComponent"
@@ -90,7 +91,6 @@ FGlobalComponentReregisterContext::FGlobalComponentReregisterContext(const TArra
 	}
 }
 
-
 FGlobalComponentReregisterContext::~FGlobalComponentReregisterContext()
 {
 	check(ActiveGlobalReregisterContextCount > 0);
@@ -98,6 +98,24 @@ FGlobalComponentReregisterContext::~FGlobalComponentReregisterContext()
 	ComponentContexts.Empty();
 	ActiveGlobalReregisterContextCount--;
 }
+
+FGlobalComponentRecreateRenderStateContext::FGlobalComponentRecreateRenderStateContext()
+{
+	// wait until resources are released
+	FlushRenderingCommands();
+
+	// recreate render state for all components.
+	for (auto* Component : TObjectRange<UActorComponent>())
+	{
+		new(ComponentContexts) FComponentRecreateRenderStateContext(Component);
+	}
+}
+
+FGlobalComponentRecreateRenderStateContext::~FGlobalComponentRecreateRenderStateContext()
+{
+	ComponentContexts.Empty();
+}
+
 
 UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer /*= FObjectInitializer::Get()*/)
 	: Super(ObjectInitializer)
@@ -129,14 +147,14 @@ void UActorComponent::PostLoad()
 
 	if (GetLinkerUE4Version() < VER_UE4_ACTOR_COMPONENT_CREATION_METHOD)
 	{
-		if (bCreatedByConstructionScript_DEPRECATED)
-		{
+	if (bCreatedByConstructionScript_DEPRECATED)
+	{
 			CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
-		}
-		else if (bInstanceComponent_DEPRECATED)
-		{
-			CreationMethod = EComponentCreationMethod::Instance;
-		}
+	}
+	else if (bInstanceComponent_DEPRECATED)
+	{
+		CreationMethod = EComponentCreationMethod::Instance;
+	}
 
 		if (CreationMethod == EComponentCreationMethod::SimpleConstructionScript)
 		{

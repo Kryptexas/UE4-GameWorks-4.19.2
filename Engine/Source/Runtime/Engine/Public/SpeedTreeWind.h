@@ -241,6 +241,11 @@ public:
 	ENGINE_API	const FSpeedTreeWind::SParams&	GetParams(void) const;
 	ENGINE_API	void							SetStrength(float fStrength);						// use this function to set a new desired strength (it will reach that strength smoothly)
 	ENGINE_API	void							SetDirection(const FVector& vDir);					// use this function to set a new desired direction (it will reach that direction smoothly)
+
+	//instantly set gust min/max.   Trees will pop if visible.  Don't call during gameplay while trees are visible.
+	ENGINE_API	void							SetGustMin(float InGustMin);
+	ENGINE_API	void							SetGustMax(float InGustMax);
+
 	ENGINE_API	void							SetInitDirection(const FVector& vDir);				// use this function to set a starting direction, once
 	ENGINE_API	void							EnableGusting(bool bEnabled);
 	ENGINE_API	void							SetGustFrequency(float fGustFreq);

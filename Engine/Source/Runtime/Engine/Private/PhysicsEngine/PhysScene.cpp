@@ -353,16 +353,16 @@ void FPhysScene::TermBody(FBodyInstance* BodyInstance)
 #endif
 	}
 
-	// Remove body from any pending deferred addition / removal
-	for(int32 SceneIdx = 0 ; SceneIdx < PST_MAX ; ++SceneIdx)
-	{
-		int32 FoundIdx = INDEX_NONE;
-		if(DeferredAddInstances[SceneIdx].Find(BodyInstance, FoundIdx))
+		// Remove body from any pending deferred addition / removal
+		for(int32 SceneIdx = 0 ; SceneIdx < PST_MAX ; ++SceneIdx)
 		{
-			DeferredAddActors->RemoveAt(FoundIdx);
-			DeferredAddInstances->RemoveAt(FoundIdx);
+			int32 FoundIdx = INDEX_NONE;
+		if(DeferredAddInstances[SceneIdx].Find(BodyInstance, FoundIdx))
+			{
+				DeferredAddActors->RemoveAt(FoundIdx);
+				DeferredAddInstances->RemoveAt(FoundIdx);
+			}
 		}
-	}
 
 #if WITH_PHYSX
 	RemoveActiveBody(BodyInstance, PST_Sync);
@@ -661,6 +661,7 @@ void FPhysScene::WaitPhysScenes()
 	}
 	if (ThingsToComplete.Num())
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FPhysScene_WaitPhysScenes);
 		FTaskGraphInterface::Get().WaitUntilTasksComplete(ThingsToComplete, ENamedThreads::GameThread);
 	}
 }
@@ -675,6 +676,7 @@ void FPhysScene::WaitClothScene()
 
 	if (ThingsToComplete.Num())
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FPhysScene_WaitClothScene);
 		FTaskGraphInterface::Get().WaitUntilTasksComplete(ThingsToComplete, ENamedThreads::GameThread);
 	}
 }
@@ -1408,9 +1410,10 @@ void FPhysScene::FlushDeferredActors()
 			SCOPED_SCENE_WRITE_LOCK(Scene);
 
 			Scene->addActors(DeferredAddActors[SceneIdx].GetData(), DeferredAddActors[SceneIdx].Num());
-
+			int32 Idx = -1;
 			for(FBodyInstance* Instance : DeferredAddInstances[SceneIdx])
 			{
+				++Idx;
 				Instance->CurrentSceneState = BodyInstanceSceneState::Added;
 
 				if(Instance->IsDynamic())
@@ -1462,6 +1465,19 @@ void FPhysScene::DeferAddActor(FBodyInstance* OwningInstance, PxActor* Actor, EP
 		OwningInstance->CurrentSceneState = BodyInstanceSceneState::Added;
 		DeferredRemoveInstances[SceneType].RemoveSingle(OwningInstance);
 		DeferredRemoveActors[SceneType].RemoveSingle(Actor);
+	}
+}
+
+void FPhysScene::DeferAddActors(TArray<FBodyInstance*>& OwningInstances, TArray<PxActor*>& Actors, EPhysicsSceneType SceneType)
+{
+	int32 Num = OwningInstances.Num();
+
+	DeferredAddInstances[SceneType].Reserve(DeferredAddInstances->Num() + Num);
+	DeferredAddActors[SceneType].Reserve(DeferredAddActors->Num() + Num);
+
+	for(int32 Idx = 0 ; Idx < Num ; ++Idx)
+	{
+		DeferAddActor(OwningInstances[Idx], Actors[Idx], SceneType);
 	}
 }
 

@@ -331,6 +331,7 @@ struct FRootMotionMovementParams
 		PartialRootMotion.SetScale3D(FVector(1.f));
 		PartialRootMotion.NormalizeRotation();
 		RootMotionTransform = RootMotionTransform.GetRelativeTransform(PartialRootMotion);
+		RootMotionTransform.NormalizeRotation(); //Make sure we are normalized, this needs to be investigated further
 
 		FRootMotionMovementParams ReturnParams;
 		ReturnParams.Set(PartialRootMotion);

@@ -348,8 +348,12 @@ void EncodeGBuffer(
 		OutGBufferB.b = GBuffer.Roughness;
 		OutGBufferC.rgb = EncodeBaseColor(GBuffer.BaseColor);
 
+#if ALLOW_STATIC_LIGHTING
 		// No space for AO. Multiply IndirectIrradiance by AO instead of storing.
 		OutGBufferC.a = EncodeIndirectIrradiance(GBuffer.IndirectIrradiance * GBuffer.GBufferAO) + QuantizationBias * (1.0 / 255.0);
+#else
+		OutGBufferC.a = GBuffer.GBufferAO;
+#endif
 		OutGBufferB.a = Encode71(EncodeShadingModelId(GBuffer.ShadingModelID), GBuffer.HasHeightfieldRepresentation);
 
 		OutGBufferD.r = GBuffer.Opacity;
@@ -399,8 +403,13 @@ FGBufferData DecodeGBufferData(
 	
 	GBuffer.Roughness = InGBufferB.b;
 	GBuffer.CustomData = InGBufferD.gba;
+#if ALLOW_STATIC_LIGHTING
 	GBuffer.GBufferAO = 1;
 	GBuffer.IndirectIrradiance = DecodeIndirectIrradiance(InGBufferC.a);
+#else
+	GBuffer.GBufferAO = InGBufferC.a;
+	GBuffer.IndirectIrradiance = 1;
+#endif
 	GBuffer.PrecomputedShadowFactors = InGBufferE;
 	GBuffer.CustomDepth = ConvertFromDeviceZ(CustomNativeDepth);
 	GBuffer.Depth = SceneDepth;

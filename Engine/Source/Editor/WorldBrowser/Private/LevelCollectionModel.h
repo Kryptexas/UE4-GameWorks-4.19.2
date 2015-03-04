@@ -6,8 +6,8 @@
 #include "IFilter.h"
 #include "FilterCollection.h"
 
-typedef IFilter< const TSharedPtr<FLevelModel>& >				LevelFilter;
-typedef TFilterCollection< const TSharedPtr<FLevelModel>& >		LevelFilterCollection;
+typedef IFilter< const FLevelModel* >				LevelFilter;
+typedef TFilterCollection< const FLevelModel* >		LevelFilterCollection;
 
 /**
  * Interface for non-UI presentation logic for a world
@@ -122,7 +122,7 @@ public:
 	virtual TSharedPtr<class FLevelDragDropOp> CreateDragDropOp() const;
 	
 	/**	@return	Whether specified level passes all filters */
-	virtual bool PassesAllFilters(TSharedPtr<FLevelModel> InLevelModel) const;
+	virtual bool PassesAllFilters(const FLevelModel& InLevelModel) const;
 	
 	/**	Builds 'hierarchy' commands menu for a selected levels */
 	virtual void BuildHierarchyMenu(FMenuBuilder& InMenuBuilder) const;

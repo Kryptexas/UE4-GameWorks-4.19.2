@@ -566,9 +566,11 @@ public:
 
 	/**
 	 * Set Morph Target with Name and Value(0-1)
+	 *
+	 * @param bRemoveZeroWeight : Used by editor code when it should stay in the active list with zero weight
 	 */
 	UFUNCTION(BlueprintCallable, Category="Components|SkeletalMesh")
-	void SetMorphTarget(FName MorphTargetName, float Value);
+	void SetMorphTarget(FName MorphTargetName, float Value, bool bRemoveZeroWeight=true);
 
 	/**
 	 * Clear all Morph Target that are set to this mesh
@@ -637,6 +639,9 @@ public:
 public:
 	/** Temporary array of bone indices required this frame. Filled in by UpdateSkelPose. */
 	TArray<FBoneIndexType> RequiredBones;
+
+	/** Tempory array of bone indices required to populate space bases */
+	TArray<FBoneIndexType> FillSpaceBasesRequiredBones;
 
 	/** 
 	 *	Index of the 'Root Body', or top body in the asset hierarchy. 

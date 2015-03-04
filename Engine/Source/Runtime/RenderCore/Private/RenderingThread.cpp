@@ -108,6 +108,7 @@ FSuspendRenderingThread::FSuspendRenderingThread( bool bInRecreateThread )
 				}
 				else
 				{
+					QUICK_SCOPE_CYCLE_COUNTER(STAT_FSuspendRenderingThread);
 					FTaskGraphInterface::Get().WaitUntilTaskCompletes(CompleteHandle, ENamedThreads::GameThread);
 				}
 				check(GIsRenderingThreadSuspended);
@@ -523,6 +524,7 @@ void StartRenderingThread()
 		DECLARE_CYCLE_STAT(TEXT("Wait For RHIThread"), STAT_WaitForRHIThread, STATGROUP_TaskGraphTasks);
 
 		FGraphEventRef CompletionEvent = TGraphTask<FNullGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(GET_STATID(STAT_WaitForRHIThread), ENamedThreads::RHIThread);
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_StartRenderingThread);
 		FTaskGraphInterface::Get().WaitUntilTaskCompletes(CompletionEvent, ENamedThreads::GameThread_Local);
 		GRHIThread = FRHIThread::Get().Thread;
 		check(GRHIThread);
@@ -596,6 +598,7 @@ void StopRenderingThread()
 			{
 				DECLARE_CYCLE_STAT(TEXT("Wait For RHIThread Finish"), STAT_WaitForRHIThreadFinish, STATGROUP_TaskGraphTasks);
 				FGraphEventRef FlushTask = TGraphTask<FNullGraphTask>::CreateTask(NULL, ENamedThreads::GameThread).ConstructAndDispatchWhenReady(GET_STATID(STAT_WaitForRHIThreadFinish), ENamedThreads::RHIThread);
+				QUICK_SCOPE_CYCLE_COUNTER(STAT_StopRenderingThread_RHIThread);
 				FTaskGraphInterface::Get().WaitUntilTaskCompletes(FlushTask, ENamedThreads::GameThread_Local);
 				GRHIThread = nullptr;
 			}
@@ -622,6 +625,7 @@ void StopRenderingThread()
 				}
 				else
 				{
+					QUICK_SCOPE_CYCLE_COUNTER(STAT_StopRenderingThread);
 					FTaskGraphInterface::Get().WaitUntilTaskCompletes(QuitTask, ENamedThreads::GameThread_Local);
 				}
 			}
@@ -796,6 +800,7 @@ void FRenderCommandFence::Wait(bool bProcessGameThreadTasks) const
 		// windows needs to pump messages
 		if (bProcessGameThreadTasks)
 		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FRenderCommandFence_Wait);
 			FTaskGraphInterface::Get().WaitUntilTaskCompletes(CompletionEvent, ENamedThreads::GameThread);
 		}
 #endif
@@ -896,6 +901,8 @@ FPendingCleanupObjects::FPendingCleanupObjects()
 
 FPendingCleanupObjects::~FPendingCleanupObjects()
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FPendingCleanupObjects_Destruct);
+
 	for(int32 ObjectIndex = 0;ObjectIndex < CleanupArray.Num();ObjectIndex++)
 	{
 		CleanupArray[ObjectIndex]->FinishCleanup();

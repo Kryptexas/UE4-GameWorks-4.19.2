@@ -742,7 +742,9 @@ int32 UTexture2D::GetNumNonStreamingMips() const
 void UTexture2D::CalcAllowedMips( int32 MipCount, int32 NumNonStreamingMips, int32 LODBias, int32& OutMinAllowedMips, int32& OutMaxAllowedMips )
 {
 	// Calculate the minimum number of mip-levels required.
-	int32 MinAllowedMips = FMath::Max( UTexture2D::GetMinTextureResidentMipCount(), NumNonStreamingMips );
+	int32 MinAllowedMips = UTexture2D::GetMinTextureResidentMipCount();
+	MinAllowedMips = FMath::Max( MinAllowedMips, MipCount - LODBias );
+	MinAllowedMips = FMath::Min( MinAllowedMips, NumNonStreamingMips );
 	MinAllowedMips = FMath::Min( MinAllowedMips, MipCount );
 
 	// Calculate the maximum number of mip-levels.
@@ -1799,6 +1801,9 @@ void FTexture2DResource::LoadMipData()
 					}
 					check(IORequestIndices[MipIndex]);
 				}
+
+				// For consistency with other code paths, track the pointer to the locked buffer.
+				MipData[ActualMipIndex] = TheMipData;
 			}
 
 			// Are we reducing the mip-count?
@@ -1847,18 +1852,16 @@ void FTexture2DResource::LoadMipData()
 			const FTexture2DMipMap& MipMap = OwnerMips[ActualMipIndex];
 			int32 MipSize = CalcTextureMipMapSize(MipMap.SizeX, MipMap.SizeY, TextureRHI->GetFormat(), 0);
 
-			void* TheMipData = NULL;
 			if (bUsingAsyncCreation)
 			{
-				// Allocate temporary system memory to stream in to.
-				MipData[ActualMipIndex] = FMemory::Malloc(MipSize);
-				TheMipData = MipData[ActualMipIndex];
+				// The async task will allocate temporary system memory to stream in to.
+				check(MipData[ActualMipIndex] == NULL);
 			}
 			else
 			{
 				// Lock the new texture.
 				uint32 DestPitch;
-				TheMipData = RHILockTexture2D( IntermediateTextureRHI, MipIndex, RLM_WriteOnly, DestPitch, false );
+				MipData[ActualMipIndex] = RHILockTexture2D( IntermediateTextureRHI, MipIndex, RLM_WriteOnly, DestPitch, false );
 			}
 
 			// Pass the request on to the async io manager after increasing the request count. The request count 
@@ -1875,7 +1878,7 @@ void FTexture2DResource::LoadMipData()
 			{
 				FAsyncStreamDerivedMipTask* Task = new(PendingAsyncStreamDerivedMipTasks) FAsyncStreamDerivedMipTask(
 					MipMap.DerivedDataKey,
-					TheMipData,
+					&MipData[ActualMipIndex],
 					MipSize,
 					&Owner->PendingMipChangeRequestStatus
 					);
@@ -1884,6 +1887,11 @@ void FTexture2DResource::LoadMipData()
 			else
 #endif // #if WITH_EDITORONLY_DATA
 			{
+				if (!MipData[ActualMipIndex])
+				{
+					QUICK_SCOPE_CYCLE_COUNTER(STAT_FTexture2DResource_LoadMipData_Malloc);
+					MipData[ActualMipIndex] = FMemory::Malloc(MipSize);
+				}
 				check(MipMap.BulkData.GetFilename().Len());
 				if( MipMap.BulkData.IsStoredCompressedOnDisk() )
 				{
@@ -1892,7 +1900,7 @@ void FTexture2DResource::LoadMipData()
 						MipMap.BulkData.GetBulkDataOffsetInFile(),			// offset
 						MipMap.BulkData.GetBulkDataSizeOnDisk(),			// compressed size
 						MipMap.BulkData.GetBulkDataSize(),					// uncompressed size
-						TheMipData,											// dest pointer
+						MipData[ActualMipIndex],							// dest pointer
 						MipMap.BulkData.GetDecompressionFlags(),			// compressed data format
 						&Owner->PendingMipChangeRequestStatus,				// counter to decrement
 						AsyncIOPriority										// priority
@@ -1905,7 +1913,7 @@ void FTexture2DResource::LoadMipData()
 						MipMap.BulkData.GetFilename(),						// filename
 						MipMap.BulkData.GetBulkDataOffsetInFile(),			// offset
 						MipMap.BulkData.GetBulkDataSize(),					// size
-						TheMipData,											// dest pointer
+						MipData[ActualMipIndex],							// dest pointer
 						&Owner->PendingMipChangeRequestStatus,				// counter to decrement
 						AsyncIOPriority										// priority
 						);
@@ -1969,6 +1977,7 @@ void FTexture2DResource::UploadMipData()
 			{
 				int32 ActualMipIndex = MipIndex + PendingFirstMip;
 				RHIUnlockTexture2D( Texture2DRHI, ActualMipIndex, false );
+				MipData[ActualMipIndex] = NULL;
 			}
 		}
 
@@ -2015,6 +2024,7 @@ void FTexture2DResource::UploadMipData()
 				// Intermediate texture has RequestedMips miplevels, all of which have been locked.
 				// DEXTEX: Do not unload as we didn't locked the textures in the first place
 				RHIUnlockTexture2D( IntermediateTextureRHI, MipIndex, false );
+				MipData[MipIndex + PendingFirstMip] = NULL;
 			}
 		}
 	}

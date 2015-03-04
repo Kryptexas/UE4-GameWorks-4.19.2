@@ -1023,30 +1023,55 @@ public:
 /** Represents a wind source component to the scene manager in the rendering thread. */
 class ENGINE_API FWindSourceSceneProxy
 {
-public:
+public:	
+
+	class ENGINE_API FWindData
+	{
+	public:
+		FWindData()
+			: Speed(0.0f)
+			, MinGustAmt(0.0f)
+			, MaxGustAmt(0.0f)
+			, Direction(1.0f, 0.0f, 0.0f)
+		{
+		}
+
+		void PrepareForAccumulate();
+		void AddWeighted(const FWindData& InWindData, float Weight);
+		void NormalizeByTotalWeight(float TotalWeight);
+
+		float Speed;
+		float MinGustAmt;
+		float MaxGustAmt;
+		FVector Direction;
+	};
 
 	/** Initialization constructor. */
-	FWindSourceSceneProxy(const FVector& InDirection,float InStrength,float InSpeed):
+	FWindSourceSceneProxy(const FVector& InDirection, float InStrength, float InSpeed, float InMinGustAmt, float InMaxGustAmt) :
 	  Position(FVector::ZeroVector),
 		  Direction(InDirection),
 		  Strength(InStrength),
 		  Speed(InSpeed),
+		  MinGustAmt(InMinGustAmt),
+		  MaxGustAmt(InMaxGustAmt),
 		  Radius(0),
 		  bIsPointSource(false)
 	  {}
 
 	  /** Initialization constructor. */
-	  FWindSourceSceneProxy(const FVector& InPosition,float InStrength,float InSpeed,float InRadius):
+	FWindSourceSceneProxy(const FVector& InPosition, float InStrength, float InSpeed, float InMinGustAmt, float InMaxGustAmt, float InRadius) :
 	  Position(InPosition),
 		  Direction(FVector::ZeroVector),
 		  Strength(InStrength),
 		  Speed(InSpeed),
+		  MinGustAmt(InMinGustAmt),
+		  MaxGustAmt(InMaxGustAmt),
 		  Radius(InRadius),
 		  bIsPointSource(true)
 	  {}
 
-	  bool GetWindParameters(const FVector& EvaluatePosition, FVector4& WindDirectionAndSpeed, float& Strength) const;
-	  bool GetDirectionalWindParameters(FVector4& WindDirectionAndSpeed, float& Strength) const;
+	  bool GetWindParameters(const FVector& EvaluatePosition, FWindData& WindData, float& Weight) const;
+	  bool GetDirectionalWindParameters(FWindData& WindData, float& Weight) const;
 	  void ApplyWorldOffset(FVector InOffset);
 
 private:
@@ -1055,6 +1080,8 @@ private:
 	FVector	Direction;
 	float Strength;
 	float Speed;
+	float MinGustAmt;
+	float MaxGustAmt;
 	float Radius;
 	bool bIsPointSource;
 };

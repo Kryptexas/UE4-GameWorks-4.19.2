@@ -1495,41 +1495,46 @@ const TArray<FWindSourceSceneProxy*>& FScene::GetWindSources_RenderThread() cons
 	return WindSources;
 }
 
-FVector4 FScene::GetWindParameters(const FVector& Position) const
+void FScene::GetWindParameters(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const
 {
+	FWindSourceSceneProxy::FWindData AccumWindData;
+	AccumWindData.PrepareForAccumulate();
+
 	int32 NumActiveWindSources = 0;
 	FVector4 AccumulatedDirectionAndSpeed(0,0,0,0);
 	float TotalWeight = 0.0f;
 	for (int32 i = 0; i < WindSources.Num(); i++)
 	{
+		
 		FVector4 CurrentDirectionAndSpeed;
 		float Weight;
 		const FWindSourceSceneProxy* CurrentSource = WindSources[i];
-		if (CurrentSource->GetWindParameters(Position, CurrentDirectionAndSpeed, Weight))
+		FWindSourceSceneProxy::FWindData CurrentSourceData;
+		if (CurrentSource->GetWindParameters(Position, CurrentSourceData, Weight))
 		{
-			AccumulatedDirectionAndSpeed.X += CurrentDirectionAndSpeed.X * Weight;
-			AccumulatedDirectionAndSpeed.Y += CurrentDirectionAndSpeed.Y * Weight;
-			AccumulatedDirectionAndSpeed.Z += CurrentDirectionAndSpeed.Z * Weight;
-			AccumulatedDirectionAndSpeed.W += CurrentDirectionAndSpeed.W * Weight;
+			AccumWindData.AddWeighted(CurrentSourceData, Weight);
 			TotalWeight += Weight;
 			NumActiveWindSources++;
 		}
 	}
 
-	if (TotalWeight > 0)
-	{
-		AccumulatedDirectionAndSpeed.X /= TotalWeight;
-		AccumulatedDirectionAndSpeed.Y /= TotalWeight;
-		AccumulatedDirectionAndSpeed.Z /= TotalWeight;
-		AccumulatedDirectionAndSpeed.W /= TotalWeight;
-	}
+	AccumWindData.NormalizeByTotalWeight(TotalWeight);
 
-	// Normalize averaged direction and speed
-	return NumActiveWindSources > 0 ? AccumulatedDirectionAndSpeed / NumActiveWindSources : FVector4(0,0,0,0);
+	if (NumActiveWindSources == 0)
+	{
+		AccumWindData.Direction = FVector(1.0f, 0.0f, 0.0f);
+	}
+	OutDirection	= AccumWindData.Direction;
+	OutSpeed		= AccumWindData.Speed;
+	OutMinGustAmt	= AccumWindData.MinGustAmt;
+	OutMaxGustAmt	= AccumWindData.MaxGustAmt;
 }
 
-FVector4 FScene::GetDirectionalWindParameters(void) const
+void FScene::GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const
 {
+	FWindSourceSceneProxy::FWindData AccumWindData;
+	AccumWindData.PrepareForAccumulate();
+
 	int32 NumActiveWindSources = 0;
 	FVector4 AccumulatedDirectionAndSpeed(0,0,0,0);
 	float TotalWeight = 0.0f;
@@ -1538,27 +1543,25 @@ FVector4 FScene::GetDirectionalWindParameters(void) const
 		FVector4 CurrentDirectionAndSpeed;
 		float Weight;
 		const FWindSourceSceneProxy* CurrentSource = WindSources[i];
-		if (CurrentSource->GetDirectionalWindParameters(CurrentDirectionAndSpeed, Weight))
+		FWindSourceSceneProxy::FWindData CurrentSourceData;
+		if (CurrentSource->GetDirectionalWindParameters(CurrentSourceData, Weight))
 		{
-			AccumulatedDirectionAndSpeed.X += CurrentDirectionAndSpeed.X * Weight;
-			AccumulatedDirectionAndSpeed.Y += CurrentDirectionAndSpeed.Y * Weight;
-			AccumulatedDirectionAndSpeed.Z += CurrentDirectionAndSpeed.Z * Weight;
-			AccumulatedDirectionAndSpeed.W += CurrentDirectionAndSpeed.W * Weight;
+			AccumWindData.AddWeighted(CurrentSourceData, Weight);			
 			TotalWeight += Weight;
 			NumActiveWindSources++;
 		}
 	}
 
-	if (TotalWeight > 0)
-	{
-		AccumulatedDirectionAndSpeed.X /= TotalWeight;
-		AccumulatedDirectionAndSpeed.Y /= TotalWeight;
-		AccumulatedDirectionAndSpeed.Z /= TotalWeight;
-		AccumulatedDirectionAndSpeed.W /= TotalWeight;
-	}
+	AccumWindData.NormalizeByTotalWeight(TotalWeight);	
 
-	// Normalize averaged direction and speed
-	return NumActiveWindSources > 0 ? AccumulatedDirectionAndSpeed / NumActiveWindSources : FVector4(0,0,1,0);
+	if (NumActiveWindSources == 0)
+	{
+		AccumWindData.Direction = FVector(1.0f, 0.0f, 0.0f);
+	}
+	OutDirection = AccumWindData.Direction;
+	OutSpeed = AccumWindData.Speed;
+	OutMinGustAmt = AccumWindData.MinGustAmt;
+	OutMaxGustAmt = AccumWindData.MaxGustAmt;
 }
 
 void FScene::AddSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* StaticMesh)
@@ -1579,7 +1582,6 @@ void FScene::AddSpeedTreeWind(FVertexFactory* VertexFactory, const UStaticMesh* 
 				}
 				else
 				{
-					UE_LOG(LogRenderer, Log, TEXT("Adding SpeedTree wind for static mesh %s"), *StaticMesh->GetName());
 					FSpeedTreeWindComputation* WindComputation = new FSpeedTreeWindComputation;
 					WindComputation->Wind = *(StaticMesh->SpeedTreeWind.Get( ));
 					WindComputation->UniformBuffer.InitResource();
@@ -1631,14 +1633,20 @@ void FScene::RemoveSpeedTreeWind_RenderThread(class FVertexFactory* VertexFactor
 
 void FScene::UpdateSpeedTreeWind(double CurrentTime)
 {
-	#define SET_SPEEDTREE_TABLE_FLOAT4V(name, offset) UniformParameters.name = *(FVector4*)(WindShaderValues + FSpeedTreeWind::offset);
+#define SET_SPEEDTREE_TABLE_FLOAT4V(name, offset) \
+	UniformParameters.name = *(FVector4*)(WindShaderValues + FSpeedTreeWind::offset); \
+	UniformParameters.Prev##name = *(FVector4*)(WindShaderValues + FSpeedTreeWind::offset + FSpeedTreeWind::NUM_SHADER_VALUES);
 
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		FUpdateSpeedTreeWindCommand,
 		FScene*,Scene,this,
 		double,CurrentTime,CurrentTime,
 		{
-			FVector4 WindInfo = Scene->GetDirectionalWindParameters();
+			FVector WindDirection;
+			float WindSpeed;
+			float WindMinGustAmt;
+			float WindMaxGustAmt;
+			Scene->GetDirectionalWindParameters(WindDirection, WindSpeed, WindMinGustAmt, WindMaxGustAmt);
 
 			for (TMap<const UStaticMesh*, FSpeedTreeWindComputation*>::TIterator It(Scene->SpeedTreeWindComputationMap); It; ++It )
 			{
@@ -1665,8 +1673,10 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 				}
 
 				// advance the wind object
-				WindComputation->Wind.SetDirection(FVector(WindInfo));
-				WindComputation->Wind.SetStrength(WindInfo.W);
+				WindComputation->Wind.SetDirection(WindDirection);
+				WindComputation->Wind.SetStrength(WindSpeed);
+				WindComputation->Wind.SetGustMin(WindMinGustAmt);
+				WindComputation->Wind.SetGustMax(WindMaxGustAmt);
 				WindComputation->Wind.Advance(true, CurrentTime);
 
 				// copy data into uniform buffer
@@ -1697,8 +1707,7 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 				WindComputation->UniformBuffer.SetContents(UniformParameters);
 			}
 		});
-	
-	#undef SET_SPEEDTREE_TABLE_FLOAT4V
+#undef SET_SPEEDTREE_TABLE_FLOAT4V
 }
 
 FUniformBufferRHIParamRef FScene::GetSpeedTreeUniformBuffer(const FVertexFactory* VertexFactory)
@@ -2362,8 +2371,8 @@ public:
 		static TArray<class FWindSourceSceneProxy*> NullWindSources;
 		return NullWindSources;
 	}
-	virtual FVector4 GetWindParameters(const FVector& Position) const { return FVector4(0,0,1,0); }
-	virtual FVector4 GetDirectionalWindParameters() const { return FVector4(0,0,1,0); }
+	virtual void GetWindParameters(const FVector& Position, FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const { OutDirection = FVector(1.0f, 0.0f, 0.0f); OutSpeed = 0.0f; OutMinGustAmt = 0.0f; OutMaxGustAmt = 0.0f; }
+	virtual void GetDirectionalWindParameters(FVector& OutDirection, float& OutSpeed, float& OutMinGustAmt, float& OutMaxGustAmt) const { OutDirection = FVector(1.0f, 0.0f, 0.0f); OutSpeed = 0.0f; OutMinGustAmt = 0.0f; OutMaxGustAmt = 0.0f; }
 	virtual void AddSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) {}
 	virtual void RemoveSpeedTreeWind(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) {}
 	virtual void RemoveSpeedTreeWind_RenderThread(class FVertexFactory* VertexFactory, const class UStaticMesh* StaticMesh) {}

@@ -283,6 +283,10 @@ public:
 	UPROPERTY()
 	uint32 bDisplayBones:1;
 
+	/** Disable Morphtarget for this component. */
+	UPROPERTY()
+	uint32 bDisableMorphTarget:1;
+
 	/** Don't bother rendering the skin. */
 	UPROPERTY()
 	uint32 bHideSkin:1;

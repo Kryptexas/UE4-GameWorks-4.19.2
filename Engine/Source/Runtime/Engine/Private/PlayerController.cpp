@@ -1460,25 +1460,18 @@ void APlayerController::ResetCameraMode()
 
 void APlayerController::ClientSetCameraFade_Implementation(bool bEnableFading, FColor FadeColor, FVector2D FadeAlpha, float FadeTime, bool bFadeAudio)
 {
-	if (PlayerCameraManager != NULL)
+	if (PlayerCameraManager != nullptr)
 	{
-		PlayerCameraManager->bEnableFading = bEnableFading;
-		if (PlayerCameraManager->bEnableFading)
+		if (bEnableFading)
 		{
-			PlayerCameraManager->FadeColor = FadeColor;
-			PlayerCameraManager->FadeAlpha = FadeAlpha;
-			PlayerCameraManager->FadeTime = FadeTime;
-			PlayerCameraManager->FadeTimeRemaining = FadeTime;
-			PlayerCameraManager->bFadeAudio = bFadeAudio;
+			PlayerCameraManager->StartCameraFade(FadeAlpha.X, FadeAlpha.Y, FadeTime, FadeColor.ReinterpretAsLinear(), bFadeAudio);
 		}
 		else
 		{
-			// Make sure FadeAmount finishes at the correct value
-			PlayerCameraManager->FadeAmount = PlayerCameraManager->FadeAlpha.Y;
+			PlayerCameraManager->StopCameraFade();
 		}
 	}
 }
-
 
 void APlayerController::SendClientAdjustment()
 {

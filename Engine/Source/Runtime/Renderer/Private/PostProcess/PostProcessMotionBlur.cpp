@@ -9,6 +9,7 @@
 #include "SceneFilterRendering.h"
 #include "PostProcessAmbientOcclusion.h"
 #include "PostProcessMotionBlur.h"
+#include "PostProcessAmbientOcclusion.h"
 #include "PostProcessing.h"
 #include "SceneUtils.h"
 
@@ -979,7 +980,7 @@ void FRCPassPostProcessVelocityScatter::Process(FRenderingCompositePassContext& 
 
 	TRefCountPtr<IPooledRenderTarget> DepthTarget;
 	
-	FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( DestRect.Size(), PF_ShadowDepth, TexCreate_None, TexCreate_DepthStencilTargetable, false ) );
+	FPooledRenderTargetDesc Desc( FPooledRenderTargetDesc::Create2DDesc( DestSize, PF_ShadowDepth, TexCreate_None, TexCreate_DepthStencilTargetable, false ) );
 	GRenderTargetPool.FindFreeElement( Desc, DepthTarget, TEXT("VelocityScatterDepth") );
 
 	// Set the view family's render target/viewport.

@@ -2889,13 +2889,7 @@ bool StaticExec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 	}
 	else if( FParse::Command(&Str,TEXT("OBJ")) )
 	{
-		if( FParse::Command(&Str,TEXT("GARBAGE")) || FParse::Command(&Str,TEXT("GC")) )
-		{
-			// Purge unclaimed objects.
-			CollectGarbage( GARBAGE_COLLECTION_KEEPFLAGS );
-			return true;
-		}
-		else if( FParse::Command(&Str,TEXT("CYCLES")) )
+		if( FParse::Command(&Str,TEXT("CYCLES")) )
 		{
 			// find all cycles in the reference graph
 

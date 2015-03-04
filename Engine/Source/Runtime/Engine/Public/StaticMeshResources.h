@@ -939,6 +939,30 @@ struct FInstanceStream
 		Me->InstanceLightmapAndShadowMapUVBias[3] = 0;
 	}
 
+	FORCEINLINE void GetInstanceTransform(FMatrix& Transform) const
+	{
+		Transform.M[3][0] = InstanceOrigin.X;
+		Transform.M[3][1] = InstanceOrigin.Y;
+		Transform.M[3][2] = InstanceOrigin.Z;
+
+		Transform.M[0][0] = InstanceTransform1[0];
+		Transform.M[1][0] = InstanceTransform1[1];
+		Transform.M[2][0] = InstanceTransform1[2];
+
+		Transform.M[0][1] = InstanceTransform2[0];
+		Transform.M[1][1] = InstanceTransform2[1];
+		Transform.M[2][1] = InstanceTransform2[2];
+
+		Transform.M[0][2] = InstanceTransform3[0];
+		Transform.M[1][2] = InstanceTransform3[1];
+		Transform.M[2][2] = InstanceTransform3[2];
+
+		Transform.M[0][3] = 0.f;
+		Transform.M[1][3] = 0.f;
+		Transform.M[2][3] = 0.f;
+		Transform.M[3][3] = 0.f;
+	}
+
 	FORCEINLINE void SetInstance(const FMatrix& Transform, float RandomInstanceID, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias, FColor HitProxyColor, bool bSelected)
 	{
 		const FMatrix* RESTRICT rTransform = (const FMatrix* RESTRICT)&Transform;
@@ -965,6 +989,39 @@ struct FInstanceStream
 		Me->InstanceTransform3[1] = Transform.M[1][2];
 		Me->InstanceTransform3[2] = Transform.M[2][2];
 		Me->InstanceTransform3[3] = (float)HitProxyColor.B;
+
+		Me->InstanceLightmapAndShadowMapUVBias[0] = FMath::Clamp<int32>(FMath::TruncToInt(rLightmapUVBias->X  * 32767.0f), MIN_int16, MAX_int16);
+		Me->InstanceLightmapAndShadowMapUVBias[1] = FMath::Clamp<int32>(FMath::TruncToInt(rLightmapUVBias->Y  * 32767.0f), MIN_int16, MAX_int16);
+		Me->InstanceLightmapAndShadowMapUVBias[2] = FMath::Clamp<int32>(FMath::TruncToInt(rShadowmapUVBias->X * 32767.0f), MIN_int16, MAX_int16);
+		Me->InstanceLightmapAndShadowMapUVBias[3] = FMath::Clamp<int32>(FMath::TruncToInt(rShadowmapUVBias->Y * 32767.0f), MIN_int16, MAX_int16);
+	}
+
+	FORCEINLINE void SetInstance(const FMatrix& Transform, float RandomInstanceID, const FVector2D& LightmapUVBias, const FVector2D& ShadowmapUVBias)
+	{
+		const FMatrix* RESTRICT rTransform = (const FMatrix* RESTRICT)&Transform;
+		FInstanceStream* RESTRICT Me = (FInstanceStream* RESTRICT)this;
+		const FVector2D* RESTRICT rLightmapUVBias = (const FVector2D* RESTRICT)&LightmapUVBias;
+		const FVector2D* RESTRICT rShadowmapUVBias = (const FVector2D* RESTRICT)&ShadowmapUVBias;
+
+		Me->InstanceOrigin.X = rTransform->M[3][0];
+		Me->InstanceOrigin.Y = rTransform->M[3][1];
+		Me->InstanceOrigin.Z = rTransform->M[3][2];
+		Me->InstanceOrigin.W = RandomInstanceID;
+
+		Me->InstanceTransform1[0] = Transform.M[0][0];
+		Me->InstanceTransform1[1] = Transform.M[1][0];
+		Me->InstanceTransform1[2] = Transform.M[2][0];
+		Me->InstanceTransform1[3] = FFloat16();
+
+		Me->InstanceTransform2[0] = Transform.M[0][1];
+		Me->InstanceTransform2[1] = Transform.M[1][1];
+		Me->InstanceTransform2[2] = Transform.M[2][1];
+		Me->InstanceTransform2[3] = FFloat16();
+
+		Me->InstanceTransform3[0] = Transform.M[0][2];
+		Me->InstanceTransform3[1] = Transform.M[1][2];
+		Me->InstanceTransform3[2] = Transform.M[2][2];
+		Me->InstanceTransform3[3] = FFloat16();
 
 		Me->InstanceLightmapAndShadowMapUVBias[0] = FMath::Clamp<int32>(FMath::TruncToInt(rLightmapUVBias->X  * 32767.0f), MIN_int16, MAX_int16);
 		Me->InstanceLightmapAndShadowMapUVBias[1] = FMath::Clamp<int32>(FMath::TruncToInt(rLightmapUVBias->Y  * 32767.0f), MIN_int16, MAX_int16);

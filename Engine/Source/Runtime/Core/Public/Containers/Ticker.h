@@ -71,6 +71,7 @@ public:
 	 */
 	void Tick(float DeltaTime)
 	{
+		QUICK_SCOPE_CYCLE_COUNTER(STAT_FTicker_Tick);
 		if (!PriorityQueue.Num())
 		{
 			return;

@@ -441,7 +441,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Runtime, config)
 	float ObservedPathsTickInterval;
 
-	UPROPERTY()
+	UPROPERTY(Transient)
 	UWorld* CachedWorld;
 
 public:
@@ -797,7 +797,7 @@ protected:
 	FNavRaycastPtr RaycastImplementation; 
 
 protected:
-	TUniquePtr<FNavDataGenerator> NavDataGenerator;
+	TSharedPtr<FNavDataGenerator> NavDataGenerator;
 	/** 
 	 *	Container for all path objects generated with this Navigation Data instance. 
 	 *	Is meant to be added to only on GameThread, and in fact should user should never 

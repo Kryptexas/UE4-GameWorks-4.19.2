@@ -209,6 +209,7 @@ void FCurlHttpManager::RemoveRequest(const TSharedRef<class IHttpRequest>& Reque
 
 bool FCurlHttpManager::Tick(float DeltaSeconds)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FCurlHttpManager_Tick);
 	check(MultiHandle);
 	if (Requests.Num() > 0)
 	{

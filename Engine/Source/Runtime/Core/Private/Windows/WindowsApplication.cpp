@@ -268,15 +268,7 @@ void FWindowsApplication::SetMessageHandler( const TSharedRef< FGenericApplicati
 
 FModifierKeysState FWindowsApplication::GetModifierKeys() const
 {
-	const bool bIsLeftShiftDown = ( ::GetAsyncKeyState( VK_LSHIFT ) & 0x8000 ) != 0;
-	const bool bIsRightShiftDown = ( ::GetAsyncKeyState( VK_RSHIFT ) & 0x8000 ) != 0;
-	const bool bIsLeftControlDown = ( ::GetAsyncKeyState( VK_LCONTROL ) & 0x8000 ) != 0;
-	const bool bIsRightControlDown = ( ::GetAsyncKeyState( VK_RCONTROL ) & 0x8000 ) != 0;
-	const bool bIsLeftAltDown = ( ::GetAsyncKeyState( VK_LMENU ) & 0x8000 ) != 0;
-	const bool bIsRightAltDown = ( ::GetAsyncKeyState (VK_RMENU ) & 0x8000 ) != 0;
-	const bool bAreCapsLocked = ( ::GetKeyState( VK_CAPITAL ) & 0x0001 ) != 0;
-
-	return FModifierKeysState(bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false, bAreCapsLocked); // Win key is ignored
+	return CachedModifierKeyState;
 }
 
 
@@ -298,11 +290,15 @@ static TSharedPtr< FWindowsWindow > FindWindowByHWND(const TArray< TSharedRef< F
 bool FWindowsApplication::IsCursorDirectlyOverSlateWindow() const
 {
 	POINT CursorPos;
-	::GetCursorPos(&CursorPos);
-	HWND hWnd = ::WindowFromPoint(CursorPos);
-	
-	TSharedPtr< FWindowsWindow > SlatWindowUnderCursor = FindWindowByHWND(Windows, hWnd);
-	return SlatWindowUnderCursor.IsValid();
+	BOOL bGotPoint = ::GetCursorPos(&CursorPos);
+	if (bGotPoint)
+	{
+		HWND hWnd = ::WindowFromPoint(CursorPos);
+
+		TSharedPtr< FWindowsWindow > SlatWindowUnderCursor = FindWindowByHWND(Windows, hWnd);
+		return SlatWindowUnderCursor.IsValid();
+	}
+	return false;
 }
 
 
@@ -1750,6 +1746,19 @@ void FWindowsApplication::ProcessDeferredEvents( const float TimeDelta )
 			ProcessDeferredDragDropOperation(DeferredDragDropOperation);
 		}
 	}
+}
+
+void FWindowsApplication::Tick( const float TimeDelta )
+{
+	const bool bIsLeftShiftDown = (::GetAsyncKeyState(VK_LSHIFT) & 0x8000) != 0;
+	const bool bIsRightShiftDown = (::GetAsyncKeyState(VK_RSHIFT) & 0x8000) != 0;
+	const bool bIsLeftControlDown = (::GetAsyncKeyState(VK_LCONTROL) & 0x8000) != 0;
+	const bool bIsRightControlDown = (::GetAsyncKeyState(VK_RCONTROL) & 0x8000) != 0;
+	const bool bIsLeftAltDown = (::GetAsyncKeyState(VK_LMENU) & 0x8000) != 0;
+	const bool bIsRightAltDown = (::GetAsyncKeyState(VK_RMENU) & 0x8000) != 0;
+	const bool bAreCapsLocked = (::GetKeyState(VK_CAPITAL) & 0x0001) != 0;
+
+	CachedModifierKeyState = FModifierKeysState(bIsLeftShiftDown, bIsRightShiftDown, bIsLeftControlDown, bIsRightControlDown, bIsLeftAltDown, bIsRightAltDown, false, false, bAreCapsLocked); // Win key is ignored
 }
 
 void FWindowsApplication::PollGameDeviceState( const float TimeDelta )

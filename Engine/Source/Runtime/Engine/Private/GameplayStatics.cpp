@@ -18,6 +18,7 @@
 #include "GameFramework/DamageType.h"
 #include "PhysicalMaterials/PhysicalMaterial.h"
 #include "Components/DecalComponent.h"
+#include "LandscapeProxy.h"
 
 //////////////////////////////////////////////////////////////////////////
 // UGameplayStatics
@@ -403,6 +404,15 @@ ULevelStreaming* UGameplayStatics::GetStreamingLevel(UObject* WorldContextObject
 	}
 	
 	return NULL;
+}
+
+void UGameplayStatics::FlushLevelStreaming(UObject* WorldContextObject)
+{
+	UWorld* World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World != nullptr)
+	{
+		World->FlushLevelStreaming();
+	}
 }
 
 void UGameplayStatics::CancelAsyncLoading()
@@ -1358,3 +1368,34 @@ void UGameplayStatics::SetWorldOriginLocation(UObject* WorldContextObject, FIntV
 		World->RequestNewWorldOrigin(NewLocation);
 	}
 }
+
+int32 UGameplayStatics::GrassOverlappingSphereCount(UObject* WorldContextObject, const UStaticMesh* Mesh, FVector CenterPosition, float Radius)
+{
+	int32 Count = 0;
+
+	UWorld* const World = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (World)
+	{
+		const FSphere Sphere(CenterPosition, Radius);
+
+		// check every landscape
+		for (TActorIterator<ALandscapeProxy> It(World); It; ++It)
+		{
+			ALandscapeProxy* L = *It;
+			if (L)
+			{
+				for (UHierarchicalInstancedStaticMeshComponent const* HComp : L->FoliageComponents)
+				{
+					if (HComp && (HComp->StaticMesh == Mesh))
+					{
+						Count += HComp->GetOverlappingSphereCount(Sphere);
+					}
+				}
+			}
+		}
+	}
+
+	return Count;
+}
+
+

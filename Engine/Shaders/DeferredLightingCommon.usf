@@ -248,25 +248,17 @@ float3 SubsurfaceShadingSubsurface( FGBufferData GBuffer, float3 L, float3 V, ha
 	return SubsurfaceColor * lerp(BackScatter, 1, InScatter);
 }
 
-float3 TwoSidedFoliageShadingSubsurface( float3 SubsurfaceColor, float3 L, float3 V, half3 N )
+float3 SubsurfaceShadingTwoSided( float3 SubsurfaceColor, float3 L, float3 V, half3 N )
 {
-	float VoL = saturate(dot(V, -L));
-	// here we raise to the power of 4
-	float VoLLobe = VoL * VoL;
-	VoLLobe *= VoLLobe;
-	// so for energy conservation we need to do the same here
-	const float Exponent = 4;
-	// Modified phong energy conservation
-	VoLLobe = VoLLobe * (Exponent + 1) / (2.0f * PI);
+	float Wrap = 0.5;
+	float NoL = saturate( ( dot(-N, L) + Wrap ) / Square( 1 + Wrap ) );
 
-	float DiffuseWrap = .6f;
-	// Energy conserving wrap
-	float BackDiffuse = saturate(dot(-N, L) * DiffuseWrap * DiffuseWrap + (1 - DiffuseWrap) * DiffuseWrap) / PI;  
-	// Leaves have very small amounts of directional backscattering
-	float ViewDependenceAmount = .2f;
-	float BackShading = lerp(BackDiffuse, VoLLobe, ViewDependenceAmount);
-
-	return BackShading * SubsurfaceColor;
+	float VoL = saturate( dot(V, -L) );
+	float a = 0.6;
+	float a2 = a * a;
+	float d = ( VoL * a2 - VoL ) * VoL + 1;	// 2 mad
+	float GGX = (a2 / PI) / (d * d);		// 2 mul, 1 rcp
+	return NoL * GGX * SubsurfaceColor;
 }
 
 Texture2D		PreIntegratedBRDF;
@@ -312,7 +304,7 @@ float3 SubsurfaceShading( FGBufferData GBuffer, float3 L, float3 V, half3 N )
 		case SHADINGMODELID_PREINTEGRATED_SKIN:
 			return SubsurfaceShadingPreintegratedSkin( GBuffer, L, V, N );
 		case SHADINGMODELID_TWOSIDED_FOLIAGE:
-			return TwoSidedFoliageShadingSubsurface( SubsurfaceColor, L, V, N );
+			return SubsurfaceShadingTwoSided( SubsurfaceColor, L, V, N );
 		default:
 			return 0;
 	}

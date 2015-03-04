@@ -2306,9 +2306,13 @@ void USkeletalMeshComponent::ApplyWindForCloth(FClothingActor& ClothingActor)
 		{
 			FVector Position = ComponentToWorld.GetTranslation();
 
-			FVector4 WindParam = World->Scene->GetWindParameters(Position);
+			FVector WindDirection;
+			float WindSpeed;
+			float WindMinGust;
+			float WindMaxGust;
+			World->Scene->GetWindParameters(Position, WindDirection, WindSpeed, WindMinGust, WindMaxGust);
 
-			physx::PxVec3 WindVelocity(WindParam.X, WindParam.Y, WindParam.Z);
+			physx::PxVec3 WindVelocity(WindDirection.X, WindDirection.Y, WindDirection.Z);
 
 			WindVelocity *= WindUnitAmout;
 			float WindAdaption = rand()%20 * 0.1f; // make range from 0 to 2

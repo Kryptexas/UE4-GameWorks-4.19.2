@@ -74,13 +74,14 @@ void UpdateD3D11TextureStats(uint32 BindFlags, uint32 MiscFlags, int64 TextureSi
 		return;
 	}
 	
+	int64 AlignedSize = (TextureSize > 0) ? Align(TextureSize, 1024) / 1024 : -(Align(-TextureSize, 1024) / 1024);
 	if(ShouldCountAsTextureMemory(BindFlags))
 	{
-		FPlatformAtomics::InterlockedAdd(&GCurrentTextureMemorySize, Align(TextureSize, 1024) / 1024);
+		FPlatformAtomics::InterlockedAdd(&GCurrentTextureMemorySize, AlignedSize);
 	}
 	else
 	{
-		FPlatformAtomics::InterlockedAdd(&GCurrentRendertargetMemorySize, Align(TextureSize, 1024) / 1024);
+		FPlatformAtomics::InterlockedAdd(&GCurrentRendertargetMemorySize, AlignedSize);
 	}
 
 	bool bCubeMap = (MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE) != 0;

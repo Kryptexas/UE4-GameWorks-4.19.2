@@ -348,7 +348,7 @@ TSharedPtr<IToolTip> SWorldTileItem::GetToolTip()
 FVector2D SWorldTileItem::GetDesiredSizeForMarquee() const
 {
 	// we don't want to select items in non visible layers
-	if (!WorldModel->PassesAllFilters(TileModel))
+	if (!WorldModel->PassesAllFilters(*TileModel))
 	{
 		return FVector2D::ZeroVector;
 	}
@@ -474,7 +474,14 @@ FText SWorldTileItem::GetLevelLayerNameText() const
 
 FText SWorldTileItem::GetLevelLayerDistanceText() const
 {
-	return FText::AsNumber(TileModel->TileDetails->Layer.StreamingDistance);
+	if (TileModel->TileDetails->Layer.DistanceStreamingEnabled)
+	{
+		return FText::AsNumber(TileModel->TileDetails->Layer.StreamingDistance);
+	}
+	else
+	{
+		return FText(LOCTEXT("DistanceStreamingDisabled", "Distance Streaming Disabled"));
+	}
 }
 
 bool SWorldTileItem::IsItemEditable() const

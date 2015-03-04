@@ -120,6 +120,17 @@ class ULevelStreaming : public UObject
 	UPROPERTY(Category=LevelStreaming, BlueprintReadWrite)
 	uint32 bShouldBlockOnLoad:1;
 
+	/** Requested LOD. Non LOD sub-levels have Index = -1  */
+	UPROPERTY(transient, Category=LevelStreaming, BlueprintReadWrite)
+	int32 LevelLODIndex;
+	
+	/** 
+	 *  Whether this level streaming object should be ignored by world composition distance streaming, 
+	 *  so streaming state can be controlled by other systems (ex: in blueprints)
+	 */
+	UPROPERTY(transient, Category=LevelStreaming, BlueprintReadWrite)
+	uint32 bDisableDistanceStreaming:1;
+
 	/** Whether this level streaming object's level should be unloaded and the object be removed from the level list.			*/
 	uint32 bIsRequestingUnloadAndRemoval:1;
 	
@@ -149,9 +160,6 @@ class ULevelStreaming : public UObject
 	/** List of keywords to filter on in the level browser */
 	UPROPERTY()
 	TArray<FString> Keywords;
-
-	/** Requested LOD */
-	int32 LevelLODIndex;
 
 	// Begin UObject Interface
 	virtual void PostLoad() override;
@@ -190,7 +198,7 @@ class ULevelStreaming : public UObject
 	 *
 	 * @return true if level should be loaded/ streamed in, false otherwise
 	 */
-	virtual bool ShouldBeLoaded();
+	virtual bool ShouldBeLoaded() const;
 
 	/**
 	 * Return whether this level should be visible/ associated with the world if it is
@@ -198,7 +206,7 @@ class ULevelStreaming : public UObject
 	 * 
 	 * @return true if the level should be visible, false otherwise
 	 */
-	virtual bool ShouldBeVisible();
+	virtual bool ShouldBeVisible() const;
 
 	virtual bool ShouldBeAlwaysLoaded() const { return false; }
 	
@@ -242,6 +250,10 @@ class ULevelStreaming : public UObject
 	/** Returns whether streaming level is loaded */
 	UFUNCTION(BlueprintCallable, Category="Game")
 	bool IsLevelLoaded() const;
+
+	/** Returns whether level has streaming state change pending */
+	UFUNCTION(BlueprintCallable, Category="Game")
+	bool IsStreamingStatePending() const;
 
 	/** Creates a new instance of this streaming level with a provided unique instance name */
 	UFUNCTION(BlueprintCallable, Category="Game")

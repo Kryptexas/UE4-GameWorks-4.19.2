@@ -262,6 +262,8 @@ void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 	// If we have not created a heightfield yet - do it now.
 	if (!IsValidRef(HeightfieldRef))
 	{
+		UWorld* World = GetWorld();
+
 		FPhysXHeightfieldRef* ExistingHeightfieldRef = nullptr;
 		bool bCheckDDC = true;
 
@@ -293,6 +295,10 @@ void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 			// Prepare heightfield data
 			static FName PhysicsFormatName(FPlatformProperties::GetPhysicsFormat());
 			CookCollsionData(PhysicsFormatName, false, bCheckDDC, CookedCollisionData, CookedPhysicalMaterials);
+
+			// The World will clean up any speculatively-loaded data we didn't end up using.
+			SpeculativeDDCRequest.Reset();
+
 #endif //WITH_EDITOR
 
 			if (CookedCollisionData.Num())
@@ -312,14 +318,14 @@ void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 
 				// Release cooked collison data
 				// In cooked builds created collision object will never be deleted while component is alive, so we don't need this data anymore
-				if (FPlatformProperties::RequiresCookedData() || GetWorld()->IsGameWorld())
+				if (FPlatformProperties::RequiresCookedData() || World->IsGameWorld())
 				{
 					CookedCollisionData.Empty();
 				}
 
 #if WITH_EDITOR
 				// Create heightfield for the landscape editor (no holes in it)
-				if (!GetWorld()->IsGameWorld())
+				if (!World->IsGameWorld())
 				{
 					TArray<UPhysicalMaterial*> CookedMaterialsEd;
 					if (CookCollsionData(PhysicsFormatName, true, bCheckDDC, CookedCollisionDataEd, CookedMaterialsEd))
@@ -336,6 +342,26 @@ void ULandscapeHeightfieldCollisionComponent::CreateCollisionObject()
 }
 
 #if WITH_EDITOR
+void ULandscapeHeightfieldCollisionComponent::SpeculativelyLoadAsyncDDCCollsionData()
+{
+#if WITH_PHYSX
+	if (GetLinkerUE4Version() >= VER_UE4_LANDSCAPE_SERIALIZE_PHYSICS_MATERIALS)
+	{
+		UWorld* World = GetWorld();
+		if (World && HeightfieldGuid.IsValid() && CookedPhysicalMaterials.Num() > 0 && GSharedHeightfieldRefs.FindRef(HeightfieldGuid) == nullptr)
+		{
+			static FName PhysicsFormatName(FPlatformProperties::GetPhysicsFormat());
+
+			FString Key = GetHFDDCKeyString(PhysicsFormatName, false, HeightfieldGuid);
+			uint32 Handle = GetDerivedDataCacheRef().GetAsynchronous(*Key);
+			check(!SpeculativeDDCRequest.IsValid());
+			SpeculativeDDCRequest = MakeShareable(new FAsyncPreRegisterDDCRequest(Key, Handle));
+			World->AsyncPreRegisterDDCRequests.Add(SpeculativeDDCRequest);
+		}
+	}
+#endif
+}
+
 bool ULandscapeHeightfieldCollisionComponent::CookCollsionData(const FName& Format, bool bUseDefMaterial, bool bCheckDDC, TArray<uint8>& OutCookedData, TArray<UPhysicalMaterial*>& OutMaterials) const
 {
 #if WITH_PHYSX
@@ -347,7 +373,23 @@ bool ULandscapeHeightfieldCollisionComponent::CookCollsionData(const FName& Form
 		// Ensure that content was saved with physical materials before using DDC data
 		if (GetLinkerUE4Version() >= VER_UE4_LANDSCAPE_SERIALIZE_PHYSICS_MATERIALS)
 		{
-			if (GetDerivedDataCacheRef().GetSynchronous(*GetHFDDCKeyString(Format, bUseDefMaterial, HeightfieldGuid), OutCookedData))
+			FString DDCKey = GetHFDDCKeyString(Format, bUseDefMaterial, HeightfieldGuid);
+
+			// Check if the speculatively-loaded data loaded and is what we wanted
+			if (SpeculativeDDCRequest.IsValid() && DDCKey == SpeculativeDDCRequest->GetKey())
+			{
+				SpeculativeDDCRequest->WaitAsynchronousCompletion();
+				bool bSuccess = SpeculativeDDCRequest->GetAsynchronousResults(OutCookedData);
+				// World will clean up remaining reference
+				SpeculativeDDCRequest.Reset();
+				if (bSuccess)
+				{
+					bShouldSaveCookedDataToDDC[CookedDataIndex] = false;
+					return true;
+				}
+			}
+
+			if (GetDerivedDataCacheRef().GetSynchronous(*DDCKey, OutCookedData))
 			{
 				bShouldSaveCookedDataToDDC[CookedDataIndex] = false;
 				return true;
@@ -485,7 +527,23 @@ bool ULandscapeMeshCollisionComponent::CookCollsionData(const FName& Format, boo
 		// Ensure that content was saved with physical materials before using DDC data
 		if (GetLinkerUE4Version() >= VER_UE4_LANDSCAPE_SERIALIZE_PHYSICS_MATERIALS)
 		{
-			if (GetDerivedDataCacheRef().GetSynchronous(*GetHFDDCKeyString(Format, bUseDefMaterial, HeightfieldGuid), OutCookedData))
+			FString DDCKey = GetHFDDCKeyString(Format, bUseDefMaterial, HeightfieldGuid);
+
+			// Check if the speculatively-loaded data loaded and is what we wanted
+			if (SpeculativeDDCRequest.IsValid() && DDCKey == SpeculativeDDCRequest->GetKey())
+			{
+				SpeculativeDDCRequest->WaitAsynchronousCompletion();
+				bool bSuccess = SpeculativeDDCRequest->GetAsynchronousResults(OutCookedData);
+				// World will clean up remaining reference
+				SpeculativeDDCRequest.Reset();
+				if (bSuccess)
+				{
+					bShouldSaveCookedDataToDDC[CookedDataIndex] = false;
+					return true;
+				}
+			}
+
+			if (GetDerivedDataCacheRef().GetSynchronous(*DDCKey, OutCookedData))
 			{
 				bShouldSaveCookedDataToDDC[CookedDataIndex] = false;
 				return true;
@@ -1259,7 +1317,7 @@ bool ULandscapeHeightfieldCollisionComponent::ComponentIsTouchingSelectionFrustu
 }
 #endif
 
-bool ULandscapeHeightfieldCollisionComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport* GeomExport) const
+bool ULandscapeHeightfieldCollisionComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
 {
 	check(IsInGameThread());
 #if WITH_PHYSX
@@ -1267,14 +1325,66 @@ bool ULandscapeHeightfieldCollisionComponent::DoCustomNavigableGeometryExport(FN
 	{
 		FTransform HFToW = ComponentToWorld;
 		HFToW.MultiplyScale3D(FVector(CollisionScale, CollisionScale, LANDSCAPE_ZSCALE));
-
-		GeomExport->ExportPxHeightField(HeightfieldRef->RBHeightfield, HFToW);
+		GeomExport.ExportPxHeightField(HeightfieldRef->RBHeightfield, HFToW);
 	}
 #endif// WITH_PHYSX
 	return false;
 }
 
-bool ULandscapeMeshCollisionComponent::DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const
+void ULandscapeHeightfieldCollisionComponent::GatherGeometrySlice(FNavigableGeometryExport& GeomExport, const FBox& SliceBox) const
+{
+	// note that this function can get called off game thread
+	if (CachedHeightFieldSamples.IsEmpty() == false)
+	{
+		FTransform HFToW = ComponentToWorld;
+		HFToW.MultiplyScale3D(FVector(CollisionScale, CollisionScale, LANDSCAPE_ZSCALE));
+
+		GeomExport.ExportHeightFieldSlice(CachedHeightFieldSamples, HeightfieldRowsCount, HeightfieldColumnsCount, HFToW, SliceBox);
+	}
+}
+
+ENavDataGatheringMode ULandscapeHeightfieldCollisionComponent::GetGeometryGatheringMode() const
+{ 
+	ALandscapeProxy* Proxy = GetLandscapeProxy();
+	return Proxy ? Proxy->NavigationGeometryGatheringMode : ENavDataGatheringMode::Default;
+}
+
+void ULandscapeHeightfieldCollisionComponent::PrepareGeometryExportSync()
+{
+	//check(IsInGameThread());
+#if WITH_PHYSX
+	if (IsValidRef(HeightfieldRef) && HeightfieldRef->RBHeightfield != nullptr && CachedHeightFieldSamples.IsEmpty())
+	{
+		const UWorld* World = GetWorld();
+
+		if (World != nullptr)
+		{
+			HeightfieldRowsCount = HeightfieldRef->RBHeightfield->getNbRows();
+			HeightfieldColumnsCount = HeightfieldRef->RBHeightfield->getNbColumns();
+				
+			if (CachedHeightFieldSamples.Heights.Num() != HeightfieldRowsCount * HeightfieldRowsCount)
+			{
+				QUICK_SCOPE_CYCLE_COUNTER(STAT_NavMesh_ExportPxHeightField_saveCells);
+
+				CachedHeightFieldSamples.Heights.SetNumUninitialized(HeightfieldRowsCount * HeightfieldRowsCount);
+
+				TArray<PxHeightFieldSample> HFSamples;
+				HFSamples.SetNumUninitialized(HeightfieldRowsCount * HeightfieldRowsCount);
+				HeightfieldRef->RBHeightfield->saveCells(HFSamples.GetData(), HFSamples.Num()*HFSamples.GetTypeSize());
+
+				for (int32 SampleIndex = 0; SampleIndex < HFSamples.Num(); ++SampleIndex)
+				{
+					const PxHeightFieldSample& Sample = HFSamples[SampleIndex];
+					CachedHeightFieldSamples.Heights[SampleIndex] = Sample.height;
+					CachedHeightFieldSamples.Holes.Add((Sample.materialIndex0 == PxHeightFieldMaterial::eHOLE));
+				}
+			}
+		}
+	}
+#endif// WITH_PHYSX
+}
+
+bool ULandscapeMeshCollisionComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
 {
 	check(IsInGameThread());
 #if WITH_PHYSX
@@ -1285,11 +1395,11 @@ bool ULandscapeMeshCollisionComponent::DoCustomNavigableGeometryExport(struct FN
 
 		if (MeshRef->RBTriangleMesh->getTriangleMeshFlags() & PxTriangleMeshFlag::eHAS_16BIT_TRIANGLE_INDICES)
 		{
-			GeomExport->ExportPxTriMesh16Bit(MeshRef->RBTriangleMesh, MeshToW);
+			GeomExport.ExportPxTriMesh16Bit(MeshRef->RBTriangleMesh, MeshToW);
 		}
 		else
 		{
-			GeomExport->ExportPxTriMesh32Bit(MeshRef->RBTriangleMesh, MeshToW);
+			GeomExport.ExportPxTriMesh32Bit(MeshRef->RBTriangleMesh, MeshToW);
 		}
 	}
 #endif// WITH_PHYSX
@@ -1320,6 +1430,12 @@ void ULandscapeHeightfieldCollisionComponent::PostLoad()
 				RelativeLocation.X = CheckRelativeLocationX;
 				RelativeLocation.Y = CheckRelativeLocationY;
 			}
+		}
+
+		UWorld* World = GetWorld();
+		if (World && World->IsGameWorld())
+		{
+			SpeculativelyLoadAsyncDDCCollsionData();
 		}
 	}
 #endif//WITH_EDITOR
@@ -1797,4 +1913,7 @@ ULandscapeHeightfieldCollisionComponent::ULandscapeHeightfieldCollisionComponent
 	Mobility = EComponentMobility::Static;
 	bCanEverAffectNavigation = true;
 	bHasCustomNavigableGeometry = EHasCustomNavigableGeometry::Yes;
+
+	HeightfieldRowsCount = -1;
+	HeightfieldColumnsCount = -1;
 }

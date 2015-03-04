@@ -711,7 +711,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 		// Apply screen fade effect to screen.
 		if (PlayerController->PlayerCameraManager->bEnableFading)
 		{
-			ViewInitOptions.OverlayColor = PlayerController->PlayerCameraManager->FadeColor.ReinterpretAsLinear();
+			ViewInitOptions.OverlayColor = PlayerController->PlayerCameraManager->FadeColor;
 			ViewInitOptions.OverlayColor.A = FMath::Clamp(PlayerController->PlayerCameraManager->FadeAmount,0.0f,1.0f);
 		}
 
@@ -742,6 +742,7 @@ FSceneView* ULocalPlayer::CalcSceneView( class FSceneViewFamily* ViewFamily,
 	ViewInitOptions.WorldToMetersScale = PlayerController->GetWorldSettings()->WorldToMeters;
 	ViewInitOptions.CursorPos = Viewport->HasMouseCapture() ? FIntPoint(-1, -1) : FIntPoint(Viewport->GetMouseX(), Viewport->GetMouseY());
 	ViewInitOptions.bOriginOffsetThisFrame = PlayerController->GetWorld()->bOriginOffsetThisFrame;
+	ViewInitOptions.bUseFieldOfViewForLOD = ViewInfo.bUseFieldOfViewForLOD;
 	PlayerController->BuildHiddenComponentList(OutViewLocation, /*out*/ ViewInitOptions.HiddenPrimitives);
 
 	FSceneView* const View = new FSceneView(ViewInitOptions);

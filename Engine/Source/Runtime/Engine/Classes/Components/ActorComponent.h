@@ -252,6 +252,7 @@ private:
 protected:
 
 	friend class FComponentReregisterContextBase;
+	friend class FComponentRecreateRenderStateContext;
 
 	/**
 	 * Called when a component is registered, after Scene is set, but before CreateRenderState_Concurrent or CreatePhysicsState are called.

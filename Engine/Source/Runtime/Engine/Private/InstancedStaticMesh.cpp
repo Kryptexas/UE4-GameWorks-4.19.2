@@ -15,6 +15,12 @@ const int32 InstancedStaticMeshMaxTexCoord = 8;
 
 IMPLEMENT_HIT_PROXY(HInstancedStaticMeshInstance, HHitProxy);
 
+TAutoConsoleVariable<int32> CVarMinLOD(
+	TEXT("foliage.MinLOD"),
+	-1,
+	TEXT("Used to discard the top LODs for performance evaluation. -1: Disable all effects of this cvar."));
+
+
 /** InstancedStaticMeshInstance hit proxy */
 void HInstancedStaticMeshInstance::AddReferencedObjects(FReferenceCollector& Collector)
 {
@@ -57,6 +63,9 @@ void FStaticMeshInstanceBuffer::SetupCPUAccess(UInstancedStaticMeshComponent* In
 
 void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent, const TArray<TRefCountPtr<HHitProxy> >& InHitProxies)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FStaticMeshInstanceBuffer_Init);
+	double StartTime = FPlatformTime::Seconds();
+
 	bool bUseRemapTable = InComponent->PerInstanceSMData.Num() == InComponent->InstanceReorderTable.Num();
 
 	int32 NumInstances = InComponent->PerInstanceSMData.Num();
@@ -75,7 +84,7 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 
 	FColor HitProxyColor(ForceInit);
 	bool bSelected = false;
-	for (int32 InstanceIndex = 0; InstanceIndex < (int32)NumInstances; InstanceIndex++)
+	for (int32 InstanceIndex = 0; InstanceIndex < NumInstances; InstanceIndex++)
 	{
 #if WITH_EDITOR
 		if (InHitProxies.Num() == NumInstances)
@@ -102,35 +111,21 @@ void FStaticMeshInstanceBuffer::Init(UInstancedStaticMeshComponent* InComponent,
 			InstanceRenderData->NullifyInstance();
 		}
 	}
+
+	float ThisTime = (StartTime - FPlatformTime::Seconds()) * 1000.0f;
+	if (ThisTime > 30.0f)
+	{
+		UE_LOG(LogStaticMesh, Display, TEXT("Took %6.2fms to set up instance buffer for %d instances for component %s."), ThisTime, NumInstances, *InComponent->GetFullName());
+	}
 }
 
 void FStaticMeshInstanceBuffer::InitFromPreallocatedData(UInstancedStaticMeshComponent* InComponent, FStaticMeshInstanceData& Other)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FStaticMeshInstanceBuffer_InitFromPreallocatedData);
 	AllocateData(Other);
 	SetupCPUAccess(InComponent);
+	InstanceData->SetAllowCPUAccess(true);		// GDC demo hack!
 }
-
-#if 0 // delete me
-
-/** Serializer. */
-FArchive& operator<<(FArchive& Ar,FStaticMeshInstanceBuffer& InstanceBuffer)
-{
-	int32 NumInstances = InstanceBuffer.GetNumInstances();
-	Ar << InstanceBuffer.Stride << NumInstances;
-
-	if(Ar.IsLoading())
-	{
-		// Allocate the vertex data storage type.
-		InstanceBuffer.AllocateData();
-	}
-
-	// Serialize the vertex data.
-	InstanceBuffer.InstanceData->Serialize(Ar);
-
-	return Ar;
-}
-
-#endif
 
 /**
  * Specialized assignment operator, only used when importing LOD's.  
@@ -142,6 +137,7 @@ void FStaticMeshInstanceBuffer::operator=(const FStaticMeshInstanceBuffer &Other
 
 void FStaticMeshInstanceBuffer::InitRHI()
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FStaticMeshInstanceBuffer_InitRHI);
 	check(InstanceData);
 	FResourceArrayInterface* ResourceArray = InstanceData->GetResourceArray();
 	if(ResourceArray->GetResourceDataSize())
@@ -170,7 +166,7 @@ void FStaticMeshInstanceBuffer::AllocateData(FStaticMeshInstanceData& Other)
 {
 	AllocateData();
 	Other.SetAllowCPUAccess(InstanceData->GetAllowCPUAccess());
-	Exchange(Other, *InstanceData);
+	FMemory::Memswap(&Other, InstanceData, sizeof(FStaticMeshInstanceData));
 }
 
 
@@ -935,28 +931,30 @@ void UInstancedStaticMeshComponent::InitInstanceBody(int32 InstanceIdx, FBodyIns
 
 void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_UInstancedStaticMeshComponent_CreateAllInstanceBodies);
+
 	UBodySetup* BodySetup = GetBodySetup();
 	if (BodySetup)
 	{
-		int32 NumBodies = PerInstanceSMData.Num();
-		InstanceBodies.Init(NumBodies);
-
-		TArray<FTransform> Transforms;
-		Transforms.Reserve(NumBodies);
-
-		for (int32 i = 0; i < NumBodies; ++i)
-		{
-			InstanceBodies[i] = new FBodyInstance;
-			FBodyInstance* Instance = InstanceBodies[i];
-			Transforms.Add(FTransform(PerInstanceSMData[i].Transform) * ComponentToWorld);
-
-			Instance->CopyBodyInstancePropertiesFrom(&BodyInstance);
-			Instance->InstanceBodyIndex = i; // Set body index 
-			Instance->bAutoWeld = false;
-
-			// make sure we never enable bSimulatePhysics for ISMComps
-			Instance->bSimulatePhysics = false;
-		}
+	    int32 NumBodies = PerInstanceSMData.Num();
+	    InstanceBodies.Init(NumBodies);
+    
+	    TArray<FTransform> Transforms;
+	    Transforms.Reserve(NumBodies);
+    
+	    for (int32 i = 0; i < NumBodies; ++i)
+	    {
+		    InstanceBodies[i] = new FBodyInstance;
+		    FBodyInstance* Instance = InstanceBodies[i];
+		    Transforms.Add(FTransform(PerInstanceSMData[i].Transform) * ComponentToWorld);
+    
+		    Instance->CopyBodyInstancePropertiesFrom(&BodyInstance);
+		    Instance->InstanceBodyIndex = i; // Set body index 
+		    Instance->bAutoWeld = false;
+    
+		    // make sure we never enable bSimulatePhysics for ISMComps
+		    Instance->bSimulatePhysics = false;
+	    }
 
 		if (NumBodies > 0)
 		{
@@ -967,6 +965,7 @@ void UInstancedStaticMeshComponent::CreateAllInstanceBodies()
 
 void UInstancedStaticMeshComponent::ClearAllInstanceBodies()
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_UInstancedStaticMeshComponent_ClearAllInstanceBodies);
 	for (int32 i = 0; i < InstanceBodies.Num(); i++)
 	{
 		check(InstanceBodies[i]);
@@ -1445,7 +1444,7 @@ void UInstancedStaticMeshComponent::PartialNavigationUpdate(int32 InstanceIdx)
 	UNavigationSystem::UpdateNavOctree(this);
 }
 
-bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const
+bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
 {
 	if (StaticMesh && StaticMesh->NavCollision)
 	{
@@ -1457,10 +1456,10 @@ bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavi
 		
 		if (NavCollision->bHasConvexGeometry)
 		{
-			GeomExport->ExportCustomMesh(NavCollision->ConvexCollision.VertexBuffer.GetData(), NavCollision->ConvexCollision.VertexBuffer.Num(),
+			GeomExport.ExportCustomMesh(NavCollision->ConvexCollision.VertexBuffer.GetData(), NavCollision->ConvexCollision.VertexBuffer.Num(),
 				NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(), FTransform::Identity);
 
-			GeomExport->ExportCustomMesh(NavCollision->TriMeshCollision.VertexBuffer.GetData(), NavCollision->TriMeshCollision.VertexBuffer.Num(),
+			GeomExport.ExportCustomMesh(NavCollision->TriMeshCollision.VertexBuffer.GetData(), NavCollision->TriMeshCollision.VertexBuffer.Num(),
 				NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(), FTransform::Identity);
 		}
 		else
@@ -1468,12 +1467,12 @@ bool UInstancedStaticMeshComponent::DoCustomNavigableGeometryExport(struct FNavi
 			UBodySetup* BodySetup = StaticMesh->BodySetup;
 			if (BodySetup)
 			{
-				GeomExport->ExportRigidBodySetup(*BodySetup, FTransform::Identity);
+				GeomExport.ExportRigidBodySetup(*BodySetup, FTransform::Identity);
 			}
 		}
 
 		// Hook per instance transform delegate
-		GeomExport->SetNavDataPerInstanceTransformDelegate(FNavDataPerInstanceTransformDelegate::CreateUObject(this, &UInstancedStaticMeshComponent::GetNavigationPerInstanceTransforms));
+		GeomExport.SetNavDataPerInstanceTransformDelegate(FNavDataPerInstanceTransformDelegate::CreateUObject(this, &UInstancedStaticMeshComponent::GetNavigationPerInstanceTransforms));
 	}
 
 	// we don't want "regular" collision export for this component
@@ -1607,6 +1606,11 @@ void UInstancedStaticMeshComponent::SelectInstance(bool bInSelected, int32 InIns
 #endif
 }
 
+static TAutoConsoleVariable<int32> CVarCullAllInVertexShader(
+	TEXT("foliage.CullAllInVertexShader"),
+	0,
+	TEXT("Debugging, if this is greater than 0, cull all instances in the vertex shader."));
+
 void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList& RHICmdList, FShader* VertexShader,const class FVertexFactory* VertexFactory,const class FSceneView& View,const struct FMeshBatchElement& BatchElement,uint32 DataFlags ) const 
 {
 	FLocalVertexFactoryShaderParameters::SetMesh(RHICmdList, VertexShader, VertexFactory, View, BatchElement, DataFlags);
@@ -1623,6 +1627,15 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 		InstancingWorldViewOriginOne.W = 1.0f;
 		if (InstancingUserData && BatchElement.InstancedLODRange)
 		{
+			int32 FirstLOD = InstancingUserData->MinLOD;
+
+			int32 DebugMin = FMath::Min(CVarMinLOD.GetValueOnRenderThread(), InstancingUserData->MeshRenderData->LODResources.Num() - 1);
+			if (DebugMin >= 0)
+			{
+				FirstLOD = FMath::Max(FirstLOD, DebugMin);
+			}
+
+
 			float SphereRadius = InstancingUserData->MeshRenderData->Bounds.SphereRadius;
 			float MinSize = CVarFoliageMinimumScreenSize.GetValueOnRenderThread();
 			float LODScale = CVarFoliageLODDistanceScale.GetValueOnRenderThread();
@@ -1670,7 +1683,7 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 				}
 
 				InstancingViewZCompare.X = MIN_flt;
-				if (BatchElement.InstancedLODIndex)
+				if (BatchElement.InstancedLODIndex > FirstLOD)
 				{
 					float CurCut = FMath::Sqrt(Fac / InstancingUserData->MeshRenderData->ScreenSize[BatchElement.InstancedLODIndex]);
 					if (CurCut < FinalCull)
@@ -1729,8 +1742,16 @@ void FInstancedStaticMeshVertexFactoryShaderParameters::SetMesh( FRHICommandList
 			{
 				InstancingFadeOutParams.Y = 0.f;
 			}
+			if (CVarCullAllInVertexShader.GetValueOnRenderThread() > 0)
+			{
+				InstancingFadeOutParams.Z = 0.0f;
+				InstancingFadeOutParams.W = 0.0f;
+			}
+			else
+			{
 			InstancingFadeOutParams.Z = InstancingUserData->bRenderSelected ? 1.f : 0.f;
 			InstancingFadeOutParams.W = InstancingUserData->bRenderUnselected ? 1.f : 0.f;
+		}
 		}
 		SetShaderValue(RHICmdList, VS, InstancingFadeOutParamsParameter, InstancingFadeOutParams );
 	}

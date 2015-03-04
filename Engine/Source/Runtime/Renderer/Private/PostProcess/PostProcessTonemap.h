@@ -146,8 +146,19 @@ public:
 			// for scene color fringe
 			// from percent to fraction
 			float Offset = Context.View.FinalPostProcessSettings.SceneFringeIntensity * 0.01f;
+			//FVector4 Value(1.0f - Offset * 0.5f, 1.0f - Offset, 0.0f, 0.0f);
+
+			// Wavelength of primaries in nm
+			const float PrimaryR = 611.3f;
+			const float PrimaryG = 549.1f;
+			const float PrimaryB = 464.3f;
+
+			// Simple lens chromatic aberration is roughly linear in wavelength
+			float ScaleR = 0.007f * ( PrimaryR - PrimaryB );
+			float ScaleG = 0.007f * ( PrimaryG - PrimaryB );
+			FVector4 Value( 1.0f / ( 1.0f + Offset * ScaleG ), 1.0f / ( 1.0f + Offset * ScaleR ), 0.0f, 0.0f);
+
 			// we only get bigger to not leak in content from outside
-			FVector4 Value(1.0f - Offset * 0.5f, 1.0f - Offset, 0.0f, 0.0f);
 			SetShaderValue(Context.RHICmdList, ShaderRHI, FringeUVParams, Value);
 		}
 	}

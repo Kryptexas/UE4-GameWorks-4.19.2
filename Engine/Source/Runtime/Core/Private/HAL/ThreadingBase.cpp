@@ -162,6 +162,8 @@ void FSingleThreadManager::RemoveThread(FFakeThread* Thread)
 
 void FSingleThreadManager::Tick()
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FSingleThreadManager_Tick);
+
 	// Tick all registered threads.
 	for (int32 RunnableIndex = 0; RunnableIndex < ThreadList.Num(); ++RunnableIndex)
 	{

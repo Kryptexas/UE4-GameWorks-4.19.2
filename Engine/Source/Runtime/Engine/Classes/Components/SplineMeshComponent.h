@@ -152,7 +152,7 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 		return Super::ShouldRenderSelected() || bSelected;
 	}
 #endif
-	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const override;
+	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
 	//End UPrimitiveComponent Interface
 
 	//Begin UStaticMeshComponent Interface

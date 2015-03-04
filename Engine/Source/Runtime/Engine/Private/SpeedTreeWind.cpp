@@ -517,6 +517,16 @@ void FSpeedTreeWind::SetDirection(const FVector& vDir)
 	}
 }
 
+void FSpeedTreeWind::SetGustMin(float InGustMin)
+{
+	m_sParams.m_fGustStrengthMin = InGustMin;
+}
+
+void FSpeedTreeWind::SetGustMax(float InGustMax)
+{
+	m_sParams.m_fGustStrengthMax = InGustMax;
+}
+
 
 /////////////////////////////////////////////////////////////////////////////
 // FSpeedTreeWind::SetInitDirection

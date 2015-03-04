@@ -464,7 +464,7 @@ struct ITextureStreamingManager : public IStreamingManager
 	*	@param RequiredMemorySize	- Required minimum available texture memory
 	*	@return						- Whether it succeeded or not
 	**/
-	virtual bool StreamOutTextureData(int32 RequiredMemorySize) = 0;
+	virtual bool StreamOutTextureData(int64 RequiredMemorySize) = 0;
 
 	/** Adds a new texture to the streaming manager. */
 	virtual void AddStreamingTexture(UTexture2D* Texture) = 0;
@@ -724,14 +724,19 @@ struct FSpawnedTextureInstance
  */
 struct FStreamMemoryTracker
 {
+#if PLATFORM_64BITS
+	typedef int64 TSize;
+#else
+	typedef int32 TSize;
+#endif
 	/** Stream-in memory that hasn't been allocated yet. */
-	volatile int32 PendingStreamIn;
+	volatile TSize PendingStreamIn;
 	/** Temp memory that hasn't been allocated yet. */
-	volatile int32 PendingTempMemory;
+	volatile TSize PendingTempMemory;
 	/** Stream-out memory that is allocated but hasn't been freed yet. */
-	volatile int32 CurrentStreamOut;
+	volatile TSize CurrentStreamOut;
 	/** Temp memory that is allocated, but not freed yet. */
-	volatile int32 CurrentTempMemory;
+	volatile TSize CurrentTempMemory;
 
 	//@TODO: Possibly track canceling early (on the gamethread), not just in finalize.
 	//@TODO: Add support for pre-planned in-place reallocs
@@ -760,13 +765,13 @@ struct FStreamMemoryTracker
 	void RenderThread_Finalize( const UTexture2D& Texture, bool bSuccessful );
 
 	/** Calculate how much texture memory is currently available for streaming. */
-	int32 CalcAvailableNow( int32 TotalFreeMemory, int32 MemoryMargin );
+	TSize CalcAvailableNow( TSize TotalFreeMemory, TSize MemoryMargin );
 
 	/** Calculate how much texture memory will available later for streaming. */
-	int32 CalcAvailableLater( int32 TotalFreeMemory, int32 MemoryMargin );
+	TSize CalcAvailableLater( TSize TotalFreeMemory, TSize MemoryMargin );
 
 	/** Calculate how much texture memory is currently being used for temporary texture data during streaming. */
-	int32 CalcTempMemory();
+	TSize CalcTempMemory();
 };
 
 /*-----------------------------------------------------------------------------
@@ -890,7 +895,7 @@ struct FStreamingManagerTexture : public ITextureStreamingManager
 	 *	@param RequiredMemorySize	- Required minimum available texture memory
 	 *	@return						- Whether it succeeded or not
 	 **/
-	virtual bool StreamOutTextureData( int32 RequiredMemorySize );
+	virtual bool StreamOutTextureData( int64 RequiredMemorySize );
 
 	/**
 	 * Allows the streaming manager to process exec commands.
@@ -1125,7 +1130,7 @@ protected:
 		 * @param StreamingRequests		[in/out] Indices to textures that are going to be streamed this frame
 		 * @return						The last priority index considered (may be sooner that StopIndex)
 		 */
-		int32 StreamoutTextures( FStreamoutLogic StreamoutLogic, int32& AvailableLater, int32& TempMemoryUsed, int32 StartIndex, int32 StopIndex, int32& LowPrioIndex, const TArray<FTexturePriority>& PrioritizedTextures, FStreamingRequests& StreamingRequests );
+		int32 StreamoutTextures( FStreamoutLogic StreamoutLogic, int64& AvailableLater, int64& TempMemoryUsed, int32 StartIndex, int32 StopIndex, int32& LowPrioIndex, const TArray<FTexturePriority>& PrioritizedTextures, FStreamingRequests& StreamingRequests );
 
 		/**
 		 * Stream textures in/out, when no texture pool with limited size is used by the platform.
@@ -1134,7 +1139,7 @@ protected:
 		 * @param PrioritizedTextures	Array of prioritized textures to process
 		 * @param TempMemoryUsed		Current amount of temporary memory used by the streaming system, in bytes
 		 */
-		void StreamTexturesUnlimited( FStreamingContext& Context, const TArray<FTexturePriority>& PrioritizedTextures, int32 TempMemoryUsed );
+		void StreamTexturesUnlimited( FStreamingContext& Context, const TArray<FTexturePriority>& PrioritizedTextures, int64 TempMemoryUsed );
 
 		/** Thread-safe helper struct for per-level information. */
 		struct FThreadLevelData
@@ -1263,7 +1268,7 @@ protected:
 	int32					NumTextureProcessingStages;
 
 	/** Maximum amount of temp memory used for streaming, at any given time. */
-	int32					MaxTempMemoryUsed;
+	int64					MaxTempMemoryUsed;
 
 	/** Whether to support texture instance streaming for dynamic (movable/spawned) objects. */
 	bool					bUseDynamicStreaming;
@@ -1274,10 +1279,10 @@ protected:
 	TArray<FStreamingHandlerTextureBase*> TextureStreamingHandlers;
 
 	/** Amount of memory to leave free in the texture pool. */
-	int32					MemoryMargin;
+	int64					MemoryMargin;
 
 	/** Minimum number of bytes to evict when we need to stream out textures because of a failed allocation. */
-	int32					MinEvictSize;
+	int64					MinEvictSize;
 
 	/** If set, UpdateResourceStreaming() will only process this texture. */
 	UTexture2D*				IndividualStreamingTexture;
@@ -1297,25 +1302,25 @@ protected:
 	/** Number of intermediate textures in flight. */
 	uint32 NumIntermediateTextures;
 	/** Size of all streaming testures. */
-	uint32 TotalStreamingTexturesSize;
+	uint64 TotalStreamingTexturesSize;
 	/** Maximum size of all streaming textures. */
-	uint32 TotalStreamingTexturesMaxSize;
+	uint64 TotalStreamingTexturesMaxSize;
 	/** Total number of bytes in memory, for all streaming lightmap textures. */
-	uint32 TotalLightmapMemorySize;
+	uint64 TotalLightmapMemorySize;
 	/** Total number of bytes on disk, for all streaming lightmap textures. */
-	uint32 TotalLightmapDiskSize;
+	uint64 TotalLightmapDiskSize;
 	/** Number of mip count increase requests in flight. */
 	uint32 TotalMipCountIncreaseRequestsInFlight;
 	/** Total number of bytes in memory, if all textures were streamed perfectly with a 1.0 fudge factor. */
-	uint32 TotalOptimalWantedSize;
+	uint64 TotalOptimalWantedSize;
 	/** Total number of bytes using StaticTexture heuristics, currently in memory. */
-	uint32 TotalStaticTextureHeuristicSize;
+	uint64 TotalStaticTextureHeuristicSize;
 	/** Total number of bytes using DynmicTexture heuristics, currently in memory. */
-	uint32 TotalDynamicTextureHeuristicSize;
+	uint64 TotalDynamicTextureHeuristicSize;
 	/** Total number of bytes using LastRenderTime heuristics, currently in memory. */
-	uint32 TotalLastRenderHeuristicSize;
+	uint64 TotalLastRenderHeuristicSize;
 	/** Total number of bytes using ForcedIntoMemory heuristics, currently in memory. */
-	uint32 TotalForcedHeuristicSize;
+	uint64 TotalForcedHeuristicSize;
 
 	/** Unmodified texture pool size, in bytes, as specified in the .ini file. */
 	int64 OriginalTexturePoolSize;
@@ -1364,11 +1369,11 @@ protected:
 #endif
 
 #if STATS_FAST
-	uint32 MaxStreamingTexturesSize;
-	uint32 MaxOptimalTextureSize;
-	int32 MaxStreamingOverBudget;
-	uint32 MaxTexturePoolAllocatedSize;
-	uint32 MinLargestHoleSize;
+	uint64 MaxStreamingTexturesSize;
+	uint64 MaxOptimalTextureSize;
+	int64 MaxStreamingOverBudget;
+	uint64 MaxTexturePoolAllocatedSize;
+	uint64 MinLargestHoleSize;
 	uint32 MaxNumWantingTextures;
 #endif
 	

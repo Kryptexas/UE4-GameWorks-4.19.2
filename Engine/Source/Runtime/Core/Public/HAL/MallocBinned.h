@@ -19,8 +19,12 @@
 #endif
 
 #if defined CACHE_FREED_OS_ALLOCS
-#	define MAX_CACHED_OS_FREES (32)
-#	define MAX_CACHED_OS_FREES_BYTE_LIMIT (4*1024*1024)
+	#define MAX_CACHED_OS_FREES (64)
+	#if PLATFORM_64BITS
+		#define MAX_CACHED_OS_FREES_BYTE_LIMIT (64*1024*1024)
+	#else
+		#define MAX_CACHED_OS_FREES_BYTE_LIMIT (16*1024*1024)
+	#endif
 #endif
 
 #if defined USE_INTERNAL_LOCKS && !defined USE_COARSE_GRAIN_LOCKS
@@ -686,17 +690,21 @@ private:
 #ifdef USE_FINE_GRAIN_LOCKS
 		FScopeLock MainLock(&AccessGuard);
 #endif
-		if ((CachedTotal + Size > MAX_CACHED_OS_FREES_BYTE_LIMIT) || (Size > BINNED_ALLOC_POOL_SIZE))
+		if (Size > MAX_CACHED_OS_FREES_BYTE_LIMIT / 4)
 		{
 			FPlatformMemory::BinnedFreeToOS(Ptr);
 			return;
 		}
-		if (FreedPageBlocksNum >= MAX_CACHED_OS_FREES) 
+		while (FreedPageBlocksNum && (FreedPageBlocksNum >= MAX_CACHED_OS_FREES || CachedTotal + Size > MAX_CACHED_OS_FREES_BYTE_LIMIT)) 
 		{
 			//Remove the oldest one
-			void* FreePtr = FreedPageBlocks[FreedPageBlocksNum-1].Ptr;
-			CachedTotal -= FreedPageBlocks[FreedPageBlocksNum-1].ByteSize;
-			--FreedPageBlocksNum;
+			void* FreePtr = FreedPageBlocks[0].Ptr;
+			CachedTotal -= FreedPageBlocks[0].ByteSize;
+			FreedPageBlocksNum--;
+			if (FreedPageBlocksNum)
+			{
+				FMemory::Memmove(&FreedPageBlocks[0], &FreedPageBlocks[1], sizeof(FFreePageBlock) * FreedPageBlocksNum);
+			}
 			FPlatformMemory::BinnedFreeToOS(FreePtr);
 		}
 		FreedPageBlocks[FreedPageBlocksNum].Ptr = Ptr;
@@ -720,13 +728,33 @@ private:
 #endif
 			for (uint32 i=0; i < FreedPageBlocksNum; ++i)
 			{
+				// look for exact matches first, these are aligned to the page size, so it should be quite common to hit these on small pages sizes
+				if (FreedPageBlocks[i].ByteSize == NewSize)
+				{
+					void* Ret=FreedPageBlocks[i].Ptr;
+					OutActualSize=FreedPageBlocks[i].ByteSize;
+					CachedTotal-=FreedPageBlocks[i].ByteSize;
+					if (i < FreedPageBlocksNum - 1)
+					{
+						FMemory::Memmove(&FreedPageBlocks[i], &FreedPageBlocks[i + 1], sizeof(FFreePageBlock) * (FreedPageBlocksNum - i - 1));
+					}
+					FreedPageBlocksNum--;
+					return Ret;
+				}
+			};
+			for (uint32 i=0; i < FreedPageBlocksNum; ++i)
+			{
 				// is it possible (and worth i.e. <25% overhead) to use this block
 				if (FreedPageBlocks[i].ByteSize >= NewSize && FreedPageBlocks[i].ByteSize * 3 <= NewSize * 4)
 				{
 					void* Ret=FreedPageBlocks[i].Ptr;
 					OutActualSize=FreedPageBlocks[i].ByteSize;
 					CachedTotal-=FreedPageBlocks[i].ByteSize;
-					FreedPageBlocks[i]=FreedPageBlocks[--FreedPageBlocksNum];
+					if (i < FreedPageBlocksNum - 1)
+					{
+						FMemory::Memmove(&FreedPageBlocks[i], &FreedPageBlocks[i + 1], sizeof(FFreePageBlock) * (FreedPageBlocksNum - i - 1));
+					}
+					FreedPageBlocksNum--;
 					return Ret;
 				}
 			};

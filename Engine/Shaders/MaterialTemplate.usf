@@ -790,7 +790,7 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 		// leaves and facing leaves
 		if (GeometryType == SPEEDTREE_GEOMETRY_TYPE_FACINGLEAF || 
 				(GeometryType == SPEEDTREE_GEOMETRY_TYPE_LEAF && 
-				(LODType == SPEEDTREE_LOD_TYPE_SMOOTH || (WindType > SPEEDTREE_WIND_TYPE_FASTEST && WindType < SPEEDTREE_WIND_TYPE_PALM))))
+				(LODType == SPEEDTREE_LOD_TYPE_SMOOTH || (WindType > SPEEDTREE_WIND_TYPE_FASTEST && WindType != SPEEDTREE_WIND_TYPE_PALM))))
 		{
 			// remove anchor pos from vertex position
 			float3 Anchor = float3(Parameters.TexCoords[4].y, Parameters.TexCoords[5].x, Parameters.TexCoords[5].y);
@@ -825,7 +825,7 @@ float3 GetSpeedTreeVertexOffsetInner(FMaterialVertexParameters Parameters, int G
 			}
 
 			// leaf wind
-			if (WindType > SPEEDTREE_WIND_TYPE_FASTEST && WindType < SPEEDTREE_WIND_TYPE_PALM) 
+			if (WindType > SPEEDTREE_WIND_TYPE_FASTEST && WindType != SPEEDTREE_WIND_TYPE_PALM) 
 			{
 				float4 WindExtra = float4(Parameters.TexCoords[6].x, Parameters.TexCoords[6].y, Parameters.TexCoords[7].x, Parameters.TexCoords[7].y);
 				float LeafWindTrigOffset = Anchor.x + Anchor.y;

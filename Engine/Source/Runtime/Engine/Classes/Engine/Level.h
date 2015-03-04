@@ -449,11 +449,6 @@ public:
 	FLevelSimplificationDetails LevelSimplification[WORLDTILE_LOD_MAX_INDEX];
 #endif //WITH_EDITORONLY_DATA
 
-#if PERF_TRACK_DETAILED_ASYNC_STATS
-	/** Mapping of how long each actor class takes to have UpdateComponents called on it */
-	TMap<const UClass*,struct FMapTimeEntry>		UpdateComponentsTimePerActorClass;
-#endif // PERF_TRACK_DETAILED_ASYNC_STATS
-
 	/** Actor which defines level logical bounding box				*/
 	TWeakObjectPtr<ALevelBounds>				LevelBoundsActor;
 

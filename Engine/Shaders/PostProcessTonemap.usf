@@ -28,6 +28,8 @@ float4 VignetteColorIntensity;
 float3 GrainRandomFull;
 float3 GrainScaleBiasJitter;
 
+float4 OverlayColor;
+
 half GrainFromUV(float2 GrainUV) 
 {
 	half Grain = frac(sin(GrainUV.x + GrainUV.y * 543.31) *  493013.0);
@@ -225,9 +227,9 @@ void MainPS(
 		#if USE_GRAIN_JITTER
 			SceneUVJitter = SceneUV.xy - UV.xy;
 		#endif
-		half3 SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV).rgb;
+		half3 SceneColor = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, FringeUV.zw + SceneUVJitter.xy).rgb;
 		half SceneColorG = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, FringeUV.xy + SceneUVJitter.xy).g;
-		half SceneColorB = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, FringeUV.zw + SceneUVJitter.xy).b;
+		half SceneColorB = Texture2DSample(PostprocessInput0, PostprocessInput0Sampler, SceneUV).b;
 		SceneColor.g = SceneColorG;
 		SceneColor.b = SceneColorB;
 	#else
@@ -305,7 +307,17 @@ void MainPS(
 		//TonemappedColor = pow( TonemappedColor, 2.0 / 2.2 );
 
 		//TonemappedColor = Graph( ScreenSpacePos );
-	
+
+		#if USE_PHOTO
+			// Blend with custom LDR color, used for Fade track in Matinee.
+			// This is the 101% wrong way to do this,
+			//  - It adds an extra redundant lerp.
+			//  - It is not going to work with the future-forward ES3 fast path of sRGB output.
+			//  - And it does super ugly non-linear blending.
+			// The right way is to adjust exposure instead.
+			TonemappedColor = lerp(TonemappedColor.rgb, OverlayColor.rgb, OverlayColor.a);
+		#endif
+
 		half LuminanceForPostProcessAA  = dot(TonemappedColor, half3(0.299f, 0.587f, 0.114f));
 
 		#if USE_GRAIN_QUANTIZATION
@@ -407,8 +419,6 @@ half2 CocBlendScaleBiasFine()
 	ScaleBias.y = (-Start)*ScaleBias.x;
 	return ScaleBias;
 }
-
-float4 OverlayColor;
 
 void MainPS_ES2(
 	in float4 UVAndScreenPos : TEXCOORD0,

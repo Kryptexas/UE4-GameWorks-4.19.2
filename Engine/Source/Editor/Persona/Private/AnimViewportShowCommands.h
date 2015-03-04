@@ -48,6 +48,9 @@ public:
 	/** Show/hide the preview mesh */
 	TSharedPtr< FUICommandInfo > ShowPreviewMesh;
 
+	/** Show Morphtarget */
+	TSharedPtr< FUICommandInfo > ShowMorphTargets;
+
 	/** Show skeletal mesh bones */	
 	TSharedPtr< FUICommandInfo > ShowBones;
 

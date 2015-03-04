@@ -300,16 +300,17 @@ public:
 	virtual void GetUsedMaterials(TArray<UMaterialInterface*>& OutMaterials) const override;
 	virtual UMaterialInterface* GetMaterial(int32 MaterialIndex) const override;
 
-	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const;
+	virtual bool DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const override;
 #if WITH_EDITOR
 	virtual bool ComponentIsTouchingSelectionBox(const FBox& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 	virtual bool ComponentIsTouchingSelectionFrustum(const FConvexVolume& InSelBBox, const FEngineShowFlags& ShowFlags, const bool bConsiderOnlyBSP, const bool bMustEncompassEntireComponent) const override;
 #endif
 	// End UPrimitiveComponent interface.
 
-	// Begin UNavRelevantInterface interface.
+	// Begin INavRelevantInterface interface.
+	virtual bool IsNavigationRelevant() const override;
 	virtual void GetNavigationData(FNavigationRelevantData& Data) const override;
-	// End UPrimitiveComponent interface.
+	// End INavRelevantInterface interface.
 	
 	// Begin UMeshComponent interface
 	virtual TArray<class UMaterialInterface*> GetMaterials() const override;

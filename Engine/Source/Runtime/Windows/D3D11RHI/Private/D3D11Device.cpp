@@ -27,6 +27,13 @@ bool D3D11RHI_ShouldAllowAsyncResourceCreation()
 
 IMPLEMENT_MODULE(FD3D11DynamicRHIModule, D3D11RHI);
 
+TAutoConsoleVariable<int32> CVarD3D11ZeroBufferSizeInMB(
+	TEXT("d3d11.ZeroBufferSizeInMB"),
+	4,
+	TEXT("The D3D11 RHI needs a static allocation of zeroes to use when streaming textures asynchronously. It should be large enough to support the largest mipmap you need to stream. The default is 4MB."),
+	ECVF_ReadOnly
+	);
+
 FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL InFeatureLevel, int32 InChosenAdapter) :
 	DXGIFactory(InDXGIFactory),
 	bDeviceRemoved(false),
@@ -56,7 +63,7 @@ FD3D11DynamicRHI::FD3D11DynamicRHI(IDXGIFactory* InDXGIFactory,D3D_FEATURE_LEVEL
 
 	// Allocate a buffer of zeroes. This is used when we need to pass D3D memory
 	// that we don't care about and will overwrite with valid data in the future.
-	ZeroBufferSize = 4 * (1 << 20); // 4MB in the zero buffer.
+	ZeroBufferSize = FMath::Max(CVarD3D11ZeroBufferSizeInMB.GetValueOnAnyThread(), 0) * (1 << 20);
 	ZeroBuffer = FMemory::Malloc(ZeroBufferSize);
 	FMemory::Memzero(ZeroBuffer,ZeroBufferSize);
 

@@ -129,13 +129,12 @@ struct FRecastAreaNavModifierElement
 /**
  * Class handling generation of a single tile, caching data that can speed up subsequent tile generations
  */
-class ENGINE_API FRecastTileGenerator 
-	: public FNoncopyable
+class ENGINE_API FRecastTileGenerator : public FNoncopyable, public FGCObject
 {
 	friend FRecastNavMeshGenerator;
 
 public:
-	FRecastTileGenerator(const FRecastNavMeshGenerator& ParentGenerator, const FIntPoint& Location);
+	FRecastTileGenerator(FRecastNavMeshGenerator& ParentGenerator, const FIntPoint& Location);
 	virtual ~FRecastTileGenerator();
 		
 	void DoWork();
@@ -149,13 +148,20 @@ public:
 	/** Whether tile task has anything to build */
 	bool HasDataToBuild() const;
 
-	TArray<FNavMeshTileData> GetCompressedLayers() const { return CompressedLayers; }
-	TArray<FNavMeshTileData> GetNavigationData() const { return NavigationData; }
+	const TArray<FNavMeshTileData>& GetCompressedLayers() const { return CompressedLayers; }
+protected:
+	// to be used solely by FRecastNavMeshGenerator
+	TArray<FNavMeshTileData>& GetNavigationData() { return NavigationData; }
 	
+public:
 	uint32 GetUsedMemCount() const;
 
 	// Memory amount used to construct generator 
 	uint32 UsedMemoryOnStartup;
+
+	// FGCObject begin
+	virtual void AddReferencedObjects(FReferenceCollector& Collector);
+	// FGCObject end
 		
 protected:
 	/** Does the actual tile generations. 
@@ -168,6 +174,8 @@ protected:
 	void Setup(const FRecastNavMeshGenerator& ParentGenerator, const TArray<FBox>& DirtyAreas);
 	
 	void GatherGeometry(const FRecastNavMeshGenerator& ParentGenerator, bool bGeometryChanged);
+	void PrepareGeometrySources(const FRecastNavMeshGenerator& ParentGenerator, bool bGeometryChanged);
+	void DoAsyncGeometryGathering();
 
 	/** builds CompressedLayers array (geometry + modifiers) */
 	virtual bool GenerateCompressedLayers(FNavMeshBuildContext& BuildContext);
@@ -191,10 +199,13 @@ protected:
 	bool HasVoxelCache(const TNavStatArray<uint8>& RawVoxelCache, rcSpanCache*& CachedVoxels, int32& NumCachedVoxels) const;
 	void AddVoxelCache(TNavStatArray<uint8>& RawVoxelCache, const rcSpanCache* CachedVoxels, const int32 NumCachedVoxels) const;
 
+	void DumpAsyncData();
+
 protected:
 	uint32 bSucceeded : 1;
 	uint32 bRegenerateCompressedLayers : 1;
 	uint32 bFullyEncapsulatedByInclusionBounds : 1;
+	uint32 bUpdateGeometry : 1;
 	
 	int32 TileX;
 	int32 TileY;
@@ -224,6 +235,12 @@ protected:
 	TArray<FRecastAreaNavModifierElement> Modifiers;
 	// navigation links
 	TArray<FSimpleLinkNavModifier> OffmeshLinks;
+
+	TWeakPtr<FNavDataGenerator> ParentGeneratorWeakPtr;
+
+	TNavStatArray<TSharedRef<FNavigationRelevantData, ESPMode::ThreadSafe> > NavigationRelevantData;
+	TSharedPtr<FNavigationOctree, ESPMode::ThreadSafe> NavOctree; 
+	FNavDataConfig NavDataConfig;
 };
 
 struct ENGINE_API FRecastTileGeneratorWrapper : public FNonAbandonableTask
@@ -356,8 +373,7 @@ public:
 	virtual int32 GetNumRemaningBuildTasks() const override;
 	virtual int32 GetNumRunningBuildTasks() const override;
 
-	/** Checks if a given tile is being build or has just finished building
-	 *	If TileIndex is out of bounds function returns false (i.e. not being built) */
+	/** Checks if a given tile is being build or has just finished building */
 	bool IsTileChanged(int32 TileIdx) const;
 		
 	FORCEINLINE uint32 GetVersion() const { return Version; }
@@ -384,6 +400,8 @@ public:
 	const FRecastNavMeshCachedData& GetAdditionalCachedData() const { return AdditionalCachedData; }
 
 	bool HasDirtyTiles() const;
+
+	bool GatherGeometryOnGameThread() const;
 
 	FBox GrowBoundingBox(const FBox& BBox, bool bIncludeAgentHeight) const;
 	
@@ -419,11 +437,12 @@ protected:
 	/** Marks grid tiles affected by specified areas as dirty */
 	void MarkDirtyTiles(const TArray<FNavigationDirtyArea>& DirtyAreas);
 	
-	/** Processes pending tile generattion tasks */
+	/** Processes pending tile generation tasks */
 	TArray<uint32> ProcessTileTasks(const int32 NumTasksToSubmit);
 
+public:
 	/** Adds generated tiles to NavMesh, replacing old ones */
-	TArray<uint32> AddGeneratedTiles(const FRecastTileGenerator& TileGenerator);
+	TArray<uint32> AddGeneratedTiles(FRecastTileGenerator& TileGenerator);
 
 public:
 	/** Removes all tiles at specified grid location */
@@ -431,6 +450,13 @@ public:
 
 	void RemoveTiles(const TArray<FIntPoint>& Tiles);
 	void ReAddTiles(const TArray<FIntPoint>& Tiles);
+
+	bool IsBuildingRestrictedToActiveTiles() const { return bRestrictBuildingToActiveTiles; }
+
+	/** sets a limit to number of asynchronous tile generators running at one time
+	 *	@note if used at runtime will not result in killing tasks above limit count
+	 *	@mote function does not validate the input parameter - it's on caller */
+	void SetMaxTileGeneratorTasks(int32 NewLimit) { MaxTileGeneratorTasks = NewLimit; }
 
 protected:
 	bool IsInActiveSet(const FIntPoint& Tile) const;
@@ -454,6 +480,7 @@ private:
 	FRecastBuildConfig Config;
 	
 	int32 NumActiveTiles;
+	/** the limit to number of asynchronous tile generators running at one time */
 	int32 MaxTileGeneratorTasks;
 	float AvgLayersPerTile;
 

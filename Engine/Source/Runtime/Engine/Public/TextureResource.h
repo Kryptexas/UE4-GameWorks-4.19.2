@@ -51,7 +51,7 @@ public:
 	/** Initialization constructor. */
 	FAsyncStreamDerivedMipWorker(
 		const FString& InDerivedDataKey,
-		void* InDestMipData,
+		void** InDestMipDataPointer,
 		int32 InMipSize,
 		FThreadSafeCounter* InThreadSafeCounter
 		);
@@ -78,7 +78,7 @@ private:
 	/** Key for retrieving mip data from the derived data cache. */
 	FString DerivedDataKey;
 	/** The location to which the mip data should be copied. */
-	void* DestMipData;
+	void** DestMipDataPointer;
 	/** The size of the mip in bytes. */
 	int32 ExpectedMipSize;
 	/** true if the mip data was not present in the derived data cache. */

@@ -6,6 +6,7 @@
 
 #pragma once
 
+#define PERF_TRACK_DETAILED_ASYNC_STATS (0)
 /**
  * Structure containing intermediate data required for async loading of all imports and exports of a
  * ULinkerLoad.
@@ -202,11 +203,6 @@ public:
 	double						PostLoadObjectsTime;
 	/** Total time spent in FinishObjects.																*/
 	double						FinishObjectsTime;
-
-	/** Map of each class of object loaded to the total time spent calling CreateExport on those objects */
-	TMap<const UClass*,FMapTimeEntry>		CreateExportTimePerClass;
-	/** Map of each class of object loaded to the total time spent calling PostLoad on those objects */
-	TMap<const UClass*,FMapTimeEntry>		PostLoadTimePerClass;
 
 #endif
 

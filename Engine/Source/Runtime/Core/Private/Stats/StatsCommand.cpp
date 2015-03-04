@@ -329,6 +329,9 @@ void DumpCPUSummary(FStatsThreadState const& StatsData, int64 TargetFrame)
 	}
 }
 
+static int32 HitchIndex = 0;
+static float TotalHitchTime = 0.0f;
+
 static void DumpHitch(int64 Frame)
 {
 	// !!!CAUTION!!! 
@@ -350,7 +353,10 @@ static void DumpHitch(int64 Frame)
 
 	if( GameThreadTime > GHitchThreshold || RenderThreadTime > GHitchThreshold )
 	{
-		UE_LOG(LogStats, Log, TEXT("------------------Thread Hitch, Frame %lld  %6.1fms ---------------"), Frame, FMath::Max<float>(GameThreadTime, RenderThreadTime) * 1000.0f );
+		HitchIndex++;
+		float ThisHitch = FMath::Max<float>(GameThreadTime, RenderThreadTime) * 1000.0f;
+		TotalHitchTime += ThisHitch;
+		UE_LOG(LogStats, Log, TEXT("------------------Thread Hitch %d, Frame %lld  %6.1fms ---------------"), HitchIndex, Frame, ThisHitch);
 		FRawStatStackNode Stack;
 		Stats.UncondenseStackStats(Frame, Stack);
 		Stack.AddNameHierarchy();
@@ -1221,12 +1227,15 @@ static void StatCmd(FString InCmd)
 		if (bToggle)
 		{
 			StatsMasterEnableAdd();
+			HitchIndex = 0;
+			TotalHitchTime = 0.0f;
 			DumpHitchDelegateHandle = Stats.NewFrameDelegate.AddStatic(&DumpHitch);
 		}
 		else
 		{
 			StatsMasterEnableSubtract();
 			Stats.NewFrameDelegate.Remove(DumpHitchDelegateHandle);
+			UE_LOG(LogStats, Log, TEXT( "**************************** %d hitches    %8.0fms total hitch time" ), HitchIndex, TotalHitchTime);
 		}
 	}
 	else if( FParse::Command( &Cmd, TEXT( "STARTFILE" ) ) )

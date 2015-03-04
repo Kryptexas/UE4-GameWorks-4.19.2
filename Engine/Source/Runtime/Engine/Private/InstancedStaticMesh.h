@@ -54,6 +54,7 @@
 extern TAutoConsoleVariable<float> CVarFoliageMinimumScreenSize;
 extern TAutoConsoleVariable<float> CVarFoliageLODDistanceScale;
 extern TAutoConsoleVariable<float> CVarRandomLODRange;
+extern TAutoConsoleVariable<int32> CVarMinLOD;
 
 
 // This must match the maximum a user could specify in the material (see 
@@ -121,6 +122,12 @@ public:
 		return InstanceData->GetData();
 	}
 
+	const FInstanceStream* GetInstance(int32 InstanceIndex) const
+	{
+		return InstanceData->GetInstanceWriteAddress(InstanceIndex);
+	}
+
+
 	// FRenderResource interface.
 	virtual void InitRHI() override;
 	virtual FString GetFriendlyName() const { return TEXT("Static-mesh instances"); }
@@ -153,6 +160,8 @@ struct FInstancingUserData
 
 	int32 StartCullDistance;
 	int32 EndCullDistance;
+
+	int32 MinLOD;
 
 	bool bRenderSelected;
 	bool bRenderUnselected;
@@ -301,6 +310,7 @@ struct FPerInstanceRenderData
 		// Create hit proxies for each instance if the component wants
 		if (GIsEditor && InComponent->bHasPerInstanceHitProxies)
 		{
+			QUICK_SCOPE_CYCLE_COUNTER(STAT_FPerInstanceRenderData_HitProxies);
 			HitProxies.Empty(InComponent->PerInstanceSMData.Num());
 			for (int32 InstanceIdx=0; InstanceIdx < InComponent->PerInstanceSMData.Num(); InstanceIdx++)
 			{
@@ -374,7 +384,7 @@ public:
 		{
 			InComponent->PerInstanceRenderData = MakeShareable(new FPerInstanceRenderData(InComponent, Other, InFeatureLevel));
 			PerInstanceRenderData = InComponent->PerInstanceRenderData;
-			InComponent->bPerInstanceRenderDataWasPrebuilt = true;
+			InComponent->bPerInstanceRenderDataWasPrebuilt = InComponent->PerInstanceSMData.Num() == 0;
 		}
 		NumInstances = PerInstanceRenderData->InstanceBuffer.GetNumInstances();
 		InitResources();
@@ -613,6 +623,7 @@ private:
 		UserData_AllInstances.MeshRenderData = InComponent->StaticMesh->RenderData;
 		UserData_AllInstances.StartCullDistance = InComponent->InstanceStartCullDistance;
 		UserData_AllInstances.EndCullDistance = InComponent->InstanceEndCullDistance;
+		UserData_AllInstances.MinLOD = ClampedMinLOD;
 		UserData_AllInstances.bRenderSelected = true;
 		UserData_AllInstances.bRenderUnselected = true;
 		UserData_AllInstances.RenderData = bInstanced ? nullptr : &InstancedRenderData;

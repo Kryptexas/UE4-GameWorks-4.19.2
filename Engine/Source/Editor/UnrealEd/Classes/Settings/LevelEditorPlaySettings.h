@@ -151,6 +151,9 @@ public:
 	UPROPERTY(config)
 	uint32 bOnlyLoadVisibleLevelsInPIE:1;
 
+	UPROPERTY(config, EditAnywhere, Category = PlayInEditor, meta = (DisplayName="Stream Sub-Levels during Play in Editor", ToolTip = "Prefer to stream sub-levels from the disk instead of duplicating editor sub-levels"))
+	uint32 bPreferToStreamLevelsInPIE:1;
+
 public:
 
 	/** The width of the new view port window in pixels (0 = use the desktop's screen resolution). */

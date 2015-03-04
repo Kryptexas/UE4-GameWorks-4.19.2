@@ -18,6 +18,11 @@
 #include "Editor/GeometryMode/Public/EditorGeometry.h"
 #endif
 
+#if WITH_PHYSX
+#include "PhysicsPublic.h"
+#include "../../PhysicsEngine/PhysXSupport.h"
+#endif // WITH_PHYSX
+
 // @todo this is here only due to circular dependency to AIModule. To be removed
 #include "Navigation/CrowdManager.h"
 #include "Navigation/PathFollowingComponent.h"
@@ -129,6 +134,16 @@ FNavigationInvoker::FNavigationInvoker(AActor& InActor, float InGenerationRadius
 , RemovalRadius(InRemovalRadius)
 {
 
+}
+
+//----------------------------------------------------------------------//
+// FNavHeightfieldSample
+//----------------------------------------------------------------------//
+FNavHeightfieldSamples::FNavHeightfieldSamples()
+{
+#if WITH_PHYSX
+	//static_assert(sizeof(physx::PxI16) == sizeof(Heights.GetTypeSize()), "FNavHeightfieldSamples::Heights' type needs to be kept in sync with physx::PxI16");
+#endif // WITH_PHYSX
 }
 
 //----------------------------------------------------------------------//
@@ -247,6 +262,7 @@ UNavigationSystem::UNavigationSystem(const FObjectInitializer& ObjectInitializer
 	NextInvokersUpdateTime = 0.f;
 	ActiveTilesUpdateInterval = 1.f;
 	bGenerateNavigationOnlyAroundNavigationInvokers = false;
+	DataGatheringMode = ENavDataGatheringModeConfig::Instant;
 
 	if (HasAnyFlags(RF_ClassDefaultObject) == false)
 	{
@@ -421,8 +437,8 @@ bool UNavigationSystem::ConditionalPopulateNavOctree()
 
 	if (bSupportRebuilding)
 	{
-		NavOctree = new FNavigationOctree(FVector(0,0,0), 64000);
-		NavOctree->SetLazyGeometryGatheringEnabled(bGenerateNavigationOnlyAroundNavigationInvokers);
+		NavOctree = MakeShareable(new FNavigationOctree(FVector(0,0,0), 64000));
+		NavOctree->SetDataGatheringMode(DataGatheringMode);
 		
 		const ERuntimeGenerationType RuntimeGenerationType = GetRuntimeGenerationType();
 		const bool bStoreNavGeometry = (RuntimeGenerationType == ERuntimeGenerationType::Dynamic);
@@ -483,9 +499,9 @@ void UNavigationSystem::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 		}
 		else if (PropName == NAME_EnableActiveTiles)
 		{
-			if (NavOctree)
+			if (NavOctree.IsValid())
 			{
-				NavOctree->SetLazyGeometryGatheringEnabled(bGenerateNavigationOnlyAroundNavigationInvokers);
+				NavOctree->SetDataGatheringMode(DataGatheringMode);
 			}
 
 			for (auto NavData : NavDataSet)
@@ -2129,7 +2145,7 @@ FSetElementId UNavigationSystem::RegisterNavOctreeElement(UObject* ElementOwner,
 	}
 #endif
 
-	if (NavOctree == NULL || ElementOwner == NULL || ElementInterface == NULL)
+	if (NavOctree.IsValid() == false || ElementOwner == NULL || ElementInterface == NULL)
 	{
 		return SetId;
 	}
@@ -2192,7 +2208,7 @@ void UNavigationSystem::AddElementToNavOctree(const FNavigationDirtyElement& Dir
 		return;
 	}
 
-	FNavigationOctreeElement GeneratedData;
+	FNavigationOctreeElement GeneratedData(*ElementOwner);
 	const FBox ElementBounds = DirtyElement.NavInterface->GetNavigationBounds();
 
 	UObject* NavigationParent = DirtyElement.NavInterface->GetNavigationParent();
@@ -2232,7 +2248,7 @@ void UNavigationSystem::AddElementToNavOctree(const FNavigationDirtyElement& Dir
 
 	if (bValidBBox && !GeneratedData.IsEmpty())
 	{
-		const int32 DirtyFlag = DirtyElement.FlagsOverride ? DirtyElement.FlagsOverride : GeneratedData.Data.GetDirtyFlag();
+		const int32 DirtyFlag = DirtyElement.FlagsOverride ? DirtyElement.FlagsOverride : GeneratedData.Data->GetDirtyFlag();
 		AddDirtyArea(BBox, DirtyFlag);
 	}
 }
@@ -2246,7 +2262,7 @@ bool UNavigationSystem::GetNavOctreeElementData(UObject* NodeOwner, int32& Dirty
 		{
 			// mark area occupied by given actor as dirty
 			FNavigationOctreeElement& ElementData = NavOctree->GetElementById(*ElementId);
-			DirtyFlags = ElementData.Data.GetDirtyFlag();
+			DirtyFlags = ElementData.Data->GetDirtyFlag();
 			DirtyBounds = ElementData.Bounds.GetBox();
 			return true;
 		}
@@ -2264,7 +2280,7 @@ void UNavigationSystem::UnregisterNavOctreeElement(UObject* ElementOwner, INavRe
 	}
 #endif
 
-	if (NavOctree == NULL || ElementOwner == NULL || ElementInterface == NULL)
+	if (NavOctree.IsValid() == false || ElementOwner == NULL || ElementInterface == NULL)
 	{
 		return;
 	}
@@ -2310,7 +2326,7 @@ void UNavigationSystem::RemoveNavOctreeElementId(const FOctreeElementId& Element
 	{
 		// mark area occupied by given actor as dirty
 		FNavigationOctreeElement& ElementData = NavOctree->GetElementById(ElementId);
-		const int32 DirtyFlag = GetDirtyFlagHelper(UpdateFlags, ElementData.Data.GetDirtyFlag());
+		const int32 DirtyFlag = GetDirtyFlagHelper(UpdateFlags, ElementData.Data->GetDirtyFlag());
 		AddDirtyArea(ElementData.Bounds.GetBox(), DirtyFlag);
 		NavOctree->RemoveNode(ElementId);
 	}
@@ -2318,7 +2334,7 @@ void UNavigationSystem::RemoveNavOctreeElementId(const FOctreeElementId& Element
 
 const FNavigationRelevantData* UNavigationSystem::GetDataForObject(const UObject& Object) const
 {
-	check(NavOctree);
+	check(NavOctree.IsValid());
 
 	const FOctreeElementId* OctreeID = GetObjectsNavOctreeId(&Object);
 
@@ -2506,7 +2522,7 @@ bool UNavigationSystem::UpdateNavOctreeElementBounds(UActorComponent* Comp, cons
 			if (ElementId && ElementId->IsValidId())
 			{
 				FNavigationOctreeElement& ElementData = NavOctree->GetElementById(*ElementId);
-				AddDirtyArea(DirtyArea, ElementData.Data.GetDirtyFlag());
+				AddDirtyArea(DirtyArea, ElementData.Data->GetDirtyFlag());
 			}
 		}
 
@@ -2584,7 +2600,7 @@ void UNavigationSystem::OnActorUnregistered(AActor* Actor)
 
 void UNavigationSystem::FindElementsInNavOctree(const FBox& QueryBox, const FNavigationOctreeFilter& Filter, TArray<FNavigationOctreeElement>& Elements)
 {
-	if (NavOctree == nullptr)
+	if (NavOctree.IsValid() == false)
 	{
 		UE_LOG(LogNavigation, Warning, TEXT("UNavigationSystem::FindElementsInNavOctree gets called while NavOctree is null"));
 		return;
@@ -3019,7 +3035,7 @@ void UNavigationSystem::NavigationBuildingLock()
 		return;
 	}
 
-	GetMainNavData(bAutoCreateNavigationData && NavOctree != nullptr && IsThereAnywhereToBuildNavigation() ? FNavigationSystem::Create : FNavigationSystem::DontCreate);
+	GetMainNavData(bAutoCreateNavigationData && NavOctree.IsValid() && IsThereAnywhereToBuildNavigation() ? FNavigationSystem::Create : FNavigationSystem::DontCreate);
 
 	bNavigationBuildingLocked = true;
 }
@@ -3168,18 +3184,18 @@ void UNavigationSystem::OnLevelRemovedFromWorld(ULevel* InLevel, UWorld* InWorld
 void UNavigationSystem::AddLevelCollisionToOctree(ULevel* Level)
 {
 #if WITH_RECAST
-	if (Level && NavOctree && 
+	if (Level && NavOctree.IsValid() &&
 		NavOctree->GetNavGeometryStoringMode() == FNavigationOctree::StoreNavGeometry)
 	{
 		const TArray<FVector>* LevelGeom = Level->GetStaticNavigableGeometry();
 		const FOctreeElementId* ElementId = GetObjectsNavOctreeId(Level);
 
-		if (LevelGeom && !ElementId)
+		if (!ElementId && LevelGeom && LevelGeom->Num() > 0)
 		{
-			FNavigationOctreeElement BSPElem;
-			FRecastNavMeshGenerator::ExportVertexSoupGeometry(*LevelGeom, BSPElem.Data);
+			FNavigationOctreeElement BSPElem(*Level);
+			FRecastNavMeshGenerator::ExportVertexSoupGeometry(*LevelGeom, *BSPElem.Data);
 
-			const auto& Bounds = BSPElem.Data.Bounds;
+			const auto& Bounds = BSPElem.Data->Bounds;
 			if (!Bounds.GetExtent().IsNearlyZero())
 			{
 				NavOctree->AddNode(Level, NULL, Bounds, BSPElem);
@@ -3194,7 +3210,7 @@ void UNavigationSystem::AddLevelCollisionToOctree(ULevel* Level)
 
 void UNavigationSystem::RemoveLevelCollisionFromOctree(ULevel* Level)
 {
-	if (Level && NavOctree)
+	if (Level && NavOctree.IsValid())
 	{
 		const FOctreeElementId* ElementId = GetObjectsNavOctreeId(Level);
 		UE_LOG(LogNavOctree, Log, TEXT("UNREG %s %s"), *GetNameSafe(Level), ElementId ? TEXT("[exists]") : TEXT(""));
@@ -3276,10 +3292,9 @@ void UNavigationSystem::CleanUp(ECleanupMode Mode)
 
 void UNavigationSystem::DestroyNavOctree()
 {
-	if (NavOctree != NULL)
+	if (NavOctree.IsValid())
 	{
 		NavOctree->Destroy();
-		delete NavOctree;
 		NavOctree = NULL;
 	}
 
@@ -3556,6 +3571,31 @@ bool UNavigationSystem::DoesPathIntersectBox(const FNavigationPath* Path, const 
 	return Path != NULL && Path->DoesIntersectBox(Box, AgentLocation, StartingIndex, NULL, AgentExtent);
 }
 
+void UNavigationSystem::SetMaxSimultaneousTileGenerationJobsCount(int32 MaxNumberOfJobs)
+{
+	for (auto NavigationData : NavDataSet)
+	{
+		ARecastNavMesh* RecastNavMesh = Cast<ARecastNavMesh>(NavigationData);
+		if (RecastNavMesh)
+		{
+			RecastNavMesh->SetMaxSimultaneousTileGenerationJobsCount(MaxNumberOfJobs);
+		}
+	}
+}
+
+void UNavigationSystem::ResetMaxSimultaneousTileGenerationJobsCount()
+{
+	for (auto NavigationData : NavDataSet)
+	{
+		ARecastNavMesh* RecastNavMesh = Cast<ARecastNavMesh>(NavigationData);
+		if (RecastNavMesh)
+		{
+			const ARecastNavMesh* CDO = RecastNavMesh->GetClass()->GetDefaultObject<ARecastNavMesh>();
+			RecastNavMesh->SetMaxSimultaneousTileGenerationJobsCount(CDO->MaxSimultaneousTileGenerationJobsCount);
+		}
+	}
+}
+
 //----------------------------------------------------------------------//
 // Active tiles
 //----------------------------------------------------------------------//
@@ -3577,6 +3617,15 @@ void UNavigationSystem::UnregisterNavigationInvoker(AActor& Invoker)
 	if (World && Cast<UNavigationSystem>(World->GetNavigationSystem()))
 	{
 		((UNavigationSystem*)(World->GetNavigationSystem()))->UnregisterInvoker(Invoker);
+	}
+}
+
+void UNavigationSystem::SetGeometryGatheringMode(ENavDataGatheringModeConfig NewMode)
+{
+	DataGatheringMode = NewMode;
+	if (NavOctree.IsValid())
+	{
+		NavOctree->SetDataGatheringMode(DataGatheringMode);
 	}
 }
 

@@ -199,6 +199,9 @@ struct FTextureSource
 	FORCEINLINE bool IsPNGCompressed() const { return bPNGCompressed; }
 	FORCEINLINE int32 GetSizeOnDisk() const { return BulkData.GetBulkDataSize(); }
 	FORCEINLINE bool IsBulkDataLoaded() const { return BulkData.IsBulkDataLoaded(); }
+	
+	/** Sets the GUID to use, and whether that GUID is actually a hash of some data. */
+	void SetId(const FGuid& InId, bool bInGuidIsHash);
 #endif
 
 private:

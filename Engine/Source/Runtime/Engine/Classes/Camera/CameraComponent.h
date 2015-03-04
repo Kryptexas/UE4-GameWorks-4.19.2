@@ -38,6 +38,10 @@ class UCameraComponent : public USceneComponent
 	UPROPERTY(Interp, EditAnywhere, BlueprintReadWrite, Category=CameraSettings)
 	uint32 bConstrainAspectRatio:1;
 
+	// If true, account for the field of view angle when computing which level of detail to use for meshes.
+	UPROPERTY(Interp, EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=CameraSettings)
+	uint32 bUseFieldOfViewForLOD:1;
+
 	/**
 	 * If this camera component is placed on a pawn, should it use the view/control rotation of the pawn where possible?
 	 * @see APawn::GetViewRotation()

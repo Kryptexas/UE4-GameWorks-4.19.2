@@ -250,6 +250,8 @@ struct ENGINE_API FCompositeNavModifier : public FNavigationModifier
 	FORCEINLINE bool HasAgentHeightAdjust() const { return bAdjustHeight; }
 	FORCEINLINE bool HasAreas() const { return Areas.Num() > 0; }
 
+	FORCEINLINE void ReserveForAdditionalAreas(int32 AdditionalElementsCount) { Areas.Reserve(Areas.Num() + AdditionalElementsCount); }
+
 	void MarkPotentialLinks() { bHasPotentialLinks = true; }
 
 	/** returns a copy of Modifier */

@@ -125,6 +125,10 @@ which can be configured via defines for various temporal AA passes.
 	#define AA_DOF 0
 #endif
 
+// Completely non-optimized prototype for solving noise problem.
+#ifndef AA_TEST
+	#define AA_TEST 0
+#endif
 
 
 	// FIND MOTION OF PIXEL AND NEAREST IN NEIGHBORHOOD
@@ -215,6 +219,8 @@ which can be configured via defines for various temporal AA passes.
 	// The extra +0.5 factor is because ScreenPosToPixel.zw is incorrectly computed
 	// as the upper left of the pixel instead of the center of the pixel.
 	BackN = (BackN * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5) * PostprocessInput0Size.zw;
+
+
 
 	// FILTER PIXEL (RESAMPLE TO REMOVE JITTER OFFSET) AND GET NEIGHBORHOOD
     // --------------------------------------------------------------------
@@ -365,6 +371,190 @@ which can be configured via defines for various temporal AA passes.
 		#endif
 	#endif
 
+
+	// Prototype low frequency test.
+	// This has to be re-done to do the reduction/etc prior at non-full res/etc.
+	#if AA_TEST
+
+		// Get low resolution version of current frame.
+
+		//   abc
+		//  defgh
+		//  ijklm
+		//  nopqr
+		//   stu
+		float4 TxA = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2( -1, -2));
+		float4 TxB = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(  0, -2));
+		float4 TxC = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(  1, -2));
+
+		float4 TxD = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2( -2, -1));
+		float4 TxE = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2( -1, -1));
+		float4 TxF = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(  0, -1));
+		float4 TxG = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(  1, -1));
+		float4 TxH = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(  2, -1));
+
+		float4 TxI = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2( -2, 0));
+		float4 TxJ = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2( -1, 0));
+		float4 TxK = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(  0, 0));
+		float4 TxL = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(  1, 0));
+		float4 TxM = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(  2, 0));
+
+		float4 TxN = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2( -2, 1));
+		float4 TxO = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2( -1, 1));
+		float4 TxP = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(  0, 1));
+		float4 TxQ = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(  1, 1));
+		float4 TxR = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(  2, 1));
+
+		float4 TxS = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2( -1, 2));
+		float4 TxT = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(  0, 2));
+		float4 TxU = PostprocessInput0.SampleLevel(PostprocessInput0Sampler, UVAndScreenPos.xy, 0, int2(  1, 2));
+
+		float4 TxAvg = (TxA+TxB+TxC+ TxD+TxE+TxF+TxG+TxH+ TxI+TxJ+TxK+TxL+TxM+ TxN+TxO+TxP+TxQ+TxR+ TxS+TxT+TxU) * (1.0/21.0);
+
+		TxAvg.rgb *= HdrWeightG(TxAvg.rgb, InExposureScale);
+		TxAvg.rgb = RGBToYCoCg(TxAvg.rgb);
+
+		// Get low resolution version of reprojected frame.
+		float4 TxA2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2( -1, -2));
+		float4 TxB2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2(  0, -2));
+		float4 TxC2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2(  1, -2));
+
+		float4 TxD2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2( -2, -1));
+		float4 TxE2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2( -1, -1));
+		float4 TxF2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2(  0, -1));
+		float4 TxG2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2(  1, -1));
+		float4 TxH2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2(  2, -1));
+
+		float4 TxI2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2( -2, 0));
+		float4 TxJ2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2( -1, 0));
+		float4 TxK2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2(  0, 0));
+		float4 TxL2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2(  1, 0));
+		float4 TxM2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2(  2, 0));
+
+		float4 TxN2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2( -2, 1));
+		float4 TxO2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2( -1, 1));
+		float4 TxP2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2(  0, 1));
+		float4 TxQ2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2(  1, 1));
+		float4 TxR2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2(  2, 1));
+
+		float4 TxS2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2( -1, 2));
+		float4 TxT2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2(  0, 2));
+		float4 TxU2 = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0, int2(  1, 2));
+
+		float4 TxAvg2 = (TxA2+TxB2+TxC2+ TxD2+TxE2+TxF2+TxG2+TxH2+ TxI2+TxJ2+TxK2+TxL2+TxM2+ TxN2+TxO2+TxP2+TxQ2+TxR2+ TxS2+TxT2+TxU2) * (1.0/21.0);
+
+		TxAvg2.rgb *= HdrWeightG(TxAvg2.rgb, InExposureScale);
+		TxAvg2.rgb = RGBToYCoCg(TxAvg2.rgb);
+
+
+
+
+		TxA.rgb = RGBToYCoCg(TxA.rgb * HdrWeightG(TxA.rgb, InExposureScale));
+		TxB.rgb = RGBToYCoCg(TxB.rgb * HdrWeightG(TxB.rgb, InExposureScale));
+		TxC.rgb = RGBToYCoCg(TxC.rgb * HdrWeightG(TxC.rgb, InExposureScale));
+
+		TxD.rgb = RGBToYCoCg(TxD.rgb * HdrWeightG(TxD.rgb, InExposureScale));
+		TxE.rgb = RGBToYCoCg(TxE.rgb * HdrWeightG(TxE.rgb, InExposureScale));
+		TxF.rgb = RGBToYCoCg(TxF.rgb * HdrWeightG(TxF.rgb, InExposureScale));
+		TxG.rgb = RGBToYCoCg(TxG.rgb * HdrWeightG(TxG.rgb, InExposureScale));
+		TxH.rgb = RGBToYCoCg(TxH.rgb * HdrWeightG(TxH.rgb, InExposureScale));
+
+		TxI.rgb = RGBToYCoCg(TxI.rgb * HdrWeightG(TxI.rgb, InExposureScale));
+		TxJ.rgb = RGBToYCoCg(TxJ.rgb * HdrWeightG(TxJ.rgb, InExposureScale));
+		TxK.rgb = RGBToYCoCg(TxK.rgb * HdrWeightG(TxK.rgb, InExposureScale));
+		TxL.rgb = RGBToYCoCg(TxL.rgb * HdrWeightG(TxL.rgb, InExposureScale));
+		TxM.rgb = RGBToYCoCg(TxM.rgb * HdrWeightG(TxM.rgb, InExposureScale));
+
+		TxN.rgb = RGBToYCoCg(TxN.rgb * HdrWeightG(TxN.rgb, InExposureScale));
+		TxO.rgb = RGBToYCoCg(TxO.rgb * HdrWeightG(TxO.rgb, InExposureScale));
+		TxP.rgb = RGBToYCoCg(TxP.rgb * HdrWeightG(TxP.rgb, InExposureScale));
+		TxQ.rgb = RGBToYCoCg(TxQ.rgb * HdrWeightG(TxQ.rgb, InExposureScale));
+		TxR.rgb = RGBToYCoCg(TxR.rgb * HdrWeightG(TxR.rgb, InExposureScale));
+
+		TxS.rgb = RGBToYCoCg(TxS.rgb * HdrWeightG(TxS.rgb, InExposureScale));
+		TxT.rgb = RGBToYCoCg(TxT.rgb * HdrWeightG(TxT.rgb, InExposureScale));
+		TxU.rgb = RGBToYCoCg(TxU.rgb * HdrWeightG(TxU.rgb, InExposureScale));
+
+
+		TxA2.rgb = RGBToYCoCg(TxA2.rgb * HdrWeightG(TxA2.rgb, InExposureScale));
+		TxB2.rgb = RGBToYCoCg(TxB2.rgb * HdrWeightG(TxB2.rgb, InExposureScale));
+		TxC2.rgb = RGBToYCoCg(TxC2.rgb * HdrWeightG(TxC2.rgb, InExposureScale));
+
+		TxD2.rgb = RGBToYCoCg(TxD2.rgb * HdrWeightG(TxD2.rgb, InExposureScale));
+		TxE2.rgb = RGBToYCoCg(TxE2.rgb * HdrWeightG(TxE2.rgb, InExposureScale));
+		TxF2.rgb = RGBToYCoCg(TxF2.rgb * HdrWeightG(TxF2.rgb, InExposureScale));
+		TxG2.rgb = RGBToYCoCg(TxG2.rgb * HdrWeightG(TxG2.rgb, InExposureScale));
+		TxH2.rgb = RGBToYCoCg(TxH2.rgb * HdrWeightG(TxH2.rgb, InExposureScale));
+
+		TxI2.rgb = RGBToYCoCg(TxI2.rgb * HdrWeightG(TxI2.rgb, InExposureScale));
+		TxJ2.rgb = RGBToYCoCg(TxJ2.rgb * HdrWeightG(TxJ2.rgb, InExposureScale));
+		TxK2.rgb = RGBToYCoCg(TxK2.rgb * HdrWeightG(TxK2.rgb, InExposureScale));
+		TxL2.rgb = RGBToYCoCg(TxL2.rgb * HdrWeightG(TxL2.rgb, InExposureScale));
+		TxM2.rgb = RGBToYCoCg(TxM2.rgb * HdrWeightG(TxM2.rgb, InExposureScale));
+
+		TxN2.rgb = RGBToYCoCg(TxN2.rgb * HdrWeightG(TxN2.rgb, InExposureScale));
+		TxO2.rgb = RGBToYCoCg(TxO2.rgb * HdrWeightG(TxO2.rgb, InExposureScale));
+		TxP2.rgb = RGBToYCoCg(TxP2.rgb * HdrWeightG(TxP2.rgb, InExposureScale));
+		TxQ2.rgb = RGBToYCoCg(TxQ2.rgb * HdrWeightG(TxQ2.rgb, InExposureScale));
+		TxR2.rgb = RGBToYCoCg(TxR2.rgb * HdrWeightG(TxR2.rgb, InExposureScale));
+
+		TxS2.rgb = RGBToYCoCg(TxS2.rgb * HdrWeightG(TxS2.rgb, InExposureScale));
+		TxT2.rgb = RGBToYCoCg(TxT2.rgb * HdrWeightG(TxT2.rgb, InExposureScale));
+		TxU2.rgb = RGBToYCoCg(TxU2.rgb * HdrWeightG(TxU2.rgb, InExposureScale));
+
+
+		TxA = abs(TxA - TxA2);
+		TxB = abs(TxB - TxB2);
+		TxC = abs(TxC - TxC2);
+
+		TxD = abs(TxD - TxD2);
+		TxE = abs(TxE - TxE2);
+		TxF = abs(TxF - TxF2);
+		TxG = abs(TxG - TxG2);
+		TxH = abs(TxH - TxH2);
+
+		TxI = abs(TxI - TxI2);
+		TxJ = abs(TxJ - TxJ2);
+		TxK = abs(TxK - TxK2);
+		TxL = abs(TxL - TxL2);
+		TxM = abs(TxM - TxM2);
+
+		TxN = abs(TxN - TxN2);
+		TxO = abs(TxO - TxO2);
+		TxP = abs(TxP - TxP2);
+		TxQ = abs(TxQ - TxQ2);
+		TxR = abs(TxR - TxR2);
+
+		TxS = abs(TxS - TxS2);
+		TxT = abs(TxT - TxT2);
+		TxU = abs(TxU - TxU2);
+
+		float4 TxDifAvg = (TxA+TxB+TxC+ TxD+TxE+TxF+TxG+TxH+ TxI+TxJ+TxK+TxL+TxM+ TxN+TxO+TxP+TxQ+TxR+ TxS+TxT+TxU) * (1.0/21.0);
+
+#if 0
+		// Filtered does not work as good (probably because of lower footprint).
+		float Wx1 = 1.0;
+		float Wx2 = 2.0;
+		float Wx3 = 3.0;
+		float Wx4 = 4.0;
+		float Wx5 = 5.0;
+
+		//   abc
+		//  defgh
+		//  ijklm
+		//  nopqr
+		//   stu
+
+		float4 TxDifAvg = (TxA+TxC+TxD+TxN+TxH+TxR+TxS+TxU)*Wx1 + (TxB+TxI+TxM+TxT)*Wx2 + (TxE+TxG+TxO+TxQ)*Wx3 + (TxF+TxJ+TxL+TxP)*Wx4 + TxK*Wx5;
+
+		TxDifAvg /= (Wx1*8.0)+(Wx2*4.0)+(Wx3*4.0)+(Wx4*4.0)+(Wx5);
+#endif
+
+	#endif
+
+
+
+
 	// FETCH HISTORY
 	// -------------
 	OutColor = PostprocessInput1.SampleLevel(PostprocessInput1Sampler, BackN.xy, 0);
@@ -395,6 +585,11 @@ which can be configured via defines for various temporal AA passes.
 		OutColor.rg = float2(0.0, 0.0);
 		float DebugDiffPrior = OutColor.b;
 	#endif
+
+
+
+
+
 
 	// FIND LUMA OF CLAMPED HISTORY
 	// ----------------------------
@@ -499,6 +694,34 @@ which can be configured via defines for various temporal AA passes.
 		#endif
 	}
 	
+	// LIMIT BLEND AMOUNT BASED ON LOW FREQUENCY SIGNAL
+	// -------------------------------------------------
+	#if AA_TEST
+
+#if 0
+		// LOWPASS
+		float TxScale = 2.0 * max(1.0, min(2.0, Velocity));
+		float TxMaxX = abs(TxAvg.x - TxAvg2.x) * 2.0 * TxScale;
+		float TxMaxY = abs(TxAvg.y - TxAvg2.y) * 4.0 * TxScale;
+		float TxMaxZ = abs(TxAvg.z - TxAvg2.z) * 8.0 * TxScale;
+#else
+		// SUM ABS DIFF
+		float TxScale = 1.0 * max(1.0, min(2.0, Velocity));
+		float TxMaxX = TxDifAvg.x * 2.0 * TxScale;
+		float TxMaxY = TxDifAvg.y * 4.0 * TxScale;
+		float TxMaxZ = TxDifAvg.z * 8.0 * TxScale;
+
+#endif
+		
+
+		float TxMax = max(TxMaxX,max(TxMaxY,TxMaxZ));
+		TxMax = min(1.0/1.0, TxMax);
+		BlendFinal = max(BlendFinal, TxMax);
+
+	#endif
+
+
+
 	// DO FINAL BLEND BETWEEN HISTORY AND FILTERED COLOR
 	// -------------------------------------------------
 	#if (AA_LERP == 0)
@@ -564,3 +787,4 @@ which can be configured via defines for various temporal AA passes.
 #undef AA_VELOCITY_WEIGHTING
 #undef AA_YCOCG
 #undef AA_DOF
+#undef AA_TEST

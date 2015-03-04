@@ -107,14 +107,6 @@ class UFbxImportUI : public UObject
 	UPROPERTY(EditAnywhere, Instanced, Category=Animation, meta=(editcondition="bImportAnimations", ImportType = "Animation"))
 	class UFbxAnimSequenceImportData* AnimSequenceImportData;
 
-	/** Type of asset to import from the FBX file */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Animation, meta=(editcondition="bImportAnimations", ImportType = "SkeletalMesh|Animation"))
-	bool bPreserveLocalTransform;
-
-	/** Type of asset to import from the FBX file */
-	UPROPERTY(EditAnywhere, AdvancedDisplay, config, Category=Animation, meta=(editcondition="bImportAnimations", ImportType = "SkeletalMesh|Animation"))
-	bool bDeleteExistingMorphTargetCurves;
-
 	/** Import data used when importing textures */
 	UPROPERTY(EditAnywhere, Instanced, Category=Material)
 	class UFbxTextureImportData* TextureImportData;

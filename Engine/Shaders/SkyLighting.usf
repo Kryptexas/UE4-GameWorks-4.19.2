@@ -48,7 +48,8 @@ void SkyLightDiffusePS(
 
 		float a = Square( GBuffer.Roughness );
 		float3 DominantDiffuseDir = lerp( N, V, saturate( ( NoV * (1.02341 * a - 1.51174) + -0.511705 * a + 0.755868 ) * a ) );
-		SkyLightingNormal = normalize( DominantDiffuseDir );
+		DominantDiffuseDir = normalize( DominantDiffuseDir );
+		SkyLightingNormal = DominantDiffuseDir;
 
 		float3 ABC = PreIntegratedGF.SampleLevel( PreIntegratedGFSampler, float2( NoV, GBuffer.Roughness ), 0 ).rgb;
 		GBuffer.DiffuseColor *= ABC.z;
@@ -66,8 +67,8 @@ void SkyLightDiffusePS(
 			// Use more bent normal in corners
 			float BentNormalWeightFactor = SkyVisibility;
 
-			SkyLightingNormal = lerp(NormalizedBentNormal, GBuffer.WorldNormal, BentNormalWeightFactor);
-			DotProductFactor = lerp(dot(NormalizedBentNormal, GBuffer.WorldNormal), 1, BentNormalWeightFactor);
+			SkyLightingNormal = lerp(NormalizedBentNormal, DominantDiffuseDir, BentNormalWeightFactor);
+			DotProductFactor = lerp(dot(NormalizedBentNormal, DominantDiffuseDir), 1, BentNormalWeightFactor);
 		}
 		#else
 		{

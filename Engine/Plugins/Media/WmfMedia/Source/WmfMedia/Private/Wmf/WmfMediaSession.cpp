@@ -198,93 +198,93 @@ STDMETHODIMP FWmfMediaSession::Invoke( IMFAsyncResult* AsyncResult )
 		return S_OK;
 	}
 
-	HRESULT EventResult;
-	Event->GetStatus(&EventResult);
+		HRESULT EventResult;
+		Event->GetStatus(&EventResult);
 
-	FScopeLock ScopeLock(&CriticalSection);
-	{
-		if (EventType == MESessionClosed)
+		FScopeLock ScopeLock(&CriticalSection);
 		{
-			UpdateState(EMediaStates::Closed);
-			Capabilities = 0;
-		}
-		else if (EventType == MEError)
-		{
-			ErrorEvent.Broadcast(EventResult);
-			UpdateState(EMediaStates::Error);
-		}
-		else
-		{
-			if (EventType == MEEndOfPresentation)
+			if (EventType == MESessionClosed)
 			{
-				if (!Looping)
+				UpdateState(EMediaStates::Closed);
+				Capabilities = 0;
+			}
+			else if (EventType == MEError)
+			{
+				ErrorEvent.Broadcast(EventResult);
+				UpdateState(EMediaStates::Error);
+			}
+			else
+			{
+				if (EventType == MEEndOfPresentation)
 				{
-					RequestedState = EMediaStates::Stopped;
-					MediaSession->Stop();
-				}
-			}
-			else if (EventType == MESessionCapabilitiesChanged)
-			{
-				Capabilities = ::MFGetAttributeUINT32(Event, MF_EVENT_SESSIONCAPS, Capabilities);
-			}
-			else if (EventType == MESessionEnded)
-			{
-				if (Looping && (CurrentRate < 0.0f))
-				{
-					RequestedPosition = Duration;
-				}
-
-				UpdateState(EMediaStates::Stopped);
-			}
-			else if (EventType == MESessionPaused)
-			{
-				UpdateState(EMediaStates::Paused);
-			}
-			else if (EventType == MESessionRateChanged)
-			{
-				// recover active playback rate if rate change failed
-				if (FAILED(EventResult) && (CurrentRate == RequestedRate))
-				{
-					PROPVARIANT Value;
-					PropVariantInit(&Value);
-
-					if (SUCCEEDED(Event->GetValue(&Value)) && (Value.vt == VT_R4))
+					if (!Looping)
 					{
-						CurrentRate = Value.fltVal;
+						RequestedState = EMediaStates::Stopped;
+						MediaSession->Stop();
+					}
+				}
+				else if (EventType == MESessionCapabilitiesChanged)
+				{
+					Capabilities = ::MFGetAttributeUINT32(Event, MF_EVENT_SESSIONCAPS, Capabilities);
+				}
+				else if (EventType == MESessionEnded)
+				{
+					if (Looping && (CurrentRate < 0.0f))
+					{
+						RequestedPosition = Duration;
 					}
 
-					RequestedRate = CurrentRate;
+					UpdateState(EMediaStates::Stopped);
 				}
-			}
-			else if (EventType == MESessionScrubSampleComplete)
-			{
-				if (GetInternalPosition() == RequestedPosition)
+				else if (EventType == MESessionPaused)
 				{
-					RequestedPosition = FTimespan::MinValue();
+					UpdateState(EMediaStates::Paused);
 				}
-			}
-			else if (EventType == MESessionStarted)
-			{
-				if (GetInternalPosition() == RequestedPosition)
+				else if (EventType == MESessionRateChanged)
 				{
-					RequestedPosition = FTimespan::MinValue();
+					// recover active playback rate if rate change failed
+					if (FAILED(EventResult) && (CurrentRate == RequestedRate))
+					{
+						PROPVARIANT Value;
+						PropVariantInit(&Value);
+
+						if (SUCCEEDED(Event->GetValue(&Value)) && (Value.vt == VT_R4))
+						{
+							CurrentRate = Value.fltVal;
+						}
+
+						RequestedRate = CurrentRate;
+					}
+				}
+				else if (EventType == MESessionScrubSampleComplete)
+				{
+					if (GetInternalPosition() == RequestedPosition)
+					{
+						RequestedPosition = FTimespan::MinValue();
+					}
+				}
+				else if (EventType == MESessionStarted)
+				{
+					if (GetInternalPosition() == RequestedPosition)
+					{
+						RequestedPosition = FTimespan::MinValue();
+					}
+
+					UpdateState(EMediaStates::Playing);
+				}
+				else if (EventType == MESessionStopped)
+				{
+					UpdateState(EMediaStates::Stopped);
 				}
 
-				UpdateState(EMediaStates::Playing);
-			}
-			else if (EventType == MESessionStopped)
-			{
-				UpdateState(EMediaStates::Stopped);
-			}
-
-			// request the next event
-			if (FAILED(MediaSession->BeginGetEvent(this, NULL)))
-			{
-				Capabilities = 0;
-				CurrentState = EMediaStates::Error;
+				// request the next event
+				if (FAILED(MediaSession->BeginGetEvent(this, NULL)))
+				{
+					Capabilities = 0;
+					CurrentState = EMediaStates::Error;
+				}
 			}
 		}
-	}
 	
 	return S_OK;
 }

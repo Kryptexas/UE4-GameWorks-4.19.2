@@ -77,6 +77,8 @@ void FForwardShadingSceneRenderer::InitViews(FRHICommandListImmediate& RHICmdLis
 */
 void FForwardShadingSceneRenderer::Render(FRHICommandListImmediate& RHICmdList)
 {
+	QUICK_SCOPE_CYCLE_COUNTER(STAT_FForwardShadingSceneRenderer_Render);
+
 	if(!ViewFamily.EngineShowFlags.Rendering)
 	{
 		return;

@@ -6,7 +6,6 @@
 #include "CollisionQueryParams.h"
 #include "BodyInstance.generated.h"
 
-
 #define UE_WITH_PHYSICS (WITH_PHYSX || WITH_BOX2D)
 
 struct FCollisionShape;
@@ -21,6 +20,8 @@ class UPhysicsConstraintComponent;
 DECLARE_DELEGATE_TwoParams(FCalculateCustomPhysics, float, FBodyInstance*);
 
 #if WITH_PHYSX
+struct FShapeData;
+
 namespace physx
 {
 	class PxRigidActor;
@@ -32,6 +33,7 @@ namespace physx
 	class PxMaterial;
 	class PxTransform;
 	struct PxContactPair;
+	struct PxFilterData;
 }
 #endif // WITH_PHYSX
 
@@ -418,8 +420,6 @@ public:
 	 */
 	static void InitBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL, bool Defer = false);
 
-	void InitBody_Legacy(class UBodySetup* Setup, const FTransform& Transform, class UPrimitiveComponent* PrimComp, class FPhysScene* InRBScene, PhysXAggregateType InAggregate = NULL);
-
 	/** Validate a body transform, outputting debug info
 	 *	@param Transform Transform to debug
 	 *	@param DebugName Name of the instance for logging
@@ -427,10 +427,41 @@ public:
 	 */
 	static bool ValidateTransform(const FTransform &Transform, FString& DebugName, UBodySetup* Setup);
 
+	/** Standalone path to batch initialise large amounts of static bodies, which will be deferred till the next scene update for fast scene addition.
+	 *	@param Bodies
+	 *	@param Transforms
+	 *	@param BodySetup
+	 *	@param PrimitiveComp
+	 *	@param InRBScene
+	 */
+	static void InitStaticBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform>& Transforms, class UBodySetup* BodySetup, class UPrimitiveComponent* PrimitiveComp, class FPhysScene* InRBScene);
+
 #if WITH_PHYSX
 	/** Initialise dynamic properties for this instance when using PhysX - this must be done after scene addition.
 	 */
 	void InitDynamicProperties();
+
+	/** Populate the filter data within the provided FShapeData with the correct filters for this instance
+	 *	@param ShapeData ShapeData to populate
+	 *	@param bForceSimpleAsComplex Whether to force simple colision as complex
+	 */
+	void GetFilterData(FShapeData& ShapeData, bool bForceSimpleAsComplex = false);
+
+	/** Set initialisation flags on a provided shape
+	 *	@param UseCollisionEnabled Whether collision is enabled for the shape
+	 *	@param PShape The shape to set the flags on
+	 *	@param SceneType Which scene we are using
+	 *	@param bUseComplexAsSimple Whether to use complex collision as simple
+	 */
+	void SetShapeFlags(TEnumAsByte<ECollisionEnabled::Type> UseCollisionEnabled, physx::PxShape* PShape, EPhysicsSceneType SceneType, const bool bUseComplexAsSimple = false);
+
+	/** Populate the flag fields of the provided FShapeData with correct initialisation flags
+	 *	@param ShapeData ShapeData to populate
+	 *	@param UseCollisionEnabled Whether collision is enabled for this instance
+	 *	@param bUseComplexAsSimple Whether to use complex collision as simple
+	 */
+	void GetShapeFlags(FShapeData& ShapeData, TEnumAsByte<ECollisionEnabled::Type> UseCollisionEnabled, const bool bUseComplexAsSimple = false);
+
 #endif // WITH_PHYSX
 
 #endif	//UE_WITH_PHYSICS
@@ -473,6 +504,9 @@ public:
 
 	/** Get the complex PhysicalMaterial array for this body */
 	TArray<UPhysicalMaterial*> GetComplexPhysicalMaterials() const;
+
+	/** Get the complex PhysicalMaterials for this body */
+	void GetComplexPhysicalMaterials(TArray<UPhysicalMaterial*> &PhysMaterials) const;
 
 	/** Returns the slope override struct for this instance. If we don't have our own custom setting, it will return the setting from the body setup. */
 	const struct FWalkableSlopeOverride& GetWalkableSlopeOverride() const;
@@ -644,7 +678,7 @@ public:
 #if WITH_PHYSX
 	static void ApplyMaterialToShape(physx::PxShape* PShape, physx::PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*>& ComplexPhysMats);
 
-	void ApplyMaterialToInstanceShapes(physx::PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*> ComplexPhysMats);
+	void ApplyMaterialToInstanceShapes(physx::PxMaterial* PSimpleMat, TArray<UPhysicalMaterial*>& ComplexPhysMats);
 #endif
 
 	/** Update the instances collision filtering data */

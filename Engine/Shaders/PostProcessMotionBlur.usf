@@ -785,7 +785,7 @@ void MainNewPS( float4 UVAndScreenPos : TEXCOORD0, out float4 OutColor : SV_Targ
 
 	float VelocityScale = MotionBlurParameters.x;
 
-	const uint StepCount = GetStepCountFromQuality();
+	const uint StepCount = GetStepCountFromQuality() / 2;
 
 #if 1
 	uint2 PixelPos = uint2(UVAndScreenPos.zw * ScreenPosToPixel.xy + ScreenPosToPixel.zw + 0.5f);

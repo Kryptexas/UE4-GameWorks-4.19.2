@@ -299,7 +299,10 @@ FString SaveGlobalShaderFile(EShaderPlatform Platform, FString SavePath)
 
 	// make the final name
 	FString FullPath = SavePath / GetGlobalShaderCacheFilename(Platform);
-	verify(FFileHelper::SaveArrayToFile(GlobalShaderData, *FullPath));
+	if (!FFileHelper::SaveArrayToFile(GlobalShaderData, *FullPath))
+	{
+		UE_LOG(LogMaterial, Fatal, TEXT("Could not save global shader file to '%s'"), *FullPath);
+	}
 
 	return FullPath;
 }

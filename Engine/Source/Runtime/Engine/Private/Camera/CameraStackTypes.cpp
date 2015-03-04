@@ -19,6 +19,7 @@ bool FMinimalViewInfo::Equals(const FMinimalViewInfo& OtherInfo) const
 		(OrthoFarClipPlane == OtherInfo.OrthoFarClipPlane) &&
 		(AspectRatio == OtherInfo.AspectRatio) &&
 		(bConstrainAspectRatio == OtherInfo.bConstrainAspectRatio) &&
+		(bUseFieldOfViewForLOD == OtherInfo.bUseFieldOfViewForLOD) &&
 		(ProjectionMode == OtherInfo.ProjectionMode);
 }
 
@@ -36,6 +37,7 @@ void FMinimalViewInfo::BlendViewInfo(FMinimalViewInfo& OtherInfo, float OtherWei
 
 	AspectRatio = FMath::Lerp(AspectRatio, OtherInfo.AspectRatio, OtherWeight);
 	bConstrainAspectRatio |= OtherInfo.bConstrainAspectRatio;
+	bUseFieldOfViewForLOD |= OtherInfo.bUseFieldOfViewForLOD;
 }
 
 void FMinimalViewInfo::ApplyBlendWeight(const float& Weight)
@@ -64,6 +66,7 @@ void FMinimalViewInfo::AddWeightedViewInfo(const FMinimalViewInfo& OtherView, co
 	AspectRatio += OtherViewWeighted.AspectRatio;
 
 	bConstrainAspectRatio |= OtherViewWeighted.bConstrainAspectRatio;
+	bUseFieldOfViewForLOD |= OtherViewWeighted.bUseFieldOfViewForLOD;
 }
 
 void FMinimalViewInfo::CalculateProjectionMatrixGivenView(const FMinimalViewInfo& ViewInfo, TEnumAsByte<enum EAspectRatioAxisConstraint> AspectRatioAxisConstraint, FViewport* Viewport, FSceneViewProjectionData& InOutProjectionData)

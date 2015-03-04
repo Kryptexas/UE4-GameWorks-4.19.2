@@ -680,8 +680,8 @@ protected:
 		for (int32 ChildIndex=0; ChildIndex < Children.Num(); ++ChildIndex)
 		{
 			const auto Child = StaticCastSharedRef<SWorldTileItem>(Children[ChildIndex]);
-		
-			if (WorldModel->PassesAllFilters(Child->GetLevelModel()))
+			const auto LevelModel = Child->GetLevelModel();
+			if (LevelModel->IsVisibleInCompositionView())
 			{
 				FSlateRect ChildRect = Child->GetItemRect();
 				FVector2D ChildSize = ChildRect.GetSize();

@@ -118,7 +118,7 @@ void FTranslucentLightingParameters::Set(FRHICommandList& RHICmdList, FShader* S
 			TStaticSamplerState<SF_Point, AM_Clamp, AM_Clamp, AM_Clamp>::GetRHI(), 
 			View->HZB->GetRenderTargetItem().ShaderResourceTexture );
 
-		TRefCountPtr<IPooledRenderTarget>* PrevSceneColorRT = &GSceneRenderTargets.GetSceneColor();
+		TRefCountPtr<IPooledRenderTarget>* PrevSceneColorRT = &GSystemTextures.BlackDummy;
 
 		FSceneViewState* ViewState = (FSceneViewState*)View->State;
 		if( ViewState && ViewState->TemporalAAHistoryRT && !View->bCameraCut )

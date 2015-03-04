@@ -176,6 +176,10 @@ public:
 	uint32 bSkipAgentHeightCheckWhenPickingNavData:1;
 
 protected:
+	
+	UPROPERTY(EditDefaultsOnly, Category = "NavigationSystem", config)
+	ENavDataGatheringModeConfig DataGatheringMode;
+
 	/** If set to true navigation will be generated only around registered "navigation enforcers"
 	*	This has a range of consequences (including how navigation octree operates) so it needs to
 	*	be a conscious decision.
@@ -184,7 +188,7 @@ protected:
 	*/
 	UPROPERTY(EditDefaultsOnly, Category = "Navigation Enforcing", config)
 	uint32 bGenerateNavigationOnlyAroundNavigationInvokers : 1;
-
+	
 	/** Minimal time, in seconds, between active tiles set update */
 	UPROPERTY(EditAnywhere, Category = "Navigation Enforcing", meta = (ClampMin = "0.1", UIMin = "0.1", EditCondition = "bGenerateNavigationOnlyAroundNavigationInvokers"), config)
 	float ActiveTilesUpdateInterval;
@@ -235,7 +239,7 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "AI|Navigation", meta = (WorldContext = "WorldContext"))
 	static UNavigationSystem* GetNavigationSystem(UObject* WorldContext);
-
+	
 	/** Project a point onto the NavigationData */
 	UFUNCTION(BlueprintPure, Category="AI|Navigation", meta=(WorldContext="WorldContext" ) )
 	static FVector ProjectPointToNavigation(UObject* WorldContext, const FVector& Point, ANavigationData* NavData = NULL, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL);
@@ -281,18 +285,30 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AI|Navigation", meta=(WorldContext="WorldContext" ))
 	static bool NavigationRaycast(UObject* WorldContext, const FVector& RayStart, const FVector& RayEnd, FVector& HitLocation, TSubclassOf<UNavigationQueryFilter> FilterClass = NULL, AController* Querier = NULL);
 
+	/** will limit the number of simultaneously running navmesh tile generation jobs to specified number.
+	 *	@param MaxNumberOfJobs gets trimmed to be at least 1. You cannot use this function to pause navmesh generation */
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
+	void SetMaxSimultaneousTileGenerationJobsCount(int32 MaxNumberOfJobs);
+	
+	/** Brings limit of simultaneous navmesh tile generation jobs back to Project Setting's default value */
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
+	void ResetMaxSimultaneousTileGenerationJobsCount();
+
 	/** Registers given actor as a "navigation enforcer" which means navigation system will
 	 *	make sure navigation is being generated in specified radius around it.
 	 *	@note: you need NavigationSystem's GenerateNavigationOnlyAroundNavigationInvokers to be set to true
 	 *		to take advantage of this feature
 	 */
-	UFUNCTION(BlueprintCallable, Category = Navigation)
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
 	void RegisterNavigationInvoker(AActor* Invoker, float TileGenerationRadius = 3000, float TileRemovalRadius = 5000);
 
 	/** Removes given actor from the list of active navigation enforcers.
 	 *	@see RegisterNavigationInvoker for more details */
-	UFUNCTION(BlueprintCallable, Category = Navigation)
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation")
 	void UnregisterNavigationInvoker(AActor* Invoker);
+
+	UFUNCTION(BlueprintCallable, Category = "AI|Navigation|Generation")
+	void SetGeometryGatheringMode(ENavDataGatheringModeConfig NewMode);
 
 	FORCEINLINE bool IsActiveTilesGenerationEnabled() const{ return bGenerateNavigationOnlyAroundNavigationInvokers; }
 	
@@ -554,7 +570,8 @@ public:
 	void AddDirtyAreas(const TArray<FBox>& NewAreas, int32 Flags);
 	bool HasDirtyAreasQueued() const;
 
-	const FNavigationOctree* GetNavOctree() const { return NavOctree; }
+	const FNavigationOctree* GetNavOctree() const { return NavOctree.Get(); }
+	FNavigationOctree* GetMutableNavOctree() { return NavOctree.Get(); }
 
 	FORCEINLINE void SetObjectsNavOctreeId(UObject* Object, FOctreeElementId Id) { ObjectToOctreeId.Add(Object, Id); }
 	FORCEINLINE const FOctreeElementId* GetObjectsNavOctreeId(const UObject* Object) const { return ObjectToOctreeId.Find(Object); }
@@ -693,6 +710,8 @@ public:
 	virtual void OnEditorModeChanged(FEdMode* Mode, bool IsEntering);
 #endif // WITH_EDITOR
 
+	FORCEINLINE bool IsSetUpForLazyGeometryExporting() const { return bGenerateNavigationOnlyAroundNavigationInvokers; }
+
 	/** register actor important for generation (navigation data will be build around them first) */
 	void RegisterGenerationSeed(AActor* SeedActor);
 	void UnregisterGenerationSeed(AActor* SeedActor);
@@ -732,7 +751,7 @@ protected:
 
 	FNavigationSystem::EMode OperationMode;
 
-	FNavigationOctree* NavOctree;
+	TSharedPtr<FNavigationOctree, ESPMode::ThreadSafe> NavOctree;
 
 	TArray<FAsyncPathFindingQuery> AsyncPathFindingQueries;
 

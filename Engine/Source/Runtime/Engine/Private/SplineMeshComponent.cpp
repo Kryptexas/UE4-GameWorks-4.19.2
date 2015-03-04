@@ -662,7 +662,7 @@ UBodySetup* USplineMeshComponent::GetBodySetup()
 	return NULL;
 }
 
-bool USplineMeshComponent::DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const
+bool USplineMeshComponent::DoCustomNavigableGeometryExport(FNavigableGeometryExport& GeomExport) const
 {
 	// the NavCollision is supposed to be faster than exporting the regular collision,
 	// but I'm not sure that's true here, as the regular collision is pre-distorted to the spline
@@ -684,7 +684,7 @@ bool USplineMeshComponent::DoCustomNavigableGeometryExport(struct FNavigableGeom
 					Vertex = CalcSliceTransform(GetAxisValue(Vertex, ForwardAxis)).TransformPosition(Vertex);
 					VertexBuffer.Add(Vertex);
 				}
-				GeomExport->ExportCustomMesh(VertexBuffer.GetData(), VertexBuffer.Num(),
+				GeomExport.ExportCustomMesh(VertexBuffer.GetData(), VertexBuffer.Num(),
 					NavCollision->ConvexCollision.IndexBuffer.GetData(), NavCollision->ConvexCollision.IndexBuffer.Num(),
 					ComponentToWorld);
 
@@ -695,7 +695,7 @@ bool USplineMeshComponent::DoCustomNavigableGeometryExport(struct FNavigableGeom
 					Vertex = CalcSliceTransform(GetAxisValue(Vertex, ForwardAxis)).TransformPosition(Vertex);
 					VertexBuffer.Add(Vertex);
 				}
-				GeomExport->ExportCustomMesh(VertexBuffer.GetData(), VertexBuffer.Num(),
+				GeomExport.ExportCustomMesh(VertexBuffer.GetData(), VertexBuffer.Num(),
 					NavCollision->TriMeshCollision.IndexBuffer.GetData(), NavCollision->TriMeshCollision.IndexBuffer.Num(),
 					ComponentToWorld);
 

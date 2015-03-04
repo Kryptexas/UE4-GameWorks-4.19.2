@@ -479,6 +479,12 @@ void SAnimationEditorViewportTabBody::BindCommands()
 		FCanExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::CanShowPreviewMesh),
 		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowPreviewMeshEnabled));
 
+	CommandList.MapAction(
+		ViewportShowMenuCommands.ShowMorphTargets,
+		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowMorphTargets),
+		FCanExecuteAction(),
+		FIsActionChecked::CreateSP(this, &SAnimationEditorViewportTabBody::IsShowingMorphTargets));
+
 	CommandList.MapAction( 
 		ViewportShowMenuCommands.ShowBones,
 		FExecuteAction::CreateSP(this, &SAnimationEditorViewportTabBody::OnShowBones),
@@ -786,6 +792,17 @@ void SAnimationEditorViewportTabBody::OnShowBones()
 	}
 }
 
+void SAnimationEditorViewportTabBody::OnShowMorphTargets()
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	if(PreviewComponent != NULL)
+	{
+		PreviewComponent->bDisableMorphTarget = !PreviewComponent->bDisableMorphTarget;
+		PreviewComponent->MarkRenderStateDirty();
+		RefreshViewport();
+	}
+}
+
 void SAnimationEditorViewportTabBody::OnShowBoneNames()
 {
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
@@ -857,6 +874,12 @@ bool SAnimationEditorViewportTabBody::IsShowingBones() const
 {
 	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
 	return PreviewComponent != NULL && PreviewComponent->bDisplayBones;
+}
+
+bool SAnimationEditorViewportTabBody::IsShowingMorphTargets() const
+{
+	UDebugSkelMeshComponent* PreviewComponent = PersonaPtr.Pin()->PreviewComponent;
+	return PreviewComponent != NULL && PreviewComponent->bDisableMorphTarget == false;
 }
 
 bool SAnimationEditorViewportTabBody::IsShowingBoneNames() const
