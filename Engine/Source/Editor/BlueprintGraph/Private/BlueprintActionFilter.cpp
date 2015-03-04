@@ -724,12 +724,14 @@ static bool BlueprintActionFilterImpl::IsNonTargetMember(FBlueprintActionFilter 
 		bool const bSkip = (bPermitNonTargetGlobals && IsGloballyAccessible(ClassField)) || BlueprintAction.GetNodeClass()->IsChildOf<UK2Node_Message>();
 		if (!bSkip)
 		{
+			bIsFilteredOut = true;
+
 			for (UClass const* Class : Filter.TargetClasses)
 			{
 				bool const bIsTargetOwnedField = IsClassOfType(Class, ActionClass);
-				if (!bIsTargetOwnedField)
+				if (bIsTargetOwnedField)
 				{
-					bIsFilteredOut = true;
+					bIsFilteredOut = false;
 					break;
 				}
 			}
