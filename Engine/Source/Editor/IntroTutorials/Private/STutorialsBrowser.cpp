@@ -697,12 +697,6 @@ void STutorialsBrowser::RebuildTutorials(TSharedPtr<FTutorialListEntry_Category>
 
 	//Ensure that tutorials are loaded into the asset registry before making a list of them.
 	FAssetRegistryModule& AssetRegistry = FModuleManager::LoadModuleChecked<FAssetRegistryModule>(TEXT("AssetRegistry"));
-	bool IsStillLoading = AssetRegistry.Get().IsLoadingAssets();
-	if (IsStillLoading)
-	{
-		//This can happen if you close the editor with the tutorials browser open, then restart the editor so that the browser opens immediately.
-		return;
-	}
 
 	// rebuild tutorials
 	FARFilter Filter;
