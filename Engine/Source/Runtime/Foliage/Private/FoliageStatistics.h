@@ -36,5 +36,14 @@ class FOLIAGE_API UFoliageStatistics : public UBlueprintFunctionLibrary
 	 *	@param OutTransforms Array to populate with transforms
 	 */
 	static void FoliageOverlappingBoxTransforms(UObject* WorldContextObject, const UStaticMesh* StaticMesh, FBox Box, TArray<FTransform>& OutTransforms);
+
+	/** 
+	 *  DEBUG FUNCTION: This is not fast, use only for debug/development.
+	 *  Gets an instance count for each unique mesh type overlapping the given sphere.
+	 *  @param	CenterPosition	The center position of the sphere
+	 *  @param	Radius			The radius of the sphere.
+	 *	@param OutMeshCounts	Map of Meshes to instance counts
+	 */
+	static void FoliageOverlappingMeshCounts_Debug(UObject* WorldContextObject, FVector CenterPosition, float Radius, TMap<UStaticMesh*, int32>& OutMeshCounts);
 };
 

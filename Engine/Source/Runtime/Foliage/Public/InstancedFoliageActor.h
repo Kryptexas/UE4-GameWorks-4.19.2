@@ -46,6 +46,7 @@ public:
 	// we don't want to have our components automatically destroyed by the Blueprint code
 	virtual void RerunConstructionScripts() override {}
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
+	virtual bool IsLevelBoundsRelevant() const override { return false; }
 	// End AActor interface.
 
 
@@ -58,6 +59,9 @@ public:
 	FOLIAGE_API int32 GetOverlappingBoxCount(const UFoliageType* FoliageType, const FBox& Box) const;
 	// Finds all instances in the provided box and get their transforms
 	FOLIAGE_API void GetOverlappingBoxTransforms(const UFoliageType* FoliageType, const FBox& Box, TArray<FTransform>& OutTransforms) const;
+	// Perf Warnin: potentially slow! Dev-only use recommended.
+	// Returns list of meshes and counts for all nearby instances. OutCounts accumulates between runs.
+	FOLIAGE_API void GetOverlappingMeshCounts(const FSphere& Sphere, TMap<UStaticMesh*, int32>& OutCounts) const;
 
 	// Finds a mesh entry
 	FOLIAGE_API FFoliageMeshInfo* FindMesh(const UFoliageType* InType);

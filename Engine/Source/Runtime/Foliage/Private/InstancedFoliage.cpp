@@ -594,6 +594,8 @@ void FFoliageMeshInfo::UpdateComponentSettings(const UFoliageType* InSettings)
 		Component->OverriddenLightMapRes = InSettings->OverriddenLightMapRes;
 
 		Component->BodyInstance.CopyBodyInstancePropertiesFrom(&InSettings->BodyInstance);
+
+		Component->SetCustomNavigableGeometry(InSettings->CustomNavigableGeometry);
 	}
 }
 
@@ -1055,7 +1057,7 @@ int32 AInstancedFoliageActor::GetOverlappingSphereCount(const UFoliageType* Foli
 {
 	if (const FFoliageMeshInfo* MeshInfo = FindMesh(FoliageType))
 	{
-		if (MeshInfo->Component)
+		if(MeshInfo->Component && MeshInfo->Component->IsTreeFullyBuilt())
 		{
 			return MeshInfo->Component->GetOverlappingSphereCount(Sphere);
 		}
@@ -1069,7 +1071,7 @@ int32 AInstancedFoliageActor::GetOverlappingBoxCount(const UFoliageType* Foliage
 {
 	if(const FFoliageMeshInfo* MeshInfo = FindMesh(FoliageType))
 	{
-		if(MeshInfo->Component)
+		if(MeshInfo->Component && MeshInfo->Component->IsTreeFullyBuilt())
 		{
 			return MeshInfo->Component->GetOverlappingBoxCount(Box);
 		}
@@ -1083,12 +1085,32 @@ void AInstancedFoliageActor::GetOverlappingBoxTransforms(const UFoliageType* Fol
 {
 	if(const FFoliageMeshInfo* MeshInfo = FindMesh(FoliageType))
 	{
-		if(MeshInfo->Component)
+		if(MeshInfo->Component && MeshInfo->Component->IsTreeFullyBuilt())
 		{
 			MeshInfo->Component->GetOverlappingBoxTransforms(Box, OutTransforms);
 		}
 	}
 }
+
+void AInstancedFoliageActor::GetOverlappingMeshCounts(const FSphere& Sphere, TMap<UStaticMesh*, int32>& OutCounts) const
+{
+	for (auto& MeshPair : FoliageMeshes)
+	{
+		FFoliageMeshInfo const* MeshInfo = &*MeshPair.Value;
+
+		if (MeshInfo && MeshInfo->Component)
+		{
+			int32 const Count = MeshInfo->Component->GetOverlappingSphereCount(Sphere);
+			if (Count > 0)
+			{
+				UStaticMesh* const Mesh = MeshInfo->Component->StaticMesh;
+				int32& StoredCount = OutCounts.FindOrAdd(Mesh);
+				StoredCount += Count;
+			}
+		}
+	}
+}
+
 
 
 UFoliageType* AInstancedFoliageActor::GetSettingsForMesh(const UStaticMesh* InMesh, FFoliageMeshInfo** OutMeshInfo)
@@ -2008,12 +2030,12 @@ void AInstancedFoliageActor::PostLoad()
 				MeshInfo.ReallocateClusters(this, MeshPair.Key);
 			}
 
-			// Update foliage components if the foliage settings object was changed while the level was not loaded.
+			// Update foliage component settings if the foliage settings object was changed while the level was not loaded.
 			if (MeshInfo.FoliageTypeUpdateGuid != FoliageType->UpdateGuid)
 			{
 				if (MeshInfo.FoliageTypeUpdateGuid.IsValid())
 				{
-					MeshInfo.ReallocateClusters(this, MeshPair.Key);
+					MeshInfo.UpdateComponentSettings(FoliageType);
 				}
 				MeshInfo.FoliageTypeUpdateGuid = FoliageType->UpdateGuid;
 			}
@@ -2027,7 +2049,7 @@ void AInstancedFoliageActor::PostLoad()
 				MeshInfo.InstanceHash->InsertInstance(MeshInfo.Instances[InstanceIdx].Location, InstanceIdx);
 			}
 	
-			// Convert to Heirarchical foliage
+			// Convert to Hierarchical foliage
 			if (GetLinkerCustomVersion(FFoliageCustomVersion::GUID) < FFoliageCustomVersion::FoliageUsingHierarchicalISMC)
 			{
 				MeshInfo.ReallocateClusters(this, MeshPair.Key);
@@ -2119,13 +2141,15 @@ void AInstancedFoliageActor::ApplyWorldOffset(const FVector& InOffset, bool bWor
 {
 	Super::ApplyWorldOffset(InOffset, bWorldShift);
 
-	if (GIsEditor)
+#if WITH_EDITORONLY_DATA	
+	UWorld* World = GetWorld();
+
+	if (GIsEditor && World && !World->IsGameWorld())
 	{
 		for (auto& MeshPair : FoliageMeshes)
 		{
 			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
 
-#if WITH_EDITORONLY_DATA
 			InstanceBaseCache.UpdateInstanceBaseCachedTransforms();
 			
 			MeshInfo.InstanceHash->Empty();
@@ -2136,9 +2160,9 @@ void AInstancedFoliageActor::ApplyWorldOffset(const FVector& InOffset, bool bWor
 				// Rehash instance location
 				MeshInfo.InstanceHash->InsertInstance(Instance.Location, InstanceIdx);
 			}
-#endif
 		}
 	}
+#endif
 }
 
 bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, FName InTraceTag, bool InbReturnFaceIndex)

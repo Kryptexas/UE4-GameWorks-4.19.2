@@ -1661,6 +1661,8 @@ public:
 
 	FORCEINLINE EHasCustomNavigableGeometry::Type HasCustomNavigableGeometry() const { return bHasCustomNavigableGeometry; }
 
+	void SetCustomNavigableGeometry(const EHasCustomNavigableGeometry::Type InType);
+
 	/** Collects custom navigable geometry of component.
 	 *	@return true if regular navigable geometry exporting should be run as well */
 	virtual bool DoCustomNavigableGeometryExport(struct FNavigableGeometryExport* GeomExport) const { return true; }

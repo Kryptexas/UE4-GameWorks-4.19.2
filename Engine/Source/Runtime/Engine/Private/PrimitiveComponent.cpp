@@ -2644,5 +2644,10 @@ bool UPrimitiveComponent::CanEditSimulatePhysics()
 	return GetBodySetup() != nullptr;
 }
 
+void UPrimitiveComponent::SetCustomNavigableGeometry(const EHasCustomNavigableGeometry::Type InType)
+{
+	bHasCustomNavigableGeometry = InType;
+}
+
 #undef LOCTEXT_NAMESPACE
 

@@ -14,6 +14,10 @@ enum FoliageVertexColorMask
 	FOLIAGEVERTEXCOLORMASK_Alpha	UMETA(DisplayName="Alpha"),
 };
 
+namespace EHasCustomNavigableGeometry
+{
+	enum Type;
+}
 UENUM()
 enum class EFoliageScaling : uint8
 {
@@ -28,6 +32,7 @@ enum class EFoliageScaling : uint8
 	// Locks the Y and Z axis scale
 	LockYZ
 };
+
 
 UCLASS(hidecategories = Object, editinlinenew, MinimalAPI, BlueprintType, Blueprintable)
 class UFoliageType : public UObject
@@ -244,6 +249,10 @@ class UFoliageType : public UObject
 	/** Custom collision for foliage */
 	UPROPERTY(EditAnywhere, Category=InstanceSettings, meta = (HideObjectType = true))
 	struct FBodyInstance BodyInstance;
+
+	/** Force navmesh */
+	UPROPERTY(EditAnywhere, Category=InstanceSettings, meta = (HideObjectType = true))
+	TEnumAsByte<EHasCustomNavigableGeometry::Type> CustomNavigableGeometry;
 
 	UPROPERTY()
 	int32 DisplayOrder;
