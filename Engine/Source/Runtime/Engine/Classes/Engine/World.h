@@ -2318,9 +2318,11 @@ public:
 	void UpdateWorldComponents(bool bRerunConstructionScripts, bool bCurrentLevelOnly);
 
 	/**
-	 * Updates all cull distance volumes.
+	 * Updates cull distance volumes for a specified component or a specified actor or all actors
+         * @param ComponentToUpdate If specified just that Component will be updated
+	 * @param ActorToUpdate If specified (and ComponentToUpdate is not specified), all Components owned by this Actor will be updated
 	 */
-	void UpdateCullDistanceVolumes();
+	void UpdateCullDistanceVolumes(AActor* ActorToUpdate = nullptr, UPrimitiveComponent* ComponentToUpdate = nullptr);
 
 	/**
 	 * Cleans up components, streaming data and assorted other intermediate data.

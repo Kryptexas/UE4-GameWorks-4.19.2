@@ -1238,7 +1238,7 @@ void UWorld::UpdateWorldComponents(bool bRerunConstructionScripts, bool bCurrent
 }
 
 
-void UWorld::UpdateCullDistanceVolumes()
+void UWorld::UpdateCullDistanceVolumes(AActor* ActorToUpdate, UPrimitiveComponent* ComponentToUpdate)
 {
 	// Map that will store new max draw distance for every primitive
 	TMap<UPrimitiveComponent*,float> CompToNewMaxDrawMap;
@@ -1251,26 +1251,61 @@ void UWorld::UpdateCullDistanceVolumes()
 		TArray<ACullDistanceVolume*> CullDistanceVolumes;
 
 		// Establish base line of LD specified cull distances.
-		for( FActorIterator It(this); It; ++It )
+		if (ActorToUpdate || ComponentToUpdate)
 		{
-			TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents;
-			It->GetComponents(PrimitiveComponents);
-			for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+			if (ComponentToUpdate)
 			{
-				CompToNewMaxDrawMap.Add(PrimitiveComponent, PrimitiveComponent->LDMaxDrawDistance);
+				check((ActorToUpdate == nullptr) || (ActorToUpdate == ComponentToUpdate->GetOwner()));
+				CompToNewMaxDrawMap.Add(ComponentToUpdate, ComponentToUpdate->LDMaxDrawDistance);
+			}
+			else
+			{
+				TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents(ActorToUpdate);
+				for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+				{
+					if (ACullDistanceVolume::CanBeAffectedByVolumes(PrimitiveComponent))
+					{
+						CompToNewMaxDrawMap.Add(PrimitiveComponent, PrimitiveComponent->LDMaxDrawDistance);
+					}
+				}
 			}
 
-			ACullDistanceVolume* CullDistanceVolume = Cast<ACullDistanceVolume>(*It);
-			if (CullDistanceVolume)
+			if (CompToNewMaxDrawMap.Num() > 0)
 			{
-				CullDistanceVolumes.Add(CullDistanceVolume);
+				for (TActorIterator<ACullDistanceVolume> It(this); It; ++It)
+				{
+					CullDistanceVolumes.Add(*It);
+				}
+			}
+		}
+		else
+		{
+			for( FActorIterator It(this); It; ++It )
+			{
+				TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents(*It);
+				for (UPrimitiveComponent* PrimitiveComponent : PrimitiveComponents)
+				{
+					if (ACullDistanceVolume::CanBeAffectedByVolumes(PrimitiveComponent))
+					{
+						CompToNewMaxDrawMap.Add(PrimitiveComponent, PrimitiveComponent->LDMaxDrawDistance);
+					}
+				}
+
+				ACullDistanceVolume* CullDistanceVolume = Cast<ACullDistanceVolume>(*It);
+				if (CullDistanceVolume)
+				{
+					CullDistanceVolumes.Add(CullDistanceVolume);
+				}
 			}
 		}
 
 		// Iterate over all cull distance volumes and get new cull distances.
-		for (ACullDistanceVolume* CullDistanceVolume : CullDistanceVolumes)
+		if (CompToNewMaxDrawMap.Num() > 0)
 		{
-			CullDistanceVolume->GetPrimitiveMaxDrawDistances(CompToNewMaxDrawMap);
+			for (ACullDistanceVolume* CullDistanceVolume : CullDistanceVolumes)
+			{
+				CullDistanceVolume->GetPrimitiveMaxDrawDistances(CompToNewMaxDrawMap);
+			}
 		}
 
 		// Finally, go over all primitives, and see if they need to change.
@@ -1278,13 +1313,9 @@ void UWorld::UpdateCullDistanceVolumes()
 		for ( TMap<UPrimitiveComponent*,float>::TIterator It(CompToNewMaxDrawMap); It; ++It )
 		{
 			UPrimitiveComponent* PrimComp = It.Key();
-			float NewMaxDrawDist = It.Value();
+			const float NewMaxDrawDist = It.Value();
 
-			if( !FMath::IsNearlyEqual(PrimComp->CachedMaxDrawDistance, NewMaxDrawDist) )
-			{
-				PrimComp->CachedMaxDrawDistance = NewMaxDrawDist;
-				PrimComp->RecreateRenderState_Concurrent();
-			}
+			PrimComp->SetCachedMaxDrawDistance(NewMaxDrawDist);
 		}
 	}
 

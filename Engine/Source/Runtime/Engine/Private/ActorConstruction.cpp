@@ -485,6 +485,8 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 		}
 	}
 
+	GetWorld()->UpdateCullDistanceVolumes(this);
+
 	// Now run virtual notification
 	OnConstruction(Transform);
 }
@@ -561,7 +563,6 @@ UActorComponent* AActor::CreateComponentFromTemplate(UActorComponent* Template, 
 
 		// Note we aren't copying the the RF_ArchetypeObject flag. Also note the result is non-transactional by default.
 		NewActorComp = (UActorComponent*)StaticDuplicateObject(Template, this, *InName, RF_AllFlags & ~(RF_ArchetypeObject|RF_Transactional|RF_WasLoaded|RF_Public|RF_InheritableComponentTemplate) );
-		//NewActorComp = ConstructObject<UActorComponent>(Template->GetClass(), this, *InName, RF_NoFlags, Template);
 
 		NewActorComp->CreationMethod = EComponentCreationMethod::UserConstructionScript;
 
@@ -585,6 +586,7 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 		BlueprintGeneratedClass = Cast<UBlueprintGeneratedClass>(BlueprintGeneratedClass->GetSuperClass());
 	}
 
+	bool bIsSceneComponent = false;
 	UActorComponent* NewActorComp = CreateComponentFromTemplate(Template);
 	if(NewActorComp != nullptr)
 	{
@@ -609,10 +611,22 @@ UActorComponent* AActor::AddComponent(FName TemplateName, bool bManualAttachment
 			}
 
 			NewSceneComp->SetRelativeTransform(RelativeTransform);
+
+			bIsSceneComponent = true;
 		}
 
 		// Register component, which will create physics/rendering state, now component is in correct position
 		NewActorComp->RegisterComponent();
+
+		UWorld* World = GetWorld();
+		if (!bRunningUserConstructionScript && World && bIsSceneComponent)
+		{
+			UPrimitiveComponent* NewPrimitiveComponent = Cast<UPrimitiveComponent>(NewActorComp);
+			if (NewPrimitiveComponent && ACullDistanceVolume::CanBeAffectedByVolumes(NewPrimitiveComponent))
+			{
+				World->UpdateCullDistanceVolumes(this, NewPrimitiveComponent);
+			}
+		}
 	}
 
 	return NewActorComp;

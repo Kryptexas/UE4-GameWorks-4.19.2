@@ -946,10 +946,23 @@ void UPrimitiveComponent::PushHoveredToProxy(const bool bInHovered)
 
 void UPrimitiveComponent::SetCullDistance(float NewCullDistance)
 {
-	if( CachedMaxDrawDistance != NewCullDistance )
+	if (NewCullDistance > 0)
 	{
-	    CachedMaxDrawDistance = NewCullDistance;
-	    MarkRenderStateDirty();
+		LDMaxDrawDistance = NewCullDistance;
+	
+		if (LDMaxDrawDistance < CachedMaxDrawDistance)
+		{
+			SetCachedMaxDrawDistance(LDMaxDrawDistance);
+		}
+	}
+}
+
+void UPrimitiveComponent::SetCachedMaxDrawDistance(const float NewCachedMaxDrawDistance)
+{
+	if( !FMath::IsNearlyEqual(CachedMaxDrawDistance, NewCachedMaxDrawDistance) )
+	{
+		CachedMaxDrawDistance = NewCachedMaxDrawDistance;
+		MarkRenderStateDirty();
 	}
 }
 

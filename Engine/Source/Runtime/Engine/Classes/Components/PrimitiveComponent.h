@@ -1557,6 +1557,11 @@ public:
 	void SetCullDistance(float NewCullDistance);
 	
 	/**
+	 * Utility to cache the max draw distance based on cull distance volumes or the desired max draw distance
+	 */
+	void SetCachedMaxDrawDistance(const float NewCachedMaxDrawDistance);
+
+	/**
 	 * Changes the value of DepthPriorityGroup.
 	 * @param NewDepthPriorityGroup - The value to assign to DepthPriorityGroup.
 	 */
