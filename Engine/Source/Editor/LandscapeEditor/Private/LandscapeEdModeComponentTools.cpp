@@ -987,6 +987,16 @@ public:
 				ALandscape::SplitHeightmap(Component, false);
 			}
 
+			// Remove attached foliage
+			for (TSet<ULandscapeComponent*>::TIterator It(SelectedComponents); It; ++It)
+			{
+				ULandscapeHeightfieldCollisionComponent* CollisionComp = (*It)->CollisionComponent.Get();
+				if (CollisionComp)
+				{
+					AInstancedFoliageActor::DeleteInstancesForComponent(ViewportClient->GetWorld(), CollisionComp);
+				}
+			}
+
 			TArray<FIntPoint> DeletedNeighborKeys;
 			// Check which ones are need for height map change
 			for (TSet<ULandscapeComponent*>::TIterator It(SelectedComponents); It; ++It)

@@ -117,6 +117,9 @@ public:
 	FOLIAGE_API void DeleteInstancesForComponent(UActorComponent* InComponent);
 	FOLIAGE_API void DeleteInstancesForComponent(UActorComponent* InComponent, const UFoliageType* InFoliageType);
 
+	// Deletes the instances attached to a component, traverses all foliage actors in the world
+	static FOLIAGE_API void DeleteInstancesForComponent(UWorld* InWorld, UActorComponent* InComponent);
+
 	// Deletes the instances spawned by a procedural component
 	void DeleteInstancesForProceduralFoliageComponent(const UProceduralFoliageComponent* ProceduralComponent);
 
