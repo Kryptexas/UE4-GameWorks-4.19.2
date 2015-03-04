@@ -5,6 +5,7 @@
 #include "LatentActions.h"
 #include "ComponentInstanceDataCache.h"
 #include "Engine/LevelScriptActor.h"
+#include "Engine/CullDistanceVolume.h"
 
 #if WITH_EDITOR
 #include "Editor.h"
