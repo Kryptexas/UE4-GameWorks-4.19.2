@@ -326,12 +326,6 @@ void FKismetCompilerContext::ValidatePin(const UEdGraphPin* Pin) const
 		return;
 	}
 
-	if (Pin->PinType.PinCategory == Schema->PC_Wildcard)
-	{
-		// Wildcard pins should never be seen by the compiler; they should always be forced into a particular type by wiring.
-		MessageLog.Error(*LOCTEXT("UndeterminedPinType_Error", "The type of @@ is undetermined.  Connect something to @@ to imply a specific type.").ToString(), Pin, OwningNodeUnchecked);
-	}
-
 	if (Pin->LinkedTo.Num() > 1)
 	{
 		if (Pin->Direction == EGPD_Output)
@@ -1119,6 +1113,27 @@ void FKismetCompilerContext::ValidateSelfPinsInGraph(const UEdGraph* SourceGraph
 	}
 }
 
+void FKismetCompilerContext::ValidateNoWildcardPinsInGraph(const UEdGraph* SourceGraph)
+{
+	for (int32 NodeIndex = 0; NodeIndex < SourceGraph->Nodes.Num(); ++NodeIndex)
+	{
+		if (const UEdGraphNode* Node = SourceGraph->Nodes[NodeIndex])
+		{
+			for (int32 PinIndex = 0; PinIndex < Node->Pins.Num(); ++PinIndex)
+			{
+				if (const UEdGraphPin* Pin = Node->Pins[PinIndex])
+				{
+					if (Pin->PinType.PinCategory == Schema->PC_Wildcard)
+					{
+						// Wildcard pins should never be seen by the compiler; they should always be forced into a particular type by wiring.
+						MessageLog.Error(*LOCTEXT("UndeterminedPinType_Error", "The type of @@ is undetermined.  Connect something to @@ to imply a specific type.").ToString(), Pin, Pin->GetOwningNodeUnchecked());
+					}
+				}
+			}
+		}
+	}
+}
+
 /**
  * First phase of compiling a function graph
  *   - Prunes the 'graph' to only included the connected portion that contains the function entry point 
@@ -1155,8 +1170,9 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 
 		if (bIsFullCompile)
 		{
-			// Check if self pins are connected after PruneIsolatedNodes, to avoid errors from isolated nodes.
+			// Check if self pins are connected and types are resolved after PruneIsolatedNodes, to avoid errors from isolated nodes.
 			ValidateSelfPinsInGraph(Context.SourceGraph);
+			ValidateNoWildcardPinsInGraph(Context.SourceGraph);
 
 			// Transforms
 			TransformNodes(Context);

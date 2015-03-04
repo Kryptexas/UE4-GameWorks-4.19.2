@@ -370,6 +370,11 @@ protected:
 	 */
 	void ValidateSelfPinsInGraph(const UEdGraph* SourceGraph);
 
+	/**
+	* Checks if pin types are unresolved (e.g. still wildcards).
+	*/
+	void ValidateNoWildcardPinsInGraph(const UEdGraph* SourceGraph);
+
 	/** Ensures that all variables have valid names for compilation/replication */
 	void ValidateVariableNames();
 
