@@ -1078,8 +1078,6 @@ private:
 	bool bUseFullPrecisionUVs;
 	/** true if this vertex buffer will be used with CPU skinning. Resource arrays are set to cpu accessible if this is true */
 	bool bNeedsCPUAccess;
-	/** Position data has already been packed. Used during cooking to avoid packing twice. */
-	bool bProcessedPackedPositions;
 	/** Has extra bone influences per Vertex, which means using a different TGPUSkinVertexBase */
 	bool bExtraBoneInfluences;
 	/** The vertex data storage type */
