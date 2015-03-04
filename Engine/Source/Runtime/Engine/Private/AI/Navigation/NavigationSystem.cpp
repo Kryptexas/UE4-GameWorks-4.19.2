@@ -242,7 +242,6 @@ bool UNavigationSystem::bUpdateNavOctreeOnComponentChange = true;
 UNavigationSystem::UNavigationSystem(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 	, bWholeWorldNavigable(false)
-	, bAddPlayersToGenerationSeeds(true)
 	, bSkipAgentHeightCheckWhenPickingNavData(false)
 	, DirtyAreasUpdateFreq(60)
 	, OperationMode(FNavigationSystem::InvalidMode)
@@ -1990,39 +1989,6 @@ void UNavigationSystem::ResetCachedFilter(TSubclassOf<UNavigationQueryFilter> Fi
 		if (NavDataSet[NavDataIndex])
 		{
 			NavDataSet[NavDataIndex]->RemoveQueryFilter(FilterClass);
-		}
-	}
-}
-
-void UNavigationSystem::RegisterGenerationSeed(AActor* SeedActor)
-{
-	GenerationSeeds.Add(SeedActor);
-}
-
-void UNavigationSystem::UnregisterGenerationSeed(AActor* SeedActor)
-{
-	GenerationSeeds.RemoveSingleSwap(SeedActor);
-}
-
-void UNavigationSystem::GetGenerationSeeds(TArray<FVector>& SeedLocations) const
-{
-	if (bAddPlayersToGenerationSeeds)
-	{
-		for (FConstPlayerControllerIterator it = GetWorld()->GetPlayerControllerIterator(); it ;it++)
-		{
-			if (*it && (*it)->GetPawn() != NULL)
-			{
-				const FVector SeedLoc((*it)->GetPawn()->GetActorLocation());
-				SeedLocations.Add(SeedLoc);
-			}
-		}
-	}
-
-	for (int32 SeedIndex = 0; SeedIndex < GenerationSeeds.Num(); SeedIndex++)
-	{
-		if (GenerationSeeds[SeedIndex].IsValid())
-		{
-			SeedLocations.Add(GenerationSeeds[SeedIndex]->GetActorLocation());
 		}
 	}
 }

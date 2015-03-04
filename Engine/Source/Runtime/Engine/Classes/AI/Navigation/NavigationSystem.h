@@ -166,10 +166,6 @@ public:
 	//UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
 	uint32 bWholeWorldNavigable:1;
 
-	/** If set to true (default) generation seeds will include locations of all player controlled pawns */
-	UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
-	uint32 bAddPlayersToGenerationSeeds:1;
-
 	/** false by default, if set to true will result in not caring about nav agent height 
 	 *	when trying to match navigation data to passed in nav agent */
 	UPROPERTY(config, EditAnywhere, Category=NavigationSystem)
@@ -712,11 +708,6 @@ public:
 
 	FORCEINLINE bool IsSetUpForLazyGeometryExporting() const { return bGenerateNavigationOnlyAroundNavigationInvokers; }
 
-	/** register actor important for generation (navigation data will be build around them first) */
-	void RegisterGenerationSeed(AActor* SeedActor);
-	void UnregisterGenerationSeed(AActor* SeedActor);
-	void GetGenerationSeeds(TArray<FVector>& SeedLocations) const;
-
 	static UNavigationSystem* CreateNavigationSystem(UWorld* WorldOwner);
 
 	static UNavigationSystem* GetCurrent(UWorld* World);
@@ -766,9 +757,6 @@ protected:
 
 	/** Map of all custom navigation links, that are relevant for path following */
 	TMap<uint32, INavLinkCustomInterface*> CustomLinksMap;
-
-	/** List of actors relevant to generation of navigation data */
-	TArray<TWeakObjectPtr<AActor> > GenerationSeeds;
 
 	/** stores areas marked as dirty throughout the frame, processes them 
 	 *	once a frame in Tick function */
