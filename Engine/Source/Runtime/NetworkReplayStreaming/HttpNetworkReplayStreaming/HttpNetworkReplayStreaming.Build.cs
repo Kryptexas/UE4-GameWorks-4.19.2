@@ -8,6 +8,8 @@ namespace UnrealBuildTool.Rules
         {
 			PrivateIncludePaths.Add( "Runtime/NetworkReplayStreaming/HttpNetworkReplayStreaming/Private" );
 
+			PrivateIncludePathModuleNames.Add( "OnlineSubsystem" );
+
 			PrivateDependencyModuleNames.AddRange(
                 new string[]
 				{
@@ -15,8 +17,9 @@ namespace UnrealBuildTool.Rules
 					"CoreUObject",
                     "Engine",
                     "HTTP",
-					"NetworkReplayStreaming"
-				});
+					"NetworkReplayStreaming",
+					"Json",
+				} );
         }
     }
 }
