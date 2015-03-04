@@ -33,3 +33,7 @@
 #define SETTING_MULTIPLAYER_VISIBILITY FName(TEXT("MULTIPLAYERVISIBILITY"))
 /** Session template name, must match a session template name from the service config. */
 #define SETTING_SESSION_TEMPLATE_NAME FName(TEXT("SESSIONTEMPLATENAME"))
+/** Session change number from shoulder tapped version */
+#define SETTING_CHANGE_NUMBER FName(TEXT("CHANGENUMBER"))
+/** Session can attempt arbiter migration */
+#define SETTING_ALLOW_ARBITER_MIGRATION FName(TEXT("ALLOWARBITERMIGRATION"))
