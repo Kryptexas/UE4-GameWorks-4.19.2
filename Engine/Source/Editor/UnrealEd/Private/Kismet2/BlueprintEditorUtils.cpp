@@ -2479,8 +2479,13 @@ bool FBlueprintEditorUtils::IsBlueprintConst(const UBlueprint* Blueprint)
 
 bool FBlueprintEditorUtils::IsBlutility(const UBlueprint* Blueprint)
 {
-	IBlutilityModule& BlutilityModule = FModuleManager::GetModuleChecked<IBlutilityModule>("Blutility");
-	return BlutilityModule.IsBlutility( Blueprint );
+	IBlutilityModule* BlutilityModule = FModuleManager::GetModulePtr<IBlutilityModule>("Blutility");
+
+	if (BlutilityModule)
+	{
+		return BlutilityModule->IsBlutility( Blueprint );
+	}
+	return false;
 }
 
 bool FBlueprintEditorUtils::IsActorBased(const UBlueprint* Blueprint)
