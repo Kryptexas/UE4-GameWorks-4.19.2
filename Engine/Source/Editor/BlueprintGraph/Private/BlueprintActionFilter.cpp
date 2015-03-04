@@ -769,11 +769,13 @@ static bool BlueprintActionFilterImpl::IsFieldCategoryHidden(FBlueprintActionFil
 
 	if (IsFieldHiddenDelegate.IsBound())
 	{
+		bIsFilteredOut = true;
+
 		for (UClass* TargetClass : Filter.TargetClasses)
 		{
-			if (IsFieldHiddenDelegate.Execute(TargetClass))
+			if (!IsFieldHiddenDelegate.Execute(TargetClass))
 			{
-				bIsFilteredOut = true;
+				bIsFilteredOut = false;
 				break;
 			}
 		}
