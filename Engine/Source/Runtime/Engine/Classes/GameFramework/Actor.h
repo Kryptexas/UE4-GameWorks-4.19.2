@@ -1622,10 +1622,11 @@ public:
 	void UpdateOverlaps(bool bDoNotifies=true);
 	
 	/** 
-	 * Check to see if current Actor is overlapping specified Actor
-	 * @param Other the Actor to test for
-	 * Returns true if any component of this actor is overlapping any component of Other. 
+	 * Check whether any component of this Actor is overlapping any component of another Actor.
+	 * @param Other The other Actor to test against
+	 * @return Whether any component of this Actor is overlapping any component of another Actor.
 	 */
+	UFUNCTION(BlueprintCallable, Category="Collision", meta=(UnsafeDuringActorConstruction="true"))
 	bool IsOverlappingActor(const AActor* Other) const;
 
 	/** Returns whether a MatineeActor is currently controlling this Actor */
