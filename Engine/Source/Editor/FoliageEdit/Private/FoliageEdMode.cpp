@@ -920,6 +920,11 @@ void FEdModeFoliage::RemoveInstancesForBrush(UWorld* InWorld, const UFoliageType
 		}
 		
 		int32 InstancesToRemove = FMath::RoundToInt((float)(PotentialInstancesToRemove.Num() - DesiredInstanceCount) * Pressure);
+		if (InstancesToRemove <= 0)
+		{
+			continue;
+		}
+		
 		int32 InstancesToKeep = PotentialInstancesToRemove.Num() - InstancesToRemove;
 		if (InstancesToKeep > 0)
 		{
