@@ -779,8 +779,7 @@ bool AAIController::RunBehaviorTree(UBehaviorTree* BTAsset)
 	UBlackboardComponent* BlackboardComp = NULL;
 	if (BTAsset->BlackboardAsset)
 	{
-		bSuccess = UseBlackboard(BTAsset->BlackboardAsset);
-		BlackboardComp = FindComponentByClass<UBlackboardComponent>();
+		bSuccess = UseBlackboard(BTAsset->BlackboardAsset, BlackboardComp);
 	}
 
 	if (bSuccess)
@@ -812,7 +811,7 @@ bool AAIController::InitializeBlackboard(UBlackboardComponent& BlackboardComp, U
 	return false;
 }
 
-bool AAIController::UseBlackboard(UBlackboardData* BlackboardAsset)
+bool AAIController::UseBlackboard(UBlackboardData* BlackboardAsset, UBlackboardComponent*& BlackboardComponent)
 {
 	if (BlackboardAsset == NULL)
 	{
@@ -843,6 +842,8 @@ bool AAIController::UseBlackboard(UBlackboardData* BlackboardAsset)
 			, *GetNameSafe(BlackboardAsset), *GetNameSafe(BlackboardComp->GetBlackboardAsset()));
 		InitializeBlackboard(*BlackboardComp, *BlackboardAsset);
 	}
+
+	BlackboardComponent = BlackboardComp;
 
 	return bSuccess;
 }

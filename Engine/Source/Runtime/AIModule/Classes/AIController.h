@@ -222,9 +222,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category="AI")
 	virtual bool RunBehaviorTree(UBehaviorTree* BTAsset);
 
-	/** makes AI use specified BB asset */
+	/** 
+	 * Makes AI use the specified Blackboard asset & creates a Blackboard Component if one does not already exist.
+	 * @param	BlackboardAsset			The Blackboard asset to use.
+	 * @param	BlackboardComponent		The Blackboard component that was used or created to work with the passed-in Blackboard Asset.
+	 * @return true if we successfully linked the blackboard asset to the blackboard component.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "AI")
-	bool UseBlackboard(UBlackboardData* BlackboardAsset);
+	bool UseBlackboard(UBlackboardData* BlackboardAsset, UBlackboardComponent*& BlackboardComponent);
 
 	/** does this AIController allow given UBlackboardComponent sync data with it */
 	virtual bool ShouldSyncBlackboardWith(const UBlackboardComponent& OtherBlackboardComponent) const { return true; }
