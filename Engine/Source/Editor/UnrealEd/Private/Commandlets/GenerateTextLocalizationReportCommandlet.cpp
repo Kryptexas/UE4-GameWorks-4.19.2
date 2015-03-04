@@ -376,8 +376,7 @@ bool UGenerateTextLocalizationReportCommandlet::ProcessConflictReport(const FStr
 		FText SCCErrorText;
 		if (!SourceControlInfo->CheckOutFile(ReportFilePath, SCCErrorText))
 		{
-			UE_LOG(LogGenerateTextLocalizationReportCommandlet, Error, TEXT("Check out of file %s failed: %s"), *ReportFilePath, *SCCErrorText.ToString());
-			return false;
+			UE_LOG(LogGenerateTextLocalizationReportCommandlet, Warning, TEXT("Check out of file %s failed: %s"), *ReportFilePath, *SCCErrorText.ToString());
 		}
 	}
 
