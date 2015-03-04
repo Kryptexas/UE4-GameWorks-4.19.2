@@ -7,7 +7,7 @@
 
 class UAISense_Blueprint;
 
-UCLASS(Blueprintable)
+UCLASS(Blueprintable, Abstract)
 class AIMODULE_API UAISenseConfig_Blueprint : public UAISenseConfig
 {
 	GENERATED_BODY()
