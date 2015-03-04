@@ -114,7 +114,6 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 			else
 			{
 				[WindowHandle setLevel: NSModalPanelWindowLevel];
-				[WindowHandle setHidesOnDeactivate: YES];
 			}
 			
 			if( !Definition->HasOSWindowBorder )
