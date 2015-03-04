@@ -2186,8 +2186,7 @@ public:
 	 * It's recommended to use TArrays with a TInlineAllocator to potentially avoid memory allocation costs.
 	 * TInlineComponentArray is defined to make this easier, for example:
 	 * {
-	 * 	   TInlineComponentArray<UPrimitiveComponent*> PrimComponents;
-	 *     Actor->GetComponents(PrimComponents);
+	 * 	   TInlineComponentArray<UPrimitiveComponent*> PrimComponents(Actor);
 	 * }
 	 */
 	template<class T, class AllocatorType>
@@ -2375,6 +2374,26 @@ public:
 	/** Get the class of this Actor. */
 	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, FriendlyName = "GetActorClass"), Category="Class")
 	class UClass* GetActorClass() const;
+};
+
+/**
+ * TInlineComponentArray is simply a TArray that reserves a fixed amount of space on the stack
+ * to try to avoid heap allocation when there are fewer than a specified number of elements expected in the result.
+ */
+template<class T, uint32 NumElements = NumInlinedActorComponents>
+class TInlineComponentArray : public TArray<T, TInlineAllocator<NumElements>>
+{
+	typedef TArray<T, TInlineAllocator<NumElements>> Super;
+
+public:
+	TInlineComponentArray() : Super() { }
+	TInlineComponentArray(class AActor* Actor) : Super()
+	{
+		if (Actor)
+		{
+			Actor->GetComponents(*this);
+		}
+	};
 };
 
 

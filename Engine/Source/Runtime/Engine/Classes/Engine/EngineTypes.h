@@ -10,34 +10,11 @@
 #include "GameFramework/DamageType.h"
 #include "EngineTypes.generated.h"
 
-
 /**
  * Default number of components to expect in TInlineAllocators used with AActor component arrays.
  * Used by engine code to try to avoid allocations in AActor::GetComponents(), among others.
  */
 enum { NumInlinedActorComponents = 24 };
-
-
-/**
- * TInlineComponentArray is simply a TArray that reserves a fixed amount of space on the stack
- * to try to avoid heap allocation when there are fewer than a specified number of elements expected in the result.
- */
-template<class T, uint32 NumElements = NumInlinedActorComponents>
-class TInlineComponentArray : public TArray<T, TInlineAllocator<NumElements>>
-{
-	typedef TArray<T, TInlineAllocator<NumElements>> Super;
-
-public:
-	TInlineComponentArray() : Super() { }
-	TInlineComponentArray(class AActor* Actor) : Super()
-	{
-		if (Actor)
-		{
-			Actor->GetComponents(*this);
-		}
-	};
-};
-
 
 UENUM()
 enum EAspectRatioAxisConstraint
