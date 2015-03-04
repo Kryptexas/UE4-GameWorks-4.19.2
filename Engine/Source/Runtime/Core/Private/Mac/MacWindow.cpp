@@ -94,8 +94,7 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 			// @todo: We really need a window type in tab manager to know what window level to use and whether or not a window should hide on deactivate
 			if (Definition->IsModalWindow)
 			{
-				NSInteger Level = [NSApp isActive] ? NSModalPanelWindowLevel : NSNormalWindowLevel;
-				[WindowHandle setLevel: Level];
+				[WindowHandle setLevel: NSModalPanelWindowLevel];
 			}
 			else if (Definition->IsRegularWindow)
 			{
