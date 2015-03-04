@@ -25,6 +25,17 @@ enum { NumInlinedActorComponents = 24 };
 template<class T, uint32 NumElements = NumInlinedActorComponents>
 class TInlineComponentArray : public TArray<T, TInlineAllocator<NumElements>>
 {
+	typedef TArray<T, TInlineAllocator<NumElements>> Super;
+
+public:
+	TInlineComponentArray() : Super() { }
+	TInlineComponentArray(class AActor* Actor) : Super()
+	{
+		if (Actor)
+		{
+			Actor->GetComponents(*this);
+		}
+	};
 };
 
 
