@@ -8,6 +8,7 @@
 #include "Editor/UnrealEd/Public/SEditorViewportViewMenu.h"
 #include "PhATActions.h"
 #include "SPhATPreviewToolbar.h"
+#include "Editor/UnrealEd//Public/SEditorViewport.h"
 
 
 void SPhATPreviewViewportToolBar::Construct(const FArguments& InArgs, TSharedPtr<class SEditorViewport> InRealViewport)
