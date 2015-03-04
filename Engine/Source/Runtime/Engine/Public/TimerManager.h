@@ -115,7 +115,8 @@ namespace ETimerStatus
 	{
 		Pending,
 		Active,
-		Paused
+		Paused,
+		Executing
 	};
 }
 
