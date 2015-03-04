@@ -73,7 +73,7 @@ TSharedRef<FEditorViewportClient> SPhATPreviewViewport::MakeEditorViewportClient
 
 TSharedPtr<SWidget> SPhATPreviewViewport::MakeViewportToolbar()
 {
-	return SNew(SPhATPreviewViewportToolBar)
+	return SNew(SPhATPreviewViewportToolBar, SharedThis(this))
 			.PhATPtr(PhATPtr)
 			.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute());
 }

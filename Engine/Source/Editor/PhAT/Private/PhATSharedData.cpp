@@ -23,7 +23,6 @@ FPhATSharedData::FPhATSharedData()
 	, CopiedBodySetup(NULL)
 	, CopiedConstraintTemplate(NULL)
 	, bInsideSelChange(false)
-	, WidgetModeBeforeSimulation(FWidget::WM_None)
 {
 	// Editor variables
 	BodyEdit_MeshViewMode = PRM_Solid;
@@ -38,7 +37,6 @@ FPhATSharedData::FPhATSharedData()
 	Sim_CollisionViewMode = PRM_Wireframe;
 	Sim_ConstraintViewMode = PCV_None;
 
-	MovementSpace = COORD_Local;
 	EditingMode = PEM_BodyEdit;
 
 	bShowCOM = false;
@@ -1450,19 +1448,6 @@ void FPhATSharedData::ToggleSimulation()
 	bRunningSimulation = !bRunningSimulation;
 }
 
-void FPhATSharedData::UpdateTransformWidgetVisibilityForSimulationMode(bool bEnableSimulation)
-{
-	if ( bEnableSimulation )
-	{
-		WidgetModeBeforeSimulation = WidgetMode;
-		WidgetMode = FWidget::WM_None;
-	}
-	else
-	{
-		WidgetMode = WidgetModeBeforeSimulation;
-	}
-}
-
 void FPhATSharedData::EnableSimulation(bool bEnableSimulation)
 {
 	if (bEnableSimulation)
@@ -1507,10 +1492,6 @@ void FPhATSharedData::EnableSimulation(bool bEnableSimulation)
 		{
 			SetSelectedConstraint(INDEX_NONE, true);
 		}
-	}
-	if( bEnableSimulation != bRunningSimulation )
-	{
-		UpdateTransformWidgetVisibilityForSimulationMode(bEnableSimulation);
 	}
 }
 

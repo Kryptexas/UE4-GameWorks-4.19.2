@@ -13,11 +13,6 @@ void FPhATCommands::RegisterCommands()
 	UI_COMMAND(ApplyPhysicalMaterial, "Apply PhysMat", "Applies Currently Selected Physical Material In Content Browser To All Bodies", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(EditingMode_Body, "Body Mode", "Body Editing Mode", EUserInterfaceActionType::RadioButton, FInputGesture());
 	UI_COMMAND(EditingMode_Constraint, "Constraint Mode", "Constraint Editing Mode", EUserInterfaceActionType::RadioButton, FInputGesture());
-	UI_COMMAND(MovementSpace_Local, "Local", "Local Movement Space", EUserInterfaceActionType::RadioButton, FInputGesture());
-	UI_COMMAND(MovementSpace_World, "World", "World Movement Space", EUserInterfaceActionType::RadioButton, FInputGesture());
-	UI_COMMAND(PhATTranslationMode, "Translation", "Translation Mode", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::W));
-	UI_COMMAND(PhATRotationMode, "Rotation", "Rotation Mode", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::E));
-	UI_COMMAND(PhATScaleMode, "Scale", "Scale Mode", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::R));
 	UI_COMMAND(CopyProperties, "Copy Properties", "Copy Properties: Copy Properties Of Currently Selected Object To Next Selected Object", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::C));
 	UI_COMMAND(PasteProperties, "Paste Properties", "Paste Properties: Copy Properties Of Currently Selected Object To Next Selected Object", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::V));
 	UI_COMMAND(InstanceProperties, "Instance Properties", "Instance Properties: Displays Instance Properties When In Body Editing Mode", EUserInterfaceActionType::ToggleButton, FInputGesture(EKeys::I));
@@ -91,5 +86,4 @@ void FPhATCommands::RegisterCommands()
 	UI_COMMAND(ToggleSwing2, "Toggle Swing2 Constraint", "", EUserInterfaceActionType::Button, FInputGesture(EKeys::Three));
 	UI_COMMAND(ToggleTwist, "Toggle Twist Constraint", "", EUserInterfaceActionType::Button, FInputGesture(EKeys::Two));
 	UI_COMMAND(FocusOnSelection, "Focus the viewport on the current selection", "", EUserInterfaceActionType::Button, FInputGesture(EKeys::F));
-	UI_COMMAND(CycleTransformMode, "Cycle the transform mode", "", EUserInterfaceActionType::Button, FInputGesture(EKeys::SpaceBar));
 }

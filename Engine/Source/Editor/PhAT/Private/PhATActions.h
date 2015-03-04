@@ -24,11 +24,6 @@ public:
 	TSharedPtr<FUICommandInfo> ApplyPhysicalMaterial;
 	TSharedPtr<FUICommandInfo> EditingMode_Body;
 	TSharedPtr<FUICommandInfo> EditingMode_Constraint;
-	TSharedPtr<FUICommandInfo> MovementSpace_Local;
-	TSharedPtr<FUICommandInfo> MovementSpace_World;
-	TSharedPtr<FUICommandInfo> PhATTranslationMode;
-	TSharedPtr<FUICommandInfo> PhATRotationMode;
-	TSharedPtr<FUICommandInfo> PhATScaleMode;
 	TSharedPtr<FUICommandInfo> Snap;
 	TSharedPtr<FUICommandInfo> CopyProperties;
 	TSharedPtr<FUICommandInfo> PasteProperties;
@@ -99,7 +94,6 @@ public:
 	TSharedPtr<FUICommandInfo> ToggleSwing2;
 	TSharedPtr<FUICommandInfo> ToggleTwist;
 	TSharedPtr<FUICommandInfo> FocusOnSelection;
-	TSharedPtr<FUICommandInfo> CycleTransformMode;
 	
 
 	/** Initialize commands */

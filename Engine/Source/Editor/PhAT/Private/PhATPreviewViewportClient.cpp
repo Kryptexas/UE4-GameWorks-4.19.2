@@ -34,6 +34,9 @@ FPhATEdPreviewViewportClient::FPhATEdPreviewViewportClient(TWeakPtr<FPhAT> InPhA
 {
 	check(PhATPtr.IsValid());
 
+	ModeTools->SetWidgetMode(FWidget::EWidgetMode::WM_Translate);
+	ModeTools->SetCoordSystem(COORD_Local);
+
 	bAllowedToMoveCamera = true;
 
 	// Setup defaults for the common draw helper.
@@ -137,10 +140,10 @@ void FPhATEdPreviewViewportClient::DrawCanvas( FViewport& InViewport, FSceneView
 		TextItem.Text = NSLOCTEXT("UnrealEd", "Lock", "LOCK");
 	}else if(SharedData->EditingMode == FPhATSharedData::PEM_ConstraintEdit)
 	{
-		if(SharedData->WidgetMode == FWidget::WM_Translate)
+		if(GetWidgetMode() == FWidget::WM_Translate)
 		{
 			TextItem.Text = NSLOCTEXT("UnrealEd", "SingleMove", "hold ALT to move a single reference frame");
-		}else if(SharedData->WidgetMode == FWidget::WM_Rotate)
+		}else if(GetWidgetMode() == FWidget::WM_Rotate)
 		{
 			TextItem.Text = NSLOCTEXT("UnrealEd", "DoubleRotate", "hold ALT to rotate both reference frames");
 		}
@@ -477,13 +480,13 @@ bool FPhATEdPreviewViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisL
 				SelectedObject.WidgetTM = SharedData->GetConstraintMatrix(SelectedObject.Index, EConstraintFrame::Frame2, 1.f);
 			}
 
-			if ( SharedData->WidgetMode == FWidget::WM_Translate )
+			if ( GetWidgetMode() == FWidget::WM_Translate )
 			{
 				FVector Dir = SelectedObject.WidgetTM.InverseTransformVector( Drag.GetSafeNormal() );
 				FVector DragVec = Dir * Drag.Size();
 				SelectedObject.ManipulateTM.AddToTranslation( DragVec );
 			}
-			else if ( SharedData->WidgetMode == FWidget::WM_Rotate )
+			else if ( GetWidgetMode() == FWidget::WM_Rotate )
 			{
 				FVector Axis; 
 				float Angle;
@@ -497,7 +500,7 @@ bool FPhATEdPreviewViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisL
 
 				SelectedObject.ManipulateTM = FTransform( Result );
 			}
-			else if ( SharedData->WidgetMode == FWidget::WM_Scale && SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit) // Scaling only valid for bodies.
+			else if ( GetWidgetMode() == FWidget::WM_Scale && SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit) // Scaling only valid for bodies.
 			{
 				ModifyPrimitiveSize(SelectedObject.Index, SelectedObject.PrimitiveType, SelectedObject.PrimitiveIndex, Scale );
 			}
@@ -509,7 +512,7 @@ bool FPhATEdPreviewViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisL
 				ConstraintSetup->DefaultInstance.SetRefFrame(EConstraintFrame::Frame2, SelectedObject.ManipulateTM * StartManParentConTM);
 
 				//Rotation by default only rotates one frame, but translation by default moves both
-				bool bMultiFrame = (IsAltPressed() && SharedData->WidgetMode == FWidget::WM_Rotate) || (!IsAltPressed() && SharedData->WidgetMode == FWidget::WM_Translate);
+				bool bMultiFrame = (IsAltPressed() && GetWidgetMode() == FWidget::WM_Rotate) || (!IsAltPressed() && GetWidgetMode() == FWidget::WM_Translate);
 				
 				if (bMultiFrame)
 				{
@@ -560,21 +563,22 @@ void FPhATEdPreviewViewportClient::TrackingStopped()
 
 FWidget::EWidgetMode FPhATEdPreviewViewportClient::GetWidgetMode() const
 {
-	FWidget::EWidgetMode WidgetMode = FWidget::WM_None;
+	FWidget::EWidgetMode ReturnWidgetMode = FWidget::WM_None;
+	FWidget::EWidgetMode WidgetMode = FEditorViewportClient::GetWidgetMode();
 
 	if( SharedData->EditingMode == FPhATSharedData::PEM_BodyEdit && SharedData->GetSelectedBody()) 
 	{
-		WidgetMode = SharedData->WidgetMode;
+		ReturnWidgetMode = WidgetMode;
 	}
 	else if( 
 		SharedData->EditingMode == FPhATSharedData::PEM_ConstraintEdit 
 		&& SharedData->GetSelectedConstraint()
-		&& SharedData->WidgetMode != FWidget::WM_Scale )
+		&& WidgetMode != FWidget::WM_Scale )
 	{
-		WidgetMode = SharedData->WidgetMode;
+		ReturnWidgetMode = WidgetMode;
 	}
 
-	return WidgetMode;
+	return ReturnWidgetMode;
 }
 
 FVector FPhATEdPreviewViewportClient::GetWidgetLocation() const
@@ -643,7 +647,7 @@ FMatrix FPhATEdPreviewViewportClient::GetWidgetCoordSystem() const
 
 ECoordSystem FPhATEdPreviewViewportClient::GetWidgetCoordSystemSpace() const
 {
-	return SharedData->WidgetMode == FWidget::WM_Scale ? COORD_Local : SharedData->MovementSpace;
+	return GetWidgetMode() == FWidget::WM_Scale ? COORD_Local : ModeTools->GetCoordSystem();;
 }
 
 void FPhATEdPreviewViewportClient::Tick(float DeltaSeconds)
