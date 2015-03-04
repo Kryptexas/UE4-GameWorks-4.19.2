@@ -1005,7 +1005,6 @@ void UCharacterMovementComponent::SimulatedTick(float DeltaSeconds)
 		// Tick animations before physics.
 		if( CharacterOwner->GetMesh() )
 		{
-			SCOPE_CYCLE_COUNTER(STAT_CharacterMovement);
 			TickCharacterPose(DeltaSeconds);
 
 			// Make sure animation didn't trigger an event that destroyed us
