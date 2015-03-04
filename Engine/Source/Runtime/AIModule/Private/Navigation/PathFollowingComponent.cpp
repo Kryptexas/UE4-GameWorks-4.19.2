@@ -51,17 +51,17 @@ UPathFollowingComponent::UPathFollowingComponent(const FObjectInitializer& Objec
 	Status = EPathFollowingStatus::Idle;
 }
 
-void UPathFollowingComponent::LogPathHelper(const AActor* LogOwner, FNavigationPath* LogPath, const AActor* LogGoalActor)
+void UPathFollowingComponent::LogPathHelper(const AActor* LogOwner, FNavigationPath* InLogPath, const AActor* LogGoalActor)
 {
 #if ENABLE_VISUAL_LOG
 	FVisualLogger& Vlog = FVisualLogger::Get();
 	if (Vlog.IsRecording() &&
-		LogPath && LogPath->IsValid() && LogPath->GetPathPoints().Num())
+		InLogPath && InLogPath->IsValid() && InLogPath->GetPathPoints().Num())
 	{
 		FVisualLogEntry* Entry = Vlog.GetEntryToWrite(LogOwner, LogOwner->GetWorld()->TimeSeconds);
-		LogPath->DescribeSelfToVisLog(Entry);
+		InLogPath->DescribeSelfToVisLog(Entry);
 
-		const FVector PathEnd = LogPath->GetPathPoints().Last().Location;
+		const FVector PathEnd = InLogPath->GetPathPoints().Last().Location;
 		if (LogGoalActor)
 		{
 			const FVector GoalLoc = LogGoalActor->GetActorLocation();
@@ -77,12 +77,12 @@ void UPathFollowingComponent::LogPathHelper(const AActor* LogOwner, FNavigationP
 #endif // ENABLE_VISUAL_LOG
 }
 
-void UPathFollowingComponent::LogPathHelper(const AActor* LogOwner, FNavPathSharedPtr LogPath, const AActor* LogGoalActor)
+void UPathFollowingComponent::LogPathHelper(const AActor* LogOwner, FNavPathSharedPtr InLogPath, const AActor* LogGoalActor)
 {
 #if ENABLE_VISUAL_LOG
-	if (LogPath.IsValid())
+	if (InLogPath.IsValid())
 	{
-		LogPathHelper(LogOwner, LogPath.Get(), LogGoalActor);
+		LogPathHelper(LogOwner, InLogPath.Get(), LogGoalActor);
 	}
 #endif // ENABLE_VISUAL_LOG
 }

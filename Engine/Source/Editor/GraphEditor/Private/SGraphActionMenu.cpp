@@ -926,16 +926,10 @@ void SGraphActionMenu::OnItemScrolledIntoView( TSharedPtr<FGraphActionNode> InAc
 
 TSharedRef<ITableRow> SGraphActionMenu::MakeWidget( TSharedPtr<FGraphActionNode> InItem, const TSharedRef<STableViewBase>& OwnerTable, bool bIsReadOnly )
 {
-	FText SectionTitle;
 	TSharedPtr<IToolTip> SectionToolTip;
 
 	if ( InItem->IsSectionHeadingNode() )
 	{
-		if ( OnGetSectionTitle.IsBound() )
-		{
-			SectionTitle = OnGetSectionTitle.Execute(InItem->SectionID);
-		}
-
 		if ( OnGetSectionToolTip.IsBound() )
 		{
 			SectionToolTip = OnGetSectionToolTip.Execute(InItem->SectionID);

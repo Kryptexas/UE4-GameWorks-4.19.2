@@ -3510,24 +3510,24 @@ void SSCSEditor::GetSelectedItemsForContextMenu(TArray<FComponentEventConstructi
 
 TSharedPtr< SWidget > SSCSEditor::CreateContextMenu()
 {
-	TArray<FSCSEditorTreeNodePtrType> SelectedNodes = SCSTreeWidget->GetSelectedItems();
+	TArray<FSCSEditorTreeNodePtrType> SelectedItems = SCSTreeWidget->GetSelectedItems();
 
-	if (SelectedNodes.Num() > 0 || CanPasteNodes())
+	if (SelectedItems.Num() > 0 || CanPasteNodes())
 	{
 		const bool CloseAfterSelection = true;
 		FMenuBuilder MenuBuilder( CloseAfterSelection, CommandList );
 
 		bool bOnlyShowPasteOption = false;
 
-		if (SelectedNodes.Num() > 0)
+		if (SelectedItems.Num() > 0)
 		{
-			if (SelectedNodes.Num() == 1 && SelectedNodes[0]->GetNodeType() == FSCSEditorTreeNode::RootActorNode)
+			if (SelectedItems.Num() == 1 && SelectedItems[0]->GetNodeType() == FSCSEditorTreeNode::RootActorNode)
 			{
 				bOnlyShowPasteOption = true;
 			}
 			else
 			{
-				for (auto SelectedNode : SelectedNodes)
+				for (auto SelectedNode : SelectedItems)
 				{
 					if (SelectedNode->GetNodeType() != FSCSEditorTreeNode::ComponentNode)
 					{

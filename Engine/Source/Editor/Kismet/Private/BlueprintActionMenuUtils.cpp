@@ -514,7 +514,6 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 	if(bCanHaveActorComponents)
 	{
 		// Don't allow actor components in static function graphs
-		UEdGraphSchema_K2 const* K2Schema = GetDefault<UEdGraphSchema_K2>();
 		for (UEdGraph* Graph : Context.Graphs)
 		{
 			bCanHaveActorComponents &= !K2Schema->IsStaticFunctionGraph(Graph);

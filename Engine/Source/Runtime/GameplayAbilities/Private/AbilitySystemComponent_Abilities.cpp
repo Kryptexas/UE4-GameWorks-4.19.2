@@ -571,10 +571,10 @@ UGameplayAbility* UAbilitySystemComponent::CreateNewInstanceOfAbility(FGameplayA
 	check(Ability);
 	check(Ability->HasAllFlags(RF_ClassDefaultObject));
 
-	AActor* OwnerActor = GetOwner();
-	check(OwnerActor);
+	AActor* Owner = GetOwner();
+	check(Owner);
 
-	UGameplayAbility * AbilityInstance = NewObject<UGameplayAbility>(OwnerActor, Ability->GetClass());
+	UGameplayAbility * AbilityInstance = NewObject<UGameplayAbility>(Owner, Ability->GetClass());
 	check(AbilityInstance);
 
 	// Add it to one of our instance lists so that it doesn't GC.

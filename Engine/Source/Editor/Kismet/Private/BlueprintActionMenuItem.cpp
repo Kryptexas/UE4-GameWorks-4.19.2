@@ -91,11 +91,11 @@ static UEdGraphNode* FBlueprintMenuActionItemImpl::InvokeAction(const UBlueprint
  ******************************************************************************/
 
 //------------------------------------------------------------------------------
-FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FBlueprintActionUiSpec const& UiSpec, IBlueprintNodeBinder::FBindingSet const& Bindings)
+FBlueprintActionMenuItem::FBlueprintActionMenuItem(UBlueprintNodeSpawner const* NodeSpawner, FBlueprintActionUiSpec const& UiSpec, IBlueprintNodeBinder::FBindingSet const& InBindings)
 	: Action(NodeSpawner)
 	, IconTint(UiSpec.IconTint)
 	, IconBrush(FEditorStyle::GetBrush(UiSpec.IconName))
-	, Bindings(Bindings)
+	, Bindings(InBindings)
 {
 	check(Action != nullptr);
 

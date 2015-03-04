@@ -268,25 +268,25 @@ void AGameplayDebuggingHUDComponent::DrawPath(APlayerController* MyPC, class UGa
 	static const FColor PathColor(192,192,192);
 
 	const int32 NumPathVerts = DebugComponent->PathPoints.Num();
-	UWorld* World = GetWorld();
+	UWorld* DrawWorld = GetWorld();
 
-		for (int32 VertIdx=0; VertIdx < NumPathVerts-1; ++VertIdx)
-		{
-			FVector const VertLoc = DebugComponent->PathPoints[VertIdx] + NavigationDebugDrawing::PathOffset;
-			DrawDebugSolidBox(World, VertLoc, NavigationDebugDrawing::PathNodeBoxExtent, VertIdx < int32(DebugComponent->NextPathPointIndex) ? Grey : PathColor, false);
+	for (int32 VertIdx=0; VertIdx < NumPathVerts-1; ++VertIdx)
+	{
+		FVector const VertLoc = DebugComponent->PathPoints[VertIdx] + NavigationDebugDrawing::PathOffset;
+		DrawDebugSolidBox(DrawWorld, VertLoc, NavigationDebugDrawing::PathNodeBoxExtent, VertIdx < int32(DebugComponent->NextPathPointIndex) ? Grey : PathColor, false);
 
-			// draw line to next loc
-			FVector const NextVertLoc = DebugComponent->PathPoints[VertIdx+1] + NavigationDebugDrawing::PathOffset;
-			DrawDebugLine(World, VertLoc, NextVertLoc, VertIdx < int32(DebugComponent->NextPathPointIndex) ? Grey : PathColor, false
-				, -1.f, 0
-				, NavigationDebugDrawing::PathLineThickness);
-		}
+		// draw line to next loc
+		FVector const NextVertLoc = DebugComponent->PathPoints[VertIdx+1] + NavigationDebugDrawing::PathOffset;
+		DrawDebugLine(DrawWorld, VertLoc, NextVertLoc, VertIdx < int32(DebugComponent->NextPathPointIndex) ? Grey : PathColor, false
+			, -1.f, 0
+			, NavigationDebugDrawing::PathLineThickness);
+	}
 
-		// draw last vert
-		if (NumPathVerts > 0)
-		{
-			DrawDebugBox(World, DebugComponent->PathPoints[NumPathVerts-1] + NavigationDebugDrawing::PathOffset, FVector(15.f), Grey, false);
-		}
+	// draw last vert
+	if (NumPathVerts > 0)
+	{
+		DrawDebugBox(DrawWorld, DebugComponent->PathPoints[NumPathVerts-1] + NavigationDebugDrawing::PathOffset, FVector(15.f), Grey, false);
+	}
 
 #endif //!(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 }
@@ -421,21 +421,23 @@ void AGameplayDebuggingHUDComponent::DrawEQSData(APlayerController* PC, class UG
 		return;
 	}
 
-	int32 Index = 0;
-	PrintString(DefaultContext, TEXT("{white}Queries: "));
-	for (auto CurrentQuery : DebugComponent->EQSLocalData)
 	{
-		if (EQSIndex == Index)
+		int32 Index = 0;
+		PrintString(DefaultContext, TEXT("{white}Queries: "));
+		for (auto CurrentQuery : DebugComponent->EQSLocalData)
 		{
-			PrintString(DefaultContext, FString::Printf(TEXT("{green}%s, "), *CurrentQuery.Name));
+			if (EQSIndex == Index)
+			{
+				PrintString(DefaultContext, FString::Printf(TEXT("{green}%s, "), *CurrentQuery.Name));
+			}
+			else
+			{
+				PrintString(DefaultContext, FString::Printf(TEXT("{yellow}%s, "), *CurrentQuery.Name));
+			}
+			Index++;
 		}
-		else
-		{
-			PrintString(DefaultContext, FString::Printf(TEXT("{yellow}%s, "), *CurrentQuery.Name));
-		}
-		Index++;
+		PrintString(DefaultContext, TEXT("\n"));
 	}
-	PrintString(DefaultContext, TEXT("\n"));
 
 	auto& CurrentLocalData = DebugComponent->EQSLocalData[EQSIndex];
 

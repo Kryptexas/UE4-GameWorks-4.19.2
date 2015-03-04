@@ -6957,7 +6957,7 @@ void FBlueprintEditor::RestoreEditedObjectState()
 
 						for (UObject* OuterObject = InGraph->GetOuter(); OuterObject; OuterObject = OuterObject->GetOuter())
 						{
-							if (UBlueprint* Blueprint = Cast<UBlueprint>(OuterObject))
+							if (OuterObject->IsA<UBlueprint>())
 							{
 								// reached up to the blueprint for the graph, we are done climbing the tree
 								OpenCause = FDocumentTracker::OpenNewDocument;

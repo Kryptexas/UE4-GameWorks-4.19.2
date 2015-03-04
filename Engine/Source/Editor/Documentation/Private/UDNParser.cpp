@@ -731,11 +731,11 @@ void FUDNParser::AddContentToExcerpt(TSharedPtr<SVerticalBox> Box, const FString
 	}
 }
 
-TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, FExcerpt& Excerpt, const TArray<FString>& ContentLines, int32 StartingLineIndex )
+TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& InLink, FExcerpt& Excerpt, const TArray<FString>& ContentLines, int32 StartingLineIndex )
 {
 	FMessageLog UDNParserLog(UDNParseErrorLog);
 
-	const FString SourcePath = FDocumentationLink::ToSourcePath( Link );
+	const FString SourcePath = FDocumentationLink::ToSourcePath( InLink );
 	const FString FullPath = FPaths::GetPath( SourcePath );
 
 	FSlateFontInfo Header1Font = FSlateFontInfo( FPaths::EngineContentDir() / TEXT("Slate/Fonts/Roboto-Regular.ttf"), 18 );
@@ -763,7 +763,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 		{
 			if (ExcerptStack.Num() == 0 || Line.AdditionalContent[0] != ExcerptStack.Top())
 			{
-				UDNParserLog.NewPage( FText::FromString( Link + TEXT(" [") + Excerpt.Name + TEXT("]") ) );
+				UDNParserLog.NewPage( FText::FromString( InLink + TEXT(" [") + Excerpt.Name + TEXT("]") ) );
 				UDNParserLog.Error(FText::Format(LOCTEXT("ExcerptCloseError", "Line {0}: Excerpt {1} improperly closed."), FText::AsNumber(CurrentLineNumber), FText::FromString(Line.AdditionalContent[0])));
 				bCriticalError = true;
 				break;
@@ -781,7 +781,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 		{
 			if ( !VariableName.IsEmpty() )
 			{
-				UDNParserLog.NewPage( FText::FromString( Link + TEXT(" [") + Excerpt.Name + TEXT("]") ) );
+				UDNParserLog.NewPage( FText::FromString( InLink + TEXT(" [") + Excerpt.Name + TEXT("]") ) );
 				UDNParserLog.Error(FText::Format(LOCTEXT("VariableOpenError", "Line {0}: Excerpt {1} improperly attempting to define a variable within a variable."), FText::AsNumber(CurrentLineNumber), FText::FromString(Line.AdditionalContent[0])));
 				bCriticalError = true;
 				break;
@@ -791,7 +791,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 
 			if ( VariableName.IsEmpty() )
 			{
-				UDNParserLog.NewPage( FText::FromString( Link + TEXT(" [") + Excerpt.Name + TEXT("]") ) );
+				UDNParserLog.NewPage( FText::FromString( InLink + TEXT(" [") + Excerpt.Name + TEXT("]") ) );
 				UDNParserLog.Error(FText::Format(LOCTEXT("VariableWithOutName", "Line {0}: Excerpt {1} improperly attempted to define a variable with no name."), FText::AsNumber(CurrentLineNumber), FText::FromString(Line.AdditionalContent[0])));
 				bCriticalError = true;
 				break;
@@ -801,7 +801,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 		{
 			if ( VariableName.IsEmpty() )
 			{
-				UDNParserLog.NewPage( FText::FromString( Link + TEXT(" [") + Excerpt.Name + TEXT("]") ) );
+				UDNParserLog.NewPage( FText::FromString( InLink + TEXT(" [") + Excerpt.Name + TEXT("]") ) );
 				UDNParserLog.Error(FText::Format(LOCTEXT("VariableCloseError", "Line {0}: Excerpt {1} improperly attempting to close a variable tag it never opened."), FText::AsNumber(CurrentLineNumber), FText::FromString(Line.AdditionalContent[0])));
 				bCriticalError = true;
 				break;
@@ -813,7 +813,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 		{
 			if ( Line.AdditionalContent.Num() != 2 )
 			{
-				UDNParserLog.NewPage( FText::FromString( Link + TEXT(" [") + Excerpt.Name + TEXT("]") ) );
+				UDNParserLog.NewPage( FText::FromString( InLink + TEXT(" [") + Excerpt.Name + TEXT("]") ) );
 				UDNParserLog.Error(FText::Format(LOCTEXT("Variable", "Line {0}: Excerpt {1} improperly attempted to define a variable with no name."), FText::AsNumber(CurrentLineNumber), FText::FromString(Line.AdditionalContent[0])));
 				bCriticalError = true;
 				break;
@@ -823,7 +823,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 
 			if ( VariableName.IsEmpty() )
 			{
-				UDNParserLog.NewPage( FText::FromString( Link + TEXT(" [") + Excerpt.Name + TEXT("]") ) );
+				UDNParserLog.NewPage( FText::FromString( InLink + TEXT(" [") + Excerpt.Name + TEXT("]") ) );
 				UDNParserLog.Error(FText::Format(LOCTEXT("VariableWithOutName", "Line {0}: Excerpt {1} improperly attempted to define a variable with no name."), FText::AsNumber(CurrentLineNumber), FText::FromString(Line.AdditionalContent[0])));
 				bCriticalError = true;
 				break;
@@ -953,7 +953,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 				}
 				else
 				{
-					Excerpt.RichText += FString::Printf(TEXT("<a id=\"browser\" href=\"%s\" style=\"%s\">%s</>"), *Link, *Style.HyperlinkStyleName.ToString(), *Line.AdditionalContent[0]);
+					Excerpt.RichText += FString::Printf(TEXT("<a id=\"browser\" href=\"%s\" style=\"%s\">%s</>"), *InLink, *Style.HyperlinkStyleName.ToString(), *Line.AdditionalContent[0]);
 				}
 				break;
 			case FUDNLine::Image:
@@ -1011,7 +1011,7 @@ TSharedRef< SWidget > FUDNParser::GenerateExcerptContent( const FString& Link, F
 	{
 		if ( !bCriticalError )
 		{
-			UDNParserLog.NewPage( FText::FromString( Link + TEXT(" [") + Excerpt.Name + TEXT("]") ) );
+			UDNParserLog.NewPage( FText::FromString( InLink + TEXT(" [") + Excerpt.Name + TEXT("]") ) );
 		}
 
 		for (int32 i = 0; i < ExcerptStack.Num(); ++i)

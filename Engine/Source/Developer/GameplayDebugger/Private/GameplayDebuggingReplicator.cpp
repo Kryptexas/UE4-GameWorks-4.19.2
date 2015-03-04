@@ -508,9 +508,9 @@ void AGameplayDebuggingReplicator::ServerSetActorToDebug_Implementation(AActor* 
 		}
 	}
 
-	if (UGameplayDebuggingComponent* DebugComponent = GetDebugComponent())
+	if (UGameplayDebuggingComponent* DebuggingComponent = GetDebugComponent())
 	{
-		DebugComponent->SetActorToDebug(InActor);
+		DebuggingComponent->SetActorToDebug(InActor);
 	}
 #endif
 }
@@ -548,16 +548,16 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 
 	EnableDraw(true);
 	UWorld* World = GetWorld();
-	UGameplayDebuggingComponent* DebugComponent = GetDebugComponent();
-	if (World && DebugComponent && DebugComponent->GetOwnerRole() == ROLE_Authority)
+	UGameplayDebuggingComponent* DebuggingComponent = GetDebugComponent();
+	if (World && DebuggingComponent && DebuggingComponent->GetOwnerRole() == ROLE_Authority)
 	{
 		UGameplayDebuggingControllerComponent*  GDC = FindComponentByClass<UGameplayDebuggingControllerComponent>();
 		TArray<int32> OryginalReplicateViewDataCounters;
 
-		OryginalReplicateViewDataCounters = DebugComponent->ReplicateViewDataCounters;
+		OryginalReplicateViewDataCounters = DebuggingComponent->ReplicateViewDataCounters;
 		for (uint32 Index = 0; Index < EAIDebugDrawDataView::MAX; ++Index)
 		{
-			DebugComponent->ReplicateViewDataCounters[Index] = GameplayDebuggerSettings(this).CheckFlag((EAIDebugDrawDataView::Type)Index) ? 1 : 0;
+			DebuggingComponent->ReplicateViewDataCounters[Index] = GameplayDebuggerSettings(this).CheckFlag((EAIDebugDrawDataView::Type)Index) ? 1 : 0;
 		}
 
 		// looks like Simulate in UE4 Editor - let's find selected Pawn to debug
@@ -573,8 +573,8 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 			}
 
 			//We needs to collect data manually in Simulate
-			DebugComponent->SetActorToDebug(NewTarget);
-			DebugComponent->CollectDataToReplicate(NewTarget->IsSelected());
+			DebuggingComponent->SetActorToDebug(NewTarget);
+			DebuggingComponent->CollectDataToReplicate(NewTarget->IsSelected());
 			DrawDebugData(Canvas, PC);
 		}
 
@@ -582,17 +582,17 @@ void AGameplayDebuggingReplicator::OnDebugAIDelegate(class UCanvas* Canvas, clas
 		ServerSetActorToDebug(FullSelectedTarget);
 		if (FullSelectedTarget)
 		{
-			DebugComponent->CollectDataToReplicate(true);
-			DebugComponent->SetEQSIndex(ActiveEQSIndex);
+			DebuggingComponent->CollectDataToReplicate(true);
+			DebuggingComponent->SetEQSIndex(ActiveEQSIndex);
 			DrawDebugData(Canvas, PC);
 		}
 
 		if (GetSelectedActorToDebug() != OldActor)
 		{
-			DebugComponent->MarkRenderStateDirty();
+			DebuggingComponent->MarkRenderStateDirty();
 		}
 
-		DebugComponent->ReplicateViewDataCounters = OryginalReplicateViewDataCounters;
+		DebuggingComponent->ReplicateViewDataCounters = OryginalReplicateViewDataCounters;
 
 	}
 #endif

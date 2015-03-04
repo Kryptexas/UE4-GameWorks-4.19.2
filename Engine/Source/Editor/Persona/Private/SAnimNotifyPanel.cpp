@@ -1760,8 +1760,6 @@ FCursorReply SAnimNotifyTrack::OnCursorQuery(const FGeometry& MyGeometry, const 
 
 void SAnimNotifyTrack::FillNewNotifyStateMenu(FMenuBuilder& MenuBuilder)
 {
-	const static FText Description = LOCTEXT("AddsAnExistingAnimNotify", "Add an existing notify");
-
 	// Run the native query first to update the allowed classes for blueprints.
 	TArray<UClass*> NotifyStateClasses;
 	OnGetNotifyStateNativeClasses.ExecuteIfBound(NotifyStateClasses);
@@ -1782,6 +1780,7 @@ void SAnimNotifyTrack::FillNewNotifyStateMenu(FMenuBuilder& MenuBuilder)
 			NotifyData.NotifyName,
 			NotifyData.BlueprintPath);
 
+		const static FText Description = LOCTEXT("AddsAnExistingAnimNotify", "Add an existing notify");
 		MenuBuilder.AddMenuEntry(LabelText, Description, FSlateIcon(), UIAction);
 	}
 
@@ -1807,8 +1806,6 @@ void SAnimNotifyTrack::FillNewNotifyStateMenu(FMenuBuilder& MenuBuilder)
 
 void SAnimNotifyTrack::FillNewNotifyMenu(FMenuBuilder& MenuBuilder)
 {
-	const static FText Description = LOCTEXT("NewNotifySubMenu_ToolTip", "Add an existing notify");
-
 	TArray<UClass*> NativeNotifyClasses;
 	OnGetNotifyNativeClasses.ExecuteIfBound(NativeNotifyClasses);
 
@@ -1827,6 +1824,7 @@ void SAnimNotifyTrack::FillNewNotifyMenu(FMenuBuilder& MenuBuilder)
 			NotifyData.NotifyName,
 			NotifyData.BlueprintPath);
 		
+		const static FText Description = LOCTEXT("NewNotifySubMenu_ToolTip", "Add an existing notify");
 		MenuBuilder.AddMenuEntry(LabelText, Description, FSlateIcon(), UIAction);
 	}
 

@@ -55,9 +55,9 @@ void FGameplayAbilityActorInfo::InitFromActor(AActor *InOwnerActor, AActor *InAv
 	}
 }
 
-void FGameplayAbilityActorInfo::SetAvatarActor(AActor *AvatarActor)
+void FGameplayAbilityActorInfo::SetAvatarActor(AActor *InAvatarActor)
 {
-	InitFromActor(OwnerActor.Get(), AvatarActor, AbilitySystemComponent.Get());
+	InitFromActor(OwnerActor.Get(), InAvatarActor, AbilitySystemComponent.Get());
 }
 
 void FGameplayAbilityActorInfo::ClearActorInfo()
@@ -155,9 +155,9 @@ void FGameplayAbilitySpec::PostReplicatedAdd(const struct FGameplayAbilitySpecCo
 	}
 }
 
-void FGameplayAbilitySpecContainer::RegisterWithOwner(UAbilitySystemComponent* Owner)
+void FGameplayAbilitySpecContainer::RegisterWithOwner(UAbilitySystemComponent* InOwner)
 {
-	this->Owner = Owner;
+	Owner = InOwner;
 }
 
 // ----------------------------------------------------

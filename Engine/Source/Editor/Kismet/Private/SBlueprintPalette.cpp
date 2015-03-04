@@ -1108,12 +1108,12 @@ bool SBlueprintPaletteItem::OnNameTextVerifyChanged(const FText& InNewText, FTex
 		}
 	}
 
-	UBlueprint* Blueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj();
-	check(Blueprint != NULL);
+	UBlueprint* BlueprintObj = BlueprintEditorPtr.Pin()->GetBlueprintObj();
+	check(BlueprintObj != NULL);
 
-	if(Blueprint->SimpleConstructionScript != NULL)
+	if(BlueprintObj->SimpleConstructionScript != NULL)
 	{
-		TArray<USCS_Node*> Nodes = Blueprint->SimpleConstructionScript->GetAllNodes();
+		TArray<USCS_Node*> Nodes = BlueprintObj->SimpleConstructionScript->GetAllNodes();
 		for (TArray<USCS_Node*>::TConstIterator NodeIt(Nodes); NodeIt; ++NodeIt)
 		{
 			USCS_Node* Node = *NodeIt;
@@ -1125,7 +1125,7 @@ bool SBlueprintPaletteItem::OnNameTextVerifyChanged(const FText& InNewText, FTex
 		}
 	}
 
-	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(Blueprint, OriginalName, ValidationScope));
+	TSharedPtr<INameValidatorInterface> NameValidator = MakeShareable(new FKismetNameValidator(BlueprintObj, OriginalName, ValidationScope));
 
 	EValidatorResult ValidatorResult = NameValidator->IsValid(TextAsString);
 	if(ValidatorResult == EValidatorResult::AlreadyInUse)
@@ -1227,11 +1227,11 @@ void SBlueprintPaletteItem::OnNameTextCommitted(const FText& NewText, ETextCommi
 				const FScopedTransaction Transaction( LOCTEXT( "Rename Delegate", "Rename Event Dispatcher" ) );
 				const FName OldName =  Graph->GetFName();
 
-				UBlueprint* Blueprint = BlueprintEditorPtr.Pin()->GetBlueprintObj();
-				FBlueprintEditorUtils::RenameMemberVariable(Blueprint, OldName, NewName);
+				UBlueprint* BlueprintObj = BlueprintEditorPtr.Pin()->GetBlueprintObj();
+				FBlueprintEditorUtils::RenameMemberVariable(BlueprintObj, OldName, NewName);
 
 				TArray<UK2Node_BaseMCDelegate*> NodeUsingDelegate;
-				FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_BaseMCDelegate>(Blueprint, NodeUsingDelegate);
+				FBlueprintEditorUtils::GetAllNodesOfClass<UK2Node_BaseMCDelegate>(BlueprintObj, NodeUsingDelegate);
 				for (auto FuncIt = NodeUsingDelegate.CreateIterator(); FuncIt; ++FuncIt)
 				{
 					UK2Node_BaseMCDelegate* FunctionNode = *FuncIt;
@@ -1344,8 +1344,8 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 			{			
 				if(UClass* ParentClass = CallFuncNode->FunctionReference.GetMemberParentClass(CallFuncNode))
 				{
-					UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(ParentClass);
-					ClassDisplayName = (Blueprint != NULL) ? Blueprint->GetName() : ParentClass->GetName();
+					UBlueprint* BlueprintObj = UBlueprint::GetBlueprintFromClass(ParentClass);
+					ClassDisplayName = (BlueprintObj != NULL) ? BlueprintObj->GetName() : ParentClass->GetName();
 				}
 			}
 		}
@@ -1366,8 +1366,8 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 			UClass* VarClass = VarAction->GetVariableClass();
 			if (bShowClassInTooltip && (VarClass != NULL))
 			{
-				UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(VarClass);
-				ClassDisplayName = (Blueprint != NULL) ? Blueprint->GetName() : VarClass->GetName();
+				UBlueprint* BlueprintObj = UBlueprint::GetBlueprintFromClass(VarClass);
+				ClassDisplayName = (BlueprintObj != NULL) ? BlueprintObj->GetName() : VarClass->GetName();
 			}
 			else
 			{
@@ -1385,8 +1385,8 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 				UClass* VarClass = CastChecked<UClass>(LocalVarAction->GetVariableScope()->GetOuter());
 				if (bShowClassInTooltip && (VarClass != NULL))
 				{
-					UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(VarClass);
-					ClassDisplayName = (Blueprint != NULL) ? Blueprint->GetName() : VarClass->GetName();
+					UBlueprint* BlueprintObj = UBlueprint::GetBlueprintFromClass(VarClass);
+					ClassDisplayName = (BlueprintObj != NULL) ? BlueprintObj->GetName() : VarClass->GetName();
 				}
 				else
 				{

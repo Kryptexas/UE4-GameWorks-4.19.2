@@ -151,11 +151,11 @@ void FAggregator::ExecModOnBaseValue(TEnumAsByte<EGameplayModOp::Type> ModifierO
 	BroadcastOnDirty();
 }
 
-float FAggregator::SumMods(const TArray<FAggregatorMod> &Mods, float Bias, const FAggregatorEvaluateParameters& Parameters) const
+float FAggregator::SumMods(const TArray<FAggregatorMod> &InMods, float Bias, const FAggregatorEvaluateParameters& Parameters) const
 {
 	float Sum = Bias;
 
-	for (const FAggregatorMod& Mod : Mods)
+	for (const FAggregatorMod& Mod : InMods)
 	{
 		if (Mod.Qualifies(Parameters))
 		{
@@ -223,20 +223,20 @@ bool FAggregator::HasPredictedMods() const
 	return NumPredictiveMods > 0;
 }
 
-void FAggregator::RemoveModsWithActiveHandle(TArray<FAggregatorMod>& Mods, FActiveGameplayEffectHandle ActiveHandle)
+void FAggregator::RemoveModsWithActiveHandle(TArray<FAggregatorMod>& InMods, FActiveGameplayEffectHandle ActiveHandle)
 {
 	check(ActiveHandle.IsValid());
 
-	for(int32 idx=Mods.Num()-1; idx >= 0; --idx)
+	for(int32 idx=InMods.Num()-1; idx >= 0; --idx)
 	{
-		if (Mods[idx].ActiveHandle == ActiveHandle)
+		if (InMods[idx].ActiveHandle == ActiveHandle)
 		{
-			if (Mods[idx].IsPredicted)
+			if (InMods[idx].IsPredicted)
 			{
 				NumPredictiveMods--;
 			}
 
-			Mods.RemoveAtSwap(idx, 1, false);
+			InMods.RemoveAtSwap(idx, 1, false);
 		}
 	}
 }

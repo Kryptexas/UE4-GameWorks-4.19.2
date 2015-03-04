@@ -293,9 +293,9 @@ TSharedPtr<FBlueprintDifferenceTreeEntry> FBlueprintDifferenceTreeEntry::CreateD
 
 TSharedPtr<FBlueprintDifferenceTreeEntry> FBlueprintDifferenceTreeEntry::CreateDefaultsCategoryEntryForMerge(FOnDiffEntryFocused FocusCallback, const TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& Children, bool bHasRemoteDifferences, bool bHasLocalDifferences, bool bHasConflicts)
 {
-	const auto CreateDefaultsRootEntry = [](bool bHasRemoteDifferences, bool bHasLocalDifferences, bool bHasConflicts) -> TSharedRef<SWidget>
+	const auto CreateDefaultsRootEntry = [](bool bInHasRemoteDifferences, bool bInHasLocalDifferences, bool bInHasConflicts) -> TSharedRef<SWidget>
 	{
-		const FLinearColor BaseColor = DiffViewUtils::LookupColor(bHasRemoteDifferences || bHasLocalDifferences, bHasConflicts);
+		const FLinearColor BaseColor = DiffViewUtils::LookupColor(bInHasRemoteDifferences || bInHasLocalDifferences, bInHasConflicts);
 		return SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
 			[
@@ -304,9 +304,9 @@ TSharedPtr<FBlueprintDifferenceTreeEntry> FBlueprintDifferenceTreeEntry::CreateD
 				.ColorAndOpacity(BaseColor)
 				.Text(NSLOCTEXT("FBlueprintDifferenceTreeEntry", "DefaultsLabel", "Defaults"))
 			]
-			+ DiffViewUtils::Box(true, DiffViewUtils::LookupColor(bHasRemoteDifferences, bHasConflicts))
+			+ DiffViewUtils::Box(true, DiffViewUtils::LookupColor(bInHasRemoteDifferences, bInHasConflicts))
 			+ DiffViewUtils::Box(true, BaseColor)
-			+ DiffViewUtils::Box(true, DiffViewUtils::LookupColor(bHasLocalDifferences, bHasConflicts));
+			+ DiffViewUtils::Box(true, DiffViewUtils::LookupColor(bInHasLocalDifferences, bInHasConflicts));
 	};
 
 	return TSharedPtr<FBlueprintDifferenceTreeEntry>(new FBlueprintDifferenceTreeEntry(
@@ -335,9 +335,9 @@ TSharedPtr<FBlueprintDifferenceTreeEntry> FBlueprintDifferenceTreeEntry::CreateC
 
 TSharedPtr<FBlueprintDifferenceTreeEntry> FBlueprintDifferenceTreeEntry::CreateComponentsCategoryEntryForMerge(FOnDiffEntryFocused FocusCallback, const TArray< TSharedPtr<FBlueprintDifferenceTreeEntry> >& Children, bool bHasRemoteDifferences, bool bHasLocalDifferences, bool bHasConflicts)
 {
-	const auto CreateComponentsRootEntry = [](bool bHasRemoteDifferences, bool bHasLocalDifferences, bool bHasConflicts) -> TSharedRef<SWidget>
+	const auto CreateComponentsRootEntry = [](bool bInHasRemoteDifferences, bool bInHasLocalDifferences, bool bInHasConflicts) -> TSharedRef<SWidget>
 	{
-		const FLinearColor BaseColor = DiffViewUtils::LookupColor(bHasRemoteDifferences || bHasLocalDifferences, bHasConflicts);
+		const FLinearColor BaseColor = DiffViewUtils::LookupColor(bInHasRemoteDifferences || bInHasLocalDifferences, bInHasConflicts);
 		return  SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
 			[
@@ -346,9 +346,9 @@ TSharedPtr<FBlueprintDifferenceTreeEntry> FBlueprintDifferenceTreeEntry::CreateC
 				.ColorAndOpacity(BaseColor)
 				.Text(NSLOCTEXT("FBlueprintDifferenceTreeEntry", "SCSLabel", "Components"))
 			]
-			+ DiffViewUtils::Box(true, DiffViewUtils::LookupColor(bHasRemoteDifferences, bHasConflicts))
+			+ DiffViewUtils::Box(true, DiffViewUtils::LookupColor(bInHasRemoteDifferences, bInHasConflicts))
 			+ DiffViewUtils::Box(true, BaseColor)
-			+ DiffViewUtils::Box(true, DiffViewUtils::LookupColor(bHasLocalDifferences, bHasConflicts));
+			+ DiffViewUtils::Box(true, DiffViewUtils::LookupColor(bInHasLocalDifferences, bInHasConflicts));
 	};
 
 	return TSharedPtr<FBlueprintDifferenceTreeEntry>(new FBlueprintDifferenceTreeEntry(

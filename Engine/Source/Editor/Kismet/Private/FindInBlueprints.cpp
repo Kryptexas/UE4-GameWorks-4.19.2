@@ -249,14 +249,14 @@ bool FFindInBlueprintsResult::ParseSearchInfo(const TArray<FString> &InTokens, F
 
 void FFindInBlueprintsResult::AddExtraSearchInfo(FString InKey, FText InValue, TSharedPtr< FFindInBlueprintsResult > InParent)
 {
-	FText DisplayText;
+	FText ExtraSearchInfoText;
 
 	FFormatNamedArguments Args;
 	Args.Add(TEXT("Key"), FText::FromString(InKey));
 	Args.Add(TEXT("Value"), InValue);
-	DisplayText = FText::Format(LOCTEXT("ExtraSearchInfo", "{Key}: {Value}"), Args);
+	ExtraSearchInfoText = FText::Format(LOCTEXT("ExtraSearchInfo", "{Key}: {Value}"), Args);
 
-	TSharedPtr< FFindInBlueprintsResult > SearchResult(new FFindInBlueprintsResult(DisplayText, InParent) );
+	TSharedPtr< FFindInBlueprintsResult > SearchResult(new FFindInBlueprintsResult(ExtraSearchInfoText, InParent) );
 	InParent->Children.Add(SearchResult);
 }
 

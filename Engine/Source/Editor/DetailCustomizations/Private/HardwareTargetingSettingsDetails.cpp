@@ -258,12 +258,12 @@ void FHardwareTargetingSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& D
 		DetailBuilder.HideProperty(PropertyName);
 
 		TSharedRef<IPropertyHandle> Property = DetailBuilder.GetProperty(PropertyName);
-		auto SetPropertyValue = [](EHardwareClass::Type NewValue, TSharedRef<IPropertyHandle> Property){
-			Property->SetValue(uint8(NewValue));
+		auto SetPropertyValue = [](EHardwareClass::Type NewValue, TSharedRef<IPropertyHandle> InProperty){
+			InProperty->SetValue(uint8(NewValue));
 		};
-		auto GetPropertyValue = [](TSharedRef<IPropertyHandle> Property){
+		auto GetPropertyValue = [](TSharedRef<IPropertyHandle> InProperty){
 			uint8 Value = 0;
-			Property->GetValue(Value);
+			InProperty->GetValue(Value);
 			return EHardwareClass::Type(Value);
 		};
 		
@@ -279,12 +279,12 @@ void FHardwareTargetingSettingsDetails::CustomizeDetails(IDetailLayoutBuilder& D
 		DetailBuilder.HideProperty(PropertyName);
 
 		TSharedRef<IPropertyHandle> Property = DetailBuilder.GetProperty(PropertyName);
-		auto SetPropertyValue = [](EGraphicsPreset::Type NewValue, TSharedRef<IPropertyHandle> Property){
-			Property->SetValue(uint8(NewValue));
+		auto SetPropertyValue = [](EGraphicsPreset::Type NewValue, TSharedRef<IPropertyHandle> InProperty){
+			InProperty->SetValue(uint8(NewValue));
 		};
-		auto GetPropertyValue = [](TSharedRef<IPropertyHandle> Property){
+		auto GetPropertyValue = [](TSharedRef<IPropertyHandle> InProperty){
 			uint8 Value = 0;
-			Property->GetValue(Value);
+			InProperty->GetValue(Value);
 			return EGraphicsPreset::Type(Value);
 		};
 		GraphicsPresetCombo = HardwareTargeting.MakeGraphicsPresetTargetCombo(

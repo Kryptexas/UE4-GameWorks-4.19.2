@@ -286,22 +286,22 @@ void UMaterialInstance::PropagateDataToMaterialProxy()
 	}
 }
 
-void FMaterialInstanceResource::GameThread_SetParent(UMaterialInterface* InParent)
+void FMaterialInstanceResource::GameThread_SetParent(UMaterialInterface* ParentMaterialInterface)
 {
 	check(IsInGameThread());
 
-	if( GameThreadParent != InParent )
+	if( GameThreadParent != ParentMaterialInterface )
 	{
 		// Set the game thread accessible parent.
 		UMaterialInterface* OldParent = GameThreadParent;
-		GameThreadParent = InParent;
+		GameThreadParent = ParentMaterialInterface;
 
 		// Set the rendering thread's parent and instance pointers.
-		check(InParent != NULL);
+		check(ParentMaterialInterface != NULL);
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 			InitMaterialInstanceResource,
 			FMaterialInstanceResource*,Resource,this,
-			UMaterialInterface*,Parent,InParent,
+			UMaterialInterface*,Parent,ParentMaterialInterface,
 		{
 			Resource->Parent = Parent;
 			Resource->InvalidateUniformExpressionCache();
@@ -1538,9 +1538,9 @@ void UMaterialInstance::BeginCacheForCookedPlatformData( const ITargetPlatform *
 		// Cache shaders for each shader format, storing the results in CachedMaterialResourcesForCooking so they will be available during saving
 		for (int32 FormatIndex = 0; FormatIndex < DesiredShaderFormats.Num(); FormatIndex++)
 		{
-			const EShaderPlatform TargetPlatform = ShaderFormatToLegacyShaderPlatform(DesiredShaderFormats[FormatIndex]);
+			const EShaderPlatform TargetShaderPlatform = ShaderFormatToLegacyShaderPlatform(DesiredShaderFormats[FormatIndex]);
 
-			CacheResourceShadersForCooking(TargetPlatform, *CachedMaterialResourcesForPlatform );
+			CacheResourceShadersForCooking(TargetShaderPlatform, *CachedMaterialResourcesForPlatform );
 		}
 	}
 }
@@ -1719,7 +1719,6 @@ void UMaterialInstance::PostLoad()
 		ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
 		if (TPM && (TPM->RestrictFormatsToRuntimeOnly() == false)) 
 		{
-			ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
 			TArray<ITargetPlatform*> Platforms = TPM->GetActiveTargetPlatforms();
 			// Cache for all the shader formats that the cooking target requires
 			for (int32 FormatIndex = 0; FormatIndex < Platforms.Num(); FormatIndex++)
@@ -2392,11 +2391,11 @@ void UMaterialInstance::AllMaterialsCacheResourceShadersForRendering()
 }
 
 
-bool UMaterialInstance::IsChildOf(const UMaterialInterface* Parent) const
+bool UMaterialInstance::IsChildOf(const UMaterialInterface* ParentMaterialInterface) const
 {
 	const UMaterialInterface* Material = this;
 
-	while (Material != Parent && Material != nullptr)
+	while (Material != ParentMaterialInterface && Material != nullptr)
 	{
 		const UMaterialInstance* MaterialInstance = Cast<const UMaterialInstance>(Material);
 		Material = (MaterialInstance != nullptr) ? MaterialInstance->Parent : nullptr;

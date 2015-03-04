@@ -55,7 +55,7 @@ public:
 
 	/** Set the canvas to use during drawing */
 	void SetCanvas(class UCanvas* InCanvas) { Canvas = InCanvas; }
-	void SetPlayerOwner(APlayerController* PlayerOwner) { this->PlayerOwner = PlayerOwner; }
+	void SetPlayerOwner(APlayerController* InPlayerOwner) { PlayerOwner = InPlayerOwner; }
 	APlayerController* GetPlayerOwner() { return PlayerOwner; }
 
 protected:

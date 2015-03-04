@@ -421,7 +421,7 @@ FGameplayEffectSpec::FGameplayEffectSpec()
 
 }
 
-FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGameplayEffectContextHandle& InEffectContext, float Level)
+FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGameplayEffectContextHandle& InEffectContext, float InLevel)
 	: Def(InDef)
 	, StackCount(1)
 	, bCompletedSourceAttributeCapture(false)
@@ -429,7 +429,7 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 	, bDurationLocked(false)
 {
 	check(Def);	
-	SetLevel(Level);
+	SetLevel(InLevel);
 	SetContext(InEffectContext);
 
 	// Init our ModifierSpecs
@@ -447,7 +447,7 @@ FGameplayEffectSpec::FGameplayEffectSpec(const UGameplayEffect* InDef, const FGa
 
 	for (const UGameplayEffect* TargetDef : TargetEffectDefs)
 	{
-		TargetEffectSpecs.Add(FGameplayEffectSpecHandle(new FGameplayEffectSpec(TargetDef, EffectContext, Level)));
+		TargetEffectSpecs.Add(FGameplayEffectSpecHandle(new FGameplayEffectSpec(TargetDef, EffectContext, InLevel)));
 	}
 
 	// Make Granted AbilitySpecs (caller may modify these specs after creating spec, which is why we dont just reference them from the def)

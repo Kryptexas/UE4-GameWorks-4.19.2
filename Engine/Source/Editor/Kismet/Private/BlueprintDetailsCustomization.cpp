@@ -46,15 +46,15 @@
 
 void FBlueprintDetails::AddEventsCategory(IDetailLayoutBuilder& DetailBuilder, UProperty* VariableProperty)
 {
-	UBlueprint* Blueprint = GetBlueprintObj();
-	check(Blueprint);
+	UBlueprint* BlueprintObj = GetBlueprintObj();
+	check(BlueprintObj);
 
 	if ( UObjectProperty* ComponentProperty = Cast<UObjectProperty>(VariableProperty) )
 	{
 		UClass* PropertyClass = ComponentProperty->PropertyClass;
 
 		// Check for Ed Graph vars that can generate events
-		if ( PropertyClass && Blueprint->AllowsDynamicBinding() )
+		if ( PropertyClass && BlueprintObj->AllowsDynamicBinding() )
 		{
 			if ( FBlueprintEditorUtils::CanClassGenerateEvents(PropertyClass) )
 			{
@@ -131,20 +131,20 @@ void FBlueprintDetails::AddEventsCategory(IDetailLayoutBuilder& DetailBuilder, U
 
 FReply FBlueprintDetails::HandleAddOrViewEventForVariable(const FName EventName, FName PropertyName, TWeakObjectPtr<UClass> PropertyClass)
 {
-	UBlueprint* Blueprint = GetBlueprintObj();
+	UBlueprint* BlueprintObj = GetBlueprintObj();
 
 	// Find the corresponding variable property in the Blueprint
-	UObjectProperty* VariableProperty = FindField<UObjectProperty>(Blueprint->SkeletonGeneratedClass, PropertyName);
+	UObjectProperty* VariableProperty = FindField<UObjectProperty>(BlueprintObj->SkeletonGeneratedClass, PropertyName);
 
 	if ( VariableProperty )
 	{
-		if ( !FKismetEditorUtilities::FindBoundEventForComponent(Blueprint, EventName, VariableProperty->GetFName()) )
+		if ( !FKismetEditorUtilities::FindBoundEventForComponent(BlueprintObj, EventName, VariableProperty->GetFName()) )
 		{
-			FKismetEditorUtilities::CreateNewBoundEventForClass(PropertyClass.Get(), EventName, Blueprint, VariableProperty);
+			FKismetEditorUtilities::CreateNewBoundEventForClass(PropertyClass.Get(), EventName, BlueprintObj, VariableProperty);
 		}
 		else
 		{
-			const UK2Node_ComponentBoundEvent* ExistingNode = FKismetEditorUtilities::FindBoundEventForComponent(Blueprint, EventName, VariableProperty->GetFName());
+			const UK2Node_ComponentBoundEvent* ExistingNode = FKismetEditorUtilities::FindBoundEventForComponent(BlueprintObj, EventName, VariableProperty->GetFName());
 			if ( ExistingNode )
 			{
 				FKismetEditorUtilities::BringKismetToFocusAttentionOnObject(ExistingNode);
@@ -157,9 +157,9 @@ FReply FBlueprintDetails::HandleAddOrViewEventForVariable(const FName EventName,
 
 int32 FBlueprintDetails::HandleAddOrViewIndexForButton(const FName EventName, FName PropertyName) const
 {
-	UBlueprint* Blueprint = GetBlueprintObj();
+	UBlueprint* BlueprintObj = GetBlueprintObj();
 
-	if ( FKismetEditorUtilities::FindBoundEventForComponent(Blueprint, EventName, PropertyName) )
+	if ( FKismetEditorUtilities::FindBoundEventForComponent(BlueprintObj, EventName, PropertyName) )
 	{
 		return 0; // View
 	}

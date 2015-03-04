@@ -377,8 +377,8 @@ void SCurveNameManager::OnDeleteNameClicked()
 		FAssetData& Data = AnimationAssets[Idx];
 		bool bRemove = true;
 
-		const FString* SkeletonData = Data.TagsAndValues.Find("Skeleton");
-		if(SkeletonData && *SkeletonData == CurrentSkeletonName)
+		const FString* SkeletonDataTag = Data.TagsAndValues.Find("Skeleton");
+		if(SkeletonDataTag && *SkeletonDataTag == CurrentSkeletonName)
 		{
 			const FString* CurveData = Data.TagsAndValues.Find(USkeleton::CurveTag);
 			FString CurveDataCopy;
