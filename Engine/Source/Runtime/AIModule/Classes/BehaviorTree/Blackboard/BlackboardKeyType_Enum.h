@@ -14,6 +14,14 @@ class AIMODULE_API UBlackboardKeyType_Enum : public UBlackboardKeyType
 	UPROPERTY(Category=Blackboard, EditDefaultsOnly)
 	UEnum* EnumType;
 
+	/** name of enum defined in c++ code, will take priority over asset from EnumType property */
+	UPROPERTY(Category=Blackboard, EditDefaultsOnly)
+	FString EnumName;
+
+	/** set when EnumName override is valid and active */
+	UPROPERTY(Category = Blackboard, VisibleDefaultsOnly)
+	uint32 bIsEnumNameValid : 1;
+
 	static uint8 GetValue(const UBlackboardKeyType_Enum* KeyOb, const uint8* RawData);
 	static bool SetValue(UBlackboardKeyType_Enum* KeyOb, uint8* RawData, uint8 Value);
 
@@ -23,6 +31,10 @@ class AIMODULE_API UBlackboardKeyType_Enum : public UBlackboardKeyType
 	virtual FString DescribeSelf() const override;
 	virtual FString DescribeArithmeticParam(int32 IntValue, float FloatValue) const override;
 	virtual bool IsAllowedByFilter(UBlackboardKeyType* FilterOb) const override;
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
 
 protected:
 	virtual FString DescribeValue(const UBlackboardComponent& OwnerComp, const uint8* RawData) const override;

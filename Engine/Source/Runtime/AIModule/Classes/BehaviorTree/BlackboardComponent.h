@@ -191,9 +191,6 @@ public:
 	template<class TDataClass>
 	typename TDataClass::FDataType GetValue(FBlackboard::FKey KeyID) const;
 
-	template<class TDataClass>
-	bool IsCompatibleKeyType(const UBlackboardKeyType& KeyType) const;
-
 	/** get pointer to raw data for given key */
 	FORCEINLINE uint8* GetKeyRawData(const FName& KeyName) { return GetKeyRawData(GetKeyID(KeyName)); }
 	FORCEINLINE uint8* GetKeyRawData(FBlackboard::FKey KeyID) { return ValueMemory.Num() && ValueOffsets.IsValidIndex(KeyID) ? (ValueMemory.GetData() + ValueOffsets[KeyID]) : NULL; }
@@ -327,18 +324,6 @@ FORCEINLINE bool UBlackboardComponent::HasValidAsset() const
 }
 
 template<class TDataClass>
-FORCEINLINE bool UBlackboardComponent::IsCompatibleKeyType(const UBlackboardKeyType& KeyType) const
-{
-	return KeyType.IsA(TDataClass::StaticClass());
-}
-
-template<>
-FORCEINLINE bool UBlackboardComponent::IsCompatibleKeyType<UBlackboardKeyType_Enum>(const UBlackboardKeyType& KeyType) const
-{
-	return KeyType.GetClass() == UBlackboardKeyType_NativeEnum::StaticClass() || KeyType.IsA(UBlackboardKeyType_Enum::StaticClass());
-}
-
-template<class TDataClass>
 bool UBlackboardComponent::SetValue(const FName& KeyName, typename TDataClass::FDataType Value)
 {
 	const FBlackboard::FKey KeyID = GetKeyID(KeyName);
@@ -349,7 +334,7 @@ template<class TDataClass>
 bool UBlackboardComponent::SetValue(FBlackboard::FKey KeyID, typename TDataClass::FDataType Value)
 {
 	const FBlackboardEntry* EntryInfo = BlackboardAsset ? BlackboardAsset->GetKey(KeyID) : nullptr;
-	if ((EntryInfo == nullptr) || (EntryInfo->KeyType == nullptr) || (IsCompatibleKeyType<TDataClass>(*EntryInfo->KeyType) == false))
+	if ((EntryInfo == nullptr) || (EntryInfo->KeyType == nullptr))
 	{
 		return false;
 	}
@@ -398,7 +383,7 @@ template<class TDataClass>
 typename TDataClass::FDataType UBlackboardComponent::GetValue(FBlackboard::FKey KeyID) const
 {
 	const FBlackboardEntry* EntryInfo = BlackboardAsset ? BlackboardAsset->GetKey(KeyID) : nullptr;
-	if ((EntryInfo == nullptr) || (EntryInfo->KeyType == nullptr) || (IsCompatibleKeyType<TDataClass>(*EntryInfo->KeyType) == false))
+	if ((EntryInfo == nullptr) || (EntryInfo->KeyType == nullptr))
 	{
 		return TDataClass::InvalidValue;
 	}

@@ -69,3 +69,18 @@ FString UBlackboardKeyType_Enum::DescribeArithmeticParam(int32 IntValue, float F
 {
 	return EnumType ? EnumType->GetEnumText(IntValue).ToString() : FString("UNKNOWN!");
 }
+
+#if WITH_EDITOR
+void UBlackboardKeyType_Enum::PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.Property &&
+		PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(UBlackboardKeyType_Enum, EnumName))
+	{
+		EnumType = FindObject<UEnum>(ANY_PACKAGE, *EnumName, true);
+	}
+
+	bIsEnumNameValid = EnumType && !EnumName.IsEmpty();
+}
+#endif

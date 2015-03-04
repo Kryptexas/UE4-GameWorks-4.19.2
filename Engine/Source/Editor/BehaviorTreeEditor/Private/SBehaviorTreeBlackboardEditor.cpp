@@ -173,7 +173,9 @@ public:
 	{
 		if(InClass != nullptr)
 		{
-			return !InClass->HasAnyClassFlags(CLASS_Abstract) && InClass->IsChildOf(UBlackboardKeyType::StaticClass());
+			return !InClass->HasAnyClassFlags(CLASS_Abstract) &&
+				InClass->HasAnyClassFlags(CLASS_EditInlineNew) &&
+				InClass->IsChildOf(UBlackboardKeyType::StaticClass());
 		}
 		return false;
 	}

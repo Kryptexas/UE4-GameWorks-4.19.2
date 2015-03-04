@@ -668,7 +668,13 @@ TSharedRef<SWidget> FBehaviorTreeEditor::SpawnBlackboardDetails()
 	FOnGetDetailCustomizationInstance LayoutVariableDetails = FOnGetDetailCustomizationInstance::CreateStatic(&FBlackboardDataDetails::MakeInstance, OnGetSelectedBlackboardItemIndex);
 	BlackboardDetailsView->RegisterInstancedCustomPropertyLayout(UBlackboardData::StaticClass(), LayoutVariableDetails);
 
-	BlackboardDetailsView->SetObject(GetBlackboardData());
+	UBlackboardData* BBData = GetBlackboardData();
+	if (BBData)
+	{
+		BBData->UpdateDeprecatedKeys();
+	}
+
+	BlackboardDetailsView->SetObject(BBData);
 	BlackboardDetailsView->SetEnabled(TAttribute<bool>::Create(TAttribute<bool>::FGetter::CreateSP(this, &FBehaviorTreeEditor::CanEditWithDebuggerActive)));
 
 	return BlackboardDetailsView.ToSharedRef();

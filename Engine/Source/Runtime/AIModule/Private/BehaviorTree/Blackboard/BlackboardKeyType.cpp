@@ -297,3 +297,8 @@ FString UBlackboardKeyType::DescribeValue(const uint8* MemoryBlock) const
 {
 	return FString();
 }
+
+UBlackboardKeyType* UBlackboardKeyType::UpdateDeprecatedKey()
+{
+	return nullptr;
+}

@@ -117,6 +117,9 @@ class AIMODULE_API UBlackboardKeyType : public UObject
 	/** description of params for property view */
 	virtual FString DescribeSelf() const;
 
+	/** create replacement key for deprecated data */
+	virtual UBlackboardKeyType* UpdateDeprecatedKey();
+
 	/** @return key instance if bCreateKeyInstance was set */
 	const UBlackboardKeyType* GetKeyInstance(const UBlackboardComponent& OwnerComp, const uint8* MemoryBlock) const;
 	UBlackboardKeyType* GetKeyInstance(UBlackboardComponent& OwnerComp, const uint8* MemoryBlock) const;

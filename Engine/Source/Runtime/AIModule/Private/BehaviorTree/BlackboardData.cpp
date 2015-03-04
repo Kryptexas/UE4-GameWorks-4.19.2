@@ -224,3 +224,19 @@ void UBlackboardData::UpdateKeyIDs()
 {
 	FirstKeyID = Parent ? Parent->GetNumKeys() : 0;
 }
+
+void UBlackboardData::UpdateDeprecatedKeys()
+{
+	for (int32 KeyIndex = 0; KeyIndex < Keys.Num(); KeyIndex++)
+	{
+		FBlackboardEntry& Entry = Keys[KeyIndex];
+		if (Entry.KeyType)
+		{
+			UBlackboardKeyType* UpdatedKey = Entry.KeyType->UpdateDeprecatedKey();
+			if (UpdatedKey)
+			{
+				Entry.KeyType = UpdatedKey;
+			}
+		}
+	}
+}

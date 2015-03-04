@@ -83,6 +83,7 @@ void UBlackboardComponent::InitializeParentChain(UBlackboardData* NewAsset)
 	if (NewAsset)
 	{
 		InitializeParentChain(NewAsset->Parent);
+		NewAsset->UpdateDeprecatedKeys();
 		NewAsset->UpdateKeyIDs();
 	}
 }

@@ -131,6 +131,9 @@ public:
 
 	void UpdateIfHasSynchronizedKeys();
 
+	/** fix entries with deprecated key types */
+	void UpdateDeprecatedKeys();
+
 protected:
 
 	enum EKeyLookupMode
