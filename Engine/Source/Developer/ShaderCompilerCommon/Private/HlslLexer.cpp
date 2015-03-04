@@ -369,8 +369,6 @@ namespace CrossCompiler
 				InsertToken(TEXT("RWTexture2DArray"), EHlslToken::RWTexture2DArray);
 				InsertToken(TEXT("RWTexture3D"), EHlslToken::RWTexture3D);
 				InsertToken(TEXT("StructuredBuffer"), EHlslToken::StructuredBuffer);
-				InsertToken(TEXT("InputPatch"), EHlslToken::InputPatch);
-				InsertToken(TEXT("OutputPatch"), EHlslToken::OutputPatch);
 
 				// Modifiers
 				InsertToken(TEXT("in"), EHlslToken::In);
@@ -389,7 +387,6 @@ namespace CrossCompiler
 				InsertToken(TEXT("struct"), EHlslToken::Struct);
 				InsertToken(TEXT("cbuffer"), EHlslToken::CBuffer);
 				InsertToken(TEXT("groupshared"), EHlslToken::GroupShared);
-				InsertToken(TEXT("nointerpolation"), EHlslToken::NoInterpolation);
 				InsertToken(TEXT("row_major"), EHlslToken::RowMajor);
 			}
 		} GStaticInitializer;
@@ -752,9 +749,14 @@ namespace CrossCompiler
 					check(0);
 				}
 			}
+			else if (Tokenizer.MatchString(MATCH_TARGET(TEXT("#pragma"))))
+			{
+				//@todo-rco: Pragma!
+				SourceWarning(*FString::Printf(TEXT("Ignoring pragma!")));
+			}
 			else
 			{
-				//@todo-rco: Warn about unknown pragma
+				//@todo-rco: Warn about unknown preprocessor directive
 				check(0);
 			}
 
@@ -906,7 +908,7 @@ namespace CrossCompiler
 		Clear(Filename);
 		
 		// Simple heuristic to avoid reallocating
-		Tokens.Reserve(String.Len() / 4);
+		Tokens.Reserve(String.Len() / 8);
 
 		FTokenizer Tokenizer(String);
 		while (Tokenizer.HasCharsAvailable())
@@ -957,6 +959,10 @@ namespace CrossCompiler
 				else if (Tokenizer.MatchSymbol(SymbolToken, Identifier))
 				{
 					AddToken(FHlslToken(SymbolToken, Identifier), Tokenizer);
+				}
+				else if (Tokenizer.MatchQuotedString(Identifier))
+				{
+					AddToken(FHlslToken(EHlslToken::StringConstant, Identifier), Tokenizer);
 				}
 				else if (Tokenizer.HasCharsAvailable())
 				{
