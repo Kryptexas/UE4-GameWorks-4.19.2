@@ -1001,7 +1001,7 @@ void FMacOpenGL::ProcessExtensions(const FString& ExtensionsString)
 		glPushGroupMarkerEXT = (PFNGLPUSHGROUPMARKEREXTPROC)dlsym(RTLD_SELF, "glPushGroupMarkerEXT");
 		glPopGroupMarkerEXT = (PFNGLPOPGROUPMARKEREXTPROC)dlsym(RTLD_SELF, "glPopGroupMarkerEXT");
 #if !UE_BUILD_SHIPPING // For debuggable builds emit draw events when the extension is GL_EXT_debug_marker present.
-        GEmitDrawEvents = true;
+        GEmitDrawEvents = !FParse::Param(FCommandLine::Get(), TEXT("DisableMacDrawEvents"));
 #endif
 	}
 	
