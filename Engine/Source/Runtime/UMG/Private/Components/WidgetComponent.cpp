@@ -392,10 +392,10 @@ void UWidgetComponent::OnRegister()
 						GameViewportWidget->SetCustomHitTestPath(CustomHitTestPath);
 					}
 
-					TSharedPtr<FWidget3DHitTester> WidgetHitTester = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
-					if ( WidgetHitTester->GetWorld() == GetWorld() )
+					TSharedPtr<FWidget3DHitTester> Widget3DHitTester = StaticCastSharedPtr<FWidget3DHitTester>(CustomHitTestPath);
+					if ( Widget3DHitTester->GetWorld() == GetWorld() )
 					{
-						WidgetHitTester->RegisterWidgetComponent(this);
+						Widget3DHitTester->RegisterWidgetComponent(this);
 					}
 				}
 			}
@@ -840,9 +840,9 @@ TArray<FWidgetAndPointer> UWidgetComponent::GetHitWidgetPath( const FHitResult& 
 
 	TArray<FWidgetAndPointer> ArrangedWidgets = HitTestGrid->GetBubblePath( LocalHitLocation, 0.0f, bIgnoreEnabledStatus );
 
-	for( FWidgetAndPointer& Widget : ArrangedWidgets )
+	for( FWidgetAndPointer& ArrangedWidget : ArrangedWidgets )
 	{
-		Widget.PointerPosition = VirtualMouseCoordinate;
+		ArrangedWidget.PointerPosition = VirtualMouseCoordinate;
 	}
 
 	return ArrangedWidgets;

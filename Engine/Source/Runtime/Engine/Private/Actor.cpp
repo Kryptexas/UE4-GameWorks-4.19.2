@@ -191,12 +191,12 @@ bool AActor::CheckActorComponents()
 
 void AActor::ResetOwnedComponents()
 {
-	TArray<UObject*> Children;
+	TArray<UObject*> ActorChildren;
 	OwnedComponents.Empty();
 	ReplicatedComponents.Empty();
-	GetObjectsWithOuter(this, Children, true, RF_PendingKill);
+	GetObjectsWithOuter(this, ActorChildren, true, RF_PendingKill);
 
-	for (UObject* Child : Children)
+	for (UObject* Child : ActorChildren)
 	{
 		UActorComponent* Component = Cast<UActorComponent>(Child);
 		if (Component)

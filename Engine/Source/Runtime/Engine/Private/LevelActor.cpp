@@ -778,7 +778,7 @@ void UWorld::LoadSecondaryLevels(bool bForce, TSet<FString>* CookedPackages)
 
 
 				bool bAlreadyLoaded = false;
-				UPackage* const LevelPackage = FindObject<UPackage>(NULL, *StreamingLevelWorldAssetPackageName,true);
+				UPackage* LevelPackage = FindObject<UPackage>(NULL, *StreamingLevelWorldAssetPackageName,true);
 				// don't need to do any extra work if the level is already loaded
 				if ( LevelPackage && LevelPackage->IsFullyLoaded() ) 
 				{
@@ -793,7 +793,7 @@ void UWorld::LoadSecondaryLevels(bool bForce, TSet<FString>* CookedPackages)
 					if( FPackageName::IsShortPackageName(StreamingLevelWorldAssetPackageFName) == false )
 					{
 						ULevel::StreamedLevelsOwningWorld.Add(StreamingLevelWorldAssetPackageFName, this);
-						UPackage* const LevelPackage = LoadPackage( NULL, *StreamingLevelWorldAssetPackageName, LOAD_None );
+						LevelPackage = LoadPackage( NULL, *StreamingLevelWorldAssetPackageName, LOAD_None );
 						ULevel::StreamedLevelsOwningWorld.Remove(StreamingLevelWorldAssetPackageFName);
 
 						if( LevelPackage )

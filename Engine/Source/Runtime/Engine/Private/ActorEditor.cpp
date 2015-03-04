@@ -263,23 +263,23 @@ void AActor::DebugShowOneComponentHierarchy( USceneComponent* SceneComp, int32& 
 AActor::FActorTransactionAnnotation::FActorTransactionAnnotation(const AActor* Actor)
 	: ComponentInstanceData(Actor)
 {
-	USceneComponent* RootComponent = Actor->GetRootComponent();
-	if (RootComponent && RootComponent->IsCreatedByConstructionScript())
+	USceneComponent* ActorRootComponent = Actor->GetRootComponent();
+	if (ActorRootComponent && ActorRootComponent->IsCreatedByConstructionScript())
 	{
 		bRootComponentDataCached = true;
-		RootComponentData.Transform = RootComponent->ComponentToWorld;
-		RootComponentData.Transform.SetTranslation(RootComponent->GetComponentLocation()); // take into account any custom location
+		RootComponentData.Transform = ActorRootComponent->ComponentToWorld;
+		RootComponentData.Transform.SetTranslation(ActorRootComponent->GetComponentLocation()); // take into account any custom location
 
-		if (RootComponent->AttachParent)
+		if (ActorRootComponent->AttachParent)
 		{
-			RootComponentData.AttachedParentInfo.Actor = RootComponent->AttachParent->GetOwner();
-			RootComponentData.AttachedParentInfo.AttachParent = RootComponent->AttachParent;
-			RootComponentData.AttachedParentInfo.AttachParentName = RootComponent->AttachParent->GetFName();
-			RootComponentData.AttachedParentInfo.SocketName = RootComponent->AttachSocketName;
-			RootComponentData.AttachedParentInfo.RelativeTransform = RootComponent->GetRelativeTransform();
+			RootComponentData.AttachedParentInfo.Actor = ActorRootComponent->AttachParent->GetOwner();
+			RootComponentData.AttachedParentInfo.AttachParent = ActorRootComponent->AttachParent;
+			RootComponentData.AttachedParentInfo.AttachParentName = ActorRootComponent->AttachParent->GetFName();
+			RootComponentData.AttachedParentInfo.SocketName = ActorRootComponent->AttachSocketName;
+			RootComponentData.AttachedParentInfo.RelativeTransform = ActorRootComponent->GetRelativeTransform();
 		}
 
-		for (USceneComponent* AttachChild : RootComponent->AttachChildren)
+		for (USceneComponent* AttachChild : ActorRootComponent->AttachChildren)
 		{
 			AActor* ChildOwner = (AttachChild ? AttachChild->GetOwner() : NULL);
 			if (ChildOwner && ChildOwner != Actor)

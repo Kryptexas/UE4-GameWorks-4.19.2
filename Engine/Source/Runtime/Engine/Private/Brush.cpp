@@ -140,7 +140,6 @@ void ABrush::SetIsTemporarilyHiddenInEditor( bool bIsHidden )
 
 			if (bAnySurfaceWasFound)
 			{
-				auto* Level = GetLevel();
 				Level->UpdateModelComponents();
 				Level->InvalidateModelSurface();
 			}

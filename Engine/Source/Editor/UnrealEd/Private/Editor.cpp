@@ -676,10 +676,10 @@ void UEditorEngine::Init(IEngineLoop* InEngineLoop)
 			TEXT("LocalizationDashboard")
 		};
 
-		FScopedSlowTask SlowTask(ARRAY_COUNT(ModuleNames));
+		FScopedSlowTask ModuleSlowTask(ARRAY_COUNT(ModuleNames));
 		for (const TCHAR* ModuleName : ModuleNames)
 		{
-			SlowTask.EnterProgressFrame(1);
+			ModuleSlowTask.EnterProgressFrame(1);
 			FModuleManager::Get().LoadModule(ModuleName);
 		}
 
@@ -7062,7 +7062,6 @@ namespace EditorUtilities
 					else
 					{
 						// If we found a match, update the target component and adjust the target index to the matching position
-						UActorComponent* FindTargetComponent = TargetComponents[ FindTargetComponentIndex ];
 						if( FindTargetComponent != NULL && SourceComponent->GetFName() == FindTargetComponent->GetFName() )
 						{
 							TargetComponent = FindTargetComponent;

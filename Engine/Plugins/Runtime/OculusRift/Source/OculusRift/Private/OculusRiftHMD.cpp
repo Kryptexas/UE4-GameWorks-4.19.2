@@ -1268,12 +1268,13 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 				TSharedPtr<SWindow> Window = SceneVP->FindWindow();
 				if (Window.IsValid())
 				{
-					FVector2D size = Window->GetSizeInScreen();
-
 					if (bApplyToHmd && IsFullscreenAllowed())
 					{
-						SceneVP->SetViewportSize(size.X, size.Y);
-						Window->SetViewportSizeDrivenByWindow(true);
+						{
+							FVector2D size = Window->GetSizeInScreen();
+							SceneVP->SetViewportSize(size.X, size.Y);
+							Window->SetViewportSizeDrivenByWindow(true);
+						}
 
 						if (stereoEnabled)
 						{
@@ -1305,6 +1306,7 @@ bool FOculusRiftHMD::DoEnableStereo(bool bStereo, bool bApplyToHmd)
 					{
 						// a special case when 'stereo on' or 'stereo hmd' is used in Direct mode. We must set proper window mode, otherwise
 						// it will be lost once window loses and regains the focus.
+						FVector2D size = Window->GetSizeInScreen();
 						FSystemResolution::RequestResolutionChange(size.X, size.Y, (stereoEnabled) ? EWindowMode::WindowedMirror : EWindowMode::Windowed);
 					}
 				}

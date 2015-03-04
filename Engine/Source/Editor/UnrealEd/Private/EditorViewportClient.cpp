@@ -401,11 +401,11 @@ void FEditorViewportClient::SetViewLocationForOrbiting(const FVector& LookAtPoin
 	SetLookAtLocation( LookAtPoint );
 }
 
-void FEditorViewportClient::SetInitialViewTransform(ELevelViewportType ViewportType, const FVector& ViewLocation, const FRotator& ViewRotation, float InOrthoZoom )
+void FEditorViewportClient::SetInitialViewTransform(ELevelViewportType InViewportType, const FVector& ViewLocation, const FRotator& ViewRotation, float InOrthoZoom )
 {
-	check(ViewportType < LVT_MAX);
+	check(InViewportType < LVT_MAX);
 
-	FViewportCameraTransform& ViewTransform = (ViewportType == LVT_Perspective) ? ViewTransformPerspective : ViewTransformOrthographic;
+	FViewportCameraTransform& ViewTransform = (InViewportType == LVT_Perspective) ? ViewTransformPerspective : ViewTransformOrthographic;
 
 	ViewTransform.SetLocation(ViewLocation);
 	ViewTransform.SetRotation(ViewRotation);
@@ -3229,6 +3229,7 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 	const FRotator& ViewRotation = GetViewRotation();
 
 	const bool LeftMouseButtonDown = InViewport->KeyState(EKeys::LeftMouseButton);
+	const bool RightMouseButtonDown = Viewport->KeyState(EKeys::RightMouseButton);
 
 	const ELevelViewportType LevelViewportType = GetViewportType();
 
@@ -3240,8 +3241,6 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 	case LVT_OrthoXZ:
 	case LVT_OrthoYZ:
 		{
-			const bool LeftMouseButtonDown = Viewport->KeyState(EKeys::LeftMouseButton);
-			const bool RightMouseButtonDown = Viewport->KeyState(EKeys::RightMouseButton);
 			if (GestureType == EGestureEvent::Scroll && !LeftMouseButtonDown && !RightMouseButtonDown)
 			{
 				const float UnitsPerPixel = GetOrthoUnitsPerPixel(Viewport);

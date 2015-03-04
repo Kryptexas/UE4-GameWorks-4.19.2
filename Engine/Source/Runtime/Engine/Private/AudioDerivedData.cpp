@@ -990,7 +990,6 @@ void USoundWave::BeginCachePlatformData()
 	ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
 	if (TPM && (TPM->RestrictFormatsToRuntimeOnly() == false))
 	{
-		ITargetPlatformManagerModule* TPM = GetTargetPlatformManager();
 		TArray<ITargetPlatform*> Platforms = TPM->GetActiveTargetPlatforms();
 		// Cache for all the audio formats that the cooking target requires
 		for (int32 FormatIndex = 0; FormatIndex < Platforms.Num(); FormatIndex++)

@@ -28,23 +28,22 @@ void FMovieSceneAudioTrackInstance::Update( float Position, float LastPosition, 
 			{
 				UMovieSceneAudioSection* AudioSection = Cast<UMovieSceneAudioSection>(AudioSections[i]);
 				int32 SectionIndex = AudioSection->GetRowIndex();
-				TArray<UMovieSceneAudioSection*>& AudioSections = AudioSectionsBySectionIndex.FindOrAdd(SectionIndex);
-				AudioSections.Add(AudioSection);
+				AudioSectionsBySectionIndex.FindOrAdd(SectionIndex).Add(AudioSection);
 			}
 
 			for (TMap<int32, TArray<UMovieSceneAudioSection*> >::TIterator It(AudioSectionsBySectionIndex); It; ++It)
 			{
 				int32 RowIndex = It.Key();
-				TArray<UMovieSceneAudioSection*>& AudioSections = It.Value();
+				TArray<UMovieSceneAudioSection*>& MovieSceneAudioSections = It.Value();
 
 				for (int32 ActorIndex = 0; ActorIndex < Actors.Num(); ++ActorIndex)
 				{
 					UAudioComponent* Component = GetAudioComponent(Actors[ActorIndex], RowIndex);
 
 					bool bComponentIsPlaying = false;
-					for (int32 i = 0; i < AudioSections.Num(); ++i)
+					for (int32 i = 0; i < MovieSceneAudioSections.Num(); ++i)
 					{
-						UMovieSceneAudioSection* AudioSection = AudioSections[i];
+						UMovieSceneAudioSection* AudioSection = MovieSceneAudioSections[i];
 						if (AudioSection->IsTimeWithinAudioRange(Position))
 						{
 							if (!AudioSection->IsTimeWithinAudioRange(LastPosition) || !Component->IsPlaying())

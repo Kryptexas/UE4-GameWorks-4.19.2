@@ -116,14 +116,14 @@ void UEditableText::SetIsReadOnly(bool InbIsReadyOnly)
 	}
 }
 
-void UEditableText::HandleOnTextChanged(const FText& Text)
+void UEditableText::HandleOnTextChanged(const FText& InText)
 {
-	OnTextChanged.Broadcast(Text);
+	OnTextChanged.Broadcast(InText);
 }
 
-void UEditableText::HandleOnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
+void UEditableText::HandleOnTextCommitted(const FText& InText, ETextCommit::Type CommitMethod)
 {
-	OnTextCommitted.Broadcast(Text, CommitMethod);
+	OnTextCommitted.Broadcast(InText, CommitMethod);
 }
 
 void UEditableText::PostLoad()

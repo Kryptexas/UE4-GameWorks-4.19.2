@@ -130,8 +130,6 @@ void SMatineeRecorder::Construct(const FArguments& InArgs)
 
 	// The viewport widget needs an interface so it knows what should render
 	ViewportWidget->SetViewportInterface( Viewport.ToSharedRef() );
-
-	TWeakPtr<FLevelEditorViewportClient>(LevelViewportClient);
 }
 
 /** Gets the current image that should be displayed for the Record/Stop button based on the status of the InterpEditor. */

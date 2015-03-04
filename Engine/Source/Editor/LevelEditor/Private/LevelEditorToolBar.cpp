@@ -504,10 +504,10 @@ namespace LevelEditorActionHelpers
 		GameModeMenuSettings.LevelEditor = InLevelEditor;
 		GameModeMenuSettings.bIsProjectSettings = bInProjectSettings;
 
-		auto IsGameModeActive = [](TWeakPtr< SLevelEditor > InLevelEditor, bool bInProjectSettings)->bool
+		auto IsGameModeActive = [](TWeakPtr< SLevelEditor > InLevelEditorPtr, bool bInProjSettings)->bool
 		{
-			UClass* WorldSettingsGameMode = LevelEditorActionHelpers::GetGameModeClass(InLevelEditor, false);
-			if((WorldSettingsGameMode == nullptr) ^ bInProjectSettings ) //(WorldSettingsGameMode && !bInProjectSettings) || (!WorldSettingsGameMode && bInProjectSettings) )
+			UClass* WorldSettingsGameMode = LevelEditorActionHelpers::GetGameModeClass(InLevelEditorPtr, false);
+			if((WorldSettingsGameMode == nullptr) ^ bInProjSettings ) //(WorldSettingsGameMode && !bInProjectSettings) || (!WorldSettingsGameMode && bInProjectSettings) )
 			{
 				return false;
 			}

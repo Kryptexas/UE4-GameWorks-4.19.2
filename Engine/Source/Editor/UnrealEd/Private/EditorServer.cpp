@@ -1124,54 +1124,54 @@ void UEditorEngine::PostUndo (bool bSuccess)
 {
 	//Update the actor selection followed by the component selection if needed (note: order is important)
 		
-		//Get the list of all selected actors after the operation
-		TArray<AActor*> SelectedActors;
-		for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+	//Get the list of all selected actors after the operation
+	TArray<AActor*> SelectedActors;
+	for (FSelectionIterator It(GEditor->GetSelectedActorIterator()); It; ++It)
+	{
+		AActor* Actor = CastChecked<AActor>(*It);
+		//if this actor is NOT in a hidden level add it to the list - otherwise de-select it
+		if (FLevelUtils::IsLevelLocked(Actor) == false)
 		{
-			AActor* Actor = CastChecked<AActor>(*It);
-			//if this actor is NOT in a hidden level add it to the list - otherwise de-select it
-			if (FLevelUtils::IsLevelLocked(Actor) == false)
-			{
-				SelectedActors.Add(Actor);
-			}
-			else
-			{
-				GetSelectedActors()->Select(Actor, false);
-			}
+			SelectedActors.Add(Actor);
 		}
-
-		USelection* Selection = GetSelectedActors();
-		Selection->BeginBatchSelectOperation();
-
-		//Deselect all of the actors that were selected prior to the operation
-		for (int32 OldSelectedActorIndex = OldSelectedActors.Num() - 1; OldSelectedActorIndex >= 0; --OldSelectedActorIndex)
+		else
 		{
-			AActor* Actor = OldSelectedActors[OldSelectedActorIndex];
-
-			//To stop us from unselecting and then reselecting again (causing two force update components, we will remove (from both lists) any object that was selected and should continue to be selected
-			int32 FoundIndex;
-			if (SelectedActors.Find(Actor, FoundIndex))
-			{
-				OldSelectedActors.RemoveAt(OldSelectedActorIndex);
-				SelectedActors.RemoveAt(FoundIndex);
-			}
-			else
-			{
-				SelectActor(Actor, false, false);//First false is to deselect, 2nd is to notify
-				Actor->UpdateComponentTransforms();
-			}
+			GetSelectedActors()->Select(Actor, false);
 		}
+	}
 
-		//Select all of the actors in SelectedActors
-		for (int32 SelectedActorIndex = 0; SelectedActorIndex < SelectedActors.Num(); ++SelectedActorIndex)
+	USelection* ActorSelection = GetSelectedActors();
+	ActorSelection->BeginBatchSelectOperation();
+
+	//Deselect all of the actors that were selected prior to the operation
+	for (int32 OldSelectedActorIndex = OldSelectedActors.Num() - 1; OldSelectedActorIndex >= 0; --OldSelectedActorIndex)
+	{
+		AActor* Actor = OldSelectedActors[OldSelectedActorIndex];
+
+		//To stop us from unselecting and then reselecting again (causing two force update components, we will remove (from both lists) any object that was selected and should continue to be selected
+		int32 FoundIndex;
+		if (SelectedActors.Find(Actor, FoundIndex))
 		{
-			AActor* Actor = SelectedActors[SelectedActorIndex];
-			SelectActor(Actor, true, false);	//false is to stop notify which is done below if bOpWasSuccessful
+			OldSelectedActors.RemoveAt(OldSelectedActorIndex);
+			SelectedActors.RemoveAt(FoundIndex);
+		}
+		else
+		{
+			SelectActor(Actor, false, false);//First false is to deselect, 2nd is to notify
 			Actor->UpdateComponentTransforms();
 		}
+	}
 
-		OldSelectedActors.Empty();
-		Selection->EndBatchSelectOperation();
+	//Select all of the actors in SelectedActors
+	for (int32 SelectedActorIndex = 0; SelectedActorIndex < SelectedActors.Num(); ++SelectedActorIndex)
+	{
+		AActor* Actor = SelectedActors[SelectedActorIndex];
+		SelectActor(Actor, true, false);	//false is to stop notify which is done below if bOpWasSuccessful
+		Actor->UpdateComponentTransforms();
+	}
+
+	OldSelectedActors.Empty();
+	ActorSelection->EndBatchSelectOperation();
 	
 	if (GetSelectedComponentCount() > 0)
 	{
@@ -1184,8 +1184,8 @@ void UEditorEngine::PostUndo (bool bSuccess)
 			SelectedComponents.Add(CastChecked<UActorComponent>(*It));
 		}
 		
-		USelection* Selection = GetSelectedComponents();
-		Selection->BeginBatchSelectOperation();
+		USelection* ComponentSelection = GetSelectedComponents();
+		ComponentSelection->BeginBatchSelectOperation();
 
 		//Deselect all of the actors that were selected prior to the operation
 		for (int32 OldSelectedComponentIndex = OldSelectedComponents.Num() - 1; OldSelectedComponentIndex >= 0; --OldSelectedComponentIndex)
@@ -1218,8 +1218,8 @@ void UEditorEngine::PostUndo (bool bSuccess)
 		OldSelectedComponents.Empty();
 
 		// We want to broadcast the component SelectionChangedEvent even if the selection didn't actually change
-		Selection->MarkBatchDirty();
-		Selection->EndBatchSelectOperation();
+		ComponentSelection->MarkBatchDirty();
+		ComponentSelection->EndBatchSelectOperation();
 	}
 }
 
@@ -1861,11 +1861,11 @@ bool UEditorEngine::ShouldAbortBecauseOfUnsavedWorld() const
 	// If an unsaved world exists that would be lost in a map transition, give the user the option to cancel a map load.
 
 	// First check if we have a world and it is dirty
-	UWorld* EditorWorld = GEditor->GetEditorWorldContext().World();
-	if (EditorWorld && EditorWorld->GetOutermost()->IsDirty())
+	UWorld* LevelEditorWorld = GEditor->GetEditorWorldContext().World();
+	if (LevelEditorWorld && LevelEditorWorld->GetOutermost()->IsDirty())
 	{
 		// Now check if the world is in a path that can be saved (otherwise it is in something like the transient package or temp)
-		const FString PackageName = EditorWorld->GetOutermost()->GetName();
+		const FString PackageName = LevelEditorWorld->GetOutermost()->GetName();
 		const bool bIncludeReadOnlyRoots = false;
 		if ( FPackageName::IsValidLongPackageName(PackageName, bIncludeReadOnlyRoots) )
 		{
@@ -1873,7 +1873,7 @@ bool UEditorEngine::ShouldAbortBecauseOfUnsavedWorld() const
 			if ( !FPackageName::DoesPackageExist(PackageName) )
 			{
 				// This world will be completely lost if a map transition happens. Warn the user that this is happening and ask him/her how to proceed.
-				if (EAppReturnType::Yes != FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(NSLOCTEXT("UnrealEd", "Prompt_ThisActionWillDiscardWorldContinue", "The unsaved level {0} will be lost.  Continue?"), FText::FromString(EditorWorld->GetName()))))
+				if (EAppReturnType::Yes != FMessageDialog::Open(EAppMsgType::YesNo, FText::Format(NSLOCTEXT("UnrealEd", "Prompt_ThisActionWillDiscardWorldContinue", "The unsaved level {0} will be lost.  Continue?"), FText::FromString(LevelEditorWorld->GetName()))))
 				{
 					// User doesn't want to lose the world -- abort the load.
 					return true;
@@ -4383,18 +4383,17 @@ void UEditorEngine::MoveViewportCamerasToActor(const TArray<AActor*> &Actors, co
 				}
 				else
 				{
-					TInlineComponentArray<UPrimitiveComponent*> Components;
-					Actor->GetComponents(Components);
+					TInlineComponentArray<UPrimitiveComponent*> PrimitiveComponents(Actor);
 
-					for(int32 ComponentIndex = 0; ComponentIndex < Components.Num(); ++ComponentIndex)
+					for(int32 ComponentIndex = 0; ComponentIndex < PrimitiveComponents.Num(); ++ComponentIndex)
 					{
-						UPrimitiveComponent* PrimitiveComponent = Components[ComponentIndex];
+						UPrimitiveComponent* PrimitiveComponent = PrimitiveComponents[ComponentIndex];
 
 						if(PrimitiveComponent->IsRegistered())
 						{
 
 							// Some components can have huge bounds but are not visible.  Ignore these components unless it is the only component on the actor 
-							const bool bIgnore = Components.Num() > 1 && PrimitiveComponentTypesToIgnore.IndexOfByPredicate(ComponentTypeMatcher(PrimitiveComponent)) != INDEX_NONE;
+							const bool bIgnore = PrimitiveComponents.Num() > 1 && PrimitiveComponentTypesToIgnore.IndexOfByPredicate(ComponentTypeMatcher(PrimitiveComponent)) != INDEX_NONE;
 
 							if(!bIgnore)
 							{

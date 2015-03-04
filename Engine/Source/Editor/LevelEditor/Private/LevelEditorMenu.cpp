@@ -194,18 +194,17 @@ TSharedRef< SWidget > FLevelEditorMenu::MakeLevelEditorMenu( const TSharedPtr<FU
 					{
 						struct Local
 						{
-							static void MakeFavoriteLevelMenu(FMenuBuilder& MenuBuilder)
+							static void MakeFavoriteLevelMenu(FMenuBuilder& InMenuBuilder)
 							{
-								IMainFrameModule& MainFrameModule = FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame");
-								const FMainMRUFavoritesList& RecentsAndFavorites = *MainFrameModule.GetMRUFavoritesList();
-								const int32 NumFavorites = RecentsAndFavorites.GetNumFavorites();
+								const FMainMRUFavoritesList& MRUFavorites = *FModuleManager::LoadModuleChecked<IMainFrameModule>("MainFrame").GetMRUFavoritesList();
+								const int32 NumMRUFavorites = MRUFavorites.GetNumFavorites();
 
-								for (int32 CurFavoriteIndex = FavoritesToDisplayInMainMenu; CurFavoriteIndex < NumFavorites; ++CurFavoriteIndex)
+								for (int32 CurFavoriteIndex = FavoritesToDisplayInMainMenu; CurFavoriteIndex < NumMRUFavorites; ++CurFavoriteIndex)
 								{
-									const FString CurFavorite = FPaths::GetBaseFilename(RecentsAndFavorites.GetFavoritesItem(CurFavoriteIndex));
+									const FString CurFavorite = FPaths::GetBaseFilename(MRUFavorites.GetFavoritesItem(CurFavoriteIndex));
 									const bool bNoIndent = true;
 
-									MenuBuilder.AddWidget(
+									InMenuBuilder.AddWidget(
 										SNew(SFavouriteMenuEntry)
 										.LabelOverride(FText::FromString(FPaths::GetBaseFilename(CurFavorite)))
 										.OnOpenClickedDelegate(FExecuteAction::CreateStatic(&FLevelEditorActionCallbacks::OpenFavoriteFile, CurFavoriteIndex))

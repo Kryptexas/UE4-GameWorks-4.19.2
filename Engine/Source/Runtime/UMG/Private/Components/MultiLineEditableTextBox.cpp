@@ -97,14 +97,14 @@ void UMultiLineEditableTextBox::SetError(FText InError)
 	}
 }
 
-void UMultiLineEditableTextBox::HandleOnTextChanged(const FText& Text)
+void UMultiLineEditableTextBox::HandleOnTextChanged(const FText& InText)
 {
-	OnTextChanged.Broadcast(Text);
+	OnTextChanged.Broadcast(InText);
 }
 
-void UMultiLineEditableTextBox::HandleOnTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
+void UMultiLineEditableTextBox::HandleOnTextCommitted(const FText& InText, ETextCommit::Type CommitMethod)
 {
-	OnTextCommitted.Broadcast(Text, CommitMethod);
+	OnTextCommitted.Broadcast(InText, CommitMethod);
 }
 
 void UMultiLineEditableTextBox::PostLoad()

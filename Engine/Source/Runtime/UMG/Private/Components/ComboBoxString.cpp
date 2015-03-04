@@ -31,9 +31,9 @@ void UComboBoxString::PostLoad()
 	Super::PostLoad();
 
 	// Initialize the set of options from the default set only once.
-	for ( const FString& DefaultOptions : DefaultOptions )
+	for ( const FString& DefaultOption : DefaultOptions )
 	{
-		AddOption(DefaultOptions);
+		AddOption(DefaultOption);
 	}
 }
 

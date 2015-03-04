@@ -1938,7 +1938,6 @@ void FPostProcessing::ProcessES2(FRHICommandListImmediate& RHICmdList, FViewInfo
 			}
 
 			// Mobile temporal AA is done after tonemapping.
-			FIntPoint PrePostSourceViewportSize = View.ViewRect.Size();
 			FRenderingCompositePass* PostProcessAa = Context.Graph.RegisterPass(new(FMemStack::Get()) FRCPassPostProcessAaES2());
 			PostProcessAa->SetInput(ePId_Input0, Context.FinalOutput);
 			PostProcessAa->SetInput(ePId_Input1, PostProcessPrior);

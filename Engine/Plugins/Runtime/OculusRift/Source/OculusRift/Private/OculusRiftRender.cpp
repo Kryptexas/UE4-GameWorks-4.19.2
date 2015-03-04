@@ -90,7 +90,7 @@ void FOculusRiftHMD::PrecalculatePostProcess_NoLock()
 #endif
 }
 
-void FOculusRiftHMD::DrawDistortionMesh_RenderThread(FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& TextureSize)
+void FOculusRiftHMD::DrawDistortionMesh_RenderThread(FRenderingCompositePassContext& Context, const FSceneView& View, const FIntPoint& InTextureSize)
 {
 #ifndef OVR_SDK_RENDERING
 	float ClipSpaceQuadZ = 0.0f;

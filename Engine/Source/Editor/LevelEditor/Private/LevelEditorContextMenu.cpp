@@ -152,8 +152,8 @@ TSharedPtr< SWidget > FLevelEditorContextMenu::BuildMenuWidget( TWeakPtr< SLevel
 
 void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLevelEditor> LevelEditor, LevelEditorMenuContext ContextType, TSharedPtr<FExtender> Extender )
 {
-	auto LevelEditorActions = LevelEditor.Pin()->GetLevelEditorActions().ToSharedRef();
-	MenuBuilder.PushCommandList(LevelEditorActions);
+	auto LevelEditorActionsList = LevelEditor.Pin()->GetLevelEditorActions().ToSharedRef();
+	MenuBuilder.PushCommandList(LevelEditorActionsList);
 
 	if (GEditor->GetSelectedComponentCount() > 0)
 	{
@@ -213,7 +213,7 @@ void FLevelEditorContextMenu::FillMenu( FMenuBuilder& MenuBuilder, TWeakPtr<SLev
 		{
 			if (MenuExtenderDelegates[i].IsBound())
 			{
-				Extenders.Add(MenuExtenderDelegates[i].Execute(LevelEditorActions, SelectedActors));
+				Extenders.Add(MenuExtenderDelegates[i].Execute(LevelEditorActionsList, SelectedActors));
 			}
 		}
 		MenuBuilder.PushExtender(FExtender::Combine(Extenders).ToSharedRef());

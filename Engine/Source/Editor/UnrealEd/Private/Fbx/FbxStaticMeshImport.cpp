@@ -1237,16 +1237,16 @@ UStaticMesh* UnFbx::FFbxImporter::ImportStaticMeshAsSingle(UObject* InParent, TA
 		FMeshSectionInfoMap OldSectionInfoMap = StaticMesh->SectionInfoMap;
 		StaticMesh->SectionInfoMap.Clear();
 		// fix up section data
-		for (int32 LODIndex = 0; LODIndex<StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
+		for (int32 LODResoureceIndex = 0; LODResoureceIndex<StaticMesh->RenderData->LODResources.Num(); ++LODResoureceIndex)
 		{
-			FStaticMeshLODResources& LOD = StaticMesh->RenderData->LODResources[LODIndex];
+			FStaticMeshLODResources& LOD = StaticMesh->RenderData->LODResources[LODResoureceIndex];
 			int32 NumSections = LOD.Sections.Num();
 			for(int32 SectionIndex = 0; SectionIndex < NumSections; ++SectionIndex)
 			{
-				FMeshSectionInfo Info = OldSectionInfoMap.Get(LODIndex, SectionIndex);
+				FMeshSectionInfo Info = OldSectionInfoMap.Get(LODResoureceIndex, SectionIndex);
 				if (StaticMesh->Materials.IsValidIndex(Info.MaterialIndex))
 				{
-					StaticMesh->SectionInfoMap.Set(LODIndex, SectionIndex, Info);
+					StaticMesh->SectionInfoMap.Set(LODResoureceIndex, SectionIndex, Info);
 				}
 			}
 		}

@@ -861,9 +861,9 @@ void UAnimSequence::GetAnimationPose(FTransformArrayA2& OutAtoms, const FBoneCon
 	}
 }
 
-void UAnimSequence::ResetRootBoneForRootMotion(FTransformArrayA2& BoneTransforms, const FBoneContainer& RequiredBones, ERootMotionRootLock::Type RootMotionRootLock) const
+void UAnimSequence::ResetRootBoneForRootMotion(FTransformArrayA2& BoneTransforms, const FBoneContainer& RequiredBones, ERootMotionRootLock::Type InRootMotionRootLock) const
 {
-	switch (RootMotionRootLock)
+	switch (InRootMotionRootLock)
 	{
 		case ERootMotionRootLock::AnimFirstFrame: BoneTransforms[0] = ExtractRootTrackTransform(0.f, &RequiredBones); break;
 		case ERootMotionRootLock::Zero: BoneTransforms[0] = FTransform::Identity; break;
