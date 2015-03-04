@@ -478,9 +478,12 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_K2NODE_EVENT_MEMBER_REFERENCE,
 	// FPropertyTag stores GUID of struct
 	VER_UE4_STRUCT_GUID_IN_PROPERTY_TAG,
-
 	// Remove unused UPolys from UModel cooked content
 	VER_UE4_REMOVE_UNUSED_UPOLYS_FROM_UMODEL,
+	// This doesn't do anything except trigger a rebuild on HISMC cluster trees, in this case to get a good "occlusion query" level
+	VER_UE4_REBUILD_HIERARCHICAL_INSTANCE_TREES,
+
+
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)
 	VER_UE4_AUTOMATIC_VERSION_PLUS_ONE,

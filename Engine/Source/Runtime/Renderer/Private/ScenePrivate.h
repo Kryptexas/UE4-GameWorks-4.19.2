@@ -158,8 +158,13 @@ public:
 	 */
 	int32 NumBufferedFrames;
 
+	/** 
+	 * For things that have subqueries (folaige), this is the non-zero
+	 */
+	int32 CustomIndex;
+
 	/** Initialization constructor. */
-	FORCEINLINE FPrimitiveOcclusionHistory(FPrimitiveComponentId InPrimitiveId = FPrimitiveComponentId())
+	FORCEINLINE FPrimitiveOcclusionHistory(FPrimitiveComponentId InPrimitiveId, int32 SubQuery)
 		: PrimitiveId(InPrimitiveId)
 		, HZBTestIndex(0)
 		, HZBTestFrameNumber(~0u)
@@ -167,6 +172,7 @@ public:
 		, LastConsideredTime(0.0f)
 		, LastPixelsPercentage(0.0f)
 		, bGroupedQuery(false)
+		, CustomIndex(SubQuery)
 	{
 #if BUFFERED_OCCLUSION_QUERIES
 		NumBufferedFrames = FOcclusionQueryHelpers::GetNumBufferedFrames();
@@ -217,22 +223,41 @@ public:
 	}
 };
 
-/** Defines how the hash set indexes the FPrimitiveOcclusionHistory objects. */
-struct FPrimitiveOcclusionHistoryKeyFuncs : BaseKeyFuncs<FPrimitiveOcclusionHistory,FPrimitiveComponentId>
+struct FPrimitiveOcclusionHistoryKey
 {
+	FPrimitiveComponentId PrimitiveId;
+	int32 CustomIndex;
+
+	FPrimitiveOcclusionHistoryKey(const FPrimitiveOcclusionHistory& Element)
+		: PrimitiveId(Element.PrimitiveId)
+		, CustomIndex(Element.CustomIndex)
+	{
+	}
+	FPrimitiveOcclusionHistoryKey(FPrimitiveComponentId InPrimitiveId, int32 InCustomIndex)
+		: PrimitiveId(InPrimitiveId)
+		, CustomIndex(InCustomIndex)
+	{
+	}
+};
+
+/** Defines how the hash set indexes the FPrimitiveOcclusionHistory objects. */
+struct FPrimitiveOcclusionHistoryKeyFuncs : BaseKeyFuncs<FPrimitiveOcclusionHistory,FPrimitiveOcclusionHistoryKey>
+{
+	typedef FPrimitiveOcclusionHistoryKey KeyInitType;
+
 	static KeyInitType GetSetKey(const FPrimitiveOcclusionHistory& Element)
 	{
-		return Element.PrimitiveId;
+		return FPrimitiveOcclusionHistoryKey(Element);
 	}
 
 	static bool Matches(KeyInitType A,KeyInitType B)
 	{
-		return A == B;
+		return A.PrimitiveId == B.PrimitiveId && A.CustomIndex == B.CustomIndex;
 	}
 
 	static uint32 GetKeyHash(KeyInitType Key)
 	{
-		return GetTypeHash(Key.Value);
+		return GetTypeHash(Key.PrimitiveId.PrimIDValue) ^ (GetTypeHash(Key.CustomIndex) >> 20);
 	}
 };
 
@@ -404,6 +429,7 @@ public:
 	};
 
 	int32 NumBufferedFrames;
+	uint32 UniqueID;
 	typedef TMap<FSceneViewState::FProjectedShadowKey, FRenderQueryRHIRef> ShadowKeyOcclusionQueryMap;
 #if BUFFERED_OCCLUSION_QUERIES
 	TArray<ShadowKeyOcclusionQueryMap> ShadowOcclusionQueryMaps;
@@ -745,12 +771,13 @@ public:
 	{
 		return TemporalLODState;
 	}
-	/** 
-	 * Returns the blend factor between the last two LOD samples
-	 */
 	float GetTemporalLODTransition() const override
 	{
 		return TemporalLODState.GetTemporalLODTransition(LastRenderTime);
+	}
+	uint32 GetViewKey() const override
+	{
+		return UniqueID;
 	}
 
 
@@ -1221,6 +1248,8 @@ namespace EOcclusionFlags
 		AllowApproximateOcclusion = 0x4,
 		/** Indicates the primitive has a valid ID for precomputed visibility. */
 		HasPrecomputedVisibility = 0x8,
+		/** Indicates the primitive has a valid ID for precomputed visibility. */
+		HasSubprimitiveQueries = 0x10,
 	};
 };
 

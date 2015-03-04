@@ -526,6 +526,15 @@ float FSceneView::GetTemporalLODTransition() const
 	return 0.0f;
 }
 
+uint32 FSceneView::GetViewKey() const
+{
+	if (State)
+	{
+		return State->GetViewKey();
+	}
+	return 0;
+}
+
 
 void FSceneView::UpdateViewMatrix()
 {

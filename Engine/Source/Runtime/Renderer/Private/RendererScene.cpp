@@ -30,6 +30,8 @@ TGlobalResource< FGlobalDistanceCullFadeUniformBuffer > GDistanceCullFadedInUnif
 
 SIZE_T FStaticMeshDrawListBase::TotalBytesUsed = 0;
 
+static FThreadSafeCounter FSceneViewState_UniqueID;
+
 /**
  * Holds the info to update SpeedTree wind per unique tree object in the scene, instead of per instance
  */
@@ -54,6 +56,7 @@ struct FSpeedTreeWindComputation
 FSceneViewState::FSceneViewState()
 	: OcclusionQueryPool(RQT_Occlusion)
 {
+	UniqueID = FSceneViewState_UniqueID.Increment();
 	OcclusionFrameCounter = 0;
 	LastRenderTime = -FLT_MAX;
 	LastRenderTimeDelta = 0.0f;
@@ -919,8 +922,8 @@ void FScene::SetSkyLight(FSkyLightSceneProxy* LightProxy)
 
 		if (!bHadSkylight)
 		{
-			// Mark the scene as needing static draw lists to be recreated if needed
-			// The base pass chooses shaders based on whether there's a skylight in the scene, and that is cached in static draw lists
+		// Mark the scene as needing static draw lists to be recreated if needed
+		// The base pass chooses shaders based on whether there's a skylight in the scene, and that is cached in static draw lists
 			Scene->bScenesPrimitivesNeedStaticMeshElementUpdate = true;
 		}
 	});
@@ -1707,7 +1710,7 @@ void FScene::UpdateSpeedTreeWind(double CurrentTime)
 				WindComputation->UniformBuffer.SetContents(UniformParameters);
 			}
 		});
-#undef SET_SPEEDTREE_TABLE_FLOAT4V
+	#undef SET_SPEEDTREE_TABLE_FLOAT4V
 }
 
 FUniformBufferRHIParamRef FScene::GetSpeedTreeUniformBuffer(const FVertexFactory* VertexFactory)

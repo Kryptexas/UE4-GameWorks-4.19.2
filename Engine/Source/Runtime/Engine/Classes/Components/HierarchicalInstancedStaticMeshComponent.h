@@ -100,6 +100,10 @@ class ENGINE_API UHierarchicalInstancedStaticMeshComponent : public UInstancedSt
 	UPROPERTY()
 	FBox UnbuiltInstanceBounds;
 
+	// The number of nodes in the occlusion layer
+	UPROPERTY()
+	int32 OcclusionLayerNumNodes;
+
 	bool bIsAsyncBuilding;
 	bool bConcurrentRemoval;
 
@@ -142,9 +146,10 @@ public:
 		TArray<FClusterNode>& OutClusterTree,
 		TArray<int32>& OutSortedInstances,
 		TArray<int32>& OutInstanceReorderTable,
+		int32& OutOcclusionLayerNum,
 		int32 MaxInstancesPerLeaf
 		);
-	void AcceptPrebuiltTree(TArray<FClusterNode>& InClusterTree);
+	void AcceptPrebuiltTree(TArray<FClusterNode>& InClusterTree, int InOcclusionLayerNumNodes);
 	void BuildFlatTree(const TArray<int32>& LeafInstanceCounts);
 	bool IsAsyncBuilding() const { return bIsAsyncBuilding; }
 	bool IsTreeFullyBuilt() const { return NumBuiltInstances == PerInstanceSMData.Num() && RemovedInstances.Num() == 0; }

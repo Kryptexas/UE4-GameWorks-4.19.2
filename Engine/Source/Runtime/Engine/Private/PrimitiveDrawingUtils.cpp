@@ -1438,7 +1438,7 @@ void ApplyViewModeOverrides(
 		{
 			// Determine unique color for model component.
 			FLinearColor BSPSplitColor;
-			FRandomStream RandomStream(GetTypeHash(PrimitiveSceneProxy->GetPrimitiveComponentId().Value));
+			FRandomStream RandomStream(GetTypeHash(PrimitiveSceneProxy->GetPrimitiveComponentId().PrimIDValue));
 			BSPSplitColor.R = RandomStream.GetFraction();
 			BSPSplitColor.G = RandomStream.GetFraction();
 			BSPSplitColor.B = RandomStream.GetFraction();

@@ -77,6 +77,15 @@ static FAutoConsoleVariableRef CVarVisualizeOccludedPrimitives(
 	ECVF_RenderThreadSafe | ECVF_Cheat
 	);
 
+static int32 GAllowSubPrimitiveQueries = 1;
+static FAutoConsoleVariableRef CVarAllowSubPrimitiveQueries(
+	TEXT("r.AllowSubPrimitiveQueries"),
+	GAllowSubPrimitiveQueries,
+	TEXT("Enables sub primitive queries, currently only used by hierarchical instanced static meshes. 1: Enable, 0 Disabled. When disabled, one query is used for the entire proxy."),
+	ECVF_RenderThreadSafe
+	);
+
+
 static TAutoConsoleVariable<int32> CVarLightShaftQuality(
 	TEXT("r.LightShaftQuality"),
 	1,
@@ -408,201 +417,259 @@ static int32 OcclusionCull(FRHICommandListImmediate& RHICmdList, const FScene* S
 						bCanBeOccluded = false;
 					}
 				}
+				int32 NumSubQueries = 1;
+				bool bSubQueries = false;
+				const TArray<FBoxSphereBounds>* SubBounds = nullptr;
+				TArray<bool, SceneRenderingAllocator> SubIsOccluded;
 
-				FPrimitiveComponentId PrimitiveId = Scene->PrimitiveComponentIds[BitIt.GetIndex()];
-				FPrimitiveOcclusionHistory* PrimitiveOcclusionHistory = ViewState->PrimitiveOcclusionHistorySet.Find(PrimitiveId);
-				bool bIsOccluded = false;
-				bool bOcclusionStateIsDefinite = false;
-				if (!PrimitiveOcclusionHistory)
+				if ((OcclusionFlags & EOcclusionFlags::HasSubprimitiveQueries) && GAllowSubPrimitiveQueries)
 				{
-					// If the primitive doesn't have an occlusion history yet, create it.
-					PrimitiveOcclusionHistory = &ViewState->PrimitiveOcclusionHistorySet[
-						ViewState->PrimitiveOcclusionHistorySet.Add(FPrimitiveOcclusionHistory(PrimitiveId))
-						];
-
-					// If the primitive hasn't been visible recently enough to have a history, treat it as unoccluded this frame so it will be rendered as an occluder and its true occlusion state can be determined.
-					// already set bIsOccluded = false;
-
-					// Flag the primitive's occlusion state as indefinite, which will force it to be queried this frame.
-					// The exception is if the primitive isn't occludable, in which case we know that it's definitely unoccluded.
-					bOcclusionStateIsDefinite = bCanBeOccluded ? false : true;
-				}
-				else
-				{
-					if (View.bIgnoreExistingQueries)
+					FPrimitiveSceneProxy* Proxy = Scene->Primitives[BitIt.GetIndex()]->Proxy;
+					SubBounds = Proxy->GetOcclusionQueries(&View);
+					NumSubQueries = SubBounds->Num();
+					bSubQueries = true;
+					if (!NumSubQueries)
 					{
-						// If the view is ignoring occlusion queries, the primitive is definitely unoccluded.
-						// already set bIsOccluded = false;
-						bOcclusionStateIsDefinite = View.bDisableQuerySubmissions;
+						View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
+						continue;
 					}
-					else if (bCanBeOccluded)
-					{
-						if( bHZBOcclusion )
-						{
-							if( ViewState->HZBOcclusionTests.IsValidFrame(PrimitiveOcclusionHistory->HZBTestFrameNumber) )
-							{
-								bIsOccluded = !ViewState->HZBOcclusionTests.IsVisible( PrimitiveOcclusionHistory->HZBTestIndex );
-								bOcclusionStateIsDefinite = true;
-							}
-						}
-						else
-						{
-							// Read the occlusion query results.
-							uint64 NumSamples = 0;
-							FRenderQueryRHIRef& PastQuery = PrimitiveOcclusionHistory->GetPastQuery(ViewState->OcclusionFrameCounter);
-							if (IsValidRef(PastQuery))
-							{
-								// NOTE: RHIGetOcclusionQueryResult should never fail when using a blocking call, rendering artifacts may show up.
-								if (RHICmdList.GetRenderQueryResult(PastQuery, NumSamples, true))
-								{
-									// we render occlusion without MSAA
-									uint32 NumPixels = (uint32)NumSamples;
+					SubIsOccluded.Reserve(NumSubQueries);
+				}
 
-									// The primitive is occluded if none of its bounding box's pixels were visible in the previous frame's occlusion query.
-									bIsOccluded = (NumPixels == 0);
-									if (!bIsOccluded)
+				bool bAllSubOcclusionStateIsDefinite = true;
+				bool bAllSubOccluded = true;
+				FPrimitiveComponentId PrimitiveId = Scene->PrimitiveComponentIds[BitIt.GetIndex()];
+				for (int32 SubQuery = 0; SubQuery < NumSubQueries; SubQuery++)
+				{
+
+					FPrimitiveOcclusionHistory* PrimitiveOcclusionHistory = ViewState->PrimitiveOcclusionHistorySet.Find(FPrimitiveOcclusionHistoryKey(PrimitiveId, SubQuery));
+					bool bIsOccluded = false;
+					bool bOcclusionStateIsDefinite = false;
+					if (!PrimitiveOcclusionHistory)
+					{
+						// If the primitive doesn't have an occlusion history yet, create it.
+						PrimitiveOcclusionHistory = &ViewState->PrimitiveOcclusionHistorySet[
+							ViewState->PrimitiveOcclusionHistorySet.Add(FPrimitiveOcclusionHistory(PrimitiveId, SubQuery))
+							];
+
+						// If the primitive hasn't been visible recently enough to have a history, treat it as unoccluded this frame so it will be rendered as an occluder and its true occlusion state can be determined.
+						// already set bIsOccluded = false;
+
+						// Flag the primitive's occlusion state as indefinite, which will force it to be queried this frame.
+						// The exception is if the primitive isn't occludable, in which case we know that it's definitely unoccluded.
+						bOcclusionStateIsDefinite = bCanBeOccluded ? false : true;
+					}
+					else
+					{
+						if (View.bIgnoreExistingQueries)
+						{
+							// If the view is ignoring occlusion queries, the primitive is definitely unoccluded.
+							// already set bIsOccluded = false;
+							bOcclusionStateIsDefinite = View.bDisableQuerySubmissions;
+						}
+						else if (bCanBeOccluded)
+						{
+							if( bHZBOcclusion )
+							{
+								if( ViewState->HZBOcclusionTests.IsValidFrame(PrimitiveOcclusionHistory->HZBTestFrameNumber) )
+								{
+									bIsOccluded = !ViewState->HZBOcclusionTests.IsVisible( PrimitiveOcclusionHistory->HZBTestIndex );
+									bOcclusionStateIsDefinite = true;
+								}
+							}
+							else
+							{
+								// Read the occlusion query results.
+								uint64 NumSamples = 0;
+								FRenderQueryRHIRef& PastQuery = PrimitiveOcclusionHistory->GetPastQuery(ViewState->OcclusionFrameCounter);
+								if (IsValidRef(PastQuery))
+								{
+									// NOTE: RHIGetOcclusionQueryResult should never fail when using a blocking call, rendering artifacts may show up.
+									if (RHICmdList.GetRenderQueryResult(PastQuery, NumSamples, true))
 									{
-										checkSlow(View.OneOverNumPossiblePixels > 0.0f);
-										PrimitiveOcclusionHistory->LastPixelsPercentage = NumPixels * View.OneOverNumPossiblePixels;
+										// we render occlusion without MSAA
+										uint32 NumPixels = (uint32)NumSamples;
+
+										// The primitive is occluded if none of its bounding box's pixels were visible in the previous frame's occlusion query.
+										bIsOccluded = (NumPixels == 0);
+										if (!bIsOccluded)
+										{
+											checkSlow(View.OneOverNumPossiblePixels > 0.0f);
+											PrimitiveOcclusionHistory->LastPixelsPercentage = NumPixels * View.OneOverNumPossiblePixels;
+										}
+										else
+										{
+											PrimitiveOcclusionHistory->LastPixelsPercentage = 0.0f;
+										}
+
+
+										// Flag the primitive's occlusion state as definite if it wasn't grouped.
+										bOcclusionStateIsDefinite = !PrimitiveOcclusionHistory->bGroupedQuery;
 									}
 									else
 									{
+										// If the occlusion query failed, treat the primitive as visible.  
+										// already set bIsOccluded = false;
+									}
+								}
+								else
+								{
+									// If there's no occlusion query for the primitive, set it's visibility state to whether it has been unoccluded recently.
+									bIsOccluded = (PrimitiveOcclusionHistory->LastVisibleTime + GEngine->PrimitiveProbablyVisibleTime < CurrentRealTime);
+									if (bIsOccluded)
+									{
 										PrimitiveOcclusionHistory->LastPixelsPercentage = 0.0f;
 									}
+									else
+									{
+										PrimitiveOcclusionHistory->LastPixelsPercentage = GEngine->MaxOcclusionPixelsFraction;
+									}
 
-
-									// Flag the primitive's occlusion state as definite if it wasn't grouped.
-									bOcclusionStateIsDefinite = !PrimitiveOcclusionHistory->bGroupedQuery;
-								}
-								else
-								{
-									// If the occlusion query failed, treat the primitive as visible.  
-									// already set bIsOccluded = false;
+									// the state was definite last frame, otherwise we would have ran a query
+									bOcclusionStateIsDefinite = true;
 								}
 							}
-							else
+
+							if( GVisualizeOccludedPrimitives && bIsOccluded )
 							{
-								// If there's no occlusion query for the primitive, set it's visibility state to whether it has been unoccluded recently.
-								bIsOccluded = (PrimitiveOcclusionHistory->LastVisibleTime + GEngine->PrimitiveProbablyVisibleTime < CurrentRealTime);
-								if (bIsOccluded)
-								{
-									PrimitiveOcclusionHistory->LastPixelsPercentage = 0.0f;
-								}
-								else
-								{
-									PrimitiveOcclusionHistory->LastPixelsPercentage = GEngine->MaxOcclusionPixelsFraction;
-								}
-
-								// the state was definite last frame, otherwise we would have ran a query
-								bOcclusionStateIsDefinite = true;
+								const FBoxSphereBounds& Bounds = bSubQueries ? (*SubBounds)[SubQuery] : Scene->PrimitiveOcclusionBounds[ BitIt.GetIndex() ];
+								DrawWireBox( &OcclusionPDI, Bounds.GetBox(), FColor(50, 255, 50), SDPG_Foreground );
 							}
-						}
-
-						if( GVisualizeOccludedPrimitives && bIsOccluded )
-						{
-							const FBoxSphereBounds& Bounds = Scene->PrimitiveOcclusionBounds[ BitIt.GetIndex() ];
-							DrawWireBox( &OcclusionPDI, Bounds.GetBox(), FColor(50, 255, 50), SDPG_Foreground );
-						}
-					}
-					else
-					{
-						// Primitives that aren't occludable are considered definitely unoccluded.
-						// already set bIsOccluded = false;
-						bOcclusionStateIsDefinite = true;
-					}
-
-					if (bClearQueries)
-					{
-						ViewState->OcclusionQueryPool.ReleaseQuery(RHICmdList, PrimitiveOcclusionHistory->GetPastQuery(ViewState->OcclusionFrameCounter));
-					}
-				}
-
-				// Set the primitive's considered time to keep its occlusion history from being trimmed.
-				PrimitiveOcclusionHistory->LastConsideredTime = CurrentRealTime;
-
-				if (bSubmitQueries && bCanBeOccluded)
-				{
-					bool bAllowBoundsTest;
-					const FBoxSphereBounds& OcclusionBounds = Scene->PrimitiveOcclusionBounds[BitIt.GetIndex()];
-					if (View.bHasNearClippingPlane)
-					{
-						bAllowBoundsTest = View.NearClippingPlane.PlaneDot(OcclusionBounds.Origin) < 
-							-(FVector::BoxPushOut(View.NearClippingPlane,OcclusionBounds.BoxExtent));
-					}
-					else
-					{
-						bAllowBoundsTest = OcclusionBounds.SphereRadius < HALF_WORLD_MAX;
-					}
-
-					if (bAllowBoundsTest)
-					{
-						if( bHZBOcclusion )
-						{
-							// Always run
-							PrimitiveOcclusionHistory->HZBTestIndex = ViewState->HZBOcclusionTests.AddBounds( OcclusionBounds.Origin, OcclusionBounds.BoxExtent );
-							PrimitiveOcclusionHistory->HZBTestFrameNumber = ViewState->OcclusionFrameCounter;
 						}
 						else
 						{
-							// decide if a query should be run this frame
-							bool bRunQuery,bGroupedQuery;
+							// Primitives that aren't occludable are considered definitely unoccluded.
+							// already set bIsOccluded = false;
+							bOcclusionStateIsDefinite = true;
+						}
 
-							if (OcclusionFlags & EOcclusionFlags::AllowApproximateOcclusion)
+						if (bClearQueries)
+						{
+							ViewState->OcclusionQueryPool.ReleaseQuery(RHICmdList, PrimitiveOcclusionHistory->GetPastQuery(ViewState->OcclusionFrameCounter));
+						}
+					}
+
+					// Set the primitive's considered time to keep its occlusion history from being trimmed.
+					PrimitiveOcclusionHistory->LastConsideredTime = CurrentRealTime;
+
+					if (bSubmitQueries && bCanBeOccluded)
+					{
+						bool bAllowBoundsTest;
+						const FBoxSphereBounds& OcclusionBounds = bSubQueries ? (*SubBounds)[SubQuery] : Scene->PrimitiveOcclusionBounds[ BitIt.GetIndex() ];
+						if (View.bHasNearClippingPlane)
+						{
+							bAllowBoundsTest = View.NearClippingPlane.PlaneDot(OcclusionBounds.Origin) < 
+								-(FVector::BoxPushOut(View.NearClippingPlane,OcclusionBounds.BoxExtent));
+						}
+						else
+						{
+							bAllowBoundsTest = OcclusionBounds.SphereRadius < HALF_WORLD_MAX;
+						}
+
+						if (bAllowBoundsTest)
+						{
+							if( bHZBOcclusion )
 							{
-								if (bIsOccluded)
-								{
-									// Primitives that were occluded the previous frame use grouped queries.
-									bGroupedQuery = true;
-									bRunQuery = true;
-								}
-								else if (bOcclusionStateIsDefinite)
-								{
-									// If the primitive's is definitely unoccluded, only requery it occasionally.
-									float FractionMultiplier = FMath::Max(PrimitiveOcclusionHistory->LastPixelsPercentage/GEngine->MaxOcclusionPixelsFraction, 1.0f);
-									bRunQuery = (FractionMultiplier * GOcclusionRandomStream.GetFraction() < GEngine->MaxOcclusionPixelsFraction);
-									bGroupedQuery = false;
-								}
-								else
-								{
-									bGroupedQuery = false;
-									bRunQuery = true;
-								}
+								// Always run
+								PrimitiveOcclusionHistory->HZBTestIndex = ViewState->HZBOcclusionTests.AddBounds( OcclusionBounds.Origin, OcclusionBounds.BoxExtent );
+								PrimitiveOcclusionHistory->HZBTestFrameNumber = ViewState->OcclusionFrameCounter;
 							}
 							else
 							{
-								// Primitives that need precise occlusion results use individual queries.
-								bGroupedQuery = false;
-								bRunQuery = true;
-							}
+								// decide if a query should be run this frame
+								bool bRunQuery,bGroupedQuery;
 
-							if (bRunQuery)
-							{
-								PrimitiveOcclusionHistory->SetCurrentQuery(ViewState->OcclusionFrameCounter, 
-									bGroupedQuery ? 
-									View.GroupedOcclusionQueries.BatchPrimitive(OcclusionBounds.Origin + View.ViewMatrices.PreViewTranslation,OcclusionBounds.BoxExtent) :
-									View.IndividualOcclusionQueries.BatchPrimitive(OcclusionBounds.Origin + View.ViewMatrices.PreViewTranslation,OcclusionBounds.BoxExtent)
-									);	
+								if (!bSubQueries && // sub queries are never grouped, we assume the custom code knows what it is doing and will group internally if it wants
+									(OcclusionFlags & EOcclusionFlags::AllowApproximateOcclusion))
+								{
+									if (bIsOccluded)
+									{
+										// Primitives that were occluded the previous frame use grouped queries.
+										bGroupedQuery = true;
+										bRunQuery = true;
+									}
+									else if (bOcclusionStateIsDefinite)
+									{
+										// If the primitive's is definitely unoccluded, only requery it occasionally.
+										float FractionMultiplier = FMath::Max(PrimitiveOcclusionHistory->LastPixelsPercentage/GEngine->MaxOcclusionPixelsFraction, 1.0f);
+										bRunQuery = (FractionMultiplier * GOcclusionRandomStream.GetFraction() < GEngine->MaxOcclusionPixelsFraction);
+										bGroupedQuery = false;
+									}
+									else
+									{
+										bGroupedQuery = false;
+										bRunQuery = true;
+									}
+								}
+								else
+								{
+									// Primitives that need precise occlusion results use individual queries.
+									bGroupedQuery = false;
+									bRunQuery = true;
+								}
+
+								if (bRunQuery)
+								{
+									PrimitiveOcclusionHistory->SetCurrentQuery(ViewState->OcclusionFrameCounter, 
+										bGroupedQuery ? 
+										View.GroupedOcclusionQueries.BatchPrimitive(OcclusionBounds.Origin + View.ViewMatrices.PreViewTranslation,OcclusionBounds.BoxExtent) :
+										View.IndividualOcclusionQueries.BatchPrimitive(OcclusionBounds.Origin + View.ViewMatrices.PreViewTranslation,OcclusionBounds.BoxExtent)
+										);	
+								}
+								PrimitiveOcclusionHistory->bGroupedQuery = bGroupedQuery;
 							}
-							PrimitiveOcclusionHistory->bGroupedQuery = bGroupedQuery;
+						}
+						else
+						{
+							// If the primitive's bounding box intersects the near clipping plane, treat it as definitely unoccluded.
+							bIsOccluded = false;
+							bOcclusionStateIsDefinite = true;
+						}
+					}
+
+					if (bSubQueries)
+					{
+						SubIsOccluded.Add(bIsOccluded);
+						if (!bIsOccluded)
+						{
+							bAllSubOccluded = false;
+							if (bOcclusionStateIsDefinite)
+							{
+								PrimitiveOcclusionHistory->LastVisibleTime = CurrentRealTime;
+							}
+						}
+						if (bIsOccluded || !bOcclusionStateIsDefinite)
+						{
+							bAllSubOcclusionStateIsDefinite = false;
 						}
 					}
 					else
 					{
-						// If the primitive's bounding box intersects the near clipping plane, treat it as definitely unoccluded.
-						bIsOccluded = false;
-						bOcclusionStateIsDefinite = true;
+						if (bIsOccluded)
+						{
+							View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
+							STAT(NumOccludedPrimitives++);
+						}
+						else if (bOcclusionStateIsDefinite)
+						{
+							PrimitiveOcclusionHistory->LastVisibleTime = CurrentRealTime;
+							View.PrimitiveDefinitelyUnoccludedMap.AccessCorrespondingBit(BitIt) = true;
+						}
 					}
 				}
-
-				if (bIsOccluded)
+				if (bSubQueries)
 				{
-					View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
-					STAT(NumOccludedPrimitives++);
-				}
-				else if (bOcclusionStateIsDefinite)
-				{
-					PrimitiveOcclusionHistory->LastVisibleTime = CurrentRealTime;
-					View.PrimitiveDefinitelyUnoccludedMap.AccessCorrespondingBit(BitIt) = true;
+					FPrimitiveSceneProxy* Proxy = Scene->Primitives[BitIt.GetIndex()]->Proxy;
+					Proxy->AcceptOcclusionResults(&View, &SubIsOccluded[0], SubIsOccluded.Num());
+					if (bAllSubOccluded)
+					{
+						View.PrimitiveVisibilityMap.AccessCorrespondingBit(BitIt) = false;
+						STAT(NumOccludedPrimitives++);
+					}
+					else if (bAllSubOcclusionStateIsDefinite)
+					{
+						View.PrimitiveDefinitelyUnoccludedMap.AccessCorrespondingBit(BitIt) = true;
+					}
 				}
 			}
 

@@ -221,6 +221,10 @@ void FPrimitiveSceneInfo::AddToScene(FRHICommandListImmediate& RHICmdList, bool 
 	{
 		OcclusionFlags |= EOcclusionFlags::CanBeOccluded;
 	}
+	if (Proxy->HasSubprimitiveOcclusionQueries())
+	{
+		OcclusionFlags |= EOcclusionFlags::HasSubprimitiveQueries;
+	}
 	if (Proxy->AllowApproximateOcclusion()
 		// Allow approximate occlusion if attached, even if the parent does not have bLightAttachmentsAsGroup enabled
 		|| LightingAttachmentRoot.IsValid())

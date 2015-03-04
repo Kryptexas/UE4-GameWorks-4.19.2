@@ -426,7 +426,7 @@ protected:
 	TEnumAsByte<EHasCustomNavigableGeometry::Type> bHasCustomNavigableGeometry;
 
 	/** Next id to be used by a component. */
-	static uint64 NextComponentId;
+	static uint32 NextComponentId;
 
 public:
 	/** 

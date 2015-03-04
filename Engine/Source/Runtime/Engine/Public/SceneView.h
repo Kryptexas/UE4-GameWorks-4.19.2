@@ -635,6 +635,11 @@ public:
 	 */
 	float GetTemporalLODTransition() const;
 
+	/** 
+	 * returns a unique key for the view state if one exists, otherwise returns zero
+	 */
+	uint32 GetViewKey() const;
+
 	/** Allow things like HMD displays to update the view matrix at the last minute, to minimize perceived latency */
 	void UpdateViewMatrix();
 
