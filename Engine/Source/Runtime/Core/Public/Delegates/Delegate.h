@@ -280,19 +280,19 @@ class DynamicMulticastDelegateName : public FUNC_DECLARE_DYNAMIC_DELEGATE_BASE(T
 
 
 // Helper macro for calling BindDynamic() on dynamic delegates.  Automatically generates the function name string.
-#define BindDynamic( UserObject, FuncName ) __Internal_BindDynamic( UserObject, FuncName, FString( #FuncName ) )
+#define BindDynamic( UserObject, FuncName ) __Internal_BindDynamic( UserObject, FuncName, TEXT( #FuncName ) )
 
 // Helper macro for calling AddDynamic() on dynamic multi-cast delegates.  Automatically generates the function name string.
-#define AddDynamic( UserObject, FuncName ) __Internal_AddDynamic( UserObject, FuncName, FString( #FuncName ) )
+#define AddDynamic( UserObject, FuncName ) __Internal_AddDynamic( UserObject, FuncName, TEXT( #FuncName ) )
 
 // Helper macro for calling AddUniqueDynamic() on dynamic multi-cast delegates.  Automatically generates the function name string.
-#define AddUniqueDynamic( UserObject, FuncName ) __Internal_AddUniqueDynamic( UserObject, FuncName, FString( #FuncName ) )
+#define AddUniqueDynamic( UserObject, FuncName ) __Internal_AddUniqueDynamic( UserObject, FuncName, TEXT( #FuncName ) )
 
 // Helper macro for calling RemoveDynamic() on dynamic multi-cast delegates.  Automatically generates the function name string.
-#define RemoveDynamic( UserObject, FuncName ) __Internal_RemoveDynamic( UserObject, FuncName, FString( #FuncName ) )
+#define RemoveDynamic( UserObject, FuncName ) __Internal_RemoveDynamic( UserObject, FuncName, TEXT( #FuncName ) )
 
 // Helper macro for calling IsAlreadyBound() on dynamic multi-cast delegates.  Automatically generates the function name string.
-#define IsAlreadyBound( UserObject, FuncName ) __Internal_IsAlreadyBound( UserObject, FuncName, FString( #FuncName ) )
+#define IsAlreadyBound( UserObject, FuncName ) __Internal_IsAlreadyBound( UserObject, FuncName, TEXT( #FuncName ) )
 
 
 /*********************************************************************************************************************/

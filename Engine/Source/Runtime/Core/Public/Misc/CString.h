@@ -244,6 +244,12 @@ struct TCString
 	static FORCEINLINE CharType* Strrchr( CharType* String, CharType c );
 
 	/**
+	 * strrstr wrapper
+	 */
+	static FORCEINLINE const CharType* Strrstr( const CharType* String, const CharType* Find );
+	static FORCEINLINE CharType* Strrstr( CharType* String, const CharType* Find );
+
+	/**
 	 * atoi wrapper
 	 */
 	static FORCEINLINE int32 Atoi( const CharType* String );
@@ -587,6 +593,34 @@ template <typename T> FORCEINLINE
 typename TCString<T>::CharType* TCString<T>::Strrchr( CharType* String, CharType c )
 { 
 	return (CharType*)FPlatformString::Strrchr(String, c);
+}
+
+template <typename T> FORCEINLINE
+const typename TCString<T>::CharType* TCString<T>::Strrstr( const CharType* String, const CharType* Find )
+{
+	return Strrstr((CharType*)String, Find);
+}
+
+template <typename T> FORCEINLINE
+typename TCString<T>::CharType* TCString<T>::Strrstr( CharType* String, const CharType* Find )
+{
+	if (*Find == (CharType)0)
+	{
+		return String + Strlen(String);
+	}
+
+	CharType* Result = nullptr;
+	for (;;)
+	{
+		CharType* Found = Strstr(String, Find);
+		if (!Found)
+		{
+			return Result;
+		}
+
+		Result = Found;
+		String = Found + 1;
+	}
 }
 
 template <typename T> FORCEINLINE 
