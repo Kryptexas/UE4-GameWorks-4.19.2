@@ -71,10 +71,6 @@ typedef FWindowsPlatformTypes FPlatformTypes;
 #define PLATFORM_HAS_128BIT_ATOMICS							(!HACK_HEADER_GENERATOR && PLATFORM_64BITS && (WINVER >= 0x602))
 #define PLATFORM_USES_ANSI_STRING_FOR_EXTERNAL_PROFILING	0
 
-#if _MSC_VER < 1700
-	#define PLATFORM_COMPILER_HAS_RANGED_FOR_LOOP			0
-#endif
-
 
 // Function type macros.
 #define VARARGS     __cdecl					/* Functions with variable arguments */

@@ -21,11 +21,7 @@ FString FUnrealSourceFile::GetFileId() const
 	StdFilename = StdFilename.Mid(9);
 	for (auto Char : StdFilename)
 	{
-		if (Char == 0)
-		{
-			break;
-		}
-		else if (FChar::IsAlnum(Char))
+		if (FChar::IsAlnum(Char))
 		{
 			Out.AppendChar(Char);
 		}

@@ -228,15 +228,8 @@ struct PrimitiveStatsGenerator
 					// If Count represents the Model itself, we do NOT want to increment it now.
 					StatsEntry->Count--;
 
-					#if PLATFORM_COMPILER_HAS_RANGED_FOR_LOOP
 					for (const auto& Element : ModelComponent->GetElements())
 					{
-					#else
-					TIndirectArray<FModelElement> Elements = ModelComponent->GetElements();
-					for( int32 ElementIndex=0; ElementIndex<Elements.Num(); ElementIndex++ )
-					{
-						const FModelElement& Element = Elements[ElementIndex];
-					#endif
 						StatsEntry->Triangles += Element.NumTriangles;
 						StatsEntry->Sections++;
 					}

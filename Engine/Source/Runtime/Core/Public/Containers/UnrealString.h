@@ -239,8 +239,8 @@ private:
 	 */
 	FORCEINLINE friend TIterator      begin(      FString& Str) { return begin(Str.Data); }
 	FORCEINLINE friend TConstIterator begin(const FString& Str) { return begin(Str.Data); }
-	FORCEINLINE friend TIterator      end  (      FString& Str) { return end  (Str.Data); }
-	FORCEINLINE friend TConstIterator end  (const FString& Str) { return end  (Str.Data); }
+	FORCEINLINE friend TIterator      end  (      FString& Str) { TIterator      Result = end(Str.Data); if (Str.Data.Num()) { --Result; } return Result; }
+	FORCEINLINE friend TConstIterator end  (const FString& Str) { TConstIterator Result = end(Str.Data); if (Str.Data.Num()) { --Result; } return Result; }
 
 public:
 	FORCEINLINE uint32 GetAllocatedSize() const

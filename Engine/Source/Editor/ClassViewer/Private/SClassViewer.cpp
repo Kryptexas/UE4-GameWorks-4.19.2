@@ -2563,15 +2563,8 @@ void SClassViewer::OnFilterTextChanged( const FText& InFilterText )
 	{
 		bool bIsWithinQuotedSection = false;
 		FString NewSearchTerm;
-		#if PLATFORM_COMPILER_HAS_RANGED_FOR_LOOP
 		for( auto CurChar : CurrentFilterText )
 		{
-		#else
-		for( auto CurCharIndex = 0; CurCharIndex < CurrentFilterText.Len(); ++CurCharIndex )
-		{
-			const auto CurChar = CurrentFilterText.GetCharArray()[ CurCharIndex ];
-		#endif
-
 			// Keep an eye out for double-quotes.  We want to retain whitespace within a search term if
 			// it has double-quotes around it
 			if( CurChar == TCHAR('\"') )

@@ -717,15 +717,8 @@ ExistingSkelMeshData* SaveExistingSkelMeshData(USkeletalMesh* ExistingSkelMesh)
 				LODModel.LegacyRawPointIndices.Lock( LOCK_READ_ONLY );
 			}
 			ExistingMeshDataPtr->ExistingLODModels = ImportedResource->LODModels;
-			#if PLATFORM_COMPILER_HAS_RANGED_FOR_LOOP
 			for ( auto& LODModel : ImportedResource->LODModels )
 			{
-			#else
-			for ( int32 LODModelIndex = 0 ; LODModelIndex < ImportedResource->LODModels.Num() ; ++LODModelIndex )
-			{
-
-				FStaticLODModel& LODModel = ImportedResource->LODModels[LODModelIndex];
-			#endif
 				LODModel.RawPointIndices.Unlock();
 				LODModel.LegacyRawPointIndices.Unlock();
 
