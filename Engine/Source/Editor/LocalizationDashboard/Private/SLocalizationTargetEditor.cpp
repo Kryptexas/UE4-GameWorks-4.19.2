@@ -26,7 +26,7 @@ namespace
 	class FLocalizationTargetDetailCustomization : public IDetailCustomization
 	{
 	public:
-		FLocalizationTargetDetailCustomization(UProjectLocalizationSettings* const InProjectSettings, ULocalizationTarget* const InLocalizationTarget);
+		FLocalizationTargetDetailCustomization(ULocalizationTargetSet* const InProjectSettings, ULocalizationTarget* const InLocalizationTarget);
 		virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
 
 		FLocalizationTargetSettings* GetTargetSettings() const;
@@ -63,7 +63,7 @@ namespace
 		void OnNewSupportedCultureSelected(FCulturePtr SelectedCulture, ESelectInfo::Type SelectInfo);
 
 	private:
-		UProjectLocalizationSettings* ProjectSettings;
+		ULocalizationTargetSet* ProjectSettings;
 		ULocalizationTarget* LocalizationTarget;
 
 		IDetailLayoutBuilder* DetailLayoutBuilder;
@@ -93,7 +93,7 @@ namespace
 		FCulturePtr SelectedNewCulture;
 	};
 
-	FLocalizationTargetDetailCustomization::FLocalizationTargetDetailCustomization(UProjectLocalizationSettings* const InProjectSettings, ULocalizationTarget* const InLocalizationTarget)
+	FLocalizationTargetDetailCustomization::FLocalizationTargetDetailCustomization(ULocalizationTargetSet* const InProjectSettings, ULocalizationTarget* const InLocalizationTarget)
 		: ProjectSettings(InProjectSettings)
 		, LocalizationTarget(InLocalizationTarget)
 		, DetailLayoutBuilder(nullptr)
@@ -924,7 +924,7 @@ namespace
 	}
 }
 
-void SLocalizationTargetEditor::Construct(const FArguments& InArgs, UProjectLocalizationSettings* const InProjectSettings, ULocalizationTarget* const InLocalizationTarget)
+void SLocalizationTargetEditor::Construct(const FArguments& InArgs, ULocalizationTargetSet* const InProjectSettings, ULocalizationTarget* const InLocalizationTarget)
 {
 	check(InProjectSettings->TargetObjects.Contains(InLocalizationTarget));
 

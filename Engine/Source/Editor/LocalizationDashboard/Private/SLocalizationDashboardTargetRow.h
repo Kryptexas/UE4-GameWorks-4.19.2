@@ -4,7 +4,7 @@
 #include "STableRow.h"
 #include "IPropertyUtilities.h"
 #include "PropertyHandle.h"
-#include "ProjectLocalizationSettings.h"
+#include "LocalizationTarget.h"
 #include "LocalizationTarget.h"
 #include "SDockTab.h"
 

@@ -3,7 +3,7 @@
 #include "LocalizationDashboardPrivatePCH.h"
 #include "ILocalizationDashboardModule.h"
 #include "LocalizationDashboard.h"
-#include "ProjectLocalizationSettings.h"
+#include "LocalizationTarget.h"
 #include "SDockTab.h"
 #include "Features/IModularFeatures.h"
 #include "ILocalizationServiceProvider.h"
@@ -15,7 +15,7 @@ class FLocalizationDashboardModule
 {
 public:
 	FLocalizationDashboardModule()
-		: Settings(GetMutableDefault<UProjectLocalizationSettings>(UProjectLocalizationSettings::StaticClass()))
+		: Settings(GetMutableDefault<ULocalizationTargetSet>(ULocalizationTargetSet::StaticClass()))
 	{
 		
 		for (ULocalizationTarget*& Target : Settings->TargetObjects)
@@ -56,22 +56,23 @@ public:
 
 	virtual ILocalizationServiceProvider* GetCurrentLocalizationServiceProvider() const
 	{
-		if(Settings->LocalizationServiceProvider == NAME_None)
+		if(CurrentServiceProviderName == NAME_None)
 		{
 			return nullptr;
 		}
 
-		auto ServiceProviderNameComparator = [&](ILocalizationServiceProvider* const LSP) -> bool
+		auto ServiceProviderNameComparator = [this](ILocalizationServiceProvider* const LSP) -> bool
 		{
-			return LSP ? LSP->GetName() == Settings->LocalizationServiceProvider : false;
+			return LSP ? LSP->GetName() == CurrentServiceProviderName : false;
 		};
 		ILocalizationServiceProvider* const * LSP = ServiceProviders.FindByPredicate(ServiceProviderNameComparator);
 		return LSP ? *LSP : nullptr;
 	}
 
 private:
-	TWeakObjectPtr<UProjectLocalizationSettings> Settings;
+	TWeakObjectPtr<ULocalizationTargetSet> Settings;
 	TArray<ILocalizationServiceProvider*> ServiceProviders;
+	FName CurrentServiceProviderName;
 };
 
 IMPLEMENT_MODULE(FLocalizationDashboardModule, "LocalizationDashboard");

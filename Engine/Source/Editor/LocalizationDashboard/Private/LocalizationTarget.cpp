@@ -2,7 +2,7 @@
 
 #include "LocalizationDashboardPrivatePCH.h"
 #include "Classes/LocalizationTarget.h"
-#include "Classes/ProjectLocalizationSettings.h"
+#include "Classes/LocalizationTarget.h"
 #include "ISourceControlModule.h"
 #include "CsvParser.h"
 #include "LocalizationConfigurationScript.h"
@@ -431,20 +431,63 @@ bool FLocalizationTargetSettings::DeleteFiles(const FString* const Culture) cons
 	return HasCompletelySucceeded;
 }
 
-ULocalizationTarget::ULocalizationTarget(const FObjectInitializer& OI)
-	: Super(OI)
-{
-}
-
 void ULocalizationTarget::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-	UProjectLocalizationSettings* const ParentProjectLocalizationSettings = Cast<UProjectLocalizationSettings>(GetOuter());
-	if (ParentProjectLocalizationSettings)
+	ULocalizationTargetSet* const LocalizationTargetSet = Cast<ULocalizationTargetSet>(GetOuter());
+	if (LocalizationTargetSet)
 	{
-		UClass* ParentClass = ParentProjectLocalizationSettings ? ParentProjectLocalizationSettings->GetClass() : nullptr;
-		UProperty* ChangedParentProperty = ParentClass ? ParentClass->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UProjectLocalizationSettings,TargetObjects)) : nullptr;
+		UClass* ParentClass = LocalizationTargetSet ? LocalizationTargetSet->GetClass() : nullptr;
+		UProperty* ChangedParentProperty = ParentClass ? ParentClass->FindPropertyByName(GET_MEMBER_NAME_CHECKED(ULocalizationTargetSet,TargetObjects)) : nullptr;
 
 		FPropertyChangedEvent PropertyChangedEventForParent(ChangedParentProperty);
-		ParentProjectLocalizationSettings->PostEditChangeProperty(PropertyChangedEventForParent);
+		LocalizationTargetSet->PostEditChangeProperty(PropertyChangedEventForParent);
 	}
+}
+
+void ULocalizationTargetSet::PostInitProperties()
+{
+	Super::PostInitProperties();
+
+	TargetObjects.Empty(Targets.Num());
+	for (const FLocalizationTargetSettings& Target : Targets)
+	{
+		ULocalizationTarget* const NewTargetObject = NewObject<ULocalizationTarget>(this);
+		NewTargetObject->Settings = Target;
+		TargetObjects.Add(NewTargetObject);
+	}
+}
+
+void ULocalizationTargetSet::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.MemberProperty->GetFName() == GET_MEMBER_NAME_CHECKED(ULocalizationTargetSet,TargetObjects))
+	{
+		Targets.Empty(TargetObjects.Num());
+		for (ULocalizationTarget* const& TargetObject : TargetObjects)
+		{
+			Targets.Add(TargetObject ? TargetObject->Settings : FLocalizationTargetSettings());
+		}
+	}
+
+	ISourceControlModule& SourceControl = ISourceControlModule::Get();
+	ISourceControlProvider& SourceControlProvider = SourceControl.GetProvider();
+	const bool CanUseSourceControl = SourceControl.IsEnabled() && SourceControlProvider.IsEnabled() && SourceControlProvider.IsAvailable();
+
+	if (CanUseSourceControl)
+	{
+		const FString Path = GetConfigFilename(this);
+		const FSourceControlStatePtr SourceControlState = SourceControlProvider.GetState(*Path, EStateCacheUsage::Use);
+
+		// Should only use source control if the file is actually under source control.
+		if (CanUseSourceControl && SourceControlState.IsValid() && !SourceControlState->CanAdd())
+		{
+			if (!SourceControlState->CanEdit())
+			{
+				SourceControlProvider.Execute(ISourceControlOperation::Create<FCheckOut>(), *Path);
+			}
+		}
+	}
+
+	SaveConfig();
 }

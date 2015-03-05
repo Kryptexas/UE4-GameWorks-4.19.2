@@ -2,7 +2,7 @@
 
 #include "LocalizationDashboardPrivatePCH.h"
 #include "LocalizationConfigurationScript.h"
-#include "Classes/ProjectLocalizationSettings.h"
+#include "Classes/LocalizationTarget.h"
 
 namespace LocalizationConfigurationScript
 {
@@ -82,10 +82,10 @@ namespace LocalizationConfigurationScript
 		{
 			FConfigSection& ConfigSection = Script.CommonSettings();
 
-			const UProjectLocalizationSettings* const ProjectLocalizationSettings = GetDefault<UProjectLocalizationSettings>(UProjectLocalizationSettings::StaticClass());
+			const ULocalizationTargetSet* const LocalizationTargetSet = GetDefault<ULocalizationTargetSet>(ULocalizationTargetSet::StaticClass());
 			for (const FString& TargetDependencyName : Target.TargetDependencies)
 			{
-				ULocalizationTarget* const * OtherTarget = ProjectLocalizationSettings->TargetObjects.FindByPredicate([&TargetDependencyName](ULocalizationTarget* const OtherTarget)->bool{return OtherTarget->Settings.Name == TargetDependencyName;});
+				ULocalizationTarget* const * OtherTarget = LocalizationTargetSet->TargetObjects.FindByPredicate([&TargetDependencyName](ULocalizationTarget* const OtherTarget)->bool{return OtherTarget->Settings.Name == TargetDependencyName;});
 				if (OtherTarget)
 				{
 					ConfigSection.Add( TEXT("ManifestDependencies"), MakePathRelativeToProjectDirectory(GetManifestPath((*OtherTarget)->Settings)) );
