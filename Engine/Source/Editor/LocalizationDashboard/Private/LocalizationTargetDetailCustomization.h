@@ -5,6 +5,7 @@
 #include "LocalizationTarget.h"
 
 class SCulturePicker;
+class IPropertyHandle;
 
 class FLocalizationTargetDetailCustomization : public IDetailCustomization
 {
