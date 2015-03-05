@@ -100,6 +100,8 @@ FCrashReportClientConfig::FCrashReportClientConfig()
 		// Use the default value.
 		CrashReportReceiverIP = TEXT( "http://crashreporter.epicgames.com:57005" );
 	}
+
+	UE_LOG( CrashReportClientLog, Log, TEXT( "CrashReportReceiverIP: %s" ), *CrashReportReceiverIP );
 }
 
 void RunCrashReportClient(const TCHAR* CommandLine)
