@@ -212,10 +212,10 @@ class AIMODULE_API UPathFollowingComponent : public UActorComponent, public IAIR
 	FORCEINLINE FAIRequestID GetCurrentRequestId() const { return CurrentRequestId; }
 	FORCEINLINE uint32 GetCurrentPathIndex() const { return MoveSegmentStartIndex; }
 	FORCEINLINE uint32 GetNextPathIndex() const { return MoveSegmentEndIndex; }
-	FORCEINLINE FVector GetCurrentTargetLocation() const { return *CurrentDestination; }
-	FORCEINLINE FVector GetCurrentDirection() const { return MoveSegmentDirection; }
-	FORCEINLINE FBasedPosition GetCurrentTargetLocationBased() const { return CurrentDestination; }
 	FORCEINLINE UObject* GetCurrentCustomLinkOb() const { return CurrentCustomLinkOb.Get(); }
+	FORCEINLINE FVector GetCurrentTargetLocation() const { return *CurrentDestination; }
+	FORCEINLINE FBasedPosition GetCurrentTargetLocationBased() const { return CurrentDestination; }
+	FVector GetCurrentDirection() const;
 
 	/** will be deprecated soon, please use AIController.GetMoveStatus instead! */
 	UFUNCTION(BlueprintCallable, Category="AI|Components|PathFollowing")

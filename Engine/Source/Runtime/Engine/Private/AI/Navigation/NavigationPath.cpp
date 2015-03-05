@@ -324,6 +324,18 @@ FVector FNavigationPath::GetSegmentDirection(uint32 SegmentEndIndex) const
 	return Result;
 }
 
+FBasedPosition FNavigationPath::GetPathPointLocation(uint32 Index) const
+{
+	FBasedPosition BasedPt;
+	if (PathPoints.IsValidIndex(Index))
+	{
+		BasedPt.Base = Base.Get();
+		BasedPt.Position = PathPoints[Index].Location;
+	}
+
+	return BasedPt;
+}
+
 #if ENABLE_VISUAL_LOG
 
 void FNavigationPath::DescribeSelfToVisLog(FVisualLogEntry* Snapshot) const 
