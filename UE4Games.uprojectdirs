@@ -1,4 +1,4 @@
-; These folders were be searched 1 level deep in order to find projects
+; These folders will be searched 1 level deep in order to find projects
 ; UnrealBuildTool will store the following information:
 ; - Project name
 ; - Location of project
