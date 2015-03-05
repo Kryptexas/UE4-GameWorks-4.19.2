@@ -9,6 +9,7 @@
 #include "Engine/Font.h"
 #include "EngineFontServices.h"
 #include "TileRendering.h"
+#include "TriangleRendering.h"
 #include "RHIStaticStates.h"
 #include "BreakIterator.h"
 
@@ -26,6 +27,7 @@ DEFINE_STAT(STAT_Canvas_DrawStringTime);
 DEFINE_STAT(STAT_Canvas_WordWrappingTime);
 DEFINE_STAT(STAT_Canvas_GetBatchElementsTime);
 DEFINE_STAT(STAT_Canvas_AddTileRenderTime);
+DEFINE_STAT(STAT_Canvas_AddTriangleRenderTime);
 DEFINE_STAT(STAT_Canvas_NumBatchesCreated);
 
 FCanvasWordWrapper::FCanvasWordWrapper()
@@ -455,159 +457,7 @@ bool FCanvasBatchedElementRenderItem::Render_GameThread(const FCanvas* Canvas)
 }
 
 
-bool FCanvasTileRendererItem::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const FCanvas* Canvas)
-{
-	float CurrentRealTime = 0.f;
-	float CurrentWorldTime = 0.f;
-	float DeltaWorldTime = 0.f;
 
-	if (!bFreezeTime)
-	{
-		CurrentRealTime = Canvas->GetCurrentRealTime();
-		CurrentWorldTime = Canvas->GetCurrentWorldTime();
-		DeltaWorldTime = Canvas->GetCurrentDeltaWorldTime();
-	}
-	
-	checkSlow(Data);
-	// current render target set for the canvas
-	const FRenderTarget* CanvasRenderTarget = Canvas->GetRenderTarget();
-	FSceneViewFamily* ViewFamily = new FSceneViewFamily( FSceneViewFamily::ConstructionValues(
-		CanvasRenderTarget,
-		NULL,
-		FEngineShowFlags(ESFIM_Game))
-		.SetWorldTimes( CurrentWorldTime, DeltaWorldTime, CurrentRealTime )
-		.SetGammaCorrection( CanvasRenderTarget->GetDisplayGamma() ) );
-
-	FIntRect ViewRect(FIntPoint(0, 0), CanvasRenderTarget->GetSizeXY());
-
-	// make a temporary view
-	FSceneViewInitOptions ViewInitOptions;
-	ViewInitOptions.ViewFamily = ViewFamily;
-	ViewInitOptions.SetViewRectangle(ViewRect);
-	ViewInitOptions.ViewOrigin = FVector::ZeroVector;
-	ViewInitOptions.ViewRotationMatrix = FMatrix::Identity;
-	ViewInitOptions.ProjectionMatrix = Data->Transform.GetMatrix();
-	ViewInitOptions.BackgroundColor = FLinearColor::Black;
-	ViewInitOptions.OverlayColor = FLinearColor::White;
-
-	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && !Canvas->GetAllowSwitchVerticalAxis();
-
-	FSceneView* View = new FSceneView(ViewInitOptions);
-
-	for( int32 TileIdx=0; TileIdx < Data->Tiles.Num(); TileIdx++ )
-	{
-		const FRenderData::FTileInst& Tile = Data->Tiles[TileIdx];
-		FTileRenderer::DrawTile(
-			RHICmdList, 
-			*View, 
-			Data->MaterialRenderProxy, 
-			bNeedsToSwitchVerticalAxis,
-			Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY, 
-			Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
-			Canvas->IsHitTesting(), Tile.HitProxyId,
-			Tile.InColor
-			);
-	}
-	
-	delete View->Family;
-	delete View;
-	if( Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender )
-	{
-		delete Data;
-	}
-	if( Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender )
-	{
-		Data = NULL;
-	}
-	return true;
-}
-
-bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
-{
-	float CurrentRealTime = 0.f;
-	float CurrentWorldTime = 0.f;
-	float DeltaWorldTime = 0.f;
-
-	if (!bFreezeTime)
-	{
-		CurrentRealTime = Canvas->GetCurrentRealTime();
-		CurrentWorldTime = Canvas->GetCurrentWorldTime();
-		DeltaWorldTime = Canvas->GetCurrentDeltaWorldTime();
-	}
-
-	checkSlow(Data);
-	// current render target set for the canvas
-	const FRenderTarget* CanvasRenderTarget = Canvas->GetRenderTarget();
-	FSceneViewFamily* ViewFamily = new FSceneViewFamily(FSceneViewFamily::ConstructionValues(
-		CanvasRenderTarget,
-		NULL,
-		FEngineShowFlags(ESFIM_Game))
-		.SetWorldTimes(CurrentWorldTime, DeltaWorldTime, CurrentRealTime)
-		.SetGammaCorrection(CanvasRenderTarget->GetDisplayGamma()));
-
-	FIntRect ViewRect(FIntPoint(0, 0), CanvasRenderTarget->GetSizeXY());
-
-	// make a temporary view
-	FSceneViewInitOptions ViewInitOptions;
-	ViewInitOptions.ViewFamily = ViewFamily;
-	ViewInitOptions.SetViewRectangle(ViewRect);
-	ViewInitOptions.ViewOrigin = FVector::ZeroVector;
-	ViewInitOptions.ViewRotationMatrix = FMatrix::Identity;
-	ViewInitOptions.ProjectionMatrix = Data->Transform.GetMatrix();
-	ViewInitOptions.BackgroundColor = FLinearColor::Black;
-	ViewInitOptions.OverlayColor = FLinearColor::White;
-
-	FSceneView* View = new FSceneView(ViewInitOptions);
-
-	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && !Canvas->GetAllowSwitchVerticalAxis();
-	struct FDrawTileParameters
-	{
-		FSceneView* View;
-		FRenderData* RenderData;
-		uint32 bIsHitTesting : 1;
-		uint32 bNeedsToSwitchVerticalAxis : 1;
-		uint32 AllowedCanvasModes;
-	};
-	FDrawTileParameters DrawTileParameters =
-	{
-		View,
-		Data,
-		Canvas->IsHitTesting(),
-		bNeedsToSwitchVerticalAxis,
-		Canvas->GetAllowedModes()
-	};
-	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		DrawTileCommand,
-		FDrawTileParameters, Parameters, DrawTileParameters,
-	{
-		SCOPED_DRAW_EVENT(RHICmdList, CanvasDrawTile);
-		for (int32 TileIdx = 0; TileIdx < Parameters.RenderData->Tiles.Num(); TileIdx++)
-		{
-			const FRenderData::FTileInst& Tile = Parameters.RenderData->Tiles[TileIdx];
-			FTileRenderer::DrawTile(
-				RHICmdList,
-				*Parameters.View,
-				Parameters.RenderData->MaterialRenderProxy,
-				Parameters.bNeedsToSwitchVerticalAxis,
-				Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY,
-				Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
-				Parameters.bIsHitTesting, Tile.HitProxyId,
-				Tile.InColor);
-		}
-
-		delete Parameters.View->Family;
-		delete Parameters.View;
-		if (Parameters.AllowedCanvasModes & FCanvas::Allow_DeleteOnRender)
-		{
-			delete Parameters.RenderData;
-		}
-	});
-	if (Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender)
-	{
-		Data = NULL;
-	}
-	return true;
-}
 
 FCanvas::FCanvasSortElement& FCanvas::GetSortElement(int32 DepthSortKey)
 {
@@ -701,6 +551,36 @@ void FCanvas::AddTileRenderItem(float X, float Y, float SizeX, float SizeY, floa
 	}
 	// add the quad to the tile render batch
 	RenderBatch->AddTile( X,Y,SizeX,SizeY,U,V,SizeU,SizeV,HitProxyId,InColor);
+}
+
+void FCanvas::AddTriangleRenderItem(const FCanvasUVTri& Tri, const FMaterialRenderProxy* MaterialRenderProxy, FHitProxyId HitProxyId, bool bFreezeTime)
+{
+	SCOPE_CYCLE_COUNTER(STAT_Canvas_AddTriangleRenderTime);
+	
+	// get sort element based on the current sort key from top of sort key stack
+	FCanvasSortElement& SortElement = FCanvas::GetSortElement(TopDepthSortKey());
+	// find a batch to use 
+	FCanvasTriangleRendererItem* RenderBatch = NULL;
+
+	// get the current transform entry from top of transform stack
+	const FTransformEntry& TopTransformEntry = TransformStack.Top();
+	
+	// try to use the current top entry in the render batch array
+	if (SortElement.RenderBatchArray.Num() > 0)
+	{
+		checkSlow(SortElement.RenderBatchArray.Last());
+		RenderBatch = SortElement.RenderBatchArray.Last()->GetCanvasTriangleRendererItem();
+	}
+	// if a matching entry for this batch doesn't exist then allocate a new entry
+	if (RenderBatch == nullptr || !RenderBatch->IsMatch(MaterialRenderProxy, TopTransformEntry))
+	{
+		INC_DWORD_STAT(STAT_Canvas_NumBatchesCreated);
+	
+		RenderBatch = new FCanvasTriangleRendererItem(MaterialRenderProxy, TopTransformEntry, bFreezeTime);
+		SortElement.RenderBatchArray.Add(RenderBatch);
+	}
+	// add the triangle to the triangle render batch
+	RenderBatch->AddTriangle(Tri, HitProxyId);
 }
 
 FCanvas::~FCanvas()
@@ -1969,6 +1849,17 @@ void UCanvas::K2_DrawTriangle(UTexture* RenderTexture, TArray<FCanvasUVTri> Tria
 	if (Triangles.Num() > 0)
 	{
 		FCanvasTriangleItem TriangleItem(FVector2D::ZeroVector, FVector2D::ZeroVector, FVector2D::ZeroVector, (RenderTexture) ? RenderTexture->Resource : GWhiteTexture);
+		TriangleItem.TriangleList = Triangles;
+		DrawItem(TriangleItem);
+	}
+}
+
+void UCanvas::K2_DrawMaterialTriangle(UMaterialInterface* RenderMaterial, TArray<FCanvasUVTri> Triangles)
+{
+	if (RenderMaterial && Triangles.Num() > 0)
+	{
+		FCanvasTriangleItem TriangleItem(FVector2D::ZeroVector, FVector2D::ZeroVector, FVector2D::ZeroVector, NULL);
+		TriangleItem.MaterialRenderProxy = RenderMaterial->GetRenderProxy(0);
 		TriangleItem.TriangleList = Triangles;
 		DrawItem(TriangleItem);
 	}

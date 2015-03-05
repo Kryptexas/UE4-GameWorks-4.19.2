@@ -7,6 +7,7 @@
 #include "EnginePrivate.h"
 #include "CanvasItem.h"
 #include "TileRendering.h"
+#include "TriangleRendering.h"
 #include "RHIStaticStates.h"
 #include "Internationalization.h"
 #include "SlateBasics.h"
@@ -18,18 +19,29 @@ DECLARE_CYCLE_STAT(TEXT("CanvasTileMaterialItem Time"),STAT_Canvas_TileMaterialI
 DECLARE_CYCLE_STAT(TEXT("CanvasTextItem Time"),STAT_Canvas_TextItemTime,STATGROUP_Canvas);
 DECLARE_CYCLE_STAT(TEXT("CanvasLineItem Time"),STAT_Canvas_LineItemTime,STATGROUP_Canvas);
 DECLARE_CYCLE_STAT(TEXT("CanvasBoxItem Time"),STAT_Canvas_BoxItemTime,STATGROUP_Canvas);
-DECLARE_CYCLE_STAT(TEXT("CanvasTriItem Time"),STAT_Canvas_TriItemTime,STATGROUP_Canvas);
+DECLARE_CYCLE_STAT(TEXT("CanvasTriTextureItem Time"),STAT_Canvas_TriTextureItemTime,STATGROUP_Canvas);
+DECLARE_CYCLE_STAT(TEXT("CanvasTriMaterialItem Time"), STAT_Canvas_TriMaterialItemTime, STATGROUP_Canvas);
 DECLARE_CYCLE_STAT(TEXT("CanvasBorderItem Time"),STAT_Canvas_BorderItemTime,STATGROUP_Canvas);
 
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
 #include "ObjectTools.h"
-#define LOCTEXT_NAMESPACE "CanvasItem"
 
 FCanvasItemTestbed::LineVars FCanvasItemTestbed::TestLine;
 bool FCanvasItemTestbed::bTestState = false;
-bool FCanvasItemTestbed::bShowTestbed = false;
+bool FCanvasItemTestbed::bShowTestbed = true;
+
+bool FCanvasItemTestbed::bShowLines = false;
+bool FCanvasItemTestbed::bShowBoxes = false;
+bool FCanvasItemTestbed::bShowTris = true;
+bool FCanvasItemTestbed::bShowText = false;
+bool FCanvasItemTestbed::bShowTiles = false;
+
+FCanvasItemTestbed::FCanvasItemTestbed()
+{
+	TestMaterial=nullptr;
+}
 
 void FCanvasItemTestbed::Draw( class FViewport* Viewport, class FCanvas* Canvas )
 {
@@ -40,6 +52,10 @@ void FCanvasItemTestbed::Draw( class FViewport* Viewport, class FCanvas* Canvas 
 		return;
 	}
 
+	if (TestMaterial == nullptr)
+	{
+		TestMaterial = LoadObject<UMaterial>(NULL, TEXT("/Game/NewMaterial.NewMaterial"));
+	}
 	
 	// A little ott for a testbed - but I wanted to draw several lines to ensure it worked :)
 	if( TestLine.bTestSet == false )
@@ -93,76 +109,114 @@ void FCanvasItemTestbed::Draw( class FViewport* Viewport, class FCanvas* Canvas 
 	}
 	
 	// Text
-	float CenterX = 0.0f;
-	float YTest = 16.0f;
-	FCanvasTextItem TextItem( FVector2D( CenterX, YTest ), LOCTEXT( "stringhere", "String Here" ), GEngine->GetSmallFont(), FLinearColor::Red );	
-	TextItem.Draw( Canvas );
-	
-	// Shadowed text
-	TextItem.Position.Y += TextItem.DrawnSize.Y;
-	TextItem.Scale.X = 2.0f;
-	TextItem.EnableShadow( FLinearColor::Green, FVector2D( 2.0f, 2.0f ) );
-	TextItem.Text = LOCTEXT( "Scaled String here", "Scaled String here" );
-	TextItem.Draw( Canvas );
-	TextItem.DisableShadow();
+	if( bShowText == true )
+	{
+		float CenterX = Canvas->GetViewRect().Width() / 2.0f;
+		float YTest = 16.0f;
+		FCanvasTextItem TextItem(FVector2D(CenterX, YTest), FText::FromString(TEXT("String Here")), GEngine->GetSmallFont(), FLinearColor::Red);
+		TextItem.Draw(Canvas);
 
-	TextItem.Position.Y += TextItem.DrawnSize.Y;;
-	TextItem.Text = LOCTEXT( "CenterdStringhere", "CenterdStringhere" );
-	TextItem.Scale.X = 1.0f;
-	TextItem.bCentreX = true;
-	TextItem.Draw( Canvas );
+		// Shadowed text
+		TextItem.Position.Y += TextItem.DrawnSize.Y;
+		TextItem.Scale.X = 2.0f;
+		TextItem.EnableShadow(FLinearColor::Green, FVector2D(2.0f, 2.0f));
+		TextItem.Text = FText::FromString(TEXT("Scaled String here"));
+		TextItem.Draw(Canvas);
+		TextItem.DisableShadow();
 
-	// Outlined text
-	TextItem.Position.Y += TextItem.DrawnSize.Y;
-	TextItem.Text = LOCTEXT( "ScaledCentredStringhere", "Scaled Centred String here" );	
-	TextItem.OutlineColor = FLinearColor::Black;
-	TextItem.bOutlined = true;
-	TextItem.Scale = FVector2D( 2.0f, 2.0f );
-	TextItem.SetColor( FLinearColor::Green );
-	TextItem.Text = LOCTEXT( "ScaledCentredOutlinedStringhere", "Scaled Centred Outlined String here" );	
-	TextItem.Draw( Canvas );
+		TextItem.Position.Y += TextItem.DrawnSize.Y;;
+		TextItem.Text = FText::FromString(TEXT("Centered String Here"));
+		TextItem.Scale.X = 1.0f;
+		TextItem.bCentreX = true;
+		TextItem.Draw(Canvas);
+
+		// Outlined text
+		TextItem.Position.Y += TextItem.DrawnSize.Y;
+		TextItem.Text = FText::FromString(TEXT("Scaled Centred String here"));
+		TextItem.OutlineColor = FLinearColor::Black;
+		TextItem.bOutlined = true;
+		TextItem.Scale = FVector2D(2.0f, 2.0f);
+		TextItem.SetColor(FLinearColor::Green);
+		TextItem.Text = FText::FromString(TEXT("Scaled Centred Outlined String here"));
+		TextItem.Draw(Canvas);
+	}
 	
 	// a line
-	FCanvasLineItem LineItem( TestLine.LineStart, TestLine.LineEnd );
-	LineItem.Draw( Canvas );
+	if( bShowLines == true )
+	{
+		FCanvasLineItem LineItem(TestLine.LineStart, TestLine.LineEnd);
+		LineItem.Draw(Canvas);
+	}
 
-	// some boxes
-	FCanvasBoxItem BoxItem( FVector2D( 88.0f, 88.0f ), FVector2D( 188.0f, 188.0f ) );
-	BoxItem.SetColor( FLinearColor::Yellow );
-	BoxItem.Draw( Canvas );
+// 	some boxes
+	if( bShowBoxes == true )
+	{
+		FCanvasBoxItem BoxItem(FVector2D(88.0f, 88.0f), FVector2D(188.0f, 188.0f));
+		BoxItem.SetColor(FLinearColor::Yellow);
+		BoxItem.Draw(Canvas);
 
-	BoxItem.SetColor( FLinearColor::Red );
-	BoxItem.Position = FVector2D( 256.0f, 256.0f );
-	BoxItem.Draw( Canvas );
+		BoxItem.SetColor(FLinearColor::Red);
+		BoxItem.Position = FVector2D(256.0f, 256.0f);
+		BoxItem.Draw(Canvas);
 
-	BoxItem.SetColor( FLinearColor::Blue );
-	BoxItem.Position = FVector2D( 6.0f, 6.0f );
-	BoxItem.Size = FVector2D( 48.0f, 96.0f );
-	BoxItem.Draw( Canvas );
+		BoxItem.SetColor(FLinearColor::Blue);
+		BoxItem.Position = FVector2D(6.0f, 6.0f);
+		BoxItem.Size = FVector2D(48.0f, 96.0f);
+		BoxItem.Draw(Canvas);
+
+	}
 	
-	// Triangle
-	FCanvasTriangleItem TriItem(  FVector2D( 48.0f, 48.0f ), FVector2D( 148.0f, 48.0f ), FVector2D( 48.0f, 148.0f ), GWhiteTexture );
-	TriItem.Draw( Canvas );
+	if (bShowTris == true)
+	{
+		// Triangle
+		FCanvasTriangleItem TriItem(FVector2D(32.0f, 32.0f), FVector2D(64.0f, 32.0f), FVector2D(64.0f, 64.0f), GWhiteTexture);
+		//TriItem.Draw(Canvas);
 
-	// Triangle list
-	TArray< FCanvasUVTri >	TriangleList;
-	FCanvasUVTri SingleTri;
-	SingleTri.V0_Pos = FVector2D( 128.0f, 128.0f );
-	SingleTri.V1_Pos = FVector2D( 248.0f, 108.0f );
-	SingleTri.V2_Pos = FVector2D( 100.0f, 348.0f );
-	SingleTri.V0_UV = FVector2D::ZeroVector;
-	SingleTri.V1_UV = FVector2D::ZeroVector;
-	SingleTri.V2_UV = FVector2D::ZeroVector;
-	TriangleList.Add( SingleTri );
-	SingleTri.V0_Pos = FVector2D( 348.0f, 128.0f );
-	SingleTri.V1_Pos = FVector2D( 448.0f, 148.0f );
-	SingleTri.V2_Pos = FVector2D( 438.0f, 308.0f );
-	TriangleList.Add( SingleTri );
+		// Triangle list
+		TArray< FCanvasUVTri >	TriangleList;
+		FCanvasUVTri SingleTri;
+		SingleTri.V0_Pos = FVector2D(128.0f, 128.0f);
+		SingleTri.V1_Pos = FVector2D(248.0f, 108.0f);
+		SingleTri.V2_Pos = FVector2D(100.0f, 348.0f);
+		TriangleList.Add(SingleTri);
+		SingleTri.V0_Pos = FVector2D(348.0f, 128.0f);
+		SingleTri.V1_Pos = FVector2D(448.0f, 148.0f);
+		SingleTri.V2_Pos = FVector2D(438.0f, 308.0f);
+		TriangleList.Add(SingleTri);
 
-	FCanvasTriangleItem TriItemList( TriangleList, GWhiteTexture );
-	TriItemList.SetColor( FLinearColor::Red );
-	TriItemList.Draw( Canvas );
-	
+		FCanvasTriangleItem TriItemList(TriangleList, GWhiteTexture);
+		TriItemList.SetColor(FLinearColor::Red);
+		//TriItemList.Draw( Canvas );
+
+		if (TestMaterial)
+		{
+			FCanvasTileItem TileItemMat(FVector2D(256.0f, 256.0f), TestMaterial->GetRenderProxy(false), FVector2D(128.0f, 128.0f));
+			//TileItemMat.Draw(Canvas);
+
+			FCanvasTriangleItem TriItem(FVector2D(512.0f, 256.0f), FVector2D(512.0f, 256.0f), FVector2D(640.0f, 384.0f), FVector2D::ZeroVector, FVector2D(1.0f, 0.0f), FVector2D(1.0f, 1.0f), nullptr);
+			TriItem.MaterialRenderProxy = TestMaterial->GetRenderProxy(false);
+			//TriItem.Draw(Canvas);
+
+			SingleTri.V0_Pos = FVector2D(228.0f, 228.0f);
+			SingleTri.V1_Pos = FVector2D(348.0f, 208.0f);
+			SingleTri.V2_Pos = FVector2D(200.0f, 448.0f);
+			SingleTri.V0_UV = FVector2D(0.0f, 0.0f);
+			SingleTri.V1_UV = FVector2D(1.0f, 0.0f);
+			SingleTri.V2_UV = FVector2D(1.0f, 1.0f);
+			TriangleList.Add(SingleTri);
+			SingleTri.V0_Pos = FVector2D(448.0f, 228.0f);
+			SingleTri.V1_Pos = FVector2D(548.0f, 248.0f);
+			SingleTri.V2_Pos = FVector2D(538.0f, 408.0f);
+			SingleTri.V0_UV = FVector2D(0.0f, 1.0f);
+			SingleTri.V1_UV = FVector2D(0.0f, 0.0f);
+			SingleTri.V2_UV = FVector2D(1.0f, 0.0f);
+			TriangleList.Add(SingleTri);
+			FCanvasTriangleItem TriItemList(TriangleList, nullptr);
+			TriItemList.MaterialRenderProxy = TestMaterial->GetRenderProxy(false);
+			TriItemList.Draw(Canvas);
+		}
+	}
+
 // 	FCanvasNGonItem NGon( FVector2D( 256.0f, 256.0f ), FVector2D( 256.0f, 256.0f ), 6, GWhiteTexture, FLinearColor::White );
 // 	NGon.Draw( Canvas );
 // 
@@ -171,7 +225,7 @@ void FCanvasItemTestbed::Draw( class FViewport* Viewport, class FCanvas* Canvas 
 
 	// Texture
 	UTexture* SelectedTexture = GEditor->GetSelectedObjects()->GetTop<UTexture>();	
-	if( SelectedTexture )
+	if( ( SelectedTexture ) && ( bShowTiles == true ))
 	{
 		// Plain tex
 		FCanvasTileItem TileItem( FVector2D( 128.0f,128.0f ), SelectedTexture->Resource, FLinearColor::White );
@@ -226,18 +280,17 @@ void FCanvasItemTestbed::Draw( class FViewport* Viewport, class FCanvas* Canvas 
 		TileItem.Draw( Canvas );
 
 		TestLine.Testangle = FMath::Fmod( TestLine.Testangle + 2.0f, 360.0f );
-
-		// textured tri
-		FCanvasTriangleItem TriItemTex(  FVector2D( 48.0f, 48.0f ), FVector2D( 148.0f, 48.0f ), FVector2D( 48.0f, 148.0f ), FVector2D( 0.0f, 0.0f ), FVector2D( 1.0f, 0.0f ), FVector2D( 0.0f, 1.0f ), SelectedTexture->Resource  );
-		TriItem.Texture = GWhiteTexture;
-		TriItemTex.Draw( Canvas );
-
-		// moving tri (only 1 point moves !)
-		TriItemTex.Position = TestLine.LineStart;
-		TriItemTex.Draw( Canvas );
+// 
+// 		// textured tri
+// 		FCanvasTriangleItem TriItemTex(  FVector2D( 48.0f, 48.0f ), FVector2D( 148.0f, 48.0f ), FVector2D( 48.0f, 148.0f ), FVector2D( 0.0f, 0.0f ), FVector2D( 1.0f, 0.0f ), FVector2D( 0.0f, 1.0f ), SelectedTexture->Resource  );
+// 		TriItem.Texture = GWhiteTexture;
+// 		TriItemTex.Draw( Canvas );
+// 
+// 		// moving tri (only 1 point moves !)
+// 		TriItemTex.Position = TestLine.LineStart;
+// 		TriItemTex.Draw( Canvas );
 	}
 }
-#undef LOCTEXT_NAMESPACE
 
 #endif // WITH_EDITOR
 
@@ -1236,27 +1289,66 @@ void FCanvasBoxItem::SetupBox()
 
 void FCanvasTriangleItem::Draw( class FCanvas* InCanvas )
 {
-	SCOPE_CYCLE_COUNTER(STAT_Canvas_TriItemTime);
-
-	FBatchedElements* BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParameters, Texture, BlendMode);
-	
-	FHitProxyId HitProxyId = InCanvas->GetHitProxyId();
-
-	for(int32 i=0; i<TriangleList.Num(); i++)
+	if (Texture != nullptr)
 	{
-		const FCanvasUVTri& Tri = TriangleList[i];
-		int32 V0 = BatchedElements->AddVertex(FVector4(Tri.V0_Pos.X,Tri.V0_Pos.Y,0,1), Tri.V0_UV, Tri.V0_Color, HitProxyId);
-		int32 V1 = BatchedElements->AddVertex(FVector4(Tri.V1_Pos.X,Tri.V1_Pos.Y,0,1), Tri.V1_UV, Tri.V1_Color, HitProxyId);
-		int32 V2 = BatchedElements->AddVertex(FVector4(Tri.V2_Pos.X,Tri.V2_Pos.Y,0,1), Tri.V2_UV, Tri.V2_Color, HitProxyId);
+		SCOPE_CYCLE_COUNTER(STAT_Canvas_TriTextureItemTime);
+		FBatchedElements* BatchedElements = InCanvas->GetBatchedElements(FCanvas::ET_Triangle, BatchedElementParameters, Texture, BlendMode);
 
-		if( BatchedElementParameters )
+		FHitProxyId HitProxyId = InCanvas->GetHitProxyId();
+
+		for (int32 i = 0; i < TriangleList.Num(); i++)
 		{
-			BatchedElements->AddTriangle(V0,V1,V2, BatchedElementParameters, BlendMode);
+			const FCanvasUVTri& Tri = TriangleList[i];
+			int32 V0 = BatchedElements->AddVertex(FVector4(Tri.V0_Pos.X, Tri.V0_Pos.Y, 0, 1), Tri.V0_UV, Tri.V0_Color, HitProxyId);
+			int32 V1 = BatchedElements->AddVertex(FVector4(Tri.V1_Pos.X, Tri.V1_Pos.Y, 0, 1), Tri.V1_UV, Tri.V1_Color, HitProxyId);
+			int32 V2 = BatchedElements->AddVertex(FVector4(Tri.V2_Pos.X, Tri.V2_Pos.Y, 0, 1), Tri.V2_UV, Tri.V2_Color, HitProxyId);
+
+			if (BatchedElementParameters)
+			{
+				BatchedElements->AddTriangle(V0, V1, V2, BatchedElementParameters, BlendMode);
+			}
+			else
+			{
+				check(Texture);
+				BatchedElements->AddTriangle(V0, V1, V2, Texture, BlendMode);
+			}
 		}
-		else
+	}
+	else
+	{
+		SCOPE_CYCLE_COUNTER(STAT_Canvas_TriMaterialItemTime);
+
+		// get sort element based on the current sort key from top of sort key stack
+		FCanvas::FCanvasSortElement& SortElement = InCanvas->GetSortElement(InCanvas->TopDepthSortKey());
+
+		// find a batch to use 
+		FCanvasTriangleRendererItem* RenderBatch = nullptr;
+
+		// get the current transform entry from top of transform stack
+		const FCanvas::FTransformEntry& TopTransformEntry = InCanvas->GetTransformStack().Top();
+
+		// try to use the current top entry in the render batch array
+		if (SortElement.RenderBatchArray.Num() > 0)
 		{
-			check( Texture );
-			BatchedElements->AddTriangle(V0,V1,V2,Texture, BlendMode);
+			checkSlow(SortElement.RenderBatchArray.Last());
+			RenderBatch = SortElement.RenderBatchArray.Last()->GetCanvasTriangleRendererItem();
+		}
+
+		// if a matching entry for this batch doesn't exist then allocate a new entry
+		if (RenderBatch == nullptr || !RenderBatch->IsMatch(MaterialRenderProxy, TopTransformEntry))
+		{
+			INC_DWORD_STAT(STAT_Canvas_NumBatchesCreated);
+
+			RenderBatch = new FCanvasTriangleRendererItem(MaterialRenderProxy, TopTransformEntry, bFreezeTime);
+			SortElement.RenderBatchArray.Add(RenderBatch);
+		}
+
+		FHitProxyId HitProxyId = InCanvas->GetHitProxyId();
+
+		// add the triangles to the triangle render batch
+		for (int32 i = 0; i < TriangleList.Num(); i++)
+		{
+			RenderBatch->AddTriangle(TriangleList[i], HitProxyId);
 		}
 	}	
 }

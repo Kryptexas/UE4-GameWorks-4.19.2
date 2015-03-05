@@ -1,11 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 /*=============================================================================
-	TileRendering.cpp: Tile rendering implementation.
+	TriangleRendering.cpp: Simple triangle rendering implementation.
 =============================================================================*/
 
 #include "EnginePrivate.h"
-#include "TileRendering.h"
+#include "TriangleRendering.h"
 #include "EngineModule.h"
 #include "LocalVertexFactory.h"
 #include "MeshBatch.h"
@@ -14,9 +14,9 @@
 #include "CanvasTypes.h"
 
 /** 
-* vertex data for a screen quad 
-*/
-struct FMaterialTileVertex
+ * vertex data for a screen triangle
+ */
+struct FMaterialTriangleVertex
 {
 	FVector			Position;
 	FPackedNormal	TangentX;
@@ -30,9 +30,9 @@ struct FMaterialTileVertex
 		Position.X = InX; 
 		Position.Y = InY; 
 		Position.Z = 0.0f;
-		TangentX = FVector(1, 0, 0); 
-		//TangentY = FVector(0, 1, 0); 
-		TangentZ = FVector(0, 0, 1);
+		TangentX = FVector(1.0f, 0.0f, 0.0f); 
+		//TangentY = FVector(0.0f, 1.0f, 0.0f); 
+		TangentZ = FVector(0.0f, 0.0f, 1.0f);
 		// TangentZ.w contains the sign of the tangent basis determinant. Assume +1
 		TangentZ.Vector.W = 255;
 		Color = FColor(255,255,255,255).DWColor();
@@ -44,7 +44,7 @@ struct FMaterialTileVertex
 /** 
 * Vertex buffer
 */
-class FMaterialTileVertexBuffer : public FVertexBuffer
+class FMaterialTriangleVertexBuffer : public FVertexBuffer
 {
 public:
 	/** 
@@ -52,128 +52,193 @@ public:
 	*/
 	virtual void InitRHI() override
 	{
-		// used with a tristrip, so only 4 vertices are needed
-		uint32 Size = 4 * sizeof(FMaterialTileVertex);
+		// used with a tristrip, so only 3 vertices are needed
+		uint32 Size = 3 * sizeof(FMaterialTriangleVertex);
 		// create vertex buffer
 		FRHIResourceCreateInfo CreateInfo;
 		VertexBufferRHI = RHICreateVertexBuffer(Size,BUF_Static,CreateInfo);
 		// lock it
 		void* Buffer = RHILockVertexBuffer(VertexBufferRHI,0,Size,RLM_WriteOnly);
 		// first vertex element
-		FMaterialTileVertex* DestVertex = (FMaterialTileVertex*)Buffer;
-
+		FMaterialTriangleVertex* DestVertex = (FMaterialTriangleVertex*)Buffer;
 		// fill out the verts
 		DestVertex[0].Initialize(1, -1, 1, 1);
 		DestVertex[1].Initialize(1, 1, 1, 0);
 		DestVertex[2].Initialize(-1, -1, 0, 1);
-		DestVertex[3].Initialize(-1, 1, 0, 0);
-
+			
 		// Unlock the buffer.
 		RHIUnlockVertexBuffer(VertexBufferRHI);        
 	}
 };
-TGlobalResource<FMaterialTileVertexBuffer> GTileRendererVertexBuffer;
+
+TGlobalResource<FMaterialTriangleVertexBuffer> GTriangleRendererVertexBuffer;
 
 /**
- * Vertex factory for rendering tiles.
- */
-class FTileVertexFactory : public FLocalVertexFactory
+* Vertex factory for rendering tiles.
+*/
+class FTriangleVertexFactory : public FLocalVertexFactory
 {
 public:
 
-	/** Default constructor. */
-	FTileVertexFactory()
-	{
-		FLocalVertexFactory::DataType Data;
-		// position
-		Data.PositionComponent = FVertexStreamComponent(
-			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,Position),sizeof(FMaterialTileVertex),VET_Float3);
+/** Default constructor. */
+FTriangleVertexFactory()
+{
+	FLocalVertexFactory::DataType Data;
+	// position
+	Data.PositionComponent = FVertexStreamComponent(
+		&GTriangleRendererVertexBuffer, STRUCT_OFFSET(FMaterialTriangleVertex, Position), sizeof(FMaterialTriangleVertex), VET_Float3);
 		// tangents
 		Data.TangentBasisComponents[0] = FVertexStreamComponent(
-			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,TangentX),sizeof(FMaterialTileVertex),VET_PackedNormal);
+		&GTriangleRendererVertexBuffer, STRUCT_OFFSET(FMaterialTriangleVertex, TangentX), sizeof(FMaterialTriangleVertex), VET_PackedNormal);
 		Data.TangentBasisComponents[1] = FVertexStreamComponent(
-			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,TangentZ),sizeof(FMaterialTileVertex),VET_PackedNormal);
+		&GTriangleRendererVertexBuffer, STRUCT_OFFSET(FMaterialTriangleVertex, TangentZ), sizeof(FMaterialTriangleVertex), VET_PackedNormal);
 		// color
 		Data.ColorComponent = FVertexStreamComponent(
-			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,Color),sizeof(FMaterialTileVertex),VET_Color);
+		&GTriangleRendererVertexBuffer, STRUCT_OFFSET(FMaterialTriangleVertex, Color), sizeof(FMaterialTriangleVertex), VET_Color);
 		// UVs
 		Data.TextureCoordinates.Add(FVertexStreamComponent(
-			&GTileRendererVertexBuffer,STRUCT_OFFSET(FMaterialTileVertex,U),sizeof(FMaterialTileVertex),VET_Float2));
-
+		&GTriangleRendererVertexBuffer, STRUCT_OFFSET(FMaterialTriangleVertex, U), sizeof(FMaterialTriangleVertex), VET_Float2));
+		
 		// update the data
 		SetData(Data);
 	}
 };
-TGlobalResource<FTileVertexFactory> GTileVertexFactory;
+
+TGlobalResource<FTriangleVertexFactory> GTriangleVertexFactory;
 
 /**
- * Mesh used to render tiles.
+ * Mesh used to render triangles.
  */
-class FTileMesh : public FRenderResource
+class FTriangleMesh : public FRenderResource
 {
 public:
 
 	/** The mesh element. */
-	FMeshBatch MeshElement;
+	FMeshBatch TriMeshElement;
 
 	virtual void InitRHI() override
 	{
-		FMeshBatchElement& BatchElement = MeshElement.Elements[0];
-		MeshElement.VertexFactory = &GTileVertexFactory;
-		MeshElement.DynamicVertexStride = sizeof(FMaterialTileVertex);
+		FMeshBatchElement& BatchElement = TriMeshElement.Elements[0];
+		TriMeshElement.VertexFactory = &GTriangleVertexFactory;
+		TriMeshElement.DynamicVertexStride = sizeof(FMaterialTriangleVertex);
 		BatchElement.FirstIndex = 0;
-		BatchElement.NumPrimitives = 2;
+		BatchElement.NumPrimitives = 1;
 		BatchElement.MinVertexIndex = 0;
-		BatchElement.MaxVertexIndex = 3;
-		MeshElement.ReverseCulling = false;
-		MeshElement.UseDynamicData = true;
-		MeshElement.Type = PT_TriangleStrip;
-		MeshElement.DepthPriorityGroup = SDPG_Foreground;
+		BatchElement.MaxVertexIndex = 2;
+		TriMeshElement.ReverseCulling = false;
+		TriMeshElement.bDisableBackfaceCulling = true;
+		TriMeshElement.UseDynamicData = true;
+		TriMeshElement.Type = PT_TriangleList;
+		TriMeshElement.DepthPriorityGroup = SDPG_Foreground;
 		BatchElement.PrimitiveUniformBufferResource = &GIdentityPrimitiveUniformBuffer;
 	}
-
+	
 	virtual void ReleaseRHI() override
 	{
-		MeshElement.Elements[0].PrimitiveUniformBuffer.SafeRelease();
+		TriMeshElement.Elements[0].PrimitiveUniformBuffer.SafeRelease();
 	}
 };
-TGlobalResource<FTileMesh> GTileMesh;
+TGlobalResource<FTriangleMesh> GTriangleMesh;
 
-void FTileRenderer::DrawTile(FRHICommandListImmediate& RHICmdList, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, bool bNeedsToSwitchVerticalAxis, float X, float Y, float SizeX, float SizeY, float U, float V, float SizeU, float SizeV, bool bIsHitTesting, const FHitProxyId HitProxyId, const FColor InVertexColor)
+void FTriangleRenderer::DrawTriangle(FRHICommandListImmediate& RHICmdList, const class FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, bool bNeedsToSwitchVerticalAxis, const FCanvasUVTri& Tri, bool bIsHitTesting, const FHitProxyId HitProxyId, const FColor InVertexColor)
 {
-	FMaterialTileVertex DestVertex[4];
+	FMaterialTriangleVertex DestVertex[3];
 
 	// create verts
 	if (bNeedsToSwitchVerticalAxis)
 	{
-		DestVertex[0].Initialize(X + SizeX, View.ViewRect.Height() - (Y + SizeY), U + SizeU, V + SizeV);
-		DestVertex[1].Initialize(X, View.ViewRect.Height() - (Y + SizeY), U, V + SizeV);
-		DestVertex[2].Initialize(X + SizeX, View.ViewRect.Height() - Y, U + SizeU, V);
-		DestVertex[3].Initialize(X, View.ViewRect.Height() - Y, U, V);		
+		DestVertex[0].Initialize(Tri.V1_Pos.X, View.ViewRect.Height() - Tri.V1_Pos.Y, Tri.V1_UV.X, Tri.V1_UV.Y);
+		DestVertex[1].Initialize(Tri.V0_Pos.X, View.ViewRect.Height() - Tri.V0_Pos.Y, Tri.V0_UV.X, Tri.V0_UV.Y);
+		DestVertex[2].Initialize(Tri.V2_Pos.X, View.ViewRect.Height() - Tri.V2_Pos.Y, Tri.V2_UV.X, Tri.V2_UV.Y);
 	}
 	else
 	{
-		DestVertex[0].Initialize(X + SizeX, Y, U + SizeU, V);
-		DestVertex[1].Initialize(X, Y, U, V);
-		DestVertex[2].Initialize(X + SizeX, Y + SizeY, U + SizeU, V + SizeV);
-		DestVertex[3].Initialize(X, Y + SizeY, U, V + SizeV);
+		DestVertex[0].Initialize(Tri.V1_Pos.X, Tri.V1_Pos.Y, Tri.V1_UV.X, Tri.V1_UV.Y);
+		DestVertex[1].Initialize(Tri.V0_Pos.X, Tri.V0_Pos.Y, Tri.V0_UV.X, Tri.V0_UV.Y);
+		DestVertex[2].Initialize(Tri.V2_Pos.X, Tri.V2_Pos.Y, Tri.V2_UV.X, Tri.V2_UV.Y);
 	}
-
+	
 	DestVertex[0].Color = InVertexColor.DWColor();
 	DestVertex[1].Color = InVertexColor.DWColor();
 	DestVertex[2].Color = InVertexColor.DWColor();
-	DestVertex[3].Color = InVertexColor.DWColor();
-
+	
 	// update the FMeshBatch
-	FMeshBatch& Mesh = GTileMesh.MeshElement;
-	Mesh.UseDynamicData = true;
-	Mesh.DynamicVertexData = DestVertex;
-	Mesh.MaterialRenderProxy = MaterialRenderProxy;
-
-	GetRendererModule().DrawTileMesh(RHICmdList, View, Mesh, bIsHitTesting, HitProxyId);
+	FMeshBatch& TriMesh = GTriangleMesh.TriMeshElement;
+	TriMesh.UseDynamicData = true;
+	TriMesh.DynamicVertexData = DestVertex;
+	TriMesh.MaterialRenderProxy = MaterialRenderProxy;
+	
+	GetRendererModule().DrawTileMesh(RHICmdList, View, TriMesh, bIsHitTesting, HitProxyId);
 }
 
-bool FCanvasTileRendererItem::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const FCanvas* Canvas)
+bool FCanvasTriangleRendererItem::Render_RenderThread(FRHICommandListImmediate& RHICmdList, const FCanvas* Canvas)
+{
+	float CurrentRealTime = 0.f;
+	float CurrentWorldTime = 0.f;
+	float DeltaWorldTime = 0.f;
+
+	if (!bFreezeTime)
+	{
+		CurrentRealTime = Canvas->GetCurrentRealTime();
+		CurrentWorldTime = Canvas->GetCurrentWorldTime();
+		DeltaWorldTime = Canvas->GetCurrentDeltaWorldTime();
+	}
+
+	checkSlow(Data);
+
+	// current render target set for the canvas
+	const FRenderTarget* CanvasRenderTarget = Canvas->GetRenderTarget();
+	FSceneViewFamily* ViewFamily = new FSceneViewFamily(FSceneViewFamily::ConstructionValues(
+		CanvasRenderTarget,
+		nullptr,
+		FEngineShowFlags(ESFIM_Game))
+		.SetWorldTimes(CurrentWorldTime, DeltaWorldTime, CurrentRealTime)
+		.SetGammaCorrection(CanvasRenderTarget->GetDisplayGamma()));
+
+	FIntRect ViewRect(FIntPoint(0, 0), CanvasRenderTarget->GetSizeXY());
+
+	// make a temporary viewk
+
+	FSceneViewInitOptions ViewInitOptions;
+	ViewInitOptions.ViewFamily = ViewFamily;
+	ViewInitOptions.SetViewRectangle(ViewRect);
+	ViewInitOptions.ViewOrigin = FVector::ZeroVector;
+	ViewInitOptions.ViewRotationMatrix = FMatrix::Identity;
+	ViewInitOptions.ProjectionMatrix = Data->Transform.GetMatrix();
+	ViewInitOptions.BackgroundColor = FLinearColor::Black;
+	ViewInitOptions.OverlayColor = FLinearColor::White;
+
+	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && !Canvas->GetAllowSwitchVerticalAxis();
+
+	FSceneView* View = new FSceneView(ViewInitOptions);
+
+	for (int32 TriIdx = 0; TriIdx < Data->Triangles.Num(); TriIdx++)
+	{
+		const FRenderData::FTriangleInst& Tri = Data->Triangles[TriIdx];
+		FTriangleRenderer::DrawTriangle(
+			RHICmdList,
+			*View,
+			Data->MaterialRenderProxy,
+			bNeedsToSwitchVerticalAxis,
+			Tri.Tri,
+			Canvas->IsHitTesting(), Tri.HitProxyId
+			);
+	}
+
+	delete View->Family;
+	delete View;
+	if (Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender)
+	{
+		delete Data;
+	}
+	if (Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender)
+	{
+		Data = nullptr;
+	}
+	return true;
+}
+
+bool FCanvasTriangleRendererItem::Render_GameThread(const FCanvas* Canvas)
 {
 	float CurrentRealTime = 0.f;
 	float CurrentWorldTime = 0.f;
@@ -209,76 +274,9 @@ bool FCanvasTileRendererItem::Render_RenderThread(FRHICommandListImmediate& RHIC
 	ViewInitOptions.OverlayColor = FLinearColor::White;
 
 	FSceneView* View = new FSceneView(ViewInitOptions);
-	
-	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && !Canvas->GetAllowSwitchVerticalAxis();
-
-	for (int32 TileIdx = 0; TileIdx < Data->Tiles.Num(); TileIdx++)
-	{
-		const FRenderData::FTileInst& Tile = Data->Tiles[TileIdx];
-		FTileRenderer::DrawTile(
-			RHICmdList,
-			*View,
-			Data->MaterialRenderProxy,
-			bNeedsToSwitchVerticalAxis,
-			Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY,
-			Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
-			Canvas->IsHitTesting(), Tile.HitProxyId,
-			Tile.InColor
-			);
-	}
-
-	delete View->Family;
-	delete View;
-	if (Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender)
-	{
-		delete Data;
-	}
-	if (Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender)
-	{
-		Data = NULL;
-	}
-	return true;
-}
-
-bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
-{
-	float CurrentRealTime = 0.f;
-	float CurrentWorldTime = 0.f;
-	float DeltaWorldTime = 0.f;
-
-	if (!bFreezeTime)
-	{
-		CurrentRealTime = Canvas->GetCurrentRealTime();
-		CurrentWorldTime = Canvas->GetCurrentWorldTime();
-		DeltaWorldTime = Canvas->GetCurrentDeltaWorldTime();
-	}
-
-	checkSlow(Data);
-	// current render target set for the canvas
-	const FRenderTarget* CanvasRenderTarget = Canvas->GetRenderTarget();
-	FSceneViewFamily* ViewFamily = new FSceneViewFamily(FSceneViewFamily::ConstructionValues(
-		CanvasRenderTarget,
-		NULL,
-		FEngineShowFlags(ESFIM_Game))
-		.SetWorldTimes(CurrentWorldTime, DeltaWorldTime, CurrentRealTime)
-		.SetGammaCorrection(CanvasRenderTarget->GetDisplayGamma()));
-
-	FIntRect ViewRect(FIntPoint(0, 0), CanvasRenderTarget->GetSizeXY());
-
-	// make a temporary view
-	FSceneViewInitOptions ViewInitOptions;
-	ViewInitOptions.ViewFamily = ViewFamily;
-	ViewInitOptions.SetViewRectangle(ViewRect);
-	ViewInitOptions.ViewOrigin = FVector::ZeroVector;
-	ViewInitOptions.ViewRotationMatrix = FMatrix::Identity;
-	ViewInitOptions.ProjectionMatrix = Data->Transform.GetMatrix();
-	ViewInitOptions.BackgroundColor = FLinearColor::Black;
-	ViewInitOptions.OverlayColor = FLinearColor::White;
-
-	FSceneView* View = new FSceneView(ViewInitOptions);
 
 	bool bNeedsToSwitchVerticalAxis = RHINeedsToSwitchVerticalAxis(Canvas->GetShaderPlatform()) && !Canvas->GetAllowSwitchVerticalAxis();
-	struct FDrawTileParameters
+	struct FDrawTriangleParameters
 	{
 		FSceneView* View;
 		FRenderData* RenderData;
@@ -286,31 +284,29 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 		uint32 bNeedsToSwitchVerticalAxis : 1;
 		uint32 AllowedCanvasModes;
 	};
-	FDrawTileParameters DrawTileParameters =
+	FDrawTriangleParameters DrawTriangleParameters =
 	{
 		View,
 		Data,
-		Canvas->IsHitTesting(),
 		bNeedsToSwitchVerticalAxis,
+		Canvas->IsHitTesting(),
 		Canvas->GetAllowedModes()
 	};
 	ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(
-		DrawTileCommand,
-		FDrawTileParameters, Parameters, DrawTileParameters,
+		DrawTriangleCommand,
+		FDrawTriangleParameters, Parameters, DrawTriangleParameters,
 		{
-		SCOPED_DRAW_EVENT(RHICmdList, CanvasDrawTile);
-		for (int32 TileIdx = 0; TileIdx < Parameters.RenderData->Tiles.Num(); TileIdx++)
+		SCOPED_DRAW_EVENT(RHICmdList, CanvasDrawTriangle);
+		for (int32 TriIdx = 0; TriIdx < Parameters.RenderData->Triangles.Num(); TriIdx++)
 		{
-			const FRenderData::FTileInst& Tile = Parameters.RenderData->Tiles[TileIdx];
-			FTileRenderer::DrawTile(
+			const FRenderData::FTriangleInst& Tri = Parameters.RenderData->Triangles[TriIdx];
+			FTriangleRenderer::DrawTriangle(
 				RHICmdList,
 				*Parameters.View,
 				Parameters.RenderData->MaterialRenderProxy,
 				Parameters.bNeedsToSwitchVerticalAxis,
-				Tile.X, Tile.Y, Tile.SizeX, Tile.SizeY,
-				Tile.U, Tile.V, Tile.SizeU, Tile.SizeV,
-				Parameters.bIsHitTesting, Tile.HitProxyId,
-				Tile.InColor);
+				Tri.Tri,
+				Parameters.bIsHitTesting, Tri.HitProxyId);
 		}
 
 		delete Parameters.View->Family;
@@ -322,7 +318,7 @@ bool FCanvasTileRendererItem::Render_GameThread(const FCanvas* Canvas)
 		});
 	if (Canvas->GetAllowedModes() & FCanvas::Allow_DeleteOnRender)
 	{
-		Data = NULL;
+		Data = nullptr;
 	}
 	return true;
 }

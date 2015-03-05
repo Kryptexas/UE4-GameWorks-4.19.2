@@ -660,6 +660,18 @@ void AHUD::DrawTextureSimple(UTexture* Texture, float ScreenX, float ScreenY, fl
 	}
 }
 
+void AHUD::DrawMaterialTriangle(UMaterialInterface* Material, FVector2D V0_Pos, FVector2D V1_Pos, FVector2D V2_Pos, FVector2D V0_UV, FVector2D V1_UV, FVector2D V2_UV, FLinearColor V0_Color, FLinearColor V1_Color, FLinearColor V2_Color)
+{
+	if (IsCanvasValid_WarnIfNot() && Material)
+	{
+		FCanvasTriangleItem TriangleItem(V0_Pos, V1_Pos, V2_Pos, V0_UV, V1_UV, V2_UV, NULL);
+		TriangleItem.TriangleList[0].V0_Color = V0_Color;
+		TriangleItem.TriangleList[0].V1_Color = V1_Color;
+		TriangleItem.TriangleList[0].V2_Color = V2_Color;
+		TriangleItem.MaterialRenderProxy = Material->GetRenderProxy(0);
+		Canvas->DrawItem(TriangleItem);
+	}
+}
 FVector AHUD::Project(FVector Location) const
 {
 	if (IsCanvasValid_WarnIfNot())

@@ -15,6 +15,7 @@ class FBatchedElementParameters;
 class FBatchedElements;
 class FMaterialRenderProxy;
 class FTexture;
+class UMaterial;
 
 class FCanvasItem
 {
@@ -631,7 +632,8 @@ public:
 	FCanvasTriangleItem( const FVector2D& InPointA, const FVector2D& InPointB, const FVector2D& InPointC, const FTexture* InTexture )
 		: FCanvasItem( InPointA )
 		, Texture( InTexture )
-		, BatchedElementParameters( NULL )
+		, MaterialRenderProxy( nullptr )
+		, BatchedElementParameters( nullptr )
 	{
 		FCanvasUVTri SingleTri;
 		SingleTri.V0_Pos = InPointA;
@@ -663,7 +665,8 @@ public:
 	FCanvasTriangleItem( const FVector2D& InPointA, const FVector2D& InPointB, const FVector2D& InPointC, const FVector2D& InTexCoordPointA, const FVector2D& InTexCoordPointB, const FVector2D& InTexCoordPointC, const FTexture* InTexture )
 		:FCanvasItem( InPointA )
 		, Texture( InTexture )
-		, BatchedElementParameters( NULL )
+		, MaterialRenderProxy( nullptr )
+		, BatchedElementParameters( nullptr )
 	{
 		FCanvasUVTri SingleTri;
 		SingleTri.V0_Pos = InPointA;
@@ -689,7 +692,8 @@ public:
 	FCanvasTriangleItem( FCanvasUVTri InSingleTri, const FTexture* InTexture )
 		:FCanvasItem( InSingleTri.V0_Pos )
 		, Texture( InTexture )
-		, BatchedElementParameters( NULL )
+		, MaterialRenderProxy( nullptr )
+		, BatchedElementParameters( nullptr )
 	{
 		TriangleList.Add( InSingleTri );
 	};
@@ -703,7 +707,8 @@ public:
 	FCanvasTriangleItem( const TArray< FCanvasUVTri >&	InTriangleList, const FTexture* InTexture )
 		:FCanvasItem( FVector2D::ZeroVector )
 		, Texture( InTexture )
-		, BatchedElementParameters( NULL )
+		, MaterialRenderProxy( nullptr )
+		, BatchedElementParameters( nullptr )
 	{
 		check( InTriangleList.Num() >= 1 );
 		
@@ -732,6 +737,9 @@ public:
 
 	/* texture to use for triangle(s). */
 	const FTexture* Texture;
+
+	/* Material proxy for rendering. */
+	const FMaterialRenderProxy* MaterialRenderProxy;
 
 	FBatchedElementParameters* BatchedElementParameters;
 
@@ -824,7 +832,7 @@ private:
 class ENGINE_API FCanvasItemTestbed
 {
 public:
-	FCanvasItemTestbed(){};
+	FCanvasItemTestbed();
 	void  Draw( class FViewport* Viewport, FCanvas* Canvas );
 	struct LineVars
 	{
@@ -847,6 +855,14 @@ public:
 	static LineVars TestLine;
 	static bool	bTestState;
 	static bool	bShowTestbed;
+	static bool bShowLines;
+	static bool bShowBoxes;
+	static bool bShowTris;
+	static bool bShowText;
+	static bool bShowTiles;
+
+	UMaterial* TestMaterial;
+	
 };
 #endif // WITH_EDITOR
 

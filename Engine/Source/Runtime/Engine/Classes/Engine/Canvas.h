@@ -470,6 +470,14 @@ public:
 	void K2_DrawTriangle(UTexture* RenderTexture, TArray<FCanvasUVTri> Triangles);
 
 	/**
+	 * Draws a set of triangles on the Canvas.
+	 *
+	 * @param RenderMaterial			Material to use when rendering. Remember that only the emissive channel is able to be rendered as no lighting is performed when rendering to the Canvas.
+	 * @param Triangles					Triangles to render.
+	 */
+	UFUNCTION(BlueprintCallable, Category = Canvas, meta = (FriendlyName = "Draw Material Triangles"))
+	void K2_DrawMaterialTriangle(UMaterialInterface* RenderMaterial, TArray<FCanvasUVTri> Triangles);
+	/**
 	 * Draws a polygon on the Canvas.
 	 *
 	 * @param RenderTexture				Texture to use when rendering the triangles. If no texture is set, then the default white texture is used.
