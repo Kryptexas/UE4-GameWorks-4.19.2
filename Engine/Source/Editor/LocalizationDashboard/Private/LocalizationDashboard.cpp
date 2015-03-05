@@ -8,6 +8,7 @@
 #include "IMainFrameModule.h"
 #include "ModuleManager.h"
 #include "SLocalizationTargetEditor.h"
+#include "LocalizationTarget.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationDashboard"
 

@@ -9,6 +9,9 @@
 #include "SLocalizationTargetEditorCultureRow.h"
 #include "SCulturePicker.h"
 #include "IDetailPropertyRow.h"
+#include "DetailCategoryBuilder.h"
+#include "IDetailsView.h"
+#include "LocalizationCommandletTasks.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationTargetEditor"
 

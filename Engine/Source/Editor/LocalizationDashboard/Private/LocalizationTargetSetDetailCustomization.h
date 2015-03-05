@@ -2,6 +2,12 @@
 
 #pragma once
 
+#include "IDetailCustomization.h"
+
+class ULocalizationTarget;
+class IPropertyHandle;
+class ULocalizationTargetSet;
+
 //class ILocalizationServiceProvider;
 
 //struct FLocalizationServiceProviderWrapper

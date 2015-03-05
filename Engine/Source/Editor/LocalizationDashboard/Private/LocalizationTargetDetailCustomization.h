@@ -2,9 +2,8 @@
 
 #pragma once
 #include "IDetailCustomization.h"
+#include "LocalizationTarget.h"
 
-class ULocalizationTargetSet;
-class ULocalizationTarget;
 class SCulturePicker;
 
 class FLocalizationTargetDetailCustomization : public IDetailCustomization

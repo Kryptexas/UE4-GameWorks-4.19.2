@@ -6,6 +6,9 @@
 #include "LocalizationTarget.h"
 #include "DetailWidgetRow.h"
 #include "SLocalizationDashboardTargetRow.h"
+#include "DetailCategoryBuilder.h"
+#include "IDetailsView.h"
+#include "LocalizationCommandletTasks.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationDashboard"
 

@@ -1,6 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LocalizationDashboardPrivatePCH.h"
+#include "SLocalizationTargetEditor.h"
+#include "IDetailsView.h"
+#include "LocalizationTarget.h"
+#include "PropertyEditorModule.h"
 
 void SLocalizationTargetEditor::Construct(const FArguments& InArgs, ULocalizationTargetSet* const InProjectSettings, ULocalizationTarget* const InLocalizationTarget)
 {
