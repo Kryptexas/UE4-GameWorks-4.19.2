@@ -664,7 +664,7 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 
 			// can't use HasReachedDestination here, because it will use last path point
 			// which is not set correctly for partial paths without string pulling
-			if (bMovedTooFar || HasReachedInternal(GoalLocation, 0.0f, 0.0f, CurrentLocation, AcceptanceRadius, bStopOnOverlap))
+			if (bMovedTooFar || HasReachedInternal(GoalLocation, 0.0f, 0.0f, CurrentLocation, AcceptanceRadius, bStopOnOverlap ? MinAgentRadiusPct : 0.0f))
 			{
 				UE_VLOG(GetOwner(), LogCrowdFollowing, Log, TEXT("Last path segment finished due to \'%s\'"), bMovedTooFar ? TEXT("Missing Last Point") : TEXT("Reaching Destination"));
 				OnPathFinished(EPathFollowingResult::Success);
@@ -673,12 +673,8 @@ void UCrowdFollowingComponent::UpdatePathSegment()
 		else
 		{
 			// override radius multiplier and switch to next path part when closer than 4x agent radius
-			const float SavedAgentRadiusPct = MinAgentRadiusPct;
-			MinAgentRadiusPct = 4.0f;
-			
-			const bool bHasReached = HasReachedInternal(GoalLocation, 0.0f, 0.0f, CurrentLocation, 0.0f, false);
-			
-			MinAgentRadiusPct = SavedAgentRadiusPct;
+			const float NextPartMultiplier = 4.0f;
+			const bool bHasReached = HasReachedInternal(GoalLocation, 0.0f, 0.0f, CurrentLocation, 0.0f, NextPartMultiplier);
 
 			if (bHasReached)
 			{
