@@ -684,6 +684,7 @@ bool FUntypedBulkData::ShouldStreamBulkData()
 	const bool bForceStream = !!(BulkDataFlags & BULKDATA_ForceStreamPayload);
 
 	return (FPlatformProperties::RequiresCookedData() && !Filename.IsEmpty() &&
+		FPlatformProcess::SupportsMultithreading() &&
 		(bForceStream || GetBulkDataSize() > MinBulkDataSizeForAsyncLoading.Value) &&
 		MinBulkDataSizeForAsyncLoading.Value >= 0);
 }
