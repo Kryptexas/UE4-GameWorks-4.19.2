@@ -1895,6 +1895,9 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 		GLevelEditorModeTools().DeactivateMode( FBuiltinEditorModes::EM_InterpEdit );
 	}
 
+	// Make sure there's no outstanding load requests
+	FlushAsyncLoading();
+
 	FBlueprintEditorUtils::FindAndSetDebuggableBlueprintInstances();
 
 	FEditorDelegates::BeginPIE.Broadcast(bInSimulateInEditor);
