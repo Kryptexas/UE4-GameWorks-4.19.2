@@ -30,7 +30,7 @@ DECLARE_CYCLE_STAT(TEXT("CanvasBorderItem Time"),STAT_Canvas_BorderItemTime,STAT
 
 FCanvasItemTestbed::LineVars FCanvasItemTestbed::TestLine;
 bool FCanvasItemTestbed::bTestState = false;
-bool FCanvasItemTestbed::bShowTestbed = true;
+bool FCanvasItemTestbed::bShowTestbed = false;
 
 bool FCanvasItemTestbed::bShowLines = false;
 bool FCanvasItemTestbed::bShowBoxes = false;
