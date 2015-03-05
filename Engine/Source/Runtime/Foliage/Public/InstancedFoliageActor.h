@@ -98,12 +98,13 @@ public:
 	FOLIAGE_API void MapRebuild();
 
 	// Moves instances based on the specified component to the current streaming level
-	FOLIAGE_API void MoveInstancesForComponentToCurrentLevel(UActorComponent* InComponent);
+	static FOLIAGE_API void MoveInstancesForComponentToCurrentLevel(UActorComponent* InComponent);
 
 	// Change all instances based on one component to a new component (possible in another level).
 	// The instances keep the same world locations
 	FOLIAGE_API void MoveInstancesToNewComponent(UPrimitiveComponent* InOldComponent, UPrimitiveComponent* InNewComponent);
-
+	static FOLIAGE_API void MoveInstancesToNewComponent(UWorld* InWorld, UPrimitiveComponent* InOldComponent, UPrimitiveComponent* InNewComponent);
+	
 	// Move selected instances to a foliage actor in target level
 	FOLIAGE_API void MoveSelectedInstancesToLevel(ULevel* InTargetLevel);
 	
@@ -146,6 +147,9 @@ public:
 
 	// Returns the location for the widget
 	FOLIAGE_API bool GetSelectionLocation(FVector& OutLocation) const;
+
+	/** Whether there any foliage instances painted on specified component */
+	static FOLIAGE_API bool HasFoliageAttached(UActorComponent* InComponent);
 
 	/* Called to notify InstancedFoliageActor that a UFoliageType has been modified */
 	void NotifyFoliageTypeChanged(UFoliageType* FoliageType);

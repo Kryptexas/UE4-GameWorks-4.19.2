@@ -1070,101 +1070,111 @@ void ULandscapeHeightfieldCollisionComponent::RecreateCollision(bool bUpdateAddC
 }
 
 #if WITH_EDITORONLY_DATA
-void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(AInstancedFoliageActor &IFA, const FBox& InInstanceBox)
+void ULandscapeHeightfieldCollisionComponent::SnapFoliageInstances(const FBox& InInstanceBox)
 {
-	for (auto& MeshPair : IFA.FoliageMeshes)
+	UWorld* ComponentWorld = GetWorld();
+	for (TActorIterator<AInstancedFoliageActor> It(ComponentWorld); It; ++It)
 	{
-		// Find the per-mesh info matching the mesh.
-		UFoliageType* Settings = MeshPair.Key;
-		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
-		const auto BaseId = IFA.InstanceBaseCache.GetInstanceBaseId(this);  // can we move this out?
-
-		const auto* InstanceSet = MeshInfo.ComponentHash.Find(BaseId);
-		if (InstanceSet)
+		AInstancedFoliageActor& IFA = *(*It);
+		const auto BaseId = IFA.InstanceBaseCache.GetInstanceBaseId(this);
+		if (BaseId == FFoliageInstanceBaseCache::InvalidBaseId)
 		{
-			float TraceExtentSize = Bounds.SphereRadius * 2.f + 10.f; // extend a little
-			FVector TraceVector = GetOwner()->GetRootComponent()->ComponentToWorld.GetUnitAxis(EAxis::Z) * TraceExtentSize;
-
-			bool bFirst = true;
-			TArray<int32> InstancesToRemove;
-			for (int32 InstanceIndex : *InstanceSet)
+			continue;
+		}
+			
+		for (auto& MeshPair : IFA.FoliageMeshes)
+		{
+			// Find the per-mesh info matching the mesh.
+			UFoliageType* Settings = MeshPair.Key;
+			FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+			
+			const auto* InstanceSet = MeshInfo.ComponentHash.Find(BaseId);
+			if (InstanceSet)
 			{
-				FFoliageInstance& Instance = MeshInfo.Instances[InstanceIndex];
+				float TraceExtentSize = Bounds.SphereRadius * 2.f + 10.f; // extend a little
+				FVector TraceVector = GetOwner()->GetRootComponent()->ComponentToWorld.GetUnitAxis(EAxis::Z) * TraceExtentSize;
 
-				// Test location should remove any Z offset
-				FVector TestLocation = FMath::Abs(Instance.ZOffset) > KINDA_SMALL_NUMBER
-					? (FVector)Instance.GetInstanceWorldTransform().TransformPosition(FVector(0, 0, -Instance.ZOffset))
-					: Instance.Location;
-
-				if (InInstanceBox.IsInside(TestLocation))
+				bool bFirst = true;
+				TArray<int32> InstancesToRemove;
+				for (int32 InstanceIndex : *InstanceSet)
 				{
-					if (bFirst)
+					FFoliageInstance& Instance = MeshInfo.Instances[InstanceIndex];
+
+					// Test location should remove any Z offset
+					FVector TestLocation = FMath::Abs(Instance.ZOffset) > KINDA_SMALL_NUMBER
+						? (FVector)Instance.GetInstanceWorldTransform().TransformPosition(FVector(0, 0, -Instance.ZOffset))
+						: Instance.Location;
+
+					if (InInstanceBox.IsInside(TestLocation))
 					{
-						bFirst = false;
-						Modify();
-					}
-
-					FVector Start = TestLocation + TraceVector;
-					FVector End = TestLocation - TraceVector;
-
-					static FName TraceTag = FName(TEXT("FoliageSnapToLandscape"));
-					TArray<FHitResult> Results;
-					UWorld* World = GetWorld();
-					check(World);
-					// Editor specific landscape heightfield uses ECC_Visibility collision channel
-					World->LineTraceMultiByObjectType(Results, Start, End, FCollisionObjectQueryParams(ECollisionChannel::ECC_Visibility), FCollisionQueryParams(TraceTag, true));
-
-					bool bFoundHit = false;
-					for (const FHitResult& Hit : Results)
-					{
-						if (Hit.Component == this)
+						if (bFirst)
 						{
-							bFoundHit = true;
-							if ((TestLocation - Hit.Location).SizeSquared() > KINDA_SMALL_NUMBER)
+							bFirst = false;
+							Modify();
+						}
+
+						FVector Start = TestLocation + TraceVector;
+						FVector End = TestLocation - TraceVector;
+
+						static FName TraceTag = FName(TEXT("FoliageSnapToLandscape"));
+						TArray<FHitResult> Results;
+						UWorld* World = GetWorld();
+						check(World);
+						// Editor specific landscape heightfield uses ECC_Visibility collision channel
+						World->LineTraceMultiByObjectType(Results, Start, End, FCollisionObjectQueryParams(ECollisionChannel::ECC_Visibility), FCollisionQueryParams(TraceTag, true));
+
+						bool bFoundHit = false;
+						for (const FHitResult& Hit : Results)
+						{
+							if (Hit.Component == this)
 							{
-								// Remove instance location from the hash. Do not need to update ComponentHash as we re-add below.
-								MeshInfo.InstanceHash->RemoveInstance(Instance.Location, InstanceIndex);
-
-								// Update the instance editor data
-								Instance.Location = Hit.Location;
-
-								if (Instance.Flags & FOLIAGE_AlignToNormal)
+								bFoundHit = true;
+								if ((TestLocation - Hit.Location).SizeSquared() > KINDA_SMALL_NUMBER)
 								{
-									// Remove previous alignment and align to new normal.
-									Instance.Rotation = Instance.PreAlignRotation;
-									Instance.AlignToNormal(Hit.Normal, Settings->AlignMaxAngle);
+									// Remove instance location from the hash. Do not need to update ComponentHash as we re-add below.
+									MeshInfo.InstanceHash->RemoveInstance(Instance.Location, InstanceIndex);
+
+									// Update the instance editor data
+									Instance.Location = Hit.Location;
+
+									if (Instance.Flags & FOLIAGE_AlignToNormal)
+									{
+										// Remove previous alignment and align to new normal.
+										Instance.Rotation = Instance.PreAlignRotation;
+										Instance.AlignToNormal(Hit.Normal, Settings->AlignMaxAngle);
+									}
+
+									// Reapply the Z offset in local space
+									if (FMath::Abs(Instance.ZOffset) > KINDA_SMALL_NUMBER)
+									{
+										Instance.Location = Instance.GetInstanceWorldTransform().TransformPosition(FVector(0, 0, Instance.ZOffset));
+									}
+
+									// Todo: add do validation with other parameters such as max/min height etc.
+
+									check(MeshInfo.Component);
+									MeshInfo.Component->Modify();
+									MeshInfo.Component->UpdateInstanceTransform(InstanceIndex, Instance.GetInstanceWorldTransform(), true);
+									MeshInfo.Component->InvalidateLightingCache();
+
+									// Re-add the new instance location to the hash
+									MeshInfo.InstanceHash->InsertInstance(Instance.Location, InstanceIndex);
 								}
-
-								// Reapply the Z offset in local space
-								if (FMath::Abs(Instance.ZOffset) > KINDA_SMALL_NUMBER)
-								{
-									Instance.Location = Instance.GetInstanceWorldTransform().TransformPosition(FVector(0, 0, Instance.ZOffset));
-								}
-
-								// Todo: add do validation with other parameters such as max/min height etc.
-
-								check(MeshInfo.Component);
-								MeshInfo.Component->Modify();
-								MeshInfo.Component->UpdateInstanceTransform(InstanceIndex, Instance.GetInstanceWorldTransform(), true);
-								MeshInfo.Component->InvalidateLightingCache();
-
-								// Re-add the new instance location to the hash
-								MeshInfo.InstanceHash->InsertInstance(Instance.Location, InstanceIndex);
+								break;
 							}
-							break;
+						}
+
+						if (!bFoundHit)
+						{
+							// Couldn't find new spot - remove instance
+							InstancesToRemove.Add(InstanceIndex);
 						}
 					}
-
-					if (!bFoundHit)
-					{
-						// Couldn't find new spot - remove instance
-						InstancesToRemove.Add(InstanceIndex);
-					}
 				}
-			}
 
-			// Remove any unused instances
-			MeshInfo.RemoveInstances(&IFA, InstancesToRemove);
+				// Remove any unused instances
+				MeshInfo.RemoveInstances(&IFA, InstancesToRemove);
+			}
 		}
 	}
 }

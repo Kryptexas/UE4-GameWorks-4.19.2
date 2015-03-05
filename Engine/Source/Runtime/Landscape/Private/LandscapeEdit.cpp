@@ -748,19 +748,15 @@ void ULandscapeComponent::UpdateCollisionHeightData(const FColor* HeightmapTextu
 		CollisionComp->bCanEverAffectNavigation = LandscapeProxy ? LandscapeProxy->bUsedForNavigation : false;
 	}
 
+	// Move any foliage instances if we created a new collision component.
+	if (OldCollisionComponent && OldCollisionComponent != CollisionComp)
+	{
+		AInstancedFoliageActor::MoveInstancesToNewComponent(Proxy->GetWorld(), OldCollisionComponent, CollisionComp);
+	}
+
 	if (bRebuild && CollisionProxy)
 	{
 		CollisionProxy->RegisterAllComponents();
-
-		// Move any foliage instances if we created a new collision component.
-		if (OldCollisionComponent && OldCollisionComponent != CollisionComp)
-		{
-			AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(OldCollisionComponent->GetWorld());
-			if (IFA)
-			{
-				IFA->MoveInstancesToNewComponent(OldCollisionComponent, CollisionComp);
-			}
-		}
 	}
 
 	// Set new collision component to pointer

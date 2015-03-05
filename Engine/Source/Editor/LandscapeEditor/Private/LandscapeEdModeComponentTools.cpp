@@ -683,11 +683,7 @@ public:
 					// Need to move or recreate all related data (Height map, Weight map, maybe collision components, allocation info)
 
 					// Move any foliage associated
-					AInstancedFoliageActor* OldIFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Component->GetLandscapeProxy()->GetLevel());
-					if (OldIFA)
-					{
-						OldIFA->MoveInstancesForComponentToCurrentLevel(Component);
-					}
+					AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel(Component);
 
 					Component->GetLandscapeProxy()->CollisionComponents.Remove(Component);
 					Component->UnregisterComponent();

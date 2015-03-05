@@ -1287,33 +1287,47 @@ void AInstancedFoliageActor::DeleteInstancesForProceduralFoliageComponent(const 
 
 void AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel(UActorComponent* InComponent)
 {
-	AInstancedFoliageActor* NewIFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(InComponent->GetWorld(), true);
-	const auto SourceBaseId = InstanceBaseCache.GetInstanceBaseId(InComponent);
-	
-	for (auto& MeshPair : FoliageMeshes)
+	if (HasFoliageAttached(InComponent))
 	{
-		FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
-		UFoliageType* FoliageType = MeshPair.Key;
-
-		// Duplicate the foliage type if it's not shared
-		if (FoliageType->GetOutermost() == GetOutermost())
-		{
-			FoliageType = (UFoliageType*)StaticDuplicateObject(FoliageType, NewIFA, nullptr, RF_AllFlags & ~(RF_Standalone | RF_Public));
-		}
+		// Quit early if there are no foliage instances painted on this component
+		return;
+	}
+	
+	UWorld* InWorld = InComponent->GetWorld();
+	AInstancedFoliageActor* NewIFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(InWorld, true);
+	NewIFA->Modify();
+	
+	for (TActorIterator<AInstancedFoliageActor> It(InWorld); It; ++It)
+	{
+		AInstancedFoliageActor* IFA = (*It);
 		
-		const auto* InstanceSet = MeshInfo.ComponentHash.Find(SourceBaseId);
-		if (InstanceSet)
+		const auto SourceBaseId = IFA->InstanceBaseCache.GetInstanceBaseId(InComponent);
+		if (SourceBaseId != FFoliageInstanceBaseCache::InvalidBaseId && IFA != NewIFA)
 		{
-			FFoliageMeshInfo* NewMeshInfo = NewIFA->FindOrAddMesh(FoliageType);
+			IFA->Modify();
 
-			// Add the foliage to the new level
-			for (int32 InstanceIndex : *InstanceSet)
+			for (auto& MeshPair : IFA->FoliageMeshes)
 			{
-				NewMeshInfo->AddInstance(NewIFA, FoliageType, MeshInfo.Instances[InstanceIndex], InComponent);
-			}
+				FFoliageMeshInfo& MeshInfo = *MeshPair.Value;
+				UFoliageType* FoliageType = MeshPair.Key;
 
-			// Remove from old level
-			MeshInfo.RemoveInstances(this, InstanceSet->Array());
+				const auto* InstanceSet = MeshInfo.ComponentHash.Find(SourceBaseId);
+				if (InstanceSet)
+				{
+					// Duplicate the foliage type if it's not shared
+					FFoliageMeshInfo* TargetMeshInfo = nullptr;
+					UFoliageType* TargetFoliageType = NewIFA->AddFoliageType(FoliageType, &TargetMeshInfo);
+
+					// Add the foliage to the new level
+					for (int32 InstanceIndex : *InstanceSet)
+					{
+						TargetMeshInfo->AddInstance(NewIFA, TargetFoliageType, MeshInfo.Instances[InstanceIndex], InComponent);
+					}
+
+					// Remove from old level
+					MeshInfo.RemoveInstances(IFA, InstanceSet->Array());
+				}
+			}
 		}
 	}
 }
@@ -1367,6 +1381,15 @@ void AInstancedFoliageActor::MoveInstancesToNewComponent(UPrimitiveComponent* In
 				MeshInfo.RemoveInstances(this, InstanceSet.Array());
 			}
 		}
+	}
+}
+
+void AInstancedFoliageActor::MoveInstancesToNewComponent(UWorld* InWorld, UPrimitiveComponent* InOldComponent, UPrimitiveComponent* InNewComponent)
+{
+	for (TActorIterator<AInstancedFoliageActor> It(InWorld); It; ++It)
+	{
+		AInstancedFoliageActor* IFA = (*It);
+		IFA->MoveInstancesToNewComponent(InOldComponent, InNewComponent);
 	}
 }
 
@@ -1773,6 +1796,21 @@ bool AInstancedFoliageActor::GetSelectionLocation(FVector& OutLocation) const
 	}
 	return false;
 }
+
+bool AInstancedFoliageActor::HasFoliageAttached(UActorComponent* InComponent)
+{
+	for (TActorIterator<AInstancedFoliageActor> It(InComponent->GetWorld()); It; ++It)
+	{
+		AInstancedFoliageActor* IFA = (*It);
+		if (IFA->InstanceBaseCache.GetInstanceBaseId(InComponent) != FFoliageInstanceBaseCache::InvalidBaseId)
+		{
+			return true;
+		}
+	}
+
+	return false;
+}
+
 
 void AInstancedFoliageActor::MapRebuild()
 {

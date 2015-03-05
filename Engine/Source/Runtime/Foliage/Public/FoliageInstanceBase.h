@@ -61,7 +61,7 @@ struct FFoliageInstanceBaseCache
 	friend FArchive& operator<<(FArchive& Ar, FFoliageInstanceBaseCache& InstanceBaseCache);
 		
 	//
-	static FFoliageInstanceBaseId InvalidBaseId;
+	FOLIAGE_API static FFoliageInstanceBaseId InvalidBaseId;
 
 	// ID generator
 	// serialized
