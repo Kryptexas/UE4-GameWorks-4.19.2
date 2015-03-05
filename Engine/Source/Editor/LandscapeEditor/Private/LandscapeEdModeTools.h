@@ -625,8 +625,7 @@ struct FHeightmapAccessor
 			bool bUpdateFoliage = false;
 			for (ULandscapeComponent* Component : Components)
 			{
-				AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForLevel(Component->GetComponentLevel());
-				if (IFA)
+				if (AInstancedFoliageActor::HasFoliageAttached(Component))
 				{
 					bUpdateFoliage = true;
 					break;
