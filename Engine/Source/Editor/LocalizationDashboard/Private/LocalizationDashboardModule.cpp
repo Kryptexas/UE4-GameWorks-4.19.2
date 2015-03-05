@@ -7,6 +7,8 @@
 #include "SDockTab.h"
 #include "Features/IModularFeatures.h"
 #include "ILocalizationServiceProvider.h"
+#include "LocalizationTargetSetDetailCustomization.h"
+#include "LocalizationTargetDetailCustomization.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationDashboard"
 
@@ -28,15 +30,33 @@ public:
 	// Begin IModuleInterface interface
 	virtual void StartupModule() override
 	{
-		FLocalizationDashboard::Initialize();
-
 		ServiceProviders = IModularFeatures::Get().GetModularFeatureImplementations<ILocalizationServiceProvider>("LocalizationService");
 		ServiceProviders.Insert(nullptr, 0); // "None"
+
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.RegisterCustomClassLayout("LocalizationTargetSet", FOnGetDetailCustomizationInstance::CreateLambda(
+			[]() -> TSharedRef<IDetailCustomization>
+			{
+				return MakeShareable( new FLocalizationTargetSetDetailCustomization());
+			})
+		);
+		PropertyModule.RegisterCustomClassLayout("LocalizationTarget", FOnGetDetailCustomizationInstance::CreateLambda(
+			[]() -> TSharedRef<IDetailCustomization>
+			{
+				return MakeShareable( new FLocalizationTargetDetailCustomization());
+			})
+		);
+
+		FLocalizationDashboard::Initialize();
 	}
 
 	virtual void ShutdownModule() override
 	{
 		FLocalizationDashboard::Terminate();
+
+		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+		PropertyModule.UnregisterCustomClassLayout("LocalizationTarget");
+		PropertyModule.UnregisterCustomClassLayout("LocalizationTargetSet");
 	}
 	// End IModuleInterface interface
 
