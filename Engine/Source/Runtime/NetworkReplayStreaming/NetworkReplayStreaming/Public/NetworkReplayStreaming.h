@@ -11,8 +11,11 @@ struct FNetworkReplayStreamInfo
 {
 	FNetworkReplayStreamInfo() : SizeInBytes( 0 ), LengthInMS( 0 ), NumViewers( 0 ), bIsLive( false ) {}
 
-	/** The name of the stream */
+	/** The name of the stream (generally this is auto generated, refer to friendly name for UI) */
 	FString Name;
+
+	/** The UI friendly name of the stream */
+	FString FriendlyName;
 
 	/** The date and time the stream was recorded */
 	FDateTime Timestamp;

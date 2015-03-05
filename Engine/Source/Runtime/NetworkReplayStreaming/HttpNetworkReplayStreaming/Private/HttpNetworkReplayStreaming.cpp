@@ -726,6 +726,7 @@ void FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished( FHttpRequestPtr 
 			FNetworkReplayStreamInfo NewStream;
 
 			NewStream.Name			= ReplayList.Replays[i].SessionName;
+			NewStream.FriendlyName	= ReplayList.Replays[i].FriendlyName;
 			NewStream.Timestamp		= ReplayList.Replays[i].Timestamp;
 			NewStream.SizeInBytes	= ReplayList.Replays[i].SizeInBytes;
 			NewStream.LengthInMS	= ReplayList.Replays[i].DemoTimeInMs;
