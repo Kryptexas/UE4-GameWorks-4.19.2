@@ -101,3 +101,8 @@ float USoundBase::GetPitchMultiplier()
 {
 	return 1.f;
 }
+
+USoundClass* USoundBase::GetSoundClass() const
+{
+	return SoundClassObject;
+}

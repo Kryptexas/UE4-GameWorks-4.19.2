@@ -274,9 +274,9 @@ void FAudioDevice::GetSoundClassInfo( TMap<FName, FAudioClassInfo>& AudioClassIn
 		{
 			// Presume one class per sound node wave
 			USoundWave *SoundWave = WavePlayers[ WaveIndex ]->SoundWave;
-			if (SoundWave && SoundCue->SoundClassObject)
+			if (SoundWave && SoundCue->GetSoundClass())
 			{
-				SoundWaveClasses.Add( SoundWave, SoundCue->SoundClassObject->GetFName() );
+				SoundWaveClasses.Add( SoundWave, SoundCue->GetSoundClass()->GetFName() );
 			}
 		}
 	}

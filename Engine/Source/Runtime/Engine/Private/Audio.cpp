@@ -90,9 +90,9 @@ FName FSoundBuffer::GetSoundClassName()
 				{
 					if (WaveNode->ResourceID == ResourceID)
 					{
-						if (Cue->SoundClassObject)
+						if (Cue->GetSoundClass())
 						{
-							return Cue->SoundClassObject->GetFName();
+							return Cue->GetSoundClass()->GetFName();
 						}
 						else
 						{
@@ -107,9 +107,9 @@ FName FSoundBuffer::GetSoundClassName()
 			USoundWave* Wave = Cast<USoundWave>(*It);
 			if (Wave && Wave->ResourceID == ResourceID)
 			{
-				if (Wave->SoundClassObject)
+				if (Wave->GetSoundClass())
 				{
-					return Wave->SoundClassObject->GetFName();
+					return Wave->GetSoundClass()->GetFName();
 				}
 				else
 				{

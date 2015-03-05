@@ -183,7 +183,7 @@ FString USoundCue::GetDesc()
 
 	// Display group
 	Description += TEXT( " [" );
-	Description += *SoundClassObject->GetName();
+	Description += *GetSoundClass()->GetName();
 	Description += TEXT( "]" );
 
 	return Description;

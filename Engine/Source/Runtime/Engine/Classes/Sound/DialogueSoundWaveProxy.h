@@ -40,4 +40,6 @@ public:
 	 * Parses the Sound to generate the WaveInstances to play
 	 */
 	virtual void Parse( class FAudioDevice* AudioDevice, const UPTRINT NodeWaveInstanceHash, FActiveSound& AudioComponent, const FSoundParseParameters& ParseParams, TArray<FWaveInstance*>& WaveInstances );
+
+	virtual USoundClass* GetSoundClass() const override;
 };

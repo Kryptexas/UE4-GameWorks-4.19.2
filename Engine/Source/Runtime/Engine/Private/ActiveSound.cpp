@@ -98,7 +98,7 @@ USoundClass* FActiveSound::GetSoundClass() const
 	}
 	else if (Sound)
 	{
-		return Sound->SoundClassObject;
+		return Sound->GetSoundClass();
 	}
 
 	return NULL;
