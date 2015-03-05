@@ -1842,7 +1842,10 @@ bool UPrimitiveComponent::IsOverlappingComponent(UPrimitiveComponent const* Othe
 {
 	for (int32 i=0; i < OverlappingComponents.Num(); ++i)
 	{
-		if (OverlappingComponents[i].OverlapInfo.Component.Get() == OtherComp) { return true; }
+		if (OverlappingComponents[i].OverlapInfo.Component.Get() == OtherComp)
+		{
+			return true;
+		}
 	}
 	return false;
 }
@@ -2062,7 +2065,7 @@ void UPrimitiveComponent::EndComponentOverlap(const FOverlapInfo& OtherOverlap, 
 
 void UPrimitiveComponent::GetOverlappingActors(TArray<AActor*>& OutOverlappingActors, UClass* ClassFilter) const
 {
-	OutOverlappingActors.Empty();
+	OutOverlappingActors.Reset();
 
 	for (auto CompIt = OverlappingComponents.CreateConstIterator(); CompIt; ++CompIt)
 	{
