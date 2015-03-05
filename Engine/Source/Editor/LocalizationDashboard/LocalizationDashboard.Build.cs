@@ -25,7 +25,8 @@ public class LocalizationDashboard : ModuleRules
                 "UnrealEd",
                 "EditorStyle",
 				"DesktopPlatform",
-                "TranslationEditor"
+                "TranslationEditor",
+                "MainFrame"
 			}
 		);
 
