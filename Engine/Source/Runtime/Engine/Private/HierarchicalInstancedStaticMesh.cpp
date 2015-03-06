@@ -178,6 +178,7 @@ class FClusterBuilder
 			Clusters.Add(FRunPair(Start, NumRange));
 			return;
 		}
+		check(NumRange >= 2);
 		SortPairs.Reset();
 		int32 BestAxis = -1;
 		float BestAxisValue = -1.0f;
@@ -1834,6 +1835,8 @@ void UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(
 	int32 MaxInstancesPerLeaf
 	)
 {
+	check(MaxInstancesPerLeaf > 0);
+
 	TUniquePtr<FClusterBuilder> Builder(new FClusterBuilder(InstanceTransforms, MeshBox, MaxInstancesPerLeaf));
 	Builder->Build();
 	OutOcclusionLayerNum = Builder->Result->OutOcclusionLayerNum;

@@ -986,6 +986,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 
 		MeshBox = GrassVariety.GrassMesh->GetBounds().GetBox();
 		DesiredInstancesPerLeaf = HierarchicalInstancedStaticMeshComponent->DesiredInstancesPerLeaf();
+		check(DesiredInstancesPerLeaf > 0);
 
 		TotalInstances = 0;
 		HaltonBaseIndex = InHaltonBaseIndex;
@@ -1168,7 +1169,7 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 		{
 			TArray<int32> SortedInstances;
 			TArray<int32> InstanceReorderTable;
-			UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(InstanceTransforms, MeshBox, ClusterTree, SortedInstances, InstanceReorderTable, DesiredInstancesPerLeaf, OutOcclusionLayerNum);
+			UHierarchicalInstancedStaticMeshComponent::BuildTreeAnyThread(InstanceTransforms, MeshBox, ClusterTree, SortedInstances, InstanceReorderTable, OutOcclusionLayerNum, DesiredInstancesPerLeaf);
 
 			// in-place sort the instances
 			FInstanceStream SwapBuffer;
