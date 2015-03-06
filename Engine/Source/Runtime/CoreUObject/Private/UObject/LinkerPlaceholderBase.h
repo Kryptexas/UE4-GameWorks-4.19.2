@@ -192,3 +192,15 @@ private:
 
 // Templatized implementation
 #include "LinkerPlaceholderBase.inl" 
+
+/*******************************************************************************
+ * TLinkerImportPlaceholder<> Specializations
+ ******************************************************************************/
+ 
+/**  */
+template<>
+int32 TLinkerImportPlaceholder<UClass>::ResolvePropertyReferences(UClass* ReplacementClass);
+
+/**  */
+template<>
+int32 TLinkerImportPlaceholder<UFunction>::ResolvePropertyReferences(UFunction* ReplacementFunc);
