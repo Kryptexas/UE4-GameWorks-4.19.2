@@ -1704,18 +1704,19 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 
 		FGlslCodeBackend GlslBackEnd(CCFlags);
 		FGlslLanguageSpec GlslLanguageSpec(IsES2Platform(Version) && !IsPCES2Platform(Version));
-		int32 Result = HlslCrossCompile(
-			TCHAR_TO_ANSI(*Input.SourceFilename),
-			TCHAR_TO_ANSI(*PreprocessedShader),
-			TCHAR_TO_ANSI(*Input.EntryPointName),
-			Frequency,
-			&GlslBackEnd,
-			&GlslLanguageSpec,
-			CCFlags,
-			HlslCompilerTarget,
-			&GlslShaderSource,
-			&ErrorLog
-			);
+
+		int32 Result = 0;
+		FHlslCrossCompilerContext CrossCompilerContext(CCFlags, Frequency, HlslCompilerTarget);
+		if (CrossCompilerContext.Init(TCHAR_TO_ANSI(*Input.SourceFilename), &GlslLanguageSpec))
+		{
+			Result = CrossCompilerContext.Run(
+				TCHAR_TO_ANSI(*PreprocessedShader),
+				TCHAR_TO_ANSI(*Input.EntryPointName),
+				&GlslBackEnd,
+				&GlslShaderSource,
+				&ErrorLog
+				) ? 1 : 0;
+		}
 
 		if (Result != 0)
 		{

@@ -8,7 +8,7 @@
 enum
 {
 	HLSLCC_VersionMajor = 0,
-	HLSLCC_VersionMinor = 59,
+	HLSLCC_VersionMinor = 60,
 };
 
 /**
@@ -130,18 +130,40 @@ protected:
  * @param OutErrorLog - Upon return contains the error log, if any.
  * @returns 0 if compilation failed, non-zero otherwise.
  */
-#ifdef __GNUC__
-__attribute__ ((visibility("default")))
-#endif // __GNUC__
-int HlslCrossCompile(
-	const char* InSourceFilename,
-	const char* InShaderSource,
-	const char* InEntryPoint,
-	EHlslShaderFrequency InShaderFrequency,
-	FCodeBackend* InShaderBackEnd,
-	struct ILanguageSpec* InLanguageSpec,
-	unsigned int InFlags,
-	EHlslCompileTarget InCompileTarget,
-	char** OutShaderSource,
-	char** OutErrorLog
-	);
+class FHlslCrossCompilerContext
+{
+public:
+	FHlslCrossCompilerContext(int InFlags, EHlslShaderFrequency InShaderFrequency, EHlslCompileTarget InCompileTarget);
+	~FHlslCrossCompilerContext();
+
+	// Initialize allocator, types, etc and validate flags. Returns false if it will not be able to proceed (eg Compute on ES2).
+	bool Init(
+		const char* InSourceFilename,
+		struct ILanguageSpec* InLanguageSpec);
+
+	// Run the actual compiler & generate source & errors
+	bool Run(
+		const char* InShaderSource,
+		const char* InEntryPoint,
+		FCodeBackend* InShaderBackEnd,
+		char** OutShaderSource,
+		char** OutErrorLog
+		);
+
+protected:
+	// Preprocessor, Lexer, AST->HIR
+	bool RunFrontend(const char** InOutShaderSource);
+
+	// Optimization, generate main, code gen backend
+	bool RunBackend(
+		const char* InShaderSource,
+		const char* InEntryPoint,
+		FCodeBackend* InShaderBackEnd);
+
+	void* MemContext;
+	struct _mesa_glsl_parse_state* ParseState;
+	struct exec_list* ir;
+	int Flags;
+	const EHlslShaderFrequency ShaderFrequency;
+	const EHlslCompileTarget CompileTarget;
+};

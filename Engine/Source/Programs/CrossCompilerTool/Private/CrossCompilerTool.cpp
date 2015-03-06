@@ -140,18 +140,17 @@ namespace CCT
 
 		ANSICHAR* ShaderSource = 0;
 		ANSICHAR* ErrorLog = 0;
-		int Result = HlslCrossCompile(
-			TCHAR_TO_ANSI(*RunInfo.InputFile),
-			TCHAR_TO_ANSI(*HLSLShaderSource),
-			TCHAR_TO_ANSI(*RunInfo.Entry),
-			RunInfo.Frequency,
-			Backend,
-			Language,
-			Flags,
-			RunInfo.Target,
-			&ShaderSource,
-			&ErrorLog
-			);
+
+		FHlslCrossCompilerContext Context(Flags, RunInfo.Frequency, RunInfo.Target);
+		if (Context.Init(TCHAR_TO_ANSI(*RunInfo.InputFile), Language))
+		{
+			Context.Run(
+				TCHAR_TO_ANSI(*HLSLShaderSource),
+				TCHAR_TO_ANSI(*RunInfo.Entry),
+				Backend,
+				&ShaderSource,
+				&ErrorLog);
+		}
 
 		if (ErrorLog)
 		{

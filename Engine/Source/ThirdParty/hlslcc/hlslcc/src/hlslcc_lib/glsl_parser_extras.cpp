@@ -62,11 +62,6 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(
 	/* Set default language version and extensions */
 	this->language_version = glsl_version;
 	this->maxvertexcount = 0;
-	this->es_shader = false;
-	this->ARB_texture_rectangle_enable = true;
-
-	this->supported_version_string = ralloc_asprintf(mem_ctx, "%u.%20u",
-		glsl_version / 100, glsl_version % 100);
 
 	/* Reset the anonymous struct count. */
 	g_anon_struct_count = 0;
@@ -78,7 +73,6 @@ _mesa_glsl_parse_state::_mesa_glsl_parse_state(
 	bSeparateShaderObjects = false;
 	next_in_location_slot = 0;
 	next_out_location_slot = 0;
-
 }
 
 void _mesa_glsl_parse_state::FindOffsetIntoCBufferInFloats(bool bFlattenStructure, const char* CBName, const char* Member, unsigned& OffsetInCBInFloats, unsigned& SizeInFloats)
@@ -1162,29 +1156,6 @@ void _mesa_ast_print(struct _mesa_glsl_parse_state *state)
 		ast->print();
 	}
 }
-
-	/**
-	* To be called at GL teardown time, this frees compiler datastructures.
-	*
-	* After calling this, any previously compiled shaders and shader
-	* programs would be invalid.  So this should happen at approximately
-	* program exit.
-	*/
-	void _mesa_destroy_shader_compiler(void)
-	{
-		_mesa_destroy_shader_compiler_caches();
-		_mesa_glsl_release_types();
-	}
-
-	/**
-	* Releases compiler caches to trade off performance for memory.
-	*
-	* Intended to be used with glReleaseShaderCompiler().
-	*/
-	void _mesa_destroy_shader_compiler_caches(void)
-	{
-		_mesa_glsl_release_functions();
-	}
 
 void SCBuffer::AddMember(const struct glsl_type * field_type, ir_variable* var)
 {

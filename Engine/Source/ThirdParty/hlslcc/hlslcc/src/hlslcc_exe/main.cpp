@@ -347,18 +347,17 @@ int main( int argc, char** argv)
 		Flags |= HLSLCC_DX11ClipSpace;
 		break;
 	}
-	int Result = HlslCrossCompile(
-		Options.ShaderFilename,
-		HLSLShaderSource,
-		Options.Entry,
-		Options.Frequency,
-		CodeBackend,
-		LanguageSpec,
-		Flags,
-		Options.Target,
-		&GLSLShaderSource,
-		&ErrorLog
-		);
+	int Result = 0;
+	FHlslCrossCompilerContext Context(Flags, Options.Frequency, Options.Target);
+	if (Context.Init(Options.ShaderFilename, LanguageSpec))
+	{
+		Result = Context.Run(
+			HLSLShaderSource,
+			Options.Entry,
+			CodeBackend,
+			&GLSLShaderSource,
+			&ErrorLog) ? 1 : 0;
+	}
 
 	if (GLSLShaderSource)
 	{

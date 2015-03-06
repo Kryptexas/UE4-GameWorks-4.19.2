@@ -923,18 +923,19 @@ void CompileShader_Metal(const FShaderCompilerInput& Input,FShaderCompilerOutput
 
 		FMetalCodeBackend MetalBackEnd(CCFlags);
 		FMetalLanguageSpec MetalLanguageSpec;
-		int32 Result = HlslCrossCompile(
-			TCHAR_TO_ANSI(*Input.SourceFilename),
-			TCHAR_TO_ANSI(*PreprocessedShader),
-			TCHAR_TO_ANSI(*Input.EntryPointName),
-			Frequency,
-			&MetalBackEnd,
-			&MetalLanguageSpec,
-			CCFlags,
-			HlslCompilerTarget,
-			&MetalShaderSource,
-			&ErrorLog
-			);
+
+		int32 Result = 0;
+		FHlslCrossCompilerContext CrossCompilerContext(CCFlags, Frequency, HlslCompilerTarget);
+		if (CrossCompilerContext.Init(TCHAR_TO_ANSI(*Input.SourceFilename), &MetalLanguageSpec))
+		{
+			Result = CrossCompilerContext.Run(
+				TCHAR_TO_ANSI(*PreprocessedShader),
+				TCHAR_TO_ANSI(*Input.EntryPointName),
+				&MetalBackEnd,
+				&MetalShaderSource,
+				&ErrorLog
+				) ? 1 : 0;
+		}
 
 		int32 SourceLen = MetalShaderSource ? FCStringAnsi::Strlen(MetalShaderSource) : 0;
 		if (bDumpDebugInfo)

@@ -2136,16 +2136,6 @@ struct gl_shader_program;
 void detect_recursion_unlinked(struct _mesa_glsl_parse_state *state, exec_list *instructions);
 
 /**
-* Detect whether a linked shader contains static recursion
-*
-* If the list of instructions is determined to contain static recursion,
-* \c link_error_printf will be called to emit error messages for each function
-* that is in the recursion cycle.  In addition,
-* \c gl_shader_program::LinkStatus will be set to false.
-*/
-void detect_recursion_linked(struct gl_shader_program *prog, exec_list *instructions);
-
-/**
 * Make a clone of each IR instruction in a list
 *
 * \param in   List of IR instructions that are to be cloned
@@ -2156,17 +2146,10 @@ void clone_ir_list(void *mem_ctx, exec_list *out, const exec_list *in);
 extern void _mesa_glsl_initialize_functions(exec_list *instructions,
 	_mesa_glsl_parse_state *state);
 
-extern void _mesa_glsl_release_functions(void);
-
 struct glsl_symbol_table;
 
 extern void import_prototypes(const exec_list *source, exec_list *dest,
-struct glsl_symbol_table *symbols, void *mem_ctx);
-
-extern bool ir_has_call(ir_instruction *ir);
-
-extern void do_set_program_inouts(exec_list *instructions, struct gl_program *prog,
-	bool is_fragment_shader);
+	struct glsl_symbol_table *symbols, void *mem_ctx);
 
 extern char* prototype_string(const glsl_type *return_type, const char *name, exec_list *parameters);
 

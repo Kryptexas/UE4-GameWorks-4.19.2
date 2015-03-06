@@ -726,7 +726,7 @@ static ir_function_signature* match_function_by_name(const char *name,
 			goto done;
 		}
 
-		if (!state->es_shader && f->has_user_signature())
+		if (f->has_user_signature())
 		{
 			/* In desktop GL, the presence of a user-defined signature hides any
 			* built-in signatures, so we must ignore them.  In contrast, in ES2
