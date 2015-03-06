@@ -75,8 +75,6 @@ void UK2Node_GetDataTableRow::SetReturnTypeForStruct(UScriptStruct* RowStruct)
 		RowStruct = FTableRowBase::StaticStruct();
 	}
 
-	UEdGraphPin* ResultPin = GetResultPin();
-
 	UScriptStruct* NewRowStruct = RowStruct;
 	UScriptStruct* OldRowStruct = GetReturnTypeForStruct();
 
@@ -86,6 +84,7 @@ void UK2Node_GetDataTableRow::SetReturnTypeForStruct(UScriptStruct* RowStruct)
 		// Doing this just to force the row name drop down to refresh
 		ReconstructNode();
 
+		UEdGraphPin* ResultPin = GetResultPin();
 		// Because the Return Value struct type has changed, we break the output link
 		ResultPin->BreakAllPinLinks();
 
