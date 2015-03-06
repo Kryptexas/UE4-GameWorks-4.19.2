@@ -614,9 +614,9 @@ void ULandscapeComponent::RemoveGrassMap()
 	GrassData = MakeShareable(new FLandscapeComponentGrassData());
 }
 
-void ALandscapeProxy::RenderGrassMaps(const TArray<ULandscapeComponent*>& LandscapeComponents, const TArray<ULandscapeGrassType*>& GrassTypes)
+void ALandscapeProxy::RenderGrassMaps(const TArray<ULandscapeComponent*>& InLandscapeComponents, const TArray<ULandscapeGrassType*>& GrassTypes)
 {
-	FLandscapeGrassWeightExporter Exporter(this, LandscapeComponents, GrassTypes);
+	FLandscapeGrassWeightExporter Exporter(this, InLandscapeComponents, GrassTypes);
 	Exporter.ApplyResults();
 }
 
@@ -1173,7 +1173,6 @@ struct FAsyncGrassBuilder : public FGrassBuilderBase
 
 			// in-place sort the instances
 			FInstanceStream SwapBuffer;
-			int32 FirstUnfixedIndex = 0;
 			for (int32 FirstUnfixedIndex = 0; FirstUnfixedIndex < NumInstances; FirstUnfixedIndex++)
 			{
 				int32 LoadFrom = SortedInstances[FirstUnfixedIndex];

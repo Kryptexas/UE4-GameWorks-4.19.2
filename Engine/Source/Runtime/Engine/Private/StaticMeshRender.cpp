@@ -1000,7 +1000,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 {
 	const auto FeatureLevel = InComponent->GetWorld()->FeatureLevel;
 
-	FStaticMeshRenderData* RenderData = InComponent->StaticMesh->RenderData;
+	FStaticMeshRenderData* MeshRenderData = InComponent->StaticMesh->RenderData;
 	if(LODIndex < InComponent->LODData.Num())
 	{
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[LODIndex];
@@ -1013,7 +1013,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		// Initialize this LOD's overridden vertex colors, if it has any
 		if( ComponentLODInfo.OverrideVertexColors )
 		{
-			FStaticMeshLODResources& LODRenderData = RenderData->LODResources[LODIndex];
+			FStaticMeshLODResources& LODRenderData = MeshRenderData->LODResources[LODIndex];
 			
 			// the instance should point to the loaded data to avoid copy and memory waste
 			OverrideColorVertexBuffer = ComponentLODInfo.OverrideVertexColors;
@@ -1028,7 +1028,7 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 		}
 	}
 
-	if (RenderData->bLODsShareStaticLighting && InComponent->LODData.IsValidIndex(0))
+	if (MeshRenderData->bLODsShareStaticLighting && InComponent->LODData.IsValidIndex(0))
 	{
 		const FStaticMeshComponentLODInfo& ComponentLODInfo = InComponent->LODData[0];
 		LightMap = ComponentLODInfo.LightMap;
@@ -1038,8 +1038,8 @@ FStaticMeshSceneProxy::FLODInfo::FLODInfo(const UStaticMeshComponent* InComponen
 	bool bHasStaticLighting = LightMap != NULL || ShadowMap != NULL;
 
 	// Gather the materials applied to the LOD.
-	Sections.Empty(RenderData->LODResources[LODIndex].Sections.Num());
-	FStaticMeshLODResources& LODModel = RenderData->LODResources[LODIndex];
+	Sections.Empty(MeshRenderData->LODResources[LODIndex].Sections.Num());
+	FStaticMeshLODResources& LODModel = MeshRenderData->LODResources[LODIndex];
 	for(int32 SectionIndex = 0;SectionIndex < LODModel.Sections.Num();SectionIndex++)
 	{
 		const FStaticMeshSection& Section = LODModel.Sections[SectionIndex];

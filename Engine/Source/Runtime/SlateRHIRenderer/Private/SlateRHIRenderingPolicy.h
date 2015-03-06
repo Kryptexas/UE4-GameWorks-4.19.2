@@ -20,8 +20,8 @@ public:
 		, BufferUsageSize(0)
 	{}
 
-	TSlateElementVertexBuffer( uint32 BufferSize )
-		: BufferSize(BufferSize)
+	TSlateElementVertexBuffer( uint32 InBufferSize )
+		: BufferSize(InBufferSize)
 		, BufferUsageSize(0)
 	{}
 

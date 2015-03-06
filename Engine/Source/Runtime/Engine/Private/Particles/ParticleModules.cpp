@@ -763,12 +763,12 @@ void UParticleModule::SetTransactionFlag()
 		}
 		else if( UArrayProperty* ArrayProp = Cast<UArrayProperty>(Property) )
 		{
-			if( UStructProperty* StructProp = Cast<UStructProperty>(ArrayProp->Inner) )
+			if( UStructProperty* InnerStructProp = Cast<UStructProperty>(ArrayProp->Inner) )
 			{
 				FScriptArrayHelper ArrayHelper( ArrayProp, Property->ContainerPtrToValuePtr<void>(this) );
 				for( int32 Idx = 0; Idx < ArrayHelper.Num(); ++Idx )
 				{
-					for( UProperty* ArrayProperty = StructProp->Struct->PropertyLink; ArrayProperty; ArrayProperty = ArrayProperty->PropertyLinkNext )
+					for( UProperty* ArrayProperty = InnerStructProp->Struct->PropertyLink; ArrayProperty; ArrayProperty = ArrayProperty->PropertyLinkNext )
 					{
 						if( UStructProperty* ArrayStructProp = Cast<UStructProperty>(ArrayProperty) )
 						{

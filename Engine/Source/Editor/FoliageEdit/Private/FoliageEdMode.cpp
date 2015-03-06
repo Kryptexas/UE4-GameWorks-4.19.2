@@ -1087,10 +1087,12 @@ void FEdModeFoliage::TransformSelectedInstances(UWorld* InWorld, const FVector& 
 AInstancedFoliageActor* FEdModeFoliage::GetSelectionLocation(UWorld* InWorld, FVector& OutLocation) const
 {
 	// Prefer current level
-	AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(InWorld);
-	if (IFA && IFA->GetSelectionLocation(OutLocation))
 	{
-		return IFA;
+		AInstancedFoliageActor* IFA = AInstancedFoliageActor::GetInstancedFoliageActorForCurrentLevel(InWorld);
+		if (IFA && IFA->GetSelectionLocation(OutLocation))
+		{
+			return IFA;
+		}
 	}
 	
 	// Go through all sub-levels

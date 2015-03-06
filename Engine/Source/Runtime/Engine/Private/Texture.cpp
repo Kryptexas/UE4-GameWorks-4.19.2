@@ -524,8 +524,8 @@ void FTextureSource::Init2DWithMipChain(
 	ETextureSourceFormat NewFormat
 	)
 {
-	int32 NumMips = FMath::Max(FMath::CeilLogTwo(NewSizeX),FMath::CeilLogTwo(NewSizeY)) + 1;
-	Init(NewSizeX, NewSizeY, 1, NumMips, NewFormat);
+	int32 NewMipCount = FMath::Max(FMath::CeilLogTwo(NewSizeX),FMath::CeilLogTwo(NewSizeY)) + 1;
+	Init(NewSizeX, NewSizeY, 1, NewMipCount, NewFormat);
 }
 
 void FTextureSource::InitCubeWithMipChain(
@@ -534,8 +534,8 @@ void FTextureSource::InitCubeWithMipChain(
 	ETextureSourceFormat NewFormat
 	)
 {
-	int32 NumMips = FMath::Max(FMath::CeilLogTwo(NewSizeX),FMath::CeilLogTwo(NewSizeY)) + 1;
-	Init(NewSizeX, NewSizeY, 6, NumMips, NewFormat);
+	int32 NewMipCount = FMath::Max(FMath::CeilLogTwo(NewSizeX),FMath::CeilLogTwo(NewSizeY)) + 1;
+	Init(NewSizeX, NewSizeY, 6, NewMipCount, NewFormat);
 }
 
 void FTextureSource::Compress()

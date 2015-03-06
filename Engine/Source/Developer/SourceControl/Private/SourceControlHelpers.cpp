@@ -318,14 +318,14 @@ bool CopyFileUnderSourceControl( const FString& InDestFile, const FString& InSou
 {
 	struct Local
 	{
-		static bool CopyFile(const FString& InDestFile, const FText& InFileDescription, FText& OutFailReason, FString InSourceFile)
+		static bool CopyFile(const FString& InDestinationFile, const FText& InFileDesc, FText& OutFailureReason, FString InFileToCopy)
 		{
 			const bool bReplace = true;
 			const bool bEvenIfReadOnly = true;
-			bool bSucceeded = (IFileManager::Get().Copy(*InDestFile, *InSourceFile, bReplace, bEvenIfReadOnly) == COPY_OK);
+			bool bSucceeded = (IFileManager::Get().Copy(*InDestinationFile, *InFileToCopy, bReplace, bEvenIfReadOnly) == COPY_OK);
 			if (!bSucceeded)
 			{
-				OutFailReason = FText::Format(LOCTEXT("ExternalImageCopyError", "Could not overwrite {0} file."), InFileDescription);
+				OutFailureReason = FText::Format(LOCTEXT("ExternalImageCopyError", "Could not overwrite {0} file."), InFileDesc);
 			}
 
 			return bSucceeded;

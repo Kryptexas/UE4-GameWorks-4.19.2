@@ -308,10 +308,12 @@ FReply SLocalizationTargetEditorCultureRow::Import()
 	if (Culture.IsValid() && TargetSettings && DesktopPlatform)
 	{
 		void* ParentWindowWindowHandle = NULL;
-		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
-		if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
 		{
-			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
+			const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+			if (ParentWindow.IsValid() && ParentWindow->GetNativeWindow().IsValid())
+			{
+				ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
+			}
 		}
 
 		const FString POFileName = LocalizationConfigurationScript::GetDefaultPOFileName(*TargetSettings);
@@ -327,7 +329,7 @@ FReply SLocalizationTargetEditorCultureRow::Import()
 			FFormatNamedArguments FormatArguments;
 			FormatArguments.Add(TEXT("TargetName"), FText::FromString(TargetSettings->Name));
 			FormatArguments.Add(TEXT("CultureName"), FText::FromString(Culture->GetDisplayName()));
-			FText DialogTitle = FText::Format(LOCTEXT("ImportSpecificTranslationsForTargetDialogTitleFormat", "Import {CultureName} Translations for {TargetName} from Directory"), FormatArguments);
+			DialogTitle = FText::Format(LOCTEXT("ImportSpecificTranslationsForTargetDialogTitleFormat", "Import {CultureName} Translations for {TargetName} from Directory"), FormatArguments);
 		}
 
 		// Prompt the user for the directory

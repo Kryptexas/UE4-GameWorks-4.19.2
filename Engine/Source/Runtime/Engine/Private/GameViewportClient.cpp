@@ -576,7 +576,7 @@ void UGameViewportClient::AddCursor(EMouseCursor::Type Cursor, const FStringClas
 	}
 }
 
-TOptional<TSharedRef<SWidget>> UGameViewportClient::MapCursor(FViewport* Viewport, const FCursorReply& CursorReply)
+TOptional<TSharedRef<SWidget>> UGameViewportClient::MapCursor(FViewport* InViewport, const FCursorReply& CursorReply)
 {
 	const TSharedRef<SWidget>* CursorWidgetPtr = CursorWidgets.Find(CursorReply.GetCursorType());
 	if (CursorWidgetPtr != nullptr)
@@ -1317,10 +1317,10 @@ void UGameViewportClient::LostFocus(FViewport* InViewport)
 {
 	// We need to reset some key inputs, since keyup events will sometimes not be processed (such as going into immersive/maximized mode).  
 	// Resetting them will prevent them from "sticking"
-	UWorld* const World = GetWorld();
-	if (World)
+	UWorld* const ViewportWorld = GetWorld();
+	if (ViewportWorld)
 	{
-		for (FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator)
+		for (FConstPlayerControllerIterator Iterator = ViewportWorld->GetPlayerControllerIterator(); Iterator; ++Iterator)
 		{
 			APlayerController* const PlayerController = *Iterator;
 			if (PlayerController)
@@ -1448,27 +1448,27 @@ ULocalPlayer* UGameViewportClient::SetupInitialLocalPlayer(FString& OutError)
 	GEngine->OnTravelFailure().AddUObject(this, &UGameViewportClient::PeekTravelFailureMessages);
 	GEngine->OnNetworkFailure().AddUObject(this, &UGameViewportClient::PeekNetworkFailureMessages);
 
-	UGameInstance * GameInstance = GEngine->GetWorldContextFromGameViewportChecked(this).OwningGameInstance;
+	UGameInstance * ViewportGameInstance = GEngine->GetWorldContextFromGameViewportChecked(this).OwningGameInstance;
 
-	if ( !ensure( GameInstance != NULL ) )
+	if ( !ensure( ViewportGameInstance != NULL ) )
 	{
 		return NULL;
 	}
 
 	// Create the initial player - this is necessary or we can't render anything in-game.
-	return GameInstance->CreateInitialPlayer(OutError);
+	return ViewportGameInstance->CreateInitialPlayer(OutError);
 }
 
 ULocalPlayer* UGameViewportClient::CreatePlayer(int32 ControllerId, FString& OutError, bool bSpawnActor)
 {
-	UGameInstance * GameInstance = GEngine->GetWorldContextFromGameViewportChecked(this).OwningGameInstance;
-	return (GameInstance != NULL) ? GameInstance->CreateLocalPlayer(ControllerId, OutError, bSpawnActor) : NULL;
+	UGameInstance * ViewportGameInstance = GEngine->GetWorldContextFromGameViewportChecked(this).OwningGameInstance;
+	return (ViewportGameInstance != NULL) ? ViewportGameInstance->CreateLocalPlayer(ControllerId, OutError, bSpawnActor) : NULL;
 }
 
 bool UGameViewportClient::RemovePlayer(class ULocalPlayer* ExPlayer)
 {
-	UGameInstance * GameInstance = GEngine->GetWorldContextFromGameViewportChecked(this).OwningGameInstance;
-	return (GameInstance != NULL) ? GameInstance->RemoveLocalPlayer(ExPlayer) : false;
+	UGameInstance * ViewportGameInstance = GEngine->GetWorldContextFromGameViewportChecked(this).OwningGameInstance;
+	return (ViewportGameInstance != NULL) ? ViewportGameInstance->RemoveLocalPlayer(ExPlayer) : false;
 }
 
 void UGameViewportClient::UpdateActiveSplitscreenType()
@@ -1894,11 +1894,11 @@ void UGameViewportClient::VerifyPathRenderingComponents()
 {
 	const bool bShowPaths = !!EngineShowFlags.Navigation;
 
-	UWorld* const World = GetWorld();
+	UWorld* const ViewportWorld = GetWorld();
 
 	// make sure nav mesh has a rendering component
-	ANavigationData* const NavData = (World && World->GetNavigationSystem() != nullptr)
-		? World->GetNavigationSystem()->GetMainNavData(FNavigationSystem::DontCreate)
+	ANavigationData* const NavData = (ViewportWorld && ViewportWorld->GetNavigationSystem() != nullptr)
+		? ViewportWorld->GetNavigationSystem()->GetMainNavData(FNavigationSystem::DontCreate)
 		: NULL;
 
 	if(NavData && NavData->RenderingComp == NULL)
@@ -2967,10 +2967,10 @@ bool UGameViewportClient::RequestBugScreenShot(const TCHAR* Cmd, bool bDisplayHU
 			FCString::Sprintf( File, TEXT("%s"), *(OutputDir + SSFilename) );
 			if( IFileManager::Get().FileSize(File) == INDEX_NONE )
 			{
-				UWorld* const World = GetWorld();
-				if ( bDisplayHUDInfo && (World != nullptr) )
+				UWorld* const ViewportWorld = GetWorld();
+				if ( bDisplayHUDInfo && (ViewportWorld != nullptr) )
 				{
-					for( FConstPlayerControllerIterator Iterator = World->GetPlayerControllerIterator(); Iterator; ++Iterator )
+					for( FConstPlayerControllerIterator Iterator = ViewportWorld->GetPlayerControllerIterator(); Iterator; ++Iterator )
 					{
 						APlayerController* PlayerController = *Iterator;
 						if (PlayerController && PlayerController->GetHUD() )

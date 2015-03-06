@@ -40,7 +40,7 @@ struct FMetaSettingGatherer
 	{
 		if (bModified || bIncludeUnmodifiedProperties)
 		{
-			FTextBuilder& DescriptionBuffer = DescriptionBuffers.FindOrAdd(SettingsObject);
+			FTextBuilder& SettingsDescriptionBuffer = DescriptionBuffers.FindOrAdd(SettingsObject);
 
 			if (!bReadOnly)
 			{
@@ -59,7 +59,7 @@ struct FMetaSettingGatherer
 					LOCTEXT("MetaSettingDisplayStringModified", "{SettingName} is {SettingValue} <HardwareTargets.Strong>(modified)</>") :
 					LOCTEXT("MetaSettingDisplayStringUnmodified", "{SettingName} is {SettingValue}");
 
-				DescriptionBuffer.AppendLine(FText::Format(FormatString, Args));
+				SettingsDescriptionBuffer.AppendLine(FText::Format(FormatString, Args));
 			}
 		}
 	}

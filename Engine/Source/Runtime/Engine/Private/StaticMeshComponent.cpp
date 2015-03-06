@@ -318,10 +318,10 @@ void UStaticMeshComponent::CheckForErrors()
 		// Check for element material index/material mismatches
 		for (int32 LODIndex = 0; LODIndex < StaticMesh->RenderData->LODResources.Num(); ++LODIndex)
 		{
-			FStaticMeshLODResources& LODData = StaticMesh->RenderData->LODResources[LODIndex];
-			for (int32 SectionIndex = 0; SectionIndex < LODData.Sections.Num(); SectionIndex++)
+			FStaticMeshLODResources& MeshLODData = StaticMesh->RenderData->LODResources[LODIndex];
+			for (int32 SectionIndex = 0; SectionIndex < MeshLODData.Sections.Num(); SectionIndex++)
 			{
-				FStaticMeshSection& Element = LODData.Sections[SectionIndex];
+				FStaticMeshSection& Element = MeshLODData.Sections[SectionIndex];
 				if (Element.NumTriangles == 0)
 				{
 					ZeroTriangleElements++;

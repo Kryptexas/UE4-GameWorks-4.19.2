@@ -169,7 +169,7 @@ void FCanvasItemTestbed::Draw( class FViewport* Viewport, class FCanvas* Canvas 
 	if (bShowTris == true)
 	{
 		// Triangle
-		FCanvasTriangleItem TriItem(FVector2D(32.0f, 32.0f), FVector2D(64.0f, 32.0f), FVector2D(64.0f, 64.0f), GWhiteTexture);
+		//FCanvasTriangleItem TriItem(FVector2D(32.0f, 32.0f), FVector2D(64.0f, 32.0f), FVector2D(64.0f, 64.0f), GWhiteTexture);
 		//TriItem.Draw(Canvas);
 
 		// Triangle list
@@ -184,8 +184,8 @@ void FCanvasItemTestbed::Draw( class FViewport* Viewport, class FCanvas* Canvas 
 		SingleTri.V2_Pos = FVector2D(438.0f, 308.0f);
 		TriangleList.Add(SingleTri);
 
-		FCanvasTriangleItem TriItemList(TriangleList, GWhiteTexture);
-		TriItemList.SetColor(FLinearColor::Red);
+		//FCanvasTriangleItem TriItemList(TriangleList, GWhiteTexture);
+		//TriItemList.SetColor(FLinearColor::Red);
 		//TriItemList.Draw( Canvas );
 
 		if (TestMaterial)

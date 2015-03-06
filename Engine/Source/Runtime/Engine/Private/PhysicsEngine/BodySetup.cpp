@@ -1119,9 +1119,9 @@ int32 FKAggregateGeom::GetElementCount(int32 Type) const
 
 void FKConvexElem::ScaleElem(FVector DeltaSize, float MinSize)
 {
-	FTransform Transform = GetTransform();
-	Transform.SetScale3D(Transform.GetScale3D() + DeltaSize);
-	SetTransform(Transform);
+	FTransform ScaledTransform = GetTransform();
+	ScaledTransform.SetScale3D(ScaledTransform.GetScale3D() + DeltaSize);
+	SetTransform(ScaledTransform);
 }
 
 // References: 

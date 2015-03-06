@@ -414,10 +414,10 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 	// Draw simple unit time graph
 	if (bShowUnitTimeGraph)
 	{
-		UFont* Font = GEngine->GetSmallFont();
-		check(Font);
-		int32 AlertPrintWidth = Font->GetStringSize(TEXT("000.0"));
-		int32 AlertPrintHeight = Font->GetStringHeightSize(TEXT("000.0"));
+		UFont* SmallFont = GEngine->GetSmallFont();
+		check(SmallFont);
+		int32 AlertPrintWidth = SmallFont->GetStringSize(TEXT("000.0"));
+		int32 AlertPrintHeight = SmallFont->GetStringHeightSize(TEXT("000.0"));
 
 		// The vertical axis is time in milliseconds
 		// The horizontal axis is the frame number (NOT time!!!)
@@ -586,7 +586,7 @@ int32 FStatUnitData::DrawStat(FViewport* InViewport, FCanvas* InCanvas, int32 In
 					if (StartX > LastPrintX)
 					{
 
-						InCanvas->DrawShadowedString(StartX, PrintY, *FString::Printf(TEXT("%3.1f"), TimeValues[CurUnitIndex]), Font, StatColor);
+						InCanvas->DrawShadowedString(StartX, PrintY, *FString::Printf(TEXT("%3.1f"), TimeValues[CurUnitIndex]), SmallFont, StatColor);
 						LastPrintX = StartX + AlertPrintWidth + AlertPadding;
 					}
 				}
@@ -985,8 +985,8 @@ void FViewport::Draw( bool bShouldPresent /*= true */)
 					GameThread.Waits = 0;
 				}
 
-				auto World = ViewportClient->GetWorld();
-				FCanvas Canvas(this, NULL, World, World ? World->FeatureLevel : GMaxRHIFeatureLevel);
+				UWorld* ViewportWorld = ViewportClient->GetWorld();
+				FCanvas Canvas(this, NULL, ViewportWorld, ViewportWorld ? ViewportWorld->FeatureLevel : GMaxRHIFeatureLevel);
 				{
 					// Make sure the Canvas is not rendered upside down
 					Canvas.SetAllowSwitchVerticalAxis(false);

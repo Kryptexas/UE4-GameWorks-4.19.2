@@ -515,8 +515,6 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 	const FName ResourceName = InBrush.GetResourceName();
 	if ( ResourceName.IsValid() && ResourceName != NAME_None )
 	{
-		TSharedPtr<FSlateUTextureResource> TextureResource ;
-
 		if( InBrush.GetResourceObject() != nullptr )
 		{
 			UTexture2D* TextureObject = CastChecked<UTexture2D>(InBrush.GetResourceObject());
@@ -534,8 +532,8 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 
 			if(TextureResource.IsValid())
 			{
-				UTexture2D* TextureObject = TextureResource->TextureObject;
-				if(TextureObject && !AccessedUTextures.Contains(TextureObject) && TextureObject->Resource)
+				UTexture2D* Texture2DObject = TextureResource->TextureObject;
+				if(Texture2DObject && !AccessedUTextures.Contains(Texture2DObject) && Texture2DObject->Resource)
 				{
 					// Set the texture rendering resource that should be used.  The UTexture resource could change at any time so we must do this each frame
 					ENQUEUE_UNIQUE_RENDER_COMMAND_ONEPARAMETER(UpdateSlateUTextureResource,
@@ -552,7 +550,7 @@ FSlateShaderResourceProxy* FSlateRHIResourceManager::FindOrCreateDynamicTextureR
 						});
 
 				
-					AccessedUTextures.Add(TextureObject);
+					AccessedUTextures.Add(Texture2DObject);
 				}
 
 				return TextureResource->Proxy;

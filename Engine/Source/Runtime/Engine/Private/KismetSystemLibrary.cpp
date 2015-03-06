@@ -1186,7 +1186,7 @@ bool UKismetSystemLibrary::LineTraceSingle_DEPRECATED(UObject* WorldContextObjec
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
+				IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1249,7 +1249,7 @@ bool UKismetSystemLibrary::LineTraceMulti_DEPRECATED(UObject* WorldContextObject
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
+				IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1343,7 +1343,8 @@ bool UKismetSystemLibrary::BoxTraceSingle(UObject* WorldContextObject, const FVe
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
 	{
-		if (AActor* IgnoreActor = Cast<AActor>(WorldContextObject))
+		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
+		if (IgnoreActor)
 		{
 			Params.AddIgnoredActor(IgnoreActor);
 		}
@@ -1354,7 +1355,8 @@ bool UKismetSystemLibrary::BoxTraceSingle(UObject* WorldContextObject, const FVe
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				if (AActor* IgnoreActor = Cast<AActor>(CurrentObject))
+				IgnoreActor = Cast<AActor>(CurrentObject);
+				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
 					break;
@@ -1398,7 +1400,8 @@ bool UKismetSystemLibrary::BoxTraceMulti(UObject* WorldContextObject, const FVec
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
 	{
-		if (AActor* IgnoreActor = Cast<AActor>(WorldContextObject))
+		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
+		if (IgnoreActor)
 		{
 			Params.AddIgnoredActor(IgnoreActor);
 		}
@@ -1409,7 +1412,8 @@ bool UKismetSystemLibrary::BoxTraceMulti(UObject* WorldContextObject, const FVec
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				if (AActor* IgnoreActor = Cast<AActor>(CurrentObject))
+				IgnoreActor = Cast<AActor>(CurrentObject);
+				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
 					break;
@@ -1477,7 +1481,7 @@ bool UKismetSystemLibrary::SphereTraceSingle_DEPRECATED(UObject* WorldContextObj
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
+				IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1539,7 +1543,7 @@ bool UKismetSystemLibrary::SphereTraceMulti_DEPRECATED(UObject* WorldContextObje
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
+				IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1608,7 +1612,7 @@ bool UKismetSystemLibrary::CapsuleTraceSingle_DEPRECATED(UObject* WorldContextOb
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
+				IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1676,7 +1680,7 @@ bool UKismetSystemLibrary::CapsuleTraceMulti_DEPRECATED(UObject* WorldContextObj
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
+				IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1761,7 +1765,7 @@ bool UKismetSystemLibrary::LineTraceSingleByObject_DEPRECATED(UObject* WorldCont
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
+				IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1852,7 +1856,7 @@ bool UKismetSystemLibrary::LineTraceMultiByObject_DEPRECATED(UObject* WorldConte
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
+				IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -1954,7 +1958,7 @@ bool UKismetSystemLibrary::SphereTraceSingleByObject_DEPRECATED(UObject* WorldCo
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
+				IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -2044,7 +2048,7 @@ bool UKismetSystemLibrary::SphereTraceMultiByObject_DEPRECATED(UObject* WorldCon
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
+				IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -2124,7 +2128,8 @@ bool UKismetSystemLibrary::BoxTraceSingleForObjects(UObject* WorldContextObject,
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
 	{
-		if (AActor* IgnoreActor = Cast<AActor>(WorldContextObject))
+		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
+		if (IgnoreActor)
 		{
 			Params.AddIgnoredActor(IgnoreActor);
 		}
@@ -2135,7 +2140,8 @@ bool UKismetSystemLibrary::BoxTraceSingleForObjects(UObject* WorldContextObject,
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				if (AActor* IgnoreActor = Cast<AActor>(CurrentObject))
+				IgnoreActor = Cast<AActor>(CurrentObject);
+				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
 					break;
@@ -2207,7 +2213,8 @@ bool UKismetSystemLibrary::BoxTraceMultiForObjects(UObject* WorldContextObject, 
 	Params.AddIgnoredActors(ActorsToIgnore);
 	if (bIgnoreSelf)
 	{
-		if (AActor* IgnoreActor = Cast<AActor>(WorldContextObject))
+		AActor* IgnoreActor = Cast<AActor>(WorldContextObject);
+		if (IgnoreActor)
 		{
 			Params.AddIgnoredActor(IgnoreActor);
 		}
@@ -2218,7 +2225,8 @@ bool UKismetSystemLibrary::BoxTraceMultiForObjects(UObject* WorldContextObject, 
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				if (AActor* IgnoreActor = Cast<AActor>(CurrentObject))
+				IgnoreActor = Cast<AActor>(CurrentObject);
+				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
 					break;
@@ -2314,7 +2322,7 @@ bool UKismetSystemLibrary::CapsuleTraceSingleByObject_DEPRECATED(UObject* WorldC
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
+				IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);
@@ -2409,7 +2417,7 @@ bool UKismetSystemLibrary::CapsuleTraceMultiByObject_DEPRECATED(UObject* WorldCo
 			while (CurrentObject)
 			{
 				CurrentObject = CurrentObject->GetOuter();
-				AActor* IgnoreActor = Cast<AActor>(CurrentObject);
+				IgnoreActor = Cast<AActor>(CurrentObject);
 				if (IgnoreActor)
 				{
 					Params.AddIgnoredActor(IgnoreActor);

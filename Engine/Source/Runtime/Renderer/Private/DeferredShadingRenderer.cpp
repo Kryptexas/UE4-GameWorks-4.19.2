@@ -96,17 +96,6 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 	}
 }
 
-namespace
-{
-	FVector4 ClearQuadVertices[4] = 
-	{
-		FVector4( -1.0f,  1.0f, 0.0f, 1.0f ),
-		FVector4(  1.0f,  1.0f, 0.0f, 1.0f ),
-		FVector4( -1.0f, -1.0f, 0.0f, 1.0f ),
-		FVector4(  1.0f, -1.0f, 0.0f, 1.0f )
-	};
-}
-
 extern FGlobalBoundShaderState GClearMRTBoundShaderState[8];
 
 /** 
@@ -176,6 +165,13 @@ void FDeferredShadingSceneRenderer::ClearGBufferAtMaxZ(FRHICommandList& RHICmdLi
 		SetShaderValueArray(RHICmdList, PixelShader->GetPixelShader(),PixelShader->ColorParameter, ClearColors, NumActiveRenderTargets);
 
 		// Render quad
+		static const FVector4 ClearQuadVertices[4] = 
+		{
+			FVector4( -1.0f,  1.0f, 0.0f, 1.0f ),
+			FVector4(  1.0f,  1.0f, 0.0f, 1.0f ),
+			FVector4( -1.0f, -1.0f, 0.0f, 1.0f ),
+			FVector4(  1.0f, -1.0f, 0.0f, 1.0f )
+		};
 		DrawPrimitiveUP(RHICmdList, PT_TriangleStrip, 2, ClearQuadVertices, sizeof(ClearQuadVertices[0]));
 	}
 }

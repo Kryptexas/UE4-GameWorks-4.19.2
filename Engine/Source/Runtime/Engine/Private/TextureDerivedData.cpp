@@ -1365,7 +1365,7 @@ void FAsyncStreamDerivedMipWorker::DoWork()
 void UTexture2D::GetMipData(int32 FirstMipToLoad, void** OutMipData)
 {
 #if WITH_EDITOR
-	TextureDerivedDataTimings::FScopedMeasurement Timer(TextureDerivedDataTimings::GetMipDataTime);
+	TextureDerivedDataTimings::FScopedMeasurement MipDataTimer(TextureDerivedDataTimings::GetMipDataTime);
 #endif // #if WITH_EDITOR
 	if (PlatformData->TryLoadMips(FirstMipToLoad, OutMipData) == false)
 	{
@@ -1761,7 +1761,6 @@ void UTexture::MarkPlatformDataTransient()
 	TMap<FString, FTexturePlatformData*> *CookedPlatformData = GetCookedPlatformData();
 	if ( CookedPlatformData )
 	{
-		FDerivedDataCacheInterface& DDC = GetDerivedDataCacheRef();
 		for ( auto It : *CookedPlatformData )
 		{
 			FTexturePlatformData* PlatformData = It.Value;

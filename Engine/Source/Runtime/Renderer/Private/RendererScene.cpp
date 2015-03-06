@@ -511,12 +511,12 @@ void FScene::AddPrimitive(UPrimitiveComponent* Primitive)
 		FCreateRenderThreadResourcesCommand,
 		FCreateRenderThreadParameters, Params, Params,
 	{
-		FPrimitiveSceneProxy* PrimitiveSceneProxy = Params.PrimitiveSceneProxy;
-		FScopeCycleCounter Context(PrimitiveSceneProxy->GetStatId());
-		PrimitiveSceneProxy->SetTransform(Params.RenderMatrix, Params.WorldBounds, Params.LocalBounds, Params.OwnerPosition);
+		FPrimitiveSceneProxy* SceneProxy = Params.PrimitiveSceneProxy;
+		FScopeCycleCounter Context(SceneProxy->GetStatId());
+		SceneProxy->SetTransform(Params.RenderMatrix, Params.WorldBounds, Params.LocalBounds, Params.OwnerPosition);
 
 		// Create any RenderThreadResources required.
-		PrimitiveSceneProxy->CreateRenderThreadResources();
+		SceneProxy->CreateRenderThreadResources();
 	});
 
 	// Create the primitive scene info.
@@ -1778,12 +1778,12 @@ void FScene::GetRelevantLights( UPrimitiveComponent* Primitive, TArray<const ULi
 }
 
 /** Sets the precomputed visibility handler for the scene, or NULL to clear the current one. */
-void FScene::SetPrecomputedVisibility(const FPrecomputedVisibilityHandler* PrecomputedVisibilityHandler)
+void FScene::SetPrecomputedVisibility(const FPrecomputedVisibilityHandler* NewPrecomputedVisibilityHandler)
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		UpdatePrecomputedVisibility,
 		FScene*,Scene,this,
-		const FPrecomputedVisibilityHandler*,PrecomputedVisibilityHandler,PrecomputedVisibilityHandler,
+		const FPrecomputedVisibilityHandler*,PrecomputedVisibilityHandler,NewPrecomputedVisibilityHandler,
 	{
 		Scene->PrecomputedVisibilityHandler = PrecomputedVisibilityHandler;
 	});
@@ -1804,7 +1804,7 @@ void FScene::SetShaderMapsOnMaterialResources_RenderThread(FRHICommandListImmedi
 		MaterialArray.Add(Material);
 	}
 
-	const auto FeatureLevel = GetFeatureLevel();
+	const auto SceneFeatureLevel = GetFeatureLevel();
 	bool bFoundAnyInitializedMaterials = false;
 
 	// Iterate through all loaded material render proxies and recache their uniform expressions if needed
@@ -1812,7 +1812,7 @@ void FScene::SetShaderMapsOnMaterialResources_RenderThread(FRHICommandListImmedi
 	for (TSet<FMaterialRenderProxy*>::TConstIterator It(FMaterialRenderProxy::GetMaterialRenderProxyMap()); It; ++It)
 	{
 		FMaterialRenderProxy* MaterialProxy = *It;
-		FMaterial* Material = MaterialProxy->GetMaterialNoFallback(FeatureLevel);
+		FMaterial* Material = MaterialProxy->GetMaterialNoFallback(SceneFeatureLevel);
 
 		if (Material && MaterialsToUpdate.Contains(Material))
 		{
@@ -1821,11 +1821,11 @@ void FScene::SetShaderMapsOnMaterialResources_RenderThread(FRHICommandListImmedi
 			MaterialProxy->CacheUniformExpressions();
 			bFoundAnyInitializedMaterials = true;
 
-			const FMaterial& MaterialForRendering = *MaterialProxy->GetMaterial(FeatureLevel);
+			const FMaterial& MaterialForRendering = *MaterialProxy->GetMaterial(SceneFeatureLevel);
 			check(MaterialForRendering.GetRenderingThreadShaderMap());
 
-			check(!MaterialProxy->UniformExpressionCache[FeatureLevel].bUpToDate
-				|| MaterialProxy->UniformExpressionCache[FeatureLevel].CachedUniformExpressionShaderMap == MaterialForRendering.GetRenderingThreadShaderMap());
+			check(!MaterialProxy->UniformExpressionCache[SceneFeatureLevel].bUpToDate
+				|| MaterialProxy->UniformExpressionCache[SceneFeatureLevel].CachedUniformExpressionShaderMap == MaterialForRendering.GetRenderingThreadShaderMap());
 
 			check(MaterialForRendering.GetRenderingThreadShaderMap()->IsValidForRendering());
 		}
@@ -1861,48 +1861,48 @@ void FScene::UpdateStaticDrawListsForMaterials_RenderThread(FRHICommandListImmed
 
 	// Warning: if any static draw lists are missed here, there will be a crash when trying to render with shaders that have been deleted!
 	TArray<FPrimitiveSceneInfo*> PrimitivesToUpdate;
-	auto FeatureLevel = GetFeatureLevel();
+	auto SceneFeatureLevel = GetFeatureLevel();
 
 	if (ShouldUseDeferredRenderer())
 	{
 		for (int32 DrawType = 0; DrawType < EBasePass_MAX; DrawType++)
 		{
-			BasePassNoLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassSimpleDynamicLightingDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassCachedVolumeIndirectLightingDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassCachedPointIndirectLightingDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassHighQualityLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassDistanceFieldShadowMapLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassLowQualityLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassSelfShadowedTranslucencyDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassSelfShadowedCachedPointIndirectTranslucencyDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassNoLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassSimpleDynamicLightingDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassCachedVolumeIndirectLightingDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassCachedPointIndirectLightingDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassHighQualityLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassDistanceFieldShadowMapLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassLowQualityLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassSelfShadowedTranslucencyDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassSelfShadowedCachedPointIndirectTranslucencyDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 		}
 	}
 	else
 	{
 		for (int32 DrawType = 0; DrawType < EBasePass_MAX; DrawType++)
 		{
-			BasePassForForwardShadingNoLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassForForwardShadingLowQualityLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassForForwardShadingDirectionalLightAndSHDirectionalIndirectDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassForForwardShadingDirectionalLightAndSHDirectionalCSMIndirectDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassForForwardShadingMovableDirectionalLightDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassForForwardShadingMovableDirectionalLightCSMDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassForForwardShadingMovableDirectionalLightLightmapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-			BasePassForForwardShadingMovableDirectionalLightCSMLightmapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassForForwardShadingNoLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassForForwardShadingLowQualityLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassForForwardShadingDistanceFieldShadowMapLightMapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassForForwardShadingDirectionalLightAndSHIndirectDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassForForwardShadingDirectionalLightAndSHDirectionalIndirectDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassForForwardShadingDirectionalLightAndSHDirectionalCSMIndirectDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassForForwardShadingMovableDirectionalLightDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassForForwardShadingMovableDirectionalLightCSMDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassForForwardShadingMovableDirectionalLightLightmapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+			BasePassForForwardShadingMovableDirectionalLightCSMLightmapDrawList[DrawType].GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 		}
 	}
 
-	PositionOnlyDepthDrawList.GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-	DepthDrawList.GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-	MaskedDepthDrawList.GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-	HitProxyDrawList.GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-	HitProxyDrawList_OpaqueOnly.GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-	VelocityDrawList.GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-	WholeSceneShadowDepthDrawList.GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
-	WholeSceneReflectiveShadowMapDrawList.GetUsedPrimitivesBasedOnMaterials(FeatureLevel, Materials, PrimitivesToUpdate);
+	PositionOnlyDepthDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+	DepthDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+	MaskedDepthDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+	HitProxyDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+	HitProxyDrawList_OpaqueOnly.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+	VelocityDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+	WholeSceneShadowDepthDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
+	WholeSceneReflectiveShadowMapDrawList.GetUsedPrimitivesBasedOnMaterials(SceneFeatureLevel, Materials, PrimitivesToUpdate);
 
 	for (int32 PrimitiveIndex = 0; PrimitiveIndex < PrimitivesToUpdate.Num(); PrimitiveIndex++)
 	{
@@ -2289,12 +2289,12 @@ void FScene::ApplyWorldOffset_RenderThread(FVector InOffset)
 	MotionBlurInfoData.ApplyOffset(InOffset);
 }
 
-void FScene::OnLevelAddedToWorld(FName InLevelName)
+void FScene::OnLevelAddedToWorld(FName LevelAddedName)
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		FLevelAddedToWorld,
 		class FScene*, Scene, this,
-		FName, LevelName, InLevelName,
+		FName, LevelName, LevelAddedName,
 	{
 		Scene->OnLevelAddedToWorld_RenderThread(LevelName);
 	});

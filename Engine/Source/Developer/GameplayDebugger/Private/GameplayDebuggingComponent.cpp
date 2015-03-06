@@ -330,9 +330,9 @@ void UGameplayDebuggingComponent::SelectTargetToDebug()
 
 		if (PossibleTarget != NULL && PossibleTarget != GetSelectedActor())
 		{
-			if (AGameplayDebuggingReplicator* Replicator = Cast<AGameplayDebuggingReplicator>(GetOwner()))
+			if (AGameplayDebuggingReplicator* DebuggingReplicator = Cast<AGameplayDebuggingReplicator>(GetOwner()))
 			{
-				Replicator->ServerSetActorToDebug(Cast<AActor>(PossibleTarget));
+				DebuggingReplicator->ServerSetActorToDebug(Cast<AActor>(PossibleTarget));
 			}
 
 			ServerReplicateData(EDebugComponentMessage::ActivateReplication, EAIDebugDrawDataView::Empty);

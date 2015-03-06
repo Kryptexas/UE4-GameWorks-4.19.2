@@ -483,17 +483,17 @@ bool FPrimitiveSceneProxy::IsShadowCast(const FSceneView* View) const
 void FPrimitiveSceneProxy::RenderBounds(
 	FPrimitiveDrawInterface* PDI, 
 	const FEngineShowFlags& EngineShowFlags, 
-	const FBoxSphereBounds& Bounds, 
+	const FBoxSphereBounds& InBounds, 
 	bool bRenderInEditor) const
 {
 	const ESceneDepthPriorityGroup DrawBoundsDPG = EngineShowFlags.Game ? SDPG_World : SDPG_Foreground;
 	if (EngineShowFlags.Bounds && (EngineShowFlags.Game || bRenderInEditor))
 	{
 		// Draw the static mesh's bounding box and sphere.
-		DrawWireBox(PDI,Bounds.GetBox(), FColor(72,72,255),DrawBoundsDPG);
-		DrawCircle(PDI, Bounds.Origin, FVector(1, 0, 0), FVector(0, 1, 0), FColor::Yellow, Bounds.SphereRadius, 32, DrawBoundsDPG);
-		DrawCircle(PDI, Bounds.Origin, FVector(1, 0, 0), FVector(0, 0, 1), FColor::Yellow, Bounds.SphereRadius, 32, DrawBoundsDPG);
-		DrawCircle(PDI, Bounds.Origin, FVector(0, 1, 0), FVector(0, 0, 1), FColor::Yellow, Bounds.SphereRadius, 32, DrawBoundsDPG);
+		DrawWireBox(PDI,InBounds.GetBox(), FColor(72,72,255),DrawBoundsDPG);
+		DrawCircle(PDI, InBounds.Origin, FVector(1, 0, 0), FVector(0, 1, 0), FColor::Yellow, InBounds.SphereRadius, 32, DrawBoundsDPG);
+		DrawCircle(PDI, InBounds.Origin, FVector(1, 0, 0), FVector(0, 0, 1), FColor::Yellow, InBounds.SphereRadius, 32, DrawBoundsDPG);
+		DrawCircle(PDI, InBounds.Origin, FVector(0, 1, 0), FVector(0, 0, 1), FColor::Yellow, InBounds.SphereRadius, 32, DrawBoundsDPG);
 	}
 }
 

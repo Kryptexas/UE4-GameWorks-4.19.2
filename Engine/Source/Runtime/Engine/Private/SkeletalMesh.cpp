@@ -547,9 +547,9 @@ FSkeletalMeshVertexColorBuffer& FSkeletalMeshVertexColorBuffer::operator=(const 
 	return *this;
 }
 
-void FSkeletalMeshVertexColorBuffer::ResizeData(int32 NumVertices)
+void FSkeletalMeshVertexColorBuffer::ResizeData(int32 InNumVertices)
 {
-	VertexData->ResizeBuffer(NumVertices);
+	VertexData->ResizeBuffer(InNumVertices);
 	UpdateCachedInfo();
 }
 

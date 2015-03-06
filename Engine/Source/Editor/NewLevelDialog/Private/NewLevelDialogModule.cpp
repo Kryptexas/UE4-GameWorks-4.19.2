@@ -16,14 +16,14 @@ public:
 	SLATE_BEGIN_ARGS(STexture2DView) {}
 	SLATE_END_ARGS()
 
-	void Construct( const FArguments& InArgs, UTexture2D* InTexture )
+	void Construct( const FArguments& InArgs, UTexture2D* InTexture2D )
 	{
-		Size = FIntPoint(InTexture->GetSizeX(), InTexture->GetSizeY());
+		Size = FIntPoint(InTexture2D->GetSizeX(), InTexture2D->GetSizeY());
 
 		ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 			UpdateSTexture2DView,
 			STexture2DView*,TextureView,this,
-			UTexture2D*,Texture,InTexture,
+			UTexture2D*,Texture,InTexture2D,
 			{
 				TextureView->ShaderResource = ((FTexture2DResource*)(Texture->Resource))->GetTexture2DRHI();
 			});

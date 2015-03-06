@@ -1373,16 +1373,16 @@ const TSharedPtr<FLinearColor> ContentBrowserUtils::LoadColor(const FString& Fol
 
 void ContentBrowserUtils::SaveColor(const FString& FolderPath, const TSharedPtr<FLinearColor>& FolderColor, bool bForceAdd)
 {
-	auto SaveColorInternal = [](const FString& InPath, const TSharedPtr<FLinearColor>& FolderColor)
+	auto SaveColorInternal = [](const FString& InPath, const TSharedPtr<FLinearColor>& InFolderColor)
 	{
 		// Saves the color of the folder to the config
 		if(FPaths::FileExists(GEditorUserSettingsIni))
 		{
-			GConfig->SetString(TEXT("PathColor"), *InPath, *FolderColor->ToString(), GEditorUserSettingsIni);
+			GConfig->SetString(TEXT("PathColor"), *InPath, *InFolderColor->ToString(), GEditorUserSettingsIni);
 		}
 
 		// Update the map too
-		PathColors.Add(InPath, FolderColor);
+		PathColors.Add(InPath, InFolderColor);
 	};
 
 	auto RemoveColorInternal = [](const FString& InPath)

@@ -679,8 +679,8 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 			bool bUseNotify = bNotifyOverride ? *bNotifyOverride : BI->bNotifyRigidBodyCollision;
 
 
-			UPrimitiveComponent* OwnerComponent = BI->OwnerComponent.IsValid() ? BI->OwnerComponent.Get() : nullptr;
-			int32 CompID = (OwnerComponent != nullptr) ? OwnerComponent->GetUniqueID() : 0;
+			UPrimitiveComponent* OwnerPrimitiveComponent = BI->OwnerComponent.IsValid() ? BI->OwnerComponent.Get() : nullptr;
+			int32 CompID = (OwnerPrimitiveComponent != nullptr) ? OwnerPrimitiveComponent->GetUniqueID() : 0;
 
 			// Create the filterdata structs
 			PxFilterData PSimFilterData;
@@ -740,7 +740,7 @@ void FBodyInstance::UpdatePhysicsShapeFilterData(uint32 SkelMeshCompID, bool bUs
 						PShape->setFlag(PxShapeFlag::eSIMULATION_SHAPE, true);
 					}
 
-					if (OwnerComponent == NULL || !OwnerComponent->IsA(UModelComponent::StaticClass()))
+					if (OwnerPrimitiveComponent == NULL || !OwnerPrimitiveComponent->IsA(UModelComponent::StaticClass()))
 					{
 						PShape->setFlag(PxShapeFlag::eVISUALIZATION, false); // dont draw the tri mesh, we can see it anyway, and its slow
 					}
@@ -1937,8 +1937,8 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 
 	FVector RelativeScale3D;
 	FVector RelativeScale3DAbs;
-	FVector NewScale3D;
-	ComputeScalingVectors(ScaleMode, InScale3DAdjusted, OldScale3D, RelativeScale3D, RelativeScale3DAbs, NewScale3D);
+	FVector UpdatedScale3D;
+	ComputeScalingVectors(ScaleMode, InScale3DAdjusted, OldScale3D, RelativeScale3D, RelativeScale3DAbs, UpdatedScale3D);
 
 	// Apply scaling
 #if WITH_PHYSX
@@ -2157,7 +2157,7 @@ bool FBodyInstance::UpdateBodyScale(const FVector& InScale3D)
 	// if success, overwrite old Scale3D, otherwise, just don't do it. It will have invalid scale next time
 	if (bSuccess)
 	{
-		Scale3D = NewScale3D;
+		Scale3D = UpdatedScale3D;
 
 		// update mass if required
 		if (bUpdateMassWhenScaleChanges)

@@ -1056,21 +1056,21 @@ TSharedRef<SWidget> PropertyCustomizationHelpers::MakeTextLocalizationButton(TSh
 {
 	struct Local
 	{
-		static void DirtyPropertyPackage(TSharedRef<IPropertyHandle> InPropertyHandle)
+		static void DirtyPropertyPackage(TSharedRef<IPropertyHandle> InPropHandle)
 		{
 			// dirty packages as they will need to be re-serialized with the correct key
 			TArray<UObject*> Objects;
-			InPropertyHandle->GetOuterObjects(Objects);
+			InPropHandle->GetOuterObjects(Objects);
 			if (Objects.Num() > 0 && Objects[0]->GetOutermost() != nullptr)
 			{
 				Objects[0]->GetOutermost()->MarkPackageDirty();
 			}
 		}
 
-		static FReply HandleGenerateKeyClicked(TSharedRef<IPropertyHandle> InPropertyHandle)
+		static FReply HandleGenerateKeyClicked(TSharedRef<IPropertyHandle> InPropHandle)
 		{
 			FText DisplayText;
-			if (InPropertyHandle->GetValueAsDisplayText(DisplayText) == FPropertyAccess::Success)
+			if (InPropHandle->GetValueAsDisplayText(DisplayText) == FPropertyAccess::Success)
 			{
 				TSharedRef< FString, ESPMode::ThreadSafe > DisplayString = FTextInspector::GetSharedDisplayString(DisplayText);
 				TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
@@ -1080,17 +1080,17 @@ TSharedRef<SWidget> PropertyCustomizationHelpers::MakeTextLocalizationButton(TSh
 				if (Key.IsValid())
 				{
 					*Key.Get() = FGuid::NewGuid().ToString();
-					DirtyPropertyPackage(InPropertyHandle);
+					DirtyPropertyPackage(InPropHandle);
 				}
 			}
 
 			return FReply::Unhandled();
 		}
 
-		static void HandleKeyTextCommitted(const FText& InText, ETextCommit::Type InCommitType, TSharedRef<IPropertyHandle> InPropertyHandle)
+		static void HandleKeyTextCommitted(const FText& InText, ETextCommit::Type InCommitType, TSharedRef<IPropertyHandle> InPropHandle)
 		{
 			FText DisplayText;
-			if (InPropertyHandle->GetValueAsDisplayText(DisplayText) == FPropertyAccess::Success)
+			if (InPropHandle->GetValueAsDisplayText(DisplayText) == FPropertyAccess::Success)
 			{
 				TSharedRef< FString, ESPMode::ThreadSafe > DisplayString = FTextInspector::GetSharedDisplayString(DisplayText);
 				TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
@@ -1100,15 +1100,15 @@ TSharedRef<SWidget> PropertyCustomizationHelpers::MakeTextLocalizationButton(TSh
 				if (Key.IsValid())
 				{
 					*Key.Get() = InText.ToString();
-					DirtyPropertyPackage(InPropertyHandle);
+					DirtyPropertyPackage(InPropHandle);
 				}
 			}
 		}
 
-		static void HandleNamespaceTextCommitted(const FText& InText, ETextCommit::Type InCommitType, TSharedRef<IPropertyHandle> InPropertyHandle)
+		static void HandleNamespaceTextCommitted(const FText& InText, ETextCommit::Type InCommitType, TSharedRef<IPropertyHandle> InPropHandle)
 		{
 			FText DisplayText;
-			if (InPropertyHandle->GetValueAsDisplayText(DisplayText) == FPropertyAccess::Success)
+			if (InPropHandle->GetValueAsDisplayText(DisplayText) == FPropertyAccess::Success)
 			{
 				TSharedRef< FString, ESPMode::ThreadSafe > DisplayString = FTextInspector::GetSharedDisplayString(DisplayText);
 				TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
@@ -1118,17 +1118,17 @@ TSharedRef<SWidget> PropertyCustomizationHelpers::MakeTextLocalizationButton(TSh
 				if (Namespace.IsValid())
 				{
 					*Namespace.Get() = InText.ToString();
-					DirtyPropertyPackage(InPropertyHandle);
+					DirtyPropertyPackage(InPropHandle);
 				}
 			}
 		}
 
-		static TSharedRef<SWidget> GetLocalizationMenuContent(TSharedRef<IPropertyHandle> InPropertyHandle)
+		static TSharedRef<SWidget> GetLocalizationMenuContent(TSharedRef<IPropertyHandle> InPropHandle)
 		{
 			FMenuBuilder MenuContentBuilder(true, NULL);
 			{
 				FText DisplayText;
-				if (InPropertyHandle->GetValueAsDisplayText(DisplayText) == FPropertyAccess::Success)
+				if (InPropHandle->GetValueAsDisplayText(DisplayText) == FPropertyAccess::Success)
 				{
 					TSharedRef< FString, ESPMode::ThreadSafe > DisplayString = FTextInspector::GetSharedDisplayString(DisplayText);
 					TSharedPtr< FString, ESPMode::ThreadSafe > Namespace;
@@ -1168,7 +1168,7 @@ TSharedRef<SWidget> PropertyCustomizationHelpers::MakeTextLocalizationButton(TSh
 										[
 											SNew(SEditableTextBox)
 											.Text_Lambda(KeyLambda)
-											.OnTextCommitted(FOnTextCommitted::CreateStatic(&Local::HandleKeyTextCommitted, InPropertyHandle))
+											.OnTextCommitted(FOnTextCommitted::CreateStatic(&Local::HandleKeyTextCommitted, InPropHandle))
 										]
 										+ SHorizontalBox::Slot()
 										.AutoWidth()
@@ -1178,7 +1178,7 @@ TSharedRef<SWidget> PropertyCustomizationHelpers::MakeTextLocalizationButton(TSh
 											SNew(SButton)
 											.ToolTipText(LOCTEXT("RefreshKeyTooltip", "Generate a new random key"))
 											.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
-											.OnClicked(FOnClicked::CreateStatic(&Local::HandleGenerateKeyClicked, InPropertyHandle))
+											.OnClicked(FOnClicked::CreateStatic(&Local::HandleGenerateKeyClicked, InPropHandle))
 											.Content()
 											[
 												SNew(SImage)
@@ -1207,7 +1207,7 @@ TSharedRef<SWidget> PropertyCustomizationHelpers::MakeTextLocalizationButton(TSh
 									[
 										SNew(SEditableTextBox)
 										.Text_Lambda(NamespaceLambda)
-										.OnTextCommitted(FOnTextCommitted::CreateStatic(&Local::HandleNamespaceTextCommitted, InPropertyHandle))
+										.OnTextCommitted(FOnTextCommitted::CreateStatic(&Local::HandleNamespaceTextCommitted, InPropHandle))
 									];
 							}
 

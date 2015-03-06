@@ -1390,8 +1390,6 @@ void FSlateApplication::Tick()
 			SCOPE_CYCLE_COUNTER(STAT_SlateTickWindowAndChildren);
 			SLATE_CYCLE_COUNTER_SCOPE(GTickWindowAndChildrenTime);
 
-			TSharedPtr<SWindow> ActiveModalWindow = GetActiveModalWindow();
-
 			if ( ActiveModalWindow.IsValid() )
 			{
 				// There is a modal window, and we just need to tick it.
@@ -3916,24 +3914,24 @@ bool FSlateApplication::ProcessMouseButtonDownEvent( const TSharedPtr< FGenericW
 			FScopedSwitchWorldHack SwitchWorld( MouseCaptorPath );
 			bInGame = FApp::IsGame();
 
-			Reply = FEventRouter::Route<FReply>( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent, []( const FArrangedWidget& MouseCaptorWidget, const FPointerEvent& Event )
+			Reply = FEventRouter::Route<FReply>( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent, []( const FArrangedWidget& InMouseCaptorWidget, const FPointerEvent& Event )
 			{
-				return MouseCaptorWidget.Widget->OnPreviewMouseButtonDown( MouseCaptorWidget.Geometry, Event );
+				return InMouseCaptorWidget.Widget->OnPreviewMouseButtonDown( InMouseCaptorWidget.Geometry, Event );
 			});
 			
 			if (!Reply.IsEventHandled())
 			{
 				Reply = FEventRouter::Route<FReply>( this, FEventRouter::FToLeafmostPolicy(MouseCaptorPath), MouseEvent,
-					[this]( const FArrangedWidget& MouseCaptorWidget, const FPointerEvent& Event )
+					[this]( const FArrangedWidget& InMouseCaptorWidget, const FPointerEvent& Event )
 					{
 						FReply TempReply = FReply::Unhandled();
 						if ( Event.IsTouchEvent() )
 						{
-							TempReply = MouseCaptorWidget.Widget->OnTouchStarted( MouseCaptorWidget.Geometry, Event );
+							TempReply = InMouseCaptorWidget.Widget->OnTouchStarted( InMouseCaptorWidget.Geometry, Event );
 						}
 						if ( !Event.IsTouchEvent() || ( !TempReply.IsEventHandled() && this->bTouchFallbackToMouse ) )
 						{
-							TempReply = MouseCaptorWidget.Widget->OnMouseButtonDown( MouseCaptorWidget.Geometry, Event );
+							TempReply = InMouseCaptorWidget.Widget->OnMouseButtonDown( InMouseCaptorWidget.Geometry, Event );
 						}
 						return TempReply;
 					} );
@@ -4391,9 +4389,9 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 				// Switch worlds widgets in the current path
 				FScopedSwitchWorldHack SwitchWorld( DragDetectPath );
 
-				FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FDirectPolicy(DetectDragForMe,DragDetectPath), MouseEvent, []( const FArrangedWidget& DetectDragForMe, const FPointerEvent& TranslatedMouseEvent )
+				FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FDirectPolicy(DetectDragForMe,DragDetectPath), MouseEvent, []( const FArrangedWidget& InDetectDragForMe, const FPointerEvent& TranslatedMouseEvent )
 				{
-					return DetectDragForMe.Widget->OnDragDetected(DetectDragForMe.Geometry, TranslatedMouseEvent );
+					return InDetectDragForMe.Widget->OnDragDetected(InDetectDragForMe.Geometry, TranslatedMouseEvent );
 				});
 				
 				LOG_EVENT( EEventLog::DragDetected, Reply );
@@ -4505,11 +4503,11 @@ bool FSlateApplication::ProcessMouseMoveEvent( FPointerEvent& MouseEvent, bool b
 		if (IsDragDropping())
 		{
 			FDragDropEvent DragDropEvent( MouseEvent, DragDropContent );
-			FEventRouter::Route<FNoReply>( this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), DragDropEvent, [&LastWidgetsUnderCursor](const FArrangedWidget& WidgetUnderCursor, const FDragDropEvent& DragDropEvent)
+			FEventRouter::Route<FNoReply>( this, FEventRouter::FBubblePolicy(WidgetsUnderCursor), DragDropEvent, [&LastWidgetsUnderCursor](const FArrangedWidget& WidgetUnderCursor, const FDragDropEvent& InDragDropEvent)
 			{
 				if ( !LastWidgetsUnderCursor.ContainsWidget(WidgetUnderCursor.Widget) )
 				{
-					WidgetUnderCursor.Widget->OnDragEnter( WidgetUnderCursor.Geometry, DragDropEvent );
+					WidgetUnderCursor.Widget->OnDragEnter( WidgetUnderCursor.Geometry, InDragDropEvent );
 				}
 				return FNoReply();
 			} );
@@ -4861,9 +4859,9 @@ void FSlateApplication::ProcessMotionDetectedEvent( FMotionEvent& MotionEvent )
 		
 		FScopedSwitchWorldHack SwitchWorld(PathToWidget);
 
-		FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FBubblePolicy(PathToWidget), MotionEvent, [] (const FArrangedWidget& SomeWidget, const FMotionEvent& MotionEvent)
+		FReply Reply = FEventRouter::Route<FReply>(this, FEventRouter::FBubblePolicy(PathToWidget), MotionEvent, [] (const FArrangedWidget& SomeWidget, const FMotionEvent& InMotionEvent)
 		{
-			return SomeWidget.Widget->OnMotionDetected(SomeWidget.Geometry, MotionEvent);
+			return SomeWidget.Widget->OnMotionDetected(SomeWidget.Geometry, InMotionEvent);
 		});
 	}
 }

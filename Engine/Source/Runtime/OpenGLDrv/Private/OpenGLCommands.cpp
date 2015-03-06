@@ -695,11 +695,13 @@ void FOpenGLDynamicRHI::SetupTexturesForDraw( FOpenGLContextState& ContextState,
 			// which should be preferred.
 			if(!FOpenGL::SupportsTextureView())
 			{
-				FTextureStage& CurrenTextureStage = ContextState.Textures[TextureStageIndex];
-				const bool bSameTarget = (TextureStage.Target == CurrenTextureStage.Target);
-				const bool bSameResource = (TextureStage.Resource == CurrenTextureStage.Resource);
-				const bool bSameLimitMip = bSameTarget && bSameResource && CurrenTextureStage.LimitMip == TextureStage.LimitMip;
-				const bool bSameNumMips = bSameTarget && bSameResource && CurrenTextureStage.NumMips == TextureStage.NumMips;
+				{
+					FTextureStage& CurrentTextureStage = ContextState.Textures[TextureStageIndex];
+					const bool bSameTarget = (TextureStage.Target == CurrentTextureStage.Target);
+					const bool bSameResource = (TextureStage.Resource == CurrentTextureStage.Resource);
+					const bool bSameLimitMip = bSameTarget && bSameResource && CurrentTextureStage.LimitMip == TextureStage.LimitMip;
+					const bool bSameNumMips = bSameTarget && bSameResource && CurrentTextureStage.NumMips == TextureStage.NumMips;
+				}
 				
 				// When trying to limit the mip available for sampling (as part of texture SRV)
 				// ensure that the texture is bound to only one sampler, or that all samplers

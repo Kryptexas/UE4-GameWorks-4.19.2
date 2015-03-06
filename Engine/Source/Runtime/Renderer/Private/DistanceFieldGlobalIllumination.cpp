@@ -369,8 +369,10 @@ void PlaceVPLs(
 {
 	GVPLResources.AllocateFor(GVPLGridDimension * GVPLGridDimension);
 
-	uint32 ClearValues[4] = { 0 };
-	RHICmdList.ClearUAV(GVPLResources.VPLParameterBuffer.UAV, ClearValues);
+	{
+		uint32 ClearValues[4] = { 0 };
+		RHICmdList.ClearUAV(GVPLResources.VPLParameterBuffer.UAV, ClearValues);
+	}
 
 	const FLightSceneProxy* DirectionalLightProxy = NULL;
 

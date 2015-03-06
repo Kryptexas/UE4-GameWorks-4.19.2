@@ -2185,14 +2185,14 @@ FName UAnimInstance::Montage_GetCurrentSection(UAnimMontage* Montage)
 	return NAME_None;
 }
 
-void UAnimInstance::Montage_SetEndDelegate(FOnMontageEnded & OnMontageEnded, UAnimMontage* Montage)
+void UAnimInstance::Montage_SetEndDelegate(FOnMontageEnded & InOnMontageEnded, UAnimMontage* Montage)
 {
 	if (Montage)
 	{
 		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
 		if (MontageInstance)
 		{
-			MontageInstance->OnMontageEnded = OnMontageEnded;
+			MontageInstance->OnMontageEnded = InOnMontageEnded;
 		}
 	}
 	else
@@ -2203,20 +2203,20 @@ void UAnimInstance::Montage_SetEndDelegate(FOnMontageEnded & OnMontageEnded, UAn
 			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
 			if (MontageInstance && MontageInstance->IsActive())
 			{
-				MontageInstance->OnMontageEnded = OnMontageEnded;
+				MontageInstance->OnMontageEnded = InOnMontageEnded;
 			}
 		}
 	}
 }
 
-void UAnimInstance::Montage_SetBlendingOutDelegate(FOnMontageBlendingOutStarted & OnMontageBlendingOut, UAnimMontage* Montage)
+void UAnimInstance::Montage_SetBlendingOutDelegate(FOnMontageBlendingOutStarted & InOnMontageBlendingOut, UAnimMontage* Montage)
 {
 	if (Montage)
 	{
 		FAnimMontageInstance * MontageInstance = GetActiveInstanceForMontage(*Montage);
 		if (MontageInstance)
 		{
-			MontageInstance->OnMontageBlendingOutStarted = OnMontageBlendingOut;
+			MontageInstance->OnMontageBlendingOutStarted = InOnMontageBlendingOut;
 		}
 	}
 	else
@@ -2227,7 +2227,7 @@ void UAnimInstance::Montage_SetBlendingOutDelegate(FOnMontageBlendingOutStarted 
 			FAnimMontageInstance * MontageInstance = MontageInstances[InstanceIndex];
 			if (MontageInstance && MontageInstance->IsActive())
 			{
-				MontageInstance->OnMontageBlendingOutStarted = OnMontageBlendingOut;
+				MontageInstance->OnMontageBlendingOutStarted = InOnMontageBlendingOut;
 			}
 		}
 	}

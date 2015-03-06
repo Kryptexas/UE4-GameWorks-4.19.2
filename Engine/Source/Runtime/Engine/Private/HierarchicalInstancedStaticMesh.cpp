@@ -149,11 +149,11 @@ class FClusterBuilder
 	};
 	TArray<FSortPair> SortPairs;
 
-	void Split(int32 Num)
+	void Split(int32 InNum)
 	{
-		check(Num);
+		check(InNum);
 		Clusters.Reset();
-		Split(0, Num - 1);
+		Split(0, InNum - 1);
 		Clusters.Sort();
 		check(Clusters.Num());
 		int32 At = 0;
@@ -162,7 +162,7 @@ class FClusterBuilder
 			check(At == Cluster.Start);
 			At += Cluster.Num;
 		}
-		check(At == Num);
+		check(At == InNum);
 	}
 
 	void Split(int32 Start, int32 End)

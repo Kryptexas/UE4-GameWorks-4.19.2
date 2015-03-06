@@ -228,7 +228,7 @@ bool TimerManagerTest_LoopingTimers_DifferentHandles(UWorld* World, FAutomationT
 	FTimerHandle HandleOne, HandleTwo;
 
 	int32 CallCount = 0;
-	auto Func = [](int* CallCount){ (*CallCount)++; };
+	auto Func = [](int* InCallCount){ (*InCallCount)++; };
 
 	FTimerDelegate Delegate = FTimerDelegate::CreateStatic(Func, &CallCount);
 

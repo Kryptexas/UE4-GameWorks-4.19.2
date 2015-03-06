@@ -334,7 +334,7 @@ UMaterialInstanceDynamic* UWidgetBlueprintLibrary::GetDynamicMaterial(FSlateBrus
 	// If the resource has a material interface we'll just update the brush to have a dynamic material.
 	else if ( UMaterialInterface* Material = Cast<UMaterialInterface>(Resource) )
 	{
-		UMaterialInstanceDynamic* DynamicMaterial = UMaterialInstanceDynamic::Create(Material, nullptr);
+		DynamicMaterial = UMaterialInstanceDynamic::Create(Material, nullptr);
 		Brush.SetResourceObject(DynamicMaterial);
 
 		return DynamicMaterial;

@@ -1784,16 +1784,16 @@ void FRecastTileGenerator::GatherGeometry(const FRecastNavMeshGenerator& ParentG
 	QUICK_SCOPE_CYCLE_COUNTER(STAT_RecastNavMeshGenerator_GatherGeometry);
 
 	UNavigationSystem*	NavSys = UNavigationSystem::GetCurrent(ParentGenerator.GetWorld());
-	FNavigationOctree*	NavOctree = NavSys ? NavSys->GetMutableNavOctree() : nullptr;
-	check(NavOctree);
-	const FNavDataConfig&		NavDataConfig = ParentGenerator.GetOwner()->GetConfig();
+	FNavigationOctree*	NavigationOctree = NavSys ? NavSys->GetMutableNavOctree() : nullptr;
+	check(NavigationOctree);
+	const FNavDataConfig& OwnerNavDataConfig = ParentGenerator.GetOwner()->GetConfig();
 
-	for (FNavigationOctree::TConstElementBoxIterator<FNavigationOctree::DefaultStackAllocator> It(*NavOctree, ParentGenerator.GrowBoundingBox(TileBB, /*bIncludeAgentHeight*/ false));
+	for (FNavigationOctree::TConstElementBoxIterator<FNavigationOctree::DefaultStackAllocator> It(*NavigationOctree, ParentGenerator.GrowBoundingBox(TileBB, /*bIncludeAgentHeight*/ false));
 		It.HasPendingElements();
 		It.Advance())
 	{
 		const FNavigationOctreeElement& Element = It.GetCurrentElement();
-		const bool bShouldUse = Element.ShouldUseGeometry(NavDataConfig);
+		const bool bShouldUse = Element.ShouldUseGeometry(OwnerNavDataConfig);
 		if (bShouldUse)
 		{
 			bool bDumpGeometryData = false;
@@ -1803,7 +1803,7 @@ void FRecastTileGenerator::GatherGeometry(const FRecastNavMeshGenerator& ParentG
 				if (bSupportsSlices == false || Element.Data->IsPendingLazyModifiersGathering() == true)
 				{
 					QUICK_SCOPE_CYCLE_COUNTER(STAT_RecastNavMeshGenerator_LazyGeometryExport);
-					NavOctree->DemandLazyDataGathering(Element);
+					NavigationOctree->DemandLazyDataGathering(Element);
 				}
 				
 				if (bSupportsSlices == true)
@@ -1816,7 +1816,7 @@ void FRecastTileGenerator::GatherGeometry(const FRecastNavMeshGenerator& ParentG
 					if (NavRelevant)
 					{
 						NavRelevant->PrepareGeometryExportSync();
-						NavRelevant->GatherGeometrySlice(GeomExport, TileBB.ExpandBy(NavDataConfig.AgentRadius * 2));
+						NavRelevant->GatherGeometrySlice(GeomExport, TileBB.ExpandBy(OwnerNavDataConfig.AgentRadius * 2));
 
 						RecastGeometryExport::CovertCoordDataToRecast(GeomExport.VertexBuffer);
 						RecastGeometryExport::StoreCollisionCache(GeomExport);
@@ -1868,7 +1868,7 @@ void FRecastTileGenerator::GatherGeometry(const FRecastNavMeshGenerator& ParentG
 				}
 			}
 						
-			const FCompositeNavModifier ModifierInstance = Element.GetModifierForAgent(&NavDataConfig);
+			const FCompositeNavModifier ModifierInstance = Element.GetModifierForAgent(&OwnerNavDataConfig);
 			if (ModifierInstance.IsEmpty() == false)
 			{
 				AppendModifier(ModifierInstance, Element.Data->NavDataPerInstanceTransformDelegate);

@@ -429,7 +429,6 @@ void FHeightfieldLightingViewInfo::SetupVisibleHeightfields(const FViewInfo& Vie
 		&& NumPrimitives > 0
 		&& SupportsHeightfieldLighting(View.GetFeatureLevel(), View.GetShaderPlatform()))
 	{
-		const int32 NumPrimitives = Scene->DistanceFieldSceneData.HeightfieldPrimitives.Num();
 		extern float GAOMaxViewDistance;
 		const float MaxDistanceSquared = FMath::Square(GAOMaxViewDistance + GetGHeightfieldBounceDistance());
 		float LocalToWorldScale = 1;

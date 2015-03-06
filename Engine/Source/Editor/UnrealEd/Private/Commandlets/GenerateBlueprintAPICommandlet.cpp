@@ -981,14 +981,14 @@ int32 UGenerateBlueprintAPICommandlet::Main(FString const& Params)
 	// closing out the writer (and diffing the resultant file if the user deigns us to do so)
 	auto CloseFileStream = [](FArchive** FileOutPtr)
 	{
-		FArchive*& FileOut = (*FileOutPtr);
-		if (FileOut != nullptr)
+		FArchive*& FileOutAr = (*FileOutPtr);
+		if (FileOutAr != nullptr)
 		{
-			FileOut->Serialize(TCHAR_TO_ANSI(TEXT("\n}")), 2);
-			FileOut->Close();
+			FileOutAr->Serialize(TCHAR_TO_ANSI(TEXT("\n}")), 2);
+			FileOutAr->Close();
 
-			delete FileOut;
-			FileOut = nullptr;
+			delete FileOutAr;
+			FileOutAr = nullptr;
 		}
 	};
 

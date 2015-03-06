@@ -453,13 +453,15 @@ TUniformBufferRef<FViewUniformShaderParameters> FViewInfo::CreateUniformBuffer(
 			static_assert(MAX_FORWARD_SHADOWCASCADES <= 4, "more than 4 cascades not supported by the shader and uniform buffer");
 			if (DirectionalLightShadowInfo)
 			{
-				FProjectedShadowInfo& ShadowInfo = *((*DirectionalLightShadowInfo)[0]);
-				FIntPoint ShadowBufferResolution = ShadowInfo.GetShadowBufferResolution();
-				FVector4 ShadowBufferSizeValue((float)ShadowBufferResolution.X, (float)ShadowBufferResolution.Y, 1.0f / (float)ShadowBufferResolution.X, 1.0f / (float)ShadowBufferResolution.Y);
+				{
+					FProjectedShadowInfo& ShadowInfo = *((*DirectionalLightShadowInfo)[0]);
+					FIntPoint ShadowBufferResolution = ShadowInfo.GetShadowBufferResolution();
+					FVector4 ShadowBufferSizeValue((float)ShadowBufferResolution.X, (float)ShadowBufferResolution.Y, 1.0f / (float)ShadowBufferResolution.X, 1.0f / (float)ShadowBufferResolution.Y);
 
-				ViewUniformShaderParameters.DirectionalLightShadowTexture = GSceneRenderTargets.GetShadowDepthZTexture();				
-				ViewUniformShaderParameters.DirectionalLightShadowTransition = 1.0f / ShadowInfo.ComputeTransitionSize();
-				ViewUniformShaderParameters.DirectionalLightShadowSize = ShadowBufferSizeValue;
+					ViewUniformShaderParameters.DirectionalLightShadowTexture = GSceneRenderTargets.GetShadowDepthZTexture();				
+					ViewUniformShaderParameters.DirectionalLightShadowTransition = 1.0f / ShadowInfo.ComputeTransitionSize();
+					ViewUniformShaderParameters.DirectionalLightShadowSize = ShadowBufferSizeValue;
+				}
 
 				int32 NumShadowsToCopy = FMath::Min(DirectionalLightShadowInfo->Num(), MAX_FORWARD_SHADOWCASCADES);				
 				for (int32 i = 0; i < NumShadowsToCopy; ++i)
@@ -750,10 +752,12 @@ void FViewInfo::CreateForwardLightDataUniformBuffer(FForwardLightData &OutForwar
 				OutForwardLightData.LightPositionAndInvRadius[LightIndex] = FVector4(FVector(BoundingSphereVector), InvRadius);
 
 				// SpotlightMaskAndMinRoughness, >0:Spotlight, MinRoughness = abs();
-				float W = FMath::Max(0.0001f, MinRoughness) * ((LightType == LightType_Spot) ? 1 : -1);
+				{
+					float W = FMath::Max(0.0001f, MinRoughness) * ((LightType == LightType_Spot) ? 1 : -1);
 
-				OutForwardLightData.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex] = FVector4(NormalizedLightDirection, W);
-				OutForwardLightData.SpotAnglesAndSourceRadiusAndDir[LightIndex] = FVector4(SpotAngles.X, SpotAngles.Y, SourceRadius, LightType == LightType_Directional);
+					OutForwardLightData.LightDirectionAndSpotlightMaskAndMinRoughness[LightIndex] = FVector4(NormalizedLightDirection, W);
+					OutForwardLightData.SpotAnglesAndSourceRadiusAndDir[LightIndex] = FVector4(SpotAngles.X, SpotAngles.Y, SourceRadius, LightType == LightType_Directional);
+				}
 
 				if(LightSceneInfo->Proxy->IsInverseSquared())
 				{

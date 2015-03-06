@@ -442,9 +442,9 @@ void USkeletalMeshComponent::SetSimulatePhysics(bool bSimulate)
 		{
 			if (FBodyInstance* BodyInstance = Bodies[BodyIdx])
 			{
-				if (UBodySetup * BodySetup = PhysAsset->BodySetup[BodyIdx])
+				if (UBodySetup * PhysAssetBodySetup = PhysAsset->BodySetup[BodyIdx])
 				{
-					if (BodySetup->PhysicsType == EPhysicsType::PhysType_Default)
+					if (PhysAssetBodySetup->PhysicsType == EPhysicsType::PhysType_Default)
 					{
 						BodyInstance->SetInstanceSimulatePhysics(bSimulate);
 					}
@@ -760,17 +760,17 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 	Bodies.AddZeroed(NumBodies);
 	for(int32 i=0; i<NumBodies; i++)
 	{
-		UBodySetup* BodySetup = PhysicsAsset->BodySetup[i];
+		UBodySetup* PhysicsAssetBodySetup = PhysicsAsset->BodySetup[i];
 		Bodies[i] = new FBodyInstance;
 		FBodyInstance* BodyInst = Bodies[i];
 		check(BodyInst);
 
 		// Get transform of bone by name.
-		int32 BoneIndex = GetBoneIndex( BodySetup->BoneName );
+		int32 BoneIndex = GetBoneIndex( PhysicsAssetBodySetup->BoneName );
 		if(BoneIndex != INDEX_NONE)
 		{
 			// Copy body setup default instance properties
-			BodyInst->CopyBodyInstancePropertiesFrom(&BodySetup->DefaultInstance);
+			BodyInst->CopyBodyInstancePropertiesFrom(&PhysicsAssetBodySetup->DefaultInstance);
 			// we don't allow them to use this in editor. For physics asset, this set up is overriden by Physics Type. 
 			// but before we hide in the detail customization, we saved with this being true, causing the simulate always happens for some bodies
 			// so adding initialization here to disable this. 
@@ -804,7 +804,7 @@ void USkeletalMeshComponent::InitArticulated(FPhysScene* PhysScene)
 #if WITH_PHYSX
 			// Create physics body instance.
 			FTransform BoneTransform = GetBoneTransform( BoneIndex );
-			BodyInst->InitBody( BodySetup, BoneTransform, this, PhysScene, Aggregate);
+			BodyInst->InitBody( PhysicsAssetBodySetup, BoneTransform, this, PhysScene, Aggregate);
 #endif //WITH_PHYSX
 
 			// Remember if we have bodies in sync/async scene, so we know which scene(s) to lock when moving bodies
@@ -1191,12 +1191,12 @@ void USkeletalMeshComponent::ResetAllBodiesSimulatePhysics()
 	for(int32 i=0; i<Bodies.Num(); i++)
 	{
 		FBodyInstance*	BodyInst	= Bodies[i];
-		UBodySetup*	BodySetup	= BodyInst->BodySetup.Get();
+		UBodySetup*	BodyInstSetup	= BodyInst->BodySetup.Get();
 
 		// Set fixed on any bodies with bAlwaysFullAnimWeight set to true
-		if(BodySetup && BodySetup->PhysicsType != PhysType_Default)
+		if(BodyInstSetup && BodyInstSetup->PhysicsType != PhysType_Default)
 		{
-			if (BodySetup->PhysicsType == PhysType_Simulated)
+			if (BodyInstSetup->PhysicsType == PhysType_Simulated)
 			{
 				BodyInst->SetInstanceSimulatePhysics(true);
 			}
@@ -1241,10 +1241,10 @@ void USkeletalMeshComponent::SetAllBodiesPhysicsBlendWeight(float PhysicsBlendWe
 	for(int32 i=0; i<Bodies.Num(); i++)
 	{
 		FBodyInstance*	BodyInst	= Bodies[i];
-		UBodySetup*	BodySetup	= BodyInst->BodySetup.Get();
+		UBodySetup*	BodyInstSetup	= BodyInst->BodySetup.Get();
 
 		// Set fixed on any bodies with bAlwaysFullAnimWeight set to true
-		if(BodySetup && (!bSkipCustomPhysicsType || BodySetup->PhysicsType == PhysType_Default) )
+		if(BodyInstSetup && (!bSkipCustomPhysicsType || BodyInstSetup->PhysicsType == PhysType_Default) )
 		{
 			BodyInst->PhysicsBlendWeight = PhysicsBlendWeight;
 		}
@@ -1405,12 +1405,12 @@ void USkeletalMeshComponent::UpdateMeshForBrokenConstraints()
 			// Get child bodies of this joint
 			for(int32 BodySetupIndex = 0; BodySetupIndex < PhysicsAsset->BodySetup.Num(); BodySetupIndex++)
 			{
-				UBodySetup* BodySetup = PhysicsAsset->BodySetup[BodySetupIndex];
-				int32 BoneIndex = GetBoneIndex(BodySetup->BoneName);
+				UBodySetup* PhysicsAssetBodySetup = PhysicsAsset->BodySetup[BodySetupIndex];
+				int32 BoneIndex = GetBoneIndex(PhysicsAssetBodySetup->BoneName);
 				if( BoneIndex != INDEX_NONE && 
 					(BoneIndex == JointBoneIndex || SkeletalMesh->RefSkeleton.BoneIsChildOf(BoneIndex, JointBoneIndex)) )
 				{
-					DEBUGBROKENCONSTRAINTUPDATE(UE_LOG(LogSkeletalMesh, Log, TEXT("    Found Child Bone: (%d) %s"), BoneIndex, *BodySetup->BoneName.ToString());)
+					DEBUGBROKENCONSTRAINTUPDATE(UE_LOG(LogSkeletalMesh, Log, TEXT("    Found Child Bone: (%d) %s"), BoneIndex, *PhysicsAssetBodySetup->BoneName.ToString());)
 
 					FBodyInstance* ChildBodyInst = Bodies[BodySetupIndex];
 					if( ChildBodyInst )
@@ -1423,7 +1423,7 @@ void USkeletalMeshComponent::UpdateMeshForBrokenConstraints()
 						}
 					}
 
-					FConstraintInstance* ChildConstraintInst = FindConstraintInstance(BodySetup->BoneName);
+					FConstraintInstance* ChildConstraintInst = FindConstraintInstance(PhysicsAssetBodySetup->BoneName);
 					if( ChildConstraintInst )
 					{
 						if( ChildConstraintInst->bLinearPositionDrive )
@@ -1510,9 +1510,9 @@ void USkeletalMeshComponent::GetWeldedBodies(TArray<FBodyInstance*> & OutWeldedB
 			OutWeldedBodies.Add(&BodyInstance);
 			if (PhysicsAsset)
 			{
-				if (UBodySetup * BodySetup = PhysicsAsset->BodySetup[BodyIdx])
+				if (UBodySetup * PhysicsAssetBodySetup = PhysicsAsset->BodySetup[BodyIdx])
 				{
-					OutLabels.Add(BodySetup->BoneName);
+					OutLabels.Add(PhysicsAssetBodySetup->BoneName);
 				}
 				else
 				{
@@ -4853,27 +4853,29 @@ void USkeletalMeshComponent::DrawClothingPhysicalMeshWire(FPrimitiveDrawInterfac
 		for(uint32 IndexIdx=0; IndexIdx < NumIndices; IndexIdx+=3)
 		{
 			// draw a triangle
-			uint32 Index0 = VisualInfo.ClothPhysicalMeshIndices[IndexIdx];
-			uint32 Index1 = VisualInfo.ClothPhysicalMeshIndices[IndexIdx + 1];
-			uint32 Index2 = VisualInfo.ClothPhysicalMeshIndices[IndexIdx + 2];
-
-			// If index is greater than Num of vertices, then skip 
-			if(Index0 >= NumPhysicalMeshVerts 
-			|| Index1 >= NumPhysicalMeshVerts 
-			|| Index2 >= NumPhysicalMeshVerts)
-			{
-				continue;
-			}
-
 			FVector V[3];
-			V[0] = (*PhysicalMeshVertices)[Index0];
-			V[1] = (*PhysicalMeshVertices)[Index1];
-			V[2] = (*PhysicalMeshVertices)[Index2];
-
 			float MaxDists[3];
-			MaxDists[0] = VisualInfo.ClothConstrainCoeffs[Index0].ClothMaxDistance;
-			MaxDists[1] = VisualInfo.ClothConstrainCoeffs[Index1].ClothMaxDistance;
-			MaxDists[2] = VisualInfo.ClothConstrainCoeffs[Index2].ClothMaxDistance;
+			{
+				uint32 Index0 = VisualInfo.ClothPhysicalMeshIndices[IndexIdx];
+				uint32 Index1 = VisualInfo.ClothPhysicalMeshIndices[IndexIdx + 1];
+				uint32 Index2 = VisualInfo.ClothPhysicalMeshIndices[IndexIdx + 2];
+
+				// If index is greater than Num of vertices, then skip 
+				if(Index0 >= NumPhysicalMeshVerts 
+				|| Index1 >= NumPhysicalMeshVerts 
+				|| Index2 >= NumPhysicalMeshVerts)
+				{
+					continue;
+				}
+
+				V[0] = (*PhysicalMeshVertices)[Index0];
+				V[1] = (*PhysicalMeshVertices)[Index1];
+				V[2] = (*PhysicalMeshVertices)[Index2];
+
+				MaxDists[0] = VisualInfo.ClothConstrainCoeffs[Index0].ClothMaxDistance;
+				MaxDists[1] = VisualInfo.ClothConstrainCoeffs[Index1].ClothMaxDistance;
+				MaxDists[2] = VisualInfo.ClothConstrainCoeffs[Index2].ClothMaxDistance;
+			}
 
 			for(int32 i=0; i<3; i++)
 			{

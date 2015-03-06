@@ -248,10 +248,10 @@ namespace
 								continue;
 							}
 
-							ULandscapeComponent* Neighbor = Info->XYtoComponentMap.FindRef(ComponentBase + FIntPoint(x+xx, y+yy));
-							if (Neighbor)
+							ULandscapeComponent* ComponentNeighbor = Info->XYtoComponentMap.FindRef(ComponentBase + FIntPoint(x+xx, y+yy));
+							if (ComponentNeighbor)
 							{
-								NeighborLOD = FMath::Max(::GetLightingLOD(Neighbor), NeighborLOD);
+								NeighborLOD = FMath::Max(::GetLightingLOD(ComponentNeighbor), NeighborLOD);
 							}
 						}
 					}

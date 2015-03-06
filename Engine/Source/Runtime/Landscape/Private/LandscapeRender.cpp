@@ -448,23 +448,23 @@ UMaterialInstanceConstant* GMaskRegionMaterial = nullptr;
 UTexture2D* GLandscapeBlackTexture = nullptr;
 
 // Game thread update
-void FLandscapeEditToolRenderData::Update(UMaterialInterface* InNewToolMaterial)
+void FLandscapeEditToolRenderData::Update(UMaterialInterface* InToolMaterial)
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		UpdateEditToolRenderData,
 		FLandscapeEditToolRenderData*, LandscapeEditToolRenderData, this,
-		UMaterialInterface*, NewToolMaterial, InNewToolMaterial,
+		UMaterialInterface*, NewToolMaterial, InToolMaterial,
 		{
 			LandscapeEditToolRenderData->ToolMaterial = NewToolMaterial;
 		});
 }
 
-void FLandscapeEditToolRenderData::UpdateGizmo(UMaterialInterface* InNewGizmoMaterial)
+void FLandscapeEditToolRenderData::UpdateGizmo(UMaterialInterface* InGizmoMaterial)
 {
 	ENQUEUE_UNIQUE_RENDER_COMMAND_TWOPARAMETER(
 		UpdateEditToolRenderData,
 		FLandscapeEditToolRenderData*, LandscapeEditToolRenderData, this,
-		UMaterialInterface*, NewGizmoMaterial, InNewGizmoMaterial,
+		UMaterialInterface*, NewGizmoMaterial, InGizmoMaterial,
 		{
 			LandscapeEditToolRenderData->GizmoMaterial = NewGizmoMaterial;
 		});

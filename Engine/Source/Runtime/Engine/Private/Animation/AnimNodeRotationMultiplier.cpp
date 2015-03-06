@@ -86,7 +86,7 @@ FQuat FAnimNode_RotationMultiplier::ExtractAngle(const TArray<FTransform> & RefP
 	return DeltaQuat;
 }
 
-void FAnimNode_RotationMultiplier::MultiplyQuatBasedOnSourceIndex(const TArray<FTransform> & RefPoseTransforms, FA2CSPose& MeshBases, const EBoneAxis Axis, int32 SourceBoneIndex, float Multiplier, const FQuat& ReferenceQuat, FQuat& OutQuat)
+void FAnimNode_RotationMultiplier::MultiplyQuatBasedOnSourceIndex(const TArray<FTransform> & RefPoseTransforms, FA2CSPose& MeshBases, const EBoneAxis Axis, int32 SourceBoneIndex, float InMultiplier, const FQuat& ReferenceQuat, FQuat& OutQuat)
 {
 	// Find delta angle for source bone.
 	FQuat DeltaQuat = ExtractAngle(RefPoseTransforms, MeshBases, Axis, SourceBoneIndex);
@@ -109,7 +109,7 @@ void FAnimNode_RotationMultiplier::MultiplyQuatBasedOnSourceIndex(const TArray<F
 	RotationAngle = FMath::UnwindRadians(RotationAngle);
 
 	// New bone rotation
-	OutQuat = ReferenceQuat * FQuat(RotationAxis, RotationAngle* Multiplier);
+	OutQuat = ReferenceQuat * FQuat(RotationAxis, RotationAngle* InMultiplier);
 	// Normalize resulting quaternion.
 	OutQuat.Normalize();
 

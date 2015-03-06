@@ -59,9 +59,9 @@ void UUserDefinedStruct::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags
 
 UProperty* UUserDefinedStruct::CustomFindProperty(const FName Name) const
 {
-	const FGuid Guid = FStructureEditorUtils::GetGuidFromPropertyName(Name);
-	UProperty* Property = Guid.IsValid() ? FStructureEditorUtils::GetPropertyByGuid(this, Guid) : NULL;
-	ensure(!Property || Guid == FStructureEditorUtils::GetGuidForProperty(Property));
+	const FGuid PropertyGuid = FStructureEditorUtils::GetGuidFromPropertyName(Name);
+	UProperty* Property = PropertyGuid.IsValid() ? FStructureEditorUtils::GetPropertyByGuid(this, PropertyGuid) : NULL;
+	ensure(!Property || PropertyGuid == FStructureEditorUtils::GetGuidForProperty(Property));
 	return Property;
 }
 
@@ -91,8 +91,8 @@ void UUserDefinedStruct::ValidateGuid()
 FString UUserDefinedStruct::PropertyNameToDisplayName(FName Name) const
 {
 #if WITH_EDITOR
-	auto Guid = FStructureEditorUtils::GetGuidFromPropertyName(Name);
-	return FStructureEditorUtils::GetVariableDisplayName(this, Guid);
+	FGuid PropertyGuid = FStructureEditorUtils::GetGuidFromPropertyName(Name);
+	return FStructureEditorUtils::GetVariableDisplayName(this, PropertyGuid);
 #endif	// WITH_EDITOR
 
 	const int32 GuidStrLen = 32;
