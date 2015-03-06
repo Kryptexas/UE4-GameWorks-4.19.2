@@ -4,11 +4,6 @@
 #include "PropertyTag.h"
 #include "InputCoreTypes.h"
 
-UInputCoreTypes::UInputCoreTypes(const FObjectInitializer& ObjectInitializer)
-: Super(ObjectInitializer)
-{
-}
-
 #define LOCTEXT_NAMESPACE "InputKeys"
 
 const FKey EKeys::MouseX("MouseX");

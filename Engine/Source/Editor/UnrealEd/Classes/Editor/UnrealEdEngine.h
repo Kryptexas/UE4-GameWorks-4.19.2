@@ -88,7 +88,9 @@ class FPerformanceMonitor;
 UCLASS(config=Engine, transient)
 class UNREALED_API UUnrealEdEngine : public UEditorEngine, public FNotifyHook
 {
-	GENERATED_UCLASS_BODY()
+public:
+	GENERATED_BODY()
+public:
 
 	/** Global instance of the editor options class. */
 	UPROPERTY()

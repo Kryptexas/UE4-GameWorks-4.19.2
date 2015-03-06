@@ -96,12 +96,6 @@ public:
 	}
 };
 
-UUnrealEdEngine::UUnrealEdEngine(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
-}
-
-
 void UUnrealEdEngine::edactCopySelected( UWorld* InWorld, FString* DestinationData )
 {
 	if (GetSelectedComponentCount() > 0)
