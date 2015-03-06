@@ -73,17 +73,17 @@ static bool RunCommandInternal(const FString& InCommand, const TArray<FString>& 
 	// always trust server cert
 	FullCommand += TEXT(" --trust-server-cert");
 
-	if(UserName.Len() > 0)
+	if (UserName.Len() > 0)
 	{
-		FullCommand += FString::Printf(TEXT(" --username %s"), *UserName);
+		FullCommand += FString::Printf(TEXT(" --username='%s'"), *UserName);
 	}
 
 	// note: dont mirror passwords to the output log
-	UE_LOG( LogSourceControl, Log, TEXT("Attempting 'svn %s --password ********'"), *FullCommand );
+	UE_LOG(LogSourceControl, Log, TEXT("Attempting \"svn %s --password='********'\""), *FullCommand);
 
-	if(Password.Len() > 0)
+	if (Password.Len() > 0)
 	{
-		FullCommand += FString::Printf(TEXT(" --password %s"), *Password);
+		FullCommand += FString::Printf(TEXT(" --password='%s'"), *Password);
 	}
 	
 #if PLATFORM_WINDOWS
