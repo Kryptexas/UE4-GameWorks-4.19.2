@@ -1718,6 +1718,9 @@ void NotifyConstructedDuringAsyncLoading(UObject* Object, bool bSubObject);
 //@todo UE4 this is clunky
 static FRestoreForUObjectOverwrite* ObjectRestoreAfterInitProps = NULL;  
 
+COREUOBJECT_API bool GOutputCookingWarnings = false;
+
+
 UObject* StaticAllocateObject
 (
 	UClass*			InClass,
@@ -1763,6 +1766,12 @@ UObject* StaticAllocateObject
 	if(InName == NAME_None)
 	{
 		InName = MakeUniqueObjectName( InOuter, InClass );
+#if WITH_EDITOR
+		if ( GOutputCookingWarnings && GetTransientPackage() != InOuter->GetOutermost() )
+		{
+			UE_LOG(LogUObjectGlobals, Warning, TEXT("Shouldn't create dynamic objects whilest cooking, if they are saved, they will be saved with unique names, this will damage patch sizes on release.  Package %s, Object %s."), *InOuter->GetOutermost()->GetName(), *InName.ToString() );
+		}
+#endif
 	}
 	else
 	{
