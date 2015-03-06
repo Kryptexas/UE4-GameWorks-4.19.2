@@ -1018,24 +1018,28 @@ const FCharacterEntry& FCharacterList::GetCharacter( TCHAR Character )
 		}
 			
 		FCharacterEntry& CharacterEntry = DirectIndexEntries[ Character ];
-		if( !CharacterEntry.IsValidEntry() )
+		if( CharacterEntry.IsValidEntry() )
+		{
+			return CharacterEntry;
+		}
+		else
 		{
 			// Character has not been cached yet
-			CharacterEntry = CacheCharacter( Character );
+			return CacheCharacter( Character );
 		}
-
-		return CharacterEntry;
 	}
 	else
 	{
 		FCharacterEntry& CharacterEntry = MappedEntries.FindOrAdd( Character );
-		if( !CharacterEntry.IsValidEntry() )
+		if( CharacterEntry.IsValidEntry() )
+		{
+			return CharacterEntry;
+		}
+		else
 		{
 			// Character has not been cached yet
-			CharacterEntry = CacheCharacter( Character );
+			return CacheCharacter( Character );
 		}
-
-		return CharacterEntry;
 	}
 }
 
