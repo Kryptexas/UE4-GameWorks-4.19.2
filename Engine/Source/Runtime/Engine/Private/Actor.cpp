@@ -909,12 +909,12 @@ void AActor::ClearComponentOverlaps()
 	// Remove owned components from overlap tracking
 	// We don't traverse the RootComponent attachment tree since that might contain
 	// components owned by other actors.
+	TArray<UPrimitiveComponent*> OverlappingComponentsForCurrentComponent;
 	for (UPrimitiveComponent* const PrimComp : PrimitiveComponents)
 	{
-		TArray<UPrimitiveComponent*> OverlappingComponents;
-		PrimComp->GetOverlappingComponents(OverlappingComponents);
+		PrimComp->GetOverlappingComponents(OverlappingComponentsForCurrentComponent);
 
-		for (UPrimitiveComponent* const OverlapComp : OverlappingComponents)
+		for (UPrimitiveComponent* const OverlapComp : OverlappingComponentsForCurrentComponent)
 		{
 			if (OverlapComp)
 			{

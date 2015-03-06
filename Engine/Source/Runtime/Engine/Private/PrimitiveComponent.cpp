@@ -2088,7 +2088,7 @@ void UPrimitiveComponent::GetOverlappingActors(TArray<AActor*>& OutOverlappingAc
 
 void UPrimitiveComponent::GetOverlappingComponents(TArray<UPrimitiveComponent*>& OutOverlappingComponents) const
 {
-	OutOverlappingComponents.Empty( OverlappingComponents.Num() );
+	OutOverlappingComponents.Reset( OverlappingComponents.Num() );
 
 	for (auto CompIt = OverlappingComponents.CreateConstIterator(); CompIt; ++CompIt)
 	{
