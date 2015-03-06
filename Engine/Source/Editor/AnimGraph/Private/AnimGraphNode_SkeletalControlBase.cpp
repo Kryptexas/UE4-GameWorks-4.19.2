@@ -288,21 +288,26 @@ void UAnimGraphNode_SkeletalControlBase::GetDefaultValue(const FString& UpdateDe
 			if (GetSchema()->IsCurrentPinDefaultValid(Pin).IsEmpty())
 			{
 				FString DefaultString = Pin->GetDefaultAsString();
-				TArray<FString> ResultString;
 
-				//Parse string to split its contents separated by ','
-				DefaultString.Trim();
-				DefaultString.TrimTrailing();
-				DefaultString.ParseIntoArray(ResultString, TEXT(","), true);
+				// Existing nodes (from older versions) might have an empty default value string; in that case we just fall through and return the zero vector below (which is the default value in that case).
+				if(!DefaultString.IsEmpty())
+				{
+					TArray<FString> ResultString;
 
-				check(ResultString.Num() == 3);
+					//Parse string to split its contents separated by ','
+					DefaultString.Trim();
+					DefaultString.TrimTrailing();
+					DefaultString.ParseIntoArray(ResultString, TEXT(","), true);
 
-				OutVec.Set(
-							FCString::Atof(*ResultString[0]),
-							FCString::Atof(*ResultString[1]),
-							FCString::Atof(*ResultString[2])
-							);
-				return;
+					check(ResultString.Num() == 3);
+
+					OutVec.Set(
+						FCString::Atof(*ResultString[0]),
+						FCString::Atof(*ResultString[1]),
+						FCString::Atof(*ResultString[2])
+						);
+					return;
+				}
 			}
 		}
 	}
