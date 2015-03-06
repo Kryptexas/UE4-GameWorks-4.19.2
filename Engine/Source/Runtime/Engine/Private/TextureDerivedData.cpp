@@ -917,8 +917,6 @@ public:
 		{
 			GetBuildInfo();
 			BuildTexture();
-
-			check( bSucceeded );
 		}
 	}
 
