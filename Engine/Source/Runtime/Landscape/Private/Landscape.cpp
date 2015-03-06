@@ -1673,18 +1673,18 @@ void ULandscapeInfo::UnregisterActor(ALandscapeProxy* Proxy)
 	if (Landscape)
 	{
 		check(LandscapeActor.Get() == Landscape);
-		LandscapeActor = 0;
+		LandscapeActor = nullptr;
 
 		// update proxies reference to landscape actor
 		for (auto It = Proxies.CreateConstIterator(); It; ++It)
 		{
-			(*It)->LandscapeActor = 0;
+			(*It)->LandscapeActor = nullptr;
 		}
 	}
 	else
 	{
 		Proxies.Remove(Proxy);
-		Proxy->LandscapeActor = 0;
+		Proxy->LandscapeActor = nullptr;
 	}
 
 	// remove proxy components from the XY map

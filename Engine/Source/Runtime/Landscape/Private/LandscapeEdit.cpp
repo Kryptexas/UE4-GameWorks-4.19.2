@@ -3124,7 +3124,7 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 			}
 			else
 			{
-				LandscapeActor = 0;
+				LandscapeActor = nullptr;
 			}
 		}
 		else if (PropertyName == FName(TEXT("LandscapeMaterial")) || PropertyName == FName(TEXT("LandscapeHoleMaterial")))
