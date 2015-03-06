@@ -4,7 +4,6 @@
 #include "MacWindow.h"
 #include "MacApplication.h"
 #include "MacCursor.h"
-#include "MacEvent.h"
 #include "CocoaTextView.h"
 #include "CocoaThread.h"
 
@@ -253,7 +252,7 @@ void FMacWindow::ReshapeWindow( int32 X, int32 Y, int32 Width, int32 Height )
 						MacCursor->SetMouseScaling(FVector2D(WidthScale, HeightScale));
 					}
 				}, UE4ResizeEventMode, true);
-				FMacEvent::SendToGameRunLoop([NSNotification notificationWithName:NSWindowDidResizeNotification object:WindowHandle], EMacEventSendMethod::Sync, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ]);
+				GameThreadCall(^{ FMacApplication::ProcessEvent([[NSNotification notificationWithName:NSWindowDidResizeNotification object:WindowHandle] retain]); }, @[ NSDefaultRunLoopMode, UE4ResizeEventMode, UE4ShowEventMode, UE4FullscreenEventMode ], true);
 			}
 		}
 	}

@@ -5,7 +5,6 @@
 #include "MacApplication.h"
 #include "MacWindow.h"
 #include "MacCursor.h"
-#include "MacEvent.h"
 #include "CocoaMenu.h"
 #include "GenericApplicationMessageHandler.h"
 #include "HIDInputInterface.h"
@@ -14,8 +13,6 @@
 #include "CocoaThread.h"
 #include "ModuleManager.h"
 #include "CocoaTextView.h"
-
-static NSString* NSWindowDraggingFinished = @"NSWindowDraggingFinished";
 
 FMacApplication* MacApplication = NULL;
 
@@ -61,18 +58,12 @@ NSEvent* FMacApplication::HandleNSEvent(NSEvent* Event)
 
 		if (!bIsResentEvent && (!bIsMouseClickOrKeyEvent || [Event window] == NULL))
 		{
-			FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
+			GameThreadCall(^{ FMacApplication::ProcessEvent([Event retain]); }, @[ NSDefaultRunLoopMode ], false);
 			
 			if ([Event type] == NSKeyDown || [Event type] == NSKeyUp)
 			{
 				ReturnEvent = nil;
 			}
-		}
-
-		if ([Event type] == NSLeftMouseUp)
-		{
-			NSNotification* Notification = [NSNotification notificationWithName:NSWindowDraggingFinished object:[Event window]];
-			FMacEvent::SendToGameRunLoop(Notification, EMacEventSendMethod::Async);
 		}
 	}
 
@@ -113,7 +104,7 @@ FMacApplication::FMacApplication()
 	CGDisplayRegisterReconfigurationCallback(FMacApplication::OnDisplayReconfiguration, this);
 
 	[NSEvent addGlobalMonitorForEventsMatchingMask:NSMouseMovedMask handler:^(NSEvent* Event){
-		FMacEvent::SendToGameRunLoop(Event, EMacEventSendMethod::Async);
+		GameThreadCall(^{ FMacApplication::ProcessEvent([Event retain]); }, @[ NSDefaultRunLoopMode ], false);
 	}];
 
 	EventMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSAnyEventMask handler:^(NSEvent* IncomingEvent)
@@ -243,24 +234,21 @@ bool FMacApplication::IsCursorDirectlyOverSlateWindow() const
 	return Window && [Window isKindOfClass:[FCocoaWindow class]] && Window != DraggedWindow;
 }
 
-void FMacApplication::ProcessEvent(FMacEvent const* const Event)
+void FMacApplication::ProcessEvent(NSObject const* const Event)
 {
 	// Must have an event
 	check(Event);
 	
-	// Determine the type of the event to forward to the right handling routine
-	NSEvent* AppKitEvent = Event->GetEvent();
-	NSNotification* Notification = Event->GetNotification();
-
-	if (AppKitEvent)
+	if ([Event isKindOfClass:[NSEvent class]])
 	{
 		// Process a standard NSEvent as we always did
-		MacApplication->ProcessNSEvent(AppKitEvent);
+		MacApplication->ProcessNSEvent((NSEvent*)Event);
 	}
-	else if (Notification)
+	else if ([Event isKindOfClass:[NSNotification class]])
 	{
 		// Notifications need to mapped to the right handler function, that's no longer handled in the
 		// call location.
+		NSNotification* Notification = (NSNotification*)Event;
 		NSString* const NotificationName = [Notification name];
 		FCocoaWindow* CocoaWindow = [[Notification object] isKindOfClass:[FCocoaWindow class]] ? (FCocoaWindow*)[Notification object] : nullptr;
 		if (CocoaWindow)
@@ -305,10 +293,6 @@ void FMacApplication::ProcessEvent(FMacEvent const* const Event)
 			{
 				MacApplication->OnWindowDidClose(CocoaWindow);
 			}
-			else if (NotificationName == NSWindowDraggingFinished)
-			{
-				MacApplication->OnWindowDraggingFinished();
-			}
 			else
 			{
 				check(false);
@@ -341,7 +325,7 @@ void FMacApplication::ProcessEvent(FMacEvent const* const Event)
 	}
 	
 	// We are responsible for deallocating the event
-	delete Event;
+	[Event release];
 }
 
 void FMacApplication::RedrawWindow(FCocoaWindow* Window)
@@ -417,15 +401,6 @@ void FMacApplication::InvalidateTextLayouts()
 		WindowsRequiringTextInvalidation.Empty();
 	}
 
-}
-
-void FMacApplication::OnWindowDraggingFinished()
-{
-	if ( DraggedWindow )
-	{
-		SCOPED_AUTORELEASE_POOL;
-		DraggedWindow = NULL;
-	}
 }
 
 bool FMacApplication::IsWindowMovable(FCocoaWindow* Win, bool* OutMovableByBackground)
@@ -720,6 +695,7 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event)
 			}
 
 			FPlatformMisc::bChachedMacMenuStateNeedsUpdate = true;
+			DraggedWindow = nullptr;
 			break;
 		}
 
@@ -851,7 +827,6 @@ void FMacApplication::ProcessNSEvent(NSEvent* const Event)
 		}
 	}
 
-	[Event ResetWindow];
 	bIsProcessingNSEvent = bWasProcessingNSEvent;
 }
 
@@ -886,7 +861,7 @@ FCocoaWindow* FMacApplication::FindEventWindow( NSEvent* Event )
 			break;
 	}
 
-	FCocoaWindow* EventWindow = (FCocoaWindow*)[Event GetWindow];
+	FCocoaWindow* EventWindow = (FCocoaWindow*)[Event window];
 
 	if ([Event type] == NSMouseMoved)
 	{

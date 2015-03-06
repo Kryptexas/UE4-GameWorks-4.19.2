@@ -6,8 +6,6 @@
 #include "MacWindow.h"
 #include "MacTextInputMethodSystem.h"
 
-class FMacEvent;
-
 /**
  * Mac-specific application implementation.
  */
@@ -65,8 +63,6 @@ public:
 
 	void ProcessNSEvent(NSEvent* const Event);
 
-	void OnWindowDraggingFinished();
-
 	bool IsWindowMovable(FCocoaWindow* Win, bool* OutMovableByBackground);
 
 	void ResetModifierKeys() { ModifierKeysFlags = 0; }
@@ -108,7 +104,7 @@ public:
 
 	void OnMouseCursorLock(bool bLockEnabled);
 
-	static void ProcessEvent(FMacEvent const* const Event);
+	static void ProcessEvent(NSObject const* const Event);
 
 	void RedrawWindow(FCocoaWindow* Window);
 
@@ -222,7 +218,6 @@ private:
 	id EventMonitor;
 
 	friend class FMacWindow;
-	friend class FMacEvent;
 };
 
 extern FMacApplication* MacApplication;
