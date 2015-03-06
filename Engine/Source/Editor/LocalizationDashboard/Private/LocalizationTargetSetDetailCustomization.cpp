@@ -9,6 +9,7 @@
 #include "DetailCategoryBuilder.h"
 #include "IDetailsView.h"
 #include "LocalizationCommandletTasks.h"
+#include "ObjectEditorUtils.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationDashboard"
 
@@ -80,10 +81,12 @@ void FLocalizationTargetSetDetailCustomization::CustomizeDetails(IDetailLayoutBu
 	}
 
 	{
-		IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory(FName("Targets"));
 		TargetObjectsPropertyHandle = DetailBuilder.GetProperty(GET_MEMBER_NAME_CHECKED(ULocalizationTargetSet,TargetObjects));
 		if (TargetObjectsPropertyHandle->IsValidHandle())
 		{
+			const FName CategoryName = FObjectEditorUtils::GetCategoryFName(TargetObjectsPropertyHandle->GetProperty());
+			IDetailCategoryBuilder& DetailCategoryBuilder = DetailBuilder.EditCategory(CategoryName);
+
 			TargetObjectsPropertyHandle->MarkHiddenByCustomization();
 			TargetsArrayPropertyHandle_OnNumElementsChanged = FSimpleDelegate::CreateSP(this, &FLocalizationTargetSetDetailCustomization::RebuildTargetsList);
 			TargetObjectsPropertyHandle->AsArray()->SetOnNumElementsChanged(TargetsArrayPropertyHandle_OnNumElementsChanged);
@@ -106,7 +109,7 @@ void FLocalizationTargetSetDetailCustomization::CustomizeDetails(IDetailLayoutBu
 
 			BuildTargetsList();
 
-			DetailCategoryBuilder.AddCustomRow( LOCTEXT("TargetsFilterString", "Targets") )
+			DetailCategoryBuilder.AddCustomRow(TargetObjectsPropertyHandle->GetPropertyDisplayName())
 				.WholeRowContent()
 				[
 					SNew(SVerticalBox)
