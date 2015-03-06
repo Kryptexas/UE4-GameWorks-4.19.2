@@ -790,7 +790,7 @@ bool UK2Node_CallFunction::CreatePinsForFunctionCall(const UFunction* Function)
 	ensure(BP);
 	if (BP != nullptr)
 	{
-		const bool bIsFunctionCompatibleWithSelf = !K2Schema->IsStaticFunctionGraph(GetGraph()) && BP->SkeletonGeneratedClass->IsChildOf(FunctionOwnerClass);
+		const bool bIsFunctionCompatibleWithSelf = BP->SkeletonGeneratedClass->IsChildOf(FunctionOwnerClass);
 
 		if (bIsStaticFunc)
 		{
@@ -899,6 +899,11 @@ void UK2Node_CallFunction::PostReconstructNode()
 			if (!BP->SkeletonGeneratedClass->IsChildOf(FunctionOwnerClass))
 			{
 				SelfPin->DefaultObject = FunctionOwnerClass->GetDefaultObject();
+			}
+			else
+			{
+				// In case a non-NULL reference was previously serialized on load, ensure that it's set to NULL here to match what a new node's self pin would be initialized as (see CreatePinsForFunctionCall).
+				SelfPin->DefaultObject = nullptr;
 			}
 		}
 	}
