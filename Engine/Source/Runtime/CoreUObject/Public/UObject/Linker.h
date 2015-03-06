@@ -1891,7 +1891,7 @@ private:
 	 * @param  ReferencingClass	The (Blueprint) class that was loading, while we deferred dependencies (now referencing the placeholder).
 	 * @return The number of placeholder references replaced (could be none, if this was recursively resolved).
 	 */
-	int32 ResolveDependencyPlaceholder(UClass* Placeholder, UClass* ReferencingClass = nullptr);
+	int32 ResolveDependencyPlaceholder(class FLinkerPlaceholderBase* Placeholder, UClass* ReferencingClass = nullptr);
 
 	/**
 	 * Query method to help catch recursive behavior. When this returns true, a 
@@ -1983,7 +1983,7 @@ public:
 	 * to make sure this placeholder is completely resolved before continuing on 
 	 * to the next.
 	 */
-	UClass* ResolvingDeferredPlaceholder;
+	class FLinkerPlaceholderBase* ResolvingDeferredPlaceholder;
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
 

@@ -12,7 +12,7 @@ void UInterfaceProperty::BeginDestroy()
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(InterfaceClass))
 	{
-		PlaceholderClass->RemovePropertyReference(this);
+		PlaceholderClass->RemoveReferencingProperty(this);
 	}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
@@ -249,7 +249,7 @@ void UInterfaceProperty::SetInterfaceClass(UClass* NewInterfaceClass)
 
 	if (ULinkerPlaceholderClass* OldPlaceholderClass = Cast<ULinkerPlaceholderClass>(InterfaceClass))
 	{
-		OldPlaceholderClass->RemovePropertyReference(this);
+		OldPlaceholderClass->RemoveReferencingProperty(this);
 	}
 	InterfaceClass = NewInterfaceClass;
 }

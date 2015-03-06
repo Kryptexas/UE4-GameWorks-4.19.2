@@ -129,7 +129,7 @@ void UDelegateProperty::BeginDestroy()
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 	if (auto PlaceholderFunc = Cast<ULinkerPlaceholderFunction>(SignatureFunction))
 	{
-		PlaceholderFunc->RemovePropertyReference(this);
+		PlaceholderFunc->RemoveReferencingProperty(this);
 	}
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 

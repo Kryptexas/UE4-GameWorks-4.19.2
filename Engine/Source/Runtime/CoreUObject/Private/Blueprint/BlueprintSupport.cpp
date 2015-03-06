@@ -332,6 +332,10 @@ bool ULinkerLoad::DeferPotentialCircularImport(const int32 Index)
 		{
 			if (const UClass* ImportClass = FindObject<UClass>(ClassPackage, *Import.ClassName.ToString()))
 			{
+				UObject* PlaceholderOuter = LinkerRoot;
+				FString  PlaceholderNamePrefix = TEXT("PLACEHOLDER_");
+				UClass*  PlaceholderType  = nullptr;
+
 				bool const bIsBlueprintClass = ImportClass->IsChildOf<UClass>();
 				// @TODO: if we could see if the related package is created 
 				//        (without loading it further), AND it already has this 
@@ -339,10 +343,30 @@ bool ULinkerLoad::DeferPotentialCircularImport(const int32 Index)
 				//        than allocating a placeholder
 				if (bIsBlueprintClass)
 				{
-					UPackage* PlaceholderOuter = LinkerRoot;
-					UClass*   PlaceholderType  = ULinkerPlaceholderClass::StaticClass();
+					PlaceholderNamePrefix = TEXT("PLACEHOLDER-CLASS_");
+					PlaceholderType = ULinkerPlaceholderClass::StaticClass();
+				}
+				else if (ImportClass->IsChildOf<UFunction>())
+				{		
+					if (Import.OuterIndex.IsImport())
+					{
+						const int32 OuterImportIndex = Import.OuterIndex.ToImport();
+						// @TODO: if the sole reason why we have ULinkerPlaceholderFunction 
+						//        is that it's outer is a placeholder, then we 
+						//        could instead log it (with the placeholder) as 
+						//        a referencer, and then move the function later
+						if (DeferPotentialCircularImport(OuterImportIndex))
+						{
+							PlaceholderNamePrefix = TEXT("PLACEHOLDER-FUNCTION_");
+							PlaceholderOuter = ImportMap[OuterImportIndex].XObject;
+							PlaceholderType  = ULinkerPlaceholderFunction::StaticClass();
+						}
+					}
+				}
 
-					FName PlaceholderName(*FString::Printf(TEXT("PLACEHOLDER-CLASS_%s"), *Import.ObjectName.ToString()));
+				if (PlaceholderType != nullptr)
+				{
+					FName PlaceholderName(*FString::Printf(TEXT("%s_%s"), *PlaceholderNamePrefix, *Import.ObjectName.ToString()));
 					PlaceholderName = MakeUniqueObjectName(PlaceholderOuter, PlaceholderType, PlaceholderName);
 
 					ULinkerPlaceholderClass* Placeholder = NewObject<ULinkerPlaceholderClass>(PlaceholderOuter, PlaceholderType, PlaceholderName, RF_Public | RF_Transient);
@@ -350,41 +374,13 @@ bool ULinkerLoad::DeferPotentialCircularImport(const int32 Index)
 					// easily look it up in the import map, given the 
 					// placeholder (needed, to find the corresponding import for 
 					// ResolvingDeferredPlaceholder)
-					Placeholder->ImportIndex = Index;
+					Placeholder->PackageIndex = FPackageIndex::FromImport(Index);
 					// make sure the class is fully formed (has its 
 					// ClassAddReferencedObjects/ClassConstructor members set)
 					Placeholder->Bind();
 					Placeholder->StaticLink(/*bRelinkExistingProperties =*/true);
 
 					Import.XObject = Placeholder;
-				}
-				else if (ImportClass->IsChildOf<UFunction>())
-				{		
-					UObject* OuterObject = nullptr;
-					if (Import.OuterIndex.IsImport())
-					{
-						const int32 OuterImportIndex = Import.OuterIndex.ToImport();
-						FObjectImport& OuterImport = ImportMap[OuterImportIndex];
-						if (nullptr == OuterImport.XObject)
-						{
-							DeferPotentialCircularImport(OuterImportIndex);
-						}
-						OuterObject = OuterImport.XObject;
-					}
-					const bool bOuterPlaceholderExists = OuterObject && OuterObject->IsA<ULinkerPlaceholderClass>();
-					if (bOuterPlaceholderExists && (nullptr == Import.XObject))
-					{
-						UClass*   PlaceholderType = ULinkerPlaceholderFunction::StaticClass();
-
-						FName PlaceholderName(*FString::Printf(TEXT("PLACEHOLDER-FUNCTION_%s"), *Import.ObjectName.ToString()));
-						PlaceholderName = MakeUniqueObjectName(OuterObject, PlaceholderType, PlaceholderName);
-
-						ULinkerPlaceholderFunction* Placeholder = NewObject<ULinkerPlaceholderFunction>(OuterObject, PlaceholderType, PlaceholderName, RF_Public | RF_Transient);
-						Placeholder->ImportIndex = Index;
-						Placeholder->Bind();
-						Placeholder->StaticLink(/*bRelinkExistingProperties =*/true);
-						Import.XObject = Placeholder;
-					}
 				}
 			}
 		}
@@ -554,6 +550,8 @@ bool ULinkerLoad::DeferExportCreation(const int32 Index)
 	PlaceholderName = MakeUniqueObjectName(PlaceholderOuter, PlaceholderType, PlaceholderName);
 
 	ULinkerPlaceholderExportObject* Placeholder = NewObject<ULinkerPlaceholderExportObject>(PlaceholderOuter, PlaceholderType, PlaceholderName, RF_Public | RF_Transient);
+	Placeholder->PackageIndex = FPackageIndex::FromExport(Index);
+
 	Export.Object = Placeholder;
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 
@@ -719,7 +717,7 @@ void ULinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)
 
 			if (ULinkerPlaceholderClass* PlaceholderClass = Cast<ULinkerPlaceholderClass>(Import.XObject))
 			{
-				DEFERRED_DEPENDENCY_CHECK(PlaceholderClass->ImportIndex == ImportIndex);
+				DEFERRED_DEPENDENCY_CHECK(PlaceholderClass->PackageIndex.ToImport() == ImportIndex);
 
 				// NOTE: we don't check that this resolve successfully replaced any
 				//       references (by the return value), because this resolve 
@@ -729,26 +727,13 @@ void ULinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)
 			}
 			else if (ULinkerPlaceholderFunction* PlaceholderFunction = Cast<ULinkerPlaceholderFunction>(Import.XObject))
 			{
-				DEFERRED_DEPENDENCY_CHECK(PlaceholderFunction->ImportIndex == ImportIndex);
+				if (ULinkerPlaceholderClass* PlaceholderOwner = Cast<ULinkerPlaceholderClass>(PlaceholderFunction->GetOwnerClass()))
+				{
+					ResolveDependencyPlaceholder(PlaceholderOwner, Cast<UClass>(LoadStruct));
+				}
 
-				auto OwnerClass = PlaceholderFunction->GetOwnerClass();
-				ResolveDependencyPlaceholder(OwnerClass, Cast<UClass>(LoadStruct));
-
-				UFunction* RealFuncObj = nullptr;
-				if ((Import.XObject != nullptr) && (Import.XObject != PlaceholderFunction))
-				{
-					RealFuncObj = CastChecked<UFunction>(Import.XObject);
-				}
-				else
-				{
-					Import.XObject = nullptr;
-					RealFuncObj = CastChecked<UFunction>(CreateImport(ImportIndex), ECastCheckedType::NullAllowed);
-				}
-				ensure(RealFuncObj != PlaceholderFunction);
-				if (RealFuncObj)
-				{
-					PlaceholderFunction->ReplaceTrackedReferences(RealFuncObj);
-				}
+				DEFERRED_DEPENDENCY_CHECK(PlaceholderFunction->PackageIndex.ToImport() == ImportIndex);
+				ResolveDependencyPlaceholder(PlaceholderFunction, Cast<UClass>(LoadStruct)); 
 			}
 			else if (UScriptStruct* StructObj = Cast<UScriptStruct>(Import.XObject))
 			{
@@ -798,7 +783,7 @@ void ULinkerLoad::ResolveDeferredDependencies(UStruct* LoadStruct)
 		{
 			// there shouldn't be any deferred dependencies (belonging to this 
 			// linker) that need to be resolved by this point
-			DEFERRED_DEPENDENCY_CHECK(!PlaceholderClass->HasReferences());
+			DEFERRED_DEPENDENCY_CHECK(!PlaceholderClass->HasKnownReferences());
 		}
 	}
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
@@ -824,7 +809,7 @@ bool ULinkerLoad::HasUnresolvedDependencies() const
 #endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 }
 
-int32 ULinkerLoad::ResolveDependencyPlaceholder(UClass* PlaceholderIn, UClass* ReferencingClass)
+int32 ULinkerLoad::ResolveDependencyPlaceholder(FLinkerPlaceholderBase* PlaceholderIn, UClass* ReferencingClass)
 {
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
@@ -835,21 +820,21 @@ int32 ULinkerLoad::ResolveDependencyPlaceholder(UClass* PlaceholderIn, UClass* R
 #endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
 	TGuardValue<uint32>  LoadFlagsGuard(LoadFlags, (LoadFlags & ~LOAD_DeferDependencyLoads));
- 	TGuardValue<UClass*> ResolvingClassGuard(ResolvingDeferredPlaceholder, PlaceholderIn);
+	TGuardValue<FLinkerPlaceholderBase*> ResolvingClassGuard(ResolvingDeferredPlaceholder, PlaceholderIn);
 
-	DEFERRED_DEPENDENCY_CHECK(Cast<ULinkerPlaceholderClass>(PlaceholderIn) != nullptr);
-	DEFERRED_DEPENDENCY_CHECK(PlaceholderIn->GetOuter() == LinkerRoot);
-
-	ULinkerPlaceholderClass* PlaceholderClass = (ULinkerPlaceholderClass*)PlaceholderIn;
+	UObject* PlaceholderObj = PlaceholderIn->GetPlaceholderAsUObject();
+	DEFERRED_DEPENDENCY_CHECK(PlaceholderObj != nullptr);
+	DEFERRED_DEPENDENCY_CHECK(PlaceholderObj->GetOutermost() == LinkerRoot);
+	DEFERRED_DEPENDENCY_CHECK(PlaceholderIn->PackageIndex.IsImport());
 	
-	int32 const ImportIndex = PlaceholderClass->ImportIndex;
+	int32 const ImportIndex = PlaceholderIn->PackageIndex.ToImport();
 	FObjectImport& Import = ImportMap[ImportIndex];
 	
-	UClass* RealClassObj = nullptr;
-	if ((Import.XObject != nullptr) && (Import.XObject != PlaceholderClass))
+	UObject* RealImportObj = nullptr;
+	if ((Import.XObject != nullptr) && (Import.XObject != PlaceholderObj))
 	{
 		DEFERRED_DEPENDENCY_CHECK(ResolvingDeferredPlaceholder == PlaceholderIn);
-		RealClassObj = CastChecked<UClass>(Import.XObject);
+		RealImportObj = Import.XObject;
 	}
 	else 
 	{
@@ -860,20 +845,22 @@ int32 ULinkerLoad::ResolveDependencyPlaceholder(UClass* PlaceholderIn, UClass* R
 		//       continue to load a package already started up the stack and you 
 		//       could end up in another ResolveDependencyPlaceholder() for some  
 		//       other placeholder before this one has completely finished resolving
-		RealClassObj = CastChecked<UClass>(CreateImport(ImportIndex), ECastCheckedType::NullAllowed);
+		RealImportObj = CreateImport(ImportIndex);
 	}
 
-	DEFERRED_DEPENDENCY_CHECK(RealClassObj == nullptr || RealClassObj->HasAnyFlags(RF_LoadCompleted));
+	DEFERRED_DEPENDENCY_CHECK(RealImportObj != PlaceholderObj);
+	DEFERRED_DEPENDENCY_CHECK(RealImportObj == nullptr || RealImportObj->HasAnyFlags(RF_LoadCompleted));
 
 	int32 ReplacementCount = 0;
 	if (ReferencingClass != nullptr)
 	{
+		// @TODO: roll this into ULinkerPlaceholderClass's ResolveAllPlaceholderReferences()
 		for (FImplementedInterface& Interface : ReferencingClass->Interfaces)
 		{
-			if (Interface.Class == PlaceholderClass)
+			if (Interface.Class == PlaceholderObj)
 			{
 				++ReplacementCount;
-				Interface.Class = RealClassObj;
+				Interface.Class = CastChecked<UClass>(RealImportObj);
 			}
 		}
 	}
@@ -885,13 +872,11 @@ int32 ULinkerLoad::ResolveDependencyPlaceholder(UClass* PlaceholderIn, UClass* R
 	// doesn't have any known references (and it hasn't already been resolved in
 	// some recursive call), then there is something out there still using this
 	// placeholder class
-	DEFERRED_DEPENDENCY_CHECK( (ReplacementCount > 0) || PlaceholderClass->HasReferences() || PlaceholderClass->HasBeenResolved() );
+	DEFERRED_DEPENDENCY_CHECK( (ReplacementCount > 0) || PlaceholderIn->HasKnownReferences() || PlaceholderIn->HasBeenFullyResolved() );
 
-	ReplacementCount += PlaceholderClass->ReplaceTrackedReferences(RealClassObj);
-	// PlaceholderClass->MarkPendingKill(); // @TODO: ensure these are properly GC'd
+	ReplacementCount += PlaceholderIn->ResolveAllPlaceholderReferences(RealImportObj);
 
 #if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-	UObject* PlaceholderObj = PlaceholderClass;
 	// @TODO: not an actual method, but would be nice to circumvent the need for bIsAsyncLoadRef below
 	//FAsyncObjectsReferencer::Get().RemoveObject(PlaceholderObj);
 
@@ -1124,7 +1109,7 @@ void ULinkerLoad::ResolveDeferredExports(UClass* LoadClass)
 				//       assert on it), because this could have only been created as 
 				//       part of the LoadAllObjects() pass (not for any specific 
 				//       container object).
-				PlaceholderExport->ReplaceReferencingObjectValues(LoadClass, ExportObj);
+				PlaceholderExport->ResolveAllPlaceholderReferences(ExportObj);
 				PlaceholderExport->MarkPendingKill();
 
 				// if we hadn't used a ULinkerPlaceholderExportObject in place of 

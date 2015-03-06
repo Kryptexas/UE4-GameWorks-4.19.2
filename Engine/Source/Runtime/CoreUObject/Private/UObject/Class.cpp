@@ -1491,11 +1491,11 @@ bool UStruct::GetStringMetaDataHierarchical(const FName& Key, FString* OutValue)
 		UObject*& ExprPtrRef = (UObject*&)ScriptPtr;
 		if (ULinkerPlaceholderClass* PlaceholderObj = Cast<ULinkerPlaceholderClass>(ExprPtrRef))
 		{
-			PlaceholderObj->AddReferencingScriptExpr((ULinkerPlaceholderClass**)(&ExprPtrRef));
+			PlaceholderObj->AddReferencingScriptExpr((UClass**)(&ExprPtrRef));
 		}
 		else if (ULinkerPlaceholderFunction* PlaceholderFunc = Cast<ULinkerPlaceholderFunction>(ExprPtrRef))
 		{
-			PlaceholderFunc->AddReferencingScriptExpr((ULinkerPlaceholderFunction**)(&ExprPtrRef));
+			PlaceholderFunc->AddReferencingScriptExpr((UFunction**)(&ExprPtrRef));
 		}
 	}
 

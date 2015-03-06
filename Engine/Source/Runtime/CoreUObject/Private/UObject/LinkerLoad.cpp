@@ -2917,7 +2917,7 @@ void ULinkerLoad::Preload( UObject* Object )
 			SCOPE_CYCLE_COUNTER(STAT_LinkerPreload);
 			FScopeCycleCounterUObject PreloadScope(Object, GET_STATID(STAT_LinkerPreload));
 			UClass* Cls = NULL;
-
+			
 			// If this is a struct, make sure that its parent struct is completely loaded
 			if( UStruct* Struct = dynamic_cast<UStruct*>(Object) )
 			{
@@ -2961,6 +2961,11 @@ void ULinkerLoad::Preload( UObject* Object )
 
 				{
 					SCOPE_CYCLE_COUNTER(STAT_LinkerSerialize);
+#if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+					// communicate with FLinkerPlaceholderBase, what object is currently serializing in
+					FScopedPlaceholderContainerTracker SerializingObjTracker(Object);
+#endif // USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING
+
 					if (Object->HasAnyFlags(RF_ClassDefaultObject))
 					{
 #if USE_CIRCULAR_DEPENDENCY_LOAD_DEFERRING

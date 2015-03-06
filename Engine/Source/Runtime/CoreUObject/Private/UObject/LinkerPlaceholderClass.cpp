@@ -10,26 +10,13 @@ ULinkerPlaceholderClass::ULinkerPlaceholderClass(const FObjectInitializer& Objec
 }
 
 //------------------------------------------------------------------------------
-ULinkerPlaceholderClass::~ULinkerPlaceholderClass()
-{
-#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-	check(!HasReferences());
-#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-
-	// by this point, we really shouldn't have any properties left (they should 
-	// have all got replaced), but just in case (so things don't blow up with a
-	// missing class)...
-	ReplaceTrackedReferences(UObject::StaticClass());
-}
-
-//------------------------------------------------------------------------------
 IMPLEMENT_CORE_INTRINSIC_CLASS(ULinkerPlaceholderClass, UClass, 
 	{
 		Class->ClassAddReferencedObjects = &ULinkerPlaceholderClass::AddReferencedObjects;
 		
-		// @TODO: use the Class->Emit...() functions here to aid garbage 
-		//        collection, so it has information on what class variables 
-		//        hold onto UObject references
+	// @TODO: use the Class->Emit...() functions here to aid garbage 
+	//        collection, so it has information on what class variables 
+	//        hold onto UObject references
 	}
 );
 
@@ -53,6 +40,22 @@ void ULinkerPlaceholderClass::PostInitProperties()
 }
 
 //------------------------------------------------------------------------------
+void ULinkerPlaceholderClass::BeginDestroy()
+{
+#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+	check(IsMarkedResolved() || HasAnyFlags(RF_ClassDefaultObject));
+	check(!HasKnownReferences());
+#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
+
+	// by this point, we really shouldn't have any properties left (they should 
+	// have all got replaced), but just in case (so things don't blow up with a
+	// missing class)...
+	ResolveAllPlaceholderReferences(UObject::StaticClass());
+
+	Super::BeginDestroy();
+}
+
+//------------------------------------------------------------------------------
 void ULinkerPlaceholderClass::Bind()
 {
 	ClassConstructor = InternalConstructor<ULinkerPlaceholderClass>;
@@ -64,66 +67,4 @@ void ULinkerPlaceholderClass::Bind()
 	ClassAddReferencedObjects = &ULinkerPlaceholderClass::AddReferencedObjects;
 }
 
-//------------------------------------------------------------------------------
-void ULinkerPlaceholderClass::AddReferencingScriptExpr(ULinkerPlaceholderClass** ExpressionPtr)
-{
-#if USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
-	check(*ExpressionPtr == this);
-#endif // USE_DEFERRED_DEPENDENCY_CHECK_VERIFICATION_TESTS
 
-	ReferencingScriptExpressions.Add((UClass**)ExpressionPtr);
-}
-
-//------------------------------------------------------------------------------
-int32 ULinkerPlaceholderClass::ReplaceTrackedReferences(UClass* ReplacementClass)
-{
-	int32 ReplacementCount = 0;
-
-	for (UProperty* Property : ReferencingProperties)
-	{
-		if (UObjectPropertyBase* ObjProperty = Cast<UObjectPropertyBase>(Property))
-		{
-			if (ObjProperty->PropertyClass == this)
-			{
-				ObjProperty->PropertyClass = ReplacementClass;
-				++ReplacementCount;
-			}
-
-			UClassProperty* ClassProperty = Cast<UClassProperty>(ObjProperty);
-			if ((ClassProperty != nullptr) && (ClassProperty->MetaClass == this))
-			{
-				ClassProperty->MetaClass = ReplacementClass;
-				++ReplacementCount;
-			}
-		}	
-		else if (UInterfaceProperty* InterfaceProp = Cast<UInterfaceProperty>(Property))
-		{
-			if (InterfaceProp->InterfaceClass == this)
-			{
-				InterfaceProp->InterfaceClass = ReplacementClass;
-				++ReplacementCount;
-			}
-		}
-	}
-	ReferencingProperties.Empty();
-
-	for (UClass** ScriptRefPtr : ReferencingScriptExpressions)
-	{
-		UClass*& ScriptRef = *ScriptRefPtr;
-		if (ScriptRef == this)
-		{
-			ScriptRef = ReplacementClass;
-			++ReplacementCount;
-		}
-	}
-	ReferencingScriptExpressions.Empty();
-
-	bResolvedReferences = true;
-	return ReplacementCount;
-}
-
-//------------------------------------------------------------------------------
-int32 ULinkerPlaceholderClass::GetRefCount() const
-{
-	return FLinkerPlaceholderBase::GetRefCount() + ReferencingScriptExpressions.Num();
-}
