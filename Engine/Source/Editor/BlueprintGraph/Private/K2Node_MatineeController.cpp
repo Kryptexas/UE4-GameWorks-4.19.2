@@ -240,7 +240,7 @@ void UK2Node_MatineeController::OnEventKeyframeRemoved(const AMatineeActor* InMa
 		{
 			if(UEdGraphPin* Pin = FindPin(InPinNames[PinIdx].ToString()))
 			{
-				DiscardPin(Pin);
+				RemovePin(Pin);
 				bNeedsRefresh = true;
 			}
 		}

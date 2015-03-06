@@ -107,13 +107,26 @@ UEdGraphPin* UEdGraphNode::FindPinChecked(const FString& PinName) const
 	return Result;
 }
 
-void UEdGraphNode::DiscardPin(UEdGraphPin* Pin)
+bool UEdGraphNode::RemovePin(UEdGraphPin* Pin)
 {
 	check( Pin );
 	
 	Modify();
-	Pins.Remove( Pin );
-	Pin->BreakAllPinLinks();
+	UEdGraphPin* RootPin = (Pin->ParentPin != nullptr)? Pin->ParentPin : Pin;
+	RootPin->BreakAllPinLinks();
+
+	if (Pins.Remove( RootPin ))
+	{
+		// Remove any children pins to ensure the entirety of the pin's representation is removed
+		for (UEdGraphPin* ChildPin : RootPin->SubPins)
+		{
+			Pins.Remove(ChildPin);
+			ChildPin->Modify();
+			ChildPin->BreakAllPinLinks();
+		}
+		return true;
+	}
+	return false;
 }
 
 void UEdGraphNode::BreakAllNodeLinks()

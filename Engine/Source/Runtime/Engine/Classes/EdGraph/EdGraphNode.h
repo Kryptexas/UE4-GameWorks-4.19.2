@@ -184,8 +184,8 @@ public:
 	/** Find a pin on this node with the supplied name and assert if it is not present */
 	UEdGraphPin* FindPinChecked(const FString& PinName) const;
 	
-	/** Find a pin on this node with the supplied name and remove it */
-	void DiscardPin(UEdGraphPin* Pin);
+	/** Find a pin on this node with the supplied name and remove it, returns TRUE if successful */
+	bool RemovePin(UEdGraphPin* Pin);
 
 	/** Whether or not this node should be given the chance to override pin names.  If this returns true, then GetPinNameOverride() will be called for each pin, each frame */
 	virtual bool ShouldOverridePinNames() const { return false; }
