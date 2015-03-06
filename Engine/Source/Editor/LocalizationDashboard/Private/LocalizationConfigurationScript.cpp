@@ -115,6 +115,7 @@ namespace LocalizationConfigurationScript
 
 		uint32 GatherTextStepIndex = 0;
 		// GatherTextFromSource
+		if (Target.GatherFromTextFiles.SearchDirectories.Num() && Target.GatherFromTextFiles.FileExtensions.Num()) // Don't gather from source if there are no source files.
 		{
 			FConfigSection& ConfigSection = Script.GatherTextStep(GatherTextStepIndex++);
 
@@ -122,40 +123,80 @@ namespace LocalizationConfigurationScript
 			ConfigSection.Add( TEXT("CommandletClass"), TEXT("GatherTextFromSource") );
 
 			// Include Paths
-			if (HasSourceCode) 
+			for (const auto& IncludePath : Target.GatherFromTextFiles.SearchDirectories)
 			{
-				ConfigSection.Add( TEXT("IncludePaths"), SourceDirRelativeToGameDir );
+				ConfigSection.Add( TEXT("IncludePaths"), IncludePath );
 			}
-			ConfigSection.Add( TEXT("IncludePaths"), ConfigDirRelativeToGameDir );
 
 			// Exclude Paths
 			ConfigSection.Add( TEXT("ExcludePaths"), ConfigDirRelativeToGameDir / TEXT("Localization") );
-
-			// SourceFileSearchFilters
-			if (HasSourceCode)
+			for (const auto& ExcludePath : Target.GatherFromTextFiles.ExcludePathWildcards)
 			{
-				ConfigSection.Add( TEXT("SourceFileSearchFilters"), TEXT("*.h") );
-				ConfigSection.Add( TEXT("SourceFileSearchFilters"), TEXT("*.cpp") );
+				ConfigSection.Add( TEXT("ExcludePaths"), ExcludePath );
 			}
-			ConfigSection.Add( TEXT("SourceFileSearchFilters"), TEXT("*.ini") );
+
+			// Source File Search Filters
+			for (const auto& FileExtension : Target.GatherFromTextFiles.FileExtensions)
+			{
+				ConfigSection.Add( TEXT("SourceFileSearchFilters"), FileExtension );
+			}
 		}
 
 		// GatherTextFromAssets
+		if (Target.GatherFromTextFiles.SearchDirectories.Num() && Target.GatherFromTextFiles.FileExtensions.Num()) // Don't gather from packages if there are none specified.
 		{
 			FConfigSection& ConfigSection = Script.GatherTextStep(GatherTextStepIndex++);
 
 			// CommandletClass
 			ConfigSection.Add( TEXT("CommandletClass"), TEXT("GatherTextFromAssets") );
 
-			// IncludePaths
-			ConfigSection.Add( TEXT("IncludePaths"), ContentDirRelativeToGameDir );
+			// Include Paths
+			for (const auto& IncludePath : Target.GatherFromPackages.IncludePathWildcards)
+			{
+				ConfigSection.Add( TEXT("IncludePaths"), IncludePath );
+			}
 
-			// ExcludePaths
+			// Exclude Paths
 			ConfigSection.Add( TEXT("ExcludePaths"), ContentDirRelativeToGameDir / TEXT("Localization") );
+			for (const auto& ExcludePath : Target.GatherFromPackages.ExcludePathWildcards)
+			{
+				ConfigSection.Add( TEXT("ExcludePaths"), ExcludePath );
+			}
 
-			// PackageExtensions
-			ConfigSection.Add( TEXT("PackageExtensions"), TEXT("*.umap") );
-			ConfigSection.Add( TEXT("PackageExtensions"), TEXT("*.uasset") );
+			// Package Extensions
+			for (const auto& FileExtension : Target.GatherFromPackages.FileExtensions)
+			{
+				ConfigSection.Add( TEXT("PackageExtensions"), FileExtension );
+			}
+		}
+
+		// GatherTextFromMetadata
+		if (Target.GatherFromMetaData.IncludePathWildcards.Num() && Target.GatherFromMetaData.MetaData.Num()) // Don't gather from metadata if there are none specified.
+		{
+			FConfigSection& ConfigSection = Script.GatherTextStep(GatherTextStepIndex++);
+
+			// CommandletClass
+			ConfigSection.Add( TEXT("CommandletClass"), TEXT("GatherTextFromMetadata") );
+
+			// Include Paths
+			for (const auto& IncludePath : Target.GatherFromMetaData.IncludePathWildcards)
+			{
+				ConfigSection.Add( TEXT("IncludePaths"), IncludePath );
+			}
+
+			// Exclude Paths
+			for (const auto& ExcludePath : Target.GatherFromMetaData.ExcludePathWildcards)
+			{
+				ConfigSection.Add( TEXT("ExcludePaths"), ExcludePath );
+			}
+
+			// Package Extensions
+			for (const FMetaDataTextGenerationSpecification& Specification : Target.GatherFromMetaData.MetaData)
+			{
+				ConfigSection.Add( TEXT("InputKeys"), Specification.MetadataKey );
+				ConfigSection.Add( TEXT("OutputNamespaces"), Specification.TextNamespace );
+				ConfigSection.Add( TEXT("OutputKeys"), FString::Printf(TEXT("\"%s\""), *Specification.TextKeyPattern) );
+			}
 		}
 
 		// GenerateGatherManifest
@@ -167,7 +208,6 @@ namespace LocalizationConfigurationScript
 		}
 
 		// GenerateGatherArchive
-		if (Target.SupportedCulturesStatistics.Num())
 		{
 			FConfigSection& ConfigSection = Script.GatherTextStep(GatherTextStepIndex++);
 
