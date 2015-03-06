@@ -507,6 +507,61 @@ void FKismetCompilerUtilities::ValidateEnumProperties(UObject* DefaultObject, FC
 	}
 }
 
+bool FKismetCompilerUtilities::ValidateSelfCompatibility(const UEdGraphPin* Pin, FKismetFunctionContext& Context)
+{
+	const UBlueprint* Blueprint = Context.Blueprint;
+	const UEdGraph* SourceGraph = Context.SourceGraph;
+	UEdGraphSchema_K2* K2Schema = Context.Schema;
+	const UBlueprintGeneratedClass* BPClass = Context.NewClass;
+
+	FString ErrorMsg;
+	if (Blueprint->BlueprintType != BPTYPE_FunctionLibrary && K2Schema->IsStaticFunctionGraph(SourceGraph))
+	{
+		ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_Static_Error", "'@@' must have a connection, because %s is a static function and will not be bound to instances of this blueprint.").ToString(), *SourceGraph->GetName());
+	}
+	else
+	{
+		FEdGraphPinType SelfType;
+		SelfType.PinCategory = K2Schema->PC_Object;
+		SelfType.PinSubCategory = K2Schema->PSC_Self;
+
+		if (!K2Schema->ArePinTypesCompatible(SelfType, Pin->PinType, BPClass))
+		{
+			FString PinType = Pin->PinType.PinCategory;
+			if ((Pin->PinType.PinCategory == K2Schema->PC_Object) ||
+				(Pin->PinType.PinCategory == K2Schema->PC_Interface) ||
+				(Pin->PinType.PinCategory == K2Schema->PC_Class))
+			{
+				if (Pin->PinType.PinSubCategoryObject.IsValid())
+				{
+					PinType = Pin->PinType.PinSubCategoryObject->GetName();
+				}
+				else
+				{
+					PinType = TEXT("");
+				}
+			}
+
+			if (PinType.IsEmpty())
+			{
+				ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_NoType_Error", "This blueprint (self) is not compatible with '@@', therefore that pin must have a connection.").ToString());
+			}
+			else
+			{
+				ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_WrongClass_Error", "This blueprint (self) is not a %s, therefore '@@' must have a connection.").ToString(), *PinType);
+			}
+		}
+	}
+
+	if (!ErrorMsg.IsEmpty())
+	{
+		Context.MessageLog.Error(*ErrorMsg, Pin);
+		return false;
+	}
+
+	return true;
+}
+
 UEdGraphPin* FKismetCompilerUtilities::GenerateAssignmentNodes(class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, UK2Node_CallFunction* CallBeginSpawnNode, UEdGraphNode* SpawnNode, UEdGraphPin* CallBeginResult, const UClass* ForClass )
 {
 	static FString ObjectParamName = FString(TEXT("Object"));

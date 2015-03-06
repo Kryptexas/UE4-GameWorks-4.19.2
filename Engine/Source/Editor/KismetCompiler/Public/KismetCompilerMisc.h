@@ -76,6 +76,9 @@ public:
 	/* checks if enum variables from given object store proper indexes */
 	static void ValidateEnumProperties(UObject* DefaultObject, FCompilerResultsLog& MessageLog);
 
+	/** checks if the specified pin can default to self */
+	static bool ValidateSelfCompatibility(const UEdGraphPin* Pin, FKismetFunctionContext& Context);
+
 	/** Create 'set var by name' nodes and hook them up - used to set values when components are added or actor are created at run time. Returns the 'last then' pin of the assignment nodes */
 	static UEdGraphPin* GenerateAssignmentNodes( class FKismetCompilerContext& CompilerContext, UEdGraph* SourceGraph, UK2Node_CallFunction* CallBeginSpawnNode, UEdGraphNode* SpawnNode, UEdGraphPin* CallBeginResult, const UClass* ForClass );
 

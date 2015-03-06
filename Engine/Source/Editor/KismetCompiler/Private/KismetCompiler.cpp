@@ -1053,8 +1053,10 @@ void FKismetCompilerContext::PruneIsolatedNodes(const TArray<UEdGraphNode*>& Roo
 /**
  *	Checks if self pins are connected.
  */
-void FKismetCompilerContext::ValidateSelfPinsInGraph(const UEdGraph* SourceGraph)
+void FKismetCompilerContext::ValidateSelfPinsInGraph(FKismetFunctionContext& Context)
 {
+	const UEdGraph* SourceGraph = Context.SourceGraph;
+
 	check(NULL != Schema);
 	for (int32 NodeIndex = 0; NodeIndex < SourceGraph->Nodes.Num(); ++NodeIndex)
 	{
@@ -1066,46 +1068,7 @@ void FKismetCompilerContext::ValidateSelfPinsInGraph(const UEdGraph* SourceGraph
 				{
 					if (Schema->IsSelfPin(*Pin) && (Pin->LinkedTo.Num() == 0) && Pin->DefaultObject == nullptr)
 					{
-						FEdGraphPinType SelfType;
-						SelfType.PinCategory = Schema->PC_Object;
-						SelfType.PinSubCategory = Schema->PSC_Self;
-
-						FString ErrorMsg;
-						if(Blueprint->BlueprintType != BPTYPE_FunctionLibrary && Schema->IsStaticFunctionGraph(SourceGraph))
-						{
-							ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_Static_Error", "'@@' must have a connection, because %s is a static function and will not be bound to instances of this blueprint.").ToString(), *SourceGraph->GetName());
-						}
-						else if (!Schema->ArePinTypesCompatible(SelfType, Pin->PinType, NewClass))
-						{
-							FString PinType = Pin->PinType.PinCategory;
-							if ((Pin->PinType.PinCategory == Schema->PC_Object)    || 
-								(Pin->PinType.PinCategory == Schema->PC_Interface) ||
-								(Pin->PinType.PinCategory == Schema->PC_Class))
-							{
-								if (Pin->PinType.PinSubCategoryObject.IsValid())
-								{
-									PinType = Pin->PinType.PinSubCategoryObject->GetName();
-								}
-								else
-								{
-									PinType = TEXT("");
-								}
-							}
-
-							if(PinType.IsEmpty())
-							{
-								ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_NoType_Error", "'@@' must have a connection.").ToString());
-							}
-							else
-							{
-								ErrorMsg = FString::Printf(*LOCTEXT("PinMustHaveConnection_WrongClass_Error", "This blueprint (self) is not a %s, therefore '@@' must have a connection.").ToString(), *PinType);	
-							}
-						}
-
-						if(!ErrorMsg.IsEmpty())
-						{
-							MessageLog.Error(*ErrorMsg, Pin);
-						}
+						FKismetCompilerUtilities::ValidateSelfCompatibility(Pin, Context);
 					}
 				}
 			}
@@ -1171,7 +1134,7 @@ void FKismetCompilerContext::PrecompileFunction(FKismetFunctionContext& Context)
 		if (bIsFullCompile)
 		{
 			// Check if self pins are connected and types are resolved after PruneIsolatedNodes, to avoid errors from isolated nodes.
-			ValidateSelfPinsInGraph(Context.SourceGraph);
+			ValidateSelfPinsInGraph(Context);
 			ValidateNoWildcardPinsInGraph(Context.SourceGraph);
 
 			// Transforms

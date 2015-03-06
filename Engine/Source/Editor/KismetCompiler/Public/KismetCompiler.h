@@ -368,7 +368,7 @@ protected:
 	/**
 	 * Checks if self pins are connected.
 	 */
-	void ValidateSelfPinsInGraph(const UEdGraph* SourceGraph);
+	void ValidateSelfPinsInGraph(FKismetFunctionContext& Context);
 
 	/**
 	* Checks if pin types are unresolved (e.g. still wildcards).
