@@ -100,7 +100,7 @@ bool FFbxImporter::HasUnknownCameras( AMatineeActor* InMatineeActor ) const
 	for ( int32 NodeIndex = 0; NodeIndex < NodeCount; ++NodeIndex )
 	{
 		FbxNode* Node = RootNode->GetChild(NodeIndex);
-		if ( _HasUnknownCameras( InMatineeActor, Node, ANSI_TO_TCHAR(Node->GetName()) ) )
+		if ( _HasUnknownCameras( InMatineeActor, Node, UTF8_TO_TCHAR(Node->GetName()) ) )
 		{
 			return true;
 		}
@@ -110,7 +110,7 @@ bool FFbxImporter::HasUnknownCameras( AMatineeActor* InMatineeActor ) const
 		for( int32 ChildIndex = 0; ChildIndex < ChildNodeCount; ++ChildIndex )
 		{
 			FbxNode* ChildNode = Node->GetChild(ChildIndex);
-			if( _HasUnknownCameras( InMatineeActor, ChildNode, ANSI_TO_TCHAR(ChildNode->GetName() ) ) )
+			if( _HasUnknownCameras( InMatineeActor, ChildNode, UTF8_TO_TCHAR(ChildNode->GetName() ) ) )
 			{
 				return true;
 			}
@@ -238,7 +238,7 @@ bool FFbxImporter::ImportMatineeSequence(AMatineeActor* InMatineeActor)
 		// Attempt to name-match the scene node with one of the actors.
 		if( Actor == NULL )
 		{
-			Actor = FindObject<AActor>( ANY_PACKAGE, ANSI_TO_TCHAR(Node->GetName()) );
+			Actor = FindObject<AActor>( ANY_PACKAGE, UTF8_TO_TCHAR(Node->GetName()) );
 		}
 
 		FbxCamera* CameraNode = NULL;
@@ -248,7 +248,7 @@ bool FFbxImporter::ImportMatineeSequence(AMatineeActor* InMatineeActor)
 			if ( bCreateUnknownCameras && CameraNode != NULL )
 			{
 				Actor = GEditor->AddActor( InMatineeActor->GetWorld()->GetCurrentLevel(), ACameraActor::StaticClass(), FTransform::Identity );
-				Actor->SetActorLabel( ANSI_TO_TCHAR(CameraNode->GetName()) );
+				Actor->SetActorLabel( UTF8_TO_TCHAR(CameraNode->GetName()) );
 			}
 			else
 			{

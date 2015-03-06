@@ -126,10 +126,10 @@ void FFbxExporter::CreateDocument()
 	SceneInfo->mSubject = "Export FBX meshes from Unreal";
 	SceneInfo->Original_ApplicationVendor.Set( "Epic Games" );
 	SceneInfo->Original_ApplicationName.Set( "Unreal Engine" );
-	SceneInfo->Original_ApplicationVersion.Set( TCHAR_TO_ANSI(*GEngineVersion.ToString()) );
+	SceneInfo->Original_ApplicationVersion.Set( TCHAR_TO_UTF8(*GEngineVersion.ToString()) );
 	SceneInfo->LastSaved_ApplicationVendor.Set( "Epic Games" );
 	SceneInfo->LastSaved_ApplicationName.Set( "Unreal Engine" );
-	SceneInfo->LastSaved_ApplicationVersion.Set( TCHAR_TO_ANSI(*GEngineVersion.ToString()) );
+	SceneInfo->LastSaved_ApplicationVersion.Set( TCHAR_TO_UTF8(*GEngineVersion.ToString()) );
 
 	Scene->SetSceneInfo(SceneInfo);
 	
@@ -338,7 +338,7 @@ void FFbxExporter::ExportLight( ALight* Actor, AMatineeActor* InMatineeActor )
 	FString FbxNodeName = GetActorNodeName(Actor, InMatineeActor);
 
 	// Export the basic light information
-	FbxLight* Light = FbxLight::Create(Scene, TCHAR_TO_ANSI(*FbxNodeName));
+	FbxLight* Light = FbxLight::Create(Scene, TCHAR_TO_UTF8(*FbxNodeName));
 	Light->Intensity.Set(BaseLight->Intensity);
 	Light->Color.Set(Converter.ConvertToFbxColor(BaseLight->LightColor));
 	
@@ -400,7 +400,7 @@ void FFbxExporter::ExportCamera( ACameraActor* Actor, AMatineeActor* InMatineeAc
 	FString FbxNodeName = GetActorNodeName(Actor, NULL);
 
 	// Create a properly-named FBX camera structure and instantiate it in the FBX scene graph
-	FbxCamera* Camera = FbxCamera::Create(Scene, TCHAR_TO_ANSI(*FbxNodeName));
+	FbxCamera* Camera = FbxCamera::Create(Scene, TCHAR_TO_UTF8(*FbxNodeName));
 
 	// Export the view area information
 	Camera->ProjectionType.Set(FbxCamera::ePerspective);
@@ -441,7 +441,7 @@ void FFbxExporter::ExportBrush(ABrush* Actor, UModel* InModel, bool bConvertToSt
  		Scene->GetRootNode()->AddChild(FbxActor);
  
  		// Export the mesh information
- 		ExportModel(Model, FbxActor, TCHAR_TO_ANSI(*Actor->GetName()));
+ 		ExportModel(Model, FbxActor, TCHAR_TO_UTF8(*Actor->GetName()));
  	}
  	else
  	{
@@ -804,7 +804,7 @@ void FFbxExporter::ExportStaticMesh( UStaticMesh* StaticMesh, const TArray<UMate
 	FString MeshName;
 	StaticMesh->GetName(MeshName);
 	FStaticMeshLODResources& RenderMesh = StaticMesh->GetLODForExport(0);
-	FbxNode* MeshNode = FbxNode::Create(Scene, TCHAR_TO_ANSI(*MeshName));
+	FbxNode* MeshNode = FbxNode::Create(Scene, TCHAR_TO_UTF8(*MeshName));
 	Scene->GetRootNode()->AddChild(MeshNode);
 	ExportStaticMeshToFbx(StaticMesh, RenderMesh, *MeshName, MeshNode, -1, NULL, MaterialOrder );
 }
@@ -816,7 +816,7 @@ void FFbxExporter::ExportStaticMeshLightMap( UStaticMesh* StaticMesh, int32 LODI
 	FString MeshName;
 	StaticMesh->GetName(MeshName);
 	FStaticMeshLODResources& RenderMesh = StaticMesh->GetLODForExport(LODIndex);
-	FbxNode* MeshNode = FbxNode::Create(Scene, TCHAR_TO_ANSI(*MeshName));
+	FbxNode* MeshNode = FbxNode::Create(Scene, TCHAR_TO_UTF8(*MeshName));
 	Scene->GetRootNode()->AddChild(MeshNode);
 	ExportStaticMeshToFbx(StaticMesh, RenderMesh, *MeshName, MeshNode, UVChannel);
 }
@@ -828,7 +828,7 @@ void FFbxExporter::ExportSkeletalMesh( USkeletalMesh* SkeletalMesh )
 	FString MeshName;
 	SkeletalMesh->GetName(MeshName);
 
-	FbxNode* MeshNode = FbxNode::Create(Scene, TCHAR_TO_ANSI(*MeshName));
+	FbxNode* MeshNode = FbxNode::Create(Scene, TCHAR_TO_UTF8(*MeshName));
 	Scene->GetRootNode()->AddChild(MeshNode);
 
 	ExportSkeletalMeshToFbx(SkeletalMesh, NULL, *MeshName, MeshNode);
@@ -950,13 +950,13 @@ FbxSurfaceMaterial* FFbxExporter::ExportMaterial(UMaterial* Material)
 	// Set the shading model
 	if (Material->GetShadingModel() == MSM_DefaultLit)
 	{
-		FbxMaterial = FbxSurfacePhong::Create(Scene, TCHAR_TO_ANSI(*Material->GetName()));
+		FbxMaterial = FbxSurfacePhong::Create(Scene, TCHAR_TO_UTF8(*Material->GetName()));
 		//((FbxSurfacePhong*)FbxMaterial)->Specular.Set(SetMaterialComponent(Material->Specular));
 		//((FbxSurfacePhong*)FbxMaterial)->Shininess.Set(Material->SpecularPower.Constant);
 	}
 	else // if (Material->ShadingModel == MSM_Unlit)
 	{
-		FbxMaterial = FbxSurfaceLambert::Create(Scene, TCHAR_TO_ANSI(*Material->GetName()));
+		FbxMaterial = FbxSurfaceLambert::Create(Scene, TCHAR_TO_UTF8(*Material->GetName()));
 	}
 	
 	((FbxSurfaceLambert*)FbxMaterial)->Emissive.Set(SetMaterialComponent(Material->EmissiveColor));
@@ -1066,7 +1066,7 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 			FbxNodeNameToIndexMap.Add( FbxNodeName, 1 );	
 		}
 
-		ActorNode = FbxNode::Create(Scene, TCHAR_TO_ANSI(*FbxNodeName));
+		ActorNode = FbxNode::Create(Scene, TCHAR_TO_UTF8(*FbxNodeName));
 		
 
 		AActor* ParentActor = Actor->GetAttachParentActor();
@@ -1111,10 +1111,10 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 
 			if (FbxPivotNodeName == FbxNodeName)
 			{
-				FbxPivotNodeName += ANSI_TO_TCHAR("_pivot");
+				FbxPivotNodeName += UTF8_TO_TCHAR("_pivot");
 			}
 
-			FbxNode* PivotNode = FbxNode::Create(Scene, TCHAR_TO_ANSI(*FbxPivotNodeName));
+			FbxNode* PivotNode = FbxNode::Create(Scene, TCHAR_TO_UTF8(*FbxPivotNodeName));
 			PivotNode->LclRotation.Set(FbxVector4(90, 0, -90));
 
 			if (Actor->IsA(ACameraActor::StaticClass()))
@@ -1170,7 +1170,7 @@ FbxNode* FFbxExporter::ExportActor(AActor* Actor, AMatineeActor* InMatineeActor,
 
 					// This actor has multiple components
 					// create a child node under the actor for each component
-					FbxNode* CompNode = FbxNode::Create(Scene, TCHAR_TO_ANSI(*Component->GetName()));
+					FbxNode* CompNode = FbxNode::Create(Scene, TCHAR_TO_UTF8(*Component->GetName()));
 
 					if( SceneComp != Actor->GetRootComponent() )
 					{
@@ -1859,7 +1859,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(UStaticMesh* StaticMesh, FStaticMes
 		UniqueVerts = VertRemap;
 	}
 
-	FbxMesh* Mesh = FbxMesh::Create(Scene, TCHAR_TO_ANSI(MeshName));
+	FbxMesh* Mesh = FbxMesh::Create(Scene, TCHAR_TO_UTF8(MeshName));
 
 	// Create and fill in the vertex position data source.
 	// The position vertices are duplicated, for some reason, retrieve only the first half vertices.
@@ -1953,7 +1953,7 @@ FbxNode* FFbxExporter::ExportStaticMeshToFbx(UStaticMesh* StaticMesh, FStaticMes
 			FCString::Sprintf(UVChannelName, TEXT(""));
 		}
 
-		FbxLayerElementUV* UVDiffuseLayer = FbxLayerElementUV::Create(Mesh, TCHAR_TO_ANSI(UVChannelName));
+		FbxLayerElementUV* UVDiffuseLayer = FbxLayerElementUV::Create(Mesh, TCHAR_TO_UTF8(UVChannelName));
 
 		// Note: when eINDEX_TO_DIRECT is used, IndexArray must be 3xTriangle count, DirectArray can be smaller
 		UVDiffuseLayer->SetMappingMode(FbxLayerElement::eByPolygonVertex);
@@ -2142,7 +2142,7 @@ FbxNode* FFbxExporter::ExportSplineMeshToFbx(USplineMeshComponent* SplineMeshCom
 		UniqueVerts = VertRemap;
 	}
 
-	FbxMesh* Mesh = FbxMesh::Create(Scene, TCHAR_TO_ANSI(MeshName));
+	FbxMesh* Mesh = FbxMesh::Create(Scene, TCHAR_TO_UTF8(MeshName));
 
 	// Create and fill in the vertex position data source.
 	// The position vertices are duplicated, for some reason, retrieve only the first half vertices.
@@ -2242,7 +2242,7 @@ FbxNode* FFbxExporter::ExportSplineMeshToFbx(USplineMeshComponent* SplineMeshCom
 			FCString::Sprintf(UVChannelName, TEXT(""));
 		}
 
-		FbxLayerElementUV* UVDiffuseLayer = FbxLayerElementUV::Create(Mesh, TCHAR_TO_ANSI(UVChannelName));
+		FbxLayerElementUV* UVDiffuseLayer = FbxLayerElementUV::Create(Mesh, TCHAR_TO_UTF8(UVChannelName));
 
 		// Note: when eINDEX_TO_DIRECT is used, IndexArray must be 3xTriangle count, DirectArray can be smaller
 		UVDiffuseLayer->SetMappingMode(FbxLayerElement::eByPolygonVertex);
@@ -2400,7 +2400,7 @@ FbxNode* FFbxExporter::ExportLandscapeToFbx(ALandscapeProxy* Landscape, const TC
 		Component->GetComponentExtent(MinX, MinY, MaxX, MaxY);
 	}
 
-	FbxMesh* Mesh = FbxMesh::Create(Scene, TCHAR_TO_ANSI(MeshName));
+	FbxMesh* Mesh = FbxMesh::Create(Scene, TCHAR_TO_UTF8(MeshName));
 
 	// Create and fill in the vertex position data source.
 	const int32 ComponentSizeQuads = ((Landscape->ComponentSizeQuads + 1) >> Landscape->ExportLOD) - 1;

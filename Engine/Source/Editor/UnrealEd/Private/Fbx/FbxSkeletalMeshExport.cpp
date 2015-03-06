@@ -138,7 +138,7 @@ FbxNode* FFbxExporter::CreateMesh(const USkeletalMesh* SkelMesh, const TCHAR* Me
 	SourceModel.GetVertices(Vertices);
 	if (Vertices.Num() != VertexCount) return NULL;
 
-	FbxMesh* Mesh = FbxMesh::Create(Scene, TCHAR_TO_ANSI(MeshName));
+	FbxMesh* Mesh = FbxMesh::Create(Scene, TCHAR_TO_UTF8(MeshName));
 
 	// Create and fill in the vertex position data source.
 	Mesh->InitControlPoints(VertexCount);
@@ -198,7 +198,7 @@ FbxNode* FFbxExporter::CreateMesh(const USkeletalMesh* SkelMesh, const TCHAR* Me
 			FCString::Sprintf(UVChannelName, TEXT("DiffuseUV"));
 		}
 
-		FbxLayerElementUV* UVDiffuseLayer = FbxLayerElementUV::Create(Mesh, TCHAR_TO_ANSI(UVChannelName));
+		FbxLayerElementUV* UVDiffuseLayer = FbxLayerElementUV::Create(Mesh, TCHAR_TO_UTF8(UVChannelName));
 		UVDiffuseLayer->SetMappingMode(FbxLayerElement::eByControlPoint);
 		UVDiffuseLayer->SetReferenceMode(FbxLayerElement::eDirect);
 
@@ -257,7 +257,7 @@ FbxNode* FFbxExporter::CreateMesh(const USkeletalMesh* SkelMesh, const TCHAR* Me
 		VertexColorArray.Add( FbxColor(VertColor.R, VertColor.G, VertColor.B, VertColor.A ));
 	}
 
-	FbxNode* MeshNode = FbxNode::Create(Scene, TCHAR_TO_ANSI(MeshName));
+	FbxNode* MeshNode = FbxNode::Create(Scene, TCHAR_TO_UTF8(MeshName));
 	MeshNode->SetNodeAttribute(Mesh);
 
 
@@ -283,7 +283,7 @@ FbxNode* FFbxExporter::CreateMesh(const USkeletalMesh* SkelMesh, const TCHAR* Me
 			TCHAR NewMaterialName[MAX_SPRINTF]=TEXT("");
 			FCString::Sprintf( NewMaterialName, TEXT("Fbx Default Material %i"), MaterialIndex );
 
-			FbxMaterial = FbxSurfaceLambert::Create(Scene, TCHAR_TO_ANSI(NewMaterialName));
+			FbxMaterial = FbxSurfaceLambert::Create(Scene, TCHAR_TO_UTF8(NewMaterialName));
 			((FbxSurfaceLambert*)FbxMaterial)->Diffuse.Set(FbxDouble3(0.72, 0.72, 0.72));
 		}
 

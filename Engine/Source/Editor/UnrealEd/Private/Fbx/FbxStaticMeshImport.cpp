@@ -134,7 +134,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 					if (ElementUV)
 					{
 						const char* UVSetName = ElementUV->GetName();
-						FString LocalUVSetName = ANSI_TO_TCHAR(UVSetName);
+						FString LocalUVSetName = UTF8_TO_TCHAR(UVSetName);
 
 						UVSets.AddUnique(LocalUVSetName);
 					}
@@ -245,7 +245,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 
 	if (!Mesh->IsTriangleMesh())
 	{
-		UE_LOG(LogFbx, Warning, TEXT("Triangulating static mesh %s"), ANSI_TO_TCHAR(Node->GetName()));
+		UE_LOG(LogFbx, Warning, TEXT("Triangulating static mesh %s"), UTF8_TO_TCHAR(Node->GetName()));
 
 		const bool bReplace = true;
 		FbxNodeAttribute* ConvertedNode = GeometryConverter->Triangulate(Mesh, bReplace);
@@ -302,7 +302,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 					if (ElementUV)
 					{
 						const char* UVSetName = ElementUV->GetName();
-						FString LocalUVSetName = ANSI_TO_TCHAR(UVSetName);
+						FString LocalUVSetName = UTF8_TO_TCHAR(UVSetName);
 						if (LocalUVSetName == UVSets[UVIndex])
 						{
 							LayerElementUV[UVIndex] = ElementUV;
@@ -708,7 +708,7 @@ bool UnFbx::FFbxImporter::BuildStaticMeshFromGeometry(FbxMesh* Mesh, UStaticMesh
 UStaticMesh* UnFbx::FFbxImporter::ReimportStaticMesh(UStaticMesh* Mesh, UFbxStaticMeshImportData* TemplateImportData)
 {
 	char MeshName[1024];
-	FCStringAnsi::Strcpy(MeshName,1024,TCHAR_TO_ANSI(*Mesh->GetName()));
+	FCStringAnsi::Strcpy(MeshName,1024,TCHAR_TO_UTF8(*Mesh->GetName()));
 	TArray<FbxNode*> FbxMeshArray;
 	FbxNode* Node = NULL;
 	UStaticMesh* NewMesh = NULL;
@@ -1313,7 +1313,7 @@ static void FindMeshSockets( FbxNode* StartNode, TArray<FbxSocketNode>& OutFbxSo
 		if( Attribute != NULL && Attribute->GetAttributeType() == FbxNodeAttribute::eNull )
 		{
 			// Is this prefixed correctly? If so it is a socket
-			FString SocketName = ANSI_TO_TCHAR( StartNode->GetName() );
+			FString SocketName = UTF8_TO_TCHAR( StartNode->GetName() );
 			if( SocketName.StartsWith( SocketPrefix ) )
 			{
 				// Remove the prefix from the name
@@ -1492,7 +1492,7 @@ bool UnFbx::FFbxImporter::ImportCollisionModels(UStaticMesh* StaticMesh, const F
 
 		if (!FbxMesh->IsTriangleMesh())
 		{
-			FString NodeName = ANSI_TO_TCHAR(MakeName(Node->GetName()));
+			FString NodeName = UTF8_TO_TCHAR(MakeName(Node->GetName()));
 			UE_LOG(LogFbx, Warning, TEXT("Triangulating mesh %s for collision model"), *NodeName);
 
 			const bool bReplace = true;
