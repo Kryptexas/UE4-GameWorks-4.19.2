@@ -2,3 +2,9 @@
 
 #include "SlatePrivatePCH.h"
 
+
+UEditableTextBoxWidgetStyle::UEditableTextBoxWidgetStyle( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
+{
+	
+}

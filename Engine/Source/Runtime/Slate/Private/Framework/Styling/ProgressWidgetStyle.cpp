@@ -3,3 +3,8 @@
 #include "SlatePrivatePCH.h"
 
 
+UProgressWidgetStyle::UProgressWidgetStyle( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
+{
+	
+}

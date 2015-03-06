@@ -653,3 +653,7 @@ const FWindowStyle& FWindowStyle::GetDefault()
 }
 
 
+USlateTypes::USlateTypes( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
+{
+}

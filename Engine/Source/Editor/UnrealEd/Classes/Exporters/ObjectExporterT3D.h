@@ -10,11 +10,7 @@
 UCLASS()
 class UObjectExporterT3D : public UExporter
 {
-public:
-	GENERATED_BODY()
-
-public:
-	UObjectExporterT3D(const FObjectInitializer& ObjectInitializer = FObjectInitializer());
+	GENERATED_UCLASS_BODY()
 
 
 	// Begin UExporter Interface

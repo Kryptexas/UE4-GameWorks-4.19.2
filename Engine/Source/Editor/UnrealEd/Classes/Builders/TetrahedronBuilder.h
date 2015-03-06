@@ -10,11 +10,7 @@
 UCLASS(MinimalAPI, autoexpandcategories=BrushSettings, EditInlineNew, meta=(DisplayName="Sphere"))
 class UTetrahedronBuilder : public UEditorBrushBuilder
 {
-public:
-	GENERATED_BODY()
-
-public:
-	UTetrahedronBuilder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	/** The radius of this sphere */
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "0.000001"))

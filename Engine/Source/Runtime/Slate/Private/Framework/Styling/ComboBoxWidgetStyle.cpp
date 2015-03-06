@@ -3,3 +3,8 @@
 #include "SlatePrivatePCH.h"
 
 
+UComboBoxWidgetStyle::UComboBoxWidgetStyle( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
+{
+	
+}

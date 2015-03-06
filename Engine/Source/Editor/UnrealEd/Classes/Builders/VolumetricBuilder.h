@@ -10,12 +10,8 @@
 UCLASS(MinimalAPI, autoexpandcategories=BrushSettings, EditInlineNew, NotPlaceable, meta=(DisplayName="Volumetric"))
 class UVolumetricBuilder : public UEditorBrushBuilder
 {
-public:
-	GENERATED_BODY()
+	GENERATED_UCLASS_BODY()
 
-public:
-	UVolumetricBuilder(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-	
 	UPROPERTY(EditAnywhere, Category=BrushSettings, meta=(ClampMin = "0.000001"))
 	float Z;
 

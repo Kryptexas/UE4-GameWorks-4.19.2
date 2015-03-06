@@ -3,3 +3,8 @@
 #include "SlatePrivatePCH.h"
 
 
+USpinBoxWidgetStyle::USpinBoxWidgetStyle(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
+{
+
+}

@@ -51,10 +51,7 @@ namespace ECookMode
 UCLASS()
 class UNREALED_API UCookOnTheFlyServer : public UObject, public FTickableEditorObject
 {
-	GENERATED_BODY()
-
-	UCookOnTheFlyServer(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-
+	GENERATED_UCLASS_BODY()
 private:
 
 	/** Array which has been made thread safe :) */

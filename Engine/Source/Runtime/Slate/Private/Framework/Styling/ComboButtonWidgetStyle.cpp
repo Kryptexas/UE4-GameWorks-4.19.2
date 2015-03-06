@@ -3,3 +3,8 @@
 #include "SlatePrivatePCH.h"
 
 
+UComboButtonWidgetStyle::UComboButtonWidgetStyle( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
+{
+	
+}

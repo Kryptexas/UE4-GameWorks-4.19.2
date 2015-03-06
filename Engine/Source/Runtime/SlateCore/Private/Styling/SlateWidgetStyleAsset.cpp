@@ -3,3 +3,8 @@
 #include "SlateCorePrivatePCH.h"
 
 
+USlateWidgetStyleAsset::USlateWidgetStyleAsset( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
+{
+	
+}

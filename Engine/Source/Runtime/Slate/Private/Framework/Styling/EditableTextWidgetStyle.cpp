@@ -3,3 +3,8 @@
 #include "SlatePrivatePCH.h"
 
 
+UEditableTextWidgetStyle::UEditableTextWidgetStyle( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
+{
+	
+}

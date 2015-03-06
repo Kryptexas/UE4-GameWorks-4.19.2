@@ -2,3 +2,9 @@
 
 #include "SlatePrivatePCH.h"
 
+
+UScrollBarWidgetStyle::UScrollBarWidgetStyle( const FObjectInitializer& ObjectInitializer )
+	: Super(ObjectInitializer)
+{
+	
+}

@@ -281,11 +281,7 @@ struct FActorOrComponent
 UCLASS(config=Engine, transient)
 class UNREALED_API UEditorEngine : public UEngine
 {
-public:
-	GENERATED_BODY()
-
-public:
-	UEditorEngine(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
+	GENERATED_UCLASS_BODY()
 
 	// Objects.
 	UPROPERTY()

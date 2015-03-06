@@ -459,6 +459,7 @@ private:
 UCLASS(abstract)
 class UInputCoreTypes : public UObject
 {
-	GENERATED_BODY()
+	GENERATED_UCLASS_BODY()
+
 
 };
