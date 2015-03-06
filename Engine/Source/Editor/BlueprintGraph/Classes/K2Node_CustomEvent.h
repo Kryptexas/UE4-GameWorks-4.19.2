@@ -17,9 +17,14 @@ class UK2Node_CustomEvent : public UK2Node_Event
 
 	virtual bool IsEditable() const override;
 
+	// UObject interface
+	virtual void Serialize(FArchive& Ar) override;
+	// End of UObject interface
+
 	// Begin UEdGraphNode interface
 	virtual void ReconstructNode() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual void RefreshNodeTitle() override;
 	virtual void OnRenameNode(const FString& NewName) override;
 	virtual TSharedPtr<class INameValidatorInterface> MakeNameValidator() const override;
 	virtual FText GetTooltipText() const override;

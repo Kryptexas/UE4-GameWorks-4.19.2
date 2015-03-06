@@ -286,6 +286,9 @@ public:
 	/** Gets the name of this node, shown in title bar */
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const;
 	
+	/** Forces a refresh of the node title if it's cached */
+	virtual void RefreshNodeTitle() {};
+
 	/** 
 	 * Gets the draw color of a node's title bar
 	 */

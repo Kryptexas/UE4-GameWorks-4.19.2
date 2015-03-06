@@ -106,6 +106,16 @@ UK2Node_CustomEvent::UK2Node_CustomEvent(const FObjectInitializer& ObjectInitial
 	bCallInEditor = false;
 }
 
+void UK2Node_CustomEvent::Serialize(FArchive& Ar)
+{
+	Super::Serialize(Ar);
+
+	if (Ar.IsLoading())
+	{
+		CachedNodeTitle.MarkDirty();
+	}
+}
+
 FText UK2Node_CustomEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
 	if (TitleType != ENodeTitleType::FullTitle)
@@ -125,6 +135,11 @@ FText UK2Node_CustomEvent::GetNodeTitle(ENodeTitleType::Type TitleType) const
 	}
 
 	return CachedNodeTitle;
+}
+
+void UK2Node_CustomEvent::RefreshNodeTitle()
+{
+	CachedNodeTitle.MarkDirty();
 }
 
 UEdGraphPin* UK2Node_CustomEvent::CreatePinFromUserDefinition(const TSharedPtr<FUserPinInfo> NewPinInfo)
@@ -269,6 +284,8 @@ void UK2Node_CustomEvent::GetMenuActions(FBlueprintActionDatabaseRegistrar& Acti
 
 void UK2Node_CustomEvent::ReconstructNode()
 {
+	CachedNodeTitle.MarkDirty();
+
 	const UEdGraphPin* DelegateOutPin = FindPin(DelegateOutputName);
 
 	const UK2Node_BaseMCDelegate* OtherNode = (DelegateOutPin && DelegateOutPin->LinkedTo.Num() && DelegateOutPin->LinkedTo[0]) ?

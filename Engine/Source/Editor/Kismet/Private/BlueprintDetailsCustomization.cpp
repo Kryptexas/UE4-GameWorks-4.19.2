@@ -2663,6 +2663,9 @@ void FBlueprintGraphActionDetails::SetNetFlags( TWeakObjectPtr<UK2Node_EditableP
 		// Clear all net flags before setting
 		if( FlagsToSet != FlagsToClear )
 		{
+			const FScopedTransaction Transaction( LOCTEXT("GraphSetNetFlags", "Change Replication") );
+			FunctionEntryNode->Modify();
+
 			bool bBlueprintModified = false;
 
 			if (UK2Node_FunctionEntry* TypedEntryNode = Cast<UK2Node_FunctionEntry>(FunctionEntryNode.Get()))
@@ -2677,6 +2680,10 @@ void FBlueprintGraphActionDetails::SetNetFlags( TWeakObjectPtr<UK2Node_EditableP
 				CustomEventNode->FunctionFlags |= FlagsToSet;
 				bBlueprintModified = true;
 			}
+
+			// The node title needs to refresh
+			FunctionEntryNode->RefreshNodeTitle();
+
 			if( bBlueprintModified )
 			{
 				FBlueprintEditorUtils::MarkBlueprintAsStructurallyModified( FunctionEntryNode->GetBlueprint() );
