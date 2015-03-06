@@ -8,10 +8,6 @@
 
 #define LOCTEXT_NAMESPACE "FActorFolders"
 
-UEditorActorFolders::UEditorActorFolders(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{ }
-
 void UEditorActorFolders::Serialize(FArchive& Ar)
 {
 	Ar << Folders;

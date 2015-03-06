@@ -1471,6 +1471,6 @@ UCLASS()
 class USlateTypes : public UObject
 {
 public:
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
 
 };
