@@ -243,7 +243,7 @@ FText UField::GetToolTipText(bool bShortTooltip) const
 	{
 		if (NativeToolTip.IsEmpty())
 		{
-			NativeToolTip = FDisplayNameHelper::Get(*this);
+			NativeToolTip = FName::NameToDisplayString(FDisplayNameHelper::Get(*this), IsA<UBoolProperty>());
 		}
 		else
 		{
