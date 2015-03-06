@@ -2466,7 +2466,15 @@ void AActor::BeginPlay()
 
 	for (UActorComponent* Component : Components)
 	{
-		Component->BeginPlay();
+		if (Component->IsRegistered())
+		{
+			Component->BeginPlay();
+		}
+		else
+		{
+			// When an Actor begins play we expect only the not bAutoRegister false components to not be registered
+			//check(!Component->bAutoRegister);
+		}
 	}
 
 	ReceiveBeginPlay();
