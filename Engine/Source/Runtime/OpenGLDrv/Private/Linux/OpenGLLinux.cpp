@@ -378,6 +378,14 @@ bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device,
 	{
 		FScopeContext ScopeContext( Context );
 
+		if (Viewport.GetCustomPresent())
+		{
+			glDisable(GL_FRAMEBUFFER_SRGB);
+			Viewport.GetCustomPresent()->Present(SyncInterval);
+			glEnable(GL_FRAMEBUFFER_SRGB);
+			return false;
+		}
+
 		glBindFramebuffer( GL_DRAW_FRAMEBUFFER, 0 );
 		glDrawBuffer( GL_BACK );
 		glBindFramebuffer( GL_READ_FRAMEBUFFER, Context->ViewportFramebuffer );
@@ -833,6 +841,15 @@ bool PlatformInitOpenGL()
 		{
 			verifyf( false, TEXT("OpenGLRHI: %s\n."), SDL_GetError() );
 			UE_LOG(LogLinux, Fatal, TEXT("SDL error errno=%d (%s)"), SDL_GetError());
+		}
+
+		if (FParse::Param(FCommandLine::Get(), TEXT("quad_buffer_stereo")))
+		{
+			if (SDL_GL_SetAttribute(SDL_GL_STEREO, 1))
+			{
+				verifyf(false, TEXT("OpenGLRHI: %s\n."), SDL_GetError());
+				UE_LOG(LogLinux, Fatal, TEXT("SDL error errno=%d (%s)"), SDL_GetError());
+			}
 		}
 
 		// Create a dummy context to verify opengl support.

@@ -49,6 +49,9 @@ class RHI_API FRHICommandList;
 /** The maximum number of mip-maps that a texture can contain. 	*/
 extern	RHI_API int32		GMaxTextureMipCount;
 
+/** true if this platform has quad buffer stereo support. */
+extern RHI_API bool GSupportsQuadBufferStereo;
+
 /** true if the RHI supports textures that may be bound as both a render target and a shader resource. */
 extern RHI_API bool GSupportsRenderDepthTargetableShaderResources;
 

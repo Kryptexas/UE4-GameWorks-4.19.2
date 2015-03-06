@@ -159,6 +159,7 @@ namespace RHIConfig
 
 bool GIsRHIInitialized = false;
 int32 GMaxTextureMipCount = MAX_TEXTURE_MIP_COUNT;
+bool GSupportsQuadBufferStereo = false;
 bool GSupportsDepthFetchDuringDepthTest = true;
 FString GRHIAdapterName;
 uint32 GRHIVendorId = 0;

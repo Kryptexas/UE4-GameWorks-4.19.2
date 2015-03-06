@@ -586,6 +586,16 @@ static void InitRHICapabilitiesForGL()
 	LOG_AND_GET_GL_INT_TEMP(GL_MAX_INTEGER_SAMPLES, 1);
 	LOG_AND_GET_GL_INT_TEMP(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, 0);
 	LOG_AND_GET_GL_INT_TEMP(GL_MAX_VERTEX_ATTRIBS, 0);
+
+	if (FParse::Param(FCommandLine::Get(), TEXT("quad_buffer_stereo")))
+	{
+		GLboolean Result = GL_FALSE;
+		glGetBooleanv(GL_STEREO, &Result);
+		// Skip any errors if any were generated
+		glGetError();
+		GSupportsQuadBufferStereo = (Result == GL_TRUE);
+	}
+
 	if( FOpenGL::SupportsTextureFilterAnisotropic())
 	{
 		LOG_AND_GET_GL_INT_TEMP(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, 0);

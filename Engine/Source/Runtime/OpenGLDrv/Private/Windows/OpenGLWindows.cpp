@@ -101,7 +101,7 @@ static LRESULT CALLBACK PlatformDummyGLWndproc(HWND hWnd, uint32 Message, WPARAM
 /**
  * Initialize a pixel format descriptor for the given window handle.
  */
-static void PlatformInitPixelFormatForDevice(HDC DeviceContext)
+static void PlatformInitPixelFormatForDevice(HDC DeviceContext, bool bTryIsDummyContext)
 {
 	// Pixel format descriptor for the context.
 	PIXELFORMATDESCRIPTOR PixelFormatDesc;
@@ -114,6 +114,12 @@ static void PlatformInitPixelFormatForDevice(HDC DeviceContext)
 	PixelFormatDesc.cDepthBits	= 0;
 	PixelFormatDesc.cStencilBits	= 0;
 	PixelFormatDesc.iLayerType	= PFD_MAIN_PLANE;
+
+	static bool bRequestedQuadBufferStereo = FParse::Param(FCommandLine::Get(), TEXT("quad_buffer_stereo"));
+	if (bRequestedQuadBufferStereo && !bTryIsDummyContext)
+	{
+		PixelFormatDesc.dwFlags = PixelFormatDesc.dwFlags | PFD_STEREO;
+	}
 
 	// Set the pixel format and create the context.
 	int32 PixelFormat = ChoosePixelFormat(DeviceContext, &PixelFormatDesc);
@@ -166,7 +172,7 @@ static void PlatformCreateDummyGLWindow(FPlatformOpenGLContext* OutContext)
 	// Get the device context.
 	OutContext->DeviceContext = GetDC(OutContext->WindowHandle);
 	check(OutContext->DeviceContext);
-	PlatformInitPixelFormatForDevice(OutContext->DeviceContext);
+	PlatformInitPixelFormatForDevice(OutContext->DeviceContext, true);
 }
 
 /**
@@ -348,7 +354,7 @@ FPlatformOpenGLContext* PlatformCreateOpenGLContext(FPlatformOpenGLDevice* Devic
 	Context->bReleaseWindowOnDestroy = false;
 	Context->DeviceContext = GetDC(Context->WindowHandle);
 	check(Context->DeviceContext);
-	PlatformInitPixelFormatForDevice(Context->DeviceContext);
+	PlatformInitPixelFormatForDevice(Context->DeviceContext, false);
 
 	int MajorVersion = 0;
 	int MinorVersion = 0;
