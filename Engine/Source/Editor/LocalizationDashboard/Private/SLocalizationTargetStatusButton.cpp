@@ -85,12 +85,9 @@ FReply SLocalizationTargetStatusButton::OnClicked()
 	case ELocalizationTargetStatus::Unknown:
 		{
 			// Generate conflict report.
-			const FString ReportScriptPath = LocalizationConfigurationScript::GetReportScriptPath(Target->Settings);
-			LocalizationConfigurationScript::GenerateReportScript(Target->Settings).Write(ReportScriptPath);
-			TSharedPtr<FLocalizationCommandletProcess> ReportProcess = FLocalizationCommandletProcess::Execute(ReportScriptPath);
-			if (ReportProcess.IsValid())
+			const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
+			if (LocalizationCommandletTasks::GenerateReportsForTarget(ParentWindow.ToSharedRef(), Target->Settings))
 			{
-				FPlatformProcess::WaitForProc(ReportProcess->GetHandle());
 				Target->Settings.UpdateStatusFromConflictReport();
 			}
 		}
