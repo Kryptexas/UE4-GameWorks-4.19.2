@@ -343,12 +343,11 @@ protected:
 	 *	Load the given ANSI text file to an array of strings - one FString per line of the file.
 	 *	Intended for use in simple text parsing actions
 	 *
-	 *	@param	InFilename			The text file to read, full path
 	 *	@param	OutStrings			The array of FStrings to fill in
 	 *
 	 *	@return	bool				true if successful, false if not
 	 */
-	bool ReadSourceFile( const TCHAR* InFilename, TArray<FString>& OutStrings );
+	bool ReadSourceFile( TArray<FString>& OutStrings );
 
 public:
 	bool InitSourceControl(bool bShowLogin);
