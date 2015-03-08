@@ -1541,6 +1541,8 @@ void UStaticMesh::GetAssetRegistryTags(TArray<FAssetRegistryTag>& OutTags) const
 #if WITH_EDITOR
 void UStaticMesh::GetAssetRegistryTagMetadata(TMap<FName, FAssetRegistryTagMetadata>& OutMetadata) const
 {
+	Super::GetAssetRegistryTagMetadata(OutMetadata);
+
 	OutMetadata.Add("CollisionPrims",
 		FAssetRegistryTagMetadata()
 			.SetTooltip(NSLOCTEXT("UStaticMesh", "CollisionPrimsTooltip", "The number of collision primitives in the static mesh"))
