@@ -9,6 +9,7 @@ public class ClassViewer : ModuleRules
 		PrivateIncludePathModuleNames.AddRange(
 			new string[] {
 				"AssetRegistry",
+                "AssetTools",
 				"EditorWidgets",
 				"GameProjectGeneration",
                 "PropertyEditor",
@@ -32,6 +33,7 @@ public class ClassViewer : ModuleRules
 		DynamicallyLoadedModuleNames.AddRange(
 			new string[] {
 				"AssetRegistry",
+                "AssetTools",
 				"EditorWidgets",
 				"GameProjectGeneration",
 				"PropertyEditor",
