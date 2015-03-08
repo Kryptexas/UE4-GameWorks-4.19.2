@@ -20,7 +20,7 @@ public:
 
 	// Constructors
 	FGameplayEffectCustomExecutionParameters();
-	FGameplayEffectCustomExecutionParameters(FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent);
+	FGameplayEffectCustomExecutionParameters(FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent, const FGameplayTagContainer& InPassedIntags);
 
 	/** Simple accessor to owning gameplay spec */
 	const FGameplayEffectSpec& GetOwningSpec() const;
@@ -31,6 +31,9 @@ public:
 	/** Simple accessor to source ability system component (could be null!) */
 	UAbilitySystemComponent* GetSourceAbilitySystemComponent() const;
 	
+	/** Simple accessor to the Passed In Tags to this execution */
+	const FGameplayTagContainer& GetPassedInTags() const;
+
 	/**
 	 * Attempts to calculate the magnitude of a captured attribute given the specified parameters. Can fail if the gameplay spec doesn't have
 	 * a valid capture for the attribute.
@@ -100,6 +103,9 @@ private:
 
 	/** Target ability system component of the execution */
 	TWeakObjectPtr<UAbilitySystemComponent> TargetAbilitySystemComponent;
+
+	/** The extra tags that were passed in to this execution */
+	FGameplayTagContainer PassedInTags;
 };
 
 /** Struct representing the output of a custom gameplay effect execution. */
@@ -164,6 +170,12 @@ class GAMEPLAYABILITIES_API UGameplayEffectExecutionCalculation : public UGamepl
 {
 	GENERATED_UCLASS_BODY()
 
+protected:
+
+	/** Used to indicate if this execution uses Passed In Tags */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Attributes)
+	bool bRequiresPassedInTags;
+
 #if WITH_EDITORONLY_DATA
 
 protected:
@@ -180,7 +192,12 @@ public:
 	 */
 	virtual void GetValidScopedModifierAttributeCaptureDefinitions(OUT TArray<FGameplayEffectAttributeCaptureDefinition>& OutScopableModifiers) const;
 
+	/** Returns if this execution requires passed in tags */
+	virtual bool DoesRequirePassedInTags() const;
+
 #endif // #if WITH_EDITORONLY_DATA
+
+public:
 
 	/**
 	 * Called whenever the owning gameplay effect is executed. Allowed to do essentially whatever is desired, including generating new

@@ -30,6 +30,7 @@ void FGameplayEffectExecutionDefinitionDetails::CustomizeHeader(TSharedRef<IProp
 void FGameplayEffectExecutionDefinitionDetails::CustomizeChildren(TSharedRef<IPropertyHandle> StructPropertyHandle, IDetailChildrenBuilder& StructBuilder, IPropertyTypeCustomizationUtils& StructCustomizationUtils)
 {
 	bShowCalculationModifiers = false;
+	bShowPassedInTags = false;
 
 	// @todo: For now, only allow single editing
 	if (StructPropertyHandle->GetNumOuterObjects() == 1)
@@ -37,6 +38,7 @@ void FGameplayEffectExecutionDefinitionDetails::CustomizeChildren(TSharedRef<IPr
 		CalculationClassPropHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectExecutionDefinition, CalculationClass));
 		TSharedPtr<IPropertyHandle> LinkedEffectsPropHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectExecutionDefinition, ConditionalGameplayEffectClasses));
 		TSharedPtr<IPropertyHandle> CalcModPropHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectExecutionDefinition, CalculationModifiers));
+		TSharedPtr<IPropertyHandle> PassedInTagsHandle = StructPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FGameplayEffectExecutionDefinition, PassedInTags));
 		CalculationModifiersArrayPropHandle = CalcModPropHandle.IsValid() ? CalcModPropHandle->AsArray() : nullptr;
 
 		if (CalculationClassPropHandle.IsValid())
@@ -55,6 +57,12 @@ void FGameplayEffectExecutionDefinitionDetails::CustomizeChildren(TSharedRef<IPr
 		if (LinkedEffectsPropHandle.IsValid())
 		{
 			StructBuilder.AddChildProperty(LinkedEffectsPropHandle.ToSharedRef());
+		}
+
+		if (PassedInTagsHandle.IsValid())
+		{
+			IDetailPropertyRow& PropRow = StructBuilder.AddChildProperty(PassedInTagsHandle.ToSharedRef());
+			PropRow.Visibility(TAttribute<EVisibility>::Create(TAttribute<EVisibility>::FGetter::CreateSP(this, &FGameplayEffectExecutionDefinitionDetails::GetPassedInTagsVisibility)));
 		}
 	}
 }
@@ -81,6 +89,9 @@ void FGameplayEffectExecutionDefinitionDetails::UpdateCalculationModifiers()
 			if (ExecutionCDO)
 			{
 				ExecutionCDO->GetValidScopedModifierAttributeCaptureDefinitions(ValidCaptureDefinitions);
+
+				// Grab this while we are at it so we know if we should show the 'Passed In Tags' property
+				bShowPassedInTags = ExecutionCDO->DoesRequirePassedInTags();
 			}
 		}
 	}
@@ -124,6 +135,11 @@ void FGameplayEffectExecutionDefinitionDetails::UpdateCalculationModifiers()
 EVisibility FGameplayEffectExecutionDefinitionDetails::GetCalculationModifierVisibility() const
 {
 	return (bShowCalculationModifiers ? EVisibility::Visible : EVisibility::Collapsed);
+}
+
+EVisibility FGameplayEffectExecutionDefinitionDetails::GetPassedInTagsVisibility() const
+{
+	return (bShowPassedInTags ? EVisibility::Visible : EVisibility::Collapsed);
 }
 
 #undef LOCTEXT_NAMESPACE

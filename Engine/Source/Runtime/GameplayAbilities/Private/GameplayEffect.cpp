@@ -1379,7 +1379,7 @@ void FActiveGameplayEffectsContainer::ExecuteActiveEffectsFrom(FGameplayEffectSp
 			check(ExecCDO);
 
 			// Run the custom execution
-			FGameplayEffectCustomExecutionParameters ExecutionParams(SpecToUse, CurExecDef.CalculationModifiers, Owner);
+			FGameplayEffectCustomExecutionParameters ExecutionParams(SpecToUse, CurExecDef.CalculationModifiers, Owner, CurExecDef.PassedInTags);
 			FGameplayEffectCustomExecutionOutput ExecutionOutput;
 			ExecCDO->Execute(ExecutionParams, ExecutionOutput);
 
@@ -2641,14 +2641,9 @@ void FActiveGameplayEffectsContainer::CheckDuration(FActiveGameplayEffectHandle 
 			}
 			else
 			{
-				// check the time remaining for the current gameplay effect duration timer
-				// if it is less than zero create a new callback with the correct time remaining
-				float TimeRemaining = TimerManager.GetTimerRemaining(Effect.DurationHandle);
-				if (TimeRemaining <= 0.f)
-				{
-					FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::CheckDurationExpired, Effect.Handle);
-					TimerManager.SetTimer(Effect.DurationHandle, Delegate, (Effect.StartWorldTime + Duration) - CurrentTime, false);
-				}
+				// Always reset the timer, since the duration might have been modified
+				FTimerDelegate Delegate = FTimerDelegate::CreateUObject(Owner, &UAbilitySystemComponent::CheckDurationExpired, Effect.Handle);
+				TimerManager.SetTimer(Effect.DurationHandle, Delegate, (Effect.StartWorldTime + Duration) - CurrentTime, false);
 			}
 
 			break;
@@ -2734,8 +2729,47 @@ TArray<float> FActiveGameplayEffectsContainer::GetActiveEffectsDuration(const FA
 	return ReturnList;
 }
 
+TArray<FActiveGameplayEffectHandle> FActiveGameplayEffectsContainer::GetActiveEffects(const FActiveGameplayEffectQuery Query) const
+{
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsGetActiveEffects);
+
+	TArray<FActiveGameplayEffectHandle> ReturnList;
+
+	for (const FActiveGameplayEffect& Effect : this)
+	{
+		if (!Query.Matches(Effect))
+		{
+			continue;
+		}
+
+		ReturnList.Add(Effect.Handle);
+	}
+
+	return ReturnList;
+}
+
+void FActiveGameplayEffectsContainer::ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff)
+{
+	SCOPE_CYCLE_COUNTER(STAT_GameplayEffectsModifyActiveEffectStartTime);
+
+	FActiveGameplayEffect* Effect = GetActiveGameplayEffect(Handle);
+
+	if (Effect)
+	{
+		Effect->StartWorldTime += StartTimeDiff;
+		Effect->StartGameStateTime = FMath::RoundToInt((float)Effect->StartGameStateTime + StartTimeDiff);
+
+		CheckDuration(Handle);
+
+		MarkItemDirty(*Effect);
+	}
+}
+
 void FActiveGameplayEffectsContainer::RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove)
 {
+	// Force a lock because the removals could cause other removals earlier in the array, so iterating backwards is not safe all by itself
+	GAMEPLAYEFFECT_SCOPE_LOCK();
+
 	// Manually iterating through in reverse because this is a removal operation
 	for (int32 idx=GetNumGameplayEffects()-1; idx >= 0; --idx)
 	{

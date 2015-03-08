@@ -1871,14 +1871,16 @@ void UAbilitySystemComponent::AbilitySpecInputReleased(FGameplayAbilitySpec& Spe
 
 void UAbilitySystemComponent::LocalInputConfirm()
 {
-	GenericLocalConfirmCallbacks.Broadcast();
+	FAbilityConfirmOrCancel Temp = GenericLocalConfirmCallbacks;
 	GenericLocalConfirmCallbacks.Clear();
+	Temp.Broadcast();
 }
 
 void UAbilitySystemComponent::LocalInputCancel()
 {	
-	GenericLocalCancelCallbacks.Broadcast();
+	FAbilityConfirmOrCancel Temp = GenericLocalCancelCallbacks;
 	GenericLocalCancelCallbacks.Clear();
+	Temp.Broadcast();
 }
 
 void UAbilitySystemComponent::TargetConfirm()

@@ -1014,6 +1014,16 @@ TArray<float> UAbilitySystemComponent::GetActiveEffectsDuration(const FActiveGam
 	return ActiveGameplayEffects.GetActiveEffectsDuration(Query);
 }
 
+TArray<FActiveGameplayEffectHandle> UAbilitySystemComponent::GetActiveEffects(const FActiveGameplayEffectQuery Query) const
+{
+	return ActiveGameplayEffects.GetActiveEffects(Query);
+}
+
+void UAbilitySystemComponent::ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff)
+{
+	ActiveGameplayEffects.ModifyActiveEffectStartTime(Handle, StartTimeDiff);
+}
+
 void UAbilitySystemComponent::RemoveActiveEffectsWithTags(const FGameplayTagContainer Tags)
 {
 	AActor *OwningActor = GetOwner();

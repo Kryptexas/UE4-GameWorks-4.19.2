@@ -334,6 +334,10 @@ struct FGameplayEffectExecutionDefinition
 	UPROPERTY(EditDefaultsOnly, Category=Execution)
 	TSubclassOf<UGameplayEffectExecutionCalculation> CalculationClass;
 	
+	/** These tags are passed into the execution as is, and may be used to do conditional logic */
+	UPROPERTY(EditDefaultsOnly, Category = Execution)
+	FGameplayTagContainer PassedInTags;
+
 	/** Modifiers that are applied "in place" during the execution calculation */
 	UPROPERTY(EditDefaultsOnly, Category = Execution)
 	TArray<FGameplayEffectExecutionScopedModifierInfo> CalculationModifiers;
@@ -1445,6 +1449,10 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	TArray<float> GetActiveEffectsTimeRemaining(const FActiveGameplayEffectQuery Query) const;
 
 	TArray<float> GetActiveEffectsDuration(const FActiveGameplayEffectQuery Query) const;
+
+	TArray<FActiveGameplayEffectHandle> GetActiveEffects(const FActiveGameplayEffectQuery Query) const;
+
+	void ModifyActiveEffectStartTime(FActiveGameplayEffectHandle Handle, float StartTimeDiff);
 
 	void RemoveActiveEffects(const FActiveGameplayEffectQuery Query, int32 StacksToRemove);
 

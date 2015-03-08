@@ -7,12 +7,14 @@
 FGameplayEffectCustomExecutionParameters::FGameplayEffectCustomExecutionParameters()
 	: OwningSpec(nullptr)
 	, TargetAbilitySystemComponent(nullptr)
+	, PassedInTags(FGameplayTagContainer())
 {
 }
 
-FGameplayEffectCustomExecutionParameters::FGameplayEffectCustomExecutionParameters(FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent)
+FGameplayEffectCustomExecutionParameters::FGameplayEffectCustomExecutionParameters(FGameplayEffectSpec& InOwningSpec, const TArray<FGameplayEffectExecutionScopedModifierInfo>& InScopedMods, UAbilitySystemComponent* InTargetAbilityComponent, const FGameplayTagContainer& InPassedInTags)
 	: OwningSpec(&InOwningSpec)
 	, TargetAbilitySystemComponent(InTargetAbilityComponent)
+	, PassedInTags(InPassedInTags)
 {
 	check(InOwningSpec.Def);
 
@@ -59,6 +61,11 @@ UAbilitySystemComponent* FGameplayEffectCustomExecutionParameters::GetSourceAbil
 {
 	check(OwningSpec);
 	return OwningSpec->GetContext().GetInstigatorAbilitySystemComponent();
+}
+
+const FGameplayTagContainer& FGameplayEffectCustomExecutionParameters::GetPassedInTags() const
+{
+	return PassedInTags;
 }
 
 bool FGameplayEffectCustomExecutionParameters::AttemptCalculateCapturedAttributeMagnitude(const FGameplayEffectAttributeCaptureDefinition& InCaptureDef, const FAggregatorEvaluateParameters& InEvalParams, OUT float& OutMagnitude) const
@@ -226,6 +233,7 @@ void FGameplayEffectCustomExecutionOutput::GetOutputModifiers(OUT TArray<FGamepl
 UGameplayEffectExecutionCalculation::UGameplayEffectExecutionCalculation(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bRequiresPassedInTags = false;
 }
 
 #if WITH_EDITORONLY_DATA
@@ -241,6 +249,11 @@ void UGameplayEffectExecutionCalculation::GetValidScopedModifierAttributeCapture
 			OutScopableModifiers.Add(CurDef);
 		}
 	}
+}
+
+bool UGameplayEffectExecutionCalculation::DoesRequirePassedInTags() const
+{
+	return bRequiresPassedInTags;
 }
 #endif // #if WITH_EDITORONLY_DATA
 
