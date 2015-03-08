@@ -474,15 +474,52 @@ bool UpdateParameterSet(TArray<ParameterType> &Parameters, UMaterial* ParentMate
 		// No reference to the material expression exists, so try to find one in the material expression's array if we are in the editor.
 		if (bTryToFindByName && GIsEditor && !FApp::IsGame())
 		{
-			for (int32 ExpressionIndex = 0; ExpressionIndex < ParentMaterial->Expressions.Num(); ExpressionIndex++)
+			for (const UMaterialExpression* Expression : ParentMaterial->Expressions)
 			{
-				ExpressionType* ParameterExpression = Cast<ExpressionType>(ParentMaterial->Expressions[ExpressionIndex]);
-
-				if (ParameterExpression && ParameterExpression->ParameterName == Parameter.ParameterName)
+				if (const ExpressionType* ParameterExpression = Cast<const ExpressionType>(Expression))
 				{
-					Parameter.ExpressionGUID = ParameterExpression->ExpressionGUID;
-					bChanged = true;
-					break;
+					if (ParameterExpression->ParameterName == Parameter.ParameterName)
+					{
+						Parameter.ExpressionGUID = ParameterExpression->ExpressionGUID;
+						bChanged = true;
+						break;
+					}
+				}
+				else if (const UMaterialExpressionMaterialFunctionCall* FunctionCall = Cast<const UMaterialExpressionMaterialFunctionCall>(Expression))
+				{
+					if (FunctionCall->MaterialFunction)
+					{
+						auto UpdateParameterSetInFunctions = [&]()
+						{
+							TArray<UMaterialFunction*> Functions;
+							Functions.Add(FunctionCall->MaterialFunction);
+							FunctionCall->MaterialFunction->GetDependentFunctions(Functions);
+
+							for (UMaterialFunction* Function : Functions)
+							{
+								for (const UMaterialExpression* FunctionExpression : Function->FunctionExpressions)
+								{
+									if (const ExpressionType* ParameterExpression = Cast<const ExpressionType>(FunctionExpression))
+									{
+										if (ParameterExpression->ParameterName == Parameter.ParameterName)
+										{
+											Parameter.ExpressionGUID = ParameterExpression->ExpressionGUID;
+											bChanged = true;
+											break;
+										}
+									}
+								}
+							}
+
+							return false;
+						};
+
+						if (UpdateParameterSetInFunctions())
+						{
+							bChanged = true;
+							break;
+						}
+					}
 				}
 			}
 		}

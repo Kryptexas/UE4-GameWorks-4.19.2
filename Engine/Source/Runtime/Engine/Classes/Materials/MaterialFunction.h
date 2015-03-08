@@ -109,14 +109,6 @@ public:
 		check(OutParameterNames.Num() == OutParameterIds.Num());
 	}
 
-	/** Searches the material function for a parameter of the given name and returns whether it was found and its value */
-	bool GetVectorParameterValue(FName ParameterName, FLinearColor& OutValue) const;
-	bool GetScalarParameterValue(FName ParameterName, float& OutValue) const;
-	bool GetTextureParameterValue(FName ParameterName, UTexture*& OutValue) const;
-	bool GetFontParameterValue(FName ParameterName, class UFont*& OutFontValue, int32& OutFontPage) const;
-	bool GetStaticSwitchParameterValue(FName ParameterName, bool& OutValue, FGuid& OutExpressionGuid) const;
-	bool GetStaticComponentMaskParameterValue(FName ParameterName, bool& OutR, bool& OutG, bool& OutB, bool& OutA, FGuid& OutExpressionGuid) const;
-
 #if WITH_EDITOR
 	ENGINE_API UMaterial* GetPreviewMaterial();
 
