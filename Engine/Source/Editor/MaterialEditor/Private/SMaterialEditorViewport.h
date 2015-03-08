@@ -72,6 +72,7 @@ public:
 	void OnSetPreviewPrimitive(EThumbnailPrimType PrimType);
 	bool IsPreviewPrimitiveChecked(EThumbnailPrimType PrimType) const;
 	void OnSetPreviewMeshFromSelection();
+	bool IsPreviewMeshFromSelectionChecked() const;
 	void TogglePreviewGrid();
 	bool IsTogglePreviewGridChecked() const;
 	void TogglePreviewBackground();
