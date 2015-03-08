@@ -686,7 +686,8 @@ void SContentBrowser::ExtendAssetViewMenu( FMenuBuilder& MenuBuilder )
 
 void SContentBrowser::ToggleShowCollections()
 {
-	return GetMutableDefault<UContentBrowserSettings>()->SetDisplayCollections(!GetDefault<UContentBrowserSettings>()->GetDisplayCollections());
+	GetMutableDefault<UContentBrowserSettings>()->SetDisplayCollections(!GetDefault<UContentBrowserSettings>()->GetDisplayCollections());
+	GetMutableDefault<UContentBrowserSettings>()->PostEditChange();
 }
 
 bool SContentBrowser::IsShowingCollections() const
