@@ -448,10 +448,8 @@ public:
 	TWeakPtr<SNotificationItem> Notification;
 };
 
-void NormalMapIdentification::HandleAssetPostImport( UFactory* InFactory, UObject* InObject )
+void NormalMapIdentification::HandleAssetPostImport( UTextureFactory* TextureFactory, UTexture* Texture )
 {
-	UTextureFactory* TextureFactory = Cast<UTextureFactory>(InFactory);
-	UTexture* Texture = Cast<UTexture>(InObject);
 	if(TextureFactory != NULL && Texture != NULL)
 	{
 		// Try to automatically identify a normal map

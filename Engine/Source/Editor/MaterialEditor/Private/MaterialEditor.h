@@ -540,6 +540,9 @@ private:
 	/** Callback to tell the Material Editor that a materials usage flags have been changed */
 	void OnMaterialUsageFlagsChanged(class UMaterial* MaterialThatChanged, int32 FlagThatChanged);
 
+	/** Callback when an asset is imported */
+	void OnAssetPostImport(UFactory* InFactory, UObject* InObject);
+
 	void OnVectorParameterDefaultChanged(class UMaterialExpression*, FName ParameterName, const FLinearColor& Value);
 	void OnScalarParameterDefaultChanged(class UMaterialExpression*, FName ParameterName, float Value);
 

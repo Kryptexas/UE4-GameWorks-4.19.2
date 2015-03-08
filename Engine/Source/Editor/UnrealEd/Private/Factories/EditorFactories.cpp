@@ -13,6 +13,7 @@
 #include "Sound/SoundNodeAttenuation.h"
 #include "Sound/SoundNodeModulator.h"
 #include "Factories.h"
+#include "NormalMapIdentification.h"
 #include "SoundDefinitions.h"
 #include "PhysicsPublic.h"
 #include "BlueprintUtilities.h"
@@ -4490,7 +4491,10 @@ UObject* UTextureFactory::FactoryCreateBinary
 		Texture2D->bHasBeenPaintedInEditor = false;
 	}
 
-	FEditorDelegates::OnAssetPostImport.Broadcast( this, Texture );
+	// Automatically detect if the texture is a normal map and configure its properties accordingly
+	NormalMapIdentification::HandleAssetPostImport(this, Texture);
+
+	FEditorDelegates::OnAssetPostImport.Broadcast(this, Texture);
 
 	// Invalidate any materials using the newly imported texture. (occurs if you import over an existing texture)
 	Texture->PostEditChange();

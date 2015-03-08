@@ -29,7 +29,6 @@
 #include "PackageTools.h"
 #include "GameProjectGenerationModule.h"
 #include "MaterialEditorActions.h"
-#include "NormalMapIdentification.h"
 #include "EngineBuildSettings.h"
 #include "SlateBasics.h"
 #include "DesktopPlatformModule.h"
@@ -199,8 +198,6 @@ void FUnrealEdMisc::OnInit()
 	FEditorDelegates::ChangeEditorMode.AddRaw(this, &FUnrealEdMisc::OnEditorChangeMode);
 	FCoreDelegates::PreModal.AddRaw(this, &FUnrealEdMisc::OnEditorPreModal);
 	FCoreDelegates::PostModal.AddRaw(this, &FUnrealEdMisc::OnEditorPostModal);
-
-	FEditorDelegates::OnAssetPostImport.AddStatic(&NormalMapIdentification::HandleAssetPostImport);
 
 	// Register the play world commands
 	FPlayWorldCommands::Register();
