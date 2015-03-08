@@ -604,7 +604,7 @@ void UExporter::ExportObjectInner(const FExportObjectInnerContext* Context, UObj
 	{
 		for (UObject* Obj : ObjectInners)
 		{
-			if (!Obj->HasAnyFlags(RF_TextExportTransient) && Obj->GetClass() != UModel::StaticClass())
+			if (!Obj->HasAnyFlags(RF_TextExportTransient))
 			{
 				// export the object
 				UExporter::ExportToOutputDevice( Context, Obj, NULL, Ar, (PortFlags & PPF_Copy) ? TEXT("Copy") : TEXT("T3D"), TextIndent, PortFlags | PPF_SeparateDeclare, false, ExportRootScope );

@@ -317,8 +317,9 @@ UModelExporterT3D::UModelExporterT3D(const FObjectInitializer& ObjectInitializer
 	bText = true;
 	PreferredFormatIndex = 0;
 	FormatExtension.Add(TEXT("T3D"));
+	FormatExtension.Add(TEXT("COPY"));
 	FormatDescription.Add(TEXT("Unreal model text"));
-
+	FormatDescription.Add(TEXT("Unreal model text"));
 }
 
 bool UModelExporterT3D::ExportText( const FExportObjectInnerContext* Context, UObject* Object, const TCHAR* Type, FOutputDevice& Ar, FFeedbackContext* Warn, uint32 PortFlags )
@@ -326,8 +327,10 @@ bool UModelExporterT3D::ExportText( const FExportObjectInnerContext* Context, UO
 	UModel* Model = CastChecked<UModel>( Object );
 
 	Ar.Logf( TEXT("%sBegin Brush Name=%s\r\n"), FCString::Spc(TextIndent), *Model->GetName() );
-		UExporter::ExportToOutputDevice( Context, Model->Polys, NULL, Ar, Type, TextIndent+3, PortFlags );
-//		ExportObjectInner( Context, Model, Ar, PortFlags | PPF_ExportsNotFullyQualified );
+	if (!(PortFlags & PPF_SeparateDeclare))
+	{
+		UExporter::ExportToOutputDevice(Context, Model->Polys, NULL, Ar, Type, TextIndent + 3, PortFlags);
+	}
 	Ar.Logf( TEXT("%sEnd Brush\r\n"), FCString::Spc(TextIndent) );
 
 	return 1;

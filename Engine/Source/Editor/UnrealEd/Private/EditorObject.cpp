@@ -221,14 +221,16 @@ static const TCHAR* ImportProperties(
 			TCHAR BrushName[NAME_SIZE];
 			if( FParse::Value( Str, TEXT("Name="), BrushName, NAME_SIZE ) )
 			{
-				// If a brush with this name already exists in the
-				// level, rename the existing one.  This is necessary
-				// because we can't rename the brush we're importing without
-				// losing our ability to associate it with the actor properties
-				// that reference it.
+				// If an initialized brush with this name already exists in the level, rename the existing one.
+				// It is deemed to be initialized if it has a non-zero poly count.
+				// If it is uninitialized, the existing object will have been created by a forward reference in the import text,
+				// and it will now be redefined.  This relies on the behavior that NewObject<> will return an existing pointer
+				// if an object with the same name and outer is passed.
 				UModel* ExistingBrush = FindObject<UModel>( SubobjectRoot, BrushName );
-				if( ExistingBrush )
+				if (ExistingBrush && ExistingBrush->Polys && ExistingBrush->Polys->Element.Num() > 0)
+				{
 					ExistingBrush->Rename();
+				}
 
 				// Create model.
 				UModelFactory* ModelFactory = NewObject<UModelFactory>();
