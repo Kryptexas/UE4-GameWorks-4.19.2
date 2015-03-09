@@ -1012,12 +1012,6 @@ namespace UnrealBuildTool
 						CustomBuildPath = Path.GetDirectoryName(UProjectFilePath) + "/Build/Mac";
 					}
 
-					if (!string.IsNullOrEmpty(CustomResourcesPath) && !string.IsNullOrEmpty(CustomBuildPath))
-					{
-						CustomResourcesPath = ConvertPath(Path.GetFullPath(CustomResourcesPath));
-						CustomBuildPath = ConvertPath(Path.GetFullPath(CustomBuildPath));
-					}
-
 					bool bBuildingEditor = GameName.EndsWith("Editor");
 
 					// Copy resources
@@ -1038,6 +1032,12 @@ namespace UnrealBuildTool
 								CustomIcon = DefaultIcon;
 							}
 						}
+
+						if (CustomIcon != DefaultIcon)
+						{
+							QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath(CustomIcon)));
+							CustomIcon = ConvertPath(CustomIcon);
+						}
 					}
 					AppendMacLine(FinalizeAppBundleScript, "cp -f \"{0}\" \"{2}.app/Contents/Resources/{1}.icns\"", CustomIcon, IconName, ExeName);
 
@@ -1050,6 +1050,11 @@ namespace UnrealBuildTool
 					if (!File.Exists(InfoPlistFile))
 					{
 						InfoPlistFile = EngineSourcePath + "/Runtime/Launch/Resources/Mac/" + (bBuildingEditor ? "Info-Editor.plist" : "Info.plist");
+					}
+					else
+					{
+						QueueFileForBatchUpload(FileItem.GetItemByFullPath(Path.GetFullPath(InfoPlistFile)));
+						InfoPlistFile = ConvertPath(InfoPlistFile);
 					}
 					AppendMacLine(FinalizeAppBundleScript, "cp -f \"{0}\" \"{1}.app/Contents/Info.plist\"", InfoPlistFile, ExeName);
 
