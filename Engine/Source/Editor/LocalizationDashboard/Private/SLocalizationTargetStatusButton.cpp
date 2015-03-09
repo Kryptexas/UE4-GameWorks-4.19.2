@@ -87,7 +87,7 @@ FReply SLocalizationTargetStatusButton::OnClicked()
 		{
 			// Generate conflict report.
 			const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
-			if (LocalizationCommandletTasks::GenerateReportsForTarget(ParentWindow.ToSharedRef(), Target->Settings))
+			if (LocalizationCommandletTasks::GenerateReportsForTarget(ParentWindow.ToSharedRef(), Target))
 			{
 				Target->UpdateStatusFromConflictReport();
 			}
@@ -98,7 +98,7 @@ FReply SLocalizationTargetStatusButton::OnClicked()
 		break;
 	case ELocalizationTargetStatus::ConflictsPresent:
 		FString ReportString;
-		if (FFileHelper::LoadFileToString(ReportString, *LocalizationConfigurationScript::GetConflictReportPath(Target->Settings)))
+		if (FFileHelper::LoadFileToString(ReportString, *LocalizationConfigurationScript::GetConflictReportPath(Target)))
 		{
 			TSharedPtr<SWindow> ReportWindow =
 				SNew(SWindow)

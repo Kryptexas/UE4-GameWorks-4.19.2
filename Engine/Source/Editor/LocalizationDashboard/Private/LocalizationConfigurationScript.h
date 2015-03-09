@@ -22,30 +22,30 @@ namespace LocalizationConfigurationScript
 {
 	FString MakePathRelativeToProjectDirectory(const FString& Path);
 
-	FString GetScriptDirectory();
-	FString GetDataDirectory(const FLocalizationTargetSettings& Target);
-	TArray<FString> GetScriptPaths(const FLocalizationTargetSettings& Target);
+	FString GetScriptDirectory(const ULocalizationTarget* const Target);
+	FString GetDataDirectory(const ULocalizationTarget* const Target);
+	TArray<FString> GetScriptPaths(const ULocalizationTarget* const Target);
 
-	FString GetManifestPath(const FLocalizationTargetSettings& Target);
-	FString GetArchivePath(const FLocalizationTargetSettings& Target, const FString& CultureName);
-	FString GetDefaultPOFileName(const FLocalizationTargetSettings& Target);
-	FString GetDefaultPOPath(const FLocalizationTargetSettings& Target, const FString& CultureName);
-	FString GetLocResPath(const FLocalizationTargetSettings& Target, const FString& CultureName);
-	FString GetWordCountCSVPath(const FLocalizationTargetSettings& Target);
-	FString GetConflictReportPath(const FLocalizationTargetSettings& Target);
+	FString GetManifestPath(const ULocalizationTarget* const Target);
+	FString GetArchivePath(const ULocalizationTarget* const Target, const FString& CultureName);
+	FString GetDefaultPOFileName(const ULocalizationTarget* const Target);
+	FString GetDefaultPOPath(const ULocalizationTarget* const Target, const FString& CultureName);
+	FString GetLocResPath(const ULocalizationTarget* const Target, const FString& CultureName);
+	FString GetWordCountCSVPath(const ULocalizationTarget* const Target);
+	FString GetConflictReportPath(const ULocalizationTarget* const Target);
 
-	FLocalizationConfigurationScript GenerateGatherScript(const FLocalizationTargetSettings& Target);
-	FString GetGatherScriptPath(const FLocalizationTargetSettings& Target);
+	FLocalizationConfigurationScript GenerateGatherScript(const ULocalizationTarget* const Target);
+	FString GetGatherScriptPath(const ULocalizationTarget* const Target);
 
-	FLocalizationConfigurationScript GenerateImportScript(const FLocalizationTargetSettings& Target, const TOptional<FString> CultureName = TOptional<FString>(), const TOptional<FString> OutputPathOverride = TOptional<FString>());
-	FString GetImportScriptPath(const FLocalizationTargetSettings& Target, const TOptional<FString> CultureName = TOptional<FString>());
+	FLocalizationConfigurationScript GenerateImportScript(const ULocalizationTarget* const Target, const TOptional<FString> CultureName = TOptional<FString>(), const TOptional<FString> OutputPathOverride = TOptional<FString>());
+	FString GetImportScriptPath(const ULocalizationTarget* const Target, const TOptional<FString> CultureName = TOptional<FString>());
 
-	FLocalizationConfigurationScript GenerateExportScript(const FLocalizationTargetSettings& Target, const TOptional<FString> CultureName = TOptional<FString>(), const TOptional<FString> OutputPathOverride = TOptional<FString>());
-	FString GetExportScriptPath(const FLocalizationTargetSettings& Target, const TOptional<FString> CultureName = TOptional<FString>());
+	FLocalizationConfigurationScript GenerateExportScript(const ULocalizationTarget* const Target, const TOptional<FString> CultureName = TOptional<FString>(), const TOptional<FString> OutputPathOverride = TOptional<FString>());
+	FString GetExportScriptPath(const ULocalizationTarget* const Target, const TOptional<FString> CultureName = TOptional<FString>());
 
-	FLocalizationConfigurationScript GenerateReportScript(const FLocalizationTargetSettings& Target);
-	FString GetReportScriptPath(const FLocalizationTargetSettings& Target);
+	FLocalizationConfigurationScript GenerateReportScript(const ULocalizationTarget* const Target);
+	FString GetReportScriptPath(const ULocalizationTarget* const Target);
 
-	FLocalizationConfigurationScript GenerateCompileScript(const FLocalizationTargetSettings& Target);
-	FString GetCompileScriptPath(const FLocalizationTargetSettings& Target);
+	FLocalizationConfigurationScript GenerateCompileScript(const ULocalizationTarget* const Target);
+	FString GetCompileScriptPath(const ULocalizationTarget* const Target);
 }

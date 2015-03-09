@@ -614,7 +614,7 @@ void FLocalizationTargetDetailCustomization::Gather()
 
 		// Execute gather.
 		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
-		LocalizationCommandletTasks::GatherTarget(ParentWindow.ToSharedRef(), LocalizationTarget->Settings);
+		LocalizationCommandletTasks::GatherTarget(ParentWindow.ToSharedRef(), LocalizationTarget.Get());
 
 		UpdateTargetFromReports();
 	}
@@ -632,7 +632,7 @@ void FLocalizationTargetDetailCustomization::ImportAllCultures()
 			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
 		}
 
-		const FString DefaultPath = FPaths::ConvertRelativePathToFull(LocalizationConfigurationScript::GetDataDirectory(LocalizationTarget->Settings));
+		const FString DefaultPath = FPaths::ConvertRelativePathToFull(LocalizationConfigurationScript::GetDataDirectory(LocalizationTarget.Get()));
 
 		FText DialogTitle;
 		{
@@ -645,7 +645,7 @@ void FLocalizationTargetDetailCustomization::ImportAllCultures()
 		FString OutputDirectory;
 		if (DesktopPlatform->OpenDirectoryDialog(ParentWindowWindowHandle, DialogTitle.ToString(), DefaultPath, OutputDirectory))
 		{
-			LocalizationCommandletTasks::ImportTarget(ParentWindow.ToSharedRef(), LocalizationTarget->Settings, TOptional<FString>(OutputDirectory));
+			LocalizationCommandletTasks::ImportTarget(ParentWindow.ToSharedRef(), LocalizationTarget.Get(), TOptional<FString>(OutputDirectory));
 
 			UpdateTargetFromReports();
 		}
@@ -664,7 +664,7 @@ void FLocalizationTargetDetailCustomization::ExportAllCultures()
 			ParentWindowWindowHandle = ParentWindow->GetNativeWindow()->GetOSWindowHandle();
 		}
 
-		const FString DefaultPath = FPaths::ConvertRelativePathToFull(LocalizationConfigurationScript::GetDataDirectory(LocalizationTarget->Settings));
+		const FString DefaultPath = FPaths::ConvertRelativePathToFull(LocalizationConfigurationScript::GetDataDirectory(LocalizationTarget.Get()));
 
 		FText DialogTitle;
 		{
@@ -677,7 +677,7 @@ void FLocalizationTargetDetailCustomization::ExportAllCultures()
 		FString OutputDirectory;
 		if (DesktopPlatform->OpenDirectoryDialog(ParentWindowWindowHandle, DialogTitle.ToString(), DefaultPath, OutputDirectory))
 		{
-			LocalizationCommandletTasks::ExportTarget(ParentWindow.ToSharedRef(), LocalizationTarget->Settings, TOptional<FString>(OutputDirectory));
+			LocalizationCommandletTasks::ExportTarget(ParentWindow.ToSharedRef(), LocalizationTarget.Get(), TOptional<FString>(OutputDirectory));
 		}
 	}
 }
@@ -688,7 +688,7 @@ void FLocalizationTargetDetailCustomization::Compile()
 	{
 		// Execute compile.
 		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
-		LocalizationCommandletTasks::CompileTarget(ParentWindow.ToSharedRef(), LocalizationTarget->Settings);
+		LocalizationCommandletTasks::CompileTarget(ParentWindow.ToSharedRef(), LocalizationTarget.Get());
 	}
 }
 
@@ -697,7 +697,7 @@ void FLocalizationTargetDetailCustomization::RefreshWordCounts()
 	if (LocalizationTarget.IsValid())
 	{
 		const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(DetailLayoutBuilder->GetDetailsView().AsShared());
-		LocalizationCommandletTasks::GenerateReportsForTarget(ParentWindow.ToSharedRef(), LocalizationTarget->Settings);
+		LocalizationCommandletTasks::GenerateReportsForTarget(ParentWindow.ToSharedRef(), LocalizationTarget.Get());
 
 		UpdateTargetFromReports();
 	}

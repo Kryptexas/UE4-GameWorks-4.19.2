@@ -170,13 +170,13 @@ void ULocalizationTarget::PostEditChangeProperty(FPropertyChangedEvent& Property
 
 bool ULocalizationTarget::UpdateWordCountsFromCSV()
 {
-	const FString CSVFilePath = LocalizationConfigurationScript::GetWordCountCSVPath(Settings);
+	const FString CSVFilePath = LocalizationConfigurationScript::GetWordCountCSVPath(this);
 	return FWordCountCSVParser::Execute(Settings, CSVFilePath);
 }
 
 void ULocalizationTarget::UpdateStatusFromConflictReport()
 {
-	const FString ConflictReportFilePath = LocalizationConfigurationScript::GetConflictReportPath(Settings);
+	const FString ConflictReportFilePath = LocalizationConfigurationScript::GetConflictReportPath(this);
 	const int64 ConflictReportFileSize = IFileManager::Get().FileSize(*ConflictReportFilePath);
 
 	switch (ConflictReportFileSize)
@@ -243,7 +243,7 @@ bool ULocalizationTarget::RenameTargetAndFiles(const FString& NewName)
 	};
 
 	// Delete configuration files.
-	const TArray<FString>& ScriptPaths = LocalizationConfigurationScript::GetScriptPaths(Settings);
+	const TArray<FString>& ScriptPaths = LocalizationConfigurationScript::GetScriptPaths(this);
 	for (const FString& ScriptPath : ScriptPaths)
 	{
 		if (!TryDelete(ScriptPath))
@@ -254,9 +254,9 @@ bool ULocalizationTarget::RenameTargetAndFiles(const FString& NewName)
 
 	const auto& GetNamedPaths = [this](TArray<FString>& NamedPaths)
 	{
-		NamedPaths.Add(LocalizationConfigurationScript::GetManifestPath(Settings));
-		NamedPaths.Add(LocalizationConfigurationScript::GetWordCountCSVPath(Settings));
-		NamedPaths.Add(LocalizationConfigurationScript::GetConflictReportPath(Settings));
+		NamedPaths.Add(LocalizationConfigurationScript::GetManifestPath(this));
+		NamedPaths.Add(LocalizationConfigurationScript::GetWordCountCSVPath(this));
+		NamedPaths.Add(LocalizationConfigurationScript::GetConflictReportPath(this));
 
 		TArray<const FCultureStatistics*> Cultures;
 		Cultures.Add(&Settings.NativeCultureStatistics);
@@ -267,12 +267,12 @@ bool ULocalizationTarget::RenameTargetAndFiles(const FString& NewName)
 
 		for (const FCultureStatistics* Culture : Cultures)
 		{
-			NamedPaths.Add(LocalizationConfigurationScript::GetArchivePath(Settings, Culture->CultureName));
-			NamedPaths.Add(LocalizationConfigurationScript::GetDefaultPOPath(Settings, Culture->CultureName));
-			NamedPaths.Add(LocalizationConfigurationScript::GetLocResPath(Settings, Culture->CultureName));
+			NamedPaths.Add(LocalizationConfigurationScript::GetArchivePath(this, Culture->CultureName));
+			NamedPaths.Add(LocalizationConfigurationScript::GetDefaultPOPath(this, Culture->CultureName));
+			NamedPaths.Add(LocalizationConfigurationScript::GetLocResPath(this, Culture->CultureName));
 		}
 
-		NamedPaths.Add(LocalizationConfigurationScript::GetDataDirectory(Settings));
+		NamedPaths.Add(LocalizationConfigurationScript::GetDataDirectory(this));
 	};
 
 	TArray<FString> OldPaths;
@@ -333,17 +333,17 @@ bool ULocalizationTarget::RenameTargetAndFiles(const FString& NewName)
 	}
 
 	// Generate new configuration files.
-	LocalizationConfigurationScript::GenerateGatherScript(Settings).Write(LocalizationConfigurationScript::GetGatherScriptPath(Settings));
-	LocalizationConfigurationScript::GenerateImportScript(Settings).Write(LocalizationConfigurationScript::GetImportScriptPath(Settings));
-	LocalizationConfigurationScript::GenerateExportScript(Settings).Write(LocalizationConfigurationScript::GetExportScriptPath(Settings));
-	LocalizationConfigurationScript::GenerateReportScript(Settings).Write(LocalizationConfigurationScript::GetReportScriptPath(Settings));
+	LocalizationConfigurationScript::GenerateGatherScript(this).Write(LocalizationConfigurationScript::GetGatherScriptPath(this));
+	LocalizationConfigurationScript::GenerateImportScript(this).Write(LocalizationConfigurationScript::GetImportScriptPath(this));
+	LocalizationConfigurationScript::GenerateExportScript(this).Write(LocalizationConfigurationScript::GetExportScriptPath(this));
+	LocalizationConfigurationScript::GenerateReportScript(this).Write(LocalizationConfigurationScript::GetReportScriptPath(this));
 
 	//if (CanUseSourceControl)
 	//{
-	//	HasCompletelySucceeded = HasCompletelySucceeded && SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), *LocalizationConfigurationScript::GetGatherScriptPath(Settings)) == ECommandResult::Succeeded;
-	//	HasCompletelySucceeded = HasCompletelySucceeded && SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), *LocalizationConfigurationScript::GetImportScriptPath(Settings)) == ECommandResult::Succeeded;
-	//	HasCompletelySucceeded = HasCompletelySucceeded && SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), *LocalizationConfigurationScript::GetExportScriptPath(Settings)) == ECommandResult::Succeeded;
-	//	HasCompletelySucceeded = HasCompletelySucceeded && SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), *LocalizationConfigurationScript::GetReportScriptPath(Settings)) == ECommandResult::Succeeded;
+	//	HasCompletelySucceeded = HasCompletelySucceeded && SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), *LocalizationConfigurationScript::GetGatherScriptPath(this)) == ECommandResult::Succeeded;
+	//	HasCompletelySucceeded = HasCompletelySucceeded && SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), *LocalizationConfigurationScript::GetImportScriptPath(this)) == ECommandResult::Succeeded;
+	//	HasCompletelySucceeded = HasCompletelySucceeded && SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), *LocalizationConfigurationScript::GetExportScriptPath(this)) == ECommandResult::Succeeded;
+	//	HasCompletelySucceeded = HasCompletelySucceeded && SourceControlProvider.Execute(ISourceControlOperation::Create<FMarkForAdd>(), *LocalizationConfigurationScript::GetReportScriptPath(this)) == ECommandResult::Succeeded;
 	//}
 
 	return HasCompletelySucceeded;
@@ -355,7 +355,7 @@ bool ULocalizationTarget::DeleteFiles(const FString* const Culture) const
 	ISourceControlModule& SourceControl = ISourceControlModule::Get();
 	ISourceControlProvider& SourceControlProvider = SourceControl.GetProvider();
 
-	const FString DataDirectory = LocalizationConfigurationScript::GetDataDirectory(Settings) + (Culture ? *Culture : FString());
+	const FString DataDirectory = LocalizationConfigurationScript::GetDataDirectory(this) + (Culture ? *Culture : FString());
 
 	// Remove data files from source control.
 	{
@@ -399,7 +399,7 @@ bool ULocalizationTarget::DeleteFiles(const FString* const Culture) const
 	// Delete configuration files if deleting the target.
 	if (!Culture)
 	{
-		const TArray<FString>& ScriptPaths = LocalizationConfigurationScript::GetScriptPaths(Settings);
+		const TArray<FString>& ScriptPaths = LocalizationConfigurationScript::GetScriptPaths(this);
 
 		// Remove script files from source control.
 		{
