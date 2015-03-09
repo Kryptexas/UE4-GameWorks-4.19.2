@@ -112,10 +112,17 @@ public:
 			ShadowBoundingSphereValue = FVector4(ProjectedShadowInfo->PreShadowTranslation, 0);
 		}
 
-		check(NumPlanes < 12);
-		SetShaderValue(RHICmdList, ShaderRHI, NumShadowHullPlanes, NumPlanes);
+		if (NumPlanes <= 12)
+		{
+			SetShaderValue(RHICmdList, ShaderRHI, NumShadowHullPlanes, NumPlanes);
+			SetShaderValueArray(RHICmdList, ShaderRHI, ShadowConvexHull, PlaneData, NumPlanes);
+		}
+		else
+		{
+			SetShaderValue(RHICmdList, ShaderRHI, NumShadowHullPlanes, 0);
+		}
+
 		SetShaderValue(RHICmdList, ShaderRHI, ShadowBoundingSphere, ShadowBoundingSphereValue);
-		SetShaderValueArray(RHICmdList, ShaderRHI, ShadowConvexHull, PlaneData, NumPlanes);
 	}
 
 	void UnsetParameters(FRHICommandList& RHICmdList)
