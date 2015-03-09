@@ -12,7 +12,7 @@ struct FEnvQueryInstance;
  * Currently it's available only from code
  */
 
-UCLASS(MinimalAPI)
+UCLASS(MinimalAPI, meta = (HiddenNode))
 class UEnvQueryGenerator_Composite : public UEnvQueryGenerator
 {
 	GENERATED_UCLASS_BODY()
