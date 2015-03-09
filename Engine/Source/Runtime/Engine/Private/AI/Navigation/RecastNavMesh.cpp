@@ -1254,12 +1254,13 @@ bool ARecastNavMesh::GetClusterBounds(NavNodeRef ClusterRef, FBox& OutBounds) co
 	return bSuccess;
 }
 
-bool ARecastNavMesh::GetPolysWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, TArray<NavNodeRef>& FoundPolys, TSharedPtr<const FNavigationQueryFilter> Filter, const UObject* QueryOwner) const
+bool ARecastNavMesh::GetPolysWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, TArray<NavNodeRef>& FoundPolys,
+	TSharedPtr<const FNavigationQueryFilter> Filter, const UObject* QueryOwner, FRecastDebugPathfindingData* DebugData) const
 {
 	bool bSuccess = false;
 	if (RecastNavMeshImpl)
 	{
-		bSuccess = RecastNavMeshImpl->GetPolysWithinPathingDistance(StartLoc, PathingDistance, GetRightFilterRef(Filter), QueryOwner, FoundPolys);
+		bSuccess = RecastNavMeshImpl->GetPolysWithinPathingDistance(StartLoc, PathingDistance, GetRightFilterRef(Filter), QueryOwner, FoundPolys, DebugData);
 	}
 
 	return bSuccess;
@@ -1812,7 +1813,7 @@ bool ARecastNavMesh::FindStraightPath(const FVector& StartLoc, const FVector& En
 	return bResult;
 }
 
-int32 ARecastNavMesh::DebugPathfinding(const FPathFindingQuery& Query, TArray<FRecastDebugPathfindingStep>& Steps)
+int32 ARecastNavMesh::DebugPathfinding(const FPathFindingQuery& Query, TArray<FRecastDebugPathfindingData>& Steps)
 {
 	int32 NumSteps = 0;
 

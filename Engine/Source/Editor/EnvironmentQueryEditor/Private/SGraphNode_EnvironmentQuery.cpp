@@ -84,6 +84,11 @@ FSlateColor SGraphNode_EnvironmentQuery::GetBackgroundColor() const
 		}
 	}
 
+	if (MyNode->HasErrors())
+	{
+		NodeColor = EnvironmentQueryColors::NodeBody::Error;
+	}
+
 	return NodeColor;
 }
 

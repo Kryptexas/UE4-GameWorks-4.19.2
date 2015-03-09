@@ -9,10 +9,14 @@ class UEnvironmentQueryGraph : public UAIGraph
 {
 	GENERATED_UCLASS_BODY()
 
+	virtual void Initialize() override;
+	virtual void OnLoaded() override;
 	virtual void UpdateVersion() override;
 	virtual void MarkVersion() override;
 	virtual void UpdateAsset(int32 UpdateFlags = 0) override;
 
+	void UpdateDeprecatedGeneratorClasses();
+	void SpawnMissingNodes();
 	void CalculateAllWeights();
 	void CreateEnvQueryFromGraph(class UEnvironmentQueryGraphNode* RootEdNode);
 

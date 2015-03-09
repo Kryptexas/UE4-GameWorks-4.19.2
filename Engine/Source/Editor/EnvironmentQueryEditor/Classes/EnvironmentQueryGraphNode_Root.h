@@ -9,4 +9,5 @@ class UEnvironmentQueryGraphNode_Root : public UEnvironmentQueryGraphNode
 
 	virtual void AllocateDefaultPins() override;
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
+	virtual bool HasErrors() const override { return false; }
 };

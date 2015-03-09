@@ -11,6 +11,10 @@ class AIGRAPH_API UAIGraph : public UEdGraph
 	UPROPERTY()
 	int32 GraphVersion;
 
+	virtual void OnCreated();
+	virtual void OnLoaded();
+	virtual void Initialize();
+
 	virtual void UpdateAsset(int32 UpdateFlags = 0);
 	virtual void UpdateVersion();
 	virtual void MarkVersion();
@@ -18,6 +22,7 @@ class AIGRAPH_API UAIGraph : public UEdGraph
 	virtual void OnSubNodeDropped();
 
 	bool UpdateUnknownNodeClasses();
+	void UpdateDeprecatedClasses();
 	void RemoveOrphanedNodes();
 
 	bool IsLocked() const;

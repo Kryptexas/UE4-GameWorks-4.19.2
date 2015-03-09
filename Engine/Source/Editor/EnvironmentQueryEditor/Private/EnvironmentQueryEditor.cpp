@@ -49,6 +49,7 @@ void FEnvironmentQueryEditor::UnregisterTabSpawners(const TSharedRef<class FTabM
 
 void FEnvironmentQueryEditor::InitEnvironmentQueryEditor( const EToolkitMode::Type Mode, const TSharedPtr< class IToolkitHost >& InitToolkitHost, UEnvQuery* InScript )
 {
+	SelectedNodesCount = 0;
 	Query = InScript;
 	check(Query != NULL);
 
@@ -166,22 +167,24 @@ TSharedRef<SGraphEditor> FEnvironmentQueryEditor::CreateGraphEditorWidget(UEdGra
 TSharedRef<SDockTab> FEnvironmentQueryEditor::SpawnTab_UpdateGraph( const FSpawnTabArgs& Args )
 {
 	check( Args.GetTabId().TabType == EQSUpdateGraphTabId );
+	UEnvironmentQueryGraph* MyGraph = Cast<UEnvironmentQueryGraph>(Query->EdGraph);
 	if (Query->EdGraph == NULL)
 	{
-		UEnvironmentQueryGraph* MyGraph = NewObject<UEnvironmentQueryGraph>(Query, NAME_None, RF_Transactional);
-		MyGraph->MarkVersion();
-
+		MyGraph = NewObject<UEnvironmentQueryGraph>(Query, NAME_None, RF_Transactional);
 		Query->EdGraph = MyGraph;
 
 		// let's read data from BT script and generate nodes
 		const UEdGraphSchema* Schema = Query->EdGraph->GetSchema();
 		Schema->CreateDefaultNodesForGraph(*Query->EdGraph);
+
+		MyGraph->OnCreated();
+	}
+	else
+	{
+		MyGraph->OnLoaded();
 	}
 
-	// Conversion should be removed are a while
-	UEnvironmentQueryGraph* QueryGraph = Cast<UEnvironmentQueryGraph>(Query->EdGraph);
-	QueryGraph->UpdateVersion();
-	QueryGraph->CalculateAllWeights();
+	MyGraph->Initialize();
 
 	TSharedRef<SGraphEditor> UpdateGraphEditor = CreateGraphEditorWidget(Query->EdGraph);
 	UpdateGraphEdPtr = UpdateGraphEditor; // Keep pointer to editor

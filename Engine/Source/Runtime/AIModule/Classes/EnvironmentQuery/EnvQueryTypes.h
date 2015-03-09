@@ -523,7 +523,10 @@ struct AIMODULE_API FEnvQueryOptionInstance
 	TSubclassOf<UEnvQueryItemType> ItemType;
 
 	/** if set, items will be shuffled after tests */
-	bool bShuffleItems;
+	uint32 bShuffleItems : 1;
+
+	/** if set, items will be shuffled after tests */
+	uint32 bHasNavLocations : 1;
 
 	FORCEINLINE uint32 GetAllocatedSize() const { return sizeof(*this) + Tests.GetAllocatedSize(); }
 };
@@ -858,6 +861,11 @@ public:
 		void SkipItem()
 		{
 			bSkipped++;
+		}
+
+		void IgnoreTimeLimit()
+		{
+			Deadline = -1.0f;
 		}
 
 		operator bool() const

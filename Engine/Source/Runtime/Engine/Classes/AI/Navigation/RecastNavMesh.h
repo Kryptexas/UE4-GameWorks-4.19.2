@@ -219,6 +219,7 @@ struct FRecastDebugPathfindingNode
 	NavNodeRef ParentRef;
 	float Cost;
 	float TotalCost;
+	float Length;
 	uint32 bOpenSet : 1;
 	uint32 bOffMeshLink : 1;
 	uint32 bModified : 1;
@@ -226,16 +227,35 @@ struct FRecastDebugPathfindingNode
 	FVector NodePos;
 	TArray<FVector> Verts;
 
+	FRecastDebugPathfindingNode() : PolyRef(0), ParentRef(0) {}
+	FRecastDebugPathfindingNode(NavNodeRef InPolyRef) : PolyRef(InPolyRef), ParentRef(0) {}
+
+	FORCEINLINE bool operator==(const NavNodeRef& OtherPolyRef) const { return PolyRef == OtherPolyRef; }
 	FORCEINLINE bool operator==(const FRecastDebugPathfindingNode& Other) const { return PolyRef == Other.PolyRef; }
 	FORCEINLINE friend uint32 GetTypeHash(const FRecastDebugPathfindingNode& Other) { return Other.PolyRef; }
 
 	FORCEINLINE float GetHeuristicCost() const { return TotalCost - Cost; }
 };
 
-struct FRecastDebugPathfindingStep
+namespace ERecastDebugPathfindingFlags
+{
+	enum Type
+	{
+		Basic = 0x0,
+		BestNode = 0x1,
+		Vertices = 0x2,
+		PathLength = 0x4
+	};
+}
+
+struct FRecastDebugPathfindingData
 {
 	TSet<FRecastDebugPathfindingNode> Nodes;
 	FSetElementId BestNode;
+	uint8 Flags;
+
+	FRecastDebugPathfindingData() : Flags(ERecastDebugPathfindingFlags::Basic) {}
+	FRecastDebugPathfindingData(ERecastDebugPathfindingFlags::Type InFlags) : Flags(InFlags) {}
 };
 
 struct FRecastDebugGeometry
@@ -845,7 +865,8 @@ public:
 	 *	@NOTE query is not using string-pulled path distance (for performance reasons),
 	 *		it measured distance between middles of portal edges, do you might want to 
 	 *		add an extra margin to PathingDistance */
-	bool GetPolysWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, TArray<NavNodeRef>& FoundPolys, TSharedPtr<const FNavigationQueryFilter> Filter = NULL, const UObject* Querier = NULL) const;
+	bool GetPolysWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, TArray<NavNodeRef>& FoundPolys,
+		TSharedPtr<const FNavigationQueryFilter> Filter = nullptr, const UObject* Querier = nullptr, FRecastDebugPathfindingData* DebugData = nullptr) const;
 
 	/** Filters nav polys in PolyRefs with Filter */
 	bool FilterPolys(TArray<NavNodeRef>& PolyRefs, const FRecastQueryFilter* Filter, const UObject* Querier = NULL) const;
@@ -881,7 +902,7 @@ public:
 	bool FindStraightPath(const FVector& StartLoc, const FVector& EndLoc, const TArray<NavNodeRef>& PathCorridor, TArray<FNavPathPoint>& PathPoints, TArray<uint32>* CustomLinks = NULL) const;
 
 	/** Runs A* pathfinding on navmesh and collect data for every step */
-	int32 DebugPathfinding(const FPathFindingQuery& Query, TArray<FRecastDebugPathfindingStep>& Steps);
+	int32 DebugPathfinding(const FPathFindingQuery& Query, TArray<FRecastDebugPathfindingData>& Steps);
 
 	static const FRecastQueryFilter* GetNamedFilter(ERecastNamedFilter::Type FilterType);
 	FORCEINLINE static FNavPolyFlags GetNavLinkFlag() { return NavLinkFlag; }

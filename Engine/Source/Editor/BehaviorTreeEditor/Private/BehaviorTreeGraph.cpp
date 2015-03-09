@@ -148,6 +148,26 @@ void UBehaviorTreeGraph::UpdateAsset(int32 UpdateFlags)
 	}
 }
 
+void UBehaviorTreeGraph::OnCreated()
+{
+	Super::OnCreated();
+	SpawnMissingNodes();
+}
+
+void UBehaviorTreeGraph::OnLoaded()
+{
+	Super::OnLoaded();
+	UpdatePinConnectionTypes();
+	UpdateDeprecatedNodes();
+}
+
+void UBehaviorTreeGraph::Initialize()
+{
+	Super::Initialize();
+	UpdateBlackboardChange();
+	UpdateInjectedNodes();
+}
+
 void UBehaviorTreeGraph::UpdatePinConnectionTypes()
 {
 	for (int32 Index = 0; Index < Nodes.Num(); ++Index)
@@ -207,28 +227,6 @@ void UBehaviorTreeGraph::UpdateDeprecatedNodes()
 
 				ReplaceNodeConnections(Node, NewNode);
 				Nodes[Index] = NewNode;
-				Node = NewNode;
-			}
-
-			if (Node->NodeInstance)
-			{
-				Node->ErrorMessage = FGraphNodeClassHelper::GetDeprecationMessage(Node->NodeInstance->GetClass());
-			}
-
-			for (int32 i = 0; i < Node->Decorators.Num(); i++)
-			{
-				if (Node->Decorators[i] && Node->Decorators[i]->NodeInstance)
-				{
-					Node->Decorators[i]->ErrorMessage = FGraphNodeClassHelper::GetDeprecationMessage(Node->Decorators[i]->NodeInstance->GetClass());
-				}
-			}
-
-			for (int32 i = 0; i < Node->Services.Num(); i++)
-			{
-				if (Node->Services[i] && Node->Services[i]->NodeInstance)
-				{
-					Node->Services[i]->ErrorMessage = FGraphNodeClassHelper::GetDeprecationMessage(Node->Services[i]->NodeInstance->GetClass());
-				}
 			}
 		}
 	}

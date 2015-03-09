@@ -71,5 +71,5 @@ protected:
 		int32 StepsCount, float AngleStep, FEnvQueryInstance& OutQueryInstance) const;
 
 	virtual void AddItemDataForCircle(uint8* ContextRawData, UEnvQueryItemType* ContextItemType, 
-		const TArray<FVector>& Locations, FEnvQueryInstance& OutQueryInstance) const;
+		const TArray<FNavLocation>& Locations, FEnvQueryInstance& OutQueryInstance) const;
 };

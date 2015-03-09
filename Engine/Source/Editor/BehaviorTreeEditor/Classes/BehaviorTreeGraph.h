@@ -24,6 +24,10 @@ class UBehaviorTreeGraph : public UAIGraph
 	UPROPERTY()
 	bool bIsUsingModCounter;
 
+	virtual void OnCreated() override;
+	virtual void OnLoaded() override;
+	virtual void Initialize() override;
+
 	virtual void UpdateVersion() override;
 	virtual void MarkVersion() override;
 	virtual void UpdateAsset(int32 UpdateFlags = 0) override;

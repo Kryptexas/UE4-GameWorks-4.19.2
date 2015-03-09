@@ -38,9 +38,9 @@ class UEnvQueryTest_Pathfinding : public UEnvQueryTest
 	UPROPERTY(EditDefaultsOnly, Category=Pathfinding, AdvancedDisplay)
 	FAIDataProviderBoolValue SkipUnreachable;
 
-	/** if set, hierarchical (faster) pathfinding will be used */
-	UPROPERTY(EditDefaultsOnly, Category=Pathfinding, AdvancedDisplay)
-	FAIDataProviderBoolValue UseHierarchicalPathfinding;
+	/** navigation filter to use in pathfinding */
+	UPROPERTY(EditDefaultsOnly, Category=Pathfinding)
+	TSubclassOf<UNavigationQueryFilter> FilterClass;
 
 	// BEGIN: deprecated properties 
 	UPROPERTY()

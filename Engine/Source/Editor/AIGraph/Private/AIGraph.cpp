@@ -13,6 +13,22 @@ void UAIGraph::UpdateAsset(int32 UpdateFlags)
 	// empty in base class
 }
 
+void UAIGraph::OnCreated()
+{
+	MarkVersion();
+}
+
+void UAIGraph::OnLoaded()
+{
+	UpdateDeprecatedClasses();
+	UpdateUnknownNodeClasses();
+}
+
+void UAIGraph::Initialize()
+{
+	UpdateVersion();
+}
+
 void UAIGraph::UpdateVersion()
 {
 	if (GraphVersion == 1)
@@ -49,6 +65,29 @@ bool UAIGraph::UpdateUnknownNodeClasses()
 	}
 
 	return bUpdated;
+}
+
+void UAIGraph::UpdateDeprecatedClasses()
+{
+	for (int32 Idx = 0; Idx < Nodes.Num(); Idx++)
+	{
+		UAIGraphNode* Node = Cast<UAIGraphNode>(Nodes[Idx]);
+		if (Node)
+		{
+			if (Node->NodeInstance)
+			{
+				Node->ErrorMessage = FGraphNodeClassHelper::GetDeprecationMessage(Node->NodeInstance->GetClass());
+			}
+
+			for (int32 SubIdx = 0; SubIdx < Node->SubNodes.Num(); SubIdx++)
+			{
+				if (Node->SubNodes[SubIdx] && Node->SubNodes[SubIdx]->NodeInstance)
+				{
+					Node->SubNodes[SubIdx]->ErrorMessage = FGraphNodeClassHelper::GetDeprecationMessage(Node->SubNodes[SubIdx]->NodeInstance->GetClass());
+				}
+			}
+		}
+	}
 }
 
 void UAIGraph::CollectAllNodeInstances(TSet<UObject*>& NodeInstances)

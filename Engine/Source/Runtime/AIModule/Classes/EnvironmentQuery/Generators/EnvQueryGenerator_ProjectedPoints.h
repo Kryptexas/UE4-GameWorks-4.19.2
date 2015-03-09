@@ -1,7 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
-#include "AI/Navigation/RecastNavMesh.h"
+#include "AI/Navigation/NavigationData.h"
 #include "EnvironmentQuery/EnvQueryGenerator.h"
 #include "EnvironmentQuery/EnvQueryTypes.h"
 #include "EnvQueryGenerator_ProjectedPoints.generated.h"
@@ -14,7 +14,7 @@ class UEnvQueryGenerator_ProjectedPoints : public UEnvQueryGenerator
 	GENERATED_UCLASS_BODY()
 
 	/** trace params */
-	UPROPERTY(EditDefaultsOnly, Category=Generator)
+	UPROPERTY(EditDefaultsOnly, Category = Generator)
 	FEnvTraceData ProjectionData;
 
 	struct FSortByHeight
@@ -30,5 +30,8 @@ class UEnvQueryGenerator_ProjectedPoints : public UEnvQueryGenerator
 	};
 
 	/** project all points in array and remove those outside navmesh */
-	void ProjectAndFilterNavPoints(TArray<FVector>& Points, const ANavigationData* NavData) const;
+	void ProjectAndFilterNavPoints(TArray<FNavLocation>& Points, FEnvQueryInstance& QueryInstance) const;
+
+	/** store points as generator's result */
+	void StoreNavPoints(const TArray<FNavLocation>& Points, FEnvQueryInstance& QueryInstance) const;
 };

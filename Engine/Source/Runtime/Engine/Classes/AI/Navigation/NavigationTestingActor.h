@@ -138,7 +138,7 @@ public:
 
 #if WITH_RECAST && WITH_EDITORONLY_DATA
 	/** detail data gathered from each step of regular A* algorithm */
-	TArray<struct FRecastDebugPathfindingStep> DebugSteps;
+	TArray<struct FRecastDebugPathfindingData> DebugSteps;
 
 	FNavTestTickHelper* TickHelper;
 #endif

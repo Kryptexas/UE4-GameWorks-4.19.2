@@ -190,6 +190,13 @@ void FEnvQueryInstance::ExecuteOneStep(double InTimeLimit)
 
 	check(IsFinished() == false);
 
+	if (!Options.IsValidIndex(OptionIndex))
+	{
+		NumValidItems = 0;
+		FinalizeQuery();
+		return;
+	}
+
 	FEnvQueryOptionInstance& OptionItem = Options[OptionIndex];
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EQS_GeneratorTime, CurrentTest < 0);
 	CONDITIONAL_SCOPE_CYCLE_COUNTER(STAT_AI_EQS_TestTime, CurrentTest >= 0);

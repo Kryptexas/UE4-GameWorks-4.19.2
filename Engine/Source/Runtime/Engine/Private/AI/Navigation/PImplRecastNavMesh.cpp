@@ -1133,7 +1133,7 @@ bool FPImplRecastNavMesh::FindStraightPath(const FVector& StartLoc, const FVecto
 	return bResult;
 }
 
-static bool IsDebugNodeModified(const FRecastDebugPathfindingNode& NodeData, const FRecastDebugPathfindingStep& PreviousStep)
+static bool IsDebugNodeModified(const FRecastDebugPathfindingNode& NodeData, const FRecastDebugPathfindingData& PreviousStep)
 {
 	const FRecastDebugPathfindingNode* PrevNodeData = PreviousStep.Nodes.Find(NodeData);
 	if (PrevNodeData)
@@ -1150,11 +1150,27 @@ static bool IsDebugNodeModified(const FRecastDebugPathfindingNode& NodeData, con
 	return true;
 }
 
-static void StorePathfindingDebugStep(const dtNavMeshQuery& NavQuery, const dtNavMesh* NavMesh, TArray<FRecastDebugPathfindingStep>& Steps)
+static void StorePathfindingDebugLength(FRecastDebugPathfindingNode& Node, FRecastDebugPathfindingData& Data)
 {
-	const int StepIdx = Steps.AddZeroed(1);
-	FRecastDebugPathfindingStep& StepInfo = Steps[StepIdx];
-	
+	if (Node.Length >= 0.0f)
+	{
+		return;
+	}
+
+	FRecastDebugPathfindingNode* ParentNode = Data.Nodes.Find(FRecastDebugPathfindingNode(Node.ParentRef));
+	if (ParentNode)
+	{
+		StorePathfindingDebugLength(*ParentNode, Data);
+		Node.Length = ParentNode->Length + FVector::Dist(Node.NodePos, ParentNode->NodePos);
+	}
+	else
+	{
+		Node.Length = 0.0f;
+	}
+}
+
+static void StorePathfindingDebugData(const dtNavMeshQuery& NavQuery, const dtNavMesh* NavMesh, FRecastDebugPathfindingData& Data)
+{
 	dtNode* BestNode = 0;
 	float BestNodeCost = 0.0f;
 	NavQuery.getCurrentBestResult(BestNode, BestNodeCost);
@@ -1163,12 +1179,13 @@ static void StorePathfindingDebugStep(const dtNavMeshQuery& NavQuery, const dtNa
 	for (int32 i = 0; i < NodePool->getNodeCount(); i++)
 	{
 		const dtNode* Node = NodePool->getNodeAtIdx(i + 1);
-		
+
 		FRecastDebugPathfindingNode NodeInfo;
 		NodeInfo.PolyRef = Node->id;
 		NodeInfo.ParentRef = Node->pidx ? NodePool->getNodeAtIdx(Node->pidx)->id : 0;
 		NodeInfo.Cost = Node->cost;
 		NodeInfo.TotalCost = Node->total;
+		NodeInfo.Length = -1.0f;
 		NodeInfo.bOpenSet = !NavQuery.isInClosedList(Node->id);
 		NodeInfo.bModified = true;
 		NodeInfo.NodePos = Recast2UnrealPoint(&Node->pos[0]);
@@ -1178,21 +1195,42 @@ static void StorePathfindingDebugStep(const dtNavMeshQuery& NavQuery, const dtNa
 		NavMesh->getTileAndPolyByRef(Node->id, &NavTile, &NavPoly);
 
 		NodeInfo.bOffMeshLink = NavPoly ? (NavPoly->getType() != DT_POLYTYPE_GROUND) : false;
-		for (int32 iv = 0; iv < NavPoly->vertCount; iv++)
+		if (Data.Flags & ERecastDebugPathfindingFlags::Vertices)
 		{
-			NodeInfo.Verts.Add(Recast2UnrealPoint(&NavTile->verts[NavPoly->verts[iv] * 3]));
+			for (int32 iv = 0; iv < NavPoly->vertCount; iv++)
+			{
+				NodeInfo.Verts.Add(Recast2UnrealPoint(&NavTile->verts[NavPoly->verts[iv] * 3]));
+			}
 		}
 
-		FSetElementId NodeId = StepInfo.Nodes.Add(NodeInfo);
-		if (Node == BestNode)
+		FSetElementId SetId = Data.Nodes.Add(NodeInfo);
+		if (Node == BestNode && (Data.Flags & ERecastDebugPathfindingFlags::BestNode))
 		{
-			StepInfo.BestNode = NodeId;
+			Data.BestNode = SetId;
 		}
 	}
 
+	if (Data.Flags & ERecastDebugPathfindingFlags::PathLength)
+	{
+		for (TSet<FRecastDebugPathfindingNode>::TIterator It(Data.Nodes); It; ++It)
+		{
+			FRecastDebugPathfindingNode& Node = *It;
+			StorePathfindingDebugLength(Node, Data);
+		}
+	}
+}
+
+static void StorePathfindingDebugStep(const dtNavMeshQuery& NavQuery, const dtNavMesh* NavMesh, TArray<FRecastDebugPathfindingData>& Steps)
+{
+	const int StepIdx = Steps.AddZeroed(1);
+	FRecastDebugPathfindingData& StepInfo = Steps[StepIdx];
+	StepInfo.Flags = ERecastDebugPathfindingFlags::BestNode | ERecastDebugPathfindingFlags::Vertices;
+	
+	StorePathfindingDebugData(NavQuery, NavMesh, StepInfo);
+
 	if (Steps.Num() > 1)
 	{
-		FRecastDebugPathfindingStep& PrevStepInfo = Steps[StepIdx - 1];
+		FRecastDebugPathfindingData& PrevStepInfo = Steps[StepIdx - 1];
 		for (TSet<FRecastDebugPathfindingNode>::TIterator It(StepInfo.Nodes); It; ++It)
 		{
 			FRecastDebugPathfindingNode& NodeData = *It;
@@ -1201,7 +1239,7 @@ static void StorePathfindingDebugStep(const dtNavMeshQuery& NavQuery, const dtNa
 	}
 }
 
-int32 FPImplRecastNavMesh::DebugPathfinding(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& Filter, const UObject* Owner, TArray<FRecastDebugPathfindingStep>& Steps)
+int32 FPImplRecastNavMesh::DebugPathfinding(const FVector& StartLoc, const FVector& EndLoc, const FNavigationQueryFilter& Filter, const UObject* Owner, TArray<FRecastDebugPathfindingData>& Steps)
 {
 	int32 NumSteps = 0;
 
@@ -1475,7 +1513,9 @@ NavNodeRef FPImplRecastNavMesh::FindNearestPoly(FVector const& Loc, FVector cons
 	return INVALID_NAVNODEREF;
 }
 
-bool FPImplRecastNavMesh::GetPolysWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, const FNavigationQueryFilter& Filter, const UObject* Owner, TArray<NavNodeRef>& FoundPolys) const
+bool FPImplRecastNavMesh::GetPolysWithinPathingDistance(FVector const& StartLoc, const float PathingDistance, 
+	const FNavigationQueryFilter& Filter, const UObject* Owner,
+	TArray<NavNodeRef>& FoundPolys, FRecastDebugPathfindingData* DebugData) const
 {
 	ensure(PathingDistance > 0.0f && "PathingDistance <= 0 doesn't make sense");
 
@@ -1512,6 +1552,11 @@ bool FPImplRecastNavMesh::GetPolysWithinPathingDistance(FVector const& StartLoc,
 		, PathingDistance, QueryFilter, FoundPolys.GetData(), &NumPolys, Filter.GetMaxSearchNodes());
 
 	FoundPolys.RemoveAt(NumPolys, FoundPolys.Num() - NumPolys);
+
+	if (DebugData)
+	{
+		StorePathfindingDebugData(NavQuery, DetourNavMesh, *DebugData);
+	}
 
 	return FoundPolys.Num() > 0;
 }

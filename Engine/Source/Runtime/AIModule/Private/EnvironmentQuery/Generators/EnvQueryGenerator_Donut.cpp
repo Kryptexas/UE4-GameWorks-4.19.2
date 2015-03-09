@@ -10,7 +10,6 @@
 UEnvQueryGenerator_Donut::UEnvQueryGenerator_Donut(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	Center = UEnvQueryContext_Querier::StaticClass();
-	ItemType = UEnvQueryItemType_Point::StaticClass();
 	InnerRadius.DefaultValue = 300.0f;
 	OuterRadius.DefaultValue = 1000.0f;
 	NumberOfRings.DefaultValue = 3;
@@ -108,6 +107,9 @@ void UEnvQueryGenerator_Donut::GenerateItems(FEnvQueryInstance& QueryInstance) c
 	const float AngleDelta = 2.0 * PI / NumPoints;
 	float SectionAngle = FMath::DegreesToRadians(ArcBisectDeg);
 
+	TArray<FNavLocation> Points;
+	Points.Reserve(NumPoints * NumRings);
+
 	for (int32 SectionIdx = 0; SectionIdx < NumPoints; SectionIdx++, SectionAngle += AngleDelta)
 	{
 		if (IsAngleAllowed(SectionAngle, ArcBisectDeg, ArcAngleDeg, bDefineArc))
@@ -122,11 +124,14 @@ void UEnvQueryGenerator_Donut::GenerateItems(FEnvQueryInstance& QueryInstance) c
 				for (int32 ContextIdx = 0; ContextIdx < CenterPoints.Num(); ContextIdx++)
 				{
 					const FVector PointPos = CenterPoints[ContextIdx] + RingPos;
-					QueryInstance.AddItemData<UEnvQueryItemType_Point>(PointPos);
+					Points.Add(PointPos);
 				}
 			}
 		}
 	}
+
+	ProjectAndFilterNavPoints(Points, QueryInstance);
+	StoreNavPoints(Points, QueryInstance);
 }
 
 FText UEnvQueryGenerator_Donut::GetDescriptionTitle() const

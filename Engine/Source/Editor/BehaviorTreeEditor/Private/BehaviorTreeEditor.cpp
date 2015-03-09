@@ -263,24 +263,19 @@ void FBehaviorTreeEditor::RestoreBehaviorTree()
 	{
 		BehaviorTree->BTGraph = FBlueprintEditorUtils::CreateNewGraph(BehaviorTree, TEXT("Behavior Tree"), UBehaviorTreeGraph::StaticClass(), UEdGraphSchema_BehaviorTree::StaticClass());
 		MyGraph = Cast<UBehaviorTreeGraph>(BehaviorTree->BTGraph);
-		MyGraph->MarkVersion();
 
 		// Initialize the behavior tree graph
 		const UEdGraphSchema* Schema = MyGraph->GetSchema();
 		Schema->CreateDefaultNodesForGraph(*MyGraph);
 
-		MyGraph->SpawnMissingNodes();
+		MyGraph->OnCreated();
 	}
 	else
 	{
-		MyGraph->UpdatePinConnectionTypes();
-		MyGraph->UpdateDeprecatedNodes();
+		MyGraph->OnLoaded();
 	}
 
-	MyGraph->UpdateVersion();
-	MyGraph->UpdateBlackboardChange();
-	MyGraph->UpdateInjectedNodes();
-	MyGraph->UpdateUnknownNodeClasses();
+	MyGraph->Initialize();
 
 	TSharedRef<FTabPayload_UObject> Payload = FTabPayload_UObject::Make(MyGraph);
 	TSharedPtr<SDockTab> DocumentTab = DocumentManager->OpenDocument(Payload, bNewGraph ? FDocumentTracker::OpenNewDocument : FDocumentTracker::RestorePreviousDocument);

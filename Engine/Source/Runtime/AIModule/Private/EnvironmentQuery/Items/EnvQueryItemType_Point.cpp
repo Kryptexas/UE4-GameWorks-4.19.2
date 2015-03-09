@@ -5,17 +5,27 @@
 
 UEnvQueryItemType_Point::UEnvQueryItemType_Point(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	ValueSize = sizeof(FVector);
+	ValueSize = sizeof(FNavLocation);
 }
 
 FVector UEnvQueryItemType_Point::GetValue(const uint8* RawData)
 {
-	return GetValueFromMemory<FVector>(RawData);
+	return GetValueFromMemory<FNavLocation>(RawData).Location;
 }
 
 void UEnvQueryItemType_Point::SetValue(uint8* RawData, const FVector& Value)
 {
-	return SetValueInMemory<FVector>(RawData, Value);
+	return SetValueInMemory<FNavLocation>(RawData, FNavLocation(Value));
+}
+
+FNavLocation UEnvQueryItemType_Point::GetNavValue(const uint8* RawData)
+{
+	return GetValueFromMemory<FNavLocation>(RawData);
+}
+
+void UEnvQueryItemType_Point::SetNavValue(uint8* RawData, const FNavLocation& Value)
+{
+	return SetValueInMemory<FNavLocation>(RawData, Value);
 }
 
 FVector UEnvQueryItemType_Point::GetItemLocation(const uint8* RawData) const
@@ -23,11 +33,16 @@ FVector UEnvQueryItemType_Point::GetItemLocation(const uint8* RawData) const
 	return UEnvQueryItemType_Point::GetValue(RawData);
 }
 
+FNavLocation UEnvQueryItemType_Point::GetItemNavLocation(const uint8* RawData) const
+{
+	return UEnvQueryItemType_Point::GetNavValue(RawData);
+}
+
 void UEnvQueryItemType_Point::SetContextHelper(FEnvQueryContextData& ContextData, const FVector& SinglePoint)
 {
 	ContextData.ValueType = UEnvQueryItemType_Point::StaticClass();
 	ContextData.NumValues = 1;
-	ContextData.RawData.Init(sizeof(FVector));
+	ContextData.RawData.Init(sizeof(FNavLocation));
 
 	UEnvQueryItemType_Point::SetValue((uint8*)ContextData.RawData.GetData(), SinglePoint);
 }
@@ -36,12 +51,12 @@ void UEnvQueryItemType_Point::SetContextHelper(FEnvQueryContextData& ContextData
 {
 	ContextData.ValueType = UEnvQueryItemType_Point::StaticClass();
 	ContextData.NumValues = MultiplePoints.Num();
-	ContextData.RawData.Init(sizeof(FVector) * MultiplePoints.Num());
+	ContextData.RawData.Init(sizeof(FNavLocation)* MultiplePoints.Num());
 
 	uint8* RawData = (uint8*)ContextData.RawData.GetData();
 	for (int32 PointIndex = 0; PointIndex < MultiplePoints.Num(); PointIndex++)
 	{
 		UEnvQueryItemType_Point::SetValue(RawData, MultiplePoints[PointIndex]);
-		RawData += sizeof(FVector);
+		RawData += sizeof(FNavLocation);
 	}
 }
