@@ -9,10 +9,6 @@
 #define GL_COMPUTE_SHADER	0x91B9
 #endif
 
-#ifndef GL_STEREO
-#define GL_STEREO			0x0C33
-#endif
-
 #include "OpenGL3.h"
 
 

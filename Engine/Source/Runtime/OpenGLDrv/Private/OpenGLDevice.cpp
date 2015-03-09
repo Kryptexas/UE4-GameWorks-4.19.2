@@ -9,6 +9,10 @@
 #include "HardwareInfo.h"
 #include "ShaderCache.h"
 
+#ifndef GL_STEREO
+#define GL_STEREO			0x0C33
+#endif
+
 extern GLint GMaxOpenGLColorSamples;
 extern GLint GMaxOpenGLDepthSamples;
 extern GLint GMaxOpenGLIntegerSamples;
