@@ -112,22 +112,10 @@ UEnvQueryGenerator_OnCircle::UEnvQueryGenerator_OnCircle(const FObjectInitialize
 	TraceData.TraceMode = EEnvQueryTrace::Navigation;
 
 	ProjectionData.TraceMode = EEnvQueryTrace::None;
-
-	// keep deprecated properties initialized
-	Radius.Value = 1000.0f;
-	ItemSpacing.Value = 50.0f;
-	Angle.Value = 360.0f;
 }
 
 void UEnvQueryGenerator_OnCircle::PostLoad()
 {
-	if (VerNum < EnvQueryGeneratorVersion::DataProviders)
-	{
-		Radius.Convert(this, CircleRadius);
-		ItemSpacing.Convert(this, SpaceBetween);
-		Angle.Convert(this, ArcAngle);
-	}
-
 	Super::PostLoad();
 
 	if (ArcAngle.DefaultValue <= 0)
@@ -206,7 +194,7 @@ void UEnvQueryGenerator_OnCircle::GenerateItems(FEnvQueryInstance& QueryInstance
 
 	// first generate points on a circle
 	const float CircumferenceLength = 2.f * PI * RadiusValue;
-	const float ArcAnglePercentage = Angle.Value / 360.f;
+	const float ArcAnglePercentage = AngleDegree / 360.f;
 	const float ArcLength = CircumferenceLength * ArcAnglePercentage;
 	const int32 StepsCount = FMath::CeilToInt(ArcLength / ItemSpace) + 1;
 	const float AngleStep = AngleDegree / (StepsCount - 1);
@@ -352,7 +340,7 @@ FText UEnvQueryGenerator_OnCircle::GetDescriptionDetails() const
 	{
 		FFormatNamedArguments ArcArgs;
 		ArcArgs.Add(TEXT("Description"), Desc);
-		ArcArgs.Add(TEXT("AngleValue"), Angle.Value);
+		ArcArgs.Add(TEXT("AngleValue"), FText::FromString(ArcAngle.ToString()));
 		ArcArgs.Add(TEXT("ArcDirection"), ArcDirection.ToText());
 		Desc = FText::Format(LOCTEXT("DescriptionWithArc", "{Description}\nLimit to {AngleValue} angle both sides on {ArcDirection}"), ArcArgs);
 	}

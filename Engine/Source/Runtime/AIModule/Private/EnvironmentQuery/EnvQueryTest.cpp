@@ -23,10 +23,6 @@ UEnvQueryTest::UEnvQueryTest(const FObjectInitializer& ObjectInitializer) : Supe
 	ScoringFactor.DefaultValue = 1.0f;
 
 	bWorkOnFloatValues = true;
-
-	// keep deprecated properties initialized
-	BoolFilter.Value = true;
-	Weight.Value = 1.0f;
 }
 
 void UEnvQueryTest::NormalizeItemScores(FEnvQueryInstance& QueryInstance)
@@ -185,17 +181,6 @@ AActor* UEnvQueryTest::GetItemActor(FEnvQueryInstance& QueryInstance, int32 Item
 void UEnvQueryTest::PostLoad()
 {
 	Super::PostLoad();
-
-	if (VerNum < EnvQueryTestVersion::DataProviders)
-	{
-		BoolFilter.Convert(this, BoolValue);
-		FloatFilterMin.Convert(this, FloatValueMin);
-		FloatFilterMax.Convert(this, FloatValueMax);
-		ScoreClampingMin.Convert(this, ScoreClampMin);
-		ScoreClampingMax.Convert(this, ScoreClampMax);
-		Weight.Convert(this, ScoringFactor);
-	}
-
 	UpdateNodeVersion();
 }
 

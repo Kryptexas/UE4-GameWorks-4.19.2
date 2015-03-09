@@ -41,17 +41,6 @@ class AIMODULE_API UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_Proje
 	UPROPERTY()
 	uint32 bDefineArc:1;
 
-	// BEGIN: deprecated properties
-	UPROPERTY()
-	FEnvFloatParam Radius;
-
-	UPROPERTY()
-	FEnvFloatParam ItemSpacing;
-
-	UPROPERTY()
-	FEnvFloatParam Angle;
-	// END: deprecated properties
-
 	virtual void PostLoad() override;
 
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;

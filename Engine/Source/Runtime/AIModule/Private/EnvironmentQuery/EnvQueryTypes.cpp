@@ -196,7 +196,7 @@ void FEnvTraceData::SetNavmeshOnly()
 	bCanDisableTrace = false;
 }
 
-void FEnvBoolParam::Convert(UObject* Owner, FAIDataProviderBoolValue& ValueProvider)
+void FEnvBoolParam_DEPRECATED::Convert(UObject* Owner, FAIDataProviderBoolValue& ValueProvider)
 {
 	ValueProvider.DefaultValue = Value;
 	if (IsNamedParam())
@@ -208,7 +208,7 @@ void FEnvBoolParam::Convert(UObject* Owner, FAIDataProviderBoolValue& ValueProvi
 	}
 }
 
-void FEnvIntParam::Convert(UObject* Owner, FAIDataProviderIntValue& ValueProvider)
+void FEnvIntParam_DEPRECATED::Convert(UObject* Owner, FAIDataProviderIntValue& ValueProvider)
 {
 	ValueProvider.DefaultValue = Value;
 	if (IsNamedParam())
@@ -220,7 +220,7 @@ void FEnvIntParam::Convert(UObject* Owner, FAIDataProviderIntValue& ValueProvide
 	}
 }
 
-void FEnvFloatParam::Convert(UObject* Owner, FAIDataProviderFloatValue& ValueProvider)
+void FEnvFloatParam_DEPRECATED::Convert(UObject* Owner, FAIDataProviderFloatValue& ValueProvider)
 {
 	ValueProvider.DefaultValue = Value;
 	if (IsNamedParam())

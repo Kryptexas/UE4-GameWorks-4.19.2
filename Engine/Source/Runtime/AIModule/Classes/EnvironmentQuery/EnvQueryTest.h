@@ -91,26 +91,6 @@ class AIMODULE_API UEnvQueryTest : public UEnvQueryNode
 					|| (ScoringEquation == EEnvTestScoreEquation::Constant));	// We are giving a constant score value for passing.
 	}
 
-	// BEGIN: deprecated properties, do not use them
-	UPROPERTY()
-	FEnvBoolParam BoolFilter;
-
-	UPROPERTY()
-	FEnvFloatParam FloatFilterMin;
-
-	UPROPERTY()
-	FEnvFloatParam FloatFilterMax;
-
-	UPROPERTY()
-	FEnvFloatParam ScoreClampingMin;
-
-	UPROPERTY()
-	FEnvFloatParam ScoreClampingMax;
-
-	UPROPERTY()
-	FEnvFloatParam Weight;
-	// END: deprecated properties, do not use them
-
 private:
 	/** When set, test operates on float values (e.g. distance, with AtLeast, UpTo conditions),
 	 *  otherwise it will accept bool values (e.g. visibility, with Equals condition) */

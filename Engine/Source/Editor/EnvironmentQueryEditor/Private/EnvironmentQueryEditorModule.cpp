@@ -4,7 +4,6 @@
 
 #include "DetailCustomizations/EnvDirectionCustomization.h"
 #include "DetailCustomizations/EnvTraceDataCustomization.h"
-#include "DetailCustomizations/EnvQueryParamSetupCustomization.h"
 #include "DetailCustomizations/EnvQueryTestDetails.h"
 
 #include "ModuleManager.h"
@@ -48,9 +47,6 @@ void FEnvironmentQueryEditorModule::StartupModule()
 
 	// Register the details customizer
 	FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-	PropertyModule.RegisterCustomPropertyTypeLayout( "EnvFloatParam", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FEnvQueryParamSetupCustomization::MakeInstance ) );
-	PropertyModule.RegisterCustomPropertyTypeLayout( "EnvIntParam", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FEnvQueryParamSetupCustomization::MakeInstance ) );
-	PropertyModule.RegisterCustomPropertyTypeLayout( "EnvBoolParam", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FEnvQueryParamSetupCustomization::MakeInstance ) );
 	PropertyModule.RegisterCustomPropertyTypeLayout( "EnvDirection", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FEnvDirectionCustomization::MakeInstance ) );
 	PropertyModule.RegisterCustomPropertyTypeLayout( "EnvTraceData", FOnGetPropertyTypeCustomizationInstance::CreateStatic( &FEnvTraceDataCustomization::MakeInstance ) );
 	PropertyModule.RegisterCustomClassLayout( "EnvQueryTest", FOnGetDetailCustomizationInstance::CreateStatic( &FEnvQueryTestDetails::MakeInstance ) );
@@ -89,9 +85,6 @@ void FEnvironmentQueryEditorModule::ShutdownModule()
 	if (FModuleManager::Get().IsModuleLoaded("PropertyEditor"))
 	{
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		PropertyModule.UnregisterCustomPropertyTypeLayout( "EnvFloatParam" );
-		PropertyModule.UnregisterCustomPropertyTypeLayout( "EnvIntParam" );
-		PropertyModule.UnregisterCustomPropertyTypeLayout( "EnvBoolParam" );
 		PropertyModule.UnregisterCustomPropertyTypeLayout( "EnvDirection" );
 		PropertyModule.UnregisterCustomPropertyTypeLayout( "EnvTraceData" );
 

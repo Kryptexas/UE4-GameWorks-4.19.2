@@ -27,16 +27,7 @@ class UEnvQueryGenerator_SimpleGrid : public UEnvQueryGenerator_ProjectedPoints
 	UPROPERTY(EditDefaultsOnly, Category=Generator)
 	TSubclassOf<UEnvQueryContext> GenerateAround;
 
-	// BEGIN: deprecated properties
-	UPROPERTY()
-	FEnvFloatParam Radius;
-
-	UPROPERTY()
-	FEnvFloatParam Density;
-	// END: deprecated properties
-
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
-	virtual void PostLoad() override;
 
 	virtual FText GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;

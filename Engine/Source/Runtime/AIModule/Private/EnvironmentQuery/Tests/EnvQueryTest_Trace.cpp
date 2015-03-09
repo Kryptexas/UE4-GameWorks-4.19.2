@@ -179,16 +179,4 @@ bool UEnvQueryTest_Trace::RunCapsuleTraceFrom(const FVector& ItemPos, const FVec
 	return bHit;
 }
 
-void UEnvQueryTest_Trace::PostLoad()
-{
-	if (VerNum < EnvQueryTestVersion::DataProviders)
-	{
-		TraceToItem.Convert(this, TraceFromContext);
-		ItemOffsetZ.Convert(this, ItemHeightOffset);
-		ContextOffsetZ.Convert(this, ContextHeightOffset);
-	}
-
-	Super::PostLoad();
-}
-
 #undef LOCTEXT_NAMESPACE

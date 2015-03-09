@@ -108,9 +108,9 @@ void UEnvironmentQueryGraphNode_Option::CalculateWeights()
 		}
 
 		UEnvQueryTest* TestInstance = Cast<UEnvQueryTest>(TestNode->NodeInstance);
-		if (TestInstance && !TestInstance->Weight.IsNamedParam())
+		if (TestInstance && !TestInstance->ScoringFactor.IsDynamic())
 		{
-			MaxWeight = FMath::Max(MaxWeight, FMath::Abs(TestInstance->Weight.Value));
+			MaxWeight = FMath::Max(MaxWeight, FMath::Abs(TestInstance->ScoringFactor.DefaultValue));
 		}
 	}
 
@@ -128,12 +128,12 @@ void UEnvironmentQueryGraphNode_Option::CalculateWeights()
 		}
 		
 		UEnvQueryTest* TestInstance = Cast<UEnvQueryTest>(TestNode->NodeInstance);
-		const bool bHasNamed = TestInstance && TestNode->bTestEnabled && TestInstance->Weight.IsNamedParam();
+		const bool bHasDynamic = TestInstance && TestNode->bTestEnabled && TestInstance->ScoringFactor.IsDynamic();
 		const float NewWeight = (TestInstance && TestNode->bTestEnabled) ?
-			(TestInstance->Weight.IsNamedParam() ? 1.0f : FMath::Clamp(FMath::Abs(TestInstance->Weight.Value) / MaxWeight, 0.0f, 1.0f)) : 
+			(TestInstance->ScoringFactor.IsDynamic() ? 1.0f : FMath::Clamp(FMath::Abs(TestInstance->ScoringFactor.DefaultValue) / MaxWeight, 0.0f, 1.0f)) :
 			-1.0f;
 
-		TestNode->SetDisplayedWeight(NewWeight, bHasNamed);
+		TestNode->SetDisplayedWeight(NewWeight, bHasDynamic);
 	}
 }
 

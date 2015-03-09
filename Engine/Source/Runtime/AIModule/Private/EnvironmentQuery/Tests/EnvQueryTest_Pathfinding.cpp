@@ -19,12 +19,6 @@ UEnvQueryTest_Pathfinding::UEnvQueryTest_Pathfinding(const FObjectInitializer& O
 	SkipUnreachable.DefaultValue = true;
 	FloatValueMin.DefaultValue = 1000.0f;
 	FloatValueMax.DefaultValue = 1000.0f;
-
-	// keep deprecated properties initialized
-	PathToItem.Value = true;
-	DiscardUnreachable.Value = true;
-	FloatFilterMin.Value = 1000.0f;
-	FloatFilterMax.Value = 1000.0f;
 }
 
 void UEnvQueryTest_Pathfinding::RunTest(FEnvQueryInstance& QueryInstance) const
@@ -158,12 +152,6 @@ void UEnvQueryTest_Pathfinding::PostEditChangeProperty(FPropertyChangedEvent& Pr
 
 void UEnvQueryTest_Pathfinding::PostLoad()
 {
-	if (VerNum < EnvQueryTestVersion::DataProviders)
-	{
-		PathToItem.Convert(this, PathFromContext);
-		DiscardUnreachable.Convert(this, SkipUnreachable);
-	}
-
 	Super::PostLoad();
 	
 	SetWorkOnFloatValues(TestMode != EEnvTestPathfinding::PathExist);

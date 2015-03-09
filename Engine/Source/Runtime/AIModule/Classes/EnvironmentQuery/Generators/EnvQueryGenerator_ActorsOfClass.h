@@ -23,12 +23,7 @@ class UEnvQueryGenerator_ActorsOfClass : public UEnvQueryGenerator
 	UPROPERTY(EditAnywhere, Category=Generator)
 	TSubclassOf<UEnvQueryContext> SearchCenter;
 
-	// DEPRECATED
-	UPROPERTY()
-	FEnvFloatParam Radius;
-
 	virtual void GenerateItems(FEnvQueryInstance& QueryInstance) const override;
-	virtual void PostLoad() override;
 
 	virtual FText GetDescriptionTitle() const override;
 	virtual FText GetDescriptionDetails() const override;

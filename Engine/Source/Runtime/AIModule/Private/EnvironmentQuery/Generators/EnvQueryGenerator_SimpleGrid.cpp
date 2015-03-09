@@ -11,21 +11,6 @@ UEnvQueryGenerator_SimpleGrid::UEnvQueryGenerator_SimpleGrid(const FObjectInitia
 	GenerateAround = UEnvQueryContext_Querier::StaticClass();
 	GridSize.DefaultValue = 500.0f;
 	SpaceBetween.DefaultValue = 100.0f;
-
-	// keep deprecated properties initialized
-	Radius.Value = 500.0f;
-	Density.Value = 500.0f;
-}
-
-void UEnvQueryGenerator_SimpleGrid::PostLoad()
-{
-	if (VerNum < EnvQueryGeneratorVersion::DataProviders)
-	{
-		Radius.Convert(this, GridSize);
-		Density.Convert(this, SpaceBetween);
-	}
-
-	Super::PostLoad();
 }
 
 void UEnvQueryGenerator_SimpleGrid::GenerateItems(FEnvQueryInstance& QueryInstance) const

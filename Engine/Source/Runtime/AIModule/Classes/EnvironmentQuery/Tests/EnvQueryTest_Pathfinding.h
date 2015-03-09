@@ -42,17 +42,6 @@ class UEnvQueryTest_Pathfinding : public UEnvQueryTest
 	UPROPERTY(EditDefaultsOnly, Category=Pathfinding)
 	TSubclassOf<UNavigationQueryFilter> FilterClass;
 
-	// BEGIN: deprecated properties 
-	UPROPERTY()
-	FEnvBoolParam PathToItem;
-
-	UPROPERTY()
-	FEnvBoolParam DiscardUnreachable;
-
-	UPROPERTY()
-	FEnvBoolParam HierarchicalPathfinding;
-	// END: deprecated properties
-
 	virtual void RunTest(FEnvQueryInstance& QueryInstance) const override;
 
 	virtual FText GetDescriptionTitle() const override;
