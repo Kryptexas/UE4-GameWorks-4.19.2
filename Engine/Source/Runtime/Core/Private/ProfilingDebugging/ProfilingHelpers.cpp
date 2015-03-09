@@ -79,7 +79,7 @@ FString CreateProfileFilename( const FString& InFileExtension, bool bIncludeDate
 	FString MapNameStr;
 
 #if WITH_ENGINE
-	checkf(GGetMapNameDelegate.IsBound());
+	check(GGetMapNameDelegate.IsBound());
 	MapNameStr = GGetMapNameDelegate.Execute();
 #endif		// WITH_ENGINE
 
@@ -139,7 +139,7 @@ FString CreateProfileDirectoryAndFilename( const FString& InSubDirectoryName, co
 {
 	FString MapNameStr;
 #if WITH_ENGINE
-	checkf(GGetMapNameDelegate.IsBound());
+	check(GGetMapNameDelegate.IsBound());
 	MapNameStr = GGetMapNameDelegate.Execute();
 #endif		// WITH_ENGINE
 	const FString PlatformStr = FString(TEXT("PC"));

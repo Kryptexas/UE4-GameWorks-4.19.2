@@ -523,7 +523,7 @@ private:
 			for (UPTRINT i=(UPTRINT)PageSize, Offset=0; i<OsBytes; i+=PageSize, ++Offset)
 			{
 				FPoolInfo* TrailingPool = GetPoolInfo(((UPTRINT)Free)+i);
-				checkf(TrailingPool)
+				check(TrailingPool);
 				//Set trailing pools to point back to first pool
 				TrailingPool->SetAllocationSizes(0, 0, Offset, BinnedOSTableIndex);
 			}
@@ -849,7 +849,7 @@ public:
 		BinnedSizeLimit = PAGE_SIZE_LIMIT/2;
 		BinnedOSTableIndex = BinnedSizeLimit+EXTENED_PAGE_POOL_ALLOCATION_COUNT;
 
-		checkf((BinnedSizeLimit & (BinnedSizeLimit-1)) == 0);
+		check((BinnedSizeLimit & (BinnedSizeLimit-1)) == 0);
 
 
 		// Init tables.
@@ -1045,7 +1045,7 @@ public:
 			if( Pool->TableIndex < BinnedOSTableIndex )
 			{
 				// Allocated from pool, so grow or shrink if necessary.
-				checkf(Pool->TableIndex > 0); // it isn't possible to allocate a size of 0, Malloc will increase the size to DEFAULT_BINNED_ALLOCATOR_ALIGNMENT
+				check(Pool->TableIndex > 0); // it isn't possible to allocate a size of 0, Malloc will increase the size to DEFAULT_BINNED_ALLOCATOR_ALIGNMENT
 				if( NewSize>MemSizeToPoolTable[Pool->TableIndex]->BlockSize || NewSize<=MemSizeToPoolTable[Pool->TableIndex-1]->BlockSize )
 				{
 					NewPtr = Malloc( NewSize, Alignment );

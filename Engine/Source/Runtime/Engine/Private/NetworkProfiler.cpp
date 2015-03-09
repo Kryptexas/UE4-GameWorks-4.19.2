@@ -565,7 +565,7 @@ void FNetworkProfiler::TrackSessionChange( bool bShouldContinueTracking, const F
 			// Create folder and file writer.
 			IFileManager::Get().MakeDirectory( *FPaths::GetPath(TempFileName) );
 			FileWriter = IFileManager::Get().CreateFileWriter( *TempFileName, FILEWRITE_EvenIfReadOnly );
-			checkf( FileWriter );
+			check( FileWriter );
 
 			// Serialize dummy header, overwritten when session ends.
 			FNetworkProfilerHeader DummyHeader;

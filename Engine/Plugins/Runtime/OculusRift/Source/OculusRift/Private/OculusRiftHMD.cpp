@@ -279,7 +279,7 @@ void FOculusRiftHMD::PoseToOrientationAndPosition(const ovrPosef& InPose, FQuat&
 void FOculusRiftHMD::GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition)
 {
 	// only supposed to be used from the game thread
-	checkf(IsInGameThread());
+	check(IsInGameThread());
 	GetCurrentPose(CurrentOrientation, CurrentPosition);
 	LastHmdOrientation = CurrentOrientation;
 }

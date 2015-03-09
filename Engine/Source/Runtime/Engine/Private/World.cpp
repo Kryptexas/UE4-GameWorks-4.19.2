@@ -684,7 +684,7 @@ UMaterialParameterCollectionInstance* UWorld::GetParameterCollectionInstance(con
 	}
 
 	// Instance should always exist due to SetupParameterCollectionInstances() and UMaterialParameterCollection::PostLoad()
-	checkf(0);
+	check(0);
 	return NULL;
 }
 

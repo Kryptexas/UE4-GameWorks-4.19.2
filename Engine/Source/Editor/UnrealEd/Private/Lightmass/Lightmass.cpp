@@ -3870,7 +3870,7 @@ bool FLightmassProcessor::ImportLightMapData2DData(int32 Channel, FQuantizedLigh
 	// decompress the temp buffer into another temp buffer 
 	if (!FCompression::UncompressMemory(COMPRESS_ZLIB, DataBuffer, UncompressedSize, CompressedBuffer, CompressedSize))
 	{
-		checkf(TEXT("Uncompress failed, which is unexpected"));
+		checkf(false, TEXT("Uncompress failed, which is unexpected"));
 	}
 
 	// can free one buffer now
@@ -3914,7 +3914,7 @@ bool FLightmassProcessor::ImportSignedDistanceFieldShadowMapData2D(int32 Channel
 		// Decompress the temp buffer into another temp buffer 
 		if (!FCompression::UncompressMemory(COMPRESS_ZLIB, DataBuffer, UncompressedSize, CompressedBuffer, CompressedSize))
 		{
-			checkf(TEXT("Uncompress failed, which is unexpected"));
+			checkf(false, TEXT("Uncompress failed, which is unexpected"));
 		}
 		FMemory::Free(CompressedBuffer);
 

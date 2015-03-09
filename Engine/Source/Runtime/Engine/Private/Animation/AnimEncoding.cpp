@@ -865,8 +865,8 @@ void AnimationFormat_SetInterfaceLinks(UAnimSequence& Seq)
 		Seq.TranslationCodec = &StaticCodec;
 		Seq.ScaleCodec = &StaticCodec;
 
-		checkf(Seq.RotationCompressionFormat == ACF_Identity);
-		checkf(Seq.TranslationCompressionFormat == ACF_Identity);
+		check(Seq.RotationCompressionFormat == ACF_Identity);
+		check(Seq.TranslationCompressionFormat == ACF_Identity);
 		// commenting out scale check because the older versions won't have this set correctly
 		// and I can't get the version VER_UE4_ANIM_SUPPORT_NONUNIFORM_SCALE_ANIMATION here because this function
 		// is called in Serialize where GetLinker is too early to call

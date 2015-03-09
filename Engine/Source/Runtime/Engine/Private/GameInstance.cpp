@@ -329,7 +329,7 @@ ULocalPlayer* UGameInstance::CreateInitialPlayer(FString& OutError)
 
 ULocalPlayer* UGameInstance::CreateLocalPlayer(int32 ControllerId, FString& OutError, bool bSpawnActor)
 {
-	checkf(GetEngine()->LocalPlayerClass != NULL);
+	check(GetEngine()->LocalPlayerClass != NULL);
 
 	ULocalPlayer* NewPlayer = NULL;
 	int32 InsertIndex = INDEX_NONE;

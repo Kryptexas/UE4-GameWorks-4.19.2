@@ -739,7 +739,7 @@ FReply SEditableText::MoveCursor( FMoveCursor Args )
 		}
 		else
 		{
-			checkSlow(false, "Unknown ECursorMoveMethod value");
+			checkfSlow(false, TEXT("Unknown ECursorMoveMethod value"));
 		}
 	}
 

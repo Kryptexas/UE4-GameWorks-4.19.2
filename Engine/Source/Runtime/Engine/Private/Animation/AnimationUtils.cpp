@@ -1217,7 +1217,7 @@ void FAnimationUtils::CompressAnimSequenceExplicit(
 						(*WinningCompressorErrorSum) += WinningCompressorError;
 						AlternativeCompressorSavings += WinningCompressorSavings;
 						*WinningCompressorMarginalSavingsSum += WinningCompressorMarginalSavings;
-						checkf(WinningCompressorSavings == SizeDecrease);
+						check(WinningCompressorSavings == SizeDecrease);
 
 					UE_LOG(LogAnimation, Warning, TEXT("  Recompressing '%s' with compressor '%s' saved %i bytes (%i -> %i -> %i) (max diff=%f)\n"),
 							*AnimSeq->GetName(),

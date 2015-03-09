@@ -1433,7 +1433,7 @@ void UGameViewportClient::SetConsoleTarget(int32 PlayerIndex)
 
 ULocalPlayer* UGameViewportClient::SetupInitialLocalPlayer(FString& OutError)
 {
-	checkf(GetOuterUEngine()->ConsoleClass != NULL);
+	check(GetOuterUEngine()->ConsoleClass != NULL);
 
 	ActiveSplitscreenType = ESplitScreenType::None;
 

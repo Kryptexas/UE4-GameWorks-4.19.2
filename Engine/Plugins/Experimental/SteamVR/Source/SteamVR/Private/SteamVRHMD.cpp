@@ -178,7 +178,7 @@ namespace
 
 void FSteamVRHMD::GetCurrentOrientationAndPosition(FQuat& CurrentOrientation, FVector& CurrentPosition)
 {
-	checkf(IsInGameThread());
+	check(IsInGameThread());
 	GetCurrentPose(CurHmdOrientation, CurHmdPosition, MotionPredictionInSecondsGame);
 	CurrentOrientation = LastHmdOrientation = CurHmdOrientation;
 

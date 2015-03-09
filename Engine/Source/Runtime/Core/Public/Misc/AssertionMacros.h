@@ -24,8 +24,8 @@
 	 * verifyf, checkf: Same as verify, check but with printf style additional parameters
 	 * Read about __VA_ARGS__ (variadic macros) on http://gcc.gnu.org/onlinedocs/gcc-3.4.4/cpp.pdf.
 	 */
-	#define verifyf(expr, ...)				{ if(!(expr)) { FPlatformMisc::DebugBreak(); FDebug::AssertFailed( #expr, __FILE__, __LINE__, ##__VA_ARGS__ ); CA_ASSUME(expr); } }
-	#define checkf(expr, ...)				{ if(!(expr)) { FPlatformMisc::DebugBreak(); FDebug::AssertFailed( #expr, __FILE__, __LINE__, ##__VA_ARGS__ ); CA_ASSUME(expr); } }
+	#define verifyf(expr, format, ...)		{ if(!(expr)) { FPlatformMisc::DebugBreak(); FDebug::AssertFailed( #expr, __FILE__, __LINE__, format, ##__VA_ARGS__ ); CA_ASSUME(expr); } }
+	#define checkf(expr, format, ...)		{ if(!(expr)) { FPlatformMisc::DebugBreak(); FDebug::AssertFailed( #expr, __FILE__, __LINE__, format, ##__VA_ARGS__ ); CA_ASSUME(expr); } }
 	/**
 	 * Denotes code paths that should never be reached.
 	 */
@@ -58,13 +58,13 @@
 
 #else
 	#define checkCode(...)
-	#define check(...)
-	#define checkf(...)
+	#define check(expr)
+	#define checkf(expr, format, ...)
 	#define checkNoEntry()
 	#define checkNoReentry()
 	#define checkNoRecursion()
 	#define verify(expr)				{ if(!(expr)){} }
-	#define verifyf(expr, ...)			{ if(!(expr)){} }
+	#define verifyf(expr, format, ...)	{ if(!(expr)){} }
 	#define unimplemented()
 #endif
 
@@ -72,12 +72,12 @@
 // Check for development only.
 //
 #if DO_GUARD_SLOW
-	#define checkSlow(expr, ...)	{ if(!(expr)) { FPlatformMisc::DebugBreak(); FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); CA_ASSUME(expr); } }
-	#define checkfSlow(expr, ...)	{ if(!(expr)) { FPlatformMisc::DebugBreak(); FDebug::AssertFailed( #expr, __FILE__, __LINE__, __VA_ARGS__ ); CA_ASSUME(expr); } }
-	#define verifySlow(expr)		{ if(!(expr)) { FPlatformMisc::DebugBreak(); FDebug::AssertFailed( #expr, __FILE__, __LINE__ );} }
+	#define checkSlow(expr)					{ if(!(expr)) { FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); CA_ASSUME(expr); } }
+	#define checkfSlow(expr, format, ...)	{ if(!(expr)) { FDebug::AssertFailed( #expr, __FILE__, __LINE__, format, __VA_ARGS__ ); CA_ASSUME(expr); } }
+	#define verifySlow(expr)				{ if(!(expr)) { FDebug::AssertFailed( #expr, __FILE__, __LINE__ );} }
 #else
-	#define checkSlow(...)
-	#define checkfSlow(...)
+	#define checkSlow(expr)
+	#define checkfSlow(expr, format, ...)
 	#define verifySlow(expr)  if(expr){}
 #endif
 
@@ -112,8 +112,8 @@
 	#define ensureMsg( InExpression, InMsg ) \
 		(((InExpression) == 0) ? FDebug::EnsureNotFalse(false, #InExpression, __FILE__, __LINE__, InMsg ) : true)
 
-	#define ensureMsgf( InExpression, ... ) \
-		(((InExpression) == 0) ? (FPlatformMisc::DebugBreakReturningFalse() || FDebug::EnsureNotFalseFormatted(false, #InExpression, __FILE__, __LINE__, ##__VA_ARGS__ )) : true)
+	#define ensureMsgf( InExpression, InFormat, ... ) \
+		(((InExpression) == 0) ? FDebug::EnsureNotFalseFormatted(false, #InExpression, __FILE__, __LINE__, InFormat, ##__VA_ARGS__ ) : true)
 
 #else	// DO_CHECK
 
@@ -121,7 +121,7 @@
 
 	#define ensureMsg( InExpression, InMsg ) ( ( InExpression ) != 0 )
 
-	#define ensureMsgf( InExpression, ... ) ( ( InExpression ) != 0 )
+	#define ensureMsgf( InExpression, InFormat, ... ) ( ( InExpression ) != 0 )
 
 #endif	// DO_CHECK
 
