@@ -32,7 +32,7 @@ fi
 if [ -e /etc/os-release ]; then
   source /etc/os-release
   # Ubuntu/Debian/Mint
-  if [[ "$ID" == "ubuntu" ]] || [[ "$ID_LIKE" == "ubuntu" ]] || [ "$ID" == "debian" ]] || [[ "$ID_LIKE" == "debian" ]]; then
+  if [[ "$ID" == "ubuntu" ]] || [[ "$ID_LIKE" == "ubuntu" ]] || [[ "$ID" == "debian" ]] || [[ "$ID_LIKE" == "debian" ]]; then
     # Install all necessary dependencies
     DEPS="mono-xbuild \
       mono-dmcs \
@@ -75,6 +75,24 @@ if [ -e /etc/os-release ]; then
         set +x
       fi
     done
+  fi
+
+  # Arch Linux
+  if [[ "$ID" == "arch" ]] || [[ "$ID_LIKE" == "arch" ]]; then
+    DEPS="clang mono python sdl2 qt4 dos2unix cmake"
+    MISSING=false
+    for DEP in $DEPS; do
+      if ! pacman -Qs $DEP > /dev/null 2>&1; then
+        MISSING=true
+        break
+      fi
+    done
+    if [ "$MISSING" = true ]; then
+      echo "Attempting to install missing packages: $DEPS"
+      set -x
+      sudo pacman -Sy --needed --noconfirm $DEPS
+      set +x
+    fi
   fi
 fi
 
