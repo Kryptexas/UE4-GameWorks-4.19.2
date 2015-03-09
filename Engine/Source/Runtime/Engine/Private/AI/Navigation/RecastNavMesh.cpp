@@ -1927,25 +1927,23 @@ bool ARecastNavMesh::SupportsStreaming() const
 
 void ARecastNavMesh::ConditionalConstructGenerator()
 {	
+	if (NavDataGenerator.IsValid())
+	{
+		NavDataGenerator->CancelBuild();
+		NavDataGenerator.Reset();
+	}
+
 	UWorld* World = GetWorld();
 	check(World);
 	const bool bRequiresGenerator = SupportsRuntimeGeneration() || !World->IsGameWorld();
 	if (bRequiresGenerator)
 	{
-		if (NavDataGenerator.IsValid() == false)
-		{
-			NavDataGenerator = MakeShareable(new FRecastNavMeshGenerator(*this));
+		NavDataGenerator = MakeShareable(new FRecastNavMeshGenerator(*this));
 
-			if (World->GetNavigationSystem())
-			{
-				RestrictBuildingToActiveTiles(World->GetNavigationSystem()->IsActiveTilesGenerationEnabled());
-			}
+		if (World->GetNavigationSystem())
+		{
+			RestrictBuildingToActiveTiles(World->GetNavigationSystem()->IsActiveTilesGenerationEnabled());
 		}
-	}
-	else
-	{
-		NavDataGenerator->CancelBuild();
-		NavDataGenerator.Reset();
 	}
 }
 
