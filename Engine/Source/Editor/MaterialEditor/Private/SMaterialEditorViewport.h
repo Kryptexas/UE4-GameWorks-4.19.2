@@ -42,8 +42,6 @@ public:
 
 	void SetPreviewMaterial(UMaterialInterface* InMaterialInterface);
 	
-	void ToggleRealtime();
-
 	/** @return The list of commands known by the material editor */
 	TSharedRef<FUICommandList> GetMaterialEditorCommands() const;
 

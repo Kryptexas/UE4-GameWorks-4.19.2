@@ -335,11 +335,6 @@ void SMaterialEditorViewport::SetPreviewMaterial(UMaterialInterface* InMaterialI
 	}
 }
 
-void SMaterialEditorViewport::ToggleRealtime()
-{
-	EditorViewportClient->ToggleRealtime();
-}
-
 TSharedRef<FUICommandList> SMaterialEditorViewport::GetMaterialEditorCommands() const
 {
 	check(MaterialEditorPtr.IsValid());

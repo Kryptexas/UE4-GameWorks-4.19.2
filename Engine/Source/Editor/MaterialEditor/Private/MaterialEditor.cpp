@@ -1072,7 +1072,7 @@ void FMaterialEditor::LoadEditorSettings()
 	{
 		if (EditorOptions->bShowGrid) {Viewport->TogglePreviewGrid();}
 		if (EditorOptions->bShowBackground) {Viewport->TogglePreviewBackground();}
-		if (EditorOptions->bRealtimeMaterialViewport) {Viewport->ToggleRealtime();}
+		if (EditorOptions->bRealtimeMaterialViewport) {Viewport->OnToggleRealtime();}
 
 		// Load the preview scene
 		Viewport->PreviewScene.LoadSettings(TEXT("MaterialEditor"));
@@ -1719,7 +1719,7 @@ void FMaterialEditor::BindCommands()
 
 	ToolkitCommands->MapAction(
 		FEditorViewportCommands::Get().ToggleRealTime,
-		FExecuteAction::CreateSP( Viewport.ToSharedRef(), &SMaterialEditorViewport::ToggleRealtime ),
+		FExecuteAction::CreateSP( Viewport.ToSharedRef(), &SMaterialEditorViewport::OnToggleRealtime ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( Viewport.ToSharedRef(), &SMaterialEditorViewport::IsRealtime ) );
 

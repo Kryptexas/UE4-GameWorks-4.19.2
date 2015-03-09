@@ -33,6 +33,9 @@ public:
 	 */
 	void Invalidate();
 
+	/** Toggles realtime on/off for the viewport. Slate tick/paint is ensured when realtime is on. */
+	void OnToggleRealtime();
+
 	/**
 	 * @return true if the specified coordinate system the active one active
 	 */
@@ -61,7 +64,6 @@ protected:
 	virtual EVisibility OnGetViewportContentVisibility() const;
 
 	/** UI Command delegate bindings */
-	void OnToggleRealtime();
 	void OnToggleStats();
 
 	/**

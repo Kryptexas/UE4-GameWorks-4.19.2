@@ -273,7 +273,7 @@ void FMaterialInstanceEditor::BindCommands()
 
 	ToolkitCommands->MapAction(
 		FEditorViewportCommands::Get().ToggleRealTime,
-		FExecuteAction::CreateSP( PreviewVC.ToSharedRef(), &SMaterialEditorViewport::ToggleRealtime ),
+		FExecuteAction::CreateSP( PreviewVC.ToSharedRef(), &SMaterialEditorViewport::OnToggleRealtime ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( PreviewVC.ToSharedRef(), &SMaterialEditorViewport::IsRealtime ) );
 
@@ -879,7 +879,7 @@ void FMaterialInstanceEditor::LoadSettings()
 		}
 		if ( bRealtime )
 		{
-			PreviewVC->ToggleRealtime();
+			PreviewVC->OnToggleRealtime();
 		}
 		PreviewVC->OnSetPreviewPrimitive( static_cast<EThumbnailPrimType>(PrimType) );
 
