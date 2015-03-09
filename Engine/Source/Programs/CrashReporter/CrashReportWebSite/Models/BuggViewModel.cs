@@ -21,5 +21,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 		/// <summary></summary>
 		public string SourceContext { get; set; }
+
+		/// <summary></summary>
+		public string GenerationTime { get; set; }
 	}
 }

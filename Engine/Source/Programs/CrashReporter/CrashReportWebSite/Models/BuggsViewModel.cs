@@ -89,5 +89,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					} );
 			}
 		}
+
+		/// <summary></summary>
+		public string GenerationTime { get; set; }
 	}
 }

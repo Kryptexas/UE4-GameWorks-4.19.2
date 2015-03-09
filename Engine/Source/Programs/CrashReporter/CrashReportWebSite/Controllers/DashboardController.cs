@@ -56,31 +56,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <summary>Fake id for all user groups</summary>
 		public static readonly int AllUserGroupId = -1;
 
-		CrashRepository CrashRepository = new CrashRepository();
-
-		BuggRepository BuggRepository = new BuggRepository();
-
-		/// <summary></summary>
-		public int GetIdFromUserGroup( string UserGroup )
-		{
-			var Group = CrashRepository.Context.UserGroups.Where( X => X.Name.Contains( UserGroup ) ).FirstOrDefault();
-			return Group.Id;
-		}
-
-		/// <summary></summary>
-		public HashSet<int> GetUserIdsFromUserGroup( string UserGroup )
-		{
-			int UserGroupId = GetIdFromUserGroup( UserGroup );
-			return GetUserIdsFromUserGroupId( UserGroupId );
-		}
-
-		/// <summary></summary>
-		public HashSet<int> GetUserIdsFromUserGroupId( int UserGroupId )
-		{
-			var UserIds = CrashRepository.Context.Users.Where( X => X.UserGroupId == UserGroupId ).Select( X => X.Id );
-			return new HashSet<int>( UserIds );
-		}
-
 		/// <summary>
 		/// Return a dictionary of crashes per group grouped by week.
 		/// </summary>
@@ -93,7 +68,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 			{
 				Dictionary<DateTime, int> Results = new Dictionary<DateTime, int>();
 
-				var UsersIds = GetUserIdsFromUserGroupId( UserGroupId );
+				var UsersIds = FRepository.Get().GetUserIdsFromUserGroupId( UserGroupId );
 
 				// Trim crashes to user group.
 				if( UserGroupId != DashboardController.AllUserGroupId )
@@ -132,7 +107,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 			{
 				Dictionary<DateTime, int> Results = new Dictionary<DateTime, int>();
 
-				var UsersIds = GetUserIdsFromUserGroupId( UserGroupId );
+				var UsersIds = FRepository.Get().GetUserIdsFromUserGroupId( UserGroupId );
 
 				// Trim crashes to user group.
 				if( UserGroupId != DashboardController.AllUserGroupId )
@@ -167,58 +142,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-
-				/*
-				//Temporary code to update pattern in crashes and buggs.
-				DateTime Today11 = DateTime.UtcNow.AddDays(11);
-				DateTime AYear = Today11.AddMonths( -12 );
-
-				var CrashList = CrashRepository.Context.Crashes.Where( X => X.TimeOfCrash >= AYear ).Select( X => X );
-				var BuggList = CrashRepository.Context.Buggs.Select( X => X );
-
-				int Current = 0;
-				foreach(Crash Crash in CrashList)
-				{
-					if( string.IsNullOrEmpty(Crash.Pattern) )
-					{
-						continue;
-					}
-					if( Crash.Pattern[0] != '+' )
-					{
-						Crash.Pattern = "+" + Crash.Pattern + "+";
-					}
-					Current++;
-					if( Current % 16384 == 0 )
-					{
-						CrashRepository.SubmitChanges();
-					}
-				}
-				
-
-				foreach(Bugg Bugg in BuggList)
-				{
-					if( string.IsNullOrEmpty( Bugg.Pattern ) )
-					{
-						continue;
-					}
-
-					if( Bugg.Pattern[0] != '+' )
-					{
-						Bugg.Pattern = "+" + Bugg.Pattern + "+";
-					}
-					Current++;
-					if( Current % 16384 == 0 )
-					{
-						CrashRepository.SubmitChanges();
-					}
-				}
-				*/
-
 				DateTime Today = DateTime.UtcNow;
 				DateTime AfewMonthsAgo = Today.AddMonths( -6 );
 
 				FAutoScopedLogTimer LogTimerSQL = new FAutoScopedLogTimer( "CrashesFilterByDate", "", "" );
-				IQueryable<Crash> Crashes = CrashRepository.FilterByDate( CrashRepository.ListAll(), AfewMonthsAgo, Today );
+				IEnumerable<Crash> Crashes = FRepository.Get().Crashes.FilterByDate( FRepository.Get().Crashes.ListAll(), AfewMonthsAgo, Today );
 				var VMinimalCrashes = Crashes.Select( Crash => new { TimeOfCrash = Crash.TimeOfCrash.Value, UserID = Crash.UserNameId.Value } ).ToList();
 
 				List<FCrashMinimal> MinimalCrashes = new List<FCrashMinimal>( VMinimalCrashes.Count );
@@ -228,11 +156,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				}
 				LogTimerSQL.Dispose();
 
-				int GeneralUserGroupId = CrashRepository.FindOrAddUserGroup( "General" );
-				int CoderUserGroupId = CrashRepository.FindOrAddUserGroup( "Coder" );
-				int EngineQAUserGroupId = CrashRepository.FindOrAddUserGroup( "EngineQA" );
-				int GameQAUserGroupId = CrashRepository.FindOrAddUserGroup( "GameQA" );
-				int AnonymousUserGroupId = CrashRepository.FindOrAddUserGroup( "Anonymous" );
+				int GeneralUserGroupId = FRepository.Get().FindOrAddGroup( "General" );
+				int CoderUserGroupId = FRepository.Get().FindOrAddGroup( "Coder" );
+				int EngineQAUserGroupId = FRepository.Get().FindOrAddGroup( "EngineQA" );
+				int GameQAUserGroupId = FRepository.Get().FindOrAddGroup( "GameQA" );
+				int AnonymousUserGroupId = FRepository.Get().FindOrAddGroup( "Anonymous" );
 
 				Dictionary<DateTime, int> GeneralResults = GetWeeklyCountsByGroup( MinimalCrashes, GeneralUserGroupId );
 				Dictionary<DateTime, int> CoderResults = GetWeeklyCountsByGroup( MinimalCrashes, CoderUserGroupId );
@@ -249,7 +177,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				Dictionary<DateTime, int> DailyAllResults = GetDailyCountsByGroup( MinimalCrashes, AllUserGroupId );
 
 				// Get daily buggs stats.
-				List<Bugg> Buggs = BuggRepository.ListAll().Where( Bugg => Bugg.TimeOfFirstCrash >= AfewMonthsAgo ).ToList();
+				List<Bugg> Buggs = FRepository.Get().Buggs.ListAll().Where( Bugg => Bugg.TimeOfFirstCrash >= AfewMonthsAgo ).ToList();
 
 				Dictionary<DateTime, int> BuggDailyAllResults  =
 				(
@@ -345,7 +273,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 				BuggsByDay = BuggsByDay.TrimEnd( ", ".ToCharArray() );
 
-				return View( "Index", new DashboardViewModel { CrashesByWeek = CrashesByWeek, CrashesByDay = CrashesByDay, BuggsByDay = BuggsByDay } );
+				var ResultDashboard = new DashboardViewModel { CrashesByWeek = CrashesByWeek, CrashesByDay = CrashesByDay, BuggsByDay = BuggsByDay };
+				ResultDashboard.GenerationTime = LogTimer.GetElapsedSeconds().ToString( "F2" );
+				return View( "Index", ResultDashboard );
 			}
 		}
 	}

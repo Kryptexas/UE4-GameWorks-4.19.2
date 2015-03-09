@@ -105,7 +105,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 	public class CallStackContainer
 	{
 		/// <summary>The maximum number of call stack lines to parse.</summary>
-		public readonly int MaxLinesToParse = 64;
+		public static readonly int MaxLinesToParse = 64;
 
 		/// <summary>A list of parse call stack lines.</summary>
 		private List<CallStackEntry> LocalCallStackEntries = new List<CallStackEntry>();
@@ -231,7 +231,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 
 		/// <summary>Expression to check if a line is in the current call-stack format</summary>
-		static readonly Regex NewCallstackFormat = new Regex(@"\(\).*?bytes.*?\[.*?\]", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+		static readonly Regex NewCallstackFormat = new Regex( @".*?\(.*?\)", RegexOptions.Singleline | RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled );
+		//.*?\(.*?\).*?\[.*?\]
 
 		/// <summary>
 		/// Parse a raw callstack into a pattern
@@ -270,8 +271,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			// Store off a pre split array of call stack lines
 			string[] RawCallStackLines = CurrentCrash.RawCallStack.Split(new[] { '\n' }, StringSplitOptions.RemoveEmptyEntries);
 
+			int Middle = RawCallStackLines.Length / 2;
+
 			// Support older callstacks uploaded before UE4 upgrade
-			if (!NewCallstackFormat.Match(RawCallStackLines[0]).Success)
+			if( !NewCallstackFormat.Match( RawCallStackLines[Middle] ).Success )
 			{
 				foreach (string CurrentLine in RawCallStackLines)
 				{
@@ -312,42 +315,73 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				string FilePath = "";
 				int LineNumber = 0;
 
-				// Sample line "UE4_Engine!UEngine::Exec() + 21105 bytes [d:\depot\ue4\engine\source\runtime\engine\private\unrealengine.cpp:2777]"
+				// 
+				// Generic sample line "UE4_Engine!UEngine::Exec() {+ 21105 bytes} [d:\depot\ue4\engine\source\runtime\engine\private\unrealengine.cpp:2777]"
+				// 
+				// Mac
+				// thread_start()  Address = 0x7fff87ae141d (filename not found) [in libsystem_pthread.dylib]
+				// 
+				// Linux
+				// Unknown!AFortPlayerController::execServerSaveLoadoutData(FFrame&, void*) + some bytes
 
-				int PlingOffset = CurrentLine.IndexOf( '!' );
+				int ModuleSeparator = CurrentLine.IndexOf( '!' );
 				int PlusOffset = CurrentLine.IndexOf( " + " );
-				int BytesOffset = CurrentLine.IndexOf( " bytes" );
+				int OpenFuncSymbol = CurrentLine.IndexOf( '(' );
+				int CloseFuncSymbol = CurrentLine.IndexOf( ')' );
 				int OpenBracketOffset = CurrentLine.IndexOf( '[' );
 				int CloseBracketOffset = CurrentLine.LastIndexOf( ']' );
 
+				int MacModuleStart = CurrentLine.IndexOf( "[in " );
+				int MacModuleEnd = MacModuleStart > 0 ? CurrentLine.IndexOf( "]", MacModuleStart ) : 0;
+
+				bool bLinux = CurrentCrash.PlatformName.Contains( "Linux" );
+				bool bMac = CurrentCrash.PlatformName.Contains( "Mac" );
+				bool bWindows = CurrentCrash.PlatformName.Contains( "Windows" );
+
+
 				// Parse out the juicy info from the line of the callstack
-				if( PlingOffset > 0 )
+				if( ModuleSeparator > 0 )
 				{
-					ModuleName = CurrentLine.Substring( 0, PlingOffset ).Trim();
-					if( BytesOffset > PlingOffset )
+					ModuleName = CurrentLine.Substring( 0, ModuleSeparator ).Trim();
+					if( OpenFuncSymbol > ModuleSeparator && CloseFuncSymbol > OpenFuncSymbol )
 					{
 						// Grab the function name if it exists
-						FuncName = CurrentLine.Substring( PlingOffset + 1, BytesOffset - PlingOffset + " bytes".Length - 1 ).Trim();
+						FuncName = CurrentLine.Substring( ModuleSeparator + 1, OpenFuncSymbol - ModuleSeparator - 1 ).Trim();
+						FuncName += "()";
 
 						// Grab the source file
-						if( OpenBracketOffset > BytesOffset && CloseBracketOffset > BytesOffset && CloseBracketOffset > OpenBracketOffset )
+						if( OpenBracketOffset > CloseFuncSymbol && CloseBracketOffset > OpenBracketOffset && bWindows )
 						{
 							string FileLinePath = CurrentLine.Substring( OpenBracketOffset + 1, CloseBracketOffset - OpenBracketOffset - 1 ).Trim();
 
 							FilePath = FileLinePath.TrimEnd( "0123456789:".ToCharArray() );
 							int SourceLine = 0;
-						    Debug.Assert(FilePath.Length < FileLinePath.Length,"WRONG SIZE");
-							if( int.TryParse( FileLinePath.Substring(FilePath.Length + 1 ), out SourceLine ) )
+							Debug.Assert( FilePath.Length < FileLinePath.Length, "WRONG SIZE" );
+							if( int.TryParse( FileLinePath.Substring( FilePath.Length + 1 ), out SourceLine ) )
 							{
 								LineNumber = SourceLine;
 							}
 						}
 					}
 				}
-				else if( BytesOffset > 0 )
+				else if( bWindows )
 				{
 					// Grab the module name if there is no function name
-					ModuleName = CurrentLine.Substring( 0, PlusOffset ).Trim();
+					int WhiteSpacePos = CurrentLine.IndexOf( ' ' );
+					ModuleName = WhiteSpacePos > 0 ? CurrentLine.Substring( 0, WhiteSpacePos ) : CurrentLine;
+				}
+
+				if( bMac && MacModuleStart > 0 && MacModuleEnd > 0 )
+				{
+					int AddressOffset = CurrentLine.IndexOf( "Address =" );
+					int OpenFuncSymbolMac = AddressOffset > 0 ? CurrentLine.Substring( 0, AddressOffset ).LastIndexOf( '(' ) : 0;
+					if( OpenFuncSymbolMac > 0 )
+					{
+						FuncName = CurrentLine.Substring( 0, OpenFuncSymbolMac ).Trim();
+						FuncName += "()";
+					}
+
+					ModuleName = CurrentLine.Substring( MacModuleStart + 3, MacModuleEnd - MacModuleStart - 3 ).Trim();
 				}
 
 				CallStackEntries.Add( new CallStackEntry( CurrentLine, ModuleName, FilePath, FuncName, LineNumber ) );

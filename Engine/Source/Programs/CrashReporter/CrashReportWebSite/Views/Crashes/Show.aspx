@@ -304,6 +304,7 @@
 		</div>
 	</div>
 </div>
-&nbsp;
+
+	<small>Generated in <%=Model.GenerationTime%> second(s)</small>
 
 </asp:Content>

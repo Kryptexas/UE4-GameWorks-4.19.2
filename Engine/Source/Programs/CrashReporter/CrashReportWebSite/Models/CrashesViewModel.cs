@@ -60,5 +60,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 		/// <summary> The real user name, displayed only for searches. </summary>
 		public string RealUserName { get; set; }
+
+		/// <summary></summary>
+		public string GenerationTime { get; set; }
 	}
 }

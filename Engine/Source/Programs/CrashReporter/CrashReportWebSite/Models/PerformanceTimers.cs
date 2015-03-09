@@ -101,7 +101,7 @@ public class FScopedLogTimer : IDisposable
 	{
 		Scope.Value--;
 		// Don't log spam.
-		if( Timer.Elapsed.TotalMilliseconds > 1.0 )
+		if( Timer.Elapsed.TotalMilliseconds > 4.0 )
 		{
 			FLogger.WritePerf( Description.PadLeft( Description.Length + Scope.Value*2 ) + ":" + (Int64)Timer.Elapsed.TotalMilliseconds );
 		}		

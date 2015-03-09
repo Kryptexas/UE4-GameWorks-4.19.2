@@ -17,8 +17,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 	[HandleError]
 	public class CrashesController : Controller
 	{
-		private CrashRepository LocalCrashRepository = new CrashRepository();
-
 		/// <summary>
 		/// An empty constructor.
 		/// </summary>
@@ -35,13 +33,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
+				var Crashes = FRepository.Get().Crashes;
+
 				// Handle any edits made in the Set form fields
 				foreach( var Entry in CrashesForm )
 				{
 					int Id = 0;
 					if( int.TryParse( Entry.ToString(), out Id ) )
 					{
-						Crash CurrentCrash = LocalCrashRepository.GetCrash( Id );
+						Crash CurrentCrash = Crashes.GetCrash( Id );
 						if( CurrentCrash != null )
 						{
 							if( !string.IsNullOrEmpty( CrashesForm["SetStatus"] ) )
@@ -61,18 +61,18 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 						}
 					}
 
-					LocalCrashRepository.SubmitChanges();
+					FRepository.Get().SubmitChanges();
 				}
 
 				// <STATUS>
 
 				// Parse the contents of the query string, and populate the form
 				FormHelper FormData = new FormHelper( Request, CrashesForm, "TimeOfCrash" );
-				CrashesViewModel Result = LocalCrashRepository.GetResults( FormData );
+				CrashesViewModel Result = Crashes.GetResults( FormData );
 
 				// Add the FromCollection to the CrashesViewModel since we don't need it for the get results function but we do want to post it back to the page.
 				Result.FormCollection = CrashesForm;
-
+				Result.GenerationTime = LogTimer.GetElapsedSeconds().ToString( "F2" );
 				return View( "Index", Result );
 			}
 		}
@@ -88,9 +88,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + id + ")" ) )
 			{
 				CallStackContainer CurrentCallStack = null;
+				var Crashes = FRepository.Get().Crashes;
 
 				// Update the selected crash based on the form contents
-				Crash CurrentCrash = LocalCrashRepository.GetCrash( id );
+				Crash CurrentCrash = Crashes.GetCrash( id );
 
 				if( CurrentCrash == null )
 				{
@@ -133,13 +134,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				CurrentCallStack.bDisplayFilePathNames = true;
 				CurrentCallStack.bDisplayUnformattedCallStack = false;
 
-				CurrentCrash.CallStackContainer = LocalCrashRepository.GetCallStack( CurrentCrash );
+				CurrentCrash.CallStackContainer = CurrentCrash.GetCallStack();
 
 				// Populate the crash with the correct user data
-				LocalCrashRepository.PopulateUserInfo( CurrentCrash );
-				LocalCrashRepository.SubmitChanges();
+				Crashes.PopulateUserInfo( CurrentCrash );
+				FRepository.Get().SubmitChanges();
 
-				return View( "Show", new CrashViewModel { Crash = CurrentCrash, CallStack = CurrentCallStack } );
+				var Model = new CrashViewModel { Crash = CurrentCrash, CallStack = CurrentCallStack };
+				Model.GenerationTime = LogTimer.GetElapsedSeconds().ToString( "F2" );
+				return View( "Show", Model );
 			}
 		}
 
@@ -161,7 +164,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 					{
 						string Result = Reader.ReadToEnd();
 						CrashDescription NewCrash = XmlHandler.FromXmlString<CrashDescription>( Result );
-						NewCrashResult.ID = LocalCrashRepository.AddNewCrash( NewCrash );
+						NewCrashResult.ID = FRepository.Get().Crashes.AddNewCrash( NewCrash );
 						NewCrashResult.bSuccess = true;
 					}
 				}

@@ -121,5 +121,5 @@ table
 				</td>
 			</tr>
 		</table>	
-
+	<small>Generated in <%=Model.GenerationTime%> second(s)</small>
 </asp:Content>

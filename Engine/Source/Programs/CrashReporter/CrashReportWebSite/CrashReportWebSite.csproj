@@ -105,6 +105,7 @@
     <Compile Include="Models\FormHelper.cs" />
     <Compile Include="Models\PerformanceTimers.cs" />
     <Compile Include="Models\ReportsViewModel.cs" />
+    <Compile Include="Models\Repository.cs" />
     <Compile Include="Models\UsersViewModel.cs" />
     <Compile Include="Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>

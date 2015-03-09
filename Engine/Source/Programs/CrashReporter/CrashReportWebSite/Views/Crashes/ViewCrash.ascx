@@ -21,7 +21,9 @@
 						UserGroup = Model.UserGroup, 
 						DateFrom = Model.DateFrom, 
 						DateTo = Model.DateTo, 
-						CrashType = Model.CrashType 
+						CrashType = Model.CrashType,
+						BranchName = Model.BranchName,
+						GameName = Model.GameName
 					} 
 				) )%>
 			</div>
@@ -192,3 +194,5 @@
 			} 
 		%>
 </table>
+
+<small>Generated in <%=Model.GenerationTime%> second(s)</small>
