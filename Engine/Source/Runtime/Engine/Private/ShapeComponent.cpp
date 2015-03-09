@@ -14,6 +14,7 @@ UShapeComponent::UShapeComponent(const FObjectInitializer& ObjectInitializer)
 	// since shape component is so popular for BP and so on, I'm adding manual support for compatibility
 	// this only works since this variable is getting deprecated. 
 	BodyInstance.ResponseToChannels_DEPRECATED.SetAllChannels(ECR_Block);
+	BodyInstance.bAutoWeld = true;	//UShapeComponent by default has auto welding
 
 	bHiddenInGame = true;
 	bCastDynamicShadow = false;
