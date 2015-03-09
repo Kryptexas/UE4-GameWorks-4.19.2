@@ -4698,8 +4698,6 @@ UWorld* FSeamlessTravelHandler::Tick()
 
 					// otherwise, set to be deleted
 					KeepAnnotation.Clear(TheActor);
-					TheActor->MarkPendingKill();
-					TheActor->MarkComponentsAsPendingKill();
 					// close any channels for this actor
 					if (NetDriver != NULL)
 					{
