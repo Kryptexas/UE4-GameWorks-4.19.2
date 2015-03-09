@@ -326,6 +326,7 @@ void FAsyncAudioDecompressWorker::DoWork( void )
 			AudioInfo->ExpandFile(Wave->RawPCMData, &QualityInfo);
 
 			const SIZE_T ResSize = Wave->GetResourceSize(EResourceSizeMode::Exclusive);
+			Wave->TrackedMemoryUsage += ResSize;
 			INC_DWORD_STAT_BY( STAT_AudioMemorySize, ResSize );
 			INC_DWORD_STAT_BY( STAT_AudioMemory, ResSize );
 		}
