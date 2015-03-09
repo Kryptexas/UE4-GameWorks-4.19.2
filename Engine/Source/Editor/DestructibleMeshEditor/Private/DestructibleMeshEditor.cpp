@@ -532,11 +532,17 @@ void FDestructibleMeshEditor::SetSelectedChunks( const TArray<UObject*>& Selecte
 {
 	if (SelectedChunks.Num() > 0)
 	{
-		ChunkParametersViewTab->ActivateInParent(ETabActivationCause::SetDirectly);
+		if(ChunkParametersViewTab.IsValid())
+		{
+			ChunkParametersViewTab->ActivateInParent(ETabActivationCause::SetDirectly);
+		}
 	}
 	else
 	{
-		DestructibleMeshDetailsViewTab->ActivateInParent(ETabActivationCause::SetDirectly);
+		if(DestructibleMeshDetailsViewTab.IsValid())
+		{
+			DestructibleMeshDetailsViewTab->ActivateInParent(ETabActivationCause::SetDirectly);
+		}
 	}
 
 	ChunkParametersView->SetObjects(SelectedChunks, true);
