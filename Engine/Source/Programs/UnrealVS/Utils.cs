@@ -6,6 +6,7 @@ using Microsoft.VisualStudio.Shell.Interop;
 using EnvDTE;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using VSLangProj;
 using System.IO;
 using EnvDTE80;
@@ -573,6 +574,43 @@ namespace UnrealVS
 			}
 
 			return CachedUProjectNames;
+		}
+
+		public static void GetSolutionConfigsAndPlatforms(out string[] SolutionConfigs, out string[] SolutionPlatforms)
+		{
+			var UniqueConfigs = new List<string>();
+			var UniquePlatforms = new List<string>();
+
+			SolutionConfigurations DteSolutionConfigs = UnrealVSPackage.Instance.DTE.Solution.SolutionBuild.SolutionConfigurations;
+			foreach (SolutionConfiguration2 SolutionConfig in DteSolutionConfigs)
+			{
+				if (!UniqueConfigs.Contains(SolutionConfig.Name))
+				{
+					UniqueConfigs.Add(SolutionConfig.Name);
+				}
+				if (!UniquePlatforms.Contains(SolutionConfig.PlatformName))
+				{
+					UniquePlatforms.Add(SolutionConfig.PlatformName);
+				}
+			}
+
+			SolutionConfigs = UniqueConfigs.ToArray();
+			SolutionPlatforms = UniquePlatforms.ToArray();
+		}
+
+		public static bool SetActiveSolutionConfiguration(string ConfigName, string PlatformName)
+		{
+			SolutionConfigurations DteSolutionConfigs = UnrealVSPackage.Instance.DTE.Solution.SolutionBuild.SolutionConfigurations;
+			foreach (SolutionConfiguration2 SolutionConfig in DteSolutionConfigs)
+			{
+				if (string.Compare(SolutionConfig.Name, ConfigName, StringComparison.Ordinal) == 0
+					&& string.Compare(SolutionConfig.PlatformName, PlatformName, StringComparison.Ordinal) == 0)
+				{
+					SolutionConfig.Activate();
+					return true;
+				}
+			}
+			return false;
 		}
 
 		private static void PrepareOutputPane()
