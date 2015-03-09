@@ -459,7 +459,7 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditUndo() override;
 #endif // WITH_EDITOR
-	virtual void BeginDestroy() override;
+	virtual void Destroyed() override;
 	// End UObject Interface
 		
 	virtual void CleanUp();

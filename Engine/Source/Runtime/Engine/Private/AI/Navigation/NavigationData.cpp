@@ -362,7 +362,7 @@ bool ANavigationData::DoesSupportAgent(const FNavAgentProperties& AgentProps) co
 	return NavDataConfig.IsEquivalent(AgentProps);
 }
 
-void ANavigationData::BeginDestroy()
+void ANavigationData::Destroyed()
 {
 	UWorld* WorldOuter = GetWorld();
 
@@ -374,7 +374,7 @@ void ANavigationData::BeginDestroy()
 
 	CleanUp();
 
-	Super::BeginDestroy();
+	Super::Destroyed();
 }
 
 void ANavigationData::CleanUp()
