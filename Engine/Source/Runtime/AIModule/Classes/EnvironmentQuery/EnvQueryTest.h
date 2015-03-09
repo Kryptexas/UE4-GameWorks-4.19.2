@@ -20,6 +20,21 @@ namespace EnvQueryTestVersion
 	const int32 Latest = DataProviders;
 }
 
+#if WITH_EDITORONLY_DATA
+struct FEnvQueryTestScoringPreview
+{
+	float Samples[11];
+	float FilterLow;
+	float FilterHigh;
+	float ClampMin;
+	float ClampMax;
+	uint32 bShowFilterLow : 1;
+	uint32 bShowFilterHigh : 1;
+	uint32 bShowClampMin : 1;
+	uint32 bShowClampMax : 1;
+};
+#endif
+
 UCLASS(Abstract)
 class AIMODULE_API UEnvQueryTest : public UEnvQueryNode
 {
@@ -80,6 +95,11 @@ class AIMODULE_API UEnvQueryTest : public UEnvQueryNode
 
 	/** Validation: item type that can be used with this test */
 	TSubclassOf<UEnvQueryItemType> ValidItemType;
+
+#if WITH_EDITORONLY_DATA
+	/** samples of scoring function to show on graph in editor */
+	FEnvQueryTestScoringPreview PreviewData;
+#endif
 
 	void SetWorkOnFloatValues(bool bWorkOnFloats);
 	FORCEINLINE bool GetWorkOnFloatValues() const { return bWorkOnFloatValues; }
@@ -148,6 +168,13 @@ public:
 
 	/** update to latest version after spawning */
 	virtual void UpdateNodeVersion() override;
+
+#if WITH_EDITOR
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+#endif
+
+	/** update preview list */
+	void UpdatePreviewData();
 };
 
 //////////////////////////////////////////////////////////////////////////
