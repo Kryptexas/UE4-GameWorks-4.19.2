@@ -466,14 +466,12 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <summary>
 		/// Build a callstack pattern for a crash to ease bucketing of crashes into Buggs.
 		/// </summary>
-		public void BuildPattern()
+		public void BuildPattern( CrashReportDataContext Context )
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Crash=" + Id + ")" ) )
 			{
-				CrashRepository Crashes = new CrashRepository();
-
 				List<string> PatternList = new List<string>();
-				var FunctionCalls = Crashes.Context.FunctionCalls;
+				var FunctionCalls = Context.FunctionCalls;
 
 				// Get an array of callstack items
 				CallStackContainer CallStack = new CallStackContainer( this );
@@ -500,7 +498,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 								FunctionCalls.InsertOnSubmit( CurrentFunctionCall );
 							}
 
-							Crashes.SubmitChanges();
+							Context.SubmitChanges();
 
 							PatternList.Add( CurrentFunctionCall.Id.ToString() );
 						}
@@ -510,8 +508,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						// We need something like this +1+2+3+5+ for searching for exact pattern like +5+
 						//CrashInstance.Pattern += "+";
 
-
-						Crashes.SubmitChanges();
+						Context.SubmitChanges();
 					}
 					catch( Exception Ex )
 					{

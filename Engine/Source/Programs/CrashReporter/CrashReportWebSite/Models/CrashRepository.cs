@@ -685,7 +685,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			NewID = NewCrash.Id;
 
 			// Build a callstack pattern for crash bucketing
-			NewCrash.BuildPattern();
+			NewCrash.BuildPattern( Context );
 
 			return NewID;
 		}
