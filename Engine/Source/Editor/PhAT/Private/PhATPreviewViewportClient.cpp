@@ -494,7 +494,7 @@ bool FPhATEdPreviewViewportClient::InputWidgetDelta( FViewport* Viewport, EAxisL
 				float Angle;
 				Rot.Quaternion().ToAxisAndAngle(Axis, Angle);
 		
-				Axis = SelectedObject.WidgetTM.InverseTransformVector( Axis );
+				Axis = SelectedObject.WidgetTM.InverseTransformVectorNoScale( Axis );
 		
 				const FQuat Start = SelectedObject.ManipulateTM.GetRotation();
 				const FQuat Delta = FQuat( Axis, Angle );
