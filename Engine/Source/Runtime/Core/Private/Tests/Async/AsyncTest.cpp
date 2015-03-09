@@ -12,8 +12,7 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FAsyncTest, "Core.Async.Async", EAutomationTest
 
 bool FAsyncTest::RunTest(const FString& Parameters)
 {
-	TFunction<int()> Task = []()
-	{
+	TFunction<int()> Task = []() {
 		return 123;
 	};
 
@@ -41,7 +40,7 @@ bool FAsyncTest::RunTest(const FString& Parameters)
 		TestEqual(TEXT("Thread pool task must return expected value"), Result, 123);
 	}
 
-	TFunction<void()> VoidTask = []() {};
+	TFunction<void()> VoidTask = []() { };
 	
 	// TAsync<void>
 	{
