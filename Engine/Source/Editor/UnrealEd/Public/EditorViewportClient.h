@@ -290,19 +290,7 @@ public:
 	 * Restores realtime setting to stored value. This will only enable realtime and 
 	 * never disable it (unless bAllowDisable is true)
 	 */
-	void RestoreRealtime( const bool bAllowDisable = false )
-	{
-		if( bAllowDisable )
-		{
-			bIsRealtime = bStoredRealtime;
-			bShowStats = bStoredShowStats;
-		}
-		else
-		{
-			bIsRealtime |= bStoredRealtime;
-			bShowStats |= bStoredShowStats;
-		}
-	}
+	void RestoreRealtime(const bool bAllowDisable = false);
 
 
 	// this set ups camera for both orbit and non orbit control

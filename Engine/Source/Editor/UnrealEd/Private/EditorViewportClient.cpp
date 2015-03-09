@@ -365,6 +365,26 @@ FEditorViewportClient::~FEditorViewportClient()
 	}
 }
 
+void FEditorViewportClient::RestoreRealtime(const bool bAllowDisable)
+{
+	if (bAllowDisable)
+	{
+		bIsRealtime = bStoredRealtime;
+		bShowStats = bStoredShowStats;
+	}
+	else
+	{
+		bIsRealtime |= bStoredRealtime;
+		bShowStats |= bStoredShowStats;
+	}
+
+	if (EditorViewportWidget.IsValid() && ( bIsRealtime || bShowStats ))
+	{
+		// Invalidate the viewport widget to re-register its active timer
+		EditorViewportWidget.Pin()->Invalidate();
+	}
+}
+
 void FEditorViewportClient::RedrawRequested(FViewport* InViewport)
 {
 	bNeedsRedraw = true;
