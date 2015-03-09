@@ -1,10 +1,13 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "AndroidMediaPCH.h"
-
 #include "AndroidMediaPlayer.h"
+#include "IMediaModule.h"
+#include "IMediaPlayerFactory.h"
+
 
 #define LOCTEXT_NAMESPACE "FAndroidMediaModule"
+
 
 class FAndroidMediaModule
 	: public IModuleInterface
