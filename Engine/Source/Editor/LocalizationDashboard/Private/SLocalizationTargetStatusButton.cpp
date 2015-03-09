@@ -89,7 +89,7 @@ FReply SLocalizationTargetStatusButton::OnClicked()
 			const TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().FindWidgetWindow(AsShared());
 			if (LocalizationCommandletTasks::GenerateReportsForTarget(ParentWindow.ToSharedRef(), Target->Settings))
 			{
-				Target->Settings.UpdateStatusFromConflictReport();
+				Target->UpdateStatusFromConflictReport();
 			}
 		}
 		break;

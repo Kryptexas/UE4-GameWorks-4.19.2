@@ -22,8 +22,8 @@ public:
 		
 		for (ULocalizationTarget*& Target : Settings->TargetObjects)
 		{
-			Target->Settings.UpdateStatusFromConflictReport();
-			Target->Settings.UpdateWordCountsFromCSV();
+			Target->UpdateStatusFromConflictReport();
+			Target->UpdateWordCountsFromCSV();
 		}
 	}
 

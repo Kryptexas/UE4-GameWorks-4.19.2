@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LocalizationDashboardPrivatePCH.h"
 #include "SLocalizationTargetEditorCultureRow.h"
@@ -147,6 +147,17 @@ TSharedRef<SWidget> SLocalizationTargetEditorCultureRow::GenerateWidgetForColumn
 	return Return.IsValid() ? Return.ToSharedRef() : SNullWidget::NullWidget;
 }
 
+ULocalizationTarget* SLocalizationTargetEditorCultureRow::GetTarget() const
+{
+	if (TargetSettingsPropertyHandle.IsValid() && TargetSettingsPropertyHandle->IsValidHandle())
+	{
+		TArray<UObject*> OuterObjects;
+		TargetSettingsPropertyHandle->GetOuterObjects(OuterObjects);
+		return CastChecked<ULocalizationTarget>(OuterObjects.Top());
+	}
+	return nullptr;
+}
+
 FLocalizationTargetSettings* SLocalizationTargetEditorCultureRow::GetTargetSettings() const
 {
 	if (TargetSettingsPropertyHandle.IsValid() && TargetSettingsPropertyHandle->IsValidHandle())
@@ -237,8 +248,8 @@ TOptional<float> SLocalizationTargetEditorCultureRow::GetProgressPercentage() co
 
 void SLocalizationTargetEditorCultureRow::UpdateTargetFromReports()
 {
-	FLocalizationTargetSettings* const TargetSettings = GetTargetSettings();
-	if (TargetSettings)
+	ULocalizationTarget* const LocalizationTarget = GetTarget();
+	if (LocalizationTarget)
 	{
 		TArray< TSharedPtr<IPropertyHandle> > WordCountPropertyHandles;
 
@@ -278,8 +289,8 @@ void SLocalizationTargetEditorCultureRow::UpdateTargetFromReports()
 		{
 			WordCountPropertyHandle->NotifyPreChange();
 		}
-		TargetSettings->UpdateWordCountsFromCSV();
-		TargetSettings->UpdateStatusFromConflictReport();
+		LocalizationTarget->UpdateWordCountsFromCSV();
+		LocalizationTarget->UpdateStatusFromConflictReport();
 		for (const TSharedPtr<IPropertyHandle>& WordCountPropertyHandle : WordCountPropertyHandles)
 		{
 			WordCountPropertyHandle->NotifyPostChange();
@@ -406,8 +417,8 @@ void SLocalizationTargetEditorCultureRow::Delete()
 		TGuardValue<bool> ReentranceGuard(IsExecuting, true);
 
 		const FCulturePtr Culture = GetCulture();
-		FLocalizationTargetSettings* const TargetSettings = GetTargetSettings();
-		if (Culture.IsValid() && TargetSettings)
+		ULocalizationTarget* const LocalizationTarget = GetTarget();
+		if (Culture.IsValid() && LocalizationTarget)
 		{
 			FText TitleText;
 			FText MessageText;
@@ -424,7 +435,7 @@ void SLocalizationTargetEditorCultureRow::Delete()
 			case EAppReturnType::Ok:
 				{
 					const FString CultureName = Culture->GetName();
-					TargetSettings->DeleteFiles(&CultureName);
+					LocalizationTarget->DeleteFiles(&CultureName);
 
 					// Remove this element from the parent array.
 					const TSharedPtr<IPropertyHandle> SupportedCulturesStatisticsPropertyHandle = TargetSettingsPropertyHandle.IsValid() && TargetSettingsPropertyHandle->IsValidHandle() ? TargetSettingsPropertyHandle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FLocalizationTargetSettings, SupportedCulturesStatistics)) : nullptr;

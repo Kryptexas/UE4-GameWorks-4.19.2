@@ -297,8 +297,8 @@ void SLocalizationDashboardTargetRow::UpdateTargetFromReports()
 		//{
 		//	WordCountPropertyHandle->NotifyPreChange();
 		//}
-		LocalizationTarget->Settings.UpdateWordCountsFromCSV();
-		LocalizationTarget->Settings.UpdateStatusFromConflictReport();
+		LocalizationTarget->UpdateWordCountsFromCSV();
+		LocalizationTarget->UpdateStatusFromConflictReport();
 		//for (const TSharedPtr<IPropertyHandle>& WordCountPropertyHandle : WordCountPropertyHandles)
 		//{
 		//	WordCountPropertyHandle->NotifyPostChange();
@@ -472,7 +472,7 @@ void SLocalizationDashboardTargetRow::Delete()
 			{
 			case EAppReturnType::Ok:
 				{
-					LocalizationTarget->Settings.DeleteFiles();
+					LocalizationTarget->DeleteFiles();
 
 					// Close target editor.
 					if (TargetEditorDockTab.IsValid())

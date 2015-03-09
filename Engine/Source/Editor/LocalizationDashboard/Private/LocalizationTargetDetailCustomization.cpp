@@ -404,7 +404,7 @@ void FLocalizationTargetDetailCustomization::OnTargetNameCommitted(const FText& 
 				TargetNamePropertyHandle->NotifyPreChange();
 			}
 
-			TargetSettings->Rename(NewText.ToString());
+			LocalizationTarget->RenameTargetAndFiles(NewText.ToString());
 
 			if (TargetNamePropertyHandle.IsValid() && TargetNamePropertyHandle->IsValidHandle())
 			{
@@ -705,8 +705,7 @@ void FLocalizationTargetDetailCustomization::RefreshWordCounts()
 
 void FLocalizationTargetDetailCustomization::UpdateTargetFromReports()
 {
-	FLocalizationTargetSettings* const TargetSettings = GetTargetSettings();
-	if (TargetSettings)
+	if (LocalizationTarget.IsValid())
 	{
 		TArray< TSharedPtr<IPropertyHandle> > WordCountPropertyHandles;
 
@@ -746,8 +745,8 @@ void FLocalizationTargetDetailCustomization::UpdateTargetFromReports()
 		{
 			WordCountPropertyHandle->NotifyPreChange();
 		}
-		TargetSettings->UpdateWordCountsFromCSV();
-		TargetSettings->UpdateStatusFromConflictReport();
+		LocalizationTarget->UpdateWordCountsFromCSV();
+		LocalizationTarget->UpdateStatusFromConflictReport();
 		for (const TSharedPtr<IPropertyHandle>& WordCountPropertyHandle : WordCountPropertyHandles)
 		{
 			WordCountPropertyHandle->NotifyPostChange();

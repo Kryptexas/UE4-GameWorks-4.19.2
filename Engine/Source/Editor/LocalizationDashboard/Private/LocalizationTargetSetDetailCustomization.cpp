@@ -403,8 +403,8 @@ void FLocalizationTargetSetDetailCustomization::UpdateTargetFromReports(ULocaliz
 	//{
 	//	WordCountPropertyHandle->NotifyPreChange();
 	//}
-	LocalizationTarget->Settings.UpdateWordCountsFromCSV();
-	LocalizationTarget->Settings.UpdateStatusFromConflictReport();
+	LocalizationTarget->UpdateWordCountsFromCSV();
+	LocalizationTarget->UpdateStatusFromConflictReport();
 	//for (const TSharedPtr<IPropertyHandle>& WordCountPropertyHandle : WordCountPropertyHandles)
 	//{
 	//	WordCountPropertyHandle->NotifyPostChange();

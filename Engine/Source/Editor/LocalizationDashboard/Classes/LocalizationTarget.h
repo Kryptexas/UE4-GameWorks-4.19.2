@@ -124,11 +124,6 @@ struct FLocalizationTargetSettings
 
 	UPROPERTY(config, EditAnywhere, Category = "Cultures")
 	TArray<FCultureStatistics> SupportedCulturesStatistics;
-
-	bool UpdateWordCountsFromCSV();
-	void UpdateStatusFromConflictReport();
-	bool Rename(const FString& NewName);
-	bool DeleteFiles(const FString* const Culture = nullptr) const;
 };
 
 UCLASS(Within=LocalizationTargetSet)
@@ -144,6 +139,11 @@ public:
 #if WITH_EDITOR
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
+
+	bool UpdateWordCountsFromCSV();
+	void UpdateStatusFromConflictReport();
+	bool RenameTargetAndFiles(const FString& NewName);
+	bool DeleteFiles(const FString* const Culture = nullptr) const;
 };
 
 UCLASS(Config=Game, defaultconfig)

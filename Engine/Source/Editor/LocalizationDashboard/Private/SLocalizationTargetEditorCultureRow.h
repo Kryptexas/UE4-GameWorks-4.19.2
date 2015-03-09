@@ -13,6 +13,7 @@ public:
 	TSharedRef<SWidget> GenerateWidgetForColumn( const FName& ColumnName ) override;
 
 private:
+	ULocalizationTarget* GetTarget() const;
 	FLocalizationTargetSettings* GetTargetSettings() const;
 	FCultureStatistics* GetCultureStatistics() const;
 	FCulturePtr GetCulture() const;
