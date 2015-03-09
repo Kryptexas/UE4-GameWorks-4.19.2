@@ -261,6 +261,11 @@ public:
 	static FString GameAgnosticSavedDir();
 
 	/**
+	 * @return The directory where engine source code files are kept
+	 */
+	static FString EngineSourceDir();
+
+	/**
 	 * @return The directory where game source code files are kept
 	 */
 	static FString GameSourceDir();

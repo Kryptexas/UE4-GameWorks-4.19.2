@@ -353,6 +353,11 @@ FString FPaths::GameAgnosticSavedDir()
 	return EngineSavedDir();
 }
 
+FString FPaths::EngineSourceDir()
+{
+	return FPaths::EngineDir() + TEXT("Source/");
+}
+
 FString FPaths::GameSourceDir()
 {
 	return FPaths::GameDir() + TEXT("Source/");
