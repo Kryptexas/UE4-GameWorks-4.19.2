@@ -443,6 +443,8 @@ void FWorldTileModel::SetLevelPosition(const FIntPoint& InPosition)
 	if (IsLandscapeBased())
 	{
 		UpdateLandscapeSectionsOffset(Offset);
+		bool bShowWarnings = true;
+		ULandscapeInfo::RecreateLandscapeInfo(LevelCollectionModel.GetWorld(), bShowWarnings);
 	}
 	
 	// Transform child levels
@@ -830,6 +832,9 @@ ALandscapeProxy* FWorldTileModel::ImportLandscape(const FLandscapeImportSettings
 		LandscapeProxy->LandscapeMaterial = Settings.LandscapeMaterial;
 	}
 	
+	// Cache pointer to landscape in the level model
+	Landscape = LandscapeProxy;
+
 	// Create landscape components	
 	LandscapeProxy->Import(
 		LandscapeGuid, 
