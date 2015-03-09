@@ -3,6 +3,7 @@
 #include "LocalizationDashboardPrivatePCH.h"
 #include "SLocalizationTargetStatusButton.h"
 #include "LocalizationCommandletExecution.h"
+#include "LocalizationCommandletTasks.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationTargetStatusButton"
 
