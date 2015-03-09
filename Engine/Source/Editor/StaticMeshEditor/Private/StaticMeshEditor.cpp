@@ -136,7 +136,7 @@ void FStaticMeshEditor::InitStaticMeshEditor( const EToolkitMode::Type Mode, con
 
 	BuildSubTools();
 
-	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "Standalone_StaticMeshEditor_Layout_v3" )
+	const TSharedRef<FTabManager::FLayout> StandaloneDefaultLayout = FTabManager::NewLayout( "Standalone_StaticMeshEditor_Layout_v4" )
 	->AddArea
 	(
 		FTabManager::NewPrimaryArea() ->SetOrientation(Orient_Vertical)
@@ -149,27 +149,30 @@ void FStaticMeshEditor::InitStaticMeshEditor( const EToolkitMode::Type Mode, con
 		)
 		->Split
 		(
-			FTabManager::NewSplitter() ->SetOrientation(Orient_Horizontal) ->SetSizeCoefficient(0.9f)
+			FTabManager::NewSplitter() ->SetOrientation(Orient_Horizontal)
+			->SetSizeCoefficient(0.9f)
 			->Split
 			(
 				FTabManager::NewStack()
 				->SetSizeCoefficient(0.6f)
-				->AddTab(ViewportTabId, ETabState::OpenedTab) ->SetHideTabWell( true )
+				->AddTab(ViewportTabId, ETabState::OpenedTab)
+				->SetHideTabWell( true )
 			)
 			->Split
 			(
-				FTabManager::NewSplitter() ->SetOrientation(Orient_Vertical) ->SetSizeCoefficient(0.2f)
+				FTabManager::NewSplitter() ->SetOrientation(Orient_Vertical)
+				->SetSizeCoefficient(0.2f)
 				->Split
 				(
 					FTabManager::NewStack()
-					->SetSizeCoefficient(0.5f)
+					->SetSizeCoefficient(0.7f)
 					->AddTab(PropertiesTabId, ETabState::OpenedTab)
 				)
 				->Split
 				(
 					FTabManager::NewStack()
-					->SetSizeCoefficient(0.5f)
-					->AddTab(SocketManagerTabId, ETabState::ClosedTab)
+					->SetSizeCoefficient(0.3f)
+					->AddTab(SocketManagerTabId, ETabState::OpenedTab)
 					->AddTab(CollisionTabId, ETabState::ClosedTab)
 				)
 			)
