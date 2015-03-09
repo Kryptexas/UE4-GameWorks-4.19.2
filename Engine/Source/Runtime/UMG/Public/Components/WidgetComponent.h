@@ -61,6 +61,13 @@ public:
 	*/
 	void UpdateBodySetup( bool bDrawSizeChanged = false );
 
+	/**
+	 * Converts a world-space hit result to a hit location on the widget
+	 * @param HitResult The hit on this widget in the world
+	 * @param (Out) The transformed 2D hit location on the widget
+	 */
+	void GetLocalHitLocation(const FHitResult& HitResult, FVector2D& OutLocalHitLocation) const;
+
 	/** @return The class of the user widget displayed by this component */
 	TSubclassOf<UUserWidget> GetWidgetClass() const { return WidgetClass; }
 
@@ -103,7 +110,7 @@ public:
 	FVector2D GetPivot() const { return Pivot; }
 	
 private:
-	/** The class of User Widget to create and display an instance of */
+	/** The coordinate space in which to render the widget */
 	UPROPERTY(EditAnywhere, Category=UI)
 	EWidgetSpace Space;
 

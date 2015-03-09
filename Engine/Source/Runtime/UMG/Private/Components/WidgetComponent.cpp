@@ -241,7 +241,8 @@ public:
 							{
 								TSharedPtr<FVirtualPointerPosition> VirtualCursorPos = MakeShareable(new FVirtualPointerPosition);
 
-								FVector2D LocalHitLocation = FVector2D( WidgetComponent->ComponentToWorld.InverseTransformPosition( HitResult.Location ) );
+								FVector2D LocalHitLocation;
+								WidgetComponent->GetLocalHitLocation(HitResult, LocalHitLocation);
 
 								VirtualCursorPos->CurrentCursorPosition = LocalHitLocation;
 								VirtualCursorPos->LastCursorPosition = LocalHitLocation;
@@ -817,6 +818,16 @@ void UWidgetComponent::UpdateBodySetup( bool bDrawSizeChanged )
 	}	
 }
 
+void UWidgetComponent::GetLocalHitLocation(const FHitResult& HitResult, FVector2D& OutLocalHitLocation) const
+{
+	// Find the hit location on the component
+	OutLocalHitLocation = FVector2D(ComponentToWorld.InverseTransformPosition(HitResult.Location));
+
+	// Offset the position by the pivot to get the position in widget space.
+	OutLocalHitLocation.X += DrawSize.X * Pivot.X;
+	OutLocalHitLocation.Y += DrawSize.Y * Pivot.Y;
+}
+
 UUserWidget* UWidgetComponent::GetUserWidgetObject() const
 {
 	return Widget;
@@ -824,11 +835,8 @@ UUserWidget* UWidgetComponent::GetUserWidgetObject() const
 
 TArray<FWidgetAndPointer> UWidgetComponent::GetHitWidgetPath( const FHitResult& HitResult, bool bIgnoreEnabledStatus  )
 {
-	// Find the hit location on the component
-	FVector2D LocalHitLocation = FVector2D( ComponentToWorld.InverseTransformPosition( HitResult.Location ) );
-	// Offset the position by the pivot to get the position in widget space.
-	LocalHitLocation.X += DrawSize.X * Pivot.X;
-	LocalHitLocation.Y += DrawSize.Y * Pivot.Y;
+	FVector2D LocalHitLocation;
+	GetLocalHitLocation(HitResult, LocalHitLocation);
 
 	TSharedRef<FVirtualPointerPosition> VirtualMouseCoordinate = MakeShareable( new FVirtualPointerPosition );
 
