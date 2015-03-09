@@ -153,3 +153,9 @@
 
 # Ignore crash reports
 /crashinfo--*
+
+# Ignore linux project files
+*.user
+*.pro
+*.pri
+*.kdev4

@@ -34,6 +34,15 @@ namespace UnrealBuildTool
 	/// </summary>
 	public class MakefileGenerator : ProjectFileGenerator
 	{
+		/// True if intellisense data should be generated (takes a while longer)
+		bool bGenerateIntelliSenseData = false;
+
+		/// True if we should include IntelliSense data in the generated project files when possible
+		override public bool ShouldGenerateIntelliSenseData()
+		{
+			return bGenerateIntelliSenseData;
+		}
+
 		/// File extension for project files we'll be generating (e.g. ".vcxproj")
 		override public string ProjectFileExtension
 		{
