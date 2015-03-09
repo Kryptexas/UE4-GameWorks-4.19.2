@@ -864,10 +864,8 @@ void FAnimMontageInstance::Stop(float BlendOut, bool bInterrupt)
 	if (DesiredWeight > 0.f)
 	{
 		DesiredWeight = 0.f;
-
 		if (Montage)
 		{
-
 			// do not use default Montage->BlendOut  Time
 			// depending on situation, the BlendOut time changes
 			// check where this function gets called and see how we calculate BlendTime
@@ -877,9 +875,8 @@ void FAnimMontageInstance::Stop(float BlendOut, bool bInterrupt)
 			{
 				// Let AnimInstance know we are being stopped.
 				Inst->OnMontageInstanceStopped(*this);
-				Inst->OnMontageBlendingOut.Broadcast(Montage, bInterrupt);
+				Inst->QueueMontageBlendingOutEvent(FQueuedMontageBlendingOutEvent(Montage, bInterrupted, OnMontageBlendingOutStarted));
 			}
-			OnMontageBlendingOutStarted.ExecuteIfBound(Montage, bInterrupted);
 		}
 	}
 	else
@@ -954,7 +951,7 @@ void FAnimMontageInstance::AddReferencedObjects( FReferenceCollector& Collector 
 
 void FAnimMontageInstance::Terminate()
 {
-	if ( Montage == NULL )
+	if (Montage == NULL)
 	{
 		return;
 	}
@@ -962,20 +959,20 @@ void FAnimMontageInstance::Terminate()
 	UAnimMontage* OldMontage = Montage;
 	Montage = NULL;
 
-	// End all active State BranchingPoints
-	for (int32 Index = ActiveStateBranchingPoints.Num() - 1; Index >= 0; Index--)
+	UAnimInstance* Inst = AnimInstance.Get();
+	if (Inst)
 	{
-		FAnimNotifyEvent& NotifyEvent = ActiveStateBranchingPoints[Index];
-		NotifyEvent.NotifyStateClass->NotifyEnd(AnimInstance->GetSkelMeshComponent(), Cast<UAnimSequenceBase>(NotifyEvent.NotifyStateClass->GetOuter()));
-	}
-	ActiveStateBranchingPoints.Empty();
+		// End all active State BranchingPoints
+		for (int32 Index = ActiveStateBranchingPoints.Num() - 1; Index >= 0; Index--)
+		{
+			FAnimNotifyEvent& NotifyEvent = ActiveStateBranchingPoints[Index];
+			NotifyEvent.NotifyStateClass->NotifyEnd(Inst->GetSkelMeshComponent(), Cast<UAnimSequenceBase>(NotifyEvent.NotifyStateClass->GetOuter()));
+		}
+		ActiveStateBranchingPoints.Empty();
 
-	// terminating, trigger end
-	if (UAnimInstance* Inst = AnimInstance.Get())
-	{
-		Inst->OnMontageEnded.Broadcast(OldMontage, bInterrupted);
+		// terminating, trigger end
+		Inst->QueueMontageEndedEvent(FQueuedMontageEndedEvent(Montage, bInterrupted, OnMontageEnded));
 	}
-	OnMontageEnded.ExecuteIfBound(OldMontage, bInterrupted);
 }
 
 bool FAnimMontageInstance::JumpToSectionName(FName const & SectionName, bool bEndOfSection)

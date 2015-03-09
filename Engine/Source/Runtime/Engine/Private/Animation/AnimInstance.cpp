@@ -473,6 +473,9 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 	// now trigger Notifies
 	TriggerAnimNotifies(DeltaSeconds);
 
+	// Trigger Montage end events after notifies. In case Montage ending ends abilities or other states, we make sure notifies are processed before montage events.
+	TriggerQueuedMontageEvents();
+
 	// Add 0.0 curves to clear parameters that we have previously set but didn't set this tick.
 	//   - Make a copy of MaterialParametersToClear as it will be modified by AddCurveValue
 	TArray<FName> ParamsToClearCopy = MaterialParamatersToClear;
@@ -1762,6 +1765,9 @@ void UAnimInstance::Montage_UpdateWeight(float DeltaSeconds)
 
 void UAnimInstance::Montage_Advance(float DeltaSeconds)
 {
+	// We're about to tick montages, queue their events to they're triggered after batched anim notifies.
+	bQueueMontageEvents = true;
+
 	// go through all montage instances, and update them
 	// and make sure their weight is updated properly
 	for (int32 InstanceIndex = 0; InstanceIndex<MontageInstances.Num(); InstanceIndex++)
@@ -1805,6 +1811,67 @@ void UAnimInstance::Montage_Advance(float DeltaSeconds)
 			}
 #endif
 		}
+	}
+}
+
+void UAnimInstance::QueueMontageBlendingOutEvent(const FQueuedMontageBlendingOutEvent& MontageBlendingOutEvent)
+{
+	if (bQueueMontageEvents)
+	{
+		QueuedMontageBlendingOutEvents.Add(MontageBlendingOutEvent);
+	}
+	else
+	{
+		TriggerMontageBlendingOutEvent(MontageBlendingOutEvent);
+	}
+}
+
+void UAnimInstance::TriggerMontageBlendingOutEvent(const FQueuedMontageBlendingOutEvent& MontageBlendingOutEvent)
+{
+	MontageBlendingOutEvent.Delegate.ExecuteIfBound(MontageBlendingOutEvent.Montage, MontageBlendingOutEvent.bInterrupted);
+	OnMontageBlendingOut.Broadcast(MontageBlendingOutEvent.Montage, MontageBlendingOutEvent.bInterrupted);
+}
+
+void UAnimInstance::QueueMontageEndedEvent(const FQueuedMontageEndedEvent& MontageEndedEvent)
+{
+	if (bQueueMontageEvents)
+	{
+		QueuedMontageEndedEvents.Add(MontageEndedEvent);
+	}
+	else
+	{
+		TriggerMontageEndedEvent(MontageEndedEvent);
+	}
+}
+
+void UAnimInstance::TriggerMontageEndedEvent(const FQueuedMontageEndedEvent& MontageEndedEvent)
+{
+	MontageEndedEvent.Delegate.ExecuteIfBound(MontageEndedEvent.Montage, MontageEndedEvent.bInterrupted);
+	OnMontageEnded.Broadcast(MontageEndedEvent.Montage, MontageEndedEvent.bInterrupted);
+}
+
+void UAnimInstance::TriggerQueuedMontageEvents()
+{
+	// We don't need to queue montage events anymore.
+	bQueueMontageEvents = false;
+
+	// Trigger Montage blending out before Ended events.
+	if (QueuedMontageBlendingOutEvents.Num() > 0)
+	{
+		for (auto MontageBlendingOutEvent : QueuedMontageBlendingOutEvents)
+		{
+			TriggerMontageBlendingOutEvent(MontageBlendingOutEvent);
+		}
+		QueuedMontageBlendingOutEvents.Empty();
+	}
+
+	if (QueuedMontageEndedEvents.Num() > 0)
+	{
+		for (auto MontageEndedEvent : QueuedMontageEndedEvents)
+		{
+			TriggerMontageEndedEvent(MontageEndedEvent);
+		}
+		QueuedMontageEndedEvents.Empty();
 	}
 }
 

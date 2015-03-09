@@ -255,6 +255,44 @@ struct FSlotEvaluationPose
 	}
 };
 
+/** Helper struct to store a Queued Montage BlendingOut event. */
+struct FQueuedMontageBlendingOutEvent
+{
+	class UAnimMontage* Montage;
+	bool bInterrupted;
+	FOnMontageBlendingOutStarted Delegate;
+
+	FQueuedMontageBlendingOutEvent()
+		: Montage(NULL)
+		, bInterrupted(false)
+	{}
+
+	FQueuedMontageBlendingOutEvent(class UAnimMontage* InMontage, bool InbInterrupted, FOnMontageBlendingOutStarted InDelegate)
+		: Montage(InMontage)
+		, bInterrupted(InbInterrupted)
+		, Delegate(InDelegate)
+	{}
+};
+
+/** Helper struct to store a Queued Montage Ended event. */
+struct FQueuedMontageEndedEvent
+{
+	class UAnimMontage* Montage;
+	bool bInterrupted;
+	FOnMontageEnded Delegate;
+
+	FQueuedMontageEndedEvent()
+		: Montage(NULL)
+		, bInterrupted(false)
+	{}
+
+	FQueuedMontageEndedEvent(class UAnimMontage* InMontage, bool InbInterrupted, FOnMontageEnded InDelegate)
+		: Montage(InMontage)
+		, bInterrupted(InbInterrupted)
+		, Delegate(InDelegate)
+	{}
+};
+
 /** Binding allowing native transition rule evaluation */
 struct FNativeTransitionBinding
 {
@@ -545,6 +583,34 @@ protected:
 	virtual void Montage_UpdateWeight(float DeltaSeconds);
 	/** Advance montages **/
 	virtual void Montage_Advance(float DeltaSeconds);
+
+public:
+	/** Queue a Montage BlendingOut Event to be triggered. */
+	void QueueMontageBlendingOutEvent(const FQueuedMontageBlendingOutEvent& MontageBlendingOutEvent);
+
+	/** Queue a Montage Ended Event to be triggered. */
+	void QueueMontageEndedEvent(const FQueuedMontageEndedEvent& MontageEndedEvent);
+
+private:
+	/** True when Montages are being ticked, and Montage Events should be queued. 
+	 * When Montage are being ticked, we queue AnimNotifies and Events. We trigger notifies first, then Montage events. */
+	UPROPERTY(Transient)
+	bool bQueueMontageEvents;
+
+	/** Trigger queued Montage events. */
+	void TriggerQueuedMontageEvents();
+
+	/** Queued Montage BlendingOut events. */
+	TArray<FQueuedMontageBlendingOutEvent> QueuedMontageBlendingOutEvents;
+
+	/** Queued Montage Ended Events */
+	TArray<FQueuedMontageEndedEvent> QueuedMontageEndedEvents;
+
+	/** Trigger a Montage BlendingOut event */
+	void TriggerMontageBlendingOutEvent(const FQueuedMontageBlendingOutEvent& MontageBlendingOutEvent);
+
+	/** Trigger a Montage Ended event */
+	void TriggerMontageEndedEvent(const FQueuedMontageEndedEvent& MontageEndedEvent);
 
 public:
 	/** Returns the value of a named curve. */
