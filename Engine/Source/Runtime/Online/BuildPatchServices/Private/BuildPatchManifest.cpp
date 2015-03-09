@@ -346,16 +346,24 @@ public:
 
 	virtual FArchive& operator<<(FName& N) override
 	{
-		// Read index and lookup
-		int32 ArNameIndex;
-		*this << ArNameIndex;
-		if (FNameLookup.Contains(ArNameIndex))
+		if (ArIsError)
 		{
-			N = FNameLookup[ArNameIndex];
+			N = NAME_None;
 		}
 		else
 		{
-			ArIsError = true;
+			// Read index and lookup
+			int32 ArNameIndex;
+			*this << ArNameIndex;
+			if (FNameLookup.Contains(ArNameIndex))
+			{
+				N = FNameLookup[ArNameIndex];
+			}
+			else
+			{
+				N = NAME_None;
+				ArIsError = true;
+			}
 		}
 		return *this;
 	}
