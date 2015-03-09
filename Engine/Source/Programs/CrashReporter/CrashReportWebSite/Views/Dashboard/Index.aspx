@@ -33,6 +33,7 @@ table
 </asp:Content>
 
 <asp:Content ID="AboveMainContent" ContentPlaceHolderID="AboveMainContent" runat="server" >
+	<div style="clear:both;"><small style="color: lightgray;">Generated in <%=Model.GenerationTime%> second(s)</small><br /></div>
 </asp:Content>
 
 <asp:Content ID="MainContent" ContentPlaceHolderID="MainContent" runat="server">
@@ -121,5 +122,5 @@ table
 				</td>
 			</tr>
 		</table>	
-	<small>Generated in <%=Model.GenerationTime%> second(s)</small>
+
 </asp:Content>

@@ -211,7 +211,5 @@ table, table tr, table th, table td
 
 </table>
 
-<small>Generated in <%=Model.GenerationTime%> second(s)</small>
-
 </form>
 </body>

@@ -32,6 +32,10 @@
 			</div>
 			<div id="utils">
 				&nbsp;|&nbsp;
+				<span><a href="/Crashes">Crashes</a></span>
+				&nbsp;|&nbsp;
+				<span><a href="/Buggs">Buggs</a></span>
+				&nbsp;|&nbsp;
 				<span><a href="/Reports/Index/">Reports</a></span>
 				&nbsp;|&nbsp;
 				<span><a href="/Dashboard/Index/">Dashboard</a></span>
