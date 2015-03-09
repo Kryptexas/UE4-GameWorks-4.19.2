@@ -21,8 +21,45 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 	/// <summary>
 	/// A model to talk to the database.
 	/// </summary>
-	public class CrashRepository
-	{	
+	public class CrashRepository : IDisposable
+	{
+		/// <summary>
+		/// Context
+		/// </summary>
+		public CrashReportDataContext Context;
+
+		/// <summary>
+		/// The default constructor.
+		/// </summary>
+		public CrashRepository()
+		{
+			Context = new CrashReportDataContext();
+		}
+
+		/// <summary> Submits enqueue changes to the database. </summary>
+		public void SubmitChanges()
+		{
+			Context.SubmitChanges();
+		}
+
+		/// <summary>
+		/// Implementing Dispose.
+		/// </summary>
+		public void Dispose()
+		{
+			Dispose( true );
+			GC.SuppressFinalize( this );
+		}
+
+		/// <summary>
+		/// Disposes the resources.
+		/// </summary>
+		/// <param name="Disposing">true if the Dispose call is from user code, and not system code.</param>
+		protected virtual void Dispose( bool Disposing )
+		{
+			Context.Dispose();
+		}
+		
 		/// <summary>
 		/// Gets the crash from an id.
 		/// </summary>
@@ -32,7 +69,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId" + Id + ")" ) )
 			{
-				var Context = FRepository.Get().Context;
 				try
 				{
 					IQueryable<Crash> Crashes =
@@ -62,8 +98,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + CrashInstance.Id + ")" ) )
 			{
-				var Context = FRepository.Get().Context;
-
 				try
 				{
 					int UserGroupId = CrashInstance.User.UserGroupId;
@@ -83,7 +117,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A container of all known crashes.</returns>
 		public IQueryable<Crash> ListAll()
 		{
-			return FRepository.Get().Context.Crashes.AsQueryable();
+			return Context.Crashes.AsQueryable();
 		}
 
 		/// <summary>
@@ -101,18 +135,30 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				try
 				{
 					string[] Terms = Query.Split( "-, ;+".ToCharArray(), StringSplitOptions.RemoveEmptyEntries );
-					string TermsToUse = "";
+
+					// Iterate over all crashes. 
+					// Brute force search.
 					foreach( string Term in Terms )
 					{
-						if( !TermsToUse.Contains( Term ) )
-						{
-							TermsToUse = TermsToUse + "+" + Term;
-						}
+						Results = Results.Where( X =>
+
+							( !string.IsNullOrEmpty( X.ChangeListVersion ) ? X.ChangeListVersion.ToLower().Contains( Term ) : false ) ||
+							( !string.IsNullOrEmpty( X.PlatformName ) ? X.PlatformName.ToLower().Contains( Term ) : false ) ||
+							( !string.IsNullOrEmpty( X.Summary ) ? X.Summary.ToLower().Contains( Term ) : false ) ||
+							( !string.IsNullOrEmpty( X.Description ) ? X.Description.ToLower().Contains( Term ) : false ) ||
+							( !string.IsNullOrEmpty( X.RawCallStack ) ? X.RawCallStack.ToLower().Contains( Term ) : false ) ||
+							( !string.IsNullOrEmpty( X.CommandLine ) ? X.CommandLine.ToLower().Contains( Term ) : false ) ||
+							( !string.IsNullOrEmpty( X.ComputerName ) ? X.ComputerName.ToLower().Contains( Term ) : false ) ||
+
+							( !string.IsNullOrEmpty( X.Module ) ? X.Module.ToLower().Contains( Term ) : false ) ||
+
+							( !string.IsNullOrEmpty( X.BaseDir ) ? X.BaseDir.ToLower().Contains( Term ) : false ) ||
+							( !string.IsNullOrEmpty( X.TTPID ) ? X.TTPID.ToLower().Contains( Term ) : false ) 
+						);
 					}
 
-					// Search the results by the search terms using IQueryable search
-					var CrashesQueryable = (IQueryable<Crash>)IntermediateQueryable.Search( TermsToUse.Split( "+".ToCharArray() ) );
-					Crashes = CrashesQueryable.AsEnumerable();
+
+					Crashes = Results;
 				}
 				catch( Exception Ex )
 				{
@@ -145,7 +191,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
 				UsersMapping UniqueUser = null;
-				var Context = FRepository.Get().Context;
 
 				IEnumerable<Crash> Results = null;
 				int Skip = ( FormData.Page - 1 ) * FormData.PageSize;
@@ -270,14 +315,14 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				int UserGroupId;
 				if( !string.IsNullOrEmpty( FormData.UserGroup ) )
 				{
-					UserGroupId = FRepository.Get().FindOrAddGroup( FormData.UserGroup );
+					UserGroupId = FRepository.Get( this ).FindOrAddGroup( FormData.UserGroup );
 				}
 				else
 				{
 					UserGroupId = 1;
 				}
 
-				HashSet<int> UserIdsForGroup = FRepository.Get().GetUserIdsFromUserGroupId( UserGroupId );
+				HashSet<int> UserIdsForGroup = FRepository.Get( this ).GetUserIdsFromUserGroupId( UserGroupId );
 
 				using( FScopedLogTimer LogTimer3 = new FScopedLogTimer( "CrashRepository.Results.Users" ) )
 				{
@@ -346,7 +391,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
 				Dictionary<string, int> Results = new Dictionary<string, int>();
-				var Context = FRepository.Get().Context;
 
 				try
 				{
@@ -503,7 +547,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A class containing the parsed callstack.</returns>
 		public CallStackContainer GetCallStack( Crash CrashInstance )
 		{
-			CachedDataService CachedResults = new CachedDataService( HttpContext.Current.Cache );
+			CachedDataService CachedResults = new CachedDataService( HttpContext.Current.Cache, this );
 			return CachedResults.GetCallStack( CrashInstance );
 		}	
 
@@ -537,20 +581,20 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			// Valid MachineID and UserName, updated crash from non-UE4 release
 			if(!string.IsNullOrEmpty(NewCrashInfo.UserName))
 			{
-				NewCrash.UserNameId = FRepository.Get().FindOrAddUser( NewCrashInfo.UserName );
+				NewCrash.UserNameId = FRepository.Get( this ).FindOrAddUser( NewCrashInfo.UserName );
 			}
 			// Valid MachineID and EpicAccountId, updated crash from UE4 release
 			else if(!string.IsNullOrEmpty( NewCrashInfo.EpicAccountId ))
 			{
 				NewCrash.EpicAccountId = NewCrashInfo.EpicAccountId;
-				NewCrash.UserNameId = FRepository.Get().FindOrAddUser( UserNameAnonymous );
+				NewCrash.UserNameId = FRepository.Get( this ).FindOrAddUser( UserNameAnonymous );
 			}
 			// Crash from an older version.
 			else
 			{
 				// MachineGuid for older crashes is obsolete, so ignore it.
 				//NewCrash.ComputerName = NewCrashInfo.MachineGuid;
-				NewCrash.UserNameId = FRepository.Get().FindOrAddUser
+				NewCrash.UserNameId = FRepository.Get( this ).FindOrAddUser
 				(
 					!string.IsNullOrEmpty( NewCrashInfo.UserName ) ? NewCrashInfo.UserName : UserNameAnonymous
 				);
@@ -635,9 +679,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			//NewCrash.HasMetaData = true;
 
 			// Add the crash to the database
-			var Context = FRepository.Get().Context;
 			Context.Crashes.InsertOnSubmit( NewCrash );
-			Context.SubmitChanges();
+			SubmitChanges();
 
 			NewID = NewCrash.Id;
 

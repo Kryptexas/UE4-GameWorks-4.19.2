@@ -32,6 +32,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <returns>A view to display the filtered Buggs.</returns>
 		public ReportsViewModel GetResults( FormHelper FormData, int BuggIDToBeAddedToJira )
 		{
+			BuggRepository BuggsRepo = new BuggRepository();
+			CrashRepository CrashRepo = new CrashRepository();
+
 			// @TODO yrx 2015-02-17 BuggIDToBeAddedToJira replace with List<int> based on check box and Submit?
 			// Enumerate JIRA projects if needed.
 			// https://jira.ol.epicgames.net//rest/api/2/project
@@ -43,15 +46,15 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 			{
 				string AnonumousGroup = "Anonymous";
 				//List<String> Users = FRepository.Get().GetUserNamesFromGroupName( AnonumousGroup );
-				int AnonymousGroupID = FRepository.Get().FindOrAddGroup( AnonumousGroup );
-				HashSet<int> AnonumousIDs = FRepository.Get().GetUserIdsFromUserGroup( AnonumousGroup );
+				int AnonymousGroupID = FRepository.Get( BuggsRepo ).FindOrAddGroup( AnonumousGroup );
+				HashSet<int> AnonumousIDs = FRepository.Get( BuggsRepo ).GetUserIdsFromUserGroup( AnonumousGroup );
 				int AnonymousID = AnonumousIDs.First();
-				HashSet<string> UserNamesForUserGroup = FRepository.Get().GetUserNamesFromGroupName( AnonumousGroup );
+				HashSet<string> UserNamesForUserGroup = FRepository.Get( BuggsRepo ).GetUserNamesFromGroupName( AnonumousGroup );
 
 				//FormData.DateFrom = DateTime.Now.AddDays( -1 );
 
-				var Crashes = FRepository.Get().Crashes
-					.FilterByDate( FRepository.Get().Crashes.ListAll(), FormData.DateFrom, FormData.DateTo.AddDays( 1 ) )
+				var Crashes = CrashRepo
+					.FilterByDate( CrashRepo.ListAll(), FormData.DateFrom, FormData.DateTo.AddDays( 1 ) )
 					// Only crashes and asserts
 					.Where( Crash => Crash.CrashType == 1 || Crash.CrashType == 2 )
 					// Only anonymous user
@@ -130,7 +133,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				// Total # of AFFECTED USERS (Anonymous) in timeframe
 				int TotalAffectedUsers = UniqueMachines.Count;
 
-				var RealBuggs = FRepository.Get().Context.Buggs.Where( Bugg => PatternAndCount.Keys.Contains( Bugg.Pattern ) ).ToList();
+				var RealBuggs = BuggsRepo.Context.Buggs.Where( Bugg => PatternAndCount.Keys.Contains( Bugg.Pattern ) ).ToList();
 
 				// Build search string.
 				List<string> FoundJiras = new List<string>();

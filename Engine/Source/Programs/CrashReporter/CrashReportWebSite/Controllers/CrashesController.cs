@@ -33,7 +33,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-				var Crashes = FRepository.Get().Crashes;
+				CrashRepository Crashes = new CrashRepository();
 
 				// Handle any edits made in the Set form fields
 				foreach( var Entry in CrashesForm )
@@ -61,7 +61,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 						}
 					}
 
-					FRepository.Get().SubmitChanges();
+					Crashes.SubmitChanges();
 				}
 
 				// <STATUS>
@@ -87,8 +87,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + id + ")" ) )
 			{
+				CrashRepository Crashes = new CrashRepository();
+
 				CallStackContainer CurrentCallStack = null;
-				var Crashes = FRepository.Get().Crashes;
 
 				// Update the selected crash based on the form contents
 				Crash CurrentCrash = Crashes.GetCrash( id );
@@ -138,7 +139,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 
 				// Populate the crash with the correct user data
 				Crashes.PopulateUserInfo( CurrentCrash );
-				FRepository.Get().SubmitChanges();
+				Crashes.SubmitChanges();
 
 				var Model = new CrashViewModel { Crash = CurrentCrash, CallStack = CurrentCallStack };
 				Model.GenerationTime = LogTimer.GetElapsedSeconds().ToString( "F2" );
@@ -155,6 +156,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(NewCrashId=" + id + ")" ) )
 			{
+				CrashRepository Crashes = new CrashRepository();
+
 				CrashReporterResult NewCrashResult = new CrashReporterResult();
 				NewCrashResult.ID = -1;
 
@@ -164,7 +167,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 					{
 						string Result = Reader.ReadToEnd();
 						CrashDescription NewCrash = XmlHandler.FromXmlString<CrashDescription>( Result );
-						NewCrashResult.ID = FRepository.Get().Crashes.AddNewCrash( NewCrash );
+						NewCrashResult.ID = Crashes.AddNewCrash( NewCrash );
 						NewCrashResult.bSuccess = true;
 					}
 				}

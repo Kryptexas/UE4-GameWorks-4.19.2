@@ -170,7 +170,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				if( !string.IsNullOrEmpty( Key ) )
 				{
 					TTPID = Key;
-					FRepository.Get().Buggs.SetJIRAForBuggAndCrashes( Key, Id );
+					BuggRepository Buggs = new BuggRepository();
+					Buggs.SetJIRAForBuggAndCrashes( Key, Id );
 				}
 
 			}
@@ -237,10 +238,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns></returns>
 		public List<Crash> GetCrashes()
 		{
-			var Context = FRepository.Get().Context;
+			CrashRepository CrashRepo = new CrashRepository();
 			var CrashList =
 			(
-					from BuggCrash in Context.Buggs_Crashes
+					from BuggCrash in CrashRepo.Context.Buggs_Crashes
 					where BuggCrash.BuggId == Id
 					select BuggCrash.Crash
 			).AsEnumerable().ToList();
@@ -313,7 +314,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Id=" + this.Id + ")" ) )
 			{
-				List<string> Results = FRepository.Get().Buggs.GetFunctionCalls( Pattern );
+				BuggRepository Buggs = new BuggRepository();
+				List<string> Results = Buggs.GetFunctionCalls( Pattern );
 				return Results;
 			}
 		}
@@ -456,7 +458,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A formatted callstack.</returns>
 		public CallStackContainer GetCallStack()
 		{
-			return FRepository.Get().Crashes.GetCallStack( this );
+			CrashRepository Crashes = new CrashRepository();
+			return Crashes.GetCallStack( this );
 		}
 
 
@@ -467,8 +470,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Crash=" + Id + ")" ) )
 			{
+				CrashRepository Crashes = new CrashRepository();
+
 				List<string> PatternList = new List<string>();
-				var FunctionCalls = FRepository.Get().Context.FunctionCalls;
+				var FunctionCalls = Crashes.Context.FunctionCalls;
 
 				// Get an array of callstack items
 				CallStackContainer CallStack = new CallStackContainer( this );
@@ -495,7 +500,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 								FunctionCalls.InsertOnSubmit( CurrentFunctionCall );
 							}
 
-							FRepository.Get().SubmitChanges();
+							Crashes.SubmitChanges();
 
 							PatternList.Add( CurrentFunctionCall.Id.ToString() );
 						}
@@ -506,7 +511,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						//CrashInstance.Pattern += "+";
 
 
-						FRepository.Get().SubmitChanges();
+						Crashes.SubmitChanges();
 					}
 					catch( Exception Ex )
 					{

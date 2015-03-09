@@ -17,8 +17,45 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 	/// <summary>
 	/// The class to handle the processing of bucketed crashes a.k.a. Buggs.
 	/// </summary>
-	public class BuggRepository
+	public class BuggRepository : IDisposable
 	{
+		/// <summary>
+		/// Context
+		/// </summary>
+		public CrashReportDataContext Context;
+
+		/// <summary>
+		/// The default constructor.
+		/// </summary>
+		public BuggRepository()
+		{
+			Context = new CrashReportDataContext();
+		}
+
+		/// <summary> Submits enqueue changes to the database. </summary>
+		public void SubmitChanges()
+		{
+			Context.SubmitChanges();
+		}
+
+		/// <summary>
+		/// Implementing Dispose.
+		/// </summary>
+		public void Dispose()
+		{
+			Dispose( true );
+			GC.SuppressFinalize( this );
+		}
+
+		/// <summary>
+		/// Disposes the resources.
+		/// </summary>
+		/// <param name="Disposing">true if the Dispose call is from user code, and not system code.</param>
+		protected virtual void Dispose( bool Disposing )
+		{
+			Context.Dispose();
+		}
+	
 		private const string DefaultUserGroup = "General";
 
 		/// <summary>
@@ -30,8 +67,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			try
 			{
-				var Context = FRepository.Get().Context;
-
 				string Query = "UPDATE Crashes SET Status = {0} WHERE Id IN ( SELECT CrashId FROM Buggs_Crashes WHERE BuggId = {1} )";
 				Context.ExecuteCommand( Query, Status, BuggId );
 
@@ -54,8 +89,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			try
 			{
-				var Context = FRepository.Get().Context;
-
 				string Query = "UPDATE Crashes SET FixedChangeList = {0} WHERE Id IN ( SELECT CrashId FROM Buggs_Crashes WHERE BuggId = {1} )";
 				Context.ExecuteCommand( Query, FixedChangeList, BuggId );
 
@@ -77,8 +110,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			try
 			{
-				var Context = FRepository.Get().Context;
-
 				using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( "SetJIRAForBuggAndCrashes (" + BuggId + ")" ) )
 				{
 					string Query = "UPDATE Crashes SET TTPID = {0} WHERE Id IN ( SELECT CrashId FROM Buggs_Crashes WHERE BuggId = {1} )";
@@ -103,7 +134,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(" + Id + ")" ) )
 			{
-				var Context = FRepository.Get().Context;
 				Bugg Result = null;
 
 				try
@@ -132,8 +162,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
-				var Context = FRepository.Get().Context;
-
 				try
 				{
 					return Context.FunctionCalls.Where( FunctionCallInstance => FunctionCallInstance.Call.Contains( FunctionCallName ) ).Select( X => X.Id ).ToList();
@@ -154,7 +182,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A list of callstack lines.</returns>
 		public List<string> GetFunctionCalls( string Pattern )
 		{
-			CachedDataService CachedResults = new CachedDataService( HttpContext.Current.Cache );
+			CachedDataService CachedResults = new CachedDataService( HttpContext.Current.Cache, this );
 			List<string> FunctionCalls = CachedResults.GetFunctionCalls( Pattern );
 			return FunctionCalls;
 		}
@@ -170,7 +198,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Ids.Count=" + Ids.Count + ")" ) )
 			{
 				List<string> FunctionCalls = new List<string>();
-				var Context = FRepository.Get().Context;
 				try
 				{
 					List<FunctionCall> Funcs = Context.FunctionCalls.Where( FuncCall => Ids.Contains( FuncCall.Id ) ).ToList();
@@ -207,8 +234,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				string BuildVersion = null;
 				List<int> UserNameIds = new List<int>();
 				int CrashCount = 0;
-
-				var Context = FRepository.Get().Context;
 
 				// Set or return min date max date while we're iterating through the crashes
 				bool bHasChanges = false;
@@ -269,7 +294,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 					if( bHasChanges )
 					{
-						Context.SubmitChanges();
+						SubmitChanges();
 					}
 				}
 				catch( Exception Ex )
@@ -290,8 +315,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			try
 			{
-				var Context = FRepository.Get().Context;
-
 				// Make sure we don't already have this relationship
 				if( Context.Buggs_Crashes.Where( BuggInstance => BuggInstance.CrashId == CurrentCrash.Id && BuggInstance.BuggId == Bugg.Id ).Count() < 1 )
 				{
@@ -321,8 +344,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			try
 			{
-				var Context = FRepository.Get().Context;
-
 				int BuggUserCount = Context.Buggs_Users.Where( BuggUserInstance => BuggUserInstance.BuggId == Bugg.Id && BuggUserInstance.UserNameId == UserNameId ).Count();
 				if( BuggUserCount < 1 )
 				{
@@ -348,7 +369,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A container of all known Buggs.</returns>
 		public IQueryable<Bugg> ListAll()
 		{
-			return FRepository.Get().Context.Buggs.AsQueryable();
+			return Context.Buggs.AsQueryable();
 		}
 
 		/// <summary>
@@ -504,10 +525,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + " SQL OPT" ) )
 			{
 				Dictionary<string, int> Results = new Dictionary<string, int>();
-				var Context = FRepository.Get().Context;
 				try
 				{
-					/*Results =
+					Results =
 					(
 						from BuggDetail in Buggs
 						join BuggsUserGroupDetail in Context.Buggs_UserGroups on BuggDetail.Id equals BuggsUserGroupDetail.BuggId
@@ -524,8 +544,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						{
 							Results[UserGroupName] = 0;
 						}
-					}*/
+					}
 
+					/*
 					//
 					var UsersIDsAndGroupIDs = Context.Users.Select( User => new { UserId = User.Id, UserGroupId = User.UserGroupId } ).ToList();
 					var UserGroupArray = Context.UserGroups.ToList();
@@ -552,8 +573,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 						(
 							from BuggCrash in Context.Buggs_Crashes
 							where BuggCrash.BuggId == Bugg.Id
-							select BuggCrash.Crash.UserNameId.Value
-						).AsEnumerable();
+							select BuggCrash.Crash.UserNameId.GetValueOrDefault()
+						).ToList();
 
 						UserNameIds.UnionWith( CrashList );
 					}
@@ -562,7 +583,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					{
 						string UserGroupName = UserIdToGroupName[UserId];
 						Results[UserGroupName]++;
-					}
+					}*/
 				}
 				catch( Exception Ex )
 				{
@@ -626,7 +647,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			{
 				IQueryable<Bugg> NewSetOfBuggs = null;
 				IQueryable<Bugg> SetOfBuggsQueryable = SetOfBuggs.AsQueryable();
-				var Context = FRepository.Get().Context;
 
 				try
 				{
@@ -682,10 +702,8 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			{
 				try
 				{
-					var Context = FRepository.Get().Context;
-
 					// Get the group id and grab all buggs for the specified group.
-					HashSet<string> UserNamesForUserGroup = FRepository.Get().GetUserNamesFromGroupName( GroupName );
+					HashSet<string> UserNamesForUserGroup = FRepository.Get( this ).GetUserNamesFromGroupName( GroupName );
 
 					// Simplified query.
 					var BuggIdToCountMapGroup = new Dictionary<int, int>();

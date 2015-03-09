@@ -31,8 +31,10 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
 			{
+				BuggRepository Buggs = new BuggRepository();
+
 				FormHelper FormData = new FormHelper( Request, BuggsForm, "CrashesInTimeFrameGroup" );
-				BuggsViewModel Results = FRepository.Get().Buggs.GetResults( FormData );
+				BuggsViewModel Results = Buggs.GetResults( FormData );
 				Results.GenerationTime = LogTimer.GetElapsedSeconds().ToString( "F2" );
 				return View( "Index", Results );
 			}
@@ -48,7 +50,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(BuggId=" + id + ")" ) )
 			{
-				var Buggs = FRepository.Get().Buggs;
+				BuggRepository Buggs = new BuggRepository();
 
 				// Set the display properties based on the radio buttons
 				bool DisplayModuleNames = false;
