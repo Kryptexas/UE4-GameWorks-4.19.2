@@ -45,6 +45,9 @@ class FHotReloadClassReinstancer : public FBlueprintCompileReinstancer
 	/** True if the provided native class needs re-instancing */
 	bool bNeedsReinstancing;	
 
+	/** Necessary for delta serialization */
+	UObject* CopyOfPreviousCDO;
+
 	/** 
 	 * Sets the re-instancer up for new class re-instancing 
 	 *
@@ -107,6 +110,10 @@ public:
 	{
 		return MakeShareable(new FHotReloadClassReinstancer(InNewClass, InOldClass));
 	}
+
+	// FSerializableObject interface
+	virtual void AddReferencedObjects(FReferenceCollector& Collector) override;
+	// End of FSerializableObject interface
 };
 
 #endif // WITH_ENGINE

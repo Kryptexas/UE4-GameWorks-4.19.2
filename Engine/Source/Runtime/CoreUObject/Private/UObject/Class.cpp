@@ -3188,6 +3188,12 @@ FArchive& operator<<(FArchive& Ar, FImplementedInterface& A)
 	return Ar;
 }
 
+UObject* UClass::GetArchetypeForCDO() const
+{
+	auto SuperClass = GetSuperClass();
+	return SuperClass ? SuperClass->GetDefaultObject() : nullptr;
+}
+
 void UClass::PurgeClass(bool bRecompilingOnLoad)
 {
 	ClassConstructor = nullptr;

@@ -265,6 +265,17 @@ void UBlueprintGeneratedClass::ConditionalRecompileClass(TArray<UObject*>* ObjLo
 		}
 	}
 }
+
+UObject* UBlueprintGeneratedClass::GetArchetypeForCDO() const
+{
+	if (OverridenArchetypeForCDO)
+	{
+		ensure(OverridenArchetypeForCDO->IsA(GetSuperClass()));
+		return OverridenArchetypeForCDO;
+	}
+
+	return Super::GetArchetypeForCDO();
+}
 #endif //WITH_EDITOR
 
 bool UBlueprintGeneratedClass::IsFunctionImplementedInBlueprint(FName InFunctionName) const
@@ -653,6 +664,7 @@ void UBlueprintGeneratedClass::PurgeClass(bool bRecompilingOnLoad)
 
 	UberGraphFramePointerProperty = NULL;
 	UberGraphFunction = NULL;
+	OverridenArchetypeForCDO = NULL;
 
 #if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
 	FastCallPairs.Empty();

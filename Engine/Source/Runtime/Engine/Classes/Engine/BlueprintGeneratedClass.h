@@ -468,6 +468,11 @@ public:
 	UPROPERTY()
 	TArray<FEventGraphFastCallPair> FastCallPairs;
 
+#if WITH_EDITOR
+	UPROPERTY(Transient)
+	UObject* OverridenArchetypeForCDO;
+#endif //WITH_EDITOR
+
 	/** 
 	 * Gets an array of all BPGeneratedClasses (including InClass as 0th element) parents of given generated class 
 	 *
@@ -495,6 +500,7 @@ public:
 #if WITH_EDITOR
 	virtual UClass* GetAuthoritativeClass() override;
 	virtual void ConditionalRecompileClass(TArray<UObject*>* ObjLoaded) override;
+	virtual UObject* GetArchetypeForCDO() const override;
 #endif //WITH_EDITOR
 	virtual bool IsFunctionImplementedInBlueprint(FName InFunctionName) const override;
 	virtual uint8* GetPersistentUberGraphFrame(UObject* Obj, UFunction* FuncToCheck) const override;

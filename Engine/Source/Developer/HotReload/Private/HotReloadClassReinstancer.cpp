@@ -229,6 +229,12 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 	// Collect the original property values
 	SerializeCDOProperties(InOldClass->GetDefaultObject(), OriginalCDOProperties);
 	
+	FObjectDuplicationParameters Parameters(OriginalCDO, GetTransientPackage());
+	Parameters.DestClass = InOldClass;
+	Parameters.ApplyFlags |= RF_Transient | RF_ArchetypeObject;
+	CopyOfPreviousCDO = StaticDuplicateObjectEx(Parameters);
+
+
 	// Destroy and re-create the CDO, re-running its constructor
 	ReconstructClassDefaultObject(InOldClass);
 
@@ -252,6 +258,12 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 				if (!ChildBP->HasAnyFlags(RF_NeedLoad))
 				{
 					Children.AddUnique(ChildBP);
+					auto BPGC = Cast<UBlueprintGeneratedClass>(ChildBP->GeneratedClass);
+					auto CurrentCDO = BPGC ? BPGC->GetDefaultObject(false) : nullptr;
+					if (CurrentCDO && (OriginalCDO == CurrentCDO->GetArchetype()))
+					{
+						BPGC->OverridenArchetypeForCDO = CopyOfPreviousCDO;
+					}
 				}
 			}
 		}
@@ -261,6 +273,7 @@ void FHotReloadClassReinstancer::RecreateCDOAndSetupOldClassReinstancing(UClass*
 FHotReloadClassReinstancer::FHotReloadClassReinstancer(UClass* InNewClass, UClass* InOldClass)
 	: NewClass(nullptr)
 	, bNeedsReinstancing(false)
+	, CopyOfPreviousCDO(nullptr)
 {
 	// If InNewClass is NULL, then the old class has not changed after hot-reload.
 	// However, we still need to check for changes to its constructor code (CDO values).
@@ -430,6 +443,12 @@ void FHotReloadClassReinstancer::ReinstanceObjectsAndUpdateDefaults()
 {
 	ReinstanceObjects(true);
 	UpdateDefaultProperties();
+}
+
+void FHotReloadClassReinstancer::AddReferencedObjects(FReferenceCollector& Collector)
+{
+	FBlueprintCompileReinstancer::AddReferencedObjects(Collector);
+	Collector.AddReferencedObject(CopyOfPreviousCDO);
 }
 
 #endif
