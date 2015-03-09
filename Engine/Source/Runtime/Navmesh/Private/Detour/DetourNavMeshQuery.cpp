@@ -225,50 +225,53 @@ dtStatus dtNavMeshQuery::init(const dtNavMesh* nav, const int maxNodes, const dt
 	m_nav = nav;
 	m_linkFilter = linkFilter;
 
-	if (!m_nodePool || m_nodePool->getMaxNodes() < maxNodes)
+	if (maxNodes > 0)
 	{
-		if (m_nodePool)
+		if (!m_nodePool || m_nodePool->getMaxNodes() < maxNodes)
 		{
-			m_nodePool->~dtNodePool();
-			dtFree(m_nodePool);
-			m_nodePool = 0;
+			if (m_nodePool)
+			{
+				m_nodePool->~dtNodePool();
+				dtFree(m_nodePool);
+				m_nodePool = 0;
+			}
+			m_nodePool = new (dtAlloc(sizeof(dtNodePool), DT_ALLOC_PERM)) dtNodePool(maxNodes, dtNextPow2(maxNodes / 4));
+			if (!m_nodePool)
+				return DT_FAILURE | DT_OUT_OF_MEMORY;
 		}
-		m_nodePool = new (dtAlloc(sizeof(dtNodePool), DT_ALLOC_PERM)) dtNodePool(maxNodes, dtNextPow2(maxNodes/4));
-		if (!m_nodePool)
-			return DT_FAILURE | DT_OUT_OF_MEMORY;
-	}
-	else
-	{
-		m_nodePool->clear();
-	}
+		else
+		{
+			m_nodePool->clear();
+		}
 
-	if (!m_tinyNodePool)
-	{
-		m_tinyNodePool = new (dtAlloc(sizeof(dtNodePool), DT_ALLOC_PERM)) dtNodePool(64, 32);
 		if (!m_tinyNodePool)
-			return DT_FAILURE | DT_OUT_OF_MEMORY;
-	}
-	else
-	{
-		m_tinyNodePool->clear();
-	}
-	
-	// TODO: check the open list size too.
-	if (!m_openList || m_openList->getCapacity() < maxNodes)
-	{
-		if (m_openList)
 		{
-			m_openList->~dtNodeQueue();
-			dtFree(m_openList);
-			m_openList = 0;
+			m_tinyNodePool = new (dtAlloc(sizeof(dtNodePool), DT_ALLOC_PERM)) dtNodePool(64, 32);
+			if (!m_tinyNodePool)
+				return DT_FAILURE | DT_OUT_OF_MEMORY;
 		}
-		m_openList = new (dtAlloc(sizeof(dtNodeQueue), DT_ALLOC_PERM)) dtNodeQueue(maxNodes);
-		if (!m_openList)
-			return DT_FAILURE | DT_OUT_OF_MEMORY;
-	}
-	else
-	{
-		m_openList->clear();
+		else
+		{
+			m_tinyNodePool->clear();
+		}
+
+		// TODO: check the open list size too.
+		if (!m_openList || m_openList->getCapacity() < maxNodes)
+		{
+			if (m_openList)
+			{
+				m_openList->~dtNodeQueue();
+				dtFree(m_openList);
+				m_openList = 0;
+			}
+			m_openList = new (dtAlloc(sizeof(dtNodeQueue), DT_ALLOC_PERM)) dtNodeQueue(maxNodes);
+			if (!m_openList)
+				return DT_FAILURE | DT_OUT_OF_MEMORY;
+		}
+		else
+		{
+			m_openList->clear();
+		}
 	}
 	
 	return DT_SUCCESS;
@@ -846,6 +849,31 @@ dtStatus dtNavMeshQuery::projectedPointOnPoly(dtPolyRef ref, const float* pos, f
 	return projectedPointOnPolyInTile(tile, poly, pos, projected);
 }
 
+dtStatus dtNavMeshQuery::isPointInsidePoly(dtPolyRef ref, const float* pos, bool& result) const
+{
+	dtAssert(m_nav);
+	const dtMeshTile* tile = 0;
+	const dtPoly* poly = 0;
+	if (dtStatusFailed(m_nav->getTileAndPolyByRef(ref, &tile, &poly)))
+		return DT_FAILURE | DT_INVALID_PARAM;
+	if (!tile)
+		return DT_FAILURE | DT_INVALID_PARAM;
+
+	if (poly->getType() == DT_POLYTYPE_OFFMESH_POINT)
+		return false;
+
+	const unsigned int ip = (unsigned int)(poly - tile->polys);
+
+	// Clamp point to be inside the polygon.
+	float verts[DT_VERTS_PER_POLYGON * 3];
+	const int nv = poly->vertCount;
+	for (int i = 0; i < nv; ++i)
+		dtVcopy(&verts[i * 3], &tile->verts[poly->verts[i] * 3]);
+
+	result = dtPointInPolygon(pos, verts, nv);
+
+	return DT_SUCCESS;
+}
 
 dtStatus dtNavMeshQuery::projectedPointOnPolyInTile(const dtMeshTile* tile, const dtPoly* poly,
 	const float* pos, float* projected) const
@@ -878,7 +906,7 @@ dtStatus dtNavMeshQuery::projectedPointOnPolyInTile(const dtMeshTile* tile, cons
 	if (dtPointInPolygon(pos, verts, nv))
 	{
 		// adjust point's height
-		// @todo this is an aproximation. Implement a proper solution if needed
+		// @todo this is an approximation. Implement a proper solution if needed
 		float h = 0;
 		for (int i = 0; i < nv; ++i)
 			h += verts[i * 3 + 1];

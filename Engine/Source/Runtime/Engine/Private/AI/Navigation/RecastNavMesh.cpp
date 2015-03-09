@@ -1059,6 +1059,24 @@ ENavigationQueryResult::Type ARecastNavMesh::CalcPathLengthAndCost(const FVector
 	return Result;
 }
 
+bool ARecastNavMesh::DoesNodeContainLocation(NavNodeRef NodeRef, const FVector& WorldSpaceLocation) const
+{
+	bool bResult = false;
+	if (RecastNavMeshImpl != nullptr && RecastNavMeshImpl->GetRecastMesh() != nullptr)
+	{
+		dtNavMeshQuery NavQuery;
+		NavQuery.init(RecastNavMeshImpl->GetRecastMesh(), 0);
+
+		const FVector RcLocation = Unreal2RecastPoint(WorldSpaceLocation);
+		if (dtStatusFailed(NavQuery.isPointInsidePoly(NodeRef, &RcLocation.X, bResult)))
+		{
+			bResult = false;
+		}
+	}
+
+	return bResult; 
+}
+
 NavNodeRef ARecastNavMesh::FindNearestPoly(FVector const& Loc, FVector const& Extent, TSharedPtr<const FNavigationQueryFilter> Filter, const UObject* QueryOwner) const
 {
 	NavNodeRef PolyRef = 0;
@@ -1908,20 +1926,26 @@ bool ARecastNavMesh::SupportsStreaming() const
 }
 
 void ARecastNavMesh::ConditionalConstructGenerator()
-{
-	NavDataGenerator.Reset();
-	
+{	
 	UWorld* World = GetWorld();
 	check(World);
 	const bool bRequiresGenerator = SupportsRuntimeGeneration() || !World->IsGameWorld();
 	if (bRequiresGenerator)
 	{
-		NavDataGenerator = MakeShareable(new FRecastNavMeshGenerator(*this));
-
-		if (World->GetNavigationSystem())
+		if (NavDataGenerator.IsValid() == false)
 		{
-			RestrictBuildingToActiveTiles(World->GetNavigationSystem()->IsActiveTilesGenerationEnabled());
+			NavDataGenerator = MakeShareable(new FRecastNavMeshGenerator(*this));
+
+			if (World->GetNavigationSystem())
+			{
+				RestrictBuildingToActiveTiles(World->GetNavigationSystem()->IsActiveTilesGenerationEnabled());
+			}
 		}
+	}
+	else
+	{
+		NavDataGenerator->CancelBuild();
+		NavDataGenerator.Reset();
 	}
 }
 

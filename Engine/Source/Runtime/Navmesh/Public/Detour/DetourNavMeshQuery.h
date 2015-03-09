@@ -620,6 +620,13 @@ public:
 	/// @returns The status flags for the query.
 	dtStatus projectedPointOnPoly(dtPolyRef ref, const float* pos, float* projected) const;
 	
+	/// Checks if specified pos is inside given polygon specified by ref
+	///  @param[in]		ref			The reference id of the polygon.
+	///  @param[in]		pos			The position to check. [(x, y, z)]
+	///  @param[out]	result		The result of the check, whether the point is inside (true) or not (false)
+	/// @returns The status flags for the query.
+	dtStatus isPointInsidePoly(dtPolyRef ref, const float* pos, bool& result) const;
+
 	/// Gets the height of the polygon at the provided position using the height detail. (Most accurate.)
 	///  @param[in]		ref			The reference id of the polygon.
 	///  @param[in]		pos			A position within the xz-bounds of the polygon. [(x, y, z)]

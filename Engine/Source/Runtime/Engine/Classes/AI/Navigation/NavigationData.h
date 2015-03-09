@@ -676,7 +676,7 @@ public:
 	/** 
 	 *	Synchronously makes a raycast on navigation data using QueryFilter
 	 *	@param HitLocation if line was obstructed this will be set to hit location. Otherwise it contains SegmentEnd
-	 *	@return true if line from RayStart to RayEnd was obstructed
+	 *	@return true if line from RayStart to RayEnd is obstructed
 	 *
 	 *	@note don't make this function virtual! Look at implementation details and its comments for more info.
 	 */
@@ -717,6 +717,10 @@ public:
 	 *	@NOTE this function does not generate string pulled path so the result is an (over-estimated) approximation
 	 *	@NOTE potentially expensive, so use it with caution */
 	virtual ENavigationQueryResult::Type CalcPathLengthAndCost(const FVector& PathStart, const FVector& PathEnd, float& OutPathLength, float& OutPathCost, TSharedPtr<const FNavigationQueryFilter> QueryFilter = NULL, const UObject* Querier = NULL) const PURE_VIRTUAL(ANavigationData::CalcPathLength, return ENavigationQueryResult::Invalid;);
+
+	/** Checks if specified navigation node contains given location 
+	 *	@param Location is expressed in WorldSpace, navigation data is responsible for tansforming if need be */
+	virtual bool DoesNodeContainLocation(NavNodeRef NodeRef, const FVector& WorldSpaceLocation) const PURE_VIRTUAL(ANavigationData::DoesNodeContainLocation, return false;);
 
 	const UWorld* GetCachedWorld() const;
 	float GetWorldTimeStamp() const;
