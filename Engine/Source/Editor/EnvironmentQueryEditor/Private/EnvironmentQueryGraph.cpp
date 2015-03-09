@@ -323,6 +323,7 @@ void UEnvironmentQueryGraph::SpawnMissingNodes()
 				UpdateNodeClassData(TestNode, TestsCopy[SubIdx]->GetClass());
 
 				MyNode->AddSubNode(TestNode, this);
+				TestNode->NodeInstance = TestsCopy[SubIdx];
 			}
 		}
 	}
