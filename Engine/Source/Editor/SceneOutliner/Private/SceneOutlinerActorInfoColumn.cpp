@@ -86,25 +86,6 @@ struct FGetInfo : TTreeItemGetter<FString>
 			return FString();
 		}
 	}
-
-	virtual FString Get(const FLevelBlueprintTreeItem& Item) const override
-	{
-		switch(CurrentMode)
-		{
-		case ECustomColumnMode::Class:
-			return LOCTEXT("LevelBlueprintTypeName", "Level Blueprint").ToString();
-
-		case ECustomColumnMode::Level:
-			if (ULevel* Level = Item.Handle.ParentLevel.Get())
-			{
-				return FPackageName::GetShortName(Level->GetOutermost()->GetName());
-			}
-			return FString();
-
-		default:
-			return FString();
-		}
-	}
 };
 
 

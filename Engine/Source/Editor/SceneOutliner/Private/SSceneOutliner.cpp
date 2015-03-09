@@ -61,14 +61,6 @@ namespace SceneOutliner
 			{
 				return InActor->GetLevel() == InActor->GetWorld()->GetCurrentLevel();
 			}
-			virtual bool PassesFilter(const FLevelBlueprintHandle& LevelBlueprint) const override
-			{
-				if (ULevel* Level = LevelBlueprint.ParentLevel.Get())
-				{
-					return Level == Level->GetWorld()->GetCurrentLevel();
-				}
-				return false;
-			}
 		};
 
 		return MakeShareable( new FOnlyCurrentLevelFilter() );
@@ -78,7 +70,6 @@ namespace SceneOutliner
 	{
 		mutable TArray<FActorTreeItem*> Actors;
 		mutable TArray<FWorldTreeItem*> Worlds;
-		mutable TArray<FLevelBlueprintTreeItem*> LevelBlueprints;
 		mutable TArray<FFolderTreeItem*> Folders;
 
 		FItemSelection()
@@ -126,10 +117,6 @@ namespace SceneOutliner
 		virtual void Visit(FWorldTreeItem& WorldItem) const override
 		{
 			Worlds.Add(&WorldItem);
-		}
-		virtual void Visit(FLevelBlueprintTreeItem& LevelBlueprintItem) const override
-		{
-			LevelBlueprints.Add(&LevelBlueprintItem);
 		}
 		virtual void Visit(FFolderTreeItem& FolderItem) const override
 		{
@@ -802,12 +789,6 @@ namespace SceneOutliner
 
 		if (!SharedData->bOnlyShowFolders)
 		{
-			// Add the level blueprints for all levels - we always use the editor world for this, even if we're PIE
-			for (auto It = GEditor->GetEditorWorldContext().World()->GetLevelIterator(); It ; ++It)
-			{
-				ConstructItemFor<FLevelBlueprintTreeItem>(FLevelBlueprintHandle(*It));
-			}
-
 			// Iterate over every actor in memory. WARNING: This is potentially very expensive!
 			for( FActorIterator ActorIt(SharedData->RepresentingWorld); ActorIt; ++ActorIt )
 			{
@@ -1108,7 +1089,7 @@ namespace SceneOutliner
 				else
 				{
 					// Can't move worlds or level blueprints
-					const bool bCanMoveSelection = ItemSelection.Worlds.Num() + ItemSelection.LevelBlueprints.Num() == 0;
+					const bool bCanMoveSelection = ItemSelection.Worlds.Num() == 0;
 					if (bCanMoveSelection)
 					{
 						MenuBuilder.AddSubMenu(
@@ -1724,10 +1705,6 @@ namespace SceneOutliner
 					})
 
 					.Folder(ExpandCollapseFolder)
-
-					.LevelBlueprint([](const FLevelBlueprintTreeItem& LevelBlueprintItem){
-						LevelBlueprintItem.Open();
-					})
 
 					.World([](const FWorldTreeItem& WorldItem){
 						WorldItem.OpenWorldSettings();
