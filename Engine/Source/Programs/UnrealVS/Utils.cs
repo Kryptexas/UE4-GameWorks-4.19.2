@@ -14,6 +14,8 @@ namespace UnrealVS
 {
 	public class Utils
 	{
+		public const string UProjectExtension = "uproject";
+
 		public class SafeProjectReference
 		{
 			public string FullName { get; set; }
@@ -231,7 +233,7 @@ namespace UnrealVS
 		/// Helper to check the properties of a project and determine whether it can be run in VS.
 		/// Projects that return true can be run in the debugger by pressing the usual Start Debugging (F5) command.
 		/// </summary>
-		public static bool IsProjectExecutable(Project Project)
+		public static bool IsProjectSuitable(Project Project)
 		{
 			try
 			{
@@ -254,37 +256,40 @@ namespace UnrealVS
 					Logging.WriteLine("IsProjectExecutable: Warning - ActiveProjectConfig is null!");
 				}
 
-				bool IsExecutable = false;
+				bool IsSuitable = false;
 
 				if (Project.Kind.Equals(GuidList.VCSharpProjectKindGuidString, StringComparison.OrdinalIgnoreCase))
 				{
 					// C# project
 
-					Property StartActionProp = GetProjectConfigProperty(Project, null, "StartAction");
-					if (StartActionProp != null)
-					{
-						prjStartAction StartAction = (prjStartAction)StartActionProp.Value;
-						if (StartAction == prjStartAction.prjStartActionProject)
-						{
-							// Project starts the project's output file when run
-							Property OutputTypeProp = GetProjectProperty(Project, "OutputType");
-							if (OutputTypeProp != null)
-							{
-								prjOutputType OutputType = (prjOutputType)OutputTypeProp.Value;
-								if (OutputType == prjOutputType.prjOutputTypeWinExe ||
-									OutputType == prjOutputType.prjOutputTypeExe)
-								{
-									IsExecutable = true;
-								}
-							}
-						}
-						else if (StartAction == prjStartAction.prjStartActionProgram ||
-								 StartAction == prjStartAction.prjStartActionURL)
-						{
-							// Project starts an external program or a URL when run - assume it has been set deliberately to something executable
-							IsExecutable = true;
-						}
-					}
+					// Chris.Wood
+					//Property StartActionProp = GetProjectConfigProperty(Project, null, "StartAction");
+					//if (StartActionProp != null)
+					//{
+					//	prjStartAction StartAction = (prjStartAction)StartActionProp.Value;
+					//	if (StartAction == prjStartAction.prjStartActionProject)
+					//	{
+					//		// Project starts the project's output file when run
+					//		Property OutputTypeProp = GetProjectProperty(Project, "OutputType");
+					//		if (OutputTypeProp != null)
+					//		{
+					//			prjOutputType OutputType = (prjOutputType)OutputTypeProp.Value;
+					//			if (OutputType == prjOutputType.prjOutputTypeWinExe ||
+					//				OutputType == prjOutputType.prjOutputTypeExe)
+					//			{
+					//				IsSuitable = true;
+					//			}
+					//		}
+					//	}
+					//	else if (StartAction == prjStartAction.prjStartActionProgram ||
+					//			 StartAction == prjStartAction.prjStartActionURL)
+					//	{
+					//		// Project starts an external program or a URL when run - assume it has been set deliberately to something executable
+					//		IsSuitable = true;
+					//	}
+					//}
+
+					IsSuitable = true;
 				}
 				else if (Project.Kind.Equals(GuidList.VCProjectKindGuidString, StringComparison.OrdinalIgnoreCase))
 				{
@@ -314,7 +319,7 @@ namespace UnrealVS
 								if (VCConfigMatch.DebugAttach)
 								{
 									// Project attaches to a running process
-									IsExecutable = true;
+									IsSuitable = true;
 								}
 								else
 								{
@@ -326,7 +331,7 @@ namespace UnrealVS
 										if (VCConfigMatch.DebugRemoteCommand.Length != 0)
 										{
 											// An remote program is specified to run
-											IsExecutable = true;
+											IsSuitable = true;
 										}
 									}
 									else
@@ -336,7 +341,7 @@ namespace UnrealVS
 										if (VCConfigMatch.DebugCommand.Length != 0 && VCConfigMatch.DebugCommand != "$(TargetPath)")
 										{
 											// An external program is specified to run
-											IsExecutable = true;
+											IsSuitable = true;
 										}
 										else
 										{
@@ -344,7 +349,7 @@ namespace UnrealVS
 
 											if (VCConfigMatch.ConfigType == ConfigType.Application)
 											{
-												IsExecutable = true;
+												IsSuitable = true;
 											}
 											else if (VCConfigMatch.ConfigType == ConfigType.Generic)
 											{
@@ -355,7 +360,7 @@ namespace UnrealVS
 													string Ext = Path.GetExtension(VCConfigMatch.NMakeToolOutput);
 													if (!IsLibraryFileExtension(Ext))
 													{
-														IsExecutable = true;
+														IsSuitable = true;
 													}
 												}
 											}
@@ -372,7 +377,7 @@ namespace UnrealVS
 					Logging.WriteLine("IsProjectExecutable: Unrecognised 'Kind' in project " + Project.Name + " guid=" + Project.Kind);
 				}
 
-				return IsExecutable;
+				return IsSuitable;
 			}
 			catch (Exception ex)
 			{
@@ -532,7 +537,7 @@ namespace UnrealVS
 
 		public static bool IsGameProject(Project Project)
 		{
-			return Project.Name.EndsWith("Game", StringComparison.InvariantCultureIgnoreCase);
+			return GetUProjectNames().Any(UProject => 0 == string.Compare(UProject, Project.Name, StringComparison.OrdinalIgnoreCase));
 		}
 
 		/// <summary>
@@ -545,7 +550,29 @@ namespace UnrealVS
 
 		public static string GetUProjectFileName(Project Project)
 		{
-			return Project.Name + (".uproject");
+			return Project.Name + "." + UProjectExtension;
+		}
+
+		/// <summary>
+		/// Returns all the .uprojects found under the solution root folder.
+		/// Returns names only with no path or extension.
+		/// </summary>
+		public static IEnumerable<string> GetUProjectNames()
+		{
+			var Folder = GetSolutionFolder();
+			if (string.IsNullOrEmpty(Folder))
+			{
+				return new string[0];
+			}
+
+			if (Folder != CachedUProjectRootFolder)
+			{
+				CachedUProjectRootFolder = Folder;
+				var UProjects = Directory.GetFiles(Folder, "*." + UProjectExtension, SearchOption.AllDirectories);
+				CachedUProjectNames = (from FullPath in UProjects select Path.GetFileNameWithoutExtension(FullPath)).ToArray();
+			}
+
+			return CachedUProjectNames;
 		}
 
 		private static void PrepareOutputPane()
@@ -586,5 +613,18 @@ namespace UnrealVS
 				}
 			}
 		}
+
+		private static string GetSolutionFolder()
+		{
+			if (!UnrealVSPackage.Instance.DTE.Solution.IsOpen)
+			{
+				return string.Empty;
+			}
+
+			return Path.GetDirectoryName(UnrealVSPackage.Instance.SolutionFilepath);
+		}
+
+		private static string CachedUProjectRootFolder = string.Empty;
+		private static IEnumerable<string> CachedUProjectNames = new string[0];
 	}
 }

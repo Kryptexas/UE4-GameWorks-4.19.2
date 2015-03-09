@@ -263,6 +263,7 @@ namespace UnrealBuildTool
 			// Setup solution file content
 			var VCSolutionFileContent = new StringBuilder();
 
+			const string VersionTag = "# UnrealEngineGeneratedSolutionVersion=1.0";
 
 			// Solution file header
 			if( ProjectFileFormat == VCProjectFileFormat.VisualStudio2013 )
@@ -270,7 +271,8 @@ namespace UnrealBuildTool
 				VCSolutionFileContent.Append(
 					ProjectFileGenerator.NewLine +
 					"Microsoft Visual Studio Solution File, Format Version 12.00" + ProjectFileGenerator.NewLine +
-					"# Visual Studio 2013" + ProjectFileGenerator.NewLine );
+					"# Visual Studio 2013" + ProjectFileGenerator.NewLine +
+					VersionTag + ProjectFileGenerator.NewLine);
 				
 				/* This is not required by VS 2013 to load the projects
 				VCSolutionFileContent.Append(
@@ -282,7 +284,8 @@ namespace UnrealBuildTool
 				VCSolutionFileContent.Append(
 					ProjectFileGenerator.NewLine +
 					"Microsoft Visual Studio Solution File, Format Version 12.00" + ProjectFileGenerator.NewLine +
-					"# Visual Studio 2012" + ProjectFileGenerator.NewLine );
+					"# Visual Studio 2012" + ProjectFileGenerator.NewLine +
+					VersionTag + ProjectFileGenerator.NewLine);
 			}
 			else
 			{
