@@ -485,7 +485,7 @@ void FStaticMeshEditorViewportClient::Draw(const FSceneView* View,FPrimitiveDraw
 			const FColor CollisionColor = StaticMeshEditorPtr.Pin()->IsSelectedPrim(HitProxy->PrimData) ? SelectedColor : UnselectedColor;
 			const FKConvexElem& ConvexElem = AggGeom->ConvexElems[i];
 			const FTransform ElemTM = ConvexElem.GetTransform();
-			ConvexElem.DrawElemWire(PDI, ElemTM, CollisionColor);
+			ConvexElem.DrawElemWire(PDI, ElemTM, 1.f, CollisionColor);
 
 			PDI->SetHitProxy(NULL);
 		}
