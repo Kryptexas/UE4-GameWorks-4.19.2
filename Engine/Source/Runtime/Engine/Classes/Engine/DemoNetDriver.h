@@ -57,7 +57,7 @@ class UDemoNetDriver
 	double		LastRecordAvgFlush;
 	double		MaxRecordTime;
 	int32		RecordCountSinceFlush;
-
+	float		TimeToSkip;
 public:
 
 	// UNetDriver interface.
@@ -71,7 +71,7 @@ public:
 	virtual void TickFlush( float DeltaSeconds ) override;
 	virtual void ProcessRemoteFunction( class AActor* Actor, class UFunction* Function, void* Parameters, struct FOutParmRec* OutParms, struct FFrame* Stack, class UObject* SubObject = nullptr );
 	virtual bool IsAvailable() const override { return true; }
-	
+	ENGINE_API void SkipTime(float InTimeToSkip);
 	bool InitConnectInternal( FString& Error );
 
 public:

@@ -47,6 +47,7 @@ bool UDemoNetDriver::InitBase( bool bInitAsClient, FNetworkNotify* InNotify, con
 		bIsRecordingDemoFrame	= false;
 		bDemoPlaybackDone		= false;
 		bChannelsArePaused		= false;
+		TimeToSkip = 0.0f;
 
 		ResetDemoState();
 
@@ -903,6 +904,11 @@ bool UDemoNetDriver::ReadDemoFrame()
 	return true;
 }
 
+void UDemoNetDriver::SkipTime(float InTimeToSkip)
+{
+	TimeToSkip = InTimeToSkip;
+}
+
 void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 {
 	if ( ServerConnection == NULL || ServerConnection->State == USOCK_Closed )
@@ -920,13 +926,8 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 
 	DemoDeltaTime += DeltaSeconds;
 
-	if ( DemoCurrentTime + DemoDeltaTime > DemoTotalTime )
-	{
-		DemoDeltaTime = DemoTotalTime - DemoCurrentTime;
-	}
-
 	DemoCurrentTime += DeltaSeconds;
-
+	
 	if ( CVarDemoSkipTime.GetValueOnGameThread() > 0 )
 	{
 		DemoDeltaTime += CVarDemoSkipTime.GetValueOnGameThread();
@@ -939,6 +940,20 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 		DemoCurrentTime += CVarDemoSkipTime.GetValueOnGameThread();
 
 		CVarDemoSkipTime.AsVariable()->Set( TEXT( "0" ), ECVF_SetByConsole );
+	}
+	
+	if (TimeToSkip > 0.0f)
+	{
+		DemoDeltaTime += TimeToSkip;
+
+		if (DemoCurrentTime + DemoDeltaTime > DemoTotalTime)
+		{
+			DemoDeltaTime = DemoTotalTime - DemoCurrentTime;
+		}
+
+		DemoCurrentTime += TimeToSkip;
+
+		TimeToSkip = 0.0f;
 	}
 
 	if ( DemoCurrentTime > DemoTotalTime )
