@@ -281,17 +281,21 @@ public:
 
 	/** Gets the focus to this widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	bool HasUserFocus(int32 UserIndex) const;
+	bool HasUserFocus(APlayerController* PlayerController) const;
 
 	/** Gets the focus to this widget. */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	bool HasAnyUserFocus() const;
 	
-	/** Sets the focus to this widget. */
+	/** Sets the focus to this widget for a specific user */
 	UFUNCTION(BlueprintCallable, Category="Widget")
-	void SetUserFocus(int32 UserIndex);
+	void SetUserFocus(APlayerController* PlayerController);
 
-	/** Forces the underlying slate system to perform a pre-pass on the layout of the widget.  This is for advanced users. */
+	/**
+	 * Forces a pre-pass.  A pre-pass caches the desired size of the widget hierarchy owned by this widget.  
+	 * One pre-pass is already happens for every widget before Tick occurs.  You only need to perform another 
+	 * pre-pass if you are adding child widgets this frame and want them to immediately be visible this frame.
+	 */
 	UFUNCTION(BlueprintCallable, Category="Widget")
 	void ForceLayoutPrepass();
 
