@@ -58,26 +58,6 @@ public class BuildCookRun : BuildCommand
 			RawProjectPath: ProjectPath
 		);
 
-		// @rocket hack: non-code projects cannot run in Debug
-		if (Params.Rocket && !ProjectUtils.IsCodeBasedUProjectFile(ProjectPath))
-		{
-			if (Params.ClientConfigsToBuild.Contains(UnrealTargetConfiguration.Debug))
-			{
-				Log("Non-code projects cannot run in Debug game clients. Defaulting to Development.");
-
-				Params.ClientConfigsToBuild.Remove(UnrealTargetConfiguration.Debug);
-				Params.ClientConfigsToBuild.Add(UnrealTargetConfiguration.Development);
-			}
-
-			if (Params.ClientConfigsToBuild.Contains(UnrealTargetConfiguration.Debug))
-			{
-				Log("Non-code projects cannot run in Debug game servers. Defaulting to Development.");
-
-				Params.ServerConfigsToBuild.Remove(UnrealTargetConfiguration.Debug);
-				Params.ServerConfigsToBuild.Add(UnrealTargetConfiguration.Development);
-			}
-		}
-
 		var DirectoriesToCook = ParseParamValue("cookdir");
 		if (!String.IsNullOrEmpty(DirectoriesToCook))
 		{

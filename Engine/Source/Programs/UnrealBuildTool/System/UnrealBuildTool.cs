@@ -150,6 +150,16 @@ namespace UnrealBuildTool
             return bBuildingRocket;
         }
 
+		/// <summary>
+		/// Returns true if UnrealBuildTool is running using installed Engine components
+		/// </summary>
+		/// <returns>True if running using installed Engine components</returns>
+		static public bool IsEngineInstalled()
+		{
+			// For now this is only true when running Rocket
+			return RunningRocket();
+		}
+
         /// <summary>
         /// Returns true if a UProject file is available.  This should always be the case when working with game projects.  For engine or program targets, a UProject will not be available.
         /// </summary>
@@ -796,15 +806,6 @@ namespace UnrealBuildTool
                     UnrealTargetPlatform CheckPlatform;
                     UnrealTargetConfiguration CheckConfiguration;
                     UEBuildTarget.ParsePlatformAndConfiguration(Arguments, out CheckPlatform, out CheckConfiguration, false);
-                    //@todo SAS: Add a true Debug mode!
-                    if (RunningRocket())
-                    {
-                        // Only Development and Shipping are supported for engine modules
-                        if( CheckConfiguration != UnrealTargetConfiguration.Development && CheckConfiguration != UnrealTargetConfiguration.Shipping )
-                        {
-                            CheckConfiguration = UnrealTargetConfiguration.Development;
-                        }
-                    }
 
 					// @todo ubtmake: remove this when building with RPCUtility works
 					if (CheckPlatform == UnrealTargetPlatform.Mac || CheckPlatform == UnrealTargetPlatform.IOS)
@@ -1370,14 +1371,6 @@ namespace UnrealBuildTool
             UnrealTargetPlatform ResetPlatform = UnrealTargetPlatform.Unknown;
             UnrealTargetConfiguration ResetConfiguration;
             UEBuildTarget.ParsePlatformAndConfiguration(Arguments, out ResetPlatform, out ResetConfiguration);
-            if (RunningRocket())
-            {
-                // Only Development and Shipping are supported for engine modules
-                if( ResetConfiguration != UnrealTargetConfiguration.Development && ResetConfiguration != UnrealTargetConfiguration.Shipping )
-                {
-                    ResetConfiguration = UnrealTargetConfiguration.Development;
-                }
-            }
 			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(ResetPlatform);
 			BuildPlatform.ResetBuildConfiguration(ResetPlatform, ResetConfiguration);
 

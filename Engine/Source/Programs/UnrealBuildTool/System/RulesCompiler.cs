@@ -1354,20 +1354,6 @@ namespace UnrealBuildTool
 
 			UnrealTargetPlatform LocalPlatform = Target.Platform;
 			UnrealTargetConfiguration LocalConfiguration = Target.Configuration;
-			//@todo SAS: Add a true Debug mode!
-			if (UnrealBuildTool.RunningRocket())
-			{
-				// Have to do absolute here as this could be a project that is under the root
-				string FullUProjectPath = Path.GetFullPath(UnrealBuildTool.GetUProjectPath());
-				if ( !Utils.IsFileUnderDirectory( ModuleFileName, FullUProjectPath ) )
-				{
-					// Only Development and Shipping are supported for engine modules
-					if( LocalConfiguration != UnrealTargetConfiguration.Development && LocalConfiguration != UnrealTargetConfiguration.Shipping )
-					{
-						LocalConfiguration = UnrealTargetConfiguration.Development;
-					}
-				}
-			}
 			TargetInfo LocalTarget = new TargetInfo(LocalPlatform, LocalConfiguration, Target.Type);
 
 			// The build module must define a type named 'Rules' that derives from our 'ModuleRules' type.  

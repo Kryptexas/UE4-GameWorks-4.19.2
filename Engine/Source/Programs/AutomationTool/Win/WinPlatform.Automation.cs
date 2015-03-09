@@ -43,13 +43,13 @@ public abstract class BaseWinPlatform : Platform
 		string PhysXVer = "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
 		string ApexVer = "VS" + WindowsPlatform.GetVisualStudioCompilerVersionName();
 		string PhysXMaskForDebugConfiguration = Params.bDebugBuildsActuallyUseDebugCRT ? "*DEBUG*.*" : "*PROFILE*.*";
-		if (SC.StageTargetConfigurations.Contains(UnrealTargetConfiguration.Debug) && !Params.Rocket)
+		if (SC.StageTargetConfigurations.Contains(UnrealTargetConfiguration.Debug))
 		{
 			StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/PhysX/APEX-1.3", SC.PlatformDir, ApexVer), PhysXMaskForDebugConfiguration, true);
 			StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/PhysX/PhysX-3.3", SC.PlatformDir, PhysXVer), PhysXMaskForDebugConfiguration, true);
 			StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/PhysX/PhysX-3.3", SC.PlatformDir, PhysXVer), "nvToolsExt*.", true);
 		}
-		if (SC.StageTargetConfigurations.Any(x => x != UnrealTargetConfiguration.Debug) || Params.Rocket)
+		if (SC.StageTargetConfigurations.Any(x => x != UnrealTargetConfiguration.Debug))
 		{
 			StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/PhysX/APEX-1.3", SC.PlatformDir, ApexVer), "*.", true, new string[] { "*DEBUG*.*", "*CHECKED*.*" });
 			StageExecutable("dll", SC, CommandUtils.CombinePaths(SC.LocalRoot, "Engine/Binaries/ThirdParty/PhysX/PhysX-3.3", SC.PlatformDir, PhysXVer), "*.", true, new string[] { "*DEBUG*.*", "*CHECKED*.*" });

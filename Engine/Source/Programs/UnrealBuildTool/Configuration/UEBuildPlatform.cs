@@ -697,25 +697,7 @@ namespace UnrealBuildTool
 			// Determine the C++ compile/link configuration based on the Unreal configuration.
 			CPPTargetConfiguration CompileConfiguration;
 			UnrealTargetConfiguration CheckConfig = InBuildTarget.Configuration;
-			//@todo SAS: Add a true Debug mode!
-			if (UnrealBuildTool.RunningRocket())
-			{
-				if (Utils.IsFileUnderDirectory(InBuildTarget.OutputPaths[0], UnrealBuildTool.GetUProjectPath()))
-				{
-					if (CheckConfig == UnrealTargetConfiguration.Debug)
-					{
-						CheckConfig = UnrealTargetConfiguration.DebugGame;
-					}
-				}
-				else
-				{
-					// Only Development and Shipping are supported for engine modules
-					if (CheckConfig != UnrealTargetConfiguration.Development && CheckConfig != UnrealTargetConfiguration.Shipping)
-					{
-						CheckConfig = UnrealTargetConfiguration.Development;
-					}
-				}
-			}
+
 			switch (CheckConfig)
 			{
 				default:
