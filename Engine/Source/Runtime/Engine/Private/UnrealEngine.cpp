@@ -1466,7 +1466,7 @@ void UEngine::InitializeObjectReferences()
 	}
 
 	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
-	UISettings->LoadCursors();
+	UISettings->ForceLoadResources();
 }
 
 //

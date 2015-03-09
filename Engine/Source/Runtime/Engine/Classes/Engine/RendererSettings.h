@@ -264,7 +264,7 @@ public:
 private:
 	
 	UPROPERTY(config)
-	TEnumAsByte<EUIScalingRule::Type> UIScaleRule_DEPRECATED;
+	TEnumAsByte<EUIScalingRule> UIScaleRule_DEPRECATED;
 
 	UPROPERTY(config)
 	FRuntimeFloatCurve UIScaleCurve_DEPRECATED;
