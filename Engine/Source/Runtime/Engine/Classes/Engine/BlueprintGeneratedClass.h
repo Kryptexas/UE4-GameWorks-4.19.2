@@ -468,7 +468,7 @@ public:
 	UPROPERTY()
 	TArray<FEventGraphFastCallPair> FastCallPairs;
 
-#if WITH_EDITOR
+#if WITH_EDITORONLY_DATA
 	UPROPERTY(Transient)
 	UObject* OverridenArchetypeForCDO;
 #endif //WITH_EDITOR

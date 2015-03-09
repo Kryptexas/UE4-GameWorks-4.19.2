@@ -664,7 +664,9 @@ void UBlueprintGeneratedClass::PurgeClass(bool bRecompilingOnLoad)
 
 	UberGraphFramePointerProperty = NULL;
 	UberGraphFunction = NULL;
+#if WITH_EDITORONLY_DATA
 	OverridenArchetypeForCDO = NULL;
+#endif //WITH_EDITOR
 
 #if UE_BLUEPRINT_EVENTGRAPH_FASTCALLS
 	FastCallPairs.Empty();
