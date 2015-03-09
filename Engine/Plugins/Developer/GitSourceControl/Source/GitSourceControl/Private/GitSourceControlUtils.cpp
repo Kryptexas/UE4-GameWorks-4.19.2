@@ -487,16 +487,8 @@ bool RunDumpToFile(const FString& InPathToGitBinary, const FString& InRepository
 	const bool bLaunchHidden = true;
 	const bool bLaunchReallyHidden = bLaunchHidden;
 
-	// Setup output redirection pipes, so that we can harvest compiler output and display it ourselves
-#if PLATFORM_LINUX
-	int pipefd[2];
-	pipe(pipefd);
-	void* PipeRead = &pipefd[0];
-	void* PipeWrite = &pipefd[1];
-#else
 	void* PipeRead = NULL;
 	void* PipeWrite = NULL;
-#endif
 
 	verify(FPlatformProcess::CreatePipe(PipeRead, PipeWrite));
 
@@ -540,12 +532,7 @@ bool RunDumpToFile(const FString& InPathToGitBinary, const FString& InRepository
 		UE_LOG(LogSourceControl, Error, TEXT("Failed to launch 'git show'"));
 	}
 
-#if PLATFORM_LINUX
-	close(*(int*)PipeRead);
-	close(*(int*)PipeWrite);
-#else
 	FPlatformProcess::ClosePipe(PipeRead, PipeWrite);
-#endif
 
 	return bResult;
 }
