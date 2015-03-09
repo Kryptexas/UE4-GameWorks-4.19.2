@@ -30,7 +30,10 @@ uint32 FRunnableThreadPThread::Run()
 	}
 
 #if STATS
-	FThreadStats::Shutdown();
+	if(FThreadStats::IsThreadingReady())
+	{
+		FThreadStats::Shutdown();
+	}
 #endif
 
 	// Clean ourselves up without waiting
