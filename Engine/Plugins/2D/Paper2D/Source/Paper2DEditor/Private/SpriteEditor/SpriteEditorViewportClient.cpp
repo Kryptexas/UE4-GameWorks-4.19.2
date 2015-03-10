@@ -370,7 +370,7 @@ void FSpriteEditorViewportClient::DrawGeometry(FViewport& InViewport, FSceneView
 			const FVector2D ScreenPos = TextureSpaceToScreenSpace(View, Polygon.Vertices[VertexIndex]);
 			const FVector2D NextScreenPos = TextureSpaceToScreenSpace(View, Polygon.Vertices[NextVertexIndex]);
 
-			bool IsEdgeSelected = IsPolygonVertexSelected(PolygonIndex, VertexIndex) && IsPolygonVertexSelected(PolygonIndex, NextVertexIndex);
+			const bool IsEdgeSelected = IsPolygonVertexSelected(PolygonIndex, VertexIndex) && IsPolygonVertexSelected(PolygonIndex, NextVertexIndex);
 
 
 			// Draw the normal tick
@@ -723,7 +723,7 @@ void FSpriteEditorViewportClient::DrawCanvas(FViewport& Viewport, FSceneView& Vi
 		DrawMarquee(Viewport, View, Canvas, MarqueeColor);
 	}
 
-	if (bShowSockets)
+	if (bShowSockets && !IsInSourceRegionEditMode())
 	{
 		FSocketEditingHelper::DrawSocketNames(RenderSpriteComponent, Viewport, View, Canvas);
 	}
@@ -740,7 +740,7 @@ void FSpriteEditorViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInt
 		FUnrealEdUtils::DrawWidget(View, PDI, RenderSpriteComponent->ComponentToWorld.ToMatrixWithScale(), 0, 0, EAxisList::XZ, EWidgetMovementMode::WMM_Translate);
 	}
 
-	if (bShowSockets)
+	if (bShowSockets && !IsInSourceRegionEditMode())
 	{
 		FSocketEditingHelper::DrawSockets(RenderSpriteComponent, View, PDI);
 	}
@@ -890,7 +890,7 @@ void FSpriteEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitP
 	const bool bInsertVertexModifier = bIsShiftKeyDown;
 	HSpriteSelectableObjectHitProxy* SelectedItemProxy = HitProxyCast<HSpriteSelectableObjectHitProxy>(HitProxy);
 
-	if (bAllowSelectVertex && SelectedItemProxy)
+	if (bAllowSelectVertex && (SelectedItemProxy != nullptr))
 	{
 		if (!bClearSelectionModifier)
 		{
@@ -1033,6 +1033,11 @@ void FSpriteEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitP
 					bHandled = true;
 				}
 			}
+		}
+		else if (!IsEditingGeometry())
+		{
+			// Clicked on the background (missed any proxies), deselect the socket or whatever was selected
+			ClearSelectionSet();
 		}
 
 		if (!bHandled)
@@ -1523,6 +1528,14 @@ void FSpriteEditorViewportClient::SnapAllVerticesToPixelGrid()
 	}
 
 	EndTransaction();
+}
+
+void FSpriteEditorViewportClient::InternalActivateNewMode(ESpriteEditorMode::Type NewMode)
+{
+	CurrentMode = NewMode;
+	ClearSelectionSet();
+	ResetMarqueeTracking();
+	ResetAddPolyonMode();
 }
 
 FSpritePolygonCollection* FSpriteEditorViewportClient::GetGeometryBeingEdited() const

@@ -85,11 +85,11 @@ public:
 	void ToggleShowMeshEdges();
 	bool IsShowMeshEdgesChecked() const;
 
-	void EnterViewMode() { CurrentMode = ESpriteEditorMode::ViewMode; ResetMarqueeTracking(); ResetAddPolyonMode(); }
-	void EnterSourceRegionEditMode() { CurrentMode = ESpriteEditorMode::EditSourceRegionMode; ResetMarqueeTracking(); UpdateRelatedSpritesList(); ResetAddPolyonMode(); }
-	void EnterCollisionEditMode() { CurrentMode = ESpriteEditorMode::EditCollisionMode; ResetMarqueeTracking(); ResetAddPolyonMode(); }
-	void EnterRenderingEditMode() { CurrentMode = ESpriteEditorMode::EditRenderingGeomMode; ResetMarqueeTracking(); ResetAddPolyonMode(); }
-	void EnterAddSpriteMode() { CurrentMode = ESpriteEditorMode::AddSpriteMode; ResetMarqueeTracking(); ResetAddPolyonMode(); }
+	void EnterViewMode() { InternalActivateNewMode(ESpriteEditorMode::ViewMode); }
+	void EnterSourceRegionEditMode() { InternalActivateNewMode(ESpriteEditorMode::EditSourceRegionMode); UpdateRelatedSpritesList(); }
+	void EnterCollisionEditMode() { InternalActivateNewMode(ESpriteEditorMode::EditCollisionMode); }
+	void EnterRenderingEditMode() { InternalActivateNewMode(ESpriteEditorMode::EditRenderingGeomMode); }
+	void EnterAddSpriteMode() { InternalActivateNewMode(ESpriteEditorMode::AddSpriteMode); }
 
 	bool IsInViewMode() const { return CurrentMode == ESpriteEditorMode::ViewMode; }
 	bool IsInSourceRegionEditMode() const { return CurrentMode == ESpriteEditorMode::EditSourceRegionMode; }
@@ -240,7 +240,10 @@ private:
 	void ResetMarqueeTracking();
 	bool ConvertMarqueeToSourceTextureSpace(/*out*/FVector2D& OutStartPos, /*out*/FVector2D& OutDimension);
 	void SelectVerticesInMarquee(bool bAddToSelection);
-	
+
+	// Activates a new mode, clearing selection set, etc...
+	void InternalActivateNewMode(ESpriteEditorMode::Type NewMode);
+
 	// Can return null
 	FSpritePolygonCollection* GetGeometryBeingEdited() const;
 };
