@@ -9,6 +9,7 @@ UBTService::UBTService(const FObjectInitializer& ObjectInitializer) : Super(Obje
 	bNotifyOnSearch = true;
 	bTickIntervals = true;
 	bCallTickOnSearchStart = false;
+	bRestartTimerOnEachActivation = false;
 
 	Interval = 0.5f;
 	RandomDeviation = 0.1f;
@@ -36,7 +37,7 @@ void UBTService::NotifyParentActivation(FBehaviorTreeSearchData& SearchData)
 
 			if (bNotifyTick)
 			{
-				const float RemainingTime = GetNextTickRemainingTime(NodeMemory);
+				const float RemainingTime = bRestartTimerOnEachActivation ? 0.0f : GetNextTickRemainingTime(NodeMemory);
 				if (RemainingTime <= 0.0f)
 				{
 					ServiceNodeOb->ScheduleNextTick(NodeMemory);

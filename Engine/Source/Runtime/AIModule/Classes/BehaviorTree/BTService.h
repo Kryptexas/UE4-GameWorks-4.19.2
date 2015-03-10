@@ -59,6 +59,10 @@ protected:
 	UPROPERTY(Category = Service, EditAnywhere, AdvancedDisplay)
 	uint32 bCallTickOnSearchStart : 1;
 
+	/** if set, next tick time will be always reset to service's interval when node is activated */
+	UPROPERTY(Category = Service, EditAnywhere, AdvancedDisplay)
+	uint32 bRestartTimerOnEachActivation : 1;
+
 	/** if set, service will be notified about search entering underlying branch */
 	uint32 bNotifyOnSearch : 1;
 
