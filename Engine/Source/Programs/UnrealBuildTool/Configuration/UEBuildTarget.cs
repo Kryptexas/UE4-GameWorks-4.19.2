@@ -2622,16 +2622,6 @@ namespace UnrealBuildTool
 
 			string OutputAppName = GetAppName();
 
-            // Mark it as a Rocket build
-            if (UnrealBuildTool.BuildingRocket() || UnrealBuildTool.RunningRocket())
-            {
-                GlobalCompileEnvironment.Config.Definitions.Add("UE_ROCKET=1");
-            }
-            else
-            {
-                GlobalCompileEnvironment.Config.Definitions.Add("UE_ROCKET=0");
-            }
-
 			// Installed Engine intermediates go to the project's intermediate folder. Installed Engine never writes to the engine intermediate folder. (Those files are immutable)
 			// Also, when compiling in monolithic, all intermediates go to the project's folder.  This is because a project can change definitions that affects all engine translation
 			// units too, so they can't be shared between different targets.  They are effectively project-specific engine intermediates.

@@ -10,9 +10,6 @@
 
 bool FRocketSupport::IsRocket( const TCHAR* CmdLine )
 {
-#if UE_ROCKET
-	return true;
-#else
 	static int32 RocketState = -1;
 
 	if (RocketState == -1)
@@ -33,5 +30,4 @@ bool FRocketSupport::IsRocket( const TCHAR* CmdLine )
 	}
 
 	return (RocketState == 1) ? true : false;
-#endif
 }
