@@ -250,8 +250,10 @@ void UEnvironmentQueryGraph::UpdateNodeClassData(UAIGraphNode* UpdateNode, UClas
 	}
 	else
 	{
-		UpdateNode->ClassData = FGraphNodeClassData(InstanceClass, "");
+		UpdateNode->ClassData = FGraphNodeClassData(InstanceClass, FGraphNodeClassHelper::GetDeprecationMessage(InstanceClass));
 	}
+
+	UpdateNode->ErrorMessage = UpdateNode->ClassData.GetDeprecatedMessage();
 }
 
 void UEnvironmentQueryGraph::CollectAllNodeInstances(TSet<UObject*>& NodeInstances)
@@ -284,8 +286,17 @@ void UEnvironmentQueryGraph::UpdateDeprecatedGeneratorClasses()
 
 void UEnvironmentQueryGraph::SpawnMissingNodes()
 {
-	TSet<UEnvQueryOption*> ExistingNodes;
+	UEnvQuery* QueryOwner = Cast<UEnvQuery>(GetOuter());
+	if (QueryOwner == nullptr)
+	{
+		return;
+	}
 
+	TSet<UEnvQueryTest*> ExistingTests;
+	TSet<UEnvQueryOption*> ExistingNodes;
+	TArray<UEnvQueryOption*> OptionsCopy = QueryOwner->Options;
+
+	UAIGraphNode* MyRootNode = nullptr;
 	for (int32 Idx = 0; Idx < Nodes.Num(); Idx++)
 	{
 		UEnvironmentQueryGraphNode* MyNode = Cast<UEnvironmentQueryGraphNode>(Nodes[Idx]);
@@ -294,7 +305,7 @@ void UEnvironmentQueryGraph::SpawnMissingNodes()
 		{
 			ExistingNodes.Add(OptionInstance);
 
-			TSet<UEnvQueryTest*> ExistingTests;
+			ExistingTests.Empty(ExistingTests.Num());
 			for (int32 SubIdx = 0; SubIdx < MyNode->SubNodes.Num(); SubIdx++)
 			{
 				UEnvironmentQueryGraphNode* MySubNode = Cast<UEnvironmentQueryGraphNode>(MyNode->SubNodes[SubIdx]);
@@ -310,21 +321,64 @@ void UEnvironmentQueryGraph::SpawnMissingNodes()
 				}
 			}
 
-			TArray<UEnvQueryTest*> TestsCopy = OptionInstance->Tests;
-			for (int32 SubIdx = 0; SubIdx < TestsCopy.Num(); SubIdx++)
-			{
-				if (ExistingTests.Contains(TestsCopy[SubIdx]) || (TestsCopy[SubIdx] == nullptr))
-				{
-					continue;
-				}
-
-				UEnvironmentQueryGraphNode_Test* TestNode = NewObject<UEnvironmentQueryGraphNode_Test>(this);
-				TestNode->NodeInstance = TestsCopy[SubIdx];
-				UpdateNodeClassData(TestNode, TestsCopy[SubIdx]->GetClass());
-
-				MyNode->AddSubNode(TestNode, this);
-				TestNode->NodeInstance = TestsCopy[SubIdx];
-			}
+			SpawnMissingSubNodes(OptionInstance, ExistingTests, MyNode);
 		}
+
+		UEnvironmentQueryGraphNode_Root* RootNode = Cast<UEnvironmentQueryGraphNode_Root>(Nodes[Idx]);
+		if (RootNode)
+		{
+			MyRootNode = RootNode;
+		}
+	}
+
+	UEdGraphPin* RootOutPin = MyRootNode ? FindGraphNodePin(MyRootNode, EGPD_Output) : nullptr;
+	ExistingTests.Empty(0);
+
+	for (int32 Idx = 0; Idx < OptionsCopy.Num(); Idx++)
+	{
+		UEnvQueryOption* OptionInstance = OptionsCopy[Idx];
+		if (ExistingNodes.Contains(OptionInstance) || OptionInstance == nullptr || OptionInstance->Generator == nullptr)
+		{
+			continue;
+		}
+
+		FGraphNodeCreator<UEnvironmentQueryGraphNode_Option> NodeBuilder(*this);
+		UEnvironmentQueryGraphNode_Option* MyNode = NodeBuilder.CreateNode();
+		UpdateNodeClassData(MyNode, OptionInstance->Generator->GetClass());
+		NodeBuilder.Finalize();
+
+		if (MyRootNode)
+		{
+			MyNode->NodePosX = MyRootNode->NodePosX + (Idx * 300);
+			MyNode->NodePosY = MyRootNode->NodePosY + 100;
+		}
+
+		MyNode->NodeInstance = OptionInstance;
+		SpawnMissingSubNodes(OptionInstance, ExistingTests, MyNode);
+
+		UEdGraphPin* SpawnedInPin = FindGraphNodePin(MyNode, EGPD_Input);
+		if (RootOutPin && SpawnedInPin)
+		{
+			RootOutPin->MakeLinkTo(SpawnedInPin);
+		}
+	}
+}
+
+void UEnvironmentQueryGraph::SpawnMissingSubNodes(UEnvQueryOption* Option, TSet<UEnvQueryTest*> ExistingTests, UEnvironmentQueryGraphNode* OptionNode)
+{
+	TArray<UEnvQueryTest*> TestsCopy = Option->Tests;
+	for (int32 SubIdx = 0; SubIdx < TestsCopy.Num(); SubIdx++)
+	{
+		if (ExistingTests.Contains(TestsCopy[SubIdx]) || (TestsCopy[SubIdx] == nullptr))
+		{
+			continue;
+		}
+
+		UEnvironmentQueryGraphNode_Test* TestNode = NewObject<UEnvironmentQueryGraphNode_Test>(this);
+		TestNode->NodeInstance = TestsCopy[SubIdx];
+		UpdateNodeClassData(TestNode, TestsCopy[SubIdx]->GetClass());
+
+		OptionNode->AddSubNode(TestNode, this);
+		TestNode->NodeInstance = TestsCopy[SubIdx];
 	}
 }

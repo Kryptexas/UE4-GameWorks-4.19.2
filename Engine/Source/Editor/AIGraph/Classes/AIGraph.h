@@ -38,4 +38,6 @@ protected:
 
 	virtual void CollectAllNodeInstances(TSet<UObject*>& NodeInstances);
 	virtual bool CanRemoveNestedObject(UObject* TestObject) const;
+
+	UEdGraphPin* FindGraphNodePin(UEdGraphNode* Node, EEdGraphPinDirection Dir);
 };

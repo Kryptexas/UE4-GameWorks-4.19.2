@@ -865,8 +865,8 @@ void UBehaviorTreeGraph::SpawnMissingNodes()
 		UBehaviorTreeGraphNode* SpawnedRootNode = BTGraphHelpers::SpawnMissingGraphNodes(BTAsset, RootNode, this);
 		if (RootNode && SpawnedRootNode)
 		{
-			UEdGraphPin* RootOutPin = BTGraphHelpers::FindGraphNodePin(RootNode, EGPD_Output);
-			UEdGraphPin* SpawnedInPin = BTGraphHelpers::FindGraphNodePin(SpawnedRootNode, EGPD_Input);
+			UEdGraphPin* RootOutPin = FindGraphNodePin(RootNode, EGPD_Output);
+			UEdGraphPin* SpawnedInPin = FindGraphNodePin(SpawnedRootNode, EGPD_Input);
 
 			RootOutPin->MakeLinkTo(SpawnedInPin);
 		}

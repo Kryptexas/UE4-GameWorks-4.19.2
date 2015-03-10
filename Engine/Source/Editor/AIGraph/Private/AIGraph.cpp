@@ -140,6 +140,21 @@ void UAIGraph::RemoveOrphanedNodes()
 	}
 }
 
+UEdGraphPin* UAIGraph::FindGraphNodePin(UEdGraphNode* Node, EEdGraphPinDirection Dir)
+{
+	UEdGraphPin* Pin = nullptr;
+	for (int32 Idx = 0; Idx < Node->Pins.Num(); Idx++)
+	{
+		if (Node->Pins[Idx]->Direction == Dir)
+		{
+			Pin = Node->Pins[Idx];
+			break;
+		}
+	}
+
+	return Pin;
+}
+
 bool UAIGraph::IsLocked() const
 {
 	return bLockUpdates;

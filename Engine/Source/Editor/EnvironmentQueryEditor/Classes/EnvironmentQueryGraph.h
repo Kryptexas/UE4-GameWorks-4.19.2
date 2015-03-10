@@ -4,6 +4,10 @@
 #include "AIGraph.h"
 #include "EnvironmentQueryGraph.generated.h"
 
+class UEnvQueryOption;
+class UEnvQueryTest;
+class UEnvironmentQueryGraphNode;
+
 UCLASS()
 class UEnvironmentQueryGraph : public UAIGraph
 {
@@ -29,4 +33,6 @@ protected:
 	void UpdateNodeClassData(UAIGraphNode* UpdateNode, UClass* InstanceClass);
 
 	virtual void CollectAllNodeInstances(TSet<UObject*>& NodeInstances) override;
+
+	void SpawnMissingSubNodes(UEnvQueryOption* Option, TSet<UEnvQueryTest*> ExistingTests, UEnvironmentQueryGraphNode* OptionNode);
 };
