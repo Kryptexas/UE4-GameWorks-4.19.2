@@ -841,6 +841,17 @@ bool FSCSEditorTreeNodeInstancedInheritedComponent::IsDefaultSceneRoot() const
 	return false;
 }
 
+bool FSCSEditorTreeNodeInstancedInheritedComponent::CanEditDefaults() const
+{
+	UActorComponent* ComponentTemplate = GetComponentTemplate();
+	if (IsNative() && ComponentTemplate)
+	{
+		return FComponentEditorUtils::CanEditNativeComponent(ComponentTemplate);
+	}
+
+	return false;
+}
+
 FText FSCSEditorTreeNodeInstancedInheritedComponent::GetDisplayName() const
 {
 	FName VariableName = GetVariableName();
@@ -1075,47 +1086,11 @@ bool FSCSEditorTreeNodeComponent::CanEditDefaults() const
 	if (!IsNative())
 	{
 		USCS_Node* SCS_Node = GetSCSNode();
-		bCanEdit = (SCS_Node != NULL);
+		bCanEdit = (SCS_Node != nullptr);
 	}
 	else if (UActorComponent* ComponentTemplate = GetComponentTemplate())
 	{
-		// Evaluate to TRUE for native nodes if it is bound to a member variable and that variable has either EditDefaultsOnly or EditAnywhere flags set
-		check(ComponentTemplate->GetOwner());
-		UClass* OwnerClass = ComponentTemplate->GetOwner()->GetActorClass();
-		if (OwnerClass != NULL)
-		{
-			UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(OwnerClass);
-			if (Blueprint != NULL && Blueprint->ParentClass != NULL)
-			{
-				for (TFieldIterator<UProperty> It(Blueprint->ParentClass); It; ++It)
-				{
-					UProperty* Property = *It;
-					if (UObjectProperty* ObjectProp = Cast<UObjectProperty>(Property))
-					{
-						//must be editable
-						if ((Property->PropertyFlags & (CPF_Edit)) == 0)
-						{
-							continue;
-						}
-
-						UObject* ParentCDO = Blueprint->ParentClass->GetDefaultObject();
-
-						if (!ComponentTemplate->GetClass()->IsChildOf(ObjectProp->PropertyClass))
-						{
-							continue;
-						}
-
-						UObject* Object = ObjectProp->GetObjectPropertyValue(ObjectProp->ContainerPtrToValuePtr<void>(ParentCDO));
-						bCanEdit = Object != NULL && Object->GetFName() == ComponentTemplate->GetFName();
-
-						if (bCanEdit)
-						{
-							break;
-						}
-					}
-				}
-			}
-		}
+		bCanEdit = FComponentEditorUtils::CanEditNativeComponent(ComponentTemplate);
 	}
 
 	return bCanEdit;

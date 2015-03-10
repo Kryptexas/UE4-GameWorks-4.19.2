@@ -324,7 +324,7 @@ public:
 	virtual bool IsInherited() const override { return true; }
 	virtual bool IsUserInstanced() const override { return false; }
 	virtual bool IsDefaultSceneRoot() const override;
-	virtual bool CanEditDefaults() const { return IsNative(); }
+	virtual bool CanEditDefaults() const;
 	//virtual FName GetVariableName() const override;
 	//virtual FString GetDisplayString() const override;
 	virtual FText GetDisplayName() const override;

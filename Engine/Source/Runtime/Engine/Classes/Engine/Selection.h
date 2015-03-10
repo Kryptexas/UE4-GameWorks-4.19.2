@@ -6,6 +6,7 @@
  */
 
 #pragma once
+#include "ComponentEditorUtils.h"
 #include "Selection.generated.h"
 
 UCLASS(customConstructor, transient)
@@ -467,7 +468,13 @@ public:
 	bool IsObjectValid(const UObject* Object) const
 	{
 		const UActorComponent* Comp = Cast<UActorComponent>( Object );
-		return Comp && !Comp->IsCreatedByConstructionScript();
+		if (Comp)
+		{
+			bool bCanEditIfNative = ( Comp->CreationMethod == EComponentCreationMethod::Native ) ? FComponentEditorUtils::CanEditNativeComponent(Comp) : true;
+			return !Comp->IsCreatedByConstructionScript() && bCanEditIfNative;
+		}
+		
+		return false;
 	}
 };
 

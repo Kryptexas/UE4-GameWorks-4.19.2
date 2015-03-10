@@ -2,6 +2,7 @@
 
 #include "EnginePrivate.h"
 #include "ActorEditorUtils.h"
+#include "ComponentEditorUtils.h"
 
 namespace FActorEditorUtils
 {
@@ -35,13 +36,21 @@ namespace FActorEditorUtils
 
 	void GetEditableComponents( const AActor* InActor, TArray<UActorComponent*>& OutEditableComponents )
 	{
-		// If a component wasn't created by a construction script (i.e. it's native or an instance), it's editable
 		TInlineComponentArray<UActorComponent*> InstanceComponents;
 		InActor->GetComponents(InstanceComponents);
 		for (auto Component : InstanceComponents)
 		{
-			if (!Component->IsCreatedByConstructionScript())
+			if (Component->CreationMethod == EComponentCreationMethod::Native)
 			{
+				// Make sure it's an exposed native component
+				if (FComponentEditorUtils::CanEditNativeComponent(Component))
+				{
+					OutEditableComponents.Add(Component);
+				}
+			}
+			else if (Component->CreationMethod == EComponentCreationMethod::Instance)
+			{
+				// Instance components are always editable
 				OutEditableComponents.Add(Component);
 			}
 		}

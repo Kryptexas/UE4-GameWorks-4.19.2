@@ -111,6 +111,55 @@ protected:
 	// FCustomizableTextObjectFactory (end)
 };
 
+bool FComponentEditorUtils::CanEditNativeComponent(const UActorComponent* NativeComponent)
+{
+	// A native component can be edited if it is bound to a member variable and that variable is marked as visible in the editor
+	// Note: We aren't concerned with whether the component is marked editable - the component itself is responsible for determining which of its properties are editable
+
+	bool bCanEdit = false;
+	
+	UClass* OwnerClass = (NativeComponent && NativeComponent->GetOwner()) ? NativeComponent->GetOwner()->GetActorClass() : nullptr;
+	if (OwnerClass != nullptr)
+	{
+		// If the owner is a blueprint generated class, use the BP parent class
+		UBlueprint* Blueprint = UBlueprint::GetBlueprintFromClass(OwnerClass);
+		if (Blueprint != nullptr && Blueprint->ParentClass != nullptr)
+		{
+			OwnerClass = Blueprint->ParentClass;
+		}
+
+		for (TFieldIterator<UProperty> It(OwnerClass); It; ++It)
+		{
+			UProperty* Property = *It;
+			if (UObjectProperty* ObjectProp = Cast<UObjectProperty>(Property))
+			{
+				// Must be visible - note CPF_Edit is set for all properties that should be visible, not just those that are editable
+				if (( Property->PropertyFlags & ( CPF_Edit ) ) == 0)
+				{
+					continue;
+				}
+
+				UObject* ParentCDO = OwnerClass->GetDefaultObject();
+
+				if (!NativeComponent->GetClass()->IsChildOf(ObjectProp->PropertyClass))
+				{
+					continue;
+				}
+
+				UObject* Object = ObjectProp->GetObjectPropertyValue(ObjectProp->ContainerPtrToValuePtr<void>(ParentCDO));
+				bCanEdit = Object != nullptr && Object->GetFName() == NativeComponent->GetFName();
+
+				if (bCanEdit)
+				{
+					break;
+				}
+			}
+		}
+	}
+
+	return bCanEdit;
+}
+
 bool FComponentEditorUtils::IsValidVariableNameString(const UActorComponent* InComponent, const FString& InString)
 {
 	// First test to make sure the string is not empty and does not equate to the DefaultSceneRoot node name

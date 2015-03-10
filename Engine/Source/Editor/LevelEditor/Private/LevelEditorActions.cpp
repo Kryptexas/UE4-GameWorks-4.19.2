@@ -1371,7 +1371,7 @@ bool FLevelEditorActionCallbacks::Duplicate_CanExecute()
 	if (GEditor->GetSelectedComponentCount() > 0)
 	{
 		TArray<UActorComponent*> SelectedComponents;
-		for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
+		for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
 		{
 			SelectedComponents.Add(CastChecked<UActorComponent>(*It));
 		}
@@ -1407,7 +1407,7 @@ bool FLevelEditorActionCallbacks::Delete_CanExecute()
 	if (GEditor->GetSelectedComponentCount() > 0)
 	{
 		TArray<UActorComponent*> SelectedComponents;
-		for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
+		for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
 		{
 			SelectedComponents.Add(CastChecked<UActorComponent>(*It));
 		}
@@ -1480,7 +1480,7 @@ bool FLevelEditorActionCallbacks::Cut_CanExecute()
 	{
 		// Make sure the components can be copied and deleted
 		TArray<UActorComponent*> SelectedComponents;
-		for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
+		for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
 		{
 			SelectedComponents.Add(CastChecked<UActorComponent>(*It));
 		}
@@ -1517,7 +1517,7 @@ bool FLevelEditorActionCallbacks::Copy_CanExecute()
 	if (GEditor->GetSelectedComponentCount() > 0)
 	{
 		TArray<UActorComponent*> SelectedComponents;
-		for (FSelectedEditableComponentIterator It(GEditor->GetSelectedEditableComponentIterator()); It; ++It)
+		for (FSelectionIterator It(GEditor->GetSelectedComponentIterator()); It; ++It)
 		{
 			SelectedComponents.Add(CastChecked<UActorComponent>(*It));
 		}

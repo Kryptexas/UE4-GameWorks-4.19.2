@@ -35,9 +35,12 @@ private:
 	void OnSCSEditorRootSelected(AActor* Actor);
 	void OnSCSEditorTreeViewSelectionChanged(const TArray<TSharedPtr<class FSCSEditorTreeNode> >& SelectedNodes);
 	void UpdateComponentTreeFromEditorSelection();
+
 	bool IsPropertyEditingEnabled() const;
-	void OnBlueprintWarningHyperlinkClicked( const FSlateHyperlinkRun::FMetadata& Metadata );
-	EVisibility GetBlueprintComponentWarningVisibility() const;
+	EVisibility GetBlueprintedComponentWarningVisibility() const;
+	EVisibility GetNativeComponentWarningVisibility() const;
+	void OnBlueprintedComponentWarningHyperlinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata);
+	void OnNativeComponentWarningHyperlinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata);
 
 private:
 	TSharedPtr<SSplitter> DetailsSplitter;

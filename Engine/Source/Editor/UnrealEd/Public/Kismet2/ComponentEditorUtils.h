@@ -8,6 +8,9 @@
 class UNREALED_API FComponentEditorUtils
 {
 public:
+	/** Tests whether the native component is editable */
+	static bool CanEditNativeComponent(const UActorComponent* NativeComponent);
+
 	/** Test whether or not the given string is a valid variable name string for the given component instance */
 	static bool IsValidVariableNameString(const UActorComponent* InComponent, const FString& InString);
 
