@@ -1547,6 +1547,8 @@ void UEditorEngine::RebuildLevel(ULevel& Level)
 	{
 		IFA->MapRebuild();
 	}
+
+	GLevelEditorModeTools().MapChangeNotify();
 }
 
 void UEditorEngine::RebuildModelFromBrushes(UModel* Model, bool bSelectedBrushesOnly)
