@@ -31,7 +31,7 @@ FSubmitItem::FSubmitItem(const FSourceControlStateRef& InItem)
 	: Item(InItem)
 {
 	CheckBoxState = ECheckBoxState::Checked;
-	DisplayName = FText::FromString(FPackageName::FilenameToLongPackageName(Item->GetFilename()));
+	DisplayName = FText::FromString(Item->GetFilename());
 }
 
 
@@ -560,6 +560,7 @@ void FSourceControlWindows::ChoosePackagesToCheckIn()
 
 			ISourceControlProvider& SourceControlProvider = ISourceControlModule::Get().GetProvider();
 			FSourceControlOperationRef Operation = ISourceControlOperation::Create<FUpdateStatus>();
+			StaticCastSharedRef<FUpdateStatus>(Operation)->SetCheckingAllFiles(true);
 			SourceControlProvider.Execute(Operation, Filenames, EConcurrency::Asynchronous, FSourceControlOperationComplete::CreateStatic(&FSourceControlWindows::ChoosePackagesToCheckInCallback));
 
 			if (ChoosePackagesToCheckInNotification.IsValid())
