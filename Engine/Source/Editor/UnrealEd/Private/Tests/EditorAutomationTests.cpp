@@ -1853,7 +1853,7 @@ namespace StaticMeshUVTest
 			LoadedPackageCount(0),
 			CurrentTest(BaseTest)
 		{
-			FPackageName::FindPackagesInDirectory(ContentPackages, *FPaths::EngineContentDir());
+			//FPackageName::FindPackagesInDirectory(ContentPackages, *FPaths::EngineContentDir());
 			FPackageName::FindPackagesInDirectory(ContentPackages, *FPaths::GameContentDir());
 		}
 
