@@ -1934,6 +1934,7 @@ namespace EImmediateFlushType
 		WaitForOutstandingTasksOnly = 0, 
 		DispatchToRHIThread, 
 		WaitForRHIThread, 
+		WaitForDispatchToRHIThread,
 		FlushRHIThread,
 		FlushRHIThreadFlushResources
 	};
