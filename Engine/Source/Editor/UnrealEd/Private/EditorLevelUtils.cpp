@@ -243,6 +243,11 @@ namespace EditorLevelUtils
 			}
 		}
 
+		if(NewLevel) // if the level was successfully added
+		{
+			FEditorDelegates::OnAddLevelToWorld.Broadcast(NewLevel);
+		}
+
 		return NewLevel;
 	}
 

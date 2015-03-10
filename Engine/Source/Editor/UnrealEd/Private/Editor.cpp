@@ -149,6 +149,7 @@ FSimpleMulticastDelegate								FEditorDelegates::OnShutdownPostPackagesSaved;
 FEditorDelegates::FOnAssetsPreDelete					FEditorDelegates::OnAssetsPreDelete;
 FEditorDelegates::FOnAssetsDeleted						FEditorDelegates::OnAssetsDeleted;
 FSimpleMulticastDelegate								FEditorDelegates::OnActionAxisMappingsChanged;
+FEditorDelegates::FOnAddLevelToWorld					FEditorDelegates::OnAddLevelToWorld;
 
 /*-----------------------------------------------------------------------------
 	Globals.

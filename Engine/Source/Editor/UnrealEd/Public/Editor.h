@@ -94,6 +94,8 @@ struct UNREALED_API FEditorDelegates
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetsPreDelete, const TArray<UObject*>&);
 	/** delegate type for when one or more assets have been deleted */
 	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAssetsDeleted, const TArray<UClass*>& /*DeletedAssetClasses*/);
+	/** delegate type for when a new level is added to the world */
+	DECLARE_MULTICAST_DELEGATE_OneParam(FOnAddLevelToWorld, ULevel*);
 
 	/** Called when the CurrentLevel is switched to a new level.  Note that this event won't be fired for temporary
 		changes to the current level, such as when copying/pasting actors. */
@@ -189,6 +191,8 @@ struct UNREALED_API FEditorDelegates
 	static FOnAssetsDeleted OnAssetsDeleted;
 	/** Called when Action or Axis mappings have been changed */
 	static FSimpleMulticastDelegate OnActionAxisMappingsChanged;
+	/** Called from FEditorUtils::AddLevelToWorld after the level is added successfully to the world. */
+	static FOnAddLevelToWorld OnAddLevelToWorld;
 };
 
 /**
