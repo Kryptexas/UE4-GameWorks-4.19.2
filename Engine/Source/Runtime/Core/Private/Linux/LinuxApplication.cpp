@@ -1234,9 +1234,17 @@ void FLinuxApplication::RemoveRevertFocusWindow(SDL_HWindow HWnd)
 				{
 					SDL_RaiseWindow(Window->GetParent()->GetHWnd() );
 					SDL_SetWindowInputFocus(Window->GetParent()->GetHWnd() );
+
+					// TODO If we have a popup menu and a sub popup menu open, we have
+					// to fake the following. After getting destructed the condition above
+					// 'Window->IsPointerInsideWindow()' will be false for the parent popup window
+					// and the focus will be not reset. This is rather hackery and should be
+					// removed later if possible.
+					Window->GetParent()->OnPointerEnteredWindow(true);
 				}
 			}
-			return;
+
+			break;
 		}
-	}	
+	}
 }
