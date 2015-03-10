@@ -233,6 +233,15 @@ public:
 	 */
 	static ECompilationResult::Type ParseHeaders(FClasses& AllClasses, FHeaderParser& HeaderParser, FUnrealSourceFile& SourceFile, bool bParseSubclasses);
 
+	/**
+	 * Parse Class's properties to generate its declaration data.
+	 *
+	 * @param	InClassSpecifiers Class properties collected from its UCLASS macro
+	 * @param	InRequiredAPIMacroIfPresent *_API macro if present (empty otherwise)
+	 * @param	OutClassData Parsed class meta data
+	 */
+	static void ParseClassProperties(const TArray<FPropertySpecifier>& InClassSpecifiers, const FString& InRequiredAPIMacroIfPresent, FClassDeclarationMetaData& OutClassData);
+
 protected:
 	friend struct FScriptLocation;
 
@@ -428,8 +437,8 @@ protected:
 	void ParseParameterList(FClasses& AllClasses, UFunction* Function, bool bExpectCommaBeforeName = false, TMap<FName, FString>* MetaData = NULL);
 
 	// Throws if a specifier value wasn't provided
-	void RequireSpecifierValue(const FPropertySpecifier& Specifier, bool bRequireExactlyOne = false);
-	FString RequireExactlyOneSpecifierValue(const FPropertySpecifier& Specifier);
+	static void RequireSpecifierValue(const FPropertySpecifier& Specifier, bool bRequireExactlyOne = false);
+	static FString RequireExactlyOneSpecifierValue(const FPropertySpecifier& Specifier);
 
 	/**
 	 * Parse rest of the module's source files.
@@ -516,7 +525,7 @@ protected:
 	/**
 	 * Create new delegate function object based on given info structure.
 	 */
-	UDelegateFunction* CreateDelegateFunction(const FFuncInfo &FuncInfo) const;
+	UDelegateFunction* CreateDelegateFunction(const FFuncInfo &FuncInfo) const;	
 
 	void CompileClassDeclaration(FClasses& AllClasses);
 	void CompileDelegateDeclaration(FUnrealSourceFile& SourceFile, FClasses& AllClasses, const TCHAR* DelegateIdentifier, EDelegateSpecifierAction::Type SpecifierAction = EDelegateSpecifierAction::DontParse);
@@ -748,19 +757,7 @@ protected:
 	EFindName GetFindFlagForPropertyName(const TCHAR* PropertyName);
 
 	// Check to see if anything in the class hierarchy passed in has CLASS_DefaultToInstanced
-	static bool DoesAnythingInHierarchyHaveDefaultToInstanced(UClass* TestClass)
-	{
-		bool bDefaultToInstanced = false;
-
-		UClass* Search = TestClass;
-		while (!bDefaultToInstanced && (Search != NULL))
-		{
-			bDefaultToInstanced = Search->HasAnyClassFlags(CLASS_DefaultToInstanced);
-			Search = Search->GetSuperClass();
-		}
-
-		return bDefaultToInstanced;
-	}
+	static bool DoesAnythingInHierarchyHaveDefaultToInstanced(UClass* TestClass);
 
 	static void ValidatePropertyIsDeprecatedIfNecessary(FPropertyBase& VarProperty, FToken* OuterPropertyType);
 

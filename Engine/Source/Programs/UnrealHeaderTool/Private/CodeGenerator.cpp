@@ -4920,7 +4920,9 @@ ECompilationResult::Type UnrealHeaderTool_Main(const FString& ModuleInfoFilename
 				(CurrentlyProcessing == PublicHeaders       ) ? Module.PublicUObjectHeaders        :
 				                                                Module.PrivateUObjectHeaders;
 			if (!UObjectHeaders.Num())
+			{
 				continue;
+			}
 
 			for (const FString& Filename : UObjectHeaders)
 			{

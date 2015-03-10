@@ -11,17 +11,35 @@
 
 struct FManifestModule;
 
-extern TMap<FString, TSharedRef<FUnrealSourceFile> >					GUnrealSourceFilesMap;
-extern TMap<UField*, TSharedRef<FUnrealTypeDefinitionInfo> >			GTypeDefinitionInfoMap;
-extern TMap<UClass*, FString>											GClassStrippedHeaderTextMap;
-extern TMap<UClass*, FString>											GClassHeaderNameWithNoPathMap;
-extern TSet<FUnrealSourceFile*>											GExportedSourceFiles;
-extern TSet<UClass*>													GPublicClassSet;
-extern TSet<FUnrealSourceFile*>											GPublicSourceFileSet;
-extern TMap<UProperty*, FString>										GArrayDimensions;
-extern TMap<UPackage*,  const FManifestModule*>							GPackageToManifestModuleMap;
-extern TMap<UField*, uint32>											GGeneratedCodeCRCs;
-extern TMap<UEnum*,  EPropertyType>										GEnumUnderlyingTypes;
+/** Structure that holds class meta data generated from its UCLASS declaration */
+struct FClassDeclarationMetaData
+{
+	uint64 ClassFlags;
+	TMap<FName, FString> MetaData;
+	FString ClassWithin;
+	FString ConfigName;
+	TArray<FString> HideCategories;
+	TArray<FString> ShowSubCatgories;
+	TArray<FString> HideFunctions;
+	TArray<FString> AutoExpandCategories;
+	TArray<FString> AutoCollapseCategories;
+	TArray<FString> DependsOn;
+	TArray<FString> ClassGroupNames;
+};
+
+
+extern TMap<FString, TSharedRef<FUnrealSourceFile> > GUnrealSourceFilesMap;
+extern TMap<UField*, TSharedRef<FUnrealTypeDefinitionInfo> > GTypeDefinitionInfoMap;
+extern TMap<UClass*, FString> GClassStrippedHeaderTextMap;
+extern TMap<UClass*, FString> GClassHeaderNameWithNoPathMap;
+extern TSet<FUnrealSourceFile*> GExportedSourceFiles;
+extern TSet<UClass*> GPublicClassSet;
+extern TSet<FUnrealSourceFile*> GPublicSourceFileSet;
+extern TMap<UProperty*, FString> GArrayDimensions;
+extern TMap<UPackage*,  const FManifestModule*> GPackageToManifestModuleMap;
+extern TMap<UField*, uint32> GGeneratedCodeCRCs;
+extern TMap<UEnum*,  EPropertyType> GEnumUnderlyingTypes;
+extern TMap<FName, TSharedRef<FClassDeclarationMetaData> > GClassDeclarations;
 
 /** Types access specifiers. */
 enum EAccessSpecifier
