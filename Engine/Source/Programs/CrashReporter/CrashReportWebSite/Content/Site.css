@@ -804,8 +804,10 @@ th a:visited
 #CrashCommandLine,
 #ErrorMessage
 {
-	min-height: 1em;
-	padding: .3em;
+	word-wrap: break-word;
+	width: 1024px;
+	max-height: 128px;
+	padding: 4px;
 	background-color: #eeeeee;
 	border: 1px solid #ccc;
 	color: black;
