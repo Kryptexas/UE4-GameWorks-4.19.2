@@ -215,10 +215,6 @@ const FPinConnectionResponse UEdGraphSchema_BehaviorTree::CanCreateConnection(co
 	{
 		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("PinErrorOutput", "Can't connect output node to output node"));
 	}
-	else if ((PinA->Direction == EGPD_Input) && (PinB->Direction == EGPD_Output))
-	{
-		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("PinErrorWrongDirection", "Can't connect input node to output node"));
-	}
 
 	class FNodeVisitorCycleChecker
 	{
@@ -282,7 +278,7 @@ const FPinConnectionResponse UEdGraphSchema_BehaviorTree::CanCreateConnection(co
 	const bool bPinASingleLink = bPinAIsSingleComposite || bPinAIsSingleTask || bPinAIsSingleNode;
 	const bool bPinBSingleLink = bPinBIsSingleComposite || bPinBIsSingleTask || bPinBIsSingleNode;
 
-	if (PinB->LinkedTo.Num() > 0)
+	if (PinB->Direction == EGPD_Input && PinB->LinkedTo.Num() > 0)
 	{
 		if(bPinASingleLink)
 		{
@@ -291,6 +287,17 @@ const FPinConnectionResponse UEdGraphSchema_BehaviorTree::CanCreateConnection(co
 		else
 		{
 			return FPinConnectionResponse(CONNECT_RESPONSE_BREAK_OTHERS_B, LOCTEXT("PinConnectReplace", "Replace connection"));
+		}
+	}
+	else if (PinA->Direction == EGPD_Input && PinA->LinkedTo.Num() > 0)
+	{
+		if (bPinBSingleLink)
+		{
+			return FPinConnectionResponse(CONNECT_RESPONSE_BREAK_OTHERS_AB, LOCTEXT("PinConnectReplace", "Replace connection"));
+		}
+		else
+		{
+			return FPinConnectionResponse(CONNECT_RESPONSE_BREAK_OTHERS_A, LOCTEXT("PinConnectReplace", "Replace connection"));
 		}
 	}
 
