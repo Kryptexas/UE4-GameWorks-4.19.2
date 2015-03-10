@@ -96,7 +96,7 @@ void HttpStreamFArchive::Seek( int64 InPos )
 
 bool HttpStreamFArchive::AtEnd() 
 {
-	return bAtEndOfReplay;
+	return Pos >= Buffer.Num() && bAtEndOfReplay;
 }
 
 FHttpNetworkReplayStreamer::FHttpNetworkReplayStreamer() : 
@@ -782,7 +782,7 @@ void FHttpNetworkReplayStreamer::Tick( const float DeltaTime )
 		return;
 	}
 
-	if ( StreamFileCount >= NumDownloadChunks && bStreamIsLive )
+	if ( StreamFileCount >= NumDownloadChunks && !bStreamIsLive )
 	{
 		StreamArchive.bAtEndOfReplay = true;
 	}
