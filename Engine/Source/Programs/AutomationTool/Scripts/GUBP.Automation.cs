@@ -1227,13 +1227,27 @@ public class GUBP : BuildCommand
         public SingleInternalToolsNode(UnrealTargetPlatform InHostPlatform, SingleTargetProperties InProgramTarget)
             : base(InHostPlatform)
         {
-            ProgramTarget = InProgramTarget;
-            if (!GUBP.bBuildRocket) // more errors and more performance by just starting before the root editor is done
-            {
-                AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
-            }
-            AgentSharingGroup = "ToolsGroup" + StaticGetHostPlatformSuffix(HostPlatform);
+			SetupSingleInternalToolsNode(InProgramTarget);
         }
+		public SingleInternalToolsNode(GUBP bp, UnrealTargetPlatform InHostPlatform, SingleTargetProperties InProgramTarget)
+            : base(InHostPlatform)
+        {
+			// Don't add rooteditor dependency if it isn't in the graph
+			var bRootEditorNodeDoesExit = bp.HasNode(RootEditorNode.StaticGetFullName(HostPlatform));
+			SetupSingleInternalToolsNode(InProgramTarget, !bRootEditorNodeDoesExit);
+        }
+		private void SetupSingleInternalToolsNode(SingleTargetProperties InProgramTarget, bool bSkipRootEditorPsuedoDependency = true)
+		{
+			ProgramTarget = InProgramTarget;
+			AgentSharingGroup = "ToolsGroup" + StaticGetHostPlatformSuffix(HostPlatform);
+			
+			// more errors and more performance for Rocket by just starting before the root editor is done
+			bool bSkipRootEditorPsuedoDependencyForRocket = GUBP.bBuildRocket;
+			if (!bSkipRootEditorPsuedoDependencyForRocket && !bSkipRootEditorPsuedoDependency) 
+			{
+				AddPseudodependency(RootEditorNode.StaticGetFullName(HostPlatform));
+			}
+		}
         public static string StaticGetFullName(UnrealTargetPlatform InHostPlatform, SingleTargetProperties InProgramTarget)
         {
             return "InternalTools_" + InProgramTarget.TargetName + StaticGetHostPlatformSuffix(InHostPlatform);
