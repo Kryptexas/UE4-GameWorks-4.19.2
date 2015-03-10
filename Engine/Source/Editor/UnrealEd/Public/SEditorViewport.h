@@ -53,7 +53,13 @@ public:
 
 protected:
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() = 0;
-	virtual TSharedPtr<SWidget> MakeViewportToolbar() = 0;
+
+	// Implement this to add a viewport toolbar to the inside top of the viewport
+	virtual TSharedPtr<SWidget> MakeViewportToolbar() { return TSharedPtr<SWidget>(nullptr); }
+
+	// Implement this to add an arbitrary set of toolbars or other overlays to the inside of the viewport
+	virtual void PopulateViewportOverlays(TSharedRef<class SOverlay> Overlay) { }
+
 	virtual void BindCommands();
 	virtual const FSlateBrush* OnGetViewportBorderBrush() const { return NULL; }
 	virtual FSlateColor OnGetViewportBorderColorAndOpacity() const { return FLinearColor::Black; }
