@@ -7,18 +7,6 @@
 
 
 /**
- * Convenience macro for declaring type traits for FTypeContainer compatible classes.
- */
-#define DECLARE_REGISTRABLE_TYPE(Type) \
-	public: \
-		static FName GetTypeName() \
-		{ \
-			static FName TypeName = TEXT(#Type); \
-			return TypeName; \
-		}
-
-
-/**
  * Enumerates the scopes for instance creation in type containers.
  */
 enum class ETypeContainerScope
@@ -230,11 +218,9 @@ public:
 	template<class R>
 	TSharedPtr<R> GetInstance()
 	{
-		const FName TypeName = R::GetTypeName();
-
 		FScopeLock Lock(&CriticalSection);
 		{
-			const TSharedPtr<IInstanceProvider>& Provider = Providers.FindRef(TypeName);
+			const TSharedPtr<IInstanceProvider>& Provider = Providers.FindRef(TNameOf<R>::GetName());
 
 			if (Provider.IsValid())
 			{
@@ -308,7 +294,7 @@ public:
 
 			FScopeLock Lock(&CriticalSection);
 			{
-				Providers.Add(R::GetTypeName(), Provider);
+				Providers.Add(TNameOf<R>::GetName(), Provider);
 			}
 		}
 	}
@@ -324,7 +310,7 @@ public:
 		FScopeLock Lock(&CriticalSection);
 		{
 			Providers.Add(
-				R::GetTypeName(),
+				TNameOf<R>::GetName(),
 				MakeShareable(new TDelegateInstanceProvider<D>(Delegate))
 			);
 		}
@@ -343,7 +329,7 @@ public:
 		FScopeLock Lock(&CriticalSection);
 		{
 			Providers.Add(
-				R::GetTypeName(),
+				TNameOf<R>::GetName(),
 				MakeShareable(new TFactoryInstanceProvider<R>(CreateFunc))
 			);
 		}
@@ -365,7 +351,7 @@ public:
 		FScopeLock Lock(&CriticalSection);
 		{
 			Providers.Add(
-				R::GetTypeName(),
+				TNameOf<R>::GetName(),
 				MakeShareable(new TSharedInstanceProvider<R>(Instance))
 			);
 		}
@@ -380,11 +366,9 @@ public:
 	template<class R>
 	void Unregister()
 	{
-		const FName TypeName = R::GetTypeName();
-
 		FScopeLock Lock(&CriticalSection);
 		{
-			Providers.Remove(TypeName);
+			Providers.Remove(TNameOf<R>::GetName());
 		}
 	}
 
@@ -394,7 +378,7 @@ private:
 	FCriticalSection CriticalSection;
 
 	/** Maps class names to instance providers. */
-	TMap<FName, TSharedPtr<IInstanceProvider>> Providers;
+	TMap<const TCHAR*, TSharedPtr<IInstanceProvider>> Providers;
 };
 
 

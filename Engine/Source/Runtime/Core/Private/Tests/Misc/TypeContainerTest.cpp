@@ -19,21 +19,19 @@ IMPLEMENT_SIMPLE_AUTOMATION_TEST(FTypeContainerTest, "Core.Misc.TypeContainer", 
 
 struct IFruit
 {
-	DECLARE_REGISTRABLE_TYPE(IFruit)
 	virtual ~IFruit() { }
 	virtual FString Name() = 0;
 };
 
 struct IBerry : public IFruit
 {
-	DECLARE_REGISTRABLE_TYPE(IBerry)
 	virtual ~IBerry() { }
 };
 
 struct FBanana : public IFruit
 {
 	virtual ~FBanana() { }
-	virtual FString Name() override { return TEXT("Cherry"); }
+	virtual FString Name() override { return TEXT("Banana"); }
 };
 
 struct FStrawberry : public IBerry
@@ -44,7 +42,6 @@ struct FStrawberry : public IBerry
 
 struct ISmoothie
 {
-	DECLARE_REGISTRABLE_TYPE(ISmoothie)
 	virtual ~ISmoothie() { }
 	virtual TSharedRef<IBerry> GetBerry() = 0;
 	virtual TSharedRef<IFruit> GetFruit() = 0;
@@ -67,6 +64,10 @@ struct FTwoSmoothies
 };
 
 DECLARE_DELEGATE_RetVal(TSharedPtr<IFruit>, FFruitFactoryDelegate);
+
+Expose_TNameOf(IBerry)
+Expose_TNameOf(IFruit)
+Expose_TNameOf(ISmoothie)
 
 
 /* Tests
