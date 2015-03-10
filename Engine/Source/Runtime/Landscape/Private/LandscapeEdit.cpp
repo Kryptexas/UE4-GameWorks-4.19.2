@@ -3116,6 +3116,7 @@ void ALandscapeProxy::PostEditChangeProperty(FPropertyChangedEvent& PropertyChan
 		{
 			if (LandscapeActor && IsValidLandscapeActor(LandscapeActor.Get()))
 			{
+				LandscapeGuid = LandscapeActor->LandscapeGuid;
 				// defer LandscapeInfo setup
 				if (GIsEditor && GetWorld() && !GetWorld()->IsPlayInEditor())
 				{
