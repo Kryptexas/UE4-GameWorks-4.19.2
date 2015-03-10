@@ -202,6 +202,7 @@ class FStatGroupEnableManager : public IStatGroupEnableManager
 	struct FGroupEnable
 	{
 		TMap<FName, TStatIdData *> NamesInThisGroup;
+		TMap<FName, TStatIdData *> AlwaysEnabledNamesInThisGroup;
 		bool DefaultEnable; 
 		bool CurrentEnable; 
 
@@ -256,9 +257,9 @@ class FStatGroupEnableManager : public IStatGroupEnableManager
 
 	void DisableStat(TStatIdData* DisablePtr)
 	{
-		static_assert(sizeof(FMinimalName) == sizeof(uint64), "FMinimalName should have the same size of uint64.");
-		check(UPTRINT(&DisablePtr->Name) % sizeof(FMinimalName) == 0);
-		*(uint64*)&DisablePtr->Name = 0;
+		static_assert(sizeof( FMinimalName ) == sizeof( uint64 ), "FMinimalName should have the same size of uint64.");
+		check( UPTRINT( &DisablePtr->Name ) % sizeof( FMinimalName ) == 0 );
+		*(uint64*)&DisablePtr->Name = *(uint64 const*)TStatId::GetStatNone();
 	}
 
 public:
@@ -370,14 +371,28 @@ public:
 				UE_LOG(LogStatGroupEnableManager, Fatal, TEXT("Stat group %s was was defined both on and off by default."), *Group.ToString());
 			}
 			TStatIdData** StatFound = Found->NamesInThisGroup.Find(Stat);
+			TStatIdData** StatFoundAlways = Found->AlwaysEnabledNamesInThisGroup.Find( Stat );
 			if (StatFound)
 			{
-				return TStatId(*StatFound);
+				TStatIdData** StatFound = Found->NamesInThisGroup.Find( Stat );
+				TStatIdData** StatFoundAlways = Found->AlwaysEnabledNamesInThisGroup.Find( Stat );
+				if( StatFound )
+				{
+					if( StatFoundAlways )
+					{
+						UE_LOG( LogStatGroupEnableManager, Fatal, TEXT( "Stat %s is both always enabled and not always enabled, so it was used for two different things." ), *Stat.ToString() );
+					}
+					return TStatId( *StatFound );
+				}
+				else if( StatFoundAlways )
+				{
+					return TStatId( *StatFoundAlways );
+				}
 			}
 		}
 		else
 		{
-			Found = &HighPerformanceEnable.Add(Group, FGroupEnable(bDefaultEnable));
+			Found = &HighPerformanceEnable.Add( Group, FGroupEnable( bDefaultEnable || !bShouldClearEveryFrame ) );
 
 			// this was set up before we saw the group, so set the enable now
 			if (EnableForNewGroup.Contains(Group))
@@ -416,13 +431,18 @@ public:
 		
 		++PendingStatIds;
 
-		if (Found->CurrentEnable)
+		if( Found->CurrentEnable )
 		{
-			EnableStat(Stat, Result);
+			EnableStat( Stat, Result );
+		}
+
+		if( bShouldClearEveryFrame )
+		{
+			Found->NamesInThisGroup.Add( Stat, Result );
 		}
 		else
 		{
-			Found->NamesInThisGroup.Add(Stat, Result);
+			Found->AlwaysEnabledNamesInThisGroup.Add( Stat, Result );
 		}
 		return TStatId(Result);
 	}
@@ -446,6 +466,10 @@ public:
 				for (auto ItInner = It.Value().NamesInThisGroup.CreateConstIterator(); ItInner; ++ItInner)
 				{
 					UE_LOG(LogStatGroupEnableManager, Display, TEXT("      %d %s"), !ItInner.Value()->IsNone(), *ItInner.Key().ToString());
+				}
+				for( auto ItInner = It.Value().AlwaysEnabledNamesInThisGroup.CreateConstIterator(); ItInner; ++ItInner )
+				{
+					UE_LOG( LogStatGroupEnableManager, Display, TEXT( "      (always enabled) %s" ), *ItInner.Key().ToString() );
 				}
 			}
 		}

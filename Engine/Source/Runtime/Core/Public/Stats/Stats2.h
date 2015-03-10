@@ -66,6 +66,7 @@ struct CORE_API FStats
 
 #if STATS
 
+MS_ALIGN(8)
 struct TStatIdData
 {
 	FORCEINLINE TStatIdData()
@@ -77,7 +78,7 @@ struct TStatIdData
 
 	FORCEINLINE bool IsNone() const
 	{
-		return MinimalNameToName(Name).IsNone();
+		return Name.Index == 0 && Name.Number == 0;
 	}
 
 	/** Name of the active stat; stored as a minimal name to minimize the data size */
@@ -88,7 +89,7 @@ struct TStatIdData
 
 	/** const WIDECHAR* pointer to a string; stored as a uint64 so it doesn't change size and affect TStatIdData alignment between 32 and 64-bit builds) */
 	uint64 WideString;
-};
+} GCC_ALIGN(8);
 
 struct TStatId
 {
@@ -102,7 +103,7 @@ struct TStatId
 	}
 	FORCEINLINE bool IsValidStat() const
 	{
-		return StatIdPtr != &TStatId_NAME_None;
+		return !IsNone();
 	}
 	FORCEINLINE bool IsNone() const
 	{
@@ -116,6 +117,11 @@ struct TStatId
 	FORCEINLINE FName GetName() const
 	{
 		return MinimalNameToName(StatIdPtr->Name);
+	}
+
+	FORCEINLINE static const FMinimalName* GetStatNone()
+	{
+		return &TStatId_NAME_None.Name;
 	}
 
 	/**
