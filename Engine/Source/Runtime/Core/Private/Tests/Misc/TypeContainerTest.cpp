@@ -63,7 +63,10 @@ struct FTwoSmoothies
 	TSharedPtr<ISmoothie> Two;
 };
 
+
+DECLARE_DELEGATE_RetVal(TSharedPtr<IBerry>, FBerryFactoryDelegate);
 DECLARE_DELEGATE_RetVal(TSharedPtr<IFruit>, FFruitFactoryDelegate);
+DECLARE_DELEGATE_RetVal_TwoParams(TSharedPtr<ISmoothie>, FSmoothieFactoryDelegate, TSharedRef<IFruit>, TSharedRef<IBerry>);
 
 Expose_TNameOf(IBerry)
 Expose_TNameOf(IFruit)
@@ -194,6 +197,11 @@ bool FTypeContainerTest::RunTest(const FString& Parameters)
 			{
 				return MakeShareable(new FStrawberry());
 			}
+
+			static TSharedPtr<ISmoothie> MakeSmoothie(TSharedRef<IFruit> Fruit, TSharedRef<IBerry> Berry)
+			{
+				return MakeShareable(new FSmoothie(Fruit, Berry));
+			}
 		};
 
 		FTypeContainer Container;
@@ -204,19 +212,27 @@ bool FTypeContainerTest::RunTest(const FString& Parameters)
 					return MakeShareable(new FBanana());
 				}
 			);
+			Container.RegisterFactory<ISmoothie, IFruit, IBerry>(&FLocal::MakeSmoothie);
 		}
 
 		auto Berry = Container.GetInstance<IBerry>();
 		auto Fruit = Container.GetInstance<IFruit>();
+		auto Smoothie = Container.GetInstance<ISmoothie>();
 
 		TestTrue(TEXT("For static factory functions, an instance must be returned"), Berry.IsValid());
 		TestTrue(TEXT("For lambda factory functions, an instance must be returned"), Fruit.IsValid());
+		TestTrue(TEXT("For factory functions with dependencies, an instance must be returned"), Smoothie.IsValid());
 	}
 
 	// delegate test
 	{
 		struct FLocal
 		{
+			static TSharedPtr<IBerry> MakeBerry()
+			{
+				return MakeShareable(new FStrawberry());
+			}
+
 			static TSharedPtr<IFruit> MakeFruit(bool Banana)
 			{
 				if (Banana)
@@ -226,16 +242,25 @@ bool FTypeContainerTest::RunTest(const FString& Parameters)
 
 				return MakeShareable(new FStrawberry());
 			}
+
+			static TSharedPtr<ISmoothie> MakeSmoothie(TSharedRef<IFruit> Fruit, TSharedRef<IBerry> Berry)
+			{
+				return MakeShareable(new FSmoothie(Fruit, Berry));
+			}
 		};
 
 		FTypeContainer Container;
 		{
+			Container.RegisterDelegate<IBerry>(FBerryFactoryDelegate::CreateStatic(&FLocal::MakeBerry));
 			Container.RegisterDelegate<IFruit>(FFruitFactoryDelegate::CreateStatic(&FLocal::MakeFruit, true));
+			Container.RegisterDelegate<ISmoothie, FSmoothieFactoryDelegate, IFruit, IBerry>(FSmoothieFactoryDelegate::CreateStatic(&FLocal::MakeSmoothie));
 		}
 
 		auto Fruit = Container.GetInstance<IFruit>();
+		auto Smoothie = Container.GetInstance<ISmoothie>();
 
 		TestTrue(TEXT("For factory delegates, an instance must be returned"), Fruit.IsValid());
+		TestTrue(TEXT("For factory delegates with dependencies, an instance must be returned"), Smoothie.IsValid());
 	}
 
 	return true;
