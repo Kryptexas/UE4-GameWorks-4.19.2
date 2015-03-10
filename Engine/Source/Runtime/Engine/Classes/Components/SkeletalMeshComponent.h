@@ -1174,11 +1174,16 @@ private:
 	//Data for parallel evaluation of animation
 	FAnimationEvaluationContext AnimEvaluationContext;
 
+	// Reference to our current parallel animation evaluation task (if there is one)
+	FGraphEventRef				ParallelAnimationEvaluationTask;
+
 public:
 	// Parallel evaluation wrappers
 	void ParallelAnimationEvaluation() { PerformAnimationEvaluation(AnimEvaluationContext.SkeletalMesh, AnimEvaluationContext.AnimInstance, AnimEvaluationContext.SpaceBases, AnimEvaluationContext.LocalAtoms, AnimEvaluationContext.VertexAnims, AnimEvaluationContext.RootBoneTranslation); }
 	void CompleteParallelAnimationEvaluation()
 	{
+		ParallelAnimationEvaluationTask.SafeRelease(); //We are done with this task now, clean up!
+
 		if ((AnimEvaluationContext.AnimInstance == AnimScriptInstance) && (AnimEvaluationContext.SkeletalMesh == SkeletalMesh) && (AnimEvaluationContext.SpaceBases.Num() == GetNumSpaceBases()))
 		{
 			Exchange(AnimEvaluationContext.SpaceBases, AnimEvaluationContext.bDoInterpolation ? CachedSpaceBases : GetEditableSpaceBases() );
@@ -1188,10 +1193,7 @@ public:
 
 			PostAnimEvaluation(AnimEvaluationContext);
 		}
-		else
-		{
-			AnimEvaluationContext.Clear();
-		}
+		AnimEvaluationContext.Clear();
 	}
 
 	friend class FSkeletalMeshComponentDetails;
