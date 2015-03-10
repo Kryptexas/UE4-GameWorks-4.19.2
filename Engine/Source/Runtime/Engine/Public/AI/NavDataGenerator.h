@@ -6,7 +6,7 @@
 
 struct FNavigationDirtyArea;
 
-class ENGINE_API FNavDataGenerator : public TSharedFromThis<FNavDataGenerator>
+class ENGINE_API FNavDataGenerator : public TSharedFromThis<FNavDataGenerator, ESPMode::ThreadSafe>
 {
 public:
 	virtual ~FNavDataGenerator() {}

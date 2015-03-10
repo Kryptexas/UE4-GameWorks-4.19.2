@@ -1638,7 +1638,7 @@ bool FRecastTileGenerator::HasDataToBuild() const
 
 void FRecastTileGenerator::DoWork()
 {
-	TSharedPtr<FNavDataGenerator> ParentGenerator = ParentGeneratorWeakPtr.Pin();
+	TSharedPtr<FNavDataGenerator, ESPMode::ThreadSafe> ParentGenerator = ParentGeneratorWeakPtr.Pin();
 	FRecastNavMeshGenerator* RecastParentGenerator = static_cast<FRecastNavMeshGenerator*>(ParentGenerator.Get());
 	check(ParentGenerator.Get());
 

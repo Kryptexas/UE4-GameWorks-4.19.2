@@ -804,7 +804,7 @@ protected:
 	FNavRaycastPtr RaycastImplementation; 
 
 protected:
-	TSharedPtr<FNavDataGenerator> NavDataGenerator;
+	TSharedPtr<FNavDataGenerator, ESPMode::ThreadSafe> NavDataGenerator;
 	/** 
 	 *	Container for all path objects generated with this Navigation Data instance. 
 	 *	Is meant to be added to only on GameThread, and in fact should user should never 

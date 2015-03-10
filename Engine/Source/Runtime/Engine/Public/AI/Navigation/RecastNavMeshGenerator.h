@@ -236,7 +236,7 @@ protected:
 	// navigation links
 	TArray<FSimpleLinkNavModifier> OffmeshLinks;
 
-	TWeakPtr<FNavDataGenerator> ParentGeneratorWeakPtr;
+	TWeakPtr<FNavDataGenerator, ESPMode::ThreadSafe> ParentGeneratorWeakPtr;
 
 	TNavStatArray<TSharedRef<FNavigationRelevantData, ESPMode::ThreadSafe> > NavigationRelevantData;
 	TSharedPtr<FNavigationOctree, ESPMode::ThreadSafe> NavOctree; 
