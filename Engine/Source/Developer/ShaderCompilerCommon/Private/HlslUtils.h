@@ -213,21 +213,39 @@ namespace CrossCompiler
 
 	inline void SourceError(const FSourceInfo& SourceInfo, const TCHAR* String)
 	{
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s(%d): (%d) %s\n"), **SourceInfo.Filename, SourceInfo.Line, SourceInfo.Column, String);
+		//@todo-rco: LOG
+		if (SourceInfo.Filename)
+		{
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s(%d): (%d) %s\n"), **SourceInfo.Filename, SourceInfo.Line, SourceInfo.Column, String);
+		}
+		else
+		{
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("<unknown>(%d): (%d) %s\n"), SourceInfo.Line, SourceInfo.Column, String);
+		}
 	}
 
 	inline void SourceError(const TCHAR* String)
 	{
+		//@todo-rco: LOG
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s\n"), String);
 	}
 
 	inline void SourceWarning(const FSourceInfo& SourceInfo, const TCHAR* String)
 	{
-		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s(%d): (%d) %s\n"), **SourceInfo.Filename, SourceInfo.Line, SourceInfo.Column, String);
+		//@todo-rco: LOG
+		if (SourceInfo.Filename)
+		{
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s(%d): (%d) %s\n"), **SourceInfo.Filename, SourceInfo.Line, SourceInfo.Column, String);
+		}
+		else
+		{
+			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("<unknown>(%d): (%d) %s\n"), SourceInfo.Line, SourceInfo.Column, String);
+		}
 	}
 
 	inline void SourceWarning(const TCHAR* String)
 	{
+		//@todo-rco: LOG
 		FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s\n"), String);
 	}
 }

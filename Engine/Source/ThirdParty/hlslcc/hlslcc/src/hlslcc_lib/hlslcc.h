@@ -8,7 +8,7 @@
 enum
 {
 	HLSLCC_VersionMajor = 0,
-	HLSLCC_VersionMinor = 60,
+	HLSLCC_VersionMinor = 61,
 };
 
 /**
@@ -166,4 +166,63 @@ protected:
 	int Flags;
 	const EHlslShaderFrequency ShaderFrequency;
 	const EHlslCompileTarget CompileTarget;
+};
+
+// Memory Leak detection for VS
+#define ENABLE_CRT_MEM_LEAKS		0 && WIN32
+
+#if ENABLE_CRT_MEM_LEAKS
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
+#endif
+
+class FCRTMemLeakScope
+{
+public:
+	FCRTMemLeakScope(bool bInDumpLeaks = false) :
+		bDumpLeaks(bInDumpLeaks)
+	{
+#if ENABLE_CRT_MEM_LEAKS	
+		_CrtMemCheckpoint(&Begin);
+#endif
+	}
+
+	~FCRTMemLeakScope()
+	{
+#if ENABLE_CRT_MEM_LEAKS	
+		_CrtMemCheckpoint(&End);
+
+		_CrtMemState Delta;
+		if (_CrtMemDifference(&Delta, &Begin, &End))
+		{
+			_CrtMemDumpStatistics(&Delta);
+		}
+
+		if (bDumpLeaks)
+		{
+			_CrtDumpMemoryLeaks();
+		}
+#endif
+	}
+
+	static void BreakOnBlock(long Block)
+	{
+#if ENABLE_CRT_MEM_LEAKS
+		_CrtSetBreakAlloc(Block);
+#endif
+	}
+
+	static void CheckIntegrity()
+	{
+#if ENABLE_CRT_MEM_LEAKS
+		_CrtCheckMemory();
+#endif
+	}
+
+protected:
+	bool bDumpLeaks;
+#if ENABLE_CRT_MEM_LEAKS
+	_CrtMemState Begin, End;
+#endif
 };

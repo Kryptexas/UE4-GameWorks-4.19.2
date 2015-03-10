@@ -108,6 +108,11 @@ FHlslCrossCompilerContext::~FHlslCrossCompilerContext()
 {
 	if (MemContext)
 	{
+		if (ParseState)
+		{
+			ParseState->~_mesa_glsl_parse_state();
+		}
+
 		_mesa_glsl_release_types();
 		//TIMER(cleanup);
 

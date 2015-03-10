@@ -1,5 +1,5 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
-// 
+// .
 
 // This code is largely based on that in ir_print_glsl_visitor.cpp from
 // glsl-optimizer.
@@ -3080,7 +3080,7 @@ struct SPromoteSampleLevelES2 : public ir_hierarchical_visitor
 				YYLTYPE loc;
 				loc.first_column = IR->SourceLocation.Column;
 				loc.first_line = IR->SourceLocation.Line;
-				loc.source_file = IR->SourceLocation.SourceFile.c_str();
+				loc.source_file = IR->SourceLocation.SourceFile;
 				_mesa_glsl_error(&loc, ParseState, "Vertex texture fetch currently not supported on GLSL ES\n");
 			}
 			else
@@ -3100,7 +3100,7 @@ struct SPromoteSampleLevelES2 : public ir_hierarchical_visitor
 			YYLTYPE loc;
 			loc.first_column = IR->SourceLocation.Column;
 			loc.first_line = IR->SourceLocation.Line;
-			loc.source_file = IR->SourceLocation.SourceFile.c_str();
+			loc.source_file = IR->SourceLocation.SourceFile;
 			_mesa_glsl_error(&loc, ParseState, "Texture offset not supported on GLSL ES\n");
 		}
 

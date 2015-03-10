@@ -34,14 +34,12 @@
 
 #include <string>
 
-	struct _mesa_glsl_parse_state;
-	struct glsl_symbol_table;
+struct _mesa_glsl_parse_state;
+struct glsl_symbol_table;
 
-	extern void
-		_mesa_glsl_initialize_types(struct _mesa_glsl_parse_state *state);
+extern void _mesa_glsl_initialize_types(struct _mesa_glsl_parse_state *state);
 
-	extern void
-		_mesa_glsl_release_types(void);
+extern void _mesa_glsl_release_types(void);
 
 enum glsl_base_type
 {
@@ -724,9 +722,9 @@ struct glsl_struct_field
 
 struct SSourceLocation
 {
-	std::string SourceFile;	/**< Source file. */
-	unsigned	Line;		/**< Line number within the source string. */
-	unsigned	Column;		/**< Column in the line. */
+	const char*	SourceFile;	/**< Source file. */
+	unsigned		Line;		/**< Line number within the source string. */
+	unsigned		Column;		/**< Column in the line. */
 
 	SSourceLocation() : SourceFile("<unknown>"), Line(0), Column(0) {}
 };

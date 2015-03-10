@@ -1070,11 +1070,11 @@ namespace CrossCompiler
 		{
 			const auto& Token = Tokens[CurrentToken];
 			check(Token.SourceInfo.Filename);
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s(%d): (%d) %s\n"), **Token.SourceInfo.Filename, Token.SourceInfo.Line, Token.SourceInfo.Column, *Error);
+			CrossCompiler::SourceError(Token.SourceInfo, *Error);
 		}
 		else
 		{
-			FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s\n"), *Error);
+			CrossCompiler::SourceError(*Error);
 		}
 	}
 }
