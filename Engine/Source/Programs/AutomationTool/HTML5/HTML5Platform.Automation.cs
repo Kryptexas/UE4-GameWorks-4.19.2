@@ -299,7 +299,7 @@ public class HTML5Platform : Platform
 		}
 		else if (LowerBrowserPath.Contains("firefox"))
 		{
-			args += String.Format("-no-remote -profile \"{0}\" -jsconsole", Path.Combine(ProfileDirectory, "firefox"));
+			args += String.Format("-no-remote -profile \"{0}\"", Path.Combine(ProfileDirectory, "firefox"));
 		}
 		//else if (browserPath.Contains("Safari")) {}
 
