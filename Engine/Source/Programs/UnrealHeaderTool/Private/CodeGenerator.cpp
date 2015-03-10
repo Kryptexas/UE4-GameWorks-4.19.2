@@ -2256,21 +2256,6 @@ void FNativeClassHeaderGenerator::ExportSourceFileHeaderRecursive(FClasses& AllC
 	VisitedSet.Add(SourceFile);
 
 	TArray<FUnrealSourceFile*> DependOnList;
-
-	// Export the super class first.
-	for (auto* Class : SourceFile->GetDefinedClasses())
-	{
-		if (FClass* SuperClass = ((FClass*)Class)->GetSuperClass())
-		{
-			if (SuperClass->ClassFlags & (CLASS_NoExport | CLASS_Intrinsic))
-			{
-				continue;
-			}
-
-			DependOnList.Add(&GTypeDefinitionInfoMap[SuperClass]->GetUnrealSourceFile());
-		}
-	}
-
 	for (auto& Include : SourceFile->GetIncludes())
 	{
 		auto* SourceFile = Include.Resolve();
@@ -5252,11 +5237,6 @@ UClass* ProcessParsedClass(bool bClassIsAnInterface, TArray<FHeaderProvider> &De
 			{
 				ResultClass->ClassCastFlags |= ResultClass->GetSuperClass()->ClassCastFlags;
 			}
-		}
-
-		if (BaseClassNameStripped != TEXT("Object") && ResultClass->GetSuperClass())
-		{
-			DependentOn.AddUnique(FHeaderProvider(EHeaderProviderSourceType::ClassName, *BaseClassNameStripped));
 		}
 	}
 

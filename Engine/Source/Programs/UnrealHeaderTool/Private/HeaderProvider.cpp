@@ -5,7 +5,7 @@
 #include "UnrealSourceFile.h"
 #include "ClassMaps.h"
 
-FHeaderProvider::FHeaderProvider(EHeaderProviderSourceType::Type Type, const FString& Id)
+FHeaderProvider::FHeaderProvider(EHeaderProviderSourceType Type, const FString& Id)
 	: Type(Type), Id(Id), Cache(nullptr)
 {
 
@@ -79,6 +79,11 @@ FString FHeaderProvider::ToString() const
 const FString& FHeaderProvider::GetId() const
 {
 	return Id;
+}
+
+EHeaderProviderSourceType FHeaderProvider::GetType() const
+{
+	return Type;
 }
 
 bool operator==(const FHeaderProvider& A, const FHeaderProvider& B)

@@ -6,21 +6,18 @@
 
 class FUnrealSourceFile;
 
-namespace EHeaderProviderSourceType
+enum class EHeaderProviderSourceType
 {
-	enum Type
-	{
-		ClassName,
-		FileName,
-		Resolved
-	};
-}
+	ClassName,
+	FileName,
+	Resolved
+};
 
 class FHeaderProvider
 {
 	friend bool operator==(const FHeaderProvider& A, const FHeaderProvider& B);
 public:
-	FHeaderProvider(EHeaderProviderSourceType::Type Type, const FString& Id);
+	FHeaderProvider(EHeaderProviderSourceType Type, const FString& Id);
 
 	FUnrealSourceFile* Resolve();
 
@@ -28,8 +25,10 @@ public:
 
 	const FString& GetId() const;
 
+	EHeaderProviderSourceType GetType() const;
+
 private:
-	EHeaderProviderSourceType::Type Type;
+	EHeaderProviderSourceType Type;
 	FString Id;
 	FUnrealSourceFile* Cache;
 };
