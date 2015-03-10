@@ -63,6 +63,12 @@ void FSlateVertexDeclaration::ReleaseRHI()
 	VertexDeclarationRHI.SafeRelease();
 }
 
+void FSlateElementPS::ModifyCompilationEnvironment(EShaderPlatform Platform, FShaderCompilerEnvironment& OutEnvironment)
+{
+	static const auto CVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.Tonemapper709"));
+	OutEnvironment.SetDefine(TEXT("USE_709"), CVar ? (CVar->GetValueOnGameThread() != 0) : 1);
+}
+
 /************************************************************************/
 /* FSlateDefaultVertexShader                                            */
 /************************************************************************/

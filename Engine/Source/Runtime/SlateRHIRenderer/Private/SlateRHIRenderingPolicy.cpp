@@ -407,7 +407,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 				}
 
 				PixelShader->SetShaderParams(RHICmdList, ShaderParams.PixelParams);
-				PixelShader->SetDisplayGamma(RHICmdList, (DrawFlags & ESlateBatchDrawFlag::NoGamma) ? 1.0f : 1.0f/DisplayGamma);
+				PixelShader->SetDisplayGamma(RHICmdList, (DrawFlags & ESlateBatchDrawFlag::NoGamma) ? 1.0f : DisplayGamma);
 
 
 				check(RenderBatch.NumIndices > 0);
@@ -449,7 +449,9 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 						PixelShader->GetPixelShader(),
 						FGeometryShaderRHIRef()));
 
-					PixelShader->SetParameters(RHICmdList, *SceneView, MaterialRenderProxy, Material, 1.0f / DisplayGamma, ShaderParams.PixelParams);
+					PixelShader->SetParameters(RHICmdList, *SceneView, MaterialRenderProxy, Material, DisplayGamma, ShaderParams.PixelParams);
+					PixelShader->SetDisplayGamma(RHICmdList, (DrawFlags & ESlateBatchDrawFlag::NoGamma) ? 1.0f : DisplayGamma);
+
 					VertexShader->SetViewProjection( RHICmdList, ViewProjectionMatrix );
 
 					check(RenderBatch.NumIndices > 0);

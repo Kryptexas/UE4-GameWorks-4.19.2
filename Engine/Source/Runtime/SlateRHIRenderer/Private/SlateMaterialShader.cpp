@@ -22,7 +22,7 @@ FSlateMaterialShaderPS::FSlateMaterialShaderPS(const FMaterialShaderType::Compil
 	: FMaterialShader(Initializer)
 {
 	ShaderParams.Bind(Initializer.ParameterMap, TEXT("ShaderParams"));
-	DisplayGamma.Bind(Initializer.ParameterMap, TEXT("InvDisplayGamma"));
+	GammaValues.Bind(Initializer.ParameterMap, TEXT("GammaValues"));
 }
 
 void FSlateMaterialShaderPS::SetParameters(FRHICommandList& RHICmdList, const FSceneView& View, const FMaterialRenderProxy* MaterialRenderProxy, const FMaterial* Material, float InDisplayGamma, const FVector4& InShaderParams )
@@ -53,7 +53,6 @@ void FSlateMaterialShaderPS::SetParameters(FRHICommandList& RHICmdList, const FS
 		break;
 	};
 
-	SetShaderValue( RHICmdList, ShaderRHI, DisplayGamma, InDisplayGamma );
 	SetShaderValue( RHICmdList, ShaderRHI, ShaderParams, InShaderParams );
 
 	const bool bDeferredPass = false;
@@ -62,10 +61,17 @@ void FSlateMaterialShaderPS::SetParameters(FRHICommandList& RHICmdList, const FS
 }
 
 
+void FSlateMaterialShaderPS::SetDisplayGamma(FRHICommandList& RHICmdList, float InDisplayGamma)
+{
+	FVector2D InGammaValues(2.2f / InDisplayGamma, 1.0f/InDisplayGamma);
+
+	SetShaderValue(RHICmdList, GetPixelShader(), GammaValues, InGammaValues);
+}
+
 bool FSlateMaterialShaderPS::Serialize(FArchive& Ar)
 {
 	bool bShaderHasOutdatedParameters = FMaterialShader::Serialize(Ar);
-	Ar << DisplayGamma;
+	Ar << GammaValues;
 	Ar << ShaderParams;
 	return bShaderHasOutdatedParameters;
 }

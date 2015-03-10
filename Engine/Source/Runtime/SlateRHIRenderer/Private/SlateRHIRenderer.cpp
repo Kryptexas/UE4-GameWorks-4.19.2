@@ -907,11 +907,11 @@ void FSlateRHIRenderer::CopyWindowsToVirtualScreenBuffer(const TArray<FString>& 
 	// @todo livestream: The cursor is probably still hidden when dragging with the mouse captured (grabby hand)
 	if( FSlateApplication::Get().GetMouseCaptureWindow() == nullptr )
 	{
-	FSlateDrawElement::MakeBox(
-		*WindowElementList,
-		0,
+		FSlateDrawElement::MakeBox(
+			*WindowElementList,
+			0,
 			FPaintGeometry(ScaledCursorLocation, FVector2D(32, 32) * XScaling, XScaling),
-		FCoreStyle::Get().GetBrush("CrashTracker.Cursor"),
+			FCoreStyle::Get().GetBrush("CrashTracker.Cursor"),
 			FSlateRect(0, 0, VirtualScreenSize.X, VirtualScreenSize.Y));
 	}
 	
