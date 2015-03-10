@@ -414,11 +414,6 @@ bool FEmptyDynamicRHI::RHIIsRenderingSuspended()
 	return false;
 }
 
-void FEmptyDynamicRHI::RHIReducePlatformGPUOverhead(bool)
-{
-	// Not supported
-}
-
 void FEmptyDynamicRHI::RHIBlockUntilGPUIdle()
 {
 

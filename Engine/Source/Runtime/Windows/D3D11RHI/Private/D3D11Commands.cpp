@@ -1942,11 +1942,6 @@ bool FD3D11DynamicRHI::RHIIsRenderingSuspended()
 	return false;
 }
 
-void FD3D11DynamicRHI::RHIReducePlatformGPUOverhead(bool)
-{
-	// Not supported
-}
-
 // Blocks the CPU until the GPU catches up and goes idle.
 void FD3D11DynamicRHI::RHIBlockUntilGPUIdle()
 {

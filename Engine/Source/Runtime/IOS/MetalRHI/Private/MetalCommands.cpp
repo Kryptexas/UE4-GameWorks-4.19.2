@@ -863,11 +863,6 @@ bool FMetalDynamicRHI::RHIIsRenderingSuspended()
 	return false;
 }
 
-void FMetalDynamicRHI::RHIReducePlatformGPUOverhead(bool)
-{
-	// Not supported
-}
-
 void FMetalDynamicRHI::RHIBlockUntilGPUIdle()
 {
 	NOT_SUPPORTED("RHIBlockUntilGPUIdle");
