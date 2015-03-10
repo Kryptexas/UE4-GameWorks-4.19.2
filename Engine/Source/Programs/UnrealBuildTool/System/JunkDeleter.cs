@@ -17,7 +17,7 @@ namespace UnrealBuildTool
 		{
 			var JunkStartTime = DateTime.UtcNow;
 
-			if (UnrealBuildTool.RunningRocket() == false)
+			if (UnrealBuildTool.IsEngineInstalled() == false)
 			{
 				List<string> JunkManifest = LoadJunkManifest();
 				DeleteAllJunk(JunkManifest);
