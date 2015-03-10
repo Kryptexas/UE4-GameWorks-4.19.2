@@ -135,9 +135,13 @@ private:
 			// grab the device serial number
 			int32 TabIndex;
 
-			if (!DeviceString.FindChar(TCHAR(' '), TabIndex))
+			// use either tab or space as separator
+			if (!DeviceString.FindChar(TCHAR('\t'), TabIndex))
 			{
-				continue;
+				if (!DeviceString.FindChar(TCHAR(' '), TabIndex))
+				{
+					continue;
+				}
 			}
 
 			FAndroidDeviceInfo NewDeviceInfo;
