@@ -62,6 +62,8 @@ bool AGameplayCueNotify_Actor::HandlesEvent(EGameplayCueEvent::Type EventType) c
 
 void AGameplayCueNotify_Actor::HandleGameplayCue(AActor* MyTarget, EGameplayCueEvent::Type EventType, FGameplayCueParameters Parameters)
 {
+	SCOPE_CYCLE_COUNTER(STAT_HandleGameplayCueNotifyActor);
+
 	if (MyTarget && !MyTarget->IsPendingKill())
 	{
 		K2_HandleGameplayCue(MyTarget, EventType, Parameters);

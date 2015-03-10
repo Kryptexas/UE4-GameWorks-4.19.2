@@ -23,5 +23,5 @@ DEFINE_STAT(STAT_FindAbilitySpecFromHandle);
 DEFINE_STAT(STAT_AggregatorEvaluate);
 DEFINE_STAT(STAT_HasApplicationImmunityToSpec);
 DEFINE_STAT(STAT_HasMatchingGameplayTag);
-
-
+DEFINE_STAT(STAT_HandleGameplayCueNotifyStatic);
+DEFINE_STAT(STAT_HandleGameplayCueNotifyActor);
