@@ -527,7 +527,7 @@ void SActorDetails::OnNativeComponentWarningHyperlinkClicked(const FSlateHyperli
 {
 	// Find the closest native parent
 	UBlueprint* Blueprint = SCSEditor->GetBlueprint();
-	UClass* ParentClass = Blueprint ? Blueprint->ParentClass : GetActorContext()->GetClass();
+	UClass* ParentClass = Blueprint ? *Blueprint->ParentClass : GetActorContext()->GetClass();
 	while (ParentClass && !ParentClass->HasAllClassFlags(CLASS_Native))
 	{
 		ParentClass = ParentClass->GetSuperClass();
