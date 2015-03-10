@@ -682,7 +682,7 @@ void UCharacterMovementComponent::OnMovementModeChanged(EMovementMode PreviousMo
 	}
 	else if (PreviousMovementMode == MOVE_NavWalking)
 	{
-		if (MovementMode == DefaultLandMovementMode)
+		if (MovementMode == DefaultLandMovementMode || IsWalking())
 		{
 			const bool bCanSwitchMode = TryToLeaveNavWalking();
 			if (!bCanSwitchMode)

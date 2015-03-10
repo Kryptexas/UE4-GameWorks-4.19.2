@@ -1135,7 +1135,7 @@ protected:
 	virtual void SetNavWalkingPhysics(bool bEnable);
 
 	/** 
-	 * Tries to switch to DefaultLandMovementMode
+	 * Checks to see if the current location is not encroaching blocking geometry so the character can leave NavWalking.
 	 * Restores collision settings and adjusts character location to avoid getting stuck in geometry.
 	 * If it's not possible, MovementMode change will be delayed until character reach collision free spot.
 	 * @return True if movement mode was successfully changed
