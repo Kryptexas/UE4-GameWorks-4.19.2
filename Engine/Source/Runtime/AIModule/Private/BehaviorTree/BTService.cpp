@@ -36,7 +36,11 @@ void UBTService::NotifyParentActivation(FBehaviorTreeSearchData& SearchData)
 
 			if (bNotifyTick)
 			{
-				ServiceNodeOb->ScheduleNextTick(NodeMemory);
+				const float RemainingTime = GetNextTickRemainingTime(NodeMemory);
+				if (RemainingTime <= 0.0f)
+				{
+					ServiceNodeOb->ScheduleNextTick(NodeMemory);
+				}
 			}
 
 			if (bNotifyOnSearch)
