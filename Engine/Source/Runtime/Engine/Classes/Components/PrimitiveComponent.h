@@ -55,6 +55,9 @@ namespace EHasCustomNavigableGeometry
 
 		// DoCustomNavigableGeometryExport() should be called even if the mesh is non-collidable and wouldn't normally affect the navmesh
 		EvenIfNotCollidable,
+
+		// Don't export navigable geometry even if primitive is relevant for navigation (can still add modifiers)
+		DontExport,
 	};
 }
 

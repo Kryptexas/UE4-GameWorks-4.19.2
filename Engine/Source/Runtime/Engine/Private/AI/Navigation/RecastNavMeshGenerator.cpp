@@ -943,7 +943,7 @@ FORCEINLINE_DEBUGGABLE void ExportComponent(UActorComponent* Component, FRecastG
 	bool bHasData = false;
 
 	UPrimitiveComponent* PrimComp = Cast<UPrimitiveComponent>(Component);
-	if (PrimComp && PrimComp->IsNavigationRelevant())
+	if (PrimComp && PrimComp->IsNavigationRelevant() && (PrimComp->HasCustomNavigableGeometry() != EHasCustomNavigableGeometry::DontExport))
 	{
 		if (PrimComp->HasCustomNavigableGeometry() && !PrimComp->DoCustomNavigableGeometryExport(GeomExport)) 
 		{
