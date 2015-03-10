@@ -179,41 +179,59 @@ namespace AutomationTool
 				}
 			}
 
+			// Change the working directory to be the Engine/Source folder. We are running from Engine/Binaries/DotNET
+			string oldCWD = Directory.GetCurrentDirectory();
+			string EngineSourceDirectory = Path.Combine(UnrealBuildTool.Utils.GetExecutingAssemblyDirectory(), "..", "..", "..", "Engine", "Source");
+			if (!Directory.Exists(EngineSourceDirectory)) // only set the directory if it exists, this should only happen if we are launching the editor from an artist sync
+			{
+				EngineSourceDirectory = Path.Combine(UnrealBuildTool.Utils.GetExecutingAssemblyDirectory(), "..", "..", "..", "Engine", "Binaries");
+			}
+			Directory.SetCurrentDirectory(EngineSourceDirectory);
+
+			bool RetVal = false;
 			// check the target platforms for any differences in build settings or additional plugins
 			foreach (UnrealTargetPlatform TargetPlatformType in TargetPlatforms)
 			{
 				IUEBuildPlatform BuildPlat = UEBuildPlatform.GetBuildPlatform(TargetPlatformType, true);
 				if (BuildPlat != null && !(BuildPlat as UEBuildPlatform).HasDefaultBuildConfig(TargetPlatformType, Path.GetDirectoryName(RawProjectPath)))
 				{
-					return true;
+					RetVal = true;
+					break;
 				}
+
 				// find if there are any plugins
 				List<string> PluginList = new List<string>();
 				// Use the project settings to update the plugin list for this target
 				PluginList = UProjectInfo.GetEnabledPlugins(RawProjectPath, PluginList, TargetPlatformType);
-				if (PluginList.Count > 0)
+				if (PluginList.Count > 0 && !RetVal)
 				{
 					foreach (var PluginName in PluginList)
 					{
 						// check the plugin info for this plugin itself
 						foreach (var Plugin in Plugins.AllPlugins)
 						{
-							if (Plugin.Name == PluginName)
+							if (Plugin.Name == PluginName && !Plugin.bEnabledByDefault && !RetVal)
 							{
 								foreach (var Module in Plugin.Modules)
 								{
-									if (Module.Platforms.Count > 0 && Module.Platforms.Contains(TargetPlatformType))
+									if (Module.Platforms.Count > 0 && Module.Platforms.Contains(TargetPlatformType) && !RetVal)
 									{
-										return true;
+										RetVal = true;
+										break;
 									}
 								}
 								break;
 							}
 						}
+						if (RetVal)
+						{
+							break;
+						}
 					}
 				}
 			}
-			return false;
+			Directory.SetCurrentDirectory(oldCWD);
+			return RetVal;
 		}
 
 		private static void GenerateTempTarget(string RawProjectPath)
@@ -465,11 +483,6 @@ namespace AutomationTool
 		private static void CompileAndLoadTargetsAssembly(ProjectProperties Properties, string TargetsDllFilename, bool DoNotCompile, List<string> TargetScripts)
 		{
 			CommandUtils.Log("Compiling targets DLL: {0}", TargetsDllFilename);
-
-			if (!DoNotCompile && GlobalCommandLine.NoCodeProject)
-			{
-				//throw new AutomationException("Building is not supported when -nocodeproject flag is provided.");
-			}
 
 			var ReferencedAssemblies = new List<string>() 
 					{ 

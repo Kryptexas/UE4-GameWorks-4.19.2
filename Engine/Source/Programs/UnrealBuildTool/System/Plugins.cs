@@ -447,10 +447,13 @@ namespace UnrealBuildTool
 				Plugins.FindPluginsIn( EnginePluginsDirectory, PluginInfo.LoadedFromType.Engine, ref AllPluginsVar );
 
 				// Game plugins
-				foreach( var GameProjectFolder in RulesCompiler.AllGameFolders )
+				if (RulesCompiler.AllGameFolders != null)
 				{
-					var GamePluginsDirectory = Path.Combine( GameProjectFolder, "Plugins" );
-					Plugins.FindPluginsIn( GamePluginsDirectory, PluginInfo.LoadedFromType.GameProject, ref AllPluginsVar );
+					foreach (var GameProjectFolder in RulesCompiler.AllGameFolders)
+					{
+						var GamePluginsDirectory = Path.Combine(GameProjectFolder, "Plugins");
+						Plugins.FindPluginsIn(GamePluginsDirectory, PluginInfo.LoadedFromType.GameProject, ref AllPluginsVar);
+					}
 				}
 
 				// Also keep track of which modules map to which plugins

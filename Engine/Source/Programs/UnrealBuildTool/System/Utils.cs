@@ -833,7 +833,7 @@ namespace UnrealBuildTool
 		/// assembly path in case shadow copying is enabled.
 		/// </summary>
 		/// <returns>Absolute path to the executing assembly including the assembly filename.</returns>
-		internal static string GetExecutingAssemblyLocation()
+		public static string GetExecutingAssemblyLocation()
 		{
 			return new Uri(System.Reflection.Assembly.GetExecutingAssembly().CodeBase).LocalPath;
 		}
@@ -844,7 +844,7 @@ namespace UnrealBuildTool
 		/// assembly directory in case shadow copying is enabled.
 		/// </summary>
 		/// <returns>Absolute path to the directory containing the executing assembly.</returns>
-		internal static string GetExecutingAssemblyDirectory()
+		public static string GetExecutingAssemblyDirectory()
 		{
 			return Path.GetDirectoryName(GetExecutingAssemblyLocation());
 		}
