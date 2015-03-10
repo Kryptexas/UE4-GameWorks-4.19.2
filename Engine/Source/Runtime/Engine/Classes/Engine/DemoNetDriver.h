@@ -22,9 +22,6 @@ class UDemoNetDriver
 	/** Last time (in real seconds) that we recorded a frame */
 	double LastRecordTime;
 
-	/** Time (in game seconds) that have elapsed between recorded frames */
-	float DemoDeltaTime;
-
 	/** Total time of demo in seconds */
 	float DemoTotalTime;
 
@@ -51,6 +48,8 @@ class UDemoNetDriver
 
 	/** Our network replay streamer */
 	TSharedPtr< class INetworkReplayStreamer > ReplayStreamer;
+
+	uint32 GetDemoCurrentTimeInMS() { return (uint32)( (double)DemoCurrentTime * 1000 ); }
 
 	/** Internal debug timing/tracking */
 	double		AccumulatedRecordTime;

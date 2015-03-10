@@ -94,6 +94,11 @@ void HttpStreamFArchive::Seek( int64 InPos )
 	Pos = InPos;
 }
 
+bool HttpStreamFArchive::AtEnd() 
+{
+	return bAtEndOfReplay;
+}
+
 FHttpNetworkReplayStreamer::FHttpNetworkReplayStreamer() : 
 	StreamFileCount( 0 ), 
 	LastChunkTime( 0 ), 
@@ -104,6 +109,7 @@ FHttpNetworkReplayStreamer::FHttpNetworkReplayStreamer() :
 	bStreamIsLive( false ),
 	NumDownloadChunks( 0 ),
 	DemoTimeInMS( 0 ),
+	HighPriorityEndTime( 0 ),
 	StreamerLastError( ENetworkReplayError::None )
 {
 	// Initialize the server URL
@@ -138,6 +144,7 @@ void FHttpNetworkReplayStreamer::StartStreaming( const FString& StreamName, bool
 	// Setup the archives
 	StreamArchive.ArIsLoading = !bRecord;
 	StreamArchive.ArIsSaving = !StreamArchive.ArIsLoading;
+	StreamArchive.bAtEndOfReplay = false;
 
 	HeaderArchive.ArIsLoading = !bRecord;
 	HeaderArchive.ArIsSaving = !StreamArchive.ArIsLoading;
@@ -319,7 +326,7 @@ void FHttpNetworkReplayStreamer::DownloadNextChunk()
 	const double CHECK_FOR_NEXT_CHUNK_IN_SECONDS = 5;
 
 	const bool bTimeToDownloadChunk = ( FPlatformTime::Seconds() - LastChunkTime > CHECK_FOR_NEXT_CHUNK_IN_SECONDS );
-	const bool bReallyNeedToDownloadChunk = StreamArchive.Pos >= StreamArchive.Buffer.Num() && bMoreChunksDefinitelyAvilable;
+	const bool bReallyNeedToDownloadChunk = ( StreamArchive.Pos >= StreamArchive.Buffer.Num() || HighPriorityEndTime > 0 ) && bMoreChunksDefinitelyAvilable;
 
 	if ( !bTimeToDownloadChunk && !bReallyNeedToDownloadChunk )
 	{
@@ -400,7 +407,7 @@ FArchive* FHttpNetworkReplayStreamer::GetHeaderArchive()
 
 FArchive* FHttpNetworkReplayStreamer::GetStreamingArchive()
 {
-	return ( StreamArchive.IsSaving() || IsDataAvailable() ) ? &StreamArchive : NULL;
+	return &StreamArchive;//( StreamArchive.IsSaving() || IsDataAvailable() ) ? &StreamArchive : NULL;
 }
 
 FArchive* FHttpNetworkReplayStreamer::GetMetadataArchive()
@@ -415,6 +422,11 @@ void FHttpNetworkReplayStreamer::UpdateTotalDemoTime( uint32 TimeInMS )
 
 bool FHttpNetworkReplayStreamer::IsDataAvailable() const
 {
+	if ( GetLastError() != ENetworkReplayError::None )
+	{
+		return false;
+	}
+
 	// If we are loading, and we have more data
 	if ( StreamArchive.IsLoading() && StreamArchive.Pos < StreamArchive.Buffer.Num() && NumDownloadChunks > 0 )
 	{
@@ -422,6 +434,22 @@ bool FHttpNetworkReplayStreamer::IsDataAvailable() const
 	}
 	
 	return false;
+}
+
+void FHttpNetworkReplayStreamer::SetHighPriorityTimeRange( const uint32 StartTimeInMS, const uint32 EndTimeInMS )
+{
+	HighPriorityEndTime = EndTimeInMS;
+}
+
+bool FHttpNetworkReplayStreamer::IsDataAvailableForTimeRange( const uint32 StartTimeInMS, const uint32 EndTimeInMS )
+{
+	if ( GetLastError() != ENetworkReplayError::None )
+	{
+		return false;
+	}
+
+	// HACK: We only support the total time range for now
+	return StreamFileCount >= NumDownloadChunks;
 }
 
 bool FHttpNetworkReplayStreamer::IsLive(const FString& StreamName) const 
@@ -747,11 +775,16 @@ void FHttpNetworkReplayStreamer::HttpEnumerateSessionsFinished( FHttpRequestPtr 
 	EnumerateStreamsDelegate = FOnEnumerateStreamsComplete();
 }
 
-void FHttpNetworkReplayStreamer::Tick( float DeltaTime )
+void FHttpNetworkReplayStreamer::Tick( const float DeltaTime )
 {
 	if ( IsHttpBusy() )
 	{
 		return;
+	}
+
+	if ( StreamFileCount >= NumDownloadChunks && bStreamIsLive )
+	{
+		StreamArchive.bAtEndOfReplay = true;
 	}
 
 	if ( SessionName.IsEmpty() )

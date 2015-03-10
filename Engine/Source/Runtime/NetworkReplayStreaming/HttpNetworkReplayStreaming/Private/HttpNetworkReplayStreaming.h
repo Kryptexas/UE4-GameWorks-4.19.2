@@ -11,15 +11,17 @@
 class HttpStreamFArchive : public FArchive
 {
 public:
-	HttpStreamFArchive() : Pos( 0 ) {}
+	HttpStreamFArchive() : Pos( 0 ), bAtEndOfReplay( false ) {}
 
 	virtual void	Serialize( void* V, int64 Length );
 	virtual int64	Tell();
 	virtual int64	TotalSize();
 	virtual void	Seek( int64 InPos );
+	virtual bool	AtEnd();
 
 	TArray< uint8 >	Buffer;
 	int32			Pos;
+	bool			bAtEndOfReplay;
 };
 
 /**
@@ -39,6 +41,8 @@ public:
 	virtual void		UpdateTotalDemoTime( uint32 TimeInMS ) override;
 	virtual uint32		GetTotalDemoTime() const override { return DemoTimeInMS; }
 	virtual bool		IsDataAvailable() const override;
+	virtual void		SetHighPriorityTimeRange( const uint32 StartTimeInMS, const uint32 EndTimeInMS ) override;
+	virtual bool		IsDataAvailableForTimeRange( const uint32 StartTimeInMS, const uint32 EndTimeInMS ) override;
 	virtual bool		IsLive( const FString& StreamName ) const override;
 	virtual void		DeleteFinishedStream( const FString& StreamName, const FOnDeleteFinishedStreamComplete& Delegate ) const override;
 	virtual void		EnumerateStreams( const FString& VersionString, const FOnEnumerateStreamsComplete& Delegate ) override;
@@ -63,7 +67,7 @@ public:
 	void HttpUploadFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 	void HttpEnumerateSessionsFinished( FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded );
 
-	void Tick( float DeltaTime );
+	void Tick( const float DeltaTime );
 	bool IsHttpBusy() const;		// True if we are waiting on http request response
 	bool IsStreaming() const;		// True if we are streaming a replay up or down
 
@@ -109,6 +113,7 @@ public:
 	int32					NumDownloadChunks;
 	uint32					DemoTimeInMS;
 	FString					ViewerName;
+	uint32					HighPriorityEndTime;
 
 	ENetworkReplayError::Type		StreamerLastError;
 

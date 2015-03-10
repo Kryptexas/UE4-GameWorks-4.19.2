@@ -78,8 +78,14 @@ FString UDemoNetDriver::LowLevelGetNetworkNumber()
 	return FString( TEXT( "" ) );
 }
 
+enum ENetworkVersionHistory
+{
+	HISTORY_INITIAL				= 1,
+	HISTORY_SAVE_ABS_TIME_MS	= 2			// We now save the abs demo time in ms for each frame (solves accumulation errors)
+};
+
 static const uint32 NETWORK_DEMO_MAGIC				= 0x2CF5A13D;
-static const uint32 NETWORK_DEMO_VERSION			= 1;
+static const uint32 NETWORK_DEMO_VERSION			= HISTORY_SAVE_ABS_TIME_MS;
 
 static const uint32 NETWORK_DEMO_METADATA_MAGIC		= 0x3D06B24E;
 static const uint32 NETWORK_DEMO_METADATA_VERSION	= 0;
@@ -141,7 +147,6 @@ void UDemoNetDriver::ResetDemoState()
 {
 	DemoFrameNum	= 0;
 	LastRecordTime	= 0;
-	DemoDeltaTime	= 0;
 	DemoTotalTime	= 0;
 	DemoCurrentTime	= 0;
 	DemoTotalFrames	= 0;
@@ -401,6 +406,8 @@ void UDemoNetDriver::TickFlush( float DeltaSeconds )
 
 	if ( FileAr == nullptr )
 	{
+		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::TickFlush: FileAr == nullptr" ) );
+		StopDemo();
 		return;
 	}
 
@@ -666,10 +673,9 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 		return;
 	}
 
-	DemoDeltaTime += DeltaSeconds;
 	DemoCurrentTime += DeltaSeconds;
 
-	ReplayStreamer->UpdateTotalDemoTime( DemoCurrentTime * 1000 );
+	ReplayStreamer->UpdateTotalDemoTime( GetDemoCurrentTimeInMS() );
 
 	const double CurrentSeconds = FPlatformTime::Seconds();
 
@@ -687,15 +693,14 @@ void UDemoNetDriver::TickDemoRecord( float DeltaSeconds )
 	DemoFrameNum++;
 	ReplicationFrame++;
 
-	// Save elapsed game time for this frame
-	*FileAr << DemoDeltaTime;
+	// Save total absolute demo time in MS
+	uint32 SavedAbsTimeMS = GetDemoCurrentTimeInMS();
+	*FileAr << SavedAbsTimeMS;
 
 #if DEMO_CHECKSUMS == 1
-	uint32 DeltaTimeChecksum = FCrc::MemCrc32( &DemoDeltaTime, sizeof( DemoDeltaTime ), 0 );
+	uint32 DeltaTimeChecksum = FCrc::MemCrc32( &SavedAbsTimeMS, sizeof( SavedAbsTimeMS ), 0 );
 	*FileAr << DeltaTimeChecksum;
 #endif
-
-	DemoDeltaTime = 0;
 
 	// Make sure we don't have anything in the buffer for this new frame
 	check( ClientConnections[0]->SendBuffer.GetNumBits() == 0 );
@@ -767,14 +772,6 @@ void UDemoNetDriver::PauseChannels( const bool bPause )
 
 bool UDemoNetDriver::ReadDemoFrame()
 {
-	if ( !ReplayStreamer->IsDataAvailable() )
-	{
-		PauseChannels( true );
-		return false;
-	} 
-
-	PauseChannels( false );
-
 	FArchive* FileAr = ReplayStreamer->GetStreamingArchive();
 
 	if ( FileAr->IsError() )
@@ -783,26 +780,41 @@ bool UDemoNetDriver::ReadDemoFrame()
 		return false;
 	}
 
-	if ( FileAr->AtEnd() )		// FIXME: Resolve how we're going to really do this with the streamers
+	if ( FileAr->AtEnd() )
 	{
 		bDemoPlaybackDone = true;
 		PauseChannels( true );
 		return false;
 	}
 
+	if ( ReplayStreamer->GetLastError() != ENetworkReplayError::None )
+	{
+		UE_LOG( LogDemo, Error, TEXT( "UDemoNetDriver::ReadDemoFrame: ReplayStreamer ERROR: %s" ), ENetworkReplayError::ToString( ReplayStreamer->GetLastError() ) );
+		StopDemo();
+		return false;
+	}
+
+	if ( !ReplayStreamer->IsDataAvailable() )
+	{
+		PauseChannels( true );
+		return false;
+	} 
+
+	PauseChannels( false );
+
 	const int32 OldFilePos = FileAr->Tell();
 
-	float ServerDeltaTime;
+	uint32 SavedAbsTimeMS = 0;
 
 	// Peek at the next demo delta time, and see if we should process this frame
-	*FileAr << ServerDeltaTime;
+	*FileAr << SavedAbsTimeMS;
 
 #if DEMO_CHECKSUMS == 1
 	{
 		uint32 ServerDeltaTimeCheksum = 0;
 		*FileAr << ServerDeltaTimeCheksum;
 
-		const uint32 DeltaTimeChecksum = FCrc::MemCrc32( &ServerDeltaTime, sizeof( ServerDeltaTime ), 0 );
+		const uint32 DeltaTimeChecksum = FCrc::MemCrc32( &SavedAbsTimeMS, sizeof( SavedAbsTimeMS ), 0 );
 
 		if ( DeltaTimeChecksum != ServerDeltaTimeCheksum )
 		{
@@ -820,14 +832,12 @@ bool UDemoNetDriver::ReadDemoFrame()
 		return false;
 	}
 
-	if ( DemoDeltaTime < ServerDeltaTime )//&& ServerConnection->State != USOCK_Pending )
+	if ( GetDemoCurrentTimeInMS() < SavedAbsTimeMS )
 	{
 		// Not enough time has passed to read another frame
 		FileAr->Seek( OldFilePos );
 		return false;
 	}
-
-	DemoDeltaTime -= ServerDeltaTime;
 
 	while ( true )
 	{
@@ -924,54 +934,40 @@ void UDemoNetDriver::TickDemoPlayback( float DeltaSeconds )
 		DemoTotalTime = (float)TotalDemoTimeInMS / 1000.0f;
 	}
 
-	DemoDeltaTime += DeltaSeconds;
-
-	DemoCurrentTime += DeltaSeconds;
-	
 	if ( CVarDemoSkipTime.GetValueOnGameThread() > 0 )
 	{
 		SkipTime( CVarDemoSkipTime.GetValueOnGameThread() );		// Just overwrite existing value, cvar wins in this case
 		CVarDemoSkipTime.AsVariable()->Set( TEXT( "0" ), ECVF_SetByConsole );
 	}
 	
-	if (TimeToSkip > 0.0f)
+	if ( TimeToSkip > 0.0f )
 	{
-		DemoDeltaTime += TimeToSkip;
+		ReplayStreamer->SetHighPriorityTimeRange( 0, DemoTotalTime );		// HACK for now, download the entire demo until we get support to download to any time
 
-		if (DemoCurrentTime + DemoDeltaTime > DemoTotalTime)
+		if ( !ReplayStreamer->IsDataAvailableForTimeRange( 0, DemoTotalTime ) )
 		{
-			DemoDeltaTime = DemoTotalTime - DemoCurrentTime;
+			PauseChannels( true );
+			return;
 		}
+
+		PauseChannels( false );
 
 		DemoCurrentTime += TimeToSkip;
 
 		TimeToSkip = 0.0f;
 	}
 
+	DemoCurrentTime += DeltaSeconds;
+
 	if ( DemoCurrentTime > DemoTotalTime )
 	{
 		DemoCurrentTime = DemoTotalTime;
 	}
 
-	while ( true )
+	// Read demo frames until we are caught up
+	while ( ReadDemoFrame() )
 	{
-		const int32 StartFrame = DemoFrameNum;
-
-		while ( true )
-		{
-			// Read demo frames until we are caught up
-			if ( !ReadDemoFrame() )
-			{
-				break;
-			}
-
-			DemoFrameNum++;
-		}
-
-		if ( StartFrame == DemoFrameNum )
-		{
-			break;
-		}
+		DemoFrameNum++;
 	}
 }
 
