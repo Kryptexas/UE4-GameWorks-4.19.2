@@ -61,12 +61,26 @@ static void dprintf(const char* Format, ...)
 	fprintf(stdout, "%s", DebugBuffer);
 }
 
+#include "ir.h"
+
 struct FGlslCodeBackend : public FCodeBackend
 {
 	FGlslCodeBackend(unsigned int InHlslCompileFlags) : FCodeBackend(InHlslCompileFlags) {}
 
+	// Returns false if any issues
+	virtual bool GenerateMain(EHlslShaderFrequency Frequency, const char* EntryPoint, exec_list* Instructions, _mesa_glsl_parse_state* ParseState) override
+	{
+		ir_function_signature* EntryPointSig = FindEntryPointFunction(Instructions, ParseState, EntryPoint);
+		if (EntryPointSig)
+		{
+			EntryPointSig->is_main = true;
+			return true;
+		}
 
-	virtual char* GenerateCode(struct exec_list* ir, struct _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency) 
+		return false;
+	}
+
+	virtual char* GenerateCode(struct exec_list* ir, struct _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency) override
 	{
 		return 0;
 	}
@@ -351,7 +365,7 @@ int main( int argc, char** argv)
 
 	{
 		//FCRTMemLeakScope::BreakOnBlock(33758);
-		FCRTMemLeakScope MemLeakScopeContext(true);
+		FCRTMemLeakScope MemLeakScopeContext;
 		FHlslCrossCompilerContext Context(Flags, Options.Frequency, Options.Target);
 		if (Context.Init(Options.ShaderFilename, LanguageSpec))
 		{

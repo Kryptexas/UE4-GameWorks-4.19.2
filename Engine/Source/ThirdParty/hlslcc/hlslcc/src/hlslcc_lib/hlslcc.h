@@ -193,7 +193,6 @@ public:
 #if ENABLE_CRT_MEM_LEAKS	
 		_CrtMemCheckpoint(&End);
 
-		_CrtMemState Delta;
 		if (_CrtMemDifference(&Delta, &Begin, &End))
 		{
 			_CrtMemDumpStatistics(&Delta);
@@ -223,6 +222,6 @@ public:
 protected:
 	bool bDumpLeaks;
 #if ENABLE_CRT_MEM_LEAKS
-	_CrtMemState Begin, End;
+	_CrtMemState Begin, End, Delta;
 #endif
 };
