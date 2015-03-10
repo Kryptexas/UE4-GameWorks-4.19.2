@@ -2095,6 +2095,12 @@ DEFINE_RHIMETHOD_0(
 	return,return false;
 	);
 
+// Operation to get platform specific GPU reserve from the system
+DEFINE_RHIMETHOD_1(
+	void,ReducePlatformGPUOverhead,
+	bool,bEnable,
+	return,return);
+
 /**
  *	Retrieve available screen resolutions.
  *

@@ -3395,6 +3395,11 @@ bool FOpenGLDynamicRHI::RHIIsRenderingSuspended()
 	return false;
 }
 
+void FOpenGLDynamicRHI::RHIReducePlatformGPUOverhead(bool)
+{
+	// Not supported
+}
+
 // Blocks the CPU until the GPU catches up and goes idle.
 void FOpenGLDynamicRHI::RHIBlockUntilGPUIdle()
 {
