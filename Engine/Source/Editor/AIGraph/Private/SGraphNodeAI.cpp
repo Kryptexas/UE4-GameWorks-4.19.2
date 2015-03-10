@@ -345,6 +345,7 @@ void SGraphNodeAI::SetOwner(const TSharedRef<SGraphPanel>& OwnerPanel)
 		if (ChildWidget.IsValid())
 		{
 			ChildWidget->SetOwner(OwnerPanel);
+			OwnerPanel->AttachGraphEvents(ChildWidget);
 		}
 	}
 }
