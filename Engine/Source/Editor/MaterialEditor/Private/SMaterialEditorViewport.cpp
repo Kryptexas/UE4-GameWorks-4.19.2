@@ -335,12 +335,6 @@ void SMaterialEditorViewport::SetPreviewMaterial(UMaterialInterface* InMaterialI
 	}
 }
 
-TSharedRef<FUICommandList> SMaterialEditorViewport::GetMaterialEditorCommands() const
-{
-	check(MaterialEditorPtr.IsValid());
-	return MaterialEditorPtr.Pin()->GetToolkitCommands();
-}
-
 void SMaterialEditorViewport::OnAddedToTab( const TSharedRef<SDockTab>& OwnerTab )
 {
 	ParentTab = OwnerTab;
@@ -356,46 +350,48 @@ void SMaterialEditorViewport::BindCommands()
 	SEditorViewport::BindCommands();
 
 	const FMaterialEditorCommands& Commands = FMaterialEditorCommands::Get();
-	TSharedRef<FUICommandList> ToolkitCommandList = GetMaterialEditorCommands();
+
+	check(MaterialEditorPtr.IsValid());
+	CommandList->Append(MaterialEditorPtr.Pin()->GetToolkitCommands());
 
 	// Add the commands to the toolkit command list so that the toolbar buttons can find them
-	ToolkitCommandList->MapAction(
+	CommandList->MapAction(
 		Commands.SetCylinderPreview,
 		FExecuteAction::CreateSP( this, &SMaterialEditorViewport::OnSetPreviewPrimitive, TPT_Cylinder ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SMaterialEditorViewport::IsPreviewPrimitiveChecked, TPT_Cylinder ) );
 
-	ToolkitCommandList->MapAction(
+	CommandList->MapAction(
 		Commands.SetSpherePreview,
 		FExecuteAction::CreateSP( this, &SMaterialEditorViewport::OnSetPreviewPrimitive, TPT_Sphere ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SMaterialEditorViewport::IsPreviewPrimitiveChecked, TPT_Sphere ) );
 
-	ToolkitCommandList->MapAction(
+	CommandList->MapAction(
 		Commands.SetPlanePreview,
 		FExecuteAction::CreateSP( this, &SMaterialEditorViewport::OnSetPreviewPrimitive, TPT_Plane ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SMaterialEditorViewport::IsPreviewPrimitiveChecked, TPT_Plane ) );
 
-	ToolkitCommandList->MapAction(
+	CommandList->MapAction(
 		Commands.SetCubePreview,
 		FExecuteAction::CreateSP( this, &SMaterialEditorViewport::OnSetPreviewPrimitive, TPT_Cube ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SMaterialEditorViewport::IsPreviewPrimitiveChecked, TPT_Cube ) );
 
-	ToolkitCommandList->MapAction(
+	CommandList->MapAction(
 		Commands.SetPreviewMeshFromSelection,
 		FExecuteAction::CreateSP( this, &SMaterialEditorViewport::OnSetPreviewMeshFromSelection ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SMaterialEditorViewport::IsPreviewMeshFromSelectionChecked ) );
 
-	ToolkitCommandList->MapAction(
+	CommandList->MapAction(
 		Commands.TogglePreviewGrid,
 		FExecuteAction::CreateSP( this, &SMaterialEditorViewport::TogglePreviewGrid ),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP( this, &SMaterialEditorViewport::IsTogglePreviewGridChecked ) );
 
-	ToolkitCommandList->MapAction(
+	CommandList->MapAction(
 		Commands.TogglePreviewBackground,
 		FExecuteAction::CreateSP( this, &SMaterialEditorViewport::TogglePreviewBackground ),
 		FCanExecuteAction(),
@@ -518,6 +514,21 @@ bool SMaterialEditorViewport::IsTogglePreviewBackgroundChecked() const
 	return bShowBackground;
 }
 
+TSharedRef<class SEditorViewport> SMaterialEditorViewport::GetViewportWidget()
+{
+	return SharedThis(this);
+}
+
+TSharedPtr<FExtender> SMaterialEditorViewport::GetExtenders() const
+{
+	TSharedPtr<FExtender> Result(MakeShareable(new FExtender));
+	return Result;
+}
+
+void SMaterialEditorViewport::OnFloatingButtonClicked()
+{
+}
+
 TSharedRef<FEditorViewportClient> SMaterialEditorViewport::MakeEditorViewportClient() 
 {
 	EditorViewportClient = MakeShareable( new FMaterialEditorViewportClient(MaterialEditorPtr, PreviewScene, SharedThis(this)) );
@@ -533,10 +544,19 @@ TSharedRef<FEditorViewportClient> SMaterialEditorViewport::MakeEditorViewportCli
 	return EditorViewportClient.ToSharedRef();
 }
 
-TSharedPtr<SWidget> SMaterialEditorViewport::MakeViewportToolbar()
+void SMaterialEditorViewport::PopulateViewportOverlays(TSharedRef<class SOverlay> Overlay)
 {
-	return SNew(SMaterialEditorViewportToolBar)
-		.Viewport(SharedThis(this));
+	Overlay->AddSlot()
+		.VAlign(VAlign_Top)
+		[
+			SNew(SMaterialEditorViewportToolBar, SharedThis(this))
+		];
+
+	Overlay->AddSlot()
+		.VAlign(VAlign_Bottom)
+		[
+			SNew(SMaterialEditorViewportPreviewShapeToolBar, SharedThis(this))
+		];
 }
 
 EVisibility SMaterialEditorViewport::OnGetViewportContentVisibility() const

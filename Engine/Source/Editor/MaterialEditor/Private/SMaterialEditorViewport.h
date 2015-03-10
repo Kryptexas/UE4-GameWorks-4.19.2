@@ -4,12 +4,12 @@
 
 #include "PreviewScene.h"
 #include "SEditorViewport.h"
-
+#include "Editor/UnrealEd/Public/SCommonEditorViewportToolbarBase.h"
 
 /**
  * Material Editor Preview viewport widget
  */
-class SMaterialEditorViewport : public SEditorViewport, public FGCObject
+class SMaterialEditorViewport : public SEditorViewport, public FGCObject, public ICommonEditorViewportToolbarInfoProvider
 {
 public:
 	SLATE_BEGIN_ARGS( SMaterialEditorViewport ){}
@@ -41,9 +41,6 @@ public:
 	bool SetPreviewAssetByName(const TCHAR* InAssetName);
 
 	void SetPreviewMaterial(UMaterialInterface* InMaterialInterface);
-	
-	/** @return The list of commands known by the material editor */
-	TSharedRef<FUICommandList> GetMaterialEditorCommands() const;
 
 	/** Component for the preview mesh. */
 	UMeshComponent* PreviewMeshComponent;
@@ -76,10 +73,16 @@ public:
 	void TogglePreviewBackground();
 	bool IsTogglePreviewBackgroundChecked() const;
 
+	// ICommonEditorViewportToolbarInfoProvider interface
+	virtual TSharedRef<class SEditorViewport> GetViewportWidget() override;
+	virtual TSharedPtr<FExtender> GetExtenders() const override;
+	virtual void OnFloatingButtonClicked() override;
+	// End of ICommonEditorViewportToolbarInfoProvider interface
+
 protected:
 	/** SEditorViewport interface */
 	virtual TSharedRef<FEditorViewportClient> MakeEditorViewportClient() override;
-	virtual TSharedPtr<SWidget> MakeViewportToolbar() override;
+	virtual void PopulateViewportOverlays(TSharedRef<class SOverlay> Overlay) override;
 	virtual EVisibility OnGetViewportContentVisibility() const override;
 	virtual void BindCommands() override;
 	virtual void OnFocusViewportToSelection() override;
