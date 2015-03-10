@@ -71,6 +71,7 @@ public:
 	virtual void GetAssetRegistryTags( TArray<FAssetRegistryTag>& OutTags ) const override;
 	virtual SIZE_T GetResourceSize( EResourceSizeMode::Type Mode ) override;
 	virtual void Serialize( FArchive& Ar ) override;
+	virtual void PostLoad() override;
 
 protected:
 
