@@ -214,7 +214,10 @@ void FComponentTypeRegistryData::ForceRefreshComponentList()
 		if (Class->IsChildOf(UActorComponent::StaticClass()))
 		{
 			InMemoryClasses.Push(Class->GetFName());
-			if (!Class->HasAnyClassFlags(CLASS_Abstract) && Class->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent) && !FKismetEditorUtilities::IsClassABlueprintSkeleton(Class)) //@TODO: Fold this logic together with the one in UEdGraphSchema_K2::GetAddComponentClasses
+
+			bool const bOutOfDateClass = Class->HasAnyClassFlags(CLASS_NewerVersionExists);
+			bool const bBlueprintSkeletonClass = FKismetEditorUtilities::IsClassABlueprintSkeleton(Class);
+			if (!Class->HasAnyClassFlags(CLASS_Abstract) && Class->HasMetaData(FBlueprintMetadata::MD_BlueprintSpawnableComponent) && !bOutOfDateClass && !bBlueprintSkeletonClass) //@TODO: Fold this logic together with the one in UEdGraphSchema_K2::GetAddComponentClasses
 			{
 				TArray<FString> ClassGroupNames;
 				Class->GetClassGroupNames(ClassGroupNames);
@@ -234,9 +237,8 @@ void FComponentTypeRegistryData::ForceRefreshComponentList()
 					SortedClassList.Add(NewEntry);
 				}
 			}
-
-			bool const bOutOfDateClass = Class->HasAnyClassFlags(CLASS_NewerVersionExists);
-			if (!bOutOfDateClass && !FKismetEditorUtilities::IsClassABlueprintSkeleton(Class))
+			
+			if (!bOutOfDateClass && !bBlueprintSkeletonClass)
 			{
 				FComponentTypeEntry Entry = { Class->GetName(), FString(), Class };
 				ComponentTypeList.Add(Entry);

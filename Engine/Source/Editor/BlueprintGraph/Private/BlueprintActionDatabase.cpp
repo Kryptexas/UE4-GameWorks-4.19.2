@@ -44,6 +44,8 @@
 #include "EdGraph/EdGraphNode_Documentation.h"
 #include "K2Node_FunctionEntry.h"
 
+#include "HotReloadInterface.h"
+
 #define LOCTEXT_NAMESPACE "BlueprintActionDatabase"
 
 /*******************************************************************************
@@ -461,6 +463,11 @@ namespace BlueprintActionDatabaseImpl
 	 */
 	static bool IsObjectValidForDatabase(UObject const* Object);
 
+	/**
+	 * Refreshes database after project was hot-reloaded.
+	 */
+	static void OnProjectHotReloaded(bool bWasTriggeredAutomatically);
+
 	/** 
 	 * Assets that we cleared from the database (to remove references, and make 
 	 * way for a delete), but in-case the class wasn't deleted we need them 
@@ -470,6 +477,13 @@ namespace BlueprintActionDatabaseImpl
 
 	/** */
 	bool bIsInitializing = false;
+}
+
+//------------------------------------------------------------------------------
+static void BlueprintActionDatabaseImpl::OnProjectHotReloaded(bool bWasTriggeredAutomatically)
+{
+	FBlueprintActionDatabase& ActionDatabase = FBlueprintActionDatabase::Get();
+	ActionDatabase.RefreshAll();
 }
 
 //------------------------------------------------------------------------------
@@ -932,6 +946,9 @@ FBlueprintActionDatabase::FBlueprintActionDatabase()
 	FKismetEditorUtilities::OnBlueprintUnloaded.AddStatic(&BlueprintActionDatabaseImpl::OnBlueprintUnloaded);
 
 	GEngine->OnWorldDestroyed().AddStatic(&BlueprintActionDatabaseImpl::OnWorldDestroyed);
+
+	IHotReloadInterface& HotReloadSupport = FModuleManager::LoadModuleChecked<IHotReloadInterface>("HotReload");
+	HotReloadSupport.OnHotReload().AddStatic(&BlueprintActionDatabaseImpl::OnProjectHotReloaded);
 }
 
 //------------------------------------------------------------------------------
