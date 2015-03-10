@@ -749,6 +749,7 @@ namespace GitDependencies
 				Status.Append((NumFilesReportedRead == State.NumFiles)? ", done." : "...");
 				Log.WriteStatus(Status.ToString());
 			}
+			Log.FlushStatus();
 
 			// If we finished with an error, try to clean up and return
 			if(State.NumFilesRead < State.NumFiles)
@@ -757,16 +758,20 @@ namespace GitDependencies
 				{
 					WorkerThread.Abort();
 				}
+				if(State.LastDownloadError != null)
+				{
+					Log.WriteError("{0}", State.LastDownloadError);
+				}
 				return false;
 			}
-
-			// Join all the threads
-			foreach(Thread WorkerThread in WorkerThreads)
+			else
 			{
-				WorkerThread.Join();
+				foreach(Thread WorkerThread in WorkerThreads)
+				{
+					WorkerThread.Join();
+				}
+				return true;
 			}
-			Log.FlushStatus();
-			return true;
 		}
 
 		static string FormatMegabytes(long Value, int NumDecimalPlaces)
@@ -934,7 +939,7 @@ namespace GitDependencies
 		{
 			// Create a decompression stream around the raw input stream
 			GZipStream DecompressedStream = new GZipStream(InputStream, CompressionMode.Decompress, true);
-			ExtractFilesFromRawStream(DecompressedStream, Files);
+			ExtractFilesFromRawStream(DecompressedStream, Files, null);
 		}
 
 		static void ExtractFilesThroughCache(Stream InputStream, string FileName, string ExpectedHash, IncomingFile[] Files)
@@ -947,15 +952,14 @@ namespace GitDependencies
 				Directory.CreateDirectory(Path.GetDirectoryName(IncomingFileName));
 
 				// Hash the uncompressed data as we go
-				SHA1Managed Hasher = new SHA1Managed();
+				SHA1 Hasher = SHA1.Create();
 				using(FileStream CacheStream = File.Open(IncomingFileName, FileMode.Create, FileAccess.Write, FileShare.None))
 				{
 					ForkReadStream ForkedInputStream = new ForkReadStream(InputStream, CacheStream);
-					GZipStream DecompressedStream = new GZipStream(ForkedInputStream, CompressionMode.Decompress, true);
-					using(CryptoStream DecompressedHashedStream = new CryptoStream(DecompressedStream, Hasher, CryptoStreamMode.Read))
+					using(GZipStream DecompressedStream = new GZipStream(InputStream, CompressionMode.Decompress, true))
 					{
-						ExtractFilesFromRawStream(DecompressedHashedStream, Files);
-						ReadToEnd(DecompressedHashedStream);
+						ExtractFilesFromRawStream(DecompressedStream, Files, Hasher);
+						ReadToEnd(DecompressedStream);
 					}
 				}
 
@@ -981,18 +985,18 @@ namespace GitDependencies
 			while (InputStream.Read(Buffer, 0, Buffer.Length) != 0) { }
 		}
 
-		static void ExtractFilesFromRawStream(Stream RawStream, IncomingFile[] Files)
+		static void ExtractFilesFromRawStream(Stream RawStream, IncomingFile[] Files, SHA1 RawStreamHasher)
 		{
 			int MinFileIdx = 0;
 			int MaxFileIdx = 0;
 			FileStream[] OutputStreams = new FileStream[Files.Length];
-			SHA1Managed[] OutputHashers = new SHA1Managed[Files.Length];
+			SHA1[] OutputHashers = new SHA1[Files.Length];
 			try
 			{
 				// Create files from pack.
 				byte[] Buffer = new byte[16384];
 				long PackOffset = 0;
-				while(MinFileIdx < Files.Length)
+				while(MinFileIdx < Files.Length || RawStreamHasher != null)
 				{
 					// Read the next chunk of data
 					int ReadSize;
@@ -1006,7 +1010,13 @@ namespace GitDependencies
 					}
 					if (ReadSize == 0)
 					{
-						throw new CorruptPackFileException("Unexpected end of file", null);
+						break;
+					}
+
+					// Transform the raw stream hash
+					if(RawStreamHasher != null)
+					{
+						RawStreamHasher.TransformBlock(Buffer, 0, ReadSize, Buffer, 0);
 					}
 
 					// Write to all the active files
@@ -1019,7 +1029,7 @@ namespace GitDependencies
 						{
 							Directory.CreateDirectory(Path.GetDirectoryName(CurrentFile.Name));
 							OutputStreams[Idx] = File.Open(CurrentFile.Name + IncomingFileSuffix, FileMode.Create, FileAccess.Write, FileShare.None);
-							OutputHashers[Idx] = new SHA1Managed();
+							OutputHashers[Idx] = SHA1.Create();
 							MaxFileIdx++;
 						}
 
@@ -1047,6 +1057,18 @@ namespace GitDependencies
 						}
 					}
 					PackOffset += ReadSize;
+				}
+
+				// If we didn't extract everything, throw an exception
+				if(MinFileIdx < Files.Length)
+				{
+					throw new CorruptPackFileException("Unexpected end of file", null);
+				}
+
+				// Transform the final block
+				if(RawStreamHasher != null)
+				{
+					RawStreamHasher.TransformFinalBlock(Buffer, 0, 0);
 				}
 			}
 			finally 
