@@ -381,6 +381,7 @@ void FPrimitiveComponentDetails::AddPhysicsCategory(IDetailLayoutBuilder& Detail
 								[
 									SNew(SNumericEntryBox<float>)
 									.IsEnabled(false)
+									.Font( IDetailLayoutBuilder::GetDetailFont() )
 									.Value(this, &FPrimitiveComponentDetails::OnGetBodyMass)
 									.Visibility(this, &FPrimitiveComponentDetails::IsMassVisible, false)
 								]
@@ -400,6 +401,7 @@ void FPrimitiveComponentDetails::AddPhysicsCategory(IDetailLayoutBuilder& Detail
 
 							+ SHorizontalBox::Slot()
 							.AutoWidth()
+							.VAlign( VAlign_Center )
 							[
 								bDisplayMassOverride ? MassOverrideHandle->CreatePropertyValueWidget() : StaticCastSharedRef<SWidget>(SNew(SSpacer))
 							]
