@@ -19,8 +19,14 @@
 	 *		DEPRECATED(4.6, "Message")
 	 *		void Function();
 	 *
-	 *		struct DEPRECATED(4.6, "Message") MyStruct;
-	 *		class DEPRECATED(4.6, "Message") MyClass;
+	 *		struct DEPRECATED(4.6, "Message") MODULE_API MyStruct
+	 *		{
+	 *			// StructImplementation
+	 *		};
+	 *		class DEPRECATED(4.6, "Message") MODULE_API MyClass
+	 *		{
+	 *			// ClassImplementation
+	 *		};
 	 *
 	 * @param VERSION The release number in which the feature was marked deprecated.
 	 * @param MESSAGE A message containing upgrade notes.

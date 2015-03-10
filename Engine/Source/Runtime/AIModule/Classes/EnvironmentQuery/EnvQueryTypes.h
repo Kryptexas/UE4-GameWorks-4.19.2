@@ -934,26 +934,20 @@ struct AIMODULE_API FEnvBoolParam_DEPRECATED
 	void Convert(UObject* Owner, FAIDataProviderBoolValue& ValueProvider);
 };
 
-/* DISABLED FOR NOW, DEPRECATED MACRO DOESN'T WORK WITH USTRUCTS
-struct DEPRECATED(4.8, "FEnvFloatParam is deprecated in 4.8 and was replaced with FAIDataProviderFloatValue. Please use that type instead.") FEnvFloatParam;
-struct DEPRECATED(4.8, "FEnvIntParam is deprecated in 4.8 and was replaced with FAIDataProviderIntValue. Please use that type instead.") FEnvIntParam;
-struct DEPRECATED(4.8, "FEnvBoolParam is deprecated in 4.8 and was replaced with FAIDataProviderBoolValue. Please use that type instead.") FEnvBoolParam;
-*/
-
 USTRUCT()
-struct AIMODULE_API FEnvFloatParam : public FEnvFloatParam_DEPRECATED
+struct DEPRECATED(4.8, "FEnvFloatParam is deprecated in 4.8 and was replaced with FAIDataProviderFloatValue. Please use that type instead.") AIMODULE_API FEnvFloatParam : public FEnvFloatParam_DEPRECATED
 {
 	GENERATED_USTRUCT_BODY();
 };
 
 USTRUCT()
-struct AIMODULE_API FEnvIntParam : public FEnvIntParam_DEPRECATED
+struct DEPRECATED(4.8, "FEnvIntParam is deprecated in 4.8 and was replaced with FAIDataProviderIntValue. Please use that type instead.") AIMODULE_API FEnvIntParam : public FEnvIntParam_DEPRECATED
 {
 	GENERATED_USTRUCT_BODY();
 };
 
 USTRUCT()
-struct AIMODULE_API FEnvBoolParam : public FEnvBoolParam_DEPRECATED
+struct DEPRECATED(4.8, "FEnvBoolParam is deprecated in 4.8 and was replaced with FAIDataProviderBoolValue. Please use that type instead.") AIMODULE_API FEnvBoolParam : public FEnvBoolParam_DEPRECATED
 {
 	GENERATED_USTRUCT_BODY();
 };

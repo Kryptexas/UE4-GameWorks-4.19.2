@@ -2174,6 +2174,8 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileWrapper(FUnrealSour
 		LINE_TERMINATOR
 		TEXT("#include \"ObjectBase.h\"") LINE_TERMINATOR
 		LINE_TERMINATOR);
+
+	GeneratedHeaderTextWithCopyright.Logf(TEXT("PRAGMA_DISABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR);
 	GeneratedHeaderTextWithCopyright.Log(*GeneratedHeaderTextBeforeForwardDeclarations);
 
 	TSet<FString> ForwardDeclarationStrings;
@@ -2193,6 +2195,7 @@ void FNativeClassHeaderGenerator::ExportClassesFromSourceFileWrapper(FUnrealSour
 
 	GeneratedHeaderTextWithCopyright.Log(*GeneratedForwardDeclarations);
 	GeneratedHeaderTextWithCopyright.Log(*GeneratedHeaderText);
+	GeneratedHeaderTextWithCopyright.Logf(TEXT("PRAGMA_ENABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR);
 
 	SourceFile.SetGeneratedFilename(ClassHeaderPath);
 	SourceFile.SetHasChanged(SaveHeaderIfChanged(*ClassHeaderPath, *GeneratedHeaderTextWithCopyright));
@@ -4728,6 +4731,9 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 	GeneratedCPPEpilogue.Logf(
 		LINE_TERMINATOR
 		);
+
+	FString EnableDeprecationWarnings = FString(TEXT("PRAGMA_ENABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR);
+	FString DisableDeprecationWarnings = FString(TEXT("PRAGMA_DISABLE_DEPRECATION_WARNINGS") LINE_TERMINATOR);
 	
 	FString PkgName = FPackageName::GetShortName(Package);
 	FString PkgDir;
@@ -4763,7 +4769,7 @@ void FNativeClassHeaderGenerator::ExportGeneratedCPP()
 		}
 
 		FString CppPath = ModuleInfo->GeneratedCPPFilenameBase + (GeneratedFunctionBodyTextSplit.Num() > 1 ? *FString::Printf(TEXT(".%d.cpp"), FileIdx + 1) : TEXT(".cpp"));
-		SaveHeaderIfChanged(*CppPath, *(GeneratedCPPPreamble + ModulePCHInclude + GeneratedCPPClassesIncludes + ((FileIdx > 0) ? FString() : GeneratedLinkerFixupFunction) + FileText + GeneratedCPPEpilogue));
+		SaveHeaderIfChanged(*CppPath, *(GeneratedCPPPreamble + ModulePCHInclude + GeneratedCPPClassesIncludes + DisableDeprecationWarnings + ((FileIdx > 0) ? FString() : GeneratedLinkerFixupFunction) + FileText + GeneratedCPPEpilogue + EnableDeprecationWarnings));
 
 		if (GeneratedFunctionBodyTextSplit.Num() > 1)
 		{

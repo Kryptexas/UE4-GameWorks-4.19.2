@@ -19,9 +19,50 @@
 	 *		DEPRECATED(4.6, "Message")
 	 *		void Function();
 	 *
-	 *		struct DEPRECATED(4.6, "Message") MyStruct;
-	 *		class DEPRECATED(4.6, "Message") MyClass;
+	 *		struct DEPRECATED(4.6, "Message") MODULE_API MyStruct
+	 *		{
+	 *			// StructImplementation
+	 *		};
+	 *		class DEPRECATED(4.6, "Message") MODULE_API MyClass
+	 *		{
+	 *			// ClassImplementation
+	 *		};
 	 *
+	 *		Unfortunately, VC++ will complain about using member functions and fields from deprecated
+	 *		class/structs even for class/struct implementation e.g.:
+	 *		class DEPRECATED(4.8, "") DeprecatedClass
+	 *		{
+	 *		public:
+	 *			DeprecatedClass() {}
+	 *
+	 *			float GetMyFloat()
+	 *			{
+	 *				return MyFloat; // This line will cause warning that deprecated field is used.
+	 *			}
+	 *		private:
+	 *			float MyFloat;
+	 *		};
+	 *
+	 *		To get rid of this warning, place all code not called in class implementation in non-deprecated
+	 *		base class and deprecate only derived one. This may force you to change some access specifiers
+	 *		from private to protected, e.g.:
+	 *
+	 *		class DeprecatedClass_Base_DEPRECATED
+	 *		{
+	 *		protected: // MyFloat is protected now, so DeprecatedClass has access to it.
+	 *			float MyFloat;
+	 *		};
+	 *
+	 *		class DEPRECATED(4.8, "") DeprecatedClass : DeprecatedClass_Base_DEPRECATED
+	 *		{
+	 *		public:
+	 *			DeprecatedClass() {}
+	 *
+	 *			float GetMyFloat()
+	 *			{
+	 *				return MyFloat;
+	 *			}
+	 *		};
 	 * @param VERSION The release number in which the feature was marked deprecated.
 	 * @param MESSAGE A message containing upgrade notes.
 	 */
