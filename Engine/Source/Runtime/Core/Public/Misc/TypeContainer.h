@@ -192,39 +192,19 @@ public:
 	 * Gets a shared pointer to an instance of the specified class.
 	 *
 	 * @param T The type of class to get an instance for.
-	 * @param A shared pointer to the instance, or nullptr if no instance was registered.
-	 * @see GetInstanceRef, RegisterClass, RegisterInstance
+	 * @param A shared reference to the instance.
+	 * @see RegisterClass, RegisterDelegate, RegisterFactory, RegisterInstance
 	 */
 	template<class R>
-	TSharedPtr<R> GetInstance()
+	TSharedRef<R> GetInstance()
 	{
 		FScopeLock Lock(&CriticalSection);
 		{
 			const TSharedPtr<IInstanceProvider>& Provider = Providers.FindRef(TNameOf<R>::GetName());
+			check(Provider.IsValid());
 
-			if (Provider.IsValid())
-			{
-				return StaticCastSharedPtr<R>(Provider->GetInstance());
-			}
+			return StaticCastSharedPtr<R>(Provider->GetInstance()).ToSharedRef();
 		}
-
-		return TSharedPtr<R>();
-	}
-
-	/**
-	 * Gets a shared reference to an instance of the specified class.
-	 *
-	 * Unlike GetInstance(), this function will assert if no instance was registered for
-	 * the requested type of class using either RegisterClass() or RegisterInstance().
-	 *
-	 * @param R The type of class that an instance is being requested for.
-	 * @param A shared pointer to the instance.
-	 * @see GetInstance, RegisterClass, RegisterInstance
-	 */
-	template<class R>
-	TSharedRef<R> GetInstanceRef()
-	{
-		return GetInstance<R>().ToSharedRef();
 	}
 
 	/**
@@ -249,7 +229,7 @@ public:
 			Provider = MakeShareable(
 				new TFunctionInstanceProvider<T>(
 					[this]() -> TSharedPtr<void> {
-						return MakeShareable(new T(GetInstanceRef<P>()...));
+						return MakeShareable(new T(GetInstance<P>()...));
 					}
 				)
 			);
@@ -259,7 +239,7 @@ public:
 			Provider = MakeShareable(
 				new TThreadInstanceProvider<T>(
 					[this]() -> TSharedPtr<void> {
-						return MakeShareable(new T(GetInstanceRef<P>()...));
+						return MakeShareable(new T(GetInstance<P>()...));
 					}
 				)
 			);
@@ -268,7 +248,7 @@ public:
 		default:
 			Provider = MakeShareable(
 				new TSharedInstanceProvider<T>(
-					MakeShareable(new T(GetInstanceRef<P>()...))
+					MakeShareable(new T(GetInstance<P>()...))
 				)
 			);
 			break;
@@ -288,12 +268,12 @@ public:
 	template<class R, class D, typename... P>
 	void RegisterDelegate(D Delegate)
 	{
-		static_assert(TAreTypesEqual<TSharedPtr<R>, typename D::RetValType>::Value, "Delegate return type must be TSharedPtr<R>");
+		static_assert(TAreTypesEqual<TSharedRef<R>, typename D::RetValType>::Value, "Delegate return type must be TSharedPtr<R>");
 
 		TSharedPtr<IInstanceProvider> Provider = MakeShareable(
 			new TFunctionInstanceProvider<R>(
 				[=]() -> TSharedPtr<void> {
-					return Delegate.Execute(GetInstanceRef<P>()...);
+					return Delegate.Execute(GetInstance<P>()...);
 				}
 			)
 		);
@@ -312,7 +292,7 @@ public:
 	 * @see RegisterClass, RegisterInstance, Unregister
 	 */
 	template<class R>
-	void RegisterFactory(TFunction<TSharedPtr<R>()> CreateFunc)
+	void RegisterFactory(TFunction<TSharedRef<R>()> CreateFunc)
 	{
 		TSharedPtr<IInstanceProvider> Provider = MakeShareable(
 			new TFunctionInstanceProvider<R>(
@@ -338,12 +318,12 @@ public:
 	 * @see RegisterClass, RegisterInstance, Unregister
 	 */
 	template<class R, typename P0, typename... P>
-	void RegisterFactory(TFunction<TSharedPtr<R>(TSharedRef<P0>, TSharedRef<P>...)> CreateFunc)
+	void RegisterFactory(TFunction<TSharedRef<R>(TSharedRef<P0>, TSharedRef<P>...)> CreateFunc)
 	{
 		TSharedPtr<IInstanceProvider> Provider = MakeShareable(
 			new TFunctionInstanceProvider<R>(
 				[=]() -> TSharedPtr<void> {
-					return CreateFunc(GetInstanceRef<P0>(), GetInstanceRef<P>()...);
+					return CreateFunc(GetInstance<P0>(), GetInstance<P>()...);
 				}
 			)
 		);
