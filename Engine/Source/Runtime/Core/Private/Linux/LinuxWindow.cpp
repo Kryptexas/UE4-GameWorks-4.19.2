@@ -31,6 +31,7 @@ FLinuxWindow::FLinuxWindow()
 	, bWasFullscreen( false )
 	, bIsPopupWindow(false)
 	, bIsTooltipWindow(false)
+	, bIsPointerInsideWindow(false)
 {
 	PreFullscreenWindowRect.left = PreFullscreenWindowRect.top = PreFullscreenWindowRect.right = PreFullscreenWindowRect.bottom = 0;
 }
@@ -228,7 +229,10 @@ void FLinuxWindow::BringToFront( bool bForce )
 /** Native windows should implement this function by asking the OS to destroy OS-specific resource associated with the window (e.g. Win32 window handle) */
 void FLinuxWindow::Destroy()
 {
-	OwningApplication->SendDestroyEvent(HWnd);
+	OwningApplication->RemoveEventWindow( HWnd );
+	OwningApplication->RemoveRevertFocusWindow( HWnd );
+
+	SDL_DestroyWindow( HWnd );
 }
 
 /** Native window should implement this function by performing the equivalent of the Win32 minimize-to-taskbar operation */
@@ -560,4 +564,14 @@ void FLinuxWindow::LogInfo()
 const TSharedPtr< FLinuxWindow >& FLinuxWindow::GetParent() const
 {
 	return ParentWindow;
+}
+
+void FLinuxWindow::OnPointerEnteredWindow(bool PointerEnteredWindow)
+{
+	bIsPointerInsideWindow = PointerEnteredWindow;
+}
+
+bool FLinuxWindow::IsPointerInsideWindow() const
+{
+	return bIsPointerInsideWindow;
 }

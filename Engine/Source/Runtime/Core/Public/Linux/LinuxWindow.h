@@ -138,6 +138,20 @@ public:
 	/** @return	Gives the native window a chance to adjust our stored window size before we cache it off */
 	virtual void AdjustCachedSize( FVector2D& Size ) const override;
 
+	/**
+	 * Sets the state if the pointer entered/left the window.
+	 * 
+	 * @param PointerEnteredWindow If the pointer entered the window set 'true' else 'false'.
+	 */
+	void OnPointerEnteredWindow(bool PointerEnteredWindow);
+
+	/**
+	 * Is the pointer currently inside the window?
+	 * 
+	 * @return Returns 'true' if the pointer is inside the window else 'false'.
+	 */
+	bool IsPointerInsideWindow() const;
+	
 private:
 
 	/**
@@ -187,6 +201,9 @@ private:
 	/** TODO: describe */
 	bool bIsConsoleWindow;
 
+	/** Whether the is inside this window */
+	bool bIsPointerInsideWindow;
+	
 	/** SDL ID (for debugging purposes) */
 	uint32 WindowSDLID;
 

@@ -339,7 +339,8 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 				{
 					if(CurrentlyActiveWindow != CurrentEventWindow)
 					{
-						CurrentEventWindow->SetWindowFocus();
+						SDL_RaiseWindow( CurrentEventWindow->GetHWnd() );
+						SDL_SetWindowInputFocus( CurrentEventWindow->GetHWnd() );
 
 						SDL_PushEvent(&Event);
 					}
@@ -635,41 +636,6 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 					}
 					break;
 
-				case SDL_WINDOWEVENT_DESTROY:
-					{
-						RemoveEventWindow(CurrentEventWindow->GetHWnd());
-						RemoveRevertFocusWindow(CurrentEventWindow->GetHWnd());
-
-						// After destroying the window we have to decide what to do with the
-						// focus. We should check if the current window has a parent so we can give
-						// the focus to the parent. If not we get a window from the Windows list
-						// and set the focus to the most top one.
- 						if (CurrentEventWindow->IsRegularWindow() && CurrentEventWindow->GetParent().IsValid())
- 						{
- 							CurrentEventWindow->GetParent()->BringToFront();
- 							CurrentEventWindow->GetParent()->SetWindowFocus();
- 						} 
- 						else if (CurrentEventWindow->IsRegularWindow() && RevertFocusStack.Num() > 0)
-						{
- 							TSharedPtr< FLinuxWindow > TopmostWindow = RevertFocusStack.Top();
-							if (TopmostWindow.IsValid())
-							{
-								TopmostWindow->BringToFront();
-								TopmostWindow->SetWindowFocus();
-							}
-						}
-						else if (CurrentEventWindow->IsPopupMenuWindow() && CurrentEventWindow->GetParent().IsValid() && !bIsDragWindowButtonPressed && bActivateApp)
-						{
-							CurrentEventWindow->GetParent()->BringToFront();
-							CurrentEventWindow->GetParent()->SetWindowFocus();
-						}
-
-						SDL_DestroyWindow(CurrentEventWindow->GetHWnd());
-
-						MessageHandler->OnWindowClose(CurrentEventWindow.ToSharedRef());
-					}
-					break;
-
 				case SDL_WINDOWEVENT_SHOWN:
 					{
 						if (CurrentEventWindow->IsRegularWindow())
@@ -723,6 +689,8 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 					{
 						if (CurrentEventWindow.IsValid())
 						{
+							CurrentEventWindow->OnPointerEnteredWindow(true);
+							
 							MessageHandler->OnCursorSet();
 
 							bInsideOwnWindow = true;
@@ -735,6 +703,8 @@ void FLinuxApplication::ProcessDeferredMessage( SDL_Event Event )
 					{
 						if (CurrentEventWindow.IsValid())
 						{
+							CurrentEventWindow->OnPointerEnteredWindow(false);
+							
 							if (GetCapture() != nullptr)
 							{
 								UpdateMouseCaptureWindow((SDL_HWindow)GetCapture());
@@ -1228,22 +1198,6 @@ void FDisplayMetrics::GetDisplayMetrics(FDisplayMetrics& OutDisplayMetrics)
 	}
 }
 
-void FLinuxApplication::SendDestroyEvent(SDL_Window * HWnd)
-{
-	const TSharedPtr< FLinuxWindow > Window = FindWindowBySDLWindow(HWnd);
-	if (!Window.IsValid())
-	{
-		return;
-	}
-
-	SDL_Event event;
-	SDL_zero(event);
-	event.type = SDL_WINDOWEVENT;
-	event.window.event = SDL_WINDOWEVENT_DESTROY;
-	event.window.windowID = SDL_GetWindowID(Window->GetHWnd());
-	SDL_PushEvent(&event);
-}
-
 void FLinuxApplication::RemoveRevertFocusWindow(SDL_HWindow HWnd)
 {
 	for (int32 WindowIndex=0; WindowIndex < RevertFocusStack.Num(); ++WindowIndex)
@@ -1253,6 +1207,35 @@ void FLinuxApplication::RemoveRevertFocusWindow(SDL_HWindow HWnd)
 		if (Window->GetHWnd() == HWnd)
 		{
 			RevertFocusStack.RemoveAt(WindowIndex);
+
+			// After destroying the window we have to decide what to do with the
+			// focus. We should check if the current window has a parent so we can give
+			// the focus to the parent. If not we get a window from the Windows list
+			// and set the focus to the most top one.
+			if (Window->IsRegularWindow() && Window->GetParent().IsValid())
+			{
+				SDL_RaiseWindow( Window->GetParent()->GetHWnd() );
+				SDL_SetWindowInputFocus( Window->GetParent()->GetHWnd() );
+			} 
+			else if (Window->IsRegularWindow() && RevertFocusStack.Num() > 0)
+			{
+				TSharedPtr< FLinuxWindow > TopmostWindow = RevertFocusStack.Top();
+				if (TopmostWindow.IsValid())
+				{
+					SDL_RaiseWindow( TopmostWindow->GetHWnd() );
+					SDL_SetWindowInputFocus( TopmostWindow->GetHWnd() );
+				}
+			}
+			// Check if a popup window got destroyed.
+			else if (Window->IsPopupMenuWindow() && Window->GetParent().IsValid() && bActivateApp )
+			{
+				if ( (!bIsDragWindowButtonPressed && bInsideOwnWindow) ||
+					(bIsDragWindowButtonPressed && Window->IsPointerInsideWindow()) )
+				{
+					SDL_RaiseWindow(Window->GetParent()->GetHWnd() );
+					SDL_SetWindowInputFocus(Window->GetParent()->GetHWnd() );
+				}
+			}
 			return;
 		}
 	}	

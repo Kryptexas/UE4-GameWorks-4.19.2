@@ -73,8 +73,6 @@ public:
 
 	virtual bool IsCursorDirectlyOverSlateWindow() const override;
 
-	void SendDestroyEvent(SDL_Window * HWnd);
-
 private:
 
 	FLinuxApplication();
