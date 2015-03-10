@@ -39,6 +39,10 @@ struct FPlatformOpenGLContext
 	GLuint					VertexArrayObject;
 	/** Output Framebuffer */
 	GLuint					ViewportFramebuffer;
+	/** Output render buffer */
+	GLuint					ViewportRenderbuffer;
+	/** Cached viewport render buffer dimensions */
+	int32					ViewportSize[2];
 
 	// Context Settings
 	/** Flush Synchronisation Interval (V-Sync) */

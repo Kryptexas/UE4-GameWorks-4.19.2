@@ -404,6 +404,28 @@ bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device, const FOpenGLViewport
 			}
 
 			[(FCocoaWindow*)Context->WindowHandle startRendering];
+			
+			[Context->OpenGLContext lock];
+			int32 CurrentReadFramebuffer = 0;
+			glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &CurrentReadFramebuffer);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, Context->ViewportFramebuffer);
+			if ( Context->ViewportSize[0] != BackbufferSizeX || Context->ViewportSize[1] != BackbufferSizeY )
+			{
+				glBindRenderbuffer(GL_RENDERBUFFER, Context->ViewportRenderbuffer);
+				glRenderbufferStorage(GL_RENDERBUFFER, GL_RGBA8, BackbufferSizeX, BackbufferSizeY);
+				glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_RENDERBUFFER, Context->ViewportRenderbuffer);
+				glBindRenderbuffer(GL_RENDERBUFFER, 0);
+			}
+			glDrawBuffer(GL_COLOR_ATTACHMENT1);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, Context->ViewportFramebuffer);
+			glReadBuffer(GL_COLOR_ATTACHMENT0);
+			glDisable(GL_FRAMEBUFFER_SRGB);
+			glBlitFramebuffer(0, 0, BackbufferSizeX, BackbufferSizeY, 0, 0, BackbufferSizeX, BackbufferSizeY, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+			glEnable(GL_FRAMEBUFFER_SRGB);
+			glBindFramebuffer(GL_READ_FRAMEBUFFER, CurrentReadFramebuffer);
+			Context->ViewportSize[0] = BackbufferSizeX;
+			Context->ViewportSize[1] = BackbufferSizeY;
+			[Context->OpenGLContext unlock];
 
 			MainThreadCall(^{ [Context->OpenGLView setNeedsDisplay:YES]; }, NSDefaultRunLoopMode, false);
 
@@ -422,22 +444,26 @@ bool PlatformBlitToViewport(FPlatformOpenGLDevice* Device, const FOpenGLViewport
 
 void DrawOpenGLViewport(FPlatformOpenGLContext* const Context, uint32 Width, uint32 Height)
 {
-	if ([(FCocoaWindow*)Context->WindowHandle isRenderInitialized])
+	FCocoaWindow* Window = (FCocoaWindow*)Context->WindowHandle;
+	if ([Window isRenderInitialized] && Context->ViewportSize[0] && Context->ViewportSize[1] && Context->ViewportFramebuffer)
 	{
+		[Context->OpenGLContext lock];
 		int32 CurrentReadFramebuffer = 0;
 		glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &CurrentReadFramebuffer);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, Context->ViewportFramebuffer);
-		glReadBuffer(GL_COLOR_ATTACHMENT0);
+		glReadBuffer(GL_COLOR_ATTACHMENT1);
 		glDisable(GL_FRAMEBUFFER_SRGB);
-		glBlitFramebuffer(0, 0, Width, Height, 0, Height, Width, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
+		glBlitFramebuffer(0, 0, Context->ViewportSize[0], Context->ViewportSize[1], 0, Height, Width, 0, GL_COLOR_BUFFER_BIT, GL_NEAREST);
 		glEnable(GL_FRAMEBUFFER_SRGB);
 		glBindFramebuffer(GL_READ_FRAMEBUFFER, CurrentReadFramebuffer);
+		[Context->OpenGLContext unlock];
 	}
 	else
 	{
 		glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 	}
+	[[NSOpenGLContext currentContext] flushBuffer];
 }
 
 void PlatformRenderingContextSetup(FPlatformOpenGLDevice* Device)
@@ -531,10 +557,16 @@ void PlatformResizeGLContext( FPlatformOpenGLDevice* Device, FPlatformOpenGLCont
 
 		if (Context->ViewportFramebuffer == 0)
 		{
-		glGenFramebuffers(1, &Context->ViewportFramebuffer);
-		check(Context->ViewportFramebuffer);
+			glGenFramebuffers(1, &Context->ViewportFramebuffer);
+			check(Context->ViewportFramebuffer);
 		}
-
+		
+		if (Context->ViewportRenderbuffer == 0)
+		{
+			glGenRenderbuffers(1, &Context->ViewportRenderbuffer);
+			check(Context->ViewportRenderbuffer);
+		}
+		
 		glBindFramebuffer(GL_FRAMEBUFFER, Context->ViewportFramebuffer);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, BackBufferTarget, BackBufferResource, 0);
 #if UE_BUILD_DEBUG

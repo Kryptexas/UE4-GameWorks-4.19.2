@@ -208,12 +208,14 @@ FPlatformOpenGLContext::FPlatformOpenGLContext()
 , EmulatedQueries(nullptr)
 , VertexArrayObject(0)
 , ViewportFramebuffer(0)
+, ViewportRenderbuffer(0)
 , SyncInterval(0)
 , VirtualScreen(0)
 , VendorID(0)
 , RendererID(0)
 , SupportsDepthFetchDuringDepthTest(true)
 {
+	FMemory::Memzero(ViewportSize);
 }
 
 FPlatformOpenGLContext::~FPlatformOpenGLContext()
@@ -227,6 +229,13 @@ FPlatformOpenGLContext::~FPlatformOpenGLContext()
 	{
 		MakeCurrent();
 		bMadeCurrent = true;
+	}
+	
+	if (ViewportRenderbuffer)
+	{
+		// this can be done from any context, as long as it's not nil.
+		glDeleteRenderbuffers(1, &ViewportRenderbuffer);
+		ViewportRenderbuffer = 0;
 	}
 
 	if (ViewportFramebuffer)
@@ -315,6 +324,15 @@ void FPlatformOpenGLContext::Reset(void)
 	{
 		MakeCurrent();
 		bMadeCurrent = true;
+	}
+	
+	FMemory::Memzero(ViewportSize);
+	
+	if (ViewportRenderbuffer)
+	{
+		// this can be done from any context, as long as it's not nil.
+		glDeleteRenderbuffers(1, &ViewportRenderbuffer);
+		ViewportRenderbuffer = 0;
 	}
 
 	if (ViewportFramebuffer)
