@@ -10,6 +10,19 @@ using System.Diagnostics;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Models
 {
+	class CustomFuncComparer : IEqualityComparer<string>
+	{
+		public bool Equals( string x, string y )
+		{
+			return y.IndexOf( x, StringComparison.InvariantCultureIgnoreCase ) != -1;
+		}
+
+		public int GetHashCode( string obj )
+		{
+			return obj.GetHashCode();
+		}
+	}
+
 	/// <summary>
 	/// A class representing the line of a callstack.
 	/// </summary>
@@ -161,19 +174,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			{
 				// Default to the first module. This is valid for crashes
 				ModuleName = CallStackEntries[0].ModuleName;
-
-				// If the callstack starts in KERNELBASE, that means we asserted and need to find the first non-core module
-				if( CallStackEntries[0].ModuleName.ToUpper() == "KERNELBASE" )
-				{
-					for( int CallStackEntryIndex = 1; CallStackEntryIndex < CallStackEntries.Count; CallStackEntryIndex++ )
-					{
-						if( CallStackEntries[CallStackEntryIndex].ModuleName.ToUpper() != "UE4_CORE" )
-						{
-							ModuleName = CallStackEntries[CallStackEntryIndex].ModuleName;
-							break;
-						}
-					}
-				}
 			}
 
 			return ModuleName;
@@ -384,7 +384,25 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					ModuleName = CurrentLine.Substring( MacModuleStart + 3, MacModuleEnd - MacModuleStart - 3 ).Trim();
 				}
 
-				CallStackEntries.Add( new CallStackEntry( CurrentLine, ModuleName, FilePath, FuncName, LineNumber ) );
+				// Remove callstack entries that match any of these functions.
+				var FuncsToRemove = new HashSet<string>( new string[] 
+				{ 
+					"RaiseException", 
+					"FDebug::EnsureFailed", 		
+					"Error::Serialize",
+					"FDebug::AssertFailed",
+					"FDebug::EnsureNotFalseFormatted",
+					"FOutputDevice::Logf",
+					"FMsg::Logf",
+					"ReportCrash",
+					"NewReportEnsure",
+				} );
+
+				bool Contains = FuncsToRemove.Contains( FuncName, new CustomFuncComparer() );
+				if( !Contains )
+				{
+					CallStackEntries.Add( new CallStackEntry( CurrentLine, ModuleName, FilePath, FuncName, LineNumber ) );
+				}
 			}
 		}
 
