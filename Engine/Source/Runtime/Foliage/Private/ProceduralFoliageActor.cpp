@@ -15,6 +15,8 @@ AProceduralFoliageActor::AProceduralFoliageActor(const FObjectInitializer& Objec
 	{
 		BrushComponent->SetCollisionObjectType(ECC_WorldStatic);
 		BrushComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+		//This is important because the volume overlaps with all procedural foliage, which means during streaming we'll get a huge hitch for UpdateOverlaps
+		BrushComponent->bGenerateOverlapEvents = false;	//We don't care about overlaps.
 	}
 }
 
