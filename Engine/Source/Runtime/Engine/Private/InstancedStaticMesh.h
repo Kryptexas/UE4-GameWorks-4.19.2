@@ -109,7 +109,7 @@ public:
 	}
 	FORCEINLINE uint32 GetNumInstances() const
 	{
-		return InstanceData ? InstanceData->Num() : 0;
+		return NumInstances;
 	}
 
 	const void* GetRawData() const
@@ -139,6 +139,9 @@ private:
 
 	/** The cached vertex stride. */
 	uint32 Stride;
+
+	/** The cached number of instances. */
+	uint32 NumInstances;
 
 	/** Allocates the vertex data storage type. */
 	void AllocateData();
