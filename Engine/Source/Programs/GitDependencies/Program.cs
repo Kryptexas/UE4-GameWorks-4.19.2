@@ -959,7 +959,6 @@ namespace GitDependencies
 					using(GZipStream DecompressedStream = new GZipStream(InputStream, CompressionMode.Decompress, true))
 					{
 						ExtractFilesFromRawStream(DecompressedStream, Files, Hasher);
-						ReadToEnd(DecompressedStream);
 					}
 				}
 
@@ -977,12 +976,6 @@ namespace GitDependencies
 			{
 				SafeDeleteFileQuiet(IncomingFileName);
 			}
-		}
-
-		static void ReadToEnd(Stream InputStream)
-		{
-			byte[] Buffer = new byte[16384];
-			while (InputStream.Read(Buffer, 0, Buffer.Length) != 0) { }
 		}
 
 		static void ExtractFilesFromRawStream(Stream RawStream, IncomingFile[] Files, SHA1 RawStreamHasher)
