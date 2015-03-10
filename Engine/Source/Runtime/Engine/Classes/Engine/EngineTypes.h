@@ -792,13 +792,12 @@ enum ERadialImpulseFalloff
 
 /** Presets of values used in considering when put this body to sleep. */
 UENUM()
-enum ESleepFamily
+enum class ESleepFamily : uint8
 {
 	/** Engine defaults. */
-	SF_Normal,
+	Normal,
 	/** A family of values with a lower sleep threshold; good for slower pendulum-like physics. */
-	SF_Sensitive,
-	SF_MAX,
+	Sensitive,
 };
 
 

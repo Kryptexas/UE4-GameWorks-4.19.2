@@ -249,7 +249,7 @@ FBodyInstance::FBodyInstance()
 , bOverrideMaxDepenetrationVelocity(false)
 , MaxDepenetrationVelocity(0.f)
 , PhysMaterialOverride(NULL)
-, SleepFamily(SF_Normal)
+, SleepFamily(ESleepFamily::Normal)
 , PhysicsBlendWeight(0.f)
 , PositionSolverIterationCount(8)
 , VelocitySolverIterationCount(1)
@@ -1219,7 +1219,7 @@ void FBodyInstance::InitBodies(TArray<FBodyInstance*>& Bodies, TArray<FTransform
 #if 0
 					// Set the parameters for determining when to put the object to sleep.
 					float SleepEnergyThresh = PNewDynamic->getSleepThreshold();
-					if(SleepFamily == SF_Sensitive)
+					if (SleepFamily == ESleepFamily::Sensitive)
 					{
 						SleepEnergyThresh /= 20.f;
 					}
@@ -4086,7 +4086,7 @@ void FBodyInstance::InitDynamicProperties()
 		}
 
 		float SleepEnergyThresh = RigidActor->getSleepThreshold();
-		if(SleepFamily == SF_Sensitive)
+		if (SleepFamily == ESleepFamily::Sensitive)
 		{
 			SleepEnergyThresh /= 20.f;
 		}

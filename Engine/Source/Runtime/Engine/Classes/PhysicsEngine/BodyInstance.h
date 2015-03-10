@@ -339,7 +339,7 @@ protected:
 public:
 	/** The set of values used in considering when put this body to sleep. */
 	UPROPERTY(EditAnywhere, AdvancedDisplay, BlueprintReadWrite, Category=Physics)
-	TEnumAsByte<enum ESleepFamily> SleepFamily;
+	ESleepFamily SleepFamily;
 
 	/**	Influence of rigid body physics (blending) on the mesh's pose (0.0 == use only animation, 1.0 == use only physics) */
 	/** Provide appropriate interface for doing this instead of allowing BlueprintReadWrite **/
