@@ -29,7 +29,7 @@ public:
 		: Position( InPosition )
 		, BlendMode( SE_BLEND_Opaque )
 		, bFreezeTime( false )
-		, BatchedElementParameters( NULL )
+		, BatchedElementParameters( nullptr )
 		, Color( FLinearColor::White ) {};
 
 	virtual void Draw( FCanvas* InCanvas ) = 0;
@@ -762,7 +762,7 @@ public:
 	 */
 	 FCanvasNGonItem( const FVector2D& InPosition, const FVector2D& InRadius, int32 InNumSides, const FTexture* InTexture, const FLinearColor& InColor )
 	  : FCanvasItem( InPosition )
-		, TriListItem( NULL )
+		, TriListItem( nullptr )
 		, Texture( InTexture )
 	 {
 		 Color = InColor;
