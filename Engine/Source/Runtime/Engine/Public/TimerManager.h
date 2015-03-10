@@ -115,7 +115,8 @@ namespace ETimerStatus
 	{
 		Pending,
 		Active,
-		Paused
+		Paused,
+		Executing
 	};
 }
 
@@ -151,6 +152,12 @@ struct FTimerData
 	bool operator<(const FTimerData& Other) const
 	{
 		return ExpireTime < Other.ExpireTime;
+	}
+
+	void Clear()
+	{
+		TimerDelegate.Unbind();
+		TimerHandle.Invalidate();
 	}
 };
 
@@ -788,3 +795,4 @@ private:
 	/** Set this to GFrameCounter when Timer is ticked. To figure out if Timer has been already ticked or not this frame. */
 	uint64 LastTickedFrame;
 };
+
