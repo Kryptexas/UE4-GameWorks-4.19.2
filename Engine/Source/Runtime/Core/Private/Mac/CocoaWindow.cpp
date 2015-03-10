@@ -201,7 +201,8 @@ NSString* NSPerformDragOperation = @"NSPerformDragOperation";
 			self.TargetWindowMode = EWindowMode::WindowedFullscreen;
 		}
 #endif
-		self.PreFullScreenRect = [self openGLFrame];
+		self.PreFullScreenRect.origin = [self frame].origin;
+		self.PreFullScreenRect.size = [self openGLFrame].size;
 	}
 }
 

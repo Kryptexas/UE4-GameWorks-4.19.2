@@ -390,7 +390,8 @@ void FMacWindow::SetWindowMode( EWindowMode::Type NewWindowMode )
 		
 		if(!bIsFullscreen)
 		{
-			PreFullscreenWindowRect = [WindowHandle openGLFrame];
+			PreFullscreenWindowRect.origin = [WindowHandle frame].origin;
+			PreFullscreenWindowRect.size = [WindowHandle openGLFrame].size;
 			WindowHandle.PreFullScreenRect = PreFullscreenWindowRect;
 		}
 		
