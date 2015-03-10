@@ -4,11 +4,12 @@
 
 #include "PreviewScene.h"
 #include "SEditorViewport.h"
+#include "Editor/UnrealEd/Public/SCommonEditorViewportToolbarBase.h"
 
 /**
  * StaticMesh Editor Preview viewport widget
  */
-class SStaticMeshEditorViewport : public SEditorViewport, public FGCObject
+class SStaticMeshEditorViewport : public SEditorViewport, public FGCObject, public ICommonEditorViewportToolbarInfoProvider
 {
 public:
 	SLATE_BEGIN_ARGS( SStaticMeshEditorViewport ){}
@@ -80,6 +81,12 @@ public:
 
 	/** Specifies an array of text items which will be added to the viewport overlay */
 	void PopulateOverlayText( const TArray<FOverlayTextItem>& TextItems );
+
+	// ICommonEditorViewportToolbarInfoProvider interface
+	virtual TSharedRef<class SEditorViewport> GetViewportWidget() override;
+	virtual TSharedPtr<FExtender> GetExtenders() const override;
+	virtual void OnFloatingButtonClicked() override;
+	// End of ICommonEditorViewportToolbarInfoProvider interface
 
 protected:
 	/** SEditorViewport interface */
