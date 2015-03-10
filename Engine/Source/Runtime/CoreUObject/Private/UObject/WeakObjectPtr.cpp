@@ -267,10 +267,20 @@ bool FWeakObjectPtr::IsStale(bool bEvenIfPendingKill, bool bThreadsafeTest) cons
 
 UObject* FWeakObjectPtr::Get(bool bEvenIfPendingKill) const
 {
-	UObject *Result = NULL;
+	UObject* Result = nullptr;
 	if (IsValid(true))
 	{
 		Result = (UObject*)(GUObjectArray.IndexToObject(GetObjectIndex(), bEvenIfPendingKill));
+	}
+	return Result;
+}
+
+UObject* FWeakObjectPtr::GetEvenIfUnreachable() const
+{
+	UObject* Result = nullptr;
+	if (IsValid(true, true))
+	{
+		Result = static_cast<UObject*>(GUObjectArray.IndexToObject(GetObjectIndex(), true));
 	}
 	return Result;
 }

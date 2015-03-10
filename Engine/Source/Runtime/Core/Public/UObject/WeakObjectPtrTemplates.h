@@ -26,6 +26,11 @@ struct FIndexToObject;
 template<class T=UObject, class TWeakObjectPtrBase=FWeakObjectPtr, class TUObjectArray=FIndexToObject>
 struct TWeakObjectPtr : private TWeakObjectPtrBase
 {
+	// Although templated, these parameters are not intended to be anything other than the default,
+	// and are only templates for module organization reasons.
+	static_assert(TAreTypesEqual<TWeakObjectPtrBase, FWeakObjectPtr>::Value, "TWeakObjectPtrBase should not be overridden");
+	static_assert(TAreTypesEqual<TUObjectArray,      FIndexToObject>::Value, "TUObjectArray should not be overridden");
+
 public:
 
 	/** Default constructor (no initialization). **/
@@ -111,25 +116,15 @@ public:
 	 * @param bEvenIfPendingKill, if this is true, pendingkill objects are considered valid	
 	 * @return NULL if this object is gone or the weak pointer was NULL, otherwise a valid uobject pointer
 	**/
-	FORCEINLINE T *Get(bool bEvenIfPendingKill = false) const
+	FORCEINLINE T* Get(bool bEvenIfPendingKill = false) const
 	{
-		UObjectBase *Result = NULL;
-		if (IsValid(true))
-		{
-			Result = static_cast<UObjectBase *>(TUObjectArray::IndexToObject(this->GetObjectIndex(), bEvenIfPendingKill ));
-		}
-		return (T *)Result;
+		return (T*)TWeakObjectPtrBase::Get(bEvenIfPendingKill);
 	}
 
 	/** Deferences the weak pointer even if its marked RF_Unreachable. This is needed to resolve weak pointers during GC (such as ::AddReferenceObjects) */
-	FORCEINLINE T *GetEvenIfUnreachable() const
+	FORCEINLINE T* GetEvenIfUnreachable() const
 	{
-		UObjectBase *Result = NULL;
-		if (IsValid(true, true))
-		{
-			Result = static_cast<UObjectBase *>(TUObjectArray::IndexToObject(this->GetObjectIndex(), true));
-		}
-		return (T *)Result;
+		return (T*)TWeakObjectPtrBase::GetEvenIfUnreachable();
 	}
 
 	/**  
