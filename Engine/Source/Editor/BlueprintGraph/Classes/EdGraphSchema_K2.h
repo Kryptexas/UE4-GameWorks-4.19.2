@@ -969,6 +969,11 @@ public:
 	 */
 	void CombineTwoPinNetsAndRemoveOldPins(UEdGraphPin* InPinA, UEdGraphPin* InPinB) const;
 
+	/**
+	 * Make links from all data pins from InOutputNode output to InInputNode input.
+	 */
+	void LinkDataPinFromOutputToInput(UEdGraphNode* InOutputNode, UEdGraphNode* InInputNode) const;
+
 	/** Function that returns _all_ nodes we could place */
 	static void GetAllActions(struct FBlueprintPaletteListBuilder& PaletteBuilder);
 
