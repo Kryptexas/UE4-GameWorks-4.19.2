@@ -123,12 +123,6 @@ struct FAndroidPlatformProperties
 	{
 		return true;
 	}
-
-	static FORCEINLINE const FString& GetCookFlavor()
-	{
-		extern FString GCookFlavor;
-		return GCookFlavor;
-	}
 };
 
 struct FAndroid_PVRTCPlatformProperties : public FAndroidPlatformProperties
