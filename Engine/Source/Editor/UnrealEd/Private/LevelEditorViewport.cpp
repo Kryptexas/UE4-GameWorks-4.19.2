@@ -1845,7 +1845,7 @@ void FLevelEditorViewportClient::ProcessClick(FSceneView& View, HHitProxy* HitPr
 
 			const bool bSelectComponent = bActorAlreadySelectedExclusively && bActorIsBlueprintable && (bComponentAlreadySelected != bWasDoubleClick);
 
-			if (bSelectComponent && GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing)
+			if (bSelectComponent)
 			{
 				ClickHandlers::ClickComponent(this, ActorHitProxy, Click);
 			}

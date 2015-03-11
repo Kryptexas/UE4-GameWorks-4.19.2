@@ -190,7 +190,7 @@ void SActorDetails::SetObjects(const TArray<UObject*>& InObjects, bool bForceRef
 
 		bool bShowingComponents = false;
 
-		if(InObjects.Num() == 1 && FKismetEditorUtilities::CanCreateBlueprintOfClass(InObjects[0]->GetClass()) && GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing)
+		if(InObjects.Num() == 1 && FKismetEditorUtilities::CanCreateBlueprintOfClass(InObjects[0]->GetClass()))
 		{
 			auto Actor = GetSelectedActorInEditor();
 			if(Actor)

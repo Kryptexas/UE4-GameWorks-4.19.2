@@ -33,10 +33,6 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Tools, meta=(DisplayName="Editor Utility Blueprints (Blutility)"))
 	bool bEnableEditorUtilityBlueprints;
 
-	/** Enable In World BP Editing (WIP). */
-	UPROPERTY(EditAnywhere, config, Category = Tools, meta = (DisplayName = "In World Blueprint Editing"))
-	bool bInWorldBPEditing;
-
 	/** Enable Single Layout BP Editor. */
 	UPROPERTY(EditAnywhere, config, Category = Tools, meta = ( DisplayName = "Single Layout Blueprint Editor" ))
 	bool bUnifiedBlueprintEditor;

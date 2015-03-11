@@ -1190,13 +1190,12 @@ UActorFactoryEmptyActor::UActorFactoryEmptyActor(const FObjectInitializer& Objec
 
 bool UActorFactoryEmptyActor::CanCreateActorFrom( const FAssetData& AssetData, FText& OutErrorMsg )
 {
-	return GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing ? AssetData.ObjectPath == FName(*AActor::StaticClass()->GetPathName()) : false;
+	return AssetData.ObjectPath == FName(*AActor::StaticClass()->GetPathName());
 }
 
 AActor* UActorFactoryEmptyActor::SpawnActor( UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name )
 {
 	AActor* NewActor = nullptr;
-	if(GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing) 
 	{
 		// Spawn a temporary actor for dragging around
 		NewActor = Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
@@ -1229,16 +1228,12 @@ UActorFactoryCharacter::UActorFactoryCharacter(const FObjectInitializer& ObjectI
 
 bool UActorFactoryCharacter::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
 {
-	return GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing ? AssetData.ObjectPath == FName(*ACharacter::StaticClass()->GetPathName()) : false;
+	return AssetData.ObjectPath == FName(*ACharacter::StaticClass()->GetPathName());
 }
 
 AActor* UActorFactoryCharacter::SpawnActor(UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name)
 {
-	AActor* NewActor = nullptr;
-	if(GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing)
-	{
-			NewActor = Super::SpawnActor( Asset, InLevel, Location, Rotation, ObjectFlags, Name );
-		}
+	AActor* NewActor = Super::SpawnActor( Asset, InLevel, Location, Rotation, ObjectFlags, Name );
 
 	return NewActor;
 }
@@ -1256,17 +1251,12 @@ UActorFactoryPawn::UActorFactoryPawn(const FObjectInitializer& ObjectInitializer
 
 bool UActorFactoryPawn::CanCreateActorFrom(const FAssetData& AssetData, FText& OutErrorMsg)
 {
-	return GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing ? AssetData.ObjectPath == FName(*APawn::StaticClass()->GetPathName()) : false;
+	return AssetData.ObjectPath == FName(*APawn::StaticClass()->GetPathName());
 }
 
 AActor* UActorFactoryPawn::SpawnActor(UObject* Asset, ULevel* InLevel, const FVector& Location, const FRotator& Rotation, EObjectFlags ObjectFlags, const FName& Name)
 {
-	AActor* NewActor = nullptr;
-	if(GetDefault<UEditorExperimentalSettings>()->bInWorldBPEditing)
-	{
-		NewActor = Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
-	}
-
+	AActor* NewActor = Super::SpawnActor(Asset, InLevel, Location, Rotation, ObjectFlags, Name);
 	return NewActor;
 }
 
