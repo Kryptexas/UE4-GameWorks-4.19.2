@@ -189,7 +189,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 			catch( Exception Ex )
 			{
-				FLogger.WriteException( "FindOrAddUser: " + Ex.ToString() );
+				FLogger.Global.WriteException( "FindOrAddUser: " + Ex.ToString() );
 			}
 
 			return UserNameId;
@@ -261,7 +261,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 			catch( Exception Ex )
 			{
-				FLogger.WriteException( "AdSetUserGroupdUser: " + Ex.ToString() );
+				FLogger.Global.WriteException( "AdSetUserGroupdUser: " + Ex.ToString() );
 			}
 		}
 

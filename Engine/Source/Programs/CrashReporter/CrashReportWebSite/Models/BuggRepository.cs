@@ -75,7 +75,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 			catch( Exception Ex )
 			{
-				FLogger.WriteException( "SetBuggStatus: " + Ex.ToString() );
+				FLogger.Global.WriteException( "SetBuggStatus: " + Ex.ToString() );
 			}
 		}
 
@@ -97,7 +97,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 			catch( Exception Ex )
 			{
-				FLogger.WriteException( "SetBuggFixedChangeList: " + Ex.ToString() );
+				FLogger.Global.WriteException( "SetBuggFixedChangeList: " + Ex.ToString() );
 			}
 		}
 
@@ -121,7 +121,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			}
 			catch( Exception Ex )
 			{
-				FLogger.WriteException( "SetBuggTTPID: " + Ex.ToString() );
+				FLogger.Global.WriteException( "SetBuggTTPID: " + Ex.ToString() );
 			}
 		}
 
@@ -176,48 +176,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		}
 
 		/// <summary>
-		/// Get all the function names in a callstack pattern.
-		/// </summary>
-		/// <param name="Pattern">The pattern to expand to a full callstack.</param>
-		/// <returns>A list of callstack lines.</returns>
-		public List<string> GetFunctionCalls( string Pattern )
-		{
-			CachedDataService CachedResults = new CachedDataService( HttpContext.Current.Cache, this );
-			List<string> FunctionCalls = CachedResults.GetFunctionCalls( Pattern );
-			return FunctionCalls;
-		}
-
-		/// <summary>
-		/// Retrieves a list of function names from a list of function name ids.
-		/// Primarily used to fill GetFunctionCalls in CachedDataService
-		/// </summary>
-		/// <param name="Ids">A list of unique function name ids.</param>
-		/// <returns>A list of strings that make up a callstack.</returns>
-		public List<string> GetFunctionCalls( List<int> Ids )
-		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Ids.Count=" + Ids.Count + ")" ) )
-			{
-				List<string> FunctionCalls = new List<string>();
-				try
-				{
-					List<FunctionCall> Funcs = Context.FunctionCalls.Where( FuncCall => Ids.Contains( FuncCall.Id ) ).ToList();
-					// Order by Ids
-					foreach( int Id in Ids )
-					{
-						var Found = Funcs.Find( FC => FC.Id == Id );
-						FunctionCalls.Add( Found.Call );
-					}
-				}
-				catch( Exception Ex )
-				{
-					Debug.WriteLine( "Exception in GetFunctionCalls: " + Ex.ToString() );
-				}
-
-				return FunctionCalls;
-			}
-		}
-
-		/// <summary>
 		/// Associate a set of crashes and their owners with a Bugg.
 		/// NOT USED, FIX!
 		/// </summary>
@@ -227,7 +185,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(" + Bugg.Id + ")" ) )
 			{
-				FLogger.WriteEvent( "UpdateBuggData Bugg.Id=" + Bugg.Id );
+				FLogger.Global.WriteEvent( "UpdateBuggData Bugg.Id=" + Bugg.Id );
 
 				DateTime? TimeOfFirstCrash = null;
 				DateTime? TimeOfLastCrash = null;

@@ -72,6 +72,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 						Pattern = Crash.Pattern,
 						MachineID = Crash.ComputerName,
 						Branch = Crash.Branch,
+						Description = Crash.Description,
 					} )
 					.ToList();
 				int NumCrashes = Crashes.Count;
@@ -142,143 +143,34 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				List<Bugg> Buggs = new List<Bugg>( 100 );
 				foreach( var Top in PatternAndCount )
 				{
-					Bugg NewBugg = new Bugg();
-
-					Bugg RealBugg = RealBuggs.Where( X => X.Pattern == Top.Key ).FirstOrDefault();
-					if( RealBugg != null )
+					Bugg NewBugg = RealBuggs.Where( X => X.Pattern == Top.Key ).FirstOrDefault();
+					if( NewBugg != null )
 					{
-						using( FAutoScopedLogTimer TopTimer = new FAutoScopedLogTimer( string.Format("{0}:{1}", Buggs.Count+1, RealBugg.Id ) ) )
+						using( FAutoScopedLogTimer TopTimer = new FAutoScopedLogTimer( string.Format( "{0}:{1}", Buggs.Count + 1, NewBugg.Id ) ) )
 						{
-							// Index												// number
-							NewBugg.Id = RealBugg.Id;								// CrashGroup URL (a link to the Bugg)
-							NewBugg.TTPID = RealBugg.TTPID;							// JIRA
-							NewBugg.FixedChangeList = RealBugg.FixedChangeList;		// FixCL
-							NewBugg.NumberOfCrashes = Top.Value;					// # Occurrences
-							NewBugg.Pattern = RealBugg.Pattern;					// # Occurrences
-
-							//NewBugg.BuildVersion = 
-
 							var CrashesForBugg = Crashes.Where( Crash => Crash.Pattern == Top.Key ).ToList();
 
-							NewBugg.AffectedVersions = new SortedSet<string>();
-							NewBugg.AffectedMajorVersions = new SortedSet<string>(); // 4.4, 4.5 and so
-							NewBugg.BranchesFoundIn = new SortedSet<string>();
-							NewBugg.AffectedPlatforms = new SortedSet<string>();
-
-							HashSet<string> MachineIds = new HashSet<string>();
-							int FirstCLAffected = int.MaxValue;
-
-							foreach( var Crash in CrashesForBugg )
+							// Convert anonymous to full type;
+							var FullCrashesForBugg = new List<Crash>( CrashesForBugg.Count );
+							foreach( var Anon in CrashesForBugg )
 							{
-								// Only add machine if the number has 32 characters
-								if( Crash.MachineID != null && Crash.MachineID.Length == 32 )
+								FullCrashesForBugg.Add( new Crash()
 								{
-									MachineIds.Add( Crash.MachineID );
-								}
-
-								// Ignore bad build versions.
-								// @TODO yrx 2015-02-17 What about launcher?
-								if( Crash.BuildVersion.StartsWith( "4." ) )
-								{
-									if( !string.IsNullOrEmpty(Crash.BuildVersion) )
-									{
-										NewBugg.AffectedVersions.Add( Crash.BuildVersion );
-									}
-									if( !string.IsNullOrEmpty( Crash.Branch ) && Crash.Branch.StartsWith( "UE4" ) )
-									{
-										NewBugg.BranchesFoundIn.Add( Crash.Branch );
-									}
-
-									int CrashBuiltFromCL = 0;
-									int.TryParse( Crash.BuiltFromCL, out CrashBuiltFromCL );
-									if( CrashBuiltFromCL > 0 )
-									{
-										FirstCLAffected = Math.Min( FirstCLAffected, CrashBuiltFromCL );
-									}
-
-									if( !string.IsNullOrEmpty( Crash.Platform ) )
-									{
-										// Platform = "Platform [Desc]";
-										var PlatSubs = Crash.Platform.Split( " ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries );
-										if( PlatSubs.Length >= 1 )
-										{
-											NewBugg.AffectedPlatforms.Add( PlatSubs[0] );
-										}
-									}
-								}	
+									ID = Anon.ID,
+									TimeOfCrash = Anon.TimeOfCrash,
+									BuildVersion = Anon.BuildVersion,
+									JIRA = Anon.JIRA,
+									Platform = Anon.Platform,
+									FixCL = Anon.FixCL,
+									BuiltFromCL = Anon.BuiltFromCL,
+									Pattern = Anon.Pattern,
+									MachineID = Anon.MachineID,
+									Branch = Anon.Branch,
+									Description = Anon.Description,
+								} );
 							}
 
-							// CopyToJira 
-							NewBugg.ToJiraFirstCLAffected = FirstCLAffected;
-
-							if( NewBugg.AffectedVersions.Count > 0 )
-							{
-								NewBugg.BuildVersion = NewBugg.AffectedVersions.Last();	// Latest Version Affected
-							}
-
-							
-							foreach( var AffectedBuild in NewBugg.AffectedVersions )
-							{
-								var Subs = AffectedBuild.Split( ".".ToCharArray(), StringSplitOptions.RemoveEmptyEntries );
-								if( Subs.Length >= 2 )
-								{
-									string MajorVersion = Subs[0] + "." + Subs[1];
-									NewBugg.AffectedMajorVersions.Add( MajorVersion );
-								}
-							}
-
-							NewBugg.NumberOfUniqueMachines = MachineIds.Count;		// # Affected Users
-							string LatestCLAffected = CrashesForBugg.				// CL of the latest build
-								Where( Crash => Crash.BuildVersion == NewBugg.BuildVersion ).
-								Max( Crash => Crash.BuiltFromCL );
-
-							int ILatestCLAffected = -1;
-							int.TryParse( LatestCLAffected, out ILatestCLAffected );
-							NewBugg.LatestCLAffected = ILatestCLAffected;			// Latest CL Affected
-							
-							string LatestOSAffected = CrashesForBugg.OrderByDescending( Crash => Crash.TimeOfCrash ).First().Platform;
-							NewBugg.LatestOSAffected = LatestOSAffected;			// Latest Environment Affected
-
-							NewBugg.TimeOfFirstCrash = RealBugg.TimeOfFirstCrash;	// First Crash Timestamp
-
-							// ToJiraSummary
-							var Callstack = RealBugg.GetFunctionCalls();
-							NewBugg.ToJiraSummary = Callstack.Count > 1 ? Callstack[0] : "No valid callstack found";
-
-							// ToJiraVersions
-							NewBugg.ToJiraVersions = new List<object>();
-							foreach( var Version in NewBugg.AffectedMajorVersions )
-							{
-								bool bValid = JC.GetNameToVersions().ContainsKey( Version );
-								if( bValid )
-								{
-									NewBugg.ToJiraVersions.Add( JC.GetNameToVersions()[Version] );
-								}
-							}
-
-							// ToJiraBranches
-							NewBugg.ToJiraBranches = new List<object>();
-							foreach( var Platform in NewBugg.BranchesFoundIn )
-							{
-								string CleanedBranch = Platform.Contains( "UE4-Releases" ) ? "UE4-Releases" : Platform;
-								Dictionary<string, object> JiraBranch = null;
-								JC.GetNameToBranchFoundIn().TryGetValue( CleanedBranch, out JiraBranch );
-								if( JiraBranch != null && !NewBugg.ToJiraBranches.Contains( JiraBranch ) )
-								{
-									NewBugg.ToJiraBranches.Add( JiraBranch );
-								}
-							}
-
-							// ToJiraPlatforms
-							NewBugg.ToJiraPlatforms = new List<object>();
-							foreach( var Platform in NewBugg.AffectedPlatforms )
-							{
-								bool bValid = JC.GetNameToPlatform().ContainsKey( Platform );
-								if( bValid )
-								{
-									NewBugg.ToJiraPlatforms.Add( JC.GetNameToPlatform()[Platform] );
-								}
-							}
+							NewBugg.PrepareBuggForJira( FullCrashesForBugg );
 
 							// Verify valid JiraID, this may be still a TTP 
 							if( !string.IsNullOrEmpty( NewBugg.TTPID ) )
@@ -297,7 +189,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 					}
 					else
 					{
-						FLogger.WriteEvent( "Bugg for pattern " + Top.Key + " not found" );
+						FLogger.Global.WriteEvent( "Bugg for pattern " + Top.Key + " not found" );
 					}
 				}
 
@@ -410,7 +302,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <returns></returns>
 		public ActionResult Index( FormCollection ReportsForm )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString(), bCreateNewLog: true ) )
 			{
 				FormHelper FormData = new FormHelper( Request, ReportsForm, "JustReport" );
 
@@ -418,9 +310,9 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 				int BuggIDToBeAddedToJira = 0;
 				foreach( var Entry in ReportsForm )
 				{
-					
-					if( int.TryParse( Entry.ToString(), out BuggIDToBeAddedToJira ) )
+					if( Entry.ToString().Contains( Bugg.JiraSubmitName ) )
 					{
+						int.TryParse( Entry.ToString().Substring( Bugg.JiraSubmitName.Length ), out BuggIDToBeAddedToJira );
 						break;
 					}
 				}

@@ -143,7 +143,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <returns>A view showing two charts of crashes over time.</returns>
 		public ActionResult Index()
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString(), bCreateNewLog: true ) )
 			{
 				DateTime Today = DateTime.UtcNow;
 				DateTime AfewMonthsAgo = Today.AddMonths( -6 );

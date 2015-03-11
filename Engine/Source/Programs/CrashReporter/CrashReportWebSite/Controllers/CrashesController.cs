@@ -31,7 +31,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <returns>A view to display a list of crash reports.</returns>
 		public ActionResult Index( FormCollection CrashesForm )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString(), bCreateNewLog: true ) )
 			{
 				CrashRepository Crashes = new CrashRepository();
 
@@ -85,7 +85,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Controllers
 		/// <returns>A view to show crash details.</returns>
 		public ActionResult Show( FormCollection CrashesForm, int id )
 		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + id + ")" ) )
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + id + ")", bCreateNewLog: true ) )
 			{
 				CrashRepository Crashes = new CrashRepository();
 

@@ -686,12 +686,12 @@ th a:visited
 
 #CrashDataContainer 
 {
-	margin: 1em;
-	width: 420px;
-	height: 850px;
+	margin: 2px;
+	width: 440px;
+	height: 640px;
 	float: left;
 	background: #2e363f;
-	font-size: 14px;
+	font-size: 12px;
 	border-top: 1px solid black;
 	border-left: 1px solid black;
 	border-right: 1px solid #718698;
@@ -703,27 +703,27 @@ th a:visited
 	clear: both;
 	display: block;
 	float: left;
-	width: 150px;
-	margin: 0.5em 0.5em 0.5em 0.5em;
+	width: 210px;
+	margin: 2px;
 	font-weight: bold;
 	text-align: right;
 	color: #718698;
 
-	/*border:dotted;*/
-	/*border-width:1px;*/
+	/*border:dotted;
+	border-width:1px;*/
 }
 
 #CrashDataContainer dd
 {
 	display: block;
 	float: left;
-	width: 150px;
-	margin: 0.5em 0.5em 0.5em 0.5em;
+	width: 210px;
+	margin: 2px;
 	font-weight: normal;
 	color: #C3CAD0;
 
-	/*border:dotted;*/
-	/*border-width:1px;*/
+	/*border:dotted;
+	border-width:1px;*/
 }
 
 #CallStackContainer
@@ -820,6 +820,27 @@ th a:visited
 	border: 1px solid #ccc;
 }
 
+.CopyToJiraStyle
+{
+	/*padding: 0;*/
+
+	cursor:pointer;
+
+	border: solid;
+	border-width: 1px;
+
+	color: white;
+	background-color: black;
+
+	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	font-size: 12px;
+
+}
+
+.CopyToJiraStyle:hover
+{
+	color: blue;
+}
 
 /* User admin screen
 ----------------------------------------------------------*/

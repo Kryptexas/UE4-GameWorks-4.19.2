@@ -118,7 +118,7 @@
 				<dd class='even'>
 					<%if( !Model.Crash.HasLogFile.HasValue || Model.Crash.HasLogFile.Equals( true ) ) 
 					{ %>
-						<a style='font-size:large; text-decoration:none; vertical-align:middle;' href='<%=Model.Crash.GetLogUrl() %>'><img src="../../Content/Images/Icons/log.png" style="height:20px;border:none;" />&nbsp;Log</a>
+						<a style='text-decoration:none; vertical-align:middle;' href='<%=Model.Crash.GetLogUrl() %>'><img src="../../Content/Images/Icons/log.png" style="height:20px;border:none;" />&nbsp;Log</a>
 						<%
 					} %>
 		
@@ -127,7 +127,7 @@
 				<dd>	
 					<%if( !Model.Crash.HasMiniDumpFile.HasValue || Model.Crash.HasMiniDumpFile.Equals( true ) ) 
 					{ %>
-						<a style='font-size:large; text-decoration:none;' href='<%=Model.Crash.GetDumpUrl() %>'><img src="../../Content/Images/Icons/miniDump.png" style="height:20px;border:none;" />&nbsp;MiniDump</a>
+						<a style='text-decoration:none;' href='<%=Model.Crash.GetDumpUrl() %>'><img src="../../Content/Images/Icons/miniDump.png" style="height:20px;border:none;" />&nbsp;MiniDump</a>
 						<%
 					} %>
 				</dd>
@@ -135,7 +135,7 @@
 				<dd>
 					<%if( Model.Crash.HasVideoFile.HasValue && Model.Crash.HasVideoFile.Equals( true ) ) 
 					{ %>
-						<a id="VideoLink" style="font-size:large;text-decoration:none;" href='<%=Model.Crash.GetVideoUrl() %>'><img src="../../Content/Images/Icons/video.png" style="height:20px;border:none;" />&nbsp;Video</a>
+						<a id="VideoLink" style="text-decoration:none;" href='<%=Model.Crash.GetVideoUrl() %>'><img src="../../Content/Images/Icons/video.png" style="height:20px;border:none;" />&nbsp;Video</a>
 						<%
 					} %>
 				</dd>
@@ -143,7 +143,7 @@
 				<dd>
 					<%if( Model.Crash.HasDiagnosticsFile.HasValue && Model.Crash.HasDiagnosticsFile.Equals( true ) ) 
 					{ %>
-						<a id="A1" style="font-size:large;text-decoration:none;" href='<%=Model.Crash.GetDiagnosticsUrl() %>'><img src="../../Content/Images/Icons/log.png" style="height:20px;border:none;" />&nbsp;Diags</a>
+						<a id="A1" style="text-decoration:none;" href='<%=Model.Crash.GetDiagnosticsUrl() %>'><img src="../../Content/Images/Icons/log.png" style="height:20px;border:none;" />&nbsp;Diags</a>
 						<%
 					} %>
 				</dd>
@@ -151,7 +151,7 @@
 				<dd>
 					<%if( Model.Crash.HasMetaData.HasValue && Model.Crash.HasMetaData.Equals( true ) ) 
 					{ %>
-						<a id="A2" style="font-size:large;text-decoration:none;" href='<%=Model.Crash.GetMetaDataUrl() %>'><img src="../../Content/Images/Icons/log.png" style="height:20px;border:none;" />&nbsp;WERInfo</a>
+						<a id="A2" style="text-decoration:none;" href='<%=Model.Crash.GetMetaDataUrl() %>'><img src="../../Content/Images/Icons/log.png" style="height:20px;border:none;" />&nbsp;WERInfo</a>
 						<%
 					} %>
 				</dd>
@@ -162,7 +162,7 @@
 
 			<dt>Time of Crash</dt> 
 				<dd class='even'>
-				<%=Model.Crash.GetTimeOfCrash()[0] %><br />
+				<%=Model.Crash.GetTimeOfCrash()[0] %>
 				<%=Model.Crash.GetTimeOfCrash()[1] %>
 
 			<dt>Crash type</dt> 

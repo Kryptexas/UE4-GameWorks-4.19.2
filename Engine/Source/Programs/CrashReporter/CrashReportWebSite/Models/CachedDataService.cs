@@ -68,7 +68,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// </summary>
 		/// <param name="CurrentCrash">The crash to retrieve the parsed callstack for.</param>
 		/// <returns>A parsed callstack.</returns>
-		public CallStackContainer GetCallStack( Crash CurrentCrash )
+		public CallStackContainer GetCallStackFast( Crash CurrentCrash )
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(CrashId=" + CurrentCrash.Id + ")" ) )
 			{
@@ -82,38 +82,6 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				}
 
 				return CallStack;
-			}
-		}
-
-		/// <summary>
-		/// Retrieve a list of function call names from an encoded pattern. This is either from the cache, or from the database and then added to the cache.
-		/// </summary>
-		/// <param name="Pattern">A callstack pattern in the form '1+3+34+2'.</param>
-		/// <returns>A list of function names.</returns>
-		public List<string> GetFunctionCalls( string Pattern )
-		{
-			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Count=" + CacheInstance.Count + ")" ) )
-			{
-				string Key = CacheKeyPrefix + FunctionCallKeyPrefix + Pattern;
-				List<string> FunctionCalls = (List<string>)CacheInstance[Key];
-				if( FunctionCalls == null )
-				{
-					string[] Ids = Pattern.Split( "+".ToCharArray(), StringSplitOptions.RemoveEmptyEntries );
-					List<int> IdList = new List<int>();
-					foreach( string id in Ids )
-					{
-						int i;
-						if( int.TryParse( id, out i ) )
-						{
-							IdList.Add( i );
-						}
-					}
-
-					FunctionCalls = Buggs.GetFunctionCalls( IdList );
-					CacheInstance.Insert( Key, FunctionCalls );
-				}
-
-				return FunctionCalls;
 			}
 		}
 	}

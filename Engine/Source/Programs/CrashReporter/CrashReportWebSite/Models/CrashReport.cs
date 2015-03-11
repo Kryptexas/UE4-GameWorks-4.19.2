@@ -7,6 +7,7 @@ using System;
 using System.Data.Linq;
 using System.Diagnostics;
 using Tools.DotNETCommon;
+using System.Web;
 
 namespace Tools.CrashReporter.CrashReportWebSite.Models
 {
@@ -65,6 +66,11 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 	/// </summary>
 	public partial class Bugg
 	{
+		/// <summary>
+		/// Marked used in the form to identify that we will add this bugg to JIRA.
+		/// </summary>
+		public static string JiraSubmitName = "CopyToJira-";
+
 		/// <summary></summary>
 		public int CrashesInTimeFrameGroup { get; set; }
 
@@ -108,24 +114,185 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		public string JiraFixCL { get; set; }
 
 		/// <summary>The CL of the oldest build when this bugg is occurring</summary>
-		public int ToJiraFirstCLAffected { get; set; }
+		int ToJiraFirstCLAffected { get; set; }
 
 		/// <summary>The first line of the callstack</summary>
-		public string ToJiraSummary { get; set; }
+		string ToJiraSummary = "";
 
 		/// <summary>Branches in JIRA</summary>
-		public List<object> ToJiraBranches { get; set; }
+		List<object> ToJiraBranches = null;
 
 		/// <summary>Versions in JIRA</summary>
-		public List<object> ToJiraVersions { get; set; }
+		List<object> ToJiraVersions = null;
 
 		/// <summary>Platforms in JIRA</summary>
-		public List<object> ToJiraPlatforms { get; set; }
+		List<object> ToJiraPlatforms = null;
+
+		List<string> ToJiraDescriptions = new List<string>();
+
+		List<string> ToJiraFunctionCalls = null;
 
 		/// <summary> Helper method, display this Bugg as a human readable string. Debugging purpose. </summary>
 		public override string ToString()
 		{
 			return string.Format( "Id={0} NOC={1} TLC={2} BV={3} Pattern={4}", Id, NumberOfCrashes, TimeOfLastCrash, BuildVersion, Pattern != null ? Pattern.Length : 0 );
+		}
+
+		/// <summary>
+		/// Prepares Bugg for JIRA
+		/// </summary>
+		/// <param name="CrashesForBugg"></param>
+		public void PrepareBuggForJira( List<Crash> CrashesForBugg )
+		{
+			var JC = JiraConnection.Get();
+
+			this.AffectedVersions = new SortedSet<string>();
+			this.AffectedMajorVersions = new SortedSet<string>(); // 4.4, 4.5 and so
+			this.BranchesFoundIn = new SortedSet<string>();
+			this.AffectedPlatforms = new SortedSet<string>();
+			var HashSetDecsriptions = new HashSet<string>();
+
+			HashSet<string> MachineIds = new HashSet<string>();
+			int FirstCLAffected = int.MaxValue;
+
+			foreach( var Crash in CrashesForBugg )
+			{
+				// Only add machine if the number has 32 characters
+				if( Crash.MachineID != null && Crash.MachineID.Length == 32 )
+				{
+					MachineIds.Add( Crash.MachineID );
+
+					// Sent in the unattended mode 29 char
+					if( Crash.Description.Length > 32 )
+					{
+						HashSetDecsriptions.Add( Crash.Description );
+					}
+				}
+
+				// Ignore bad build versions.
+				// @TODO yrx 2015-02-17 What about launcher?
+				if( Crash.BuildVersion.StartsWith( "4." ) )
+				{
+					if( !string.IsNullOrEmpty( Crash.BuildVersion ) )
+					{
+						this.AffectedVersions.Add( Crash.BuildVersion );
+					}
+					if( !string.IsNullOrEmpty( Crash.Branch ) && Crash.Branch.StartsWith( "UE4" ) )
+					{
+						this.BranchesFoundIn.Add( Crash.Branch );
+					}
+
+					int CrashBuiltFromCL = 0;
+					int.TryParse( Crash.BuiltFromCL, out CrashBuiltFromCL );
+					if( CrashBuiltFromCL > 0 )
+					{
+						FirstCLAffected = Math.Min( FirstCLAffected, CrashBuiltFromCL );
+					}
+
+					if( !string.IsNullOrEmpty( Crash.Platform ) )
+					{
+						// Platform = "Platform [Desc]";
+						var PlatSubs = Crash.Platform.Split( " ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries );
+						if( PlatSubs.Length >= 1 )
+						{
+							this.AffectedPlatforms.Add( PlatSubs[0] );
+						}
+					}
+				}
+			}
+
+			// CopyToJira 
+			foreach( var Line in HashSetDecsriptions )
+			{
+				string ListItem = "- " + HttpUtility.HtmlEncode( Line );
+				ToJiraDescriptions.Add( ListItem );
+			}
+			
+			this.ToJiraFirstCLAffected = FirstCLAffected;
+
+			if( this.AffectedVersions.Count > 0 )
+			{
+				this.BuildVersion = this.AffectedVersions.Last();	// Latest Version Affected
+			}
+
+
+			foreach( var AffectedBuild in this.AffectedVersions )
+			{
+				var Subs = AffectedBuild.Split( ".".ToCharArray(), StringSplitOptions.RemoveEmptyEntries );
+				if( Subs.Length >= 2 )
+				{
+					string MajorVersion = Subs[0] + "." + Subs[1];
+					this.AffectedMajorVersions.Add( MajorVersion );
+				}
+			}
+
+			string BV = this.BuildVersion;
+			this.NumberOfUniqueMachines = MachineIds.Count;		// # Affected Users
+			string LatestCLAffected = CrashesForBugg.				// CL of the latest build
+				Where( Crash => Crash.BuildVersion == BV ).
+				Max( Crash => Crash.BuiltFromCL );
+
+			int ILatestCLAffected = -1;
+			int.TryParse( LatestCLAffected, out ILatestCLAffected );
+			this.LatestCLAffected = ILatestCLAffected;			// Latest CL Affected
+
+			string LatestOSAffected = CrashesForBugg.OrderByDescending( Crash => Crash.TimeOfCrash ).First().Platform;
+			this.LatestOSAffected = LatestOSAffected;			// Latest Environment Affected
+
+			// ToJiraSummary
+			var FunctionCalls = this.GetFunctionCalls();
+			if( FunctionCalls.Count > 0 )
+			{
+				this.ToJiraSummary = FunctionCalls[0];
+				this.ToJiraFunctionCalls = FunctionCalls;
+			}
+			else
+			{
+				this.ToJiraSummary = "No valid callstack found"; 
+			}
+
+// 			Crash NewCrash = CrashesForBugg.FirstOrDefault();
+// 			if( NewCrash != null )
+// 			{
+// 				CallStackContainer CallStack = NewCrash.GetCallStack();
+// 				this.ToJiraSummary = CallStack.CallStackEntries.Count > 1 ? CallStack.CallStackEntries[0].FunctionName : "No valid callstack found";
+// 				this.ToJiraFunctionCalls = CallStack.GetFunctionCalls();
+// 			}
+
+			// ToJiraVersions
+			this.ToJiraVersions = new List<object>();
+			foreach( var Version in this.AffectedMajorVersions )
+			{
+				bool bValid = JC.GetNameToVersions().ContainsKey( Version );
+				if( bValid )
+				{
+					this.ToJiraVersions.Add( JC.GetNameToVersions()[Version] );
+				}
+			}
+
+			// ToJiraBranches
+			this.ToJiraBranches = new List<object>();
+			foreach( var Platform in this.BranchesFoundIn )
+			{
+				string CleanedBranch = Platform.Contains( "UE4-Releases" ) ? "UE4-Releases" : Platform;
+				Dictionary<string, object> JiraBranch = null;
+				JC.GetNameToBranchFoundIn().TryGetValue( CleanedBranch, out JiraBranch );
+				if( JiraBranch != null && !this.ToJiraBranches.Contains( JiraBranch ) )
+				{
+					this.ToJiraBranches.Add( JiraBranch );
+				}
+			}
+
+			// ToJiraPlatforms
+			this.ToJiraPlatforms = new List<object>();
+			foreach( var Platform in this.AffectedPlatforms )
+			{
+				bool bValid = JC.GetNameToPlatform().ContainsKey( Platform );
+				if( bValid )
+				{
+					this.ToJiraPlatforms.Add( JC.GetNameToPlatform()[Platform] );
+				}
+			}
 		}
 
 		/// <summary>
@@ -139,7 +306,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				Dictionary<string, object> Fields = new Dictionary<string, object>();
 				Fields.Add( "project", new Dictionary<string, object> { { "id", 11205 } } );	// UE
 				Fields.Add( "summary", "[CrashReport] " + ToJiraSummary );						// Call Stack, Line 1
-				Fields.Add( "description", "____________" );									// Description
+				Fields.Add( "description", string.Join( "\r\n", ToJiraDescriptions ) );			// Description
 				Fields.Add( "issuetype", new Dictionary<string, object> { { "id", "1" } } );	// Bug
 				Fields.Add( "labels", new string[] { "crash" } );								// <label>crash</label>
 				Fields.Add( "customfield_11500", ToJiraFirstCLAffected );						// Changelist # / Found Changelist
@@ -159,8 +326,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				Fields.Add( "customfield_11203", ToJiraPlatforms );
 
 				// Callstack customfield_11807
-				var Callstack = GetFunctionCalls();
-				string JiraCallstack = string.Join( "\r\n", Callstack );
+				string JiraCallstack = string.Join( "\r\n", ToJiraFunctionCalls );
 				Fields.Add( "customfield_11807", JiraCallstack );								// Callstack
 
 				string BuggLink = "http://crashreporter/Buggs/Show/" + Id;
@@ -185,7 +351,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			string Tooltip = NL;
 			Tooltip += "Project: UE" + NL;
 			Tooltip += "Summary: " + ToJiraSummary + NL;
-			Tooltip += "Description: " + "____________" + NL;
+			Tooltip += "Description: " + NL + string.Join( NL, ToJiraDescriptions ) + NL;
 			Tooltip += "Issuetype: " + "1 (bug)" + NL;
 			Tooltip += "Labels: " + "crash" + NL;
 			Tooltip += "Changelist # / Found Changelist: " + ToJiraFirstCLAffected + NL;
@@ -203,8 +369,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			string JiraPlatforms = GetFieldsFrom( ToJiraPlatforms, "value" );
 			Tooltip += "JiraPlatforms: " + JiraPlatforms + NL;
 
-			var Callstack = GetFunctionCalls();
-			string JiraCallstack = "Callstack:" + NL + string.Join( NL, Callstack ) + NL;
+			string JiraCallstack = "Callstack:" + NL + string.Join( NL, ToJiraFunctionCalls ) + NL;
 			Tooltip += JiraCallstack;
 
 			return Tooltip;
@@ -238,14 +403,17 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns></returns>
 		public List<Crash> GetCrashes()
 		{
-			CrashRepository CrashRepo = new CrashRepository();
-			var CrashList =
-			(
-					from BuggCrash in CrashRepo.Context.Buggs_Crashes
-					where BuggCrash.BuggId == Id
-					select BuggCrash.Crash
-			).AsEnumerable().ToList();
-			return CrashList;
+			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() ) )
+			{
+				CrashRepository CrashRepo = new CrashRepository();
+				var CrashList =
+				(
+						from BuggCrash in CrashRepo.Context.Buggs_Crashes
+						where BuggCrash.BuggId == Id
+						select BuggCrash.Crash
+				).ToList();
+				return CrashList;
+			}
 		}
 
 		/// <summary></summary>
@@ -314,9 +482,27 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		{
 			using( FAutoScopedLogTimer LogTimer = new FAutoScopedLogTimer( this.GetType().ToString() + "(Id=" + this.Id + ")" ) )
 			{
-				BuggRepository Buggs = new BuggRepository();
-				List<string> Results = Buggs.GetFunctionCalls( Pattern );
-				return Results;
+				if( ToJiraFunctionCalls == null )
+				{
+					CrashRepository CrashRepo = new CrashRepository();
+
+					var Crash =
+					(
+						from BuggCrash in CrashRepo.Context.Buggs_Crashes
+						where BuggCrash.BuggId == Id
+						select BuggCrash.Crash
+					).FirstOrDefault();
+
+					if( Crash != null )
+					{
+						ToJiraFunctionCalls = Crash.GetCallStack().GetFunctionCalls();
+					}
+					else
+					{
+						ToJiraFunctionCalls = new List<string>();
+					}
+				}
+				return ToJiraFunctionCalls;
 			}
 		}
 	}
@@ -474,8 +660,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				var FunctionCalls = Context.FunctionCalls;
 
 				// Get an array of callstack items
-				CallStackContainer CallStack = new CallStackContainer( this );
-				CallStack.bDisplayFunctionNames = true;
+				CallStackContainer CallStack = GetCallStack();
 
 				if( Pattern == null )
 				{
@@ -512,7 +697,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 					}
 					catch( Exception Ex )
 					{
-						FLogger.WriteException( "BuildPattern: " + Ex.ToString() );
+						FLogger.Global.WriteException( "BuildPattern: " + Ex.ToString() );
 					}
 				}
 			}
@@ -558,6 +743,98 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 			Buggs_Crashes.Remove( BuggCrash );
 
 			SendPropertyChanged( null );
+		}
+
+		// Extensions.
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public int ID
+		{
+			get
+			{
+				return this.Id;
+			}
+			set
+			{
+				this.Id = value;
+			}
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public string JIRA
+		{
+			get
+			{
+				return this.TTPID;
+			}
+			set
+			{
+				this.TTPID = value;
+			}
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public string Platform
+		{
+			get
+			{
+				return this.PlatformName;
+			}
+			set
+			{
+				this.PlatformName = value;
+			}
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public string FixCL
+		{
+			get
+			{
+				return this.FixedChangeList;
+			}
+			set
+			{
+				this.FixedChangeList = value;
+			}
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public string MachineID
+		{
+			get
+			{
+				return this.ComputerName;
+			}
+			set
+			{
+				this.ComputerName = value;
+			}
+		}
+
+		/// <summary>
+		/// 
+		/// </summary>
+		public string BuiltFromCL
+		{
+			get
+			{
+				return this.ChangeListVersion;
+			}
+			set
+			{
+				this.ChangeListVersion = value;
+			}
 		}
 	}
 }

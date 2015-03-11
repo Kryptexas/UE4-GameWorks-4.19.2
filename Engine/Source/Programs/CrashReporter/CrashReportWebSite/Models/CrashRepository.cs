@@ -106,7 +106,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 				}
 				catch( Exception Ex )
 				{
-					FLogger.WriteException( "PopulateUserInfo: " + Ex.ToString() );
+					FLogger.Global.WriteException( "PopulateUserInfo: " + Ex.ToString() );
 				}
 			}
 		}
@@ -548,7 +548,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		public CallStackContainer GetCallStack( Crash CrashInstance )
 		{
 			CachedDataService CachedResults = new CachedDataService( HttpContext.Current.Cache, this );
-			return CachedResults.GetCallStack( CrashInstance );
+			return CachedResults.GetCallStackFast( CrashInstance );
 		}	
 
 		/// <summary> 

@@ -447,5 +447,16 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 
 			return FormattedCallStack.ToString();
 		}
+
+		/// <returns>A list of functions calls.</returns>
+		public List<string> GetFunctionCalls()
+		{
+			var Result = new List<string>();
+			foreach( CallStackEntry CurrentEntry in CallStackEntries )
+			{
+				Result.Add( CurrentEntry.FunctionName );
+			}
+			return Result;
+		}
 	}
 }

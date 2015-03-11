@@ -105,16 +105,16 @@
 			<dd><%=Model.Bugg.GetAffectedVersions()%></dd>
 			
 		<dt>Time of Latest Crash</dt> 
-			<dd class='even' style='width:8em'><%=Model.Bugg.TimeOfLastCrash%></dd>
+			<dd class='even'><%=Model.Bugg.TimeOfLastCrash%></dd>
 
 		<dt>Time of First Crash</dt>
-			<dd style='width:8em'><%=Model.Bugg.TimeOfFirstCrash%></dd>
+			<dd><%=Model.Bugg.TimeOfFirstCrash%></dd>
 
 		<dt>Bugg life span</dt>
-			<dd style='width:8em'><%=Model.Bugg.GetLifeSpan()%></dd>
+			<dd><%=Model.Bugg.GetLifeSpan()%></dd>
 
 		<dt>Crash type</dt> 
-			<dd class='even' style='width:8em'><%=Model.Bugg.GetCrashTypeAsString()%></dd>
+			<dd class='even'><%=Model.Bugg.GetCrashTypeAsString()%></dd>
 
 		<dt>Number of Users</dt>
 			<dd class='even'><%=Html.DisplayFor( m => Model.Bugg.NumberOfUsers )%></dd>
@@ -126,15 +126,59 @@
 			<dd ><%=Html.DisplayFor( m => Model.Bugg.NumberOfCrashes )%></dd>
 
 		<dt>JIRA</dt>
-			<%--<dd class='even'><%=Html.DisplayFor( m => Model.Bugg.TTPID )%></dd>--%>
-			<dd class='even'><a href="https://jira.ol.epicgames.net/browse/<%=Model.Bugg.TTPID%>" target="_blank"><%=Model.Bugg.TTPID%></a></dd>
+
+		<%using( Html.BeginForm( "Show", "Buggs" ) )
+		{	%>
+
+			<%if( string.IsNullOrEmpty( Model.Bugg.TTPID ) )
+			{ %>
+				<dd class='even'>
+					<input type="submit" value="CopyToJira" title="<%=Model.Bugg.ToTooltip()%>" id="id <%=Model.Bugg.Id%>" name="CopyToJira-<%=Model.Bugg.Id%>" class="CopyToJiraStyle" />
+				</dd>
+			<% } else { %>
+				<dd class='even'>
+					<a href="https://jira.ol.epicgames.net/browse/<%=Model.Bugg.TTPID%>" target="_blank"><%=Model.Bugg.TTPID%></a>
+				</dd>
+			<% } %>
+
+		<%} %>
 
 		<dt>Status</dt>
 			<dd ><%=Html.DisplayFor( m => Model.Bugg.Status )%></dd>
 
 		<dt>Fixed Change List</dt>
 			<dd class='even'><%=Html.DisplayFor( m => Model.Bugg.FixedChangeList )%></dd>
-		</dl>
+		
+		<%--JIRA--%>
+		<dt>&nbsp;</dt>
+		<dt style="font-style:italic">*FROM JIRA*</dt>
+
+		<dt style="font-style:italic">Summary</dt>
+			<dd style="max-width: 210px;word-wrap: break-word;font-style:italic;"><small><%=Model.Bugg.JiraSummary%></small></dd>
+
+		<dt style="font-style:italic">Components</dt>
+			<dd style="font-style:italic"><%=Model.Bugg.JiraComponentsText%></dd>
+
+		<dt style="font-style:italic">Resolution</dt>
+			<dd style="font-style:italic"><%=Model.Bugg.JiraResolution%></dd>
+
+		<dt style="font-style:italic">Fix Versions</dt>
+			<dd style="font-style:italic"><%=Model.Bugg.JiraFixVersionsText%></dd>
+
+		<dt style="font-style:italic">Fix CL</dt>
+		<%if( !string.IsNullOrEmpty( Model.Bugg.JiraFixCL ) )
+		{ %>
+			<dd style="background-color:blue;font-style:italic;">
+				<%=Model.Bugg.JiraFixCL%>
+			</dd>
+		<%}
+		else
+		{%>
+			<dd></dd>
+		<%} %>
+
+
+	</dl>
 	</div>
 
 	<div id="CallStackContainer" >
@@ -223,10 +267,10 @@
 					<th style='width: 12em;'><%=Url.TableHeader( "CallStack", "RawCallStack", Model )%></th>
 					<th>Description</th>
 				</tr>
-				<%if( Model.Crashes.ToList() != null )
+				<%if( Model.Crashes != null )
 				{
 					int IterationCount = 0;
-					foreach( Crash CrashInstance in ( IEnumerable )Model.Crashes )
+					foreach( Crash CrashInstance in Model.Crashes )
 					{
 						IterationCount++;%>
 			

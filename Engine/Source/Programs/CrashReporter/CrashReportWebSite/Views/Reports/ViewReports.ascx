@@ -17,28 +17,6 @@ table, table tr, table th, table td
 	font-size: 12px;
 }
 
-.CopyToJiraStyle
-{
-	/*padding: 0;*/
-
-	cursor:pointer;
-
-	border: solid;
-	border-width: 1px;
-
-	color: white;
-	background-color: black;
-
-	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-	font-size: 12px;
-
-}
-
-.CopyToJiraStyle:hover
-{
-	color: blue;
-}
-
 </style>
 	
 <body>
@@ -135,7 +113,7 @@ table, table tr, table th, table td
 		<%if( string.IsNullOrEmpty( Bugg.TTPID ) && !string.IsNullOrEmpty(Bugg.Pattern ) )
 		{ %>
 			<td>
-				<input type="submit" value="CopyToJira" title="<%=Bugg.ToTooltip()%>" id="id <%=Bugg.Id%>" name="<%=Bugg.Id%>" class="CopyToJiraStyle" />
+				<input type="submit" value="CopyToJira" title="<%=Bugg.ToTooltip()%>" id="id <%=Bugg.Id%>" name="CopyToJira-<%=Bugg.Id%>" class="CopyToJiraStyle" />
 			</td>
 		<% } else if( string.IsNullOrEmpty( Bugg.TTPID ) && string.IsNullOrEmpty(Bugg.Pattern ) )
 		{ %>
