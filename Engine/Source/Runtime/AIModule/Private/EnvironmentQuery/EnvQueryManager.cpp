@@ -179,10 +179,13 @@ TSharedPtr<FEnvQueryResult> UEnvQueryManager::RunInstantQuery(const FEnvQueryReq
 		return NULL;
 	}
 
+	RegisterExternalQuery(QueryInstance);
 	while (QueryInstance->IsFinished() == false)
 	{
 		QueryInstance->ExecuteOneStep((double)FLT_MAX);
 	}
+
+	UnregisterExternalQuery(QueryInstance);
 
 	UE_VLOG_EQS(*QueryInstance.Get(), LogEQS, All);
 
@@ -313,6 +316,16 @@ void UEnvQueryManager::OnWorldCleanup()
 			}
 		}
 	}
+}
+
+void UEnvQueryManager::RegisterExternalQuery(TSharedPtr<FEnvQueryInstance> QueryInstance)
+{
+	ExternalQueries.Add(QueryInstance->QueryID, QueryInstance);
+}
+
+void UEnvQueryManager::UnregisterExternalQuery(TSharedPtr<FEnvQueryInstance> QueryInstance)
+{
+	ExternalQueries.Remove(QueryInstance->QueryID);
 }
 
 namespace EnvQueryTestSort
@@ -570,13 +583,25 @@ float UEnvQueryManager::FindNamedParam(int32 QueryId, FName ParamName) const
 {
 	float ParamValue = 0.0f;
 
-	for (int32 QueryIndex = 0; QueryIndex < RunningQueries.Num(); QueryIndex++)
+	const TWeakPtr<FEnvQueryInstance>* QueryInstancePtr = ExternalQueries.Find(QueryId);
+	if (QueryInstancePtr)
 	{
-		const TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[QueryIndex];
-		if (QueryInstance->QueryID == QueryId)
+		TSharedPtr<FEnvQueryInstance> QueryInstance = (*QueryInstancePtr).Pin();
+		if (QueryInstance.IsValid())
 		{
 			ParamValue = QueryInstance->NamedParams.FindRef(ParamName);
-			break;
+		}
+	}
+	else
+	{
+		for (int32 QueryIndex = 0; QueryIndex < RunningQueries.Num(); QueryIndex++)
+		{
+			const TSharedPtr<FEnvQueryInstance>& QueryInstance = RunningQueries[QueryIndex];
+			if (QueryInstance->QueryID == QueryId)
+			{
+				ParamValue = QueryInstance->NamedParams.FindRef(ParamName);
+				break;
+			}
 		}
 	}
 

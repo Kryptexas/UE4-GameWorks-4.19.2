@@ -184,6 +184,7 @@ void AEQSTestingPawn::MakeOneStep()
 		FEnvQueryRequest QueryRequest(QueryTemplate, this);
 		QueryRequest.SetNamedParams(QueryParams);
 		QueryInstance = EQS->PrepareQueryInstance(QueryRequest, QueryingMode);
+		EQS->RegisterExternalQuery(QueryInstance);
 	}
 
 	// possible still not valid 

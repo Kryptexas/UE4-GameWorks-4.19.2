@@ -153,6 +153,12 @@ class AIMODULE_API UEnvQueryManager : public UObject, public FTickableGameObject
 	/** cleanup hooks for map loading */
 	virtual void FinishDestroy() override;
 
+	/** add information for data providers about query instance run independently */
+	void RegisterExternalQuery(TSharedPtr<FEnvQueryInstance> QueryInstance);
+
+	/** clear information about query instance run independently */
+	void UnregisterExternalQuery(TSharedPtr<FEnvQueryInstance> QueryInstance);
+
 	/** list of all known item types */
 	static TArray<TSubclassOf<UEnvQueryItemType> > RegisteredItemTypes;
 
@@ -172,6 +178,9 @@ protected:
 
 	/** currently running queries */
 	TArray<TSharedPtr<FEnvQueryInstance> > RunningQueries;
+
+	/** queries run independently from manager, mapped here for data providers */
+	TMap<int32, TWeakPtr<FEnvQueryInstance>> ExternalQueries;
 
 	/** cache of instances */
 	UPROPERTY(transient)
