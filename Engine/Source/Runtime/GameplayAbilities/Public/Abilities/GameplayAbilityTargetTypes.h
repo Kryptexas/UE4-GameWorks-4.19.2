@@ -611,7 +611,13 @@ namespace EAbilityGenericReplicatedEvent
 		/** A generic event from the client */
 		GenericSignalFromClient,
 		/** A generic event from the server */
-		GenericSignalFromServer,		
+		GenericSignalFromServer,
+		/** Custom events for game use */
+		GameCustom1,
+		GameCustom2,
+		GameCustom3,
+		GameCustom4,
+		GameCustom5,
 
 		MAX
 	};

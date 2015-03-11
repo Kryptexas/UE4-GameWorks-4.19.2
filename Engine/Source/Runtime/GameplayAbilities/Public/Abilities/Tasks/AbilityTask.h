@@ -173,3 +173,19 @@ struct FAbilityInstanceNamePredicate
 
 	FName InstanceName;
 };
+
+
+struct FAbilityInstanceClassPredicate
+{
+	FAbilityInstanceClassPredicate(TSubclassOf<UAbilityTask> Class)
+	{
+		TaskClass = Class;
+	}
+
+	bool operator()(const TWeakObjectPtr<UAbilityTask> A) const
+	{
+		return (A.IsValid() && (A.Get()->GetClass() == TaskClass));
+	}
+
+	TSubclassOf<UAbilityTask> TaskClass;
+};
