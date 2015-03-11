@@ -849,7 +849,7 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 		FVector RecastHandPlacedPathEnd;
 		NavQuery.closestPointOnPolyBoundary(StartPolyID, &RecastEndPos.X, &RecastHandPlacedPathEnd.X);
 
-		new(Path.GetPathPoints()) FNavPathPoint(StartLoc, StartPolyID);
+		new(Path.GetPathPoints()) FNavPathPoint(Recast2UnrVector(&RecastStartPos.X), StartPolyID);
 		new(Path.GetPathPoints()) FNavPathPoint(Recast2UnrVector(&RecastHandPlacedPathEnd.X), StartPolyID);
 
 		Path.PathCorridor.Add(PathResult.getRef(0));
@@ -858,7 +858,7 @@ ENavigationQueryResult::Type FPImplRecastNavMesh::FindPath(const FVector& StartL
 	else
 	{
 		PostProcessPath(FindPathStatus, Path, NavQuery, QueryFilter,
-			StartPolyID, EndPolyID, StartLoc, EndLoc, RecastStartPos, RecastEndPos,
+			StartPolyID, EndPolyID, Recast2UnrVector(&RecastStartPos.X), Recast2UnrVector(&RecastEndPos.X), RecastStartPos, RecastEndPos,
 			PathResult);
 	}
 
@@ -939,11 +939,11 @@ bool FPImplRecastNavMesh::InitPathfinding(const FVector& UnrealStart, const FVec
 	const FVector& NavExtent = NavMeshOwner->GetDefaultQueryExtent();
 	const float Extent[3] = { NavExtent.X, NavExtent.Z, NavExtent.Y };
 
-	RecastStart = Unreal2RecastPoint(UnrealStart);
-	RecastEnd = Unreal2RecastPoint(UnrealEnd);
+	const FVector RecastStartToProject = Unreal2RecastPoint(UnrealStart);
+	const FVector RecastEndToProject = Unreal2RecastPoint(UnrealEnd);
 
 	StartPoly = INVALID_NAVNODEREF;
-	Query.findNearestPoly(&RecastStart.X, Extent, Filter, &StartPoly, NULL);
+	Query.findNearestPoly(&RecastStartToProject.X, Extent, Filter, &StartPoly, &RecastStart.X);
 	if (StartPoly == INVALID_NAVNODEREF)
 	{
 		UE_VLOG(NavMeshOwner, LogNavigation, Warning, TEXT("FPImplRecastNavMesh::InitPathfinding start point not on navmesh"));
@@ -955,7 +955,7 @@ bool FPImplRecastNavMesh::InitPathfinding(const FVector& UnrealStart, const FVec
 	}
 
 	EndPoly = INVALID_NAVNODEREF;
-	Query.findNearestPoly(&RecastEnd.X, Extent, Filter, &EndPoly, NULL);
+	Query.findNearestPoly(&RecastEndToProject.X, Extent, Filter, &EndPoly, &RecastEnd.X);
 	if (EndPoly == INVALID_NAVNODEREF)
 	{
 		UE_VLOG(NavMeshOwner, LogNavigation, Warning, TEXT("FPImplRecastNavMesh::InitPathfinding end point not on navmesh"));
