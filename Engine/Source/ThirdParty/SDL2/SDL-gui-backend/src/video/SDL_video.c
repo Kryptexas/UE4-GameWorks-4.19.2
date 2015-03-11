@@ -1751,7 +1751,7 @@ SDL_SetWindowMinimumSize(SDL_Window * window, int min_w, int min_h)
 int
 SDL_GetWindowBordersSize(SDL_Window * window, SDL_Rect * borders)
 {
-    CHECK_WINDOW_MAGIC(window, );
+    CHECK_WINDOW_MAGIC(window, -1);
     /* Always initialize, so applications don't have to care */
     if (borders) {
         borders->x = 0;
