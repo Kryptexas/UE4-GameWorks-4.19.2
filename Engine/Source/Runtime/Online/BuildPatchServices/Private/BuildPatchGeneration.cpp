@@ -1268,17 +1268,12 @@ bool FBuildDataGenerator::GenerateChunksManifestFromDirectory( const FBuildPatch
 	}
 
 	// Save manifest into the cloud directory
-	FString BaseFilename = FBuildPatchServicesModule::GetCloudDirectory() / FDefaultValueHelper::RemoveWhitespaces(BuildManifest->Data->AppName + BuildManifest->Data->BuildVersion);
-	FString JsonFilename = BaseFilename + TEXT(".manifest");
-	FString BinaryFilename = BaseFilename + TEXT(".binary.manifest");
+	FString JsonFilename = FBuildPatchServicesModule::GetCloudDirectory() / FDefaultValueHelper::RemoveWhitespaces(BuildManifest->Data->AppName + BuildManifest->Data->BuildVersion) + TEXT(".manifest");
 	BuildManifest->Data->ManifestFileVersion = EBuildPatchAppManifestVersion::GetLatestJsonVersion();
 	BuildManifest->SaveToFile(JsonFilename, false);
-	BuildManifest->Data->ManifestFileVersion = EBuildPatchAppManifestVersion::GetLatestVersion();
-	BuildManifest->SaveToFile(BinaryFilename, true);
 
 	// Output to log for builder info
 	GLog->Logf(TEXT("Saved manifest to %s"), *JsonFilename);
-	GLog->Logf(TEXT("Saved manifest to %s"), *BinaryFilename);
 
 	// Clean up memory
 	delete[] DataBuffer;
@@ -1416,17 +1411,12 @@ bool FBuildDataGenerator::GenerateFilesManifestFromDirectory( const FBuildPatchS
 	}
 
 	// Save manifest into the cloud directory
-	FString BaseFilename = FBuildPatchServicesModule::GetCloudDirectory() / FDefaultValueHelper::RemoveWhitespaces(BuildManifest->Data->AppName + BuildManifest->Data->BuildVersion);
-	FString JsonFilename = BaseFilename + TEXT(".manifest");
-	FString BinaryFilename = BaseFilename + TEXT(".binary.manifest");
+	FString JsonFilename = FBuildPatchServicesModule::GetCloudDirectory() / FDefaultValueHelper::RemoveWhitespaces(BuildManifest->Data->AppName + BuildManifest->Data->BuildVersion) + TEXT(".manifest");
 	BuildManifest->Data->ManifestFileVersion = EBuildPatchAppManifestVersion::GetLatestJsonVersion();
 	BuildManifest->SaveToFile(JsonFilename, false);
-	BuildManifest->Data->ManifestFileVersion = EBuildPatchAppManifestVersion::GetLatestVersion();
-	BuildManifest->SaveToFile(BinaryFilename, true);
 
 	// Output to log for builder info
 	GLog->Logf(TEXT("Saved manifest to %s"), *JsonFilename);
-	GLog->Logf(TEXT("Saved manifest to %s"), *BinaryFilename);
 
 	// Clean up memory
 	delete[] FileReadBuffer;
