@@ -651,6 +651,8 @@ void UBlueprintGeneratedClass::Link(FArchive& Ar, bool bRelinkExistingProperties
 
 	if (UsePersistentUberGraphFrame() && UberGraphFunction)
 	{
+		Ar.Preload(UberGraphFunction);
+
 		for (auto Property : TFieldRange<UStructProperty>(this, EFieldIteratorFlags::ExcludeSuper))
 		{
 			if (Property->GetFName() == GetUberGraphFrameName())
