@@ -35,6 +35,7 @@ const FDateTime AndroidEpoch(1970, 1, 1);
 
 
 // AndroidProcess uses this for executable name
+FString GAndroidProjectName;
 FString GPackageName;
 static int32 GPackageVersion = 0;
 static int32 GPackagePatchVersion = 0;
@@ -51,15 +52,18 @@ extern jobject AndroidJNI_GetJavaAssetManager();
 extern AAssetManager * AndroidThunkCpp_GetAssetManager();
 
 //This function is declared in the Java-defined class, GameActivity.java: "public native void nativeSetObbInfo(String PackageName, int Version, int PatchVersion);"
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetObbInfo(JNIEnv* jenv, jobject thiz, jstring PackageName, jint Version, jint PatchVersion)
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeSetObbInfo(JNIEnv* jenv, jobject thiz, jstring ProjectName, jstring PackageName, jint Version, jint PatchVersion)
 {
-	const char* JavaChars = jenv->GetStringUTFChars(PackageName, 0);
-	GPackageName = UTF8_TO_TCHAR(JavaChars);
+	const char* JavaProjectChars = jenv->GetStringUTFChars(ProjectName, 0);
+	GAndroidProjectName = UTF8_TO_TCHAR(JavaProjectChars);
+	const char* JavaPackageChars = jenv->GetStringUTFChars(PackageName, 0);
+	GPackageName = UTF8_TO_TCHAR(JavaPackageChars);
 	GPackageVersion = Version;
 	GPackagePatchVersion = PatchVersion;
 
-	//Release the string
-	jenv->ReleaseStringUTFChars(PackageName, JavaChars);
+	//Release the strings
+	jenv->ReleaseStringUTFChars(ProjectName, JavaProjectChars);
+	jenv->ReleaseStringUTFChars(PackageName, JavaPackageChars);
 }
 
 /**
