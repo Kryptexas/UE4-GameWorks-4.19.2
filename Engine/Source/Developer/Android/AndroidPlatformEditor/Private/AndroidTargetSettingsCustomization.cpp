@@ -196,7 +196,6 @@ void FAndroidTargetSettingsCustomization::BuildAppManifestSection(IDetailLayoutB
 	{ \
 		TSharedRef<IPropertyHandle> PropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UAndroidRuntimeSettings, PropName)); \
 		Category.AddProperty(PropertyHandle) \
-			.EditCondition(SetupForPlatformAttribute, NULL) \
 			.IsEnabled(!FRocketSupport::IsRocket()) \
 			.ToolTip(!FRocketSupport::IsRocket() ? Tip : FAndroidTargetSettingsCustomizationConstants::DisabledTip); \
 	}
