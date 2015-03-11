@@ -4,5 +4,5 @@
 
 namespace CommandletHelpers
 {
-	UNREALED_API FProcHandle CreateCommandletProcess(const TCHAR* CommandletName, const TCHAR* ProjectPath, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite);
+	UNREALED_API FString BuildCommandletProcessArguments(const TCHAR* const CommandletName, const TCHAR* const ProjectPath, const TCHAR* const AdditionalArguments);
 }

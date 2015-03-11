@@ -27,10 +27,11 @@ public:
 	static TSharedPtr<FLocalizationCommandletProcess> Execute(const FString& ConfigFilePath);
 
 private:
-	FLocalizationCommandletProcess(void* const InReadPipe, void* const InWritePipe, const FProcHandle InProcessHandle)
+	FLocalizationCommandletProcess(void* const InReadPipe, void* const InWritePipe, const FProcHandle InProcessHandle, const FString& InProcessArguments)
 		: ReadPipe(InReadPipe)
 		, WritePipe(InWritePipe)
 		, ProcessHandle(InProcessHandle)
+		, ProcessArguments(InProcessArguments)
 	{
 	}
 
@@ -47,8 +48,14 @@ public:
 		return ProcessHandle;
 	}
 
+	const FString& GetProcessArguments() const
+	{
+		return ProcessArguments;
+	}
+
 private:
 	void* const ReadPipe;
 	void* const WritePipe;
 	FProcHandle ProcessHandle;
+	FString ProcessArguments;
 };

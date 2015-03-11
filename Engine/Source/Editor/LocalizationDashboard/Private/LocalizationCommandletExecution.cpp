@@ -38,6 +38,7 @@ namespace
 			LocalizationCommandletExecution::FTask Task;
 			EState State;
 			FString LogOutput;
+			FString ProcessArguments;
 		};
 
 		friend class STaskRow;
@@ -65,6 +66,7 @@ namespace
 		TSharedRef<ITableRow> OnGenerateTaskListRow(TSharedPtr<FTaskListModel> TaskListModel, const TSharedRef<STableViewBase>& Table);
 		TSharedPtr<FTaskListModel> GetCurrentTaskToView() const;
 
+		FText GetCurrentTaskProcessArguments() const;
 		FText GetLogString() const;
 
 		FReply OnCopyLogClicked();
@@ -192,18 +194,18 @@ namespace
 									.VScrollBar(VerticalScrollBar)
 								]
 								+SVerticalBox::Slot()
-									.AutoHeight()
-									[
-										SAssignNew(HorizontalScrollBar, SScrollBar)
-										.Orientation(EOrientation::Orient_Horizontal)
-									]
+								.AutoHeight()
+								[
+									SAssignNew(HorizontalScrollBar, SScrollBar)
+									.Orientation(EOrientation::Orient_Horizontal)
+								]
 							]
 							+SHorizontalBox::Slot()
-								.AutoWidth()
-								[
-									SAssignNew(VerticalScrollBar, SScrollBar)
-									.Orientation(EOrientation::Orient_Vertical)
-								]
+							.AutoWidth()
+							[
+								SAssignNew(VerticalScrollBar, SScrollBar)
+								.Orientation(EOrientation::Orient_Vertical)
+							]
 						]
 					]
 				+ SVerticalBox::Slot()
@@ -328,6 +330,7 @@ namespace
 		if (CommandletProcess.IsValid())
 		{
 			TaskListModel->State = FTaskListModel::EState::InProgress;
+			TaskListModel->ProcessArguments = CommandletProcess->GetProcessArguments();
 		}
 		else
 		{
@@ -483,7 +486,8 @@ namespace
 		else if (ColumnName == "TaskName")
 		{
 			return SNew(STextBlock)
-				.Text(TaskListModel->Task.Name);
+				.Text(TaskListModel->Task.Name)
+				.ToolTipText_Lambda( [this]{ return FText::FromString(TaskListModel->ProcessArguments); } );
 		}
 		else
 		{
@@ -558,6 +562,12 @@ namespace
 			return Selection.Num() > 0 ? Selection.Top() : nullptr;
 		}
 		return nullptr;
+	}
+
+	FText SLocalizationCommandletExecutor::GetCurrentTaskProcessArguments() const
+	{
+		const TSharedPtr<SLocalizationCommandletExecutor::FTaskListModel> TaskToView = GetCurrentTaskToView();
+		return TaskToView.IsValid() ? FText::FromString(TaskToView->ProcessArguments) : FText::GetEmpty();
 	}
 
 	FText SLocalizationCommandletExecutor::GetLogString() const
@@ -676,7 +686,8 @@ TSharedPtr<FLocalizationCommandletProcess> FLocalizationCommandletProcess::Execu
 		}
 	}
 
-	FProcHandle CommandletProcessHandle = CommandletHelpers::CreateCommandletProcess(TEXT("GatherText"), *FPaths::GetProjectFilePath(), *CommandletArguments, true, true, true, nullptr, 0, nullptr, WritePipe);
+	const FString ProcessArguments = CommandletHelpers::BuildCommandletProcessArguments(TEXT("GatherText"), *FPaths::GetProjectFilePath(), *CommandletArguments);
+	FProcHandle CommandletProcessHandle = FPlatformProcess::CreateProc(*FUnrealEdMisc::Get().GetExecutableForCommandlets(), *ProcessArguments, true, true, true, nullptr, 0, nullptr, WritePipe);
 
 	// Close pipes if process failed.
 	if (!CommandletProcessHandle.IsValid())
@@ -685,7 +696,7 @@ TSharedPtr<FLocalizationCommandletProcess> FLocalizationCommandletProcess::Execu
 		return nullptr;
 	}
 
-	return MakeShareable(new FLocalizationCommandletProcess(ReadPipe, WritePipe, CommandletProcessHandle));
+	return MakeShareable(new FLocalizationCommandletProcess(ReadPipe, WritePipe, CommandletProcessHandle, ProcessArguments));
 }
 
 FLocalizationCommandletProcess::~FLocalizationCommandletProcess()
