@@ -964,11 +964,26 @@ namespace UnrealBuildTool
 			{
 				var CleanTargetFileName = Utils.CleanDirectorySeparators( CurTargetFile );
 
+				// remove the local root
+				var LocalRoot = Path.GetFullPath(RootRelativePath);
+				var Search = CleanTargetFileName;
+				if (Search.StartsWith(LocalRoot, StringComparison.InvariantCultureIgnoreCase))
+				{
+					if (LocalRoot.EndsWith("\\") || LocalRoot.EndsWith("/"))
+					{
+						Search = Search.Substring(LocalRoot.Length - 1);
+					}
+					else
+					{
+						Search = Search.Substring(LocalRoot.Length);
+					}
+				}
+
 				// Skip targets in unsupported platform directories
 				bool IncludeThisTarget = true;
 				foreach( var CurPlatformName in UnsupportedPlatformNameStrings )
 				{
-					if( CleanTargetFileName.IndexOf( Path.DirectorySeparatorChar + CurPlatformName + Path.DirectorySeparatorChar, StringComparison.InvariantCultureIgnoreCase ) != -1 )
+					if (Search.IndexOf(Path.DirectorySeparatorChar + CurPlatformName + Path.DirectorySeparatorChar, StringComparison.InvariantCultureIgnoreCase) != -1)
 					{
 						IncludeThisTarget = false;
 						break;

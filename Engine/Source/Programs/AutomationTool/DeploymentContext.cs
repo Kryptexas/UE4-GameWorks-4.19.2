@@ -371,6 +371,17 @@ public class DeploymentContext //: ProjectParams
                                     Search = Search.Substring(LocalRoot.Length);
                                 }
                             }
+							if (Search.StartsWith(ProjectRoot, StringComparison.InvariantCultureIgnoreCase))
+							{
+								if (ProjectRoot.EndsWith("\\") || ProjectRoot.EndsWith("/"))
+								{
+									Search = Search.Substring(ProjectRoot.Length - 1);
+								}
+								else
+								{
+									Search = Search.Substring(ProjectRoot.Length);
+								}
+							}
                             if (Search.IndexOf(CommandUtils.CombinePaths("/" + Plat.ToString() + "/"), 0, StringComparison.InvariantCultureIgnoreCase) >= 0)
                             {
                                 OtherPlatform = true;
