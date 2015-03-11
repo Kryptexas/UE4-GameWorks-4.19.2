@@ -440,7 +440,8 @@ EActiveTimerReturnType SScrollBox::UpdateInertialScroll(double InCurrentTime, fl
 	if (bIsScrolling)
 	{
 		const float ScrollVelocity = InertialScrollManager.GetScrollVelocity();
-		if (ScrollVelocity != 0.f)
+		// Do not apply inertial scrolling while the user is actively scrolling via RMB.
+		if (ScrollVelocity != 0.f && !IsRightClickScrolling())
 		{
 			ScrollBy(CachedGeometry, ScrollVelocity * InDeltaTime, true);
 		}
