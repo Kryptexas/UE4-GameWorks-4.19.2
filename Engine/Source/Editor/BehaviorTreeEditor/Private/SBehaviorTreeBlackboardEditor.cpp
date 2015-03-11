@@ -13,6 +13,7 @@
 #include "ClassViewerModule.h"
 #include "ClassViewerFilter.h"
 #include "GenericCommands.h"
+#include "SBehaviorTreeBlackboardView.h"
 
 #define LOCTEXT_NAMESPACE "SBehaviorTreeBlackboardEditor"
 
@@ -259,6 +260,15 @@ void SBehaviorTreeBlackboardEditor::HandleKeyClassPicked(UClass* InClass)
 	OnBlackboardKeyChanged.ExecuteIfBound(BlackboardData, &BlackboardData->Keys.Last());
 
 	GraphActionMenu->SelectItemByName(Entry.EntryName, ESelectInfo::OnMouseClick);
+
+	// Mark newly created entry as 'new'
+	TArray< TSharedPtr<FEdGraphSchemaAction> > SelectedActions;
+	GraphActionMenu->GetSelectedActions(SelectedActions);
+	check(SelectedActions.Num() == 1);
+	check(SelectedActions[0]->GetTypeId() == FEdGraphSchemaAction_BlackboardEntry::StaticGetTypeId());
+	TSharedPtr<FEdGraphSchemaAction_BlackboardEntry> BlackboardEntryAction = StaticCastSharedPtr<FEdGraphSchemaAction_BlackboardEntry>(SelectedActions[0]);
+	BlackboardEntryAction->bIsNew = true;
+
 	GraphActionMenu->OnRequestRenameOnActionNode();
 }
 
