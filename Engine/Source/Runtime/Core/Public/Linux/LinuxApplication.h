@@ -4,6 +4,7 @@
 
 #include "GenericApplication.h"
 #include "LinuxWindow.h"
+#include "LinuxCursor.h"
 
 typedef SDL_GameController* SDL_HController;
 
@@ -144,6 +145,10 @@ private:
 
 	/** Used to check if the application is active or not. */
 	bool bActivateApp;
+
+	/** Used to check with cursor type is current and set to true if left button is pressed.*/
+	bool bLockToCurrentMouseType;
+
 };
 
 
