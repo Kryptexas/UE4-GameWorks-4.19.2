@@ -9,6 +9,7 @@ enum GLSLVersion
 	GLSL_ES2,
 	GLSL_ES2_WEBGL,
 	GLSL_150_ES2,	// ES2 Emulation
+	GLSL_150_ES2_NOUB,	// ES2 Emulation with NoUBs
 	GLSL_ES2_IOS,
 	GLSL_150_MAC, // Apple only
 	GLSL_310_ES_EXT,

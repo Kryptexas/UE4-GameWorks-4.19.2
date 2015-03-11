@@ -64,12 +64,12 @@ DEFINE_LOG_CATEGORY_STATIC(LogOpenGLShaderCompiler, Log, All);
   
 static FORCEINLINE bool IsES2Platform(GLSLVersion Version)
 {
-	return (Version == GLSL_ES2 || Version == GLSL_150_ES2 || Version == GLSL_ES2_WEBGL || Version == GLSL_ES2_IOS); 
+	return (Version == GLSL_ES2 || Version == GLSL_150_ES2 || Version == GLSL_ES2_WEBGL || Version == GLSL_ES2_IOS || Version == GLSL_150_ES2_NOUB); 
 }
 
 static FORCEINLINE bool IsPCES2Platform(GLSLVersion Version)
 {
-	return (Version == GLSL_150_ES2);
+	return (Version == GLSL_150_ES2 || Version == GLSL_150_ES2_NOUB);
 }
 
 // This function should match OpenGLShaderPlatformSeparable
@@ -78,7 +78,7 @@ static FORCEINLINE bool SupportsSeparateShaderObjects(GLSLVersion Version)
 	// Only desktop shader platforms can use separable shaders for now,
 	// the generated code relies on macros supplied at runtime to determine whether
 	// shaders may be separable and/or linked.
-	return Version == GLSL_150 || Version == GLSL_150_MAC || Version == GLSL_150_ES2 || Version == GLSL_430;
+	return Version == GLSL_150 || Version == GLSL_150_MAC || Version == GLSL_150_ES2 || Version == GLSL_150_ES2_NOUB|| Version == GLSL_430;
 }
 
 /*------------------------------------------------------------------------------
@@ -1188,6 +1188,7 @@ static void OpenGLVersionFromGLSLVersion(GLSLVersion InVersion, int& OutMajorVer
 			OutMinorVersion = 3;
 			break;
 		case GLSL_150_ES2:
+		case GLSL_150_ES2_NOUB:
 			OutMajorVersion = 3;
 			OutMinorVersion = 2;
 			break;
@@ -1516,6 +1517,7 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 	switch (Version)
 	{
 		case GLSL_150:
+		case GLSL_150_ES2:
 			VersionSwitch = TEXT(" -gl3 -separateshaders");
 			break;
 
@@ -1523,7 +1525,7 @@ static FString CreateCrossCompilerBatchFile( const FString& ShaderFile, const FS
 			VersionSwitch = TEXT(" -gl3 -mac -separateshaders");
 			break;
 
-		case GLSL_150_ES2:
+		case GLSL_150_ES2_NOUB:
 			VersionSwitch = TEXT(" -gl3 -flattenub -flattenubstruct -separateshaders");
 			break;
 
@@ -1614,6 +1616,7 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			break; 
 
 		case GLSL_150_ES2:
+		case GLSL_150_ES2_NOUB:
 			AdditionalDefines.SetDefine(TEXT("COMPILER_GLSL"), 1);
 			AdditionalDefines.SetDefine(TEXT("ES2_PROFILE"), 1);
 			HlslCompilerTarget = HCT_FeatureLevelSM4;
@@ -1683,7 +1686,12 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 			CCFlags |= HLSLCC_ApplyCommonSubexpressionElimination;
 		}
 		
-		if(SupportsSeparateShaderObjects(Version))
+		if (Version == GLSL_150_ES2_NOUB)
+		{
+			CCFlags |= HLSLCC_FlattenUniformBuffers | HLSLCC_FlattenUniformBufferStructures;
+		}
+		
+		if (SupportsSeparateShaderObjects(Version))
 		{
 			CCFlags |= HLSLCC_SeparateShaderObjects;
 		}
@@ -1750,13 +1758,10 @@ void CompileShader_Windows_OGL(const FShaderCompilerInput& Input,FShaderCompiler
 
 #if VALIDATE_GLSL_WITH_DRIVER
 			PrecompileShader(Output, Input, GlslShaderSource, Version, Frequency);
-			if (Output.bSucceeded == false)
-			{
-			}
 #else // VALIDATE_GLSL_WITH_DRIVER
 			int32 SourceLen = FCStringAnsi::Strlen(GlslShaderSource);
 			Output.Target = Input.Target;
-				BuildShaderOutput(Output, Input, GlslShaderSource, SourceLen, Version);
+			BuildShaderOutput(Output, Input, GlslShaderSource, SourceLen, Version);
 #endif // VALIDATE_GLSL_WITH_DRIVER
 		}
 		else
