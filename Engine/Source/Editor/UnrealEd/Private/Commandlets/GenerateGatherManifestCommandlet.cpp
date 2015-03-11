@@ -83,17 +83,19 @@ int32 UGenerateGatherManifestCommandlet::Main( const FString& Params )
 		ManifestInfo->ApplyManifestDependencies();
 	}
 	
-
-	if( !WriteManifest( ManifestInfo->GetManifest(), DestinationPath / ManifestName ) )
+	const FString ManifestPath = DestinationPath / ManifestName;
+	if( !WriteManifestToFile( ManifestInfo->GetManifest(), ManifestPath ) )
 	{
-		UE_LOG( LogGenerateManifestCommandlet, Error,TEXT("Failed to write manifest to %s."), *DestinationPath );				
+		UE_LOG( LogGenerateManifestCommandlet, Error,TEXT("Failed to write manifest to %s."), *ManifestPath );				
 		return -1;
 	}
 	return 0;
 }
 
-bool UGenerateGatherManifestCommandlet::WriteManifest( const TSharedPtr<FInternationalizationManifest>& InManifest, const FString& OutputFilePath )
+bool UGenerateGatherManifestCommandlet::WriteManifestToFile( const TSharedPtr<FInternationalizationManifest>& InManifest, const FString& OutputFilePath )
 {
+	UE_LOG(LogGenerateManifestCommandlet, Log, TEXT("Writing archive to %s."), *OutputFilePath);
+
 	// We can not continue if the provided manifest is not valid
 	if( !InManifest.IsValid() )
 	{

@@ -251,9 +251,10 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 		TSharedRef< FJsonObject > OutputArchiveJsonObj = MakeShareable( new FJsonObject );
 		ArchiveSerializer.SerializeArchive( OutputInternationalizationArchive, OutputArchiveJsonObj );
 
-		if( !WriteArchiveToFile( OutputArchiveJsonObj, DestinationPath, *CulturesToGenerate[Culture], *ArchiveName ) )
+		const FString ArchivePath = FPaths::ConvertRelativePathToFull(DestinationPath) / CulturesToGenerate[Culture] / ArchiveName;
+		if( !WriteArchiveToFile( OutputArchiveJsonObj, ArchivePath ) )
 		{
-			UE_LOG( LogGenerateArchiveCommandlet, Error,TEXT("Failed to write archive to %s."), *DestinationPath );				
+			UE_LOG( LogGenerateArchiveCommandlet, Error,TEXT("Failed to write archive to %s."), *ArchivePath );				
 			return -1;
 		}
 	}
@@ -261,16 +262,14 @@ int32 UGenerateGatherArchiveCommandlet::Main( const FString& Params )
 	return 0;
 }
 
-bool UGenerateGatherArchiveCommandlet::WriteArchiveToFile(TSharedRef< FJsonObject > ArchiveJSONObject, const FString& OutputDirectoryPath, const TCHAR* Culture, const FString& FileName)
+bool UGenerateGatherArchiveCommandlet::WriteArchiveToFile(TSharedRef< FJsonObject > ArchiveJSONObject, const FString& OutputFilePath)
 {
-	FString FullOutPath = FPaths::ConvertRelativePathToFull(OutputDirectoryPath) / Culture / FileName;
+	UE_LOG(LogGenerateArchiveCommandlet, Log, TEXT("Writing archive to %s."), *OutputFilePath);
 
-	if( !WriteJSONToTextFile(ArchiveJSONObject, FullOutPath, SourceControlInfo ) )
+	if( !WriteJSONToTextFile(ArchiveJSONObject, OutputFilePath, SourceControlInfo ) )
 	{
 		return false;
 	}
-
-	UE_LOG(LogGenerateArchiveCommandlet, Log, TEXT("Writing archive to %s."), *OutputDirectoryPath);
 
 	return true;
 }
