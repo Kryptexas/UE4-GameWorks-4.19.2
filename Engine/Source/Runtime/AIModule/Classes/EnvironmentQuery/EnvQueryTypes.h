@@ -3,6 +3,7 @@
 #pragma once
 
 #include "EnvironmentQuery/Items/EnvQueryItemType.h"
+#include "EnvironmentQuery/EnvQueryContext.h"
 #include "DataProviders/AIDataProvider.h"
 #include "EnvQueryTypes.generated.h"
 
