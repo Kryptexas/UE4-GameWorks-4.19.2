@@ -871,10 +871,15 @@ void FBlueprintCompileReinstancer::ReplaceInstancesOfClass(UClass* OldClass, UCl
 			}
 			else
 			{
+				auto OldFlags = OldObject->GetFlags();
+
 				FName OldName(OldObject->GetFName());
 				OldObject->Rename(NULL, OldObject->GetOuter(), REN_DoNotDirty | REN_DontCreateRedirectors);
 				NewUObject = NewObject<UObject>(OldObject->GetOuter(), NewClass, OldName);
 				check(NewUObject != nullptr);
+
+				auto FlagMask = RF_Public | RF_ArchetypeObject | RF_Transactional | RF_Transient | RF_TextExportTransient | RF_InheritableComponentTemplate; //TODO: what about RF_RootSet and RF_Standalone ?
+				NewUObject->SetFlags(OldFlags & FlagMask);
 
 				UEditorEngine::CopyPropertiesForUnrelatedObjects(OldObject, NewUObject);
 
