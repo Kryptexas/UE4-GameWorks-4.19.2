@@ -62,6 +62,7 @@ static void dprintf(const char* Format, ...)
 }
 
 #include "ir.h"
+#include "irDump.h"
 
 struct FGlslCodeBackend : public FCodeBackend
 {
@@ -82,6 +83,7 @@ struct FGlslCodeBackend : public FCodeBackend
 
 	virtual char* GenerateCode(struct exec_list* ir, struct _mesa_glsl_parse_state* ParseState, EHlslShaderFrequency Frequency) override
 	{
+		IRDump(ir);
 		return 0;
 	}
 };
