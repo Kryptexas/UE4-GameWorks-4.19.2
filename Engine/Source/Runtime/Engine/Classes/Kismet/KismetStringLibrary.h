@@ -176,7 +176,7 @@ class UKismetStringLibrary : public UBlueprintFunctionLibrary
 	 * @param B - The string to append to A
 	 * @returns A new string which is the concatenation of A+B
 	 */
-	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Append"), Category="Utilities|String")
+	UFUNCTION(BlueprintPure, meta=(FriendlyName = "Append", CommutativeAssociativeBinaryOperator = "true"), Category="Utilities|String")
 	static FString Concat_StrStr(const FString& A, const FString& B);
 
 	/**
