@@ -4,6 +4,7 @@
 #include "EngineVersion.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "EngineBuildSettings.h"
+#include "ModuleVersion.h"
 
 FEngineVersionBase::FEngineVersionBase()
 : Major(0)
@@ -69,8 +70,8 @@ EVersionComparison FEngineVersionBase::GetNewest(const FEngineVersionBase &First
 		return (First.GetPatch() > Second.GetPatch()) ? EVersionComparison::First : EVersionComparison::Second;
 	}
 
-	// Compare changelists (only if they're both from the same vendor)
-	if (First.IsLicenseeVersion() == Second.IsLicenseeVersion() && First.GetChangelist() != Second.GetChangelist())
+	// Compare changelists (only if they're both from the same vendor, and they're both valid)
+	if (First.IsLicenseeVersion() == Second.IsLicenseeVersion() && First.IsPromotedBuild() && Second.IsPromotedBuild() && First.GetChangelist() != Second.GetChangelist())
 	{
 		Component = EVersionComponent::Changelist;
 		return (First.GetChangelist() > Second.GetChangelist()) ? EVersionComparison::First : EVersionComparison::Second;
@@ -112,25 +113,9 @@ bool FEngineVersion::IsCompatibleWith(const FEngineVersionBase &Other) const
 	{
 		return true;
 	}
-
-	// Otherwise compare the versions
-	EVersionComponent Component;
-	EVersionComparison Comparison = FEngineVersion::GetNewest(*this, Other, &Component);
-
-	// If this engine version is the same or newer, it's definitely compatible
-	if(Comparison == EVersionComparison::Neither || Comparison == EVersionComparison::First)
-	{
-		return true;
-	}
-
-	// Otherwise check if we require a strict version match or just a major/minor version match.
-	if (Component != EVersionComponent::Major && Component != EVersionComponent::Minor && FRocketSupport::IsRocket())
-	{
-		return true;
-	}
 	else
 	{
-		return false;
+		return FEngineVersion::GetNewest(*this, Other, nullptr) != EVersionComparison::Second;
 	}
 }
 
@@ -208,6 +193,10 @@ void operator<<(FArchive &Ar, FEngineVersion &Version)
 #endif
 
 // Licensee changelists part of the engine version has the top bit set to 1
-#define ENGINE_VERSION_INTERNAL_OR_LICENSEE (BUILT_FROM_CHANGELIST | (ENGINE_IS_LICENSEE_VERSION << 31))
+#define ENGINE_VERSION_INTERNAL_OR_LICENSEE (2474361 | (ENGINE_IS_LICENSEE_VERSION << 31))
+
 // Global instance of the current engine version
 const FEngineVersion GEngineVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, ENGINE_VERSION_INTERNAL_OR_LICENSEE, BRANCH_NAME);
+
+// Version which this engine maintains strict API and package compatibility with
+const FEngineVersion GCompatibleWithEngineVersion(ENGINE_MAJOR_VERSION, ENGINE_MINOR_VERSION, ENGINE_PATCH_VERSION, (2474361 | (ENGINE_IS_LICENSEE_VERSION << 31)), BRANCH_NAME);

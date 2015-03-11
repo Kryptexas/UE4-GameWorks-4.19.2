@@ -840,7 +840,8 @@ void FPkgInfoReporter_Log::GeneratePackageReport( ULinkerLoad* InLinker/*=NULL*/
 
 	UE_LOG(LogPackageUtilities, Warning, TEXT("\t         Filename: %s"), *Linker->Filename);
 	UE_LOG(LogPackageUtilities, Warning, TEXT("\t     File Version: %i"), Linker->UE4Ver() );
-	UE_LOG(LogPackageUtilities, Warning, TEXT("\t   Engine Version: %s"), *Linker->Summary.EngineVersion.ToString());
+	UE_LOG(LogPackageUtilities, Warning, TEXT("\t   Engine Version: %s"), *Linker->Summary.SavedByEngineVersion.ToString());
+	UE_LOG(LogPackageUtilities, Warning, TEXT("\t   Compat Version: %s"), *Linker->Summary.CompatibleWithEngineVersion.ToString());
 	UE_LOG(LogPackageUtilities, Warning, TEXT("\t     PackageFlags: %X"), Linker->Summary.PackageFlags );
 	UE_LOG(LogPackageUtilities, Warning, TEXT("\t        NameCount: %d"), Linker->Summary.NameCount );
 	UE_LOG(LogPackageUtilities, Warning, TEXT("\t       NameOffset: %d"), Linker->Summary.NameOffset );

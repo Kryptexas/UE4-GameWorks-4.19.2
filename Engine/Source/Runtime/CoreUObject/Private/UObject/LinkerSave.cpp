@@ -29,7 +29,8 @@ ULinkerSave::ULinkerSave( const FObjectInitializer& ObjectInitializer, UPackage*
 		// Set main summary info.
 		Summary.Tag           = PACKAGE_FILE_TAG;
 		Summary.SetFileVersions( GPackageFileUE4Version, GPackageFileLicenseeUE4Version, bInSaveUnversioned );
-		Summary.EngineVersion =	GEngineVersion;
+		Summary.SavedByEngineVersion = GEngineVersion;
+		Summary.CompatibleWithEngineVersion = GCompatibleWithEngineVersion;
 		Summary.PackageFlags  = Package ? Package->PackageFlags : 0;
 
 		if (Package)
@@ -62,7 +63,8 @@ ULinkerSave::ULinkerSave(const FObjectInitializer& ObjectInitializer, UPackage* 
 		// Set main summary info.
 		Summary.Tag           = PACKAGE_FILE_TAG;
 		Summary.SetFileVersions( GPackageFileUE4Version, GPackageFileLicenseeUE4Version, bInSaveUnversioned );
-		Summary.EngineVersion =	GEngineVersion;
+		Summary.SavedByEngineVersion = GEngineVersion;
+		Summary.CompatibleWithEngineVersion = GCompatibleWithEngineVersion;
 		Summary.PackageFlags  = Package ? Package->PackageFlags : 0;
 
 		if (Package)

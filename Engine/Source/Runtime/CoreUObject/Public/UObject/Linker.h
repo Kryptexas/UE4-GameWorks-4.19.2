@@ -626,9 +626,14 @@ public:
 	TArray<FGenerationInfo> Generations;
 
 	/**
-	 * Engine version this package was saved with.
+	 * Engine version this package was saved with. For hotfix releases and engine versions which maintain strict binary compatibility with another version, this may differ from CompatibleWithEngineVersion.
 	 */
-	FEngineVersion EngineVersion;
+	FEngineVersion SavedByEngineVersion;
+
+	/**
+	 * Engine version this package is compatible with. See SavedByEngineVersion.
+	 */
+	FEngineVersion CompatibleWithEngineVersion;
 
 	/**
 	 * Flags used to compress the file on save and uncompress on load.

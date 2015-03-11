@@ -49,3 +49,6 @@ private:
 
 /** Global instance of the current engine version. */
 CORE_API extern const FEngineVersion GEngineVersion;
+
+/** Earliest version which this engine maintains strict API and package compatibility with */
+CORE_API extern const FEngineVersion GCompatibleWithEngineVersion;

@@ -89,10 +89,10 @@ bool FPackageReader::OpenPackageFile(const FString& InPackageFilename)
 	//make sure the filereader gets the correct version number (it defaults to latest version)
 	SetUE4Ver(PackageFileSummary.GetFileVersionUE4());
 	SetLicenseeUE4Ver(PackageFileSummary.GetFileVersionLicenseeUE4());
-	SetEngineVer(PackageFileSummary.EngineVersion);
+	SetEngineVer(PackageFileSummary.SavedByEngineVersion);
 	Loader->SetUE4Ver(PackageFileSummary.GetFileVersionUE4());
 	Loader->SetLicenseeUE4Ver(PackageFileSummary.GetFileVersionLicenseeUE4());
-	Loader->SetEngineVer(PackageFileSummary.EngineVersion);
+	Loader->SetEngineVer(PackageFileSummary.SavedByEngineVersion);
 
 	const FCustomVersionContainer& PackageFileSummaryVersions = PackageFileSummary.GetCustomVersionContainer();
 	SetCustomVersions(PackageFileSummaryVersions);

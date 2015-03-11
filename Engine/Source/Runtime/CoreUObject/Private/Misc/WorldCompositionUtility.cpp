@@ -105,7 +105,7 @@ bool FWorldTileInfo::Read(const FString& InPackageFileName, FWorldTileInfo& OutI
 
 		//make sure the filereader gets the correct version number (it defaults to latest version)
 		FileReader->SetUE4Ver(FileSummary.GetFileVersionUE4());
-		FileReader->SetEngineVer(FileSummary.EngineVersion);
+		FileReader->SetEngineVer(FileSummary.SavedByEngineVersion);
 
 		// Load the structure
 		*FileReader << OutInfo;

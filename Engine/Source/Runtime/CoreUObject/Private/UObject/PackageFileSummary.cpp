@@ -147,7 +147,7 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 			}
 			else
 			{
-				Ar << Sum.EngineVersion;
+				Ar << Sum.SavedByEngineVersion;
 			}
 		}
 		else
@@ -157,7 +157,27 @@ FArchive& operator<<( FArchive& Ar, FPackageFileSummary& Sum )
 
 			if(Ar.IsLoading() && EngineChangelist != 0)
 			{
-				Sum.EngineVersion.Set(4, 0, 0, EngineChangelist, TEXT(""));
+				Sum.SavedByEngineVersion.Set(4, 0, 0, EngineChangelist, TEXT(""));
+			}
+		}
+
+		if (Sum.GetFileVersionUE4() >= VER_UE4_PACKAGE_SUMMARY_HAS_COMPATIBLE_ENGINE_VERSION )
+		{
+			if(Ar.IsCooking() || (Ar.IsSaving() && !GEngineVersion.IsPromotedBuild()))
+			{
+				FEngineVersion EmptyEngineVersion;
+				Ar << EmptyEngineVersion;
+			}
+			else
+			{
+				Ar << Sum.CompatibleWithEngineVersion;
+			}
+		}
+		else
+		{
+			if (Ar.IsLoading())
+			{
+				Sum.CompatibleWithEngineVersion = Sum.SavedByEngineVersion;
 			}
 		}
 
