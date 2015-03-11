@@ -27,6 +27,7 @@ class UBehaviorTreeGraph : public UAIGraph
 	virtual void OnCreated() override;
 	virtual void OnLoaded() override;
 	virtual void Initialize() override;
+	void OnSave();
 
 	virtual void UpdateVersion() override;
 	virtual void MarkVersion() override;
@@ -43,6 +44,7 @@ class UBehaviorTreeGraph : public UAIGraph
 	class UEdGraphNode* FindInjectedNode(int32 Index);
 	void ReplaceNodeConnections(UEdGraphNode* OldNode, UEdGraphNode* NewNode);
 	void RebuildExecutionOrder();
+	void SpawnMissingNodesForParallel();
 
 	void AutoArrange();
 

@@ -1345,7 +1345,7 @@ void FBehaviorTreeEditor::SaveAsset_Execute()
 		UBehaviorTreeGraph* BTGraph = Cast<UBehaviorTreeGraph>(BehaviorTree->BTGraph);
 		if (BTGraph)
 		{
-			BTGraph->UpdateAsset();
+			BTGraph->OnSave();
 		}
 	}
 	// save it

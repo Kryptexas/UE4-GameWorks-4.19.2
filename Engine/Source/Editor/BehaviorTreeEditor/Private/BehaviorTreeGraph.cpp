@@ -7,6 +7,7 @@
 #include "BehaviorTree/BTService.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "BehaviorTree/Composites/BTComposite_SimpleParallel.h"
+#include "BehaviorTree/Tasks/BTTask_Wait.h"
 
 //////////////////////////////////////////////////////////////////////////
 // BehaviorTreeGraph
@@ -166,6 +167,12 @@ void UBehaviorTreeGraph::Initialize()
 	Super::Initialize();
 	UpdateBlackboardChange();
 	UpdateInjectedNodes();
+}
+
+void UBehaviorTreeGraph::OnSave()
+{
+	SpawnMissingNodesForParallel();
+	UpdateAsset();
 }
 
 void UBehaviorTreeGraph::UpdatePinConnectionTypes()
@@ -869,6 +876,67 @@ void UBehaviorTreeGraph::SpawnMissingNodes()
 			UEdGraphPin* SpawnedInPin = FindGraphNodePin(SpawnedRootNode, EGPD_Input);
 
 			RootOutPin->MakeLinkTo(SpawnedInPin);
+		}
+	}
+}
+
+void UBehaviorTreeGraph::SpawnMissingNodesForParallel()
+{
+	UBehaviorTree* BTAsset = Cast<UBehaviorTree>(GetOuter());
+	if (BTAsset)
+	{
+		TArray<UBehaviorTreeGraphNode_SimpleParallel*> FixNodes;
+		for (int32 Idx = 0; Idx < Nodes.Num(); Idx++)
+		{
+			UBehaviorTreeGraphNode_SimpleParallel* ParallelNode = Cast<UBehaviorTreeGraphNode_SimpleParallel>(Nodes[Idx]);
+			if (ParallelNode)
+			{
+				UEdGraphPin* BackgroundPin = ParallelNode->GetOutputPin(1);
+				if (BackgroundPin && BackgroundPin->LinkedTo.Num() == 0)
+				{
+					FixNodes.Add(ParallelNode);
+				}
+			}
+		}
+
+		for (int32 Idx = 0; Idx < FixNodes.Num(); Idx++)
+		{
+			UBehaviorTreeGraphNode_SimpleParallel* ParallelNode = FixNodes[Idx];
+			UBTComposite_SimpleParallel* ParallelInstance = Cast<UBTComposite_SimpleParallel>(ParallelNode->NodeInstance);
+			if (ParallelInstance)
+			{
+				int32 XOffset = 200;
+
+				UEdGraphPin* MainTaskPin = ParallelNode->GetOutputPin(0);
+				if (MainTaskPin && MainTaskPin->LinkedTo.Num())
+				{
+					UBehaviorTreeGraphNode* MainTaskNode = Cast<UBehaviorTreeGraphNode>(MainTaskPin->LinkedTo[0]->GetOwningNode());
+					if (MainTaskNode)
+					{
+						const int32 Width = MainTaskNode->NodeWidget.IsValid() ? MainTaskNode->NodeWidget.Pin()->GetDesiredSize().X : 200;
+						XOffset = MainTaskNode->NodePosX - ParallelNode->NodePosX + Width + 20;
+					}
+				}
+
+				FGraphNodeCreator<UBehaviorTreeGraphNode_Task> NodeBuilder(*this);
+				UBehaviorTreeGraphNode_Task* WaitTaskNode = NodeBuilder.CreateNode();
+				WaitTaskNode->ClassData = FGraphNodeClassData(UBTTask_Wait::StaticClass(), "");
+				NodeBuilder.Finalize();
+
+				const int32 ParentHeight = ParallelNode->NodeWidget.IsValid() ? ParallelNode->NodeWidget.Pin()->GetDesiredSize().Y : 200;
+				WaitTaskNode->NodePosX = ParallelNode->NodePosX + XOffset;
+				WaitTaskNode->NodePosY = ParallelNode->NodePosY + ParentHeight + 20;
+
+				UBTTask_Wait* WaitTaskInstance = Cast<UBTTask_Wait>(WaitTaskNode->NodeInstance);
+				if (WaitTaskInstance)
+				{
+					WaitTaskInstance->WaitTime = (ParallelInstance->FinishMode == EBTParallelMode::WaitForBackground) ? 0.5f : 60.0f;
+				}
+
+				UEdGraphPin* BackgroundPin = ParallelNode->GetOutputPin(1);
+				UEdGraphPin* InputPin = WaitTaskNode->GetInputPin();
+				BackgroundPin->MakeLinkTo(InputPin);
+			}
 		}
 	}
 }
