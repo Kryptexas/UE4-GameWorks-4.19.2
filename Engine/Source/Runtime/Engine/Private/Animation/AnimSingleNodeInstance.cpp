@@ -65,10 +65,10 @@ void UAnimSingleNodeInstance::SetAnimationAsset(class UAnimationAsset* NewAsset,
 	UAnimMontage* Montage = Cast<UAnimMontage>(CurrentAsset);
 	if ( Montage!=NULL )
 	{
-		ActiveSlotWeights.Empty();
+		ReinitializeSlotNodes();
 		if ( Montage->SlotAnimTracks.Num() > 0 )
 		{
-			RegisterSlotNode(Montage->SlotAnimTracks[0].SlotName);
+			RegisterSlotNodeWithAnimInstance(Montage->SlotAnimTracks[0].SlotName);
 		}
 		RestartMontage( Montage );
 	}

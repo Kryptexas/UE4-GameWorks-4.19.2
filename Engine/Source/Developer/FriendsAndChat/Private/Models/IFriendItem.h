@@ -5,7 +5,7 @@
 /**
  * Class containing the friend information - used to build the list view.
  */
-class IFriendItem
+class IFriendItem : public TSharedFromThis<IFriendItem>
 {
 public:
 
@@ -53,7 +53,7 @@ public:
 	* Get the player's session id
 	* @return The session id the user is playing in
 	*/
-	virtual const FString GetSessionId() const = 0;
+	virtual const TSharedPtr<FUniqueNetId> GetSessionId() const = 0;
 
 	/**
 	 * Get if the user is online.
@@ -83,7 +83,7 @@ public:
 	 * Get game session id that this friend is currently in
 	 * @return The id of the game session
 	 */
-	virtual FString GetGameSessionId() const = 0;
+	virtual TSharedPtr<FUniqueNetId> GetGameSessionId() const = 0;
 
 	/**
 	 * Get the Unique ID.

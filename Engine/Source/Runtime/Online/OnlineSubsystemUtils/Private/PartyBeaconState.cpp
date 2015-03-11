@@ -3,6 +3,24 @@
 #include "OnlineSubsystemUtilsPrivatePCH.h"
 #include "OnlineSubsystemUtilsClasses.h"
 
+bool FPartyReservation::IsValid() const
+{
+	bool bIsValid = false;
+	if (PartyLeader.IsValid() && PartyMembers.Num() >= 1)
+	{
+		bIsValid = true;
+		for (const FPlayerReservation& PlayerRes : PartyMembers)
+		{
+			if (!PlayerRes.UniqueId.IsValid() || PlayerRes.ValidationStr.IsEmpty())
+			{
+				bIsValid = false;
+				break;
+			}
+		}
+	}
+
+	return bIsValid;
+}
 
 UPartyBeaconState::UPartyBeaconState(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer),

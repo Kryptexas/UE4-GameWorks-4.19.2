@@ -334,7 +334,6 @@ public:
 	{
 		if(bInGame != bInGameSetting)
 		{
-			SetDisplayGlobalChat(bInGame);
 			bInGame = bInGameSetting;
 			SetViewChannel(bInGame ? EChatMessageType::Party : EChatMessageType::Global);
 		}

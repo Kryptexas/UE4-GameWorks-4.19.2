@@ -73,6 +73,7 @@ UAnimInstance::UAnimInstance(const FObjectInitializer& ObjectInitializer)
 {
 	RootNode = NULL;
 	RootMotionMode = ERootMotionMode::RootMotionFromMontagesOnly;
+	SlotNodeInitializationCounter = INDEX_NONE;
 }
 
 void UAnimInstance::MakeSequenceTickRecord(FAnimTickRecord& TickRecord, class UAnimSequenceBase* Sequence, bool bLooping, float PlayRate, float FinalBlendWeight, float& CurrentTime) const
@@ -291,10 +292,7 @@ void UAnimInstance::InitializeAnimation()
 	// before initialize, need to recalculate required bone list
 	RecalcRequiredBones();
 
-	// Clear cached list, we're about to re-update it.
-
-	ActiveSlotWeights.Empty();
-
+	ReinitializeSlotNodes();
 	ClearMorphTargets();
 	NativeInitializeAnimation();
 	BlueprintInitializeAnimation();
@@ -1594,14 +1592,28 @@ void UAnimInstance::SlotEvaluatePose(FName SlotNodeName, const FA2Pose & SourceP
 	}
 }
 
-void UAnimInstance::RegisterSlotNode(FName SlotNodeName)
+void UAnimInstance::ReinitializeSlotNodes()
+{
+	ActiveSlotWeights.Empty();
+	ActiveSlotRootMotionWeights.Empty();
+	
+	// Increment counter
+	SlotNodeInitializationCounter++;
+	// Can't be INDEX_NONE
+	if (SlotNodeInitializationCounter == INDEX_NONE)
+	{
+		SlotNodeInitializationCounter++;
+	}
+}
+
+void UAnimInstance::RegisterSlotNodeWithAnimInstance(FName SlotNodeName)
 {
 	// verify if same slot node name exists
 	// then warn users, this is invalid
 	for (auto Iter = ActiveSlotWeights.CreateConstIterator(); Iter; ++Iter)
 	{
 		// if same name found, we should warn user, and make sure they know about it
-		if ( SlotNodeName == Iter.Key() )
+		if (SlotNodeName == Iter.Key())
 		{
 			FMessageLog("AnimBlueprint").Warning(FText::Format(LOCTEXT("AnimInstance_SlotNode", "SLOTNODE: '{0}' already exists. Each slot node has to have unique name."), FText::FromString(SlotNodeName.ToString())));
 			return;

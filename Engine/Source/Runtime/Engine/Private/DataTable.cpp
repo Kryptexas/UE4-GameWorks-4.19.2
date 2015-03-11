@@ -381,6 +381,41 @@ FString UDataTable::GetTableAsJSON() const
 	return Result;
 }
 
+bool UDataTable::WriteRowAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const void* RowData) const
+{
+	if (RowStruct == NULL)
+	{
+		return false;
+	}
+	for (TFieldIterator<UProperty> It(RowStruct); It; ++It)
+	{
+		UProperty* BaseProp = *It;
+		check(BaseProp != NULL);
+		const void* Data = BaseProp->ContainerPtrToValuePtr<void>(RowData, 0);
+		if (UNumericProperty *NumProp = Cast<UNumericProperty>(BaseProp))
+		{
+			if (NumProp->IsInteger())
+			{
+				JsonWriter->WriteValue(BaseProp->GetName(), NumProp->GetSignedIntPropertyValue(Data));
+			}
+			else
+			{
+				JsonWriter->WriteValue(BaseProp->GetName(), NumProp->GetFloatingPointPropertyValue(Data));
+			}
+		}
+		else if (UBoolProperty* BoolProp = Cast<UBoolProperty>(BaseProp))
+		{
+			JsonWriter->WriteValue(BaseProp->GetName(), BoolProp->GetPropertyValue(Data));
+		}
+		else
+		{
+			FString PropertyValue = GetPropertyValueAsString(BaseProp, (uint8*)RowData);
+			JsonWriter->WriteValue(BaseProp->GetName(), PropertyValue);
+		}
+	}
+	return true;
+}
+
 bool UDataTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter) const
 {
 	if (RowStruct == NULL)
@@ -389,50 +424,18 @@ bool UDataTable::WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJs
 	}
 	JsonWriter->WriteArrayStart();
 
-	// First build array of properties
-	TArray<UProperty*> StructProps;
-	for (TFieldIterator<UProperty> It(RowStruct); It; ++It)
-	{
-		UProperty* Prop = *It;
-		check(Prop != NULL);
-		StructProps.Add(Prop);
-	}
-
 	// Iterate over rows
 	for (auto RowIt = RowMap.CreateConstIterator(); RowIt; ++RowIt)
 	{
 		JsonWriter->WriteObjectStart();
-
-		//RowName
-		FName RowName = RowIt.Key();
-		JsonWriter->WriteValue(TEXT("Name"), RowName.ToString());
-
-		//Now the values
-		uint8* RowData = RowIt.Value();
-		for (int32 PropIdx = 0; PropIdx < StructProps.Num(); PropIdx++)
 		{
-			UProperty* BaseProp = StructProps[PropIdx];
-			const void* Data = BaseProp->ContainerPtrToValuePtr<void>(RowData, 0);
-			if (UNumericProperty *NumProp = Cast<UNumericProperty>(StructProps[PropIdx]))
-			{
-				if (NumProp->IsInteger())
-				{
-					JsonWriter->WriteValue(BaseProp->GetName(), NumProp->GetSignedIntPropertyValue(Data));
-				}
-				else
-				{
-					JsonWriter->WriteValue(BaseProp->GetName(), NumProp->GetFloatingPointPropertyValue(Data));
-				}
-			}
-			else if (UBoolProperty* BoolProp = Cast<UBoolProperty>(StructProps[PropIdx]))
-			{
-				JsonWriter->WriteValue(BaseProp->GetName(), BoolProp->GetPropertyValue(Data));
-			}
-			else
-			{
-				FString PropertyValue = GetPropertyValueAsString(BaseProp, RowData);
-				JsonWriter->WriteValue(BaseProp->GetName(), PropertyValue);
-			}
+			//RowName
+			FName RowName = RowIt.Key();
+			JsonWriter->WriteValue(TEXT("Name"), RowName.ToString());
+
+			//Now the values
+			uint8* RowData = RowIt.Value();
+			WriteRowAsJSON(JsonWriter, RowData);
 		}
 		JsonWriter->WriteObjectEnd();
 	}

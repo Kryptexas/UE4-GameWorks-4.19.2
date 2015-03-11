@@ -255,6 +255,8 @@ protected:
 	FVisualLogFilenameGetterDelegate LogFileNameGetter;
 	/** Specifies if the Binary Device is being used */
 	bool UseBinaryFileDevice;
+	/** Handle for timer used to serialize all waiting logs */
+	FTimerHandle VisualLoggerCleanupTimerHandle;
 };
 
 

@@ -79,6 +79,8 @@ void UBTDecorator_CheckGameplayTagsOnActor::PostEditChangeProperty(FPropertyChan
 	BuildDescription();
 }
 
+#endif	// WITH_EDITOR
+
 void UBTDecorator_CheckGameplayTagsOnActor::InitializeFromAsset(UBehaviorTree& Asset)
 {
 	Super::InitializeFromAsset(Asset);
@@ -86,7 +88,7 @@ void UBTDecorator_CheckGameplayTagsOnActor::InitializeFromAsset(UBehaviorTree& A
 	UBlackboardData* BBAsset = GetBlackboardAsset();
 	ActorToCheck.CacheSelectedKey(BBAsset);
 
+#if WITH_EDITOR
 	BuildDescription();
-}
-
 #endif	// WITH_EDITOR
+}

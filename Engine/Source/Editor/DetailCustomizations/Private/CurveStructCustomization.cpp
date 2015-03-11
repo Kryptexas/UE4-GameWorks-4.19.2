@@ -93,7 +93,7 @@ void FCurveStructCustomization::CustomizeHeader( TSharedRef<IPropertyHandle> InS
 			];
 
 		check(CurveWidget.IsValid());
-		if (RuntimeCurve->ExternalCurve)
+		if (RuntimeCurve && RuntimeCurve->ExternalCurve)
 		{
 			CurveWidget->SetCurveOwner(RuntimeCurve->ExternalCurve, false);
 		}

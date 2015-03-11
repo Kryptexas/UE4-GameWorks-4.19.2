@@ -63,6 +63,9 @@ struct FActiveGameplayCue : public FFastArraySerializerItem
 	UPROPERTY()
 	FGameplayTag GameplayCueTag;
 
+	UPROPERTY()
+	FPredictionKey PredictionKey;
+
 	void PreReplicatedRemove(const struct FActiveGameplayCueContainer &InArray);
 	void PostReplicatedAdd(const struct FActiveGameplayCueContainer &InArray);
 	void PostReplicatedChange(const struct FActiveGameplayCueContainer &InArray) { }
@@ -79,7 +82,7 @@ struct FActiveGameplayCueContainer : public FFastArraySerializer
 	UPROPERTY()
 	class UAbilitySystemComponent*	Owner;
 
-	void AddCue(const FGameplayTag& Tag);
+	void AddCue(const FGameplayTag& Tag, const FPredictionKey& PredictionKey);
 	void RemoveCue(const FGameplayTag& Tag);
 
 	bool NetDeltaSerialize(FNetDeltaSerializeInfo & DeltaParms)

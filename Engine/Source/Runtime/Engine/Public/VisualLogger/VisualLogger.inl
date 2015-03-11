@@ -75,7 +75,7 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 		InitializeNewEntry = TimeStamp > CurrentEntry->TimeStamp && ShouldCreate == ECreateIfNeeded::Create;
 		if (World.IsValid())
 		{
-			World->GetTimerManager().ClearAllTimersForObject(this);
+			World->GetTimerManager().ClearTimer(VisualLoggerCleanupTimerHandle);
 			for (auto& CurrentPair : CurrentEntryPerObject)
 			{
 				FVisualLogEntry* Entry = &CurrentPair.Value;
@@ -141,7 +141,7 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 	if (World.IsValid())
 	{
 		//set next tick timer to flush obsolete/old entries
-		World->GetTimerManager().SetTimerForNextTick(FTimerDelegate::CreateLambda(
+		World->GetTimerManager().SetTimer(VisualLoggerCleanupTimerHandle, FTimerDelegate::CreateLambda(
 			[this, World](){
 			for (auto& CurrentPair : CurrentEntryPerObject)
 			{
@@ -156,7 +156,7 @@ FVisualLogEntry* FVisualLogger::GetEntryToWrite(const class UObject* Object, flo
 				}
 			}
 		}
-		));
+		), 0.1, false);
 	}
 
 	return CurrentEntry;

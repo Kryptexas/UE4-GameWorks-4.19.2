@@ -6,6 +6,7 @@
 #include "GameplayCueManager.h"
 #include "GameplayTagsModule.h"
 #include "GameplayCueNotify_Static.h"
+#include "AbilitySystemComponent.h"
 
 #if WITH_EDITOR
 #include "UnrealEd.h"
@@ -451,3 +452,199 @@ FAutoConsoleCommandWithWorld PrintGameplayCueNotifyMapConsoleCommand(
 	TEXT("Displays GameplayCue notify map"),
 	FConsoleCommandWithWorldDelegate::CreateStatic(PrintGameplayCueNotifyMapConsoleCommandFunc)
 	);
+
+FScopedGameplayCueSendContext::FScopedGameplayCueSendContext()
+{
+	UAbilitySystemGlobals::Get().GetGameplayCueManager()->StartGameplayCueSendContext();
+}
+FScopedGameplayCueSendContext::~FScopedGameplayCueSendContext()
+{
+	UAbilitySystemGlobals::Get().GetGameplayCueManager()->EndGameplayCueSendContext();
+}
+
+void UGameplayCueManager::InvokeGameplayCueExecuted_FromSpec(UAbilitySystemComponent* OwningComponent, const FGameplayEffectSpecForRPC Spec, FPredictionKey PredictionKey)
+{
+	FGameplayCuePendingExecute PendingCue;
+	PendingCue.PayloadType = EGameplayCuePayloadType::FromSpec;
+	PendingCue.OwningComponent = OwningComponent;
+	PendingCue.FromSpec = Spec;
+	PendingCue.PredictionKey = PredictionKey;
+
+	if (ProcessPendingCueExecute(PendingCue))
+	{
+		PendingExecuteCues.Add(PendingCue);
+	}
+
+	if (GameplayCueSendContextCount == 0)
+	{
+		// Not in a context, flush now
+		FlushPendingCues();
+	}
+}
+
+void UGameplayCueManager::InvokeGameplayCueExecuted(UAbilitySystemComponent* OwningComponent, const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext)
+{
+	FGameplayCuePendingExecute PendingCue;
+	PendingCue.PayloadType = EGameplayCuePayloadType::EffectContext;
+	PendingCue.GameplayCueTag = GameplayCueTag;
+	PendingCue.OwningComponent = OwningComponent;
+	PendingCue.CueParameters.EffectContext = EffectContext;
+	PendingCue.PredictionKey = PredictionKey;
+
+	if (ProcessPendingCueExecute(PendingCue))
+	{
+		PendingExecuteCues.Add(PendingCue);
+	}
+
+	if (GameplayCueSendContextCount == 0)
+	{
+		// Not in a context, flush now
+		FlushPendingCues();
+	}
+}
+
+void UGameplayCueManager::InvokeGameplayCueExecuted_WithParams(UAbilitySystemComponent* OwningComponent, const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayCueParameters GameplayCueParameters)
+{
+	FGameplayCuePendingExecute PendingCue;
+	PendingCue.PayloadType = EGameplayCuePayloadType::CueParameters;
+	PendingCue.GameplayCueTag = GameplayCueTag;
+	PendingCue.OwningComponent = OwningComponent;
+	PendingCue.CueParameters = GameplayCueParameters;
+	PendingCue.PredictionKey = PredictionKey;
+
+	if (ProcessPendingCueExecute(PendingCue))
+	{
+		PendingExecuteCues.Add(PendingCue);
+	}
+
+	if (GameplayCueSendContextCount == 0)
+	{
+		// Not in a context, flush now
+		FlushPendingCues();
+	}
+}
+
+void UGameplayCueManager::StartGameplayCueSendContext()
+{
+	GameplayCueSendContextCount++;
+}
+
+void UGameplayCueManager::EndGameplayCueSendContext()
+{
+	GameplayCueSendContextCount--;
+
+	if (GameplayCueSendContextCount == 0)
+	{
+		FlushPendingCues();
+	}
+	else if (GameplayCueSendContextCount < 0)
+	{
+		ABILITY_LOG(Warning, TEXT("UGameplayCueManager::EndGameplayCueSendContext called too many times! Negative context count"));
+	}
+}
+
+void UGameplayCueManager::FlushPendingCues()
+{
+	for (int32 i = 0; i < PendingExecuteCues.Num(); i++)
+	{
+		FGameplayCuePendingExecute& PendingCue = PendingExecuteCues[i];
+
+		// Our component may have gone away
+		if (PendingCue.OwningComponent)
+		{
+			bool bHasAuthority = PendingCue.OwningComponent->IsOwnerActorAuthoritative();
+			bool bValidPredictionKey = PendingCue.PredictionKey.IsValidKey();
+
+			// TODO: Could implement non-rpc method for replicating if desired
+			switch (PendingCue.PayloadType)
+			{
+			case EGameplayCuePayloadType::CueParameters:
+				if (bHasAuthority)
+				{
+					PendingCue.OwningComponent->ForceReplication();
+					PendingCue.OwningComponent->NetMulticast_InvokeGameplayCueExecuted_WithParams(PendingCue.GameplayCueTag, PendingCue.PredictionKey, PendingCue.CueParameters);
+				}
+				else if (bValidPredictionKey)
+				{
+					PendingCue.OwningComponent->InvokeGameplayCueEvent(PendingCue.GameplayCueTag, EGameplayCueEvent::Executed, PendingCue.CueParameters);
+				}
+				break;
+			case EGameplayCuePayloadType::EffectContext:
+				if (bHasAuthority)
+				{
+					PendingCue.OwningComponent->ForceReplication();
+					PendingCue.OwningComponent->NetMulticast_InvokeGameplayCueExecuted(PendingCue.GameplayCueTag, PendingCue.PredictionKey, PendingCue.CueParameters.EffectContext);
+				}
+				else if (bValidPredictionKey)
+				{
+					PendingCue.OwningComponent->InvokeGameplayCueEvent(PendingCue.GameplayCueTag, EGameplayCueEvent::Executed, PendingCue.CueParameters.EffectContext);
+				}
+				break;
+			case EGameplayCuePayloadType::FromSpec:
+				if (bHasAuthority)
+				{
+					PendingCue.OwningComponent->ForceReplication();
+					PendingCue.OwningComponent->NetMulticast_InvokeGameplayCueExecuted_FromSpec(PendingCue.FromSpec, PendingCue.PredictionKey);
+				}
+				else if (bValidPredictionKey)
+				{
+					PendingCue.OwningComponent->InvokeGameplayCueEvent(PendingCue.FromSpec, EGameplayCueEvent::Executed);
+				}
+				break;
+			}
+		}
+	}
+
+	PendingExecuteCues.Empty();
+}
+
+bool UGameplayCueManager::ProcessPendingCueExecute(FGameplayCuePendingExecute& PendingCue)
+{
+	// Subclasses can do something here
+	return true;
+}
+
+bool UGameplayCueManager::DoesPendingCueExecuteMatch(FGameplayCuePendingExecute& PendingCue, FGameplayCuePendingExecute& ExistingCue)
+{
+	const FHitResult* PendingHitResult = NULL;
+	const FHitResult* ExistingHitResult = NULL;
+
+	if (PendingCue.PayloadType != ExistingCue.PayloadType)
+	{
+		return false;
+	}
+
+	if (PendingCue.OwningComponent != ExistingCue.OwningComponent)
+	{
+		return false;
+	}
+
+	if (PendingCue.PredictionKey.PredictiveConnection != ExistingCue.PredictionKey.PredictiveConnection)
+	{
+		// They can both by null, but if they were predicted by different people exclude it
+		return false;
+	}
+
+	if (PendingCue.PayloadType == EGameplayCuePayloadType::FromSpec)
+	{
+		if (PendingCue.FromSpec.Def != ExistingCue.FromSpec.Def)
+		{
+			return false;
+		}
+
+		if (PendingCue.FromSpec.Level != ExistingCue.FromSpec.Level)
+		{
+			return false;
+		}
+	}
+	else
+	{
+		if (PendingCue.GameplayCueTag != ExistingCue.GameplayCueTag)
+		{
+			return false;
+		}
+	}
+
+	return true;
+}
+

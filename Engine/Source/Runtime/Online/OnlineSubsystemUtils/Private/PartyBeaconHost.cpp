@@ -241,15 +241,19 @@ void APartyBeaconHost::NewPlayerAdded(const FPlayerReservation& NewPlayer)
 {
 	if (NewPlayer.UniqueId.IsValid())
 	{
-		UE_LOG(LogBeacon, Verbose, TEXT("Beacon adding player %s"), *NewPlayer.UniqueId->ToDebugString());
+		if (State)
+		{
+			UE_LOG(LogBeacon, Verbose, TEXT("Beacon adding player %s"), *NewPlayer.UniqueId->ToDebugString());
+			State->PlayersPendingJoin.Add(NewPlayer.UniqueId.GetUniqueNetId());
+		}
+		else
+		{
+			UE_LOG(LogBeacon, Warning, TEXT("Beacon skipping PlayersPendingJoin for beacon with no state!"));
+		}
 	}
 	else
 	{
-		UE_LOG(LogBeacon, Warning, TEXT("Beacon adding invalid player!"));
-	}
-	if (State)
-	{
-		State->PlayersPendingJoin.Add(NewPlayer.UniqueId.GetUniqueNetId());
+		UE_LOG(LogBeacon, Warning, TEXT("Beacon skipping PlayersPendingJoin for invalid player!"));
 	}
 }
 
@@ -345,41 +349,27 @@ EPartyReservationResult::Type APartyBeaconHost::AddPartyReservation(const FParty
 		return EPartyReservationResult::ReservationDenied;
 	}
 
-	if (State->DoesReservationFit(ReservationRequest))
+	if (ReservationRequest.IsValid())
 	{
-		bool bContinue = true;
-		if (ValidatePlayers.IsBound())
+		if (State->DoesReservationFit(ReservationRequest))
 		{
-			bContinue = ValidatePlayers.Execute(ReservationRequest.PartyMembers);
-		}
-
-		if (bContinue)
-		{
-			const int32 ExistingReservationIdx = State->GetExistingReservation(ReservationRequest.PartyLeader);
-			if (ExistingReservationIdx != INDEX_NONE)
+			bool bContinue = true;
+			if (ValidatePlayers.IsBound())
 			{
-				TArray<FPartyReservation>& Reservations = State->GetReservations();
-				FPartyReservation& ExistingReservation = Reservations[ExistingReservationIdx];
-				if (ReservationRequest.PartyMembers.Num() == ExistingReservation.PartyMembers.Num())
+				bContinue = ValidatePlayers.Execute(ReservationRequest.PartyMembers);
+			}
+
+			if (bContinue)
+			{
+				const int32 ExistingReservationIdx = State->GetExistingReservation(ReservationRequest.PartyLeader);
+				if (ExistingReservationIdx != INDEX_NONE)
 				{
-					// Verify the reservations are the same
-					int32 NumMatchingReservations = 0;
-					for (const FPlayerReservation& NewPlayerRes : ReservationRequest.PartyMembers)
+					TArray<FPartyReservation>& Reservations = State->GetReservations();
+					FPartyReservation& ExistingReservation = Reservations[ExistingReservationIdx];
+					if (ReservationRequest.PartyMembers.Num() == ExistingReservation.PartyMembers.Num())
 					{
-						FPlayerReservation* PlayerRes = ExistingReservation.PartyMembers.FindByPredicate(
-							[NewPlayerRes](const FPlayerReservation& ExistingPlayerRes)
-								{ 
-									return NewPlayerRes.UniqueId == ExistingPlayerRes.UniqueId; 
-								});
-
-						if (PlayerRes)
-						{
-							NumMatchingReservations++;
-						}
-					}
-
-					if (NumMatchingReservations == ExistingReservation.PartyMembers.Num())
-					{
+						// Verify the reservations are the same
+						int32 NumMatchingReservations = 0;
 						for (const FPlayerReservation& NewPlayerRes : ReservationRequest.PartyMembers)
 						{
 							FPlayerReservation* PlayerRes = ExistingReservation.PartyMembers.FindByPredicate(
@@ -390,66 +380,90 @@ EPartyReservationResult::Type APartyBeaconHost::AddPartyReservation(const FParty
 
 							if (PlayerRes)
 							{
-								// Update the validation auth strings because they may have changed with a new login 
-								PlayerRes->ValidationStr = NewPlayerRes.ValidationStr;
+								NumMatchingReservations++;
 							}
 						}
 
-						// Clean up the game entities for these duplicate players
-						DuplicateReservation.ExecuteIfBound(ReservationRequest);
-
-						// Add all players back into the pending join list
-						for (int32 Count = 0; Count < ReservationRequest.PartyMembers.Num(); Count++)
+						if (NumMatchingReservations == ExistingReservation.PartyMembers.Num())
 						{
-							NewPlayerAdded(ReservationRequest.PartyMembers[Count]);
-						}
+							for (const FPlayerReservation& NewPlayerRes : ReservationRequest.PartyMembers)
+							{
+								FPlayerReservation* PlayerRes = ExistingReservation.PartyMembers.FindByPredicate(
+									[NewPlayerRes](const FPlayerReservation& ExistingPlayerRes)
+								{
+									return NewPlayerRes.UniqueId == ExistingPlayerRes.UniqueId;
+								});
 
-						Result = EPartyReservationResult::ReservationDuplicate;
+								if (PlayerRes)
+								{
+									// Update the validation auth strings because they may have changed with a new login 
+									PlayerRes->ValidationStr = NewPlayerRes.ValidationStr;
+								}
+							}
+
+							// Clean up the game entities for these duplicate players
+							DuplicateReservation.ExecuteIfBound(ReservationRequest);
+
+							// Add all players back into the pending join list
+							for (int32 Count = 0; Count < ReservationRequest.PartyMembers.Num(); Count++)
+							{
+								NewPlayerAdded(ReservationRequest.PartyMembers[Count]);
+							}
+
+							Result = EPartyReservationResult::ReservationDuplicate;
+						}
+						else
+						{
+							// Existing reservation doesn't match incoming duplicate reservation
+							Result = EPartyReservationResult::IncorrectPlayerCount;
+						}
 					}
 					else
 					{
+						// Existing reservation doesn't match incoming duplicate reservation
 						Result = EPartyReservationResult::IncorrectPlayerCount;
 					}
 				}
 				else
 				{
-					Result = EPartyReservationResult::IncorrectPlayerCount;
+					if (State->AreTeamsAvailable(ReservationRequest))
+					{
+						if (State->AddReservation(ReservationRequest))
+						{
+							// Keep track of newly added players
+							for (const FPlayerReservation& PartyMember : ReservationRequest.PartyMembers)
+							{
+								NewPlayerAdded(PartyMember);
+							}
+
+							ReservationChanged.ExecuteIfBound();
+							if (State->IsBeaconFull())
+							{
+								ReservationsFull.ExecuteIfBound();
+							}
+
+							Result = EPartyReservationResult::ReservationAccepted;
+						}
+						else
+						{
+							Result = EPartyReservationResult::IncorrectPlayerCount;
+						}
+					}
+					else
+					{
+						// New reservation doesn't fit with existing players
+						Result = EPartyReservationResult::PartyLimitReached;
+					}
 				}
 			}
 			else
 			{
-				if (State->AreTeamsAvailable(ReservationRequest))
-				{
-					if (State->AddReservation(ReservationRequest))
-					{
-						// Keep track of newly added players
-						for (const FPlayerReservation& PartyMember : ReservationRequest.PartyMembers)
-						{
-							NewPlayerAdded(PartyMember);
-						}
-
-						ReservationChanged.ExecuteIfBound();
-						if (State->IsBeaconFull())
-						{
-							ReservationsFull.ExecuteIfBound();
-						}
-
-						Result = EPartyReservationResult::ReservationAccepted;
-					}
-					else
-					{
-						Result = EPartyReservationResult::IncorrectPlayerCount;
-					}
-				}
-				else
-				{
-					Result = EPartyReservationResult::PartyLimitReached;
-				}
+				Result = EPartyReservationResult::ReservationDenied_Banned;
 			}
 		}
 		else
 		{
-			Result = EPartyReservationResult::ReservationDenied_Banned;
+			Result = EPartyReservationResult::IncorrectPlayerCount;
 		}
 	}
 	else

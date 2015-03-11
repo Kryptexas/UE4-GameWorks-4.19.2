@@ -1430,7 +1430,16 @@ struct GAMEPLAYABILITIES_API FActiveGameplayEffectsContainer : public FFastArray
 	 */
 	FORCEINLINE int32 GetNumGameplayEffects() const
 	{
-		return GameplayEffects_Internal.Num() + PendingAdds;
+		int32 NumPending = 0;
+		FActiveGameplayEffect* PendingGameplayEffect = PendingGameplayEffectHead;
+		FActiveGameplayEffect* Stop = *PendingGameplayEffectNext;
+		while (PendingGameplayEffect && PendingGameplayEffect != Stop)
+		{
+			++NumPending;
+			PendingGameplayEffect = PendingGameplayEffect->PendingNext;
+		}
+
+		return GameplayEffects_Internal.Num() + NumPending;
 	}
 
 	void CheckDuration(FActiveGameplayEffectHandle Handle);
@@ -1488,7 +1497,7 @@ private:
 	 *	Accessors for internal functions to get GameplayEffects directly by index.
 	 *	Note this will return GameplayEffects that are pending removal!
 	 *	
-	 *	To iteratre over all 'valid' gameplay effects, use the CreateConstIterator/CreateIterator or the stl style range iterator
+	 *	To iterate over all 'valid' gameplay effects, use the CreateConstIterator/CreateIterator or the stl style range iterator
 	 */
 	FORCEINLINE const FActiveGameplayEffect* GetActiveGameplayEffect(int32 idx) const
 	{
@@ -1504,7 +1513,11 @@ private:
 
 		idx -= GameplayEffects_Internal.Num();
 		FActiveGameplayEffect* Ptr = PendingGameplayEffectHead;
-		while(idx-- > 0 && Ptr)
+		FActiveGameplayEffect* Stop = *PendingGameplayEffectNext;
+
+		// Advance until the desired index or until hitting the actual end of the pending list currently in use (need to check both Ptr and Ptr->PendingNext to prevent hopping
+		// the pointer too far along)
+		while (idx-- > 0 && Ptr && Ptr != Stop && Ptr->PendingNext != Stop)
 		{
 			Ptr = Ptr->PendingNext;
 		}
@@ -1585,7 +1598,6 @@ private:
 
 	mutable int32 ScopedLockCount;
 	int32 PendingRemoves;
-	int32 PendingAdds;
 
 	FActiveGameplayEffect*	PendingGameplayEffectHead;	// Head of pending GE linked list
 	FActiveGameplayEffect** PendingGameplayEffectNext;	// Points to the where to store the next pending GE (starts pointing at head, as more are added, points further down the list).

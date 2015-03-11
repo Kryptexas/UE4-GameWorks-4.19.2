@@ -683,7 +683,13 @@ struct FGameplayCueParameters
 {
 	GENERATED_USTRUCT_BODY()
 
-	/** Magnitude of source gameplay effect, normalzed from 0-1. Use this for "how strong is the gameplay effet" (0=min, 1=,max) */
+	FGameplayCueParameters()
+	: NormalizedMagnitude(0.0f)
+	, RawMagnitude(0.0f)
+	, MatchedTagName(NAME_None)
+	{}
+
+	/** Magnitude of source gameplay effect, normalzed from 0-1. Use this for "how strong is the gameplay effect" (0=min, 1=,max) */
 	UPROPERTY(BlueprintReadWrite, Category=GameplayCue)
 	float NormalizedMagnitude;
 

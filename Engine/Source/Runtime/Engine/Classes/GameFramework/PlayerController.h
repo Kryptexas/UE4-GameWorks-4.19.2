@@ -510,14 +510,11 @@ public:
 	UFUNCTION(Reliable, Client)
 	virtual void ClientEnableNetworkVoice(bool bEnable);
 
-	/** Enable voice chat transmission	 */
+	/** Enable voice chat transmission */
 	void StartTalking();
 
-	/** Disable voice chat transmission	 */
+	/** Disable voice chat transmission */
 	void StopTalking();
-
-	/** Is this player talking? */
-	bool IsTalking();
 
 	/** 
 	 * Toggle voice chat on and off
@@ -1084,9 +1081,6 @@ protected:
 private:
 	/* Whether the PlayerController's input handling is enabled. */
 	uint32 bInputEnabled:1;
-
-	/** Whether the PlayerController's voice chat is enabled. */
-	uint32 bSpeaking:1;
 
 protected:
 

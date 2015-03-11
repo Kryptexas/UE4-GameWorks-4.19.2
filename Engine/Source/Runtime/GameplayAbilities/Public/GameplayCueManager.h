@@ -67,14 +67,90 @@ struct FGameplayCueNotifyData
 	int32 ParentDataIdx;
 };
 
+/** Type of payload to pass along with this cue */
+UENUM()
+enum class EGameplayCuePayloadType : uint8
+{
+	EffectContext,
+	CueParameters,
+	FromSpec,
+};
+
+/** Structure to keep track of pending gameplay cues that haven't been applied yet */
+USTRUCT()
+struct FGameplayCuePendingExecute
+{
+	GENERATED_USTRUCT_BODY()
+
+	FGameplayCuePendingExecute()
+	: PayloadType(EGameplayCuePayloadType::EffectContext)
+	, OwningComponent(NULL)
+	{
+	}
+
+	UPROPERTY()
+	FGameplayTag GameplayCueTag;
+	
+	/** Prediction key that spawned this cue */
+	UPROPERTY()
+	FPredictionKey PredictionKey;
+
+	/** What type of payload is attached to this cue */
+	UPROPERTY()
+	EGameplayCuePayloadType PayloadType;
+
+	/** What component to send the cue on */
+	UPROPERTY()
+	UAbilitySystemComponent* OwningComponent;
+
+	/** If this cue is from a spec, here's the copy of that spec */
+	UPROPERTY()
+	FGameplayEffectSpecForRPC FromSpec;
+
+	/** Store the full cue parameters or just the effect context depending on type */
+	UPROPERTY()
+	FGameplayCueParameters CueParameters;
+};
+
 /**
- *	A self contained handler of a GameplayCue. These are similiar to AnimNotifies in implementation.
+ *	FScopedGameplayCueSendContext
+ *	Add this around code that sends multiple gameplay cues to allow grouping them into a smalkler number of cues for more efficient networking
+ */
+struct GAMEPLAYABILITIES_API FScopedGameplayCueSendContext
+{
+	FScopedGameplayCueSendContext();
+	~FScopedGameplayCueSendContext();
+};
+
+/**
+ *	A self contained handler of a GameplayCue. These are similar to AnimNotifies in implementation.
  */
 
 UCLASS()
 class GAMEPLAYABILITIES_API UGameplayCueManager : public UDataAsset
 {
 	GENERATED_UCLASS_BODY()
+
+	// -------------------------------------------------------------
+	// Wrappers to handle replicating executed cues
+	// -------------------------------------------------------------
+
+	virtual void InvokeGameplayCueExecuted_FromSpec(UAbilitySystemComponent* OwningComponent, const FGameplayEffectSpecForRPC Spec, FPredictionKey PredictionKey);
+	virtual void InvokeGameplayCueExecuted(UAbilitySystemComponent* OwningComponent, const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayEffectContextHandle EffectContext);
+	virtual void InvokeGameplayCueExecuted_WithParams(UAbilitySystemComponent* OwningComponent, const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey, FGameplayCueParameters GameplayCueParameters);
+
+	/** Start or stop a gameplay cue send context. Used by FScopedGameplayCueSendContext above, when all contexts are removed the cues are flushed */
+	void StartGameplayCueSendContext();
+	void EndGameplayCueSendContext();
+
+	/** Send out any pending cues */
+	virtual void FlushPendingCues();
+
+	/** Process a pending cue, return false if the cue should be rejected. */
+	virtual bool ProcessPendingCueExecute(FGameplayCuePendingExecute& PendingCue);
+
+	/** Returns true if two pending cues match, can be overridden in game */
+	virtual bool DoesPendingCueExecuteMatch(FGameplayCuePendingExecute& PendingCue, FGameplayCuePendingExecute& ExistingCue);
 
 	// -------------------------------------------------------------
 	// Handling GameplayCues at runtime:
@@ -155,4 +231,12 @@ protected:
 	TArray<FString>	LoadedPaths;
 
 	bool bFullyLoad;
+
+	/** List of gameplay cue executes that haven't been processed yet */
+	UPROPERTY()
+	TArray<FGameplayCuePendingExecute> PendingExecuteCues;
+
+	/** Number of active gameplay cue send contexts, when it goes to 0 cues are flushed */
+	UPROPERTY()
+	int32 GameplayCueSendContextCount;
 };

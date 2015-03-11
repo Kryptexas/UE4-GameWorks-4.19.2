@@ -56,8 +56,14 @@ struct FBTPendingExecutionInfo
 	/** if set, tree ran out of nodes */
 	uint32 bOutOfNodes : 1;
 
-	FBTPendingExecutionInfo() : NextTask(NULL), bOutOfNodes(false) {}
-	bool IsSet() const { return NextTask || bOutOfNodes; }
+	/** if set, request can't be executed */
+	uint32 bLocked : 1;
+
+	FBTPendingExecutionInfo() : NextTask(NULL), bOutOfNodes(false), bLocked(false) {}
+	bool IsSet() const { return (NextTask || bOutOfNodes) && !bLocked; }
+
+	void Lock() { bLocked = true; }
+	void Unlock() { bLocked = false; }
 };
 
 struct FBTPendingInitializeInfo

@@ -59,7 +59,6 @@ APlayerController::APlayerController(const FObjectInitializer& ObjectInitializer
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	PrimaryActorTick.bTickEvenWhenPaused = true;
 	bShouldPerformFullTickWhenPaused = false;
-	bSpeaking = false;
 	LastRetryPlayerTime = 0.f;
 	DefaultMouseCursor = EMouseCursor::Default;
 	DefaultClickTraceChannel = ECollisionChannel::ECC_Visibility;
@@ -2965,7 +2964,10 @@ void APlayerController::GetSeamlessTravelActorList(bool bToEntry, TArray<AActor*
 }
 
 
-void APlayerController::SeamlessTravelTo(APlayerController* NewPC) {}
+void APlayerController::SeamlessTravelTo(APlayerController* NewPC)
+{
+
+}
 
 
 void APlayerController::SeamlessTravelFrom(APlayerController* OldPC)
@@ -2997,14 +2999,8 @@ void APlayerController::StopTalking()
 	ToggleSpeaking(false);
 }
 
-bool APlayerController::IsTalking()
-{
-	return bSpeaking;
-}
-
 void APlayerController::ToggleSpeaking(bool bSpeaking)
 {
-	this->bSpeaking = bSpeaking;
 	ULocalPlayer* LP = Cast<ULocalPlayer>(Player);
 	if (LP != NULL)
 	{

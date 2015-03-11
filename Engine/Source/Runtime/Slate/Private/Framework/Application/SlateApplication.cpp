@@ -3153,7 +3153,7 @@ void FSlateApplication::QueueSynthesizedMouseMove()
 	SynthesizeMouseMovePending = 2;
 }
 
-void FSlateApplication::OnLogSlateEvent(EEventLog::Type Elovent, const FString& AdditionalContent)
+void FSlateApplication::OnLogSlateEvent(EEventLog::Type Event, const FString& AdditionalContent)
 {
 #if LOG_SLATE_EVENTS
 	if (EventLogger.IsValid())
@@ -3707,8 +3707,6 @@ bool FSlateApplication::ProcessKeyDownEvent( FKeyEvent& InKeyEvent )
 
 		// Switch worlds for widgets inOnPreviewMouseButtonDown the current path
 		FScopedSwitchWorldHack SwitchWorld( EventPath );
-
-		TSharedPtr<SWidget> WidgetToLog;
 
 		Reply = FReply::Unhandled();
 
@@ -4998,8 +4996,11 @@ bool FSlateApplication::ProcessWindowActivatedEvent( const FWindowActivateEvent&
 
 	if ( ActivateEvent.GetActivationType() != FWindowActivateEvent::EA_Deactivate )
 	{
-		// Only window activate considered a user interaction
-		LastUserInteractionTime = this->GetCurrentTime();
+		// Only window activate by mouse is considered a user interaction
+		if (ActivateEvent.GetActivationType() == FWindowActivateEvent::EA_ActivateByMouse)
+		{
+			LastUserInteractionTime = this->GetCurrentTime();
+		}
 		
 		// NOTE: The window is brought to front even when a modal window is active and this is not the modal window one of its children 
 		// The reason for this is so that the Slate window order is in sync with the OS window order when a modal window is open.  This is important so that when the modal window closes the proper window receives input from Slate.

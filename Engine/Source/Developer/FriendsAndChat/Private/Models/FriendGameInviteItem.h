@@ -15,7 +15,7 @@ public:
 
 	virtual bool IsGameRequest() const override;
 	virtual bool IsGameJoinable() const override;
-	virtual FString GetGameSessionId() const override;
+	virtual TSharedPtr<FUniqueNetId> GetGameSessionId() const override;
 
 	// FFriendGameInviteItem
 

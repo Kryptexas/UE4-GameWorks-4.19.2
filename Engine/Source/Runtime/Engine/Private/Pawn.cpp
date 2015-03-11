@@ -785,7 +785,7 @@ FRotator APawn::GetBaseAimRotation() const
 	POVRot = GetActorRotation();
 
 	// If our Pitch is 0, then use RemoteViewPitch
-	if( POVRot.Pitch == 0.f )
+	if( FMath::IsNearlyZero(POVRot.Pitch) )
 	{
 		POVRot.Pitch = RemoteViewPitch;
 		POVRot.Pitch = POVRot.Pitch * 360.f/255.f;

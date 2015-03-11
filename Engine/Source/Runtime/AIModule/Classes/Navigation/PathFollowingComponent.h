@@ -7,7 +7,7 @@
 #include "AIResourceInterface.h"
 #include "PathFollowingComponent.generated.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogPathFollowing, Warning, All);
+AIMODULE_API DECLARE_LOG_CATEGORY_EXTERN(LogPathFollowing, Warning, All);
 
 class UNavMovementComponent;
 class UCanvas;

@@ -384,6 +384,11 @@ int32 UGameplayTagsManager::InsertTagIntoNodeArray(FName Tag, TWeakPtr<FGameplay
 		GameplayTagMap.Add(TagNode->GetCompleteTag(), GameplayTag);
 		GameplayTagNodeMap.Add(GameplayTag, TagNode);
 	}
+	else if (NodeArray[InsertionIdx]->CategoryDescription.IsEmpty() && !CategoryDescription.IsEmpty())
+	{
+		// Fill in category description for nodes that were added by virtue of being a parent node
+		NodeArray[InsertionIdx]->CategoryDescription = CategoryDescription;
+	}
 
 	return InsertionIdx;
 }

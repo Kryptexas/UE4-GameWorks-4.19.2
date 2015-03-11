@@ -12,7 +12,8 @@ public:
 
 	virtual void EnumerateActions(TArray<EFriendActionType::Type>& Actions, bool bFromChat = false) override
 	{
-		bool bIsFriendInSameSession = FriendItem->GetSessionId() == FFriendsAndChatManager::Get()->GetGameSessionId();
+		bool bIsFriendInSameSession = FFriendsAndChatManager::Get()->IsFriendInSameSession(FriendItem);
+
 		if(FriendItem->IsGameRequest())
 		{
 			if (FriendItem->IsGameJoinable())
@@ -84,9 +85,11 @@ public:
 	
 	virtual const bool HasChatAction() const override
 	{
+		bool bIsFriendInSameSession = FFriendsAndChatManager::Get()->IsFriendInSameSession(FriendItem);
+
 		return FriendItem->GetInviteStatus() != EInviteStatus::Accepted
 			|| FriendItem->IsGameJoinable()
-			|| FFriendsAndChatManager::Get()->IsInJoinableGameSession();
+			|| (FFriendsAndChatManager::Get()->IsInJoinableGameSession() && !bIsFriendInSameSession);
 	}
 
 	virtual void PerformAction(const EFriendActionType::Type ActionType) override

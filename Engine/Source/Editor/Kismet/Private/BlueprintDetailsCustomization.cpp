@@ -1063,7 +1063,8 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 	TArray<FName> VisibleVariables;
 	bool bShowUserVarsOnly = MyBlueprint->ShowUserVarsOnly();
 	UBlueprint* Blueprint = MyBlueprint->GetBlueprintObj();
-	check(Blueprint && (Blueprint->SkeletonGeneratedClass != NULL));
+	check(Blueprint != NULL);
+	check(Blueprint->SkeletonGeneratedClass != NULL);
 	EFieldIteratorFlags::SuperClassFlags SuperClassFlag = EFieldIteratorFlags::ExcludeSuper;
 	if(!bShowUserVarsOnly)
 	{
@@ -1100,7 +1101,7 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 	}
 
 	// Search through all function graphs for entry nodes to search for local variables to pull their categories
-	for( UEdGraph* FunctionGraph : MyBlueprint->GetBlueprintObj()->FunctionGraphs )
+	for (UEdGraph* FunctionGraph : Blueprint->FunctionGraphs)
 	{
 		if(UFunction* Function = Blueprint->SkeletonGeneratedClass->FindFunctionByName(FunctionGraph->GetFName()))
 		{
@@ -1126,7 +1127,7 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 		FBlueprintEditorUtils::GetEntryAndResultNodes(FunctionGraph, EntryNode, ResultNode);
 		if (UK2Node_FunctionEntry* FunctionEntryNode = Cast<UK2Node_FunctionEntry>(EntryNode.Get()))
 		{
-			for( FBPVariableDescription& Variable : FunctionEntryNode->LocalVariables )
+			for (FBPVariableDescription& Variable : FunctionEntryNode->LocalVariables)
 			{
 				bool bNewCategory = true;
 				for (int32 j = 0; j < CategorySource.Num() && bNewCategory; ++j)
@@ -1141,7 +1142,7 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 		}
 	}
 
-	for( UEdGraph* MacroGraph : MyBlueprint->GetBlueprintObj()->MacroGraphs )
+	for (UEdGraph* MacroGraph : Blueprint->MacroGraphs)
 	{
 		TWeakObjectPtr<UK2Node_EditablePinBase> EntryNode;
 		TWeakObjectPtr<UK2Node_EditablePinBase> ResultNode;
@@ -1161,7 +1162,7 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 	}
 
 	// Pull categories from overridable functions
-	for (TFieldIterator<UFunction> FunctionIt(MyBlueprint->GetBlueprintObj()->ParentClass, EFieldIteratorFlags::IncludeSuper); FunctionIt; ++FunctionIt)
+	for (TFieldIterator<UFunction> FunctionIt(Blueprint->ParentClass, EFieldIteratorFlags::IncludeSuper); FunctionIt; ++FunctionIt)
 	{
 		const UFunction* Function = *FunctionIt;
 		const FName FunctionName = Function->GetFName();
@@ -1170,7 +1171,7 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 		{
 			FString FunctionCategory = Function->GetMetaData(FBlueprintMetadata::MD_FunctionCategory);
 
-			if(!FunctionCategory.IsEmpty())
+			if (!FunctionCategory.IsEmpty())
 			{
 				bool bNewCategory = true;
 				for (int32 j = 0; j < CategorySource.Num() && bNewCategory; ++j)
@@ -1178,7 +1179,7 @@ void FBlueprintVarActionDetails::PopulateCategories(SMyBlueprint* MyBlueprint, T
 					bNewCategory &= *CategorySource[j].Get() != FunctionCategory;
 				}
 
-				if(bNewCategory)
+				if (bNewCategory)
 				{
 					CategorySource.Add(MakeShareable(new FString(FunctionCategory)));
 				}

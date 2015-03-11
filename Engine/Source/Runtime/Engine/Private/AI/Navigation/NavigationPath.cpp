@@ -923,10 +923,9 @@ bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVe
 	const TArray<FNavigationPortalEdge>& CorridorEdges = GetPathCorridorEdges();
 
 	// note that it's a bit simplified. It works
+	FVector Start = StartLocation;
 	if (CorridorEdges.IsValidIndex(StartingIndex))
 	{
-		FVector Start = StartLocation;
-
 		for (int32 PortalIndex = StartingIndex; PortalIndex < CorridorEdges.Num(); ++PortalIndex)
 		{
 			const FNavigationPortalEdge& Edge = CorridorEdges[PortalIndex];
@@ -934,7 +933,7 @@ bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVe
 			if (FVector::DistSquared(Start, End) > SMALL_NUMBER)
 			{
 				const FVector Direction = (End - Start);
-				
+
 				FVector HitLocation, HitNormal;
 				float HitTime;
 
@@ -954,30 +953,30 @@ bool FNavMeshPath::DoesPathIntersectBoxImplementation(const FBox& Box, const FVe
 
 			Start = End;
 		}
-
-		// test the last portal->path end line
-		if (bIntersects == false)
-		{
-			ensure(PathPoints.Num() == 2);
-			const FVector End = PathPoints.Last().Location + (AgentExtent ? FVector(0.f, 0.f, AgentExtent->Z) : FVector::ZeroVector);
+	}
+	
+	// test the last portal->path end line. 
+	if (bIntersects == false)
+	{
+		ensure(PathPoints.Num() == 2);
+		const FVector End = PathPoints.Last().Location + (AgentExtent ? FVector(0.f, 0.f, AgentExtent->Z) : FVector::ZeroVector);
 			
-			if (FVector::DistSquared(StartLocation, End) > SMALL_NUMBER)
+		if (FVector::DistSquared(StartLocation, End) > SMALL_NUMBER)
+		{
+			const FVector Direction = (End - Start);
+
+			FVector HitLocation, HitNormal;
+			float HitTime;
+
+			// If we have a valid AgentExtent, then we use an extent box to represent the path
+			// Otherwise we use a line to represent the path
+			if ((AgentExtent && FMath::LineExtentBoxIntersection(Box, Start, End, *AgentExtent, HitLocation, HitNormal, HitTime)) ||
+				(!AgentExtent && FMath::LineBoxIntersection(Box, Start, End, Direction)))
 			{
-				const FVector Direction = (End - Start);
-
-				FVector HitLocation, HitNormal;
-				float HitTime;
-
-				// If we have a valid AgentExtent, then we use an extent box to represent the path
-				// Otherwise we use a line to represent the path
-				if ((AgentExtent && FMath::LineExtentBoxIntersection(Box, Start, End, *AgentExtent, HitLocation, HitNormal, HitTime)) ||
-					(!AgentExtent && FMath::LineBoxIntersection(Box, Start, End, Direction)))
+				bIntersects = true;
+				if (IntersectingSegmentIndex != NULL)
 				{
-					bIntersects = true;
-					if (IntersectingSegmentIndex != NULL)
-					{
-						*IntersectingSegmentIndex = CorridorEdges.Num();
-					}
+					*IntersectingSegmentIndex = CorridorEdges.Num();
 				}
 			}
 		}

@@ -399,7 +399,8 @@ public:
 	void SlotEvaluatePose(FName SlotNodeName, const struct FA2Pose & SourcePose, struct FA2Pose & BlendedPose, float SlotNodeWeight);
 
 	// slot node run-time functions
-	void RegisterSlotNode(FName SlotNodeName);
+	void ReinitializeSlotNodes();
+	void RegisterSlotNodeWithAnimInstance(FName SlotNodeName);
 	void UpdateSlotNodeWeight(FName SlotNodeName, float Weight);
 	// if it doesn't tick, it will keep old weight, so we'll have to clear it in the beginning of tick
 	void ClearSlotNodeWeights();
@@ -741,10 +742,7 @@ public:
 	/** Material parameters that we had been changing and now need to clear */
 	TArray<FName> MaterialParamatersToClear;
 
-	TMap<FName, float> ActiveSlotWeights;
 
-	// Mapping from slot name to weighting for that root motion
-	TMap<FName, float> ActiveSlotRootMotionWeights;
 
 #if WITH_EDITORONLY_DATA
 	// Maximum playback position ever reached (only used when debugging in Persona)
@@ -753,6 +751,20 @@ public:
 	// Current scrubbing playback position (only used when debugging in Persona)
 	double CurrentLifeTimerScrubPosition;
 #endif
+
+public:
+	int16 GetSlotNodeInitializationCounter() const { return SlotNodeInitializationCounter; }
+
+private:
+	/** Counter so we register Slot nodes just once per Initialization pass 
+	 * State can trigger initialization later, and we don't want to register these nodes multiple times. */
+	UPROPERTY(Transient)
+	int16 SlotNodeInitializationCounter;
+
+	TMap<FName, float> ActiveSlotWeights;
+
+	// Mapping from slot name to weighting for that root motion
+	TMap<FName, float> ActiveSlotRootMotionWeights;
 
 public:
 	/** 

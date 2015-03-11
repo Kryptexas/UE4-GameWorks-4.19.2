@@ -150,7 +150,7 @@ public:
 	 *
 	 * @return True id of game session we are in.
 	 */
-	FString GetGameSessionId() const;
+	TSharedPtr<FUniqueNetId> GetGameSessionId() const;
 
 	/**
 	 * Get if the current player is in a session.
@@ -158,6 +158,13 @@ public:
 	 * @return True if we are in a game session.
 	 */
 	bool IsInGameSession() const;
+
+	/**
+	 * Is this friend in the same session as I am
+	 *
+	 * @param reference to a friend item
+	 */
+	bool IsFriendInSameSession( const TSharedPtr< const IFriendItem >& FriendItem ) const;
 
 	/**
 	 * Get if the current player is in a session and that game is joinable.

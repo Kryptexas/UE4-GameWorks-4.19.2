@@ -1758,6 +1758,15 @@ void UNetConnection::FlushDormancyForObject( UObject* Object )
 		Replicator = &DormantReplicatorMap.Add( Object, TSharedRef<FObjectReplicator>( new FObjectReplicator() ) );
 
 		Replicator->Get().InitWithObject( Object, this, false );		// Init using the objects current state
+
+		// Flush the must be mapped GUIDs, the initialization may add them, but they're phantom and will be remapped when actually sending
+		UPackageMapClient * PackageMapClient = CastChecked< UPackageMapClient >(PackageMap);
+
+		if (PackageMapClient)
+		{
+			TArray< FNetworkGUID >& MustBeMappedGuidsInLastBunch = PackageMapClient->GetMustBeMappedGuidsInLastBunch();
+			MustBeMappedGuidsInLastBunch.Empty();
+		}	
 	}
 }
 

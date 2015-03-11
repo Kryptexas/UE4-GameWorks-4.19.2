@@ -76,7 +76,7 @@ void FCurveColorCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> InStr
 			];
 
 		check(CurveWidget.IsValid());
-		if (RuntimeCurve->ExternalCurve)
+		if (RuntimeCurve && RuntimeCurve->ExternalCurve)
 		{
 			CurveWidget->SetCurveOwner(RuntimeCurve->ExternalCurve, false);
 		}

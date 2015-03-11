@@ -827,9 +827,9 @@ void FVisualizeTexture::DebugLog(bool bExtended)
 		TArray<FString> Entries;
 				
 		// sorted by pointer for efficiency, now we want to print sorted alphabetically
-		for (TMap<FString, uint32>:: TIterator It(GRenderTargetPool.VisualizeTexture.VisualizeTextureCheckpoints); It; ++It)
+		for (TMap<const TCHAR*, uint32>:: TIterator It(GRenderTargetPool.VisualizeTexture.VisualizeTextureCheckpoints); It; ++It)
 		{
-			const FString& Key = It.Key();
+			const TCHAR* Key = It.Key();
 			uint32 Value = It.Value();
 
 /*					if(Value)
@@ -922,7 +922,7 @@ void FVisualizeTexture::OnStartFrame(const FSceneView& View)
 
 	// only needed for VisualizeTexture (todo: optimize out when possible)
 	{
-		for (TMap<FString, uint32>:: TIterator It(VisualizeTextureCheckpoints); It; ++It)
+		for (TMap<const TCHAR*, uint32>:: TIterator It(VisualizeTextureCheckpoints); It; ++It)
 		{
 			uint32& Value = It.Value();
 

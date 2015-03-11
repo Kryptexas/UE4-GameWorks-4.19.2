@@ -651,9 +651,9 @@ FActiveGameplayEffectHandle UAbilitySystemComponent::ApplyGameplayEffectSpecToSe
 	{
 		// This is an instant application but we are treating it as an infinite duration for prediction. We should still predict the execute GameplayCUE.
 		// (in non predictive case, this will happen inside ::ExecuteGameplayEffect)
-		InvokeGameplayCueEvent(*OurCopyOfSpec, EGameplayCueEvent::Executed);
-	}
 
+		UAbilitySystemGlobals::Get().GetGameplayCueManager()->InvokeGameplayCueExecuted_FromSpec(this, *OurCopyOfSpec, PredictionKey);
+	}
 
 	if (Spec.GetPeriod() != UGameplayEffect::NO_PERIOD && Spec.TargetEffectSpecs.Num() > 0)
 	{
@@ -756,6 +756,36 @@ void UAbilitySystemComponent::CheckDurationExpired(FActiveGameplayEffectHandle H
 bool UAbilitySystemComponent::RemoveActiveGameplayEffect(FActiveGameplayEffectHandle Handle, int32 StacksToRemove)
 {
 	return ActiveGameplayEffects.RemoveActiveGameplayEffect(Handle, StacksToRemove);
+}
+
+void UAbilitySystemComponent::RemoveActiveGameplayEffectBySourceEffect(TSubclassOf<UGameplayEffect> GameplayEffect, UAbilitySystemComponent* InstigatorAbilitySystemComponent, int32 StacksToRemove /*= -1*/)
+{
+	if (GameplayEffect)
+	{
+		FActiveGameplayEffectQuery Query;
+		Query.CustomMatch.BindLambda([&](const FActiveGameplayEffect& CurEffect)
+		{
+			bool bMatches = false;
+
+			// First check at matching: backing GE class must be the exact same
+			if (CurEffect.Spec.Def && GameplayEffect == CurEffect.Spec.Def->GetClass())
+			{
+				// If an instigator is specified, matching is dependent upon it
+				if (InstigatorAbilitySystemComponent)
+				{
+					bMatches = (InstigatorAbilitySystemComponent == CurEffect.Spec.GetEffectContext().GetInstigatorAbilitySystemComponent());
+				}
+				else
+				{
+					bMatches = true;
+				}
+			}
+
+			return bMatches;
+		});
+
+		ActiveGameplayEffects.RemoveActiveEffects(Query, StacksToRemove);
+	}
 }
 
 float UAbilitySystemComponent::GetGameplayEffectDuration(FActiveGameplayEffectHandle Handle) const
@@ -876,28 +906,14 @@ void UAbilitySystemComponent::InvokeGameplayCueEvent(const FGameplayTag Gameplay
 
 void UAbilitySystemComponent::ExecuteGameplayCue(const FGameplayTag GameplayCueTag, FGameplayEffectContextHandle EffectContext)
 {
-	if (IsOwnerActorAuthoritative())
-	{
-		ForceReplication();
-		NetMulticast_InvokeGameplayCueExecuted(GameplayCueTag, ScopedPredictionKey, EffectContext);
-	}
-	else if (ScopedPredictionKey.IsValidKey())
-	{
-		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed, EffectContext);
-	}
+	// Send to the wrapper on the cue manager
+	UAbilitySystemGlobals::Get().GetGameplayCueManager()->InvokeGameplayCueExecuted(this, GameplayCueTag, ScopedPredictionKey, EffectContext);
 }
 
 void UAbilitySystemComponent::ExecuteGameplayCue(const FGameplayTag GameplayCueTag, const FGameplayCueParameters& GameplayCueParameters)
 {
-	if (IsOwnerActorAuthoritative())
-	{
-		ForceReplication();
-		NetMulticast_InvokeGameplayCueExecuted_WithParams(GameplayCueTag, ScopedPredictionKey, GameplayCueParameters);
-	}
-	else if (ScopedPredictionKey.IsValidKey())
-	{
-		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Executed, GameplayCueParameters);
-	}
+	// Send to the wrapper on the cue manager
+	UAbilitySystemGlobals::Get().GetGameplayCueManager()->InvokeGameplayCueExecuted_WithParams(this, GameplayCueTag, ScopedPredictionKey, GameplayCueParameters);
 }
 
 void UAbilitySystemComponent::AddGameplayCue(const FGameplayTag GameplayCueTag, FGameplayEffectContextHandle EffectContext)
@@ -907,7 +923,7 @@ void UAbilitySystemComponent::AddGameplayCue(const FGameplayTag GameplayCueTag, 
 		bool bWasInList = HasMatchingGameplayTag(GameplayCueTag);
 
 		ForceReplication();
-		ActiveGameplayCues.AddCue(GameplayCueTag);
+		ActiveGameplayCues.AddCue(GameplayCueTag, ScopedPredictionKey);
 		NetMulticast_InvokeGameplayCueAdded(GameplayCueTag, ScopedPredictionKey, EffectContext);
 
 		if (!bWasInList)
@@ -931,7 +947,13 @@ void UAbilitySystemComponent::RemoveGameplayCue(const FGameplayTag GameplayCueTa
 		bool bWasInList = HasMatchingGameplayTag(GameplayCueTag);
 
 		ActiveGameplayCues.RemoveCue(GameplayCueTag);
-		NetMulticast_InvokeGameplayCueRemoved(GameplayCueTag, ScopedPredictionKey);
+
+		if (bWasInList)
+		{
+			// Call on server here, clients get it from repnotify
+			InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
+		}
+		// Don't need to multicast broadcast this, ACtiveGameplayCues replication handles it
 	}
 	else if (ScopedPredictionKey.IsValidKey())
 	{
@@ -976,14 +998,6 @@ void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueAdded_Implementation
 	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
 	{
 		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::OnActive, EffectContext);
-	}
-}
-
-void UAbilitySystemComponent::NetMulticast_InvokeGameplayCueRemoved_Implementation(const FGameplayTag GameplayCueTag, FPredictionKey PredictionKey)
-{
-	if (IsOwnerActorAuthoritative() || PredictionKey.IsValidKey() == false)
-	{
-		InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
 	}
 }
 

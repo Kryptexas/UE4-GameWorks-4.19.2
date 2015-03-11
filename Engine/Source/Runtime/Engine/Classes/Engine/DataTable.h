@@ -153,6 +153,9 @@ public:
 	/** Output entire contents of table as JSON */
 	ENGINE_API bool WriteTableAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter) const;
 
+	/** Output the fields from a particular row (use RowMap to get RowData) to an existing JsonWriter */
+	ENGINE_API bool WriteRowAsJSON(const TSharedRef< TJsonWriter<TCHAR, TPrettyJsonPrintPolicy<TCHAR> > >& JsonWriter, const void* RowData) const;
+
 	/** 
 	 *	Create table from CSV style comma-separated string. 
 	 *	RowStruct must be defined before calling this function. 

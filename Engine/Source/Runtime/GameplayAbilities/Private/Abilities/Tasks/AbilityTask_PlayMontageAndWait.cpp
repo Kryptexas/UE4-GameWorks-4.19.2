@@ -11,7 +11,7 @@ UAbilityTask_PlayMontageAndWait::UAbilityTask_PlayMontageAndWait(const FObjectIn
 	Rate = 1.f;
 }
 
-void UAbilityTask_PlayMontageAndWait::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+void UAbilityTask_PlayMontageAndWait::OnMontageBlendingOut(UAnimMontage* Montage, bool bInterrupted)
 {
 	if (Ability.IsValid() && Ability->GetCurrentMontage() == MontageToPlay)
 	{
@@ -84,7 +84,7 @@ void UAbilityTask_PlayMontageAndWait::Activate()
 
 				InterruptedHandle = Ability->OnGameplayAbilityCancelled.AddUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageInterrupted);
 
-				BlendingOutDelegate.BindUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageEnded);
+				BlendingOutDelegate.BindUObject(this, &UAbilityTask_PlayMontageAndWait::OnMontageBlendingOut);
 				ActorInfo->AnimInstance->Montage_SetBlendingOutDelegate(BlendingOutDelegate);
 
 				bPlayedMontage = true;

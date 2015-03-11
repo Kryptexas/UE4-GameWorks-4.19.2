@@ -698,15 +698,12 @@ FAIRequestID AAIController::RequestPathAndMove(const FAIMoveRequest& MoveRequest
 		{
 			if (PathResult.IsSuccessful() && PathResult.Path.IsValid())
 			{
-				if (MoveRequest.IsUsingPathfinding())
+				if (MoveRequest.HasGoalActor())
 				{
-					if (MoveRequest.HasGoalActor())
-				{
-						PathResult.Path->SetGoalActorObservation(*MoveRequest.GetGoalActor(), 100.0f);
+					PathResult.Path->SetGoalActorObservation(*MoveRequest.GetGoalActor(), 100.0f);
 				}
 
 				PathResult.Path->EnableRecalculationOnInvalidation(true);
-			}
 
 				RequestID = RequestMove(MoveRequest, PathResult.Path);
 			}

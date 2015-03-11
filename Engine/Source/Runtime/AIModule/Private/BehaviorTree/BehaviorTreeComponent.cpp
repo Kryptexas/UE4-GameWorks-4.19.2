@@ -818,7 +818,7 @@ void UBehaviorTreeComponent::RequestExecution(UBTCompositeNode* RequestedOn, int
 	ExecutionRequest.ContinueWithResult = ContinueWithResult;
 	ExecutionRequest.bTryNextChild = !bSwitchToHigherPriority;
 	ExecutionRequest.bIsRestart = (RequestedBy != GetActiveNode());
-	PendingExecution = FBTPendingExecutionInfo();
+	PendingExecution.Lock();
 	
 	// break out of current search if new request is more important than currently processed one
 	// no point in starting new task just to abandon it in next tick
@@ -1157,6 +1157,11 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 
 		if (bIsSearchValid)
 		{
+			// collect all aux nodes that have lower priority than new task
+			// occurs when normal execution is forced to revisit lower priority nodes (e.g. loop decorator)
+			const FBTNodeIndex NextTaskIdx = NextTask ? FBTNodeIndex(ActiveInstanceIdx, NextTask->GetExecutionIndex()) : FBTNodeIndex(0, 0);
+			UnregisterAuxNodesUpTo(NextTaskIdx);
+
 			// change aux nodes
 			ApplySearchData(NextTask);
 		}
@@ -1191,15 +1196,18 @@ void UBehaviorTreeComponent::ProcessExecutionRequest()
 			AbortCurrentTask();
 		}
 
+		// set next task to execute
 		PendingExecution.NextTask = NextTask;
 		PendingExecution.bOutOfNodes = (NextTask == NULL);
-		ProcessPendingExecution();
 	}
 	else
 	{
-		PendingExecution = FBTPendingExecutionInfo();
 		UE_VLOG(GetOwner(), LogBehaviorTree, Verbose, TEXT("Search result is not valid, reverted all changes."));
 	}
+
+	// it could be locked by failed search attempt
+	PendingExecution.Unlock();
+	ProcessPendingExecution();
 }
 
 void UBehaviorTreeComponent::ProcessPendingExecution()

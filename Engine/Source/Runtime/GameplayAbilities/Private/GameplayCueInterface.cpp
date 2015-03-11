@@ -100,24 +100,32 @@ void IGameplayCueInterface::ForwardGameplayCueToParent()
 
 void FActiveGameplayCue::PreReplicatedRemove(const struct FActiveGameplayCueContainer &InArray)
 {
-	// FIXME: Prediction key check is missing here
-	InArray.Owner->InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
-	InArray.Owner->UpdateTagMap(GameplayCueTag, -1);
+	if (PredictionKey.IsValidKey() == false)
+	{
+		// If predicted ignore the add/remove
+		InArray.Owner->InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::Removed);
+		InArray.Owner->UpdateTagMap(GameplayCueTag, -1);
+	}
 }
 
 void FActiveGameplayCue::PostReplicatedAdd(const struct FActiveGameplayCueContainer &InArray)
 {
-	// FIXME: Prediction key check is missing here
-	InArray.Owner->InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive);
-	InArray.Owner->UpdateTagMap(GameplayCueTag, 1);
+	if (PredictionKey.IsValidKey() == false)
+	{
+		// If predicted ignore the add/remove
+		InArray.Owner->InvokeGameplayCueEvent(GameplayCueTag, EGameplayCueEvent::WhileActive);
+		InArray.Owner->UpdateTagMap(GameplayCueTag, 1);
+	}
 }
 
-void FActiveGameplayCueContainer::AddCue(const FGameplayTag& Tag)
+void FActiveGameplayCueContainer::AddCue(const FGameplayTag& Tag, const FPredictionKey& PredictionKey)
 {
 	UWorld* World = Owner->GetWorld();
 
+	// Store the prediction key so the client can investigate it
 	FActiveGameplayCue	NewCue;
-	NewCue.GameplayCueTag =Tag;
+	NewCue.GameplayCueTag = Tag;
+	NewCue.PredictionKey = PredictionKey;
 	MarkItemDirty(NewCue);
 
 	GameplayCues.Add(NewCue);

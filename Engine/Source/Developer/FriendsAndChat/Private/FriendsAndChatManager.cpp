@@ -199,9 +199,13 @@ void FFriendsAndChatManager::Logout()
 
 	MessageManager->LogOut();
 
+	// Prevent shared pointers lingering after OSS has shutdown
 	OnlineIdentity = nullptr;
 	FriendsInterface = nullptr;
 	OnlineSub = nullptr;
+	// Prevent a shared pointer issue with stale analytics providers
+    // @todo do this as a failsafe, but unsafe now until FTickerObjectBase issues are resolved
+	//SetAnalyticsProvider(nullptr);
 
 	if ( UpdateFriendsTickerDelegate.IsBound() )
 	{
@@ -749,9 +753,8 @@ int32 FFriendsAndChatManager::GetFilteredGameInviteList(TArray< TSharedPtr< IFri
 	return OutFriendsList.Num();
 }
 
-FString FFriendsAndChatManager::GetGameSessionId() const
+TSharedPtr<FUniqueNetId> FFriendsAndChatManager::GetGameSessionId() const
 {
-	FString Result;
 	if (OnlineSub != nullptr &&
 		OnlineIdentity.IsValid() &&
 		OnlineSub->GetSessionInterface().IsValid())
@@ -762,11 +765,11 @@ FString FFriendsAndChatManager::GetGameSessionId() const
 			TSharedPtr<FOnlineSessionInfo> UserSessionInfo = GameSession->SessionInfo;
 			if (UserSessionInfo.IsValid())
 			{
-				Result = UserSessionInfo->GetSessionId().ToString();
+				return MakeShareable(new FUniqueNetIdString(UserSessionInfo->GetSessionId()));
 			}
 		}
 	}
-	return Result;
+	return nullptr;
 }
 
 bool FFriendsAndChatManager::IsInGameSession() const
@@ -779,6 +782,17 @@ bool FFriendsAndChatManager::IsInGameSession() const
 		return true;
 	}
 	return false;
+}
+
+bool FFriendsAndChatManager::IsFriendInSameSession(const TSharedPtr< const IFriendItem >& FriendItem) const
+{
+	TSharedPtr<FUniqueNetId> MySessionId = GetGameSessionId();
+	bool bMySessionValid = MySessionId.IsValid() && MySessionId->IsValid();
+
+	TSharedPtr<FUniqueNetId> FriendSessionId = FriendItem->GetSessionId();
+	bool bFriendSessionValid = FriendSessionId.IsValid() && FriendSessionId->IsValid();
+
+	return (bMySessionValid && bFriendSessionValid && (*FriendSessionId == *MySessionId));
 }
 
 bool FFriendsAndChatManager::IsInJoinableGameSession() const
@@ -1737,7 +1751,7 @@ void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& Fri
 	// update game invite UI
 	OnGameInvitesUpdated().Broadcast();
 	// notify for further processing of join game request 
-	OnFriendsJoinGame().Broadcast(*FriendItem->GetUniqueID(), FriendItem->GetGameSessionId());
+	OnFriendsJoinGame().Broadcast(*FriendItem->GetUniqueID(), *FriendItem->GetGameSessionId());
 
 	TSharedPtr<IFriendsApplicationViewModel>* FriendsApplicationViewModelRawPtr = ApplicationViewModels.Find(FriendItem->GetClientId());
 	if (FriendsApplicationViewModelRawPtr != nullptr)
@@ -1745,7 +1759,7 @@ void FFriendsAndChatManager::AcceptGameInvite(const TSharedPtr<IFriendItem>& Fri
 		TSharedPtr<IFriendsApplicationViewModel> FriendsApplicationViewModel = *FriendsApplicationViewModelRawPtr;
 		if (FriendsApplicationViewModel.IsValid())
 		{
-			const FString AdditionalCommandline = TEXT("-invitesession=") + FriendItem->GetGameSessionId() + TEXT(" -invitefrom=") + FriendItem->GetUniqueID()->ToString();
+			const FString AdditionalCommandline = TEXT("-invitesession=") + FriendItem->GetGameSessionId()->ToString() + TEXT(" -invitefrom=") + FriendItem->GetUniqueID()->ToString();
 			FriendsApplicationViewModel->LaunchFriendApp(AdditionalCommandline);
 		}
 
