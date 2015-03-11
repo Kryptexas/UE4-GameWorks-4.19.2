@@ -9,6 +9,7 @@
 #include "SThrobber.h"
 #include "Commandlets/CommandletHelpers.h"
 #include "EditorStyleSet.h"
+#include "UnrealEdMisc.h"
 
 #define LOCTEXT_NAMESPACE "LocalizationCommandletExecutor"
 
