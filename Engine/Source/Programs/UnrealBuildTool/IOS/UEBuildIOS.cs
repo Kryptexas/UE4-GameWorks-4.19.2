@@ -243,65 +243,22 @@ namespace UnrealBuildTool
 		 */
 		public override bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, string ProjectPath)
 		{
-			ConfigCacheIni ProjIni = new ConfigCacheIni(Platform, "Engine", ProjectPath);
-			ConfigCacheIni DefaultIni = new ConfigCacheIni(Platform, "Engine", null);
+			string[] BoolKeys = new string[] {
+				"bDevForArmV7", "bDevForArm64", "bDevForArmV7S", "bShipForArmV7", 
+				"bShipForArm64", "bShipForArmV7S", "bGenerateSYMFile",
+			};
+			string[] StringKeys = new string[] {
+				"MinimumiOSVersion", 
+			};
 
-			string DefaultMinVersion = "IOS_6";
-			string ProjectMinVersion = DefaultMinVersion;
-			ProjIni.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MinimumiOSVersion", out ProjectMinVersion);
-			DefaultIni.GetString("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "MinimumiOSVersion", out DefaultMinVersion);
-			if (DefaultMinVersion != ProjectMinVersion)
-			{
-				return false;
-			}
-
-			bool bDefaultBuild = true;
-			bool bProjectBuild = true;
-			ProjIni.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7", out bProjectBuild);
-			DefaultIni.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7", out bDefaultBuild);
-			if (bDefaultBuild != bProjectBuild)
-			{
-				return false;
-			}
-			ProjIni.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArm64", out bProjectBuild);
-			DefaultIni.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArm64", out bDefaultBuild);
-			if (bDefaultBuild != bProjectBuild)
-			{
-				return false;
-			}
-			ProjIni.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7S", out bProjectBuild);
-			DefaultIni.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bDevForArmV7S", out bDefaultBuild);
-			if (bDefaultBuild != bProjectBuild)
-			{
-				return false;
-			}
-			ProjIni.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7", out bProjectBuild);
-			DefaultIni.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7", out bDefaultBuild);
-			if (bDefaultBuild != bProjectBuild)
-			{
-				return false;
-			}
-			ProjIni.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArm64", out bProjectBuild);
-			DefaultIni.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArm64", out bDefaultBuild);
-			if (bDefaultBuild != bProjectBuild)
-			{
-				return false;
-			}
-			ProjIni.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7S", out bProjectBuild);
-			DefaultIni.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bShipForArmV7S", out bDefaultBuild);
-			if (bDefaultBuild != bProjectBuild)
+			// look up iOS specific settings
+			if (!DoProjectSettingsMatchDefault(Platform, ProjectPath, "/Script/IOSRuntimeSettings.IOSRuntimeSettings",
+				    BoolKeys, null, StringKeys))
 			{
 				return false;
 			}
 
-			// determine if we need to generate the dsym
-			ProjIni.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGenerateSYMFile", out bProjectBuild);
-			DefaultIni.GetBool("/Script/IOSRuntimeSettings.IOSRuntimeSettings", "bGenerateSYMFile", out bDefaultBuild);
-			if (bDefaultBuild != bProjectBuild)
-			{
-				return false;
-			}
-
+			// check the base settings
 			return base.HasDefaultBuildConfig(Platform, ProjectPath);
 		}
 

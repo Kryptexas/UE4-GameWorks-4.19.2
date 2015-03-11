@@ -254,6 +254,24 @@ namespace UnrealBuildTool
 
 			BuildConfiguration.bUseSharedPCHs = false;
 		}
+			
+		public override bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, string ProjectPath)
+		{
+			string[] BoolKeys = new string[] {
+				"bBuildForArmV7", "bBuildForArm64", "bBuildForX86", "bBuildForX8664", 
+				"bBuildForES2", "bBuildForES31",
+			};
+
+			// look up iOS specific settings
+			if (!DoProjectSettingsMatchDefault(Platform, ProjectPath, "/Script/AndroidRuntimeSettings.AndroidRuntimeSettings",
+				BoolKeys, null, null))
+			{
+				return false;
+			}
+
+			// check the base settings
+			return base.HasDefaultBuildConfig(Platform, ProjectPath);
+		}
 
 		public override bool ShouldCompileMonolithicBinary(UnrealTargetPlatform InPlatform)
 		{

@@ -935,6 +935,52 @@ namespace UnrealBuildTool
 		{
 		}
 
+		protected static bool DoProjectSettingsMatchDefault(UnrealTargetPlatform Platform, string ProjectPath, string Section, string[] BoolKeys, string[] IntKeys, string[] StringKeys)
+		{
+			ConfigCacheIni ProjIni = new ConfigCacheIni(Platform, "Engine", ProjectPath);
+			ConfigCacheIni DefaultIni = new ConfigCacheIni(Platform, "Engine", null);
+
+			// look at all bool values
+			if (BoolKeys != null) foreach (string Key in BoolKeys)
+			{
+				bool Default = false, Project = false;
+				DefaultIni.GetBool(Section, Key, out Default);
+				ProjIni.GetBool(Section, Key, out Project);
+				Console.WriteLine("Comparing {0} settings: {1}, {2}", Section + ":" + Key, Default, Project); 
+				if (Default != Project)
+				{
+					return false;
+				}
+			}
+
+			// look at all int values
+			if (IntKeys != null) foreach (string Key in IntKeys)
+			{
+				int Default = 0, Project = 0;
+				DefaultIni.GetInt32(Section, Key, out Default);
+				ProjIni.GetInt32(Section, Key, out Project);
+				if (Default != Project)
+				{
+					return false;
+				}
+			}
+
+			// look for all string values
+			if (StringKeys != null) foreach (string Key in StringKeys)
+			{
+				string Default = "", Project = "";
+				DefaultIni.GetString(Section, Key, out Default);
+				ProjIni.GetString(Section, Key, out Project);
+				if (Default != Project)
+				{
+					return false;
+				}
+			}
+
+			// if we get here, we match all important settings
+			return true;
+		}
+
 		/**
 		 * Check for the default configuration
 		 *
@@ -942,126 +988,16 @@ namespace UnrealBuildTool
 		 */
 		public virtual bool HasDefaultBuildConfig(UnrealTargetPlatform Platform, string ProjectPath)
 		{
-			ConfigCacheIni ProjIni = new ConfigCacheIni(Platform, "Engine", ProjectPath);
-			ConfigCacheIni DefaultIni = new ConfigCacheIni(Platform, "Engine", null);
+			Console.WriteLine("HasDefaultBuildConfig!");
+			string[] BoolKeys = new string[] {
+				"bCompileApex", "bCompileBox2D", "bCompileICU", "bCompileSimplygon", 
+				"bCompileLeanAndMeanUE", "bIncludeADO", "bCompileRecast", "bCompileSpeedTree", 
+				"bCompileWithPluginSupport", "bCompilePhysXVehicle", "bCompileFreeType", 
+				"bCompileForSize", "bCompileCEF3"
+			};
 
-			bool bDefValue = UEBuildConfiguration.bCompileAPEX;
-			DefaultIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileApex", out bDefValue);
-			bool bProjValue = UEBuildConfiguration.bCompileAPEX;
-			ProjIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileApex", out bProjValue);
-			if (bDefValue != bProjValue)
-			{
-				return false;
-			}
-
-			bDefValue = UEBuildConfiguration.bCompileBox2D;
-			DefaultIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileBox2D", out bDefValue);
-			bProjValue = UEBuildConfiguration.bCompileBox2D;
-			ProjIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileBox2D", out bProjValue);
-			if (bDefValue != bProjValue)
-			{
-				return false;
-			}
-
-			bDefValue = UEBuildConfiguration.bCompileICU;
-			DefaultIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileICU", out bDefValue);
-			bProjValue = UEBuildConfiguration.bCompileICU;
-			ProjIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileICU", out bProjValue);
-			if (bDefValue != bProjValue)
-			{
-				return false;
-			}
-
-			bDefValue = UEBuildConfiguration.bCompileSimplygon;
-			DefaultIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileSimplygon", out bDefValue);
-			bProjValue = UEBuildConfiguration.bCompileSimplygon;
-			ProjIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileSimplygon", out bProjValue);
-			if (bDefValue != bProjValue)
-			{
-				return false;
-			}
-
-			bDefValue = UEBuildConfiguration.bCompileLeanAndMeanUE;
-			DefaultIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileLeanAndMeanUE", out bDefValue);
-			bProjValue = UEBuildConfiguration.bCompileLeanAndMeanUE;
-			ProjIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileLeanAndMeanUE", out bProjValue);
-			if (bDefValue != bProjValue)
-			{
-				return false;
-			}
-
-			bDefValue = UEBuildConfiguration.bIncludeADO;
-			DefaultIni.GetBool("/Script/BuildSettings.BuildSettings", "bIncludeADO", out bDefValue);
-			bProjValue = UEBuildConfiguration.bIncludeADO;
-			ProjIni.GetBool("/Script/BuildSettings.BuildSettings", "bIncludeADO", out bProjValue);
-			if (bDefValue != bProjValue)
-			{
-				return false;
-			}
-
-			bDefValue = UEBuildConfiguration.bCompileRecast;
-			DefaultIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileRecast", out bDefValue);
-			bProjValue = UEBuildConfiguration.bCompileRecast;
-			ProjIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileRecast", out bProjValue);
-			if (bDefValue != bProjValue)
-			{
-				return false;
-			}
-
-			bDefValue = UEBuildConfiguration.bCompileSpeedTree;
-			DefaultIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileSpeedTree", out bDefValue);
-			bProjValue = UEBuildConfiguration.bCompileSpeedTree;
-			ProjIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileSpeedTree", out bProjValue);
-			if (bDefValue != bProjValue)
-			{
-				return false;
-			}
-
-			bDefValue = UEBuildConfiguration.bCompileWithPluginSupport;
-			DefaultIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileWithPluginSupport", out bDefValue);
-			bProjValue = UEBuildConfiguration.bCompileWithPluginSupport;
-			ProjIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileWithPluginSupport", out bProjValue);
-			if (bDefValue != bProjValue)
-			{
-				return false;
-			}
-
-			bDefValue = UEBuildConfiguration.bCompilePhysXVehicle;
-			DefaultIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompilePhysXVehicle", out bDefValue);
-			bProjValue = UEBuildConfiguration.bCompilePhysXVehicle;
-			ProjIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompilePhysXVehicle", out bProjValue);
-			if (bDefValue != bProjValue)
-			{
-				return false;
-			}
-
-			bDefValue = UEBuildConfiguration.bCompileFreeType;
-			DefaultIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileFreeType", out bDefValue);
-			bProjValue = UEBuildConfiguration.bCompileFreeType;
-			ProjIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileFreeType", out bProjValue);
-			if (bDefValue != bProjValue)
-			{
-				return false;
-			}
-
-			bDefValue = UEBuildConfiguration.bCompileForSize;
-			DefaultIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileForSize", out bDefValue);
-			bProjValue = UEBuildConfiguration.bCompileForSize;
-			ProjIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileForSize", out bProjValue);
-			if (bDefValue != bProjValue)
-			{
-				return false;
-			}
-
-			bDefValue = UEBuildConfiguration.bCompileCEF3;
-			DefaultIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileCEF3", out bDefValue);
-			bProjValue = UEBuildConfiguration.bCompileCEF3;
-			ProjIni.GetBool("/Script/BuildSettings.BuildSettings", "bCompileCEF3", out bProjValue);
-			if (bDefValue != bProjValue)
-			{
-				return false;
-			}
-			return true;
+			return DoProjectSettingsMatchDefault(Platform, ProjectPath, "/Script/BuildSettings.BuildSettings",
+				BoolKeys, null, null);
 		}
 	}
 
