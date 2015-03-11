@@ -31,6 +31,10 @@ public:
 	UPROPERTY(EditAnywhere, config, Category=Startup)
 	TEnumAsByte<ELoadLevelAtStartup::Type> LoadLevelAtStartup;
 
+	/** Force project compilation at startup */
+	UPROPERTY(EditAnywhere, config, Category=Startup)
+	uint32 bForceCompilationAtStartup:1;
+
 	/** Whether to restore previously open assets at startup */
 	UPROPERTY(EditAnywhere, config, Category=Startup)
 	uint32 bRestoreOpenAssetTabsOnRestart:1;
