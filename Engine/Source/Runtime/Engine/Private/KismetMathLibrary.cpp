@@ -346,6 +346,11 @@ bool UKismetMathLibrary::InRange_FloatFloat(float Value, float Min, float Max, b
 	return ((InclusiveMin ? (Value >= Min) : (Value > Min)) && (InclusiveMax ? (Value <= Max) : (Value < Max)));
 }	
 
+float UKismetMathLibrary::GridSnap_Float(float Location, float GridSize)
+{
+	return FMath::GridSnap(Location, GridSize);
+}
+
 float UKismetMathLibrary::GetPI()
 {
     return PI;
