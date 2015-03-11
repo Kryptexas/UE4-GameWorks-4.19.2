@@ -889,7 +889,7 @@ ECheckBoxState SProjectLauncherCookByTheBookSettings::HandleIncrementalCheckBoxI
 
 	if (SelectedProfile.IsValid())
 	{
-		if (SelectedProfile->IsCompressed())
+		if (SelectedProfile->IsCookingIncrementally())
 		{
 			return ECheckBoxState::Checked;
 		}
