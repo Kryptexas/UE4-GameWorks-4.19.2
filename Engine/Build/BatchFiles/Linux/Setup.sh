@@ -100,14 +100,7 @@ echo
 if [ "$IS_GITHUB_BUILD" = true ]; then
 	echo Github build
 	echo Checking / downloading the latest archives
-	set +e
 	Build/BatchFiles/Linux/GitDependencies.sh --prompt "$@"
-	set -e
-
-	#echo Unpacking and massaging the files
-	#pushd Build/BatchFiles/Linux > /dev/null
-	#./UpdateDeps.sh 
-	#popd > /dev/null
 else
 	echo Perforce build
 	echo Assuming availability of up to date third-party libraries
