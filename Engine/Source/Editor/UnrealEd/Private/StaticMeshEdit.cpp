@@ -888,8 +888,9 @@ ExistingStaticMeshData* SaveExistingStaticMeshData(UStaticMesh* ExistingMesh)
 						// this will break IF the base material number grows or shoterns and index will be off
 						// I think we have to save material index per section, so that we don't have to worry about global index
 						Info.MaterialIndex = TotalMaterialIndex++;
-						ExistingMeshDataPtr->ExistingSectionInfoMap.Set(i, SectionIndex, Info);
 					}
+
+					ExistingMeshDataPtr->ExistingSectionInfoMap.Set(i, SectionIndex, Info);
 				}
 			}
 
