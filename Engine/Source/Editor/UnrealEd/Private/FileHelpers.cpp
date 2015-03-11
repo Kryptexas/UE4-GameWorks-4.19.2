@@ -2019,7 +2019,7 @@ void FEditorFileUtils::LoadMap(const FString& InFilename, bool LoadAsTemplate, b
 	if( !GIsDemoMode )
 	{
 		// Check for deprecated actor classes.
-		GEditor->Exec( World, TEXT("MAP CHECKDEP") );
+		GEditor->Exec(World, TEXT("MAP CHECKDEP NOCLEARLOG"));
 		FMessageLog("MapCheck").Open( EMessageSeverity::Warning );
 	}
 

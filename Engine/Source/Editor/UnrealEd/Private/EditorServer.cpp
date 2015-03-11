@@ -3438,7 +3438,7 @@ void UEditorEngine::SelectByPropertyColoration(UWorld* InWorld)
 }
 
 
-bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice& Ar, bool bCheckDeprecatedOnly, EMapCheckNotification::Type Notification/*= EMapCheckNotification::DisplayResults*/)
+bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice& Ar, bool bCheckDeprecatedOnly, EMapCheckNotification::Type Notification/*= EMapCheckNotification::DisplayResults*/, bool bClearLog/*= true*/)
 {
 #define LOCTEXT_NAMESPACE "EditorEngine"
 	const FText CheckMapLocText = NSLOCTEXT("UnrealEd", "CheckingMap", "Checking map");
@@ -3446,6 +3446,8 @@ bool UEditorEngine::Map_Check( UWorld* InWorld, const TCHAR* Str, FOutputDevice&
 	const double StartTime = FPlatformTime::Seconds();
 
 	FMessageLog MapCheckLog("MapCheck");
+
+	if (bClearLog)
 	{
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("Name"), FText::FromString(FPackageName::GetShortName(InWorld->GetOutermost())));
@@ -5703,6 +5705,7 @@ bool UEditorEngine::HandleMapCommand( const TCHAR* Str, FOutputDevice& Ar, UWorl
 	else if (FParse::Command (&Str,TEXT("CHECK")))
 	{
 		EMapCheckNotification::Type Notification = EMapCheckNotification::DisplayResults;
+		bool bClearLog = true;
 		if(FParse::Command(&Str,TEXT("DONTDISPLAYDIALOG")))
 		{
 			Notification = EMapCheckNotification::DontDisplayResults;
@@ -5711,11 +5714,16 @@ bool UEditorEngine::HandleMapCommand( const TCHAR* Str, FOutputDevice& Ar, UWorl
 		{
 			Notification = EMapCheckNotification::NotifyOfResults;
 		}
-		return Map_Check( InWorld, Str, Ar, false, Notification );
+		if (FParse::Command(&Str, TEXT("NOCLEARLOG")))
+		{
+			bClearLog = false;
+		}
+		return Map_Check(InWorld, Str, Ar, false, Notification, bClearLog);
 	}
 	else if (FParse::Command (&Str,TEXT("CHECKDEP")))
 	{
 		EMapCheckNotification::Type Notification = EMapCheckNotification::DisplayResults;
+		bool bClearLog = true;
 		if(FParse::Command(&Str,TEXT("DONTDISPLAYDIALOG")))
 		{
 			Notification = EMapCheckNotification::DontDisplayResults;
@@ -5724,7 +5732,11 @@ bool UEditorEngine::HandleMapCommand( const TCHAR* Str, FOutputDevice& Ar, UWorl
 		{
 			Notification = EMapCheckNotification::NotifyOfResults;
 		}
-		return Map_Check( InWorld, Str, Ar, true, Notification );
+		if (FParse::Command(&Str, TEXT("NOCLEARLOG")))
+		{
+			bClearLog = false;
+		}
+		return Map_Check(InWorld, Str, Ar, true, Notification, bClearLog);
 	}
 	else if (FParse::Command (&Str,TEXT("SCALE")))
 	{
