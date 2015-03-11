@@ -4,7 +4,7 @@
 #include "EnvironmentQuery/EnvQueryTest.h"
 #include "EnvQueryTest_Random.generated.h"
 
-UCLASS(MinimalAPI)
+UCLASS(MinimalAPI, meta=(DeprecatedNode, DeprecationMessage = "This class is now deprecated, please use RunMode supporting random results instead."))
 class UEnvQueryTest_Random : public UEnvQueryTest
 {
 	GENERATED_UCLASS_BODY()

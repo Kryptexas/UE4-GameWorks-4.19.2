@@ -1443,7 +1443,7 @@ FPrimitiveSceneProxy* UGameplayDebuggingComponent::CreateSceneProxy()
 				ViewFlagName = TEXT("DebugAI");
 			}
 #endif
-			CompositeProxy->AddChild(new FEQSSceneProxy(this, ViewFlagName, false, CurrentLocalData.SolidSpheres, CurrentLocalData.Texts));
+			CompositeProxy->AddChild(new FEQSSceneProxy(this, ViewFlagName, CurrentLocalData.SolidSpheres, CurrentLocalData.Texts));
 		}
 	}
 #endif // USE_EQS_DEBUGGER

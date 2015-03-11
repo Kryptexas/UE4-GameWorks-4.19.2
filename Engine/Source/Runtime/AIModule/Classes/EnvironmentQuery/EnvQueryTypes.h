@@ -125,8 +125,10 @@ namespace EEnvQueryRunMode
 {
 	enum Type
 	{
-		SingleResult,		// weight scoring first, try conditions from best result and stop after first item pass
-		AllMatching,		// conditions first (limit set of items), weight scoring later
+		SingleResult	UMETA(Tooltip="Pick first item with the best score"),
+		RandomBest5Pct	UMETA(Tooltip="Pick random item with score 95% .. 100% of max", DisplayName="Random Best 5%"),
+		RandomBest25Pct	UMETA(Tooltip="Pick random item with score 75% .. 100% of max", DisplayName="Random Best 25%"),
+		AllMatching		UMETA(Tooltip="Get all items that match conditions"),
 	};
 }
 
@@ -470,9 +472,6 @@ struct AIMODULE_API FEnvQueryOptionInstance
 	TSubclassOf<UEnvQueryItemType> ItemType;
 
 	/** if set, items will be shuffled after tests */
-	uint32 bShuffleItems : 1;
-
-	/** if set, items will be shuffled after tests */
 	uint32 bHasNavLocations : 1;
 
 	FORCEINLINE uint32 GetAllocatedSize() const { return sizeof(*this) + Tests.GetAllocatedSize(); }
@@ -624,8 +623,8 @@ protected:
 	/** sort all scores, from highest to lowest */
 	void SortScores();
 
-	/** pick one of items with highest score */
-	void PickBestItem();
+	/** pick one of items with score equal or higher than specified */
+	void PickBestItem(float MinScore);
 
 	/** discard all items but one */
 	void PickSingleItem(int32 ItemIndex);

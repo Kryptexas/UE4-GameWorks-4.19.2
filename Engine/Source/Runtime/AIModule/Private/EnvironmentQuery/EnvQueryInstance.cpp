@@ -417,20 +417,6 @@ void FEnvQueryInstance::NormalizeScores()
 void FEnvQueryInstance::SortScores()
 {
 	const int32 NumItems = Items.Num();
-	if (Options[OptionIndex].bShuffleItems)
-	{
-		for (int32 ItemIndex = 0; ItemIndex < NumItems; ItemIndex++)
-		{
-			const int32 Idx1 = FMath::RandHelper(NumItems);
-			const int32 Idx2 = FMath::RandHelper(NumItems);
-			Items.Swap(Idx1, Idx2);
-
-#if USE_EQS_DEBUGGER
-			ItemDetails.Swap(Idx1, Idx2);
-#endif
-		}
-	}
-
 #if USE_EQS_DEBUGGER
 	struct FSortHelperForDebugData
 	{
@@ -472,13 +458,13 @@ void FEnvQueryInstance::StripRedundantData()
 	Items.SetNum(NumValidItems);
 }
 
-void FEnvQueryInstance::PickBestItem()
+void FEnvQueryInstance::PickBestItem(float MinScore)
 {
-	// find first valid item with score worse than best one
+	// find first valid item with score worse than best range
 	int32 NumBestItems = NumValidItems;
 	for (int32 ItemIndex = 1; ItemIndex < NumValidItems; ItemIndex++)
 	{
-		if (Items[ItemIndex].Score < Items[0].Score)
+		if (Items[ItemIndex].Score < MinScore)
 		{
 			NumBestItems = ItemIndex;
 			break;
@@ -536,8 +522,14 @@ void FEnvQueryInstance::FinalizeQuery()
 			if (bFoundSingleResult == false && bPassOnSingleResult == false)
 			{
 				SortScores();
-				PickBestItem();
+				PickBestItem(Items[0].Score);
 			}
+		}
+		else if (Mode == EEnvQueryRunMode::RandomBest5Pct || Mode == EEnvQueryRunMode::RandomBest25Pct)
+		{
+			SortScores();
+			const float ScoreRangePct = (Mode == EEnvQueryRunMode::RandomBest5Pct) ? 0.95f : 0.75f;
+			PickBestItem(Items[0].Score * ScoreRangePct);
 		}
 		else
 		{

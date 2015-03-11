@@ -507,6 +507,8 @@ TSharedPtr<FEnvQueryInstance> UEnvQueryManager::CreateQueryInstance(const UEnvQu
 					SortedTests.Sort(EnvQueryTestSort::FSingleResult(HighestCost));
 					break;
 
+				case EEnvQueryRunMode::RandomBest5Pct:
+				case EEnvQueryRunMode::RandomBest25Pct:
 				case EEnvQueryRunMode::AllMatching:
 					SortedTests.Sort(EnvQueryTestSort::FAllMatching());
 					break;
@@ -540,7 +542,6 @@ void UEnvQueryManager::CreateOptionInstance(UEnvQueryOption* OptionTemplate, con
 	FEnvQueryOptionInstance OptionInstance;
 	OptionInstance.Generator = OptionTemplate->Generator;
 	OptionInstance.ItemType = OptionTemplate->Generator->ItemType;
-	OptionInstance.bShuffleItems = true;
 	OptionInstance.bHasNavLocations = false;
 
 	OptionInstance.Tests.AddZeroed(SortedTests.Num());
@@ -548,15 +549,6 @@ void UEnvQueryManager::CreateOptionInstance(UEnvQueryOption* OptionTemplate, con
 	{
 		UEnvQueryTest* TestOb = SortedTests[TestIndex];
 		OptionInstance.Tests[TestIndex] = TestOb;
-
-		// HACK!  TODO: Is this the correct replacement here?  or should it check just if SCORING ONLY?
-		// always randomize when asking for single result
-		// otherwise, can skip randomization if test wants to score every item
-		if ((TestOb->TestPurpose != EEnvTestPurpose::Filter) && // We ARE scoring, regardless of whether or not we're filtering
-			(Instance.Mode != EEnvQueryRunMode::SingleResult))
-		{
-			OptionInstance.bShuffleItems = false;
-		}
 	}
 
 	DEC_MEMORY_STAT_BY(STAT_AI_EQS_InstanceMemory, Instance.Options.GetAllocatedSize());
