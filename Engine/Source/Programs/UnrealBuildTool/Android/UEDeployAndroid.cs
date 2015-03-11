@@ -598,9 +598,9 @@ namespace UnrealBuildTool.Android
 					return "sensorPortrait";
 				case "landscape":
 					return "landscape";
-				case "reversepandscape":
+				case "reverselandscape":
 					return "reverseLandscape";
-				case "sensorpandscape":
+				case "sensorlandscape":
 					return "sensorLandscape";
 				case "sensor":
 					return "sensor";
