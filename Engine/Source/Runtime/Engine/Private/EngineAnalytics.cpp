@@ -78,7 +78,7 @@ void FEngineAnalytics::Initialize()
 						const bool bUseReleaseAccount =
 							(AnalyticsBuildType == FAnalytics::Development || AnalyticsBuildType == FAnalytics::Release) &&
 							!FEngineBuildSettings::IsInternalBuild();	// Internal Epic build
-						const TCHAR* BuildTypeStr = bUseReleaseAccount ? TEXT("Dev") : TEXT("Release");
+						const TCHAR* BuildTypeStr = bUseReleaseAccount ? TEXT("Release") : TEXT("Dev");
 						const TCHAR* UE4TypeStr = FRocketSupport::IsRocket() ? TEXT("Rocket") : FEngineBuildSettings::IsPerforceBuild() ? TEXT("Perforce") : TEXT("UnrealEngine");
 						if (bIsEditorRun)
 						{
