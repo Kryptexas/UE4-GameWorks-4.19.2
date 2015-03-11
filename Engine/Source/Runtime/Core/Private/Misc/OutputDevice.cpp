@@ -172,8 +172,7 @@ void StaticFailDebug( const TCHAR* Error, const ANSICHAR* File, int32 Line, cons
 	}
 
 	FScopeLock Lock( &FailDebugCriticalSection );
-
-	FPlatformMisc::LowLevelOutputDebugStringf( TEXT( "%s" ) FILE_LINE_DESC TEXT("\n%s\n" ), Error, ANSI_TO_TCHAR( File ), Line, Description );
+	FPlatformMisc::LowLevelOutputDebugStringf(TEXT("%s") FILE_LINE_DESC TEXT("\n%s\n"), Error, ANSI_TO_TCHAR(File), Line, Description);
 
 	// Copy the detailed error into the error message.
 	FCString::Snprintf( GErrorMessage, ARRAY_COUNT( GErrorMessage ), TEXT( "%s" ) FILE_LINE_DESC TEXT( "\n%s\n" ), Error, ANSI_TO_TCHAR( File ), Line, Description );
@@ -181,13 +180,6 @@ void StaticFailDebug( const TCHAR* Error, const ANSICHAR* File, int32 Line, cons
 	// Copy the error message to the error history.
 	FCString::Strncpy( GErrorHist, GErrorMessage, ARRAY_COUNT( GErrorHist ) );
 	FCString::Strncat( GErrorHist, TEXT( "\r\n\r\n" ), ARRAY_COUNT( GErrorHist ) );
-
-	if( !FPlatformMisc::IsDebuggerPresent() )
-	{
-		FPlatformMisc::PromptForRemoteDebugging( false );
-	}
-
-	FPlatformMisc::DebugBreak();
 }
 
 #if DO_CHECK || DO_GUARD_SLOW
@@ -221,7 +213,6 @@ void VARARGS FDebug::AssertFailed( const ANSICHAR* Expr, const ANSICHAR* File, i
 		FCString::Sprintf( ErrorString, TEXT( "Assertion failed: %s" ), ANSI_TO_TCHAR( Expr ) );
 
 		StaticFailDebug( ErrorString, File, Line, DescriptionString );
-		GError->Logf( TEXT( "Assertion failed: %s" ) FILE_LINE_DESC TEXT( "\n%s\n" ), ErrorString, ANSI_TO_TCHAR( File ), Line, DescriptionString );
 	}
 }
 
@@ -241,108 +232,100 @@ void FDebug::EnsureFailed( const ANSICHAR* Expr, const ANSICHAR* File, int32 Lin
 	{
 		// Just trigger a regular assertion which will crash via GError->Logf()
 		FDebug::AssertFailed( Expr, File, Line, Msg );
+		return;
+	}
+
+	// Print initial debug message for this error
+	TCHAR ErrorString[MAX_SPRINTF];
+	FCString::Sprintf(ErrorString,TEXT("Ensure condition failed: %s"),ANSI_TO_TCHAR(Expr));
+
+	StaticFailDebug( ErrorString, File, Line, Msg, true );
+
+	// Is there a debugger attached?  If not we'll submit an error report.
+	if (FPlatformMisc::IsDebuggerPresent())
+	{
+		return;
+	}
+
+	// If we determine that we have not sent a report for this ensure yet, send the report below.
+	bool bShouldSendNewReport = false;
+
+	// No debugger attached, so generate a call stack and submit a crash report
+	// Walk the stack and dump it to the allocated memory.
+	const SIZE_T StackTraceSize = 65535;
+	ANSICHAR* StackTrace = (ANSICHAR*) FMemory::SystemMalloc( StackTraceSize );
+	if( StackTrace != NULL )
+	{
+		StackTrace[0] = 0;
+		FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, CALLSTACK_IGNOREDEPTH );
+
+		// Create a final string that we'll output to the log (and error history buffer)
+		TCHAR ErrorMsg[16384];
+		FCString::Snprintf( ErrorMsg, ARRAY_COUNT( ErrorMsg ), TEXT( "Ensure condition failed: %s [File:%s] [Line: %i]" ) LINE_TERMINATOR TEXT( "%s" ) LINE_TERMINATOR TEXT( "Stack: " ) LINE_TERMINATOR, ANSI_TO_TCHAR( Expr ), ANSI_TO_TCHAR( File ), Line, Msg );
+
+		// Also append the stack trace
+		FCString::Strncat( ErrorMsg, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(ErrorMsg) - 1 );
+		FMemory::SystemFree( StackTrace );
+
+		// Dump the error and flush the log.
+		UE_LOG(LogOutputDevice, Log, TEXT("=== Handled error: ===") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s"), ErrorMsg);
+		GLog->Flush();
+
+		// Submit the error report to the server! (and display a balloon in the system tray)
+		{
+			// How many unique previous errors we should keep track of
+			const uint32 MaxPreviousErrorsToTrack = 4;
+			static uint32 StaticPreviousErrorCount = 0;
+			if( StaticPreviousErrorCount < MaxPreviousErrorsToTrack )
+			{
+				// Check to see if we've already reported this error.  No point in blasting the server with
+				// the same error over and over again in a single application session.
+				bool bHasErrorAlreadyBeenReported = false;
+
+				// Static: Array of previous unique error message CRCs
+				static uint32 StaticPreviousErrorCRCs[ MaxPreviousErrorsToTrack ];
+
+				// Compute CRC of error string.  Note that along with the call stack, this includes the message
+				// string passed to the macro, so only truly redundant errors will go unreported.  Though it also
+				// means you shouldn't pass loop counters to ensureMsgf(), otherwise failures may spam the server!
+				const uint32 ErrorStrCRC = FCrc::StrCrc_DEPRECATED( ErrorMsg );
+
+				for( uint32 CurErrorIndex = 0; CurErrorIndex < StaticPreviousErrorCount; ++CurErrorIndex )
+				{
+					if( StaticPreviousErrorCRCs[ CurErrorIndex ] == ErrorStrCRC )
+					{
+						// Found it!  This is a redundant error message.
+						bHasErrorAlreadyBeenReported = true;
+						break;
+					}
+				}
+
+				// Add the element to the list and bump the count
+				StaticPreviousErrorCRCs[ StaticPreviousErrorCount++ ] = ErrorStrCRC;
+
+				if( !bHasErrorAlreadyBeenReported )
+				{
+					FCoreDelegates::OnHandleSystemEnsure.Broadcast();
+
+					FPlatformMisc::SubmitErrorReport( ErrorMsg, EErrorReportMode::Balloon );
+
+					bShouldSendNewReport = true;
+				}
+			}
+		}
 	}
 	else
 	{
-		// Print initial debug message for this error
-		TCHAR ErrorString[MAX_SPRINTF];
-		FCString::Sprintf(ErrorString,TEXT("Ensure condition failed: %s"),ANSI_TO_TCHAR(Expr));
+		// If we fail to generate the string to identify the crash we don't know if we should skip sending the report,
+		// so we will just send the report anyway.
+		bShouldSendNewReport = true;
+	}
 
-		StaticFailDebug( ErrorString, File, Line, Msg, true );
-
-		// Is there a debugger attached?  If so we'll just break, otherwise we'll submit an error report.
-		if( FPlatformMisc::IsDebuggerPresent() )
-		{
-			// ensure() assertion failed.  Break into the attached debugger.  Presumedly, this assertion
-			// is handled and you can safely "set next statement" and resume execution if you want.
-			// NOTE: In Release builds FPlatformMisc::DebugBreak currently initiates a crash
-			FPlatformMisc::DebugBreak();
-		}
-		else
-		{
-			FPlatformMisc::PromptForRemoteDebugging(true);
-
-			// If we determine that we have not sent a report for this ensure yet, send the report below.
-			bool bShouldSendNewReport = false;
-
-			// No debugger attached, so generate a call stack and submit a crash report
-			// Walk the stack and dump it to the allocated memory.
-			const SIZE_T StackTraceSize = 65535;
-			ANSICHAR* StackTrace = (ANSICHAR*) FMemory::SystemMalloc( StackTraceSize );
-			if( StackTrace != NULL )
-			{
-				StackTrace[0] = 0;
-				FPlatformStackWalk::StackWalkAndDump( StackTrace, StackTraceSize, CALLSTACK_IGNOREDEPTH );
-
-				// Create a final string that we'll output to the log (and error history buffer)
-				TCHAR ErrorMsg[16384];
-				FCString::Snprintf( ErrorMsg, ARRAY_COUNT( ErrorMsg ), TEXT( "Ensure condition failed: %s [File:%s] [Line: %i]" ) LINE_TERMINATOR TEXT( "%s" ) LINE_TERMINATOR TEXT( "Stack: " ) LINE_TERMINATOR, ANSI_TO_TCHAR( Expr ), ANSI_TO_TCHAR( File ), Line, Msg );
-
-				// Also append the stack trace
-				FCString::Strncat( ErrorMsg, ANSI_TO_TCHAR(StackTrace), ARRAY_COUNT(ErrorMsg) - 1 );
-				FMemory::SystemFree( StackTrace );
-
-				// Dump the error and flush the log.
-				UE_LOG(LogOutputDevice, Log, TEXT("=== Handled error: ===") LINE_TERMINATOR LINE_TERMINATOR TEXT("%s"), ErrorMsg);
-				GLog->Flush();
-
-				// Submit the error report to the server! (and display a balloon in the system tray)
-				{
-					// How many unique previous errors we should keep track of
-					const uint32 MaxPreviousErrorsToTrack = 4;
-					static uint32 StaticPreviousErrorCount = 0;
-					if( StaticPreviousErrorCount < MaxPreviousErrorsToTrack )
-					{
-						// Check to see if we've already reported this error.  No point in blasting the server with
-						// the same error over and over again in a single application session.
-						bool bHasErrorAlreadyBeenReported = false;
-
-						// Static: Array of previous unique error message CRCs
-						static uint32 StaticPreviousErrorCRCs[ MaxPreviousErrorsToTrack ];
-
-						// Compute CRC of error string.  Note that along with the call stack, this includes the message
-						// string passed to the macro, so only truly redundant errors will go unreported.  Though it also
-						// means you shouldn't pass loop counters to ensureMsgf(), otherwise failures may spam the server!
-						const uint32 ErrorStrCRC = FCrc::StrCrc_DEPRECATED( ErrorMsg );
-
-						for( uint32 CurErrorIndex = 0; CurErrorIndex < StaticPreviousErrorCount; ++CurErrorIndex )
-						{
-							if( StaticPreviousErrorCRCs[ CurErrorIndex ] == ErrorStrCRC )
-							{
-								// Found it!  This is a redundant error message.
-								bHasErrorAlreadyBeenReported = true;
-								break;
-							}
-						}
-
-						// Add the element to the list and bump the count
-						StaticPreviousErrorCRCs[ StaticPreviousErrorCount++ ] = ErrorStrCRC;
-
-						if( !bHasErrorAlreadyBeenReported )
-						{
-							FCoreDelegates::OnHandleSystemEnsure.Broadcast();
-
-							FPlatformMisc::SubmitErrorReport( ErrorMsg, EErrorReportMode::Balloon );
-
-							bShouldSendNewReport = true;
-						}
-					}
-				}
-			}
-			else
-			{
-				// If we fail to generate the string to identify the crash we don't know if we should skip sending the report,
-				// so we will just send the report anyway.
-				bShouldSendNewReport = true;
-			}
-
-			if ( bShouldSendNewReport )
-			{
+	if ( bShouldSendNewReport )
+	{
 #if PLATFORM_DESKTOP
-				NewReportEnsure( GErrorMessage );
+		NewReportEnsure( GErrorMessage );
 #endif
-			}
-		}
 	}
 }
 
@@ -354,7 +337,21 @@ void VARARGS FError::LowLevelFatal(const ANSICHAR* File, int32 Line, const TCHAR
 	GET_VARARGS( DescriptionString, ARRAY_COUNT(DescriptionString), ARRAY_COUNT(DescriptionString)-1, Format, Format );
 
 	StaticFailDebug(TEXT("LowLevelFatalError"),File,Line,DescriptionString);
-	GError->Log(DescriptionString);
+}
+
+void VARARGS FError::FinalLogf(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format/*=TEXT("")*/, ...)
+{
+	if (GIsCriticalError)
+	{
+		return;
+	}
+
+	TCHAR DescriptionString[4096];
+	GET_VARARGS(DescriptionString, ARRAY_COUNT(DescriptionString), ARRAY_COUNT(DescriptionString) - 1, Format, Format);
+
+	TCHAR ErrorString[MAX_SPRINTF];
+	FCString::Sprintf(ErrorString, TEXT("Assertion failed: %s"), ANSI_TO_TCHAR(Expr));
+	GError->Logf(TEXT("Assertion failed: %s") FILE_LINE_DESC TEXT("\n%s\n"), ErrorString, ANSI_TO_TCHAR(File), Line, DescriptionString);
 }
 
 #if DO_CHECK || DO_GUARD_SLOW
@@ -520,7 +517,6 @@ VARARG_BODY(void, FMsg::Logf, const TCHAR*, VARARG_EXTRA(const ANSICHAR* File) V
 		}
 
 		StaticFailDebug(TEXT("Fatal error:"), File, Line, Message);
-		GError->Log(Category, Verbosity, Message);
 	}
 #endif
 }

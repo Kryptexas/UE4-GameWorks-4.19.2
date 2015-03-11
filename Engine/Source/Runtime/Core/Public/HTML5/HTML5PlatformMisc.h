@@ -60,7 +60,24 @@ struct CORE_API FHTML5Misc : public FGenericPlatformMisc
 	/** Break into debugger. Returning false allows this function to be used in conditionals. */
 	FORCEINLINE static bool DebugBreakReturningFalse()
 	{
+#if !UE_BUILD_SHIPPING
 		DebugBreak();
+#endif
+		return false;
+	}
+
+	/** Prompts for remote debugging if debugger is not attached. Regardless of result, breaks into debugger afterwards. Returns false for use in conditionals. */
+	static FORCEINLINE bool DebugBreakAndPromptForRemoteReturningFalse()
+	{
+#if !UE_BUILD_SHIPPING
+		if (!IsDebuggerPresent())
+		{
+			PromptForRemoteDebugging(false);
+		}
+
+		DebugBreak();
+#endif
+
 		return false;
 	}
 

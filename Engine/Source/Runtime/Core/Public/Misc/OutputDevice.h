@@ -413,15 +413,20 @@ struct CORE_API FDebug
 	 * @param	Line	Line number (__LINE__)
 	 * @param	Msg		Optional informative error message text
 	 */
-	static FORCEINLINE bool EnsureNotFalse( bool bExpressionResult, const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Msg = TEXT( "" ) )
+    static FORCEINLINE bool EnsureNotFalse( bool bExpressionResult, const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Msg = TEXT( "" ) )
 	{
-		if( bExpressionResult == 0 )
-		{
+	    if( bExpressionResult == 0 )
+	    {
+			EnsureFailed(Expr, File, Line, Msg);
+			if (!FPlatformMisc::IsDebuggerPresent())
+			{
+				FPlatformMisc::PromptForRemoteDebugging(false);
+			}
+
 			FPlatformMisc::DebugBreak();
-			EnsureFailed( Expr, File, Line, Msg );
-		}
-	
-		return bExpressionResult;
+	    }
+    
+    	return bExpressionResult;
 	}
 
 	/**
@@ -478,6 +483,9 @@ struct CORE_API FError
 	/** For throwing string-exceptions which safely propagate through guard/unguard. */
 	VARARG_DECL( static void VARARGS, static void, VARARG_NONE, Throwf, VARARG_NONE, const TCHAR*, VARARG_NONE, VARARG_NONE );
 	//@}
+
+	/** Outputs formatted error message and terminates program. */
+	static void VARARGS FinalLogf(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format = TEXT(""), ...);
 };
 
 

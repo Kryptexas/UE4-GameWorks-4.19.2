@@ -62,6 +62,21 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 		return false;
 	}
 
+	/** Prompts for remote debugging if debugger is not attached. Regardless of result, breaks into debugger afterwards. Returns false for use in conditionals. */
+	static FORCEINLINE bool DebugBreakAndPromptForRemoteReturningFalse()
+	{
+#if !UE_BUILD_SHIPPING
+		if (!IsDebuggerPresent())
+		{
+			PromptForRemoteDebugging(false);
+		}
+
+		DebugBreak();
+#endif
+
+		return false;
+	}
+
 	FORCEINLINE static void MemoryBarrier()
 	{
 		OSMemoryBarrier();
