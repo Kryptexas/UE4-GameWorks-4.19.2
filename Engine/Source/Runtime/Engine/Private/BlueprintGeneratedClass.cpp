@@ -291,7 +291,8 @@ UInheritableComponentHandler* UBlueprintGeneratedClass::GetInheritableComponentH
 	{
 		return nullptr;
 	}
-	else
+	
+	if (InheritableComponentHandler)
 	{
 		InheritableComponentHandler->PreloadAll();
 	}
