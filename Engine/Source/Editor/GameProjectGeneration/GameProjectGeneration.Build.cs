@@ -8,6 +8,8 @@ public class GameProjectGeneration : ModuleRules
 	{
         PrivateIncludePathModuleNames.AddRange(
             new string[] {
+				"AssetRegistry",
+				"ContentBrowser",
                 "DesktopPlatform",
                 "MainFrame",
             }
@@ -33,12 +35,13 @@ public class GameProjectGeneration : ModuleRules
 				"UnrealEd",
 				"DesktopPlatform",
                 "HardwareTargeting",
-                "AssetRegistry"
 			}
 		);
 
         DynamicallyLoadedModuleNames.AddRange(
             new string[] {
+				"AssetRegistry",
+				"ContentBrowser",
                 "DesktopPlatform",
                 "Documentation",
                 "MainFrame",

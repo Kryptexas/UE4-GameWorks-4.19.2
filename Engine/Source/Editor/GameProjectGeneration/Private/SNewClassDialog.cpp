@@ -26,6 +26,8 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "Kismet2/KismetEditorUtilities.h"
 #include "AssetRegistryModule.h"
+#include "AssetEditorManager.h"
+#include "ContentBrowserModule.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 
@@ -1125,6 +1127,15 @@ void SNewClassDialog::FinishClicked()
 
 					OnAddedToProject.ExecuteIfBound( NewClassName, PackagePath, FString() );
 
+					// Sync the content browser to the new asset
+					TArray<UObject*> SyncAssets;
+					SyncAssets.Add(NewBP);
+					FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+					ContentBrowserModule.Get().SyncBrowserToAssets(SyncAssets);
+
+					// Open the editor for the new asset
+					FAssetEditorManager::Get().OpenEditorForAsset(NewBP);
+
 					// Successfully created the code and potentially opened the IDE. Close the dialog.
 					CloseContainingWindow();
 
@@ -1200,6 +1211,20 @@ void SNewClassDialog::FinishClicked()
 					SourceFiles.Add(IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*CppFilePath));
 
 					FSourceCodeNavigation::OpenSourceFiles(SourceFiles);
+				}
+			}
+
+			// Sync the content browser to the new class
+			UPackage* const ClassPackage = FindPackage(nullptr, *(FString("/Script/") + SelectedModuleInfo->ModuleName));
+			if ( ClassPackage )
+			{
+				UClass* const NewClass = static_cast<UClass*>(FindObjectWithOuter(ClassPackage, UClass::StaticClass(), *NewClassName));
+				if ( NewClass )
+				{
+					TArray<UObject*> SyncAssets;
+					SyncAssets.Add(NewClass);
+					FContentBrowserModule& ContentBrowserModule = FModuleManager::LoadModuleChecked<FContentBrowserModule>("ContentBrowser");
+					ContentBrowserModule.Get().SyncBrowserToAssets(SyncAssets);
 				}
 			}
 
