@@ -123,6 +123,12 @@ struct FAndroidPlatformProperties
 	{
 		return true;
 	}
+
+	static FORCEINLINE const FString& GetCookFlavor()
+	{
+		extern FString GCookFlavor;
+		return GCookFlavor;
+	}
 };
 
 struct FAndroid_PVRTCPlatformProperties : public FAndroidPlatformProperties
@@ -162,6 +168,14 @@ struct FAndroid_ETC2PlatformProperties : public FAndroidPlatformProperties
 	static FORCEINLINE const char* PlatformName()
 	{
 		return "Android_ETC2";
+	}
+};
+
+struct FAndroid_ASTCPlatformProperties : public FAndroidPlatformProperties
+{
+	static FORCEINLINE const char* PlatformName()
+	{
+		return "Android_ASTC";
 	}
 };
 

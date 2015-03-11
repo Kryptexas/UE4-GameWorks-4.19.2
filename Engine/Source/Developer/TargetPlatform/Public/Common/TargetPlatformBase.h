@@ -175,7 +175,7 @@ public:
 	}
 #else //TEXTURERESOURCE_H_INCLUDED
 
-	FName GetDefaultTextureFormatName( const UTexture* Texture, const FConfigFile& EngineSettings ) const
+	FName GetDefaultTextureFormatName( const UTexture* Texture, const FConfigFile& EngineSettings, bool bSupportDX11TextureFormats ) const
 	{
 		return NAME_None;
 	}

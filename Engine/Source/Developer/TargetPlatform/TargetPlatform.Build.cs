@@ -60,6 +60,7 @@ public class TargetPlatform : ModuleRules
 					DynamicallyLoadedModuleNames.Add("Android_DXTTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_ETC1TargetPlatform");
 					DynamicallyLoadedModuleNames.Add("Android_ETC2TargetPlatform");
+					DynamicallyLoadedModuleNames.Add("Android_ASTCTargetPlatform");
 					DynamicallyLoadedModuleNames.Add("IOSTargetPlatform");
                     DynamicallyLoadedModuleNames.Add("HTML5TargetPlatform");
 				}

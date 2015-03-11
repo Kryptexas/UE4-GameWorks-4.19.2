@@ -33,6 +33,12 @@ namespace AndroidTexFormat
 	static FName NameETC2_RGB(TEXT("ETC2_RGB"));
 	static FName NameETC2_RGBA(TEXT("ETC2_RGBA"));
 	static FName NameAutoETC2(TEXT("AutoETC2"));
+	static FName NameASTC_4x4(TEXT("ASTC_4x4"));
+	static FName NameASTC_6x6(TEXT("ASTC_6x6"));
+	static FName NameASTC_8x8(TEXT("ASTC_8x8"));
+	static FName NameASTC_10x10(TEXT("ASTC_10x10"));
+	static FName NameASTC_12x12(TEXT("ASTC_12x12"));
+	static FName NameAutoASTC(TEXT("AutoASTC"));
 
 	// Uncompressed Texture Formats
 	static FName NameBGRA8(TEXT("BGRA8"));
@@ -64,7 +70,7 @@ public:
 public:
 
 	/**
-	 * Gets the name of the Android platform variant, i.e. ATC, DXT or PVRTC.
+	 * Gets the name of the Android platform variant, i.e. ATC, DXT, PVRTC, etc.
 	 *
 	 * @param Variant name.
 	 */
@@ -172,12 +178,15 @@ protected:
 		return true;
 	}
 
+#if WITH_ENGINE
+	// Holds the Engine INI settings (for quick access).
+	FConfigFile EngineSettings;
+#endif //WITH_ENGINE
+
 private:
 
 	// Handles when the ticker fires.
 	bool HandleTicker( float DeltaTime );
-
-private:
 
 	// Holds a map of valid devices.
 	TMap<FString, FAndroidTargetDevicePtr> Devices;
@@ -192,9 +201,6 @@ private:
 	IAndroidDeviceDetection* DeviceDetection;
 
 #if WITH_ENGINE
-	// Holds the Engine INI settings (for quick access).
-	FConfigFile EngineSettings;
-
 	// Holds a cache of the target LOD settings.
 	FTextureLODSettings TextureLODSettings;
 
@@ -203,8 +209,6 @@ private:
 
 	ITargetDevicePtr DefaultDevice;
 #endif //WITH_ENGINE
-
-private:
 
 	// Holds an event delegate that is executed when a new target device has been discovered.
 	FOnTargetDeviceDiscovered DeviceDiscoveredEvent;
