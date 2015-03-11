@@ -12,3 +12,4 @@
 #include "EditorStyle.h"
 #include "FileHelpers.h"
 #include "SlateBasics.h"
+#include "UnrealEd.h"
