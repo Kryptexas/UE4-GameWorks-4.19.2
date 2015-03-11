@@ -141,12 +141,23 @@ void FAssetTypeActions_Class::OpenAssetEditor( const TArray<UObject*>& InObjects
 		UClass* const Class = Cast<UClass>(Object);
 		if(Class)
 		{
+			TArray<FString> FilesToOpen;
+
 			FString ClassHeaderPath;
 			if(FSourceCodeNavigation::FindClassHeaderPath(Class, ClassHeaderPath))
 			{
 				const FString AbsoluteHeaderPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ClassHeaderPath);
-				FSourceCodeNavigation::OpenSourceFile(AbsoluteHeaderPath);
+				FilesToOpen.Add(AbsoluteHeaderPath);
 			}
+
+			FString ClassSourcePath;
+			if(FSourceCodeNavigation::FindClassSourcePath(Class, ClassSourcePath))
+			{
+				const FString AbsoluteSourcePath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*ClassSourcePath);
+				FilesToOpen.Add(AbsoluteSourcePath);
+			}
+
+			FSourceCodeNavigation::OpenSourceFiles(FilesToOpen);
 		}
 	}
 }
