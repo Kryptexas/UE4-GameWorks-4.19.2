@@ -278,6 +278,10 @@ class INTROTUTORIALS_API UEditorTutorial : public UObject
 	/** UObject implementation */
 	virtual UWorld* GetWorld() const override;
 
+	/** Comma seperated list of tags the search will use to help find this tutorial  */
+	UPROPERTY(EditAnywhere, Category = "Tutorial", AssetRegistrySearchable)
+	FText SearchTags;
+
 public:
 	/** Called when a tutorial stage is started */
 	void HandleTutorialStageStarted(FName StageName);
