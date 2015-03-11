@@ -124,12 +124,6 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 		[
 			DetailsView->GetNameAreaWidget().ToSharedRef()
 		]
-		+ SVerticalBox::Slot()
-		.Padding(0.0f, 0.0f, 0.0f, 2.0f)
-		.AutoHeight()
-		[
-			DetailsView->GetFilterAreaWidget().ToSharedRef()
-		]
 		+SVerticalBox::Slot()
 		[
 			SAssignNew(DetailsSplitter, SSplitter)
@@ -154,6 +148,11 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 					.Visibility(this, &SActorDetails::GetNativeComponentWarningVisibility)
 					.WarningText(NSLOCTEXT("SActorDetails", "UneditableNativeComponentWarning", "Native components are editable when declared as a UProperty in <a id=\"HyperlinkDecorator\" style=\"DetailsView.BPMessageHyperlinkStyle\">C++</>"))
 					.OnHyperlinkClicked(this, &SActorDetails::OnNativeComponentWarningHyperlinkClicked)
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					DetailsView->GetFilterAreaWidget().ToSharedRef()
 				]
 				+ SVerticalBox::Slot()
 				[
