@@ -299,7 +299,7 @@ void UAnimInstance::InitializeAnimation()
 
 	if (RootNode != NULL)
 	{
-		IncrementContextCounter();
+		IncrementGraphTraversalCounter();
 		FAnimationInitializeContext InitContext(this);
 		RootNode->Initialize(InitContext);
 	}
@@ -397,7 +397,7 @@ void UAnimInstance::UpdateAnimation(float DeltaSeconds)
 	// Update the anim graph
 	if (RootNode != NULL)
 	{
-		IncrementContextCounter();
+		IncrementGraphTraversalCounter();
 		FAnimationUpdateContext UpdateContext(this, DeltaSeconds);
 		RootNode->Update(UpdateContext);
 	}
@@ -510,7 +510,7 @@ void UAnimInstance::EvaluateAnimation(FPoseContext& Output)
 	{
 		bBoneCachesInvalidated = false;
 
-		IncrementContextCounter();
+		IncrementGraphTraversalCounter();
 		FAnimationCacheBonesContext UpdateContext(this);
 		RootNode->CacheBones(UpdateContext);
 	}
@@ -521,7 +521,7 @@ void UAnimInstance::EvaluateAnimation(FPoseContext& Output)
 		if (RootNode != NULL)
 		{
 			SCOPE_CYCLE_COUNTER(STAT_AnimGraphEvaluate);
-
+			IncrementGraphTraversalCounter();
 			RootNode->Evaluate(Output);
 		}
 		else
@@ -1135,22 +1135,16 @@ void UAnimInstance::RecalcRequiredBones()
 	bBoneCachesInvalidated = true;
 }
 
-/** Global unique context counter */
-static int16 ContextCounter = 0;
-void UAnimInstance::IncrementContextCounter()
+void UAnimInstance::IncrementGraphTraversalCounter()
 {
-	// Increase frame counter, so that SavedCacheNode will call children only once.
-	ContextCounter++;
-	// Can't be INDEX_NONE
-	if( ContextCounter == INDEX_NONE )
-	{
-		ContextCounter++;
-	}
-}
+	// Increase traversal counter, so that SavedCacheNode will call children only once.
+	GraphTraversalCounter++;
 
-int16 UAnimInstance::GetContextCounter() const
-{
-	return ContextCounter;
+	// Can't be INDEX_NONE
+	if (GraphTraversalCounter == INDEX_NONE)
+	{
+		GraphTraversalCounter++;
+	}
 }
 
 void UAnimInstance::Serialize(FArchive& Ar)

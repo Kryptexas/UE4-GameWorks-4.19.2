@@ -409,6 +409,9 @@ void UDebugSkelMeshComponent::GenSpaceBases(TArray<FTransform>& OutSpaceBases)
 
 void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction* TickFunction)
 {
+	// Run regular update first so we get RequiredBones up to date.
+	Super::RefreshBoneTransforms(NULL); // Pass NULL so we force non threaded work
+
 	const bool bIsPreviewInstance = (PreviewInstance && PreviewInstance == AnimScriptInstance);
 
 	BakedAnimationPoses.Empty();
@@ -443,18 +446,13 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction*
 		}
 	}
 
-	bool bGenerateRAWAnimation = bDisplayRawAnimation && AnimScriptInstance && AnimScriptInstance->RequiredBones.IsValid();
-
-	if (bGenerateRAWAnimation)
+	UncompressedSpaceBases.Empty();
+	if (bDisplayRawAnimation && AnimScriptInstance && AnimScriptInstance->RequiredBones.IsValid())
 	{
+		UncompressedSpaceBases.AddUninitialized(AnimScriptInstance->RequiredBones.GetNumBones());
+
 		AnimScriptInstance->RequiredBones.SetUseRAWData(true);
-	}
-
-	// Run regular update first so we get RequiredBones up to date.
-	Super::RefreshBoneTransforms(NULL); // Pass NULL so we force non threaded work
-
-	if (bGenerateRAWAnimation)
-	{
+		GenSpaceBases(UncompressedSpaceBases);
 		AnimScriptInstance->RequiredBones.SetUseRAWData(false);
 	}
 
@@ -462,20 +460,10 @@ void UDebugSkelMeshComponent::RefreshBoneTransforms(FActorComponentTickFunction*
 	NonRetargetedSpaceBases.Empty();
 	if( bDisplayNonRetargetedPose && AnimScriptInstance && AnimScriptInstance->RequiredBones.IsValid() )
 	{
-		NonRetargetedSpaceBases.AddUninitialized(PreviewInstance->RequiredBones.GetNumBones());
+		NonRetargetedSpaceBases.AddUninitialized(AnimScriptInstance->RequiredBones.GetNumBones());
 		AnimScriptInstance->RequiredBones.SetDisableRetargeting(true);
 		GenSpaceBases(NonRetargetedSpaceBases);
 		AnimScriptInstance->RequiredBones.SetDisableRetargeting(false);
-	}
-
-	if (bDisplayRawAnimation)
-	{
-		// Generate the normal compressed space bases
-		GenSpaceBases(CompressedSpaceBases);
-	}
-	else
-	{
-		CompressedSpaceBases.Empty();
 	}
 
 	// Only works in PreviewInstance, and not for anim blueprint. This is intended.

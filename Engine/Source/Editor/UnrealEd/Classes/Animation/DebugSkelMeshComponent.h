@@ -110,8 +110,8 @@ class UDebugSkelMeshComponent : public USkeletalMeshComponent
 	UPROPERTY(transient)
 	uint32 bPreviewRootMotion:1;
 
-	/** Compressed SpaceBases for when bDisplayRawAnimation == true, as raw space bases are stored in SpaceBases **/
-	TArray<FTransform> CompressedSpaceBases;
+	/** Non Compressed SpaceBases for when bDisplayRawAnimation == true **/
+	TArray<FTransform> UncompressedSpaceBases;
 
 	/** Storage of Additive Base Pose for when bDisplayAdditiveBasePose == true, as they have to be calculated */
 	TArray<FTransform> AdditiveBasePoses;

@@ -348,7 +348,7 @@ void FAnimationViewportClient::Draw(const FSceneView* View, FPrimitiveDrawInterf
 		}
 		if ( PreviewSkelMeshComp->bDisplayRawAnimation )
 		{
-			DrawMeshBonesCompressedAnimation(PreviewSkelMeshComp.Get(), PDI);
+			DrawMeshBonesUncompressedAnimation(PreviewSkelMeshComp.Get(), PDI);
 		}
 		if ( PreviewSkelMeshComp->NonRetargetedSpaceBases.Num() > 0 )
 		{
@@ -1698,11 +1698,11 @@ void FAnimationViewportClient::DrawBonesFromTransforms(TArray<FTransform>& Trans
 	}
 }
 
-void FAnimationViewportClient::DrawMeshBonesCompressedAnimation(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const
+void FAnimationViewportClient::DrawMeshBonesUncompressedAnimation(UDebugSkelMeshComponent * MeshComponent, FPrimitiveDrawInterface* PDI) const
 {
 	if ( MeshComponent && MeshComponent->SkeletalMesh )
 	{
-		DrawBonesFromTransforms(MeshComponent->CompressedSpaceBases, MeshComponent, PDI, FColor(255, 127, 39, 255), FColor(255, 127, 39, 255));
+		DrawBonesFromTransforms(MeshComponent->UncompressedSpaceBases, MeshComponent, PDI, FColor(255, 127, 39, 255), FColor(255, 127, 39, 255));
 	}
 }
 

@@ -754,12 +754,20 @@ public:
 
 public:
 	int16 GetSlotNodeInitializationCounter() const { return SlotNodeInitializationCounter; }
+	int16 GetGraphTraversalCounter() const { return GraphTraversalCounter; }
+
+	/** Increment traversal counter every time the graph is about to be traversed, to ensure every node is only touched once. */
+	void IncrementGraphTraversalCounter();
 
 private:
 	/** Counter so we register Slot nodes just once per Initialization pass 
 	 * State can trigger initialization later, and we don't want to register these nodes multiple times. */
 	UPROPERTY(Transient)
 	int16 SlotNodeInitializationCounter;
+
+	/** Counter incremented every time the graph is about to be traversed, to ensure every node is only touched once. */
+	UPROPERTY(Transient)
+	int16 GraphTraversalCounter;
 
 	TMap<FName, float> ActiveSlotWeights;
 
@@ -776,12 +784,6 @@ public:
 	/** When RequiredBones mapping has changed, AnimNodes need to update their bones caches. */
 	UPROPERTY(Transient)
 	bool bBoneCachesInvalidated;
-
-	/** Increment Context Counter, used by SavedCachePose to traverse tree once. */
-	void IncrementContextCounter();
-
-	/** Get current Context Counter, used by SavedCachePose to traverse tree once. */
-	int16 GetContextCounter() const;
 
 	// @todo document
 	inline USkeletalMeshComponent* GetSkelMeshComponent() const { return CastChecked<USkeletalMeshComponent>(GetOuter()); }
