@@ -68,6 +68,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = FunctionalTesting)
 	FRandomStream RandomNumbersStream;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = FunctionalTesting)
+	FString Description;
 	
 #if WITH_EDITORONLY_DATA
 	UPROPERTY()
@@ -90,6 +93,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category="Development")
 	virtual void SetTimeLimit(float NewTimeLimit, TEnumAsByte<EFunctionalTestResult::Type> ResultWhenTimeRunsOut);
 
+	/** Used by debug drawing to gather actors this test is using and point at them on the level to better understand test's setup */
+	UFUNCTION(BlueprintImplementableEvent, Category = "FunctionalTesting")
+	virtual TArray<AActor*> DebugGatherRelevantActors() const;
+
+	virtual void GatherRelevantActors(TArray<AActor*>& OutActors) const;
+
 	/** retrieves information whether test wants to have another run just after finishing */
 	UFUNCTION(BlueprintImplementableEvent, Category="FunctionalTesting")
 	virtual bool WantsToRunAgain() const;
@@ -111,6 +120,8 @@ public:
 
 #if WITH_EDITOR
 	void PostEditChangeProperty(struct FPropertyChangedEvent& PropertyChangedEvent) override;
+
+	static void OnSelectObject(UObject* NewSelection);
 #endif // WITH_EDITOR
 
 	// AActor interface begin

@@ -3,6 +3,12 @@
 #include "FunctionalTestingPrivatePCH.h"
 #include "ObjectEditorUtils.h"
 #include "VisualLogger/VisualLogger.h"
+#if WITH_EDITORONLY_DATA
+#include "FuncTestRenderingComponent.h"
+#endif // WITH_EDITORONLY_DATA
+#if WITH_EDITOR
+#include "Engine/Selection.h"
+#endif // WITH_EDITOR
 
 AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 	: Super(ObjectInitializer)
@@ -49,6 +55,21 @@ AFunctionalTest::AFunctionalTest( const FObjectInitializer& ObjectInitializer )
 #endif
 		RootComponent = SpriteComponent;
 	}
+
+#if WITH_EDITORONLY_DATA
+	RenderComp = CreateDefaultSubobject<UFuncTestRenderingComponent>(TEXT("RenderComp"));
+	RenderComp->PostPhysicsComponentTick.bCanEverTick = false;
+	RenderComp->AttachParent = RootComponent;
+#endif // WITH_EDITORONLY_DATA
+
+#if WITH_EDITOR
+	static bool bSelectionHandlerSetUp = false;
+	if (HasAnyFlags(RF_ClassDefaultObject) && !HasAnyFlags(RF_TagGarbageTemp) && bSelectionHandlerSetUp == false)
+	{
+		USelection::SelectObjectEvent.AddStatic(&AFunctionalTest::OnSelectObject);
+		bSelectionHandlerSetUp = true;
+	}
+#endif // WITH_EDITOR
 }
 
 void AFunctionalTest::Tick(float DeltaSeconds)
@@ -197,6 +218,24 @@ void AFunctionalTest::SetTimeLimit(float InTimeLimit, TEnumAsByte<EFunctionalTes
 	TimesUpResult = InResult;
 }
 
+void AFunctionalTest::GatherRelevantActors(TArray<AActor*>& OutActors) const
+{
+	if (ObservationPoint)
+	{
+		OutActors.AddUnique(ObservationPoint);
+	}
+
+	for (auto Actor : AutoDestroyActors)
+	{
+		if (Actor)
+		{
+			OutActors.AddUnique(Actor);
+		}
+	}
+
+	OutActors.Append(DebugGatherRelevantActors());
+}
+
 void AFunctionalTest::RegisterAutoDestroyActor(AActor* ActorToAutoDestroy)
 {
 	AutoDestroyActors.AddUnique(ActorToAutoDestroy);
@@ -232,6 +271,15 @@ void AFunctionalTest::PostEditChangeProperty( struct FPropertyChangedEvent& Prop
 				}
 			}
 		}
+	}
+}
+
+void AFunctionalTest::OnSelectObject(UObject* NewSelection)
+{
+	AFunctionalTest* AsFTest = Cast<AFunctionalTest>(NewSelection);
+	if (AsFTest)
+	{
+		AsFTest->MarkComponentsRenderStateDirty();
 	}
 }
 
