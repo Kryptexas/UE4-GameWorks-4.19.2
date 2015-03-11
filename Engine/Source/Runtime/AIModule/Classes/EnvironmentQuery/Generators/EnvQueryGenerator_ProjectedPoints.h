@@ -9,7 +9,7 @@
 class ANavigationData;
 
 UCLASS(Abstract)
-class UEnvQueryGenerator_ProjectedPoints : public UEnvQueryGenerator
+class AIMODULE_API UEnvQueryGenerator_ProjectedPoints : public UEnvQueryGenerator
 {
 	GENERATED_UCLASS_BODY()
 
@@ -30,8 +30,8 @@ class UEnvQueryGenerator_ProjectedPoints : public UEnvQueryGenerator
 	};
 
 	/** project all points in array and remove those outside navmesh */
-	void ProjectAndFilterNavPoints(TArray<FNavLocation>& Points, FEnvQueryInstance& QueryInstance) const;
+	virtual void ProjectAndFilterNavPoints(TArray<FNavLocation>& Points, FEnvQueryInstance& QueryInstance) const;
 
 	/** store points as generator's result */
-	void StoreNavPoints(const TArray<FNavLocation>& Points, FEnvQueryInstance& QueryInstance) const;
+	virtual void StoreNavPoints(const TArray<FNavLocation>& Points, FEnvQueryInstance& QueryInstance) const;
 };

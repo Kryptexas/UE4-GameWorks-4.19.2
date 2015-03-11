@@ -11,21 +11,22 @@ class UNavigationQueryFilter;
  *  with paths to/from context no further than given limit
  */
 
-UCLASS(meta = (DeprecatedNode, DeprecationMessage = "This class is now deprecated, please use SimpleGrid generator with Pathfinding Batch test"))
+UCLASS()
 class UEnvQueryGenerator_PathingGrid : public UEnvQueryGenerator_SimpleGrid
 {
 	GENERATED_UCLASS_BODY()
 
-	UPROPERTY()
-	FAIDataProviderFloatValue MaxDistance;
-
-	/** DEPRECATED, please use pathfinding (batch) test instead! */
-	UPROPERTY(VisibleDefaultsOnly, Category=Generator)
+	/** pathfinding direction */
+	UPROPERTY(EditDefaultsOnly, Category = Generator)
 	FAIDataProviderBoolValue PathToItem;
 
-	/** DEPRECATED, please use pathfinding (batch) test instead! */
-	UPROPERTY(VisibleDefaultsOnly, Category = Generator)
+	/** navigation filter to use in pathfinding */
+	UPROPERTY(EditDefaultsOnly, Category = Generator)
 	TSubclassOf<UNavigationQueryFilter> NavigationFilter;
 
-	virtual void PostLoad() override;
+	/** multiplier for max distance between point and context */
+	UPROPERTY(EditDefaultsOnly, Category = Pathfinding, AdvancedDisplay)
+	FAIDataProviderFloatValue ScanRangeMultiplier;
+
+	virtual void ProjectAndFilterNavPoints(TArray<FNavLocation>& Points, FEnvQueryInstance& QueryInstance) const override;
 };
