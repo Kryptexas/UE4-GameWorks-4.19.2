@@ -20,6 +20,13 @@ void UUserDefinedStruct::Serialize(FArchive& Ar)
 
 	if (Ar.IsLoading() && (EUserDefinedStructureStatus::UDSS_UpToDate == Status))
 	{
+		// We need to force the editor data to be preload in case anyone needs to extract variable
+		// information at editor time about the user structure.
+		if ( EditorData != nullptr )
+		{
+			Ar.Preload(EditorData);
+		}
+
 		const FStructureEditorUtils::EStructureError Result = FStructureEditorUtils::IsStructureValid(this, NULL, &ErrorMessage);
 		if (FStructureEditorUtils::EStructureError::Ok != Result)
 		{
