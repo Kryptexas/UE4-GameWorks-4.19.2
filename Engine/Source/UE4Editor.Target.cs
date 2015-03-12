@@ -44,11 +44,6 @@ public class UE4EditorTarget : TargetRules
 		ref CPPEnvironmentConfiguration OutCPPEnvironmentConfiguration
 		)
 	{
-		if( UnrealBuildTool.UnrealBuildTool.BuildingRocket() )
-		{ 
-			// no exports, so no need to verify that a .lib and .exp file was emitted by the linker.
-			OutLinkEnvironmentConfiguration.bHasExports = false;
-		}
 	}
     public override GUBPProjectOptions GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
     {
