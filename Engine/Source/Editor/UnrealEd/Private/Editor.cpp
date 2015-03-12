@@ -7378,6 +7378,9 @@ namespace EditorUtilities
 					}
 				}
 
+				TSet<const UProperty*> SourceUCSModifiedProperties;
+				SourceComponent->GetUCSModifiedProperties(SourceUCSModifiedProperties);
+
 				// Copy component properties
 				bool bIsFirstModification = true;
 				for( UProperty* Property = ComponentClass->PropertyLink; Property != NULL; Property = Property->PropertyLinkNext )
@@ -7390,7 +7393,7 @@ namespace EditorUtilities
 						Property->GetFName() == FName( TEXT( "RelativeLocation" ) ) ||
 						Property->GetFName() == FName( TEXT( "RelativeRotation" ) );
 
-					if( !bIsTransient && !bIsIdentical && !bIsComponent
+					if( !bIsTransient && !bIsIdentical && !bIsComponent && !SourceUCSModifiedProperties.Contains(Property)
 						&& ( !bIsTransform || SourceComponent != SourceActor->GetRootComponent() || ( !SourceActor->HasAnyFlags( RF_ClassDefaultObject | RF_ArchetypeObject ) && !TargetActor->HasAnyFlags( RF_ClassDefaultObject | RF_ArchetypeObject ) ) ) )
 					{
 						const bool bIsSafeToCopy = !( Options & ECopyOptions::OnlyCopyEditOrInterpProperties ) || ( Property->HasAnyPropertyFlags( CPF_Edit | CPF_Interp ) );

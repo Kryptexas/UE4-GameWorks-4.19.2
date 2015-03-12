@@ -471,18 +471,13 @@ class FSelectedEditableComponentFilter
 public:
 	bool IsObjectValid(const UObject* Object) const
 	{
+#if WITH_EDITOR
 		const UActorComponent* Comp = Cast<UActorComponent>( Object );
 		if (Comp)
 		{
-			bool bCanEditIfNative = true;
-#if WITH_EDITOR
-			if (Comp->CreationMethod == EComponentCreationMethod::Native)
-			{
-				bCanEditIfNative = FComponentEditorUtils::CanEditNativeComponent(Comp);
-			}
-#endif
-			return !Comp->IsCreatedByConstructionScript() && bCanEditIfNative;
+			return Comp->IsEditableWhenInherited();
 		}
+#endif
 		
 		return false;
 	}

@@ -844,12 +844,7 @@ bool FSCSEditorTreeNodeInstancedInheritedComponent::IsDefaultSceneRoot() const
 bool FSCSEditorTreeNodeInstancedInheritedComponent::CanEditDefaults() const
 {
 	UActorComponent* ComponentTemplate = GetComponentTemplate();
-	if (IsNative() && ComponentTemplate)
-	{
-		return FComponentEditorUtils::CanEditNativeComponent(ComponentTemplate);
-	}
-
-	return false;
+	return (ComponentTemplate ? ComponentTemplate->IsEditableWhenInherited() : false);
 }
 
 FText FSCSEditorTreeNodeInstancedInheritedComponent::GetDisplayName() const

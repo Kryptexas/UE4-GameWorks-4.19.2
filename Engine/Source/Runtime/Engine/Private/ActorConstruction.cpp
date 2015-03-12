@@ -456,6 +456,19 @@ void AActor::ExecuteConstruction(const FTransform& Transform, const FComponentIn
 				ProcessUserConstructionScript();
 			}
 
+			// Since re-run construction scripts will never be run and we want to keep dynamic spawning fast, don't spend time
+			// determining the UCS modified properties in game worlds
+			if (!GetWorld()->IsGameWorld())
+			{
+				for (UActorComponent* Component : GetComponents())
+				{
+					if (Component)
+					{
+						Component->DetermineUCSModifiedProperties();
+					}
+				}
+			}
+
 			// Bind any delegates on components			
 			((UBlueprintGeneratedClass*)GetClass())->BindDynamicDelegates(this); // We have a BP stack, we must have a UBlueprintGeneratedClass...
 

@@ -9,10 +9,10 @@
 #include "ScopedTransaction.h"
 #include "SourceCodeNavigation.h"
 
-class SUneditableComponentWarning : public SCompoundWidget
+class SActorDetailsUneditableComponentWarning : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS(SUneditableComponentWarning)
+	SLATE_BEGIN_ARGS(SActorDetailsUneditableComponentWarning)
 		: _WarningText()
 		, _OnHyperlinkClicked()
 	{}
@@ -135,16 +135,25 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 				.AutoHeight()
 				.Padding( FMargin( 0,0,0,1) )
 				[
-					SNew(SUneditableComponentWarning)
-					.Visibility(this, &SActorDetails::GetBlueprintedComponentWarningVisibility)
-					.WarningText(NSLOCTEXT("SActorDetails", "BlueprintedComponentWarning", "Blueprinted components must be edited in the <a id=\"HyperlinkDecorator\" style=\"DetailsView.BPMessageHyperlinkStyle\">Blueprint</>"))
+					SNew(SActorDetailsUneditableComponentWarning)
+					.Visibility(this, &SActorDetails::GetUCSComponentWarningVisibility)
+					.WarningText(NSLOCTEXT("SActorDetails", "BlueprintUCSComponentWarning", "Components created by the User Construction Script can only be edited in the <a id=\"HyperlinkDecorator\" style=\"DetailsView.BPMessageHyperlinkStyle\">Blueprint</>"))
 					.OnHyperlinkClicked(this, &SActorDetails::OnBlueprintedComponentWarningHyperlinkClicked)
 				]
 				+SVerticalBox::Slot()
 				.AutoHeight()
 				.Padding( FMargin( 0,0,0,1) )
 				[
-					SNew(SUneditableComponentWarning)
+					SNew(SActorDetailsUneditableComponentWarning)
+					.Visibility(this, &SActorDetails::GetInheritedBlueprintComponentWarningVisibility)
+					.WarningText(NSLOCTEXT("SActorDetails", "BlueprintUneditableInheritedComponentWarning", "Components flagged as not editable when inherited must be edited in the <a id=\"HyperlinkDecorator\" style=\"DetailsView.BPMessageHyperlinkStyle\">Blueprint</>"))
+					.OnHyperlinkClicked(this, &SActorDetails::OnBlueprintedComponentWarningHyperlinkClicked)
+				]
+				+SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding( FMargin( 0,0,0,1) )
+				[
+					SNew(SActorDetailsUneditableComponentWarning)
 					.Visibility(this, &SActorDetails::GetNativeComponentWarningVisibility)
 					.WarningText(NSLOCTEXT("SActorDetails", "UneditableNativeComponentWarning", "Native components are editable when declared as a UProperty in <a id=\"HyperlinkDecorator\" style=\"DetailsView.BPMessageHyperlinkStyle\">C++</>"))
 					.OnHyperlinkClicked(this, &SActorDetails::OnNativeComponentWarningHyperlinkClicked)
@@ -545,24 +554,77 @@ void SActorDetails::OnNativeComponentWarningHyperlinkClicked(const FSlateHyperli
 	}
 }
 
-EVisibility SActorDetails::GetBlueprintedComponentWarningVisibility() const
+EVisibility SActorDetails::GetUCSComponentWarningVisibility() const
 {
-	//return IsPropertyEditingEnabled() ? EVisibility::Collapsed : EVisibility::Visible;
-
-	bool bIsBlueprinted = false;
+	bool bIsUneditableBlueprintComponent = false;
 
 	// Check to see if any selected components are inherited from blueprint
 	for (const auto& Node : SCSEditor->GetSelectedNodes())
 	{
-		UActorComponent* Component = Node->GetComponentTemplate();
-		bIsBlueprinted = Component ? Component->IsCreatedByConstructionScript() : false;
-		if (bIsBlueprinted)
+		if (!Node->IsNative())
 		{
+			UActorComponent* Component = Node->GetComponentTemplate();
+			bIsUneditableBlueprintComponent = Component ? Component->CreationMethod == EComponentCreationMethod::UserConstructionScript : false;
+			if (bIsUneditableBlueprintComponent)
+			{
+				break;
+			}
+		}
+	}
+
+	return bIsUneditableBlueprintComponent ? EVisibility::Visible : EVisibility::Collapsed;
+}
+
+bool NotEditableSetByBlueprint(UActorComponent* Component)
+{
+	// Determine if it is locked out from a blueprint or from the native
+	UActorComponent* Archetype = CastChecked<UActorComponent>(Component->GetArchetype());
+	while (Archetype)
+	{
+		if (Archetype->GetOuter()->IsA<UBlueprintGeneratedClass>() || Archetype->GetOuter()->GetClass()->HasAllClassFlags(CLASS_CompiledFromBlueprint))
+		{
+			if (!Archetype->bEditableWhenInherited)
+			{
+				return true;
+			}
+
+			Archetype = CastChecked<UActorComponent>(Archetype->GetArchetype());
+		}
+		else
+		{
+			Archetype = nullptr;
+		}
+	}
+
+	return false;
+}
+
+EVisibility SActorDetails::GetInheritedBlueprintComponentWarningVisibility() const
+{
+	bool bIsUneditableBlueprintComponent = false;
+
+	// Check to see if any selected components are inherited from blueprint
+	for (const auto& Node : SCSEditor->GetSelectedNodes())
+	{
+		if (!Node->IsNative())
+		{
+			if (UActorComponent* Component = Node->GetComponentTemplate())
+			{
+				if (!Component->IsEditableWhenInherited() && Component->CreationMethod == EComponentCreationMethod::SimpleConstructionScript)
+				{
+					bIsUneditableBlueprintComponent = true;
+					break;
+				}
+			}
+		}
+		else if (!Node->CanEditDefaults() && NotEditableSetByBlueprint(Node->GetComponentTemplate()))
+		{
+			bIsUneditableBlueprintComponent = true;
 			break;
 		}
 	}
 
-	return bIsBlueprinted ? EVisibility::Visible : EVisibility::Collapsed;
+	return bIsUneditableBlueprintComponent ? EVisibility::Visible : EVisibility::Collapsed;
 }
 
 EVisibility SActorDetails::GetNativeComponentWarningVisibility() const
@@ -571,9 +633,9 @@ EVisibility SActorDetails::GetNativeComponentWarningVisibility() const
 	for (const auto& Node : SCSEditor->GetSelectedNodes())
 	{
 		// Check to see if the component is native and not editable
-		bIsUneditableNative = Node->IsNative() && !Node->CanEditDefaults();
-		if (bIsUneditableNative)
+		if (Node->IsNative() && !Node->CanEditDefaults() && !NotEditableSetByBlueprint(Node->GetComponentTemplate()))
 		{
+			bIsUneditableNative = true;
 			break;
 		}
 	}

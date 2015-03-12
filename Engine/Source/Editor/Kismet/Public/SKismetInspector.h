@@ -143,6 +143,15 @@ protected:
 	/** Returns whether the property view be visible */
 	EVisibility GetPropertyViewVisibility() const;
 
+	/** Returns whether the properties in the view should be editable */
+	bool IsPropertyEditingEnabled() const;
+
+	/** Returns whether the warning about an inherited component not being editable should be visible */
+	EVisibility GetInheritedBlueprintComponentWarningVisibility() const;
+
+	/** Opens the parent blueprint when the hyperlink in the warning is clicked */
+	void OnInheritedBlueprintComponentWarningHyperlinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata);
+
 	/**
 	 * Generates a widget that is used to edit the specified object array contextually.  This widget
 	 * will be displayed along with a property view in the level editor

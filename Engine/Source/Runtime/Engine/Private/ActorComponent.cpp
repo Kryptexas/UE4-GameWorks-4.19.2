@@ -128,6 +128,7 @@ UActorComponent::UActorComponent(const FObjectInitializer& ObjectInitializer /*=
 
 	bAutoRegister = true;
 	bNetAddressable = false;
+	bEditableWhenInherited = true;
 }
 
 void UActorComponent::PostInitProperties()
@@ -147,14 +148,14 @@ void UActorComponent::PostLoad()
 
 	if (GetLinkerUE4Version() < VER_UE4_ACTOR_COMPONENT_CREATION_METHOD)
 	{
-	if (bCreatedByConstructionScript_DEPRECATED)
-	{
-			CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
-	}
-	else if (bInstanceComponent_DEPRECATED)
-	{
-		CreationMethod = EComponentCreationMethod::Instance;
-	}
+		if (bCreatedByConstructionScript_DEPRECATED)
+		{
+				CreationMethod = EComponentCreationMethod::SimpleConstructionScript;
+		}
+		else if (bInstanceComponent_DEPRECATED)
+		{
+			CreationMethod = EComponentCreationMethod::Instance;
+		}
 
 		if (CreationMethod == EComponentCreationMethod::SimpleConstructionScript)
 		{
@@ -176,6 +177,11 @@ void UActorComponent::PostLoad()
 				}
 			}
 		}
+	}
+
+	if (GetLinkerUE4Version() < VER_UE4_TRACK_UCS_MODIFIED_PROPERTIES)
+	{
+		DetermineUCSModifiedProperties();
 	}
 }
 
@@ -1422,6 +1428,76 @@ void UActorComponent::GetLifetimeReplicatedProps( TArray< FLifetimeProperty > & 
 void UActorComponent::OnRep_IsActive()
 {
 	SetComponentTickEnabled(bIsActive);
+}
+
+#if WITH_EDITOR
+bool UActorComponent::IsEditableWhenInherited() const
+{
+	bool bCanEdit = bEditableWhenInherited;
+	if (bCanEdit)
+	{
+		if (CreationMethod == EComponentCreationMethod::Native && !IsTemplate())
+		{
+			bCanEdit = FComponentEditorUtils::CanEditNativeComponent(this);
+		}
+		else if (CreationMethod == EComponentCreationMethod::UserConstructionScript)
+		{
+			bCanEdit = false;
+		}
+	}
+	return bCanEdit;
+}
+#endif
+
+void UActorComponent::DetermineUCSModifiedProperties()
+{
+	class FComponentPropertySkipper : public FArchive
+	{
+	public:
+		FComponentPropertySkipper()
+			: FArchive()
+		{
+			ArIsSaving = true;
+		}
+
+		virtual bool ShouldSkipProperty(const UProperty* InProperty) const override
+		{
+			return (    InProperty->HasAnyPropertyFlags(CPF_Transient | CPF_ContainsInstancedReference | CPF_InstancedReference)
+					|| !InProperty->HasAnyPropertyFlags(CPF_Edit | CPF_Interp));
+		}
+	} PropertySkipper;
+
+	UClass* ComponentClass = GetClass();
+	UObject* ComponentArchetype = GetArchetype();
+
+	UCSModifiedProperties.Empty();
+
+	for (TFieldIterator<UProperty> It(ComponentClass); It; ++It)
+	{
+		UProperty* Property = *It;
+		if( Property->ShouldSerializeValue(PropertySkipper) )
+		{
+			for( int32 Idx=0; Idx<Property->ArrayDim; Idx++ )
+			{
+				uint8* DataPtr      = Property->ContainerPtrToValuePtr           <uint8>((uint8*)this, Idx);
+				uint8* DefaultValue = Property->ContainerPtrToValuePtrForDefaults<uint8>(ComponentClass, (uint8*)ComponentArchetype, Idx);
+				if (!Property->Identical( DataPtr, DefaultValue))
+				{
+					UCSModifiedProperties.Add(FSimpleMemberReference());
+					UCSModifiedProperties.Last().FillSimpleMemberReference<UProperty>(Property);
+					break;
+				}
+			}
+		}
+	}
+}
+
+void UActorComponent::GetUCSModifiedProperties(TSet<const UProperty*>& ModifiedProperties) const
+{
+	for (const FSimpleMemberReference& MemberReference : UCSModifiedProperties)
+	{
+		ModifiedProperties.Add(MemberReference.ResolveSimpleMemberReference<UProperty>());
+	}
 }
 
 

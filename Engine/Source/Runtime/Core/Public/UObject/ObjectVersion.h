@@ -484,7 +484,8 @@ enum EUnrealEngineObjectUE4Version
 	VER_UE4_REBUILD_HIERARCHICAL_INSTANCE_TREES,
 	// Package summary includes an CompatibleWithEngineVersion field, separately to the version it's saved with
 	VER_UE4_PACKAGE_SUMMARY_HAS_COMPATIBLE_ENGINE_VERSION,
-
+	// Track UCS modified properties on Actor Components
+	VER_UE4_TRACK_UCS_MODIFIED_PROPERTIES,
 
 	// -----<new versions can be added before this line>-------------------------------------------------
 	// - this needs to be the last line (see note below)

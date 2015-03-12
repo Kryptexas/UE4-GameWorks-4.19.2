@@ -37,7 +37,8 @@ private:
 	void UpdateComponentTreeFromEditorSelection();
 
 	bool IsPropertyEditingEnabled() const;
-	EVisibility GetBlueprintedComponentWarningVisibility() const;
+	EVisibility GetUCSComponentWarningVisibility() const;
+	EVisibility GetInheritedBlueprintComponentWarningVisibility() const;
 	EVisibility GetNativeComponentWarningVisibility() const;
 	void OnBlueprintedComponentWarningHyperlinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata);
 	void OnNativeComponentWarningHyperlinkClicked(const FSlateHyperlinkRun::FMetadata& Metadata);

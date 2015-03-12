@@ -3,6 +3,7 @@
 #pragma once
 #include "Engine/EngineBaseTypes.h"
 #include "Engine/EngineTypes.h"
+#include "Engine/MemberReference.h"
 #include "Interfaces/Interface_AssetUserData.h"
 #include "ActorComponent.generated.h"
 
@@ -115,6 +116,9 @@ public:
 	UPROPERTY(transient, ReplicatedUsing=OnRep_IsActive)
 	uint32 bIsActive:1;
 
+	UPROPERTY(EditDefaultsOnly, Category="Variable")
+	uint32 bEditableWhenInherited:1;
+
 	/** If true, we call the virtual InitializeComponent */
 	uint32 bWantsInitializeComponent:1;
 
@@ -132,7 +136,19 @@ private:
 	/** Indicates that BeginPlay has been called, but EndPlay has not yet */
 	uint32 bHasBegunPlay:1;
 
+	friend class FActorComponentInstanceData;
+
+	UPROPERTY()
+	TArray<FSimpleMemberReference> UCSModifiedProperties;
+
 public:
+
+	void DetermineUCSModifiedProperties();
+	void GetUCSModifiedProperties(TSet<const UProperty*>& ModifiedProperties) const;
+
+#if WITH_EDITOR
+	bool IsEditableWhenInherited() const;
+#endif
 
 	bool HasBeenCreated() const { return bHasBeenCreated; }
 	bool HasBeenInitialized() const { return bHasBeenInitialized; }
