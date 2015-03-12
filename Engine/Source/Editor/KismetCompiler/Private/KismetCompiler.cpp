@@ -174,7 +174,9 @@ void FKismetCompilerContext::CleanAndSanitizeClass(UBlueprintGeneratedClass* Cla
 
 	if( OldCDO )
 	{
-		OldCDO->Rename(*MakeUniqueObjectName(GetTransientPackage(), OldCDO->GetClass(), FName(*FString::Printf(TEXT("TRASH_%s"), *OldCDO->GetClass()->GetDefaultObjectName().ToString()))).ToString(), GetTransientPackage(), RenFlags);
+		FString TransientCDOString = FString::Printf(TEXT("TRASH_%s"), *OldCDO->GetName());
+		FName TransientCDOName = MakeUniqueObjectName(GetTransientPackage(), TransientClass, FName(*TransientCDOString));
+		OldCDO->Rename(*TransientCDOName.ToString(), GetTransientPackage(), RenFlags);
 		ULinkerLoad::InvalidateExport(OldCDO);
 	}
 
