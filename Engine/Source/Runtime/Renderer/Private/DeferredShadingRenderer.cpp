@@ -75,12 +75,6 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 		}
 	}
 
-	// Shader complexity requires depth only pass to display masked material cost correctly
-	if (ViewFamily.EngineShowFlags.ShaderComplexity)
-	{
-		EarlyZPassMode = DDM_AllOpaque;
-	}
-
 	// developer override, good for profiling, can be useful as project setting
 	{
 		static const auto ICVar = IConsoleManager::Get().FindTConsoleVariableDataInt(TEXT("r.EarlyZPass"));
@@ -93,6 +87,12 @@ FDeferredShadingSceneRenderer::FDeferredShadingSceneRenderer(const FSceneViewFam
 			case 2: EarlyZPassMode = DDM_AllOccluders; break;
 			case 3: break;	// Note: 3 indicates "default behavior" and does not specify an override
 		}
+	}
+
+	// Shader complexity requires depth only pass to display masked material cost correctly
+	if (ViewFamily.EngineShowFlags.ShaderComplexity)
+	{
+		EarlyZPassMode = DDM_AllOpaque;
 	}
 }
 
