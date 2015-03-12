@@ -235,7 +235,7 @@ private:
 
 	FThreadLocalCache& GetTLS()
 	{
-		checkSlow(TlsSlot);
+		checkSlow(FPlatformTLS::IsValidTlsSlot(TlsSlot));
 		FThreadLocalCache* TLS = (FThreadLocalCache*)FPlatformTLS::GetTlsValue(TlsSlot);
 		if (!TLS)
 		{
