@@ -1116,7 +1116,7 @@ public:
 		}
 		UPTRINT BasePtr;
 		FPoolInfo* Pool = FindPoolInfo((UPTRINT)Original, BasePtr);
-		SizeOut = Pool->TableIndex < BinnedSizeLimit ? MemSizeToPoolTable[Pool->TableIndex]->BlockSize : Pool->GetBytes();
+		SizeOut = Pool->TableIndex < BinnedOSTableIndex ? MemSizeToPoolTable[Pool->TableIndex]->BlockSize : Pool->GetBytes();
 		return true;
 	}
 
