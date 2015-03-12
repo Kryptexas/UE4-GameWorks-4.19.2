@@ -928,6 +928,12 @@ namespace AutomationTool
 							throw new AutomationException("Was expecting 'Affected files' to appear after the summary output from P4, but there were no more lines to read");
 						}
 
+						// If the summary ends with an empty newline, it doesn't seem to be prefixed with a tab
+						while (LineIndex < Lines.Length && Lines[LineIndex].Length == 0)
+						{
+							LineIndex++;
+						}
+
 						Line = Lines[ LineIndex ];
 
 						string MatchAffectedFiles = "Affected files";
