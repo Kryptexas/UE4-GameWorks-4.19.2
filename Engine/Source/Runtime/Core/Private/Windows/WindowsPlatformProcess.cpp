@@ -428,8 +428,6 @@ void FWindowsPlatformProcess::TerminateProc( FProcHandle & ProcessHandle, bool K
 	}
 
 	TerminateProcess(ProcessHandle.Get(),0);
-	// Process is terminated, so we can close the process handle.
-	ProcessHandle.Close();
 }
 
 uint32 FWindowsPlatformProcess::GetCurrentProcessId()
