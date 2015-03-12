@@ -44,6 +44,11 @@ public:
 	bool ShutdownAudioDevice(uint32 Handle);
 
 	/**
+	* Shuts down all active audio devices
+	*/
+	bool ShutdownAllAudioDevices();
+
+	/**
 	* Returns a ptr to the audio device associated with the handle. If the
 	* handle is invalid then a NULL device ptr will be returned.
 	*/

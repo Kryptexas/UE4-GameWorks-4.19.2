@@ -947,8 +947,7 @@ void UEngine::ShutdownAudioDeviceManager()
 	// Shutdown the main audio device in the UEEngine
 	if (AudioDeviceManager)
 	{
-		AudioDeviceManager->ShutdownAudioDevice(MainAudioDeviceHandle);
-		check(AudioDeviceManager->GetNumActiveAudioDevices() == 0);
+		AudioDeviceManager->ShutdownAllAudioDevices();
 		delete AudioDeviceManager;
 		AudioDeviceManager = NULL;
 	}

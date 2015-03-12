@@ -170,6 +170,18 @@ bool FAudioDeviceManager::ShutdownAudioDevice(uint32 Handle)
 	return true;
 }
 
+bool FAudioDeviceManager::ShutdownAllAudioDevices()
+{
+	for (FAudioDevice* AudioDevice : Devices)
+	{
+		if (AudioDevice)
+		{
+			ShutdownAudioDevice(AudioDevice->DeviceHandle);
+		}
+	}
+	return true;
+}
+
 class FAudioDevice* FAudioDeviceManager::GetAudioDevice(uint32 Handle)
 {
 	if (!IsValidAudioDeviceHandle(Handle))
