@@ -6,6 +6,8 @@
 
 #include "FoliageEditActions.h"
 
+#define LOCTEXT_NAMESPACE ""
+
 void FFoliageEditCommands::RegisterCommands()
 {
 	UI_COMMAND( SetPaint, "Paint", "Paint", EUserInterfaceActionType::ToggleButton, FInputGesture() );
@@ -24,3 +26,4 @@ void FFoliageEditCommands::RegisterCommands()
 	UI_COMMAND( DeselectAllInstances, "Deselect All Instances", "Deselect all instances of foliage type.", EUserInterfaceActionType::Button, FInputGesture());
 }
 
+#undef LOCTEXT_NAMESPACE

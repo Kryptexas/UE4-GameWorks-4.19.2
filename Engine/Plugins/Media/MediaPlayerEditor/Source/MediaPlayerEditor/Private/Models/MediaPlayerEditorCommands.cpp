@@ -2,6 +2,7 @@
 
 #include "MediaPlayerEditorPrivatePCH.h"
 
+#define LOCTEXT_NAMESPACE ""
 
 void FMediaPlayerEditorCommands::RegisterCommands()
 {
@@ -11,3 +12,5 @@ void FMediaPlayerEditorCommands::RegisterCommands()
 	UI_COMMAND(ReverseMedia, "Reverse", "Reverses media playback", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(RewindMedia, "Rewind", "Rewinds the media to the beginning", EUserInterfaceActionType::Button, FInputGesture());
 }
+
+#undef LOCTEXT_NAMESPACE

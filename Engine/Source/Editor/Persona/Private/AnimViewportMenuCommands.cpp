@@ -3,6 +3,8 @@
 #include "PersonaPrivatePCH.h"
 #include "AnimViewportMenuCommands.h"
 
+#define LOCTEXT_NAMESPACE ""
+
 void FAnimViewportMenuCommands::RegisterCommands()
 {
 	UI_COMMAND( Auto, "Auto", "Preview what is active on the current window", EUserInterfaceActionType::RadioButton, FInputGesture() );
@@ -19,3 +21,4 @@ void FAnimViewportMenuCommands::RegisterCommands()
 	UI_COMMAND( AnimSetDrawUVs, "UV", "Toggles display of the mesh's UVs for the specified channel.", EUserInterfaceActionType::ToggleButton, FInputGesture() );
 }
 
+#undef LOCTEXT_NAMESPACE

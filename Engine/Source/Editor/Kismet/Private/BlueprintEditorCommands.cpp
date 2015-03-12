@@ -11,6 +11,8 @@
 
 struct FBlueprintPaletteListBuilder;
 
+#define LOCTEXT_NAMESPACE ""
+
 /** UI_COMMAND takes long for the compile to optimize */
 PRAGMA_DISABLE_OPTIMIZATION
 void FBlueprintEditorCommands::RegisterCommands()
@@ -406,3 +408,5 @@ void FBlueprintSpawnNodeCommands::GetGraphActionByGesture(FInputGesture& InGestu
 		}
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

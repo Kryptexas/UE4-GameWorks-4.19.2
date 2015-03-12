@@ -11,6 +11,7 @@
 #include "../Private/PListNodeFile.h"
 #include "../Private/PListNodeString.h"
 
+#define LOCTEXT_NAMESPACE ""
 
 // Type of notification to spawn
 enum ENTF_Types
@@ -261,3 +262,5 @@ private:
 	/** Helper function to search through nodes to find a specific node's parent */
 	bool FindParent(const TSharedPtr<IPListNode>& InChildNode, TSharedPtr<IPListNode>& OutFoundNode) const;
 };
+
+#undef LOCTEXT_NAMESPACE

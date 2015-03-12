@@ -3,6 +3,8 @@
 #include "SequencerPrivatePCH.h"
 #include "SequencerCommands.h"
 
+#define LOCTEXT_NAMESPACE ""
+
 void FSequencerCommands::RegisterCommands()
 {
 	UI_COMMAND( SetKey, "Set Key", "Sets a key at the current time for the selected actor.", EUserInterfaceActionType::Button, FInputGesture(EKeys::K) );
@@ -29,3 +31,5 @@ void FSequencerCommands::RegisterCommands()
 	UI_COMMAND( SetSelectedCurveVisibility, "Selected Curves", "Show only selected curves in the curve editor.", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( SetAnimatedCurveVisibility, "Animated Curves", "Show only curves with keyframes in the curve editor.", EUserInterfaceActionType::RadioButton, FInputGesture() );
 }
+
+#undef LOCTEXT_NAMESPACE

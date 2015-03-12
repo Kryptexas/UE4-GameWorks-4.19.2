@@ -3,6 +3,8 @@
 #include "UnrealEd.h"
 #include "RichCurveEditorCommands.h"
 
+#define LOCTEXT_NAMESPACE ""
+
 void FRichCurveEditorCommands::RegisterCommands()
 {
 	UI_COMMAND(ZoomToFitHorizontal, "Fit Horizontal", "Zoom to Fit - Horizontal", EUserInterfaceActionType::Button, FInputGesture());
@@ -18,3 +20,5 @@ void FRichCurveEditorCommands::RegisterCommands()
 	UI_COMMAND(InterpolationCubicUser, "User", "Cubic interpolation - User flat tangents", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(InterpolationCubicBreak, "Break", "Cubic interpolation - User broken tangents", EUserInterfaceActionType::ToggleButton, FInputGesture());
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -1,6 +1,8 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 #pragma once
 
+#define LOCTEXT_NAMESPACE ""
+
 /** The set of commands supported by the WorldView */
 class FLevelCollectionCommands 
 	: public TCommands<FLevelCollectionCommands>
@@ -297,3 +299,4 @@ public:
 	TSharedPtr< FUICommandInfo > AddLandscapeLevelYPositive;
 };
 
+#undef LOCTEXT_NAMESPACE

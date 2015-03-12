@@ -6,8 +6,10 @@
 //////////////////////////////////////////////////////////////////////////
 // FPaperEditorCommands
 
+#define LOCTEXT_NAMESPACE ""
+
 void FPaperEditorCommands::RegisterCommands()
 {
 }
 	
-	
+#undef LOCTEXT_NAMESPACE

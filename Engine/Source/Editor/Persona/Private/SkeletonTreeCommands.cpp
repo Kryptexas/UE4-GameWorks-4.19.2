@@ -3,6 +3,8 @@
 #include "PersonaPrivatePCH.h"
 #include "SkeletonTreeCommands.h"
 
+#define LOCTEXT_NAMESPACE ""
+
 void FSkeletonTreeCommands::RegisterCommands()
 {
 	UI_COMMAND( ShowAllBones, "Show All Bones", "Show every bone in the skeleton", EUserInterfaceActionType::RadioButton, FInputGesture() );
@@ -28,3 +30,5 @@ void FSkeletonTreeCommands::RegisterCommands()
 	UI_COMMAND( ShowSkeletonSockets, "Show Skeleton Sockets", "Show sockets that are in the skeleton only", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( HideSockets, "Hide Sockets", "Show no sockets", EUserInterfaceActionType::RadioButton, FInputGesture() );
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -3,6 +3,7 @@
 #include "GraphEditorCommon.h"
 #include "GraphEditorActions.h"
 
+#define LOCTEXT_NAMESPACE ""
 
 void FGraphEditorCommandsImpl::RegisterCommands()
 {
@@ -93,3 +94,5 @@ void FGraphEditorCommands::Unregister()
 {
 	return FGraphEditorCommandsImpl::Unregister();
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -6,6 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // FTileMapEditorCommands
 
+#define LOCTEXT_NAMESPACE ""
+
 void FTileMapEditorCommands::RegisterCommands()
 {
 	UI_COMMAND(EnterTileMapEditMode, "Enable Tile Map Mode", "Enables Tile Map editing mode", EUserInterfaceActionType::Button, FInputGesture());
@@ -37,3 +39,5 @@ void FTileMapEditorCommands::RegisterCommands()
 	UI_COMMAND(MoveLayerUp, "Move layer up", "Move layer up", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(MoveLayerDown, "Move layer down", "Move layer down", EUserInterfaceActionType::Button, FInputGesture());
 }
+
+#undef LOCTEXT_NAMESPACE

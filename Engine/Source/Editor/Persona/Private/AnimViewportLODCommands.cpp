@@ -3,6 +3,8 @@
 #include "PersonaPrivatePCH.h"
 #include "AnimViewportLODCommands.h"
 
+#define LOCTEXT_NAMESPACE ""
+
 void FAnimViewportLODCommands::RegisterCommands()
 {
 	UI_COMMAND( LODAuto, "LOD Auto", "Automatically select LOD", EUserInterfaceActionType::RadioButton, FInputGesture() );
@@ -12,3 +14,4 @@ void FAnimViewportLODCommands::RegisterCommands()
 	UI_COMMAND( LOD3, "LOD 3", "Force select LOD 3", EUserInterfaceActionType::RadioButton, FInputGesture() );
 }
 
+#undef LOCTEXT_NAMESPACE

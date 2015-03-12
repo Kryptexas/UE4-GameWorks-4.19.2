@@ -87,6 +87,8 @@ FReply SGlobalOpenAssetDialog::OnPreviewKeyDown(const FGeometry& MyGeometry, con
 //////////////////////////////////////////////////////////////////////////
 // FGlobalEditorCommonCommands
 
+#define LOCTEXT_NAMESPACE ""
+
 FGlobalEditorCommonCommands::FGlobalEditorCommonCommands()
 	: TCommands<FGlobalEditorCommonCommands>(TEXT("SystemWideCommands"), NSLOCTEXT("Contexts", "SystemWideCommands", "System-wide"), NAME_None, FEditorStyle::GetStyleSetName())
 {
@@ -184,3 +186,5 @@ void FGlobalEditorCommonCommands::OnSummonedConsoleCommandBox()
 		OutputLogModule.ToggleDebugConsoleForWindow(WindowRef, EDebugConsoleStyle::Compact, Delegates);
 	}
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#define LOCTEXT_NAMESPACE ""
+
 /**
  * The set of commands supported by the LayersView
  */
@@ -74,4 +76,4 @@ public:
 	TSharedPtr< FUICommandInfo > RequestRenameLayer;
 };
 
-
+#undef LOCTEXT_NAMESPACE

@@ -6,6 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // FFlipbookEditorCommands
 
+#define LOCTEXT_NAMESPACE ""
+
 void FFlipbookEditorCommands::RegisterCommands()
 {
 	UI_COMMAND(SetShowGrid, "Grid", "Displays the viewport grid.", EUserInterfaceActionType::ToggleButton, FInputGesture());
@@ -23,3 +25,5 @@ void FFlipbookEditorCommands::RegisterCommands()
 	UI_COMMAND(EditSpriteFrame, "Edit Sprite", "Opens the sprite for this key frame in the Sprite Editor.", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(ShowInContentBrowser, "Show in Content Browser", "Shows the sprite for this key frame in the Content Browser.", EUserInterfaceActionType::Button, FInputGesture());
 }
+
+#undef LOCTEXT_NAMESPACE

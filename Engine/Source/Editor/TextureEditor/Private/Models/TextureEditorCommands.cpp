@@ -2,6 +2,7 @@
 
 #include "TextureEditorPrivatePCH.h"
 
+#define LOCTEXT_NAMESPACE ""
 
 void FTextureEditorCommands::RegisterCommands()
 {
@@ -21,3 +22,5 @@ void FTextureEditorCommands::RegisterCommands()
 	UI_COMMAND(Reimport, "Reimport", "Reimports the texture from file", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(Settings, "Settings...", "Opens the settings for the texture editor", EUserInterfaceActionType::Button, FInputGesture());
 }
+
+#undef LOCTEXT_NAMESPACE

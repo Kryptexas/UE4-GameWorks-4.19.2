@@ -3,6 +3,8 @@
 #include "SlatePrivatePCH.h"
 #include "GenericCommands.h"
 
+#define LOCTEXT_NAMESPACE ""
+
 void FGenericCommands::RegisterCommands()
 {
 	UI_COMMAND( Cut, "Cut", "Cut selection", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::X ) )
@@ -21,3 +23,5 @@ void FGenericCommands::RegisterCommands()
 	UI_COMMAND( Rename, "Rename", "Rename current selection", EUserInterfaceActionType::Button, FInputGesture( EKeys::F2 ) )
 	UI_COMMAND( SelectAll, "Select All", "Select everything in the current scope", EUserInterfaceActionType::Button, FInputGesture( EModifierKey::Control, EKeys::A ) )
 }
+
+#undef LOCTEXT_NAMESPACE

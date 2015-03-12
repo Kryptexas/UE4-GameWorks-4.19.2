@@ -4,6 +4,8 @@
 #include "LandscapeEditorPrivatePCH.h"
 #include "LandscapeEditorCommands.h"
 
+#define LOCTEXT_NAMESPACE ""
+
 void FLandscapeEditorCommands::RegisterCommands()
 {
 	UI_COMMAND(ManageMode, "Mode - Manage", "", EUserInterfaceActionType::RadioButton, FInputGesture());
@@ -84,3 +86,5 @@ void FLandscapeEditorCommands::RegisterCommands()
 	UI_COMMAND(ViewModeLayerDebug, "Layer Debug", "", EUserInterfaceActionType::RadioButton, FInputGesture());
 	UI_COMMAND(ViewModeWireframeOnTop, "Wireframe on Top", "", EUserInterfaceActionType::RadioButton, FInputGesture());
 }
+
+#undef LOCTEXT_NAMESPACE

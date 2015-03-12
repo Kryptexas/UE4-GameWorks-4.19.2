@@ -3,6 +3,8 @@
 #include "UnrealEd.h"
 #include "SoundCueGraphEditorCommands.h"
 
+#define LOCTEXT_NAMESPACE ""
+
 void FSoundCueGraphEditorCommands::RegisterCommands()
 {
 	UI_COMMAND(PlayCue, "Play Cue", "Plays the SoundCue", EUserInterfaceActionType::Button, FInputGesture());
@@ -14,3 +16,5 @@ void FSoundCueGraphEditorCommands::RegisterCommands()
 	UI_COMMAND(AddInput, "Add Input", "Adds an input to the node", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(DeleteInput, "Delete Input", "Removes an input from the node", EUserInterfaceActionType::Button, FInputGesture());
 }
+
+#undef LOCTEXT_NAMESPACE

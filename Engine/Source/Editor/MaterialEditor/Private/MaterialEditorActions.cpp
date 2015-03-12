@@ -6,6 +6,7 @@
 #include "MaterialEditorActions.h"
 #include "SMaterialEditorViewport.h"
 
+#define LOCTEXT_NAMESPACE ""
 
 void FMaterialEditorCommands::RegisterCommands()
 {
@@ -170,3 +171,4 @@ const TSharedPtr<const FInputGesture> FMaterialEditorSpawnNodeCommands::GetGestu
 	return TSharedPtr< const FInputGesture >();
 }
 
+#undef LOCTEXT_NAMESPACE

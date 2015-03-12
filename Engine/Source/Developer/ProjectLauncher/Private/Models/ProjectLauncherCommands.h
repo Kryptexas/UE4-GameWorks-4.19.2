@@ -2,6 +2,7 @@
 
 #pragma once
 
+#define LOCTEXT_NAMESPACE ""
 
 /**
  * The project launcher UI commands
@@ -58,3 +59,5 @@ public:
 
 	TSharedPtr<FUICommandInfo> DeleteProfile;
 };
+
+#undef LOCTEXT_NAMESPACE

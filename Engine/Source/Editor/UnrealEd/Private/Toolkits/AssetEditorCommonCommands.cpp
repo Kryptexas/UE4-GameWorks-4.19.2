@@ -3,7 +3,7 @@
 #include "UnrealEd.h"
 #include "AssetEditorCommonCommands.h"
 
-
+#define LOCTEXT_NAMESPACE ""
 
 void FAssetEditorCommonCommands::RegisterCommands()
 {
@@ -12,3 +12,5 @@ void FAssetEditorCommonCommands::RegisterCommands()
 	UI_COMMAND( SwitchToStandaloneEditor, "Switch to Standalone Editor", "Closes the level-centric asset editor and reopens it in 'standalone' mode", EUserInterfaceActionType::Button, FInputGesture() );
 	UI_COMMAND( SwitchToWorldCentricEditor, "Switch to World-Centric Editor", "Closes the standalone asset editor and reopens it in 'world-centric' mode, docked within the level editor that it was originally opened in.", EUserInterfaceActionType::Button, FInputGesture() );
 }
+
+#undef LOCTEXT_NAMESPACE

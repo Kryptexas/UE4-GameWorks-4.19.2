@@ -3,6 +3,7 @@
 #include "DistCurveEditorModule.h"
 #include "CurveEditorActions.h"
 
+#define LOCTEXT_NAMESPACE ""
 
 void FCurveEditorCommands::RegisterCommands()
 {
@@ -35,3 +36,5 @@ void FCurveEditorCommands::RegisterCommands()
 	UI_COMMAND(CreateTab, "Create", "Create Tab", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(DeleteTab, "Delete", "Delete Tab", EUserInterfaceActionType::Button, FInputGesture());
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -4,6 +4,8 @@
 #include "MatineeActions.h"
 #include "Matinee.h"
 
+#define LOCTEXT_NAMESPACE ""
+
 /** UI_COMMAND takes long for the compile to optimize */
 PRAGMA_DISABLE_OPTIMIZATION
 void FMatineeCommands::RegisterCommands()
@@ -188,3 +190,5 @@ void FMatineeCommands::RegisterCommands()
 	UI_COMMAND(DeleteSelection, "Delete Selection", "", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::None, EKeys::Platform_Delete));
 }
 PRAGMA_ENABLE_OPTIMIZATION
+
+#undef LOCTEXT_NAMESPACE

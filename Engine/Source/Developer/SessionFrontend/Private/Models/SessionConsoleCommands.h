@@ -2,6 +2,7 @@
 
 #pragma once
 
+#define LOCTEXT_NAMESPACE ""
 
 /**
  * The device details commands.
@@ -37,3 +38,5 @@ public:
 	TSharedPtr<FUICommandInfo> SessionCopy;
 	TSharedPtr<FUICommandInfo> SessionSave;
 };
+
+#undef LOCTEXT_NAMESPACE

@@ -4,6 +4,7 @@
 #include "PhATActions.h"
 #include "PhAT.h"
 
+#define LOCTEXT_NAMESPACE ""
 
 void FPhATCommands::RegisterCommands()
 {
@@ -87,3 +88,5 @@ void FPhATCommands::RegisterCommands()
 	UI_COMMAND(ToggleTwist, "Toggle Twist Constraint", "", EUserInterfaceActionType::Button, FInputGesture(EKeys::Two));
 	UI_COMMAND(FocusOnSelection, "Focus the viewport on the current selection", "", EUserInterfaceActionType::Button, FInputGesture(EKeys::F));
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -4,7 +4,7 @@
 #include "UnrealEd.h"
 #include "EditorViewportCommands.h"
 
-
+#define LOCTEXT_NAMESPACE ""
 
 void FEditorViewportCommands::RegisterCommands()
 {
@@ -75,7 +75,6 @@ void FEditorViewportCommands::RegisterCommands()
 	UI_COMMAND( FixedExposure2p, "Fixed Exposure: +2", "Set the fixed exposure to 2", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( FixedExposure3p, "Fixed Exposure: +3", "Set the fixed exposure to 3", EUserInterfaceActionType::RadioButton, FInputGesture() );
 	UI_COMMAND( FixedExposure4p, "Fixed Exposure: +4", "Set the fixed exposure to 4", EUserInterfaceActionType::RadioButton, FInputGesture() );
-
-
 }
 
+#undef LOCTEXT_NAMESPACE

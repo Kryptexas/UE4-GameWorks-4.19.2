@@ -3,6 +3,8 @@
 #include "PersonaPrivatePCH.h"
 #include "AnimViewportShowCommands.h"
 
+#define LOCTEXT_NAMESPACE ""
+
 void FAnimViewportShowCommands::RegisterCommands()
 {
 	UI_COMMAND( ToggleGrid, "Grid", "Display Grid", EUserInterfaceActionType::ToggleButton, FInputGesture() );
@@ -61,3 +63,5 @@ void FAnimViewportShowCommands::RegisterCommands()
 
 #endif// #if WITH_APEX_CLOTHING
 }
+
+#undef LOCTEXT_NAMESPACE

@@ -2,6 +2,8 @@
 
 #pragma once
 
+#define LOCTEXT_NAMESPACE ""
+
 /** The set of commands supported by the LevelsView */
 class FLevelsViewCommands : public TCommands<FLevelsViewCommands>
 {
@@ -246,3 +248,5 @@ public:
 	/** Unlocks all read-only levels */
 	TSharedPtr< FUICommandInfo > UnlockReadOnlyLevels;
 };
+
+#undef LOCTEXT_NAMESPACE

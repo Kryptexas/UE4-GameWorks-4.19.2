@@ -5,6 +5,8 @@
 #include "StaticMeshEditorActions.h"
 #include "SStaticMeshEditorViewport.h"
 
+#define LOCTEXT_NAMESPACE ""
+
 void FStaticMeshEditorCommands::RegisterCommands()
 {
 	UI_COMMAND( SetShowWireframe, "Wireframe", "Toggles the viewmode of the Preview Pane between a lit view and a wireframe view.", EUserInterfaceActionType::ToggleButton, FInputGesture() );
@@ -45,3 +47,4 @@ void FStaticMeshEditorCommands::RegisterCommands()
 	UI_COMMAND( SaveGeneratedLODs, "Save Generated LODs", "Saves the generated LODs in the mesh package.", EUserInterfaceActionType::Button, FInputGesture());
 }
 
+#undef LOCTEXT_NAMESPACE

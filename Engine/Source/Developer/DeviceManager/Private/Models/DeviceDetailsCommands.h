@@ -2,6 +2,7 @@
 
 #pragma once
 
+#define LOCTEXT_NAMESPACE ""
 
 /**
  * The device details commands
@@ -60,3 +61,5 @@ public:
 	TSharedPtr<FUICommandInfo> PowerOn;
 	TSharedPtr<FUICommandInfo> Reboot;
 };
+
+#undef LOCTEXT_NAMESPACE

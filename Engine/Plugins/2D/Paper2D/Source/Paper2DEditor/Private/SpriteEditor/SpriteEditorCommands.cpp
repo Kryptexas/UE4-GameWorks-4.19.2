@@ -6,6 +6,8 @@
 //////////////////////////////////////////////////////////////////////////
 // FSpriteEditorCommands
 
+#define LOCTEXT_NAMESPACE ""
+
 void FSpriteEditorCommands::RegisterCommands()
 {
 	// Show toggles
@@ -36,3 +38,5 @@ void FSpriteEditorCommands::RegisterCommands()
 	UI_COMMAND(ToggleAddPolygonMode, "Add Polygon", "Adds a new polygon.", EUserInterfaceActionType::ToggleButton, FInputGesture());
 	UI_COMMAND(SnapAllVertices, "Snap to pixel grid", "Snaps all vertices to the pixel grid.", EUserInterfaceActionType::Button, FInputGesture());
 }
+
+#undef LOCTEXT_NAMESPACE

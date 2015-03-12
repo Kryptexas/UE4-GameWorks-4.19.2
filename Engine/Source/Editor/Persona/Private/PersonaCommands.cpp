@@ -4,6 +4,8 @@
 #include "PersonaPrivatePCH.h"
 #include "PersonaCommands.h"
 
+#define LOCTEXT_NAMESPACE ""
+
 void FPersonaCommands::RegisterCommands()
 {
 	// save menu
@@ -34,3 +36,5 @@ void FPersonaCommands::RegisterCommands()
 
 	UI_COMMAND( UpdateSkeletonRefPose, "Update Skeleton RefPose", "Update Skeleton ref pose based on current preview mesh", EUserInterfaceActionType::Button, FInputGesture() );
 }
+
+#undef LOCTEXT_NAMESPACE
