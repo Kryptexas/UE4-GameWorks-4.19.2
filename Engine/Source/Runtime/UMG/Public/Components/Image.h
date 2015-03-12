@@ -55,6 +55,10 @@ public:
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetBrush(FSlateBrush& InBrush);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetBrushFromAsset(USlateBrushAsset* Asset);
 
 	/**  */

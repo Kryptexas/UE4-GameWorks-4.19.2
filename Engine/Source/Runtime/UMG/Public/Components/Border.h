@@ -11,6 +11,7 @@ class USlateBrushAsset;
  * to surround it with a background image and adjustable padding.
  *
  * ● Single Child
+ * ● Image
  */
 UCLASS()
 class UMG_API UBorder : public UContentWidget
@@ -91,6 +92,10 @@ public:
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")
 	void SetBrushColor(FLinearColor InBrushColor);
+
+	/**  */
+	UFUNCTION(BlueprintCallable, Category="Appearance")
+	void SetBrush(FSlateBrush& InBrush);
 
 	/**  */
 	UFUNCTION(BlueprintCallable, Category="Appearance")

@@ -181,6 +181,16 @@ FReply UBorder::HandleMouseDoubleClick(const FGeometry& Geometry, const FPointer
 	return FReply::Unhandled();
 }
 
+void UBorder::SetBrush(FSlateBrush& Brush)
+{
+	Background = Brush;
+
+	if ( MyBorder.IsValid() )
+	{
+		MyBorder->SetBorderImage(&Background);
+	}
+}
+
 void UBorder::SetBrushFromAsset(USlateBrushAsset* Asset)
 {
 	Background = Asset ? Asset->Brush : FSlateBrush();
