@@ -13,15 +13,6 @@ namespace ETileMapEditorTool
 	};
 }
 
-namespace ETileMapLayerPaintingMode
-{
-	enum Type
-	{
-		VisualLayers,
-		CollisionLayers
-	};
-}
-
 //////////////////////////////////////////////////////////////////////////
 // FEdModeTileMap
 
@@ -61,12 +52,18 @@ public:
 	void SetActiveTool(ETileMapEditorTool::Type NewTool);
 	ETileMapEditorTool::Type GetActiveTool() const;
 
-	void SetActiveLayerPaintingMode(ETileMapLayerPaintingMode::Type NewMode);
-	ETileMapLayerPaintingMode::Type GetActiveLayerPaintingMode() const;
-
 	void SetActivePaint(UPaperTileSet* TileSet, FIntPoint TopLeft, FIntPoint Dimensions);
 
+	void DestructiveResizePreviewComponent(int32 NewWidth, int32 NewHeight);
+
+	void FlipSelectionHorizontally();
+	void FlipSelectionVertically();
+	void RotateSelectionCW();
+	void RotateSelectionCCW();
+	bool HasValidSelection() const;
+
 	void RefreshBrushSize();
+
 protected:
 	bool UseActiveToolAtLocation(const FViewportCursorLocation& Ray);
 
@@ -90,17 +87,24 @@ protected:
 	bool IsTileMapEditModeActive() const;
 
 	void SynchronizePreviewWithTileMap(UPaperTileMap* NewTileMap);
+
+	void RotateTilesInSelection(bool bIsClockwise);
 public:
 	UPaperTileMapComponent* FindSelectedComponent() const;
 
+	UPaperTileLayer* GetSourceInkLayer() const;
+
+	int32 GetBrushWidth() const;
+	int32 GetBrushHeight() const;
+
+	int32 GetCursorWidth() const;
+	int32 GetCursorHeight() const;
 protected:
 	bool bIsPainting;
 
 	// Ink source
-	TWeakObjectPtr<UPaperTileSet> PaintSourceTileSet;
-
+	bool bHasValidInkSource;
 	FIntPoint PaintSourceTopLeft;
-	FIntPoint PaintSourceDimensions;
 	
 	//
 	FTransform DrawPreviewSpace;
@@ -122,15 +126,9 @@ protected:
 
 	int32 EraseBrushSize;
 
-	int32 CursorWidth;
-	int32 CursorHeight;
-	int32 BrushWidth;
-	int32 BrushHeight;
-
 	UPaperTileMapComponent* CursorPreviewComponent;
 
 	ETileMapEditorTool::Type ActiveTool;
-	ETileMapLayerPaintingMode::Type LayerPaintingMode;
 	mutable FTransform ComponentToWorld;
 };
 

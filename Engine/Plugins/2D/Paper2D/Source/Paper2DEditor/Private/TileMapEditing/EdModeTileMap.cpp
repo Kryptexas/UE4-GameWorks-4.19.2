@@ -80,9 +80,7 @@ const FEditorModeID FEdModeTileMap::EM_TileMap(TEXT("EM_TileMap"));
 
 FEdModeTileMap::FEdModeTileMap()
 	: bIsPainting(false)
-	, PaintSourceTileSet(nullptr)
-	, PaintSourceTopLeft(0, 0)
-	, PaintSourceDimensions(0, 0)
+	, bHasValidInkSource(false)
 	, bIsLastCursorValid(false)
 	, DrawPreviewDimensionsLS(0.0f, 0.0f, 0.0f)
 	, EraseBrushSize(1)
@@ -120,7 +118,6 @@ void FEdModeTileMap::Enter()
 	CursorPreviewComponent->SetMobility(EComponentMobility::Static);
 
 	SetActiveTool(ETileMapEditorTool::Paintbrush);
-	SetActiveLayerPaintingMode(ETileMapLayerPaintingMode::VisualLayers);
 
 	if (!Toolkit.IsValid())
 	{
@@ -288,6 +285,11 @@ bool FEdModeTileMap::InputKey(FEditorViewportClient* InViewportClient, FViewport
 		}
 	}
 
+	if (!bHandled)
+	{
+		bHandled = FEdMode::InputKey(InViewportClient, InViewport, InKey, InEvent);
+	}
+
 	return bHandled;
 }
 
@@ -317,6 +319,9 @@ void FEdModeTileMap::Render(const FSceneView* View, FViewport* Viewport, FPrimit
 			// Slight depth bias so that the wireframe grid overlay doesn't z-fight with the tiles themselves
 			const float DepthBias = 0.0001f;
 			FLinearColor CursorWireColor = FLinearColor::White;
+
+			const int32 CursorWidth = GetCursorWidth();
+			const int32 CursorHeight = GetCursorHeight();
 
 			const FVector TL(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LastCursorTileX + 0, LastCursorTileY + 0, LastCursorTileZ)));
 			const FVector TR(ComponentToWorld.TransformPosition(TileMap->GetTilePositionInLocalSpace(LastCursorTileX + CursorWidth, LastCursorTileY + 0, LastCursorTileZ)));
@@ -362,6 +367,60 @@ void FEdModeTileMap::DrawHUD(FEditorViewportClient* ViewportClient, FViewport* V
 			int32 YL;
 			StringSize(GEngine->GetLargeFont(), XL, YL, *ToolDescriptionString);
 			Canvas->DrawShadowedString(ScreenSpacePreviewLocation.X, ScreenSpacePreviewLocation.Y - YL, *ToolDescriptionString, GEngine->GetLargeFont(), FLinearColor::White);
+		}
+	}
+
+
+	// Draw the 'status tray' information
+	if (UPaperTileMap* LastMap = LastCursorTileMap.Get())
+	{
+		if (bIsLastCursorValid && LastMap->TileLayers.IsValidIndex(LastCursorTileZ))
+		{
+			UPaperTileLayer* LastLayer = LastMap->TileLayers[LastCursorTileZ];
+
+			FNumberFormattingOptions NoCommas;
+			NoCommas.UseGrouping = false;
+
+			const FPaperTileInfo Cell = LastLayer->GetCell(LastCursorTileX, LastCursorTileY);
+			const bool bInBounds = (LastCursorTileX >= 0) && (LastCursorTileX < LastLayer->LayerWidth) && (LastCursorTileY >= 0) && (LastCursorTileY < LastLayer->LayerHeight);
+
+			FText TileIndexDescription;
+			if (!bInBounds)
+			{
+				TileIndexDescription = LOCTEXT("OutOfBoundsCell", "(outside map)");
+			}
+			else if (Cell.IsValid())
+			{
+				TileIndexDescription = FText::AsCultureInvariant(FString::Printf(TEXT("%s #%d %c%c%c"),
+					*Cell.TileSet->GetName(),
+					Cell.GetTileIndex(),
+					Cell.HasFlag(EPaperTileFlags::FlipHorizontal) ? TEXT('H') : TEXT('_'),
+					Cell.HasFlag(EPaperTileFlags::FlipVertical) ? TEXT('V') : TEXT('_'),
+					Cell.HasFlag(EPaperTileFlags::FlipDiagonal) ? TEXT('D') : TEXT('_')));
+			}
+			else
+			{
+				TileIndexDescription = LOCTEXT("EmptyCell", "(empty)");
+			}
+
+			FFormatNamedArguments Args;
+			Args.Add(TEXT("X"), FText::AsNumber(LastCursorTileX, &NoCommas));
+			Args.Add(TEXT("Y"), FText::AsNumber(LastCursorTileY, &NoCommas));
+			Args.Add(TEXT("TileIndex"), TileIndexDescription);
+			Args.Add(TEXT("LayerName"), LastLayer->LayerName);
+
+			const static FText FormatString = LOCTEXT("TileCursorStatusMessage", "({X}, {Y}) [{TileIndex}]   Current Layer: {LayerName}");
+			const FText CursorDescriptionText = FText::Format(FormatString, Args);
+			const FString CursorDescriptionString = CursorDescriptionText.ToString();
+
+			int32 XL;
+			int32 YL;
+			StringSize(GEngine->GetLargeFont(), XL, YL, *CursorDescriptionString);
+
+			FIntRect CanvasRect = Canvas->GetViewRect();
+			const float DrawX = CanvasRect.Min.X + (CanvasRect.Width() - XL) * 0.5f;
+			const float DrawY = CanvasRect.Max.Y - 10.0f - YL;
+			Canvas->DrawShadowedString(DrawX, DrawY, *CursorDescriptionString, GEngine->GetLargeFont(), FLinearColor::White);
 		}
 	}
 }
@@ -415,12 +474,17 @@ UPaperTileMapComponent* FEdModeTileMap::FindSelectedComponent() const
 	return TileMapComponent;
 }
 
+UPaperTileLayer* FEdModeTileMap::GetSourceInkLayer() const
+{
+	return CursorPreviewComponent->TileMap->TileLayers[0];
+}
+
 UPaperTileLayer* FEdModeTileMap::GetSelectedLayerUnderCursor(const FViewportCursorLocation& Ray, int32& OutTileX, int32& OutTileY, bool bAllowOutOfBounds) const
 {
 	const FVector TraceStart = Ray.GetOrigin();
 	const FVector TraceDir = Ray.GetDirection();
-
-	const bool bCollisionPainting = (GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::CollisionLayers);
+	const int32 BrushWidth = GetBrushWidth();
+	const int32 BrushHeight = GetBrushHeight();
 
 	UPaperTileMapComponent* TileMapComponent = FindSelectedComponent();
 
@@ -483,104 +547,77 @@ bool FEdModeTileMap::UseActiveToolAtLocation(const FViewportCursorLocation& Ray)
 	};
 }
 
-bool FEdModeTileMap::PaintTiles(const FViewportCursorLocation& Ray)
+bool BlitLayer(UPaperTileLayer* SourceLayer, UPaperTileLayer* TargetLayer, int32 OffsetX = 0, int32 OffsetY = 0)
 {
+	FScopedTransaction Transaction(LOCTEXT("TileMapPaintAction", "Tile Painting"));
+
 	bool bPaintedOnSomething = false;
 	bool bChangedSomething = false;
 
-	// Validate that the tool we're using can be used right now
-	if ((BrushWidth <= 0) || (BrushHeight <= 0))
+	for (int32 SourceY = 0; SourceY < SourceLayer->LayerHeight; ++SourceY)
 	{
-		return false;
+		const int32 TargetY = OffsetY + SourceY;
+
+		if ((TargetY < 0) || (TargetY >= TargetLayer->LayerHeight))
+		{
+			continue;
+		}
+
+		for (int32 SourceX = 0; SourceX < SourceLayer->LayerWidth; ++SourceX)
+		{
+			const int32 TargetX = OffsetX + SourceX;
+
+			if ((TargetX < 0) || (TargetX >= TargetLayer->LayerWidth))
+			{
+				continue;
+			}
+
+			FPaperTileInfo Ink = SourceLayer->GetCell(SourceX, SourceY);
+
+			if (TargetLayer->GetCell(TargetX, TargetY) != Ink)
+			{
+				if (!bChangedSomething)
+				{
+					TargetLayer->SetFlags(RF_Transactional);
+					TargetLayer->Modify();
+					bChangedSomething = true;
+				}
+				TargetLayer->SetCell(TargetX, TargetY, Ink);
+			}
+
+			bPaintedOnSomething = true;
+		}
 	}
 
-	// If we are using an ink source, validate that it exists
-	UPaperTileSet* InkSource = nullptr;
-	if ( GetActiveLayerPaintingMode() != ETileMapLayerPaintingMode::CollisionLayers )
+	if (bChangedSomething)
 	{
-		InkSource = PaintSourceTileSet.Get();
-		if ( !InkSource )
-		{
-			return false;
-		}
+		TargetLayer->GetTileMap()->PostEditChange();
+	}
+
+	if (!bChangedSomething)
+	{
+		Transaction.Cancel();
+	}
+
+	return bPaintedOnSomething;
+}
+
+bool FEdModeTileMap::PaintTiles(const FViewportCursorLocation& Ray)
+{
+	bool bPaintedOnSomething = false;
+
+	// If we are using an ink source, validate that it exists
+	if (!HasValidSelection())
+	{
+		return false;
 	}
 
 	int32 DestTileX;
 	int32 DestTileY;
 
-	if (UPaperTileLayer* Layer = GetSelectedLayerUnderCursor(Ray, /*out*/ DestTileX, /*out*/ DestTileY))
+	if (UPaperTileLayer* TargetLayer = GetSelectedLayerUnderCursor(Ray, /*out*/ DestTileX, /*out*/ DestTileY))
 	{
-		UPaperTileMap* TileMap = Layer->GetTileMap();
-
-		FScopedTransaction Transaction( LOCTEXT("TileMapPaintAction", "Tile Painting") );
-
-		for (int32 Y = 0; Y < BrushHeight; ++Y)
-		{
-			const int32 DY = DestTileY + Y;
-
-			if ((DY < 0) || (DY >= TileMap->MapHeight))
-			{
-				continue;
-			}
-
-			for (int32 X = 0; X < BrushWidth; ++X)
-			{
-				const int32 DX = DestTileX + X;
-
-				if ((DX < 0) || (DX >= TileMap->MapWidth))
-				{
-					continue;
-				}
-
-				FPaperTileInfo Ink;
-				if (GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::CollisionLayers)
-				{
-					// 1 Means collision, 0 means no collision
-					Ink.PackedTileIndex = 1;
-				}
-				else
-				{
-					const int32 SY = PaintSourceTopLeft.Y + Y;
-					const int32 SX = PaintSourceTopLeft.X + X;
-
-					if ( (SY >= InkSource->GetTileCountY()) )
-					{
-						continue;
-					}
-
-					if ( (SX >= InkSource->GetTileCountX()) )
-					{
-						continue;
-					}
-
-					Ink.PackedTileIndex = SX + (SY * InkSource->GetTileCountX());
-					Ink.TileSet = InkSource;
-				}
-
-				if (Layer->GetCell(DX, DY) != Ink)
-				{
-					if (!bChangedSomething)
-					{
-						Layer->SetFlags(RF_Transactional);
-						Layer->Modify();
-						bChangedSomething = true;
-					}
-					Layer->SetCell(DX, DY, Ink);
-				}
-
-				bPaintedOnSomething = true;
-			}
-		}
-
-		if (bChangedSomething)
-		{
-			TileMap->PostEditChange();
-		}
-
-		if (!bChangedSomething)
-		{
-			Transaction.Cancel();
-		}
+		bPaintedOnSomething = BlitLayer(GetSourceInkLayer(), TargetLayer, DestTileX, DestTileY);
 	}
 
 	return bPaintedOnSomething;
@@ -590,6 +627,8 @@ bool FEdModeTileMap::EraseTiles(const FViewportCursorLocation& Ray)
 {
 	bool bPaintedOnSomething = false;
 	bool bChangedSomething = false;
+	const int32 BrushWidth = GetBrushWidth();
+	const int32 BrushHeight = GetBrushHeight();
 
 	const FPaperTileInfo EmptyCellValue;
 
@@ -655,26 +694,15 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 	bool bChangedSomething = false;
 
 	// Validate that the tool we're using can be used right now
-	if ((BrushWidth <= 0) || (BrushHeight <= 0))
+	if (!HasValidSelection())
 	{
 		return false;
-	}
-
-	// If we are using an ink source, validate that it exists
-	UPaperTileSet* InkSource = nullptr;
-	if ( GetActiveLayerPaintingMode() != ETileMapLayerPaintingMode::CollisionLayers )
-	{
-		InkSource = PaintSourceTileSet.Get();
-		if ( !InkSource )
-		{
-			return false;
-		}
 	}
 
 	int DestTileX;
 	int DestTileY;
 
-	if (UPaperTileLayer* Layer = GetSelectedLayerUnderCursor(Ray, /*out*/ DestTileX, /*out*/ DestTileY))
+	if (UPaperTileLayer* TargetLayer = GetSelectedLayerUnderCursor(Ray, /*out*/ DestTileX, /*out*/ DestTileY))
 	{
 		//@TODO: Should we allow off-canvas flood filling too?
 		if ((DestTileX < 0) || (DestTileY < 0))
@@ -683,9 +711,9 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 		}
 
 		// The kind of ink we'll replace, starting at the seed point
-		const FPaperTileInfo RequiredInk = Layer->GetCell(DestTileX, DestTileY);
+		const FPaperTileInfo RequiredInk = TargetLayer->GetCell(DestTileX, DestTileY);
 
-		UPaperTileMap* TileMap = Layer->GetTileMap();
+		UPaperTileMap* TileMap = TargetLayer->GetTileMap();
 
 		//@TODO: Unoptimized first-pass approach
 		const int32 NumTiles = TileMap->MapWidth * TileMap->MapHeight;
@@ -699,7 +727,7 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 
 		// Start off at the seed point
 		FHorizontalSpan& InitialSpan = *(new (OutstandingSpans) FHorizontalSpan(DestTileX, DestTileY));
-		InitialSpan.GrowSpan(RequiredInk, Layer, TileReachability);
+		InitialSpan.GrowSpan(RequiredInk, TargetLayer, TileReachability);
 
 		// Process the list of outstanding spans until it is empty
 		while (OutstandingSpans.Num())
@@ -710,7 +738,7 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 			for (int32 DY = -1; DY <= 1; DY += 2)
 			{
 				const int32 Y = Span.Y + DY;
-				if ((Y < 0) || (Y >= Layer->LayerHeight))
+				if ((Y < 0) || (Y >= TargetLayer->LayerHeight))
 				{
 					continue;
 				}
@@ -718,10 +746,10 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 				for (int32 X = Span.X0; X <= Span.X1; ++X)
 				{
 					// If it is the right color and not already visited, create a span there
-					if ((Layer->GetCell(X, Y) == RequiredInk) && !FHorizontalSpan::Reach(Layer, TileReachability, X, Y))
+					if ((TargetLayer->GetCell(X, Y) == RequiredInk) && !FHorizontalSpan::Reach(TargetLayer, TileReachability, X, Y))
 					{
 						FHorizontalSpan& NewSpan = *(new (OutstandingSpans) FHorizontalSpan(X, Y));
-						NewSpan.GrowSpan(RequiredInk, Layer, TileReachability);
+						NewSpan.GrowSpan(RequiredInk, TargetLayer, TileReachability);
 					}
 				}
 			}
@@ -731,9 +759,12 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 		FScopedTransaction Transaction( LOCTEXT("TileMapFloodFillAction", "Tile Paint Bucket") );
 
 		// Figure out where the top left square of the map starts in the pattern, based on the seed point
+		UPaperTileLayer* SourceLayer = GetSourceInkLayer();
+		const int32 BrushWidth = SourceLayer->LayerWidth;
+		const int32 BrushHeight = SourceLayer->LayerHeight;
+
 		int32 BrushPatternOffsetX = (BrushWidth - ((DestTileX + BrushWidth) % BrushWidth));
 		int32 BrushPatternOffsetY = (BrushHeight - ((DestTileY + BrushHeight) % BrushHeight));
-			
 		int32 ReachIndex = 0;
 		for (int32 DY = 0; DY < TileMap->MapHeight; ++DY)
 		{
@@ -745,28 +776,17 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 				{
 					const int32 InsideBrushX = (DX + BrushPatternOffsetX) % BrushWidth;
 
-					FPaperTileInfo NewInk;
-					if (GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::CollisionLayers)
-					{
-						NewInk.PackedTileIndex = 1;
-					}
-					else
-					{
-						const int32 TileSetX = PaintSourceTopLeft.X + InsideBrushX;
-						const int32 TileSetY = PaintSourceTopLeft.Y + InsideBrushY;
-						NewInk.TileSet = InkSource;
-						NewInk.PackedTileIndex = TileSetX + (TileSetY * InkSource->GetTileCountX());
-					}
+					FPaperTileInfo NewInk = SourceLayer->GetCell(InsideBrushX, InsideBrushY);
 
-					if (Layer->GetCell(DX, DY) != NewInk)
+					if (TargetLayer->GetCell(DX, DY) != NewInk)
 					{
 						if (!bChangedSomething)
 						{
-							Layer->SetFlags(RF_Transactional);
-							Layer->Modify();
+							TargetLayer->SetFlags(RF_Transactional);
+							TargetLayer->Modify();
 							bChangedSomething = true;
 						}
-						Layer->SetCell(DX, DY, NewInk);
+						TargetLayer->SetCell(DX, DY, NewInk);
 					}
 
 					bPaintedOnSomething = true;
@@ -788,27 +808,40 @@ bool FEdModeTileMap::FloodFillTiles(const FViewportCursorLocation& Ray)
 	return bPaintedOnSomething;
 }
 
-void FEdModeTileMap::SetActivePaint(UPaperTileSet* TileSet, FIntPoint TopLeft, FIntPoint Dimensions)
+void FEdModeTileMap::DestructiveResizePreviewComponent(int32 NewWidth, int32 NewHeight)
 {
-	PaintSourceTileSet = TileSet;
-	PaintSourceTopLeft = TopLeft;
-	PaintSourceDimensions = Dimensions;
-
 	UPaperTileMap* PreviewMap = CursorPreviewComponent->TileMap;
-	PreviewMap->MapWidth = FMath::Max<int32>(Dimensions.X, 1);
-	PreviewMap->MapHeight = FMath::Max<int32>(Dimensions.Y, 1);
+	PreviewMap->MapWidth = FMath::Max<int32>(NewWidth, 1);
+	PreviewMap->MapHeight = FMath::Max<int32>(NewHeight, 1);
 	FPropertyChangedEvent EditedMapSizeEvent(UPaperTileMap::StaticClass()->FindPropertyByName(GET_MEMBER_NAME_CHECKED(UPaperTileMap, MapWidth)));
 	PreviewMap->PostEditChangeProperty(EditedMapSizeEvent);
 
-	UPaperTileLayer* PreviewLayer = PreviewMap->TileLayers[0];
+	CursorPreviewComponent->MarkRenderStateDirty();
+}
+
+void FEdModeTileMap::SetActivePaint(UPaperTileSet* TileSet, FIntPoint TopLeft, FIntPoint Dimensions)
+{
+	if ((TileSet == nullptr) || (Dimensions.X == 0) || (Dimensions.Y == 0))
+	{
+		bHasValidInkSource = false;
+	}
+	else
+	{
+		bHasValidInkSource = true;
+	}
+
+	DestructiveResizePreviewComponent(Dimensions.X, Dimensions.Y);
+
+	UPaperTileMap* PreviewMap = CursorPreviewComponent->TileMap;
+	UPaperTileLayer* PreviewLayer = GetSourceInkLayer();
 	for (int32 Y = 0; Y < PreviewMap->MapHeight; ++Y)
 	{
 		for (int32 X = 0; X < PreviewMap->MapWidth; ++X)
 		{
 			FPaperTileInfo TileInfo;
 
-			int32 SourceX = X + PaintSourceTopLeft.X;
-			int32 SourceY = Y + PaintSourceTopLeft.Y;
+			const int32 SourceX = X + TopLeft.X;
+			const int32 SourceY = Y + TopLeft.Y;
 
 			if ((TileSet != nullptr) && (SourceX < TileSet->GetTileCountX()) && (SourceY < TileSet->GetTileCountY()))
 			{
@@ -823,6 +856,130 @@ void FEdModeTileMap::SetActivePaint(UPaperTileSet* TileSet, FIntPoint TopLeft, F
 	CursorPreviewComponent->MarkRenderStateDirty();
 
 	RefreshBrushSize();
+}
+
+void FEdModeTileMap::FlipSelectionHorizontally()
+{
+	UPaperTileMap* PreviewMap = CursorPreviewComponent->TileMap;
+	UPaperTileLayer* PreviewLayer = GetSourceInkLayer();
+	for (int32 Y = 0; Y < PreviewMap->MapHeight; ++Y)
+	{
+		// Flip the tiles within individual cells
+		for (int32 X = 0; X < PreviewMap->MapWidth; ++X)
+		{
+			FPaperTileInfo Cell = PreviewLayer->GetCell(X, Y);
+			if (Cell.IsValid())
+			{
+				Cell.ToggleFlag(EPaperTileFlags::FlipHorizontal);
+			}
+			PreviewLayer->SetCell(X, Y, Cell);
+		}
+
+		// Flip the selection as a whole
+		for (int32 X = 0; X < PreviewMap->MapWidth / 2; ++X)
+		{
+			const int32 MirrorX = PreviewMap->MapWidth - 1 - X;
+			FPaperTileInfo LeftCell = PreviewLayer->GetCell(X, Y);
+			FPaperTileInfo RightCell = PreviewLayer->GetCell(MirrorX, Y);
+			PreviewLayer->SetCell(X, Y, RightCell);
+			PreviewLayer->SetCell(MirrorX, Y, LeftCell);
+		}
+	}
+
+	CursorPreviewComponent->MarkRenderStateDirty();
+}
+
+void FEdModeTileMap::FlipSelectionVertically()
+{
+	UPaperTileMap* PreviewMap = CursorPreviewComponent->TileMap;
+	UPaperTileLayer* PreviewLayer = GetSourceInkLayer();
+	for (int32 X = 0; X < PreviewMap->MapWidth; ++X)
+	{
+		// Flip the tiles within individual cells
+		for (int32 Y = 0; Y < PreviewMap->MapHeight; ++Y)
+		{
+			FPaperTileInfo Cell = PreviewLayer->GetCell(X, Y);
+			if (Cell.IsValid())
+			{
+				Cell.ToggleFlag(EPaperTileFlags::FlipVertical);
+			}
+			PreviewLayer->SetCell(X, Y, Cell);
+		}
+
+		// Flip the selection as a whole
+		for (int32 Y = 0; Y < PreviewMap->MapHeight / 2; ++Y)
+		{
+			const int32 MirrorY = PreviewMap->MapHeight - 1 - Y;
+			FPaperTileInfo TopCell = PreviewLayer->GetCell(X, Y);
+			FPaperTileInfo BottomCell = PreviewLayer->GetCell(X, MirrorY);
+			PreviewLayer->SetCell(X, Y, BottomCell);
+			PreviewLayer->SetCell(X, MirrorY, TopCell);
+		}
+	}
+
+	CursorPreviewComponent->MarkRenderStateDirty();
+}
+
+void FEdModeTileMap::RotateTilesInSelection(bool bIsClockwise)
+{
+	UPaperTileLayer* PreviewLayer = GetSourceInkLayer();
+
+	static const uint8 ClockwiseRotationMap[8] = { 5, 4, 1, 0, 7, 6, 3, 2 };
+	static const uint8 CounterclockwiseRotationMap[8] = { 3, 2, 7, 6, 1, 0, 5, 4 };
+	const uint8* RotationTable = bIsClockwise ? ClockwiseRotationMap : CounterclockwiseRotationMap;
+
+	const int32 OldWidth = PreviewLayer->LayerWidth;
+	const int32 OldHeight = PreviewLayer->LayerHeight;
+
+	// Copy off the tiles and rotate within each tile
+	TArray<FPaperTileInfo> OldTiles;
+	OldTiles.Empty(PreviewLayer->LayerWidth * PreviewLayer->LayerHeight);
+	for (int32 Y = 0; Y < PreviewLayer->LayerHeight; ++Y)
+	{
+		for (int32 X = 0; X < PreviewLayer->LayerWidth; ++X)
+		{
+			FPaperTileInfo Cell = PreviewLayer->GetCell(X, Y);
+			if (Cell.IsValid())
+			{
+				uint8 NewFlags = RotationTable[Cell.GetFlagsAsIndex()];
+				Cell.SetFlagsAsIndex(NewFlags);
+			}
+			OldTiles.Add(Cell);
+		}
+	}
+
+	// Resize, transposing width and height
+	DestructiveResizePreviewComponent(PreviewLayer->LayerHeight, PreviewLayer->LayerWidth);
+
+	// Place the tiles back in the rotated layout
+	for (int32 NewY = 0; NewY < PreviewLayer->LayerHeight; ++NewY)
+	{
+		for (int32 NewX = 0; NewX < PreviewLayer->LayerWidth; ++NewX)
+		{
+			const int32 OldX = bIsClockwise ? NewY : (OldWidth - 1 - NewY);
+			const int32 OldY = bIsClockwise ? (OldHeight - 1 - NewX) : NewX;
+
+			FPaperTileInfo Cell = OldTiles[OldY*OldWidth + OldX];
+
+			PreviewLayer->SetCell(NewX, NewY, Cell);
+		}
+	}
+}
+
+void FEdModeTileMap::RotateSelectionCW()
+{
+	RotateTilesInSelection(/*bIsClockwise=*/ true);
+}
+
+void FEdModeTileMap::RotateSelectionCCW()
+{
+	RotateTilesInSelection(/*bIsClockwise=*/ false);
+}
+
+bool FEdModeTileMap::HasValidSelection() const
+{
+	UPaperTileLayer* PreviewLayer = GetSourceInkLayer();
+	return (PreviewLayer->LayerWidth > 0) && (PreviewLayer->LayerHeight > 0) && bHasValidInkSource;
 }
 
 void FEdModeTileMap::SynchronizePreviewWithTileMap(UPaperTileMap* NewTileMap)
@@ -877,6 +1034,9 @@ void FEdModeTileMap::UpdatePreviewCursor(const FViewportCursorLocation& Ray)
 			bIsLastCursorValid = true;
 			LastCursorTileMap = TileMap;
 
+			const int32 CursorWidth = GetCursorWidth();
+			const int32 CursorHeight = GetCursorHeight();
+
 			const int32 LocalTileX1 = LocalTileX0 + CursorWidth;
 			const int32 LocalTileY1 = LocalTileY0 + CursorHeight;
 
@@ -923,57 +1083,83 @@ ETileMapEditorTool::Type FEdModeTileMap::GetActiveTool() const
 	return ActiveTool;
 }
 
-void FEdModeTileMap::SetActiveLayerPaintingMode(ETileMapLayerPaintingMode::Type NewMode)
+int32 FEdModeTileMap::GetBrushWidth() const
 {
-	LayerPaintingMode = NewMode;
-	RefreshBrushSize();
+	int32 BrushWidth = 1;
+
+	switch (ActiveTool)
+	{
+	case ETileMapEditorTool::Paintbrush:
+		BrushWidth = GetSourceInkLayer()->LayerWidth;
+		break;
+	case ETileMapEditorTool::Eraser:
+		BrushWidth = EraseBrushSize;
+		break;
+	case ETileMapEditorTool::PaintBucket:
+		BrushWidth = GetSourceInkLayer()->LayerWidth;
+		break;
+	default:
+		check(false);
+		break;
+	}
+
+	return BrushWidth;
 }
 
-ETileMapLayerPaintingMode::Type FEdModeTileMap::GetActiveLayerPaintingMode() const
+int32 FEdModeTileMap::GetBrushHeight() const
 {
-	return LayerPaintingMode;
+	int32 BrushHeight = 1;
+	
+	switch (ActiveTool)
+	{
+	case ETileMapEditorTool::Paintbrush:
+		BrushHeight = GetSourceInkLayer()->LayerHeight;
+		break;
+	case ETileMapEditorTool::Eraser:
+		BrushHeight = EraseBrushSize;
+		break;
+	case ETileMapEditorTool::PaintBucket:
+		BrushHeight = GetSourceInkLayer()->LayerHeight;
+		break;
+	default:
+		check(false);
+		break;
+	}
+
+	return BrushHeight;
+}
+
+int32 FEdModeTileMap::GetCursorWidth() const
+{
+	const int32 CursorWidth = (ActiveTool == ETileMapEditorTool::PaintBucket) ? 1 : GetBrushWidth();
+	return CursorWidth;
+}
+
+int32 FEdModeTileMap::GetCursorHeight() const
+{
+	const int32 CursorHeight = (ActiveTool == ETileMapEditorTool::PaintBucket) ? 1 : GetBrushHeight();
+	return CursorHeight;
 }
 
 void FEdModeTileMap::RefreshBrushSize()
 {
-	BrushWidth = 1;
-	BrushHeight = 1;
-	CursorWidth = 1;
-	CursorHeight = 1;
 	const bool bShowPreviewDesired = !DrawPreviewDimensionsLS.IsNearlyZero();
 	
-	if (GetActiveLayerPaintingMode() != ETileMapLayerPaintingMode::CollisionLayers)
+	switch (ActiveTool)
 	{
-		switch (ActiveTool)
-		{
-		case ETileMapEditorTool::Paintbrush:
-			BrushWidth = PaintSourceDimensions.X;
-			BrushHeight = PaintSourceDimensions.Y;
-			CursorWidth = FMath::Max(1, PaintSourceDimensions.X);
-			CursorHeight = FMath::Max(1, PaintSourceDimensions.Y);
-			CursorPreviewComponent->SetVisibility(bShowPreviewDesired);
-			break;
-		case ETileMapEditorTool::Eraser:
-			BrushWidth = EraseBrushSize;
-			BrushHeight = EraseBrushSize;
-			CursorWidth = EraseBrushSize;
-			CursorHeight = EraseBrushSize;
-			CursorPreviewComponent->SetVisibility(false);
-			break;
-		case ETileMapEditorTool::PaintBucket:
-			BrushWidth = PaintSourceDimensions.X;
-			BrushHeight = PaintSourceDimensions.Y;
-			CursorWidth = 1;
-			CursorHeight = 1;
-			CursorPreviewComponent->SetVisibility(false);
-			break;
-		default:
-			check(false);
-			break;
-		}
+	case ETileMapEditorTool::Paintbrush:
+		CursorPreviewComponent->SetVisibility(bShowPreviewDesired);
+		break;
+	case ETileMapEditorTool::Eraser:
+		CursorPreviewComponent->SetVisibility(false);
+		break;
+	case ETileMapEditorTool::PaintBucket:
+		CursorPreviewComponent->SetVisibility(false);
+		break;
+	default:
+		check(false);
+		break;
 	}
-
-
 }
 
 //////////////////////////////////////////////////////////////////////////

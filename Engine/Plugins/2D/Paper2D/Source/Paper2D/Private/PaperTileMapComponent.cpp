@@ -191,6 +191,20 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 		return;
 	}
 
+	// Handles the rotation and flipping of UV coordinates in a tile
+	// 0123 = BL BR TR TL
+	const static uint8 PermutationTable[8][4] = 
+	{
+		{0, 1, 2, 3}, // 000 - normal
+		{2, 1, 0, 3}, // 001 - diagonal
+		{3, 2, 1, 0}, // 010 - flip Y
+		{3, 0, 1, 2}, // 011 - diagonal then flip Y
+		{1, 0, 3, 2}, // 100 - flip X
+		{1, 2, 3, 0}, // 101 - diagonal then flip X
+		{2, 3, 0, 1}, // 110 - flip X and flip Y
+		{0, 3, 2, 1}  // 111 - diagonal then flip X and Y
+	};
+
 	FVector CornerOffset;
 	FVector OffsetYFactor;
 	FVector StepPerTileX;
@@ -276,7 +290,7 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 							continue;
 						}
 
-						if (!TileInfo.TileSet->GetTileUV(TileInfo.PackedTileIndex, /*out*/ SourceUV))
+						if (!TileInfo.TileSet->GetTileUV(TileInfo.GetTileIndex(), /*out*/ SourceUV))
 						{
 							continue;
 						}
@@ -326,10 +340,21 @@ void UPaperTileMapComponent::RebuildRenderData(FPaperTileMapRenderSceneProxy* Pr
 					const float WX0 = FVector::DotProduct(TopLeftCornerOfTile, PaperAxisX);
 					const float WY0 = FVector::DotProduct(TopLeftCornerOfTile, PaperAxisY);
 
-					const FVector4 BottomLeft(WX0, WY0 - TileSizeXY.Y, SourceUV.X, SourceUV.Y + SourceDimensionsUV.Y);
-					const FVector4 BottomRight(WX0 + TileSizeXY.X, WY0 - TileSizeXY.Y, SourceUV.X + SourceDimensionsUV.X, SourceUV.Y + SourceDimensionsUV.Y);
-					const FVector4 TopRight(WX0 + TileSizeXY.X, WY0, SourceUV.X + SourceDimensionsUV.X, SourceUV.Y);
-					const FVector4 TopLeft(WX0, WY0, SourceUV.X, SourceUV.Y);
+					const int32 Flags = TileInfo.GetFlagsAsIndex();
+
+					const FVector2D TileSizeWithFlip = TileInfo.HasFlag(EPaperTileFlags::FlipDiagonal) ? FVector2D(TileSizeXY.Y, TileSizeXY.X) : TileSizeXY;
+					const float UValues[4] = { SourceUV.X, SourceUV.X + SourceDimensionsUV.X, SourceUV.X + SourceDimensionsUV.X, SourceUV.X };
+					const float VValues[4] = { SourceUV.Y + SourceDimensionsUV.Y, SourceUV.Y + SourceDimensionsUV.Y, SourceUV.Y, SourceUV.Y };
+
+					const uint8 UVIndex0 = PermutationTable[Flags][0];
+					const uint8 UVIndex1 = PermutationTable[Flags][1];
+					const uint8 UVIndex2 = PermutationTable[Flags][2];
+					const uint8 UVIndex3 = PermutationTable[Flags][3];
+
+					const FVector4 BottomLeft(WX0, WY0 - TileSizeWithFlip.Y, UValues[UVIndex0], VValues[UVIndex0]);
+					const FVector4 BottomRight(WX0 + TileSizeWithFlip.X, WY0 - TileSizeWithFlip.Y, UValues[UVIndex1], VValues[UVIndex1]);
+					const FVector4 TopRight(WX0 + TileSizeWithFlip.X, WY0, UValues[UVIndex2], VValues[UVIndex2]);
+					const FVector4 TopLeft(WX0, WY0, UValues[UVIndex3], VValues[UVIndex3]);
 
 					new (NewTile.RenderVerts) FVector4(BottomLeft);
 					new (NewTile.RenderVerts) FVector4(TopRight);

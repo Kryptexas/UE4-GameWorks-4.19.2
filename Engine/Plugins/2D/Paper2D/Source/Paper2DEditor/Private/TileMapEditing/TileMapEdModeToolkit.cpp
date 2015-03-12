@@ -5,7 +5,7 @@
 #include "TileMapEdModeToolkit.h"
 #include "../TileSetEditor.h"
 #include "SContentReference.h"
-#include "PaperEditorCommands.h"
+#include "TileMapEditorCommands.h"
 #include "Engine/Selection.h"
 
 #define LOCTEXT_NAMESPACE "Paper2D"
@@ -175,36 +175,42 @@ UObject* FTileMapEdModeToolkit::GetCurrentTileSet() const
 
 void FTileMapEdModeToolkit::BindCommands()
 {
-	UICommandList = MakeShareable(new FUICommandList());
+	FTileMapEditorCommands::Register();
+	const FTileMapEditorCommands& Commands = FTileMapEditorCommands::Get();
 
-	const FPaperEditorCommands& Commands = FPaperEditorCommands::Get();
-
-	UICommandList->MapAction(
+	ToolkitCommands->MapAction(
 		Commands.SelectPaintTool,
 		FExecuteAction::CreateSP(this, &FTileMapEdModeToolkit::OnSelectTool, ETileMapEditorTool::Paintbrush),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &FTileMapEdModeToolkit::IsToolSelected, ETileMapEditorTool::Paintbrush) );
-	UICommandList->MapAction(
+	ToolkitCommands->MapAction(
 		Commands.SelectEraserTool,
 		FExecuteAction::CreateSP(this, &FTileMapEdModeToolkit::OnSelectTool, ETileMapEditorTool::Eraser),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &FTileMapEdModeToolkit::IsToolSelected, ETileMapEditorTool::Eraser) );
-	UICommandList->MapAction(
+	ToolkitCommands->MapAction(
 		Commands.SelectFillTool,
 		FExecuteAction::CreateSP(this, &FTileMapEdModeToolkit::OnSelectTool, ETileMapEditorTool::PaintBucket),
 		FCanExecuteAction(),
 		FIsActionChecked::CreateSP(this, &FTileMapEdModeToolkit::IsToolSelected, ETileMapEditorTool::PaintBucket) );
 
-	UICommandList->MapAction(
-		Commands.SelectVisualLayersPaintingMode,
-		FExecuteAction::CreateSP(this, &FTileMapEdModeToolkit::OnSelectLayerPaintingMode, ETileMapLayerPaintingMode::VisualLayers),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FTileMapEdModeToolkit::IsLayerPaintingModeSelected, ETileMapLayerPaintingMode::VisualLayers) );
-	UICommandList->MapAction(
-		Commands.SelectCollisionLayersPaintingMode,
-		FExecuteAction::CreateSP(this, &FTileMapEdModeToolkit::OnSelectLayerPaintingMode, ETileMapLayerPaintingMode::CollisionLayers),
-		FCanExecuteAction(),
-		FIsActionChecked::CreateSP(this, &FTileMapEdModeToolkit::IsLayerPaintingModeSelected, ETileMapLayerPaintingMode::CollisionLayers) );
+	// Selection actions
+	ToolkitCommands->MapAction(
+		Commands.FlipSelectionHorizontally,
+		FExecuteAction::CreateSP(TileMapEditor, &FEdModeTileMap::FlipSelectionHorizontally),
+		FCanExecuteAction::CreateSP(TileMapEditor, &FEdModeTileMap::HasValidSelection));
+	ToolkitCommands->MapAction(
+		Commands.FlipSelectionVertically,
+		FExecuteAction::CreateSP(TileMapEditor, &FEdModeTileMap::FlipSelectionVertically),
+		FCanExecuteAction::CreateSP(TileMapEditor, &FEdModeTileMap::HasValidSelection));
+	ToolkitCommands->MapAction(
+		Commands.RotateSelectionCW,
+		FExecuteAction::CreateSP(TileMapEditor, &FEdModeTileMap::RotateSelectionCW),
+		FCanExecuteAction::CreateSP(TileMapEditor, &FEdModeTileMap::HasValidSelection));
+	ToolkitCommands->MapAction(
+		Commands.RotateSelectionCCW,
+		FExecuteAction::CreateSP(TileMapEditor, &FEdModeTileMap::RotateSelectionCCW),
+		FCanExecuteAction::CreateSP(TileMapEditor, &FEdModeTileMap::HasValidSelection));
 }
 
 void FTileMapEdModeToolkit::OnSelectTool(ETileMapEditorTool::Type NewTool)
@@ -217,38 +223,30 @@ bool FTileMapEdModeToolkit::IsToolSelected(ETileMapEditorTool::Type QueryTool) c
 	return (TileMapEditor->GetActiveTool() == QueryTool);
 }
 
-void FTileMapEdModeToolkit::OnSelectLayerPaintingMode(ETileMapLayerPaintingMode::Type NewMode)
-{
-	TileMapEditor->SetActiveLayerPaintingMode(NewMode);
-}
-
-bool FTileMapEdModeToolkit::IsLayerPaintingModeSelected(ETileMapLayerPaintingMode::Type PaintingMode) const
-{
-	return (TileMapEditor->GetActiveLayerPaintingMode() == PaintingMode);
-}
-
 EVisibility FTileMapEdModeToolkit::GetTileSetSelectorVisibility() const
 {
-	bool bShouldShowSelector = (TileMapEditor->GetActiveLayerPaintingMode() == ETileMapLayerPaintingMode::VisualLayers);
-	
-	return bShouldShowSelector ? EVisibility::Visible : EVisibility::Collapsed;
+	return EVisibility::Visible;
 }
 
 TSharedRef<SWidget> FTileMapEdModeToolkit::BuildToolBar() const
 {
-	const FPaperEditorCommands& Commands = FPaperEditorCommands::Get();
+	const FTileMapEditorCommands& Commands = FTileMapEditorCommands::Get();
 
-	FToolBarBuilder ToolsToolbar(UICommandList, FMultiBoxCustomization::None);
+	
+	//@TODO: Add icons for these commands and force this toolbar to use small icons mode
+	FToolBarBuilder SelectionFlipToolsToolbar(ToolkitCommands, FMultiBoxCustomization::None);
+	{
+		SelectionFlipToolsToolbar.AddToolBarButton(Commands.FlipSelectionHorizontally, NAME_None, LOCTEXT("FlipHorizontalShortLabel", "|X"));
+		SelectionFlipToolsToolbar.AddToolBarButton(Commands.FlipSelectionVertically, NAME_None, LOCTEXT("FlipVerticalShortLabel", "|Y"));
+		SelectionFlipToolsToolbar.AddToolBarButton(Commands.RotateSelectionCW, NAME_None, LOCTEXT("RotateClockwiseShortLabel", "CW"));
+		SelectionFlipToolsToolbar.AddToolBarButton(Commands.RotateSelectionCCW, NAME_None, LOCTEXT("RotateCounterclockwiseShortLabel", "CCW"));
+	}
+
+	FToolBarBuilder ToolsToolbar(ToolkitCommands, FMultiBoxCustomization::None);
 	{
 		ToolsToolbar.AddToolBarButton(Commands.SelectPaintTool);
 		ToolsToolbar.AddToolBarButton(Commands.SelectEraserTool);
 		ToolsToolbar.AddToolBarButton(Commands.SelectFillTool);
-	}
-
-	FToolBarBuilder PaintingModeToolbar(UICommandList, FMultiBoxCustomization::None);
-	{
-		PaintingModeToolbar.AddToolBarButton(Commands.SelectVisualLayersPaintingMode);
-		PaintingModeToolbar.AddToolBarButton(Commands.SelectCollisionLayersPaintingMode);
 	}
 
 	return
@@ -257,20 +255,21 @@ TSharedRef<SWidget> FTileMapEdModeToolkit::BuildToolBar() const
 		+SHorizontalBox::Slot()
 		.FillWidth(1.f)
 		.HAlign(HAlign_Left)
-		.Padding(4,0)
+		.Padding(4.0f, 0.0f)
 		[
 			SNew(SBorder)
 			.Padding(0)
 			.BorderImage(FEditorStyle::GetBrush("NoBorder"))
 			.IsEnabled( FSlateApplication::Get().GetNormalExecutionAttribute() )
 			[
-				PaintingModeToolbar.MakeWidget()
+				SelectionFlipToolsToolbar.MakeWidget()
 			]
 		]
 
 		+SHorizontalBox::Slot()
 		.AutoWidth()
-		.Padding(4,0)
+		.HAlign(HAlign_Right)
+		.Padding(4.0f, 0.0f)
 		[
 			SNew(SBorder)
 			.Padding(0)

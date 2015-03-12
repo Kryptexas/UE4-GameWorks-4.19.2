@@ -262,13 +262,11 @@ UObject* UPaperTiledImporterFactory::FactoryCreateText(UClass* InClass, UObject*
 				{
 					for (int32 X = 0; X < LayerData.Width; ++X)
 					{
-						const int32 SourceTileGID = LayerData.TileIndices[SourceIndex++];
+						const uint32 SourceTileGID = LayerData.TileIndices[SourceIndex++];
 						const FPaperTileInfo CellContents = GlobalInfo.ConvertTileGIDToPaper2D(SourceTileGID);
 						NewLayer->SetCell(X, Y, CellContents);
 					}
 				}
-
-				//@TODO: Handle TileIndices!
 
 				Result->TileLayers.Add(NewLayer);
 			}
@@ -489,12 +487,11 @@ bool FTileMapFromTiled::IsValid() const
 	return (FileVersion != 0) && (Width > 0) && (Height > 0) && (TileWidth > 0) && (TileHeight > 0) && (Orientation != ETiledOrientation::Unknown);
 }
 
-FPaperTileInfo FTileMapFromTiled::ConvertTileGIDToPaper2D(int32 GID) const
+FPaperTileInfo FTileMapFromTiled::ConvertTileGIDToPaper2D(uint32 GID) const
 {
-	// Clear the mirroring / rotation bits, we don't support those yet
-	//@TODO: Handle mirroring/flipping flags
-	const int32 Flags = GID >> 29;
-	const int32 TileIndex = GID & ~(7U << 29);
+	// Split the GID into flip bits and tile index
+	const uint32 Flags = GID >> 29;
+	const int32 TileIndex = (int32)(GID & ~(7U << 29));
 
 	FPaperTileInfo Result;
 
@@ -508,6 +505,9 @@ FPaperTileInfo FTileMapFromTiled::ConvertTileGIDToPaper2D(int32 GID) const
 			{
 				Result.TileSet = Set;
 				Result.PackedTileIndex = RelativeIndex;
+				Result.SetFlagValue(EPaperTileFlags::FlipHorizontal, (Flags & 0x4) != 0);
+				Result.SetFlagValue(EPaperTileFlags::FlipVertical, (Flags & 0x2) != 0);
+				Result.SetFlagValue(EPaperTileFlags::FlipDiagonal, (Flags & 0x1) != 0);
 			}
 			break;
 		}
@@ -662,7 +662,8 @@ void FTileLayerFromTiled::ParseFromJSON(TSharedPtr<FJsonObject> Tree, const FStr
 		TileIndices.Reserve(DataArray->Num());
 		for (TSharedPtr<FJsonValue> TileEntry : *DataArray)
 		{
-			int32 TileID = (int32)TileEntry->AsNumber();
+ 			const double TileIndexAsDouble = TileEntry->AsNumber();
+			uint32 TileID = (uint32)TileIndexAsDouble;
 			TileIndices.Add(TileID);
 		}
 	}

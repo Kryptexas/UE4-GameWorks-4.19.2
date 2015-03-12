@@ -37,9 +37,6 @@ protected:
 	void OnSelectTool(ETileMapEditorTool::Type NewTool);
 	bool IsToolSelected(ETileMapEditorTool::Type QueryTool) const;
 
-	void OnSelectLayerPaintingMode(ETileMapLayerPaintingMode::Type NewMode);
-	bool IsLayerPaintingModeSelected(ETileMapLayerPaintingMode::Type PaintingMode) const;
-
 	TSharedRef<SWidget> BuildToolBar() const;
 private:
 	class FEdModeTileMap* TileMapEditor;
@@ -51,7 +48,4 @@ private:
 
 	// The tile set selector palette
 	TSharedPtr<class STileSetSelectorViewport> TileSetPalette;
-
-	// Command list for binding functions for the toolbar.
-	TSharedPtr<FUICommandList> UICommandList;
 };

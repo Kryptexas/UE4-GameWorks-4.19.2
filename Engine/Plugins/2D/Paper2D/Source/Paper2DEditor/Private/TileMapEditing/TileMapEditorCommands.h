@@ -22,6 +22,14 @@ public:
 	// End of TCommand<> interface
 
 public:
+	// Edit mode trigger commands
+	TSharedPtr<FUICommandInfo> EnterTileMapEditMode;
+
+	// Commands inside tile map editing mode
+	TSharedPtr<FUICommandInfo> SelectPaintTool;
+	TSharedPtr<FUICommandInfo> SelectEraserTool;
+	TSharedPtr<FUICommandInfo> SelectFillTool;
+
 	// Show toggles
 	TSharedPtr<FUICommandInfo> SetShowCollision;
 	
@@ -30,8 +38,13 @@ public:
 	// Misc. actions
 	TSharedPtr<FUICommandInfo> FocusOnTileMap;
 
+	// Selection actions
+	TSharedPtr<FUICommandInfo> FlipSelectionHorizontally;
+	TSharedPtr<FUICommandInfo> FlipSelectionVertically;
+	TSharedPtr<FUICommandInfo> RotateSelectionCW;
+	TSharedPtr<FUICommandInfo> RotateSelectionCCW;
 
-
+	// Layer actions
 	TSharedPtr<FUICommandInfo> AddNewLayerAbove;
 	TSharedPtr<FUICommandInfo> AddNewLayerBelow;
 	TSharedPtr<FUICommandInfo> DeleteLayer;

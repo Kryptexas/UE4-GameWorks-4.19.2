@@ -6,6 +6,16 @@
 
 #include "PaperTileLayer.generated.h"
 
+// Flags used in the packed tile index
+enum class EPaperTileFlags : uint32
+{
+	FlipHorizontal = (1U << 31),
+	FlipVertical = (1U << 30),
+	FlipDiagonal = (1U << 29),
+
+	TileIndexMask = ~(7U << 29),
+};
+
 // This is the contents of a tile map cell
 USTRUCT(BlueprintType)
 struct FPaperTileInfo
@@ -13,7 +23,7 @@ struct FPaperTileInfo
 	GENERATED_USTRUCT_BODY()
 
 	// The tile set that this tile comes from
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Sprite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=Sprite)
 	UPaperTileSet* TileSet;
 
 	// This is the index of the current tile within the tile set
@@ -39,6 +49,51 @@ struct FPaperTileInfo
 	bool IsValid() const
 	{
 		return (TileSet != nullptr) && (PackedTileIndex != INDEX_NONE);
+	}
+
+ 	inline int32 GetFlagsAsIndex() const
+ 	{
+		return (int32)(((uint32)PackedTileIndex) >> 29);
+ 	}
+
+	inline void SetFlagsAsIndex(uint8 NewFlags)
+	{
+		const uint32 Base = PackedTileIndex & (int32)EPaperTileFlags::TileIndexMask;
+		const uint32 WithNewFlags = Base | ((NewFlags & 0x7) << 29);
+		PackedTileIndex = (int32)WithNewFlags;
+	}
+
+	inline int32 GetTileIndex() const
+	{
+		return PackedTileIndex & (int32)EPaperTileFlags::TileIndexMask;
+	}
+
+	inline bool HasFlag(EPaperTileFlags Flag) const
+	{
+		return (PackedTileIndex & (int32)Flag) != 0;
+	}
+
+	inline void ToggleFlag(EPaperTileFlags Flag)
+	{
+		if (IsValid())
+		{
+			PackedTileIndex ^= (int32)Flag;
+		}
+	}
+
+	inline void SetFlagValue(EPaperTileFlags Flag, bool bValue)
+	{
+		if (IsValid())
+		{
+			if (bValue)
+			{
+				PackedTileIndex |= (int32)Flag;
+			}
+			else
+			{
+				PackedTileIndex &= ~(int32)Flag;
+			}
+		}
 	}
 };
 

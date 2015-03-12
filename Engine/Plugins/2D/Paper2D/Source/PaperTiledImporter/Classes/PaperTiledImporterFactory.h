@@ -53,7 +53,7 @@ struct FTileLayerFromTiled
 	FString Name;
 
 	// Array of tiles
-	TArray<int32> TileIndices;
+	TArray<uint32> TileIndices;
 
 	// Width and height in tiles
 	int32 Width;
@@ -125,7 +125,7 @@ struct FTileMapFromTiled
 	TArray<FTileLayerFromTiled> Layers;
 	//map of properties
 
-	FPaperTileInfo ConvertTileGIDToPaper2D(int32 GID) const;
+	FPaperTileInfo ConvertTileGIDToPaper2D(uint32 GID) const;
 	ETileMapProjectionMode::Type GetOrientationType() const;
 
 	FTileMapFromTiled();

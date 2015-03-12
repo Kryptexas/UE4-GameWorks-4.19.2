@@ -37,11 +37,11 @@ void FPaperStyle::Initialize()
 
 	// Tile map editor
 	{
-		StyleSet->Set("PaperEditor.EnterTileMapEditMode", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_TileMapEdModeIcon_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.EnterTileMapEditMode", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_TileMapEdModeIcon_40x"), Icon40x40));
 
-		StyleSet->Set("PaperEditor.SelectPaintTool", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_PaintBrush_40x"), Icon40x40));
-		StyleSet->Set("PaperEditor.SelectEraserTool", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_Eraser_40x"), Icon40x40));
-		StyleSet->Set("PaperEditor.SelectFillTool", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/icon_PaintBucket_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.SelectPaintTool", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_PaintBrush_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.SelectEraserTool", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_Eraser_40x"), Icon40x40));
+		StyleSet->Set("TileMapEditor.SelectFillTool", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_PaintBucket_40x"), Icon40x40));
 
 		StyleSet->Set("TileMapEditor.AddNewLayerAbove", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_TileMapEditor_AddNewLayerAbove_40x"), Icon40x40));
 		StyleSet->Set("TileMapEditor.AddNewLayerAbove.Small", new IMAGE_PLUGIN_BRUSH(TEXT("Icons/TileMapEditor/icon_TileMapEditor_AddNewLayerAbove_40x"), Icon20x20));
