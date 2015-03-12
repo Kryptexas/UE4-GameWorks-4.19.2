@@ -374,12 +374,7 @@ void FSlateRHIRenderingPolicy::DrawElements(FRHICommandListImmediate& RHICmdList
 					TextureRHI = ((TSlateTexture<FTexture2DRHIRef>*)ShaderResource)->GetTypedResource();
 				}
 
-				if (ShaderType == ESlateShader::LineSegment)
-				{
-					// The lookup table used for splines should clamp when sampling otherwise the results are wrong
-					PixelShader->SetTexture(RHICmdList, TextureRHI, BilinearClamp );
-				}
-				else if( ShaderResource && IsValidRef( TextureRHI ) )
+				if( ShaderResource && IsValidRef( TextureRHI ) )
 				{
 					FSamplerStateRHIRef SamplerState; 
 

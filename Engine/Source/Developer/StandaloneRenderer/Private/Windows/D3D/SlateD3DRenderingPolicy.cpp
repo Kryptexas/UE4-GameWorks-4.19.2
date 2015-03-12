@@ -292,15 +292,7 @@ void FSlateD3D11RenderingPolicy::DrawElements( const FMatrix& ViewProjectionMatr
 		// Disable stenciling and depth testing by default 
 		GD3DDeviceContext->OMSetDepthStencilState( DSStateOff, 0x00);
 
-		if( RenderBatch.ShaderType == ESlateShader::LineSegment )
-		{
-			// debugging
-			//GD3DDeviceContext->RSSetState( WireframeRasterState );
-			//PixelShader->SetShaderType( ESlateShader::Default );
-
-			PixelShader->SetTexture( ((FSlateD3DTexture*)Texture)->GetTypedResource(), BilinearSamplerState_Clamp );
-		}
-		else if( Texture )
+		if( Texture )
 		{
 			TRefCountPtr<ID3D11SamplerState> SamplerState;
 			if( DrawFlags & ESlateBatchDrawFlag::TileU || DrawFlags & ESlateBatchDrawFlag::TileV )

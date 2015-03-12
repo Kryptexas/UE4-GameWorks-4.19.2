@@ -238,7 +238,6 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 
 	// Rendering resources that never change
 	{
-		Set( "SplineFilterTable", new IMAGE_BRUSH( "SplineFilterTable", FVector2D(32,1), FLinearColor::White, ESlateBrushTileType::Both, ESlateBrushImageType::Linear ) );
 		Set( "None", new FSlateNoResource() );
 	}
 

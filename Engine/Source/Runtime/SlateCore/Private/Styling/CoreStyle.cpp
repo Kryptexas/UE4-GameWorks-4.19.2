@@ -185,7 +185,6 @@ TSharedRef<ISlateStyle> FCoreStyle::Create( const FName& InStyleSetName )
 	FSlateBrush* GenericWhiteBox = new IMAGE_BRUSH("Old/White", Icon16x16);
 	{
 		Style->Set("Checkerboard", new IMAGE_BRUSH("Checkerboard", Icon16x16, FLinearColor::White, ESlateBrushTileType::Both));
-		Style->Set("SplineFilterTable", new IMAGE_BRUSH("SplineFilterTable", FVector2D(32.0f, 1.0f), FLinearColor::White, ESlateBrushTileType::Both, ESlateBrushImageType::Linear));
 
 		Style->Set("GenericWhiteBox", GenericWhiteBox);
 

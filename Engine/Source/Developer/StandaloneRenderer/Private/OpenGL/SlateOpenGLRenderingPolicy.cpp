@@ -203,8 +203,6 @@ void FSlateOpenGLRenderingPolicy::DrawElements( const FMatrix& ViewProjectionMat
 		{
 			// Test that the pixels in the line segment have only been drawn once
 			glEnable(GL_STENCIL_TEST);
-			
-			ElementProgram.SetTexture( ((FSlateOpenGLTexture*)Texture)->GetTypedResource(), GL_CLAMP_TO_EDGE, GL_CLAMP_TO_EDGE );
 		}
 		else if( Texture )
 		{
