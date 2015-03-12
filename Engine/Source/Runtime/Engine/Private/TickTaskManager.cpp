@@ -254,7 +254,7 @@ public:
 					}
 				}
 			}
-			WaitForTickGroup = ETickingGroup(WorldTickGroup + 1);
+			WaitForTickGroup = ETickingGroup(WorldTickGroup + (WorldTickGroup == TG_NewlySpawned ? 0 : 1)); // don't advance for newly spawned
 		}
 		else
 		{
