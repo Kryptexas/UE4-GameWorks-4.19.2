@@ -742,9 +742,11 @@ public:
 		// Override with a special usage so we won't re-use the shader map used by the material for rendering
 		switch (InPropertyToCompile)
 		{
-		case MP_DiffuseColor: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportDiffuseColor; break;
-		case MP_SpecularColor: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportSpecularColor; break;
+		case MP_BaseColor: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportBaseColor; break;
+		case MP_Specular: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportSpecular; break;
 		case MP_Normal: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportNormal; break;
+		case MP_Metallic: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportMetallic; break;
+		case MP_Roughness: ResourceId.Usage = EMaterialShaderMapUsage::MaterialExportRoughness; break;
 		};
 		
 		CacheShaders(ResourceId, GMaxRHIShaderPlatform, true);
@@ -818,17 +820,7 @@ public:
 	/** helper for CompilePropertyAndSetMaterialProperty() */
 	int32 CompilePropertyAndSetMaterialPropertyWithoutCast(EMaterialProperty Property, FMaterialCompiler* Compiler) const
 	{
-		// MAKE SURE THIS MATCHES THE CHART IN WillFillData
-		// 						  RETURNED VALUES (F16 'textures')
-		// 	BLEND MODE  | DIFFUSE     | SPECULAR     | EMISSIVE    | NORMAL    | TRANSMISSIVE              |
-		// 	------------+-------------+--------------+-------------+-----------+---------------------------|
-		// 	Opaque      | Diffuse     | Spec,SpecPwr | Emissive    | Normal    | 0 (EMPTY)                 |
-		// 	Masked      | Diffuse     | Spec,SpecPwr | Emissive    | Normal    | Opacity Mask              |
-		// 	Translucent | 0 (EMPTY)   | 0 (EMPTY)    | Emissive    | 0 (EMPTY) | (Emsv | Diffuse)*Opacity  |
-		// 	Additive    | 0 (EMPTY)   | 0 (EMPTY)    | Emissive    | 0 (EMPTY) | (Emsv | Diffuse)*Opacity  |
-		// 	Modulative  | 0 (EMPTY)   | 0 (EMPTY)    | Emissive    | 0 (EMPTY) | Emsv | Diffuse            |
-		// 	------------+-------------+--------------+-------------+-----------+---------------------------|
-		if( Property == MP_EmissiveColor )
+		if (Property == MP_EmissiveColor)
 		{
 			UMaterial* ProxyMaterial = MaterialInterface->GetMaterial();
 			EBlendMode BlendMode = MaterialInterface->GetBlendMode();
@@ -839,21 +831,20 @@ public:
 			case MP_EmissiveColor:
 				// Emissive is ALWAYS returned...
 				return Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler,MP_EmissiveColor),MCT_Float3,true,true);
-			case MP_DiffuseColor:
+			case MP_BaseColor:
 				// Only return for Opaque and Masked...
 				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 				{
-					EMaterialProperty DiffuseInput = MP_BaseColor;
-					return Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, DiffuseInput),MCT_Float3,true,true);
+					return Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_BaseColor),MCT_Float3,true,true);
 				}
 				break;
-			case MP_SpecularColor: 
+			case MP_Specular: 
+			case MP_Roughness:
+			case MP_Metallic:
 				// Only return for Opaque and Masked...
 				if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 				{
-					return Compiler->AppendVector(
-						Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_SpecularColor),MCT_Float3,true,true), 
-						Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler,MP_Roughness),MCT_Float1));
+					return Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, PropertyToCompile),MCT_Float1,true,true);
 				}
 				break;
 			case MP_Normal:
@@ -865,41 +856,6 @@ public:
 							Compiler->Mul(MaterialInterface->CompileProperty(Compiler, MP_Normal), Compiler->Constant(0.5f)), // [-1,1] * 0.5
 							Compiler->Constant(0.5f)), // [-0.5,0.5] + 0.5
 						MCT_Float3, true, true );
-				}
-				break;
-			
-			case MP_Opacity:
-				if (BlendMode == BLEND_Masked)
-				{
-					return MaterialInterface->CompileProperty(Compiler, MP_OpacityMask);
-				}
-				else if (IsTranslucentBlendMode((EBlendMode)BlendMode) && ProxyMaterial->GetCastShadowAsMasked())
-				{
-					return MaterialInterface->CompileProperty(Compiler, MP_Opacity);
-				}
-				else if (BlendMode == BLEND_Modulate)
-				{
-					if (ShadingModel == MSM_Unlit)
-					{
-						return Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor),MCT_Float3,true,true);
-					}
-					else
-					{
-						return Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor),MCT_Float3,true,true);
-					}
-				}
-				else if ((BlendMode == BLEND_Translucent) || (BlendMode == BLEND_Additive))
-				{
-					int32 ColoredOpacity = -1;
-					if (ShadingModel == MSM_Unlit)
-					{
-						ColoredOpacity = Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_EmissiveColor),MCT_Float3,true,true);
-					}
-					else
-					{
-						ColoredOpacity = Compiler->ForceCast(MaterialInterface->CompileProperty(Compiler, MP_DiffuseColor),MCT_Float3,true,true);
-					}
-					return Compiler->Lerp(Compiler->Constant3(1.0f, 1.0f, 1.0f), ColoredOpacity, Compiler->ForceCast( MaterialInterface->CompileProperty(Compiler,MP_Opacity), MCT_Float1));
 				}
 				break;
 			default:
@@ -1000,20 +956,20 @@ public:
 		case MP_EmissiveColor:
 			bConnected = InMaterial->EmissiveColor.Expression != NULL;
 			break;
-		case MP_DiffuseColor:
+		case MP_BaseColor:
 			bConnected = InMaterial->BaseColor.Expression != NULL;
 			break;
-		case MP_SpecularColor:
+		case MP_Specular:
 			bConnected = InMaterial->Specular.Expression != NULL;
 			break;
 		case MP_Normal:
 			bConnected = InMaterial->Normal.Expression != NULL;
 			break;
-		case MP_Opacity:
-			bConnected = InMaterial->Opacity.Expression != NULL;
+		case MP_Metallic:
+			bConnected = InMaterial->Metallic.Expression != NULL;
 			break;
-		case MP_OpacityMask:
-			bConnected = InMaterial->OpacityMask.Expression != NULL;
+		case MP_Roughness:
+			bConnected = InMaterial->Roughness.Expression != NULL;
 			break;
 		default:
 			break;
@@ -1053,14 +1009,16 @@ public:
 			// Emissive is ALWAYS returned...
 			bExpressionIsNULL = !IsMaterialInputConnected(Material, PropertyToCompile);
 			break;
-		case MP_DiffuseColor:
+		case MP_BaseColor:
 			// Only return for Opaque and Masked...
 			if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 			{
 				bExpressionIsNULL = !IsMaterialInputConnected(Material, PropertyToCompile);
 			}
 			break;
-		case MP_SpecularColor: 
+		case MP_Specular: 
+		case MP_Metallic:
+		case MP_Roughness:
 			// Only return for Opaque and Masked...
 			if (BlendMode == BLEND_Opaque || BlendMode == BLEND_Masked)
 			{
@@ -1074,40 +1032,6 @@ public:
 			{
 				bExpressionIsNULL = !IsMaterialInputConnected(Material, PropertyToCompile);
 				OutUniformValue.B = 255;	// Default normal is (0,0,1)
-			}
-			break;
-		case MP_Opacity:
-			if (BlendMode == BLEND_Masked)
-			{
-				bExpressionIsNULL = !IsMaterialInputConnected(Material, MP_OpacityMask);
-				OutUniformValue.R = 255;
-				OutUniformValue.G = 255;
-				OutUniformValue.B = 255;
-				OutUniformValue.A = 255;
-			}
-			else
-			if ((BlendMode == BLEND_Modulate) ||
-				(BlendMode == BLEND_Translucent) || 
-				(BlendMode == BLEND_Additive))
-			{
-				bool bColorInputIsNULL = false;
-				if (ShadingModel == MSM_Unlit)
-				{
-					bColorInputIsNULL = !IsMaterialInputConnected(Material, MP_EmissiveColor);
-				}
-				else
-				{
-					bColorInputIsNULL = !IsMaterialInputConnected(Material, MP_DiffuseColor);
-				}
-				if (BlendMode == BLEND_Translucent
-					|| BlendMode == BLEND_Additive)
-				{
-					bExpressionIsNULL = bColorInputIsNULL && !IsMaterialInputConnected(Material, PropertyToCompile);
-				}
-				else
-				{
-					bExpressionIsNULL = bColorInputIsNULL;
-				}
 			}
 			break;
 		}
@@ -1177,17 +1101,6 @@ public:
 
 	static bool WillFillData(EBlendMode InBlendMode, EMaterialProperty InMaterialProperty)
 	{
-		// MAKE SURE THIS MATCHES THE CHART IN CompileProperty
-		// 						  RETURNED VALUES (F16 'textures')
-		// 	BLEND MODE  | DIFFUSE     | SPECULAR     | EMISSIVE    | NORMAL    | TRANSMISSIVE              |
-		// 	------------+-------------+--------------+-------------+-----------+---------------------------|
-		// 	Opaque      | Diffuse     | Spec,SpecPwr | Emissive    | Normal    | 0 (EMPTY)                 |
-		// 	Masked      | Diffuse     | Spec,SpecPwr | Emissive    | Normal    | Opacity Mask              |
-		// 	Translucent | 0 (EMPTY)   | 0 (EMPTY)    | Emissive    | 0 (EMPTY) | (Emsv | Diffuse)*Opacity  |
-		// 	Additive    | 0 (EMPTY)   | 0 (EMPTY)    | Emissive    | 0 (EMPTY) | (Emsv | Diffuse)*Opacity  |
-		// 	Modulative  | 0 (EMPTY)   | 0 (EMPTY)    | Emissive    | 0 (EMPTY) | Emsv | Diffuse            |
-		// 	------------+-------------+--------------+-------------+-----------+---------------------------|
-
 		if (InMaterialProperty == MP_EmissiveColor)
 		{
 			return true;
@@ -1199,44 +1112,11 @@ public:
 			{
 				switch (InMaterialProperty)
 				{
-				case MP_DiffuseColor:	return true;
-				case MP_SpecularColor:	return true;
+				case MP_BaseColor:		return true;
+				case MP_Specular:		return true;
 				case MP_Normal:			return true;
-				case MP_Opacity:		return false;
-				}
-			}
-			break;
-		case BLEND_Masked:
-			{
-				switch (InMaterialProperty)
-				{
-				case MP_DiffuseColor:	return true;
-				case MP_SpecularColor:	return true;
-				case MP_Normal:			return true;
-				case MP_Opacity:		return true;
-				}
-			}
-			break;
-		case BLEND_Translucent:
-		case BLEND_Additive:
-			{
-				switch (InMaterialProperty)
-				{
-				case MP_DiffuseColor:	return false;
-				case MP_SpecularColor:	return false;
-				case MP_Normal:			return false;
-				case MP_Opacity:		return true;
-				}
-			}
-			break;
-		case BLEND_Modulate:
-			{
-				switch (InMaterialProperty)
-				{
-				case MP_DiffuseColor:	return false;
-				case MP_SpecularColor:	return false;
-				case MP_Normal:			return false;
-				case MP_Opacity:		return true;
+				case MP_Metallic:		return true;
+				case MP_Roughness:		return true;
 				}
 			}
 			break;
@@ -1692,13 +1572,13 @@ void ExportOBJs(FOutputDevice& FileAr, FStringOutputDevice* MemAr, FFeedbackCont
 
 			{
 				FString BMPFilename = FPaths::GetPath(MaterialLibFilename) / MaterialName + TEXT("_D.bmp");
-				ExportMaterialPropertyTexture(BMPFilename, Material, MP_DiffuseColor, RenderTarget, Canvas);
+				ExportMaterialPropertyTexture(BMPFilename, Material, MP_BaseColor, RenderTarget, Canvas);
 				MaterialLib->Logf(TEXT("\tmap_Kd %s\r\n"), *FPaths::GetCleanFilename(BMPFilename));
 			}
 
 			{
 				FString BMPFilename = FPaths::GetPath(MaterialLibFilename) / MaterialName + TEXT("_S.bmp");
-				ExportMaterialPropertyTexture(BMPFilename, Material, MP_SpecularColor, RenderTarget, Canvas);
+				ExportMaterialPropertyTexture(BMPFilename, Material, MP_Specular, RenderTarget, Canvas);
 				MaterialLib->Logf(TEXT("\tmap_Ks %s\r\n"), *FPaths::GetCleanFilename(BMPFilename));
 			}
 
@@ -2643,7 +2523,7 @@ namespace MaterialExportUtils
 			
 			//
 			OutFlattenMaterial.DiffuseSamples.Empty(OutFlattenMaterial.DiffuseSize.X * OutFlattenMaterial.DiffuseSize.Y);
-			bool bResult = ExportMaterialProperty(InMaterial, MP_DiffuseColor, RenderTargetDiffuse, OutFlattenMaterial.DiffuseSamples);
+			bool bResult = ExportMaterialProperty(InMaterial, MP_BaseColor, RenderTargetDiffuse, OutFlattenMaterial.DiffuseSamples);
 
 			// Uniform value
 			if (OutFlattenMaterial.DiffuseSamples.Num() == 1)
@@ -2693,6 +2573,102 @@ namespace MaterialExportUtils
 			}
 		}
 
+		// Render metallic property
+		if (OutFlattenMaterial.MetallicSize.X > 0 && 
+			OutFlattenMaterial.MetallicSize.Y > 0)
+		{
+			// Create temporary render target
+			auto RenderTargetMetallic = NewObject<UTextureRenderTarget2D>();
+			check(RenderTargetMetallic);
+			RenderTargetMetallic->AddToRoot();
+			RenderTargetMetallic->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
+			RenderTargetMetallic->InitCustomFormat(
+				OutFlattenMaterial.MetallicSize.X,
+				OutFlattenMaterial.MetallicSize.Y, PF_FloatRGB, true);
+
+			//
+			OutFlattenMaterial.MetallicSamples.Empty(OutFlattenMaterial.MetallicSize.X * OutFlattenMaterial.MetallicSize.Y);
+			bool bResult = ExportMaterialProperty(InMaterial, MP_Metallic, RenderTargetMetallic, OutFlattenMaterial.MetallicSamples);
+
+			// Uniform value
+			if (OutFlattenMaterial.MetallicSamples.Num() == 1)
+			{
+				OutFlattenMaterial.MetallicSize = FIntPoint(1,1);
+			}
+		
+			RenderTargetMetallic->RemoveFromRoot();
+			RenderTargetMetallic = nullptr;
+
+			if (!bResult)
+			{
+				return false;
+			}
+		}
+
+		// Render roughness property
+		if (OutFlattenMaterial.RoughnessSize.X > 0 && 
+			OutFlattenMaterial.RoughnessSize.Y > 0)
+		{
+			// Create temporary render target
+			auto RenderTargetRoughness = NewObject<UTextureRenderTarget2D>();
+			check(RenderTargetRoughness);
+			RenderTargetRoughness->AddToRoot();
+			RenderTargetRoughness->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
+			RenderTargetRoughness->InitCustomFormat(
+				OutFlattenMaterial.RoughnessSize.X,
+				OutFlattenMaterial.RoughnessSize.Y, PF_FloatRGB, true);
+
+			//
+			OutFlattenMaterial.RoughnessSamples.Empty(OutFlattenMaterial.RoughnessSize.X * OutFlattenMaterial.RoughnessSize.Y);
+			bool bResult = ExportMaterialProperty(InMaterial, MP_Roughness, RenderTargetRoughness, OutFlattenMaterial.RoughnessSamples);
+
+			// Uniform value
+			if (OutFlattenMaterial.RoughnessSamples.Num() == 1)
+			{
+				OutFlattenMaterial.RoughnessSize = FIntPoint(1,1);
+			}
+		
+			RenderTargetRoughness->RemoveFromRoot();
+			RenderTargetRoughness = nullptr;
+
+			if (!bResult)
+			{
+				return false;
+			}
+		}
+
+		// Render specular property
+		if (OutFlattenMaterial.SpecularSize.X > 0 && 
+			OutFlattenMaterial.SpecularSize.Y > 0)
+		{
+			// Create temporary render target
+			auto RenderTargetSpecular = NewObject<UTextureRenderTarget2D>();
+			check(RenderTargetSpecular);
+			RenderTargetSpecular->AddToRoot();
+			RenderTargetSpecular->ClearColor = FLinearColor(0.0f, 0.0f, 0.0f, 0.0f);
+			RenderTargetSpecular->InitCustomFormat(
+				OutFlattenMaterial.SpecularSize.X,
+				OutFlattenMaterial.SpecularSize.Y, PF_FloatRGB, true);
+
+			//
+			OutFlattenMaterial.SpecularSamples.Empty(OutFlattenMaterial.SpecularSize.X * OutFlattenMaterial.SpecularSize.Y);
+			bool bResult = ExportMaterialProperty(InMaterial, MP_Specular, RenderTargetSpecular, OutFlattenMaterial.SpecularSamples);
+
+			// Uniform value
+			if (OutFlattenMaterial.SpecularSamples.Num() == 1)
+			{
+				OutFlattenMaterial.SpecularSize = FIntPoint(1,1);
+			}
+		
+			RenderTargetSpecular->RemoveFromRoot();
+			RenderTargetSpecular = nullptr;
+
+			if (!bResult)
+			{
+				return false;
+			}
+		}
+		
 		OutFlattenMaterial.MaterialId = InMaterial->GetLightingGuid();
 		return true;
 	}
@@ -2945,12 +2921,12 @@ namespace MaterialExportUtils
 		{
 			const FString AssetName = TEXT("T_") + AssetBaseName + TEXT("_S");
 			const bool bSRGB = false;
-			UTexture2D* Texture = CreateTexture(Outer, AssetBasePath + AssetName, InFlattenMaterial.SpecularSize, InFlattenMaterial.SpecularSamples, TC_Default, TEXTUREGROUP_World, Flags, bSRGB);
+			UTexture2D* Texture = CreateTexture(Outer, AssetBasePath + AssetName, InFlattenMaterial.SpecularSize, InFlattenMaterial.SpecularSamples, TC_Grayscale, TEXTUREGROUP_World, Flags, bSRGB);
 			OutGeneratedAssets.Add(Texture);
 			
 			auto SpecularExpression = NewObject<UMaterialExpressionTextureSample>(Material);
 			SpecularExpression->Texture = Texture;
-			SpecularExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearColor;
+			SpecularExpression->SamplerType = EMaterialSamplerType::SAMPLERTYPE_LinearGrayscale;
 			SpecularExpression->MaterialExpressionEditorX = -400;
 			SpecularExpression->MaterialExpressionEditorY = MaterialNodeY;
 			Material->Expressions.Add(SpecularExpression);

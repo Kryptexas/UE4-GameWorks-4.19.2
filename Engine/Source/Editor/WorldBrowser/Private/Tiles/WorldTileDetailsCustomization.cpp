@@ -254,6 +254,7 @@ void FTileLODEntryDetailsCustomization::CustomizeHeader(TSharedRef<class IProper
 				.Text(LOCTEXT("Generate", "Generate"))
 				.OnClicked(this, &FTileLODEntryDetailsCustomization::OnGenerateTile)
 				.IsEnabled(this, &FTileLODEntryDetailsCustomization::IsGenerateTileEnabled)
+				.ToolTipText(LOCTEXT("GenerateLODToolTip", "Creates simplified sub-level by merging geometry into static mesh proxy (requires Simplygon) and exporting landscapes into static meshes"))
 			]
 		];
 }
@@ -305,7 +306,7 @@ bool FTileLODEntryDetailsCustomization::IsGenerateTileEnabled() const
 	TSharedPtr<FWorldTileCollectionModel> PinnedWorldModel = WorldModel.Pin();
 	if (PinnedWorldModel.IsValid())
 	{
-		return PinnedWorldModel->HasGenerateLODLevelSupport() && PinnedWorldModel->AreAnySelectedLevelsLoaded();
+		return PinnedWorldModel->AreAnySelectedLevelsLoaded() && (PinnedWorldModel->HasMeshProxySupport() || PinnedWorldModel->AreAnySelectedLevelsHaveLandscape());
 	}
 	
 	return false;

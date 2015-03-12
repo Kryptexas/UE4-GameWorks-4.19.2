@@ -3668,28 +3668,19 @@ void FMeshUtilities::CreateProxyMesh(
 	const FString AssetBaseName = FPackageName::GetShortName(ProxyBasePackageName);
 	const FString AssetBasePath = InOuter ? TEXT("") : FPackageName::GetLongPackagePath(ProxyBasePackageName) + TEXT("/");
 	
-	TArray<ALandscapeProxy*>		LandscapesToMerge;
-	TArray<UStaticMeshComponent*>	ComponentsToMerge;
+	TArray<UStaticMeshComponent*> ComponentsToMerge;
 	
-	//Collect components of the corresponding actor
+	// Collect components to merge
 	for (AActor* Actor : SourceActors)
 	{
-		ALandscapeProxy* LandscapeActor = Cast<ALandscapeProxy>(Actor);
-		if (LandscapeActor)
-		{
-			LandscapesToMerge.Add(LandscapeActor);
-		}
-		else
-		{
-			TInlineComponentArray<UStaticMeshComponent*> Components;
-			Actor->GetComponents<UStaticMeshComponent>(Components);
-			// TODO: support instanced static meshes
-			Components.RemoveAll([](UStaticMeshComponent* Val){ return Val->IsA(UInstancedStaticMeshComponent::StaticClass()); });
-			// TODO: support non-opaque materials
-			Components.RemoveAll(&NonOpaqueMaterialPredicate);
-			//
-			ComponentsToMerge.Append(Components);
-		}
+		TInlineComponentArray<UStaticMeshComponent*> Components;
+		Actor->GetComponents<UStaticMeshComponent>(Components);
+		// TODO: support instanced static meshes
+		Components.RemoveAll([](UStaticMeshComponent* Val){ return Val->IsA(UInstancedStaticMeshComponent::StaticClass()); });
+		// TODO: support non-opaque materials
+		Components.RemoveAll(&NonOpaqueMaterialPredicate);
+		//
+		ComponentsToMerge.Append(Components);
 	}
 	
 	// Convert collected static mesh components and landscapes into raw meshes and flatten materials
@@ -3698,8 +3689,8 @@ void FMeshUtilities::CreateProxyMesh(
 	TMap<int32, TArray<int32>>						MaterialMap;
 	FBox											ProxyBounds(0);
 	
-	RawMeshes.Empty(ComponentsToMerge.Num() + LandscapesToMerge.Num());
-	UniqueMaterials.Empty(ComponentsToMerge.Num() + LandscapesToMerge.Num());
+	RawMeshes.Empty(ComponentsToMerge.Num());
+	UniqueMaterials.Empty(ComponentsToMerge.Num());
 	
 	// Convert static mesh components
 	TArray<UMaterialInterface*> StaticMeshMaterials;
@@ -3720,58 +3711,29 @@ void FMeshUtilities::CreateProxyMesh(
 		}
 	}
 
-	// Convert materials into flatten materials
-	for (UMaterialInterface* Material : StaticMeshMaterials)
-	{
-		UniqueMaterials.Add(MaterialExportUtils::FFlattenMaterial());
-		MaterialExportUtils::ExportMaterial(Material, UniqueMaterials.Last());
-	}
-	
-	// Convert landscapes
-	for (ALandscapeProxy* Landscape : LandscapesToMerge)
-	{
-		TArray<int32> RawMeshMaterialMap;
-		int32 RawMeshId = RawMeshes.Add(FRawMesh());
-
-		if (Landscape->ExportToRawMesh(INDEX_NONE, RawMeshes[RawMeshId]))
-		{
-			// Landscape has one unique material
-			int32 MatIdx = UniqueMaterials.Add(MaterialExportUtils::FFlattenMaterial());
-			RawMeshMaterialMap.Add(MatIdx);
-			MaterialMap.Add(RawMeshId, RawMeshMaterialMap);
-			// This is texture resolution for a landscape, probably need to be calculated using landscape size
-			UniqueMaterials.Last().DiffuseSize = FIntPoint(1024, 1024);
-			// FIXME: Landscape material exporter currently renders world space normal map, so it can't be merged with other meshes normal maps
-			UniqueMaterials.Last().NormalSize = FIntPoint::ZeroValue;
-
-			// Use only landscape primitives for texture flattening
-			TSet<FPrimitiveComponentId> PrimitivesToHide;
-			for (TObjectIterator<UPrimitiveComponent> It; It; ++It)
-			{
-				UPrimitiveComponent* PrimitiveComp = *It;
-				const bool bTargetPrim = PrimitiveComp->GetOuter() == Landscape;
-				if (!bTargetPrim && PrimitiveComp->IsRegistered() && PrimitiveComp->SceneProxy)
-				{
-					PrimitivesToHide.Add(PrimitiveComp->SceneProxy->GetPrimitiveComponentId());
-				}
-			}
-			
-			MaterialExportUtils::ExportMaterial(Landscape, PrimitivesToHide, UniqueMaterials.Last());
-			
-			//Store the bounds for each component
-			ProxyBounds+= Landscape->GetComponentsBoundingBox(true);
-		}
-		else
-		{
-			RawMeshes.RemoveAt(RawMeshId);
-		}
-	}
-
 	if (RawMeshes.Num() == 0)
 	{
 		return;
 	}
-	
+
+	// Convert materials into flatten materials
+	{
+		MaterialExportUtils::FFlattenMaterial FlattenMaterial;
+		FIntPoint TargetTextureSize = FIntPoint(InProxySettings.TextureWidth, InProxySettings.TextureHeight);
+
+		FlattenMaterial.DiffuseSize = TargetTextureSize;
+		FlattenMaterial.NormalSize = InProxySettings.bExportNormalMap ?	TargetTextureSize : FIntPoint::ZeroValue;
+		FlattenMaterial.MetallicSize = InProxySettings.bExportMetallicMap ? TargetTextureSize : FIntPoint::ZeroValue;
+		FlattenMaterial.RoughnessSize = InProxySettings.bExportRoughnessMap ? TargetTextureSize : FIntPoint::ZeroValue;
+		FlattenMaterial.SpecularSize = InProxySettings.bExportSpecularMap ? TargetTextureSize : FIntPoint::ZeroValue;
+
+		for (UMaterialInterface* Material : StaticMeshMaterials)
+		{
+			UniqueMaterials.Add(FlattenMaterial);
+			MaterialExportUtils::ExportMaterial(Material, UniqueMaterials.Last());
+		}
+	}
+		
 	//For each raw mesh, re-map the material indices according to the MaterialMap
 	for (int32 RawMeshIndex = 0; RawMeshIndex < RawMeshes.Num(); ++RawMeshIndex)
 	{

@@ -227,7 +227,7 @@ void UUnrealEdEngine::edactMergeActors()
 			// Create window
 			TSharedRef<SWindow> MeshProxyDialog = SNew(SWindow);
 			MeshProxyDialog->SetTitle(NSLOCTEXT("SMeshProxyDialog", "MeshProxyDialogTitle", "Mesh Proxy"));
-			MeshProxyDialog->Resize(FVector2D(400.0f, 280.0f));
+			MeshProxyDialog->Resize(FVector2D(400.0f, 350.0f));
 
 			MeshProxyControls->AssignWindowContent(MeshProxyDialog);
 			MeshProxyControls->SetParentWindow(MeshProxyDialog);

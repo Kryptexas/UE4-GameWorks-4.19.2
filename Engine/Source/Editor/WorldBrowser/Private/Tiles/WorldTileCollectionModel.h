@@ -78,8 +78,8 @@ public:
 	/** Show a levels in the editor and place them to actual world position */
 	void UnshelveLevels(const FWorldTileModelList& InLevels);
 
-	/** Whether specified list of levels has at least one landscape level */
-	bool HasLandscapeLevel(const FWorldTileModelList& InLevels) const;
+	/** Whether any of the currently selected levels have landscape actor */
+	bool AreAnySelectedLevelsHaveLandscape() const;
 	
 	/** Creates a new empty level 
 	 *	@return LevelModel of a new empty level
@@ -234,9 +234,9 @@ private:
 	void ReimportTiledLandscape_Executed(FName TargetLayer);
 
 public:
-	/** Whether Editor has support for generating LOD levels */	
-	bool HasGenerateLODLevelSupport() const;
-	
+	/** Whether Editor has support for generating static mesh proxies */	
+	bool HasMeshProxySupport() const;
+
 	/** 
 	 * Generates simplified versions of a specified levels. Levels has to be loaded.
 	 * Currently all static meshes found inside one level will be merged into one proxy mesh using Simplygon ProxyLOD

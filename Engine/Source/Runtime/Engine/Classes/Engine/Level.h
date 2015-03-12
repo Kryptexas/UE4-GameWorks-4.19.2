@@ -235,32 +235,51 @@ struct ENGINE_API FLevelSimplificationDetails
 {
 	GENERATED_USTRUCT_BODY()
 
-	// Percentage of details relative to main tile details
-	UPROPERTY(Category=ReductionSettings, EditAnywhere, meta=(ClampMin = "0", ClampMax = "100", UIMin = "0", UIMax = "100"))	
+	// Whether to create separate packages for each generated asset. All in map package otherwise
+	UPROPERTY(Category=General, EditAnywhere)
+	bool bCreatePackagePerAsset;
+
+	// Percentage of details for static mesh proxy
+	UPROPERTY(Category=StaticMesh, EditAnywhere, meta=(DisplayName="Static Mesh Details Percentage", ClampMin = "0", ClampMax = "100", UIMin = "0", UIMax = "100"))	
 	float DetailsPercentage;
 
-	// Whether to create separate packages for each generated asset. All in map package otherwise
-	UPROPERTY(Category=Landscape, EditAnywhere)
-	bool bCreatePackagePerAsset;
+	// Whether to generate normal map for static mesh proxy
+	UPROPERTY(Category=StaticMesh, EditAnywhere, meta=(DisplayName="Static Mesh Normal Map"))
+	bool bGenerateMeshNormalMap;
 	
-	// Landscape LOD to use for static mesh generation
-	UPROPERTY(Category=Landscape, EditAnywhere, meta=(ClampMin = "0", ClampMax = "7", UIMin = "0", UIMax = "7"))
+	// Whether to generate metallic map for static mesh proxy
+	UPROPERTY(Category=StaticMesh, EditAnywhere, meta=(DisplayName="Static Mesh Metallic Map"))
+	bool bGenerateMeshMetallicMap;
+
+	// Whether to generate roughness map for static mesh proxy
+	UPROPERTY(Category=StaticMesh, EditAnywhere, meta=(DisplayName="Static Mesh Roughness Map"))
+	bool bGenerateMeshRoughnessMap;
+	
+	// Whether to generate specular map for static mesh proxy
+	UPROPERTY(Category=StaticMesh, EditAnywhere, meta=(DisplayName="Static Mesh Specular Map"))
+	bool bGenerateMeshSpecularMap;
+
+	UPROPERTY()
+	bool bOverrideLandscapeExportLOD;
+
+	// Landscape LOD to use for static mesh generation, when not specified 'Max LODLevel' from landscape actor will be used
+	UPROPERTY(Category=Landscape, EditAnywhere, meta=(ClampMin = "0", ClampMax = "7", UIMin = "0", UIMax = "7", editcondition = "bOverrideLandscapeExportLOD"))
 	int32 LandscapeExportLOD;
 
 	// Whether to generate normal map for landscape static mesh
-	UPROPERTY(Category=Landscape, EditAnywhere)
+	UPROPERTY(Category=Landscape, EditAnywhere, meta=(DisplayName="Landscape Normal Map"))
 	bool bGenerateLandscapeNormalMap;
 
 	// Whether to generate metallic map for landscape static mesh
-	UPROPERTY(Category=Landscape, EditAnywhere)
+	UPROPERTY(Category=Landscape, EditAnywhere, meta=(DisplayName="Landscape Metallic Map"))
 	bool bGenerateLandscapeMetallicMap;
 
 	// Whether to generate roughness map for landscape static mesh
-	UPROPERTY(Category=Landscape, EditAnywhere)
+	UPROPERTY(Category=Landscape, EditAnywhere, meta=(DisplayName="Landscape Roughness Map"))
 	bool bGenerateLandscapeRoughnessMap;
 	
 	// Whether to generate specular map for landscape static mesh
-	UPROPERTY(Category=Landscape, EditAnywhere)
+	UPROPERTY(Category=Landscape, EditAnywhere, meta=(DisplayName="Landscape Specular Map"))
 	bool bGenerateLandscapeSpecularMap;
 	
 	// Whether to bake foliage into landscape static mesh texture

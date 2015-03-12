@@ -70,6 +70,16 @@ protected:
 	/** TextureResolution accessors */
 	void SetTextureResolution(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
 
+	/** Export material properties acessors **/
+	ECheckBoxState GetExportNormalMap() const;
+	void SetExportNormalMap(ECheckBoxState NewValue);
+	ECheckBoxState GetExportMetallicMap() const;
+	void SetExportMetallicMap(ECheckBoxState NewValue);
+	ECheckBoxState GetExportRoughnessMap() const;
+	void SetExportRoughnessMap(ECheckBoxState NewValue);
+	ECheckBoxState GetExportSpecularMap() const;
+	void SetExportSpecularMap(ECheckBoxState NewValue);
+	
 	/** Delegates for Merge button state */
 	bool GetMergeButtonEnabledState() const;
 	
@@ -179,6 +189,7 @@ void SMeshProxyDialog::Construct(const FArguments& InArgs)
 	CreateLayout();
 }
 
+BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SMeshProxyDialog::CreateLayout()
 {
 	this->ChildSlot
@@ -238,7 +249,30 @@ void SMeshProxyDialog::CreateLayout()
 					[
 						SNew(STextBlock).Text(LOCTEXT("TextureResolutionLabel", "Texture Resolution"))
 					]
-
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock).Text(LOCTEXT("ExportNormalMapLabel", "Export Normal Map"))
+					]
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock).Text(LOCTEXT("ExportMetallicMapLabel", "Export Metallic Map"))
+					]
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock).Text(LOCTEXT("ExportRoughnessMapLabel", "Export Roughness Map"))
+					]
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(STextBlock).Text(LOCTEXT("ExportSpecularMapLabel", "Export Specular Map"))
+					]
 					+SVerticalBox::Slot()
 					.FillHeight(1.0f)
 					.VAlign(VAlign_Center)
@@ -379,6 +413,50 @@ void SMeshProxyDialog::CreateLayout()
 						.OnSelectionChanged(this, &SMeshProxyDialog::SetTextureResolution)
 					]
 
+					// Export Normal Map
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SCheckBox)
+						.Type(ESlateCheckBoxType::CheckBox)
+						.IsChecked(this, &SMeshProxyDialog::GetExportNormalMap)
+						.OnCheckStateChanged(this, &SMeshProxyDialog::SetExportNormalMap)
+					]
+
+					// Export Metallic Map
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SCheckBox)
+						.Type(ESlateCheckBoxType::CheckBox)
+						.IsChecked(this, &SMeshProxyDialog::GetExportMetallicMap)
+						.OnCheckStateChanged(this, &SMeshProxyDialog::SetExportMetallicMap)
+					]
+					
+					// Export Roughness Map
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SCheckBox)
+						.Type(ESlateCheckBoxType::CheckBox)
+						.IsChecked(this, &SMeshProxyDialog::GetExportRoughnessMap)
+						.OnCheckStateChanged(this, &SMeshProxyDialog::SetExportRoughnessMap)
+					]
+
+					// Export Specular Map
+					+SVerticalBox::Slot()
+					.FillHeight(1.0f)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SCheckBox)
+						.Type(ESlateCheckBoxType::CheckBox)
+						.IsChecked(this, &SMeshProxyDialog::GetExportSpecularMap)
+						.OnCheckStateChanged(this, &SMeshProxyDialog::SetExportSpecularMap)
+					]
+					
 					// Package Name
 					+SVerticalBox::Slot()
 					.FillHeight(1.0f)
@@ -441,6 +519,7 @@ void SMeshProxyDialog::CreateLayout()
 		]
 	];
 }
+END_SLATE_FUNCTION_BUILD_OPTIMIZATION
 
 void SMeshProxyDialog::Reset(const bool bRefresh)
 {
@@ -564,6 +643,45 @@ void SMeshProxyDialog::SetTextureResolution(TSharedPtr<FString> NewSelection, ES
 	ProxySettings.TextureHeight = Resolution;
 }
 
+ECheckBoxState SMeshProxyDialog::GetExportNormalMap() const
+{
+	return ProxySettings.bExportNormalMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
+}
+
+void SMeshProxyDialog::SetExportNormalMap(ECheckBoxState NewValue)
+{
+	ProxySettings.bExportNormalMap = (NewValue == ECheckBoxState::Checked);
+}
+
+ECheckBoxState SMeshProxyDialog::GetExportMetallicMap() const
+{
+	return ProxySettings.bExportMetallicMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
+}
+
+void SMeshProxyDialog::SetExportMetallicMap(ECheckBoxState NewValue)
+{
+	ProxySettings.bExportMetallicMap = (NewValue == ECheckBoxState::Checked);
+}
+
+ECheckBoxState SMeshProxyDialog::GetExportRoughnessMap() const
+{
+	return ProxySettings.bExportRoughnessMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
+}
+
+void SMeshProxyDialog::SetExportRoughnessMap(ECheckBoxState NewValue)
+{
+	ProxySettings.bExportRoughnessMap = (NewValue == ECheckBoxState::Checked);
+}
+
+ECheckBoxState SMeshProxyDialog::GetExportSpecularMap() const
+{
+	return ProxySettings.bExportSpecularMap ? ECheckBoxState::Checked :  ECheckBoxState::Unchecked;
+}
+
+void SMeshProxyDialog::SetExportSpecularMap(ECheckBoxState NewValue)
+{
+	ProxySettings.bExportSpecularMap = (NewValue == ECheckBoxState::Checked);
+}
 
 bool SMeshProxyDialog::GetMergeButtonEnabledState() const
 {
@@ -608,19 +726,6 @@ FReply SMeshProxyDialog::OnMergeClicked()
 
 		GEditor->EndTransaction();
 		GWarn->EndSlowTask();
-
-		//Create a new world actor and place it at the same location as the original assets
-		if (Actors[0] != nullptr)
-		{
-			UStaticMesh* ProxyMesh = nullptr;
-			if (AssetsToSync.FindItemByClass(&ProxyMesh))
-			{
-				UWorld* World = Actors[0]->GetWorld();
-				AStaticMeshActor* WorldActor = Cast<AStaticMeshActor>(World->SpawnActor(AStaticMeshActor::StaticClass(), &ProxyLocation));
-				WorldActor->GetStaticMeshComponent()->StaticMesh = ProxyMesh;
-				WorldActor->SetActorLabel(ProxyMesh->GetName());
-			}
-		}
 
 		//Update the asset registry that a new static mash and material has been created
 		if (AssetsToSync.Num())

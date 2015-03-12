@@ -1124,16 +1124,16 @@ void FWorldTileCollectionModel::PostWorldOriginOffset(UWorld* InWorld, FIntVecto
 	}
 }
 
-bool FWorldTileCollectionModel::HasLandscapeLevel(const FWorldTileModelList& InLevels) const
+bool FWorldTileCollectionModel::AreAnySelectedLevelsHaveLandscape() const
 {
-	for (auto It = InLevels.CreateConstIterator(); It; ++It)
+	for (auto LevelModel : SelectedLevelsList)
 	{
-		if ((*It)->IsLandscapeBased())
+		if (LevelModel->IsLoaded() && StaticCastSharedPtr<FWorldTileModel>(LevelModel)->IsLandscapeBased())
 		{
 			return true;
 		}
 	}
-	
+
 	return false;
 }
 
@@ -1829,21 +1829,14 @@ void FWorldTileCollectionModel::OnNewCurrentLevel()
 	Focus(CurrentLevelModel->GetLevelBounds(), FWorldTileCollectionModel::OriginAtCenter);
 }
 
-bool FWorldTileCollectionModel::HasGenerateLODLevelSupport() const
+bool FWorldTileCollectionModel::HasMeshProxySupport() const
 {
 	return bMeshProxyAvailable;
 }
 
 bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, int32 TargetLODIndex)
 {
-	if (!HasGenerateLODLevelSupport())
-	{
-		return false;
-	}
-
 	IMeshUtilities& MeshUtilities = FModuleManager::Get().LoadModuleChecked<IMeshUtilities>("MeshUtilities");
-	IMeshMerging* MeshMerging = MeshUtilities.GetMeshMergingInterface();
-	check(MeshMerging);
 
 	// Select tiles that can be processed
 	TArray<TSharedPtr<FWorldTileModel>> TilesToProcess;
@@ -1872,6 +1865,32 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 	// Generate LOD maps for each tile
 	for (TSharedPtr<FWorldTileModel> TileModel : TilesToProcess)
 	{
+		TArray<AActor*>				Actors;
+		TArray<ALandscapeProxy*>	LandscapeActors;
+		// Separate landscape actors from all others
+		for (AActor* Actor : TileModel->GetLevelObject()->Actors)
+		{
+			if (Actor)
+			{
+				ALandscapeProxy* LandscapeProxy = Cast<ALandscapeProxy>(Actor);
+				if (LandscapeProxy)
+				{
+					LandscapeActors.Add(LandscapeProxy);
+				}
+				else 
+				{
+					Actors.Add(Actor);
+				}
+			}
+		}
+
+		// Check if we can simplify this level
+		IMeshMerging* MeshMerging = MeshUtilities.GetMeshMergingInterface();
+		if (MeshMerging == nullptr && LandscapeActors.Num() == 0)
+		{
+			continue;
+		}
+							
 		// We have to make original level visible, to correctly export it
 		const bool bVisibleLevel = TileModel->IsVisible();
 		if (!bVisibleLevel)
@@ -1918,42 +1937,31 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 		};
 
 		TArray<FAssetToSpawnInfo>	AssetsToSpawn;
-		TArray<AActor*>				Actors;
-		TArray<ALandscapeProxy*>	LandscapeActors;
 		TArray<UObject*>			GeneratedAssets;
 		
 		// Where generated assets will be stored
 		UPackage* AssetsOuter = SimplificationDetails.bCreatePackagePerAsset ? nullptr : LODPackage;
 		// In case we don't have outer generated assets should have same path as LOD level
 		const FString AssetsPath = AssetsOuter ? TEXT("") : FPackageName::GetLongPackagePath(LODLevelPackageName) + TEXT("/");
-		
-		// Separate landscape actors from all others
-		for (AActor* Actor : TileModel->GetLevelObject()->Actors)
-		{
-			if (Actor)
-			{
-				ALandscapeProxy* LandscapeProxy = Cast<ALandscapeProxy>(Actor);
-				if (LandscapeProxy)
-				{
-					LandscapeActors.Add(LandscapeProxy);
-				}
-				else 
-				{
-					Actors.Add(Actor);
-				}
-			}
-		}
 	
 		// Generate Proxy LOD mesh for all actors excluding landscapes
-		if (Actors.Num())
+		if (Actors.Num() && MeshMerging != nullptr)
 		{
 			GWarn->StatusUpdate(0, 10, LOCTEXT("GeneratingProxyMesh", "Generating Proxy Mesh"));
 
 			FMeshProxySettings ProxySettings;
 			ProxySettings.ScreenSize = ProxySettings.ScreenSize*(SimplificationDetails.DetailsPercentage/100.f);
+			ProxySettings.TextureWidth = 1024; // TODO: Expose texture size
+			ProxySettings.TextureHeight = 1024;
+			ProxySettings.bExportNormalMap = SimplificationDetails.bGenerateMeshNormalMap;
+			ProxySettings.bExportMetallicMap = SimplificationDetails.bGenerateMeshMetallicMap;
+			ProxySettings.bExportRoughnessMap = SimplificationDetails.bGenerateMeshRoughnessMap;
+			ProxySettings.bExportSpecularMap = SimplificationDetails.bGenerateMeshSpecularMap;
+
 			TArray<UObject*> OutAssets;
 			FVector OutProxyLocation;
-			FString ProxyPackageName = TEXT("PROXY_") + FPackageName::GetShortName(TileModel->TileDetails->PackageName);
+			FString ProxyPackageName = FString::Printf(TEXT("PROXY_%s_LOD%d"), *FPackageName::GetShortName(TileModel->TileDetails->PackageName), TargetLODIndex + 1);
+			
 			// Generate proxy mesh and proxy material assets
 			MeshUtilities.CreateProxyMesh(Actors, ProxySettings, AssetsOuter, AssetsPath + ProxyPackageName, OutAssets, OutProxyLocation);
 		
@@ -1980,8 +1988,14 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			FRawMesh LandscapeRawMesh;
 			FFlattenMaterial LandscapeFlattenMaterial;
 			FVector LandscapeWorldLocation = Landscape->GetActorLocation();
+			
+			int32 LandscapeLOD = SimplificationDetails.LandscapeExportLOD;
+			if (!SimplificationDetails.bOverrideLandscapeExportLOD)
+			{
+				LandscapeLOD = Landscape->MaxLODLevel >= 0 ? Landscape->MaxLODLevel : FMath::CeilLogTwo(Landscape->SubsectionSizeQuads + 1) - 1;
+			}
 		
-			Landscape->ExportToRawMesh(SimplificationDetails.LandscapeExportLOD, LandscapeRawMesh);
+			Landscape->ExportToRawMesh(LandscapeLOD, LandscapeRawMesh);
 		
 			for (FVector& VertexPos : LandscapeRawMesh.VertexPositions)
 			{
@@ -2027,7 +2041,7 @@ bool FWorldTileCollectionModel::GenerateLODLevels(FLevelModelList InLevelList, i
 			{
 				Landscape->FlushGrassComponents(); // wipe this and let it fix itself later
 			}
-			FString LandscapeBaseAssetName = Landscape->GetName();
+			FString LandscapeBaseAssetName = FString::Printf(TEXT("%s_LOD%d"), *Landscape->GetName(), TargetLODIndex + 1);
 			// Construct landscape material
 			UMaterial* StaticLandscapeMaterial = MaterialExportUtils::CreateMaterial(
 				LandscapeFlattenMaterial, AssetsOuter, *(AssetsPath + LandscapeBaseAssetName), RF_Public|RF_Standalone, GeneratedAssets);

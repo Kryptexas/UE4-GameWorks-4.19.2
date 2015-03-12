@@ -162,8 +162,13 @@ FArchive& operator<<( FArchive& Ar, FPrecomputedVolumeDistanceField& D )
 }
 
 FLevelSimplificationDetails::FLevelSimplificationDetails()
- : DetailsPercentage(70.f)
- , bCreatePackagePerAsset(true)
+ : bCreatePackagePerAsset(true)
+ , DetailsPercentage(70.f)
+ , bGenerateMeshNormalMap(true)
+ , bGenerateMeshMetallicMap(false)
+ , bGenerateMeshRoughnessMap(false)
+ , bGenerateMeshSpecularMap(false)
+ , bOverrideLandscapeExportLOD(false)
  , LandscapeExportLOD(7)
  , bGenerateLandscapeNormalMap(true)
  , bGenerateLandscapeMetallicMap(false)
@@ -177,8 +182,13 @@ FLevelSimplificationDetails::FLevelSimplificationDetails()
 bool FLevelSimplificationDetails::operator == (const FLevelSimplificationDetails& Other) const
 {
 	return
-		DetailsPercentage == Other.DetailsPercentage &&
 		bCreatePackagePerAsset == Other.bCreatePackagePerAsset &&
+		DetailsPercentage == Other.DetailsPercentage &&
+		bGenerateMeshNormalMap == Other.bGenerateMeshNormalMap &&
+		bGenerateMeshMetallicMap == Other.bGenerateMeshMetallicMap &&
+		bGenerateMeshRoughnessMap == Other.bGenerateMeshRoughnessMap &&
+		bGenerateMeshSpecularMap == Other.bGenerateMeshSpecularMap &&
+		bOverrideLandscapeExportLOD == Other.bOverrideLandscapeExportLOD &&
 		LandscapeExportLOD == Other.LandscapeExportLOD &&
 		bGenerateLandscapeNormalMap == Other.bGenerateLandscapeNormalMap &&
 		bGenerateLandscapeMetallicMap == Other.bGenerateLandscapeMetallicMap &&
