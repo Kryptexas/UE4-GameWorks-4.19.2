@@ -534,7 +534,12 @@ int32 FSwarmInterfaceLocalImpl::EndJobSpecification( void )
 	{
 		FString Parameters = FString(JobSpecification.Parameters) + (FApp::IsEngineInstalled() ? TEXT(" -installed") : TEXT(""));
 		LightmassProcHandle = FPlatformProcess::CreateProc( JobSpecification.ExecutableName, *Parameters, true, false, false, NULL, 0, NULL, NULL);
-		return LightmassProcHandle.Close() ? 0 : SWARM_ERROR_CONNECTION_DISCONNECTED;
+		if (LightmassProcHandle.IsValid())
+		{
+			FPlatformProcess::CloseProc(LightmassProcHandle);
+			return 0;
+		}
+		return SWARM_ERROR_CONNECTION_DISCONNECTED;
 	}
 #endif
 	return 0;

@@ -480,7 +480,7 @@ class FTextureFormatPVR : public ITextureFormat
 			{
 				FPlatformProcess::Sleep(0.01f);
 			}
-			Proc.Close();
+			FPlatformProcess::CloseProc(Proc);
 
 			// Did it fail?
 			if ( ReturnCode != 0 )

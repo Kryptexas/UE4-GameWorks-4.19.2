@@ -415,7 +415,7 @@ struct FShaderCompileWorkerInfo
 		if(WorkerProcess.IsValid())
 		{
 			FPlatformProcess::TerminateProc(WorkerProcess);
-			WorkerProcess.Close();
+			FPlatformProcess::CloseProc(WorkerProcess);
 		}
 	}
 
@@ -2611,7 +2611,7 @@ FShaderCompileXGEThreadRunnable::~FShaderCompileXGEThreadRunnable()
 		// We still have a build in progress.
 		// Kill it...
 		FPlatformProcess::TerminateProc(BuildProcessHandle);
-		BuildProcessHandle.Close();
+		FPlatformProcess::CloseProc(BuildProcessHandle);
 	}
 
 	// Clean up any intermediate files/directories we've got left over.
@@ -2935,7 +2935,7 @@ int32 FShaderCompileXGEThreadRunnable::CompilingLoop()
 			}
 
 			ShaderBatchesInFlight.Empty();
-			BuildProcessHandle.Close();
+			FPlatformProcess::CloseProc(BuildProcessHandle);
 		}
 
 		bWorkRemaining |= ShaderBatchesInFlight.Num() > 0;
@@ -3026,7 +3026,7 @@ int32 FShaderCompileXGEThreadRunnable::CompilingLoop()
 			// Start up the build monitor process to monitor for engine crashes.
 			uint32 BuildMonitorProcessID;
 			FProcHandle BuildMonitorHandle = FPlatformProcess::CreateProc(*Manager->ShaderCompileWorkerName, *FString::Printf(TEXT("-xgemonitor %d %d"), Manager->ProcessId, BuildProcessID), true, false, false, &BuildMonitorProcessID, 0, nullptr, nullptr);
-			BuildMonitorHandle.Close();
+			FPlatformProcess::CloseProc(BuildMonitorHandle);
 
 			// Reset batch counters and switch directories
 			BatchIndexToFill = 0;

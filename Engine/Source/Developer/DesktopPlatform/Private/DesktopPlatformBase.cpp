@@ -1019,7 +1019,7 @@ bool FDesktopPlatformBase::BuildUnrealBuildTool(const FString& RootDir, FOutputD
 		return false;
 	}
 	FPlatformProcess::WaitForProc(ProcHandle);
-	ProcHandle.Close();
+	FPlatformProcess::CloseProc(ProcHandle);
 
 	// If the executable appeared where we expect it, then we were successful
 	FString UnrealBuildToolExePath = GetUnrealBuildToolExecutableFilename(RootDir);

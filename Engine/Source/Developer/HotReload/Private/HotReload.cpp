@@ -1433,7 +1433,7 @@ void FHotReloadModule::CheckForFinishedModuleDLLCompile(const bool bWaitForCompl
 			ModulesThatWereBeingRecompiled.Empty();
 
 			// We're done with the process handle now
-			ModuleCompileProcessHandle.Close();
+			FPlatformProcess::CloseProc(ModuleCompileProcessHandle);
 			ModuleCompileProcessHandle.Reset();
 
 			FPlatformProcess::ClosePipe(ModuleCompileReadPipe, 0);

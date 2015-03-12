@@ -836,7 +836,7 @@ void FUnrealEdMisc::OnExit()
 
 			return;
 		}
-		Handle.Close();
+		FPlatformProcess::CloseProc(Handle);
 	}
 }
 

@@ -1764,7 +1764,7 @@ void UEditorEngine::PlayForMovieCapture()
 	{
 		UE_LOG(LogPlayLevel, Error,  TEXT("Failed to run a copy of the game for matinee capture."));
 	}
-	ProcessHandle.Close();
+	FPlatformProcess::CloseProc(ProcessHandle);
 }
 
 

@@ -1091,7 +1091,7 @@ bool FVisualStudioSourceCodeAccessor::RunVisualStudioAndOpenSolutionAndFiles(con
 
 	FProcHandle WorkerHandle = FPlatformProcess::CreateProc(*ExecutablePath, *Params, true, false, false, nullptr, 0, nullptr, nullptr);
 	bool bSuccess = WorkerHandle.IsValid();
-	WorkerHandle.Close();
+	FPlatformProcess::CloseProc(WorkerHandle);
 	return bSuccess;
 }
 
