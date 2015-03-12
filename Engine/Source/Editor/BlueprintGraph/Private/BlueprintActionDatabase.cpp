@@ -1028,6 +1028,12 @@ void FBlueprintActionDatabase::RefreshAll()
 {
 	TGuardValue<bool> ScopedInitialization(BlueprintActionDatabaseImpl::bIsInitializing, true);
 
+	// Remove callbacks from blueprints
+	for (TObjectIterator<UBlueprint> BlueprintIt; BlueprintIt; ++BlueprintIt)
+	{
+		ClearAssetActions(*BlueprintIt);
+	}
+
 	ActionRegistry.Empty();
 	for (TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt)
 	{
@@ -1040,6 +1046,8 @@ void FBlueprintActionDatabase::RefreshAll()
 		FActionList& ClassActionList = ActionRegistry.FindOrAdd(*SkeletonIt);
 		BlueprintActionDatabaseImpl::AddSkeletonActions(**SkeletonIt, ClassActionList);
 	}
+
+	FComponentTypeRegistry::Get().SubscribeToComponentList(ComponentTypes).RemoveAll(this);
 
 	// this handles creating entries for components that were loaded before the database was alive:
 	FComponentTypeRegistry::Get().SubscribeToComponentList(ComponentTypes).AddRaw(this, &FBlueprintActionDatabase::RefreshComponentActions);
