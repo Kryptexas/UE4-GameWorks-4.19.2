@@ -158,20 +158,6 @@ public:
 	/** Return Physics Volume for this Pawn **/
 	virtual APhysicsVolume* GetPawnPhysicsVolume() const;
 
-private:
-	/** (DEPRECATED) @RETURN true if Pawn is currently walking (moving along the ground) */
-	UFUNCTION(BlueprintCallable, Category="Character|Movement", meta=(DeprecatedFunction, DeprecationMessage="Query the movement component instead using IsMovingOnGround()."))
-	virtual bool IsWalking() const;
-
-	/** (DEPRECATED) @RETURN true if Pawn is currently falling */
-	UFUNCTION(BlueprintCallable, Category="Character|Movement", meta=(DeprecatedFunction, DeprecationMessage="Query the movement component instead."))
-	virtual bool IsFalling() const;
-
-	/** (DEPRECATED) @RETURN true is Pawn is currently crouched */
-	UFUNCTION(BlueprintCallable, Category="Character|Movement", meta=(DeprecatedFunction, DeprecationMessage="Query the movement component instead."))
-	virtual bool IsCrouched() const;
-
-public:
 	/** Gets the owning actor of the Movement Base Component on which the pawn is standing. */
 	UFUNCTION(BlueprintPure, Category="Pawn")
 	static AActor* GetMovementBaseActor(const APawn* Pawn);
@@ -443,6 +429,7 @@ public:
 	// DEPRECATED FUNCTIONS
 
 	/** (Deprecated) Launch Character with LaunchVelocity  */
+	DEPRECATED(4.8, "LaunchPawn is deprecated. For Characters, use LaunchCharacter() instead.")
 	UFUNCTION(BlueprintCallable, Category="Pawn", meta=(DeprecatedFunction, DeprecationMessage="Use Character.LaunchCharacter instead"))
 	void LaunchPawn(FVector LaunchVelocity, bool bXYOverride, bool bZOverride);
 

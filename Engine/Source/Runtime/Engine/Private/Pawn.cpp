@@ -948,24 +948,6 @@ void APawn::LaunchPawn(FVector LaunchVelocity, bool bXYOverride, bool bZOverride
 	}
 }
 
-bool APawn::IsWalking() const
-{
-	// @todo: Deprecated, remove
-	return GetMovementComponent() ? GetMovementComponent()->IsMovingOnGround() : false;
-}
-
-bool APawn::IsFalling() const
-{
-	// @todo: Deprecated, remove
-	return GetMovementComponent() ? GetMovementComponent()->IsFalling() : false;
-}
-
-bool APawn::IsCrouched() const
-{
-	// @todo: Deprecated, remove
-	return GetMovementComponent() ? GetMovementComponent()->IsCrouching() : false;
-}
-
 // REPLICATION
 
 void APawn::PostNetReceiveVelocity(const FVector& NewVelocity)
