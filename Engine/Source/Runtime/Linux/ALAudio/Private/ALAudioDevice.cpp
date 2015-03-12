@@ -34,7 +34,7 @@ IMPLEMENT_MODULE(FALAudioDeviceModule, ALAudio );
 	UALAudioDevice constructor and UObject interface.
 ------------------------------------------------------------------------------------*/
 FALAudioDevice::FALAudioDevice()
-	, HardwareDevice(nullptr)
+	: HardwareDevice(nullptr)
 	, SoundContext(nullptr)
 {}
 
