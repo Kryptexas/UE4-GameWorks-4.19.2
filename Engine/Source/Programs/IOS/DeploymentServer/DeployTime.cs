@@ -262,7 +262,7 @@ namespace DeploymentServer
             ConnectToDevices(DelayEnumerationPeriodMS);
 
             // Keep looking at the device list and executing on new ones as long as we keep finding them
-            Dictionary<MobileDeviceInstance, bool> Runs = new Dictionary<MobileDeviceInstance, bool>();
+			Dictionary<string, bool> Runs = new Dictionary<string, bool>();
             bool bFoundNewDevices = true;
             while (bFoundNewDevices)
             {
@@ -271,16 +271,18 @@ namespace DeploymentServer
                 bFoundNewDevices = false;
                 foreach (MobileDeviceInstance PotentialDevice in Devices)
                 {
-                    if (!Runs.ContainsKey(PotentialDevice))
-                    {
-                        string DeviceName = PotentialDevice.DeviceName;
-                        if (DeviceName == String.Empty)
-                        {
-                            System.Threading.Thread.Sleep((int)SleepAfterFailedDeviceCallMS);
-                        }
+					PotentialDevice.Reconnect();
+					string DeviceId = PotentialDevice.DeviceId;
+					if (DeviceId == String.Empty)
+					{
+						System.Threading.Thread.Sleep((int)SleepAfterFailedDeviceCallMS);
+						DeviceId = PotentialDevice.DeviceId;
+					}
 
+					if (!Runs.ContainsKey(DeviceId))
+                    {
                         // New device, do the work on it
-                        Runs.Add(PotentialDevice, PerDeviceWork(PotentialDevice));
+						Runs.Add(DeviceId, PerDeviceWork(PotentialDevice));
                         bFoundNewDevices = true;
                     }
                 }
