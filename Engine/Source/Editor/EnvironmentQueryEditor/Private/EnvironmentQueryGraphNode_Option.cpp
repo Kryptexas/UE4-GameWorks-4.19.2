@@ -5,6 +5,7 @@
 #include "SGraphEditorActionMenuAI.h"
 #include "EnvironmentQuery/EnvQueryTest.h"
 #include "EnvironmentQuery/EnvQueryOption.h"
+#include "EnvironmentQuery/Generators/EnvQueryGenerator_Composite.h"
 
 #define LOCTEXT_NAMESPACE "EnvironmentQueryEditor"
 
