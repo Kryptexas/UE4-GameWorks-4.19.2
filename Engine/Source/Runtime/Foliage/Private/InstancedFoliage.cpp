@@ -1726,24 +1726,6 @@ bool AInstancedFoliageActor::HasSelectedInstances() const
 	return false;
 }
 
-void AInstancedFoliageActor::Destroyed()
-{
-	for (auto& MeshPair : FoliageMeshes)
-	{
-		UHierarchicalInstancedStaticMeshComponent* Component = MeshPair.Value->Component;
-
-		if (Component)
-		{
-			Component->ClearInstances();
-			// Save the component's PendingKill flag to restore the component if the delete is undone.
-			Component->SetFlags(RF_Transactional);
-			Component->Modify();
-		}
-	}
-
-	Super::Destroyed();
-}
-
 void AInstancedFoliageActor::PostEditUndo()
 {
 	Super::PostEditUndo();
@@ -2231,6 +2213,24 @@ void AInstancedFoliageActor::ApplyWorldOffset(const FVector& InOffset, bool bWor
 		}
 	}
 #endif
+}
+
+void AInstancedFoliageActor::Destroyed()
+{
+	for (auto& MeshPair : FoliageMeshes)
+	{
+		UHierarchicalInstancedStaticMeshComponent* Component = MeshPair.Value->Component;
+		
+		if (Component)
+		{
+			Component->ClearInstances();
+			// Save the component's PendingKill flag to restore the component if the delete is undone.
+			Component->SetFlags(RF_Transactional);
+			Component->Modify();
+		}
+	}
+	
+	Super::Destroyed();
 }
 
 bool AInstancedFoliageActor::FoliageTrace(const UWorld* InWorld, FHitResult& OutHit, const FDesiredFoliageInstance& DesiredInstance, FName InTraceTag, bool InbReturnFaceIndex)
