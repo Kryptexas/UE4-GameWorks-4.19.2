@@ -107,6 +107,12 @@ struct FLocalizationTargetSettings
 	UPROPERTY(config, EditAnywhere, Category = "Gather Configuration")
 	TArray<FString> TargetDependencies;
 
+	UPROPERTY(config, EditAnywhere, Category = "Gather Configuration", AdvancedDisplay, meta=(FilePathFilter="manifest"))
+	TArray<FFilePath> AdditionalManifestDependencies;
+
+	UPROPERTY(config, EditAnywhere, Category = "Gather Configuration", AdvancedDisplay)
+	TArray<FString> RequiredModuleNames;
+
 	UPROPERTY(config, EditAnywhere, Category = "Gather Configuration")
 	FGatherTextFromTextFilesConfiguration GatherFromTextFiles;
 
@@ -115,9 +121,6 @@ struct FLocalizationTargetSettings
 
 	UPROPERTY(config, EditAnywhere, Category = "Gather Configuration")
 	FGatherTextFromMetaDataConfiguration GatherFromMetaData;
-
-	UPROPERTY(config, EditAnywhere, Category = "Gather Configuration", AdvancedDisplay, meta=(FilePathFilter="manifest"))
-	TArray<FFilePath> AdditionalManifestDependencies;
 
 	UPROPERTY(config, EditAnywhere, Category = "Cultures")
 	FCultureStatistics NativeCultureStatistics;

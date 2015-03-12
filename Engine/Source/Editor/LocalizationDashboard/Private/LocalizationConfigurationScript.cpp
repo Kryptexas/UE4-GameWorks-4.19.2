@@ -108,6 +108,11 @@ namespace LocalizationConfigurationScript
 				ConfigSection.Add( TEXT("ManifestDependencies"), MakePathRelativeForCommandletProcess(Path.FilePath, !Target->IsMemberOfEngineTargetSet()) );
 			}
 
+			for (const FString& ModuleName : Target->Settings.RequiredModuleNames)
+			{
+				ConfigSection.Add( TEXT("ModulesToPreload"), ModuleName );
+			}
+
 			const FString SourcePath = ContentDirRelativeToGameDir / TEXT("Localization") / Target->Settings.Name;
 			ConfigSection.Add( TEXT("SourcePath"), SourcePath );
 			const FString DestinationPath = ContentDirRelativeToGameDir / TEXT("Localization") / Target->Settings.Name;
