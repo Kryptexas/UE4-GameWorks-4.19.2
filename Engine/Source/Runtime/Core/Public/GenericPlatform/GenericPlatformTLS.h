@@ -10,6 +10,16 @@
  */
 struct FGenericPlatformTLS
 {
+	/**
+	 * Return false if this is an invalid TLS slot
+	 * @param SlotIndex the TLS index to check
+	 * @return true if this looks like a valid slot
+	 */
+	static FORCEINLINE bool IsValidTlsSlot(uint32 SlotIndex)
+	{
+		return SlotIndex != 0xFFFFFFFF;
+	}
+
 #if 0 // provided for reference
 	/**
 	 * Returns the currently executing thread's id

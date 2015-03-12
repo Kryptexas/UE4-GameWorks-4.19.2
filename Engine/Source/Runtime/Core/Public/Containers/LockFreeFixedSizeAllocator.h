@@ -113,7 +113,7 @@ public:
 		static_assert(SIZE >= sizeof(void*) && SIZE % sizeof(void*) == 0, "Blocks in TLockFreeFixedSizeAllocator must be at least the size of a pointer.");
 		check(IsInGameThread());
 		TlsSlot = FPlatformTLS::AllocTlsSlot();
-		check(TlsSlot);
+		check(FPlatformTLS::IsValidTlsSlot(TlsSlot));
 	}
 	/** Destructor, leaks all of the memory **/
 	~TLockFreeFixedSizeAllocator_TLSCache()

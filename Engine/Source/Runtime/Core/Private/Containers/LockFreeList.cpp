@@ -66,7 +66,7 @@ FLockFreeVoidPointerListBase::FLinkAllocator::FLinkAllocator()
 	static_assert(sizeof(FLink) >= sizeof(void*) && sizeof(FLink) % sizeof(void*) == 0, "Blocks in TLockFreeFixedSizeAllocator must be at least the size of a pointer.");
 	check(IsInGameThread());
 	TlsSlot = FPlatformTLS::AllocTlsSlot();
-	check(TlsSlot);
+	check(FPlatformTLS::IsValidTlsSlot(TlsSlot));
 }
 FLockFreeVoidPointerListBase::FLinkAllocator::~FLinkAllocator()
 {
