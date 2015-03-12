@@ -847,7 +847,26 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 	SCOPE_CYCLE_COUNTER(STAT_CharacterMovementTick);
 
 	const FVector InputVector = ConsumeInputVector();
-	if (!HasValidData() || ShouldSkipUpdate(DeltaTime) || UpdatedComponent->IsSimulatingPhysics())
+	if (!HasValidData() || ShouldSkipUpdate(DeltaTime))
+	{
+		return;
+	}
+
+	// See if we fell out of the world.
+	const bool bIsSimulatingPhysics = UpdatedComponent->IsSimulatingPhysics();
+	if (CharacterOwner->Role == ROLE_Authority)
+	{
+		if (!bCheatFlying || bIsSimulatingPhysics)
+		{
+			if (!CharacterOwner->CheckStillInWorld())
+			{
+				return;
+			}
+		}
+	}
+
+	// We don't update if simulating physics (eg ragdolls).
+	if (bIsSimulatingPhysics)
 	{
 		return;
 	}
@@ -859,16 +878,6 @@ void UCharacterMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 
 	if (CharacterOwner->Role > ROLE_SimulatedProxy)
 	{
-		if (CharacterOwner->Role == ROLE_Authority)
-		{
-			// Check we are still in the world, and stop simulating if not.
-			const bool bStillInWorld = (bCheatFlying || CharacterOwner->CheckStillInWorld());
-			if (!bStillInWorld || !HasValidData())
-			{
-				return;
-			}
-		}
-
 		// If we are a client we might have received an update from the server.
 		const bool bIsClient = (GetNetMode() == NM_Client && CharacterOwner->Role == ROLE_AutonomousProxy);
 		if (bIsClient)
