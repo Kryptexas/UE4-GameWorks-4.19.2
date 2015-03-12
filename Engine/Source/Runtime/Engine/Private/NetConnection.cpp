@@ -647,7 +647,7 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 	LastReceiveTime = Driver->Time;
 
 	// Check packet ordering.
-	const int32 PacketId = MakeRelative(Reader.ReadInt(MAX_PACKETID),InPacketId,MAX_PACKETID);
+	const int32 PacketId = InternalAck ? InPacketId + 1 : MakeRelative(Reader.ReadInt(MAX_PACKETID),InPacketId,MAX_PACKETID);
 	if( PacketId > InPacketId )
 	{
 		const int32 PacketsLost = PacketId - InPacketId - 1;
@@ -821,8 +821,16 @@ void UNetConnection::ReceivedPacket( FBitReader& Reader )
 
 			if ( Bunch.bReliable )
 			{
-				// If this is a reliable bunch, use the last processed reliable sequence to read the new reliable sequence
-				Bunch.ChSequence = MakeRelative( Reader.ReadInt( MAX_CHSEQUENCE ), InReliable[Bunch.ChIndex], MAX_CHSEQUENCE );
+				if ( InternalAck )
+				{
+					// We can derive the sequence for 100% reliable connections
+					Bunch.ChSequence = InReliable[Bunch.ChIndex] + 1;
+				}
+				else
+				{
+					// If this is a reliable bunch, use the last processed reliable sequence to read the new reliable sequence
+					Bunch.ChSequence = MakeRelative( Reader.ReadInt( MAX_CHSEQUENCE ), InReliable[Bunch.ChIndex], MAX_CHSEQUENCE );
+				}
 			} 
 			else if ( Bunch.bPartial )
 			{
@@ -1037,7 +1045,7 @@ int32 UNetConnection::WriteBitsToSendBuffer(
 	LastStart = FBitWriterMark( SendBuffer );
 
 	// If this is the start of the queue, make sure to add the packet id
-	if ( SendBuffer.GetNumBits() == 0 )
+	if ( SendBuffer.GetNumBits() == 0 && !InternalAck )
 	{
 		SendBuffer.WriteIntWrapped( OutPacketId, MAX_PACKETID );
 		ValidateSendBuffer();
@@ -1089,7 +1097,7 @@ int64 UNetConnection::GetFreeSendBufferBits()
 	// Otherwise, we only need to account for trailer size
 	const int32 ExtraBits = ( SendBuffer.GetNumBits() > 0 ) ? MAX_PACKET_TRAILER_BITS : MAX_PACKET_HEADER_BITS + MAX_PACKET_TRAILER_BITS;
 
-	const int32 NumberOfFreeBits = ( MaxPacket * 8 ) - ( SendBuffer.GetNumBits() + ExtraBits );
+	const int32 NumberOfFreeBits = SendBuffer.GetMaxBits() - ( SendBuffer.GetNumBits() + ExtraBits );
 
 	check( NumberOfFreeBits >= 0 );
 
@@ -1181,7 +1189,7 @@ int32 UNetConnection::SendRawBunch( FOutBunch& Bunch, bool InAllowMerge )
 	Header.WriteBit( Bunch.bHasMustBeMappedGUIDs );
 	Header.WriteBit( Bunch.bPartial );
 
-	if ( Bunch.bReliable )
+	if ( Bunch.bReliable && !InternalAck )
 	{
 		Header.WriteIntWrapped(Bunch.ChSequence, MAX_CHSEQUENCE);
 	}

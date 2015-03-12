@@ -6,7 +6,14 @@
 
 FNetworkVersion::FGetLocalNetworkVersionOverride FNetworkVersion::GetLocalNetworkVersionOverride;
 FNetworkVersion::FIsNetworkCompatibleOverride FNetworkVersion::IsNetworkCompatibleOverride;
-const uint32 FNetworkVersion::InternalProtocolVersion = 2;
+
+enum ENetworkVersionHistory
+{
+	HISTORY_INITIAL				= 1,
+	HISTORY_INTERNAL_ACK		= 3				// We no longer save packet/channel sequence in stream. We can derive this for 100% reliable connections.
+};
+
+const uint32 FNetworkVersion::InternalProtocolVersion = HISTORY_INTERNAL_ACK;
 
 uint32 FNetworkVersion::GetLocalNetworkVersion()
 {
