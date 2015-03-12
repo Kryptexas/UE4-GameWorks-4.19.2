@@ -179,7 +179,7 @@ void UK2Node_Event::UpdateDelegatePin(bool bSilent)
 	UEdGraphPin* Pin = FindPinChecked(DelegateOutputName);
 	checkSlow(EGPD_Output == Pin->Direction);
 
-	const UObject* OldSignature = Pin->PinType.PinSubCategoryMemberReference.ResolveSimpleMemberReference<UFunction>();
+	const UObject* OldSignature = FMemberReference::ResolveSimpleMemberReference<UFunction>(Pin->PinType.PinSubCategoryMemberReference);
 	if (!OldSignature)
 	{
 		OldSignature = Pin->PinType.PinSubCategoryObject.Get();
@@ -198,7 +198,7 @@ void UK2Node_Event::UpdateDelegatePin(bool bSilent)
 	}
 
 	Pin->PinType.PinSubCategoryObject = NULL;
-	Pin->PinType.PinSubCategoryMemberReference.FillSimpleMemberReference<UFunction>(NewSignature);
+	FMemberReference::FillSimpleMemberReference<UFunction>(NewSignature, Pin->PinType.PinSubCategoryMemberReference);
 
 	if ((OldSignature != NewSignature) && !bSilent)
 	{

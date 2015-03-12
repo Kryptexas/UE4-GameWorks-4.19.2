@@ -3078,12 +3078,12 @@ bool UEdGraphSchema_K2::ConvertPropertyToPinType(const UProperty* Property, /*ou
 	else if (const UMulticastDelegateProperty* MulticastDelegateProperty = Cast<const UMulticastDelegateProperty>(TestProperty))
 	{
 		TypeOut.PinCategory = PC_MCDelegate;
-		TypeOut.PinSubCategoryMemberReference.FillSimpleMemberReference<UFunction>(MulticastDelegateProperty->SignatureFunction);
+		FMemberReference::FillSimpleMemberReference<UFunction>(MulticastDelegateProperty->SignatureFunction, TypeOut.PinSubCategoryMemberReference);
 	}
 	else if (const UDelegateProperty* DelegateProperty = Cast<const UDelegateProperty>(TestProperty))
 	{
 		TypeOut.PinCategory = PC_Delegate;
-		TypeOut.PinSubCategoryMemberReference.FillSimpleMemberReference<UFunction>(DelegateProperty->SignatureFunction);
+		FMemberReference::FillSimpleMemberReference<UFunction>(DelegateProperty->SignatureFunction, TypeOut.PinSubCategoryMemberReference);
 	}
 	else
 	{
@@ -3469,7 +3469,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 				return Func && (Func->HasAllFlags(RF_LoadCompleted) || !Func->HasAnyFlags(RF_NeedLoad | RF_WasLoaded));
 			};
 
-			const UFunction* OutFunction = Output.PinSubCategoryMemberReference.ResolveSimpleMemberReference<UFunction>();
+			const UFunction* OutFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Output.PinSubCategoryMemberReference);
 			if (!CanUseFunction(OutFunction))
 			{
 				OutFunction = NULL;
@@ -3483,7 +3483,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 					OutFunction = BPOwner->SkeletonGeneratedClass->FindFunctionByName(Output.PinSubCategoryMemberReference.MemberName);
 				}
 			}
-			const UFunction* InFunction = Input.PinSubCategoryMemberReference.ResolveSimpleMemberReference<UFunction>();
+			const UFunction* InFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Input.PinSubCategoryMemberReference);
 			if (!CanUseFunction(InFunction))
 			{
 				InFunction = NULL;

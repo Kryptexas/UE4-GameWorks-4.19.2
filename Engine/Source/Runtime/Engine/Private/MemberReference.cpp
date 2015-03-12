@@ -3,7 +3,10 @@
 #include "EnginePrivate.h"
 
 #include "Engine/MemberReference.h"
+
+#if WITH_EDITOR
 #include "Kismet2/BlueprintEditorUtils.h"
+#endif
 
 //////////////////////////////////////////////////////////////////////////
 // FMemberReference
@@ -11,7 +14,11 @@
 void FMemberReference::SetExternalMember(FName InMemberName, TSubclassOf<class UObject> InMemberParentClass)
 {
 	MemberName = InMemberName;
+#if WITH_EDITOR
 	MemberParentClass = (InMemberParentClass != nullptr) ? InMemberParentClass->GetAuthoritativeClass() : nullptr;
+#else
+	MemberParentClass = *InMemberParentClass;
+#endif
 	MemberScope.Empty();
 	bSelfContext = false;
 	bWasDeprecated = false;
@@ -84,6 +91,7 @@ void FMemberReference::InvalidateScope()
 	}
 }
 
+#if WITH_EDITOR
 FName FMemberReference::RefreshLocalVariableName(UClass* InSelfScope) const
 {
 	TArray<UBlueprint*> Blueprints;
@@ -318,3 +326,5 @@ UField* FMemberReference::FindRemappedField(UClass* InitialScope, FName InitialN
 
 	return NULL;
 }
+
+#endif

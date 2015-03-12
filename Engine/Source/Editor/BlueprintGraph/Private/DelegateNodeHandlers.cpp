@@ -74,7 +74,7 @@ struct FKCHandlerDelegateHelper
 			const UFunction* OrgSignature = DelegateNode->GetDelegateSignature();
 			if(const UEdGraphPin* DelegatePin = DelegateNode->GetDelegatePin())
 			{
-				const UFunction* PinSignature = DelegatePin->PinType.PinSubCategoryMemberReference.ResolveSimpleMemberReference<UFunction>();
+				const UFunction* PinSignature = FMemberReference::ResolveSimpleMemberReference<UFunction>(DelegatePin->PinType.PinSubCategoryMemberReference);
 				if (!OrgSignature || !PinSignature || !OrgSignature->IsSignatureCompatibleWith(PinSignature))
 				{
 					MessageLog.Error(*LOCTEXT("WrongDelegate", "Wrong Event Dispatcher. Refresh node @@").ToString(), DelegateNode);
@@ -259,11 +259,11 @@ void FKCHandler_CreateDelegate::RegisterNets(FKismetFunctionContext& Context, UE
 		if(NULL == OutDelegateTerm)
 		{
 			OutDelegateTerm = Context.CreateLocalTerminalFromPinAutoChooseScope(Net, Context.NetNameMap->MakeValidName(Net));
-			if (NULL == OutDelegateTerm->Type.PinSubCategoryMemberReference.ResolveSimpleMemberReference<UFunction>())
+			if (NULL == FMemberReference::ResolveSimpleMemberReference<UFunction>(OutDelegateTerm->Type.PinSubCategoryMemberReference))
 			{
-				OutDelegateTerm->Type.PinSubCategoryMemberReference.FillSimpleMemberReference<UFunction>(DelegateNode->GetDelegateSignature());
+				FMemberReference::FillSimpleMemberReference<UFunction>(DelegateNode->GetDelegateSignature(), OutDelegateTerm->Type.PinSubCategoryMemberReference);
 			}
-			if (NULL == OutDelegateTerm->Type.PinSubCategoryMemberReference.ResolveSimpleMemberReference<UFunction>())
+			if (NULL == FMemberReference::ResolveSimpleMemberReference<UFunction>(OutDelegateTerm->Type.PinSubCategoryMemberReference))
 			{
 				CompilerContext.MessageLog.Error(*LOCTEXT("UnconnectedDelegateSig", "Event Dispatcher has no signature @@").ToString(), OutPin);
 				return;

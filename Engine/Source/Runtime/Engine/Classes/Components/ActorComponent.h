@@ -146,9 +146,7 @@ public:
 	void DetermineUCSModifiedProperties();
 	void GetUCSModifiedProperties(TSet<const UProperty*>& ModifiedProperties) const;
 
-#if WITH_EDITOR
 	bool IsEditableWhenInherited() const;
-#endif
 
 	bool HasBeenCreated() const { return bHasBeenCreated; }
 	bool HasBeenInitialized() const { return bHasBeenInitialized; }

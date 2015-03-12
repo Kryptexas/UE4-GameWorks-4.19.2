@@ -1430,24 +1430,25 @@ void UActorComponent::OnRep_IsActive()
 	SetComponentTickEnabled(bIsActive);
 }
 
-#if WITH_EDITOR
 bool UActorComponent::IsEditableWhenInherited() const
 {
 	bool bCanEdit = bEditableWhenInherited;
 	if (bCanEdit)
 	{
+#if WITH_EDITOR
 		if (CreationMethod == EComponentCreationMethod::Native && !IsTemplate())
 		{
 			bCanEdit = FComponentEditorUtils::CanEditNativeComponent(this);
 		}
-		else if (CreationMethod == EComponentCreationMethod::UserConstructionScript)
+		else
+#endif
+			if (CreationMethod == EComponentCreationMethod::UserConstructionScript)
 		{
 			bCanEdit = false;
 		}
 	}
 	return bCanEdit;
 }
-#endif
 
 void UActorComponent::DetermineUCSModifiedProperties()
 {
@@ -1484,7 +1485,7 @@ void UActorComponent::DetermineUCSModifiedProperties()
 				if (!Property->Identical( DataPtr, DefaultValue))
 				{
 					UCSModifiedProperties.Add(FSimpleMemberReference());
-					UCSModifiedProperties.Last().FillSimpleMemberReference<UProperty>(Property);
+					FMemberReference::FillSimpleMemberReference<UProperty>(Property, UCSModifiedProperties.Last());
 					break;
 				}
 			}
@@ -1496,7 +1497,7 @@ void UActorComponent::GetUCSModifiedProperties(TSet<const UProperty*>& ModifiedP
 {
 	for (const FSimpleMemberReference& MemberReference : UCSModifiedProperties)
 	{
-		ModifiedProperties.Add(MemberReference.ResolveSimpleMemberReference<UProperty>());
+		ModifiedProperties.Add(FMemberReference::ResolveSimpleMemberReference<UProperty>(MemberReference));
 	}
 }
 

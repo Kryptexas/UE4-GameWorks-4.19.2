@@ -1906,7 +1906,6 @@ public:
 	bool ReplaceNativeFunction(FName InName, Native InPointer, bool bAddToFunctionRemapTable);
 #endif
 
-#if WITH_EDITOR
 	/**
 	 * If there are potentially multiple versions of this class (e.g. blueprint generated classes), this function will return the authoritative version, which should be used for references
 	 *
@@ -1916,7 +1915,6 @@ public:
 	{
 		return this;
 	}
-#endif
 
 	/**
 	 * Add a native function to the internal native function table

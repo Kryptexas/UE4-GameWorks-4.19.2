@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "Engine/Blueprint.h"
 #include "MemberReference.generated.h"
 
 /** Helper struct to allow us to redirect properties and functions through renames and additionally between classes if necessary */
@@ -95,6 +96,7 @@ public:
 		bSelfContext = bIsConsideredSelfContext;
 		bWasDeprecated = false;
 
+#if WITH_EDITOR
 		if (MemberParentClass != nullptr)
 		{
 			MemberParentClass = MemberParentClass->GetAuthoritativeClass();
@@ -105,16 +107,19 @@ public:
 		{
 			UBlueprint::GetGuidFromClassByFieldName<TFieldType>(InField->GetOwnerClass(), InField->GetFName(), MemberGuid);
 		}
+#endif
 	}
 
 	template<class TFieldType>
 	void SetFromField(const UField* InField, UClass* SelfScope)
 	{
 		FGuid FieldGuid;
+#if WITH_EDITOR
 		if (InField->GetOwnerClass())
 		{
 			UBlueprint::GetGuidFromClassByFieldName<TFieldType>(InField->GetOwnerClass(), InField->GetFName(), FieldGuid);
 		}
+#endif
 
 		SetGivenSelfScope(InField->GetFName(), FieldGuid, InField->GetOwnerClass(), SelfScope);
 	}
@@ -125,7 +130,9 @@ public:
 	{
 		if ((MemberParentClass != NULL) && (SelfScope != NULL))
 		{
+#if WITH_EDITOR
 			UBlueprint::GetGuidFromClassByFieldName<TFieldType>((MemberParentClass ? *MemberParentClass : SelfScope), MemberName, MemberGuid);
+#endif
 			SetGivenSelfScope(MemberName, MemberGuid, MemberParentClass, SelfScope);
 		}
 		else
@@ -183,12 +190,14 @@ public:
 		return !MemberScope.IsEmpty();
 	}
 private:
+#if WITH_EDITOR
 	/**
 	 * Refreshes a local variable reference name if it has changed
 	 *
 	 * @param InSelfScope		Scope to lookup the variable in, to see if it has changed
 	 */
 	ENGINE_API FName RefreshLocalVariableName(UClass* InSelfScope) const;
+#endif
 
 protected:
 	/** Only intended for backwards compat! */
@@ -244,6 +253,7 @@ public:
 			// Find in target scope
 			ReturnField = FindField<TFieldType>(MemberScopeStruct, MemberName);
 
+#if WITH_EDITOR
 			if(ReturnField == NULL)
 			{
 				// If the property was not found, refresh the local variable name and try again
@@ -253,11 +263,13 @@ public:
 					ReturnField = FindField<TFieldType>(MemberScopeStruct, MemberName);
 				}
 			}
+#endif
 		}
 		else
 		{
 			// Look for remapped member
 			UClass* TargetScope = bSelfContext ? SelfScope : (UClass*)MemberParentClass;
+#if WITH_EDITOR
 			if( TargetScope != NULL &&  !GIsSavingPackage )
 			{
 				ReturnField = Cast<TFieldType>(FindRemappedField(TargetScope, MemberName, true));
@@ -282,11 +294,14 @@ public:
 					}
 				}	
 			}
-			else if(TargetScope != NULL)
+			else
+#endif
+				if(TargetScope != NULL)
 			{
 				// Find in target scope
 				ReturnField = FindField<TFieldType>(TargetScope, MemberName);
 
+#if WITH_EDITOR
 				// If we have a GUID find the reference variable and make sure the name is up to date and find the field again
 				// For now only variable references will have valid GUIDs.  Will have to deal with finding other names subsequently
 				if (ReturnField == NULL && MemberGuid.IsValid())
@@ -298,6 +313,7 @@ public:
 						ReturnField = FindField<TFieldType>(TargetScope, MemberName);
 					}
 				}
+#endif
 			}
 			else
 			{
@@ -326,6 +342,7 @@ public:
 		return ResolveMember<TFieldType>(SelfScope->SkeletonGeneratedClass);
 	}
 
+#if WITH_EDITOR
 	/**
 	 * Searches the field redirect map for the specified named field in the scope, and returns the remapped field if found
 	 *
@@ -364,65 +381,30 @@ protected:
 	 * @return	Whether or not a remap was found in the specified scope
 	 */
 	static bool FindReplacementFieldName(UClass* Class, FName FieldName, FFieldRemapInfo& RemapInfo);
+#endif
 
-};
-
-USTRUCT()
-struct FSimpleMemberReference
-{
-	GENERATED_USTRUCT_BODY()
-
-	FSimpleMemberReference()
-	{
-	}
-
-	/** Class that this member is defined in. */
-	UPROPERTY()
-	TSubclassOf<class UObject> MemberParentClass;
-
-	/** Name of the member */
-	UPROPERTY()
-	FName MemberName;
-
-	/** The Guid of the member */
-	UPROPERTY()
-	FGuid MemberGuid;
-
-	void Reset()
-	{
-		operator=(FSimpleMemberReference());
-	}
-
-	bool operator==(const FSimpleMemberReference& Other) const
-	{
-		return (MemberParentClass == Other.MemberParentClass)
-			&& (MemberName == Other.MemberName)
-			&& (MemberGuid == Other.MemberGuid);
-	}
-
+public:
 	template<class TFieldType>
-	void FillSimpleMemberReference(const UField* InField)
+	static void FillSimpleMemberReference(const UField* InField, FSimpleMemberReference& OutReference)
 	{
+		OutReference.Reset();
+
 		if (InField)
 		{
 			FMemberReference TempMemberReference;
 			TempMemberReference.SetFromField<TFieldType>(InField, false);
 
-			MemberName = TempMemberReference.GetMemberName();
-			MemberParentClass = TempMemberReference.GetMemberParentClass();
-			MemberGuid = TempMemberReference.GetMemberGuid();
-		}
-		else
-		{
-			Reset();
+			OutReference.MemberName = TempMemberReference.MemberName;
+			OutReference.MemberParentClass = TempMemberReference.MemberParentClass;
+			OutReference.MemberGuid = TempMemberReference.MemberGuid;
 		}
 	}
 
 	template<class TFieldType>
-	TFieldType* ResolveSimpleMemberReference() const
+	static TFieldType* ResolveSimpleMemberReference(const FSimpleMemberReference& Reference)
 	{
 		FMemberReference TempMemberReference;
-		TempMemberReference.SetDirect(MemberName, MemberGuid, MemberParentClass, false);
+		TempMemberReference.SetDirect(Reference.MemberName, Reference.MemberGuid, Reference.MemberParentClass, false);
 		return TempMemberReference.ResolveMember<TFieldType>((UClass*)NULL);
 	}
 };
