@@ -64,7 +64,14 @@ void UEnvQueryGenerator_Composite::VerifyItemTypes()
 		}
 	}
 
-	ItemType = bHasMatchingItemType ? CommonItemType : UEnvQueryItemType_Point::StaticClass();
+	if (bHasMatchingItemType)
+	{
+		ItemType = CommonItemType;
+	}
+	else
+	{
+		ItemType = UEnvQueryItemType_Point::StaticClass();
+	}
 }
 
 #undef LOCTEXT_NAMESPACE
