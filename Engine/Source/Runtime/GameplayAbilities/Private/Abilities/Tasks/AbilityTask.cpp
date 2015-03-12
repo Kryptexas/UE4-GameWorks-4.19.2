@@ -184,6 +184,17 @@ bool UAbilityTask::IsForRemoteClient() const
 	return false;
 }
 
+bool UAbilityTask::IsLocallyControlled() const
+{
+	UGameplayAbility* MyAbility = Ability.Get();
+	if (MyAbility && MyAbility->GetCurrentActorInfo()->OwnerActor.IsValid())
+	{
+		return MyAbility->GetCurrentActorInfo()->IsLocallyControlled();
+	}
+
+	return false;
+}
+
 bool UAbilityTask::CallOrAddReplicatedDelegate(EAbilityGenericReplicatedEvent::Type Event, FSimpleMulticastDelegate::FDelegate Delegate)
 {
 	return AbilitySystemComponent->CallOrAddReplicatedDelegate(Event, GetAbilitySpecHandle(), GetActivationPredictionKey(), Delegate);

@@ -148,7 +148,10 @@ class GAMEPLAYABILITIES_API UAbilityTask : public UObject
 	/** Returns true if we are executing the ability on the server for a non locally controlled client */
 	bool IsForRemoteClient() const;
 
-protected:	
+	/** Returns true if we are executing the ability on the locally controlled client */
+	bool IsLocallyControlled() const;
+
+protected:
 
 	/** End and CleanUp the task - may be called by the task itself or by the owning ability if the ability is ending. Do NOT call directly! Call EndTask() or AbilityEnded() */
 	virtual void OnDestroy(bool AbilityIsEnding);
