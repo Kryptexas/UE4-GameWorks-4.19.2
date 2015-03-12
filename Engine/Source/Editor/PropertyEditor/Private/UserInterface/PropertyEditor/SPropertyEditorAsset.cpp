@@ -83,8 +83,17 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 		ObjectClass = ObjectProperty->PropertyClass;
 		bIsActor = ObjectProperty->PropertyClass->IsChildOf( AActor::StaticClass() );
 
-		FString ClassFilterString = NodeProperty->GetMetaData("AllowedClasses");
-		if(ClassFilterString.IsEmpty())
+		FString ClassFilterString;
+		if ( UArrayProperty* ArrayParent = Cast<UArrayProperty>(NodeProperty->GetOuter()) )
+		{
+			ClassFilterString = ArrayParent->GetMetaData("AllowedClasses");
+		}
+		else
+		{
+			ClassFilterString = NodeProperty->GetMetaData("AllowedClasses");
+		}
+
+		if ( ClassFilterString.IsEmpty() )
 		{
 			CustomClassFilters.Add(ObjectClass);
 		}
@@ -98,13 +107,30 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 				const FString& ClassName = *It;
 
 				UClass* Class = FindObject<UClass>(ANY_PACKAGE, *ClassName);
-				if(!Class)
+				
+				if ( !Class )
 				{
 					Class = LoadObject<UClass>(nullptr, *ClassName);
 				}
-				if(Class)
+
+				if ( Class )
 				{
-					CustomClassFilters.Add(Class);
+					// If the class is an interface, expand it to be all classes in memory that implement the class.
+					if ( Class->HasAnyClassFlags(CLASS_Interface) )
+					{
+						for ( TObjectIterator<UClass> ClassIt; ClassIt; ++ClassIt )
+						{
+							UClass* const ClassWithInterface = ( *ClassIt );
+							if ( ClassWithInterface->ImplementsInterface(Class) )
+							{
+								CustomClassFilters.Add(ClassWithInterface);
+							}
+						}
+					}
+					else
+					{
+						CustomClassFilters.Add(Class);
+					}
 				}
 			}
 		}
@@ -124,7 +150,7 @@ void SPropertyEditorAsset::Construct( const FArguments& InArgs, const TSharedPtr
 	{
 		NewAssetFactories = InArgs._NewAssetFactories.GetValue();
 	}
-	else if (ObjectClass->GetClass() != UObject::StaticClass())
+	else if (ObjectClass != UObject::StaticClass())
 	{
 		TArray<const UClass*> AllowedClasses;
 		AllowedClasses.Add(ObjectClass);
