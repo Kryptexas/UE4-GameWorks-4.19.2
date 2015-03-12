@@ -140,13 +140,14 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
+	bool IsMemberOfEngineTargetSet() const;
 	bool UpdateWordCountsFromCSV();
 	void UpdateStatusFromConflictReport();
 	bool RenameTargetAndFiles(const FString& NewName);
 	bool DeleteFiles(const FString* const Culture = nullptr) const;
 };
 
-UCLASS(Config=Game, defaultconfig)
+UCLASS(Config=Localization, perObjectConfig, defaultconfig)
 class ULocalizationTargetSet : public UObject
 {
 	GENERATED_BODY()
@@ -154,6 +155,9 @@ class ULocalizationTargetSet : public UObject
 public:
 	UPROPERTY(EditAnywhere, Category = "Targets")
 	TArray<ULocalizationTarget*> TargetObjects;
+
+	static FName EngineTargetSetName;
+	static FName ProjectTargetSetName;
 
 private:
 	UPROPERTY(config)

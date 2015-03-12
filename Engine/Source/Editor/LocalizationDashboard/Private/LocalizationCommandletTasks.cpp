@@ -13,18 +13,20 @@ bool LocalizationCommandletTasks::GatherTargets(const TSharedRef<SWindow>& Paren
 
 	for (ULocalizationTarget* Target : Targets)
 	{
+		const bool ShouldUseProjectFile = !Target->IsMemberOfEngineTargetSet();
+
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("TargetName"), FText::FromString(Target->Settings.Name));
 
 		const FText GatherTaskName = FText::Format(LOCTEXT("GatherTaskNameFormat", "Gather Text for {TargetName}"), Arguments);
 		const FString GatherScriptPath = LocalizationConfigurationScript::GetGatherScriptPath(Target);
 		LocalizationConfigurationScript::GenerateGatherScript(Target).Write(GatherScriptPath);
-		Tasks.Add(LocalizationCommandletExecution::FTask(GatherTaskName, GatherScriptPath));
+		Tasks.Add(LocalizationCommandletExecution::FTask(GatherTaskName, GatherScriptPath, ShouldUseProjectFile));
 
 		const FText ReportTaskName = FText::Format(LOCTEXT("ReportTaskNameFormat", "Generate Reports for {TargetName}"), Arguments);
 		const FString ReportScriptPath = LocalizationConfigurationScript::GetReportScriptPath(Target);
 		LocalizationConfigurationScript::GenerateReportScript(Target).Write(ReportScriptPath);
-		Tasks.Add(LocalizationCommandletExecution::FTask(ReportTaskName, ReportScriptPath));
+		Tasks.Add(LocalizationCommandletExecution::FTask(ReportTaskName, ReportScriptPath, ShouldUseProjectFile));
 	}
 
 	return LocalizationCommandletExecution::Execute(ParentWindow, LOCTEXT("GatherAllTargetsWindowTitle", "Gather Text for All Targets"), Tasks);
@@ -33,14 +35,15 @@ bool LocalizationCommandletTasks::GatherTargets(const TSharedRef<SWindow>& Paren
 bool LocalizationCommandletTasks::GatherTarget(const TSharedRef<SWindow>& ParentWindow, ULocalizationTarget* const Target)
 {
 	TArray<LocalizationCommandletExecution::FTask> Tasks;
+	const bool ShouldUseProjectFile = !Target->IsMemberOfEngineTargetSet();
 
 	const FString GatherScriptPath = LocalizationConfigurationScript::GetGatherScriptPath(Target);
 	LocalizationConfigurationScript::GenerateGatherScript(Target).Write(GatherScriptPath);
-	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("GatherTaskName", "Gather Text"), GatherScriptPath));
+	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("GatherTaskName", "Gather Text"), GatherScriptPath, ShouldUseProjectFile));
 
 	const FString ReportScriptPath = LocalizationConfigurationScript::GetReportScriptPath(Target);
 	LocalizationConfigurationScript::GenerateReportScript(Target).Write(ReportScriptPath);
-	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ReportTaskName", "Generate Reports"), ReportScriptPath));
+	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ReportTaskName", "Generate Reports"), ReportScriptPath, ShouldUseProjectFile));
 
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("TargetName"), FText::FromString(Target->Settings.Name));
@@ -56,6 +59,8 @@ bool LocalizationCommandletTasks::ImportTargets(const TSharedRef<SWindow>& Paren
 
 	for (ULocalizationTarget* Target : Targets)
 	{
+		const bool ShouldUseProjectFile = !Target->IsMemberOfEngineTargetSet();
+
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("TargetName"), FText::FromString(Target->Settings.Name));
 
@@ -63,12 +68,12 @@ bool LocalizationCommandletTasks::ImportTargets(const TSharedRef<SWindow>& Paren
 		const FString ImportScriptPath = LocalizationConfigurationScript::GetImportScriptPath(Target, TOptional<FString>());
 		const TOptional<FString> DirectoryPathForTarget = DirectoryPath.IsSet() ? DirectoryPath.GetValue() / Target->Settings.Name : TOptional<FString>();
 		LocalizationConfigurationScript::GenerateImportScript(Target, TOptional<FString>(), DirectoryPathForTarget).Write(ImportScriptPath);
-		Tasks.Add(LocalizationCommandletExecution::FTask(ImportTaskName, ImportScriptPath));
+		Tasks.Add(LocalizationCommandletExecution::FTask(ImportTaskName, ImportScriptPath, ShouldUseProjectFile));
 
 		const FText ReportTaskName = FText::Format(LOCTEXT("ReportTaskNameFormat", "Generate Reports for {TargetName}"), Arguments);
 		const FString ReportScriptPath = LocalizationConfigurationScript::GetReportScriptPath(Target);
 		LocalizationConfigurationScript::GenerateReportScript(Target).Write(ReportScriptPath);
-		Tasks.Add(LocalizationCommandletExecution::FTask(ReportTaskName, ReportScriptPath));
+		Tasks.Add(LocalizationCommandletExecution::FTask(ReportTaskName, ReportScriptPath, ShouldUseProjectFile));
 	}
 
 	return LocalizationCommandletExecution::Execute(ParentWindow, LOCTEXT("ImportForAllTargetsWindowTitle", "Import Translations for All Targets"), Tasks);
@@ -77,14 +82,15 @@ bool LocalizationCommandletTasks::ImportTargets(const TSharedRef<SWindow>& Paren
 bool LocalizationCommandletTasks::ImportTarget(const TSharedRef<SWindow>& ParentWindow, ULocalizationTarget* const Target, const TOptional<FString> DirectoryPath)
 {
 	TArray<LocalizationCommandletExecution::FTask> Tasks;
+	const bool ShouldUseProjectFile = !Target->IsMemberOfEngineTargetSet();
 
 	const FString ImportScriptPath = LocalizationConfigurationScript::GetImportScriptPath(Target, TOptional<FString>());
 	LocalizationConfigurationScript::GenerateImportScript(Target, TOptional<FString>(), DirectoryPath).Write(ImportScriptPath);
-	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ImportTaskName", "Import Translations"), ImportScriptPath));
+	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ImportTaskName", "Import Translations"), ImportScriptPath, ShouldUseProjectFile));
 
 	const FString ReportScriptPath = LocalizationConfigurationScript::GetReportScriptPath(Target);
 	LocalizationConfigurationScript::GenerateReportScript(Target).Write(ReportScriptPath);
-	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ReportTaskName", "Generate Reports"), ReportScriptPath));
+	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ReportTaskName", "Generate Reports"), ReportScriptPath, ShouldUseProjectFile));
 
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("TargetName"), FText::FromString(Target->Settings.Name));
@@ -102,15 +108,16 @@ bool LocalizationCommandletTasks::ImportCulture(const TSharedRef<SWindow>& Paren
 	}
 
 	TArray<LocalizationCommandletExecution::FTask> Tasks;
+	const bool ShouldUseProjectFile = !Target->IsMemberOfEngineTargetSet();
 
 	const FString DefaultImportScriptPath = LocalizationConfigurationScript::GetImportScriptPath(Target, TOptional<FString>(CultureName));
 	const FString ImportScriptPath = FPaths::CreateTempFilename(*FPaths::GetPath(DefaultImportScriptPath), *FPaths::GetBaseFilename(DefaultImportScriptPath), *FPaths::GetExtension(DefaultImportScriptPath, true));
 	LocalizationConfigurationScript::GenerateImportScript(Target, TOptional<FString>(CultureName), FilePath).Write(ImportScriptPath);
-	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ImportTaskName", "Import Translations"), ImportScriptPath));
+	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ImportTaskName", "Import Translations"), ImportScriptPath, ShouldUseProjectFile));
 
 	const FString ReportScriptPath = LocalizationConfigurationScript::GetReportScriptPath(Target);
 	LocalizationConfigurationScript::GenerateReportScript(Target).Write(ReportScriptPath);
-	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ReportTaskName", "Generate Reports"), ReportScriptPath));
+	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ReportTaskName", "Generate Reports"), ReportScriptPath, ShouldUseProjectFile));
 
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("CultureName"), FText::FromString(Culture->GetDisplayName()));
@@ -130,6 +137,8 @@ bool LocalizationCommandletTasks::ExportTargets(const TSharedRef<SWindow>& Paren
 
 	for (ULocalizationTarget* Target : Targets)
 	{
+		const bool ShouldUseProjectFile = !Target->IsMemberOfEngineTargetSet();
+
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("TargetName"), FText::FromString(Target->Settings.Name));
 
@@ -137,7 +146,7 @@ bool LocalizationCommandletTasks::ExportTargets(const TSharedRef<SWindow>& Paren
 		const FString ExportScriptPath = LocalizationConfigurationScript::GetExportScriptPath(Target, TOptional<FString>());
 		const TOptional<FString> DirectoryPathForTarget = DirectoryPath.IsSet() ? DirectoryPath.GetValue() / Target->Settings.Name : TOptional<FString>();
 		LocalizationConfigurationScript::GenerateExportScript(Target, TOptional<FString>(), DirectoryPathForTarget).Write(ExportScriptPath);
-		Tasks.Add(LocalizationCommandletExecution::FTask(ExportTaskName, ExportScriptPath));
+		Tasks.Add(LocalizationCommandletExecution::FTask(ExportTaskName, ExportScriptPath, ShouldUseProjectFile));
 	}
 
 	return LocalizationCommandletExecution::Execute(ParentWindow, LOCTEXT("ExportForAllTargetsWindowTitle", "Export Translations for All Targets"), Tasks);
@@ -146,10 +155,11 @@ bool LocalizationCommandletTasks::ExportTargets(const TSharedRef<SWindow>& Paren
 bool LocalizationCommandletTasks::ExportTarget(const TSharedRef<SWindow>& ParentWindow, ULocalizationTarget* const Target, const TOptional<FString> DirectoryPath)
 {
 	TArray<LocalizationCommandletExecution::FTask> Tasks;
+	const bool ShouldUseProjectFile = !Target->IsMemberOfEngineTargetSet();
 
 	const FString ExportScriptPath = LocalizationConfigurationScript::GetExportScriptPath(Target, TOptional<FString>());
 	LocalizationConfigurationScript::GenerateExportScript(Target, TOptional<FString>(), DirectoryPath).Write(ExportScriptPath);
-	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ExportTaskName", "Export Translations"), ExportScriptPath));
+	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ExportTaskName", "Export Translations"), ExportScriptPath, ShouldUseProjectFile));
 
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("TargetName"), FText::FromString(Target->Settings.Name));
@@ -167,11 +177,12 @@ bool LocalizationCommandletTasks::ExportCulture(const TSharedRef<SWindow>& Paren
 	}
 
 	TArray<LocalizationCommandletExecution::FTask> Tasks;
+	const bool ShouldUseProjectFile = !Target->IsMemberOfEngineTargetSet();
 
 	const FString DefaultExportScriptPath = LocalizationConfigurationScript::GetExportScriptPath(Target, TOptional<FString>(CultureName));
 	const FString ExportScriptPath = FPaths::CreateTempFilename(*FPaths::GetPath(DefaultExportScriptPath), *FPaths::GetBaseFilename(DefaultExportScriptPath), *FPaths::GetExtension(DefaultExportScriptPath, true));
 	LocalizationConfigurationScript::GenerateExportScript(Target, TOptional<FString>(CultureName), FilePath).Write(ExportScriptPath);
-	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ExportTaskName", "Export Translations"), ExportScriptPath));
+	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ExportTaskName", "Export Translations"), ExportScriptPath, ShouldUseProjectFile));
 
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("CultureName"), FText::FromString(Culture->GetDisplayName()));
@@ -190,13 +201,15 @@ bool LocalizationCommandletTasks::GenerateReportsForTargets(const TSharedRef<SWi
 
 	for (ULocalizationTarget* Target : Targets)
 	{
+		const bool ShouldUseProjectFile = !Target->IsMemberOfEngineTargetSet();
+
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("TargetName"), FText::FromString(Target->Settings.Name));
 
 		const FText ReportTaskName = FText::Format(LOCTEXT("ReportTaskNameFormat", "Generate Reports for {TargetName}"), Arguments);
 		const FString ReportScriptPath = LocalizationConfigurationScript::GetReportScriptPath(Target);
 		LocalizationConfigurationScript::GenerateReportScript(Target).Write(ReportScriptPath);
-		Tasks.Add(LocalizationCommandletExecution::FTask(ReportTaskName, ReportScriptPath));
+		Tasks.Add(LocalizationCommandletExecution::FTask(ReportTaskName, ReportScriptPath, ShouldUseProjectFile));
 	}
 
 	return LocalizationCommandletExecution::Execute(ParentWindow, LOCTEXT("GenerateReportsForAllTargetsWindowTitle", "Generate Reports for All Targets"), Tasks);
@@ -205,10 +218,11 @@ bool LocalizationCommandletTasks::GenerateReportsForTargets(const TSharedRef<SWi
 bool LocalizationCommandletTasks::GenerateReportsForTarget(const TSharedRef<SWindow>& ParentWindow, ULocalizationTarget* const Target)
 {
 	TArray<LocalizationCommandletExecution::FTask> Tasks;
+	const bool ShouldUseProjectFile = !Target->IsMemberOfEngineTargetSet();
 
 	const FString ReportScriptPath = LocalizationConfigurationScript::GetReportScriptPath(Target);
 	LocalizationConfigurationScript::GenerateReportScript(Target).Write(ReportScriptPath);
-	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ReportTaskName", "Generate Reports"), ReportScriptPath));
+	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("ReportTaskName", "Generate Reports"), ReportScriptPath, ShouldUseProjectFile));
 
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("TargetName"), FText::FromString(Target->Settings.Name));
@@ -223,13 +237,15 @@ bool LocalizationCommandletTasks::CompileTargets(const TSharedRef<SWindow>& Pare
 
 	for (ULocalizationTarget* Target : Targets)
 	{
+		const bool ShouldUseProjectFile = !Target->IsMemberOfEngineTargetSet();
+
 		FFormatNamedArguments Arguments;
 		Arguments.Add(TEXT("TargetName"), FText::FromString(Target->Settings.Name));
 
 		const FText CompileTaskName = FText::Format(LOCTEXT("CompileTaskNameFormat", "Compile Translations for {TargetName}"), Arguments);
 		const FString CompileScriptPath = LocalizationConfigurationScript::GetCompileScriptPath(Target);
 		LocalizationConfigurationScript::GenerateCompileScript(Target).Write(CompileScriptPath);
-		Tasks.Add(LocalizationCommandletExecution::FTask(CompileTaskName, CompileScriptPath));
+		Tasks.Add(LocalizationCommandletExecution::FTask(CompileTaskName, CompileScriptPath, ShouldUseProjectFile));
 	}
 
 	return LocalizationCommandletExecution::Execute(ParentWindow, LOCTEXT("GenerateLocResForAllTargetsWindowTitle", "Compile Translations for All Targets"), Tasks);
@@ -238,10 +254,11 @@ bool LocalizationCommandletTasks::CompileTargets(const TSharedRef<SWindow>& Pare
 bool LocalizationCommandletTasks::CompileTarget(const TSharedRef<SWindow>& ParentWindow, ULocalizationTarget* const Target)
 {
 	TArray<LocalizationCommandletExecution::FTask> Tasks;
+	const bool ShouldUseProjectFile = !Target->IsMemberOfEngineTargetSet();
 
 	const FString CompileScriptPath = LocalizationConfigurationScript::GetCompileScriptPath(Target);
 	LocalizationConfigurationScript::GenerateCompileScript(Target).Write(CompileScriptPath);
-	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("CompileTaskName", "Compile Translations"), CompileScriptPath));
+	Tasks.Add(LocalizationCommandletExecution::FTask(LOCTEXT("CompileTaskName", "Compile Translations"), CompileScriptPath, ShouldUseProjectFile));
 
 	FFormatNamedArguments Arguments;
 	Arguments.Add(TEXT("TargetName"), FText::FromString(Target->Settings.Name));

@@ -1,4 +1,4 @@
-// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+﻿// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "LocalizationDashboardPrivatePCH.h"
 #include "ILocalizationDashboardModule.h"
@@ -16,20 +16,24 @@ class FLocalizationDashboardModule
 	: public ILocalizationDashboardModule
 {
 public:
-	FLocalizationDashboardModule()
-		: Settings(GetMutableDefault<ULocalizationTargetSet>(ULocalizationTargetSet::StaticClass()))
+	// Begin IModuleInterface interface
+	virtual void StartupModule() override
 	{
+		EngineTargetSet = NewObject<ULocalizationTargetSet>(GetTransientPackage(), ULocalizationTargetSet::EngineTargetSetName, RF_RootSet);
+		ProjectTargetSet = NewObject<ULocalizationTargetSet>(GetTransientPackage(), ULocalizationTargetSet::ProjectTargetSetName, RF_RootSet);
 		
-		for (ULocalizationTarget*& Target : Settings->TargetObjects)
+		for (ULocalizationTarget*& Target : EngineTargetSet->TargetObjects)
 		{
 			Target->UpdateStatusFromConflictReport();
 			Target->UpdateWordCountsFromCSV();
 		}
+
+		for (ULocalizationTarget*& Target : ProjectTargetSet->TargetObjects)
+		{
+			Target->UpdateStatusFromConflictReport();
+			Target->UpdateWordCountsFromCSV();
 	}
 
-	// Begin IModuleInterface interface
-	virtual void StartupModule() override
-	{
 		ServiceProviders = IModularFeatures::Get().GetModularFeatureImplementations<ILocalizationServiceProvider>("LocalizationService");
 		ServiceProviders.Insert(nullptr, 0); // "None"
 
@@ -90,7 +94,9 @@ public:
 	}
 
 private:
-	TWeakObjectPtr<ULocalizationTargetSet> Settings;
+	TWeakObjectPtr<ULocalizationTargetSet> EngineTargetSet;
+	TWeakObjectPtr<ULocalizationTargetSet> ProjectTargetSet;
+
 	TArray<ILocalizationServiceProvider*> ServiceProviders;
 	FName CurrentServiceProviderName;
 };

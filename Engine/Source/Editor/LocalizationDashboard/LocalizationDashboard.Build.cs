@@ -26,7 +26,8 @@ public class LocalizationDashboard : ModuleRules
                 "EditorStyle",
 				"DesktopPlatform",
                 "TranslationEditor",
-                "MainFrame"
+                "MainFrame",
+                "SourceControl"
 			}
 		);
 

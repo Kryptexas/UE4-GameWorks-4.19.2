@@ -168,6 +168,12 @@ void ULocalizationTarget::PostEditChangeProperty(FPropertyChangedEvent& Property
 	}
 }
 
+bool ULocalizationTarget::IsMemberOfEngineTargetSet() const
+{
+	ULocalizationTargetSet* const TargetSet = CastChecked<ULocalizationTargetSet>(GetOuter());
+	return TargetSet == FindObjectChecked<ULocalizationTargetSet>(GetTransientPackage(), *ULocalizationTargetSet::EngineTargetSetName.ToString());
+}
+
 bool ULocalizationTarget::UpdateWordCountsFromCSV()
 {
 	const FString CSVFilePath = LocalizationConfigurationScript::GetWordCountCSVPath(this);
@@ -443,6 +449,9 @@ bool ULocalizationTarget::DeleteFiles(const FString* const Culture) const
 
 	return HasCompletelySucceeded;
 }
+
+FName ULocalizationTargetSet::EngineTargetSetName = TEXT("EngineLocalizationTargetSet");
+FName ULocalizationTargetSet::ProjectTargetSetName = TEXT("ProjectLocalizationTargetSet");
 
 void ULocalizationTargetSet::PostInitProperties()
 {

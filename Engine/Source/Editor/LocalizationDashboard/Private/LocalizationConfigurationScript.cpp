@@ -6,28 +6,24 @@
 
 namespace
 {
-	bool IsMemberOfUE4TargetSet(const ULocalizationTarget* const Target)
-	{
-		return false;
-	}
-
 	FString GetConfigDir(const ULocalizationTarget* const Target)
 	{
-		return IsMemberOfUE4TargetSet(Target) ? FPaths::EngineConfigDir() : FPaths::GameConfigDir();
+		return Target->IsMemberOfEngineTargetSet() ? FPaths::EngineConfigDir() : FPaths::GameConfigDir();
 	}
 
 	FString GetContentDir(const ULocalizationTarget* const Target)
 	{
-		return IsMemberOfUE4TargetSet(Target) ? FPaths::EngineContentDir() : FPaths::GameContentDir();
+		return Target->IsMemberOfEngineTargetSet() ? FPaths::EngineContentDir() : FPaths::GameContentDir();
 	}
 }
 
 namespace LocalizationConfigurationScript
 {
-	FString MakePathRelativeToProjectDirectory(const FString& Path)
+	FString MakePathRelativeForCommandletProcess(const FString& Path, const bool IsUsingProjectFile)
 	{
 		FString Result = Path;
-		FPaths::MakePathRelativeTo(Result, *FPaths::GameDir());
+		const FString ProjectDir = !IsUsingProjectFile ? FPaths::EngineDir() : FPaths::GameDir();
+		FPaths::MakePathRelativeTo(Result, *ProjectDir);
 		return Result;
 	}
 
@@ -90,8 +86,8 @@ namespace LocalizationConfigurationScript
 	{
 		FLocalizationConfigurationScript Script;
 
-		const FString ConfigDirRelativeToGameDir = MakePathRelativeToProjectDirectory(GetConfigDir(Target));
-		const FString ContentDirRelativeToGameDir = MakePathRelativeToProjectDirectory(GetContentDir(Target));
+		const FString ConfigDirRelativeToGameDir = MakePathRelativeForCommandletProcess(GetConfigDir(Target), !Target->IsMemberOfEngineTargetSet());
+		const FString ContentDirRelativeToGameDir = MakePathRelativeForCommandletProcess(GetContentDir(Target), !Target->IsMemberOfEngineTargetSet());
 
 		// CommonSettings
 		{
@@ -103,13 +99,13 @@ namespace LocalizationConfigurationScript
 				ULocalizationTarget* const * OtherTarget = LocalizationTargetSet->TargetObjects.FindByPredicate([&TargetDependencyName](ULocalizationTarget* const OtherTarget)->bool{return OtherTarget->Settings.Name == TargetDependencyName;});
 				if (OtherTarget)
 				{
-					ConfigSection.Add( TEXT("ManifestDependencies"), MakePathRelativeToProjectDirectory(GetManifestPath(*OtherTarget)) );
+					ConfigSection.Add( TEXT("ManifestDependencies"), MakePathRelativeForCommandletProcess(GetManifestPath(*OtherTarget), !Target->IsMemberOfEngineTargetSet()) );
 				}
 			}
 
 			for (const FFilePath& Path : Target->Settings.AdditionalManifestDependencies)
 			{
-				ConfigSection.Add( TEXT("ManifestDependencies"), MakePathRelativeToProjectDirectory(Path.FilePath) );
+				ConfigSection.Add( TEXT("ManifestDependencies"), MakePathRelativeForCommandletProcess(Path.FilePath, !Target->IsMemberOfEngineTargetSet()) );
 			}
 
 			const FString SourcePath = ContentDirRelativeToGameDir / TEXT("Localization") / Target->Settings.Name;
@@ -144,7 +140,7 @@ namespace LocalizationConfigurationScript
 			}
 
 			// Exclude Paths
-			ConfigSection.Add( TEXT("ExcludePaths"), ConfigDirRelativeToGameDir / TEXT("Localization") );
+			ConfigSection.Add( TEXT("ExcludePaths"), TEXT("*/Config/Localization/*") );
 			for (const auto& ExcludePath : Target->Settings.GatherFromTextFiles.ExcludePathWildcards)
 			{
 				ConfigSection.Add( TEXT("ExcludePaths"), ExcludePath );
@@ -172,7 +168,7 @@ namespace LocalizationConfigurationScript
 			}
 
 			// Exclude Paths
-			ConfigSection.Add( TEXT("ExcludePaths"), ContentDirRelativeToGameDir / TEXT("Localization") );
+			ConfigSection.Add( TEXT("ExcludePaths"), TEXT("*/Content/Localization/*") );
 			for (const auto& ExcludePath : Target->Settings.GatherFromPackages.ExcludePathWildcards)
 			{
 				ConfigSection.Add( TEXT("ExcludePaths"), ExcludePath );
@@ -244,7 +240,7 @@ namespace LocalizationConfigurationScript
 	{
 		FLocalizationConfigurationScript Script;
 
-		const FString ContentDirRelativeToGameDir = MakePathRelativeToProjectDirectory(GetContentDir(Target));
+		const FString ContentDirRelativeToGameDir = MakePathRelativeForCommandletProcess(GetContentDir(Target), !Target->IsMemberOfEngineTargetSet());
 
 		// GatherTextStep0 - InternationalizationExport
 		{
@@ -262,12 +258,12 @@ namespace LocalizationConfigurationScript
 				// The output path for a specific culture is a file path.
 				if (CultureName.IsSet())
 				{
-					SourcePath = MakePathRelativeToProjectDirectory( FPaths::GetPath(OutputPathOverride.GetValue()) );
+					SourcePath = MakePathRelativeForCommandletProcess( FPaths::GetPath(OutputPathOverride.GetValue()), !Target->IsMemberOfEngineTargetSet() );
 				}
 				// Otherwise, it is a directory path.
 				else
 				{
-					SourcePath = MakePathRelativeToProjectDirectory( OutputPathOverride.GetValue() );
+					SourcePath = MakePathRelativeForCommandletProcess( OutputPathOverride.GetValue(), !Target->IsMemberOfEngineTargetSet() );
 				}
 			}
 			// Use the default PO file's directory path.
@@ -346,7 +342,7 @@ namespace LocalizationConfigurationScript
 	{
 		FLocalizationConfigurationScript Script;
 
-		const FString ContentDirRelativeToGameDir = MakePathRelativeToProjectDirectory(GetContentDir(Target));
+		const FString ContentDirRelativeToGameDir = MakePathRelativeForCommandletProcess(GetContentDir(Target), !Target->IsMemberOfEngineTargetSet());
 
 		// GatherTextStep0 - InternationalizationExport
 		{
@@ -367,12 +363,12 @@ namespace LocalizationConfigurationScript
 				// The output path for a specific culture is a file path.
 				if (CultureName.IsSet())
 				{
-					DestinationPath = MakePathRelativeToProjectDirectory( FPaths::GetPath(OutputPathOverride.GetValue()) );
+					DestinationPath = MakePathRelativeForCommandletProcess( FPaths::GetPath(OutputPathOverride.GetValue()), !Target->IsMemberOfEngineTargetSet() );
 				}
 				// Otherwise, it is a directory path.
 				else
 				{
-					DestinationPath = MakePathRelativeToProjectDirectory( OutputPathOverride.GetValue() );
+					DestinationPath = MakePathRelativeForCommandletProcess( OutputPathOverride.GetValue(), !Target->IsMemberOfEngineTargetSet() );
 				}
 			}
 			// Use the default PO file's directory path.
@@ -456,7 +452,7 @@ namespace LocalizationConfigurationScript
 	{
 		FLocalizationConfigurationScript Script;
 
-		const FString ContentDirRelativeToGameDir = MakePathRelativeToProjectDirectory(GetContentDir(Target));
+		const FString ContentDirRelativeToGameDir = MakePathRelativeForCommandletProcess(GetContentDir(Target), !Target->IsMemberOfEngineTargetSet());
 
 		// GatherTextStep0 - GenerateTextLocalizationReport
 		{
@@ -500,7 +496,7 @@ namespace LocalizationConfigurationScript
 	{
 		FLocalizationConfigurationScript Script;
 
-		const FString ContentDirRelativeToGameDir = MakePathRelativeToProjectDirectory(GetContentDir(Target));
+		const FString ContentDirRelativeToGameDir = MakePathRelativeForCommandletProcess(GetContentDir(Target), !Target->IsMemberOfEngineTargetSet());
 
 		// GatherTextStep0 - GenerateTextLocalizationResource
 		{

@@ -20,7 +20,7 @@ struct FLocalizationConfigurationScript : public FConfigFile
 
 namespace LocalizationConfigurationScript
 {
-	FString MakePathRelativeToProjectDirectory(const FString& Path);
+	FString MakePathRelativeForCommandletProcess(const FString& Path, const bool IsUsingProjectFile);
 
 	FString GetScriptDirectory(const ULocalizationTarget* const Target);
 	FString GetDataDirectory(const ULocalizationTarget* const Target);

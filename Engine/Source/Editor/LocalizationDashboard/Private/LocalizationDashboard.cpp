@@ -20,11 +20,12 @@ public:
 	SLATE_BEGIN_ARGS(SLocalizationDashboard) {}
 	SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs, const TSharedPtr<SWindow>& OwningWindow, const TSharedRef<SDockTab>& OwningTab, ULocalizationTargetSet* const TargetSet);
+	void Construct(const FArguments& InArgs, const TSharedPtr<SWindow>& OwningWindow, const TSharedRef<SDockTab>& OwningTab);
 
 	TWeakPtr<SDockTab> ShowTargetEditor(ULocalizationTarget* const LocalizationTarget);
 
 private:
+	static const FName EngineTargetSetDetailsTabName;
 	static const FName ProjectTargetSetDetailsTabName;
 	static const FName DocumentsTabName;
 
@@ -32,13 +33,12 @@ private:
 	TMap< TWeakObjectPtr<ULocalizationTarget>, TWeakPtr<SDockTab> > TargetToTabMap;
 };
 
+const FName SLocalizationDashboard::EngineTargetSetDetailsTabName("EngineTargets");
 const FName SLocalizationDashboard::ProjectTargetSetDetailsTabName("ProjectTargets");
 const FName SLocalizationDashboard::DocumentsTabName("Documents");
 
-void SLocalizationDashboard::Construct(const FArguments& InArgs, const TSharedPtr<SWindow>& OwningWindow, const TSharedRef<SDockTab>& OwningTab, ULocalizationTargetSet* const TargetSet)
+void SLocalizationDashboard::Construct(const FArguments& InArgs, const TSharedPtr<SWindow>& OwningWindow, const TSharedRef<SDockTab>& OwningTab)
 {
-	check(TargetSet);
-
 	TabManager = FGlobalTabmanager::Get()->NewTabManager(OwningTab);
 
 	const auto& PersistLayout = [](const TSharedRef<FTabManager::FLayout>& LayoutToSave)
@@ -47,10 +47,23 @@ void SLocalizationDashboard::Construct(const FArguments& InArgs, const TSharedPt
 	};
 	TabManager->SetOnPersistLayout(FTabManager::FOnPersistLayout::CreateLambda(PersistLayout));
 
-	const auto& CreateDetailsTab = [TargetSet](const FSpawnTabArgs& SpawnTabArgs) -> TSharedRef<SDockTab>
+	const auto& CreateDetailsTab = [](const FSpawnTabArgs& SpawnTabArgs) -> TSharedRef<SDockTab>
 	{
+		FText DockTabLabel;
+		ULocalizationTargetSet* TargetSet = nullptr;
+		if (SpawnTabArgs.GetTabId() == EngineTargetSetDetailsTabName)
+		{
+			DockTabLabel = LOCTEXT("EngineTargetsTabLabel", "Engine Targets");
+			TargetSet = FindObjectChecked<ULocalizationTargetSet>(GetTransientPackage(), TEXT("EngineLocalizationTargetSet"));
+		}
+		else if (SpawnTabArgs.GetTabId() == ProjectTargetSetDetailsTabName)
+		{
+			DockTabLabel = LOCTEXT("ProjectTargetsTabLabel", "Project Targets");
+			TargetSet = FindObjectChecked<ULocalizationTargetSet>(GetTransientPackage(), TEXT("ProjectLocalizationTargetSet"));
+		}
+
 		const TSharedRef<SDockTab> DockTab = SNew(SDockTab)
-			.Label(LOCTEXT("ProjectTargetsTabLabel", "Project Targets"));
+			.Label(DockTabLabel);
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		FDetailsViewArgs DetailsViewArgs(false, false, false, FDetailsViewArgs::ENameAreaSettings::HideNameArea, false, nullptr, false, NAME_None);
@@ -63,11 +76,14 @@ void SLocalizationDashboard::Construct(const FArguments& InArgs, const TSharedPt
 		return DockTab;
 	};
 	const TSharedRef<FWorkspaceItem> TargetSetsWorkspaceMenuCategory = TabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("TargetSetsWorkspaceMenuCategory", "Target Sets"));
+	FTabSpawnerEntry& EngineTargetSetTabSpawnerEntry = TabManager->RegisterTabSpawner(EngineTargetSetDetailsTabName, FOnSpawnTab::CreateLambda(CreateDetailsTab))
+		.SetDisplayName(LOCTEXT("EngineTargetsDetailTabSpawner", "Engine Targets"));
+	TargetSetsWorkspaceMenuCategory->AddItem(EngineTargetSetTabSpawnerEntry.AsShared());
 	FTabSpawnerEntry& ProjectTargetSetTabSpawnerEntry = TabManager->RegisterTabSpawner(ProjectTargetSetDetailsTabName, FOnSpawnTab::CreateLambda(CreateDetailsTab))
 		.SetDisplayName(LOCTEXT("ProjectTargetsDetailTabSpawner", "Project Targets"));
 	TargetSetsWorkspaceMenuCategory->AddItem(ProjectTargetSetTabSpawnerEntry.AsShared());
 
-	TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout("LocalizationDashboard_Experimental_V3")
+	TSharedRef<FTabManager::FLayout> Layout = FTabManager::NewLayout("LocalizationDashboard_Experimental_V4")
 		->AddArea
 		(
 		FTabManager::NewPrimaryArea()
@@ -76,6 +92,7 @@ void SLocalizationDashboard::Construct(const FArguments& InArgs, const TSharedPt
 		(
 		FTabManager::NewStack()
 		->SetHideTabWell(true)
+		->AddTab(EngineTargetSetDetailsTabName, ETabState::ClosedTab)
 		->AddTab(ProjectTargetSetDetailsTabName, ETabState::OpenedTab)
 		)
 		->Split
@@ -195,7 +212,7 @@ void FLocalizationDashboard::RegisterTabSpawner()
 			.Label(LOCTEXT("MainTabTitle", "Localization Dashboard"))
 			.TabRole(ETabRole::MajorTab);
 
-		DockTab->SetContent( SAssignNew(LocalizationDashboardWidget, SLocalizationDashboard, Args.GetOwnerWindow(), DockTab, GetMutableDefault<ULocalizationTargetSet>()) );
+		DockTab->SetContent( SAssignNew(LocalizationDashboardWidget, SLocalizationDashboard, Args.GetOwnerWindow(), DockTab) );
 
 		return DockTab;
 	};

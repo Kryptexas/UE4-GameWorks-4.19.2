@@ -10,14 +10,18 @@ namespace CommandletHelpers
 		check(CommandletName && FCString::Strlen(CommandletName) != 0);
 
 		FString Arguments;
-		const FString RunCommand = FString::Printf( TEXT("-run=%s"), CommandletName );
+
 		if (ProjectPath && FCString::Strlen(ProjectPath) != 0)
 		{
-			Arguments = FString::Printf( TEXT("%s %s"), ProjectPath, *RunCommand );
+			Arguments += FString(Arguments.IsEmpty() ? TEXT("") : TEXT(" ")) + ProjectPath;
 		}
+
+		const FString RunCommand = FString::Printf( TEXT("-run=%s"), CommandletName );
+		Arguments += (Arguments.IsEmpty() ? "" : " ") + RunCommand;
+
 		if (AdditionalArguments && FCString::Strlen(AdditionalArguments) != 0)
 		{
-			Arguments = FString::Printf( TEXT("%s %s"), *Arguments, AdditionalArguments );
+			Arguments += FString(Arguments.IsEmpty() ? TEXT("") : TEXT(" ")) + AdditionalArguments;
 		}
 
 		return Arguments;

@@ -108,6 +108,8 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 		if(FPaths::IsRelative(IncludePath))
 		{
 			IncludePath = FPaths::Combine( *ProjectBasePath, *IncludePath );
+			IncludePath = FPaths::ConvertRelativePathToFull(IncludePath);
+			FPaths::CollapseRelativeDirectories(IncludePath);
 		}
 
 		for (int32 SourceFileSearchIdx=0; SourceFileSearchIdx < UniqueSourceFileSearchFilters.Num(); SourceFileSearchIdx++)
@@ -149,7 +151,23 @@ int32 UGatherTextFromSourceCommandlet::Main( const FString& Params )
 	// Return if no source files were found
 	if( FilesToProcess.Num() == 0 )
 	{
-		UE_LOG(LogGatherTextFromSourceCommandlet, Error, TEXT("The GatherTextFromSource commandlet couldn't find any source files in the specified directories."));
+		FString SpecifiedDirectoriesString;
+		for (FString& IncludePath : IncludePaths)
+		{
+			SpecifiedDirectoriesString.Append(FString(SpecifiedDirectoriesString.IsEmpty() ? TEXT("") : TEXT("\n")) + FString::Printf(TEXT("+ %s"), *IncludePath));
+		}
+		for (FString& ExcludePath : ExcludePaths)
+		{
+			SpecifiedDirectoriesString.Append(FString(SpecifiedDirectoriesString.IsEmpty() ? TEXT("") : TEXT("\n")) + FString::Printf(TEXT("- %s"), *ExcludePath));
+		}
+
+		FString SourceFileSearchFiltersString;
+		for (const auto& Filter : UniqueSourceFileSearchFilters)
+		{
+			SourceFileSearchFiltersString += FString(SourceFileSearchFiltersString.IsEmpty() ? TEXT("") : TEXT(", ")) + Filter;
+		}
+
+		UE_LOG(LogGatherTextFromSourceCommandlet, Error, TEXT("The GatherTextFromSource commandlet couldn't find any source files matching (%s) in the specified directories:\n%s"), *SourceFileSearchFiltersString, *SpecifiedDirectoriesString);
 		return -1;
 	}
 
