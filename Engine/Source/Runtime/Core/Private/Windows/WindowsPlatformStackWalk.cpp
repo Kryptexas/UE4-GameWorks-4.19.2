@@ -154,7 +154,7 @@ static bool GMaxCallstackDepthInitialized = false;
 void DetermineMaxCallstackDepth()
 {
 	// Check that we're running on Vista or newer (version 6.0+).
-	if ( FWindowsPlatformMisc::VerifyWindowsMajorVersion(6) )
+	if ( FWindowsPlatformMisc::VerifyWindowsVersion(6, 0) )
 	{
 		GMaxCallstackDepth = MAX_CALLSTACK_DEPTH;
 	}

@@ -171,7 +171,7 @@ void FWindowsPlatformSurvey::TickSurveyHardware( FHardwareSurveyResults& OutResu
 	}
 
 	// Check that we're running on Vista or newer (version 6.0+).
-	bool bIsVistaOrNewer = FWindowsPlatformMisc::VerifyWindowsMajorVersion(6);
+	bool bIsVistaOrNewer = FWindowsPlatformMisc::VerifyWindowsVersion(6, 0);
 
 	FMemory::Memset(&OutResults, 0, sizeof(FHardwareSurveyResults));
 

@@ -133,9 +133,12 @@ struct CORE_API FWindowsPlatformMisc
 	/** 
 	 * Determines if we are running on the Windows version or newer
 	 *
+	 * See the 'Remarks' section of https://msdn.microsoft.com/en-us/library/windows/desktop/ms724833(v=vs.85).aspx
+	 * for a list of MajorVersion/MinorVersion version combinations for Microsoft Windows.
+	 *
 	 * @return	Returns true if the current Windows version if equal or newer than MajorVersion
 	 */
-	static bool VerifyWindowsMajorVersion(uint32 MajorVersion);
+	static bool VerifyWindowsVersion(uint32 MajorVersion, uint32 MinorVersion);
 
 	/**
 	 * Sample the displayed pixel color from anywhere on the screen using the OS

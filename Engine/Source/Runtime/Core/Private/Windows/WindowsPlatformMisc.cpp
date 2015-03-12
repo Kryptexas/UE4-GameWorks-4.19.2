@@ -1668,11 +1668,12 @@ int32 FWindowsPlatformMisc::GetAppIcon()
 	return IDICON_UE4Game;
 }
 
-bool FWindowsPlatformMisc::VerifyWindowsMajorVersion(uint32 MajorVersion)
+bool FWindowsPlatformMisc::VerifyWindowsVersion(uint32 MajorVersion, uint32 MinorVersion)
 {
 	OSVERSIONINFOEX Version;
 	Version.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
 	Version.dwMajorVersion = MajorVersion;
+	Version.dwMinorVersion = MinorVersion;
 	ULONGLONG ConditionMask = 0;
 	return !!VerifyVersionInfo( &Version, VER_MAJORVERSION, VerSetConditionMask(ConditionMask,VER_MAJORVERSION,VER_GREATER_EQUAL) );
 }
@@ -1773,7 +1774,7 @@ int32 FWindowsPlatformMisc::NumberOfCoresIncludingHyperthreads()
 void FWindowsPlatformMisc::LoadPreInitModules()
 {
 	// D3D11 is not supported on WinXP, so in this case we use the OpenGL RHI
-	if(FWindowsPlatformMisc::VerifyWindowsMajorVersion(6))
+	if(FWindowsPlatformMisc::VerifyWindowsVersion(6, 0))
 	{
 		FModuleManager::Get().LoadModule(TEXT("D3D11RHI"));
 	}
@@ -2348,7 +2349,7 @@ FString FWindowsPlatformMisc::GetOperatingSystemId()
 
 EConvertibleLaptopMode FWindowsPlatformMisc::GetConvertibleLaptopMode()
 {
-	if (!VerifyWindowsMajorVersion(8))
+	if (!VerifyWindowsVersion(6, 2))
 	{
 		return EConvertibleLaptopMode::NotSupported;
 	}
