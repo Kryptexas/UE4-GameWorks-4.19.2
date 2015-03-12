@@ -137,4 +137,17 @@ void UEnvironmentQueryGraphNode_Option::CalculateWeights()
 	}
 }
 
+void UEnvironmentQueryGraphNode_Option::UpdateNodeData()
+{
+	UEnvQueryOption* OptionInstance = Cast<UEnvQueryOption>(NodeInstance);
+	UEnvQueryGenerator_Composite* CompositeGenerator = OptionInstance ? Cast<UEnvQueryGenerator_Composite>(OptionInstance->Generator) : nullptr;
+	if (CompositeGenerator)
+	{
+		CompositeGenerator->VerifyItemTypes();
+
+		ErrorMessage = CompositeGenerator->bHasMatchingItemType ? TEXT("") : LOCTEXT("NestedGeneratorMismatch", "Nested generators must work on exactly the same item types!").ToString();
+	}
+}
+
+
 #undef LOCTEXT_NAMESPACE

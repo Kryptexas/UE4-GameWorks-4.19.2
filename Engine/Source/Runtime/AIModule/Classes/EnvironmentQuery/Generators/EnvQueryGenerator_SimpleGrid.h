@@ -10,7 +10,7 @@ class UEnvQueryContext;
  *  Simple grid, generates points in 2D square around context
  */
 
-UCLASS()
+UCLASS(meta = (DisplayName = "Points: Grid"))
 class UEnvQueryGenerator_SimpleGrid : public UEnvQueryGenerator_ProjectedPoints
 {
 	GENERATED_UCLASS_BODY()

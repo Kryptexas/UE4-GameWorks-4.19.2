@@ -15,6 +15,7 @@ struct AIGRAPH_API FGraphNodeClassData
 	FString ToString() const;
 	FString GetClassName() const;
 	FString GetCategory() const;
+	FString GetDisplayName() const;
 	UClass* GetClass(bool bSilent = false);
 	bool IsAbstract() const;
 

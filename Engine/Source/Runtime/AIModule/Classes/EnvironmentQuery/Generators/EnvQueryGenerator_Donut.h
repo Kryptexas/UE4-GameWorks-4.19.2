@@ -6,7 +6,7 @@
 
 struct FEnvQueryInstance;
 
-UCLASS()
+UCLASS(meta = (DisplayName = "Points: Donut"))
 class AIMODULE_API UEnvQueryGenerator_Donut : public UEnvQueryGenerator_ProjectedPoints
 {
 	GENERATED_UCLASS_BODY()

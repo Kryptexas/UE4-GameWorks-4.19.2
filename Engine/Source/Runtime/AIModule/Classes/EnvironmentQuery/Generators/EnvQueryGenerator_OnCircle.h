@@ -6,7 +6,7 @@
 
 struct FEnvQueryInstance;
 
-UCLASS()	
+UCLASS(meta = (DisplayName = "Points: Circle"))
 class AIMODULE_API UEnvQueryGenerator_OnCircle : public UEnvQueryGenerator_ProjectedPoints
 {
 	GENERATED_UCLASS_BODY()

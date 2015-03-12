@@ -30,6 +30,12 @@ FGraphNodeClassData::FGraphNodeClassData(const FString& InAssetName, const FStri
 
 FString FGraphNodeClassData::ToString() const
 {
+	FString ShortName = GetDisplayName();
+	if (!ShortName.IsEmpty())
+	{
+		return ShortName;
+	}
+
 	UClass* MyClass = Class.Get();
 	if (MyClass)
 	{
@@ -55,6 +61,11 @@ FString FGraphNodeClassData::ToString() const
 FString FGraphNodeClassData::GetClassName() const
 {
 	return Class.IsValid() ? Class->GetName() : ClassName;
+}
+
+FString FGraphNodeClassData::GetDisplayName() const
+{
+	return Class.IsValid() ? Class->GetMetaData(TEXT("DisplayName")) : FString();
 }
 
 FString FGraphNodeClassData::GetCategory() const

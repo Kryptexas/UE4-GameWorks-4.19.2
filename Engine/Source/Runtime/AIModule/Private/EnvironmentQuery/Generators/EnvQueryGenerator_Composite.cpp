@@ -7,16 +7,20 @@
 
 UEnvQueryGenerator_Composite::UEnvQueryGenerator_Composite(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-
+	ItemType = UEnvQueryItemType_Point::StaticClass();
+	bHasMatchingItemType = true;
 }
 
 void UEnvQueryGenerator_Composite::GenerateItems(FEnvQueryInstance& QueryInstance) const 
 {
-	for (int32 Idx = 0; Idx < Generators.Num(); Idx++)
+	if (bHasMatchingItemType)
 	{
-		if (Generators[Idx])
+		for (int32 Idx = 0; Idx < Generators.Num(); Idx++)
 		{
-			Generators[Idx]->GenerateItems(QueryInstance);
+			if (Generators[Idx])
+			{
+				Generators[Idx]->GenerateItems(QueryInstance);
+			}
 		}
 	}
 }
@@ -34,5 +38,32 @@ FText UEnvQueryGenerator_Composite::GetDescriptionTitle() const
 
 	return Desc;
 };
+
+void UEnvQueryGenerator_Composite::VerifyItemTypes()
+{
+	TSubclassOf<UEnvQueryItemType> CommonItemType = nullptr;
+	bHasMatchingItemType = true;
+
+	for (int32 Idx = 0; Idx < Generators.Num(); Idx++)
+	{
+		if (Generators[Idx])
+		{
+			if (CommonItemType)
+			{
+				if (CommonItemType != Generators[Idx]->ItemType)
+				{
+					bHasMatchingItemType = false;
+					break;
+				}
+			}
+			else
+			{
+				CommonItemType = Generators[Idx]->ItemType;
+			}
+		}
+	}
+
+	ItemType = bHasMatchingItemType ? CommonItemType : UEnvQueryItemType_Point::StaticClass();
+}
 
 #undef LOCTEXT_NAMESPACE

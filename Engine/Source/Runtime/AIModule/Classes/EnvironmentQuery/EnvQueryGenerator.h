@@ -16,7 +16,7 @@ namespace EnvQueryGeneratorVersion
 	const int32 Latest = DataProviders;
 }
 
-UCLASS(Abstract, meta=(Category="Generators"))
+UCLASS(EditInlineNew, Abstract, meta = (Category = "Generators"))
 class AIMODULE_API UEnvQueryGenerator : public UEnvQueryNode
 {
 	GENERATED_UCLASS_BODY()

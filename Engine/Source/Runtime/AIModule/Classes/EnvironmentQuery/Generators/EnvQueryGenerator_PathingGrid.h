@@ -11,7 +11,7 @@ class UNavigationQueryFilter;
  *  with paths to/from context no further than given limit
  */
 
-UCLASS()
+UCLASS(meta = (DisplayName = "Points: Pathing Grid"))
 class UEnvQueryGenerator_PathingGrid : public UEnvQueryGenerator_SimpleGrid
 {
 	GENERATED_UCLASS_BODY()

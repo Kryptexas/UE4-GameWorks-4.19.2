@@ -7,7 +7,7 @@
 class AActor;
 class UEnvQueryContext;
 
-UCLASS()	
+UCLASS(meta = (DisplayName = "Actors Of Class"))
 class UEnvQueryGenerator_ActorsOfClass : public UEnvQueryGenerator
 {
 	GENERATED_UCLASS_BODY()

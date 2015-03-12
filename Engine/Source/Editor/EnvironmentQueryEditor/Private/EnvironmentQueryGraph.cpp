@@ -60,8 +60,10 @@ void UEnvironmentQueryGraph::UpdateAsset(int32 UpdateFlags)
 			UEnvironmentQueryGraphNode_Option* OptionNode = Cast<UEnvironmentQueryGraphNode_Option>(MyPin->LinkedTo[Idx]->GetOwningNode());
 			if (OptionNode)
 			{
+				OptionNode->UpdateNodeData();
+
 				UEnvQueryOption* OptionInstance = Cast<UEnvQueryOption>(OptionNode->NodeInstance);
-				if (OptionInstance != NULL)
+				if (OptionInstance && OptionInstance->Generator)
 				{
 					OptionInstance->Tests.Reset();
 

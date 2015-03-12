@@ -19,6 +19,7 @@ class UEnvironmentQueryGraphNode_Option : public UEnvironmentQueryGraphNode
 	void CreateAddTestSubMenu(class FMenuBuilder& MenuBuilder, UEdGraph* Graph) const;
 
 	void CalculateWeights();
+	void UpdateNodeData();
 
 protected:
 
