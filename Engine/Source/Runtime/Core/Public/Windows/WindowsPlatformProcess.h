@@ -24,19 +24,8 @@ public:
 		: TProcHandle( Other )
 	{}
 
-	FORCEINLINE bool Close()
-	{
-		if( IsValid() )
-		{
-			::CloseHandle( Handle );
-			Reset();
-			return true;
-		}
-		else
-		{
-			return false;
-		}
-	}
+	DEPRECATED(4.8, "FProcHandle::Close() is redundant - handles created with FPlatformProcess::CreateProc() should be closed with FPlatformProcess::CloseProc().")
+	FORCEINLINE bool Close();
 };
 
 
@@ -100,6 +89,7 @@ public:
 	static FProcHandle CreateProc( const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite );
 	static bool IsProcRunning( FProcHandle & ProcessHandle );
 	static void WaitForProc( FProcHandle & ProcessHandle );
+	static void CloseProc( FProcHandle & ProcessHandle );
 	static void TerminateProc( FProcHandle & ProcessHandle, bool KillTree = false );
 	static bool GetProcReturnCode( FProcHandle & ProcHandle, int32* ReturnCode );
 	static bool GetApplicationMemoryUsage(uint32 ProcessId, SIZE_T* OutMemoryUsage);
@@ -147,6 +137,16 @@ private:
 
 
 typedef FWindowsPlatformProcess FPlatformProcess;
+
+inline bool FProcHandle::Close()
+{
+	if (IsValid())
+	{
+		FPlatformProcess::CloseProc(*this);
+		return true;
+	}
+	return false;
+}
 
 #include "WindowsCriticalSection.h"
 

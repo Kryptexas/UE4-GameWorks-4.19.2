@@ -86,9 +86,11 @@ public:
 	}
 
 	/**
+	 * (Deprecated. Handles created with FPlatformProcess::CreateProc() should be closed with FPlatformProcess::CloseProc())
 	 * Closes handle and frees this resource to the operating system.
 	 * @return true, if this handle was valid before closing it
 	 */
+	DEPRECATED(4.8, "FProcHandle::Close() is deprecated as redundant - handles created with FPlatformProcess::CreateProc() should be closed with FPlatformProcess::CloseProc().")
 	FORCEINLINE bool Close()
 	{
 		return IsValid();

@@ -499,6 +499,11 @@ void FMacPlatformProcess::WaitForProc( FProcHandle& ProcessHandle )
 	[(NSTask*)ProcessHandle.Get() waitUntilExit];
 }
 
+void FMacPlatformProcess::CloseProc( FProcHandle & ProcessHandle )
+{
+	// is any action needed here?
+}
+
 void FMacPlatformProcess::TerminateProc( FProcHandle& ProcessHandle, bool KillTree )
 {
 	SCOPED_AUTORELEASE_POOL;

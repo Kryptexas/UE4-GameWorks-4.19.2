@@ -384,6 +384,15 @@ void FWindowsPlatformProcess::WaitForProc( FProcHandle & ProcessHandle )
 	::WaitForSingleObject(ProcessHandle.Get(), INFINITE);
 }
 
+void FWindowsPlatformProcess::CloseProc(FProcHandle & ProcessHandle)
+{
+	if (ProcessHandle.IsValid())
+	{
+		::CloseHandle(ProcessHandle.Get());
+		ProcessHandle.Reset();
+	}
+}
+
 void FWindowsPlatformProcess::TerminateProc( FProcHandle & ProcessHandle, bool KillTree )
 {
 	if (KillTree)

@@ -23,7 +23,8 @@ int32 ProcRunAsChild(const TCHAR* CommandLine)
 	GEngineLoop.PreInit(CommandLine);
 
 	// set a random delay pretending to do some useful work up to a minute. 
-	double RandomWorkTime = FMath::FRandRange(0.0f, 60.0f);
+	srand(FPlatformProcess::GetCurrentProcessId());
+	double RandomWorkTime = FMath::FRandRange(0.0f, 6.0f);
 
 	UE_LOG(LogTestPAL, Display, TEXT("Running proc test as child (pid %d), will be doing work for %f seconds."), FPlatformProcess::GetCurrentProcessId(), RandomWorkTime);
 

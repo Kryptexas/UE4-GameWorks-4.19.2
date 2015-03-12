@@ -180,12 +180,7 @@ void FGenericPlatformProcess::WaitForProc( FProcHandle & ProcessHandle )
 
 void FGenericPlatformProcess::CloseProc(FProcHandle & ProcessHandle)
 {
-	// make sure we don't leave running processes (this is especially important for Linux)
-	check(!FPlatformProcess::IsProcRunning(ProcessHandle));
-
-	// Wait() should return instantly if the process isn't running (which it shouldn't).
-	// However, this is important that we wait for it on Linux/Unix platforms so we don't leave zombies.
-	FPlatformProcess::WaitForProc(ProcessHandle);
+	UE_LOG(LogHAL, Fatal, TEXT("FGenericPlatformProcess::CloseProc not implemented on this platform"));
 }
 
 void FGenericPlatformProcess::TerminateProc( FProcHandle & ProcessHandle, bool KillTree )

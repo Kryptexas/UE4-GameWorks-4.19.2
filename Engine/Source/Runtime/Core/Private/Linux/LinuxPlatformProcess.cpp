@@ -416,6 +416,75 @@ void FLinuxPlatformProcess::LaunchURL(const TCHAR* URL, const TCHAR* Parms, FStr
 	}
 }
 
+/**
+ * This class exists as an imperfect workaround to allow both "fire and forget" children and children about whose return code we actually care.
+ * (maybe we could fork and daemonize ourselves for the first case instead?)
+ */
+struct FChildWaiterThread : public FRunnable
+{
+	/** Global table of all waiter threads */
+	static TArray<FChildWaiterThread *>		ChildWaiterThreadsArray;
+
+	/** Lock guarding the acess to child waiter threads */
+	static FCriticalSection					ChildWaiterThreadsArrayGuard;
+
+	/** Pid of child to wait for */
+	int ChildPid;
+
+	FChildWaiterThread(pid_t InChildPid)
+		:	ChildPid(InChildPid)
+	{
+		// add ourselves to thread array
+		ChildWaiterThreadsArrayGuard.Lock();
+		ChildWaiterThreadsArray.Add(this);
+		ChildWaiterThreadsArrayGuard.Unlock();
+	}
+
+	virtual ~FChildWaiterThread()
+	{
+		// remove
+		ChildWaiterThreadsArrayGuard.Lock();
+		ChildWaiterThreadsArray.RemoveSingle(this);
+		ChildWaiterThreadsArrayGuard.Unlock();
+	}
+
+	virtual uint32 Run()
+	{
+		for(;;)	// infinite loop in case we get EINTR and have to repeat
+		{
+			siginfo_t SignalInfo;
+			if (waitid(P_PID, ChildPid, &SignalInfo, WEXITED))
+			{
+				if (errno != EINTR)
+				{
+					int ErrNo = errno;
+					UE_LOG(LogHAL, Fatal, TEXT("FChildWaiterThread::Run(): waitid for pid %d failed (errno=%d, %s)"), 
+						   static_cast< int32 >(ChildPid), ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
+					break;	// exit the loop if for some reason Fatal log (above) returns
+				}
+			}
+			else
+			{
+				check(SignalInfo.si_pid == ChildPid);
+				break;
+			}
+		}
+
+		return 0;
+	}
+
+	virtual void Exit()
+	{
+		// unregister from the array
+		delete this;
+	}
+};
+
+/** See FChildWaiterThread */
+TArray<FChildWaiterThread *> FChildWaiterThread::ChildWaiterThreadsArray;
+/** See FChildWaiterThread */
+FCriticalSection FChildWaiterThread::ChildWaiterThreadsArrayGuard;
+
 FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Parms, bool bLaunchDetached, bool bLaunchHidden, bool bLaunchReallyHidden, uint32* OutProcessID, int32 PriorityModifier, const TCHAR* OptionalWorkingDirectory, void* PipeWrite)
 {
 	// @TODO bLaunchHidden bLaunchReallyHidden are not handled
@@ -642,17 +711,65 @@ FProcHandle FLinuxPlatformProcess::CreateProc(const TCHAR* URL, const TCHAR* Par
 		*OutProcessID = ChildPid;
 	}
 
-	return FProcHandle( ChildPid );
+	// [RCL] 2015-03-11 @FIXME: is bLaunchDetached usable when determining whether we're in 'fire and forget' mode? This doesn't exactly match what bLaunchDetached is used for.
+	return FProcHandle(new FProcState(ChildPid, bLaunchDetached));
 }
 
-bool FProcHandle::IsRunning()
+/** Initialization constructor. */
+FProcState::FProcState(pid_t InProcessId, bool bInFireAndForget)
+	:	ProcessId(InProcessId)
+	,	bIsRunning(true)  // assume it is
+	,	bHasBeenWaitedFor(false)
+	,	ReturnCode(-1)
+	,	bFireAndForget(bInFireAndForget)
+{
+}
+
+FProcState::~FProcState()
+{
+	if (!bFireAndForget)
+	{
+		// If not in 'fire and forget' mode, try to catch the common problems that leave zombies:
+		// - We don't want to close the handle of a running process as with our current scheme this will certainly leak a zombie.
+		// - Nor we want to leave the handle unwait()ed for.
+		
+		if (bIsRunning)
+		{
+			// Warn the users before going into what may be a very long block
+			UE_LOG(LogHAL, Warning, TEXT("Closing a process handle while the process (pid=%d) is still running - we will block until it exits to prevent a zombie"),
+				GetProcessId()
+			);
+		}
+		else if (!bHasBeenWaitedFor)	// if child is not running, but has not been waited for, still communicate a problem, but we shouldn't be blocked for long in this case.
+		{
+			UE_LOG(LogHAL, Warning, TEXT("Closing a process handle of a process (pid=%d) that has not been wait()ed for - will wait() now to reap a zombie"),
+				GetProcessId()
+			);
+		}
+
+		Wait();	// will exit immediately if everything is Ok
+	}
+	else if (IsRunning())
+	{
+		// warn about leaking a thread ;/
+		UE_LOG(LogHAL, Warning, TEXT("Process (pid=%d) is still running - we will reap it in a waiter thread, but the thread handle is going to be leaked."),
+			   GetProcessId()
+			);
+
+		FChildWaiterThread * WaiterRunnable = new FChildWaiterThread(GetProcessId());
+		// [RCL] 2015-03-11 @FIXME: do not leak
+		FRunnableThread * WaiterThread = FRunnableThread::Create(WaiterRunnable, *FString::Printf(TEXT("waitpid(%d)"), GetProcessId(), 32768 /* needs just a small stack */, TPri_BelowNormal));
+	}
+}
+
+bool FProcState::IsRunning()
 {
 	if (bIsRunning)
 	{
 		check(!bHasBeenWaitedFor);	// check for the sake of internal consistency
 
 		// check if actually running
-		int KillResult = kill(Get(), 0);	// no actual signal is sent
+		int KillResult = kill(GetProcessId(), 0);	// no actual signal is sent
 		check(KillResult != -1 || errno != EINVAL);
 
 		bIsRunning = (KillResult == 0 || (KillResult == -1 && errno == EPERM));
@@ -664,18 +781,19 @@ bool FProcHandle::IsRunning()
 			{
 				siginfo_t SignalInfo;
 				SignalInfo.si_pid = 0;	// if remains 0, treat as child was not waitable (i.e. was running)
-				if (waitid(P_PID, Get(), &SignalInfo, WEXITED | WNOHANG | WNOWAIT))
+				if (waitid(P_PID, GetProcessId(), &SignalInfo, WEXITED | WNOHANG | WNOWAIT))
 				{
 					if (errno != EINTR)
 					{
+						int ErrNo = errno;
 						UE_LOG(LogHAL, Fatal, TEXT("FLinuxPlatformProcess::WaitForProc: waitid for pid %d failed (errno=%d, %s)"), 
-							static_cast< int32 >(Get()), errno, ANSI_TO_TCHAR(strerror(errno)));
+							static_cast< int32 >(GetProcessId()), ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
 						break;	// exit the loop if for some reason Fatal log (above) returns
 					}
 				}
 				else
 				{
-					bIsRunning = ( SignalInfo.si_pid != Get() );
+					bIsRunning = ( SignalInfo.si_pid != GetProcessId() );
 					break;
 				}
 			}
@@ -686,7 +804,7 @@ bool FProcHandle::IsRunning()
 		// which is a dubious, but valid behavior. We don't want to keep zombie around though.
 		if (!bIsRunning)
 		{
-			UE_LOG(LogHAL, Log, TEXT("Child %d is no more running (zombie), Wait()ing immediately."), Get() );
+			UE_LOG(LogHAL, Log, TEXT("Child %d is no more running (zombie), Wait()ing immediately."), GetProcessId() );
 			Wait();
 		}
 	}
@@ -694,7 +812,7 @@ bool FProcHandle::IsRunning()
 	return bIsRunning;
 }
 
-bool FProcHandle::GetReturnCode(int32* ReturnCodePtr)
+bool FProcState::GetReturnCode(int32* ReturnCodePtr)
 {
 	check(!bIsRunning || !"You cannot get a return code of a running process");
 	if (!bHasBeenWaitedFor)
@@ -714,7 +832,7 @@ bool FProcHandle::GetReturnCode(int32* ReturnCodePtr)
 	return false;
 }
 
-void FProcHandle::Wait()
+void FProcState::Wait()
 {
 	if (bHasBeenWaitedFor)
 	{
@@ -724,18 +842,19 @@ void FProcHandle::Wait()
 	for(;;)	// infinite loop in case we get EINTR and have to repeat
 	{
 		siginfo_t SignalInfo;
-		if (waitid(P_PID, Get(), &SignalInfo, WEXITED))
+		if (waitid(P_PID, GetProcessId(), &SignalInfo, WEXITED))
 		{
 			if (errno != EINTR)
 			{
+				int ErrNo = errno;
 				UE_LOG(LogHAL, Fatal, TEXT("FLinuxPlatformProcess::WaitForProc: waitid for pid %d failed (errno=%d, %s)"), 
-					static_cast< int32 >(Get()), errno, ANSI_TO_TCHAR(strerror(errno)));
+					static_cast< int32 >(GetProcessId()), ErrNo, ANSI_TO_TCHAR(strerror(ErrNo)));
 				break;	// exit the loop if for some reason Fatal log (above) returns
 			}
 		}
 		else
 		{
-			check(SignalInfo.si_pid == Get());
+			check(SignalInfo.si_pid == GetProcessId());
 
 			ReturnCode = (SignalInfo.si_code == CLD_EXITED) ? SignalInfo.si_status : -1;
 			bHasBeenWaitedFor = true;
@@ -747,12 +866,26 @@ void FProcHandle::Wait()
 
 bool FLinuxPlatformProcess::IsProcRunning( FProcHandle & ProcessHandle )
 {
-	return ProcessHandle.IsRunning();
+	FProcState * ProcInfo = ProcessHandle.GetProcessInfo();
+	return ProcInfo ? ProcInfo->IsRunning() : false;
 }
 
 void FLinuxPlatformProcess::WaitForProc( FProcHandle & ProcessHandle )
 {
-	ProcessHandle.Wait();
+	FProcState * ProcInfo = ProcessHandle.GetProcessInfo();
+	if (ProcInfo)
+	{
+		ProcInfo->Wait();
+	}
+}
+
+void FLinuxPlatformProcess::CloseProc(FProcHandle & ProcessHandle)
+{
+	// dispose of both handle and process info
+	FProcState * ProcInfo = ProcessHandle.GetProcessInfo();
+	ProcessHandle.Reset();
+
+	delete ProcInfo;
 }
 
 void FLinuxPlatformProcess::TerminateProc( FProcHandle & ProcessHandle, bool KillTree )
@@ -763,8 +896,12 @@ void FLinuxPlatformProcess::TerminateProc( FProcHandle & ProcessHandle, bool Kil
 		STUBBED("FLinuxPlatformProcess::TerminateProc() : Killing a subtree is not implemented yet");
 	}
 
-	int KillResult = kill(ProcessHandle.Get(), SIGTERM);	// graceful
-	check(KillResult != -1 || errno != EINVAL);
+	FProcState * ProcInfo = ProcessHandle.GetProcessInfo();
+	if (ProcInfo)
+	{
+		int KillResult = kill(ProcInfo->GetProcessId(), SIGTERM);	// graceful
+		check(KillResult != -1 || errno != EINVAL);
+	}
 }
 
 uint32 FLinuxPlatformProcess::GetCurrentProcessId()
@@ -779,7 +916,8 @@ bool FLinuxPlatformProcess::GetProcReturnCode( FProcHandle& ProcHandle, int32* R
 		return false;
 	}
 
-	return ProcHandle.GetReturnCode(ReturnCode);
+	FProcState * ProcInfo = ProcHandle.GetProcessInfo();
+	return ProcInfo ? ProcInfo->GetReturnCode(ReturnCode) : false;
 }
 
 bool FLinuxPlatformProcess::Daemonize()
