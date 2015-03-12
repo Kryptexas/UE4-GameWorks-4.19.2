@@ -154,6 +154,7 @@ int32 FSwarmInterfaceLocalImpl::CloseConnection( void )
 	if( LightmassProcHandle.IsValid() )
 	{
 		FPlatformProcess::TerminateProc(LightmassProcHandle, true);
+		FPlatformProcess::CloseProc(LightmassProcHandle);
 	}
 	Recepient = FMessageAddress();
 	bIsConnected = false;
@@ -536,7 +537,6 @@ int32 FSwarmInterfaceLocalImpl::EndJobSpecification( void )
 		LightmassProcHandle = FPlatformProcess::CreateProc( JobSpecification.ExecutableName, *Parameters, true, false, false, NULL, 0, NULL, NULL);
 		if (LightmassProcHandle.IsValid())
 		{
-			FPlatformProcess::CloseProc(LightmassProcHandle);
 			return 0;
 		}
 		return SWARM_ERROR_CONNECTION_DISCONNECTED;

@@ -503,6 +503,7 @@ void FMacPlatformProcess::CloseProc( FProcHandle & ProcessHandle )
 {
 	SCOPED_AUTORELEASE_POOL;
 	[(NSTask*)ProcessHandle.Get() release];
+	ProcessHandle.Reset();
 }
 
 void FMacPlatformProcess::TerminateProc( FProcHandle& ProcessHandle, bool KillTree )
