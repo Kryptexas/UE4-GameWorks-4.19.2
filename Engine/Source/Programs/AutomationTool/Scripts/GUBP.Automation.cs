@@ -7342,7 +7342,7 @@ public class GUBP : BuildCommand
                 }
             }
             WriteECPerl(StepList);
-            ECProps.Add(String.Format("HasTests={0}", bHasTests));
+            RunECTool(String.Format("setProperty \"/myWorkflow/HasTests\" \"{0}\"", bHasTests));
             {
                 ECProps.Add("GUBP_LoadedProps=1");
                 string BranchDefFile = CommandUtils.CombinePaths(CommandUtils.CmdEnv.LogFolder, "BranchDef.properties");
