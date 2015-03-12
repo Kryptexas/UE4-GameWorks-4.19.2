@@ -275,9 +275,9 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param MaximumRange	The maximum distance away from Location that a listener can be
 	 * @note This will always return false if there is no audio device, or the audio device is disabled.
 	 */
-	UFUNCTION(BlueprintCallable, Category="Audio")
-	static bool AreAnyListenersWithinRange(FVector Location, float MaximumRange);
-
+	UFUNCTION(BlueprintCallable, Category = "Audio", meta = (WorldContext = "WorldContextObject"))
+	static bool AreAnyListenersWithinRange(UObject* WorldContextObject, FVector Location, float MaximumRange);
+	
 	/**
 	 * Plays a sound directly with no attenuation, perfect for UI sounds.
 	 *
@@ -342,20 +342,20 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 
 	// --- Audio Functions ----------------------------
 	/** Set the sound mix of the audio system for special EQing **/
-	UFUNCTION(BlueprintCallable, Category="Audio")
-	static void SetBaseSoundMix(class USoundMix* InSoundMix);
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext = "WorldContextObject"))
+	static void SetBaseSoundMix(UObject* WorldContextObject, class USoundMix* InSoundMix);
 
 	/** Push a sound mix modifier onto the audio system **/
-	UFUNCTION(BlueprintCallable, Category="Audio")
-	static void PushSoundMixModifier(class USoundMix* InSoundMixModifier);
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext = "WorldContextObject"))
+	static void PushSoundMixModifier(UObject* WorldContextObject, class USoundMix* InSoundMixModifier);
 
 	/** Pop a sound mix modifier from the audio system **/
-	UFUNCTION(BlueprintCallable, Category="Audio")
-	static void PopSoundMixModifier(class USoundMix* InSoundMixModifier);
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext = "WorldContextObject"))
+	static void PopSoundMixModifier(UObject* WorldContextObject, class USoundMix* InSoundMixModifier);
 
 	/** Clear all sound mix modifiers from the audio system **/
-	UFUNCTION(BlueprintCallable, Category="Audio")
-	static void ClearSoundMixModifiers();
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext = "WorldContextObject"))
+	static void ClearSoundMixModifiers(UObject* WorldContextObject);
 
 	/** Activates a Reverb Effect without the need for a volume
 	 * @param ReverbEffect Reverb Effect to use
@@ -364,16 +364,16 @@ class ENGINE_API UGameplayStatics : public UBlueprintFunctionLibrary
 	 * @param Volume Volume level of Reverb Effect
 	 * @param FadeTime Time before Reverb Effect is fully active
 	 */
-	UFUNCTION(BlueprintCallable, Category="Audio", meta=(AdvancedDisplay = "2"))
-	static void ActivateReverbEffect(class UReverbEffect* ReverbEffect, FName TagName, float Priority = 0.f, float Volume = 0.5f, float FadeTime = 2.f);
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext = "WorldContextObject", AdvancedDisplay = "2"))
+	static void ActivateReverbEffect(UObject* WorldContextObject, class UReverbEffect* ReverbEffect, FName TagName, float Priority = 0.f, float Volume = 0.5f, float FadeTime = 2.f);
 
 	/**
 	 * Deactivates a Reverb Effect not applied by a volume
 	 *
 	 * @param TagName Tag associated with Reverb Effect to remove
 	 */
-	UFUNCTION(BlueprintCallable, Category="Audio")
-	static void DeactivateReverbEffect(FName TagName);
+	UFUNCTION(BlueprintCallable, Category="Audio", meta=(WorldContext = "WorldContextObject"))
+	static void DeactivateReverbEffect(UObject* WorldContextObject, FName TagName);
 
 	// --- Decal functions ------------------------------
 

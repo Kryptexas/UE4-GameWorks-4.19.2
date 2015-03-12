@@ -48,9 +48,16 @@ FPreviewScene::FPreviewScene(FPreviewScene::ConstructionValues CVS)
 FPreviewScene::~FPreviewScene()
 {
 	// Stop any audio components playing in this scene
-	if( GEngine && GEngine->GetAudioDevice() )
+	if (GEngine)
 	{
-		GEngine->GetAudioDevice()->Flush( GetWorld(), false );
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			if (FAudioDevice* AudioDevice = World->GetAudioDevice())
+			{
+				AudioDevice->Flush(GetWorld(), false);
+			}
+		}
 	}
 
 	// Remove all the attached components

@@ -1539,22 +1539,23 @@ void UEditorEngine::Tick( float DeltaSeconds, bool bIdleMode )
 	IStreamingManager::Get().Tick(DeltaSeconds);
 
 	// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
-	if (GetAudioDevice())
+	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+	if (AudioDeviceManager)
 	{
 		UWorld* OldGWorld = NULL;
-		if( PlayWorld )
+		if (PlayWorld)
 		{
 			// Use the PlayWorld as the GWorld if we're using PIE.
-			OldGWorld = SetPlayInEditorWorld( PlayWorld );
+			OldGWorld = SetPlayInEditorWorld(PlayWorld);
 		}
 
 		// Update audio device.
-		GetAudioDevice()->Update( (!PlayWorld && bAudioIsRealtime) || ( PlayWorld && !PlayWorld->IsPaused() ) );
+		AudioDeviceManager->UpdateActiveAudioDevices((!PlayWorld && bAudioIsRealtime) || (PlayWorld && !PlayWorld->IsPaused()));
 
-		if( PlayWorld )
+		if (PlayWorld)
 		{
 			// Pop the world.
-			RestoreEditorWorld( OldGWorld );
+			RestoreEditorWorld(OldGWorld);
 		}
 	}
 
@@ -1922,9 +1923,9 @@ UAudioComponent* UEditorEngine::GetPreviewAudioComponent()
 
 UAudioComponent* UEditorEngine::ResetPreviewAudioComponent( USoundBase* Sound, USoundNode* SoundNode )
 {
-	if( GetAudioDevice() )
+	if (FAudioDevice* AudioDevice = GetMainAudioDevice())
 	{
-		if( PreviewAudioComponent)
+		if (PreviewAudioComponent)
 		{
 			PreviewAudioComponent->Stop();
 		}
@@ -1933,10 +1934,10 @@ UAudioComponent* UEditorEngine::ResetPreviewAudioComponent( USoundBase* Sound, U
 			PreviewSoundCue = NewObject<USoundCue>();
 			// Set world to NULL as it will most likely become invalid in the next PIE/Simulate session and the
 			// component will be left with invalid pointer.
-			PreviewAudioComponent = FAudioDevice::CreateComponent( PreviewSoundCue, NULL, NULL, false );
+			PreviewAudioComponent = FAudioDevice::CreateComponent(PreviewSoundCue, NULL, NULL, false);
 		}
 
-		check( PreviewAudioComponent );
+		check(PreviewAudioComponent);
 		// Mark as a preview component so the distance calculations can be ignored
 		PreviewAudioComponent->bPreviewComponent = true;
 
@@ -1944,7 +1945,7 @@ UAudioComponent* UEditorEngine::ResetPreviewAudioComponent( USoundBase* Sound, U
 		{
 			PreviewAudioComponent->Sound = Sound;
 		}
-		else if( SoundNode)
+		else if (SoundNode)
 		{
 			PreviewSoundCue->FirstNode = SoundNode;
 			PreviewAudioComponent->Sound = PreviewSoundCue;

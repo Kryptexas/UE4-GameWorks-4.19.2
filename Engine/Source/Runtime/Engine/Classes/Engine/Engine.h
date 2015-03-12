@@ -283,6 +283,9 @@ struct FWorldContext
 	/** Is this world context waiting for an online login to complete (for PIE) */
 	bool	bWaitingOnOnlineSubsystem;
 
+	/** Handle to this world context's audio device.*/
+	uint32 AudioDeviceHandle;
+
 	/**************************************************************/
 
 	/** Outside pointers to CurrentWorld that should be kept in sync if current world changes  */
@@ -303,18 +306,7 @@ struct FWorldContext
 	}
 
 	/** Set CurrentWorld and update external reference pointers to reflect this*/
-	void SetCurrentWorld(UWorld *World)
-	{
-		for(int32 idx=0; idx < ExternalReferences.Num(); ++idx)
-		{
-			if (ExternalReferences[idx] && *ExternalReferences[idx] == ThisCurrentWorld)
-			{
-				*ExternalReferences[idx] = World;
-			}
-		}
-
-		ThisCurrentWorld = World;
-	}
+	ENGINE_API void SetCurrentWorld(UWorld *World);
 
 	/** Collect FWorldContext references for garbage collection */
 	void AddReferencedObjects(FReferenceCollector& Collector, const UObject* ReferencingObject);
@@ -336,6 +328,7 @@ struct FWorldContext
 		, PIEInstance(INDEX_NONE)
 		, RunAsDedicated(false)
 		, bWaitingOnOnlineSubsystem(false)
+		, AudioDeviceHandle(INDEX_NONE)
 		, ThisCurrentWorld(nullptr)
 	{ }
 
@@ -1519,13 +1512,19 @@ public:
 	 * Restores the selected material color back to the user setting
 	 */
 	void RestoreSelectedMaterialColor();
+
+protected:
+
+	/** The audio device manager */
+	class FAudioDeviceManager* AudioDeviceManager;
+
+	/** Audio device handle to the main audio device. */
+	uint32 MainAudioDeviceHandle;
+
 public:
 
 	/** A collection of messages to display on-screen. */
 	TMap<int32, FScreenMessageString> ScreenMessages;
-
-	/** The audio device */
-	class FAudioDevice* AudioDevice;
 
 	/** Reference to the stereoscopic rendering interace, if any */
 	TSharedPtr< class IStereoRendering > StereoRenderingDevice;
@@ -1647,7 +1646,7 @@ public:
 
 	/** Called at shutdown, just before the exit purge.	 */
 	virtual void PreExit();
-	virtual void ShutdownAudioDevice();
+	virtual void ShutdownAudioDeviceManager();
 
 	/** Called at startup, in the middle of FEngineLoop::Init.	 */
 	void ParseCommandline();
@@ -2042,11 +2041,18 @@ public:
 	/** @return the GIsEditor flag setting */
 	bool IsEditor();
 
-	/** @return the audio device (will be None if sound is disabled) */
-	virtual class FAudioDevice* GetAudioDevice()
-	{
-		return AudioDevice;
-	}
+	/** @return the audio device manager of the UEngine, this allows the creation and management of multiple audio devices. */
+	class FAudioDeviceManager* GetAudioDeviceManager();
+
+	/** @return the main audio device handle used by the engine. */
+	uint32 GetAudioDeviceHandle() const;
+
+	/** @return the main audio device. */
+	class FAudioDevice* GetMainAudioDevice();
+
+	DEPRECATED(4.8, "GetAudioDevice is deprecated UEngine::GetMainAudioDevice instead.")
+	/** @return the main audio device. */
+	class FAudioDevice* GetAudioDevice();
 
 	/** @return whether we're currently running in split screen (more than one local player) */
 	bool IsSplitScreen(UWorld *InWorld);
@@ -2191,11 +2197,11 @@ public:
 protected:
 
 	/**
-	 *	Initialize the audio device
+	 *	Initialize the audio device manager
 	 *
 	 *	@return	true on success, false otherwise.
 	 */
-	virtual bool InitializeAudioDevice();
+	virtual bool InitializeAudioDeviceManager();
 
 	/**
 	 *	Detects and initializes any attached HMD devices

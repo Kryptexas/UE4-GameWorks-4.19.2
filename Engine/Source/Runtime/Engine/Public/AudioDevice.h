@@ -2,6 +2,8 @@
 
 #pragma once 
 
+#include "AudioDeviceManager.h"
+
 /** 
  * Debug state of the audio system
  */
@@ -295,24 +297,12 @@ public:
 	 */
 	virtual void SetMaxChannels(int32 InMaxChannels);
 
-	/** 
-	 * Links up the resource data indices for looking up and cleaning up
-	 */
-	void TrackResource(USoundWave* Wave, FSoundBuffer* Buffer);
-
 	/**
-	 * Frees the bulk resource data assocated with this SoundWave.
-	 *
-	 * @param	SoundWave	wave object to free associated bulk data
-	 */
-	void FreeResource(USoundWave* SoundWave);
-
-	/**
-	 * Frees the resources associated with this buffer
-	 *
-	 * @param	FSoundBuffer	Buffer to clean up
-	 */
-	void FreeBufferResource(FSoundBuffer* Buffer);
+	* Stops any sound sources which are using the given buffer.
+	*
+	* @param	FSoundBuffer	Buffer to check against
+	*/
+	void StopSourcesUsingBuffer(FSoundBuffer * SoundBuffer);
 
 	/**
 	 * Stops all game sounds (and possibly UI) sounds
@@ -385,22 +375,30 @@ public:
 	void GetSoundClassInfo( TMap<FName, FAudioClassInfo>& AudioClassInfos );
 
 	/**
-	 * Returns the properties of the requested sound class modified to reflect the current state of the mix system 
+	 * Registers a sound class with the audio device
 	 *
 	 * @param	SoundClassName	name of sound class to retrieve
 	 * @return	sound class properties if it exists
 	 */
-	FSoundClassProperties* GetSoundClassCurrentProperties( class USoundClass* InSoundClass );
+	void RegisterSoundClass( class USoundClass* InSoundClass );
+
+	/**
+	* Unregisters a sound class
+	*/
+	void UnregisterSoundClass(class USoundClass* SoundClass);
+
+	/**
+	* Gets the current properties of a sound class, if the sound class hasn't been registered, then it returns nullptr
+	*
+	* @param	SoundClassName	name of sound class to retrieve
+	* @return	sound class properties if it exists
+	*/
+	FSoundClassProperties* GetSoundClassCurrentProperties(class USoundClass* InSoundClass);
 
 	/**
 	 * Checks to see if a coordinate is within a distance of any listener
 	 */
 	bool LocationIsAudible( FVector Location, float MaxDistance );
-
-	/**
-	 * Removes a sound class
-	 */
-	void RemoveClass( class USoundClass* SoundClass );
 
 	/**
 	 * Sets the Sound Mix that should be active by default
@@ -748,11 +746,6 @@ public:
 	TArray<class FSoundSource*>				FreeSources;
 	TMap<struct FWaveInstance*, class FSoundSource*>	WaveInstanceSourceMap;
 
-	/** Array of all created buffers associated with this audio device */
-	TArray<class FSoundBuffer*>				Buffers;
-	/** Look up associating a USoundWave's resource ID with low level sound buffers	*/
-	TMap<int32, class FSoundBuffer*>			WaveBufferMap;
-
 	/** Current properties of all sound classes */
 	TMap<class USoundClass*, FSoundClassProperties>	SoundClasses;
 
@@ -777,6 +770,12 @@ public:
 	/** The activated reverb that currently has the highest priority */
 	const FActivatedReverb*								HighestPriorityReverb;
 
+	/** The handle for this audio device used in the audio device manager. */
+	uint32 DeviceHandle;
+
+	/** Whether the audio device is active (current audio device in-focus in PIE) */
+	uint32 bIsDeviceMuted:1;
+
 private:
 
 	TArray<struct FActiveSound*> ActiveSounds;
@@ -798,3 +797,5 @@ public:
 	/** Creates a new instance of the audio device implemented by the module. */
 	virtual class FAudioDevice* CreateAudioDevice() = 0;
 };
+
+

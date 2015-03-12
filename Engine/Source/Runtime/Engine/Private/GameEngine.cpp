@@ -950,12 +950,10 @@ void UGameEngine::Tick( float DeltaSeconds, bool bIdleMode )
 		}
 
 		// Update Audio. This needs to occur after rendering as the rendering code updates the listener position.
-		if( GetAudioDevice() )
+		if (FAudioDevice* AudioDevice = Context.World()->GetAudioDevice())
 		{
-			GetAudioDevice()->Update( !Context.World()->IsPaused() );
+			AudioDevice->Update(!Context.World()->IsPaused());
 		}
-
-	
 
 		if( GIsClient )
 		{

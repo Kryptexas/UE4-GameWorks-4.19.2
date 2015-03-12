@@ -41,16 +41,14 @@ public:
 IMPLEMENT_MODULE(FXAudio2DeviceModule, XAudio2);
 
 /*------------------------------------------------------------------------------------
-	Static variables from the early init
+Static variables from the early init
 ------------------------------------------------------------------------------------*/
 
 // The number of speakers producing sound (stereo or 5.1)
-int32 FXAudioDeviceProperties::NumSpeakers						= 0;
-IXAudio2* FXAudioDeviceProperties::XAudio2						= NULL;
-const float* FXAudioDeviceProperties::OutputMixMatrix			= NULL;
-IXAudio2MasteringVoice* FXAudioDeviceProperties::MasteringVoice	= NULL;
+int32 FXAudioDeviceProperties::NumSpeakers = 0;
+const float* FXAudioDeviceProperties::OutputMixMatrix = NULL;
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS
-XAUDIO2_DEVICE_DETAILS FXAudioDeviceProperties::DeviceDetails	= { 0 };
+XAUDIO2_DEVICE_DETAILS FXAudioDeviceProperties::DeviceDetails = { 0 };
 #endif	//XAUDIO_SUPPORTS_DEVICE_DETAILS
 
 /*------------------------------------------------------------------------------------
@@ -67,6 +65,12 @@ bool FXAudio2Device::InitializeHardware()
 	{
 		return false;
 	}
+
+	// Create a new DeviceProperties object
+	DeviceProperties = new FXAudioDeviceProperties;
+	// null out the non-static data
+	DeviceProperties->XAudio2 = nullptr;
+	DeviceProperties->MasteringVoice = nullptr;
 
 	// Load ogg and vorbis dlls if they haven't been loaded yet
 	LoadVorbisLibraries();
@@ -87,29 +91,33 @@ bool FXAudio2Device::InitializeHardware()
 #else
 	uint32 Flags = 0;
 #endif
-	if( XAudio2Create( &FXAudioDeviceProperties::XAudio2, Flags, AUDIO_HWTHREAD ) != S_OK )
+
+	// Create a new XAudio2 device object instance
+	if (XAudio2Create(&DeviceProperties->XAudio2, Flags, AUDIO_HWTHREAD) != S_OK)
 	{
 		UE_LOG(LogInit, Log, TEXT( "Failed to create XAudio2 interface" ) );
 		return( false );
 	}
 
+	check(DeviceProperties->XAudio2 != nullptr);
+
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS
 	UINT32 DeviceCount = 0;
 	ValidateAPICall(TEXT("GetDeviceCount"),
-		FXAudioDeviceProperties::XAudio2->GetDeviceCount( &DeviceCount ));
+		DeviceProperties->XAudio2->GetDeviceCount(&DeviceCount));
 	if( DeviceCount < 1 )
 	{
 		UE_LOG(LogInit, Log, TEXT( "No audio devices found!" ) );
-		FXAudioDeviceProperties::XAudio2 = NULL;
+		DeviceProperties->XAudio2 = nullptr;
 		return( false );		
 	}
 
 	// Get the details of the default device 0
 	if( !ValidateAPICall(TEXT("GetDeviceDetails"),
-			FXAudioDeviceProperties::XAudio2->GetDeviceDetails( 0, &FXAudioDeviceProperties::DeviceDetails )))
+		DeviceProperties->XAudio2->GetDeviceDetails(0, &FXAudioDeviceProperties::DeviceDetails)))
 	{
 		UE_LOG(LogInit, Log, TEXT( "Failed to get DeviceDetails for XAudio2" ) );
-		FXAudioDeviceProperties::XAudio2 = NULL;
+		DeviceProperties->XAudio2 = nullptr;
 		return( false );
 	}
 
@@ -117,7 +125,7 @@ bool FXAudio2Device::InitializeHardware()
 	XAUDIO2_DEBUG_CONFIGURATION DebugConfig = {0};
 	DebugConfig.TraceMask = XAUDIO2_LOG_WARNINGS | XAUDIO2_LOG_DETAIL;
 	DebugConfig.BreakMask = XAUDIO2_LOG_ERRORS;
-	FXAudioDeviceProperties::XAudio2->SetDebugConfiguration(&DebugConfig);
+	DeviceProperties->XAudio2->SetDebugConfiguration(&DebugConfig);
 #endif
 
 	FXAudioDeviceProperties::NumSpeakers = UE4_XAUDIO2_NUMCHANNELS;
@@ -140,16 +148,16 @@ bool FXAudio2Device::InitializeHardware()
 	if( !GetOutputMatrix( UE4_XAUDIO2_CHANNELMASK, FXAudioDeviceProperties::NumSpeakers ) )
 	{
 		UE_LOG(LogInit, Log, TEXT( "Unsupported speaker configuration for this number of channels" ) );
-		FXAudioDeviceProperties::XAudio2 = NULL;
+		DeviceProperties->XAudio2 = NULL;
 		return( false );
 	}
 
 	// Create the final output voice with either 2 or 6 channels
 	if (!ValidateAPICall(TEXT("CreateMasteringVoice"), 
-			FXAudioDeviceProperties::XAudio2->CreateMasteringVoice(&FXAudioDeviceProperties::MasteringVoice, FXAudioDeviceProperties::NumSpeakers, SampleRate, 0, 0, NULL)))
+		DeviceProperties->XAudio2->CreateMasteringVoice(&DeviceProperties->MasteringVoice, FXAudioDeviceProperties::NumSpeakers, SampleRate, 0, 0, NULL)))
 	{
 		UE_LOG(LogInit, Warning, TEXT( "Failed to create the mastering voice for XAudio2" ) );
-		FXAudioDeviceProperties::XAudio2 = NULL;
+		DeviceProperties->XAudio2 = nullptr;
 		return( false );
 	}
 #else	//XAUDIO_SUPPORTS_DEVICE_DETAILS
@@ -183,19 +191,25 @@ bool FXAudio2Device::InitializeHardware()
 
 void FXAudio2Device::TeardownHardware()
 {
-	// close hardware interfaces
-	if( FXAudioDeviceProperties::MasteringVoice )
+	if (DeviceProperties)
 	{
-		FXAudioDeviceProperties::MasteringVoice->DestroyVoice();
-		FXAudioDeviceProperties::MasteringVoice = NULL;
+		// close hardware interfaces
+		if (DeviceProperties->MasteringVoice)
+		{
+			DeviceProperties->MasteringVoice->DestroyVoice();
+			DeviceProperties->MasteringVoice = NULL;
+		}
+
+		if (DeviceProperties->XAudio2)
+		{
+			// Force the hardware to release all references
+			DeviceProperties->XAudio2->Release();
+			DeviceProperties->XAudio2 = NULL;
+		}
+		delete DeviceProperties;
+		DeviceProperties = nullptr;
 	}
 
-	if( FXAudioDeviceProperties::XAudio2 )
-	{
-		// Force the hardware to release all references
-		FXAudioDeviceProperties::XAudio2->Release();
-		FXAudioDeviceProperties::XAudio2 = NULL;
-	}
 
 #if PLATFORM_WINDOWS
 	if (bComInitialized)

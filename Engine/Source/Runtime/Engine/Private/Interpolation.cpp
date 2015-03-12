@@ -1146,7 +1146,7 @@ void AMatineeActor::StepInterp( float DeltaTime, bool bPreview )
 
 void AMatineeActor::DisableRadioFilterIfNeeded()
 {
-	FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
+	FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice();
 	if( AudioDevice )
 	{
 		AudioDevice->EnableRadioEffect( !bDisableRadioFilter );
@@ -1171,7 +1171,7 @@ void AMatineeActor::EnableCinematicMode(bool bEnable)
 
 void AMatineeActor::EnableRadioFilter()
 {
-	FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
+	FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice();
 	if( AudioDevice )
 	{
 		AudioDevice->EnableRadioEffect( true );

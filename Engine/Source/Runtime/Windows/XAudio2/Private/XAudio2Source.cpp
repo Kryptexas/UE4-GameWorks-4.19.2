@@ -310,12 +310,14 @@ bool FXAudio2SoundSource::CreateSource( void )
 #endif	//XAUDIO2_SUPPORTS_MUSIC
 	Flags |= XAUDIO2_VOICE_USEFILTER;
 
+	check(AudioDevice->DeviceProperties != nullptr);
+	check(AudioDevice->DeviceProperties->XAudio2 != nullptr);
 	// All sound formats start with the WAVEFORMATEX structure (PCM, XMA2, XWMA)
-	if( !AudioDevice->ValidateAPICall( TEXT( "CreateSourceVoice (source)" ), 
+	if (!AudioDevice->ValidateAPICall(TEXT("CreateSourceVoice (source)"),
 #if XAUDIO2_SUPPORTS_SENDLIST
-		FXAudioDeviceProperties::XAudio2->CreateSourceVoice( &Source, ( WAVEFORMATEX* )&XAudio2Buffer->PCM, Flags, MAX_PITCH, &SourceCallback, &SourceSendList, NULL ) ) )
+		AudioDevice->DeviceProperties->XAudio2->CreateSourceVoice( &Source, ( WAVEFORMATEX* )&XAudio2Buffer->PCM, Flags, MAX_PITCH, &SourceCallback, &SourceSendList, NULL ) ) )
 #else	//XAUDIO2_SUPPORTS_SENDLIST
-		FXAudioDeviceProperties::XAudio2->CreateSourceVoice( &Source, ( WAVEFORMATEX* )&XAudio2Buffer->PCM, Flags, MAX_PITCH, &SourceCallback ) ) )
+		AudioDevice->DeviceProperties->XAudio2->CreateSourceVoice(&Source, (WAVEFORMATEX*)&XAudio2Buffer->PCM, Flags, MAX_PITCH, &SourceCallback)))
 #endif	//XAUDIO2_SUPPORTS_SENDLIST
 	{
 		return( false );
@@ -330,28 +332,39 @@ bool FXAudio2SoundSource::CreateSource( void )
  * @param	WaveInstance	wave instace being primed for playback
  * @return	true if initialization was successful, false otherwise
  */
-bool FXAudio2SoundSource::Init( FWaveInstance* InWaveInstance )
+bool FXAudio2SoundSource::Init(FWaveInstance* InWaveInstance)
 {
 	if (InWaveInstance->OutputTarget != EAudioOutputTarget::Controller)
 	{
 		// Find matching buffer.
-		XAudio2Buffer = FXAudio2SoundBuffer::Init( AudioDevice, InWaveInstance->WaveData, InWaveInstance->StartTime > 0.f );
+		FAudioDevice* AudioDevice = nullptr;
+		if (InWaveInstance->ActiveSound->AudioComponent.IsValid())
+		{
+			AudioDevice = InWaveInstance->ActiveSound->AudioComponent->GetAudioDevice();
+		}
+		else
+		{
+			AudioDevice = GEngine->GetMainAudioDevice();
+		}
+		check(AudioDevice);
+
+		XAudio2Buffer = FXAudio2SoundBuffer::Init(AudioDevice, InWaveInstance->WaveData, InWaveInstance->StartTime > 0.f);
 		Buffer = XAudio2Buffer;
 
 		// Buffer failed to be created, or there was an error with the compressed data
-		if( Buffer && Buffer->NumChannels > 0 )
+		if (Buffer && Buffer->NumChannels > 0)
 		{
 			SCOPE_CYCLE_COUNTER( STAT_AudioSourceInitTime );
 
 			WaveInstance = InWaveInstance;
 
 			// Set whether to apply reverb
-			SetReverbApplied( Effects->ReverbEffectVoice != NULL );
+			SetReverbApplied(Effects->ReverbEffectVoice != nullptr);
 
 			// Create a new source
-			if( !CreateSource() )
+			if (!CreateSource())
 			{
-				return( false );
+				return false;
 			}
 
 			if (WaveInstance->StartTime > 0.f)
@@ -360,7 +373,7 @@ bool FXAudio2SoundSource::Init( FWaveInstance* InWaveInstance )
 			}
 
 			// Submit audio buffers
-			switch( XAudio2Buffer->SoundFormat )
+			switch (XAudio2Buffer->SoundFormat)
 			{
 			case SoundFormat_PCM:
 			case SoundFormat_PCMPreview:
@@ -385,12 +398,12 @@ bool FXAudio2SoundSource::Init( FWaveInstance* InWaveInstance )
 			Update();
 		
 			// Initialization succeeded.
-			return( true );
+			return true;
 		}
 	}
 
 	// Initialization failed.
-	return( false );
+	return false;
 }
 
 /**
@@ -398,7 +411,7 @@ bool FXAudio2SoundSource::Init( FWaveInstance* InWaveInstance )
  */
 void FXAudio2SoundSource::GetChannelVolumes( float ChannelVolumes[CHANNELOUT_COUNT], float AttenuatedVolume )
 {
-	if (FApp::GetVolumeMultiplier() == 0.0f)
+	if (FApp::GetVolumeMultiplier() == 0.0f || AudioDevice->bIsDeviceMuted)
 	{
 		for( int32 i = 0; i < CHANNELOUT_COUNT; i++ )
 		{

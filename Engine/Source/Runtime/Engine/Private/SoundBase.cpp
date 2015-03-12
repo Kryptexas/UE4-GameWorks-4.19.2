@@ -41,23 +41,23 @@ float USoundBase::GetMaxAudibleDistance()
 	return 0.f;
 }
 
-bool USoundBase::IsAudibleSimple( const FVector Location, USoundAttenuation* InAttenuationSettings )
+bool USoundBase::IsAudibleSimple(class FAudioDevice* AudioDevice, const FVector Location, USoundAttenuation* InAttenuationSettings)
 {
 	// No audio device means no listeners to check against
-	if( !GEngine || !GEngine->GetAudioDevice() )
+	if (!AudioDevice)
 	{
-		return true ;
+		return false;
 	}
 
 	// Listener position could change before long sounds finish
-	if( GetDuration() > 1.0f )
+	if (GetDuration() > 1.0f)
 	{
-		return true ;
+		return true;
 	}
 
 	// Is this SourceActor within the MaxAudibleDistance of any of the listeners?
-	float MaxAudibleDistance = InAttenuationSettings  != nullptr ? InAttenuationSettings ->Attenuation.GetMaxDimension() : GetMaxAudibleDistance();
-	return GEngine->GetAudioDevice()->LocationIsAudible( Location, MaxAudibleDistance );
+	float MaxAudibleDistance = InAttenuationSettings != nullptr ? InAttenuationSettings->Attenuation.GetMaxDimension() : GetMaxAudibleDistance();
+	return AudioDevice->LocationIsAudible(Location, MaxAudibleDistance);
 }
 
 bool USoundBase::IsAudible( const FVector &SourceLocation, const FVector &ListenerLocation, AActor* SourceActor, bool& bIsOccluded, bool bCheckOcclusion )

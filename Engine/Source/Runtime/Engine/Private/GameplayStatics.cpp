@@ -625,68 +625,77 @@ EPhysicalSurface UGameplayStatics::GetSurfaceType(const struct FHitResult& Hit)
 	return UPhysicalMaterial::DetermineSurfaceType( HitPhysMat );
 }
 
-bool UGameplayStatics::AreAnyListenersWithinRange(FVector Location, float MaximumRange)
+bool UGameplayStatics::AreAnyListenersWithinRange(UObject* WorldContextObject, FVector Location, float MaximumRange)
 {
-	if (GEngine && GEngine->UseSound())
+	if (!GEngine || !GEngine->UseSound())
 	{
-		return GEngine->GetAudioDevice()->LocationIsAudible(Location, MaximumRange);
+		return false;
 	}
+	
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (!ThisWorld)
+	{
+		return false;
+	}
+	
+	// If there is no valid world from the world context object then there certainly are no listeners
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+	{
+		return AudioDevice->LocationIsAudible(Location, MaximumRange);
+	}	
 
 	return false;
 }
 
 void UGameplayStatics::PlaySound2D(UObject* WorldContextObject, class USoundBase* Sound, float VolumeMultiplier, float PitchMultiplier, float StartTime)
 {
-	if ( Sound == nullptr )
+	if (!Sound || !GEngine || !GEngine->UseSound())
 	{
 		return;
 	}
 
 	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
-	if ( ThisWorld == nullptr )
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback || ThisWorld->GetNetMode() == NM_DedicatedServer)
 	{
 		return;
 	}
 
-	if ( GEngine && GEngine->UseSound() && ThisWorld->bAllowAudioPlayback && ThisWorld->GetNetMode() != NM_DedicatedServer )
+	// TODO - Audio Threading. This call would be a task call to dispatch to the audio thread
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
 	{
-		// TODO - Audio Threading. This call would be a task call to dispatch to the audio thread
-		if ( FAudioDevice* AudioDevice = GEngine->GetAudioDevice() )
-		{
-			FActiveSound NewActiveSound;
-			NewActiveSound.Sound = Sound;
+		FActiveSound NewActiveSound;
+		NewActiveSound.Sound = Sound;
 
-			NewActiveSound.VolumeMultiplier = VolumeMultiplier;
-			NewActiveSound.PitchMultiplier = PitchMultiplier;
+		NewActiveSound.VolumeMultiplier = VolumeMultiplier;
+		NewActiveSound.PitchMultiplier = PitchMultiplier;
 
-			NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
+		NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
 
-			NewActiveSound.bIsUISound = true;
+		NewActiveSound.bIsUISound = true;
 
-			AudioDevice->AddNewActiveSound(NewActiveSound);
-		}
+		AudioDevice->AddNewActiveSound(NewActiveSound);
 	}
 }
 
 void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class USoundBase* Sound, FVector Location, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
 {
-	if ( Sound == nullptr )
+	if (!Sound || !GEngine || !GEngine->UseSound())
 	{
 		return;
 	}
 
 	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
-	if(ThisWorld == nullptr)
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback || ThisWorld->GetNetMode() == NM_DedicatedServer)
 	{
 		return;
 	}
 
-	const bool bIsInGameWorld = ThisWorld->IsGameWorld();
-
-	if (GEngine->UseSound() && ThisWorld->bAllowAudioPlayback && ThisWorld->GetNetMode() != NM_DedicatedServer)
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
 	{
-		if( Sound->IsAudibleSimple( Location, AttenuationSettings ) )
+		if (Sound->IsAudibleSimple(AudioDevice, Location, AttenuationSettings))
 		{
+			const bool bIsInGameWorld = ThisWorld->IsGameWorld();
+
 			FActiveSound NewActiveSound;
 			NewActiveSound.World = ThisWorld;
 			NewActiveSound.Sound = Sound;
@@ -712,36 +721,41 @@ void UGameplayStatics::PlaySoundAtLocation(UObject* WorldContextObject, class US
 			}
 
 			// TODO - Audio Threading. This call would be a task call to dispatch to the audio thread
-			GEngine->GetAudioDevice()->AddNewActiveSound(NewActiveSound);
+			AudioDevice->AddNewActiveSound(NewActiveSound);
 		}
 		else
 		{
 			// Don't play a sound for short sounds that start out of range of any listener
-			UE_LOG(LogAudio, Log, TEXT( "Sound not played for out of range Sound %s" ), *Sound->GetName() );
+			UE_LOG(LogAudio, Log, TEXT("Sound not played for out of range Sound %s"), *Sound->GetName());
 		}
 	}
 }
 
 void UGameplayStatics::PlayDialogueAtLocation(UObject* WorldContextObject, class UDialogueWave* Dialogue, const FDialogueContext& Context, FVector Location, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
 {
-	if ( Dialogue == NULL )
-	{
-		return;
-	}
-
-	USoundBase* Sound = Dialogue->GetWaveFromContext(Context);
-	if ( Sound == NULL )
+	if (!Dialogue || !GEngine || !GEngine->UseSound())
 	{
 		return;
 	}
 
 	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
-	if (GEngine && GEngine->UseSound() && (ThisWorld != nullptr) && ThisWorld->bAllowAudioPlayback)
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback)
 	{
-		const bool bIsInGameWorld = ThisWorld->IsGameWorld();
+		return;
+	}
+	
+	USoundBase* Sound = Dialogue->GetWaveFromContext(Context);
+	if (!Sound)
+	{
+		return;
+	}
 
-		if( Sound->IsAudibleSimple( Location, AttenuationSettings ) )
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+	{
+		if (Sound->IsAudibleSimple(AudioDevice, Location, AttenuationSettings))
 		{
+			const bool bIsInGameWorld = ThisWorld->IsGameWorld();
+			
 			FActiveSound NewActiveSound;
 			NewActiveSound.World = ThisWorld;
 			NewActiveSound.Sound = Sound;
@@ -766,27 +780,27 @@ void UGameplayStatics::PlayDialogueAtLocation(UObject* WorldContextObject, class
 				NewActiveSound.AttenuationSettings = *AttenuationSettingsToApply;
 			}
 
-			// TODO - Audio Threading. This call would be a task call to dispatch to the audio thread
-			GEngine->GetAudioDevice()->AddNewActiveSound(NewActiveSound);
+			AudioDevice->AddNewActiveSound(NewActiveSound);
 		}
 		else
 		{
 			// Don't play a sound for short sounds that start out of range of any listener
-			UE_LOG(LogAudio, Log, TEXT( "Sound not played for out of range Sound %s" ), *Sound->GetName() );
+			UE_LOG(LogAudio, Log, TEXT("Sound not played for out of range Sound %s"), *Sound->GetName());
 		}
 	}
 }
 
 class UAudioComponent* UGameplayStatics::PlaySoundAttached(class USoundBase* Sound, class USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, EAttachLocation::Type LocationType, bool bStopWhenAttachedToDestroyed, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
 {
-	if ( Sound == NULL )
+	if (!Sound)
 	{
-		return NULL;
+		return nullptr;
 	}
-	if ( AttachToComponent == NULL )
+
+	if (!AttachToComponent)
 	{
 		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::PlaySoundAttached: NULL AttachComponent specified!"));
-		return NULL;
+		return nullptr;
 	}
 
 	// Location used to check whether to create a component if out of range
@@ -796,8 +810,8 @@ class UAudioComponent* UGameplayStatics::PlaySoundAttached(class USoundBase* Sou
 		TestLocation = AttachToComponent->GetRelativeTransform().TransformPosition(Location);
 	}
 
-	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent( Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings );
-	if(AudioComponent)
+	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings);
+	if (AudioComponent)
 	{
 		const bool bIsInGameWorld = AudioComponent->GetWorld()->IsGameWorld();
 
@@ -824,21 +838,21 @@ class UAudioComponent* UGameplayStatics::PlaySoundAttached(class USoundBase* Sou
 
 class UAudioComponent* UGameplayStatics::PlayDialogueAttached(class UDialogueWave* Dialogue, const FDialogueContext& Context, class USceneComponent* AttachToComponent, FName AttachPointName, FVector Location, EAttachLocation::Type LocationType, bool bStopWhenAttachedToDestroyed, float VolumeMultiplier, float PitchMultiplier, float StartTime, class USoundAttenuation* AttenuationSettings)
 {
-	if ( Dialogue == NULL )
+	if (!Dialogue)
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	USoundBase* Sound = Dialogue->GetWaveFromContext(Context);
-	if ( Sound == NULL )
+	if (!Sound)
 	{
-		return NULL;
+		return nullptr;
 	}
 
-	if ( AttachToComponent == NULL )
+	if (!AttachToComponent)
 	{
 		UE_LOG(LogScript, Warning, TEXT("UGameplayStatics::PlaySoundAttached: NULL AttachComponent specified!"));
-		return NULL;
+		return nullptr;
 	}
 
 	// Location used to check whether to create a component if out of range
@@ -848,8 +862,8 @@ class UAudioComponent* UGameplayStatics::PlayDialogueAttached(class UDialogueWav
 		TestLocation = AttachToComponent->GetRelativeTransform().TransformPosition(Location);
 	}
 
-	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent( Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings );
-	if(AudioComponent)
+	UAudioComponent* AudioComponent = FAudioDevice::CreateComponent(Sound, AttachToComponent->GetWorld(), AttachToComponent->GetOwner(), false, bStopWhenAttachedToDestroyed, &TestLocation, AttenuationSettings);
+	if (AudioComponent)
 	{
 		const bool bIsGameWorld = AudioComponent->GetWorld()->IsGameWorld();
 
@@ -874,67 +888,115 @@ class UAudioComponent* UGameplayStatics::PlayDialogueAttached(class UDialogueWav
 	return AudioComponent;
 }
 
-void UGameplayStatics::SetBaseSoundMix(USoundMix* InSoundMix)
+void UGameplayStatics::SetBaseSoundMix(UObject* WorldContextObject, USoundMix* InSoundMix)
 {
-	if (InSoundMix)
+	if (!InSoundMix || !GEngine || !GEngine->UseSound())
 	{
-		FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
-		if( AudioDevice != NULL )
-		{
-			AudioDevice->SetBaseSoundMix(InSoundMix);
-		}
+		return;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback)
+	{
+		return;
+	}
+
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+	{
+		AudioDevice->SetBaseSoundMix(InSoundMix);
 	}
 }
 
-void UGameplayStatics::PushSoundMixModifier(USoundMix* InSoundMixModifier)
+void UGameplayStatics::PushSoundMixModifier(UObject* WorldContextObject, USoundMix* InSoundMixModifier)
 {
-	if (InSoundMixModifier)
+	if (!InSoundMixModifier || !GEngine || !GEngine->UseSound())
 	{
-		FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
-		if( AudioDevice != NULL )
-		{
-			AudioDevice->PushSoundMixModifier(InSoundMixModifier);
-		}
+		return;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback)
+	{
+		return;
+	}
+
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+	{
+		AudioDevice->PushSoundMixModifier(InSoundMixModifier);
 	}
 }
 
-void UGameplayStatics::PopSoundMixModifier(USoundMix* InSoundMixModifier)
+void UGameplayStatics::PopSoundMixModifier(UObject* WorldContextObject, USoundMix* InSoundMixModifier)
 {
-	if (InSoundMixModifier)
+	if (InSoundMixModifier == nullptr || GEngine == nullptr || !GEngine->UseSound())
 	{
-		FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
-		if( AudioDevice != NULL )
-		{
-			AudioDevice->PopSoundMixModifier(InSoundMixModifier);
-		}
+		return;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (ThisWorld == nullptr || !ThisWorld->bAllowAudioPlayback)
+	{
+		return;
+	}
+
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+	{
+		AudioDevice->PopSoundMixModifier(InSoundMixModifier);
 	}
 }
 
-void UGameplayStatics::ClearSoundMixModifiers()
+void UGameplayStatics::ClearSoundMixModifiers(UObject* WorldContextObject)
 {
-	FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
-	if( AudioDevice != NULL )
+	if (!GEngine || !GEngine->UseSound())
+	{
+		return;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback)
+	{
+		return;
+	}
+
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
 	{
 		AudioDevice->ClearSoundMixModifiers();
 	}
 }
 
-void UGameplayStatics::ActivateReverbEffect(class UReverbEffect* ReverbEffect, FName TagName, float Priority, float Volume, float FadeTime)
+void UGameplayStatics::ActivateReverbEffect(UObject* WorldContextObject, class UReverbEffect* ReverbEffect, FName TagName, float Priority, float Volume, float FadeTime)
 {
-	if (ReverbEffect)
+	if (ReverbEffect || !GEngine || !GEngine->UseSound())
 	{
-		FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
-		if( AudioDevice != NULL )
-		{
-			AudioDevice->ActivateReverbEffect(ReverbEffect, TagName, Priority, Volume, FadeTime);
-		}
+		return;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback)
+	{
+		return;
+	}
+
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
+	{
+		AudioDevice->ActivateReverbEffect(ReverbEffect, TagName, Priority, Volume, FadeTime);
 	}
 }
 
-void UGameplayStatics::DeactivateReverbEffect(FName TagName)
+void UGameplayStatics::DeactivateReverbEffect(UObject* WorldContextObject, FName TagName)
 {
-	FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
-	if( AudioDevice != NULL )
+	if (GEngine || !GEngine->UseSound())
+	{
+		return;
+	}
+
+	UWorld* ThisWorld = GEngine->GetWorldFromContextObject(WorldContextObject);
+	if (!ThisWorld || !ThisWorld->bAllowAudioPlayback)
+	{
+		return;
+	}
+
+	if (FAudioDevice* AudioDevice = ThisWorld->GetAudioDevice())
 	{
 		AudioDevice->DeactivateReverbEffect(TagName);
 	}

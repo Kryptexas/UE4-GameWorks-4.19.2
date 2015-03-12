@@ -168,6 +168,7 @@ UGameViewportClient::~UGameViewportClient()
 		delete StatUnitData;
 		StatUnitData = NULL;
 	}
+
 }
 
 
@@ -179,6 +180,15 @@ void UGameViewportClient::PostInitProperties()
 
 void UGameViewportClient::BeginDestroy()
 {
+	if (GEngine)
+	{
+		class FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+		if (AudioDeviceManager)
+		{
+			AudioDeviceManager->ShutdownAudioDevice(AudioDeviceHandle);
+		}
+	}
+
 	RemoveAllViewportWidgets();
 	Super::BeginDestroy();
 }
@@ -231,6 +241,27 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 	// Create the cursor Widgets
 	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
 
+	if (GEngine)
+	{
+		FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+		if (AudioDeviceManager)
+		{
+			FAudioDevice* AudioDevice = AudioDeviceManager->CreateAudioDevice(AudioDeviceHandle);
+			if (AudioDevice)
+			{
+				// Set the base mix of the new device based on the world settings of the world
+				AudioDevice->SetDefaultBaseSoundMix(World->GetWorldSettings()->DefaultBaseSoundMix);
+
+				// Set this audio device handle on the world context so future world's set onto the world context
+				// will pass the audio device handle to them and audio will play on the correct audio device
+				WorldContext.AudioDeviceHandle = AudioDeviceHandle;
+
+				// Set the world's audio device handle to use so that sounds which play in that world will use the correct audio device
+				World->SetAudioDeviceHandle(AudioDeviceHandle);
+			}
+		}
+	}
+	
 	AddCursor(EMouseCursor::Default, UISettings->DefaultCursor);
 	AddCursor(EMouseCursor::TextEditBeam, UISettings->TextEditBeamCursor);
 	AddCursor(EMouseCursor::Crosshairs, UISettings->CrosshairsCursor);
@@ -815,7 +846,8 @@ void UGameViewportClient::Draw(FViewport* InViewport, FCanvas* SceneCanvas)
 
 	TMap<ULocalPlayer*,FSceneView*> PlayerViewMap;
 
-	FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
+	FAudioDevice* AudioDevice = GetWorld()->GetAudioDevice();
+
 	bool bReverbSettingsFound = false;
 	FReverbSettings ReverbSettings;
 	class AAudioVolume* AudioVolume = nullptr;
@@ -1280,14 +1312,13 @@ void UGameViewportClient::Precache()
 	if(!GIsEditor)
 	{
 		// Precache sounds...
-		FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
-		if (AudioDevice != NULL)
+		if (FAudioDevice* AudioDevice = GetWorld()->GetAudioDevice())
 		{
 			UE_LOG(LogPlayerManagement, Log, TEXT("Precaching sounds..."));
 			for(TObjectIterator<USoundWave> It;It;++It)
 			{
 				USoundWave* SoundWave = *It;
-				AudioDevice->Precache( SoundWave );
+				AudioDevice->Precache(SoundWave);
 			}
 			UE_LOG(LogPlayerManagement, Log, TEXT("Precaching sounds completed..."));
 		}
@@ -1336,6 +1367,11 @@ void UGameViewportClient::ReceivedFocus(FViewport* InViewport)
 	if (GetDefault<UInputSettings>()->bUseMouseForTouch && !GetGameViewport()->GetPlayInEditorIsSimulate())
 	{
 		FSlateApplication::Get().SetGameIsFakingTouchEvents(true);
+	}
+
+	if (GEngine && GEngine->GetAudioDeviceManager())
+	{ 
+		GEngine->GetAudioDeviceManager()->SetActiveDevice(AudioDeviceHandle);
 	}
 }
 

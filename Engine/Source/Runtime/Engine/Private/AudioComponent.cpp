@@ -33,9 +33,9 @@ FString UAudioComponent::GetDetailedInfoInternal( void ) const
 {
 	FString Result;
 
-	if( Sound != NULL )
+	if (Sound != nullptr)
 	{
-		Result = Sound->GetPathName( NULL );
+		Result = Sound->GetPathName(nullptr);
 	}
 	else
 	{
@@ -63,7 +63,7 @@ void UAudioComponent::OnUnregister()
 	// called from AActor::ClearComponents when an actor gets destroyed which is not usually what we want for one-
 	// shot sounds.
 	AActor* Owner = GetOwner();
-	if( !Owner || bStopWhenOwnerDestroyed )
+	if (!Owner || bStopWhenOwnerDestroyed)
 	{
 		Stop();
 	}
@@ -93,9 +93,7 @@ void UAudioComponent::OnUpdateTransform(bool bSkipPhysicsMove)
 
 	if (bIsActive && !bPreviewComponent)
 	{
-		// TODO - Audio Threading. This call would be a task
-		FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
-		if (AudioDevice != NULL)
+		if (FAudioDevice * AudioDevice = GetAudioDevice())
 		{
 			FActiveSound* ActiveSound = AudioDevice->FindActiveSound(this);
 			if (ActiveSound)
@@ -116,7 +114,7 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 {
 	UWorld* World = GetWorld();
 
-	UE_LOG(LogAudio, Verbose, TEXT( "%g: Playing AudioComponent : '%s' with Sound: '%s'" ), World ? World->GetAudioTimeSeconds() : 0.0f, *GetFullName(), Sound ? *Sound->GetName() : TEXT( "NULL" ) );
+	UE_LOG(LogAudio, Verbose, TEXT("%g: Playing AudioComponent : '%s' with Sound: '%s'"), World ? World->GetAudioTimeSeconds() : 0.0f, *GetFullName(), Sound ? *Sound->GetName() : TEXT("nullptr"));
 
 	if (bIsActive)
 	{
@@ -129,8 +127,7 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 
 	if (Sound && (World == nullptr || World->bAllowAudioPlayback))
 	{
-		FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
-		if (AudioDevice != NULL)
+		if (FAudioDevice* AudioDevice = GetAudioDevice())
 		{
 			FActiveSound NewActiveSound;
 			NewActiveSound.AudioComponent = this;
@@ -138,8 +135,8 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 			NewActiveSound.Sound = Sound;
 			NewActiveSound.SoundClassOverride = SoundClassOverride;
 
-			NewActiveSound.VolumeMultiplier = (VolumeModulationMax + ( ( VolumeModulationMin - VolumeModulationMax ) * FMath::SRand() )) * VolumeMultiplier;
-			NewActiveSound.PitchMultiplier = (PitchModulationMax + ( ( PitchModulationMin - PitchModulationMax ) * FMath::SRand() )) * PitchMultiplier;
+			NewActiveSound.VolumeMultiplier = (VolumeModulationMax + ((VolumeModulationMin - VolumeModulationMax) * FMath::SRand())) * VolumeMultiplier;
+			NewActiveSound.PitchMultiplier = (PitchModulationMax + ((PitchModulationMin - PitchModulationMax) * FMath::SRand())) * PitchMultiplier;
 			NewActiveSound.HighFrequencyGainMultiplier = HighFrequencyGainMultiplier;
 
 			NewActiveSound.RequestedStartTime = FMath::Max(0.f, StartTime);
@@ -162,9 +159,9 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 				NewActiveSound.Transform = ComponentToWorld;
 			}
 
-			const FAttenuationSettings* AttenuationSettingsToApply = (bAllowSpatialization ? GetAttenuationSettingsToApply() : NULL);
+			const FAttenuationSettings* AttenuationSettingsToApply = (bAllowSpatialization ? GetAttenuationSettingsToApply() : nullptr);
 			NewActiveSound.bAllowSpatialization = bAllowSpatialization;
-			NewActiveSound.bHasAttenuationSettings = (AttenuationSettingsToApply != NULL);
+			NewActiveSound.bHasAttenuationSettings = (AttenuationSettingsToApply != nullptr);
 			if (NewActiveSound.bHasAttenuationSettings)
 			{
 				NewActiveSound.AttenuationSettings = *AttenuationSettingsToApply;
@@ -192,6 +189,25 @@ void UAudioComponent::PlayInternal(const float StartTime, const float FadeInDura
 	}
 }
 
+FAudioDevice* UAudioComponent::GetAudioDevice() const
+{
+	FAudioDevice* AudioDevice = nullptr;
+
+	if (GEngine)
+	{
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			AudioDevice = World->GetAudioDevice();
+		}
+		else
+		{
+			AudioDevice = GEngine->GetMainAudioDevice();
+		}
+	}
+	return AudioDevice;
+}
+
 void UAudioComponent::FadeIn( float FadeInDuration, float FadeVolumeLevel, float StartTime )
 {
 	PlayInternal(StartTime, FadeInDuration, FadeVolumeLevel);
@@ -204,8 +220,7 @@ void UAudioComponent::FadeOut( float FadeOutDuration, float FadeVolumeLevel )
 		if (FadeOutDuration > 0.0f)
 		{
 			// TODO - Audio Threading. This call would be a task
-			FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
-			if (AudioDevice != NULL)
+			if (FAudioDevice* AudioDevice = GetAudioDevice())
 			{
 				FActiveSound* ActiveSound = AudioDevice->FindActiveSound(this);
 				if (ActiveSound)
@@ -228,8 +243,7 @@ void UAudioComponent::AdjustVolume( float AdjustVolumeDuration, float AdjustVolu
 	if (bIsActive)
 	{
 		// TODO - Audio Threading. This call would be a task
-		FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
-		if (AudioDevice != NULL)
+		if (FAudioDevice* AudioDevice = GetAudioDevice())
 		{
 			FActiveSound* ActiveSound = AudioDevice->FindActiveSound(this);
 			if (ActiveSound)
@@ -255,11 +269,10 @@ void UAudioComponent::Stop()
 {
 	if (bIsActive)
 	{
-		UE_LOG(LogAudio, Verbose, TEXT( "%g: Stopping AudioComponent : '%s' with Sound: '%s'" ), GetWorld() ? GetWorld()->GetAudioTimeSeconds() : 0.0f, *GetFullName(), Sound ? *Sound->GetName() : TEXT( "NULL" ) );
+		UE_LOG(LogAudio, Verbose, TEXT( "%g: Stopping AudioComponent : '%s' with Sound: '%s'" ), GetWorld() ? GetWorld()->GetAudioTimeSeconds() : 0.0f, *GetFullName(), Sound ? *Sound->GetName() : TEXT( "nullptr" ) );
 
 		// TODO - Audio Threading. This call would be a task
-		FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
-		if (AudioDevice != NULL)
+		if (FAudioDevice* AudioDevice = GetAudioDevice())
 		{
 			AudioDevice->StopActiveSound(this);
 		}
@@ -271,7 +284,7 @@ void UAudioComponent::PlaybackCompleted(bool bFailedToStart)
 	// Mark inactive before calling destroy to avoid recursion
 	bIsActive = false;
 
-	if (!bFailedToStart && GetWorld() != NULL && (OnAudioFinished.IsBound() || OnAudioFinishedNative.IsBound()))
+	if (!bFailedToStart && GetWorld() != nullptr && (OnAudioFinished.IsBound() || OnAudioFinishedNative.IsBound()))
 	{
 		INC_DWORD_STAT( STAT_AudioFinishedDelegatesCalled );
 		SCOPE_CYCLE_COUNTER( STAT_AudioFinishedDelegates );
@@ -281,7 +294,7 @@ void UAudioComponent::PlaybackCompleted(bool bFailedToStart)
 	}
 
 	// Auto destruction is handled via marking object for deletion.
-	if( bAutoDestroy )
+	if (bAutoDestroy)
 	{
 		DestroyComponent();
 	}
@@ -299,11 +312,11 @@ void UAudioComponent::UpdateSpriteTexture()
 	{
 		if (bAutoActivate)
 		{
-			SpriteComponent->SetSprite(LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/AudioIcons/S_AudioComponent_AutoActivate.S_AudioComponent_AutoActivate")));
+			SpriteComponent->SetSprite(LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/AudioIcons/S_AudioComponent_AutoActivate.S_AudioComponent_AutoActivate")));
 		}
 		else
 		{
-			SpriteComponent->SetSprite(LoadObject<UTexture2D>(NULL, TEXT("/Engine/EditorResources/AudioIcons/S_AudioComponent.S_AudioComponent")));
+			SpriteComponent->SetSprite(LoadObject<UTexture2D>(nullptr, TEXT("/Engine/EditorResources/AudioIcons/S_AudioComponent.S_AudioComponent")));
 		}
 	}
 }
@@ -344,7 +357,7 @@ const FAttenuationSettings* UAudioComponent::GetAttenuationSettingsToApply() con
 	{
 		return Sound->GetAttenuationSettingsToApply();
 	}
-	return NULL;
+	return nullptr;
 }
 
 void UAudioComponent::CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const
@@ -375,7 +388,7 @@ void UAudioComponent::CollectAttenuationShapesForVisualization(TMultiMap<EAttenu
 
 void UAudioComponent::Activate(bool bReset)
 {
-	if (bReset || ShouldActivate()==true)
+	if (bReset || ShouldActivate() == true)
 	{
 		Play();
 	}
@@ -383,7 +396,7 @@ void UAudioComponent::Activate(bool bReset)
 
 void UAudioComponent::Deactivate()
 {
-	if (ShouldActivate()==false)
+	if (ShouldActivate() == false)
 	{
 		Stop();
 	}
@@ -391,15 +404,15 @@ void UAudioComponent::Deactivate()
 
 void UAudioComponent::SetFloatParameter( FName InName, float InFloat )
 {
-	if( InName != NAME_None )
+	if (InName != NAME_None)
 	{
 		bool bFound = false;
 
 		// First see if an entry for this name already exists
-		for( int32 i = 0; i < InstanceParameters.Num(); i++ )
+		for (int32 i = 0; i < InstanceParameters.Num(); i++)
 		{
-			FAudioComponentParam& P = InstanceParameters[ i ];
-			if( P.ParamName == InName )
+			FAudioComponentParam& P = InstanceParameters[i];
+			if (P.ParamName == InName)
 			{
 				P.FloatParam = InFloat;
 				bFound = true;
@@ -419,8 +432,7 @@ void UAudioComponent::SetFloatParameter( FName InName, float InFloat )
 		if (bIsActive)
 		{
 			// TODO - Audio Threading. This call would be a task
-			FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
-			if (AudioDevice != NULL)
+			if (FAudioDevice* AudioDevice = GetAudioDevice())
 			{
 				FActiveSound* ActiveSound = AudioDevice->FindActiveSound(this);
 				if (ActiveSound)
@@ -434,14 +446,14 @@ void UAudioComponent::SetFloatParameter( FName InName, float InFloat )
 
 void UAudioComponent::SetWaveParameter( FName InName, USoundWave* InWave )
 {
-	if( InName != NAME_None )
+	if (InName != NAME_None)
 	{
 		bool bFound = false;
 		// First see if an entry for this name already exists
-		for( int32 i = 0; i < InstanceParameters.Num(); i++ )
+		for (int32 i = 0; i < InstanceParameters.Num(); i++)
 		{
-			FAudioComponentParam& P = InstanceParameters[ i ];
-			if( P.ParamName == InName )
+			FAudioComponentParam& P = InstanceParameters[i];
+			if (P.ParamName == InName)
 			{
 				P.SoundWaveParam = InWave;
 				bFound = true;
@@ -453,16 +465,15 @@ void UAudioComponent::SetWaveParameter( FName InName, USoundWave* InWave )
 		if (!bFound)
 		{
 			const int32 NewParamIndex = InstanceParameters.AddZeroed();
-			InstanceParameters[ NewParamIndex ].ParamName = InName;
-			InstanceParameters[ NewParamIndex ].SoundWaveParam = InWave;
+			InstanceParameters[NewParamIndex].ParamName = InName;
+			InstanceParameters[NewParamIndex].SoundWaveParam = InWave;
 		}
 
 		// If we're active we need to push this value to the ActiveSound
 		if (bIsActive)
 		{
 			// TODO - Audio Threading. This call would be a task
-			FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
-			if (AudioDevice != NULL)
+			if (FAudioDevice* AudioDevice = GetAudioDevice())
 			{
 				FActiveSound* ActiveSound = AudioDevice->FindActiveSound(this);
 				if (ActiveSound)
@@ -476,14 +487,14 @@ void UAudioComponent::SetWaveParameter( FName InName, USoundWave* InWave )
 
 void UAudioComponent::SetBoolParameter( FName InName, bool InBool )
 {
-	if( InName != NAME_None )
+	if (InName != NAME_None)
 	{
 		bool bFound = false;
 		// First see if an entry for this name already exists
-		for( int32 i = 0; i < InstanceParameters.Num(); i++ )
+		for (int32 i = 0; i < InstanceParameters.Num(); i++)
 		{
-			FAudioComponentParam& P = InstanceParameters[ i ];
-			if( P.ParamName == InName )
+			FAudioComponentParam& P = InstanceParameters[i];
+			if (P.ParamName == InName)
 			{
 				P.BoolParam = InBool;
 				bFound = true;
@@ -503,8 +514,7 @@ void UAudioComponent::SetBoolParameter( FName InName, bool InBool )
 		if (bIsActive)
 		{
 			// TODO - Audio Threading. This call would be a task
-			FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
-			if (AudioDevice != NULL)
+			if (FAudioDevice* AudioDevice = GetAudioDevice())
 			{
 				FActiveSound* ActiveSound = AudioDevice->FindActiveSound(this);
 				if (ActiveSound)
@@ -519,14 +529,14 @@ void UAudioComponent::SetBoolParameter( FName InName, bool InBool )
 
 void UAudioComponent::SetIntParameter( FName InName, int32 InInt )
 {
-	if( InName != NAME_None )
+	if (InName != NAME_None)
 	{
 		bool bFound = false;
 		// First see if an entry for this name already exists
-		for( int32 i = 0; i < InstanceParameters.Num(); i++ )
+		for (int32 i = 0; i < InstanceParameters.Num(); i++)
 		{
-			FAudioComponentParam& P = InstanceParameters[ i ];
-			if( P.ParamName == InName )
+			FAudioComponentParam& P = InstanceParameters[i];
+			if (P.ParamName == InName)
 			{
 				P.IntParam = InInt;
 				bFound = true;
@@ -538,16 +548,15 @@ void UAudioComponent::SetIntParameter( FName InName, int32 InInt )
 		if (!bFound)
 		{
 			const int32 NewParamIndex = InstanceParameters.AddZeroed();
-			InstanceParameters[ NewParamIndex ].ParamName = InName;
-			InstanceParameters[ NewParamIndex ].IntParam = InInt;
+			InstanceParameters[NewParamIndex].ParamName = InName;
+			InstanceParameters[NewParamIndex].IntParam = InInt;
 		}
 
 		// If we're active we need to push this value to the ActiveSound
 		if (bIsActive)
 		{
 			// TODO - Audio Threading. This call would be a task
-			FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
-			if (AudioDevice != NULL)
+			if (FAudioDevice* AudioDevice = GetAudioDevice())
 			{
 				FActiveSound* ActiveSound = AudioDevice->FindActiveSound(this);
 				if (ActiveSound)
@@ -565,8 +574,7 @@ void UAudioComponent::SetVolumeMultiplier(float NewVolumeMultiplier)
 	VolumeModulationMin = VolumeModulationMax = 1.f;
 
 	// TODO - Audio Threading. This call would be a task
-	FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
-	if (AudioDevice != NULL)
+	if (FAudioDevice* AudioDevice = GetAudioDevice())
 	{
 		FActiveSound* ActiveSound = AudioDevice->FindActiveSound(this);
 		if (ActiveSound)
@@ -582,8 +590,7 @@ void UAudioComponent::SetPitchMultiplier(float NewPitchMultiplier)
 	PitchModulationMin = PitchModulationMax = 1.f;
 
 	// TODO - Audio Threading. This call would be a task
-	FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
-	if (AudioDevice != NULL)
+	if (FAudioDevice* AudioDevice = GetAudioDevice())
 	{
 		FActiveSound* ActiveSound = AudioDevice->FindActiveSound(this);
 		if (ActiveSound)
@@ -598,8 +605,7 @@ void UAudioComponent::SetUISound(bool bInIsUISound)
 	bIsUISound = bInIsUISound;
 
 	// TODO - Audio Threading. This call would be a task
-	FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
-	if (AudioDevice != NULL)
+	if (FAudioDevice* AudioDevice = GetAudioDevice())
 	{
 		FActiveSound* ActiveSound = AudioDevice->FindActiveSound(this);
 		if (ActiveSound)
@@ -615,8 +621,7 @@ void UAudioComponent::AdjustAttenuation(const FAttenuationSettings& InAttenuatio
 	AttenuationOverrides = InAttenuationSettings;
 
 	// TODO - Audio Threading. This call would be a task
-	FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : NULL;
-	if (AudioDevice != NULL)
+	if (FAudioDevice* AudioDevice = GetAudioDevice())
 	{
 		FActiveSound* ActiveSound = AudioDevice->FindActiveSound(this);
 		if (ActiveSound)

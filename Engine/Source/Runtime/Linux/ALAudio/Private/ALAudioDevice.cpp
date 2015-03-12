@@ -17,9 +17,6 @@
 
 DEFINE_LOG_CATEGORY(LogALAudio);
 
-ALCdevice* FALAudioDevice::HardwareDevice = NULL;
-ALCcontext*	FALAudioDevice::SoundContext = NULL;
-
 
 class FALAudioDeviceModule : public IAudioDeviceModule
 {
@@ -36,6 +33,10 @@ IMPLEMENT_MODULE(FALAudioDeviceModule, ALAudio );
 /*------------------------------------------------------------------------------------
 	UALAudioDevice constructor and UObject interface.
 ------------------------------------------------------------------------------------*/
+FALAudioDevice::FALAudioDevice()
+	, HardwareDevice(nullptr)
+	, SoundContext(nullptr)
+{}
 
 void FALAudioDevice::TeardownHardware( void )
 {

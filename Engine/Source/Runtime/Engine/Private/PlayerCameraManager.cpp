@@ -597,17 +597,31 @@ void APlayerCameraManager::UpdateCameraLensEffects(const FTViewTarget& OutVT)
 
 void APlayerCameraManager::ApplyAudioFade()
 {
-	if (GEngine && GEngine->GetAudioDevice() )
+	if (GEngine)
 	{
-		GEngine->GetAudioDevice()->TransientMasterVolume = 1.f - FadeAmount;
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			if (FAudioDevice* AudioDevice = World->GetAudioDevice())
+			{
+				AudioDevice->TransientMasterVolume = 1.0f - FadeAmount;
+			}
+		}
 	}
 }
 
 void APlayerCameraManager::StopAudioFade()
 {
-	if (GEngine && GEngine->GetAudioDevice())
+	if (GEngine)
 	{
-		GEngine->GetAudioDevice()->TransientMasterVolume = 1.f;
+		UWorld* World = GetWorld();
+		if (World)
+		{
+			if (FAudioDevice* AudioDevice = World->GetAudioDevice())
+			{
+				AudioDevice->TransientMasterVolume = 1.0f;
+			}
+		}
 	}
 }
 

@@ -32,6 +32,7 @@ FAudioDevice::FAudioDevice()
 	, Effects(NULL)
 	, CurrentAudioVolume(NULL)
 	, HighestPriorityReverb(NULL)
+	, bIsDeviceMuted(false)
 {
 }
 
@@ -135,15 +136,12 @@ void FAudioDevice::Teardown()
 	// let platform shutdown
 	TeardownHardware();
 
-	// Release any loaded buffers - this calls stop on any sources that need it
-	for (int32 Index = Buffers.Num() - 1; Index >= 0; Index--)
-	{
-		FreeBufferResource(Buffers[Index]);
-	}
+	// Note: we don't free audio buffers at this stage since they are managed in the audio device manager
 
 	// Must be after FreeBufferResource as that potentially stops sources
 	for (int32 Index = 0; Index < Sources.Num(); Index++)
 	{
+		Sources[Index]->Stop();
 		delete Sources[Index];
 	}
 	Sources.Empty();
@@ -158,7 +156,9 @@ void FAudioDevice::Suspend(bool bGameTicking)
 void FAudioDevice::CountBytes(FArchive& Ar)
 {
 	Sources.CountBytes(Ar);
-	Buffers.CountBytes(Ar);
+	// The buffers are stored on the audio device since they are shared amongst all audio devices
+	// Though we are going to count them when querying an individual audio device object about its bytes
+	GEngine->GetAudioDeviceManager()->Buffers.CountBytes(Ar);
 	FreeSources.CountBytes(Ar);
 	WaveInstanceSourceMap.CountBytes(Ar);
 	Ar.CountBytes(sizeof(FWaveInstance) * WaveInstanceSourceMap.Num(), sizeof(FWaveInstance) * WaveInstanceSourceMap.Num());
@@ -487,13 +487,11 @@ bool FAudioDevice::HandleListAudioComponentsCommand( const TCHAR* Cmd, FOutputDe
 	}
 	Ar.Logf( TEXT( "AudioComponent Total = %d" ), Count );
 
-	FAudioDevice* AudioDevice = GEngine->AudioDevice;
-
 	Ar.Logf( TEXT( "AudioDevice 0x%p has %d ActiveSounds" ),
-		AudioDevice, AudioDevice->ActiveSounds.Num());
-	for( int32 ASIndex = 0; ASIndex < AudioDevice->ActiveSounds.Num(); ASIndex++ )
+		this, ActiveSounds.Num());
+	for( int32 ASIndex = 0; ASIndex < ActiveSounds.Num(); ASIndex++ )
 	{
-		const FActiveSound* ActiveSound = AudioDevice->ActiveSounds[ASIndex];
+		const FActiveSound* ActiveSound = ActiveSounds[ASIndex];
 		UAudioComponent* AComp = ActiveSound->AudioComponent.Get();
 		if( AComp )
 		{
@@ -772,14 +770,6 @@ bool FAudioDevice::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 #endif // !UE_BUILD_SHIPPING
 
 	return false;
-}
-
-void FAudioDevice::RemoveClass( USoundClass* SoundClass )
-{
-	if( SoundClass )
-	{
-		SoundClasses.Remove(SoundClass);
-	}
 }
 
 void FAudioDevice::InitSoundClasses( void )
@@ -2022,25 +2012,39 @@ bool FAudioDevice::LocationIsAudible( FVector Location, float MaxDistance )
 	return( false );
 }
 
-UAudioComponent* FAudioDevice::CreateComponent( USoundBase* Sound, UWorld* World, AActor* Actor, bool bPlay, bool bStopWhenOwnerDestroyed, const FVector* Location, USoundAttenuation* AttenuationSettings )
+UAudioComponent* FAudioDevice::CreateComponent(USoundBase* Sound, UWorld* World, AActor* Actor, bool bPlay, bool bStopWhenOwnerDestroyed, const FVector* Location, USoundAttenuation* AttenuationSettings)
 {
 	UAudioComponent* AudioComponent = NULL;
 
 	if( Sound && GEngine && GEngine->UseSound() )
 	{
+		// Get the world's audio device if there is a world, otherwise get the main audio device
+		FAudioDevice* AudioDevice = nullptr;
+		if (World)
+		{
+			AudioDevice = World->GetAudioDevice();
+		}
+		else
+		{
+			AudioDevice = GEngine->GetMainAudioDevice();
+		}
+		check(AudioDevice != nullptr);
+
 		// Avoid creating component if we're trying to play a sound on an already destroyed actor.
-		if( Actor && Actor->IsPendingKill() )
+		if (Actor && Actor->IsPendingKill())
 		{
 			// Don't create component on destroyed actor.
 		}
 		// Either no actor or actor is still alive.
-		else if( Location && !Sound->IsAudibleSimple( *Location, AttenuationSettings ) )
+		else if (Location && !Sound->IsAudibleSimple(AudioDevice, *Location, AttenuationSettings))
 		{
 			// Don't create a sound component for short sounds that start out of range of any listener
 			UE_LOG(LogAudio, Log, TEXT( "AudioComponent not created for out of range Sound %s" ), *Sound->GetName() );
 		}
 		else
 		{
+
+
 			// Use actor as outer if we have one.
 			if( Actor )
 			{
@@ -2251,81 +2255,53 @@ void FAudioDevice::Precache(USoundWave* SoundWave, bool bSynchronous, bool bTrac
 	}
 }
 
-/** 
- * Links up the resource data indices for looking up and cleaning up
- */
-void FAudioDevice::TrackResource(USoundWave* Wave, FSoundBuffer* Buffer)
+void FAudioDevice::StopSourcesUsingBuffer(FSoundBuffer * SoundBuffer)
 {
-	// Allocate new resource ID and assign to USoundWave. A value of 0 (default) means not yet registered.
-	int32 ResourceID = NextResourceID++;
-	Buffer->ResourceID = ResourceID;
-	Wave->ResourceID = ResourceID;
-
-	Buffers.Add(Buffer);
-	WaveBufferMap.Add(ResourceID, Buffer);
-
-#if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
-	// Keep track of associated resource name.
-	Buffer->ResourceName = Wave->GetPathName();
-#endif
-}
-
-void FAudioDevice::FreeResource(USoundWave* SoundWave)
-{
-	// Find buffer for resident wavs
-	if (SoundWave->ResourceID)
+	if (SoundBuffer)
 	{
-		// Find buffer associated with resource id.
-		FSoundBuffer* Buffer = WaveBufferMap.FindRef(SoundWave->ResourceID);
-		FreeBufferResource(Buffer);
-
-		SoundWave->ResourceID = 0;
-	}
-}
-
-void FAudioDevice::FreeBufferResource(FSoundBuffer* Buffer)
-{
-	if (Buffer)
-	{
-		// Remove from buffers array.
-		Buffers.Remove(Buffer);
-
-		// See if it is being used by a sound source...
 		for (int32 SrcIndex = 0; SrcIndex < Sources.Num(); SrcIndex++)
 		{
 			FSoundSource* Src = Sources[SrcIndex];
-			if (Src && Src->Buffer == Buffer)
+			if (Src && Src->Buffer == SoundBuffer)
 			{
 				// Make sure the buffer is no longer referenced by anything
 				Src->Stop();
 				break;
 			}
 		}
-
-		// Delete it. This will automatically remove itself from the WaveBufferMap.
-		delete Buffer;
 	}
 }
 
-
-FSoundClassProperties* FAudioDevice::GetSoundClassCurrentProperties( USoundClass* InSoundClass )
+void FAudioDevice::RegisterSoundClass(USoundClass* InSoundClass)
 {
-	FSoundClassProperties* Properties = NULL;
 	if (InSoundClass)
 	{
-		Properties = SoundClasses.Find( InSoundClass );
-
-		// If the sound class wasn't already loaded get it in to the system.
-		if (!Properties)
+		// If the sound class wasn't already registered get it in to the system.
+		if (!SoundClasses.Contains(InSoundClass))
 		{
-			FSoundClassProperties& PropertiesRef = SoundClasses.Add( InSoundClass, FSoundClassProperties() );
-			PropertiesRef = InSoundClass->Properties;
-			Properties = &PropertiesRef;
+			SoundClasses.Add(InSoundClass, FSoundClassProperties());
 		}
 	}
-
-	return Properties;
 }
+
+void FAudioDevice::UnregisterSoundClass(USoundClass* SoundClass)
+{
+	if (SoundClass)
+	{
+		SoundClasses.Remove(SoundClass);
+	}
+}
+
+FSoundClassProperties* FAudioDevice::GetSoundClassCurrentProperties(class USoundClass* InSoundClass)
+{
+	if (InSoundClass)
+	{
+		FSoundClassProperties* Properties = SoundClasses.Find(InSoundClass);
+		return Properties;
+	}
+	return nullptr;
+}
+
 
 #if !UE_BUILD_SHIPPING
 // sort memory usage from large to small 
@@ -2360,10 +2336,14 @@ bool FAudioDevice::HandleListSoundsCommand(const TCHAR* Cmd, FOutputDevice& Ar)
 
 	Ar.Logf(TEXT("Listing all sounds:"));
 
+	// Get audio device manager since thats where sound buffers are stored
+	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+	check(AudioDeviceManager != nullptr);
+
 	TArray<FSoundBuffer*> AllSounds;
-	for (int32 BufferIndex = 0; BufferIndex < Buffers.Num(); BufferIndex++)
+	for (int32 BufferIndex = 0; BufferIndex < AudioDeviceManager->Buffers.Num(); BufferIndex++)
 	{
-		AllSounds.Add(Buffers[BufferIndex]);
+		AllSounds.Add(AudioDeviceManager->Buffers[BufferIndex]);
 	}
 
 	// sort by name or size, depending on flag

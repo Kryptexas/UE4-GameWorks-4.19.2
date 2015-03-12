@@ -80,17 +80,25 @@ void FALSoundSource::Update( void )
 		return;
 	}
 
-	float Volume = WaveInstance->Volume * WaveInstance->VolumeMultiplier;
-	if( SetStereoBleed() )
+	float Volume = 1.0f;
+
+	if (AudioDevice->bIsDeviceMuted)
 	{
-		// Emulate the bleed to rear speakers followed by stereo fold down
-		Volume *= 1.25f;
+		Volume = 0.0f;
 	}
-	Volume *= FApp::GetVolumeMultiplier();
+	else
+	{
+		Volume = WaveInstance->Volume * WaveInstance->VolumeMultiplier;
+		if (SetStereoBleed())
+		{
+			// Emulate the bleed to rear speakers followed by stereo fold down
+			Volume *= 1.25f;
+		}
+		Volume *= FApp::GetVolumeMultiplier();
+		Volume = FMath::Clamp(Volume, 0.0f, MAX_VOLUME);
+	}
 
- 			Volume	= 	FMath::Clamp(Volume, 0.0f, MAX_VOLUME ); 
 	float	Pitch	=	FMath::Clamp(WaveInstance->Pitch, MIN_PITCH, MAX_PITCH ); 
-
 
 	// Set whether to apply reverb
 	SetReverbApplied( true );

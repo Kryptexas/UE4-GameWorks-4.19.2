@@ -953,6 +953,29 @@ AAudioVolume* UWorld::GetAudioSettings( const FVector& ViewLocation, FReverbSett
 	return Volume;
 }
 
+void UWorld::SetAudioDeviceHandle(const uint32 InAudioDeviceHandle)
+{
+	AudioDeviceHandle = InAudioDeviceHandle;
+}
+
+FAudioDevice* UWorld::GetAudioDevice()
+{
+	FAudioDevice* AudioDevice = nullptr;
+	if (GEngine)
+	{
+		class FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+		if (AudioDeviceManager != nullptr)
+		{
+			AudioDevice = AudioDeviceManager->GetAudioDevice(AudioDeviceHandle);
+			if (AudioDevice == nullptr)
+			{
+				AudioDevice = GEngine->GetMainAudioDevice();
+			}
+		}
+	}
+	return AudioDevice;
+}
+
 /**
  * Sets bMapNeedsLightingFullyRebuild to the specified value.  Marks the worldsettings package dirty if the value changed.
  *

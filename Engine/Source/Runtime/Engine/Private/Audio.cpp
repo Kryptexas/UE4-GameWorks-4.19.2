@@ -59,9 +59,9 @@ DEFINE_STAT(STAT_AudioFindNearestLocation);
 FSoundBuffer::~FSoundBuffer()
 {
 	// remove ourselves from the set of waves that are tracked by the audio device
-	if (ResourceID && GEngine && GEngine->AudioDevice)
+	if (ResourceID && GEngine && GEngine->GetAudioDeviceManager())
 	{
-		GEngine->AudioDevice->WaveBufferMap.Remove(ResourceID);
+		GEngine->GetAudioDeviceManager()->RemoveSoundBufferForResourceID(ResourceID);
 	}
 }
 

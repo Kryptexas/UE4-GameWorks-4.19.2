@@ -16,8 +16,8 @@
  * @param AudioDevice	audio device this sound buffer is going to be attached to.
  */
 FALSoundBuffer::FALSoundBuffer( FALAudioDevice* InAudioDevice )
+	: FSoundBuffer(InAudioDevice)
 {
-	AudioDevice	= InAudioDevice;
 }
 
 /**
@@ -48,6 +48,9 @@ FALSoundBuffer* FALSoundBuffer::Init(FALAudioDevice* AudioDevice, USoundWave* In
 		return nullptr;
 	}
 
+	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+	check(AudioDeviceManager != nullptr);
+
 	FALSoundBuffer *Buffer = nullptr;
 
 	switch (static_cast<EDecompressionType>(InWave->DecompressionType))
@@ -62,7 +65,7 @@ FALSoundBuffer* FALSoundBuffer::Init(FALAudioDevice* AudioDevice, USoundWave* In
 	case DTYPE_Native:
 		if (InWave->ResourceID)
 		{
-			Buffer = static_cast<FALSoundBuffer*>(AudioDevice->WaveBufferMap.FindRef(InWave->ResourceID));
+			Buffer = static_cast<FALSoundBuffer*>(AudioDeviceManager->WaveBufferMap.FindRef(InWave->ResourceID));
 		}
 
 		if (!Buffer)
@@ -141,7 +144,10 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 
 		AudioDevice->alError(TEXT("RegisterSound"));
 
-		AudioDevice->TrackResource(Wave, Buffer);
+		FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+		check(AudioDeviceManager != nullptr);
+
+		AudioDeviceManager->TrackResource(Wave, Buffer);
 
 		Buffer->InternalFormat = AudioDevice->GetInternalFormat(Wave->NumChannels);
 		Buffer->NumChannels = Wave->NumChannels;

@@ -16,6 +16,7 @@
 
 DECLARE_LOG_CATEGORY_EXTERN(LogXAudio2, Log, All);
 
+
 /*------------------------------------------------------------------------------------
 	Dependencies, helpers & forward declarations.
 ------------------------------------------------------------------------------------*/
@@ -171,6 +172,8 @@ protected:
 	friend class FXAudio2EffectsManager;
 
 private:
+	struct FXAudioDeviceProperties* DeviceProperties;
+
 #if PLATFORM_WINDOWS
 	// We need to keep track whether com was successfully initialized so we can clean 
 	// it up during shutdown

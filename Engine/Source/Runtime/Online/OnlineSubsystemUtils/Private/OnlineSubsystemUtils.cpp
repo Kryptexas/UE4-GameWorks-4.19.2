@@ -42,21 +42,19 @@ void FOnlineSubsystemUtilsModule::ShutdownModule()
 
 UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 {
-	UAudioComponent* AudioComponent = NULL;
-	if (GEngine != NULL)
+	UAudioComponent* AudioComponent = nullptr;
+	if (GEngine != nullptr)
 	{
-		FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
-		if (AudioDevice != NULL)
+		if (FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice())
 		{
-			USoundWaveStreaming* SoundStreaming = NULL;
-			SoundStreaming = NewObject<USoundWaveStreaming>();
+			USoundWaveStreaming* SoundStreaming = NewObject<USoundWaveStreaming>();
 			SoundStreaming->SampleRate = SampleRate;
 			SoundStreaming->NumChannels = 1;
 			SoundStreaming->Duration = INDEFINITELY_LOOPING_DURATION;
 			SoundStreaming->SoundGroup = SOUNDGROUP_Voice;
 			SoundStreaming->bLooping = false;
 
-			AudioComponent = AudioDevice->CreateComponent(SoundStreaming, NULL, NULL, false);
+			AudioComponent = AudioDevice->CreateComponent(SoundStreaming, nullptr, nullptr, false);
 			if (AudioComponent)
 			{
 				AudioComponent->bIsUISound = true;
@@ -66,7 +64,7 @@ UAudioComponent* CreateVoiceAudioComponent(uint32 SampleRate)
 				const FStringAssetReference VoiPSoundClassName = GetDefault<UAudioSettings>()->VoiPSoundClass;
 				if (VoiPSoundClassName.IsValid())
 				{
-					AudioComponent->SoundClassOverride = LoadObject<USoundClass>(NULL, *VoiPSoundClassName.ToString());
+					AudioComponent->SoundClassOverride = LoadObject<USoundClass>(nullptr, *VoiPSoundClassName.ToString());
 				}
 			}
 			else

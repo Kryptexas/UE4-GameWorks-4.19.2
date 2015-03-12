@@ -107,7 +107,8 @@ void FMovieSceneAudioTrackInstance::Update( float Position, float LastPosition, 
 				UAudioComponent* Component = GetAudioComponent(Actors[ActorIndex], RowIndex);
 				if (Component->IsPlaying())
 				{
-					FActiveSound* ActiveSound = GEngine->GetAudioDevice()->FindActiveSound(Component);
+					FAudioDevice* AudioDevice = Component->GetAudioDevice();
+					FActiveSound* ActiveSound = AudioDevice->FindActiveSound(Component);
 					ActiveSound->bLocationDefined = true;
 					ActiveSound->Transform = Actors[ActorIndex]->GetTransform();
 				}

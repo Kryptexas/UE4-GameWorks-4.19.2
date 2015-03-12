@@ -199,9 +199,6 @@ public:
 	virtual int32 GetCurrentChunkIndex() const override;
 	virtual int32 GetCurrentChunkOffset() const override;
 
-	/** Audio device this buffer is attached to	*/
-	FAudioDevice*				AudioDevice;
-
 	/** Format of the sound referenced by this buffer */
 	int32							SoundFormat;
 
@@ -487,9 +484,12 @@ public:
 /** Variables required for the early init */
 struct FXAudioDeviceProperties
 {
-	static int32							NumSpeakers;
-	static struct IXAudio2*					XAudio2;
-	static struct IXAudio2MasteringVoice*		MasteringVoice;
+	// These variables are non-static to support multiple audio device instances
+	struct IXAudio2*					XAudio2;
+	struct IXAudio2MasteringVoice*		MasteringVoice;
+
+	// These variables are static because they are common across all audio device instances
+	static int32						NumSpeakers;
 	static const float*					OutputMixMatrix;
 #if XAUDIO_SUPPORTS_DEVICE_DETAILS
 	static XAUDIO2_DEVICE_DETAILS		DeviceDetails;

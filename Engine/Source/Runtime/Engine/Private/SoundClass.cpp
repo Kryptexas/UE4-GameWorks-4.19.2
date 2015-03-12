@@ -33,7 +33,7 @@ void USoundClass::PostLoad()
 		if (ChildClasses[ChildIndex] != NULL && ChildClasses[ChildIndex]->GetLinkerUE4Version() < VER_UE4_SOUND_CLASS_GRAPH_EDITOR)
 		{
 			// first come, first served
-			if (ChildClasses[ChildIndex]->ParentClass == NULL)
+			if (ChildClasses[ChildIndex]->ParentClass == nullptr)
 			{
 				ChildClasses[ChildIndex]->ParentClass = this;
 			}
@@ -45,12 +45,13 @@ void USoundClass::PostLoad()
 			}
 		}
 	}
+	// Use the main/default audio device for storing and retrieving sound class properties
+	FAudioDeviceManager* AudioDeviceManager = (GEngine ? GEngine->GetAudioDeviceManager() : nullptr);
 
-	FAudioDevice* AudioDevice = (GEngine ? GEngine->GetAudioDevice() : NULL);
-	if (AudioDevice)
+	// Force the properties to be initialized for this SoundClass on all active audio devices
+	if (AudioDeviceManager)
 	{
-		// Force the properties to be initialized for this SoundClass
-		AudioDevice->GetSoundClassCurrentProperties(this);
+		AudioDeviceManager->RegisterSoundClass(this);
 	}
 }
 
@@ -182,13 +183,9 @@ void USoundClass::BeginDestroy()
 {
 	Super::BeginDestroy();
 
-	if (!GExitPurge && GEngine)
+	if (!GExitPurge && GEngine && GEngine->GetAudioDeviceManager())
 	{
-		FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
-		if( AudioDevice )
-		{
-			AudioDevice->RemoveClass(this);
-		}
+		GEngine->GetAudioDeviceManager()->UnregisterSoundClass(this);
 	}
 }
 

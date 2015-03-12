@@ -1695,10 +1695,10 @@ UObject* USoundFactory::FactoryCreateBinary
 
 		// TODO - Audio Threading. This needs to be sent to the audio device and wait on stopping the sounds
 		TArray<UAudioComponent*> ComponentsToRestart;
-		FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
-		if (AudioDevice && ExistingSound)
+		FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+		if (AudioDeviceManager && ExistingSound)
 		{
-			AudioDevice->StopSoundsUsingResource(ExistingSound, ComponentsToRestart);
+			AudioDeviceManager->StopSoundsUsingResource(ExistingSound, ComponentsToRestart);
 		}
 
 		bool bUseExistingSettings = bSoundFactorySuppressImportOverwriteDialog;
@@ -2444,10 +2444,11 @@ UObject* USoundClassFactory::FactoryCreateNew( UClass* InClass, UObject* InParen
 {
 	USoundClass* SoundClass = NewObject<USoundClass>(InParent, InName, Flags);
 	
-	FAudioDevice* AudioDevice = GEngine ? GEngine->GetAudioDevice() : nullptr;
-	if (AudioDevice)
+
+	class FAudioDeviceManager* AudioDeviceManager = GEngine ? GEngine->GetAudioDeviceManager() : nullptr;
+	if (AudioDeviceManager)
 	{
-		AudioDevice->InitSoundClasses();
+		AudioDeviceManager->InitSoundClasses();
 	}
 
 	return( SoundClass );

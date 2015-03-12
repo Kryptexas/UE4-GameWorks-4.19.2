@@ -284,9 +284,9 @@ FAsyncAudioDecompressWorker::FAsyncAudioDecompressWorker(USoundWave* InWave)
 	: Wave(InWave)
 	, AudioInfo(NULL)
 {
-	if (GEngine && GEngine->GetAudioDevice())
+	if (GEngine && GEngine->GetMainAudioDevice())
 	{
-		AudioInfo = GEngine->GetAudioDevice()->CreateCompressedAudioInfo(Wave);
+		AudioInfo = GEngine->GetMainAudioDevice()->CreateCompressedAudioInfo(Wave);
 	}
 }
 

@@ -932,6 +932,9 @@ public:
 	/** Pointer to the higest priority audio volumes, each volume has a reference to the next lower priority volume creating a linked list of prioritized audio volumes in descending order */
 	TAutoWeakObjectPtr<class AAudioVolume> HighestPriorityAudioVolume;
 
+	/** Handle to the active audio device for this world. */
+	uint32 AudioDeviceHandle;
+
 	/** Time in FPlatformTime::Seconds unbuilt time was last encountered. 0 means not yet.							*/
 	double LastTimeUnbuiltLightingWasEncountered;
 
@@ -2960,6 +2963,16 @@ public:
 	 * @return							If the settings came from an audio volume, the audio volume object is returned.
 	 */
 	class AAudioVolume* GetAudioSettings( const FVector& ViewLocation, struct FReverbSettings* OutReverbSettings, struct FInteriorSettings* OutInteriorSettings );
+
+	/** Sets the audio device handle to the active audio device for this world.*/
+	void SetAudioDeviceHandle(const uint32 InAudioDeviceHandle);
+
+	/**
+	* Returns the audio device associated with this world, or returns the main audio device if there is none.
+	*
+	* @return Audio device to use with this world.
+	*/
+	class FAudioDevice* GetAudioDevice();
 
 	/** Return the URL of this level on the local machine. */
 	virtual FString GetLocalURL() const;

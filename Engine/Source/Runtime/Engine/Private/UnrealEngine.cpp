@@ -42,6 +42,7 @@
 #include "StatsData.h"
 #include "ScreenRendering.h"
 #include "RHIStaticStates.h"
+#include "AudioDeviceManager.h"
 #include "AudioDevice.h"
 #include "ActiveSound.h"
 #include "DeviceProfiles/DeviceProfileManager.h"
@@ -567,6 +568,26 @@ class FScreenSaverInhibitor : public FRunnable
 	FWorldContext
 -----------------------------------------------------------------------------*/
 
+void FWorldContext::SetCurrentWorld(UWorld *World)
+{
+	if (World != nullptr)
+	{
+		// Set the world's audio device handle so that audio components playing in the 
+		// world will use the correct audio device instance.
+		World->SetAudioDeviceHandle(AudioDeviceHandle);
+	}
+
+	for (int32 idx = 0; idx < ExternalReferences.Num(); ++idx)
+	{
+		if (ExternalReferences[idx] && *ExternalReferences[idx] == ThisCurrentWorld)
+		{
+			*ExternalReferences[idx] = World;
+		}
+	}
+
+	ThisCurrentWorld = World;
+}
+
 void FWorldContext::AddReferencedObjects(FReferenceCollector& Collector, const UObject* ReferencingObject)
 {
 	// TODO: This is awfully unsafe as anything in a WorldContext that changes may not be referenced
@@ -744,9 +765,6 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 
 	GNearClippingPlane = NearClipPlane;
 
-	// Initialize the audio device
-	InitializeAudioDevice();
-
 	if (GIsEditor)
 	{
 		// Create a WorldContext for the editor to use and create an initially empty world.
@@ -754,6 +772,9 @@ void UEngine::Init(IEngineLoop* InEngineLoop)
 		InitialWorldContext.SetCurrentWorld( UWorld::CreateWorld( EWorldType::Editor, true ) );
 		GWorld = InitialWorldContext.World();
 	}
+
+	// Initialize the audio device after a world context is setup
+	InitializeAudioDeviceManager();
 
 	if ( IsConsoleBuild() )
 	{
@@ -921,12 +942,15 @@ void UEngine::OnExternalUIChange(bool bInIsOpening)
 	FSlateApplication::Get().ExternalUIChange(bInIsOpening);
 }
 
-void UEngine::ShutdownAudioDevice()
+void UEngine::ShutdownAudioDeviceManager()
 {
-	if (AudioDevice)
+	// Shutdown the main audio device in the UEEngine
+	if (AudioDeviceManager)
 	{
-		AudioDevice->Teardown();
-		AudioDevice = NULL;
+		AudioDeviceManager->ShutdownAudioDevice(MainAudioDeviceHandle);
+		check(AudioDeviceManager->GetNumActiveAudioDevices() == 0);
+		delete AudioDeviceManager;
+		AudioDeviceManager = NULL;
 	}
 }
 
@@ -1481,10 +1505,7 @@ void UEngine::FinishDestroy()
 	{
 		// shut down all subsystems.
 		GEngine = NULL;
-		if (AudioDevice)
-		{
-			AudioDevice->Teardown();
-		}
+		ShutdownAudioDeviceManager();
 
 		FURL::StaticExit();
 	}
@@ -1499,10 +1520,9 @@ void UEngine::Serialize(FArchive& Ar)
 	// count memory
 	if (Ar.IsCountingMemory())
 	{
-		if (AudioDevice)
-		{
-			AudioDevice->CountBytes(Ar);
-		}
+		// Only use the main audio device when counting memory
+		FAudioDevice* AudioDevice = GetMainAudioDevice();
+		AudioDevice->CountBytes(Ar);
 	}
 }
 
@@ -1510,10 +1530,10 @@ void UEngine::AddReferencedObjects(UObject* InThis, FReferenceCollector& Collect
 {
 	UEngine* This = CastChecked<UEngine>(InThis);
 
-	// track objects in the audio device
-	if (This->AudioDevice)
+	// track objects in all the active audio devices
+	if (This->AudioDeviceManager)
 	{
-		This->AudioDevice->AddReferencedObjects(Collector);
+		This->AudioDeviceManager->AddReferencedObjects(Collector);
 	}
 
 	// TODO: This is quite dangerous as FWorldContext::AddReferencedObjects could fail to be updated when something it
@@ -1600,14 +1620,38 @@ UFont* UEngine::GetAdditionalFont(int32 AdditionalFontIndex)
 	return GEngine->AdditionalFonts.IsValidIndex(AdditionalFontIndex) ? GEngine->AdditionalFonts[AdditionalFontIndex] : NULL;
 }
 
+class FAudioDeviceManager* UEngine::GetAudioDeviceManager()
+{
+	return AudioDeviceManager;
+}
+
+uint32 UEngine::GetAudioDeviceHandle() const
+{
+	return MainAudioDeviceHandle;
+}
+
+FAudioDevice* UEngine::GetMainAudioDevice()
+{
+	if (AudioDeviceManager != nullptr)
+	{
+		return AudioDeviceManager->GetAudioDevice(MainAudioDeviceHandle);
+	}
+	return nullptr;
+}
+
+FAudioDevice* UEngine::GetAudioDevice()
+{
+	return GetMainAudioDevice();
+}
+
 /**
  *	Initialize the audio device
  *
  *	@return	bool		true if successful, false if not
  */
-bool UEngine::InitializeAudioDevice()
+bool UEngine::InitializeAudioDeviceManager()
 {
-	if (AudioDevice == NULL)
+	if (AudioDeviceManager == nullptr)
 	{
 		// Initialize the audio device.
 		if (bUseSound == true)
@@ -1624,29 +1668,25 @@ bool UEngine::InitializeAudioDevice()
 				// did the module exist?
 				if (AudioDeviceModule)
 				{
-					// use the module object to create the audio device
-					AudioDevice = AudioDeviceModule->CreateAudioDevice();
-					if (AudioDevice)
-					{
-						// Attempt to initialize the device
-						if ( !AudioDevice->Init() )
-						{
-							// Failed to initialize the device. Delete it.
-							delete AudioDevice;
-							AudioDevice = NULL;
-						}
-					}
+					// Create the audio device manager and register the platform module to the device manager
+					AudioDeviceManager = new FAudioDeviceManager();
+					AudioDeviceManager->RegisterAudioDeviceModule(AudioDeviceModule);
+					FAudioDevice* NewAudioDevice = AudioDeviceManager->CreateAudioDevice(MainAudioDeviceHandle);
+
+					// Set the new default device as the active device
+					AudioDeviceManager->SetActiveDevice(MainAudioDeviceHandle);
+					return NewAudioDevice != nullptr;
 				}
 			}
 		}
 	}
 
-	return (AudioDevice != NULL);
+	return AudioDeviceManager != nullptr;
 }
 
 bool UEngine::UseSound() const
 {
-	return (bUseSound && AudioDevice);
+	return (bUseSound && AudioDeviceManager != nullptr);
 }
 /**
  * A fake stereo rendering device used to test stereo rendering without an attached device.
@@ -2144,7 +2184,17 @@ bool UEngine::Exec( UWorld* InWorld, const TCHAR* Cmd, FOutputDevice& Ar )
 		return true;
 	}
 
-	if (GetAudioDevice() && (GetAudioDevice()->Exec( InWorld, Cmd,Ar) == true))
+	FAudioDevice* AudioDevice = nullptr;
+	if (InWorld)
+	{
+		AudioDevice = InWorld->GetAudioDevice();
+	}
+	else
+	{
+		AudioDevice = GetMainAudioDevice();
+	}
+
+	if (AudioDevice && AudioDevice->Exec(InWorld, Cmd, Ar) == true)
 	{
 		return true;
 	}
@@ -8825,15 +8875,14 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 			}
 		}
 
-		WorldContext.SetCurrentWorld(NULL);
-	}
+		// Stop all audio to remove references to current level.
+		if (FAudioDevice* AudioDevice = WorldContext.World()->GetAudioDevice())
+		{
+			AudioDevice->Flush(WorldContext.World());
+			AudioDevice->TransientMasterVolume = 1.0f;
+		}
 
-	// Stop all audio to remove references to current level.
-	if( GEngine && GEngine->GetAudioDevice() )
-	{
-		GEngine->GetAudioDevice()->Flush( WorldContext.World() );
-		// reset transient volume
-		GEngine->GetAudioDevice()->TransientMasterVolume = 1.0;
+		WorldContext.SetCurrentWorld(nullptr);
 	}
 
 	if (bCookSeparateSharedMPGameContent)
@@ -9099,9 +9148,9 @@ bool UEngine::LoadMap( FWorldContext& WorldContext, FURL URL, class UPendingNetG
 
 	WorldContext.World()->SetGameMode(URL);
 
-	if( GetAudioDevice() )
+	if (FAudioDevice* AudioDevice = WorldContext.World()->GetAudioDevice())
 	{
-		GetAudioDevice()->SetDefaultBaseSoundMix( WorldContext.World()->GetWorldSettings()->DefaultBaseSoundMix );
+		AudioDevice->SetDefaultBaseSoundMix(WorldContext.World()->GetWorldSettings()->DefaultBaseSoundMix);
 	}
 
 	// Listen for clients.
@@ -10124,9 +10173,10 @@ bool UEngine::CommitMapChange( FWorldContext &Context )
 		Context.World()->FlushLevelStreaming(EFlushLevelStreamingType::Visibility);
 		
 		// make sure any looping sounds, etc are stopped
-		if (GetAudioDevice() != NULL)
+		
+		if (FAudioDevice* AudioDevice = Context.World()->GetAudioDevice())
 		{
-			GetAudioDevice()->StopAllSounds();
+			AudioDevice->StopAllSounds();
 		}
 
 		// Remove all unloaded levels from memory and perform full purge.
@@ -11396,7 +11446,7 @@ bool UEngine::ToggleStatRaw(UWorld* World, FCommonViewportClient* ViewportClient
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 int32 UEngine::RenderStatReverb(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation, const FRotator* ViewRotation)
 {
-	if (AudioDevice)
+	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
 	{
 		UReverbEffect* ReverbEffect = (AudioDevice->Effects ? AudioDevice->Effects->GetCurrentReverbEffect() : NULL);
 		FString TheString;
@@ -11464,7 +11514,7 @@ int32 UEngine::RenderStatReverb(UWorld* World, FViewport* Viewport, FCanvas* Can
 // SOUNDMIXES
 int32 UEngine::RenderStatSoundMixes(UWorld* World, FViewport* Viewport, FCanvas* Canvas, int32 X, int32 Y, const FVector* ViewLocation, const FRotator* ViewRotation)
 {
-	if (AudioDevice)
+	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
 	{
 		Canvas->DrawShadowedString(X, Y, TEXT("Active Sound Mixes:"), GetSmallFont(), FColor::Green);
 		Y += 12;
@@ -11506,7 +11556,7 @@ int32 UEngine::RenderStatSoundWaves(UWorld* World, FViewport* Viewport, FCanvas*
 
 	TSet<FActiveSound*> ActiveSounds;
 
-	if (AudioDevice)
+	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
 	{
 		TArray<FWaveInstance*> WaveInstances;
 		int32 FirstActiveIndex = AudioDevice->GetSortedActiveWaveInstances(WaveInstances, ESortedActiveWaveGetType::QueryOnly);
@@ -11558,7 +11608,7 @@ int32 UEngine::RenderStatSoundCues(UWorld* World, FViewport* Viewport, FCanvas* 
 {
 	TSet<FActiveSound*> ActiveSounds;
 
-	if (AudioDevice)
+	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
 	{
 		TArray<FWaveInstance*> WaveInstances;
 		int32 FirstActiveIndex = AudioDevice->GetSortedActiveWaveInstances(WaveInstances, ESortedActiveWaveGetType::QueryOnly);
@@ -11679,7 +11729,7 @@ int32 UEngine::RenderStatSounds(UWorld* World, FViewport* Viewport, FCanvas* Can
 	const FViewportClient::ESoundShowFlags::Type ShowSounds = Viewport->GetClient() ? Viewport->GetClient()->GetSoundShowFlags() : FViewportClient::ESoundShowFlags::Disabled;
 	const bool bDebug = ShowSounds & FViewportClient::ESoundShowFlags::Debug;
 
-	if (AudioDevice)
+	if (FAudioDevice* AudioDevice = World->GetAudioDevice())
 	{
 		// Refresh the wave instances inside audio components.
 		static TArray<FWaveInstance*> WaveInstances;

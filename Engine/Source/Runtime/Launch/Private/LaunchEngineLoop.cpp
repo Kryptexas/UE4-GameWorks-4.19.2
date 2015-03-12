@@ -2083,7 +2083,7 @@ void FEngineLoop::Exit()
 
 	if ( GEngine != NULL )
 	{
-		GEngine->ShutdownAudioDevice();
+		GEngine->ShutdownAudioDeviceManager();
 	}
 
 	if ( GEngine != NULL )

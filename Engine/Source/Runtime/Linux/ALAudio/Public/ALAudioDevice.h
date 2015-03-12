@@ -183,7 +183,8 @@ protected:
 class FALAudioDevice : public FAudioDevice
 {
 public: 
-	FALAudioDevice() {} 
+	FALAudioDevice();
+
 	virtual ~FALAudioDevice() {} 
 
 	virtual FName GetRuntimeFormat(USoundWave* SoundWave) override
@@ -234,8 +235,8 @@ protected:
 	// AL specific
 
 	/** Device/context used to play back sounds (static so it can be initialized early) */
-	static ALCdevice*							HardwareDevice;
-	static ALCcontext*							SoundContext;
+	ALCdevice*									HardwareDevice;
+	ALCcontext*									SoundContext;
 	void*										DLLHandle;
 	/** Formats for multichannel sounds */
 	ALenum										Surround40Format;

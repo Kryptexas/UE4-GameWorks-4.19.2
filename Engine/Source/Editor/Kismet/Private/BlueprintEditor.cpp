@@ -7271,9 +7271,9 @@ void FBlueprintEditor::UpdatePreviewActor(UBlueprint* InBlueprint, bool bInForce
 			}
 
 			// Prevent any audio from playing as a result of spawning
-			if ( GEngine->AudioDevice )
+			if (FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice())
 			{
-				GEngine->AudioDevice->Flush(PreviewScene.GetWorld());
+				AudioDevice->Flush(PreviewScene.GetWorld());
 			}
 
 			// Set the reference to the preview actor for component editing purposes

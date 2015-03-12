@@ -430,12 +430,12 @@ void UEditorEngine::TeardownPlaySession(FWorldContext &PieWorldContext)
 
 	
 	// Stop all audio and remove references to temp level.
-	if (GetAudioDevice())
+	if (FAudioDevice* AudioDevice = PlayWorld->GetAudioDevice())
 	{
-		GetAudioDevice()->Flush( PlayWorld );
-		GetAudioDevice()->ResetInterpolation();
-		GetAudioDevice()->OnEndPIE(bIsSimulatingInEditor);
-		GetAudioDevice()->TransientMasterVolume = 1.0f;
+		AudioDevice->Flush( PlayWorld );
+		AudioDevice->ResetInterpolation();
+		AudioDevice->OnEndPIE(bIsSimulatingInEditor);
+		AudioDevice->TransientMasterVolume = 1.0f;
 	}
 
 	// Clean up all streaming levels
@@ -2133,19 +2133,20 @@ void UEditorEngine::PlayInEditor( UWorld* InWorld, bool bInSimulateInEditor )
 	GEngine->ClearOnScreenDebugMessages();
 
 	// Flush all audio sources from the editor world
-	if( GetAudioDevice() )
+	FAudioDevice* AudioDevice = EditorWorld->GetAudioDevice();
+	if (AudioDevice)
 	{
-		GetAudioDevice()->Flush( EditorWorld );
-		GetAudioDevice()->ResetInterpolation();
-		GetAudioDevice()->OnBeginPIE(bInSimulateInEditor);
+		AudioDevice->Flush( EditorWorld );
+		AudioDevice->ResetInterpolation();
+		AudioDevice->OnBeginPIE(bInSimulateInEditor);
 	}
 	EditorWorld->bAllowAudioPlayback = false;
 
 	ULevelEditorPlaySettings* PlayInSettings = Cast<ULevelEditorPlaySettings>(ULevelEditorPlaySettings::StaticClass()->GetDefaultObject());
 
-	if (!PlayInSettings->EnableSound && GetAudioDevice())
+	if (!PlayInSettings->EnableSound && AudioDevice)
 	{
-		GetAudioDevice()->TransientMasterVolume = 0.0f;
+		AudioDevice->TransientMasterVolume = 0.0f;
 	}
 
 	if (!GEditor->bAllowMultiplePIEWorlds)
@@ -2565,11 +2566,6 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 
 	GWorld = PlayWorld;
 	SetPlayInEditorWorld( PlayWorld );
-
-	if( GetAudioDevice() )
-	{
-		GetAudioDevice()->SetDefaultBaseSoundMix( PlayWorld->GetWorldSettings()->DefaultBaseSoundMix );
-	}
 
 #if PLATFORM_64BITS
 	const FString PlatformBitsString( TEXT( "64" ) );

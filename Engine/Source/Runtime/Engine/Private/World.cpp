@@ -112,6 +112,7 @@ UWorld::UWorld( const FObjectInitializer& ObjectInitializer )
 ,	FXSystem(NULL)
 ,	TickTaskLevel(FTickTaskManagerInterface::Get().AllocateTickTaskLevel())
 ,   bIsBuilt(false)
+,   AudioDeviceHandle(INDEX_NONE)
 ,	FlushLevelStreamingType(EFlushLevelStreamingType::None)
 ,	NextTravelType(TRAVEL_Relative)
 {
@@ -4712,10 +4713,11 @@ UWorld* FSeamlessTravelHandler::Tick()
 			CurrentWorld->CleanupWorld(bSwitchedToDefaultMap);
 			CurrentWorld->RemoveFromRoot();
 			CurrentWorld->ClearFlags(RF_Standalone);
+
 			// Stop all audio to remove references to old world
-			if (GEngine != NULL && GEngine->GetAudioDevice() != NULL)
+			if (FAudioDevice* AudioDevice = CurrentWorld->GetAudioDevice())
 			{
-				GEngine->GetAudioDevice()->Flush(CurrentWorld);
+				AudioDevice->Flush(CurrentWorld);
 			}
 
 			// Copy the standby cheat status
@@ -4806,9 +4808,9 @@ UWorld* FSeamlessTravelHandler::Tick()
 			{
 				LoadedWorld->SetGameMode(PendingTravelURL);
 
-				if( GEngine && GEngine->GetAudioDevice() )
+				if (FAudioDevice* AudioDevice = LoadedWorld->GetAudioDevice())
 				{
-					GEngine->GetAudioDevice()->SetDefaultBaseSoundMix( LoadedWorld->GetWorldSettings()->DefaultBaseSoundMix );
+					AudioDevice->SetDefaultBaseSoundMix(LoadedWorld->GetWorldSettings()->DefaultBaseSoundMix);
 				}
 
 				// Copy cheat flags if the game info is present

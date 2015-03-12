@@ -36,14 +36,14 @@ void FSoundCueGraphConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArra
 
 void FSoundCueGraphConnectionDrawingPolicy::BuildAudioFlowRoadmap()
 {
-	FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
+	UAudioComponent* PreviewAudioComponent = GEditor->GetPreviewAudioComponent();
+	FAudioDevice* AudioDevice = PreviewAudioComponent->GetAudioDevice();
 
 	if (AudioDevice)
 	{
 		USoundCueGraph* SoundCueGraph = CastChecked<USoundCueGraph>(GraphObj);
 		USoundCue* SoundCue = SoundCueGraph->GetSoundCue();
 
-		UAudioComponent* PreviewAudioComponent = GEditor->GetPreviewAudioComponent();
 
 		if (PreviewAudioComponent && PreviewAudioComponent->IsPlaying() && PreviewAudioComponent->Sound == SoundCue)
 		{

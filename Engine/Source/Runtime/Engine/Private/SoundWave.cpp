@@ -71,12 +71,12 @@ SIZE_T USoundWave::GetResourceSize(EResourceSizeMode::Type Mode)
 		CalculatedResourceSize += RawPCMDataSize;
 	}
 
-	if (GEngine && GEngine->GetAudioDevice())
+	if (GEngine && GEngine->GetMainAudioDevice())
 	{
 		// Don't add compressed data to size of streaming sounds
 		if (!FPlatformProperties::SupportsAudioStreaming() || !IsStreaming())
 		{
-			CalculatedResourceSize += GetCompressedDataSize(GEngine->GetAudioDevice()->GetRuntimeFormat(this));
+			CalculatedResourceSize += GetCompressedDataSize(GEngine->GetMainAudioDevice()->GetRuntimeFormat(this));
 		}
 	}
 
@@ -320,7 +320,7 @@ void USoundWave::PostLoad()
 	// most likely cause us to run out of memory.
 	if( !GIsEditor && !IsTemplate( RF_ClassDefaultObject ) && GEngine )
 	{
-		FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
+		FAudioDevice* AudioDevice = GEngine->GetMainAudioDevice();
 		if( AudioDevice && AudioDevice->bStartupSoundsPreCached)
 		{
 			// Upload the data to the hardware, but only if we've precached startup sounds already
@@ -440,12 +440,11 @@ void USoundWave::FreeResources()
 	if( GEngine && !GExitPurge )
 	{
 		// Notify the audio device to free the bulk data associated with this wave.
-		FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
-		if (AudioDevice != NULL)
+		FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+		if (AudioDeviceManager != NULL)
 		{
-			TArray<UAudioComponent*> StoppedComponents;
-			AudioDevice->StopSoundsUsingResource(this, StoppedComponents);
-			AudioDevice->FreeResource( this );
+			AudioDeviceManager->StopSoundsUsingWave(this);
+			AudioDeviceManager->FreeResource(this);
 		}
 	}
 

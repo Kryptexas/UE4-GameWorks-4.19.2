@@ -45,11 +45,11 @@ UObject* USoundModImporterFactory::FactoryCreateBinary
 
 	// TODO - Audio Threading. This needs to be sent to the audio device and wait on stopping the sounds
 	TArray<UAudioComponent*> ComponentsToRestart;
-	FAudioDevice* AudioDevice = GEngine->GetAudioDevice();
-	if (AudioDevice && ExistingSound)
+	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+	if (AudioDeviceManager && ExistingSound)
 	{
 		// TODO: Generalize the stop sounds function
-		//AudioDevice->StopSoundsForReimport(ExistingSound, ComponentsToRestart);
+		//AudioDeviceManager->StopSoundsForReimport(ExistingSound, ComponentsToRestart);
 	}
 
 	bool bUseExistingSettings = bSoundModFactorySuppressImportOverwriteDialog;

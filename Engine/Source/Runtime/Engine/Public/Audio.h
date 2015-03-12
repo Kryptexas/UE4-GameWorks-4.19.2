@@ -278,10 +278,11 @@ inline uint32 GetTypeHash( FWaveInstance* A ) { return A->TypeHash; }
 class FSoundBuffer
 {
 public:
-	FSoundBuffer()
+	FSoundBuffer(class FAudioDevice * InAudioDevice)
 		: ResourceID(0)
 		, NumChannels(0)
 		, bAllocationInPermanentPool(false)
+		, AudioDevice(InAudioDevice)
 	{
 
 	}
@@ -325,6 +326,8 @@ public:
 	FString	ResourceName;
 	/** Whether memory for this buffer has been allocated from permanent pool. */
 	bool	bAllocationInPermanentPool;
+	/** Parent Audio Device used when creating the sound buffer. Used to remove tracking info on this sound buffer when its done. */
+	class FAudioDevice * AudioDevice;
 };
 
 /*-----------------------------------------------------------------------------

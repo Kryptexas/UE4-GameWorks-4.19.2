@@ -286,6 +286,9 @@ public:
 	/** Collects the various attenuation shapes that may be applied to the sound played by the audio component for visualization in the editor or via the in game debug visualization. */
 	void CollectAttenuationShapesForVisualization(TMultiMap<EAttenuationShape::Type, FAttenuationSettings::AttenuationShapeDetails>& ShapeDetailsMap) const;
 
+	/** Returns the active audio device to use for this component based on whether or not the component is playing in a world. */
+	FAudioDevice* GetAudioDevice() const;
+
 private:
 	
 #if WITH_EDITORONLY_DATA
