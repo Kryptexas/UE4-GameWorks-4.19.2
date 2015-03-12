@@ -1070,16 +1070,9 @@ bool FLevelEditorViewportClient::UpdateDropPreviewActors(int32 MouseX, int32 Mou
 			.UseStartTransform(PreDragActorTransforms.FindRef(Actor))
 			.UsePlacementExtent(Actor->GetPlacementExtent());
 
-		FActorOrComponent ActorOrComponent( Actor );
+		const FTransform ActorTransform = FActorPositioning::GetSnappedSurfaceAlignedTransform(PositioningData);
 
-		if( DroppedOnActor )
-		{
-			GEditor->SnapObjectTo( FActorOrComponent( DroppedOnActor ), true, true, true, false, ActorOrComponent );
-		}
-
-		//const FTransform ActorTransform = FActorPositioning::GetSurfaceAlignedTransform(PositioningData);
-
-		//Actor->SetActorTransform(ActorTransform);
+		Actor->SetActorTransform(ActorTransform);
 		Actor->SetIsTemporarilyHiddenInEditor(false);
 		Actor->PostEditMove(false);
 	}
