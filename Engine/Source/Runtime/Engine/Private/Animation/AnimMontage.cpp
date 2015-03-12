@@ -971,7 +971,7 @@ void FAnimMontageInstance::Terminate()
 		ActiveStateBranchingPoints.Empty();
 
 		// terminating, trigger end
-		Inst->QueueMontageEndedEvent(FQueuedMontageEndedEvent(Montage, bInterrupted, OnMontageEnded));
+		Inst->QueueMontageEndedEvent(FQueuedMontageEndedEvent(OldMontage, bInterrupted, OnMontageEnded));
 	}
 }
 
