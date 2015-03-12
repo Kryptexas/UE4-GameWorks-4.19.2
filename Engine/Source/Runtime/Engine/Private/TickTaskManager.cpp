@@ -951,7 +951,6 @@ struct FTestTickFunction : public FTickFunction
 	{
 		TickGroup = TG_PrePhysics;
 		bTickEvenWhenPaused = true;
-		bStartWithTickEnabled;
 	}
 	virtual void ExecuteTick(float DeltaTime, ELevelTick TickType, ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent) override
 	{
