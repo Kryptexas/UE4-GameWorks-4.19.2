@@ -1204,10 +1204,10 @@ FTaskGraphInterface& FTaskGraphInterface::Get()
 
 // Statics and some implementations from FBaseGraphTask and FGraphEvent
 
-TLockFreeFixedSizeAllocator<FBaseGraphTask::SMALL_TASK_SIZE>& FBaseGraphTask::GetSmallTaskAllocator()
+static FBaseGraphTask::TSmallTaskAllocator TheSmallTaskAllocator;
+FBaseGraphTask::TSmallTaskAllocator& FBaseGraphTask::GetSmallTaskAllocator()
 {
-	static TLockFreeFixedSizeAllocator<FBaseGraphTask::SMALL_TASK_SIZE> TheAllocator;
-	return TheAllocator;
+	return TheSmallTaskAllocator;
 }
 
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
@@ -1217,15 +1217,11 @@ void FBaseGraphTask::LogPossiblyInvalidSubsequentsTask(const TCHAR* TaskName)
 }
 #endif
 
-TLockFreeClassAllocator<FGraphEvent>& FGraphEvent::GetAllocator()
-{
-	static TLockFreeClassAllocator<FGraphEvent> TheAllocator;
-	return TheAllocator;
-}
+static TLockFreeClassAllocator_TLSCache<FGraphEvent> TheGraphEventAllocator;
 
 FGraphEventRef FGraphEvent::CreateGraphEvent()
 {
-	return GetAllocator().New();
+	return TheGraphEventAllocator.New();
 }
 
 void FGraphEvent::DispatchSubsequents(ENamedThreads::Type CurrentThreadIfKnown)
@@ -1263,7 +1259,7 @@ void FGraphEvent::DispatchSubsequents(TArray<FBaseGraphTask*>& NewTasks, ENamedT
 
 void FGraphEvent::Recycle(FGraphEvent* ToRecycle)
 {
-	GetAllocator().Free(ToRecycle);
+	TheGraphEventAllocator.Free(ToRecycle);
 }
 
 FGraphEvent::~FGraphEvent()

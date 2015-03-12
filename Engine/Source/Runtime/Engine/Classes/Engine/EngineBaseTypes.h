@@ -268,14 +268,7 @@ private:
 	 * Queues a tick function for execution from the game thread
 	 * @param TickContext - context to tick in
 	 */
-	void QueueTickFunction(const struct FTickContext& TickContext);
-
-	/**
-	 * Queues a tick function for execution, assuming parallel queuing
-	 * @param TickContext - context to tick in
-	 * @param StackForCycleDetection - stack to detect cycles
-	*/
-	void QueueTickFunctionParallel(const FTickContext& TickContext, TArray<FTickFunction*, TInlineAllocator<4> >& StackForCycleDetection);
+	void QueueTickFunction(class FTickTaskSequencer& TTS, const struct FTickContext& TickContext);
 
 	/** 
 	 * Abstract function actually execute the tick. 

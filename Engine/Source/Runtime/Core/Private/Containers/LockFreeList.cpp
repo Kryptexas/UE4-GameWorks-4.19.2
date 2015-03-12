@@ -58,34 +58,36 @@ FLockFreeVoidPointerListBase128::FLinkAllocator::~FLinkAllocator()
 	FLockFreeVoidPointerListBase
 -----------------------------------------------------------------------------*/
 
-FLockFreeVoidPointerListBase::FLinkAllocator& FLockFreeVoidPointerListBase::FLinkAllocator::Get()
-{
-	static FLinkAllocator TheAllocator;
-	return TheAllocator;
-}
+FLockFreeVoidPointerListBase::FLinkAllocator FLockFreeVoidPointerListBase::FLinkAllocator::TheLinkAllocator;
 
 FLockFreeVoidPointerListBase::FLinkAllocator::FLinkAllocator()
-	: FreeLinks(NULL)
-	, SpecialClosedLink(new FLink())
+	: SpecialClosedLink(new FLink())
 {
-	ClosedLink()->LockCount.Increment();
+	static_assert(sizeof(FLink) >= sizeof(void*) && sizeof(FLink) % sizeof(void*) == 0, "Blocks in TLockFreeFixedSizeAllocator must be at least the size of a pointer.");
+	check(IsInGameThread());
+	TlsSlot = FPlatformTLS::AllocTlsSlot();
+	check(TlsSlot);
 }
-
 FLockFreeVoidPointerListBase::FLinkAllocator::~FLinkAllocator()
 {
-	// - Deliberately leak to allow LockFree to be used during shutdown
-#if	0
-	check(SpecialClosedLink); // double free?
-	check(!NumUsedLinks.GetValue());
-	while (FLink* ToDelete = FLink::Unlink(&FreeLinks))
+	FPlatformTLS::FreeTlsSlot(TlsSlot);
+	TlsSlot = 0;
+}
+
+void FLockFreeVoidPointerListBase::FLinkAllocator::PutFreeBundle(void **Bundle)
+{
+	FScopeLock Lock(&BundleArrayCriticalSection);
+	BundleArray.Push(Bundle);
+}
+void** FLockFreeVoidPointerListBase::FLinkAllocator::GetFreeBundle()
+{
+	FScopeLock Lock(&BundleArrayCriticalSection);
+	void** Result = nullptr;
+	if (BundleArray.Num())
 	{
-		delete ToDelete;
-		NumFreeLinks.Decrement();
+		Result = BundleArray.Pop(false);
 	}
-	check(!NumFreeLinks.GetValue());
-	delete SpecialClosedLink;
-	SpecialClosedLink = 0;
-#endif // 0
+	return Result;
 }
 
 #endif //USE_LOCKFREELIST_128
