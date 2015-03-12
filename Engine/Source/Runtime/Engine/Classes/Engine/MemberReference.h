@@ -2,6 +2,7 @@
 
 #pragma once
 
+#include "EngineLogs.h"
 #include "Engine/Blueprint.h"
 #include "MemberReference.generated.h"
 
