@@ -501,8 +501,8 @@ void FPoly::Scale
 	Base = PreSubtract + (Base - PreSubtract) * Scale;
 
 	// Scale the texture vectors.
-	TextureU *= Scale;
-	TextureV *= Scale;
+	TextureU /= Scale;
+	TextureV /= Scale;
 
 	// Recalculate the normal. Non-uniform scale or mirroring requires this.
 	CalcNormal(true);
