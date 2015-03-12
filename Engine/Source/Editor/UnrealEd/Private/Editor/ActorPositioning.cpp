@@ -207,15 +207,17 @@ FTransform FActorPositioning::GetSurfaceAlignedTransform(const FPositioningData&
 
 FTransform FActorPositioning::GetSnappedSurfaceAlignedTransform(const FSnappedPositioningData& Data)
 {
-	FVector SnappedLocation = Data.SurfaceLocation;
-	FSnappingUtils::SnapPointToGrid(SnappedLocation, FVector(0.f));
+	FSnappedPositioningData SnappedData(Data);
+
+	//FVector SnappedLocation = Data.SurfaceLocation;
+	FSnappingUtils::SnapPointToGrid(SnappedData.SurfaceLocation, FVector(0.f));
 
 	// Secondly, attempt vertex snapping
 	FVector AlignToNormal;
-	if (!Data.LevelViewportClient || !FSnappingUtils::SnapLocationToNearestVertex( SnappedLocation, Data.LevelViewportClient->GetDropPreviewLocation(), Data.LevelViewportClient, AlignToNormal, Data.bDrawSnapHelpers ))
+	if (!Data.LevelViewportClient || !FSnappingUtils::SnapLocationToNearestVertex( SnappedData.SurfaceLocation, SnappedData.LevelViewportClient->GetDropPreviewLocation(), SnappedData.LevelViewportClient, AlignToNormal, SnappedData.bDrawSnapHelpers ))
 	{
-		AlignToNormal = Data.SurfaceNormal;
+		AlignToNormal = SnappedData.SurfaceNormal;
 	}
 
-	return GetSurfaceAlignedTransform(Data);
+	return GetSurfaceAlignedTransform(SnappedData);
 }
