@@ -33,7 +33,7 @@ IMPLEMENT_MODULE(FHTML5AudioDeviceModule, HTML5Audio );
 	UALAudioDevice constructor and UObject interface.
 ------------------------------------------------------------------------------------*/
 FALAudioDevice::FALAudioDevice()
-	, HardwareDevice(nullptr)
+	: HardwareDevice(nullptr)
 	, SoundContext(nullptr)
 {}
 
