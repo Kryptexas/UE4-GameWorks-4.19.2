@@ -72,7 +72,7 @@ bool UK2Node_CreateDelegate::IsValid(FString* OutMsg, bool bDontUseSkeletalClass
 	{
 		const UEdGraphPin* OtherPin = DelegatePin->LinkedTo[PinIter];
 		const UFunction* OtherSignature = OtherPin ? 
-			FMemberReference::ResolveSimpleMemberReference<UFunction>(OtherPin->PinType.PinSubCategoryMemberReference) : NULL;
+			OtherPin->PinType.PinSubCategoryMemberReference.ResolveSimpleMemberReference<UFunction>() : NULL;
 		if(!OtherSignature || !Signature->IsSignatureCompatibleWith(OtherSignature))
 		{
 			if (OutMsg)
@@ -272,7 +272,7 @@ UFunction* UK2Node_CreateDelegate::GetDelegateSignature() const
 		if(UEdGraphPin* ResultPin = Pin->LinkedTo[0])
 		{
 			ensure(K2Schema->PC_Delegate == ResultPin->PinType.PinCategory);
-			return FMemberReference::ResolveSimpleMemberReference<UFunction>(ResultPin->PinType.PinSubCategoryMemberReference);
+			return ResultPin->PinType.PinSubCategoryMemberReference.ResolveSimpleMemberReference<UFunction>();
 		}
 	}
 	return NULL;

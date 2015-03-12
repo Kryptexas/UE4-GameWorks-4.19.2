@@ -30,7 +30,7 @@ public:
 			// Create a term to store the locally created delegate that we'll use to add to the MC delegate
 			FBPTerminal* DelegateTerm = Context.CreateLocalTerminal();
 			DelegateTerm->Type.PinCategory = CompilerContext.GetSchema()->PC_Delegate;
-			FMemberReference::FillSimpleMemberReference<UFunction>(DelegateNode->GetDelegateSignature(), DelegateTerm->Type.PinSubCategoryMemberReference);
+			DelegateTerm->Type.PinSubCategoryMemberReference.FillSimpleMemberReference<UFunction>(DelegateNode->GetDelegateSignature());
 			DelegateTerm->Source = Node;
 			DelegateTerm->Name = Context.NetNameMap->MakeValidName(Node) + TEXT("_TempBindingDelegate");
 			LocalDelegateMap.Add(Node, DelegateTerm);
@@ -194,7 +194,7 @@ UFunction* UK2Node_DelegateSet::GetDelegateSignature()
 	if( !DelegateProperty )
 	{
 		// Attempt to find a remapped delegate property
-		UMulticastDelegateProperty* NewProperty = Cast<UMulticastDelegateProperty>(FindRemappedField(DelegatePropertyClass, DelegatePropertyName));
+		UMulticastDelegateProperty* NewProperty = Cast<UMulticastDelegateProperty>(FMemberReference::FindRemappedField(DelegatePropertyClass, DelegatePropertyName));
 		if( NewProperty )
 		{
 			// Found a remapped property, update the node
@@ -214,7 +214,7 @@ UFunction* UK2Node_DelegateSet::GetDelegateSignature() const
 	if( !DelegateProperty )
 	{
 		// Attempt to find a remapped delegate property
-		DelegateProperty = Cast<UMulticastDelegateProperty>(FindRemappedField(DelegatePropertyClass, DelegatePropertyName));
+		DelegateProperty = Cast<UMulticastDelegateProperty>(FMemberReference::FindRemappedField(DelegatePropertyClass, DelegatePropertyName));
 	}
 
 	return (DelegateProperty != NULL) ? DelegateProperty->SignatureFunction : NULL;

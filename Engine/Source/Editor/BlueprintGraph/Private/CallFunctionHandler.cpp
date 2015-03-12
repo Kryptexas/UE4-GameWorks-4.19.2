@@ -502,7 +502,7 @@ UClass* FKCHandler_CallFunction::GetCallingContext(FKismetFunctionContext& Conte
 		else
 		{
 			// Final functions need the call context to be the specified class, so don't bother checking for the self pin.   The schema should enforce this.
-			return CallFuncNode->FunctionReference.GetMemberParentClass(CallFuncNode);
+			return CallFuncNode->FunctionReference.GetMemberParentClass(CallFuncNode->GetBlueprintClassFromNode());
 		}
 	}
 	else

@@ -1101,8 +1101,8 @@ static bool IsUsingNonExistantVariable(const UEdGraphNode* InGraphNode, UBluepri
 			else if(Variable->VariableReference.IsLocalScope())
 			{
 				// If there is no member scope, or we can't find the local variable in the member scope, then it's non-existant
-				if(!Variable->VariableReference.GetMemberScope(Variable) 
-					||  (Variable->VariableReference.GetMemberScope(Variable) && !FBlueprintEditorUtils::FindLocalVariable(OwnerBlueprint, Variable->VariableReference.GetMemberScope(Variable), Variable->GetVarName())))
+				UStruct* MemberScope = Variable->VariableReference.GetMemberScope(Variable->GetBlueprintClassFromNode());
+				if (MemberScope == nullptr || !FBlueprintEditorUtils::FindLocalVariable(OwnerBlueprint, MemberScope, Variable->GetVarName()))
 				{
 					bNonExistantVariable = true;
 				}
@@ -2182,7 +2182,7 @@ bool UEdGraphSchema_K2::FindSpecializedConversionNode(const UEdGraphPin* OutputP
 		UK2Node_CallFunction* CallFunctionNode = (UK2Node_CallFunction*)(InputPin->GetOwningNode());
 		UClass* OutputPinClass = Cast<UClass>(OutputPin->PinType.PinSubCategoryObject.Get());
 
-		UClass* FunctionClass = CallFunctionNode->FunctionReference.GetMemberParentClass(CallFunctionNode);
+		UClass* FunctionClass = CallFunctionNode->FunctionReference.GetMemberParentClass(CallFunctionNode->GetBlueprintClassFromNode());
 		if(FunctionClass != NULL && OutputPinClass != NULL)
 		{
 			// Iterate over object properties..
@@ -3078,12 +3078,12 @@ bool UEdGraphSchema_K2::ConvertPropertyToPinType(const UProperty* Property, /*ou
 	else if (const UMulticastDelegateProperty* MulticastDelegateProperty = Cast<const UMulticastDelegateProperty>(TestProperty))
 	{
 		TypeOut.PinCategory = PC_MCDelegate;
-		FMemberReference::FillSimpleMemberReference<UFunction>(MulticastDelegateProperty->SignatureFunction, TypeOut.PinSubCategoryMemberReference);
+		TypeOut.PinSubCategoryMemberReference.FillSimpleMemberReference<UFunction>(MulticastDelegateProperty->SignatureFunction);
 	}
 	else if (const UDelegateProperty* DelegateProperty = Cast<const UDelegateProperty>(TestProperty))
 	{
 		TypeOut.PinCategory = PC_Delegate;
-		FMemberReference::FillSimpleMemberReference<UFunction>(DelegateProperty->SignatureFunction, TypeOut.PinSubCategoryMemberReference);
+		TypeOut.PinSubCategoryMemberReference.FillSimpleMemberReference<UFunction>(DelegateProperty->SignatureFunction);
 	}
 	else
 	{
@@ -3469,7 +3469,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 				return Func && (Func->HasAllFlags(RF_LoadCompleted) || !Func->HasAnyFlags(RF_NeedLoad | RF_WasLoaded));
 			};
 
-			const UFunction* OutFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Output.PinSubCategoryMemberReference);
+			const UFunction* OutFunction = Output.PinSubCategoryMemberReference.ResolveSimpleMemberReference<UFunction>();
 			if (!CanUseFunction(OutFunction))
 			{
 				OutFunction = NULL;
@@ -3483,7 +3483,7 @@ bool UEdGraphSchema_K2::ArePinTypesCompatible(const FEdGraphPinType& Output, con
 					OutFunction = BPOwner->SkeletonGeneratedClass->FindFunctionByName(Output.PinSubCategoryMemberReference.MemberName);
 				}
 			}
-			const UFunction* InFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Input.PinSubCategoryMemberReference);
+			const UFunction* InFunction = Input.PinSubCategoryMemberReference.ResolveSimpleMemberReference<UFunction>();
 			if (!CanUseFunction(InFunction))
 			{
 				InFunction = NULL;

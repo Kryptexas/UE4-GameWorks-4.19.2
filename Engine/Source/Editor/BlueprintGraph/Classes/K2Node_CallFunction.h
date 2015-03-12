@@ -4,6 +4,7 @@
 
 #include "K2Node.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
+#include "Engine/MemberReference.h"
 #include "K2Node_CallFunction.generated.h"
 
 UCLASS()

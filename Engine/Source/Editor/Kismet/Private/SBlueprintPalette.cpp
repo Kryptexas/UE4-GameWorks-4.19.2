@@ -1342,7 +1342,7 @@ FText SBlueprintPaletteItem::GetToolTipText() const
 
 			if (UK2Node_CallFunction const* CallFuncNode = Cast<UK2Node_CallFunction const>(NodeTemplate))
 			{			
-				if(UClass* ParentClass = CallFuncNode->FunctionReference.GetMemberParentClass(CallFuncNode))
+				if(UClass* ParentClass = CallFuncNode->FunctionReference.GetMemberParentClass(CallFuncNode->GetBlueprintClassFromNode()))
 				{
 					UBlueprint* BlueprintObj = UBlueprint::GetBlueprintFromClass(ParentClass);
 					ClassDisplayName = (BlueprintObj != NULL) ? BlueprintObj->GetName() : ParentClass->GetName();

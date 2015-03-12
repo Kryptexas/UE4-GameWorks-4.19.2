@@ -3,37 +3,8 @@
 #pragma once
 
 #include "EdGraph/EdGraphNode.h"
+#include "Engine/MemberReference.h"
 #include "EdGraphPin.generated.h"
-
-USTRUCT()
-struct FSimpleMemberReference
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** Class that this member is defined in. */
-	UPROPERTY()
-	TSubclassOf<class UObject> MemberParentClass;
-
-	/** Name of the member */
-	UPROPERTY()
-	FName MemberName;
-
-	/** The Guid of the member */
-	UPROPERTY()
-	FGuid MemberGuid;
-
-	void Reset()
-	{
-		operator=(FSimpleMemberReference());
-	}
-
-	bool operator==(const FSimpleMemberReference& Other) const
-	{
-		return (MemberParentClass == Other.MemberParentClass)
-			&& (MemberName == Other.MemberName)
-			&& (MemberGuid == Other.MemberGuid);
-	}
-};
 
 FORCEINLINE FArchive& operator<<(FArchive& Ar, FSimpleMemberReference& Data)
 {

@@ -709,7 +709,7 @@ namespace EditorBuildPromotionTestUtils
 		NewEventNode->bOverrideFunction = true;
 
 		//Check for existing events
-		UK2Node_Event* ExistingEvent = FBlueprintEditorUtils::FindOverrideForFunction(InBlueprint, NewEventNode->EventReference.GetMemberParentClass(NewEventNode), NewEventNode->EventReference.GetMemberName());
+		UK2Node_Event* ExistingEvent = FBlueprintEditorUtils::FindOverrideForFunction(InBlueprint, NewEventNode->EventReference.GetMemberParentClass(NewEventNode->GetBlueprintClassFromNode()), NewEventNode->EventReference.GetMemberName());
 
 		if (!ExistingEvent)
 		{

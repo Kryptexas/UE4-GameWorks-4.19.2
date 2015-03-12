@@ -25,7 +25,7 @@ UEdGraphPin* UK2Node_CallFunctionOnMember::CreateSelfPin(const UFunction* Functi
 	else
 	{
 		// This means that the function is declared in an external class, and should reference that class
-		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), MemberVariableToCallOn.GetMemberParentClass(this), false, false, K2Schema->PN_Self);
+		SelfPin = CreatePin(EGPD_Input, K2Schema->PC_Object, TEXT(""), MemberVariableToCallOn.GetMemberParentClass(GetBlueprintClassFromNode()), false, false, K2Schema->PN_Self);
 	}
 	check(SelfPin != NULL);
 
@@ -34,7 +34,7 @@ UEdGraphPin* UK2Node_CallFunctionOnMember::CreateSelfPin(const UFunction* Functi
 
 FString UK2Node_CallFunctionOnMember::GetFunctionContextString() const
 {
-	UClass* MemberVarClass = MemberVariableToCallOn.GetMemberParentClass(this);
+	UClass* MemberVarClass = MemberVariableToCallOn.GetMemberParentClass(GetBlueprintClassFromNode());
 	FString CallFunctionClassName = (MemberVarClass != NULL) ? MemberVarClass->GetName() : TEXT("NULL");
 	return FString(TEXT("\n")) + FString::Printf(TEXT("%s %s (%s)"), *LOCTEXT("CallFunctionOnMemberDifferentContext", "Target is").ToString(), *CallFunctionClassName, *MemberVariableToCallOn.GetMemberName().ToString());
 }
@@ -124,7 +124,7 @@ void UK2Node_CallFunctionOnMember::ExpandNode(class FKismetCompilerContext& Comp
 
 bool UK2Node_CallFunctionOnMember::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
 {
-	UClass* SourceClass = MemberVariableToCallOn.GetMemberParentClass(this);
+	UClass* SourceClass = MemberVariableToCallOn.GetMemberParentClass(GetBlueprintClassFromNode());
 	const UBlueprint* SourceBlueprint = GetBlueprint();
 	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
 	if (bResult && OptionalOutput)

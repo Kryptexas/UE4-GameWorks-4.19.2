@@ -7092,7 +7092,7 @@ bool FBlueprintEditor::IsSelectionNativeFunction()
 
 			if( FunctionNode && SelectedNodes.Num() == 1 )
 			{
-				UFunction* FunctionPtr = FunctionNode->FunctionReference.ResolveMember<UFunction>( FunctionNode );
+				UFunction* FunctionPtr = FunctionNode->FunctionReference.ResolveMember<UFunction>( FunctionNode->GetBlueprintClassFromNode() );
 				UClass* OwningClass = FunctionPtr ? FunctionPtr->GetOuterUClass() : NULL;
 
 				if( OwningClass && OwningClass->HasAllClassFlags( CLASS_Native ))
@@ -7116,7 +7116,7 @@ void FBlueprintEditor::GotoNativeVariableDefinition()
 
 		if( VarNode )
 		{
-			UProperty* VariableProperty = VarNode->VariableReference.ResolveMember<UProperty>( VarNode );
+			UProperty* VariableProperty = VarNode->VariableReference.ResolveMember<UProperty>( VarNode->GetBlueprintClassFromNode() );
 
 			if( VariableProperty )
 			{
@@ -7147,7 +7147,7 @@ bool FBlueprintEditor::IsSelectionNativeVariable()
 
 			if( VarNode && SelectedNodes.Num() == 1 )
 			{
-				UProperty* VariableProperty = VarNode->VariableReference.ResolveMember<UProperty>( VarNode );
+				UProperty* VariableProperty = VarNode->VariableReference.ResolveMember<UProperty>( VarNode->GetBlueprintClassFromNode() );
 
 				if( VariableProperty && VariableProperty->HasAllFlags( RF_Native ))
 				{

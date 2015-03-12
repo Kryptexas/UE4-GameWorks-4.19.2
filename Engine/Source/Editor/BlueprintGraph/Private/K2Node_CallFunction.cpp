@@ -518,11 +518,11 @@ void UK2Node_CallFunction::AllocateDefaultPins()
 	// First try remap table
 	if (Function == NULL)
 	{
-		UClass* ParentClass = FunctionReference.GetMemberParentClass(this);
+		UClass* ParentClass = FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode());
 
 		if (ParentClass != NULL)
 		{
-			if (UFunction* NewFunction = Cast<UFunction>(FindRemappedField(ParentClass, FunctionReference.GetMemberName())))
+			if (UFunction* NewFunction = Cast<UFunction>(FMemberReference::FindRemappedField(ParentClass, FunctionReference.GetMemberName())))
 			{
 				// Found a remapped property, update the node
 				Function = NewFunction;
@@ -543,7 +543,7 @@ void UK2Node_CallFunction::AllocateDefaultPins()
 				Function = FindField<UFunction>(TestClass, FunctionReference.GetMemberName());
 				if (Function != NULL)
 				{
-					UClass* OldClass = FunctionReference.GetMemberParentClass(this);
+					UClass* OldClass = FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode());
 					Message_Note( FString::Printf(*LOCTEXT("FixedUpFunctionInLibrary", "UK2Node_CallFunction: Fixed up function '%s', originally in '%s', now in library '%s'.").ToString(),
 						*FunctionReference.GetMemberName().ToString(),
 						 (OldClass != NULL) ? *OldClass->GetName() : TEXT("(null)"), *TestClass->GetName()) );
@@ -967,14 +967,14 @@ void UK2Node_CallFunction::PinDefaultValueChanged(UEdGraphPin* Pin)
 
 UFunction* UK2Node_CallFunction::GetTargetFunction() const
 {
-	UFunction* Function = FunctionReference.ResolveMember<UFunction>(this);
+	UFunction* Function = FunctionReference.ResolveMember<UFunction>(GetBlueprintClassFromNode());
 	return Function;
 }
 
 UFunction* UK2Node_CallFunction::GetTargetFunctionFromSkeletonClass() const
 {
 	UFunction* TargetFunction = nullptr;
-	UClass* ParentClass = FunctionReference.GetMemberParentClass( this );
+	UClass* ParentClass = FunctionReference.GetMemberParentClass( GetBlueprintClassFromNode() );
 	UBlueprint* OwningBP = ParentClass ? Cast<UBlueprint>( ParentClass->ClassGeneratedBy ) : nullptr;
 	if( UClass* SkeletonClass = OwningBP ? OwningBP->SkeletonGeneratedClass : nullptr )
 	{
@@ -1368,7 +1368,7 @@ void UK2Node_CallFunction::SetFromFunction(const UFunction* Function)
 		bIsConstFunc = Function->HasAnyFunctionFlags(FUNC_Const);
 		DetermineWantsEnumToExecExpansion(Function);
 
-		FunctionReference.SetFromField<UFunction>(Function, this);
+		FunctionReference.SetFromField<UFunction>(Function, GetBlueprintClassFromNode());
 	}
 }
 
@@ -1388,7 +1388,7 @@ FString UK2Node_CallFunction::GetDocumentationLink() const
 	}
 	else 
 	{
-		ParentClass = FunctionReference.GetMemberParentClass(this);
+		ParentClass = FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode());
 	}
 	
 	if (ParentClass != NULL)
@@ -1496,7 +1496,7 @@ void UK2Node_CallFunction::GetRedirectPinNames(const UEdGraphPin& Pin, TArray<FS
 		RedirectPinNames.Add(FString::Printf(TEXT("%s.%s"), *FunctionReference.GetMemberName().ToString(), *OldPinName));
 
 		// if there is class, also add an option for class.functionname.param
-		UClass* FunctionClass = FunctionReference.GetMemberParentClass(this);
+		UClass* FunctionClass = FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode());
 		while (FunctionClass)
 		{
 			RedirectPinNames.Add(FString::Printf(TEXT("%s.%s.%s"), *FunctionClass->GetName(), *FunctionReference.GetMemberName().ToString(), *OldPinName));
@@ -1509,7 +1509,7 @@ bool UK2Node_CallFunction::IsSelfPinCompatibleWithBlueprintContext(UEdGraphPin *
 {
 	check(BlueprintObj);
 
-	UClass* FunctionClass = FunctionReference.GetMemberParentClass(this);
+	UClass* FunctionClass = FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode());
 
 	bool bIsCompatible = (SelfPin != NULL) ? SelfPin->bHidden : true;
 	if (!bIsCompatible && (BlueprintObj->GeneratedClass != NULL))
@@ -1705,7 +1705,7 @@ void UK2Node_CallFunction::PostPlacedNewNode()
 	Super::PostPlacedNewNode();
 
 	// Try re-setting the function given our new parent scope, in case it turns an external to an internal, or vis versa
-	FunctionReference.RefreshGivenNewSelfScope<UFunction>(this);
+	FunctionReference.RefreshGivenNewSelfScope<UFunction>(GetBlueprintClassFromNode());
 }
 
 FNodeHandlingFunctor* UK2Node_CallFunction::CreateNodeHandler(FKismetCompilerContext& CompilerContext) const
@@ -2164,7 +2164,7 @@ FText UK2Node_CallFunction::GetMenuCategory() const
 
 bool UK2Node_CallFunction::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
 {
-	const UClass* SourceClass = FunctionReference.GetMemberParentClass(this);
+	const UClass* SourceClass = FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode());
 	const UBlueprint* SourceBlueprint = GetBlueprint();
 	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
 	if (bResult && OptionalOutput)
@@ -2179,7 +2179,7 @@ UEdGraph* UK2Node_CallFunction::GetFunctionGraph(const UEdGraphNode*& OutGraphNo
 	OutGraphNode = NULL;
 
 	// Search for the Blueprint owner of the function graph, climbing up through the Blueprint hierarchy
-	UClass* MemberParentClass = FunctionReference.GetMemberParentClass(this);
+	UClass* MemberParentClass = FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode());
 	if(MemberParentClass != NULL)
 	{
 		UBlueprintGeneratedClass* ParentClass = Cast<UBlueprintGeneratedClass>(MemberParentClass);

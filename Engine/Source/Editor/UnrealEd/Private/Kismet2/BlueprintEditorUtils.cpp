@@ -841,7 +841,7 @@ struct FRegenerationHelper
 							// Thus, we handle that here in order to ensure that all 'Inner' fields are also valid before class regeneration.
 							if (auto VariableNode = Cast<UK2Node_Variable>(Node))
 							{
-								UArrayProperty* ArrayProperty = Cast<UArrayProperty>(VariableNode->VariableReference.ResolveMember<UProperty>(Node));
+								UArrayProperty* ArrayProperty = Cast<UArrayProperty>(VariableNode->VariableReference.ResolveMember<UProperty>(Node->GetBlueprintClassFromNode()));
 								if (ArrayProperty != nullptr && ArrayProperty->Inner != nullptr && ArrayProperty->Inner->HasAnyFlags(RF_NeedLoad|RF_WasLoaded))
 								{
 									ForcedLoad(ArrayProperty->Inner);
@@ -1573,7 +1573,7 @@ void FBlueprintEditorUtils::PostDuplicateBlueprint(UBlueprint* Blueprint)
 						{
 							UClass* TargetClass = nullptr;
 
-							if(UProperty* Property = VariableNode->VariableReference.ResolveMember<UProperty>(VariableNode))
+							if(UProperty* Property = VariableNode->VariableReference.ResolveMember<UProperty>(VariableNode->GetBlueprintClassFromNode()))
 							{
 								TargetClass = Property->GetOwnerClass()->GetAuthoritativeClass();
 							}
@@ -2244,7 +2244,7 @@ UK2Node_Event* FBlueprintEditorUtils::FindOverrideForFunction(const UBlueprint* 
 		UK2Node_Event* EventNode = AllEvents[i];
 		check(EventNode);
 		if(	EventNode->bOverrideFunction == true &&
-			EventNode->EventReference.GetMemberParentClass(EventNode) == SignatureClass &&
+			EventNode->EventReference.GetMemberParentClass(EventNode->GetBlueprintClassFromNode()) == SignatureClass &&
 			EventNode->EventReference.GetMemberName() == SignatureName )
 		{
 			return EventNode;
@@ -4759,7 +4759,7 @@ void FBlueprintEditorUtils::RemoveInterface(UBlueprint* Blueprint, const FName& 
 		for(TArray<UK2Node_Event*>::TIterator NodeIt(AllEvents); NodeIt; ++NodeIt)
 		{
 			UK2Node_Event* EventNode = *NodeIt;
-			if( EventNode->EventReference.GetMemberParentClass(EventNode) == InterfaceClass )
+			if( EventNode->EventReference.GetMemberParentClass(EventNode->GetBlueprintClassFromNode()) == InterfaceClass )
 			{
 				if(bPreserveFunctions)
 				{
@@ -4980,7 +4980,7 @@ void FBlueprintEditorUtils::ConformImplementedEvents(UBlueprint* Blueprint)
 				// If the event is loaded and is not a custom event
 				if(!EventNode->HasAnyFlags(RF_NeedLoad|RF_NeedPostLoad) && EventNode->bOverrideFunction)
 				{
-					const bool bEventNodeUsedByInterface = ImplementedInterfaceClasses.Contains(EventNode->EventReference.GetMemberParentClass(EventNode));
+					const bool bEventNodeUsedByInterface = ImplementedInterfaceClasses.Contains(EventNode->EventReference.GetMemberParentClass(EventNode->GetBlueprintClassFromNode()));
 					if (Blueprint->GeneratedClass && !bEventNodeUsedByInterface)
 					{
 						// See if the generated class implements an event with the given function signature
@@ -4988,7 +4988,7 @@ void FBlueprintEditorUtils::ConformImplementedEvents(UBlueprint* Blueprint)
 						if (TargetFunction || EventGraphNames.Contains(EventNode->EventReference.GetMemberName()))
 						{
 							// The generated class implements the event but the function signature is not up-to-date
-							if (!Blueprint->GeneratedClass->IsChildOf(EventNode->EventReference.GetMemberParentClass(EventNode)))
+							if (!Blueprint->GeneratedClass->IsChildOf(EventNode->EventReference.GetMemberParentClass(EventNode->GetBlueprintClassFromNode())))
 							{
 								FFormatNamedArguments Args;
 								Args.Add(TEXT("NodeTitle"), EventNode->GetNodeTitle(ENodeTitleType::ListView));
@@ -5086,7 +5086,7 @@ static void ConformInterfaceByName(UBlueprint* Blueprint, FBPInterfaceDescriptio
 		for (UK2Node_Event* EventNode : ImplementedEvents)
 		{
 			// if this event belongs to something other than this interface
-			if (EventNode->EventReference.GetMemberParentClass(EventNode) != CurrentInterfaceDesc.Interface)
+			if (EventNode->EventReference.GetMemberParentClass(EventNode->GetBlueprintClassFromNode()) != CurrentInterfaceDesc.Interface)
 			{
 				continue;
 			}

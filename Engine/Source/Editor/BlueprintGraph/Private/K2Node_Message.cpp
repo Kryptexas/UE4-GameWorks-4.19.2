@@ -103,7 +103,7 @@ void UK2Node_Message::ExpandNode(class FKismetCompilerContext& CompilerContext, 
 	if (bExecPinConnected)
 	{
 		// Make sure our interface is valid
-		if (FunctionReference.GetMemberParentClass(this) == NULL)
+		if (FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode()) == NULL)
 		{
 			CompilerContext.MessageLog.Error(*FString::Printf(*LOCTEXT("MessageNodeInvalid_Error", "Message node @@ has an invalid interface.").ToString()), this);
 			return;
@@ -113,7 +113,7 @@ void UK2Node_Message::ExpandNode(class FKismetCompilerContext& CompilerContext, 
 		if (MessageNodeFunction == NULL)
 		{
 			//@TODO: Why do this here in teh compiler, it's already done on AllocateDefaultPins() during on-load node reconstruction
-			MessageNodeFunction = Cast<UFunction>(UK2Node::FindRemappedField(FunctionReference.GetMemberParentClass(this), FunctionReference.GetMemberName()));
+			MessageNodeFunction = Cast<UFunction>(FMemberReference::FindRemappedField(FunctionReference.GetMemberParentClass(GetBlueprintClassFromNode()), FunctionReference.GetMemberName()));
 		}
 
 		if (MessageNodeFunction == NULL)

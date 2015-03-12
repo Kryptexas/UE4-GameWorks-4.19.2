@@ -2391,7 +2391,7 @@ void FKismetCompilerContext::CreateFunctionStubForEvent(UK2Node_Event* SrcEventN
 	// Create an entry point
 	UK2Node_FunctionEntry* EntryNode = SpawnIntermediateNode<UK2Node_FunctionEntry>(SrcEventNode, ChildStubGraph);
 	EntryNode->NodePosX = -200;
-	EntryNode->SignatureClass = SrcEventNode->EventReference.GetMemberParentClass(SrcEventNode);
+	EntryNode->SignatureClass = SrcEventNode->EventReference.GetMemberParentClass(SrcEventNode->GetBlueprintClassFromNode());
 	EntryNode->SignatureName = SrcEventNode->EventReference.GetMemberName();
 	EntryNode->CustomGeneratedFunctionName = EventNodeName;
 
@@ -2588,7 +2588,7 @@ void FKismetCompilerContext::VerifyValidOverrideEvent(const UEdGraph* Graph)
 			{
 				const UK2Node_Event* EventNode = EntryPoints[EntryPointsIdx];
 				if( EventNode && EventNode->bOverrideFunction &&
-					(EventNode->EventReference.GetMemberParentClass(EventNode) == FuncClass) &&
+					(EventNode->EventReference.GetMemberParentClass(EventNode->GetBlueprintClassFromNode()) == FuncClass) &&
 					(EventNode->EventReference.GetMemberName() == FuncName))
 				{
 					if (EventNode->IsDeprecated())

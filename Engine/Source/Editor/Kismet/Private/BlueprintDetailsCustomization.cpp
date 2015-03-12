@@ -3175,7 +3175,7 @@ struct FBasePinChangeHelper
 					UBlueprint* CallSiteBlueprint = FBlueprintEditorUtils::FindBlueprintForNode(CallSite);
 
 					const bool bNameMatches = (CallSite->FunctionReference.GetMemberName() == FunctionDefNode->SignatureName);
-					const UClass* MemberParentClass = CallSite->FunctionReference.GetMemberParentClass(CallSite);
+					const UClass* MemberParentClass = CallSite->FunctionReference.GetMemberParentClass(CallSite->GetBlueprintClassFromNode());
 					const bool bClassMatchesEasy = (MemberParentClass != NULL) && (MemberParentClass->IsChildOf(FunctionDefNode->SignatureClass));
 					const bool bClassMatchesHard = (CallSiteBlueprint != NULL) && (CallSite->FunctionReference.IsSelfContext()) && (FunctionDefNode->SignatureClass == NULL) && (CallSiteBlueprint == BlueprintGraphActionDetails.GetBlueprintObj());
 					const bool bValidSchema = CallSite->GetSchema() != NULL;

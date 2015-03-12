@@ -95,7 +95,7 @@ void UK2Node_Composite::PostPasteNode()
 			if(UK2Node_Event* Event = Cast<UK2Node_Event>(Node))
 			{
 				UBlueprint* BP = FBlueprintEditorUtils::FindBlueprintForGraphChecked(BoundGraph);
-				if(FBlueprintEditorUtils::FindOverrideForFunction(BP, Event->EventReference.GetMemberParentClass(Event), Event->EventReference.GetMemberName()))
+				if(FBlueprintEditorUtils::FindOverrideForFunction(BP, Event->EventReference.GetMemberParentClass(Event->GetBlueprintClassFromNode()), Event->EventReference.GetMemberName()))
 				{
 					FBlueprintEditorUtils::RemoveNode(BP, Node, true);
 					NodeIndex--;

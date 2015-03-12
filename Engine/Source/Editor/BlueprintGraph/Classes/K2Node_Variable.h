@@ -3,6 +3,7 @@
 
 #pragma once
 #include "K2Node.h"
+#include "Engine/MemberReference.h"
 #include "K2Node_Variable.generated.h"
 
 // Forward Declarations

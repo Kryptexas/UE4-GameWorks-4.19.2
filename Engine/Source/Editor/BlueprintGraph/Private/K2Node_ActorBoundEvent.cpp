@@ -116,7 +116,7 @@ FText UK2Node_ActorBoundEvent::GetTooltipText() const
 
 FString UK2Node_ActorBoundEvent::GetDocumentationLink() const
 {
-	if (UClass* EventSignatureClass = EventReference.GetMemberParentClass(this))
+	if (UClass* EventSignatureClass = EventReference.GetMemberParentClass(GetBlueprintClassFromNode()))
 	{
 		return FString::Printf(TEXT("Shared/GraphNodes/Blueprint/%s%s"), EventSignatureClass->GetPrefixCPP(), *EventSignatureClass->GetName());
 	}
@@ -162,7 +162,7 @@ UMulticastDelegateProperty* UK2Node_ActorBoundEvent::GetTargetDelegateProperty()
 	// If we couldn't find the target delegate, then try to find it in the property remap table
 	if (!TargetDelegateProp)
 	{
-		UMulticastDelegateProperty* NewProperty = Cast<UMulticastDelegateProperty>(FindRemappedField(DelegateOwnerClass, DelegatePropertyName));
+		UMulticastDelegateProperty* NewProperty = Cast<UMulticastDelegateProperty>(FMemberReference::FindRemappedField(DelegateOwnerClass, DelegatePropertyName));
 		if (NewProperty)
 		{
 			// Found a remapped property, update the node

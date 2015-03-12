@@ -63,7 +63,7 @@ void UK2Node_BaseMCDelegate::AllocateDefaultPins()
 	CreatePin(EGPD_Input, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Execute);
 	CreatePin(EGPD_Output, K2Schema->PC_Exec, TEXT(""), NULL, false, false, K2Schema->PN_Then);
 
-	UClass* PropertyOwnerClass = DelegateReference.GetMemberParentClass(this);
+	UClass* PropertyOwnerClass = DelegateReference.GetMemberParentClass(GetBlueprintClassFromNode());
 	if (PropertyOwnerClass != nullptr)
 	{
 		PropertyOwnerClass = PropertyOwnerClass->GetAuthoritativeClass();
@@ -90,7 +90,7 @@ void UK2Node_BaseMCDelegate::AllocateDefaultPins()
 
 UFunction* UK2Node_BaseMCDelegate::GetDelegateSignature(bool bForceNotFromSkelClass) const
 {
-	UClass* OwnerClass = DelegateReference.GetMemberParentClass(this);
+	UClass* OwnerClass = DelegateReference.GetMemberParentClass(GetBlueprintClassFromNode());
 	if (bForceNotFromSkelClass)
 	{
 		OwnerClass = (OwnerClass != nullptr) ? OwnerClass->GetAuthoritativeClass() : nullptr;
@@ -114,7 +114,7 @@ UFunction* UK2Node_BaseMCDelegate::GetDelegateSignature(bool bForceNotFromSkelCl
 	}
 	ReferenceToUse.SetDirect(DelegateReference.GetMemberName(), DelegateGuid, OwnerClass, /*bIsConsideredSelfContext =*/false);
 
-	UMulticastDelegateProperty* DelegateProperty = ReferenceToUse.ResolveMember<UMulticastDelegateProperty>(this);
+	UMulticastDelegateProperty* DelegateProperty = ReferenceToUse.ResolveMember<UMulticastDelegateProperty>(GetBlueprintClassFromNode());
 	return (DelegateProperty != NULL) ? DelegateProperty->SignatureFunction : NULL;
 }
 
@@ -139,7 +139,7 @@ FString UK2Node_BaseMCDelegate::GetDocumentationLink() const
 	}
 	else 
 	{
-		ParentClass = DelegateReference.GetMemberParentClass(this);
+		ParentClass = DelegateReference.GetMemberParentClass(GetBlueprintClassFromNode());
 	}
 
 	if ( ParentClass != NULL )
@@ -187,14 +187,14 @@ void UK2Node_BaseMCDelegate::ExpandNode(class FKismetCompilerContext& CompilerCo
 
 bool UK2Node_BaseMCDelegate::IsAuthorityOnly() const
 {
-	const UMulticastDelegateProperty* DelegateProperty = DelegateReference.ResolveMember<UMulticastDelegateProperty>(this);
+	const UMulticastDelegateProperty* DelegateProperty = DelegateReference.ResolveMember<UMulticastDelegateProperty>(GetBlueprintClassFromNode());
 	return DelegateProperty && DelegateProperty->HasAnyPropertyFlags(CPF_BlueprintAuthorityOnly);
 
 }
 
 bool UK2Node_BaseMCDelegate::HasExternalBlueprintDependencies(TArray<class UStruct*>* OptionalOutput) const
 {
-	const UClass* SourceClass = DelegateReference.GetMemberParentClass(this);
+	const UClass* SourceClass = DelegateReference.GetMemberParentClass(GetBlueprintClassFromNode());
 	const UBlueprint* SourceBlueprint = GetBlueprint();
 	const bool bResult = (SourceClass != NULL) && (SourceClass->ClassGeneratedBy != NULL) && (SourceClass->ClassGeneratedBy != SourceBlueprint);
 	if (bResult && OptionalOutput)
@@ -225,7 +225,7 @@ void UK2Node_BaseMCDelegate::AutowireNewNode(UEdGraphPin* FromPin)
 		{
 			if (FromPin->PinType.PinSubCategoryObject.IsValid() && FromPin->PinType.PinSubCategoryObject->IsA(UClass::StaticClass()))
 			{
-				UProperty* DelegateProperty = DelegateReference.ResolveMember<UProperty>(this);
+				UProperty* DelegateProperty = DelegateReference.ResolveMember<UProperty>(GetBlueprintClassFromNode());
 				if (DelegateProperty)
 				{
 					UClass* DelegateOwner = DelegateProperty->GetOwnerClass();
@@ -275,7 +275,7 @@ void UK2Node_AddDelegate::AllocateDefaultPins()
 
 	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Input, K2Schema->PC_Delegate, TEXT(""), NULL, false, true, FK2Node_BaseMCDelegateHelper::DelegatePinName, true))
 	{
-		FMemberReference::FillSimpleMemberReference<UFunction>(GetDelegateSignature(), DelegatePin->PinType.PinSubCategoryMemberReference);
+		DelegatePin->PinType.PinSubCategoryMemberReference.FillSimpleMemberReference<UFunction>(GetDelegateSignature());
 		DelegatePin->PinFriendlyName = NSLOCTEXT("K2Node", "PinFriendlyDelegatetName", "Event");
 	}
 }
@@ -343,7 +343,7 @@ void UK2Node_RemoveDelegate::AllocateDefaultPins()
 
 	if(UEdGraphPin* DelegatePin = CreatePin(EGPD_Input, K2Schema->PC_Delegate, TEXT(""), NULL, false, true, FK2Node_BaseMCDelegateHelper::DelegatePinName, true))
 	{
-		FMemberReference::FillSimpleMemberReference<UFunction>(GetDelegateSignature(), DelegatePin->PinType.PinSubCategoryMemberReference);
+		DelegatePin->PinType.PinSubCategoryMemberReference.FillSimpleMemberReference<UFunction>(GetDelegateSignature());
 		DelegatePin->PinFriendlyName = NSLOCTEXT("K2Node", "PinFriendlyDelegatetName", "Event");
 	}
 }

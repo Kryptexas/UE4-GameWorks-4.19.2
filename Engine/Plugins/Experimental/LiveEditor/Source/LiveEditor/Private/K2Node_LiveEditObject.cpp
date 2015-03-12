@@ -630,7 +630,7 @@ UFunction *UK2Node_LiveEditObject::GetEventMIDISignature() const
 	UBlueprint::GetGuidFromClassByFieldName<UFunction>(ULiveEditorBroadcaster::StaticClass(), TEXT("OnEventMIDI"), DelegateGuid);
 	ReferenceToUse.SetDirect( TEXT("OnEventMIDI"), DelegateGuid, ULiveEditorBroadcaster::StaticClass(), false );
 
-	UMulticastDelegateProperty* DelegateProperty = ReferenceToUse.ResolveMember<UMulticastDelegateProperty>(this);
+	UMulticastDelegateProperty* DelegateProperty = ReferenceToUse.ResolveMember<UMulticastDelegateProperty>(GetBlueprintClassFromNode());
 	if (DelegateProperty != NULL)
 	{
 		return DelegateProperty->SignatureFunction;

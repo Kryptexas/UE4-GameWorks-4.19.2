@@ -103,14 +103,14 @@ void UK2Node_Variable::CreatePinForSelf()
 		if( !VariableReference.IsLocalScope() )
 		{
 			bool bSelfTarget = VariableReference.IsSelfContext() && (ESelfContextInfo::NotSelfContext != SelfContextInfo);
-			UClass* MemberParentClass = VariableReference.GetMemberParentClass(this);
+			UClass* MemberParentClass = VariableReference.GetMemberParentClass(GetBlueprintClassFromNode());
 			UClass* TargetClass = MemberParentClass;
 			
 			// Self Target pins should always make the class be the owning class of the property,
 			// so if the node is from a Macro Blueprint, it will hook up as self in any placed Blueprint
 			if(bSelfTarget)
 			{
-				if(UProperty* Property = VariableReference.ResolveMember<UProperty>(this))
+				if(UProperty* Property = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode()))
 				{
 					TargetClass = Property->GetOwnerClass()->GetAuthoritativeClass();
 				}
@@ -282,7 +282,7 @@ UK2Node::ERedirectType UK2Node_Variable::DoPinsMatchForReconstruction( const UEd
 
 UClass* UK2Node_Variable::GetVariableSourceClass() const
 {
-	UClass* Result = VariableReference.GetMemberParentClass(this);
+	UClass* Result = VariableReference.GetMemberParentClass(GetBlueprintClassFromNode());
 	return Result;
 }
 
@@ -291,7 +291,7 @@ UProperty* UK2Node_Variable::GetPropertyForVariable() const
 	const FName VarName = GetVarName();
 	UEdGraphPin* VariablePin = FindPin(GetVarNameString());
 
-	UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(this);
+	UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode());
 
 	// if the variable has been deprecated, don't use it
 	if(VariableProperty != NULL)
@@ -362,7 +362,7 @@ FName UK2Node_Variable::GetPaletteIcon(FLinearColor& ColorOut) const
 
 	if(VariableReference.IsLocalScope())
 	{
-		ReturnIconName = GetVariableIconAndColor(VariableReference.GetMemberScope(this), GetVarName(), ColorOut);
+		ReturnIconName = GetVariableIconAndColor(VariableReference.GetMemberScope(GetBlueprintClassFromNode()), GetVarName(), ColorOut);
 	}
 	else
 	{
@@ -398,7 +398,7 @@ FText UK2Node_Variable::GetToolTipHeading() const
 {
 	FText Heading = Super::GetToolTipHeading();
 
-	UProperty const* VariableProperty = VariableReference.ResolveMember<UProperty>(this);
+	UProperty const* VariableProperty = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode());
 	if (VariableProperty && VariableProperty->HasAllPropertyFlags(CPF_Net))
 	{
 		FText ReplicatedTag = LOCTEXT("ReplicatedVar", "Replicated");
@@ -449,7 +449,7 @@ FName UK2Node_Variable::GetVariableIconAndColor(const UStruct* VarScope, FName V
 
 void UK2Node_Variable::CheckForErrors(const UEdGraphSchema_K2* Schema, FCompilerResultsLog& MessageLog)
 {
-	if(!VariableReference.IsSelfContext() && VariableReference.GetMemberParentClass(this) != NULL)
+	if(!VariableReference.IsSelfContext() && VariableReference.GetMemberParentClass(GetBlueprintClassFromNode()) != NULL)
 	{
 		// Check to see if we're not a self context, if we have a valid context.  It may have been purged because of a dead execution chain
 		UEdGraphPin* ContextPin = Schema->FindSelfPin(*this, EGPD_Input);
@@ -576,7 +576,7 @@ bool UK2Node_Variable::RemapRestrictedLinkReference(FName OldVariableName, FName
 
 FName UK2Node_Variable::GetCornerIcon() const
 {
-	const UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(this);
+	const UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode());
 	if (VariableProperty && VariableProperty->HasAllPropertyFlags(CPF_Net))
 	{
 		return TEXT("Graph.Replication.Replicated");
@@ -634,7 +634,7 @@ void UK2Node_Variable::AutowireNewNode(UEdGraphPin* FromPin)
 			// If the source pin has a valid PinSubCategoryObject, we might be doing BP Comms, so check if it is a class
 			if(FromPin->PinType.PinSubCategoryObject.IsValid() && FromPin->PinType.PinSubCategoryObject->IsA(UClass::StaticClass()))
 			{
-				UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(this);
+				UProperty* VariableProperty = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode());
 				if(VariableProperty)
 				{
 					UClass* PropertyOwner = VariableProperty->GetOwnerClass();
@@ -674,7 +674,7 @@ void UK2Node_Variable::AutowireNewNode(UEdGraphPin* FromPin)
 FBPVariableDescription const* UK2Node_Variable::GetBlueprintVarDescription() const
 {
 	FName const& VarName = VariableReference.GetMemberName();
-	UStruct const* VariableScope = VariableReference.GetMemberScope(this);
+	UStruct const* VariableScope = VariableReference.GetMemberScope(GetBlueprintClassFromNode());
 
 	bool const bIsLocalVariable = (VariableScope != nullptr);
 	if (bIsLocalVariable)
@@ -701,7 +701,7 @@ bool UK2Node_Variable::CanPasteHere(const UEdGraph* TargetGraph) const
 	if ( FBlueprintEditorUtils::FindBlueprintForGraph(TargetGraph)->BlueprintType == BPTYPE_MacroLibrary && VariableReference.IsSelfContext() )
 	{
 		// Self variables must be from a parent class to the macro BP
-		if(UProperty* Property = VariableReference.ResolveMember<UProperty>(this))
+		if(UProperty* Property = VariableReference.ResolveMember<UProperty>(GetBlueprintClassFromNode()))
 		{
 			const UClass* CurrentClass = GetBlueprint()->SkeletonGeneratedClass->GetAuthoritativeClass();
 			const UClass* PropertyClass = Property->GetOwnerClass()->GetAuthoritativeClass();
@@ -728,7 +728,7 @@ void UK2Node_Variable::PostPasteNode()
 	{
 		// Local scoped variables should always validate whether they are being placed in the same graph as their scope
 		// ResolveMember will not return nullptr when the graph changes but the Blueprint remains the same.
-		UEdGraph* ScopeGraph = FBlueprintEditorUtils::FindScopeGraph(Blueprint, VariableReference.GetMemberScope(this));
+		UEdGraph* ScopeGraph = FBlueprintEditorUtils::FindScopeGraph(Blueprint, VariableReference.GetMemberScope(GetBlueprintClassFromNode()));
 		if(ScopeGraph != GetGraph())
 		{
 			bInvalidateVariable = true;

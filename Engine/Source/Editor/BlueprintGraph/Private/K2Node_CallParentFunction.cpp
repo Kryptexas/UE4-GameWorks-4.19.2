@@ -15,7 +15,7 @@ UK2Node_CallParentFunction::UK2Node_CallParentFunction(const FObjectInitializer&
 
 FText UK2Node_CallParentFunction::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	UFunction* Function = FunctionReference.ResolveMember<UFunction>(this);
+	UFunction* Function = FunctionReference.ResolveMember<UFunction>(GetBlueprintClassFromNode());
 	FString FunctionName = Function ? GetUserFacingFunctionName( Function ) : FunctionReference.GetMemberName().ToString();
 
 	if( GEditor && GetDefault<UEditorStyleSettings>()->bShowFriendlyNames )

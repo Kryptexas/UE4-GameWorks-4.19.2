@@ -70,7 +70,7 @@ static bool CanPaletteItemBePlaced(TSharedPtr<FEdGraphSchemaAction> DropActionIn
 		{
 			FName const FuncName = CallFuncNode->FunctionReference.GetMemberName();
 			check(FuncName != NAME_None);
-			UClass const* const FuncOwner = CallFuncNode->FunctionReference.GetMemberParentClass(CallFuncNode);
+			UClass const* const FuncOwner = CallFuncNode->FunctionReference.GetMemberParentClass(CallFuncNode->GetBlueprintClassFromNode());
 			check(FuncOwner != nullptr);
 
 			UFunction* const Function = FindField<UFunction>(FuncOwner, FuncName);

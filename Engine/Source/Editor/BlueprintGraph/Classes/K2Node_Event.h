@@ -3,6 +3,7 @@
 
 #pragma once
 #include "Core.h"
+#include "Engine/MemberReference.h"
 #include "K2Node_EditablePinBase.h"
 #include "EdGraph/EdGraphNodeUtils.h" // for FNodeTextCache
 #include "K2Node_Event.generated.h"

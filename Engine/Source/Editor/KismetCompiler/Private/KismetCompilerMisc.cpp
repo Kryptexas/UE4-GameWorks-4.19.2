@@ -158,7 +158,7 @@ bool FKismetCompilerUtilities::IsTypeCompatibleWithProperty(UEdGraphPin* SourceP
 	}
 	else if (PinCategory == Schema->PC_Delegate)
 	{
-		const UFunction* SignatureFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Type.PinSubCategoryMemberReference);
+		const UFunction* SignatureFunction = Type.PinSubCategoryMemberReference.ResolveSimpleMemberReference<UFunction>();
 		const UDelegateProperty* PropertyDelegate = Cast<const UDelegateProperty>(TestProperty);
 		bTypeMismatch = !(SignatureFunction 
 			&& PropertyDelegate 
@@ -851,7 +851,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	}
 	else if (Type.PinCategory == Schema->PC_Delegate)
 	{
-		if (UFunction* SignatureFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Type.PinSubCategoryMemberReference))
+		if (UFunction* SignatureFunction = Type.PinSubCategoryMemberReference.ResolveSimpleMemberReference<UFunction>())
 		{
 			UDelegateProperty* NewPropertyDelegate = NewObject<UDelegateProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 			NewPropertyDelegate->SignatureFunction = SignatureFunction;
@@ -860,7 +860,7 @@ UProperty* FKismetCompilerUtilities::CreatePropertyOnScope(UStruct* Scope, const
 	}
 	else if (Type.PinCategory == Schema->PC_MCDelegate)
 	{
-		UFunction* const SignatureFunction = FMemberReference::ResolveSimpleMemberReference<UFunction>(Type.PinSubCategoryMemberReference);
+		UFunction* const SignatureFunction = Type.PinSubCategoryMemberReference.ResolveSimpleMemberReference<UFunction>();
 		UMulticastDelegateProperty* NewPropertyDelegate = NewObject<UMulticastDelegateProperty>(PropertyScope, ValidatedPropertyName, ObjectFlags);
 		NewPropertyDelegate->SignatureFunction = SignatureFunction;
 		NewProperty = NewPropertyDelegate;
