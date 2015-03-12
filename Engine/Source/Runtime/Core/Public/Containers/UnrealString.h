@@ -1746,7 +1746,7 @@ public:
 			}
 			LineCount++;
 			InData += TermLength;
-		} while (InData);
+		}
 
 		if (bAutoEmitLineTerminator)
 		{
