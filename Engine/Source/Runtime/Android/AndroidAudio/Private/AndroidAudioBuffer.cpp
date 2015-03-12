@@ -16,7 +16,7 @@
  * @param AudioDevice	audio device this sound buffer is going to be attached to.
  */
 FSLESSoundBuffer::FSLESSoundBuffer( FSLESAudioDevice* InAudioDevice )
-:	FAudioBuffer(InAudioDevice),
+:	FSoundBuffer(InAudioDevice),
 	AudioData(NULL),
 	DecompressionState( NULL ),
 	Format(SoundFormat_Invalid)

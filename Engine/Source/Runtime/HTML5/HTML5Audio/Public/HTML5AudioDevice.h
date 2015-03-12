@@ -184,6 +184,7 @@ protected:
 class FALAudioDevice : public FAudioDevice
 {
 public: 
+	FALAudioDevice();
 	virtual ~FALAudioDevice() {} 
 
 	virtual FName GetRuntimeFormat(USoundWave* SoundWave) override

@@ -128,11 +128,14 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 	FWaveModInfo WaveInfo;
 	Wave->InitAudioResource(AudioDevice->GetRuntimeFormat(Wave));
 	FALSoundBuffer* Buffer = nullptr;
-	
+
+	FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
+	check(AudioDeviceManager != nullptr);
+
 	// Find the existing buffer if any
 	if (Wave->ResourceID)
 	{
-		Buffer = static_cast<FALSoundBuffer*>(AudioDevice->WaveBufferMap.FindRef( Wave->ResourceID ));
+		Buffer = static_cast<FALSoundBuffer*>(AudioDeviceManager->WaveBufferMap.FindRef(Wave->ResourceID));
 	}
 
 	if (Buffer == nullptr)
@@ -144,8 +147,6 @@ FALSoundBuffer* FALSoundBuffer::CreateNativeBuffer( FALAudioDevice* AudioDevice,
 
 		AudioDevice->alError(TEXT("RegisterSound"));
 
-		FAudioDeviceManager* AudioDeviceManager = GEngine->GetAudioDeviceManager();
-		check(AudioDeviceManager != nullptr);
 
 		AudioDeviceManager->TrackResource(Wave, Buffer);
 
