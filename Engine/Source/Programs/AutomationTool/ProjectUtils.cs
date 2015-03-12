@@ -186,7 +186,6 @@ namespace AutomationTool
 			{
 				EngineSourceDirectory = Path.Combine(UnrealBuildTool.Utils.GetExecutingAssemblyDirectory(), "..", "..", "..", "Engine", "Binaries");
 			}
-			Directory.SetCurrentDirectory(EngineSourceDirectory);
 
 			bool RetVal = false;
 			// check the target platforms for any differences in build settings or additional plugins
@@ -199,8 +198,10 @@ namespace AutomationTool
 					break;
 				}
 
+
 				// find if there are any plugins
 				List<string> PluginList = new List<string>();
+				Directory.SetCurrentDirectory(EngineSourceDirectory);
 				// Use the project settings to update the plugin list for this target
 				PluginList = UProjectInfo.GetEnabledPlugins(RawProjectPath, PluginList, TargetPlatformType);
 				if (PluginList.Count > 0 && !RetVal)
@@ -229,8 +230,8 @@ namespace AutomationTool
 						}
 					}
 				}
+				Directory.SetCurrentDirectory(oldCWD);
 			}
-			Directory.SetCurrentDirectory(oldCWD);
 			return RetVal;
 		}
 
