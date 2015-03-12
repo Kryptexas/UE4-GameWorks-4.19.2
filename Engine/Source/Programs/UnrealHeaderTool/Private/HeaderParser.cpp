@@ -7764,17 +7764,20 @@ TFunctionType* CreateFunctionImpl(const FFuncInfo& FuncInfo, UObject* Outer, FSc
 	Function->ReturnValueOffset = MAX_uint16;
 	Function->FirstPropertyToInit = nullptr;
 
+	if (!CurrentScope->IsFileScope())
+	{
+		auto* Struct = ((FStructScope*)CurrentScope)->GetStruct();
+
+		Function->Next = Struct->Children;
+		Struct->Children = Function;
+	}
+
 	return Function;
 }
 
 UFunction* FHeaderParser::CreateFunction(const FFuncInfo &FuncInfo) const
 {
-	auto* Function = CreateFunctionImpl<UFunction>(FuncInfo, GetCurrentClass(), GetCurrentScope());
-
-	Function->Next = GetCurrentClass()->Children;
-	GetCurrentClass()->Children = Function;
-
-	return Function;
+	return CreateFunctionImpl<UFunction>(FuncInfo, GetCurrentClass(), GetCurrentScope());
 }
 
 UDelegateFunction* FHeaderParser::CreateDelegateFunction(const FFuncInfo &FuncInfo) const

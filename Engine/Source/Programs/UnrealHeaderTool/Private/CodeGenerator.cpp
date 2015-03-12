@@ -1029,7 +1029,12 @@ void FNativeClassHeaderGenerator::ExportNativeGeneratedInitCode(FClass* Class, F
 	for (int32 FuncIndex = 0; FuncIndex < FunctionsToExport.Num(); FuncIndex++)
 	{
 		UFunction* Function = FunctionsToExport[FuncIndex];
-		ExportFunction(Function, &FScope::GetTypeScope(Class).Get(), bIsNoExport);
+
+		if (!Function->IsA<UDelegateFunction>())
+		{
+			ExportFunction(Function, &FScope::GetTypeScope(Class).Get(), bIsNoExport);
+		}
+
 		CallSingletons.Logf(TEXT("                OuterClass->LinkChild(%s);\r\n"), *GetSingletonName(Function));
 	}
 
