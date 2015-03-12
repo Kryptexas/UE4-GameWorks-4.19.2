@@ -1191,7 +1191,7 @@ namespace UnrealBuildTool
                                         (CheckTarget.TargetType == TargetRules.TargetType.Server) ||
                                         (CheckTarget.TargetType == TargetRules.TargetType.Client))
                                     {
-                                        CheckTarget.AppName = CheckTarget.GameName;
+                                        CheckTarget.AppName = CheckTarget.TargetName;
                                     }
                                     DeployHandler.PrepTargetForDeployment(CheckTarget);
                                 }
@@ -1647,7 +1647,7 @@ namespace UnrealBuildTool
                         // Send out telemetry for this target
                         Telemetry.SendEvent("TargetBuildStats.2",
                             "AppName", Target.AppName,
-                            "GameName", Target.GameName,
+                            "GameName", Target.TargetName,
                             "Platform", Target.Platform.ToString(),
                             "Configuration", Target.Configuration.ToString(),
                             "CleanTarget", UEBuildConfiguration.bCleanProject.ToString(),

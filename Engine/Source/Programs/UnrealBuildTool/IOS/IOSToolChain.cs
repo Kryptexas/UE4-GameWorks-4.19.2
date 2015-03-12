@@ -989,7 +989,7 @@ namespace UnrealBuildTool
 		{
 			base.PostBuildSync(Target);
 
-			string AppName = Target.TargetType == TargetRules.TargetType.Game ? Target.GameName : Target.AppName;
+			string AppName = Target.TargetType == TargetRules.TargetType.Game ? Target.TargetName : Target.AppName;
 
 			if (BuildHostPlatform.Current.Platform == UnrealTargetPlatform.Mac)
 			{
@@ -1170,7 +1170,7 @@ namespace UnrealBuildTool
 
 						// copy the executable
 						string RemoteShadowDirectoryMac = ConvertPath(Path.GetDirectoryName(Target.OutputPath));
-						string FinalRemoteExecutablePath = String.Format("{0}/Payload/{1}.app/{1}", RemoteShadowDirectoryMac, Target.GameName);
+						string FinalRemoteExecutablePath = String.Format("{0}/Payload/{1}.app/{1}", RemoteShadowDirectoryMac, Target.TargetName);
 						RPCUtilHelper.Command("/", String.Format("cp -f {0} {1}", RemoteExecutablePath, FinalRemoteExecutablePath), "", null);
 					}
 					else if (!Utils.IsRunningOnMono && BuildHostPlatform.Current.Platform != UnrealTargetPlatform.Mac)

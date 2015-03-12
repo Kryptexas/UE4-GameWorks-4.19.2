@@ -1748,26 +1748,25 @@ namespace UnrealBuildTool
 		/// <param name="TargetName">Name of the target</param>
 		/// <param name="Target">Information about the target associated with this target</param>
 		/// <returns>The build target object for the specified build rules source file</returns>
-		public static UEBuildTarget CreateTarget(string TargetName, TargetInfo Target,
-			List<string> InAdditionalDefinitions, string InRemoteRoot, List<OnlyModule> InOnlyModules, bool bInEditorRecompile)
+		public static UEBuildTarget CreateTarget(TargetDescriptor Desc)
 		{
 			var CreateTargetStartTime = DateTime.UtcNow;
 
 			string TargetFileName;
-			TargetRules RulesObject = CreateTargetRules(TargetName, Target, bInEditorRecompile, out TargetFileName);
-			if (bInEditorRecompile)
+			TargetRules RulesObject = CreateTargetRules(Desc.TargetName, new TargetInfo(Desc.Platform, Desc.Configuration), Desc.bIsEditorRecompile, out TargetFileName);
+			if (Desc.bIsEditorRecompile)
 			{
 				// Now that we found the actual Editor target, make sure we're no longer using the old TargetName (which is the Game target)
 				var TargetSuffixIndex = RulesObject.TargetName.LastIndexOf("Target");
-				TargetName = (TargetSuffixIndex > 0) ? RulesObject.TargetName.Substring(0, TargetSuffixIndex) : RulesObject.TargetName;
+				Desc.TargetName = (TargetSuffixIndex > 0) ? RulesObject.TargetName.Substring(0, TargetSuffixIndex) : RulesObject.TargetName;
 			}
-			if ((ProjectFileGenerator.bGenerateProjectFiles == false) && (RulesObject.SupportsPlatform(Target.Platform) == false))
+			if ((ProjectFileGenerator.bGenerateProjectFiles == false) && (RulesObject.SupportsPlatform(Desc.Platform) == false))
 			{
 				if (UEBuildConfiguration.bCleanProject)
 				{
 					return null;
 				}
-				throw new BuildException("{0} does not support the {1} platform.", TargetName, Target.Platform.ToString());
+				throw new BuildException("{0} does not support the {1} platform.", Desc.TargetName, Desc.Platform.ToString());
 			}
 
 			// Generate a build target from this rules module
@@ -1775,82 +1774,31 @@ namespace UnrealBuildTool
 			switch (RulesObject.Type)
 			{
 				case TargetRules.TargetType.Game:
-					{
-						BuildTarget = new UEBuildGame(
-							InGameName:TargetName, 
-							InPlatform:Target.Platform, 
-							InConfiguration:Target.Configuration,
-							InRulesObject: RulesObject,
-							InAdditionalDefinitions: InAdditionalDefinitions, 
-							InRemoteRoot:InRemoteRoot, 
-							InOnlyModules:InOnlyModules,
-							bInEditorRecompile: bInEditorRecompile);
-					}
+					BuildTarget = new UEBuildGame(Desc, RulesObject);
 					break;
 				case TargetRules.TargetType.Editor:
-					{
-						BuildTarget = new UEBuildEditor(
-							InGameName: TargetName,
-							InPlatform: Target.Platform,
-							InConfiguration: Target.Configuration,
-							InRulesObject: RulesObject,
-							InAdditionalDefinitions: InAdditionalDefinitions,
-							InRemoteRoot: InRemoteRoot,
-							InOnlyModules: InOnlyModules,
-							bInEditorRecompile: bInEditorRecompile);
-					}
+					BuildTarget = new UEBuildEditor(Desc, RulesObject);
 					break;
                 case TargetRules.TargetType.Client:
-                    {
-                        BuildTarget = new UEBuildClient(
-                            InGameName: TargetName,
-                            InPlatform: Target.Platform,
-                            InConfiguration: Target.Configuration,
-                            InRulesObject: RulesObject,
-                            InAdditionalDefinitions: InAdditionalDefinitions,
-                            InRemoteRoot: InRemoteRoot,
-                            InOnlyModules: InOnlyModules,
-							bInEditorRecompile: bInEditorRecompile);
-                    }
+                    BuildTarget = new UEBuildClient(Desc, RulesObject);
                     break;
 				case TargetRules.TargetType.Server:
-					{
-						BuildTarget = new UEBuildServer(
-							InGameName: TargetName,
-							InPlatform: Target.Platform,
-							InConfiguration: Target.Configuration,
-							InRulesObject: RulesObject,
-							InAdditionalDefinitions: InAdditionalDefinitions,
-							InRemoteRoot: InRemoteRoot,
-							InOnlyModules: InOnlyModules,
-							bInEditorRecompile: bInEditorRecompile);
-					}
+					BuildTarget = new UEBuildServer(Desc, RulesObject);
 					break;
 				case TargetRules.TargetType.Program:
-					{
-						BuildTarget = new UEBuildTarget(
-							InAppName:TargetName,
-							InGameName:"", 
-							InPlatform:Target.Platform, 
-							InConfiguration:Target.Configuration,
-							InRulesObject:RulesObject, 
-							InAdditionalDefinitions:InAdditionalDefinitions, 
-							InRemoteRoot:InRemoteRoot, 
-							InOnlyModules:InOnlyModules,
-							bInEditorRecompile:bInEditorRecompile);
-					}
+					BuildTarget = new UEBuildTarget(Desc.TargetName, Desc, RulesObject);
 					break;
 			}
 
 			if( BuildConfiguration.bPrintPerformanceInfo )
 			{ 
 				var CreateTargetTime = (DateTime.UtcNow - CreateTargetStartTime).TotalSeconds;
-				Log.TraceInformation( "CreateTarget for " + TargetName + " took " + CreateTargetTime + "s" );
+				Log.TraceInformation( "CreateTarget for " + Desc.TargetName + " took " + CreateTargetTime + "s" );
 			}
 
 			if (BuildTarget == null)
 			{
-				throw new BuildException("Failed to create build target for '{0}'.", TargetName);
+				throw new BuildException("Failed to create build target for '{0}'.", Desc.TargetName);
 			}
 
 			return BuildTarget;

@@ -182,7 +182,7 @@ namespace UnrealBuildTool
 
 		public string GetTargetName()
 		{
-			return !String.IsNullOrEmpty(GameName) ? GameName : AppName;
+			return TargetName;
 		}
 
 		public static UnrealTargetPlatform CPPTargetPlatformToUnrealTargetPlatform(CPPTargetPlatform InCPPPlatform)
@@ -452,20 +452,12 @@ namespace UnrealBuildTool
 
 		public static UEBuildTarget CreateTarget( TargetDescriptor Desc )
 		{
-			string TargetName = Desc.TargetName;
-			List<string> AdditionalDefinitions = Desc.AdditionalDefinitions;
-			UnrealTargetPlatform Platform = Desc.Platform;
-			UnrealTargetConfiguration Configuration = Desc.Configuration;
-			string RemoteRoot = Desc.RemoteRoot;
-			List<OnlyModule> OnlyModules = Desc.OnlyModules;
-			bool bIsEditorRecompile = Desc.bIsEditorRecompile;
-
 			UEBuildTarget BuildTarget = null;
 			if( !ProjectFileGenerator.bGenerateProjectFiles )
 			{
 				// Configure the rules compiler
-				string PossibleAssemblyName = TargetName;
-				if (bIsEditorRecompile == true)
+				string PossibleAssemblyName = Desc.TargetName;
+				if (Desc.bIsEditorRecompile == true)
 				{
 					PossibleAssemblyName += "_EditorRecompile";
 				}
@@ -476,20 +468,14 @@ namespace UnrealBuildTool
 			}
 
 			// Try getting it from the RulesCompiler
-			UEBuildTarget Target = RulesCompiler.CreateTarget(
-				TargetName:TargetName, 
-				Target:new TargetInfo(Platform, Configuration),
-				InAdditionalDefinitions:AdditionalDefinitions, 
-				InRemoteRoot:RemoteRoot, 
-				InOnlyModules:OnlyModules, 
-				bInEditorRecompile:bIsEditorRecompile);
+			UEBuildTarget Target = RulesCompiler.CreateTarget(Desc);
 			if (Target == null)
 			{
 				if (UEBuildConfiguration.bCleanProject)
 				{
 					return null;
 				}
-				throw new BuildException( "Couldn't find target name {0}.", TargetName );
+				throw new BuildException( "Couldn't find target name {0}.", Desc.TargetName );
 			}
 			else
 			{
@@ -602,26 +588,28 @@ namespace UnrealBuildTool
 		}
 
 		/// <summary>
-		/// 
+		/// Finds the base name for all binaries produced for the given target
 		/// </summary>
-		/// <param name="InGameName"></param>
-		/// <param name="InRulesObject"></param>
-		/// <param name="InPlatform"></param>
-		/// <param name="InConfiguration"></param>
-		/// <returns></returns>
-		public static string GetBinaryBaseName(string InGameName, TargetRules InRulesObject, UnrealTargetPlatform InPlatform, UnrealTargetConfiguration InConfiguration, string InNameAppend)
+		/// <param name="InDesc">Target descriptor</param>
+		/// <param name="InRulesObject">Target rules object created by RulesCompiler</param>
+		/// <param name="InNameAppend">Suffix to append to the name</param>
+		/// <returns>Base name for the application</returns>
+		public static string GetDefaultAppName(TargetDescriptor InDesc, TargetRules InRulesObject, string InNameAppend)
 		{
 			//@todo. Allow failure to get build platform here?
 			bool bPlatformRequiresMonolithic = false;
-			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(InPlatform, true);
+			var BuildPlatform = UEBuildPlatform.GetBuildPlatform(InDesc.Platform, true);
 			if (BuildPlatform != null)
 			{
-				bPlatformRequiresMonolithic = BuildPlatform.ShouldCompileMonolithicBinary(InPlatform);
+				bPlatformRequiresMonolithic = BuildPlatform.ShouldCompileMonolithicBinary(InDesc.Platform);
 			}
 
-			if (InRulesObject.ShouldCompileMonolithic(InPlatform, InConfiguration) || bPlatformRequiresMonolithic)
+			// If we're building a monolithic binary, then the game and engine code are linked together into one
+			// program executable, so we want the application name to be the game name.  In the case of a modular
+			// binary, we use 'UnrealEngine' for our application name
+			if (InRulesObject.ShouldCompileMonolithic(InDesc.Platform, InDesc.Configuration) || bPlatformRequiresMonolithic)
 			{
-				return InGameName;
+				return InDesc.TargetName;
 			}
 			else
 			{
@@ -643,11 +631,11 @@ namespace UnrealBuildTool
 		}
 		private readonly TargetRules.TargetType? TargetTypeOrNull;
 
-		/** The name of the application the target is part of. */
+		/** The name of the application the target is part of. For non-monolithic targets, this is typically the name of the base application, eg. UE4Editor for any game editor. */
 		public string AppName;
 
-		/** The name of the game the target is part of - can be empty */
-		public string GameName;
+		/** The name of the target */
+		public string TargetName;
 
 		/** Platform as defined by the VCProject and passed via the command line. Not the same as internal config names. */
 		public UnrealTargetPlatform Platform;
@@ -738,30 +726,21 @@ namespace UnrealBuildTool
 		 * @param InAdditionalDefinitions - Additional definitions provided on the UBT command-line for the target.
 		 * @param InRemoteRoot - The remote path that the build output is synced to.
 		 */
-		public UEBuildTarget(
-			string InAppName,
-			string InGameName,
-			UnrealTargetPlatform InPlatform,
-			UnrealTargetConfiguration InConfiguration,
-			TargetRules InRulesObject,
-			List<string> InAdditionalDefinitions,
-			string InRemoteRoot,
-			List<OnlyModule> InOnlyModules,
-			bool bInEditorRecompile)
+		public UEBuildTarget(string InAppName, TargetDescriptor InDesc, TargetRules InRulesObject)
 		{
 			AppName = InAppName;
-			GameName = InGameName;
-			Platform = InPlatform;
-			Configuration = InConfiguration;
+			TargetName = InDesc.TargetName;
+			Platform = InDesc.Platform;
+			Configuration = InDesc.Configuration;
 			Rules = InRulesObject;
-			bEditorRecompile = bInEditorRecompile;
+			bEditorRecompile = InDesc.bIsEditorRecompile;
 
 
 			{
-				bCompileMonolithic = (Rules != null) ? Rules.ShouldCompileMonolithic(InPlatform, InConfiguration) : false;
+				bCompileMonolithic = (Rules != null) ? Rules.ShouldCompileMonolithic(InDesc.Platform, InDesc.Configuration) : false;
 
 				// Platforms may *require* monolithic compilation...
-				bCompileMonolithic |= UEBuildPlatform.PlatformRequiresMonolithicBuilds(InPlatform, InConfiguration);
+				bCompileMonolithic |= UEBuildPlatform.PlatformRequiresMonolithicBuilds(InDesc.Platform, InDesc.Configuration);
 
 				// Force monolithic or modular mode if we were asked to
 				if( UnrealBuildTool.CommandLineContains("-Monolithic") ||
@@ -803,9 +782,9 @@ namespace UnrealBuildTool
 				EngineIntermediateDirectory = Path.GetFullPath(Path.Combine(BuildConfiguration.RelativeEnginePath, BuildConfiguration.PlatformIntermediateFolder, AppName, Configuration.ToString()));
 			}
 
-			RemoteRoot = InRemoteRoot;
+			RemoteRoot = InDesc.RemoteRoot;
 
-			OnlyModules = InOnlyModules;
+			OnlyModules = InDesc.OnlyModules;
 
 			TargetTypeOrNull = (Rules != null) ? Rules.Type : (TargetRules.TargetType?)null;
 
@@ -827,7 +806,7 @@ namespace UnrealBuildTool
 					{
 						for (int Index = 0; Index < OutputPaths.Length; Index++)
 						{
-							OutputPaths[Index] = OutputPaths[Index].Replace(Path.Combine("Engine", "Binaries"), Path.Combine(InGameName, "Binaries"));
+							OutputPaths[Index] = OutputPaths[Index].Replace(Path.Combine("Engine", "Binaries"), Path.Combine(InDesc.TargetName, "Binaries"));
 						}
 					}
 					else
@@ -836,7 +815,7 @@ namespace UnrealBuildTool
 						string UProjectPath = UnrealBuildTool.GetUProjectPath();
 						if (Path.IsPathRooted(UProjectPath) == false)
 						{
-							string FilePath = UProjectInfo.GetProjectForTarget(InGameName);
+							string FilePath = UProjectInfo.GetProjectForTarget(InDesc.TargetName);
 							string FullPath = Path.GetFullPath(FilePath);
 							UProjectPath = Path.GetDirectoryName(FullPath);
 						}
@@ -851,7 +830,7 @@ namespace UnrealBuildTool
 
 			// handle some special case defines (so build system can pass -DEFINE as normal instead of needing
 			// to know about special parameters)
-			foreach (string Define in InAdditionalDefinitions)
+			foreach (string Define in InDesc.AdditionalDefinitions)
 			{
 				switch (Define)
 				{
@@ -875,7 +854,7 @@ namespace UnrealBuildTool
 			}
 
 			// Add the definitions specified on the command-line.
-			GlobalCompileEnvironment.Config.Definitions.AddRange(InAdditionalDefinitions);
+			GlobalCompileEnvironment.Config.Definitions.AddRange(InDesc.AdditionalDefinitions);
 		}
 
 		/// <summary>
@@ -973,10 +952,9 @@ namespace UnrealBuildTool
 		protected void CleanTarget(List<UEBuildBinary> Binaries, CPPTargetPlatform Platform, BuildManifest Manifest)
 		{
 			{
-				var LocalTargetName = (TargetType == TargetRules.TargetType.Program) ? AppName : GameName;
-				Log.TraceVerbose("Cleaning target {0} - AppName {1}", LocalTargetName, AppName);
+				Log.TraceVerbose("Cleaning target {0} - AppName {1}", TargetName, AppName);
 
-				var TargetFilename = RulesCompiler.GetTargetFilename(GameName);
+				var TargetFilename = RulesCompiler.GetTargetFilename(TargetName);
 				Log.TraceVerbose("\tTargetFilename {0}", TargetFilename);
 
 				// Collect all files to delete.
@@ -1057,7 +1035,7 @@ namespace UnrealBuildTool
 
 				//
 				{
-					var AppEnginePath = Path.Combine(PlatformEngineBuildDataFolder, LocalTargetName, Configuration.ToString());
+					var AppEnginePath = Path.Combine(PlatformEngineBuildDataFolder, TargetName, Configuration.ToString());
 					if (Directory.Exists(AppEnginePath))
 					{
 						CleanDirectory(AppEnginePath);
@@ -1444,7 +1422,7 @@ namespace UnrealBuildTool
 			// On Mac and Linux we have actions that should be executed after all the binaries are created
 			if (GlobalLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Mac || GlobalLinkEnvironment.Config.Target.Platform == CPPTargetPlatform.Linux)
 			{
-				TargetToolChain.SetupBundleDependencies(AppBinaries, GameName);
+				TargetToolChain.SetupBundleDependencies(AppBinaries, TargetName);
 			}
 
 			// Generate the external file list 
@@ -1639,7 +1617,7 @@ namespace UnrealBuildTool
 			UEBuildPlatform.GetBuildPlatform(Platform).SetupBinaries(this);
 
 			// Describe what's being built.
-			Log.TraceVerbose("Building {0} - {1} - {2} - {3}", AppName, GameName, Platform, Configuration);
+			Log.TraceVerbose("Building {0} - {1} - {2} - {3}", AppName, TargetName, Platform, Configuration);
 
 			// Put the non-executable output files (PDB, import library, etc) in the intermediate directory.
 			GlobalLinkEnvironment.Config.IntermediateDirectory = Path.GetFullPath(GlobalCompileEnvironment.Config.OutputDirectory);
