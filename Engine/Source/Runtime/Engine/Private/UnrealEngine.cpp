@@ -1670,11 +1670,22 @@ bool UEngine::InitializeAudioDeviceManager()
 					// Create the audio device manager and register the platform module to the device manager
 					AudioDeviceManager = new FAudioDeviceManager();
 					AudioDeviceManager->RegisterAudioDeviceModule(AudioDeviceModule);
-					FAudioDevice* NewAudioDevice = AudioDeviceManager->CreateAudioDevice(MainAudioDeviceHandle);
 
-					// Set the new default device as the active device
-					AudioDeviceManager->SetActiveDevice(MainAudioDeviceHandle);
-					return NewAudioDevice != nullptr;
+					// Create a new audio device.
+					FAudioDevice* NewAudioDevice = AudioDeviceManager->CreateAudioDevice(MainAudioDeviceHandle);
+					if (NewAudioDevice)
+					{
+						// Initialize the audio device
+						if (NewAudioDevice->Init())
+						{
+							AudioDeviceManager->SetActiveDevice(MainAudioDeviceHandle);
+						}
+						else
+						{
+							// Shut it down if we failed to initialize
+							AudioDeviceManager->ShutdownAudioDevice(MainAudioDeviceHandle);
+						}
+					}
 				}
 			}
 		}

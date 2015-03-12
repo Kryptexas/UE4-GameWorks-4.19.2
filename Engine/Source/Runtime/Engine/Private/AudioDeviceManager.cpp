@@ -65,13 +65,6 @@ FAudioDevice* FAudioDeviceManager::CreateAudioDevice(uint32& HandleOut)
 		return nullptr;
 	}
 
-	if (!NewAudioDevice->Init())
-	{
-		delete NewAudioDevice;
-		HandleOut = AUDIO_DEVICE_HANDLE_INVALID;
-		return nullptr;
-	}
-
 	// Now generation a new audio device handle for the device and store the
 	// ptr to the new device in the array of audio devices.
 
