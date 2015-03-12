@@ -179,11 +179,18 @@ void FMouseDeltaTracker::DetermineCurrentAxis(FEditorViewportClient* InViewportC
  */
 void FMouseDeltaTracker::StartTracking(FEditorViewportClient* InViewportClient, const int32 InX, const int32 InY, const FInputEventState& InInputState, bool bNudge, bool bResetDragToolState)
 {
-	// If the builder brush was selected and is still selected we don't want to deselect it due to the possibility that you can get two mouse down
-	// events on the same viewport before you get a mouse up event.
-	bool bNoActorSelected = !GEditor->GetSelectedActors()->GetTop<AActor>();
-	ABrush* Brush = Cast< ABrush >( GEditor->GetSelectedActors()->GetTop<AActor>() );
+	// Initialize widget axis (in case it hasn't been set by the hovered hit proxy)
 
+	if (InViewportClient->Widget)
+	{
+		check(InViewportClient->Viewport);
+		HHitProxy* HitProxy = InViewportClient->Viewport->GetHitProxy(InX, InY);
+		if (HitProxy && HitProxy->IsA(HWidgetAxis::StaticGetType()))
+		{
+			EAxisList::Type ProxyAxis = ((HWidgetAxis*)HitProxy)->Axis;
+			InViewportClient->SetCurrentWidgetAxis(ProxyAxis);
+		}
+	}
 
 	DetermineCurrentAxis( InViewportClient );
 
@@ -207,12 +214,12 @@ void FMouseDeltaTracker::StartTracking(FEditorViewportClient* InViewportClient, 
 
 	if (InViewportClient->Widget)
 	{
+		InViewportClient->Widget->SetDragStartPosition(FVector2D(InX, InY));
 		InViewportClient->Widget->SetDragging(bIsDragging);
 		if (InViewportClient->GetWidgetMode() == FWidget::WM_Rotate)
 		{
 			InViewportClient->Invalidate();
 		}
-
 	}
 
 	// Clear bool that tracks whether AddDelta has been called
@@ -570,30 +577,30 @@ const FVector FMouseDeltaTracker::GetScreenDelta() const
 /**
  * Converts the delta movement to drag/rotation/scale based on the viewport type or widget axis
  */
-void FMouseDeltaTracker::ConvertMovementDeltaToDragRot(FEditorViewportClient* InViewportClient, const FVector& InDragDelta, FVector& InDrag, FRotator& InRotation, FVector& InScale) const
+void FMouseDeltaTracker::ConvertMovementDeltaToDragRot(FEditorViewportClient* InViewportClient, FVector& InOutDragDelta, FVector& OutDrag, FRotator& OutRotation, FVector& OutScale) const
 {
-	InDrag = FVector::ZeroVector;
-	InRotation = FRotator::ZeroRotator;
-	InScale = FVector::ZeroVector;
+	OutDrag = FVector::ZeroVector;
+	OutRotation = FRotator::ZeroRotator;
+	OutScale = FVector::ZeroVector;
 
 	if( InViewportClient->GetCurrentWidgetAxis() != EAxisList::None )
 	{
-		InViewportClient->Widget->ConvertMouseMovementToAxisMovement( InViewportClient, InViewportClient->GetWidgetLocation(), InDragDelta, InDrag, InRotation, InScale );
+		InViewportClient->Widget->ConvertMouseMovementToAxisMovement( InViewportClient, InViewportClient->GetWidgetLocation(), InOutDragDelta, OutDrag, OutRotation, OutScale );
 	}
 	else
 	{
-		InViewportClient->ConvertMovementToDragRot( InDragDelta, InDrag, InRotation );
+		InViewportClient->ConvertMovementToDragRot( InOutDragDelta, OutDrag, OutRotation );
 	}
 }
 
 /**
  * Absolute Translation conversion from mouse position on the screen to widget axis movement/rotation.
  */
-void FMouseDeltaTracker::AbsoluteTranslationConvertMouseToDragRot(FSceneView* InView, FEditorViewportClient* InViewportClient,FVector& InDrag, FRotator& InRotation, FVector& InScale ) const
+void FMouseDeltaTracker::AbsoluteTranslationConvertMouseToDragRot(FSceneView* InView, FEditorViewportClient* InViewportClient,FVector& OutDrag, FRotator& OutRotation, FVector& OutScale ) const
 {
-	InDrag = FVector::ZeroVector;
-	InRotation = FRotator::ZeroRotator;
-	InScale = FVector::ZeroVector;
+	OutDrag = FVector::ZeroVector;
+	OutRotation = FRotator::ZeroRotator;
+	OutScale = FVector::ZeroVector;
 
 	check ( InViewportClient->GetCurrentWidgetAxis() != EAxisList::None );
 
@@ -601,7 +608,7 @@ void FMouseDeltaTracker::AbsoluteTranslationConvertMouseToDragRot(FSceneView* In
 	check(InViewportClient->Viewport);
 	FVector2D MousePosition(InViewportClient->Viewport->GetMouseX(), InViewportClient->Viewport->GetMouseY());
 
-	InViewportClient->Widget->AbsoluteTranslationConvertMouseMovementToAxisMovement(InView, InViewportClient, InViewportClient->GetWidgetLocation(), MousePosition, InDrag, InRotation, InScale );
+	InViewportClient->Widget->AbsoluteTranslationConvertMouseMovementToAxisMovement(InView, InViewportClient, InViewportClient->GetWidgetLocation(), MousePosition, OutDrag, OutRotation, OutScale );
 }
 
 /**

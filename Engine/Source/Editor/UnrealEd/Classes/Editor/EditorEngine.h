@@ -372,9 +372,6 @@ public:
 	uint32 GodMode:1;
 
 	UPROPERTY(EditAnywhere, config, Category=Advanced)
-	uint32 InvertwidgetZAxis:1;
-
-	UPROPERTY(EditAnywhere, config, Category=Advanced)
 	FString GameCommandLine;
 
 	/** If true, show translucent marker polygons on the builder brush and volumes. */

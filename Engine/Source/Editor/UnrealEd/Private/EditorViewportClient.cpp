@@ -1614,19 +1614,9 @@ void FEditorViewportClient::UpdateMouseDelta()
 		return;
 	}
 
-	FVector DragDelta = FVector::ZeroVector;
+	FVector DragDelta = MouseDeltaTracker->GetDelta();
 
-	bool bNeedMovementSnapping = true;
-	if( Widget->GetCurrentAxis() != EAxisList::None && bNeedMovementSnapping )
-	{
-		DragDelta = MouseDeltaTracker->GetDeltaSnapped();
-	}
-	else
-	{
-		DragDelta = MouseDeltaTracker->GetDelta();
-	}
-
-	GEditor->MouseMovement += FVector( FMath::Abs(DragDelta.X), FMath::Abs(DragDelta.Y), FMath::Abs(DragDelta.Z) );
+	GEditor->MouseMovement += DragDelta.GetAbs();
 
 	if( Viewport )
 	{
@@ -1636,101 +1626,89 @@ void FEditorViewportClient::UpdateMouseDelta()
 			const bool MiddleMouseButtonDown = Viewport->KeyState(EKeys::MiddleMouseButton);
 			const bool RightMouseButtonDown = Viewport->KeyState(EKeys::RightMouseButton);
 			const bool bIsUsingTrackpad = FSlateApplication::Get().IsUsingTrackpad();
-
 			const bool bIsNonOrbitMiddleMouse = MiddleMouseButtonDown && !IsAltPressed();
 
-			for( int32 x = 0 ; x < 3 ; ++x )
+			// Convert the movement delta into drag/rotation deltas
+			FVector Drag;
+			FRotator Rot;
+			FVector Scale;
+			EAxisList::Type CurrentAxis = Widget->GetCurrentAxis();
+			if ( IsOrtho() && ( LeftMouseButtonDown || bIsUsingTrackpad ) && RightMouseButtonDown )
 			{
-				FVector WkDelta( 0.f, 0.f, 0.f );
-				WkDelta[x] = DragDelta[x];
-				if( !WkDelta.IsZero() )
+				bWidgetAxisControlledByDrag = false;
+				Widget->SetCurrentAxis( EAxisList::None );
+				MouseDeltaTracker->ConvertMovementDeltaToDragRot(this, DragDelta, Drag, Rot, Scale);
+				Widget->SetCurrentAxis( CurrentAxis );
+				CurrentAxis = EAxisList::None;
+			}
+			else
+			{
+				//if Absolute Translation, and not just moving the camera around
+				if (IsUsingAbsoluteTranslation())
 				{
-					// Convert the movement delta into drag/rotation deltas
-					FVector Drag;
-					FRotator Rot;
-					FVector Scale;
-					EAxisList::Type CurrentAxis = Widget->GetCurrentAxis();
-					if ( IsOrtho() && ( LeftMouseButtonDown || bIsUsingTrackpad ) && RightMouseButtonDown )
-					{
-						bWidgetAxisControlledByDrag = false;
-						Widget->SetCurrentAxis( EAxisList::None );
-						MouseDeltaTracker->ConvertMovementDeltaToDragRot( this, WkDelta, Drag, Rot, Scale );
-						Widget->SetCurrentAxis( CurrentAxis );
-						CurrentAxis = EAxisList::None;
-					}
-					else
-					{
-						//if Absolute Translation, and not just moving the camera around
-						if (IsUsingAbsoluteTranslation())
-						{
-							// Compute a view.
-							FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
-								Viewport,
-								GetScene(),
-								EngineShowFlags)
-								.SetRealtimeUpdate( IsRealtime() ) );
-							FSceneView* View = CalcSceneView( &ViewFamily );
+					// Compute a view.
+					FSceneViewFamilyContext ViewFamily(FSceneViewFamily::ConstructionValues(
+						Viewport,
+						GetScene(),
+						EngineShowFlags)
+						.SetRealtimeUpdate( IsRealtime() ) );
+					FSceneView* View = CalcSceneView( &ViewFamily );
 
-							MouseDeltaTracker->AbsoluteTranslationConvertMouseToDragRot(View, this, Drag, Rot, Scale);
-							//only need to go through this loop once
-							x = 3;
-						} 
-						else
-						{
-							MouseDeltaTracker->ConvertMovementDeltaToDragRot( this, WkDelta, Drag, Rot, Scale );
-						}
-					}
+					MouseDeltaTracker->AbsoluteTranslationConvertMouseToDragRot(View, this, Drag, Rot, Scale);
+				} 
+				else
+				{
+					MouseDeltaTracker->ConvertMovementDeltaToDragRot(this, DragDelta, Drag, Rot, Scale);
+				}
+			}
 
-					const bool bInputHandledByGizmos = InputWidgetDelta( Viewport, CurrentAxis, Drag, Rot, Scale );
+			const bool bInputHandledByGizmos = InputWidgetDelta( Viewport, CurrentAxis, Drag, Rot, Scale );
 					
-					if( !Rot.IsZero() )
-					{
-						Widget->UpdateDeltaRotation();
-					}
+			if( !Rot.IsZero() )
+			{
+				Widget->UpdateDeltaRotation();
+			}
 
-					if( !bInputHandledByGizmos )
+			if( !bInputHandledByGizmos )
+			{
+				if ( ShouldOrbitCamera() )
+				{
+					FVector TempDrag;
+					FRotator TempRot;
+					InputAxisForOrbit( Viewport, DragDelta, TempDrag, TempRot );
+				}
+				else
+				{
+					// Disable orbit camera
+					const bool bEnable=false;
+					ToggleOrbitCamera(bEnable);
+
+					if ( ShouldPanOrDollyCamera() )
 					{
-						if ( ShouldOrbitCamera() )
+						if( !IsOrtho())
 						{
-							FVector TempDrag;
-							FRotator TempRot;
-							InputAxisForOrbit( Viewport, DragDelta, TempDrag, TempRot );
+							const float CameraSpeed = GetCameraSpeed();
+							Drag *= CameraSpeed;
+						}
+						MoveViewportCamera( Drag, Rot );
+
+						if ( IsPerspective() && LeftMouseButtonDown && !MiddleMouseButtonDown && !RightMouseButtonDown )
+						{
+							FEditorViewportStats::Using(FEditorViewportStats::CAT_PERSPECTIVE_MOUSE_DOLLY);
 						}
 						else
 						{
-							// Disable orbit camera
-							const bool bEnable=false;
-							ToggleOrbitCamera(bEnable);
-
-							if ( ShouldPanOrDollyCamera() )
+							if ( !Drag.IsZero() )
 							{
-								if( !IsOrtho())
-								{
-									const float CameraSpeed = GetCameraSpeed();
-									Drag *= CameraSpeed;
-								}
-								MoveViewportCamera( Drag, Rot );
-
-								if ( IsPerspective() && LeftMouseButtonDown && !MiddleMouseButtonDown && !RightMouseButtonDown )
-								{
-									FEditorViewportStats::Using(FEditorViewportStats::CAT_PERSPECTIVE_MOUSE_DOLLY);
-								}
-								else
-								{
-									if ( !Drag.IsZero() )
-									{
-										FEditorViewportStats::Using(IsPerspective() ? FEditorViewportStats::CAT_PERSPECTIVE_MOUSE_PAN : FEditorViewportStats::CAT_ORTHOGRAPHIC_MOUSE_PAN);
-									}
-								}
+								FEditorViewportStats::Using(IsPerspective() ? FEditorViewportStats::CAT_PERSPECTIVE_MOUSE_PAN : FEditorViewportStats::CAT_ORTHOGRAPHIC_MOUSE_PAN);
 							}
 						}
 					}
-			
-
-					// Clean up
-					MouseDeltaTracker->ReduceBy( WkDelta );
 				}
 			}
+
+			// Clean up
+			MouseDeltaTracker->ReduceBy( DragDelta );
 
 			Invalidate( false, false );
 		}
