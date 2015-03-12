@@ -690,7 +690,7 @@ namespace AutomationTool
                         bool bInternalToolOnly;
                         bool SeparateNode;
 						bool CrossCompile;
-                        bool Tool = ThisTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, false, out bInternalToolOnly, out SeparateNode, out CrossCompile);
+                        bool Tool = ThisTarget.Rules.GUBP_AlwaysBuildWithTools(HostPlatform, out bInternalToolOnly, out SeparateNode, out CrossCompile);
 
                         CommandUtils.Log("            TargetName                    : " + ThisTarget.TargetName);
                         CommandUtils.Log("              Build With Editor           : " + (ThisTarget.Rules.GUBP_AlwaysBuildWithBaseEditor() ? "YES" : "NO"));
