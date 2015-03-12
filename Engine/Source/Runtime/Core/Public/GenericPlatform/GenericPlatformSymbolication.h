@@ -1,13 +1,10 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-
-/*=============================================================================================
-	GenericPlatformSymbolication.h: Generic platform symbolication functions.
-==============================================================================================*/
-
 #pragma once
+
 #include "HAL/Platform.h"
 #include "Serialization/ArchiveBase.h"
+
 
 /**
  * File & line info for a debug symbol region
@@ -31,6 +28,7 @@ struct FGenericPlatformSymbolInfo
 	}
 };
 
+
 /**
  * Debug symbol information
  */
@@ -53,6 +51,7 @@ struct FGenericPlatformSymbolData
 	}
 };
 
+
 /**
  * Container for debug symbols corresponding to a single binary file
  */
@@ -74,6 +73,7 @@ struct FGenericPlatformSymbolDatabase
 		return Ar << Info.Signature << Info.Name << Info.Symbols << Info.StringTable;
 	}
 };
+
 
 struct FGenericPlatformSymbolDatabaseKeyFuncs
 {
@@ -104,7 +104,9 @@ struct FGenericPlatformSymbolDatabaseKeyFuncs
 	}
 };
 
+
 typedef TSet<FGenericPlatformSymbolDatabase, FGenericPlatformSymbolDatabaseKeyFuncs> FGenericPlatformSymbolDatabaseSet;
+
 
 struct CORE_API FGenericPlatformSymbolication
 {

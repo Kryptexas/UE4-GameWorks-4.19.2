@@ -1,20 +1,18 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-
-/*=============================================================================================
-	GenericPlatformStackWalk.h: Generic platform stack walking functions...do not do anything
-==============================================================================================*/
-
 #pragma once
+
 #include "HAL/Platform.h"
+
 
 class FString;
 struct FGenericCrashContext;
 
+
 /**
-* This is used to capture all of the module information needed to load pdb's.
-* @todo, the memory profiler should not be using this as platform agnostic
-*/
+ * This is used to capture all of the module information needed to load pdb's.
+ * @todo, the memory profiler should not be using this as platform agnostic
+ */
 struct FStackWalkModuleInfo
 {
 	uint64 BaseOfImage;
@@ -72,9 +70,10 @@ struct FProgramCounterSymbolInfo final
 
 struct FProgramCounterSymbolInfoEx;
 
+
 /**
  * Generic implementation for most platforms
- **/
+ */
 struct CORE_API FGenericPlatformStackWalk
 {
 	typedef FGenericPlatformStackWalk Base;

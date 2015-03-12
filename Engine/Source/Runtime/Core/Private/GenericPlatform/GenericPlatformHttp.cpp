@@ -1,11 +1,11 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-
 #include "CorePrivatePCH.h"
 #include "Runtime/Online/HTTP/Public/Interfaces/IHttpBase.h"
 #include "Runtime/Online/HTTP/Public/Interfaces/IHttpRequest.h"
 #include "Runtime/Online/HTTP/Public/Interfaces/IHttpResponse.h"
 #include "StringConv.h"
+
 
 /**
  * A generic http request
@@ -76,6 +76,7 @@ static bool IsAllowedChar(UTF8CHAR LookupChar)
 
 	return AllowedTable[LookupChar];
 }
+
 
 FString FGenericPlatformHttp::UrlEncode(const FString &UnencodedString)
 {

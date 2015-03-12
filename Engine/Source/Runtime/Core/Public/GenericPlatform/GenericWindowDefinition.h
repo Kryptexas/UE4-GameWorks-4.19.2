@@ -1,13 +1,16 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "Containers/UnrealString.h"
 #include "HAL/Platform.h"
 #include "GenericApplicationMessageHandler.h"
 
+
 #ifndef ALPHA_BLENDED_WINDOWS
 	#define ALPHA_BLENDED_WINDOWS IS_PROGRAM || WITH_EDITOR
 #endif
+
 
 /** Enumeration to specify different transparency options for SWindows */
 enum class EWindowTransparency
@@ -23,6 +26,7 @@ enum class EWindowTransparency
 	PerPixel,
 #endif
 };
+
 
 struct CORE_API FGenericWindowDefinition
 {

@@ -1,16 +1,13 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
-
-/*=============================================================================================
-	GenericPlatformTLS.h: Generic platform TLS (Thread local storage and thread ID) classes
-==============================================================================================*/
-
 #pragma once
+
 #include "HAL/Platform.h"
+
 
 /**
  * It should be possible to provide a generic implementation as long as a threadID is provided. We don't do that yet.
-**/
+ */
 struct FGenericPlatformTLS
 {
 #if 0 // provided for reference
@@ -57,4 +54,3 @@ struct FGenericPlatformTLS
 	}
 #endif
 };
-
