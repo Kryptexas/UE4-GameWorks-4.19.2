@@ -614,6 +614,9 @@ private:
 		return EnabledStats.Num();
 	}
 
+	/** Process the 'show volumes' console command */
+	void ToggleShowVolumes();
+
 	/** Process the 'show collision' console command */
 	void ToggleShowCollision();
 

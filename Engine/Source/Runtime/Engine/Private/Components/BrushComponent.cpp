@@ -343,7 +343,7 @@ public:
 			return Result;
 		}
 
-		const bool bInCollisionView = (View->Family->EngineShowFlags.CollisionVisibility || View->Family->EngineShowFlags.CollisionPawn);
+		const bool bInCollisionView = (View->Family->EngineShowFlags.Collision || View->Family->EngineShowFlags.CollisionVisibility || View->Family->EngineShowFlags.CollisionPawn);
 
 		if(IsShown(View))
 		{
@@ -409,7 +409,7 @@ public:
 		}
 
 		// Don't render on top in 'collision view' modes
-		if(!bInCollisionView)
+		if(!bInCollisionView && !View->bIsGameView)
 		{
 			Result.bEditorPrimitiveRelevance = true;
 		}
