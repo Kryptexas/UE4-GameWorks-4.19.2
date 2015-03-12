@@ -16,21 +16,17 @@
 
 // Allow Windows Platform types in the entire file.
 #include "AllowWindowsPlatformTypes.h"
-	#include "Ole2.h"
-	#include <shlobj.h>
-	#include <objbase.h>
-	#include <SetupApi.h>
-	#include <devguid.h>
-	#include <dwmapi.h>
+#include "Ole2.h"
+#include <shlobj.h>
+#include <objbase.h>
+#include <SetupApi.h>
+#include <devguid.h>
+#include <dwmapi.h>
+
 
 // This might not be defined by Windows when maintaining backwards-compatibility to pre-Vista builds
 #ifndef WM_MOUSEHWHEEL
 #define WM_MOUSEHWHEEL                  0x020E
-#endif
-
-// This might not be defined by Windows when maintaining backwards-compatibility to pre-Win8 builds
-#ifndef SM_CONVERTIBLESLATEMODE
-#define SM_CONVERTIBLESLATEMODE			0x2003
 #endif
 
 DEFINE_LOG_CATEGORY(LogWindowsDesktop);
@@ -38,6 +34,7 @@ DEFINE_LOG_CATEGORY(LogWindowsDesktop);
 const FIntPoint FWindowsApplication::MinimizedWindowPosition(-32000,-32000);
 
 FWindowsApplication* WindowApplication = NULL;
+
 
 FWindowsApplication* FWindowsApplication::CreateWindowsApplication( const HINSTANCE InstanceHandle, const HICON IconHandle )
 {
@@ -1497,9 +1494,10 @@ int32 FWindowsApplication::ProcessDeferredMessage( const FDeferredWindowsMessage
 			break;
 
 		case WM_SETTINGCHANGE:
-			MessageHandler->OnConvertibleDeviceModeChanged((GetSystemMetrics(SM_CONVERTIBLESLATEMODE) == 0)
-				? EConvertibleLaptopModes::Tablet
-				: EConvertibleLaptopModes::Laptop);
+			if ((lParam != 0) && (FCString::Strcmp((LPCTSTR)lParam, TEXT("ConvertibleSlateMode")) == 0))
+			{
+				MessageHandler->OnConvertibleLaptopModeChanged();
+			}
 			break;
 	
 		case WM_NCACTIVATE:
@@ -1993,5 +1991,6 @@ TSharedRef<FTaskbarList> FTaskbarList::Create()
 
 	return TaskbarList;
 }
+
 
 #include "HideWindowsPlatformTypes.h"

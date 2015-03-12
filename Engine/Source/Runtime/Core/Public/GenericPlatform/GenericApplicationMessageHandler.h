@@ -1,11 +1,14 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
 #include "HAL/Platform.h"
 #include "Templates/SharedPointer.h"
 #include "Misc/Optional.h"
 
+
 class FGenericWindow;
+
 
 namespace EMouseButtons
 {
@@ -20,6 +23,7 @@ namespace EMouseButtons
 		Invalid,
 	};
 }
+
 
 namespace EControllerButtons
 {
@@ -82,6 +86,7 @@ namespace EControllerButtons
 	};
 }
 
+
 namespace EWindowActivation
 {
 	enum Type
@@ -91,6 +96,7 @@ namespace EWindowActivation
 		Deactivate
 	};
 }
+
 
 namespace EWindowZone
 {
@@ -121,6 +127,7 @@ namespace EWindowZone
 	};
 }
 
+
 namespace EWindowAction
 {
 	enum Type
@@ -132,6 +139,7 @@ namespace EWindowAction
 	};
 }
 
+
 namespace EDropEffect
 {
 	enum Type
@@ -142,6 +150,7 @@ namespace EDropEffect
 		Link   = 3,
 	};
 }
+
 
 namespace EGestureEvent
 {
@@ -156,18 +165,6 @@ namespace EGestureEvent
 	};
 }
 
-
-/**
- * Enumerates the modes a convertible laptop can be in.
- */
-enum class EConvertibleLaptopModes
-{
-	/** Laptop arranged as a tablet. */
-	Tablet,
-
-	/** Laptop arranged as a laptop. */
-	Laptop
-};
 
 /** Defines the minimum and maximum dimensions that a window can take on. */
 struct FWindowSizeLimits
@@ -347,7 +344,7 @@ public:
 		return false;
 	}
 
-	virtual bool OnConvertibleDeviceModeChanged(const EConvertibleLaptopModes NewMode)
+	virtual bool OnConvertibleLaptopModeChanged()
 	{
 		return false;
 	}

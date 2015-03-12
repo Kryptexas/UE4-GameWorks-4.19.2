@@ -108,6 +108,22 @@ namespace EBuildTargets
 }
 
 
+/**
+ * Enumerates the modes a convertible laptop can be in.
+ */
+enum class EConvertibleLaptopMode
+{
+	/** Not a convertible laptop. */
+	NotSupported,
+
+	/** Laptop arranged as a laptop. */
+	Laptop,
+
+	/** Laptop arranged as a tablet. */
+	Tablet
+};
+
+
 namespace EErrorReportMode
 {
 	/** 
@@ -790,6 +806,13 @@ public:
 	 * @returns an opaque string representing the ID, or an empty string if the platform doesn't support one.
 	 */
 	static FString GetOperatingSystemId();
+
+	/**
+	 * Gets the current mode of convertible laptops, i.e. Laptop or Tablet.
+	 *
+	 * @return The laptop mode, or Unknown if not known, or NotSupported if not a convertible laptop.
+	 */
+	static EConvertibleLaptopMode GetConvertibleLaptopMode();
 
 	/** 
 	 * Get a string description of the mode the engine was running in.

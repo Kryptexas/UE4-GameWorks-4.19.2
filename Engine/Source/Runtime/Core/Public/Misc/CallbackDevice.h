@@ -199,6 +199,10 @@ public:
 	DECLARE_MULTICAST_DELEGATE(FApplicationLicenseChange);
 	static FApplicationLicenseChange ApplicationLicenseChange;
 
+	/** Sent when the platform changed its laptop mode (for convertible laptops).*/
+	DECLARE_MULTICAST_DELEGATE_OneParam(FPlatformChangedLaptopMode, EConvertibleLaptopMode);
+	static FPlatformChangedLaptopMode PlatformChangedLaptopMode;
+
 private:
 
 	// Callbacks for hotfixes

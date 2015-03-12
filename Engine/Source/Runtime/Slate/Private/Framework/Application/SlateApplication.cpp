@@ -5130,13 +5130,15 @@ void FSlateApplication::ProcessApplicationActivationEvent( bool InAppActivated )
 }
 
 
-bool FSlateApplication::OnConvertibleDeviceModeChanged(const EConvertibleLaptopModes NewMode)
+bool FSlateApplication::OnConvertibleLaptopModeChanged()
 {
+	EConvertibleLaptopMode NewMode = FPlatformMisc::GetConvertibleLaptopMode();
+
 	// Notify that we want the mobile experience when in tablet mode, otherwise use mouse and keyboard
 	if (!(FParse::Param(FCommandLine::Get(), TEXT("simmobile")) || FParse::Param(FCommandLine::Get(), TEXT("faketouches"))))
 	{
 		// Not sure what the correct long-term strategy is. Use bIsFakingTouch for now to get things going.
-		if (NewMode == EConvertibleLaptopModes::Tablet)
+		if (NewMode == EConvertibleLaptopMode::Tablet)
 		{
 			bIsFakingTouch = true;
 		}
@@ -5145,6 +5147,8 @@ bool FSlateApplication::OnConvertibleDeviceModeChanged(const EConvertibleLaptopM
 			bIsFakingTouch = false;
 		}
 	}
+
+	FCoreDelegates::PlatformChangedLaptopMode.Broadcast(NewMode);
 
 	return true;
 }

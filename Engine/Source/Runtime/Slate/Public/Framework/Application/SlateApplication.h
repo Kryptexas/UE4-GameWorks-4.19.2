@@ -1039,7 +1039,7 @@ public:
 	virtual void OnMovedWindow( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) override;
 	virtual bool OnWindowActivationChanged( const TSharedRef< FGenericWindow >& PlatformWindow, const EWindowActivation::Type ActivationType ) override;
 	virtual bool OnApplicationActivationChanged( const bool IsActive ) override;
-	virtual bool OnConvertibleDeviceModeChanged(const EConvertibleLaptopModes NewMode) override;
+	virtual bool OnConvertibleLaptopModeChanged() override;
 	virtual EWindowZone::Type GetWindowZoneForPoint( const TSharedRef< FGenericWindow >& PlatformWindow, const int32 X, const int32 Y ) override;
 	virtual void OnWindowClose( const TSharedRef< FGenericWindow >& PlatformWindow ) override;
 	virtual EDropEffect::Type OnDragEnterText( const TSharedRef< FGenericWindow >& Window, const FString& Text ) override;
@@ -1483,5 +1483,4 @@ private:
 	// e.g. On windows the origin (coordinates X=0, Y=0) is the upper left of the primary monitor,
 	// but there could be another monitor on any of the sides.
 	FSlateRect VirtualDesktopRect;
-
 };

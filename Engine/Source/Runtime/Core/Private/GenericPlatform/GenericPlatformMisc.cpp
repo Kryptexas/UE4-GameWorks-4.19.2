@@ -852,6 +852,11 @@ bool FGenericPlatformMisc::SetEpicAccountId( const FString& AccountId )
 	return FPlatformMisc::SetStoredValue( TEXT( "Epic Games" ), TEXT( "Unreal Engine/Identifiers" ), TEXT( "AccountId" ), AccountId );
 }
 
+EConvertibleLaptopMode FGenericPlatformMisc::GetConvertibleLaptopMode()
+{
+	return EConvertibleLaptopMode::NotSupported;
+}
+
 const TCHAR* FGenericPlatformMisc::GetEngineMode()
 {
 	return	

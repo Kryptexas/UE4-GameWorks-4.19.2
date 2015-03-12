@@ -9,6 +9,7 @@
 // Resource includes.
 #include "Runtime/Launch/Resources/Windows/Resource.h"
 #include "Runtime/Launch/Resources/Version.h"
+
 #include "AllowWindowsPlatformTypes.h"
 	#include <time.h>
 	#include <MMSystem.h>
@@ -19,6 +20,7 @@
 	#include <shellapi.h>
 	#include <Iphlpapi.h>
 #include "HideWindowsPlatformTypes.h"
+
 #include "MallocTBB.h"
 #include "ModuleManager.h"
 #include "MallocAnsi.h"
@@ -36,6 +38,13 @@
 #include <io.h>
 
 #include "AllowWindowsPlatformTypes.h"
+
+// This might not be defined by Windows when maintaining backwards-compatibility to pre-Win8 builds
+#ifndef SM_CONVERTIBLESLATEMODE
+#define SM_CONVERTIBLESLATEMODE			0x2003
+#endif
+
+
 int32 FWindowsOSVersionHelper::GetOSVersions( FString& out_OSVersionLabel, FString& out_OSSubVersionLabel )
 {
 	int32 ErrorCode = (int32)SUCCEEDED;
@@ -2334,4 +2343,20 @@ FString FWindowsPlatformMisc::GetOperatingSystemId()
 	// more info on this key can be found here: http://stackoverflow.com/questions/99880/generating-a-unique-machine-id
 	QueryRegKey(HKEY_LOCAL_MACHINE, TEXT("Software\\Microsoft\\Cryptography"), TEXT("MachineGuid"), Result);
 	return Result;
+}
+
+
+EConvertibleLaptopMode FWindowsPlatformMisc::GetConvertibleLaptopMode()
+{
+	if (!VerifyWindowsMajorVersion(8))
+	{
+		return EConvertibleLaptopMode::NotSupported;
+	}
+
+	if (::GetSystemMetrics(SM_CONVERTIBLESLATEMODE) == 0)
+	{
+		return EConvertibleLaptopMode::Tablet;
+	}
+	
+	return EConvertibleLaptopMode::Laptop;
 }
