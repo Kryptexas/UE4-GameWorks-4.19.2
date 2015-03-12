@@ -47,6 +47,7 @@ public:
 	virtual void RerunConstructionScripts() override {}
 	virtual void ApplyWorldOffset(const FVector& InOffset, bool bWorldShift) override;
 	virtual bool IsLevelBoundsRelevant() const override { return false; }
+	virtual void Destroyed() override;
 	// End AActor interface.
 
 
