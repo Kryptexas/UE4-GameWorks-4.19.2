@@ -101,4 +101,6 @@ private:
 	
 	UPROPERTY()
 	TArray<FComponentOverrideRecord> Records;
+
+	friend class UBlueprintGeneratedClass;
 };

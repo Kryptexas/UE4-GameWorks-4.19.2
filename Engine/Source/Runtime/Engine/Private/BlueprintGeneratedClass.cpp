@@ -282,7 +282,18 @@ UInheritableComponentHandler* UBlueprintGeneratedClass::GetInheritableComponentH
 			    Linker->Preload(InheritableComponentHandler);
 		    }
 	    }
-	    InheritableComponentHandler->PreloadAllTempates();
+
+		for (auto Record : InheritableComponentHandler->Records)
+		{
+			if (Record.ComponentTemplate && Record.ComponentTemplate->HasAllFlags(RF_NeedLoad))
+			{
+				auto Linker = Record.ComponentTemplate->GetLinker();
+				if (Linker)
+				{
+					Linker->Preload(Record.ComponentTemplate);
+				}
+			}
+		}
 	}
 
 	if (!InheritableComponentHandler && bCreateIfNecessary)
