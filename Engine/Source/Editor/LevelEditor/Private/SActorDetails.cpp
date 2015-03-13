@@ -95,6 +95,7 @@ void SActorDetails::Construct(const FArguments& InArgs, const FName TabIdentifie
 	};
 
 	DetailsView->SetIsPropertyVisibleDelegate(FIsPropertyVisible::CreateLambda(IsPropertyVisible));
+	DetailsView->SetIsPropertyReadOnlyDelegate(FIsPropertyReadOnly::CreateSP(this, &SActorDetails::IsPropertyReadOnly));
 
 	DetailsView->SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled::CreateSP(this, &SActorDetails::IsPropertyEditingEnabled));
 
@@ -504,6 +505,27 @@ void SActorDetails::UpdateComponentTreeFromEditorSelection()
 			SCSEditor->SelectRoot();
 		}
 	}
+}
+
+bool SActorDetails::IsPropertyReadOnly(const FPropertyAndParent& PropertyAndParent) const
+{
+	bool bIsReadOnly = false;
+	const TArray<FSCSEditorTreeNodePtrType> SelectedNodes = SCSEditor->GetSelectedNodes();
+	for (const auto& Node : SelectedNodes)
+	{
+		UActorComponent* Component = Node->GetComponentTemplate();
+		if (Component && Component->CreationMethod == EComponentCreationMethod::SimpleConstructionScript)
+		{
+			TSet<const UProperty*> UCSModifiedProperties;
+			Component->GetUCSModifiedProperties(UCSModifiedProperties);
+			if (UCSModifiedProperties.Contains(&PropertyAndParent.Property) || (PropertyAndParent.ParentProperty && UCSModifiedProperties.Contains(PropertyAndParent.ParentProperty)))
+			{
+				bIsReadOnly = true;
+				break;
+			}
+		}
+	}
+	return bIsReadOnly;
 }
 
 bool SActorDetails::IsPropertyEditingEnabled() const
