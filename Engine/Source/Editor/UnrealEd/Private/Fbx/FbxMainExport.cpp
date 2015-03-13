@@ -690,7 +690,7 @@ void FFbxExporter::ExportBSP( UModel* Model, bool bSelectedOnly )
 
 		ABrush* BrushActor = Surf.Actor;
 
-		if( (Surf.PolyFlags & PF_Selected) || !bSelectedOnly || (BrushActor && BrushActor->IsSelected() ) && Node.NumVertices >= 3 )
+		if( (Surf.PolyFlags & PF_Selected) || !bSelectedOnly || (BrushActor && BrushActor->IsSelected() && Node.NumVertices >= 3) )
 		{
 			FPoly Poly;
 			GEditor->polyFindMaster( Model, Node.iSurf, Poly );
