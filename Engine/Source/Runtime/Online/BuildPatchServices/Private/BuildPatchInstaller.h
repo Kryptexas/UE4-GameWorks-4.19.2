@@ -234,4 +234,10 @@ private:
 	 * @param FileManifest	The manifest for the file
 	 */
 	void SetupFileAttributes( const FString& FilePath, const FFileManifestData& FileManifest );
+
+	/**
+	 * Delete empty directories from an installation
+	 * @param RootDirectory	 Root Directory for search
+	 */
+	void CleanupEmptyDirectories( const FString& RootDirectory );
 };

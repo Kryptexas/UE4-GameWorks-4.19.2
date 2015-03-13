@@ -257,11 +257,18 @@ void STableViewBase::Tick( const FGeometry& AllottedGeometry, const double InCur
 			UpdateSelectionSet();
 
 			// Update scrollbar
+			if (NumItemsBeingObserved > 0)
 			{
 				// The thumb size is whatever fraction of the items we are currently seeing (including partially seen items).
 				// e.g. if we are seeing 0.5 of the first generated widget and 0.75 of the last widget, that's 1.25 widgets.
 				const double ThumbSizeFraction = ReGenerateResults.ExactNumRowsOnScreen / (NumItemsBeingObserved / NumItemsWide);
 				const double OffsetFraction = ScrollOffset / NumItemsBeingObserved;
+				ScrollBar->SetState( OffsetFraction, ThumbSizeFraction );
+			}
+			else
+			{
+				const double ThumbSizeFraction = 1;
+				const double OffsetFraction = 0;
 				ScrollBar->SetState( OffsetFraction, ThumbSizeFraction );
 			}
 
@@ -458,8 +465,7 @@ FReply STableViewBase::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& 
 {
 	if ( InKeyEvent.IsControlDown() && InKeyEvent.GetKey() == EKeys::End )
 	{
-		ScrollOffset = GetNumItemsBeingObserved();
-		RequestListRefresh();
+		ScrollToBottom();
 		return FReply::Handled();
 	}
 
@@ -732,6 +738,18 @@ float STableViewBase::GetScrollRateInItems() const
 		? LastGenerateResults.ExactNumRowsOnScreen / LastGenerateResults.HeightOfGeneratedItems
 		// Scroll 1/2 an item at a time as a default.
 		: 0.5f;
+}
+
+void STableViewBase::ScrollToTop()
+{
+	ScrollOffset = 0;
+	RequestListRefresh();
+}
+
+void STableViewBase::ScrollToBottom()
+{
+	ScrollOffset = GetNumItemsBeingObserved();
+	RequestListRefresh();
 }
 
 FVector2D STableViewBase::GetScrollDistance()

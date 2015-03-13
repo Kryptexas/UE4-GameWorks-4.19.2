@@ -51,6 +51,34 @@ public:
 		}
 	}
 
+	virtual EVisibility GetGlobalChatButtonVisibility() const override
+	{
+		if (FriendsAndChatManager.IsValid())
+		{
+			return FriendsAndChatManager.Pin()->HasGlobalChatPermission() ? EVisibility::Visible : EVisibility::Collapsed;
+		}
+		return EVisibility::Collapsed;
+	}
+
+	virtual void JoinGlobalChat() const override
+	{
+		if (FriendsAndChatManager.IsValid())
+		{
+			FriendsAndChatManager.Pin()->JoinPublicChatRoom(TEXT("Fortnite"));
+		}
+	}
+
+	virtual const FString GetName() const override
+	{
+		FString Nickname;
+		TSharedPtr<FFriendsAndChatManager> ManagerPinned = FriendsAndChatManager.Pin();
+		if (ManagerPinned.IsValid())
+		{
+			Nickname = ManagerPinned->GetUserNickname();
+		}
+		return Nickname;
+	}
+
 	~FFriendsViewModelImpl()
 	{
 		Uninitialize();

@@ -333,10 +333,22 @@ bool FOnlineUserCloudSteam::WriteUserFile(const FUniqueNetId& UserId, const FStr
 	return false;
 }
 
+void FOnlineUserCloudSteam::CancelWriteUserFile(const FUniqueNetId& UserId, const FString& FileName)
+{
+	// Not implemented
+}
+
+
 bool FOnlineUserCloudSteam::DeleteUserFile(const FUniqueNetId& UserId, const FString& FileName, bool bShouldCloudDelete, bool bShouldLocallyDelete)
 {
 	SteamSubsystem->QueueAsyncTask(new FOnlineAsyncTaskSteamDeleteUserFile(SteamSubsystem, FUniqueNetIdSteam(*(uint64*)UserId.GetBytes()), FileName, bShouldCloudDelete, bShouldLocallyDelete));
 	return true;
+}
+
+bool FOnlineUserCloudSteam::RequestUsageInfo(const FUniqueNetId& UserId)
+{
+	// Not implemented
+	return false;
 }
 
 void FOnlineUserCloudSteam::DumpCloudState(const FUniqueNetId& UserId)

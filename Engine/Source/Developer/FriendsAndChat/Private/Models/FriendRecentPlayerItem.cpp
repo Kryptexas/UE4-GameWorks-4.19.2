@@ -50,7 +50,7 @@ const bool FFriendRecentPlayerItem::IsOnline() const
 	return false;
 }
 
-EOnlinePresenceState::Type FFriendRecentPlayerItem::GetOnlineStatus() const
+const EOnlinePresenceState::Type FFriendRecentPlayerItem::GetOnlineStatus() const
 {
 	return EOnlinePresenceState::Offline;
 }

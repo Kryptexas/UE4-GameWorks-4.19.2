@@ -25,3 +25,8 @@ TSharedPtr<FUniqueNetId> FFriendGameInviteItem::GetGameSessionId() const
 	}
 	return SessionId;
 }
+
+const FString FFriendGameInviteItem::GetClientId() const
+{
+	return ClientId;
+}

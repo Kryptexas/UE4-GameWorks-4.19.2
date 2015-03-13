@@ -7,13 +7,15 @@
 #include "RHI.h"
 
 #if WITH_CEF3
-FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InInitialURL, TOptional<FString> InContentsToLoad)
-	: UpdatableTexture(nullptr)
+FWebBrowserWindow::FWebBrowserWindow(FIntPoint InViewportSize, FString InInitialURL, TOptional<FString> InContentsToLoad, bool InShowErrorMessage)
+	: DocumentState(EWebBrowserDocumentState::NoDocument)
+	, UpdatableTexture(nullptr)
 	, ViewportSize(InViewportSize)
 	, bIsClosing(false)
 	, bHasBeenPainted(false)
 	, InitialURL(InInitialURL)
 	, ContentsToLoad(InContentsToLoad)
+	, ShowErrorMessage(InShowErrorMessage)
 {
 	TextureData.Reserve(ViewportSize.X * ViewportSize.Y * 4);
 	TextureData.SetNumZeroed(ViewportSize.X * ViewportSize.Y * 4);
@@ -120,9 +122,29 @@ bool FWebBrowserWindow::IsClosing() const
 	return bIsClosing;
 }
 
+EWebBrowserDocumentState FWebBrowserWindow::GetDocumentLoadingState() const
+{
+	return DocumentState;
+}
+
 FString FWebBrowserWindow::GetTitle() const
 {
 	return Title;
+}
+
+FString FWebBrowserWindow::GetUrl() const
+{
+	if (InternalCefBrowser != nullptr)
+	{
+		CefRefPtr<CefFrame> MainFrame = InternalCefBrowser->GetMainFrame();
+
+		if (MainFrame != nullptr)
+		{
+			return MainFrame->GetURL().ToWString().c_str();
+		}
+	}
+
+	return FString();
 }
 
 void FWebBrowserWindow::OnKeyDown(const FKeyEvent& InKeyEvent)
@@ -364,6 +386,7 @@ void FWebBrowserWindow::SetHandler(CefRefPtr<FWebBrowserHandler> InHandler)
 	{
 		Handler = InHandler;
 		Handler->SetBrowserWindow(SharedThis(this));
+		Handler->SetShowErrorMessage(ShowErrorMessage);
 	}
 }
 
@@ -402,6 +425,26 @@ bool FWebBrowserWindow::GetViewRect(CefRect& Rect)
 	Rect.height = ViewportSize.Y;
 
 	return true;
+}
+
+void FWebBrowserWindow::NotifyDocumentError()
+{
+	DocumentState = EWebBrowserDocumentState::Error;
+	DocumentStateChangedEvent.Broadcast(DocumentState);
+}
+
+void FWebBrowserWindow::NotifyDocumentLoadingStateChange(bool IsLoading)
+{
+	EWebBrowserDocumentState NewState = IsLoading
+		? EWebBrowserDocumentState::Loading
+		: EWebBrowserDocumentState::Completed;
+
+	if (DocumentState != EWebBrowserDocumentState::Error)
+	{
+		DocumentState = NewState;
+	}
+
+	DocumentStateChangedEvent.Broadcast(NewState);
 }
 
 void FWebBrowserWindow::OnPaint(CefRenderHandler::PaintElementType Type, const CefRenderHandler::RectList& DirtyRects, const void* Buffer, int Width, int Height)

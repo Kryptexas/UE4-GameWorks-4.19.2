@@ -284,47 +284,47 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 	// initialize process attributes
 	SECURITY_ATTRIBUTES Attr;
 	{
-		Attr.nLength = sizeof(SECURITY_ATTRIBUTES);
-		Attr.lpSecurityDescriptor = NULL;
-		Attr.bInheritHandle = true;
+	Attr.nLength = sizeof(SECURITY_ATTRIBUTES);
+	Attr.lpSecurityDescriptor = NULL;
+	Attr.bInheritHandle = true;
 	}
 
 	// initialize process creation flags
 	uint32 CreateFlags = NORMAL_PRIORITY_CLASS;
 	{
-		if (PriorityModifier < 0)
-		{
+	if (PriorityModifier < 0)
+	{
 			CreateFlags = (PriorityModifier == -1) ? BELOW_NORMAL_PRIORITY_CLASS : IDLE_PRIORITY_CLASS;
-		}
-		else if (PriorityModifier > 0)
-		{
+	}
+	else if (PriorityModifier > 0)
+	{
 			CreateFlags = (PriorityModifier == 1) ? ABOVE_NORMAL_PRIORITY_CLASS : HIGH_PRIORITY_CLASS;
-		}
+	}
 
-		if (bLaunchDetached)
-		{
-			CreateFlags |= DETACHED_PROCESS;
-		}
+	if (bLaunchDetached)
+	{
+		CreateFlags |= DETACHED_PROCESS;
+	}
 	}
 
 	// initialize window flags
 	uint32 dwFlags = 0;
 	uint16 ShowWindowFlags = SW_HIDE;
 	{
-		if (bLaunchReallyHidden)
-		{
-			dwFlags = STARTF_USESHOWWINDOW;
-		}
-		else if (bLaunchHidden)
-		{
-			dwFlags = STARTF_USESHOWWINDOW;
-			ShowWindowFlags = SW_SHOWMINNOACTIVE;
-		}
+	if (bLaunchReallyHidden)
+	{
+		dwFlags = STARTF_USESHOWWINDOW;
+	}
+	else if (bLaunchHidden)
+	{
+		dwFlags = STARTF_USESHOWWINDOW;
+		ShowWindowFlags = SW_SHOWMINNOACTIVE;
+	}
 
 		if (PipeWrite != nullptr)
-		{
-			dwFlags |= STARTF_USESTDHANDLES;
-		}
+	{
+		dwFlags |= STARTF_USESTDHANDLES;
+	}
 	}
 
 	// initialize startup info
@@ -350,6 +350,7 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 
 	if (!CreateProcess(NULL, CommandLine.GetCharArray().GetData(), &Attr, &Attr, true, CreateFlags, NULL, OptionalWorkingDirectory, &StartupInfo, &ProcInfo))
 	{
+		UE_LOG(LogWindows, Warning, TEXT("CreateProc failed (%u) %s %s"), ::GetLastError(), URL, Parms);
 		if (OutProcessID != nullptr)
 		{
 			*OutProcessID = 0;
@@ -363,7 +364,7 @@ FProcHandle FWindowsPlatformProcess::CreateProc( const TCHAR* URL, const TCHAR* 
 		*OutProcessID = ProcInfo.dwProcessId;
 	}
 
-	::CloseHandle(ProcInfo.hThread);
+	::CloseHandle( ProcInfo.hThread );
 
 	return FProcHandle(ProcInfo.hProcess);
 }
@@ -1112,7 +1113,7 @@ bool FWindowsPlatformProcess::ReadPipeToArray(void* ReadPipe, TArray<uint8> & Ou
 
 #include "AllowWindowsPlatformTypes.h"
 
-FWindowsPlatformProcess::FWindowsSemaphore::FWindowsSemaphore(const FString& InName, HANDLE InSemaphore)
+FWindowsPlatformProcess::FWindowsSemaphore::FWindowsSemaphore(const FString & InName, HANDLE InSemaphore)
 	:	FSemaphore(InName)
 	,	Semaphore(InSemaphore)
 {
@@ -1166,7 +1167,7 @@ void FWindowsPlatformProcess::FWindowsSemaphore::Unlock()
 	}
 }
 
-FWindowsPlatformProcess::FSemaphore* FWindowsPlatformProcess::NewInterprocessSynchObject(const FString& Name, bool bCreate, uint32 MaxLocks)
+FWindowsPlatformProcess::FSemaphore * FWindowsPlatformProcess::NewInterprocessSynchObject(const FString & Name, bool bCreate, uint32 MaxLocks)
 {
 	HANDLE Semaphore = NULL;
 	

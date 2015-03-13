@@ -9,9 +9,10 @@
 #include "SFriendsContainer.h"
 #include "SFriendRequest.h"
 #include "SFriendsStatus.h"
+#include "SFriendsStatusCombo.h"
 #include "SFriendsUserSettings.h"
 #include "SFriendsToolTip.h"
-#include "FriendListViewModel.h"
+#include "FriendsUserViewModel.h"
 
 #define LOCTEXT_NAMESPACE "SFriendsContainer"
 
@@ -37,6 +38,11 @@ public:
 
 		MenuMethod = InArgs._Method;
 
+		ExternalScrollbar = SNew(SScrollBar)
+			.Thickness(FVector2D(4, 4))
+			.Style(&FriendStyle.ScrollBarStyle)
+			.AlwaysShowScrollbar(true);
+
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
 			SNew(SVerticalBox)
@@ -47,16 +53,21 @@ public:
 			[
 				SNew(SBorder)
 				.Padding(FriendStyle.UserHeaderPadding)
-				.BorderImage(&FriendStyle.Background)
+				.BorderImage(&FriendStyle.FriendUserHeaderBackground)
 				.Visibility(FriendStyle.HasUserHeader ? EVisibility::Visible : EVisibility::Collapsed)
 				[
 					SNew(SBox)
 					.WidthOverride(FriendStyle.FriendsListWidth)
 					[
-						SNew(SFriendUserHeader, ViewModel->GetUserViewModel())
+						SNew(SHorizontalBox)
+						+SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+							SNew(SFriendsStatusCombo, ViewModel->GetStatusViewModel(), ViewModel->GetUserViewModel())
 						.FriendStyle(&FriendStyle)
 					]
 				]
+			]
 			]
 			+ SVerticalBox::Slot()
 			.AutoHeight()
@@ -74,42 +85,24 @@ public:
 						SNew(SHorizontalBox)
 						+SHorizontalBox::Slot()
 						.VAlign(VAlign_Center)
-						.AutoWidth()
-						[
-							SNew(SFriendsStatus, ViewModel->GetStatusViewModel())
-							.FriendStyle(&FriendStyle)
-							.Method(MenuMethod)
-						]
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.FillWidth(1)
+						.HAlign(HAlign_Fill)
 						.Padding(4, 0, 0, 0)
 						[
-							SNew(SBorder)
-							.Visibility(this, &SFriendsContainerImpl::AddFriendBoxVisibility)
-							.BorderImage(&FriendStyle.AddFriendEditBorder)
-							.VAlign(VAlign_Center)
-							.HAlign(HAlign_Fill)
-							[
-								SAssignNew(FriendNameTextBox, SEditableTextBox)
-								.HintText(LOCTEXT("AddFriendHint", "Add friend by account name or email"))
-								.Style(&FriendStyle.AddFriendEditableTextStyle)
-								.OnTextCommitted(this, &SFriendsContainerImpl::HandleFriendEntered)
-							]
-						]
-						+ SHorizontalBox::Slot()
-						.VAlign(VAlign_Center)
-						.AutoWidth()
-						.Padding(4, 0, 0, 0)
-						[
-							SNew(SButton)
-							.ToolTip(CreateAddFriendToolTip())
-							.ButtonStyle(&FriendStyle.AddFriendButtonStyle)
-							.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
+							SNew(SHorizontalBox)
 							.Visibility(this, &SFriendsContainerImpl::AddFriendActionVisibility)
+						+ SHorizontalBox::Slot()
+						.AutoWidth()
+						[
+								SAssignNew(AddFriendButton, SButton)
+							.ToolTip(CreateAddFriendToolTip())
+								.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+							.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
 							.ContentPadding(0)
 							.Cursor(EMouseCursor::Hand)
 							[
+									SNew(SHorizontalBox)
+									+SHorizontalBox::Slot()
+									[
 								SNew(SBox)
 								.HAlign(HAlign_Center)
 								.VAlign(VAlign_Center)
@@ -117,7 +110,49 @@ public:
 								.HeightOverride(FriendStyle.StatusButtonSize.Y)
 								[
 									SNew(SImage)
-									.Image(&FriendStyle.AddFriendButtonContentBrush)
+											.Image(this, &SFriendsContainerImpl::GetAddFriendButtonImageBrush)
+										]
+									]
+									+SHorizontalBox::Slot()
+									.VAlign(VAlign_Center)
+									.AutoWidth()
+									[
+										SNew(STextBlock)
+										.Font(FriendStyle.FriendsFontStyleBold)
+										.ColorAndOpacity(FLinearColor::White)
+										.Text(LOCTEXT("AddAFriend", "Add a Friend"))
+									]
+								]
+							]
+							+SHorizontalBox::Slot()
+							.HAlign(HAlign_Fill)
+							.FillWidth(1)
+							[
+								SNew(SSpacer)
+							]
+							+SHorizontalBox::Slot()
+							.Padding(15, 0)
+							.AutoWidth()
+							.VAlign(VAlign_Center)
+							.HAlign(HAlign_Right)
+							[
+								SNew(SBorder)
+								.Padding(0)
+								.BorderImage(FCoreStyle::Get().GetBrush("NoBorder"))
+								.Visibility(ViewModel->GetGlobalChatButtonVisibility())
+								[
+									SNew(SButton)
+									.ToolTip(CreateGlobalChatToolTip())
+									.ButtonStyle(&FriendStyle.GlobalChatButtonStyle)
+									.OnClicked(this, &SFriendsContainerImpl::OnGlobalChatButtonClicked)
+									.ContentPadding(10)
+									.Cursor(EMouseCursor::Hand)
+									[
+										SNew(STextBlock)
+										.Font(FriendStyle.FriendsFontStyleSmallBold)
+										.ColorAndOpacity(FLinearColor::White)
+										.Text(LOCTEXT("FortniteGlobalChatButton", "Fortnite Global Chat"))
+									]
 								]
 							]
 						]
@@ -129,6 +164,7 @@ public:
 							SNew(SButton)
 							.ButtonStyle(&FriendStyle.AddFriendCloseButtonStyle)
 							.Visibility(this, &SFriendsContainerImpl::AddFriendCloseActionVisibility)
+							.OnClicked(this, &SFriendsContainerImpl::HandleAddFriendButtonClicked)
 							.ContentPadding(0)
 							.Cursor(EMouseCursor::Hand)
 							[
@@ -137,39 +173,41 @@ public:
 								.HeightOverride(FriendStyle.StatusButtonSize.Y)
 							]
 						]
+						+ SHorizontalBox::Slot()
+						.VAlign(VAlign_Fill)
+						.FillWidth(1)
+						.Padding(4, 0, 10, 0)
+						[
+							SNew(SBox)
+							.Visibility(this, &SFriendsContainerImpl::AddFriendBoxVisibility)
+							.VAlign(VAlign_Center)
+							.HAlign(HAlign_Fill)
+							.Padding(0)
+							[
+								SAssignNew(FriendNameTextBox, SEditableTextBox)
+								.HintText(LOCTEXT("AddFriendHint", "Add friend by account name or email"))
+								.Style(&FriendStyle.AddFriendEditableTextStyle)
+								.OnTextCommitted(this, &SFriendsContainerImpl::HandleFriendEntered)
 					]
 				]
 			]
+				]
+			]
 			+ SVerticalBox::Slot()
-			.AutoHeight()
 			[
 				SNew(SBorder)
-				.Padding(FriendStyle.BorderPadding)
 				.BorderImage(&FriendStyle.FriendsContainerBackground)
-				.Visibility(this, &SFriendsContainerImpl::GetGlobalChatButtonVisibility)
+				.Padding(0)
 				[
-					SNew(SVerticalBox)
-					+ SVerticalBox::Slot()
-					.HAlign(HAlign_Center)
-					[
-						SNew(SButton)
-						.ButtonStyle(&FriendStyle.GlobalChatButtonStyle)
-						.OnClicked(this, &SFriendsContainerImpl::OnGlobalChatButtonClicked)
-					]
-				]
-			]
-			+ SVerticalBox::Slot()
-			[
-				SNew(SBorder)
-				.Padding(FriendStyle.BorderPadding)
-				.BorderImage(&FriendStyle.FriendsContainerBackground)
+					SNew(SOverlay)
+					+ SOverlay::Slot()
 				[
 					SNew(SScrollBox)
-					.ScrollBarStyle(&FriendStyle.ScrollBarStyle)
-					.ScrollBarThickness(FVector2D(4, 4))
+						.ExternalScrollbar(ExternalScrollbar.ToSharedRef())
 					+ SScrollBox::Slot()
 					.HAlign(HAlign_Center)
 					.Padding(10)
+						.Padding(FMargin(10, 10, 40, 10))
 					[
 						SNew(STextBlock)
 						.Text(LOCTEXT("NoFriendsNotice", "Press the Plus Button to add friends."))
@@ -178,34 +216,55 @@ public:
 						.Visibility(this, &SFriendsContainerImpl::NoFriendsNoticeVisibility)
 					]
 					+SScrollBox::Slot()
+						.Padding(FMargin(10, 10, 30, 0))
 					[
 						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::GameInviteDisplay].ToSharedRef())
 						.FriendStyle(&FriendStyle)
 						.Method(MenuMethod)
+							.Visibility(ListViewModels[EFriendsDisplayLists::GameInviteDisplay].Get(), &FFriendListViewModel::GetListVisibility)
 					]
 					+SScrollBox::Slot()
+						.Padding(FMargin(10, 10, 30, 0))
 					[
 						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::FriendRequestsDisplay].ToSharedRef())
 						.FriendStyle(&FriendStyle)
 						.Method(MenuMethod)
+							.Visibility(ListViewModels[EFriendsDisplayLists::FriendRequestsDisplay].Get(), &FFriendListViewModel::GetListVisibility)
 					]
 					+SScrollBox::Slot()
+						.Padding(FMargin(10, 10, 30, 0))
 					[
 						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::DefaultDisplay].ToSharedRef())
 						.FriendStyle(&FriendStyle)
 						.Method(MenuMethod)
+							.Visibility(ListViewModels[EFriendsDisplayLists::DefaultDisplay].Get(), &FFriendListViewModel::GetListVisibility)
 					]
 					+SScrollBox::Slot()
+						.Padding(FMargin(10, 10, 30, 0))
 					[
 						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::RecentPlayersDisplay].ToSharedRef())
 						.FriendStyle(&FriendStyle)
 						.Method(MenuMethod)
+							.Visibility(ListViewModels[EFriendsDisplayLists::RecentPlayersDisplay].Get(), &FFriendListViewModel::GetListVisibility)
 					]
 					+SScrollBox::Slot()
+						.Padding(FMargin(10, 10, 30, 0))
 					[
 						SNew(SFriendsListContainer, ListViewModels[EFriendsDisplayLists::OutgoingFriendInvitesDisplay].ToSharedRef())
 						.FriendStyle(&FriendStyle)
 						.Method(MenuMethod)
+							.Visibility(ListViewModels[EFriendsDisplayLists::OutgoingFriendInvitesDisplay].Get(), &FFriendListViewModel::GetListVisibility)
+						]
+						+ SScrollBox::Slot()
+						[
+							SNew(SSpacer).Size(FVector2D(10, 10))
+						]
+					]
+					+ SOverlay::Slot()
+					.HAlign(HAlign_Right)
+					.Padding(FMargin(10, 20, 10, 20))
+					[
+						ExternalScrollbar.ToSharedRef()
 					]
 				]
 			]
@@ -222,6 +281,19 @@ private:
 		.FriendStyle(&FriendStyle);
 	}
 
+	TSharedPtr<SToolTip> CreateGlobalChatToolTip()
+	{
+		const FText GlobalChatToolTipText = LOCTEXT("FriendContain_GlobalChatToolTip", "Fortnite Global Chat");
+		return SNew(SFriendsToolTip)
+			.DisplayText(GlobalChatToolTipText)
+			.FriendStyle(&FriendStyle);
+	}
+
+	FText GetDisplayName() const
+	{
+		return FText::FromString(ViewModel->GetName());
+	}
+
 	FReply HandleAddFriendButtonClicked()
 	{
 		FriendNameTextBox->SetText(FText::GetEmpty());
@@ -233,22 +305,30 @@ private:
 		return FReply::Handled();
 	}
 
+	FReply HandleCloseFriendButtonClicked()
+	{
+		if (ViewModel->IsPerformingAction())
+		{
+			ViewModel->PerformAction();
+		}
+		return FReply::Handled();
+	}
+
 	void HandleFriendEntered(const FText& CommentText, ETextCommit::Type CommitInfo)
 	{
 		if (CommitInfo == ETextCommit::OnEnter)
 		{
 			ViewModel->RequestFriend(CommentText);
-		}
-		
 		if (ViewModel->IsPerformingAction())
 		{
 			ViewModel->PerformAction();
 		}
 	}
+	}
 
 	EVisibility AddFriendBoxVisibility() const
 	{
-		return ViewModel->IsPerformingAction() ? EVisibility::Visible : EVisibility::Hidden;
+		return ViewModel->IsPerformingAction() ? EVisibility::Visible : EVisibility::Collapsed;
 	}
 
 	EVisibility AddFriendCloseActionVisibility() const
@@ -259,6 +339,11 @@ private:
 	EVisibility AddFriendActionVisibility() const
 	{
 		return ViewModel->IsPerformingAction() ? EVisibility::Collapsed : EVisibility::Visible;
+	}
+
+	const FSlateBrush* GetAddFriendButtonImageBrush() const
+	{
+		return AddFriendButton.IsValid() && AddFriendButton->IsHovered() ? &FriendStyle.AddFriendButtonContentHoveredBrush : &FriendStyle.AddFriendButtonContentBrush;
 	}
 
 	EVisibility NoFriendsNoticeVisibility() const
@@ -272,7 +357,7 @@ private:
 		}
 		return EVisibility::Visible;
 	}
-	
+
 	EVisibility GetGlobalChatButtonVisibility() const
 	{
 		return FFriendsAndChatManager::Get()->GetChatViewModel()->IsGlobalChatEnabled() ? EVisibility::Visible : EVisibility::Collapsed;
@@ -281,7 +366,6 @@ private:
 	FReply OnGlobalChatButtonClicked()
 	{
 		FFriendsAndChatManager::Get()->JoinPublicChatRoom(TEXT("Fortnite"));
-		FFriendsAndChatManager::Get()->OpenGlobalChat();
 		return FReply::Handled();
 	}
 
@@ -325,6 +409,9 @@ private:
 	// Holds the Friends add text box
 	TSharedPtr< SEditableTextBox > FriendNameTextBox;
 
+	TSharedPtr<SScrollBar> ExternalScrollbar;
+
+	TSharedPtr<SButton> AddFriendButton;
 };
 
 TSharedRef<SFriendsContainer> SFriendsContainer::New()

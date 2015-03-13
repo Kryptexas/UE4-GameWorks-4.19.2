@@ -67,12 +67,12 @@ FVector2D SUniformGridPanel::ComputeDesiredSize( float ) const
 	{
 		const FSlot& Child = Children[ ChildIndex ];
 
-		// A single cell at (N,M) means our grid size is (N+1, M+1)
-		NumColumns = FMath::Max(Child.Column + 1, NumColumns);
-		NumRows = FMath::Max(Child.Row + 1, NumRows);
-
 		if (Child.GetWidget()->GetVisibility() != EVisibility::Collapsed)
 		{
+			// A single cell at (N,M) means our grid size is (N+1, M+1)
+			NumColumns = FMath::Max(Child.Column + 1, NumColumns);
+			NumRows = FMath::Max(Child.Row + 1, NumRows);
+
 			FVector2D ChildDesiredSize = Child.GetWidget()->GetDesiredSize() + SlotPaddingDesiredSize;
 
 			ChildDesiredSize.X = FMath::Max( ChildDesiredSize.X, CachedMinDesiredSlotWidth);

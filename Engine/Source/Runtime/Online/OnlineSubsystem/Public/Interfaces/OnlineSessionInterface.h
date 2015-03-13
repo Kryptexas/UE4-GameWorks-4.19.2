@@ -179,9 +179,10 @@ typedef FOnSessionUserInviteAccepted::FDelegate FOnSessionUserInviteAcceptedDele
  *
  * @param UserId the user being invited
  * @param FromId the user that sent the invite
+ * @param AppId the id of the client/app user was in when sending hte game invite
  * @param InviteResult the search/settings for the session we're joining via invite
  */
-DECLARE_MULTICAST_DELEGATE_ThreeParams(FOnSessionInviteReceived, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FromId*/, const FOnlineSessionSearchResult& /*InviteResult*/);
+DECLARE_MULTICAST_DELEGATE_FourParams(FOnSessionInviteReceived, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FromId*/, const FString& /*AppId*/, const FOnlineSessionSearchResult& /*InviteResult*/);
 typedef FOnSessionInviteReceived::FDelegate FOnSessionInviteReceivedDelegate;
 
 /**
@@ -660,9 +661,10 @@ public:
 	 *
 	 * @param UserId the user being invited
 	 * @param FromId the user that sent the invite
+	 * @param AppId the id of the client/app user was in when sending hte game invite
 	 * @param InviteResult the search/settings for the session we're joining via invite
 	 */
-	DEFINE_ONLINE_DELEGATE_THREE_PARAM(OnSessionInviteReceived, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FromId*/, const FOnlineSessionSearchResult& /*InviteResult*/);
+	DEFINE_ONLINE_DELEGATE_FOUR_PARAM(OnSessionInviteReceived, const FUniqueNetId& /*UserId*/, const FUniqueNetId& /*FromId*/, const FString& /*AppId*/, const FOnlineSessionSearchResult& /*InviteResult*/);
 
 	/**
 	 * Returns the platform specific connection information for joining the match.

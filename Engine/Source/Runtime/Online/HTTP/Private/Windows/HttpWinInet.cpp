@@ -746,7 +746,7 @@ void FHttpRequestWinInet::Tick(float DeltaSeconds)
 		if(ResponseBytes > ProgressBytesSent)
 		{
 			ProgressBytesSent = ResponseBytes;
-			OnRequestProgress().ExecuteIfBound(SharedThis(this),ResponseBytes);
+			OnRequestProgress().ExecuteIfBound(SharedThis(this), RequestPayload.Num(), ResponseBytes);
 		}
 	}
 
@@ -779,7 +779,8 @@ void FHttpRequestWinInet::Tick(float DeltaSeconds)
 	// No longer waiting for a response and done processing it
 	else if (CompletionStatus == EHttpRequestStatus::Processing &&
 		Response.IsValid() &&
-		Response->bIsReady)
+		Response->bIsReady &&
+		TotalElapsed >= FHttpModule::Get().GetHttpDelayTime())
 	{
 		FinishedRequest();
 	}

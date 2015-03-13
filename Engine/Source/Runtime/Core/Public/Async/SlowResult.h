@@ -9,7 +9,7 @@
 /**
  * Template for slow asynchronous results.
  */
-template<typename ResultType)
+template<typename ResultType>
 struct TSlowResult
 {
 	/** Holds the asynchronous return value. */
@@ -18,13 +18,15 @@ struct TSlowResult
 	/** Pointer to the asynchronous task that is computing the result, or nullptr if the result was returned synchronously. */
 	TSharedPtr<ISlowTask> Task;
 
+	/** Default constructor (no initialization). */
+	TSlowResult() { }
 
 	/**
-	* Creates and initializes a new instance.
-	*
-	* @param InFuture The future object to set.
-	* @param InTask The slow task to set.
-	*/
+	 * Creates and initializes a new instance.
+	 *
+	 * @param InFuture The future object to set.
+	 * @param InTask The slow task to set.
+	 */
 	TSlowResult(TFuture<ResultType>&& InFuture, const TSharedRef<ISlowTask>& InTask)
 		: Future(InFuture)
 		, Task(InTask)

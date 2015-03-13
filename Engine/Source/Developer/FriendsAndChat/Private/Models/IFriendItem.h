@@ -2,10 +2,13 @@
 
 #pragma once
 
+#include "IUserInfo.h"
+
 /**
  * Class containing the friend information - used to build the list view.
  */
-class IFriendItem : public TSharedFromThis<IFriendItem>
+class IFriendItem
+	: public IUserInfo, public TSharedFromThis<IFriendItem>
 {
 public:
 
@@ -26,22 +29,10 @@ public:
 	virtual const TSharedPtr< FOnlineFriend > GetOnlineFriend() const = 0;
 
 	/**
-	 * Get the cached user name.
-	 * @return The user name.
-	 */
-	virtual const FString GetName() const = 0;
-
-	/**
 	 * Get the user location.
 	 * @return The user location.
 	 */
 	virtual const FText GetFriendLocation() const = 0;
-
-	/**
-	 * Get the client the user is logged in on
-	 * @return The client id
-	 */
-	virtual const FString GetClientId() const = 0;
 
 	/**
 	* Get the client name the user is logged in on
@@ -60,12 +51,6 @@ public:
 	 * @return The user online state.
 	 */
 	virtual const bool IsOnline() const = 0;
-
-	/**
-	 * Get the online status of the user
-	 * @return online presence status
-	 */
-	virtual EOnlinePresenceState::Type GetOnlineStatus() const = 0;
 
 	/**
 	 * Get if the user is online and his game is joinable

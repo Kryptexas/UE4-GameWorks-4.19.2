@@ -80,34 +80,37 @@ bool FHttpServiceTracker::EndpointMetrics::IsSuccessfulResponse(int32 ResponseCo
 
 void FHttpServiceTracker::EndpointMetrics::TrackRequest(const FHttpRequestPtr& HttpRequest)
 {
-	// keep a histogram of response codes
-	const FHttpResponsePtr HttpResponse = HttpRequest->GetResponse();
+	if(HttpRequest.IsValid())
+	{
+		// keep a histogram of response codes
+		const FHttpResponsePtr HttpResponse = HttpRequest->GetResponse();
 
-	const int32 ResponseCode = HttpResponse.IsValid() ? HttpResponse->GetResponseCode() : 0;
-	// track all responses in a histogram
-	ResponseCodes.FindOrAdd(ResponseCode)++;
-	const float ElapsedTime = HttpRequest->GetElapsedTime();
-	const int64 DownloadBytes = HttpRequest->GetResponse()->GetContent().Num();
-	// track successes/fails separately
-	if (IsSuccessfulResponse(ResponseCode))
-	{
-		++SuccessCount;
-		// sum elapsed time for average calc
-		ElapsedTimeSuccessTotal += ElapsedTime;
-		ElapsedTimeSuccessMax = FMath::Max(ElapsedTimeSuccessMax, ElapsedTime);
-		ElapsedTimeSuccessMin = FMath::Min(ElapsedTimeSuccessMin, ElapsedTime);
-		// sum download rate for average calc
-		DownloadBytesSuccessTotal += DownloadBytes;
-	}
-	else
-	{
-		++FailCount;
-		// sum elapsed time for average calc
-		ElapsedTimeFailTotal += ElapsedTime;
-		ElapsedTimeFailMax = FMath::Max(ElapsedTimeFailMax, ElapsedTime);
-		ElapsedTimeFailMin = FMath::Min(ElapsedTimeFailMin, ElapsedTime);
-		// sum download rate for average calc
-		DownloadBytesFailTotal += DownloadBytes;
+		const int32 ResponseCode = HttpResponse.IsValid() ? HttpResponse->GetResponseCode() : 0;
+		// track all responses in a histogram
+		ResponseCodes.FindOrAdd(ResponseCode)++;
+		const float ElapsedTime = HttpRequest->GetElapsedTime();
+		const int64 DownloadBytes = HttpResponse.IsValid() ? HttpResponse->GetContent().Num() : 0;
+		// track successes/fails separately
+		if (IsSuccessfulResponse(ResponseCode))
+		{
+			++SuccessCount;
+			// sum elapsed time for average calc
+			ElapsedTimeSuccessTotal += ElapsedTime;
+			ElapsedTimeSuccessMax = FMath::Max(ElapsedTimeSuccessMax, ElapsedTime);
+			ElapsedTimeSuccessMin = FMath::Min(ElapsedTimeSuccessMin, ElapsedTime);
+			// sum download rate for average calc
+			DownloadBytesSuccessTotal += DownloadBytes;
+		}
+		else
+		{
+			++FailCount;
+			// sum elapsed time for average calc
+			ElapsedTimeFailTotal += ElapsedTime;
+			ElapsedTimeFailMax = FMath::Max(ElapsedTimeFailMax, ElapsedTime);
+			ElapsedTimeFailMin = FMath::Min(ElapsedTimeFailMin, ElapsedTime);
+			// sum download rate for average calc
+			DownloadBytesFailTotal += DownloadBytes;
+		}
 	}
 }
 

@@ -18,7 +18,7 @@ struct FSearchEntry
 #if WITH_EDITOR
 	FAssetData AssetData;
 #endif
-	static FSearchEntry * MakeCategoryEntry(const FString& InTitle);
+	static FSearchEntry * MakeCategoryEntry(const FString & InTitle);
 };
 
 

@@ -33,6 +33,7 @@ FMacHttpRequest::~FMacHttpRequest()
 
 FString FMacHttpRequest::GetURL()
 {
+	SCOPED_AUTORELEASE_POOL;
 	FString URL([[Request URL] absoluteString]);
 	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::GetURL() - %s"), *URL);
 	return URL;
@@ -41,6 +42,7 @@ FString FMacHttpRequest::GetURL()
 
 void FMacHttpRequest::SetURL(const FString& URL)
 {
+	SCOPED_AUTORELEASE_POOL;
 	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::SetURL() - %s"), *URL);
 	[Request setURL: [NSURL URLWithString: URL.GetNSString()]];
 }
@@ -157,6 +159,7 @@ void FMacHttpRequest::SetVerb(const FString& Verb)
 
 bool FMacHttpRequest::ProcessRequest()
 {
+	SCOPED_AUTORELEASE_POOL;
 	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::ProcessRequest()"));
 	bool bStarted = false;
 
@@ -198,7 +201,7 @@ FHttpRequestCompleteDelegate& FMacHttpRequest::OnProcessRequestComplete()
 
 FHttpRequestProgressDelegate& FMacHttpRequest::OnRequestProgress() 
 {
-	UE_LOG(LogHttp, Verbose, TEXT("FMacHttpRequest::OnRequestProgress()"));
+	UE_LOG(LogHttp, VeryVerbose, TEXT("FMacHttpRequest::OnRequestProgress()"));
 	return RequestProgressDelegate;
 }
 
@@ -305,7 +308,6 @@ void FMacHttpRequest::CancelRequest()
 	if(Connection != NULL)
 	{
 		[Connection cancel];
-		Connection = NULL;
 	}
 	FinishedRequest();
 }
@@ -328,13 +330,13 @@ void FMacHttpRequest::Tick(float DeltaSeconds)
 {
 	if( CompletionStatus == EHttpRequestStatus::Processing || Response->HadError() )
 	{
-		if( OnRequestProgress().IsBound() )
+		if (OnRequestProgress().IsBound())
 		{
-			const int32 NumBytesReceived = Response->GetNumBytesReceived();
-			if( ProgressBytesSent < NumBytesReceived )
+			const int32 BytesWritten = Response->GetNumBytesWritten();
+			const int32 BytesRead = Response->GetNumBytesReceived();
+			if (BytesWritten > 0 || BytesRead > 0)
 			{
-				ProgressBytesSent = NumBytesReceived;
-				OnRequestProgress().Execute(SharedThis(this), NumBytesReceived);
+				OnRequestProgress().Execute(SharedThis(this), BytesWritten, BytesRead);
 			}
 		}
 		if( Response->IsReady() )
@@ -358,6 +360,7 @@ float FMacHttpRequest::GetElapsedTime()
 @synthesize Response;
 @synthesize bIsReady;
 @synthesize bHadError;
+@synthesize BytesWritten;
 
 
 -(FHttpResponseMacWrapper*) init
@@ -369,6 +372,13 @@ float FMacHttpRequest::GetElapsedTime()
 	return self;
 }
 
+
+-(void) connection:(NSURLConnection *)connection didSendBodyData:(NSInteger)bytesWritten totalBytesWritten:(NSInteger)totalBytesWritten totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite
+{
+	UE_LOG(LogHttp, Verbose, TEXT("didSendBodyData:(NSInteger)bytesWritten totalBytes:Written:(NSInteger)totalBytesWritten totalBytesExpectedToWrite:(NSInteger)totalBytesExpectedToWrite"));
+	self.BytesWritten = totalBytesWritten;
+	UE_LOG(LogHttp, Verbose, TEXT("didSendBodyData: totalBytesWritten = %d, totalBytesExpectedToWrite = %d: %p"), totalBytesWritten, totalBytesExpectedToWrite, self);
+}
 
 -(void) connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response
 {
@@ -409,6 +419,11 @@ float FMacHttpRequest::GetElapsedTime()
 - (TArray<uint8>&)getPayload
 {
 	return Payload;
+}
+
+-(int32)getBytesWritten
+{
+	return self.BytesWritten;
 }
 
 @end
@@ -580,4 +595,10 @@ bool FMacHttpResponse::HadError()
 const int32 FMacHttpResponse::GetNumBytesReceived() const
 {
 	return [ResponseWrapper getPayload].Num();
+}
+
+const int32 FMacHttpResponse::GetNumBytesWritten() const
+{
+    int32 NumBytesWritten = [ResponseWrapper getBytesWritten];
+    return NumBytesWritten;
 }

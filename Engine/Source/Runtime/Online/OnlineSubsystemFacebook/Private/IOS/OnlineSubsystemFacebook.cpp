@@ -53,6 +53,11 @@ IOnlineUserCloudPtr FOnlineSubsystemFacebook::GetUserCloudInterface() const
 	return NULL;
 }
 
+IOnlineUserCloudPtr FOnlineSubsystemFacebook::GetUserCloudInterface(const FString& Key) const
+{
+	return NULL;
+}
+
 IOnlineLeaderboardsPtr FOnlineSubsystemFacebook::GetLeaderboardsInterface() const
 {
 	return NULL;

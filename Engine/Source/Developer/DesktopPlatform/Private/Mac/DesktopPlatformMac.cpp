@@ -561,6 +561,7 @@ bool FDesktopPlatformMac::RegisterEngineInstallation(const FString &RootDir, FSt
 
 void FDesktopPlatformMac::EnumerateEngineInstallations(TMap<FString, FString> &OutInstallations)
 {
+	SCOPED_AUTORELEASE_POOL;
 	EnumerateLauncherEngineInstallations(OutInstallations);
 
 	// Create temp .uproject file to use with LSCopyApplicationURLsForURL

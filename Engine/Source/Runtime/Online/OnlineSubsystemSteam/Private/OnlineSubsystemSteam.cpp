@@ -179,6 +179,11 @@ IOnlineUserCloudPtr FOnlineSubsystemSteam::GetUserCloudInterface() const
 	return UserCloudInterface;
 }
 
+IOnlineUserCloudPtr FOnlineSubsystemSteam::GetUserCloudInterface(const FString& Key) const
+{
+	return NULL;
+}
+
 IOnlineLeaderboardsPtr FOnlineSubsystemSteam::GetLeaderboardsInterface() const
 {
 	return LeaderboardsInterface;

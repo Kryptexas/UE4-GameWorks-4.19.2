@@ -10,6 +10,15 @@ struct FPointerEvent;
 class FSlateShaderResource;
 
 
+enum class EWebBrowserDocumentState
+{
+	Completed,
+	Error,
+	Loading,
+	NoDocument
+};
+
+
 /**
  * Interface for dealing with a Web Browser window
  */
@@ -61,10 +70,20 @@ public:
 	 */
 	virtual bool IsClosing() const = 0;
 
+	/** Gets the loading state of the current document. */
+	virtual EWebBrowserDocumentState GetDocumentLoadingState() const = 0;
+
 	/**
 	 * Gets the current title of the Browser page
 	 */
 	virtual FString GetTitle() const = 0;
+
+	/**
+	 * Gets the currently loaded URL.
+	 *
+	 * @return The URL, or empty string if no document is loaded.
+	 */
+	virtual FString GetUrl() const = 0;
 
 	/**
 	 * Notify the browser that a key has been pressed
@@ -164,8 +183,12 @@ public:
 
 public:
 
+	/** A delegate that is invoked when the loading state of a document changed. */
+	DECLARE_EVENT_OneParam(IWebBrowserWindow, FOnDocumentStateChanged, EWebBrowserDocumentState /*NewState*/);
+	virtual FOnDocumentStateChanged& OnDocumentStateChanged() = 0;
+
 	/** A delegate to allow callbacks when a browser title changes. */
-	DECLARE_EVENT_OneParam(IWebBrowserWindow, FOnTitleChanged, FString);
+	DECLARE_EVENT_OneParam(IWebBrowserWindow, FOnTitleChanged, FString /*NewTitle*/);
 	virtual FOnTitleChanged& OnTitleChanged() = 0;
 
 protected:

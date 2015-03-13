@@ -7,6 +7,11 @@ namespace EChatMessageType
 {
 	enum Type : uint8;
 }
+namespace EOnlinePresenceState
+{
+	enum Type : uint8;
+}
+
 
 /**
  * Interface for the Friends and chat manager.
@@ -26,8 +31,9 @@ public:
 	 * @param InStyle The style to use to create the widgets
 	 * @param ChatType The type of chat window to create
 	 * @param FriendItem The friend if this is a whisper chat window
+	 * @param True if chat window comes to front, else opens minimized
 	 */
-	virtual void CreateChatWindow(const struct FFriendsAndChatStyle* InStyle, EChatMessageType::Type ChatType, TSharedPtr<IFriendItem> FriendItem) = 0;
+	virtual void CreateChatWindow(const struct FFriendsAndChatStyle* InStyle, EChatMessageType::Type ChatType, TSharedPtr<IFriendItem> FriendItem, bool BringToFront = false) = 0;
 
 	/**
 	 * Set the FriendsAndChatUserSettings.
@@ -49,6 +55,13 @@ public:
 	 * @return The Friends List widget.
 	 */
 	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const struct FFriendsAndChatStyle* InStyle ) = 0;
+
+	/**
+	 * Create a status widget for the current user.
+	 * @param InStyle The style to use to create the widgets.
+	 * @return The Statuswidget.
+	 */
+	virtual TSharedPtr< SWidget > GenerateStatusWidget( const FFriendsAndChatStyle* InStyle ) = 0;
 
 	/**
 	 * Generate a chat widget.
@@ -78,6 +91,12 @@ public:
 	virtual void JoinPublicChatRoom(const FString& RoomName) = 0;
 
 	/**
+	 * Show the global chat room button
+	 * @param True to show the button
+	 */
+	virtual void SetPublicChatRoomPermission(bool Allow) = 0;
+
+	/**
 	 * Delegate when the chat room has been joined
 	 */
 	virtual void OnChatPublicRoomJoined(const FString& ChatRoomID) = 0;
@@ -90,6 +109,19 @@ public:
 
 	/** Is the chat manager logged in. */
 	virtual bool IsLoggedIn() = 0;
+
+	/** Set the user to an online state. */
+	virtual void SetOnline() = 0;
+
+	/** Set the user to an away state. */
+	virtual void SetAway() = 0;
+
+	/**
+	* Get the online status
+	*
+	* @return EOnlinePresenceState
+	*/
+	virtual EOnlinePresenceState::Type GetOnlineStatus() = 0;
 
 	/** 
 	 * Set the application view model to query and perform actions on.

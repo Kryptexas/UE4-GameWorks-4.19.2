@@ -14,6 +14,9 @@ public:
 	virtual TSharedRef< class FFriendsUserSettingsViewModel > GetUserSettingsViewModel() = 0;
 	virtual TSharedRef< class FFriendListViewModel > GetFriendListViewModel(EFriendsDisplayLists::Type ListType) = 0;
 	virtual void RequestFriend(const FText& FriendName) const = 0;
+	virtual EVisibility GetGlobalChatButtonVisibility() const = 0;
+	virtual void JoinGlobalChat() const = 0;
+	virtual const FString GetName() const = 0;
 };
 
 /**

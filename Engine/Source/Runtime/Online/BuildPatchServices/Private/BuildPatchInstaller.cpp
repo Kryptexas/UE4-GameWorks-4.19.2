@@ -524,6 +524,31 @@ bool FBuildPatchInstaller::RunInstallation(TArray<FString>& CorruptFiles)
 	return !FBuildPatchInstallError::HasFatalError();
 }
 
+
+void FBuildPatchInstaller::CleanupEmptyDirectories(const FString& RootDirectory)
+{
+	TArray<FString> SubDirNames;
+	IFileManager::Get().FindFiles(SubDirNames, *(RootDirectory / TEXT("*")), false, true);
+	for(auto DirName : SubDirNames)
+	{
+		CleanupEmptyDirectories(*(RootDirectory / DirName));
+	}
+
+	TArray<FString> SubFileNames;
+	IFileManager::Get().FindFilesRecursive(SubFileNames, *RootDirectory, TEXT("*.*"), true, false);
+	if (SubFileNames.Num() == 0)
+	{
+#if PLATFORM_MAC
+		// On Mac we need to delete the .DS_Store file, but FindFiles() skips .DS_Store files.
+		IFileManager::Get().Delete(*(RootDirectory / TEXT(".DS_Store")), false, true);
+#endif
+
+		bool bDeleteSuccess = IFileManager::Get().DeleteDirectory(*RootDirectory, false, true);
+		const uint32 LastError = FPlatformMisc::GetLastError();
+		GLog->Logf(TEXT("BuildPatchServices: Deleted Empty Folder (%u,%u) %s"), bDeleteSuccess ? 1 : 0, LastError, *RootDirectory);
+	}
+}
+
 bool FBuildPatchInstaller::RunBackupAndMove()
 {
 	GLog->Logf(TEXT("BuildPatchServices: Running backup and stage relocation"));
@@ -548,7 +573,7 @@ bool FBuildPatchInstaller::RunBackupAndMove()
 			const uint32 LastError = FPlatformMisc::GetLastError();
 			GLog->Logf(TEXT("BuildPatchServices: Removed (%u,%u) %s"), bDeleteSuccess ? 1 : 0, LastError, *OldFilename);
 		}
-
+		
 		// Now handle files that have been constructed
 		bool bSavedMoveMarkerFile = false;
 		TArray< FString > ConstructionFiles;
@@ -621,6 +646,9 @@ bool FBuildPatchInstaller::RunBackupAndMove()
 				BuildProgress.SetStateProgress(EBuildPatchProgress::MovingToInstall, FileIndexFloat / NumConstructionFilesFloat);
 			}
 		}
+		
+		// After we've completed deleting/moving patch files to the install directory, clean up any empty directories left over
+		CleanupEmptyDirectories(InstallDirectory);
 
 		bMoveSuccess = bMoveSuccess && (FBuildPatchInstallError::HasFatalError() == false);
 		if (bMoveSuccess)

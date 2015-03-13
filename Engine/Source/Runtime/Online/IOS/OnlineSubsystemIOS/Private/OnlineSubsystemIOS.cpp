@@ -36,6 +36,10 @@ IOnlineUserCloudPtr FOnlineSubsystemIOS::GetUserCloudInterface() const
 	return NULL;
 }
 
+IOnlineUserCloudPtr FOnlineSubsystemIOS::GetUserCloudInterface(const FString& Key) const
+{
+	return NULL;
+}
 
 IOnlineLeaderboardsPtr FOnlineSubsystemIOS::GetLeaderboardsInterface() const
 {

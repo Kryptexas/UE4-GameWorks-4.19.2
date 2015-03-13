@@ -33,20 +33,26 @@ public:
 
 		SUserWidget::Construct(SUserWidget::FArguments()
 		[
-			SNew(SFriendsAndChatCombo)
+			SNew(SFriendsAndChatCombo)			
 			.FriendStyle(&FriendStyle)
 			.ButtonText(ViewModelPtr, &FFriendsStatusViewModel::GetStatusText)
 			.bShowIcon(true)
-			.IconBrush(this, &SFriendsStatusImpl::GetCurrentStatusBrush)
 			.DropdownItems(ComboMenuItems)
 			.bSetButtonTextToSelectedItem(false)
 			.bAutoCloseWhenClicked(true)
 			.ButtonSize(FriendStyle.StatusButtonSize)
 			.OnDropdownItemClicked(this, &SFriendsStatusImpl::HandleStatusChanged)
+			.IsEnabled(this, &SFriendsStatusImpl::IsStatusEnabled)
 		]);
 	}
 
 private:
+
+	bool IsStatusEnabled() const
+	{
+		return true;
+	}
+
 	void HandleStatusChanged(FName ItemTag)
 	{
 		if (ViewModel.IsValid())

@@ -10,7 +10,7 @@ class FFriendItem : public IFriendItem
 {
 public:
 
-	const static FString LauncherClientId;
+	const static FString LauncherClientIds;
 	const static FString FortniteClientId;
 	const static FString UnrealTournamentClientId;
 
@@ -100,7 +100,7 @@ public:
 	 * Get the online status of the user
 	 * @return online presence status
 	 */
-	virtual EOnlinePresenceState::Type GetOnlineStatus() const override;
+	virtual const EOnlinePresenceState::Type GetOnlineStatus() const override;
 
 	/**
 	 * Get if the user is online and his game is joinable

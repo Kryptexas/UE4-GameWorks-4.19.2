@@ -141,6 +141,8 @@ IBuildInstallerPtr FBuildPatchServicesModule::StartBuildInstall( IBuildManifestP
 	{
 		return NULL;
 	}
+	// Make sure the http wrapper is already created
+	FBuildPatchHTTP::Initialize();
 	// Run the install thread
 	BuildPatchInstallers.Add( MakeShareable( new FBuildPatchInstaller( OnCompleteDelegate, CurrentManifestInternal, InstallManifestInternal.ToSharedRef(), InstallDirectory, GetStagingDirectory(), InstallationInfo ) ) );
 	return BuildPatchInstallers.Top();
@@ -193,6 +195,11 @@ bool FBuildPatchServicesModule::CompactifyCloudDirectory(const TArray<FString>& 
 	const bool bPreview = Mode == ECompactifyMode::Preview;
 	const bool bNoPatchDelete = Mode == ECompactifyMode::NoPatchDelete;
 	return FBuildDataCompactifier::CompactifyCloudDirectory(ManifestsToKeep, DataAgeThreshold, bPreview, bNoPatchDelete);
+}
+
+bool FBuildPatchServicesModule::EnumerateManifestData(FString ManifestFilePath, FString OutputFile)
+{
+	return FBuildDataEnumeration::EnumerateManifestData(MoveTemp(ManifestFilePath), MoveTemp(OutputFile));
 }
 
 #endif //WITH_BUILDPATCHGENERATION

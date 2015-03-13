@@ -37,6 +37,11 @@ IOnlineUserCloudPtr FOnlineSubsystemNull::GetUserCloudInterface() const
 	return NULL;
 }
 
+IOnlineUserCloudPtr FOnlineSubsystemNull::GetUserCloudInterface(const FString& Key) const
+{
+	return NULL;
+}
+
 IOnlineEntitlementsPtr FOnlineSubsystemNull::GetEntitlementsInterface() const
 {
 	return NULL;

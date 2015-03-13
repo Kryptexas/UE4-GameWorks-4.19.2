@@ -331,6 +331,18 @@ namespace EpicGames.MCP.Automation
 			public List<KeyValuePair<string, float>> CustomFloatArgs;
 		}
 
+		public class DataEnumerationOptions
+		{
+			/// <summary>
+			/// Matches the corresponding BuildPatchTool command line argument.
+			/// </summary>
+			public string ManifestFile;
+			/// <summary>
+			/// Matches the corresponding BuildPatchTool command line argument.
+			/// </summary>
+			public string OutputFile;
+		}
+
         static BuildPatchToolBase Handler = null;
 
         public static BuildPatchToolBase Get()
@@ -363,6 +375,12 @@ namespace EpicGames.MCP.Automation
         /// </summary>
 		/// <param name="Opts">Parameters which will be passed to the patch tool generation process</param>
 		public abstract void Execute(PatchGenerationOptions Opts);
+
+		/// <summary>
+		/// Runs the Build Patch Tool executable to enumerate patch data files referenced by a manifest using the supplied parameters.
+		/// </summary>
+		/// <param name="Opts">Parameters which will be passed to the patch tool enumeration process</param>
+		public abstract void Execute(DataEnumerationOptions Opts);
 
     }
 

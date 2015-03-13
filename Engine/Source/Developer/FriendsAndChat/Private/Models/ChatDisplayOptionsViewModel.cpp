@@ -89,7 +89,7 @@ public:
 
 	virtual const bool IsChatHidden() override
 	{
-		return ChatViewModel->GetFilteredChatList().Num() == 0 || (bInGame && GetOverrideColorSet());
+		return ChatViewModel->GetMessages().Num() == 0 || (bInGame && GetOverrideColorSet());
 	}
 
 	virtual TSharedPtr<class FChatViewModel> GetChatViewModel() const override

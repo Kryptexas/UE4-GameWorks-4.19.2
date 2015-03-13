@@ -978,6 +978,11 @@ void FWindowsPlatformMisc::RequestExit( bool Force )
 	}
 }
 
+void FWindowsPlatformMisc::RequestMinimize()
+{
+	::ShowWindow(::GetActiveWindow(), SW_MINIMIZE);
+}
+
 const TCHAR* FWindowsPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
 {
 	check(OutBuffer && BufferCount);

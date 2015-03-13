@@ -79,8 +79,8 @@ FVector2D FTextBlockLayout::ComputeDesiredSize(const FWidgetArgs& InWidgetArgs, 
 	}
 
 	// We need to update our size if the text layout has become dirty
-	TextLayout->UpdateIfNeeded();
-	
+		TextLayout->UpdateIfNeeded();
+
 	return TextLayout->GetSize();
 }
 

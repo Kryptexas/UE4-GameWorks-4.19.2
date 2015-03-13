@@ -16,6 +16,11 @@ SWebBrowser::SWebBrowser()
 
 void SWebBrowser::Construct(const FArguments& InArgs)
 {
+	OnLoadCompleted = InArgs._OnLoadCompleted;
+	OnLoadError = InArgs._OnLoadError;
+	OnLoadStarted = InArgs._OnLoadStarted;
+	OnTitleChanged = InArgs._OnTitleChanged;
+
 	void* OSWindowHandle = nullptr;
 	if (InArgs._ParentWindow.IsValid())
 	{
@@ -23,12 +28,15 @@ void SWebBrowser::Construct(const FArguments& InArgs)
 		OSWindowHandle = NativeWindow->GetOSWindowHandle();
 	}
 
-	BrowserWindow = IWebBrowserModule::Get().GetSingleton()->CreateBrowserWindow(OSWindowHandle,
-	                                                                             InArgs._InitialURL,
-	                                                                             InArgs._ViewportSize.Get().X,
-	                                                                             InArgs._ViewportSize.Get().Y,
-	                                                                             InArgs._SupportsTransparency,
-	                                                                             InArgs._ContentsToLoad);
+	BrowserWindow = IWebBrowserModule::Get().GetSingleton()->CreateBrowserWindow(
+		OSWindowHandle,
+		InArgs._InitialURL,
+		InArgs._ViewportSize.Get().X,
+		InArgs._ViewportSize.Get().Y,
+		InArgs._SupportsTransparency,
+		InArgs._ContentsToLoad,
+		InArgs._ShowErrorMessage
+	);
 
 	TSharedPtr<SViewport> ViewportWidget;
 
@@ -101,6 +109,7 @@ void SWebBrowser::Construct(const FArguments& InArgs)
 
 	if (BrowserWindow.IsValid())
 	{
+		BrowserWindow->OnDocumentStateChanged().AddSP(this, &SWebBrowser::HandleBrowserWindowDocumentStateChanged);
 		BrowserViewport = MakeShareable(new FWebBrowserViewport(BrowserWindow, ViewportWidget));
 		ViewportWidget->SetViewportInterface(BrowserViewport.ToSharedRef());
 	}
@@ -129,6 +138,36 @@ FText SWebBrowser::GetTitleText() const
 		return FText::FromString(BrowserWindow->GetTitle());
 	}
 	return LOCTEXT("InvalidWindow", "Browser Window is not valid/supported");
+}
+
+FString SWebBrowser::GetUrl()
+{
+	if (BrowserWindow->IsValid())
+	{
+		return BrowserWindow->GetUrl();
+	}
+
+	return FString();
+}
+
+bool SWebBrowser::IsLoaded() const
+{
+	if (BrowserWindow.IsValid())
+	{
+		return (BrowserWindow->GetDocumentLoadingState() == EWebBrowserDocumentState::Completed);
+	}
+
+	return false;
+}
+
+bool SWebBrowser::IsLoading() const
+{
+	if (BrowserWindow.IsValid())
+	{
+		return (BrowserWindow->GetDocumentLoadingState() == EWebBrowserDocumentState::Loading);
+	}
+
+	return false;
 }
 
 bool SWebBrowser::CanGoBack() const
@@ -215,5 +254,25 @@ EVisibility SWebBrowser::GetLoadingThrobberVisibility() const
 	}
 	return EVisibility::Hidden;
 }
+
+
+void SWebBrowser::HandleBrowserWindowDocumentStateChanged(EWebBrowserDocumentState NewState)
+{
+	switch (NewState)
+	{
+	case EWebBrowserDocumentState::Completed:
+		OnLoadCompleted.ExecuteIfBound();
+		break;
+
+	case EWebBrowserDocumentState::Error:
+		OnLoadError.ExecuteIfBound();
+		break;
+
+	case EWebBrowserDocumentState::Loading:
+		OnLoadStarted.ExecuteIfBound();
+		break;
+	}
+}
+
 
 #undef LOCTEXT_NAMESPACE

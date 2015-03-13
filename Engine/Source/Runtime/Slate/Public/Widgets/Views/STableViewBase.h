@@ -92,6 +92,12 @@ public:
 	/** Is this list backing a tree or just a standalone list */
 	const ETableViewMode::Type TableViewMode;
 
+	/** Scrolls the view to the top */
+	void ScrollToTop();
+
+	/** Scrolls the view to the bottom */
+	void ScrollToBottom();
+
 public:
 
 	// SWidget interface

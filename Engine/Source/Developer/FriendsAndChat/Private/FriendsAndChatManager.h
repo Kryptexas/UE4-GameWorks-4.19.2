@@ -125,16 +125,21 @@ public:
 	virtual void Logout() override;
 	virtual void Login() override;
 	virtual bool IsLoggedIn() override;
+	virtual void SetOnline() override;
+	virtual void SetAway() override;
+	virtual EOnlinePresenceState::Type GetOnlineStatus() override;
 	virtual void AddApplicationViewModel(const FString ClientID, TSharedPtr<IFriendsApplicationViewModel> ApplicationViewModel) override;
 	virtual void CreateFriendsListWindow(const FFriendsAndChatStyle* InStyle) override;
-	virtual void CreateChatWindow(const struct FFriendsAndChatStyle* InStyle, EChatMessageType::Type ChatType, TSharedPtr<IFriendItem> FriendItem) override;
+	virtual void CreateChatWindow(const struct FFriendsAndChatStyle* InStyle, EChatMessageType::Type ChatType, TSharedPtr<IFriendItem> FriendItem, bool BringToFront = false) override;
 	virtual void SetUserSettings(const FFriendsAndChatSettings& UserSettings) override;
 	virtual void SetAnalyticsProvider(const TSharedPtr<IAnalyticsProvider>& AnalyticsProvider) override;
 	virtual TSharedPtr< SWidget > GenerateFriendsListWidget( const FFriendsAndChatStyle* InStyle ) override;
+	virtual TSharedPtr< SWidget > GenerateStatusWidget( const FFriendsAndChatStyle* InStyle ) override;
 	virtual TSharedPtr< SWidget > GenerateChatWidget(const FFriendsAndChatStyle* InStyle, TSharedRef<IChatViewModel> ViewModel, TAttribute<FText> ActivationHintDelegate) override;
 	virtual TSharedPtr<IChatViewModel> GetChatViewModel() override;
 	virtual void InsertNetworkChatMessage(const FString& InMessage) override;
 	virtual void JoinPublicChatRoom(const FString& RoomName) override;
+	virtual void SetPublicChatRoomPermission(bool Allow) override;
 	virtual void OnChatPublicRoomJoined(const FString& ChatRoomID) override;
 
 	/**
@@ -190,9 +195,9 @@ public:
 	bool IsInGlobalChat() const;
 
 	/**
-	 * @return if user has account permission
+	 * @return if user has permission to join Global chat
 	 */
-	bool HasPermission(const FString& Permission);
+	bool HasGlobalChatPermission();
 
 	/**
 	 * Set the chat friend.
@@ -211,7 +216,7 @@ public:
 	 * @param Window		 The Window to set conent on
 	 * @param FriendItem	 The Friend if its a whisper window
 	 */
-	void SetChatWindowContents(TSharedPtr<SWindow> Window, TSharedPtr< IFriendItem > FriendItem);
+	void SetChatWindowContents(TSharedPtr<SWindow> Window, TSharedPtr< IFriendItem > FriendItem, const FFriendsAndChatStyle& FriendStyle);
 
 	/**
 	 * Accept a friend request.
@@ -260,8 +265,9 @@ public:
 	 * Request a friend to be deleted.
 	 *
 	 * @param FriendItem The friend item to delete.
+	 * @param DeleteReason The reason the friend is being deleted.
 	 */
-	void DeleteFriend( TSharedPtr< IFriendItem > FriendItem );
+	void DeleteFriend(TSharedPtr< IFriendItem > FriendItem, const FString& Action);
 
 	/**
 	 * Get incoming game invite list.
@@ -319,13 +325,6 @@ public:
 	TSharedPtr< FUniqueNetId > FindUserID( const FString& InUsername );
 
 	/**
-	 * Is the owner online
-	 *
-	 * @return true if online
-	 */
-	EOnlinePresenceState::Type GetUserIsOnline();
-
-	/**
 	 * Set the user online status
 	 *
 	 * @param OnlineState - the online state
@@ -361,6 +360,7 @@ public:
 	 * @return The Friend ID.
 	 */
 	TSharedPtr< IFriendItem > FindUser(const FUniqueNetId& InUserID);
+	TSharedPtr< IFriendItem > FindUser(const TSharedRef<FUniqueNetId>& InUserID);
 
 	TSharedPtr<class FFriendViewModel> GetFriendViewModel(const FUniqueNetId& InUserID);
 
@@ -576,7 +576,7 @@ private:
 	 * @param FromId user that send the game invite
 	 * @param InviteResult info about the game session that can be joined
 	 */
-	void OnGameInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FromId, const FOnlineSessionSearchResult& InviteResult);
+	void OnGameInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FromId, const FString& ClientId, const FOnlineSessionSearchResult& InviteResult);
 
 	/**
 	 * Process any invites that were received and are pending. 
@@ -656,6 +656,13 @@ private:
 	/** Add a friend toast. */
 	void AddFriendsToast(const FText Message);
 
+	/**
+	 * Get the best spawn position for the next chat windo
+	 *
+	 * @return Spawn position
+	 */
+	FVector2D GetWindowSpawnPosition() const;
+
 private:
 
 	/* Lists used to keep track of Friends
@@ -702,18 +709,22 @@ private:
 	public:
 		FReceivedGameInvite(
 			const TSharedRef<FUniqueNetId>& InFromId,
-			const FOnlineSessionSearchResult& InInviteResult)
+			const FOnlineSessionSearchResult& InInviteResult,
+			const FString& InClientId)
 			: FromId(InFromId)
 			, InviteResult(new FOnlineSessionSearchResult(InInviteResult))
+			, ClientId(InClientId)
 		{}
 		// who sent the invite (could be non-friend)
 		TSharedRef<FUniqueNetId> FromId;
 		// session info needed to join the invite
 		TSharedRef<FOnlineSessionSearchResult> InviteResult;
+		// Clietn id for user that sent hte invite
+		FString ClientId;
 		// equality check
 		bool operator==(const FReceivedGameInvite& Other) const
 		{
-			return Other.FromId == FromId;
+			return Other.FromId == FromId && Other.ClientId == ClientId;
 		}
 	};
 	// List of invites that need to be processed
@@ -797,6 +808,8 @@ private:
 	bool bJoinedGlobalChat;
 	// Use one window for each chat
 	bool bMultiWindowChat;
+	// Has Permission to use global chat
+	bool bHasGlobalChatPermission;
 
 	/* Manger state
 	*****************************************************************************/
@@ -863,6 +876,5 @@ private:
 	FDelegateHandle OnPresenceReceivedCompleteDelegateHandle;
 	FDelegateHandle OnGameInviteReceivedDelegateHandle;
 	FDelegateHandle OnDestroySessionCompleteDelegateHandle;
-	FDelegateHandle OnQueryUserIdMappingCompleteDelegateHandle;
 	FDelegateHandle UpdateFriendsTickerDelegateHandle;
 };

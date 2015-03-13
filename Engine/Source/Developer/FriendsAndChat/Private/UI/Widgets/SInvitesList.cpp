@@ -46,6 +46,13 @@ private:
 				.FriendStyle(&FriendStyle)
 			];
 		}
+
+		this->RegisterActiveTimer(0.f, FWidgetActiveTimerDelegate::CreateSP(this, &SInvitesListImpl::OneTimeTickUpdate));
+	}
+
+	EActiveTimerReturnType OneTimeTickUpdate(double InCurrentTime, float InDeltaTime)
+	{
+		return EActiveTimerReturnType::Stop;
 	}
 
 private:

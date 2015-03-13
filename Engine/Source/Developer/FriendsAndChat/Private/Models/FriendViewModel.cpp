@@ -107,7 +107,7 @@ public:
 			case EFriendActionType::RejectFriendRequest:
 			case EFriendActionType::CancelFriendRequest:
 			{
-				RemoveFriend();
+				RemoveFriend(EFriendActionType::ToText(ActionType).ToString());
 				break;
 			}
 			case EFriendActionType::SendFriendRequest : 
@@ -180,9 +180,9 @@ public:
 		Uninitialize();
 	}
 
-	virtual FText GetFriendName() const override
+	virtual const FString GetName() const override
 	{
-		return FText::FromString(FriendItem->GetName());
+		return FriendItem->GetName();
 	}
 
 	virtual FText GetFriendLocation() const override
@@ -200,21 +200,21 @@ public:
 		return FFriendsAndChatManager::Get()->IsInGameSession();
 	}
 
-	virtual EOnlinePresenceState::Type GetOnlineStatus() const override
+	virtual const EOnlinePresenceState::Type GetOnlineStatus() const override
 	{
 		return FriendItem.IsValid() ? FriendItem->GetOnlineStatus() : EOnlinePresenceState::Offline;
 	}
 
-	virtual FString GetClientId() const override
+	virtual const FString GetClientId() const override
 	{
 		return FriendItem.IsValid() ? FriendItem->GetClientId() : FString();
 	}
 
 private:
 
-	void RemoveFriend() const
+	void RemoveFriend(const FString& Action) const
 	{
-		FFriendsAndChatManager::Get()->DeleteFriend( FriendItem );
+		FFriendsAndChatManager::Get()->DeleteFriend(FriendItem, Action);
 	}
 
 	void AcceptFriend() const

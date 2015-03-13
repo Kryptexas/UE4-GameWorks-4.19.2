@@ -257,12 +257,12 @@ void FHTML5HttpRequest::ProgressCallback(void* arg, int Loaded, int Total) {
 		if (Response.IsValid())
 		{
 			Response->TotalBytesRead = Loaded;
-			OnRequestProgress().ExecuteIfBound(SharedThis(this), Response->TotalBytesRead);
+			OnRequestProgress().ExecuteIfBound(SharedThis(this), 0, Response->TotalBytesRead);
 		}
 	}
 	else {
 		BytesSent = Loaded;
-		OnRequestProgress().ExecuteIfBound(SharedThis(this), BytesSent);
+		OnRequestProgress().ExecuteIfBound(SharedThis(this), BytesSent, 0);
 	}
 
 	UE_LOG(LogHttp, Verbose, TEXT("Loaded: %d, Total: %d"), Loaded, Total);

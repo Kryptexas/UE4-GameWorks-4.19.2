@@ -628,7 +628,7 @@ public:
 	 */
 	virtual void Finalize() override
 	{
-		Subsystem->TriggerOnConnectionStatusChangedDelegates(ConnectionState);
+		Subsystem->TriggerOnConnectionStatusChangedDelegates(EOnlineServerConnectionStatus::Normal, ConnectionState);
 	}
 };
 
@@ -779,7 +779,7 @@ public:
 		if (bTriggerConnectionStatusUpdate)
 		{
 			EOnlineServerConnectionStatus::Type ConnectionState = SteamConnectionResult(CallbackResults.m_eResult);
-			Subsystem->TriggerOnConnectionStatusChangedDelegates(ConnectionState);
+			Subsystem->TriggerOnConnectionStatusChangedDelegates(EOnlineServerConnectionStatus::Normal, ConnectionState);
 		}
 	}
 };

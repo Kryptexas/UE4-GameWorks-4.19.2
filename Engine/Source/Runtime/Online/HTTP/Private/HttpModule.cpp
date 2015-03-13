@@ -1,6 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
 #include "HttpPrivatePCH.h"
+#include "NullHttp.h"
 #include "HttpTests.h"
 
 DEFINE_LOG_CATEGORY(LogHttp);
@@ -42,6 +43,12 @@ void FHttpModule::StartupModule()
 	
 	bEnableHttp = true;
 	GConfig->GetBool(TEXT("HTTP"), TEXT("bEnableHttp"), bEnableHttp, GEngineIni);
+
+	bUseNullHttp = false;
+	GConfig->GetBool(TEXT("HTTP"), TEXT("bUseNullHttp"), bUseNullHttp, GEngineIni);
+
+	HttpDelayTime = 0;
+	GConfig->GetFloat(TEXT("HTTP"), TEXT("HttpDelayTime"), HttpDelayTime, GEngineIni);
 }
 
 void FHttpModule::ShutdownModule()
@@ -121,7 +128,14 @@ FHttpModule& FHttpModule::Get()
 
 TSharedRef<IHttpRequest> FHttpModule::CreateRequest()
 {
-	// Create the platform specific Http request instance
-	return TSharedRef<IHttpRequest>( FPlatformHttp::ConstructRequest() );
+	if (bUseNullHttp)
+	{
+		return TSharedRef<IHttpRequest>(new FNullHttpRequest());
+	}
+	else
+	{
+		// Create the platform specific Http request instance
+		return TSharedRef<IHttpRequest>(FPlatformHttp::ConstructRequest());
+	}
 }
 

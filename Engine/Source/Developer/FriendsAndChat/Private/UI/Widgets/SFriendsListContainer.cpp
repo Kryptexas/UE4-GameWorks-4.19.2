@@ -39,6 +39,7 @@ public:
 					SNew(SButton)
 					.OnClicked(this, &SFriendsListContainerImpl::HandleShowFriendsClicked)
 					.ButtonStyle(FCoreStyle::Get(), "NoBorder")
+					.ContentPadding(FMargin(7.0f, 2.0f, 4.0f, 2.0f))
 					.Cursor(EMouseCursor::Hand)
 					[
 						SNew(SHorizontalBox)
@@ -70,7 +71,7 @@ public:
 						[
 							SNew(STextBlock)
 							.ColorAndOpacity(FLinearColor::White)
-							.Font(FriendStyle.FriendsFontStyleBold)
+							.Font(FriendStyle.FriendsFontStyleUserLarge)
 							.Text(ViewModel->GetListName())
 						]
 						+ SHorizontalBox::Slot()

@@ -690,6 +690,11 @@ void FMacPlatformMisc::RequestExit( bool Force )
 	}
 }
 
+void FMacPlatformMisc::RequestMinimize()
+{
+	[NSApp hide : nil];
+}
+
 const TCHAR* FMacPlatformMisc::GetSystemErrorMessage(TCHAR* OutBuffer, int32 BufferCount, int32 Error)
 {
 	// There's no Mac equivalent for GetLastError()
@@ -975,6 +980,7 @@ int32 FMacPlatformMisc::NumberOfCoresIncludingHyperthreads()
 
 void FMacPlatformMisc::NormalizePath(FString& InPath)
 {
+	SCOPED_AUTORELEASE_POOL;
 	if (InPath.Len() > 1)
 	{
 		const bool bAppendSlash = InPath[InPath.Len() - 1] == '/'; // NSString will remove the trailing slash, if present, so we need to restore it after conversion

@@ -41,8 +41,9 @@ public:
 	 * @param InViewportSize Initial size of the browser window.
 	 * @param InInitialURL The Initial URL that will be loaded.
 	 * @param InContentsToLoad Optional string to load as a web page.
+	 * @param InShowErrorMessage Whether to show an error message in case of loading errors.
 	 */
-	FWebBrowserWindow(FIntPoint InViewportSize, FString InInitialURL, TOptional<FString> InContentsToLoad);
+	FWebBrowserWindow(FIntPoint InViewportSize, FString InInitialURL, TOptional<FString> InContentsToLoad, bool InShowErrorMessage);
 
 	/** Virtual Destructor. */
 	virtual ~FWebBrowserWindow();
@@ -70,7 +71,9 @@ public:
 	virtual bool IsValid() const override;
 	virtual bool HasBeenPainted() const override;
 	virtual bool IsClosing() const override;
+	virtual EWebBrowserDocumentState GetDocumentLoadingState() const override;
 	virtual FString GetTitle() const override;
+	virtual FString GetUrl() const override;
 	virtual void OnKeyDown(const FKeyEvent& InKeyEvent) override;
 	virtual void OnKeyUp(const FKeyEvent& InKeyEvent) override;
 	virtual void OnKeyChar(const FCharacterEvent& InCharacterEvent) override;
@@ -88,6 +91,12 @@ public:
 	virtual bool IsLoading() const override;
 	virtual void Reload() override;
 	virtual void StopLoad() override;
+
+	DECLARE_DERIVED_EVENT(FWebBrowserWindow, IWebBrowserWindow::FOnDocumentStateChanged, FOnDocumentStateChanged);
+	virtual FOnDocumentStateChanged& OnDocumentStateChanged() override
+	{
+		return DocumentStateChangedEvent;
+	}
 
 	DECLARE_DERIVED_EVENT(FWebBrowserWindow, IWebBrowserWindow::FOnTitleChanged, FOnTitleChanged);
 	virtual FOnTitleChanged& OnTitleChanged() override
@@ -120,6 +129,16 @@ private:
 	 */
 	bool GetViewRect(CefRect& Rect);
 
+	/** Notifies clients that document loading has failed. */
+	void NotifyDocumentError();
+
+	/**
+	 * Notifies clients that the loading state of the document has changed.
+	 *
+	 * @param IsLoading Whether the document is loading (false = completed).
+	 */
+	void NotifyDocumentLoadingStateChange(bool IsLoading);
+
 	/**
 	 * Called when there is an update to the rendered web page.
 	 *
@@ -137,6 +156,8 @@ private:
 	 * @param Cursor Handle to CEF mouse cursor.
 	 */
 	void OnCursorChange(CefCursorHandle Cursor);
+
+public:
 
 	/**
 	 * Gets the Cef Keyboard Modifiers based on a Key Event.
@@ -163,6 +184,9 @@ private:
 	static int32 GetCefInputModifiers(const FInputEvent& InputEvent);
 
 private:
+
+	/** Current state of the document being loaded. */
+	EWebBrowserDocumentState DocumentState;
 
 	/** Interface to the texture we are rendering to. */
 	FSlateUpdatableTexture* UpdatableTexture;
@@ -193,6 +217,12 @@ private:
 
 	/** Optional text to load as a web page. */
 	TOptional<FString> ContentsToLoad;
+
+	/** Delegate for broadcasting load state changes. */
+	FOnDocumentStateChanged DocumentStateChangedEvent;
+
+	/** Whether to show an error message in case of loading errors. */
+	bool ShowErrorMessage;
 
 	/** Delegate for broadcasting title changes. */
 	FOnTitleChanged TitleChangedEvent;

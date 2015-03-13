@@ -140,13 +140,19 @@ FBuildPatchHTTP& FBuildPatchHTTP::Get()
 {
 	if (SingletonInstance.IsValid() == false)
 	{
+		checkf(IsInGameThread(), TEXT("FBuildPatchHTTP::Get() called for first time from secondary thread."));
 		SingletonInstance = MakeShareable(new FBuildPatchHTTP());
 		TickDelegateHandle = FTicker::GetCoreTicker().AddTicker( FTickerDelegate::CreateSP( SingletonInstance.Get(), &FBuildPatchHTTP::Tick ) );
 	}
 	return *SingletonInstance.Get();
 }
+void FBuildPatchHTTP::Initialize()
+{
+	FBuildPatchHTTP::Get();
+}
 void FBuildPatchHTTP::OnShutdown()
 {
+	checkf(IsInGameThread(), TEXT("FBuildPatchHTTP::OnShutdown() called from secondary thread."));
 	if (SingletonInstance.IsValid())
 	{
 		SingletonInstance->Tick( 0.0f );

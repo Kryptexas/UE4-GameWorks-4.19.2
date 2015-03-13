@@ -147,6 +147,16 @@ public:
 	}
 
 	/**
+	* Set a button style.
+	*
+	* @param ButtonStyle The button callback.
+	*/
+	void SetButtonStyle(FName ButtonStyle)
+	{
+		ButtonStyles.Add(ButtonStyle);
+	}
+
+	/**
 	 * Set the message type.
 	 *
 	 * @param InType The message type.
@@ -262,6 +272,16 @@ public:
 		return MessageDescriptions;
 	}
 
+	/**
+	* Get button styles.
+	*
+	* @return The button style array.
+	*/
+	const TArray< FName >& GetButtonStyles() const
+	{
+		return ButtonStyles;
+	}
+
 	/** Set this message into a handled state. */
 	void SetHandled()
 	{
@@ -273,8 +293,11 @@ private:
 	// Holds the button callbacks
 	TArray< FOnClicked > ButtonCallbacks;
 
+	// Holds the button styles
+	TArray< FName > ButtonStyles;
+
 	// Holds the Action Descriptions
-	TArray< FText > MessageDescriptions;
+	TArray< FText > MessageDescriptions;	
 	
 	// Holds the message content
 	FString MessageConent;

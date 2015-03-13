@@ -77,7 +77,7 @@ public:
 	 * Get the online status of the user
 	 * @return online presence status
 	 */
-	virtual EOnlinePresenceState::Type GetOnlineStatus() const override;
+	virtual const EOnlinePresenceState::Type GetOnlineStatus() const override;
 
 	/**
 	 * Get the Unique ID.

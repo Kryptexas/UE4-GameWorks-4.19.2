@@ -58,9 +58,10 @@ typedef TSharedPtr<class FOnlineNotificationTransportManager, ESPMode::ThreadSaf
 /**
  * Called when the connection state as reported by the online platform changes
  *
- * @param ConnectionState state of the connection
+ * @param LastConnectionState last state of the connection
+ * @param ConnectionState current state of the connection
  */
-DECLARE_MULTICAST_DELEGATE_OneParam(FOnConnectionStatusChanged, EOnlineServerConnectionStatus::Type);
+DECLARE_MULTICAST_DELEGATE_TwoParams(FOnConnectionStatusChanged, EOnlineServerConnectionStatus::Type /*LastConnectionState*/, EOnlineServerConnectionStatus::Type /*ConnectionState*/);
 typedef FOnConnectionStatusChanged::FDelegate FOnConnectionStatusChangedDelegate;
 
 /**
@@ -156,13 +157,20 @@ public:
 	 */
 	virtual IOnlineSharedCloudPtr GetSharedCloudInterface() const = 0;
 
-	/** 
-	 * Get the interface for accessing user files in the cloud
-	 * @return Interface pointer for the appropriate cloud service
-	 */
+	/**
+	* Get the interface for accessing user files in the cloud
+	* @return Interface pointer for the appropriate cloud service
+	*/
 	virtual IOnlineUserCloudPtr GetUserCloudInterface() const = 0;
 
-	/** 
+	/**
+	* Get the interface for accessing user files in the cloud for a specific service
+	* @param Key   The key for the required user cloud interface
+	* @return      Interface pointer for the appropriate cloud service
+	*/
+	virtual IOnlineUserCloudPtr GetUserCloudInterface(const FString& Key) const = 0;
+
+	/**
 	 * Get the interface for accessing user entitlements
 	 * @return Interface pointer for the appropriate entitlements service
 	 */
@@ -362,9 +370,10 @@ public:
 	/**
 	 * Called when the connection state as reported by the online platform changes
 	 *
-	 * @param ConnectionState state of the connection
+	 * @param LastConnectionState last state of the connection
+	 * @param ConnectionState current state of the connection
 	 */
-	DEFINE_ONLINE_DELEGATE_ONE_PARAM(OnConnectionStatusChanged, EOnlineServerConnectionStatus::Type);
+	DEFINE_ONLINE_DELEGATE_TWO_PARAM(OnConnectionStatusChanged, EOnlineServerConnectionStatus::Type /*LastConnectionState*/, EOnlineServerConnectionStatus::Type /*ConnectionState*/);
 };
 
 /** Public references to the online subsystem pointer should use this */

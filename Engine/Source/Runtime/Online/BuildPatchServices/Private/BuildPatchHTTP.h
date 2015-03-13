@@ -77,6 +77,11 @@ public:
 	static void QueueAnalyticsEvent( const FString& EventName, const TArray< FAnalyticsEventAttribute >& Attributes );
 
 	/**
+	 * Ensures that the wrapper is initialized
+	 */
+	static void Initialize();
+
+	/**
 	 * Clears any remaining queue and deletes the singleton. NB: Be weary of timing, if one of the static functions above is called after this
 	 * then the singleton will be re-created
 	 */
