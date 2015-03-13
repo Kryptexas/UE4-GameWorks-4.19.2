@@ -843,7 +843,7 @@ bool FBuildPatchInstaller::RunPrereqInstaller()
 		FPlatformProcess::WaitForProc(ProcessHandle);
 		FPlatformProcess::GetProcReturnCode(ProcessHandle, &ReturnCode);
 
-		ProcessHandle.Close();
+		FPlatformProcess::CloseProc(ProcessHandle);
 
 		if (ReturnCode != 0)
 		{
