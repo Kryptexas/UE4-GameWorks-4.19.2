@@ -2265,7 +2265,7 @@ int32 FPImplRecastNavMesh::GetTilesDebugGeometry(const FRecastNavMeshGenerator* 
 		}
 	}
 
-	/*for (int32 i = 0; i < Header->clusterCount; i++)
+	for (int32 i = 0; i < Header->clusterCount; i++)
 	{
 		const dtCluster& c0 = Tile.clusters[i];
 		uint32 iLink = c0.firstLink;
@@ -2296,7 +2296,7 @@ int32 FPImplRecastNavMesh::GetTilesDebugGeometry(const FRecastNavMeshGenerator* 
 				OutGeometry.ClusterLinks.Add(LinkGeom);
 			}
 		}
-	}*/
+	}
 
 	// Get tile edges and navmesh edges
 	if (OutGeometry.bGatherPolyEdges || OutGeometry.bGatherNavMeshEdges)

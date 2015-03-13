@@ -885,7 +885,7 @@ dtStatus dtBuildTileCacheContours(dtTileCacheAlloc* alloc, dtTileCacheLayer& lay
 	}
 
 	// Build clusters
-	clusters.nregs = layer.regCount;
+	clusters.nregs = layer.regCount ? (layer.regCount + 1) : 0;
 	clusters.npolys = 0;
 	clusters.nclusters = 0;
 	clusters.regMap = (unsigned short*)alloc->alloc(sizeof(unsigned short)*clusters.nregs);
@@ -904,8 +904,8 @@ dtStatus dtBuildTileCacheContours(dtTileCacheAlloc* alloc, dtTileCacheLayer& lay
 	// - gather all neighbor regions
 	// - repeat inner loop for every region from list
 	
-	dtScopedDelete<unsigned short> neiRegs(layer.regCount);
-	dtScopedDelete<unsigned short> newNeiRegs(layer.regCount);
+	dtScopedDelete<unsigned short> neiRegs(layer.regCount + 1);
+	dtScopedDelete<unsigned short> newNeiRegs(layer.regCount + 1);
 	int nneiRegs = 0;
 	int nnewNeiRegs = 0;
 	
@@ -924,7 +924,7 @@ dtStatus dtBuildTileCacheContours(dtTileCacheAlloc* alloc, dtTileCacheLayer& lay
 		{
 			// there could be more than one contour per region...
 			dtTileCacheContour& cont = lcset.conts[ic];
-			if (cont.reg != (unsigned short)i || cont.area == DT_TILECACHE_NULL_AREA)
+			if (cont.reg != (unsigned short)(i) || cont.area == DT_TILECACHE_NULL_AREA)
 			{
 				continue;
 			}
