@@ -225,7 +225,7 @@
 					<br />
 					<h3>Error Message</h3>
 					<div id='ErrorMessage'>
-						<%=Model.Crash.Summary %>
+						<%=Html.DisplayFor( m => m.Crash.Summary )%>
 					</div>
 				</div>
 				<br />

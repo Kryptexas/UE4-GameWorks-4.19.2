@@ -180,7 +180,7 @@
 									<td class="Jira"> <span><a href="https://jira.ol.epicgames.net/browse/<%=CurrentCrash.TTPID%>" target="_blank"><%=CurrentCrash.TTPID%></a></span>  </td>
 									<td class="Branch"><%=CurrentCrash.Branch%>&nbsp;</td>
 									<td class="Description"><span class="TableData"><%=CurrentCrash.Description%>&nbsp;</span></td>
-									<td class="Summary"><%=CurrentCrash.Summary%></td>
+									<td class="Summary"><%=Html.Encode(CurrentCrash.Summary)%></td>
 									<td class="ChangeListVersion"><%=CurrentCrash.ChangeListVersion%></td>
 									<td class="Computer"><%=CurrentCrash.ComputerName%></td>
 									<td class="Platform"><%=CurrentCrash.PlatformName%></td>

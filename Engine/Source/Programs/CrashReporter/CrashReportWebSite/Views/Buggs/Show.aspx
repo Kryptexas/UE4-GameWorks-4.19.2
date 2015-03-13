@@ -189,7 +189,7 @@
 					<br />
 					<h3>Error Message</h3>
 					<div id='ErrorMessage'>
-						<%=Model.Bugg.Summary %>
+						<%=Html.DisplayFor( m => m.Bugg.Summary )%>
 					</div>
 				</div>
 				<br />
