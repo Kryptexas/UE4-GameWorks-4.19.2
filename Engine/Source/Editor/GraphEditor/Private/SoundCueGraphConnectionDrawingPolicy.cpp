@@ -37,7 +37,7 @@ void FSoundCueGraphConnectionDrawingPolicy::Draw(TMap<TSharedRef<SWidget>, FArra
 void FSoundCueGraphConnectionDrawingPolicy::BuildAudioFlowRoadmap()
 {
 	UAudioComponent* PreviewAudioComponent = GEditor->GetPreviewAudioComponent();
-	FAudioDevice* AudioDevice = PreviewAudioComponent->GetAudioDevice();
+	FAudioDevice* AudioDevice = PreviewAudioComponent ? PreviewAudioComponent->GetAudioDevice() : nullptr;
 
 	if (AudioDevice)
 	{
