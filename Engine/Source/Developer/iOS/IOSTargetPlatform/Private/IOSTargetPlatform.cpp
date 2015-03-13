@@ -295,8 +295,6 @@ bool FIOSTargetPlatform::HandleTicker(float DeltaTime )
 /* ITargetPlatform interface
  *****************************************************************************/
 
-#if WITH_ENGINE
-
 static bool SupportsES2()
 {
 	// default to supporting ES2
@@ -336,6 +334,28 @@ static bool CookASTC()
 	GConfig->GetBool(TEXT("/Script/IOSRuntimeSettings.IOSRuntimeSettings"), TEXT("bCookASTCTextures"), bCookASTCTextures, GEngineIni);
 	return bCookASTCTextures;
 }
+
+bool FIOSTargetPlatform::SupportsFeature( ETargetPlatformFeatures Feature ) const
+{
+	switch (Feature)
+	{
+		case ETargetPlatformFeatures::Packaging:
+			return true;
+			
+		case ETargetPlatformFeatures::LowQualityLightmaps:
+			return SupportsES2() || SupportsMetal();
+			
+		case ETargetPlatformFeatures::HighQualityLightmaps:
+			return SupportsMetalMRT();
+		default:
+			break;
+	}
+	
+	return TTargetPlatformBase<FIOSPlatformProperties>::SupportsFeature(Feature);
+}
+
+
+#if WITH_ENGINE
 
 
 void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats ) const
@@ -437,23 +457,4 @@ FName FIOSTargetPlatform::GetWaveFormat( const class USoundWave* Wave ) const
 }
 
 #endif // WITH_ENGINE
-
-bool FIOSTargetPlatform::SupportsFeature( ETargetPlatformFeatures Feature ) const
-{
-	switch (Feature)
-	{
-		case ETargetPlatformFeatures::Packaging:
-			return true;
-			
-		case ETargetPlatformFeatures::LowQualityLightmaps:
-			return SupportsES2() || SupportsMetal();
-			
-		case ETargetPlatformFeatures::HighQualityLightmaps:
-			return SupportsMetalMRT();
-		default:
-			break;
-	}
-	
-	return TTargetPlatformBase<FIOSPlatformProperties>::SupportsFeature(Feature);
-}
 
