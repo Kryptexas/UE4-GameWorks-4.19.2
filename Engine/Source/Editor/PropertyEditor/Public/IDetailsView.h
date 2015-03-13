@@ -160,7 +160,12 @@ public:
 	 * Sets a delegate to call to determine if a specific property should be visible in this instance of the details view
 	 */ 
 	virtual void SetIsPropertyVisibleDelegate( FIsPropertyVisible InIsPropertyVisible ) = 0;
-		
+
+	/**
+	 * Sets a delegate to call to determine if a specific property should be read-only in this instance of the details view
+	 */ 
+	virtual void SetIsPropertyReadOnlyDelegate( FIsPropertyReadOnly InIsPropertyReadOnly ) = 0;
+
 	/**
 	 * Sets a delegate to call to layout generic details not specific to an object being viewed
 	 */ 

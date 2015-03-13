@@ -40,6 +40,9 @@ namespace EPropertyNodeFlags
 	const Type	RequiresValidation				= 1 << 18; /** true if this node could unexpectedly change (array changes, editinlinenew changes) */
 
 	const Type	ShouldShowDisableEditOnInstance = 1 << 19; /** true if this node should show child properties marked CPF_DisableEditOnInstance */
+
+	const Type	IsReadOnly						= 1 << 20; /** true if this node is overriden to appear as read-only */
+
 	const Type 	NoFlags							= 0;
 
 };

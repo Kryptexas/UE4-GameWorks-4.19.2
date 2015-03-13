@@ -147,6 +147,11 @@ public:
 	virtual void SetIsPropertyVisibleDelegate(FIsPropertyVisible InIsPropertyVisible) override;
 
 	/**
+	 * Sets a delegate to call to determine if a specific property should be read-only in this instance of the details view
+	 */ 
+	virtual void SetIsPropertyReadOnlyDelegate( FIsPropertyReadOnly InIsPropertyReadOnly ) override;
+
+	/**
 	 * Sets a delegate to call to determine if the properties  editing is enabled
 	 */ 
 	virtual void SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled IsPropertyEditingEnabled) override;
@@ -232,6 +237,11 @@ public:
 	 * @return True if the property is visible
 	 */
 	virtual bool IsPropertyVisible( const struct FPropertyAndParent& PropertyAndParent ) const override;
+
+	/**
+	 * @return True if the property is visible
+	 */
+	virtual bool IsPropertyReadOnly( const struct FPropertyAndParent& PropertyAndParent ) const override;
 
 	/**
 	* Sets a delegate which is regardless of the objects being viewed to lay out generic details not specific to any object
@@ -420,6 +430,8 @@ protected:
 	TArray< TSharedRef<IDetailTreeNode> > RootTreeNodes;
 	/** Delegate executed to determine if a property should be visible */
 	FIsPropertyVisible IsPropertyVisibleDelegate;
+	/** Delegate executed to determine if a property should be read-only */
+	FIsPropertyReadOnly IsPropertyReadOnlyDelegate;
 	/** Delegate called to see if a property editing is enabled */
 	FIsPropertyEditingEnabled IsPropertyEditingEnabledDelegate;
 	/** Delegate called when the details panel finishes editing a property (after post edit change is called) */

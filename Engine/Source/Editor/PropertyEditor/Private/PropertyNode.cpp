@@ -535,8 +535,8 @@ bool FPropertyNode::IsEditConst() const
 	// Ask the objects whether this property can be changed
 	const FObjectPropertyNode* ObjectPropertyNode = FindObjectItemParent();
 
-	bool bIsEditConst = false;
-	if (Property != NULL && ObjectPropertyNode)
+	bool bIsEditConst = (HasNodeFlags(EPropertyNodeFlags::IsReadOnly) != 0);
+	if (!bIsEditConst && Property != NULL && ObjectPropertyNode)
 	{
 		bIsEditConst = (Property->PropertyFlags & CPF_EditConst) ? true : false;
 		if (!bIsEditConst)

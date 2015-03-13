@@ -298,6 +298,11 @@ void SDetailsViewBase::SetIsPropertyVisibleDelegate(FIsPropertyVisible InIsPrope
 	IsPropertyVisibleDelegate = InIsPropertyVisible;
 }
 
+void SDetailsViewBase::SetIsPropertyReadOnlyDelegate(FIsPropertyReadOnly InIsPropertyReadOnly)
+{
+	IsPropertyReadOnlyDelegate = InIsPropertyReadOnly;
+}
+
 void SDetailsViewBase::SetIsPropertyEditingEnabledDelegate(FIsPropertyEditingEnabled IsPropertyEditingEnabled)
 {
 	IsPropertyEditingEnabledDelegate = IsPropertyEditingEnabled;
@@ -389,6 +394,11 @@ bool SDetailsViewBase::GetCustomSavedExpansionState(const FString& NodePath) con
 bool SDetailsViewBase::IsPropertyVisible( const FPropertyAndParent& PropertyAndParent ) const
 {
 	return IsPropertyVisibleDelegate.IsBound() ? IsPropertyVisibleDelegate.Execute(PropertyAndParent) : true;
+}
+
+bool SDetailsViewBase::IsPropertyReadOnly( const FPropertyAndParent& PropertyAndParent ) const
+{
+	return IsPropertyReadOnlyDelegate.IsBound() ? IsPropertyReadOnlyDelegate.Execute(PropertyAndParent) : false;
 }
 
 TSharedPtr<IPropertyUtilities> SDetailsViewBase::GetPropertyUtilities()
@@ -1116,6 +1126,11 @@ void SDetailsViewBase::UpdatePropertyMapRecursive(FPropertyNode& InNode, FDetail
 					if (!ParentStructProp || (PropertyCatagoryName != ParentStructProp->Struct->GetFName()))
 					{
 						CategoryName = PropertyCatagoryName;
+					}
+
+					if (IsPropertyReadOnly(PropertyAndParent))
+					{
+						ChildNode.SetNodeFlags(EPropertyNodeFlags::IsReadOnly, true);
 					}
 
 					// Add a property to the default category
