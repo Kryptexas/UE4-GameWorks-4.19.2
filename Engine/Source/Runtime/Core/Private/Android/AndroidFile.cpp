@@ -327,6 +327,12 @@ public:
 
 	bool SetFileTimeStamp( const FString& FileName, const FDateTime& DateTime )
 	{
+		if (bInitialized == false)
+		{
+			Read();
+			bInitialized = true;
+		}
+
 		FDateTime* Result = ManifestEntries.Find( FileName );
 		if ( Result == NULL )
 		{
@@ -347,12 +353,12 @@ public:
 	{
 		// Local filepaths are directly in the deployment directory.
 		static const FString BasePath = GFilePathBase + FString("/") + FApp::GetGameName() + FString("/");
-		const FString ManfiestPath = BasePath + ManifestFileName;
+		const FString ManifestPath = BasePath + ManifestFileName;
 
 		ManifestEntries.Empty();
 
 		// int Handle = open( TCHAR_TO_UTF8(ManifestFileName), O_RDWR );
-		int Handle = open( TCHAR_TO_UTF8(*ManfiestPath), O_RDONLY );
+		int Handle = open( TCHAR_TO_UTF8(*ManifestPath), O_RDONLY );
 
 		if ( Handle == -1 )
 		{
@@ -424,10 +430,10 @@ public:
 		
 		// Local filepaths are directly in the deployment directory.
 		static const FString BasePath = GFilePathBase + FString("/") + FApp::GetGameName() + FString("/");
-		const FString ManfiestPath = BasePath + ManifestFileName;
+		const FString ManifestPath = BasePath + ManifestFileName;
 
 
-		int Handle = open( TCHAR_TO_UTF8(*ManfiestPath), O_WRONLY );
+		int Handle = open(TCHAR_TO_UTF8(*ManifestPath), O_WRONLY | O_CREAT | O_TRUNC);
 
 		if ( Handle == -1 )
 		{
