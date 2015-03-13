@@ -31,9 +31,9 @@ public:
 
 // Workflow Settings
 public:
-	/** If enabled, will use the blueprint's (or output pin's) class to narrow down context menu results. */
-	UPROPERTY(EditAnywhere, config, Category=Workflow, meta=(DisplayName="Context Menu: Use Target Context"))
-	bool bUseTargetContextForNodeMenu;
+	/** If enabled, we'll save off your chosen target setting based off of the context (allowing you to have different preferences based off what you're operating on). */
+	UPROPERTY(EditAnywhere, config, Category=Workflow, meta=(DisplayName="Context Menu: Divide Context Target Preferences"))
+	bool bSplitContextTargetSettings;
 
 	/** If enabled, then ALL component functions are exposed to the context menu (when the contextual target is a component owner). Ignores "ExposeFunctionCategories" metadata for components. */
 	UPROPERTY(EditAnywhere, config, Category=Workflow, meta=(DisplayName="Context Menu: Expose All Sub-Component Functions"))

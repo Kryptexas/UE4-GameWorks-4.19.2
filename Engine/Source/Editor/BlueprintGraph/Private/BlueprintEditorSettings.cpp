@@ -11,7 +11,7 @@ UBlueprintEditorSettings::UBlueprintEditorSettings(const FObjectInitializer& Obj
 	, bDrawMidpointArrowsInBlueprints(false)
 	, bShowGraphInstructionText(true)
 	// Workflow Settings
-	, bUseTargetContextForNodeMenu(true)
+	, bSplitContextTargetSettings(true)
 	, bExposeAllMemberComponentFunctions(true)
 	, bShowContextualFavorites(false)
 	, bFlattenFavoritesMenus(true)

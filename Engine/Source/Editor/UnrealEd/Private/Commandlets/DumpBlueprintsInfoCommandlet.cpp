@@ -2112,7 +2112,8 @@ static double DumpBlueprintInfoUtils::GetContextMenuActions(FBlueprintGraphActio
 		FBlueprintActionMenuBuilder MenuBuilder(nullptr);
 		{
 			FScopedDurationTimer DurationTimer(MenuBuildDuration);
-			FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, /*bIsContextSensitive =*/true, MenuBuilder);
+			FBlueprintActionMenuUtils::MakeContextMenu(FilterContext, /*bIsContextSensitive =*/true, 
+				(EContextTargetFlags::TARGET_Blueprint | EContextTargetFlags::TARGET_NodeTarget | EContextTargetFlags::TARGET_PinObject | EContextTargetFlags::TARGET_SiblingPinObjects), MenuBuilder);
 		}
 		ActionBuilder.Append(MenuBuilder);
 	}

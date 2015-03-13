@@ -102,10 +102,11 @@ namespace BlueprintActionMenuUtilsImpl
 	/**
 	 * 
 	 * 
-	 * @param  MainMenuFilter	
+	 * @param  MainMenuFilter    
+	 * @param  ContextTargetMask    
 	 * @return 
 	 */
-	static FBlueprintActionFilter MakeCallOnMemberFilter(FBlueprintActionFilter const& MainMenuFilter);
+	static FBlueprintActionFilter MakeCallOnMemberFilter(FBlueprintActionFilter const& MainMenuFilter, uint32 ContextTargetMask);
 
 	/**
 	 * 
@@ -253,11 +254,22 @@ static UClass* BlueprintActionMenuUtilsImpl::GetPinClassType(UEdGraphPin const* 
 		}
 	}
 
+	if (PinObjClass != nullptr)
+	{
+		if (UBlueprint* ClassBlueprint = Cast<UBlueprint>(PinObjClass->ClassGeneratedBy))
+		{
+			if (ClassBlueprint->SkeletonGeneratedClass != nullptr)
+			{
+				PinObjClass = ClassBlueprint->SkeletonGeneratedClass;
+			}
+		}
+	}
+
 	return PinObjClass;
 }
 
 //------------------------------------------------------------------------------
-static FBlueprintActionFilter BlueprintActionMenuUtilsImpl::MakeCallOnMemberFilter(FBlueprintActionFilter const& MainMenuFilter)
+static FBlueprintActionFilter BlueprintActionMenuUtilsImpl::MakeCallOnMemberFilter(FBlueprintActionFilter const& MainMenuFilter, uint32 ContextTargetMask)
 {
 	FBlueprintActionFilter CallOnMemberFilter;
 	CallOnMemberFilter.Context = MainMenuFilter.Context;
@@ -277,18 +289,36 @@ static FBlueprintActionFilter BlueprintActionMenuUtilsImpl::MakeCallOnMemberFilt
 		CallOnMemberFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnexposedMemberAction));
 	}
 
-	for (UClass const* TargetClass : MainMenuFilter.TargetClasses)
+	bool bForceAddComponents = ((ContextTargetMask & EContextTargetFlags::TARGET_SubComponents) != 0);
+
+	TArray<UClass*> TargetClasses = MainMenuFilter.TargetClasses;
+	if (bForceAddComponents && (CallOnMemberFilter.TargetClasses.Num() == 0))
+	{
+		for (UBlueprint const* TargetBlueprint : MainMenuFilter.Context.Blueprints)
+		{
+			UClass* BpClass = TargetBlueprint->SkeletonGeneratedClass;
+			if (BpClass != nullptr)
+			{
+				TargetClasses.Add(BpClass);
+			}
+		}
+	}
+
+	for (UClass const* TargetClass : TargetClasses)
 	{
 		for (TFieldIterator<UObjectProperty> PropertyIt(TargetClass, EFieldIteratorFlags::IncludeSuper); PropertyIt; ++PropertyIt)
 		{
 			UObjectProperty* ObjectProperty = *PropertyIt;
-
-			if (!ObjectProperty->HasAnyPropertyFlags(CPF_BlueprintVisible) ||
-				!(ObjectProperty->PropertyClass->IsChildOf<UActorComponent>() || ObjectProperty->HasMetaData(FBlueprintMetadata::MD_ExposeFunctionCategories)))
+			if (!ObjectProperty->HasAnyPropertyFlags(CPF_BlueprintVisible))
 			{
 				continue;
 			}
-			CallOnMemberFilter.Context.SelectedObjects.Add(ObjectProperty);
+
+			if ( ObjectProperty->HasMetaData(FBlueprintMetadata::MD_ExposeFunctionCategories) || 
+				(bForceAddComponents && ObjectProperty->PropertyClass->IsChildOf<UActorComponent>()) )
+			{
+				CallOnMemberFilter.Context.SelectedObjects.Add(ObjectProperty);
+			}			
 		}
 	}
 
@@ -401,7 +431,7 @@ void FBlueprintActionMenuUtils::MakePaletteMenu(FBlueprintActionContext const& C
 }
 
 //------------------------------------------------------------------------------
-void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& Context, bool bIsContextSensitive, FBlueprintActionMenuBuilder& MenuOut)
+void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& Context, bool bIsContextSensitive, uint32 ClassTargetMask, FBlueprintActionMenuBuilder& MenuOut)
 {
 	using namespace BlueprintActionMenuUtilsImpl;
 
@@ -430,7 +460,6 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 	LevelActorsFilter.AddRejectionTest(FBlueprintActionFilter::FRejectionTestDelegate::CreateStatic(IsUnBoundSpawner));
 
 	const UBlueprintEditorSettings* BlueprintSettings = GetDefault<UBlueprintEditorSettings>();
-	bool const bAddTargetContext  = bIsContextSensitive && BlueprintSettings->bUseTargetContextForNodeMenu;
 	bool bCanOperateOnLevelActors = bIsContextSensitive && (Context.Pins.Num() == 0);
 	bool bCanHaveActorComponents  = bIsContextSensitive;
 	// determine if we can operate on certain object selections (level actors, 
@@ -441,7 +470,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 		if (BlueprintClass != nullptr)
 		{
 			bCanOperateOnLevelActors &= BlueprintClass->IsChildOf<ALevelScriptActor>();
-			if (bAddTargetContext)
+			if (bIsContextSensitive && (ClassTargetMask & EContextTargetFlags::TARGET_Blueprint))
 			{
 				MainMenuFilter.TargetClasses.Add(BlueprintClass);
 			}
@@ -520,34 +549,41 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 		}
 	}
 
-	if (bAddTargetContext)
+	if (bIsContextSensitive)
 	{
-		bool bContextPinIsObj = false;
-
 		// if we're dragging from a pin, we further extend the context to cover
 		// that pin and any other pins it sits beside 
 		for (UEdGraphPin* ContextPin : Context.Pins)
 		{
-			// we only want the pin to be the target class when it is an output
-			// (doesn't make sense to get members to plug into their parent)
-			if (ContextPin->Direction == EGPD_Input)
+			if (UClass* PinObjClass = GetPinClassType(ContextPin))
+			{
+				if (ClassTargetMask & EContextTargetFlags::TARGET_PinObject)
+				{
+					MainMenuFilter.TargetClasses.Add(PinObjClass);
+				}
+			}
+
+			UEdGraphNode* OwningNode = ContextPin->GetOwningNodeUnchecked();
+			if ((OwningNode != nullptr) && (ClassTargetMask & EContextTargetFlags::TARGET_NodeTarget))
+			{
+				// @TODO: should we search instead by name/DefaultToSelf
+				if (UEdGraphPin* TargetPin = K2Schema->FindSelfPin(*OwningNode, EGPD_Input))
+				{
+					if (UClass* TargetClass = GetPinClassType(TargetPin))
+					{
+						MainMenuFilter.TargetClasses.Add(TargetClass);
+					}
+				}
+			}
+
+			if ((ClassTargetMask & EContextTargetFlags::TARGET_SiblingPinObjects) == 0)
 			{
 				continue;
 			}
 
-			if (UClass* PinObjClass = GetPinClassType(ContextPin))
-			{
-				if (!bContextPinIsObj)
-				{
-					MainMenuFilter.TargetClasses.Empty();
-				}
-				MainMenuFilter.TargetClasses.Add(PinObjClass);
-				bContextPinIsObj = true;
-			}
-
 			for (UEdGraphPin* NodePin : ContextPin->GetOwningNode()->Pins)
 			{
-				if ((NodePin->Direction == ContextPin->Direction) && !bContextPinIsObj)
+				if ((NodePin->Direction == EGPD_Output))
 				{
 					if (UClass* PinClass = GetPinClassType(NodePin))
 					{
@@ -559,7 +595,7 @@ void FBlueprintActionMenuUtils::MakeContextMenu(FBlueprintActionContext const& C
 	}
 
 	// should be called AFTER the MainMenuFilter if fully constructed
-	FBlueprintActionFilter CallOnMemberFilter = MakeCallOnMemberFilter(MainMenuFilter);
+	FBlueprintActionFilter CallOnMemberFilter = MakeCallOnMemberFilter(MainMenuFilter, ClassTargetMask);
 
 	FBlueprintActionFilter AddComponentFilter;
 	AddComponentFilter.Context = MainMenuFilter.Context;
