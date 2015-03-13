@@ -523,6 +523,7 @@ void UNavigationSystem::OnInitializeActors()
 void UNavigationSystem::OnWorldInitDone(FNavigationSystem::EMode Mode)
 {
 	OperationMode = Mode;
+	DoInitialSetup();
 	
 	UWorld* World = GetWorld();
 
