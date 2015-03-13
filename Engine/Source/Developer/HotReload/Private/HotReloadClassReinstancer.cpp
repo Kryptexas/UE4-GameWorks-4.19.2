@@ -282,6 +282,14 @@ FHotReloadClassReinstancer::FHotReloadClassReinstancer(UClass* InNewClass, UClas
 	if (InNewClass)
 	{
 		SetupNewClassReinstancing(InNewClass, InOldClass);
+
+		TMap<UObject*, UObject*> ClassRedirects;
+		ClassRedirects.Add(InOldClass, InNewClass);
+
+		for (TObjectIterator<UBlueprint> BlueprintIt; BlueprintIt; ++BlueprintIt)
+		{
+			FArchiveReplaceObjectRef<UObject>(*BlueprintIt, ClassRedirects, false, true, true);
+		}
 	}
 	else
 	{
