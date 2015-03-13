@@ -57,7 +57,7 @@ namespace UnrealBuildTool
 			}
 			if (Ini.GetBool("/Script/AndroidRuntimeSettings.AndroidRuntimeSettings", "bBuildForx8664", out bBuild) && bBuild)
 			{
-				ProjectArches.Add("-x86_64");
+				ProjectArches.Add("-x64");
 			}
 
 			// force armv7 if something went wrong

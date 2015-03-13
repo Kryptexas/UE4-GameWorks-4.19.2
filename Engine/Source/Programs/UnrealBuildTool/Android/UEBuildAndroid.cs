@@ -320,10 +320,7 @@ namespace UnrealBuildTool
 							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_DXTTargetPlatform");
 							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC1TargetPlatform");
 							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC2TargetPlatform");
-							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
 							InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ASTCTargetPlatform");
-							// @todo gl4android				
-							// InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_GL4TargetPlatform");
                         }
 					}
 					else if (InModule.ToString() == "TargetPlatform")
@@ -349,10 +346,7 @@ namespace UnrealBuildTool
 					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_DXTTargetPlatform");
 					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC1TargetPlatform");
 					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ETC2TargetPlatform");
-					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ES31TargetPlatform");
 					InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_ASTCTargetPlatform");
-					// @todo gl4android				
-					// InModule.AddPlatformSpecificDynamicallyLoadedModule("Android_GL4TargetPlatform");
                 }
 
 				if (bBuildShaderFormats)

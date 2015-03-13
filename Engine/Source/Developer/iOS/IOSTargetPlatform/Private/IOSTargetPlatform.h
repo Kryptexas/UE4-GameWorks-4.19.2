@@ -72,16 +72,7 @@ public:
 		#endif
 	}
 
-	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const override
-	{
-		if (Feature == ETargetPlatformFeatures::Packaging)
-		{
-			// not implemented yet
-			return true;
-		}
-
-		return TTargetPlatformBase<FIOSPlatformProperties>::SupportsFeature(Feature);
-	}
+	virtual bool SupportsFeature( ETargetPlatformFeatures Feature ) const override;
 
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutTutorialPath) const override;
 	virtual int32 CheckRequirements(const FString& ProjectPath, bool bProjectHasCode, FString& OutTutorialPath) const override;

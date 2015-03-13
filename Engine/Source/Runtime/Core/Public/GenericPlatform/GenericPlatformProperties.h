@@ -101,16 +101,6 @@ struct FGenericPlatformProperties
 	}
 
 	/**
-	 * Returns the maximum bones the platform supports.
-	 *
-	 * @return the maximum bones the platform supports.
-	 */
-	static FORCEINLINE uint32 MaxGpuSkinBones()
-	{
-		return 256;
-	}
-
-	/**
 	 * Gets the name of this platform
 	 *
 	 * Note: MUST be implemented per platform.

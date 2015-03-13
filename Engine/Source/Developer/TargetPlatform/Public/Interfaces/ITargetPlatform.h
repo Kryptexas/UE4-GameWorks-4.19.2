@@ -230,13 +230,6 @@ public:
 	virtual bool IsSdkInstalled(bool bProjectHasCode, FString& OutDocumentationPath) const = 0;
 
 	/**
-	 * Returns the maximum bones the platform supports.
-	 *
-	 * @return the maximum bones the platform supports.
-	 */
-	virtual uint32 MaxGpuSkinBones() const = 0;
-
-	/**
 	 * Checks whether this platform requires cooked data (typically console platforms).
 	 *
 	 * @return true if this platform requires cooked data, false otherwise.

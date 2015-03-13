@@ -43,15 +43,6 @@ struct FAndroidPlatformProperties
 		return UE_GAME;
 	}
 
-	static FORCEINLINE uint32 MaxGpuSkinBones( )
-	{
-#if PLATFORM_ANDROIDES31 || PLATFORM_ANDROIDGL4
-		return 256;
-#else
-		return 20;
-#endif
-	}
-
 	static FORCEINLINE bool RequiresCookedData( )
 	{
 		return true;

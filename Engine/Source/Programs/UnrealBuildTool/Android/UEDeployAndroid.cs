@@ -277,8 +277,10 @@ namespace UnrealBuildTool.Android
 		{
 			switch (UE4Arch)
 			{
-				case "-armv7": return "armeabi-v7a";
-				case "-x86": return "x86";
+				case "-armv7":	return "armeabi-v7a";
+				case "-arm64":	return "arm64";
+				case "-x64":	return "x86_64";
+				case "-x86":	return "x86";
 
 				default: throw new BuildException("Unknown UE4 architecture {0}", UE4Arch);
 			}
@@ -290,7 +292,10 @@ namespace UnrealBuildTool.Android
 			{
 				case "armeabi-v7a": return "-armv7";
 				case "x86":			return "-x86";
-
+				case "arm64":		return "-arm64";
+				case "x86_64":
+				case "x64":			return "-x64";
+					
 				default: throw new BuildException("Unknown NDK architecture '{0}'", NDKArch);
 			}
 		}

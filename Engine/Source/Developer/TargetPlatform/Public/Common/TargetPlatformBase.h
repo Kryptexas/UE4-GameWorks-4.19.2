@@ -352,10 +352,6 @@ public:
 		return false;
 	}
 	
-	virtual uint32 MaxGpuSkinBones() const override
-	{
-		return TPlatformProperties::MaxGpuSkinBones();
-	}
 
 #if WITH_ENGINE
 	virtual FName GetPhysicsFormat( class UBodySetup* Body ) const override
