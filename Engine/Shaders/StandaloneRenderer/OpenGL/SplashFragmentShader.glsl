@@ -15,6 +15,9 @@ void main()
 	// OpenGL has 0,0 the "math" way
 	vec2 tc = vec2(textureCoordinate.s, 1.0-textureCoordinate.t);
 
+#if RED_BLUE_SWAP
+	gl_FragColor = texture2D(SplashTexture, tc).bgra;
+#else
 	gl_FragColor = texture2D(SplashTexture, tc);
-
+#endif
 }
