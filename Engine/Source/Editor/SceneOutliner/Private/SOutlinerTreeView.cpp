@@ -85,8 +85,7 @@ namespace SceneOutliner
 		// Validate now to make sure we don't doing anything we shouldn't
 		if (!DraggedObjects.ParseDrag(*DragDropEvent.GetOperation()))
 		{
-			// Return handled here to stop anything else trying to handle it - the operation is invalid as far as we're concerned
-			return FReply::Handled();
+			return FReply::Unhandled();
 		}
 
 		ValidationInfo = DropTarget.ValidateDrop(DraggedObjects, *SharedData.RepresentingWorld);

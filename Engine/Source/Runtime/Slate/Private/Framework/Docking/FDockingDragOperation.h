@@ -129,6 +129,9 @@ protected:
 	/** @return the size of the DockNode that looks good in a preview given the initial size of the tab that we grabbed. */
 	static FVector2D DesiredSizeFrom( const FVector2D& InitialTabSize );
 
+	/** The tab was dropped onto nothing or someone interrupted the drag drop operation. */
+	void DroppedOntoNothing();
+
 	/** What is actually being dragged in this operation */
 	TSharedPtr<class SDockTab> TabBeingDragged;
 
