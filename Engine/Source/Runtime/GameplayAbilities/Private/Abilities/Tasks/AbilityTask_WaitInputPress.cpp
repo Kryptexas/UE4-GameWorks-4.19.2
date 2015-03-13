@@ -8,6 +8,7 @@ UAbilityTask_WaitInputPress::UAbilityTask_WaitInputPress(const FObjectInitialize
 	: Super(ObjectInitializer)
 {
 	StartTime = 0.f;
+	bTestInitialState = false;
 }
 
 void UAbilityTask_WaitInputPress::OnPressCallback()
@@ -36,9 +37,11 @@ void UAbilityTask_WaitInputPress::OnPressCallback()
 	EndTask();
 }
 
-UAbilityTask_WaitInputPress* UAbilityTask_WaitInputPress::WaitInputPress(class UObject* WorldContextObject)
+UAbilityTask_WaitInputPress* UAbilityTask_WaitInputPress::WaitInputPress(class UObject* WorldContextObject, bool bTestAlreadyPressed)
 {
-	return NewTask<UAbilityTask_WaitInputPress>(WorldContextObject);
+	UAbilityTask_WaitInputPress* Task = NewTask<UAbilityTask_WaitInputPress>(WorldContextObject);
+	Task->bTestInitialState = bTestAlreadyPressed;
+	return Task;
 }
 
 void UAbilityTask_WaitInputPress::Activate()
@@ -46,6 +49,16 @@ void UAbilityTask_WaitInputPress::Activate()
 	StartTime = GetWorld()->GetTimeSeconds();
 	if (Ability.IsValid())
 	{
+		if (bTestInitialState && IsLocallyControlled())
+		{
+			FGameplayAbilitySpec *Spec = Ability->GetCurrentAbilitySpec();
+			if (Spec && Spec->InputPressed)
+			{
+				OnPressCallback();
+				return;
+			}
+		}
+
 		DelegateHandle = AbilitySystemComponent->AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::InputPressed, GetAbilitySpecHandle(), GetActivationPredictionKey()).AddUObject(this, &UAbilityTask_WaitInputPress::OnPressCallback);
 		if (IsForRemoteClient())
 		{

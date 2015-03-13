@@ -8,6 +8,7 @@ UAbilityTask_WaitInputRelease::UAbilityTask_WaitInputRelease(const FObjectInitia
 	: Super(ObjectInitializer)
 {
 	StartTime = 0.f;
+	bTestInitialState = false;
 }
 
 void UAbilityTask_WaitInputRelease::OnReleaseCallback()
@@ -36,9 +37,11 @@ void UAbilityTask_WaitInputRelease::OnReleaseCallback()
 	EndTask();
 }
 
-UAbilityTask_WaitInputRelease* UAbilityTask_WaitInputRelease::WaitInputRelease(class UObject* WorldContextObject)
+UAbilityTask_WaitInputRelease* UAbilityTask_WaitInputRelease::WaitInputRelease(class UObject* WorldContextObject, bool bTestAlreadyReleased)
 {
-	return NewTask<UAbilityTask_WaitInputRelease>(WorldContextObject);
+	UAbilityTask_WaitInputRelease* Task = NewTask<UAbilityTask_WaitInputRelease>(WorldContextObject);
+	Task->bTestInitialState = bTestAlreadyReleased;
+	return Task;
 }
 
 void UAbilityTask_WaitInputRelease::Activate()
@@ -46,6 +49,16 @@ void UAbilityTask_WaitInputRelease::Activate()
 	StartTime = GetWorld()->GetTimeSeconds();
 	if (Ability.IsValid())
 	{
+		if (bTestInitialState && IsLocallyControlled())
+		{
+			FGameplayAbilitySpec *Spec = Ability->GetCurrentAbilitySpec();
+			if (Spec && !Spec->InputPressed)
+			{
+				OnReleaseCallback();
+				return;
+			}
+		}
+
 		DelegateHandle = AbilitySystemComponent->AbilityReplicatedEventDelegate(EAbilityGenericReplicatedEvent::InputReleased, GetAbilitySpecHandle(), GetActivationPredictionKey()).AddUObject(this, &UAbilityTask_WaitInputRelease::OnReleaseCallback);
 		if (IsForRemoteClient())
 		{

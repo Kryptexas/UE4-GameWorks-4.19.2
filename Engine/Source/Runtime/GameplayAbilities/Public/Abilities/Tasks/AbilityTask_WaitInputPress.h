@@ -9,7 +9,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FInputPressDelegate, float, TimeWait
 
 /**
  *	Waits until the input is pressed from activating an ability. This should be true immediately upon starting the ability, since the key was pressed to activate it.
- *	We expect server to execute this task in parrallel and keep its own time. We do not keep track of 
+ *	We expect server to execute this task in parallel and keep its own time. We do not keep track of 
  */
 UCLASS(MinimalAPI)
 class UAbilityTask_WaitInputPress : public UAbilityTask
@@ -26,12 +26,13 @@ class UAbilityTask_WaitInputPress : public UAbilityTask
 
 	/** Wait until the user presses the input button for this ability's activation. Returns time this node spent waiting for the press. Will return 0 if input was already down. */
 	UFUNCTION(BlueprintCallable, Category = "Ability|Tasks", meta = (HidePin = "WorldContextObject", DefaultToSelf = "WorldContextObject", BlueprintInternalUseOnly = "TRUE"))
-	static UAbilityTask_WaitInputPress* WaitInputPress(UObject* WorldContextObject);
+	static UAbilityTask_WaitInputPress* WaitInputPress(UObject* WorldContextObject, bool bTestAlreadyPressed=false);
 
 protected:
 
 	virtual void OnDestroy(bool AbilityEnded) override;
 
 	float StartTime;
+	bool bTestInitialState;
 	FDelegateHandle DelegateHandle;
 };
