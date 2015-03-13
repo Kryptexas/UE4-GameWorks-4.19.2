@@ -298,12 +298,12 @@ public:
 	UWorld* GetWorld() const { return World.Get(); }
 
 private:
+	TArray< TWeakObjectPtr<UWidgetComponent> > RegisteredComponents;
+	TWeakObjectPtr<UWorld> World;
+
 	mutable int64 CachedFrame;
 	mutable FVector2D CachedScreenPosition;
 	mutable FHitResult CachedHitResult;
-
-	TArray< TWeakObjectPtr<UWidgetComponent> > RegisteredComponents;
-	TWeakObjectPtr<UWorld> World;
 };
 
 UWidgetComponent::UWidgetComponent( const FObjectInitializer& PCIP )

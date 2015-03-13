@@ -5,6 +5,7 @@
 #include "SGameLayerManager.h"
 
 #include "Engine/UserInterfaceSettings.h"
+#include "Slate/SceneViewport.h"
 
 #include "STooltipPresenter.h"
 #include "Widgets/Layout/SScissorRectBox.h"
