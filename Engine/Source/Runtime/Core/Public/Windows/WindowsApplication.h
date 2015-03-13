@@ -249,6 +249,27 @@ PRAGMA_DISABLE_DEPRECATION_WARNINGS
 
 
 /**
+ * Interface for classes that handle Windows events.
+ */
+class IWindowsMessageHandler
+{
+public:
+
+	/**
+	 * Processes a Windows message.
+	 *
+	 * @param hwnd Handle to the window that received the message.
+	 * @param msg The message.
+	 * @param wParam Additional message information.
+	 * @param lParam Additional message information.
+	 * @param OutResult Will contain the result if the message was handled.
+	 * @return true if the message was handled, false otherwise.
+	 */
+	virtual bool ProcessMessage(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam, int32& OutResult) = 0;
+};
+
+
+/**
  * Windows-specific application implementation.
  */
 class FWindowsApplication
@@ -260,10 +281,9 @@ public:
 	/**
 	 * Static: Creates a new Win32 application
 	 *
-	 * @param	InstanceHandle  Win32 instance handle
-	 * @param	IconHandle		Win32 application icon handle
-	 *
-	 * @return  New application object
+	 * @param InstanceHandle Win32 instance handle.
+	 * @param IconHandle Win32 application icon handle.
+	 * @return New application object.
 	 */
 	static FWindowsApplication* CreateWindowsApplication( const HINSTANCE InstanceHandle, const HICON IconHandle );
 
@@ -288,6 +308,22 @@ public:
 
 	/** Invoked by a window when an OLE Drag and Drop is dropped onto the window. */
 	HRESULT OnOLEDrop( const HWND HWnd, const FDragDropOLEData& OLEData, ::DWORD KeyState, POINTL CursorPosition, ::DWORD *CursorEffect);
+
+	/**
+	 * Adds a Windows message handler with the application instance.
+	 *
+	 * @param MessageHandler The message handler to register.
+	 * @see RemoveMessageHandler
+	 */
+	virtual void AddMessageHandler(IWindowsMessageHandler& MessageHandler);
+
+	/**
+	 * Removes a Windows message handler with the application instance.
+	 *
+	 * @param MessageHandler The message handler to register.
+	 * @see AddMessageHandler
+	 */
+	virtual void RemoveMessageHandler(IWindowsMessageHandler& MessageHandler);
 
 public:
 
@@ -340,6 +376,7 @@ public:
 public:
 
 	// IForceFeedbackSystem overrides
+
 	virtual void SetForceFeedbackChannelValue (int32 ControllerId, FForceFeedbackChannelType ChannelType, float Value) override;
 	virtual void SetForceFeedbackChannelValues(int32 ControllerId, const FForceFeedbackValues &Values) override;
 	virtual void SetLightColor(int32 ControllerId, FColor Color) override { }
@@ -397,6 +434,9 @@ private:
 	TArray<FDeferredWindowsMessage> DeferredMessages;
 
 	TArray<FDeferredWindowsDragDropOperation> DeferredDragDropOperations;
+
+	/** Registered Windows message handlers. */
+	TArray<IWindowsMessageHandler*> MessageHandlers;
 
 	TArray<TSharedRef<FWindowsWindow>> Windows;
 

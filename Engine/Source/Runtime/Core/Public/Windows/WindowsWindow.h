@@ -73,6 +73,9 @@ public:
 	/** Called when our parent window is restored (which will in turn cause us to become restored). */
 	void OnParentWindowRestored();
 
+	/** Called by the owning application when the level of transparency support has changed */
+	void OnTransparencySupportChanged(EWindowTransparency NewTransparency);
+
 public:
 
 	// FGenericWindow interface
@@ -120,11 +123,6 @@ public:
 	virtual HRESULT STDCALL DragOver( ::DWORD KeyState, POINTL CursorPosition, __RPC__inout ::DWORD *CursorEffect) override;
 	virtual HRESULT STDCALL DragLeave( void ) override;
 	virtual HRESULT STDCALL Drop( __RPC__in_opt IDataObject *DataObjectPointer, ::DWORD KeyState, POINTL CursorPosition, __RPC__inout ::DWORD *CursorEffect) override;
-	
-public:
-
-	/** Called by the owning application when the level of transparency support has changed */
-	void OnTransparencySupportChanged(EWindowTransparency NewTransparency);
 
 private:
 

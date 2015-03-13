@@ -33,14 +33,15 @@ DEFINE_LOG_CATEGORY(LogWindowsDesktop);
 
 const FIntPoint FWindowsApplication::MinimizedWindowPosition(-32000,-32000);
 
-FWindowsApplication* WindowApplication = NULL;
+FWindowsApplication* WindowsApplication = nullptr;
 
 
 FWindowsApplication* FWindowsApplication::CreateWindowsApplication( const HINSTANCE InstanceHandle, const HICON IconHandle )
 {
-	WindowApplication = new FWindowsApplication( InstanceHandle, IconHandle );
-	return WindowApplication;
+	WindowsApplication = new FWindowsApplication( InstanceHandle, IconHandle );
+	return WindowsApplication;
 }
+
 
 FWindowsApplication::FWindowsApplication( const HINSTANCE HInstance, const HICON IconHandle )
 	: GenericApplication( MakeShareable( new FWindowsCursor() ) )
@@ -280,7 +281,7 @@ static TSharedPtr< FWindowsWindow > FindWindowByHWND(const TArray< TSharedRef< F
 		}
 	}
 
-	return TSharedPtr< FWindowsWindow >(NULL);
+	return TSharedPtr< FWindowsWindow >(nullptr);
 }
 
 
@@ -505,7 +506,7 @@ void GetMonitorInfo(TArray<FMonitorInfo>& OutMonitorInfo)
 	DisplayDevice.cb = sizeof(DisplayDevice);
 	DWORD DeviceIndex = 0; // device index
 
-	FMonitorInfo* PrimaryDevice = NULL;
+	FMonitorInfo* PrimaryDevice = nullptr;
 	OutMonitorInfo.Empty(2); // Reserve two slots, as that will be the most common maximum
 
 	FString DeviceID;
@@ -534,7 +535,7 @@ void GetMonitorInfo(TArray<FMonitorInfo>& OutMonitorInfo)
 						Info.bIsPrimary = (DisplayDevice.StateFlags & DISPLAY_DEVICE_PRIMARY_DEVICE) > 0;
 						OutMonitorInfo.Add(Info);
 
-						if (PrimaryDevice == NULL && Info.bIsPrimary)
+						if (PrimaryDevice == nullptr && Info.bIsPrimary)
 						{
 							PrimaryDevice = &OutMonitorInfo.Last();
 						}
@@ -619,12 +620,12 @@ EWindowTransparency FWindowsApplication::GetWindowTransparencySupport() const
 #endif
 }
 
-/** All WIN32 messages sent to our app go here; this method simply passes them on */
+
 LRESULT CALLBACK FWindowsApplication::AppWndProc(HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam)
 {
 	ensure( IsInGameThread() );
 
-	return WindowApplication->ProcessMessage( hwnd, msg, wParam, lParam );
+	return WindowsApplication->ProcessMessage( hwnd, msg, wParam, lParam );
 }
 
 int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam, LPARAM lParam )
@@ -1099,6 +1100,20 @@ int32 FWindowsApplication::ProcessMessage( HWND hwnd, uint32 msg, WPARAM wParam,
 			{
 				XInput->SetNeedsControllerStateUpdate(); 
 				QueryConnectedMice();
+			}
+
+		default:
+			{
+			    int32 HandlerResult = 0;
+
+				// give others a chance to handle unprocessed messages
+				for (auto Handler : MessageHandlers)
+				{
+					if (Handler->ProcessMessage(hwnd, msg, wParam, lParam, HandlerResult))
+					{
+						return HandlerResult;
+					}
+				}
 			}
 		}
 	}
@@ -1883,6 +1898,19 @@ HRESULT FWindowsApplication::OnOLEDrop( const HWND HWnd, const FDragDropOLEData&
 
 	return 0;
 }
+
+
+void FWindowsApplication::AddMessageHandler(IWindowsMessageHandler& MessageHandler)
+{
+	WindowsApplication->MessageHandlers.AddUnique(&MessageHandler);
+}
+
+
+void FWindowsApplication::RemoveMessageHandler(IWindowsMessageHandler& MessageHandler)
+{
+	WindowsApplication->MessageHandlers.RemoveSwap(&MessageHandler);
+}
+
 
 void FWindowsApplication::QueryConnectedMice()
 {
