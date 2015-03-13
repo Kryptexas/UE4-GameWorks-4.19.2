@@ -1810,6 +1810,44 @@ bool FWindowsPlatformMisc::OsExecute(const TCHAR* CommandType, const TCHAR* Comm
 	return bSucceeded;
 }
 
+struct FGetMainWindowHandleData
+{
+	HWND Handle;
+	uint32 ProcessId;
+};
+
+int32 CALLBACK GetMainWindowHandleCallback(HWND Handle, LPARAM lParam)
+{
+	FGetMainWindowHandleData& Data = *(FGetMainWindowHandleData*)lParam;
+	
+	unsigned long ProcessId = 0;
+	{
+		::GetWindowThreadProcessId(Handle, &ProcessId);
+	}
+	
+	if ((Data.ProcessId != ProcessId) || (::GetWindow(Handle, GW_OWNER) != (HWND)0) || !::IsWindowVisible(Handle))
+	{
+		return 1;
+	}
+
+	Data.Handle = Handle;
+
+	return 0;
+}
+
+HWND FWindowsPlatformMisc::GetTopLevelWindowHandle(uint32 ProcessId)
+{
+	FGetMainWindowHandleData Data;
+	{
+		Data.Handle = 0;
+		Data.ProcessId = ProcessId;
+	}
+
+	::EnumWindows(GetMainWindowHandleCallback, (LPARAM)&Data);
+
+	return Data.Handle;
+}
+
 bool FWindowsPlatformMisc::GetWindowTitleMatchingText(const TCHAR* TitleStartsWith, FString& OutTitle)
 {
 	bool bWasFound = false;
