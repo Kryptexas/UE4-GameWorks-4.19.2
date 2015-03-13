@@ -157,6 +157,9 @@ namespace UnrealBuildTool
 	/** Encapsulates the environment that is used to link object files. */
 	public class LinkEnvironment
 	{
+		/** Whether we're linking in monolithic mode. Determines if linking should produce import library file. Relevant only for VC++, clang stores imports in shared library. */
+		public bool bShouldCompileMonolithic = false;
+
 		/** A list of the object files to be linked. */
 		public List<FileItem> InputFiles = new List<FileItem>();
 

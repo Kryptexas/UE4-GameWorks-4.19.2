@@ -1529,6 +1529,8 @@ namespace UnrealBuildTool
 				CreateLinkerFixupsCPPFile();
 			}
 
+			GlobalLinkEnvironment.bShouldCompileMonolithic = ShouldCompileMonolithic();
+
 			// Build the target's binaries.
 			foreach (var Binary in AppBinaries)
 			{

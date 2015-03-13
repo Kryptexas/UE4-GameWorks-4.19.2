@@ -1511,9 +1511,10 @@ namespace UnrealBuildTool
 
 			if (!bIsBuildingLibrary)
 			{
-				// Xbox 360 LTCG does not seem to produce those.
-				if (LinkEnvironment.Config.bHasExports &&
-					(LinkEnvironment.Config.Target.Configuration != CPPTargetConfiguration.Shipping) && (LinkEnvironment.Config.Target.Platform != CPPTargetPlatform.XboxOne))
+				// There is anything to export
+				if (LinkEnvironment.Config.bHasExports
+					// Shipping monolithic builds don't need exports
+					&& (!((LinkEnvironment.Config.Target.Configuration == CPPTargetConfiguration.Shipping) && (LinkEnvironment.bShouldCompileMonolithic != false))))
 				{
 					// Write the import library to the output directory for nFringe support.
 					FileItem ImportLibraryFile = FileItem.GetItemByPath(ImportLibraryFilePath);
