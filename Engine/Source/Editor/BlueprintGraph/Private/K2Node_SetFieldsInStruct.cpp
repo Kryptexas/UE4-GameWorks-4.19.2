@@ -46,7 +46,7 @@ void UK2Node_SetFieldsInStruct::AllocateDefaultPins()
 
 		{
 			FStructOnScope StructOnScope(Cast<UScriptStruct>(StructType));
-			FMakeStructPinManager OptionalPinManager(StructOnScope.GetStructMemory());
+			FSetFieldsInStructPinManager OptionalPinManager(StructOnScope.GetStructMemory());
 			OptionalPinManager.RebuildPropertyList(ShowPinForProperties, StructType);
 			OptionalPinManager.CreateVisiblePins(ShowPinForProperties, StructType, EGPD_Input, this);
 		}
@@ -182,6 +182,13 @@ void UK2Node_SetFieldsInStruct::RestoreAllPins()
 	{
 		ReconstructNode();
 	}
+}
+
+void UK2Node_SetFieldsInStruct::FSetFieldsInStructPinManager::GetRecordDefaults(UProperty* TestProperty, FOptionalPinFromProperty& Record) const
+{
+	FMakeStructPinManager::GetRecordDefaults(TestProperty, Record);
+
+	Record.bShowPin = false;
 }
 
 #undef LOCTEXT_NAMESPACE
