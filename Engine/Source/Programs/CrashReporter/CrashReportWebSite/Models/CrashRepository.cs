@@ -117,7 +117,7 @@ namespace Tools.CrashReporter.CrashReportWebSite.Models
 		/// <returns>A container of all known crashes.</returns>
 		public IQueryable<Crash> ListAll()
 		{
-			return Context.Crashes.AsQueryable();
+			return Context.Crashes.AsQueryable().Where( c => c.Branch != null );
 		}
 
 		/// <summary>
