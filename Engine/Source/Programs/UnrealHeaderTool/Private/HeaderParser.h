@@ -389,6 +389,12 @@ protected:
 	// Indicates that a GENERATED_UCLASS_BODY or GENERATED_BODY has been found in the UClass.
 	bool bClassHasGeneratedBody;
 
+	// Indicates that a GENERATED_UINTERFACE_BODY has been found in the UClass.
+	bool bClassHasGeneratedUInterfaceBody;
+
+	// Indicates that a GENERATED_IINTERFACE_BODY has been found in the UClass.
+	bool bClassHasGeneratedIInterfaceBody;
+
 	// public, private, etc at the current parse spot
 	EAccessSpecifier CurrentAccessSpecifier;
 
