@@ -7,7 +7,8 @@
 #include "Editor/UnrealEd/Public/SEditorViewport.h"
 
 class SActorPreview;
-	
+class SGameLayerManager;
+
 /**
  * Encapsulates an SViewport and an SLevelViewportToolBar
  */
@@ -613,9 +614,9 @@ private:
 
 	/** Resets view flags when a new level is created or opened */
 	void ResetNewLevelViewFlags();
-private:
-	/** Returns the DPI scaler that should be used for game UI in the viewport */
-	float GetGameViewportDPIScale() const;
+
+	/** Gets the active scene viewport for the game */
+	const FSceneViewport* GetGameSceneViewport() const;
 
 private:
 	/** Tab which this viewport is located in */
@@ -626,6 +627,8 @@ private:
 
 	/** Viewport overlay widget exposed to game systems when running play-in-editor */
 	TSharedPtr<SOverlay> PIEViewportOverlayWidget;
+
+	TSharedPtr<SGameLayerManager> GameLayerManager;
 
 	/** Viewport horizontal box used internally for drawing actor previews on top of the level viewport */
 	TSharedPtr<SHorizontalBox> ActorPreviewHorizontalBox;

@@ -8,6 +8,7 @@
 #include "DebugDisplayProperty.h"
 #include "TitleSafeZone.h"
 #include "GameViewportDelegates.h"
+
 #include "GameViewportClient.generated.h"
 
 
@@ -18,6 +19,7 @@ class FSceneViewport;
 class SViewport;
 class SWindow;
 class SOverlay;
+class IGameLayerManager;
 class UCanvas;
 
 
@@ -207,6 +209,23 @@ public:
 	 */
 	virtual void RemoveViewportWidgetContent( TSharedRef<class SWidget> ViewportContent );
 
+	/**
+	 * Adds a widget to the Slate viewport's overlay (i.e for in game UI or tools) at the specified Z-order.
+	 * associates it with a specific player and keeps it in their sub-rect.
+	 * 
+	 * @param  Player The player to add the widget to.
+	 * @param  ViewportContent	The widget to add.  Must be valid.
+	 * @param  ZOrder  The Z-order index for this widget.  Larger values will cause the widget to appear on top of widgets with lower values.
+	 */
+	virtual void AddViewportWidgetForPlayer(ULocalPlayer* Player, TSharedRef<SWidget> ViewportContent, const int32 ZOrder);
+
+	/**
+	 * Removes a previously-added widget from the Slate viewport, in the player's section.
+	 *
+	 * @param	Player The player to remove the widget's viewport from.
+	 * @param	ViewportContent  The widget to remove.  Must be valid.
+	 */
+	virtual void RemoveViewportWidgetForPlayer(ULocalPlayer* Player, TSharedRef<SWidget> ViewportContent);
 
 	/**
 	 * This function removes all widgets from the viewport overlay
@@ -231,7 +250,6 @@ public:
 	 */
 	virtual bool RequiresUncapturedAxisInput() const;
 
-
 	/**
 	 * Set this GameViewportClient's viewport and viewport frame to the viewport specified
 	 * @param	InViewportFrame	The viewportframe to set
@@ -249,6 +267,12 @@ public:
 	{
 		Window = InWindow;
 		ViewportOverlayWidget = InViewportOverlayWidget;
+	}
+
+	/** Assigns the viewport game layer manager for this viewport client.  Should only be called when first created. */
+	void SetGameLayerManager(TSharedPtr< IGameLayerManager > LayerManager)
+	{
+		GameLayerManagerPtr = LayerManager;
 	}
 
 	/** Returns access to this viewport's Slate window */
@@ -644,6 +668,9 @@ private:
 
 	/** Overlay widget that contains widgets to draw on top of the game viewport */
 	TWeakPtr<SOverlay> ViewportOverlayWidget;
+
+	/** The game layer manager allows management of widgets for different player areas of the screen. */
+	TWeakPtr<IGameLayerManager> GameLayerManagerPtr;
 
 	/** Current buffer visualization mode for this game viewport */
 	FName CurrentBufferVisualizationMode;

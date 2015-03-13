@@ -160,10 +160,19 @@ public:
 	 * Adds it to the game's viewport and fills the entire screen, unless SetDesiredSizeInViewport is called
 	 * to explicitly set the size.
 	 *
-	 * @param ZOrder The higher the number the greater the priority when determining if it will above other widgets.
+	 * @param ZOrder The higher the number, the more on top this widget will be.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Viewport", meta=( AdvancedDisplay = "ZOrder" ))
 	void AddToViewport(int32 ZOrder = 0);
+
+	/**
+	 * Adds the widget to the game's viewport in a section dedicated to the player.  This is valuable in a split screen
+	 * game where you need to only show a widget over a player's portion of the viewport.
+	 *
+	 * @param ZOrder The higher the number, the more on top this widget will be.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Viewport", meta=( AdvancedDisplay = "ZOrder" ))
+	bool AddToPlayerScreen(int32 ZOrder = 0);
 
 	/**
 	 * Removes the widget from the viewport.
@@ -176,9 +185,13 @@ public:
 
 	/**
 	 * Sets the widgets position in the viewport.
+	 * @param Position The 2D position to set the widget to in the viewport.
+	 * @param bRemoveDPIScale If you've already calculated inverse DPI, set this to false.  
+	 * Otherwise inverse DPI is applied to the position so that when the location is scaled 
+	 * by DPI, it ends up in the expected position.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Viewport")
-	void SetPositionInViewport(FVector2D Position);
+	void SetPositionInViewport(FVector2D Position, bool bRemoveDPIScale = true);
 
 	/*  */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="User Interface|Viewport")
@@ -211,7 +224,7 @@ public:
 	 * @return The owning local player.
 	 */
 	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Player")
-	class ULocalPlayer* GetOwningLocalPlayer() const;
+	ULocalPlayer* GetOwningLocalPlayer() const;
 
 	/**
 	 * Sets the local player associated with this UI.
@@ -685,6 +698,9 @@ public:
 #endif
 
 protected:
+	/** Adds the widget to the screen, either to the viewport or to the player's screen depending on if the LocalPlayer is null. */
+	void AddToScreen(ULocalPlayer* LocalPlayer, int32 ZOrder);
+
 	virtual TSharedRef<SWidget> RebuildWidget() override;
 	virtual void OnWidgetRebuilt() override;
 

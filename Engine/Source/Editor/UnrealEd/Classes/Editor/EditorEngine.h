@@ -2487,8 +2487,8 @@ public:
 	void OnViewportCloseRequested(FViewport* InViewport);
 
 private:
-	/** Gets the DPI Scale for the game viewport in the editor. */
-	float GetGameViewportDPIScale(UGameViewportClient* ViewportClient) const;
+	/** Gets the scene viewport for a viewport client */
+	const FSceneViewport* GetGameSceneViewport(UGameViewportClient* ViewportClient) const;
 
 	/**
 	 * Non Online PIE creation flow, creates all instances of PIE at once when online isn't requested/required

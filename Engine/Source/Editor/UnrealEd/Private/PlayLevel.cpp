@@ -36,7 +36,7 @@
 #include "SScissorRectBox.h"
 #include "Online.h"
 #include "SNotificationList.h"
-#include "SDPIScaler.h"
+#include "SGameLayerManager.h"
 #include "NotificationManager.h"
 #include "Engine/Selection.h"
 #include "TimerManager.h"
@@ -2742,9 +2742,14 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 
 				FSlateApplication::Get().AddWindow( PieWindow );
 
-				TSharedPtr<SDPIScaler> PIEDPIScaler;
+				TSharedRef<SOverlay> ViewportOverlayWidgetRef = SNew(SOverlay);
 
-				TSharedRef<SOverlay> ViewportOverlayWidgetRef = SNew( SOverlay );
+				TSharedRef<SGameLayerManager> GameLayerManagerRef = SNew(SGameLayerManager)
+					.SceneViewport_UObject(this, &UEditorEngine::GetGameSceneViewport, ViewportClient)
+					[
+						ViewportOverlayWidgetRef
+					];
+
 				PieViewportWidget = 
 					SNew( SViewport )
 						.IsEnabled(FSlateApplication::Get().GetNormalExecutionAttribute())
@@ -2752,16 +2757,8 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 						.RenderDirectlyToWindow( bRenderDirectlyToWindow )
 						.EnableStereoRendering( bEnableStereoRendering )
 						[
-							SNew(SScissorRectBox)
-							[
-								SAssignNew(PIEDPIScaler, SDPIScaler)
-								[
-									ViewportOverlayWidgetRef
-								]
-							]
+							GameLayerManagerRef
 						];
-
-				PIEDPIScaler->SetDPIScale(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(this, &UEditorEngine::GetGameViewportDPIScale, ViewportClient)));
 
 				// Create a viewport widget for the game to render in.
 				PieWindow->SetContent( PieViewportWidget.ToSharedRef() );
@@ -2770,6 +2767,7 @@ UGameInstance* UEditorEngine::CreatePIEGameInstance(int32 PIEInstance, bool bInS
 				PieWindow->BringToFront();
 
 				ViewportClient->SetViewportOverlayWidget( PieWindow, ViewportOverlayWidgetRef );
+				ViewportClient->SetGameLayerManager(GameLayerManagerRef);
 
 				// Set up a notification when the window is closed so we can clean up PIE
 				{
@@ -2908,11 +2906,9 @@ void UEditorEngine::OnViewportCloseRequested(FViewport* InViewport)
 	RequestEndPlayMap();
 }
 
-float UEditorEngine::GetGameViewportDPIScale(UGameViewportClient* ViewportClient) const
+const FSceneViewport* UEditorEngine::GetGameSceneViewport(UGameViewportClient* ViewportClient) const
 {
-	FVector2D ViewportSize;
-	ViewportClient->GetViewportSize(ViewportSize);
-	return GetDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
+	return ViewportClient->GetGameViewport();
 }
 
 FViewport* UEditorEngine::GetActiveViewport()

@@ -10,6 +10,8 @@
 #include "DynamicMeshBuilder.h"
 #include "Scalability.h"
 
+DECLARE_CYCLE_STAT(TEXT("3DHitTesting"), STAT_Slate3DHitTesting, STATGROUP_Slate);
+
 class SVirtualWindow : public SWindow
 {
 	SLATE_BEGIN_ARGS( SVirtualWindow )
@@ -166,38 +168,37 @@ class FWidget3DHitTester : public ICustomHitTestPath
 public:
 	FWidget3DHitTester( UWorld* InWorld )
 		: World( InWorld )
+		, CachedFrame(-1)
 	{}
 
 	// ICustomHitTestPath implementation
 	virtual TArray<FWidgetAndPointer> GetBubblePathAndVirtualCursors(const FGeometry& InGeometry, FVector2D DesktopSpaceCoordinate, bool bIgnoreEnabledStatus) const override
 	{
+		SCOPE_CYCLE_COUNTER(STAT_Slate3DHitTesting);
+
 		if( World.IsValid() && ensure( World->IsGameWorld() ) )
 		{
 			ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(World.Get(), 0);
 			APlayerController* PlayerController = TargetPlayer->PlayerController;
 
-			if (TargetPlayer && PlayerController)
+			if ( UPrimitiveComponent* HitComponent = GetHitResultAtScreenPositionAndCache(TargetPlayer->PlayerController, InGeometry.AbsoluteToLocal(DesktopSpaceCoordinate)) )
 			{
-				FHitResult HitResult;
-				if (PlayerController->GetHitResultAtScreenPosition(InGeometry.AbsoluteToLocal(DesktopSpaceCoordinate), ECC_Visibility, true, HitResult))
+				if ( UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>(HitComponent) )
 				{
-					UWidgetComponent* WidgetComponent = Cast<UWidgetComponent>(HitResult.Component.Get());
-					if ( WidgetComponent )
+					// Make sure the player is interacting with the front of the widget
+					// For widget components, the "front" faces the Z (or Up vector) direction
+					if ( FVector::DotProduct(WidgetComponent->GetUpVector(), CachedHitResult.ImpactPoint - CachedHitResult.TraceStart) < 0.f )
 					{
-						// Make sure the player is interacting with the front of the widget
-						// For widget components, the "front" faces the Z (or Up vector) direction
-						if ( FVector::DotProduct( WidgetComponent->GetUpVector(), HitResult.ImpactPoint - HitResult.TraceStart ) < 0.f )
+						// Make sure the player is close enough to the widget to interact with it
+						if ( FVector::DistSquared(CachedHitResult.TraceStart, CachedHitResult.ImpactPoint) <= FMath::Square(WidgetComponent->GetMaxInteractionDistance()) )
 						{
-							// Make sure the player is close enough to the widget to interact with it
-							if ( FVector::DistSquared( HitResult.TraceStart, HitResult.ImpactPoint ) <= FMath::Square( WidgetComponent->GetMaxInteractionDistance() ) )
-							{
-								return WidgetComponent->GetHitWidgetPath( HitResult, bIgnoreEnabledStatus );
-							}
+							return WidgetComponent->GetHitWidgetPath(CachedHitResult, bIgnoreEnabledStatus);
 						}
 					}
 				}
 			}
 		}
+
 		return TArray<FWidgetAndPointer>();
 	}
 
@@ -218,31 +219,29 @@ public:
 
 	virtual TSharedPtr<struct FVirtualPointerPosition> TranslateMouseCoordinateFor3DChild( const TSharedRef<SWidget>& ChildWidget, const FGeometry& ViewportGeometry, const FVector2D& ScreenSpaceMouseCoordinate, const FVector2D& LastScreenSpaceMouseCoordinate ) const override
 	{
-		if(World.IsValid() && ensure(World->IsGameWorld()))
+		if ( World.IsValid() && ensure(World->IsGameWorld()) )
 		{
 			ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(World.Get(), 0);
-			if(TargetPlayer && TargetPlayer->PlayerController)
+			if ( TargetPlayer && TargetPlayer->PlayerController )
 			{
 				// Check for a hit against any widget components in the world
-				for(TWeakObjectPtr<UWidgetComponent> Component : RegisteredComponents)
+				for ( TWeakObjectPtr<UWidgetComponent> Component : RegisteredComponents )
 				{
 					UWidgetComponent* WidgetComponent = Component.Get();
 					// Check if visible;
 					if ( WidgetComponent && WidgetComponent->GetSlateWidget() == ChildWidget )
 					{
 						FVector2D LocalMouseCoordinate = ViewportGeometry.AbsoluteToLocal(ScreenSpaceMouseCoordinate);
-						FVector2D LocalLastMouseCoordinate = ViewportGeometry.AbsoluteToLocal( LastScreenSpaceMouseCoordinate );
+						FVector2D LocalLastMouseCoordinate = ViewportGeometry.AbsoluteToLocal(LastScreenSpaceMouseCoordinate);
 
-
-						FHitResult HitResult;
-						if(TargetPlayer->PlayerController->GetHitResultAtScreenPosition(LocalMouseCoordinate, ECC_Visibility, true, HitResult))
+						if ( UPrimitiveComponent* HitComponent = GetHitResultAtScreenPositionAndCache(TargetPlayer->PlayerController, LocalMouseCoordinate) )
 						{
-							if ( WidgetComponent == HitResult.Component.Get() )
+							if ( WidgetComponent == HitComponent )
 							{
 								TSharedPtr<FVirtualPointerPosition> VirtualCursorPos = MakeShareable(new FVirtualPointerPosition);
 
 								FVector2D LocalHitLocation;
-								WidgetComponent->GetLocalHitLocation(HitResult, LocalHitLocation);
+								WidgetComponent->GetLocalHitLocation(CachedHitResult, LocalHitLocation);
 
 								VirtualCursorPos->CurrentCursorPosition = LocalHitLocation;
 								VirtualCursorPos->LastCursorPosition = LocalHitLocation;
@@ -259,6 +258,31 @@ public:
 	}
 	// End ICustomHitTestPath
 
+	UPrimitiveComponent* GetHitResultAtScreenPositionAndCache(APlayerController* PlayerController, FVector2D ScreenPosition) const
+	{
+		UPrimitiveComponent* HitComponent = nullptr;
+
+		if ( GFrameNumber != CachedFrame || CachedScreenPosition != ScreenPosition )
+		{
+			CachedFrame = GFrameNumber;
+			CachedScreenPosition = ScreenPosition;
+
+			if ( PlayerController )
+			{
+				if ( PlayerController->GetHitResultAtScreenPosition(ScreenPosition, ECC_Visibility, true, CachedHitResult) )
+				{
+					return CachedHitResult.Component.Get();
+				}
+			}
+		}
+		else
+		{
+			return CachedHitResult.Component.Get();
+		}
+
+		return nullptr;
+	}
+
 	void RegisterWidgetComponent( UWidgetComponent* InComponent )
 	{
 		RegisteredComponents.AddUnique( InComponent );
@@ -272,7 +296,12 @@ public:
 	uint32 GetNumRegisteredComponents() const { return RegisteredComponents.Num(); }
 	
 	UWorld* GetWorld() const { return World.Get(); }
+
 private:
+	mutable int64 CachedFrame;
+	mutable FVector2D CachedScreenPosition;
+	mutable FHitResult CachedHitResult;
+
 	TArray< TWeakObjectPtr<UWidgetComponent> > RegisteredComponents;
 	TWeakObjectPtr<UWorld> World;
 };
@@ -547,33 +576,23 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 	{
 		if ( Widget && !Widget->IsDesignTime() )
 		{
-			ULocalPlayer* const TargetPlayer = GEngine->GetLocalPlayerFromControllerId(GetWorld(), 0);
-			APlayerController* PlayerController = TargetPlayer->PlayerController;
+			ULocalPlayer* TargetPlayer = OwnerPlayer ? OwnerPlayer : GEngine->GetLocalPlayerFromControllerId(GetWorld(), 0);
+			APlayerController* PlayerController = TargetPlayer ? TargetPlayer->PlayerController : nullptr;
 
 			if ( TargetPlayer && PlayerController && IsVisible() )
 			{
 				FVector WorldLocation = GetComponentLocation();
 
-				FVector2D ScreenLocation;
-				bool bProjected = PlayerController->ProjectWorldLocationToScreen(WorldLocation, ScreenLocation);
+				FVector2D ScreenPosition, ScreenPositionInvDPI;
+				const bool bProjected = UWidgetLayoutLibrary::ProjectWorldLocationToWidgetPosition(
+					PlayerController, WorldLocation, ScreenPosition, ScreenPositionInvDPI);
 
 				if ( bProjected )
 				{
 					Widget->SetVisibility(ESlateVisibility::SelfHitTestInvisible);
-						
-					// If the user has configured a resolution quality we need to multiply
-					// the pixels by the resolution quality to arrive at the true position in
-					// the viewport, as the rendered image will be stretched to fill whatever
-					// size the viewport is at.
-					Scalability::FQualityLevels ScalabilityQuality = Scalability::GetQualityLevels();
-					float QualityScale = ( ScalabilityQuality.ResolutionQuality / 100.0f );
-
-					FVector2D FinalScreenLocation = ScreenLocation / QualityScale;
-					FinalScreenLocation.X = FMath::RoundToInt(FinalScreenLocation.X);
-					FinalScreenLocation.Y = FMath::RoundToInt(FinalScreenLocation.Y);
-
+					
 					Widget->SetDesiredSizeInViewport(DrawSize);
-					Widget->SetPositionInViewport(FinalScreenLocation);
+					Widget->SetPositionInViewport(ScreenPositionInvDPI, false);
 					Widget->SetAlignmentInViewport(Pivot);
 				}
 				else
@@ -583,7 +602,8 @@ void UWidgetComponent::TickComponent(float DeltaTime, enum ELevelTick TickType, 
 
 				if ( !Widget->IsInViewport() )
 				{
-					Widget->AddToViewport(ZOrder);
+					Widget->SetPlayerContext(TargetPlayer);
+					Widget->AddToPlayerScreen(ZOrder);
 				}
 			}
 			else if ( Widget->IsInViewport() )
@@ -706,6 +726,30 @@ void UWidgetComponent::InitWidget()
 			Widget->SetIsDesignTime(true);
 		}
 	}
+}
+
+void UWidgetComponent::SetOwnerPlayer(ULocalPlayer* LocalPlayer)
+{
+	OwnerPlayer = LocalPlayer;
+}
+
+ULocalPlayer* UWidgetComponent::GetOwnerPlayer() const
+{
+	return OwnerPlayer;
+}
+
+void UWidgetComponent::SetWidget(UUserWidget* InWidget)
+{
+	if ( Widget )
+	{
+		Widget->RemoveFromParent();
+		Widget->MarkPendingKill();
+		Widget = nullptr;
+	}
+
+	Widget = InWidget;
+
+	UpdateWidget();
 }
 
 void UWidgetComponent::UpdateWidget()

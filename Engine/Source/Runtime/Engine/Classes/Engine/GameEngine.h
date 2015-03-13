@@ -143,7 +143,7 @@ public:
 
 protected:
 
-	float GetGameViewportDPIScale(UGameViewportClient* GameViewportClient) const;
+	const FSceneViewport* GetGameSceneViewport(UGameViewportClient* ViewportClient) const;
 
 private:
 

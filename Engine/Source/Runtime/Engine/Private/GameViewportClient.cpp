@@ -31,6 +31,7 @@
 #include "UserWidget.h"
 #include "GameFramework/GameUserSettings.h"
 #include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
+#include "SGameLayerManager.h"
 
 #define LOCTEXT_NAMESPACE "GameViewport"
 
@@ -263,6 +264,11 @@ void UGameViewportClient::Init(struct FWorldContext& WorldContext, UGameInstance
 					// Set this audio device handle on the world context so future world's set onto the world context
 					// will pass the audio device handle to them and audio will play on the correct audio device
 					WorldContext.AudioDeviceHandle = AudioDeviceHandle;
+				}
+				else
+				{
+					// Shut it down if we failed to initialize
+					AudioDeviceManager->ShutdownAudioDevice(AudioDeviceHandle);
 				}
 			}
 		}
@@ -1342,11 +1348,14 @@ void UGameViewportClient::Precache()
 TOptional<bool> UGameViewportClient::QueryShowFocus(const EFocusCause InFocusCause) const
 {
 	UUserInterfaceSettings* UISettings = GetMutableDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass());
-	if ((UISettings->RenderFocusRule == ERenderFocusRule::NonPointer && InFocusCause == EFocusCause::Mouse) ||
+	
+	if ( UISettings->RenderFocusRule == ERenderFocusRule::Never ||
+		(UISettings->RenderFocusRule == ERenderFocusRule::NonPointer && InFocusCause == EFocusCause::Mouse) ||
 		(UISettings->RenderFocusRule == ERenderFocusRule::NavigationOnly && InFocusCause != EFocusCause::Navigation))
 	{
 		return false;
 	}
+
 	return true;
 }
 
@@ -1885,15 +1894,26 @@ void UGameViewportClient::DrawTransitionMessage(UCanvas* Canvas,const FString& M
 	Canvas->DrawItem( TextItem, 0.5f * (Canvas->ClipX - XL), 0.66f * Canvas->ClipY - YL * 0.5f );	
 }
 
-
 void UGameViewportClient::NotifyPlayerAdded( int32 PlayerIndex, ULocalPlayer* AddedPlayer )
 {
 	LayoutPlayers();
+
+	TSharedPtr< IGameLayerManager > GameLayerManager(GameLayerManagerPtr.Pin());
+	if ( GameLayerManager.IsValid() )
+	{
+		GameLayerManager->NotifyPlayerAdded(PlayerIndex, AddedPlayer);
+	}
 }
 
 void UGameViewportClient::NotifyPlayerRemoved( int32 PlayerIndex, ULocalPlayer* RemovedPlayer )
 {
 	LayoutPlayers();
+
+	TSharedPtr< IGameLayerManager > GameLayerManager(GameLayerManagerPtr.Pin());
+	if ( GameLayerManager.IsValid() )
+	{
+		GameLayerManager->NotifyPlayerRemoved(PlayerIndex, RemovedPlayer);
+	}
 }
 
 void UGameViewportClient::AddViewportWidgetContent( TSharedRef<SWidget> ViewportContent, const int32 ZOrder )
@@ -1918,6 +1938,24 @@ void UGameViewportClient::RemoveViewportWidgetContent( TSharedRef<SWidget> Viewp
 	}
 }
 
+void UGameViewportClient::AddViewportWidgetForPlayer(ULocalPlayer* Player, TSharedRef<SWidget> ViewportContent, const int32 ZOrder)
+{
+	TSharedPtr< IGameLayerManager > GameLayerManager(GameLayerManagerPtr.Pin());
+	if ( GameLayerManager.IsValid() )
+	{
+		GameLayerManager->AddWidgetForPlayer(Player, ViewportContent, ZOrder);
+	}
+}
+
+void UGameViewportClient::RemoveViewportWidgetForPlayer(ULocalPlayer* Player, TSharedRef<SWidget> ViewportContent)
+{
+	TSharedPtr< IGameLayerManager > GameLayerManager(GameLayerManagerPtr.Pin());
+	if ( GameLayerManager.IsValid() )
+	{
+		GameLayerManager->RemoveWidgetForPlayer(Player, ViewportContent);
+	}
+}
+
 void UGameViewportClient::RemoveAllViewportWidgets()
 {
 	CursorWidgets.Empty();
@@ -1925,10 +1963,13 @@ void UGameViewportClient::RemoveAllViewportWidgets()
 	TSharedPtr< SOverlay > PinnedViewportOverlayWidget( ViewportOverlayWidget.Pin() );
 	if( PinnedViewportOverlayWidget.IsValid() )
 	{
-		while(PinnedViewportOverlayWidget->GetNumWidgets())
-		{
-			PinnedViewportOverlayWidget->RemoveSlot();
-		}
+		PinnedViewportOverlayWidget->ClearChildren();
+	}
+
+	TSharedPtr< IGameLayerManager > GameLayerManager(GameLayerManagerPtr.Pin());
+	if ( GameLayerManager.IsValid() )
+	{
+		GameLayerManager->ClearWidgets();
 	}
 }
 

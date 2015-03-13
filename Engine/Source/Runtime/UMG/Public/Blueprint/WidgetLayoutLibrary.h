@@ -12,6 +12,18 @@ class UWidgetLayoutLibrary : public UBlueprintFunctionLibrary
 public:
 
 	/**
+	 * Gets the projected world to screen position for a player, then converts it into a widget
+	 * position, which takes into account any quality scaling.
+	 * @param PlayerController The player controller to project the position in the world to their screen.
+	 * @param WorldLocation The world location to project from.
+	 * @param ScreenPosition The position in the viewport without the inverse DPI being taken into account.
+	 * @param ScreenPositionInvDPI The psotion in the viewport with the inverse DPI applied to it.  This is useful for positioning child widgets of widgets in the viewport where you need to remove DPI before applying it.
+	 * @return true if the position projects onto the screen.
+	 */
+	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Viewport")
+	static bool ProjectWorldLocationToWidgetPosition(APlayerController* PlayerController, FVector WorldLocation, FVector2D& ScreenPosition, FVector2D& ScreenPositionInvDPI);
+
+	/**
 	 * Gets the current DPI Scale being applied to the viewport and all the Widgets.
 	 */
 	UFUNCTION(BlueprintPure, BlueprintCosmetic, Category="Viewport", meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))
@@ -73,4 +85,10 @@ public:
 	 */
 	UFUNCTION(BlueprintPure, Category = "Slot")
 	static UVerticalBoxSlot* SlotAsVerticalBoxSlot(UWidget* Widget);
+
+	/**
+	 * Removes all widgets from the viewport.
+	 */
+	UFUNCTION(BlueprintCallable, BlueprintCosmetic, Category="Viewport", meta=( HidePin="WorldContextObject", DefaultToSelf="WorldContextObject" ))
+	static void RemoveAllWidgets(UObject* WorldContextObject);
 };

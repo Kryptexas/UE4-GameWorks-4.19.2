@@ -29,8 +29,6 @@
 #include "EditorViewportCommands.h"
 #include "Runtime/Engine/Classes/Engine/UserInterfaceSettings.h"
 #include "Runtime/Engine/Classes/Engine/RendererSettings.h"
-#include "SScissorRectBox.h"
-#include "SDPIScaler.h"
 #include "SNotificationList.h"
 #include "NotificationManager.h"
 #include "SLevelViewportControlsPopup.h"
@@ -41,6 +39,7 @@
 #include "GameFramework/PlayerInput.h"
 #include "GameFramework/PlayerController.h"
 #include "SActorPilotViewportToolbar.h"
+#include "SGameLayerManager.h"
 
 static const FName LevelEditorName("LevelEditor");
 
@@ -181,13 +180,10 @@ void SLevelViewport::ConstructViewportOverlayContent()
 #if ALLOW_PLAY_IN_VIEWPORT_GAMEUI
 		ViewportOverlay->AddSlot( SlotIndex )
 		[
-			SNew( SScissorRectBox )
+			SAssignNew(GameLayerManager, SGameLayerManager)
+			.SceneViewport(this, &SLevelViewport::GetGameSceneViewport)
 			[
-				SNew(SDPIScaler)
-				.DPIScale(this, &SLevelViewport::GetGameViewportDPIScale)
-				[
-					PIEViewportOverlayWidget.ToSharedRef()
-				]
+				PIEViewportOverlayWidget.ToSharedRef()
 			]
 		];
 
@@ -386,14 +382,9 @@ void SLevelViewport::ConstructLevelEditorViewportClient( const FArguments& InArg
 	LevelViewportClient->SetViewModes(ViewportInstanceSettings.PerspViewModeIndex, ViewportInstanceSettings.OrthoViewModeIndex );
 }
 
-float SLevelViewport::GetGameViewportDPIScale() const
+const FSceneViewport* SLevelViewport::GetGameSceneViewport() const
 {
-	if ( HasPlayInEditorViewport() || LevelViewportClient->IsSimulateInEditorViewport() )
-	{
-		return GetDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass())->GetDPIScaleBasedOnSize(ActiveViewport->GetSize());
-	}
-
-	return 1.0f;
+	return ActiveViewport.Get();
 }
 
 FReply SLevelViewport::OnKeyDown( const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent )
@@ -3246,7 +3237,7 @@ bool SLevelViewport::IsViewportConfigurationSet(FName ConfigurationName) const
 	return false;
 }
 
-void SLevelViewport::StartPlayInEditorSession( UGameViewportClient* PlayClient, const bool bInSimulateInEditor )
+void SLevelViewport::StartPlayInEditorSession(UGameViewportClient* PlayClient, const bool bInSimulateInEditor)
 {
 	check( !HasPlayInEditorViewport() );
 
@@ -3276,6 +3267,7 @@ void SLevelViewport::StartPlayInEditorSession( UGameViewportClient* PlayClient, 
 	ActiveViewport->OnPlayWorldViewportSwapped( *InactiveViewport );
 
 	PlayClient->SetViewportOverlayWidget( TSharedPtr<SWindow>(), PIEViewportOverlayWidget.ToSharedRef() );
+	PlayClient->SetGameLayerManager(GameLayerManager);
 
 	// Our viewport widget should start rendering the new viewport for the play in editor scene
 	ViewportWidget->SetViewportInterface( ActiveViewport.ToSharedRef() );

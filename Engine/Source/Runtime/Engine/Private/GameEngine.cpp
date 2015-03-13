@@ -31,7 +31,7 @@
 #include "IHeadMountedDisplay.h"
 #include "RendererInterface.h"
 #include "HotReloadInterface.h"
-#include "SDPIScaler.h"
+#include "SGameLayerManager.h"
 #include "Components/SkyLightComponent.h"
 #include "Components/ReflectionCaptureComponent.h"
 #include "Engine/GameEngine.h"
@@ -90,6 +90,14 @@ void UGameEngine::CreateGameViewportWidget( UGameViewportClient* GameViewportCli
 {
 	bool bRenderDirectlyToWindow = !GEngine->MatineeScreenshotOptions.bStartWithMatineeCapture && GIsDumpingMovie == 0; 
 	TSharedRef<SOverlay> ViewportOverlayWidgetRef = SNew( SOverlay );
+
+	TSharedRef<SGameLayerManager> GameLayerManagerRef = SNew(SGameLayerManager)
+		.SceneViewport_UObject(this, &UGameEngine::GetGameSceneViewport, GameViewportClient)
+		.UseScissor(false)
+		[
+			ViewportOverlayWidgetRef
+		];
+
 	TSharedRef<SViewport> GameViewportWidgetRef = 
 		SNew( SViewport )
 			// Render directly to the window backbuffer unless capturing a movie or getting screenshots
@@ -99,16 +107,13 @@ void UGameEngine::CreateGameViewportWidget( UGameViewportClient* GameViewportCli
 			.EnableGammaCorrection(false)
 			.EnableStereoRendering(true)
 			[
-				SNew(SDPIScaler)
-				.DPIScale(TAttribute<float>::Create(TAttribute<float>::FGetter::CreateUObject(this, &UGameEngine::GetGameViewportDPIScale, GameViewportClient)))
-				[
-					ViewportOverlayWidgetRef
-				]
+				GameLayerManagerRef
 			];
 
 	GameViewportWidget = GameViewportWidgetRef;
 
 	GameViewportClient->SetViewportOverlayWidget( GameViewportWindow.Pin(), ViewportOverlayWidgetRef );
+	GameViewportClient->SetGameLayerManager(GameLayerManagerRef);
 }
 
 void UGameEngine::CreateGameViewport( UGameViewportClient* GameViewportClient )
@@ -154,11 +159,9 @@ void UGameEngine::CreateGameViewport( UGameViewportClient* GameViewportClient )
 	GameViewport->SetViewportFrame(ViewportFrame);
 }
 
-float UGameEngine::GetGameViewportDPIScale(UGameViewportClient* ViewportClient) const
+const FSceneViewport* UGameEngine::GetGameSceneViewport(UGameViewportClient* ViewportClient) const
 {
-	FVector2D ViewportSize;
-	ViewportClient->GetViewportSize(ViewportSize);
-	return GetDefault<UUserInterfaceSettings>(UUserInterfaceSettings::StaticClass())->GetDPIScaleBasedOnSize(FIntPoint(ViewportSize.X, ViewportSize.Y));
+	return ViewportClient->GetGameViewport();
 }
 
 void UGameEngine::ConditionallyOverrideSettings(int32& ResolutionX, int32& ResolutionY, EWindowMode::Type& WindowMode)

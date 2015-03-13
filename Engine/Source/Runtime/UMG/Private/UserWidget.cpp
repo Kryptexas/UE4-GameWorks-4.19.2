@@ -617,6 +617,23 @@ UWidget* UUserWidget::GetRootWidget() const
 
 void UUserWidget::AddToViewport(int32 ZOrder)
 {
+	AddToScreen(nullptr, ZOrder);
+}
+
+bool UUserWidget::AddToPlayerScreen(int32 ZOrder)
+{
+	if ( ULocalPlayer* LocalPlayer = GetOwningLocalPlayer() )
+	{
+		AddToScreen(LocalPlayer, ZOrder);
+		return true;
+	}
+
+	FMessageLog("PIE").Error(LOCTEXT("AddToPlayerScreen_NoPlayer", "AddToPlayerScreen Failed.  No Owning Player!"));
+	return false;
+}
+
+void UUserWidget::AddToScreen(ULocalPlayer* Player, int32 ZOrder)
+{
 	if ( !FullScreenWidget.IsValid() )
 	{
 		TSharedPtr<SWidget> OutUserSlateWidget;
@@ -630,7 +647,15 @@ void UUserWidget::AddToViewport(int32 ZOrder)
 		{
 			if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
 			{
-				ViewportClient->AddViewportWidgetContent(RootWidget, 10 + ZOrder);
+				ZOrder = 10 + ZOrder;
+				if ( Player )
+				{
+					ViewportClient->AddViewportWidgetForPlayer(Player, RootWidget, ZOrder);
+				}
+				else
+				{
+					ViewportClient->AddViewportWidgetContent(RootWidget, ZOrder);
+				}
 			}
 		}
 	}
@@ -653,7 +678,14 @@ void UUserWidget::RemoveFromParent()
 		{
 			if ( UGameViewportClient* ViewportClient = World->GetGameViewport() )
 			{
-				ViewportClient->RemoveViewportWidgetContent(WidgetHost.ToSharedRef());
+				TSharedRef<SWidget> WidgetHostRef = WidgetHost.ToSharedRef();
+
+				ViewportClient->RemoveViewportWidgetContent(WidgetHostRef);
+
+				if ( ULocalPlayer* LocalPlayer = GetOwningLocalPlayer() )
+				{
+					ViewportClient->RemoveViewportWidgetForPlayer(LocalPlayer, WidgetHostRef);
+				}
 			}
 		}
 	}
@@ -712,12 +744,20 @@ class APawn* UUserWidget::GetOwningPlayerPawn() const
 	return nullptr;
 }
 
-void UUserWidget::SetPositionInViewport(FVector2D Position)
+void UUserWidget::SetPositionInViewport(FVector2D Position, bool bRemoveDPIScale )
 {
-	float Scale = UWidgetLayoutLibrary::GetViewportScale(this);
+	if ( bRemoveDPIScale )
+	{
+		float Scale = UWidgetLayoutLibrary::GetViewportScale(this);
 
-	ViewportOffsets.Left = Position.X / Scale;
-	ViewportOffsets.Top = Position.Y / Scale;
+		ViewportOffsets.Left = Position.X / Scale;
+		ViewportOffsets.Top = Position.Y / Scale;
+	}
+	else
+	{
+		ViewportOffsets.Left = Position.X;
+		ViewportOffsets.Top = Position.Y;
+	}
 
 	ViewportAnchors = FAnchors(0, 0);
 }
