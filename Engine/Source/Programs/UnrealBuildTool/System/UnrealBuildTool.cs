@@ -281,7 +281,7 @@ namespace UnrealBuildTool
         /// <param name="Predicate">The predicate to filter the platforms.</param>
         /// <param name="bCheckValidity">If true, ensure it is a valid platform.</param>
         /// <returns>True if successful and platforms are found, false if not.</returns>
-        static private bool GetPlatforms(List<UnrealTargetPlatform> OutPlatforms, Func<UnrealTargetPlatform, bool> Predicate, bool bCheckValidity = true)
+        static private bool GetPlatforms(ref List<UnrealTargetPlatform> OutPlatforms, Func<UnrealTargetPlatform, bool> Predicate, bool bCheckValidity = true)
         {
             OutPlatforms.Clear();
             foreach (UnrealTargetPlatform Platform in Enum.GetValues(typeof(UnrealTargetPlatform)))
@@ -305,9 +305,9 @@ namespace UnrealBuildTool
         /// <param name="OutPlatforms">The list of platform to fill in.</param>
         /// <param name="bCheckValidity">If true, ensure it is a valid platform.</param>
         /// <returns>True if successful and platforms are found, false if not.</returns>
-        static public bool GetAllPlatforms(List<UnrealTargetPlatform> OutPlatforms, bool bCheckValidity = true)
+        static public bool GetAllPlatforms(ref List<UnrealTargetPlatform> OutPlatforms, bool bCheckValidity = true)
         {
-            return GetPlatforms(OutPlatforms, (Platform) => { return true; }, bCheckValidity);
+            return GetPlatforms(ref OutPlatforms, (Platform) => { return true; }, bCheckValidity);
         }
 
         /// <summary>
@@ -316,9 +316,9 @@ namespace UnrealBuildTool
         /// <param name="OutPlatforms">The list of platform to fill in.</param>
         /// <param name="bCheckValidity">If true, ensure it is a valid platform.</param>
         /// <returns>True if successful and platforms are found, false if not.</returns>
-        static public bool GetAllDesktopPlatforms(List<UnrealTargetPlatform> OutPlatforms, bool bCheckValidity = true)
+        static public bool GetAllDesktopPlatforms(ref List<UnrealTargetPlatform> OutPlatforms, bool bCheckValidity = true)
         {
-            return GetPlatforms(OutPlatforms, UnrealBuildTool.IsDesktopPlatform, bCheckValidity);
+            return GetPlatforms(ref OutPlatforms, UnrealBuildTool.IsDesktopPlatform, bCheckValidity);
         }
 
         /// <summary>
@@ -327,9 +327,9 @@ namespace UnrealBuildTool
         /// <param name="OutPlatforms">The list of platform to fill in.</param>
         /// <param name="bCheckValidity">If true, ensure it is a valid platform.</param>
         /// <returns>True if successful and platforms are found, false if not.</returns>
-        static public bool GetAllEditorPlatforms(List<UnrealTargetPlatform> OutPlatforms, bool bCheckValidity = true)
+        static public bool GetAllEditorPlatforms(ref List<UnrealTargetPlatform> OutPlatforms, bool bCheckValidity = true)
         {
-            return GetPlatforms(OutPlatforms, UnrealBuildTool.IsEditorPlatform, bCheckValidity);
+            return GetPlatforms(ref OutPlatforms, UnrealBuildTool.IsEditorPlatform, bCheckValidity);
         }
 
         /// <summary>
@@ -338,9 +338,9 @@ namespace UnrealBuildTool
         /// <param name="OutPlatforms">The list of platform to fill in.</param>
         /// <param name="bCheckValidity">If true, ensure it is a valid platform.</param>
         /// <returns>True if successful and platforms are found, false if not.</returns>
-        static public bool GetAllServerPlatforms(List<UnrealTargetPlatform> OutPlatforms, bool bCheckValidity = true)
+        static public bool GetAllServerPlatforms(ref List<UnrealTargetPlatform> OutPlatforms, bool bCheckValidity = true)
         {
-            return GetPlatforms(OutPlatforms, UnrealBuildTool.IsServerPlatform, bCheckValidity);
+            return GetPlatforms(ref OutPlatforms, UnrealBuildTool.IsServerPlatform, bCheckValidity);
         }
 
         /// <summary>

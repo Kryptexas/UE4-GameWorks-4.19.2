@@ -2203,7 +2203,7 @@ namespace UnrealBuildTool
 			else
 			{
 				// For existing project files, just support the default desktop platforms and configurations
-				UnrealBuildTool.GetAllDesktopPlatforms(ProjectTarget.ExtraSupportedPlatforms, false);
+				UnrealBuildTool.GetAllDesktopPlatforms(ref ProjectTarget.ExtraSupportedPlatforms, false);
 				// Debug and Development only
 				ProjectTarget.ExtraSupportedConfigurations.Add(UnrealTargetConfiguration.Debug);
 				ProjectTarget.ExtraSupportedConfigurations.Add(UnrealTargetConfiguration.Development);
