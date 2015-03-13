@@ -744,11 +744,13 @@ namespace UnrealBuildTool
             public UnrealTargetPlatform TargetPlatform = UnrealTargetPlatform.Unknown;
             public UnrealTargetConfiguration TargetConfig = UnrealTargetConfiguration.Unknown;
             public bool bTest = false;
-            public GUBPFormalBuild(UnrealTargetPlatform InTargetPlatform, UnrealTargetConfiguration InTargetConfig, bool bInTest = false)
+			public bool bBeforeTrigger = false;
+            public GUBPFormalBuild(UnrealTargetPlatform InTargetPlatform, UnrealTargetConfiguration InTargetConfig, bool bInTest = false, bool bInBeforeTrigger = false)
             {
                 TargetPlatform = InTargetPlatform;
                 TargetConfig = InTargetConfig;
                 bTest = bInTest;
+				bBeforeTrigger = bInBeforeTrigger;
             }
         }
         /// <summary>
@@ -772,7 +774,7 @@ namespace UnrealBuildTool
             public bool bTestWithShared = false;
             public bool bIsMassive = false;
             public bool bCustomWorkflowForPromotion = false;
-			public bool bIsNonCode = false;
+			public bool bIsNonCode = false;			
         }
         public virtual GUBPProjectOptions GUBP_IncludeProjectInPromotedBuild_EditorTypeOnly(UnrealTargetPlatform HostPlatform)
         {

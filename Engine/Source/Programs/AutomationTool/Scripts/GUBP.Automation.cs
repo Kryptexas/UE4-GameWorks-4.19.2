@@ -3022,7 +3022,7 @@ public class GUBP : BuildCommand
                         if (!WorkingGameProject.Properties.Targets[GameOrClient].Rules.GUBP_GetConfigs_MonolithicOnly(HostPlatform, Plat).Contains(Config))
                         {
                             throw new AutomationException("Can't make a game/client build for {0} because we didn't build platform {1} config {2}.", WorkingGameProject.GameName, Plat.ToString(), Config.ToString());
-                        }
+                        }						
                     }
                 }
             }
@@ -5917,6 +5917,10 @@ public class GUBP : BuildCommand
                                                 if (PlatPair.TargetPlatform == Plat)
                                                 {
 													var NodeName = AddNode(new FormalBuildNode(this, NonCodeProject, HostPlatform, new List<UnrealTargetPlatform>() { Plat }, new List<UnrealTargetConfiguration>() {PlatPair.TargetConfig}));
+													if(PlatPair.bBeforeTrigger)
+													{
+														RemovePseudodependencyFromNode(FormalBuildNode.StaticGetFullName(NonCodeProject, HostPlatform, new List<UnrealTargetPlatform>() { Plat }, new List<UnrealTargetConfiguration>() { PlatPair.TargetConfig }), WaitForFormalUserInput.StaticGetFullName());
+													}
 													// we don't want this delayed
 													// this would normally wait for the testing phase, we just want to build it right away
 													RemovePseudodependencyFromNode(
@@ -5948,7 +5952,7 @@ public class GUBP : BuildCommand
 													if (PlatPair.bTest)
 													{
 														AddNode(new FormalBuildTestNode(this, NonCodeProject, HostPlatform, Plat, PlatPair.TargetConfig));
-													}																										
+													}													
 												}
 											}
 										}
@@ -6156,6 +6160,10 @@ public class GUBP : BuildCommand
 										}
 										if (FormalNodeName != null)
 										{
+											if (Config.bBeforeTrigger)
+											{
+												RemovePseudodependencyFromNode(FormalBuildNode.StaticGetFullName(CodeProj, HostPlatform, new List<UnrealTargetPlatform>() { Config.TargetPlatform }, new List<UnrealTargetConfiguration>() { Config.TargetConfig }), WaitForFormalUserInput.StaticGetFullName());
+											}
 											// we don't want this delayed
 											// this would normally wait for the testing phase, we just want to build it right away
 											RemovePseudodependencyFromNode(
