@@ -481,8 +481,6 @@ void FRenderingCompositionGraph::RecursivelyProcess(const FRenderingCompositeOut
 			GGMLFileWriter.WriteLine("\tnode");
 			GGMLFileWriter.WriteLine("\t[");
 
-			ANSICHAR Line[MAX_SPRINTF];
-
 			{
 				GGMLFileWriter.WriteLine("\t\tgraphics");
 				GGMLFileWriter.WriteLine("\t\t[");

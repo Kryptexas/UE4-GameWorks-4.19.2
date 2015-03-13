@@ -695,7 +695,7 @@ FRenderTargetPool::SMemoryStats FRenderTargetPool::ComputeView()
 		{
 			uint32 ColumnX = 0;
 
-			for(int32 ColumnIndex = 0, Num = Colums.Num(); ColumnIndex < Num; ++ColumnIndex)
+			for(int32 ColumnIndex = 0, ColumnsNum = Colums.Num(); ColumnIndex < ColumnsNum; ++ColumnIndex)
 			{
 				const FRTPColumn& RTPColumn = Colums[ColumnIndex];
 
@@ -717,7 +717,7 @@ FRenderTargetPool::SMemoryStats FRenderTargetPool::ComputeView()
 				MemoryStats.TotalColumnSize += ColumnSize;
 				MemoryStats.TotalUsageInBytes += RTPColumn.SizeInBytes;
 				
-				for(int32 EventIndex = 0, Num = RenderTargetPoolEvents.Num(); EventIndex < Num; EventIndex++)
+				for(int32 EventIndex = 0, PoolEventsNum = RenderTargetPoolEvents.Num(); EventIndex < PoolEventsNum; EventIndex++)
 				{
 					FRenderTargetPoolEvent* Event = &RenderTargetPoolEvents[EventIndex];
 
