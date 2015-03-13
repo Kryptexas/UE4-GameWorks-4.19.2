@@ -616,7 +616,7 @@ namespace UnrealBuildTool
 											if( CurProject.ProjectTargets[0].TargetRules != null )
 											{
 												var ProjectSupportedPlatforms = new List<UnrealTargetPlatform>();
-												CurProject.ProjectTargets[0].TargetRules.GetSupportedPlatforms( ref ProjectSupportedPlatforms );
+												CurProject.ProjectTargets[0].TargetRules.GetSupportedPlatforms( ProjectSupportedPlatforms );
 												if( !ProjectSupportedPlatforms.Contains( SolutionPlatform ) )
 												{
 													SolutionPlatform = ProjectSupportedPlatforms[ 0 ];

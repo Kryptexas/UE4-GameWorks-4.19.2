@@ -1108,7 +1108,7 @@ namespace UnrealBuildTool
 					var Target = new TargetInfo(UnrealTargetPlatform.Mac, UnrealTargetConfiguration.Development);
 					var TargetRulesObject = RulesCompiler.CreateTargetRules(TargetName, Target, false, out TargetFilePath);
 					List<UnrealTargetPlatform> SupportedPlatforms = new List<UnrealTargetPlatform>();
-					TargetRulesObject.GetSupportedPlatforms(ref SupportedPlatforms);
+					TargetRulesObject.GetSupportedPlatforms(SupportedPlatforms);
 					LinkEnvironmentConfiguration LinkConfiguration = new LinkEnvironmentConfiguration();
 					CPPEnvironmentConfiguration CPPConfiguration = new CPPEnvironmentConfiguration();
 					TargetRulesObject.SetupGlobalEnvironment(Target, ref LinkConfiguration, ref CPPConfiguration);

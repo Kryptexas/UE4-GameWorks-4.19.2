@@ -195,12 +195,12 @@ namespace UnrealBuildTool
 			{
 				if( ProjectTarget.TargetRules != null )
 				{
-					ProjectTarget.TargetRules.GetSupportedPlatforms(ref SupportedPlatforms);
+					ProjectTarget.TargetRules.GetSupportedPlatforms(SupportedPlatforms);
 				}
 			}
 			else
 			{
-				UnrealBuildTool.GetAllPlatforms(ref SupportedPlatforms);
+				UnrealBuildTool.GetAllPlatforms(SupportedPlatforms);
 			}
 			bool bIncludeTestAndShippingConfigs = ProjectFileGenerator.bIncludeTestAndShippingConfigs || ProjectFileGenerator.bGeneratingRocketProjectFiles;
 			if( ProjectTarget.TargetRules != null )

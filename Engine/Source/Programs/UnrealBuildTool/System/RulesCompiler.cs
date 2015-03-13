@@ -504,21 +504,21 @@ namespace UnrealBuildTool
 		/// </summary>
 		/// <param name="OutPlatforms">The list of platforms supported</param>
 		/// <returns>true if successful, false if not</returns>
-		public virtual bool GetSupportedPlatforms(ref List<UnrealTargetPlatform> OutPlatforms)
+		public virtual bool GetSupportedPlatforms(List<UnrealTargetPlatform> OutPlatforms)
 		{
 			if(Type == TargetType.Program)
 			{
 				// By default, all programs are desktop only.
-				return UnrealBuildTool.GetAllDesktopPlatforms(ref OutPlatforms, false);
+				return UnrealBuildTool.GetAllDesktopPlatforms(OutPlatforms, false);
 			}
 			else if(IsEditorType(Type))
 			{
-				return UnrealBuildTool.GetAllEditorPlatforms(ref OutPlatforms, false);
+				return UnrealBuildTool.GetAllEditorPlatforms(OutPlatforms, false);
 			}
 			else if (TargetRules.IsGameType(Type))
 			{
 				// By default all games support all platforms
-				return UnrealBuildTool.GetAllPlatforms(ref OutPlatforms, false);
+				return UnrealBuildTool.GetAllPlatforms(OutPlatforms, false);
 			}
 
 			return false;
@@ -527,7 +527,7 @@ namespace UnrealBuildTool
 		public bool SupportsPlatform(UnrealTargetPlatform InPlatform)
 		{
 			List<UnrealTargetPlatform> SupportedPlatforms = new List<UnrealTargetPlatform>();
-			if (GetSupportedPlatforms(ref SupportedPlatforms) == true)
+			if (GetSupportedPlatforms(SupportedPlatforms) == true)
 			{
 				return SupportedPlatforms.Contains(InPlatform);
 			}
