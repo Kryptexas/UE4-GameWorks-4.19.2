@@ -360,25 +360,6 @@ void FIOSTargetPlatform::GetAllPossibleShaderFormats( TArray<FName>& OutFormats 
 	}
 }
 
-bool FIOSTargetPlatform::SupportsFeature( ETargetPlatformFeatures Feature ) const
-{
-	switch (Feature)
-	{
-		case ETargetPlatformFeatures::Packaging:
-			return true;
-
-		case ETargetPlatformFeatures::LowQualityLightmaps:
-			return SupportsES2() || SupportsMetal();
-		
-		case ETargetPlatformFeatures::HighQualityLightmaps:
-			return SupportsMetalMRT();
-		default:
-			break;
-	}
-	
-	return TTargetPlatformBase<FIOSPlatformProperties>::SupportsFeature(Feature);
-}
-
 void FIOSTargetPlatform::GetAllTargetedShaderFormats( TArray<FName>& OutFormats ) const
 {
 	GetAllPossibleShaderFormats(OutFormats);
@@ -456,3 +437,23 @@ FName FIOSTargetPlatform::GetWaveFormat( const class USoundWave* Wave ) const
 }
 
 #endif // WITH_ENGINE
+
+bool FIOSTargetPlatform::SupportsFeature( ETargetPlatformFeatures Feature ) const
+{
+	switch (Feature)
+	{
+		case ETargetPlatformFeatures::Packaging:
+			return true;
+			
+		case ETargetPlatformFeatures::LowQualityLightmaps:
+			return SupportsES2() || SupportsMetal();
+			
+		case ETargetPlatformFeatures::HighQualityLightmaps:
+			return SupportsMetalMRT();
+		default:
+			break;
+	}
+	
+	return TTargetPlatformBase<FIOSPlatformProperties>::SupportsFeature(Feature);
+}
+
