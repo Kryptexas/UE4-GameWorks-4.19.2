@@ -1598,8 +1598,9 @@ void FGlobalTabmanager::SetActiveTab( const TSharedPtr<class SDockTab>& NewActiv
 	
 	TSharedPtr<SDockTab> CurrentlyActiveTab = GetActiveTab();
 
-	if (bShouldApplyChange && CurrentlyActiveTab != NewActiveTab)
+	if (bShouldApplyChange && (CurrentlyActiveTab != NewActiveTab))
 	{
+		NewActiveTab->UpdateActivationTime();
 		OnActiveTabChanged.Broadcast( CurrentlyActiveTab, NewActiveTab );
 		ActiveTabPtr = NewActiveTab;
 	}	
@@ -1763,9 +1764,11 @@ void FGlobalTabmanager::OnTabForegrounded( const TSharedPtr<SDockTab>& NewForegr
 			TSharedPtr<FTabManager> ForegroundTabManager = SubTabManagers[ForegroundedTabIndex].TabManager.Pin();
 			ForegroundTabManager->GetPrivateApi().ShowWindows();
 		}
+
+		NewForegroundTab->UpdateActivationTime();
 	}
 	
-	if ( BackgroundedTab.IsValid() )
+	if (BackgroundedTab.IsValid())
 	{
 		// Hide any child windows associated with the Major Tab that got backgrounded.
 		const int32 BackgroundedTabIndex = SubTabManagers.IndexOfByPredicate(FindByTab(BackgroundedTab.ToSharedRef()));

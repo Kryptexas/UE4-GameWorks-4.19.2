@@ -309,8 +309,8 @@ SDockTab::SDockTab()
 	, ContentAreaPadding( 2 )
 	, bShouldAutosize(false)
 	, TabColorScale(FLinearColor(0,0,0,0))
+	, LastActivationTime(0.0)
 {
-
 }
 
 void SDockTab::ActivateInParent(ETabActivationCause InActivationCause)
