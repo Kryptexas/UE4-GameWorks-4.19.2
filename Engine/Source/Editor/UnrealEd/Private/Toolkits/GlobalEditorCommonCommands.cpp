@@ -2,92 +2,17 @@
 
 #include "UnrealEd.h"
 #include "GlobalEditorCommonCommands.h"
-
-//////////////////////////////////////////////////////////////////////////
-// SGlobalOpenAssetDialog
-
-#include "AssetData.h"
-#include "ContentBrowserModule.h"
-#include "Toolkits/AssetEditorManager.h"
 #include "OutputLogModule.h"
+#include "LevelEditor.h"
+#include "SDockTab.h"
 
-class SGlobalOpenAssetDialog : public SCompoundWidget
-{
-public:
-	SLATE_BEGIN_ARGS(SGlobalOpenAssetDialog){}
-	SLATE_END_ARGS()
+#include "SGlobalOpenAssetDialog.h"
+#include "SGlobalTabSwitchingDialog.h"
 
-public:
-	void Construct(const FArguments& InArgs, FVector2D InSize)
-	{
-		FContentBrowserModule& ContentBrowserModule = FModuleManager::Get().LoadModuleChecked<FContentBrowserModule>(TEXT("ContentBrowser"));
-
-		FAssetPickerConfig AssetPickerConfig;
-		AssetPickerConfig.OnAssetDoubleClicked = FOnAssetSelected::CreateSP(this, &SGlobalOpenAssetDialog::OnAssetSelectedFromPicker);
-		AssetPickerConfig.OnAssetEnterPressed = FOnAssetEnterPressed::CreateSP(this, &SGlobalOpenAssetDialog::OnPressedEnterOnAssetsInPicker);
-		AssetPickerConfig.InitialAssetViewType = EAssetViewType::List;
-		AssetPickerConfig.bAllowNullSelection = false;
-		AssetPickerConfig.bShowBottomToolbar = true;
-		AssetPickerConfig.bAutohideSearchBar = false;
-		AssetPickerConfig.bCanShowClasses = false;
-		AssetPickerConfig.SaveSettingsName = TEXT("GlobalAssetPicker");
-
-		ChildSlot
-		[
-			SNew(SBox)
-			.WidthOverride(InSize.X)
-			.HeightOverride(InSize.Y)
-			[
-				SNew(SVerticalBox)
-				+SVerticalBox::Slot()
-				.FillHeight(1.0f)
-				[
-					ContentBrowserModule.Get().CreateAssetPicker(AssetPickerConfig)
-				]
-			]
-		];
-	}
-
-	// SWidget interface
-	virtual FReply OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
-	// End of SWidget interface
-
-protected:
-	void OnAssetSelectedFromPicker(const FAssetData& AssetData)
-	{
-		if (UObject* ObjectToEdit = AssetData.GetAsset())
-		{
-			FAssetEditorManager::Get().OpenEditorForAsset(ObjectToEdit);
-		}
-	}
-
-	void OnPressedEnterOnAssetsInPicker(const TArray<FAssetData>& SelectedAssets)
-	{
-		for (auto AssetIt = SelectedAssets.CreateConstIterator(); AssetIt; ++AssetIt)
-		{
-			if (UObject* ObjectToEdit = AssetIt->GetAsset())
-			{
-				FAssetEditorManager::Get().OpenEditorForAsset(ObjectToEdit);
-			}
-		}
-	}
-};
-
-FReply SGlobalOpenAssetDialog::OnPreviewKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent)
-{
-	if (InKeyEvent.GetKey() == EKeys::Escape)
-	{
-		FSlateApplication::Get().DismissAllMenus();
-		return FReply::Handled();
-	}
-
-	return FReply::Unhandled();
-}
+#define LOCTEXT_NAMESPACE "GlobalEditorCommonCommands"
 
 //////////////////////////////////////////////////////////////////////////
 // FGlobalEditorCommonCommands
-
-#define LOCTEXT_NAMESPACE ""
 
 FGlobalEditorCommonCommands::FGlobalEditorCommonCommands()
 	: TCommands<FGlobalEditorCommonCommands>(TEXT("SystemWideCommands"), NSLOCTEXT("Contexts", "SystemWideCommands", "System-wide"), NAME_None, FEditorStyle::GetStyleSetName())
@@ -96,7 +21,9 @@ FGlobalEditorCommonCommands::FGlobalEditorCommonCommands()
 
 void FGlobalEditorCommonCommands::RegisterCommands()
 {
-	//UI_COMMAND( SummonControlTabNavigation, "Tab Navigation", "Summons a list of open assets and tabs", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::Tab) );
+	UI_COMMAND( SummonControlTabNavigation, "Tab Navigation", "Summons a list of open assets and tabs", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::Tab) );
+	UI_COMMAND( SummonControlTabNavigationAlternate, "Tab Navigation", "Summons a list of open assets and tabs", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Command, EKeys::Tab) );
+
 	UI_COMMAND( SummonOpenAssetDialog, "Open Asset...", "Summons an asset picker", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::P) );
 	UI_COMMAND( SummonOpenAssetDialogAlternate, "Open Asset...", "Summons an asset picker", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Alt | EModifierKey::Shift, EKeys::O));
 	UI_COMMAND( FindInContentBrowser, "Find in Content Browser", "Summons the Content Browser and navigates to the selected asset", EUserInterfaceActionType::Button, FInputGesture(EModifierKey::Control, EKeys::B));
@@ -111,9 +38,13 @@ void FGlobalEditorCommonCommands::MapActions(TSharedRef<FUICommandList>& Toolkit
 {
 	Register();
 
-// 	ToolkitCommands->MapAction(
-// 		Get().SummonControlTabNavigation,
-// 		FExecuteAction::CreateStatic( &FGlobalEditorCommonCommands::OnPressedCtrlTab ) );
+ 	ToolkitCommands->MapAction(
+ 		Get().SummonControlTabNavigation,
+ 		FExecuteAction::CreateStatic( &FGlobalEditorCommonCommands::OnPressedCtrlTab, Get().SummonControlTabNavigation ) );
+
+ 	ToolkitCommands->MapAction(
+ 		Get().SummonControlTabNavigationAlternate,
+ 		FExecuteAction::CreateStatic( &FGlobalEditorCommonCommands::OnPressedCtrlTab, Get().SummonControlTabNavigationAlternate ) );
 
 	ToolkitCommands->MapAction(
 		Get().SummonOpenAssetDialog,
@@ -128,41 +59,61 @@ void FGlobalEditorCommonCommands::MapActions(TSharedRef<FUICommandList>& Toolkit
 		FExecuteAction::CreateStatic( &FGlobalEditorCommonCommands::OnSummonedConsoleCommandBox ) );
 }
 
-void FGlobalEditorCommonCommands::OnPressedCtrlTab()
+void FGlobalEditorCommonCommands::OnPressedCtrlTab(TSharedPtr<FUICommandInfo> TriggeringCommand)
 {
+	if (!SGlobalTabSwitchingDialog::IsAlreadyOpen())
+	{
+		const FVector2D TabListSize(700.0f, 486.0f);
+
+		// Create the contents of the popup
+		TSharedRef<SWidget> ActualWidget = SNew(SGlobalTabSwitchingDialog, TabListSize, *TriggeringCommand->GetActiveGesture());
+
+		TSharedPtr<SWindow> NewWindow = OpenPopup(ActualWidget, TabListSize);
+	}
 }
 
 void FGlobalEditorCommonCommands::OnSummonedAssetPicker()
 {
 	const FVector2D AssetPickerSize(600.0f, 586.0f);
 
-	FMenuBuilder MenuBuilder(false, NULL);
-
 	// Create the contents of the popup
 	TSharedRef<SWidget> ActualWidget = SNew(SGlobalOpenAssetDialog, AssetPickerSize);
 
 	// Wrap the picker widget in a multibox-style menu body
+	FMenuBuilder MenuBuilder(/*BShouldCloseAfterSelection=*/ false, /*CommandList=*/ nullptr);
 	MenuBuilder.BeginSection("AssetPickerOpenAsset", NSLOCTEXT("GlobalAssetPicker", "WindowTitle", "Open Asset"));
-	{
-		MenuBuilder.AddWidget(ActualWidget, FText::GetEmpty(), true);
-	}
+	MenuBuilder.AddWidget(ActualWidget, FText::GetEmpty(), /*bNoIndent=*/ true);
 	MenuBuilder.EndSection();
 
-	TSharedRef<SWidget> WindowContents = MenuBuilder.MakeWidget();
+	OpenPopup(MenuBuilder.MakeWidget(), AssetPickerSize);
+}
 
+TSharedPtr<SWindow> FGlobalEditorCommonCommands::OpenPopup(TSharedRef<SWidget> WindowContents, const FVector2D& PopupDesiredSize)
+{
 	// Determine where the pop-up should open
 	TSharedPtr<SWindow> ParentWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
 	FVector2D WindowPosition = FSlateApplication::Get().GetCursorPos();
+	if (!ParentWindow.IsValid())
+	{
+		TSharedPtr<SDockTab> LevelEditorTab = FModuleManager::Get().GetModuleChecked<FLevelEditorModule>("LevelEditor").GetLevelEditorTab();
+		ParentWindow = LevelEditorTab->GetParentWindow();
+		check(ParentWindow.IsValid());
+	}
+
 	if (ParentWindow.IsValid())
 	{
 		FSlateRect ParentMonitorRect = ParentWindow->GetFullScreenInfo();
 		const FVector2D MonitorCenter((ParentMonitorRect.Right + ParentMonitorRect.Left) * 0.5f, (ParentMonitorRect.Top + ParentMonitorRect.Bottom) * 0.5f);
-		WindowPosition = MonitorCenter - AssetPickerSize * 0.5f;
+		WindowPosition = MonitorCenter - PopupDesiredSize * 0.5f;
 
 		// Open the pop-up
 		FPopupTransitionEffect TransitionEffect(FPopupTransitionEffect::None);
-		TSharedRef<SWindow> PopupWindow = FSlateApplication::Get().PushMenu(ParentWindow.ToSharedRef(), WindowContents, WindowPosition, TransitionEffect);
+		TSharedRef<SWindow> PopupWindow = FSlateApplication::Get().PushMenu(ParentWindow.ToSharedRef(), WindowContents, WindowPosition, TransitionEffect, /*bFocusImmediately=*/ true);
+		
+		return PopupWindow;
 	}
+
+	return TSharedPtr<SWindow>();
 }
 
 static void CloseDebugConsole()
@@ -186,5 +137,7 @@ void FGlobalEditorCommonCommands::OnSummonedConsoleCommandBox()
 		OutputLogModule.ToggleDebugConsoleForWindow(WindowRef, EDebugConsoleStyle::Compact, Delegates);
 	}
 }
+
+//////////////////////////////////////////////////////////////////////////
 
 #undef LOCTEXT_NAMESPACE

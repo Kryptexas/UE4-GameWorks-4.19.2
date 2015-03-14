@@ -723,6 +723,8 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 			.SetNormal(FSlateNoResource() )
 			.SetPressed(FSlateNoResource() )
 			.SetHovered(BORDER_BRUSH( "Old/HyperlinkUnderline", FMargin(0,0,0,3/16.0f) ) );
+		Set("HoverOnlyHyperlinkButton", HoverOnlyHyperlinkButton);
+
 		FHyperlinkStyle HoverOnlyHyperlink = FHyperlinkStyle()
 			.SetUnderlineStyle(HoverOnlyHyperlinkButton)
 			.SetTextStyle(NormalText)
@@ -1885,6 +1887,21 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		/* ... and add new style */
 		Set( "ToolBar.CheckBox", ToolBarCheckBoxStyle );
 
+
+		/* Read-only checkbox that appears next to a menu item */
+		/* Set images for various SCheckBox states associated with read-only toolbar check box items... */
+		const FCheckBoxStyle BasicToolBarCheckStyle = FCheckBoxStyle()
+			.SetUncheckedImage(IMAGE_BRUSH("Icons/Empty_14x", Icon14x14))
+			.SetUncheckedHoveredImage(IMAGE_BRUSH("Icons/Empty_14x", Icon14x14))
+			.SetUncheckedPressedImage(IMAGE_BRUSH("Common/SmallCheckBox_Hovered", Icon14x14))
+			.SetCheckedImage(IMAGE_BRUSH("Common/SmallCheck", Icon14x14))
+			.SetCheckedHoveredImage(IMAGE_BRUSH("Common/SmallCheck", Icon14x14))
+			.SetCheckedPressedImage(IMAGE_BRUSH("Common/SmallCheck", Icon14x14))
+			.SetUndeterminedImage(IMAGE_BRUSH("Icons/Empty_14x", Icon14x14))
+			.SetUndeterminedHoveredImage(FSlateNoResource())
+			.SetUndeterminedPressedImage(FSlateNoResource());
+		Set( "ToolBar.Check", BasicToolBarCheckStyle );
+
 		// This radio button is actually just a check box with different images
 		/* Create style for "ToolBar.RadioButton" widget ... */
 		const FCheckBoxStyle ToolbarRadioButtonCheckBoxStyle = FCheckBoxStyle()
@@ -1925,6 +1942,32 @@ void FSlateEditorStyle::FStyle::SetupGeneralStyles()
 		Set( "ToolBar.Button.Checked_Pressed", new BOX_BRUSH( "Common/RoundedSelection_16x",  4.0f/16.0f, SelectionColor ) );
 	}
 
+	// Ctrl+Tab menu
+	{
+		Set("ControlTabMenu.Background", new BOX_BRUSH("Old/Menu_Background", FMargin(8.0f / 64.0f)));
+
+		Set("ControlTabMenu.HeadingStyle",
+			FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Bold", 14))
+			.SetColorAndOpacity(FLinearColor::White)
+			);
+
+		Set("ControlTabMenu.AssetTypeStyle",
+			FTextBlockStyle(NormalText)
+			.SetColorAndOpacity(FLinearColor::White)
+			);
+
+		Set("ControlTabMenu.AssetPathStyle",
+			FTextBlockStyle(NormalText)
+			.SetColorAndOpacity(FLinearColor::White)
+			);
+
+		Set("ControlTabMenu.AssetNameStyle",
+			FTextBlockStyle(NormalText)
+			.SetFont(TTF_CORE_FONT("Fonts/Roboto-Regular", 14))
+			.SetColorAndOpacity(FLinearColor::White)
+			);
+	}
 
 	// MenuBar
 	{
