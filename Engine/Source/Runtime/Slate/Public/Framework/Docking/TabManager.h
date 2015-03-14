@@ -631,6 +631,9 @@ class SLATE_API FTabManager : public TSharedFromThis<FTabManager>
 		/** @return true if the tab has a factory registered for it that allows it to be spawned. */
 		bool CanSpawnTab( FName TabId );
 
+		/** Returns the owner tab (if it exists) */
+		TSharedPtr<SDockTab> GetOwnerTab() { return OwnerTabPtr.Pin(); }
+
 	protected:
 		void InvokeTabForMenu( FName TabId );
 
