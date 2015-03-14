@@ -2,6 +2,7 @@
 
 #include "PrivatePCH.h"
 #include "RequiredProgramMainCPPInclude.h"
+#include "TestDirectoryWatcher.h"
 
 DEFINE_LOG_CATEGORY(LogTestPAL);
 
@@ -166,6 +167,10 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 		{
 			return MessageBoxTest(*TestPAL::CommandLine);
 		}
+		else if (!FCStringAnsi::Strcmp(ArgV[IdxArg], ARG_DIRECTORY_WATCHER_TEST))
+		{
+			return DirectoryWatcherTest(*TestPAL::CommandLine);
+		}
 	}
 
 	FPlatformMisc::SetCrashHandler(NULL);
@@ -173,6 +178,16 @@ int32 MultiplexedMain(int32 ArgC, char* ArgV[])
 	
 	GEngineLoop.PreInit(*TestPAL::CommandLine);
 	UE_LOG(LogTestPAL, Warning, TEXT("Unable to find any known test name, no test started."));
+
+	UE_LOG(LogTestPAL, Warning, TEXT(""));
+	UE_LOG(LogTestPAL, Warning, TEXT("Available test cases:"));
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test process handling API"), ARG_PROC_TEST);
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test case-insensitive file operations"), ARG_CASE_SENSITIVITY_TEST);
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test message box bug (too long strings)"), ARG_MESSAGEBOX_TEST);
+	UE_LOG(LogTestPAL, Warning, TEXT("  %s: test directory watcher"), ARG_DIRECTORY_WATCHER_TEST);
+	UE_LOG(LogTestPAL, Warning, TEXT(""));
+	UE_LOG(LogTestPAL, Warning, TEXT("Pass one of those to run an appropriate test."));
+
 	FEngineLoop::AppPreExit();
 	FEngineLoop::AppExit();
 	return 1;
