@@ -9,6 +9,7 @@ UFloatingPawnMovement::UFloatingPawnMovement(const FObjectInitializer& ObjectIni
 	MaxSpeed = 1200.f;
 	Acceleration = 4000.f;
 	Deceleration = 8000.f;
+	TurningBoost = 8.0f;
 	bPositionCorrected = false;
 
 	ResetMoveState();
@@ -106,7 +107,9 @@ void UFloatingPawnMovement::ApplyControlInputToVelocity(float DeltaTime)
 		// Apply change in velocity direction
 		if (Velocity.SizeSquared() > 0.f)
 		{
-			Velocity -= (Velocity - ControlAcceleration * Velocity.Size()) * FMath::Min(DeltaTime * 8.f, 1.f);
+			// Change direction faster than only using acceleration, but never increase velocity magnitude.
+			const float TimeScale = FMath::Clamp(DeltaTime * TurningBoost, 0.f, 1.f);
+			Velocity = Velocity + (ControlAcceleration * Velocity.Size() - Velocity) * TimeScale;
 		}
 	}
 	else

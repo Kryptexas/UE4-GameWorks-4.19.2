@@ -38,6 +38,14 @@ class ENGINE_API UFloatingPawnMovement : public UPawnMovementComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FloatingPawnMovement)
 	float Deceleration;
 
+	/**
+	 * Setting affecting extra force applied when changing direction, making turns have less drift and become more responsive.
+	 * Velocity magnitude is not allowed to increase, that only happens due to normal acceleration. It may decrease with large direction changes.
+	 * Larger values apply extra force to reach the target direction more quickly, while a zero value disables any extra turn force.
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category=FloatingPawnMovement, meta=(ClampMin="0", UIMin="0"))
+	float TurningBoost;
+
 protected:
 
 	/** Update Velocity based on input. Also applies gravity. */
