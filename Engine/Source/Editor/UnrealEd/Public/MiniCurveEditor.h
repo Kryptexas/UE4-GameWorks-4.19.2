@@ -1,8 +1,7 @@
 // Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
 
+#pragma once
 
-#ifndef __MiniCurveEditor_h__
-#define __MiniCurveEditor_h__
 #include "Toolkits/AssetEditorManager.h"
 
 class UNREALED_API SMiniCurveEditor :  public SCompoundWidget,public IAssetEditorInstance
@@ -27,6 +26,8 @@ public:
 	virtual bool CloseWindow() override;
 	virtual bool IsPrimaryEditor() const override { return true; };
 	virtual void InvokeTab(const struct FTabId& TabId) override {}
+	virtual TSharedPtr<class FTabManager> GetAssociatedTabManager() override;
+	virtual double GetLastActivationTime() override;
 
 private:
 
@@ -46,5 +47,3 @@ private:
 protected:
 	TWeakPtr<SWindow> WidgetWindow;
 };
-
-#endif // MiniCurveEditor

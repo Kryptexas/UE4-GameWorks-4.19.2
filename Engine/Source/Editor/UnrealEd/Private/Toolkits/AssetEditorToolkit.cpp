@@ -327,6 +327,27 @@ void FAssetEditorToolkit::InvokeTab(const FTabId& TabId)
 	GetTabManager()->InvokeTab(TabId);
 }
 
+TSharedPtr<class FTabManager> FAssetEditorToolkit::GetAssociatedTabManager()
+{
+	return TabManager;
+}
+
+double FAssetEditorToolkit::GetLastActivationTime()
+{
+	double MostRecentTime = 0.0;
+
+	if (TabManager.IsValid())
+	{
+		TSharedPtr<SDockTab> OwnerTab = TabManager->GetOwnerTab();
+		if (OwnerTab.IsValid())
+		{
+			MostRecentTime = OwnerTab->GetLastActivationTime();
+		}
+	}
+
+	return MostRecentTime;
+}
+
 TSharedPtr< IToolkitHost > FAssetEditorToolkit::GetPreviousWorldCentricToolkitHost()
 {
 	return PreviousWorldCentricToolkitHost.Pin();

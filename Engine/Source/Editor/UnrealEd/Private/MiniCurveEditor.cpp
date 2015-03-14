@@ -76,3 +76,14 @@ bool SMiniCurveEditor::CloseWindow()
 	return true;
 }
 
+TSharedPtr<class FTabManager> SMiniCurveEditor::GetAssociatedTabManager()
+{
+	//@TODO: This editor should probably derive from FAssetEditorToolkit instead!
+	return TSharedPtr<class FTabManager>();
+}
+
+double SMiniCurveEditor::GetLastActivationTime()
+{
+	//@TODO: This editor should probably derive from FAssetEditorToolkit instead!
+	return 0.0;
+}

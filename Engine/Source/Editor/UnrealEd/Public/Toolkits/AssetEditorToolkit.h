@@ -68,6 +68,8 @@ public:
 	virtual bool CloseWindow() override;
 	virtual bool IsPrimaryEditor() const override { return true; };
 	virtual void InvokeTab(const struct FTabId& TabId) override;
+	virtual TSharedPtr<class FTabManager> GetAssociatedTabManager() override;
+	virtual double GetLastActivationTime() override;
 
 	/**
 	 * Fills in the supplied menu with commands for working with this asset file
