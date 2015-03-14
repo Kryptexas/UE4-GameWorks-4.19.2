@@ -9,10 +9,14 @@
   <Output>DataGrids</Output>
 </Query>
 
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 Buggs
-.Where (c => c.TimeOfLastCrash > DateTime.UtcNow.AddDays(-1))
+.Where (c => c.TimeOfFirstCrash > DateTime.UtcNow.AddDays(-1))
+.OrderByDescending (c => c.NumberOfCrashes)
 .Select (c => new 
 {
+c.Id,
 c.TTPID,
 //c.Title,
 //c.Summary,
@@ -20,7 +24,7 @@ c.TTPID,
 //c.Type,
 c.Pattern,//.ToString().Split(new char[]{'+'},StringSplitOptions.RemoveEmptyEntries).Length,
 c.NumberOfCrashes,
-//c.TimeOfFirstCrash,
+c.TimeOfFirstCrash,
 c.TimeOfLastCrash,
 //c.Status,
 c.FixedChangeList,

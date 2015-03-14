@@ -9,8 +9,10 @@
   <Output>DataGrids</Output>
 </Query>
 
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 Crashes
-.Where (c => c.TimeOfCrash > DateTime.UtcNow.AddDays(-0).AddHours(-3))
+.Where (c => c.TimeOfCrash > DateTime.UtcNow.AddDays(-1))
 .OrderBy (c => c.Id)
 .Select (c => new 
 {

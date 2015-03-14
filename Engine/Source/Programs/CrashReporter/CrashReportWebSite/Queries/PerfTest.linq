@@ -8,6 +8,8 @@
   </Connection>
 </Query>
 
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 void Main()
 {
 	int UserGroupId = 1;

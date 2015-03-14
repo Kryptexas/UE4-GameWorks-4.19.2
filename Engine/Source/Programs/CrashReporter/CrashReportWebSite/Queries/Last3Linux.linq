@@ -9,9 +9,12 @@
   <Output>DataGrids</Output>
 </Query>
 
+// Copyright 1998-2015 Epic Games, Inc. All Rights Reserved.
+
 Crashes
 .Where (c =>c.TimeOfCrash > DateTime.UtcNow.AddDays(-7) )
 .Where (c =>c.PlatformName.Contains("Linux") )
+.OrderByDescending(c => c.TimeOfCrash)
 .Take(3)
 .Select (c => new {
 c.RawCallStack,

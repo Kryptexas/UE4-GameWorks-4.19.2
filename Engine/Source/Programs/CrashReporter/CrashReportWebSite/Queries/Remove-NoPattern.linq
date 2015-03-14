@@ -9,7 +9,21 @@
   <Output>DataGrids</Output>
 </Query>
 
+
+
+
+--use crashreport
+--delete from crashes
+--where branch is null and timeofcrash > '2015-01-01'
+--go
+
+
 use crashreport
 delete from crashes
 where pattern is null and timeofcrash > '2015-01-01'
 go
+
+--use crashreport
+--delete from crashes
+--where branch is null and timeofcrash > '2015-01-01'
+--go
