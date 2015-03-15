@@ -104,15 +104,14 @@ bool UStructProperty::UseBinaryOrNativeSerialization(const FArchive& Ar) const
 	return bUseBinarySerialization || bUseNativeSerialization;
 }
 
-void UStructProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
+void UStructProperty::StaticSerializeItem(FArchive& Ar, void* Value, void const* Defaults, UScriptStruct* Struct, const bool bUseBinarySerialization, const bool bUseNativeSerialization)
 {
-	const bool bUseBinarySerialization = UseBinarySerialization(Ar);
-	const bool bUseNativeSerialization = UseNativeSerialization();
+	check(Struct);
 
 	// Preload struct before serialization tracking to not double count time.
-	if ( bUseBinarySerialization || bUseNativeSerialization)
+	if (bUseBinarySerialization || bUseNativeSerialization)
 	{
-		Ar.Preload( Struct );
+		Ar.Preload(Struct);
 	}
 
 	bool bItemSerialized = false;
@@ -126,21 +125,21 @@ void UStructProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defa
 
 	if (!bItemSerialized)
 	{
-		if( bUseBinarySerialization )
+		if (bUseBinarySerialization)
 		{
 			// Struct is already preloaded above.
-			if ( !Ar.IsPersistent() && Ar.GetPortFlags() != 0 && !Struct->ShouldSerializeAtomically(Ar) )
+			if (!Ar.IsPersistent() && Ar.GetPortFlags() != 0 && !Struct->ShouldSerializeAtomically(Ar))
 			{
-				Struct->SerializeBinEx( Ar, Value, Defaults, Struct );
+				Struct->SerializeBinEx(Ar, Value, Defaults, Struct);
 			}
 			else
 			{
-				Struct->SerializeBin( Ar, Value );
+				Struct->SerializeBin(Ar, Value);
 			}
 		}
 		else
 		{
-			Struct->SerializeTaggedProperties( Ar, (uint8*)Value, Struct, (uint8*)Defaults );
+			Struct->SerializeTaggedProperties(Ar, (uint8*)Value, Struct, (uint8*)Defaults);
 		}
 	}
 
@@ -151,6 +150,14 @@ void UStructProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defa
 		check(!Struct->InheritedCppStructOps()); // else should not have STRUCT_PostSerializeNative
 		CppStructOps->PostSerialize(Ar, Value);
 	}
+}
+
+void UStructProperty::SerializeItem( FArchive& Ar, void* Value, void const* Defaults ) const
+{
+	const bool bUseBinarySerialization = UseBinarySerialization(Ar);
+	const bool bUseNativeSerialization = UseNativeSerialization();
+
+	StaticSerializeItem(Ar, Value, Defaults, Struct, bUseBinarySerialization, bUseNativeSerialization);
 }
 
 bool UStructProperty::NetSerializeItem( FArchive& Ar, UPackageMap* Map, void* Data, TArray<uint8> * MetaData ) const

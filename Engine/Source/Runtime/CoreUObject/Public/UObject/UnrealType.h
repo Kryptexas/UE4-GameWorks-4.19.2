@@ -2581,6 +2581,8 @@ public:
 	bool UseBinarySerialization(const FArchive& Ar) const;
 	bool UseBinaryOrNativeSerialization(const FArchive& Ar) const;
 
+	static void StaticSerializeItem(FArchive& Ar, void* Value, void const* Defaults, UScriptStruct* Struct, const bool bUseBinarySerialization, const bool bUseNativeSerialization);
+
 public:
 
 #if HACK_HEADER_GENERATOR

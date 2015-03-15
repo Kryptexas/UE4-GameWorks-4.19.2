@@ -884,6 +884,8 @@ void UK2Node_CallFunction::PostReconstructNode()
 {
 	Super::PostReconstructNode();
 
+	FCustomStructureParamHelper::UpdateCustomStructurePins(GetTargetFunction(), this);
+
 	const UEdGraphSchema_K2* K2Schema = GetDefault<UEdGraphSchema_K2>();
 	// Fixup self node, may have been overridden from old self node
 	UFunction* Function = GetTargetFunction();
