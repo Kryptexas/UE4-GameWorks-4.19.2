@@ -841,6 +841,11 @@ public class AndroidPlatform : Platform
 			{
 				DeviceArch = "-armv7";
 			}
+            else
+            {
+                // future-proof by dropping back to armv7 for unknown
+                DeviceArch = "-armv7";
+            }
 		}
 
 		// if after the fallbacks, we still don't have it, we can't continue
