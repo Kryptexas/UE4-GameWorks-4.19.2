@@ -164,7 +164,7 @@ bool FLinuxPlatformMisc::PlatformInitMultimedia()
 			const char * SDLError = SDL_GetError();
 
 			// do not fail at this point, allow caller handle failure
-			UE_LOG(LogInit, Warning, TEXT("Could not initialize SDL: %s"), SDLError);
+			UE_LOG(LogInit, Warning, TEXT("Could not initialize SDL: %s"), ANSI_TO_TCHAR(SDLError));
 			return false;
 		}
 
