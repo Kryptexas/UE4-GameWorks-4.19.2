@@ -33,8 +33,11 @@ namespace UnrealBuildTool
 		/** Keep a list of remote files that are potentially copied from local to remote */
 		private static Dictionary<FileItem, FileItem> CachedRemoteFileItems = new Dictionary<FileItem, FileItem>();
 
-		/** The path (on the Mac) to the your particular development directory, where files will be copied to from the PC */
-		public static string UserDevRootMac = "/UE4/Builds/";
+		/** The base path (on the Mac) to the your particular development directory, where files will be copied to from the PC */
+		public static string UserDevRootMacBase = "/UE4/Builds/";
+
+		/** The final path (on the Mac) to your particular development directory, where files will be copied to from the PC */
+		public static string UserDevRootMac = "/UE4/Builds";
 
 		/** Whether or not to connect to UnrealRemoteTool using RPCUtility */
 		[XmlConfig]
@@ -231,8 +234,12 @@ namespace UnrealBuildTool
 				{
 					// pass back the string
 					string HomeLocation = Results["CommandOutput"] as string;
-					UserDevRootMac = HomeLocation + UserDevRootMac;
+					UserDevRootMac = HomeLocation + UserDevRootMacBase;
 				}
+			}
+			else
+			{
+				UserDevRootMac = UserDevRootMacBase;
 			}
 		}
 
@@ -357,10 +364,10 @@ namespace UnrealBuildTool
 						}
 					}
 
-					if (!bFoundOverrideSSHPrivateKey)
+/*					if (!bFoundOverrideSSHPrivateKey)
 					{
 						throw new BuildException("An SSHKey was required, but one cannot be found. Can't continue...");
-					}
+					}*/
 
 					// resolve the rest of the strings
 					ResolvedRSyncExe = ResolveString(RSyncExe, true);
@@ -384,8 +391,8 @@ namespace UnrealBuildTool
 						ResolvedRSyncExe,
 						ResolvedRSyncUsername,
 						RemoteServerName,
-						Environment.GetFolderPath(Environment.SpecialFolder.Personal),
-						ConvertPathToCygwin(Environment.GetFolderPath(Environment.SpecialFolder.Personal)),
+						Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+						ConvertPathToCygwin(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData)),
 						Path.GetFullPath(BuildConfiguration.RelativeEnginePath));
 
 					KeyProcess.Start();
@@ -689,7 +696,7 @@ namespace UnrealBuildTool
 				// --exclude='*'  ??? why???
 				RsyncProcess.StartInfo.FileName = ResolvedRSyncExe;
 				RsyncProcess.StartInfo.Arguments = string.Format(
-					"-vzae \"{0}\" --rsync-path=\"mkdir -p {2} && rsync\" --chmod=ug=rwX,o=rxX --delete --files-from=\"{4}\" --include-from=\"{5}\" --include='*/' --exclude='*.o' --exclude='Timestamp' {1} {6}@{3}:'{2}'",
+					"-vzae \"{0}\" --rsync-path=\"mkdir -p {2} && rsync\" --chmod=ug=rwX,o=rxX --delete --files-from=\"{4}\" --include-from=\"{5}\" --include='*/' --exclude='*.o' --exclude='Timestamp' '{1}' {6}@{3}:'{2}'",
 					ResolvedRsyncAuthentication,
 					CygRootPath,
 					RemotePath,
@@ -697,6 +704,7 @@ namespace UnrealBuildTool
 					ConvertPathToCygwin(RSyncPathsFile),
 					ConvertPathToCygwin(IncludeFromFile),
 					RSyncUsername);
+				Console.WriteLine("Command: " + RsyncProcess.StartInfo.Arguments);
 
 				RsyncProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
 				RsyncProcess.ErrorDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
@@ -716,6 +724,7 @@ namespace UnrealBuildTool
 		static public bool UploadFile(string LocalPath, string RemotePath)
 		{
 			string RemoteDir = Path.GetDirectoryName(RemotePath).Replace("\\", "/");
+			RemoteDir = RemoteDir.Replace(" ", "\\ ");
 			string RemoteFilename = Path.GetFileName(RemotePath);
 
 			// get the executable dir for SSH, so Rsync can call it easily
@@ -730,7 +739,7 @@ namespace UnrealBuildTool
 			// make simple rsync commandline to send a file
 			RsyncProcess.StartInfo.FileName = ResolvedRSyncExe;
 			RsyncProcess.StartInfo.Arguments = string.Format(
-				"-zae \"{0}\" --rsync-path=\"mkdir -p {1} && rsync\" \"{2}\" {3}@{4}:\"{1}/{5}\"",
+				"-zae \"{0}\" --rsync-path=\"mkdir -p {1} && rsync\" '{2}' {3}@{4}:'{1}/{5}'",
 				ResolvedRsyncAuthentication,
 				RemoteDir,
 				ConvertPathToCygwin(LocalPath),
@@ -750,6 +759,7 @@ namespace UnrealBuildTool
 		{
 			// get the executable dir for SSH, so Rsync can call it easily
 			string ExeDir = Path.GetDirectoryName(ResolvedSSHExe);
+			string RemoteDir = RemotePath.Replace(" ", "\\ ");
 
 			Process RsyncProcess = new Process();
 			if (ExeDir != "")
@@ -763,12 +773,12 @@ namespace UnrealBuildTool
 			// make simple rsync commandline to send a file
 			RsyncProcess.StartInfo.FileName = ResolvedRSyncExe;
 			RsyncProcess.StartInfo.Arguments = string.Format(
-				"-zae \"{0}\" {2}@{3}:\"{4}\" \"{1}\"",
+				"-zae \"{0}\" {2}@{3}:'{4}' \"{1}\"",
 				ResolvedRsyncAuthentication,
 				ConvertPathToCygwin(LocalPath),
 				RSyncUsername,
 				RemoteServerName,
-				RemotePath
+				RemoteDir
 				);
 
 			RsyncProcess.OutputDataReceived += new DataReceivedEventHandler(OutputReceivedForRsync);
@@ -785,10 +795,10 @@ namespace UnrealBuildTool
 			Console.WriteLine("Doing {0}", Command);
 
 			// make the commandline for other end
-			string RemoteCommandline = "cd " + WorkingDirectory;
+			string RemoteCommandline = "cd \"" + WorkingDirectory + "\"";
 			if (!string.IsNullOrWhiteSpace(RemoteOutputPath))
 			{
-				RemoteCommandline += " && mkdir -p " + Path.GetDirectoryName(RemoteOutputPath).Replace("\\", "/");
+				RemoteCommandline += " && mkdir -p \"" + Path.GetDirectoryName(RemoteOutputPath).Replace("\\", "/") + "\"";
 			}
 
 			// get the executable dir for SSH

@@ -225,6 +225,13 @@ void FIOSTargetSettingsCustomization::UpdateStatus()
 	}
 }
 
+void FIOSTargetSettingsCustomization::UpdateStatus()
+{
+	// updated SSH key
+	const UIOSRuntimeSettings* Settings = GetDefault<UIOSRuntimeSettings>();
+	const_cast<UIOSRuntimeSettings*>(Settings)->PostInitProperties();
+}
+
 void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& DetailLayout)
 {
 	// Info.plist category
@@ -689,20 +696,14 @@ void FIOSTargetSettingsCustomization::BuildPListSection(IDetailLayoutBuilder& De
 
 void FIOSTargetSettingsCustomization::BuildRemoteBuildingSection(IDetailLayoutBuilder& DetailLayout)
 {
+#if PLATFORM_WINDOWS
 	IDetailCategoryBuilder& BuildCategory = DetailLayout.EditCategory(TEXT("Build"));
 
 	// Sub group we wish to add remote building options to.
 	FText RemoteBuildingGroupName = LOCTEXT("RemoteBuildingGroupName", "Remote Build Options");
 	IDetailGroup& RemoteBuildingGroup = BuildCategory.AddGroup(*RemoteBuildingGroupName.ToString(), RemoteBuildingGroupName, false);
 
-	// Remote Server Name Property
-	TSharedRef<IPropertyHandle> RemoteServerNamePropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, RemoteServerName));
-	IDetailPropertyRow& RemoteServerNamePropertyRow = RemoteBuildingGroup.AddPropertyRow(RemoteServerNamePropertyHandle);
-	RemoteServerNamePropertyRow
-		.IsEnabled(!FRocketSupport::IsRocket())
-		.ToolTip(!FRocketSupport::IsRocket() ? LOCTEXT("RemoteServerNameToolTip", "The name or ip address of the remote mac which will be used to build IOS") : FIOSTargetSettingsCustomizationConstants::DisabledTip);
 
-	
 	// Add Use RSync Property
 	TSharedRef<IPropertyHandle> UseRSyncPropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, bUseRSync));
 	IDetailPropertyRow& UseRSyncPropertRow = RemoteBuildingGroup.AddPropertyRow(UseRSyncPropertyHandle);
@@ -710,13 +711,87 @@ void FIOSTargetSettingsCustomization::BuildRemoteBuildingSection(IDetailLayoutBu
 		.IsEnabled(!FRocketSupport::IsRocket())
 		.ToolTip(!FRocketSupport::IsRocket() ? LOCTEXT("UseRSyncToolTip", "Use RSync instead of RPCUtility") : FIOSTargetSettingsCustomizationConstants::DisabledTip);
 
+
+	// Remote Server Name Property
+	TSharedRef<IPropertyHandle> RemoteServerNamePropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, RemoteServerName));
+	IDetailPropertyRow& RemoteServerNamePropertyRow = RemoteBuildingGroup.AddPropertyRow(RemoteServerNamePropertyHandle);
+	RemoteServerNamePropertyRow
+		.IsEnabled(!FRocketSupport::IsRocket())
+		.ToolTip(!FRocketSupport::IsRocket() ? LOCTEXT("RemoteServerNameToolTip", "The name or ip address of the remote mac which will be used to build IOS") : FIOSTargetSettingsCustomizationConstants::DisabledTip)
+		.CustomWidget()
+		.NameContent()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.Padding(FMargin(0, 1, 0, 1))
+			.FillWidth(1.0f)
+			[
+				SNew(STextBlock)
+				.Text(LOCTEXT("RemoteServerNameLabel", "Remote Server Name"))
+				.Font(DetailLayout.GetDetailFont())
+			]
+		]
+		.ValueContent()
+		.MinDesiredWidth(0.0f)
+		.MaxDesiredWidth(0.0f)
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.FillWidth(1.0f)
+			.HAlign(HAlign_Fill)
+			[
+				SNew(SEditableTextBox)
+				.IsEnabled(this, &FIOSTargetSettingsCustomization::IsImportEnabled)
+				.Text(this, &FIOSTargetSettingsCustomization::GetBundleText, RemoteServerNamePropertyHandle)
+				.Font(DetailLayout.GetDetailFont())
+				.SelectAllTextOnCommit(true)
+				.SelectAllTextWhenFocused(true)
+				.ClearKeyboardFocusOnCommit(false)
+				.ToolTipText(RemoteServerNamePropertyHandle->GetToolTipText())
+				.OnTextCommitted(this, &FIOSTargetSettingsCustomization::OnRemoteServerChanged, RemoteServerNamePropertyHandle)
+			]
+		];
+
 	
 	// Add RSync Username Property
 	TSharedRef<IPropertyHandle> RSyncUsernamePropertyHandle = DetailLayout.GetProperty(GET_MEMBER_NAME_CHECKED(UIOSRuntimeSettings, RSyncUsername));
 	IDetailPropertyRow& RSyncUsernamePropertyRow = RemoteBuildingGroup.AddPropertyRow(RSyncUsernamePropertyHandle);
 	RSyncUsernamePropertyRow
 		.IsEnabled(!FRocketSupport::IsRocket())
-		.ToolTip(!FRocketSupport::IsRocket() ? LOCTEXT("RSyncUsernameToolTip", "The username of the mac user that matches the specified SSH Key.") : FIOSTargetSettingsCustomizationConstants::DisabledTip);
+		.ToolTip(!FRocketSupport::IsRocket() ? LOCTEXT("RSyncUsernameToolTip", "The username of the mac user that matches the specified SSH Key.") : FIOSTargetSettingsCustomizationConstants::DisabledTip)
+		.CustomWidget()
+			.NameContent()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.Padding(FMargin(0, 1, 0, 1))
+				.FillWidth(1.0f)
+				[
+					SNew(STextBlock)
+					.Text(LOCTEXT("RSyncUserNameLabel", "RSync User Name"))
+					.Font(DetailLayout.GetDetailFont())
+				]
+			]
+		.ValueContent()
+			.MinDesiredWidth(0.0f)
+			.MaxDesiredWidth(0.0f)
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.FillWidth(1.0f)
+				.HAlign(HAlign_Fill)
+				[
+					SNew(SEditableTextBox)
+					.IsEnabled(this, &FIOSTargetSettingsCustomization::IsImportEnabled)
+					.Text(this, &FIOSTargetSettingsCustomization::GetBundleText, RSyncUsernamePropertyHandle)
+					.Font(DetailLayout.GetDetailFont())
+					.SelectAllTextOnCommit(true)
+					.SelectAllTextWhenFocused(true)
+					.ClearKeyboardFocusOnCommit(false)
+					.ToolTipText(RSyncUsernamePropertyHandle->GetToolTipText())
+					.OnTextCommitted(this, &FIOSTargetSettingsCustomization::OnRemoteServerChanged, RSyncUsernamePropertyHandle)
+				]
+			];
 
 
 	// Add existing SSH path label.
@@ -733,6 +808,36 @@ void FIOSTargetSettingsCustomization::BuildRemoteBuildingSection(IDetailLayoutBu
 	SSHPrivateKeyOverridePathPropertyRow
 		.IsEnabled(!FRocketSupport::IsRocket())
 		.ToolTip(!FRocketSupport::IsRocket() ? LOCTEXT("SSHPrivateKeyOverridePathToolTip", "Override the existing SSH Private Key with one from a specified location.") : FIOSTargetSettingsCustomizationConstants::DisabledTip);
+
+	// Add a generate key button
+	RemoteBuildingGroup.AddWidgetRow()
+		.WholeRowWidget
+		.MinDesiredWidth(0.f)
+		.MaxDesiredWidth(0.f)
+		.HAlign(HAlign_Fill)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(0, 5, 0, 10))
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						.OnClicked(this, &FIOSTargetSettingsCustomization::OnGenerateSSHKey)
+						.IsEnabled(this, &FIOSTargetSettingsCustomization::IsImportEnabled)
+						[
+							SNew(STextBlock)
+							.Text(FText::FromString("Generate SSH Key"))
+						]
+					]
+				]
+		];
+#endif
 }
 
 
@@ -1020,6 +1125,45 @@ FReply FIOSTargetSettingsCustomization::OnCertificateRequestClicked()
 	return FReply::Handled();
 }
 
+FReply FIOSTargetSettingsCustomization::OnGenerateSSHKey()
+{
+	// see if the key is already generated
+	const UIOSRuntimeSettings& Settings = *GetDefault<UIOSRuntimeSettings>();
+	TCHAR Path[4096];
+	FPlatformMisc::GetEnvironmentVariable(TEXT("APPDATA"), Path, ARRAY_COUNT(Path));
+	FString Destination = FString::Printf(TEXT("%s\\Unreal Engine\\UnrealBuildTool\\SSHKeys\\%s\\%s\\RemoteToolChainPrivate.key"), Path, *(Settings.RemoteServerName), *(Settings.RSyncUsername));
+	if (FPaths::FileExists(Destination))
+	{
+		FString MessagePrompt = FString::Printf(TEXT("An SSH Key already exists.  Do you want to replace this key?"));
+		if (FPlatformMisc::MessageBoxExt(EAppMsgType::OkCancel, *MessagePrompt, TEXT("Key Exists")) == EAppReturnType::Cancel)
+		{
+			return FReply::Handled();
+		}
+	}
+
+	FString CmdExe = FPaths::ConvertRelativePathToFull(FPaths::EngineDir() / TEXT("Build/BatchFiles/MakeAndInstallSSHKey.bat"));
+	TCHAR ProgramPath[4096];
+	FPlatformMisc::GetEnvironmentVariable(TEXT("PROGRAMFILES(X86)"), ProgramPath, ARRAY_COUNT(ProgramPath));
+	FString CygwinPath = TEXT("/cygdrive/") + FString(Path).Replace(TEXT(":"), TEXT("")).Replace(TEXT("\\"), TEXT("/"));
+	FString EnginePath = FPaths::EngineDir();
+	FString CommandLine = FString::Printf(TEXT("\"%s\\DeltaCopy\\ssh.exe\" \"%s\\DeltaCopy\\rsync.exe\" %s %s \"%s\" \"%s\" \"%s\""),
+		ProgramPath,
+		ProgramPath,
+		*(Settings.RSyncUsername),
+		*(Settings.RemoteServerName),
+		Path,
+		*CygwinPath,
+		*EnginePath);
+
+	OutputMessage = TEXT("");
+	IPPProcess = MakeShareable(new FMonitoredProcess(CmdExe, CommandLine, false, false));
+	IPPProcess->Launch();
+	TickerHandle = FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateRaw(this, &FIOSTargetSettingsCustomization::UpdateStatusDelegate), 10.0f);
+	RunningIPPProcess = true;
+
+	return FReply::Handled();
+}
+
 const FSlateBrush* FIOSTargetSettingsCustomization::GetProvisionStatus() const
 {
 	if( bProvisionInstalled )
@@ -1055,6 +1199,7 @@ bool FIOSTargetSettingsCustomization::UpdateStatusDelegate(float DeltaTime)
 		int RetCode = IPPProcess->GetReturnCode();
 		IPPProcess = NULL;
 		UpdateStatus();
+		UpdateSSHStatus();
 	}
 	RunningIPPProcess = false;
 
@@ -1177,6 +1322,18 @@ void FIOSTargetSettingsCustomization::OnBundleIdentifierChanged(const FText& New
 	{
 		InPropertyHandle->SetValueFromFormattedString( NewText.ToString() );
 		FindRequiredFiles();
+	}
+}
+
+void FIOSTargetSettingsCustomization::OnRemoteServerChanged(const FText& NewText, ETextCommit::Type CommitType, TSharedRef<IPropertyHandle> InPropertyHandle)
+{
+	FText OutText;
+	InPropertyHandle->GetValueAsFormattedText(OutText);
+	if (OutText.ToString() != NewText.ToString())
+	{
+		InPropertyHandle->SetValueFromFormattedString(NewText.ToString());
+		OutputMessage = TEXT("");
+		UpdateSSHStatus();
 	}
 }
 

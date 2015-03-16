@@ -6,7 +6,7 @@
 /* FMonitoredProcess structors
  *****************************************************************************/
 
-FMonitoredProcess::FMonitoredProcess( const FString& InURL, const FString& InParams, bool InHidden )
+FMonitoredProcess::FMonitoredProcess( const FString& InURL, const FString& InParams, bool InHidden, bool InCreatePipes )
 	: Canceling(false)
 	, EndTime(0)
 	, Hidden(InHidden)
@@ -18,6 +18,7 @@ FMonitoredProcess::FMonitoredProcess( const FString& InURL, const FString& InPar
 	, Thread(nullptr)
 	, URL(InURL)
 	, WritePipe(nullptr)
+	, bCreatePipes(InCreatePipes)
 { }
 
 
@@ -53,7 +54,7 @@ bool FMonitoredProcess::Launch()
 		return false;
 	}
 
-	if (!FPlatformProcess::CreatePipe(ReadPipe, WritePipe))
+	if (bCreatePipes && !FPlatformProcess::CreatePipe(ReadPipe, WritePipe))
 	{
 		return false;
 	}

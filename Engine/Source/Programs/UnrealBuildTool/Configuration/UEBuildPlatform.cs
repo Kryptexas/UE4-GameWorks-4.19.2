@@ -948,6 +948,7 @@ namespace UnrealBuildTool
 				ProjIni.GetBool(Section, Key, out Project);
 				if (Default != Project)
 				{
+					Console.WriteLine(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
 					return false;
 				}
 			}
@@ -960,6 +961,7 @@ namespace UnrealBuildTool
 				ProjIni.GetInt32(Section, Key, out Project);
 				if (Default != Project)
 				{
+					Console.WriteLine(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
 					return false;
 				}
 			}
@@ -972,6 +974,7 @@ namespace UnrealBuildTool
 				ProjIni.GetString(Section, Key, out Project);
 				if (Default != Project)
 				{
+					Console.WriteLine(Key + " is not set to default. (" + Default + " vs. " + Project + ")");
 					return false;
 				}
 			}

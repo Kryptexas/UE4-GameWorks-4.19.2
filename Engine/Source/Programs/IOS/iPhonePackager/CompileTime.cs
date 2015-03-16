@@ -37,6 +37,7 @@ namespace iPhonePackager
 		/// The file name (no path) of the temporary mobile provision that will be placed on the remote mac for use in makeapp
 		/// </summary>
 		private static string MacMobileProvisionFilename;
+		private static string MacSigningIdentityFilename;
 
 		private static string MacName = "";
 		private static string MacStagingRootDir = "";
@@ -125,10 +126,14 @@ namespace iPhonePackager
 
 			// generate the directories to recursively copy into later on
 			MacStagingRootDir = string.Format("{0}/{1}/IOS", iPhone_SigningDevRootMac, GameBranchPath);
+			MacStagingRootDir = MacStagingRootDir.Replace("//", "/");
 			MacBinariesDir = string.Format("{0}/{1}/IOS", iPhone_SigningDevRootMac, GameBranchPath);
+			MacBinariesDir = MacBinariesDir.Replace("//", "/");
 			MacXcodeStagingDir = string.Format("{0}/{1}/IOS/XcodeSupportFiles", iPhone_SigningDevRootMac, GameBranchPath);
+			MacXcodeStagingDir = MacXcodeStagingDir.Replace("//", "/");
 
 			MacMobileProvisionFilename = MachineName + "_UE4Temp.mobileprovision";
+			MacSigningIdentityFilename = MachineName + "_UE4Temp.p12";
 
 			CurrentBaseXCodeCommandLine = GetBaseXcodeCommandline();
 		}
@@ -265,6 +270,13 @@ namespace iPhonePackager
 			}
 			FileOperations.CopyRequiredFile(ProjectFile, Path.Combine(Config.PCXcodeStagingDir, @"project.pbxproj.datecheck"));
 			
+			// copy the signing certificate over
+			// export the signing certificate to a file
+			MobileProvision Provision = MobileProvisionParser.ParseFile(ProvisionWithPrefix);
+			var Certificate = CodeSignatureBuilder.FindCertificate(Provision);
+			byte[] Data = Certificate.Export(System.Security.Cryptography.X509Certificates.X509ContentType.Cert);
+			File.WriteAllBytes(Path.Combine(Config.PCXcodeStagingDir, MacSigningIdentityFilename), Data);
+
 			// needs Mac line endings so it can be executed
 			string SrcPath = @"..\..\..\Build\IOS\XcodeSupportFiles\prepackage.sh";
 			string DestPath = Path.Combine(Config.PCXcodeStagingDir, @"prepackage.sh");
@@ -284,6 +296,9 @@ namespace iPhonePackager
 			string CommandLine = "";
 			string WorkingFolder = "";
 			string DisplayCommandLine = "";
+			string TempKeychain = "$HOME/Library/Keychains/UE4TempKeychain.keychain";
+			string Certificate = "XcodeSupportFiles/" + MacSigningIdentityFilename;
+			string LoginKeychain = "$HOME/Library/Keychains/login.keychain";
 
 			switch (RPCCommand.ToLowerInvariant())
 			{
@@ -291,7 +306,7 @@ namespace iPhonePackager
 				Program.Log( " ... deleting staging files on the Mac" );
 				DisplayCommandLine = "rm -rf Payload";
 				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
-				WorkingFolder = MacStagingRootDir;
+				WorkingFolder = "\"" + MacStagingRootDir + "\"";
 				break;
 
 			case "ensureprovisiondirexists":
@@ -300,7 +315,7 @@ namespace iPhonePackager
 				DisplayCommandLine = String.Format("mkdir -p ~/Library/MobileDevice/Provisioning\\ Profiles");
 
 				CommandLine = "\"" + MacXcodeStagingDir + "\" " + DisplayCommandLine;
-				WorkingFolder = MacXcodeStagingDir;
+				WorkingFolder = "\"" + MacXcodeStagingDir + "\"";
 				break;
 
 			case "installprovision":
@@ -310,14 +325,14 @@ namespace iPhonePackager
 				DisplayCommandLine = String.Format("cp -f {0} ~/Library/MobileDevice/Provisioning\\ Profiles", MacMobileProvisionFilename);
 
 				CommandLine = "\"" + MacXcodeStagingDir + "\" " + DisplayCommandLine;
-				WorkingFolder = MacXcodeStagingDir;
+				WorkingFolder = "\"" + MacXcodeStagingDir + "\"";
 				break;
 
 			case "removeprovision":
 				Program.Log(" ... removing .mobileprovision");
 				DisplayCommandLine = String.Format("rm -f ~/Library/MobileDevice/Provisioning\\ Profiles/{0}", MacMobileProvisionFilename);
 				CommandLine = "\"" + MacXcodeStagingDir + "\" " + DisplayCommandLine;
-				WorkingFolder = MacXcodeStagingDir;
+				WorkingFolder = "\"" + MacXcodeStagingDir + "\"";
 				break;
 
 			case "setexec": 
@@ -325,14 +340,14 @@ namespace iPhonePackager
 				Program.Log(" ... setting executable bit");
 				DisplayCommandLine = "chmod a+x \'" + RemoteExecutablePath + "\'";
 				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
-				WorkingFolder = MacStagingRootDir;
+				WorkingFolder = "\"" + MacStagingRootDir + "\"";
 				break;
 
 			case "prepackage":
 				Program.Log(" ... running prepackage script remotely ");
 				DisplayCommandLine = String.Format("sh prepackage.sh {0} IOS {1} {2}", Program.GameName, Program.GameConfiguration, Program.Architecture);
 				CommandLine = "\"" + MacXcodeStagingDir + "\" " + DisplayCommandLine;
-				WorkingFolder = MacXcodeStagingDir;
+				WorkingFolder = "\"" + MacXcodeStagingDir + "\"";
 				break;
 
 			case "makeapp":
@@ -343,18 +358,34 @@ namespace iPhonePackager
 				WorkingFolder = "\"" + MacXcodeStagingDir + "/..\"";
 				break;
 
+			case "createkeychain":
+				Program.Log(" ... creating temporary key chain with signing certificate");
+				Program.Log("  Using signing identity '{0}'", Config.CodeSigningIdentity);
+				DisplayCommandLine = "security create-keychain -p \"\" \"" + TempKeychain + "\" && security list-keychains -s \"" + TempKeychain + "\" && security -v unlock-keychain -p \"\" \"" + TempKeychain + "\" && security import " + Certificate + " -k \"" + TempKeychain + "\" -P \"\" -A -t cert";
+				CommandLine = "\"" + MacXcodeStagingDir + "/..\" " + DisplayCommandLine;
+				WorkingFolder = "\"" + MacXcodeStagingDir + "/..\"";
+				break;
+
+			case "deletekeychain":
+				Program.Log(" ... remove temporary key chain");
+				Program.Log("  Using signing identity '{0}'", Config.CodeSigningIdentity);
+				DisplayCommandLine = "security list-keychains -s \"" + LoginKeychain + "\" && security delete-keychain \"" + TempKeychain + "\"";
+				CommandLine = "\"" + MacXcodeStagingDir + "/..\" " + DisplayCommandLine;
+				WorkingFolder = "\"" + MacXcodeStagingDir + "/..\"";
+				break;
+
 			case "validation":
 				Program.Log( " ... validating distribution package" );
 				DisplayCommandLine = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/usr/bin/Validation " + RemoteAppDirectory;
 				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
-				WorkingFolder = MacStagingRootDir;
+				WorkingFolder = "\"" + MacStagingRootDir + "\"";
 				break;
 
 			case "deleteipa":
 				Program.Log(" ... deleting IPA on Mac");
 				DisplayCommandLine = "rm -f " + Config.IPAFilenameOnMac;
 				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
-				WorkingFolder = MacStagingRootDir;
+				WorkingFolder = "\"" + MacStagingRootDir + "\"";
 				break;
 
 			case "kill":
@@ -368,14 +399,14 @@ namespace iPhonePackager
 				Program.Log( " ... stripping" );
 				DisplayCommandLine = XcodeDeveloperDir + "Platforms/iPhoneOS.platform/Developer/usr/bin/strip '" + RemoteExecutablePath + "'";
 				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
-				WorkingFolder = MacStagingRootDir;
+				WorkingFolder = "\"" + MacStagingRootDir + "\"";
 				break;
 
 			case "resign":
 				Program.Log("... resigning");
 				DisplayCommandLine = "bash -c '" + "chmod a+x ResignScript" + ";" + "./ResignScript" + "'";
 				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
-				WorkingFolder = MacStagingRootDir;
+				WorkingFolder = "\"" + MacStagingRootDir + "\"";
 				break;
 
 			case "zip":
@@ -392,7 +423,7 @@ namespace iPhonePackager
 					dSYMName);
 
 				CommandLine = "\"" + MacStagingRootDir + "\" " + DisplayCommandLine;
-				WorkingFolder = MacStagingRootDir;
+				WorkingFolder = "\"" + MacStagingRootDir + "\"";
 				break;
 
 			case "gendsym":
@@ -403,7 +434,7 @@ namespace iPhonePackager
 				DisplayCommandLine = String.Format("dsymutil -o {0} {1}", dSYMPath, ExePath);
 
 				CommandLine = "\"" + MacStagingRootDir + "\"" + DisplayCommandLine;
-				WorkingFolder = MacStagingRootDir;
+				WorkingFolder = "\"" + MacStagingRootDir + "\"";
 				break;
 
 			default:
@@ -498,7 +529,15 @@ namespace iPhonePackager
 
 			// sign the exe, etc...
 			CompileTime.ExecuteRemoteCommand("PrePackage");
+			if (!Config.bUseRPCUtil)
+			{
+				CompileTime.ExecuteRemoteCommand("CreateKeyChain");
+			}
 			CompileTime.ExecuteRemoteCommand("MakeApp");
+			if (!Config.bUseRPCUtil)
+			{
+				CompileTime.ExecuteRemoteCommand("DeleteKeyChain");
+			}
 
 			Program.Log(String.Format("Finished creating .app directory on Mac (took {0:0.00} s)",
 				(DateTime.Now - StartTime).TotalSeconds));

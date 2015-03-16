@@ -33,7 +33,7 @@ public:
 	 * @param InParams The command line parameters.
 	 * @param InHidden Whether the window of the process should be hidden.
 	 */
-	FMonitoredProcess( const FString& InURL, const FString& InParams, bool InHidden );
+	FMonitoredProcess( const FString& InURL, const FString& InParams, bool InHidden, bool InCreatePipes = true );
 
 	/** Destructor. */
 	~FMonitoredProcess();
@@ -177,6 +177,9 @@ private:
 
 	// Holds the write pipe. */
 	void* WritePipe;
+
+	// Holds if we should create pipes
+	bool bCreatePipes;
 
 private:
 
