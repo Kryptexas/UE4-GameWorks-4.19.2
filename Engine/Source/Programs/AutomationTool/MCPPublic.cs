@@ -650,6 +650,13 @@ namespace EpicGames.MCP.Automation
 		abstract public void DeleteFile(string Container, string Identifier);
 
 		/// <summary>
+		/// Deletes a folder from cloud storage
+		/// </summary>
+		/// <param name="Container">The name of the folder or container from which to delete the file.</param>
+		/// <param name="FolderIdentifier">The identifier or name of the folder to delete.</param>
+		abstract public void DeleteFolder(string Container, string FolderIdentifier);
+
+		/// <summary>
 		/// Retrieves a list of files from the cloud storage provider
 		/// </summary>
 		/// <param name="Container">The name of the folder or container from which to list files.</param>
