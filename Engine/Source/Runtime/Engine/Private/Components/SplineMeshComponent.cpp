@@ -236,6 +236,9 @@ USplineMeshComponent::USplineMeshComponent(const FObjectInitializer& ObjectIniti
 	SplineParams.EndPos = FVector(100.f, 0.f, 0.f);
 	SplineParams.EndTangent = FVector(100.f, 0.f, 0.f);
 	SplineParams.EndScale = FVector2D(1.f, 1.f);
+
+	SplineBoundaryMin = 0;
+	SplineBoundaryMax = 0;
 }
 
 FVector USplineMeshComponent::GetStartPosition() const
@@ -379,6 +382,28 @@ void USplineMeshComponent::SetSplineUpDir(const FVector& InSplineUpDir)
 	MarkSplineParamsDirty();
 }
 
+float USplineMeshComponent::GetBoundaryMin() const
+{
+	return SplineBoundaryMin;
+}
+
+void USplineMeshComponent::SetBoundaryMin(float InBoundaryMin)
+{
+	SplineBoundaryMin = InBoundaryMin;
+	MarkSplineParamsDirty();
+}
+
+float USplineMeshComponent::GetBoundaryMax() const
+{
+	return SplineBoundaryMax;
+}
+
+void USplineMeshComponent::SetBoundaryMax(float InBoundaryMax)
+{
+	SplineBoundaryMax = InBoundaryMax;
+	MarkSplineParamsDirty();
+}
+
 
 void USplineMeshComponent::MarkSplineParamsDirty()
 {
@@ -448,40 +473,11 @@ FPrimitiveSceneProxy* USplineMeshComponent::CreateSceneProxy()
 	}
 }
 
-FBoxSphereBounds USplineMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
-{
-	// Use util to generate bounds of spline
-	FInterpCurvePoint<FVector> Start(0.f, SplineParams.StartPos, SplineParams.StartTangent, SplineParams.StartTangent, CIM_CurveUser);
-	FInterpCurvePoint<FVector> End(1.f, SplineParams.EndPos, SplineParams.EndTangent, SplineParams.EndTangent, CIM_CurveUser);
 
-	FVector CurveMax(-BIG_NUMBER, -BIG_NUMBER, -BIG_NUMBER);
-	FVector CurveMin(BIG_NUMBER, BIG_NUMBER, BIG_NUMBER);
-	CurveVectorFindIntervalBounds(Start, End, CurveMin, CurveMax);
-
-	FBox LocalBox(CurveMin, CurveMax);
-
-	// Find largest extent of mesh in XY, and add on all around
-	if(StaticMesh)
-	{
-		FVector MinMeshExtent = StaticMesh->GetBounds().Origin - StaticMesh->GetBounds().BoxExtent;
-		FVector MaxMeshExtent = StaticMesh->GetBounds().Origin + StaticMesh->GetBounds().BoxExtent;
-		GetAxisValue(MinMeshExtent, ForwardAxis) = 0;
-		GetAxisValue(MaxMeshExtent, ForwardAxis) = 0;
-		float MaxDim = FMath::Max<float>(MinMeshExtent.GetAbsMax(), MaxMeshExtent.GetAbsMax());
-
-		float MaxScale = FMath::Max(SplineParams.StartScale.GetAbsMax(), SplineParams.EndScale.GetAbsMax());
-
-		LocalBox = LocalBox.ExpandBy(MaxScale * MaxDim);
-	}
-
-	return FBoxSphereBounds( LocalBox.TransformBy(LocalToWorld) );
-}
-
-
-/** 
- * Functions used for transforming a static mesh component based on a spline.  
- * This needs to be updated if the spline functionality changes!
- */
+/**
+* Functions used for transforming a static mesh component based on a spline.
+* This needs to be updated if the spline functionality changes!
+*/
 static float SmoothStep(float A, float B, float X)
 {
 	if (X < A)
@@ -501,13 +497,13 @@ static FVector SplineEvalPos(const FVector& StartPos, const FVector& StartTangen
 	const float A2 = A  * A;
 	const float A3 = A2 * A;
 
-	return (((2*A3)-(3*A2)+1) * StartPos) + ((A3-(2*A2)+A) * StartTangent) + ((A3-A2) * EndTangent) + (((-2*A3)+(3*A2)) * EndPos);
+	return (((2 * A3) - (3 * A2) + 1) * StartPos) + ((A3 - (2 * A2) + A) * StartTangent) + ((A3 - A2) * EndTangent) + (((-2 * A3) + (3 * A2)) * EndPos);
 }
 
 static FVector SplineEvalDir(const FVector& StartPos, const FVector& StartTangent, const FVector& EndPos, const FVector& EndTangent, float A)
 {
-	const FVector C = (6*StartPos) + (3*StartTangent) + (3*EndTangent) - (6*EndPos);
-	const FVector D = (-6*StartPos) - (4*StartTangent) - (2*EndTangent) + (6*EndPos);
+	const FVector C = (6 * StartPos) + (3 * StartTangent) + (3 * EndTangent) - (6 * EndPos);
+	const FVector D = (-6 * StartPos) - (4 * StartTangent) - (2 * EndTangent) + (6 * EndPos);
 	const FVector E = StartTangent;
 
 	const float A2 = A  * A;
@@ -516,14 +512,137 @@ static FVector SplineEvalDir(const FVector& StartPos, const FVector& StartTangen
 }
 
 
+FBoxSphereBounds USplineMeshComponent::CalcBounds(const FTransform& LocalToWorld) const
+{
+	if (!StaticMesh)
+	{
+		return FBoxSphereBounds(FBox(0));
+	}
+
+	float MinT = 0.0f;
+	float MaxT = 1.0f;
+
+	const FBoxSphereBounds MeshBounds = StaticMesh->GetBounds();
+
+	const bool bHasCustomBoundary = !FMath::IsNearlyEqual(SplineBoundaryMin, SplineBoundaryMax);
+	if (bHasCustomBoundary)
+	{
+		// If there's a custom boundary, alter the min/max of the spline we need to evaluate
+		const float MeshMin = GetAxisValue(MeshBounds.Origin - MeshBounds.BoxExtent, ForwardAxis);
+		const float MeshMax = GetAxisValue(MeshBounds.Origin + MeshBounds.BoxExtent, ForwardAxis);
+
+		const float MeshMinT = (MeshMin - SplineBoundaryMin) / (SplineBoundaryMax - SplineBoundaryMin);
+		const float MeshMaxT = (MeshMax - SplineBoundaryMin) / (SplineBoundaryMax - SplineBoundaryMin);
+
+		// Disallow extrapolation beyond a certain value; enormous bounding boxes cause the render thread to crash
+		const float MaxSplineExtrapolation = 4.0f;
+		if (FMath::Abs(MeshMinT) < MaxSplineExtrapolation && FMath::Abs(MeshMaxT) < MaxSplineExtrapolation)
+		{
+			MinT = MeshMinT;
+			MaxT = MeshMaxT;
+		}
+	}
+
+	const FVector AxisMask = GetAxisMask(ForwardAxis);
+	const FVector FlattenedMeshOrigin = MeshBounds.Origin * AxisMask;
+	const FVector FlattenedMeshExtent = MeshBounds.BoxExtent * AxisMask;
+	const FBox MeshBoundingBox = FBox(FlattenedMeshOrigin - FlattenedMeshExtent, FlattenedMeshOrigin + FlattenedMeshExtent);
+
+	FBox BoundingBox(0);
+	BoundingBox += MeshBoundingBox.TransformBy(CalcSliceTransformAtSplineOffset(MinT));
+	BoundingBox += MeshBoundingBox.TransformBy(CalcSliceTransformAtSplineOffset(MaxT));
+
+	// Work out coefficients of the cubic spline derivative equation dx/dt
+	const FVector A = 6.0f * SplineParams.StartPos + 3.0f * SplineParams.StartTangent + 3.0f * SplineParams.EndTangent - 6.0f * SplineParams.EndPos;
+	const FVector B = -6.0f * SplineParams.StartPos - 4.0f * SplineParams.StartTangent - 2.0f * SplineParams.EndTangent + 6.0f * SplineParams.EndPos;
+	const FVector C = SplineParams.StartTangent;
+
+	// Minima/maxima happen where dx/dt == 0, calculate t values
+	const FVector Discriminant = B * B - 4.0f * A * C;
+
+	// Work out minima/maxima component-by-component.
+	// Negative discriminant means no solution; A == 0 implies coincident start/end points
+	if (Discriminant.X > 0.0f && !FMath::IsNearlyZero(A.X))
+	{
+		const float SqrtDiscriminant = FMath::Sqrt(Discriminant.X);
+		const float Denominator = 0.5f / A.X;
+		const float T0 = (-B.X + SqrtDiscriminant) * Denominator;
+		const float T1 = (-B.X - SqrtDiscriminant) * Denominator;
+
+		if (T0 >= MinT && T0 <= MaxT)
+		{
+			BoundingBox += MeshBoundingBox.TransformBy(CalcSliceTransformAtSplineOffset(T0));
+		}
+
+		if (T1 >= MinT && T1 <= MaxT)
+		{
+			BoundingBox += MeshBoundingBox.TransformBy(CalcSliceTransformAtSplineOffset(T1));
+		}
+	}
+
+	if (Discriminant.Y > 0.0f && !FMath::IsNearlyZero(A.Y))
+	{
+		const float SqrtDiscriminant = FMath::Sqrt(Discriminant.Y);
+		const float Denominator = 0.5f / A.Y;
+		const float T0 = (-B.Y + SqrtDiscriminant) * Denominator;
+		const float T1 = (-B.Y - SqrtDiscriminant) * Denominator;
+
+		if (T0 >= MinT && T0 <= MaxT)
+		{
+			BoundingBox += MeshBoundingBox.TransformBy(CalcSliceTransformAtSplineOffset(T0));
+		}
+
+		if (T1 >= MinT && T1 <= MaxT)
+		{
+			BoundingBox += MeshBoundingBox.TransformBy(CalcSliceTransformAtSplineOffset(T1));
+		}
+	}
+
+	if (Discriminant.Z > 0.0f && !FMath::IsNearlyZero(A.Z))
+	{
+		const float SqrtDiscriminant = FMath::Sqrt(Discriminant.Z);
+		const float Denominator = 0.5f / A.Z;
+		const float T0 = (-B.Z + SqrtDiscriminant) * Denominator;
+		const float T1 = (-B.Z - SqrtDiscriminant) * Denominator;
+
+		if (T0 >= MinT && T0 <= MaxT)
+		{
+			BoundingBox += MeshBoundingBox.TransformBy(CalcSliceTransformAtSplineOffset(T0));
+		}
+
+		if (T1 >= MinT && T1 <= MaxT)
+		{
+			BoundingBox += MeshBoundingBox.TransformBy(CalcSliceTransformAtSplineOffset(T1));
+		}
+	}
+
+	return FBoxSphereBounds(BoundingBox.TransformBy(LocalToWorld));
+}
+
+
 FTransform USplineMeshComponent::CalcSliceTransform(const float DistanceAlong) const
 {
-	// Find how far 'along' mesh we are
-	FBoxSphereBounds StaticMeshBounds = StaticMesh->GetBounds();
-	const float MeshMinZ = GetAxisValue(StaticMeshBounds.Origin, ForwardAxis) - GetAxisValue(StaticMeshBounds.BoxExtent, ForwardAxis);
-	const float MeshRangeZ = 2.0f * GetAxisValue(StaticMeshBounds.BoxExtent, ForwardAxis);
-	const float Alpha = (DistanceAlong - MeshMinZ) / MeshRangeZ;
+	const bool bHasCustomBoundary = !FMath::IsNearlyEqual(SplineBoundaryMin, SplineBoundaryMax);
 
+	// Find how far 'along' mesh we are
+	float Alpha;
+	if (bHasCustomBoundary)
+	{
+		Alpha = (DistanceAlong - SplineBoundaryMin) / (SplineBoundaryMax - SplineBoundaryMin);
+	}
+	else
+	{
+		const FBoxSphereBounds StaticMeshBounds = StaticMesh->GetBounds();
+		const float MeshMinZ = GetAxisValue(StaticMeshBounds.Origin, ForwardAxis) - GetAxisValue(StaticMeshBounds.BoxExtent, ForwardAxis);
+		const float MeshRangeZ = 2.0f * GetAxisValue(StaticMeshBounds.BoxExtent, ForwardAxis);
+		Alpha = (DistanceAlong - MeshMinZ) / MeshRangeZ;
+	}
+
+	return CalcSliceTransformAtSplineOffset(Alpha);
+}
+
+FTransform USplineMeshComponent::CalcSliceTransformAtSplineOffset(const float Alpha) const
+{
 	// Apply hermite interp to Alpha if desired
 	const float HermiteAlpha = bSmoothInterpRollScale ? SmoothStep(0.0, 1.0, Alpha) : Alpha;
 

@@ -1486,8 +1486,20 @@ void FLightmassExporter::WriteMeshInstances( int32 Channel )
 			Copy(*SplineParams, SMInstanceMeshData.SplineParameters);
 			SMInstanceMeshData.SplineParameters.SplineUpDir = SplineComponent->SplineUpDir;
 			SMInstanceMeshData.SplineParameters.bSmoothInterpRollScale = SplineComponent->bSmoothInterpRollScale;
-			SMInstanceMeshData.SplineParameters.MeshMinZ = MeshBounds.Origin[SplineComponent->ForwardAxis] - MeshBounds.BoxExtent[SplineComponent->ForwardAxis];
-			SMInstanceMeshData.SplineParameters.MeshRangeZ = 2.f * MeshBounds.BoxExtent[SplineComponent->ForwardAxis];
+
+			if (FMath::IsNearlyEqual(SplineComponent->SplineBoundaryMin, SplineComponent->SplineBoundaryMax))
+			{
+				// set ranges according to the extents of the mesh
+				SMInstanceMeshData.SplineParameters.MeshMinZ = MeshBounds.Origin[SplineComponent->ForwardAxis] - MeshBounds.BoxExtent[SplineComponent->ForwardAxis];
+				SMInstanceMeshData.SplineParameters.MeshRangeZ = 2.f * MeshBounds.BoxExtent[SplineComponent->ForwardAxis];
+			}
+			else
+			{
+				// set ranges according to the custom boundary min/max
+				SMInstanceMeshData.SplineParameters.MeshMinZ = SplineComponent->SplineBoundaryMin;
+				SMInstanceMeshData.SplineParameters.MeshRangeZ = SplineComponent->SplineBoundaryMax - SplineComponent->SplineBoundaryMin;
+			}
+
 			SMInstanceMeshData.SplineParameters.ForwardAxis = (Lightmass::ESplineMeshAxis::Type)SplineComponent->ForwardAxis.GetValue();
 		}
 		else

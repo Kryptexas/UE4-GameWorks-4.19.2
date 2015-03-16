@@ -113,6 +113,14 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	UPROPERTY(EditAnywhere, Category=SplineMesh)
 	TEnumAsByte<ESplineMeshAxis::Type> ForwardAxis;
 
+	/** Minimum coordinate along the spline forward axis which corresponds to start of spline. If set to 0.0, will use bounding box to determine bounds */
+	UPROPERTY(EditAnywhere, Category = SplineMesh, AdvancedDisplay)
+	float SplineBoundaryMin;
+
+	/** Maximum coordinate along the spline forward axis which corresponds to end of spline. If set to 0.0, will use bounding box to determine bounds */
+	UPROPERTY(EditAnywhere, Category = SplineMesh, AdvancedDisplay)
+	float SplineBoundaryMax;
+	
 	// Physics data.
 	UPROPERTY()
 	class UBodySetup* BodySetup;
@@ -269,6 +277,22 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 	UFUNCTION(BlueprintCallable, Category = SplineMesh)
 	void SetSplineUpDir(const FVector& InSplineUpDir);
 
+	/** Get the boundary min */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	float GetBoundaryMin() const;
+
+	/** Set the boundary min */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetBoundaryMin(float InBoundaryMin);
+
+	/** Get the boundary max */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	float GetBoundaryMax() const;
+
+	/** Set the boundary max */
+	UFUNCTION(BlueprintCallable, Category = SplineMesh)
+	void SetBoundaryMax(float InBoundaryMax);
+
 	// Destroys the body setup, used to clear collision if the mesh goes missing
 	void DestroyBodySetup();
 #if WITH_EDITOR
@@ -278,12 +302,20 @@ class ENGINE_API USplineMeshComponent : public UStaticMeshComponent, public IInt
 
 	/**
 	 * Calculates the spline transform, including roll, scale, and offset along the spline at a specified distance
-	 * @Note:  This is mirrored to Lightmass::CalcSliceTransform() and LocalVertexShader.usf.  If you update one of these, please update them all! 
 	 */
 	FTransform CalcSliceTransform(const float DistanceAlong) const;
 
+	/**
+	 * Calculates the spline transform, including roll, scale, and offset along the spline at a specified alpha interpolation parameter along the spline
+	 * @Note:  This is mirrored to Lightmass::CalcSliceTransform() and LocalVertexShader.usf.  If you update one of these, please update them all!
+	 */
+	FTransform CalcSliceTransformAtSplineOffset(const float Alpha) const;
+
 	inline static const float& GetAxisValue(const FVector& InVector, ESplineMeshAxis::Type InAxis);
 	inline static float& GetAxisValue(FVector& InVector, ESplineMeshAxis::Type InAxis);
+
+	/** Returns a vector which, when componentwise-multiplied by another vector, will zero all the components not corresponding to the supplied ESplineMeshAxis */
+	inline static FVector GetAxisMask(ESplineMeshAxis::Type InAxis);
 };
 
 const float& USplineMeshComponent::GetAxisValue(const FVector& InVector, ESplineMeshAxis::Type InAxis)
@@ -318,3 +350,18 @@ float& USplineMeshComponent::GetAxisValue(FVector& InVector, ESplineMeshAxis::Ty
 	}
 }
 
+FVector USplineMeshComponent::GetAxisMask(ESplineMeshAxis::Type InAxis)
+{
+	switch (InAxis)
+	{
+	case ESplineMeshAxis::X:
+		return FVector(0, 1, 1);
+	case ESplineMeshAxis::Y:
+		return FVector(1, 0, 1);
+	case ESplineMeshAxis::Z:
+		return FVector(1, 1, 0);
+	default:
+		check(0);
+		return FVector::ZeroVector;
+	}
+}
