@@ -1290,7 +1290,7 @@ void AInstancedFoliageActor::DeleteInstancesForProceduralFoliageComponent(const 
 
 void AInstancedFoliageActor::MoveInstancesForComponentToCurrentLevel(UActorComponent* InComponent)
 {
-	if (HasFoliageAttached(InComponent))
+	if (!HasFoliageAttached(InComponent))
 	{
 		// Quit early if there are no foliage instances painted on this component
 		return;
