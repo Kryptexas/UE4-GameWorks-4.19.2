@@ -90,3 +90,5 @@ void FDistanceDatumStructCustomization::CustomizeChildren(TSharedRef<IPropertyHa
 		}
 	}
 }
+
+#undef LOCTEXT_NAMESPACE
