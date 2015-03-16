@@ -94,7 +94,7 @@ public:
 	{
 		return Filename;
 	}
-	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override;
+	virtual IFileHandle*	OpenRead(const TCHAR* Filename, bool bAllowWrite = false) override;
 	virtual IFileHandle*	OpenWrite(const TCHAR* Filename, bool bAppend = false, bool bAllowRead = false) override;
 	virtual bool		DirectoryExists(const TCHAR* Directory) override;
 	virtual bool		CreateDirectoryTree(const TCHAR* Directory) override;

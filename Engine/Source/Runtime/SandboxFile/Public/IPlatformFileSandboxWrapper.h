@@ -377,9 +377,9 @@ public:
 		return Result;
 	}
 
-	virtual IFileHandle*	OpenRead(const TCHAR* Filename) override
+	virtual IFileHandle*	OpenRead(const TCHAR* Filename, bool bAllowWrite = false) override
 	{
-		IFileHandle* Result = LowerLevel->OpenRead( *ConvertToSandboxPath( Filename ) );
+		IFileHandle* Result = LowerLevel->OpenRead( *ConvertToSandboxPath(Filename), bAllowWrite );
 		if( !Result  && OkForInnerAccess(Filename) )
 		{
 			Result = LowerLevel->OpenRead( Filename );

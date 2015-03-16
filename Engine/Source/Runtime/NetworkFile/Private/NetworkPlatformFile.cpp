@@ -396,7 +396,7 @@ void FNetworkPlatformFile::SetTimeStamp(const TCHAR* Filename, FDateTime DateTim
 	InnerPlatformFile->SetTimeStamp(Filename, DateTime);
 }
 
-IFileHandle* FNetworkPlatformFile::OpenRead(const TCHAR* Filename)
+IFileHandle* FNetworkPlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrite)
 {
 //	FScopeLock ScopeLock(&SynchronizationObject);
 

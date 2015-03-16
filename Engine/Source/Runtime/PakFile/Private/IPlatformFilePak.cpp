@@ -787,7 +787,7 @@ bool FPakPlatformFile::HandleUnmountPakDelegate(const FString& PakFilePath)
 	return Unmount(*PakFilePath);
 }
 
-IFileHandle* FPakPlatformFile::OpenRead(const TCHAR* Filename)
+IFileHandle* FPakPlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrite)
 {
 	IFileHandle* Result = NULL;
 	FPakFile* PakFile = NULL;

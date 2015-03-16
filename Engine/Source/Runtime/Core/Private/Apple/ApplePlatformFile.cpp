@@ -420,7 +420,7 @@ FString FApplePlatformFile::GetFilenameOnDisk(const TCHAR* Filename)
 	return Filename;
 }
 
-IFileHandle* FApplePlatformFile::OpenRead(const TCHAR* Filename)
+IFileHandle* FApplePlatformFile::OpenRead(const TCHAR* Filename, bool bAllowWrite)
 {
 	int32 Handle = open(TCHAR_TO_UTF8(*NormalizeFilename(Filename)), O_RDONLY);
 	if (Handle != -1)
