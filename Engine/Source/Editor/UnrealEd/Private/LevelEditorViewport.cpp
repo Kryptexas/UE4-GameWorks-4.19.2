@@ -139,17 +139,17 @@ static FVector4 AttemptToSnapLocationToOriginPlane( const FViewportCursorLocatio
 			Location = NewLocFloor;
 		}
 	}
-	else if ( ViewportType == LVT_OrthoXY )
+	else if ( ViewportType == LVT_OrthoXY || ViewportType == LVT_OrthoNegativeXY )
 	{
 		// In ortho place the brush at the origin of the hidden axis
 		Location.Z = 0;
 	}
-	else if ( ViewportType == LVT_OrthoXZ )
+	else if ( ViewportType == LVT_OrthoXZ || ViewportType == LVT_OrthoNegativeXZ )
 	{
 		// In ortho place the brush at the origin of the hidden axis
 		Location.Y = 0;
 	}
-	else if ( ViewportType == LVT_OrthoYZ )
+	else if ( ViewportType == LVT_OrthoYZ || ViewportType == LVT_OrthoNegativeYZ )
 	{
 		// In ortho place the brush at the origin of the hidden axis
 		Location.X = 0;
@@ -2747,10 +2747,13 @@ EAxisList::Type FLevelEditorViewportClient::GetHorizAxis() const
 	switch( GetViewportType() )
 	{
 	case LVT_OrthoXY:
+	case LVT_OrthoNegativeXY:
 		return EAxisList::X;
 	case LVT_OrthoXZ:
+	case LVT_OrthoNegativeXZ:
 		return EAxisList::X;
 	case LVT_OrthoYZ:
+	case LVT_OrthoNegativeYZ:
 		return EAxisList::Y;
 	}
 
@@ -2766,10 +2769,13 @@ EAxisList::Type FLevelEditorViewportClient::GetVertAxis() const
 	switch( GetViewportType() )
 	{
 	case LVT_OrthoXY:
+	case LVT_OrthoNegativeXY:
 		return EAxisList::Y;
 	case LVT_OrthoXZ:
+	case LVT_OrthoNegativeXZ:
 		return EAxisList::Z;
 	case LVT_OrthoYZ:
+	case LVT_OrthoNegativeYZ:
 		return EAxisList::Z;
 	}
 

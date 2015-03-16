@@ -246,11 +246,23 @@ FText SLevelViewportToolBar::GetCameraMenuLabel() const
 				break;
 
 			case LVT_OrthoYZ:
-				Label = LOCTEXT("CameraMenuTitle_Side", "Side");
+				Label = LOCTEXT("CameraMenuTitle_Left", "Left");
 				break;
 
 			case LVT_OrthoXZ:
 				Label = LOCTEXT("CameraMenuTitle_Front", "Front");
+				break;
+
+			case LVT_OrthoNegativeXY:
+				Label = LOCTEXT("CameraMenuTitle_Bottom", "Bottom");
+				break;
+
+			case LVT_OrthoNegativeYZ:
+				Label = LOCTEXT("CameraMenuTitle_Right", "Right");
+				break;
+
+			case LVT_OrthoNegativeXZ:
+				Label = LOCTEXT("CameraMenuTitle_Back", "Back");
 				break;
 		}
 	}
@@ -303,8 +315,11 @@ const FSlateBrush* SLevelViewportToolBar::GetCameraMenuLabelIcon() const
 	{
 		static FName PerspectiveIcon("EditorViewport.Perspective");
 		static FName TopIcon("EditorViewport.Top");
-		static FName SideIcon("EditorViewport.Side");
+		static FName LeftIcon("EditorViewport.Left");
 		static FName FrontIcon("EditorViewport.Front");
+		static FName BottomIcon("EditorViewport.Bottom");
+		static FName RightIcon("EditorViewport.Right");
+		static FName BackIcon("EditorViewport.Back");
 
 		switch( PinnedViewport->GetLevelViewportClient().ViewportType )
 		{
@@ -317,11 +332,23 @@ const FSlateBrush* SLevelViewportToolBar::GetCameraMenuLabelIcon() const
 				break;
 
 			case LVT_OrthoYZ:
-				Icon = SideIcon;
+				Icon = LeftIcon;
 				break;
 
 			case LVT_OrthoXZ:
 				Icon = FrontIcon;
+				break;
+
+			case LVT_OrthoNegativeXY:
+				Icon = BottomIcon;
+				break;
+
+			case LVT_OrthoNegativeYZ:
+				Icon = RightIcon;
+				break;
+
+			case LVT_OrthoNegativeXZ:
+				Icon = BackIcon;
 				break;
 		}
 	}
@@ -652,8 +679,11 @@ TSharedRef<SWidget> SLevelViewportToolBar::GenerateCameraMenu() const
 
 	CameraMenuBuilder.BeginSection("LevelViewportCameraType_Ortho", LOCTEXT("CameraTypeHeader_Ortho", "Orthographic") );
 		CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Top);
-		CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Side);
+		CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Bottom);
+		CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Left);
+		CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Right);
 		CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Front);
+		CameraMenuBuilder.AddMenuEntry(FEditorViewportCommands::Get().Back);
 	CameraMenuBuilder.EndSection();
 
 	return CameraMenuBuilder.MakeWidget();

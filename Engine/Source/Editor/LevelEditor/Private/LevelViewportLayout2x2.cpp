@@ -51,7 +51,7 @@ TSharedRef<SWidget> FLevelViewportLayout2x2::MakeViewportLayout(const FString& L
 	.TopLeft()
 	[
 		SAssignNew( ViewportWidgetTL, SLevelViewport )
-		.ViewportType( LVT_OrthoYZ )		// Side
+		.ViewportType( LVT_OrthoYZ )		// Left
 		.ParentLayout( AsShared() )
 		.ParentLevelEditor( ParentLevelEditor )
 		.ConfigKey( TopLeftKey )

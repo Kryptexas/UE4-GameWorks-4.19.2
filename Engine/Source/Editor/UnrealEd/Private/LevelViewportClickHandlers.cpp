@@ -519,10 +519,21 @@ namespace ClickHandlers
 		bool bResult = false;
 		switch( ViewportType )
 		{
-		case LVT_OrthoXY:	bResult = FMath::Abs(Vec0.X - Vec1.X) < Tolerance && FMath::Abs(Vec0.Y - Vec1.Y) < Tolerance;	break;
-		case LVT_OrthoXZ:	bResult = FMath::Abs(Vec0.X - Vec1.X) < Tolerance && FMath::Abs(Vec0.Z - Vec1.Z) < Tolerance;	break;
-		case LVT_OrthoYZ:	bResult = FMath::Abs(Vec0.Y - Vec1.Y) < Tolerance && FMath::Abs(Vec0.Z - Vec1.Z) < Tolerance;	break;
-		default:			check( 0 );		break;
+		case LVT_OrthoXY:
+		case LVT_OrthoNegativeXY:
+			bResult = FMath::Abs(Vec0.X - Vec1.X) < Tolerance && FMath::Abs(Vec0.Y - Vec1.Y) < Tolerance;
+			break;
+		case LVT_OrthoXZ:
+		case LVT_OrthoNegativeXZ:
+			bResult = FMath::Abs(Vec0.X - Vec1.X) < Tolerance && FMath::Abs(Vec0.Z - Vec1.Z) < Tolerance;
+			break;
+		case LVT_OrthoYZ:
+		case LVT_OrthoNegativeYZ:
+			bResult = FMath::Abs(Vec0.Y - Vec1.Y) < Tolerance && FMath::Abs(Vec0.Z - Vec1.Z) < Tolerance;
+			break;
+		default:
+			check( 0 );
+			break;
 		}
 		return bResult;
 	}

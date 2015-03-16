@@ -69,9 +69,12 @@ void FPhATCommands::RegisterCommands()
 	UI_COMMAND(HierarchyFilterAll, "All Bones", "Show Entire Hierarchy", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(HierarchyFilterBodies, "Bones With Bodies", "Filter Bones With Bodies", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(PerspectiveView, "Perspective", "Perspective", EUserInterfaceActionType::Button, FInputGesture());
-	UI_COMMAND(SideView, "Side", "Orthographic view from side", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(LeftView, "Left", "Orthographic view from left", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(TopView, "Top", "Orthographic view from top", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(FrontView, "Front", "Orthographic view from front", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(RightView, "Right", "Orthographic view from right", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(BottomView, "Bottom", "Orthographic view from bottom", EUserInterfaceActionType::Button, FInputGesture());
+	UI_COMMAND(BackView, "Back", "Orthographic view from back", EUserInterfaceActionType::Button, FInputGesture());
 	UI_COMMAND(Mirror, "Mirror", "Finds the body on the other side and duplicates constraint and body", EUserInterfaceActionType::Button, FInputGesture(EKeys::M));
 
 

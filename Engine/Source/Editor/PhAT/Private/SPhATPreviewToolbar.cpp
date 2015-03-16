@@ -80,8 +80,11 @@ TSharedRef<SWidget> SPhATPreviewViewportToolBar::GeneratePerspectiveMenu() const
 	{
 		PerspectiveMenuBuilder.AddMenuEntry(Actions.PerspectiveView);
 		PerspectiveMenuBuilder.AddMenuEntry(Actions.TopView);
-		PerspectiveMenuBuilder.AddMenuEntry(Actions.SideView);
+		PerspectiveMenuBuilder.AddMenuEntry(Actions.BottomView);
+		PerspectiveMenuBuilder.AddMenuEntry(Actions.LeftView);
+		PerspectiveMenuBuilder.AddMenuEntry(Actions.RightView);
 		PerspectiveMenuBuilder.AddMenuEntry(Actions.FrontView);
+		PerspectiveMenuBuilder.AddMenuEntry(Actions.BackView);
 	}
 
 	return PerspectiveMenuBuilder.MakeWidget();

@@ -255,14 +255,17 @@ void FDragTool_ActorBoxSelect::CalculateBox( FBox& OutBox )
 	switch(LevelViewportClient->ViewportType)
 	{
 	case LVT_OrthoXY:
+	case LVT_OrthoNegativeXY:
 		OutBox.Min.Z = -WORLD_MAX;
 		OutBox.Max.Z = WORLD_MAX;
 		break;
 	case LVT_OrthoXZ:
+	case LVT_OrthoNegativeXZ:
 		OutBox.Min.Y = -WORLD_MAX;
 		OutBox.Max.Y = WORLD_MAX;
 		break;
 	case LVT_OrthoYZ:
+	case LVT_OrthoNegativeYZ:
 		OutBox.Min.X = -WORLD_MAX;
 		OutBox.Max.X = WORLD_MAX;
 		break;

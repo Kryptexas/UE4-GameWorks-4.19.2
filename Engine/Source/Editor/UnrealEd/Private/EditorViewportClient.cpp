@@ -698,6 +698,30 @@ FSceneView* FEditorViewportClient::CalcSceneView(FSceneViewFamily* ViewFamily)
 					FPlane(0, 1, 0, 0),
 					FPlane(0, 0, ViewLocation.X, 1));
 			}
+			else if (EffectiveViewportType == LVT_OrthoNegativeXY)
+			{
+				ViewInitOptions.ViewRotationMatrix = FMatrix(
+					FPlane(-1, 0, 0, 0),
+					FPlane(0, -1, 0, 0),
+					FPlane(0, 0, 1, 0),
+					FPlane(0, 0, -ViewLocation.Z, 1));
+			}
+			else if (EffectiveViewportType == LVT_OrthoNegativeXZ)
+			{
+				ViewInitOptions.ViewRotationMatrix = FMatrix(
+					FPlane(-1, 0, 0, 0),
+					FPlane(0, 0, 1, 0),
+					FPlane(0, 1, 0, 0),
+					FPlane(0, 0, -ViewLocation.Y, 1));
+			}
+			else if (EffectiveViewportType == LVT_OrthoNegativeYZ)
+			{
+				ViewInitOptions.ViewRotationMatrix = FMatrix(
+					FPlane(0, 0, -1, 0),
+					FPlane(-1, 0, 0, 0),
+					FPlane(0, 1, 0, 0),
+					FPlane(0, 0, ViewLocation.X, 1));
+			}
 			else
 			{
 				// Unknown viewport type
@@ -2537,6 +2561,15 @@ void FEditorViewportClient::OnOrthoZoom( const struct FInputEventState& InputSta
 		case LVT_OrthoYZ:
 			OldOffsetFromCenter.Set(0.0f, DeltaFromCenterX, DeltaFromCenterY);
 			break;
+		case LVT_OrthoNegativeXY:
+			OldOffsetFromCenter.Set(-DeltaFromCenterX, -DeltaFromCenterY, 0.0f);
+			break;
+		case LVT_OrthoNegativeXZ:
+			OldOffsetFromCenter.Set(-DeltaFromCenterX, 0.0f, DeltaFromCenterY);
+			break;
+		case LVT_OrthoNegativeYZ:
+			OldOffsetFromCenter.Set(0.0f, -DeltaFromCenterX, DeltaFromCenterY);
+			break;
 		case LVT_OrthoFreelook:
 			//@TODO: CAMERA: How to handle this
 			break;
@@ -2930,6 +2963,27 @@ void FEditorViewportClient::Draw(FViewport* InViewport, FCanvas* Canvas)
 				DrawScaleUnits(Viewport, Canvas, *View);
 				break;
 			}
+		case LVT_OrthoNegativeXY:
+			{
+				const FRotator XYRot(90.0f, 90.0f, 0.0f);
+				DrawAxes(Viewport, Canvas, &XYRot, EAxisList::XY);
+				DrawScaleUnits(Viewport, Canvas, *View);
+				break;
+			}
+		case LVT_OrthoNegativeXZ:
+			{
+				const FRotator XZRot(0.0f, 90.0f, 0.0f);
+				DrawAxes(Viewport, Canvas, &XZRot, EAxisList::XZ);
+				DrawScaleUnits(Viewport, Canvas, *View);
+				break;
+			}
+		case LVT_OrthoNegativeYZ:
+			{
+				const FRotator YZRot(0.0f, 180.0f, 0.0f);
+				DrawAxes(Viewport, Canvas, &YZRot, EAxisList::YZ);
+				DrawScaleUnits(Viewport, Canvas, *View);
+				break;
+			}
 		default:
 			{
 				DrawAxes(Viewport, Canvas);
@@ -3093,6 +3147,9 @@ FVector FEditorViewportClient::TranslateDelta( FKey InKey, float InDelta, bool I
 	case LVT_OrthoXY:
 	case LVT_OrthoXZ:
 	case LVT_OrthoYZ:
+	case LVT_OrthoNegativeXY:
+	case LVT_OrthoNegativeXZ:
+	case LVT_OrthoNegativeYZ:
 		{
 			LastMouseX += X;
 			LastMouseY -= Y;
@@ -3140,10 +3197,19 @@ FVector FEditorViewportClient::TranslateDelta( FKey InKey, float InDelta, bool I
 						vec.Y *= -1.0f;
 						break;
 					case LVT_OrthoXZ:
-						vec = FVector( X * UnitsPerPixel, 0.f, Y * UnitsPerPixel );
+						vec = FVector(X * UnitsPerPixel, 0.f, Y * UnitsPerPixel);
 						break;
 					case LVT_OrthoYZ:
-						vec = FVector( 0.f, X * UnitsPerPixel, Y * UnitsPerPixel );
+						vec = FVector(0.f, X * UnitsPerPixel, Y * UnitsPerPixel);
+						break;
+ 					case LVT_OrthoNegativeXY:
+ 						vec = FVector(-X * UnitsPerPixel, -Y * UnitsPerPixel, 0.0f);
+ 						break;
+					case LVT_OrthoNegativeXZ:
+						vec = FVector(-X * UnitsPerPixel, 0.f, Y * UnitsPerPixel);
+						break;
+					case LVT_OrthoNegativeYZ:
+						vec = FVector(0.f, -X * UnitsPerPixel, Y * UnitsPerPixel);
 						break;
 					}
 				}
@@ -3265,6 +3331,9 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 	case LVT_OrthoXY:
 	case LVT_OrthoXZ:
 	case LVT_OrthoYZ:
+	case LVT_OrthoNegativeXY:
+	case LVT_OrthoNegativeXZ:
+	case LVT_OrthoNegativeYZ:
 		{
 			if (GestureType == EGestureEvent::Scroll && !LeftMouseButtonDown && !RightMouseButtonDown)
 			{
@@ -3283,6 +3352,15 @@ bool FEditorViewportClient::InputGesture(FViewport* InViewport, EGestureEvent::T
 						break;
 					case LVT_OrthoYZ:
 						CurrentGestureDragDelta += FVector(0, -AdjustedGestureDelta.X, AdjustedGestureDelta.Y);
+						break;
+					case LVT_OrthoNegativeXY:
+						CurrentGestureDragDelta += FVector(AdjustedGestureDelta.X, -AdjustedGestureDelta.Y, 0);
+						break;
+					case LVT_OrthoNegativeXZ:
+						CurrentGestureDragDelta += FVector(AdjustedGestureDelta.X, 0, AdjustedGestureDelta.Y);
+						break;
+					case LVT_OrthoNegativeYZ:
+						CurrentGestureDragDelta += FVector(0, AdjustedGestureDelta.X, AdjustedGestureDelta.Y);
 						break;
 				}
 
@@ -3371,6 +3449,9 @@ void FEditorViewportClient::ConvertMovementToDragRot(const FVector& InDelta,
 	case LVT_OrthoXY:
 	case LVT_OrthoXZ:
 	case LVT_OrthoYZ:
+	case LVT_OrthoNegativeXY:
+	case LVT_OrthoNegativeXZ:
+	case LVT_OrthoNegativeYZ:
 		{
 			if( ( LeftMouseButtonDown || bIsUsingTrackpad ) && RightMouseButtonDown )
 			{
@@ -3452,6 +3533,9 @@ void FEditorViewportClient::ConvertMovementToOrbitDragRot(const FVector& InDelta
 	case LVT_OrthoXY:
 	case LVT_OrthoXZ:
 	case LVT_OrthoYZ:
+	case LVT_OrthoNegativeXY:
+	case LVT_OrthoNegativeXZ:
+	case LVT_OrthoNegativeYZ:
 		{
 			if( ( LeftMouseButtonDown || bIsUsingTrackpad ) && RightMouseButtonDown )
 			{
@@ -3775,6 +3859,9 @@ void FEditorViewportClient::MoveViewportCamera(const FVector& InDrag, const FRot
 	case LVT_OrthoXY:
 	case LVT_OrthoXZ:
 	case LVT_OrthoYZ:
+	case LVT_OrthoNegativeXY:
+	case LVT_OrthoNegativeXZ:
+	case LVT_OrthoNegativeYZ:
 		{
 			const bool LeftMouseButtonDown = Viewport->KeyState(EKeys::LeftMouseButton);
 			const bool RightMouseButtonDown = Viewport->KeyState(EKeys::RightMouseButton);
@@ -3859,12 +3946,15 @@ void FEditorViewportClient::CheckHoveredHitProxy( HHitProxy* HoveredHitProxy )
 				switch( GetViewportType() )
 				{
 				case LVT_OrthoXY:
+				case LVT_OrthoNegativeXY:
 					NewAxis = EAxisList::Z;
 					break;
 				case LVT_OrthoXZ:
+				case LVT_OrthoNegativeXZ:
 					NewAxis = EAxisList::Y;
 					break;
 				case LVT_OrthoYZ:
+				case LVT_OrthoNegativeYZ:
 					NewAxis = EAxisList::X;
 					break;
 				default:

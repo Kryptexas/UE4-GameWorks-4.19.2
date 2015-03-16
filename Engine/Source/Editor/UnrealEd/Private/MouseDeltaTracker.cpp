@@ -80,12 +80,15 @@ void FMouseDeltaTracker::DetermineCurrentAxis(FEditorViewportClient* InViewportC
 								}
 								break;
 							case LVT_OrthoXY:
+							case LVT_OrthoNegativeXY:
 								InViewportClient->SetCurrentWidgetAxis( EAxisList::XY );
 								break;
 							case LVT_OrthoXZ:
+							case LVT_OrthoNegativeXZ:
 								InViewportClient->SetCurrentWidgetAxis( EAxisList::XZ );
 								break;
 							case LVT_OrthoYZ:
+							case LVT_OrthoNegativeYZ:
 								InViewportClient->SetCurrentWidgetAxis( EAxisList::YZ );
 								break;
 							default:
@@ -117,13 +120,16 @@ void FMouseDeltaTracker::DetermineCurrentAxis(FEditorViewportClient* InViewportC
 							}
 							break;
 						case LVT_OrthoXY:
-							InViewportClient->SetCurrentWidgetAxis( EAxisList::XY );
+						case LVT_OrthoNegativeXY:
+							InViewportClient->SetCurrentWidgetAxis(EAxisList::XY);
 							break;
 						case LVT_OrthoXZ:
-							InViewportClient->SetCurrentWidgetAxis( EAxisList::XZ );
+						case LVT_OrthoNegativeXZ:
+							InViewportClient->SetCurrentWidgetAxis(EAxisList::XZ);
 							break;
 						case LVT_OrthoYZ:
-							InViewportClient->SetCurrentWidgetAxis( EAxisList::YZ );
+						case LVT_OrthoNegativeYZ:
+							InViewportClient->SetCurrentWidgetAxis(EAxisList::YZ);
 							break;
 						default:
 							break;
@@ -148,13 +154,16 @@ void FMouseDeltaTracker::DetermineCurrentAxis(FEditorViewportClient* InViewportC
 							}
 							break;
 						case LVT_OrthoXY:
-							InViewportClient->SetCurrentWidgetAxis( EAxisList::Z );
+						case LVT_OrthoNegativeXY:
+							InViewportClient->SetCurrentWidgetAxis(EAxisList::Z);
 							break;
 						case LVT_OrthoXZ:
-							InViewportClient->SetCurrentWidgetAxis( EAxisList::Y );
+						case LVT_OrthoNegativeXZ:
+							InViewportClient->SetCurrentWidgetAxis(EAxisList::Y);
 							break;
 						case LVT_OrthoYZ:
-							InViewportClient->SetCurrentWidgetAxis( EAxisList::X );
+						case LVT_OrthoNegativeYZ:
+							InViewportClient->SetCurrentWidgetAxis(EAxisList::X);
 							break;
 						default:
 							break;

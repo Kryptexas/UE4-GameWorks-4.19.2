@@ -10,8 +10,11 @@ void FEditorViewportCommands::RegisterCommands()
 {
 	UI_COMMAND( Perspective, "Perspective", "Switches the viewport to perspective view", EUserInterfaceActionType::RadioButton, FInputGesture( EModifierKey::Alt, EKeys::G ) );
 	UI_COMMAND( Front, "Front", "Switches the viewport to front view", EUserInterfaceActionType::RadioButton, FInputGesture( EModifierKey::Alt, EKeys::H ) );
+	UI_COMMAND( Back, "Back", "Switches the viewport to back view", EUserInterfaceActionType::RadioButton, FInputGesture( EModifierKey::Alt | EModifierKey::Shift, EKeys::H ) );
 	UI_COMMAND( Top, "Top", "Switches the viewport to top view", EUserInterfaceActionType::RadioButton, FInputGesture( EModifierKey::Alt, EKeys::J ) );
-	UI_COMMAND( Side, "Side", "Switches the viewport to side view", EUserInterfaceActionType::RadioButton, FInputGesture( EModifierKey::Alt, EKeys::K ) );
+	UI_COMMAND( Bottom, "Bottom", "Switches the viewport to bottom view", EUserInterfaceActionType::RadioButton, FInputGesture( EModifierKey::Alt | EModifierKey::Shift, EKeys::J ) );
+	UI_COMMAND( Left, "Left", "Switches the viewport to left view", EUserInterfaceActionType::RadioButton, FInputGesture( EModifierKey::Alt, EKeys::K ) );
+	UI_COMMAND( Right, "Right", "Switches the viewport to right view", EUserInterfaceActionType::RadioButton, FInputGesture( EModifierKey::Alt | EModifierKey::Shift, EKeys::K ) );
 
 	UI_COMMAND( WireframeMode, "Brush Wireframe View Mode", "Renders the scene in brush wireframe", EUserInterfaceActionType::RadioButton, FInputGesture( EModifierKey::Alt, EKeys::Two ) );
 	UI_COMMAND( UnlitMode, "Unlit View Mode", "Renders the scene with no lights", EUserInterfaceActionType::RadioButton, FInputGesture( EModifierKey::Alt, EKeys::Three ) );

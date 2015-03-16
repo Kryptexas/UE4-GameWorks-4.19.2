@@ -1191,7 +1191,7 @@ void FPhAT::BindCommands()
 		);
 
 	ToolkitCommands->MapAction(
-		Commands.SideView,
+		Commands.LeftView,
 		FExecuteAction::CreateSP(this, &FPhAT::OnViewType, ELevelViewportType::LVT_OrthoYZ),
 		FCanExecuteAction()
 		);
@@ -1199,6 +1199,24 @@ void FPhAT::BindCommands()
 	ToolkitCommands->MapAction(
 		Commands.FrontView,
 		FExecuteAction::CreateSP(this, &FPhAT::OnViewType, ELevelViewportType::LVT_OrthoXZ),
+		FCanExecuteAction()
+		);
+
+	ToolkitCommands->MapAction(
+		Commands.BottomView,
+		FExecuteAction::CreateSP(this, &FPhAT::OnViewType, ELevelViewportType::LVT_OrthoNegativeXY),
+		FCanExecuteAction()
+		);
+
+	ToolkitCommands->MapAction(
+		Commands.RightView,
+		FExecuteAction::CreateSP(this, &FPhAT::OnViewType, ELevelViewportType::LVT_OrthoNegativeYZ),
+		FCanExecuteAction()
+		);
+
+	ToolkitCommands->MapAction(
+		Commands.BackView,
+		FExecuteAction::CreateSP(this, &FPhAT::OnViewType, ELevelViewportType::LVT_OrthoNegativeXZ),
 		FCanExecuteAction()
 		);
 

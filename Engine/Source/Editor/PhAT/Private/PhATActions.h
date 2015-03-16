@@ -81,8 +81,11 @@ public:
 	TSharedPtr<FUICommandInfo> HierarchyFilterBodies;
 	TSharedPtr<FUICommandInfo> PerspectiveView;
 	TSharedPtr<FUICommandInfo> TopView;
-	TSharedPtr<FUICommandInfo> SideView;
+	TSharedPtr<FUICommandInfo> LeftView;
 	TSharedPtr<FUICommandInfo> FrontView;
+	TSharedPtr<FUICommandInfo> BottomView;
+	TSharedPtr<FUICommandInfo> RightView;
+	TSharedPtr<FUICommandInfo> BackView;
 	TSharedPtr<FUICommandInfo> Mirror;
 
 	/** Hotkey only commands */

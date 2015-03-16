@@ -1929,7 +1929,7 @@ void FEdModeLandscape::Render(const FSceneView* View, FViewport* Viewport, FPrim
 		}
 		else //if (NewLandscapePreviewMode == ENewLandscapePreviewMode::NewLandscape)
 		{
-			if (ViewportType == LVT_Perspective || ViewportType == LVT_OrthoXY)
+			if (ViewportType == LVT_Perspective || ViewportType == LVT_OrthoXY || ViewportType == LVT_OrthoNegativeXY)
 			{
 				for (int32 x = 0; x <= ComponentCountX * QuadsPerComponent; x++)
 				{
@@ -1975,7 +1975,7 @@ void FEdModeLandscape::Render(const FSceneView* View, FViewport* Viewport, FPrim
 				PDI->DrawLine(Transform.TransformPosition(FVector(ComponentCountX * QuadsPerComponent, 0, 0)), Transform.TransformPosition(FVector(ComponentCountX * QuadsPerComponent, ComponentCountY * ComponentSize, 0)), EdgeColour, SDPG_World);
 			}
 
-			if (ViewportType == LVT_Perspective || ViewportType == LVT_OrthoXY)
+			if (ViewportType == LVT_Perspective || ViewportType == LVT_OrthoXY || ViewportType == LVT_OrthoNegativeXY)
 			{
 				for (int32 y = 0; y <= ComponentCountY * QuadsPerComponent; y++)
 				{

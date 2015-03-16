@@ -26,11 +26,20 @@ public:
 	/** Changes the viewport to top view */
 	TSharedPtr< FUICommandInfo > Top;
 
-	/** Changes the viewport to side view */
-	TSharedPtr< FUICommandInfo > Side;
+	/** Changes the viewport to bottom view */
+	TSharedPtr< FUICommandInfo > Bottom;
+
+	/** Changes the viewport to left view */
+	TSharedPtr< FUICommandInfo > Left;
+
+	/** Changes the viewport to right view */
+	TSharedPtr< FUICommandInfo > Right;
 
 	/** Changes the viewport to front view */
 	TSharedPtr< FUICommandInfo > Front;
+
+	/** Changes the viewport to back view */
+	TSharedPtr< FUICommandInfo > Back;
 
 	/** Changes the viewport to wireframe */
 	TSharedPtr< FUICommandInfo > WireframeMode;
