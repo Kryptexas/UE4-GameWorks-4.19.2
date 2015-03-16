@@ -187,7 +187,7 @@ void StaticFailDebug( const TCHAR* Error, const ANSICHAR* File, int32 Line, cons
 // Failed assertion handler.
 //warning: May be called at library startup time.
 //
-void VARARGS FDebug::AssertFailed( const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format/*=TEXT("")*/, ... )
+void VARARGS FDebug::LogAssertFailedMessage(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format/*=TEXT("")*/, ...)
 {
 #if !(UE_BUILD_SHIPPING || UE_BUILD_TEST)
 	// Walk the script stack, if any
@@ -224,14 +224,14 @@ void VARARGS FDebug::AssertFailed( const ANSICHAR* Expr, const ANSICHAR* File, i
  * @param	Line	Line number (__LINE__)
  * @param	Msg		Informative error message text
  */
-void FDebug::EnsureFailed( const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Msg )
+void FDebug::EnsureFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Msg)
 {
 	// You can set bShouldCrash to true to cause a regular assertion to trigger (stopping program execution) when an ensure() error occurs
 	const bool bShouldCrash = false;		// By default, don't crash on ensure()
 	if( bShouldCrash )
 	{
 		// Just trigger a regular assertion which will crash via GError->Logf()
-		FDebug::AssertFailed( Expr, File, Line, Msg );
+		FDebug::LogAssertFailedMessage( Expr, File, Line, Msg );
 		return;
 	}
 
@@ -339,7 +339,7 @@ void VARARGS FError::LowLevelFatal(const ANSICHAR* File, int32 Line, const TCHAR
 	StaticFailDebug(TEXT("LowLevelFatalError"),File,Line,DescriptionString);
 }
 
-void VARARGS FError::FinalLogf(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format/*=TEXT("")*/, ...)
+void VARARGS FDebug::AssertFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format/* = TEXT("")*/, ...)
 {
 	if (GIsCriticalError)
 	{

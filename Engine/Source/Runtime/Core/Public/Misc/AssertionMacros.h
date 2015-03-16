@@ -23,19 +23,19 @@
 #endif // !UE_BUILD_SHIPPING
 #if DO_CHECK
 	#define checkCode( Code )		do { Code } while ( false );
-	#define verify(expr)			{ if(!(expr)) { FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); _DebugBreakAndPromptForRemote(); FError::FinalLogf( #expr, __FILE__, __LINE__ ); CA_ASSUME(expr); } }
-	#define check(expr)				{ if(!(expr)) { FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); _DebugBreakAndPromptForRemote(); FError::FinalLogf( #expr, __FILE__, __LINE__ ); CA_ASSUME(expr); } }
+	#define verify(expr)			{ if(!(expr)) { FDebug::LogAssertFailedMessage( #expr, __FILE__, __LINE__ ); _DebugBreakAndPromptForRemote(); FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); CA_ASSUME(expr); } }
+	#define check(expr)				{ if(!(expr)) { FDebug::LogAssertFailedMessage( #expr, __FILE__, __LINE__ ); _DebugBreakAndPromptForRemote(); FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); CA_ASSUME(expr); } }
 	
 	/**
 	 * verifyf, checkf: Same as verify, check but with printf style additional parameters
 	 * Read about __VA_ARGS__ (variadic macros) on http://gcc.gnu.org/onlinedocs/gcc-3.4.4/cpp.pdf.
 	 */
-	#define verifyf(expr, format,  ...)		{ if(!(expr)) { FDebug::AssertFailed( #expr, __FILE__, __LINE__, format, ##__VA_ARGS__ ); _DebugBreakAndPromptForRemote(); FError::FinalLogf(#expr, __FILE__, __LINE__, format, ##__VA_ARGS__); CA_ASSUME(expr); } }
-	#define checkf(expr, format,  ...)		{ if(!(expr)) { FDebug::AssertFailed( #expr, __FILE__, __LINE__, format, ##__VA_ARGS__ ); _DebugBreakAndPromptForRemote(); FError::FinalLogf(#expr, __FILE__, __LINE__, format, ##__VA_ARGS__); CA_ASSUME(expr); } }
+	#define verifyf(expr, format,  ...)		{ if(!(expr)) { FDebug::LogAssertFailedMessage( #expr, __FILE__, __LINE__, format, ##__VA_ARGS__ ); _DebugBreakAndPromptForRemote(); FDebug::AssertFailed(#expr, __FILE__, __LINE__, format, ##__VA_ARGS__); CA_ASSUME(expr); } }
+	#define checkf(expr, format,  ...)		{ if(!(expr)) { FDebug::LogAssertFailedMessage( #expr, __FILE__, __LINE__, format, ##__VA_ARGS__ ); _DebugBreakAndPromptForRemote(); FDebug::AssertFailed(#expr, __FILE__, __LINE__, format, ##__VA_ARGS__); CA_ASSUME(expr); } }
 	/**
 	 * Denotes code paths that should never be reached.
 	 */
-	#define checkNoEntry()       { FDebug::AssertFailed( "Enclosing block should never be called", __FILE__, __LINE__ ); _DebugBreakAndPromptForRemote(); FError::FinalLogf("Enclosing block should never be called", __FILE__, __LINE__ ); }
+	#define checkNoEntry()       { FDebug::LogAssertFailedMessage( "Enclosing block should never be called", __FILE__, __LINE__ ); _DebugBreakAndPromptForRemote(); FDebug::AssertFailed("Enclosing block should never be called", __FILE__, __LINE__ ); }
 
 	/**
 	 * Denotes code paths that should not be executed more than once.
@@ -60,7 +60,7 @@
 	                            checkf( RecursionCounter##__LINE__ == 0, TEXT("Enclosing block was entered recursively") );  \
 	                            const FRecursionScopeMarker ScopeMarker##__LINE__( RecursionCounter##__LINE__ )
 
-	#define unimplemented()       { FDebug::AssertFailed( "Unimplemented function called", __FILE__, __LINE__ ); _DebugBreakAndPromptForRemote(); FError::FinalLogf("Unimplemented function called", __FILE__, __LINE__); }
+	#define unimplemented()       { FDebug::LogAssertFailedMessage( "Unimplemented function called", __FILE__, __LINE__ ); _DebugBreakAndPromptForRemote(); FDebug::AssertFailed("Unimplemented function called", __FILE__, __LINE__); }
 
 #else
 	#define checkCode(...)
@@ -78,9 +78,9 @@
 // Check for development only.
 //
 #if DO_GUARD_SLOW
-	#define checkSlow(expr)					{ if(!(expr)) { FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); _DebugBreakAndPromptForRemote(); FError::FinalLogf(#expr, __FILE__, __LINE__); CA_ASSUME(expr); } }
-	#define checkfSlow(expr, format, ...)	{ if(!(expr)) { FDebug::AssertFailed( #expr, __FILE__, __LINE__, format, ##__VA_ARGS__ ); _DebugBreakAndPromptForRemote(); FError::FinalLogf( #expr, __FILE__, __LINE__, format, ##__VA_ARGS__ ); CA_ASSUME(expr); } }
-	#define verifySlow(expr)				{ if(!(expr)) { FDebug::AssertFailed( #expr, __FILE__, __LINE__ ); _DebugBreakAndPromptForRemote(); FError::FinalLogf(#expr, __FILE__, __LINE__); } }
+	#define checkSlow(expr)					{ if(!(expr)) { FDebug::LogAssertFailedMessage( #expr, __FILE__, __LINE__ ); _DebugBreakAndPromptForRemote(); FDebug::AssertFailed(#expr, __FILE__, __LINE__); CA_ASSUME(expr); } }
+	#define checkfSlow(expr, format, ...)	{ if(!(expr)) { FDebug::LogAssertFailedMessage( #expr, __FILE__, __LINE__, format, ##__VA_ARGS__ ); _DebugBreakAndPromptForRemote(); FDebug::AssertFailed( #expr, __FILE__, __LINE__, format, ##__VA_ARGS__ ); CA_ASSUME(expr); } }
+	#define verifySlow(expr)				{ if(!(expr)) { FDebug::LogAssertFailedMessage( #expr, __FILE__, __LINE__ ); _DebugBreakAndPromptForRemote(); FDebug::AssertFailed(#expr, __FILE__, __LINE__); } }
 #else
 	#define checkSlow(expr)
 	#define checkfSlow(expr, format, ...)
@@ -186,7 +186,7 @@ struct FTCharArrayTester
 		static_assert(IS_TCHAR_ARRAY(Format), "Formatting string must be a TCHAR array."); \
 		FError::LowLevelFatal(__FILE__, __LINE__, Format, ##__VA_ARGS__); \
 		_DebugBreakAndPromptForRemote(); \
-		FError::FinalLogf("", __FILE__, __LINE__, Format, ##__VA_ARGS__); \
+		FDebug::AssertFailed("", __FILE__, __LINE__, Format, ##__VA_ARGS__); \
 	}
 
 
@@ -214,7 +214,7 @@ struct FTCharArrayTester
 		{ \
 			FError::LowLevelFatal(__FILE__, __LINE__, Format, ##__VA_ARGS__); \
 			_DebugBreakAndPromptForRemote(); \
-			FError::FinalLogf("", __FILE__, __LINE__, Format, ##__VA_ARGS__); \
+			FDebug::AssertFailed("", __FILE__, __LINE__, Format, ##__VA_ARGS__); \
 		} \
 	}
 	// Conditional logging (fatal errors only).
@@ -227,7 +227,7 @@ struct FTCharArrayTester
 			{ \
 				FError::LowLevelFatal(__FILE__, __LINE__, Format, ##__VA_ARGS__); \
 				_DebugBreakAndPromptForRemote(); \
-				FError::FinalLogf("", __FILE__, __LINE__, Format, ##__VA_ARGS__); \
+				FDebug::AssertFailed("", __FILE__, __LINE__, Format, ##__VA_ARGS__); \
 			} \
 		} \
 	}
@@ -290,7 +290,7 @@ struct FTCharArrayTester
 					if (ELogVerbosity::Verbosity == ELogVerbosity::Fatal) \
 					{\
 						_DebugBreakAndPromptForRemote(); \
-						FError::FinalLogf("", __FILE__, __LINE__, Format, ##__VA_ARGS__); \
+						FDebug::AssertFailed("", __FILE__, __LINE__, Format, ##__VA_ARGS__); \
 					}\
 				} \
 			} \
@@ -311,7 +311,7 @@ struct FTCharArrayTester
 						if (ELogVerbosity::Verbosity == ELogVerbosity::Fatal) \
 						{\
 							_DebugBreakAndPromptForRemote(); \
-							FError::FinalLogf("", __FILE__, __LINE__, Format, ##__VA_ARGS__); \
+							FDebug::AssertFailed("", __FILE__, __LINE__, Format, ##__VA_ARGS__); \
 						}\
 					} \
 				} \

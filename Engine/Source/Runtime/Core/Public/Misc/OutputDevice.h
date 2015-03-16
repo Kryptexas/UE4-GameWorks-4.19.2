@@ -388,12 +388,15 @@ struct CORE_API FMsg
  * These functions offer debugging and diagnostic functionality and its presence 
  * depends on compiler switches.
  **/
-#if DO_CHECK || DO_GUARD_SLOW
 struct CORE_API FDebug
 {
-	/** Failed assertion handler.  Warning: May be called at library startup time. */
-	static void VARARGS AssertFailed( const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format=TEXT(""), ... );
+	/** Logs final assert message and exits the program. */
+	static void VARARGS AssertFailed(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format = TEXT(""), ...);
 
+#if DO_CHECK || DO_GUARD_SLOW
+	/** Failed assertion handler.  Warning: May be called at library startup time. */
+	static void VARARGS LogAssertFailedMessage( const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format=TEXT(""), ... );
+	
 	/**
 	 * Called when an 'ensure' assertion fails; gathers stack data and generates and error report.
 	 *
@@ -438,9 +441,9 @@ struct CORE_API FDebug
 	 * @param	Line	Line number (__LINE__)
 	 * @param	FormattedMsg	Informative error message text with variable args
 	 */
-	static bool VARARGS EnsureNotFalseFormatted( bool bExpressionResult, const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* FormattedMsg, ... );
-};
+	static bool VARARGS EnsureNotFalseFormatted(bool bExpressionResult, const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* FormattedMsg, ...);
 #endif // DO_CHECK || DO_GUARD_SLOW
+};
 
 
 /** 
@@ -483,9 +486,6 @@ struct CORE_API FError
 	/** For throwing string-exceptions which safely propagate through guard/unguard. */
 	VARARG_DECL( static void VARARGS, static void, VARARG_NONE, Throwf, VARARG_NONE, const TCHAR*, VARARG_NONE, VARARG_NONE );
 	//@}
-
-	/** Outputs formatted error message and terminates program. */
-	static void VARARGS FinalLogf(const ANSICHAR* Expr, const ANSICHAR* File, int32 Line, const TCHAR* Format = TEXT(""), ...);
 };
 
 
