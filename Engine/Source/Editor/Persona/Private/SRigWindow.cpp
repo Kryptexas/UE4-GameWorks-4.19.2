@@ -346,17 +346,10 @@ void SRigWindow::CreateBoneMappingList( const FString& SearchText)
 			{
 				if(bDoFiltering)
 				{
-					if(!Name.ToString().Contains(SearchText))
+					// make sure it doens't fit any of them
+					if(!Name.ToString().Contains(SearchText) && !DisplayName.Contains(SearchText) && !BoneName.ToString().Contains(SearchText))
 					{
 						continue; // Skip items that don't match our filter
-					}
-					if(!DisplayName.Contains(SearchText))
-					{
-						continue;
-					}
-					if(!BoneName.ToString().Contains(SearchText))
-					{
-						continue;
 					}
 				}
 
