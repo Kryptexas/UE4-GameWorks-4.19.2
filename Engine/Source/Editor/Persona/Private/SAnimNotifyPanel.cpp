@@ -1333,6 +1333,9 @@ FReply SAnimNotifyNode::OnMouseMove( const FGeometry& MyGeometry, const FPointer
 
 		if(MouseEvent.GetScreenSpacePosition().X >= TrackScreenSpaceXPosition && MouseEvent.GetScreenSpacePosition().X <= TrackScreenSpaceXPosition + CachedAllotedGeometrySize.X)
 		{
+			const FScopedTransaction Transaction( LOCTEXT("AddNotifyEvent", "Edit Anim Notify") );
+			Sequence->Modify();
+
 			float NewDisplayTime = ScaleInfo.LocalXToInput((MouseEvent.GetScreenSpacePosition() - MyGeometry.AbsolutePosition + MyGeometry.Position).X);
 			float NewDuration = NotifyEvent->GetDuration() + OldDisplayTime - NewDisplayTime;
 
@@ -1347,6 +1350,9 @@ FReply SAnimNotifyNode::OnMouseMove( const FGeometry& MyGeometry, const FPointer
 		}
 		else if(NotifyEvent->GetDuration() > MinimumStateDuration)
 		{
+			const FScopedTransaction Transaction(LOCTEXT("AddNotifyEvent", "Edit Anim Notify"));
+			Sequence->Modify();
+
 			float Overflow = HandleOverflowPan(MouseEvent.GetScreenSpacePosition(), TrackScreenSpaceXPosition);
 
 			// Update scale info to the new view inputs after panning
@@ -1390,12 +1396,18 @@ FReply SAnimNotifyNode::OnMouseMove( const FGeometry& MyGeometry, const FPointer
 	{
 		if(MouseEvent.GetScreenSpacePosition().X >= TrackScreenSpaceXPosition && MouseEvent.GetScreenSpacePosition().X <= TrackScreenSpaceXPosition + CachedAllotedGeometrySize.X)
 		{
+			const FScopedTransaction Transaction(LOCTEXT("AddNotifyEvent", "Edit Anim Notify"));
+			Sequence->Modify();
+
 			float NewDuration = ScaleInfo.LocalXToInput((MouseEvent.GetScreenSpacePosition() - MyGeometry.AbsolutePosition + MyGeometry.Position).X) - NotifyEvent->GetTime();
 
 			NotifyEvent->SetDuration(FMath::Max(NewDuration, MinimumStateDuration));
 		}
 		else if(NotifyEvent->GetDuration() > MinimumStateDuration)
 		{
+			const FScopedTransaction Transaction(LOCTEXT("AddNotifyEvent", "Edit Anim Notify"));
+			Sequence->Modify();
+
 			float Overflow = HandleOverflowPan(MouseEvent.GetScreenSpacePosition(), TrackScreenSpaceXPosition);
 
 			// Update scale info to the new view inputs after panning
