@@ -1205,6 +1205,7 @@ void UAnimSequence::RetargetBoneTransform(FTransform& BoneTransform, const int32
 	}
 }
 
+#if WITH_EDITOR
 /** Utility function to crop data from a RawAnimSequenceTrack */
 static int32 CropRawTrack(FRawAnimSequenceTrack& RawTrack, int32 StartKey, int32 NumKeys, int32 TotalNumOfFrames)
 {
@@ -1634,6 +1635,7 @@ void UAnimSequence::FlipRotationWForNonRoot(USkeletalMesh * SkelMesh)
 	// Apply compression
 	FAnimationUtils::CompressAnimSequence(this, false, false);
 }
+#endif 
 
 void UAnimSequence::RecycleAnimSequence()
 {
@@ -2509,6 +2511,7 @@ void UAnimSequence::RemoveNaNTracks()
 		FAnimationUtils::CompressAnimSequence(this, false, false);
 	}
 }
+
 
 void UAnimSequence::RemoveTrack(int32 TrackIndex)
 {
@@ -3494,10 +3497,6 @@ bool UAnimSequence::CreateAnimation(UAnimSequence * Sequence)
 	return false;
 }
 
-bool UAnimSequence::Resize(int32 Start, int32 End)
-{
-	return false;
-}
 #endif
 /*-----------------------------------------------------------------------------
 	AnimNotify& subclasses

@@ -333,6 +333,7 @@ void FRawCurveTracks::Resize(float TotalLength)
 		Curve.Resize(TotalLength);
 	}
 
+#if WITH_EDITORONLY_DATA
 	for(auto& Curve: VectorCurves)
 	{
 		Curve.Resize(TotalLength);
@@ -342,6 +343,7 @@ void FRawCurveTracks::Resize(float TotalLength)
 	{
 		Curve.Resize(TotalLength);
 	}
+#endif
 }
 
 void FRawCurveTracks::Serialize(FArchive& Ar)
