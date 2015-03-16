@@ -187,7 +187,8 @@ int32 FIOSTargetPlatform::CheckRequirements(const FString& ProjectPath, bool bPr
 
 void FIOSTargetPlatform::PingNetworkDevices()
 {
-	if (!MessageEndpoint.IsValid())
+	// disabled for now because we find IOS devices from the USB, this is a relic from ULD, but it may be needed in the future
+/*	if (!MessageEndpoint.IsValid())
 	{
 		MessageEndpoint = FMessageEndpoint::Builder("FIOSTargetPlatform")
 			.Handling<FIOSLaunchDaemonPong>(this, &FIOSTargetPlatform::HandlePongMessage);
@@ -210,7 +211,7 @@ void FIOSTargetPlatform::PingNetworkDevices()
 			DeviceIt.RemoveCurrent();
 			DeviceLostEvent.Broadcast(Device.ToSharedRef());
 		}
-	}
+	}*/
 }
 
 
