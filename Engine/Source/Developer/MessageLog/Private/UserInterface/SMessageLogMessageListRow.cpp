@@ -218,9 +218,16 @@ void SMessageLogMessageListRow::CreateMessage(const TSharedRef<SHorizontalBox>& 
 
 	case EMessageToken::Text:
 	{
-		Content = SNew(STextBlock)
-			.ColorAndOpacity(FSlateColor::UseSubduedForeground())
-			.Text(InMessageToken->ToText());
+		if (InMessageToken->GetOnMessageTokenActivated().IsBound())
+		{
+			Content = CreateHyperlink(InMessageToken, InMessageToken->ToText());
+		}
+		else
+		{
+			Content = SNew(STextBlock)
+				.ColorAndOpacity(FSlateColor::UseSubduedForeground())
+				.Text(InMessageToken->ToText());
+		}
 	}
 		break;
 
