@@ -903,7 +903,7 @@ void FSlateApplication::TickWindowAndChildren( TSharedRef<SWindow> WindowToTick 
 
 		if (WindowToTick->IsAutosized())
 		{
-			WindowToTick->ReshapeWindow(WindowToTick->GetPositionInScreen(), WindowToTick->GetDesiredSize());
+			WindowToTick->Resize(WindowToTick->GetDesiredSize());
 		}
 
 		{
@@ -1059,7 +1059,7 @@ static void PrepassWindowAndChildren( TSharedRef<SWindow> WindowToPrepass )
 
 	if (WindowToPrepass->IsAutosized())
 	{
-		WindowToPrepass->ReshapeWindow(WindowToPrepass->GetPositionInScreen(), WindowToPrepass->GetDesiredSize());
+		WindowToPrepass->Resize(WindowToPrepass->GetDesiredSize());
 	}
 
 	for (const TSharedRef<SWindow>& ChildWindow : WindowToPrepass->GetChildWindows() )
