@@ -3847,7 +3847,7 @@ FSCSEditorTreeNodePtrType SSCSEditor::GetNodeFromActorComponent(const UActorComp
 			{
 				// Get the component owner's class object
 				check(ActorComponent->GetOwner() != NULL);
-				UClass* OwnerClass = ActorComponent->GetOwner()->GetActorClass();
+				UClass* OwnerClass = ActorComponent->GetOwner()->GetClass();
 
 				// If the given component is one that's created during Blueprint construction
 				if (ActorComponent->IsCreatedByConstructionScript())

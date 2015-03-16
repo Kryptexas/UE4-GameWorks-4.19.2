@@ -121,7 +121,7 @@ void UGameplayCueManager::HandleGameplayCueNotify_Internal(AActor* TargetActor, 
 				{
 					// We don't have an instance for this, and we need one, so make one
 					//SpawnedInstancedCue = static_cast<AGameplayCueNotify_Actor*>(StaticDuplicateObject(InstancedCue, this, TEXT("None"), ~RF_RootSet));
-					SpawnedInstancedCue = TargetActor->GetWorld()->SpawnActor<AGameplayCueNotify_Actor>(InstancedCue->GetActorClass(), TargetActor->GetActorLocation(), TargetActor->GetActorRotation());
+					SpawnedInstancedCue = TargetActor->GetWorld()->SpawnActor<AGameplayCueNotify_Actor>(InstancedCue->GetClass(), TargetActor->GetActorLocation(), TargetActor->GetActorRotation());
 					auto& InnerMap = NotifyMapActor.FindOrAdd(TargetActor);
 					InnerMap.Add(DataIdx) = SpawnedInstancedCue;
 				}

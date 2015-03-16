@@ -118,7 +118,7 @@ bool FComponentEditorUtils::CanEditNativeComponent(const UActorComponent* Native
 
 	bool bCanEdit = false;
 	
-	UClass* OwnerClass = (NativeComponent && NativeComponent->GetOwner()) ? NativeComponent->GetOwner()->GetActorClass() : nullptr;
+	UClass* OwnerClass = (NativeComponent && NativeComponent->GetOwner()) ? NativeComponent->GetOwner()->GetClass() : nullptr;
 	if (OwnerClass != nullptr)
 	{
 		// If the owner is a blueprint generated class, use the BP parent class

@@ -2373,7 +2373,7 @@ public:
 // DEPRECATED FUNCTIONS
 
 	/** Get the class of this Actor. */
-	UFUNCTION(BlueprintCallable, meta=(DeprecatedFunction, FriendlyName = "GetActorClass"), Category="Class")
+	DEPRECATED(4.8, "Use GetClass() instead of GetActorClass()")
 	class UClass* GetActorClass() const;
 };
 
