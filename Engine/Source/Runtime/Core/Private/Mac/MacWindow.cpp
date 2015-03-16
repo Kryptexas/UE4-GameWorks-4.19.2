@@ -35,9 +35,8 @@ void FMacWindow::Initialize( FMacApplication* const Application, const TSharedRe
 	int32 Y = FMath::TruncToInt( Definition->YDesiredPositionOnScreen );
 
 	// Make sure it's not under the menu bar on whatever display being targeted
-	const int32 ScreenHeight = FMath::TruncToInt( [TargetScreen frame].size.height );
-	const int32 VisibleHeight = FMath::TruncToInt( [TargetScreen visibleFrame].origin.y + [TargetScreen visibleFrame].size.height );
-	Y = FMath::Max( Y, ScreenHeight - VisibleHeight );
+	const int32 MaxVisibleY = FPlatformMisc::ConvertCocoaYPositionToSlate([TargetScreen visibleFrame].origin.y + [TargetScreen visibleFrame].size.height);
+	Y = (Y - MaxVisibleY) >= 0 ? Y : MaxVisibleY;
 
 	const int32 SizeX = FMath::Max(FMath::TruncToInt( Definition->WidthDesiredOnScreen ), 1);
 	const int32 SizeY = FMath::Max(FMath::TruncToInt( Definition->HeightDesiredOnScreen ), 1);
@@ -480,8 +479,10 @@ bool FMacWindow::IsPointInWindow( int32 X, int32 Y ) const
 	if(![WindowHandle isMiniaturized])
 	{
 		NSRect WindowFrame = [WindowHandle frame];
+		WindowFrame.size = [WindowHandle openGLFrame].size;
 		NSRect VisibleFrame = WindowFrame;
 		VisibleFrame.origin = NSMakePoint(0, 0);
+
 		// Only the editor needs to handle the space-per-display logic introduced in Mavericks.
 	#if WITH_EDITOR
 		// Only fetch the spans-displays once - it requires a log-out to change.
@@ -499,8 +500,8 @@ bool FMacWindow::IsPointInWindow( int32 X, int32 Y ) const
 			NSRect ScreenFrame = [[WindowHandle screen] frame];
 			NSRect Intersection = NSIntersectionRect(ScreenFrame, WindowFrame);
 			VisibleFrame.size = Intersection.size;
-			VisibleFrame.origin.x = WindowFrame.origin.x < ScreenFrame.origin.x ? (ScreenFrame.origin.x - WindowFrame.origin.x) : 0;
-			VisibleFrame.origin.y = (WindowFrame.origin.y + WindowFrame.size.height) > (ScreenFrame.origin.y + ScreenFrame.size.height) ? (WindowFrame.size.height - Intersection.size.height) : 0;
+			VisibleFrame.origin.x = Intersection.origin.x - WindowFrame.origin.x;
+			VisibleFrame.origin.y = Intersection.origin.y - WindowFrame.origin.y;
 		}
 	#endif
 		
@@ -508,7 +509,8 @@ bool FMacWindow::IsPointInWindow( int32 X, int32 Y ) const
 		{
 			FMacCursor* MacCursor = (FMacCursor*)MacApplication->Cursor.Get();
 			FVector2D MouseScale = MacCursor ? MacCursor->GetMouseScaling() : FVector2D(1.0f, 1.0f);
-			PointInWindow = (NSPointInRect(NSMakePoint(X / MouseScale.X, Y / MouseScale.Y), VisibleFrame) == YES);
+			NSPoint CursorPoint = NSMakePoint((X / MouseScale.X), (WindowFrame.size.height - ((Y / MouseScale.Y) + 1)));
+			PointInWindow = (NSPointInRect(CursorPoint, VisibleFrame) == YES);
 		}
 	}
 	return PointInWindow;

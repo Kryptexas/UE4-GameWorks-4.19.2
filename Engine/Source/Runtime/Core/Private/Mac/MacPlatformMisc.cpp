@@ -1145,6 +1145,25 @@ int32 FMacPlatformMisc::ConvertSlateYPositionToCocoa(int32 YPosition)
 	return -((YPosition - WholeWorkspaceOrigin) - WholeWorkspaceHeight + 1);
 }
 
+int32 FMacPlatformMisc::ConvertCocoaYPositionToSlate(int32 YPosition)
+{
+    NSArray* AllScreens = [NSScreen screens];
+    NSScreen* PrimaryScreen = (NSScreen*)[AllScreens objectAtIndex: 0];
+    NSRect ScreenFrame = [PrimaryScreen frame];
+    NSRect WholeWorkspace = {{0,0},{0,0}};
+    for(NSScreen* Screen in AllScreens)
+    {
+        if(Screen)
+        {
+            WholeWorkspace = NSUnionRect(WholeWorkspace, [Screen frame]);
+        }
+    }
+    
+    CGFloat const OffsetToPrimary = ((ScreenFrame.origin.y + ScreenFrame.size.height) - (WholeWorkspace.origin.y + WholeWorkspace.size.height));
+    CGFloat const OffsetToWorkspace = (WholeWorkspace.size.height - (YPosition)) + WholeWorkspace.origin.y;
+    return OffsetToWorkspace + OffsetToPrimary;
+}
+
 
 FString FMacPlatformMisc::GetDefaultLocale()
 {

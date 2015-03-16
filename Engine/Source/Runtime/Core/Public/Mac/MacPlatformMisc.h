@@ -152,7 +152,16 @@ struct CORE_API FMacPlatformMisc : public FGenericPlatformMisc
 	 *
 	 * @return					Converted position
 	 */
-	static int32 ConvertSlateYPositionToCocoa(int32 YPosition);
+    static int32 ConvertSlateYPositionToCocoa(int32 YPosition);
+    
+    /**
+     * Converts Y position from Cocoa (left-bottom origin) to Slate (left-top origin) coordinates
+     *
+     * @param	YPosition		Position to convert
+     *
+     * @return					Converted position
+     */
+    static int32 ConvertCocoaYPositionToSlate(int32 YPosition);
 	
 	static void SetGracefulTerminationHandler();
 	

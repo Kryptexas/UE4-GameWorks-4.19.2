@@ -1258,7 +1258,12 @@ void FMacApplication::OnWindowDidMove( FCocoaWindow* Window )
 	NSRect OpenGLFrame = [Window openGLFrame];
 	
 	const int32 X = (int32)WindowFrame.origin.x;
-	const int32 Y = ([Window windowMode] != EWindowMode::Fullscreen) ? FPlatformMisc::ConvertSlateYPositionToCocoa( (int32)WindowFrame.origin.y ) - OpenGLFrame.size.height + 1 : 0;
+	int32 Y = 0;
+    
+    if ([Window windowMode] != EWindowMode::Fullscreen)
+    {
+        Y = FPlatformMisc::ConvertCocoaYPositionToSlate(WindowFrame.origin.y + WindowFrame.size.height) + (OpenGLFrame.size.height - WindowFrame.size.height);
+    }
 	
 	TSharedPtr< FMacWindow > EventWindow = FindWindowByNSWindow( Windows, &WindowsMutex, Window );
 	if (EventWindow.IsValid())
